@@ -11,79 +11,17 @@
 
 
 
-#define PNG_INTERNAL
 #define PNG_NO_EXTERN
+#define PNG_NO_PEDANTIC_WARNINGS
 #include "png.h"
+#include "pngpriv.h"
 
 
-typedef version_1_2_40 Your_png_h_is_not_version_1_2_40;
-
-
-
-
-#ifdef PNG_USE_GLOBAL_ARRAYS
-
-PNG_CONST char png_libpng_ver[18] = PNG_LIBPNG_VER_STRING;
-
-#ifdef PNG_READ_SUPPORTED
-
-
-
-PNG_CONST png_byte FARDATA png_sig[8] = {137, 80, 78, 71, 13, 10, 26, 10};
-#endif 
-
-
-PNG_IHDR;
-PNG_IDAT;
-PNG_IEND;
-PNG_PLTE;
-PNG_bKGD;
-PNG_cHRM;
-PNG_gAMA;
-PNG_hIST;
-PNG_iCCP;
-PNG_iTXt;
-PNG_oFFs;
-PNG_pCAL;
-PNG_sCAL;
-PNG_pHYs;
-PNG_sBIT;
-PNG_sPLT;
-PNG_sRGB;
-PNG_tEXt;
-PNG_tIME;
-PNG_tRNS;
-PNG_zTXt;
-
-#ifdef PNG_READ_SUPPORTED
-
-
-
-PNG_CONST int FARDATA png_pass_start[] = {0, 4, 0, 2, 0, 1, 0};
-
-
-PNG_CONST int FARDATA png_pass_inc[] = {8, 8, 4, 4, 2, 2, 1};
-
-
-PNG_CONST int FARDATA png_pass_ystart[] = {0, 0, 4, 0, 2, 0, 1};
-
-
-PNG_CONST int FARDATA png_pass_yinc[] = {8, 8, 8, 4, 4, 2, 2};
+typedef version_1_4_0 Your_png_h_is_not_version_1_4_0;
 
 
 
 
-
-
-
-PNG_CONST int FARDATA png_pass_mask[] = {0x80, 0x08, 0x88, 0x22, 0xaa, 0x55, 0xff};
-
-
-PNG_CONST int FARDATA png_pass_dsp_mask[]
-   = {0xff, 0x0f, 0xff, 0x33, 0xff, 0x55, 0xff};
-
-#endif 
-#endif 
 
 
 
@@ -95,11 +33,13 @@ PNG_CONST int FARDATA png_pass_dsp_mask[]
 void PNGAPI
 png_set_sig_bytes(png_structp png_ptr, int num_bytes)
 {
+   png_debug(1, "in png_set_sig_bytes");
+
    if (png_ptr == NULL)
       return;
-   png_debug(1, "in png_set_sig_bytes");
+
    if (num_bytes > 8)
-      png_error(png_ptr, "Too many bytes for PNG signature.");
+      png_error(png_ptr, "Too many bytes for PNG signature");
 
    png_ptr->sig_bytes = (png_byte)(num_bytes < 0 ? 0 : num_bytes);
 }
@@ -130,32 +70,17 @@ png_sig_cmp(png_bytep sig, png_size_t start, png_size_t num_to_check)
    return ((int)(png_memcmp(&sig[start], &png_signature[start], num_to_check)));
 }
 
-#if defined(PNG_1_0_X) || defined(PNG_1_2_X)
-
-
-
-
-int PNGAPI
-png_check_sig(png_bytep sig, int num)
-{
-  return ((int)!png_sig_cmp(sig, (png_size_t)0, (png_size_t)num));
-}
-#endif
 #endif 
 
 #if defined(PNG_READ_SUPPORTED) || defined(PNG_WRITE_SUPPORTED)
 
-#ifdef PNG_1_0_X
-voidpf PNGAPI
-#else
 voidpf 
-#endif
 png_zalloc(voidpf png_ptr, uInt items, uInt size)
 {
    png_voidp ptr;
    png_structp p=(png_structp)png_ptr;
    png_uint_32 save_flags=p->flags;
-   png_uint_32 num_bytes;
+   png_alloc_size_t num_bytes;
 
    if (png_ptr == NULL)
       return (NULL);
@@ -164,36 +89,17 @@ png_zalloc(voidpf png_ptr, uInt items, uInt size)
      png_warning (p, "Potential overflow in png_zalloc()");
      return (NULL);
    }
-   num_bytes = (png_uint_32)items * size;
+   num_bytes = (png_alloc_size_t)items * size;
 
    p->flags|=PNG_FLAG_MALLOC_NULL_MEM_OK;
    ptr = (png_voidp)png_malloc((png_structp)png_ptr, num_bytes);
    p->flags=save_flags;
 
-#if defined(PNG_1_0_X) && !defined(PNG_NO_ZALLOC_ZERO)
-   if (ptr == NULL)
-       return ((voidpf)ptr);
-
-   if (num_bytes > (png_uint_32)0x8000L)
-   {
-      png_memset(ptr, 0, (png_size_t)0x8000L);
-      png_memset((png_bytep)ptr + (png_size_t)0x8000L, 0,
-         (png_size_t)(num_bytes - (png_uint_32)0x8000L));
-   }
-   else
-   {
-      png_memset(ptr, 0, (png_size_t)num_bytes);
-   }
-#endif
    return ((voidpf)ptr);
 }
 
 
-#ifdef PNG_1_0_X
-void PNGAPI
-#else
 void 
-#endif
 png_zfree(voidpf png_ptr, voidpf ptr)
 {
    png_free((png_structp)png_ptr, (png_voidp)ptr);
@@ -246,8 +152,10 @@ png_create_info_struct(png_structp png_ptr)
    png_infop info_ptr;
 
    png_debug(1, "in png_create_info_struct");
+
    if (png_ptr == NULL)
       return (NULL);
+
 #ifdef PNG_USER_MEM_SUPPORTED
    info_ptr = (png_infop)png_create_struct_2(PNG_STRUCT_INFO,
       png_ptr->malloc_fn, png_ptr->mem_ptr);
@@ -269,10 +177,12 @@ void PNGAPI
 png_destroy_info_struct(png_structp png_ptr, png_infopp info_ptr_ptr)
 {
    png_infop info_ptr = NULL;
+
+   png_debug(1, "in png_destroy_info_struct");
+
    if (png_ptr == NULL)
       return;
 
-   png_debug(1, "in png_destroy_info_struct");
    if (info_ptr_ptr != NULL)
       info_ptr = *info_ptr_ptr;
 
@@ -294,25 +204,16 @@ png_destroy_info_struct(png_structp png_ptr, png_infopp info_ptr_ptr)
 
 
 
-#if defined(PNG_1_0_X) || defined(PNG_1_2_X)
-#undef png_info_init
-void PNGAPI
-png_info_init(png_infop info_ptr)
-{
-   
-   png_info_init_3(&info_ptr, 0);
-}
-#endif
 
 void PNGAPI
 png_info_init_3(png_infopp ptr_ptr, png_size_t png_info_struct_size)
 {
    png_infop info_ptr = *ptr_ptr;
 
+   png_debug(1, "in png_info_init_3");
+
    if (info_ptr == NULL)
       return;
-
-   png_debug(1, "in png_info_init_3");
 
    if (png_sizeof(png_info) > png_info_struct_size)
    {
@@ -325,39 +226,36 @@ png_info_init_3(png_infopp ptr_ptr, png_size_t png_info_struct_size)
    png_memset(info_ptr, 0, png_sizeof(png_info));
 }
 
-#ifdef PNG_FREE_ME_SUPPORTED
 void PNGAPI
 png_data_freer(png_structp png_ptr, png_infop info_ptr,
    int freer, png_uint_32 mask)
 {
    png_debug(1, "in png_data_freer");
+
    if (png_ptr == NULL || info_ptr == NULL)
       return;
+
    if (freer == PNG_DESTROY_WILL_FREE_DATA)
       info_ptr->free_me |= mask;
    else if (freer == PNG_USER_WILL_FREE_DATA)
       info_ptr->free_me &= ~mask;
    else
       png_warning(png_ptr,
-         "Unknown freer parameter in png_data_freer.");
+         "Unknown freer parameter in png_data_freer");
 }
-#endif
 
 void PNGAPI
 png_free_data(png_structp png_ptr, png_infop info_ptr, png_uint_32 mask,
    int num)
 {
    png_debug(1, "in png_free_data");
+
    if (png_ptr == NULL || info_ptr == NULL)
       return;
 
-#if defined(PNG_TEXT_SUPPORTED)
+#ifdef PNG_TEXT_SUPPORTED
    
-#ifdef PNG_FREE_ME_SUPPORTED
    if ((mask & PNG_FREE_TEXT) & info_ptr->free_me)
-#else
-   if (mask & PNG_FREE_TEXT)
-#endif
    {
       if (num != -1)
       {
@@ -379,30 +277,19 @@ png_free_data(png_structp png_ptr, png_infop info_ptr, png_uint_32 mask,
    }
 #endif
 
-#if defined(PNG_tRNS_SUPPORTED)
+#ifdef PNG_tRNS_SUPPORTED
    
-#ifdef PNG_FREE_ME_SUPPORTED
    if ((mask & PNG_FREE_TRNS) & info_ptr->free_me)
-#else
-   if ((mask & PNG_FREE_TRNS) && (png_ptr->flags & PNG_FLAG_FREE_TRNS))
-#endif
    {
-      png_free(png_ptr, info_ptr->trans);
-      info_ptr->trans = NULL;
+      png_free(png_ptr, info_ptr->trans_alpha);
+      info_ptr->trans_alpha = NULL;
       info_ptr->valid &= ~PNG_INFO_tRNS;
-#ifndef PNG_FREE_ME_SUPPORTED
-      png_ptr->flags &= ~PNG_FLAG_FREE_TRNS;
-#endif
    }
 #endif
 
-#if defined(PNG_sCAL_SUPPORTED)
+#ifdef PNG_sCAL_SUPPORTED
    
-#ifdef PNG_FREE_ME_SUPPORTED
    if ((mask & PNG_FREE_SCAL) & info_ptr->free_me)
-#else
-   if (mask & PNG_FREE_SCAL)
-#endif
    {
 #if defined(PNG_FIXED_POINT_SUPPORTED) && !defined(PNG_FLOATING_POINT_SUPPORTED)
       png_free(png_ptr, info_ptr->scal_s_width);
@@ -414,13 +301,9 @@ png_free_data(png_structp png_ptr, png_infop info_ptr, png_uint_32 mask,
    }
 #endif
 
-#if defined(PNG_pCAL_SUPPORTED)
+#ifdef PNG_pCAL_SUPPORTED
    
-#ifdef PNG_FREE_ME_SUPPORTED
    if ((mask & PNG_FREE_PCAL) & info_ptr->free_me)
-#else
-   if (mask & PNG_FREE_PCAL)
-#endif
    {
       png_free(png_ptr, info_ptr->pcal_purpose);
       png_free(png_ptr, info_ptr->pcal_units);
@@ -432,7 +315,7 @@ png_free_data(png_structp png_ptr, png_infop info_ptr, png_uint_32 mask,
             for (i = 0; i < (int)info_ptr->pcal_nparams; i++)
             {
                png_free(png_ptr, info_ptr->pcal_params[i]);
-               info_ptr->pcal_params[i]=NULL;
+               info_ptr->pcal_params[i] = NULL;
             }
             png_free(png_ptr, info_ptr->pcal_params);
             info_ptr->pcal_params = NULL;
@@ -441,13 +324,9 @@ png_free_data(png_structp png_ptr, png_infop info_ptr, png_uint_32 mask,
    }
 #endif
 
-#if defined(PNG_iCCP_SUPPORTED)
+#ifdef PNG_iCCP_SUPPORTED
    
-#ifdef PNG_FREE_ME_SUPPORTED
    if ((mask & PNG_FREE_ICCP) & info_ptr->free_me)
-#else
-   if (mask & PNG_FREE_ICCP)
-#endif
    {
       png_free(png_ptr, info_ptr->iccp_name);
       png_free(png_ptr, info_ptr->iccp_profile);
@@ -457,13 +336,9 @@ png_free_data(png_structp png_ptr, png_infop info_ptr, png_uint_32 mask,
    }
 #endif
 
-#if defined(PNG_sPLT_SUPPORTED)
+#ifdef PNG_sPLT_SUPPORTED
    
-#ifdef PNG_FREE_ME_SUPPORTED
    if ((mask & PNG_FREE_SPLT) & info_ptr->free_me)
-#else
-   if (mask & PNG_FREE_SPLT)
-#endif
    {
       if (num != -1)
       {
@@ -492,18 +367,14 @@ png_free_data(png_structp png_ptr, png_infop info_ptr, png_uint_32 mask,
    }
 #endif
 
-#if defined(PNG_UNKNOWN_CHUNKS_SUPPORTED)
+#ifdef PNG_UNKNOWN_CHUNKS_SUPPORTED
    if (png_ptr->unknown_chunk.data)
    {
       png_free(png_ptr, png_ptr->unknown_chunk.data);
       png_ptr->unknown_chunk.data = NULL;
    }
 
-#ifdef PNG_FREE_ME_SUPPORTED
    if ((mask & PNG_FREE_UNKN) & info_ptr->free_me)
-#else
-   if (mask & PNG_FREE_UNKN)
-#endif
    {
       if (num != -1)
       {
@@ -530,46 +401,28 @@ png_free_data(png_structp png_ptr, png_infop info_ptr, png_uint_32 mask,
    }
 #endif
 
-#if defined(PNG_hIST_SUPPORTED)
+#ifdef PNG_hIST_SUPPORTED
    
-#ifdef PNG_FREE_ME_SUPPORTED
    if ((mask & PNG_FREE_HIST)  & info_ptr->free_me)
-#else
-   if ((mask & PNG_FREE_HIST) && (png_ptr->flags & PNG_FLAG_FREE_HIST))
-#endif
    {
       png_free(png_ptr, info_ptr->hist);
       info_ptr->hist = NULL;
       info_ptr->valid &= ~PNG_INFO_hIST;
-#ifndef PNG_FREE_ME_SUPPORTED
-      png_ptr->flags &= ~PNG_FLAG_FREE_HIST;
-#endif
    }
 #endif
 
    
-#ifdef PNG_FREE_ME_SUPPORTED
    if ((mask & PNG_FREE_PLTE) & info_ptr->free_me)
-#else
-   if ((mask & PNG_FREE_PLTE) && (png_ptr->flags & PNG_FLAG_FREE_PLTE))
-#endif
    {
       png_zfree(png_ptr, info_ptr->palette);
       info_ptr->palette = NULL;
       info_ptr->valid &= ~PNG_INFO_PLTE;
-#ifndef PNG_FREE_ME_SUPPORTED
-      png_ptr->flags &= ~PNG_FLAG_FREE_PLTE;
-#endif
       info_ptr->num_palette = 0;
    }
 
-#if defined(PNG_INFO_IMAGE_SUPPORTED)
+#ifdef PNG_INFO_IMAGE_SUPPORTED
    
-#ifdef PNG_FREE_ME_SUPPORTED
    if ((mask & PNG_FREE_ROWS) & info_ptr->free_me)
-#else
-   if (mask & PNG_FREE_ROWS)
-#endif
    {
       if (info_ptr->row_pointers)
       {
@@ -577,21 +430,19 @@ png_free_data(png_structp png_ptr, png_infop info_ptr, png_uint_32 mask,
          for (row = 0; row < (int)info_ptr->height; row++)
          {
             png_free(png_ptr, info_ptr->row_pointers[row]);
-            info_ptr->row_pointers[row]=NULL;
+            info_ptr->row_pointers[row] = NULL;
          }
          png_free(png_ptr, info_ptr->row_pointers);
-         info_ptr->row_pointers=NULL;
+         info_ptr->row_pointers = NULL;
       }
       info_ptr->valid &= ~PNG_INFO_IDAT;
    }
 #endif
 
-#ifdef PNG_FREE_ME_SUPPORTED
    if (num == -1)
       info_ptr->free_me &= ~mask;
    else
       info_ptr->free_me &= ~(mask & ~PNG_FREE_MUL);
-#endif
 }
 
 
@@ -605,11 +456,11 @@ png_info_destroy(png_structp png_ptr, png_infop info_ptr)
 
    png_free_data(png_ptr, info_ptr, PNG_FREE_ALL, -1);
 
-#if defined(PNG_HANDLE_AS_UNKNOWN_SUPPORTED)
+#ifdef PNG_HANDLE_AS_UNKNOWN_SUPPORTED
    if (png_ptr->num_chunk_list)
    {
       png_free(png_ptr, png_ptr->chunk_list);
-      png_ptr->chunk_list=NULL;
+      png_ptr->chunk_list = NULL;
       png_ptr->num_chunk_list = 0;
    }
 #endif
@@ -631,7 +482,7 @@ png_get_io_ptr(png_structp png_ptr)
 }
 
 #if defined(PNG_READ_SUPPORTED) || defined(PNG_WRITE_SUPPORTED)
-#if !defined(PNG_NO_STDIO)
+#ifdef PNG_STDIO_SUPPORTED
 
 
 
@@ -642,13 +493,15 @@ void PNGAPI
 png_init_io(png_structp png_ptr, png_FILE_p fp)
 {
    png_debug(1, "in png_init_io");
+
    if (png_ptr == NULL)
       return;
+
    png_ptr->io_ptr = (png_voidp)fp;
 }
 #endif
 
-#if defined(PNG_TIME_RFC1123_SUPPORTED)
+#ifdef PNG_TIME_RFC1123_SUPPORTED
 
 
 
@@ -667,17 +520,6 @@ png_convert_to_rfc1123(png_structp png_ptr, png_timep ptime)
          png_sizeof(char)));
    }
 
-#if defined(_WIN32_WCE)
-   {
-      wchar_t time_buf[29];
-      wsprintf(time_buf, TEXT("%d %S %d %02d:%02d:%02d +0000"),
-          ptime->day % 32, short_months[(ptime->month - 1) % 12],
-        ptime->year, ptime->hour % 24, ptime->minute % 60,
-          ptime->second % 61);
-      WideCharToMultiByte(CP_ACP, 0, time_buf, -1, png_ptr->time_buffer, 29,
-          NULL, NULL);
-   }
-#else
 #ifdef USE_FAR_KEYWORD
    {
       char near_time_buf[29];
@@ -694,7 +536,6 @@ png_convert_to_rfc1123(png_structp png_ptr, png_timep ptime)
        ptime->year, ptime->hour % 24, ptime->minute % 60,
        ptime->second % 61);
 #endif
-#endif 
    return ((png_charp)png_ptr->time_buffer);
 }
 #endif 
@@ -705,10 +546,23 @@ png_charp PNGAPI
 png_get_copyright(png_structp png_ptr)
 {
    png_ptr = png_ptr;  
-   return ((png_charp) "\n libpng version 1.2.40 - September 10, 2009\n\
-   Copyright (c) 1998-2009 Glenn Randers-Pehrson\n\
-   Copyright (c) 1996-1997 Andreas Dilger\n\
-   Copyright (c) 1995-1996 Guy Eric Schalnat, Group 42, Inc.\n");
+#ifdef PNG_STRING_COPYRIGHT
+      return PNG_STRING_COPYRIGHT
+#else
+#ifdef __STDC__
+   return ((png_charp) PNG_STRING_NEWLINE \
+     "libpng version 1.4.0 - January 3, 2010" PNG_STRING_NEWLINE \
+     "Copyright (c) 1998-2010 Glenn Randers-Pehrson" PNG_STRING_NEWLINE \
+     "Copyright (c) 1996-1997 Andreas Dilger" PNG_STRING_NEWLINE \
+     "Copyright (c) 1995-1996 Guy Eric Schalnat, Group 42, Inc." \
+     PNG_STRING_NEWLINE);
+#else
+      return ((png_charp) "libpng version 1.4.0 - January 3, 2010\
+      Copyright (c) 1998-2010 Glenn Randers-Pehrson\
+      Copyright (c) 1996-1997 Andreas Dilger\
+      Copyright (c) 1995-1996 Guy Eric Schalnat, Group 42, Inc.");
+#endif
+#endif
 }
 
 
@@ -740,11 +594,15 @@ png_get_header_version(png_structp png_ptr)
 {
    
    png_ptr = png_ptr;  
+#ifdef __STDC__
    return ((png_charp) PNG_HEADER_VERSION_STRING
 #ifndef PNG_READ_SUPPORTED
    "     (NO READ SUPPORT)"
 #endif
-   "\n");
+   PNG_STRING_NEWLINE);
+#else
+   return ((png_charp) PNG_HEADER_VERSION_STRING);
+#endif
 }
 
 #if defined(PNG_READ_SUPPORTED) || defined(PNG_WRITE_SUPPORTED)
@@ -784,17 +642,6 @@ png_access_version_number(void)
 }
 
 
-#if defined(PNG_READ_SUPPORTED) && defined(PNG_ASSEMBLER_CODE_SUPPORTED)
-#if !defined(PNG_1_0_X)
-
-int PNGAPI
-png_mmx_support(void)
-{
-   
-    return -1;
-}
-#endif 
-#endif 
 
 #if defined(PNG_READ_SUPPORTED) || defined(PNG_WRITE_SUPPORTED)
 #ifdef PNG_SIZE_T
@@ -810,8 +657,8 @@ png_convert_size(size_t size)
 #endif 
 
 
-#if defined(PNG_cHRM_SUPPORTED)
-#if !defined(PNG_NO_CHECK_cHRM)
+#ifdef PNG_cHRM_SUPPORTED
+#ifdef PNG_CHECK_cHRM_SUPPORTED
 
 
 
@@ -863,6 +710,7 @@ png_check_cHRM_fixed(png_structp png_ptr,
    unsigned long xy_hi,xy_lo,yx_hi,yx_lo;
 
    png_debug(1, "in function png_check_cHRM_fixed");
+
    if (png_ptr == NULL)
       return 0;
 
@@ -923,4 +771,146 @@ png_check_cHRM_fixed(png_structp png_ptr,
 }
 #endif 
 #endif 
+
+void 
+png_check_IHDR(png_structp png_ptr,
+   png_uint_32 width, png_uint_32 height, int bit_depth,
+   int color_type, int interlace_type, int compression_type,
+   int filter_type)
+{
+   int error = 0;
+
+   
+   if (width == 0)
+   {
+      png_warning(png_ptr, "Image width is zero in IHDR");
+      error = 1;
+   }
+
+   if (height == 0)
+   {
+      png_warning(png_ptr, "Image height is zero in IHDR");
+      error = 1;
+   }
+
+#ifdef PNG_SET_USER_LIMITS_SUPPORTED
+   if (width > png_ptr->user_width_max || width > PNG_USER_WIDTH_MAX)
+#else
+   if (width > PNG_USER_WIDTH_MAX)
+#endif
+   {
+      png_warning(png_ptr, "Image width exceeds user limit in IHDR");
+      error = 1;
+   }
+
+#ifdef PNG_SET_USER_LIMITS_SUPPORTED
+   if (height > png_ptr->user_height_max || height > PNG_USER_HEIGHT_MAX)
+#else
+   if (height > PNG_USER_HEIGHT_MAX)
+#endif
+   {
+      png_warning(png_ptr, "Image height exceeds user limit in IHDR");
+      error = 1;
+   }
+
+   if (width > PNG_UINT_31_MAX)
+   {
+      png_warning(png_ptr, "Invalid image width in IHDR");
+      error = 1;
+   }
+
+   if ( height > PNG_UINT_31_MAX)
+   {
+      png_warning(png_ptr, "Invalid image height in IHDR");
+      error = 1;
+   }
+
+   if ( width > (PNG_UINT_32_MAX
+                 >> 3)      
+                 - 64       
+                 - 1        
+                 - 7*8      
+                 - 8)       
+      png_warning(png_ptr, "Width is too large for libpng to process pixels");
+
+   
+   if (bit_depth != 1 && bit_depth != 2 && bit_depth != 4 &&
+       bit_depth != 8 && bit_depth != 16)
+   {
+      png_warning(png_ptr, "Invalid bit depth in IHDR");
+      error = 1;
+   }
+
+   if (color_type < 0 || color_type == 1 ||
+       color_type == 5 || color_type > 6)
+   {
+      png_warning(png_ptr, "Invalid color type in IHDR");
+      error = 1;
+   }
+
+   if (((color_type == PNG_COLOR_TYPE_PALETTE) && bit_depth > 8) ||
+       ((color_type == PNG_COLOR_TYPE_RGB ||
+         color_type == PNG_COLOR_TYPE_GRAY_ALPHA ||
+         color_type == PNG_COLOR_TYPE_RGB_ALPHA) && bit_depth < 8))
+   {
+      png_warning(png_ptr, "Invalid color type/bit depth combination in IHDR");
+      error = 1;
+   }
+
+   if (interlace_type >= PNG_INTERLACE_LAST)
+   {
+      png_warning(png_ptr, "Unknown interlace method in IHDR");
+      error = 1;
+   }
+
+   if (compression_type != PNG_COMPRESSION_TYPE_BASE)
+   {
+      png_warning(png_ptr, "Unknown compression method in IHDR");
+      error = 1;
+   }
+
+#ifdef PNG_MNG_FEATURES_SUPPORTED
+   
+
+
+
+
+
+
+
+
+   if ((png_ptr->mode & PNG_HAVE_PNG_SIGNATURE) &&
+       png_ptr->mng_features_permitted)
+      png_warning(png_ptr, "MNG features are not allowed in a PNG datastream");
+
+   if (filter_type != PNG_FILTER_TYPE_BASE)
+   {
+      if (!((png_ptr->mng_features_permitted & PNG_FLAG_MNG_FILTER_64) &&
+         (filter_type == PNG_INTRAPIXEL_DIFFERENCING) &&
+         ((png_ptr->mode & PNG_HAVE_PNG_SIGNATURE) == 0) &&
+         (color_type == PNG_COLOR_TYPE_RGB ||
+         color_type == PNG_COLOR_TYPE_RGB_ALPHA)))
+      {
+         png_warning(png_ptr, "Unknown filter method in IHDR");
+         error = 1;
+      }
+
+      if (png_ptr->mode & PNG_HAVE_PNG_SIGNATURE)
+      {
+         png_warning(png_ptr, "Invalid filter method in IHDR");
+         error = 1;
+      }
+   }
+
+#else
+   if (filter_type != PNG_FILTER_TYPE_BASE)
+   {
+      png_warning(png_ptr, "Unknown filter method in IHDR");
+      error = 1;
+   }
+#endif
+
+   if (error == 1)
+      png_error(png_ptr, "Invalid IHDR data");
+}
 #endif 

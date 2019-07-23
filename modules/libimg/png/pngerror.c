@@ -16,14 +16,15 @@
 
 
 
-#define PNG_INTERNAL
+#define PNG_NO_PEDANTIC_WARNINGS
 #include "png.h"
 #if defined(PNG_READ_SUPPORTED) || defined(PNG_WRITE_SUPPORTED)
+#include "pngpriv.h"
 
 static void 
 png_default_error PNGARG((png_structp png_ptr,
-  png_const_charp error_message));
-#ifndef PNG_NO_WARNINGS
+  png_const_charp error_message)) PNG_NORETURN;
+#ifdef PNG_WARNINGS_SUPPORTED
 static void 
 png_default_warning PNGARG((png_structp png_ptr,
   png_const_charp warning_message));
@@ -34,7 +35,7 @@ png_default_warning PNGARG((png_structp png_ptr,
 
 
 
-#ifndef PNG_NO_ERROR_TEXT
+#ifdef PNG_ERROR_TEXT_SUPPORTED
 void PNGAPI
 png_error(png_structp png_ptr, png_const_charp error_message)
 {
@@ -45,7 +46,7 @@ png_error(png_structp png_ptr, png_const_charp error_message)
      if (png_ptr->flags&
        (PNG_FLAG_STRIP_ERROR_NUMBERS|PNG_FLAG_STRIP_ERROR_TEXT))
      {
-       if (*error_message == '#')
+       if (*error_message == PNG_LITERAL_SHARP)
        {
            
            int offset;
@@ -95,7 +96,7 @@ png_err(png_structp png_ptr)
 }
 #endif 
 
-#ifndef PNG_NO_WARNINGS
+#ifdef PNG_WARNINGS_SUPPORTED
 
 
 
@@ -112,7 +113,7 @@ png_warning(png_structp png_ptr, png_const_charp warning_message)
      (PNG_FLAG_STRIP_ERROR_NUMBERS|PNG_FLAG_STRIP_ERROR_TEXT))
 #endif
      {
-       if (*warning_message == '#')
+       if (*warning_message == PNG_LITERAL_SHARP)
        {
            for (offset = 1; offset < 15; offset++)
               if (warning_message[offset] == ' ')
@@ -127,6 +128,16 @@ png_warning(png_structp png_ptr, png_const_charp warning_message)
 }
 #endif 
 
+#ifdef PNG_BENIGN_ERRORS_SUPPORTED
+void PNGAPI
+png_benign_error(png_structp png_ptr, png_const_charp error_message)
+{
+  if (png_ptr->flags & PNG_FLAG_BENIGN_ERRORS_WARN)
+    png_warning(png_ptr, error_message);
+  else
+    png_error(png_ptr, error_message);
+}
+#endif
 
 
 
@@ -141,8 +152,7 @@ static PNG_CONST char png_digit[16] = {
 };
 
 #define PNG_MAX_ERROR_TEXT 64
-
-#if !defined(PNG_NO_WARNINGS) || !defined(PNG_NO_ERROR_TEXT)
+#if defined(PNG_WARNINGS_SUPPORTED) || defined(PNG_ERROR_TEXT_SUPPORTED)
 static void 
 png_format_buffer(png_structp png_ptr, png_charp buffer, png_const_charp
    error_message)
@@ -154,10 +164,10 @@ png_format_buffer(png_structp png_ptr, png_charp buffer, png_const_charp
       int c = png_ptr->chunk_name[iin++];
       if (isnonalpha(c))
       {
-         buffer[iout++] = '[';
+         buffer[iout++] = PNG_LITERAL_LEFT_SQUARE_BRACKET;
          buffer[iout++] = png_digit[(c & 0xf0) >> 4];
          buffer[iout++] = png_digit[c & 0x0f];
-         buffer[iout++] = ']';
+         buffer[iout++] = PNG_LITERAL_RIGHT_SQUARE_BRACKET;
       }
       else
       {
@@ -192,7 +202,7 @@ png_chunk_error(png_structp png_ptr, png_const_charp error_message)
 #endif 
 #endif 
 
-#ifndef PNG_NO_WARNINGS
+#ifdef PNG_WARNINGS_SUPPORTED
 void PNGAPI
 png_chunk_warning(png_structp png_ptr, png_const_charp warning_message)
 {
@@ -207,6 +217,34 @@ png_chunk_warning(png_structp png_ptr, png_const_charp warning_message)
 }
 #endif 
 
+#ifdef PNG_READ_SUPPORTED
+#ifdef PNG_BENIGN_ERRORS_SUPPORTED
+void PNGAPI
+png_chunk_benign_error(png_structp png_ptr, png_const_charp error_message)
+{
+  if (png_ptr->flags & PNG_FLAG_BENIGN_ERRORS_WARN)
+    png_chunk_warning(png_ptr, error_message);
+  else
+    png_chunk_error(png_ptr, error_message);
+}
+#endif
+#endif 
+
+#ifdef PNG_SETJMP_SUPPORTED
+
+
+
+jmp_buf* PNGAPI
+png_set_longjmp_fn(png_structp png_ptr, png_longjmp_ptr longjmp_fn,
+    size_t jmp_buf_size)
+{
+   if (png_ptr == NULL || jmp_buf_size != png_sizeof(jmp_buf))
+      return NULL;
+
+   png_ptr->longjmp_fn = longjmp_fn;
+   return &png_ptr->jmpbuf;
+}
+#endif
 
 
 
@@ -216,9 +254,9 @@ png_chunk_warning(png_structp png_ptr, png_const_charp warning_message)
 static void 
 png_default_error(png_structp png_ptr, png_const_charp error_message)
 {
-#ifndef PNG_NO_CONSOLE_IO
+#ifdef PNG_CONSOLE_IO_SUPPORTED
 #ifdef PNG_ERROR_NUMBERS_SUPPORTED
-   if (*error_message == '#')
+   if (*error_message == PNG_LITERAL_SHARP)
    {
      
      int offset;
@@ -252,27 +290,27 @@ png_default_error(png_structp png_ptr, png_const_charp error_message)
 #endif
 
 #ifdef PNG_SETJMP_SUPPORTED
-   if (png_ptr)
+   if (png_ptr && png_ptr->longjmp_fn)
    {
 #  ifdef USE_FAR_KEYWORD
    {
       jmp_buf jmpbuf;
       png_memcpy(jmpbuf, png_ptr->jmpbuf, png_sizeof(jmp_buf));
-      longjmp(jmpbuf, 1);
+     png_ptr->longjmp_fn(jmpbuf, 1);
    }
 #  else
-   longjmp(png_ptr->jmpbuf, 1);
+   png_ptr->longjmp_fn(png_ptr->jmpbuf, 1);
 #  endif
    }
-#else
-   PNG_ABORT();
 #endif
-#ifdef PNG_NO_CONSOLE_IO
+   
+   PNG_ABORT();
+#ifndef PNG_CONSOLE_IO_SUPPORTED
    error_message = error_message; 
 #endif
 }
 
-#ifndef PNG_NO_WARNINGS
+#ifdef PNG_WARNINGS_SUPPORTED
 
 
 
@@ -281,9 +319,9 @@ png_default_error(png_structp png_ptr, png_const_charp error_message)
 static void 
 png_default_warning(png_structp png_ptr, png_const_charp warning_message)
 {
-#ifndef PNG_NO_CONSOLE_IO
+#ifdef PNG_CONSOLE_IO_SUPPORTED
 #  ifdef PNG_ERROR_NUMBERS_SUPPORTED
-   if (*warning_message == '#')
+   if (*warning_message == PNG_LITERAL_SHARP)
    {
      int offset;
      char warning_number[16];

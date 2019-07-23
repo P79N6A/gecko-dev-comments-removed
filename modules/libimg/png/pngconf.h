@@ -17,12 +17,27 @@
 
 
 
+
+
 #ifndef PNGCONF_H
 #define PNGCONF_H
+
 #include "mozpngconf.h"
 
+#ifndef PNG_NO_LIMITS_H
+#  include <limits.h>
+#endif
 
-#define PNG_1_2_X
+
+
+
+#ifdef PNG_CONFIGURE_LIBPNG
+#  ifdef HAVE_CONFIG_H
+#    include "config.h"
+#  endif
+#endif
+
+
 
 
 
@@ -32,17 +47,8 @@
 #  ifndef PNG_USER_PRIVATEBUILD
 #    define PNG_USER_PRIVATEBUILD
 #  endif
-#include "pngusr.h"
+#  include "pngusr.h"
 #endif
-
-
-#ifdef PNG_CONFIGURE_LIBPNG
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
-#endif
-
-
 
 
 
@@ -64,29 +70,21 @@
 
 
 #ifdef __STDC__
-#ifdef SPECIALBUILD
-#  pragma message("PNG_LIBPNG_SPECIALBUILD (and deprecated SPECIALBUILD)\
- are now LIBPNG reserved macros. Use PNG_USER_PRIVATEBUILD instead.")
-#endif
+#  ifdef SPECIALBUILD
+#    pragma message("PNG_LIBPNG_SPECIALBUILD (and deprecated SPECIALBUILD)\
+     are now LIBPNG reserved macros. Use PNG_USER_PRIVATEBUILD instead.")
+#  endif
 
-#ifdef PRIVATEBUILD
-# pragma message("PRIVATEBUILD is deprecated.\
- Use PNG_USER_PRIVATEBUILD instead.")
-# define PNG_USER_PRIVATEBUILD PRIVATEBUILD
-#endif
+#  ifdef PRIVATEBUILD
+#    pragma message("PRIVATEBUILD is deprecated.\
+     Use PNG_USER_PRIVATEBUILD instead.")
+#    define PNG_USER_PRIVATEBUILD PRIVATEBUILD
+#  endif
 #endif 
 
+
+
 #ifndef PNG_VERSION_INFO_ONLY
-
-
-
-
-
-#if !defined(PNG_NO_WARN_UNINITIALIZED_ROW) && \
-    !defined(PNG_WARN_UNINITIALIZED_ROW)
-#  define PNG_WARN_UNINITIALIZED_ROW 1
-#endif
-
 
 
 
@@ -118,18 +116,55 @@
 #endif
 
 
+#ifdef PNG_ALLOW_BENIGN_ERRORS
+#  define png_benign_error png_warning
+#  define png_chunk_benign_error png_chunk_warning
+#else
+#  ifndef PNG_BENIGN_ERRORS_SUPPORTED
+#    define png_benign_error png_error
+#    define png_chunk_benign_error png_chunk_error
+#  endif
+#endif
 
-#if !defined(PNG_1_0_X) && !defined(PNG_NO_MNG_FEATURES)
+
+#if !defined(PNG_NO_WARNINGS) && !defined(PNG_WARNINGS_SUPPORTED)
+#  define PNG_WARNINGS_SUPPORTED
+#endif
+
+
+#if !defined(PNG_NO_ERROR_TEXT) && !defined(PNG_ERROR_TEXT_SUPPORTED)
+#  define PNG_ERROR_TEXT_SUPPORTED
+#endif
+
+
+#if !defined(PNG_NO_CHECK_cHRM) && !defined(PNG_CHECK_cHRM_SUPPORTED)
+#  define PNG_CHECK_cHRM_SUPPORTED
+#endif
+
+
+#if !defined(PNG_NO_ALIGNED_MEMORY) && !defined(PNG_ALIGNED_MEMORY_SUPPORTED)
+#  define PNG_ALIGNED_MEMORY_SUPPORTED
+#endif
+
+
+
+#ifndef PNG_NO_MNG_FEATURES
 #  ifndef PNG_MNG_FEATURES_SUPPORTED
 #    define PNG_MNG_FEATURES_SUPPORTED
 #  endif
 #endif
+
 
 #ifndef PNG_NO_FLOATING_POINT_SUPPORTED
 #  ifndef PNG_FLOATING_POINT_SUPPORTED
 #    define PNG_FLOATING_POINT_SUPPORTED
 #  endif
 #endif
+
+
+
+
+#define PNG_CALLOC_SUPPORTED
 
 
 
@@ -176,44 +211,44 @@
 
 
 
-#if defined(__CYGWIN__)
-#  if defined(ALL_STATIC)
-#    if defined(PNG_BUILD_DLL)
+#ifdef __CYGWIN__
+#  ifdef ALL_STATIC
+#    ifdef PNG_BUILD_DLL
 #      undef PNG_BUILD_DLL
 #    endif
-#    if defined(PNG_USE_DLL)
+#    ifdef PNG_USE_DLL
 #      undef PNG_USE_DLL
 #    endif
-#    if defined(PNG_DLL)
+#    ifdef PNG_DLL
 #      undef PNG_DLL
 #    endif
-#    if !defined(PNG_STATIC)
+#    ifndef PNG_STATIC
 #      define PNG_STATIC
 #    endif
 #  else
-#    if defined (PNG_BUILD_DLL)
-#      if defined(PNG_STATIC)
+#    ifdef PNG_BUILD_DLL
+#      ifdef PNG_STATIC
 #        undef PNG_STATIC
 #      endif
-#      if defined(PNG_USE_DLL)
+#      ifdef PNG_USE_DLL
 #        undef PNG_USE_DLL
 #      endif
-#      if !defined(PNG_DLL)
+#      ifndef PNG_DLL
 #        define PNG_DLL
 #      endif
 #    else
-#      if defined(PNG_STATIC)
-#        if defined(PNG_USE_DLL)
+#      ifdef PNG_STATIC
+#        ifdef PNG_USE_DLL
 #          undef PNG_USE_DLL
 #        endif
-#        if defined(PNG_DLL)
+#        ifdef PNG_DLL
 #          undef PNG_DLL
 #        endif
 #      else
-#        if !defined(PNG_USE_DLL)
+#        ifndef PNG_USE_DLL
 #          define PNG_USE_DLL
 #        endif
-#        if !defined(PNG_DLL)
+#        ifndef PNG_DLL
 #          define PNG_DLL
 #        endif
 #      endif
@@ -234,22 +269,14 @@
 
 
 
-#if defined(_WIN32_WCE)
-#  include <windows.h>
-   
-#  define PNG_NO_CONSOLE_IO
-
-#  define PNG_ABORT() exit(-1)
-#  ifdef PNG_DEBUG
-#    undef PNG_DEBUG
-#  endif
+#if !defined(PNG_NO_STDIO) && !defined(PNG_STDIO_SUPPORTED)
+#  define PNG_STDIO_SUPPORTED
 #endif
 
+
 #ifdef PNG_BUILD_DLL
-#  ifndef PNG_CONSOLE_IO_SUPPORTED
-#    ifndef PNG_NO_CONSOLE_IO
-#      define PNG_NO_CONSOLE_IO
-#    endif
+#  if !defined(PNG_CONSOLE_IO_SUPPORTED) && !defined(PNG_NO_CONSOLE_IO)
+#    define PNG_NO_CONSOLE_IO
 #  endif
 #endif
 
@@ -263,11 +290,12 @@
 #      endif
 #    endif
 #  else
-#    if !defined(_WIN32_WCE)
-
-#      include <stdio.h>
-#    endif
+#    include <stdio.h>
 #  endif
+
+#if !(defined PNG_NO_CONSOLE_IO) && !defined(PNG_CONSOLE_IO_SUPPORTED)
+#  define PNG_CONSOLE_IO_SUPPORTED
+#endif
 
 
 
@@ -284,13 +312,9 @@
 
 #ifdef _NO_PROTO
 #  define PNGARG(arglist) ()
-#  ifndef PNG_TYPECAST_NULL
-#     define PNG_TYPECAST_NULL
-#  endif
 #else
 #  define PNGARG(arglist) arglist
 #endif 
-
 
 #endif 
 
@@ -308,11 +332,13 @@
 #endif
 
 
-#if !defined(MACOS) && !defined(RISCOS) && !defined(_WIN32_WCE)
+#if !defined(MACOS) && !defined(RISCOS)
 #  include <sys/types.h>
 #endif
 
-#if !defined(PNG_SETJMP_NOT_SUPPORTED) && !defined(PNG_NO_SETJMP_SUPPORTED)
+
+#if !defined(PNG_NO_SETJMP) && \
+    !defined(PNG_SETJMP_NOT_SUPPORTED) && !defined(PNG_NO_SETJMP_SUPPORTED)
 #  define PNG_SETJMP_SUPPORTED
 #endif
 
@@ -348,9 +374,10 @@
 
 #  ifdef __linux__
 #    ifdef PNG_SAVE_BSD_SOURCE
-#      ifndef _BSD_SOURCE
-#        define _BSD_SOURCE
+#      ifdef _BSD_SOURCE
+#        undef _BSD_SOURCE
 #      endif
+#      define _BSD_SOURCE
 #      undef PNG_SAVE_BSD_SOURCE
 #    endif
 #  endif 
@@ -363,59 +390,6 @@
 #endif
 
 
-#ifdef PNG_INTERNAL
-
-#include <stdlib.h>
-
-
-
-
-
-
-
-
-#define PNG_EXTERN
-
-
-
-
-
-#if defined(PNG_FLOATING_POINT_SUPPORTED)
-#  if defined(MACOS)
-     
-
-
-
-#    if !defined(__MATH_H__) && !defined(__MATH_H) && !defined(__cmath__)
-#      include <fp.h>
-#    endif
-#  else
-#    include <math.h>
-#  endif
-#  if defined(_AMIGA) && defined(__SASC) && defined(_M68881)
-     
-
-
-#    include <m68881.h>
-#  endif
-#endif
-
-
-#if (defined(__MWERKS__) && defined(WIN32)) || defined(__STDC__)
-#  define PNG_ALWAYS_EXTERN
-#endif
-
-
-#if defined(__TURBOC__) && defined(__MSDOS__)
-#  include <mem.h>
-#  include <alloc.h>
-#endif
-
-
-#if defined(_MSC_VER) && (defined(WIN32) || defined(_Windows) || \
-    defined(_WINDOWS) || defined(_WIN32) || defined(__WIN32__))
-#  include <malloc.h>
-#endif
 
 
 
@@ -449,70 +423,16 @@
 #  define PNG_GAMMA_THRESHOLD 0.05
 #endif
 
-#endif 
 
 
 
 
 
-
-#ifndef PNG_NO_CONST
-#  define PNG_CONST const
-#else
-#  define PNG_CONST
-#endif
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#if defined(PNG_1_0_X) || defined (PNG_1_2_X)
-#  ifndef PNG_NO_iTXt_SUPPORTED
-#    define PNG_NO_iTXt_SUPPORTED
-#  endif
-#  ifndef PNG_NO_READ_iTXt
-#    define PNG_NO_READ_iTXt
-#  endif
-#  ifndef PNG_NO_WRITE_iTXt
-#    define PNG_NO_WRITE_iTXt
-#  endif
-#endif
-
-#if !defined(PNG_NO_iTXt_SUPPORTED)
-#  if !defined(PNG_READ_iTXt_SUPPORTED) && !defined(PNG_NO_READ_iTXt)
-#    define PNG_READ_iTXt
-#  endif
-#  if !defined(PNG_WRITE_iTXt_SUPPORTED) && !defined(PNG_NO_WRITE_iTXt)
-#    define PNG_WRITE_iTXt
+#ifndef PNG_CONST
+#  ifndef PNG_NO_CONST
+#    define PNG_CONST const
+#  else
+#    define PNG_CONST
 #  endif
 #endif
 
@@ -522,29 +442,26 @@
 
 
 
-#ifdef PNG_LEGACY_SUPPORTED
-#  define PNG_NO_FREE_ME
-#  define PNG_NO_READ_UNKNOWN_CHUNKS
-#  define PNG_NO_WRITE_UNKNOWN_CHUNKS
-#  define PNG_NO_HANDLE_AS_UNKNOWN
-#  define PNG_NO_READ_USER_CHUNKS
-#  define PNG_NO_READ_iCCP
-#  define PNG_NO_WRITE_iCCP
-#  define PNG_NO_READ_iTXt
-#  define PNG_NO_WRITE_iTXt
-#  define PNG_NO_READ_sCAL
-#  define PNG_NO_WRITE_sCAL
-#  define PNG_NO_READ_sPLT
-#  define PNG_NO_WRITE_sPLT
-#  define PNG_NO_INFO_IMAGE
-#  define PNG_NO_READ_RGB_TO_GRAY
-#  define PNG_NO_READ_USER_TRANSFORM
-#  define PNG_NO_WRITE_USER_TRANSFORM
-#  define PNG_NO_USER_MEM
-#  define PNG_NO_READ_EMPTY_PLTE
-#  define PNG_NO_MNG_FEATURES
-#  define PNG_NO_FIXED_POINT_SUPPORTED
-#endif
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 #if !defined(PNG_FLOATING_POINT_SUPPORTED) || \
@@ -552,11 +469,8 @@
 #  define PNG_FIXED_POINT_SUPPORTED
 #endif
 
-#ifndef PNG_NO_FREE_ME
-#  define PNG_FREE_ME_SUPPORTED
-#endif
-
 #ifdef PNG_READ_SUPPORTED
+
 
 #if !defined(PNG_READ_TRANSFORMS_NOT_SUPPORTED) && \
       !defined(PNG_NO_READ_TRANSFORMS)
@@ -585,9 +499,11 @@
 #  ifndef PNG_NO_READ_INVERT
 #    define PNG_READ_INVERT_SUPPORTED
 #  endif
+#if 0 
 #  ifndef PNG_NO_READ_DITHER
 #    define PNG_READ_DITHER_SUPPORTED
 #  endif
+#endif 
 #  ifndef PNG_NO_READ_BACKGROUND
 #    define PNG_READ_BACKGROUND_SUPPORTED
 #  endif
@@ -620,13 +536,21 @@
 #  endif
 #endif 
 
+
 #if !defined(PNG_NO_PROGRESSIVE_READ) && \
- !defined(PNG_PROGRESSIVE_READ_SUPPORTED) 
+ !defined(PNG_PROGRESSIVE_READ_NOT_SUPPORTED)  
 #  define PNG_PROGRESSIVE_READ_SUPPORTED
-#endif                            
-           
+#endif                               
+            
 
 #define PNG_READ_INTERLACING_SUPPORTED
+
+
+#if !defined(PNG_NO_SEQUENTIAL_READ) && \
+    !defined(PNG_SEQUENTIAL_READ_SUPPORTED) && \
+    !defined(PNG_NO_SEQUENTIAL_READ_SUPPORTED)
+#  define PNG_SEQUENTIAL_READ_SUPPORTED
+#endif
 
 #ifndef PNG_NO_READ_COMPOSITE_NODIV
 #  ifndef PNG_NO_READ_COMPOSITED_NODIV  
@@ -634,19 +558,19 @@
 #  endif
 #endif
 
-#if defined(PNG_1_0_X) || defined (PNG_1_2_X)
-
-
-#ifndef PNG_NO_READ_EMPTY_PLTE
-#  define PNG_READ_EMPTY_PLTE_SUPPORTED
-#endif
+#if !defined(PNG_NO_GET_INT_32) || defined(PNG_READ_oFFS_SUPPORTED) || \
+    defined(PNG_READ_pCAL_SUPPORTED)
+#  ifndef PNG_GET_INT_32_SUPPORTED
+#    define PNG_GET_INT_32_SUPPORTED
+#  endif
 #endif
 
 #endif 
 
 #ifdef PNG_WRITE_SUPPORTED
 
-# if !defined(PNG_WRITE_TRANSFORMS_NOT_SUPPORTED) && \
+
+#if !defined(PNG_WRITE_TRANSFORMS_NOT_SUPPORTED) && \
     !defined(PNG_NO_WRITE_TRANSFORMS)
 #  define PNG_WRITE_TRANSFORMS_SUPPORTED
 #endif
@@ -686,9 +610,10 @@
 
 #if !defined(PNG_NO_WRITE_INTERLACING_SUPPORTED) && \
     !defined(PNG_WRITE_INTERLACING_SUPPORTED)
-#define PNG_WRITE_INTERLACING_SUPPORTED
+    
 
 
+#  define PNG_WRITE_INTERLACING_SUPPORTED
 #endif
 
 #if !defined(PNG_NO_WRITE_WEIGHTED_FILTER) && \
@@ -701,20 +626,16 @@
 #  define PNG_WRITE_FLUSH_SUPPORTED
 #endif
 
-#if defined(PNG_1_0_X) || defined (PNG_1_2_X)
-
-#ifndef PNG_NO_WRITE_EMPTY_PLTE
-#  define PNG_WRITE_EMPTY_PLTE_SUPPORTED
-#endif
-#endif
-
-#endif 
-
-#ifndef PNG_1_0_X
-#  ifndef PNG_NO_ERROR_NUMBERS
-#    define PNG_ERROR_NUMBERS_SUPPORTED
+#if !defined(PNG_NO_SAVE_INT_32) || defined(PNG_WRITE_oFFS_SUPPORTED) || \
+    defined(PNG_WRITE_pCAL_SUPPORTED)
+#  ifndef PNG_SAVE_INT_32_SUPPORTED
+#    define PNG_SAVE_INT_32_SUPPORTED
 #  endif
+#endif
+
 #endif 
+
+#define PNG_NO_ERROR_NUMBERS
 
 #if defined(PNG_READ_USER_TRANSFORM_SUPPORTED) || \
     defined(PNG_WRITE_USER_TRANSFORM_SUPPORTED)
@@ -723,7 +644,7 @@
 #  endif
 #endif
 
-#ifndef PNG_NO_STDIO
+#if defined(PNG_STDIO_SUPPORTED) && !defined(PNG_TIME_RFC1123_SUPPORTED)
 #  define PNG_TIME_RFC1123_SUPPORTED
 #endif
 
@@ -748,61 +669,16 @@
 #endif
 
 
-
-
-
-
-#if defined(PNG_READ_SUPPORTED) && !defined(PNG_NO_OPTIMIZED_CODE)
-#  ifndef PNG_OPTIMIZED_CODE_SUPPORTED
-#    define PNG_OPTIMIZED_CODE_SUPPORTED
-#  endif
-#endif
-
-#if defined(PNG_READ_SUPPORTED) && !defined(PNG_NO_ASSEMBLER_CODE)
-#  ifndef PNG_ASSEMBLER_CODE_SUPPORTED
-#    define PNG_ASSEMBLER_CODE_SUPPORTED
-#  endif
-
-#  if defined(__GNUC__) && defined(__x86_64__) && (__GNUC__ < 4)
-     
-#    if !defined(PNG_MMX_CODE_SUPPORTED) && !defined(PNG_NO_MMX_CODE)
-#      define PNG_NO_MMX_CODE
-#    endif
-#  endif
-
-#  if defined(__APPLE__)
-#    if !defined(PNG_MMX_CODE_SUPPORTED) && !defined(PNG_NO_MMX_CODE)
-#      define PNG_NO_MMX_CODE
-#    endif
-#  endif
-
-#  if (defined(__MWERKS__) && ((__MWERKS__ < 0x0900) || macintosh))
-#    if !defined(PNG_MMX_CODE_SUPPORTED) && !defined(PNG_NO_MMX_CODE)
-#      define PNG_NO_MMX_CODE
-#    endif
-#  endif
-
-#  if !defined(PNG_MMX_CODE_SUPPORTED) && !defined(PNG_NO_MMX_CODE)
-#    define PNG_MMX_CODE_SUPPORTED
-#  endif
-
-#endif
-
-
-#if !defined(PNG_1_0_X)
 #if !defined(PNG_NO_USER_MEM) && !defined(PNG_USER_MEM_SUPPORTED)
 #  define PNG_USER_MEM_SUPPORTED
 #endif
-#endif 
 
 
-#if !defined(PNG_1_0_X)
 #ifndef PNG_SET_USER_LIMITS_SUPPORTED
-#if !defined(PNG_NO_SET_USER_LIMITS) && !defined(PNG_SET_USER_LIMITS_SUPPORTED)
-#  define PNG_SET_USER_LIMITS_SUPPORTED
+#  ifndef PNG_NO_SET_USER_LIMITS
+#    define PNG_SET_USER_LIMITS_SUPPORTED
+#  endif
 #endif
-#endif
-#endif 
 
 
 
@@ -815,6 +691,24 @@
 #endif
 
 
+#ifndef PNG_USER_CHUNK_CACHE_MAX
+#  define PNG_USER_CHUNK_CACHE_MAX 0x7fffffffL
+#endif
+
+
+#if !defined(PNG_NO_IO_STATE) && !defined(PNG_IO_STATE_SUPPORTED)
+#  define PNG_IO_STATE_SUPPORTED
+#endif
+
+#ifndef PNG_LITERAL_SHARP
+#  define PNG_LITERAL_SHARP 0x23
+#endif
+#ifndef PNG_LITERAL_LEFT_SQUARE_BRACKET
+#  define PNG_LITERAL_LEFT_SQUARE_BRACKET 0x5b
+#endif
+#ifndef PNG_LITERAL_RIGHT_SQUARE_BRACKET
+#  define PNG_LITERAL_RIGHT_SQUARE_BRACKET 0x5d
+#endif
 #ifndef PNG_STRING_NEWLINE
 #define PNG_STRING_NEWLINE "\n"
 #endif
@@ -838,7 +732,16 @@
 
 
 
+#if !defined(PNG_NO_USE_READ_MACROS) && !defined(PNG_USE_READ_MACROS)
+#  define PNG_USE_READ_MACROS
+#endif
 
+
+
+#if !defined(PNG_NO_POINTER_INDEXING) && \
+    !defined(PNG_POINTER_INDEXING_SUPPORTED)
+#  define PNG_POINTER_INDEXING_SUPPORTED
+#endif
 
 
 
@@ -861,6 +764,7 @@
 #  define PNG_READ_ANCILLARY_CHUNKS_SUPPORTED
 #endif
 
+
 #if defined(PNG_WRITE_SUPPORTED) && \
     !defined(PNG_WRITE_ANCILLARY_CHUNKS_NOT_SUPPORTED) && \
     !defined(PNG_NO_WRITE_ANCILLARY_CHUNKS)
@@ -874,6 +778,7 @@
 #  define PNG_NO_READ_tEXt
 #  define PNG_NO_READ_zTXt
 #endif
+
 #ifndef PNG_NO_READ_bKGD
 #  define PNG_READ_bKGD_SUPPORTED
 #  define PNG_bKGD_SUPPORTED
@@ -978,7 +883,6 @@
 #    undef PNG_NO_HANDLE_AS_UNKNOWN
 #  endif
 #endif
-
 #ifndef PNG_NO_HANDLE_AS_UNKNOWN
 #  ifndef PNG_HANDLE_AS_UNKNOWN_SUPPORTED
 #    define PNG_HANDLE_AS_UNKNOWN_SUPPORTED
@@ -1104,6 +1008,18 @@
 #    define PNG_TEXT_SUPPORTED
 #  endif
 #endif
+
+#ifdef PNG_WRITE_tIME_SUPPORTED
+#  ifndef PNG_NO_CONVERT_tIME
+#    ifndef _WIN32_WCE
+
+#      ifndef PNG_CONVERT_tIME_SUPPORTED
+#        define PNG_CONVERT_tIME_SUPPORTED
+#      endif
+#   endif
+#  endif
+#endif
+
 #ifndef PNG_NO_WRITE_APNG
 #  ifndef PNG_WRITE_APNG_SUPPORTED
 #    define PNG_WRITE_APNG_SUPPORTED
@@ -1115,13 +1031,16 @@
 
 #endif 
 
+#if !defined(PNG_NO_WRITE_FILTER) && !defined(PNG_WRITE_FILTER_SUPPORTED)
+#  define PNG_WRITE_FILTER_SUPPORTED
+#endif
+
 #ifndef PNG_NO_WRITE_UNKNOWN_CHUNKS
 #  define PNG_WRITE_UNKNOWN_CHUNKS_SUPPORTED
 #  ifndef PNG_UNKNOWN_CHUNKS_SUPPORTED
 #    define PNG_UNKNOWN_CHUNKS_SUPPORTED
 #  endif
 #endif
-
 #ifndef PNG_NO_HANDLE_AS_UNKNOWN
 #  ifndef PNG_HANDLE_AS_UNKNOWN_SUPPORTED
 #    define PNG_HANDLE_AS_UNKNOWN_SUPPORTED
@@ -1138,11 +1057,9 @@
 #endif
 
 
-#if defined(PNG_tIME_SUPPORTED)
-#  if !defined(_WIN32_WCE)
+#ifdef PNG_CONVERT_tIME_SUPPORTED
      
 #    include <time.h>
-#  endif
 #endif
 
 
@@ -1153,22 +1070,24 @@
 
 
 
-
+#if defined(INT_MAX) && (INT_MAX > 0x7ffffffeL)
+typedef unsigned int png_uint_32;
+typedef int png_int_32;
+#else
 typedef unsigned long png_uint_32;
 typedef long png_int_32;
+#endif
 typedef unsigned short png_uint_16;
 typedef short png_int_16;
 typedef unsigned char png_byte;
 
-
-
-#ifdef PNG_SIZE_T
-   typedef PNG_SIZE_T png_size_t;
-#  define png_sizeof(x) png_convert_size(sizeof(x))
+#ifdef PNG_NO_SIZE_T
+   typedef unsigned int png_size_t;
 #else
    typedef size_t png_size_t;
-#  define png_sizeof(x) sizeof(x)
 #endif
+#define png_sizeof(x) sizeof(x)
+
 
 
 
@@ -1211,8 +1130,8 @@ typedef unsigned char png_byte;
 
 
 
-#if defined(FAR)
-#  if defined(M_I86MM)
+#ifdef FAR
+#  ifdef M_I86MM
 #    define USE_FAR_KEYWORD
 #    define FARDATA FAR
 #    include <dos.h>
@@ -1245,11 +1164,7 @@ typedef char            FAR * png_charp;
 typedef png_fixed_point FAR * png_fixed_point_p;
 
 #ifndef PNG_NO_STDIO
-#if defined(_WIN32_WCE)
-typedef HANDLE                png_FILE_p;
-#else
 typedef FILE                * png_FILE_p;
-#endif
 #endif
 
 #ifdef PNG_FLOATING_POINT_SUPPORTED
@@ -1272,19 +1187,6 @@ typedef double          FAR * FAR * png_doublepp;
 
 typedef char            FAR * FAR * FAR * png_charppp;
 
-#if defined(PNG_1_0_X) || defined(PNG_1_2_X)
-
-
-
-
-
-
-typedef charf *         png_zcharp;
-typedef charf * FAR *   png_zcharpp;
-typedef z_stream FAR *  png_zstreamp;
-#endif 
-
-
 
 
 
@@ -1306,48 +1208,14 @@ typedef z_stream FAR *  png_zstreamp;
 #  define PNG_DLL
 #endif
 
-
-
-
-#if defined(__CYGWIN__)
-#  if !defined(PNG_STATIC)
-#    if defined(PNG_USE_GLOBAL_ARRAYS)
-#      undef PNG_USE_GLOBAL_ARRAYS
-#    endif
-#    if !defined(PNG_USE_LOCAL_ARRAYS)
-#      define PNG_USE_LOCAL_ARRAYS
-#    endif
-#  else
-#    if defined(PNG_USE_LOCAL_ARRAYS) || defined(PNG_NO_GLOBAL_ARRAYS)
-#      if defined(PNG_USE_GLOBAL_ARRAYS)
-#        undef PNG_USE_GLOBAL_ARRAYS
-#      endif
-#    endif
-#  endif
-#  if !defined(PNG_USE_LOCAL_ARRAYS) && !defined(PNG_USE_GLOBAL_ARRAYS)
-#    define PNG_USE_LOCAL_ARRAYS
-#  endif
-#endif
-
-
-
-
-
-#if !defined(PNG_USE_LOCAL_ARRAYS) && !defined(PNG_USE_GLOBAL_ARRAYS)
-#  if defined(PNG_NO_GLOBAL_ARRAYS) || \
-      (defined(__GNUC__) && defined(PNG_DLL)) || defined(_MSC_VER)
-#    define PNG_USE_LOCAL_ARRAYS
-#  else
-#    define PNG_USE_GLOBAL_ARRAYS
-#  endif
-#endif
-
-#if defined(__CYGWIN__)
+#ifdef __CYGWIN__
 #  undef PNGAPI
 #  define PNGAPI __cdecl
 #  undef PNG_IMPEXP
 #  define PNG_IMPEXP
 #endif
+
+#define PNG_USE_LOCAL_ARRAYS
 
 
 
@@ -1383,43 +1251,42 @@ typedef z_stream FAR *  png_zstreamp;
 #     define PNG_IMPEXP
 #  endif
 
-#  if !defined(PNG_IMPEXP)
+#  ifndef PNG_IMPEXP
 
-#     define PNG_EXPORT_TYPE1(type,symbol)  PNG_IMPEXP type PNGAPI symbol
-#     define PNG_EXPORT_TYPE2(type,symbol)  type PNG_IMPEXP PNGAPI symbol
+#    define PNG_EXPORT_TYPE1(type,symbol)  PNG_IMPEXP type PNGAPI symbol
+#    define PNG_EXPORT_TYPE2(type,symbol)  type PNG_IMPEXP PNGAPI symbol
 
-      
-#     if defined(_MSC_VER) || defined(__BORLANDC__)
-#        if (_MSC_VER >= 800) || (__BORLANDC__ >= 0x500)
-#           define PNG_EXPORT PNG_EXPORT_TYPE1
-#        else
-#           define PNG_EXPORT PNG_EXPORT_TYPE2
-#           if defined(PNG_BUILD_DLL)
-#              define PNG_IMPEXP __export
-#           else
-#              define PNG_IMPEXP
+     
+#    if defined(_MSC_VER) || defined(__BORLANDC__)
+#      if (_MSC_VER >= 800) || (__BORLANDC__ >= 0x500)
+#         define PNG_EXPORT PNG_EXPORT_TYPE1
+#      else
+#         define PNG_EXPORT PNG_EXPORT_TYPE2
+#         ifdef PNG_BUILD_DLL
+#            define PNG_IMPEXP __export
+#         else
+#            define PNG_IMPEXP
+#         endif                              
 
-#           endif                             
+#      endif
+#    endif
 
-#        endif
-#     endif
-
-#     if !defined(PNG_IMPEXP)
-#        if defined(PNG_BUILD_DLL)
-#           define PNG_IMPEXP __declspec(dllexport)
-#        else
-#           define PNG_IMPEXP __declspec(dllimport)
-#        endif
-#     endif
+#    ifndef PNG_IMPEXP
+#      ifdef PNG_BUILD_DLL
+#        define PNG_IMPEXP __declspec(dllexport)
+#      else
+#        define PNG_IMPEXP __declspec(dllimport)
+#      endif
+#    endif
 #  endif  
 #else 
 #   if (defined(__IBMC__) || defined(__IBMCPP__)) && defined(__OS2__)
-#      ifndef PNGAPI
-#         define PNGAPI _System
-#      endif
+#     ifndef PNGAPI
+#       define PNGAPI _System
+#     endif
 #   else
-#      if 0 
-#      endif
+#     if 0 
+#     endif
 #   endif
 #endif
 
@@ -1434,77 +1301,184 @@ typedef z_stream FAR *  png_zstreamp;
 #  ifndef PNG_EXPORT
 #    define PNG_EXPORT(type,symbol) PNG_FUNCTION_EXPORT symbol END
 #  endif
-#  ifdef PNG_USE_GLOBAL_ARRAYS
-#    ifndef PNG_EXPORT_VAR
-#      define PNG_EXPORT_VAR(type) PNG_DATA_EXPORT
-#    endif
-#  endif
 #endif
 
 #ifndef PNG_EXPORT
 #  define PNG_EXPORT(type,symbol) PNG_IMPEXP type PNGAPI symbol
 #endif
 
-#ifdef PNG_USE_GLOBAL_ARRAYS
-#  ifndef PNG_EXPORT_VAR
-#    define PNG_EXPORT_VAR(type) extern PNG_IMPEXP type
+
+
+
+
+
+
+
+#ifndef PNG_NO_PEDANTIC_WARNINGS
+#  ifndef PNG_PEDANTIC_WARNINGS_SUPPORTED
+#    define PNG_PEDANTIC_WARNINGS_SUPPORTED
 #  endif
 #endif
+
+#ifdef PNG_PEDANTIC_WARNINGS_SUPPORTED
+
+
+
+
+
+#  ifdef __GNUC__
+#    ifndef PNG_USE_RESULT
+#      define PNG_USE_RESULT __attribute__((__warn_unused_result__))
+#    endif
+#    ifndef PNG_NORETURN
+#      define PNG_NORETURN   __attribute__((__noreturn__))
+#    endif
+#    ifndef PNG_ALLOCATED
+#      define PNG_ALLOCATED  __attribute__((__malloc__))
+#    endif
+
+    
+
+
+
+#    ifndef PNG_DEPRECATED
+#      define PNG_DEPRECATED __attribute__((__deprecated__))
+#    endif
+#    ifndef PNG_DEPSTRUCT
+#      define PNG_DEPSTRUCT  __attribute__((__deprecated__))
+#    endif
+#    ifndef PNG_PRIVATE
+#      if 0 
+#        define PNG_PRIVATE \
+          __attribute__((warning("This function is not exported by libpng.")))
+#      else
+#        define PNG_PRIVATE \
+          __attribute__((__deprecated__))
+#      endif
+#    endif 
+#  endif 
+#endif 
+
+#ifndef PNG_DEPRECATED
+#  define PNG_DEPRECATED
+#endif
+#ifndef PNG_USE_RESULT
+#  define PNG_USE_RESULT
+#endif
+#ifndef PNG_NORETURN
+#  define PNG_NORETURN
+#endif
+#ifndef PNG_ALLOCATED
+#  define PNG_ALLOCATED
+#endif
+#ifndef PNG_DEPSTRUCT
+#  define PNG_DEPSTRUCT
+#endif
+#ifndef PNG_PRIVATE
+#  define PNG_PRIVATE
+#endif
+
 
 
 
 
 
 #ifndef PNG_ABORT
-#  define PNG_ABORT() abort()
+#  ifdef _WINDOWS_
+#     define PNG_ABORT() ExitProcess(0)
+#  else
+#     define PNG_ABORT() abort()
+#  endif
 #endif
 
-#ifdef PNG_SETJMP_SUPPORTED
-#  define png_jmpbuf(png_ptr) ((png_ptr)->jmpbuf)
-#else
-#  define png_jmpbuf(png_ptr) \
-   (LIBPNG_WAS_COMPILED_WITH__PNG_SETJMP_NOT_SUPPORTED)
-#endif
-
-#if defined(USE_FAR_KEYWORD)  
+#ifdef USE_FAR_KEYWORD
 
 #  define CHECK   1
 #  define NOCHECK 0
 #  define CVT_PTR(ptr) (png_far_to_near(png_ptr,ptr,CHECK))
 #  define CVT_PTR_NOCHECK(ptr) (png_far_to_near(png_ptr,ptr,NOCHECK))
-#  define png_snprintf _fsnprintf   /* Added to v 1.2.19 */
+#  define png_strcpy  _fstrcpy
+#  define png_strncpy _fstrncpy   /* Added to v 1.2.6 */
 #  define png_strlen  _fstrlen
 #  define png_memcmp  _fmemcmp    /* SJT: added */
 #  define png_memcpy  _fmemcpy
 #  define png_memset  _fmemset
-#else 
-#  define CVT_PTR(ptr)         (ptr)
-#  define CVT_PTR_NOCHECK(ptr) (ptr)
-#  ifndef PNG_NO_SNPRINTF
-#    ifdef _MSC_VER
-#      define png_snprintf _snprintf   /* Added to v 1.2.19 */
-#      define png_snprintf2 _snprintf
-#      define png_snprintf6 _snprintf
-#    else
-#      define png_snprintf snprintf   /* Added to v 1.2.19 */
-#      define png_snprintf2 snprintf
-#      define png_snprintf6 snprintf
-#    endif
+#  define png_sprintf sprintf
+#else
+#  ifdef _WINDOWS_  
+#    define CVT_PTR(ptr)         (ptr)
+#    define CVT_PTR_NOCHECK(ptr) (ptr)
+#    define png_strcpy  lstrcpyA
+#    define png_strncpy lstrcpynA
+#    define png_strlen  lstrlenA
+#    define png_memcmp  memcmp
+#    define png_memcpy  CopyMemory
+#    define png_memset  memset
+#    define png_sprintf wsprintfA
 #  else
-     
+#    define CVT_PTR(ptr)         (ptr)
+#    define CVT_PTR_NOCHECK(ptr) (ptr)
+#    define png_strcpy  strcpy
+#    define png_strncpy strncpy     /* Added to v 1.2.6 */
+#    define png_strlen  strlen
+#    define png_memcmp  memcmp      /* SJT: added */
+#    define png_memcpy  memcpy
+#    define png_memset  memset
+#    define png_sprintf sprintf
+#    ifndef PNG_NO_SNPRINTF
+#      ifdef _MSC_VER
+#        define png_snprintf _snprintf   /* Added to v 1.2.19 */
+#        define png_snprintf2 _snprintf
+#        define png_snprintf6 _snprintf
+#      else
+#        define png_snprintf snprintf   /* Added to v 1.2.19 */
+#        define png_snprintf2 snprintf
+#        define png_snprintf6 snprintf
+#      endif
+#    else
+       
 
 
 
 
-#    define png_snprintf(s1,n,fmt,x1) sprintf(s1,fmt,x1)
-#    define png_snprintf2(s1,n,fmt,x1,x2) sprintf(s1,fmt,x1,x2)
-#    define png_snprintf6(s1,n,fmt,x1,x2,x3,x4,x5,x6) \
-        sprintf(s1,fmt,x1,x2,x3,x4,x5,x6)
+
+#      define png_snprintf(s1,n,fmt,x1) sprintf(s1,fmt,x1)
+#      define png_snprintf2(s1,n,fmt,x1,x2) sprintf(s1,fmt,x1,x2)
+#      define png_snprintf6(s1,n,fmt,x1,x2,x3,x4,x5,x6) \
+          sprintf(s1,fmt,x1,x2,x3,x4,x5,x6)
+#    endif
 #  endif
-#  define png_strlen  strlen
-#  define png_memcmp  memcmp      /* SJT: added */
-#  define png_memcpy  memcpy
-#  define png_memset  memset
+#endif
+
+
+
+
+
+
+
+
+
+
+#if defined(__TURBOC__) && !defined(__FLAT__)
+#  define  png_mem_alloc farmalloc
+#  define  png_mem_free  farfree
+   typedef unsigned long png_alloc_size_t;
+#else
+#  if defined(_MSC_VER) && defined(MAXSEG_64K)
+#    define  png_mem_alloc(s) halloc(s, 1)
+#    define  png_mem_free     hfree
+     typedef unsigned long    png_alloc_size_t;
+#  else
+#    if defined(_WINDOWS_) && (!defined(INT_MAX) || INT_MAX <= 0x7ffffffeL)
+#      define  png_mem_alloc(s) HeapAlloc(GetProcessHeap(), 0, s)
+#      define  png_mem_free(p)  HeapFree(GetProcessHeap(), 0, p)
+       typedef DWORD            png_alloc_size_t;
+#    else
+#      define  png_mem_alloc malloc
+#      define  png_mem_free  free
+       typedef png_size_t    png_alloc_size_t;
+#    endif
+#  endif
 #endif
 
 
@@ -1515,6 +1489,7 @@ typedef z_stream FAR *  png_zstreamp;
 #  undef PNG_ZBUF_SIZE
 #  define PNG_ZBUF_SIZE 65536L
 #endif
+
 
 
 #endif 
