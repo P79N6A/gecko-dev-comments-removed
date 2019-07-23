@@ -469,6 +469,9 @@ PRBool nsRootAccessible::FireAccessibleFocusEvent(nsIAccessible *aAccessible,
       
       
       
+      if (!finalFocusAccessible) {
+        return PR_FALSE;
+      }
     }
   }
 
