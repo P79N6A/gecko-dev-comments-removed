@@ -4763,21 +4763,34 @@ js_DecompileFunction(JSPrinter *jp)
     return JS_TRUE;
 }
 
-#undef LOCAL_ASSERT_RV
+
+
+
+
+
+
+
+
+
+
+
+static intN
+ReconstructPCStack(JSContext *cx, JSScript *script, jsbytecode *pc,
+                   jsbytecode **pcstack);
 
 char *
 js_DecompileValueGenerator(JSContext *cx, intN spindex, jsval v,
                            JSString *fallback)
 {
-    JSStackFrame *fp, *down;
+    JSStackFrame *fp;
     jsbytecode *pc, *begin, *end;
-    jsval *sp, *spbase, *base, *limit;
-    intN depth, pcdepth;
     JSScript *script;
     JSOp op;
     const JSCodeSpec *cs;
     jssrcnote *sn;
-    ptrdiff_t len, oplen;
+    ptrdiff_t len;
+    intN pcdepth;
+    jsval *sp;
     JSPrinter *jp;
     char *name;
 
@@ -4790,113 +4803,73 @@ js_DecompileValueGenerator(JSContext *cx, intN spindex, jsval v,
     if (!fp)
         goto do_fallback;
 
-    
     pc = fp->pc;
-    sp = fp->sp;
-    spbase = fp->spbase;
-    if ((uintN)(sp - spbase) > fp->script->depth) {
+    if (!pc)
+        goto do_fallback;
+    script = fp->script;
+    if (pc < script->main || script->code + script->length <= pc) {
+        JS_NOT_REACHED("bug");
+        goto do_fallback;
+    }
+
+    if (spindex != JSDVG_IGNORE_STACK) {
+        jsbytecode **pcstack;
+
         
 
 
 
+        pcstack = (jsbytecode **)
+                  JS_malloc(cx, script->depth * sizeof *pcstack);
+        if (!pcstack)
+            return NULL;
+        pcdepth = ReconstructPCStack(cx, script, fp->pc, pcstack);
+        if (pcdepth < 0)
+            goto release_pcstack;
 
-        goto do_fallback;
-    }
-
-    if (spindex == JSDVG_SEARCH_STACK) {
-        if (!pc) {
-            
-
-
-
-
-            JS_ASSERT(!fp->script && !(fp->fun && FUN_INTERPRETED(fp->fun)));
-            down = fp->down;
-            if (!down)
-                goto do_fallback;
-            script = down->script;
-            spbase = down->spbase;
-            base = fp->argv;
-            limit = base + fp->argc;
+        if (spindex != JSDVG_SEARCH_STACK) {
+            JS_ASSERT(spindex < 0);
+            pcdepth += spindex;
+            if (pcdepth < 0)
+                goto release_pcstack;
+            pc = pcstack[pcdepth];
         } else {
             
 
 
 
 
+            JS_ASSERT((size_t) (fp->sp - fp->spbase) <= fp->script->depth);
+            sp = fp->sp;
+            do {
+                if (sp == fp->spbase) {
+                    pcdepth = -1;
+                    goto release_pcstack;
+                }
+            } while (*--sp != v);
 
-            script = fp->script;
-            spbase = base = fp->spbase;
-            limit = fp->sp;
-        }
-
-        
-
-
-
-
-        if (!script || !base || !limit)
-            goto do_fallback;
-
-        
+            if (sp >= fp->spbase + pcdepth) {
+                
 
 
 
 
-
-
-
-
-
-
-
-
-
-
-        for (sp = limit;;) {
-            if (sp <= base)
-                goto do_fallback;
-            --sp;
-            if (*sp == v) {
-                depth = (intN)script->depth;
-                sp -= depth;
-                pc = (jsbytecode *) *sp;
-                break;
+                pc = fp->pc;
+            } else {
+                pc = pcstack[sp - fp->spbase];
             }
         }
-    } else {
-        
 
-
-
-
-        if (!pc)
+      release_pcstack:
+        JS_free(cx, pcstack);
+        if (pcdepth < 0)
             goto do_fallback;
-        script = fp->script;
-        if (!script)
-            goto do_fallback;
-
-        if (spindex != JSDVG_IGNORE_STACK) {
-            JS_ASSERT(spindex < 0);
-            depth = (intN)script->depth;
-#if !JS_HAS_NO_SUCH_METHOD
-            JS_ASSERT(-depth <= spindex);
-#endif
-            sp = fp->sp + spindex;
-            if ((jsuword) (sp - fp->spbase) < (jsuword) depth)
-                pc = (jsbytecode *) *(sp - depth);
-        }
     }
 
     
 
 
 
-    if (JS_UPTRDIFF(pc, script->code) >= (jsuword)script->length) {
-        pc = fp->pc;
-        if (!pc)
-            goto do_fallback;
-    }
     op = (JSOp) *pc;
     if (op == JSOP_TRAP)
         op = JS_GetTrapOpcode(cx, script, pc);
@@ -4952,16 +4925,57 @@ js_DecompileValueGenerator(JSContext *cx, intN spindex, jsval v,
     if (len <= 0)
         goto do_fallback;
 
+    pcdepth = ReconstructPCStack(cx, script, begin, NULL);
+    if (pcdepth < 0)
+         goto do_fallback;
+
+    name = NULL;
+    jp = JS_NEW_PRINTER(cx, "js_DecompileValueGenerator", fp->fun, 0, JS_FALSE);
+    if (jp) {
+        jp->dvgfence = end;
+        if (js_DecompileCode(jp, script, begin, (uintN)len, (uintN)pcdepth)) {
+            name = (jp->sprinter.base) ? jp->sprinter.base : (char *) "";
+            name = JS_strdup(cx, name);
+        }
+        js_DestroyPrinter(jp);
+    }
+    return name;
+
+  do_fallback:
+    if (!fallback) {
+        fallback = js_ValueToSource(cx, v);
+        if (!fallback)
+            return NULL;
+    }
+    return js_DeflateString(cx, JSSTRING_CHARS(fallback),
+                            JSSTRING_LENGTH(fallback));
+}
+
+static intN
+ReconstructPCStack(JSContext *cx, JSScript *script, jsbytecode *pc,
+                   jsbytecode **pcstack)
+{
+    intN pcdepth, nuses, ndefs;
+    jsbytecode *begin;
+    JSOp op;
+    const JSCodeSpec *cs;
+    ptrdiff_t oplen;
+    jssrcnote *sn;
+    uint32 type;
+
+#define LOCAL_ASSERT(expr)      LOCAL_ASSERT_RV(expr, -1);
+
     
 
 
 
 
-    pcdepth = 0;
-    for (pc = script->main; pc < begin; pc += oplen) {
-        uint32 type;
-        intN nuses, ndefs;
 
+
+    LOCAL_ASSERT(script->main <= pc && pc < script->code + script->length);
+    pcdepth = 0;
+    begin = pc;
+    for (pc = script->main; pc < begin; pc += oplen) {
         op = (JSOp) *pc;
         if (op == JSOP_TRAP)
             op = JS_GetTrapOpcode(cx, script, pc);
@@ -4970,6 +4984,7 @@ js_DecompileValueGenerator(JSContext *cx, intN spindex, jsval v,
 
         if (op == JSOP_POPN) {
             pcdepth -= GET_UINT16(pc);
+            LOCAL_ASSERT(pcdepth >= 0);
             continue;
         }
 
@@ -5002,6 +5017,7 @@ js_DecompileValueGenerator(JSContext *cx, intN spindex, jsval v,
 
 
                 --pcdepth;
+                LOCAL_ASSERT(pcdepth >= 0);
             }
         }
 
@@ -5068,7 +5084,7 @@ js_DecompileValueGenerator(JSContext *cx, intN spindex, jsval v,
             nuses = GET_UINT16(pc);
         }
         pcdepth -= nuses;
-        JS_ASSERT(pcdepth >= 0);
+        LOCAL_ASSERT(pcdepth >= 0);
 
         ndefs = cs->ndefs;
         if (op == JSOP_FINALLY) {
@@ -5083,27 +5099,65 @@ js_DecompileValueGenerator(JSContext *cx, intN spindex, jsval v,
             JS_ASSERT(OBJ_BLOCK_DEPTH(cx, obj) == pcdepth);
             ndefs = OBJ_BLOCK_COUNT(cx, obj);
         }
+
+        LOCAL_ASSERT(pcdepth + ndefs <= script->depth);
+        if (pcstack) {
+            intN i;
+            jsbytecode *pc2;
+
+            
+
+
+
+
+            switch (op) {
+              default:
+                for (i = 0; i != ndefs; ++i)
+                    pcstack[pcdepth + i] = pc;
+                break;
+
+              case JSOP_CASE:
+              case JSOP_CASEX:
+                
+                JS_ASSERT(ndefs == 1);
+                break;
+
+              case JSOP_DUP:
+                JS_ASSERT(ndefs == 2);
+                pcstack[pcdepth + 1] = pcstack[pcdepth];
+                break;
+
+              case JSOP_DUP2:
+                JS_ASSERT(ndefs == 4);
+                pcstack[pcdepth + 2] = pcstack[pcdepth];
+                pcstack[pcdepth + 3] = pcstack[pcdepth + 1];
+                break;
+
+              case JSOP_SWAP:
+                JS_ASSERT(ndefs == 2);
+                pc2 = pcstack[pcdepth];
+                pcstack[pcdepth] = pcstack[pcdepth + 1];
+                pcstack[pcdepth + 1] = pc2;
+                break;
+
+              case JSOP_LEAVEBLOCKEXPR:
+                
+
+
+
+                JS_ASSERT(ndefs == 0);
+                LOCAL_ASSERT(pcdepth >= 1);
+                LOCAL_ASSERT(*pcstack[pcdepth - 1] == JSOP_ENTERBLOCK);
+                pcstack[pcdepth - 1] = pc;
+                break;
+            }
+        }
         pcdepth += ndefs;
     }
+    LOCAL_ASSERT(pc == begin);
+    return pcdepth;
 
-    name = NULL;
-    jp = JS_NEW_PRINTER(cx, "js_DecompileValueGenerator", fp->fun, 0, JS_FALSE);
-    if (jp) {
-        jp->dvgfence = end;
-        if (js_DecompileCode(jp, script, begin, (uintN)len, (uintN)pcdepth)) {
-            name = (jp->sprinter.base) ? jp->sprinter.base : (char *) "";
-            name = JS_strdup(cx, name);
-        }
-        js_DestroyPrinter(jp);
-    }
-    return name;
-
-  do_fallback:
-    if (!fallback) {
-        fallback = js_ValueToSource(cx, v);
-        if (!fallback)
-            return NULL;
-    }
-    return js_DeflateString(cx, JSSTRING_CHARS(fallback),
-                            JSSTRING_LENGTH(fallback));
+#undef LOCAL_ASSERT
 }
+
+#undef LOCAL_ASSERT_RV

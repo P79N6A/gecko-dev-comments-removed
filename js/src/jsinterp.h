@@ -60,6 +60,9 @@ JS_BEGIN_EXTERN_C
 
 
 struct JSStackFrame {
+    jsval           *sp;            
+    jsbytecode      *pc;            
+    jsval           *spbase;        
     JSObject        *callobj;       
     JSObject        *argsobj;       
     JSObject        *varobj;        
@@ -75,9 +78,6 @@ struct JSStackFrame {
     JSStackFrame    *down;          
     void            *annotation;    
     JSObject        *scopeChain;    
-    jsbytecode      *pc;            
-    jsval           *sp;            
-    jsval           *spbase;        
     uintN           sharpDepth;     
     JSObject        *sharpArray;    
     uint32          flags;          
@@ -491,6 +491,9 @@ js_InternNonIntElementId(JSContext *cx, JSObject *obj, jsval idval, jsid *idp);
 
 extern JSBool
 js_ImportProperty(JSContext *cx, JSObject *obj, jsid id);
+
+extern JSBool
+js_OnUnknownMethod(JSContext *cx, jsval *vp);
 
 
 
