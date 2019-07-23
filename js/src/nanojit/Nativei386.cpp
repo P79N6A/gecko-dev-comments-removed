@@ -850,7 +850,7 @@ namespace nanojit
 
         
         
-        if ((op == LIR_add || op == LIR_iaddp) && lhs->isop(LIR_alloc) && rhs->isconst()) {
+        if (op == LIR_add && lhs->isop(LIR_alloc) && rhs->isconst()) {
             
             Register rr = prepareResultReg(ins, GpRegs);
             int d = findMemFor(lhs) + rhs->imm32();
@@ -913,7 +913,6 @@ namespace nanojit
 
             switch (op) {
             case LIR_add:
-            case LIR_addp:
             case LIR_addxov:    ADD(rr, rb); break;     
             case LIR_sub:
             case LIR_subxov:    SUB(rr, rb); break;
@@ -935,7 +934,6 @@ namespace nanojit
         } else {
             int c = rhs->imm32();
             switch (op) {
-            case LIR_addp:
             case LIR_add:
                 
                 LEA(rr, c, ra);
