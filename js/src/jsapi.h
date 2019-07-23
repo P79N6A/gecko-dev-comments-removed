@@ -1212,7 +1212,9 @@ struct JSExtendedClass {
     JSObjectOp          outerObject;
     JSObjectOp          innerObject;
     JSIteratorOp        iteratorObject;
-    JSObjectOp          wrappedObject;
+    JSObjectOp          wrappedObject;          
+
+
     void                (*reserved0)(void);
     void                (*reserved1)(void);
     void                (*reserved2)(void);
