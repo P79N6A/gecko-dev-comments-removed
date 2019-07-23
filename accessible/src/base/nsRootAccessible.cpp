@@ -506,7 +506,8 @@ PRBool nsRootAccessible::FireAccessibleFocusEvent(nsIAccessible *aAccessible,
   if (docAccessible) {
     
     nsCOMPtr<nsIDOMNode> realFocusedNode = GetCurrentFocus();
-    if (realFocusedNode != aNode) {
+    if (realFocusedNode != aNode || realFocusedNode == mDOMNode) {
+      
       
       
       return PR_FALSE;
