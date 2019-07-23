@@ -211,6 +211,21 @@ XPCWrapper::CreateIteratorObj(JSContext *cx, JSObject *tempWrapper,
     return nsnull;
   }
 
+  if (XPCNativeWrapper::IsNativeWrapper(wrapperObj)) {
+    
+    
+    
+    
+    
+
+    JSAutoTempValueRooter tvr(cx, tempWrapper);
+    if (!JS_SetPrototype(cx, iterObj, wrapperObj) ||
+        !XPCWrapper::Enumerate(cx, iterObj, wrapperObj) ||
+        !JS_SetPrototype(cx, iterObj, tempWrapper)) {
+      return nsnull;
+    }
+  }
+
   
   do {
     if (!XPCWrapper::Enumerate(cx, iterObj, innerObj)) {
