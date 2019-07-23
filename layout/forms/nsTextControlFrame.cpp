@@ -1719,6 +1719,35 @@ nsTextControlFrame::GetMinWidth(nsIRenderingContext* aRenderingContext)
   return result;
 }
 
+nsSize
+nsTextControlFrame::ComputeAutoSize(nsIRenderingContext *aRenderingContext,
+                                    nsSize aCBSize, nscoord aAvailableWidth,
+                                    nsSize aMargin, nsSize aBorder,
+                                    nsSize aPadding, PRBool aShrinkWrap)
+{
+  nsSize autoSize;
+  nsresult rv = CalcIntrinsicSize(aRenderingContext, autoSize);
+  if (NS_FAILED(rv)) {
+    
+    autoSize.SizeTo(0, 0);
+  }
+#ifdef DEBUG
+  
+  else if (GetStylePosition()->mWidth.GetUnit() == eStyleUnit_Auto) {
+    nsSize ancestorAutoSize =
+      nsStackFrame::ComputeAutoSize(aRenderingContext,
+                                    aCBSize, aAvailableWidth,
+                                    aMargin, aBorder,
+                                    aPadding, aShrinkWrap);
+    NS_ASSERTION(ancestorAutoSize.width == autoSize.width,
+                 "Incorrect size computed by ComputeAutoSize?");
+  }
+#endif
+  
+  return autoSize;
+}
+
+
 
 
 NS_IMETHODIMP
