@@ -1327,8 +1327,6 @@ var gApplicationsPane = {
       
       if (action == Ci.nsIHandlerInfo.useHelperApp)
         handlerInfo.preferredApplicationHandler = actionItem.handlerApp;
-      else
-        handlerInfo.preferredApplicationHandler = null;
 
       
       handlerInfo.alwaysAskBeforeHandling = false;
