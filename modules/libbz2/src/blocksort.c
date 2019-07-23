@@ -19,53 +19,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "bzlib_private.h"
 
 
@@ -155,7 +108,7 @@ void fallbackQSort3 ( UInt32* fmap,
 
    while (sp > 0) {
 
-      AssertH ( sp < FALLBACK_QSORT_STACK_SIZE, 1004 );
+      AssertH ( sp < FALLBACK_QSORT_STACK_SIZE - 1, 1004 );
 
       fpop ( lo, hi );
       if (hi - lo < FALLBACK_QSORT_SMALL_THRESH) {
@@ -690,7 +643,7 @@ void mainQSort3 ( UInt32* ptr,
 
    while (sp > 0) {
 
-      AssertH ( sp < MAIN_QSORT_STACK_SIZE, 1001 );
+      AssertH ( sp < MAIN_QSORT_STACK_SIZE - 2, 1001 );
 
       mpop ( lo, hi, d );
       if (hi - lo < MAIN_QSORT_SMALL_THRESH || 

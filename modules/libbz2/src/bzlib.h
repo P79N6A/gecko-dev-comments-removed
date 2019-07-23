@@ -19,46 +19,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef _BZLIB_H
 #define _BZLIB_H
 
@@ -259,7 +219,6 @@ BZ_EXTERN int BZ_API(BZ2_bzBuffToBuffDecompress) (
       int           small, 
       int           verbosity 
    );
-
 
 
 

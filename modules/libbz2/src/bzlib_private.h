@@ -19,46 +19,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef _BZLIB_PRIVATE_H
 #define _BZLIB_PRIVATE_H
 
@@ -76,7 +36,7 @@
 
 
 
-#define BZ_VERSION  "1.0.3, 15-Feb-2005"
+#define BZ_VERSION  "1.0.4, 20-Dec-2006"
 
 typedef char            Char;
 typedef unsigned char   Bool;
@@ -94,9 +54,11 @@ typedef unsigned short  UInt16;
 #endif 
 
 #ifndef BZ_NO_STDIO
+
 extern void BZ2_bz__AssertH__fail ( int errcode );
 #define AssertH(cond,errcode) \
    { if (!(cond)) BZ2_bz__AssertH__fail ( errcode ); }
+
 #if BZ_DEBUG
 #define AssertD(cond,msg) \
    { if (!(cond)) {       \
@@ -107,6 +69,7 @@ extern void BZ2_bz__AssertH__fail ( int errcode );
 #else
 #define AssertD(cond,msg)
 #endif
+
 #define VPrintf0(zf) \
    fprintf(stderr,zf)
 #define VPrintf1(zf,za1) \
@@ -119,17 +82,20 @@ extern void BZ2_bz__AssertH__fail ( int errcode );
    fprintf(stderr,zf,za1,za2,za3,za4)
 #define VPrintf5(zf,za1,za2,za3,za4,za5) \
    fprintf(stderr,zf,za1,za2,za3,za4,za5)
+
 #else
+
 extern void bz_internal_error ( int errcode );
 #define AssertH(cond,errcode) \
    { if (!(cond)) bz_internal_error ( errcode ); }
-#define AssertD(cond,msg)
-#define VPrintf0(zf)
-#define VPrintf1(zf,za1)
-#define VPrintf2(zf,za1,za2)
-#define VPrintf3(zf,za1,za2,za3)
-#define VPrintf4(zf,za1,za2,za3,za4)
-#define VPrintf5(zf,za1,za2,za3,za4,za5)
+#define AssertD(cond,msg)                do { } while (0)
+#define VPrintf0(zf)                     do { } while (0)
+#define VPrintf1(zf,za1)                 do { } while (0)
+#define VPrintf2(zf,za1,za2)             do { } while (0)
+#define VPrintf3(zf,za1,za2,za3)         do { } while (0)
+#define VPrintf4(zf,za1,za2,za3,za4)     do { } while (0)
+#define VPrintf5(zf,za1,za2,za3,za4,za5) do { } while (0)
+
 #endif
 
 
