@@ -348,9 +348,10 @@ enum TraceType_
     TT_JSVAL          = 3, 
     TT_STRING         = 4, 
     TT_NULL           = 5, 
-    TT_PSEUDOBOOLEAN  = 6, 
-    TT_FUNCTION       = 7, 
-    TT_IGNORE         = 8
+    TT_SPECIAL        = 6, 
+    TT_VOID           = 7, 
+    TT_FUNCTION       = 8, 
+    TT_IGNORE         = 9
 }
 #if defined(__GNUC__) && defined(USE_TRACE_TYPE_ENUM)
 __attribute__((packed))
@@ -1096,7 +1097,9 @@ class TraceRecorder
                                                        VMSideExit* exit);
     JS_REQUIRES_STACK nanojit::LIns* slurpNullSlot(nanojit::LIns* val_ins, jsval* vp,
                                                    VMSideExit* exit);
-    JS_REQUIRES_STACK nanojit::LIns* slurpBoolSlot(nanojit::LIns* val_ins, jsval* vp,
+    JS_REQUIRES_STACK nanojit::LIns* slurpSpecialSlot(nanojit::LIns* val_ins, jsval* vp,
+                                                      VMSideExit* exit);
+    JS_REQUIRES_STACK nanojit::LIns* slurpVoidSlot(nanojit::LIns* val_ins, jsval* vp,
                                                    VMSideExit* exit);
     JS_REQUIRES_STACK nanojit::LIns* slurpSlot(nanojit::LIns* val_ins, jsval* vp,
                                                VMSideExit* exit);
@@ -1155,6 +1158,8 @@ class TraceRecorder
 
     JS_REQUIRES_STACK nanojit::LIns* alu(nanojit::LOpcode op, jsdouble v0, jsdouble v1,
                                          nanojit::LIns* s0, nanojit::LIns* s1);
+
+    nanojit::LIns* i2f(nanojit::LIns* i);
     nanojit::LIns* f2i(nanojit::LIns* f);
     nanojit::LIns* f2u(nanojit::LIns* f);
     JS_REQUIRES_STACK nanojit::LIns* makeNumberInt32(nanojit::LIns* f);
