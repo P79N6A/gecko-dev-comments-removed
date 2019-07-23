@@ -159,26 +159,165 @@ var StarUI = {
   },
 
   _doShowEditBookmarkPanel:
-  function PCH__doShowEditBookmarkPanel(aItemId, aAnchorElement, aPosition) {
+  function SU__doShowEditBookmarkPanel(aItemId, aAnchorElement, aPosition) {
     this._blockCommands(); 
 
-    
-    this.panel.popupBoxObject
-        .setConsumeRollupEvent(Ci.nsIPopupBoxObject.ROLLUP_CONSUME);
-    this.panel.openPopup(aAnchorElement, aPosition, -1, -1);
+    var bundle = this._element("bundle_browser");
 
-    gEditItemOverlay.initPanel(aItemId,
+    
+    this._element("editBookmarkPanelTitle").value =
+      bundle.getString("editBookmarkPanel.pageBookmarkedTitle");
+
+    
+    
+    this._element("editBookmarkPanelDescription").textContent = "";
+    this._element("editBookmarkPanelBottomButtons").hidden = false;
+    this._element("editBookmarkPanelContent").hidden = false;
+    this._element("editBookmarkPanelEditButton").hidden = true;
+    this._element("editBookmarkPanelRemoveButton").hidden = false;
+    this._element("editBookmarkPanelUndoRemoveButton").hidden = true;
+
+    
+    this._element("editBookmarkPanelStarIcon").removeAttribute("unstarred");
+
+    this._itemId = aItemId !== undefined ? aItemId : this._itemId;
+    this._batching = true;
+    PlacesUtils.ptm.beginBatch();
+
+    
+    
+    
+    
+    
+    PlacesUtils.ptm.doTransaction({ doTransaction: function() { },
+                                    undoTransaction: function() { },
+                                    redoTransaction: function() { },
+                                    isTransient: false,
+                                    merge: function() { return false; } });
+
+    if (this.panel.state == "closed") {
+      
+      this.panel.popupBoxObject
+          .setConsumeRollupEvent(Ci.nsIPopupBoxObject.ROLLUP_CONSUME);
+      this.panel.openPopup(aAnchorElement, aPosition, -1, -1);
+    }
+
+    gEditItemOverlay.initPanel(this._itemId,
                                { hiddenRows: ["description", "location",
                                               "loadInSidebar", "keyword"] });
   },
 
-  editBookmarkPanelShown:
-  function PCH_editBookmarkPanelShown() {
-    var namePicker = document.getElementById("editBMPanel_namePicker");
-    namePicker.focus();
-    namePicker.editor.selectAll();
+  panelShown:
+  function SU_panelShown(aEvent) {
+    if (aEvent.target == this.panel &&
+        !this._element("editBookmarkPanelContent").hidden) {
+      var namePicker = this._element("editBMPanel_namePicker");
+      namePicker.focus();
+      namePicker.editor.selectAll();
+    }
   },
 
+  showPageBookmarkedNotification:
+  function PCH_showPageBookmarkedNotification(aItemId, aAnchorElement, aPosition) {
+    this._blockCommands(); 
+
+    var bundle = this._element("bundle_browser");
+    var brandBundle = this._element("bundle_brand");
+    var brandShortName = brandBundle.getString("brandShortName");
+
+    
+    this._element("editBookmarkPanelTitle").value =
+      bundle.getString("editBookmarkPanel.pageBookmarkedTitle");
+
+    
+    this._element("editBookmarkPanelDescription").textContent =
+      bundle.getFormattedString("editBookmarkPanel.pageBookmarkedDescription",
+                                [brandShortName]);
+
+    
+    this._element("editBookmarkPanelContent").hidden = true;
+    this._element("editBookmarkPanelBottomButtons").hidden = true;
+
+    
+    
+    this._element("editBookmarkPanelEditButton").hidden = false;
+    this._element("editBookmarkPanelRemoveButton").hidden = false;
+    this._element("editBookmarkPanelUndoRemoveButton").hidden = true;
+
+    
+    this._element("editBookmarkPanelStarIcon").removeAttribute("unstarred");
+
+    this._itemId = aItemId !== undefined ? aItemId : this._itemId;
+    if (this.panel.state == "closed") {
+      
+      this.panel.popupBoxObject
+          .setConsumeRollupEvent(Ci.nsIPopupBoxObject.ROLLUP_CONSUME);
+      this.panel.openPopup(aAnchorElement, aPosition, -1, -1);
+    }
+  },
+
+  editButtonCommand: function SU_editButtonCommand() {
+    this.showEditBookmarkPopup();
+  },
+
+  cancelButtonOnCommand: function SU_cancelButtonOnCommand() {
+    PlacesUtils.ptm.endBatch();
+    this._batching = false;
+    PlacesUtils.ptm.undoTransaction();
+    this.panel.hidePopup();
+  },
+
+  removeBookmarkButtonCommand: function SU_removeBookmarkButtonCommand() {
+    
+    
+    
+    
+    if (this._batching) {
+      PlacesUtils.ptm.endBatch();
+      PlacesUtils.ptm.beginBatch(); 
+      var bundle = this._element("bundle_browser");
+
+      
+      
+      this._element("editBookmarkPanelTitle").value =
+        bundle.getString("editBookmarkPanel.bookmarkedRemovedTitle");
+      
+      
+      this._element("editBookmarkPanelContent").hidden = true;
+      this._element("editBookmarkPanelBottomButtons").hidden = true;
+      this._element("editBookmarkPanelUndoRemoveButton").hidden = false;
+      this._element("editBookmarkPanelRemoveButton").hidden = true;
+      this._element("editBookmarkPanelStarIcon").setAttribute("unstarred", "true");
+    }
+
+    
+    
+    this._uri = PlacesUtils.bookmarks.getBookmarkURI(this._itemId);
+    var txn = PlacesUtils.ptm.removeItem(this._itemId);
+    PlacesUtils.ptm.doTransaction(txn);
+
+    
+    var untagTxn = PlacesUtils.ptm.untagURI(this._uri, null);
+    PlacesUtils.ptm.doTransaction(untagTxn);
+
+    
+    
+    if (!this._batching)
+      this.panel.hidePopup();
+  },
+
+  undoRemoveBookmarkCommand: function SU_undoRemoveBookmarkCommand() {
+    
+    
+    PlacesUtils.ptm.endBatch();
+    this._batching = false;
+    PlacesUtils.ptm.undoTransaction();
+    this._itemId = PlacesUtils.getMostRecentBookmarkForURI(this._uri);
+    this.showEditBookmarkPopup();
+  }
+}
+
+var PlacesCommandHook = {
   
 
 
@@ -345,7 +484,7 @@ var StarUI = {
     var organizer = wm.getMostRecentWindow("Places:Organizer");
     if (!organizer) {
       
-      openDialog("chrome://browser/content/places/places.xul", 
+      openDialog("chrome:
                  "", "chrome,toolbar=yes,dialog=no,resizable", aLeftPaneRoot);
     }
     else {
