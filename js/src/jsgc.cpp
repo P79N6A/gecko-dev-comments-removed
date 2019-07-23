@@ -3121,6 +3121,45 @@ GC(JSContext *cx, JSGCInvocationKind gckind  GCTIMER_PARAM)
 
 
 
+static void
+GCUntilDone(JSContext *cx, JSGCInvocationKind gckind  GCTIMER_PARAM)
+{
+    JSRuntime *rt = cx->runtime;
+    JS_UNLOCK_GC(rt);
+
+#ifdef JS_TRACER
+    if (!JS_ON_TRACE(cx))
+#endif
+    {
+        VOUCH_HAVE_STACK();
+
+        PreGCCleanup(cx, gckind);
+
+        TIMESTAMP(gcTimer.startMark);
+
+      restart:
+        GC(cx, gckind  GCTIMER_ARG);
+    }
+
+    JS_LOCK_GC(rt);
+
+    
+
+
+
+    if (!JS_ON_TRACE(cx) && (rt->gcLevel > 1 || rt->gcPoke)) {
+        VOUCH_HAVE_STACK();
+        rt->gcLevel = 1;
+        rt->gcPoke = JS_FALSE;
+        JS_UNLOCK_GC(rt);
+        goto restart;
+    }
+}
+
+
+
+
+
 static bool
 FireGCBegin(JSContext *cx, JSGCInvocationKind gckind)
 {
@@ -3400,37 +3439,9 @@ js_GC(JSContext *cx, JSGCInvocationKind gckind)
         goto restart_at_beginning;
     }
 
-    JS_UNLOCK_GC(rt);
-
-#ifdef JS_TRACER
-    if (!JS_ON_TRACE(cx))
-#endif
-    {
-        VOUCH_HAVE_STACK();
-
-        PreGCCleanup(cx, gckind);
-
-        TIMESTAMP(gcTimer.startMark);
-
-      restart:
-        GC(cx, gckind  GCTIMER_ARG);
-    }
-
-    JS_LOCK_GC(rt);
-
-    
-
-
-
-    if (!JS_ON_TRACE(cx) && (rt->gcLevel > 1 || rt->gcPoke)) {
-        VOUCH_HAVE_STACK();
-        rt->gcLevel = 1;
-        rt->gcPoke = JS_FALSE;
-        JS_UNLOCK_GC(rt);
-        goto restart;
-    }
-
+    GCUntilDone(cx, gckind  GCTIMER_ARG);
     rt->setGCLastBytes(rt->gcBytes);
+
   done_running:
     rt->gcLevel = 0;
     rt->gcRunning = rt->gcRegenShapes = false;
