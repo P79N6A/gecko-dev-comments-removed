@@ -4417,6 +4417,10 @@ TraceRecorder::record_JSOP_SETPROP()
     JSObject* obj = JSVAL_TO_OBJECT(l);
     if (obj->map->ops->setProperty != js_SetProperty)
         ABORT_TRACE("non-native JSObjectOps::setProperty");
+
+    
+    
+    set(&l, stack(-1));
     return true;
 }
 
