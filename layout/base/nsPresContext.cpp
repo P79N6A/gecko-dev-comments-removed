@@ -733,6 +733,13 @@ nsPresContext::GetUserPreferences()
 void
 nsPresContext::PreferenceChanged(const char* aPrefName)
 {
+  if (IsPaginated()) {
+    
+    
+    
+    return;
+  }
+
   nsDependentCString prefName(aPrefName);
   if (prefName.EqualsLiteral("layout.css.dpi")) {
     PRInt32 oldAppUnitsPerDevPixel = AppUnitsPerDevPixel();

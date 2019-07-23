@@ -13398,6 +13398,13 @@ nsCSSFrameConstructor::RebuildAllStyleData(nsChangeHint aExtraHint)
   if (!mPresShell || !mPresShell->GetRootFrame())
     return;
 
+  if (mPresShell->GetPresContext()->IsPaginated()) {
+    
+    
+    NS_NOTREACHED("not allowed to rebuild all style data when paginated");
+    return;
+  }
+
   
   
   nsCOMPtr<nsIPresShell> kungFuDeathGrip(mPresShell);
