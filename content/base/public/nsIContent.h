@@ -62,8 +62,8 @@ class nsIDocShell;
 
 
 #define NS_ICONTENT_IID       \
-{ 0xe0c5d967, 0x2c15, 0x4097, \
-  { 0xb0, 0xdc, 0x75, 0xa3, 0xa7, 0xfc, 0xcd, 0x1a } }
+{ 0x36b375cb, 0xf01e, 0x4c18, \
+  { 0xbf, 0x9e, 0xba, 0xad, 0x77, 0x1d, 0xce, 0x22 } }
 
 
 class nsIContent_base : public nsINode {
@@ -791,12 +791,6 @@ public:
 
 
   virtual void UpdateEditableState();
-
-  
-
-
-
-  virtual void DestroyContent() = 0;
 
 #ifdef DEBUG
   

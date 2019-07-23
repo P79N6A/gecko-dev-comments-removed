@@ -2857,22 +2857,6 @@ nsGenericElement::GetPrimaryFrameFor(nsIContent* aContent,
   return presShell->GetPrimaryFrameFor(aContent);
 }
 
-void
-nsGenericElement::DestroyContent()
-{
-  nsIDocument *document = GetOwnerDoc();
-  if (document) {
-    document->BindingManager()->ChangeDocumentFor(this, document, nsnull);
-    document->ClearBoxObjectFor(this);
-  }
-
-  PRUint32 i, count = mAttrsAndChildren.ChildCount();
-  for (i = 0; i < count; ++i) {
-    
-    mAttrsAndChildren.ChildAt(i)->DestroyContent();
-  }
-}
-
 
 
 
@@ -3364,11 +3348,8 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(nsGenericElement)
   
   {
     nsDOMSlots *slots = tmp->GetExistingDOMSlots();
-    if (slots) {
+    if (slots)
       slots->mAttributeMap = nsnull;
-      if (tmp->IsNodeOfType(nsINode::eXUL))
-        NS_IF_RELEASE(slots->mControllers);
-    }
   }
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
