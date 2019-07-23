@@ -211,10 +211,13 @@ PlacesTreeView.prototype = {
 
 
   _buildVisibleSection:
-  function PTV__buildVisibleSection(aContainer, aVisible, aVisibleStartIndex)
+  function PTV__buildVisibleSection(aContainer, aVisible, aToOpen, aVisibleStartIndex)
   {
     if (!aContainer.containerOpen)
       return;  
+
+    const openLiteral = PlacesUtils.RDF.GetResource("http://home.netscape.com/NC-rdf#open");
+    const trueLiteral = PlacesUtils.RDF.GetLiteral("true");
 
     var cc = aContainer.childCount;
     for (var i=0; i < cc; i++) {
@@ -254,9 +257,14 @@ PlacesTreeView.prototype = {
 
       
       if (PlacesUtils.nodeIsContainer(curChild)) {
+        var resource = this._getResourceForNode(curChild);
+        var isopen = resource != null &&
+                     PlacesUtils.localStore.HasAssertion(resource, openLiteral, trueLiteral, true);
         asContainer(curChild);
-        if (curChild.containerOpen && curChild.childCount > 0)
-          this._buildVisibleSection(curChild, aVisible, aVisibleStartIndex);
+        if (isopen != curChild.containerOpen)
+          aToOpen.push(curChild);
+        else if (curChild.containerOpen && curChild.childCount > 0)
+          this._buildVisibleSection(curChild, aVisible, aToOpen, aVisibleStartIndex);
       }
     }
   },
@@ -323,39 +331,36 @@ PlacesTreeView.prototype = {
 
     
     var newElements = [];
-    this._buildVisibleSection(aContainer, newElements, startReplacement);
+    var toOpenElements = [];
+    this._buildVisibleSection(aContainer, newElements, toOpenElements, startReplacement);
 
     
-    this._visibleElements = 
+    this._visibleElements =
       this._visibleElements.slice(0, startReplacement).concat(newElements)
           .concat(this._visibleElements.slice(startReplacement + replaceCount,
                                               this._visibleElements.length));
 
-    if (replaceCount == newElements.length) {
-      
-      if (replaceCount > 0) {
-        this._tree.invalidateRange(startReplacement,
-                                   startReplacement + replaceCount - 1);
-      }
-    }
-    else {
-      
-      
+    
+    
+    if (replaceCount != newElements.length) {
       for (i = startReplacement + newElements.length;
            i < this._visibleElements.length; i ++) {
         this._visibleElements[i].viewIndex = i;
       }
+    }
 
-      
-      
-      
-      var minLength = Math.min(newElements.length, replaceCount);
-      this._tree.invalidateRange(startReplacement - 1,
-                                 startReplacement + minLength - 1);
+    
+    this._tree.beginUpdateBatch();
+    if (replaceCount)
+      this._tree.rowCountChanged(startReplacement, -replaceCount);
+    if (newElements.length)
+      this._tree.rowCountChanged(startReplacement, newElements.length);
+    this._tree.endUpdateBatch();
 
-      
-      this._tree.rowCountChanged(startReplacement + minLength,
-                                 newElements.length - replaceCount);
+    
+    for (var i = 0; i < toOpenElements.length; i++) {
+      var item = asContainer(toOpenElements[i]);
+      item.containerOpen = !item.containerOpen;
     }
   },
 
@@ -677,8 +682,10 @@ PlacesTreeView.prototype = {
     this._buildVisibleList();
 
     
-    this._tree.rowCountChanged(0, this._visibleElements.length - oldRowCount);
-    this._tree.invalidate();
+    this._tree.beginUpdateBatch();
+    this._tree.rowCountChanged(0, -oldRowCount);
+    this._tree.rowCountChanged(0, this._visibleElements.length);
+    this._tree.endUpdateBatch();
   },
 
   sortingChanged: function PTV__sortingChanged(aSortingMode) {
@@ -781,6 +788,13 @@ PlacesTreeView.prototype = {
     NS_ASSERT(this._visibleElements[viewIndex] == aNode,
               "Node's visible index and array out of sync");
     return viewIndex;
+  },
+
+  _getResourceForNode : function PTV_getResourceForNode(aNode)
+  {
+    
+    var uri = aNode.uri;
+    return uri ? PlacesUtils.RDF.GetResource(uri) : null;
   },
 
   
@@ -1045,6 +1059,17 @@ PlacesTreeView.prototype = {
       return; 
 
     asContainer(node);
+    var resource = this._getResourceForNode(node);
+    if (resource) {
+      const openLiteral = PlacesUtils.RDF.GetResource("http://home.netscape.com/NC-rdf#open");
+      const trueLiteral = PlacesUtils.RDF.GetLiteral("true");
+
+      if (node.containerOpen)
+        PlacesUtils.localStore.Unassert(resource, openLiteral, trueLiteral);
+      else
+        PlacesUtils.localStore.Assert(resource, openLiteral, trueLiteral, true);
+    }
+
     node.containerOpen = !node.containerOpen;
   },
 
