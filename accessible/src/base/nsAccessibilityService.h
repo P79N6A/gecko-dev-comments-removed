@@ -269,7 +269,8 @@ static const char kRoleNames[][20] = {
   "listbox option",      
   "listbox rich option", 
   "listbox",             
-  "flat equation"        
+  "flat equation",       
+  "gridcell"             
 };
 
 
