@@ -65,6 +65,7 @@
 
 
 do_import_script("netwerk/test/httpserver/httpd.js");
+var server;
 
 
 var promptService = {
@@ -123,6 +124,7 @@ onUpdateStarted: function()
 
 onUpdateEnded: function()
 {
+  server.stop();
   do_test_finished();
 },
 
