@@ -49,6 +49,7 @@
 #include "mozStorageService.h"
 #include "mozStorageStatement.h"
 #include "mozStorageValueArray.h"
+#include "mozStorage.h"
 
 #include "prlog.h"
 #include "prprf.h"
@@ -77,27 +78,6 @@ mozStorageConnection::~mozStorageConnection()
         
         ((mozStorageService*)(mStorageService.get()))->FlushAsyncIO();
     }
-}
-
-
-static nsresult
-ConvertResultCode (int srv)
-{
-    switch (srv) {
-        case SQLITE_OK:
-            return NS_OK;
-        case SQLITE_CORRUPT:
-        case SQLITE_NOTADB:
-            return NS_ERROR_FILE_CORRUPTED;
-        case SQLITE_PERM:
-        case SQLITE_CANTOPEN:
-            return NS_ERROR_FILE_ACCESS_DENIED;
-        case SQLITE_BUSY:
-            return NS_ERROR_FILE_IS_LOCKED;
-    }
-
-    
-    return NS_ERROR_FAILURE;
 }
 
 #ifdef PR_LOGGING
