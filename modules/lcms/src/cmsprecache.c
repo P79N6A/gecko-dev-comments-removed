@@ -191,12 +191,6 @@ LCMSBOOL LCMSEXPORT cmsPrecacheProfile(cmsHPROFILE hProfile,
        }
 
        
-       if (hasGammaTables) {
-              CMSASSERT(GTables[0] != NULL);
-              cmsFreeGammaTriple(GTables);
-       }
-
-       
        return TRUE;
 }
 
