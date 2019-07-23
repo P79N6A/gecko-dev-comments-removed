@@ -1,3 +1,4 @@
+/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
 /* ***** BEGIN LICENSE BLOCK *****
  * Version: MPL 1.1/GPL 2.0/LGPL 2.1
  *
@@ -14,8 +15,8 @@
  * The Original Code is mozilla.org code.
  *
  * The Initial Developer of the Original Code is
- * Google, Inc.
- * Portions created by the Initial Developer are Copyright (C) 2007
+ * Netscape Communications Corporation.
+ * Portions created by the Initial Developer are Copyright (C) 1998
  * the Initial Developer. All Rights Reserved.
  *
  * Contributor(s):
@@ -35,31 +36,28 @@
  * ***** END LICENSE BLOCK ***** */
 
 #include "nsISupports.idl"
-/**
- * Some utility methods used by the url classifier.
- */
+#include "nsIUrlListManager.idl"
 
-[scriptable, uuid(89ea43b0-a23f-4db2-8d23-6d90dc55f67a)]
-interface nsIUrlClassifierUtils : nsISupports
+// A map that contains a string keys mapped to string values.
+
+[scriptable, uuid(fd1f8334-1859-472d-b01f-4ac6b1121ce4)]
+interface nsIUrlClassifierTable : nsISupports
 {
-  /**
-   * Canonicalize a URL.  DON'T USE THIS DIRECTLY.  Use
-   * PROT_EnchashDecrypter.prototype.getCanonicalUrl instead.  This method
-   * url-decodes a string, but it doesn't normalize the hostname.  The method
-   * in EnchashDecrypter first calls this method, then normalizes the hostname.
-   *
-   * @param url String to canonicalize
-   *
-   * @returns String containing the canonicalized url (maximally url-decoded,
-   *          then specially url-encoded)
-   */
-  ACString canonicalizeURL(in ACString url);
+    /**
+     * The name used to identify this table
+     */
+    attribute ACString name;
 
-  /**
-   * When canonicalizing hostnames, the final step is to url escape everything that
-   * is not alphanumeric or hyphen or dot.  The existing methods (escape,
-   * encodeURIComponent and encodeURI are close, but not exactly what we want
-   * so we write our own function to do this.
-   */
-  ACString escapeHostname(in ACString hostname);
+    /**
+     * Set to false if we don't want to update this table.
+     */
+    attribute boolean needsUpdate;
+
+    /**
+     * In the simple case, exists just looks up the string in the
+     * table and call the callback after the query returns with true or
+     * false.  It's possible that something more complex happens
+     * (e.g., canonicalize the url).
+     */
+    void exists(in ACString key, in nsIUrlListManagerCallback cb);
 };

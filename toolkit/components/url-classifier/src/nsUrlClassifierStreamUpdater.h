@@ -71,8 +71,6 @@ private:
   
   nsUrlClassifierStreamUpdater(nsUrlClassifierStreamUpdater&);
 
-  nsresult AddRequestBody(const nsACString &aRequestBody);
-
   PRBool mIsUpdating;
   PRBool mInitialized;
   nsCOMPtr<nsIURI> mUpdateUrl;
