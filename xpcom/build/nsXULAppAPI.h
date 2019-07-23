@@ -419,10 +419,33 @@ XRE_API(void,
         XRE_FreeAppData, (nsXREAppData *aAppData))
 
 
+enum GeckoChildProcessType {
+  GeckoChildProcess_Default,
+
+  GeckoChildProcess_Plugin,
+  GeckoChildProcess_Tab,
+
+  GeckoChildProcess_End,
+  GeckoChildProcess_Invalid = GeckoChildProcess_End
+};
+
+static const char* const kGeckoChildProcessTypeString[] = {
+  "default",
+  "plugin",
+  "tab",
+  0
+};
+
+XRE_API(const char*,
+        XRE_ChildProcessTypeToString, (GeckoChildProcessType aProcessType))
+
+XRE_API(GeckoChildProcessType,
+        XRE_StringToChildProcessType, (const char* aProcessTypeString))
+
 XRE_API(nsresult,
         XRE_InitChildProcess, (int aArgc,
                                char* aArgv[],
-                               const char* aMainThreadClass=0))
+                               GeckoChildProcessType aProcess=GeckoChildProcess_Default))
 
 typedef void (*MainFunction)(void* aData);
 
