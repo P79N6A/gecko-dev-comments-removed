@@ -478,7 +478,7 @@ LivemarkService.prototype = {
   onItemMoved: function() { },
   onBeforeItemRemoved: function() { },
 
-  onItemRemoved: function(aItemId, aParentId, aIndex) {
+  onItemRemoved: function(aItemId, aParentId, aIndex, aItemType) {
     
     
     try {

@@ -176,7 +176,6 @@ function run_test() {
   
   
   
-  options.showSessions = true;
 
   
   var result = histsvc.executeQuery(query, options);

@@ -465,17 +465,6 @@ const queryOptionSwitches = [
   },
   
   {
-    property: "showSessions",
-    desc:     "nsINavHistoryQueryOptions.showSessions",
-    matches:  simplePropertyMatches,
-    runs:     [
-      function (aQuery, aQueryOptions) {
-        aQueryOptions.showSessions = true;
-      }
-    ]
-  },
-  
-  {
     property: "maxResults",
     desc:     "nsINavHistoryQueryOptions.maxResults",
     matches:  simplePropertyMatches,
