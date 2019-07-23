@@ -330,7 +330,8 @@ protected:
     
 
 
-    static double evaluateToNumber(Expr* aExpr, txIEvalContext* aContext);
+    static nsresult evaluateToNumber(Expr* aExpr, txIEvalContext* aContext,
+                                     double* aResult);
 
     
 
