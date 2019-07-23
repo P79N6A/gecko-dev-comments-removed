@@ -585,8 +585,7 @@ Assembler::nPatchBranch(NIns* at, NIns* target)
     } else {
         
         
-        at[0] = (NIns)( COND_AL | (0x51<<20) | (PC<<16) | (PC<<12) | (4) );
-        
+        NanoAssert(at[0] == (NIns)( COND_AL | (0x51<<20) | (PC<<16) | (PC<<12) | (4) ));
         at[1] = (NIns)(target);
     }
     VALGRIND_DISCARD_TRANSLATIONS(at, 2*sizeof(NIns));
@@ -726,7 +725,7 @@ Assembler::asm_load64(LInsp ins)
     NanoAssert(ins->isQuad());
 
     LIns* base = ins->oprnd1();
-    int offset = ins->oprnd2()->imm32();
+    int offset = ins->disp();
 
     Reservation *resv = getresv(ins);
     NanoAssert(resv);
@@ -1830,10 +1829,9 @@ Assembler::asm_ld(LInsp ins)
 {
     LOpcode op = ins->opcode();
     LIns* base = ins->oprnd1();
-    LIns* disp = ins->oprnd2();
+    int d = ins->disp();
 
     Register rr = prepResultReg(ins, GpRegs);
-    int d = disp->imm32();
     Register ra = getBaseReg(base, d, GpRegs);
 
     
