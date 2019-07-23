@@ -1553,7 +1553,7 @@ PresShell::~PresShell()
 #endif
 
   delete mStyleSet;
-  delete mFrameConstructor;
+  NS_IF_RELEASE(mFrameConstructor);
 
   mCurrentEventContent = nsnull;
 
@@ -1600,6 +1600,7 @@ PresShell::Init(nsIDocument* aDocument,
   
   mFrameConstructor = new nsCSSFrameConstructor(mDocument, this);
   NS_ENSURE_TRUE(mFrameConstructor, NS_ERROR_OUT_OF_MEMORY);
+  NS_ADDREF(mFrameConstructor);
 
   
   mViewManager->SetViewObserver(this);
