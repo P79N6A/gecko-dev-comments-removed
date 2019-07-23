@@ -79,6 +79,7 @@
 #include "nsLayoutUtils.h"
 #include "nsIViewManager.h"
 #include "nsCSSFrameConstructor.h"
+#include "nsCSSRuleProcessor.h"
 #include "nsStyleChangeList.h"
 #include "nsRuleNode.h"
 
@@ -1385,6 +1386,9 @@ nsPresContext::ThemeChangedInternal()
     mLookAndFeel->LookAndFeelChanged();
     sLookAndFeelChanged = PR_FALSE;
   }
+
+  
+  nsCSSRuleProcessor::FreeSystemMetrics();
 
   
   

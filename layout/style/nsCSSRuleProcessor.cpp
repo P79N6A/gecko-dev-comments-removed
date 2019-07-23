@@ -795,7 +795,7 @@ InitSystemMetrics()
 }
 
  void
-nsCSSRuleProcessor::Shutdown()
+nsCSSRuleProcessor::FreeSystemMetrics()
 {
   delete sSystemMetrics;
   sSystemMetrics = nsnull;
