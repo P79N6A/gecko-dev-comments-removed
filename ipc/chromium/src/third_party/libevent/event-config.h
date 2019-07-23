@@ -1,0 +1,262 @@
+
+
+
+
+
+#ifndef _EVENT_CONFIG_H_
+#define _EVENT_CONFIG_H_
+
+
+
+
+
+
+
+#define _EVENT_DNS_USE_GETTIMEOFDAY_FOR_ID 1
+
+
+
+
+
+
+
+
+#define _EVENT_HAVE_DLFCN_H 1
+
+
+
+
+
+
+
+
+
+
+
+#define _EVENT_HAVE_FCNTL 1
+
+
+#define _EVENT_HAVE_FCNTL_H 1
+
+
+#define _EVENT_HAVE_GETADDRINFO 1
+
+
+#define _EVENT_HAVE_GETNAMEINFO 1
+
+
+#define _EVENT_HAVE_GETTIMEOFDAY 1
+
+
+#define _EVENT_HAVE_INET_NTOP 1
+
+
+#define _EVENT_HAVE_INTTYPES_H 1
+
+
+#define _EVENT_HAVE_KQUEUE 1
+
+
+
+
+
+#define _EVENT_HAVE_LIBRESOLV 1
+
+
+
+
+
+
+
+
+#define _EVENT_HAVE_MEMORY_H 1
+
+
+
+
+
+#define _EVENT_HAVE_POLL 1
+
+
+#define _EVENT_HAVE_POLL_H 1
+
+
+
+
+
+
+
+
+#define _EVENT_HAVE_SELECT 1
+
+
+#define _EVENT_HAVE_SETFD 1
+
+
+#define _EVENT_HAVE_SIGACTION 1
+
+
+#define _EVENT_HAVE_SIGNAL 1
+
+
+#define _EVENT_HAVE_SIGNAL_H 1
+
+
+#define _EVENT_HAVE_STDARG_H 1
+
+
+#define _EVENT_HAVE_STDINT_H 1
+
+
+#define _EVENT_HAVE_STDLIB_H 1
+
+
+#define _EVENT_HAVE_STRINGS_H 1
+
+
+#define _EVENT_HAVE_STRING_H 1
+
+
+#define _EVENT_HAVE_STRLCPY 1
+
+
+#define _EVENT_HAVE_STRSEP 1
+
+
+#define _EVENT_HAVE_STRTOK_R 1
+
+
+#define _EVENT_HAVE_STRTOLL 1
+
+
+#define _EVENT_HAVE_STRUCT_IN6_ADDR 1
+
+
+
+
+
+
+
+
+#define _EVENT_HAVE_SYS_EVENT_H 1
+
+
+#define _EVENT_HAVE_SYS_IOCTL_H 1
+
+
+#define _EVENT_HAVE_SYS_PARAM_H 1
+
+
+#define _EVENT_HAVE_SYS_QUEUE_H 1
+
+
+#define _EVENT_HAVE_SYS_SELECT_H 1
+
+
+#define _EVENT_HAVE_SYS_SOCKET_H 1
+
+
+#define _EVENT_HAVE_SYS_STAT_H 1
+
+
+#define _EVENT_HAVE_SYS_TIME_H 1
+
+
+#define _EVENT_HAVE_SYS_TYPES_H 1
+
+
+#define _EVENT_HAVE_TAILQFOREACH 1
+
+
+#define _EVENT_HAVE_TIMERADD 1
+
+
+#define _EVENT_HAVE_TIMERCLEAR 1
+
+
+#define _EVENT_HAVE_TIMERCMP 1
+
+
+#define _EVENT_HAVE_TIMERISSET 1
+
+
+#define _EVENT_HAVE_UINT16_T 1
+
+
+#define _EVENT_HAVE_UINT32_T 1
+
+
+#define _EVENT_HAVE_UINT64_T 1
+
+
+#define _EVENT_HAVE_UINT8_T 1
+
+
+#define _EVENT_HAVE_UNISTD_H 1
+
+
+#define _EVENT_HAVE_VASPRINTF 1
+
+
+#define _EVENT_HAVE_WORKING_KQUEUE 1
+
+
+#define _EVENT_PACKAGE "libevent"
+
+
+#define _EVENT_PACKAGE_BUGREPORT ""
+
+
+#define _EVENT_PACKAGE_NAME ""
+
+
+#define _EVENT_PACKAGE_STRING ""
+
+
+#define _EVENT_PACKAGE_TARNAME ""
+
+
+#define _EVENT_PACKAGE_VERSION ""
+
+
+#define _EVENT_SIZEOF_INT 4
+
+
+#define _EVENT_SIZEOF_LONG 4
+
+
+#define _EVENT_SIZEOF_LONG_LONG 8
+
+
+#define _EVENT_SIZEOF_SHORT 2
+
+
+#define _EVENT_STDC_HEADERS 1
+
+
+#define _EVENT_TIME_WITH_SYS_TIME 1
+
+
+#define _EVENT_VERSION "1.4.7-stable"
+
+
+
+
+
+
+
+
+
+#ifndef _EVENT___cplusplus
+
+#endif
+
+
+
+
+
+
+
+
+
+#endif
