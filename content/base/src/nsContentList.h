@@ -56,6 +56,7 @@
 #include "nsCycleCollectionParticipant.h"
 #include "nsWrapperCache.h"
 #include "nsCRT.h"
+#include "Element.h"
 
 
 
@@ -248,7 +249,6 @@ public:
 
 
 
-
   
   nsContentList(nsINode* aRootNode,
                 nsContentListMatchFunc aFunc,
@@ -313,7 +313,7 @@ protected:
 
 
 
-  PRBool Match(nsIContent *aContent);
+  PRBool Match(mozilla::dom::Element *aElement);
   
 
 
@@ -335,8 +335,7 @@ protected:
 
 
 
-
-  void NS_FASTCALL PopulateWith(nsIContent *aContent,
+  void NS_FASTCALL PopulateWith(mozilla::dom::Element *aElement,
                                 PRUint32 & aElementsToAppend);
 
   
