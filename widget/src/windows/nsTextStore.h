@@ -41,6 +41,8 @@
 
 #include "nsAutoPtr.h"
 #include "nsString.h"
+#include "nsCOMPtr.h"
+#include "nsITimer.h"
 
 #include <msctf.h>
 #include <textstor.h>
@@ -149,6 +151,12 @@ public:
     return sTsfTextStore->OnSelectionChangeInternal();
   }
 
+  static void CompositionTimerCallbackFunc(nsITimer *aTimer, void *aClosure)
+  {
+    nsTextStore *ts = static_cast<nsTextStore*>(aClosure);
+    ts->OnCompositionTimer();
+  }
+
   
   
   static void*    GetThreadMgr(void)
@@ -193,6 +201,7 @@ protected:
                                TF_DISPLAYATTRIBUTE* aResult);
   HRESULT  SendTextEventForCompositionString();
   HRESULT  SaveTextEvent(const nsTextEvent* aEvent);
+  nsresult OnCompositionTimer();
 
   
   nsRefPtr<ITfDocumentMgr>     mDocumentMgr;
@@ -232,6 +241,9 @@ protected:
   
   
   nsTextEvent*                 mLastDispatchedTextEvent;
+  
+  
+  nsCOMPtr<nsITimer>           mCompositionTimer;
 
   
   static ITfThreadMgr*  sTsfThreadMgr;

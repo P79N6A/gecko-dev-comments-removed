@@ -1552,6 +1552,10 @@ pref("intl.keyboard.per_window_layout", false);
 pref("intl.enable_tsf_support", false);
 
 
+
+pref("intl.tsf.on_layout_change_interval", 100);
+
+
 pref("ui.panel.default_level_parent", false);
 
 # WINNT
