@@ -4080,6 +4080,22 @@ PRBool SelectionIterator::GetNextSegment(gfxFloat* aXOffset,
   return PR_TRUE;
 }
 
+static void
+AddHyphenToMetrics(nsTextFrame* aTextFrame, gfxTextRun* aBaseTextRun,
+                   gfxTextRun::Metrics* aMetrics, PRBool aTightBoundingBox,
+                   gfxContext* aContext)
+{
+  
+  gfxTextRunCache::AutoTextRun hyphenTextRun(
+    GetHyphenTextRun(aBaseTextRun, aContext, aTextFrame));
+  if (!hyphenTextRun.get())
+    return;
+
+  gfxTextRun::Metrics hyphenMetrics =
+    hyphenTextRun->MeasureText(0, hyphenTextRun->GetLength(), aTightBoundingBox, aContext, nsnull);
+  aMetrics->CombineWith(hyphenMetrics, aBaseTextRun->IsRightToLeft());
+}
+
 void
 nsTextFrame::PaintOneShadow(PRUint32 aOffset, PRUint32 aLength,
                             nsCSSShadowItem* aShadowDetails,
@@ -4087,28 +4103,22 @@ nsTextFrame::PaintOneShadow(PRUint32 aOffset, PRUint32 aLength,
                             const gfxPoint& aFramePt, const gfxPoint& aTextBaselinePt,
                             gfxContext* aCtx, const nscolor& aForegroundColor)
 {
-  nscoord xOffset = aShadowDetails->mXOffset.GetCoordValue();
-  nscoord yOffset = aShadowDetails->mYOffset.GetCoordValue();
+  gfxPoint shadowOffset(aShadowDetails->mXOffset.GetCoordValue(),
+                        aShadowDetails->mYOffset.GetCoordValue());
   nscoord blurRadius = PR_MAX(aShadowDetails->mRadius.GetCoordValue(), 0);
-
-  nsTextPaintStyle textPaintStyle(this);
-  gfxFloat advanceWidth;
 
   gfxTextRun::Metrics shadowMetrics =
     mTextRun->MeasureText(aOffset, aLength, PR_FALSE,
                           nsnull, aProvider);
-
-  
-  
-  
-  
-  gfxRect shadowRect = shadowMetrics.mBoundingBox + aTextBaselinePt;
-  shadowRect.MoveBy(gfxPoint(xOffset, yOffset));
-
   if (GetStateBits() & TEXT_HYPHEN_BREAK) {
-    
-    shadowRect.size.width += aProvider->GetHyphenWidth();
+    AddHyphenToMetrics(this, mTextRun, &shadowMetrics, PR_FALSE, aCtx);
   }
+
+  
+  
+  
+  gfxRect shadowRect = shadowMetrics.mBoundingBox +
+    gfxPoint(aFramePt.x, aTextBaselinePt.y) + shadowOffset;
 
   nsContextBoxBlur contextBoxBlur;
   gfxContext* shadowContext = contextBoxBlur.Init(shadowRect, blurRadius,
@@ -4130,16 +4140,18 @@ nsTextFrame::PaintOneShadow(PRUint32 aOffset, PRUint32 aLength,
   
   
   
+  gfxFloat advanceWidth;
   DrawText(shadowContext,
-           aTextBaselinePt + gfxPoint(xOffset, yOffset),
+           aTextBaselinePt + shadowOffset,
            aOffset, aLength, &aDirtyRect, aProvider, advanceWidth,
            (GetStateBits() & TEXT_HYPHEN_BREAK) != 0);
 
   
   
   
-  PaintTextDecorations(shadowContext, aDirtyRect, aFramePt + gfxPoint(xOffset, yOffset),
-                       aTextBaselinePt + gfxPoint(xOffset, yOffset),
+  nsTextPaintStyle textPaintStyle(this);
+  PaintTextDecorations(shadowContext, aDirtyRect, aFramePt + shadowOffset,
+                       aTextBaselinePt + shadowOffset,
                        textPaintStyle, *aProvider, shadowColor);
 
   contextBoxBlur.DoPaint();
@@ -5848,11 +5860,7 @@ nsTextFrame::Reflow(nsPresContext*           aPresContext,
   }
   if (usedHyphenation) {
     
-    gfxTextRunCache::AutoTextRun hyphenTextRun(GetHyphenTextRun(mTextRun, ctx, this));
-    if (hyphenTextRun.get()) {
-      AddCharToMetrics(hyphenTextRun.get(),
-                       mTextRun, &textMetrics, needTightBoundingBox, ctx);
-    }
+    AddHyphenToMetrics(this, mTextRun, &textMetrics, needTightBoundingBox, ctx);
     AddStateBits(TEXT_HYPHEN_BREAK | TEXT_HAS_NONCOLLAPSED_CHARACTERS);
   }
 
