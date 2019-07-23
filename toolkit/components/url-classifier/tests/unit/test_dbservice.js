@@ -25,6 +25,25 @@ var chunk3Urls = [
   ];
 var chunk3 = chunk3Urls.join("\n");
 
+var chunk4Urls = [
+  "a.com/b",
+  "b.com/c",
+  ];
+var chunk4 = chunk3Urls.join("\n");
+
+var chunk5Urls = [
+  "d.com/e",
+  "f.com/g",
+  ];
+var chunk5 = chunk3Urls.join("\n");
+
+var chunk6Urls = [
+  "h.com/i",
+  "j.com/k",
+  ];
+var chunk6 = chunk3Urls.join("\n");
+
+
 
 
 
@@ -42,6 +61,18 @@ for (var i = 0; i < chunk3Urls.length; i++) {
 for (var i = 0; i < chunk1Urls.length; i++) {
   
   phishUnexpected[chunk1Urls[i]] = true;
+}
+for (var i = 0; i < chunk4Urls.length; i++) {
+  
+  phishUnexpected[chunk4Urls[i]] = true;
+}
+for (var i = 0; i < chunk5Urls.length; i++) {
+  
+  phishUnexpected[chunk5Urls[i]] = true;
+}
+for (var i = 0; i < chunk6Urls.length; i++) {
+  
+  phishUnexpected[chunk6Urls[i]] = true;
 }
 
 
@@ -71,26 +102,52 @@ function checkNoHost()
   do_test_finished();
 }
 
-function tablesCallback(tables)
+function tablesCallbackWithoutSub(tables)
 {
   var parts = tables.split("\n");
   parts.sort();
+
+  
+  
+  do_check_eq(parts.join("\n"),
+              "\ntesting-malware-simple;a:1\ntesting-phish-simple;a:2");
+
+  checkNoHost();
+}
+
+
+function expireSubSuccess(result) {
+  dbservice.getTables(tablesCallbackWithoutSub);
+}
+
+function tablesCallbackWithSub(tables)
+{
+  var parts = tables.split("\n");
+  parts.sort();
+
   
   
   do_check_eq(parts.join("\n"),
               "\ntesting-malware-simple;a:1\ntesting-phish-simple;a:2:s:3");
 
-  checkNoHost();
+  
+  var data =
+    "n:1000\n" +
+    "i:testing-phish-simple\n" +
+    "sd:3\n";
+
+  dbservice.update(data);
+  dbservice.finish(expireSubSuccess, testFailure);
 }
 
-function checkChunks()
+function checkChunksWithSub()
 {
-  dbservice.getTables(tablesCallback);
+  dbservice.getTables(tablesCallbackWithSub);
 }
 
 function checkDone() {
   if (--numExpecting == 0)
-    checkChunks();
+    checkChunksWithSub();
 }
 
 function phishExists(result) {
@@ -152,7 +209,8 @@ function do_subs() {
     "i:testing-phish-simple\n" +
     "s:3:" + chunk3.length + "\n" +
     chunk3 + "\n" +
-    "ad:1\n";
+    "ad:1\n" +
+    "ad:4-6\n";
 
   dbservice.update(data);
   dbservice.finish(testSubSuccess, testFailure);
@@ -176,9 +234,16 @@ function do_adds() {
     chunk1 + "\n" +
     "a:2:" + chunk2.length + "\n" +
     chunk2 + "\n" +
+    "a:4:" + chunk4.length + "\n" +
+    chunk4 + "\n" +
+    "a:5:" + chunk5.length + "\n" +
+    chunk5 + "\n" +
+    "a:6:" + chunk6.length + "\n" +
+    chunk6 + "\n" +
     "i:testing-malware-simple\n" +
     "a:1:" + chunk2.length + "\n" +
-    chunk2 + "\n";
+      chunk2 + "\n";
+
 
   dbservice.update(data);
   dbservice.finish(testAddSuccess, testFailure);
