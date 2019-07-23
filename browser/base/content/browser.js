@@ -3679,9 +3679,8 @@ nsBrowserStatusHandler.prototype =
 
     var securityUI = gBrowser.securityUI;
     this.securityButton.setAttribute("tooltiptext", securityUI.tooltipText);
-    var lockIcon = document.getElementById("lock-icon");
-    if (lockIcon)
-      lockIcon.setAttribute("tooltiptext", securityUI.tooltipText);
+    
+    getIdentityHandler().checkIdentity(aState);
   },
 
   
@@ -5566,4 +5565,267 @@ function showToolbars() {
     goButtonStack.removeAttribute("hidden");
   
   return false; 
+}
+
+
+
+
+function IdentityHandler() {
+  this._identityPopup = document.getElementById("identity-popup");
+  this._identityBox = document.getElementById("identity-box");
+  this._identityPopupContentBox = document.getElementById("identity-popup-content-box");
+  this._identityPopupTitle = document.getElementById("identity-popup-title");
+  this._identityPopupContent = document.getElementById("identity-popup-content");
+  this._identityPopupContentSupp = document.getElementById("identity-popup-content-supplemental");
+  this._identityPopupContentVerif = document.getElementById("identity-popup-content-verifier");
+  this._identityPopupEncLabel = document.getElementById("identity-popup-encryption-label");
+  this._identityIconLabel = document.getElementById("identity-icon-label");
+
+  this._stringBundle = document.getElementById("bundle_browser");
+  this._staticStrings = {};
+  this._staticStrings[this.IDENTITY_MODE_DOMAIN_VERIFIED] = {
+    title: this._stringBundle.getString("identity.domainverified.title"),
+    encryption_label: this._stringBundle.getString("identity.encrypted")  
+  };
+  this._staticStrings[this.IDENTITY_MODE_IDENTIFIED] = {
+    title: this._stringBundle.getString("identity.identified.title"),
+    encryption_label: this._stringBundle.getString("identity.encrypted")
+  };
+  this._staticStrings[this.IDENTITY_MODE_UNKNOWN] = {
+    title: this._stringBundle.getString("identity.unknown.title"),
+    encryption_label: this._stringBundle.getString("identity.unencrypted")  
+  };
+}
+
+IdentityHandler.prototype = {
+
+  
+  IDENTITY_MODE_IDENTIFIED       : "verifiedIdentity", 
+  IDENTITY_MODE_DOMAIN_VERIFIED  : "verifiedDomain",   
+  IDENTITY_MODE_UNKNOWN          : "unknownIdentity",  
+
+  
+  _lastStatus : null,
+  _lastURI : null,
+
+  
+
+
+
+  handleMoreInfoClick : function(event) {
+    if (event.button == 0) {
+      displaySecurityInfo();
+      event.stopPropagation();
+    }   
+  },
+  
+  
+
+
+
+  getIdentityData : function() {
+    var result = {};
+    var status = this._lastStatus.QueryInterface(Components.interfaces.nsISSLStatus);
+    var cert = status.serverCert;
+    
+    
+    result.subjectOrg = cert.organization;
+    
+    
+    if (cert.subjectName) {
+      result.subjectNameFields = {};
+      cert.subjectName.split(",").forEach(function(v) {
+        var field = v.split("=");
+        this[field[0]] = field[1];
+      }, result.subjectNameFields);
+      
+      
+      result.city = result.subjectNameFields.L;
+      result.state = result.subjectNameFields.ST;
+      result.country = result.subjectNameFields.C;
+    }
+    
+    
+    result.caOrg =  cert.issuerOrganization || cert.issuerCommonName;
+    
+    return result;
+  },
+  
+  
+
+
+
+
+
+
+
+
+  checkIdentity : function(state) {
+    var currentURI = gBrowser.currentURI;
+    if (currentURI.schemeIs("http")) {
+      if (!this._lastURI.schemeIs("http"))
+        this.setMode(this.IDENTITY_MODE_UNKNOWN);
+      return;
+    }
+
+    var currentStatus = gBrowser.securityUI
+                                .QueryInterface(Components.interfaces.nsISSLStatusProvider)
+                                .SSLStatus;
+    if (currentStatus == this._lastStatus && currentURI == this._lastURI) {
+      
+      return;
+    }
+
+    this._lastStatus = currentStatus;
+    this._lastURI = currentURI;
+    
+    if (state & Components.interfaces.nsIWebProgressListener.STATE_IDENTITY_EV_TOPLEVEL)
+      this.setMode(this.IDENTITY_MODE_IDENTIFIED);
+    else if (state & Components.interfaces.nsIWebProgressListener.STATE_SECURE_HIGH)
+      this.setMode(this.IDENTITY_MODE_DOMAIN_VERIFIED);
+    else
+      this.setMode(this.IDENTITY_MODE_UNKNOWN);
+  },
+  
+  
+
+
+
+  setMode : function(newMode) {
+    document.getElementById("identity-box").className = newMode;
+    this.setIdentityMessages(newMode);
+    
+    
+    if (this._identityPopup.state == "open")
+      this.setPopupMessages(newMode);
+  },
+  
+  
+
+
+
+
+
+  setIdentityMessages : function(newMode) {
+    if (newMode == this.IDENTITY_MODE_DOMAIN_VERIFIED) {
+      var iData = this.getIdentityData();     
+      
+      
+      
+      
+      
+      
+      var icon_label = this._lastURI.host; 
+      var tooltip = this._stringBundle.getFormattedString("identity.identified.verifier",
+                                                          [iData.caOrg]);
+    }
+    else if (newMode == this.IDENTITY_MODE_IDENTIFIED) {
+      
+      iData = this.getIdentityData();  
+      tooltip = this._stringBundle.getFormattedString("identity.identified.verifier",
+                                                      [iData.caOrg]);
+      if (iData.country)
+        icon_label = this._stringBundle.getFormattedString("identity.identified.title_with_country",
+                                                           [iData.subjectOrg, iData.country]);
+      else
+        icon_label = iData.subjectOrg;
+    }
+    else {
+      tooltip = this._stringBundle.getString("identity.unknown.body");
+      icon_label = "";
+    }
+    
+    
+    this._identityBox.tooltipText = tooltip;
+    this._identityIconLabel.value = icon_label;
+  },
+  
+  
+
+
+
+
+
+
+  setPopupMessages : function(newMode) {
+      
+    this._identityPopup.className = newMode;
+    this._identityPopupContentBox.className = newMode;
+    
+    
+    this._identityPopupTitle.value = this._staticStrings[newMode].title;
+    this._identityPopupEncLabel.textContent = this._staticStrings[newMode].encryption_label;
+    
+    
+    var supplemental = "";
+    var verifier = "";
+      
+    if (newMode == this.IDENTITY_MODE_DOMAIN_VERIFIED) {
+      var iData = this.getIdentityData();
+
+      var body = this._lastURI.host;     
+      verifier = this._stringBundle.getFormattedString("identity.identified.verifier",
+                                                       [iData.caOrg]);
+      supplemental = this._stringBundle.getString("identity.domainverified.supplemental");
+    }
+    else if (newMode == this.IDENTITY_MODE_IDENTIFIED) {
+      
+      iData = this.getIdentityData();
+
+      
+      
+      body = iData.subjectOrg; 
+      verifier = this._stringBundle.getFormattedString("identity.identified.verifier",
+                                                       [iData.caOrg]);
+
+      
+      if (iData.city)
+        supplemental += iData.city + "\n";        
+      if (iData.state && iData.country)
+        supplemental += this._stringBundle.getFormattedString("identity.identified.state_and_country",
+                                                              [iData.state, iData.country]);
+      else if (iData.state) 
+        supplemental += iData.state;
+      else if (iData.country) 
+        supplemental += iData.country;
+    }
+    else {
+      body = this._stringBundle.getString("identity.unknown.body");
+    }
+    
+    
+    this._identityPopupContent.textContent = body;
+    this._identityPopupContentSupp.textContent = supplemental;
+    this._identityPopupContentVerif.textContent = verifier;
+  },
+  
+  
+
+
+  handleIdentityClick : function(event) {
+    if (event.button != 0)
+      return; 
+        
+    
+    
+    this._identityPopup.hidden = false;
+    
+    
+    this.setPopupMessages(this._identityBox.className);
+    
+    
+    this._identityPopup.openPopup(this._identityBox, 'after_start');
+  }
+};
+
+var gIdentityHandler; 
+
+
+
+
+
+function getIdentityHandler() {
+  if (!gIdentityHandler)
+    gIdentityHandler = new IdentityHandler();
+  return gIdentityHandler;    
 }
