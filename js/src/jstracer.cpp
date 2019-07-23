@@ -1260,6 +1260,7 @@ TraceRecorder::snapshot(ExitType exitType)
         *m = isNumber(*vp)
                ? (isPromoteInt(i) ? JSVAL_INT : JSVAL_DOUBLE)
                : JSVAL_TAG(*vp);
+               if (*m == JSVAL_INT && JSVAL_TAG(*vp) == 2)
         JS_ASSERT((*m != JSVAL_INT) || isInt32(*vp));
         ++m;
     );
@@ -1424,10 +1425,10 @@ TraceRecorder::closeLoop(Fragmento* fragmento)
 
 
 void
-TraceRecorder::emitTreeCall(Fragment* inner, GuardRecord* lr)
+TraceRecorder::emitTreeCallStackSetup(Fragment* inner)
 {
     TreeInfo* ti = (TreeInfo*)inner->vmprivate;
-    LIns* inner_sp = lirbuf->sp;
+    inner_sp_ins = lirbuf->sp;
     
 
 
@@ -1452,7 +1453,7 @@ TraceRecorder::emitTreeCall(Fragment* inner, GuardRecord* lr)
                 ti->maxCallDepth * sizeof(FrameInfo));
         guard(true, lir->ins2(LIR_lt, rp_top, eor_ins), OOM_EXIT);
         
-        lir->insStorei(inner_sp = lir->ins2i(LIR_piadd, lirbuf->sp,
+        lir->insStorei(inner_sp_ins = lir->ins2i(LIR_piadd, lirbuf->sp,
                 - treeInfo->nativeStackBase 
                 + sp_adj 
                 + ti->nativeStackBase), 
@@ -1460,12 +1461,19 @@ TraceRecorder::emitTreeCall(Fragment* inner, GuardRecord* lr)
         lir->insStorei(lir->ins2i(LIR_piadd, lirbuf->rp, rp_adj),
                 lirbuf->state, offsetof(InterpState, rp));
     }
+}
+
+
+void
+TraceRecorder::emitTreeCall(Fragment* inner, GuardRecord* lr)
+{
+    TreeInfo* ti = (TreeInfo*)inner->vmprivate;
     
     LIns* args[] = { lir->insImmPtr(inner), lirbuf->state }; 
     LIns* ret = lir->insCall(F_CallTree, args);
     
     SideExit* exit = lr->exit;
-    import(ti, inner_sp, exit->numGlobalSlots, exit->calldepth,
+    import(ti, inner_sp_ins, exit->numGlobalSlots, exit->calldepth,
            exit->typeMap, exit->typeMap + exit->numGlobalSlots);
     
     lir->insStorei(lir->insImmPtr(lr), lirbuf->state, offsetof(InterpState, nestedExit));
@@ -1772,6 +1780,25 @@ js_ContinueRecording(JSContext* cx, TraceRecorder* r, jsbytecode* oldpc, uintN& 
     Fragment* f = fragmento->getLoop(cx->fp->regs->pc);
     if (nesting_enabled && f && f->code()) {
         
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        r->emitTreeCallStackSetup(f);
         GuardRecord* lr = js_ExecuteTree(cx, &f, inlineCallCount);
         if (!lr) {
             js_AbortRecording(cx, oldpc, "Couldn't call inner tree");
