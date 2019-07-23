@@ -212,7 +212,13 @@ extern const uint32 CALL_CLASS_FIXED_RESERVED_SLOTS;
 
 extern JS_FRIEND_DATA(JSClass) js_FunctionClass;
 
-#define HAS_FUNCTION_CLASS(obj) (STOBJ_GET_CLASS(obj) == &js_FunctionClass)
+inline bool
+JSObject::isFunction() const
+{
+    return getClass() == &js_FunctionClass;
+}
+
+#define HAS_FUNCTION_CLASS(obj) (obj)->isFunction()
 
 
 

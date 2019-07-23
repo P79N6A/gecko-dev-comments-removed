@@ -173,9 +173,17 @@ extern JSClass                          js_XMLFilterClass;
 
 
 
-#define OBJECT_IS_XML(cx,obj)   ((obj)->map->ops == &js_XMLObjectOps)
+
+
+inline bool
+JSObject::isXML() const
+{
+    return map->ops == &js_XMLObjectOps;
+}
+
+#define OBJECT_IS_XML(cx,obj)   (obj)->isXML()
 #define VALUE_IS_XML(cx,v)      (!JSVAL_IS_PRIMITIVE(v) &&                    \
-                                 OBJECT_IS_XML(cx, JSVAL_TO_OBJECT(v)))
+                                 JSVAL_TO_OBJECT(v)->isXML())
 
 extern JSObject *
 js_InitNamespaceClass(JSContext *cx, JSObject *obj);
