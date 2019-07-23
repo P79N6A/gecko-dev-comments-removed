@@ -186,6 +186,10 @@ public:
 
     virtual void ResetDocumentDirection() { mDocDirection = Direction_Uninitialized; }
 
+    virtual int GetDocumentLWTheme();
+
+    virtual void ResetDocumentLWTheme() { mDocLWTheme = Doc_Theme_Uninitialized; }
+
     static PRBool
     MatchAttribute(nsIContent* aContent,
                    PRInt32 aNameSpaceID,
@@ -341,6 +345,12 @@ protected:
     };
 
     DocumentDirection               mDocDirection;
+
+    
+
+
+
+    DocumentTheme                         mDocLWTheme;
 
     
 

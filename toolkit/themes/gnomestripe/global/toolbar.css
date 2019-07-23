@@ -64,6 +64,10 @@ menubar, toolbar[type="menubar"] {
   padding: 1px 0px;
 }
 
+toolbar:-moz-lwtheme {
+  -moz-appearance: none;
+}
+
 
 toolbaritem > menubar {
   -moz-appearance: none;

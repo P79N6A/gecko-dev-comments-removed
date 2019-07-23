@@ -1128,6 +1128,16 @@ nsXULElement::AfterSetAttr(PRInt32 aNamespaceID, nsIAtom* aName,
             }
         }
 
+        
+        if ((aName == nsGkAtoms::lwtheme ||
+             aName == nsGkAtoms::lwthemetextcolor) &&
+            document && document->GetRootContent() == this) {
+            nsCOMPtr<nsIXULDocument> xuldoc = do_QueryInterface(document);
+            if (xuldoc) {
+                xuldoc->ResetDocumentLWTheme();
+            }
+        }
+
         if (aName == nsGkAtoms::src && document) {
             LoadSrc();
         }
@@ -1380,6 +1390,16 @@ nsXULElement::UnsetAttr(PRInt32 aNameSpaceID, nsIAtom* aName, PRBool aNotify)
             nsCOMPtr<nsIXULDocument> xuldoc = do_QueryInterface(doc);
             if (xuldoc) {
                 xuldoc->ResetDocumentDirection();
+            }
+        }
+
+        
+        if ((aName == nsGkAtoms::lwtheme ||
+             aName == nsGkAtoms::lwthemetextcolor) &&
+            doc && doc->GetRootContent() == this) {
+            nsCOMPtr<nsIXULDocument> xuldoc = do_QueryInterface(doc);
+            if (xuldoc) {
+                xuldoc->ResetDocumentLWTheme();
             }
         }
 

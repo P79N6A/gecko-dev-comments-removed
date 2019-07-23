@@ -105,8 +105,8 @@ class nsIBoxObject;
 
 
 #define NS_IDOCUMENT_IID      \
-  {0x1666cc78, 0x54ad, 0x4672, \
-      {0x93, 0x79, 0x9b, 0x6a, 0x61, 0x78, 0x94, 0x1a } }
+  { 0x2ca82a51, 0x4a6a, 0x4dfa, \
+      { 0xa6, 0x5f, 0x49, 0x52, 0xa3, 0xaa, 0x02, 0xef } }
 
 
 #define NS_STYLESHEET_FROM_CATALOG                (1 << 0)
@@ -1164,6 +1164,20 @@ public:
 
 
   virtual PRBool IsDocumentRightToLeft() { return PR_FALSE; }
+
+  enum DocumentTheme {
+    Doc_Theme_Uninitialized, 
+    Doc_Theme_None,
+    Doc_Theme_Dark,
+    Doc_Theme_Bright
+  };
+
+  
+
+
+
+
+  virtual int GetDocumentLWTheme() { return Doc_Theme_None; }
 
   
 

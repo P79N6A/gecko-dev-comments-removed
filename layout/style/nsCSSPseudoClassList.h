@@ -108,6 +108,15 @@ CSS_PSEUDO_CLASS(mozSystemMetric, ":-moz-system-metric")
 
 CSS_PSEUDO_CLASS(mozLocaleDir, ":-moz-locale-dir")
 
+
+CSS_PSEUDO_CLASS(mozLWTheme, ":-moz-lwtheme")
+
+
+CSS_PSEUDO_CLASS(mozLWThemeBrightText, ":-moz-lwtheme-brighttext")
+
+
+CSS_PSEUDO_CLASS(mozLWThemeDarkText, ":-moz-lwtheme-darktext")
+
 #ifdef MOZ_MATHML
 CSS_PSEUDO_CLASS(mozMathIncrementScriptLevel, ":-moz-math-increment-script-level")
 #endif

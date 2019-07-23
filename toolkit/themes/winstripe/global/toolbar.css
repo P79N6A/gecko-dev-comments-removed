@@ -73,6 +73,15 @@ toolbar:first-child, menubar {
 }
 
 
+ 
+toolbox:-moz-lwtheme,
+toolbar:-moz-lwtheme {
+  -moz-appearance: none;
+  background: none;
+  border-style: none;
+}
+
+
 
 toolbarseparator {
   -moz-appearance: separator;
