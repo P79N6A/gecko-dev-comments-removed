@@ -211,6 +211,18 @@ public:
     NS_ASSERTION(!aOther.IsNull(), "Cannot compute with aOther null value");
     return mValue > aOther.mValue;
   }
+  PRBool operator==(const TimeStamp& aOther) const {
+    
+    NS_ASSERTION(!IsNull(), "Cannot compute with a null value");
+    NS_ASSERTION(!aOther.IsNull(), "Cannot compute with aOther null value");
+    return mValue == aOther.mValue;
+  }
+  PRBool operator!=(const TimeStamp& aOther) const {
+    
+    NS_ASSERTION(!IsNull(), "Cannot compute with a null value");
+    NS_ASSERTION(!aOther.IsNull(), "Cannot compute with aOther null value");
+    return mValue != aOther.mValue;
+  }
 
   
   

@@ -72,6 +72,7 @@
 #include "nsContentUtils.h"
 #include "nsIWidget.h"
 #include "mozilla/TimeStamp.h"
+#include "nsRefreshDriver.h"
 
 class nsImageLoader;
 #ifdef IBMBIDI
@@ -101,6 +102,7 @@ class gfxUserFontSet;
 class nsUserFontSet;
 struct nsFontFaceRuleContainer;
 class nsObjectFrame;
+class nsTransitionManager;
 
 #ifdef MOZ_REFLOW_PERF
 class nsIRenderingContext;
@@ -227,6 +229,16 @@ public:
 
   nsFrameManager* FrameManager()
     { return GetPresShell()->FrameManager(); } 
+
+  nsTransitionManager* TransitionManager() { return mTransitionManager; }
+
+  nsRefreshDriver* RefreshDriver() { return &mRefreshDriver; }
+
+  static nsPresContext* FromRefreshDriver(nsRefreshDriver* aRefreshDriver) {
+    return reinterpret_cast<nsPresContext*>(
+             reinterpret_cast<char*>(aRefreshDriver) -
+             offsetof(nsPresContext, mRefreshDriver));
+  }
 #endif
 
   
@@ -945,6 +957,8 @@ protected:
                                         
   nsIEventStateManager* mEventManager;  
   nsILookAndFeel*       mLookAndFeel;   
+  nsRefreshDriver       mRefreshDriver;
+  nsTransitionManager*  mTransitionManager; 
   nsIAtom*              mMedium;        
                                         
 

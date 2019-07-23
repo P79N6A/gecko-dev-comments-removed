@@ -196,6 +196,7 @@ class nsStyleSet
     eDocSheet, 
     eStyleAttrSheet,
     eOverrideSheet, 
+    eTransitionSheet,
     eSheetTypeCount
     
     
@@ -351,7 +352,7 @@ class nsStyleSet
   unsigned mInShutdown : 1;
   unsigned mAuthorStyleDisabled: 1;
   unsigned mInReconstruct : 1;
-  unsigned mDirty : 7;  
+  unsigned mDirty : 8;  
 
 };
 

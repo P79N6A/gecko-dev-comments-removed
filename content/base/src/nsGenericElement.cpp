@@ -2692,6 +2692,16 @@ nsGenericElement::UnbindFromTree(PRBool aDeep, PRBool aNullParent)
   }
 
   
+  
+  
+  
+  if (HasFlag(NODE_HAS_PROPERTIES)) {
+    DeleteProperty(nsGkAtoms::transitionsOfBeforeProperty);
+    DeleteProperty(nsGkAtoms::transitionsOfAfterProperty);
+    DeleteProperty(nsGkAtoms::transitionsProperty);
+  }
+
+  
   UnsetFlags(NODE_FORCE_XBL_BINDINGS);
   
 #ifdef MOZ_XUL

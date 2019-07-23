@@ -58,6 +58,7 @@
 #include "nsIFrame.h"
 #include "nsContentUtils.h"
 #include "nsRuleProcessorData.h"
+#include "nsTransitionManager.h"
 
 NS_IMPL_ISUPPORTS1(nsEmptyStyleRule, nsIStyleRule)
 
@@ -112,6 +113,8 @@ nsStyleSet::Init(nsPresContext *aPresContext)
     mDefaultStyleData.Destroy(0, aPresContext);
     return NS_ERROR_OUT_OF_MEMORY;
   }
+
+  GatherRuleProcessors(eTransitionSheet);
 
   return NS_OK;
 }
@@ -190,6 +193,13 @@ nsStyleSet::GatherRuleProcessors(sheetType aType)
                                aType == eHTMLPresHintSheet ||
                                aType == eStyleAttrSheet)) {
     
+    return NS_OK;
+  }
+  if (aType == eTransitionSheet) {
+    
+    
+    
+    mRuleProcessors[aType] = PresContext()->TransitionManager();
     return NS_OK;
   }
   if (mSheets[aType].Count()) {
@@ -586,6 +596,16 @@ nsStyleSet::FileRules(nsIStyleRuleProcessor::EnumFunc aCollectorFunc,
   aRuleWalker->SetLevel(eAgentSheet, PR_TRUE);
   AddImportantRules(lastAgentRN, nsnull, aRuleWalker);     
 
+#ifdef DEBUG
+  nsRuleNode *lastImportantRN = aRuleWalker->GetCurrentNode();
+#endif
+  aRuleWalker->SetLevel(eTransitionSheet, PR_FALSE);
+  (*aCollectorFunc)(mRuleProcessors[eTransitionSheet], aData);
+#ifdef DEBUG
+  AssertNoCSSRules(aRuleWalker->GetCurrentNode(), lastImportantRN);
+  AssertNoImportantRules(aRuleWalker->GetCurrentNode(), lastImportantRN);
+#endif
+
 }
 
 
@@ -623,6 +643,7 @@ nsStyleSet::WalkRuleProcessors(nsIStyleRuleProcessor::EnumFunc aFunc,
     (*aFunc)(mRuleProcessors[eStyleAttrSheet], aData);
   if (mRuleProcessors[eOverrideSheet])
     (*aFunc)(mRuleProcessors[eOverrideSheet], aData);
+  (*aFunc)(mRuleProcessors[eTransitionSheet], aData);
 }
 
 PRBool nsStyleSet::BuildDefaultStyleData(nsPresContext* aPresContext)

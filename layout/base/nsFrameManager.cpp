@@ -90,6 +90,7 @@
 #include "nsLayoutUtils.h"
 #include "nsAutoPtr.h"
 #include "imgIRequest.h"
+#include "nsTransitionManager.h"
 
 #include "nsFrameManager.h"
 #ifdef ACCESSIBILITY
@@ -926,6 +927,33 @@ nsFrameManager::DebugVerifyStyleTree(nsIFrame* aFrame)
 
 #endif 
 
+
+
+static void
+TryStartingTransition(nsPresContext *aPresContext, nsIContent *aContent,
+                      nsStyleContext *aOldStyleContext,
+                      nsRefPtr<nsStyleContext> *aNewStyleContext )
+{
+  
+  
+  
+  
+  
+  
+  nsCOMPtr<nsIStyleRule> coverRule = 
+    aPresContext->TransitionManager()->StyleContextChanged(
+      aContent, aOldStyleContext, *aNewStyleContext);
+  if (coverRule) {
+    nsCOMArray<nsIStyleRule> rules;
+    rules.AppendObject(coverRule);
+    *aNewStyleContext = aPresContext->StyleSet()->ResolveStyleForRules(
+                     (*aNewStyleContext)->GetParent(),
+                     (*aNewStyleContext)->GetPseudoType(),
+                     (*aNewStyleContext)->GetRuleNode(),
+                     rules);
+  }
+}
+
 nsresult
 nsFrameManager::ReParentStyleContext(nsIFrame* aFrame)
 {
@@ -971,6 +999,16 @@ nsFrameManager::ReParentStyleContext(nsIFrame* aFrame)
                                                  newParentContext);
     if (newContext) {
       if (newContext != oldContext) {
+        
+        
+        
+        
+        
+#if 0
+        TryStartingTransition(presContext, aFrame->GetContent(),
+                              oldContext, &newContext);
+#endif
+
         
         
         nsChangeHint styleChange = oldContext->CalcStyleDifference(newContext);
@@ -1260,6 +1298,9 @@ nsFrameManager::ReResolveStyleContext(nsPresContext     *aPresContext,
       }
 
       if (newContext != oldContext) {
+        TryStartingTransition(aPresContext, aFrame->GetContent(),
+                              oldContext, &newContext);
+
         aMinChange = CaptureChange(oldContext, newContext, aFrame,
                                    content, aChangeList, aMinChange,
                                    assumeDifferenceHint);
