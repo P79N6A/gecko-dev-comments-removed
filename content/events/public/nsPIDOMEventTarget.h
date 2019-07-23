@@ -49,13 +49,29 @@ class nsIEventListenerManager;
 
 
 #define NS_PIDOMEVENTTARGET_IID \
-{ 0x764756cd, 0x8af2, 0x4a25,   \
-  { 0x91, 0x9d, 0xca, 0x95, 0x75, 0x9a, 0x1b, 0xe1 } }
+{ 0x360fa72e, 0xc709, 0x42cc, \
+  { 0x92, 0x85, 0x1f, 0x75, 0x5e, 0xc9, 0x03, 0x76 } }
 
 class nsPIDOMEventTarget : public nsISupports
 {
 public:
   NS_DECLARE_STATIC_IID_ACCESSOR(NS_PIDOMEVENTTARGET_IID)
+
+  
+
+
+
+
+
+   virtual nsPIDOMEventTarget* GetTargetForDOMEvent() { return this; }
+
+  
+
+
+
+
+
+   virtual nsPIDOMEventTarget* GetTargetForEventTargetChain() { return this; }
 
   
 

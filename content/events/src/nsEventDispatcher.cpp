@@ -111,7 +111,7 @@ public:
     return !!(mFlags & NS_TARGET_CHAIN_FORCE_CONTENT_DISPATCH);
   }
 
-  nsISupports* CurrentTarget()
+  nsPIDOMEventTarget* CurrentTarget()
   {
     return mTarget;
   }
@@ -157,8 +157,12 @@ public:
 
 nsEventTargetChainItem::nsEventTargetChainItem(nsISupports* aTarget,
                                                nsEventTargetChainItem* aChild)
-: mTarget(do_QueryInterface(aTarget)), mChild(aChild), mParent(nsnull), mFlags(0), mItemFlags(0)
+: mChild(aChild), mParent(nsnull), mFlags(0), mItemFlags(0)
 {
+  nsCOMPtr<nsPIDOMEventTarget> t = do_QueryInterface(aTarget);
+  if (t) {
+    mTarget = t->GetTargetForEventTargetChain();
+  }
   if (mChild) {
     mChild->mParent = this;
   }
@@ -197,9 +201,8 @@ nsEventTargetChainItem::HandleEvent(nsEventChainPostVisitor& aVisitor,
 {
   nsCOMPtr<nsIEventListenerManager> lm;
   mTarget->GetListenerManager(PR_FALSE, getter_AddRefs(lm));
-
-  if (lm) {
-    aVisitor.mEvent->currentTarget = CurrentTarget();
+  aVisitor.mEvent->currentTarget = CurrentTarget()->GetTargetForDOMEvent(); 
+  if (lm && aVisitor.mEvent->currentTarget) {
     lm->HandleEvent(aVisitor.mPresContext, aVisitor.mEvent, &aVisitor.mDOMEvent,
                     aVisitor.mEvent->currentTarget, aFlags,
                     &aVisitor.mEventStatus);
@@ -408,11 +411,20 @@ nsEventDispatcher::Dispatch(nsISupports* aTarget,
 
   
   
-  
-  
-  
   if (!aEvent->target) {
-    aEvent->target = aTarget;
+    
+    
+    aEvent->target = targetEtci->CurrentTarget();
+  } else {
+    
+    
+    
+    
+    
+    nsCOMPtr<nsPIDOMEventTarget> t = do_QueryInterface(aEvent->target);
+    NS_ENSURE_STATE(t);
+    aEvent->target = t->GetTargetForEventTargetChain();
+    NS_ENSURE_STATE(aEvent->target);
   }
   aEvent->originalTarget = aEvent->target;
 
