@@ -179,15 +179,22 @@ var gPrivacyPane = {
   readAcceptCookies: function ()
   {
     var pref = document.getElementById("network.cookie.cookieBehavior");
+    var acceptThirdParty = document.getElementById("acceptThirdParty");
     var keepUntil = document.getElementById("keepUntil");
     var menu = document.getElementById("keepCookiesUntil");
 
     
     var acceptCookies = (pref.value != 2);
 
-    keepUntil.disabled = menu.disabled = !acceptCookies;
+    keepUntil.disabled = menu.disabled = acceptThirdParty.disabled = !acceptCookies;
     
     return acceptCookies;
+  },
+
+  readAcceptThirdPartyCookies: function ()
+  {
+    var pref = document.getElementById("network.cookie.cookieBehavior");
+    return pref.value == 0;
   },
 
   
@@ -196,8 +203,21 @@ var gPrivacyPane = {
 
   writeAcceptCookies: function ()
   {
-    var checkbox = document.getElementById("acceptCookies");
-    return checkbox.checked ? 0 : 2;
+    var accept = document.getElementById("acceptCookies");
+    var acceptThirdParty = document.getElementById("acceptThirdParty");
+
+    
+    if (accept.checked)
+      acceptThirdParty.checked = true;
+
+    return accept.checked ? (acceptThirdParty.checked ? 0 : 1) : 2;
+  },
+
+  writeAcceptThirdPartyCookies: function ()
+  {
+    var accept = document.getElementById("acceptCookies");
+    var acceptThirdParty = document.getElementById("acceptThirdParty");
+    return accept.checked ? (acceptThirdParty.checked ? 0 : 1) : 2;
   },
 
   
