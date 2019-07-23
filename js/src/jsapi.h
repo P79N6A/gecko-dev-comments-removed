@@ -396,27 +396,6 @@ JS_ConvertArgumentsVA(JSContext *cx, uintN argc, jsval *argv,
                       const char *format, va_list ap);
 #endif
 
-
-
-
-
-
-
-
-
-
-
-extern JS_PUBLIC_API(jsval *)
-JS_PushArguments(JSContext *cx, void **markp, const char *format, ...);
-
-#ifdef va_start
-extern JS_PUBLIC_API(jsval *)
-JS_PushArgumentsVA(JSContext *cx, void **markp, const char *format, va_list ap);
-#endif
-
-extern JS_PUBLIC_API(void)
-JS_PopArguments(JSContext *cx, void *mark);
-
 #ifdef JS_ARGUMENT_FORMATTER_DEFINED
 
 
