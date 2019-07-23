@@ -56,6 +56,13 @@
       // test gEmptyRoleMap
       testRole("cell", ROLE_NOTHING);
 
+      // abstract roles
+      var abstract_roles = ["composite", "landmark", "structure", "widget",
+                            "window", "input", "range", "select", "section",
+                            "sectionhead"];
+      for (a in abstract_roles)
+        testRole(abstract_roles[a], ROLE_SECTION);
+
       SimpleTest.finish();
     }
 
@@ -110,6 +117,22 @@
       <td id="cell">cell</td>
     </tr>
   </table>
+
+  
+  
+  <div role="composite" id="composite">composite</div>
+  <div role="landmark" id="landmark">landmark</div>
+  <div role="roletype" id="roletype">roletype</div>
+  <div role="structure" id="structure">structure</div>
+  <div role="widget" id="widget">widget</div>
+  <div role="window" id="window">window</div>
+  
+  <div role="input" id="input">input</div>
+  <div role="range" id="range">range</div>
+  <div role="select" id="select">select</div>
+  
+  <div role="section" id="section">section</div>
+  <div role="sectionhead" id="sectionhead">sectionhead</div>
 
 </body>
 </html>
