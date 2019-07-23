@@ -1510,6 +1510,7 @@ struct nsStyleSVG {
   PRUint8          mColorInterpolation; 
   PRUint8          mColorInterpolationFilters; 
   PRUint8          mFillRule;         
+  PRUint8          mImageRendering;   
   PRUint8          mPointerEvents;    
   PRUint8          mShapeRendering;   
   PRUint8          mStrokeLinecap;    

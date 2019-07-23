@@ -5220,6 +5220,13 @@ nsRuleNode::ComputeSVGData(void* aStartStruct,
               NS_STYLE_FILL_RULE_NONZERO, 0, 0, 0, 0);
 
   
+  SetDiscrete(SVGData.mImageRendering, svg->mImageRendering, canStoreInRuleTree,
+              SETDSC_ENUMERATED | SETDSC_AUTO,
+              parentSVG->mImageRendering,
+              NS_STYLE_IMAGE_RENDERING_AUTO, 
+              NS_STYLE_IMAGE_RENDERING_AUTO, 0, 0, 0);
+
+  
   if (eCSSUnit_URL == SVGData.mMarkerEnd.GetUnit()) {
     svg->mMarkerEnd = SVGData.mMarkerEnd.GetURLValue();
   } else if (eCSSUnit_None == SVGData.mMarkerEnd.GetUnit() ||
