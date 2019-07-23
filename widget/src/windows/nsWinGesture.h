@@ -48,7 +48,7 @@
 #include "nsPoint.h"
 #include "nsGUIEvent.h"
 
-#if !defined(NTDDI_WIN7) ||  NTDDI_VERSION < NTDDI_WIN7
+#ifndef HGESTUREINFO  
 
 DECLARE_HANDLE(HGESTUREINFO);
 

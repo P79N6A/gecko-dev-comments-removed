@@ -58,7 +58,13 @@ public:
 
   NS_DECL_ISUPPORTS
   NS_DECL_NSIWINTASKBAR
+
+  
+  
+  static PRBool SetAppUserModelID();
+
 private:
+  typedef HRESULT (WINAPI * SetCurrentProcessExplicitAppUserModelIDPtr)(PCWSTR AppID);
   ITaskbarList4 *mTaskbar;
 };
 
