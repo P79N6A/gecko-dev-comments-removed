@@ -1193,7 +1193,12 @@ nsPrintEngine::MapContentToWebShells(nsPrintObject* aRootPO,
   
   
   
-  MapContentForPO(aPO, aPO->mDocument->GetRootContent());
+  nsIContent *rootContent = aPO->mDocument->GetRootContent();
+  if (rootContent) {
+    MapContentForPO(aPO, rootContent);
+  } else {
+    NS_WARNING("Null root content on (sub)document.");
+  }
 
   
   for (PRInt32 i=0;i<aPO->mKids.Count();i++) {
