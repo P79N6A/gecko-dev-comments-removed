@@ -67,7 +67,11 @@ class SharedMemory {
   
   
   
+#ifdef CHROMIUM_MOZILLA_BUILD
+  bool Create(const std::string& name, bool read_only, bool open_existing,
+#else
   bool Create(const std::wstring& name, bool read_only, bool open_existing,
+#endif
               size_t size);
 
   
@@ -203,4 +207,4 @@ class SharedMemoryAutoLock {
 
 }  
 
-#endif  
+#endif
