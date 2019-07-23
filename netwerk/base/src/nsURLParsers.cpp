@@ -93,12 +93,14 @@ nsBaseURLParser::ParseURL(const char *spec, PRInt32 specLen,
     const char *colon = nsnull;
     const char *slash = nsnull;
     const char *p;
+    PRUint32 offset = 0;
     PRInt32 len = specLen;
     for (p = spec; len && *p && !colon && !slash; ++p, --len) {
         
-        if (*p > '\0' && *p <= ' ') {
+        if (*p == ' ' || *p == '\n' || *p == '\r' || *p == '\t') {
             spec++;
             specLen--;
+            offset++;
             continue;
         }
         switch (*p) {
@@ -151,10 +153,11 @@ nsBaseURLParser::ParseURL(const char *spec, PRInt32 specLen,
             NS_WARNING("malformed uri");
             return NS_ERROR_MALFORMED_URI;
         }
-        SET_RESULT(scheme, 0, colon - spec);
+        SET_RESULT(scheme, offset, colon - spec);
         if (authorityLen || pathLen) {
-            PRUint32 offset = colon + 1 - spec;
-            ParseAfterScheme(colon + 1, specLen - offset,
+            PRUint32 schemeLen = colon + 1 - spec;
+            offset += schemeLen;
+            ParseAfterScheme(colon + 1, specLen - schemeLen,
                              authorityPos, authorityLen,
                              pathPos, pathLen);
             OFFSET_RESULT(authority, offset);
@@ -181,6 +184,8 @@ nsBaseURLParser::ParseURL(const char *spec, PRInt32 specLen,
             ParseAfterScheme(spec, specLen,
                              authorityPos, authorityLen,
                              pathPos, pathLen);
+            OFFSET_RESULT(authority, offset);
+            OFFSET_RESULT(path, offset);
     }
     return NS_OK;
 }
