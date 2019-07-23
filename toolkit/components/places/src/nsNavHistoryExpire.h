@@ -63,9 +63,6 @@ protected:
 
   nsNavHistory* mHistory;
 
-  
-  PRUint32 mSequentialRuns;
-
   nsCOMPtr<nsITimer> mTimer;
   PRBool mTimerSet;
 
@@ -83,7 +80,6 @@ protected:
   
   PRUint32 mAddCount;
   PRUint32 mExpiredItems;
-  PRUint32 mExpireRuns;
 
   nsresult DoPartialExpiration();
 
