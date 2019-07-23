@@ -475,9 +475,7 @@ semantics > :not(:first-child) {
 
 
 
-
 *|*::-moz-mathml-anonymous-block {
-  display: block !important;
+  display: inline-block !important;
   position: static !important;
 }
-
