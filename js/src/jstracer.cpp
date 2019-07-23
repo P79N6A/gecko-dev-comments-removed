@@ -965,7 +965,16 @@ js_LoopEdge(JSContext* cx)
         return false;
     }
 
-    
+#ifdef JS_THREADSAFE    
+    if (GET_SCOPE(varobj)->title.owner_cx != cx) {
+#ifdef DEBUG        
+        printf("Global object not owned by this context.\n");
+#endif        
+        return false; 
+    }
+#endif    
+
+        
     VMFragmentInfo* fi = (VMFragmentInfo*)f->vmprivate;
     double native[fi->maxNativeFrameSlots+1];
 #ifdef DEBUG
