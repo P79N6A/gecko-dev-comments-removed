@@ -36,8 +36,8 @@
 
 
 
-#ifndef __nsCommaSeparatedTokenizer_h
-#define __nsCommaSeparatedTokenizer_h
+#ifndef __nsCharSeparatedTokenizer_h
+#define __nsCharSeparatedTokenizer_h
 
 #include "nsDependentSubstring.h"
 
