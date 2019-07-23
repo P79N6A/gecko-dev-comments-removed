@@ -37,6 +37,7 @@
 
 
 
+
 #include "nscore.h"
 #include "plstr.h"
 #include "nsXPITriggerInfo.h"
@@ -101,7 +102,7 @@ nsXPITriggerItem::nsXPITriggerItem( const PRUnichar* aName,
         {
             mHasher = do_CreateInstance("@mozilla.org/security/hash;1");
             if (!mHasher) return;
-            
+
             *colon = '\0'; 
             nsresult rv = mHasher->InitWithString(nsDependentCString(aHash));
             *colon = ':';  
@@ -264,10 +265,10 @@ XPITriggerEvent::Run()
             do_GetService("@mozilla.org/js/xpc/ContextStack;1");
         if (stack)
             stack->Push(cx);
-        
-        nsCOMPtr<nsIScriptSecurityManager> secman = 
+
+        nsCOMPtr<nsIScriptSecurityManager> secman =
             do_GetService(NS_SCRIPTSECURITYMANAGER_CONTRACTID);
-        
+
         if (!secman)
         {
             errorStr = "Could not get script security manager service";

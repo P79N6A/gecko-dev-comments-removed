@@ -129,10 +129,6 @@
 
 #include "nsINIParser.h"
 
-#ifdef MOZ_XPINSTALL
-#include "InstallCleanupDefines.h"
-#endif
-
 #include <stdlib.h>
 
 #ifdef XP_UNIX
@@ -1157,69 +1153,6 @@ DumpHelp()
   
   DumpArbitraryHelp();
 }
-
-#ifdef MOZ_XPINSTALL
-
-static int
-VerifyInstallation(nsIFile* aAppDir)
-{
-  static const char lastResortMessage[] =
-    "A previous install did not complete correctly.  Finishing install.";
-
-  
-  
-
-  char message[256];
-  PRInt32 numRead = 0;
-  const char *messageToShow = lastResortMessage;
-
-  nsresult rv;
-  nsCOMPtr<nsIFile> messageFile;
-  rv = aAppDir->Clone(getter_AddRefs(messageFile));
-  if (NS_SUCCEEDED(rv)) {
-    messageFile->AppendNative(NS_LITERAL_CSTRING("res"));
-    messageFile->AppendNative(CLEANUP_MESSAGE_FILENAME);
-    PRFileDesc* fd = 0;
-
-    nsCOMPtr<nsILocalFile> lf (do_QueryInterface(messageFile));
-    if (lf) {
-      rv = lf->OpenNSPRFileDesc(PR_RDONLY, 0664, &fd);
-      if (NS_SUCCEEDED(rv)) {
-        numRead = PR_Read(fd, message, sizeof(message)-1);
-        if (numRead > 0) {
-          message[numRead] = 0;
-          messageToShow = message;
-        }
-      }
-    }
-  }
-
-  ShowOSAlert(messageToShow);
-
-  nsCOMPtr<nsIFile> cleanupUtility;
-  aAppDir->Clone(getter_AddRefs(cleanupUtility));
-  if (!cleanupUtility) return 1;
-
-  cleanupUtility->AppendNative(CLEANUP_UTIL);
-
-  ScopedXPCOMStartup xpcom;
-  rv = xpcom.Initialize();
-  if (NS_FAILED(rv)) return 1;
-
-  { 
-    
-    nsCOMPtr<nsIProcess> cleanupProcess
-      (do_CreateInstance(NS_PROCESS_CONTRACTID));
-    rv = cleanupProcess->Init(cleanupUtility);
-    if (NS_FAILED(rv)) return 1;
-
-    rv = cleanupProcess->Run(PR_FALSE,nsnull, 0, nsnull);
-    if (NS_FAILED(rv)) return 1;
-  }
-
-  return 0;
-}
-#endif
 
 #ifdef DEBUG_warren
 #ifdef XP_WIN
@@ -2875,33 +2808,6 @@ XRE_main(int argc, char* argv[], const nsXREAppData* aAppData)
     if (NS_FAILED(rv) || !canRun) {
       return 1;
     }
-
-#ifdef MOZ_XPINSTALL
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    {
-      nsCOMPtr<nsIFile> registryFile;
-      rv = dirProvider.GetAppDir()->Clone(getter_AddRefs(registryFile));
-      if (NS_SUCCEEDED(rv)) {
-        registryFile->AppendNative(CLEANUP_REGISTRY);
-
-        PRBool exists;
-        rv = registryFile->Exists(&exists);
-        if (NS_SUCCEEDED(rv) && exists) {
-          return VerifyInstallation(dirProvider.GetAppDir());
-        }
-      }
-    }
-#endif
 
 #ifdef MOZ_ENABLE_XREMOTE
     
