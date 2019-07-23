@@ -2651,7 +2651,8 @@ js_FreezeLocalNames(JSContext *cx, JSFunction *fun)
     n = fun->nargs + fun->u.i.nvars;
     if (2 <= n && n < MAX_ARRAY_LOCALS) {
         
-        array = JS_realloc(cx, fun->u.i.names.array, n * sizeof *array);
+        array = (jsuword *) JS_realloc(cx, fun->u.i.names.array,
+                                       n * sizeof *array);
         if (array)
             fun->u.i.names.array = array;
     }
