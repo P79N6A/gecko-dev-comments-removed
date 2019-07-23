@@ -1275,12 +1275,12 @@ gfxFont::SanitizeMetrics(gfxFont::Metrics *aMetrics, PRBool aIsBadUnderlineFont)
     
     
     
-    if (aMetrics->superscriptOffset == 0 ||
+    if (aMetrics->superscriptOffset <= 0 ||
         aMetrics->superscriptOffset >= aMetrics->maxAscent) {
         aMetrics->superscriptOffset = aMetrics->xHeight;
     }
     
-    if (aMetrics->subscriptOffset == 0 ||
+    if (aMetrics->subscriptOffset <= 0 ||
         aMetrics->subscriptOffset >= aMetrics->maxAscent) {
         aMetrics->subscriptOffset = aMetrics->xHeight;
     }
