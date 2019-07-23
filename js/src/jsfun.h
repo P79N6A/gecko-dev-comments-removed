@@ -44,6 +44,7 @@
 
 #include "jsprvtd.h"
 #include "jspubtd.h"
+#include "jsobj.h"
 
 JS_BEGIN_EXTERN_C
 
@@ -63,7 +64,7 @@ typedef union JSLocalNames {
 } JSLocalNames;
 
 struct JSFunction {
-    JSObject        *object;    
+    JSObject        object;     
     uint16          nargs;      
 
     uint16          flags;      
@@ -90,6 +91,7 @@ struct JSFunction {
 
 #define JSFUN_SCRIPT_OR_FAST_NATIVE (JSFUN_INTERPRETED | JSFUN_FAST_NATIVE)
 
+#define FUN_OBJECT(fun)      (&(fun)->object)
 #define FUN_INTERPRETED(fun) ((fun)->flags & JSFUN_INTERPRETED)
 #define FUN_SLOW_NATIVE(fun) (!((fun)->flags & JSFUN_SCRIPT_OR_FAST_NATIVE))
 #define FUN_SCRIPT(fun)      (FUN_INTERPRETED(fun) ? (fun)->u.i.script : NULL)
@@ -107,19 +109,20 @@ extern JS_FRIEND_DATA(JSClass) js_CallClass;
 
 extern JS_FRIEND_DATA(JSClass) js_FunctionClass;
 
+#define HAS_FUNCTION_CLASS(obj) (STOBJ_GET_CLASS(obj) == &js_FunctionClass)
+
 
 
 
 #define VALUE_IS_FUNCTION(cx, v)                                              \
-    (!JSVAL_IS_PRIMITIVE(v) &&                                                \
-     OBJ_GET_CLASS(cx, JSVAL_TO_OBJECT(v)) == &js_FunctionClass)
+    (!JSVAL_IS_PRIMITIVE(v) && HAS_FUNCTION_CLASS(JSVAL_TO_OBJECT(v)))
 
 
 
 
 
 #define GET_FUNCTION_PRIVATE(cx, funobj)                                      \
-    (JS_ASSERT(OBJ_GET_CLASS(cx, funobj) == &js_FunctionClass),               \
+    (JS_ASSERT(HAS_FUNCTION_CLASS(funobj)),                                   \
      (JSFunction *) OBJ_GET_PRIVATE(cx, funobj))
 
 extern JSObject *
@@ -142,7 +145,7 @@ extern void
 js_FinalizeFunction(JSContext *cx, JSFunction *fun);
 
 extern JSObject *
-js_CloneFunctionObject(JSContext *cx, JSObject *funobj, JSObject *parent);
+js_CloneFunctionObject(JSContext *cx, JSFunction *fun, JSObject *parent);
 
 extern JSBool
 js_LinkFunctionObject(JSContext *cx, JSFunction *fun, JSObject *object);
