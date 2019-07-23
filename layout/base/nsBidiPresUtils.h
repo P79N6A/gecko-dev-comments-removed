@@ -170,11 +170,7 @@ public:
 
 
 
-
-
-
-  nsresult Resolve(nsBlockFrame*   aBlockFrame,
-                   PRBool          aIsVisualFormControl);
+  nsresult Resolve(nsBlockFrame* aBlockFrame);
 
   
 

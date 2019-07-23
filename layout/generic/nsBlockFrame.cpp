@@ -6897,30 +6897,7 @@ nsBlockFrame::ResolveBidi()
   if (!bidiUtils)
     return NS_ERROR_NULL_POINTER;
 
-  return bidiUtils->Resolve(this, IsVisualFormControl(presContext));
-}
-
-PRBool
-nsBlockFrame::IsVisualFormControl(nsPresContext* aPresContext)
-{
-  
-  
-  
-  
-  
-
-  if (!aPresContext->IsVisualMode()) {
-    return PR_FALSE;
-  }
-
-  nsIContent* content = GetContent();
-  for ( ; content; content = content->GetParent()) {
-    if (content->IsNodeOfType(nsINode::eHTML_FORM_CONTROL)) {
-      return PR_TRUE;
-    }
-  }
-  
-  return PR_FALSE;
+  return bidiUtils->Resolve(this);
 }
 #endif
 

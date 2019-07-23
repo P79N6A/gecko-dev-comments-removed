@@ -310,8 +310,7 @@ AdvanceLineIteratorToFrame(nsIFrame* aFrame,
 
 
 nsresult
-nsBidiPresUtils::Resolve(nsBlockFrame*   aBlockFrame,
-                         PRBool          aIsVisualFormControl)
+nsBidiPresUtils::Resolve(nsBlockFrame* aBlockFrame)
 {
   mLogicalFrames.Clear();
   mContentToFrameIndex.Clear();
@@ -372,12 +371,6 @@ nsBidiPresUtils::Resolve(nsBlockFrame*   aBlockFrame,
       return mSuccess;
   }
 
-  PRBool isVisual;
-  if (aIsVisualFormControl) {
-    isVisual = PR_FALSE;
-  } else {
-    isVisual = presContext->IsVisualMode();
-  }
   mSuccess = mBidiEngine->CountRuns(&runCount);
   if (NS_FAILED(mSuccess) ) {
     return mSuccess;
@@ -407,6 +400,30 @@ nsBidiPresUtils::Resolve(nsBlockFrame*   aBlockFrame,
   }
   nsIFrame* prevFrame = nsnull;
   PRBool lineNeedsUpdate = PR_FALSE;
+
+  PRBool isVisual = presContext->IsVisualMode();
+  if (isVisual) {
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+    for (content = aBlockFrame->GetContent() ; content; content = content->GetParent()) {
+      if (content->IsNodeOfType(nsINode::eHTML_FORM_CONTROL) || content->IsXUL()) {
+        isVisual = PR_FALSE;
+        break;
+      }
+    }
+  }
   
   for (; ;) {
     if (fragmentLength <= 0) {
