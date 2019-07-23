@@ -665,7 +665,7 @@ nsWindow :: DealWithPopups ( ULONG inMsg, MRESULT* outResult )
       
       if ( rollup ) {
         
-        gRollupListener->Rollup(inMsg == WM_LBUTTONDOWN ? &mLastRollup : nsnull);
+        gRollupListener->Rollup(inMsg == WM_BUTTON1DOWN ? &mLastRollup : nsnull);
 
         
         
