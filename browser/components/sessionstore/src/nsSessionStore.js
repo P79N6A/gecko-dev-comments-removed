@@ -50,6 +50,7 @@
 
 
 
+
 const Cc = Components.classes;
 const Ci = Components.interfaces;
 const Cr = Components.results;
@@ -912,6 +913,21 @@ SessionStoreService.prototype = {
     aWindow.setTimeout(function() { content.focus(); }, 0);
     
     return tab;
+  },
+
+  forgetClosedTab: function sss_forgetClosedTab(aWindow, aIndex) {
+    if (!aWindow.__SSi)
+      throw (Components.returnCode = Cr.NS_ERROR_INVALID_ARG);
+    
+    var closedTabs = this._windows[aWindow.__SSi]._closedTabs;
+
+    
+    aIndex = aIndex || 0;
+    if (!(aIndex in closedTabs))
+      throw (Components.returnCode = Cr.NS_ERROR_INVALID_ARG);
+    
+    
+    closedTabs.splice(aIndex, 1);
   },
 
   getWindowValue: function sss_getWindowValue(aWindow, aKey) {
