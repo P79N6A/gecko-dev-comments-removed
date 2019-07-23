@@ -483,11 +483,6 @@ nsNavHistory::InitDB(PRBool *aDoImport)
       
 
       
-      if (DBSchemaVersion < 2) {
-        rv = ForceMigrateBookmarksDB(mDBConn);
-        NS_ENSURE_SUCCESS(rv, rv);
-      } 
-
       if (DBSchemaVersion < 3) {
         rv = MigrateV3Up(mDBConn);
         NS_ENSURE_SUCCESS(rv, rv);
@@ -824,7 +819,7 @@ nsNavHistory::ForceMigrateBookmarksDB(mozIStorageConnection* aDBConn)
   
   nsCOMPtr<nsIPrefBranch> prefs(do_GetService("@mozilla.org/preferences-service;1"));
   if (prefs) {
-    prefs->SetBoolPref(PREF_BROWSER_HISTORY_EXPIRE_DAYS, PR_TRUE);
+    prefs->SetBoolPref(PREF_BROWSER_IMPORT_BOOKMARKS, PR_TRUE);
   }
   return rv;
 }
