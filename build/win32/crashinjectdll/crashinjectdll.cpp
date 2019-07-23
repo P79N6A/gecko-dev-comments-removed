@@ -15,15 +15,15 @@ DWORD WINAPI CrashingThread(
 }
 
 BOOL WINAPI DllMain(
-  HANDLE hinstDLL, 
-  DWORD dwReason, 
+  HANDLE hinstDLL,
+  DWORD dwReason,
   LPVOID lpvReserved
 )
 {
   if (tid == -1)
     
     
-    CreateThread( 
+    CreateThread(
                  NULL,                   
                  0,                      
                  CrashingThread  ,       
