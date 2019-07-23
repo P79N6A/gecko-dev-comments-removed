@@ -1725,8 +1725,11 @@ js_InvokeOperationCallback(JSContext *cx)
 
 
 
+    if (cx->runtime->gcIsNeeded)
+        js_GC(cx, GC_NORMAL);
 #ifdef JS_THREADSAFE    
-    JS_YieldRequest(cx);
+    else
+        JS_YieldRequest(cx);
 #endif
 
     JSOperationCallback cb = cx->operationCallback;
@@ -1738,6 +1741,23 @@ js_InvokeOperationCallback(JSContext *cx)
 
 
     return !cb || cb(cx);
+}
+
+void
+js_TriggerAllOperationCallbacks(JSRuntime *rt, JSBool gcLocked)
+{
+    JSContext *acx, *iter;
+#ifdef JS_THREADSAFE
+    if (!gcLocked)
+        JS_LOCK_GC(rt);
+#endif
+    iter = NULL;
+    while ((acx = js_ContextIterator(rt, JS_FALSE, &iter)))
+        JS_TriggerOperationCallback(acx);
+#ifdef JS_THREADSAFE
+    if (!gcLocked)
+        JS_UNLOCK_GC(rt);
+#endif
 }
 
 JSStackFrame *
