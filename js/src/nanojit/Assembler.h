@@ -136,6 +136,7 @@ namespace nanojit
         {
         private:
             const AR& _ar;
+            
             uint32_t _i;
         public:
             inline Iter(const AR& ar) : _ar(ar), _i(1) { }
