@@ -1592,189 +1592,6 @@ AttemptCompilation(JSContext *cx, TraceMonitor* tm, JSObject* globalObj, jsbytec
 }
 
 
-
-static jsdouble FASTCALL
-fneg(jsdouble x)
-{
-    return -x;
-}
-JS_DEFINE_CALLINFO_1(static, DOUBLE, fneg, DOUBLE, 1, 1)
-
-static jsdouble FASTCALL
-i2f(int32 i)
-{
-    return i;
-}
-JS_DEFINE_CALLINFO_1(static, DOUBLE, i2f,  INT32, 1, 1)
-
-static jsdouble FASTCALL
-u2f(jsuint u)
-{
-    return u;
-}
-JS_DEFINE_CALLINFO_1(static, DOUBLE, u2f, UINT32, 1, 1)
-
-static int32 FASTCALL
-fcmpeq(jsdouble x, jsdouble y)
-{
-    return x==y;
-}
-JS_DEFINE_CALLINFO_2(static, INT32, fcmpeq, DOUBLE, DOUBLE, 1, 1)
-
-static int32 FASTCALL
-fcmplt(jsdouble x, jsdouble y)
-{
-    return x < y;
-}
-JS_DEFINE_CALLINFO_2(static, INT32, fcmplt, DOUBLE, DOUBLE, 1, 1)
-
-static int32 FASTCALL
-fcmple(jsdouble x, jsdouble y)
-{
-    return x <= y;
-}
-JS_DEFINE_CALLINFO_2(static, INT32, fcmple, DOUBLE, DOUBLE, 1, 1)
-
-static int32 FASTCALL
-fcmpgt(jsdouble x, jsdouble y)
-{
-    return x > y;
-}
-JS_DEFINE_CALLINFO_2(static, INT32, fcmpgt, DOUBLE, DOUBLE, 1, 1)
-
-static int32 FASTCALL
-fcmpge(jsdouble x, jsdouble y)
-{
-    return x >= y;
-}
-JS_DEFINE_CALLINFO_2(static, INT32, fcmpge, DOUBLE, DOUBLE, 1, 1)
-
-static jsdouble FASTCALL
-fmul(jsdouble x, jsdouble y)
-{
-    return x * y;
-}
-JS_DEFINE_CALLINFO_2(static, DOUBLE, fmul, DOUBLE, DOUBLE, 1, 1)
-
-static jsdouble FASTCALL
-fadd(jsdouble x, jsdouble y)
-{
-    return x + y;
-}
-JS_DEFINE_CALLINFO_2(static, DOUBLE, fadd, DOUBLE, DOUBLE, 1, 1)
-
-static jsdouble FASTCALL
-fdiv(jsdouble x, jsdouble y)
-{
-    return x / y;
-}
-JS_DEFINE_CALLINFO_2(static, DOUBLE, fdiv, DOUBLE, DOUBLE, 1, 1)
-
-static jsdouble FASTCALL
-fsub(jsdouble x, jsdouble y)
-{
-    return x - y;
-}
-JS_DEFINE_CALLINFO_2(static, DOUBLE, fsub, DOUBLE, DOUBLE, 1, 1)
-
-static struct SoftFloatOps
-{
-    const CallInfo *map[LIR_sentinel];
-
-    SoftFloatOps() {
-        memset(map, 0, sizeof map);
-        map[LIR_i2f] = &i2f_ci;
-        map[LIR_u2f] = &u2f_ci;
-        map[LIR_fneg] = &fneg_ci;
-        map[LIR_fadd] = &fadd_ci;
-        map[LIR_fsub] = &fsub_ci;
-        map[LIR_fmul] = &fmul_ci;
-        map[LIR_fdiv] = &fdiv_ci;
-        map[LIR_feq] = &fcmpeq_ci;
-        map[LIR_flt] = &fcmplt_ci;
-        map[LIR_fgt] = &fcmpgt_ci;
-        map[LIR_fle] = &fcmple_ci;
-        map[LIR_fge] = &fcmpge_ci;
-    }
-} softFloatOps;
-
-
-class SoftFloatFilter: public LirWriter
-{
-public:
-    SoftFloatFilter(LirWriter *out) : LirWriter(out)
-    {}
-
-    LIns *hi(LIns *q) {
-        return ins1(LIR_qhi, q);
-    }
-    LIns *lo(LIns *q) {
-        return ins1(LIR_qlo, q);
-    }
-
-    LIns *split(LIns *a) {
-        if (a->isF64() && !a->isop(LIR_qjoin)) {
-            
-            a = ins2(LIR_qjoin, lo(a), hi(a));
-        }
-        return a;
-    }
-
-    LIns *split(const CallInfo *call, LInsp args[]) {
-        LIns *lo = out->insCall(call, args);
-        LIns *hi = out->ins1(LIR_callh, lo);
-        return out->ins2(LIR_qjoin, lo, hi);
-    }
-
-    LIns *fcall1(const CallInfo *call, LIns *a) {
-        LIns *args[] = { split(a) };
-        return split(call, args);
-    }
-
-    LIns *fcall2(const CallInfo *call, LIns *a, LIns *b) {
-        LIns *args[] = { split(b), split(a) };
-        return split(call, args);
-    }
-
-    LIns *fcmp(const CallInfo *call, LIns *a, LIns *b) {
-        LIns *args[] = { split(b), split(a) };
-        return out->ins2(LIR_eq, out->insCall(call, args), out->insImm(1));
-    }
-
-    LIns *ins1(LOpcode op, LIns *a) {
-        const CallInfo *ci = softFloatOps.map[op];
-        if (ci)
-            return fcall1(ci, a);
-        if (op == LIR_fret)
-            return out->ins1(op, split(a));
-        return out->ins1(op, a);
-    }
-
-    LIns *ins2(LOpcode op, LIns *a, LIns *b) {
-        const CallInfo *ci = softFloatOps.map[op];
-        if (ci) {
-            if ((op >= LIR_feq && op <= LIR_fge))
-                return fcmp(ci, a, b);
-            return fcall2(ci, a, b);
-        }
-        return out->ins2(op, a, b);
-    }
-
-    LIns *insCall(const CallInfo *ci, LInsp args[]) {
-        uint32_t argt = ci->_argtypes;
-
-        for (uint32_t i = 0, argsizes = argt >> ARGSIZE_SHIFT; argsizes != 0; i++, argsizes >>= ARGSIZE_SHIFT)
-            args[i] = split(args[i]);
-
-        if ((argt & ARGSIZE_MASK_ANY) == ARGSIZE_F) {
-            
-            
-            return split(ci, args);
-        }
-        return out->insCall(ci, args);
-    }
-};
-
 static bool
 isfop(LIns* i, LOpcode op)
 {
@@ -1784,7 +1601,7 @@ isfop(LIns* i, LOpcode op)
         i->isop(LIR_qjoin) &&
         i->oprnd1()->isop(LIR_icall) &&
         i->oprnd2()->isop(LIR_callh)) {
-        return i->oprnd1()->callInfo() == softFloatOps.map[op];
+        return i->oprnd1()->callInfo() == softFloatOps.opmap[op];
     }
     return false;
 }
@@ -12523,8 +12340,8 @@ TraceRecorder::record_JSOP_GETDSLOT()
     LIns* callee_ins = get(&cx->fp->argv[-2]);
 
     unsigned index = GET_UINT16(cx->fp->regs->pc);
-    LIns* dslots_ins = lir->insLoad(LIR_ldp, callee_ins, offsetof(JSObject, dslots));
-    LIns* v_ins = lir->insLoad(LIR_ldcp, dslots_ins, index * sizeof(jsval));
+    LIns* dslots_ins = NULL;
+    LIns* v_ins = stobj_get_dslot(callee_ins, index, dslots_ins);
 
     stack(0, unbox_jsval(callee->dslots[index], v_ins, snapshot(BRANCH_EXIT)));
     return ARECORD_CONTINUE;
@@ -12541,24 +12358,17 @@ TraceRecorder::record_JSOP_CALLDSLOT()
 JS_REQUIRES_STACK RecordingStatus
 TraceRecorder::guardCallee(jsval& callee)
 {
-    JSObject* callee_obj = JSVAL_TO_OBJECT(callee);
-    JS_ASSERT(callee_obj->isFunction());
-    JSFunction* callee_fun = (JSFunction*) callee_obj->getPrivate();
-
-    
-
-
-
-
+    JS_ASSERT(VALUE_IS_FUNCTION(cx, callee));
 
     VMSideExit* branchExit = snapshot(BRANCH_EXIT);
+    JSObject* callee_obj = JSVAL_TO_OBJECT(callee);
     LIns* callee_ins = get(&callee);
-    tree->gcthings.addUnique(callee);
 
+    tree->gcthings.addUnique(callee);
     guard(true,
           lir->ins2(LIR_peq,
                     stobj_get_private(callee_ins),
-                    INS_CONSTPTR(callee_fun)),
+                    INS_CONSTPTR(callee_obj->getPrivate())),
           branchExit);
 
     
@@ -12570,34 +12380,11 @@ TraceRecorder::guardCallee(jsval& callee)
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-    if (FUN_INTERPRETED(callee_fun) &&
-        (!FUN_NULL_CLOSURE(callee_fun) || callee_fun->u.i.nupvars != 0)) {
-        JSObject* parent = callee_obj->getParent();
-
-        if (parent != globalObj) {
-            if (parent->getClass() != &js_CallClass)
-                RETURN_STOP("closure scoped by neither the global object nor a Call object");
-
-            guard(true,
-                  lir->ins2(LIR_peq,
-                            stobj_get_parent(callee_ins),
-                            INS_CONSTOBJ(parent)),
-                  branchExit);
-        }
-    }
+    guard(true,
+          lir->ins2(LIR_peq,
+                    stobj_get_parent(callee_ins),
+                    INS_CONSTOBJ(OBJ_GET_PARENT(cx, callee_obj))),
+          branchExit);
     return RECORD_CONTINUE;
 }
 
@@ -14202,7 +13989,7 @@ TraceRecorder::record_JSOP_LAMBDA_FC()
         return ARECORD_STOP;
 
     LIns* args[] = {
-        scopeChain(),
+        INS_CONSTOBJ(globalObj),
         INS_CONSTFUN(fun),
         cx_ins
     };
@@ -15414,20 +15201,6 @@ JS_REQUIRES_STACK AbortableRecordingStatus
 TraceRecorder::record_JSOP_UNBRAND()
 {
     LIns* args_ins[] = { stack(-1), cx_ins };
-    LIns* call_ins = lir->insCall(&js_Unbrand_ci, args_ins);
-    guard(true, call_ins, OOM_EXIT);
-    return ARECORD_CONTINUE;
-}
-
-JS_REQUIRES_STACK AbortableRecordingStatus
-TraceRecorder::record_JSOP_UNBRANDTHIS()
-{
-    LIns* this_ins;
-    RecordingStatus status = getThis(this_ins);
-    if (status != RECORD_CONTINUE)
-        return InjectStatus(status);
-
-    LIns* args_ins[] = { this_ins, cx_ins };
     LIns* call_ins = lir->insCall(&js_Unbrand_ci, args_ins);
     guard(true, call_ins, OOM_EXIT);
     return ARECORD_CONTINUE;
