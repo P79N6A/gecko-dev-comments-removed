@@ -8271,13 +8271,8 @@ TraceRecorder::call_imacro(jsbytecode* imacro)
     JSFrameRegs* regs = fp->regs;
 
     
-    if (fp->imacpc) {
-        
-        if (regs->pc[js_CodeSpec[*regs->pc].length] != JSOP_STOP)
-            return RECORD_STOP;
-        regs->pc = imacro;
-        return RECORD_IMACRO;
-    }
+    if (fp->imacpc)
+        return RECORD_STOP;
 
     fp->imacpc = regs->pc;
     regs->pc = imacro;
@@ -15060,118 +15055,45 @@ TraceRecorder::record_JSOP_TRACE()
 
 static const uint32 sMaxConcatNSize = 32;
 
-
-
-
-
-JS_REQUIRES_STACK jsval *
-ConcatPostImacroStackCleanup(uint32 argc, JSFrameRegs &regs,
-                             TraceRecorder *recorder)
+JS_REQUIRES_STACK AbortableRecordingStatus
+TraceRecorder::record_JSOP_OBJTOSTR()
 {
-    JS_ASSERT(*regs.pc == JSOP_IMACOP);
-
-    
-    jsint offset = JSVAL_TO_INT(*--regs.sp);
-    jsval *imacroResult = --regs.sp;
-
-    
-    jsval *vp = regs.sp - offset;
-    JS_ASSERT(regs.sp - argc <= vp && vp < regs.sp);
-    if (recorder)
-        recorder->set(vp, recorder->get(imacroResult));
-    *vp = *imacroResult;
-
-    return vp;
+    jsval &v = stackval(-1);
+    JS_ASSERT_IF(cx->fp->imacpc, JSVAL_IS_PRIMITIVE(v) &&
+                                 *cx->fp->imacpc == JSOP_OBJTOSTR);
+    if (JSVAL_IS_PRIMITIVE(v))
+        return ARECORD_CONTINUE;
+    return InjectStatus(call_imacro(objtostr_imacros.toString));
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 JS_REQUIRES_STACK AbortableRecordingStatus
 TraceRecorder::record_JSOP_CONCATN()
 {
     JSStackFrame *fp = cx->fp;
     JSFrameRegs &regs = *fp->regs;
+    uint32 argc = GET_ARGC(regs.pc);
+    jsval *argBase = regs.sp - argc;
 
     
-
-
-
-    uint32 argc;
-    jsval *loopStart;
-    if (fp->imacpc) {
-        JS_ASSERT(*fp->imacpc == JSOP_CONCATN);
-        argc = GET_ARGC(fp->imacpc);
-        loopStart = ConcatPostImacroStackCleanup(argc, regs, this) + 1;
-    } else {
-        argc = GET_ARGC(regs.pc);
-        JS_ASSERT(argc > 0);
-        loopStart = regs.sp - argc;
-
-        
-        if (argc > sMaxConcatNSize)
-            return ARECORD_STOP;
-    }
-
-    
-    for (jsval *vp = loopStart; vp != regs.sp; ++vp) {
-        if (!JSVAL_IS_PRIMITIVE(*vp)) {
-            
-
-
-
-            jsint offset = regs.sp - vp;
-
-            
-            set(regs.sp, get(vp), true);
-            *regs.sp++ = *vp;
-
-            
-            set(regs.sp, lir->insImm(offset), true);
-            *regs.sp++ = INT_TO_JSVAL(offset);
-
-            
-            return InjectStatus(call_imacro(defvalue_imacros.string));
-        }
-    }
+    if (argc > sMaxConcatNSize)
+        return ARECORD_STOP;
 
     
     int32_t bufSize = argc * sizeof(JSString *);
     LIns *buf_ins = lir->insAlloc(bufSize);
     int32_t d = 0;
-    for (jsval *vp = regs.sp - argc; vp != regs.sp; ++vp, d += sizeof(void *))
+    for (jsval *vp = argBase; vp != regs.sp; ++vp, d += sizeof(void *)) {
+        JS_ASSERT(JSVAL_IS_PRIMITIVE(*vp));
         lir->insStorei(stringify(*vp), buf_ins, d);
+    }
 
     
     LIns *args[] = { lir->insImm(argc), buf_ins, cx_ins };
-    LIns *concat = lir->insCall(&js_ConcatN_ci, args);
-    guard(false, lir->ins_peq0(concat), OOM_EXIT);
+    LIns *result_ins = lir->insCall(&js_ConcatN_ci, args);
+    guard(false, lir->ins_peq0(result_ins), OOM_EXIT);
 
     
-    jsval *afterPop = regs.sp - (argc - 1);
-    set(afterPop - 1, concat);
-
+    set(argBase, result_ins);
     return ARECORD_CONTINUE;
 }
 
