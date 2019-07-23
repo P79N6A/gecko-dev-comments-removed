@@ -150,6 +150,12 @@ public:
   virtual NS_HIDDEN_(nsresult) OSProtocolHandlerExists(const char *aScheme,
                                                        PRBool *aExists) = 0;
 
+  
+
+
+
+  PRBool InPrivateBrowsing() const { return mInPrivateBrowsing; }
+
 protected:
   
 

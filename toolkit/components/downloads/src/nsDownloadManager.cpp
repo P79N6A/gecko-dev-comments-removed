@@ -2892,7 +2892,10 @@ nsDownload::OpenWithApplication()
 #endif
   }
 
-  if (deleteTempFileOnExit) {
+  
+  
+  if (deleteTempFileOnExit ||
+      nsDownloadManager::gDownloadManagerService->mInPrivateBrowsing) {
     
     
     nsCOMPtr<nsPIExternalAppLauncher> appLauncher(do_GetService

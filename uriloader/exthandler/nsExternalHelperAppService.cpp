@@ -2200,7 +2200,7 @@ nsresult nsExternalAppHandler::OpenWithApplication()
 
     
     
-    if (deleteTempFileOnExit)
+    if (deleteTempFileOnExit || gExtProtSvc->InPrivateBrowsing())
       mFinalFileDestination->SetPermissions(0400);
 
     rv = mMimeInfo->LaunchWithFile(mFinalFileDestination);        
@@ -2212,7 +2212,9 @@ nsresult nsExternalAppHandler::OpenWithApplication()
       SendStatusChange(kLaunchError, rv, nsnull, path);
       Cancel(rv); 
     }
-    else if (deleteTempFileOnExit) {
+    
+    
+    else if (deleteTempFileOnExit || gExtProtSvc->InPrivateBrowsing()) {
       NS_ASSERTION(gExtProtSvc, "Service gone away!?");
       gExtProtSvc->DeleteTemporaryFileOnExit(mFinalFileDestination);
     }
