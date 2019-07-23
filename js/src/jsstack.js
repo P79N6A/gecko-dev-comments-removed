@@ -172,7 +172,8 @@ RedGreenCheck.prototype.flowState = function(isn, state) {
   
   
   
-  let green = (state.get(this._state_var_decl) != 1);
+  let stackState = state.get(this._state_var_decl);
+  let green = stackState != 1 && stackState != ESP.NOT_REACHED;
   let redInfo = isn.redInfo;
   if (green && redInfo) {
     error(redInfo[0], redInfo[1]);
