@@ -13672,8 +13672,13 @@ TraceRecorder::record_JSOP_BINDNAME()
             JS_ASSERT(obj);
         }
 
-        if (obj != globalObj)
+        if (obj != globalObj) {
+            
+            
+            
+            JS_NOT_REACHED("BINDNAME in global code resolved to non-global object");
             RETURN_STOP_A("BINDNAME in global code resolved to non-global object");
+        }
 
         
 
@@ -13723,19 +13728,6 @@ TraceRecorder::record_JSOP_BINDNAME()
 JS_REQUIRES_STACK AbortableRecordingStatus
 TraceRecorder::record_JSOP_SETNAME()
 {
-    jsval& l = stackval(-2);
-    JS_ASSERT(!JSVAL_IS_PRIMITIVE(l));
-
-    
-
-
-
-    JSObject* obj = JSVAL_TO_OBJECT(l);
-    if (OBJ_GET_CLASS(cx, obj) == &js_CallClass)
-        return ARECORD_CONTINUE;
-    if (obj != cx->fp->scopeChain || obj != globalObj)
-        RETURN_STOP_A("JSOP_SETNAME left operand is not the global object");
-
     
     return ARECORD_CONTINUE;
 }
