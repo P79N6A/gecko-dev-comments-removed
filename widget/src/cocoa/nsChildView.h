@@ -60,7 +60,7 @@
 #include "nsString.h"
 #include "nsIDragService.h"
 
-#include "nsplugindefs.h"
+#include "npapi.h"
 
 #import <Carbon/Carbon.h>
 #import <Cocoa/Cocoa.h>
@@ -130,7 +130,7 @@ enum {
   nsChildView* mGeckoChild;
 
   BOOL mIsPluginView;
-  BOOL mSendCarbonPluginEvents; 
+  NPEventModel mPluginEventModel;
 
   
   
