@@ -2100,7 +2100,7 @@ js_fun_apply(JSContext *cx, uintN argc, jsval *vp)
     sp = invokevp;
     *sp++ = fval;
     *sp++ = OBJECT_TO_JSVAL(obj);
-    if (aobj && aobj->isArguments()) {
+    if (aobj && aobj->isArguments() && !IsOverriddenArgsLength(aobj)) {
         
 
 
