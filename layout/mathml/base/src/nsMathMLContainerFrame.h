@@ -456,7 +456,7 @@ protected:
   nsMathMLmathBlockFrame(nsStyleContext* aContext) : nsBlockFrame(aContext) {
     
     
-    AddStateBits(NS_BLOCK_SPACE_MGR);
+    AddStateBits(NS_BLOCK_FLOAT_MGR);
   }
   virtual ~nsMathMLmathBlockFrame() {}
 };

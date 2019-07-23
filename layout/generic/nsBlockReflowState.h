@@ -57,7 +57,7 @@
 
 #define BRS_HAVELINEADJACENTTOTOP 0x00000020
 
-#define BRS_SPACE_MGR             0x00000040
+#define BRS_FLOAT_MGR             0x00000040
 
 
 #define BRS_LINE_LAYOUT_EMPTY     0x00000080
@@ -71,7 +71,7 @@ public:
                      nsBlockFrame* aFrame,
                      const nsHTMLReflowMetrics& aMetrics,
                      PRBool aTopMarginRoot, PRBool aBottomMarginRoot,
-                     PRBool aBlockNeedsSpaceManager);
+                     PRBool aBlockNeedsFloatManager);
 
   ~nsBlockReflowState();
 
@@ -192,14 +192,14 @@ public:
 
   const nsHTMLReflowState& mReflowState;
 
-  nsSpaceManager* mSpaceManager;
+  nsFloatManager* mFloatManager;
 
   
   
   
   
   
-  nscoord mSpaceManagerX, mSpaceManagerY;
+  nscoord mFloatManagerX, mFloatManagerY;
 
   
   nsReflowStatus mReflowStatus;

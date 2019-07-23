@@ -59,14 +59,14 @@
 
 class nsBlockFrame;
 
-class nsSpaceManager;
+class nsFloatManager;
 class nsPlaceholderFrame;
 struct nsStyleText;
 
 class nsLineLayout {
 public:
   nsLineLayout(nsPresContext* aPresContext,
-               nsSpaceManager* aSpaceManager,
+               nsFloatManager* aFloatManager,
                const nsHTMLReflowState* aOuterReflowState,
                const nsLineList::iterator* aLine);
   ~nsLineLayout();
@@ -373,7 +373,7 @@ public:
 
 protected:
   
-  nsSpaceManager* mSpaceManager;
+  nsFloatManager* mFloatManager;
   const nsStyleText* mStyleText; 
   const nsHTMLReflowState* mBlockReflowState;
 

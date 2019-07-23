@@ -2285,7 +2285,7 @@ nsCSSFrameConstructor::CreateInputFrame(nsFrameConstructorState& aState,
 
       if (*aFrame) {
         
-        (*aFrame)->AddStateBits(NS_BLOCK_SPACE_MGR);
+        (*aFrame)->AddStateBits(NS_BLOCK_FLOAT_MGR);
         return NS_OK;
       }
       else {
@@ -4306,7 +4306,7 @@ nsCSSFrameConstructor::ConstructDocElementFrame(nsFrameConstructorState& aState,
 #endif
     {
       contentFrame = NS_NewBlockFrame(mPresShell, styleContext,
-        NS_BLOCK_SPACE_MGR|NS_BLOCK_MARGIN_ROOT);
+        NS_BLOCK_FLOAT_MGR|NS_BLOCK_MARGIN_ROOT);
       if (!contentFrame)
         return NS_ERROR_OUT_OF_MEMORY;
       nsFrameItems frameItems;
@@ -4825,7 +4825,7 @@ nsCSSFrameConstructor::ConstructButtonFrame(nsFrameConstructorState& aState,
                                                                aStyleContext);
                                                                
   nsIFrame* blockFrame = NS_NewBlockFrame(mPresShell, styleContext,
-                                          NS_BLOCK_SPACE_MGR);
+                                          NS_BLOCK_FLOAT_MGR);
 
   if (NS_UNLIKELY(!blockFrame)) {
     buttonFrame->Destroy();
@@ -4922,7 +4922,7 @@ nsCSSFrameConstructor::ConstructSelectFrame(nsFrameConstructorState& aState,
         
         
         
-      PRUint32 flags = NS_BLOCK_SPACE_MGR;
+      PRUint32 flags = NS_BLOCK_FLOAT_MGR;
       nsIFrame* comboboxFrame = NS_NewComboboxControlFrame(mPresShell, aStyleContext, flags);
 
       
@@ -5024,7 +5024,7 @@ nsCSSFrameConstructor::ConstructSelectFrame(nsFrameConstructorState& aState,
       }
 
       nsIFrame* scrolledFrame = NS_NewSelectsAreaFrame(
-        mPresShell, aStyleContext, NS_BLOCK_SPACE_MGR);
+        mPresShell, aStyleContext, NS_BLOCK_FLOAT_MGR);
 
       
       
@@ -5167,7 +5167,7 @@ nsCSSFrameConstructor::ConstructFieldSetFrame(nsFrameConstructorState& aState,
                                                                aStyleContext);
   
   nsIFrame* blockFrame = NS_NewBlockFrame(mPresShell, styleContext,
-                                          NS_BLOCK_SPACE_MGR |
+                                          NS_BLOCK_FLOAT_MGR |
                                           NS_BLOCK_MARGIN_ROOT);
   InitAndRestoreFrame(aState, aContent, newFrame, nsnull, blockFrame);
 
@@ -5890,11 +5890,11 @@ nsCSSFrameConstructor::ConstructXULFrame(nsFrameConstructorState& aState,
           
           if (aTag == nsGkAtoms::label) {
             newFrame = NS_NewXULLabelFrame(mPresShell, aStyleContext,
-                                           NS_BLOCK_SPACE_MGR |
+                                           NS_BLOCK_FLOAT_MGR |
                                            NS_BLOCK_MARGIN_ROOT);
           } else {
             newFrame = NS_NewBlockFrame(mPresShell, aStyleContext,
-                                        NS_BLOCK_SPACE_MGR |
+                                        NS_BLOCK_FLOAT_MGR |
                                         NS_BLOCK_MARGIN_ROOT);
           }
         }
@@ -6468,7 +6468,7 @@ nsCSSFrameConstructor::ConstructFrameByDisplayType(nsFrameConstructorState& aSta
     
     nsIFrame* scrolledFrame =
         NS_NewBlockFrame(mPresShell, aStyleContext,
-                         NS_BLOCK_SPACE_MGR | NS_BLOCK_MARGIN_ROOT);
+                         NS_BLOCK_FLOAT_MGR | NS_BLOCK_MARGIN_ROOT);
 
     nsFrameItems blockItem;
     rv = ConstructBlock(aState,
@@ -6543,7 +6543,7 @@ nsCSSFrameConstructor::ConstructFrameByDisplayType(nsFrameConstructorState& aSta
     if (aDisplay->IsBlockInside()) {
       
       PRUint32 flags = (aDisplay->mDisplay == NS_STYLE_DISPLAY_INLINE_BLOCK ?
-                        NS_BLOCK_SPACE_MGR | NS_BLOCK_MARGIN_ROOT : 0);
+                        NS_BLOCK_FLOAT_MGR | NS_BLOCK_MARGIN_ROOT : 0);
       newFrame = NS_NewRelativeItemWrapperFrame(mPresShell, aStyleContext, 
                                                 flags);
       
@@ -6571,7 +6571,7 @@ nsCSSFrameConstructor::ConstructFrameByDisplayType(nsFrameConstructorState& aSta
     }
     PRUint32 flags = 0;
     if (NS_STYLE_DISPLAY_INLINE_BLOCK == aDisplay->mDisplay) {
-      flags = NS_BLOCK_SPACE_MGR | NS_BLOCK_MARGIN_ROOT;
+      flags = NS_BLOCK_FLOAT_MGR | NS_BLOCK_MARGIN_ROOT;
     }
     
     newFrame = NS_NewBlockFrame(mPresShell, aStyleContext, flags);
@@ -6829,7 +6829,7 @@ nsCSSFrameConstructor::FlushAccumulatedBlock(nsFrameConstructorState& aState,
   
   
   nsIFrame* blockFrame = NS_NewMathMLmathBlockFrame(mPresShell, blockContext,
-                          NS_BLOCK_SPACE_MGR | NS_BLOCK_MARGIN_ROOT);
+                          NS_BLOCK_FLOAT_MGR | NS_BLOCK_MARGIN_ROOT);
   if (NS_UNLIKELY(!blockFrame))
     return NS_ERROR_OUT_OF_MEMORY;
 
@@ -7263,7 +7263,7 @@ nsCSSFrameConstructor::ConstructSVGFrame(nsFrameConstructorState& aState,
                               nsCSSAnonBoxes::mozSVGForeignContent, aStyleContext);
     
       nsIFrame* blockFrame = NS_NewBlockFrame(mPresShell, innerPseudoStyle,
-                                              NS_BLOCK_SPACE_MGR |
+                                              NS_BLOCK_FLOAT_MGR |
                                                 NS_BLOCK_MARGIN_ROOT);
       if (NS_UNLIKELY(!blockFrame))
         return NS_ERROR_OUT_OF_MEMORY;

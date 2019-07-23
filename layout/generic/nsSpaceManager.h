@@ -145,10 +145,10 @@ struct nsBandData {
 
 
 
-class nsSpaceManager {
+class nsFloatManager {
 public:
-  nsSpaceManager(nsIPresShell* aPresShell);
-  ~nsSpaceManager();
+  nsFloatManager(nsIPresShell* aPresShell);
+  ~nsFloatManager();
 
   void* operator new(size_t aSize) CPP_THROW_NEW;
   void operator delete(void* aPtr, size_t aSize);
@@ -252,7 +252,7 @@ public:
     PRPackedBool mHaveCachedLeftYMost;
     PRPackedBool mHaveCachedRightYMost;
     
-    friend class nsSpaceManager;
+    friend class nsFloatManager;
   };
 
   PRBool HasAnyFloats() { return mFrameInfoMap != nsnull; }
@@ -452,11 +452,11 @@ protected:
 
 
 private:
-  static PRInt32 sCachedSpaceManagerCount;
-  static void* sCachedSpaceManagers[NS_SPACE_MANAGER_CACHE_SIZE];
+  static PRInt32 sCachedFloatManagerCount;
+  static void* sCachedFloatManagers[NS_SPACE_MANAGER_CACHE_SIZE];
 
-  nsSpaceManager(const nsSpaceManager&);  
-  void operator=(const nsSpaceManager&);  
+  nsFloatManager(const nsFloatManager&);  
+  void operator=(const nsFloatManager&);  
 };
 
 
@@ -464,14 +464,14 @@ private:
 
 
 
-class nsAutoSpaceManager {
+class nsAutoFloatManager {
 public:
-  nsAutoSpaceManager(nsHTMLReflowState& aReflowState)
+  nsAutoFloatManager(nsHTMLReflowState& aReflowState)
     : mReflowState(aReflowState),
       mNew(nsnull),
       mOld(nsnull) {}
 
-  ~nsAutoSpaceManager();
+  ~nsAutoFloatManager();
 
   
 
@@ -479,12 +479,12 @@ public:
 
 
   nsresult
-  CreateSpaceManager(nsPresContext *aPresContext);
+  CreateFloatManager(nsPresContext *aPresContext);
 
 protected:
   nsHTMLReflowState &mReflowState;
-  nsSpaceManager *mNew;
-  nsSpaceManager *mOld;
+  nsFloatManager *mNew;
+  nsFloatManager *mOld;
 };
 
 #endif 

@@ -50,7 +50,7 @@ NS_NewSelectsAreaFrame(nsIPresShell* aShell, nsStyleContext* aContext, PRUint32 
   if (it) {
     
     
-    it->SetFlags(aFlags | NS_BLOCK_SPACE_MGR);
+    it->SetFlags(aFlags | NS_BLOCK_FLOAT_MGR);
   }
 
   return it;

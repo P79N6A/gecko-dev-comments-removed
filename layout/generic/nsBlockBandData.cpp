@@ -108,7 +108,7 @@ nsBlockBandData::GetAvailableSpace(nscoord aY, PRBool aRelaxHeightConstraint,
 nsresult
 nsBlockBandData::GetBandData(nscoord aY, PRBool aRelaxHeightConstraint)
 {
-  NS_ASSERTION(mSpaceManager, "bad state, no space manager");
+  NS_ASSERTION(mSpaceManager, "bad state, no float manager");
   PRInt32 iterations =0;
   nsSize space = mSpace;
   if (aRelaxHeightConstraint) {

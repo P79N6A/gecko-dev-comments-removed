@@ -46,7 +46,7 @@
 
 class nsPresContext;
 class nsIRenderingContext;
-class nsSpaceManager;
+class nsFloatManager;
 class nsLineLayout;
 class nsIPercentHeightObserver;
 
@@ -245,7 +245,7 @@ struct nsHTMLReflowState : public nsCSSOffsetState {
   nsCSSFrameType   mFrameType;
 
   
-  nsSpaceManager* mSpaceManager;
+  nsFloatManager* mFloatManager;
 
   
   
