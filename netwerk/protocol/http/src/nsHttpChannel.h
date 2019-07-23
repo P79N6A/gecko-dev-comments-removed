@@ -254,6 +254,7 @@ private:
 
     nsCOMPtr<nsICacheEntryDescriptor> mOfflineCacheEntry;
     nsCacheAccessMode                 mOfflineCacheAccess;
+    nsCString                         mOfflineCacheClientID;
 
     
     nsISupports                      *mProxyAuthContinuationState;
