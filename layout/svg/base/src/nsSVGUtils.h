@@ -236,13 +236,6 @@ public:
   
 
 
-
-  static nsresult GetReferencedFrame(nsIFrame **aRefFrame, nsIURI* aURI,
-                                     nsIContent *aContent, nsIPresShell *aPresShell);
-
-  
-
-
   static nsresult GetNearestViewportElement(nsIContent *aContent,
                                             nsIDOMSVGElement * *aNearestViewportElement);
 
