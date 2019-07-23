@@ -556,11 +556,19 @@ _posturlnotify(NPP aNPP,
 
     nsCString url = NullableString(aRelativeURL);
     NPError err;
+
     
+
+    
+    
+    nsAutoPtr<char> bufferCopy(new char[aLength+1]);
+    memcpy(bufferCopy, aBuffer, aLength);
+    bufferCopy[aLength] = 0;
+
     InstCast(aNPP)->CallPStreamNotifyConstructor(
         new StreamNotifyChild(url, aNotifyData),
         url, NullableString(aTarget), true,
-        nsDependentCString(aBuffer, aLength), aIsFile, &err);
+        nsDependentCString(bufferCopy, aLength), aIsFile, &err);
     
     return err;
 }
