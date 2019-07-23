@@ -5005,13 +5005,13 @@ nsAutoGCRoot::Shutdown()
 }
 
 nsIAtom*
-nsContentUtils::IsNamedItem(nsIContent* aContent)
+nsContentUtils::IsNamedItem(Element* aElement)
 {
   
   
   
   
-  nsGenericHTMLElement* elm = nsGenericHTMLElement::FromContent(aContent);
+  nsGenericHTMLElement* elm = nsGenericHTMLElement::FromContent(aElement);
   if (!elm) {
     return nsnull;
   }

@@ -303,7 +303,7 @@ nsresult
 nsXULElement::Create(nsXULPrototypeElement* aPrototype,
                      nsIDocument* aDocument,
                      PRBool aIsScriptable,
-                     nsIContent** aResult)
+                     Element** aResult)
 {
     
     NS_PRECONDITION(aPrototype != nsnull, "null ptr");

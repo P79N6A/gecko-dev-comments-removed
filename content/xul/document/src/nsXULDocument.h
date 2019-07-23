@@ -153,8 +153,8 @@ public:
                                 nsCOMArray<nsIContent>& aElements);
 
     NS_IMETHOD GetScriptGlobalObjectOwner(nsIScriptGlobalObjectOwner** aGlobalOwner);
-    NS_IMETHOD AddSubtreeToDocument(nsIContent* aElement);
-    NS_IMETHOD RemoveSubtreeFromDocument(nsIContent* aElement);
+    NS_IMETHOD AddSubtreeToDocument(nsIContent* aContent);
+    NS_IMETHOD RemoveSubtreeFromDocument(nsIContent* aContent);
     NS_IMETHOD SetTemplateBuilderFor(nsIContent* aContent,
                                      nsIXULTemplateBuilder* aBuilder);
     NS_IMETHOD GetTemplateBuilderFor(nsIContent* aContent,
@@ -235,10 +235,10 @@ protected:
                                                  nsCOMArray<nsIContent>& aElements);
 
     nsresult
-    AddElementToDocumentPre(nsIContent* aElement);
+    AddElementToDocumentPre(mozilla::dom::Element* aElement);
 
     nsresult
-    AddElementToDocumentPost(nsIContent* aElement);
+    AddElementToDocumentPost(mozilla::dom::Element* aElement);
 
     nsresult
     ExecuteOnBroadcastHandlerFor(nsIContent* aBroadcaster,
@@ -409,13 +409,14 @@ protected:
 
 
     nsresult CreateElementFromPrototype(nsXULPrototypeElement* aPrototype,
-                                        nsIContent** aResult);
+                                        mozilla::dom::Element** aResult);
 
     
 
 
 
-    nsresult CreateOverlayElement(nsXULPrototypeElement* aPrototype, nsIContent** aResult);
+    nsresult CreateOverlayElement(nsXULPrototypeElement* aPrototype,
+                                  mozilla::dom::Element** aResult);
 
     
 

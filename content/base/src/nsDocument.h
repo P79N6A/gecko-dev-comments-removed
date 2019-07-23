@@ -164,8 +164,8 @@ public:
 
   void SetInvalidName();
   PRBool IsInvalidName();
-  void AddNameContent(nsIContent* aContent);
-  void RemoveNameContent(nsIContent* aContent);
+  void AddNameElement(mozilla::dom::Element* aElement);
+  void RemoveNameElement(mozilla::dom::Element* aElement);
   PRBool HasNameContentList() {
     return mNameContentList != nsnull;
   }
@@ -178,7 +178,7 @@ public:
 
 
 
-  nsIContent* GetIdContent();
+  mozilla::dom::Element* GetIdElement();
   
 
 
@@ -188,12 +188,12 @@ public:
 
 
 
-  PRBool AddIdContent(nsIContent* aContent);
+  PRBool AddIdElement(mozilla::dom::Element* aElement);
   
 
 
 
-  PRBool RemoveIdContent(nsIContent* aContent);
+  PRBool RemoveIdElement(mozilla::dom::Element* aElement);
 
   PRBool HasContentChangeCallback() { return mChangeCallbacks != nsnull; }
   void AddContentChangeCallback(nsIDocument::IDTargetObserver aCallback, void* aData);
@@ -236,11 +236,13 @@ public:
   };
 
 private:
-  void FireChangeCallbacks(nsIContent* aOldContent, nsIContent* aNewContent);
+  void FireChangeCallbacks(mozilla::dom::Element* aOldElement,
+                           mozilla::dom::Element* aNewElement);
 
   
   
   nsSmallVoidArray mIdContentList;
+  
   
   nsBaseContentList *mNameContentList;
   nsRefPtr<nsContentList> mDocAllList;
@@ -946,10 +948,10 @@ protected:
   friend class nsNodeUtils;
   void RegisterNamedItems(nsIContent *aContent);
   void UnregisterNamedItems(nsIContent *aContent);
-  void UpdateNameTableEntry(nsIContent *aContent);
-  void UpdateIdTableEntry(nsIContent *aContent);
-  void RemoveFromNameTable(nsIContent *aContent);
-  void RemoveFromIdTable(nsIContent *aContent);
+  void UpdateNameTableEntry(mozilla::dom::Element *aElement);
+  void UpdateIdTableEntry(mozilla::dom::Element *aElement);
+  void RemoveFromNameTable(mozilla::dom::Element *aElement);
+  void RemoveFromIdTable(mozilla::dom::Element *aElement);
 
   
 

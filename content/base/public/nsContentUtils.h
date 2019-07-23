@@ -137,7 +137,11 @@ typedef int (*PR_CALLBACK PrefChangedFunc)(const char *, void *);
 
 namespace mozilla {
   class IHistory;
-}
+
+namespace dom {
+class Element;
+} 
+} 
 
 extern const char kLoadAsData[];
 
@@ -1362,7 +1366,7 @@ public:
 
 
 
-  static nsIAtom* IsNamedItem(nsIContent* aContent);
+  static nsIAtom* IsNamedItem(mozilla::dom::Element* aElement);
 
   
 
