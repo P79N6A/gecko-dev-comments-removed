@@ -90,8 +90,23 @@ function initExceptionDialog() {
       document.getElementById('checkCertButton').disabled = false;
       
       
-      if (args[0].prefetchCert)
-        checkCert();
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      if (args[0].prefetchCert) {
+        
+        gChecking = true;
+        updateCertStatus();
+        
+        window.setTimeout(checkCert, 2000);
+      }
     }
     
     
