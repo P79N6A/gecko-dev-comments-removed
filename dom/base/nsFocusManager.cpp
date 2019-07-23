@@ -2149,7 +2149,7 @@ nsFocusManager::DetermineElementToMoveFocus(nsPIDOMWindow* aWindow,
                                   PR_FALSE, 0, PR_FALSE, aNextContent);
   }
 
-  PRBool forward = (aType == MOVEFOCUS_FORWARD);
+  PRBool forward = (aType == MOVEFOCUS_FORWARD || aType == MOVEFOCUS_CARET);
   PRBool doNavigation = PR_TRUE;
   PRBool ignoreTabIndex = PR_FALSE;
   
@@ -2231,13 +2231,18 @@ nsFocusManager::DetermineElementToMoveFocus(nsPIDOMWindow* aWindow,
             startContent = nsnull;
         }
 
-        if (startContent) {
-          if (aType == MOVEFOCUS_CARET) {
+        if (aType == MOVEFOCUS_CARET) {
+          
+          
+          
+          if (startContent) {
             GetFocusInSelection(aWindow, startContent,
                                 endSelectionContent, aNextContent);
-            return NS_OK;
           }
+          return NS_OK;
+        }
 
+        if (startContent) {
           
           
           
