@@ -364,20 +364,7 @@ nsSVGFilterInstance::BuildSourceImages()
     if (NS_FAILED(rv))
       return rv;
 
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    gfxMatrix deviceToFilterSpace =
-      nsSVGUtils::ConvertSVGMatrixToThebes(GetFilterSpaceToDeviceSpaceTransform()).Invert();
-    tmpState.GetGfxContext()->Multiply(deviceToFilterSpace);
+    tmpState.GetGfxContext()->Multiply(userSpaceToFilterSpace);
     mPaintCallback->Paint(&tmpState, mTargetFrame, &dirty);
 
     gfxContext copyContext(sourceColorAlpha);

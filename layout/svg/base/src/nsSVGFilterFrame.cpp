@@ -108,16 +108,20 @@ nsAutoFilterInstance::nsAutoFilterInstance(nsIFrame *aTarget,
                                            const nsIntRect *aDirtyInputRect,
                                            const nsIntRect *aOverrideSourceBBox)
 {
+  nsCOMPtr<nsIDOMSVGMatrix> ctm = nsSVGUtils::GetCanvasTM(aTarget);
+
   CallQueryInterface(aTarget, &mTarget);
+  if (mTarget) {
+    mTarget->SetMatrixPropagation(PR_FALSE);
+    mTarget->NotifySVGChanged(nsISVGChildFrame::SUPPRESS_INVALIDATION |
+                              nsISVGChildFrame::TRANSFORM_CHANGED);
+  }
 
-  nsSVGFilterElement *filter =
-    static_cast<nsSVGFilterElement*>(aFilterFrame->GetContent());
+  nsSVGFilterElement *filter = static_cast<nsSVGFilterElement*>(
+          aFilterFrame->GetContent());
 
-  PRUint16 filterUnits =
+  PRUint16 units =
     filter->mEnumAttributes[nsSVGFilterElement::FILTERUNITS].GetAnimValue();
-  PRUint16 primitiveUnits =
-    filter->mEnumAttributes[nsSVGFilterElement::PRIMITIVEUNITS].GetAnimValue();
-
   nsCOMPtr<nsIDOMSVGRect> bbox;
   if (aOverrideSourceBBox) {
     NS_NewSVGRect(getter_AddRefs(bbox),
@@ -126,103 +130,75 @@ nsAutoFilterInstance::nsAutoFilterInstance(nsIFrame *aTarget,
   } else {
     bbox = nsSVGUtils::GetBBox(aTarget);
   }
-
-  if (!bbox &&
-       (filterUnits == nsIDOMSVGUnitTypes::SVG_UNIT_TYPE_OBJECTBOUNDINGBOX ||
-        primitiveUnits == nsIDOMSVGUnitTypes::SVG_UNIT_TYPE_OBJECTBOUNDINGBOX)) {
-    
+  if (!bbox && units == nsIDOMSVGUnitTypes::SVG_UNIT_TYPE_OBJECTBOUNDINGBOX)
     return;
-  }
 
-  
+  gfxRect filterArea = nsSVGUtils::GetRelativeRect(units,
+    &filter->mLengthAttributes[nsSVGFilterElement::X], bbox, aTarget);
+  filterArea.RoundOut();
 
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  gfxRect filterRegion = nsSVGUtils::GetRelativeRect(filterUnits,
-    filter->mLengthAttributes, bbox, aTarget);
-  filterRegion.RoundOut();
-
-  if (filterRegion.Width() <= 0 || filterRegion.Height() <= 0) {
-    
-    
-    return;
-  }
-
-  nsCOMPtr<nsIDOMSVGMatrix> userToDeviceSpace = nsSVGUtils::GetCanvasTM(aTarget);
-  
-  
-  
-
+  PRBool resultOverflows;
   gfxIntSize filterRes;
-  PRBool intOverflow;
 
+  
   if (filter->HasAttr(kNameSpaceID_None, nsGkAtoms::filterRes)) {
     PRInt32 filterResX, filterResY;
     filter->GetAnimatedIntegerValues(&filterResX, &filterResY, nsnull);
-    
 
     filterRes =
       nsSVGUtils::ConvertToSurfaceSize(gfxSize(filterResX, filterResY),
-                                       &intOverflow);
-    
-    
-
-    
-    
+                                       &resultOverflows);
   } else {
-    
-    
+    float scale = nsSVGUtils::MaxExpansion(ctm);
+#ifdef DEBUG_tor
+    fprintf(stderr, "scale: %f\n", scale);
+#endif
 
-    float scale = nsSVGUtils::MaxExpansion(userToDeviceSpace);
-    filterRes = nsSVGUtils::ConvertToSurfaceSize(filterRegion.size * scale,
-                                                 &intOverflow);
-    NS_ASSERTION(!intOverflow, "filterRegion must be huge! clip it?");
+    filterRes =
+      nsSVGUtils::ConvertToSurfaceSize(filterArea.size * scale,
+                                       &resultOverflows);
   }
 
-  if (filterRes.width <= 0 || filterRes.height <= 0) {
-    
+  
+  if (filterRes.width <= 0 || filterRes.height <= 0)
     return;
-  }
 
   
   
-
+  nsCOMPtr<nsIDOMSVGMatrix> scale, fini;
+  NS_NewSVGMatrix(getter_AddRefs(scale),
+                  filterArea.Width() / filterRes.width, 0.0f,
+                  0.0f, filterArea.Height() / filterRes.height,
+                  filterArea.X(), filterArea.Y());
+  ctm->Multiply(scale, getter_AddRefs(fini));
   
-
-  nsCOMPtr<nsIDOMSVGMatrix> filterToUserSpace, filterToDeviceSpace;
-  NS_NewSVGMatrix(getter_AddRefs(filterToUserSpace),
-                  filterRegion.Width() / filterRes.width, 0.0f,
-                  0.0f, filterRegion.Height() / filterRes.height,
-                  filterRegion.X(), filterRegion.Y());
-  userToDeviceSpace->Multiply(filterToUserSpace, getter_AddRefs(filterToDeviceSpace));
+  gfxMatrix finiM = nsSVGUtils::ConvertSVGMatrixToThebes(fini);
   
-  
-  gfxMatrix deviceToFilterSpace
-    = nsSVGUtils::ConvertSVGMatrixToThebes(filterToDeviceSpace).Invert();
+  finiM.Invert();
 
   nsIntRect dirtyOutputRect =
-    MapDeviceRectToFilterSpace(deviceToFilterSpace, filterRes, aDirtyOutputRect);
+    MapDeviceRectToFilterSpace(finiM, filterRes, aDirtyOutputRect);
   nsIntRect dirtyInputRect =
-    MapDeviceRectToFilterSpace(deviceToFilterSpace, filterRes, aDirtyInputRect);
+    MapDeviceRectToFilterSpace(finiM, filterRes, aDirtyInputRect);
 
   
-  mInstance = new nsSVGFilterInstance(aTarget, aPaint, filter, bbox, filterRegion,
+  PRUint16 primitiveUnits =
+    filter->mEnumAttributes[nsSVGFilterElement::PRIMITIVEUNITS].GetAnimValue();
+  mInstance = new nsSVGFilterInstance(aTarget, aPaint, filter, bbox, filterArea,
                                       nsIntSize(filterRes.width, filterRes.height),
-                                      filterToDeviceSpace,
+                                      fini,
                                       dirtyOutputRect, dirtyInputRect,
                                       primitiveUnits);
 }
 
 nsAutoFilterInstance::~nsAutoFilterInstance()
 {
+  if (!mTarget)
+    return;
+
+  mTarget->SetMatrixPropagation(PR_TRUE);
+  mTarget->NotifySVGChanged(nsISVGChildFrame::SUPPRESS_INVALIDATION |
+                            nsISVGChildFrame::TRANSFORM_CHANGED);
 }
 
 nsresult
