@@ -2401,7 +2401,11 @@ nsRuleNode::SetFont(nsPresContext* aPresContext, nsStyleContext* aContext,
 #endif
 
   
-  aFont->mFont.size = PR_MAX(aFont->mSize, aMinFontSize);
+  
+  if (0 < aFont->mSize && aFont->mSize < aMinFontSize)
+    aFont->mFont.size = aMinFontSize;
+  else
+    aFont->mFont.size = aFont->mSize;
 
   
   if (eCSSUnit_Number == aFontData.mSizeAdjust.GetUnit()) {
