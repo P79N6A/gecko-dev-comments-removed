@@ -412,6 +412,9 @@ enum nsDOMClassInfoID {
   eDOMClassInfo_FileException_id,
 
   
+  eDOMClassInfo_ModalContentWindow_id,
+
+  
   eDOMClassInfoIDCount
 };
 

@@ -2364,18 +2364,32 @@ nsJSContext::SetProperty(void *aTarget, const char *aPropName, nsISupports *aArg
   void *mark;
 
   JSAutoRequest ar(mContext);
-  
+
   nsresult rv;
   rv = ConvertSupportsTojsvals(aArgs, GetNativeGlobal(), &argc,
                                reinterpret_cast<void **>(&argv), &mark);
   NS_ENSURE_SUCCESS(rv, rv);
   AutoFreeJSStack stackGuard(mContext, mark); 
 
-  
-  JSObject *args = ::JS_NewArrayObject(mContext, argc, argv);
-  jsval vargs = OBJECT_TO_JSVAL(args);
+  jsval vargs;
 
-  rv = ::JS_SetProperty(mContext, reinterpret_cast<JSObject *>(aTarget), aPropName, &vargs) ?
+  
+
+  
+  
+  if (strcmp(aPropName, "dialogArguments") == 0 && argc == 1 &&
+      JSVAL_IS_OBJECT(argv[0]) &&
+      ::JS_IsArrayObject(mContext, JSVAL_TO_OBJECT(argv[0]))) {
+    vargs = argv[0];
+  } else {
+    JSObject *args = ::JS_NewArrayObject(mContext, argc, argv);
+    vargs = OBJECT_TO_JSVAL(args);
+  }
+
+  
+  
+  rv = ::JS_DefineProperty(mContext, reinterpret_cast<JSObject *>(aTarget),
+                           aPropName, vargs, nsnull, nsnull, 0) ?
        NS_OK : NS_ERROR_FAILURE;
   
 
