@@ -54,6 +54,7 @@
 #include "nsIFile.h"
 #include "nsIObserverService.h"
 #include "nsILineInputStream.h"
+#include "nsIEffectiveTLDService.h"
 
 #include "nsCOMArray.h"
 #include "nsArrayEnumerator.h"
@@ -62,7 +63,6 @@
 #include "nsCRT.h"
 #include "prtime.h"
 #include "prprf.h"
-#include "prnetdb.h"
 #include "nsNetUtil.h"
 #include "nsNetCID.h"
 #include "nsAppDirectoryServiceDefs.h"
@@ -422,6 +422,10 @@ nsCookieService::Init()
     return NS_ERROR_OUT_OF_MEMORY;
   }
 
+  nsresult rv;
+  mTLDService = do_GetService(NS_EFFECTIVETLDSERVICE_CONTRACTID, &rv);
+  NS_ENSURE_SUCCESS(rv, rv);
+
   
   nsCOMPtr<nsIPrefBranch2> prefBranch = do_GetService(NS_PREFSERVICE_CONTRACTID);
   if (prefBranch) {
@@ -433,7 +437,7 @@ nsCookieService::Init()
 
   
   
-  nsresult rv = InitDB();
+  rv = InitDB();
   if (NS_FAILED(rv))
     COOKIE_LOGSTRING(PR_LOG_WARNING, ("Init(): InitDB() gave error %x", rv));
 
@@ -611,11 +615,9 @@ nsCookieService::Observe(nsISupports     *aSubject,
 
     if (!nsCRT::strcmp(aData, NS_LITERAL_STRING("shutdown-cleanse").get()) && mDBConn) {
       
-      if (mDBConn) {
-        nsresult rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING("DELETE FROM moz_cookies"));
-        if (NS_FAILED(rv))
-          NS_WARNING("db delete failed");
-      }
+      nsresult rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING("DELETE FROM moz_cookies"));
+      if (NS_FAILED(rv))
+        NS_WARNING("db delete failed");
     }
 
   } else if (!strcmp(aTopic, "profile-do-change")) {
@@ -1128,7 +1130,6 @@ nsCookieService::GetCookieInternal(nsIURI      *aHostURI,
   
   
   hostFromURI.Insert(NS_LITERAL_CSTRING("."), 0);
-  ToLowerCase(hostFromURI);
 
   
   
@@ -1700,73 +1701,12 @@ nsCookieService::ParseAttributes(nsDependentCString &aCookieHeader,
 
 
 
-
-PRBool
-nsCookieService::IsIPAddress(const nsAFlatCString &aHost)
-{
-  PRNetAddr addr;
-  return (PR_StringToNetAddr(aHost.get(), &addr) == PR_SUCCESS);
-}
-
-PRBool
-nsCookieService::IsInDomain(const nsACString &aDomain,
-                            const nsACString &aHost,
-                            PRBool           aIsDomain)
-{
-  
-  
-  
-  if (!aIsDomain) {
-    return aDomain.Equals(aHost);
-  }
-
-  
-  
-
-
-
-
-
-
-
-
-  
-  PRUint32 domainLength = aDomain.Length();
-  PRInt32 lengthDifference = aHost.Length() - domainLength;
-  
-  
-  
-  
-  if (lengthDifference == 0) {
-    return aDomain.Equals(aHost);
-  }
-  
-  if (lengthDifference > 0) {
-    return aDomain.Equals(Substring(aHost, lengthDifference, domainLength));
-  }
-  
-  if (lengthDifference == -1) {
-    return Substring(aDomain, 1, domainLength - 1).Equals(aHost);
-  }
-  
-  return PR_FALSE;
-}
-
 PRBool
 nsCookieService::IsForeign(nsIURI *aHostURI,
                            nsIURI *aFirstURI)
 {
   
   if (!aFirstURI) {
-    return PR_FALSE;
-  }
-
-  
-  
-  
-  PRBool isChrome = PR_FALSE;
-  nsresult rv = aFirstURI->SchemeIs("chrome", &isChrome);
-  if (NS_SUCCEEDED(rv) && isChrome) {
     return PR_FALSE;
   }
 
@@ -1779,46 +1719,53 @@ nsCookieService::IsForeign(nsIURI *aHostURI,
   
   currentHost.Trim(".");
   firstHost.Trim(".");
-  ToLowerCase(currentHost);
-  ToLowerCase(firstHost);
-
-  
-  
 
   
   
   
-  if (IsIPAddress(firstHost)) {
-    return !IsInDomain(firstHost, currentHost, PR_FALSE);
+  
+  
+  
+  
+  
+  
+  
+  
+  if (firstHost.Equals(currentHost))
+    return PR_FALSE;
+
+  
+  
+  
+  PRBool isChrome = PR_FALSE;
+  nsresult rv = aFirstURI->SchemeIs("chrome", &isChrome);
+  if (NS_SUCCEEDED(rv) && isChrome) {
+    return PR_FALSE;
   }
 
   
   
-  
-  
-  
-  
-  
-  
-  
-  PRUint32 dotsInFirstHost = firstHost.CountChar('.');
-  if (dotsInFirstHost == currentHost.CountChar('.') &&
-      dotsInFirstHost >= 2) {
+  nsCAutoString baseDomain;
+  rv = mTLDService->GetBaseDomain(aFirstURI, 0, baseDomain);
+  if (NS_FAILED(rv)) {
     
-    PRInt32 dot1 = firstHost.FindChar('.');
-    return !IsInDomain(Substring(firstHost, dot1, firstHost.Length() - dot1), currentHost);
-  }
+    return PR_TRUE;
+  }  
+  baseDomain.Trim(".");
 
   
   
-  return !IsInDomain(NS_LITERAL_CSTRING(".") + firstHost, currentHost);
+  
+  currentHost.Insert(NS_LITERAL_CSTRING("."), 0);
+  baseDomain.Insert(NS_LITERAL_CSTRING("."), 0);
+  return !StringEndsWith(currentHost, baseDomain);
 }
 
 PRUint32
-nsCookieService::CheckPrefs(nsIURI         *aHostURI,
-                            nsIURI         *aFirstURI,
-                            nsIChannel     *aChannel,
-                            const char     *aCookieHeader)
+nsCookieService::CheckPrefs(nsIURI     *aHostURI,
+                            nsIURI     *aFirstURI,
+                            nsIChannel *aChannel,
+                            const char *aCookieHeader)
 {
   
   
@@ -1895,6 +1842,8 @@ PRBool
 nsCookieService::CheckDomain(nsCookieAttributes &aCookieAttributes,
                              nsIURI             *aHostURI)
 {
+  nsresult rv;
+
   
   nsCAutoString hostFromURI;
   if (NS_FAILED(aHostURI->GetAsciiHost(hostFromURI))) {
@@ -1902,7 +1851,6 @@ nsCookieService::CheckDomain(nsCookieAttributes &aCookieAttributes,
   }
   
   hostFromURI.Trim(".");
-  ToLowerCase(hostFromURI);
 
   
   if (!aCookieAttributes.host.IsEmpty()) {
@@ -1913,29 +1861,30 @@ nsCookieService::CheckDomain(nsCookieAttributes &aCookieAttributes,
     
     
     
-    
-    
-    if (IsIPAddress(aCookieAttributes.host)) {
-      return IsInDomain(aCookieAttributes.host, hostFromURI, PR_FALSE);
-    }
-
-    
-
-
-
-
-
-    PRInt32 dot = aCookieAttributes.host.FindChar('.');
-    if (dot == kNotFound) {
+    nsCAutoString baseDomain;
+    rv = mTLDService->GetBaseDomain(aHostURI, 0, baseDomain);
+    baseDomain.Trim(".");
+    if (NS_FAILED(rv)) {
       
+      
+      
+      
+      
+      if (rv == NS_ERROR_HOST_IS_IP_ADDRESS)
+        return hostFromURI.Equals(aCookieAttributes.host);
+
       return PR_FALSE;
     }
 
     
+    
+    
+    
+    hostFromURI.Insert(NS_LITERAL_CSTRING("."), 0);
     aCookieAttributes.host.Insert(NS_LITERAL_CSTRING("."), 0);
-    if (!IsInDomain(aCookieAttributes.host, hostFromURI)) {
-      return PR_FALSE;
-    }
+    baseDomain.Insert(NS_LITERAL_CSTRING("."), 0);
+    return StringEndsWith(aCookieAttributes.host, baseDomain) &&
+           StringEndsWith(hostFromURI, aCookieAttributes.host);
 
     
 
@@ -1944,18 +1893,18 @@ nsCookieService::CheckDomain(nsCookieAttributes &aCookieAttributes,
 
 
 
+  }
 
   
-  } else {
-    
-    if (hostFromURI.IsEmpty()) {
-      PRBool isFileURI = PR_FALSE;
-      aHostURI->SchemeIs("file", &isFileURI);
-      if (!isFileURI)
-        return PR_FALSE;
-    }
-    aCookieAttributes.host = hostFromURI;
+  if (hostFromURI.IsEmpty()) {
+    PRBool isFileURI = PR_FALSE;
+    aHostURI->SchemeIs("file", &isFileURI);
+    if (!isFileURI)
+      return PR_FALSE;
   }
+
+  
+  aCookieAttributes.host = hostFromURI;
 
   return PR_TRUE;
 }
