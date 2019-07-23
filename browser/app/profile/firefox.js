@@ -366,7 +366,7 @@ pref("privacy.sanitize.promptOnSanitize", true);
 
 pref("network.proxy.share_proxy_settings",  false); 
 
-pref("network.cookie.cookieBehavior",       1); 
+pref("network.cookie.cookieBehavior", 0); 
 
 
 pref("intl.accept_languages", "chrome://global/locale/intl.properties");
