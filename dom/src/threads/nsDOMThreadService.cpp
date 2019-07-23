@@ -878,7 +878,13 @@ nsDOMThreadService::Dispatch(nsDOMWorker* aWorker,
   NS_ASSERTION(aWorker, "Null pointer!");
   NS_ASSERTION(aRunnable, "Null pointer!");
 
-  NS_ASSERTION(mThreadPool, "Dispatch called after 'xpcom-shutdown'!");
+  if (!mThreadPool) {
+    
+    
+    NS_ASSERTION(NS_IsMainThread(),
+                 "This should be impossible on a non-main thread!");
+    return NS_ERROR_ILLEGAL_DURING_SHUTDOWN;
+  }
 
   
   
