@@ -174,7 +174,7 @@ struct JSObject {
 
 #define STOBJ_SET_SYSTEM(obj)   ((void)((obj)->fslots[JSSLOT_CLASS] |= 2))
 
-#define STOBJ_GET_PRIVATE(obj)                                                \
+#define STOBJ_GET_PRIVATE(obj)                                          \
     (JS_ASSERT(JSVAL_IS_INT(STOBJ_GET_SLOT(obj, JSSLOT_PRIVATE))),            \
      JSVAL_TO_PRIVATE(STOBJ_GET_SLOT(obj, JSSLOT_PRIVATE)))
 
@@ -447,6 +447,21 @@ js_FreeSlot(JSContext *cx, JSObject *obj, uint32 slot);
 
 
 
+
+
+extern JSScopeProperty *
+js_AddHiddenProperty(JSContext *cx, JSObject *obj, jsid id,
+                     JSPropertyOp getter, JSPropertyOp setter, uint32 slot,
+                     uintN attrs, uintN flags, intN shortid);
+
+extern JSBool
+js_LookupHiddenProperty(JSContext *cx, JSObject *obj, jsid id, JSObject **objp,
+                        JSProperty **propp);
+
+
+
+
+
 extern JSScopeProperty *
 js_AddNativeProperty(JSContext *cx, JSObject *obj, jsid id,
                      JSPropertyOp getter, JSPropertyOp setter, uint32 slot,
@@ -493,9 +508,13 @@ js_LookupProperty(JSContext *cx, JSObject *obj, jsid id, JSObject **objp,
 
 
 
+
+
 extern JSBool
 js_LookupPropertyWithFlags(JSContext *cx, JSObject *obj, jsid id, uintN flags,
                            JSObject **objp, JSProperty **propp);
+
+#define JSRESOLVE_HIDDEN        0x8000
 
 extern JS_FRIEND_API(JSBool)
 js_FindProperty(JSContext *cx, jsid id, JSObject **objp, JSObject **pobjp,
@@ -625,7 +644,6 @@ js_CheckScopeChainValidity(JSContext *cx, JSObject *scopeobj, const char *caller
 extern JSBool
 js_CheckPrincipalsAccess(JSContext *cx, JSObject *scopeobj,
                          JSPrincipals *principals, JSAtom *caller);
-
 JS_END_EXTERN_C
 
 #endif 
