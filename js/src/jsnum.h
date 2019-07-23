@@ -50,6 +50,7 @@
 
 #include "jsstdint.h"
 #include "jsstr.h"
+#include "jsobj.h"
 
 
 
@@ -185,6 +186,12 @@ js_FinishRuntimeNumberState(JSContext *cx);
 
 
 extern JSClass js_NumberClass;
+
+inline bool
+JSObject::isNumber() const
+{
+    return getClass() == &js_NumberClass;
+}
 
 extern "C" JSObject *
 js_InitNumberClass(JSContext *cx, JSObject *obj);
