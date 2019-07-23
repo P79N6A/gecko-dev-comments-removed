@@ -320,7 +320,7 @@ public:
     
     JSContext* cx = (JSContext*)PR_GetThreadPrivate(gJSContextIndex);
     NS_ASSERTION(cx, "nsDOMThreadService didn't give us a context!");
-  
+
     JS_SetContextPrivate(cx, mWorker);
 
     
@@ -347,6 +347,9 @@ public:
 protected:
 
   void RunQueue() {
+    JSContext* cx = (JSContext*)PR_GetThreadPrivate(gJSContextIndex);
+    NS_ASSERTION(cx, "nsDOMThreadService didn't give us a context!");
+
     while (1) {
       nsCOMPtr<nsIRunnable> runnable;
       {
@@ -366,6 +369,9 @@ protected:
           return;
         }
       }
+
+      
+      JS_ClearRegExpStatics(cx);
 
 #ifdef DEBUG
       nsresult rv =
