@@ -190,6 +190,10 @@ public:
 
   PRMonitor* Monitor() { return mMonitor; }
 
+  
+
+
+
   class ResourceStreamIterator {
   public:
     ResourceStreamIterator(PRInt64 aResourceID) :
@@ -199,7 +203,7 @@ public:
       while (mNext < gMediaCache->mStreams.Length()) {
         nsMediaCacheStream* stream = gMediaCache->mStreams[mNext];
         ++mNext;
-        if (stream->GetResourceID() == mResourceID)
+        if (stream->GetResourceID() == mResourceID && !stream->IsClosed())
           return stream;
       }
       return nsnull;
