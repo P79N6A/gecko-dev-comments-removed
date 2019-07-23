@@ -110,7 +110,7 @@ nsSVGMarkerProperty::nsSVGMarkerProperty(nsIURI                 *aMarkerStart,
 
   NS_ADDREF(this); 
   mFrame->SetProperty(nsGkAtoms::marker,
-                      this,
+                      NS_STATIC_CAST(nsISupports*, this),
                       nsPropertyTable::SupportsDtorFunc);
 
   mFrame->AddStateBits(NS_STATE_SVG_HAS_MARKERS);
@@ -306,20 +306,18 @@ nsSVGPathGeometryFrame::GetMarkerProperty()
 void
 nsSVGPathGeometryFrame::UpdateMarkerProperty()
 {
+  if (GetStateBits() & NS_STATE_SVG_HAS_MARKERS)
+    return;
+
   const nsStyleSVG *style = GetStyleSVG();
 
-  if (style->mMarkerStart || style->mMarkerMid || style->mMarkerEnd) {
-
-    nsSVGMarkerProperty *property = GetMarkerProperty();
-    if (!property) {
-      property = new nsSVGMarkerProperty(style->mMarkerStart,
-                                         style->mMarkerMid,
-                                         style->mMarkerEnd,
-                                         this);
-      if (!property) {
-        NS_ERROR("Could not create marker property");
-      }
-    }
+  if ((style->mMarkerStart || style->mMarkerMid || style->mMarkerEnd) &&
+      !new nsSVGMarkerProperty(style->mMarkerStart,
+                               style->mMarkerMid,
+                               style->mMarkerEnd,
+                               this)) {
+    NS_ERROR("Could not create marker property");
+    return;
   }
 }
 
