@@ -1989,7 +1989,9 @@ TraceRecorder::deduceTypeStability(Fragment* root_peer, Fragment** stable_peer, 
     
 
 
+
     bool success;
+    bool unstable_from_undemotes;
     unsigned stage_count;
     jsval** stage_vals = (jsval**)alloca(sizeof(jsval*) * (ngslots + treeInfo->stackTypeMap.length()));
     LIns** stage_ins = (LIns**)alloca(sizeof(LIns*) * (ngslots + treeInfo->stackTypeMap.length()));
@@ -1997,6 +1999,7 @@ TraceRecorder::deduceTypeStability(Fragment* root_peer, Fragment** stable_peer, 
     
     stage_count = 0;
     success = false;
+    unstable_from_undemotes = false;
 
     debug_only_v(printf("Checking type stability against self=%p\n", fragment);)
 
@@ -2024,7 +2027,14 @@ TraceRecorder::deduceTypeStability(Fragment* root_peer, Fragment** stable_peer, 
         ++m;
     );
 
-    success = true;
+    
+
+
+
+    if (NUM_UNDEMOTE_SLOTS(demotes))
+        unstable_from_undemotes = true;
+    else
+        success = true;
 
 checktype_fail_1:
     
@@ -2067,12 +2077,40 @@ checktype_fail_1:
 checktype_fail_2:
         if (success) {
             
+
+
+
             for (unsigned i = 0; i < stage_count; i++)
                 set(stage_vals[i], stage_ins[i]);
             if (stable_peer)
                 *stable_peer = f;
             return false;
         }
+    }
+
+    JS_ASSERT(NUM_UNDEMOTE_SLOTS(demotes) == 0);
+
+    
+
+
+
+
+    if (unstable_from_undemotes && fragment->kind == LoopTrace) {
+        typemap = m = treeInfo->stackTypeMap.data();
+        FORALL_SLOTS_IN_PENDING_FRAMES(cx, 0,
+            if (*m == JSVAL_INT) {
+                JS_ASSERT(isNumber(*vp));
+                if (!isPromoteInt(get(vp)))
+                    ADD_UNDEMOTE_SLOT(demotes, unsigned(m - typemap));
+            } else if (*m == JSVAL_DOUBLE) {
+                JS_ASSERT(isNumber(*vp));
+                ADD_UNDEMOTE_SLOT(demotes, unsigned(m - typemap));
+            } else {
+                JS_ASSERT(*m == JSVAL_TAG(*vp));
+            }
+            m++;
+        );
+        return true;
     }
 
     return false;
@@ -2168,18 +2206,9 @@ TraceRecorder::closeLoop(Fragmento* fragmento, bool& demote, unsigned *demotes)
     }
 
     if (stable && NUM_UNDEMOTE_SLOTS(demotes)) {
-        
-        if (fragment->kind == LoopTrace) {
-            demote = true;
-            
-            uint8* m = treeInfo->stackTypeMap.data();
-            for (unsigned i = 0; i < treeInfo->stackTypeMap.length(); i++) {
-                if (m[i] == JSVAL_DOUBLE)
-                    ADD_UNDEMOTE_SLOT(demotes, i);
-            }
-            return false;
-        }
-        stable = false;
+        JS_ASSERT(fragment->kind == LoopTrace);
+        demote = true;
+        return false;
     }
 
     if (!stable) {
