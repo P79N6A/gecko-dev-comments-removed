@@ -70,6 +70,11 @@
 #include "nsIInterfaceRequestorUtils.h"
 #include "nsCSSRendering.h"
 #include "nsContentUtils.h"
+#include "nsPIDOMWindow.h"
+#include "nsIBaseWindow.h"
+#include "nsIDocShell.h"
+#include "nsIDocShellTreeItem.h"
+#include "nsIWidget.h"
 
 #ifdef MOZ_SVG
 #include "nsSVGUtils.h"
@@ -2721,6 +2726,41 @@ nsLayoutUtils::GetRectDifferenceStrips(const nsRect& aR1, const nsRect& aR2,
   *aHStrip = unionRect;
   aHStrip->y += HStripStart;
   aHStrip->height -= HStripStart;
+}
+
+nsIDeviceContext*
+nsLayoutUtils::GetDeviceContextForScreenInfo(nsIDocShell* aDocShell)
+{
+  nsCOMPtr<nsIDocShell> docShell = aDocShell;
+  while (docShell) {
+    
+    
+    
+    
+    nsCOMPtr<nsPIDOMWindow> win = do_GetInterface(docShell);
+    if (!win) {
+      
+      return nsnull;
+    }
+
+    win->EnsureSizeUpToDate();
+
+    nsCOMPtr<nsIBaseWindow> baseWindow = do_QueryInterface(docShell);
+    NS_ENSURE_TRUE(baseWindow, nsnull);
+
+    nsCOMPtr<nsIWidget> mainWidget;
+    baseWindow->GetMainWidget(getter_AddRefs(mainWidget));
+    if (mainWidget) {
+      return mainWidget->GetDeviceContext();
+    }
+
+    nsCOMPtr<nsIDocShellTreeItem> curItem = do_QueryInterface(docShell);
+    nsCOMPtr<nsIDocShellTreeItem> parentItem;
+    curItem->GetParent(getter_AddRefs(parentItem));
+    docShell = do_QueryInterface(parentItem);
+  }
+
+  return nsnull;
 }
 
 nsSetAttrRunnable::nsSetAttrRunnable(nsIContent* aContent, nsIAtom* aAttrName,

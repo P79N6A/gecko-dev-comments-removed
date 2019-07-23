@@ -38,16 +38,13 @@
 
 #include "nscore.h"
 #include "nsScreen.h"
-#include "nsPIDOMWindow.h"
-#include "nsIBaseWindow.h"
 #include "nsIDocShell.h"
-#include "nsIDocShellTreeItem.h"
 #include "nsIDeviceContext.h"
-#include "nsIWidget.h"
 #include "nsPresContext.h"
 #include "nsCOMPtr.h"
 #include "nsDOMClassInfo.h"
 #include "nsIInterfaceRequestorUtils.h"
+#include "nsLayoutUtils.h"
 
 
 
@@ -199,36 +196,7 @@ nsScreen::GetAvailTop(PRInt32* aAvailTop)
 nsIDeviceContext*
 nsScreen::GetDeviceContext()
 {
-  nsCOMPtr<nsIDocShell> docShell = mDocShell;
-  while (docShell) {
-    
-    
-    
-    
-    nsCOMPtr<nsPIDOMWindow> win = do_GetInterface(docShell);
-    if (!win) {
-      
-      return nsnull;
-    }
-
-    win->EnsureSizeUpToDate();
-
-    nsCOMPtr<nsIBaseWindow> baseWindow = do_QueryInterface(docShell);
-    NS_ENSURE_TRUE(baseWindow, nsnull);
-
-    nsCOMPtr<nsIWidget> mainWidget;
-    baseWindow->GetMainWidget(getter_AddRefs(mainWidget));
-    if (mainWidget) {
-      return mainWidget->GetDeviceContext();
-    }
-
-    nsCOMPtr<nsIDocShellTreeItem> curItem = do_QueryInterface(docShell);
-    nsCOMPtr<nsIDocShellTreeItem> parentItem;
-    curItem->GetParent(getter_AddRefs(parentItem));
-    docShell = do_QueryInterface(parentItem);
-  }
-
-  return nsnull;
+  return nsLayoutUtils::GetDeviceContextForScreenInfo(mDocShell);
 }
 
 nsresult

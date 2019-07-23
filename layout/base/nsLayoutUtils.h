@@ -770,6 +770,14 @@ public:
 
 
 
+
+  static nsIDeviceContext*
+  GetDeviceContextForScreenInfo(nsIDocShell* aDocShell);
+
+  
+
+
+
 #ifdef DEBUG
   static PRBool sDisableGetUsedXAssertions;
 #endif
