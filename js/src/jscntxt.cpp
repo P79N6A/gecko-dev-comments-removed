@@ -413,14 +413,6 @@ js_DestroyContext(JSContext *cx, JSDestroyContextMode mode)
             js_FinishRuntimeScriptState(rt);
 
         
-
-
-
-
-        free(rt->unitStrings);
-        rt->unitStrings = NULL;
-
-        
         JS_LOCK_GC(rt);
         rt->state = JSRTS_DOWN;
         JS_NOTIFY_ALL_CONDVAR(rt->stateChange);

@@ -651,15 +651,22 @@ JS_GetTypeName(JSContext *cx, JSType type)
 
 
 
+
+
+
+
+
+#ifdef DEBUG
+static JSBool js_NewRuntimeWasCalled = JS_FALSE;
+#endif
+
 JS_PUBLIC_API(JSRuntime *)
 JS_NewRuntime(uint32 maxbytes)
 {
     JSRuntime *rt;
 
 #ifdef DEBUG
-    static JSBool didFirstChecks;
-
-    if (!didFirstChecks) {
+    if (!js_NewRuntimeWasCalled) {
         
 
 
@@ -685,7 +692,7 @@ JS_NewRuntime(uint32 maxbytes)
 #include "js.msg"
 #undef MSG_DEF
 
-        didFirstChecks = JS_TRUE;
+        js_NewRuntimeWasCalled = JS_TRUE;
     }
 #endif 
 
@@ -767,6 +774,13 @@ JS_DestroyRuntime(JSRuntime *rt)
 
     js_FreeRuntimeScriptState(rt);
     js_FinishAtomState(rt);
+
+    
+
+
+
+
+    js_FinishUnitStrings(rt);
 
     
 
@@ -2672,7 +2686,9 @@ JS_InitClass(JSContext *cx, JSObject *obj, JSObject *parent_proto,
             named = OBJ_DEFINE_PROPERTY(cx, obj, ATOM_TO_JSID(atom),
                                         OBJECT_TO_JSVAL(proto),
                                         NULL, NULL,
-                                        (clasp->flags & JSCLASS_IS_ANONYMOUS)
+                                        (clasp->flags &
+                                         (JSCLASS_IS_ANONYMOUS |
+                                          JSCLASS_FIXED_BINDING))
                                         ? JSPROP_READONLY | JSPROP_PERMANENT
                                         : 0,
                                         NULL);
@@ -2683,7 +2699,10 @@ JS_InitClass(JSContext *cx, JSObject *obj, JSObject *parent_proto,
         ctor = proto;
     } else {
         
-        fun = js_DefineFunction(cx, obj, atom, constructor, nargs, 0);
+        fun = js_DefineFunction(cx, obj, atom, constructor, nargs,
+                                (clasp->flags & JSCLASS_FIXED_BINDING)
+                                ? JSPROP_READONLY | JSPROP_PERMANENT
+                                : 0);
         named = (fun != NULL);
         if (!fun)
             goto bad;
@@ -5227,13 +5246,34 @@ JS_DecodeBytes(JSContext *cx, const char *src, size_t srclen, jschar *dst,
     return js_InflateStringToBuffer(cx, src, srclen, dst, dstlenp);
 }
 
+JS_PUBLIC_API(char *)
+JS_EncodeString(JSContext *cx, JSString *str)
+{
+    return js_DeflateString(cx, JSSTRING_CHARS(str), JSSTRING_LENGTH(str));
+}
+
+
+
+
+
+
+#ifndef JS_C_STRINGS_ARE_UTF8
+JSBool js_CStringsAreUTF8 = JS_FALSE;
+#endif
+
 JS_PUBLIC_API(JSBool)
 JS_CStringsAreUTF8()
 {
-#ifdef JS_C_STRINGS_ARE_UTF8
-    return JS_TRUE;
-#else
-    return JS_FALSE;
+    return js_CStringsAreUTF8;
+}
+
+JS_PUBLIC_API(void)
+JS_SetCStringsAreUTF8()
+{
+    JS_ASSERT(!js_NewRuntimeWasCalled);
+
+#ifndef JS_C_STRINGS_ARE_UTF8
+    js_CStringsAreUTF8 = JS_TRUE;
 #endif
 }
 
