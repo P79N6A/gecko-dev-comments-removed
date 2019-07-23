@@ -56,21 +56,22 @@ nsSBCSGroupProber::nsSBCSGroupProber()
   mProbers[7] = new nsSingleByteCharSetProber(&Win1253Model);
   mProbers[8] = new nsSingleByteCharSetProber(&Latin5BulgarianModel);
   mProbers[9] = new nsSingleByteCharSetProber(&Win1251BulgarianModel);
+  mProbers[10] = new nsSingleByteCharSetProber(&TIS620ThaiModel);
 
   nsHebrewProber *hebprober = new nsHebrewProber();
   
   
-  mProbers[10] = hebprober;
-  mProbers[11] = new nsSingleByteCharSetProber(&Win1255Model, PR_FALSE, hebprober); 
-  mProbers[12] = new nsSingleByteCharSetProber(&Win1255Model, PR_TRUE, hebprober); 
+  mProbers[11] = hebprober;
+  mProbers[12] = new nsSingleByteCharSetProber(&Win1255Model, PR_FALSE, hebprober); 
+  mProbers[13] = new nsSingleByteCharSetProber(&Win1255Model, PR_TRUE, hebprober); 
   
-  if (mProbers[10] && mProbers[11] && mProbers[12]) 
+  if (mProbers[11] && mProbers[12] && mProbers[13]) 
   {
-    hebprober->SetModelProbers(mProbers[11], mProbers[12]);
+    hebprober->SetModelProbers(mProbers[12], mProbers[13]);
   }
   else 
   {
-    for (PRUint32 i = 10; i <= 12; ++i)
+    for (PRUint32 i = 11; i <= 13; ++i)
     { 
       delete mProbers[i]; 
       mProbers[i] = 0; 
