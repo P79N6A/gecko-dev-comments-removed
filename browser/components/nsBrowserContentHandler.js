@@ -20,6 +20,7 @@
 # the Initial Developer. All Rights Reserved.
 #
 # Contributor(s):
+#   Robert Strong <robert.bugzilla@gmail.com>
 #
 # Alternatively, the contents of this file may be used under the terms of
 # either the GNU General Public License Version 2 or later (the "GPL"), or
@@ -147,6 +148,40 @@ function needHomepageOverride(prefb) {
   }
 
   return OVERRIDE_NONE;
+}
+
+
+
+
+
+
+
+
+function getPostUpdateOverridePage(defaultOverridePage) {
+  var um = Components.classes["@mozilla.org/updates/update-manager;1"]
+                     .getService(Components.interfaces.nsIUpdateManager);
+  try {
+    
+    var update = um.getUpdateAt(0)
+                   .QueryInterface(Components.interfaces.nsIPropertyBag);
+  } catch (e) {
+    
+    Components.utils.reportError("Unable to find update: " + e);
+    return defaultOverridePage;
+  }
+
+  let actions = update.getProperty("actions");
+  
+  
+  if (!actions)
+    return defaultOverridePage;
+
+  
+  
+  if (actions.indexOf("silent") != -1 || actions.indexOf("showURL") == -1)
+    return "";
+
+  return update.getProperty("openURL") || defaultOverridePage;
 }
 
 
@@ -536,8 +571,10 @@ var nsBrowserContentHandler = {
                              .getService(Components.interfaces.nsISessionStartup);
           haveUpdateSession = ss.doRestore();
           overridePage = formatter.formatURLPref("startup.homepage_override_url");
+          if (prefb.prefHasUserValue("app.update.postupdate"))
+            overridePage = getPostUpdateOverridePage(overridePage);
           break;
-    }
+      }
     } catch (ex) {}
 
     
