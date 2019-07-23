@@ -225,11 +225,6 @@ pref("browser.urlbar.maxRichResults", 12);
 
 
 
-pref("browser.urlbar.search.chunkSize", 1000);
-pref("browser.urlbar.search.timeout", 100);
-
-
-
 pref("browser.urlbar.delay", 50);
 
 
@@ -859,9 +854,6 @@ pref("geo.wifi.uri", "https://www.google.com/loc/json");
 #ifdef WINCE
 
 
-
-pref("browser.urlbar.search.chunkSize", 100);
-pref("browser.urlbar.search.timeout", 500);
 pref("browser.urlbar.delay", 1000);
 
 
