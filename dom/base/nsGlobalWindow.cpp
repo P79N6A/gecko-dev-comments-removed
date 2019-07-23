@@ -3671,33 +3671,34 @@ nsGlobalWindow::CheckSecurityLeftAndTop(PRInt32* aLeft, PRInt32* aTop)
     nsContentUtils::HidePopupsInDocument(doc);
 #endif
 
-    PRInt32 screenLeft, screenTop, screenWidth, screenHeight;
-    PRInt32 winLeft, winTop, winWidth, winHeight;
-
     nsGlobalWindow* rootWindow =
       static_cast<nsGlobalWindow*>(GetPrivateRoot());
     if (rootWindow) {
       rootWindow->FlushPendingNotifications(Flush_Layout);
     }
 
-    
     nsCOMPtr<nsIBaseWindow> treeOwner;
     GetTreeOwner(getter_AddRefs(treeOwner));
-    if (treeOwner)
-      treeOwner->GetPositionAndSize(&winLeft, &winTop, &winWidth, &winHeight);
 
-    
-    
-    winLeft   = DevToCSSIntPixels(winLeft);
-    winTop    = DevToCSSIntPixels(winTop);
-    winWidth  = DevToCSSIntPixels(winWidth);
-    winHeight = DevToCSSIntPixels(winHeight);
-
-    
-    
     nsCOMPtr<nsIDOMScreen> screen;
     GetScreen(getter_AddRefs(screen));
-    if (screen) {
+
+    if (treeOwner && screen) {
+      PRInt32 screenLeft, screenTop, screenWidth, screenHeight;
+      PRInt32 winLeft, winTop, winWidth, winHeight;
+
+      
+      treeOwner->GetPositionAndSize(&winLeft, &winTop, &winWidth, &winHeight);
+
+      
+      
+      winLeft   = DevToCSSIntPixels(winLeft);
+      winTop    = DevToCSSIntPixels(winTop);
+      winWidth  = DevToCSSIntPixels(winWidth);
+      winHeight = DevToCSSIntPixels(winHeight);
+
+      
+      
       screen->GetAvailLeft(&screenLeft);
       screen->GetAvailWidth(&screenWidth);
       screen->GetAvailHeight(&screenHeight);
@@ -3713,9 +3714,7 @@ nsGlobalWindow::CheckSecurityLeftAndTop(PRInt32* aLeft, PRInt32* aTop)
 #else
       screen->GetAvailTop(&screenTop);
 #endif
-    }
 
-    if (screen && treeOwner) {
       if (aLeft) {
         if (screenLeft+screenWidth < *aLeft+winWidth)
           *aLeft = screenLeft+screenWidth - winWidth;
