@@ -63,6 +63,7 @@ class nsAudioStream
   static void ShutdownLibrary();
 
   nsAudioStream();
+  ~nsAudioStream();
 
   
   
