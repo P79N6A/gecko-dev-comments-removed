@@ -2714,6 +2714,12 @@ nsXPConnect::GetPrincipal(JSObject* obj, PRBool allowShortCircuit) const
     return nsnull;
 }
 
+NS_IMETHODIMP_(JSClass *)
+nsXPConnect::GetNativeWrapperClass()
+{
+    return XPCNativeWrapper::GetJSClass();
+}
+
 
 JS_BEGIN_EXTERN_C
 JS_EXPORT_API(void) DumpJSStack()

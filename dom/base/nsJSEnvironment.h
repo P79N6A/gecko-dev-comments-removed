@@ -205,8 +205,6 @@ public:
 
 protected:
   nsresult InitializeExternalClasses();
-  
-  nsresult FindXPCNativeWrapperClass(nsIXPConnectJSObjectHolder *aHolder);
 
   
   JS_FORCES_STACK nsresult ConvertSupportsTojsvals(nsISupports *aArgs,
