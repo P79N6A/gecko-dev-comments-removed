@@ -83,6 +83,27 @@ function startAUS() {
 
 
 
+
+
+
+function toggleOffline(aOffline) {
+  const ioService = AUS_Cc["@mozilla.org/network/io-service;1"]
+                      .getService(AUS_Ci.nsIIOService);
+
+  try {
+    ioService.manageOfflineStatus = !aOffline;
+  }
+  catch (e) {
+  }
+  if (ioService.offline != aOffline)
+    ioService.offline = aOffline;
+}
+
+
+
+
+
+
 function remove_dirs_and_files () {
   var fileLocator = AUS_Cc["@mozilla.org/file/directory_service;1"]
                       .getService(AUS_Ci.nsIProperties);
