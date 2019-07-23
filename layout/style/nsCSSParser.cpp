@@ -290,7 +290,6 @@ protected:
 
   void AssertInitialState() {
     NS_PRECONDITION(!mHTMLMediaMode, "Bad initial state");
-    NS_PRECONDITION(!mUnresolvablePrefixException, "Bad initial state");
     NS_PRECONDITION(!mParsingCompoundProperty, "Bad initial state");
   }
 
@@ -587,14 +586,7 @@ protected:
   
 
 
-
-
-
-
-
-
-  PRBool GetNamespaceIdForPrefix(const nsString& aPrefix,
-                                 PRInt32* aNameSpaceID);
+  PRInt32 GetNamespaceIdForPrefix(const nsString& aPrefix);
 
   
   void SetDefaultNamespaceOnSelector(nsCSSSelector& aSelector);
@@ -655,7 +647,7 @@ protected:
 
   
   
-  PRPackedBool  mUnresolvablePrefixException : 1;
+  PRPackedBool  mFoundUnresolvablePrefix : 1;
 
 #ifdef DEBUG
   PRPackedBool mScannerInited : 1;
@@ -742,7 +734,7 @@ CSSParserImpl::CSSParserImpl()
     mUnsafeRulesEnabled(PR_FALSE),
     mHTMLMediaMode(PR_FALSE),
     mParsingCompoundProperty(PR_FALSE),
-    mUnresolvablePrefixException(PR_FALSE)
+    mFoundUnresolvablePrefix(PR_FALSE)
 #ifdef DEBUG
     , mScannerInited(PR_FALSE)
 #endif
@@ -1284,14 +1276,15 @@ CSSParserImpl::ParseSelectorString(const nsSubstring& aSelectorString,
 
   AssertInitialState();
 
-  mUnresolvablePrefixException = PR_TRUE;
+  
+  
+  mFoundUnresolvablePrefix = PR_FALSE;
 
   PRBool success = ParseSelectorList(*aSelectorList, PR_FALSE);
-  nsresult rv = mScanner.GetLowLevelError();
+  PRBool prefixErr = mFoundUnresolvablePrefix;
+
   OUTPUT_ERROR();
   ReleaseScanner();
-
-  mUnresolvablePrefixException = PR_FALSE;
 
   if (success) {
     NS_ASSERTION(*aSelectorList, "Should have list!");
@@ -1299,10 +1292,10 @@ CSSParserImpl::ParseSelectorString(const nsSubstring& aSelectorString,
   }
 
   NS_ASSERTION(!*aSelectorList, "Shouldn't have list!");
-  if (NS_SUCCEEDED(rv)) {
-    rv = NS_ERROR_DOM_SYNTAX_ERR;
-  }
-  return rv;
+  if (prefixErr)
+    return NS_ERROR_DOM_NAMESPACE_ERR;
+
+  return NS_ERROR_DOM_SYNTAX_ERR;
 }
 
 
@@ -2746,8 +2739,8 @@ CSSParserImpl::ParseTypeOrUniversalSelector(PRInt32&       aDataMask,
 
     if (ExpectSymbol('|', PR_FALSE)) {  
       aDataMask |= SEL_MASK_NSPACE;
-      PRInt32 nameSpaceID;
-      if (!GetNamespaceIdForPrefix(buffer, &nameSpaceID)) {
+      PRInt32 nameSpaceID = GetNamespaceIdForPrefix(buffer);
+      if (nameSpaceID == kNameSpaceID_Unknown) {
         return eSelectorParsingStatus_Error;
       }
       aSelector.SetNameSpace(nameSpaceID);
@@ -2870,7 +2863,8 @@ CSSParserImpl::ParseAttributeSelector(PRInt32&       aDataMask,
   else if (eCSSToken_Ident == mToken.mType) { 
     attr = mToken.mIdent; 
     if (ExpectSymbol('|', PR_FALSE)) {  
-      if (!GetNamespaceIdForPrefix(attr, &nameSpaceID)) {
+      nameSpaceID = GetNamespaceIdForPrefix(attr);
+      if (nameSpaceID == kNameSpaceID_Unknown) {
         return eSelectorParsingStatus_Error;
       }
       if (! GetToken(PR_FALSE)) { 
@@ -4723,8 +4717,8 @@ CSSParserImpl::ParseAttr(nsCSSValue& aValue)
   if (eCSSToken_Ident == mToken.mType) {  
     nsAutoString  holdIdent(mToken.mIdent);
     if (ExpectSymbol('|', PR_FALSE)) {  
-      PRInt32 nameSpaceID;
-      if (!GetNamespaceIdForPrefix(holdIdent, &nameSpaceID)) {
+      PRInt32 nameSpaceID = GetNamespaceIdForPrefix(holdIdent);
+      if (nameSpaceID == kNameSpaceID_Unknown) {
         return PR_FALSE;
       }
       attr.AppendInt(nameSpaceID, 10);
@@ -9004,9 +8998,8 @@ CSSParserImpl::ParseBoxShadow()
   return PR_TRUE;
 }
 
-PRBool
-CSSParserImpl::GetNamespaceIdForPrefix(const nsString& aPrefix,
-                                       PRInt32* aNameSpaceID)
+PRInt32
+CSSParserImpl::GetNamespaceIdForPrefix(const nsString& aPrefix)
 {
   NS_PRECONDITION(!aPrefix.IsEmpty(), "Must have a prefix here");
 
@@ -9018,18 +9011,15 @@ CSSParserImpl::GetNamespaceIdForPrefix(const nsString& aPrefix,
   }
   
 
-  if (kNameSpaceID_Unknown == nameSpaceID) {   
+  if (nameSpaceID == kNameSpaceID_Unknown) {   
     const PRUnichar *params[] = {
       aPrefix.get()
     };
     REPORT_UNEXPECTED_P(PEUnknownNamespacePrefix, params);
-    if (mUnresolvablePrefixException)
-      mScanner.SetLowLevelError(NS_ERROR_DOM_NAMESPACE_ERR);
-    return PR_FALSE;
+    mFoundUnresolvablePrefix = PR_TRUE;
   }
 
-  *aNameSpaceID = nameSpaceID;
-  return PR_TRUE;
+  return nameSpaceID;
 }
 
 void
