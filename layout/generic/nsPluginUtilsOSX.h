@@ -39,7 +39,9 @@
 
 
 
+#ifndef __LP64__
 #import <Carbon/Carbon.h>
+#endif
 
 #include "nsRect.h"
 #include "nsIWidget.h"
@@ -47,8 +49,10 @@
 
 
 
+#ifndef __LP64__
 
 void NS_NPAPI_CarbonWindowFrame(WindowRef aWindow, nsRect& outRect);
+#endif
 
 
 void NS_NPAPI_CocoaWindowFrame(void* aWindow, nsRect& outRect);
