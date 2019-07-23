@@ -6696,6 +6696,24 @@ nsBlockFrame::BlockNeedsSpaceManager(nsIFrame* aBlock)
     (parent && !parent->IsFloatContainingBlock());
 }
  
+
+nsBlockFrame*
+nsBlockFrame::GetNearestAncestorBlock(nsIFrame* aCandidate)
+{
+  nsBlockFrame* block = nsnull;
+  while(aCandidate) {
+    aCandidate->QueryInterface(kBlockFrameCID, (void**)&block);
+    if (block) { 
+      
+      return block;
+    }
+    
+    aCandidate = aCandidate->GetParent();
+  }
+  NS_NOTREACHED("Fell off frame tree looking for ancestor block!");
+  return nsnull;
+}
+
 #ifdef IBMBIDI
 nsresult
 nsBlockFrame::ResolveBidi()

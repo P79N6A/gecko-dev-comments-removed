@@ -294,6 +294,11 @@ public:
   static PRBool BlockIsMarginRoot(nsIFrame* aBlock);
   static PRBool BlockNeedsSpaceManager(nsIFrame* aBlock);
   
+
+
+
+  static nsBlockFrame* GetNearestAncestorBlock(nsIFrame* aCandidate);
+  
 protected:
   nsBlockFrame(nsStyleContext* aContext)
     : nsHTMLContainerFrame(aContext)
