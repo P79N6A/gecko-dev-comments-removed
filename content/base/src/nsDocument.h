@@ -258,10 +258,9 @@ public:
 
 
 
-  nsIContent* GetIdContent();
-  
 
 
+  nsIContent* GetIdContent(PRBool* aIsNotInDocument = nsnull);
   void AppendAllIdContent(nsCOMArray<nsIContent>* aElements);
   
 
@@ -274,6 +273,7 @@ public:
 
 
   PRBool RemoveIdContent(nsIContent* aContent);
+  void FlagIDNotInDocument();
 
   PRBool HasContentChangeCallback() { return mChangeCallbacks != nsnull; }
   void AddContentChangeCallback(nsIDocument::IDTargetObserver aCallback, void* aData);
@@ -318,6 +318,7 @@ public:
 private:
   void FireChangeCallbacks(nsIContent* aOldContent, nsIContent* aNewContent);
 
+  
   
   nsSmallVoidArray mIdContentList;
   
@@ -1190,6 +1191,22 @@ protected:
   PRUint8 mXMLDeclarationBits;
 
   PRUint8 mDefaultElementType;
+
+  PRBool IdTableIsLive() const {
+    
+    return (mIdMissCount & 0x40) != 0;
+  }
+  void SetIdTableLive() {
+    mIdMissCount = 0x40;
+  }
+  PRBool IdTableShouldBecomeLive() {
+    NS_ASSERTION(!IdTableIsLive(),
+                 "Shouldn't be called if table is already live!");
+    ++mIdMissCount;
+    return IdTableIsLive();
+  }
+
+  PRUint8 mIdMissCount;
 
   nsInterfaceHashtable<nsVoidPtrHashKey, nsPIBoxObject> *mBoxObjectTable;
 
