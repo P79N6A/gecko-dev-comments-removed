@@ -45,7 +45,6 @@
 #include "jsprvtd.h"
 #include "jspubtd.h"
 #include "jsdhash.h"
-#include "jsbit.h"
 #include "jsutil.h"
 
 JS_BEGIN_EXTERN_C
@@ -203,13 +202,8 @@ struct JSGCThing {
 extern void *
 js_NewGCThing(JSContext *cx, uintN flags, size_t nbytes);
 
-
-
-
-
-
-extern jsdouble *
-js_NewDoubleGCThing(JSContext *cx);
+extern JSBool
+js_LockGCThing(JSContext *cx, void *thing);
 
 extern JSBool
 js_LockGCThingRT(JSRuntime *rt, void *thing);
@@ -309,21 +303,6 @@ struct JSGCArenaList {
     JSGCThing       *freeList;      
 };
 
-typedef union JSGCDoubleCell JSGCDoubleCell;
-
-union JSGCDoubleCell {
-    double          number;
-    JSGCDoubleCell  *link;
-};
-
-JS_STATIC_ASSERT(sizeof(JSGCDoubleCell) == sizeof(double));
-
-typedef struct JSGCDoubleArenaList {
-    JSGCArenaInfo   *first;             
-    uint8           *nextDoubleFlags;   
-
-} JSGCDoubleArenaList;
-
 struct JSWeakRoots {
     
     void            *newborn[GCX_NTYPES];
@@ -345,22 +324,28 @@ JS_STATIC_ASSERT(JSVAL_NULL == 0);
 #ifdef JS_GCMETER
 
 typedef struct JSGCArenaStats {
-    uint32  alloc;          
-    uint32  localalloc;     
-    uint32  retry;          
-    uint32  fail;           
+    uint32  narenas;        
+    uint32  maxarenas;      
     uint32  nthings;        
     uint32  maxthings;      
-    double  totalthings;    
-    uint32  narenas;        
-    uint32  newarenas;      
-    uint32  livearenas;     
-    uint32  maxarenas;      
+    uint32  totalnew;       
+    uint32  freelen;        
+    uint32  recycle;        
     uint32  totalarenas;    
+
+    uint32  totalfreelen;   
 
 } JSGCArenaStats;
 
 typedef struct JSGCStats {
+#ifdef JS_THREADSAFE
+    uint32  localalloc; 
+#endif
+    uint32  alloc;      
+    uint32  retry;      
+    uint32  retryhalt;  
+
+    uint32  fail;       
     uint32  finalfail;  
     uint32  lockborn;   
     uint32  lock;       
@@ -385,8 +370,7 @@ typedef struct JSGCStats {
     uint32  closelater; 
     uint32  maxcloselater; 
 
-    JSGCArenaStats  arenaStats[GC_NUM_FREELISTS];
-    JSGCArenaStats  doubleArenaStats;
+    JSGCArenaStats  arenas[GC_NUM_FREELISTS];
 } JSGCStats;
 
 extern JS_FRIEND_API(void)
