@@ -4077,26 +4077,6 @@ function testReverseArgTypes() {
 testReverseArgTypes.expected = 1;
 test(testReverseArgTypes);
 
-function testBug458838() {
-    var a = 1;
-    function g() {
-        var b = 0
-            for (var i = 0; i < 10; ++i) {
-                b += a;
-            }
-        return b;
-    }
-
-    return g();
-}
-testBug458838.expected = 10;
-testBug458838.jitstats = {
-  recorderStarted: 1,
-  recorderAborted: 0,
-  traceCompleted: 1
-};
-test(testBug458838);
-
 function testInterpreterReentry() {
     this.__defineSetter__('x', function(){})
     for (var j = 0; j < 5; ++j) { x = 3; }
@@ -4126,6 +4106,47 @@ function testInterpreterReentry3() {
 }
 testInterpreterReentry3.expected = 1;
 test(testInterpreterReentry3);
+
+function testInterpreterReentry4() {
+    var obj = {a:1, b:1, c:1, d:1, get e() 1000 };
+    for (var p in obj)
+        obj[p];
+}
+test(testInterpreterReentry4);
+
+function testInterpreterReentry5() {
+    var arr = [0, 1, 2, 3, 4];
+    arr.__defineGetter__("4", function() 1000);
+    for (var i = 0; i < 5; i++)
+        arr[i];
+    for (var p in arr)
+        arr[p];
+}
+test(testInterpreterReentry5);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
