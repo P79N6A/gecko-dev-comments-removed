@@ -43,7 +43,10 @@
 #include "gfxTypes.h"
 #include "gfxFont.h"
 
+#include "nsAutoRef.h"
+
 #include <pango/pango.h>
+#include <fontconfig/fontconfig.h>
 
 
 
@@ -54,21 +57,7 @@
 
 
 
-#include "nsDataHashtable.h"
-#include "nsClassHashtable.h"
-
-class gfxPangoTextRun;
-
-
-class gfxPangoFontEntry : public gfxFontEntry {
-public:
-    gfxPangoFontEntry(const nsAString& aName)
-        : gfxFontEntry(aName)
-    { }
-
-    ~gfxPangoFontEntry() {}
-        
-};
+class gfxFcPangoFontSet;
 
 class THEBES_API gfxPangoFontGroup : public gfxFontGroup {
 public:
@@ -89,9 +78,33 @@ public:
 
     static void Shutdown();
 
+    
+    
+
+    
+    PangoFont *GetBasePangoFont();
+
+    
+    PangoLanguage *GetPangoLanguage() { return mPangoLanguage; }
+
+    
+    
+    
+    gfxFcPangoFontSet *GetFontSet(PangoLanguage *aLang = NULL);
+
 protected:
-    PangoFont *mBasePangoFont;
-    gfxFloat mAdjustedSize;
+    class FontSetByLangEntry {
+    public:
+        FontSetByLangEntry(PangoLanguage *aLang, gfxFcPangoFontSet *aFontSet);
+        PangoLanguage *mLang;
+        nsRefPtr<gfxFcPangoFontSet> mFontSet;
+    };
+    
+    
+    nsAutoTArray<FontSetByLangEntry,1> mFontSets;
+
+    gfxFloat mSizeAdjustFactor;
+    PangoLanguage *mPangoLanguage;
 
     
 
@@ -123,55 +136,24 @@ protected:
                                  const gchar *aUTF8, PRUint32 aUTF8Length);
 #endif
 
-    void GetFcFamilies(nsAString &aFcFamilies);
-    PangoFont *GetBasePangoFont();
+    void GetFcFamilies(nsStringArray *aFcFamilyList,
+                       const nsACString& aLangGroup);
 
     
-    gfxFloat GetAdjustedSize()
+    
+    
+    already_AddRefed<gfxFcPangoFontSet>
+    MakeFontSet(PangoLanguage *aLang, gfxFloat aSizeAdjustFactor,
+                nsAutoRef<FcPattern> *aMatchPattern = NULL);
+
+    gfxFcPangoFontSet *GetBaseFontSet();
+
+    gfxFloat GetSizeAdjustFactor()
     {
-        if (!mBasePangoFont)
-            GetBasePangoFont();
-        return mAdjustedSize;
+        if (mFontSets.Length() == 0)
+            GetBaseFontSet();
+        return mSizeAdjustFactor;
     }
-};
-
-class gfxPangoFontWrapper {
-public:
-    gfxPangoFontWrapper(PangoFont *aFont) {
-        mFont = aFont;
-        g_object_ref(mFont);
-    }
-    ~gfxPangoFontWrapper() {
-        if (mFont)
-            g_object_unref(mFont);
-    }
-    PangoFont* Get() { return mFont; }
-private:
-    PangoFont *mFont;
-};
-
-class gfxPangoFontCache
-{
-public:
-    gfxPangoFontCache();
-    ~gfxPangoFontCache();
-
-    static gfxPangoFontCache* GetPangoFontCache() {
-        if (!sPangoFontCache)
-            sPangoFontCache = new gfxPangoFontCache();
-        return sPangoFontCache;
-    }
-    static void Shutdown() {
-        if (sPangoFontCache)
-            delete sPangoFontCache;
-        sPangoFontCache = nsnull;
-    }
-
-    void Put(const PangoFontDescription *aFontDesc, PangoFont *aPangoFont);
-    PangoFont* Get(const PangoFontDescription *aFontDesc);
-private:
-    static gfxPangoFontCache *sPangoFontCache;
-    nsClassHashtable<nsUint32HashKey,  gfxPangoFontWrapper> mPangoFonts;
 };
 
 #endif 
