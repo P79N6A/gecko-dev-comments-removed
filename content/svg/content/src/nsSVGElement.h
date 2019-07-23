@@ -363,4 +363,14 @@ NS_NewSVG##_elementName##Element(nsIContent **aResult,                       \
   return rv;                                                                 \
 }
 
+
+
+#define NS_SVG_VAL_IMPL_CYCLE_COLLECTION(_val, _element)                     \
+NS_IMPL_CYCLE_COLLECTION_CLASS(_val)                                         \
+NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(_val)                                \
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR_AMBIGUOUS(_element, nsIContent) \
+NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END                                        \
+NS_IMPL_CYCLE_COLLECTION_UNLINK_0(_val)
+
+
 #endif 
