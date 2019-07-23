@@ -3554,7 +3554,7 @@ nsWindow::HasPendingEvent(PRBool& aHasPending)
    ULONG ulStatus = WinQueryQueueStatus(HWND_DESKTOP);
 
    
-   *aHasPending = !!(ulStatus & (QS_KEY | QS_MOUSE));
+   aHasPending = !!(ulStatus & (QS_KEY | QS_MOUSE));
 
    return NS_OK;
 }
