@@ -274,6 +274,11 @@ public:
   
 
 
+  virtual PRBool NeedsView() { return IsInDropDownMode(); }
+
+  
+
+
   static void Shutdown();
 
 #ifdef ACCESSIBILITY

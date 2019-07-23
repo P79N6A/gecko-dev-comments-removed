@@ -581,66 +581,42 @@ NS_IMETHODIMP nsViewManager::UpdateView(nsIView *aView, PRUint32 aUpdateFlags)
   return UpdateView(view, bounds, aUpdateFlags);
 }
 
-
-
-
-static void
-AccumulateIntersectionsIntoDirtyRegion(nsView* aTargetView,
-                                       nsView* aSourceView,
-                                       const nsPoint& aOffset)
-{
-  if (aSourceView->HasNonEmptyDirtyRegion()) {
-    
-    
-    nsPoint offset = aTargetView->GetOffsetTo(aSourceView);
-    nsRegion intersection;
-    intersection = *aSourceView->GetDirtyRegion();
-    if (!intersection.IsEmpty()) {
-      nsRegion* targetRegion = aTargetView->GetDirtyRegion();
-      if (targetRegion) {
-        intersection.MoveBy(-offset + aOffset);
-        targetRegion->Or(*targetRegion, intersection);
-        
-        targetRegion->SimplifyOutward(20);
-      }
-    }
-  }
-
-  if (aSourceView == aTargetView) {
-    
-    return;
-  }
-  
-  for (nsView* kid = aSourceView->GetFirstChild();
-       kid;
-       kid = kid->GetNextSibling()) {
-    AccumulateIntersectionsIntoDirtyRegion(aTargetView, kid, aOffset);
-  }
-}
-
 nsresult
-nsViewManager::WillBitBlit(nsView* aView, nsPoint aScrollAmount)
+nsViewManager::WillBitBlit(nsIView* aView, const nsRect& aRect,
+                           nsPoint aCopyDelta)
 {
   if (!IsRootVM()) {
-    RootViewManager()->WillBitBlit(aView, aScrollAmount);
+    RootViewManager()->WillBitBlit(aView, aRect, aCopyDelta);
     return NS_OK;
   }
 
-  NS_PRECONDITION(aView, "Must have a view");
-  NS_PRECONDITION(!aView->NeedsInvalidateFrameOnScroll(), "We shouldn't be BitBlting.");
+  
+  NS_PRECONDITION(aView &&
+                  (aView == mRootView || aView->GetFloating()),
+                  "Must have a display root view");
 
   ++mScrollCnt;
   
+  nsView* v = static_cast<nsView*>(aView);
+
   
   
-  AccumulateIntersectionsIntoDirtyRegion(aView, GetRootView(), -aScrollAmount);
+  if (v->HasNonEmptyDirtyRegion()) {
+    nsRegion* dirty = v->GetDirtyRegion();
+    nsRegion intersection;
+    intersection.And(*dirty, aRect);
+    if (!intersection.IsEmpty()) {
+      dirty->Or(*dirty, intersection);
+      
+      dirty->SimplifyOutward(20);
+    }
+  }
   return NS_OK;
 }
 
 
 void
-nsViewManager::UpdateViewAfterScroll(nsView *aView,
-                                     const nsRegion& aBlitRegion,
+nsViewManager::UpdateViewAfterScroll(nsIView *aView,
                                      const nsRegion& aUpdateRegion)
 {
   NS_ASSERTION(RootViewManager()->mScrollCnt > 0,
@@ -648,24 +624,15 @@ nsViewManager::UpdateViewAfterScroll(nsView *aView,
   
   
 
-  nsView* displayRoot = GetDisplayRootFor(aView);
-  nsPoint offset = aView->GetOffsetTo(displayRoot);
+  nsView* view = static_cast<nsView*>(aView);
+  nsView* displayRoot = GetDisplayRootFor(view);
+  nsPoint offset = view->GetOffsetTo(displayRoot);
   nsRegion update(aUpdateRegion);
   update.MoveBy(offset);
 
   UpdateWidgetArea(displayRoot, displayRoot->GetWidget(),
                    update, nsnull);
   
-
-  
-  if (displayRoot == RootViewManager()->mRootView) {
-    nsPoint rootOffset = aView->GetOffsetTo(mRootView);
-    nsRegion blit(aBlitRegion);
-    blit.MoveBy(rootOffset);
-    update.MoveBy(rootOffset - offset);
-    
-    GetViewObserver()->NotifyInvalidateForScrolledView(blit, update);
-  }
 
   Composite();
   --RootViewManager()->mScrollCnt;
@@ -1460,44 +1427,6 @@ NS_IMETHODIMP nsViewManager::ResizeView(nsIView *aView, const nsRect &aRect, PRB
   
 
   return NS_OK;
-}
-
-void nsViewManager::GetRegionsForBlit(nsView* aView, nsPoint aDelta,
-                                      nsRegion* aBlitRegion,
-                                      nsRegion* aRepaintRegion)
-{
-  NS_ASSERTION(!IsPainting(),
-               "View manager shouldn't be scrolling during a paint");
-
-  nsView* displayRoot = GetDisplayRootFor(aView);
-  nsPoint displayOffset = aView->GetParent()->GetOffsetTo(displayRoot);
-  nsRect parentBounds = aView->GetParent()->GetDimensions() + displayOffset;
-
-  
-  
-  
-  PRInt32 p2a = mContext->AppUnitsPerDevPixel();
-  parentBounds = parentBounds.ToNearestPixels(p2a).ToAppUnits(p2a);
-
-  if (IsPainting() || !mObserver) {
-    
-    aBlitRegion->SetEmpty();
-    *aRepaintRegion = parentBounds;
-  } else {
-    nsresult rv =
-      mObserver->ComputeRepaintRegionForCopy(displayRoot, aView, -aDelta,
-                                             parentBounds,
-                                             aBlitRegion,
-                                             aRepaintRegion);
-    if (NS_FAILED(rv)) {
-      aBlitRegion->SetEmpty();
-      *aRepaintRegion = nsRegion(parentBounds);
-      return;
-    }
-  }
-
-  aBlitRegion->MoveBy(-displayOffset);
-  aRepaintRegion->MoveBy(-displayOffset);
 }
 
 NS_IMETHODIMP nsViewManager::SetViewFloating(nsIView *aView, PRBool aFloating)

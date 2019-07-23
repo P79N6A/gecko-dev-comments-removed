@@ -273,52 +273,10 @@ public:
 
   nsEventStatus HandleEvent(nsView* aView, nsPoint aPoint, nsGUIEvent* aEvent);
 
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  nsresult WillBitBlit(nsView* aView, nsPoint aScrollAmount);
-  
-  
-
-
-
-
-
-
-
-
-
-
-  void UpdateViewAfterScroll(nsView *aView, const nsRegion& aBlitRegion,
-                             const nsRegion& aUpdateRegion);
-
-  
-
-
-
-
-  void GetRegionsForBlit(nsView* aView, nsPoint aDelta,
-                         nsRegion* aBlitRegion, nsRegion* aRepaintRegion);
+  virtual nsresult WillBitBlit(nsIView* aView, const nsRect& aRect,
+                               nsPoint aScrollAmount);
+  virtual void UpdateViewAfterScroll(nsIView *aView,
+                                     const nsRegion& aUpdateRegion);
 
   nsresult CreateRegion(nsIRegion* *result);
 

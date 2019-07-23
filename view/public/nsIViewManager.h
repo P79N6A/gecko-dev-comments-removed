@@ -420,6 +420,41 @@ public:
 
   NS_IMETHOD SynthesizeMouseMove(PRBool aFromScroll)=0;
 
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  virtual nsresult WillBitBlit(nsIView* aView, const nsRect& aRect,
+                               nsPoint aScrollAmount) = 0;
+  
+  
+
+
+
+
+
+
+
+  virtual void UpdateViewAfterScroll(nsIView *aView, const nsRegion& aUpdateRegion) = 0;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsIViewManager, NS_IVIEWMANAGER_IID)

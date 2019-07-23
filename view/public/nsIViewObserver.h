@@ -47,8 +47,8 @@ class nsIRenderingContext;
 class nsGUIEvent;
 
 #define NS_IVIEWOBSERVER_IID  \
-  { 0xc85d474d, 0x316e, 0x491c, \
-    { 0x8b, 0xc5, 0x24, 0xba, 0xb7, 0xbb, 0x68, 0x9e } }
+  { 0xba1357b6, 0xe3c7, 0x426a, \
+    { 0xb3, 0x68, 0xfe, 0xe8, 0x24, 0x8c, 0x08, 0x38 } }
 
 class nsIViewObserver : public nsISupports
 {
@@ -93,16 +93,6 @@ public:
   
 
 
-  NS_IMETHOD ComputeRepaintRegionForCopy(nsIView*      aRootView,
-                                         nsIView*      aMovingView,
-                                         nsPoint       aDelta,
-                                         const nsRect& aUpdateRect,
-                                         nsRegion*     aBlitRegion,
-                                         nsRegion*     aRepaintRegion) = 0;
-
-  
-
-
 
 
 
@@ -135,20 +125,6 @@ public:
 
 
   NS_IMETHOD_(void) WillPaint() = 0;
-
-  
-
-
-
-  NS_IMETHOD_(void) InvalidateFrameForScrolledView(nsIView *aView) = 0;
-
-  
-
-
-
-
-  NS_IMETHOD_(void) NotifyInvalidateForScrolledView(const nsRegion& aBlitRegion,
-                                                    const nsRegion& aInvalidateRegion) = 0;
 
   
 
