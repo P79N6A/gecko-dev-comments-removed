@@ -485,6 +485,13 @@ typedef bool (* NP_LOADDS NPN_EnumerateUPP)(NPP npp, NPObject *obj, NPIdentifier
 		(*(FUNC))((ARG1), (ARG2), (ARG3), (ARG4))
 
 
+typedef void (* NP_LOADDS NPN_PluginThreadAsyncCallUPP)(NPP instance, void (*func)(void *), void *userData);
+#define NewNPN_PluginThreadAsyncCallProc(FUNC) \
+		((NPN_PluginThreadAsyncCallUPP) (FUNC))
+#define CallNPN_PluginThreadAsyncCallProc(FUNC, ARG1, ARG2, ARG3) \
+		(*(FUNC))((ARG1), (ARG2), (ARG3))
+
+
 
 
 
@@ -554,6 +561,7 @@ typedef struct _NPNetscapeFuncs {
     NPN_PushPopupsEnabledStateUPP pushpopupsenabledstate;
     NPN_PopPopupsEnabledStateUPP poppopupsenabledstate;
     NPN_EnumerateUPP enumerate;
+    NPN_PluginThreadAsyncCallUPP pluginthreadasynccall;
 } NPNetscapeFuncs;
 
 
