@@ -621,10 +621,6 @@ nsCSSDeclaration::GetValue(nsCSSProperty aProperty,
     return NS_OK;
   }
 
-
-  
-  
-  
   
   switch (aProperty) {
     case eCSSProperty_margin: 
