@@ -72,7 +72,28 @@ nsDataDocumentContentPolicy::ShouldLoad(PRUint32 aContentType,
       doc = do_QueryInterface(domDoc);
     }
   }
-  if (aContentType != nsIContentPolicy::TYPE_DTD && doc && doc->IsLoadedAsData()) {
+
+  
+  if (!doc || aContentType == nsIContentPolicy::TYPE_DTD) {
+    return NS_OK;
+  }
+
+  
+  if (doc->IsLoadedAsData()) {
+    *aDecision = nsIContentPolicy::REJECT_TYPE;
+    return NS_OK;
+  }
+
+  
+  if (!doc->GetDisplayDocument()) {
+    return NS_OK;
+  }
+
+  
+  if (aContentType == nsIContentPolicy::TYPE_OBJECT ||
+      aContentType == nsIContentPolicy::TYPE_DOCUMENT ||
+      aContentType == nsIContentPolicy::TYPE_SUBDOCUMENT ||
+      aContentType == nsIContentPolicy::TYPE_SCRIPT) {
     *aDecision = nsIContentPolicy::REJECT_TYPE;
   }
 

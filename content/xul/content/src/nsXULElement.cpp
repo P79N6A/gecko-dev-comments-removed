@@ -2488,7 +2488,7 @@ nsXULElement::HideWindowChrome(PRBool aShouldHide)
       return NS_ERROR_UNEXPECTED;
 
     
-    if (doc->GetParentDocument())
+    if (!doc->IsRootDisplayDocument())
       return NS_OK;
 
     nsIPresShell *shell = doc->GetPrimaryShell();
@@ -2522,7 +2522,7 @@ nsXULElement::SetTitlebarColor(nscolor aColor, PRBool aActive)
     }
 
     
-    if (!doc->GetParentDocument()) {
+    if (doc->IsRootDisplayDocument()) {
         nsCOMPtr<nsISupports> container = doc->GetContainer();
         nsCOMPtr<nsIBaseWindow> baseWindow = do_QueryInterface(container);
         if (baseWindow) {
