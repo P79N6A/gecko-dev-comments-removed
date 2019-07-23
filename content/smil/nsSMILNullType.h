@@ -44,6 +44,12 @@
 class nsSMILNullType : public nsISMILType
 {
 public:
+  
+  static nsSMILNullType sSingleton;
+
+protected:
+  
+  
   virtual nsresult Init(nsSMILValue& aValue) const { return NS_OK; }
   virtual void Destroy(nsSMILValue& aValue) const {}
   virtual nsresult Assign(nsSMILValue& aDest, const nsSMILValue& aSrc) const;
@@ -60,7 +66,11 @@ public:
                                double aUnitDistance,
                                nsSMILValue& aResult) const;
 
-  static nsSMILNullType sSingleton;
+private:
+  
+  
+  nsSMILNullType()  {}
+  ~nsSMILNullType() {}
 };
 
 #endif 

@@ -44,6 +44,12 @@ namespace mozilla {
 class SMILBoolType : public nsISMILType
 {
 public:
+  
+  static SMILBoolType sSingleton;
+
+protected:
+  
+  
   virtual nsresult Init(nsSMILValue& aValue) const;
   virtual void     Destroy(nsSMILValue&) const;
   virtual nsresult Assign(nsSMILValue& aDest, const nsSMILValue& aSrc) const;
@@ -57,10 +63,11 @@ public:
                                double aUnitDistance,
                                nsSMILValue& aResult) const;
 
-  static SMILBoolType sSingleton;
-
 private:
-  SMILBoolType() {}
+  
+  
+  SMILBoolType()  {}
+  ~SMILBoolType() {}
 };
 
 } 

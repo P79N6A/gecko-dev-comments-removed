@@ -55,6 +55,10 @@ class nsSMILCSSValueType : public nsISMILType
 {
 public:
   
+  static nsSMILCSSValueType sSingleton;
+
+protected:
+  
   
   NS_OVERRIDE virtual nsresult Init(nsSMILValue& aValue) const;
   NS_OVERRIDE virtual void     Destroy(nsSMILValue&) const;
@@ -71,6 +75,8 @@ public:
                                            double aUnitDistance,
                                            nsSMILValue& aResult) const;
 
+public:
+  
   
   
 
@@ -107,11 +113,11 @@ public:
 
   static PRBool ValueToString(const nsSMILValue& aValue, nsAString& aString);
 
-  
-  static nsSMILCSSValueType sSingleton;
-
 private:
-  nsSMILCSSValueType() {}
+  
+  
+  nsSMILCSSValueType()  {}
+  ~nsSMILCSSValueType() {}
 };
 
 #endif 

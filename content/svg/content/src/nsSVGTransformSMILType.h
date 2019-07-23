@@ -107,6 +107,11 @@ class nsSVGTransformSMILType : public nsISMILType
 {
 public:
   
+  static nsSVGTransformSMILType sSingleton;
+
+protected:
+  
+  
   virtual nsresult Init(nsSMILValue& aValue) const;
   virtual void     Destroy(nsSMILValue& aValue) const;
   virtual nsresult Assign(nsSMILValue& aDest, const nsSMILValue& aSrc) const;
@@ -123,6 +128,8 @@ public:
                                double aUnitDistance,
                                nsSMILValue& aResult) const;
 
+public:
+  
   
   static PRUint32 GetNumTransforms(const nsSMILValue& aValue);
   static const nsSVGSMILTransform* GetTransformAt(PRUint32 aIndex,
@@ -131,10 +138,11 @@ public:
                                   nsSMILValue& aValue);
 
 
-  static nsSVGTransformSMILType sSingleton;
-
 private:
-  nsSVGTransformSMILType() {}
+  
+  
+  nsSVGTransformSMILType()  {}
+  ~nsSVGTransformSMILType() {}
 };
 
 #endif 

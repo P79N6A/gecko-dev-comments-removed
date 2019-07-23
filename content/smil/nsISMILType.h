@@ -75,7 +75,12 @@ class nsSMILValue;
 
 class nsISMILType
 {
-public:
+  
+
+
+  friend class nsSMILValue;
+
+protected:
   
 
 
@@ -215,7 +220,8 @@ public:
 
 
 
-  virtual ~nsISMILType() {};
+
+  ~nsISMILType() {}
 };
 
 #endif 
