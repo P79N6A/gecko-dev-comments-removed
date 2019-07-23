@@ -133,7 +133,9 @@ namespace nanojit
         
         NanoAssert(0 != _allocator.free);
         NanoAssert(0 == _allocator.countActive());
+#ifdef NANOJIT_IA32
         debug_only(_fpuStkDepth = 0; )
+#endif
     }
 
     Register Assembler::registerAlloc(RegisterMask allow)
@@ -577,7 +579,9 @@ namespace nanojit
         swapptrs();
         _inExit = true;
 
+#ifdef NANOJIT_IA32
         debug_only( _sv_fpuStkDepth = _fpuStkDepth; _fpuStkDepth = 0; )
+#endif
 
         nFragExit(guard);
 
@@ -781,7 +785,9 @@ namespace nanojit
         frag->setCode(_nIns);
         
 
+#ifdef NANOJIT_IA32
         NanoAssertMsgf(_fpuStkDepth == 0,"_fpuStkDepth %d\n",_fpuStkDepth);
+#endif
 
         debug_only( pageValidate(); )
         NanoAssert(_branchStateMap.isEmpty());
