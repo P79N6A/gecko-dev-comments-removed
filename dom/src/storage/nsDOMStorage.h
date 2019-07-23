@@ -116,7 +116,7 @@ class nsDOMStorage : public nsIDOMStorage,
 {
 public:
   nsDOMStorage();
-  nsDOMStorage(nsIURI* aURI, const nsAString& aDomain, PRBool aUseDB);
+  nsDOMStorage(const nsAString& aDomain, PRBool aUseDB);
   virtual ~nsDOMStorage();
 
   
@@ -127,23 +127,29 @@ public:
   NS_DECL_NSIDOMSTORAGE
 
   
-  virtual void Init(nsIURI* aURI, const nsAString& aDomain, PRBool aUseDB);
-  virtual already_AddRefed<nsIDOMStorage> Clone(nsIURI* aURI);
+  virtual void Init(const nsAString& aDomain, PRBool aUseDB);
+  virtual already_AddRefed<nsIDOMStorage> Clone();
   virtual nsTArray<nsString> *GetKeys();
+  virtual const nsString &Domain();
+  virtual PRBool CanAccess(nsIPrincipal *aPrincipal);
 
+  
+  
+  
+  
+  
+  
   PRBool UseDB() { return mUseDB && !mSessionOnly; }
 
   
   
-  
   static PRBool
-  CanUseStorage(nsIURI* aURI, PRPackedBool* aSessionOnly);
+  CanUseStorage(PRPackedBool* aSessionOnly);
 
+  
+  
   PRBool
-  CacheStoragePermissions()
-  {
-    return CanUseStorage(mURI, &mSessionOnly);
-  }
+  CacheStoragePermissions();
 
   
   nsresult
@@ -189,13 +195,14 @@ protected:
   PRPackedBool mUseDB;
 
   
+  
+  
+  
+  
   PRPackedBool mSessionOnly;
 
   
   PRPackedBool mItemsCached;
-
-  
-  nsCOMPtr<nsIURI> mURI;
 
   
   nsString mDomain;
@@ -246,8 +253,7 @@ protected:
 
 
   nsIDOMStorage*
-  GetStorageForDomain(nsIURI* aURI,
-                      const nsAString& aRequestedDomain,
+  GetStorageForDomain(const nsAString& aRequestedDomain,
                       const nsAString& aCurrentDomain,
                       PRBool aNoCurrentDomainCheck,
                       nsresult* aResult);

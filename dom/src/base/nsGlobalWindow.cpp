@@ -6693,20 +6693,23 @@ nsGlobalWindow::GetSessionStorage(nsIDOMStorage ** aSessionStorage)
   *aSessionStorage = nsnull;
 
   nsIPrincipal *principal = GetPrincipal();
-  nsIDocShell *docShell = GetDocShell();
+  nsCOMPtr<nsIDocShell_MOZILLA_1_9_1> docShell =
+    do_QueryInterface(GetDocShell());
 
   if (!principal || !docShell) {
     return NS_OK;
   }
 
-  nsCOMPtr<nsIURI> codebase;
-  nsresult rv = principal->GetURI(getter_AddRefs(codebase));
+  nsresult rv = docShell->GetSessionStorageForPrincipal(principal,
+                                                        PR_TRUE,
+                                                        aSessionStorage);
+  NS_ENSURE_SUCCESS(rv, rv);
 
-  if (NS_FAILED(rv) || !codebase) {
-    return NS_FAILED(rv) ? rv : NS_ERROR_DOM_NOT_SUPPORTED_ERR;
+  if (!*aSessionStorage) {
+    return NS_ERROR_DOM_NOT_SUPPORTED_ERR;
   }
 
-  return docShell->GetSessionStorageForURI(codebase, aSessionStorage);
+  return NS_OK;
 }
 
 NS_IMETHODIMP
@@ -6863,16 +6866,23 @@ nsGlobalWindow::Observe(nsISupports* aSubject, const char* aTopic,
     nsIPrincipal *principal;
     nsresult rv;
 
+    principal = GetPrincipal();
     if (!aData) {
-      nsCOMPtr<nsIDOMStorage> storage;
-      GetSessionStorage(getter_AddRefs(storage));
+      nsCOMPtr<nsIDocShell_MOZILLA_1_9_1> docShell =
+        do_QueryInterface(GetDocShell());
+      if (principal && docShell) {
+        nsCOMPtr<nsIDOMStorage> storage;
+        docShell->GetSessionStorageForPrincipal(principal,
+                                                PR_FALSE,
+                                                getter_AddRefs(storage));
 
-      if (storage != aSubject && !aData) {
-        
-        
-        return NS_OK;
+        if (storage != aSubject) {
+          
+          
+          return NS_OK;
+        }
       }
-    } else if ((principal = GetPrincipal())) {
+    } else if (principal) {
       
       
 
@@ -7088,12 +7098,6 @@ nsGlobalWindow::OpenInternal(const nsAString& aUrl, const nsAString& aName,
   const PRBool checkForPopup =
     !aDialog && !WindowExists(aName, !aCalledNoScript);
 
-  nsCOMPtr<nsIURI> currentCodebase;
-
-  if (aCalleePrincipal) {
-    aCalleePrincipal->GetURI(getter_AddRefs(currentCodebase));
-  }
-
   
   
   
@@ -7239,38 +7243,6 @@ nsGlobalWindow::OpenInternal(const nsAString& aUrl, const nsAString& aName,
       FireAbuseEvents(PR_FALSE, PR_TRUE, aUrl, aName, aOptions);
   }
 
-  
-  
-  
-  
-  nsGlobalWindow *opened = static_cast<nsGlobalWindow *>(*aReturn);
-  nsIDocShell* newDocShell = opened->GetDocShell();
-
-  if (currentCodebase && newDocShell && mDocShell && url.get()) {
-    nsCOMPtr<nsIURI> newURI;
-
-    JSContext       *cx;
-    PRBool           freePass;
-    BuildURIfromBase(url, getter_AddRefs(newURI), &freePass, &cx);
-
-    if (newURI) {
-      nsCAutoString thisDomain, newDomain;
-      nsresult gethostrv = currentCodebase->GetAsciiHost(thisDomain);
-      gethostrv |= newURI->GetAsciiHost(newDomain);
-
-      if (NS_SUCCEEDED(gethostrv) && thisDomain.Equals(newDomain)) {
-        nsCOMPtr<nsIDOMStorage> storage;
-        mDocShell->GetSessionStorageForURI(currentCodebase,
-                                           getter_AddRefs(storage));
-        nsCOMPtr<nsPIDOMStorage> piStorage = do_QueryInterface(storage);
-        if (piStorage) {
-          nsCOMPtr<nsIDOMStorage> newstorage = piStorage->Clone(newURI);
-          newDocShell->AddSessionStorage(thisDomain, newstorage);
-        }
-      }
-    }
-  }
-  
   return rv;
 }
 
