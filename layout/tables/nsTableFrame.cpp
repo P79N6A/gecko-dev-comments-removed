@@ -1880,7 +1880,16 @@ NS_METHOD nsTableFrame::Reflow(nsPresContext*          aPresContext,
   PRBool haveDesiredHeight = PR_FALSE;
   SetHaveReflowedColGroups(PR_FALSE);
 
-  if (aReflowState.ComputedHeight() != NS_UNCONSTRAINEDSIZE ||
+      
+      
+      
+      
+      
+  if ((aReflowState.ComputedHeight() != NS_UNCONSTRAINEDSIZE &&
+       (aReflowState.ComputedHeight() +
+          aReflowState.mComputedBorderPadding.TopBottom() != GetSize().height ||
+        NS_SUBTREE_DIRTY(this) ||
+        aReflowState.mFlags.mHResize)) ||
       
       
       
@@ -1905,7 +1914,7 @@ NS_METHOD nsTableFrame::Reflow(nsPresContext*          aPresContext,
   if (NS_SUBTREE_DIRTY(this) ||
       aReflowState.ShouldReflowAllKids() ||
       IsGeometryDirty() ||
-      needToInitiateSpecialReflow) {
+      (needToInitiateSpecialReflow && aReflowState.mFlags.mVResize)) {
     
     if (isPaginated && !GetPrevInFlow() && (NS_UNCONSTRAINEDSIZE != aReflowState.availableHeight)) {
       nscoord tableSpecifiedHeight = CalcBorderBoxHeight(aReflowState);
