@@ -307,8 +307,13 @@ nsMozIconURI::SetSpec(const nsACString &aSpec)
         {
           nsCAutoString filespec;
           tmpURI->GetSpec(filespec);
-          if (filespec.Length() > 8 && filespec.CharAt(8) != '/')
-            mFileIcon = tmpURI; 
+          if ( strncmp("file:////", filespec.get(), 9) &&
+               strncmp("file:///%", filespec.get(), 9) )
+          {
+            
+            
+            mFileIcon = tmpURI;
+          }
         }
       }
       if (!sizeString.IsEmpty())
