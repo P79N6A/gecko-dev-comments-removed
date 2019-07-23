@@ -73,6 +73,7 @@ public:
     nsDNSRecord(nsHostRecord *hostRecord)
         : mHostRecord(hostRecord)
         , mIter(nsnull)
+        , mIterGenCnt(-1)
         , mDone(PR_FALSE) {}
 
 private:
@@ -80,6 +81,9 @@ private:
 
     nsRefPtr<nsHostRecord>  mHostRecord;
     void                   *mIter;
+    int                     mIterGenCnt; 
+                                         
+                                         
     PRBool                  mDone;
 };
 
@@ -95,11 +99,13 @@ nsDNSRecord::GetCanonicalName(nsACString &result)
     
     
     const char *cname;
+    PR_Lock(mHostRecord->addr_info_lock);
     if (mHostRecord->addr_info)
         cname = PR_GetCanonNameFromAddrInfo(mHostRecord->addr_info);
     else
         cname = mHostRecord->host;
     result.Assign(cname);
+    PR_Unlock(mHostRecord->addr_info_lock);
     return NS_OK;
 }
 
@@ -112,16 +118,26 @@ nsDNSRecord::GetNextAddr(PRUint16 port, PRNetAddr *addr)
     if (mDone)
         return NS_ERROR_NOT_AVAILABLE;
 
+    PR_Lock(mHostRecord->addr_info_lock);
     if (mHostRecord->addr_info) {
-        mIter = PR_EnumerateAddrInfo(mIter, mHostRecord->addr_info, port, addr);
         if (!mIter)
+            mIterGenCnt = mHostRecord->addr_info_gencnt;
+        else if (mIterGenCnt != mHostRecord->addr_info_gencnt) {
+            
+            
+            mIter = nsnull;
+            mIterGenCnt = mHostRecord->addr_info_gencnt;
+        }
+        mIter = PR_EnumerateAddrInfo(mIter, mHostRecord->addr_info, port, addr);
+        PR_Unlock(mHostRecord->addr_info_lock);
+        if (!mIter) {
+            mDone = PR_TRUE;
             return NS_ERROR_NOT_AVAILABLE;
+        }
     }
     else {
-        
-        NS_ENSURE_STATE(mHostRecord->addr);
-
-        mIter = nsnull; 
+        PR_Unlock(mHostRecord->addr_info_lock);
+        NS_ASSERTION(mHostRecord->addr, "no addr");
         memcpy(addr, mHostRecord->addr, sizeof(PRNetAddr));
         
         port = PR_htons(port);
@@ -129,9 +145,9 @@ nsDNSRecord::GetNextAddr(PRUint16 port, PRNetAddr *addr)
             addr->inet.port = port;
         else
             addr->ipv6.port = port;
+        mDone = PR_TRUE; 
     }
         
-    mDone = !mIter;
     return NS_OK; 
 }
 
@@ -172,6 +188,7 @@ NS_IMETHODIMP
 nsDNSRecord::Rewind()
 {
     mIter = nsnull;
+    mIterGenCnt = -1;
     mDone = PR_FALSE;
     return NS_OK;
 }

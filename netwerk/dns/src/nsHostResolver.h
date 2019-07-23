@@ -95,7 +95,17 @@ public:
 
 
 
+    
+
+
+
+
+
+
+
+    PRLock      *addr_info_lock;
     PRAddrInfo  *addr_info;
+    int          addr_info_gencnt; 
     PRNetAddr   *addr;
     PRUint32     expiration; 
 
