@@ -119,6 +119,8 @@ public:
   void AddLocator(nsGeolocation* locator);
   void RemoveLocator(nsGeolocation* locator);
 
+  PRBool IsBetterPosition(nsIDOMGeoPosition* aPosition);
+
   void SetCachedPosition(nsIDOMGeoPosition* aPosition);
   nsIDOMGeoPosition* GetCachedPosition();
 
@@ -147,7 +149,7 @@ private:
   PRInt32 mTimeout;
 
   
-  nsCOMPtr<nsIGeolocationProvider> mProvider;
+  nsCOMArray<nsIGeolocationProvider> mProviders;
 
   
   
