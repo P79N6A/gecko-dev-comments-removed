@@ -432,7 +432,6 @@ nsSVGLength::SetValueAsString(const nsAString & aValueAsString)
       else { 
         
         rv = NS_ERROR_FAILURE;
-        NS_ERROR("invalid length type");
       }
     }
     else { 
