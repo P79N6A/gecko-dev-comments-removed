@@ -68,6 +68,12 @@
 #define ROUND(x) (floor((x) + 0.5))
 
 
+#ifdef FloatToFixed
+#undef FloatToFixed
+#define FloatToFixed(a)     ((Fixed)((float)(a) * fixed1))
+#endif
+
+
 #if 0
 OSStatus ATSUGetStyleGroup(ATSUStyle style, void **styleGroup);
 OSStatus ATSUDisposeStyleGroup(void *styleGroup);

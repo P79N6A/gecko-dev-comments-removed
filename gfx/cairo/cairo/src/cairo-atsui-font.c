@@ -41,6 +41,12 @@
 #include "cairo-quartz-private.h"
 
 
+#ifdef FloatToFixed
+#undef FloatToFixed
+#define FloatToFixed(a)     ((Fixed)((float)(a) * fixed1))
+#endif
+
+
 
 
 
