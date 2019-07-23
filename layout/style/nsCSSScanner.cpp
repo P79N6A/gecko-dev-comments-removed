@@ -58,18 +58,6 @@
 #include "nsIStringBundle.h"
 #include "nsContentUtils.h"
 
-
-#undef COLLECT_WHITESPACE
-
-static const PRUnichar CSS_ESCAPE = PRUnichar('\\');
-static const PRUint8 IS_HEX_DIGIT = 0x02;
-static const PRUint8 START_IDENT = 0x04;
-static const PRUint8 IS_IDENT = 0x08;
-static const PRUint8 IS_WHITESPACE = 0x10;
-
-static PRBool gLexTableSetup = PR_FALSE;
-static PRUint8 gLexTable[256];
-
 #ifdef CSS_REPORT_PARSE_ERRORS
 static PRBool gReportErrors = PR_TRUE;
 static nsIConsoleService *gConsoleService;
@@ -77,36 +65,65 @@ static nsIFactory *gScriptErrorFactory;
 static nsIStringBundle *gStringBundle;
 #endif
 
-static void
-BuildLexTable()
-{
-  gLexTableSetup = PR_TRUE;
 
-  PRUint8* lt = gLexTable;
-  int i;
-  lt[CSS_ESCAPE] = START_IDENT;
-  lt['-'] |= IS_IDENT;
-  lt['_'] |= IS_IDENT | START_IDENT;
-  lt[' '] |= IS_WHITESPACE;   
-  lt['\t'] |= IS_WHITESPACE;  
-  lt['\r'] |= IS_WHITESPACE;  
-  lt['\n'] |= IS_WHITESPACE;  
-  lt['\f'] |= IS_WHITESPACE;  
-  for (i = 161; i <= 255; i++) {
-    lt[i] |= IS_IDENT | START_IDENT;
-  }
-  for (i = '0'; i <= '9'; i++) {
-    lt[i] |= IS_HEX_DIGIT | IS_IDENT;
-  }
-  for (i = 'A'; i <= 'Z'; i++) {
-    if ((i >= 'A') && (i <= 'F')) {
-      lt[i] |= IS_HEX_DIGIT;
-      lt[i+32] |= IS_HEX_DIGIT;
-    }
-    lt[i] |= IS_IDENT | START_IDENT;
-    lt[i+32] |= IS_IDENT | START_IDENT;
-  }
-}
+#undef COLLECT_WHITESPACE
+
+
+static const PRUnichar CSS_ESCAPE  = PRUnichar('\\');
+
+static const PRUint8 IS_HEX_DIGIT  = 0x01;
+static const PRUint8 START_IDENT   = 0x02;
+static const PRUint8 IS_IDENT      = 0x04;
+static const PRUint8 IS_WHITESPACE = 0x08;
+
+#define W   IS_WHITESPACE
+#define I   IS_IDENT
+#define S            START_IDENT
+#define SI  IS_IDENT|START_IDENT
+#define XI  IS_IDENT            |IS_HEX_DIGIT
+#define XSI IS_IDENT|START_IDENT|IS_HEX_DIGIT
+
+static const PRUint8 gLexTable[256] = {
+
+   0,  0,  0,  0,  0,  0,  0,  0,  0,  W,  W,  0,  W,  W,  0,  0,
+
+   0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+
+   W,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  I,  0,  0,
+
+   XI, XI, XI, XI, XI, XI, XI, XI, XI, XI, 0,  0,  0,  0,  0,  0,
+
+   0,  XSI,XSI,XSI,XSI,XSI,XSI,SI, SI, SI, SI, SI, SI, SI, SI, SI,
+
+   SI, SI, SI, SI, SI, SI, SI, SI, SI, SI, SI, 0,  S,  0,  0,  SI,
+
+   0,  XSI,XSI,XSI,XSI,XSI,XSI,SI, SI, SI, SI, SI, SI, SI, SI, SI,
+
+   SI, SI, SI, SI, SI, SI, SI, SI, SI, SI, SI, 0,  0,  0,  0,  0,
+
+   0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+
+   0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+
+   0,  SI, SI, SI, SI, SI, SI, SI, SI, SI, SI, SI, SI, SI, SI, SI,
+
+   SI, SI, SI, SI, SI, SI, SI, SI, SI, SI, SI, SI, SI, SI, SI, SI,
+
+   SI, SI, SI, SI, SI, SI, SI, SI, SI, SI, SI, SI, SI, SI, SI, SI,
+
+   SI, SI, SI, SI, SI, SI, SI, SI, SI, SI, SI, SI, SI, SI, SI, SI,
+
+   SI, SI, SI, SI, SI, SI, SI, SI, SI, SI, SI, SI, SI, SI, SI, SI,
+
+   SI, SI, SI, SI, SI, SI, SI, SI, SI, SI, SI, SI, SI, SI, SI, SI,
+};
+
+#undef W
+#undef S
+#undef I
+#undef XI
+#undef SI
+#undef XSI
 
 static inline PRBool
 IsIdentStart(PRInt32 aChar)
@@ -251,10 +268,6 @@ nsCSSScanner::nsCSSScanner()
 #endif
 {
   MOZ_COUNT_CTOR(nsCSSScanner);
-  if (!gLexTableSetup) {
-    
-    BuildLexTable();
-  }
   mPushback = mLocalPushback;
   mPushbackSize = NS_ARRAY_LENGTH(mLocalPushback);
   
