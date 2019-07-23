@@ -356,6 +356,28 @@ function OnDocumentLoad(event)
                                  .indexOf("reftest-print") != -1;
     }
 
+    function setupPrintMode() {
+       var PSSVC = Components.classes["@mozilla.org/gfx/printsettings-service;1"]
+                  .getService(Components.interfaces.nsIPrintSettingsService);
+       var ps = PSSVC.newPrintSettings;
+       ps.paperWidth = 5;
+       ps.paperHeight = 3;
+
+       
+       ps.unwriteableMarginTop = 0;
+       ps.unwriteableMarginLeft = 0;
+       ps.unwriteableMarginBottom = 0;
+       ps.unwriteableMarginRight = 0;
+
+       ps.headerStrLeft = "";
+       ps.headerStrCenter = "";
+       ps.headerStrRight = "";
+       ps.footerStrLeft = "";
+       ps.footerStrCenter = "";
+       ps.footerStrRight = "";
+       gBrowser.docShell.contentViewer.setPageMode(true, ps);
+    }
+
     if (shouldWait()) {
         
         
@@ -368,31 +390,14 @@ function OnDocumentLoad(event)
                         "DOMAttrModified",
                         arguments.callee,
                         false);
+                    if (doPrintMode())
+                        setupPrintMode();
                     setTimeout(DocumentLoaded, 0);
                 }
             }, false);
     } else {
-        if (doPrintMode()) {
-            var PSSVC = Components.classes["@mozilla.org/gfx/printsettings-service;1"]
-                    .getService(Components.interfaces.nsIPrintSettingsService);
-            var ps = PSSVC.newPrintSettings;
-            ps.paperWidth = 5;
-            ps.paperHeight = 3;
-
-            
-            ps.unwriteableMarginTop = 0;
-            ps.unwriteableMarginLeft = 0;
-            ps.unwriteableMarginBottom = 0;
-            ps.unwriteableMarginRight = 0;
-
-            ps.headerStrLeft = "";
-            ps.headerStrCenter = "";
-            ps.headerStrRight = "";
-            ps.footerStrLeft = "";
-            ps.footerStrCenter = "";
-            ps.footerStrRight = "";
-            gBrowser.docShell.contentViewer.setPageMode(true, ps);
-        }
+        if (doPrintMode())
+            setupPrintMode();
 
         
         
