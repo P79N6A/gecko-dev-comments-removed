@@ -80,7 +80,7 @@ class nsIPageSequenceFrame;
 class nsString;
 class nsAString;
 class nsStringArray;
-class nsICaret;
+class nsCaret;
 class nsStyleContext;
 class nsFrameSelection;
 class nsFrameManager;
@@ -512,7 +512,7 @@ public:
   
 
 
-  NS_IMETHOD GetCaret(nsICaret **aOutCaret) = 0;
+  NS_IMETHOD GetCaret(nsCaret **aOutCaret) = 0;
 
   
 
@@ -524,7 +524,7 @@ public:
   
 
 
-  virtual void SetCaret(nsICaret *aNewCaret) = 0;
+  virtual void SetCaret(nsCaret *aNewCaret) = 0;
 
   
 

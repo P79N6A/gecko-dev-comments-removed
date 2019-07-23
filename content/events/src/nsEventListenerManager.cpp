@@ -39,7 +39,7 @@
 #include "nsGUIEvent.h"
 #include "nsDOMEvent.h"
 #include "nsEventListenerManager.h"
-#include "nsICaret.h"
+#include "nsCaret.h"
 #include "nsIDOMNSEvent.h"
 #include "nsIDOMEventListener.h"
 #include "nsIDOMMouseListener.h"
@@ -1445,7 +1445,7 @@ nsEventListenerManager::PrepareToUseCaretPosition(nsIWidget* aEventWidget,
   nsresult rv;
 
   
-  nsCOMPtr<nsICaret> caret;
+  nsRefPtr<nsCaret> caret;
   rv = aShell->GetCaret(getter_AddRefs(caret));
   NS_ENSURE_SUCCESS(rv, PR_FALSE);
   NS_ENSURE_TRUE(caret, PR_FALSE);
@@ -1456,9 +1456,8 @@ nsEventListenerManager::PrepareToUseCaretPosition(nsIWidget* aEventWidget,
     return PR_FALSE;
 
   
-  nsCOMPtr<nsISelection> domSelection;
-  rv = caret->GetCaretDOMSelection(getter_AddRefs(domSelection));
-  NS_ENSURE_SUCCESS(rv, PR_FALSE);
+  
+  nsISelection* domSelection = caret->GetCaretDOMSelection();
   NS_ENSURE_TRUE(domSelection, PR_FALSE);
 
   
@@ -1521,7 +1520,7 @@ nsEventListenerManager::PrepareToUseCaretPosition(nsIWidget* aEventWidget,
   PRBool isCollapsed;
   nsIView* view;
   nsRect caretCoords;
-  rv = caret->GetCaretCoordinates(nsICaret::eRenderingViewCoordinates,
+  rv = caret->GetCaretCoordinates(nsCaret::eRenderingViewCoordinates,
                                   domSelection, &caretCoords, &isCollapsed,
                                   &view);
   NS_ENSURE_SUCCESS(rv, PR_FALSE);

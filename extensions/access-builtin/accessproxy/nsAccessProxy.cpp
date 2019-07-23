@@ -60,7 +60,7 @@
 #include "nsIDocument.h"
 #include "nsISelection.h"
 #include "nsISelectionController.h"
-#include "nsICaret.h"
+#include "nsCaret.h"
 
 
 #include "nsAccessProxy.h"

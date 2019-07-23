@@ -39,58 +39,124 @@
 
 
 
+#ifndef nsCaret_h__
+#define nsCaret_h__
+
 #include "nsCoord.h"
 #include "nsISelectionListener.h"
 #include "nsIRenderingContext.h"
 #include "nsITimer.h"
-#include "nsICaret.h"
 #include "nsWeakPtr.h"
+#include "nsFrameSelection.h"
 
+class nsDisplayListBuilder;
 class nsIView;
 
 
-
-class nsCaret : public nsICaret,
-                public nsISelectionListener
+class nsCaret : public nsISelectionListener
 {
   public:
 
                   nsCaret();
     virtual       ~nsCaret();
-        
-    NS_DECL_ISUPPORTS
+
+    enum EViewCoordinates {
+      eTopLevelWindowCoordinates,
+      eRenderingViewCoordinates,
+      eClosestViewCoordinates,
+      eIMECoordinates
+    };
 
   public:
-  
-    
-    NS_IMETHOD    Init(nsIPresShell *inPresShell);
-    NS_IMETHOD    Terminate();
 
-    NS_IMETHOD    GetCaretDOMSelection(nsISelection **outDOMSel);
-    NS_IMETHOD    SetCaretDOMSelection(nsISelection *inDOMSel);
-    NS_IMETHOD    GetCaretVisible(PRBool *outMakeVisible);
-    NS_IMETHOD    SetCaretVisible(PRBool intMakeVisible);
-    NS_IMETHOD    SetCaretReadOnly(PRBool inMakeReadonly);
-    virtual PRBool GetCaretReadOnly()
+    NS_DECL_ISUPPORTS
+
+    nsresult    Init(nsIPresShell *inPresShell);
+    void    Terminate();
+
+    nsISelection*    GetCaretDOMSelection();
+    nsresult    SetCaretDOMSelection(nsISelection *inDOMSel);
+
+    
+
+
+
+
+
+    virtual nsresult    GetCaretVisible(PRBool *outMakeVisible);
+
+    
+
+
+    void    SetCaretVisible(PRBool intMakeVisible);
+
+    
+
+
+
+    void    SetCaretReadOnly(PRBool inMakeReadonly);
+
+    
+
+
+
+    PRBool GetCaretReadOnly()
     {
       return mReadOnly;
     }
-    NS_IMETHOD    GetCaretCoordinates(EViewCoordinates aRelativeToType,
+    
+
+
+
+
+
+
+
+
+    virtual nsresult    GetCaretCoordinates(EViewCoordinates aRelativeToType,
                                       nsISelection *inDOMSel,
                                       nsRect* outCoordinates,
                                       PRBool* outIsCollapsed,
                                       nsIView **outView);
-    NS_IMETHOD    EraseCaret();
 
-    NS_IMETHOD    SetVisibilityDuringSelection(PRBool aVisibility);
-    NS_IMETHOD    DrawAtPosition(nsIDOMNode* aNode, PRInt32 aOffset);
+    
+
+
+    void    EraseCaret();
+
+    void    SetVisibilityDuringSelection(PRBool aVisibility);
+
+    
+
+
+
+
+
+
+
+    nsresult    DrawAtPosition(nsIDOMNode* aNode, PRInt32 aOffset);
+
+    
+
+
+
+
     nsIFrame*     GetCaretFrame();
+
+    
+
+
+
     nsRect        GetCaretRect()
     {
       nsRect r;
       r.UnionRect(mCaretRect, GetHookRect());
       return r;
     }
+
+    
+
+
     nsIContent*   GetCaretContent()
     {
       if (mDrawn)
@@ -99,13 +165,35 @@ class nsCaret : public nsICaret,
       return nsnull;
     }
 
+    
+
+
+
+
     void      InvalidateOutsideCaret();
+
+    
+
+
+
+
     void      UpdateCaretPosition();
+
+    
+
 
     void      PaintCaret(nsDisplayListBuilder *aBuilder,
                          nsIRenderingContext *aCtx,
                          nsIFrame *aForFrame,
                          const nsPoint &aOffset);
+    
+
+
+
+
+
+
+
 
     void SetIgnoreUserModify(PRBool aIgnoreUserModify);
 
@@ -113,8 +201,8 @@ class nsCaret : public nsICaret,
     NS_DECL_NSISELECTIONLISTENER
 
     static void   CaretBlinkCallback(nsITimer *aTimer, void *aClosure);
-  
-    NS_IMETHOD    GetCaretFrameForNodeOffset(nsIContent* aContentNode,
+
+    nsresult      GetCaretFrameForNodeOffset(nsIContent* aContentNode,
                                              PRInt32 aOffset,
                                              nsFrameSelection::HINT aFrameHint,
                                              PRUint8 aBidiLevel,
@@ -128,8 +216,8 @@ protected:
     void          KillTimer();
     nsresult      PrimeTimer();
 
-    nsresult      StartBlinking();
-    nsresult      StopBlinking();
+    void          StartBlinking();
+    void          StopBlinking();
     
     void          GetViewForRendering(nsIFrame *caretFrame,
                                       EViewCoordinates coordType,
@@ -225,3 +313,36 @@ protected:
 #endif
 };
 
+nsresult
+NS_NewCaret(nsCaret** aInstancePtrResult);
+
+
+
+class StCaretHider
+{
+public:
+               StCaretHider(nsCaret* aSelCon)
+               : mWasVisible(PR_FALSE), mCaret(aSelCon)
+               {
+                 if (mCaret)
+                 {
+                   mCaret->GetCaretVisible(&mWasVisible);
+                   if (mWasVisible)
+                     mCaret->SetCaretVisible(PR_FALSE);
+                 }
+               }
+
+               ~StCaretHider()
+               {
+                 if (mCaret && mWasVisible)
+                   mCaret->SetCaretVisible(PR_TRUE);
+                 
+               }
+
+protected:
+
+    PRBool                  mWasVisible;
+    nsCOMPtr<nsCaret>  mCaret;
+};
+
+#endif 

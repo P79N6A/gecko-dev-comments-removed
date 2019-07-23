@@ -50,7 +50,7 @@
 class nsPresContext;
 class nsIPresShell;
 class nsQueryContentEvent;
-class nsICaret;
+class nsCaret;
 struct nsRect;
 
 
@@ -105,7 +105,7 @@ protected:
   
   
   nsresult QueryRectFor(nsQueryContentEvent* aEvent, nsIRange* aRange,
-                        nsICaret* aCaret);
+                        nsCaret* aCaret);
   
   
   nsresult ExpandToClusterBoundary(nsIContent* aContent, PRBool aForward,
