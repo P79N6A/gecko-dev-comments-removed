@@ -6175,45 +6175,6 @@ TraceRecorder::test_property_cache(JSObject* obj, LIns* obj_ins, JSObject*& obj2
     return true;
 }
 
-JS_REQUIRES_STACK bool
-TraceRecorder::test_property_cache_direct_slot(JSObject* obj, LIns* obj_ins, uint32& slot)
-{
-    JSObject* obj2;
-    jsuword pcval;
-
-    
-
-
-
-    if (!test_property_cache(obj, obj_ins, obj2, pcval))
-        return false;
-
-    
-    if (PCVAL_IS_NULL(pcval)) {
-        slot = SPROP_INVALID_SLOT;
-        return true;
-    }
-
-    
-    if (obj2 != obj)
-        ABORT_TRACE("test_property_cache_direct_slot hit prototype chain");
-
-    
-    if (PCVAL_IS_SPROP(pcval)) {
-        JSScopeProperty* sprop = PCVAL_TO_SPROP(pcval);
-
-        if (!isValidSlot(OBJ_SCOPE(obj), sprop))
-            return false;
-
-        slot = sprop->slot;
-    } else {
-        if (!PCVAL_IS_SLOT(pcval))
-            ABORT_TRACE("PCE is not a slot");
-        slot = PCVAL_TO_SLOT(pcval);
-    }
-    return true;
-}
-
 void
 TraceRecorder::stobj_set_dslot(LIns *obj_ins, unsigned slot, LIns*& dslots_ins, LIns* v_ins,
                                const char *name)
@@ -8316,11 +8277,40 @@ TraceRecorder::name(jsval*& vp)
     
     LIns* obj_ins = scopeChain();
     uint32 slot;
-    if (!test_property_cache_direct_slot(obj, obj_ins, slot))
+
+    JSObject* obj2;
+    jsuword pcval;
+
+    
+
+
+
+    if (!test_property_cache(obj, obj_ins, obj2, pcval))
         return false;
 
-    if (slot == SPROP_INVALID_SLOT)
+    
+
+
+    if (PCVAL_IS_NULL(pcval))
         ABORT_TRACE("named property not found");
+
+    
+
+
+    if (obj2 != obj)
+        ABORT_TRACE("name() hit prototype chain");
+
+    
+    if (PCVAL_IS_SPROP(pcval)) {
+        JSScopeProperty* sprop = PCVAL_TO_SPROP(pcval);
+        if (!isValidSlot(OBJ_SCOPE(obj), sprop))
+            ABORT_TRACE("name() not accessing a valid slot");
+        slot = sprop->slot;
+    } else {
+        if (!PCVAL_IS_SLOT(pcval))
+            ABORT_TRACE("PCE is not a slot");
+        slot = PCVAL_TO_SLOT(pcval);
+    }
 
     if (!lazilyImportGlobalSlot(slot))
         ABORT_TRACE("lazy import of global slot failed");
