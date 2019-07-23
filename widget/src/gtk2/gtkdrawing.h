@@ -111,6 +111,10 @@ typedef gint (*style_prop_t)(GtkStyle*, const gchar*, gint);
 #define MOZ_GTK_UNSAFE_THEME -2
 
 
+#define MOZ_GTK_WIDGET_CHECKED 1
+#define MOZ_GTK_WIDGET_INCONSISTENT (1 << 1)
+
+
 typedef enum {
   
   MOZ_GTK_BUTTON,
