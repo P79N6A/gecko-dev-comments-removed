@@ -412,7 +412,8 @@ void nsTimerImpl::Fire()
 
   
   
-  if (mCallbackType == CALLBACK_TYPE_UNKNOWN && callbackType != TYPE_ONE_SHOT) {
+  if (mCallbackType == CALLBACK_TYPE_UNKNOWN &&
+      mType != TYPE_ONE_SHOT && !mCanceled) {
     mCallback = callback;
     mCallbackType = callbackType;
   } else {
