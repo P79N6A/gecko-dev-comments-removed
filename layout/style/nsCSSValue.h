@@ -63,6 +63,8 @@ enum nsCSSUnit {
   eCSSUnit_None         = 4,      
   eCSSUnit_Normal       = 5,      
   eCSSUnit_System_Font  = 6,      
+  eCSSUnit_Dummy        = 7,      
+                                  
   eCSSUnit_String       = 10,     
   eCSSUnit_Attr         = 11,     
   eCSSUnit_Array        = 20,     
@@ -275,6 +277,7 @@ public:
   NS_HIDDEN_(void)  SetNoneValue();
   NS_HIDDEN_(void)  SetNormalValue();
   NS_HIDDEN_(void)  SetSystemFontValue();
+  NS_HIDDEN_(void)  SetDummyValue();
   NS_HIDDEN_(void)  StartImageLoad(nsIDocument* aDocument)
                                    const;  
 

@@ -4917,3 +4917,63 @@ nsRuleNode::Sweep()
   }
   return PR_FALSE;
 }
+
+ PRBool
+nsRuleNode::HasAuthorSpecifiedBorderOrBackground(nsStyleContext* aStyleContext)
+{
+  nsRuleDataColor colorData;
+  nsRuleDataMargin marginData;
+  
+  nsRuleData ruleData(NS_STYLE_INHERIT_BIT(Background) |
+                        NS_STYLE_INHERIT_BIT(Border),
+                      aStyleContext->PresContext(), aStyleContext);
+  ruleData.mColorData = &colorData;
+  ruleData.mMarginData = &marginData;
+
+  nsCSSValue* values[] = {
+    &colorData.mBackColor,
+    &colorData.mBackImage,
+    &marginData.mBorderColor.mTop,
+    &marginData.mBorderStyle.mTop,
+    &marginData.mBorderWidth.mTop,
+    &marginData.mBorderColor.mRight,
+    &marginData.mBorderStyle.mRight,
+    &marginData.mBorderWidth.mRight,
+    &marginData.mBorderColor.mBottom,
+    &marginData.mBorderStyle.mBottom,
+    &marginData.mBorderWidth.mBottom,
+    &marginData.mBorderColor.mLeft,
+    &marginData.mBorderStyle.mLeft,
+    &marginData.mBorderWidth.mLeft
+  };
+
+  
+  
+  for (nsRuleNode* ruleNode = aStyleContext->GetRuleNode(); ruleNode;
+       ruleNode = ruleNode->GetParent()) {
+    nsIStyleRule *rule = ruleNode->GetRule();
+    if (rule) {
+      ruleData.mLevel = ruleNode->GetLevel();
+      ruleData.mIsImportantRule = ruleNode->IsImportantRule();
+      rule->MapRuleInfoInto(&ruleData);
+      if (ruleData.mLevel == nsStyleSet::eAgentSheet ||
+          ruleData.mLevel == nsStyleSet::eUserSheet) {
+        
+        
+        
+        for (PRUint32 i = 0; i < NS_ARRAY_LENGTH(values); ++i)
+          if (values[i]->GetUnit() != eCSSUnit_Null)
+            values[i]->SetDummyValue();
+      } else {
+        
+        
+        for (PRUint32 i = 0; i < NS_ARRAY_LENGTH(values); ++i)
+          if (values[i]->GetUnit() != eCSSUnit_Null &&
+              values[i]->GetUnit() != eCSSUnit_Dummy) 
+            return PR_TRUE;
+      }
+    }
+  }
+
+  return PR_FALSE;
+}

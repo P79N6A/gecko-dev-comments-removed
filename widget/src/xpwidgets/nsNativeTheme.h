@@ -134,36 +134,4 @@ class nsNativeTheme
   PRBool CheckBooleanAttr(nsIFrame* aFrame, nsIAtom* aAtom);
 
   PRBool GetCheckedOrSelected(nsIFrame* aFrame, PRBool aCheckSelected);
-
-  
-  
-  
-  
-  static nsMargin                  sButtonBorderSize;
-  static PRUint8                   sButtonActiveBorderStyle;
-  static PRUint8                   sButtonInactiveBorderStyle;
-  static nsILookAndFeel::nsColorID sButtonBorderColorID;
-  static nsILookAndFeel::nsColorID sButtonDisabledBorderColorID;
-  static nsILookAndFeel::nsColorID sButtonBGColorID;
-  static nsILookAndFeel::nsColorID sButtonDisabledBGColorID;
-  
-  static nsMargin                  sTextfieldBorderSize;
-  static PRUint8                   sTextfieldBorderStyle;
-  static nsILookAndFeel::nsColorID sTextfieldBorderColorID;
-  static PRBool                    sTextfieldBGTransparent;
-  static nsILookAndFeel::nsColorID sTextfieldBGColorID;
-  static nsILookAndFeel::nsColorID sTextfieldDisabledBGColorID;
-  
-  static nsMargin                  sListboxBorderSize;
-  static PRUint8                   sListboxBorderStyle;
-  static nsILookAndFeel::nsColorID sListboxBorderColorID;
-  static nsILookAndFeel::nsColorID sListboxBGColorID;
-  static nsILookAndFeel::nsColorID sListboxDisabledBGColorID;
-  
-  static nsMargin                  sComboboxBorderSize;
-  static PRUint8                   sComboboxBorderStyle;
-  static nsILookAndFeel::nsColorID sComboboxBorderColorID;
-  static PRBool                    sComboboxBGTransparent;
-  static nsILookAndFeel::nsColorID sComboboxBGColorID;
-  static nsILookAndFeel::nsColorID sComboboxDisabledBGColorID;
 };
