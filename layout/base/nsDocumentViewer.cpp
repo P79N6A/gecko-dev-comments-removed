@@ -2714,8 +2714,10 @@ NS_IMETHODIMP
 DocumentViewerImpl::GetFullZoom(float* aFullZoom)
 {
   NS_ENSURE_ARG_POINTER(aFullZoom);
+  
+  
   nsPresContext* pc = GetPresContext();
-  *aFullZoom = pc ? pc->GetFullZoom() : 1.0f;
+  *aFullZoom = pc ? pc->GetFullZoom() : mPageZoom;
   return NS_OK;
 }
 
