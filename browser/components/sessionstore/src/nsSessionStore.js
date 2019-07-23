@@ -540,6 +540,12 @@ SessionStoreService.prototype = {
 
 
   onTabClose: function sss_onTabClose(aWindow, aTab) {
+    
+    
+    var event = aWindow.document.createEvent("Events");
+    event.initEvent("SSTabClosing", true, false);
+    aTab.dispatchEvent(event);
+    
     var maxTabsUndo = this._prefBranch.getIntPref("sessionstore.max_tabs_undo");
     
     if (maxTabsUndo == 0) {
