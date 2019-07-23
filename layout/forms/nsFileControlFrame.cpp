@@ -604,7 +604,12 @@ nsFileControlFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
 NS_IMETHODIMP nsFileControlFrame::GetAccessible(nsIAccessible** aAccessible)
 {
   
-  *aAccessible = nsnull;
+  nsCOMPtr<nsIAccessibilityService> accService = do_GetService("@mozilla.org/accessibilityService;1");
+
+  if (accService) {
+    return accService->CreateHTMLGenericAccessible(static_cast<nsIFrame*>(this), aAccessible);
+  }
+
   return NS_ERROR_FAILURE;
 }
 #endif
