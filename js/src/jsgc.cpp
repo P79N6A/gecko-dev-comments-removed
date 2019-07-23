@@ -75,6 +75,7 @@
 #include "jsscope.h"
 #include "jsscript.h"
 #include "jsstr.h"
+#include "jstracer.h"
 
 #if JS_HAS_XML_SUPPORT
 #include "jsxml.h"
@@ -3235,6 +3236,9 @@ js_GC(JSContext *cx, JSGCInvocationKind gckind)
     
     rt->shapeGen = 0;
 
+    
+    js_FlushJITCache(cx);
+    
     
 
 
