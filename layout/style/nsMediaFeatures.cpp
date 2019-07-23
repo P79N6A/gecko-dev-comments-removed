@@ -90,20 +90,15 @@ GetHeight(nsPresContext* aPresContext, nsCSSValue& aResult)
     return NS_OK;
 }
 
-static nsIDeviceContext*
+inline static nsIDeviceContext*
 GetDeviceContextFor(nsPresContext* aPresContext)
 {
   
   
   
   
-  nsIDeviceContext* ctx = nsLayoutUtils::GetDeviceContextForScreenInfo(
-    nsCOMPtr<nsIDocShell>(do_QueryInterface(
-      nsCOMPtr<nsISupports>(aPresContext->GetContainer()))));
-  if (!ctx) {
-    ctx = aPresContext->DeviceContext();
-  }
-  return ctx;
+  
+  return aPresContext->DeviceContext();
 }
 
 
