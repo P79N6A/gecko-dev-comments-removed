@@ -3602,7 +3602,7 @@ nsHTMLEditor::AddOverrideStyleSheet(const nsAString& aURL)
   
   nsCOMPtr<nsICSSStyleSheet> sheet;
   
-  rv = cssLoader->LoadSheetSync(uaURI, PR_TRUE, getter_AddRefs(sheet));
+  rv = cssLoader->LoadSheetSync(uaURI, PR_TRUE, PR_TRUE, getter_AddRefs(sheet));
 
   
   if (!sheet)

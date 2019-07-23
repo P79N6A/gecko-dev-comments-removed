@@ -135,6 +135,7 @@ public:
                 nsICSSStyleSheet* aSheet,
                 PRBool aSyncLoad,
                 PRBool aAllowUnsafeRules,
+                PRBool aUseSystemPrincipal,
                 nsICSSLoaderObserver* aObserver,
                 nsIPrincipal* aLoaderPrincipal);
 
@@ -207,6 +208,11 @@ public:
   
   
   PRPackedBool               mAllowUnsafeRules : 1;
+
+  
+  
+  
+  PRPackedBool               mUseSystemPrincipal : 1;
   
   
   
@@ -339,6 +345,7 @@ public:
                             nsICSSImportRule* aRule);
 
   NS_IMETHOD LoadSheetSync(nsIURI* aURL, PRBool aAllowUnsafeRules,
+                           PRBool aUseSystemPrincipal,
                            nsICSSStyleSheet** aSheet);
 
   NS_IMETHOD LoadSheet(nsIURI* aURL,
@@ -415,6 +422,7 @@ private:
 
   nsresult InternalLoadNonDocumentSheet(nsIURI* aURL,
                                         PRBool aAllowUnsafeRules,
+                                        PRBool aUseSystemPrincipal,
                                         nsIPrincipal* aOriginPrincipal,
                                         nsICSSStyleSheet** aSheet,
                                         nsICSSLoaderObserver* aObserver);
