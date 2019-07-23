@@ -43,14 +43,12 @@ function testCustomize(aWindow, aCallback) {
   is(fileMenu.disabled, true,
      "file menu is disabled during toolbar customization");
 
-  
-  var nt = aWindow.getNavToolbox();
-  var oldHandler = nt.customizeInitialized;
-  nt.customizeInitialized = ctInit;
-  function ctInit() {
-    
-    nt.customizeInitialized = oldHandler;
+  aWindow.gNavToolbox.addEventListener("beforecustomization", function () {
+    aWindow.gNavToolbox.removeEventListener("beforecustomization", arguments.callee, false);
+    executeSoon(ctInit);
+  }, false);
 
+  function ctInit() {
     
     closeToolbarCustomization(aWindow, ctEl);
 
