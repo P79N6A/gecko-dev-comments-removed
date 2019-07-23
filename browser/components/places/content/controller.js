@@ -973,13 +973,26 @@ PlacesController.prototype = {
         }
       }
       else if (PlacesUtils.nodeIsDay(node)) {
-        var query = node.getQueries({})[0];
-        var beginTime = query.beginTime;
-        var endTime = query.endTime;
-        NS_ASSERT(query && beginTime && endTime,
-                  "A valid date container query should exist!");
         
-        bhist.removePagesByTimeframe(beginTime+1, endTime);
+        
+        var beginDate = 0;
+        
+        
+        var endDate = node.time;
+
+        var nodeIdx = 0;
+        var cc = root.childCount;
+
+        
+        while (nodeIdx < cc && root.getChild(nodeIdx) != node)
+          ++nodeIdx;
+
+        
+        if (nodeIdx+1 < cc)
+          beginDate = root.getChild(nodeIdx+1).time;
+
+        
+        bhist.removePagesByTimeframe(beginDate+1, endDate);
       }
     }
 
