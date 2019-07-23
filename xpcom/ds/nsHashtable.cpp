@@ -468,18 +468,6 @@ nsISupportsKey::Write(nsIObjectOutputStream* aStream) const
     return rv;
 }
 
-nsIDKey::nsIDKey(nsIObjectInputStream* aStream, nsresult *aResult)
-{
-    *aResult = aStream->ReadID(&mID);
-}
-
-nsresult nsIDKey::Write(nsIObjectOutputStream* aStream) const
-{
-    return aStream->WriteID(mID);
-}
-
-
-
 
 
 
