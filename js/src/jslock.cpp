@@ -1290,12 +1290,6 @@ js_DropAllEmptyScopeLocks(JSContext *cx, JSScope *scope)
     if (CX_THREAD_IS_RUNNING_GC(cx))
         return;
 
-    
-
-
-
-    JS_ASSERT(!scope->title.ownercx);
-
     LOGIT(&scope->title, '0');
     scope->title.u.count = 0;
     ThinUnlock(&scope->title.lock, CX_THINLOCK_ID(cx));
@@ -1341,17 +1335,6 @@ js_UnlockObj(JSContext *cx, JSObject *obj)
 {
     JS_ASSERT(OBJ_IS_NATIVE(obj));
     js_UnlockTitle(cx, &OBJ_SCOPE(obj)->title);
-}
-
-bool
-js_LockObjIfShape(JSContext *cx, JSObject *obj, uint32 shape)
-{
-    JS_ASSERT(OBJ_SCOPE(obj)->title.ownercx != cx);
-    js_LockObj(cx, obj);
-    if (OBJ_SHAPE(obj) == shape)
-        return true;
-    js_UnlockObj(cx, obj);
-    return false;
 }
 
 void

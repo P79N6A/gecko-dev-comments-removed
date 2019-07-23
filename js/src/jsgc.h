@@ -209,10 +209,7 @@ typedef enum JSGCInvocationKind {
     
 
 
-
-
     GC_LOCK_HELD        = 0x10,
-    GC_KEEP_ATOMS       = GC_LOCK_HELD,
 
     
 
