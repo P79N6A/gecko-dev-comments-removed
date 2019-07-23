@@ -688,7 +688,7 @@ nsBlockReflowState::CanPlaceFloat(const nsSize& aFloatSize,
       }
 
       
-      if (yb < mY + mAvailSpaceRect.height) {
+      if (yb <= mY + mAvailSpaceRect.height) {
         
         
         break;
