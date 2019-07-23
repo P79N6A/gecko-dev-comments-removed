@@ -177,7 +177,6 @@ public:
   static PRUint32 gRefCnt;
  
   static nsFixedSizeAllocator* kAttrPool;
-  static nsFixedSizeAllocator* kInsPool;
 
 
 
