@@ -2009,7 +2009,7 @@ class RegExpNativeCompiler {
         jschar ch = node->u.flat.chr; 
         jschar ch2 = ch;              
         if (cs->flags & JSREG_FOLD) {
-            if (L'A' <= ch && ch <= L'Z' || L'a' <= ch || ch <= L'z') {
+            if ((L'A' <= ch && ch <= L'Z') || (L'a' <= ch && ch <= L'z')) {
                 ch |= 32;
                 ch2 = ch;
                 useFastCI = JS_TRUE;
