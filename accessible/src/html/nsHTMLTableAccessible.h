@@ -193,9 +193,7 @@ protected:
 
 
 
-
-
-  nsresult SelectRowOrColumn(PRInt32 aIndex, PRUint32 aTarget, PRBool aDoSelect);
+  nsresult AddRowOrColumnToSelection(PRInt32 aIndex, PRUint32 aTarget);
 
   
 
@@ -205,8 +203,10 @@ protected:
 
 
 
-  nsresult SelectCell(nsISelection *aSelection, nsIDocument *aDocument,
-                      nsIDOMElement *aCellElement, PRBool aDoSelect);
+
+  nsresult RemoveRowsOrColumnsFromSelection(PRInt32 aIndex,
+                                            PRUint32 aTarget,
+                                            PRBool aIsOuter);
 
   virtual void CacheChildren();
   nsresult GetTableNode(nsIDOMNode **_retval);

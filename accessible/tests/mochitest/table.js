@@ -106,6 +106,16 @@ function testTableIndexes(aIdentifier, aIdxes)
 
 
 
+const kRowSpanned = 2; 
+const kColSpanned = 4; 
+const kSpanned = kRowSpanned | kColSpanned;
+
+
+
+
+
+
+
 
 
 
@@ -204,9 +214,9 @@ function testTableSelection(aIdentifier, aCellsArray, aMsg)
   
   for (var rowIdx = 0; rowIdx < rowsCount; rowIdx++) {
     for (var colIdx = 0; colIdx < colsCount; colIdx++) {
-      if (aCellsArray[rowIdx][colIdx] == undefined)
+      if (!isOrigCell(aCellsArray[rowIdx][colIdx]))
         continue;
-  
+
       is(acc.isCellSelected(rowIdx, colIdx), aCellsArray[rowIdx][colIdx],
          msg + "Wrong selection state of cell at " + rowIdx + " row and " +
          colIdx + " column for " + prettyName(aIdentifier));
@@ -237,7 +247,7 @@ function testTableSelection(aIdentifier, aCellsArray, aMsg)
   
   for (var rowIdx = 0; rowIdx < rowsCount; rowIdx++) {
     for (var colIdx = 0; colIdx < colsCount; colIdx++) {
-      if (aCellsArray[rowIdx][colIdx] == undefined)
+      if (!isOrigCell(aCellsArray[rowIdx][colIdx]))
         continue;
 
       var cell = acc.cellRefAt(rowIdx, colIdx);
@@ -261,8 +271,11 @@ function testUnselectTableColumn(aIdentifier, aColIdx, aCellsArray)
 
   var rowsCount = aCellsArray.length;
   for (var rowIdx = 0; rowIdx < rowsCount; rowIdx++) {
-    if (aCellsArray[rowIdx][aColIdx] != undefined)
-      aCellsArray[rowIdx][aColIdx] = false;
+    var cellState = aCellsArray[rowIdx][aColIdx];
+    
+    var [origRowIdx, origColIdx] =
+      getOrigRowAndColumn(aCellsArray, rowIdx, aColIdx);
+    aCellsArray[origRowIdx][origColIdx] = false;
   }
 
   acc.unselectColumn(aColIdx);
@@ -284,8 +297,42 @@ function testSelectTableColumn(aIdentifier, aColIdx, aCellsArray)
 
   for (var rowIdx = 0; rowIdx < rowsCount; rowIdx++) {
     for (var colIdx = 0; colIdx < colsCount; colIdx++) {
-      if (aCellsArray[rowIdx][colIdx] != undefined)
-        aCellsArray[rowIdx][colIdx] = (colIdx == aColIdx);
+      var cellState = aCellsArray[rowIdx][colIdx];
+
+      if (colIdx == aColIdx) { 
+        if (isOrigCell(cellState)) {
+          
+          aCellsArray[rowIdx][colIdx] = true;
+
+        } else {
+          
+          var [origRowIdx, origColIdx] = getOrigRowAndColumn(aCellsArray,
+                                                             rowIdx, colIdx);
+          aCellsArray[origRowIdx][origColIdx] = true;
+        }
+
+      } else if (isOrigCell(cellState)) { 
+        if (colIdx > aColIdx) {
+          
+          
+          aCellsArray[rowIdx][colIdx] = false;
+
+        } else if (!isColSpannedCell(aCellsArray[rowIdx][aColIdx])) {
+          
+          aCellsArray[rowIdx][colIdx] = false;
+
+        } else {
+          
+          for (var spannedColIdx = colIdx + 1; spannedColIdx < aColIdx;
+               spannedColIdx++) {
+            var spannedCellState = aCellsArray[rowIdx][spannedColIdx];
+            if (!isRowSpannedCell(spannedCellState)) {
+              aCellsArray[rowIdx][colIdx] = false;
+              break;
+            }
+          }
+        }
+      }
     }
   }
 
@@ -305,8 +352,10 @@ function testUnselectTableRow(aIdentifier, aRowIdx, aCellsArray)
 
   var colsCount = aCellsArray[0].length;
   for (var colIdx = 0; colIdx < colsCount; colIdx++) {
-    if (aCellsArray[aRowIdx][colIdx] != undefined)
-      aCellsArray[aRowIdx][colIdx] = false;
+    
+    var [origRowIdx, origColIdx] = getOrigRowAndColumn(aCellsArray,
+                                                       aRowIdx, colIdx);
+    aCellsArray[origRowIdx][origColIdx] = false;
   }
 
   acc.unselectRow(aRowIdx);
@@ -328,12 +377,96 @@ function testSelectTableRow(aIdentifier, aRowIdx, aCellsArray)
 
   for (var rowIdx = 0; rowIdx < rowsCount; rowIdx++) {
     for (var colIdx = 0; colIdx < colsCount; colIdx++) {
-      if (aCellsArray[rowIdx][colIdx] != undefined)
-        aCellsArray[rowIdx][colIdx] = (rowIdx == aRowIdx);
+      var cellState = aCellsArray[rowIdx][colIdx];
+
+      if (rowIdx == aRowIdx) { 
+        if (isOrigCell(cellState)) {
+          
+          aCellsArray[rowIdx][colIdx] = true;
+
+        } else {
+          
+          var [origRowIdx, origColIdx] = getOrigRowAndColumn(aCellsArray,
+                                                             rowIdx, colIdx);
+
+          aCellsArray[origRowIdx][origColIdx] = true;
+        }
+
+      } else if (isOrigCell(cellState)) { 
+        if (rowIdx > aRowIdx) {
+          
+          
+          aCellsArray[rowIdx][colIdx] = false;
+
+        } else if (!isRowSpannedCell(aCellsArray[aRowIdx][colIdx])) {
+          
+          aCellsArray[rowIdx][colIdx] = false;
+
+        } else {
+          
+          for (var spannedRowIdx = rowIdx + 1; spannedRowIdx < aRowIdx;
+               spannedRowIdx++) {
+            var spannedCellState = aCellsArray[spannedRowIdx][colIdx];
+            if (!isRowSpannedCell(spannedCellState)) {
+              aCellsArray[rowIdx][colIdx] = false;
+              break;
+            }
+          }
+        }
+      }
     }
   }
 
   acc.selectRow(aRowIdx);
   testTableSelection(aIdentifier, aCellsArray,
                      "Select " + aRowIdx + " row: ");
+}
+
+
+
+
+
+
+
+function getOrigRowAndColumn(aCellsArray, aRowIdx, aColIdx)
+{
+  var cellState = aCellsArray[aRowIdx][aColIdx];
+
+  var origRowIdx = aRowIdx, origColIdx = aColIdx;
+  if (isRowSpannedCell(cellState)) {
+    for (var prevRowIdx = aRowIdx - 1; prevRowIdx >= 0; prevRowIdx--) {
+      var prevCellState = aCellsArray[prevRowIdx][aColIdx];
+      if (!isRowSpannedCell(prevCellState)) {
+        origRowIdx = prevRowIdx;
+        break;
+      }
+    }
+  }
+
+  if (isColSpannedCell(cellState)) {
+    for (var prevColIdx = aColIdx - 1; prevColIdx >= 0; prevColIdx--) {
+      var prevCellState = aCellsArray[aRowIdx][prevColIdx];
+      if (!isColSpannedCell(prevCellState)) {
+        origColIdx = prevColIdx;
+        break;
+      }
+    }
+  }
+
+  return [origRowIdx, origColIdx];
+}
+
+function isOrigCell(aCellState)
+{
+  return !(aCellState & (kRowSpanned | kColSpanned));
+}
+
+function isRowSpannedCell(aCellState)
+{
+  return aCellState & kRowSpanned;
+}
+
+function isColSpannedCell(aCellState)
+{
+  return aCellState & kColSpanned;
 }

@@ -51,8 +51,8 @@
 
 
 #define NS_FRAME_SELECTION_IID      \
-{ 0xea74459, 0xe3f9, 0x48b0, \
-  { 0x8a, 0xa4, 0x5d, 0xfe, 0xf5, 0x3b, 0xf1, 0xf7 } }
+{ 0x3c6ae2d0, 0x4cf1, 0x44a1, \
+  { 0x9e, 0x9d, 0x24, 0x11, 0x86, 0x7f, 0x19, 0xc6 } }
 
 #ifdef IBMBIDI 
 #define BIDI_LEVEL_UNDEFINED 0x80
@@ -291,6 +291,58 @@ public:
                                 PRInt32 aContentOffset,
                                 PRInt32 aTarget,
                                 nsMouseEvent *aMouseEvent);
+
+  
+
+
+
+
+  virtual nsresult SelectCellElement(nsIContent *aCell);
+
+  
+
+
+
+
+
+
+
+
+  virtual nsresult AddCellsToSelection(nsIContent *aTable,
+                                       PRInt32 aStartRowIndex,
+                                       PRInt32 aStartColumnIndex,
+                                       PRInt32 aEndRowIndex,
+                                       PRInt32 aEndColumnIndex);
+
+  
+
+
+
+
+
+
+
+
+  virtual nsresult RemoveCellsFromSelection(nsIContent *aTable,
+                                            PRInt32 aStartRowIndex,
+                                            PRInt32 aStartColumnIndex,
+                                            PRInt32 aEndRowIndex,
+                                            PRInt32 aEndColumnIndex);
+
+  
+
+
+
+
+
+
+
+
+  virtual nsresult RestrictCellsToSelection(nsIContent *aTable,
+                                            PRInt32 aStartRowIndex,
+                                            PRInt32 aStartColumnIndex,
+                                            PRInt32 aEndRowIndex,
+                                            PRInt32 aEndColumnIndex);
 
   
 
@@ -626,6 +678,11 @@ private:
 
   nsresult SelectBlockOfCells(nsIContent *aStartNode, nsIContent *aEndNode);
   nsresult SelectRowOrColumn(nsIContent *aCellContent, PRUint32 aTarget);
+  nsresult UnselectCells(nsIContent *aTable,
+                         PRInt32 aStartRowIndex, PRInt32 aStartColumnIndex,
+                         PRInt32 aEndRowIndex, PRInt32 aEndColumnIndex,
+                         PRBool aRemoveOutsideOfCellRange);
+
   nsresult GetCellIndexes(nsIContent *aCell, PRInt32 &aRowIndex, PRInt32 &aColIndex);
 
   
@@ -641,7 +698,6 @@ private:
   nsIContent* IsInSameTable(nsIContent *aContent1, nsIContent *aContent2) const;
   
   nsIContent* GetParentTable(nsIContent *aCellNode) const;
-  nsresult SelectCellElement(nsIContent* aCellElement);
   nsresult CreateAndAddRange(nsINode *aParentNode, PRInt32 aOffset);
   nsresult ClearNormalSelection();
 
