@@ -56,16 +56,6 @@ typedef struct _nsCocoaWindowList {
   nsCocoaWindow *window; 
 } nsCocoaWindowList;
 
-@interface NSApplication (Undocumented)
-
-
-
-
-
-- (void)_removeWindowFromCache:(NSWindow *)aWindow;
-
-@end
-
 
 @interface NSWindow (Undocumented)
 
@@ -112,6 +102,7 @@ typedef struct _nsCocoaWindowList {
 {
   nsCocoaWindow* mGeckoWindow; 
 }
++ (void)paintMenubarForWindow:(NSWindow*)aWindow;
 - (id)initWithGeckoWindow:(nsCocoaWindow*)geckoWind;
 - (void)windowDidResize:(NSNotification*)aNotification;
 - (void)sendFocusEvent:(PRUint32)eventType;

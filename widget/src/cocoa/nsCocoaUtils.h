@@ -44,6 +44,21 @@
 #import <Cocoa/Cocoa.h>
 
 #include "nsRect.h"
+#include "nsIWidget.h"
+
+@interface NSApplication (Undocumented)
+
+
+- (BOOL)_isRunningModal;
+- (BOOL)_isRunningAppModal;
+
+
+
+
+
+- (void)_removeWindowFromCache:(NSWindow *)aWindow;
+
+@end
 
 class nsCocoaUtils
 {
@@ -81,7 +96,12 @@ class nsCocoaUtils
   static NSPoint EventLocationForWindow(NSEvent* anEvent, NSWindow* aWindow);
   
   
-  static NSWindow* FindWindowUnderPoint(NSPoint aPoint);  
+  static NSWindow* FindWindowUnderPoint(NSPoint aPoint);
+
+  static nsIWidget* GetHiddenWindowWidget();
+
+  static void PrepareForNativeAppModalDialog();
+  static void CleanUpAfterNativeAppModalDialog();
 };
 
 #endif 
