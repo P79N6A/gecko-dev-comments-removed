@@ -44,6 +44,7 @@
 #include "nsString.h"
 #include "nsIDOMLoadListener.h"
 #include "nsIDOMEventTarget.h"
+#include "nsIDOMNSEventTarget.h"
 #include "nsIDOMDocument.h"
 #include "nsIURI.h"
 #include "nsIHttpChannel.h"
@@ -70,10 +71,28 @@
 
 class nsILoadGroup;
 
+class nsDOMEventListenerWrapper : public nsIDOMEventListener
+{
+public:
+  nsDOMEventListenerWrapper(nsIDOMEventListener* aListener)
+  : mListener(aListener) {}
+
+  NS_DECL_CYCLE_COLLECTING_ISUPPORTS
+  NS_DECL_CYCLE_COLLECTION_CLASS(nsDOMEventListenerWrapper)
+
+  NS_DECL_NSIDOMEVENTLISTENER
+
+  nsIDOMEventListener* GetInner() { return mListener; }
+protected:
+  nsCOMPtr<nsIDOMEventListener> mListener;
+};
+
 class nsXMLHttpRequest : public nsIXMLHttpRequest,
                          public nsIJSXMLHttpRequest,
                          public nsIDOMLoadListener,
                          public nsIDOMEventTarget,
+                         public nsIDOMNSEventTarget,
+                         public nsPIDOMEventTarget,
                          public nsIStreamListener,
                          public nsIChannelEventSink,
                          public nsIProgressEventSink,
@@ -95,6 +114,9 @@ public:
 
   
   NS_DECL_NSIDOMEVENTTARGET
+
+  
+  NS_DECL_NSIDOMNSEVENTTARGET
 
   
   NS_DECL_NSIDOMEVENTLISTENER
@@ -126,12 +148,27 @@ public:
                        PRUint32 argc, jsval* argv);
 
   
+  virtual nsresult PreHandleEvent(nsEventChainPreVisitor& aVisitor);
+  virtual nsresult PostHandleEvent(nsEventChainPostVisitor& aVisitor);
+  virtual nsresult DispatchDOMEvent(nsEvent* aEvent, nsIDOMEvent* aDOMEvent,
+                                    nsPresContext* aPresContext,
+                                    nsEventStatus* aEventStatus);
+  virtual nsresult GetListenerManager(PRBool aCreateIfNotFound,
+                                      nsIEventListenerManager** aResult);
+  virtual nsresult AddEventListenerByIID(nsIDOMEventListener *aListener,
+                                         const nsIID& aIID);
+  virtual nsresult RemoveEventListenerByIID(nsIDOMEventListener *aListener,
+                                            const nsIID& aIID);
+  virtual nsresult GetSystemEventGroup(nsIDOMEventGroup** aGroup);
+  virtual nsresult GetContextForEventHandlers(nsIScriptContext** aContext);
+
+
+  
   nsresult Init();
 
   NS_DECL_CYCLE_COLLECTION_CLASS_AMBIGUOUS(nsXMLHttpRequest, nsIXMLHttpRequest)
 
 protected:
-
   nsresult DetectCharset(nsACString& aCharset);
   nsresult ConvertBodyToText(nsAString& aOutBuffer);
   static NS_METHOD StreamReaderFunc(nsIInputStream* in,
@@ -142,12 +179,7 @@ protected:
                 PRUint32 *writeCount);
   
   
-  
-  
-  
-  
-  nsresult ChangeState(PRUint32 aState, PRBool aBroadcast = PR_TRUE,
-                       PRBool aClearEventListeners = PR_FALSE);
+  nsresult ChangeState(PRUint32 aState, PRBool aBroadcast = PR_TRUE);
   nsresult RequestCompleted();
   nsresult GetLoadGroup(nsILoadGroup **aLoadGroup);
   nsIURI *GetBaseURI();
@@ -157,17 +189,13 @@ protected:
   
   nsresult CreateEvent(const nsAString& aType, nsIDOMEvent** domevent);
 
-  
-  void CopyEventListeners(nsCOMPtr<nsIDOMEventListener>& aListener,
-                          const nsCOMArray<nsIDOMEventListener>& aListenerArray,
-                          nsCOMArray<nsIDOMEventListener>& aCopy);
+  nsresult RemoveAddEventListener(const nsAString& aType,
+                                  nsRefPtr<nsDOMEventListenerWrapper>& aCurrent,
+                                  nsIDOMEventListener* aNew);
 
-  
-  
-  
-  void NotifyEventListeners(const nsCOMArray<nsIDOMEventListener>& aListeners,
-                            nsIDOMEvent* aEvent);
-  void ClearEventListeners();
+  nsresult GetInnerEventListener(nsRefPtr<nsDOMEventListenerWrapper>& aWrapper,
+                                 nsIDOMEventListener** aListener);
+
   already_AddRefed<nsIHttpChannel> GetCurrentHttpChannel();
 
   
@@ -197,21 +225,18 @@ protected:
   nsCOMPtr<nsIRequest> mReadRequest;
   nsCOMPtr<nsIDOMDocument> mDocument;
 
-  nsCOMArray<nsIDOMEventListener> mLoadEventListeners;
-  nsCOMArray<nsIDOMEventListener> mErrorEventListeners;
-  nsCOMArray<nsIDOMEventListener> mProgressEventListeners;
-  nsCOMArray<nsIDOMEventListener> mUploadProgressEventListeners;
-  nsCOMArray<nsIDOMEventListener> mReadystatechangeEventListeners;
-
   
   nsCOMPtr<nsIScriptContext> mScriptContext;
   nsCOMPtr<nsPIDOMWindow>    mOwner; 
 
-  nsCOMPtr<nsIDOMEventListener> mOnLoadListener;
-  nsCOMPtr<nsIDOMEventListener> mOnErrorListener;
-  nsCOMPtr<nsIDOMEventListener> mOnProgressListener;
-  nsCOMPtr<nsIDOMEventListener> mOnUploadProgressListener;
-  nsCOMPtr<nsIDOMEventListener> mOnReadystatechangeListener;
+  nsRefPtr<nsDOMEventListenerWrapper> mOnLoadListener;
+  nsRefPtr<nsDOMEventListenerWrapper> mOnErrorListener;
+  nsRefPtr<nsDOMEventListenerWrapper> mOnProgressListener;
+  nsRefPtr<nsDOMEventListenerWrapper> mOnUploadProgressListener;
+  nsRefPtr<nsDOMEventListenerWrapper> mOnReadystatechangeListener;
+  nsCOMPtr<nsIEventListenerManager> mListenerManager;
+
+  PRUint32 mLang;
 
   nsCOMPtr<nsIStreamListener> mXMLParserStreamListener;
 
@@ -250,7 +275,6 @@ protected:
   
   nsTArray<nsCString> mExtraRequestHeaders;
 };
-
 
 
 
