@@ -523,10 +523,6 @@ private:
 
 };
 
-#if defined(XP_WIN) || (defined(DO_DIRTY_INTERSECT) && defined(XP_MACOSX)) || defined(XP_OS2)
-static void ConvertAppUnitsToPixels(const nsPresContext& aPresContext, const nsRect& aTwipsRect, nsIntRect& aPixelRect);
-#endif
-
   
 #ifdef XP_MACOSX
 
@@ -916,7 +912,7 @@ nsObjectFrame::FixupWindow(const nsSize& aSize)
 
   PRBool windowless = (window->type == nsPluginWindowType_Drawable);
 
-  nsPoint origin = GetWindowOriginInPixels(windowless);
+  nsIntPoint origin = GetWindowOriginInPixels(windowless);
 
   window->x = origin.x;
   window->y = origin.y;
@@ -963,7 +959,7 @@ nsObjectFrame::CallSetWindow()
 
   PRBool windowless = (window->type == nsPluginWindowType_Drawable);
 
-  nsPoint origin = GetWindowOriginInPixels(windowless);
+  nsIntPoint origin = GetWindowOriginInPixels(windowless);
 
   window->x = origin.x;
   window->y = origin.y;
@@ -1016,7 +1012,7 @@ nsObjectFrame::IsHidden(PRBool aCheckVisibilityStyle) const
   return PR_FALSE;
 }
 
-nsPoint nsObjectFrame::GetWindowOriginInPixels(PRBool aWindowless)
+nsIntPoint nsObjectFrame::GetWindowOriginInPixels(PRBool aWindowless)
 {
   nsIView * parentWithView;
   nsPoint origin(0,0);
@@ -1045,10 +1041,8 @@ nsPoint nsObjectFrame::GetWindowOriginInPixels(PRBool aWindowless)
     }  
   }
 
-  origin.x = PresContext()->AppUnitsToDevPixels(origin.x);
-  origin.y = PresContext()->AppUnitsToDevPixels(origin.y);
-
-  return origin;
+  return nsIntPoint(PresContext()->AppUnitsToDevPixels(origin.x),
+                    PresContext()->AppUnitsToDevPixels(origin.y));
 }
 
 NS_IMETHODIMP
@@ -1427,7 +1421,7 @@ nsObjectFrame::PaintPlugin(nsIRenderingContext& aRenderingContext,
       
       PRBool doupdatewindow = PR_FALSE;
       
-      nsPoint origin;
+      nsIntPoint origin;
 
       
 
@@ -1521,7 +1515,7 @@ nsObjectFrame::PaintPlugin(nsIRenderingContext& aRenderingContext,
            
 
               origin = GetWindowOriginInPixels(PR_TRUE);
-              nsRect winlessRect = nsRect(origin, nsSize(window->width, window->height));
+              nsIntRect winlessRect(origin, nsIntSize(window->width, window->height));
               
               
               
@@ -3710,8 +3704,8 @@ nsEventStatus nsPluginInstanceOwner::ProcessEvent(const nsGUIEvent& anEvent)
         const nsMouseEvent& mouseEvent =
           static_cast<const nsMouseEvent&>(anEvent);
         
-        nsRect windowRect(anEvent.refPoint, nsSize(1, 1));
-        nsRect rootPoint(-1,-1,1,1);
+        nsIntRect windowRect(anEvent.refPoint, nsIntSize(1, 1));
+        nsIntRect rootPoint(-1,-1,1,1);
         if (widget)
           widget->WidgetToScreen(windowRect, rootPoint);
 #ifdef MOZ_WIDGET_GTK2
@@ -3984,12 +3978,8 @@ void nsPluginInstanceOwner::Paint(const nsRect& aDirtyRect)
   
   ConvertRelativeToWindowAbsolute(mOwner, rel, abs, *getter_AddRefs(containerWidget));
 
-  nsRect absDirtyRect = nsRect(abs.x, abs.y, aDirtyRect.width, aDirtyRect.height);
-
   
-  nsIntRect absDirtyRectInPixels;
-  ConvertAppUnitsToPixels(*mOwner->GetPresContext(), absDirtyRect,
-                          absDirtyRectInPixels);
+  nsIntRect absDirtyRect(nsRect::ToOutsidePixels(nsRect(abs, aDirtyRect), *mOwner->GetPresContext()->AppUnitsPerDevPixel()));
 #endif
 
   nsCOMPtr<nsIPluginWidget> pluginWidget = do_QueryInterface(mWidget);
@@ -4018,18 +4008,15 @@ void nsPluginInstanceOwner::Paint(const nsRect& aDirtyRect, HDC ndc)
 
   nsPluginWindow * window;
   GetWindow(window);
-  nsRect relDirtyRect = nsRect(aDirtyRect.x, aDirtyRect.y, aDirtyRect.width, aDirtyRect.height);
-  nsIntRect relDirtyRectInPixels;
-  ConvertAppUnitsToPixels(*mOwner->PresContext(), relDirtyRect,
-                          relDirtyRectInPixels);
+  nsIntRect relDirtyRect(nsRect::ToOutsidePixels(aDirtyRect, mOwner->PresContext()->AppUnitsPerDevPixel()));
 
   
   
   RECT drc;
-  drc.left   = relDirtyRectInPixels.x + window->x;
-  drc.top    = relDirtyRectInPixels.y + window->y;
-  drc.right  = drc.left + relDirtyRectInPixels.width;
-  drc.bottom = drc.top + relDirtyRectInPixels.height;
+  drc.left   = relDirtyRect.x + window->x;
+  drc.top    = relDirtyRect.y + window->y;
+  drc.right  = drc.left + relDirtyRect.width;
+  drc.bottom = drc.top + relDirtyRect.height;
 
   nsPluginEvent pluginEvent;
   pluginEvent.event = WM_PAINT;
@@ -4048,18 +4035,15 @@ void nsPluginInstanceOwner::Paint(const nsRect& aDirtyRect, HPS aHPS)
 
   nsPluginWindow * window;
   GetWindow(window);
-  nsRect relDirtyRect = nsRect(aDirtyRect.x, aDirtyRect.y, aDirtyRect.width, aDirtyRect.height);
-  nsIntRect relDirtyRectInPixels;
-  ConvertAppUnitsToPixels(*mOwner->PresContext(), relDirtyRect,
-                          relDirtyRectInPixels);
+  nsIntRect relDirtyRect(nsRect::ToOutsidePixels(aDirtyRect, mOwner->PresContext()->AppUnitsPerDevicePixel()));
 
   
   
   RECTL rectl;
-  rectl.xLeft   = relDirtyRectInPixels.x + window->x;
-  rectl.yBottom = relDirtyRectInPixels.y + window->y;
-  rectl.xRight  = rectl.xLeft + relDirtyRectInPixels.width;
-  rectl.yTop    = rectl.yBottom + relDirtyRectInPixels.height;
+  rectl.xLeft   = relDirtyRect.x + window->x;
+  rectl.yBottom = relDirtyRect.y + window->y;
+  rectl.xRight  = rectl.xLeft + relDirtyRect.width;
+  rectl.yTop    = rectl.yBottom + relDirtyRect.height;
 
   nsPluginEvent pluginEvent;
   pluginEvent.event = WM_PAINT;
@@ -4544,17 +4528,6 @@ void nsPluginInstanceOwner::SetPluginHost(nsIPluginHost* aHost)
   mPluginHost = aHost;
 }
 
-#if defined(XP_WIN) || (defined(DO_DIRTY_INTERSECT) && defined(XP_MACOSX)) || defined(XP_OS2)
-
-static void ConvertAppUnitsToPixels(const nsPresContext& aPresContext, const nsRect& aTwipsRect, nsIntRect& aPixelRect)
-{
-  aPixelRect.x = aPresContext.AppUnitsToDevPixels(aTwipsRect.x);
-  aPixelRect.y = aPresContext.AppUnitsToDevPixels(aTwipsRect.y);
-  aPixelRect.width = aPresContext.AppUnitsToDevPixels(aTwipsRect.width);
-  aPixelRect.height = aPresContext.AppUnitsToDevPixels(aTwipsRect.height);
-}
-#endif
-
   
 #ifdef XP_MACOSX
 
@@ -4635,13 +4608,13 @@ WindowRef nsPluginInstanceOwner::FixUpPluginWindow(PRInt32 inPaintState)
     
     
     
-    nsRect geckoBounds;
+    nsIntRect geckoBounds;
     mWidget->GetBounds(geckoBounds);
     
     
     geckoBounds.x = 0;
     geckoBounds.y = 0;
-    nsRect geckoScreenCoords;
+    nsIntRect geckoScreenCoords;
     mWidget->WidgetToScreen(geckoBounds, geckoScreenCoords);
 
     Rect windowRect;

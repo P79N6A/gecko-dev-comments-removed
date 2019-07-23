@@ -724,7 +724,7 @@ protected:
   
   nsCOMPtr<nsIDOMNode> mRangeParent;
   PRInt32 mRangeOffset;
-  nsPoint mCachedMousePoint;
+  nsIntPoint mCachedMousePoint;
 
   
   nsMenuBarFrame* mActiveMenuBar;

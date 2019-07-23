@@ -95,8 +95,8 @@ typedef nsEventStatus (*PR_CALLBACK EVENT_CALLBACK)(nsGUIEvent *event);
 
 
 #define NS_IWIDGET_IID \
-{ 0x0e64821f, 0x00a2, 0x4adc, \
-  { 0xac, 0x3b, 0x34, 0x39, 0xd6, 0x1f, 0x44, 0x91 } }
+{ 0xa85944af, 0x7fce, 0x4e45, \
+  { 0xbf, 0x04, 0xac, 0x12, 0xc8, 0x23, 0x39, 0x4b } }
 
 
 
@@ -312,7 +312,7 @@ class nsIWidget : public nsISupports {
 
 
     NS_IMETHOD Create(nsIWidget        *aParent,
-                        const nsRect     &aRect,
+                        const nsIntRect  &aRect,
                         EVENT_CALLBACK   aHandleEventFunction,
                         nsIDeviceContext *aContext,
                         nsIAppShell      *aAppShell = nsnull,
@@ -339,7 +339,7 @@ class nsIWidget : public nsISupports {
 
 
     NS_IMETHOD Create(nsNativeWidget aParent,
-                        const nsRect     &aRect,
+                        const nsIntRect  &aRect,
                         EVENT_CALLBACK   aHandleEventFunction,
                         nsIDeviceContext *aContext,
                         nsIAppShell      *aAppShell = nsnull,
@@ -583,7 +583,7 @@ class nsIWidget : public nsISupports {
 
 
 
-    NS_IMETHOD GetBounds(nsRect &aRect) = 0;
+    NS_IMETHOD GetBounds(nsIntRect &aRect) = 0;
 
 
     
@@ -596,7 +596,7 @@ class nsIWidget : public nsISupports {
 
 
 
-    NS_IMETHOD GetScreenBounds(nsRect &aRect) = 0;
+    NS_IMETHOD GetScreenBounds(nsIntRect &aRect) = 0;
 
 
     
@@ -606,7 +606,7 @@ class nsIWidget : public nsISupports {
 
 
 
-    NS_IMETHOD GetClientBounds(nsRect &aRect) = 0;
+    NS_IMETHOD GetClientBounds(nsIntRect &aRect) = 0;
 
     
 
@@ -745,7 +745,7 @@ class nsIWidget : public nsISupports {
 
 
 
-    NS_IMETHOD Invalidate(const nsRect & aRect, PRBool aIsSynchronous) = 0;
+    NS_IMETHOD Invalidate(const nsIntRect & aRect, PRBool aIsSynchronous) = 0;
 
     
 
@@ -802,7 +802,7 @@ class nsIWidget : public nsISupports {
 
 
 
-    NS_IMETHOD Scroll(PRInt32 aDx, PRInt32 aDy, nsRect *aClipRect) = 0;
+    NS_IMETHOD Scroll(PRInt32 aDx, PRInt32 aDy, nsIntRect *aClipRect) = 0;
 
     
 
@@ -826,7 +826,7 @@ class nsIWidget : public nsISupports {
 
 
 
-    NS_IMETHOD ScrollRect(nsRect &aSrcRect, PRInt32 aDx, PRInt32 aDy) = 0;
+    NS_IMETHOD ScrollRect(nsIntRect &aSrcRect, PRInt32 aDx, PRInt32 aDy) = 0;
 
     
 
@@ -896,7 +896,7 @@ class nsIWidget : public nsISupports {
 
 
 
-    NS_IMETHOD WidgetToScreen(const nsRect& aOldRect, nsRect& aNewRect) = 0;
+    NS_IMETHOD WidgetToScreen(const nsIntRect& aOldRect, nsIntRect& aNewRect) = 0;
 
     
 
@@ -905,7 +905,7 @@ class nsIWidget : public nsISupports {
 
 
 
-    NS_IMETHOD ScreenToWidget(const nsRect& aOldRect, nsRect& aNewRect) = 0;
+    NS_IMETHOD ScreenToWidget(const nsIntRect& aOldRect, nsIntRect& aNewRect) = 0;
 
     
 

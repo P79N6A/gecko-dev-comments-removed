@@ -1367,7 +1367,7 @@ NS_IMETHODIMP nsAccessible::GetBounds(PRInt32 *x, PRInt32 *y, PRInt32 *width, PR
 
   
 
-  nsRect orgRectPixels = aBoundingFrame->GetScreenRectExternal();
+  nsIntRect orgRectPixels = aBoundingFrame->GetScreenRectExternal();
   *x += orgRectPixels.x;
   *y += orgRectPixels.y;
 

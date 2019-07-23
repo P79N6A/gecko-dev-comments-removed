@@ -385,7 +385,7 @@ protected:
   nsWeakFrame mLastDragOverFrame;
 
   
-  nsPoint mGestureDownPoint; 
+  nsIntPoint mGestureDownPoint; 
   
   nsCOMPtr<nsIContent> mGestureDownContent;
   

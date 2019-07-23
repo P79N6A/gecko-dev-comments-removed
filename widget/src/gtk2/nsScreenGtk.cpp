@@ -114,7 +114,7 @@ nsScreenGtk :: Init (GdkWindow *aRootWindow)
   
   
   
-  mAvailRect = mRect = nsRect(0, 0, gdk_screen_width(), gdk_screen_height());
+  mAvailRect = mRect = nsIntRect(0, 0, gdk_screen_width(), gdk_screen_height());
 
 #ifdef MOZ_X11
   
@@ -162,8 +162,8 @@ nsScreenGtk :: Init (GdkWindow *aRootWindow)
     int num_items = length_returned / sizeof(long);
 
     for (int i = 0; i < num_items; i += 4) {
-      nsRect workarea(workareas[i],     workareas[i + 1],
-                      workareas[i + 2], workareas[i + 3]);
+      nsIntRect workarea(workareas[i],     workareas[i + 1],
+                         workareas[i + 2], workareas[i + 3]);
       if (!mRect.Contains(workarea)) {
         
         
@@ -187,8 +187,8 @@ nsScreenGtk :: Init (GdkWindow *aRootWindow)
 void
 nsScreenGtk :: Init (XineramaScreenInfo *aScreenInfo)
 {
-  nsRect xineRect(aScreenInfo->x_org, aScreenInfo->y_org,
-                  aScreenInfo->width, aScreenInfo->height);
+  nsIntRect xineRect(aScreenInfo->x_org, aScreenInfo->y_org,
+                     aScreenInfo->width, aScreenInfo->height);
 
   mScreenNum = aScreenInfo->screen_number;
 

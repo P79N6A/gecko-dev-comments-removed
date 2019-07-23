@@ -115,10 +115,10 @@ class nsCocoaUtils
   
   
   
-  static NSRect GeckoRectToCocoaRect(const nsRect &geckoRect);
+  static NSRect GeckoRectToCocoaRect(const nsIntRect &geckoRect);
   
   
-  static nsRect CocoaRectToGeckoRect(const NSRect &cocoaRect);
+  static nsIntRect CocoaRectToGeckoRect(const NSRect &cocoaRect);
   
   
   
