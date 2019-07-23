@@ -478,7 +478,10 @@ nsHttpServer.prototype =
     {
       var socket = new ServerSocket(this._port,
                                     true, 
-                                    -1);  
+                                    20);  
+                                          
+                                          
+                                          
 
       dumpn(">>> listening on port " + socket.port);
       socket.asyncListen(this);
