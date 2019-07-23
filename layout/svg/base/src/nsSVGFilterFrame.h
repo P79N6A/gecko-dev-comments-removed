@@ -40,7 +40,8 @@
 #include "nsRect.h"
 #include "nsSVGContainerFrame.h"
 
-class nsSVGFilterInstance;
+class nsSVGRenderState;
+class nsSVGFilterPaintCallback;
 
 typedef nsSVGContainerFrame nsSVGFilterFrameBase;
 class nsSVGFilterFrame : public nsSVGFilterFrameBase
@@ -50,17 +51,33 @@ class nsSVGFilterFrame : public nsSVGFilterFrameBase
 protected:
   nsSVGFilterFrame(nsStyleContext* aContext) : nsSVGFilterFrameBase(aContext) {}
 
-public:    
+public:
   nsresult FilterPaint(nsSVGRenderState *aContext,
-                       nsISVGChildFrame *aTarget,
+                       nsIFrame *aTarget, nsSVGFilterPaintCallback *aPaintCallback,
                        const nsIntRect* aDirtyRect);
 
   
+
+
+
+
+  nsIntRect GetInvalidationBBox(nsIFrame *aTarget, const nsIntRect& aRect);
+
   
+
+
+
+
+
+  nsIntRect GetSourceForInvalidArea(nsIFrame *aTarget, const nsIntRect& aRect);
+
   
-  
-  
-  nsRect GetInvalidationRegion(nsIFrame *aTarget, const nsRect& aRect);
+
+
+
+
+
+  nsIntRect GetFilterBBox(nsIFrame *aTarget, const nsIntRect *aSourceBBox);
 
   
 
@@ -68,13 +85,6 @@ public:
 
 
   virtual nsIAtom* GetType() const;
-
-private:
-  
-  nsresult CreateInstance(nsISVGChildFrame *aTarget,
-                          const nsIntRect *aDirtyOutputRect,
-                          const nsIntRect *aDirtyInputRect,
-                          nsSVGFilterInstance **aInstance);
 };
 
 #endif

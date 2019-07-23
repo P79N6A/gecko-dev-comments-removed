@@ -100,6 +100,8 @@ class nsISVGChildFrame;
 
 #define NS_STATE_SVG_NONDISPLAY_CHILD 0x02000000
 
+#define NS_STATE_SVG_PROPAGATE_TRANSFORM 0x04000000
+
 
 
 
@@ -192,11 +194,12 @@ public:
 
 
   static float GetFontSize(nsIContent *aContent);
-
+  static float GetFontSize(nsIFrame *aFrame);
   
 
 
   static float GetFontXHeight(nsIContent *aContent);
+  static float GetFontXHeight(nsIFrame *aFrame);
 
   
 
@@ -299,13 +302,19 @@ public:
 
 
 
-  static float ObjectSpace(nsIDOMSVGRect *aRect, nsSVGLength2 *aLength);
+  static float ObjectSpace(nsIDOMSVGRect *aRect, const nsSVGLength2 *aLength);
 
   
 
 
 
-  static float UserSpace(nsSVGElement *aSVGElement, nsSVGLength2 *aLength);
+  static float UserSpace(nsSVGElement *aSVGElement, const nsSVGLength2 *aLength);
+
+  
+
+
+
+  static float UserSpace(nsIFrame *aFrame, const nsSVGLength2 *aLength);
 
   
   static void
@@ -370,6 +379,7 @@ public:
   RemoveObserver(nsISupports *aObserver, nsISupports *aTarget);
 
   
+
 
 
 
@@ -469,7 +479,26 @@ public:
   static already_AddRefed<nsIDOMSVGMatrix>
   AdjustMatrixForUnits(nsIDOMSVGMatrix *aMatrix,
                        nsSVGEnum *aUnits,
-                       nsISVGChildFrame *aFrame);
+                       nsIFrame *aFrame);
+
+  
+
+
+
+  static already_AddRefed<nsIDOMSVGRect>
+  GetBBox(nsIFrame *aFrame);
+  
+
+
+
+
+
+
+
+
+  static gfxRect
+  GetRelativeRect(PRUint16 aUnits, const nsSVGLength2 *aXYWH, nsIDOMSVGRect *aBBox,
+                  nsIFrame *aFrame);
 
 #ifdef DEBUG
   static void

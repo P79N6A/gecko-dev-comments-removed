@@ -57,7 +57,7 @@ protected:
 public:
   
   already_AddRefed<gfxPattern> ComputeMaskAlpha(nsSVGRenderState *aContext,
-                                                nsISVGChildFrame* aParent,
+                                                nsIFrame* aParent,
                                                 nsIDOMSVGMatrix* aMatrix,
                                                 float aOpacity = 1.0f);
 
@@ -95,7 +95,7 @@ private:
     nsSVGMaskFrame *mFrame;
   };
 
-  nsISVGChildFrame *mMaskParent;
+  nsIFrame *mMaskParent;
   nsCOMPtr<nsIDOMSVGMatrix> mMaskParentMatrix;
   
   PRPackedBool mInUse;

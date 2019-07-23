@@ -103,13 +103,6 @@ nsSVGTSpanFrame::AttributeChanged(PRInt32         aNameSpaceID,
 
 
 NS_IMETHODIMP
-nsSVGTSpanFrame::SetMatrixPropagation(PRBool aPropagate)
-{
-  mPropagateTransform = aPropagate;
-  return NS_OK;
-}
-
-NS_IMETHODIMP
 nsSVGTSpanFrame::SetOverrideCTM(nsIDOMSVGMatrix *aCTM)
 {
   mOverrideCTM = aCTM;

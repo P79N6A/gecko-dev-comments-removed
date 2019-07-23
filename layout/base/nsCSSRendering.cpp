@@ -642,6 +642,16 @@ nsCSSRendering::PaintBorder(nsPresContext* aPresContext,
   SN();
 }
 
+static nsRect
+GetOutlineInnerRect(nsIFrame* aFrame)
+{
+  nsRect* savedOutlineInnerRect = static_cast<nsRect*>
+    (aFrame->GetProperty(nsGkAtoms::outlineInnerRectProperty));
+  if (savedOutlineInnerRect)
+    return *savedOutlineInnerRect;
+  return aFrame->GetOverflowRect();
+}
+
 void
 nsCSSRendering::PaintOutline(nsPresContext* aPresContext,
                              nsIRenderingContext& aRenderingContext,
@@ -671,9 +681,6 @@ nsCSSRendering::PaintOutline(nsPresContext* aPresContext,
   
   GetBorderRadiusTwips(aOutlineStyle.mOutlineRadius, aBorderArea.width, twipsRadii);
 
-  nscoord offset;
-  aOutlineStyle.GetOutlineOffset(offset);
-
   
   
   
@@ -690,47 +697,35 @@ nsCSSRendering::PaintOutline(nsPresContext* aPresContext,
     frameForArea = frameForArea->GetFirstChild(nsnull);
     NS_ASSERTION(frameForArea, "anonymous block with no children?");
   } while (frameForArea);
-  nsRect overflowArea;
+  nsRect innerRect; 
   if (frameForArea == aForFrame) {
-    overflowArea = aForFrame->GetOverflowRect();
+    innerRect = GetOutlineInnerRect(aForFrame);
   } else {
     for (; frameForArea; frameForArea = frameForArea->GetNextSibling()) {
       
       
       
       
-      nsRect r(frameForArea->GetOverflowRect() +
+      nsRect r(GetOutlineInnerRect(frameForArea) +
                frameForArea->GetOffsetTo(aForFrame));
-      nscoord delta = PR_MAX(offset + width, 0);
-      r.Inflate(delta, delta);
-      overflowArea.UnionRect(overflowArea, r);
+      innerRect.UnionRect(innerRect, r);
     }
   }
 
-  nsRect outerRect(overflowArea + aBorderArea.TopLeft());
-  nsRect innerRect(outerRect);
-  if (width + offset >= 0) {
-    
-    innerRect.Deflate(width, width);
-  } else {
-    
-    
-    innerRect.Deflate(-offset, -offset);
-    if (innerRect.width < 0 || innerRect.height < 0) {
-      return; 
-    }
-    outerRect = innerRect;
-    outerRect.Inflate(width, width);
-  }
-
+  innerRect += aBorderArea.TopLeft();
+  nscoord offset;
+  aOutlineStyle.GetOutlineOffset(offset);
+  innerRect.Inflate(offset, offset);
   
   
   
   
   
-  if (innerRect.Contains(aDirtyRect)) {
+  if (innerRect.Contains(aDirtyRect))
     return;
-  }
+
+  nsRect outerRect = innerRect;
+  outerRect.Inflate(width, width);
 
   
   nscoord twipsPerPixel = aPresContext->DevPixelsToAppUnits(1);

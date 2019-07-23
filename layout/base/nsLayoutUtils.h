@@ -486,6 +486,19 @@ public:
                           PRInt32&   aIndex,
                           PRInt32&   aTextWidth);
 
+  class BoxCallback {
+  public:
+    virtual void AddBox(nsIFrame* aFrame) = 0;
+  };
+  
+
+
+
+
+
+
+  static void GetAllInFlowBoxes(nsIFrame* aFrame, BoxCallback* aCallback);
+
   class RectCallback {
   public:
     virtual void AddRect(const nsRect& aRect) = 0;
@@ -579,6 +592,13 @@ public:
   static nsIFrame*
   GetNextContinuationOrSpecialSibling(nsIFrame *aFrame);
 
+  
+
+
+
+  static nsIFrame*
+  GetFirstContinuationOrSpecialSibling(nsIFrame *aFrame);
+  
   
 
 
