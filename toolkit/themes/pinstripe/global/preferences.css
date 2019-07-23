@@ -1,0 +1,56 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+@namespace url("http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul");
+
+
+
+prefwindow {
+  padding: 0;
+}
+
+prefpane {
+  padding: 12px 12px 0 12px;
+}
+
+prefwindow[type="child"] > prefpane {
+  padding: 0;
+}
