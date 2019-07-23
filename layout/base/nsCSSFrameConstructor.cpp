@@ -174,10 +174,8 @@ nsIFrame*
 NS_NewSVGGFrame(nsIPresShell* aPresShell, nsIContent* aContent, nsStyleContext* aContext);
 nsIFrame*
 NS_NewSVGGenericContainerFrame(nsIPresShell* aPresShell, nsIContent* aContent, nsStyleContext* aContext);
-#ifdef MOZ_SVG_FOREIGNOBJECT
 nsIFrame*
 NS_NewSVGForeignObjectFrame(nsIPresShell* aPresShell, nsIContent* aContent, nsStyleContext* aContext);
-#endif
 nsIFrame*
 NS_NewSVGAFrame(nsIPresShell* aPresShell, nsIContent* aContent, nsStyleContext* aContext);
 nsIFrame*
@@ -7073,15 +7071,12 @@ nsCSSFrameConstructor::ConstructSVGFrame(nsFrameConstructorState& aState,
       mDocument->BindingManager()->ResolveTag(aParentFrame->GetContent(),
                                               &parentNSID);
 
-    parentIsSVG = parentNSID == kNameSpaceID_SVG
-#ifdef MOZ_SVG_FOREIGNOBJECT
-                  
-                  
-                  
-                  
-                  && parentTag != nsGkAtoms::foreignObject
-#endif
-                  ;
+    
+    
+    
+    
+    parentIsSVG = parentNSID == kNameSpaceID_SVG &&
+                  parentTag != nsGkAtoms::foreignObject;
   }
 
   if ((aTag != nsGkAtoms::svg && !parentIsSVG) ||
@@ -7149,11 +7144,9 @@ nsCSSFrameConstructor::ConstructSVGFrame(nsFrameConstructorState& aState,
   else if (aTag == nsGkAtoms::defs) {
     newFrame = NS_NewSVGContainerFrame(mPresShell, aContent, aStyleContext);
   }
-#ifdef MOZ_SVG_FOREIGNOBJECT
   else if (aTag == nsGkAtoms::foreignObject) {
     newFrame = NS_NewSVGForeignObjectFrame(mPresShell, aContent, aStyleContext);
   }
-#endif
   else if (aTag == nsGkAtoms::a) {
     newFrame = NS_NewSVGAFrame(mPresShell, aContent, aStyleContext);
   }
@@ -7272,7 +7265,6 @@ nsCSSFrameConstructor::ConstructSVGFrame(nsFrameConstructorState& aState,
     }
 
     nsFrameItems childItems;
-#ifdef MOZ_SVG_FOREIGNOBJECT
     if (aTag == nsGkAtoms::foreignObject) { 
       
       
@@ -7297,9 +7289,7 @@ nsCSSFrameConstructor::ConstructSVGFrame(nsFrameConstructorState& aState,
       
       
       nsHTMLContainerFrame::CreateViewForFrame(blockFrame, nsnull, PR_TRUE);
-    } else
-#endif  
-    {
+    } else {
       
       if (!newFrame->IsLeaf()) {
         rv = ProcessChildren(aState, aContent, newFrame, PR_FALSE, childItems,
@@ -7508,10 +7498,8 @@ nsCSSFrameConstructor::ConstructFrameInternal( nsFrameConstructorState& aState,
   
   if (aNameSpaceID != kNameSpaceID_SVG &&
       aParentFrame &&
-      aParentFrame->IsFrameOfType(nsIFrame::eSVG)
-#ifdef MOZ_SVG_FOREIGNOBJECT
-      && !aParentFrame->IsFrameOfType(nsIFrame::eSVGForeignObject)
-#endif
+      aParentFrame->IsFrameOfType(nsIFrame::eSVG) &&
+      !aParentFrame->IsFrameOfType(nsIFrame::eSVGForeignObject)
       ) {
     return NS_OK;
   }

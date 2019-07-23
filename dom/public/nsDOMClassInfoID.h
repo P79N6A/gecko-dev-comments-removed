@@ -400,7 +400,7 @@ enum nsDOMClassInfoID {
   
   
 
-#if defined(MOZ_SVG) && defined(MOZ_SVG_FOREIGNOBJECT)
+#ifdef MOZ_SVG
   eDOMClassInfo_SVGForeignObjectElement_id,
 #endif
 
