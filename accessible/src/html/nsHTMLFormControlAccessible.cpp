@@ -88,6 +88,8 @@ NS_IMETHODIMP nsHTMLCheckboxAccessible::GetActionName(PRUint8 aIndex, nsAString&
 
     if (state & nsIAccessibleStates::STATE_CHECKED)
       aName.AssignLiteral("uncheck"); 
+    else if (state & nsIAccessibleStates::STATE_MIXED)
+      aName.AssignLiteral("cycle"); 
     else
       aName.AssignLiteral("check"); 
 
