@@ -2801,6 +2801,16 @@ nsDocShell::LoadURI(const PRUnichar * aURI,
     if (NS_FAILED(rv) || !uri)
         return NS_ERROR_FAILURE;
 
+    PopupControlState popupState;
+    if (aLoadFlags & LOAD_FLAGS_ALLOW_POPUPS) {
+        popupState = openAllowed;
+        aLoadFlags &= ~LOAD_FLAGS_ALLOW_POPUPS;
+    } else {
+        popupState = openOverridden;
+    }
+    nsCOMPtr<nsPIDOMWindow> win(do_QueryInterface(mScriptGlobal));
+    nsAutoPopupStatePusher statePusher(win, popupState);
+
     
     
     
