@@ -909,49 +909,6 @@ nsNavHistoryExpire::ExpireAnnotationsParanoid(mozIStorageConnection* aConnection
   NS_ENSURE_SUCCESS(rv, rv);
 
   
-  
-  
-  
-  
-  
-  
-  nsCAutoString charsetAnno("URIProperties/characterSet");
-  
-  
-  
-  
-  nsCOMPtr<mozIStorageStatement> migrateCharsetStatement;
-  rv = aConnection->CreateStatement(NS_LITERAL_CSTRING(
-        "INSERT OR REPLACE INTO moz_annos "
-        "SELECT null, b.fk, t.anno_attribute_id, t.mime_type, t.content, "
-          "t.flags, t.expiration, t.type, t.dateAdded, t.lastModified "
-        "FROM moz_items_annos t "
-          "JOIN moz_anno_attributes n ON t.anno_attribute_id = n.id "
-          "JOIN moz_bookmarks b ON b.id = t.item_id "
-        "WHERE n.name = ?1 "
-        "GROUP BY b.fk, t.anno_attribute_id"),
-      getter_AddRefs(migrateCharsetStatement));
-  NS_ENSURE_SUCCESS(rv, rv);
-  rv = migrateCharsetStatement->BindUTF8StringParameter(0, charsetAnno);
-  NS_ENSURE_SUCCESS(rv, rv);
-  rv = migrateCharsetStatement->Execute();
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  
-  nsCOMPtr<mozIStorageStatement> deleteCharsetStatement;
-  rv = aConnection->CreateStatement(NS_LITERAL_CSTRING(
-    "DELETE FROM moz_items_annos WHERE id IN "
-      "(SELECT t.id FROM moz_items_annos t "
-        "JOIN moz_anno_attributes n ON t.anno_attribute_id = n.id "
-        "WHERE n.name = ?1)"),
-    getter_AddRefs(deleteCharsetStatement));
-  NS_ENSURE_SUCCESS(rv, rv);
-  rv = deleteCharsetStatement->BindUTF8StringParameter(0, charsetAnno);
-  NS_ENSURE_SUCCESS(rv, rv);
-  rv = deleteCharsetStatement->Execute();
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  
   rv = aConnection->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
     "DELETE FROM moz_items_annos WHERE id IN "
       "(SELECT a.id FROM moz_items_annos a "

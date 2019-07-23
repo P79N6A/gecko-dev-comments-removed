@@ -200,10 +200,6 @@
 
 
 
-#define LONG_IDLE_TIME_IN_MSECS (900000)
-
-
-
 #define EXPIRE_IDLE_TIME_IN_MSECS (300000)
 
 
@@ -901,8 +897,7 @@ nsNavHistory::InitializeIdleTimer()
   mIdleTimer = do_CreateInstance("@mozilla.org/timer;1", &rv);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  PRInt32 idleTimerTimeout = PR_MIN(LONG_IDLE_TIME_IN_MSECS,
-                                    EXPIRE_IDLE_TIME_IN_MSECS);
+  PRInt32 idleTimerTimeout = EXPIRE_IDLE_TIME_IN_MSECS;
   if (mFrecencyUpdateIdleTime)
     idleTimerTimeout = PR_MIN(idleTimerTimeout, mFrecencyUpdateIdleTime);
 
@@ -4632,87 +4627,6 @@ nsNavHistory::OnIdle()
     (void)mExpire.ExpireItems(MAX_EXPIRE_RECORDS_ON_IDLE, &dummy);
   }
 
-  
-  
-  if (idleTime > LONG_IDLE_TIME_IN_MSECS) {
-    
-    
-    PRBool oldIndexExists = PR_FALSE;
-    rv = mDBConn->IndexExists(NS_LITERAL_CSTRING("moz_places_urlindex"), &oldIndexExists);
-    NS_ENSURE_SUCCESS(rv, rv);
- 
-    if (oldIndexExists) {
-      
-      mozStorageTransaction urlindexTransaction(mDBConn, PR_FALSE);
-      
-      rv = mDBConn->ExecuteSimpleSQL(
-          NS_LITERAL_CSTRING("DROP INDEX IF EXISTS moz_places_urlindex"));
-      NS_ENSURE_SUCCESS(rv, rv);
-      
-      rv = RemoveDuplicateURIs();
-      NS_ENSURE_SUCCESS(rv, rv);
-      
-      rv = mDBConn->ExecuteSimpleSQL(
-        NS_LITERAL_CSTRING("CREATE UNIQUE INDEX moz_places_url_uniqueindex ON moz_places (url)"));
-      NS_ENSURE_SUCCESS(rv, rv);
-      rv = urlindexTransaction.Commit();
-      NS_ENSURE_SUCCESS(rv, rv);
-    }
-
-    
-    
-    
-    nsCOMPtr<mozIStorageStatement> detectBogusIndex;
-    rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
-        "SELECT name FROM sqlite_master WHERE type = 'index' AND "
-        "name = 'moz_places_visitcount' AND sql LIKE ?1 ESCAPE '/'"),
-        getter_AddRefs(detectBogusIndex));
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    nsAutoString escapedString;
-    rv = detectBogusIndex->EscapeStringForLIKE(NS_LITERAL_STRING("rev_host"),
-                                               '/', escapedString);
-    NS_ENSURE_SUCCESS(rv, rv);
-    rv = detectBogusIndex->BindStringParameter(0, NS_LITERAL_STRING("%") +
-                                                  escapedString +
-                                                  NS_LITERAL_STRING("%"));
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    PRBool hasResult;
-    rv = detectBogusIndex->ExecuteStep(&hasResult);
-    NS_ENSURE_SUCCESS(rv, rv);
-    rv = detectBogusIndex->Reset();
-    NS_ENSURE_SUCCESS(rv, rv);
-    if (hasResult) {
-      
-      rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
-          "DROP INDEX IF EXISTS moz_places_visitcount"));
-      NS_ENSURE_SUCCESS(rv, rv);
-      
-      rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
-          "CREATE INDEX IF NOT EXISTS moz_places_visitcount "
-          "ON moz_places (visit_count)"));
-      NS_ENSURE_SUCCESS(rv, rv);
-    }
-
-    
-    
-    
-    
-    
-    rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
-        "DELETE FROM moz_annos WHERE id IN (SELECT a.id FROM moz_annos a "
-        "JOIN moz_anno_attributes n ON a.anno_attribute_id = n.id "
-        "WHERE n.name = 'livemark/expiration')"));
-    NS_ENSURE_SUCCESS(rv, rv);
-
-#if 0
-    
-    
-    rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING("VACUUM;"));
-    NS_ENSURE_SUCCESS(rv, rv);
-#endif
-  }
   return NS_OK;
 }
 
