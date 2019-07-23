@@ -2043,6 +2043,34 @@ NS_IMETHODIMP nsAccessible::GetFinalRole(PRUint32 *aRole)
 {
   if (mRoleMapEntry) {
     *aRole = mRoleMapEntry->role;
+
+    
+    
+    if (*aRole == nsIAccessibleRole::ROLE_ENTRY) {
+      nsCOMPtr<nsIContent> content = do_QueryInterface(mDOMNode);
+      if (content && 
+          content->AttrValueIs(kNameSpaceID_WAIProperties , nsAccessibilityAtoms::secret,
+                               nsAccessibilityAtoms::_true, eCaseMatters)) {
+        
+        *aRole = nsIAccessibleRole::ROLE_PASSWORD_TEXT;
+      }
+    }
+    else if (*aRole == nsIAccessibleRole::ROLE_PUSHBUTTON) {
+      nsCOMPtr<nsIContent> content = do_QueryInterface(mDOMNode);
+      if (content) {
+        if (content->HasAttr(kNameSpaceID_WAIProperties, nsAccessibilityAtoms::pressed)) {
+          
+          
+          *aRole = nsIAccessibleRole::ROLE_TOGGLE_BUTTON;
+        }
+        else if (content->AttrValueIs(kNameSpaceID_WAIProperties, nsAccessibilityAtoms::haspopup,
+                                      nsAccessibilityAtoms::_true, eCaseMatters)) {
+          
+          *aRole = nsIAccessibleRole::ROLE_BUTTONMENU;
+        }
+      }
+    }
+  
     if (*aRole != nsIAccessibleRole::ROLE_NOTHING) {
       return NS_OK;
     }

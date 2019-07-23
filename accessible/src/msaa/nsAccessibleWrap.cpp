@@ -437,13 +437,6 @@ STDMETHODIMP nsAccessibleWrap::get_accRole(
   
   
   
-  if (msaaRole == ROLE_SYSTEM_PUSHBUTTON && (State(xpAccessible) & nsIAccessibleStates::STATE_HASPOPUP)) {
-    msaaRole = ROLE_SYSTEM_BUTTONMENU;
-  }
-  
-  
-  
-  
   if (xpRole == nsIAccessibleRole::ROLE_ROW) {
     nsCOMPtr<nsIAccessible> parent = GetParent();
     if (parent && Role(parent) == nsIAccessibleRole::ROLE_TREE_TABLE) {
