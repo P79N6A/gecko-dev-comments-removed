@@ -163,7 +163,10 @@
 
 #define TEXT_WHITESPACE_FLAGS      0x18000000
 
-#define TEXT_BLINK_ON              0x80000000
+#define TEXT_BLINK_ON              0x20000000
+
+
+
 
 
 
