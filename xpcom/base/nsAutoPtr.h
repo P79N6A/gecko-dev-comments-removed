@@ -1042,15 +1042,17 @@ class nsRefPtr
           return temp;
         }
 
+      template <typename I>
       void
-      forget( T** rhs )
+      forget( I** rhs)
+          
           
           
           
         {
           NS_ASSERTION(rhs, "Null pointer passed to forget!");
-          *rhs = 0;
-          swap(*rhs);
+          *rhs = mRawPtr;
+          mRawPtr = 0;
         }
 
       T*
