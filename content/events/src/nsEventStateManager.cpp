@@ -1891,6 +1891,12 @@ nsEventStateManager::GenerateDragGesture(nsPresContext* aPresContext,
       }
     }
 
+    
+    if (nsIPresShell::IsMouseCapturePreventingDrag()) {
+      StopTrackingDragGesture();
+      return;
+    }
+
     static PRInt32 pixelThresholdX = 0;
     static PRInt32 pixelThresholdY = 0;
 

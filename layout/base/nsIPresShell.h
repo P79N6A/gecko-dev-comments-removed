@@ -112,14 +112,18 @@ typedef PRUint32 nsFrameState;
 
 #define CAPTURE_RETARGETTOELEMENT 2
 
+#define CAPTURE_PREVENTDRAG 4
+
 typedef struct CapturingContentInfo {
   
   PRPackedBool mAllowed;
   PRPackedBool mRetargetToElement;
+  PRPackedBool mPreventDrag;
   nsIContent* mContent;
 
   CapturingContentInfo() :
-    mAllowed(PR_FALSE), mRetargetToElement(PR_FALSE), mContent(nsnull) { }
+    mAllowed(PR_FALSE), mRetargetToElement(PR_FALSE), mPreventDrag(PR_FALSE),
+    mContent(nsnull) { }
 } CapturingContentInfo;
 
 #define NS_IPRESSHELL_IID     \
@@ -959,6 +963,9 @@ public:
 
 
 
+
+
+
   static void SetCapturingContent(nsIContent* aContent, PRUint8 aFlags);
 
   
@@ -975,6 +982,15 @@ public:
   static void AllowMouseCapture(PRBool aAllowed)
   {
     gCaptureInfo.mAllowed = aAllowed;
+  }
+
+  
+
+
+
+  static PRBool IsMouseCapturePreventingDrag()
+  {
+    return gCaptureInfo.mPreventDrag && gCaptureInfo.mContent;
   }
 
 protected:
