@@ -614,7 +614,7 @@ nsPlainTextSerializer::DoOpenContainer(const nsIParserNode* aNode, PRInt32 aTag)
           
           
           
-          PRInt32 semiOffset = style.Find("ch", widthOffset+6);
+          PRInt32 semiOffset = style.Find("ch", PR_FALSE, widthOffset+6);
           PRInt32 length = (semiOffset > 0 ? semiOffset - widthOffset - 6
                             : style.Length() - widthOffset);
           nsAutoString widthstr;
