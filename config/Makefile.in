@@ -137,6 +137,26 @@ export::
 GARBAGE_DIRS += system_wrappers
 endif
 
+ifdef WRAP_STL_INCLUDES
+ifdef GCC_VERSION
+stl_compiler = gcc
+else
+stl_compiler = msvc
+endif
+endif
+
+ifdef stl_compiler
+stl-wrappers-sentinel: $(srcdir)/make-stl-wrappers.py $(srcdir)/$(stl_compiler)-stl-wrapper.template.h $(srcdir)/stl-headers $(GLOBAL_DEPS)
+	$(PYTHON) $(srcdir)/make-stl-wrappers.py stl_wrappers $(stl_compiler) $(srcdir)/$(stl_compiler)-stl-wrapper.template.h $(srcdir)/stl-headers
+	$(PYTHON) $(srcdir)/nsinstall.py stl_wrappers $(DIST)
+	touch stl-wrappers-sentinel
+
+export:: stl-wrappers-sentinel
+
+GARBAGE += stl-wrappers-sentinel
+GARBAGE_DIRS += stl_wrappers
+endif
+
 install::
 	$(SYSINSTALL) $(IFLAGS1) $(DEPTH)/mozilla-config.h $(DESTDIR)$(includedir)
 
@@ -157,8 +177,14 @@ clean clobber realclean clobber_all::
 	cd $(MKDEPEND_DIR); $(MAKE) $@
 endif
 
-PYUNITS := unit-Expression.py unit-Preprocessor.py unit-nsinstall.py \
-           unit-printprereleasesuffix.py
+PYUNITS := \
+  unit-Expression.py \
+  unit-Preprocessor.py \
+  unit-nsinstall.py \
+  unit-printprereleasesuffix.py \
+  unit-JarMaker.py \
+  unit-buildlist.py \
+  $(NULL)
 
 check:: check-python-modules check-jar-mn
 
