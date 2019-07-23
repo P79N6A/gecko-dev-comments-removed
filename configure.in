@@ -1385,12 +1385,6 @@ sun4u | sparc*)
 x86_64 | ia64)
     CPU_ARCH="$OS_TEST"
     ;;
-
-arm)
-    if test "$OS_TARGET" == "WINCE"; then
-        CPU_ARCH="$OS_TEST"
-    fi
-    ;;
 esac
 
 if test -z "$OS_TARGET"; then
@@ -2014,7 +2008,7 @@ case "$target" in
     ;;
 
 *-wince*)
-    TARGET_COMPILER_ABI=msvc
+
     MOZ_TOOLS_DIR=`echo $MOZ_TOOLS`
     AR_LIST="$AR -list"
     AR_EXTRACT="$AR -extract"
@@ -4514,7 +4508,7 @@ MOZ_DBGRINFO_MODULES=
 MOZ_ENABLE_CANVAS=1
 MOZ_ENABLE_CANVAS3D=
 MOZ_FEEDS=1
-MOZ_IMG_DECODERS_DEFAULT="png gif jpeg bmp icon"
+MOZ_IMG_DECODERS_DEFAULT="png gif jpeg bmp xbm icon"
 MOZ_IMG_ENCODERS_DEFAULT="png jpeg"
 MOZ_JAVAXPCOM=
 MOZ_JSDEBUGGER=1
@@ -6702,6 +6696,17 @@ dnl ========================================================
 MOZ_ARG_WITH_STRING(wrap-malloc,
 [  --with-wrap-malloc=DIR  Location of malloc wrapper library],
     WRAP_MALLOC_LIB=$withval)
+
+dnl ========================================================
+dnl = Use TraceVis
+dnl ========================================================
+MOZ_ARG_ENABLE_BOOL(tracevis,
+[  --enable-tracevis       Enable TraceVis tracing tool (default=no)],
+    MOZ_TRACEVIS=1,
+    MOZ_TRACEVIS= )
+if test -n "$MOZ_TRACEVIS"; then
+    AC_DEFINE(MOZ_TRACEVIS)
+fi
 
 dnl ========================================================
 dnl = Use Valgrind
