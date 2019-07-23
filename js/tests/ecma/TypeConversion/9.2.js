@@ -53,6 +53,7 @@
 
 
 
+
 var SECTION = "9.2";
 var VERSION = "ECMA_1";
 startTest();
@@ -109,5 +110,27 @@ new TestCase( SECTION,    "Boolean(new Date())",         true,       Boolean(new
 new TestCase( SECTION,    "Boolean(new Date(0))",         true,       Boolean(new Date(0)) );
 new TestCase( SECTION,    "Boolean(Math)",         true,       Boolean(Math) );
 
+
+new TestCase( SECTION,
+              "NaN ? true : false",
+              false,
+              (NaN ? true : false) );
+new TestCase( SECTION,
+              "1000 % 0 ? true : false",
+              false,
+              (1000 % 0 ? true : false) );
+new TestCase( SECTION,
+              "(function(a,b){ return a % b ? true : false })(1000, 0)",
+              false,
+              ((function(a,b){ return a % b ? true : false })(1000, 0)) );
+
+new TestCase( SECTION,
+              "(function(x) { return !(x) })(0/0)",
+              true,
+              ((function(x) { return !(x) })(0/0)) );
+new TestCase( SECTION,
+              "!(0/0)",
+              true,
+              (!(0/0)) );
 test();
 
