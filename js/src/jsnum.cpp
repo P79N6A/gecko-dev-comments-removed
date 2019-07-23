@@ -940,7 +940,6 @@ js_ValueToNumber(JSContext *cx, jsval *vp)
     const jschar *bp, *end, *ep;
     jsdouble d, *dp;
     JSObject *obj;
-    JSTempValueRooter tvr;
 
     v = *vp;
     for (;;) {
@@ -1004,12 +1003,11 @@ js_ValueToNumber(JSContext *cx, jsval *vp)
 
 
 
-        JS_PUSH_SINGLE_TEMP_ROOT(cx, v, &tvr);
-        if (!obj->defaultValue(cx, JSTYPE_NUMBER, &tvr.u.value))
+        JSAutoTempValueRooter tvr(cx, v);
+        if (!obj->defaultValue(cx, JSTYPE_NUMBER, tvr.addr()))
             obj = NULL;
         else
-            v = *vp = tvr.u.value;
-        JS_POP_TEMP_ROOT(cx, &tvr);
+            v = *vp = tvr.value();
         if (!obj) {
             *vp = JSVAL_NULL;
             return 0.0;
