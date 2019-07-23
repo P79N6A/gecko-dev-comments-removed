@@ -64,6 +64,7 @@ struct RedirEntry {
 
 
 static RedirEntry kRedirMap[] = {
+    { "about", "chrome://global/content/aboutAbout.xhtml", 0 },
     { "credits", "http://www.mozilla.org/credits/",
       nsIAboutModule::URI_SAFE_FOR_UNTRUSTED_CONTENT },
     { "mozilla", "chrome://global/content/mozilla.xhtml",
