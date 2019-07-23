@@ -288,20 +288,13 @@ static nsresult GetExecutablePath(nsString& exePath)
 #endif
 }
 
-nsresult SetExceptionHandler(nsILocalFile* aXREDirectory)
+nsresult SetExceptionHandler(nsILocalFile* aXREDirectory,
+                             const char* aServerURL)
 {
   nsresult rv;
 
   if (gExceptionHandler)
     return NS_ERROR_ALREADY_INITIALIZED;
-
-  
-  
-  
-  
-  const char* airbagEnv = PR_GetEnv("MOZ_AIRBAG");
-  if (airbagEnv == NULL || *airbagEnv == '\0')
-    return NS_ERROR_NOT_AVAILABLE;
 
   
   
@@ -373,6 +366,11 @@ nsresult SetExceptionHandler(nsILocalFile* aXREDirectory)
 
   if (!gExceptionHandler)
     return NS_ERROR_OUT_OF_MEMORY;
+
+  
+  if (aServerURL)
+    AnnotateCrashReport(NS_LITERAL_CSTRING("ServerURL"),
+                        nsDependentCString(aServerURL));
 
   return NS_OK;
 }
