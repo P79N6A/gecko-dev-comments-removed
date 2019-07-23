@@ -529,7 +529,8 @@ nsresult nsHyperTextAccessible::DOMPointToOffset(nsIDOMNode* aNode, PRInt32 aNod
     
     
     
-    addTextOffset = (TextLength(descendantAccessible) == addTextOffset) ? 1 : 0;
+    
+    addTextOffset = addTextOffset > 0;
     descendantAccessible = parentAccessible;
   }  
 
