@@ -5300,10 +5300,19 @@ nsEventStateManager::MoveCaretToFocus()
             if (NS_SUCCEEDED(rv)) {
               
               
-              if (NS_FAILED(newRange->SelectNode(currentFocusNode)))
-                newRange->SelectNodeContents(currentFocusNode);
-              newRange->Collapse(PR_TRUE);
+              newRange->SelectNodeContents(currentFocusNode);
+              nsCOMPtr<nsIDOMNode> firstChild;
+              currentFocusNode->GetFirstChild(getter_AddRefs(firstChild));
+              if (!firstChild ||
+                  mCurrentFocus->IsNodeOfType(nsINode::eHTML_FORM_CONTROL)) {
+                
+                
+                
+                newRange->SetStartBefore(currentFocusNode);
+                newRange->SetEndBefore(currentFocusNode);
+              }
               domSelection->AddRange(newRange);
+              domSelection->CollapseToStart();
             }
           }
         }
