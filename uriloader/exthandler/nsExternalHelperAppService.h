@@ -252,6 +252,7 @@ protected:
   nsCOMPtr<nsIRDFResource> kNC_HandleInternal;
   nsCOMPtr<nsIRDFResource> kNC_PrettyName;
   nsCOMPtr<nsIRDFResource> kNC_UriTemplate;
+  nsCOMPtr<nsIRDFResource> kNC_PossibleApplication;
 #endif
 
   
@@ -285,6 +286,19 @@ protected:
   NS_HIDDEN_(nsresult) FillLiteralValueFromTarget(nsIRDFResource * aSource,
                                                   nsIRDFResource * aProperty,
                                                   const PRUnichar ** aLiteralValue);
+
+  
+
+
+  NS_HIDDEN_(nsresult) FillHandlerAppFromSource(nsIRDFResource * aSource,
+                                                nsIHandlerApp ** aHandlerApp);
+
+  
+
+
+
+  NS_HIDDEN_(nsresult) FillPossibleAppsFromSource(nsIRDFResource * aSource,
+                                                  nsIMutableArray * aPossibleApps);
 #endif
 
   

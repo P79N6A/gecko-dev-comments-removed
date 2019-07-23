@@ -65,6 +65,7 @@
 #include "nsIInterfaceRequestor.h"
 #include "nsThreadUtils.h"
 #include "nsAutoPtr.h"
+#include "nsIMutableArray.h"
 
 
 #ifdef MOZ_RDF
@@ -570,6 +571,8 @@ nsresult nsExternalHelperAppService::InitDataSource()
                      getter_AddRefs(kNC_HandleInternal));
     rdf->GetResource(NS_LITERAL_CSTRING(NC_RDF_ALWAYSASK),
                      getter_AddRefs(kNC_AlwaysAsk));  
+    rdf->GetResource(NS_LITERAL_CSTRING(NC_RDF_POSSIBLEAPPLICATION),
+                     getter_AddRefs(kNC_PossibleApplication));
     rdf->GetResource(NS_LITERAL_CSTRING(NC_RDF_PRETTYNAME),
                      getter_AddRefs(kNC_PrettyName));
     rdf->GetResource(NS_LITERAL_CSTRING(NC_RDF_URITEMPLATE),
@@ -767,7 +770,9 @@ nsresult nsExternalHelperAppService::FillMIMEExtensionProperties(
   return rv;
 }
 
-nsresult nsExternalHelperAppService::FillLiteralValueFromTarget(nsIRDFResource * aSource, nsIRDFResource * aProperty, const PRUnichar ** aLiteralValue)
+nsresult nsExternalHelperAppService::FillLiteralValueFromTarget(
+  nsIRDFResource * aSource, nsIRDFResource * aProperty,
+  const PRUnichar ** aLiteralValue)
 {
   nsresult rv = NS_OK;
   nsCOMPtr<nsIRDFLiteral> literal;
@@ -790,6 +795,85 @@ nsresult nsExternalHelperAppService::FillLiteralValueFromTarget(nsIRDFResource *
 
   return rv;
 }
+
+nsresult nsExternalHelperAppService::FillHandlerAppFromSource(
+  nsIRDFResource * aSource, nsIHandlerApp ** aHandlerApp)
+{
+  nsresult rv = NS_OK;
+
+  const PRUnichar * appName = nsnull;
+  FillLiteralValueFromTarget(aSource, kNC_PrettyName, &appName);
+
+  
+  const PRUnichar * path = nsnull;
+  FillLiteralValueFromTarget(aSource, kNC_Path, &path);
+  if (path && path[0])
+  {
+    nsCOMPtr<nsIFile> application;
+    GetFileTokenForPath(path, getter_AddRefs(application));
+    if (application) {
+      nsLocalHandlerApp *handlerApp(new nsLocalHandlerApp(appName, application));
+      if (!handlerApp) { 
+        return NS_ERROR_OUT_OF_MEMORY;
+      }
+      NS_ADDREF(*aHandlerApp = handlerApp);
+    }
+  } else {
+    
+    
+    const PRUnichar * uriTemplate = nsnull;
+    FillLiteralValueFromTarget(aSource, kNC_UriTemplate, &uriTemplate);
+    if (uriTemplate && uriTemplate[0]) {
+      nsWebHandlerApp *handlerApp(new nsWebHandlerApp(appName, 
+        NS_ConvertUTF16toUTF8(uriTemplate)));
+      if (!handlerApp) {
+          return NS_ERROR_OUT_OF_MEMORY;
+      }
+      NS_ADDREF(*aHandlerApp = handlerApp);
+    } else {
+      return NS_ERROR_FAILURE; 
+    }
+  }
+
+  return rv;
+}
+
+nsresult nsExternalHelperAppService::FillPossibleAppsFromSource(
+  nsIRDFResource * aSource, nsIMutableArray * aPossibleApps)
+{
+  nsresult rv = NS_OK;
+
+  rv = InitDataSource();
+  if (NS_FAILED(rv)) return rv;
+
+  nsCOMPtr<nsISimpleEnumerator> possibleAppResources;
+  rv = mOverRideDataSource->GetTargets(aSource, kNC_PossibleApplication, PR_TRUE,
+                                       getter_AddRefs(possibleAppResources));
+  if (NS_FAILED(rv)) return rv;
+
+  PRBool more;
+  nsCOMPtr<nsISupports> supports;
+  while (NS_SUCCEEDED(possibleAppResources->HasMoreElements(&more)) && more) {
+    rv = possibleAppResources->GetNext(getter_AddRefs(supports));
+    if (NS_FAILED(rv)) return rv;
+
+    nsCOMPtr<nsIRDFResource> possibleAppResource = do_QueryInterface(supports);
+
+    if (possibleAppResource) {
+      nsCOMPtr<nsIHandlerApp> possibleApp;
+      rv = FillHandlerAppFromSource(possibleAppResource, getter_AddRefs(possibleApp));
+      
+      
+      if (NS_FAILED(rv)) continue;
+
+      rv = aPossibleApps->AppendElement(possibleApp, PR_FALSE);
+      if (NS_FAILED(rv)) return rv;
+    }
+  }
+
+  return NS_OK;
+}
+
 
 nsresult nsExternalHelperAppService::FillContentHandlerProperties(
   const char * aContentType, const char * aTypeNodePrefix,
@@ -836,58 +920,41 @@ nsresult nsExternalHelperAppService::FillContentHandlerProperties(
   
   
   aHandlerInfo->SetAlwaysAskBeforeHandling(!stringValue ||
-                                        !falseString.Equals(stringValue));
+                                           !falseString.Equals(stringValue));
 
 
   
 
+  
+  aHandlerInfo->SetPreferredApplicationHandler(nsnull);
+
+  
   nsCAutoString externalAppNodeName(aTypeNodePrefix);
   externalAppNodeName.AppendLiteral(NC_EXTERNALAPP_SUFFIX);
   externalAppNodeName.Append(aContentType);
   nsCOMPtr<nsIRDFResource> externalAppNodeResource;
   aRDFService->GetResource(externalAppNodeName, getter_AddRefs(externalAppNodeResource));
 
-  
-  aHandlerInfo->SetPreferredApplicationHandler(nsnull);
   if (externalAppNodeResource)
   {
-    const PRUnichar * appName;
-    FillLiteralValueFromTarget(externalAppNodeResource, kNC_PrettyName,
-                               &appName);
+    nsCOMPtr<nsIHandlerApp> preferredApp;
+    rv = FillHandlerAppFromSource(externalAppNodeResource, getter_AddRefs(preferredApp));
 
-    
-    FillLiteralValueFromTarget(externalAppNodeResource, kNC_Path, &stringValue);
-    if (stringValue && stringValue[0])
-    {
-      nsCOMPtr<nsIFile> application;
-      GetFileTokenForPath(stringValue, getter_AddRefs(application));
-      if (application) {
-        nsLocalHandlerApp *handlerApp(new nsLocalHandlerApp(appName, application));
-        if (!handlerApp) { 
-          return NS_ERROR_OUT_OF_MEMORY;
-        }
-
-        return aHandlerInfo->SetPreferredApplicationHandler(handlerApp);
-      }
-    } else {
-      
-      
-      FillLiteralValueFromTarget(externalAppNodeResource, kNC_UriTemplate, 
-                                 &stringValue);
-      if (stringValue && stringValue[0]) {
-        nsWebHandlerApp *handlerApp(new nsWebHandlerApp(appName, 
-          NS_ConvertUTF16toUTF8(stringValue)));
-        
-        if (!handlerApp) {
-            return NS_ERROR_OUT_OF_MEMORY;
-        }
-        return aHandlerInfo->SetPreferredApplicationHandler(handlerApp);
-      }
-    
-    }
+    if (NS_SUCCEEDED(rv))
+      aHandlerInfo->SetPreferredApplicationHandler(preferredApp);
   }
 
-  return NS_OK;
+  
+  nsCOMPtr<nsIMutableArray> possibleApps;
+  rv = aHandlerInfo->GetPossibleApplicationHandlers(getter_AddRefs(possibleApps));
+  if (NS_FAILED(rv)) return rv;
+
+  
+  possibleApps->Clear();
+
+  rv = FillPossibleAppsFromSource(contentTypeHandlerNodeResource, possibleApps);
+
+  return rv;
 }
 #endif 
 
