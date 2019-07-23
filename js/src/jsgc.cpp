@@ -2025,7 +2025,6 @@ testReservedObjects:
     if (gcLocked)
         JS_UNLOCK_GC(rt);
 #endif
-    JS_COUNT_OPERATION(cx, JSOW_ALLOCATION);
     return thing;
 
 fail:
@@ -2173,7 +2172,6 @@ RefillDoubleFreeList(JSContext *cx)
         } while (bit != 0);
     }
     JS_ASSERT(list);
-    JS_COUNT_OPERATION(cx, JSOW_ALLOCATION * JS_BITS_PER_WORD);
 
     
 
@@ -3312,7 +3310,7 @@ js_GC(JSContext *cx, JSGCInvocationKind gckind)
 
 #ifdef JS_THREADSAFE
     JS_ASSERT(cx->thread->id == js_CurrentThreadId());
-
+    
     
     if (rt->gcThread == cx->thread) {
         JS_ASSERT(rt->gcLevel > 0);
@@ -3382,6 +3380,14 @@ js_GC(JSContext *cx, JSGCInvocationKind gckind)
     
     rt->gcLevel = 1;
     rt->gcThread = cx->thread;
+
+    
+
+
+
+
+
+    js_NudgeOtherContexts(cx);
 
     
     while (rt->requestCount > 0)
