@@ -1129,6 +1129,13 @@ XPCConvert::NativeInterface2JSObject(XPCCallContext& ccx,
                         *d = slim;
                         return JS_TRUE;
                     }
+
+                    
+                    
+                    
+                    
+                    
+                    flat = cache->GetWrapper();
                 }
                 else if(!IS_WRAPPER_CLASS(STOBJ_GET_CLASS(flat)))
                 {
