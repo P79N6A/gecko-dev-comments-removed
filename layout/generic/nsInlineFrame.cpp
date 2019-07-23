@@ -302,14 +302,19 @@ nsInlineFrame::Reflow(nsPresContext*          aPresContext,
       nsHTMLContainerFrame::ReparentFrameViewList(aPresContext, prevOverflowFrames,
                                                   prevInFlow, this);
 
-      if (GetStateBits() & NS_FRAME_FIRST_REFLOW) {
+      
+      
+      
+      
+      
+      if ((GetStateBits() & NS_FRAME_FIRST_REFLOW) && mFrames.IsEmpty() &&
+          !GetNextInFlow()) {
         
         
         
         
         
         
-        NS_ASSERTION(mFrames.IsEmpty(), "child list is not empty for initial reflow");
         mFrames.SetFrames(prevOverflowFrames);
         lazilySetParentPointer = PR_TRUE;
       } else {
