@@ -277,7 +277,23 @@ NS_IMETHODIMP TimerThread::Run()
           
           
           
-          timer->PostTimerEvent();
+          if (NS_FAILED(timer->PostTimerEvent())) {
+            nsrefcnt rc;
+            NS_RELEASE2(timer, rc);
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            NS_ASSERTION(rc != 0, "destroyed timer off its target thread!");
+          }
           timer = nsnull;
 
           lock.lock();
@@ -329,7 +345,7 @@ nsresult TimerThread::AddTimer(nsTimerImpl *aTimer)
   
   PRInt32 i = AddTimerInternal(aTimer);
   if (i < 0)
-    return NS_ERROR_FAILURE;
+    return NS_ERROR_OUT_OF_MEMORY;
 
   
   if (mCondVar && mWaiting && i == 0)
