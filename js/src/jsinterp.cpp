@@ -2678,7 +2678,7 @@ js_Interpret(JSContext *cx)
     ((void) (jumpTable = (cx)->debugHooks->interruptHandler                   \
                          ? interruptJumpTable                                 \
                          : normalJumpTable))
-# define ENABLE_TRACER(flag) (void)0
+# define ENABLE_TRACER(flag) ((void)0)
 #endif 
 #else 
 #ifdef JS_TRACER
@@ -2696,7 +2696,7 @@ js_Interpret(JSContext *cx)
 # define LOAD_INTERRUPT_HANDLER(cx)                                           \
     ((void) (switchMask = ((cx)->debugHooks->interruptHandler                 \
                            ? 0 : 255)))
-# define ENABLE_TRACER(flag) (void)0
+# define ENABLE_TRACER(flag) ((void)0)
 #endif 
 #endif 
 
