@@ -228,26 +228,6 @@ namespace nanojit
     
     
     
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
 
     enum LInsRepKind {
         
@@ -386,7 +366,6 @@ namespace nanojit
         inline int32_t  disp() const;
 
         
-        inline void*    payload()  const;
         inline LIns*    prevLIns() const;
 
         
@@ -935,13 +914,6 @@ namespace nanojit
         }
     }
 
-    void* LIns::payload() const {
-        NanoAssert(isop(LIR_skip));
-        
-        
-        return (void*) (uintptr_t(prevLIns()) + sizeof(LIns));
-    }
-
     LIns* LIns::prevLIns() const {
         NanoAssert(isLInsSk());
         return toLInsSk()->prevLIns;
@@ -1070,9 +1042,6 @@ namespace nanojit
         virtual LInsp insAlloc(int32_t size) {
             NanoAssert(size != 0);
             return out->insAlloc(size);
-        }
-        virtual LInsp insSkip(size_t size) {
-            return out->insSkip(size);
         }
         virtual LInsp insJtbl(LIns* index, uint32_t size) {
             return out->insJtbl(index, size);
@@ -1408,18 +1377,7 @@ namespace nanojit
 
             
 
-
             static const size_t CHUNK_SZB = 8000;
-
-            
-
-
-            static const size_t MAX_LINS_SZB = CHUNK_SZB - sizeof(LInsSk);
-
-            
-
-
-            static const size_t MAX_SKIP_PAYLOAD_SZB = MAX_LINS_SZB - sizeof(LInsSk);
 
             
             void        chunkAlloc();
@@ -1441,22 +1399,21 @@ namespace nanojit
             }
 
             
-            LInsp    insLoad(LOpcode op, LInsp base, int32_t disp);
-            LInsp    insStorei(LInsp o1, LInsp o2, int32_t disp);
-            LInsp    ins0(LOpcode op);
-            LInsp    ins1(LOpcode op, LInsp o1);
-            LInsp    ins2(LOpcode op, LInsp o1, LInsp o2);
-            LInsp    ins3(LOpcode op, LInsp o1, LInsp o2, LInsp o3);
-            LInsp    insParam(int32_t i, int32_t kind);
-            LInsp    insImm(int32_t imm);
-            LInsp    insImmq(uint64_t imm);
-            LInsp    insImmf(double d);
-            LInsp    insCall(const CallInfo *call, LInsp args[]);
-            LInsp    insGuard(LOpcode op, LInsp cond, GuardRecord *gr);
-            LInsp    insBranch(LOpcode v, LInsp condition, LInsp to);
-            LInsp    insAlloc(int32_t size);
-            LInsp    insSkip(size_t);
-            LInsp    insJtbl(LIns* index, uint32_t size);
+            LInsp   insLoad(LOpcode op, LInsp base, int32_t disp);
+            LInsp   insStorei(LInsp o1, LInsp o2, int32_t disp);
+            LInsp   ins0(LOpcode op);
+            LInsp   ins1(LOpcode op, LInsp o1);
+            LInsp   ins2(LOpcode op, LInsp o1, LInsp o2);
+            LInsp   ins3(LOpcode op, LInsp o1, LInsp o2, LInsp o3);
+            LInsp   insParam(int32_t i, int32_t kind);
+            LInsp   insImm(int32_t imm);
+            LInsp   insImmq(uint64_t imm);
+            LInsp   insImmf(double d);
+            LInsp   insCall(const CallInfo *call, LInsp args[]);
+            LInsp   insGuard(LOpcode op, LInsp cond, GuardRecord *gr);
+            LInsp   insBranch(LOpcode v, LInsp condition, LInsp to);
+            LInsp   insAlloc(int32_t size);
+            LInsp   insJtbl(LIns* index, uint32_t size);
     };
 
     class LirFilter

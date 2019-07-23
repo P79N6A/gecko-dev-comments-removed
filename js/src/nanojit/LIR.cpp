@@ -179,8 +179,6 @@ namespace nanojit
 
     int32_t LirBuffer::insCount()
     {
-        
-        
         return _stats.lir;
     }
 
@@ -210,13 +208,16 @@ namespace nanojit
     {
         
         NanoAssert(0 == szB % sizeof(void*));
-        NanoAssert(sizeof(LIns) <= szB && szB <= MAX_LINS_SZB);
+        NanoAssert(sizeof(LIns) <= szB && szB <= sizeof(LInsSti));  
         NanoAssert(_unused < _limit);
+
+        debug_only( bool moved = false; )
 
         
         if (_unused + szB > _limit) {
             uintptr_t addrOfLastLInsOnChunk = _unused - sizeof(LIns);
             moveToNewChunk(addrOfLastLInsOnChunk);
+            debug_only( moved = true; )
         }
 
         
@@ -234,6 +235,7 @@ namespace nanojit
         if (_unused >= _limit) {
             
             NanoAssert(_unused == _limit);
+            NanoAssert(!moved);     
             uintptr_t addrOfLastLInsOnChunk = _unused - sizeof(LIns);
             moveToNewChunk(addrOfLastLInsOnChunk);
         }
@@ -364,27 +366,6 @@ namespace nanojit
         } u;
         u.d = d;
         ins->initLInsI64(LIR_float, u.q);
-        return ins;
-    }
-
-    LInsp LirBufWriter::insSkip(size_t payload_szB)
-    {
-        
-        
-        
-        
-        payload_szB = alignUp(payload_szB, sizeof(void*));
-        NanoAssert(0 == LirBuffer::MAX_SKIP_PAYLOAD_SZB % sizeof(void*));
-        NanoAssert(sizeof(void*) <= payload_szB && payload_szB <= LirBuffer::MAX_SKIP_PAYLOAD_SZB);
-
-        uintptr_t payload = _buf->makeRoom(payload_szB + sizeof(LInsSk));
-        uintptr_t prevLInsAddr = payload - sizeof(LIns);
-        LInsSk* insSk = (LInsSk*)(payload + payload_szB);
-        LIns*   ins   = insSk->getLIns();
-        
-        
-        
-        ins->initLInsSk((LInsp)prevLInsAddr);
         return ins;
     }
 
