@@ -6041,7 +6041,9 @@ nsTextFrame::Reflow(nsPresContext*           aPresContext,
                                            eNormalBreak);
   }
   PRBool breakAfter = forceBreakAfter;
-  if (!breakAfter && charsFit == length &&
+  
+  PRBool emptyTextAtStartOfLine = atStartOfLine && length == 0;
+  if (!breakAfter && charsFit == length && !emptyTextAtStartOfLine &&
       transformedOffset + transformedLength == mTextRun->GetLength() &&
       (mTextRun->GetFlags() & nsTextFrameUtils::TEXT_HAS_TRAILING_BREAK)) {
     
