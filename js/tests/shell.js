@@ -75,7 +75,7 @@ var BUGNUMBER = "";
 
 
 
-var GLOBAL = "[object global]";
+var GLOBAL = this + '';
 var PASSED = " PASSED! ";
 var FAILED = " FAILED! ";
 
