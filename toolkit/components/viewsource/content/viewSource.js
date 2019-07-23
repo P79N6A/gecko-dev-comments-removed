@@ -122,6 +122,7 @@ function viewSource(url)
 
   gBrowser.addEventListener("pagehide", onUnloadContent, true);
   gBrowser.addEventListener("pageshow", onLoadContent, true);
+  gBrowser.addEventListener("command", onCommandContent, false);
 
   var loadFromURL = true;
 
@@ -268,6 +269,63 @@ function onUnloadContent()
     window.content.getSelection().QueryInterface(Ci.nsISelectionPrivate)
           .removeSelectionListener(gSelectionListener);
     gSelectionListener.attached = false;
+  }
+}
+
+
+
+
+function onCommandContent(event) {
+  
+  if (!event.isTrusted)
+    return;
+
+  var target = event.originalTarget;
+  var errorDoc = target.ownerDocument;
+  
+  var formatter = Cc["@mozilla.org/toolkit/URLFormatterService;1"]
+                    .getService(Ci.nsIURLFormatter);
+
+  if (/^about:blocked/.test(errorDoc.documentURI)) {
+    
+    
+    
+    var isMalware = /e=malwareBlocked/.test(errorDoc.documentURI);
+    
+    if (target == errorDoc.getElementById('getMeOutButton')) {
+      
+      window.close();
+    } else if (target == errorDoc.getElementById('reportButton')) {
+      
+      
+      
+
+      if (isMalware) {
+        
+        
+        try {
+          let reportURL = formatter.formatURLPref("browser.safebrowsing.malware.reportURL", true);
+          reportURL += errorDoc.location.href.slice(12);
+          openURL(reportURL);
+        } catch (e) {
+          Components.utils.reportError("Couldn't get malware report URL: " + e);
+        }
+      } else { 
+        try {
+          var infoURL = formatter.formatURLPref("browser.safebrowsing.warning.infoURL", true);
+          openURL(infoURL);
+        } catch (e) {
+          Components.utils.reportError("Couldn't get phishing info URL: " + e);
+        }
+      }
+    } else if (target == errorDoc.getElementById('ignoreWarningButton')) {
+      
+      
+      
+      gBrowser.loadURIWithFlags(content.location.href,
+                                Ci.nsIWebNavigation.LOAD_FLAGS_BYPASS_CLASSIFIER,
+                                null, null, null);
+    }
   }
 }
 
