@@ -1796,33 +1796,6 @@ DrawBorderImage(nsPresContext*       aPresContext,
   
   
   
-  
-  
-  
-  
-  
-  
-  
-  gfxFloat hFactor, vFactor;
-
-  if (0 < border.left && 0 < split.left)
-    vFactor = gfxFloat(border.left)/split.left;
-  else if (0 < border.right && 0 < split.right)
-    vFactor = gfxFloat(border.right)/split.right;
-  else
-    vFactor = 1.0;
-
-  if (0 < border.top && 0 < split.top)
-    hFactor = gfxFloat(border.top)/split.top;
-  else if (0 < border.bottom && 0 < split.bottom)
-    hFactor = gfxFloat(border.bottom)/split.bottom;
-  else
-    hFactor = 1.0;
-
-  
-  
-  
-  
   enum {
     LEFT, MIDDLE, RIGHT,
     TOP = LEFT, BOTTOM = RIGHT
@@ -1874,31 +1847,68 @@ DrawBorderImage(nsPresContext*       aPresContext,
       nsRect destArea(borderX[i], borderY[j], borderWidth[i], borderHeight[j]);
       nsIntRect subArea(splitX[i], splitY[j], splitWidth[i], splitHeight[j]);
 
-      
-      
-      PRUint8 fillStyleH = (i == 1
-                            ? aBorderStyle.mBorderImageHFill
-                            : NS_STYLE_BORDER_IMAGE_STRETCH);
-      PRUint8 fillStyleV = (j == 1
-                            ? aBorderStyle.mBorderImageVFill
-                            : NS_STYLE_BORDER_IMAGE_STRETCH);
-
-      
-      
-      
+      PRUint8 fillStyleH, fillStyleV;
       nsSize unitSize;
+
       if (i == MIDDLE && j == MIDDLE) {
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        gfxFloat hFactor, vFactor;
+
+        if (0 < border.left && 0 < split.left)
+          vFactor = gfxFloat(border.left)/split.left;
+        else if (0 < border.right && 0 < split.right)
+          vFactor = gfxFloat(border.right)/split.right;
+        else
+          vFactor = 1.0;
+
+        if (0 < border.top && 0 < split.top)
+          hFactor = gfxFloat(border.top)/split.top;
+        else if (0 < border.bottom && 0 < split.bottom)
+          hFactor = gfxFloat(border.bottom)/split.bottom;
+        else
+          hFactor = 1.0;
+
         unitSize.width = splitWidth[i]*hFactor;
         unitSize.height = splitHeight[j]*vFactor;
-      } else if (i == MIDDLE) {
-        unitSize.width = borderHeight[j];
+        fillStyleH = aBorderStyle.mBorderImageHFill;
+        fillStyleV = aBorderStyle.mBorderImageVFill;
+
+      } else if (i == MIDDLE) { 
+        
+        
+        gfxFloat factor = 1.0;
+        if (0 < borderHeight[j] && 0 < splitHeight[j])
+          factor = gfxFloat(borderHeight[j])/splitHeight[j];
+
+        unitSize.width = splitWidth[i]*factor;
         unitSize.height = borderHeight[j];
-      } else if (j == MIDDLE) {
+        fillStyleH = aBorderStyle.mBorderImageHFill;
+        fillStyleV = NS_STYLE_BORDER_IMAGE_STRETCH;
+
+      } else if (j == MIDDLE) { 
+        gfxFloat factor = 1.0;
+        if (0 < borderWidth[i] && 0 < splitWidth[i])
+          factor = gfxFloat(borderWidth[i])/splitWidth[i];
+
         unitSize.width = borderWidth[i];
-        unitSize.height = borderWidth[i];
+        unitSize.height = splitHeight[j]*factor;
+        fillStyleH = NS_STYLE_BORDER_IMAGE_STRETCH;
+        fillStyleV = aBorderStyle.mBorderImageVFill;
+
       } else {
+        
         unitSize.width = borderWidth[i];
         unitSize.height = borderHeight[j];
+        fillStyleH = NS_STYLE_BORDER_IMAGE_STRETCH;
+        fillStyleV = NS_STYLE_BORDER_IMAGE_STRETCH;
       }
 
       DrawBorderImageComponent(aRenderingContext, img, aDirtyRect,
@@ -1927,8 +1937,10 @@ DrawBorderImageComponent(nsIRenderingContext& aRenderingContext,
 
   
   
-  if (aHFill == NS_STYLE_BORDER_IMAGE_STRETCH &&
-      aVFill == NS_STYLE_BORDER_IMAGE_STRETCH) {
+  if ((aHFill == NS_STYLE_BORDER_IMAGE_STRETCH &&
+       aVFill == NS_STYLE_BORDER_IMAGE_STRETCH) ||
+      (aUnitSize.width == aFill.width &&
+       aUnitSize.height == aFill.height)) {
     nsLayoutUtils::DrawSingleImage(&aRenderingContext, subImage,
                                    aFill, aDirtyRect);
     return;
