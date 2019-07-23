@@ -76,6 +76,29 @@ public:
 #endif
 
 protected:
+
+  
+
+
+
+
+
+
+
+
+  nsresult SelectRowOrColumn(PRInt32 aIndex, PRUint32 aTarget, PRBool aDoSelect);
+
+  
+
+
+
+
+
+
+
+  nsresult SelectCell(nsISelection *aSelection, nsIDocument *aDocument,
+                      nsIDOMElement *aCellElement, PRBool aDoSelect);
+
   virtual void CacheChildren();
   nsresult GetTableNode(nsIDOMNode **_retval);
   nsresult GetTableLayout(nsITableLayout **aLayoutObject);
