@@ -540,11 +540,17 @@ nsGeolocationService::IsBetterPosition(nsIDOMGeoPosition *aSomewhere)
   NS_ENSURE_SUCCESS(rv, PR_FALSE);
 
   
-  double delta = fabs(newLat - oldLat) + fabs(newLon + oldLon);
+  
+  
+  double radsInDeg = 3.14159265 / 180.0;
+
+  double rNewLat = newLat * radsInDeg;
+  double rNewLon = newLon * radsInDeg;
+  double rOldLat = oldLat * radsInDeg;
+  double rOldLon = oldLon * radsInDeg;
 
   
-  
-  delta *= 60 * 1852;
+  double delta = acos( (sin(rNewLat) * sin(rOldLat)) + (cos(rNewLat) * cos(rOldLat) * cos(rOldLon - rNewLon)) ) * 6378137; 
 
   
   
