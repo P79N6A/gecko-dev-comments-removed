@@ -197,6 +197,8 @@ public:
   virtual void DidChangeViewBox(PRBool aDoSetAttr);
   virtual void DidChangePreserveAspectRatio(PRBool aDoSetAttr);
 
+  virtual void DidAnimatePreserveAspectRatio();
+  
   
   float GetLength(PRUint8 mCtxType);
   float GetMMPerPx(PRUint8 mCtxType = 0);

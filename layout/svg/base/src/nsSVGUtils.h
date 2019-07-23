@@ -344,7 +344,8 @@ public:
   
   
   static gfxMatrix
-  GetViewBoxTransform(float aViewportWidth, float aViewportHeight,
+  GetViewBoxTransform(nsSVGElement* aElement,
+                      float aViewportWidth, float aViewportHeight,
                       float aViewboxX, float aViewboxY,
                       float aViewboxWidth, float aViewboxHeight,
                       const nsSVGPreserveAspectRatio &aPreserveAspectRatio,

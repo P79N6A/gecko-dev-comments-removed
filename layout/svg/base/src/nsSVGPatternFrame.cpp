@@ -459,6 +459,11 @@ nsSVGPatternFrame::GetReferencedPattern()
 nsSVGPatternElement *
 nsSVGPatternFrame::GetPatternWithAttr(nsIAtom *aAttrName, nsIContent *aDefault)
 {
+  
+  
+  
+  
+
   if (mContent->HasAttr(kNameSpaceID_None, aAttrName))
     return static_cast<nsSVGPatternElement *>(mContent);
 
@@ -541,7 +546,10 @@ nsSVGPatternFrame::ConstructCTM(const gfxRect &callerBBox,
     nsSVGSVGElement *ctx = aTargetContent->GetCtx();
     float viewportWidth = GetWidth()->GetAnimValue(ctx);
     float viewportHeight = GetHeight()->GetAnimValue(ctx);
-    gfxMatrix viewBoxTM = nsSVGUtils::GetViewBoxTransform(viewportWidth, viewportHeight,
+    nsSVGPatternElement *patternElement =
+      static_cast<nsSVGPatternElement*>(mContent);
+    gfxMatrix viewBoxTM = nsSVGUtils::GetViewBoxTransform(patternElement,
+                                                          viewportWidth, viewportHeight,
                                                           viewBox.x, viewBox.y,
                                                           viewBox.width, viewBox.height,
                                                           GetPreserveAspectRatio(),
