@@ -384,12 +384,26 @@ void RewriteStrings(StringTable& queryParameters)
               vendor.c_str());
   gStrings[ST_CRASHREPORTERTITLE] = buf;
 
+
+  string str = gStrings[ST_CRASHREPORTERPRODUCTERROR];
   
-  UI_SNPRINTF(buf, sizeof(buf),
-              gStrings[ST_CRASHREPORTERPRODUCTERROR].c_str(),
-              product.c_str(),
-              "%s");
-  gStrings[ST_CRASHREPORTERERROR] = buf;
+  
+  
+  string::size_type pos = str.find("%s");
+  if (pos != string::npos)
+    pos = str.find("%s", pos+2);
+  if (pos != string::npos) {
+    
+    UI_SNPRINTF(buf, sizeof(buf),
+                gStrings[ST_CRASHREPORTERPRODUCTERROR].c_str(),
+                product.c_str(),
+                "%s");
+    gStrings[ST_CRASHREPORTERERROR] = buf;
+  }
+  else {
+    
+    gStrings[ST_CRASHREPORTERERROR] = str;
+  }
 
   UI_SNPRINTF(buf, sizeof(buf),
               gStrings[ST_CRASHREPORTERDESCRIPTION].c_str(),
