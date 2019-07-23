@@ -88,6 +88,8 @@ struct JSStackFrame {
     JSStackFrame    *dormantNext;   
     JSObject        *xmlNamespace;  
     JSObject        *blockChain;    
+    JSStackFrame    *displaySave;   
+
 #ifdef DEBUG
     jsrefcount      pcDisabledSave; 
 #endif
@@ -235,6 +237,7 @@ typedef struct JSPropertyCache {
     uint32              vcmisses;       
     uint32              misses;         
     uint32              flushes;        
+    uint32              pcpurges;       
 # define PCMETER(x)     x
 #else
 # define PCMETER(x)     ((void)0)

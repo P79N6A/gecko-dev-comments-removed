@@ -64,25 +64,26 @@ typedef union JSLocalNames {
 } JSLocalNames;
 
 struct JSFunction {
-    JSObject        object;     
-    uint16          nargs;      
+    JSObject        object;       
+    uint16          nargs;        
 
-    uint16          flags;      
+    uint16          flags;        
     union {
         struct {
-            uint16      extra;  
-            uint16      spare;  
-            JSNative    native; 
-            JSClass     *clasp; 
+            uint16      extra;    
+            uint16      spare;    
+            JSNative    native;   
+            JSClass     *clasp;   
         } n;
         struct {
-            uint16      nvars;  
-            uint16      spare;  
-            JSScript    *script;
-            JSLocalNames names; 
+            uint16      nvars;    
+            uint16      nupvars;  
+
+            JSScript    *script;  
+            JSLocalNames names;   
         } i;
     } u;
-    JSAtom          *atom;      
+    JSAtom          *atom;        
 };
 
 #define JSFUN_EXPR_CLOSURE   0x4000 /* expression closure: function(x)x*x */
@@ -205,10 +206,13 @@ typedef enum JSLocalKind {
     JSLOCAL_NONE,
     JSLOCAL_ARG,
     JSLOCAL_VAR,
-    JSLOCAL_CONST
+    JSLOCAL_CONST,
+    JSLOCAL_UPVAR
 } JSLocalKind;
 
-#define JS_GET_LOCAL_NAME_COUNT(fun)    ((fun)->nargs + (fun)->u.i.nvars)
+#define JS_UPVAR_LOCAL_NAME_START(fun)  ((fun)->nargs + (fun)->u.i.nvars)
+#define JS_GET_LOCAL_NAME_COUNT(fun)    (JS_UPVAR_LOCAL_NAME_START(fun) +     \
+                                         (fun)->u.i.nupvars)
 
 extern JSBool
 js_AddLocal(JSContext *cx, JSFunction *fun, JSAtom *atom, JSLocalKind kind);
@@ -221,6 +225,10 @@ js_AddLocal(JSContext *cx, JSFunction *fun, JSAtom *atom, JSLocalKind kind);
 
 extern JSLocalKind
 js_LookupLocal(JSContext *cx, JSFunction *fun, JSAtom *atom, uintN *indexp);
+
+
+
+
 
 
 

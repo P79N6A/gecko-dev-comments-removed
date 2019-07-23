@@ -473,6 +473,7 @@ js_FlushPropertyCache(JSContext *cx)
         P(vcmisses);
         P(misses);
         P(flushes);
+        P(pcpurges);
 # undef P
 
         fprintf(fp, "hit rates: pc %g%% (proto %g%%), set %g%%, ini %g%%, full %g%%\n",
@@ -1303,6 +1304,7 @@ have_fun:
         if (!frame.scopeChain)
             frame.scopeChain = parent;
 
+        frame.displaySave = NULL;
         ok = native(cx, frame.thisp, argc, frame.argv, &frame.rval);
         JS_RUNTIME_METER(cx->runtime, nativeCalls);
 #ifdef DEBUG_NOT_THROWING
@@ -1320,10 +1322,12 @@ have_fun:
             }
         }
         frame.slots = sp - fun->u.i.nvars;
+
         ok = js_Interpret(cx);
     } else {
         
         frame.scopeChain = NULL;
+        frame.displaySave = NULL;
         ok = JS_TRUE;
     }
 
@@ -2398,7 +2402,6 @@ JS_STATIC_ASSERT(!CAN_DO_FAST_INC_DEC(INT_TO_JSVAL(JSVAL_INT_MAX)));
 
 
 
-
 JS_STATIC_ASSERT(JSOP_INTERRUPT == 0);
 
 
@@ -2407,6 +2410,7 @@ JS_STATIC_ASSERT(JSOP_INTERRUPT == 0);
 
 JS_STATIC_ASSERT(JSOP_NAME_LENGTH == JSOP_CALLNAME_LENGTH);
 JS_STATIC_ASSERT(JSOP_GETGVAR_LENGTH == JSOP_CALLGVAR_LENGTH);
+JS_STATIC_ASSERT(JSOP_GETUPVAR_LENGTH == JSOP_CALLUPVAR_LENGTH);
 JS_STATIC_ASSERT(JSOP_GETARG_LENGTH == JSOP_CALLARG_LENGTH);
 JS_STATIC_ASSERT(JSOP_GETLOCAL_LENGTH == JSOP_CALLLOCAL_LENGTH);
 JS_STATIC_ASSERT(JSOP_XMLNAME_LENGTH == JSOP_CALLXMLNAME_LENGTH);
@@ -2646,8 +2650,9 @@ js_Interpret(JSContext *cx)
     JS_END_MACRO
 
     
+    ++cx->interpLevel;
 
-
+    
 
 
 
@@ -2661,7 +2666,12 @@ js_Interpret(JSContext *cx)
     if (currentVersion != originalVersion)
         js_SetVersion(cx, currentVersion);
 
-    ++cx->interpLevel;
+    
+    if (script->staticDepth < JS_DISPLAY_SIZE) {
+        JSStackFrame **disp = &cx->display[script->staticDepth];
+        fp->displaySave = *disp;
+        *disp = fp;
+    }
 #ifdef DEBUG
     fp->pcDisabledSave = JS_PROPERTY_CACHE(cx).disabled;
 #endif
@@ -2924,6 +2934,9 @@ js_Interpret(JSContext *cx)
                 JS_ASSERT(JS_PROPERTY_CACHE(cx).disabled == fp->pcDisabledSave);
                 JS_ASSERT(!fp->blockChain);
                 JS_ASSERT(!js_IsActiveWithOrBlock(cx, fp->scopeChain, 0));
+
+                if (script->staticDepth < JS_DISPLAY_SIZE)
+                    cx->display[script->staticDepth] = fp->displaySave;
 
                 if (hookData) {
                     JSInterpreterHook hook;
@@ -4829,6 +4842,11 @@ js_Interpret(JSContext *cx)
                     newifp->frame.dormantNext = NULL;
                     newifp->frame.xmlNamespace = NULL;
                     newifp->frame.blockChain = NULL;
+                    if (script->staticDepth < JS_DISPLAY_SIZE) {
+                        JSStackFrame **disp = &cx->display[script->staticDepth];
+                        newifp->frame.displaySave = *disp;
+                        *disp = &newifp->frame;
+                    }
 #ifdef DEBUG
                     newifp->frame.pcDisabledSave =
                         JS_PROPERTY_CACHE(cx).disabled;
@@ -5185,6 +5203,7 @@ js_Interpret(JSContext *cx)
 
                 funobj = fp->callee;
                 slot += JSCLASS_RESERVED_SLOTS(&js_FunctionClass);
+                slot += JS_SCRIPT_UPVARS(script)->length;
                 if (!JS_GetReservedSlot(cx, funobj, slot, &rval))
                     goto error;
                 if (JSVAL_IS_VOID(rval))
@@ -5488,6 +5507,35 @@ js_Interpret(JSContext *cx)
             *vp = FETCH_OPND(-1);
           END_SET_CASE(JSOP_SETLOCAL)
 
+          BEGIN_CASE(JSOP_GETUPVAR)
+          BEGIN_CASE(JSOP_CALLUPVAR)
+          {
+            JSUpvarArray *uva;
+            uint32 skip;
+            JSStackFrame *fp2;
+
+            index = GET_UINT16(regs.pc);
+            uva = JS_SCRIPT_UPVARS(script);
+            JS_ASSERT(index < uva->length);
+            skip = UPVAR_FRAME_SKIP(uva->vector[index]);
+            fp2 = cx->display[script->staticDepth - skip];
+            JS_ASSERT(fp2->fun && fp2->script);
+
+            slot = UPVAR_FRAME_SLOT(uva->vector[index]);
+            if (slot < fp2->fun->nargs) {
+                vp = fp2->argv;
+            } else {
+                slot -= fp2->fun->nargs;
+                JS_ASSERT(slot < fp2->script->nslots);
+                vp = fp2->slots;
+            }
+
+            PUSH_OPND(vp[slot]);
+            if (op == JSOP_CALLUPVAR)
+                PUSH_OPND(JSVAL_NULL);
+          }
+          END_CASE(JSOP_GETUPVAR)
+
           BEGIN_CASE(JSOP_GETGVAR)
           BEGIN_CASE(JSOP_CALLGVAR)
             slot = GET_SLOTNO(regs.pc);
@@ -5498,8 +5546,8 @@ js_Interpret(JSContext *cx)
                 op = (op == JSOP_GETGVAR) ? JSOP_NAME : JSOP_CALLNAME;
                 DO_OP();
             }
-            slot = JSVAL_TO_INT(lval);
             obj = fp->varobj;
+            slot = JSVAL_TO_INT(lval);
             rval = OBJ_GET_SLOT(cx, obj, slot);
             PUSH_OPND(rval);
             if (op == JSOP_CALLGVAR)
@@ -5511,8 +5559,8 @@ js_Interpret(JSContext *cx)
             JS_ASSERT(slot < GlobalVarCount(fp));
             METER_SLOT_OP(op, slot);
             rval = FETCH_OPND(-1);
-            lval = fp->slots[slot];
             obj = fp->varobj;
+            lval = fp->slots[slot];
             if (JSVAL_IS_NULL(lval)) {
                 
 
@@ -5675,6 +5723,8 @@ js_Interpret(JSContext *cx)
 
 
             parent = fp->varobj;
+            if (!parent)
+                goto error;
 
             
 
@@ -5690,6 +5740,8 @@ js_Interpret(JSContext *cx)
                     JS_ASSERT(op == JSOP_CLOSURE);
                     ok = OBJ_SET_PROPERTY(cx, parent, id, &rval);
                 } else {
+                    JS_ASSERT(attrs & JSPROP_PERMANENT);
+
                     ok = OBJ_DEFINE_PROPERTY(cx, parent, id, rval,
                                              (flags & JSPROP_GETTER)
                                              ? JS_EXTENSION (JSPropertyOp) obj
@@ -5698,7 +5750,30 @@ js_Interpret(JSContext *cx)
                                              ? JS_EXTENSION (JSPropertyOp) obj
                                              : JS_PropertyStub,
                                              attrs,
-                                             NULL);
+                                             &prop);
+
+                    
+
+
+
+
+
+                    if (ok && index < script->nfixed) {
+                        JS_ASSERT(OBJ_IS_NATIVE(obj));
+                        sprop = (JSScopeProperty *) prop;
+                        if (SPROP_HAS_VALID_SLOT(sprop, OBJ_SCOPE(obj)) &&
+                            SPROP_HAS_STUB_GETTER(sprop) &&
+                            SPROP_HAS_STUB_SETTER(sprop)) {
+                            
+
+
+
+
+
+
+                            fp->slots[index] = INT_TO_JSVAL(sprop->slot);
+                        }
+                    }
                 }
             }
 
@@ -6748,7 +6823,6 @@ js_Interpret(JSContext *cx)
           L_JSOP_UNUSED77:
           L_JSOP_UNUSED78:
           L_JSOP_UNUSED79:
-          L_JSOP_UNUSED186:
           L_JSOP_UNUSED201:
           L_JSOP_UNUSED202:
           L_JSOP_UNUSED203:
@@ -6756,7 +6830,6 @@ js_Interpret(JSContext *cx)
           L_JSOP_UNUSED205:
           L_JSOP_UNUSED206:
           L_JSOP_UNUSED207:
-          L_JSOP_UNUSED213:
           L_JSOP_UNUSED219:
           L_JSOP_UNUSED226:
 
@@ -6982,10 +7055,13 @@ js_Interpret(JSContext *cx)
         fp->regs = NULL;
     }
 
+    
+    if (script->staticDepth < JS_DISPLAY_SIZE)
+        cx->display[script->staticDepth] = fp->displaySave;
     JS_ASSERT(JS_PROPERTY_CACHE(cx).disabled == fp->pcDisabledSave);
     if (cx->version == currentVersion && currentVersion != originalVersion)
         js_SetVersion(cx, originalVersion);
-    cx->interpLevel--;
+    --cx->interpLevel;
     return ok;
 
   atom_not_defined:

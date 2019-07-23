@@ -753,6 +753,13 @@ struct JSContext {
     JSPackedBool        gcDontBlock;
 
     
+
+
+#define JS_DISPLAY_SIZE 16
+
+    JSStackFrame        *display[JS_DISPLAY_SIZE];
+
+    
     uint16              version;
 
     

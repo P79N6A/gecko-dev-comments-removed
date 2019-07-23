@@ -357,8 +357,13 @@ struct JSCodeGenerator {
     JSEmittedObjectList regexpList; 
 
 
+    uintN           staticDepth;    
+    JSAtomList      upvarList;      
+    JSUpvarArray    upvarMap;       
     JSCodeGenerator *parent;        
 };
+
+#define CG_TS(cg)               TS((cg)->treeContext.parseContext)
 
 #define CG_BASE(cg)             ((cg)->current->base)
 #define CG_LIMIT(cg)            ((cg)->current->limit)

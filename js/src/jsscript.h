@@ -80,6 +80,15 @@ typedef struct JSObjectArray {
     uint32          length;     
 } JSObjectArray;
 
+typedef struct JSUpvarArray {
+    uint32          *vector;    
+    uint32          length;     
+} JSUpvarArray;
+
+#define MAKE_UPVAR_COOKIE(skip,slot)    ((skip) << 16 | (slot))
+#define UPVAR_FRAME_SKIP(cookie)        ((uint32)(cookie) >> 16)
+#define UPVAR_FRAME_SLOT(cookie)        ((uint16)(cookie))
+
 #define JS_OBJECT_ARRAY_SIZE(length)                                          \
     (offsetof(JSObjectArray, vector) + sizeof(JSObject *) * (length))
 
@@ -96,6 +105,8 @@ struct JSScript {
     uint8           objectsOffset;  
 
 
+    uint8           upvarsOffset;   
+
     uint8           regexpsOffset;  
 
     uint8           trynotesOffset; 
@@ -104,8 +115,9 @@ struct JSScript {
     jsbytecode      *main;      
     JSAtomMap       atomMap;    
     const char      *filename;  
-    uintN           lineno;     
-    uintN           nslots;     
+    uint32          lineno;     
+    uint16          nslots;     
+    uint16          staticDepth;
     JSPrincipals    *principals;
     union {
         JSObject    *object;    
@@ -131,6 +143,10 @@ StackDepth(JSScript *script)
 #define JS_SCRIPT_OBJECTS(script)                                             \
     (JS_ASSERT((script)->objectsOffset != 0),                                 \
      (JSObjectArray *)((uint8 *)(script) + (script)->objectsOffset))
+
+#define JS_SCRIPT_UPVARS(script)                                              \
+    (JS_ASSERT((script)->upvarsOffset != 0),                                  \
+     (JSUpvarArray *)((uint8 *)(script) + (script)->upvarsOffset))
 
 #define JS_SCRIPT_REGEXPS(script)                                             \
     (JS_ASSERT((script)->regexpsOffset != 0),                                 \
@@ -240,8 +256,9 @@ js_SweepScriptFilenames(JSRuntime *rt);
 
 
 extern JSScript *
-js_NewScript(JSContext *cx, uint32 length, uint32 nsrcnotes, uint32 ntrynotes,
-             uint32 natoms, uint32 nobjects, uint32 nregexps);
+js_NewScript(JSContext *cx, uint32 length, uint32 nsrcnotes, uint32 natoms,
+             uint32 nobjects, uint32 nupvars, uint32 nregexps,
+             uint32 ntrynotes);
 
 extern JSScript *
 js_NewScriptFromCG(JSContext *cx, JSCodeGenerator *cg);
