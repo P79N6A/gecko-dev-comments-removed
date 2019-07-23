@@ -63,28 +63,21 @@ function run_test_on_service() {
   
   var pb = Cc[PRIVATEBROWSING_CONTRACT_ID].
            getService(Ci.nsIPrivateBrowsingService);
-  var prefBranch = Cc["@mozilla.org/preferences-service;1"].
-                   getService(Ci.nsIPrefBranch);
-  prefBranch.setBoolPref("browser.privatebrowsing.keep_current_session", true);
 
-  try {
-    
-    do_check_true(is_about_privatebrowsing_available());
+  
+  do_check_true(is_about_privatebrowsing_available());
 
-    
-    pb.privateBrowsingEnabled = true;
+  
+  pb.privateBrowsingEnabled = true;
 
-    
-    do_check_true(is_about_privatebrowsing_available());
+  
+  do_check_true(is_about_privatebrowsing_available());
 
-    
-    pb.privateBrowsingEnabled = false;
+  
+  pb.privateBrowsingEnabled = false;
 
-    
-    do_check_true(is_about_privatebrowsing_available());
-  } finally {
-    prefBranch.clearUserPref("browser.privatebrowsing.keep_current_session");
-  }
+  
+  do_check_true(is_about_privatebrowsing_available());
 }
 
 

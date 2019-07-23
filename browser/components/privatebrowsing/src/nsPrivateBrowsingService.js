@@ -74,6 +74,11 @@ const Ci = Components.interfaces;
 const Cu = Components.utils;
 const Cr = Components.results;
 
+const STATE_IDLE = 0;
+const STATE_TRANSITION_STARTED = 1;
+const STATE_WAITING_FOR_RESTORE = 2;
+const STATE_RESTORE_FINISHED = 3;
+
 
 
 
@@ -82,6 +87,7 @@ function PrivateBrowsingService() {
   this._obs.addObserver(this, "quit-application-granted", true);
   this._obs.addObserver(this, "private-browsing", true);
   this._obs.addObserver(this, "command-line-startup", true);
+  this._obs.addObserver(this, "sessionstore-browser-state-restored", true);
 }
 
 PrivateBrowsingService.prototype = {
@@ -116,7 +122,7 @@ PrivateBrowsingService.prototype = {
   _saveSession: true,
 
   
-  _alreadyChangingMode: false,
+  _currentStatus: STATE_IDLE,
 
   
   _autoStarted: false,
@@ -234,6 +240,7 @@ PrivateBrowsingService.prototype = {
       
       
       if (!this._inPrivateBrowsing) {
+        this._currentStatus = STATE_WAITING_FOR_RESTORE;
         ss.setBrowserState(this._savedBrowserState);
         this._savedBrowserState = null;
 
@@ -275,8 +282,32 @@ PrivateBrowsingService.prototype = {
           }]
         };
         
+        this._currentStatus = STATE_WAITING_FOR_RESTORE;
         ss.setBrowserState(JSON.stringify(privateBrowsingState));
       }
+    }
+  },
+
+  _notifyIfTransitionComplete: function PBS__notifyIfTransitionComplete() {
+    switch (this._currentStatus) {
+      case STATE_TRANSITION_STARTED:
+        
+      case STATE_RESTORE_FINISHED:
+        
+        this._currentStatus = STATE_IDLE;
+        this._obs.notifyObservers(null, "private-browsing-transition-complete", "");
+        break;
+      case STATE_WAITING_FOR_RESTORE:
+        
+        break;
+      case STATE_IDLE:
+        
+        break;
+      default:
+        
+        Cu.reportError("Unexpected private browsing status reached: " +
+                       this._currentStatus);
+        break;
     }
   },
 
@@ -382,6 +413,12 @@ PrivateBrowsingService.prototype = {
         aSubject.QueryInterface(Ci.nsICommandLine);
         this.handle(aSubject);
         break;
+      case "sessionstore-browser-state-restored":
+        if (this._currentStatus == STATE_WAITING_FOR_RESTORE) {
+          this._currentStatus = STATE_RESTORE_FINISHED;
+          this._notifyIfTransitionComplete();
+        }
+        break;
     }
   },
 
@@ -416,11 +453,11 @@ PrivateBrowsingService.prototype = {
     
     
     
-    if (this._alreadyChangingMode)
+    if (this._currentStatus != STATE_IDLE)
       throw Cr.NS_ERROR_FAILURE;
 
     try {
-      this._alreadyChangingMode = true;
+      this._currentStatus = STATE_TRANSITION_STARTED;
 
       if (val != this._inPrivateBrowsing) {
         if (val) {
@@ -465,7 +502,7 @@ PrivateBrowsingService.prototype = {
           "private browsing mode change request: " + ex.toString());
     } finally {
       this._windowsToClose = [];
-      this._alreadyChangingMode = false;
+      this._notifyIfTransitionComplete();
     }
   },
 
