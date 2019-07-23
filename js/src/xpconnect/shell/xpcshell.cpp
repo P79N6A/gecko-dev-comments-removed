@@ -44,7 +44,6 @@
 
 
 
-
 #include <stdio.h>
 #include "nsXULAppAPI.h"
 #include "nsServiceManagerUtils.h"
@@ -105,10 +104,6 @@
 
 #include "nsIJSContextStack.h"
 
-#ifdef MOZ_CRASHREPORTER
-#include "nsICrashReporter.h"
-#endif
-
 class XPCShellDirProvider : public nsIDirectoryServiceProvider2
 {
 public:
@@ -154,6 +149,86 @@ static JSBool compileOnly = JS_FALSE;
 
 JSPrincipals *gJSPrincipals = nsnull;
 nsAutoString *gWorkingDirectory = nsnull;
+
+static JSContext *gWatchdogContext = nsnull;
+
+#ifdef XP_WIN
+static HANDLE gTimerHandle = 0;
+
+VOID CALLBACK
+TimerCallback(PVOID lpParameter, BOOLEAN TimerOrWaitFired)
+{
+    JS_TriggerOperationCallback(gWatchdogContext);
+}
+
+static void
+EnableWatchdog(JSContext *cx)
+{
+    gWatchdogContext = cx;
+
+    if (gTimerHandle)
+        return;
+
+    if (!CreateTimerQueueTimer(&gTimerHandle,
+                               NULL,
+                               (WAITORTIMERCALLBACK)TimerCallback,
+                               rt,
+                               DWORD(1000),
+                               0,
+                               WT_EXECUTEINTIMERTHREAD | WT_EXECUTEONLYONCE))
+        gTimerHandle = 0;
+}
+
+static void
+DisableWatchdog()
+{
+    if (gTimerHandle) {
+        DeleteTimerQueueTimer(NULL, gTimerHandle, NULL);
+        gTimerHandle = 0;
+    }
+}
+#else
+static void
+AlarmHandler(int sig)
+{
+    JS_TriggerOperationCallback(gWatchdogContext);
+}
+
+static void
+EnableWatchdog(JSContext *cx)
+{
+    gWatchdogContext = cx;
+
+    signal(SIGALRM, AlarmHandler); 
+    alarm(1);
+}
+
+static void
+DisableWatchdog()
+{
+    alarm(0);
+    signal(SIGALRM, NULL);
+}
+#endif
+
+class Watchdog {
+public:
+    Watchdog(JSContext *cx) {
+        EnableWatchdog(cx);
+    }
+
+    ~Watchdog() {
+        DisableWatchdog();
+    }
+};
+
+static JSBool
+ShellOperationCallback(JSContext *cx)
+{
+    JS_MaybeGC(cx);
+
+    return JS_TRUE;
+}
 
 static JSBool
 GetLocationProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
@@ -1523,6 +1598,7 @@ ContextCallback(JSContext *cx, uintN contextOp)
     if (contextOp == JSCONTEXT_NEW) {
         JS_SetErrorReporter(cx, my_ErrorReporter);
         JS_SetVersion(cx, JSVERSION_LATEST);
+        JS_SetOperationCallback(cx, ShellOperationCallback);
     }
     return JS_TRUE;
 }
@@ -1620,7 +1696,7 @@ main(int argc, char **argv, char **envp)
         nsCOMPtr<nsIServiceManager> servMan;
         rv = NS_InitXPCOM2(getter_AddRefs(servMan), appDir, &dirprovider);
         if (NS_FAILED(rv)) {
-            printf("NS_InitXPCOM2 failed!\n");
+            printf("NS_InitXPCOM failed!\n");
             return 1;
         }
         {
@@ -1649,6 +1725,8 @@ main(int argc, char **argv, char **envp)
             printf("JS_NewContext failed!\n");
             return 1;
         }
+
+        Watchdog watchdog(cx);
 
         nsCOMPtr<nsIXPConnect> xpc = do_GetService(nsIXPConnect::GetCID());
         if (!xpc) {
@@ -1773,14 +1851,6 @@ main(int argc, char **argv, char **envp)
         JS_GC(cx);
         JS_DestroyContext(cx);
     } 
-
-#ifdef MOZ_CRASHREPORTER
-    
-    
-    nsCOMPtr<nsICrashReporter> crashReporter =
-        do_GetService("@mozilla.org/toolkit/crash-reporter;1");
-#endif
-
     
     rv = NS_ShutdownXPCOM( NULL );
     NS_ASSERTION(NS_SUCCEEDED(rv), "NS_ShutdownXPCOM failed");
@@ -1795,14 +1865,6 @@ main(int argc, char **argv, char **envp)
     appDir = nsnull;
     appFile = nsnull;
     dirprovider.ClearGREDir();
-
-#ifdef MOZ_CRASHREPORTER
-    
-    if (crashReporter) {
-        crashReporter->SetEnabled(PR_FALSE);
-        crashReporter = nsnull;
-    }
-#endif
 
     NS_LogTerm();
 
