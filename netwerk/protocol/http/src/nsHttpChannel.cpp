@@ -856,16 +856,6 @@ nsHttpChannel::ProcessResponse()
             rv = ProcessNormal();
         }
         break;
-    case 412: 
-    case 416: 
-        if (mResuming) {
-            LOG(("Resuming and got %i status, aborting [this=%p]\n",
-                 httpStatus, this));
-            Cancel(NS_ERROR_ENTITY_CHANGED);
-            rv = CallOnStartRequest();
-            break;
-        }
-        
     default:
         rv = ProcessNormal();
         break;
@@ -923,6 +913,13 @@ nsHttpChannel::ProcessNormal()
         if (NS_FAILED(rv)) {
             
             Cancel(NS_ERROR_NOT_RESUMABLE);
+        }
+        else if (mResponseHead->Status() != 206) {
+            
+            
+            LOG(("Unexpected response status while resuming, aborting [this=%p]\n",
+                 this));
+            Cancel(NS_ERROR_ENTITY_CHANGED);
         }
         
         else if (!mEntityID.IsEmpty()) {
