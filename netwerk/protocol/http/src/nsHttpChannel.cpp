@@ -1279,8 +1279,15 @@ nsHttpChannel::DoReplaceWithProxy(nsIProxyInfo* pi)
         return rv;
 
     mStatus = NS_BINDING_REDIRECTED;
+
+    
     mListener = nsnull;
     mListenerContext = nsnull;
+
+    
+    mCallbacks = nsnull;
+    mProgressSink = nsnull;
+
     return rv;
 }
 
