@@ -5269,7 +5269,13 @@ JS_SetOperationLimit(JSContext *cx, uint32 operationLimit)
 {
     
     JS_ASSERT(!cx->branchCallbackWasSet);
-    JS_ASSERT(operationLimit <= JS_MAX_OPERATION_LIMIT);
+
+    
+    
+    if (!(operationLimit <= JS_MAX_OPERATION_LIMIT)) {
+        operationLimit = JS_MAX_OPERATION_LIMIT;
+    }
+
     JS_ASSERT(operationLimit > 0);
 
     cx->operationCount = (int32) operationLimit;
