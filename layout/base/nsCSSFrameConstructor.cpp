@@ -9927,8 +9927,14 @@ InvalidateCanvasIfNeeded(nsIFrame* aFrame)
   }
 
   if (ancestor != aFrame) {
+    
+    
+
+    nsIViewManager* viewManager = presContext->GetViewManager();
+    viewManager->BeginUpdateViewBatch();  
     ApplyRenderingChangeToTree(presContext, ancestor,
                                nsChangeHint_RepaintFrame);
+    viewManager->EndUpdateViewBatch(NS_VMREFRESH_DEFERRED);
   }
 }
 
