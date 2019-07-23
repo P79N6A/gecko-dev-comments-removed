@@ -347,20 +347,20 @@ gfxWindowsFont::FillLogFont(gfxFloat aSize)
     PRUint16 weight = fe->Weight();
 
     
+    PRInt8 baseWeight, weightDistance;
+    GetStyle()->ComputeWeightAndOffset(&baseWeight, &weightDistance);
+    if ((weightDistance == 0 && baseWeight >= 6) 
+        || (weightDistance > 0)) {
+        weight = PR_MAX(weight, 700); 
+    }
+
+    
     
     if (fe->mIsUserFont) {
         if (fe->IsItalic())
             isItalic = PR_FALSE; 
         if (fe->IsBold()) {
             weight = 400; 
-        } else {
-            
-            PRInt8 baseWeight, weightDistance;
-            GetStyle()->ComputeWeightAndOffset(&baseWeight, &weightDistance);
-            if ((weightDistance == 0 && baseWeight >= 6) 
-                || (weightDistance > 0)) {
-                weight = 700; 
-            }
         }
     }
 
@@ -472,7 +472,7 @@ gfxWindowsFont::GetOrMakeFont(gfxFontEntry *aFontEntry, const gfxFontStyle *aSty
     
     gfxFontStyle style(*aStyle);
 
-    if (aFontEntry->mIsUserFont && !aFontEntry->IsBold()) {
+    if (!aFontEntry->IsBold()) {
         
         PRInt8 baseWeight, weightDistance;
         aStyle->ComputeWeightAndOffset(&baseWeight, &weightDistance);
