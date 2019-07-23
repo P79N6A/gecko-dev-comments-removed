@@ -202,25 +202,22 @@ nsPlacesDBFlush.prototype = {
     
     
     
-    this._db.executeAsync(statements, statements.length, this);
-
-    
     
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    let self = this;
+    let listener = {
+      
+      _count: statements.length,
+      handleError: function(aError) self.handleError(aError),
+      handleCompletion: function(aReason) {
+        this._count--;
+        if (this._count == 0) {
+          
+          self.handleCompletion(aReason);
+        }
+      }
+    };
+    statements.forEach(function(stmt) stmt.executeAsync(listener));
 
     
     statements.forEach(function(stmt) stmt.finalize());
