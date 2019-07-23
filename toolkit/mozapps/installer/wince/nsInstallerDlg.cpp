@@ -346,7 +346,9 @@ BOOL nsInstallerDlg::SilentFirstRun()
   if (bResult)
   {
     
-    WaitForSingleObject(pi.hProcess, INFINITE);
+    
+    
+    WaitForSingleObject(pi.hProcess, 10000);
   }
   SetWindowText(GetDlgItem(m_hDlg, IDC_STATUS_TEXT), L"");
   return bResult;
