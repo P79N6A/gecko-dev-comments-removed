@@ -272,7 +272,7 @@ NS_IMETHODIMP imgContainer::AppendFrame(gfxIImageFrame *item)
   if (!item)
     return NS_ERROR_INVALID_ARG;
 
-  if (mFrames.Count () == 0) {
+  if (mFrames.Count() == 0) {
     
     mFrames.AppendObject(item);
 
@@ -281,7 +281,7 @@ NS_IMETHODIMP imgContainer::AppendFrame(gfxIImageFrame *item)
     return NS_OK;
   }
   
-  if (mFrames.Count () == 1) {
+  if (mFrames.Count() == 1) {
     
     if (!ensureAnimExists())
       return NS_ERROR_OUT_OF_MEMORY;
@@ -311,7 +311,7 @@ NS_IMETHODIMP imgContainer::AppendFrame(gfxIImageFrame *item)
   
   
   
-  if (mFrames.Count () == 1)
+  if (mFrames.Count() == 2)
     StartAnimation();
   
   return NS_OK;
