@@ -59,12 +59,6 @@
 #include "nsILegacyPluginWrapperOS2.h"
 #endif
 
-#ifdef MOZ_WIDGET_GTK2
-#include <gdk/gdk.h>
-#include <gdk/gdkx.h>
-#include "gtk2xtbin.h"
-#endif
-
 
 
 static NS_DEFINE_IID(kCPluginManagerCID, NS_PLUGINMANAGER_CID); 
@@ -820,11 +814,6 @@ ns4xPluginInstance::~ns4xPluginInstance(void)
 {
   PLUGIN_LOG(PLUGIN_LOG_BASIC, ("ns4xPluginInstance dtor: this=%p\n",this));
 
-#if defined (MOZ_WIDGET_GTK2)
-  if (mXtBin)
-    gtk_widget_destroy(mXtBin);
-#endif
-
   
   for(nsInstanceStream *is = mStreams; is != nsnull;) {
     nsInstanceStream * next = is->mNext;
@@ -847,9 +836,6 @@ NS_IMETHODIMP ns4xPluginInstance::Initialize(nsIPluginInstancePeer* peer)
 {
   PLUGIN_LOG(PLUGIN_LOG_NORMAL, ("ns4xPluginInstance::Initialize this=%p\n",this));
 
-#if defined (MOZ_WIDGET_GTK2)
-  mXtBin = nsnull;
-#endif
   return InitializePlugin(peer);
 }
 
@@ -889,13 +875,6 @@ NS_IMETHODIMP ns4xPluginInstance::Stop(void)
       window->PopPopupControlState(openAbused);
     }
   }
-
-#if defined (MOZ_WIDGET_GTK2)
-  if (mXtBin) {
-    gtk_widget_destroy(mXtBin);
-    mXtBin = 0;
-  }
-#endif
 
   if(!mStarted)
     return NS_OK;
@@ -1117,109 +1096,12 @@ NS_IMETHODIMP ns4xPluginInstance::SetWindow(nsPluginWindow* window)
   
   NPError error;
 
-  
-  
 #if defined (MOZ_WIDGET_GTK2)
-  if (window->type == nsPluginWindowType_Window) {
-    PRBool isXembed = PR_FALSE;
+  if (window->type == nsPluginWindowType_Window &&
+      (window->width <= 0 || window->height <= 0)) {
     
-    if ((PRInt32) window->width <= 0 || (PRInt32) window->height <= 0)
-      return NS_OK;
-
-    
-    
-    
-    GdkWindow *win = gdk_window_lookup((XID)window->window);
-    if (!win)
-      return NS_ERROR_FAILURE;
-
-    gpointer user_data = nsnull;
-    gdk_window_get_user_data(win, &user_data);
-    if (user_data && GTK_IS_WIDGET(user_data)) {
-      GtkWidget* widget = GTK_WIDGET(user_data);
-
-      if (GTK_IS_SOCKET(widget))
-        isXembed = PR_TRUE;
-    }
-
-    
-    
-    if (!mXtBin && window->ws_info) {
-
-      NPSetWindowCallbackStruct* ws =
-        static_cast<NPSetWindowCallbackStruct*>(window->ws_info);
-
-      if (!isXembed) {  
-#ifdef NS_DEBUG      
-        printf("About to create new xtbin of %i X %i from %p...\n",
-               window->width, window->height, (void*)win);
-#endif
-
-#if 0
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-
-        if (mXtBin) {
-          gtk_widget_destroy(mXtBin);
-          mXtBin = NULL;
-        }
-#endif
-
-
-        if (!mXtBin) {
-          mXtBin = gtk_xtbin_new(win, 0);
-          
-          
-          if (!mXtBin)
-            return NS_ERROR_FAILURE;
-        } 
-
-        gtk_widget_set_usize(mXtBin, window->width, window->height);
-
-#ifdef NS_DEBUG
-        printf("About to show xtbin(%p)...\n", (void*)mXtBin); fflush(NULL);
-#endif
-        gtk_widget_show(mXtBin);
-#ifdef NS_DEBUG
-        printf("completed gtk_widget_show(%p)\n", (void*)mXtBin); fflush(NULL);
-#endif
-      }
-
-      
-      ws->type = 0; 
-#ifdef MOZ_X11
-      ws->depth = gdk_window_get_visual(win)->depth;
-      if (!isXembed)
-        ws->display = GTK_XTBIN(mXtBin)->xtdisplay;
-      else
-        ws->display = GDK_WINDOW_XDISPLAY(win);
-      ws->visual = GDK_VISUAL_XVISUAL(gdk_window_get_visual(win));
-      ws->colormap = GDK_COLORMAP_XCOLORMAP(gdk_window_get_colormap(win));
-
-      XFlush(ws->display);
-#endif
-    } 
-
-    if (!mXtBin && !isXembed)
-      return NS_ERROR_FAILURE;
-
-    if (!isXembed) {
-      
-      
-      window->window = (nsPluginPort *)GTK_XTBIN(mXtBin)->xtwindow;
-    
-      gtk_xtbin_resize(mXtBin, window->width, window->height);
-    }
+    return NS_OK;
   }
-  
 #endif 
 
   if (fCallbacks->setwindow) {

@@ -63,10 +63,6 @@
 #endif
 #include "prlink.h"  
 
-#if defined (MOZ_WIDGET_GTK2)
-#include <gtk/gtk.h>
-#endif
-
 
 
 class ns4xPluginStreamListener;
@@ -173,14 +169,6 @@ protected:
 
 
     NPPluginFuncs* fCallbacks;
-
-#if defined (MOZ_WIDGET_GTK2)
-   
-
-
-
-   GtkWidget *mXtBin;
-#endif
 
     
 
