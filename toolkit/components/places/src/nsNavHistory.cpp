@@ -521,18 +521,8 @@ nsNavHistory::InitDB(PRBool *aDoImport)
 
   
   PRInt32 DBSchemaVersion;
-  {
-    nsCOMPtr<mozIStorageStatement> statement;
-    rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING("PRAGMA user_version"),
-                                  getter_AddRefs(statement));
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    PRBool hasResult;
-    rv = statement->ExecuteStep(&hasResult);
-    NS_ENSURE_SUCCESS(rv, rv);
-    NS_ENSURE_TRUE(hasResult, NS_ERROR_FAILURE);
-    DBSchemaVersion = statement->AsInt32(0);
-  }
+  rv = mDBConn->GetSchemaVersion(&DBSchemaVersion);
+  NS_ENSURE_SUCCESS(rv, rv);
    
   if (PLACES_SCHEMA_VERSION != DBSchemaVersion) {
     
@@ -711,9 +701,7 @@ nsNavHistory::InitDB(PRBool *aDoImport)
 nsresult
 nsNavHistory::UpdateSchemaVersion()
 {
-  nsCAutoString schemaVersionPragma("PRAGMA user_version=");
-  schemaVersionPragma.AppendInt(PLACES_SCHEMA_VERSION);
-  return mDBConn->ExecuteSimpleSQL(schemaVersionPragma);
+  return mDBConn->SetSchemaVersion(PLACES_SCHEMA_VERSION);
 }
 
 
