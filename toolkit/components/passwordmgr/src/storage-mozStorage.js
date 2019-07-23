@@ -40,6 +40,7 @@
 
 const Cc = Components.classes;
 const Ci = Components.interfaces;
+const Cr = Components.results;
 
 const DB_VERSION = 3; 
 
@@ -65,26 +66,12 @@ LoginManagerStorage_mozStorage.prototype = {
         return this.__logService;
     },
 
-    __decoderRing : null,  
-    get _decoderRing() {
-        if (!this.__decoderRing)
-            this.__decoderRing = Cc["@mozilla.org/security/sdr;1"].
-                                 getService(Ci.nsISecretDecoderRing);
-        return this.__decoderRing;
-    },
-
-    __utfConverter : null, 
-    get _utfConverter() {
-        if (!this.__utfConverter) {
-            this.__utfConverter = Cc["@mozilla.org/intl/scriptableunicodeconverter"].
-                                  createInstance(Ci.nsIScriptableUnicodeConverter);
-            this.__utfConverter.charset = "UTF-8";
-        }
-        return this.__utfConverter;
-    },
-
-    _utfConverterReset : function() {
-        this.__utfConverter = null;
+    __crypto : null,  
+    get _crypto() {
+        if (!this.__crypto)
+            this.__crypto = Cc["@mozilla.org/login-manager/crypto/SDR;1"].
+                            getService(Ci.nsILoginManagerCrypto);
+        return this.__crypto;
     },
 
     __profileDir: null,  
@@ -219,17 +206,6 @@ LoginManagerStorage_mozStorage.prototype = {
 
         this._debug = this._prefBranch.getBoolPref("debug");
 
-        
-        
-        let tokenDB = Cc["@mozilla.org/security/pk11tokendb;1"].
-                      getService(Ci.nsIPK11TokenDB);
-
-        let token = tokenDB.getInternalKeyToken();
-        if (token.needsUserInit) {
-            this.log("Initializing key3.db with default blank password.");
-            token.initPassword("");
-        }
-
         let isFirstRun;
         try {
             
@@ -276,19 +252,15 @@ LoginManagerStorage_mozStorage.prototype = {
 
 
     _addLogin : function (login, isEncrypted) {
-        let userCanceled, encUsername, encPassword;
+        let encUsername, encPassword;
 
         
         this._checkLoginValues(login);
 
-        if (isEncrypted) {
+        if (isEncrypted)
             [encUsername, encPassword] = [login.username, login.password];
-        } else {
-            
-            [encUsername, encPassword, userCanceled] = this._encryptLogin(login);
-            if (userCanceled)
-                throw "User canceled master password entry, login not added.";
-        }
+        else
+            [encUsername, encPassword] = this._encryptLogin(login);
 
         
         let loginClone = login.clone();
@@ -433,9 +405,7 @@ LoginManagerStorage_mozStorage.prototype = {
         this._checkLoginValues(newLogin);
 
         
-        let [encUsername, encPassword, userCanceled] = this._encryptLogin(newLogin);
-        if (userCanceled)
-            throw "User canceled master password entry, login not modified.";
+        let [encUsername, encPassword] = this._encryptLogin(newLogin);
 
         let query =
             "UPDATE moz_logins " +
@@ -484,14 +454,10 @@ LoginManagerStorage_mozStorage.prototype = {
 
 
     getAllLogins : function (count) {
-        let userCanceled;
         let [logins, ids] = this._searchLogins({});
 
         
-        [logins, userCanceled] = this._decryptLogins(logins);
-
-        if (userCanceled)
-            throw "User canceled Master Password entry";
+        logins = this._decryptLogins(logins);
 
         this.log("_getAllLogins: returning " + logins.length + " logins.");
         if (count)
@@ -509,7 +475,7 @@ LoginManagerStorage_mozStorage.prototype = {
 
 
     getAllEncryptedLogins : function (count) {
-        throw Components.results.NS_ERROR_NOT_IMPLEMENTED;
+        throw Cr.NS_ERROR_NOT_IMPLEMENTED;
     },
 
 
@@ -532,12 +498,8 @@ LoginManagerStorage_mozStorage.prototype = {
 
         let [logins, ids] = this._searchLogins(realMatchData);
 
-        let userCanceled;
         
-        [logins, userCanceled] = this._decryptLogins(logins);
-
-        if (userCanceled)
-        throw "User canceled Master Password entry";
+        logins = this._decryptLogins(logins);
 
         count.value = logins.length; 
         return logins;
@@ -716,7 +678,6 @@ LoginManagerStorage_mozStorage.prototype = {
 
 
     findLogins : function (count, hostname, formSubmitURL, httpRealm) {
-        let userCanceled;
         let loginData = {
             hostname: hostname,
             formSubmitURL: formSubmitURL,
@@ -729,13 +690,7 @@ LoginManagerStorage_mozStorage.prototype = {
         let [logins, ids] = this._searchLogins(matchData);
 
         
-        [logins, userCanceled] = this._decryptLogins(logins);
-
-        
-        
-        
-        if (userCanceled)
-            throw "User canceled Master Password entry";
+        logins = this._decryptLogins(logins);
 
         this.log("_findLogins: returning " + logins.length + " logins");
         count.value = logins.length; 
@@ -818,11 +773,7 @@ LoginManagerStorage_mozStorage.prototype = {
         
         
         for (let i = 0; i < logins.length; i++) {
-            let [[decryptedLogin], userCanceled] =
-                        this._decryptLogins([logins[i]]);
-
-            if (userCanceled)
-                throw "User canceled master password entry.";
+            let [decryptedLogin] = this._decryptLogins([logins[i]]);
 
             if (!decryptedLogin || !decryptedLogin.equals(login))
                 continue;
@@ -1070,20 +1021,13 @@ LoginManagerStorage_mozStorage.prototype = {
 
 
     _encryptLogin : function (login) {
-        let encUsername, encPassword, userCanceled;
-        [encUsername, userCanceled] = this._encrypt(login.username);
-        if (userCanceled)
-            return [null, null, true];
-
-        [encPassword, userCanceled] = this._encrypt(login.password);
-        
-        if (userCanceled)
-            return [null, null, true];
+        let encUsername = this._crypto.encrypt(login.username);
+        let encPassword = this._crypto.encrypt(login.password);
 
         if (!this._base64checked)
             this._reencryptBase64Logins();
 
-        return [encUsername, encPassword, false];
+        return [encUsername, encPassword];
     },
 
 
@@ -1101,37 +1045,26 @@ LoginManagerStorage_mozStorage.prototype = {
 
 
     _decryptLogins : function (logins) {
-        let result = [], userCanceled = false;
+        let result = [];
 
         for each (let login in logins) {
-            let decryptedUsername, decryptedPassword;
-
-            [decryptedUsername, userCanceled] = this._decrypt(login.username);
-
-            if (userCanceled)
-                break;
-
-            [decryptedPassword, userCanceled] = this._decrypt(login.password);
-
-            
-            if (userCanceled)
-                break;
-
-            
-            
-            if (decryptedUsername == null || !decryptedPassword)
-                continue;
-
-            login.username = decryptedUsername;
-            login.password = decryptedPassword;
-
+            try {
+                login.username = this._crypto.decrypt(login.username);
+                login.password = this._crypto.decrypt(login.password);
+            } catch (e) {
+                
+                
+                if (e.result == Cr.NS_ERROR_FAILURE)
+                    continue;
+                throw e;
+            }
             result.push(login);
         }
 
-        if (!this._base64checked && !userCanceled)
+        if (!this._base64checked)
             this._reencryptBase64Logins();
 
-        return [result, userCanceled];
+        return result;
     },
 
 
@@ -1156,16 +1089,17 @@ LoginManagerStorage_mozStorage.prototype = {
             if (!logins.length)
                 return;
 
-            let userCancelled;
-            [logins, userCanceled] = this._decryptLogins(logins);
-            if (userCanceled)
+            try {
+                logins = this._decryptLogins(logins);
+            } catch (e) {
+                
                 return;
+            }
 
             let encUsername, encPassword, stmt;
             for each (let login in logins) {
-                [encUsername, encPassword, userCanceled] = this._encryptLogin(login);
-                if (userCanceled)
-                    throw "User canceled master password entry, login not modified.";
+                [encUsername, encPassword] = this._encryptLogin(login);
+
                 let query =
                     "UPDATE moz_logins " +
                     "SET encryptedUsername = :encryptedUsername, " +
@@ -1193,86 +1127,6 @@ LoginManagerStorage_mozStorage.prototype = {
         } finally {
             this._dbConnection.commitTransaction();
         }
-    },
-
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-    _encrypt : function (plainText) {
-        let cipherText = null, userCanceled = false;
-
-        try {
-            let plainOctet = this._utfConverter.ConvertFromUnicode(plainText);
-            plainOctet += this._utfConverter.Finish();
-            cipherText = this._decoderRing.encryptString(plainOctet);
-        } catch (e) {
-            this.log("Failed to encrypt string. (" + e.name + ")");
-            
-            
-            if (e.result == Components.results.NS_ERROR_FAILURE)
-                userCanceled = true;
-        }
-
-        return [cipherText, userCanceled];
-    },
-
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-    _decrypt : function (cipherText) {
-        let plainText = null, userCanceled = false;
-
-        try {
-            let plainOctet;
-            if (cipherText.charAt(0) == '~') {
-                
-                
-                
-                plainOctet = atob(cipherText.substring(1));
-            } else {
-                plainOctet = this._decoderRing.decryptString(cipherText);
-            }
-            plainText = this._utfConverter.ConvertToUnicode(plainOctet);
-        } catch (e) {
-            this.log("Failed to decrypt string: " + cipherText +
-                " (" + e.name + ")");
-
-            
-            this._utfConverterReset();
-
-            
-            
-            
-            
-            if (e.result == Components.results.NS_ERROR_NOT_AVAILABLE)
-                userCanceled = true;
-        }
-
-        return [plainText, userCanceled];
     },
 
 
@@ -1323,7 +1177,7 @@ LoginManagerStorage_mozStorage.prototype = {
             } else if (version != DB_VERSION) {
                 this._dbMigrate(version);
             }
-        } catch (e if e.result == Components.results.NS_ERROR_FILE_CORRUPTED) {
+        } catch (e if e.result == Cr.NS_ERROR_FILE_CORRUPTED) {
             
             
             this._dbCleanup(true);
@@ -1377,7 +1231,7 @@ LoginManagerStorage_mozStorage.prototype = {
 
             if (!this._dbAreExpectedColumnsPresent())
                 throw Components.Exception("DB is missing expected columns",
-                                           Components.results.NS_ERROR_FILE_CORRUPTED);
+                                           Cr.NS_ERROR_FILE_CORRUPTED);
 
             
             
