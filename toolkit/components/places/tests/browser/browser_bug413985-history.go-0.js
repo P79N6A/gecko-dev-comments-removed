@@ -87,8 +87,7 @@ function test()
     var root = result.root;
     root.containerOpen = true;
     var cc = root.childCount;
-    
-    todo_is(cc, 1, "Visit count is what we expect");
+    is(cc, 1, "Visit count is what we expect");
     ok(loadCount > 1, "Load count is greater than 1");
     root.containerOpen = false;
   }
