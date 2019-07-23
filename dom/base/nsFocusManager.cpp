@@ -742,7 +742,7 @@ nsFocusManager::WindowLowered(nsIDOMWindow* aWindow)
   return NS_OK;
 }
 
-NS_IMETHODIMP
+nsresult
 nsFocusManager::ContentRemoved(nsIDocument* aDocument, nsIContent* aContent)
 {
   NS_ENSURE_ARG(aDocument);
@@ -754,7 +754,7 @@ nsFocusManager::ContentRemoved(nsIDocument* aDocument, nsIContent* aContent)
 
   
   
-  nsCOMPtr<nsIContent> content = window->GetFocusedNode();
+  nsIContent* content = window->GetFocusedNode();
   if (content && nsContentUtils::ContentIsDescendantOf(content, aContent)) {
     window->SetFocusedNode(nsnull);
 

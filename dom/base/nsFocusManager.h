@@ -86,6 +86,11 @@ public:
   
 
 
+  nsresult ContentRemoved(nsIDocument* aDocument, nsIContent* aContent);
+
+  
+
+
 
 
 

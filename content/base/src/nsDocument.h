@@ -652,11 +652,6 @@ public:
   
 
 
-  virtual nsPIDOMWindow *GetWindow();
-
-  
-
-
   virtual nsScriptLoader* ScriptLoader();
 
   
@@ -1011,6 +1006,7 @@ protected:
                               const nsAString& aType,
                               PRBool aPersisted);
 
+  virtual nsPIDOMWindow *GetWindowInternal();
   virtual nsPIDOMWindow *GetInnerWindowInternal();
 
   
