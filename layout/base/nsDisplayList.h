@@ -658,7 +658,7 @@ private:
   void* operator new(size_t sz) CPP_THROW_NEW;
   
   
-  void FlattenTo(nsVoidArray* aElements);
+  void FlattenTo(nsTArray<nsDisplayItem*>* aElements);
   
   
   void ExplodeAnonymousChildLists(nsDisplayListBuilder* aBuilder);
