@@ -172,6 +172,7 @@ static nscoord CalcLengthWith(const nsCSSValue& aValue,
 {
   NS_ASSERTION(aValue.IsLengthUnit(), "not a length unit");
   NS_ASSERTION(aStyleFont || aStyleContext, "Must have style data");
+  NS_ASSERTION(!aStyleFont || !aStyleContext, "Duplicate sources of data");
   NS_ASSERTION(aPresContext, "Must have prescontext");
 
   if (aValue.IsFixedLengthUnit()) {
@@ -199,7 +200,15 @@ static nscoord CalcLengthWith(const nsCSSValue& aValue,
         
         
         
+        
+        
         rootFontSize = aFontSize;
+      } else if (aStyleContext && !aStyleContext->GetParent()) {
+        
+        
+        
+        
+        rootFontSize = aStyleFont->mFont.size;
       } else {
         
         
