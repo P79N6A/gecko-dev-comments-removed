@@ -803,43 +803,31 @@ nsKeygenFormProcessor::ProcessValue(nsIDOMHTMLElement *aElement,
 				    const nsAString& aName, 
 				    nsAString& aValue) 
 { 
-  nsresult rv = NS_OK;
-  nsCOMPtr<nsIDOMHTMLSelectElement>selectElement;
-  nsresult res = aElement->QueryInterface(kIDOMHTMLSelectElementIID, 
-					  getter_AddRefs(selectElement));
-  if (NS_SUCCEEDED(res)) {
-    nsAutoString keygenvalue;
     nsAutoString challengeValue;
     nsAutoString keyTypeValue;
     nsAutoString keyParamsValue;
-
-    selectElement->GetAttribute(NS_LITERAL_STRING("_moz-type"), keygenvalue);
-    if (keygenvalue.EqualsLiteral("-mozilla-keygen")) {
-
-      res = selectElement->GetAttribute(NS_LITERAL_STRING("keytype"), keyTypeValue);
-      if (NS_FAILED(res) || keyTypeValue.IsEmpty()) {
+    
+    aElement->GetAttribute(NS_LITERAL_STRING("keytype"), keyTypeValue);
+    if (keyTypeValue.IsEmpty()) {
         
-  	    keyTypeValue.AssignLiteral("rsa");
-      }
-
-      res = selectElement->GetAttribute(NS_LITERAL_STRING("pqg"), 
-                                        keyParamsValue);
-      
-
-
-
-      if (NS_FAILED(res) || keyParamsValue.IsEmpty()) {
-          res = selectElement->GetAttribute(NS_LITERAL_STRING("keyparams"), 
-                                            keyParamsValue);
-      }
-
-      res = selectElement->GetAttribute(NS_LITERAL_STRING("challenge"), challengeValue);
-      rv = GetPublicKey(aValue, challengeValue, keyTypeValue, 
-			aValue, keyParamsValue);
+        keyTypeValue.AssignLiteral("rsa");
     }
-  }
+    
+    aElement->GetAttribute(NS_LITERAL_STRING("pqg"), 
+                           keyParamsValue);
+    
 
-  return rv; 
+
+
+    if (keyParamsValue.IsEmpty()) {
+        aElement->GetAttribute(NS_LITERAL_STRING("keyparams"), 
+                               keyParamsValue);
+    }
+
+    aElement->GetAttribute(NS_LITERAL_STRING("challenge"), challengeValue);
+
+    return GetPublicKey(aValue, challengeValue, keyTypeValue, 
+                        aValue, keyParamsValue);
 } 
 
 NS_METHOD nsKeygenFormProcessor::ProvideContent(const nsAString& aFormType, 

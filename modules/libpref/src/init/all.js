@@ -220,9 +220,6 @@ pref("gfx.use_text_smoothing_setting", false);
 pref("browser.frames.enabled", true);
 
 
-pref("browser.forms.submit.backwards_compatible", true);
-
-
 pref("toolkit.autocomplete.richBoundaryCutoff", 200);
 
 pref("toolkit.scrollbox.smoothScroll", true);

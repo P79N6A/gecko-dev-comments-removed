@@ -38,8 +38,9 @@
 #define nsIFormSubmission_h___
 
 #include "nsISupports.h"
-class nsAString;
-class nsACString;
+#include "nsString.h"
+#include "nsCOMPtr.h"
+
 class nsIURI;
 class nsIInputStream;
 class nsGenericHTMLElement;
@@ -49,43 +50,23 @@ class nsIFormControl;
 class nsIDOMHTMLElement;
 class nsIDocShell;
 class nsIRequest;
-
-#define NS_IFORMSUBMISSION_IID   \
-{ 0x7ee38e3a, 0x1dd2, 0x11b2, \
-  {0x89, 0x6f, 0xab, 0x28, 0x03, 0x96, 0x25, 0xa9} }
+class nsISaveAsCharset;
 
 
 
 
 
-class nsIFormSubmission : public nsISupports
-{
+class nsFormSubmission {
+
 public:
+  virtual ~nsFormSubmission();
 
-  NS_DECLARE_STATIC_IID_ACCESSOR(NS_IFORMSUBMISSION_IID)
-
-  
-
-
-
-
-  virtual PRBool AcceptsFiles() const = 0;
-
-  
-
-
-
-
-
-
-
-
-
-
-  virtual nsresult SubmitTo(nsIURI* aActionURL, const nsAString& aTarget,
-                            nsIContent* aSource, nsILinkHandler* aLinkHandler,
-                            nsIDocShell** aDocShell,
-                            nsIRequest** aRequest) = 0;
+  void AddRef()
+  {
+    ++mRefCnt;
+    NS_LOG_ADDREF(this, mRefCnt, "nsFormSubmission", sizeof(*this));
+  }
+  void Release();
 
   
 
@@ -94,8 +75,21 @@ public:
 
 
 
-  virtual nsresult AddNameValuePair(nsIDOMHTMLElement* aSource,
-                                    const nsAString& aName,
+
+
+
+
+  nsresult SubmitTo(nsIURI* aActionURI, const nsAString& aTarget,
+                    nsIContent* aSource, nsILinkHandler* aLinkHandler,
+                    nsIDocShell** aDocShell, nsIRequest** aRequest);
+
+  
+
+
+
+
+
+  virtual nsresult AddNameValuePair(const nsAString& aName,
                                     const nsAString& aValue) = 0;
 
   
@@ -104,24 +98,67 @@ public:
 
 
 
+  virtual nsresult AddNameFilePair(const nsAString& aName,
+                                   nsIFile* aFile) = 0;
+  
+  
+
+
+  void GetCharset(nsACString& aCharset)
+  {
+    aCharset = mCharset;
+  }
+
+protected:
+  
 
 
 
 
 
-  virtual nsresult AddNameFilePair(nsIDOMHTMLElement* aSource,
-                               const nsAString& aName,
-                               const nsAString& aFilename,
-                               nsIInputStream* aStream,
-                               const nsACString& aContentType,
-                               PRBool aMoreFilesToCome) = 0;
 
+
+  nsFormSubmission(const nsACString& aCharset,
+                   nsISaveAsCharset* aEncoder,
+                   PRInt32 aBidiOptions);
+
+  
+
+
+
+
+
+
+  NS_IMETHOD GetEncodedSubmission(nsIURI* aURI,
+                                  nsIInputStream** aPostDataStream) = 0;
+
+  
+
+
+
+
+
+
+  nsresult EncodeVal(const nsAString& aStr, nsACString& aResult);
+
+  
+
+
+
+
+
+
+  nsresult UnicodeToNewBytes(const nsAString& aStr, nsISaveAsCharset* aEncoder,
+                             nsACString& aOut);
+
+  nsAutoRefCnt mRefCnt;
+  
+  nsCString mCharset;
+  
+  nsCOMPtr<nsISaveAsCharset> mEncoder;
+  
+  PRInt32 mBidiOptions;
 };
-
-NS_DEFINE_STATIC_IID_ACCESSOR(nsIFormSubmission, NS_IFORMSUBMISSION_IID)
-
-
-
 
 
 
@@ -131,7 +168,7 @@ NS_DEFINE_STATIC_IID_ACCESSOR(nsIFormSubmission, NS_IFORMSUBMISSION_IID)
 
 
 nsresult GetSubmissionFromForm(nsGenericHTMLElement* aForm,
-                               nsIFormSubmission** aFormSubmission);
+                               nsFormSubmission** aFormSubmission);
 
 
 #endif 

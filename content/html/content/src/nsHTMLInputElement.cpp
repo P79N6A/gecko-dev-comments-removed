@@ -98,11 +98,8 @@
 #include "nsIRadioGroupContainer.h"
 
 
-#include "nsIMIMEService.h"
-#include "nsCExternalHandlerService.h"
 #include "nsIFile.h"
 #include "nsILocalFile.h"
-#include "nsIFileStreams.h"
 #include "nsNetUtil.h"
 #include "nsDOMFile.h"
 
@@ -258,7 +255,7 @@ public:
   
   NS_IMETHOD_(PRInt32) GetType() const { return mType; }
   NS_IMETHOD Reset();
-  NS_IMETHOD SubmitNamesValues(nsIFormSubmission* aFormSubmission,
+  NS_IMETHOD SubmitNamesValues(nsFormSubmission* aFormSubmission,
                                nsIContent* aSubmitElement);
   NS_IMETHOD SaveState();
   virtual PRBool RestoreState(nsPresState* aState);
@@ -410,6 +407,14 @@ protected:
   
 
 
+  PRBool GetChecked() const
+  {
+    return GET_BOOLBIT(mBitField, BF_CHECKED);
+  }
+
+  
+
+
 
   nsresult MaybeSubmitForm(nsPresContext* aPresContext);
 
@@ -548,10 +553,7 @@ nsHTMLInputElement::Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const
       if (GET_BOOLBIT(mBitField, BF_CHECKED_CHANGED)) {
         
         
-        
-        PRBool checked;
-        const_cast<nsHTMLInputElement*>(this)->GetChecked(&checked);
-        it->DoSetChecked(checked, PR_FALSE);
+        it->DoSetChecked(GetChecked(), PR_FALSE);
       }
       break;
     case NS_FORM_INPUT_IMAGE:
@@ -1159,7 +1161,7 @@ nsHTMLInputElement::SetValueChanged(PRBool aValueChanged)
 NS_IMETHODIMP 
 nsHTMLInputElement::GetChecked(PRBool* aChecked)
 {
-  *aChecked = GET_BOOLBIT(mBitField, BF_CHECKED);
+  *aChecked = GetChecked();
   return NS_OK;
 }
 
@@ -1224,9 +1226,7 @@ nsHTMLInputElement::DoSetChecked(PRBool aChecked, PRBool aNotify)
   
   
   
-  PRBool checked = PR_FALSE;
-  GetChecked(&checked);
-  if (checked == aChecked) {
+  if (GetChecked() == aChecked) {
     return NS_OK;
   }
 
@@ -1652,7 +1652,7 @@ nsHTMLInputElement::PreHandleEvent(nsEventChainPreVisitor& aVisitor)
             }
           }
 
-          GetChecked(&originalCheckedValue);
+          originalCheckedValue = GetChecked();
           if (!originalCheckedValue) {
             DoSetChecked(PR_TRUE);
             SET_BOOLBIT(mBitField, BF_CHECKED_IS_TOGGLED, PR_TRUE);
@@ -2552,7 +2552,7 @@ nsHTMLInputElement::Reset()
 }
 
 NS_IMETHODIMP
-nsHTMLInputElement::SubmitNamesValues(nsIFormSubmission* aFormSubmission,
+nsHTMLInputElement::SubmitNamesValues(nsFormSubmission* aFormSubmission,
                                       nsIContent* aSubmitElement)
 {
   nsresult rv = NS_OK;
@@ -2560,47 +2560,23 @@ nsHTMLInputElement::SubmitNamesValues(nsIFormSubmission* aFormSubmission,
   
   
   
+  
+  
   PRBool disabled;
   rv = GetDisabled(&disabled);
-  if (NS_FAILED(rv) || disabled) {
-    return rv;
+  if (disabled || mType == NS_FORM_INPUT_RESET ||
+      mType == NS_FORM_INPUT_BUTTON ||
+      ((mType == NS_FORM_INPUT_SUBMIT || mType == NS_FORM_INPUT_IMAGE) &&
+       aSubmitElement != this) ||
+      ((mType == NS_FORM_INPUT_RADIO || mType == NS_FORM_INPUT_CHECKBOX) &&
+       !GetChecked())) {
+    return NS_OK;
   }
 
-  
-  
-  
-  if (mType == NS_FORM_INPUT_RESET || mType == NS_FORM_INPUT_BUTTON) {
-    return rv;
-  }
-
-  
-  
-  
-  
-  if ((mType == NS_FORM_INPUT_SUBMIT || mType == NS_FORM_INPUT_IMAGE)
-      && aSubmitElement != this) {
-    return rv;
-  }
-
-  
-  
-  
-  if (mType == NS_FORM_INPUT_RADIO || mType == NS_FORM_INPUT_CHECKBOX) {
-    PRBool checked;
-    rv = GetChecked(&checked);
-    if (NS_FAILED(rv) || !checked) {
-      return rv;
-    }
-  }
-
-  
-  
   
   nsAutoString name;
   PRBool nameThere = GetNameIfExists(name);
 
-  
-  
   
   if (mType == NS_FORM_INPUT_IMAGE) {
     
@@ -2620,15 +2596,13 @@ nsHTMLInputElement::SubmitNamesValues(nsIFormSubmission* aFormSubmission,
     yVal.AppendInt(y);
 
     if (!name.IsEmpty()) {
-      aFormSubmission->AddNameValuePair(this,
-                                        name + NS_LITERAL_STRING(".x"), xVal);
-      aFormSubmission->AddNameValuePair(this,
-                                        name + NS_LITERAL_STRING(".y"), yVal);
+      aFormSubmission->AddNameValuePair(name + NS_LITERAL_STRING(".x"), xVal);
+      aFormSubmission->AddNameValuePair(name + NS_LITERAL_STRING(".y"), yVal);
     } else {
       
       
-      aFormSubmission->AddNameValuePair(this, NS_LITERAL_STRING("x"), xVal);
-      aFormSubmission->AddNameValuePair(this, NS_LITERAL_STRING("y"), yVal);
+      aFormSubmission->AddNameValuePair(NS_LITERAL_STRING("x"), xVal);
+      aFormSubmission->AddNameValuePair(NS_LITERAL_STRING("y"), yVal);
     }
 
     return NS_OK;
@@ -2640,7 +2614,7 @@ nsHTMLInputElement::SubmitNamesValues(nsIFormSubmission* aFormSubmission,
 
   
   if (!nameThere) {
-    return rv;
+    return NS_OK;
   }
 
   
@@ -2665,68 +2639,17 @@ nsHTMLInputElement::SubmitNamesValues(nsIFormSubmission* aFormSubmission,
   if (mType == NS_FORM_INPUT_FILE) {
     
 
-    nsCOMPtr<nsIMIMEService> MIMEService =
-      do_GetService(NS_MIMESERVICE_CONTRACTID, &rv);
-    NS_ENSURE_SUCCESS(rv, rv);
-
     nsCOMArray<nsIFile> files;
     GetFileArray(files);
 
     for (PRUint32 i = 0; i < (PRUint32)files.Count(); ++i) {
-      nsIFile* file = files[i];
-
-      
-      PRBool fileSent = PR_FALSE;
-
-      nsAutoString filename;
-      rv = file->GetLeafName(filename);
-      if (NS_FAILED(rv)) {
-        filename.Truncate();
-      }
-
-      if (!filename.IsEmpty() && aFormSubmission->AcceptsFiles()) {
-        
-        nsCAutoString contentType;
-        rv = MIMEService->GetTypeFromFile(file, contentType);
-        if (NS_FAILED(rv)) {
-          contentType.AssignLiteral("application/octet-stream");
-        }
-
-        
-        nsCOMPtr<nsIInputStream> fileStream;
-        rv = NS_NewLocalFileInputStream(getter_AddRefs(fileStream),
-                                        file, -1, -1,
-                                        nsIFileInputStream::CLOSE_ON_EOF |
-                                        nsIFileInputStream::REOPEN_ON_REWIND);
-        if (fileStream) {
-          
-          nsCOMPtr<nsIInputStream> bufferedStream;
-          rv = NS_NewBufferedInputStream(getter_AddRefs(bufferedStream),
-                                         fileStream, 8192);
-          NS_ENSURE_SUCCESS(rv, rv);
-
-          
-          aFormSubmission->AddNameFilePair(this, name, filename,
-                                           bufferedStream, contentType,
-                                           PR_FALSE);
-          fileSent = PR_TRUE;
-        }
-      }
-
-      if (!fileSent) {
-        
-        aFormSubmission->AddNameFilePair(this, name, filename,
-                                         nsnull, NS_LITERAL_CSTRING("application/octet-stream"),
-                                         PR_FALSE);
-      }
+      aFormSubmission->AddNameFilePair(name, files[i]);
     }
 
     if (files.Count() == 0) {
       
       
-      aFormSubmission->AddNameFilePair(this, name, EmptyString(), nsnull,
-                                       NS_LITERAL_CSTRING("application/octet-stream"),
-                                       PR_FALSE);
+      aFormSubmission->AddNameFilePair(name, nsnull);
 
     }
 
@@ -2735,8 +2658,14 @@ nsHTMLInputElement::SubmitNamesValues(nsIFormSubmission* aFormSubmission,
 
   
   
-  if (mType != NS_FORM_INPUT_IMAGE || !value.IsEmpty()) {
-    rv = aFormSubmission->AddNameValuePair(this, name, value);
+  if (mType == NS_FORM_INPUT_HIDDEN && name.EqualsLiteral("_charset_")) {
+    nsCString charset;
+    aFormSubmission->GetCharset(charset);
+    rv = aFormSubmission->AddNameValuePair(name,
+                                           NS_ConvertASCIItoUTF16(charset));
+  }
+  else if (mType != NS_FORM_INPUT_IMAGE || !value.IsEmpty()) {
+    rv = aFormSubmission->AddNameValuePair(name, value);
   }
 
   return rv;
@@ -2754,8 +2683,7 @@ nsHTMLInputElement::SaveState()
     case NS_FORM_INPUT_CHECKBOX:
     case NS_FORM_INPUT_RADIO:
       {
-        PRBool checked = PR_FALSE;
-        GetChecked(&checked);
+        PRBool checked = GetChecked();
         PRBool defaultChecked = PR_FALSE;
         GetDefaultChecked(&defaultChecked);
         
@@ -2959,9 +2887,7 @@ nsHTMLInputElement::AddedToRadioGroup(PRBool aNotify)
   
   
   
-  PRBool checked;
-  GetChecked(&checked);
-  if (checked) {
+  if (GetChecked()) {
     
     
     
@@ -3014,12 +2940,9 @@ nsHTMLInputElement::WillRemoveFromRadioGroup()
   
   
   
-  PRBool checked = PR_FALSE;
-  GetChecked(&checked);
-
   nsAutoString name;
   PRBool gotName = PR_FALSE;
-  if (checked) {
+  if (GetChecked()) {
     if (!gotName) {
       if (!GetNameIfExists(name)) {
         
@@ -3103,9 +3026,7 @@ nsHTMLInputElement::IsHTMLFocusable(PRBool *aIsFocusable, PRInt32 *aTabIndex)
     return PR_FALSE;
   }
 
-  PRBool checked;
-  GetChecked(&checked);
-  if (checked) {
+  if (GetChecked()) {
     
     *aIsFocusable = PR_TRUE;
     return PR_FALSE;

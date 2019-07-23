@@ -55,7 +55,6 @@
 #include "nsIFile.h"
 #include "nsDirectoryServiceDefs.h"
 #include "nsStringStream.h"
-#include "nsIFormProcessor.h"
 #include "nsIURI.h"
 #include "nsIURL.h"
 #include "nsNetUtil.h"
@@ -66,183 +65,58 @@
 #include "nsUnicharUtils.h"
 #include "nsIMultiplexInputStream.h"
 #include "nsIMIMEInputStream.h"
+#include "nsIMIMEService.h"
 #include "nsIConsoleService.h"
 #include "nsIScriptError.h"
 #include "nsIStringBundle.h"
-
-
+#include "nsCExternalHandlerService.h"
+#include "nsIFileStreams.h"
 #include "nsBidiUtils.h"
 
 
-static NS_DEFINE_CID(kFormProcessorCID, NS_FORMPROCESSOR_CID);
 
 
 
 
 
-class nsFormSubmission : public nsIFormSubmission {
 
-public:
+static void GetSubmitCharset(nsGenericHTMLElement* aForm,
+                             PRUint8 aCtrlsModAtSubmit,
+                             nsACString& aCharset);
 
-  
 
 
 
 
 
+static nsresult GetEncoder(nsGenericHTMLElement* aForm,
+                           const nsACString& aCharset,
+                           nsISaveAsCharset** aEncoder);
 
-  nsFormSubmission(const nsACString& aCharset,
-                   nsISaveAsCharset* aEncoder,
-                   nsIFormProcessor* aFormProcessor,
-                   PRInt32 aBidiOptions)
-    : mCharset(aCharset),
-      mEncoder(aEncoder),
-      mFormProcessor(aFormProcessor),
-      mBidiOptions(aBidiOptions)
-  {
-  }
-  virtual ~nsFormSubmission()
-  {
-  }
 
-  NS_DECL_ISUPPORTS
 
-  
-  
-  
-  virtual nsresult SubmitTo(nsIURI* aActionURI, const nsAString& aTarget,
-                            nsIContent* aSource, nsILinkHandler* aLinkHandler,
-                            nsIDocShell** aDocShell, nsIRequest** aRequest);
 
-  
 
 
 
-  NS_IMETHOD Init() = 0;
 
-protected:
-  
-  
+static void GetEnumAttr(nsGenericHTMLElement* aForm,
+                        nsIAtom* aAtom, PRInt32* aValue);
 
 
 
 
 
 
-  NS_IMETHOD GetEncodedSubmission(nsIURI* aURI,
-                                  nsIInputStream** aPostDataStream) = 0;
 
-  
-  
 
 
 
 
 
 
-
-
-  nsresult ProcessValue(nsIDOMHTMLElement* aSource, const nsAString& aName, 
-                        const nsAString& aValue, nsAString& aResult);
-
-  
-  
-
-
-
-
-
-
-  nsresult EncodeVal(const nsAString& aStr, nsACString& aResult);
-  
-
-
-
-
-
-
-  nsresult UnicodeToNewBytes(const nsAString& aStr, nsISaveAsCharset* aEncoder,
-                             nsACString& aOut);
-
-  
-  nsCString mCharset;
-  
-
-
-  nsCOMPtr<nsISaveAsCharset> mEncoder;
-  
-  nsCOMPtr<nsIFormProcessor> mFormProcessor;
-  
-  PRInt32 mBidiOptions;
-
-public:
-  
-
-  
-
-
-
-
-
-
-  static void GetSubmitCharset(nsGenericHTMLElement* aForm,
-                               PRUint8 aCtrlsModAtSubmit,
-                               nsACString& aCharset);
-  
-
-
-
-
-
-  static nsresult GetEncoder(nsGenericHTMLElement* aForm,
-                             const nsACString& aCharset,
-                             nsISaveAsCharset** aEncoder);
-  
-
-
-
-
-
-
-
-  static void GetEnumAttr(nsGenericHTMLElement* aForm,
-                          nsIAtom* aAtom, PRInt32* aValue);
-};
-
-
-
-
-
-
-
-
-
-
-
-static nsresult
-SendJSWarning(nsIContent* aContent,
-              const char* aWarningName);
-
-
-
-
-
-
-
-static nsresult
-SendJSWarning(nsIContent* aContent,
-              const char* aWarningName,
-              const nsAFlatString& aWarningArg1);
-
-
-
-
-
-
-
-
-static nsresult
-SendJSWarning(nsIContent* aContent,
+static void
+SendJSWarning(nsIDocument* aDocument,
               const char* aWarningName,
               const PRUnichar** aWarningArgs, PRUint32 aWarningArgsLen);
 
@@ -258,36 +132,23 @@ public:
 
 
 
-
   nsFSURLEncoded(const nsACString& aCharset,
                  nsISaveAsCharset* aEncoder,
-                 nsIFormProcessor* aFormProcessor,
                  PRInt32 aBidiOptions,
-                 PRInt32 aMethod)
-    : nsFormSubmission(aCharset, aEncoder, aFormProcessor, aBidiOptions),
-      mMethod(aMethod)
-  {
-  }
-  virtual ~nsFSURLEncoded()
+                 PRInt32 aMethod,
+                 nsIDocument* aDocument)
+    : nsFormSubmission(aCharset, aEncoder, aBidiOptions),
+      mMethod(aMethod),
+      mDocument(aDocument),
+      mWarnedFileControl(PR_FALSE)
   {
   }
 
   
-  virtual nsresult AddNameValuePair(nsIDOMHTMLElement* aSource,
-                                    const nsAString& aName,
+  virtual nsresult AddNameValuePair(const nsAString& aName,
                                     const nsAString& aValue);
-  virtual nsresult AddNameFilePair(nsIDOMHTMLElement* aSource,
-                                   const nsAString& aName,
-                                   const nsAString& aFilename,
-                                   nsIInputStream* aStream,
-                                   const nsACString& aContentType,
-                                   PRBool aMoreFilesToCome);
-  virtual PRBool AcceptsFiles() const
-  {
-    return PR_FALSE;
-  }
-
-  NS_IMETHOD Init();
+  virtual nsresult AddNameFilePair(const nsAString& aName,
+                                   nsIFile* aFile);
 
 protected:
   
@@ -316,42 +177,21 @@ private:
   nsCString mQueryString;
 
   
+  nsCOMPtr<nsIDocument> mDocument;
+
+  
   PRBool mWarnedFileControl;
 };
 
 nsresult
-nsFSURLEncoded::AddNameValuePair(nsIDOMHTMLElement* aSource,
-                                 const nsAString& aName,
+nsFSURLEncoded::AddNameValuePair(const nsAString& aName,
                                  const nsAString& aValue)
 {
   
   
   
-  if (!mWarnedFileControl) {
-    nsCOMPtr<nsIFormControl> formControl = do_QueryInterface(aSource);
-    if (formControl->GetType() == NS_FORM_INPUT_FILE) {
-      nsCOMPtr<nsIContent> content = do_QueryInterface(aSource);
-      SendJSWarning(content, "ForgotFileEnctypeWarning");
-      mWarnedFileControl = PR_TRUE;
-    }
-  }
-
-  
-  
-  
-  nsAutoString processedValue;
-  nsresult rv = ProcessValue(aSource, aName, aValue, processedValue);
-
-  
-  
-  
   nsCString convValue;
-  if (NS_SUCCEEDED(rv)) {
-    rv = URLEncode(processedValue, convValue);
-  }
-  else {
-    rv = URLEncode(aValue, convValue);
-  }
+  nsresult rv = URLEncode(aValue, convValue);
   NS_ENSURE_SUCCESS(rv, rv);
 
   
@@ -376,25 +216,20 @@ nsFSURLEncoded::AddNameValuePair(nsIDOMHTMLElement* aSource,
 }
 
 nsresult
-nsFSURLEncoded::AddNameFilePair(nsIDOMHTMLElement* aSource,
-                                const nsAString& aName,
-                                const nsAString& aFilename,
-                                nsIInputStream* aStream,
-                                const nsACString& aContentType,
-                                PRBool aMoreFilesToCome)
+nsFSURLEncoded::AddNameFilePair(const nsAString& aName,
+                                nsIFile* aFile)
 {
-  return AddNameValuePair(aSource, aName, aFilename);
-}
+  if (!mWarnedFileControl) {
+    SendJSWarning(mDocument, "ForgotFileEnctypeWarning", nsnull, 0);
+    mWarnedFileControl = PR_TRUE;
+  }
 
+  nsAutoString filename;
+  if (aFile) {
+    aFile->GetLeafName(filename);
+  }
 
-
-
-NS_IMETHODIMP
-nsFSURLEncoded::Init()
-{
-  mQueryString.Truncate();
-  mWarnedFileControl = PR_FALSE;
-  return NS_OK;
+  return AddNameValuePair(aName, filename);
 }
 
 static void
@@ -605,29 +440,15 @@ public:
 
 
 
-
   nsFSMultipartFormData(const nsACString& aCharset,
                         nsISaveAsCharset* aEncoder,
-                        nsIFormProcessor* aFormProcessor,
                         PRInt32 aBidiOptions);
-  virtual ~nsFSMultipartFormData() { }
  
   
-  virtual nsresult AddNameValuePair(nsIDOMHTMLElement* aSource,
-                                    const nsAString& aName,
+  virtual nsresult AddNameValuePair(const nsAString& aName,
                                     const nsAString& aValue);
-  virtual nsresult AddNameFilePair(nsIDOMHTMLElement* aSource,
-                                   const nsAString& aName,
-                                   const nsAString& aFilename,
-                                   nsIInputStream* aStream,
-                                   const nsACString& aContentType,
-                                   PRBool aMoreFilesToCome);
-  virtual PRBool AcceptsFiles() const
-  {
-    return PR_TRUE;
-  }
-
-  NS_IMETHOD Init();
+  virtual nsresult AddNameFilePair(const nsAString& aName,
+                                   nsIFile* aFile);
 
 protected:
   
@@ -639,34 +460,8 @@ protected:
 
 
   nsresult AddPostDataStream();
-  
-
-
-
-
-
-
-
-
-
-  nsresult ProcessAndEncode(nsIDOMHTMLElement* aSource,
-                            const nsAString& aName,
-                            const nsAString& aValue,
-                            nsCString& aProcessedName,
-                            nsCString& aProcessedValue);
 
 private:
-  
-
-
-
-
-
-
-
-
-  PRBool mBackwardsCompatibleSubmit;
-
   
 
 
@@ -696,66 +491,37 @@ private:
 
 nsFSMultipartFormData::nsFSMultipartFormData(const nsACString& aCharset,
                                              nsISaveAsCharset* aEncoder,
-                                             nsIFormProcessor* aFormProcessor,
                                              PRInt32 aBidiOptions)
-    : nsFormSubmission(aCharset, aEncoder, aFormProcessor, aBidiOptions)
+    : nsFormSubmission(aCharset, aEncoder, aBidiOptions)
 {
-  
-  mBackwardsCompatibleSubmit =
-    nsContentUtils::GetBoolPref("browser.forms.submit.backwards_compatible");
-}
+  mPostDataStream =
+    do_CreateInstance("@mozilla.org/io/multiplex-input-stream;1");
 
-nsresult
-nsFSMultipartFormData::ProcessAndEncode(nsIDOMHTMLElement* aSource,
-                                        const nsAString& aName,
-                                        const nsAString& aValue,
-                                        nsCString& aProcessedName,
-                                        nsCString& aProcessedValue)
-{
-  
-  
-  
-  nsAutoString processedValue;
-  nsresult rv = ProcessValue(aSource, aName, aValue, processedValue);
-
-  
-  
-  
-  nsCAutoString encodedVal;
-  if (NS_SUCCEEDED(rv)) {
-    rv = EncodeVal(processedValue, encodedVal);
-  } else {
-    rv = EncodeVal(aValue, encodedVal);
-  }
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  
-  
-  
-  rv  = EncodeVal(aName, aProcessedName);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-
-  
-  
-  
-  aProcessedValue.Adopt(nsLinebreakConverter::ConvertLineBreaks(encodedVal.get(),
-                        nsLinebreakConverter::eLinebreakAny,
-                        nsLinebreakConverter::eLinebreakNet));
-  return NS_OK;
+  mBoundary.AssignLiteral("---------------------------");
+  mBoundary.AppendInt(rand());
+  mBoundary.AppendInt(rand());
+  mBoundary.AppendInt(rand());
 }
 
 
 
 
 nsresult
-nsFSMultipartFormData::AddNameValuePair(nsIDOMHTMLElement* aSource,
-                                        const nsAString& aName,
+nsFSMultipartFormData::AddNameValuePair(const nsAString& aName,
                                         const nsAString& aValue)
 {
-  nsCAutoString nameStr;
   nsCString valueStr;
-  nsresult rv = ProcessAndEncode(aSource, aName, aValue, nameStr, valueStr);
+  nsCAutoString encodedVal;
+  nsresult rv = EncodeVal(aValue, encodedVal);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  valueStr.Adopt(nsLinebreakConverter::
+                 ConvertLineBreaks(encodedVal.get(),
+                                   nsLinebreakConverter::eLinebreakAny,
+                                   nsLinebreakConverter::eLinebreakNet));
+
+  nsCAutoString nameStr;
+  rv = EncodeVal(aName, nameStr);
   NS_ENSURE_SUCCESS(rv, rv);
 
   
@@ -774,17 +540,58 @@ nsFSMultipartFormData::AddNameValuePair(nsIDOMHTMLElement* aSource,
 }
 
 nsresult
-nsFSMultipartFormData::AddNameFilePair(nsIDOMHTMLElement* aSource,
-                                       const nsAString& aName,
-                                       const nsAString& aFilename,
-                                       nsIInputStream* aStream,
-                                       const nsACString& aContentType,
-                                       PRBool aMoreFilesToCome)
+nsFSMultipartFormData::AddNameFilePair(const nsAString& aName,
+                                       nsIFile* aFile)
 {
+  
   nsCAutoString nameStr;
-  nsCAutoString filenameStr;
-  nsresult rv = ProcessAndEncode(aSource, aName, aFilename, nameStr, filenameStr);
+  nsresult rv = EncodeVal(aName, nameStr);
   NS_ENSURE_SUCCESS(rv, rv);
+
+  nsCString filenameStr;
+  nsCAutoString contentType;
+  nsCOMPtr<nsIInputStream> fileStream;
+  if (aFile) {
+    
+    nsAutoString filename;
+    aFile->GetLeafName(filename);
+    nsCAutoString encodedFileName;
+    rv = EncodeVal(filename, encodedFileName);
+    NS_ENSURE_SUCCESS(rv, rv);
+  
+    filenameStr.Adopt(nsLinebreakConverter::
+                      ConvertLineBreaks(encodedFileName.get(),
+                                        nsLinebreakConverter::eLinebreakAny,
+                                        nsLinebreakConverter::eLinebreakNet));
+  
+    
+    nsCOMPtr<nsIMIMEService> MIMEService =
+      do_GetService(NS_MIMESERVICE_CONTRACTID, &rv);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    rv = MIMEService->GetTypeFromFile(aFile, contentType);
+    if (NS_FAILED(rv)) {
+      contentType.AssignLiteral("application/octet-stream");
+    }
+  
+    
+    rv = NS_NewLocalFileInputStream(getter_AddRefs(fileStream),
+                                    aFile, -1, -1,
+                                    nsIFileInputStream::CLOSE_ON_EOF |
+                                    nsIFileInputStream::REOPEN_ON_REWIND);
+    if (fileStream) {
+      
+      nsCOMPtr<nsIInputStream> bufferedStream;
+      rv = NS_NewBufferedInputStream(getter_AddRefs(bufferedStream),
+                                     fileStream, 8192);
+      NS_ENSURE_SUCCESS(rv, rv);
+  
+      fileStream = bufferedStream;
+    }
+  }
+  else {
+    contentType.AssignLiteral("application/octet-stream");
+  }
 
   
   
@@ -792,11 +599,6 @@ nsFSMultipartFormData::AddNameFilePair(nsIDOMHTMLElement* aSource,
   
   mPostDataChunk += NS_LITERAL_CSTRING("--") + mBoundary
                  + NS_LITERAL_CSTRING(CRLF);
-  if (!mBackwardsCompatibleSubmit) {
-    
-    mPostDataChunk +=
-          NS_LITERAL_CSTRING("Content-Transfer-Encoding: binary" CRLF);
-  }
   
   
   
@@ -804,53 +606,24 @@ nsFSMultipartFormData::AddNameFilePair(nsIDOMHTMLElement* aSource,
          NS_LITERAL_CSTRING("Content-Disposition: form-data; name=\"")
        + nameStr + NS_LITERAL_CSTRING("\"; filename=\"")
        + filenameStr + NS_LITERAL_CSTRING("\"" CRLF)
-       + NS_LITERAL_CSTRING("Content-Type: ") + aContentType
+       + NS_LITERAL_CSTRING("Content-Type: ") + contentType
        + NS_LITERAL_CSTRING(CRLF CRLF);
 
   
   
   
-  if (aStream) {
+  if (fileStream) {
     
     
     AddPostDataStream();
 
-    mPostDataStream->AppendStream(aStream);
+    mPostDataStream->AppendStream(fileStream);
   }
 
   
   
   
   mPostDataChunk.AppendLiteral(CRLF);
-
-  return NS_OK;
-}
-
-
-
-
-NS_IMETHODIMP
-nsFSMultipartFormData::Init()
-{
-  nsresult rv;
-
-  
-  
-  
-  mPostDataStream =
-    do_CreateInstance("@mozilla.org/io/multiplex-input-stream;1", &rv);
-  NS_ENSURE_SUCCESS(rv, rv);
-  if (!mPostDataStream) {
-    return NS_ERROR_OUT_OF_MEMORY;
-  }
-
-  
-  
-  
-  mBoundary.AssignLiteral("---------------------------");
-  mBoundary.AppendInt(rand());
-  mBoundary.AppendInt(rand());
-  mBoundary.AppendInt(rand());
 
   return NS_OK;
 }
@@ -920,86 +693,49 @@ class nsFSTextPlain : public nsFormSubmission
 public:
   nsFSTextPlain(const nsACString& aCharset,
                 nsISaveAsCharset* aEncoder,
-                nsIFormProcessor* aFormProcessor,
                 PRInt32 aBidiOptions)
-    : nsFormSubmission(aCharset, aEncoder, aFormProcessor, aBidiOptions)
-  {
-  }
-  virtual ~nsFSTextPlain()
+    : nsFormSubmission(aCharset, aEncoder, aBidiOptions)
   {
   }
 
   
-  virtual nsresult AddNameValuePair(nsIDOMHTMLElement* aSource,
-                                    const nsAString& aName,
+  virtual nsresult AddNameValuePair(const nsAString& aName,
                                     const nsAString& aValue);
-  virtual nsresult AddNameFilePair(nsIDOMHTMLElement* aSource,
-                                   const nsAString& aName,
-                                   const nsAString& aFilename,
-                                   nsIInputStream* aStream,
-                                   const nsACString& aContentType,
-                                   PRBool aMoreFilesToCome);
-
-  NS_IMETHOD Init();
+  virtual nsresult AddNameFilePair(const nsAString& aName,
+                                   nsIFile* aFile);
 
 protected:
   
   NS_IMETHOD GetEncodedSubmission(nsIURI* aURI,
                                   nsIInputStream** aPostDataStream);
-  virtual PRBool AcceptsFiles() const
-  {
-    return PR_FALSE;
-  }
 
 private:
   nsString mBody;
 };
 
 nsresult
-nsFSTextPlain::AddNameValuePair(nsIDOMHTMLElement* aSource,
-                                const nsAString& aName,
+nsFSTextPlain::AddNameValuePair(const nsAString& aName,
                                 const nsAString& aValue)
 {
   
   
   
-  nsString processedValue;
-  nsresult rv = ProcessValue(aSource, aName, aValue, processedValue);
-
-  
-  
-  
-  if (NS_SUCCEEDED(rv)) {
-    mBody.Append(aName + NS_LITERAL_STRING("=") + processedValue +
-                 NS_LITERAL_STRING(CRLF));
-
-  } else {
-    mBody.Append(aName + NS_LITERAL_STRING("=") + aValue +
-                 NS_LITERAL_STRING(CRLF));
-  }
+  mBody.Append(aName + NS_LITERAL_STRING("=") + aValue +
+               NS_LITERAL_STRING(CRLF));
 
   return NS_OK;
 }
 
 nsresult
-nsFSTextPlain::AddNameFilePair(nsIDOMHTMLElement* aSource,
-                               const nsAString& aName,
-                               const nsAString& aFilename,
-                               nsIInputStream* aStream,
-                               const nsACString& aContentType,
-                               PRBool aMoreFilesToCome)
+nsFSTextPlain::AddNameFilePair(const nsAString& aName,
+                               nsIFile* aFile)
 {
-  AddNameValuePair(aSource,aName,aFilename);
-  return NS_OK;
-}
-
-
-
-
-NS_IMETHODIMP
-nsFSTextPlain::Init()
-{
-  mBody.Truncate();
+  nsAutoString filename;
+  if (aFile) {
+    aFile->GetLeafName(filename);
+  }
+    
+  AddNameValuePair(aName, filename);
   return NS_OK;
 }
 
@@ -1033,7 +769,6 @@ nsFSTextPlain::GetEncodedSubmission(nsIURI* aURI,
     rv = aURI->SetPath(path);
 
   } else {
-
     
     nsCOMPtr<nsIInputStream> bodyStream;
     rv = NS_NewStringInputStream(getter_AddRefs(bodyStream),
@@ -1056,65 +791,49 @@ nsFSTextPlain::GetEncodedSubmission(nsIURI* aURI,
   return rv;
 }
 
-
-
-
-
-
-
-
-
-
-NS_IMPL_ISUPPORTS1(nsFormSubmission, nsIFormSubmission)
-
-
-
-
-static nsresult
-SendJSWarning(nsIContent* aContent,
-               const char* aWarningName)
+nsFormSubmission::nsFormSubmission(const nsACString& aCharset,
+                                   nsISaveAsCharset* aEncoder,
+                                   PRInt32 aBidiOptions)
+  : mCharset(aCharset),
+    mEncoder(aEncoder),
+    mBidiOptions(aBidiOptions)
 {
-  return SendJSWarning(aContent, aWarningName, nsnull, 0);
 }
 
-static nsresult
-SendJSWarning(nsIContent* aContent,
-               const char* aWarningName,
-               const nsAFlatString& aWarningArg1)
+nsFormSubmission::~nsFormSubmission()
 {
-  const PRUnichar* formatStrings[1] = { aWarningArg1.get() };
-  return SendJSWarning(aContent, aWarningName, formatStrings, 1);
 }
 
-static nsresult
-SendJSWarning(nsIContent* aContent,
+void
+nsFormSubmission::Release()
+{
+  --mRefCnt;
+  NS_LOG_RELEASE(this, mRefCnt, "nsFormSubmission");
+  if (mRefCnt == 0) {
+    mRefCnt = 1; 
+    delete this;
+  }
+}
+
+static void
+SendJSWarning(nsIDocument* aDocument,
               const char* aWarningName,
               const PRUnichar** aWarningArgs, PRUint32 aWarningArgsLen)
 {
-  
-
-  nsIDocument* document = aContent->GetDocument();
-  nsIURI *documentURI = nsnull;
-  if (document) {
-    documentURI = document->GetDocumentURI();
-    NS_ENSURE_TRUE(documentURI, NS_ERROR_UNEXPECTED);
-  }
-
-  return nsContentUtils::ReportToConsole(nsContentUtils::eFORMS_PROPERTIES,
-                                         aWarningName,
-                                         aWarningArgs, aWarningArgsLen,
-                                         documentURI,
-                                         EmptyString(), 0, 0,
-                                         nsIScriptError::warningFlag,
-                                         "HTML");
+  nsContentUtils::ReportToConsole(nsContentUtils::eFORMS_PROPERTIES,
+                                  aWarningName,
+                                  aWarningArgs, aWarningArgsLen,
+                                  aDocument ? aDocument->GetDocumentURI() :
+                                              nsnull,
+                                  EmptyString(), 0, 0,
+                                  nsIScriptError::warningFlag,
+                                  "HTML");
 }
 
 nsresult
 GetSubmissionFromForm(nsGenericHTMLElement* aForm,
-                      nsIFormSubmission** aFormSubmission)
+                      nsFormSubmission** aFormSubmission)
 {
-  nsresult rv = NS_OK;
-
   
   
   
@@ -1128,23 +847,19 @@ GetSubmissionFromForm(nsGenericHTMLElement* aForm,
 
   
   PRInt32 enctype = NS_FORM_ENCTYPE_URLENCODED;
-  nsFormSubmission::GetEnumAttr(aForm, nsGkAtoms::enctype, &enctype);
+  GetEnumAttr(aForm, nsGkAtoms::enctype, &enctype);
 
   
   PRInt32 method = NS_FORM_METHOD_GET;
-  nsFormSubmission::GetEnumAttr(aForm, nsGkAtoms::method, &method);
+  GetEnumAttr(aForm, nsGkAtoms::method, &method);
 
   
   nsCAutoString charset;
-  nsFormSubmission::GetSubmitCharset(aForm, ctrlsModAtSubmit, charset);
+  GetSubmitCharset(aForm, ctrlsModAtSubmit, charset);
 
   
   nsCOMPtr<nsISaveAsCharset> encoder;
-  nsFormSubmission::GetEncoder(aForm, charset, getter_AddRefs(encoder));
-
-  
-  nsCOMPtr<nsIFormProcessor> formProcessor =
-    do_GetService(kFormProcessorCID, &rv);
+  GetEncoder(aForm, charset, getter_AddRefs(encoder));
 
   
   
@@ -1157,28 +872,24 @@ GetSubmissionFromForm(nsGenericHTMLElement* aForm,
   if (method == NS_FORM_METHOD_POST &&
       enctype == NS_FORM_ENCTYPE_MULTIPART) {
     *aFormSubmission = new nsFSMultipartFormData(charset, encoder,
-                                                 formProcessor, bidiOptions);
+                                                 bidiOptions);
   } else if (method == NS_FORM_METHOD_POST &&
              enctype == NS_FORM_ENCTYPE_TEXTPLAIN) {
-    *aFormSubmission = new nsFSTextPlain(charset, encoder,
-                                         formProcessor, bidiOptions);
+    *aFormSubmission = new nsFSTextPlain(charset, encoder, bidiOptions);
   } else {
     if (enctype == NS_FORM_ENCTYPE_MULTIPART ||
         enctype == NS_FORM_ENCTYPE_TEXTPLAIN) {
       nsAutoString enctypeStr;
       aForm->GetAttr(kNameSpaceID_None, nsGkAtoms::enctype, enctypeStr);
-      SendJSWarning(aForm, "ForgotPostWarning", PromiseFlatString(enctypeStr));
+      const PRUnichar* enctypeStrPtr = enctypeStr.get();
+      SendJSWarning(aForm->GetOwnerDoc(), "ForgotPostWarning",
+                    &enctypeStrPtr, 1);
     }
-    *aFormSubmission = new nsFSURLEncoded(charset, encoder,
-                                          formProcessor, bidiOptions, method);
+    *aFormSubmission = new nsFSURLEncoded(charset, encoder, bidiOptions,
+                                          method, aForm->GetOwnerDoc());
   }
   NS_ENSURE_TRUE(*aFormSubmission, NS_ERROR_OUT_OF_MEMORY);
   NS_ADDREF(*aFormSubmission);
-
-
-  
-  
-  static_cast<nsFormSubmission*>(*aFormSubmission)->Init();
 
   return NS_OK;
 }
@@ -1208,12 +919,10 @@ nsFormSubmission::SubmitTo(nsIURI* aActionURI, const nsAString& aTarget,
                                        aDocShell, aRequest);
 }
 
-
-
 void
-nsFormSubmission::GetSubmitCharset(nsGenericHTMLElement* aForm,
-                                   PRUint8 aCtrlsModAtSubmit,
-                                   nsACString& oCharset)
+GetSubmitCharset(nsGenericHTMLElement* aForm,
+                 PRUint8 aCtrlsModAtSubmit,
+                 nsACString& oCharset)
 {
   oCharset.AssignLiteral("UTF-8"); 
 
@@ -1279,12 +988,10 @@ nsFormSubmission::GetSubmitCharset(nsGenericHTMLElement* aForm,
 
 }
 
-
-
 nsresult
-nsFormSubmission::GetEncoder(nsGenericHTMLElement* aForm,
-                             const nsACString& aCharset,
-                             nsISaveAsCharset** aEncoder)
+GetEncoder(nsGenericHTMLElement* aForm,
+           const nsACString& aCharset,
+           nsISaveAsCharset** aEncoder)
 {
   *aEncoder = nsnull;
   nsresult rv = NS_OK;
@@ -1385,8 +1092,8 @@ nsFormSubmission::UnicodeToNewBytes(const nsAString& aStr,
 
 
 void
-nsFormSubmission::GetEnumAttr(nsGenericHTMLElement* aContent,
-                              nsIAtom* atom, PRInt32* aValue)
+GetEnumAttr(nsGenericHTMLElement* aContent,
+            nsIAtom* atom, PRInt32* aValue)
 {
   const nsAttrValue* value = aContent->GetParsedAttr(atom);
   if (value && value->Type() == nsAttrValue::eEnum) {
@@ -1404,28 +1111,4 @@ nsFormSubmission::EncodeVal(const nsAString& aStr, nsACString& aOut)
   
   CopyUTF16toUTF8(aStr, aOut);
   return NS_OK;
-}
-
-nsresult
-nsFormSubmission::ProcessValue(nsIDOMHTMLElement* aSource,
-                               const nsAString& aName, const nsAString& aValue,
-                               nsAString& aResult) 
-{
-  
-  if (aName.EqualsLiteral("_charset_")) {
-    nsCOMPtr<nsIFormControl> formControl = do_QueryInterface(aSource);
-    if (formControl && formControl->GetType() == NS_FORM_INPUT_HIDDEN) {
-        CopyASCIItoUTF16(mCharset, aResult);
-        return NS_OK;
-    }
-  }
-
-  nsresult rv = NS_OK;
-  aResult = aValue;
-  if (mFormProcessor) {
-    rv = mFormProcessor->ProcessValue(aSource, aName, aResult);
-    NS_ASSERTION(NS_SUCCEEDED(rv), "Unable to Notify form process observer");
-  }
-
-  return rv;
 }

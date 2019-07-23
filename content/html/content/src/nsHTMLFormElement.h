@@ -289,14 +289,14 @@ protected:
 
 
 
-  nsresult BuildSubmission(nsCOMPtr<nsIFormSubmission>& aFormSubmission, 
+  nsresult BuildSubmission(nsRefPtr<nsFormSubmission>& aFormSubmission, 
                            nsEvent* aEvent);
   
 
 
 
 
-  nsresult SubmitSubmission(nsIFormSubmission* aFormSubmission);
+  nsresult SubmitSubmission(nsFormSubmission* aFormSubmission);
   
 
 
@@ -304,7 +304,7 @@ protected:
 
 
 
-  nsresult WalkFormElements(nsIFormSubmission* aFormSubmission,
+  nsresult WalkFormElements(nsFormSubmission* aFormSubmission,
                             nsIContent* aSubmitElement);
 
   
@@ -371,7 +371,7 @@ protected:
   PRBool mSubmitInitiatedFromUserInput;
 
   
-  nsCOMPtr<nsIFormSubmission> mPendingSubmission;
+  nsRefPtr<nsFormSubmission> mPendingSubmission;
   
   nsCOMPtr<nsIRequest> mSubmittingRequest;
   
