@@ -2239,28 +2239,6 @@ nsBlockFrame::DeleteLine(nsBlockReflowState& aState,
 
 
 
-
-static void GetRectDifferenceStrips(const nsRect& aR1, const nsRect& aR2,
-                                    nsRect* aHStrip, nsRect* aVStrip) {
-  NS_ASSERTION(aR1.TopLeft() == aR2.TopLeft(),
-               "expected rects at the same position");
-  nsRect unionRect(aR1.x, aR1.y, PR_MAX(aR1.width, aR2.width),
-                   PR_MAX(aR1.height, aR2.height));
-  nscoord VStripStart = PR_MIN(aR1.width, aR2.width);
-  nscoord HStripStart = PR_MIN(aR1.height, aR2.height);
-  *aVStrip = unionRect;
-  aVStrip->x += VStripStart;
-  aVStrip->width -= VStripStart;
-  *aHStrip = unionRect;
-  aHStrip->y += HStripStart;
-  aHStrip->height -= HStripStart;
-}
-
-
-
-
-
-
 nsresult
 nsBlockFrame::ReflowLine(nsBlockReflowState& aState,
                          line_iterator aLine,
@@ -2305,10 +2283,11 @@ nsBlockFrame::ReflowLine(nsBlockReflowState& aState,
     } else {
       nsRect combinedAreaHStrip, combinedAreaVStrip;
       nsRect boundsHStrip, boundsVStrip;
-      GetRectDifferenceStrips(oldBounds, newBounds,
-                              &boundsHStrip, &boundsVStrip);
-      GetRectDifferenceStrips(oldCombinedArea, lineCombinedArea,
-                              &combinedAreaHStrip, &combinedAreaVStrip);
+      nsLayoutUtils::GetRectDifferenceStrips(oldBounds, newBounds,
+                                             &boundsHStrip, &boundsVStrip);
+      nsLayoutUtils::GetRectDifferenceStrips(oldCombinedArea, lineCombinedArea,
+                                             &combinedAreaHStrip,
+                                             &combinedAreaVStrip);
 
 #ifdef NOISY_BLOCK_INVALIDATE
       printf("%p invalidate boundsVStrip (%d, %d, %d, %d)\n",

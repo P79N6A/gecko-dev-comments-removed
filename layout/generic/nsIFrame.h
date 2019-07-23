@@ -1663,6 +1663,21 @@ public:
 
 
 
+  void InvalidateRectDifference(const nsRect& aR1, const nsRect& aR2);
+
+  
+
+
+  void InvalidateOverflowRect();
+  
+  
+
+
+
+
+
+
+
   nsRect GetOverflowRect() const;
 
   

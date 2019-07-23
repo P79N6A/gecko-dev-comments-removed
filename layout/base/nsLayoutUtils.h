@@ -758,6 +758,15 @@ public:
 
 
 
+
+
+  static void GetRectDifferenceStrips(const nsRect& aR1, const nsRect& aR2,
+                                      nsRect* aHStrip, nsRect* aVStrip);
+
+  
+
+
+
 #ifdef DEBUG
   static PRBool sDisableGetUsedXAssertions;
 #endif

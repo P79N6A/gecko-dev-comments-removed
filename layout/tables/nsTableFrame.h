@@ -480,6 +480,20 @@ public:
   PRBool HasCellSpanningPctCol() const;
   void SetHasCellSpanningPctCol(PRBool aValue);
 
+  
+
+
+
+
+
+
+
+
+
+
+  static void InvalidateFrame(nsIFrame* aFrame, const nsRect& aOrigRect,
+                              PRBool aIsFirstReflow);
+
 protected:
 
   
@@ -567,7 +581,8 @@ protected:
 
   void PlaceChild(nsTableReflowState&  aReflowState,
                   nsIFrame*            aKidFrame,
-                  nsHTMLReflowMetrics& aKidDesiredSize);
+                  nsHTMLReflowMetrics& aKidDesiredSize,
+                  const nsRect&        aOriginalKidRect);
 
   nsIFrame* GetFirstBodyRowGroupFrame();
   PRBool MoveOverflowToChildList(nsPresContext* aPresContext);
