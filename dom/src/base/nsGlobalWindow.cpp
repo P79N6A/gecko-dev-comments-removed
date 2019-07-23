@@ -1723,6 +1723,21 @@ nsGlobalWindow::SetNewDocument(nsIDocument* aDocument,
         return NS_ERROR_OUT_OF_MEMORY;
       }
 
+      if (currentInner && currentInner->mJSObject) {
+        if (mNavigator && !aState) {
+          
+          
+          
+          
+
+          nsIDOMNavigator* navigator =
+            static_cast<nsIDOMNavigator*>(mNavigator.get());
+          xpc->WrapNative(cx, currentInner->mJSObject, navigator,
+                          NS_GET_IID(nsIDOMNavigator),
+                          getter_AddRefs(navigatorHolder));
+        }
+      }
+
       if (!aState) {
         
         nsIScriptGlobalObject *sgo =
@@ -1768,19 +1783,6 @@ nsGlobalWindow::SetNewDocument(nsIDocument* aDocument,
       }
 
       if (currentInner && currentInner->mJSObject) {
-        if (mNavigator && !aState) {
-          
-          
-          
-          
-
-          nsIDOMNavigator* navigator =
-            static_cast<nsIDOMNavigator*>(mNavigator.get());
-          xpc->WrapNative(cx, currentInner->mJSObject, navigator,
-                          NS_GET_IID(nsIDOMNavigator),
-                          getter_AddRefs(navigatorHolder));
-        }
-
         PRBool termFuncSet = PR_FALSE;
 
         if (oldDoc == aDocument) {
