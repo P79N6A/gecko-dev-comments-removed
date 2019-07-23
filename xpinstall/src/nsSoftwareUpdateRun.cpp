@@ -489,89 +489,88 @@ extern "C" void PR_CALLBACK RunInstallOnThread(void *data)
             } else {
                 finalStatus = nsInstall::UNEXPECTED_ERROR;
             }
-            
-            
-        } else
-#endif
+        } else {
+            hZip->Close();
+            finalStatus = nsInstall::UNSUPPORTED_TYPE;
+        }
+#else
+        
+        finalStatus = GetInstallScriptFromJarfile( hZip,
+                                                   &scriptBuffer,
+                                                   &scriptLength);
+        if ( finalStatus == NS_OK && scriptBuffer )
         {
             
-            
-            finalStatus = GetInstallScriptFromJarfile( hZip,
-                                                       &scriptBuffer,
-                                                       &scriptLength);
-            if ( finalStatus == NS_OK && scriptBuffer )
+            rt = JS_NewRuntime(4L * 1024L * 1024L);
+
+            rv = SetupInstallContext( hZip, jarpath,
+                                      installInfo->GetURL(),
+                                      installInfo->GetArguments(),
+                                      installInfo->GetFlags(),
+                                      installInfo->GetChromeRegistry(),
+                                      rt, &cx, &glob);
+
+            if (NS_SUCCEEDED(rv))
             {
                 
-                rt = JS_NewRuntime(4L * 1024L * 1024L);
+                jsval rval;
+                jsval installedFiles;
+                JS_BeginRequest(cx); 
+                                    
+                PRBool ok = JS_EvaluateScript(  cx,
+                                                glob,
+                                                scriptBuffer,
+                                                scriptLength,
+                                                nsnull,
+                                                0,
+                                                &rval);
 
-                rv = SetupInstallContext( hZip, jarpath,
-                                          installInfo->GetURL(),
-                                          installInfo->GetArguments(),
-                                          installInfo->GetFlags(),
-                                          installInfo->GetChromeRegistry(),
-                                          rt, &cx, &glob);
 
-                if (NS_SUCCEEDED(rv))
+                if(!ok)
                 {
                     
-                    jsval rval;
-                    jsval installedFiles;
-                    JS_BeginRequest(cx); 
-                                        
-                    PRBool ok = JS_EvaluateScript(  cx,
-                                                    glob,
-                                                    scriptBuffer,
-                                                    scriptLength,
-                                                    nsnull,
-                                                    0,
-                                                    &rval);
-
-
-                    if(!ok)
+                    if(JS_GetProperty(cx, glob, "_installedFiles", &installedFiles) &&
+                      JSVAL_TO_BOOLEAN(installedFiles))
                     {
-                        
-                        if(JS_GetProperty(cx, glob, "_installedFiles", &installedFiles) &&
-                          JSVAL_TO_BOOLEAN(installedFiles))
-                        {
-                            nsInstall *a = (nsInstall*)JS_GetPrivate(cx, glob);
-                            a->InternalAbort(nsInstall::SCRIPT_ERROR);
-                        }
-
-                        finalStatus = nsInstall::SCRIPT_ERROR;
+                        nsInstall *a = (nsInstall*)JS_GetPrivate(cx, glob);
+                        a->InternalAbort(nsInstall::SCRIPT_ERROR);
                     }
-                    else
-                    {
-                        
-                        
-                        
 
-                        if(JS_GetProperty(cx, glob, "_installedFiles", &installedFiles) &&
-                          JSVAL_TO_BOOLEAN(installedFiles))
-                        {
-                            
-                            nsInstall *a = (nsInstall*)JS_GetPrivate(cx, glob);
-                            a->InternalAbort(nsInstall::MALFORMED_INSTALL);
-                        }
-
-                        jsval sent;
-                        if ( JS_GetProperty( cx, glob, "_finalStatus", &sent ) )
-                            finalStatus = JSVAL_TO_INT(sent);
-                        else
-                            finalStatus = nsInstall::UNEXPECTED_ERROR;
-                    }
-                    JS_EndRequest(cx); 
-                    JS_DestroyContextMaybeGC(cx);
+                    finalStatus = nsInstall::SCRIPT_ERROR;
                 }
                 else
                 {
                     
-                    finalStatus = nsInstall::UNEXPECTED_ERROR;
-                }
+                    
+                    
 
-                
-                JS_DestroyRuntime(rt);
+                    if(JS_GetProperty(cx, glob, "_installedFiles", &installedFiles) &&
+                      JSVAL_TO_BOOLEAN(installedFiles))
+                    {
+                        
+                        nsInstall *a = (nsInstall*)JS_GetPrivate(cx, glob);
+                        a->InternalAbort(nsInstall::MALFORMED_INSTALL);
+                    }
+
+                    jsval sent;
+                    if ( JS_GetProperty( cx, glob, "_finalStatus", &sent ) )
+                        finalStatus = JSVAL_TO_INT(sent);
+                    else
+                        finalStatus = nsInstall::UNEXPECTED_ERROR;
+                }
+                JS_EndRequest(cx); 
+                JS_DestroyContextMaybeGC(cx);
             }
+            else
+            {
+                
+                finalStatus = nsInstall::UNEXPECTED_ERROR;
+            }
+
+            
+            JS_DestroyRuntime(rt);
         }
+#endif
         
         hZip = 0;
     }
