@@ -893,12 +893,10 @@ nsNativeThemeWin::GetThemePartAndState(nsIFrame* aFrame, PRUint8 aWidgetType,
               SP_GRIPPERHOR : SP_GRIPPERVERT;
       if (!aFrame)
         aState = TS_NORMAL;
-      else if (IsDisabled(aFrame))
+      else if (IsDisabled(aFrame->GetParent()))
         aState = TS_DISABLED;
       else {
-        
-        
-        PRInt32 eventState = GetContentState(aFrame, aWidgetType);
+        PRInt32 eventState = GetContentState(aFrame->GetParent(), aWidgetType);
         if (eventState & NS_EVENT_STATE_ACTIVE) 
                                                 
                                                 
