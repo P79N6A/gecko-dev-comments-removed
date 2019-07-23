@@ -51,16 +51,6 @@ class nsIToolkit;
 class nsIWidget;
 class nsITooltipWidget;
 
-#if (defined(XP_MAC) || defined(XP_MACOSX)) && !defined(MOZ_WIDGET_COCOA)
-
-
-
-enum {
-  kTopLevelWidgetPropertyCreator = 'MOSS',
-  kTopLevelWidgetRefPropertyTag  = 'GEKO'
-};
-#endif
-
 extern nsresult 
 NS_ShowWidget(nsISupports* aWidget, PRBool aShow);
 
