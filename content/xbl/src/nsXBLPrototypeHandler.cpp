@@ -46,7 +46,6 @@
 #include "nsIDOMMouseEvent.h"
 #include "nsINameSpaceManager.h"
 #include "nsIScriptContext.h"
-#include "nsIScriptGlobalObject.h"
 #include "nsIDocument.h"
 #include "nsIDOMDocument.h"
 #include "nsIJSEventListener.h"
@@ -82,7 +81,6 @@
 #include "nsCRT.h"
 #include "nsXBLEventHandler.h"
 #include "nsEventDispatcher.h"
-#include "nsDOMScriptObjectHolder.h"
 
 static NS_DEFINE_CID(kDOMScriptObjectFactoryCID,
                      NS_DOM_SCRIPT_OBJECT_FACTORY_CID);
@@ -116,9 +114,11 @@ nsXBLPrototypeHandler::nsXBLPrototypeHandler(const PRUnichar* aEvent,
                                              const PRUnichar* aGroup,
                                              const PRUnichar* aPreventDefault,
                                              const PRUnichar* aAllowUntrusted,
-                                             nsXBLPrototypeBinding* aBinding)
+                                             nsXBLPrototypeBinding* aBinding,
+                                             PRUint32 aLineNumber)
   : mHandlerText(nsnull),
-    mLineNumber(0),
+    mLineNumber(aLineNumber),
+    mCachedHandler(nsnull),
     mNextHandler(nsnull),
     mPrototypeBinding(aBinding)
 {
@@ -135,6 +135,7 @@ nsXBLPrototypeHandler::nsXBLPrototypeHandler(const PRUnichar* aEvent,
 nsXBLPrototypeHandler::nsXBLPrototypeHandler(nsIContent* aHandlerElement)
   : mHandlerElement(nsnull),
     mLineNumber(0),
+    mCachedHandler(nsnull),
     mNextHandler(nsnull),
     mPrototypeBinding(nsnull)
 {
@@ -158,6 +159,25 @@ nsXBLPrototypeHandler::~nsXBLPrototypeHandler()
 
   
   delete mNextHandler;
+}
+
+void
+nsXBLPrototypeHandler::Traverse(nsCycleCollectionTraversalCallback &cb) const
+{
+  cb.NoteXPCOMChild(mGlobalForCachedHandler);
+}
+
+void
+nsXBLPrototypeHandler::Trace(TraceCallback aCallback, void *aClosure) const
+{
+  if (mCachedHandler)
+    aCallback(nsIProgrammingLanguage::JAVASCRIPT, mCachedHandler, aClosure);
+}
+
+void
+nsXBLPrototypeHandler::Unlink()
+{
+  ForgetCachedHandler();
 }
 
 already_AddRefed<nsIContent>
@@ -184,6 +204,9 @@ nsXBLPrototypeHandler::AppendHandlerText(const nsAString& aText)
   }
   else
     mHandlerText = ToNewUnicode(aText);
+
+  
+  ForgetCachedHandler();
 }
 
 
@@ -248,161 +271,14 @@ nsXBLPrototypeHandler::ExecuteHandler(nsPIDOMEventTarget* aTarget,
   }
     
   if (isXBLCommand) {
-    
-    
-
-    
-    PRBool preventDefault = PR_FALSE;
-    nsCOMPtr<nsIDOMNSUIEvent> nsUIEvent(do_QueryInterface(aEvent));
-    if (nsUIEvent)
-      nsUIEvent->GetPreventDefault(&preventDefault);
-
-    if (preventDefault)
-      return NS_OK;
-
-    nsCOMPtr<nsIPrivateDOMEvent> privateEvent = do_QueryInterface(aEvent);
-    if (privateEvent) {
-      PRBool dispatchStopped;
-      privateEvent->IsDispatchStopped(&dispatchStopped);
-      if (dispatchStopped)
-        return NS_OK;
-    }
-
-    
-    
-    nsCOMPtr<nsIController> controller;
-    nsCOMPtr<nsIFocusController> focusController;
-
-    nsCOMPtr<nsPIWindowRoot> windowRoot(do_QueryInterface(aTarget));
-    if (windowRoot) {
-      windowRoot->GetFocusController(getter_AddRefs(focusController));
-    }
-    else {
-      nsCOMPtr<nsPIDOMWindow> privateWindow(do_QueryInterface(aTarget));
-      if (!privateWindow) {
-        nsCOMPtr<nsIContent> elt(do_QueryInterface(aTarget));
-        nsCOMPtr<nsIDocument> doc;
-        
-        
-        
-        
-        if (elt)
-          doc = elt->GetOwnerDoc();
-
-        if (!doc)
-          doc = do_QueryInterface(aTarget);
-
-        if (!doc)
-          return NS_ERROR_FAILURE;
-
-        privateWindow = do_QueryInterface(doc->GetScriptGlobalObject());
-        if (!privateWindow)
-          return NS_ERROR_FAILURE;
-      }
-
-      focusController = privateWindow->GetRootFocusController();
-    }
-
-    NS_LossyConvertUTF16toASCII command(mHandlerText);
-    if (focusController)
-      focusController->GetControllerForCommand(command.get(), getter_AddRefs(controller));
-    else
-      controller = GetController(aTarget); 
-
-    nsAutoString type;
-    mEventName->ToString(type);
-
-    if (type.EqualsLiteral("keypress") &&
-        mDetail == nsIDOMKeyEvent::DOM_VK_SPACE &&
-        mMisc == 1) {
-      
-      
-      nsCOMPtr<nsIDOMElement> focusedElement;
-      focusController->GetFocusedElement(getter_AddRefs(focusedElement));
-      PRBool isLink = PR_FALSE;
-      nsCOMPtr<nsIContent> focusedContent = do_QueryInterface(focusedElement);
-      nsIContent *content = focusedContent;
-
-      
-      
-      
-      if (focusedContent) {
-        while (content) {
-          if (content->Tag() == nsGkAtoms::a &&
-              content->IsNodeOfType(nsINode::eHTML)) {
-            isLink = PR_TRUE;
-            break;
-          }
-
-          if (content->HasAttr(kNameSpaceID_XLink, nsGkAtoms::type)) {
-            isLink = content->AttrValueIs(kNameSpaceID_XLink, nsGkAtoms::type,
-                                          nsGkAtoms::simple, eCaseMatters);
-
-            if (isLink) {
-              break;
-            }
-          }
-
-          content = content->GetParent();
-        }
-
-        if (!isLink)
-          return NS_OK;
-      }
-    }
-
-    
-    
-    aEvent->PreventDefault();
-    
-    if (controller)
-      controller->DoCommand(command.get());
-
-    return NS_OK;
+    return DispatchXBLCommand(aTarget, aEvent);
   }
 
   
   
   
   if (isXULKey) {
-    nsCOMPtr<nsIContent> handlerElement = GetHandlerElement();
-    NS_ENSURE_STATE(handlerElement);
-    if (handlerElement->AttrValueIs(kNameSpaceID_None,
-                                    nsGkAtoms::disabled,
-                                    nsGkAtoms::_true,
-                                    eCaseMatters)) {
-      
-      return NS_OK;
-    }
-
-    aEvent->PreventDefault();
-
-    nsEventStatus status = nsEventStatus_eIgnore;
-    nsXULCommandEvent event(PR_TRUE, NS_XUL_COMMAND, nsnull);
-
-    
-    nsCOMPtr<nsIDOMKeyEvent> keyEvent = do_QueryInterface(aEvent);
-    if (!keyEvent) {
-      NS_ERROR("Trying to execute a key handler for a non-key event!");
-      return NS_ERROR_FAILURE;
-    }
-
-    keyEvent->GetAltKey(&event.isAlt);
-    keyEvent->GetCtrlKey(&event.isControl);
-    keyEvent->GetShiftKey(&event.isShift);
-    keyEvent->GetMetaKey(&event.isMeta);
-    
-    nsPresContext *pc = nsnull;
-    nsIDocument *doc = handlerElement->GetCurrentDoc();
-    if (doc) {
-      nsIPresShell *shell = doc->GetPrimaryShell();
-      if (shell) {
-        pc = shell->GetPresContext();
-      }
-    }
-
-    nsEventDispatcher::Dispatch(handlerElement, pc, &event, nsnull, &status);
-    return NS_OK;
+    return DispatchXULKeyCommand(aEvent);
   }
 
   
@@ -458,7 +334,8 @@ nsXBLPrototypeHandler::ExecuteHandler(nsPIDOMEventTarget* aTarget,
     return NS_OK;
 
   nsIScriptContext *boundContext = boundGlobal->GetScriptContext(stID);
-  if (!boundContext) return NS_OK;
+  if (!boundContext)
+    return NS_OK;
 
   nsScriptObjectHolder handler(boundContext);
   nsISupports *scriptTarget;
@@ -469,26 +346,11 @@ nsXBLPrototypeHandler::ExecuteHandler(nsPIDOMEventTarget* aTarget,
     scriptTarget = aTarget;
   }
 
-  void *scope = boundGlobal->GetScriptGlobal(stID);
-
-  PRUint32 argCount;
-  const char **argNames;
-  nsContentUtils::GetEventArgNames(kNameSpaceID_XBL, onEventAtom, &argCount,
-                                   &argNames);
-
-  nsDependentString handlerText(mHandlerText);
-  if (handlerText.IsEmpty())
-    return NS_ERROR_FAILURE;
-  
-  nsCAutoString bindingURI;
-  mPrototypeBinding->DocURI()->GetSpec(bindingURI);
-
-  rv = boundContext->CompileEventHandler(onEventAtom, argCount, argNames,
-                                         handlerText, bindingURI.get(),
-                                         mLineNumber, handler);
+  rv = EnsureEventHandler(boundGlobal, boundContext, onEventAtom, handler);
   NS_ENSURE_SUCCESS(rv, rv);
 
   
+  void *scope = boundGlobal->GetScriptGlobal(stID);
   rv = boundContext->BindCompiledEventHandler(scriptTarget, scope,
                                               onEventAtom, handler);
   NS_ENSURE_SUCCESS(rv, rv);
@@ -503,6 +365,203 @@ nsXBLPrototypeHandler::ExecuteHandler(nsPIDOMEventTarget* aTarget,
   
   
   eventListener->HandleEvent(aEvent);
+  return NS_OK;
+}
+
+nsresult
+nsXBLPrototypeHandler::EnsureEventHandler(nsIScriptGlobalObject* aGlobal,
+                                          nsIScriptContext *aBoundContext,
+                                          nsIAtom *aName,
+                                          nsScriptObjectHolder &aHandler)
+{
+  
+  if (mCachedHandler && mGlobalForCachedHandler == aGlobal) {
+    aHandler.set(mCachedHandler);
+    if (!aHandler)
+      return NS_ERROR_FAILURE;
+
+    return NS_OK;
+  }
+
+  
+  nsDependentString handlerText(mHandlerText);
+  if (handlerText.IsEmpty())
+    return NS_ERROR_FAILURE;
+
+  nsCAutoString bindingURI;
+  mPrototypeBinding->DocURI()->GetSpec(bindingURI);
+
+  PRUint32 argCount;
+  const char **argNames;
+  nsContentUtils::GetEventArgNames(kNameSpaceID_XBL, aName, &argCount,
+                                   &argNames);
+  nsresult rv = aBoundContext->CompileEventHandler(aName, argCount, argNames,
+                                                   handlerText, bindingURI.get(), 
+                                                   mLineNumber, aHandler);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  mCachedHandler = aHandler;
+  mGlobalForCachedHandler = aGlobal;
+
+  return NS_OK;
+}
+
+nsresult
+nsXBLPrototypeHandler::DispatchXBLCommand(nsPIDOMEventTarget* aTarget, nsIDOMEvent* aEvent)
+{
+  
+  
+
+  
+  PRBool preventDefault = PR_FALSE;
+  nsCOMPtr<nsIDOMNSUIEvent> nsUIEvent(do_QueryInterface(aEvent));
+  if (nsUIEvent)
+    nsUIEvent->GetPreventDefault(&preventDefault);
+
+  if (preventDefault)
+    return NS_OK;
+
+  nsCOMPtr<nsIPrivateDOMEvent> privateEvent = do_QueryInterface(aEvent);
+  if (privateEvent) {
+    PRBool dispatchStopped;
+    privateEvent->IsDispatchStopped(&dispatchStopped);
+    if (dispatchStopped)
+      return NS_OK;
+  }
+
+  
+  
+  nsCOMPtr<nsIController> controller;
+  nsCOMPtr<nsIFocusController> focusController;
+
+  nsCOMPtr<nsPIWindowRoot> windowRoot(do_QueryInterface(aTarget));
+  if (windowRoot) {
+    windowRoot->GetFocusController(getter_AddRefs(focusController));
+  }
+  else {
+    nsCOMPtr<nsPIDOMWindow> privateWindow(do_QueryInterface(aTarget));
+    if (!privateWindow) {
+      nsCOMPtr<nsIContent> elt(do_QueryInterface(aTarget));
+      nsCOMPtr<nsIDocument> doc;
+      
+      
+      
+      
+      if (elt)
+        doc = elt->GetOwnerDoc();
+
+      if (!doc)
+        doc = do_QueryInterface(aTarget);
+
+      if (!doc)
+        return NS_ERROR_FAILURE;
+
+      privateWindow = do_QueryInterface(doc->GetScriptGlobalObject());
+      if (!privateWindow)
+        return NS_ERROR_FAILURE;
+    }
+
+    focusController = privateWindow->GetRootFocusController();
+  }
+
+  NS_LossyConvertUTF16toASCII command(mHandlerText);
+  if (focusController)
+    focusController->GetControllerForCommand(command.get(), getter_AddRefs(controller));
+  else
+    controller = GetController(aTarget); 
+
+  nsAutoString type;
+  mEventName->ToString(type);
+
+  if (type.EqualsLiteral("keypress") &&
+      mDetail == nsIDOMKeyEvent::DOM_VK_SPACE &&
+      mMisc == 1) {
+    
+    
+    nsCOMPtr<nsIDOMElement> focusedElement;
+    focusController->GetFocusedElement(getter_AddRefs(focusedElement));
+    PRBool isLink = PR_FALSE;
+    nsCOMPtr<nsIContent> focusedContent = do_QueryInterface(focusedElement);
+    nsIContent *content = focusedContent;
+
+    
+    
+    
+    if (focusedContent) {
+      while (content) {
+        if (content->Tag() == nsGkAtoms::a &&
+            content->IsNodeOfType(nsINode::eHTML)) {
+          isLink = PR_TRUE;
+          break;
+        }
+
+        if (content->HasAttr(kNameSpaceID_XLink, nsGkAtoms::type)) {
+          isLink = content->AttrValueIs(kNameSpaceID_XLink, nsGkAtoms::type,
+                                        nsGkAtoms::simple, eCaseMatters);
+
+          if (isLink) {
+            break;
+          }
+        }
+
+        content = content->GetParent();
+      }
+
+      if (!isLink)
+        return NS_OK;
+    }
+  }
+
+  
+  
+  aEvent->PreventDefault();
+  
+  if (controller)
+    controller->DoCommand(command.get());
+
+  return NS_OK;
+}
+
+nsresult
+nsXBLPrototypeHandler::DispatchXULKeyCommand(nsIDOMEvent* aEvent)
+{
+  nsCOMPtr<nsIContent> handlerElement = GetHandlerElement();
+  NS_ENSURE_STATE(handlerElement);
+  if (handlerElement->AttrValueIs(kNameSpaceID_None,
+                                  nsGkAtoms::disabled,
+                                  nsGkAtoms::_true,
+                                  eCaseMatters)) {
+    
+    return NS_OK;
+  }
+
+  aEvent->PreventDefault();
+
+  nsEventStatus status = nsEventStatus_eIgnore;
+  nsXULCommandEvent event(PR_TRUE, NS_XUL_COMMAND, nsnull);
+
+  
+  nsCOMPtr<nsIDOMKeyEvent> keyEvent = do_QueryInterface(aEvent);
+  if (!keyEvent) {
+    NS_ERROR("Trying to execute a key handler for a non-key event!");
+    return NS_ERROR_FAILURE;
+  }
+
+  keyEvent->GetAltKey(&event.isAlt);
+  keyEvent->GetCtrlKey(&event.isControl);
+  keyEvent->GetShiftKey(&event.isShift);
+  keyEvent->GetMetaKey(&event.isMeta);
+
+  nsPresContext *pc = nsnull;
+  nsIDocument *doc = handlerElement->GetCurrentDoc();
+  if (doc) {
+    nsIPresShell *shell = doc->GetPrimaryShell();
+    if (shell) {
+      pc = shell->GetPresContext();
+    }
+  }
+
+  nsEventDispatcher::Dispatch(handlerElement, pc, &event, nsnull, &status);
   return NS_OK;
 }
 
@@ -814,6 +873,7 @@ nsXBLPrototypeHandler::ConstructPrototype(nsIContent* aKeyElement,
   mMisc = 0;
   mKeyMask = 0;
   mPhase = NS_PHASE_BUBBLING;
+  ForgetCachedHandler();
 
   if (aAction)
     mHandlerText = ToNewUnicode(nsDependentString(aAction));
