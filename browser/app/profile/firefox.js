@@ -300,9 +300,6 @@ pref("browser.history_expire_sites", 40000);
 
 
 
-pref("browser.link.open_external", 3);
-
-
 pref("browser.link.open_newwindow", 3);
 
 
