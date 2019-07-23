@@ -155,6 +155,11 @@ nsCommonWidget::InitKeyEvent(nsKeyEvent &aEvent, GdkEventKey *aGdkEvent)
         ? PR_TRUE : PR_FALSE;
     aEvent.isMeta    = (aGdkEvent->state & GDK_MOD4_MASK)
         ? PR_TRUE : PR_FALSE;
+    
+    
+    
+    
+    aEvent.nativeMsg = (void *)aGdkEvent;
 
     aEvent.time      = aGdkEvent->time;
 }
