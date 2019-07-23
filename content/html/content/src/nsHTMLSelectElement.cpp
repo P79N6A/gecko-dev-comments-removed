@@ -927,6 +927,13 @@ nsHTMLSelectElement::SetOptionsSelectedByIndex(PRInt32 aStartIndex,
 
   if (aIsSelected) {
     
+    if (aStartIndex >= (PRInt32)numItems || aStartIndex < 0 ||
+        aEndIndex >= (PRInt32)numItems || aEndIndex < 0) {
+      aStartIndex = -1;
+      aEndIndex = -1;
+    }
+
+    
     if (!isMultiple) {
       aEndIndex = aStartIndex;
     }
@@ -947,12 +954,6 @@ nsHTMLSelectElement::SetOptionsSelectedByIndex(PRInt32 aStartIndex,
     
     
     if (aStartIndex != -1) {
-      
-      if (aStartIndex >= (PRInt32)numItems || aStartIndex < 0
-         || aEndIndex >= (PRInt32)numItems || aEndIndex < 0) {
-        return NS_ERROR_FAILURE;
-      }
-
       
       
       for (PRInt32 optIndex = aStartIndex; optIndex <= aEndIndex; optIndex++) {
