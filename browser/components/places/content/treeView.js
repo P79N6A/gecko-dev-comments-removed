@@ -318,7 +318,7 @@ PlacesTreeView.prototype = {
       replaceCount-=1;
 
     
-    for (var i = startReplacement; i < replaceCount; i ++)
+    for (var i = 0; i < replaceCount; i ++)
       this._visibleElements[startReplacement + i].viewIndex = -1;
 
     
@@ -735,7 +735,7 @@ PlacesTreeView.prototype = {
 
   set collapseDuplicates(val) {
     if (this._collapseDuplicates == val)
-      return; 
+      return val; 
 
     this._collapseDuplicates = val;
     if (this._tree && this._result)
@@ -916,8 +916,7 @@ PlacesTreeView.prototype = {
     
     
     var icon = node.icon || PlacesUtils.favicons.defaultFavicon;
-    if (icon)
-      return icon.spec;
+    return icon ? icon.spec : "";
   },
 
   getProgressMode: function(aRow, aColumn) { },
