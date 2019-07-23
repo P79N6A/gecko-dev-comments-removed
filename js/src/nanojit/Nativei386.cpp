@@ -118,8 +118,6 @@ namespace nanojit
     NIns* Assembler::genPrologue()
     {
         
-
-
         uint32_t stackNeeded = max_stk_args + STACK_GRANULARITY * _activation.tos;
 
         uint32_t stackPushed =
@@ -394,7 +392,7 @@ namespace nanojit
 
         Register rr = ins->getReg();
         if (isKnownReg(rr) && (rmask(rr) & FpRegs))
-            evict(rr, ins);
+            evict(ins);
 
         if (hi->isconst())
         {
@@ -420,43 +418,33 @@ namespace nanojit
         freeRsrcOf(ins, false); 
     }
 
-    void Assembler::asm_load(int d, Register r)
+    
+    
+    void Assembler::asm_restore(LInsp ins, Register r)
     {
-        if (rmask(r) & FpRegs)
-        {
-            if (rmask(r) & XmmRegs) {
-                SSE_LDQ(r, d, FP);
-            } else {
-                FLDQ(d, FP);
-            }
-        }
-        else
-        {
-            LD(r, d, FP);
-        }
-    }
+        NanoAssert(ins->getReg() == r);
 
-    
-    
-    void Assembler::asm_restore(LInsp i, Register r)
-    {
         uint32_t arg;
         uint32_t abi_regcount;
-        if (i->isop(LIR_alloc)) {
-            LEA(r, disp(i), FP);
-        }
-        else if (i->isconst()) {
-            if (!i->getArIndex()) {
-                i->markAsClear();
-            }
-            asm_int(r, i->imm32(), false);
-        }
-        else if (i->isop(LIR_param) && i->paramKind() == 0 &&
-            (arg = i->paramArg()) >= (abi_regcount = max_abi_regs[_thisfrag->lirbuf->abi])) {
+        if (ins->isop(LIR_alloc)) {
             
-            if (!i->getArIndex()) {
-                i->markAsClear();
+            
+            
+            NanoAssert(ins->getArIndex());  
+            LEA(r, disp(ins), FP);
+
+        } else if (ins->isconst()) {
+            asm_int(r, ins->imm32(), false);
+            if (!ins->getArIndex()) {
+                ins->markAsClear();
             }
+
+        } else if (ins->isop(LIR_param) && ins->paramKind() == 0 &&
+            (arg = ins->paramArg()) >= (abi_regcount = max_abi_regs[_thisfrag->lirbuf->abi])) {
+            
+
+            
+            
             
             
             
@@ -465,20 +453,29 @@ namespace nanojit
             
             int d = (arg - abi_regcount) * sizeof(intptr_t) + 8;
             LD(r, d, FP);
-        }
-        else {
-            int d = findMemFor(i);
-            asm_load(d,r);
+            if (!ins->getArIndex()) {
+                ins->markAsClear();
+            }
+
+        } else {
+            int d = findMemFor(ins);
+            if (rmask(r) & GpRegs) {
+                LD(r, d, FP);
+            } else if (rmask(r) & XmmRegs) {
+                SSE_LDQ(r, d, FP);
+            } else {
+                NanoAssert(rmask(r) & x87Regs);
+                FLDQ(d, FP);
+            }
         }
     }
 
     void Assembler::asm_store32(LOpcode op, LIns* value, int dr, LIns* base)
     {
-        if (value->isconst())
-        {
+        if (value->isconst()) {
             Register rb = getBaseReg(base, dr, GpRegs);
             int c = value->imm32();
-            switch(op) {
+            switch (op) {
                 case LIR_stb:
                     ST8i(rb, dr, c);
                     break;
@@ -500,7 +497,6 @@ namespace nanojit
                             (1<<EAX | 1<<ECX | 1<<EDX | 1<<EBX) :
                             GpRegs;
 
-            
             Register ra, rb;
             if (base->isop(LIR_alloc)) {
                 rb = FP;
@@ -508,13 +504,13 @@ namespace nanojit
                 ra = findRegFor(value, SrcRegs);
             } else if (base->isconst()) {
                 
+                rb = UnknownReg;
                 dr += base->imm32();
                 ra = findRegFor(value, SrcRegs);
-                rb = UnknownReg;
             } else {
                 findRegFor2(SrcRegs, value, ra, base, rb);
             }
-            switch(op) {
+            switch (op) {
                 case LIR_stb:
                     ST8(rb, dr, ra);
                     break;
@@ -641,57 +637,32 @@ namespace nanojit
 
     void Assembler::asm_store64(LOpcode op, LInsp value, int dr, LInsp base)
     {
-        if (op == LIR_st32f)
-        {
-            Register rb;
-            if (base->isop(LIR_alloc)) {
-                rb = FP;
-                dr += findMemFor(base);
-            } else {
-                rb = findRegFor(base, GpRegs);
-            }
+        Register rb = getBaseReg(base, dr, GpRegs);
 
-            
-            
+        if (op == LIR_st32f) {
             bool pop = value->isUnusedOrHasUnknownReg();
-            Register rv = findRegFor(value, config.sse2 ? XmmRegs : FpRegs);
-            if (rmask(rv) & XmmRegs) 
-            {
+            Register rv = ( pop
+                          ? findRegFor(value, config.sse2 ? XmmRegs : FpRegs)
+                          : value->getReg() );
+
+            if (rmask(rv) & XmmRegs) {
                 
-                Register t = registerAllocTmp(XmmRegs);
+                Register rt = registerAllocTmp(XmmRegs);
 
                 
-                SSE_STSS(dr, rb, t);
-                SSE_CVTSD2SS(t, rv);
-                SSE_XORPDr(t,t);  
-            } 
-            else 
-            {
+                SSE_STSS(dr, rb, rt);
+                SSE_CVTSD2SS(rt, rv);
+                SSE_XORPDr(rt, rt);     
+
+            } else {
                 FST32(pop?1:0, dr, rb);
             }
-            return;
-        }
-        
-        NanoAssertMsg(op == LIR_stqi, "asm_store64 should never receive this LIR opcode");
 
-        if (value->isconstq())
-        {
-            
-            
-            Register rb;
-            if (base->isop(LIR_alloc)) {
-                rb = FP;
-                dr += findMemFor(base);
-            } else {
-                rb = findRegFor(base, GpRegs);
-            }
+        } else if (value->isconstq()) {
             STi(rb, dr+4, value->imm64_1());
             STi(rb, dr,   value->imm64_0());
-            return;
-        }
 
-        if (value->isop(LIR_ldq) || value->isop(LIR_ldqc) || value->isop(LIR_qjoin))
-        {
+        } else if (value->isop(LIR_ldq) || value->isop(LIR_ldqc) || value->isop(LIR_qjoin)) {
             
             
             
@@ -703,71 +674,39 @@ namespace nanojit
 
             if (config.sse2) {
                 Register rv = findRegFor(value, XmmRegs);
-                Register rb;
-                if (base->isop(LIR_alloc)) {
-                    rb = FP;
-                    dr += findMemFor(base);
-                } else {
-                    rb = findRegFor(base, GpRegs);
-                }
                 SSE_STQ(dr, rb, rv);
-                return;
-            }
-
-            int da = findMemFor(value);
-            Register rb;
-            if (base->isop(LIR_alloc)) {
-                rb = FP;
-                dr += findMemFor(base);
             } else {
-                rb = findRegFor(base, GpRegs);
+                int da = findMemFor(value);
+                asm_mmq(rb, dr, FP, da);
             }
-            asm_mmq(rb, dr, FP, da);
-            return;
-        }
 
-        Register rb;
-        if (base->isop(LIR_alloc)) {
-            rb = FP;
-            dr += findMemFor(base);
         } else {
-            rb = findRegFor(base, GpRegs);
-        }
+            bool pop = value->isUnusedOrHasUnknownReg();
+            Register rv = ( pop
+                          ? findRegFor(value, config.sse2 ? XmmRegs : FpRegs)
+                          : value->getReg() );
 
-        
-        
-        bool pop = value->isUnusedOrHasUnknownReg();
-        Register rv = ( pop
-                      ? findRegFor(value, config.sse2 ? XmmRegs : FpRegs)
-                      : value->getReg() );
-
-        if (rmask(rv) & XmmRegs) 
-        {
-            SSE_STQ(dr, rb, rv);
-        } 
-        else 
-        {
-            FSTQ(pop?1:0, dr, rb);
+            if (rmask(rv) & XmmRegs) {
+                SSE_STQ(dr, rb, rv);
+            } else {
+                FSTQ(pop?1:0, dr, rb);
+            }
         }
     }
 
     
-
-
+    
     void Assembler::asm_mmq(Register rd, int dd, Register rs, int ds)
     {
         
         
         
-        if (config.sse2)
-        {
-            
+        if (config.sse2) {
             Register t = registerAllocTmp(XmmRegs);
             SSE_STQ(dd, rd, t);
             SSE_LDQ(t, ds, rs);
-        }
-        else
-        {
+        } else {
+            
             
             Register t = registerAllocTmp(GpRegs & ~(rmask(rd)|rmask(rs)));
             ST(rd, dd+4, t);
@@ -892,18 +831,18 @@ namespace nanojit
         NanoAssert(!lhs->isQuad() && !rhs->isQuad());
 
         
-        if (rhs->isconst())
-        {
+        if (rhs->isconst()) {
             int c = rhs->imm32();
+            
+            
             Register r = findRegFor(lhs, GpRegs);
             if (c == 0 && cond->isop(LIR_eq)) {
                 TEST(r, r);
             } else {
                 CMPi(r, c);
             }
-        }
-        else
-        {
+
+        } else {
             Register ra, rb;
             findRegFor2(GpRegs, lhs, ra, rhs, rb);
             CMP(ra, rb);
@@ -913,9 +852,7 @@ namespace nanojit
     void Assembler::asm_fcond(LInsp ins)
     {
         LOpcode opcode = ins->opcode();
-
-        
-        Register r = prepResultReg(ins, AllowableFlagRegs);
+        Register r = prepareResultReg(ins, AllowableFlagRegs);
 
         
         MOVZX8(r,r);
@@ -935,14 +872,18 @@ namespace nanojit
         } else {
             SETNP(r);
         }
+
+        freeResourcesOf(ins);
+
         asm_fcmp(ins);
     }
 
     void Assembler::asm_cond(LInsp ins)
     {
-        
         LOpcode op = ins->opcode();
-        Register r = prepResultReg(ins, AllowableFlagRegs);
+
+        Register r = prepareResultReg(ins, AllowableFlagRegs);
+
         
         MOVZX8(r,r);
         switch (op) {
@@ -958,22 +899,57 @@ namespace nanojit
         case LIR_uge:   SETAE(r);       break;
         default:        NanoAssert(0);  break;
         }
+
+        freeResourcesOf(ins);   
+
         asm_cmp(ins);
     }
 
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     void Assembler::asm_arith(LInsp ins)
     {
         LOpcode op = ins->opcode();
-        LInsp lhs = ins->oprnd1();
 
+        
         if (op == LIR_mod) {
             asm_div_mod(ins);
             return;
         }
 
+        LInsp lhs = ins->oprnd1();
         LInsp rhs = ins->oprnd2();
 
-        bool forceReg;
+        
+        if ((op == LIR_add || op == LIR_iaddp) && lhs->isop(LIR_alloc) && rhs->isconst()) {
+            
+            Register rr = prepareResultReg(ins, GpRegs);
+            int d = findMemFor(lhs) + rhs->imm32();
+
+            LEA(rr, d, FP);
+
+            freeResourcesOf(ins);
+
+            return;
+        }
+
+        bool isConstRhs;
         RegisterMask allow = GpRegs;
         Register rb = UnknownReg;
 
@@ -981,95 +957,65 @@ namespace nanojit
         case LIR_div:
             
             
-            forceReg = true;
-            rb = findRegFor(rhs, (GpRegs ^ (rmask(EAX)|rmask(EDX))));
+            isConstRhs = false;
+            rb = findRegFor(rhs, (GpRegs & ~(rmask(EAX)|rmask(EDX))));
             allow = rmask(EAX);
             evictIfActive(EDX);
             break;
         case LIR_mul:
-            forceReg = true;
+            isConstRhs = false;
+            if (lhs != rhs) {
+                rb = findRegFor(rhs, allow);
+                allow &= ~rmask(rb);
+            }
             break;
         case LIR_lsh:
         case LIR_rsh:
         case LIR_ush:
-            forceReg = !rhs->isconst();
-            if (forceReg) {
+            isConstRhs = rhs->isconst();
+            if (!isConstRhs) {
                 rb = findSpecificRegFor(rhs, ECX);
                 allow &= ~rmask(rb);
             }
             break;
-        case LIR_add:
-        case LIR_addp:
-            if (lhs->isop(LIR_alloc) && rhs->isconst()) {
-                
-                Register rr = prepResultReg(ins, allow);
-                int d = findMemFor(lhs) + rhs->imm32();
-                LEA(rr, d, FP);
-                return;
-            }
-            
         default:
-            forceReg = !rhs->isconst();
+            isConstRhs = rhs->isconst();
+            if (!isConstRhs && lhs != rhs) {
+                rb = findRegFor(rhs, allow);
+                allow &= ~rmask(rb);
+            }
             break;
         }
 
         
-        if (forceReg && lhs != rhs && !isKnownReg(rb)) {
-            rb = findRegFor(rhs, allow);
-            allow &= ~rmask(rb);
-        }
+        Register rr = prepareResultReg(ins, allow);
 
-        Register rr = prepResultReg(ins, allow);
         
-        
-        Register ra = ( lhs->isUnusedOrHasUnknownReg()
-                      ? findSpecificRegForUnallocated(lhs, rr)
-                      : lhs->getReg() );
+        Register ra = lhs->isUnusedOrHasUnknownReg() ? rr : lhs->getReg();
 
-        if (forceReg)
-        {
+        if (!isConstRhs) {
             if (lhs == rhs)
                 rb = ra;
 
             switch (op) {
             case LIR_add:
-            case LIR_addp:
-                ADD(rr, rb);
-                break;
-            case LIR_sub:
-                SUB(rr, rb);
-                break;
-            case LIR_mul:
-                MUL(rr, rb);
-                break;
-            case LIR_and:
-                AND(rr, rb);
-                break;
-            case LIR_or:
-                OR(rr, rb);
-                break;
-            case LIR_xor:
-                XOR(rr, rb);
-                break;
-            case LIR_lsh:
-                SHL(rr, rb);
-                break;
-            case LIR_rsh:
-                SAR(rr, rb);
-                break;
-            case LIR_ush:
-                SHR(rr, rb);
-                break;
+            case LIR_addp:  ADD(rr, rb); break;
+            case LIR_sub:   SUB(rr, rb); break;
+            case LIR_mul:   MUL(rr, rb); break;
+            case LIR_and:   AND(rr, rb); break;
+            case LIR_or:    OR( rr, rb); break;
+            case LIR_xor:   XOR(rr, rb); break;
+            case LIR_lsh:   SHL(rr, rb); break;
+            case LIR_rsh:   SAR(rr, rb); break;
+            case LIR_ush:   SHR(rr, rb); break;
             case LIR_div:
                 DIV(rb);
-                CDQ();
+                CDQ(); 
                 break;
-            default:
-                NanoAssertMsg(0, "Unsupported");
+            default:        NanoAssert(0);  break;
             }
-        }
-        else
-        {
+
+        } else {
             int c = rhs->imm32();
             switch (op) {
             case LIR_addp:
@@ -1077,38 +1023,26 @@ namespace nanojit
                 LEA(rr, c, ra);
                 ra = rr; 
                 break;
-            case LIR_add:
-                ADDi(rr, c);
-                break;
-            case LIR_sub:
-                SUBi(rr, c);
-                break;
-            case LIR_and:
-                ANDi(rr, c);
-                break;
-            case LIR_or:
-                ORi(rr, c);
-                break;
-            case LIR_xor:
-                XORi(rr, c);
-                break;
-            case LIR_lsh:
-                SHLi(rr, c);
-                break;
-            case LIR_rsh:
-                SARi(rr, c);
-                break;
-            case LIR_ush:
-                SHRi(rr, c);
-                break;
-            default:
-                NanoAssertMsg(0, "Unsupported");
-                break;
+            case LIR_add:   ADDi(rr, c);    break;
+            case LIR_sub:   SUBi(rr, c);    break;
+            case LIR_and:   ANDi(rr, c);    break;
+            case LIR_or:    ORi( rr, c);    break;
+            case LIR_xor:   XORi(rr, c);    break;
+            case LIR_lsh:   SHLi(rr, c);    break;
+            case LIR_rsh:   SARi(rr, c);    break;
+            case LIR_ush:   SHRi(rr, c);    break;
+            default:        NanoAssert(0);  break;
             }
         }
 
-        if ( rr != ra )
-            MR(rr,ra);
+        if (rr != ra)
+            MR(rr, ra);
+
+        freeResourcesOf(ins);
+        if (lhs->isUnusedOrHasUnknownReg()) {
+            NanoAssert(ra == rr);
+            findSpecificRegForUnallocated(lhs, ra);
+        }
     }
 
     
@@ -1117,48 +1051,73 @@ namespace nanojit
         LInsp div = mod->oprnd1();
 
         
-
         NanoAssert(mod->isop(LIR_mod));
         NanoAssert(div->isop(LIR_div));
 
-        LInsp divLhs = div->oprnd1();
-        LInsp divRhs = div->oprnd2();
+        LInsp divL = div->oprnd1();
+        LInsp divR = div->oprnd2();
 
-        prepResultReg(mod, rmask(EDX));
-        prepResultReg(div, rmask(EAX));
+        prepareResultReg(mod, rmask(EDX));
+        prepareResultReg(div, rmask(EAX));
 
-        Register rDivRhs = findRegFor(divRhs, (GpRegs ^ (rmask(EAX)|rmask(EDX))));
+        Register rDivR = findRegFor(divR, (GpRegs & ~(rmask(EAX)|rmask(EDX))));
 
-        Register rDivLhs = ( divLhs->isUnusedOrHasUnknownReg()
-                           ? findSpecificRegFor(divLhs, EAX)
-                           : divLhs->getReg() );
+        Register rDivL = divL->isUnusedOrHasUnknownReg() ? EAX : divL->getReg();
 
-        DIV(rDivRhs);
+        DIV(rDivR);
         CDQ();     
 
-        if ( EAX != rDivLhs )
-            MR(EAX, rDivLhs);
+        if (EAX != rDivL)
+            MR(EAX, rDivL);
+
+        freeResourcesOf(mod);
+        freeResourcesOf(div);
+        if (divL->isUnusedOrHasUnknownReg()) {
+            NanoAssert(rDivL == EAX);
+            findSpecificRegForUnallocated(divL, EAX);
+        }
     }
 
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     void Assembler::asm_neg_not(LInsp ins)
     {
         LOpcode op = ins->opcode();
-        Register rr = prepResultReg(ins, GpRegs);
-
         LIns* lhs = ins->oprnd1();
+
+        Register rr = prepareResultReg(ins, GpRegs);
+
         
-        
-        Register ra = ( lhs->isUnusedOrHasUnknownReg()
-                      ? findSpecificRegForUnallocated(lhs, rr)
-                      : lhs->getReg() );
+        Register ra = lhs->isUnusedOrHasUnknownReg() ? rr : lhs->getReg();
 
         if (op == LIR_not)
             NOT(rr);
         else
             NEG(rr);
 
-        if ( rr != ra )
-            MR(rr,ra);
+        if (rr != ra)
+            MR(rr, ra);
+
+        freeResourcesOf(ins);
+        if (lhs->isUnusedOrHasUnknownReg()) {
+            NanoAssert(ra == rr);
+            findSpecificRegForUnallocated(lhs, ra);
+        }
     }
 
     void Assembler::asm_load32(LInsp ins)
@@ -1354,8 +1313,11 @@ namespace nanojit
 
     void Assembler::asm_int(LInsp ins)
     {
-        Register rr = prepResultReg(ins, GpRegs);
+        Register rr = prepareResultReg(ins, GpRegs);
+
         asm_int(rr, ins->imm32(), true);
+
+        freeResourcesOf(ins);
     }
 
     void Assembler::asm_int(Register r, int32_t val, bool canClobberCCs)
@@ -1369,13 +1331,32 @@ namespace nanojit
     void Assembler::asm_quad(LInsp ins)
     {
         Register rr = ins->getReg();
-        if (isKnownReg(rr))
-        {
-            
-            _allocator.retire(rr);
-            ins->setReg(UnknownReg);
+
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+
+        if (isKnownReg(rr)) {
             NanoAssert((rmask(rr) & FpRegs) != 0);
 
+            
             const double d = ins->imm64f();
             const uint64_t q = ins->imm64();
             if (rmask(rr) & XmmRegs) {
@@ -1384,18 +1365,20 @@ namespace nanojit
                     SSE_XORPDr(rr, rr);
                 } else if (d == 1.0) {
                     
+                    
+                    
                     static const double k_ONE = 1.0;
                     LDSDm(rr, &k_ONE);
                 } else if (d && d == (int)d) {
                     
-                    Register gr = registerAllocTmp(GpRegs);
-                    SSE_CVTSI2SD(rr, gr);
+                    Register rt = registerAllocTmp(GpRegs);
+                    SSE_CVTSI2SD(rr, rt);
                     SSE_XORPDr(rr,rr);  
-                    asm_int(gr, (int)d, true);
+                    asm_int(rt, (int)d, true);
                 } else {
-                    findMemFor(ins);
+                    findMemFor(ins);    
                     const int d = disp(ins);
-                    SSE_LDQ(rr, d, FP);
+                    SSE_LDQ(rr, d, FP); 
                 }
             } else {
                 if (q == 0.0) {
@@ -1404,21 +1387,24 @@ namespace nanojit
                 } else if (d == 1.0) {
                     FLD1();
                 } else {
-                    findMemFor(ins);
-                    int d = disp(ins);
+                    int d = findMemFor(ins);
                     FLDQ(d,FP);
                 }
             }
         }
 
         
+        
+        
+        
         int d = disp(ins);
-        freeRsrcOf(ins, false);
         if (d)
         {
             STi(FP,d+4,ins->imm64_1());
             STi(FP,d,  ins->imm64_0());
         }
+
+        freeResourcesOf(ins);
     }
 
     void Assembler::asm_qlo(LInsp ins)
@@ -1468,64 +1454,64 @@ namespace nanojit
 
     void Assembler::asm_fneg(LInsp ins)
     {
-        if (config.sse2)
-        {
-            LIns *lhs = ins->oprnd1();
+        LIns *lhs = ins->oprnd1();
 
-            Register rr = prepResultReg(ins, XmmRegs);
+        if (config.sse2) {
+            Register rr = prepareResultReg(ins, XmmRegs);
+
+            
             Register ra;
-
-            
-            
             if (lhs->isUnusedOrHasUnknownReg()) {
-                ra = findSpecificRegForUnallocated(lhs, rr);
+                ra = rr;
+            } else if (!(rmask(lhs->getReg()) & XmmRegs)) {
+                
+                
+                evict(lhs);
+                ra = rr;
             } else {
                 ra = lhs->getReg();
-                if ((rmask(ra) & XmmRegs) == 0) {
-                    
-
-
-
-                    ra = findRegFor(lhs, XmmRegs);
-                }
             }
 
             SSE_XORPD(rr, negateMask);
 
             if (rr != ra)
                 SSE_MOVSD(rr, ra);
-        }
-        else
-        {
-            Register rr = prepResultReg(ins, FpRegs);
 
-            LIns* lhs = ins->oprnd1();
+            freeResourcesOf(ins);
+            if (lhs->isUnusedOrHasUnknownReg()) {
+                NanoAssert(ra == rr);
+                findSpecificRegForUnallocated(lhs, ra);
+            }
 
-            
+        } else {
+            verbose_only( Register rr = ) prepareResultReg(ins, x87Regs);
+            NanoAssert(FST0 == rr);
 
-            
-            
-            if (lhs->isUnusedOrHasUnknownReg())
-                findSpecificRegForUnallocated(lhs, rr);
+            NanoAssert(lhs->isUnusedOrHasUnknownReg() || FST0 == lhs->getReg());
 
-            NanoAssert(lhs->getReg()==FST0);
-            
             FCHS();
 
-            
-            
+            freeResourcesOf(ins);
+            if (lhs->isUnusedOrHasUnknownReg())
+                findSpecificRegForUnallocated(lhs, FST0);
         }
     }
 
-    void Assembler::asm_arg(ArgSize sz, LInsp p, Register r, int32_t& stkd)
+    void Assembler::asm_arg(ArgSize sz, LInsp ins, Register r, int32_t& stkd)
     {
+        
+        
+
         if (sz == ARGSIZE_Q)
         {
             
             if (isKnownReg(r))
             {
+                NanoAssert(rmask(r) & FpRegs);
+
                 
-                int da = findMemFor(p);
+                int da = findMemFor(ins);
+
                 LEA(r, da, FP);
             }
             else
@@ -1536,92 +1522,89 @@ namespace nanojit
         else if (sz == ARGSIZE_I || sz == ARGSIZE_U)
         {
             if (isKnownReg(r)) {
-                
-                if (p->isconst()) {
-                    asm_int(r, p->imm32(), true);
-                } else {
-                    if (p->isUsed()) {
-                        if (!p->hasKnownReg()) {
-                            
-                            int d = findMemFor(p);
-                            if (p->isop(LIR_alloc)) {
-                                LEA(r, d, FP);
-                            } else {
-                                LD(r, d, FP);
-                            }
+                if (ins->isconst()) {
+                    
+                    asm_int(r, ins->imm32(), true);
+                } else if (ins->isUsed()) {
+                    if (!ins->hasKnownReg()) {
+                        int d = disp(ins);
+                        NanoAssert(d != 0);
+                        if (ins->isop(LIR_alloc)) {
+                            LEA(r, d, FP);
                         } else {
-                            
-                            MR(r, p->getReg());
+                            LD(r, d, FP);
                         }
+                    } else {
+                        if (r != ins->getReg())
+                            MR(r, ins->getReg());
                     }
-                    else {
-                        
-                        
-                        findSpecificRegFor(p, r);
-                    }
+
+                } else {
+                    
+                    
+                    findSpecificRegForUnallocated(ins, r);
                 }
             }
             else {
                 if (config.fixed_esp)
-                    asm_stkarg(p, stkd);
+                    asm_stkarg(ins, stkd);
                 else
-                    asm_pusharg(p);
+                    asm_pusharg(ins);
             }
         }
         else
         {
             NanoAssert(sz == ARGSIZE_F);
-            asm_farg(p, stkd);
+            asm_farg(ins, stkd);
         }
     }
 
-    void Assembler::asm_pusharg(LInsp p)
+    void Assembler::asm_pusharg(LInsp ins)
     {
         
-        if (!p->isUsed() && p->isconst())
+        if (!ins->isUsed() && ins->isconst())
         {
-            
-            PUSHi(p->imm32());
+            PUSHi(ins->imm32());    
         }
-        else if (!p->isUsed() || p->isop(LIR_alloc))
+        else if (!ins->isUsed() || ins->isop(LIR_alloc))
         {
-            Register ra = findRegFor(p, GpRegs);
+            Register ra = findRegFor(ins, GpRegs);
             PUSHr(ra);
         }
-        else if (!p->hasKnownReg())
+        else if (!ins->hasKnownReg())
         {
-            PUSHm(disp(p), FP);
+            PUSHm(disp(ins), FP);
         }
         else
         {
-            PUSHr(p->getReg());
+            PUSHr(ins->getReg());
         }
     }
 
-    void Assembler::asm_stkarg(LInsp p, int32_t& stkd)
+    void Assembler::asm_stkarg(LInsp ins, int32_t& stkd)
     {
         
-        if (!p->isUsed() && p->isconst())
+        if (!ins->isUsed() && ins->isconst())
         {
             
-            STi(SP, stkd, p->imm32());
+            STi(SP, stkd, ins->imm32());
         }
         else {
             Register ra;
-            if (!p->isUsed() || p->getReg() == UnknownReg || p->isop(LIR_alloc))
-                ra = findRegFor(p, GpRegs & (~SavedRegs));
+            if (ins->isUnusedOrHasUnknownReg() || ins->isop(LIR_alloc))
+                ra = findRegFor(ins, GpRegs & (~SavedRegs));
             else
-                ra = p->getReg();
+                ra = ins->getReg();
             ST(SP, stkd, ra);
         }
 
         stkd += sizeof(int32_t);
     }
 
-    void Assembler::asm_farg(LInsp p, int32_t& stkd)
+    void Assembler::asm_farg(LInsp ins, int32_t& stkd)
     {
-        NanoAssert(p->isQuad());
-        Register r = findRegFor(p, FpRegs);
+        NanoAssert(ins->isQuad());
+        Register r = findRegFor(ins, FpRegs);
         if (rmask(r) & XmmRegs) {
             SSE_STQ(stkd, SP, r);
         } else {
@@ -1642,7 +1625,7 @@ namespace nanojit
             evictIfActive(FST0);
         }
         if (!config.fixed_esp)
-            SUBi(ESP,8);
+            SUBi(ESP, 8);
 
         stkd += sizeof(double);
     }
@@ -1726,33 +1709,30 @@ namespace nanojit
 
     void Assembler::asm_i2f(LInsp ins)
     {
-        
-        Register rr = prepResultReg(ins, FpRegs);
-        if (rmask(rr) & XmmRegs)
-        {
+        LIns* lhs = ins->oprnd1();
+
+        Register rr = prepareResultReg(ins, FpRegs);
+        if (rmask(rr) & XmmRegs) {
             
-            Register gr = findRegFor(ins->oprnd1(), GpRegs);
-            SSE_CVTSI2SD(rr, gr);
-            SSE_XORPDr(rr,rr);  
-        }
-        else
-        {
-            int d = findMemFor(ins->oprnd1());
+            Register ra = findRegFor(lhs, GpRegs);
+            SSE_CVTSI2SD(rr, ra);
+            SSE_XORPDr(rr, rr);     
+        } else {
+            int d = findMemFor(lhs);
             FILD(d, FP);
         }
+
+        freeResourcesOf(ins);
     }
 
     void Assembler::asm_u2f(LInsp ins)
     {
-        
-        Register rr = prepResultReg(ins, FpRegs);
-        if (rmask(rr) & XmmRegs)
-        {
-            
-            
-            Register gr = registerAllocTmp(GpRegs);
+        LIns* lhs = ins->oprnd1();
 
-            
+        Register rr = prepareResultReg(ins, FpRegs);
+        if (rmask(rr) & XmmRegs) {
+            Register rt = registerAllocTmp(GpRegs);
+
             
             
             
@@ -1773,48 +1753,42 @@ namespace nanojit
             static const double k_NEGONE = 2147483648.0;
             SSE_ADDSDm(rr, &k_NEGONE);
 
-            SSE_CVTSI2SD(rr, gr);
+            SSE_CVTSI2SD(rr, rt);
             SSE_XORPDr(rr,rr);  
 
-            LIns* op1 = ins->oprnd1();
-            Register xr;
-            if (op1->isUsed() && (xr = op1->getReg(), isKnownReg(xr)) && (rmask(xr) & GpRegs))
-            {
-                LEA(gr, 0x80000000, xr);
+            Register ra;
+            if (lhs->isUsed() && (ra = lhs->getReg(), isKnownReg(ra)) && (rmask(ra) & GpRegs)) {
+                LEA(rt, 0x80000000, ra);
+
+            } else {
+                const int d = findMemFor(lhs);
+                SUBi(rt, 0x80000000);
+                LD(rt, d, FP);
             }
-            else
-            {
-                const int d = findMemFor(ins->oprnd1());
-                SUBi(gr, 0x80000000);
-                LD(gr, d, FP);
-            }
-        }
-        else
-        {
+
+        } else {
             const int disp = -8;
             const Register base = SP;
-            Register gr = findRegFor(ins->oprnd1(), GpRegs);
+            Register ra = findRegFor(lhs, GpRegs);
             NanoAssert(rr == FST0);
             FILDQ(disp, base);
             STi(base, disp+4, 0);   
-            ST(base, disp, gr);     
+            ST(base, disp, ra);     
         }
+
+        freeResourcesOf(ins);
     }
 
-    void Assembler::asm_nongp_copy(Register r, Register s)
+    void Assembler::asm_nongp_copy(Register rd, Register rs)
     {
-        if ((rmask(r) & XmmRegs) && (rmask(s) & XmmRegs)) {
-            SSE_MOVSD(r, s);
-        } else if ((rmask(r) & GpRegs) && (rmask(s) & XmmRegs)) {
-            SSE_MOVD(r, s);
+        if ((rmask(rd) & XmmRegs) && (rmask(rs) & XmmRegs)) {
+            
+            SSE_MOVSD(rd, rs);
+        } else if ((rmask(rd) & GpRegs) && (rmask(rs) & XmmRegs)) {
+            
+            SSE_MOVD(rd, rs);
         } else {
-            if (rmask(r) & XmmRegs) {
-                
-                NanoAssertMsg(false, "Should not move data from GPR to XMM");
-            } else {
-                
-                NanoAssertMsg(false, "Should not move data from GPR/XMM to x87 FPU");
-            }
+            NanoAssertMsgf(false, "bad asm_nongp_copy(%s, %s)", gpn(rd), gpn(rs));
         }
     }
 
@@ -1905,7 +1879,7 @@ namespace nanojit
                     
                     
                     
-        
+
                     evictIfActive(EAX);
                     Register ra, rb;
                     findRegFor2(XmmRegs, lhs, ra, rhs, rb);
@@ -2001,9 +1975,8 @@ namespace nanojit
 
             if (lhs == rhs) {
                 
-                
                 TEST_AH(mask);
-                FNSTSW_AX();
+                FNSTSW_AX();        
                 if (pop)
                     FCOMPP();
                 else
@@ -2011,9 +1984,8 @@ namespace nanojit
                 FLDr(FST0); 
             } else {
                 int d = findMemFor(rhs);
-                
                 TEST_AH(mask);
-                FNSTSW_AX();
+                FNSTSW_AX();        
                 FCOM((pop?1:0), d, FP);
             }
         }
@@ -2060,6 +2032,7 @@ namespace nanojit
         MR(SP,FP);
 
         assignSavedRegs();
+
         LIns *val = ins->oprnd1();
         if (ins->isop(LIR_ret)) {
             findSpecificRegFor(val, retRegs[0]);
@@ -2081,5 +2054,5 @@ namespace nanojit
         verbose_only( SWAP(size_t, codeBytes, exitBytes); )
     }
     
-    #endif 
+    #endif
 }

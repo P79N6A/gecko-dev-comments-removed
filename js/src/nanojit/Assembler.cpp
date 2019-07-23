@@ -92,7 +92,7 @@ namespace nanojit
         _activation.lowwatermark = 0;
         _activation.tos = 0;
 
-        for(uint32_t i=0; i<NJ_MAX_STACK_ENTRY; i++)
+        for (uint32_t i = 0; i < NJ_MAX_STACK_ENTRY; i++)
             _activation.entry[i] = 0;
 
         _branchStateMap.clear();
@@ -134,23 +134,18 @@ namespace nanojit
 
             
             
-            LIns* vicIns = findVictim(allow);
-            NanoAssert(vicIns->isUsed());
-            r = vicIns->getReg();
+            LIns* vic = findVictim(allow);
+            NanoAssert(vic->isUsed());
+            r = vic->getReg();
 
-            _allocator.removeActive(r);
-            vicIns->setReg(UnknownReg);
-
-            
-            verbose_only( if (_logc->lcbits & LC_Assembly) {
-                            setOutputForEOL("  <= restore %s",
-                            _thisfrag->lirbuf->names->formatRef(vicIns)); } )
-            asm_restore(vicIns, r);
+            evict(vic);
 
             
+            _allocator.removeFree(r);
             _allocator.addActive(r, ins);
             ins->setReg(r);
         }
+
         return r;
     }
 
@@ -241,7 +236,7 @@ namespace nanojit
         NanoAssert(ar.tos < NJ_MAX_STACK_ENTRY);
         LIns* ins = 0;
         RegAlloc* regs = &_allocator;
-        for(uint32_t i = ar.lowwatermark; i < ar.tos; i++)
+        for (uint32_t i = ar.lowwatermark; i < ar.tos; i++)
         {
             ins = ar.entry[i];
             if ( !ins )
@@ -335,10 +330,21 @@ namespace nanojit
         return findRegFor(i, rmask(w));
     }
 
+    
+    
+    
+    
+    
     Register Assembler::getBaseReg(LIns *i, int &d, RegisterMask allow)
     {
     #if !PEDANTIC
         if (i->isop(LIR_alloc)) {
+            
+            
+            
+            
+            
+            
             d += findMemFor(i);
             return FP;
         }
@@ -368,23 +374,21 @@ namespace nanojit
 
         if (!ins->isUsed()) {
             
+            
             ins->markAsUsed();
             RegisterMask prefer = hint(ins, allow);
             r = registerAlloc(ins, prefer);
 
         } else if (!ins->hasKnownReg()) {
             
-            
             RegisterMask prefer = hint(ins, allow);
             r = registerAlloc(ins, prefer);
 
         } else if (rmask(r = ins->getReg()) & allow) {
             
-            
             _allocator.useActive(r);
 
         } else {
-            
             
             RegisterMask prefer = hint(ins, allow);
 #ifdef NANOJIT_IA32
@@ -393,14 +397,14 @@ namespace nanojit
             {
                 
                 
-                evict(r, ins);
+                evict(ins);
                 r = registerAlloc(ins, prefer);
             } else
 #elif defined(NANOJIT_PPC)
             if (((rmask(r)&GpRegs) && !(allow&GpRegs)) ||
                 ((rmask(r)&FpRegs) && !(allow&FpRegs)))
             {
-                evict(r, ins);
+                evict(ins);
                 r = registerAlloc(ins, prefer);
             } else
 #endif
@@ -413,21 +417,20 @@ namespace nanojit
                 
                 
                 
-                _allocator.retire(r);
                 Register s = r;
+                _allocator.retire(r);
                 r = registerAlloc(ins, prefer);
+
+                
+                
                 if ((rmask(s) & GpRegs) && (rmask(r) & GpRegs)) {
-#ifdef NANOJIT_ARM
-                    MOV(s, r);  
-#else
-                    MR(s, r);
-#endif
-                }
-                else {
+                    MR(s, r);   
+                } else {
                     asm_nongp_copy(s, r);
                 }
             }
         }
+
         return r;
     }
 
@@ -466,8 +469,57 @@ namespace nanojit
         return disp(ins);
     }
 
+    
+    
+    
     Register Assembler::prepResultReg(LIns *ins, RegisterMask allow)
     {
+#ifdef NANOJIT_IA32
+        const bool pop = (allow & rmask(FST0)) &&
+                         (ins->isUnusedOrHasUnknownReg() || ins->getReg() != FST0);
+#else
+        const bool pop = false;
+#endif
+        Register r = findRegFor(ins, allow);
+        freeRsrcOf(ins, pop);
+        return r;
+    }
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    Register Assembler::prepareResultReg(LIns *ins, RegisterMask allow)
+    {
+        
+        
+        
+        
+        
+        
+        
+        
         
         
         
@@ -479,7 +531,7 @@ namespace nanojit
         const bool pop = false;
 #endif
         Register r = findRegFor(ins, allow);
-        freeRsrcOf(ins, pop);
+        asm_spilli(ins, pop);
         return r;
     }
 
@@ -493,9 +545,6 @@ namespace nanojit
         asm_spill(r, d, pop, ins->isQuad());
     }
 
-    
-    
-    
     
     void Assembler::freeRsrcOf(LIns *ins, bool pop)
     {
@@ -513,10 +562,26 @@ namespace nanojit
     }
 
     
+    void Assembler::freeResourcesOf(LIns *ins)
+    {
+        Register r = ins->getReg();
+        if (isKnownReg(r)) {
+            _allocator.retire(r);   
+        }
+        int arIndex = ins->getArIndex();
+        if (arIndex) {
+            NanoAssert(_activation.entry[arIndex] == ins);
+            arFree(arIndex);        
+        }
+        ins->markAsClear();
+    }
+
+    
     void Assembler::evictIfActive(Register r)
     {
         if (LIns* vic = _allocator.getActive(r)) {
-            evict(r, vic);
+            NanoAssert(vic->getReg() == r);
+            evict(vic);
         }
     }
 
@@ -531,25 +596,27 @@ namespace nanojit
     
     
     
-    void Assembler::evict(Register r, LIns* vic)
+    void Assembler::evict(LIns* vic)
     {
         
         counter_increment(steals);
 
-        
+        Register r = vic->getReg();
+
         NanoAssert(!_allocator.isFree(r));
         NanoAssert(vic == _allocator.getActive(r));
-        NanoAssert(r == vic->getReg());
 
-        
-        _allocator.retire(r);
-        vic->setReg(UnknownReg);
-
-        
         verbose_only( if (_logc->lcbits & LC_Assembly) {
                         setOutputForEOL("  <= restore %s",
                         _thisfrag->lirbuf->names->formatRef(vic)); } )
         asm_restore(vic, r);
+
+        _allocator.retire(r);
+        if (vic->isUsed())
+            vic->setReg(UnknownReg);
+
+        
+        
     }
 
     void Assembler::patch(GuardRecord *lr)
@@ -939,6 +1006,14 @@ namespace nanojit
 
 
 
+
+
+
+
+
+
+
+
             bool required = ins->isStmt() || ins->isUsed();
             if (!required)
                 continue;
@@ -998,11 +1073,11 @@ namespace nanojit
                     NanoAssert(ins->getArIndex() != 0);
                     Register r = ins->getReg();
                     if (isKnownReg(r)) {
+                        asm_restore(ins, r);
                         _allocator.retire(r);
                         ins->setReg(UnknownReg);
-                        asm_restore(ins, r);
                     }
-                    freeRsrcOf(ins, 0);
+                    freeResourcesOf(ins);
                     break;
                 }
                 case LIR_int:
@@ -1641,9 +1716,9 @@ namespace nanojit
         return true;
     }
 
-    uint32_t Assembler::arReserve(LIns* l)
+    uint32_t Assembler::arReserve(LIns* ins)
     {
-        int32_t size = l->isop(LIR_alloc) ? (l->size()>>2) : l->isQuad() ? 2 : 1;
+        int32_t size = ins->isop(LIR_alloc) ? (ins->size()>>2) : ins->isQuad() ? 2 : 1;
         AR &ar = _activation;
         const int32_t tos = ar.tos;
         int32_t start = ar.lowwatermark;
@@ -1655,7 +1730,7 @@ namespace nanojit
             for (i=start; i < NJ_MAX_STACK_ENTRY; i++) {
                 if (ar.entry[i] == 0) {
                     
-                    ar.entry[i] = l;
+                    ar.entry[i] = ins;
                     break;
                 }
             }
@@ -1667,8 +1742,8 @@ namespace nanojit
                     
                     NanoAssert(ar.entry[i] == 0);
                     NanoAssert(ar.entry[i+stack_direction(1)] == 0);
-                    ar.entry[i] = l;
-                    ar.entry[i+stack_direction(1)] = l;
+                    ar.entry[i] = ins;
+                    ar.entry[i+stack_direction(1)] = ins;
                     break;
                 }
             }
@@ -1682,7 +1757,7 @@ namespace nanojit
                     
                     for (int32_t j=0; j < size; j++) {
                         NanoAssert(ar.entry[i+stack_direction(j)] == 0);
-                        ar.entry[i+stack_direction(j)] = l;
+                        ar.entry[i+stack_direction(j)] = ins;
                     }
                     break;
                 }
@@ -1712,10 +1787,11 @@ namespace nanojit
         RegAlloc *regs = &_allocator;
         for (Register r = FirstReg; r <= LastReg; r = nextreg(r)) {
             if (rmask(r) & GpRegs) {
-                LIns *i = regs->getActive(r);
-                if (i) {
-                    if (canRemat(i)) {
-                        evict(r, i);
+                LIns *ins = regs->getActive(r);
+                if (ins) {
+                    if (canRemat(ins)) {
+                        NanoAssert(ins->getReg() == r);
+                        evict(ins);
                     }
                     else {
                         int32_t pri = regs->getPriority(r);
@@ -1740,8 +1816,8 @@ namespace nanojit
             
             Register hi = tosave[0];
             if (!(rmask(hi) & SavedRegs)) {
-                LIns *i = regs->getActive(hi);
-                Register r = findRegFor(i, allow);
+                LIns *ins = regs->getActive(hi);
+                Register r = findRegFor(ins, allow);
                 allow &= ~rmask(r);
             }
             else {
@@ -1828,7 +1904,8 @@ namespace nanojit
                 if (curins) {
                     
                     verbose_only( shouldMention=true; )
-                    evict(r, curins);
+                    NanoAssert(curins->getReg() == r);
+                    evict(curins);
                 }
 
                 #ifdef NANOJIT_IA32
@@ -1854,7 +1931,6 @@ namespace nanojit
 
 
 
-
     void Assembler::unionRegisterState(RegAlloc& saved)
     {
         
@@ -1874,7 +1950,8 @@ namespace nanojit
                 if (curins && savedins) {
                     
                     verbose_only( shouldMention=true; )
-                    evict(r, curins);
+                    NanoAssert(curins->getReg() == r);
+                    evict(curins);
                 }
 
                 #ifdef NANOJIT_IA32
@@ -1901,9 +1978,9 @@ namespace nanojit
         
         for (Register r=FirstReg; r <= LastReg; r = nextreg(r))
         {
-            LIns *i = saved.getActive(r);
-            if (i && !(skip&rmask(r)))
-                findSpecificRegFor(i, r);
+            LIns *ins = saved.getActive(r);
+            if (ins && !(skip & rmask(r)))
+                findSpecificRegFor(ins, r);
         }
     }
 
@@ -1911,22 +1988,22 @@ namespace nanojit
     
     LIns* Assembler::findVictim(RegisterMask allow)
     {
-        NanoAssert(allow != 0);
-        LIns *i, *a=0;
+        NanoAssert(allow);
+        LIns *ins, *vic = 0;
         int allow_pri = 0x7fffffff;
-        for (Register r=FirstReg; r <= LastReg; r = nextreg(r))
+        for (Register r = FirstReg; r <= LastReg; r = nextreg(r))
         {
-            if ((allow & rmask(r)) && (i = _allocator.getActive(r)) != 0)
+            if ((allow & rmask(r)) && (ins = _allocator.getActive(r)) != 0)
             {
-                int pri = canRemat(i) ? 0 : _allocator.getPriority(r);
-                if (!a || pri < allow_pri) {
-                    a = i;
+                int pri = canRemat(ins) ? 0 : _allocator.getPriority(r);
+                if (!vic || pri < allow_pri) {
+                    vic = ins;
                     allow_pri = pri;
                 }
             }
         }
-        NanoAssert(a != 0);
-        return a;
+        NanoAssert(vic != 0);
+        return vic;
     }
 
 #ifdef NJ_VERBOSE
