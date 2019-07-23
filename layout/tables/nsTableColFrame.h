@@ -276,7 +276,7 @@ public:
 
 
   void AccumulateSpanIntrinsics() {
-    AddCoords(mSpanMinCoord, mSpanPrefCoord, mSpanHasSpecifiedCoord);
+    AddCoords(mSpanMinCoord, mSpanPrefCoord, mHasSpecifiedCoord && mSpanHasSpecifiedCoord);
     AddPrefPercent(mSpanPrefPercent);
   }
 

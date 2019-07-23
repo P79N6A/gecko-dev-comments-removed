@@ -361,6 +361,7 @@ BasicTableLayoutStrategy::ComputeColumnIntrinsicWidths(nsIRenderingContext* aRen
             nscoord totalSPref = 0, totalSMin = 0; 
             nscoord totalSNonPctPref = 0; 
                                           
+            nscoord totalSAutoPref = 0; 
             PRInt32 nonPctCount = 0; 
             PRInt32 scol, scol_end;
             for (scol = col, scol_end = col + colSpan;
@@ -377,25 +378,20 @@ BasicTableLayoutStrategy::ComputeColumnIntrinsicWidths(nsIRenderingContext* aRen
                     info.prefCoord -= spacing;
                 }
 
-                nscoord curPref;
-                if (info.hasSpecifiedWidth &&
-                    !scolFrame->GetHasSpecifiedCoord()) {
-                    curPref = scolFrame->GetMinCoord();
-                } else {
-                    curPref = scolFrame->GetPrefCoord();
-                }
-
-                totalSPref += curPref;
+                totalSPref += scolFrame->GetPrefCoord();
                 totalSMin += scolFrame->GetMinCoord();
+                if (!scolFrame->GetHasSpecifiedCoord()) {
+                    totalSAutoPref += scolFrame->GetPrefCoord();
+                }
                 float scolPct = scolFrame->GetPrefPercent();
                 if (scolPct == 0.0f) {
-                    totalSNonPctPref += curPref;
+                    totalSNonPctPref += scolFrame->GetPrefCoord();
                     ++nonPctCount;
                 } else {
                     info.prefPercent -= scolPct;
                 }
                 info.minCoord -= scolFrame->GetMinCoord();
-                info.prefCoord -= curPref;
+                info.prefCoord -= scolFrame->GetPrefCoord();
             }
 
             if (info.minCoord < 0)
@@ -430,14 +426,6 @@ BasicTableLayoutStrategy::ComputeColumnIntrinsicWidths(nsIRenderingContext* aRen
                     continue;
                 }
 
-                nscoord curPref;
-                if (info.hasSpecifiedWidth &&
-                    !scolFrame->GetHasSpecifiedCoord()) {
-                    curPref = scolFrame->GetMinCoord();
-                } else {
-                    curPref = scolFrame->GetPrefCoord();
-                }
-
                 
                 
                 
@@ -453,7 +441,7 @@ BasicTableLayoutStrategy::ComputeColumnIntrinsicWidths(nsIRenderingContext* aRen
                         
                         
                         allocatedPct = info.prefPercent *
-                                           (float(curPref) /
+                                           (float(scolFrame->GetPrefCoord()) /
                                             float(totalSNonPctPref));
                     } else {
                         
@@ -466,7 +454,8 @@ BasicTableLayoutStrategy::ComputeColumnIntrinsicWidths(nsIRenderingContext* aRen
                 
                 float minRatio = 0.0f;
                 if (minWithinPref > 0) {
-                    minRatio = float(curPref - scolFrame->GetMinCoord()) /
+                    minRatio = float(scolFrame->GetPrefCoord() -
+                                     scolFrame->GetMinCoord()) /
                                float(totalSPref - totalSMin);
                 }
 
@@ -474,12 +463,21 @@ BasicTableLayoutStrategy::ComputeColumnIntrinsicWidths(nsIRenderingContext* aRen
                 
                 float coordRatio; 
                 if (spanHasPref) {
-                    if (curPref == 0) {
+                    if (scolFrame->GetPrefCoord() == 0) {
                         
                         
                         coordRatio = 0.0f;
+                    } else if (totalSAutoPref == 0) {
+                        
+                        coordRatio = float(scolFrame->GetPrefCoord()) /
+                                     float(totalSPref);
+                    } else if (!scolFrame->GetHasSpecifiedCoord()) {
+                        
+                        coordRatio = float(scolFrame->GetPrefCoord()) /
+                                     float(totalSAutoPref);
                     } else {
-                        coordRatio = float(curPref) / float(totalSPref);
+                        
+                        coordRatio = 0.0f;
                     }
                 } else {
                     
@@ -496,7 +494,7 @@ BasicTableLayoutStrategy::ComputeColumnIntrinsicWidths(nsIRenderingContext* aRen
                     NSToCoordRound(float(info.prefCoord) * coordRatio);
                 nscoord spanMin = scolFrame->GetMinCoord() +
                         allocatedMinWithinPref + allocatedMinOutsidePref;
-                nscoord spanPref = curPref + allocatedPref;
+                nscoord spanPref = scolFrame->GetPrefCoord() + allocatedPref;
                 scolFrame->AddSpanCoords(spanMin, spanPref,
                                          info.hasSpecifiedWidth);
 
@@ -507,10 +505,13 @@ BasicTableLayoutStrategy::ComputeColumnIntrinsicWidths(nsIRenderingContext* aRen
                 minOutsidePref -= allocatedMinOutsidePref;
                 info.prefCoord -= allocatedPref;
                 info.prefPercent -= allocatedPct;
-                totalSPref -= curPref;
+                totalSPref -= scolFrame->GetPrefCoord();
                 totalSMin -= scolFrame->GetMinCoord();
+                if (!scolFrame->GetHasSpecifiedCoord()) {
+                    totalSAutoPref -= scolFrame->GetPrefCoord();
+                }                
                 if (scolFrame->GetPrefPercent() == 0.0f) {
-                    totalSNonPctPref -= curPref;
+                    totalSNonPctPref -= scolFrame->GetPrefCoord();
                     --nonPctCount;
                 }
             }
