@@ -1108,15 +1108,6 @@ function onViewDoubleClick(aEvent)
   }
 }
 
-function onViewGroupKeypress(aEvent) {
-  
-  gExtensionsView.suppressFocus = true;
-}
-
-function onViewGroupClick(aEvent) {
-  gExtensionsView.suppressFocus = false;
-}
-
 function onAddonSelect(aEvent)
 {
   var viewButton = document.getElementById("viewGroup").selectedItem;
