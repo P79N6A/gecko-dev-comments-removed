@@ -645,6 +645,7 @@ nsPlainTextSerializer::DoOpenContainer(const nsIParserNode* aNode, PRInt32 aTag)
     return NS_OK;
   }
 
+  
   if (!DoOutput()) {
     return NS_OK;
   }
@@ -893,7 +894,13 @@ nsPlainTextSerializer::DoCloseContainer(PRInt32 aTag)
     
     return NS_OK;
   }
-  else if (type == eHTMLTag_tr) {
+
+  
+  if (!DoOutput()) {
+    return NS_OK;
+  }
+
+  if (type == eHTMLTag_tr) {
     PopBool(mHasWrittenCellsForRow);
     
     if (mFloatingLines < 0)
@@ -922,6 +929,7 @@ nsPlainTextSerializer::DoCloseContainer(PRInt32 aTag)
   else if (type == eHTMLTag_ol) {
     FlushLine(); 
     mIndent -= kIndentSizeList;
+    NS_ASSERTION(mOLStackIndex, "Wrong OLStack level!");
     mOLStackIndex--;
     if (mULCount + mOLStackIndex == 0) {
       mFloatingLines = 1;
@@ -937,6 +945,7 @@ nsPlainTextSerializer::DoCloseContainer(PRInt32 aTag)
     mIndent -= kIndentSizeDD;
   }
   else if (type == eHTMLTag_span) {
+    NS_ASSERTION(mSpanLevel, "Span level will be negative!");
     --mSpanLevel;
   }
   else if (type == eHTMLTag_div) {
@@ -951,6 +960,7 @@ nsPlainTextSerializer::DoCloseContainer(PRInt32 aTag)
     PRBool isInCiteBlockquote = PopBool(mIsInCiteBlockquote);
 
     if (isInCiteBlockquote) {
+      NS_ASSERTION(mCiteQuoteLevel, "CiteQuote level will be negative!");
       mCiteQuoteLevel--;
       mFloatingLines = 0;
       mHasWrittenCiteBlockquote = PR_TRUE;
