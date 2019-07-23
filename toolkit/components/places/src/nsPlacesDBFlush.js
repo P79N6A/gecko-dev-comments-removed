@@ -178,20 +178,6 @@ nsPlacesDBFlush.prototype = {
 
           
           
-          
-          
-          
-          let catMan = Cc["@mozilla.org/categorymanager;1"].
-                       getService(Ci.nsICategoryManager);
-          catMan.deleteCategoryEntry("bookmark-observers",
-                                     this._self.classDescription,
-                                     false); 
-          catMan.deleteCategoryEntry("history-observers",
-                                     this._self.classDescription,
-                                     false); 
-
-          
-          
           this._self._finalizeInternalStatements();
           this._self._db.close();
         }
