@@ -105,7 +105,7 @@ nsSVGClipPathFrame::ClipPaint(nsSVGRenderState* aContext,
 PRBool
 nsSVGClipPathFrame::ClipHitTest(nsISVGChildFrame* aParent,
                                 nsIDOMSVGMatrix *aMatrix,
-                                const nsPoint &aPoint)
+                                float aX, float aY)
 {
   
   
@@ -116,6 +116,7 @@ nsSVGClipPathFrame::ClipHitTest(nsISVGChildFrame* aParent,
   }
   AutoClipPathReferencer clipRef(this);
 
+  nsRect dirty;
   mClipParent = aParent,
   mClipParentMatrix = aMatrix;
 
@@ -129,7 +130,9 @@ nsSVGClipPathFrame::ClipHitTest(nsISVGChildFrame* aParent,
       
       SVGFrame->NotifySVGChanged(nsISVGChildFrame::TRANSFORM_CHANGED);
 
-      if (SVGFrame->GetFrameForPoint(aPoint))
+      nsIFrame *temp = nsnull;
+      nsresult rv = SVGFrame->GetFrameForPointSVG(aX, aY, &temp);
+      if (NS_SUCCEEDED(rv) && temp)
         return PR_TRUE;
     }
   }

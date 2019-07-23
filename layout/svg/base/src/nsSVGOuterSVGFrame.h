@@ -95,7 +95,7 @@ public:
                         const nsHTMLReflowState*  aReflowState,
                         nsDidReflowStatus aStatus);
 
-  NS_IMETHOD_(nsIFrame*) GetFrameForPoint(const nsPoint& aPoint);
+  nsIFrame* GetFrameForPoint(const nsPoint& aPoint);
 
   NS_IMETHOD BuildDisplayList(nsDisplayListBuilder*   aBuilder,
                               const nsRect&           aDirtyRect,
@@ -137,6 +137,8 @@ public:
   
   PRBool UpdateAndInvalidateCoveredRegion(nsIFrame *aFrame);
 
+  
+  void InvalidateRect(nsRect aRect);
   PRBool IsRedrawSuspended();
 
   

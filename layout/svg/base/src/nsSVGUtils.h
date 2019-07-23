@@ -203,25 +203,25 @@ public:
 
   static void UnPremultiplyImageDataAlpha(PRUint8 *data, 
                                           PRInt32 stride, 
-                                          const nsIntRect &rect);
+                                          const nsRect &rect);
   
 
 
   static void PremultiplyImageDataAlpha(PRUint8 *data, 
                                         PRInt32 stride, 
-                                        const nsIntRect &rect);
+                                        const nsRect &rect);
   
 
 
   static void ConvertImageDataToLinearRGB(PRUint8 *data, 
                                           PRInt32 stride, 
-                                          const nsIntRect &rect);
+                                          const nsRect &rect);
   
 
 
   static void ConvertImageDataFromLinearRGB(PRUint8 *data, 
                                             PRInt32 stride, 
-                                            const nsIntRect &rect);
+                                            const nsRect &rect);
 
   
 
@@ -341,7 +341,7 @@ public:
 
   static void
   PaintChildWithEffects(nsSVGRenderState *aContext,
-                        nsIntRect *aDirtyRect,
+                        nsRect *aDirtyRect,
                         nsIFrame *aFrame);
 
   
@@ -353,13 +353,15 @@ public:
 
   
 
-  static PRBool
-  HitTestClip(nsIFrame *aFrame, const nsPoint &aPoint);
-  
-  
 
-  static nsIFrame *
-  HitTestChildren(nsIFrame *aFrame, const nsPoint &aPoint);
+
+  static PRBool
+  HitTestClip(nsIFrame *aFrame, float x, float y);
+
+  
+  
+  static void
+  HitTestChildren(nsIFrame *aFrame, float x, float y, nsIFrame **aResult);
 
   
   static void
@@ -391,10 +393,9 @@ public:
 
 
   static nsRect
-  ToAppPixelRect(nsPresContext *aPresContext,
-                 double xmin, double ymin, double xmax, double ymax);
+  ToBoundingPixelRect(double xmin, double ymin, double xmax, double ymax);
   static nsRect
-  ToAppPixelRect(nsPresContext *aPresContext, const gfxRect& rect);
+  ToBoundingPixelRect(const gfxRect& rect);
 
   
 

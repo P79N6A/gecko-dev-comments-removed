@@ -83,8 +83,8 @@ public:
   NS_IMETHOD NotifyRedrawUnsuspended();
   
   
-  NS_IMETHOD PaintSVG(nsSVGRenderState* aContext, nsIntRect *aDirtyRect);
-  NS_IMETHOD_(nsIFrame*) GetFrameForPoint(const nsPoint & aPoint);
+  NS_IMETHOD PaintSVG(nsSVGRenderState* aContext, nsRect *aDirtyRect);
+  NS_IMETHOD GetFrameForPointSVG(float x, float y, nsIFrame** hit);  
   NS_IMETHOD UpdateCoveredRegion();
   NS_IMETHOD InitialUpdate();
   NS_IMETHOD GetBBox(nsIDOMSVGRect **_retval);

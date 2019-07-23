@@ -53,7 +53,7 @@ protected:
 public:    
   nsresult FilterPaint(nsSVGRenderState *aContext,
                        nsISVGChildFrame *aTarget,
-                       const nsIntRect* aDirtyRect);
+                       const nsRect* aDirtyRect);
 
   
   
@@ -72,8 +72,8 @@ public:
 private:
   
   nsresult CreateInstance(nsISVGChildFrame *aTarget,
-                          const nsIntRect *aDirtyOutputRect,
-                          const nsIntRect *aDirtyInputRect,
+                          const nsRect *aDirtyOutputRect,
+                          const nsRect *aDirtyInputRect,
                           nsSVGFilterInstance **aInstance);
 };
 
