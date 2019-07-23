@@ -3542,6 +3542,12 @@ nsCSSFrameConstructor::ConstructTableFrame(nsFrameConstructorState& aState,
       return rv;
     }
 
+    if (!mInitialContainingBlock) {
+      
+      
+      mInitialContainingBlock = aNewOuterFrame;
+    }
+
     nsFrameItems childItems;
     rv = ProcessChildren(aState, aContent, aNewInnerFrame, PR_TRUE, childItems,
                          PR_FALSE);
@@ -4297,6 +4303,9 @@ nsCSSFrameConstructor::ConstructDocElementFrame(nsFrameConstructorState& aState,
   
   aState.mFrameManager->SetPrimaryFrameFor(aDocElement, contentFrame);
 
+  NS_ASSERTION(processChildren ? !mInitialContainingBlock :
+                 mInitialContainingBlock == contentFrame,
+               "unexpected mInitialContainingBlock");
   mInitialContainingBlock = contentFrame;
 
   
@@ -7713,7 +7722,6 @@ nsCSSFrameConstructor::GetAbsoluteContainingBlock(nsIFrame* aFrame)
   for (nsIFrame* frame = aFrame; frame && !containingBlock;
        frame = frame->GetParent()) {
     if (frame->IsFrameOfType(nsIFrame::eMathML)) {
-      
       
       
       
@@ -12314,6 +12322,12 @@ nsCSSFrameConstructor::ConstructBlock(nsFrameConstructorState& aState,
 
   
   nsHTMLContainerFrame::CreateViewForFrame(blockFrame, contentParent, PR_FALSE);
+
+  if (!mInitialContainingBlock) {
+    
+    
+    mInitialContainingBlock = *aNewFrame;
+  }
 
   
   
