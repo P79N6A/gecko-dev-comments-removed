@@ -300,14 +300,6 @@ typedef enum JSRuntimeState {
     JSRTS_LANDING
 } JSRuntimeState;
 
-#ifdef JS_TRACER
-typedef enum JSBuiltinStatus {
-    JSBUILTIN_OK = 0,
-    JSBUILTIN_BAILED = 1,
-    JSBUILTIN_ERROR = 2
-} JSBuiltinStatus;
-#endif
-
 typedef enum JSBuiltinFunctionId {
     JSBUILTIN_ObjectToIterator,
     JSBUILTIN_CallIteratorNext,
@@ -1008,13 +1000,6 @@ struct JSContext {
 
     InterpState         *interpState;
     VMSideExit          *bailExit;
-
-    
-
-
-
-
-    uint32              builtinStatus;
 #endif
 };
 

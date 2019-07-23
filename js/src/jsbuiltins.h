@@ -397,6 +397,10 @@ js_Int32ToId(JSContext* cx, int32 index, jsid* id)
     return js_ValueToStringId(cx, STRING_TO_JSVAL(str), id);
 }
 
+
+extern JS_FRIEND_API(void)
+js_SetTraceableNativeFailed(JSContext *cx);
+
 #else
 
 #define JS_DEFINE_CALLINFO_1(linkage, rt, op, at0, cse, fold)
