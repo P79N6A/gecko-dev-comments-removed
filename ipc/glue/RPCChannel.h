@@ -44,6 +44,7 @@
 #include <stack>
 
 #include "mozilla/ipc/SyncChannel.h"
+#include "nsAutoPtr.h"
 
 namespace mozilla {
 namespace ipc {
@@ -90,6 +91,9 @@ public:
     RPCChannel(RPCListener* aListener, RacyRPCPolicy aPolicy=RRPChildWins);
 
     virtual ~RPCChannel();
+
+    NS_OVERRIDE
+    void Clear();
 
     
     bool Call(Message* msg, Message* reply);
@@ -332,6 +336,49 @@ protected:
     
     
     int mCxxStackFrames;
+    
+private:
+
+    
+    
+    
+    
+    class RefCountedTask
+    {
+      public:
+        RefCountedTask(CancelableTask* aTask)
+        : mTask(aTask)
+        , mRefCnt(0) {}
+        ~RefCountedTask() { delete mTask; }
+        void Run() { mTask->Run(); }
+        void Cancel() { mTask->Cancel(); }
+        void AddRef() { ++mRefCnt; }
+        void Release() {
+            if (--mRefCnt == 0)
+                delete this;
+        }
+
+      private:
+        CancelableTask* mTask;
+        nsrefcnt mRefCnt;
+    };
+
+    
+    
+    
+    
+    class DequeueTask : public Task
+    {
+      public:
+        DequeueTask(RefCountedTask* aTask) : mTask(aTask) {}
+        void Run() { mTask->Run(); }
+        
+      private:
+        nsRefPtr<RefCountedTask> mTask;
+    };
+
+    
+    nsRefPtr<RefCountedTask> mDequeueOneTask;
 };
 
 
