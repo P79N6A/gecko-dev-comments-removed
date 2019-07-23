@@ -538,7 +538,7 @@ nsXPConnect::Collect()
 
 
 #define ADD_TO_CC(_kind) \
-    ((_kind) == JSTRACE_OBJECT || (_kind) == JSTRACE_SCRIPTED_FUNCTION || \
+    ((_kind) == JSTRACE_OBJECT || (_kind) == JSTRACE_FUNCTION || \
      (_kind) == JSTRACE_XML)
 
 #ifdef DEBUG_CC

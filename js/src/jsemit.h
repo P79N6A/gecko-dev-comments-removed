@@ -175,7 +175,7 @@ struct JSTreeContext {
 
     JSAtomList      decls;          
     JSParseContext  *parseContext;
-    JSScriptedFunction *fun;        
+    JSFunction      *fun;           
 
 };
 

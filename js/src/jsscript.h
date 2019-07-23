@@ -227,10 +227,10 @@ js_NewScriptFromCG(JSContext *cx, JSCodeGenerator *cg);
 
 
 
-extern void
-js_CallNewScriptHook(JSContext *cx, JSScript *script, JSScriptedFunction *fun);
+extern JS_FRIEND_API(void)
+js_CallNewScriptHook(JSContext *cx, JSScript *script, JSFunction *fun);
 
-extern void
+extern JS_FRIEND_API(void)
 js_CallDestroyScriptHook(JSContext *cx, JSScript *script);
 
 extern void

@@ -400,7 +400,7 @@ js_ValueToIterator(JSContext *cx, uintN flags, jsval *vp)
 
 
 
-            iterobj = js_NewObject(cx, &js_IteratorClass, NULL, NULL, 0);
+            iterobj = js_NewObject(cx, &js_IteratorClass, NULL, NULL);
             if (!iterobj)
                 goto bad;
 
@@ -725,13 +725,13 @@ js_NewGenerator(JSContext *cx, JSStackFrame *fp)
     jsval *newsp;
 
     
-    obj = js_NewObject(cx, &js_GeneratorClass, NULL, NULL, 0);
+    obj = js_NewObject(cx, &js_GeneratorClass, NULL, NULL);
     if (!obj)
         return NULL;
 
     
     argc = fp->argc;
-    nargs = JS_MAX(argc, FUN_TO_SCRIPTED(fp->fun)->nargs);
+    nargs = JS_MAX(argc, fp->fun->nargs);
     nvars = fp->nvars;
     nslots = 2 + nargs + nvars + fp->script->depth;
 
