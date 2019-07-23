@@ -2108,6 +2108,12 @@ GetMIMEType(nsIPluginInstance *aPluginInstance)
 static PRBool
 DoDelayedStop(nsPluginInstanceOwner *aInstanceOwner, PRBool aDelayedStop)
 {
+#ifdef MOZ_PLATFORM_HILDON
+  
+  if (aDelayedStop && aInstanceOwner->MatchPluginName("Shockwave Flash"))
+    return PR_FALSE;
+#endif
+
   
   
   if (aDelayedStop
