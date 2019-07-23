@@ -39,7 +39,16 @@
 #ifndef __nanojit_LIR__
 #define __nanojit_LIR__
 
-namespace avmplus { class RegionTracker; }    
+namespace avmplus { class RegionTracker; }
+
+
+
+
+
+
+
+
+
 
 namespace nanojit
 {
@@ -62,10 +71,10 @@ namespace nanojit
 
 		
 		LIR_param	= 10,
-		LIR_st		= 11,
-		LIR_ld		= 12,
+		LIR_st		= 11, 
+		LIR_ld		= 12, 
         LIR_sti     = 14,
-		LIR_call	= 18,
+		LIR_call	= 18, 
 			
 		
 		LIR_loop    = 19, 
@@ -73,21 +82,26 @@ namespace nanojit
 
 		
 
-		LIR_feq		= 26,
-		LIR_flt		= 27,
-		LIR_fgt		= 28,
-		LIR_fle		= 29,
-		LIR_fge		= 30,
-        LIR_cmov    = 31, 
-		LIR_short   = 32,
-		LIR_int		= 33,
+		
+		
+		LIR_feq		= 26, 
+		LIR_flt		= 27, 
+		LIR_fgt		= 28, 
+		LIR_fle		= 29, 
+		LIR_fge		= 30, 
+
+		LIR_cmov    = 31, 
+		LIR_short   = 32, 
+		LIR_int		= 33, 
 		LIR_ldc     = 34, 
 		LIR_2       = 35, 
-		LIR_neg		= 36,					
-		LIR_add		= 37,					
-		LIR_sub		= 38,
-		LIR_mul		= 39,
-        LIR_callh   = 40,
+
+		
+		LIR_neg		= 36, 
+		LIR_add		= 37, 
+		LIR_sub		= 38, 
+		LIR_mul		= 39, 
+		LIR_callh   = 40, 
 		LIR_and		= 41,
 		LIR_or		= 42,
 		LIR_xor		= 43,
@@ -95,21 +109,29 @@ namespace nanojit
 		LIR_lsh		= 45,
 		LIR_rsh		= 46,	
 		LIR_ush		= 47,	
-        
+
+		
+		
 		LIR_xt		= 48, 
 		LIR_xf		= 49, 
+
+		
+		
 		LIR_qlo		= 50,
 		LIR_qhi		= 51,
+
 		LIR_ldcb    = 52, 
 
         LIR_ov      = 53,
         LIR_cs      = 54,
-        LIR_eq      = 55,
+		LIR_eq      = 55, 
+        
         
 		LIR_lt      = 56, 
 		LIR_gt      = 57, 
 		LIR_le		= 58, 
 		LIR_ge		= 59, 
+		
 		LIR_ult		= 60, 
 		LIR_ugt		= 61, 
 		LIR_ule		= 62, 
@@ -118,25 +140,25 @@ namespace nanojit
 		
 
 
-		LIR_stq		= LIR_st | LIR64,
+		LIR_stq		= LIR_st | LIR64, 
 		LIR_stqi	= LIR_sti | LIR64,
-		LIR_quad    = LIR_int | LIR64,
-		LIR_ldq		= LIR_ld    | LIR64,
+		LIR_quad    = LIR_int | LIR64, 
+		LIR_ldq		= LIR_ld    | LIR64, 
         LIR_qiand   = 24 | LIR64,
         LIR_qiadd   = 25 | LIR64,
         LIR_qilsh   = LIR_lsh | LIR64,
 
-        LIR_fcall   = LIR_call  | LIR64,
-		LIR_fneg	= LIR_neg  | LIR64,
-		LIR_fadd	= LIR_add  | LIR64,
-		LIR_fsub	= LIR_sub  | LIR64,
-		LIR_fmul	= LIR_mul  | LIR64,
-		LIR_fdiv	= 40        | LIR64,
-		LIR_qcmov	= LIR_cmov | LIR64,
+		LIR_fcall   = LIR_call  | LIR64, 
+		LIR_fneg	= LIR_neg  | LIR64, 
+		LIR_fadd	= LIR_add  | LIR64, 
+		LIR_fsub	= LIR_sub  | LIR64, 
+		LIR_fmul	= LIR_mul  | LIR64, 
+		LIR_fdiv	= 40        | LIR64, 
+		LIR_qcmov	= LIR_cmov | LIR64, 
 
 		LIR_qjoin	= 41 | LIR64,
-		LIR_i2f		= 42 | LIR64,
-		LIR_u2f		= 43 | LIR64,
+		LIR_i2f		= 42 | LIR64, 
+		LIR_u2f		= 43 | LIR64, 
         LIR_qior    = 44 | LIR64
 	};
 
@@ -348,18 +370,28 @@ namespace nanojit
         bool isStore() const;
         bool isLoad() const;
 		bool isGuard() const;
+		
 		bool isconst() const;
+		
+		
 		bool isconstval(int32_t val) const;
+		
 		bool isconstq() const;
+		
 		bool isconstp() const;
         bool isTramp() {
             return isop(LIR_neartramp) || isop(LIR_tramp);
         }
 
+		
+		
 		void setimm16(int32_t i);
-		void setimm24(int32_t i);
+		
+		
 		void setresv(uint32_t resv);
+		
 		void initOpcode(LOpcode);
+		
 		void setOprnd1(LIns*);
 		void setOprnd2(LIns*);
 		void setOprnd3(LIns*);
@@ -439,6 +471,7 @@ namespace nanojit
 	    LIns*		insLoadi(LIns *base, int disp);
 	    LIns*		insLoad(LOpcode op, LIns *base, int disp);
 	    LIns*		ins_choose(LIns* cond, LIns* iftrue, LIns* iffalse, bool);
+	    
 	    LIns*		ins_eq0(LIns* oprnd1);
         LIns*       ins2i(LOpcode op, LIns *oprnd1, int32_t);
 		LIns*		qjoin(LInsp lo, LInsp hi);
