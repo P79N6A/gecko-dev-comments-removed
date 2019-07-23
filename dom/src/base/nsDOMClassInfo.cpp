@@ -4601,41 +4601,7 @@ nsWindowSH::SetProperty(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
     return NS_FAILED(rv) ? rv : NS_SUCCESS_I_DID_SOMETHING;
   }
 
-  if (JSVAL_IS_STRING(id)) {
-    
-    
-    
-    if (IsEventName(id)) {
-      return nsEventReceiverSH::SetProperty(wrapper, cx, obj, id, vp, _retval);
-    }
-
-    if (win->IsInnerWindow()) {
-      
-      
-
-      JSString *str = JSVAL_TO_STRING(id);
-      jschar *name = ::JS_GetStringChars(str);
-      size_t length = ::JS_GetStringLength(str);
-      uintN attrs;
-      JSBool found;
-
-      if (!::JS_GetUCPropertyAttributes(cx, obj, name, length,
-                                        &attrs, &found)) {
-        *_retval = PR_FALSE;
-        return NS_OK;
-      }
-
-      if (!::JS_DefineUCProperty(cx, obj, name, length, *vp,
-                                 JS_PropertyStub, JS_PropertyStub,
-                                 attrs & (JSPROP_ENUMERATE |
-                                          JSPROP_PERMANENT))) {
-        *_retval = PR_FALSE;
-        return NS_OK;
-      }
-    }
-  }
-
-  return NS_OK;
+  return nsEventReceiverSH::SetProperty(wrapper, cx, obj, id, vp, _retval);
 }
 
 NS_IMETHODIMP
