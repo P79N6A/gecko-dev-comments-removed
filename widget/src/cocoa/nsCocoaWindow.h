@@ -103,6 +103,7 @@ typedef struct _nsCocoaWindowList {
   
   
   PRBool mToplevelActiveState;
+  BOOL mHasEverBeenZoomed;
 }
 + (void)paintMenubarForWindow:(NSWindow*)aWindow;
 - (id)initWithGeckoWindow:(nsCocoaWindow*)geckoWind;
@@ -238,8 +239,7 @@ public:
     virtual void SetShowsToolbarButton(PRBool aShow);
     NS_IMETHOD SetWindowTitlebarColor(nscolor aColor, PRBool aActive);
 
-    
-    void DispatchSizeModeEvent(nsSizeMode aSizeMode);
+    void DispatchSizeModeEvent();
 
     virtual gfxASurface* GetThebesSurface();
 
