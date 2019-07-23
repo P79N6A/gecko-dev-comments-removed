@@ -728,6 +728,11 @@ protected:
   
   nsCOMPtr<nsIParser> mParser;
 
+  
+  
+  
+  nsWeakPtr mWeakSink;
+
   nsCOMArray<nsIStyleSheet> mStyleSheets;
   nsCOMArray<nsIStyleSheet> mCatalogSheets;
 
