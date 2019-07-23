@@ -212,9 +212,9 @@ struct nsCSSRendering {
 
 
 
-  static nsStyleContext*
-  FindNonTransparentBackground(nsStyleContext* aContext,
-                               PRBool aStartAtParent = PR_FALSE);
+  static nsIFrame*
+  FindNonTransparentBackgroundFrame(nsIFrame* aFrame,
+                                    PRBool aStartAtParent = PR_FALSE);
 
   
 
