@@ -133,14 +133,11 @@ nsXPConnect::~nsXPConnect()
     JSContext *cx = nsnull;
     if (mRuntime) {
         
-        JSRuntime *rt = mRuntime->GetJSRuntime();
-        JS_CommenceRuntimeShutDown(rt);
         
         
         
         
-        
-        cx = JS_NewContext(rt, 8192);
+        cx = JS_NewContext(mRuntime->GetJSRuntime(), 8192);
     }
 
     XPCPerThreadData::CleanupAllThreads();
@@ -605,6 +602,16 @@ nsCycleCollectionParticipant *
 nsXPConnect::ToParticipant(void *p)
 {
     return this;
+}
+
+void
+nsXPConnect::CommenceShutdown()
+{
+#ifdef DEBUG
+    fprintf(stderr, "nsXPConnect::CommenceShutdown()\n");
+#endif
+    
+    JS_CommenceRuntimeShutDown(mRuntime->GetJSRuntime());
 }
 
 NS_IMETHODIMP
