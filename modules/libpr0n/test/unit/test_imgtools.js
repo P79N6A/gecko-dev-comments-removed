@@ -383,19 +383,23 @@ imgFile = do_get_file(imgName);
 istream = getFileInputStream(imgFile);
 do_check_eq(istream.available(), 17759);
 
-
-
-
-outParam = { value: null };
-imgTools.decodeImageData(istream, inMimeType, outParam);
-container = outParam.value;
-
 try {
-    istream = imgTools.encodeImage(container, "image/png");
+  outParam = { value: null };
+  imgTools.decodeImageData(istream, inMimeType, outParam);
+  container = outParam.value;
+
+  
+  
+  try {
+      istream = imgTools.encodeImage(container, "image/png");
+  } catch (e) {
+      err = e;
+  }
 } catch (e) {
-    err = e;
+  err = e;
 }
-checkExpectedError(/NS_ERROR_NOT_AVAILABLE/, err);
+
+checkExpectedError(/NS_ERROR_ILLEGAL_VALUE/, err);
 
 
 

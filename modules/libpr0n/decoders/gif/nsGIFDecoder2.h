@@ -44,7 +44,6 @@
 #include "imgIDecoder.h"
 #include "imgIContainer.h"
 #include "imgIDecoderObserver.h"
-#include "gfxIImageFrame.h"
 
 #include "GIF2.h"
 
@@ -88,13 +87,13 @@ private:
   inline int ClearCode() const { return 1 << mGIFStruct.datasize; }
 
   nsCOMPtr<imgIContainer> mImageContainer;
-  nsCOMPtr<gfxIImageFrame> mImageFrame;
   nsCOMPtr<imgIDecoderObserver> mObserver; 
   PRInt32 mCurrentRow;
   PRInt32 mLastFlushedRow;
 
   PRUint8 *mImageData;       
   PRUint32 *mColormap;       
+  PRUint32 mColormapSize;
   PRUint32 mOldColor;        
   PRUint8 mCurrentPass;
   PRUint8 mLastFlushedPass;

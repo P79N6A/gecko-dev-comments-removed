@@ -70,8 +70,6 @@
 #include "nsNetUtil.h"
 #include "nsEscape.h"
 
-#include "nsIImage.h"
-
 
 
 UINT nsClipboard::CF_HTML = ::RegisterClipboardFormatW(L"HTML Format");

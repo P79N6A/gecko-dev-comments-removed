@@ -46,8 +46,6 @@
 #include "ImageErrors.h"
 #include "ImageLogging.h"
 
-#include "gfxIImageFrame.h"
-
 #include "netCore.h"
 
 #include "nsIChannel.h"
@@ -269,24 +267,19 @@ nsresult imgRequest::NotifyProxyListener(imgRequestProxy *proxy)
     mImage->GetNumFrames(&nframes);
 
   if (nframes > 0) {
-    nsCOMPtr<gfxIImageFrame> frame;
-
-    
-    mImage->GetCurrentFrame(getter_AddRefs(frame));
-    NS_ENSURE_TRUE(frame, NS_ERROR_OUT_OF_MEMORY);
-
-    
+    PRUint32 frame;
+    mImage->GetCurrentFrameIndex(&frame);
     proxy->OnStartFrame(frame);
 
     if (!(mState & onStopContainer)) {
       
       nsIntRect r;
-      frame->GetRect(r);  
+      mImage->GetCurrentFrameRect(r); 
       proxy->OnDataAvailable(frame, &r);
     } else {
       
       nsIntRect r;
-      frame->GetRect(r);  
+      mImage->GetCurrentFrameRect(r); 
       proxy->OnDataAvailable(frame, &r);
 
       
@@ -513,14 +506,13 @@ NS_IMETHODIMP imgRequest::GetIsMultiPartChannel(PRBool *aIsMultiPartChannel)
 
 
 NS_IMETHODIMP imgRequest::FrameChanged(imgIContainer *container,
-                                       gfxIImageFrame *newframe,
                                        nsIntRect * dirtyRect)
 {
   LOG_SCOPE(gImgLog, "imgRequest::FrameChanged");
 
   nsTObserverArray<imgRequestProxy*>::ForwardIterator iter(mObservers);
   while (iter.HasMore()) {
-    iter.GetNext()->FrameChanged(container, newframe, dirtyRect);
+    iter.GetNext()->FrameChanged(container, dirtyRect);
   }
 
   return NS_OK;
@@ -579,7 +571,7 @@ NS_IMETHODIMP imgRequest::OnStartContainer(imgIRequest *request, imgIContainer *
 
 
 NS_IMETHODIMP imgRequest::OnStartFrame(imgIRequest *request,
-                                       gfxIImageFrame *frame)
+                                       PRUint32 frame)
 {
   LOG_SCOPE(gImgLog, "imgRequest::OnStartFrame");
 
@@ -593,14 +585,14 @@ NS_IMETHODIMP imgRequest::OnStartFrame(imgIRequest *request,
 
 
 NS_IMETHODIMP imgRequest::OnDataAvailable(imgIRequest *request,
-                                          gfxIImageFrame *frame,
+                                          PRBool aCurrentFrame,
                                           const nsIntRect * rect)
 {
   LOG_SCOPE(gImgLog, "imgRequest::OnDataAvailable");
 
   nsTObserverArray<imgRequestProxy*>::ForwardIterator iter(mObservers);
   while (iter.HasMore()) {
-    iter.GetNext()->OnDataAvailable(frame, rect);
+    iter.GetNext()->OnDataAvailable(aCurrentFrame, rect);
   }
 
   return NS_OK;
@@ -608,11 +600,8 @@ NS_IMETHODIMP imgRequest::OnDataAvailable(imgIRequest *request,
 
 
 NS_IMETHODIMP imgRequest::OnStopFrame(imgIRequest *request,
-                                      gfxIImageFrame *frame)
+                                      PRUint32 frame)
 {
-  NS_ASSERTION(frame, "imgRequest::OnStopFrame called with NULL frame");
-  if (!frame) return NS_ERROR_UNEXPECTED;
-
   LOG_SCOPE(gImgLog, "imgRequest::OnStopFrame");
 
   mImageStatus |= imgIRequest::STATUS_FRAME_COMPLETE;
@@ -621,7 +610,8 @@ NS_IMETHODIMP imgRequest::OnStopFrame(imgIRequest *request,
     PRUint32 cacheSize = mCacheEntry->GetDataSize();
 
     PRUint32 imageSize = 0;
-    frame->GetImageDataLength(&imageSize);
+    if (mImage)
+      mImage->GetFrameImageDataLength(frame, &imageSize);
 
     mCacheEntry->SetDataSize(cacheSize + imageSize);
 

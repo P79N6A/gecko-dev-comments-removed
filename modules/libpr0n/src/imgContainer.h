@@ -55,18 +55,18 @@
 #include "nsCOMArray.h"
 #include "nsCOMPtr.h"
 #include "imgIContainer.h"
-#include "gfxIImageFrame.h"
 #include "nsIProperties.h"
 #include "nsITimer.h"
 #include "nsWeakReference.h"
 #include "nsTArray.h"
+#include "imgFrame.h"
 
 #define NS_IMGCONTAINER_CID \
-{ /* 27f0682c-ff64-4dd2-ae7a-668e59f2fd38 */         \
-     0x27f0682c,                                     \
-     0xff64,                                         \
-     0x4dd2,                                         \
-    {0xae, 0x7a, 0x66, 0x8e, 0x59, 0xf2, 0xfd, 0x38} \
+{ /* c76ff2c1-9bf6-418a-b143-3340c00112f7 */         \
+     0x376ff2c1,                                     \
+     0x9bf6,                                         \
+     0x418a,                                         \
+    {0xb1, 0x43, 0x33, 0x40, 0xc0, 0x01, 0x12, 0xf7} \
 }
 
 
@@ -167,14 +167,14 @@ private:
 
 
 
-    nsCOMPtr<gfxIImageFrame>   compositingFrame;
+    nsAutoPtr<imgFrame>        compositingFrame;
     
 
 
 
 
 
-    nsCOMPtr<gfxIImageFrame>   compositingPrevFrame;
+    nsAutoPtr<imgFrame>        compositingPrevFrame;
     
     nsCOMPtr<nsITimer>         timer;
     
@@ -195,7 +195,9 @@ private:
     }
   };
 
-  gfxIImageFrame* GetCurrentFrameNoRef();
+  imgFrame* GetImgFrame(PRUint32 framenum);
+  imgFrame* GetCurrentImgFrame();
+  PRInt32 GetCurrentImgFrameIndex() const;
   
   inline Anim* ensureAnimExists() {
     if (!mAnim)
@@ -212,9 +214,9 @@ private:
 
 
 
-  nsresult DoComposite(gfxIImageFrame** aFrameToUse, nsIntRect* aDirtyRect,
-                       gfxIImageFrame* aPrevFrame,
-                       gfxIImageFrame* aNextFrame,
+  nsresult DoComposite(imgFrame** aFrameToUse, nsIntRect* aDirtyRect,
+                       imgFrame* aPrevFrame,
+                       imgFrame* aNextFrame,
                        PRInt32 aNextFrameIndex);
   
   
@@ -223,12 +225,14 @@ private:
 
 
 
-
-
-
-
-  void BuildCompositeMask(gfxIImageFrame* aCompositingFrame,
-                          gfxIImageFrame* aOverlayFrame);
+  static void ClearFrame(imgFrame* aFrame);
+  
+  
+  static void ClearFrame(imgFrame* aFrame, nsIntRect &aRect);
+  
+  
+  static PRBool CopyFrameImage(imgFrame *aSrcFrame,
+                               imgFrame *aDstFrame);
   
   
 
@@ -237,51 +241,26 @@ private:
 
 
 
-  void SetMaskVisibility(gfxIImageFrame *aFrame, PRBool aVisible);
-  
-  void SetMaskVisibility(gfxIImageFrame *aFrame,
-                         PRInt32 aX, PRInt32 aY,
-                         PRInt32 aWidth, PRInt32 aHeight,
-                         PRBool aVisible);
-  
-  void SetMaskVisibility(gfxIImageFrame *aFrame,
-                         nsIntRect &aRect, PRBool aVisible) {
-    SetMaskVisibility(aFrame, aRect.x, aRect.y,
-                      aRect.width, aRect.height, aVisible);
-  }
-  
-  
-
-
-
-
-
-  static void ClearFrame(gfxIImageFrame* aFrame);
-  
-  
-  static void ClearFrame(gfxIImageFrame* aFrame, nsIntRect &aRect);
-  
-  
-  static PRBool CopyFrameImage(gfxIImageFrame *aSrcFrame,
-                               gfxIImageFrame *aDstFrame);
-  
-  
-
-
-
-
-
-
-  static nsresult DrawFrameTo(gfxIImageFrame *aSrcFrame,
-                              gfxIImageFrame *aDstFrame,
+  static nsresult DrawFrameTo(imgFrame *aSrcFrame,
+                              imgFrame *aDstFrame,
                               nsIntRect& aRect);
+
+  nsresult InternalAddFrameHelper(PRUint32 framenum, imgFrame *frame,
+                                  PRUint8 **imageData, PRUint32 *imageLength,
+                                  PRUint32 **paletteData, PRUint32 *paletteLength);
+  nsresult InternalAddFrame(PRUint32 framenum, PRInt32 aX, PRInt32 aY, PRInt32 aWidth, PRInt32 aHeight,
+                            gfxASurface::gfxImageFormat aFormat, PRUint8 aPaletteDepth,
+                            PRUint8 **imageData, PRUint32 *imageLength,
+                            PRUint32 **paletteData, PRUint32 *paletteLength);
+
+private: 
 
   nsIntSize                  mSize;
   
   
   
   
-  nsCOMArray<gfxIImageFrame> mFrames;
+  nsTArray<imgFrame *>       mFrames;
   int                        mNumFrames; 
   
   nsCOMPtr<nsIProperties>    mProperties;

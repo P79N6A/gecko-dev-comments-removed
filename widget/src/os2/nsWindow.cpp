@@ -78,7 +78,6 @@
 #include "nsOS2Uni.h"
 
 #include "imgIContainer.h"
-#include "gfxIImageFrame.h"
 
 #include <stdlib.h>
 #include <ctype.h>
@@ -1711,39 +1710,19 @@ NS_IMETHODIMP nsWindow::SetCursor(imgIContainer* aCursor,
     return NS_OK;
   }
 
-  nsCOMPtr<gfxIImageFrame> frame;
-  aCursor->GetFrameAt(0, getter_AddRefs(frame));
+  nsRefPtr<gfxImageFrame> frame;
+  aCursor->CopyCurrentFrame(getter_AddRefs(frame));
   if (!frame)
     return NS_ERROR_NOT_AVAILABLE;
 
   
   
-  PRInt32 width, height;
-  frame->GetWidth(&width);
-  frame->GetHeight(&height);
+  PRInt32 width = frame->Width();
+  PRInt32 height = frame->Height();
   if (width > 128 || height > 128)
     return NS_ERROR_FAILURE;
 
-  gfx_format format;
-  nsresult rv = frame->GetFormat(&format);
-  if (NS_FAILED(rv))
-    return rv;
-
-  
-  
-  if (format != gfxIFormats::BGR_A1 && format != gfxIFormats::RGB_A1 &&
-      format != gfxIFormats::BGR_A8 && format != gfxIFormats::RGB_A8 &&
-      format != gfxIFormats::BGR && format != gfxIFormats::RGB)
-    return NS_ERROR_UNEXPECTED;
-
-  frame->LockImageData();
-  PRUint32 dataLen;
-  PRUint8* data;
-  rv = frame->GetImageData(&data, &dataLen);
-  if (NS_FAILED(rv)) {
-    frame->UnlockImageData();
-    return rv;
-  }
+  PRUint8* data = frame->Data();
 
   
   HBITMAP hBmp = CreateBitmapRGB(data, width, height);
@@ -1751,14 +1730,11 @@ NS_IMETHODIMP nsWindow::SetCursor(imgIContainer* aCursor,
     return NS_ERROR_FAILURE;
 
   
-  HBITMAP hAlpha = CreateTransparencyMask(format, data, width, height);
+  HBITMAP hAlpha = CreateTransparencyMask(frame->Format(), data, width, height);
   if (!hAlpha) {
     GpiDeleteBitmap(hBmp);
     return NS_ERROR_FAILURE;
   }
-
-  
-  frame->UnlockImageData();
 
   POINTERINFO info = {0};
   info.fPointer = TRUE;
@@ -1875,7 +1851,7 @@ HBITMAP nsWindow::CreateBitmapRGB(PRUint8* aImageData,
 
 
 
-HBITMAP nsWindow::CreateTransparencyMask(gfx_format format,
+HBITMAP nsWindow::CreateTransparencyMask(gfxASurface::gfxImageFormat format,
                                          PRUint8* aImageData,
                                          PRUint32 aWidth,
                                          PRUint32 aHeight)
@@ -1889,36 +1865,29 @@ HBITMAP nsWindow::CreateTransparencyMask(gfx_format format,
   if (!mono)
     return NULL;
 
-  switch (format) {
+  if (format == gfxASurface::ImageFormatARGB32) {
     
     
 
     
-    case gfxIFormats::BGR_A1:
-    case gfxIFormats::RGB_A1:
-    case gfxIFormats::RGB_A8:
-    case gfxIFormats::BGR_A8: {
-      PRInt32* pSrc = (PRInt32*)aImageData;
-      for (PRUint32 row = aHeight; row > 0; --row) {
+    PRInt32* pSrc = (PRInt32*)aImageData;
+    for (PRUint32 row = aHeight; row > 0; --row) {
+      
+      PRUint8* pDst = mono + cbData + abpr * (row - 1);
+      PRUint8 mask = 0x80;
+      for (PRUint32 col = aWidth; col > 0; --col) {
         
-        PRUint8* pDst = mono + cbData + abpr * (row - 1);
-        PRUint8 mask = 0x80;
-        for (PRUint32 col = aWidth; col > 0; --col) {
-          
-          
-          if (*pSrc++ >= 0) {
-            *pDst |= mask;
-          }
+        
+        if (*pSrc++ >= 0) {
+          *pDst |= mask;
+        }
 
-          mask >>= 1;
-          if (!mask) {
-            pDst++;
-            mask = 0x80;
-          }
+        mask >>= 1;
+        if (!mask) {
+          pDst++;
+          mask = 0x80;
         }
       }
-
-      break;
     }
   }
 

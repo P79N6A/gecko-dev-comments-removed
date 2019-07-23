@@ -76,9 +76,7 @@
 
 
 #include "imgIContainer.h"
-#include "gfxIImageFrame.h"
 #include "nsGfxCIID.h"
-#include "nsIImage.h"
 #include "nsIInterfaceRequestorUtils.h"
 #include "nsAutoPtr.h"
 

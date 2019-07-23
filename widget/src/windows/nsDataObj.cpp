@@ -51,7 +51,6 @@
 #include "IEnumFE.h"
 #include "nsPrimitiveHelpers.h"
 #include "nsXPIDLString.h"
-#include "nsIImage.h"
 #include "nsImageClipboard.h"
 #include "nsCRT.h"
 #include "nsPrintfCString.h"
@@ -869,9 +868,8 @@ nsDataObj :: GetDib ( const nsACString& inFlavor, FORMATETC &, STGMEDIUM & aSTG 
   PRUint32 len = 0;
   nsCOMPtr<nsISupports> genericDataWrapper;
   mTransferable->GetTransferData(PromiseFlatCString(inFlavor).get(), getter_AddRefs(genericDataWrapper), &len);
-  nsCOMPtr<nsIImage> image ( do_QueryInterface(genericDataWrapper) );
+  nsCOMPtr<imgIContainer> image ( do_QueryInterface(genericDataWrapper) );
   if ( !image ) {
-    
     
     
     
@@ -1384,10 +1382,9 @@ HRESULT nsDataObj::GetFile(FORMATETC& aFE, STGMEDIUM& aSTG)
   nsCOMPtr<nsISupports> genericDataWrapper;
 
   mTransferable->GetTransferData(kNativeImageMime, getter_AddRefs(genericDataWrapper), &len);
-  nsCOMPtr<nsIImage> image ( do_QueryInterface(genericDataWrapper) );
+  nsCOMPtr<imgIContainer> image ( do_QueryInterface(genericDataWrapper) );
   
   if (!image) {
-    
     
     
     

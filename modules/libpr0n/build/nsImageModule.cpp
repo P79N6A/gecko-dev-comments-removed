@@ -47,6 +47,7 @@
 #define IMG_BUILD_xbm 1
 #endif
 
+#include "nsIDeviceContext.h"
 #include "nsIGenericFactory.h"
 #include "nsIModule.h"
 #include "nsICategoryManager.h"
@@ -206,7 +207,7 @@ static const nsModuleComponentInfo components[] =
     imgLoaderConstructor, },
   { "image container",
     NS_IMGCONTAINER_CID,
-    "@mozilla.org/image/container;1",
+    "@mozilla.org/image/container;2",
     imgContainerConstructor, },
   { "image loader",
     NS_IMGLOADER_CID,
@@ -313,6 +314,12 @@ static const nsModuleComponentInfo components[] =
 static nsresult
 imglib_Initialize(nsIModule* aSelf)
 {
+  
+  
+  
+  nsCOMPtr<nsIDeviceContext> devctx = 
+    do_CreateInstance("@mozilla.org/gfx/devicecontext;1");
+
   imgLoader::InitCache();
   return NS_OK;
 }

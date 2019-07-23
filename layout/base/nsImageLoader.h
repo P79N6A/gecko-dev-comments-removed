@@ -70,7 +70,7 @@ public:
 
   
   NS_IMETHOD OnStartContainer(imgIRequest *aRequest, imgIContainer *aImage);
-  NS_IMETHOD OnStopFrame(imgIRequest *aRequest, gfxIImageFrame *aFrame);
+  NS_IMETHOD OnStopFrame(imgIRequest *aRequest, PRUint32 aFrame);
   
   
   
@@ -78,8 +78,7 @@ public:
   
 
   
-  NS_IMETHOD FrameChanged(imgIContainer *aContainer, gfxIImageFrame *newframe,
-                          nsIntRect *dirtyRect);
+  NS_IMETHOD FrameChanged(imgIContainer *aContainer, nsIntRect *dirtyRect);
 
   void Destroy();
 

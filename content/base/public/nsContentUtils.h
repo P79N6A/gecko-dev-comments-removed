@@ -78,12 +78,12 @@ class nsIThreadJSContextStack;
 class nsIParserService;
 class nsIIOService;
 class nsIURI;
+class imgIContainer;
 class imgIDecoderObserver;
 class imgIRequest;
 class imgILoader;
 class imgICache;
 class nsIPrefBranch;
-class nsIImage;
 class nsIImageLoadingContent;
 class nsIDOMHTMLFormElement;
 class nsIDOMDocument;
@@ -660,7 +660,7 @@ public:
 
 
 
-  static already_AddRefed<nsIImage> GetImageFromContent(nsIImageLoadingContent* aContent, imgIRequest **aRequest = nsnull);
+  static already_AddRefed<imgIContainer> GetImageFromContent(nsIImageLoadingContent* aContent, imgIRequest **aRequest = nsnull);
 
   
 

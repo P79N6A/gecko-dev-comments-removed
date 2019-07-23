@@ -50,7 +50,7 @@
 #include <windows.h>
 
 #include "nsCOMPtr.h"
-#include "nsIImage.h"
+#include "imgIContainer.h"
 #include "nsIInputStream.h"
 
 
@@ -63,7 +63,7 @@
 class nsImageToClipboard
 {
 public:
-  nsImageToClipboard ( nsIImage* inImage );
+  nsImageToClipboard ( imgIContainer* inImage );
   ~nsImageToClipboard();
 
     
@@ -79,9 +79,9 @@ private:
   PRInt32 CalcSpanLength(PRUint32 aWidth, PRUint32 aBitCount);
 
     
-  nsresult CreateFromImage ( nsIImage* inImage, HANDLE* outBitmap );
+  nsresult CreateFromImage ( imgIContainer* inImage, HANDLE* outBitmap );
 
-  nsCOMPtr<nsIImage> mImage;            
+  nsCOMPtr<imgIContainer> mImage;            
 
 }; 
 
