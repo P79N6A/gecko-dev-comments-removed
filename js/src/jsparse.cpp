@@ -485,7 +485,6 @@ MaybeSetupFrame(JSContext *cx, JSObject *chain, JSStackFrame *oldfp,
         if (oldfp && (newfp->flags & JSFRAME_SPECIAL)) {
             newfp->varobj = oldfp->varobj;
             newfp->vars = oldfp->vars;
-            newfp->callee = oldfp->callee;
             newfp->fun = oldfp->fun;
         }
     }
@@ -780,7 +779,6 @@ FunctionBody(JSContext *cx, JSTokenStream *ts, JSFunction *fun,
     if (!fp || fp->fun != fun || fp->varobj != funobj ||
         fp->scopeChain != funobj) {
         memset(&frame, 0, sizeof frame);
-        frame.callee = funobj;
         frame.fun = fun;
         frame.varobj = frame.scopeChain = funobj;
         frame.down = fp;
@@ -896,7 +894,6 @@ js_CompileFunctionBody(JSContext *cx, JSTokenStream *ts, JSFunction *fun)
     JS_ASSERT(!fp || (fp->fun != fun && fp->varobj != funobj &&
                       fp->scopeChain != funobj));
     memset(&frame, 0, sizeof frame);
-    frame.callee = funobj;
     frame.fun = fun;
     frame.varobj = frame.scopeChain = funobj;
     frame.down = fp;
@@ -1239,7 +1236,7 @@ FunctionDef(JSContext *cx, JSTokenStream *ts, JSTreeContext *tc,
 
 
             JS_ASSERT(OBJ_GET_CLASS(cx, varobj) == &js_FunctionClass);
-            JS_ASSERT(fp->fun == (JSFunction *) OBJ_GET_PRIVATE(cx, varobj));
+            JS_ASSERT(fp->fun == (JSFunction *) JS_GetPrivate(cx, varobj));
             if (!js_LookupHiddenProperty(cx, varobj, ATOM_TO_JSID(funAtom),
                                          &pobj, &prop)) {
                 return NULL;

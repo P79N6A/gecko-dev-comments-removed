@@ -290,8 +290,6 @@ js_InitPinnedAtoms(JSContext *cx, JSAtomState *state)
             return JS_FALSE;                                                  \
     JS_END_MACRO
 
-    FROB(emptyAtom,               "");
-
     for (i = 0; i < JSTYPE_LIMIT; i++)
         FROB(typeAtoms[i],        js_type_strs[i]);
 
@@ -497,7 +495,7 @@ js_UnpinPinnedAtoms(JSAtomState *state)
 }
 
 static JSAtom *
-AtomizeHashedKey(JSContext *cx, jsval key, JSHashNumber keyHash)
+js_AtomizeHashedKey(JSContext *cx, jsval key, JSHashNumber keyHash)
 {
     JSAtomState *state;
     JSHashTable *table;
@@ -613,7 +611,7 @@ js_AtomizeString(JSContext *cx, JSString *str, uintN flags)
         if (flags & ATOM_TMPSTR) {
             str = (flags & ATOM_NOCOPY)
                   ? js_NewString(cx, str->chars, str->length, 0)
-                  : js_NewStringCopyN(cx, str->chars, str->length);
+                  : js_NewStringCopyN(cx, str->chars, str->length, 0);
             if (!str)
                 return NULL;
             key = STRING_TO_JSVAL(str);
@@ -739,7 +737,7 @@ js_AtomizePrimitiveValue(JSContext *cx, jsval v)
         return js_AtomizeDouble(cx, *JSVAL_TO_DOUBLE(v));
     JS_ASSERT(JSVAL_IS_INT(v) || v == JSVAL_TRUE || v == JSVAL_FALSE ||
               v == JSVAL_NULL || v == JSVAL_VOID);
-    return AtomizeHashedKey(cx, v, (JSHashNumber)v);
+    return js_AtomizeHashedKey(cx, v, (JSHashNumber)v);
 }
 
 JSAtom *

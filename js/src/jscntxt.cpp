@@ -370,11 +370,11 @@ js_DestroyContext(JSContext *cx, JSDestroyContextMode mode)
 #endif
 
         
-        js_FinishRuntimeNumberState(cx);
-        js_FinishRuntimeStringState(cx);
+        js_UnpinPinnedAtoms(&rt->atomState);
 
         
-        js_UnpinPinnedAtoms(&rt->atomState);
+        js_FinishRuntimeNumberState(cx);
+        js_FinishRuntimeStringState(cx);
 
         
         JS_ClearAllTraps(cx);
@@ -421,14 +421,6 @@ js_DestroyContext(JSContext *cx, JSDestroyContextMode mode)
 
 
         js_FinishDeflatedStringCache(rt);
-
-        
-
-
-
-
-        free(rt->unitStrings);
-        rt->unitStrings = NULL;
 
         
         JS_LOCK_GC(rt);
