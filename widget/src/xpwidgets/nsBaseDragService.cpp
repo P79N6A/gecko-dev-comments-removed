@@ -69,12 +69,15 @@
 #include "nsIViewObserver.h"
 #include "nsRegion.h"
 #include "nsGUIEvent.h"
+#include "nsIPrefService.h"
 
 #ifdef MOZ_CAIRO_GFX
 #include "gfxContext.h"
 #include "gfxImageSurface.h"
 
 #endif
+
+#define DRAGIMAGES_PREF "nglayout.enable_drag_images"
 
 NS_IMPL_ADDREF(nsBaseDragService)
 NS_IMPL_RELEASE(nsBaseDragService)
@@ -413,7 +416,13 @@ nsBaseDragService::DrawDrag(nsIDOMNode* aDOMNode,
     return NS_ERROR_FAILURE;
 
   
-  if (!mHasImage) {
+  PRBool enableDragImages = PR_TRUE;
+  nsCOMPtr<nsIPrefBranch> prefs(do_GetService(NS_PREFSERVICE_CONTRACTID));
+  if (prefs)
+    prefs->GetBoolPref(DRAGIMAGES_PREF, &enableDragImages);
+
+  
+  if (!enableDragImages || !mHasImage) {
     
     
     if (aRegion) {

@@ -198,6 +198,9 @@ pref("view_source.wrap_long_lines", false);
 pref("nglayout.events.dispatchLeftClickOnly", true);
 
 
+pref("nglayout.enable_drag_images", true);
+
+
 pref("nglayout.debug.enable_xbl_forms", false);
 
 
