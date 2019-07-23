@@ -175,7 +175,9 @@ menuitem.bookmark-item {
 
 
 #bookmarksMenuPopup > menuitem > .menu-text,
-menupopup[type="places"] > menuitem > .menu-text { 
+#bookmarksMenuPopup > menu > .menu-text,
+menupopup[type="places"] > menuitem > .menu-text,
+menupopup[type="places"] > menu > .menu-text { 
   
 
 
