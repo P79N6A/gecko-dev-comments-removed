@@ -35,8 +35,8 @@
 
 
 
-#ifndef ns4xPlugin_h_
-#define ns4xPlugin_h_
+#ifndef nsNPAPIPlugin_h_
+#define nsNPAPIPlugin_h_
 
 #include "nsIFactory.h"
 #include "nsIPlugin.h"
@@ -60,27 +60,27 @@
 #define NP_CALLBACK
 #endif
 #if defined(XP_WIN)
-#define NS_4XPLUGIN_CALLBACK(_type, _name) _type (__stdcall * _name)
+#define NS_NPAPIPLUGIN_CALLBACK(_type, _name) _type (__stdcall * _name)
 #elif defined(XP_OS2)
-#define NS_4XPLUGIN_CALLBACK(_type, _name) _type (_System * _name)
+#define NS_NPAPIPLUGIN_CALLBACK(_type, _name) _type (_System * _name)
 #else
-#define NS_4XPLUGIN_CALLBACK(_type, _name) _type (* _name)
+#define NS_NPAPIPLUGIN_CALLBACK(_type, _name) _type (* _name)
 #endif
 
-typedef NS_4XPLUGIN_CALLBACK(NPError, NP_GETENTRYPOINTS) (NPPluginFuncs* pCallbacks);
-typedef NS_4XPLUGIN_CALLBACK(NPError, NP_PLUGININIT) (const NPNetscapeFuncs* pCallbacks);
-typedef NS_4XPLUGIN_CALLBACK(NPError, NP_PLUGINUNIXINIT) (const NPNetscapeFuncs* pCallbacks,NPPluginFuncs* fCallbacks);
-typedef NS_4XPLUGIN_CALLBACK(NPError, NP_PLUGINSHUTDOWN) (void);
+typedef NS_NPAPIPLUGIN_CALLBACK(NPError, NP_GETENTRYPOINTS) (NPPluginFuncs* pCallbacks);
+typedef NS_NPAPIPLUGIN_CALLBACK(NPError, NP_PLUGININIT) (const NPNetscapeFuncs* pCallbacks);
+typedef NS_NPAPIPLUGIN_CALLBACK(NPError, NP_PLUGINUNIXINIT) (const NPNetscapeFuncs* pCallbacks,NPPluginFuncs* fCallbacks);
+typedef NS_NPAPIPLUGIN_CALLBACK(NPError, NP_PLUGINSHUTDOWN) (void);
 #ifdef XP_MACOSX
-typedef NS_4XPLUGIN_CALLBACK(NPError, NP_MAIN) (NPNetscapeFuncs* nCallbacks, NPPluginFuncs* pCallbacks, NPP_ShutdownUPP* unloadUpp);
+typedef NS_NPAPIPLUGIN_CALLBACK(NPError, NP_MAIN) (NPNetscapeFuncs* nCallbacks, NPPluginFuncs* pCallbacks, NPP_ShutdownUPP* unloadUpp);
 #endif
 
-class ns4xPlugin : public nsIPlugin
+class nsNPAPIPlugin : public nsIPlugin
 {
 public:
-  ns4xPlugin(NPPluginFuncs* callbacks, PRLibrary* aLibrary,
-             NP_PLUGINSHUTDOWN aShutdown);
-  virtual ~ns4xPlugin(void);
+  nsNPAPIPlugin(NPPluginFuncs* callbacks, PRLibrary* aLibrary,
+                NP_PLUGINSHUTDOWN aShutdown);
+  virtual ~nsNPAPIPlugin(void);
 
   NS_DECL_ISUPPORTS
   NS_DECL_NSIFACTORY

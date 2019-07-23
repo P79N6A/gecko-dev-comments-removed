@@ -46,8 +46,8 @@
 #include <stdio.h>
 #include "prio.h"
 #include "prmem.h"
-#include "ns4xPlugin.h"
-#include "ns4xPluginStreamListener.h"
+#include "nsNPAPIPlugin.h"
+#include "nsNPAPIPluginStreamListener.h"
 #include "nsPluginInstancePeer.h"
 #include "nsIPlugin.h"
 #include "nsIPluginInstanceInternal.h"
@@ -1193,7 +1193,7 @@ PRBool nsPluginTag::Equals(nsPluginTag *aPluginTag)
 
 class nsPluginStreamListenerPeer;
 
-class nsPluginStreamInfo : public nsI4xPluginStreamInfo
+class nsPluginStreamInfo : public nsINPAPIPluginStreamInfo
 {
 public:
   nsPluginStreamInfo();
@@ -1406,7 +1406,7 @@ nsPluginStreamInfo::~nsPluginStreamInfo()
 
 
 NS_IMPL_ISUPPORTS2(nsPluginStreamInfo, nsIPluginStreamInfo,
-                   nsI4xPluginStreamInfo)
+                   nsINPAPIPluginStreamInfo)
 
 
 NS_IMETHODIMP
@@ -4694,9 +4694,9 @@ static nsresult ConvertToNative(nsIUnicodeEncoder *aEncoder,
   return NS_OK;
 }
 
-static nsresult Create4xPlugin(nsIServiceManagerObsolete* aServiceManager,
-                               const nsPluginTag *aPluginTag,
-                               nsIPlugin **aOut4xPlugnin)
+static nsresult CreateNPAPIPlugin(nsIServiceManagerObsolete* aServiceManager,
+                                  const nsPluginTag *aPluginTag,
+                                  nsIPlugin **aOutNPAPIPlugnin)
 {
   nsresult rv;
   nsCOMPtr <nsIPlatformCharset> pcs =
@@ -4724,10 +4724,10 @@ static nsresult Create4xPlugin(nsIServiceManagerObsolete* aServiceManager,
     fullPath = aPluginTag->mFullPath;
   }
 
-  return ns4xPlugin::CreatePlugin(fileName.get(),
-                                  fullPath.get(),
-                                  aPluginTag->mLibrary,
-                                  aOut4xPlugnin);
+  return nsNPAPIPlugin::CreatePlugin(fileName.get(),
+                                     fullPath.get(),
+                                     aPluginTag->mLibrary,
+                                     aOutNPAPIPlugnin);
 }
 
 
@@ -4844,7 +4844,7 @@ NS_IMETHODIMP nsPluginHostImpl::GetPluginFactory(const char *aMimeType, nsIPlugi
       else
       {
         
-        rv = Create4xPlugin(serviceManager, pluginTag, &plugin);
+        rv = CreateNPAPIPlugin(serviceManager, pluginTag, &plugin);
         if (NS_SUCCEEDED(rv))
           pluginTag->mEntryPoint = plugin;
         pluginTag->Mark(NS_PLUGIN_FLAG_OLDSCHOOL);
@@ -4985,7 +4985,7 @@ static int PR_CALLBACK ComparePluginFileInDirectory (const void *v1, const void 
   return result;
 }
 
-typedef NS_4XPLUGIN_CALLBACK(char *, NP_GETMIMEDESCRIPTION)(void);
+typedef NS_NPAPIPLUGIN_CALLBACK(char *, NP_GETMIMEDESCRIPTION)(void);
 
 static nsresult FixUpPluginInfo(nsPluginInfo &aInfo, nsPluginFile &aPluginFile)
 {

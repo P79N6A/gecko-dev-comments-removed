@@ -37,8 +37,8 @@
 
 
 
-#ifndef ns4xPluginInstance_h_
-#define ns4xPluginInstance_h_
+#ifndef nsNPAPIPluginInstance_h_
+#define nsNPAPIPluginInstance_h_
 
 #include "nsCOMPtr.h"
 #include "nsVoidArray.h"
@@ -52,21 +52,21 @@
 #include "npupp.h"
 #include "prlink.h"
 
-class ns4xPluginStreamListener;
+class nsNPAPIPluginStreamListener;
 class nsPIDOMWindow;
 
 struct nsInstanceStream
 {
     nsInstanceStream *mNext;
-    ns4xPluginStreamListener *mPluginStreamListener;
+    nsNPAPIPluginStreamListener *mPluginStreamListener;
 
     nsInstanceStream();
     ~nsInstanceStream();
 };
 
-class ns4xPluginInstance : public nsIPluginInstance,
-                           public nsIScriptablePlugin,
-                           public nsIPluginInstanceInternal
+class nsNPAPIPluginInstance : public nsIPluginInstance,
+                              public nsIScriptablePlugin,
+                              public nsIPluginInstanceInternal
 {
 public:
 
@@ -113,10 +113,10 @@ public:
 
     
     
-    ns4xPluginInstance(NPPluginFuncs* callbacks, PRLibrary* aLibrary);
+    nsNPAPIPluginInstance(NPPluginFuncs* callbacks, PRLibrary* aLibrary);
 
     
-    virtual ~ns4xPluginInstance(void);
+    virtual ~nsNPAPIPluginInstance(void);
 
     
     PRBool IsStarted(void);

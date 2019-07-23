@@ -44,8 +44,8 @@
 
 
 #include "nsplugin.h"
-#include "ns4xPlugin.h"
-#include "ns4xPluginInstance.h"
+#include "nsNPAPIPlugin.h"
+#include "nsNPAPIPluginInstance.h"
 #include "nsIServiceManager.h"
 #include "nsIMemory.h"
 #include "nsIPluginStreamListener.h"
@@ -458,7 +458,7 @@ nsresult nsPluginFile::GetPluginInfo(nsPluginInfo& info)
             
             
             
-            rv = ns4xPlugin::CreatePlugin(0, 0, pLibrary, getter_AddRefs(plugin));
+            rv = nsNPAPIPlugin::CreatePlugin(0, 0, pLibrary, getter_AddRefs(plugin));
             if (NS_FAILED(rv))
                 return rv;
         } else {
@@ -467,7 +467,7 @@ nsresult nsPluginFile::GetPluginInfo(nsPluginInfo& info)
     } else {
         
         
-        rv = ns4xPlugin::CreatePlugin(0, 0, pLibrary, getter_AddRefs(plugin));
+        rv = nsNPAPIPlugin::CreatePlugin(0, 0, pLibrary, getter_AddRefs(plugin));
         if (NS_FAILED(rv)) return rv;
     }
 
