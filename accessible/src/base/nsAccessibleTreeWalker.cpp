@@ -77,7 +77,7 @@ void nsAccessibleTreeWalker::GetKids(nsIDOMNode *aParentNode)
     mState.frame = nsnull;  
   }
 
-  UpdateFrame(PR_TRUE);
+  WalkFrames();
 
   
   if (mState.siblingIndex == eSiblingsWalkFrames) {
@@ -162,18 +162,38 @@ void nsAccessibleTreeWalker::GetNextDOMNode()
 {
   
   if (mState.parentContent) {
-    mState.domNode = do_QueryInterface(mState.parentContent->GetChildAt(++mState.siblingIndex));
-  }
-  else if (mState.siblingIndex == eSiblingsWalkFrames) {
-    if (mState.frame.GetFrame()) {
-      mState.domNode = do_QueryInterface(mState.frame.GetFrame()->GetContent());
-    } else {
-      mState.domNode = nsnull;
+    mState.domNode =
+      do_QueryInterface(mState.parentContent->GetChildAt(++mState.siblingIndex));
+
+  } else if (mState.siblingIndex == eSiblingsWalkFrames) {
+    if (mState.frame.IsAlive()) {
+      mState.frame = mState.frame.GetFrame()->GetNextSibling();
+
+      if (mState.frame.IsAlive()) {
+        mState.domNode = do_QueryInterface(mState.frame.GetFrame()->GetContent());
+        return;
+      }
     }
+
+    mState.domNode = nsnull;
+    return;
+
+  } else {
+    mState.siblingList->Item(++mState.siblingIndex,
+                             getter_AddRefs(mState.domNode));
   }
-  else { 
-    mState.siblingList->Item(++mState.siblingIndex, getter_AddRefs(mState.domNode));
-  }
+
+  
+  nsCOMPtr<nsIPresShell> presShell(do_QueryReferent(mWeakShell));
+  NS_ASSERTION(presShell, "Huh? No presshell?");
+  if (!presShell)
+    return;
+
+  nsCOMPtr<nsIContent> content = do_QueryInterface(mState.domNode);
+  if (content)
+    mState.frame = presShell->GetRealPrimaryFrameFor(content);
+  else
+    mState.frame = presShell->GetRootFrame();
 }
 
 NS_IMETHODIMP nsAccessibleTreeWalker::GetNextSibling()
@@ -185,7 +205,6 @@ NS_IMETHODIMP nsAccessibleTreeWalker::GetNextSibling()
 
   while (PR_TRUE) {
     
-    UpdateFrame(PR_FALSE);
     GetNextDOMNode();
 
     if (!mState.domNode) {  
@@ -219,7 +238,7 @@ NS_IMETHODIMP nsAccessibleTreeWalker::GetFirstChild()
   while (mState.domNode) {
     if ((mState.domNode != parent && GetAccessible()) || NS_SUCCEEDED(GetFirstChild()))
       return NS_OK;
-    UpdateFrame(PR_FALSE);
+
     GetNextDOMNode();
   }
 
@@ -227,50 +246,46 @@ NS_IMETHODIMP nsAccessibleTreeWalker::GetFirstChild()
   return NS_ERROR_FAILURE;
 }
 
-void nsAccessibleTreeWalker::UpdateFrame(PRBool aTryFirstChild)
+void 
+nsAccessibleTreeWalker::WalkFrames()
 {
   nsIFrame *curFrame = mState.frame.GetFrame();
   if (!curFrame) {
     return;
   }
 
-  if (aTryFirstChild) {
-    
-    
-    nsIAnonymousContentCreator* creator = do_QueryFrame(curFrame);
-    nsIFrame *child = curFrame->GetFirstChild(nsnull);
-    mState.frame = child;
+  
+  
+  nsIAnonymousContentCreator* creator = do_QueryFrame(curFrame);
+  nsIFrame *child = curFrame->GetFirstChild(nsnull);
 
-    if (creator && child && mState.siblingIndex < 0) {
-      mState.domNode = do_QueryInterface(child->GetContent());
-      mState.siblingIndex = eSiblingsWalkFrames;
-    }
+  if (creator && child && mState.siblingIndex < 0) {
+    mState.frame = child;
+    mState.domNode = do_QueryInterface(child->GetContent());
+    mState.siblingIndex = eSiblingsWalkFrames;
+  }
 
 
 #if 0
-    if (mState.frame && mState.siblingIndex < 0) {
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      mState.domNode = do_QueryInterface(mState.frame->GetContent());
-      mState.siblingIndex = eSiblingsWalkFrames;
-    }
+  if (mState.frame && mState.siblingIndex < 0) {
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    mState.domNode = do_QueryInterface(mState.frame->GetContent());
+    mState.siblingIndex = eSiblingsWalkFrames;
+  }
 #endif
-  }
-  else {
-    mState.frame = curFrame->GetNextSibling();
-  }
 }
 
 
@@ -286,11 +301,10 @@ PRBool nsAccessibleTreeWalker::GetAccessible()
   mState.accessible = nsnull;
   nsCOMPtr<nsIPresShell> presShell(do_QueryReferent(mWeakShell));
 
-  nsIFrame *frame = mState.frame.GetFrame();
   mAccService->GetAccessible(mState.domNode, presShell, mWeakShell,
-                             &frame, &mState.isHidden,
+                             mState.frame.GetFrame(), &mState.isHidden,
                              getter_AddRefs(mState.accessible));
-  mState.frame = frame;
+
   return mState.accessible ? PR_TRUE : PR_FALSE;
 }
 

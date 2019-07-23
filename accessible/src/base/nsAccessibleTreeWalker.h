@@ -123,10 +123,7 @@ protected:
   
 
 
-
-
-
-  void UpdateFrame(PRBool aTryFirstChild);
+  void WalkFrames();
 
   
 
