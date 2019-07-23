@@ -46,15 +46,42 @@ try {
 } 
 
 
-function add_visit(aURI) {
+
+
+
+
+
+
+
+
+function add_visit(aURI, aReferrer) {
   var placeID = histsvc.addVisit(aURI,
                                  Date.now(),
-                                 0, 
+                                 aReferrer,
                                  histsvc.TRANSITION_TYPED, 
                                  false, 
                                  0);
   do_check_true(placeID > 0);
   return placeID;
+}
+
+
+
+
+
+
+
+
+function uri_in_db(aURI) {
+  var options = histsvc.getNewQueryOptions();
+  options.maxResults = 1;
+  options.resultType = options.RESULTS_AS_URI
+  var query = histsvc.getNewQuery();
+  query.uri = aURI;
+  var result = histsvc.executeQuery(query, options);
+  var root = result.root;
+  root.containerOpen = true;
+  return (root.childCount == 1);
 }
 
 
@@ -161,16 +188,7 @@ function run_test() {
   do_check_eq(title, "mozilla.com");
 
   
-  var options = histsvc.getNewQueryOptions();
-  options.maxResults = 1;
-  options.resultType = options.RESULTS_AS_URI
-  var query = histsvc.getNewQuery();
-  query.uri = testURI;
-  var result = histsvc.executeQuery(query, options);
-  var root = result.root;
-  root.containerOpen = true;
-  do_check_eq(root.childCount, 1);
-  root.containerOpen = false;
+  do_check_true(uri_in_db(testURI));
 
   
   
@@ -199,4 +217,10 @@ function run_test() {
   var root = result.root;
   root.containerOpen = true;
   do_check_true(root.childCount > 0);
+
+  
+  var referrerURI = uri("http://yahoo.com");
+  do_check_false(uri_in_db(referrerURI));
+  add_visit(uri("http://mozilla.com"), referrerURI);
+  do_check_true(uri_in_db(referrerURI));
 }

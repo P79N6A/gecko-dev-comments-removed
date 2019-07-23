@@ -118,7 +118,7 @@ function run_test() {
 
 
 
-  histsvc.addVisit(testURI, Date.now() * 1000, 0, histsvc.TRANSITION_TYPED, false, 0);
+  histsvc.addVisit(testURI, Date.now() * 1000, null, histsvc.TRANSITION_TYPED, false, 0);
   annosvc.setPageAnnotation(testURI, testAnnoName + "Hist", testAnnoVal, 0, annosvc.EXPIRE_WITH_HISTORY);
   annosvc.setPageAnnotation(testURI, testAnnoName + "Never", testAnnoVal, 0, annosvc.EXPIRE_NEVER);
   bhist.removePagesFromHost("mozilla.com", false);
@@ -136,7 +136,7 @@ function run_test() {
 
   var removeAllTestURI = uri("http://removeallpages.com");
   var removeAllTestURINever = uri("http://removeallpagesnever.com");
-  histsvc.addVisit(removeAllTestURI, Date.now() * 1000, 0, histsvc.TRANSITION_TYPED, false, 0);
+  histsvc.addVisit(removeAllTestURI, Date.now() * 1000, null, histsvc.TRANSITION_TYPED, false, 0);
   var bmURI = uri("http://bookmarked");
   bmsvc.insertBookmark(bmsvc.bookmarksMenuFolder, bmURI, bmsvc.DEFAULT_INDEX, "foo");
   
@@ -167,7 +167,7 @@ function run_test() {
   
 
 
-  histsvc.addVisit(testURI, Date.now() * 1000, 0, histsvc.TRANSITION_TYPED, false, 0);
+  histsvc.addVisit(testURI, Date.now() * 1000, null, histsvc.TRANSITION_TYPED, false, 0);
   annosvc.setPageAnnotation(testURI, testAnnoName, testAnnoVal, 0, annosvc.EXPIRE_NEVER);
   annosvc.setItemAnnotation(bookmark, testAnnoName, testAnnoVal, 0, annosvc.EXPIRE_NEVER);
   histsvc.removeAllPages();
@@ -179,7 +179,7 @@ function run_test() {
   
 
 
-  histsvc.addVisit(testURI, Date.now() * 1000, 0, histsvc.TRANSITION_TYPED, false, 0);
+  histsvc.addVisit(testURI, Date.now() * 1000, null, histsvc.TRANSITION_TYPED, false, 0);
   annosvc.setPageAnnotation(testURI, testAnnoName, testAnnoVal, 0, annosvc.EXPIRE_WITH_HISTORY);
   histsvc.removeAllPages();
   try {
@@ -195,7 +195,7 @@ function run_test() {
 
 
 
-  histsvc.addVisit(testURI, Date.now() * 1000, 0, histsvc.TRANSITION_TYPED, false, 0);
+  histsvc.addVisit(testURI, Date.now() * 1000, null, histsvc.TRANSITION_TYPED, false, 0);
 
   
   annosvc.setPageAnnotation(testURI, testAnnoName, testAnnoVal, 0, annosvc.EXPIRE_DAYS);
@@ -211,7 +211,7 @@ function run_test() {
   annosvc.setItemAnnotation(bookmark, testAnnoName + "NotExpired", testAnnoVal, 0, annosvc.EXPIRE_DAYS);
 
   
-  histsvc.addVisit(triggerURI, Date.now() * 1000, 0, histsvc.TRANSITION_TYPED, false, 0);
+  histsvc.addVisit(triggerURI, Date.now() * 1000, null, histsvc.TRANSITION_TYPED, false, 0);
   bhist.removePage(triggerURI);
 
   
@@ -239,7 +239,7 @@ function run_test() {
   } catch(ex) {}
 
   
-  histsvc.addVisit(testURI, Date.now() * 1000, 0, histsvc.TRANSITION_TYPED, false, 0);
+  histsvc.addVisit(testURI, Date.now() * 1000, null, histsvc.TRANSITION_TYPED, false, 0);
   annosvc.setPageAnnotation(testURI, testAnnoName, testAnnoVal, 0, annosvc.EXPIRE_DAYS);
   annosvc.setItemAnnotation(bookmark, testAnnoName, testAnnoVal, 0, annosvc.EXPIRE_DAYS);
   
@@ -248,7 +248,7 @@ function run_test() {
   dbConnection.executeSimpleSQL("UPDATE moz_items_annos SET dateAdded = " + expirationDate);
 
   
-  histsvc.addVisit(triggerURI, Date.now() * 1000, 0, histsvc.TRANSITION_TYPED, false, 0);
+  histsvc.addVisit(triggerURI, Date.now() * 1000, null, histsvc.TRANSITION_TYPED, false, 0);
   bhist.removePage(triggerURI);
 
   
@@ -267,7 +267,7 @@ function run_test() {
 
 
   
-  histsvc.addVisit(testURI, Date.now() * 1000, 0, histsvc.TRANSITION_TYPED, false, 0);
+  histsvc.addVisit(testURI, Date.now() * 1000, null, histsvc.TRANSITION_TYPED, false, 0);
   annosvc.setPageAnnotation(testURI, testAnnoName, testAnnoVal, 0, annosvc.EXPIRE_WEEKS);
   annosvc.setItemAnnotation(bookmark, testAnnoName, testAnnoVal, 0, annosvc.EXPIRE_WEEKS);
   
@@ -279,7 +279,7 @@ function run_test() {
   annosvc.setItemAnnotation(bookmark, testAnnoName + "NotExpired", testAnnoVal, 0, annosvc.EXPIRE_WEEKS);
 
   
-  histsvc.addVisit(triggerURI, Date.now() * 1000, 0, histsvc.TRANSITION_TYPED, false, 0);
+  histsvc.addVisit(triggerURI, Date.now() * 1000, null, histsvc.TRANSITION_TYPED, false, 0);
   bhist.removePage(triggerURI);
 
   
@@ -306,7 +306,7 @@ function run_test() {
   } catch(ex) {}
 
   
-  histsvc.addVisit(testURI, Date.now() * 1000, 0, histsvc.TRANSITION_TYPED, false, 0);
+  histsvc.addVisit(testURI, Date.now() * 1000, null, histsvc.TRANSITION_TYPED, false, 0);
   annosvc.setPageAnnotation(testURI, testAnnoName, testAnnoVal, 0, annosvc.EXPIRE_WEEKS);
   annosvc.setItemAnnotation(bookmark, testAnnoName, testAnnoVal, 0, annosvc.EXPIRE_WEEKS);
   
@@ -315,7 +315,7 @@ function run_test() {
   dbConnection.executeSimpleSQL("UPDATE moz_items_annos SET dateAdded = " + expirationDate);
 
   
-  histsvc.addVisit(triggerURI, Date.now() * 1000, 0, histsvc.TRANSITION_TYPED, false, 0);
+  histsvc.addVisit(triggerURI, Date.now() * 1000, null, histsvc.TRANSITION_TYPED, false, 0);
   bhist.removePage(triggerURI);
 
   
@@ -343,7 +343,7 @@ function run_test() {
   annosvc.setItemAnnotation(bookmark, testAnnoName + "NotExpired", testAnnoVal, 0, annosvc.EXPIRE_MONTHS);
 
   
-  histsvc.addVisit(triggerURI, Date.now() * 1000, 0, histsvc.TRANSITION_TYPED, false, 0);
+  histsvc.addVisit(triggerURI, Date.now() * 1000, null, histsvc.TRANSITION_TYPED, false, 0);
   bhist.removePage(triggerURI);
 
   
@@ -370,7 +370,7 @@ function run_test() {
   } catch(ex) {}
 
   
-  histsvc.addVisit(testURI, Date.now() * 1000, 0, histsvc.TRANSITION_TYPED, false, 0);
+  histsvc.addVisit(testURI, Date.now() * 1000, null, histsvc.TRANSITION_TYPED, false, 0);
   annosvc.setPageAnnotation(testURI, testAnnoName, testAnnoVal, 0, annosvc.EXPIRE_MONTHS);
   annosvc.setItemAnnotation(bookmark, testAnnoName, testAnnoVal, 0, annosvc.EXPIRE_MONTHS);
   
@@ -379,7 +379,7 @@ function run_test() {
   dbConnection.executeSimpleSQL("UPDATE moz_items_annos SET dateAdded = " + expirationDate);
 
   
-  histsvc.addVisit(triggerURI, Date.now() * 1000, 0, histsvc.TRANSITION_TYPED, false, 0);
+  histsvc.addVisit(triggerURI, Date.now() * 1000, null, histsvc.TRANSITION_TYPED, false, 0);
   bhist.removePage(triggerURI);
 
   
@@ -411,7 +411,7 @@ function run_test() {
   annosvc.setPageAnnotation(testURI, testAnnoName, "mod", 0, annosvc.EXPIRE_DAYS);
   annosvc.setItemAnnotation(bookmark, testAnnoName, "mod", 0, annosvc.EXPIRE_DAYS);
   
-  histsvc.addVisit(triggerURI, Date.now() * 1000, 0, histsvc.TRANSITION_TYPED, false, 0);
+  histsvc.addVisit(triggerURI, Date.now() * 1000, null, histsvc.TRANSITION_TYPED, false, 0);
   bhist.removePage(triggerURI);
   
   try {
@@ -430,7 +430,7 @@ function run_test() {
   dbConnection.executeSimpleSQL("UPDATE moz_annos SET lastModified = " + expirationDate);
   dbConnection.executeSimpleSQL("UPDATE moz_items_annos SET lastModified = " + expirationDate);
   
-  histsvc.addVisit(triggerURI, Date.now() * 1000, 0, histsvc.TRANSITION_TYPED, false, 0);
+  histsvc.addVisit(triggerURI, Date.now() * 1000, null, histsvc.TRANSITION_TYPED, false, 0);
   bhist.removePage(triggerURI);
   
   try {
@@ -483,7 +483,7 @@ function startExpireNeither() {
   observer.expiredURI = null;
 
   
-  histsvc.addVisit(testURI, Date.now() * 1000, 0, histsvc.TRANSITION_TYPED, false, 0);
+  histsvc.addVisit(testURI, Date.now() * 1000, null, histsvc.TRANSITION_TYPED, false, 0);
   annosvc.setPageAnnotation(testURI, testAnnoName, testAnnoVal, 0, annosvc.EXPIRE_WITH_HISTORY);
 
   
@@ -540,11 +540,11 @@ function startExpireDaysOnly() {
   dump("startExpireDaysOnly()\n");
 
   
-  histsvc.addVisit(testURI, (Date.now() - (86400 * 2 * 1000)) * 1000, 0, histsvc.TRANSITION_TYPED, false, 0);
+  histsvc.addVisit(testURI, (Date.now() - (86400 * 2 * 1000)) * 1000, null, histsvc.TRANSITION_TYPED, false, 0);
   annosvc.setPageAnnotation(testURI, testAnnoName, testAnnoVal, 0, annosvc.EXPIRE_WITH_HISTORY);
 
   
-  histsvc.addVisit(uri("http://unexpirable.com"), (Date.now() - (86400 * 1000)) * 1000, 0, histsvc.TRANSITION_TYPED, false, 0);
+  histsvc.addVisit(uri("http://unexpirable.com"), (Date.now() - (86400 * 1000)) * 1000, null, histsvc.TRANSITION_TYPED, false, 0);
 
   
   prefs.setIntPref("browser.history_expire_sites", 2);
@@ -603,8 +603,8 @@ function startExpireBoth() {
   
   var age = (Date.now() - (86400 * 2 * 1000)) * 1000;
   dump("AGE: " + age + "\n");
-  histsvc.addVisit(testURI, age, 0, histsvc.TRANSITION_TYPED, false, 0);
-  histsvc.addVisit(testURI, age, 0, histsvc.TRANSITION_TYPED, false, 0);
+  histsvc.addVisit(testURI, age, null, histsvc.TRANSITION_TYPED, false, 0);
+  histsvc.addVisit(testURI, age, null, histsvc.TRANSITION_TYPED, false, 0);
   annosvc.setPageAnnotation(testURI, testAnnoName, testAnnoVal, 0, annosvc.EXPIRE_WITH_HISTORY);
 
   

@@ -50,7 +50,7 @@ try {
 function add_visit(aURI, aWhen, aType) {
   var placeID = histsvc.addVisit(aURI,
                                  aWhen,
-                                 0, 
+                                 null, 
                                  aType,
                                  false, 
                                  0);

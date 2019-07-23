@@ -56,7 +56,7 @@ function add_visit(aURI, aDate) {
   var date = aDate || Date.now();
   var placeID = histsvc.addVisit(aURI,
                                  date,
-                                 0, 
+                                 null, 
                                  histsvc.TRANSITION_TYPED, 
                                  false, 
                                  0);

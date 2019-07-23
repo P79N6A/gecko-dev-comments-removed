@@ -1885,7 +1885,7 @@ nsNavHistory::SetPageDetails(nsIURI* aURI, const nsAString& aTitle,
 
 
 NS_IMETHODIMP
-nsNavHistory::AddVisit(nsIURI* aURI, PRTime aTime, PRInt64 aReferringVisit,
+nsNavHistory::AddVisit(nsIURI* aURI, PRTime aTime, nsIURI* aReferringURI,
                        PRInt32 aTransitionType, PRBool aIsRedirect,
                        PRInt64 aSessionID, PRInt64* aVisitID)
 {
@@ -2001,7 +2001,19 @@ nsNavHistory::AddVisit(nsIURI* aURI, PRTime aTime, PRInt64 aReferringVisit,
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
-  rv = InternalAddVisit(pageID, aReferringVisit, aSessionID, aTime,
+  
+  PRInt64 referringVisitID = 0;
+  PRInt64 referringSessionID;
+  if (aReferringURI &&
+      !FindLastVisit(aReferringURI, &referringVisitID, &referringSessionID)) {
+    
+    rv = AddVisit(aReferringURI, aTime - 1, nsnull, TRANSITION_LINK, PR_FALSE,
+                  aSessionID, &referringVisitID);
+    if (NS_FAILED(rv))
+      referringVisitID = 0;
+  }
+
+  rv = InternalAddVisit(pageID, referringVisitID, aSessionID, aTime,
                         aTransitionType, aVisitID);
 
   
@@ -2011,7 +2023,7 @@ nsNavHistory::AddVisit(nsIURI* aURI, PRTime aTime, PRInt64 aReferringVisit,
   if (! hidden && aTransitionType != TRANSITION_EMBED) {
     ENUMERATE_WEAKARRAY(mObservers, nsINavHistoryObserver,
                         OnVisit(aURI, *aVisitID, aTime, aSessionID,
-                                aReferringVisit, aTransitionType));
+                                referringVisitID, aTransitionType));
   }
 
   
@@ -3254,7 +3266,7 @@ nsNavHistory::AddVisitChain(nsIURI* aURI, PRTime aTime,
   }
 
   
-  return AddVisit(aURI, visitTime, referringVisit, transitionType,
+  return AddVisit(aURI, visitTime, aReferrer, transitionType,
                   aIsRedirect, *aSessionID, aVisitID);
 }
 
