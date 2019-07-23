@@ -285,8 +285,7 @@ nsHTMLEditor::Init(nsIDOMDocument *aDoc, nsIPresShell *aPresShell,
     result = nsPlaintextEditor::Init(aDoc, aPresShell, aRoot, aSelCon, aFlags);
     if (NS_FAILED(result)) { return result; }
 
-    
-    mCSSAware = (0 == aFlags);
+    UpdateCSSAwareForFlags(aFlags);
 
     
     if (aFlags & eEditorMailMask)
@@ -417,12 +416,20 @@ nsHTMLEditor::GetFlags(PRUint32 *aFlags)
   return mRules->GetFlags(aFlags);
 }
 
+void
+nsHTMLEditor::UpdateCSSAwareForFlags(PRUint32 aFlags) 
+{
+  mCSSAware = ((aFlags & (eEditorNoCSSMask | eEditorMailMask)) == 0);
+}
+
+
 
 NS_IMETHODIMP 
 nsHTMLEditor::SetFlags(PRUint32 aFlags)
 {
   if (!mRules) { return NS_ERROR_NULL_POINTER; }
-  mCSSAware = ((aFlags & (eEditorNoCSSMask | eEditorMailMask)) == 0);
+
+  UpdateCSSAwareForFlags(aFlags);
 
   return mRules->SetFlags(aFlags);
 }
@@ -5443,6 +5450,27 @@ nsHTMLEditor::SetIsCSSEnabled(PRBool aIsCSSPrefChecked)
   if (mHTMLCSSUtils)
   {
     err = mHTMLCSSUtils->SetCSSEnabled(aIsCSSPrefChecked);
+  }
+  
+  if (NS_SUCCEEDED(err)) {
+    PRUint32 flags = 0;
+    err = GetFlags(&flags);
+    NS_ENSURE_SUCCESS(err, err);
+
+    if (aIsCSSPrefChecked) {
+      
+      if (flags & eEditorNoCSSMask) {
+        flags -= eEditorNoCSSMask;
+      }
+    } else {
+      
+      if (!(flags & eEditorNoCSSMask)) {
+        flags += eEditorNoCSSMask;
+      }
+    }
+
+    err = SetFlags(flags);
+    NS_ENSURE_SUCCESS(err, err);
   }
   return err;
 }
