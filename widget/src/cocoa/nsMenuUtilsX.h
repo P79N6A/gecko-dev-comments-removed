@@ -56,7 +56,7 @@ extern "C" MenuRef _NSGetCarbonMenu(NSMenu* aMenu);
 namespace nsMenuUtilsX
 {
   nsEventStatus DispatchCommandTo(nsIContent* aTargetContent);
-  NSString*     CreateTruncatedCocoaLabel(const nsString& itemLabel); 
+  NSString*     GetTruncatedCocoaLabel(const nsString& itemLabel);
   PRUint8       GeckoModifiersForNodeAttribute(const nsString& modifiersAttribute);
   unsigned int  MacModifiersForGeckoModifiers(PRUint8 geckoModifiers);
   nsMenuBarX*   GetHiddenWindowMenuBar(); 
