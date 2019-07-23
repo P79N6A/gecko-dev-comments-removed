@@ -6084,19 +6084,17 @@ js_IsCallable(JSObject *obj, JSContext *cx)
     return callable;
 }
 
-JSBool
+void
 js_ReportGetterOnlyAssignment(JSContext *cx)
 {
-    return JS_ReportErrorFlagsAndNumber(cx,
-                                        JSREPORT_WARNING | JSREPORT_STRICT,
-                                        js_GetErrorMessage, NULL,
-                                        JSMSG_GETTER_ONLY);
+    JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL,
+                         JSMSG_GETTER_ONLY, NULL);
 }
 
 JS_FRIEND_API(JSBool)
 js_GetterOnlyPropertyStub(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 {
-    JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_GETTER_ONLY);
+    js_ReportGetterOnlyAssignment(cx);
     return JS_FALSE;
 }
 

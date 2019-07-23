@@ -67,7 +67,7 @@ catch(ex)
 {
   actual = ex + '';
 }
-reportCompare("1,54,54", actual, "sort");
+reportCompare("TypeError: setting a property that has only a getter", actual, "sort");
 
 try
 {
@@ -77,7 +77,7 @@ catch(ex)
 {
   actual = ex + '';
 }
-reportCompare("1,54,54", actual, "setter");
+reportCompare("TypeError: setting a property that has only a getter", actual, "setter");
 
 actual = a.pop();
 reportCompare(3, actual, "pop");
