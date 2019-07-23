@@ -82,13 +82,15 @@ public:
   
 
 
-
-  PRBool SetupCairoStrokeGeometry(gfxContext *aContext);
+  PRBool HasStroke(gfxContext *aContext);
   
 
 
+  void SetupCairoStrokeGeometry(gfxContext *aContext);
+  
 
-  PRBool SetupCairoStrokeHitGeometry(gfxContext *aContext);
+
+  void SetupCairoStrokeHitGeometry(gfxContext *aContext);
   
 
 
