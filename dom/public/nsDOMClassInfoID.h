@@ -458,6 +458,8 @@ enum nsDOMClassInfoID {
   eDOMClassInfo_MathMLElement_id,
 #endif
 
+  eDOMClassInfo_Worker_id,
+
   
   eDOMClassInfoIDCount
 };

@@ -147,7 +147,11 @@ public:
 
 
   JSObject* operator=(JSObject* aOther) {
-    NS_ASSERTION(mHeld, "Not rooted!");
+#ifdef DEBUG
+    if (aOther) {
+      NS_ASSERTION(mHeld, "Not rooted!");
+    }
+#endif
     return mObj = aOther;
   }
 
