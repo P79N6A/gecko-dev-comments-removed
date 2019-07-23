@@ -114,8 +114,9 @@
 static NS_DEFINE_IID(kDeviceContextCID, NS_DEVICE_CONTEXT_CID);
 
 
-static PRBool     is_mouse_in_window(QWidget* aWindow,
-                                     double aMouseX, double aMouseY);
+
+
+
 
 
 static nsresult    initialize_prefs        (void);
@@ -129,7 +130,7 @@ static NS_DEFINE_IID(kCDragServiceCID,  NS_DRAGSERVICE_CID);
 
 static const int WHEEL_DELTA = 120;
 static PRBool gGlobalsInitialized = PR_FALSE;
-static nsWindow * get_window_for_qt_widget(QWidget *widget);
+
 static bool ignoreEvent(nsEventStatus aStatus)
 {
     return aStatus == nsEventStatus_eConsumeNoDefault;
@@ -493,34 +494,36 @@ typedef void (* SetUserTimeFunc)(QWidget* aWindow, quint32 aTimestamp);
 
 
 
-static void
-SetUserTimeAndStartupIDForActivatedWindow(QWidget* aWindow)
-{
-    nsCOMPtr<nsIToolkit> toolkit;
-    NS_GetCurrentToolkit(getter_AddRefs(toolkit));
-    if (!toolkit)
-        return;
 
-    nsToolkit* QTToolkit = static_cast<nsToolkit*>
-                                          (static_cast<nsIToolkit*>(toolkit));
-    nsCAutoString desktopStartupID;
-    QTToolkit->GetDesktopStartupID(&desktopStartupID);
-    if (desktopStartupID.IsEmpty()) {
-        
-        
-        
-        
-        PRUint32 timestamp = QTToolkit->GetFocusTimestamp();
-        if (timestamp) {
-            aWindow->focusWidget ();
-            
-            QTToolkit->SetFocusTimestamp(0);
-        }
-        return;
-    }
 
-    QTToolkit->SetDesktopStartupID(EmptyCString());
-}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 NS_IMETHODIMP
 nsWindow::SetFocus(PRBool aRaise)
@@ -584,52 +587,53 @@ nsWindow::SetCursor(nsCursor aCursor)
     return NS_OK;
 }
 
-static
-PRUint8* Data32BitTo1Bit(PRUint8* aImageData,
-                         PRUint32 aImageBytesPerRow,
-                         PRUint32 aWidth, PRUint32 aHeight)
-{
-  PRUint32 outBpr = (aWidth + 7) / 8;
 
-  PRUint8* outData = new PRUint8[outBpr * aHeight];
-  if (!outData)
-      return NULL;
 
-  PRUint8 *outRow = outData,
-          *imageRow = aImageData;
 
-  for (PRUint32 curRow = 0; curRow < aHeight; curRow++) {
-      PRUint8 *irow = imageRow;
-      PRUint8 *orow = outRow;
-      PRUint8 imagePixels = 0;
-      PRUint8 offset = 0;
 
-      for (PRUint32 curCol = 0; curCol < aWidth; curCol++) {
-          PRUint8 r = *imageRow++,
-                  g = *imageRow++,
-                  b = *imageRow++;
-               imageRow++;
 
-          if ((r + b + g) < 3 * 128)
-              imagePixels |= (1 << offset);
 
-          if (offset == 7) {
-              *outRow++ = imagePixels;
-              offset = 0;
-              imagePixels = 0;
-          } else {
-              offset++;
-          }
-      }
-      if (offset != 0)
-          *outRow++ = imagePixels;
 
-      imageRow = irow + aImageBytesPerRow;
-      outRow = orow + outBpr;
-  }
 
-  return outData;
-}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -2610,51 +2614,55 @@ nsWindow::HideWindowChrome(PRBool aShouldHide)
 }
 
 
-PRBool
-is_mouse_in_window (QWidget* aWindow, double aMouseX, double aMouseY)
-{
-    qint32 x = 0;
-    qint32 y = 0;
-    qint32 w, h;
-
-    qint32 offsetX = 0;
-    qint32 offsetY = 0;
-
-    QWidget *window;
-
-    window = aWindow;
-
-    while (window) {
-        qint32 tmpX = window->pos().x();
-        qint32 tmpY = window->pos().y();
-
-        
-        
-        x = tmpX + offsetX;
-        y = tmpY + offsetY;
-        break;
-
-        offsetX += tmpX;
-        offsetY += tmpY;
-    }
-
-    w = window->size().width();
-    h = window->size().height();
-
-    if (aMouseX > x && aMouseX < x + w &&
-        aMouseY > y && aMouseY < y + h)
-        return PR_TRUE;
-
-    return PR_FALSE;
-}
 
 
-nsWindow *
-get_window_for_qt_widget(QWidget *widget)
-{
-    MozQWidget *mozWidget = static_cast<MozQWidget*>(widget);
-    return mozWidget->getReciever();
-}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -2717,61 +2725,61 @@ key_event_to_context_menu_event(nsMouseEvent &aEvent,
     aEvent.clickCount = 1;
 }
 
-static PRBool
-gdk_keyboard_get_modmap_masks(Display*  aDisplay,
-                              PRUint32* aCapsLockMask,
-                              PRUint32* aNumLockMask,
-                              PRUint32* aScrollLockMask)
-{
-    *aCapsLockMask = 0;
-    *aNumLockMask = 0;
-    *aScrollLockMask = 0;
-
-    int min_keycode = 0;
-    int max_keycode = 0;
-    XDisplayKeycodes(aDisplay, &min_keycode, &max_keycode);
-
-    int keysyms_per_keycode = 0;
-    KeySym* xkeymap = XGetKeyboardMapping(aDisplay, min_keycode,
-                                          max_keycode - min_keycode + 1,
-                                          &keysyms_per_keycode);
-    if (!xkeymap) {
-        return PR_FALSE;
-    }
-
-    XModifierKeymap* xmodmap = XGetModifierMapping(aDisplay);
-    if (!xmodmap) {
-        XFree(xkeymap);
-        return PR_FALSE;
-    }
-
-    
 
 
 
 
 
-    const unsigned int map_size = 8 * xmodmap->max_keypermod;
-    for (unsigned int i = 0; i < map_size; i++) {
-        KeyCode keycode = xmodmap->modifiermap[i];
-        if (!keycode || keycode < min_keycode || keycode > max_keycode)
-            continue;
 
-        const KeySym* syms = xkeymap + (keycode - min_keycode) * keysyms_per_keycode;
-        const unsigned int mask = 1 << (i / xmodmap->max_keypermod);
-        for (int j = 0; j < keysyms_per_keycode; j++) {
-            switch (syms[j]) {
-                case Qt::Key_CapsLock:   *aCapsLockMask |= mask;   break;
-                case Qt::Key_NumLock:    *aNumLockMask |= mask;    break;
-                case Qt::Key_ScrollLock: *aScrollLockMask |= mask; break;
-            }
-        }
-    }
 
-    XFreeModifiermap(xmodmap);
-    XFree(xkeymap);
-    return PR_TRUE;
-}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
