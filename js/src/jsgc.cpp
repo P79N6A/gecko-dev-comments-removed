@@ -90,12 +90,10 @@
 
 
 
-
-#if HAS_POSIX_MEMALIGN && MOZ_MEMORY_WINDOWS
-JS_BEGIN_EXTERN_C
-extern int
-posix_memalign(void **memptr, size_t alignment, size_t size);
-JS_END_EXTERN_C
+#ifdef MOZ_MEMORY
+extern "C" {
+#include "../../memory/jemalloc/jemalloc.h"
+}
 #endif
 
 
