@@ -54,22 +54,6 @@ protected:
   static const int kThemeScrollBarArrowsBoth = 2;
   static const int kThemeScrollBarArrowsUpperLeft = 3;
 
-typedef enum {
-  
-  
-  eColorOffset_mac_accentlightesthighlight,
-  eColorOffset_mac_accentregularhighlight,
-  eColorOffset_mac_accentface,
-  eColorOffset_mac_accentlightshadow,
-  eColorOffset_mac_accentregularshadow,
-  eColorOffset_mac_accentdarkshadow,
-  eColorOffset_mac_accentdarkestshadow
-} nsMacAccentColorOffset;
-
-  NS_IMETHOD GetMacBrushColor(const PRInt32 aBrushType, nscolor & aColor, const nscolor & aDefaultColor);
-  NS_IMETHOD GetMacTextColor(const PRInt32 aTextType, nscolor & aColor, const nscolor & aDefaultColor);
-  NS_IMETHOD GetMacAccentColor(const nsMacAccentColorOffset aAccent, nscolor & aColor, const nscolor & aDefaultColor);
-
   PRUnichar GetPasswordCharacter() {
     
     return 0x2022;

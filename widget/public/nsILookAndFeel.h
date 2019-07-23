@@ -155,15 +155,6 @@ public:
     eColor__moz_mac_menutextselect,			
     eColor__moz_mac_disabledtoolbartext,                    
 
-  	
-  	eColor__moz_mac_accentlightesthighlight,
-    eColor__moz_mac_accentregularhighlight,
-    eColor__moz_mac_accentface,
-    eColor__moz_mac_accentlightshadow,
-    eColor__moz_mac_accentregularshadow,
-    eColor__moz_mac_accentdarkshadow,
-    eColor__moz_mac_accentdarkestshadow,
-    
     
     eColor__moz_mac_alternateprimaryhighlight, 
     eColor__moz_mac_secondaryhighlight,        
