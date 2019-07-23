@@ -513,11 +513,13 @@ typedef struct JSLocalRootStack {
 
 
 
+
 #define JSTVU_SINGLE        (-1)
 #define JSTVU_TRACE         (-2)
 #define JSTVU_SPROP         (-3)
 #define JSTVU_WEAK_ROOTS    (-4)
 #define JSTVU_PARSE_CONTEXT (-5)
+#define JSTVU_SCRIPT        (-6)
 
 
 
@@ -625,6 +627,13 @@ JS_STATIC_ASSERT(sizeof(JSTempValueUnion) == sizeof(JSObject *));
     JS_BEGIN_MACRO                                                            \
         (tvr)->count = JSTVU_PARSE_CONTEXT;                                   \
         (tvr)->u.parseContext = (pc);                                         \
+        JS_PUSH_TEMP_ROOT_COMMON(cx, tvr);                                    \
+    JS_END_MACRO
+
+#define JS_PUSH_TEMP_ROOT_SCRIPT(cx,script_,tvr)                              \
+    JS_BEGIN_MACRO                                                            \
+        (tvr)->count = JSTVU_SCRIPT;                                          \
+        (tvr)->u.script = (script_);                                          \
         JS_PUSH_TEMP_ROOT_COMMON(cx, tvr);                                    \
     JS_END_MACRO
 
