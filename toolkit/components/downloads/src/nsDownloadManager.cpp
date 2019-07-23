@@ -1661,6 +1661,13 @@ nsDownloadManager::RetryDownload(PRUint32 aID)
     return NS_ERROR_FAILURE;
 
   
+  if (dl->mDownloadState == nsIDownloadManager::DOWNLOAD_FAILED && dl->IsResumable()) {
+    rv = dl->Resume();
+    if (NS_SUCCEEDED(rv))
+      return rv;
+  }
+
+  
   dl->SetStartTime(PR_Now());
   dl->SetProgressBytes(0, -1);
 
