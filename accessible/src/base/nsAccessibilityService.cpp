@@ -1526,7 +1526,7 @@ NS_IMETHODIMP nsAccessibilityService::GetAccessible(nsIDOMNode *aNode,
           }
           break;
         }
-        else if (tableFrame->GetType() == nsAccessibilityAtoms::tableCellFrame) {
+        else if (tableContent->Tag() == nsAccessibilityAtoms::table) {
           
           
           tryTagNameOrFrame = PR_FALSE;
