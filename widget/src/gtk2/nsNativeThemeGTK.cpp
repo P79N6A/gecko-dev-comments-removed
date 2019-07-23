@@ -193,12 +193,6 @@ nsNativeThemeGTK::GetGtkWidgetAndState(PRUint8 aWidgetType, nsIFrame* aFrame,
 
       
       
-      if (aWidgetType == NS_THEME_DROPDOWN_TEXTFIELD ||
-          aWidgetType == NS_THEME_SPINNER_TEXTFIELD)
-        aFrame = aFrame->GetParent();
-
-      
-      
       nsIFrame *stateFrame = aFrame;
       if (aFrame && ((aWidgetFlags && (IsCheckboxWidgetType(aWidgetType) ||
                                        IsRadioWidgetType(aWidgetType))) ||
