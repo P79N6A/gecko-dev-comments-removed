@@ -127,6 +127,9 @@ protected:
 
     AtkObject *mAtkObject;
 
+    
+    static PRBool MustPrune(nsIAccessible *aAccessible);
+
 private:
     PRUint16 CreateMaiInterfaces(void);
 };

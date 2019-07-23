@@ -162,6 +162,7 @@ static const PRUint32 atkRoleMap[] = {
     ATK_ROLE_CALENDAR,            
     ATK_ROLE_MENU,                
     ATK_ROLE_MENU_ITEM,           
+    ATK_ROLE_IMAGE,               
     kROLE_ATK_LAST_ENTRY          
 };
 

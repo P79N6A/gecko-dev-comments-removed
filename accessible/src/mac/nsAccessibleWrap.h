@@ -81,13 +81,15 @@ class nsAccessibleWrap : public nsAccessible
 
     
     
+    
     PRBool IsFlat() {
       PRUint32 role = Role(this);
       return (role == nsIAccessibleRole::ROLE_CHECKBUTTON ||
               role == nsIAccessibleRole::ROLE_PUSHBUTTON ||
               role == nsIAccessibleRole::ROLE_TOGGLE_BUTTON ||
               role == nsIAccessibleRole::ROLE_SPLITBUTTON ||
-              role == nsIAccessibleRole::ROLE_ENTRY);
+              role == nsIAccessibleRole::ROLE_ENTRY ||
+              role == nsIAccessibleRole::ROLE_IMAGE);
     }
     
     

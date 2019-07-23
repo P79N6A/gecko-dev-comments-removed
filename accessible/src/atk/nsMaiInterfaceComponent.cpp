@@ -69,7 +69,7 @@ refAccessibleAtPointCB(AtkComponent *aComponent,
                        AtkCoordType aCoordType)
 {
     nsAccessibleWrap *accWrap = GetAccessibleWrap(ATK_OBJECT(aComponent));
-    if (!accWrap)
+    if (!accWrap || nsAccessibleWrap::MustPrune(accWrap))
         return nsnull;
 
     

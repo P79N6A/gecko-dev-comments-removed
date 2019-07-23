@@ -168,7 +168,8 @@ static const char kRoleNames[][20] = {
   "parent menuitem",     
   "calendar",            
   "combobox list",       
-  "combobox listitem"    
+  "combobox listitem",   
+  "image map"            
 };
 
 class nsAccessibilityService : public nsIAccessibilityService, 
