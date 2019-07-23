@@ -2941,6 +2941,19 @@ NS_METHOD nsWindow::SetColorMap(nsColorMap *aColorMap)
 
 
 
+BOOL CALLBACK nsWindow::InvalidateForeignChildWindows(HWND aWnd, LPARAM aMsg)
+{
+  LONG proc = ::GetWindowLongW(aWnd, GWL_WNDPROC);
+  if (proc != (LONG)&nsWindow::WindowProc) {
+    
+    VERIFY(::InvalidateRect(aWnd, NULL, FALSE));    
+  }
+  return TRUE;
+}
+
+
+
+
 
 
 
@@ -2959,6 +2972,10 @@ NS_METHOD nsWindow::Scroll(PRInt32 aDx, PRInt32 aDy, nsRect *aClipRect)
 
   ::ScrollWindowEx(mWnd, aDx, aDy, NULL, (nsnull != aClipRect) ? &trect : NULL,
                    NULL, NULL, SW_INVALIDATE | SW_SCROLLCHILDREN);
+  
+  
+  
+  ::EnumChildWindows(GetWindowHandle(), nsWindow::InvalidateForeignChildWindows, NULL);
   ::UpdateWindow(mWnd);
   return NS_OK;
 }
