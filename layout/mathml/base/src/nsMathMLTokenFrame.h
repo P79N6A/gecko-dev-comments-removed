@@ -82,7 +82,7 @@ public:
   virtual nsresult
   ChildListChanged(PRInt32 aModType)
   {
-    ProcessTextData(PR_TRUE);
+    ProcessTextData();
     return nsMathMLContainerFrame::ChildListChanged(aModType);
   }
 
@@ -93,8 +93,7 @@ protected:
   virtual PRIntn GetSkipSides() const { return 0; }
 
   
-  virtual void
-  ProcessTextData(PRBool aComputeStyleChange);
+  virtual void ProcessTextData();
 
   
   

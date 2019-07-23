@@ -103,8 +103,7 @@ protected:
   float            mMaxSize;
 
   
-  virtual void
-  ProcessTextData(PRBool aComputeStyleChange);
+  virtual void ProcessTextData();
 
   
   

@@ -153,7 +153,7 @@ nsMathMLmoFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
 
 
 void
-nsMathMLmoFrame::ProcessTextData(PRBool aComputeStyleChange)
+nsMathMLmoFrame::ProcessTextData()
 {
   mFlags = 0;
 
@@ -958,7 +958,7 @@ nsMathMLmoFrame::MarkIntrinsicWidthsDirty()
   
   
 
-  ProcessTextData(PR_FALSE);
+  ProcessTextData();
 
   nsIFrame* target = this;
   nsEmbellishData embellishData;

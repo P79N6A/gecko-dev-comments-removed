@@ -111,7 +111,7 @@ nsMathMLTokenFrame::SetInitialChildList(nsIAtom*        aListName,
     return rv;
 
   SetQuotes();
-  ProcessTextData(PR_FALSE);
+  ProcessTextData();
   return rv;
 }
 
@@ -212,7 +212,7 @@ nsMathMLTokenFrame::MarkIntrinsicWidthsDirty()
 {
   
   
-  ProcessTextData(PR_TRUE);
+  ProcessTextData();
 
   nsMathMLContainerFrame::MarkIntrinsicWidthsDirty();
 }
@@ -232,14 +232,10 @@ nsMathMLTokenFrame::AttributeChanged(PRInt32         aNameSpaceID,
 }
 
 void
-nsMathMLTokenFrame::ProcessTextData(PRBool aComputeStyleChange)
+nsMathMLTokenFrame::ProcessTextData()
 {
   
   if (!SetTextStyle())
-    return;
-
-  
-  if (!aComputeStyleChange)
     return;
 
   
