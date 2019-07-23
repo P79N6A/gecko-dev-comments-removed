@@ -102,6 +102,12 @@ ContentPrefService.prototype = {
     this._observerSvc.removeObserver(this, "xpcom-shutdown");
 
     
+    if (this.__stmtSelectPref)
+      this.__stmtSelectPref.finalize();
+    if (this.__stmtSelectGlobalPref)
+      this.__stmtSelectGlobalPref.finalize();
+
+    
     
     
     
