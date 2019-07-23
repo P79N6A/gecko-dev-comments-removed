@@ -1265,19 +1265,7 @@ nsLineLayout::CanPlaceFrame(PerFrameData* pfd,
 
     
     SetFlag(LL_NEEDBACKUP, PR_TRUE);
-
-    if (!aCanRollBackBeforeFrame) {
-      
-      return PR_TRUE;
-    }
-    if (pfd->mSpan) {
-      
-      
-      
-      return PR_TRUE;
-    }
-    
-    
+    return PR_TRUE;
   }
 
 #ifdef NOISY_CAN_PLACE_FRAME

@@ -5478,28 +5478,10 @@ AddCharToMetrics(gfxTextRun* aCharTextRun, gfxTextRun* aBaseTextRun,
                  gfxTextRun::Metrics* aMetrics, PRBool aTightBoundingBox,
                  gfxContext* aContext)
 {
-  gfxRect charRect;
-  
-  gfxFloat width = aCharTextRun->GetAdvanceWidth(0, aCharTextRun->GetLength(), nsnull);
-  if (aTightBoundingBox) {
-    gfxTextRun::Metrics charMetrics =
-        aCharTextRun->MeasureText(0, aCharTextRun->GetLength(), PR_TRUE, aContext, nsnull);
-    charRect = charMetrics.mBoundingBox;
-  } else {
-    charRect = gfxRect(0, -aMetrics->mAscent, width,
-                       aMetrics->mAscent + aMetrics->mDescent);
-  }
-  if (aBaseTextRun->IsRightToLeft()) {
-    
-    
-    aMetrics->mBoundingBox.MoveBy(gfxPoint(width, 0));
-  } else {
-    
-    charRect.MoveBy(gfxPoint(width, 0));
-  }
-  aMetrics->mBoundingBox = aMetrics->mBoundingBox.Union(charRect);
+  gfxTextRun::Metrics charMetrics =
+    aCharTextRun->MeasureText(0, aCharTextRun->GetLength(), aTightBoundingBox, aContext, nsnull);
 
-  aMetrics->mAdvanceWidth += width;
+  aMetrics->CombineWith(charMetrics, aBaseTextRun->IsRightToLeft());
 }
 
 static PRBool
@@ -5818,7 +5800,8 @@ nsTextFrame::Reflow(nsPresContext*           aPresContext,
     end.SetOriginalOffset(offset + charsFit);
     
     
-    if (forceBreak >= 0 && HasSoftHyphenBefore(frag, mTextRun, offset, end)) {
+    if ((forceBreak >= 0 || forceBreakAfter) &&
+        HasSoftHyphenBefore(frag, mTextRun, offset, end)) {
       usedHyphenation = PR_TRUE;
     }
   }
@@ -5829,7 +5812,7 @@ nsTextFrame::Reflow(nsPresContext*           aPresContext,
       AddCharToMetrics(hyphenTextRun.get(),
                        mTextRun, &textMetrics, needTightBoundingBox, ctx);
     }
-    AddStateBits(TEXT_HYPHEN_BREAK);
+    AddStateBits(TEXT_HYPHEN_BREAK | TEXT_HAS_NONCOLLAPSED_CHARACTERS);
   }
 
   gfxFloat trimmableWidth = 0;
@@ -5885,7 +5868,7 @@ nsTextFrame::Reflow(nsPresContext*           aPresContext,
   
   aMetrics.width = NSToCoordCeil(PR_MAX(0, textMetrics.mAdvanceWidth));
 
-  if (transformedCharsFit == 0) {
+  if (transformedCharsFit == 0 && !usedHyphenation) {
     aMetrics.ascent = 0;
     aMetrics.height = 0;
   } else if (needTightBoundingBox) {
@@ -6061,18 +6044,6 @@ nsTextFrame::TrimTrailingWhiteSpace(nsIRenderingContext* aRC)
     }
   }
 
-  if (trimmed.GetEnd() == GetContentEnd() &&
-      HasSoftHyphenBefore(frag, mTextRun, trimmed.mStart, trimmedEndIter)) {
-    
-    
-    result.mChanged = PR_TRUE;
-    gfxTextRunCache::AutoTextRun hyphenTextRun(GetHyphenTextRun(mTextRun, ctx, this));
-    if (hyphenTextRun.get()) {
-      delta = -hyphenTextRun->GetAdvanceWidth(0, hyphenTextRun->GetLength(), nsnull);
-    }
-    AddStateBits(TEXT_HYPHEN_BREAK);
-  }
-
   if (!result.mLastCharIsJustifiable &&
       (GetStateBits() & TEXT_JUSTIFICATION_ENABLED)) {
     
@@ -6116,8 +6087,8 @@ nsTextFrame::TrimTrailingWhiteSpace(nsIRenderingContext* aRC)
   
   
   
-  NS_WARN_IF_FALSE(result.mDeltaWidth >= 0 || (GetStateBits() & TEXT_HYPHEN_BREAK),
-                   "Negative deltawidth in a non-hyphen case, something odd is happening");
+  NS_WARN_IF_FALSE(result.mDeltaWidth >= 0,
+                   "Negative deltawidth, something odd is happening");
 
 #ifdef NOISY_TRIM
   ListTag(stdout);
