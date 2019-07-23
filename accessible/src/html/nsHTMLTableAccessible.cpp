@@ -403,6 +403,8 @@ nsHTMLTableHeaderCellAccessible::GetRoleInternal(PRUint32 *aRole)
   
   
   nsIContent* parent = content->GetParent();
+  NS_ENSURE_STATE(parent);
+
   PRInt32 indexInParent = parent->IndexOf(content);
 
   for (PRInt32 idx = indexInParent - 1; idx >= 0; idx--) {
