@@ -1780,6 +1780,12 @@ nsPresContext::GetUserFontSetInternal()
   
   
   
+#ifdef DEBUG
+  PRBool userFontSetGottenBefore = mGetUserFontSetCalled;
+#endif
+  
+  
+  mGetUserFontSetCalled = PR_TRUE;
   if (mUserFontSetDirty) {
     
     
@@ -1790,7 +1796,7 @@ nsPresContext::GetUserFontSetInternal()
 #ifdef DEBUG
     {
       PRBool inReflow;
-      NS_ASSERTION(!mGetUserFontSetCalled ||
+      NS_ASSERTION(!userFontSetGottenBefore ||
                    (NS_SUCCEEDED(mShell->IsReflowLocked(&inReflow)) &&
                     !inReflow),
                    "FlushUserFontSet should have been called first");
@@ -1799,7 +1805,6 @@ nsPresContext::GetUserFontSetInternal()
     FlushUserFontSet();
   }
 
-  mGetUserFontSetCalled = PR_TRUE;
   return mUserFontSet;
 }
 
@@ -1814,6 +1819,12 @@ nsPresContext::FlushUserFontSet()
 {
   if (!mShell)
     return; 
+
+  if (!mGetUserFontSetCalled) {
+    return; 
+            
+            
+  }
 
   if (mUserFontSetDirty) {
     if (gfxPlatform::GetPlatform()->DownloadableFontsEnabled()) {
