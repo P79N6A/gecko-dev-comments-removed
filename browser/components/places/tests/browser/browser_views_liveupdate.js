@@ -50,8 +50,9 @@ function test() {
   ok(PlacesUIUtils, "PlacesUIUtils in context");
 
   
-  var menu = document.getElementById("bookmarksMenu");
-  menu.open = true;
+  var popup = document.getElementById("bookmarksMenuPopup");
+  ok(popup, "Menu popup element exists");
+  fakeOpenPopup(popup);
 
   
   var sidebar = document.getElementById("sidebar");
@@ -66,6 +67,18 @@ function test() {
 
 
 
+
+function fakeOpenPopup(aPopup) {
+  var popupEvent = document.createEvent("MouseEvent");
+  popupEvent.initMouseEvent("popupshowing", true, true, window, 0,
+                            0, 0, 0, 0, false, false, false, false,
+                            0, null);
+  aPopup.dispatchEvent(popupEvent);  
+}
+
+
+
+
 function startTest() {
   var bs = PlacesUtils.bookmarks;
   
@@ -73,12 +86,14 @@ function startTest() {
   var addedBookmarks = [];
 
   
-  ok(true, "*** Acting on menu bookmarks");
+  info("*** Acting on menu bookmarks");
   var id = bs.insertBookmark(bs.bookmarksMenuFolder,
                              PlacesUtils._uri("http://bm1.mozilla.org/"),
                              bs.DEFAULT_INDEX,
                              "bm1");
   addedBookmarks.push(id);
+  
+  bs.setItemTitle(id, "bm1_edited");
   id = bs.insertBookmark(bs.bookmarksMenuFolder,
                          PlacesUtils._uri("place:"),
                          bs.DEFAULT_INDEX,
@@ -98,12 +113,14 @@ function startTest() {
   bs.moveItem(id, bs.bookmarksMenuFolder, 0);
 
   
-  ok(true, "*** Acting on toolbar bookmarks");
+  info("*** Acting on toolbar bookmarks");
   id = bs.insertBookmark(bs.toolbarFolder,
                          PlacesUtils._uri("http://tb1.mozilla.org/"),
                          bs.DEFAULT_INDEX,
                          "tb1");
   addedBookmarks.push(id);
+  
+  bs.setItemTitle(id, "tb1_edited");
   id = bs.insertBookmark(bs.toolbarFolder,
                          PlacesUtils._uri("place:"),
                          bs.DEFAULT_INDEX,
@@ -123,12 +140,14 @@ function startTest() {
   bs.moveItem(id, bs.toolbarFolder, 0);
 
   
-  ok(true, "*** Acting on unsorted bookmarks");
+  info("*** Acting on unsorted bookmarks");
   id = bs.insertBookmark(bs.unfiledBookmarksFolder,
                          PlacesUtils._uri("http://ub1.mozilla.org/"),
                          bs.DEFAULT_INDEX,
                          "ub1");
   addedBookmarks.push(id);
+  
+  bs.setItemTitle(id, "ub1_edited");
   id = bs.insertBookmark(bs.unfiledBookmarksFolder,
                          PlacesUtils._uri("place:"),
                          bs.DEFAULT_INDEX,
@@ -166,10 +185,6 @@ function startTest() {
 
 function finishTest() {
   
-  var menu = document.getElementById("bookmarksMenu");
-  menu.open = false;
-
-  
   toggleSidebar("viewBookmarksSidebar", false);
 
   finish();
@@ -191,13 +206,11 @@ var bookmarksObserver = {
   onItemAdded: function PSB_onItemAdded(aItemId, aFolderId, aIndex,
                                         aItemType) {
     var views = getViewsForFolder(aFolderId);
-    ok(views.length > 0, "Found affected views: " + views);
+    ok(views.length > 0, "Found affected views (" + views.length + "): " + views);
 
     
     for (var i = 0; i < views.length; i++) {
-      var node = null;
-      var index = null;
-      [node, index] = searchItemInView(aItemId, views[i]);
+      var [node, index] = searchItemInView(aItemId, views[i]);
       isnot(node, null, "Found new Places node in " + views[i]);
       is(index, aIndex, "Node is at index " + index);
     }
@@ -206,7 +219,7 @@ var bookmarksObserver = {
   onItemRemoved: function PSB_onItemRemoved(aItemId, aFolder, aIndex,
                                             aItemType) {
     var views = getViewsForFolder(aFolderId);
-    ok(views.length > 0, "Found affected views: " + views);
+    ok(views.length > 0, "Found affected views (" + views.length + "): " + views);
     
     for (var i = 0; i < views.length; i++) {
       var node = null;
@@ -237,7 +250,21 @@ var bookmarksObserver = {
   onEndUpdateBatch: function PSB_onEndUpdateBatch() {},
   onBeforeItemRemoved: function PSB_onBeforeItemRemoved(aItemId) {},
   onItemVisited: function() {},
-  onItemChanged: function PSB_onItemChanged() {}
+
+  onItemChanged: function PSB_onItemChanged(aItemId, aProperty, aIsAnnotationProperty, aValue) {
+    if (aProperty !== "title")
+      return;
+
+    var views = getViewsForFolder(PlacesUtils.bookmarks.getFolderIdForItem(aItemId));
+    ok(views.length > 0, "Found affected views (" + views.length + "): " + views);
+
+    
+    for (var i = 0; i < views.length; i++) {
+      var [node, index] = searchItemInView(aItemId, views[i]);
+      isnot(node, null, "Found new Places node in " + views[i]);
+      is(node.title, aValue, "Node has correct title: " + aValue);
+    }
+  }
 };
 
 
@@ -250,8 +277,6 @@ var bookmarksObserver = {
 
 
 function searchItemInView(aItemId, aView) {
-  var node = null;
-  var index = null;
   switch (aView) {
   case "toolbar":
     return getNodeForToolbarItem(aItemId);
@@ -333,11 +358,9 @@ function getNodeForMenuItem(aItemId) {
       
       if (PlacesUtils.nodeIsFolder(child.node)) {
         var popup = child.lastChild;
-        
-        popup.showPopup(popup);
-        child.open = true;
+        fakeOpenPopup(popup);
         var foundNode = findNode(popup);
-        popup.hidePopup();
+
         child.open = false;
         if (foundNode[0] != null)
           return foundNode;
@@ -357,7 +380,6 @@ function getNodeForMenuItem(aItemId) {
 
 
 function getNodeForSidebarItem(aItemId) {
-  ok(true, "getNodeForSidebar");
   var sidebar = document.getElementById("sidebar");
   var tree = sidebar.contentDocument.getElementById("bookmarks-view");
 
@@ -426,9 +448,6 @@ function getViewsForFolder(aFolderId) {
       return ["toolbar", "sidebar"]
       break;
     case PlacesUtils.bookmarksMenuFolderId:
-      
-      if (navigator.platform.toLowerCase().indexOf("mac") != -1)
-        return ["sidebar"];
       return ["menu", "sidebar"]
       break;
     case PlacesUtils.unfiledBookmarksFolderId:
