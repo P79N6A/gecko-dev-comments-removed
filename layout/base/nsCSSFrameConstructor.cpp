@@ -5894,19 +5894,34 @@ nsCSSFrameConstructor::IsValidSibling(nsIFrame*              aSibling,
         (NS_STYLE_DISPLAY_POPUP == aDisplay) ==
         (NS_STYLE_DISPLAY_POPUP == siblingDisplay);
     }
-    switch (siblingDisplay) {
-    case NS_STYLE_DISPLAY_TABLE_COLUMN_GROUP:
-      return (NS_STYLE_DISPLAY_TABLE_COLUMN_GROUP == aDisplay);
-    case NS_STYLE_DISPLAY_TABLE_COLUMN:
-      return (NS_STYLE_DISPLAY_TABLE_COLUMN == aDisplay);
-    case NS_STYLE_DISPLAY_TABLE_CAPTION:
-      return (NS_STYLE_DISPLAY_TABLE_CAPTION == aDisplay);
-    default: 
-      return (NS_STYLE_DISPLAY_TABLE_HEADER_GROUP == aDisplay) ||
-             (NS_STYLE_DISPLAY_TABLE_ROW_GROUP    == aDisplay) ||
-             (NS_STYLE_DISPLAY_TABLE_FOOTER_GROUP == aDisplay) ||
-             (NS_STYLE_DISPLAY_TABLE_CAPTION      == aDisplay);
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    if ((siblingDisplay == NS_STYLE_DISPLAY_TABLE_CAPTION) !=
+        (aDisplay == NS_STYLE_DISPLAY_TABLE_CAPTION)) {
+      
+      return PR_FALSE;
     }
+
+    if ((siblingDisplay == NS_STYLE_DISPLAY_TABLE_COLUMN_GROUP ||
+         siblingDisplay == NS_STYLE_DISPLAY_TABLE_COLUMN) !=
+        (aDisplay == NS_STYLE_DISPLAY_TABLE_COLUMN_GROUP ||
+         aDisplay == NS_STYLE_DISPLAY_TABLE_COLUMN)) {
+      
+      
+      return PR_FALSE;
+    }
+
+    return PR_TRUE;
   }
   else if (nsGkAtoms::fieldSetFrame == parentType ||
            (nsGkAtoms::fieldSetFrame == grandparentType &&
