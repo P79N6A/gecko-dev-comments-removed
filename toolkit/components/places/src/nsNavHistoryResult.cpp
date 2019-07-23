@@ -2880,7 +2880,7 @@ nsNavHistoryQueryResultNode::OnItemVisited(PRInt64 aItemId,
   
   
   if (mLiveUpdate != QUERYUPDATE_COMPLEX_WITH_BOOKMARKS)
-    NS_NOTREACHED("history observers should not get OnItemVisited, but should get OnVisit instead");
+    NS_WARNING("history observers should not get OnItemVisited, but should get OnVisit instead");
   return NS_OK;
 }
 
