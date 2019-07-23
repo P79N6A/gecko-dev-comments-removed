@@ -85,6 +85,10 @@ function test_create_table()
       );
       stmt.finalize();
 
+      
+      for (var i = 0; i < tests.length; i++)
+        tests[i]();
+
       do_test_finished();
     }
   });
@@ -446,7 +450,6 @@ function test_double_execute()
 
 var tests =
 [
-  test_create_table,
   test_add_data,
   test_get_data,
   test_tuple_out_of_bounds,
@@ -459,11 +462,9 @@ var tests =
 
 function run_test()
 {
-  
-  
-  return;
   cleanup();
 
-  for (var i = 0; i < tests.length; i++)
-    tests[i]();
+  
+  
+  test_create_table();
 }
