@@ -93,6 +93,11 @@ public:
 
 
 
+
+
+
+
+
   static PRBool ComputeDistance(const Value& aStartValue,
                                 const Value& aEndValue,
                                 double& aDistance);
@@ -220,6 +225,7 @@ public:
     eUnit_Percent,
     eUnit_Float,
     eUnit_Color,
+    eUnit_Dasharray, 
     eUnit_Shadow  
   };
 
@@ -302,7 +308,7 @@ public:
     void FreeValue();
 
     static PRBool IsCSSValueListUnit(Unit aUnit) {
-      return aUnit == eUnit_Shadow;
+      return aUnit == eUnit_Dasharray || aUnit == eUnit_Shadow;
     }
   };
 };
