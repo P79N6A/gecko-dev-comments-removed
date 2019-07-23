@@ -37,6 +37,7 @@
 
 
 
+
  
 #include "nsDownloadManager.h"
 #include "nsIWebProgress.h"
@@ -71,6 +72,7 @@
 #include "nsIHttpChannel.h"
 #include "nsIDownloadManagerUI.h"
 #include "nsTArray.h"
+#include "nsIResumableChannel.h"
 
 #ifdef XP_WIN
 #include <shlobj.h>
@@ -89,7 +91,7 @@ static PRBool gStoppingDownloads = PR_FALSE;
 
 static const PRInt64 gUpdateInterval = 400 * PR_USEC_PER_MSEC;
 
-#define DM_SCHEMA_VERSION      3
+#define DM_SCHEMA_VERSION      4
 #define DM_DB_NAME             NS_LITERAL_STRING("downloads.sqlite")
 #define DM_DB_CORRUPT_FILENAME NS_LITERAL_STRING("downloads.sqlite.corrupt")
 
@@ -147,8 +149,64 @@ nsDownloadManager::CompleteDownload(nsDownload *aDownload)
 {
   
   aDownload->mCancelable = nsnull;
+  aDownload->mEntityID.Truncate();
+  if (aDownload->mWasResumed)
+    (void)ExecuteDesiredAction(aDownload);
 
   (void)mCurrentDownloads.RemoveObject(aDownload);
+}
+
+nsresult
+nsDownloadManager::ExecuteDesiredAction(nsDownload *aDownload)
+{
+  
+  
+  if (!aDownload->mTempFile && !aDownload->mWasResumed)
+    return NS_OK;
+
+  
+  nsHandlerInfoAction action = nsIMIMEInfo::saveToDisk;
+  nsresult rv;
+  if (aDownload->mMIMEInfo) {
+    rv = aDownload->mMIMEInfo->GetPreferredAction(&action);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
+
+  switch (action) {
+    case nsIMIMEInfo::saveToDisk:
+      
+      {
+        nsCOMPtr<nsILocalFile> target;
+        rv = aDownload->GetTargetFile(getter_AddRefs(target));
+        NS_ENSURE_SUCCESS(rv, rv);
+
+        
+        
+        
+        PRBool fileExists;
+        if (NS_SUCCEEDED(target->Exists(&fileExists)) && fileExists) {
+          rv = target->Remove(PR_FALSE);
+          NS_ENSURE_SUCCESS(rv, rv);
+        }
+
+        
+        nsAutoString fileName;
+        rv = target->GetLeafName(fileName);
+        NS_ENSURE_SUCCESS(rv, rv);
+        nsCOMPtr<nsIFile> dir;
+        rv = target->GetParent(getter_AddRefs(dir));
+        NS_ENSURE_SUCCESS(rv, rv);
+        if (dir) {
+          rv = aDownload->mTempFile->MoveTo(dir, fileName);
+          NS_ENSURE_SUCCESS(rv, rv);
+        }
+      }
+      break;
+    default:
+      break;
+  }
+
+  return NS_OK;
 }
 
 nsresult
@@ -277,6 +335,20 @@ nsDownloadManager::InitDB(PRBool *aDoImport)
     }
     
 
+  case 3: 
+    {
+      rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
+        "ALTER TABLE moz_downloads "
+        "ADD COLUMN entityID TEXT"));
+      NS_ENSURE_SUCCESS(rv, rv);
+
+      
+      schemaVersion = 4;
+      rv = mDBConn->SetSchemaVersion(schemaVersion);
+      NS_ENSURE_SUCCESS(rv, rv);
+    }
+    
+
   case DM_SCHEMA_VERSION:
     break;
 
@@ -303,7 +375,8 @@ nsDownloadManager::InitDB(PRBool *aDoImport)
     {
       nsCOMPtr<mozIStorageStatement> stmt;
       rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
-        "SELECT id, name, source, target, startTime, endTime, state, referrer "
+        "SELECT id, name, source, target, startTime, endTime, state, referrer, "
+        "entityID "
         "FROM moz_downloads"), getter_AddRefs(stmt));
       if (NS_SUCCEEDED(rv))
         break;
@@ -344,7 +417,8 @@ nsDownloadManager::CreateTable()
       "startTime INTEGER, "
       "endTime INTEGER, "
       "state INTEGER, "
-      "referrer TEXT"
+      "referrer TEXT, "
+      "entityID TEXT"
     ")"));
 }
 
@@ -631,8 +705,8 @@ nsDownloadManager::Init()
 
   rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
     "UPDATE moz_downloads "
-    "SET startTime = ?1, endTime = ?2, state = ?3, referrer = ?4 "
-    "WHERE id = ?5"), getter_AddRefs(mUpdateDownloadStatement));
+    "SET startTime = ?1, endTime = ?2, state = ?3, referrer = ?4, entityID = ?5 "
+    "WHERE id = ?6"), getter_AddRefs(mUpdateDownloadStatement));
   NS_ENSURE_SUCCESS(rv, rv);
 
   
@@ -676,7 +750,7 @@ nsDownloadManager::GetDownloadFromDB(PRUint32 aID, nsDownload **retVal)
   
   nsCOMPtr<mozIStorageStatement> stmt;
   nsresult rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
-    "SELECT id, state, startTime, source, target, name, referrer "
+    "SELECT id, state, startTime, source, target, name, referrer, entityID "
     "FROM moz_downloads "
     "WHERE id = ?1"), getter_AddRefs(stmt));
   NS_ENSURE_SUCCESS(rv, rv);
@@ -741,6 +815,9 @@ nsDownloadManager::GetDownloadFromDB(PRUint32 aID, nsDownload **retVal)
     dl->mMaxBytes = LL_MAXUINT;
     dl->mCurrBytes = 0;
   }
+
+  rv = stmt->GetUTF8String(7, dl->mEntityID);
+  NS_ENSURE_SUCCESS(rv, rv);
 
   
   NS_ADDREF(*retVal = dl);
@@ -1413,6 +1490,7 @@ nsDownload::nsDownload() : mDownloadState(nsIDownloadManager::DOWNLOAD_NOTSTARTE
                            mStartTime(0),
                            mLastUpdate(PR_Now() - (PRUint32)gUpdateInterval),
                            mPaused(PR_FALSE),
+                           mWasResumed(PR_FALSE),
                            mSpeed(0)
 {
 }
@@ -1633,6 +1711,13 @@ nsDownload::OnProgressChange64(nsIWebProgress *aWebProgress,
             mReferrer = nsnull;
         }
       }
+    }
+
+    
+    nsCOMPtr<nsIResumableChannel> resumableChannel(do_QueryInterface(aRequest));
+    if (resumableChannel) {
+      rv = resumableChannel->GetEntityID(mEntityID);
+      NS_ENSURE_SUCCESS(rv, rv);
     }
 
     
@@ -1956,15 +2041,94 @@ nsDownload::PauseResume(PRBool aPause)
   if (mPaused == aPause || !mRequest)
     return NS_OK;
 
-  if (aPause) {
-    nsresult rv = mRequest->Suspend();
+  nsHandlerInfoAction action = nsIMIMEInfo::saveToDisk;
+  nsresult rv;
+  if (mMIMEInfo) {
+    rv = mMIMEInfo->GetPreferredAction(&action);
     NS_ENSURE_SUCCESS(rv, rv);
+  }
+
+  PRBool resumable = PR_FALSE;
+  if (action == nsIMIMEInfo::saveToDisk && !mEntityID.IsEmpty())
+    resumable = PR_TRUE;
+
+  if (aPause) {
+    if (resumable) {
+      rv = mCancelable->Cancel(NS_BINDING_ABORTED);
+      NS_ENSURE_SUCCESS(rv, rv);
+    } else { 
+      
+      
+      rv = mRequest->Suspend();
+      NS_ENSURE_SUCCESS(rv, rv);
+    }
     mPaused = PR_TRUE;
     return SetState(nsIDownloadManager::DOWNLOAD_PAUSED);
   }
 
-  nsresult rv = mRequest->Resume();
-  NS_ENSURE_SUCCESS(rv, rv);
+  if (resumable) {
+    mWasResumed = PR_TRUE;
+
+    nsCOMPtr<nsIWebBrowserPersist> wbp =
+      do_CreateInstance("@mozilla.org/embedding/browser/nsWebBrowserPersist;1", &rv);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    rv = wbp->SetPersistFlags(nsIWebBrowserPersist::PERSIST_FLAGS_AUTODETECT_APPLY_CONVERSION);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    
+    nsCOMPtr<nsIChannel> channel;
+    nsCOMPtr<nsIInterfaceRequestor> ir(do_QueryInterface(wbp));
+    rv = NS_NewChannel(getter_AddRefs(channel), mSource, nsnull, nsnull, ir);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    
+    PRInt64 fileSize;
+    nsCOMPtr<nsILocalFile> targetLocalFile(mTempFile);
+    if (!targetLocalFile) {
+      rv = GetTargetFile(getter_AddRefs(targetLocalFile));
+      NS_ENSURE_SUCCESS(rv, rv);
+    }
+    
+    
+    nsCOMPtr<nsIFile> clone;
+    rv = targetLocalFile->Clone(getter_AddRefs(clone));
+    NS_ENSURE_SUCCESS(rv, rv);
+    rv = clone->GetFileSize(&fileSize);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    
+    nsCOMPtr<nsIResumableChannel> resumableChannel(do_QueryInterface(channel));
+    if (!resumableChannel)
+      return NS_ERROR_UNEXPECTED;
+    rv = resumableChannel->ResumeAt(fileSize, mEntityID);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    
+    if (mReferrer) {
+      nsCOMPtr<nsIHttpChannel> httpChannel(do_QueryInterface(channel));
+      if (httpChannel) {
+        rv = httpChannel->SetReferrer(mReferrer);
+        NS_ENSURE_SUCCESS(rv, rv);
+      }
+    }
+
+    
+    mCancelable = wbp;
+    (void)wbp->SetProgressListener(this);
+
+    
+    rv = wbp->SaveChannel(channel, targetLocalFile);
+    if (NS_FAILED(rv)) {
+      mCancelable = nsnull;
+      (void)wbp->SetProgressListener(nsnull);
+      return rv;
+    }
+  } else {
+    rv = mRequest->Resume();
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
+
   mPaused = PR_FALSE;
   return SetState(nsIDownloadManager::DOWNLOAD_DOWNLOADING);
 }
@@ -2001,7 +2165,11 @@ nsDownload::UpdateDB()
   NS_ENSURE_SUCCESS(rv, rv);
 
   
-  rv = stmt->BindInt64Parameter(4, mID);
+  rv = stmt->BindUTF8StringParameter(4, mEntityID);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  rv = stmt->BindInt64Parameter(5, mID);
   NS_ENSURE_SUCCESS(rv, rv);
 
   return stmt->Execute();

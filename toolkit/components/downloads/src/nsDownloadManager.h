@@ -37,6 +37,7 @@
 
 
 
+
  
 #ifndef downloadmanager___h___
 #define downloadmanager___h___
@@ -158,6 +159,7 @@ protected:
                                   const PRUnichar* aDontCancelButton);
 
   PRInt32  GetRetentionBehavior();
+  nsresult ExecuteDesiredAction(nsDownload *aDownload);
 
   static PRBool IsInFinalStage(DownloadState aState)
   {
@@ -227,6 +229,7 @@ protected:
 
 private:
   nsString mDisplayName;
+  nsCString mEntityID;
 
   nsCOMPtr<nsIURI> mSource;
   nsCOMPtr<nsIURI> mReferrer;
@@ -245,6 +248,7 @@ private:
   PRTime mStartTime;
   PRTime mLastUpdate;
   PRBool mPaused;
+  PRBool mWasResumed;
   double mSpeed;
 
   friend class nsDownloadManager;
