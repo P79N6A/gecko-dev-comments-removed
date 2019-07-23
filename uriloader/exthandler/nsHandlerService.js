@@ -157,24 +157,34 @@ HandlerService.prototype = {
     var handlerID = this._getPreferredHandlerID(aHandlerInfo);
     var handler = aHandlerInfo.preferredApplicationHandler;
 
-    
-    
-    
-    this._setLiteral(handlerID, NC_PRETTY_NAME, handler.name);
-    if (handler instanceof Ci.nsILocalHandlerApp) {
-      this._setLiteral(handlerID, NC_PATH, handler.executable.path);
-      this._removeValue(handlerID, NC_URI_TEMPLATE);
+    if (handler) {
+      
+      
+      
+      this._setLiteral(handlerID, NC_PRETTY_NAME, handler.name);
+      if (handler instanceof Ci.nsILocalHandlerApp) {
+        this._setLiteral(handlerID, NC_PATH, handler.executable.path);
+        this._removeValue(handlerID, NC_URI_TEMPLATE);
+      }
+      else {
+        handler.QueryInterface(Ci.nsIWebHandlerApp);
+        this._setLiteral(handlerID, NC_URI_TEMPLATE, handler.uriTemplate);
+        this._removeValue(handlerID, NC_PATH);
+      }
+
+      
+      
+      
+      this._setResource(infoID, NC_PREFERRED_APP, handlerID);
     }
     else {
-      handler.QueryInterface(Ci.nsIWebHandlerApp);
-      this._setLiteral(handlerID, NC_URI_TEMPLATE, handler.uriTemplate);
+      
+      
+      this._removeValue(handlerID, NC_PRETTY_NAME);
       this._removeValue(handlerID, NC_PATH);
+      this._removeValue(handlerID, NC_URI_TEMPLATE);
+      this._removeValue(infoID, NC_PREFERRED_APP);
     }
-
-    
-    
-    
-    this._setResource(infoID, NC_PREFERRED_APP, handlerID);
   },
 
   _storeAlwaysAsk: function HS__storeAlwaysAsk(aHandlerInfo) {

@@ -129,4 +129,27 @@ function run_test() {
 
   
   
+  var noPreferredHandlerInfo =
+    mimeSvc.getFromTypeAndExtension("nonexistent/no-preferred-handler", null);
+  handlerSvc.store(noPreferredHandlerInfo);
+  noPreferredHandlerInfo =
+    mimeSvc.getFromTypeAndExtension("nonexistent/no-preferred-handler", null);
+  do_check_eq(noPreferredHandlerInfo.preferredApplicationHandler, null);
+
+  
+  
+  var removePreferredHandlerInfo =
+    mimeSvc.getFromTypeAndExtension("nonexistent/rem-preferred-handler", null);
+  removePreferredHandlerInfo.preferredApplicationHandler = localHandler;
+  handlerSvc.store(removePreferredHandlerInfo);
+  removePreferredHandlerInfo =
+    mimeSvc.getFromTypeAndExtension("nonexistent/rem-preferred-handler", null);
+  removePreferredHandlerInfo.preferredApplicationHandler = null;
+  handlerSvc.store(removePreferredHandlerInfo);
+  removePreferredHandlerInfo =
+    mimeSvc.getFromTypeAndExtension("nonexistent/rem-preferred-handler", null);
+  do_check_eq(removePreferredHandlerInfo.preferredApplicationHandler, null);
+
+  
+  
 }
