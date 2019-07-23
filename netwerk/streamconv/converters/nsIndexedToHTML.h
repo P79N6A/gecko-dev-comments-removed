@@ -91,6 +91,7 @@ protected:
 private:
     
     PRBool mExpectAbsLoc;
+    nsString mEscapedEllipsis;
 };
 
 #endif
