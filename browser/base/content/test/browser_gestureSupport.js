@@ -42,6 +42,8 @@
 
 
 let test_utils;
+let test_commandset;
+let test_prefBranch = "browser.gesture.";
 
 function test()
 {
@@ -59,7 +61,16 @@ function test()
   test_TestEventCreation();
 
   
+  
   gGestureSupport.init(true);
+
+  
+  test_commandset = document.getElementById("mainCommandSet");
+  test_swipeGestures();
+  test_latchedGesture("pinch", "out", "in", "MozMagnifyGesture");
+  test_latchedGesture("twist", "right", "left", "MozRotateGesture");
+  test_thresholdGesture("pinch", "out", "in", "MozMagnifyGesture");
+  test_thresholdGesture("twist", "right", "left", "MozRotateGesture");
 }
 
 let test_eventCount = 0;
@@ -222,4 +233,254 @@ function test_EnsureConstantsAreDisjoint()
   ok(down ^ left, "DIRECTION_DOWN and DIRECTION_LEFT are not bitwise disjoint");
   ok(down ^ right, "DIRECTION_DOWN and DIRECTION_RIGHT are not bitwise disjoint");
   ok(left ^ right, "DIRECTION_LEFT and DIRECTION_RIGHT are not bitwise disjoint");
+}
+
+
+
+
+function test_emitLatchedEvents(eventPrefix, initialDelta, cmd)
+{
+  let cumulativeDelta = 0;
+  let isIncreasing = initialDelta > 0;
+
+  let expect = {};
+  
+  for (let dir in cmd)
+    cmd[dir].callCount = expect[dir] = 0;
+
+  let check = function(aDir, aMsg) ok(cmd[aDir].callCount == expect[aDir], aMsg);
+  let checkBoth = function(aNum, aInc, aDec) {
+    let prefix = "Step " + aNum + ": ";
+    check("inc", prefix + aInc);
+    check("dec", prefix + aDec);
+  };
+
+  
+  test_utils.sendSimpleGestureEvent(eventPrefix + "Start", 0, initialDelta, 0);
+  cumulativeDelta += initialDelta;
+  if (isIncreasing) {
+    expect.inc++;
+    checkBoth(1, "Increasing command was not triggered", "Decreasing command was triggered");
+  } else {
+    expect.dec++;
+    checkBoth(1, "Increasing command was triggered", "Decreasing command was not triggered");
+  }
+
+  
+  
+  for (let i = 0; i < 5; i++) {
+      let delta = Math.random() * (isIncreasing ? 100 : -100);
+    test_utils.sendSimpleGestureEvent(eventPrefix + "Update", 0, delta, 0);
+    cumulativeDelta += delta;
+    checkBoth(2, "Increasing command was triggered", "Decreasing command was triggered");
+  }
+
+  
+  test_utils.sendSimpleGestureEvent(eventPrefix + "Update", 0,
+				    - initialDelta, 0);
+  cumulativeDelta += - initialDelta;
+  if (isIncreasing) {
+    expect.dec++;
+    checkBoth(3, "Increasing command was triggered", "Decreasing command was not triggered");
+  } else {
+    expect.inc++;
+    checkBoth(3, "Increasing command was not triggered", "Decreasing command was triggered");
+  }
+
+  
+  
+  for (let i = 0; i < 5; i++) {
+    let delta = Math.random() * (isIncreasing ? -100 : 100);
+    test_utils.sendSimpleGestureEvent(eventPrefix + "Update", 0, delta, 0);
+    cumulativeDelta += delta;
+    checkBoth(4, "Increasing command was triggered", "Decreasing command was triggered");
+  }
+
+  
+  test_utils.sendSimpleGestureEvent(eventPrefix + "Update", 0,
+				    initialDelta, 0);
+  cumulativeDelta += initialDelta;
+  if (isIncreasing) {
+    expect.inc++;
+    checkBoth(5, "Increasing command was not triggered", "Decreasing command was triggered");
+  } else {
+    expect.dec++;
+    checkBoth(5, "Increasing command was triggered", "Decreasing command was not triggered");
+  }
+
+  
+  test_utils.sendSimpleGestureEvent(eventPrefix, 0, cumulativeDelta, 0);
+  checkBoth(6, "Increasing command was triggered", "Decreasing command was triggered");
+}
+
+function test_addCommand(prefName, id)
+{
+  let cmd = test_commandset.appendChild(document.createElement("command"));
+  cmd.setAttribute("id", id);
+  cmd.setAttribute("oncommand", "this.callCount++;");
+
+  cmd.origPrefName = prefName;
+  cmd.origPrefValue = gPrefService.getCharPref(prefName);
+  gPrefService.setCharPref(prefName, id);
+
+  return cmd;
+}
+
+function test_removeCommand(cmd)
+{
+  gPrefService.setCharPref(cmd.origPrefName, cmd.origPrefValue);
+  test_commandset.removeChild(cmd);
+}
+
+
+function test_latchedGesture(gesture, inc, dec, eventPrefix)
+{
+  let branch = test_prefBranch + gesture + ".";
+
+  
+  let oldLatchedValue = gPrefService.getBoolPref(branch + "latched");
+  gPrefService.setBoolPref(branch + "latched", true);
+
+  
+  let cmd = {
+    inc: test_addCommand(branch + inc, "test:incMotion"),
+    dec: test_addCommand(branch + dec, "test:decMotion"),
+  };
+
+  
+  test_emitLatchedEvents(eventPrefix, 500, cmd);
+  test_emitLatchedEvents(eventPrefix, -500, cmd);
+
+  
+  gPrefService.setBoolPref(branch + "latched", oldLatchedValue);
+  for (dir in cmd)
+    test_removeCommand(cmd[dir]);
+}
+
+
+function test_thresholdGesture(gesture, inc, dec, eventPrefix)
+{
+  let branch = test_prefBranch + gesture + ".";
+
+  
+  let oldLatchedValue = gPrefService.getBoolPref(branch + "latched");
+  gPrefService.setBoolPref(branch + "latched", false);
+
+  
+  let oldThresholdValue = gPrefService.getIntPref(branch + "threshold");
+  gPrefService.setIntPref(branch + "threshold", 50);
+
+  
+  let cmdInc = test_addCommand(branch + inc, "test:incMotion");
+  let cmdDec = test_addCommand(branch + dec, "test:decMotion");
+
+  
+  cmdInc.callCount = cmdDec.callCount = 0;
+  test_utils.sendSimpleGestureEvent(eventPrefix + "Start", 0, 49.5, 0);
+  ok(cmdInc.callCount == 0, "Increasing command was triggered");
+  ok(cmdDec.callCount == 0, "Decreasing command was triggered");
+
+  
+  cmdInc.callCount = cmdDec.callCount = 0;
+  test_utils.sendSimpleGestureEvent(eventPrefix + "Update", 0, 1, 0);
+  ok(cmdInc.callCount == 1, "Increasing command was not triggered");
+  ok(cmdDec.callCount == 0, "Decreasing command was triggered");
+
+  
+  
+  cmdInc.callCount = cmdDec.callCount = 0;
+  test_utils.sendSimpleGestureEvent(eventPrefix + "Update", 0, -49.5, 0);
+  ok(cmdInc.callCount == 0, "Increasing command was triggered");
+  ok(cmdDec.callCount == 0, "Decreasing command was triggered");
+
+  
+  cmdInc.callCount = cmdDec.callCount = 0;
+  test_utils.sendSimpleGestureEvent(eventPrefix + "Update", 0, -1.5, 0);
+  ok(cmdInc.callCount == 0, "Increasing command was triggered");
+  ok(cmdDec.callCount == 1, "Decreasing command was not triggered");
+
+  
+  cmdInc.callCount = cmdDec.callCount = 0;
+  test_utils.sendSimpleGestureEvent(eventPrefix, 0, -0.5, 0);
+  ok(cmdInc.callCount == 0, "Increasing command was triggered");
+  ok(cmdDec.callCount == 0, "Decreasing command was triggered");
+
+  
+  gPrefService.setBoolPref(branch + "latched", oldLatchedValue);
+  gPrefService.setIntPref(branch + "threshold", oldThresholdValue);
+  test_removeCommand(cmdInc);
+  test_removeCommand(cmdDec);
+}
+
+function test_swipeGestures()
+{
+  
+  let up = SimpleGestureEvent.DIRECTION_UP;
+  let down = SimpleGestureEvent.DIRECTION_DOWN;
+  let left = SimpleGestureEvent.DIRECTION_LEFT;
+  let right = SimpleGestureEvent.DIRECTION_RIGHT;
+
+  let branch = test_prefBranch + "swipe.";
+
+  
+  let cmdUp = test_addCommand(branch + "up", "test:swipeUp");
+  let cmdDown = test_addCommand(branch + "down", "test:swipeDown");
+  let cmdLeft = test_addCommand(branch + "left", "test:swipeLeft");
+  let cmdRight = test_addCommand(branch + "right", "test:swipeRight");
+
+  function resetCounts() {
+    cmdUp.callCount = 0;
+    cmdDown.callCount = 0;
+    cmdLeft.callCount = 0;
+    cmdRight.callCount = 0;
+  }
+
+  
+  resetCounts();
+  test_utils.sendSimpleGestureEvent("MozSwipeGesture", up, 0, 0);
+  ok(cmdUp.callCount == 1, "Step 1: Up command was not triggered");
+  ok(cmdDown.callCount == 0, "Step 1: Down command was triggered");
+  ok(cmdLeft.callCount == 0, "Step 1: Left command was triggered");
+  ok(cmdRight.callCount == 0, "Step 1: Right command was triggered");
+
+  
+  resetCounts();
+  test_utils.sendSimpleGestureEvent("MozSwipeGesture", down, 0, 0);
+  ok(cmdUp.callCount == 0, "Step 2: Up command was triggered");
+  ok(cmdDown.callCount == 1, "Step 2: Down command was not triggered");
+  ok(cmdLeft.callCount == 0, "Step 2: Left command was triggered");
+  ok(cmdRight.callCount == 0, "Step 2: Right command was triggered");
+
+  
+  resetCounts();
+  test_utils.sendSimpleGestureEvent("MozSwipeGesture", left, 0, 0);
+  ok(cmdUp.callCount == 0, "Step 3: Up command was triggered");
+  ok(cmdDown.callCount == 0, "Step 3: Down command was triggered");
+  ok(cmdLeft.callCount == 1, "Step 3: Left command was not triggered");
+  ok(cmdRight.callCount == 0, "Step 3: Right command was triggered");
+
+  
+  resetCounts();
+  test_utils.sendSimpleGestureEvent("MozSwipeGesture", right, 0, 0);
+  ok(cmdUp.callCount == 0, "Step 4: Up command was triggered");
+  ok(cmdDown.callCount == 0, "Step 4: Down command was triggered");
+  ok(cmdLeft.callCount == 0, "Step 4: Left command was triggered");
+  ok(cmdRight.callCount == 1, "Step 4: Right command was not triggered");
+
+  
+  let combos = [ up | left, up | right, down | left, down | right];
+  for (let i = 0; i < combos.length; i++) {
+    resetCounts();
+    test_utils.sendSimpleGestureEvent("MozSwipeGesture", combos[i], 0, 0);
+    ok(cmdUp.callCount == 0, "Step 5-"+i+": Up command was triggered");
+    ok(cmdDown.callCount == 0, "Step 5-"+i+": Down command was triggered");
+    ok(cmdLeft.callCount == 0, "Step 5-"+i+": Left command was triggered");
+    ok(cmdRight.callCount == 0, "Step 5-"+i+": Right command was triggered");
+  }
+
+  
+  test_removeCommand(cmdUp);
+  test_removeCommand(cmdDown);
+  test_removeCommand(cmdLeft);
+  test_removeCommand(cmdRight);
 }
