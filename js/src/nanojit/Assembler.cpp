@@ -100,8 +100,7 @@ namespace nanojit
 
 
     Assembler::Assembler(CodeAlloc& codeAlloc, Allocator& alloc, AvmCore *core, LogControl* logc)
-        : hasLoop(0)
-        , codeList(0)
+        : codeList(0)
         , alloc(alloc)
         , _codeAlloc(codeAlloc)
         , config(core->config)
@@ -596,7 +595,6 @@ namespace nanojit
         _stats.pages = 0;
         _stats.codeStart = _nIns-1;
         _stats.codeExitStart = _nExitIns-1;
-        
 #endif 
 
         _epilogue = genEpilogue();
@@ -660,7 +658,6 @@ namespace nanojit
         NInsMap patches(alloc);
         gen(prev, loopJumps, labels, patches);
         frag->loopEntry = _nIns;
-        
 
         if (!error()) {
             
@@ -1146,7 +1143,6 @@ namespace nanojit
                     }
                     else {
                         
-                        hasLoop = true;
                         handleLoopCarriedExprs(pending_lives);
                         if (!label) {
                             
@@ -1175,7 +1171,6 @@ namespace nanojit
                     }
                     else {
                         
-                        hasLoop = true;
                         handleLoopCarriedExprs(pending_lives);
                         if (!label) {
                             
@@ -1201,7 +1196,6 @@ namespace nanojit
                     }
                     else {
                         
-                        hasLoop = true;
                         NanoAssert(label->addr == 0 && label->regs.isValid());
                         
                         intersectRegisterState(label->regs);
