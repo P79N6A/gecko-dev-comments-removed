@@ -71,10 +71,9 @@
 #include "rdf.h"
 #include "nsIRDFService.h"
 #include "nsIRDFRemoteDataSource.h"
-#endif 
 #include "nsHelperAppRDF.h"
+#endif 
 #include "nsIMIMEInfo.h"
-#include "nsDirectoryServiceDefs.h"
 #include "nsIRefreshURI.h" 
 #include "nsIDocumentLoader.h" 
 #include "nsIHelperAppLauncherDialog.h"
