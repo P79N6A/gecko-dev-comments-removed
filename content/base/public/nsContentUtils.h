@@ -166,6 +166,12 @@ public:
 
 
 
+  static PRBool   IsCallerTrustedForCapability(const char* aCapability);
+
+  
+
+
+
 
 
 
