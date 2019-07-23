@@ -100,11 +100,6 @@ tab + tab {
   margin: 0 !important;
 }
 
-tab:focus > .tab-middle {
-  
-  outline: 1px dotted;
-}
-
 
 
 
