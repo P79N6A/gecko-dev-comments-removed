@@ -168,51 +168,85 @@ ATSUFontID gfxAtsuiFont::GetATSUFontID()
     return GetFontEntry()->GetFontID();
 }
 
+static void
+SetLigatureFeatures(ATSUStyle aStyle, PRBool aEnableLigatures)
+{
+    static const ATSUFontFeatureType types[] = {
+        kLigaturesType,
+        kLigaturesType,
+        kLigaturesType,
+        kLigaturesType,
+        kLigaturesType,
+        kLigaturesType,
+        kLigaturesType,
+        kLigaturesType
+    };
+    static const ATSUFontFeatureType disablingSelectors[NS_ARRAY_LENGTH(types)] = {
+        kCommonLigaturesOffSelector,
+        kRareLigaturesOffSelector,
+        kLogosOffSelector,
+        kRebusPicturesOffSelector,
+        kDiphthongLigaturesOffSelector,
+        kSquaredLigaturesOffSelector,
+        kAbbrevSquaredLigaturesOffSelector,
+        kSymbolLigaturesOffSelector
+    };
+    static const ATSUFontFeatureType enablingSelectors[NS_ARRAY_LENGTH(types)] = {
+        kCommonLigaturesOnSelector,
+        kRareLigaturesOffSelector,
+        kLogosOffSelector,
+        kRebusPicturesOffSelector,
+        kDiphthongLigaturesOffSelector,
+        kSquaredLigaturesOffSelector,
+        kAbbrevSquaredLigaturesOffSelector,
+        kSymbolLigaturesOffSelector
+    };
+    ATSUSetFontFeatures(aStyle, NS_ARRAY_LENGTH(types), types,
+                        aEnableLigatures ? enablingSelectors : disablingSelectors);
+}
+
 void
 gfxAtsuiFont::InitMetrics(ATSUFontID aFontID, ATSFontRef aFontRef)
 {
     
-
-    ATSUAttributeTag styleTags[] = {
-        kATSUFontTag,
-        kATSUSizeTag,
-        kATSUFontMatrixTag
-    };
-
-    ByteCount styleArgSizes[] = {
-        sizeof(ATSUFontID),
-        sizeof(Fixed),
-        sizeof(CGAffineTransform),
-        sizeof(Fract)
-    };
 
     gfxFloat size =
         PR_MAX(((mAdjustedSize != 0.0f) ? mAdjustedSize : GetStyle()->size), 1.0f);
 
     
 
-    
-    Fixed fSize = FloatToFixed(size);
-    ATSUFontID fid = aFontID;
-
-    
-    CGAffineTransform transform = CGAffineTransformMakeScale(1, -1);
-
-    ATSUAttributeValuePtr styleArgs[] = {
-        &fid,
-        &fSize,
-        &transform,
-    };
-
     if (mATSUStyle)
         ATSUDisposeStyle(mATSUStyle);
 
+    ATSUFontID fid = aFontID;
+    
+    Fixed fSize = FloatToFixed(size);
+    
+    CGAffineTransform transform = CGAffineTransformMakeScale(1, -1);
+
+    static const ATSUAttributeTag styleTags[] = {
+        kATSUFontTag,
+        kATSUSizeTag,
+        kATSUFontMatrixTag
+    };
+    const ATSUAttributeValuePtr styleArgs[NS_ARRAY_LENGTH(styleTags)] = {
+        &fid,
+        &fSize,
+        &transform
+    };
+    static const ByteCount styleArgSizes[NS_ARRAY_LENGTH(styleTags)] = {
+        sizeof(ATSUFontID),
+        sizeof(Fixed),
+        sizeof(CGAffineTransform)
+    };
+
     ATSUCreateStyle(&mATSUStyle);
     ATSUSetAttributes(mATSUStyle,
-                      sizeof(styleTags)/sizeof(ATSUAttributeTag),
+                      NS_ARRAY_LENGTH(styleTags),
                       styleTags,
                       styleArgSizes,
                       styleArgs);
+    SetLigatureFeatures(mATSUStyle, PR_TRUE);
 
     
 
@@ -1263,32 +1297,6 @@ GetFontPrefLangFor(PRUint8 aUnicodeRange)
     }
 }
 
-static void
-DisableOptionalLigaturesInStyle(ATSUStyle aStyle)
-{
-    static ATSUFontFeatureType selectors[] = {
-        kCommonLigaturesOffSelector,
-        kRareLigaturesOffSelector,
-        kLogosOffSelector,
-        kRebusPicturesOffSelector,
-        kDiphthongLigaturesOffSelector,
-        kSquaredLigaturesOffSelector,
-        kAbbrevSquaredLigaturesOffSelector,
-        kSymbolLigaturesOffSelector
-    };
-    static ATSUFontFeatureType types[NS_ARRAY_LENGTH(selectors)] = {
-        kLigaturesType,
-        kLigaturesType,
-        kLigaturesType,
-        kLigaturesType,
-        kLigaturesType,
-        kLigaturesType,
-        kLigaturesType,
-        kLigaturesType
-    };
-    ATSUSetFontFeatures(aStyle, NS_ARRAY_LENGTH(selectors), types, selectors);
-}
-
 
 
 
@@ -1381,7 +1389,7 @@ gfxAtsuiFontGroup::InitTextRun(gfxTextRun *aRun,
         status = ATSUCreateAndCopyStyle(mainStyle, &mainStyle);
         if (status == noErr) {
             stylesToDispose.AppendElement(mainStyle);
-            DisableOptionalLigaturesInStyle(mainStyle);
+            SetLigatureFeatures(mainStyle, PR_FALSE);
         }
     }
 
