@@ -2125,7 +2125,8 @@ JSCompiler::setFunctionKinds(JSFunctionBox *funbox, uint16& tcflags)
 
 
 
-                            if (afunbox->level + 1U == lexdepLevel) {
+                            if (afunbox->level + 1U == lexdepLevel ||
+                                (lexdepLevel == 0 && lexdep->isLet())) {
                                 afunbox->tcflags |= TCF_FUN_HEAVYWEIGHT;
                                 break;
                             }
