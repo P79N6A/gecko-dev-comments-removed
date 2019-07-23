@@ -264,7 +264,7 @@ public:
                             const gfxPoint& aTextBaselinePt,
                             nsTextPaintStyle& aTextStyle,
                             PropertyProvider& aProvider,
-                            const nscolor& aOverrideColor = 0);
+                            const nscolor* aOverrideColor = nsnull);
   
   
   
