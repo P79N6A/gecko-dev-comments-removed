@@ -67,9 +67,6 @@ nsAccessNodeWrap::~nsAccessNodeWrap()
 void nsAccessNodeWrap::InitAccessibility()
 {
   nsAccessNode::InitXPAccessibility();
-
-  
-  nsAppRootAccessible::Load();
 }
 
 void nsAccessNodeWrap::ShutdownAccessibility()
