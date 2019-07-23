@@ -5056,7 +5056,7 @@ js_Interpret(JSContext *cx)
           BEGIN_CASE(JSOP_RESUME)
             
           END_CASE(JSOP_RESUME)
-          
+
 #if JS_HAS_LVALUE_RETURN
           BEGIN_CASE(JSOP_SETCALL)
             argc = GET_ARGC(regs.pc);
@@ -5066,8 +5066,10 @@ js_Interpret(JSContext *cx)
             LOAD_INTERRUPT_HANDLER(cx);
             if (!ok)
                 goto error;
+            JS_ASSERT(regs.pc[JSOP_SETCALL_LENGTH] == JSOP_RESUME);
+            len = JSOP_SETCALL_LENGTH + JSOP_RESUME_LENGTH;
             if (!cx->rval2set) {
-                op2 = (JSOp) regs.pc[JSOP_SETCALL_LENGTH];
+                op2 = (JSOp) regs.pc[len];
                 if (op2 != JSOP_DELELEM) {
                     JS_ASSERT(!(js_CodeSpec[op2].format & JOF_DEL));
                     JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL,
@@ -5081,7 +5083,7 @@ js_Interpret(JSContext *cx)
 
 
                 *vp = JSVAL_TRUE;
-                regs.pc += JSOP_SETCALL_LENGTH + JSOP_DELELEM_LENGTH;
+                regs.pc += len + JSOP_DELELEM_LENGTH;
                 op = (JSOp) *regs.pc;
                 DO_OP();
             }
