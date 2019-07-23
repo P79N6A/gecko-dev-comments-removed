@@ -670,6 +670,8 @@ public:
 
 class THEBES_API gfxTextRun {
 public:
+    
+    void operator delete(void* aPtr);
     virtual ~gfxTextRun();
 
     typedef gfxFont::RunMetrics Metrics;
@@ -949,10 +951,8 @@ public:
 
     
     
-    
-    
-    gfxTextRun(const gfxTextRunFactory::Parameters *aParams, const void *aText,
-    		       PRUint32 aLength, gfxFontGroup *aFontGroup, PRUint32 aFlags);
+    static gfxTextRun *Create(const gfxTextRunFactory::Parameters *aParams,
+        const void *aText, PRUint32 aLength, gfxFontGroup *aFontGroup, PRUint32 aFlags);
 
     
     
@@ -1251,6 +1251,20 @@ public:
     PRUint32 mCachedWords;
 #endif
 
+protected:
+    
+    
+    void *operator new(size_t aSize, PRUint32 aLength, PRUint32 aFlags);
+
+    
+
+
+
+
+    gfxTextRun(const gfxTextRunFactory::Parameters *aParams, const void *aText,
+               PRUint32 aLength, gfxFontGroup *aFontGroup, PRUint32 aFlags,
+               PRUint32 aObjectSize);
+
 private:
     
 
@@ -1304,11 +1318,15 @@ private:
                     PRUint32 aSpacingStart, PRUint32 aSpacingEnd);
 
     
-    nsAutoArrayPtr<CompressedGlyph>                mCharacterGlyphs;
+    
+    
+    
+    CompressedGlyph*                               mCharacterGlyphs;
     nsAutoArrayPtr<nsAutoArrayPtr<DetailedGlyph> > mDetailedGlyphs; 
     
     
     nsAutoTArray<GlyphRun,1>                       mGlyphRuns;
+    
     
     
     
