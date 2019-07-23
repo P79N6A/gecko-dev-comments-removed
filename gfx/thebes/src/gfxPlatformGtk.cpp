@@ -137,6 +137,9 @@ gfxPlatformGtk::CreateOffscreenSurface(const gfxIntSize& size,
     
     
     Display* display = GDK_DISPLAY();
+    if (!display)
+        return nsnull;
+
     if (!UseGlitz()) {
         GdkPixmap* pixmap = nsnull;
         XRenderPictFormat* xrenderFormat =
