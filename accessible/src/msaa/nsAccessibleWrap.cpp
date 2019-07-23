@@ -1345,9 +1345,45 @@ nsAccessibleWrap::get_indexInParent(long *indexInParent)
 }
 
 STDMETHODIMP
-nsAccessibleWrap::get_locale(IA2Locale *locale)
+nsAccessibleWrap::get_locale(IA2Locale *aLocale)
 {
-  return E_NOTIMPL;
+  
+  
+  
+  
+
+  nsAutoString lang;
+  nsresult rv = GetLanguage(lang);
+  if (NS_FAILED(rv))
+    return E_FAIL;
+
+  
+  PRInt32 offset = lang.FindChar('-', 0);
+  if (offset == -1) {
+    if (lang.Length() == 2) {
+      aLocale->language = ::SysAllocString(lang.get());
+      return S_OK;
+    }
+  } else if (offset == 2) {
+    aLocale->language = ::SysAllocStringLen(lang.get(), 2);
+
+    
+    
+    offset = lang.FindChar('-', 3);
+    if (offset == -1) {
+      if (lang.Length() == 5) {
+        aLocale->country = ::SysAllocString(lang.get() + 3);
+        return S_OK;
+      }
+    } else if (offset == 5) {
+      aLocale->country = ::SysAllocStringLen(lang.get() + 3, 2);
+    }
+  }
+
+  
+  
+  aLocale->variant = ::SysAllocString(lang.get());
+  return S_OK;
 }
 
 STDMETHODIMP
