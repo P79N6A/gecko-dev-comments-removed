@@ -889,6 +889,9 @@ nsresult imgContainer::DoComposite(gfxIImageFrame** aFrameToUse,
       return rv;
     }
     needToBlankComposite = PR_TRUE;
+  } else if (aNextFrameIndex == 1) {
+    
+    needToBlankComposite = PR_TRUE;
   }
 
   
