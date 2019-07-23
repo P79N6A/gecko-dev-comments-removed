@@ -753,12 +753,16 @@ function buildDownloadListWithSearch(aTerms)
     
     sql += "name LIKE '%" + terms[i] + "%' ";
   }
-  sql += "ORDER BY endTime ASC";
+  sql += "AND state != ?1 " +
+         "AND state != ?2 " +
+         "ORDER BY endTime ASC";
 
   var db = gDownloadManager.DBConnection;
   var stmt = db.createStatement(sql);
 
   try {
+    stmt.bindInt32Parameter(0, Ci.nsIDownloadManager.DOWNLOAD_DOWNLOADING);
+    stmt.bindInt32Parameter(1, Ci.nsIDownloadManager.DOWNLOAD_PAUSED);
     buildDownloadList(stmt, gDownloadsOtherTitle);
   } finally {
     stmt.reset();
@@ -773,7 +777,7 @@ function performSearch() {
 
 function getLocalFileFromNativePathOrUrl(aPathOrUrl)
 {
-  if (aPathOrUrl.substring(0,7) == "file://") {
+  if (aPathOrUrl.substring(0,7) == "file:
 
     
     let ioSvc = Cc["@mozilla.org/network/io-service;1"].
