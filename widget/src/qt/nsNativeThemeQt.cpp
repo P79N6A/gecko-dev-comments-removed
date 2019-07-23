@@ -44,9 +44,14 @@
 #include <QRect>
 #include <QPainter>
 #include <QStyleOption>
- #include <QStyleOptionFrameV2>
+#include <QStyleOptionFrameV2>
+#include <QStyleOptionButton>
+#include <QFlags>
 
+#include "nsCoord.h"
 #include "nsNativeThemeQt.h"
+#include "nsIDeviceContext.h"
+
 #include "nsRect.h"
 #include "nsSize.h"
 #include "nsTransform2D.h"
@@ -55,6 +60,7 @@
 #include "nsIServiceManager.h"
 #include "nsIEventStateManager.h"
 #include <malloc.h>
+
 
 #include "gfxASurface.h"
 #include "gfxContext.h"
@@ -75,14 +81,19 @@ nsNativeThemeQt::~nsNativeThemeQt()
 
 NS_IMPL_ISUPPORTS1(nsNativeThemeQt, nsITheme)
 
-static QRect qRect(const nsRect &aRect, const nsTransform2D *aTrans)
+static QRect qRectInPixels(const nsRect &aRect,
+    const nsTransform2D *aTrans, const PRInt32 p2a)
 {
     int x = aRect.x;
     int y = aRect.y;
     int w = aRect.width;
     int h = aRect.height;
     aTrans->TransformCoord(&x,&y,&w,&h);
-    return QRect(x, y, w, h);
+    return QRect(
+        NSAppUnitsToIntPixels(x, p2a),
+        NSAppUnitsToIntPixels(y, p2a),
+        NSAppUnitsToIntPixels(w, p2a),
+        NSAppUnitsToIntPixels(h, p2a));
 }
 
 NS_IMETHODIMP
@@ -92,10 +103,10 @@ nsNativeThemeQt::DrawWidgetBackground(nsIRenderingContext* aContext,
                                       const nsRect& aRect,
                                       const nsRect& aClipRect)
 {
-
+    qDebug("%s : %d", __PRETTY_FUNCTION__, IsDisabled(aFrame));
 
     gfxContext* context = aContext->ThebesContext();
-    nsRefPtr<gfxASurface> surface =  context->CurrentSurface();
+    nsRefPtr<gfxASurface> surface = context->CurrentSurface();
     gfxASurface* raw = surface;
     gfxQPainterSurface* qsurface = (gfxQPainterSurface*)raw;
     QPainter* qpainter = qsurface->GetQPainter();
@@ -104,15 +115,18 @@ nsNativeThemeQt::DrawWidgetBackground(nsIRenderingContext* aContext,
     if (!qpainter)
         return NS_OK;
 
+    nsCOMPtr<nsIDeviceContext> dctx = nsnull;
+    aContext->GetDeviceContext(*getter_AddRefs(dctx));
+    PRInt32 p2a = dctx->AppUnitsPerDevPixel();
+
     QStyle* style = qApp->style();
-    const QPalette::ColorGroup cg = qApp->palette().currentColorGroup();
+
 
     nsTransform2D* curTrans;
     aContext->GetCurrentTransform(curTrans);
 
-    QRect r = qRect(aRect, curTrans);
-    QRect cr = qRect(aClipRect, curTrans);
-
+    QRect r = qRectInPixels(aRect, curTrans, p2a);
+    QRect cr = qRectInPixels(aClipRect, curTrans, p2a);
 
     qpainter->save();
     qpainter->translate(r.x(), r.y());
@@ -122,9 +136,13 @@ nsNativeThemeQt::DrawWidgetBackground(nsIRenderingContext* aContext,
 
 
 
+
+
+
+
     QStyle::PrimitiveElement pe = QStyle::PE_CustomBase;
 
-
+    QStyle::ControlElement ce = QStyle::CE_CustomBase;
 
     QStyle::State flags = IsDisabled(aFrame) ?
                             QStyle::State_None :
@@ -133,38 +151,72 @@ nsNativeThemeQt::DrawWidgetBackground(nsIRenderingContext* aContext,
     PRInt32 eventState = GetContentState(aFrame, aWidgetType);
 
 
-    if (eventState & NS_EVENT_STATE_HOVER)
+    if (eventState & NS_EVENT_STATE_HOVER) {
+        qDebug("NS_EVENT_STATE_HOVER");
         flags |= QStyle::State_MouseOver;
-    if (eventState & NS_EVENT_STATE_FOCUS)
+    }
+    if (eventState & NS_EVENT_STATE_FOCUS) {
+        qDebug("NS_EVENT_STATE_FOCUS");
         flags |= QStyle::State_HasFocus;
-    if (eventState & NS_EVENT_STATE_ACTIVE)
+    }
+    if (eventState & NS_EVENT_STATE_ACTIVE) {
+        qDebug("NS_EVENT_STATE_ACTIVE");
         flags |= QStyle::State_DownArrow;
+    }
 
     switch (aWidgetType) {
     case NS_THEME_RADIO:
+    case NS_THEME_RADIO_SMALL: {
+        qDebug("NS_THEME_RADIO");
 
+        flags |= IsChecked(aFrame) ? QStyle::State_On : QStyle::State_Off;
+        ce = QStyle::CE_RadioButton;
 
+        QStyleOptionButton option;
+        option.direction = QApplication::layoutDirection();
+        option.rect = r;
+        option.type = QStyleOption::SO_Button;
+        option.state = flags;
+        option.features = QStyleOptionButton::None;
+
+        style->drawControl(ce, &option, qpainter, NULL);
         break;
-    case NS_THEME_CHECKBOX:
+    }
+    case NS_THEME_CHECKBOX: {
+        qDebug("NS_THEME_CHECKBOX");
 
+        flags |= (IsChecked(aFrame) ? QStyle::State_On : QStyle::State_Off);
+        pe = QStyle::PE_IndicatorCheckBox;
 
+        QStyleOptionButton option;
+        option.direction = QApplication::layoutDirection();
+        option.rect = r;
+        option.type = QStyleOption::SO_Button;
+        option.state = flags;
+        option.features = QStyleOptionButton::None;
+
+        style->drawPrimitive(pe, &option, qpainter, NULL);
         break;
+    }
     case NS_THEME_SCROLLBAR:
     case NS_THEME_SCROLLBAR_TRACK_HORIZONTAL:
     case NS_THEME_SCROLLBAR_TRACK_VERTICAL:
-
+        qDebug("NS_THEME_SCROLLBAR 1");
+        qpainter->fillRect(r, qApp->palette().brush(QPalette::Active, QPalette::Background));
         break;
     case NS_THEME_SCROLLBAR_BUTTON_LEFT:
 
         
     case NS_THEME_SCROLLBAR_BUTTON_UP:
 
+        qDebug("NS_THEME_SCROLLBAR_BUTTON 1");
         break;
     case NS_THEME_SCROLLBAR_BUTTON_RIGHT:
 
         
     case NS_THEME_SCROLLBAR_BUTTON_DOWN:
 
+        qDebug("NS_THEME_SCROLLBAR_BUTTON 2");
         break;
     case NS_THEME_SCROLLBAR_GRIPPER_HORIZONTAL:
     case NS_THEME_SCROLLBAR_THUMB_HORIZONTAL:
@@ -172,30 +224,47 @@ nsNativeThemeQt::DrawWidgetBackground(nsIRenderingContext* aContext,
         
     case NS_THEME_SCROLLBAR_GRIPPER_VERTICAL:
     case NS_THEME_SCROLLBAR_THUMB_VERTICAL:
+        qDebug("NS_THEME_SCROLLBAR 2");
 
         break;
     case NS_THEME_BUTTON_BEVEL:
+        qDebug("NS_THEME_BUTTON_BEVEL");
 
 
         break;
-    case NS_THEME_BUTTON:
+    case NS_THEME_BUTTON: {
+        qDebug("NS_THEME_BUTTON %d", IsDefaultButton(aFrame));
 
+        ce = QStyle::CE_PushButton;
+        flags |= QStyle::State_Raised;
 
+        QStyleOptionButton option;
+        option.direction = QApplication::layoutDirection();
+        option.rect = r;
+        option.type = QStyleOption::SO_Button;
+        option.state = flags;
+        option.features = QStyleOptionButton::None;
+        
+        style->drawControl(ce, &option, qpainter, NULL);
         break;
+    }
     case NS_THEME_DROPDOWN:
+        qDebug("NS_THEME_DROPDOWN");
 
         break;
     case NS_THEME_DROPDOWN_BUTTON:
+        qDebug("NS_THEME_DROPDOWN_BUTTON");
 
 
 
         break;
     case NS_THEME_DROPDOWN_TEXT:
     case NS_THEME_DROPDOWN_TEXTFIELD:
+        qDebug("NS_THEME_DROPDOWN_TEXT");
         break;
     case NS_THEME_TEXTFIELD:
     case NS_THEME_LISTBOX: {
-        qDebug("NS_THEME_TEXTFIELD || NS_THEME_LISTBOX");
+        qDebug("NS_THEME_TEXTFIELD");
         
         pe = QStyle::PE_PanelLineEdit;
 
@@ -204,19 +273,16 @@ nsNativeThemeQt::DrawWidgetBackground(nsIRenderingContext* aContext,
         option.rect = r;
         option.type = QStyleOption::SO_Frame;
         option.state = flags;
-        option.lineWidth = 10;
-        option.midLineWidth = 10;
+        option.lineWidth = 1;
+        option.midLineWidth = 1;
         option.features = QStyleOptionFrameV2::Flat;
+
         style->drawPrimitive(pe, &option, qpainter, NULL);
         break;
     }
     default:
         break;
     }
-
-
-
-
 
     qpainter->restore();
     return NS_OK;
@@ -232,12 +298,12 @@ nsNativeThemeQt::GetWidgetBorder(nsIDeviceContext* aContext,
 
     (*aResult).top = (*aResult).bottom = (*aResult).left = (*aResult).right = 0;
 
-    switch(aWidgetType) {
-    case NS_THEME_TEXTFIELD:
-    case NS_THEME_LISTBOX:
-        (*aResult).top = (*aResult).bottom = (*aResult).left = (*aResult).right =
-                         frameWidth;
-    }
+
+
+
+
+
+
 
     return NS_OK;
 }
@@ -250,12 +316,11 @@ nsNativeThemeQt::GetWidgetPadding(nsIDeviceContext* ,
 
 
     
-    if (aWidgetType == NS_THEME_BUTTON_FOCUS ||
-        aWidgetType == NS_THEME_TOOLBAR_BUTTON ||
-        aWidgetType == NS_THEME_TOOLBAR_DUAL_BUTTON) {
-        aResult->SizeTo(0, 0, 0, 0);
-        return PR_TRUE;
-    }
+
+
+
+
+
 
     return PR_FALSE;
 }
@@ -279,6 +344,7 @@ nsNativeThemeQt::GetMinimumWidgetSize(nsIRenderingContext* aContext, nsIFrame* a
                                ? QStyle::SE_CheckBoxIndicator
                                : QStyle::SE_RadioButtonIndicator,
                                0);
+
         (*aResult).width = rect.width();
         (*aResult).height = rect.height();
         break;
@@ -351,27 +417,27 @@ nsNativeThemeQt::ThemeSupportsWidget(nsPresContext* aPresContext,
 
 
     switch (aWidgetType) {
-    case NS_THEME_SCROLLBAR:
-    case NS_THEME_SCROLLBAR_BUTTON_UP:
-    case NS_THEME_SCROLLBAR_BUTTON_DOWN:
-    case NS_THEME_SCROLLBAR_BUTTON_LEFT:
-    case NS_THEME_SCROLLBAR_BUTTON_RIGHT:
-    case NS_THEME_SCROLLBAR_THUMB_HORIZONTAL:
-    case NS_THEME_SCROLLBAR_THUMB_VERTICAL:
-    case NS_THEME_SCROLLBAR_GRIPPER_HORIZONTAL:
-    case NS_THEME_SCROLLBAR_GRIPPER_VERTICAL:
-    case NS_THEME_SCROLLBAR_TRACK_HORIZONTAL:
-    case NS_THEME_SCROLLBAR_TRACK_VERTICAL:
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     case NS_THEME_RADIO:
     case NS_THEME_CHECKBOX:
     case NS_THEME_BUTTON_BEVEL:
     case NS_THEME_BUTTON:
-    case NS_THEME_DROPDOWN:
-    case NS_THEME_DROPDOWN_BUTTON:
-    case NS_THEME_DROPDOWN_TEXT:
-    case NS_THEME_DROPDOWN_TEXTFIELD:
+    
+    
+    
+    
     case NS_THEME_TEXTFIELD:
-    case NS_THEME_LISTBOX:
+    
 
         return PR_TRUE;
     default:
@@ -384,13 +450,16 @@ nsNativeThemeQt::ThemeSupportsWidget(nsPresContext* aPresContext,
 PRBool
 nsNativeThemeQt::WidgetIsContainer(PRUint8 aWidgetType)
 {
-    
-    if (aWidgetType == NS_THEME_DROPDOWN_BUTTON ||
-        aWidgetType == NS_THEME_RADIO ||
-        aWidgetType == NS_THEME_CHECKBOX) {
 
-        return PR_FALSE;
-    }
+    
+
+
+
+
+
+
+
+
 
     return PR_TRUE;
 }
@@ -398,12 +467,15 @@ nsNativeThemeQt::WidgetIsContainer(PRUint8 aWidgetType)
 PRBool
 nsNativeThemeQt::ThemeDrawsFocusForWidget(nsPresContext* aPresContext, nsIFrame* aFrame, PRUint8 aWidgetType)
 {
-    if (aWidgetType == NS_THEME_DROPDOWN ||
-        aWidgetType == NS_THEME_BUTTON || 
-        aWidgetType == NS_THEME_TREEVIEW_HEADER_CELL) { 
 
-        return PR_TRUE;
-    }
+
+
+
+
+
+
+
+
 
     return PR_FALSE;
 }
