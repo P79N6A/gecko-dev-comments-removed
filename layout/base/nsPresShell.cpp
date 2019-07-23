@@ -631,13 +631,19 @@ struct nsCallbackEventRequest
 };
 
 
+#define ASSERT_REFLOW_SCHEDULED_STATE()                                       \
+  NS_ASSERTION(mReflowScheduled ==                                            \
+                 GetPresContext()->RefreshDriver()->                          \
+                   IsRefreshObserver(this, Flush_Layout), "Unexpected state")
+
 class nsPresShellEventCB;
 class nsAutoCauseReflowNotifier;
 
 class PresShell : public nsIPresShell, public nsIViewObserver,
                   public nsStubDocumentObserver,
                   public nsISelectionController, public nsIObserver,
-                  public nsSupportsWeakReference
+                  public nsSupportsWeakReference,
+                  public nsARefreshObserver
 {
 public:
   PresShell();
@@ -876,6 +882,9 @@ public:
 
   NS_DECL_NSIOBSERVER
 
+  
+  virtual void WillRefresh(mozilla::TimeStamp aTime);
+
 #ifdef MOZ_REFLOW_PERF
   NS_IMETHOD DumpReflows();
   NS_IMETHOD CountReflows(const char * aName, nsIFrame * aFrame);
@@ -928,13 +937,14 @@ protected:
   
   
   PRBool   ProcessReflowCommands(PRBool aInterruptible);
-  void     ClearReflowEventStatus();
   
   
   
-  void     PostReflowEvent();
+  void     MaybeScheduleReflow();
   
-  void     DoPostReflowEvent();
+  
+  
+  void     ScheduleReflow();
 
   
   PRBool DoReflow(nsIFrame* aFrame, PRBool aInterruptible);
@@ -949,20 +959,6 @@ protected:
                                PRIntn      aHPercent);
 
   friend class nsPresShellEventCB;
-
-  class ReflowEvent;
-  friend class ReflowEvent;
-
-  class ReflowEvent : public nsRunnable {
-  public:
-    NS_DECL_NSIRUNNABLE
-    ReflowEvent(PresShell *aPresShell) : mPresShell(aPresShell) {
-      NS_ASSERTION(aPresShell, "Null parameters!");
-    }
-    void Revoke() { mPresShell = nsnull; }
-  private:  
-    PresShell *mPresShell;
-  };
 
   nsIScrollableFrame* GetFrameToScroll(nsLayoutUtils::Direction aDirection);
 
@@ -1075,8 +1071,6 @@ protected:
   StackArena                    mStackArena;
   nsCOMPtr<nsIDragService>      mDragService;
   
-  nsRevocableEventPtr<ReflowEvent> mReflowEvent;
-
 #ifdef DEBUG
   
   
@@ -1200,6 +1194,9 @@ protected:
                                           
   PRPackedBool      mShouldUnsuppressPainting;  
                                                 
+  PRPackedBool      mReflowScheduled; 
+                                      
+                                      
   nsCOMPtr<nsITimer> mPaintSuppressionTimer; 
                                              
                                              
@@ -1216,7 +1213,7 @@ protected:
   
   nsCOMPtr<nsITimer> mReflowContinueTimer;
   static void sReflowContinueCallback(nsITimer* aTimer, void* aPresShell);
-  PRBool PostReflowEventOffTimer();
+  PRBool ScheduleReflowOffTimer();
   
 #ifdef MOZ_REFLOW_PERF
   ReflowCountMgr * mReflowCountMgr;
@@ -1823,8 +1820,7 @@ PresShell::Destroy()
   
   
   
-  
-  mReflowEvent.Revoke();
+  GetPresContext()->RefreshDriver()->RemoveRefreshObserver(this, Flush_Layout);
   mResizeEvent.Revoke();
   if (mAsyncResizeTimerIsActive) {
     mAsyncResizeEventTimer->Cancel();
@@ -2569,7 +2565,7 @@ PresShell::InitialReflow(nscoord aWidth, nscoord aHeight)
 
   NS_ASSERTION(mDirtyRoots.Contains(rootFrame),
                "Should be in mDirtyRoots now");
-  NS_ASSERTION(mReflowEvent.IsPending(), "Why no reflow event pending?");
+  NS_ASSERTION(mReflowScheduled, "Why no reflow scheduled?");
 
   
   
@@ -3383,7 +3379,7 @@ PresShell::FrameNeedsReflow(nsIFrame *aFrame, IntrinsicDirty aIntrinsicDirty,
     }
   } while (subtrees.Length() != 0);
 
-  PostReflowEvent();
+  MaybeScheduleReflow();
 
   return NS_OK;
 }
@@ -3446,6 +3442,13 @@ NS_IMETHODIMP
 PresShell::CancelAllPendingReflows()
 {
   mDirtyRoots.Clear();
+
+  if (mReflowScheduled) {
+    GetPresContext()->RefreshDriver()->RemoveRefreshObserver(this, Flush_Layout);
+    mReflowScheduled = PR_FALSE;
+  }
+
+  ASSERT_REFLOW_SCHEDULED_STATE();
 
   return NS_OK;
 }
@@ -7066,77 +7069,50 @@ PresShell::Thaw()
   UnsuppressPainting();
 }
 
-
-
-
-
-
-
-NS_IMETHODIMP
-PresShell::ReflowEvent::Run() {    
+void
+PresShell::WillRefresh(mozilla::TimeStamp aTime)
+{
   
   
-  nsRefPtr<PresShell> ps = mPresShell;
-  if (ps) {
-#ifdef DEBUG
-    if (VERIFY_REFLOW_NOISY_RC & gVerifyReflowFlags) {
-       printf("\n*** Handling reflow event: PresShell=%p, event=%p\n", (void*)ps, (void*)this);
-    }
-#endif
-    
-    ps->ClearReflowEventStatus();
-    
-    
-    nsCOMPtr<nsIViewManager> viewManager = ps->GetViewManager();
+  GetPresContext()->RefreshDriver()->RemoveRefreshObserver(this, Flush_Layout);
+  mReflowScheduled = PR_FALSE;
+  
+  
+  mSuppressInterruptibleReflows = PR_FALSE;
 
-    ps->mSuppressInterruptibleReflows = PR_FALSE;
-
-#ifdef NOISY_INTERRUPTIBLE_REFLOW
-    printf("*** Entering reflow event (time=%lld)\n", PR_Now());
-#endif 
-
-    ps->FlushPendingNotifications(Flush_InterruptibleLayout);
-
-#ifdef NOISY_INTERRUPTIBLE_REFLOW
-    printf("*** Returning from reflow event (time=%lld)\n", PR_Now());
-#endif 
-
-    
-    ps = nsnull;
-    viewManager = nsnull;
-  }
-  return NS_OK;
+  ASSERT_REFLOW_SCHEDULED_STATE();
 }
 
 
 
+
+
 void
-PresShell::PostReflowEvent()
+PresShell::MaybeScheduleReflow()
 {
-  if (mReflowEvent.IsPending() || mIsDestroying || mIsReflowing ||
+  ASSERT_REFLOW_SCHEDULED_STATE();
+  if (mReflowScheduled || mIsDestroying || mIsReflowing ||
       mDirtyRoots.Length() == 0)
     return;
 
-  if (!mPresContext->HasPendingInterrupt() || !PostReflowEventOffTimer()) {
-    DoPostReflowEvent();
+  if (!mPresContext->HasPendingInterrupt() || !ScheduleReflowOffTimer()) {
+    ScheduleReflow();
   }
+
+  ASSERT_REFLOW_SCHEDULED_STATE();
 }
 
 void
-PresShell::DoPostReflowEvent()
+PresShell::ScheduleReflow()
 {
-  nsRefPtr<ReflowEvent> ev = new ReflowEvent(this);
-  if (NS_FAILED(NS_DispatchToCurrentThread(ev))) {
-    NS_WARNING("failed to dispatch reflow event");
-  } else {
-    mReflowEvent = ev;
-#ifdef DEBUG
-    if (VERIFY_REFLOW_NOISY_RC & gVerifyReflowFlags) {
-      printf("\n*** PresShell::DoPostReflowEvent(), this=%p, event=%p\n",
-             (void*)this, (void*)ev);
-    }
-#endif    
+  NS_PRECONDITION(!mReflowScheduled, "Why are we trying to schedule a reflow?");
+  ASSERT_REFLOW_SCHEDULED_STATE();
+
+  if (GetPresContext()->RefreshDriver()->AddRefreshObserver(this, Flush_Layout)) {
+    mReflowScheduled = PR_TRUE;
   }
+
+  ASSERT_REFLOW_SCHEDULED_STATE();
 }
 
 nsresult
@@ -7205,13 +7181,15 @@ PresShell::sReflowContinueCallback(nsITimer* aTimer, void* aPresShell)
 
   NS_PRECONDITION(aTimer == self->mReflowContinueTimer, "Unexpected timer");
   self->mReflowContinueTimer = nsnull;
-  self->DoPostReflowEvent();
+  self->ScheduleReflow();
 }
 
 PRBool
-PresShell::PostReflowEventOffTimer()
+PresShell::ScheduleReflowOffTimer()
 {
-  NS_PRECONDITION(!mReflowEvent.IsPending(), "Shouldn't get here");
+  NS_PRECONDITION(!mReflowScheduled, "Shouldn't get here");
+  ASSERT_REFLOW_SCHEDULED_STATE();
+
   if (!mReflowContinueTimer) {
     mReflowContinueTimer = do_CreateInstance("@mozilla.org/timer;1");
     if (!mReflowContinueTimer ||
@@ -7344,7 +7322,7 @@ PresShell::DoReflow(nsIFrame* target, PRBool aInterruptible)
     
     
     mSuppressInterruptibleReflows = PR_TRUE;
-    PostReflowEvent();
+    MaybeScheduleReflow();
   }
 
   nsRootPresContext* rootPC = mPresContext->GetRootPresContext();
@@ -7449,7 +7427,7 @@ PresShell::ProcessReflowCommands(PRBool aInterruptible)
       
       
       if (mDirtyRoots.Length())
-        PostReflowEvent();
+        MaybeScheduleReflow();
     }
   }
 
@@ -7464,12 +7442,6 @@ PresShell::ProcessReflowCommands(PRBool aInterruptible)
   }
 
   return !interrupted;
-}
-
-void
-PresShell::ClearReflowEventStatus()
-{
-  mReflowEvent.Forget();
 }
 
 #ifdef MOZ_XUL

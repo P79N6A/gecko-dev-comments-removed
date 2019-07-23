@@ -218,11 +218,10 @@ nsRefreshDriver::Notify(nsITimer * )
       
       
       
-      
-      
-      
-      
       presShell->FlushPendingNotifications(Flush_Style);
+    } else if  (i == 1) {
+      
+      presShell->FlushPendingNotifications(Flush_InterruptibleLayout);
     }
   }
 
@@ -257,3 +256,13 @@ nsRefreshDriver::DoRefresh()
     Notify(nsnull);
   }
 }
+
+#ifdef DEBUG
+PRBool
+nsRefreshDriver::IsRefreshObserver(nsARefreshObserver *aObserver,
+                                   mozFlushType aFlushType)
+{
+  ObserverArray& array = ArrayFor(aFlushType);
+  return array.Contains(aObserver);
+}
+#endif

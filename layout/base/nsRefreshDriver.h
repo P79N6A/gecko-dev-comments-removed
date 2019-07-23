@@ -133,6 +133,14 @@ public:
 
   void Thaw();
 
+#ifdef DEBUG
+  
+
+
+  PRBool IsRefreshObserver(nsARefreshObserver *aObserver,
+			   mozFlushType aFlushType);
+#endif
+
 private:
   typedef nsTObserverArray<nsARefreshObserver*> ObserverArray;
 
