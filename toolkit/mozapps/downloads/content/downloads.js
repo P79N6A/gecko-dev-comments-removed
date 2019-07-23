@@ -64,7 +64,7 @@ let gDownloadManager = Cc["@mozilla.org/download-manager;1"].getService(nsIDM);
 let gDownloadListener = null;
 let gDownloadsView = null;
 let gSearchBox = null;
-let gSearchTerms = "";
+let gSearchTerms = [];
 let gBuilder = 0;
 
 
@@ -72,6 +72,13 @@ let gBuilder = 0;
 
 const gListBuildDelay = 300;
 const gListBuildChunk = 3;
+
+
+const gSearchAttributes = [
+  "target",
+  "status",
+  "dateTime",
+];
 
 
 
@@ -98,19 +105,10 @@ let gStr = {
 };
 
 
-gDownloadManager.DBConnection.createFunction("getDisplayHost", 1, {
-  QueryInterface: XPCOMUtils.generateQI([Ci.mozIStorageFunction]),
-  onFunctionCall: function(aArgs)
-    DownloadUtils.getURIHost(aArgs.getUTF8String(0))[0]
-});
-
-
 let gStmt = gDownloadManager.DBConnection.createStatement(
   "SELECT id, target, name, source, state, startTime, endTime, referrer, " +
-         "currBytes, maxBytes, state IN (?1, ?2, ?3, ?4, ?5) isActive, " +
-         "getDisplayHost(IFNULL(referrer, source)) display " +
+         "currBytes, maxBytes, state IN (?1, ?2, ?3, ?4, ?5) isActive " +
   "FROM moz_downloads " +
-  "WHERE isActive OR name LIKE ?6 ESCAPE '/' OR display LIKE ?6 ESCAPE '/' " +
   "ORDER BY isActive DESC, endTime DESC, startTime DESC");
 
 
@@ -139,8 +137,7 @@ function downloadCompleted(aDownload)
     dl.setAttribute("maxBytes", aDownload.size);
 
     
-    
-    if (gSearchTerms.length == 0) {
+    if (downloadMatchesSearch(dl)) {
       
       let next = dl.nextSibling;
       while (next && next.inProgress)
@@ -396,7 +393,7 @@ function Startup()
       gStr[name] = typeof value == "string" ? getStr(value) : value.map(getStr);
   }
 
-  buildDownloadList();
+  buildDownloadList(true);
 
   
   
@@ -437,8 +434,6 @@ function Shutdown()
   clearTimeout(gBuilder);
   gStmt.reset();
   gStmt.finalize();
-
-  gDownloadManager.DBConnection.removeFunction("getDisplayHost");
 }
 
 let gDownloadObserver = {
@@ -448,7 +443,7 @@ let gDownloadObserver = {
         
         if (!aSubject) {
           
-          buildDownloadList();
+          buildDownloadList(true);
           break;
         }
 
@@ -1013,8 +1008,22 @@ function getReferrerOrSource(aDownload)
 
 
 
-function buildDownloadList()
+
+
+
+function buildDownloadList(aForceBuild)
 {
+  
+  let prevSearch = gSearchTerms ? gSearchTerms.join(" ") : null;
+
+  
+  gSearchTerms = gSearchBox.value.replace(/^\s+|\s+$/g, "").
+                 toLowerCase().split(/\s+/);
+
+  
+  if (!aForceBuild && gSearchTerms.join(" ") == prevSearch)
+    return;
+
   
   clearTimeout(gBuilder);
   gStmt.reset();
@@ -1025,17 +1034,12 @@ function buildDownloadList()
     gDownloadsView = empty;
   }
 
-  gSearchTerms = gSearchBox.value.replace(/^\s+|\s+$/g, "");
-
-  let like = "%" + gStmt.escapeStringForLIKE(gSearchTerms, "/") + "%";
-
   try {
     gStmt.bindInt32Parameter(0, nsIDM.DOWNLOAD_NOTSTARTED);
     gStmt.bindInt32Parameter(1, nsIDM.DOWNLOAD_DOWNLOADING);
     gStmt.bindInt32Parameter(2, nsIDM.DOWNLOAD_PAUSED);
     gStmt.bindInt32Parameter(3, nsIDM.DOWNLOAD_QUEUED);
     gStmt.bindInt32Parameter(4, nsIDM.DOWNLOAD_SCANNING);
-    gStmt.bindStringParameter(5, like);
   } catch (e) {
     
     gStmt.reset();
@@ -1084,12 +1088,13 @@ function stepListBuilder(aNumItems) {
     }
 
     
-    attrs.progress = gStmt.getInt32(10) ?
-      gDownloadManager.getDownload(attrs.dlid).percentComplete : 100;
+    let isActive = gStmt.getInt32(10);
+    attrs.progress = isActive ? gDownloadManager.getDownload(attrs.dlid).
+      percentComplete : 100;
 
     
     let item = createDownloadItem(attrs);
-    if (item) {
+    if (item && (isActive || downloadMatchesSearch(item))) {
       
       gDownloadsView.appendChild(item);
       stripeifyList(item);
@@ -1097,6 +1102,10 @@ function stepListBuilder(aNumItems) {
       
       
       updateButtons(item);
+    } else {
+      
+      
+      aNumItems += .9;
     }
   } catch (e) {
     
@@ -1147,6 +1156,31 @@ function prependList(aDownload)
     
     updateButtons(item);
   }
+}
+
+
+
+
+
+
+
+
+
+
+function downloadMatchesSearch(aItem)
+{
+  
+  
+  let combinedSearch = "";
+  for each (let attr in gSearchAttributes)
+    combinedSearch += aItem.getAttribute(attr).toLowerCase() + " ";
+
+  
+  for each (let term in gSearchTerms)
+    if (combinedSearch.search(term) == -1)
+      return false;
+
+  return true;
 }
 
 
