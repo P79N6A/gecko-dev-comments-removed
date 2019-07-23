@@ -382,7 +382,7 @@ gfxWindowsPlatform::FontGetCMapDataProc(nsStringHashKey::KeyType aKey,
 
 
 
-        for (PRUint16 ch = 0x21; ch <= 0xFF; ch++)
+        for (PRUint16 ch = 0x20; ch <= 0xFF; ch++)
             aFontEntry->mCharacterMap.set(ch);
         return PL_DHASH_NEXT;
     }
