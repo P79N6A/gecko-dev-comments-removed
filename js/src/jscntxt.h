@@ -105,13 +105,13 @@ struct JSThread {
     jsword              id;
 
     
-    JSGCThing           *gcFreeLists[GC_NUM_FREELISTS];
-
-    
 
 
 
     uint32              gcMallocBytes;
+
+    
+    JSGCThing           *gcFreeLists[GC_NUM_FREELISTS];
 
     
 
