@@ -9108,6 +9108,15 @@ TraceRecorder::record_SetPropHit(JSPropCacheEntry* entry, JSScopeProperty* sprop
     if (!isValidSlot(scope, sprop))
         return JSRS_STOP;
 
+    
+
+
+
+
+
+    if (VALUE_IS_FUNCTION(cx, r))
+        ABORT_TRACE("can't trace function-valued property set");
+
     if (obj == globalObj) {
         JS_ASSERT(SPROP_HAS_VALID_SLOT(sprop, scope));
         uint32 slot = sprop->slot;
@@ -9115,15 +9124,6 @@ TraceRecorder::record_SetPropHit(JSPropCacheEntry* entry, JSScopeProperty* sprop
             ABORT_TRACE("lazy import of global slot failed");
 
         LIns* r_ins = get(&r);
-
-        
-
-
-
-
-
-        if (VALUE_IS_FUNCTION(cx, r))
-            ABORT_TRACE("potential rebranding of the global object");
         set(&STOBJ_GET_SLOT(obj, slot), r_ins);
 
         JS_ASSERT(*pc != JSOP_INITPROP);
