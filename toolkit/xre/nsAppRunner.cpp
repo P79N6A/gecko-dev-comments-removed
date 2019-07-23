@@ -2629,20 +2629,6 @@ XRE_main(int argc, char* argv[], const nsXREAppData* aAppData)
   nsSplashScreen *splashScreen = nsnull;
 #endif
 
-#ifdef XP_WIN
-  
-
-
-
-
-
-  HMODULE kernel32 = GetModuleHandleW(L"kernel32.dll");
-  SetProcessDEPPolicyFunc _SetProcessDEPPolicy =
-    (SetProcessDEPPolicyFunc) GetProcAddress(kernel32, "SetProcessDEPPolicy");
-  if (_SetProcessDEPPolicy)
-    _SetProcessDEPPolicy(PROCESS_DEP_ENABLE);
-#endif
-
   nsresult rv;
   ArgResult ar;
   NS_TIMELINE_MARK("enter main");
@@ -2652,31 +2638,7 @@ XRE_main(int argc, char* argv[], const nsXREAppData* aAppData)
     NS_BREAK();
 #endif
 
-#if defined (XP_WIN32) && !defined (WINCE)
-  
-  
-  
-  UINT realMode = SetErrorMode(0);
-  realMode |= SEM_FAILCRITICALERRORS;
-  
-  
-  
-  
-  if (getenv("XRE_NO_WINDOWS_CRASH_DIALOG"))
-    realMode |= SEM_NOGPFAULTERRORBOX | SEM_NOOPENFILEERRORBOX;
-
-  SetErrorMode(realMode);
-
-#ifdef DEBUG
-  
-  
-  
-  
-  _set_sbh_threshold(0);
-#endif
-#endif
-
-  InstallSignalHandlers(argv[0]);
+  SetupErrorHandling();
 
 #ifdef MOZ_ACCESSIBILITY_ATK
   
@@ -2693,18 +2655,6 @@ XRE_main(int argc, char* argv[], const nsXREAppData* aAppData)
 
   
   PR_SetEnv("NO_AT_BRIDGE=1");
-#endif
-
-#ifndef WINCE
-  
-  setbuf(stdout, 0);
-#endif
-
-#if defined(FREEBSD)
-  
-  
-  
-  fpsetmask(0);
 #endif
 
   gArgc = argc;
@@ -3709,3 +3659,58 @@ XRE_GetProcessType()
 #endif
 }
 
+void
+SetupErrorHandling()
+{
+#ifdef XP_WIN
+  
+
+
+
+
+
+  HMODULE kernel32 = GetModuleHandleW(L"kernel32.dll");
+  SetProcessDEPPolicyFunc _SetProcessDEPPolicy =
+    (SetProcessDEPPolicyFunc) GetProcAddress(kernel32, "SetProcessDEPPolicy");
+  if (_SetProcessDEPPolicy)
+    _SetProcessDEPPolicy(PROCESS_DEP_ENABLE);
+#endif
+
+#if defined (XP_WIN32) && !defined (WINCE)
+  
+  
+  
+  UINT realMode = SetErrorMode(0);
+  realMode |= SEM_FAILCRITICALERRORS;
+  
+  
+  
+  
+  if (getenv("XRE_NO_WINDOWS_CRASH_DIALOG"))
+    realMode |= SEM_NOGPFAULTERRORBOX | SEM_NOOPENFILEERRORBOX;
+
+  SetErrorMode(realMode);
+
+#ifdef DEBUG
+  
+  
+  
+  
+  _set_sbh_threshold(0);
+#endif
+#endif
+
+  InstallSignalHandlers(argv[0]);
+
+#ifndef WINCE
+  
+  setbuf(stdout, 0);
+#endif
+
+#if defined(FREEBSD)
+  
+  
+  
+  fpsetmask(0);
+#endif
+}

@@ -190,4 +190,10 @@ extern GeckoProcessType sChildProcessType;
 }
 #endif
 
+
+
+
+
+void SetupErrorHandling();
+
 #endif 
