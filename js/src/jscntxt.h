@@ -169,16 +169,6 @@ typedef struct JSPropertyTreeEntry {
     JSScopeProperty     *child;
 } JSPropertyTreeEntry;
 
-
-
-
-struct JSNativeEnumerator {
-    jsint               next_index;     
-    JSIdArray           *ida;           
-    JSNativeEnumerator  *next;          
-    JSNativeEnumerator  **prevp;
-};
-
 typedef struct JSSetSlotRequest JSSetSlotRequest;
 
 struct JSSetSlotRequest {
