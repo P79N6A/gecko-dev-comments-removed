@@ -149,8 +149,10 @@
 #endif 
 
 #ifdef XP_WIN
+#ifndef WINCE
 #include <process.h>
 #include <shlobj.h>
+#endif
 #include "nsThreadUtils.h"
 #endif
 
@@ -604,8 +606,6 @@ public:
 #endif
 #ifdef XP_WIN
   NS_DECL_NSIWINAPPHELPER
-private:
-  nsresult LaunchAppHelperWithArgs(int aArgc, char **aArgv);
 #endif
 };
 
@@ -729,74 +729,6 @@ nsXULAppInfo::GetXPCOMABI(nsACString& aResult)
 }
 
 #ifdef XP_WIN
-nsresult 
-nsXULAppInfo::LaunchAppHelperWithArgs(int aArgc, char **aArgv)
-{
-  nsresult rv;
-  nsCOMPtr<nsIProperties> directoryService = 
-    do_GetService(NS_DIRECTORY_SERVICE_CONTRACTID, &rv);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  nsCOMPtr<nsILocalFile> appHelper;
-  rv = directoryService->Get(NS_XPCOM_CURRENT_PROCESS_DIR, NS_GET_IID(nsILocalFile), getter_AddRefs(appHelper));
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  rv = appHelper->AppendNative(NS_LITERAL_CSTRING("uninstall"));
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  rv = appHelper->AppendNative(NS_LITERAL_CSTRING("helper.exe"));
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  nsAutoString appHelperPath;
-  rv = appHelper->GetPath(appHelperPath);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  if (!WinLaunchChild(appHelperPath.get(), aArgc, aArgv, 1))
-    return NS_ERROR_FAILURE;
-  else
-    return NS_OK;
-}
-
-NS_IMETHODIMP
-nsXULAppInfo::PostUpdate(nsILocalFile *aLogFile)
-{
-  nsresult rv;
-  int upgradeArgc = aLogFile ? 3 : 2;
-  char **upgradeArgv = (char**) malloc(sizeof(char*) * (upgradeArgc + 1));
-
-  if (!upgradeArgv)
-    return NS_ERROR_OUT_OF_MEMORY;
-
-  upgradeArgv[0] = "argv0ignoredbywinlaunchchild";
-  upgradeArgv[1] = "/postupdate";
-
-  char *pathArg = nsnull;
-
-  if (aLogFile) {
-    nsCAutoString logFilePath;
-    rv = aLogFile->GetNativePath(logFilePath);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    pathArg = PR_smprintf("/uninstalllog=%s", logFilePath.get());
-    if (!pathArg)
-      return NS_ERROR_OUT_OF_MEMORY;
-
-    upgradeArgv[2] = pathArg;
-    upgradeArgv[3] = nsnull;
-  }
-  else {
-    upgradeArgv[2] = nsnull;
-  }
-
-  rv = LaunchAppHelperWithArgs(upgradeArgc, upgradeArgv);
-  
-  if (pathArg)
-    PR_smprintf_free(pathArg);
-
-  free(upgradeArgv);
-  return rv;
-}
-
 
 
 typedef enum 
@@ -1487,6 +1419,7 @@ XRE_GetBinaryPath(const char* argv0, nsILocalFile* *aResult)
 
 #ifdef XP_WIN
 #include "nsWindowsRestart.cpp"
+#include <shellapi.h>
 #endif
 
 #if defined(XP_OS2) && (__KLIBC__ == 0 && __KLIBC_MINOR__ >= 6) 
@@ -1594,6 +1527,7 @@ static nsresult LaunchChild(nsINativeAppSupport* aNative,
   PR_SetEnv("MOZ_LAUNCHED_CHILD=1");
 
 #if defined(XP_MACOSX)
+  SetupMacCommandLine(gRestartArgc, gRestartArgv);
   LaunchChildMac(gRestartArgc, gRestartArgv);
 #else
   nsCOMPtr<nsILocalFile> lf;
@@ -1607,7 +1541,7 @@ static nsresult LaunchChild(nsINativeAppSupport* aNative,
   if (NS_FAILED(rv))
     return rv;
 
-  if (!WinLaunchChild(exePath.get(), gRestartArgc, gRestartArgv, 0))
+  if (!WinLaunchChild(exePath.get(), gRestartArgc, gRestartArgv))
     return NS_ERROR_FAILURE;
 
 #else
@@ -2534,10 +2468,15 @@ XRE_main(int argc, char* argv[], const nsXREAppData* aAppData)
       PR_SetEnv(expr);
     
   }
-#endif
 
   
+  PR_SetEnv("NO_AT_BRIDGE=1");
+#endif
+
+#ifndef WINCE
+  
   setbuf(stdout, 0);
+#endif
 
 #if defined(FREEBSD)
   
