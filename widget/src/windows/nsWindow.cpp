@@ -2855,16 +2855,18 @@ nsWindow::OverrideSystemMouseScrollSpeed(PRInt32 aOriginalDelta,
   
   const PRInt32 kSystemDefaultScrollingSpeed = 3;
 
+  PRInt32 absOriginDelta = PR_ABS(aOriginalDelta);
+
   
-  PRInt32 computedOverriddenDelta;
+  PRInt32 absComputedOverriddenDelta;
   nsresult rv =
-    nsBaseWidget::OverrideSystemMouseScrollSpeed(aOriginalDelta, aIsHorizontal,
-                                                 computedOverriddenDelta);
+    nsBaseWidget::OverrideSystemMouseScrollSpeed(absOriginDelta, aIsHorizontal,
+                                                 absComputedOverriddenDelta);
   NS_ENSURE_SUCCESS(rv, rv);
 
   aOverriddenDelta = aOriginalDelta;
 
-  if (computedOverriddenDelta == aOriginalDelta) {
+  if (absComputedOverriddenDelta == absOriginDelta) {
     
     return NS_OK;
   }
@@ -2898,14 +2900,23 @@ nsWindow::OverrideSystemMouseScrollSpeed(PRInt32 aOriginalDelta,
   
   
   
-  PRInt32 deltaLimit;
+  PRInt32 absDeltaLimit;
   rv =
     nsBaseWidget::OverrideSystemMouseScrollSpeed(kSystemDefaultScrollingSpeed,
-                                                 aIsHorizontal, deltaLimit);
+                                                 aIsHorizontal, absDeltaLimit);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  aOverriddenDelta = PR_MIN(computedOverriddenDelta, deltaLimit);
+  
+  
+  if (absDeltaLimit <= absOriginDelta) {
+    return NS_OK;
+  }
 
+  absComputedOverriddenDelta =
+    PR_MIN(absComputedOverriddenDelta, absDeltaLimit);
+
+  aOverriddenDelta = (aOriginalDelta > 0) ? absComputedOverriddenDelta :
+                                            -absComputedOverriddenDelta;
   return NS_OK;
 }
 
