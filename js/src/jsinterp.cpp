@@ -4930,16 +4930,6 @@ js_Interpret(JSContext *cx)
                         *newsp++ = JSVAL_VOID;
 
                     
-                    hook = cx->debugHooks->callHook;
-                    if (hook) {
-                        newifp->hookData = hook(cx, &newifp->frame, JS_TRUE, 0,
-                                                cx->debugHooks->callHookData);
-                        CHECK_INTERRUPT_HANDLER();
-                    } else {
-                        newifp->hookData = NULL;
-                    }
-
-                    
                     if (JSFUN_HEAVYWEIGHT_TEST(fun->flags) &&
                         !js_GetCallObject(cx, &newifp->frame, parent)) {
                         goto bad_inline_call;
@@ -4960,6 +4950,16 @@ js_Interpret(JSContext *cx)
                     regs.pc = script->code;
                     newifp->frame.regs = &regs;
                     cx->fp = fp = &newifp->frame;
+
+                    
+                    hook = cx->debugHooks->callHook;
+                    if (hook) {
+                        newifp->hookData = hook(cx, &newifp->frame, JS_TRUE, 0,
+                                                cx->debugHooks->callHookData);
+                        CHECK_INTERRUPT_HANDLER();
+                    } else {
+                        newifp->hookData = NULL;
+                    }
 
                     TRACE_0(EnterFrame);
 
