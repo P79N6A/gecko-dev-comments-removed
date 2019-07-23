@@ -40,13 +40,6 @@
 
 
 
-
-
-
-
-
-
-
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 let current_test = 0;
 
@@ -101,7 +94,7 @@ function ensure_results(aSearch, aExpected)
       print("Looking for an expected result of " + value + ", " + comment + "...");
       let j;
       for (j = 0; j < aExpected.length; j++) {
-        let [uri, title, tags] = aExpected[j];
+        let [uri, title, tags] = gPages[aExpected[j]];
 
         
         if (uri == undefined) continue;
@@ -116,7 +109,7 @@ function ensure_results(aSearch, aExpected)
         if (uri == value && title == comment) {
           print("Got it at index " + j + "!!");
           
-          aExpected[j] = [,];
+          aExpected[j] = [];
           break;
         }
       }
@@ -163,8 +156,13 @@ try {
 
 let gDate = new Date(Date.now() - 1000 * 60 * 60) * 1000;
 
+let gPages = [];
+
 function addPageBook(aURI, aTitle, aBook, aTags, aKey)
 {
+  
+  gPages[aURI] = [aURI, aTitle, aTags];
+
   let uri = iosvc.newURI(kURIs[aURI], null, null);
   let title = kTitles[aTitle];
 
@@ -218,26 +216,38 @@ function run_test() {
 
 
 
-let theTag = "superTag";
-
 
 let kURIs = [
-  "http://escaped/ユニコード",
-  "http://asciiescaped/blocking-firefox3%2B",
+  "http://page1",
+  "http://page2",
+  "http://page3",
+  "http://page4",
 ];
 let kTitles = [
-  "title",
-  theTag,
+  "tag1",
+  "tag2",
+  "tag3",
 ];
 
 
-addPageBook(0, 0, 0, [1]);
-addPageBook(1, 0, 0, [1]);
+addPageBook(0, 0, 0, [0]);
+addPageBook(1, 0, 0, [0,1]);
+addPageBook(2, 0, 0, [0,2]);
+addPageBook(3, 0, 0, [0,1,2]);
+
 
 
 
 
 let gTests = [
-  ["0: Make sure tag matches return the right url as well as '+' remain escaped",
-   theTag, [[0,0,[1]],[1,0,[1]]]],
+  ["0: Make sure tags come back in the title when matching tags",
+   "page1 tag", [0]],
+  ["1: Check tags in title for page2",
+   "page2 tag", [1]],
+  ["2: Make sure tags appear even when not matching the tag",
+   "page3", [2]],
+  ["3: Multiple tags come in commas for page4",
+   "page4", [3]],
+  ["4: Extra test just to make sure we match the title",
+   "tag2", [1,3]],
 ];

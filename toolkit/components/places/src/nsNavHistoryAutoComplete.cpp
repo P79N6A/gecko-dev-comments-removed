@@ -102,6 +102,11 @@
 
 
 
+NS_NAMED_LITERAL_STRING(kTitleTagsSeparator, " \u2013 ");
+
+
+
+
 
 
 
@@ -748,10 +753,8 @@ nsNavHistory::AutoCompleteProcessSearch(mozIStorageStatement* aQuery,
       PRBool showTags = !entryTags.IsEmpty();
 
       
-      
-
-
-
+      if (showTags)
+        title += kTitleTagsSeparator + entryTags;
 
       
       
