@@ -86,8 +86,6 @@ public:
     
     gfxFloat GetAdjustedSize() { if (!mPangoFont) RealizePangoFont(); return mAdjustedSize; }
 
-    PRUint32 GetGlyph(const PRUint32 aChar);
-
     virtual nsString GetUniqueName();
 
     
@@ -148,7 +146,7 @@ protected:
                      PRBool aTake8BitPath);
 
     
-    nsresult SetGlyphs(gfxTextRun *aTextRun, gfxPangoFont *aFont,
+    nsresult SetGlyphs(gfxTextRun *aTextRun,
                        const gchar *aUTF8, PRUint32 aUTF8Length,
                        PRUint32 *aUTF16Offset, PangoGlyphString *aGlyphs,
                        PangoGlyphUnit aOverrideSpaceWidth,
