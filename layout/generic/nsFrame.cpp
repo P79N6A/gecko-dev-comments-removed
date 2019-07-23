@@ -4487,43 +4487,30 @@ nsFrame::DumpBaseRegressionData(nsPresContext* aPresContext, FILE* out, PRInt32 
 }
 #endif
 
-
-
-NS_IMETHODIMP
-nsFrame::SetSelected(nsPresContext* aPresContext, nsIDOMRange *aRange, PRBool aSelected, nsSpread aSpread, SelectionType aType)
+void
+nsIFrame::SetSelected(PRBool aSelected, SelectionType aType)
 {
-
-
-
-
-
-  if (aType == nsISelectionController::SELECTION_NORMAL) {
-    
-    PRBool  selectable;
-    IsSelectable(&selectable, nsnull);
-    if (!selectable)
-      return NS_OK;
-  }
-
-
-
-
-
-
-
-
-
-
-  if ( aSelected ){
-    AddStateBits(NS_FRAME_SELECTED_CONTENT);
-  }
-  else
-    RemoveStateBits(NS_FRAME_SELECTED_CONTENT);
+  NS_ASSERTION(!GetPrevContinuation(),
+               "Should only be called on first in flow");
+  if (aType != nsISelectionController::SELECTION_NORMAL)
+    return;
 
   
-  InvalidateOverflowRect();
+  PRBool selectable;
+  IsSelectable(&selectable, nsnull);
+  if (!selectable)
+    return;
 
-  return NS_OK;
+  for (nsIFrame* f = this; f; f = f->GetNextContinuation()) {
+    if (aSelected) {
+      AddStateBits(NS_FRAME_SELECTED_CONTENT);
+    } else {
+      RemoveStateBits(NS_FRAME_SELECTED_CONTENT);
+    }
+
+    
+    InvalidateOverflowRect();
+  }
 }
 
 NS_IMETHODIMP

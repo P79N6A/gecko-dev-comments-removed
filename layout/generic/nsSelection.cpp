@@ -79,6 +79,7 @@
 #include "nsLayoutCID.h"
 #include "nsBidiPresUtils.h"
 static NS_DEFINE_CID(kFrameTraversalCID, NS_FRAMETRAVERSAL_CID);
+#include "nsTextFrame.h"
 
 #include "nsIDOMText.h"
 
@@ -301,7 +302,9 @@ private:
   void setAnchorFocusRange(PRInt32 aIndex); 
                                             
                                             
-  nsresult     selectFrames(nsPresContext* aPresContext, nsIContentIterator *aInnerIter, nsIContent *aContent, nsIPresShell *aPresShell, PRBool aFlags);
+  nsresult     SelectAllFramesForContent(nsIContentIterator *aInnerIter,
+                               nsIContent *aContent,
+                               PRBool aSelected);
   nsresult     selectFrames(nsPresContext* aPresContext, nsIRange *aRange, PRBool aSelect);
   nsresult     getTableCellLocationFromRange(nsIRange *aRange, PRInt32 *aSelectionType, PRInt32 *aRow, PRInt32 *aCol);
   nsresult     addTableCellRange(nsIRange *aRange, PRBool *aDidAddRange, PRInt32 *aOutIndex);
@@ -4178,14 +4181,10 @@ nsTypedSelection::GetPrimaryFrameForFocusNode(nsIFrame **aReturnFrame, PRInt32 *
 }
 
 
-
-
 nsresult
-nsTypedSelection::selectFrames(nsPresContext* aPresContext,
-                               nsIContentIterator *aInnerIter,
-                               nsIContent *aContent,
-                               nsIPresShell *aPresShell,
-                               PRBool aFlags)
+nsTypedSelection::SelectAllFramesForContent(nsIContentIterator *aInnerIter,
+                                  nsIContent *aContent,
+                                  PRBool aSelected)
 {
   if (!mFrameSelection)
     return NS_OK;
@@ -4200,8 +4199,7 @@ nsTypedSelection::selectFrames(nsPresContext* aPresContext,
     frame = mFrameSelection->GetShell()->GetPrimaryFrameFor(aContent);
     if (frame)
     {
-      
-      frame->SetSelected(aPresContext, nsnull, aFlags, eSpreadDown, mType);
+      frame->SetSelected(aSelected, mType);
       if (mFrameSelection->GetTableCellSelection())
       {
         nsITableCellLayout *tcl = do_QueryFrame(frame);
@@ -4220,29 +4218,7 @@ nsTypedSelection::selectFrames(nsPresContext* aPresContext,
       frame = mFrameSelection->GetShell()->GetPrimaryFrameFor(innercontent);
       if (frame)
       {
-        
-        
-
-        
-        frame->SetSelected(aPresContext, nsnull, aFlags, eSpreadDown, mType);
-        nsRect frameRect = frame->GetRect();
-
-        
-        
-        while (!frameRect.width || !frameRect.height)
-        {
-          
-          frame = frame->GetNextInFlow();
-          if (frame)
-          {
-            frameRect = frame->GetRect();
-            frame->SetSelected(aPresContext, nsnull, aFlags, eSpreadDown, mType);
-          }
-          else
-            break;
-        }
-        
-        
+        frame->SetSelected(aSelected, mType);
       }
 
       aInnerIter->Next();
@@ -4292,11 +4268,23 @@ nsTypedSelection::selectFrames(nsPresContext* aPresContext, nsIRange *aRange, PR
       return NS_ERROR_UNEXPECTED;
 
     nsIFrame *frame;
-    if (!content->IsNodeOfType(nsINode::eELEMENT))
+    if (content->IsNodeOfType(nsINode::eTEXT))
     {
       frame = mFrameSelection->GetShell()->GetPrimaryFrameFor(content);
-      if (frame)
-        frame->SetSelected(aPresContext, domRange, aFlags, eSpreadDown, mType);
+      
+      
+      if (frame && frame->GetType() == nsGkAtoms::textFrame)
+      {
+        nsTextFrame* textFrame = static_cast<nsTextFrame*>(frame);
+        PRUint32 startOffset = aRange->StartOffset();
+        PRUint32 endOffset;
+        if (aRange->GetEndParent() == content) {
+          endOffset = aRange->EndOffset();
+        } else {
+          endOffset = content->GetText()->GetLength();
+        }
+        textFrame->SetSelectedRange(startOffset, endOffset, aFlags, mType);
+      }
     }
 
     iter->First();
@@ -4305,7 +4293,7 @@ nsTypedSelection::selectFrames(nsPresContext* aPresContext, nsIRange *aRange, PR
     {
       content = do_QueryInterface(iter->GetCurrentNode());
 
-      selectFrames(aPresContext, inneriter, content, presShell,aFlags);
+      SelectAllFramesForContent(inneriter, content, aFlags);
 
       iter->Next();
     }
@@ -4317,11 +4305,16 @@ nsTypedSelection::selectFrames(nsPresContext* aPresContext, nsIRange *aRange, PR
       if (NS_FAILED(result) || !content)
         return result;
 
-      if (!content->IsNodeOfType(nsINode::eELEMENT))
+      if (content->IsNodeOfType(nsINode::eTEXT))
       {
         frame = mFrameSelection->GetShell()->GetPrimaryFrameFor(content);
-        if (frame)
-           frame->SetSelected(aPresContext, domRange, aFlags, eSpreadDown, mType);
+        
+        
+        if (frame && frame->GetType() == nsGkAtoms::textFrame)
+        {
+          nsTextFrame* textFrame = static_cast<nsTextFrame*>(frame);
+          textFrame->SetSelectedRange(0, aRange->EndOffset(), aFlags, mType);
+        }
       }
     }
   }

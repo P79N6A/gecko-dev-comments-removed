@@ -4969,120 +4969,98 @@ nsTextFrame::CombineSelectionUnderlineRect(nsPresContext* aPresContext,
   return !aRect.IsEmpty() && !givenRect.Contains(aRect);
 }
 
-
-NS_IMETHODIMP
-nsTextFrame::SetSelected(nsPresContext* aPresContext,
-                         nsIDOMRange *aRange,
-                         PRBool aSelected,
-                         nsSpread aSpread,
+void
+nsTextFrame::SetSelected(PRBool        aSelected,
                          SelectionType aType)
 {
-  DEBUG_VERIFY_NOT_DIRTY(mState);
-#if 0 
-  if (mState & NS_FRAME_IS_DIRTY)
-    return NS_ERROR_UNEXPECTED;
-#endif
+  SetSelectedRange(0, mContent->GetText()->GetLength(), aSelected, aType);
+}
 
+void
+nsTextFrame::SetSelectedRange(PRUint32 aStart,
+                              PRUint32 aEnd,
+                              PRBool aSelected,
+                              SelectionType aType)
+{
+  NS_ASSERTION(!GetPrevContinuation(), "Should only be called for primary frame");
+  DEBUG_VERIFY_NOT_DIRTY(mState);
+
+  
+  if (aStart == aEnd)
+    return;
+
+  
+  
   if (aSelected && ParentDisablesSelection())
-    return NS_OK;
+    return;
 
   if (aType == nsISelectionController::SELECTION_NORMAL) {
     
     PRBool selectable;
     IsSelectable(&selectable, nsnull);
     if (!selectable)
-      return NS_OK;
+      return;
   }
 
-  PRBool found = PR_FALSE;
-  if (aRange) {
-    
-    nsCOMPtr<nsIDOMNode> endNode;
-    PRInt32 endOffset;
-    nsCOMPtr<nsIDOMNode> startNode;
-    PRInt32 startOffset;
-    aRange->GetEndContainer(getter_AddRefs(endNode));
-    aRange->GetEndOffset(&endOffset);
-    aRange->GetStartContainer(getter_AddRefs(startNode));
-    aRange->GetStartOffset(&startOffset);
-    nsCOMPtr<nsIDOMNode> thisNode = do_QueryInterface(GetContent());
+  PRBool anySelected = PR_FALSE;
 
-    if (thisNode == startNode)
-    {
-      if (GetContentEnd() >= startOffset)
-      {
-        found = PR_TRUE;
-        if (thisNode == endNode)
-        { 
-          if (endOffset == startOffset) 
-            found = PR_FALSE;
+  nsTextFrame* f = this;
+  while (f && f->GetContentEnd() <= aStart) {
+    if (f->GetStateBits() & NS_FRAME_SELECTED_CONTENT) {
+      anySelected = PR_TRUE;
+    }
+    f = static_cast<nsTextFrame*>(f->GetNextContinuation());
+  }
 
-          if (mContentOffset > endOffset)
-            found = PR_FALSE;
-        }
+  nsPresContext* presContext = PresContext();
+  while (f && f->GetContentOffset() < aEnd) {
+    if (aSelected) {
+      f->AddStateBits(NS_FRAME_SELECTED_CONTENT);
+      anySelected = PR_TRUE;
+    } else { 
+      SelectionDetails *details = f->GetSelectionDetails();
+      if (details) {
+        anySelected = PR_TRUE;
+        DestroySelectionDetails(details);
+      } else {
+        f->RemoveStateBits(NS_FRAME_SELECTED_CONTENT);
       }
     }
-    else if (thisNode == endNode)
-    {
-      if (mContentOffset < endOffset)
-        found = PR_TRUE;
-      else
-      {
-        found = PR_FALSE;
-      }
-    }
-    else
-    {
-      found = PR_TRUE;
-    }
-  }
-  else {
-    
-    found = PR_TRUE;
-  }
 
-  if ( aSelected )
-    AddStateBits(NS_FRAME_SELECTED_CONTENT);
-  else
-  { 
-    SelectionDetails *details = GetSelectionDetails();
-    if (!details) {
-      RemoveStateBits(NS_FRAME_SELECTED_CONTENT);
-    } else {
-      DestroySelectionDetails(details);
-    }
-  }
-  if (found) {
     
     
     
     PRBool didHaveOverflowingSelection =
-      (mState & TEXT_SELECTION_UNDERLINE_OVERFLOWED) != 0;
+      (f->GetStateBits() & TEXT_SELECTION_UNDERLINE_OVERFLOWED) != 0;
     nsRect r(nsPoint(0, 0), GetSize());
     PRBool willHaveOverflowingSelection =
-      aSelected && CombineSelectionUnderlineRect(PresContext(), r);
+      aSelected && f->CombineSelectionUnderlineRect(presContext, r);
     if (didHaveOverflowingSelection || willHaveOverflowingSelection) {
-      PresContext()->PresShell()->FrameNeedsReflow(this,
-                                                   nsIPresShell::eStyleChange,
-                                                   NS_FRAME_IS_DIRTY);
+      presContext->PresShell()->FrameNeedsReflow(f,
+                                                 nsIPresShell::eStyleChange,
+                                                 NS_FRAME_IS_DIRTY);
     }
     
-    InvalidateOverflowRect();
+    f->InvalidateOverflowRect();
+
+    f = static_cast<nsTextFrame*>(f->GetNextContinuation());
   }
-  if (aSpread == eSpreadDown)
-  {
-    nsIFrame* frame = GetPrevContinuation();
-    while(frame){
-      frame->SetSelected(aPresContext, aRange,aSelected,eSpreadNone, aType);
-      frame = frame->GetPrevContinuation();
+
+  
+  while (f && !anySelected) {
+    if (f->GetStateBits() & NS_FRAME_SELECTED_CONTENT) {
+      anySelected = PR_TRUE;
     }
-    frame = GetNextContinuation();
-    while (frame){
-      frame->SetSelected(aPresContext, aRange,aSelected,eSpreadNone, aType);
-      frame = frame->GetNextContinuation();
-    }
+    f = static_cast<nsTextFrame*>(f->GetNextContinuation());
   }
-  return NS_OK;
+
+  if (anySelected) {
+    mContent->SetFlags(NS_TEXT_IN_SELECTION);
+  } else {
+    
+    
+    mContent->UnsetFlags(NS_TEXT_IN_SELECTION);
+  }
 }
 
 NS_IMETHODIMP
@@ -6421,7 +6399,18 @@ nsTextFrame::Reflow(nsPresContext*           aPresContext,
 
   SetLength(contentLength);
 
-  Invalidate(nsRect(nsPoint(0, 0), GetSize()));
+  if (mContent->HasFlag(NS_TEXT_IN_SELECTION)) {
+    
+    SelectionDetails* details = GetSelectionDetails();
+    if (details) {
+      AddStateBits(NS_FRAME_SELECTED_CONTENT);
+      DestroySelectionDetails(details);
+    } else {
+      RemoveStateBits(NS_FRAME_SELECTED_CONTENT);
+    }
+  }
+
+  Invalidate(aMetrics.mOverflowArea);
 
 #ifdef NOISY_REFLOW
   ListTag(stdout);

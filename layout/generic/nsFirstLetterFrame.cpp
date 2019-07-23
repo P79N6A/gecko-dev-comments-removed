@@ -111,21 +111,6 @@ nsFirstLetterFrame::SetInitialChildList(nsIAtom*  aListName,
 }
 
 NS_IMETHODIMP
-nsFirstLetterFrame::SetSelected(nsPresContext* aPresContext, nsIDOMRange *aRange,PRBool aSelected, nsSpread aSpread, SelectionType aType)
-{
-  if (aSelected && ParentDisablesSelection())
-    return NS_OK;
-  nsIFrame *child = GetFirstChild(nsnull);
-  while (child)
-  {
-    child->SetSelected(aPresContext, aRange, aSelected, aSpread, aType);
-    
-    child = child->GetNextSibling();
-  }
-  return NS_OK;
-}
-
-NS_IMETHODIMP
 nsFirstLetterFrame::GetChildFrameContainingOffset(PRInt32 inContentOffset,
                                                   PRBool inHint,
                                                   PRInt32* outFrameContentOffset,
