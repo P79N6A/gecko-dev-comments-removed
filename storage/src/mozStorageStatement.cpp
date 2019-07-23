@@ -117,8 +117,7 @@ mozStorageStatement::Initialize(mozIStorageConnection *aDBConnection, const nsAC
     int nRetries = 0;
 
     while (nRetries < 2) {
-        srv = sqlite3_prepare_v2(db, nsPromiseFlatCString(aSQLStatement).get(),
-                                 aSQLStatement.Length(), &mDBStatement, NULL);
+        srv = sqlite3_prepare (db, nsPromiseFlatCString(aSQLStatement).get(), aSQLStatement.Length(), &mDBStatement, NULL);
         if ((srv == SQLITE_SCHEMA && nRetries != 0) ||
             (srv != SQLITE_SCHEMA && srv != SQLITE_OK))
         {
@@ -413,39 +412,68 @@ mozStorageStatement::ExecuteStep(PRBool *_retval)
         }
     }
 
-    int srv = sqlite3_step (mDBStatement);
+    int nRetries = 0;
+
+    while (nRetries < 2) {
+        int srv = sqlite3_step (mDBStatement);
 
 #ifdef PR_LOGGING
-    if (srv != SQLITE_ROW && srv != SQLITE_DONE)
-    {
-        nsCAutoString errStr;
-        mDBConnection->GetLastErrorString(errStr);
-        PR_LOG(gStorageLog, PR_LOG_DEBUG, ("mozStorageStatement::ExecuteStep error: %s", errStr.get()));
-    }
+        if (srv != SQLITE_ROW && srv != SQLITE_DONE)
+        {
+            nsCAutoString errStr;
+            mDBConnection->GetLastErrorString(errStr);
+            PR_LOG(gStorageLog, PR_LOG_DEBUG, ("mozStorageStatement::ExecuteStep error: %s", errStr.get()));
+        }
 #endif
+
+        
+        if (srv == SQLITE_ROW) {
+            
+            mExecuting = PR_TRUE;
+            *_retval = PR_TRUE;
+            return NS_OK;
+        } else if (srv == SQLITE_DONE) {
+            
+            mExecuting = PR_FALSE;
+            *_retval = PR_FALSE;
+            return NS_OK;
+        } else if (srv == SQLITE_BUSY ||
+                   srv == SQLITE_MISUSE)
+        {
+            mExecuting = PR_FALSE;
+            return NS_ERROR_FAILURE;
+        } else if (srv == SQLITE_SCHEMA) {
+            
+            NS_NOTREACHED("sqlite3_step returned SQLITE_SCHEMA!");
+            return NS_ERROR_FAILURE;
+        } else if (srv == SQLITE_ERROR) {
+            
+            
+            
+            if (mExecuting == PR_TRUE) {
+                PR_LOG(gStorageLog, PR_LOG_ERROR, ("SQLITE_ERROR after mExecuting was true!"));
+
+                mExecuting = PR_FALSE;
+                return NS_ERROR_FAILURE;
+            }
+
+            srv = sqlite3_reset(mDBStatement);
+            if (srv == SQLITE_SCHEMA) {
+                rv = Recreate();
+                NS_ENSURE_SUCCESS(rv, rv);
+
+                nRetries++;
+            } else {
+                return NS_ERROR_FAILURE;
+            }
+        } else {
+            
+            NS_ERROR ("sqlite3_step returned an error code we don't know about!");
+        }
+    }
 
     
-    if (srv == SQLITE_ROW) {
-        
-        mExecuting = PR_TRUE;
-        *_retval = PR_TRUE;
-        return NS_OK;
-    } else if (srv == SQLITE_DONE) {
-        
-        mExecuting = PR_FALSE;
-        *_retval = PR_FALSE;
-        return NS_OK;
-    } else if (srv == SQLITE_BUSY || srv == SQLITE_MISUSE) {
-        mExecuting = PR_FALSE;
-        return NS_ERROR_FAILURE;
-    } else if (mExecuting == PR_TRUE) {
-#ifdef PR_LOGGING
-        PR_LOG(gStorageLog, PR_LOG_ERROR, ("SQLite error after mExecuting was true!"));
-#endif
-        mExecuting = PR_FALSE;
-    }
-
-    return ConvertResultCode(srv);
+    return NS_ERROR_FAILURE;
 }
 
 
