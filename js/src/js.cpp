@@ -775,6 +775,7 @@ Print(JSContext *cx, uintN argc, jsval *vp)
     fputc('\n', gOutFile);
     fflush(gOutFile);
 
+    JS_SET_RVAL(cx, vp, JSVAL_VOID);
     return JS_TRUE;
 }
 
@@ -954,6 +955,8 @@ CountHeap(JSContext *cx, uintN argc, jsval *vp)
         { "double",     JSTRACE_DOUBLE      },
         { "string",     JSTRACE_STRING      },
 #if JS_HAS_XML_SUPPORT
+        { "namespace",  JSTRACE_NAMESPACE   },
+        { "qname",      JSTRACE_QNAME       },
         { "xml",        JSTRACE_XML         },
 #endif
     };
