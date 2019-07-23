@@ -1230,7 +1230,9 @@ nsRuleNode::GetBorderData(nsStyleContext* aContext)
   nsRuleData ruleData(NS_STYLE_INHERIT_BIT(Border), mPresContext, aContext);
   ruleData.mMarginData = &marginData;
 
-  return WalkRuleTree(eStyleStruct_Border, aContext, &ruleData, &marginData);
+  const void* res = WalkRuleTree(eStyleStruct_Border, aContext, &ruleData, &marginData);
+  marginData.mBoxShadow = nsnull; 
+  return res;
 }
 
 const void*
@@ -2616,6 +2618,60 @@ nsRuleNode::ComputeFontData(void* aStartStruct,
   COMPUTE_END_INHERITED(Font, font)
 }
 
+already_AddRefed<nsCSSShadowArray>
+nsRuleNode::GetShadowData(nsCSSValueList* aList,
+                          nsStyleContext* aContext,
+                          PRBool aUsesSpread,
+                          PRBool& inherited)
+{
+  PRUint32 arrayLength = 0;
+  for (nsCSSValueList *list2 = aList; list2; list2 = list2->mNext)
+    ++arrayLength;
+
+  NS_ASSERTION(arrayLength > 0, "Non-null text-shadow list, yet we counted 0 items.");
+  nsCSSShadowArray* shadowList = new(arrayLength) nsCSSShadowArray(arrayLength);
+
+  if (!shadowList)
+    return nsnull;
+
+  for (nsCSSShadowItem* item = shadowList->ShadowAt(0);
+       aList;
+       aList = aList->mNext, ++item) {
+    nsCSSValue::Array *arr = aList->mValue.GetArrayValue();
+    
+    SetCoord(arr->Item(0), item->mXOffset, nsStyleCoord(),
+             SETCOORD_LENGTH, aContext, mPresContext, inherited);
+    SetCoord(arr->Item(1), item->mYOffset, nsStyleCoord(),
+             SETCOORD_LENGTH, aContext, mPresContext, inherited);
+
+    
+    if (arr->Item(2).GetUnit() != eCSSUnit_Null) {
+      SetCoord(arr->Item(2), item->mRadius, nsStyleCoord(),
+               SETCOORD_LENGTH, aContext, mPresContext, inherited);
+    } else {
+      item->mRadius.SetCoordValue(0);
+    }
+
+    
+    if (aUsesSpread && arr->Item(3).GetUnit() != eCSSUnit_Null) {
+      SetCoord(arr->Item(3), item->mSpread, nsStyleCoord(),
+               SETCOORD_LENGTH, aContext, mPresContext, inherited);
+    } else {
+      item->mSpread.SetCoordValue(0);
+    }
+
+    if (arr->Item(4).GetUnit() != eCSSUnit_Null) {
+      item->mHasColor = PR_TRUE;
+      
+      SetColor(arr->Item(4), 0, mPresContext, aContext, item->mColor,
+               inherited);
+    }
+  }
+
+  NS_ADDREF(shadowList);
+  return shadowList;
+}
+
 const void*
 nsRuleNode::ComputeTextData(void* aStartStruct,
                             const nsRuleDataStruct& aData, 
@@ -2633,49 +2689,16 @@ nsRuleNode::ComputeTextData(void* aStartStruct,
   
   nsCSSValueList* list = textData.mTextShadow;
   if (list) {
-    text->mShadowArray = nsnull;
+    text->mTextShadow = nsnull;
 
     
     
     if (eCSSUnit_Inherit == list->mValue.GetUnit()) {
       inherited = PR_TRUE;
-      text->mShadowArray = parentText->mShadowArray;
+      text->mTextShadow = parentText->mTextShadow;
     } else if (eCSSUnit_Array == list->mValue.GetUnit()) {
       
-      PRUint32 arrayLength = 0;
-      for (nsCSSValueList *list2 = list; list2; list2 = list2->mNext)
-        ++arrayLength;
-
-      NS_ASSERTION(arrayLength > 0, "Non-null text-shadow list, yet we counted 0 items.");
-      text->mShadowArray = new(arrayLength) nsTextShadowArray(arrayLength);
-      if (text->mShadowArray) {
-        for (nsTextShadowItem* item = text->mShadowArray->ShadowAt(0);
-             list;
-             list = list->mNext, ++item) {
-          nsCSSValue::Array *arr = list->mValue.GetArrayValue();
-          
-          SetCoord(arr->Item(0), item->mXOffset, nsStyleCoord(),
-                   SETCOORD_LENGTH, aContext, mPresContext, inherited);
-          SetCoord(arr->Item(1), item->mYOffset, nsStyleCoord(),
-                   SETCOORD_LENGTH, aContext, mPresContext, inherited);
-
-          
-          
-          if (arr->Item(2).GetUnit() != eCSSUnit_Null) {
-            SetCoord(arr->Item(2), item->mRadius, nsStyleCoord(),
-                     SETCOORD_LENGTH, aContext, mPresContext, inherited);
-          } else {
-            item->mRadius.SetCoordValue(0);
-          }
-
-          if (arr->Item(3).GetUnit() != eCSSUnit_Null) {
-            item->mHasColor = PR_TRUE;
-            
-            SetColor(arr->Item(3), 0, mPresContext, aContext, item->mColor,
-                     inherited);
-          }
-        }
-      }
+      text->mTextShadow = GetShadowData(list, aContext, PR_FALSE, inherited);
     }
   }
 
@@ -3683,6 +3706,21 @@ nsRuleNode::ComputeBorderData(void* aStartStruct,
 {
   COMPUTE_START_RESET(Border, (mPresContext), border, parentBorder,
                       Margin, marginData)
+
+  
+  nsCSSValueList* list = marginData.mBoxShadow;
+  if (list) {
+    
+    border->mBoxShadow = nsnull;
+
+    if (eCSSUnit_Inherit == list->mValue.GetUnit()) {
+      inherited = PR_TRUE;
+      border->mBoxShadow = parentBorder->mBoxShadow;
+    } else if (eCSSUnit_Array == list->mValue.GetUnit()) {
+      
+      border->mBoxShadow = GetShadowData(list, aContext, PR_TRUE, inherited);
+    }
+  }
 
   
   nsStyleCoord  coord;
