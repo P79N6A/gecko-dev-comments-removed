@@ -46,6 +46,7 @@
 #include "nsITableCellLayout.h"
 #include "nsIDOMElement.h"
 #include "nsGUIEvent.h"
+#include "nsIRange.h"
 
 
 
@@ -648,7 +649,7 @@ private:
   PRInt32  mSelectedCellIndex;
 
   
-  nsCOMPtr<nsIDOMRange> mMaintainRange;
+  nsCOMPtr<nsIRange> mMaintainRange;
   nsSelectionAmount mMaintainedAmount;
 
   
