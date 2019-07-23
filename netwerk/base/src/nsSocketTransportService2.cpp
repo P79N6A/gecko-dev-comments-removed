@@ -97,20 +97,37 @@ nsSocketTransportService::~nsSocketTransportService()
 
 
 
+already_AddRefed<nsIThread>
+nsSocketTransportService::GetThreadSafely()
+{
+    nsAutoLock lock(mLock);
+    nsIThread* result = mThread;
+    NS_IF_ADDREF(result);
+    return result;
+}
+
 NS_IMETHODIMP
 nsSocketTransportService::Dispatch(nsIRunnable *event, PRUint32 flags)
 {
     LOG(("STS dispatch [%p]\n", event));
 
-    NS_ENSURE_TRUE(mThread, NS_ERROR_NOT_INITIALIZED);
-    return mThread->Dispatch(event, flags);
+    nsCOMPtr<nsIThread> thread = GetThreadSafely();
+    NS_ENSURE_TRUE(thread, NS_ERROR_NOT_INITIALIZED);
+    nsresult rv = thread->Dispatch(event, flags);
+    if (rv == NS_ERROR_UNEXPECTED) {
+        
+        
+        rv = NS_ERROR_NOT_INITIALIZED;
+    }
+    return rv;
 }
 
 NS_IMETHODIMP
 nsSocketTransportService::IsOnCurrentThread(PRBool *result)
 {
-    NS_ENSURE_TRUE(mThread, NS_ERROR_NOT_INITIALIZED);
-    return mThread->IsOnCurrentThread(result);
+    nsCOMPtr<nsIThread> thread = GetThreadSafely();
+    NS_ENSURE_TRUE(thread, NS_ERROR_NOT_INITIALIZED);
+    return thread->IsOnCurrentThread(result);
 }
 
 
@@ -382,8 +399,15 @@ nsSocketTransportService::Init()
         }
     }
 
-    nsresult rv = NS_NewThread(&mThread, this);
+    nsCOMPtr<nsIThread> thread;
+    nsresult rv = NS_NewThread(getter_AddRefs(thread), this);
     if (NS_FAILED(rv)) return rv;
+    
+    {
+        nsAutoLock lock(mLock);
+        
+        thread.swap(mThread);
+    }
 
     mInitialized = PR_TRUE;
     return NS_OK;
@@ -416,7 +440,12 @@ nsSocketTransportService::Shutdown()
 
     
     mThread->Shutdown();
-    NS_RELEASE(mThread);
+    {
+        nsAutoLock lock(mLock);
+        
+        
+        mThread = nsnull;
+    }
 
     mInitialized = PR_FALSE;
     mShuttingDown = PR_FALSE;

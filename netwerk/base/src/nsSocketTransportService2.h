@@ -178,7 +178,7 @@ private:
     
     
 
-    nsIThread  *mThread;
+    nsCOMPtr<nsIThread> mThread;    
     PRFileDesc *mThreadEvent;
                             
                             
@@ -189,6 +189,9 @@ private:
                             
     PRBool      mAutodialEnabled;
                             
+
+    
+    already_AddRefed<nsIThread> GetThreadSafely();
 
     
     
