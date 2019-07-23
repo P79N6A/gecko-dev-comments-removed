@@ -4060,12 +4060,6 @@ var XULBrowserWindow = {
 
     
     
-
-    
-    gFindBar.getElement("highlight").checked = false;
-
-    
-    
     if (aRequest)
       setTimeout(function () { XULBrowserWindow.asyncUpdateUI(); }, 0);
     else
