@@ -4185,6 +4185,16 @@ PRBool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
         case SPI_SETCURRENTIM:
           nsWindowCE::NotifySoftKbObservers();
           break;
+        case SETTINGCHANGE_RESET:
+          if (mWindowType == eWindowType_invisible) {
+            
+            
+            
+            
+            SetForegroundWindow(mWnd);
+            ShowWindow(mWnd, SW_HIDE);
+          } 
+          break;
       }
 #endif
       OnSettingsChange(wParam, lParam);
