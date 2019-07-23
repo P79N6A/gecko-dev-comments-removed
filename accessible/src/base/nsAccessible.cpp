@@ -829,7 +829,7 @@ NS_IMETHODIMP nsAccessible::TestChildCache(nsIAccessible *aCachedChild)
   
   
   
-  if (mAccChildCount == eChildCountUninitialized) {
+  if (mAccChildCount <= 0) {
     return NS_OK;
   }
   nsCOMPtr<nsIAccessible> sibling = mFirstChild;

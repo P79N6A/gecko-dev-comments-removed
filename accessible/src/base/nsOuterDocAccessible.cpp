@@ -116,7 +116,7 @@ void nsOuterDocAccessible::CacheChildren()
     return;
   }
 
-  SetFirstChild(nsnull);
+  InvalidateChildren();
   mAccChildCount = 0;
 
   
