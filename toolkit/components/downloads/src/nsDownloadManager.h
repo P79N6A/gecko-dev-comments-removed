@@ -207,7 +207,8 @@ public:
 
 
 
-  void SetState(DownloadState aState);
+
+  nsresult SetState(DownloadState aState);
 
   DownloadType GetDownloadType();
   void SetDownloadType(DownloadType aType);
