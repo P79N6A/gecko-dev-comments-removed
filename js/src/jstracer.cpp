@@ -597,6 +597,21 @@ TypeMap::captureGlobalTypes(JSContext* cx, SlotList& slots)
 }
 
 
+void
+TypeMap::captureMissingGlobalTypes(JSContext* cx, SlotList& slots)
+{
+    unsigned index;
+    while ((index = length()) < slots.length()) {
+        unsigned slot = slots.data()[index];
+        jsval* vp = &STOBJ_GET_SLOT(JS_GetGlobalForObject(cx, cx->fp->scopeChain), slot);
+        uint8 type = getCoercedType(*vp);
+        if ((type == JSVAL_INT) && oracle.isGlobalSlotUndemotable(cx->fp->script, slot))
+            type = JSVAL_DOUBLE;
+        add(type);
+    }
+}
+
+
 void 
 TypeMap::captureStackTypes(JSContext* cx, unsigned callDepth)
 {
