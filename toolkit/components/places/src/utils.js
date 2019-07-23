@@ -1508,6 +1508,8 @@ var PlacesUtils = {
   },
 
   
+
+
   toJSONString: function PU_toJSONString(aObj) {
     var JSON = Cc["@mozilla.org/dom/json;1"].createInstance(Ci.nsIJSON);
     return JSON.encode(aObj);
