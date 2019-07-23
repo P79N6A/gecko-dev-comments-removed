@@ -46,7 +46,6 @@
 
 #include "nsIPrefService.h"
 #include "nsIPrefLocalizedString.h"
-#include "nsIPlatformCharset.h"
 #include "nsILocalFile.h"
 
 #include "nsIURIFixup.h"
@@ -234,17 +233,6 @@ nsDefaultURIFixup::CreateFixupURI(const nsACString& aStringURI, PRUint32 aFixupF
 
     
     
-    PRBool bAsciiURI = IsASCII(uriString);
-    PRBool bUseNonDefaultCharsetForURI =
-                        !bAsciiURI &&
-                        (scheme.IsEmpty() ||
-                         scheme.LowerCaseEqualsLiteral("http") ||
-                         scheme.LowerCaseEqualsLiteral("https") ||
-                         scheme.LowerCaseEqualsLiteral("ftp") ||
-                         scheme.LowerCaseEqualsLiteral("file"));
-
-    
-    
     nsCOMPtr<nsIProtocolHandler> ourHandler, extHandler;
     
     ioService->GetProtocolHandler(scheme.get(), getter_AddRefs(ourHandler));
@@ -252,8 +240,7 @@ nsDefaultURIFixup::CreateFixupURI(const nsACString& aStringURI, PRUint32 aFixupF
     
     if (ourHandler != extHandler || !PossiblyHostPortUrl(uriString)) {
         
-        rv = NS_NewURI(aURI, uriString,
-                       bUseNonDefaultCharsetForURI ? GetCharsetForUrlBar() : nsnull);
+        rv = NS_NewURI(aURI, uriString, nsnull);
 
         if (!*aURI && rv != NS_ERROR_MALFORMED_URI) {
             return rv;
@@ -323,13 +310,9 @@ nsDefaultURIFixup::CreateFixupURI(const nsACString& aStringURI, PRUint32 aFixupF
             uriString.Assign(NS_LITERAL_CSTRING("ftp://") + uriString);
         else 
             uriString.Assign(NS_LITERAL_CSTRING("http://") + uriString);
-
-        
-        if (!bAsciiURI)
-          bUseNonDefaultCharsetForURI = PR_TRUE;
     } 
 
-    rv = NS_NewURI(aURI, uriString, bUseNonDefaultCharsetForURI ? GetCharsetForUrlBar() : nsnull);
+    rv = NS_NewURI(aURI, uriString, nsnull);
 
     
     
@@ -754,41 +737,6 @@ PRBool nsDefaultURIFixup::PossiblyByteExpandedFileName(const nsAString& aIn)
         ++iter;
     }
     return PR_FALSE;
-}
-
-const char * nsDefaultURIFixup::GetFileSystemCharset()
-{
-  if (mFsCharset.IsEmpty())
-  {
-    nsresult rv;
-    nsCAutoString charset;
-    nsCOMPtr<nsIPlatformCharset> plat(do_GetService(NS_PLATFORMCHARSET_CONTRACTID, &rv));
-    if (NS_SUCCEEDED(rv))
-      rv = plat->GetCharset(kPlatformCharsetSel_FileName, charset);
-
-    if (charset.IsEmpty())
-      mFsCharset.AssignLiteral("ISO-8859-1");
-    else
-      mFsCharset.Assign(charset);
-  }
-
-  return mFsCharset.get();
-}
-
-const char * nsDefaultURIFixup::GetCharsetForUrlBar()
-{
-  const char *charset = GetFileSystemCharset();
-#ifdef XP_MAC
-  
-  if ((strlen(charset) >= 6) && charset[0] == 'x' && charset[2] == 'm')
-  {
-    if (!strcmp("x-mac-roman", charset))
-      return "ISO-8859-1";
-    
-    
-  }
-#endif
-  return charset;
 }
 
 nsresult nsDefaultURIFixup::KeywordURIFixup(const nsACString & aURIString, 
