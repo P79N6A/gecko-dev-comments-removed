@@ -162,6 +162,18 @@ private:
   
 
 
+
+
+  static PRBool IsWhitespaceString(const nsSubstring& aString);
+
+  
+
+
+  static PRBool IsWhitespace(PRUnichar aChar);
+
+  
+
+
   static PRUint32 gRoleToNameRulesMap[];
 
   
