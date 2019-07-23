@@ -105,7 +105,7 @@
 
 
 
-#define NS_ERROR_MODULE_GENERAL    51  
+#define NS_ERROR_MODULE_GENERAL    51
 
 
 
@@ -114,14 +114,14 @@
 
 #if defined(NS_STATIC_CHECKING) && defined(__cplusplus)
 inline int NS_FAILED(nsresult _nsresult) {
-  return _nsresult & 0x80000000;
+  return   _nsresult & 0x80000000;
 }
 
 inline int NS_SUCCEEDED(nsresult _nsresult) {
   return !(_nsresult & 0x80000000);
 }
 #else
-#define NS_FAILED(_nsresult) (NS_UNLIKELY((_nsresult) & 0x80000000))
+#define NS_FAILED(_nsresult)    (NS_UNLIKELY((_nsresult) & 0x80000000))
 #define NS_SUCCEEDED(_nsresult) (NS_LIKELY(!((_nsresult) & 0x80000000)))
 #endif
 
@@ -144,13 +144,13 @@ inline int NS_SUCCEEDED(nsresult _nsresult) {
 
 
 #define NS_ERROR_GENERATE(sev,module,code) \
-    ((nsresult) (((PRUint32)(sev)<<31) | ((PRUint32)(module+NS_ERROR_MODULE_BASE_OFFSET)<<16) | ((PRUint32)(code))) )
+    ((nsresult) (((PRUint32)(sev)                      <<31) | ((PRUint32)(module+NS_ERROR_MODULE_BASE_OFFSET)<<16) | ((PRUint32)(code))))
 
 #define NS_ERROR_GENERATE_SUCCESS(module,code) \
-    ((nsresult) (((PRUint32)(NS_ERROR_SEVERITY_SUCCESS)<<31) | ((PRUint32)(module+NS_ERROR_MODULE_BASE_OFFSET)<<16) | ((PRUint32)(code))) )
+    ((nsresult) (((PRUint32)(NS_ERROR_SEVERITY_SUCCESS)<<31) | ((PRUint32)(module+NS_ERROR_MODULE_BASE_OFFSET)<<16) | ((PRUint32)(code))))
 
 #define NS_ERROR_GENERATE_FAILURE(module,code) \
-    ((nsresult) (((PRUint32)(NS_ERROR_SEVERITY_ERROR)<<31) | ((PRUint32)(module+NS_ERROR_MODULE_BASE_OFFSET)<<16) | ((PRUint32)(code))) )
+    ((nsresult) (((PRUint32)(NS_ERROR_SEVERITY_ERROR)  <<31) | ((PRUint32)(module+NS_ERROR_MODULE_BASE_OFFSET)<<16) | ((PRUint32)(code))))
 
 
 
@@ -250,7 +250,7 @@ inline int NS_SUCCEEDED(nsresult _nsresult) {
 
 
 
-#define NS_ERROR_PROXY_INVALID_OUT_PARAMETER        ((nsresult) 0x80010011L)
+#define NS_ERROR_PROXY_INVALID_OUT_PARAMETER       ((nsresult) 0x80010011L)
 
 
 
@@ -331,4 +331,3 @@ NS_ErrorAccordingToNSPR();
 #endif
 
 #endif
-
