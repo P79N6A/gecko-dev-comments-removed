@@ -1818,6 +1818,9 @@ DoDelayedStop(nsPluginInstanceOwner *aInstanceOwner, PRBool aDelayedStop)
       && !::MatchPluginName(aInstanceOwner, "XStandard plugin")
       && !::MatchPluginName(aInstanceOwner, "CMISS Zinc Plugin")
 #endif
+#if defined(XP_UNIX) && defined(__arm__)
+      && !::MatchPluginName(aInstanceOwner, "Shockwave Flash")
+#endif
       ) {
     nsCOMPtr<nsIRunnable> evt = new nsStopPluginRunnable(aInstanceOwner);
     NS_DispatchToCurrentThread(evt);
