@@ -1860,21 +1860,20 @@ void nsWebBrowserPersist::CleanupLocalFiles()
                 
 
                 PRBool isEmptyDirectory = PR_TRUE;
-                nsSupportsArray dirStack;
-                PRUint32 stackSize = 0;
+                nsCOMArray<nsISimpleEnumerator> dirStack;
+                PRInt32 stackSize = 0;
 
                 
                 nsCOMPtr<nsISimpleEnumerator> pos;
                 if (NS_SUCCEEDED(file->GetDirectoryEntries(getter_AddRefs(pos))))
-                    dirStack.AppendElement(pos);
+                    dirStack.AppendObject(pos);
 
-                while (isEmptyDirectory &&
-                    NS_SUCCEEDED(dirStack.Count(&stackSize)) && stackSize > 0)
+                while (isEmptyDirectory && (stackSize = dirStack.Count()))
                 {
                     
                     nsCOMPtr<nsISimpleEnumerator> curPos;
-                    dirStack.GetElementAt(stackSize - 1, getter_AddRefs(curPos));
-                    dirStack.RemoveElementAt(stackSize - 1);
+                    curPos = dirStack[stackSize-1];
+                    dirStack.RemoveObjectAt(stackSize - 1);
                     
                     
                     PRBool hasMoreElements = PR_FALSE;
@@ -1908,9 +1907,9 @@ void nsWebBrowserPersist::CleanupLocalFiles()
                     
                     nsCOMPtr<nsISimpleEnumerator> childPos;
                     childAsFile->GetDirectoryEntries(getter_AddRefs(childPos));
-                    dirStack.AppendElement(curPos);
+                    dirStack.AppendObject(curPos);
                     if (childPos)
-                        dirStack.AppendElement(childPos);
+                        dirStack.AppendObject(childPos);
 
                 }
                 dirStack.Clear();
