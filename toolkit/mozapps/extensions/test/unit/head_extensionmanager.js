@@ -229,6 +229,9 @@ function startupEM()
   
   if (needsRestart)
     gEM.start(null);
+
+  
+  var dummy = gEM.datasource;
 }
 
 
