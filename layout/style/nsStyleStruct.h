@@ -356,6 +356,13 @@ struct nsStyleBackground {
     
     void SetInitialValues();
 
+    
+    
+    PRBool DependsOnFrameSize() const {
+      return (mXIsPercent && mXPosition.mFloat != 0.0f) ||
+             (mYIsPercent && mYPosition.mFloat != 0.0f);
+    }
+
     PRBool operator==(const Position& aOther) const {
       return mXIsPercent == aOther.mXIsPercent &&
              (mXIsPercent ? (mXPosition.mFloat == aOther.mXPosition.mFloat)
@@ -378,18 +385,28 @@ struct nsStyleBackground {
     } Dimension;
     Dimension mWidth, mHeight;
 
+    
+    
+    
     enum DimensionType {
       
       
       
       eContain, eCover,
 
-      eAuto,
       ePercentage,
+
+      eAuto,
       eLength,
       eDimensionType_COUNT
     };
     PRUint8 mWidthType, mHeightType;
+
+    
+    
+    PRBool DependsOnFrameSize() const {
+      return mWidthType <= ePercentage || mHeightType <= ePercentage;
+    }
 
     
     Size() {}
@@ -419,6 +436,14 @@ struct nsStyleBackground {
     ~Layer();
 
     void SetInitialValues();
+
+    
+    
+    
+    PRBool RenderingMightDependOnFrameSize() const {
+      return !mImage.IsEmpty() &&
+             (mPosition.DependsOnFrameSize() || mSize.DependsOnFrameSize());
+    }
 
     
     

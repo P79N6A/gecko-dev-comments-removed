@@ -3940,6 +3940,19 @@ nsFrame::CheckInvalidateSizeChange(nsHTMLReflowMetrics& aNewDesiredSize)
       nsSize(aNewDesiredSize.width, aNewDesiredSize.height));
 }
 
+static void
+InvalidateRectForFrameSizeChange(nsIFrame* aFrame, const nsRect& aRect)
+{
+  const nsStyleBackground* bg;
+  if (!nsCSSRendering::FindBackground(aFrame->PresContext(), aFrame, &bg)) {
+    nsIFrame* rootFrame =
+      aFrame->PresContext()->PresShell()->FrameManager()->GetRootFrame();
+    rootFrame->Invalidate(nsRect(nsPoint(0, 0), rootFrame->GetSize()));
+  }
+
+  aFrame->Invalidate(aRect);
+}
+
 void
 nsIFrame::CheckInvalidateSizeChange(const nsRect& aOldRect,
                                     const nsRect& aOldOverflowRect,
@@ -3959,12 +3972,18 @@ nsIFrame::CheckInvalidateSizeChange(const nsRect& aOldRect,
   
 
   
+  
+  
+  
+  
+
+  
   PRBool anyOutlineOrEffects;
   nsRect r = ComputeOutlineAndEffectsRect(this, &anyOutlineOrEffects,
                                           aOldOverflowRect, PR_FALSE);
   if (anyOutlineOrEffects) {
     r.UnionRect(aOldOverflowRect, r);
-    Invalidate(r);
+    InvalidateRectForFrameSizeChange(this, r);
     return;
   }
 
@@ -3984,7 +4003,7 @@ nsIFrame::CheckInvalidateSizeChange(const nsRect& aOldRect,
         
         continue;
       }
-      Invalidate(nsRect(0, 0, aOldRect.width, aOldRect.height));
+      InvalidateRectForFrameSizeChange(this, nsRect(0, 0, aOldRect.width, aOldRect.height));
       return;
     }
   }
@@ -3995,9 +4014,8 @@ nsIFrame::CheckInvalidateSizeChange(const nsRect& aOldRect,
     
     NS_FOR_VISIBLE_BACKGROUND_LAYERS_BACK_TO_FRONT(i, bg) {
       const nsStyleBackground::Layer &layer = bg->mLayers[i];
-      if (!layer.mImage.IsEmpty() &&
-          (layer.mPosition.mXIsPercent || layer.mPosition.mYIsPercent)) {
-        Invalidate(nsRect(0, 0, aOldRect.width, aOldRect.height));
+      if (layer.RenderingMightDependOnFrameSize()) {
+        InvalidateRectForFrameSizeChange(this, nsRect(0, 0, aOldRect.width, aOldRect.height));
         return;
       }
     }
@@ -4008,7 +4026,7 @@ nsIFrame::CheckInvalidateSizeChange(const nsRect& aOldRect,
     
     
     if (nsLayoutUtils::HasNonZeroCorner(border->mBorderRadius)) {
-      Invalidate(nsRect(0, 0, aOldRect.width, aOldRect.height));
+      InvalidateRectForFrameSizeChange(this, nsRect(0, 0, aOldRect.width, aOldRect.height));
       return;
     }
   }

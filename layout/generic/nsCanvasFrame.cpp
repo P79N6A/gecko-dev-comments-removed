@@ -620,6 +620,38 @@ nsCanvasFrame::Reflow(nsPresContext*           aPresContext,
                                 &absPosBounds);
       aDesiredSize.mOverflowArea.UnionRect(aDesiredSize.mOverflowArea, absPosBounds);
     }
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    if (nsSize(aDesiredSize.width, aDesiredSize.height) != GetSize()) {
+      nsIFrame* rootElementFrame =
+        aPresContext->PresShell()->FrameConstructor()->GetRootElementStyleFrame();
+      const nsStyleBackground* bg =
+        nsCSSRendering::FindCanvasBackground(this, rootElementFrame);
+      if (!bg->IsTransparent()) {
+        NS_FOR_VISIBLE_BACKGROUND_LAYERS_BACK_TO_FRONT(i, bg) {
+          const nsStyleBackground::Layer& layer = bg->mLayers[i];
+          if (layer.mAttachment == NS_STYLE_BG_ATTACHMENT_FIXED &&
+              layer.RenderingMightDependOnFrameSize()) {
+            Invalidate(nsRect(nsPoint(0, 0), GetSize()));
+            break;
+          }
+        }
+      }
+    }
   }
 
   if (prevCanvasFrame) {

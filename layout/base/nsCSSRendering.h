@@ -174,6 +174,30 @@ struct nsCSSRendering {
 
 
 
+
+
+  static const nsStyleBackground*
+  FindCanvasBackground(nsIFrame* aForFrame, nsIFrame* aRootElementFrame)
+  {
+    NS_ABORT_IF_FALSE(IsCanvasFrame(aForFrame), "not a canvas frame");
+    if (aRootElementFrame)
+      return FindRootFrameBackground(aRootElementFrame);
+
+    
+    
+    
+    return aForFrame->GetStyleBackground();
+  }
+
+  
+
+
+
+
+
+
+
+
   static nsStyleContext*
   FindNonTransparentBackground(nsStyleContext* aContext,
                                PRBool aStartAtParent = PR_FALSE);
