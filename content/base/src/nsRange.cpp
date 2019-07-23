@@ -260,7 +260,7 @@ nsRange::CharacterDataChanged(nsIDocument* aDocument,
       aInfo->mChangeStart < (PRUint32)mStartOffset) {
     
     
-    mStartOffset = (PRUint32)mStartOffset < aInfo->mChangeEnd ?
+    mStartOffset = (PRUint32)mStartOffset <= aInfo->mChangeEnd ?
        aInfo->mChangeStart :
        mStartOffset + aInfo->mChangeStart - aInfo->mChangeEnd +
          aInfo->mReplaceLength;
@@ -268,7 +268,7 @@ nsRange::CharacterDataChanged(nsIDocument* aDocument,
 
   
   if (aContent == mEndParent && aInfo->mChangeStart < (PRUint32)mEndOffset) {
-    mEndOffset = (PRUint32)mEndOffset < aInfo->mChangeEnd ?
+    mEndOffset = (PRUint32)mEndOffset <= aInfo->mChangeEnd ?
        aInfo->mChangeStart :
        mEndOffset + aInfo->mChangeStart - aInfo->mChangeEnd +
          aInfo->mReplaceLength;
