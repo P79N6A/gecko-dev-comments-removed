@@ -2467,6 +2467,12 @@ JS_ReportErrorFlagsAndNumberUC(JSContext *cx, uintN flags,
 extern JS_PUBLIC_API(void)
 JS_ReportOutOfMemory(JSContext *cx);
 
+
+
+
+extern JS_PUBLIC_API(void)
+JS_ReportAllocationOverflow(JSContext *cx);
+
 struct JSErrorReport {
     const char      *filename;      
     uintN           lineno;         
