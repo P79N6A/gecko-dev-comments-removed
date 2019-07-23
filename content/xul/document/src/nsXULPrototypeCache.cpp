@@ -269,9 +269,27 @@ nsXULPrototypeCache::GetScript(nsIURI* aURI, PRUint32 *aLangID)
 }
 
 
+
+PR_STATIC_CALLBACK(PLDHashOperator)
+ReleaseScriptObjectCallback(nsIURI* aKey, CacheScriptEntry &aData, void* aClosure)
+{
+    nsCOMPtr<nsIScriptRuntime> rt;
+    if (NS_SUCCEEDED(NS_GetScriptRuntimeByID(aData.mScriptTypeID, getter_AddRefs(rt))))
+        rt->DropScriptObject(aData.mScriptObject);
+    return PL_DHASH_REMOVE;
+}
+
 nsresult
 nsXULPrototypeCache::PutScript(nsIURI* aURI, PRUint32 aLangID, void* aScriptObject)
 {
+    CacheScriptEntry existingEntry;
+    if (mScriptTable.Get(aURI, &existingEntry)) {
+        NS_WARNING("loaded the same script twice (bug 392650)");
+
+        
+        ReleaseScriptObjectCallback(aURI, existingEntry, nsnull);
+    }
+
     CacheScriptEntry entry = {aLangID, aScriptObject};
 
     NS_ENSURE_TRUE(mScriptTable.Put(aURI, entry), NS_ERROR_OUT_OF_MEMORY);
@@ -285,16 +303,6 @@ nsXULPrototypeCache::PutScript(nsIURI* aURI, PRUint32 aLangID, void* aScriptObje
 
     
     return rv;
-}
-
-
-PR_STATIC_CALLBACK(PLDHashOperator)
-ReleaseScriptObjectCallback(nsIURI* aKey, CacheScriptEntry &aData, void* aClosure)
-{
-    nsCOMPtr<nsIScriptRuntime> rt;
-    if (NS_SUCCEEDED(NS_GetScriptRuntimeByID(aData.mScriptTypeID, getter_AddRefs(rt))))
-        rt->DropScriptObject(aData.mScriptObject);
-    return PL_DHASH_REMOVE;
 }
 
 void
