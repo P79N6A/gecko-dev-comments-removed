@@ -311,4 +311,17 @@ void LogTerm();
 #endif
 #endif
 
+extern PRBool gXPCOMShuttingDown;
+
+namespace mozilla {
+namespace services {
+
+
+
+
+void Shutdown();
+
+} 
+} 
+
 #endif
