@@ -986,10 +986,6 @@ function delayedStartup(isLoadingBlank, mustLoadSidebar) {
 
   UpdateUrlbarSearchSplitterState();
   
-  try {
-    placesMigrationTasks();
-  } catch(ex) {}
-
   PlacesStarButton.init();
 
   
