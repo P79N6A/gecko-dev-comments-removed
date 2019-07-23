@@ -1319,7 +1319,8 @@ PRBool nsHTMLTableAccessible::HasDescendant(const char *aTagName, PRBool aAllowE
   return length > 0;
 }
 
-NS_IMETHODIMP nsHTMLTableAccessible::IsProbablyForLayout(PRBool *aIsProbablyForLayout)
+NS_IMETHODIMP
+nsHTMLTableAccessible::IsProbablyForLayout(PRBool *aIsProbablyForLayout)
 {
   
   
@@ -1355,6 +1356,7 @@ NS_IMETHODIMP nsHTMLTableAccessible::IsProbablyForLayout(PRBool *aIsProbablyForL
   }
 
   
+  
   PRBool hasNonTableRole =
     (nsAccUtils::Role(this) != nsIAccessibleRole::ROLE_TABLE);
   if (hasNonTableRole) {
@@ -1362,7 +1364,10 @@ NS_IMETHODIMP nsHTMLTableAccessible::IsProbablyForLayout(PRBool *aIsProbablyForL
   }
 
   if (content->HasAttr(kNameSpaceID_None, nsAccessibilityAtoms::role)) {
-    RETURN_LAYOUT_ANSWER(PR_TRUE, "Has role attribute, and role is table");
+    
+    
+    
+    RETURN_LAYOUT_ANSWER(PR_FALSE, "Has role attribute, weak role, and role is table");
   }
   
   
