@@ -5636,22 +5636,6 @@ CloneSimpleValues(JSContext* cx,
   JSObject* obj = JSVAL_TO_OBJECT(val);
 
   
-  
-  nsCOMPtr<nsIXPConnectWrappedNative> wrapper;
-  nsContentUtils::XPConnect()->
-    GetWrappedNativeOfJSObject(cx, obj, getter_AddRefs(wrapper));
-  if (wrapper) {
-    return SetPropertyOnValueOrObject(cx, JSVAL_NULL, rval, robj, rid);
-  }
-
-  
-  JSClass* clasp = JS_GET_CLASS(cx, obj);
-  if ((clasp->flags & JSCLASS_IS_EXTENDED) &&
-      ((JSExtendedClass*)clasp)->wrappedObject) {
-    return SetPropertyOnValueOrObject(cx, JSVAL_NULL, rval, robj, rid);
-  }
-
-  
   JSObject* newArray;
   if (!js_CloneDensePrimitiveArray(cx, obj, &newArray)) {
     return NS_ERROR_FAILURE;
@@ -5659,11 +5643,6 @@ CloneSimpleValues(JSContext* cx,
   if (newArray) {
     return SetPropertyOnValueOrObject(cx, OBJECT_TO_JSVAL(newArray), rval, robj,
                                       rid);
-  }
-
-  
-  if (JS_ObjectIsFunction(cx, obj)) {
-    return SetPropertyOnValueOrObject(cx, JSVAL_NULL, rval, robj, rid);
   }
 
   
@@ -5719,6 +5698,27 @@ CloneSimpleValues(JSContext* cx,
   
   
   
+
+  
+  if (JS_ObjectIsFunction(cx, obj)) {
+    return NS_ERROR_DOM_NOT_SUPPORTED_ERR;
+  }
+
+  
+  JSClass* clasp = JS_GET_CLASS(cx, obj);
+  if ((clasp->flags & JSCLASS_IS_EXTENDED) &&
+      ((JSExtendedClass*)clasp)->wrappedObject) {
+    return NS_ERROR_DOM_NOT_SUPPORTED_ERR;
+  }
+
+  
+  
+  nsCOMPtr<nsIXPConnectWrappedNative> wrapper;
+  nsContentUtils::XPConnect()->
+    GetWrappedNativeOfJSObject(cx, obj, getter_AddRefs(wrapper));
+  if (wrapper) {
+    return NS_ERROR_DOM_NOT_SUPPORTED_ERR;
+  }
 
   *wasCloned = PR_FALSE;
   return NS_OK;
