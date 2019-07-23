@@ -514,11 +514,11 @@ ensure_tree_header_cell_widget()
         firstTreeViewColumn = gtk_tree_view_column_new();
         gtk_tree_view_column_set_title(firstTreeViewColumn, "M");
         gtk_tree_view_append_column(GTK_TREE_VIEW(gTreeViewWidget), firstTreeViewColumn);
-        
+
         middleTreeViewColumn = gtk_tree_view_column_new();
         gtk_tree_view_column_set_title(middleTreeViewColumn, "M");
         gtk_tree_view_append_column(GTK_TREE_VIEW(gTreeViewWidget), middleTreeViewColumn);
-        
+
         lastTreeViewColumn = gtk_tree_view_column_new();
         gtk_tree_view_column_set_title(lastTreeViewColumn, "M");
         gtk_tree_view_append_column(GTK_TREE_VIEW(gTreeViewWidget), lastTreeViewColumn);
