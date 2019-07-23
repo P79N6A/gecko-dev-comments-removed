@@ -36,8 +36,8 @@
 
 
 
-#ifndef nsDOMStorageDB_h___
-#define nsDOMStorageDB_h___
+#ifndef nsDOMStoragePersistentDB_h___
+#define nsDOMStoragePersistentDB_h___
 
 #include "nscore.h"
 #include "mozIStorageConnection.h"
@@ -47,44 +47,11 @@
 class nsDOMStorage;
 class nsSessionStorageEntry;
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-class nsDOMStorageDB
+class nsDOMStoragePersistentDB
 {
 public:
-  nsDOMStorageDB() {}
-  ~nsDOMStorageDB() {}
+  nsDOMStoragePersistentDB() {}
+  ~nsDOMStoragePersistentDB() {}
 
   nsresult
   Init();
@@ -175,24 +142,7 @@ public:
   
 
 
-
-
-  static nsresult CreateOriginScopeDBKey(nsIURI* aUri, nsACString& aKey);
-
-  
-
-
-
-  static nsresult CreateDomainScopeDBKey(nsIURI* aUri, nsACString& aKey);
-  static nsresult CreateDomainScopeDBKey(const nsACString& aAsciiDomain, nsACString& aKey);
-
-  
-
-
-
-
-  static nsresult CreateQuotaDomainDBKey(const nsACString& aAsciiDomain,
-                                         PRBool aIncludeSubDomains, nsACString& aKey);
+  nsresult ClearAllPrivateBrowsingData();
 
 protected:
 
@@ -212,6 +162,8 @@ protected:
   nsCString mCachedOwner;
   PRInt32 mCachedUsage;
 
+  friend class nsDOMStorageDBWrapper;
+  friend class nsDOMStorageMemoryDB;
   nsresult
   GetUsageInternal(const nsACString& aQuotaDomainDBKey, PRInt32 *aUsage);
 };

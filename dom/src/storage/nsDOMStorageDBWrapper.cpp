@@ -1,0 +1,361 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#include "nsCOMPtr.h"
+#include "nsDOMError.h"
+#include "nsDOMStorage.h"
+#include "nsDOMStorageDBWrapper.h"
+#include "nsIFile.h"
+#include "nsIVariant.h"
+#include "nsIEffectiveTLDService.h"
+#include "nsAppDirectoryServiceDefs.h"
+#include "mozStorageCID.h"
+#include "mozStorageHelper.h"
+#include "mozIStorageService.h"
+#include "mozIStorageValueArray.h"
+#include "mozIStorageFunction.h"
+#include "nsPrintfCString.h"
+#include "nsNetUtil.h"
+
+void ReverseString(const nsCSubstring& source, nsCSubstring& result)
+{
+  nsACString::const_iterator sourceBegin, sourceEnd;
+  source.BeginReading(sourceBegin);
+  source.EndReading(sourceEnd);
+
+  result.SetLength(source.Length());
+  nsACString::iterator destEnd;
+  result.EndWriting(destEnd);
+
+  while (sourceBegin != sourceEnd) {
+    *(--destEnd) = *sourceBegin;
+    ++sourceBegin;
+  }
+}
+
+nsresult
+nsDOMStorageDBWrapper::Init()
+{
+  nsresult rv;
+
+  rv = mPersistentDB.Init();
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  rv = mSessionOnlyDB.Init(&mPersistentDB);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  rv = mPrivateBrowsingDB.Init();
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  return NS_OK;
+}
+
+nsresult
+nsDOMStorageDBWrapper::GetAllKeys(nsDOMStorage* aStorage,
+                                  nsTHashtable<nsSessionStorageEntry>* aKeys)
+{
+  if (nsDOMStorageManager::gStorageManager->InPrivateBrowsingMode())
+    return mPrivateBrowsingDB.GetAllKeys(aStorage, aKeys);
+  if (aStorage->SessionOnly())
+    return mSessionOnlyDB.GetAllKeys(aStorage, aKeys);
+
+  return mPersistentDB.GetAllKeys(aStorage, aKeys);
+}
+
+nsresult
+nsDOMStorageDBWrapper::GetKeyValue(nsDOMStorage* aStorage,
+                                   const nsAString& aKey,
+                                   nsAString& aValue,
+                                   PRBool* aSecure)
+{
+  if (nsDOMStorageManager::gStorageManager->InPrivateBrowsingMode())
+    return mPrivateBrowsingDB.GetKeyValue(aStorage, aKey, aValue, aSecure);
+  if (aStorage->SessionOnly())
+    return mSessionOnlyDB.GetKeyValue(aStorage, aKey, aValue, aSecure);
+
+  return mPersistentDB.GetKeyValue(aStorage, aKey, aValue, aSecure);
+}
+
+nsresult
+nsDOMStorageDBWrapper::SetKey(nsDOMStorage* aStorage,
+                              const nsAString& aKey,
+                              const nsAString& aValue,
+                              PRBool aSecure,
+                              PRInt32 aQuota,
+                              PRInt32 *aNewUsage)
+{
+  if (nsDOMStorageManager::gStorageManager->InPrivateBrowsingMode())
+    return mPrivateBrowsingDB.SetKey(aStorage, aKey, aValue, aSecure,
+                                          aQuota, aNewUsage);
+  if (aStorage->SessionOnly())
+    return mSessionOnlyDB.SetKey(aStorage, aKey, aValue, aSecure,
+                                      aQuota, aNewUsage);
+
+  return mPersistentDB.SetKey(aStorage, aKey, aValue, aSecure,
+                                   aQuota, aNewUsage);
+}
+
+nsresult
+nsDOMStorageDBWrapper::SetSecure(nsDOMStorage* aStorage,
+                                 const nsAString& aKey,
+                                 const PRBool aSecure)
+{
+  if (nsDOMStorageManager::gStorageManager->InPrivateBrowsingMode())
+    return mPrivateBrowsingDB.SetSecure(aStorage, aKey, aSecure);
+  if (aStorage->SessionOnly())
+    return mSessionOnlyDB.SetSecure(aStorage, aKey, aSecure);
+
+  return mPersistentDB.SetSecure(aStorage, aKey, aSecure);
+}
+
+nsresult
+nsDOMStorageDBWrapper::RemoveKey(nsDOMStorage* aStorage,
+                                 const nsAString& aKey,
+                                 PRInt32 aKeyUsage)
+{
+  if (nsDOMStorageManager::gStorageManager->InPrivateBrowsingMode())
+    return mPrivateBrowsingDB.RemoveKey(aStorage, aKey, aKeyUsage);
+  if (aStorage->SessionOnly())
+    return mSessionOnlyDB.RemoveKey(aStorage, aKey, aKeyUsage);
+
+  return mPersistentDB.RemoveKey(aStorage, aKey, aKeyUsage);
+}
+
+nsresult
+nsDOMStorageDBWrapper::ClearStorage(nsDOMStorage* aStorage)
+{
+  if (nsDOMStorageManager::gStorageManager->InPrivateBrowsingMode())
+    return mPrivateBrowsingDB.ClearStorage(aStorage);
+  if (aStorage->SessionOnly())
+    return mSessionOnlyDB.ClearStorage(aStorage);
+
+  return mPersistentDB.ClearStorage(aStorage);
+}
+
+nsresult
+nsDOMStorageDBWrapper::DropSessionOnlyStoragesForHost(const nsACString& aHostName)
+{
+  return mSessionOnlyDB.RemoveOwner(aHostName, PR_TRUE);
+}
+
+nsresult
+nsDOMStorageDBWrapper::DropPrivateBrowsingStorages()
+{
+  return mPrivateBrowsingDB.RemoveAll();
+}
+
+nsresult
+nsDOMStorageDBWrapper::RemoveOwner(const nsACString& aOwner,
+                                   PRBool aIncludeSubDomains)
+{
+  nsresult rv;
+
+  rv = mPrivateBrowsingDB.RemoveOwner(aOwner, aIncludeSubDomains);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  if (nsDOMStorageManager::gStorageManager->InPrivateBrowsingMode())
+    return NS_OK;
+
+  rv = mSessionOnlyDB.RemoveOwner(aOwner, aIncludeSubDomains);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  rv = mPersistentDB.RemoveOwner(aOwner, aIncludeSubDomains);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  return rv;
+}
+
+
+nsresult
+nsDOMStorageDBWrapper::RemoveOwners(const nsTArray<nsString> &aOwners,
+                                    PRBool aIncludeSubDomains, PRBool aMatch)
+{
+  nsresult rv;
+
+  rv = mPrivateBrowsingDB.RemoveOwners(aOwners, aIncludeSubDomains, aMatch);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  if (nsDOMStorageManager::gStorageManager->InPrivateBrowsingMode())
+    return NS_OK;
+
+  rv = mSessionOnlyDB.RemoveOwners(aOwners, aIncludeSubDomains, aMatch);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  rv = mPersistentDB.RemoveOwners(aOwners, aIncludeSubDomains, aMatch);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  return rv;
+}
+
+nsresult
+nsDOMStorageDBWrapper::RemoveAll()
+{
+  nsresult rv;
+
+  rv = mPrivateBrowsingDB.RemoveAll();
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  if (nsDOMStorageManager::gStorageManager->InPrivateBrowsingMode())
+    return NS_OK;
+
+  rv = mSessionOnlyDB.RemoveAll();
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  rv = mPersistentDB.RemoveAll();
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  return rv;
+}
+
+nsresult
+nsDOMStorageDBWrapper::GetUsage(nsDOMStorage* aStorage, PRInt32 *aUsage)
+{
+  if (nsDOMStorageManager::gStorageManager->InPrivateBrowsingMode())
+    return mPrivateBrowsingDB.GetUsage(aStorage, aUsage);
+  if (aStorage->SessionOnly())
+    return mSessionOnlyDB.GetUsage(aStorage, aUsage);
+
+  return mPersistentDB.GetUsage(aStorage, aUsage);
+}
+
+nsresult
+nsDOMStorageDBWrapper::GetUsage(const nsACString& aDomain,
+                                PRBool aIncludeSubDomains, PRInt32 *aUsage)
+{
+  if (nsDOMStorageManager::gStorageManager->InPrivateBrowsingMode())
+    return mPrivateBrowsingDB.GetUsage(aDomain, aIncludeSubDomains, aUsage);
+
+#if 0
+  
+  
+  nsresult rv;
+  rv = mSessionOnlyDB.GetUsage(aDomain, aIncludeSubDomains, aUsage);
+  if (NS_SUECEEDED(rv))
+    return rv;
+#endif
+
+  return mPersistentDB.GetUsage(aDomain, aIncludeSubDomains, aUsage);
+}
+
+nsresult
+nsDOMStorageDBWrapper::CreateOriginScopeDBKey(nsIURI* aUri, nsACString& aKey)
+{
+  nsresult rv;
+
+  rv = CreateDomainScopeDBKey(aUri, aKey);
+  if (NS_FAILED(rv))
+    return rv;
+
+  nsCAutoString scheme;
+  rv = aUri->GetScheme(scheme);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  aKey.AppendLiteral(":");
+  aKey.Append(scheme);
+
+  PRInt32 port = NS_GetRealPort(aUri);
+  if (port != -1) {
+    aKey.AppendLiteral(":");
+    aKey.Append(nsPrintfCString(32, "%d", port));
+  }
+
+  return NS_OK;
+}
+
+nsresult
+nsDOMStorageDBWrapper::CreateDomainScopeDBKey(nsIURI* aUri, nsACString& aKey)
+{
+  nsresult rv;
+
+  nsCAutoString host;
+  rv = aUri->GetAsciiHost(host);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  rv = CreateDomainScopeDBKey(host, aKey);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  return NS_OK;
+}
+
+nsresult
+nsDOMStorageDBWrapper::CreateDomainScopeDBKey(const nsACString& aAsciiDomain,
+                                              nsACString& aKey)
+{
+  if (aAsciiDomain.IsEmpty())
+    return NS_ERROR_NOT_AVAILABLE;
+
+  ReverseString(aAsciiDomain, aKey);
+
+  aKey.AppendLiteral(".");
+  return NS_OK;
+}
+
+nsresult
+nsDOMStorageDBWrapper::CreateQuotaDomainDBKey(const nsACString& aAsciiDomain,
+                                              PRBool aIncludeSubDomains,
+                                              nsACString& aKey)
+{
+  nsresult rv;
+
+  nsCOMPtr<nsIEffectiveTLDService> eTLDService(do_GetService(
+    NS_EFFECTIVETLDSERVICE_CONTRACTID, &rv));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  nsCOMPtr<nsIURI> uri;
+  rv = NS_NewURI(getter_AddRefs(uri), NS_LITERAL_CSTRING("http://") + aAsciiDomain);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  nsCAutoString eTLDplusOne;
+  rv = eTLDService->GetBaseDomain(uri, 0, eTLDplusOne);
+  if (NS_ERROR_INSUFFICIENT_DOMAIN_LEVELS == rv) {
+    
+    eTLDplusOne = aAsciiDomain;
+    rv = NS_OK;
+  }
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  nsCAutoString subdomainsDBKey;
+  CreateDomainScopeDBKey(eTLDplusOne, subdomainsDBKey);
+
+  if (!aIncludeSubDomains)
+    subdomainsDBKey.AppendLiteral(":");
+
+  aKey.Assign(subdomainsDBKey);
+  return NS_OK;
+}
