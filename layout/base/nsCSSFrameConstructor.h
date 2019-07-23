@@ -1568,6 +1568,7 @@ private:
                                    nsIPresShell*    aPresShell,
                                    nsFrameManager*  aFrameManager,
                                    nsIFrame*        aFrame,
+                                   nsIFrame*        aBlockFrame,
                                    PRBool*          aStopLooking);
 
   
