@@ -120,6 +120,8 @@ nsXULButtonAccessible::GetState(PRUint32 *aState, PRUint32 *aExtraState)
   
   nsresult rv = nsAccessible::GetState(aState, aExtraState);
   NS_ENSURE_SUCCESS(rv, rv);
+  if (!mDOMNode)
+    return NS_OK;
 
   PRBool disabled = PR_FALSE;
   nsCOMPtr<nsIDOMXULControlElement> xulFormElement(do_QueryInterface(mDOMNode));
@@ -293,6 +295,12 @@ NS_IMETHODIMP
 nsXULDropmarkerAccessible::GetState(PRUint32 *aState, PRUint32 *aExtraState)
 {
   *aState = 0;
+  if (!mDOMNode) {
+    if (aExtraState) {
+      *aExtraState = nsIAccessibleStates::EXT_STATE_DEFUNCT;
+    }
+    return NS_OK;
+  }
   if (aExtraState)
     *aExtraState = 0;
 
@@ -372,6 +380,8 @@ nsXULCheckboxAccessible::GetState(PRUint32 *aState, PRUint32 *aExtraState)
   
   nsresult rv = nsFormControlAccessible::GetState(aState, aExtraState);
   NS_ENSURE_SUCCESS(rv, rv);
+  if (!mDOMNode)
+    return NS_OK;
   
   *aState |= nsIAccessibleStates::STATE_CHECKABLE;
   
@@ -473,16 +483,6 @@ NS_IMETHODIMP nsXULProgressMeterAccessible::GetRole(PRUint32 *_retval)
   return NS_OK;
 }
 
-NS_IMETHODIMP
-nsXULProgressMeterAccessible::GetState(PRUint32 *aState, PRUint32 *aExtraState)
-{
-  nsresult rv = nsAccessible::GetState(aState, aExtraState);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  *aState &= ~nsIAccessibleStates::STATE_FOCUSABLE; 
-  return NS_OK;
-}
-
 NS_IMETHODIMP nsXULProgressMeterAccessible::GetValue(nsAString& aValue)
 {
   aValue.Truncate();
@@ -557,6 +557,8 @@ nsXULRadioButtonAccessible::GetState(PRUint32 *aState, PRUint32 *aExtraState)
 {
   nsresult rv = nsFormControlAccessible::GetState(aState, aExtraState);
   NS_ENSURE_SUCCESS(rv, rv);
+  if (!mDOMNode)
+    return NS_OK;
 
   *aState |= nsIAccessibleStates::STATE_CHECKABLE;
   
@@ -616,9 +618,10 @@ nsXULRadioGroupAccessible::GetState(PRUint32 *aState, PRUint32 *aExtraState)
   
   nsresult rv = nsAccessible::GetState(aState, aExtraState);
   NS_ENSURE_SUCCESS(rv, rv);
-
-  *aState &= ~(nsIAccessibleStates::STATE_FOCUSABLE |
-               nsIAccessibleStates::STATE_FOCUSED);
+  if (mDOMNode) {
+    *aState &= ~(nsIAccessibleStates::STATE_FOCUSABLE |
+                 nsIAccessibleStates::STATE_FOCUSED);
+  }
 
   return NS_OK;
 }
@@ -719,16 +722,6 @@ NS_IMETHODIMP nsXULToolbarAccessible::GetRole(PRUint32 *_retval)
   return NS_OK;
 }
 
-NS_IMETHODIMP
-nsXULToolbarAccessible::GetState(PRUint32 *aState, PRUint32 *aExtraState)
-{
-  nsresult rv = nsAccessible::GetState(aState, aExtraState);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  *aState &= ~nsIAccessibleStates::STATE_FOCUSABLE;  
-  return NS_OK;
-}
-
 
 
 
@@ -749,9 +742,9 @@ nsXULToolbarSeparatorAccessible::GetState(PRUint32 *aState,
                                           PRUint32 *aExtraState)
 {
   *aState = 0;  
-  if (aExtraState)
-    *aExtraState = 0;
-
+  if (aExtraState) {
+    *aExtraState = mDOMNode ? 0 : nsIAccessibleStates::EXT_STATE_DEFUNCT;
+  }
   return NS_OK;
 }
 

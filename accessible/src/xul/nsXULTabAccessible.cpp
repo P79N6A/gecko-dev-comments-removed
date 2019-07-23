@@ -101,6 +101,9 @@ nsXULTabAccessible::GetState(PRUint32 *aState, PRUint32 *aExtraState)
 {
   
   nsresult rv = nsLeafAccessible::GetState(aState, aExtraState);
+  if (!mDOMNode) {
+    return NS_OK;
+  }
   NS_ENSURE_SUCCESS(rv, rv);
 
   
@@ -254,17 +257,6 @@ NS_IMETHODIMP nsXULTabBoxAccessible::GetRole(PRUint32 *_retval)
   return NS_OK;
 }
 
-
-NS_IMETHODIMP
-nsXULTabBoxAccessible::GetState(PRUint32 *aState, PRUint32 *aExtraState)
-{
-  nsresult rv = nsAccessible::GetState(aState, aExtraState);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  *aState &= ~nsIAccessibleStates::STATE_FOCUSABLE;
-  return NS_OK;
-}
-
 #ifdef NEVER
 
 NS_IMETHODIMP nsXULTabBoxAccessible::GetChildCount(PRInt32 *_retval)
@@ -296,13 +288,6 @@ NS_IMETHODIMP nsXULTabsAccessible::GetNumActions(PRUint8 *_retval)
 {
   *_retval = 0;
   return NS_OK;
-}
-
-
-NS_IMETHODIMP
-nsXULTabsAccessible::GetState(PRUint32 *aState, PRUint32 *aExtraState)
-{
-  return nsAccessible::GetState(aState, aExtraState);
 }
 
 

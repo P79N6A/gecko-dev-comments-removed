@@ -58,9 +58,9 @@ nsXULAlertAccessible::GetState(PRUint32 *aState, PRUint32 *aExtraState)
 {
   nsresult rv = nsAccessible::GetState(aState, aExtraState);
   NS_ENSURE_SUCCESS(rv, rv);
-
-  *aState &= ~nsIAccessibleStates::STATE_FOCUSABLE;
-  *aState |= nsIAccessibleStates::STATE_ALERT_MEDIUM; 
+  if (mDOMNode) {
+    *aState |= nsIAccessibleStates::STATE_ALERT_MEDIUM; 
+  }
   return NS_OK;
 }
 
