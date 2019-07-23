@@ -843,28 +843,49 @@ nsCSSDeclaration::GetValue(nsCSSProperty aProperty,
       break;
     }
     case eCSSProperty_font: {
-      nsCSSValue style, variant, weight, size, lh, family, systemFont;
-      GetValueOrImportantValue(eCSSProperty__x_system_font, systemFont);
-      GetValueOrImportantValue(eCSSProperty_font_style, style);
-      GetValueOrImportantValue(eCSSProperty_font_variant, variant);
-      GetValueOrImportantValue(eCSSProperty_font_weight, weight);
-      GetValueOrImportantValue(eCSSProperty_font_size, size);
-      GetValueOrImportantValue(eCSSProperty_line_height, lh);
-      GetValueOrImportantValue(eCSSProperty_font_family, family);
+      
+      
+      const nsCSSValue *systemFont = static_cast<const nsCSSValue*>(
+        data->StorageFor(eCSSProperty__x_system_font));
+      const nsCSSValue &style = *static_cast<const nsCSSValue*>(
+        data->StorageFor(eCSSProperty_font_style));
+      const nsCSSValue &variant = *static_cast<const nsCSSValue*>(
+        data->StorageFor(eCSSProperty_font_variant));
+      const nsCSSValue &weight = *static_cast<const nsCSSValue*>(
+        data->StorageFor(eCSSProperty_font_weight));
+      const nsCSSValue &size = *static_cast<const nsCSSValue*>(
+        data->StorageFor(eCSSProperty_font_size));
+      const nsCSSValue &lh = *static_cast<const nsCSSValue*>(
+        data->StorageFor(eCSSProperty_line_height));
+      const nsCSSValue &family = *static_cast<const nsCSSValue*>(
+        data->StorageFor(eCSSProperty_font_family));
+      const nsCSSValue &stretch = *static_cast<const nsCSSValue*>(
+        data->StorageFor(eCSSProperty_font_stretch));
+      const nsCSSValue &sizeAdjust = *static_cast<const nsCSSValue*>(
+        data->StorageFor(eCSSProperty_font_size_adjust));
 
-      if (systemFont.GetUnit() != eCSSUnit_None &&
-          systemFont.GetUnit() != eCSSUnit_Null) {
-        AppendCSSValueToString(eCSSProperty__x_system_font, systemFont, aValue);
+      if (systemFont &&
+          systemFont->GetUnit() != eCSSUnit_None &&
+          systemFont->GetUnit() != eCSSUnit_Null) {
+        if (style.GetUnit() != eCSSUnit_System_Font ||
+            variant.GetUnit() != eCSSUnit_System_Font ||
+            weight.GetUnit() != eCSSUnit_System_Font ||
+            size.GetUnit() != eCSSUnit_System_Font ||
+            lh.GetUnit() != eCSSUnit_System_Font ||
+            family.GetUnit() != eCSSUnit_System_Font ||
+            stretch.GetUnit() != eCSSUnit_System_Font ||
+            sizeAdjust.GetUnit() != eCSSUnit_System_Font) {
+          
+          return NS_OK;
+        }
+        AppendCSSValueToString(eCSSProperty__x_system_font, *systemFont,
+                               aValue);
       } else {
         
         
         
-        const nsCSSValue *stretchValue = static_cast<const nsCSSValue*>(
-          data->StorageFor(eCSSProperty_font_stretch));
-        const nsCSSValue *sizeAdjustValue = static_cast<const nsCSSValue*>(
-          data->StorageFor(eCSSProperty_font_size_adjust));
-        if (*stretchValue != nsCSSValue(eCSSUnit_Normal) ||
-            *sizeAdjustValue != nsCSSValue(eCSSUnit_None)) {
+        if (stretch != nsCSSValue(eCSSUnit_Normal) ||
+            sizeAdjust != nsCSSValue(eCSSUnit_None)) {
           return NS_OK;
         }
 
@@ -996,6 +1017,15 @@ nsCSSDeclaration::AppendPropertyAndValueToString(nsCSSProperty aProperty,
 nsresult
 nsCSSDeclaration::ToString(nsAString& aString) const
 {
+  nsCSSCompressedDataBlock *systemFontData =
+    GetValueIsImportant(eCSSProperty__x_system_font) ? mImportantData : mData;
+  const nsCSSValue *systemFont = static_cast<const nsCSSValue*>(
+    systemFontData->StorageFor(eCSSProperty__x_system_font));
+  const PRBool haveSystemFont = systemFont &&
+                                systemFont->GetUnit() != eCSSUnit_None &&
+                                systemFont->GetUnit() != eCSSUnit_Null;
+  PRBool didSystemFont = PR_FALSE;
+
   PRInt32 count = mOrder.Length();
   PRInt32 index;
   nsAutoTArray<nsCSSProperty, 16> shorthandsUsed;
@@ -1035,6 +1065,35 @@ nsCSSDeclaration::ToString(nsAString& aString) const
         shorthandsUsed.AppendElement(shorthand);
         doneProperty = PR_TRUE;
         break;
+      }
+
+      NS_ASSERTION(shorthand != eCSSProperty_font ||
+                   *(shorthands + 1) == eCSSProperty_UNKNOWN,
+                   "font should always be the only containing shorthand");
+      if (shorthand == eCSSProperty_font && haveSystemFont) {
+        if (!didSystemFont) {
+          
+          
+          
+          AppendCSSValueToString(eCSSProperty__x_system_font, *systemFont,
+                                 value);
+          AppendPropertyAndValueToString(eCSSProperty_font, value, aString);
+          value.Truncate();
+          didSystemFont = PR_TRUE;
+        }
+
+        
+        
+        
+        
+        NS_ASSERTION(nsCSSProps::kTypeTable[property] == eCSSType_Value,
+                     "not a value typed subproperty");
+        const nsCSSValue *val = static_cast<const nsCSSValue*>(
+          systemFontData->StorageFor(property));
+        if (property == eCSSProperty__x_system_font ||
+            (val && val->GetUnit() == eCSSUnit_System_Font)) {
+          doneProperty = PR_TRUE;
+        }
       }
     }
     if (doneProperty)
