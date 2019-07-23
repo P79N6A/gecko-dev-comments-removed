@@ -1755,25 +1755,23 @@ NS_IMETHODIMP nsDocAccessible::InvalidateCacheSubtree(nsIContent *aChild,
       
       return InvalidateChildren();
     }
-    if (aChangeEventType == nsIAccessibleEvent::EVENT_DOM_CREATE) {
-      nsIEventStateManager *esm = presShell->GetPresContext()->EventStateManager();
-      NS_ENSURE_TRUE(esm, NS_ERROR_FAILURE);
-      if (!esm->IsHandlingUserInputExternal()) {
-        
-        
-        
-        nsCOMPtr<nsIAccessible> containerAccessible;
-        GetAccessibleInParentChain(childNode, PR_FALSE, getter_AddRefs(containerAccessible));
-        if (!containerAccessible) {
-          containerAccessible = this;
-        }
-        nsCOMPtr<nsPIAccessible> privateContainer = do_QueryInterface(containerAccessible);
-        return privateContainer->InvalidateChildren();
-      }     
+    nsIEventStateManager *esm = presShell->GetPresContext()->EventStateManager();
+    NS_ENSURE_TRUE(esm, NS_ERROR_FAILURE);
+    if (!esm->IsHandlingUserInputExternal()) {
       
       
       
-    }
+      nsCOMPtr<nsIAccessible> containerAccessible;
+      GetAccessibleInParentChain(childNode, PR_FALSE, getter_AddRefs(containerAccessible));
+      if (!containerAccessible) {
+        containerAccessible = this;
+      }
+      nsCOMPtr<nsPIAccessible> privateContainer = do_QueryInterface(containerAccessible);
+      return privateContainer->InvalidateChildren();
+    }     
+    
+    
+    
   }
 
   
