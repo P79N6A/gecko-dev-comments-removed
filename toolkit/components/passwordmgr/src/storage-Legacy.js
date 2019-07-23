@@ -816,8 +816,7 @@ LoginManagerStorage_legacy.prototype = {
 
         
         if (!this._signonsFile.exists()) {
-            this.log("Creating new signons file...");
-            this._writeFile();
+            this.log("No existing signons file found.");
             return;
         }
 
