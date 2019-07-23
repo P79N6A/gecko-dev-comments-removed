@@ -1927,7 +1927,22 @@ skip:
         for (; n != 0; fp = fp->down) {
             --n;
             if (fp->callee) {
+                
+
+
+
                 JS_ASSERT(JSVAL_IS_OBJECT(fp->argv[-1]));
+                JS_ASSERT(HAS_FUNCTION_CLASS(JSVAL_TO_OBJECT(fp->argv[-2])));
+                JS_ASSERT(GET_FUNCTION_PRIVATE(cx, JSVAL_TO_OBJECT(fp->argv[-2])) ==
+                          GET_FUNCTION_PRIVATE(cx, fp->callee));
+                fp->callee = JSVAL_TO_OBJECT(fp->argv[-2]);
+                
+
+
+
+
+                if (!fp->scopeChain)
+                    fp->scopeChain = OBJ_GET_PARENT(cx, fp->callee);
                 fp->thisp = JSVAL_TO_OBJECT(fp->argv[-1]);
                 if (fp->flags & JSFRAME_CONSTRUCTING) 
                     fp->flags |= JSFRAME_COMPUTED_THIS;
@@ -3534,7 +3549,7 @@ js_SynthesizeFrame(JSContext* cx, const FrameInfo& fi)
     newifp->frame.argsobj = NULL;
     newifp->frame.varobj = NULL;
     newifp->frame.script = script;
-    newifp->frame.callee = fi.callee;
+    newifp->frame.callee = fi.callee; 
     newifp->frame.fun = fun;
 
     bool constructing = (fi.s.argc & 0x8000) != 0;
@@ -3563,7 +3578,7 @@ js_SynthesizeFrame(JSContext* cx, const FrameInfo& fi)
     newifp->frame.rval = JSVAL_VOID;
     newifp->frame.down = fp;
     newifp->frame.annotation = NULL;
-    newifp->frame.scopeChain = OBJ_GET_PARENT(cx, fi.callee);
+    newifp->frame.scopeChain = NULL; 
     newifp->frame.sharpDepth = 0;
     newifp->frame.sharpArray = NULL;
     newifp->frame.flags = constructing ? JSFRAME_CONSTRUCTING : 0;
@@ -4593,12 +4608,6 @@ LeaveTree(InterpState& state, VMSideExit* lr)
     }
 
     
-    double* global = (double*)(&state + 1);
-    FlushNativeGlobalFrame(cx, ngslots, gslots, globalTypeMap, global);
-    JS_ASSERT(*(uint64*)&global[STOBJ_NSLOTS(JS_GetGlobalForObject(cx, cx->fp->scopeChain))] ==
-              0xdeadbeefdeadbeefLL);
-
-    
 #ifdef DEBUG
     int slots =
 #endif
@@ -4609,6 +4618,12 @@ LeaveTree(InterpState& state, VMSideExit* lr)
 
     if (innermost->nativeCalleeWord)
         SynthesizeSlowNativeFrame(cx, innermost);
+
+    
+    double* global = (double*)(&state + 1);
+    FlushNativeGlobalFrame(cx, ngslots, gslots, globalTypeMap, global);
+    JS_ASSERT(*(uint64*)&global[STOBJ_NSLOTS(JS_GetGlobalForObject(cx, cx->fp->scopeChain))] ==
+              0xdeadbeefdeadbeefLL);
 
     cx->nativeVp = NULL;
 
