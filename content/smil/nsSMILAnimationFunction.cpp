@@ -528,7 +528,7 @@ nsSMILAnimationFunction::ComputePacedPosition(const nsSMILValueArray& aValues,
 
     NS_ASSERTION(curIntervalDist >= 0, "distance values must be non-negative");
     
-    curIntervalDist = PR_MAX(curIntervalDist, 0.0f);
+    curIntervalDist = NS_MAX(curIntervalDist, 0.0);
 
     if (remainingDist >= curIntervalDist) {
       remainingDist -= curIntervalDist;
@@ -579,7 +579,7 @@ nsSMILAnimationFunction::ComputePacedTotalDistance(
     
     
     NS_ABORT_IF_FALSE(tmpDist >= 0.0f, "distance values must be non-negative");
-    tmpDist = PR_MAX(tmpDist, 0.0f);
+    tmpDist = NS_MAX(tmpDist, 0.0);
 
     totalDistance += tmpDist;
   }
