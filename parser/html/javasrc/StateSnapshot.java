@@ -23,26 +23,150 @@
 package nu.validator.htmlparser.impl;
 
 
-public class StateSnapshot<T> {
+public class StateSnapshot<T> implements TreeBuilderState<T> {
+
+    private final StackNode<T>[] stack;
+
+    private final StackNode<T>[] listOfActiveFormattingElements;
+
+    private final T formPointer;
+
+    private final T headPointer;
+
+    private final int mode;
+
+    private final int originalMode;
+    
+    private final boolean framesetOk;
+
+    private final int foreignFlag;
+
+    private final boolean needToDropLF;
+
+    private final boolean quirks;
 
     
+
+
+
+
+
 
 
 
 
     StateSnapshot(StackNode<T>[] stack,
-            StackNode<T>[] listOfActiveFormattingElements, T formPointer) {
+            StackNode<T>[] listOfActiveFormattingElements, T formPointer, T headPointer, int mode, int originalMode, boolean framesetOk, int foreignFlag, boolean needToDropLF, boolean quirks) {
         this.stack = stack;
         this.listOfActiveFormattingElements = listOfActiveFormattingElements;
         this.formPointer = formPointer;
+        this.headPointer = headPointer;
+        this.mode = mode;
+        this.originalMode = originalMode;
+        this.framesetOk = framesetOk;
+        this.foreignFlag = foreignFlag;
+        this.needToDropLF = needToDropLF;
+        this.quirks = quirks;
+    }
+    
+    
+
+
+    public StackNode<T>[] getStack() {
+        return stack;
     }
 
-    final StackNode<T>[] stack;
-
-    final StackNode<T>[] listOfActiveFormattingElements;
-
-    final T formPointer;
     
+
+
+    public StackNode<T>[] getListOfActiveFormattingElements() {
+        return listOfActiveFormattingElements;
+    }
+
+    
+
+
+    public T getFormPointer() {
+        return formPointer;
+    }
+
+    
+
+
+
+
+    public T getHeadPointer() {
+        return headPointer;
+    }
+
+    
+
+
+
+
+    public int getMode() {
+        return mode;
+    }
+
+    
+
+
+
+
+    public int getOriginalMode() {
+        return originalMode;
+    }
+
+    
+
+
+
+
+    public boolean isFramesetOk() {
+        return framesetOk;
+    }
+
+    
+
+
+
+
+    public int getForeignFlag() {
+        return foreignFlag;
+    }
+
+    
+
+
+
+
+    public boolean isNeedToDropLF() {
+        return needToDropLF;
+    }
+
+    
+
+
+
+
+    public boolean isQuirks() {
+        return quirks;
+    }
+    
+    
+
+
+    public int getListLength() {
+        return listOfActiveFormattingElements.length;
+    }
+
+    
+
+
+    public int getStackLength() {
+        return stack.length;
+    }
+
     @SuppressWarnings("unused") private void destructor() {
         for (int i = 0; i < stack.length; i++) {
             stack[i].release();

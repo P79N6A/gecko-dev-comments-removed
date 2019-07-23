@@ -35,10 +35,12 @@
 
 package nu.validator.htmlparser.impl;
 
+import nu.validator.htmlparser.annotation.Const;
 import nu.validator.htmlparser.annotation.Inline;
 import nu.validator.htmlparser.annotation.Local;
 import nu.validator.htmlparser.annotation.NoLength;
 import nu.validator.htmlparser.common.EncodingDeclarationHandler;
+import nu.validator.htmlparser.common.Interner;
 import nu.validator.htmlparser.common.TokenHandler;
 import nu.validator.htmlparser.common.XmlViolationPolicy;
 
@@ -64,17 +66,19 @@ import org.xml.sax.SAXParseException;
 
 public class Tokenizer implements Locator {
 
+    private static final int BUFFER_CLIP_THRESHOLD = 8000;
+
     public static final int DATA = 0;
 
     public static final int RCDATA = 1;
 
-    public static final int CDATA = 2;
+    public static final int SCRIPT_DATA = 2;
 
     public static final int PLAINTEXT = 3;
 
     private static final int TAG_OPEN = 4;
 
-    private static final int CLOSE_TAG_OPEN_PCDATA = 5;
+    private static final int CLOSE_TAG_OPEN = 5;
 
     private static final int TAG_NAME = 6;
 
@@ -138,7 +142,7 @@ public class Tokenizer implements Locator {
 
     private static final int COMMENT_END_BANG = 36;
 
-    private static final int CLOSE_TAG_OPEN_NOT_PCDATA = 37;
+    private static final int NON_DATA_END_TAG_NAME = 37;
 
     private static final int MARKUP_DECLARATION_HYPHEN = 38;
 
@@ -152,7 +156,7 @@ public class Tokenizer implements Locator {
 
     private static final int CONSUME_NCR = 43;
 
-    private static final int CHARACTER_REFERENCE_LOOP = 44;
+    private static final int CHARACTER_REFERENCE_TAIL = 44;
 
     private static final int HEX_NCR_LOOP = 45;
 
@@ -170,19 +174,45 @@ public class Tokenizer implements Locator {
 
     private static final int CDATA_RSQB_RSQB = 52;
 
-    private static final int TAG_OPEN_NON_PCDATA = 53;
+    private static final int SCRIPT_DATA_LESS_THAN_SIGN = 53;
 
-    private static final int ESCAPE_EXCLAMATION = 54;
+    private static final int SCRIPT_DATA_ESCAPE_START = 54;
 
-    private static final int ESCAPE_EXCLAMATION_HYPHEN = 55;
+    private static final int SCRIPT_DATA_ESCAPE_START_DASH = 55;
 
-    private static final int ESCAPE = 56;
+    private static final int SCRIPT_DATA_ESCAPED = 56;
 
-    private static final int ESCAPE_HYPHEN = 57;
+    private static final int SCRIPT_DATA_ESCAPED_DASH = 57;
 
-    private static final int ESCAPE_HYPHEN_HYPHEN = 58;
+    private static final int SCRIPT_DATA_ESCAPED_DASH_DASH = 58;
 
     private static final int BOGUS_COMMENT_HYPHEN = 59;
+
+    public static final int RAWTEXT = 60;
+
+    private static final int RAWTEXT_RCDATA_LESS_THAN_SIGN = 61;
+
+    private static final int AFTER_DOCTYPE_PUBLIC_KEYWORD = 62;
+
+    private static final int BETWEEN_DOCTYPE_PUBLIC_AND_SYSTEM_IDENTIFIERS = 63;
+
+    private static final int AFTER_DOCTYPE_SYSTEM_KEYWORD = 64;
+
+    private static final int SCRIPT_DATA_ESCAPED_LESS_THAN_SIGN = 65;
+
+    private static final int SCRIPT_DATA_DOUBLE_ESCAPE_START = 66;
+
+    private static final int SCRIPT_DATA_DOUBLE_ESCAPED = 67;
+
+    private static final int SCRIPT_DATA_DOUBLE_ESCAPED_LESS_THAN_SIGN = 68;
+
+    private static final int SCRIPT_DATA_DOUBLE_ESCAPED_DASH = 69;
+
+    private static final int SCRIPT_DATA_DOUBLE_ESCAPED_DASH_DASH = 70;
+
+    private static final int SCRIPT_DATA_DOUBLE_ESCAPE_END = 71;
+
+    private static final int CHARACTER_REFERENCE_HILO_LOOKUP = 72;
 
     
 
@@ -309,6 +339,8 @@ public class Tokenizer implements Locator {
 
     private int entCol;
 
+    private int firstCharKey;
+
     private int lo;
 
     private int hi;
@@ -367,10 +399,6 @@ public class Tokenizer implements Locator {
 
 
     
-    
-
-
-    private HtmlAttributes attributes;
 
     
 
@@ -440,6 +468,11 @@ public class Tokenizer implements Locator {
 
     
 
+
+    private HtmlAttributes attributes;
+
+    
+
     
 
 
@@ -468,6 +501,8 @@ public class Tokenizer implements Locator {
 
     private int line;
 
+    private Interner interner;
+
     
 
     protected LocatorImpl ampersandLocation;
@@ -478,6 +513,12 @@ public class Tokenizer implements Locator {
         this.newAttributesEachTime = newAttributesEachTime;
         this.bmpChar = new char[1];
         this.astralChar = new char[2];
+        this.tagName = null;
+        this.attributeName = null;
+        this.doctypeName = null;
+        this.publicIdentifier = null;
+        this.systemIdentifier = null;
+        this.attributes = null;
     }
 
     
@@ -496,6 +537,16 @@ public class Tokenizer implements Locator {
         
         this.bmpChar = new char[1];
         this.astralChar = new char[2];
+        this.tagName = null;
+        this.attributeName = null;
+        this.doctypeName = null;
+        this.publicIdentifier = null;
+        this.systemIdentifier = null;
+        this.attributes = null;
+    }
+
+    public void setInterner(Interner interner) {
+        this.interner = interner;
     }
 
     public void initLocation(String newPublicId, String newSystemId) {
@@ -626,7 +677,7 @@ public class Tokenizer implements Locator {
         
         char[] asArray = Portability.newCharArrayFromLocal(contentModelElement);
         this.contentModelElement = ElementName.elementNameByBuffer(asArray, 0,
-                asArray.length);
+                asArray.length, interner);
         Portability.releaseArray(asArray);
         contentModelElementToArray();
     }
@@ -749,14 +800,14 @@ public class Tokenizer implements Locator {
         
     }
 
-    private void clearStrBufAndAppendCurrentC(char c) {
+    @Inline private void clearStrBufAndAppendCurrentC(char c) {
         strBuf[0] = c;
 
         strBufLen = 1;
         
     }
 
-    private void clearStrBufAndAppendForceWrite(char c) {
+    @Inline private void clearStrBufAndAppendForceWrite(char c) {
         strBuf[0] = c; 
 
         strBufLen = 1;
@@ -764,7 +815,7 @@ public class Tokenizer implements Locator {
         
     }
 
-    private void clearStrBufForNextState() {
+    @Inline private void clearStrBufForNextState() {
         strBufLen = 0;
         
     }
@@ -775,39 +826,8 @@ public class Tokenizer implements Locator {
 
 
 
-    private void appendStrBuf(char c) {
-        
-        
-        
-        if (strBufLen == strBuf.length) {
-            char[] newBuf = new char[strBuf.length + Tokenizer.BUFFER_GROW_BY];
-            System.arraycopy(strBuf, 0, newBuf, 0, strBuf.length);
-            Portability.releaseArray(strBuf);
-            strBuf = newBuf;
-        }
+    @Inline private void appendStrBuf(char c) {
         strBuf[strBufLen++] = c;
-        
-    }
-
-    
-
-
-
-
-
-    private void appendStrBufForceWrite(char c) {
-        
-        
-        
-        
-        if (strBufLen == strBuf.length) {
-            char[] newBuf = new char[strBuf.length + Tokenizer.BUFFER_GROW_BY];
-            System.arraycopy(strBuf, 0, newBuf, 0, strBuf.length);
-            Portability.releaseArray(strBuf);
-            strBuf = newBuf;
-        }
-        strBuf[strBufLen++] = c;
-        
     }
 
     
@@ -833,7 +853,8 @@ public class Tokenizer implements Locator {
 
 
     private void strBufToDoctypeName() {
-        doctypeName = Portability.newLocalNameFromBuffer(strBuf, 0, strBufLen);
+        doctypeName = Portability.newLocalNameFromBuffer(strBuf, 0, strBufLen,
+                interner);
     }
 
     
@@ -852,23 +873,23 @@ public class Tokenizer implements Locator {
         }
     }
 
-    private void clearLongStrBufForNextState() {
+    @Inline private void clearLongStrBufForNextState() {
         
         longStrBufLen = 0;
     }
 
-    private void clearLongStrBuf() {
+    @Inline private void clearLongStrBuf() {
         
         longStrBufLen = 0;
     }
 
-    private void clearLongStrBufAndAppendCurrentC(char c) {
+    @Inline private void clearLongStrBufAndAppendCurrentC(char c) {
         longStrBuf[0] = c;
         longStrBufLen = 1;
         
     }
 
-    private void clearLongStrBufAndAppendToComment(char c) {
+    @Inline private void clearLongStrBufAndAppendToComment(char c) {
         longStrBuf[0] = c;
         
         longStrBufLen = 1;
@@ -880,18 +901,8 @@ public class Tokenizer implements Locator {
 
 
 
-    private void appendLongStrBuf(char c) {
-        
-        
-        
-        if (longStrBufLen == longStrBuf.length) {
-            char[] newBuf = new char[longStrBufLen + (longStrBufLen >> 1)];
-            System.arraycopy(longStrBuf, 0, newBuf, 0, longStrBuf.length);
-            Portability.releaseArray(longStrBuf);
-            longStrBuf = newBuf;
-        }
+    @Inline private void appendLongStrBuf(char c) {
         longStrBuf[longStrBufLen++] = c;
-        
     }
 
     private void appendSecondHyphenToBogusComment() throws SAXException {
@@ -956,39 +967,16 @@ public class Tokenizer implements Locator {
         
     }
 
-    private void appendLongStrBuf(char[] buffer, int offset, int length) {
-        int reqLen = longStrBufLen + length;
-        if (longStrBuf.length < reqLen) {
-            char[] newBuf = new char[reqLen + (reqLen >> 1)];
-            System.arraycopy(longStrBuf, 0, newBuf, 0, longStrBuf.length);
-            Portability.releaseArray(longStrBuf);
-            longStrBuf = newBuf;
-        }
+    @Inline private void appendLongStrBuf(char[] buffer, int offset, int length) {
         System.arraycopy(buffer, offset, longStrBuf, longStrBufLen, length);
-        longStrBufLen = reqLen;
+        longStrBufLen += length;
     }
 
     
 
 
-
-
-
-    private void appendLongStrBuf(char[] arr) {
-        
-        appendLongStrBuf(arr, 0, arr.length);
-    }
-
-    
-
-
-    private void appendStrBufToLongStrBuf() {
-        
-        
-        
-        
+    @Inline private void appendStrBufToLongStrBuf() {
         appendLongStrBuf(strBuf, 0, strBufLen);
-        
     }
 
     
@@ -1118,14 +1106,14 @@ public class Tokenizer implements Locator {
     
 
 
-    private void resetAttributes() {
+    @Inline private void resetAttributes() {
         
         if (newAttributesEachTime) {
+            
             attributes = null;
+            
         } else {
-            
             attributes.clear(mappingLangToXmlLang);
-            
         }
         
     }
@@ -1134,7 +1122,8 @@ public class Tokenizer implements Locator {
         
         
         
-        tagName = ElementName.elementNameByBuffer(strBuf, 0, strBufLen);
+        tagName = ElementName.elementNameByBuffer(strBuf, 0, strBufLen,
+                interner);
         
     }
 
@@ -1152,9 +1141,12 @@ public class Tokenizer implements Locator {
 
             maybeErrAttributesOnEndTag(attrs);
             tokenHandler.endTag(tagName);
+            Portability.delete(attributes);
         } else {
             tokenHandler.startTag(tagName, attrs, selfClosing);
         }
+        tagName.release();
+        tagName = null;
         resetAttributes();
         return stateSave;
     }
@@ -1167,15 +1159,13 @@ public class Tokenizer implements Locator {
         attributeName = AttributeName.nameByBuffer(strBuf, 0, strBufLen
         
                 , namePolicy != XmlViolationPolicy.ALLOW
-        
-        );
+                
+                , interner);
         
 
-        
         if (attributes == null) {
             attributes = new HtmlAttributes(mappingLangToXmlLang);
         }
-        
 
         
 
@@ -1193,6 +1183,8 @@ public class Tokenizer implements Locator {
     }
 
     private void addAttributeWithoutValue() throws SAXException {
+        noteAttributeWithoutValue();
+
         
         if (metaBoundaryPassed && AttributeName.CHARSET == attributeName
                 && ElementName.META == tagName) {
@@ -1231,6 +1223,8 @@ public class Tokenizer implements Locator {
                 
             }
             
+            attributeName = null; 
+            
         }
     }
 
@@ -1242,19 +1236,21 @@ public class Tokenizer implements Locator {
         }
         
         if (attributeName != null) {
-            String value = longStrBufToString(); 
+            String val = longStrBufToString(); 
             
             
             if (!endTag && html4 && html4ModeCompatibleWithXhtml1Schemata
                     && attributeName.isCaseFolded()) {
-                value = newAsciiLowerCaseStringFromString(value);
+                val = newAsciiLowerCaseStringFromString(val);
             }
             
-            attributes.addAttribute(attributeName, value
+            attributes.addAttribute(attributeName, val
             
                     , xmlnsPolicy
             
             );
+            attributeName = null; 
+            
         }
     }
 
@@ -1282,40 +1278,9 @@ public class Tokenizer implements Locator {
     }
 
     public void start() throws SAXException {
-        confident = false;
-        strBuf = new char[64];
-        strBufLen = 0;
-        longStrBuf = new char[1024];
-        longStrBufLen = 0;
-        stateSave = Tokenizer.DATA;
-        line = 1;
-        lastCR = false;
-        
-        html4 = false;
-        metaBoundaryPassed = false;
-        
+        initializeWithoutStarting();
         tokenHandler.startTokenization(this);
         
-        wantsComments = tokenHandler.wantsComments();
-        
-        index = 0;
-        forceQuirks = false;
-        additional = '\u0000';
-        entCol = -1;
-        lo = 0;
-        hi = (NamedCharacters.NAMES.length - 1);
-        candidate = -1;
-        strBufMark = 0;
-        prevValue = -1;
-        value = 0;
-        seenDigits = false;
-        shouldSuspend = false;
-        
-        if (!newAttributesEachTime) {
-            
-            attributes = new HtmlAttributes(mappingLangToXmlLang);
-            
-        }
         startErrorReporting();
         
     }
@@ -1328,6 +1293,7 @@ public class Tokenizer implements Locator {
         lastCR = false;
 
         int start = buffer.getStart();
+        int end = buffer.getEnd();
         
 
 
@@ -1342,14 +1308,21 @@ public class Tokenizer implements Locator {
         switch (state) {
             case DATA:
             case RCDATA:
-            case CDATA:
+            case SCRIPT_DATA:
             case PLAINTEXT:
+            case RAWTEXT:
             case CDATA_SECTION:
-            case ESCAPE:
-            case ESCAPE_EXCLAMATION:
-            case ESCAPE_EXCLAMATION_HYPHEN:
-            case ESCAPE_HYPHEN:
-            case ESCAPE_HYPHEN_HYPHEN:
+            case SCRIPT_DATA_ESCAPED:
+            case SCRIPT_DATA_ESCAPE_START:
+            case SCRIPT_DATA_ESCAPE_START_DASH:
+            case SCRIPT_DATA_ESCAPED_DASH:
+            case SCRIPT_DATA_ESCAPED_DASH_DASH:
+            case SCRIPT_DATA_DOUBLE_ESCAPE_START:
+            case SCRIPT_DATA_DOUBLE_ESCAPED:
+            case SCRIPT_DATA_DOUBLE_ESCAPED_LESS_THAN_SIGN:
+            case SCRIPT_DATA_DOUBLE_ESCAPED_DASH:
+            case SCRIPT_DATA_DOUBLE_ESCAPED_DASH_DASH:
+            case SCRIPT_DATA_DOUBLE_ESCAPE_END:
                 cstart = start;
                 break;
             default:
@@ -1357,14 +1330,16 @@ public class Tokenizer implements Locator {
                 break;
         }
 
+        ensureBufferSpace(end - start);
+
         
 
 
 
 
         pos = stateLoop(state, c, pos, buffer.getBuffer(), false, returnState,
-                buffer.getEnd());
-        if (pos == buffer.getEnd()) {
+                end);
+        if (pos == end) {
             
             buffer.setStart(pos);
         } else {
@@ -1373,10 +1348,111 @@ public class Tokenizer implements Locator {
         return lastCR;
     }
 
+    private void ensureBufferSpace(int addedLength) throws SAXException {
+        int newlongStrBufCapacity = longStrBufLen + addedLength;
+        if (newlongStrBufCapacity > Tokenizer.BUFFER_CLIP_THRESHOLD) {
+            longStrBuf[0] = '\u2026'; 
+            longStrBuf[1] = '\uFFFD'; 
+            longStrBufLen = 2;
+            newlongStrBufCapacity = 2 + addedLength;
+        }
+        if (newlongStrBufCapacity > longStrBuf.length) {
+            char[] newBuf = new char[newlongStrBufCapacity];
+            System.arraycopy(longStrBuf, 0, newBuf, 0, longStrBufLen);
+            Portability.releaseArray(longStrBuf);
+            longStrBuf = newBuf;
+        }
+        
+        int newStrBufCapacity = strBufLen + addedLength;
+        if (newStrBufCapacity > Tokenizer.BUFFER_CLIP_THRESHOLD) {
+            strBuf[0] = '\u2026'; 
+            strBuf[1] = '\uFFFD'; 
+            strBufLen = 2;
+            newStrBufCapacity = 2 + addedLength;
+        }
+        if (newStrBufCapacity > strBuf.length) {
+            char[] newBuf = new char[newStrBufCapacity];
+            System.arraycopy(strBuf, 0, newBuf, 0, strBufLen);
+            Portability.releaseArray(strBuf);
+            strBuf = newBuf;
+        }
+        
+        tokenHandler.ensureBufferSpace(addedLength);
+    }
+
     
     
-    private int stateLoop(int state, char c, int pos, @NoLength char[] buf,
-            boolean reconsume, int returnState, int endPos) throws SAXException {
+    @SuppressWarnings("unused") private int stateLoop(int state, char c,
+            int pos, @NoLength char[] buf, boolean reconsume, int returnState,
+            int endPos) throws SAXException {
+        
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         stateloop: for (;;) {
             switch (state) {
                 case DATA:
@@ -1395,10 +1471,6 @@ public class Tokenizer implements Locator {
 
 
 
-
-
-
-
                                 flushChars(buf, pos);
                                 clearStrBufAndAppendCurrentC(c);
                                 rememberAmpersandLocation('\u0000');
@@ -1407,12 +1479,6 @@ public class Tokenizer implements Locator {
                                 continue stateloop;
                             case '<':
                                 
-
-
-
-
-
-
 
 
 
@@ -1434,7 +1500,6 @@ public class Tokenizer implements Locator {
 
 
 
-                                
 
 
                                 continue;
@@ -1509,7 +1574,7 @@ public class Tokenizer implements Locator {
 
 
 
-                                state = Tokenizer.CLOSE_TAG_OPEN_PCDATA;
+                                state = Tokenizer.CLOSE_TAG_OPEN;
                                 continue stateloop;
                             case '?':
                                 
@@ -1878,6 +1943,7 @@ public class Tokenizer implements Locator {
 
                                 clearLongStrBuf();
                                 state = Tokenizer.ATTRIBUTE_VALUE_UNQUOTED;
+                                noteUnquotedAttributeValue();
                                 reconsume = true;
                                 continue stateloop;
                             case '\'':
@@ -1910,10 +1976,12 @@ public class Tokenizer implements Locator {
                                 
                             case '<':
                             case '=':
+                            case '`':
                                 
 
 
-                                errLtOrEqualsInUnquotedAttributeOrNull(c);
+
+                                errLtOrEqualsOrGraveInUnquotedAttributeOrNull(c);
                                 
 
 
@@ -1933,6 +2001,7 @@ public class Tokenizer implements Locator {
 
 
                                 state = Tokenizer.ATTRIBUTE_VALUE_UNQUOTED;
+                                noteUnquotedAttributeValue();
                                 continue stateloop;
                         }
                     }
@@ -2136,8 +2205,9 @@ public class Tokenizer implements Locator {
 
 
 
+
                                 clearStrBufAndAppendCurrentC(c);
-                                rememberAmpersandLocation('\u0000');
+                                rememberAmpersandLocation('>');
                                 returnState = state;
                                 state = Tokenizer.CONSUME_CHARACTER_REFERENCE;
                                 continue stateloop;
@@ -2162,7 +2232,9 @@ public class Tokenizer implements Locator {
                             case '\"':
                             case '\'':
                             case '=':
+                            case '`':
                                 
+
 
 
 
@@ -2314,9 +2386,6 @@ public class Tokenizer implements Locator {
 
 
 
-
-
-
                         switch (c) {
                             case '>':
                                 emitComment(0, pos);
@@ -2383,10 +2452,6 @@ public class Tokenizer implements Locator {
                         }
                         c = checkChar(buf, pos);
                         
-
-
-
-
 
 
 
@@ -3188,15 +3253,15 @@ public class Tokenizer implements Locator {
                             index++;
                             continue;
                         } else {
-                            state = Tokenizer.BEFORE_DOCTYPE_PUBLIC_IDENTIFIER;
+                            state = Tokenizer.AFTER_DOCTYPE_PUBLIC_KEYWORD;
                             reconsume = true;
                             break doctypeublicloop;
                             
                         }
                     }
                     
-                case BEFORE_DOCTYPE_PUBLIC_IDENTIFIER:
-                    beforedoctypepublicidentifierloop: for (;;) {
+                case AFTER_DOCTYPE_PUBLIC_KEYWORD:
+                    afterdoctypepublickeywordloop: for (;;) {
                         if (reconsume) {
                             reconsume = false;
                         } else {
@@ -3205,6 +3270,99 @@ public class Tokenizer implements Locator {
                             }
                             c = checkChar(buf, pos);
                         }
+                        
+
+
+                        switch (c) {
+                            case '\r':
+                                silentCarriageReturn();
+                                state = Tokenizer.BEFORE_DOCTYPE_PUBLIC_IDENTIFIER;
+                                break stateloop;
+                            case '\n':
+                                silentLineFeed();
+                                
+                            case ' ':
+                            case '\t':
+                            case '\u000C':
+                                
+
+
+
+
+
+                                state = Tokenizer.BEFORE_DOCTYPE_PUBLIC_IDENTIFIER;
+                                break afterdoctypepublickeywordloop;
+                            
+                            case '"':
+                                
+
+
+                                errNoSpaceBetweenDoctypePublicKeywordAndQuote();
+                                
+
+
+
+                                clearLongStrBufForNextState();
+                                
+
+
+
+                                state = Tokenizer.DOCTYPE_PUBLIC_IDENTIFIER_DOUBLE_QUOTED;
+                                continue stateloop;
+                            case '\'':
+                                
+
+
+                                errNoSpaceBetweenDoctypePublicKeywordAndQuote();
+                                
+
+
+
+                                clearLongStrBufForNextState();
+                                
+
+
+
+                                state = Tokenizer.DOCTYPE_PUBLIC_IDENTIFIER_SINGLE_QUOTED;
+                                continue stateloop;
+                            case '>':
+                                
+                                errExpectedPublicId();
+                                
+
+
+
+                                forceQuirks = true;
+                                
+
+
+                                emitDoctypeToken(pos);
+                                
+
+
+                                state = Tokenizer.DATA;
+                                continue stateloop;
+                            default:
+                                bogusDoctype();
+                                
+
+
+
+                                
+                                
+
+
+                                state = Tokenizer.BOGUS_DOCTYPE;
+                                continue stateloop;
+                        }
+                    }
+                    
+                case BEFORE_DOCTYPE_PUBLIC_IDENTIFIER:
+                    beforedoctypepublicidentifierloop: for (;;) {
+                        if (++pos == endPos) {
+                            break stateloop;
+                        }
+                        c = checkChar(buf, pos);
                         
 
 
@@ -3359,6 +3517,7 @@ public class Tokenizer implements Locator {
                         switch (c) {
                             case '\r':
                                 silentCarriageReturn();
+                                state = Tokenizer.BETWEEN_DOCTYPE_PUBLIC_AND_SYSTEM_IDENTIFIERS;
                                 break stateloop;
                             case '\n':
                                 silentLineFeed();
@@ -3371,7 +3530,105 @@ public class Tokenizer implements Locator {
 
 
 
+
+                                state = Tokenizer.BETWEEN_DOCTYPE_PUBLIC_AND_SYSTEM_IDENTIFIERS;
+                                break afterdoctypepublicidentifierloop;
+                            
+                            case '>':
+                                
+
+
+
+                                emitDoctypeToken(pos);
+                                
+
+
+                                state = Tokenizer.DATA;
+                                continue stateloop;
+                            case '"':
+                                
+
+
+                                errNoSpaceBetweenPublicAndSystemIds();
+                                
+
+
+
+                                clearLongStrBufForNextState();
+                                
+
+
+
+                                state = Tokenizer.DOCTYPE_SYSTEM_IDENTIFIER_DOUBLE_QUOTED;
+                                continue stateloop;
+                            case '\'':
+                                
+
+
+                                errNoSpaceBetweenPublicAndSystemIds();
+                                
+
+
+
+                                clearLongStrBufForNextState();
+                                
+
+
+
+                                state = Tokenizer.DOCTYPE_SYSTEM_IDENTIFIER_SINGLE_QUOTED;
+                                continue stateloop;
+                            default:
+                                bogusDoctype();
+                                
+
+
+
+                                
+                                
+
+
+                                state = Tokenizer.BOGUS_DOCTYPE;
+                                continue stateloop;
+                        }
+                    }
+                    
+                case BETWEEN_DOCTYPE_PUBLIC_AND_SYSTEM_IDENTIFIERS:
+                    betweendoctypepublicandsystemidentifiersloop: for (;;) {
+                        if (++pos == endPos) {
+                            break stateloop;
+                        }
+                        c = checkChar(buf, pos);
+                        
+
+
+                        switch (c) {
+                            case '\r':
+                                silentCarriageReturn();
+                                break stateloop;
+                            case '\n':
+                                silentLineFeed();
+                                
+                            case ' ':
+                            case '\t':
+                            case '\u000C':
+                                
+
+
+
+
+
                                 continue;
+                            case '>':
+                                
+
+
+
+                                emitDoctypeToken(pos);
+                                
+
+
+                                state = Tokenizer.DATA;
+                                continue stateloop;
                             case '"':
                                 
 
@@ -3384,7 +3641,7 @@ public class Tokenizer implements Locator {
 
 
                                 state = Tokenizer.DOCTYPE_SYSTEM_IDENTIFIER_DOUBLE_QUOTED;
-                                break afterdoctypepublicidentifierloop;
+                                break betweendoctypepublicandsystemidentifiersloop;
                             
                             case '\'':
                                 
@@ -3398,17 +3655,6 @@ public class Tokenizer implements Locator {
 
 
                                 state = Tokenizer.DOCTYPE_SYSTEM_IDENTIFIER_SINGLE_QUOTED;
-                                continue stateloop;
-                            case '>':
-                                
-
-
-
-                                emitDoctypeToken(pos);
-                                
-
-
-                                state = Tokenizer.DATA;
                                 continue stateloop;
                             default:
                                 bogusDoctype();
@@ -3603,15 +3849,15 @@ public class Tokenizer implements Locator {
                             index++;
                             continue stateloop;
                         } else {
-                            state = Tokenizer.BEFORE_DOCTYPE_SYSTEM_IDENTIFIER;
+                            state = Tokenizer.AFTER_DOCTYPE_SYSTEM_KEYWORD;
                             reconsume = true;
                             break doctypeystemloop;
                             
                         }
                     }
                     
-                case BEFORE_DOCTYPE_SYSTEM_IDENTIFIER:
-                    beforedoctypesystemidentifierloop: for (;;) {
+                case AFTER_DOCTYPE_SYSTEM_KEYWORD:
+                    afterdoctypesystemkeywordloop: for (;;) {
                         if (reconsume) {
                             reconsume = false;
                         } else {
@@ -3620,6 +3866,99 @@ public class Tokenizer implements Locator {
                             }
                             c = checkChar(buf, pos);
                         }
+                        
+
+
+                        switch (c) {
+                            case '\r':
+                                silentCarriageReturn();
+                                state = Tokenizer.BEFORE_DOCTYPE_SYSTEM_IDENTIFIER;
+                                break stateloop;
+                            case '\n':
+                                silentLineFeed();
+                                
+                            case ' ':
+                            case '\t':
+                            case '\u000C':
+                                
+
+
+
+
+
+                                state = Tokenizer.BEFORE_DOCTYPE_SYSTEM_IDENTIFIER;
+                                break afterdoctypesystemkeywordloop;
+                            
+                            case '"':
+                                
+
+
+                                errNoSpaceBetweenDoctypeSystemKeywordAndQuote();
+                                
+
+
+
+                                clearLongStrBufForNextState();
+                                
+
+
+
+                                state = Tokenizer.DOCTYPE_SYSTEM_IDENTIFIER_DOUBLE_QUOTED;
+                                continue stateloop;
+                            case '\'':
+                                
+
+
+                                errNoSpaceBetweenDoctypeSystemKeywordAndQuote();
+                                
+
+
+
+                                clearLongStrBufForNextState();
+                                
+
+
+
+                                state = Tokenizer.DOCTYPE_SYSTEM_IDENTIFIER_SINGLE_QUOTED;
+                                continue stateloop;
+                            case '>':
+                                
+                                errExpectedPublicId();
+                                
+
+
+
+                                forceQuirks = true;
+                                
+
+
+                                emitDoctypeToken(pos);
+                                
+
+
+                                state = Tokenizer.DATA;
+                                continue stateloop;
+                            default:
+                                bogusDoctype();
+                                
+
+
+
+                                
+                                
+
+
+                                state = Tokenizer.BOGUS_DOCTYPE;
+                                continue stateloop;
+                        }
+                    }
+                    
+                case BEFORE_DOCTYPE_SYSTEM_IDENTIFIER:
+                    beforedoctypesystemidentifierloop: for (;;) {
+                        if (++pos == endPos) {
+                            break stateloop;
+                        }
+                        c = checkChar(buf, pos);
                         
 
 
@@ -4024,26 +4363,115 @@ public class Tokenizer implements Locator {
                                 reconsume = true;
                                 continue stateloop;
                             }
-                            entCol = -1;
-                            lo = 0;
-                            hi = (NamedCharacters.NAMES.length - 1);
-                            candidate = -1;
-                            strBufMark = 0;
-                            state = Tokenizer.CHARACTER_REFERENCE_LOOP;
-                            reconsume = true;
+                            if (c >= 'a' && c <= 'z') {
+                                firstCharKey = c - 'a' + 26;
+                            } else if (c >= 'A' && c <= 'Z') {
+                                firstCharKey = c - 'A';
+                            } else {
+                                
+                                
+
+
+
+                                errNoNamedCharacterMatch();
+                                emitOrAppendStrBuf(returnState);
+                                if ((returnState & (~1)) == 0) {
+                                    cstart = pos;
+                                }
+                                state = returnState;
+                                reconsume = true;
+                                continue stateloop;
+                            }
+                            
+                            appendStrBuf(c);
+                            state = Tokenizer.CHARACTER_REFERENCE_HILO_LOOKUP;
                             
                     }
                     
-                case CHARACTER_REFERENCE_LOOP:
-                    outer: for (;;) {
-                        if (reconsume) {
-                            reconsume = false;
-                        } else {
-                            if (++pos == endPos) {
-                                break stateloop;
-                            }
-                            c = checkChar(buf, pos);
+                case CHARACTER_REFERENCE_HILO_LOOKUP:
+                    {
+                        if (++pos == endPos) {
+                            break stateloop;
                         }
+                        c = checkChar(buf, pos);
+                        if (c == '\u0000') {
+                            break stateloop;
+                        }
+                        
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                        int hilo = 0;
+                        if (c <= 'z') {
+                            @Const @NoLength int[] row = NamedCharacters.HILO_ACCEL[c];
+                            if (row != null) {
+                                hilo = row[firstCharKey];
+                            }
+                        }
+                        if (hilo == 0) {
+                            
+
+
+
+                            errNoNamedCharacterMatch();
+                            emitOrAppendStrBuf(returnState);
+                            if ((returnState & (~1)) == 0) {
+                                cstart = pos;
+                            }
+                            state = returnState;
+                            reconsume = true;
+                            continue stateloop;
+                        }
+                        
+                        appendStrBuf(c);
+                        lo = hilo & 0xFFFF;
+                        hi = hilo >> 16;
+                        entCol = -1;
+                        candidate = -1;
+                        strBufMark = 0;
+                        state = Tokenizer.CHARACTER_REFERENCE_TAIL;
+                        
+                    }
+                case CHARACTER_REFERENCE_TAIL:
+                    outer: for (;;) {
+                        if (++pos == endPos) {
+                            break stateloop;
+                        }
+                        c = checkChar(buf, pos);
                         if (c == '\u0000') {
                             break stateloop;
                         }
@@ -4054,22 +4482,6 @@ public class Tokenizer implements Locator {
 
 
 
-
-                        hiloop: for (;;) {
-                            if (hi == -1) {
-                                break hiloop;
-                            }
-                            if (entCol == NamedCharacters.NAMES[hi].length) {
-                                break hiloop;
-                            }
-                            if (entCol > NamedCharacters.NAMES[hi].length) {
-                                break outer;
-                            } else if (c < NamedCharacters.NAMES[hi][entCol]) {
-                                hi--;
-                            } else {
-                                break hiloop;
-                            }
-                        }
 
                         loloop: for (;;) {
                             if (hi < lo) {
@@ -4087,6 +4499,23 @@ public class Tokenizer implements Locator {
                                 break loloop;
                             }
                         }
+
+                        hiloop: for (;;) {
+                            if (hi < lo) {
+                                break outer;
+                            }
+                            if (entCol == NamedCharacters.NAMES[hi].length) {
+                                break hiloop;
+                            }
+                            if (entCol > NamedCharacters.NAMES[hi].length) {
+                                break outer;
+                            } else if (c < NamedCharacters.NAMES[hi][entCol]) {
+                                hi--;
+                            } else {
+                                break hiloop;
+                            }
+                        }
+
                         if (hi < lo) {
                             break outer;
                         }
@@ -4110,8 +4539,9 @@ public class Tokenizer implements Locator {
                         continue stateloop;
                     } else {
                         
-                        char[] candidateArr = NamedCharacters.NAMES[candidate];
-                        if (candidateArr[candidateArr.length - 1] != ';') {
+                        byte[] candidateArr = NamedCharacters.NAMES[candidate];
+                        if (candidateArr.length == 0
+                                || candidateArr[candidateArr.length - 1] != ';') {
                             
 
 
@@ -4166,8 +4596,13 @@ public class Tokenizer implements Locator {
 
 
 
-                        char[] val = NamedCharacters.VALUES[candidate];
-                        emitOrAppend(val, returnState);
+                        @Const @NoLength char[] val = NamedCharacters.VALUES[candidate];
+                        
+                        if ((val[0] & 0xFC00) == 0xD800) {
+                            emitOrAppendTwo(val, returnState);
+                        } else {
+                            emitOrAppendOne(val, returnState);
+                        }
                         
                         if (strBufMark < strBufLen) {
                             
@@ -4444,15 +4879,13 @@ public class Tokenizer implements Locator {
 
 
 
-                                
-
 
                                 continue;
                         }
                     }
                     
-                case CDATA:
-                    cdataloop: for (;;) {
+                case SCRIPT_DATA:
+                    scriptdataloop: for (;;) {
                         if (reconsume) {
                             reconsume = false;
                         } else {
@@ -4467,17 +4900,10 @@ public class Tokenizer implements Locator {
 
 
 
-
-
-
-
-
-
                                 flushChars(buf, pos);
-
                                 returnState = state;
-                                state = Tokenizer.TAG_OPEN_NON_PCDATA;
-                                break cdataloop; 
+                                state = Tokenizer.SCRIPT_DATA_LESS_THAN_SIGN;
+                                break scriptdataloop; 
                             
                             case '\u0000':
                                 emitReplacementCharacter(buf, pos);
@@ -4492,43 +4918,35 @@ public class Tokenizer implements Locator {
 
 
 
-                                
-
 
                                 continue;
                         }
                     }
                     
-                case TAG_OPEN_NON_PCDATA:
-                    tagopennonpcdataloop: for (;;) {
+                case SCRIPT_DATA_LESS_THAN_SIGN:
+                    scriptdatalessthansignloop: for (;;) {
                         if (++pos == endPos) {
                             break stateloop;
                         }
                         c = checkChar(buf, pos);
                         switch (c) {
-                            case '!':
-                                tokenHandler.characters(Tokenizer.LT_GT, 0, 1);
-                                cstart = pos;
-                                state = Tokenizer.ESCAPE_EXCLAMATION;
-                                break tagopennonpcdataloop; 
-                            
-                            
                             case '/':
                                 
 
 
 
 
-                                if (contentModelElement != null) {
-                                    
-
-
-
-                                    index = 0;
-                                    clearStrBufForNextState();
-                                    state = Tokenizer.CLOSE_TAG_OPEN_NOT_PCDATA;
-                                    continue stateloop;
-                                } 
+                                index = 0;
+                                clearStrBufForNextState();
+                                state = Tokenizer.NON_DATA_END_TAG_NAME;
+                                continue stateloop;
+                            case '!':
+                                tokenHandler.characters(Tokenizer.LT_GT, 0, 1);
+                                cstart = pos;
+                                state = Tokenizer.SCRIPT_DATA_ESCAPE_START;
+                                break scriptdatalessthansignloop; 
+                            
+                            
                             default:
                                 
 
@@ -4540,89 +4958,160 @@ public class Tokenizer implements Locator {
 
 
                                 cstart = pos;
-                                state = returnState;
+                                state = Tokenizer.SCRIPT_DATA;
                                 reconsume = true;
                                 continue stateloop;
                         }
                     }
                     
-                case ESCAPE_EXCLAMATION:
-                    escapeexclamationloop: for (;;) {
+                case SCRIPT_DATA_ESCAPE_START:
+                    scriptdataescapestartloop: for (;;) {
                         if (++pos == endPos) {
                             break stateloop;
                         }
                         c = checkChar(buf, pos);
+                        
+
+
                         switch (c) {
                             case '-':
-                                state = Tokenizer.ESCAPE_EXCLAMATION_HYPHEN;
-                                break escapeexclamationloop; 
+                                
+
+
+
+
+                                state = Tokenizer.SCRIPT_DATA_ESCAPE_START_DASH;
+                                break scriptdataescapestartloop; 
                             
                             
                             default:
-                                state = returnState;
+                                
+
+
+
+                                state = Tokenizer.SCRIPT_DATA;
                                 reconsume = true;
                                 continue stateloop;
                         }
                     }
                     
-                case ESCAPE_EXCLAMATION_HYPHEN:
-                    escapeexclamationhyphenloop: for (;;) {
+                case SCRIPT_DATA_ESCAPE_START_DASH:
+                    scriptdataescapestartdashloop: for (;;) {
                         if (++pos == endPos) {
                             break stateloop;
                         }
                         c = checkChar(buf, pos);
+                        
+
+
                         switch (c) {
                             case '-':
-                                state = Tokenizer.ESCAPE_HYPHEN_HYPHEN;
-                                break escapeexclamationhyphenloop;
+                                
+
+
+
+
+                                state = Tokenizer.SCRIPT_DATA_ESCAPED_DASH_DASH;
+                                break scriptdataescapestartdashloop;
                             
                             default:
-                                state = returnState;
+                                
+
+
+
+                                state = Tokenizer.SCRIPT_DATA;
                                 reconsume = true;
                                 continue stateloop;
                         }
                     }
                     
-                case ESCAPE_HYPHEN_HYPHEN:
-                    escapehyphenhyphenloop: for (;;) {
+                case SCRIPT_DATA_ESCAPED_DASH_DASH:
+                    scriptdataescapeddashdashloop: for (;;) {
                         if (++pos == endPos) {
                             break stateloop;
                         }
                         c = checkChar(buf, pos);
+                        
+
+
                         switch (c) {
                             case '-':
+                                
+
+
+
+
                                 continue;
+                            case '<':
+                                
+
+
+
+                                flushChars(buf, pos);
+                                state = Tokenizer.SCRIPT_DATA_ESCAPED_LESS_THAN_SIGN;
+                                continue stateloop;
                             case '>':
-                                state = returnState;
+                                
+
+
+
+
+                                state = Tokenizer.SCRIPT_DATA;
                                 continue stateloop;
                             case '\u0000':
                                 emitReplacementCharacter(buf, pos);
-                                state = Tokenizer.ESCAPE;
-                                break escapehyphenhyphenloop;
+                                state = Tokenizer.SCRIPT_DATA_ESCAPED;
+                                break scriptdataescapeddashdashloop;
                             case '\r':
                                 emitCarriageReturn(buf, pos);
-                                state = Tokenizer.ESCAPE;
+                                state = Tokenizer.SCRIPT_DATA_ESCAPED;
                                 break stateloop;
                             case '\n':
                                 silentLineFeed();
                             default:
-                                state = Tokenizer.ESCAPE;
-                                break escapehyphenhyphenloop;
+                                
+
+
+
+
+                                state = Tokenizer.SCRIPT_DATA_ESCAPED;
+                                break scriptdataescapeddashdashloop;
                             
                         }
                     }
                     
-                case ESCAPE:
-                    escapeloop: for (;;) {
-                        if (++pos == endPos) {
-                            break stateloop;
+                case SCRIPT_DATA_ESCAPED:
+                    scriptdataescapedloop: for (;;) {
+                        if (reconsume) {
+                            reconsume = false;
+                        } else {
+                            if (++pos == endPos) {
+                                break stateloop;
+                            }
+                            c = checkChar(buf, pos);
                         }
-                        c = checkChar(buf, pos);
+                        
+
+
                         switch (c) {
                             case '-':
-                                state = Tokenizer.ESCAPE_HYPHEN;
-                                break escapeloop; 
+                                
+
+
+
+
+                                state = Tokenizer.SCRIPT_DATA_ESCAPED_DASH;
+                                break scriptdataescapedloop; 
                             
+                            
+                            case '<':
+                                
+
+
+
+                                flushChars(buf, pos);
+                                state = Tokenizer.SCRIPT_DATA_ESCAPED_LESS_THAN_SIGN;
+                                continue stateloop;
                             case '\u0000':
                                 emitReplacementCharacter(buf, pos);
                                 continue;
@@ -4632,46 +5121,96 @@ public class Tokenizer implements Locator {
                             case '\n':
                                 silentLineFeed();
                             default:
+                                
+
+
+
+
                                 continue;
                         }
                     }
                     
-                case ESCAPE_HYPHEN:
-                    escapehyphenloop: for (;;) {
+                case SCRIPT_DATA_ESCAPED_DASH:
+                    scriptdataescapeddashloop: for (;;) {
                         if (++pos == endPos) {
                             break stateloop;
                         }
                         c = checkChar(buf, pos);
+                        
+
+
                         switch (c) {
                             case '-':
-                                state = Tokenizer.ESCAPE_HYPHEN_HYPHEN;
+                                
+
+
+
+
+                                state = Tokenizer.SCRIPT_DATA_ESCAPED_DASH_DASH;
                                 continue stateloop;
+                            case '<':
+                                
+
+
+
+                                flushChars(buf, pos);
+                                state = Tokenizer.SCRIPT_DATA_ESCAPED_LESS_THAN_SIGN;
+                                break scriptdataescapeddashloop;
+                            
                             case '\u0000':
                                 emitReplacementCharacter(buf, pos);
-                                state = Tokenizer.ESCAPE;
+                                state = Tokenizer.SCRIPT_DATA_ESCAPED;
                                 continue stateloop;
                             case '\r':
                                 emitCarriageReturn(buf, pos);
-                                state = Tokenizer.ESCAPE;
-                                continue stateloop;
+                                state = Tokenizer.SCRIPT_DATA_ESCAPED;
+                                break stateloop;
                             case '\n':
                                 silentLineFeed();
                             default:
-                                state = Tokenizer.ESCAPE;
+                                
+
+
+
+
+                                state = Tokenizer.SCRIPT_DATA_ESCAPED;
                                 continue stateloop;
                         }
                     }
                     
-                case CLOSE_TAG_OPEN_NOT_PCDATA:
-                    for (;;) {
+                case SCRIPT_DATA_ESCAPED_LESS_THAN_SIGN:
+                    scriptdataescapedlessthanloop: for (;;) {
                         if (++pos == endPos) {
                             break stateloop;
                         }
                         c = checkChar(buf, pos);
                         
-                        
-                        
-                        
+
+
+                        switch (c) {
+                            case '/':
+                                
+
+
+
+
+                                index = 0;
+                                clearStrBufForNextState();
+                                returnState = Tokenizer.SCRIPT_DATA_ESCAPED;
+                                state = Tokenizer.NON_DATA_END_TAG_NAME;
+                                continue stateloop;
+                            case 'S':
+                            case 's':
+                                
+
+
+
+
+
+                                tokenHandler.characters(Tokenizer.LT_GT, 0, 1);
+                                cstart = pos;
+                                index = 1;
+                                
 
 
 
@@ -4679,108 +5218,320 @@ public class Tokenizer implements Locator {
 
 
 
+                                state = Tokenizer.SCRIPT_DATA_DOUBLE_ESCAPE_START;
+                                break scriptdataescapedlessthanloop;
+                            
+                            default:
+                                
 
 
 
 
 
-
-
-
-
-
-                        
-                        
-                        
-                        
-                        
-                        
-                        
-                        if (index < contentModelElementNameAsArray.length) {
-                            char e = contentModelElementNameAsArray[index];
+                                tokenHandler.characters(Tokenizer.LT_GT, 0, 1);
+                                cstart = pos;
+                                reconsume = true;
+                                state = Tokenizer.SCRIPT_DATA_ESCAPED;
+                                continue stateloop;
+                        }
+                    }
+                    
+                case SCRIPT_DATA_DOUBLE_ESCAPE_START:
+                    scriptdatadoubleescapestartloop: for (;;) {
+                        if (++pos == endPos) {
+                            break stateloop;
+                        }
+                        c = checkChar(buf, pos);
+                        assert (index > 0);
+                        if (index < 6) { 
                             char folded = c;
                             if (c >= 'A' && c <= 'Z') {
                                 folded += 0x20;
                             }
-                            if (folded != e) {
-                                
-                                errHtml4LtSlashInRcdata(folded);
-                                
-                                tokenHandler.characters(Tokenizer.LT_SOLIDUS,
-                                        0, 2);
-                                emitStrBuf();
-                                cstart = pos;
-                                state = returnState;
+                            if (folded != Tokenizer.SCRIPT_ARR[index]) {
                                 reconsume = true;
+                                state = Tokenizer.SCRIPT_DATA_ESCAPED;
                                 continue stateloop;
                             }
-                            appendStrBuf(c);
                             index++;
                             continue;
-                        } else {
-                            endTag = true;
+                        }
+                        switch (c) {
+                            case '\r':
+                                emitCarriageReturn(buf, pos);
+                                state = Tokenizer.SCRIPT_DATA_DOUBLE_ESCAPED;
+                                break stateloop;
+                            case '\n':
+                                silentLineFeed();
+                            case ' ':
+                            case '\t':
+                            case '\u000C':
+                            case '/':
+                            case '>':
+                                
+
+
+
+
+
+
+
+
+                                state = Tokenizer.SCRIPT_DATA_DOUBLE_ESCAPED;
+                                break scriptdatadoubleescapestartloop;
                             
-                            
-                            tagName = contentModelElement;
-                            switch (c) {
-                                case '\r':
-                                    silentCarriageReturn();
-                                    state = Tokenizer.BEFORE_ATTRIBUTE_NAME;
-                                    break stateloop;
-                                case '\n':
-                                    silentLineFeed();
-                                    
-                                case ' ':
-                                case '\t':
-                                case '\u000C':
-                                    
+                            default:
+                                
 
 
 
-
-
-                                    state = Tokenizer.BEFORE_ATTRIBUTE_NAME;
-                                    continue stateloop;
-                                case '>':
-                                    
-
-
-
-                                    state = emitCurrentTagToken(false, pos);
-                                    if (shouldSuspend) {
-                                        break stateloop;
-                                    }
-                                    
-
-
-                                    continue stateloop;
-                                case '/':
-                                    
-
-
-
-                                    state = Tokenizer.SELF_CLOSING_START_TAG;
-                                    continue stateloop;
-                                default:
-                                    
-                                    errWarnLtSlashInRcdata();
-                                    
-                                    tokenHandler.characters(
-                                            Tokenizer.LT_SOLIDUS, 0, 2);
-                                    emitStrBuf();
-                                    if (c == '\u0000') {
-                                        emitReplacementCharacter(buf, pos);
-                                    } else {
-                                        cstart = pos; 
-                                                      
-                                    }
-                                    state = returnState;
-                                    continue stateloop;
-                            }
+                                reconsume = true;
+                                state = Tokenizer.SCRIPT_DATA_ESCAPED;
+                                continue stateloop;
                         }
                     }
                     
-                case CLOSE_TAG_OPEN_PCDATA:
+                case SCRIPT_DATA_DOUBLE_ESCAPED:
+                    scriptdatadoubleescapedloop: for (;;) {
+                        if (reconsume) {
+                            reconsume = false;
+                        } else {
+                            if (++pos == endPos) {
+                                break stateloop;
+                            }
+                            c = checkChar(buf, pos);
+                        }
+                        
+
+
+                        switch (c) {
+                            case '-':
+                                
+
+
+
+
+                                state = Tokenizer.SCRIPT_DATA_DOUBLE_ESCAPED_DASH;
+                                break scriptdatadoubleescapedloop; 
+                            
+                            
+                            case '<':
+                                
+
+
+
+
+
+                                state = Tokenizer.SCRIPT_DATA_DOUBLE_ESCAPED_LESS_THAN_SIGN;
+                                continue stateloop;
+                            case '\u0000':
+                                emitReplacementCharacter(buf, pos);
+                                continue;
+                            case '\r':
+                                emitCarriageReturn(buf, pos);
+                                break stateloop;
+                            case '\n':
+                                silentLineFeed();
+                            default:
+                                
+
+
+
+
+                                continue;
+                        }
+                    }
+                    
+                case SCRIPT_DATA_DOUBLE_ESCAPED_DASH:
+                    scriptdatadoubleescapeddashloop: for (;;) {
+                        if (++pos == endPos) {
+                            break stateloop;
+                        }
+                        c = checkChar(buf, pos);
+                        
+
+
+                        switch (c) {
+                            case '-':
+                                
+
+
+
+
+                                state = Tokenizer.SCRIPT_DATA_DOUBLE_ESCAPED_DASH_DASH;
+                                break scriptdatadoubleescapeddashloop;
+                            
+                            case '<':
+                                
+
+
+
+
+
+                                state = Tokenizer.SCRIPT_DATA_DOUBLE_ESCAPED_LESS_THAN_SIGN;
+                                continue stateloop;
+                            case '\u0000':
+                                emitReplacementCharacter(buf, pos);
+                                state = Tokenizer.SCRIPT_DATA_DOUBLE_ESCAPED;
+                                continue stateloop;
+                            case '\r':
+                                emitCarriageReturn(buf, pos);
+                                state = Tokenizer.SCRIPT_DATA_DOUBLE_ESCAPED;
+                                break stateloop;
+                            case '\n':
+                                silentLineFeed();
+                            default:
+                                
+
+
+
+
+                                state = Tokenizer.SCRIPT_DATA_DOUBLE_ESCAPED;
+                                continue stateloop;
+                        }
+                    }
+                    
+                case SCRIPT_DATA_DOUBLE_ESCAPED_DASH_DASH:
+                    scriptdatadoubleescapeddashdashloop: for (;;) {
+                        if (++pos == endPos) {
+                            break stateloop;
+                        }
+                        c = checkChar(buf, pos);
+                        
+
+
+                        switch (c) {
+                            case '-':
+                                
+
+
+
+
+                                continue;
+                            case '<':
+                                
+
+
+
+
+
+                                state = Tokenizer.SCRIPT_DATA_DOUBLE_ESCAPED_LESS_THAN_SIGN;
+                                break scriptdatadoubleescapeddashdashloop;
+                            case '>':
+                                
+
+
+
+
+                                state = Tokenizer.SCRIPT_DATA;
+                                continue stateloop;
+                            case '\u0000':
+                                emitReplacementCharacter(buf, pos);
+                                state = Tokenizer.SCRIPT_DATA_DOUBLE_ESCAPED;
+                                continue stateloop;
+                            case '\r':
+                                emitCarriageReturn(buf, pos);
+                                state = Tokenizer.SCRIPT_DATA_DOUBLE_ESCAPED;
+                                break stateloop;
+                            case '\n':
+                                silentLineFeed();
+                            default:
+                                
+
+
+
+
+                                state = Tokenizer.SCRIPT_DATA_DOUBLE_ESCAPED;
+                                continue stateloop;
+                        }
+                    }
+                    
+                case SCRIPT_DATA_DOUBLE_ESCAPED_LESS_THAN_SIGN:
+                    scriptdatadoubleescapedlessthanloop: for (;;) {
+                        if (++pos == endPos) {
+                            break stateloop;
+                        }
+                        c = checkChar(buf, pos);
+                        
+
+
+                        switch (c) {
+                            case '/':
+                                
+
+
+
+
+
+                                index = 0;
+                                state = Tokenizer.SCRIPT_DATA_DOUBLE_ESCAPE_END;
+                                break scriptdatadoubleescapedlessthanloop;
+                            default:
+                                
+
+
+
+
+                                reconsume = true;
+                                state = Tokenizer.SCRIPT_DATA_DOUBLE_ESCAPED;
+                                continue stateloop;
+                        }
+                    }
+                    
+                case SCRIPT_DATA_DOUBLE_ESCAPE_END:
+                    scriptdatadoubleescapeendloop: for (;;) {
+                        if (++pos == endPos) {
+                            break stateloop;
+                        }
+                        c = checkChar(buf, pos);
+                        if (index < 6) { 
+                            char folded = c;
+                            if (c >= 'A' && c <= 'Z') {
+                                folded += 0x20;
+                            }
+                            if (folded != Tokenizer.SCRIPT_ARR[index]) {
+                                reconsume = true;
+                                state = Tokenizer.SCRIPT_DATA_DOUBLE_ESCAPED;
+                                continue stateloop;
+                            }
+                            index++;
+                            continue;
+                        }
+                        switch (c) {
+                            case '\r':
+                                emitCarriageReturn(buf, pos);
+                                state = Tokenizer.SCRIPT_DATA_ESCAPED;
+                                break stateloop;
+                            case '\n':
+                                silentLineFeed();
+                            case ' ':
+                            case '\t':
+                            case '\u000C':
+                            case '/':
+                            case '>':
+                                
+
+
+
+
+
+
+
+
+                                state = Tokenizer.SCRIPT_DATA_ESCAPED;
+                                continue stateloop;
+                            default:
+                                
+
+
+
+                                reconsume = true;
+                                state = Tokenizer.SCRIPT_DATA_DOUBLE_ESCAPED;
+                                continue stateloop;
+                        }
+                    }
+                    
+                case CLOSE_TAG_OPEN:
                     if (++pos == endPos) {
                         break stateloop;
                     }
@@ -4873,10 +5624,6 @@ public class Tokenizer implements Locator {
 
 
 
-
-
-
-
                                 flushChars(buf, pos);
                                 clearStrBufAndAppendCurrentC(c);
                                 additional = '\u0000';
@@ -4888,16 +5635,10 @@ public class Tokenizer implements Locator {
 
 
 
-
-
-
-
-
-
                                 flushChars(buf, pos);
 
                                 returnState = state;
-                                state = Tokenizer.TAG_OPEN_NON_PCDATA;
+                                state = Tokenizer.RAWTEXT_RCDATA_LESS_THAN_SIGN;
                                 continue stateloop;
                             case '\u0000':
                                 emitReplacementCharacter(buf, pos);
@@ -4912,13 +5653,190 @@ public class Tokenizer implements Locator {
 
 
 
+                                continue;
+                        }
+                    }
+                    
+                case RAWTEXT:
+                    rawtextloop: for (;;) {
+                        if (reconsume) {
+                            reconsume = false;
+                        } else {
+                            if (++pos == endPos) {
+                                break stateloop;
+                            }
+                            c = checkChar(buf, pos);
+                        }
+                        switch (c) {
+                            case '<':
                                 
+
+
+
+                                flushChars(buf, pos);
+
+                                returnState = state;
+                                state = Tokenizer.RAWTEXT_RCDATA_LESS_THAN_SIGN;
+                                break rawtextloop;
+                            
+                            case '\u0000':
+                                emitReplacementCharacter(buf, pos);
+                                continue;
+                            case '\r':
+                                emitCarriageReturn(buf, pos);
+                                break stateloop;
+                            case '\n':
+                                silentLineFeed();
+                            default:
+                                
+
 
 
                                 continue;
                         }
                     }
+                    
+                case RAWTEXT_RCDATA_LESS_THAN_SIGN:
+                    rawtextrcdatalessthansignloop: for (;;) {
+                        if (++pos == endPos) {
+                            break stateloop;
+                        }
+                        c = checkChar(buf, pos);
+                        switch (c) {
+                            case '/':
+                                
 
+
+
+
+                                index = 0;
+                                clearStrBufForNextState();
+                                state = Tokenizer.NON_DATA_END_TAG_NAME;
+                                break rawtextrcdatalessthansignloop;
+                            
+                            default:
+                                
+
+
+
+                                tokenHandler.characters(Tokenizer.LT_GT, 0, 1);
+                                
+
+
+
+                                cstart = pos;
+                                state = returnState;
+                                reconsume = true;
+                                continue stateloop;
+                        }
+                    }
+                    
+                case NON_DATA_END_TAG_NAME:
+                    for (;;) {
+                        if (++pos == endPos) {
+                            break stateloop;
+                        }
+                        c = checkChar(buf, pos);
+                        
+
+
+
+
+
+                        if (index < contentModelElementNameAsArray.length) {
+                            char e = contentModelElementNameAsArray[index];
+                            char folded = c;
+                            if (c >= 'A' && c <= 'Z') {
+                                folded += 0x20;
+                            }
+                            if (folded != e) {
+                                
+                                errHtml4LtSlashInRcdata(folded);
+                                
+                                tokenHandler.characters(Tokenizer.LT_SOLIDUS,
+                                        0, 2);
+                                emitStrBuf();
+                                cstart = pos;
+                                state = returnState;
+                                reconsume = true;
+                                continue stateloop;
+                            }
+                            appendStrBuf(c);
+                            index++;
+                            continue;
+                        } else {
+                            endTag = true;
+                            
+                            
+                            tagName = contentModelElement;
+                            switch (c) {
+                                case '\r':
+                                    silentCarriageReturn();
+                                    state = Tokenizer.BEFORE_ATTRIBUTE_NAME;
+                                    break stateloop;
+                                case '\n':
+                                    silentLineFeed();
+                                    
+                                case ' ':
+                                case '\t':
+                                case '\u000C':
+                                    
+
+
+
+
+
+
+                                    state = Tokenizer.BEFORE_ATTRIBUTE_NAME;
+                                    continue stateloop;
+                                case '/':
+                                    
+
+
+
+
+
+                                    state = Tokenizer.SELF_CLOSING_START_TAG;
+                                    continue stateloop;
+                                case '>':
+                                    
+
+
+
+
+
+                                    state = emitCurrentTagToken(false, pos);
+                                    if (shouldSuspend) {
+                                        break stateloop;
+                                    }
+                                    continue stateloop;
+                                default:
+                                    
+
+
+
+
+
+
+
+
+                                    
+                                    errWarnLtSlashInRcdata();
+                                    
+                                    tokenHandler.characters(
+                                            Tokenizer.LT_SOLIDUS, 0, 2);
+                                    emitStrBuf();
+                                    if (c == '\u0000') {
+                                        emitReplacementCharacter(buf, pos);
+                                    } else {
+                                        cstart = pos; 
+                                        
+                                    }
+                                    state = returnState;
+                                    continue stateloop;
+                            }
+                        }
+                    }
             }
         }
         flushChars(buf, pos);
@@ -4931,10 +5849,17 @@ public class Tokenizer implements Locator {
         return pos;
     }
 
-    @Inline private void initDoctypeFields() {
+    private void initDoctypeFields() {
+        Portability.releaseLocal(doctypeName);
         doctypeName = "";
-        systemIdentifier = null;
-        publicIdentifier = null;
+        if (systemIdentifier != null) {
+            Portability.releaseString(systemIdentifier);
+            systemIdentifier = null;
+        }
+        if (publicIdentifier != null) {
+            Portability.releaseString(publicIdentifier);
+            publicIdentifier = null;
+        }
         forceQuirks = false;
     }
 
@@ -5016,74 +5941,70 @@ public class Tokenizer implements Locator {
 
 
 
-        if (value >= 0x80 && value <= 0x9f) {
-            
+        if (value <= 0xFFFF) {
+            if (value >= 0x80 && value <= 0x9f) {
+                
 
 
 
-            errNcrInC1Range();
-            
+                errNcrInC1Range();
+                
 
 
 
 
-            @NoLength char[] val = NamedCharacters.WINDOWS_1252[value - 0x80];
-            emitOrAppendOne(val, returnState);
-        } else if (value == 0x0D) {
-            errRcnCr();
-            emitOrAppendOne(Tokenizer.LF, returnState);
-            
-        } else if (value == 0xC
-                && contentSpacePolicy != XmlViolationPolicy.ALLOW) {
-            if (contentSpacePolicy == XmlViolationPolicy.ALTER_INFOSET) {
-                emitOrAppendOne(Tokenizer.SPACE, returnState);
-            } else if (contentSpacePolicy == XmlViolationPolicy.FATAL) {
-                fatal("A character reference expanded to a form feed which is not legal XML 1.0 white space.");
+                @NoLength char[] val = NamedCharacters.WINDOWS_1252[value - 0x80];
+                emitOrAppendOne(val, returnState);
+                
+            } else if (value == 0xC
+                    && contentSpacePolicy != XmlViolationPolicy.ALLOW) {
+                if (contentSpacePolicy == XmlViolationPolicy.ALTER_INFOSET) {
+                    emitOrAppendOne(Tokenizer.SPACE, returnState);
+                } else if (contentSpacePolicy == XmlViolationPolicy.FATAL) {
+                    fatal("A character reference expanded to a form feed which is not legal XML 1.0 white space.");
+                }
+                
+            } else if (value == 0x0) {
+                errNcrZero();
+                emitOrAppendOne(Tokenizer.REPLACEMENT_CHARACTER, returnState);
+            } else if ((value & 0xF800) == 0xD800) {
+                errNcrSurrogate();
+                emitOrAppendOne(Tokenizer.REPLACEMENT_CHARACTER, returnState);
+            } else {
+                
+
+
+
+                char ch = (char) value;
+                
+                if (value == 0x0D) {
+                    errNcrCr();
+                } else if ((value <= 0x0008) || (value == 0x000B)
+                        || (value >= 0x000E && value <= 0x001F)) {
+                    ch = errNcrControlChar(ch);
+                } else if (value >= 0xFDD0 && value <= 0xFDEF) {
+                    errNcrUnassigned();
+                } else if ((value & 0xFFFE) == 0xFFFE) {
+                    ch = errNcrNonCharacter(ch);
+                } else if (value >= 0x007F && value <= 0x009F) {
+                    errNcrControlChar();
+                } else {
+                    maybeWarnPrivateUse(ch);
+                }
+                
+                bmpChar[0] = ch;
+                emitOrAppendOne(bmpChar, returnState);
             }
-            
-        } else if ((value >= 0x0000 && value <= 0x0008) || (value == 0x000B)
-                || (value >= 0x000E && value <= 0x001F) || value == 0x007F) {
-            
-
-
-
-
-
-
-
-
-
-
-
-            errNcrControlChar();
-            emitOrAppendOne(Tokenizer.REPLACEMENT_CHARACTER, returnState);
-        } else if ((value & 0xF800) == 0xD800) {
-            errNcrSurrogate();
-            emitOrAppendOne(Tokenizer.REPLACEMENT_CHARACTER, returnState);
-        } else if ((value & 0xFFFE) == 0xFFFE) {
-            errNcrNonCharacter();
-            emitOrAppendOne(Tokenizer.REPLACEMENT_CHARACTER, returnState);
-        } else if (value >= 0xFDD0 && value <= 0xFDEF) {
-            errNcrUnassigned();
-            emitOrAppendOne(Tokenizer.REPLACEMENT_CHARACTER, returnState);
-        } else if (value <= 0xFFFF) {
-            
-
-
-
-            char ch = (char) value;
-            
-            maybeWarnPrivateUse(ch);
-            
-            bmpChar[0] = ch;
-            emitOrAppendOne(bmpChar, returnState);
         } else if (value <= 0x10FFFF) {
             
             maybeWarnPrivateUseAstral();
+            if ((value & 0xFFFE) == 0xFFFE) {
+                errAstralNonCharacter(value);
+            }
             
             astralChar[0] = (char) (Tokenizer.LEAD_OFFSET + (value >> 10));
             astralChar[1] = (char) (0xDC00 + (value & 0x3FF));
-            emitOrAppend(astralChar, returnState);
+            emitOrAppendTwo(astralChar, returnState);
         } else {
             errNcrOutOfRange();
             emitOrAppendOne(Tokenizer.REPLACEMENT_CHARACTER, returnState);
@@ -5096,7 +6017,8 @@ public class Tokenizer implements Locator {
 
         eofloop: for (;;) {
             switch (state) {
-                case TAG_OPEN_NON_PCDATA:
+                case SCRIPT_DATA_LESS_THAN_SIGN:
+                case SCRIPT_DATA_ESCAPED_LESS_THAN_SIGN:
                     
 
 
@@ -5124,17 +6046,34 @@ public class Tokenizer implements Locator {
 
 
                     break eofloop;
-                case CLOSE_TAG_OPEN_NOT_PCDATA:
-                    if (index < contentModelElementNameAsArray.length) {
-                        break eofloop;
-                    } else {
-                        errEofInEndTag();
-                        
+                case RAWTEXT_RCDATA_LESS_THAN_SIGN:
+                    
 
 
-                        break eofloop;
-                    }
-                case CLOSE_TAG_OPEN_PCDATA:
+                    tokenHandler.characters(Tokenizer.LT_GT, 0, 1);
+                    
+
+
+
+                    break eofloop;
+                case NON_DATA_END_TAG_NAME:
+                    
+
+
+
+                    tokenHandler.characters(Tokenizer.LT_SOLIDUS, 0, 2);
+                    
+
+
+
+
+                    emitStrBuf();
+                    
+
+
+
+                    break eofloop;
+                case CLOSE_TAG_OPEN:
                     
                     errEofAfterLt();
                     
@@ -5219,9 +6158,16 @@ public class Tokenizer implements Locator {
 
 
 
+                        Portability.releaseLocal(doctypeName);
                         doctypeName = "";
-                        publicIdentifier = null;
-                        systemIdentifier = null;
+                        if (systemIdentifier != null) {
+                            Portability.releaseString(systemIdentifier);
+                            systemIdentifier = null;
+                        }
+                        if (publicIdentifier != null) {
+                            Portability.releaseString(publicIdentifier);
+                            publicIdentifier = null;
+                        }
                         forceQuirks = true;
                         
 
@@ -5305,6 +6251,8 @@ public class Tokenizer implements Locator {
                 case DOCTYPE_UBLIC:
                 case DOCTYPE_YSTEM:
                 case AFTER_DOCTYPE_NAME:
+                case AFTER_DOCTYPE_PUBLIC_KEYWORD:
+                case AFTER_DOCTYPE_SYSTEM_KEYWORD:
                 case BEFORE_DOCTYPE_PUBLIC_IDENTIFIER:
                     errEofInDoctype();
                     
@@ -5338,6 +6286,7 @@ public class Tokenizer implements Locator {
                     break eofloop;
                 case AFTER_DOCTYPE_PUBLIC_IDENTIFIER:
                 case BEFORE_DOCTYPE_SYSTEM_IDENTIFIER:
+                case BETWEEN_DOCTYPE_PUBLIC_AND_SYSTEM_IDENTIFIERS:
                     errEofInDoctype();
                     
 
@@ -5413,7 +6362,12 @@ public class Tokenizer implements Locator {
                     emitOrAppendStrBuf(returnState);
                     state = returnState;
                     continue;
-                case CHARACTER_REFERENCE_LOOP:
+                case CHARACTER_REFERENCE_HILO_LOOKUP:
+                    errNoNamedCharacterMatch();
+                    emitOrAppendStrBuf(returnState);
+                    state = returnState;
+                    continue;
+                case CHARACTER_REFERENCE_TAIL:
                     outer: for (;;) {
                         char c = '\u0000';
                         entCol++;
@@ -5472,8 +6426,9 @@ public class Tokenizer implements Locator {
                         state = returnState;
                         continue eofloop;
                     } else {
-                        char[] candidateArr = NamedCharacters.NAMES[candidate];
-                        if (candidateArr[candidateArr.length - 1] != ';') {
+                        byte[] candidateArr = NamedCharacters.NAMES[candidate];
+                        if (candidateArr.length == 0
+                                || candidateArr[candidateArr.length - 1] != ';') {
                             
 
 
@@ -5523,8 +6478,13 @@ public class Tokenizer implements Locator {
 
 
 
-                        char[] val = NamedCharacters.VALUES[candidate];
-                        emitOrAppend(val, returnState);
+                        @Const @NoLength char[] val = NamedCharacters.VALUES[candidate];
+                        
+                        if ((val[0] & 0xFC00) == 0xD800) {
+                            emitOrAppendTwo(val, returnState);
+                        } else {
+                            emitOrAppendOne(val, returnState);
+                        }
                         
                         if (strBufMark < strBufLen) {
                             if ((returnState & (~1)) != 0) {
@@ -5591,8 +6551,11 @@ public class Tokenizer implements Locator {
         
         
         Portability.releaseLocal(doctypeName);
+        doctypeName = null;
         Portability.releaseString(publicIdentifier);
+        publicIdentifier = null;
         Portability.releaseString(systemIdentifier);
+        systemIdentifier = null;
     }
 
     @Inline protected char checkChar(@NoLength char[] buf, int pos)
@@ -5624,15 +6587,17 @@ public class Tokenizer implements Locator {
 
 
 
-    private void emitOrAppend(char[] val, int returnState) throws SAXException {
+    private void emitOrAppendTwo(@Const @NoLength char[] val, int returnState)
+            throws SAXException {
         if ((returnState & (~1)) != 0) {
-            appendLongStrBuf(val);
+            appendLongStrBuf(val[0]);
+            appendLongStrBuf(val[1]);
         } else {
-            tokenHandler.characters(val, 0, val.length);
+            tokenHandler.characters(val, 0, 2);
         }
     }
 
-    private void emitOrAppendOne(@NoLength char[] val, int returnState)
+    private void emitOrAppendOne(@Const @NoLength char[] val, int returnState)
             throws SAXException {
         if ((returnState & (~1)) != 0) {
             appendLongStrBuf(val[0]);
@@ -5642,13 +6607,28 @@ public class Tokenizer implements Locator {
     }
 
     public void end() throws SAXException {
+        Portability.releaseArray(strBuf);
         strBuf = null;
+        Portability.releaseArray(longStrBuf);
         longStrBuf = null;
-        systemIdentifier = null;
-        publicIdentifier = null;
+        Portability.releaseLocal(doctypeName);
         doctypeName = null;
-        tagName = null;
-        attributeName = null;
+        if (systemIdentifier != null) {
+            Portability.releaseString(systemIdentifier);
+            systemIdentifier = null;
+        }
+        if (publicIdentifier != null) {
+            Portability.releaseString(publicIdentifier);
+            publicIdentifier = null;
+        }
+        if (tagName != null) {
+            tagName.release();
+            tagName = null;
+        }
+        if (attributeName != null) {
+            attributeName.release();
+            attributeName = null;
+        }
         tokenHandler.endTokenization();
         if (attributes != null) {
             attributes.clear(mappingLangToXmlLang);
@@ -5698,6 +6678,149 @@ public class Tokenizer implements Locator {
 
     public boolean isInDataState() {
         return (stateSave == DATA);
+    }
+
+    public void resetToDataState() {
+        strBufLen = 0;
+        longStrBufLen = 0;
+        stateSave = Tokenizer.DATA;
+        
+        lastCR = false;
+        index = 0;
+        forceQuirks = false;
+        additional = '\u0000';
+        entCol = -1;
+        firstCharKey = -1;
+        lo = 0;
+        hi = (NamedCharacters.NAMES.length - 1);
+        candidate = -1;
+        strBufMark = 0;
+        prevValue = -1;
+        value = 0;
+        seenDigits = false;
+        endTag = false;
+        shouldSuspend = false;
+        initDoctypeFields();
+        if (tagName != null) {
+            tagName.release();
+            tagName = null;
+        }
+        if (attributeName != null) {
+            attributeName.release();
+            attributeName = null;
+        }
+        
+        if (newAttributesEachTime) {
+            
+            if (attributes != null) {
+                Portability.delete(attributes);
+                attributes = null;
+            }
+            
+        }
+        
+    }
+
+    public void loadState(Tokenizer other) throws SAXException {
+        strBufLen = other.strBufLen;
+        if (strBufLen > strBuf.length) {
+            Portability.releaseArray(strBuf);
+            strBuf = new char[strBufLen];
+        }
+        System.arraycopy(other.strBuf, 0, strBuf, 0, strBufLen);
+
+        longStrBufLen = other.longStrBufLen;
+        if (longStrBufLen > longStrBuf.length) {
+            Portability.releaseArray(longStrBuf);
+            longStrBuf = new char[longStrBufLen];
+        }
+        System.arraycopy(other.longStrBuf, 0, longStrBuf, 0, longStrBufLen);
+
+        stateSave = other.stateSave;
+        returnStateSave = other.returnStateSave;
+        contentModelElement = other.contentModelElement;
+        contentModelElementNameAsArray = other.contentModelElementNameAsArray;
+        
+        lastCR = other.lastCR;
+        index = other.index;
+        forceQuirks = other.forceQuirks;
+        additional = other.additional;
+        entCol = other.entCol;
+        firstCharKey = other.firstCharKey;
+        lo = other.lo;
+        hi = other.hi;
+        candidate = other.candidate;
+        strBufMark = other.strBufMark;
+        prevValue = other.prevValue;
+        value = other.value;
+        seenDigits = other.seenDigits;
+        endTag = other.endTag;
+        shouldSuspend = false;
+
+        Portability.releaseLocal(doctypeName);
+        if (other.doctypeName == null) {
+            doctypeName = null;
+        } else {
+            doctypeName = Portability.newLocalFromLocal(other.doctypeName,
+                    interner);
+        }
+
+        Portability.releaseString(systemIdentifier);
+        if (other.systemIdentifier == null) {
+            systemIdentifier = null;
+        } else {
+            systemIdentifier = Portability.newStringFromString(other.systemIdentifier);
+        }
+
+        Portability.releaseString(publicIdentifier);
+        if (other.publicIdentifier == null) {
+            publicIdentifier = null;
+        } else {
+            publicIdentifier = Portability.newStringFromString(other.publicIdentifier);
+        }
+
+        if (tagName != null) {
+            tagName.release();
+        }
+        if (other.tagName == null) {
+            tagName = null;
+        } else {
+            tagName = other.tagName.cloneElementName(interner);
+        }
+
+        if (attributeName != null) {
+            attributeName.release();
+        }
+        if (other.attributeName == null) {
+            attributeName = null;
+        } else {
+            attributeName = other.attributeName.cloneAttributeName(interner);
+        }
+
+        if (attributes != null) {
+            Portability.delete(attributes);
+        }
+        if (other.attributes == null) {
+            attributes = null;
+        } else {
+            attributes = other.attributes.cloneAttributes(interner);
+        }
+    }
+
+    public void initializeWithoutStarting() throws SAXException {
+        confident = false;
+        strBuf = new char[64];
+        longStrBuf = new char[1024];
+        line = 1;
+        
+        html4 = false;
+        metaBoundaryPassed = false;
+        wantsComments = tokenHandler.wantsComments();
+        if (!newAttributesEachTime) {
+            attributes = new HtmlAttributes(mappingLangToXmlLang);
+        }
+        
+        resetToDataState();
     }
 
     protected void errGarbageAfterLtSlash() throws SAXException {
@@ -5752,7 +6875,7 @@ public class Tokenizer implements Locator {
             throws SAXException {
     }
 
-    protected void errLtOrEqualsInUnquotedAttributeOrNull(char c)
+    protected void errLtOrEqualsOrGraveInUnquotedAttributeOrNull(char c)
             throws SAXException {
     }
 
@@ -5788,7 +6911,8 @@ public class Tokenizer implements Locator {
     protected void errQuoteBeforeAttributeName(char c) throws SAXException {
     }
 
-    protected void errQuoteOrLtInAttributeNameOrNull(char c) throws SAXException {
+    protected void errQuoteOrLtInAttributeNameOrNull(char c)
+            throws SAXException {
     }
 
     protected void errExpectedPublicId() throws SAXException {
@@ -5811,16 +6935,21 @@ public class Tokenizer implements Locator {
             throws SAXException {
     }
 
-    protected void errNcrNonCharacter() throws SAXException {
+    protected char errNcrNonCharacter(char ch) throws SAXException {
+        return ch;
+    }
+
+    protected void errAstralNonCharacter(int ch) throws SAXException {
     }
 
     protected void errNcrSurrogate() throws SAXException {
     }
 
-    protected void errNcrControlChar() throws SAXException {
+    protected char errNcrControlChar(char ch) throws SAXException {
+        return ch;
     }
 
-    protected void errRcnCr() throws SAXException {
+    protected void errNcrCr() throws SAXException {
     }
 
     protected void errNcrInC1Range() throws SAXException {
@@ -5872,6 +7001,29 @@ public class Tokenizer implements Locator {
     }
 
     protected void errHyphenHyphenBang() throws SAXException {
+    }
+
+    protected void errNcrControlChar() throws SAXException {
+    }
+
+    protected void errNcrZero() throws SAXException {
+    }
+
+    protected void errNoSpaceBetweenDoctypeSystemKeywordAndQuote()
+            throws SAXException {
+    }
+
+    protected void errNoSpaceBetweenPublicAndSystemIds() throws SAXException {
+    }
+
+    protected void errNoSpaceBetweenDoctypePublicKeywordAndQuote()
+            throws SAXException {
+    }
+
+    protected void noteAttributeWithoutValue() throws SAXException {
+    }
+
+    protected void noteUnquotedAttributeValue() throws SAXException {
     }
 
     

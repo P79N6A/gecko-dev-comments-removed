@@ -31,17 +31,26 @@ import nu.validator.htmlparser.annotation.NsUri;
 import nu.validator.htmlparser.annotation.Prefix;
 import nu.validator.htmlparser.annotation.QName;
 import nu.validator.htmlparser.annotation.Virtual;
+import nu.validator.htmlparser.common.Interner;
 
 public final class AttributeName
 
 
 {
 
-    private static final @NoLength @NsUri String[] ALL_NO_NS = { "", "", "",
+    
+
+
+
+    static final @NoLength @NsUri String[] ALL_NO_NS = { "", "", "",
     
             ""
     
     };
+
+    
+
+
 
     private static final @NoLength @NsUri String[] XMLNS_NS = { "",
             "http://www.w3.org/2000/xmlns/", "http://www.w3.org/2000/xmlns/",
@@ -49,6 +58,10 @@ public final class AttributeName
             ""
     
     };
+
+    
+
+
 
     private static final @NoLength @NsUri String[] XML_NS = { "",
             "http://www.w3.org/XML/1998/namespace",
@@ -58,6 +71,10 @@ public final class AttributeName
     
     };
 
+    
+
+
+
     private static final @NoLength @NsUri String[] XLINK_NS = { "",
             "http://www.w3.org/1999/xlink", "http://www.w3.org/1999/xlink",
             
@@ -66,17 +83,27 @@ public final class AttributeName
     };
 
     
+    
+
+
+
     private static final @NoLength @NsUri String[] LANG_NS = { "", "", "",
             "http://www.w3.org/XML/1998/namespace" };
 
     
 
-    private static final @NoLength @Prefix String[] ALL_NO_PREFIX = { null,
-            null, null,
-            
+    
+
+
+    static final @NoLength @Prefix String[] ALL_NO_PREFIX = { null, null, null,
+    
             null
     
     };
+
+    
+
+
 
     private static final @NoLength @Prefix String[] XMLNS_PREFIX = { null,
             "xmlns", "xmlns",
@@ -85,12 +112,20 @@ public final class AttributeName
     
     };
 
+    
+
+
+
     private static final @NoLength @Prefix String[] XLINK_PREFIX = { null,
             "xlink", "xlink",
             
             null
     
     };
+
+    
+
+
 
     private static final @NoLength @Prefix String[] XML_PREFIX = { null, "xml",
             "xml",
@@ -122,6 +157,16 @@ public final class AttributeName
 
     
 
+    
+
+
+
+
+
+
+
+
+
     private static @NoLength @Local String[] SVG_DIFFERENT(@Local String name,
             @Local String camel) {
         @NoLength @Local String[] arr = new String[4];
@@ -133,6 +178,16 @@ public final class AttributeName
         
         return arr;
     }
+
+    
+
+
+
+
+
+
+
+
 
     private static @NoLength @Local String[] MATH_DIFFERENT(@Local String name,
             @Local String camel) {
@@ -146,6 +201,16 @@ public final class AttributeName
         return arr;
     }
 
+    
+
+
+
+
+
+
+
+
+
     private static @NoLength @Local String[] COLONIFIED_LOCAL(
             @Local String name, @Local String suffix) {
         @NoLength @Local String[] arr = new String[4];
@@ -158,7 +223,14 @@ public final class AttributeName
         return arr;
     }
 
-    private static @NoLength @Local String[] SAME_LOCAL(@Local String name) {
+    
+
+
+
+
+
+
+    static @NoLength @Local String[] SAME_LOCAL(@Local String name) {
         @NoLength @Local String[] arr = new String[4];
         arr[0] = name;
         arr[1] = name;
@@ -170,6 +242,10 @@ public final class AttributeName
     }
 
     
+
+
+
+
 
 
 
@@ -187,14 +263,15 @@ public final class AttributeName
             int length
             
             , boolean checkNcName
-    
-    ) {
+            
+            , Interner interner) {
         
         int hash = AttributeName.bufToHash(buf, length);
         int index = Arrays.binarySearch(AttributeName.ATTRIBUTE_HASHES, hash);
         if (index < 0) {
             return AttributeName.createAttributeName(
-                    Portability.newLocalNameFromBuffer(buf, offset, length)
+                    Portability.newLocalNameFromBuffer(buf, offset, length,
+                            interner)
                     
                     , checkNcName
             
@@ -204,7 +281,8 @@ public final class AttributeName
             @Local String name = attributeName.getLocal(AttributeName.HTML);
             if (!Portability.localEqualsBuffer(name, buf, offset, length)) {
                 return AttributeName.createAttributeName(
-                        Portability.newLocalNameFromBuffer(buf, offset, length)
+                        Portability.newLocalNameFromBuffer(buf, offset, length,
+                                interner)
                         
                         , checkNcName
                 
@@ -238,36 +316,77 @@ public final class AttributeName
         return hash ^ hash2;
     }
 
+    
+
+
     public static final int HTML = 0;
 
+    
+
+
     public static final int MATHML = 1;
+
+    
+
 
     public static final int SVG = 2;
 
     
 
+    
+
+
     public static final int HTML_LANG = 3;
+
+    
+
 
     private final @IdType String type;
 
     
 
+    
+
+
     private final @NsUri @NoLength String[] uri;
 
+    
+
+
     private final @Local @NoLength String[] local;
+
+    
+
 
     private final @Prefix @NoLength String[] prefix;
 
     
 
+    
+
+
     private final @QName @NoLength String[] qName;
 
     
+    
+
+
     private final @NoLength boolean[] ncname;
+
+    
+
 
     private final boolean xmlns;
 
     
+
+
+
+
+
+
+
+
 
 
 
@@ -290,6 +409,20 @@ public final class AttributeName
 
     
 
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
     protected AttributeName(@NsUri @NoLength String[] uri,
             @Local @NoLength String[] local, @Prefix @NoLength String[] prefix
             
@@ -308,6 +441,15 @@ public final class AttributeName
         this.xmlns = xmlns;
         
     }
+
+    
+
+
+
+
+
+
+
 
     private static AttributeName createAttributeName(@Local String name
     
@@ -334,10 +476,16 @@ public final class AttributeName
         );
     }
 
+    
+
+
     @Virtual void release() {
         
         
     }
+
+    
+
 
     @SuppressWarnings("unused") private void destructor() {
         Portability.releaseLocal(local[0]); 
@@ -345,6 +493,18 @@ public final class AttributeName
         
         
         Portability.deleteArray(local);
+    }
+
+    
+
+
+
+
+
+
+
+    @Virtual public AttributeName cloneAttributeName(Interner interner) {
+        return this;
     }
 
     
@@ -440,158 +600,158 @@ public final class AttributeName
 
     
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
 
     
     public static final AttributeName D = new AttributeName(ALL_NO_NS,

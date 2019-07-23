@@ -25,6 +25,7 @@ package nu.validator.htmlparser.impl;
 import nu.validator.htmlparser.annotation.Literal;
 import nu.validator.htmlparser.annotation.Local;
 import nu.validator.htmlparser.annotation.NoLength;
+import nu.validator.htmlparser.common.Interner;
 
 public final class Portability {
 
@@ -34,7 +35,7 @@ public final class Portability {
 
 
 
-    public static @Local String newLocalNameFromBuffer(@NoLength char[] buf, int offset, int length) {
+    public static @Local String newLocalNameFromBuffer(@NoLength char[] buf, int offset, int length, Interner interner) {
         return new String(buf, offset, length).intern();
     }
 
@@ -50,6 +51,10 @@ public final class Portability {
         return literal;
     }
     
+    public static String newStringFromString(String string) {
+        return string;
+    }
+    
     
     public static char[] newCharArrayFromLocal(@Local String local) {
         return local.toCharArray();
@@ -57,6 +62,10 @@ public final class Portability {
 
     public static char[] newCharArrayFromString(String string) {
         return string.toCharArray();
+    }
+    
+    public static @Local String newLocalFromLocal(@Local String local, Interner interner) {
+        return local;
     }
     
     
@@ -85,6 +94,9 @@ public final class Portability {
         
     }    
     
+    
+    
+    
     public static void retainElement(Object elt) {
         
     }
@@ -92,6 +104,8 @@ public final class Portability {
     public static void releaseElement(Object elt) {
         
     }
+    
+    
     
     
     
