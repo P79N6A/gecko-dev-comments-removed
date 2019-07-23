@@ -307,6 +307,9 @@ nsFirstLetterFrame::Reflow(nsPresContext*          aPresContext,
   
   
   if (NS_FRAME_IS_COMPLETE(aReflowStatus)) {
+    if (aReflowState.mLineLayout) {
+      aReflowState.mLineLayout->SetFirstLetterStyleOK(PR_FALSE);
+    }
     nsIFrame* kidNextInFlow = kid->GetNextInFlow();
     if (kidNextInFlow) {
       
