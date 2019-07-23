@@ -170,7 +170,6 @@ static void SetOptionsKeyUint32(const nsCString& aValue,
 #define QUERYKEY_FORCE_ORIGINAL_TITLE "originalTitle"
 #define QUERYKEY_INCLUDE_HIDDEN "includeHidden"
 #define QUERYKEY_REDIRECTS_MODE "redirectsMode"
-#define QUERYKEY_SHOW_SESSIONS "showSessions"
 #define QUERYKEY_MAX_RESULTS "maxResults"
 #define QUERYKEY_QUERY_TYPE "queryType"
 #define QUERYKEY_TAG "tag"
@@ -603,12 +602,6 @@ nsNavHistory::QueriesToQueryString(nsINavHistoryQuery **aQueries,
   }
 
   
-  if (options->ShowSessions()) {
-    AppendAmpersandIfNonempty(queryString);
-    queryString += NS_LITERAL_CSTRING(QUERYKEY_SHOW_SESSIONS "=1");
-  }
-
-  
   if (options->MaxResults()) {
     AppendAmpersandIfNonempty(queryString);
     queryString += NS_LITERAL_CSTRING(QUERYKEY_MAX_RESULTS "=");
@@ -869,10 +862,6 @@ nsNavHistory::TokensToQueries(const nsTArray<QueryKeyValuePair>& aTokens,
     } else if (kvp.key.EqualsLiteral(QUERYKEY_REDIRECTS_MODE)) {
       SetOptionsKeyUint16(kvp.value, aOptions,
                           &nsINavHistoryQueryOptions::SetRedirectsMode);
-    
-    } else if (kvp.key.EqualsLiteral(QUERYKEY_SHOW_SESSIONS)) {
-      SetOptionsKeyBool(kvp.value, aOptions,
-                        &nsINavHistoryQueryOptions::SetShowSessions);
     
     } else if (kvp.key.EqualsLiteral(QUERYKEY_MAX_RESULTS)) {
       SetOptionsKeyUint32(kvp.value, aOptions,
@@ -1500,20 +1489,6 @@ nsNavHistoryQueryOptions::SetRedirectsMode(PRUint16 aRedirectsMode)
 
 
 NS_IMETHODIMP
-nsNavHistoryQueryOptions::GetShowSessions(PRBool* aShowSessions)
-{
-  *aShowSessions = mShowSessions;
-  return NS_OK;
-}
-NS_IMETHODIMP
-nsNavHistoryQueryOptions::SetShowSessions(PRBool aShowSessions)
-{
-  mShowSessions = aShowSessions;
-  return NS_OK;
-}
-
-
-NS_IMETHODIMP
 nsNavHistoryQueryOptions::GetMaxResults(PRUint32* aMaxResults)
 {
   *aMaxResults = mMaxResults;
@@ -1567,7 +1542,6 @@ nsNavHistoryQueryOptions::Clone(nsNavHistoryQueryOptions **aResult)
   result->mResultType = mResultType;
   result->mExcludeItems = mExcludeItems;
   result->mExcludeQueries = mExcludeQueries;
-  result->mShowSessions = mShowSessions;
   result->mExpandQueries = mExpandQueries;
   result->mMaxResults = mMaxResults;
   result->mQueryType = mQueryType;

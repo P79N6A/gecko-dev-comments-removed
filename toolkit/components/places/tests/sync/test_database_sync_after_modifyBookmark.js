@@ -55,10 +55,11 @@ const kSyncFinished = "places-sync-finished";
 
 
 var bookmarksObserver = {
-  onItemAdded: function(aItemId, aNewParent, aNewIndex) {
+  onItemAdded: function(aItemId, aNewParent, aNewIndex, aItemType) {
     observer.itemId = aItemId;
   },
-  onItemChanged: function(aItemId, aProperty, aValue) {
+  onItemChanged: function(aItemId, aProperty, aNewValue, aLastModified,
+                          aItemType) {
     if (aProperty == "uri")
       do_check_eq(observer.itemId, aItemId);
   }
