@@ -50,14 +50,14 @@
 #ifdef RAPTOR_PERF_METRICS
 #  define START_TIMER()                    \
     if(mParser) mParser->mParseTime.Start(PR_FALSE); \
-    if(mParser) mParser->mDTDTime.Start(PR_FALSE); 
+    if(mParser) mParser->mDTDTime.Start(PR_FALSE);
 
 #  define STOP_TIMER()                     \
     if(mParser) mParser->mParseTime.Stop(); \
-    if(mParser) mParser->mDTDTime.Stop(); 
+    if(mParser) mParser->mDTDTime.Stop();
 
 #else
-#  define STOP_TIMER() 
+#  define STOP_TIMER()
 #  define START_TIMER()
 #endif
 
@@ -75,6 +75,7 @@
 #include "nsIPrefBranch.h"
 #include "nsUnicharUtils.h"
 #include "nsPrintfCString.h"
+#include "nsNetUtil.h"
 
 #include "nsIServiceManager.h"
 
@@ -138,7 +139,7 @@ static const char* const kElementClasses[] = {
   "text",
   "attribute-name",
   "attribute-value",
-  "markupdeclaration"  
+  "markupdeclaration"
 };
 
 static const char* const kBeforeText[] = {
@@ -268,7 +269,7 @@ nsresult CViewSourceHTML::WillBuildModel(const CParserContext& aParserContext,
 #ifdef RAPTOR_PERF_METRICS
   vsTimer.Reset();
   NS_START_STOPWATCH(vsTimer);
-#endif 
+#endif
 
   STOP_TIMER();
   mSink=(nsIHTMLContentSink*)aSink;
@@ -279,7 +280,7 @@ nsresult CViewSourceHTML::WillBuildModel(const CParserContext& aParserContext,
     mFilename = Substring(contextFilename,
                           12, 
                           contextFilename.Length() - 12);
-    
+
     mDocType=aParserContext.mDocType;
     mMimeType=aParserContext.mMimeType;
     mDTDMode=aParserContext.mDTDMode;
@@ -396,7 +397,7 @@ NS_IMETHODIMP CViewSourceHTML::BuildModel(nsIParser* aParser,nsITokenizer* aToke
           AddAttrToNode(theNode, theAllocator,
                         NS_LITERAL_STRING("href"),
                         NS_LITERAL_STRING("resource://gre/res/viewsource.css"));
-          
+
           mSink->AddLeaf(theNode);
         }
         IF_FREE(theToken, theAllocator);
@@ -420,7 +421,7 @@ NS_IMETHODIMP CViewSourceHTML::BuildModel(nsIParser* aParser,nsITokenizer* aToke
           AddAttrToNode(bodyNode, theAllocator,
                         NS_LITERAL_STRING("id"),
                         NS_ConvertASCIItoUTF16(kBodyId));
-          
+
           if (mWrapLongLines) {
             AddAttrToNode(bodyNode, theAllocator,
                           NS_LITERAL_STRING("class"),
@@ -430,7 +431,7 @@ NS_IMETHODIMP CViewSourceHTML::BuildModel(nsIParser* aParser,nsITokenizer* aToke
           if(NS_SUCCEEDED(result)) mHasOpenBody=PR_TRUE;
         }
         IF_FREE(bodyToken, theAllocator);
-        
+
         if (NS_SUCCEEDED(result)) {
           CStartToken* preToken =
             static_cast<CStartToken*>
@@ -468,7 +469,7 @@ NS_IMETHODIMP CViewSourceHTML::BuildModel(nsIParser* aParser,nsITokenizer* aToke
       }
       else break;
     }
-   
+
     mTokenizer=oldTokenizer;
   }
   else result=NS_ERROR_HTMLPARSER_BADTOKENIZER;
@@ -488,7 +489,7 @@ void CViewSourceHTML::StartNewPreBlock(void){
   if (!theAllocator) {
     return;
   }
-  
+
   CStartToken* theToken =
     static_cast<CStartToken*>
                (theAllocator->CreateTokenOfType(eToken_start,
@@ -504,7 +505,7 @@ void CViewSourceHTML::StartNewPreBlock(void){
                 NS_ConvertASCIItoUTF16(nsPrintfCString("line%d", mLineNumber)));
   mSink->OpenContainer(startNode);
   IF_FREE(theToken, theAllocator);
-  
+
 #ifdef DUMP_TO_FILE
   if (gDumpFile) {
     fprintf(gDumpFile, "</pre>\n");
@@ -521,7 +522,7 @@ void CViewSourceHTML::AddAttrToNode(nsCParserStartNode& aNode,
                                     const nsAString& aAttrValue)
 {
   NS_PRECONDITION(aAllocator, "Must have a token allocator!");
-  
+
   CAttributeToken* theAttr =
     (CAttributeToken*) aAllocator->CreateTokenOfType(eToken_attribute,
                                                      eHTMLTag_unknown,
@@ -585,7 +586,7 @@ NS_IMETHODIMP CViewSourceHTML::DidBuildModel(nsresult anErrorCode,PRBool aNotify
   printf("viewsource timer: ");
   vsTimer.Print();
   printf("\n");
-#endif 
+#endif
 
   return result;
 }
@@ -600,11 +601,11 @@ NS_IMETHODIMP CViewSourceHTML::DidBuildModel(nsresult anErrorCode,PRBool aNotify
 
 
 
-NS_IMETHODIMP_(void)  
+NS_IMETHODIMP_(void)
 CViewSourceHTML::Terminate() {
 }
 
-NS_IMETHODIMP_(PRInt32)  
+NS_IMETHODIMP_(PRInt32)
 CViewSourceHTML::GetType() {
   return NS_IPARSER_FLAG_HTML;
 }
@@ -682,9 +683,11 @@ PRBool CViewSourceHTML::IsContainer(PRInt32 aTag) const{
 
 
 
-nsresult CViewSourceHTML::WriteAttributes(PRInt32 attrCount, PRBool aOwnerInError) {
+nsresult CViewSourceHTML::WriteAttributes(const nsAString& tagName, 
+                                          nsTokenAllocator* allocator, 
+                                          PRInt32 attrCount, PRBool aOwnerInError) {
   nsresult result=NS_OK;
-  
+
   if(attrCount){ 
     int attr = 0;
     for(attr = 0; attr < attrCount; ++attr){
@@ -697,7 +700,7 @@ nsresult CViewSourceHTML::WriteAttributes(PRInt32 attrCount, PRBool aOwnerInErro
 
           CAttributeToken* theAttrToken = (CAttributeToken*)theToken;
           const nsSubstring& theKey = theAttrToken->GetKey();
-          
+
           
           const PRBool attributeInError =
             !aOwnerInError && theAttrToken->IsInError();
@@ -706,9 +709,13 @@ nsresult CViewSourceHTML::WriteAttributes(PRInt32 attrCount, PRBool aOwnerInErro
           const nsSubstring& theValue = theAttrToken->GetValue();
 
           if(!theValue.IsEmpty() || theAttrToken->mHasEqualWithoutValue){
-            result = WriteTag(kAttributeValue,theValue,0,attributeInError);
+            if (IsUrlAttribute(tagName, theKey, theValue)) {
+              WriteHrefAttribute(allocator, theValue);
+            } else {
+              WriteTag(kAttributeValue,theValue,0,attributeInError);
+            }
           }
-        } 
+        }
       }
       else return kEOF;
     }
@@ -771,7 +778,7 @@ nsresult CViewSourceHTML::WriteTag(PRInt32 aTagType,const nsSubstring & aText,PR
   if (gDumpFile && kDumpFileBeforeText[aTagType][0])
     fprintf(gDumpFile, kDumpFileBeforeText[aTagType]);
 #endif 
-  
+
   if (mSyntaxHighlight && aTagType != kText) {
     CStartToken* theTagToken=
       static_cast<CStartToken*>
@@ -807,7 +814,7 @@ nsresult CViewSourceHTML::WriteTag(PRInt32 aTagType,const nsSubstring & aText,PR
 #endif 
 
   if (mSyntaxHighlight && aTagType != kText) {
-    mStartNode.ReleaseAll(); 
+    mStartNode.ReleaseAll();
     mSink->CloseContainer(eHTMLTag_span);  
 #ifdef DUMP_TO_FILE
     if (gDumpFile)
@@ -816,7 +823,7 @@ nsresult CViewSourceHTML::WriteTag(PRInt32 aTagType,const nsSubstring & aText,PR
   }
 
   if(attrCount){
-    result=WriteAttributes(attrCount, aTagInError);
+    result=WriteAttributes(aText, theAllocator, attrCount, aTagInError);
   }
 
   
@@ -833,7 +840,7 @@ nsresult CViewSourceHTML::WriteTag(PRInt32 aTagType,const nsSubstring & aText,PR
 #endif 
 
   if (mSyntaxHighlight && aTagInError) {
-    mErrorNode.ReleaseAll(); 
+    mErrorNode.ReleaseAll();
     mSink->CloseContainer(eHTMLTag_span);  
 #ifdef DUMP_TO_FILE
     if (gDumpFile)
@@ -857,14 +864,14 @@ NS_IMETHODIMP CViewSourceHTML::HandleToken(CToken* aToken,nsIParser* aParser)
   nsresult        result=NS_OK;
   CHTMLToken*     theToken= (CHTMLToken*)(aToken);
   eHTMLTokenTypes theType= (eHTMLTokenTypes)theToken->GetTokenType();
- 
+
   mParser=(nsParser*)aParser;
   mSink=(nsIHTMLContentSink*)aParser->GetContentSink();
- 
+
   mTokenNode.Init(theToken, mTokenizer->GetTokenAllocator());
 
   switch(theType) {
-    
+
     case eToken_start:
       {
         const nsSubstring& startValue = aToken->GetStringValue();
@@ -907,7 +914,7 @@ NS_IMETHODIMP CViewSourceHTML::HandleToken(CToken* aToken,nsIParser* aParser)
       }
       break;
 
-    case eToken_comment: 
+    case eToken_comment:
       {
         nsAutoString theStr;
         aToken->AppendSourceTo(theStr);
@@ -951,7 +958,7 @@ NS_IMETHODIMP CViewSourceHTML::HandleToken(CToken* aToken,nsIParser* aParser)
 
     case eToken_text:
       {
-        const nsSubstring& str = aToken->GetStringValue();         
+        const nsSubstring& str = aToken->GetStringValue();
         result=WriteTag(kText,str,aToken->GetAttributeCount(),aToken->IsInError());
         ++mTokenCount;
         if (NS_VIEWSOURCE_TOKENS_PER_BLOCK > 0 &&
@@ -976,8 +983,214 @@ NS_IMETHODIMP CViewSourceHTML::HandleToken(CToken* aToken,nsIParser* aParser)
       result=NS_OK;
   }
 
-  mTokenNode.ReleaseAll(); 
+  mTokenNode.ReleaseAll();
 
   return result;
 }
 
+PRBool CViewSourceHTML::IsUrlAttribute(const nsAString& tagName,
+                                       const nsAString& attrName, 
+                                       const nsAString& attrValue) {
+  const nsSubstring &trimmedAttrName = TrimTokenValue(attrName);
+
+  PRBool isHref = trimmedAttrName.LowerCaseEqualsLiteral("href");
+  PRBool isSrc = !isHref && trimmedAttrName.LowerCaseEqualsLiteral("src");
+
+  
+  
+  
+  if (isHref && tagName.LowerCaseEqualsLiteral("base")) {
+    const nsSubstring& baseSpec = TrimTokenValue(attrValue);
+    SetBaseURI(baseSpec);
+  }
+
+  return isHref || isSrc;
+}
+
+void CViewSourceHTML::WriteHrefAttribute(nsTokenAllocator* allocator,
+                                         const nsAString& href) {
+  
+  
+  
+  nsAString::const_iterator startProper, endProper;
+  href.BeginReading(startProper);
+  href.EndReading(endProper);
+  TrimTokenValue(startProper, endProper);
+
+  
+  
+  nsAString::const_iterator start, end;
+  href.BeginReading(start);
+  href.EndReading(end);  
+  const nsAString &precedingText = Substring(start, startProper);
+  const nsAString &hrefProper = Substring(startProper, endProper);
+  const nsAString &succeedingText = Substring(endProper, end);
+
+  nsAutoString fullPrecedingText;
+  fullPrecedingText.Assign(kEqual);
+  fullPrecedingText.Append(precedingText);
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+  
+  nsAutoString viewSourceUrl;
+  CreateViewSourceURL(hrefProper, viewSourceUrl);
+
+  
+  NS_NAMED_LITERAL_STRING(HREF, "href");
+  if (fullPrecedingText.Length() > 0) {
+    WriteTextInSpan(fullPrecedingText, allocator, EmptyString(), EmptyString());
+  }
+  WriteTextInAnchor(hrefProper, allocator, HREF, viewSourceUrl);
+  if (succeedingText.Length() > 0) {
+    WriteTextInSpan(succeedingText, allocator, EmptyString(), EmptyString());
+  }
+}
+
+nsresult CViewSourceHTML::CreateViewSourceURL(const nsAString& linkUrl,
+                                              nsString& viewSourceUrl) {
+  nsCOMPtr<nsIURI> baseURI;
+  nsCOMPtr<nsIURI> hrefURI;
+  nsresult rv;
+
+  
+  
+  
+  viewSourceUrl.Truncate();
+  
+  
+  nsCString charset;
+  PRInt32 source;
+  mParser->GetDocumentCharset(charset, source);
+
+  
+  rv = GetBaseURI(getter_AddRefs(baseURI));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  rv = NS_NewURI(getter_AddRefs(hrefURI), linkUrl, charset.get(), baseURI);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  nsCString absoluteLinkUrl;
+  hrefURI->GetSpec(absoluteLinkUrl);
+
+  
+  viewSourceUrl.AssignLiteral("view-source:");
+  viewSourceUrl.AppendWithConversion(absoluteLinkUrl);
+
+  return NS_OK;
+}
+
+void CViewSourceHTML::WriteTextInSpan(const nsAString& text, 
+                                      nsTokenAllocator* allocator, 
+                                      const nsAString& attrName, 
+                                      const nsAString& attrValue) {
+  NS_NAMED_LITERAL_STRING(SPAN, "SPAN");
+  WriteTextInElement(SPAN, eHTMLTag_span, text, allocator, attrName, attrValue);
+}
+
+void CViewSourceHTML::WriteTextInAnchor(const nsAString& text, 
+                                        nsTokenAllocator* allocator, 
+                                        const nsAString& attrName, 
+                                        const nsAString& attrValue) {
+  NS_NAMED_LITERAL_STRING(ANCHOR, "A");
+  WriteTextInElement(ANCHOR, eHTMLTag_a, text, allocator, attrName, attrValue);
+}
+
+void CViewSourceHTML::WriteTextInElement(const nsAString& tagName, 
+                                         eHTMLTags tagType, const nsAString& text,
+                                         nsTokenAllocator* allocator,
+                                         const nsAString& attrName, 
+                                         const nsAString& attrValue) {
+  
+  CStartToken startToken(tagName, tagType);
+  nsCParserStartNode startNode(&startToken, 0);
+  if (!attrName.IsEmpty()) {
+    AddAttrToNode(startNode, allocator, attrName, attrValue);
+  }
+  mSink->OpenContainer(startNode);
+
+  
+  CTextToken textToken(text);
+  nsCParserNode textNode(&textToken, 0);
+  mSink->AddLeaf(textNode);
+
+  
+  mSink->CloseContainer(tagType);
+}
+
+const nsDependentSubstring CViewSourceHTML::TrimTokenValue(const nsAString& tokenValue) {
+  nsAString::const_iterator start, end;
+  tokenValue.BeginReading(start);
+  tokenValue.EndReading(end);
+  TrimTokenValue(start, end);
+  return Substring(start, end);
+}
+
+void CViewSourceHTML::TrimTokenValue(nsAString::const_iterator& start,
+                                     nsAString::const_iterator& end) {
+  
+  
+  
+  
+        
+  
+  while (start != end) {
+    if (!IsTokenValueTrimmableCharacter(*start)) break;
+    ++start;
+  }
+
+  
+  
+  
+  while (end != start) {      
+    --end;
+    if (!IsTokenValueTrimmableCharacter(*end)) {
+      ++end; 
+      break;
+    }
+  }
+}
+
+PRBool CViewSourceHTML::IsTokenValueTrimmableCharacter(char ch) {
+  if (ch == ' ') return PR_TRUE;
+  if (ch == '\t') return PR_TRUE;
+  if (ch == '\r') return PR_TRUE;
+  if (ch == '\t') return PR_TRUE;
+  if (ch == '\'') return PR_TRUE;
+  if (ch == '"') return PR_TRUE;
+  return PR_FALSE;
+}
+
+nsresult CViewSourceHTML::GetBaseURI(nsIURI **result) {
+  nsresult rv = NS_OK;
+  if (!mBaseURI) {
+    rv = SetBaseURI(mFilename);
+  }
+  NS_IF_ADDREF(*result = mBaseURI);
+  return rv;
+}
+
+nsresult CViewSourceHTML::SetBaseURI(const nsAString& baseSpec) {
+  
+  nsCString charset;
+  PRInt32 source;
+  mParser->GetDocumentCharset(charset, source);
+ 
+  
+  nsCOMPtr<nsIURI> baseURI;
+  nsresult rv = NS_NewURI(getter_AddRefs(baseURI), baseSpec, charset.get());
+  NS_ENSURE_SUCCESS(rv, rv);
+  mBaseURI = baseURI;
+  return NS_OK;
+}
