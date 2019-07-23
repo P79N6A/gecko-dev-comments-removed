@@ -660,11 +660,6 @@ protected:
 
 
     void ReportMissingOverlay(nsIURI* aURI);
-    
-#if defined(DEBUG_waterson) || defined(DEBUG_hyatt)
-    
-    nsTime mLoadStart;
-#endif
 
     class CachedChromeStreamListener : public nsIStreamListener {
     protected:
