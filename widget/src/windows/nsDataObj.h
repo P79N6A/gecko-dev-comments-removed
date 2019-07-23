@@ -38,19 +38,21 @@
 #ifndef _NSDATAOBJ_H_
 #define _NSDATAOBJ_H_
 
+#ifdef __MINGW32__
 #include <unknwn.h>
 #include <basetyps.h>
 #include <objidl.h>
-
+#endif
 #include <oleidl.h>
 
-
+#include "nsCOMPtr.h"
 #include "nsString.h"
 #include "nsILocalFile.h"
 #include "nsIURI.h"
 #include "nsIInputStream.h"
 #include "nsIChannel.h"
 #include "nsTArray.h"
+#include "nsVoidArray.h"
 
 
 
@@ -128,7 +130,6 @@ typedef struct _FILEGROUPDESCRIPTORW {
 # endif 
 #endif 
 
-class nsVoidArray;
 class CEnumFormatEtc;
 class nsITransferable;
 
@@ -212,13 +213,6 @@ class nsDataObj : public IDataObject,
 
 	public: 
 
-		
-		static ULONG GetCumRefCount();
-
-		
-		
-		ULONG GetRefCount() const;
-
     
     nsresult GetDownloadDetails(nsIURI **aSourceURI,
                                 nsAString &aFilename);
@@ -266,14 +260,11 @@ class nsDataObj : public IDataObject,
     
     nsCString mSourceURL;
 
-    nsString mStringData;
-
     BOOL FormatsMatch(const FORMATETC& source, const FORMATETC& target) const;
 
-   	static ULONG g_cRef;              
 		ULONG        m_cRef;              
 
-    nsVoidArray * mDataFlavors;       
+    nsVoidArray mDataFlavors;
 
     nsITransferable  * mTransferable; 
                                       
@@ -339,7 +330,6 @@ class nsDataObj : public IDataObject,
                             BOOL fCopyIn);
     IUnknown* GetCanonicalIUnknown(IUnknown *punk);
     HGLOBAL GlobalClone(HGLOBAL hglobIn);
-
 };
 
 

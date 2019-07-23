@@ -40,10 +40,11 @@
 
 #define INITGUID
 
+#ifdef __MINGW32__
 #include <unknwn.h>
 #include <basetyps.h>
 #include <objidl.h>
-
+#endif
 #include <oleidl.h>
 
 #include "nsString.h"
@@ -118,14 +119,14 @@ class nsDataObjCollection : public IDataObject, public nsIDataObjCollection
 #if NOT_YET
     
     STDMETHODIMP AddDataObject(IDataObject * aDataObj);
-    STDMETHODIMP GetNumDataObjects(PRInt32* outNum) { *outNum = mDataObjects->Count(); }
-    STDMETHODIMP GetDataObjectAt(PRUint32 aItem, IDataObject** outItem) { *outItem = (IDataObject *)mDataObjects->SafeElementAt(aItem); }
+    STDMETHODIMP GetNumDataObjects(PRInt32* outNum) { *outNum = mDataObjects.Count(); }
+    STDMETHODIMP GetDataObjectAt(PRUint32 aItem, IDataObject** outItem) { *outItem = (IDataObject *)mDataObjects.SafeElementAt(aItem); }
 #endif
 
     
     void AddDataObject(IDataObject * aDataObj);
-    PRInt32 GetNumDataObjects() { return mDataObjects->Count(); }
-    IDataObject* GetDataObjectAt(PRUint32 aItem) { return (IDataObject *)mDataObjects->SafeElementAt(aItem); }
+    PRInt32 GetNumDataObjects() { return mDataObjects.Count(); }
+    IDataObject* GetDataObjectAt(PRUint32 aItem) { return (IDataObject *)mDataObjects.SafeElementAt(aItem); }
 
 		
 		CLSID GetClassID() const;
@@ -185,22 +186,12 @@ class nsDataObjCollection : public IDataObject, public nsIDataObjCollection
 		
 		
 
-		
-		static ULONG GetCumRefCount();
-
-		
-		
-		ULONG GetRefCount() const;
-
 	protected:
-    nsString mStringData;
-
     BOOL FormatsMatch(const FORMATETC& source, const FORMATETC& target) const;
 
-   	static ULONG g_cRef;              
 		ULONG        m_cRef;              
 
-    nsVoidArray * mDataFlavors;       
+    nsVoidArray mDataFlavors;
 
     nsITransferable  * mTransferable; 
                                       
@@ -208,8 +199,7 @@ class nsDataObjCollection : public IDataObject, public nsIDataObjCollection
     CEnumFormatEtc   * m_enumFE;      
                                       
 
-    nsVoidArray * mDataObjects;      
-
+    nsVoidArray mDataObjects;
 };
 
 
