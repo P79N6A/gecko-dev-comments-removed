@@ -1260,10 +1260,7 @@ function delayedStartup(isLoadingBlank, mustLoadSidebar) {
   gBrowser.addEventListener("command", BrowserOnCommand, false);
 
   tabPreviews.init();
-  if ((!gPrefService.prefHasUserValue("browser.ctrlTab.disallowForScreenReaders") ||
-       !gPrefService.getBoolPref("browser.ctrlTab.disallowForScreenReaders")) &&
-       gPrefService.getBoolPref("browser.ctrlTab.mostRecentlyUsed"))
-    ctrlTab.init();
+  ctrlTab.init();
 
   
   
