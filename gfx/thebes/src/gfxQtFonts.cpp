@@ -73,6 +73,8 @@ gfxQtFontGroup::FontCallback (const nsAString& fontName,
                                  const nsACString& genericName,
                                  void *closure)
 {
+    qDebug("gfxQtFontGroup Func:%s::%d\n", __PRETTY_FUNCTION__, __LINE__);
+
     nsStringArray *sa = static_cast<nsStringArray*>(closure);
 
     
@@ -250,10 +252,12 @@ nsresult
 gfxQtFontGroup::CreateGlyphRunsFast(gfxTextRun *aTextRun,
                                     const char *aUTF8, PRUint32 aUTF8Length)
 {
+    qDebug("gfxQtFontGroup Func:%s::%d\n", __PRETTY_FUNCTION__, __LINE__);
+
     const char *p = aUTF8;
     gfxQtFont *font = GetFontAt(0);
-
-
+    const QFont& qFont = font->GetQFont();
+    FT_Face face = qFont.freetypeFace();
     PRUint32 utf16Offset = 0;
     gfxTextRun::CompressedGlyph g;
     const PRUint32 appUnitsPerDevUnit = aTextRun->GetAppUnitsPerDevUnit();
@@ -275,10 +279,10 @@ gfxQtFontGroup::CreateGlyphRunsFast(gfxTextRun *aTextRun,
         } else {
             NS_ASSERTION(!IsInvalidChar(ch), "Invalid char detected");
             int glyph = 124;
-            
+            glyph = FT_Get_Char_Index (face, ch);
+
             if (!glyph)                  
                 return NS_ERROR_FAILURE; 
-
 
             QRect rect;
 
@@ -409,12 +413,15 @@ gfxQtFontGroup::MakeTextRun(const PRUnichar *aString, PRUint32 aLength,
 
 
 
-
 gfxQtFont::gfxQtFont(const nsAString &aName,
                      const gfxFontStyle *aFontStyle)
     : gfxFont(aName, aFontStyle),
+      mQFont(nsnull),
       mCairoFont(nsnull),
-      mHasMetrics(PR_FALSE), mAdjustedSize(0)
+      mHasSpaceGlyph(PR_FALSE),
+      mSpaceGlyph(0),
+      mHasMetrics(PR_FALSE), 
+      mAdjustedSize(0)
 {
     mQFont = new QFont();
     mQFont->setFamily(QString( NS_ConvertUTF16toUTF8(mName).get() ) );
