@@ -75,7 +75,7 @@ function test() {
         gPrefService.clearUserPref("browser.sessionstore.privacy_level");
       
       
-      if (gBrowser.tabContainer.childNodes.length == 1)
+      if (gBrowser.tabs.length == 1)
         gBrowser.addTab();
       gBrowser.removeTab(tab);
       finish();
