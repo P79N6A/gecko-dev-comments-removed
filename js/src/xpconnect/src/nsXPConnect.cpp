@@ -727,7 +727,7 @@ nsXPConnect::Traverse(void *p, nsCycleCollectionTraversalCallback &cb)
     if(traceKind == JSTRACE_OBJECT)
     {
         obj = static_cast<JSObject*>(p);
-        clazz = OBJ_GET_CLASS(cx, obj);
+        clazz = obj->getClass();
 
         if(clazz == &XPC_WN_Tearoff_JSClass)
         {
@@ -777,7 +777,7 @@ nsXPConnect::Traverse(void *p, nsCycleCollectionTraversalCallback &cb)
         if(traceKind == JSTRACE_OBJECT)
         {
             JSObject *obj = static_cast<JSObject*>(p);
-            JSClass *clazz = OBJ_GET_CLASS(cx, obj);
+            JSClass *clazz = obj->getClass();
             if(XPCNativeWrapper::IsNativeWrapperClass(clazz))
             {
                 XPCWrappedNative* wn;
@@ -1632,10 +1632,15 @@ nsXPConnect::MoveWrappers(JSContext *aJSContext,
             continue;
 
         XPCNativeScriptableCreateInfo sciProto;
-        XPCNativeScriptableCreateInfo sci;
-        const XPCNativeScriptableCreateInfo& sciWrapper =
-            XPCWrappedNative::GatherScriptableCreateInfo(identity, info,
-                                                         sciProto, sci);
+        XPCNativeScriptableCreateInfo sciWrapper;
+
+        nsresult rv =
+            XPCWrappedNative::GatherScriptableCreateInfo(identity,
+                                                         info.get(),
+                                                         &sciProto,
+                                                         &sciWrapper);
+        if(NS_FAILED(rv))
+            return NS_ERROR_FAILURE;
 
         
         
@@ -1643,9 +1648,8 @@ nsXPConnect::MoveWrappers(JSContext *aJSContext,
             continue;
 
         JSObject *newParent = aOldScope;
-        nsresult rv = sciWrapper.GetCallback()->PreCreate(identity, ccx,
-                                                          aOldScope,
-                                                          &newParent);
+        rv = sciWrapper.GetCallback()->PreCreate(identity, ccx, aOldScope,
+                                                 &newParent);
         if(NS_FAILED(rv))
             return rv;
 
@@ -2105,7 +2109,7 @@ nsXPConnect::GetWrappedNativePrototype(JSContext * aJSContext,
         return UnexpectedFailure(NS_ERROR_FAILURE);
 
     XPCNativeScriptableCreateInfo sciProto;
-    XPCWrappedNative::GatherProtoScriptableCreateInfo(aClassInfo, sciProto);
+    XPCWrappedNative::GatherProtoScriptableCreateInfo(aClassInfo, &sciProto);
 
     AutoMarkingWrappedNativeProtoPtr proto(ccx);
     proto = XPCWrappedNativeProto::GetNewOrUsed(ccx, scope, aClassInfo, 

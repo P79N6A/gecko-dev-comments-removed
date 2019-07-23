@@ -260,7 +260,7 @@ InitExnPrivate(JSContext *cx, JSObject *exnObject, JSString *message,
     JSStackTraceElem *elem;
     jsval *values;
 
-    JS_ASSERT(OBJ_GET_CLASS(cx, exnObject) == &js_ErrorClass);
+    JS_ASSERT(exnObject->getClass() == &js_ErrorClass);
 
     
 
@@ -511,7 +511,7 @@ js_ErrorFromException(JSContext *cx, jsval exn)
     if (JSVAL_IS_PRIMITIVE(exn))
         return NULL;
     obj = JSVAL_TO_OBJECT(exn);
-    if (OBJ_GET_CLASS(cx, obj) != &js_ErrorClass)
+    if (obj->getClass() != &js_ErrorClass)
         return NULL;
     priv = GetExnPrivate(cx, obj);
     if (!priv)
@@ -547,7 +547,7 @@ ValueToShortSource(JSContext *cx, jsval v)
 
         char buf[100];
         JS_snprintf(buf, sizeof buf, "[object %s]",
-                    OBJ_GET_CLASS(cx, JSVAL_TO_OBJECT(v))->name);
+                    JSVAL_TO_OBJECT(v)->getClass()->name);
         str = JS_NewStringCopyZ(cx, buf);
     }
     return str;
@@ -713,7 +713,7 @@ Exception(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
 
 
-    if (OBJ_GET_CLASS(cx, obj) == &js_ErrorClass)
+    if (obj->getClass() == &js_ErrorClass)
         obj->setPrivate(NULL);
 
     
@@ -755,7 +755,7 @@ Exception(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
         lineno = (fp && fp->regs) ? js_FramePCToLineNumber(cx, fp) : 0;
     }
 
-    return (OBJ_GET_CLASS(cx, obj) != &js_ErrorClass) ||
+    return (obj->getClass() != &js_ErrorClass) ||
             InitExnPrivate(cx, obj, message, filename, lineno, NULL);
 }
 
@@ -1272,11 +1272,6 @@ js_ReportUncaughtException(JSContext *cx)
         PodZero(&report);
         report.filename = filename;
         report.lineno = (uintN) lineno;
-        if (JSVAL_IS_STRING(roots[2])) {
-            report.ucmessage = js_GetStringChars(cx, JSVAL_TO_STRING(roots[2]));
-            if (!report.ucmessage)
-                return false;
-        }
     }
 
     if (!reportp) {

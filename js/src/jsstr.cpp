@@ -552,7 +552,7 @@ str_getProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
     JSString *str;
 
     if (id == ATOM_KEY(cx->runtime->atomState.lengthAtom)) {
-        if (OBJ_GET_CLASS(cx, obj) == &js_StringClass) {
+        if (obj->getClass() == &js_StringClass) {
             
             v = obj->fslots[JSSLOT_PRIMITIVE_THIS];
             JS_ASSERT(JSVAL_IS_STRING(v));
