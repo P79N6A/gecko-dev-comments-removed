@@ -191,6 +191,7 @@ enum ExitType {
 
 struct VMSideExit : public nanojit::SideExit
 {
+    JSObject* block;
     intptr_t ip_adj;
     intptr_t sp_adj;
     intptr_t rp_adj;
@@ -248,6 +249,7 @@ public:
 
 struct FrameInfo {
     JSObject*       callee;     
+    JSObject*       block;      
     intptr_t        ip_adj;     
     uint8*          typemap;    
     union {
