@@ -522,7 +522,12 @@ nsJSChannel::IsPending(PRBool *aResult)
 NS_IMETHODIMP
 nsJSChannel::GetStatus(nsresult *aResult)
 {
+    if (NS_SUCCEEDED(mStatus) && mOpenedStreamChannel) {
+        return mStreamChannel->GetStatus(aResult);
+    }
+    
     *aResult = mStatus;
+        
     return NS_OK;
 }
 
@@ -623,7 +628,12 @@ nsJSChannel::AsyncOpen(nsIStreamListener *aListener, nsISupports *aContext)
     nsCOMPtr<nsILoadGroup> loadGroup;
     mStreamChannel->GetLoadGroup(getter_AddRefs(loadGroup));
     if (loadGroup) {
-        loadGroup->AddRequest(this, nsnull);
+        nsresult rv = loadGroup->AddRequest(this, nsnull);
+        if (NS_FAILED(rv)) {
+            mIsActive = PR_FALSE;
+            CleanupStrongRefs();
+            return rv;
+        }
     }
 
     mDocumentOnloadBlockedOn =
@@ -784,6 +794,19 @@ nsJSChannel::EvaluateScript()
         
         
         mOpenedStreamChannel = PR_TRUE;
+
+        
+        
+        mIsActive = PR_TRUE;
+        if (loadGroup) {
+            mStatus = loadGroup->AddRequest(this, nsnull);
+
+            
+            
+            
+            
+        }
+        
     } else if (mIsAsync) {
         NotifyListener();
     }
@@ -951,8 +974,23 @@ nsJSChannel::OnStopRequest(nsIRequest* aRequest,
     nsCOMPtr<nsIStreamListener> listener = mListener;
 
     CleanupStrongRefs();
+
     
-    return listener->OnStopRequest(this, aContext, aStatus);
+    if (NS_FAILED(mStatus)) {
+        aStatus = mStatus;
+    }
+    
+    nsresult rv = listener->OnStopRequest(this, aContext, aStatus);
+
+    nsCOMPtr<nsILoadGroup> loadGroup;
+    mStreamChannel->GetLoadGroup(getter_AddRefs(loadGroup));
+    if (loadGroup) {
+        loadGroup->RemoveRequest(this, nsnull, mStatus);
+    }
+
+    mIsActive = PR_FALSE;
+
+    return rv;
 }
 
 NS_IMETHODIMP
