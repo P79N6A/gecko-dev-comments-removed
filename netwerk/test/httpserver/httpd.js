@@ -3332,6 +3332,13 @@ function Response(connection)
 
 
   this._finished = false;
+
+  
+
+
+
+
+  this._powerSeized = false;
 }
 Response.prototype =
 {
@@ -3351,7 +3358,7 @@ Response.prototype =
                           null);
       this._bodyOutputStream = pipe.outputStream;
       this._bodyInputStream = pipe.inputStream;
-      if (this._processAsync)
+      if (this._processAsync || this._powerSeized)
         this._startAsyncProcessor();
     }
 
@@ -3375,7 +3382,7 @@ Response.prototype =
   
   setStatusLine: function(httpVersion, code, description)
   {
-    if (!this._headers || this._finished)
+    if (!this._headers || this._finished || this._powerSeized)
       throw Cr.NS_ERROR_NOT_AVAILABLE;
     this._ensureAlive();
 
@@ -3420,7 +3427,7 @@ Response.prototype =
   
   setHeader: function(name, value, merge)
   {
-    if (!this._headers || this._finished)
+    if (!this._headers || this._finished || this._powerSeized)
       throw Cr.NS_ERROR_NOT_AVAILABLE;
     this._ensureAlive();
 
@@ -3434,8 +3441,11 @@ Response.prototype =
   {
     if (this._finished)
       throw Cr.NS_ERROR_UNEXPECTED;
+    if (this._powerSeized)
+      throw Cr.NS_ERROR_NOT_AVAILABLE;
     if (this._processAsync)
       return;
+    this._ensureAlive();
 
     dumpn("*** processing connection " + this._connection.number + " async");
     this._processAsync = true;
@@ -3460,19 +3470,56 @@ Response.prototype =
   
   
   
+  seizePower: function()
+  {
+    if (this._processAsync)
+      throw Cr.NS_ERROR_NOT_AVAILABLE;
+    if (this._finished)
+      throw Cr.NS_ERROR_UNEXPECTED;
+    if (this._powerSeized)
+      return;
+    this._ensureAlive();
+
+    dumpn("*** forcefully seizing power over connection " +
+          this._connection.number + "...");
+
+    
+    
+    
+    
+    if (this._asyncCopier)
+      this._asyncCopier.cancel(Cr.NS_BINDING_ABORTED);
+    this._asyncCopier = null;
+    if (this._bodyOutputStream)
+    {
+      var input = new BinaryInputStream(this._bodyInputStream);
+      var avail;
+      while ((avail = input.available()) > 0)
+        input.readByteArray(avail);
+    }
+
+    this._powerSeized = true;
+    if (this._bodyOutputStream)
+      this._startAsyncProcessor();
+  },
+
+  
+  
+  
   finish: function()
   {
-    if (!this._processAsync)
+    if (!this._processAsync && !this._powerSeized)
       throw Cr.NS_ERROR_UNEXPECTED;
     if (this._finished)
       return;
 
-    dumpn("*** finishing async connection " + this._connection.number);
+    dumpn("*** finishing connection " + this._connection.number);
     this._startAsyncProcessor(); 
     if (this._bodyOutputStream)
       this._bodyOutputStream.close();
     this._finished = true;
   },
+
 
   
 
@@ -3538,10 +3585,11 @@ Response.prototype =
 
 
 
+
   partiallySent: function()
   {
     dumpn("*** partiallySent()");
-    return this._headers === null;
+    return this._processAsync || this._powerSeized;
   },
 
   
@@ -3551,8 +3599,12 @@ Response.prototype =
   complete: function()
   {
     dumpn("*** complete()");
-    if (this._processAsync)
+    if (this._processAsync || this._powerSeized)
+    {
+      NS_ASSERT(this._processAsync ^ this._powerSeized,
+                "can't both send async and relinquish power");
       return;
+    }
 
     NS_ASSERT(!this.partiallySent(), "completing a partially-sent response?");
 
@@ -3574,16 +3626,41 @@ Response.prototype =
 
 
 
+
+
   abort: function(e)
   {
     dumpn("*** abort(<" + e + ">)");
 
     
-    var processor = this._asyncCopier;
-    if (processor)
-      processor.cancel(Cr.NS_BINDING_ABORTED);
+    var copier = this._asyncCopier;
+    if (copier)
+    {
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      gThreadManager.currentThread.dispatch({
+        run: function()
+        {
+          dumpn("*** canceling copy asynchronously...");
+          copier.cancel(Cr.NS_ERROR_UNEXPECTED);
+        }
+      }, Ci.nsIThreadManager.DISPATCH_NORMAL);
+    }
     else
+    {
       this.end();
+    }
   },
 
   
@@ -3616,6 +3693,7 @@ Response.prototype =
     dumpn("*** _sendHeaders()");
 
     NS_ASSERT(this._headers);
+    NS_ASSERT(!this._powerSeized);
 
     
     var statusLine = "HTTP/" + this.httpVersion + " " +
@@ -3709,8 +3787,13 @@ Response.prototype =
 
     
     if (this._headers)
-      this._sendHeaders();
-    NS_ASSERT(this._headers === null, "flushHeaders() failed?");
+    {
+      if (this._powerSeized)
+        this._headers = null;
+      else
+        this._sendHeaders();
+      NS_ASSERT(this._headers === null, "_sendHeaders() failed?");
+    }
 
     var response = this;
     var connection = this._connection;
@@ -3732,15 +3815,19 @@ Response.prototype =
 
         onStopRequest: function(request, cx, statusCode)
         {
-          dumpn("*** onStopRequest [status=" + statusCode.toString(16) + "]");
+          dumpn("*** onStopRequest [status=0x" + statusCode.toString(16) + "]");
 
-          if (!Components.isSuccessCode(statusCode))
+          if (statusCode === Cr.NS_BINDING_ABORTED)
           {
-            dumpn("*** WARNING: non-success statusCode in onStopRequest: " +
-                  statusCode);
+            dumpn("*** terminating copy observer without ending the response");
           }
+          else
+          {
+            if (!Components.isSuccessCode(statusCode))
+              dumpn("*** WARNING: non-success statusCode in onStopRequest");
 
-          response.end();
+            response.end();
+          }
         },
 
         QueryInterface: function(aIID)
@@ -3777,6 +3864,7 @@ function notImplemented()
 {
   throw Cr.NS_ERROR_NOT_IMPLEMENTED;
 }
+
 
 
 
@@ -3847,7 +3935,10 @@ WriteThroughCopier.prototype =
     dumpn("*** cancel(" + status.toString(16) + ")");
 
     if (this._completed)
+    {
+      dumpn("*** ignoring cancel on already-canceled copier...");
       return;
+    }
 
     this._completed = true;
     this.status = status;
@@ -3890,13 +3981,16 @@ WriteThroughCopier.prototype =
 
 
 
-  onInputStreamReady: function()
+  onInputStreamReady: function(input)
   {
     dumpn("*** onInputStreamReady");
     if (this._completed)
+    {
+      dumpn("*** ignoring stream-ready callback on a canceled copier...");
       return;
+    }
 
-    var input = new BinaryInputStream(this._input);
+    input = new BinaryInputStream(input);
     try
     {
       var avail = input.available();
@@ -3931,6 +4025,19 @@ WriteThroughCopier.prototype =
   {
     dumpn("*** _waitForData");
     this._input.asyncWait(this, 0, 1, gThreadManager.mainThread);
+  },
+
+  
+  QueryInterface: function(iid)
+  {
+    if (iid.equals(Ci.nsIRequest) ||
+        iid.equals(Ci.nsISupports) ||
+        iid.equals(Ci.nsIInputStreamCallback))
+    {
+      return this;
+    }
+
+    throw Cr.NS_ERROR_NO_INTERFACE;
   }
 };
 
