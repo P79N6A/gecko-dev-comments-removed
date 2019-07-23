@@ -79,6 +79,11 @@ static const PRUint32 FREE_BLOCK_SCAN_LIMIT = 16;
 using mozilla::TimeStamp;
 using mozilla::TimeDuration;
 
+#ifdef DEBUG
+
+
+#endif
+
 class nsMediaCache {
 public:
   friend class nsMediaCacheStream::BlockList;
@@ -167,7 +172,7 @@ public:
   
   void Update();
 
-#ifdef DEBUG
+#ifdef DEBUG_VERIFY_CACHE
   
   void Verify();
 #else
@@ -1095,7 +1100,7 @@ nsMediaCache::QueueUpdate()
   NS_DispatchToMainThread(event);
 }
 
-#ifdef DEBUG
+#ifdef DEBUG_VERIFY_CACHE
 void
 nsMediaCache::Verify()
 {
