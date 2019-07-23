@@ -565,9 +565,11 @@ nsListControlFrame::Reflow(nsPresContext*           aPresContext,
 
 
 
+
   PRBool autoHeight = (aReflowState.ComputedHeight() == NS_UNCONSTRAINEDSIZE);
 
-  mMightNeedSecondPass = autoHeight && NS_SUBTREE_DIRTY(this);
+  mMightNeedSecondPass = autoHeight &&
+    (NS_SUBTREE_DIRTY(this) || aReflowState.ShouldReflowAllKids());
   
   nsHTMLReflowState state(aReflowState);
   PRInt32 length = GetNumberOfOptions();  
@@ -637,7 +639,8 @@ nsListControlFrame::ReflowAsDropdown(nsPresContext*           aPresContext,
   NS_PRECONDITION(aReflowState.ComputedHeight() == NS_UNCONSTRAINEDSIZE,
                   "We should not have a computed height here!");
   
-  mMightNeedSecondPass = NS_SUBTREE_DIRTY(this);
+  mMightNeedSecondPass = NS_SUBTREE_DIRTY(this) ||
+    aReflowState.ShouldReflowAllKids();
 
   nscoord oldHeightOfARow = HeightOfARow();
 
