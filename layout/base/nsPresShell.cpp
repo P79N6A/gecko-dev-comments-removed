@@ -6162,15 +6162,24 @@ PresShell::HandleEvent(nsIView         *aView,
     PRBool captureRetarget = PR_FALSE;
     if (capturingContent) {
       captureRetarget = gCaptureInfo.mRetargetToElement;
-      
-      
-      if (!captureRetarget && capturingContent->Tag() == nsGkAtoms::select &&
-          capturingContent->IsHTML()) {
-        nsIFrame* selectFrame = GetPrimaryFrameFor(capturingContent);
-        if (selectFrame) {
-          nsIFrame* childframe = selectFrame->GetChildList(nsGkAtoms::selectPopupList).FirstChild();
-          if (childframe) {
-            frame = childframe;
+      if (!captureRetarget) {
+        nsIFrame* captureFrame = GetPrimaryFrameFor(capturingContent);
+        if (captureFrame) {
+          if (capturingContent->Tag() == nsGkAtoms::select &&
+              capturingContent->IsHTML()) {
+            
+            
+            nsIFrame* childFrame = captureFrame->GetChildList(nsGkAtoms::selectPopupList).FirstChild();
+            if (childFrame) {
+              captureFrame = childFrame;
+            }
+          }
+
+          
+          
+          nsIScrollableFrame* scrollFrame = do_QueryFrame(captureFrame);
+          if (scrollFrame) {
+            frame = scrollFrame->GetScrolledFrame();
           }
         }
       }
