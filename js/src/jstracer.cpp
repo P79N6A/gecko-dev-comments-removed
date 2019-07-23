@@ -66,6 +66,7 @@
 #include "jsscope.h"
 #include "jsscript.h"
 #include "jsdate.h"
+#include "jsstaticcheck.h"
 #include "jstracer.h"
 
 #include "jsautooplen.h"        
@@ -1771,18 +1772,37 @@ LIns*
 TraceRecorder::snapshot(ExitType exitType)
 {
     JSStackFrame* fp = cx->fp;
-    if (exitType == BRANCH_EXIT && js_IsLoopExit(cx->fp->regs->pc, (jsbytecode*)fragment->root->ip))
+    JSFrameRegs* regs = fp->regs;
+    jsbytecode* pc = regs->pc;
+    if (exitType == BRANCH_EXIT && js_IsLoopExit(pc, (jsbytecode*)fragment->root->ip))
         exitType = LOOP_EXIT;
+
+    
+    const JSCodeSpec& cs = js_CodeSpec[*pc];
+
+    
+    bool resumeAfter = (pendingTraceableNative &&
+                        JSTN_ERRTYPE(pendingTraceableNative) == FAIL_JSVAL);
+    if (resumeAfter) {
+        JS_ASSERT(cs.format & JOF_RETVAL);
+        pc += cs.length;
+        regs->pc = pc;
+        MUST_FLOW_THROUGH(restore_pc);
+    }
+
     
     unsigned stackSlots = js_NativeStackSlots(cx, callDepth);
+
     
 
     trackNativeStackUse(stackSlots + 1);
+
     
     unsigned ngslots = traceMonitor->globalSlots->length();
     unsigned typemap_size = (stackSlots + ngslots) * sizeof(uint8);
     uint8* typemap = (uint8*)alloca(typemap_size);
     uint8* m = typemap;
+
     
 
 
@@ -1790,19 +1810,26 @@ TraceRecorder::snapshot(ExitType exitType)
         *m++ = determineSlotType(vp);
     );
     JS_ASSERT(unsigned(m - typemap) == ngslots + stackSlots);
+
     
 
-    jsbytecode* pc = fp->regs->pc;
-    if (*pc == JSOP_RESUME) 
+    if (resumeAfter) {
         m[-1] = JSVAL_BOXED;
-    
+
+        
+        MUST_FLOW_LABEL(restore_pc);
+        regs->pc = pc - cs.length;
+    } else {
+        
 
 
-    if (*pc == JSOP_GOTO) 
-        pc += GET_JUMP_OFFSET(pc);
-    else if (*pc == JSOP_GOTOX)
-        pc += GET_JUMPX_OFFSET(pc);
+        if (*pc == JSOP_GOTO) 
+            pc += GET_JUMP_OFFSET(pc);
+        else if (*pc == JSOP_GOTOX)
+            pc += GET_JUMPX_OFFSET(pc);
+    }
     int ip_adj = pc - (jsbytecode*)fragment->root->ip;
+
     
 
     SideExit** exits = treeInfo->sideExits.data();
@@ -1824,6 +1851,7 @@ TraceRecorder::snapshot(ExitType exitType)
             }
         }
     }
+
     
     LIns* data = lir_buf_writer->skip(sizeof(GuardRecord) +
                                       sizeof(SideExit) + 
@@ -1848,6 +1876,7 @@ TraceRecorder::snapshot(ExitType exitType)
     exit->sp_adj = (stackSlots * sizeof(double)) - treeInfo->nativeStackBase;
     exit->rp_adj = exit->calldepth * sizeof(FrameInfo);
     memcpy(getTypeMap(exit), typemap, typemap_size);
+
     
 
 
@@ -2922,7 +2951,9 @@ js_MonitorRecording(TraceRecorder* tr)
     }
     
     
+    
     tr->applyingArguments = false;
+    tr->pendingTraceableNative = NULL;
 
     
     if (tr->global_dslots != tr->globalObj->dslots) {
@@ -5330,9 +5361,9 @@ TraceRecorder::record_FastNativeCallComplete()
 
 
 
-    JSFrameRegs* regs = cx->fp->regs;
-    regs->pc += JSOP_CALL_LENGTH;
-    JS_ASSERT(*regs->pc == JSOP_RESUME);
+
+
+    JS_ASSERT(js_CodeSpec[*cx->fp->regs->pc].format & JOF_RETVAL);
 
     jsval& v = stackval(-1);
     LIns* v_ins = get(&v);
@@ -5357,15 +5388,8 @@ TraceRecorder::record_FastNativeCallComplete()
     }
 
     
-
-    regs->pc -= JSOP_CALL_LENGTH;
+    
     return ok;
-}
-
-bool
-TraceRecorder::record_JSOP_RESUME()
-{
-    return true;
 }
 
 bool
@@ -6978,19 +7002,20 @@ TraceRecorder::record_JSOP_HOLE()
     return true;
 }
 
-#define UNUSED(op) bool TraceRecorder::record_##op() { return false; }
+#define UNUSED(n) bool TraceRecorder::record_JSOP_UNUSED##n() { return false; }
 
-UNUSED(JSOP_UNUSED76)
-UNUSED(JSOP_UNUSED77)
-UNUSED(JSOP_UNUSED78)
-UNUSED(JSOP_UNUSED79)
-UNUSED(JSOP_UNUSED131)
-UNUSED(JSOP_UNUSED201)
-UNUSED(JSOP_UNUSED202)
-UNUSED(JSOP_UNUSED203)
-UNUSED(JSOP_UNUSED204)
-UNUSED(JSOP_UNUSED205)
-UNUSED(JSOP_UNUSED206)
-UNUSED(JSOP_UNUSED207)
-UNUSED(JSOP_UNUSED219)
-UNUSED(JSOP_UNUSED226)
+UNUSED(74)
+UNUSED(76)
+UNUSED(77)
+UNUSED(78)
+UNUSED(79)
+UNUSED(131)
+UNUSED(201)
+UNUSED(202)
+UNUSED(203)
+UNUSED(204)
+UNUSED(205)
+UNUSED(206)
+UNUSED(207)
+UNUSED(219)
+UNUSED(226)

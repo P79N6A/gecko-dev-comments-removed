@@ -1767,9 +1767,9 @@ Decompile(SprintStack *ss, jsbytecode *pc, intN nb, JSOp nextop)
 
 
 
-#define POP_COND_STR() \
-    PopStr(ss, (js_CodeSpec[ss->opcodes[ss->top - 1]].format & JOF_SET)      \
-               ? JSOP_IFEQ                                                   \
+#define POP_COND_STR()                                                        \
+    PopStr(ss, (js_CodeSpec[ss->opcodes[ss->top - 1]].format & JOF_SET)       \
+               ? JSOP_IFEQ                                                    \
                : JSOP_NOP)
 
 
@@ -3476,8 +3476,6 @@ Decompile(SprintStack *ss, jsbytecode *pc, intN nb, JSOp nextop)
                     todo = Sprint(&ss->sprinter, "");
                 }
 #endif
-                LOCAL_ASSERT(pc[len] == JSOP_RESUME);
-                len += JSOP_RESUME_LENGTH;
                 break;
 
               case JSOP_DELNAME:
@@ -3899,10 +3897,6 @@ Decompile(SprintStack *ss, jsbytecode *pc, intN nb, JSOp nextop)
                     LOCAL_ASSERT(*pc == JSOP_CALL);
                     LOCAL_ASSERT(GET_ARGC(pc) == 0);
                     len = JSOP_CALL_LENGTH;
-
-                    
-                    LOCAL_ASSERT(pc[len] == JSOP_RESUME);
-                    len += JSOP_RESUME_LENGTH;
 
                     
 
