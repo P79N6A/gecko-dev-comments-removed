@@ -2213,6 +2213,11 @@ nsWindow::OnExposeEvent(GtkWidget *aWidget, GdkEventExpose *aEvent)
             depth = gdk_drawable_get_depth(GDK_DRAWABLE(mDrawingarea->inner_window));
         }
 
+        
+        nsSize safeSize = GetSafeWindowSize(boundsRect.Size());
+        boundsRect.width = safeSize.width;
+        boundsRect.height = safeSize.height;
+
         if (!gUseBufferPixmap ||
             boundsRect.width > gBufferPixmapMaxSize.width ||
             boundsRect.height > gBufferPixmapMaxSize.height)
