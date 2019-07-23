@@ -842,6 +842,13 @@ XPC_SJOW_Call(JSContext *cx, JSObject *obj, uintN argc, jsval *argv,
 
   JSObject *funToCall = GetUnsafeObject(cx, JSVAL_TO_OBJECT(argv[-2]));
 
+  if (!funToCall) {
+    
+    
+    
+    return JS_TRUE;
+  }
+
   
   
   if (!CanCallerAccess(cx, unsafeObj) || !CanCallerAccess(cx, funToCall)) {
