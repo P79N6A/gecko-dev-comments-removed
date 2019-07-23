@@ -75,9 +75,9 @@
 #include "nsBidiUtils.h"
 #include "nsBidiPresUtils.h"
 #endif 
-#include "nsReadableUtils.h"
 
-#define ELLIPSIS "..."
+
+#define ELLIPSIS PRUnichar(0x2026)
 
 #define CROP_LEFT   "left"
 #define CROP_RIGHT  "right"
@@ -586,7 +586,7 @@ nsTextBoxFrame::CalculateTitleForWidth(nsPresContext*      aPresContext,
     }
 
     
-    mCroppedTitle.AssignASCII(ELLIPSIS);
+    mCroppedTitle.Assign(ELLIPSIS);
 
     
     
@@ -733,7 +733,7 @@ nsTextBoxFrame::CalculateTitleForWidth(nsPresContext*      aPresContext,
 
             
             nsAutoString ellipsisString;
-            ellipsisString.AssignASCII(ELLIPSIS);
+            ellipsisString.Assign(ELLIPSIS);
 
             mCroppedTitle = leftString + ellipsisString + rightString;
         }
