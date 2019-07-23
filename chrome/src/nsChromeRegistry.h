@@ -185,7 +185,10 @@ public:
       
       
       
-      XPCNATIVEWRAPPERS = 1 << 1
+      XPCNATIVEWRAPPERS = 1 << 1,
+
+      
+      CONTENT_ACCESSIBLE = 1 << 2
     };
 
     nsCString        package;
