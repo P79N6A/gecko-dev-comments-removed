@@ -1568,36 +1568,21 @@ CNewlineToken::Consume(PRUnichar aChar, nsScanner& aScanner, PRInt32 aFlag)
 
 
 
-  PRUnichar theChar;
-  nsresult result = aScanner.Peek(theChar);
 
-  if (NS_OK == result) {
-    switch(aChar) {
-      case kNewLine:
-        if (kCR == theChar) {
-          result = aScanner.GetChar(theChar);
-        }
-        break;
-
-      case kCR:
-        
-        if (kNewLine == theChar) {
-          result = aScanner.GetChar(theChar);
-        }
-        break;
-
-      default:
-        break;
+  nsresult rv = NS_OK;
+  if (aChar == kCR) {
+    PRUnichar theChar;
+    rv = aScanner.Peek(theChar);
+    if (theChar == kNewLine) {
+      rv = aScanner.GetChar(theChar);
+    } else if (rv == kEOF && !aScanner.IsIncremental()) {
+      
+      rv = NS_OK;
     }
   }
 
-  if (result == kEOF && !aScanner.IsIncremental()) {
-    
-    result = NS_OK;
-  }
-
   mNewlineCount = 1;
-  return result;
+  return rv;
 }
 
 CAttributeToken::CAttributeToken()
