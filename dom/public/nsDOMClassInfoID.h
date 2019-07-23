@@ -433,6 +433,7 @@ enum nsDOMClassInfoID {
   
   eDOMClassInfo_GeoGeolocation_id,
   eDOMClassInfo_GeoPosition_id,
+  eDOMClassInfo_GeoPositionCoords_id,
   eDOMClassInfo_GeoPositionError_id,
 
   
