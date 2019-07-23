@@ -304,7 +304,7 @@ var gAllTests = [
     let wh = new WindowHelper();
     wh.onload = function () {
       
-      this.resetCheckboxes();
+      this.checkAllCheckboxes();
       this.selectDuration(Sanitizer.TIMESPAN_EVERYTHING);
 
       
@@ -318,7 +318,6 @@ var gAllTests = [
     let wh = new WindowHelper();
     wh.onload = function () {
       
-      
       this.checkDetails(false);
 
       
@@ -331,6 +330,18 @@ var gAllTests = [
     let wh = new WindowHelper();
     wh.onload = function () {
       
+      this.checkDetails(true);
+
+      
+      this.checkAllCheckboxes();
+      this.checkPrefCheckbox("siteSettings", false);
+      this.acceptDialog();
+    };
+    wh.open();
+  },
+  function () {
+    let wh = new WindowHelper();
+    wh.onload = function () {
       
       this.checkDetails(true);
 
@@ -344,7 +355,6 @@ var gAllTests = [
   function () {
     let wh = new WindowHelper();
     wh.onload = function () {
-      
       
       this.checkDetails(true);
 
@@ -471,12 +481,12 @@ WindowHelper.prototype = {
   
 
 
-  resetCheckboxes: function () {
+  checkAllCheckboxes: function () {
     var cb = this.win.document.querySelectorAll("#itemList > [preference]");
     ok(cb.length > 1, "found checkboxes for preferences");
     for (var i = 0; i < cb.length; ++i) {
       var pref = this.win.document.getElementById(cb[i].getAttribute("preference"));
-      if (pref.value != pref.defaultValue)
+      if (!pref.value)
         cb[i].click();
     }
   },
