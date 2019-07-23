@@ -102,7 +102,7 @@ public:
                                PRUint32 flags);
 
     
-    const nsCOMArray<nsIContentSniffer>& GetContentSniffers() const {
+    const nsCOMArray<nsIContentSniffer>& GetContentSniffers() {
       return mContentSniffers.GetEntries();
     }
 
