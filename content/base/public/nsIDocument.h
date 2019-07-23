@@ -97,8 +97,8 @@ class nsFrameLoader;
 
 
 #define NS_IDOCUMENT_IID      \
-{ 0xdd40333d, 0x913c, 0x4909, \
-  { 0xb9, 0xe8, 0xf5, 0x45, 0x56, 0x5c, 0xe5, 0x4e } }
+{ 0xc81acf0b, 0x2539, 0x47ab, \
+  { 0xa6, 0x04, 0x64, 0x04, 0x07, 0x63, 0xc8, 0x3d } }
 
 
 #define NS_STYLESHEET_FROM_CATALOG                (1 << 0)
@@ -964,8 +964,10 @@ public:
   
   
   virtual nsresult FinalizeFrameLoader(nsFrameLoader* aLoader) = 0;
-
+  
   virtual void TryCancelFrameLoaderInitialization(nsIDocShell* aShell) = 0;
+  
+  virtual PRBool FrameLoaderScheduledToBeFinalized(nsIDocShell* aShell) = 0;
 protected:
   ~nsIDocument()
   {

@@ -2366,8 +2366,26 @@ nsDocShell::AddChild(nsIDocShellTreeItem * aChild)
     
     {
         nsCOMPtr<nsIDocShell> childDocShell = do_QueryInterface(aChild);
-        if (childDocShell)
-            childDocShell->SetChildOffset(mChildList.Count() - 1);
+        if (childDocShell) {
+            
+            
+            
+            nsCOMPtr<nsIDOMDocument> domDoc =
+              do_GetInterface(GetAsSupports(this));
+            nsCOMPtr<nsIDocument> doc = do_QueryInterface(domDoc);
+            PRUint32 offset = mChildList.Count() - 1;
+            if (doc) {
+               PRUint32 oldChildCount = offset; 
+               for (PRUint32 i = 0; i < oldChildCount; ++i) {
+                 nsCOMPtr<nsIDocShell> child = do_QueryInterface(ChildAt(i));
+                 if (doc->FrameLoaderScheduledToBeFinalized(child)) {
+                   --offset;
+                 }
+               }
+            }
+
+            childDocShell->SetChildOffset(offset);
+        }
     }
 
     
