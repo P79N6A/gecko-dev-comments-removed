@@ -55,8 +55,8 @@
 #include "gfxQuartzImageSurface.h"
 #endif
 
-#ifdef CAIRO_HAS_DIRECTFB_SURFACE
-#include "gfxDirectFBSurface.h"
+#ifdef CAIRO_HAS_QPAINTER_SURFACE
+#include "gfxQPainterSurface.h"
 #endif
 
 #include <stdio.h>
@@ -167,9 +167,9 @@ gfxASurface::Wrap (cairo_surface_t *csurf)
         result = new gfxQuartzImageSurface(csurf);
     }
 #endif
-#ifdef CAIRO_HAS_DIRECTFB_SURFACE
-    else if (stype == CAIRO_SURFACE_TYPE_DIRECTFB) {
-        result = new gfxDirectFBSurface(csurf);
+#ifdef CAIRO_HAS_QPAINTER_SURFACE
+    else if (stype == CAIRO_SURFACE_TYPE_QPAINTER) {
+        result = new gfxQPainterSurface(csurf);
     }
 #endif
     else {
