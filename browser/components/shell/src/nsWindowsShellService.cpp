@@ -232,7 +232,7 @@ typedef struct {
 #define CLS_HTML "FirefoxHTML"
 #define CLS_URL "FirefoxURL"
 #define VAL_FILE_ICON "%APPPATH%,1"
-#define VAL_OPEN "\"%APPPATH%\" -url \"%1\" -requestPending"
+#define VAL_OPEN "\"%APPPATH%\" -requestPending -osint -url \"%1\""
 
 #define MAKE_KEY_NAME1(PREFIX, MID) \
   PREFIX MID
