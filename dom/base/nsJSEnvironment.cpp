@@ -1882,14 +1882,10 @@ AtomToEventHandlerName(nsIAtom *aName)
 nsresult
 nsJSContext::JSObjectFromInterface(nsISupports* aTarget, void *aScope, JSObject **aRet)
 {
-  
-  if (!aTarget) {
+  if (!aTarget) { 
       *aRet = nsnull;
       return NS_OK;
   }
-
-  
-  
   
   nsresult rv;
   jsval v;
@@ -1897,7 +1893,6 @@ nsJSContext::JSObjectFromInterface(nsISupports* aTarget, void *aScope, JSObject 
                                                       (JSObject *)aScope,
                                                       aTarget,
                                                       &NS_GET_IID(nsISupports),
-                                                      PR_FALSE,
                                                       &v, nsnull);
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -3017,7 +3012,8 @@ SetOptionsProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
     if (((optbit & (optbit - 1)) == 0 && optbit <= JSOPTION_WERROR) ||
         optbit == JSOPTION_RELIMIT) {
       JSBool optval;
-      JS_ValueToBoolean(cx, *vp, &optval);
+      if (! ::JS_ValueToBoolean(cx, *vp, &optval))
+        return JS_FALSE;
 
       uint32 optset = ::JS_GetOptions(cx);
       if (optval)
@@ -3034,7 +3030,7 @@ static JSClass OptionsClass = {
   "JSOptions",
   0,
   JS_PropertyStub, JS_PropertyStub, GetOptionsProperty, SetOptionsProperty,
-  JS_EnumerateStub, JS_ResolveStub, JS_ConvertStub, JS_FinalizeStub
+  JS_EnumerateStub, JS_ResolveStub, JS_ConvertStub, nsnull
 };
 
 #ifdef NS_TRACE_MALLOC

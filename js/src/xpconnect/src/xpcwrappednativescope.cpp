@@ -215,7 +215,7 @@ JSClass XPC_WN_NoHelper_Proto_JSClass = {
     JS_EnumerateStub,               
     JS_ResolveStub,                 
     JS_ConvertStub,                 
-    JS_FinalizeStub,                
+    nsnull,                         
 
     
     XPC_WN_Proto_GetObjectOps,      
