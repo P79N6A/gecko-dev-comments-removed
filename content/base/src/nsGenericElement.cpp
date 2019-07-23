@@ -125,6 +125,11 @@
 #include "nsIXULDocument.h"
 #endif 
 
+#ifdef ACCESSIBILITY
+#include "nsIAccessibilityService.h"
+#include "nsIAccessibleEvent.h"
+#endif 
+
 #include "nsCycleCollectionParticipant.h"
 #include "nsCCUncollectableMarker.h"
 #include "nsCycleCollector.h"
@@ -2693,6 +2698,22 @@ nsGenericElement::doRemoveChildAt(PRUint32 aIndex, PRBool aNotify,
   NS_PRECONDITION(aParent || aDocument, "Must have document if no parent!");
   NS_PRECONDITION(!aParent || aParent->GetCurrentDoc() == aDocument,
                   "Incorrect aDocument");
+
+#ifdef ACCESSIBILITY
+  
+  
+  if (aNotify && aDocument) {
+    nsIPresShell *presShell = aDocument->GetPrimaryShell();
+    if (presShell && presShell->IsAccessibilityActive()) {
+      nsCOMPtr<nsIAccessibilityService> accService = 
+        do_GetService("@mozilla.org/accessibilityService;1");
+      if (accService) {
+        accService->InvalidateSubtreeFor(presShell, aKid,
+                                         nsIAccessibleEvent::EVENT_DOM_DESTROY);
+      }
+    }
+  }
+#endif
 
   nsMutationGuard::DidMutate();
 

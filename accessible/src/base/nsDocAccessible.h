@@ -161,21 +161,20 @@ class nsDocAccessible : public nsHyperTextAccessibleWrap,
 
     void FireTextChangedEventOnDOMCharacterDataModified(nsIContent *aContent,
                                                         CharacterDataChangeInfo* aInfo);
-    
-
-
-
-    void FireTextChangedEventOnDOMNodeInserted(nsIContent *aChild,
-                                               nsIContent *aContainer,
-                                               PRInt32 aIndexInContainer);
 
     
 
 
 
-    void FireTextChangedEventOnDOMNodeRemoved(nsIContent *aChild,
-                                              nsIContent *aContainer,
-                                              PRInt32 aIndexInContainer);
+
+
+
+    already_AddRefed<nsIAccessibleTextChangeEvent>
+    nsDocAccessible::CreateTextChangeEventForNode(nsIAccessible *aContainerAccessible,
+                                                  nsIDOMNode *aChangeNode,
+                                                  nsIAccessible *aAccessibleForNode,
+                                                  PRBool aIsInserting,
+                                                  PRBool aIsAsynch);
 
     nsAccessNodeHashtable mAccessNodeCache;
     void *mWnd;

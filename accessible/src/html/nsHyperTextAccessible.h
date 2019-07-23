@@ -108,6 +108,9 @@ public:
 
 
 
+
+
+
   nsresult DOMPointToHypertextOffset(nsIDOMNode* aNode, PRInt32 aNodeOffset,
                                      PRInt32 *aHypertextOffset,
                                      nsIAccessible **aFinalAccessible = nsnull);

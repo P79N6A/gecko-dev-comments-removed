@@ -526,7 +526,6 @@ nsresult nsHyperTextAccessible::DOMPointToHypertextOffset(nsIDOMNode* aNode, PRI
   NS_ENSURE_ARG_POINTER(aHyperTextOffset);
   *aHyperTextOffset = 0;
   NS_ENSURE_ARG_POINTER(aNode);
-  NS_ENSURE_TRUE(aNodeOffset >= 0, NS_ERROR_INVALID_ARG);
   if (aFinalAccessible) {
     *aFinalAccessible = nsnull;
   }
@@ -536,7 +535,10 @@ nsresult nsHyperTextAccessible::DOMPointToHypertextOffset(nsIDOMNode* aNode, PRI
 
   unsigned short nodeType;
   aNode->GetNodeType(&nodeType);
-  if (nodeType == nsIDOMNode::TEXT_NODE) {
+  if (aNodeOffset == -1) {
+    findNode = aNode;
+  }
+  else if (nodeType == nsIDOMNode::TEXT_NODE) {
     
     
     
@@ -618,6 +620,7 @@ nsresult nsHyperTextAccessible::DOMPointToHypertextOffset(nsIDOMNode* aNode, PRI
       NS_ADDREF(*aFinalAccessible = childAccessible);
     }
   }
+
   return NS_OK;
 }
 
