@@ -817,7 +817,7 @@ nsNativeThemeGTK::GetMinimumWidgetSize(nsIRenderingContext* aContext,
       }
 
       
-      aResult->width = indicator_size + 3 * indicator_spacing;
+      aResult->width = indicator_size + 2 * indicator_spacing;
       aResult->height = indicator_size + 2 * indicator_spacing;
       *aIsOverridable = PR_FALSE;
     }
