@@ -393,7 +393,6 @@ nsThebesFontMetrics::DrawString(const char *aString, PRUint32 aLength,
     return NS_OK;
 }
 
-
 nsresult
 nsThebesFontMetrics::DrawString(const PRUnichar* aString, PRUint32 aLength,
                                 nscoord aX, nscoord aY,
@@ -420,24 +419,56 @@ nsThebesFontMetrics::DrawString(const PRUnichar* aString, PRUint32 aLength,
 
 #ifdef MOZ_MATHML
 
+static void
+GetTextRunBoundingMetrics(gfxTextRun *aTextRun, PRUint32 aStart, PRUint32 aLength,
+                          nsThebesRenderingContext *aContext,
+                          nsBoundingMetrics &aBoundingMetrics)
+{
+    StubPropertyProvider provider;
+    gfxTextRun::Metrics theMetrics =
+        aTextRun->MeasureText(aStart, aLength, PR_TRUE, aContext->Thebes(), &provider);
 
-
+    aBoundingMetrics.leftBearing = NSToCoordFloor(theMetrics.mBoundingBox.X());
+    aBoundingMetrics.rightBearing = NSToCoordCeil(theMetrics.mBoundingBox.XMost());
+    aBoundingMetrics.width = NSToCoordRound(theMetrics.mAdvanceWidth);
+    aBoundingMetrics.ascent = NSToCoordCeil(- theMetrics.mBoundingBox.Y());
+    aBoundingMetrics.descent = NSToCoordCeil(theMetrics.mBoundingBox.YMost());
+}
 
 nsresult
 nsThebesFontMetrics::GetBoundingMetrics(const char *aString, PRUint32 aLength,
+                                        nsThebesRenderingContext *aContext,
                                         nsBoundingMetrics &aBoundingMetrics)
 {
-    return NS_ERROR_NOT_IMPLEMENTED;
+    if (aLength == 0) {
+        aBoundingMetrics.Clear();
+        return NS_OK;
+    }
+
+    AutoTextRun textRun(this, aContext, aString, aLength);
+    if (!textRun.get())
+        return NS_ERROR_FAILURE;
+
+    GetTextRunBoundingMetrics(textRun.get(), 0, aLength, aContext, aBoundingMetrics);
+    return NS_OK;
 }
 
-
 nsresult
-nsThebesFontMetrics::GetBoundingMetrics(const PRUnichar *aString,
-                                        PRUint32 aLength,
-                                        nsBoundingMetrics &aBoundingMetrics,
-                                        PRInt32 *aFontID)
+nsThebesFontMetrics::GetBoundingMetrics(const PRUnichar *aString, PRUint32 aLength,
+                                        nsThebesRenderingContext *aContext,
+                                        nsBoundingMetrics &aBoundingMetrics)
 {
-    return NS_ERROR_NOT_IMPLEMENTED;
+    if (aLength == 0) {
+        aBoundingMetrics.Clear();
+        return NS_OK;
+    }
+
+    AutoTextRun textRun(this, aContext, aString, aLength);
+    if (!textRun.get())
+        return NS_ERROR_FAILURE;
+
+    GetTextRunBoundingMetrics(textRun.get(), 0, aLength, aContext, aBoundingMetrics);
+    return NS_OK;
 }
 
 #endif 

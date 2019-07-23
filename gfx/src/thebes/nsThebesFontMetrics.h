@@ -85,7 +85,6 @@ public:
 
     virtual nsresult GetWidth(const char* aString, PRUint32 aLength, nscoord& aWidth,
                               nsThebesRenderingContext *aContext);
-    
     virtual nsresult GetWidth(const PRUnichar* aString, PRUint32 aLength,
                               nscoord& aWidth, PRInt32 *aFontID,
                               nsThebesRenderingContext *aContext);
@@ -119,7 +118,6 @@ public:
                                 nscoord aX, nscoord aY,
                                 const nscoord* aSpacing,
                                 nsThebesRenderingContext *aContext);
-    
     virtual nsresult DrawString(const PRUnichar* aString, PRUint32 aLength,
                                 nscoord aX, nscoord aY,
                                 PRInt32 aFontID,
@@ -129,15 +127,13 @@ public:
 #ifdef MOZ_MATHML
     
     
-    
-    
     virtual nsresult GetBoundingMetrics(const char *aString, PRUint32 aLength,
+                                        nsThebesRenderingContext *aContext,
                                         nsBoundingMetrics &aBoundingMetrics);
-    
     virtual nsresult GetBoundingMetrics(const PRUnichar *aString,
                                         PRUint32 aLength,
-                                        nsBoundingMetrics &aBoundingMetrics,
-                                        PRInt32 *aFontID);
+                                        nsThebesRenderingContext *aContext,
+                                        nsBoundingMetrics &aBoundingMetrics);
 #endif 
 
     
