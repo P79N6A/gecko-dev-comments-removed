@@ -71,47 +71,6 @@
 
 
 
-struct nsRuleList {
-  nsRuleNode* mRuleNode;
-  nsRuleList* mNext;
-  
-public:
-  nsRuleList(nsRuleNode* aNode, nsRuleList* aNext= nsnull) {
-    MOZ_COUNT_CTOR(nsRuleList);
-    mRuleNode = aNode;
-    mNext = aNext;
-  }
- 
-  ~nsRuleList() {
-    MOZ_COUNT_DTOR(nsRuleList);
-    mRuleNode->Destroy();
-    if (mNext)
-      mNext->Destroy(mNext->mRuleNode->mPresContext);
-  }
-
-  void* operator new(size_t sz, nsPresContext* aContext) CPP_THROW_NEW {
-    return aContext->AllocateFromShell(sz);
-  }
-  void operator delete(void* aPtr) {} 
-                                      
-
-  void Destroy(nsPresContext* aContext) {
-    this->~nsRuleList();
-    aContext->FreeToShell(sizeof(nsRuleList), this);
-  }
-
-  
-  nsRuleList* DestroySelf(nsPresContext* aContext) {
-    nsRuleList *next = mNext;
-    MOZ_COUNT_DTOR(nsRuleList); 
-    aContext->FreeToShell(sizeof(nsRuleList), this);
-    return next;
-  }
-};
-
-
-
-
 
 struct ChildrenHashEntry : public PLDHashEntryHdr {
   
@@ -498,8 +457,14 @@ nsRuleNode::~nsRuleNode()
     PLDHashTable *children = ChildrenHash();
     PL_DHashTableEnumerate(children, DeleteRuleNodeChildren, nsnull);
     PL_DHashTableDestroy(children);
-  } else if (HaveChildren())
-    ChildrenList()->Destroy(mPresContext);
+  } else if (HaveChildren()) {
+    nsRuleNode *node = ChildrenList();
+    do {
+      nsRuleNode *next = node->mNextSibling;
+      node->Destroy();
+      node = next;
+    } while (node);
+  }
   NS_IF_RELEASE(mRule);
 }
 
@@ -512,13 +477,13 @@ nsRuleNode::Transition(nsIStyleRule* aRule, PRUint8 aLevel,
 
   if (HaveChildren() && !ChildrenAreHashed()) {
     PRInt32 numKids = 0;
-    nsRuleList* curr = ChildrenList();
-    while (curr && curr->mRuleNode->GetKey() != key) {
-      curr = curr->mNext;
+    nsRuleNode* curr = ChildrenList();
+    while (curr && curr->GetKey() != key) {
+      curr = curr->mNextSibling;
       ++numKids;
     }
     if (curr)
-      next = curr->mRuleNode;
+      next = curr;
     else if (numKids >= kMaxChildrenInList)
       ConvertChildrenToHash();
   }
@@ -546,12 +511,8 @@ nsRuleNode::Transition(nsIStyleRule* aRule, PRUint8 aLevel,
     if (!next) {
       return nsnull;
     }
-    nsRuleList* newChildrenList = new (mPresContext) nsRuleList(next, ChildrenList());
-    if (NS_UNLIKELY(!newChildrenList)) {
-      next->Destroy();
-      return nsnull;
-    }
-    SetChildrenList(newChildrenList);
+    next->mNextSibling = ChildrenList();
+    SetChildrenList(next);
   }
   
   return next;
@@ -567,13 +528,12 @@ nsRuleNode::ConvertChildrenToHash()
                                         kMaxChildrenInList * 4);
   if (!hash)
     return;
-  for (nsRuleList* curr = ChildrenList(); curr;
-       curr = curr->DestroySelf(mPresContext)) {
+  for (nsRuleNode* curr = ChildrenList(); curr; curr = curr->mNextSibling) {
     
-    ChildrenHashEntry *entry = static_cast<ChildrenHashEntry*>
-                                          (PL_DHashTableOperate(hash, curr->mRuleNode->mRule, PL_DHASH_ADD));
+    ChildrenHashEntry *entry = static_cast<ChildrenHashEntry*>(
+      PL_DHashTableOperate(hash, curr->mRule, PL_DHASH_ADD));
     NS_ASSERTION(!entry->mRuleNode, "duplicate entries in list");
-    entry->mRuleNode = curr->mRuleNode;
+    entry->mRuleNode = curr;
   }
   SetChildrenHash(hash);
 }
@@ -5251,15 +5211,15 @@ nsRuleNode::Sweep()
       PLDHashTable *children = ChildrenHash();
       PL_DHashTableEnumerate(children, SweepRuleNodeChildren, nsnull);
     } else {
-      for (nsRuleList **children = ChildrenListPtr(); *children; ) {
-        if ((*children)->mRuleNode->Sweep()) {
+      for (nsRuleNode **children = ChildrenListPtr(); *children; ) {
+        nsRuleNode *next = (*children)->mNextSibling;
+        if ((*children)->Sweep()) {
           
           
-          
-          *children = (*children)->DestroySelf(mPresContext);
+          *children = next;
         } else {
           
-          children = &(*children)->mNext;
+          children = &(*children)->mNextSibling;
         }
       }
     }

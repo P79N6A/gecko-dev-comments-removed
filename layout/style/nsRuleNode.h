@@ -49,7 +49,6 @@
 #include "nsStyleStruct.h"
 
 class nsStyleContext;
-struct nsRuleList;
 struct PLDHashTable;
 class nsILanguageAtomService;
 struct nsRuleData;
@@ -334,6 +333,12 @@ private:
                        
   nsIStyleRule* mRule; 
 
+  nsRuleNode* mNextSibling; 
+                            
+                            
+                            
+                            
+
   struct Key {
     nsIStyleRule* mRule;
     PRUint8 mLevel;
@@ -394,16 +399,16 @@ private:
   PRBool ChildrenAreHashed() {
     return (PRWord(mChildrenTaggedPtr) & kTypeMask) == kHashType;
   }
-  nsRuleList* ChildrenList() {
-    return reinterpret_cast<nsRuleList*>(mChildrenTaggedPtr);
+  nsRuleNode* ChildrenList() {
+    return reinterpret_cast<nsRuleNode*>(mChildrenTaggedPtr);
   }
-  nsRuleList** ChildrenListPtr() {
-    return reinterpret_cast<nsRuleList**>(&mChildrenTaggedPtr);
+  nsRuleNode** ChildrenListPtr() {
+    return reinterpret_cast<nsRuleNode**>(&mChildrenTaggedPtr);
   }
   PLDHashTable* ChildrenHash() {
     return (PLDHashTable*) (PRWord(mChildrenTaggedPtr) & ~PRWord(kTypeMask));
   }
-  void SetChildrenList(nsRuleList *aList) {
+  void SetChildrenList(nsRuleNode *aList) {
     NS_ASSERTION(!(PRWord(aList) & kTypeMask),
                  "pointer not 2-byte aligned");
     mChildrenTaggedPtr = aList;
@@ -437,8 +442,6 @@ private:
                       
                       
                       
-
-friend struct nsRuleList;
 
 public:
   
