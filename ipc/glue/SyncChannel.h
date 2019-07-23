@@ -94,9 +94,11 @@ protected:
     }
 
     void OnDispatchMessage(const Message& aMsg);
+    void WaitForNotify();
 
     
     void OnSendReply(Message* msg);
+    void NotifyWorkerThread();
 
     
     bool AwaitingSyncReply() {

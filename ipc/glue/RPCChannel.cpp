@@ -42,6 +42,12 @@
 
 #include "nsDebug.h"
 
+#define RPC_ASSERT(_cond, ...)                                      \
+    do {                                                            \
+        if (!(_cond))                                               \
+            DebugAbort(__FILE__, __LINE__, #_cond,## __VA_ARGS__);  \
+    } while (0)
+
 using mozilla::MutexAutoLock;
 using mozilla::MutexAutoUnlock;
 
@@ -59,10 +65,9 @@ bool
 RPCChannel::Call(Message* msg, Message* reply)
 {
     AssertWorkerThread();
-    NS_ABORT_IF_FALSE(!ProcessingSyncMessage(),
-                      "violation of sync handler invariant");
-    NS_ABORT_IF_FALSE(msg->is_rpc(),
-                      "can only Call() RPC messages here");
+    RPC_ASSERT(!ProcessingSyncMessage(),
+               "violation of sync handler invariant");
+    RPC_ASSERT(msg->is_rpc(), "can only Call() RPC messages here");
 
     MutexAutoLock lock(mMutex);
 
@@ -74,15 +79,15 @@ RPCChannel::Call(Message* msg, Message* reply)
     msg->set_rpc_remote_stack_depth_guess(mRemoteStackDepthGuess);
     msg->set_rpc_local_stack_depth(StackDepth());
 
-    
-    
-    AsyncChannel::Send(msg);
+    mIOLoop->PostTask(
+        FROM_HERE,
+        NewRunnableMethod(this, &RPCChannel::OnSend, msg));
 
     while (1) {
         
         
         while (Connected() && mPending.empty()) {
-            mCvar.Wait();
+            WaitForNotify();
         }
 
         if (!Connected())
@@ -92,37 +97,31 @@ RPCChannel::Call(Message* msg, Message* reply)
         Message recvd = mPending.front();
         mPending.pop();
 
-        
         if (!recvd.is_sync() && !recvd.is_rpc()) {
             MutexAutoUnlock unlock(mMutex);
-
             AsyncChannel::OnDispatchMessage(recvd);
             continue;
         }
 
-        
-        
-        
         if (recvd.is_sync()) {
-            RPC_ASSERT(mPending.empty(), "other side is malfunctioning");
+            RPC_ASSERT(mPending.empty(),
+                       "other side should have been blocked");
             MutexAutoUnlock unlock(mMutex);
-
             SyncChannel::OnDispatchMessage(recvd);
             continue;
         }
 
-        
         NS_ABORT_IF_FALSE(recvd.is_rpc(), "wtf???");
 
-        
         if (recvd.is_reply()) {
             RPC_ASSERT(0 < mStack.size(), "invalid RPC stack");
 
             const Message& outcall = mStack.top();
 
             
-            RPC_ASSERT(recvd.type() == (outcall.type()+1) || recvd.is_reply_error(),
-                       "somebody's misbehavin'", "rpc", true);
+            RPC_ASSERT(
+                recvd.type() == (outcall.type()+1) || recvd.is_reply_error(),
+                "somebody's misbehavin'", "rpc", true);
 
             
             
@@ -133,79 +132,31 @@ RPCChannel::Call(Message* msg, Message* reply)
                 *reply = recvd;
             }
 
-            if (0 == StackDepth()) {
-                
-                
-                
-                
-                bool seenBlocker = false;
+            
+            
+            
+            MaybeProcessDeferredIncall();
 
-                
-                while (!mPending.empty()) {
-                    Message m = mPending.front();
-                    mPending.pop();
-
-                    if (m.is_sync()) {
-                        RPC_ASSERT(!seenBlocker,
-                                   "other side is malfunctioning",
-                                   "sync", m.is_reply());
-                        seenBlocker = true;
-
-                        MessageLoop::current()->PostTask(
-                            FROM_HERE,
-                            NewRunnableMethod(this,
-                                              &RPCChannel::OnDelegate, m));
-                    }
-                    else if (m.is_rpc()) {
-                        RPC_ASSERT(!seenBlocker,
-                                   "other side is malfunctioning",
-                                   "rpc", m.is_reply());
-                        seenBlocker = true;
-
-                        MessageLoop::current()->PostTask(
-                            FROM_HERE,
-                            NewRunnableMethod(this,
-                                              &RPCChannel::OnIncall,
-                                              m));
-                    }
-                    else {
-                        MessageLoop::current()->PostTask(
-                            FROM_HERE,
-                            NewRunnableMethod(this,
-                                              &RPCChannel::OnDelegate, m));
-                    }
-                }
-            }
-            else {
+            if (0 == StackDepth())
                 
                 
                 
-                RPC_ASSERT(mPending.empty(),
-                           "other side should have been blocked");
-            }
+                
+                
+                EnqueuePendingMessages();
 
             
             return !isError;
         }
 
         
-        
-        
-        
-
-        RPC_ASSERT(mPending.empty()
-                   || (1 == mPending.size()
-                       && mPending.front().is_rpc()
-                       && mPending.front().is_reply()
-                       && 1 == StackDepth()),
-                   "other side is malfunctioning", "rpc");
 
         
         size_t stackDepth = StackDepth();
         {
             MutexAutoUnlock unlock(mMutex);
             
-            ProcessIncall(recvd, stackDepth);
+            Incall(recvd, stackDepth);
             
         }
     }
@@ -214,64 +165,85 @@ RPCChannel::Call(Message* msg, Message* reply)
 }
 
 void
-RPCChannel::OnDelegate(const Message& msg)
+RPCChannel::MaybeProcessDeferredIncall()
 {
     AssertWorkerThread();
-    if (msg.is_sync())
-        return SyncChannel::OnDispatchMessage(msg);
-    else if (!msg.is_rpc())
-        return AsyncChannel::OnDispatchMessage(msg);
-    RPC_ASSERT(0, "fatal logic error");
+    mMutex.AssertCurrentThreadOwns();
+
+    if (mDeferred.empty())
+        return;
+
+    size_t stackDepth = StackDepth();
+
+    
+    RPC_ASSERT(mDeferred.top().rpc_remote_stack_depth_guess() <= stackDepth,
+               "fatal logic error");
+
+    if (mDeferred.top().rpc_remote_stack_depth_guess() < stackDepth)
+        return;
+
+    
+    Message call = mDeferred.top();
+    mDeferred.pop();
+
+    
+    RPC_ASSERT(0 < mRemoteStackDepthGuess, "fatal logic error");
+    --mRemoteStackDepthGuess;
+
+    MutexAutoUnlock unlock(mMutex);
+    fprintf(stderr, "  (processing deferred in-call)\n");
+    Incall(call, stackDepth);
+}
+
+void
+RPCChannel::EnqueuePendingMessages()
+{
+    
+    
+
+    AssertWorkerThread();
+    mMutex.AssertCurrentThreadOwns();
+
+    for (size_t i = 0; i < mPending.size(); ++i)
+        mWorkerLoop->PostTask(
+            FROM_HERE,
+            NewRunnableMethod(this, &RPCChannel::OnMaybeDequeueOne));
 }
 
 void
 RPCChannel::OnMaybeDequeueOne()
 {
+    
+    
+
     AssertWorkerThread();
-    Message recvd;  
+    mMutex.AssertNotCurrentThreadOwns();
+
+    Message recvd;
     {
         MutexAutoLock lock(mMutex);
 
         if (mPending.empty())
             return;
 
-        RPC_ASSERT(mPending.size() == 1, "should only have one msg");
-        RPC_ASSERT(mPending.front().is_rpc() || mPending.front().is_sync(),
-                   "msg should be RPC or sync", "async");
-
         recvd = mPending.front();
         mPending.pop();
     }
-    return recvd.is_sync() ?
-        SyncChannel::OnDispatchMessage(recvd)
-        : RPCChannel::OnIncall(recvd);
+
+    if (recvd.is_rpc())
+        return Incall(recvd, 0);
+    else if (recvd.is_sync())
+        return SyncChannel::OnDispatchMessage(recvd);
+    else
+        return AsyncChannel::OnDispatchMessage(recvd);
 }
 
 void
-RPCChannel::OnIncall(const Message& call)
-{
-    AssertWorkerThread();
-    
-    
-    
-    ProcessIncall(call, 0);
-}
-
-void
-RPCChannel::OnDeferredIncall(const Message& call)
-{
-    AssertWorkerThread();
-    ProcessIncall(call, 0);
-    mRemoteStackDepthGuess = 0; 
-}
-
-void
-RPCChannel::ProcessIncall(const Message& call, size_t stackDepth)
+RPCChannel::Incall(const Message& call, size_t stackDepth)
 {
     AssertWorkerThread();
     mMutex.AssertNotCurrentThreadOwns();
-    NS_ABORT_IF_FALSE(call.is_rpc(),
-                      "should have been handled by SyncChannel");
+    RPC_ASSERT(call.is_rpc() && !call.is_reply(), "wrong message type");
 
     
     
@@ -279,18 +251,12 @@ RPCChannel::ProcessIncall(const Message& call, size_t stackDepth)
     if (call.rpc_remote_stack_depth_guess() != stackDepth) {
         NS_WARNING("RPC in-calls have raced!");
 
-        
-        
-        
-        
-        
-        if (!((1 == stackDepth && 0 == mRemoteStackDepthGuess)
-              && (1 == call.rpc_local_stack_depth()
-                  && 0 == call.rpc_remote_stack_depth_guess())))
-            
-            
-            
-            RPC_ASSERT(0, "fatal logic error");
+        RPC_ASSERT(call.rpc_remote_stack_depth_guess() < stackDepth,
+                   "fatal logic error");
+        RPC_ASSERT(1 == (stackDepth - call.rpc_remote_stack_depth_guess()),
+                   "got more than 1 RPC message out of sync???");
+        RPC_ASSERT(1 == (call.rpc_local_stack_depth() -mRemoteStackDepthGuess),
+                   "RPC unexpected not symmetric");
 
         
         
@@ -313,20 +279,33 @@ RPCChannel::ProcessIncall(const Message& call, size_t stackDepth)
             return;
         }
 
-        printf("  (%s won, so we're%sdeferring)\n",
-               winner, defer ? " " : " not ");
+        fprintf(stderr, "  (%s won, so we're%sdeferring)\n",
+                winner, defer ? " " : " not ");
 
         if (defer) {
             
-            mRemoteStackDepthGuess = 1;
-            mWorkerLoop->PostTask(
-                FROM_HERE,
-                NewRunnableMethod(this, &RPCChannel::OnDeferredIncall, call));
+            
+            ++mRemoteStackDepthGuess; 
+            mDeferred.push(call);
             return;
         }
 
         
+        
+        
+        
     }
+
+    DispatchIncall(call);
+}
+
+void
+RPCChannel::DispatchIncall(const Message& call)
+{
+    AssertWorkerThread();
+    mMutex.AssertNotCurrentThreadOwns();
+    RPC_ASSERT(call.is_rpc() && !call.is_reply(),
+               "wrong message type");
 
     Message* reply = nsnull;
 
@@ -344,6 +323,7 @@ RPCChannel::ProcessIncall(const Message& call, size_t stackDepth)
     case MsgPayloadError:
     case MsgRouteError:
     case MsgValueError:
+        NS_WARNING("[RPCChannel] error processing message!");
         delete reply;
         reply = new Message();
         reply->set_rpc();
@@ -357,11 +337,42 @@ RPCChannel::ProcessIncall(const Message& call, size_t stackDepth)
         return;
     }
 
-    mIOLoop->PostTask(FROM_HERE,
-                      NewRunnableMethod(this,
-                                        &RPCChannel::OnSendReply,
-                                        reply));
+    mIOLoop->PostTask(
+        FROM_HERE,
+        NewRunnableMethod(this, &RPCChannel::OnSend, reply));
+}
 
+
+void
+RPCChannel::DebugAbort(const char* file, int line, const char* cond,
+                       const char* why,
+                       const char* type, bool reply)
+{
+    fprintf(stderr,
+            "[RPCChannel][%s][%s:%d] "
+            "Assertion (%s) failed.  %s (triggered by %s%s)\n",
+            mChild ? "Child" : "Parent",
+            file, line, cond,
+            why,
+            type, reply ? "reply" : "");
+    
+    fprintf(stderr, "  local RPC stack size: %lu\n",
+            mStack.size());
+    fprintf(stderr, "  remote RPC stack guess: %lu\n",
+            mRemoteStackDepthGuess);
+    fprintf(stderr, "  deferred stack size: %lu\n",
+            mDeferred.size());
+    fprintf(stderr, "  Pending queue size: %lu, front to back:\n",
+            mPending.size());
+    while (!mPending.empty()) {
+        fprintf(stderr, "    [ %s%s ]\n",
+                mPending.front().is_rpc() ? "rpc" :
+                (mPending.front().is_sync() ? "sync" : "async"),
+                mPending.front().is_reply() ? "reply" : "");
+        mPending.pop();
+    }
+
+    NS_RUNTIMEABORT(why);
 }
 
 
@@ -377,122 +388,22 @@ RPCChannel::OnMessageReceived(const Message& msg)
 
     
     
-    
-    
-    if (AwaitingSyncReply()
-        && msg.is_sync()) {
-        
+    if (AwaitingSyncReply() && msg.is_sync()) {
         
         mRecvd = msg;
-        mCvar.Notify();
+        NotifyWorkerThread();
         return;
     }
 
-    
-    
+    mPending.push(msg);
 
-    if (0 == StackDepth()) {
+    if (0 == StackDepth())
         
-        
-
-        
-        if (!msg.is_sync() && !msg.is_rpc()) {
-            MutexAutoUnlock unlock(mMutex);
-            return AsyncChannel::OnMessageReceived(msg);
-        }
-
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-
-        if (msg.is_sync()) {
-            mPending.push(msg);
-
-            mWorkerLoop->PostTask(
-                FROM_HERE,
-                NewRunnableMethod(this, &RPCChannel::OnMaybeDequeueOne));
-            return;
-        }
-
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-
-        NS_ABORT_IF_FALSE(msg.is_rpc(), "should be RPC");
-
-        mPending.push(msg);
         mWorkerLoop->PostTask(
             FROM_HERE,
             NewRunnableMethod(this, &RPCChannel::OnMaybeDequeueOne));
-    }
-    else {
-        
-
-        
-        
-
-        
-        
-
-        
-        
-        
-        
-        
-        
-        
-
-        
-        
-        if (AwaitingSyncReply()
-            && !msg.is_sync() && !msg.is_rpc()) {
-            mPending.push(msg);
-            return;
-        }
-
-        
-        
-        
-        
-        RPC_ASSERT(!AwaitingSyncReply(),
-                   "the other side is malfunctioning",
-                   "rpc", msg.is_reply());
-
-        
-        
-        
-        
-        mPending.push(msg);
-        mCvar.Notify();
-    }
+    else
+        NotifyWorkerThread();
 }
 
 
@@ -506,9 +417,8 @@ RPCChannel::OnChannelError()
         mChannelState = ChannelError;
 
         if (AwaitingSyncReply()
-            || 0 < StackDepth()) {
-            mCvar.Notify();
-        }
+            || 0 < StackDepth())
+            NotifyWorkerThread();
     }
 
     
@@ -519,3 +429,4 @@ RPCChannel::OnChannelError()
 
 } 
 } 
+

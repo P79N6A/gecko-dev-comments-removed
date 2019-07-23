@@ -69,12 +69,12 @@ SyncChannel::Send(Message* msg, Message* reply)
         return false;
 
     mPendingReply = msg->type() + 1;
-    if (!AsyncChannel::Send(msg))
-        
-        return false;
+    mIOLoop->PostTask(
+        FROM_HERE,
+        NewRunnableMethod(this, &SyncChannel::OnSend, msg));
 
     
-    mCvar.Wait();
+    WaitForNotify();
 
     if (!Connected())
         
@@ -133,10 +133,9 @@ SyncChannel::OnDispatchMessage(const Message& msg)
         return;
     }
 
-    mIOLoop->PostTask(FROM_HERE,
-                      NewRunnableMethod(this,
-                                        &SyncChannel::OnSendReply,
-                                        reply));
+    mIOLoop->PostTask(
+        FROM_HERE,
+        NewRunnableMethod(this, &SyncChannel::OnSend, reply));
 }
 
 
@@ -163,7 +162,7 @@ SyncChannel::OnMessageReceived(const Message& msg)
     else {
         
         mRecvd = msg;
-        mCvar.Notify();
+        NotifyWorkerThread();
     }
 }
 
@@ -177,18 +176,27 @@ SyncChannel::OnChannelError()
         mChannelState = ChannelError;
 
         if (AwaitingSyncReply()) {
-            mCvar.Notify();
+            NotifyWorkerThread();
         }
     }
 
     return AsyncChannel::OnChannelError();
 }
 
+
+
+
+
 void
-SyncChannel::OnSendReply(Message* aReply)
+SyncChannel::WaitForNotify()
 {
-    AssertIOThread();
-    mTransport->Send(aReply);
+    mCvar.Wait();
+}
+
+void
+SyncChannel::NotifyWorkerThread()
+{
+    mCvar.Notify();
 }
 
 

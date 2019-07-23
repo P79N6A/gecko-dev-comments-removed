@@ -74,6 +74,8 @@ public:
     RPCChannel(RPCListener* aListener, RacyRPCPolicy aPolicy=RRPChildWins) :
         SyncChannel(aListener),
         mPending(),
+        mStack(),
+        mDeferred(),
         mRemoteStackDepthGuess(0),
         mRacePolicy(aPolicy)
     {
@@ -88,25 +90,19 @@ public:
     bool Call(Message* msg, Message* reply);
 
     
+    
     NS_OVERRIDE virtual void OnMessageReceived(const Message& msg);
     NS_OVERRIDE virtual void OnChannelError();
 
-protected:
-    
-    
-    
-    void OnDelegate(const Message& msg);
-
-    
-    
-    
-    
-    void OnMaybeDequeueOne();
-
 private:
-    void OnIncall(const Message& msg);
-    void OnDeferredIncall(const Message& msg);
-    void ProcessIncall(const Message& call, size_t stackDepth);
+    
+
+    void MaybeProcessDeferredIncall();
+    void EnqueuePendingMessages();
+
+    void OnMaybeDequeueOne();
+    void Incall(const Message& call, size_t stackDepth);
+    void DispatchIncall(const Message& call);
 
     
     size_t StackDepth() {
@@ -114,51 +110,10 @@ private:
         return mStack.size();
     }
 
-#define RPC_ASSERT(_cond, ...)                                      \
-    do {                                                            \
-        if (!(_cond))                                               \
-            DebugAbort(__FILE__, __LINE__, #_cond,## __VA_ARGS__);  \
-    } while (0)
-
     void DebugAbort(const char* file, int line, const char* cond,
                     const char* why,
-                    const char* type="rpc", bool reply=false)
-    {
-        fprintf(stderr,
-                "[RPCChannel][%s][%s:%d] "
-                "Assertion (%s) failed.  %s (triggered by %s%s)\n",
-                mChild ? "Child" : "Parent",
-                file, line, cond,
-                why,
-                type, reply ? "reply" : "");
-        
-        fprintf(stderr, "  local RPC stack size: %lu\n",
-                mStack.size());
-        fprintf(stderr, "  remote RPC stack guess: %lu\n",
-                mRemoteStackDepthGuess);
-        fprintf(stderr, "  Pending queue size: %lu, front to back:\n",
-                mPending.size());
-        while (!mPending.empty()) {
-            fprintf(stderr, "    [ %s%s ]\n",
-                    mPending.front().is_rpc() ? "rpc" :
-                        (mPending.front().is_sync() ? "sync" : "async"),
-                    mPending.front().is_reply() ? "reply" : "");
-            mPending.pop();
-        }
+                    const char* type="rpc", bool reply=false);
 
-        NS_RUNTIMEABORT(why);
-    }
-
-    
-    
-    
-    
-    std::stack<Message> mStack;
-
-    
-    
-    
-    
     
     
     
@@ -205,6 +160,16 @@ private:
     
     
     
+    std::stack<Message> mStack;
+
+    
+    
+    
+    
+    std::stack<Message> mDeferred;
+
+    
+    
     
     
     
@@ -232,7 +197,6 @@ private:
     
     
     size_t mRemoteStackDepthGuess;
-
     RacyRPCPolicy mRacePolicy;
 };
 

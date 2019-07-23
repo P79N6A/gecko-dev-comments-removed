@@ -128,19 +128,18 @@ protected:
     
     void AssertWorkerThread()
     {
-        if (mWorkerLoop != MessageLoop::current()) {
-            NS_ERROR("not on worker thread!");
-        }
+        NS_ABORT_IF_FALSE(mWorkerLoop == MessageLoop::current(),
+                          "not on worker thread!");
     }
 
     void AssertIOThread()
     {
-        if (mIOLoop != MessageLoop::current()) {
-            NS_ERROR("not on IO thread!");
-        }
+        NS_ABORT_IF_FALSE(mIOLoop == MessageLoop::current(),
+                          "not on IO thread!");
     }
 
     bool Connected() {
+        mMutex.AssertCurrentThreadOwns();
         return ChannelConnected == mChannelState;
     }
 
