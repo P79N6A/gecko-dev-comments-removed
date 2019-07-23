@@ -39,6 +39,7 @@
 
 
 
+
 #include "nsDownloadManager.h"
 #include "nsIWebProgress.h"
 #include "nsIRDFService.h"
@@ -129,16 +130,21 @@ nsDownloadManager::~nsDownloadManager()
 }
 
 nsresult
-nsDownloadManager::CancelAllDownloads()
+nsDownloadManager::RemoveAllDownloads()
 {
   nsresult rv = NS_OK;
   for (PRInt32 i = mCurrentDownloads.Count() - 1; i >= 0; --i) {
     nsRefPtr<nsDownload> dl = mCurrentDownloads[0];
 
-    nsresult result = CancelDownload(dl->mID);
+    nsresult result;
+    if (dl->IsRealPaused())
+      result = mCurrentDownloads.RemoveObject(dl);
+    else
+      result = CancelDownload(dl->mID);
+
     
-    
-    if (NS_FAILED(result)) rv = result;
+    if (NS_FAILED(result))
+      rv = result;
   }
 
   return rv;
@@ -644,6 +650,33 @@ nsDownloadManager::RestoreDatabaseState()
   return NS_OK;
 }
 
+nsresult
+nsDownloadManager::RestoreActiveDownloads()
+{
+  nsCOMPtr<mozIStorageStatement> stmt;
+  nsresult rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
+    "SELECT id "
+    "FROM moz_downloads "
+    "WHERE state = ?1 "
+      "AND LENGTH(entityID) > 0"), getter_AddRefs(stmt));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  rv = stmt->BindInt32Parameter(0, nsIDownloadManager::DOWNLOAD_PAUSED);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  PRBool hasResults;
+  while (NS_SUCCEEDED(stmt->ExecuteStep(&hasResults)) && hasResults) {
+    nsRefPtr<nsDownload> dl;
+    
+    
+    
+    if (NS_FAILED(GetDownloadFromDB(stmt->AsInt32(0), getter_AddRefs(dl))) ||
+        NS_FAILED(AddToCurrentDownloads(dl)))
+      rv = NS_ERROR_FAILURE;
+  }
+  return rv;
+}
+
 PRInt64
 nsDownloadManager::AddDownloadToDB(const nsAString &aName,
                                    const nsACString &aSource,
@@ -716,6 +749,9 @@ nsDownloadManager::Init()
     ImportDownloadHistory();
 
   rv = RestoreDatabaseState();
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  rv = RestoreActiveDownloads();
   NS_ENSURE_SUCCESS(rv, rv);
 
   nsCOMPtr<nsIStringBundleService> bundleService =
@@ -1412,7 +1448,11 @@ nsDownloadManager::Observe(nsISupports *aSubject,
                            const char *aTopic,
                            const PRUnichar *aData)
 {
-  PRInt32 currDownloadCount = mCurrentDownloads.Count();
+  
+  PRInt32 currDownloadCount = 0;
+  for (PRInt32 i = mCurrentDownloads.Count() - 1; i >= 0; --i)
+    if (!mCurrentDownloads[i]->IsRealPaused())
+      currDownloadCount++;
 
   nsresult rv;
   if (strcmp(aTopic, "oncancel") == 0) {
@@ -1428,7 +1468,7 @@ nsDownloadManager::Observe(nsISupports *aSubject,
     gStoppingDownloads = PR_TRUE;
 
     if (currDownloadCount)
-      CancelAllDownloads();
+      (void)RemoveAllDownloads();
 
     
     

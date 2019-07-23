@@ -39,6 +39,7 @@
 
 
 
+
 #ifndef downloadmanager___h___
 #define downloadmanager___h___
 
@@ -99,6 +100,13 @@ protected:
   nsresult CreateTable();
   nsresult ImportDownloadHistory();
   nsresult RestoreDatabaseState();
+
+  
+
+
+
+  nsresult RestoreActiveDownloads();
+
   nsresult GetDownloadFromDB(PRUint32 aID, nsDownload **retVal);
 
   
@@ -138,7 +146,14 @@ protected:
                                     nsIDownload *aDownload);
 
   nsDownload *FindDownload(PRUint32 aID);
-  nsresult CancelAllDownloads();
+
+  
+
+
+
+
+
+  nsresult RemoveAllDownloads();
 
   
 
