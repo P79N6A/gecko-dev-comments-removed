@@ -1533,8 +1533,11 @@ js_LoopEdge(JSContext* cx, jsbytecode* oldpc, uintN& inlineCallCount)
     JSTraceMonitor* tm = &JS_TRACE_MONITOR(cx);
 
     
-    if (tm->recorder)
-        return js_ContinueRecording(cx, tm->recorder, oldpc, inlineCallCount);
+    if (tm->recorder) {
+        if (js_ContinueRecording(cx, tm->recorder, oldpc, inlineCallCount))
+            return true;
+        
+    }
 
     
     jsbytecode* pc = cx->fp->regs->pc;
