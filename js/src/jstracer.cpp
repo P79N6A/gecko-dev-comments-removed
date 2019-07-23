@@ -235,7 +235,7 @@ static inline bool isInt32(jsval v)
 
 static inline uint8 getCoercedType(jsval v)
 {
-    return isInt32(v) ? JSVAL_INT : JSVAL_TAG(v);
+    return isInt32(v) ? JSVAL_INT : (uint8) JSVAL_TAG(v);
 }
 
 
@@ -295,7 +295,7 @@ static bool isPromoteInt(LIns* i)
 {
     jsdouble d;
     return i->isop(LIR_i2f) || i->isconst() ||
-        (i->isconstq() && ((d = i->constvalf()) == (jsdouble)(jsint)d));
+        (i->isconstq() && ((d = i->constvalf()) == (jsdouble)(jsint)d) && !JSDOUBLE_IS_NEGZERO(d));
 }
 
 static bool isPromoteUint(LIns* i)
@@ -1714,6 +1714,10 @@ nanojit::Fragment::onDestroy()
 void
 js_DeleteRecorder(JSContext* cx)
 {
+    
+    JS_ASSERT(cx->executingTrace);
+    cx->executingTrace = false;
+
     JSTraceMonitor* tm = &JS_TRACE_MONITOR(cx);
     delete tm->recorder;
     tm->recorder = NULL;
@@ -1725,8 +1729,18 @@ js_StartRecorder(JSContext* cx, GuardRecord* anchor, Fragment* f, TreeInfo* ti,
         GuardRecord* expectedInnerExit)
 {
     
+
+
+
+
+
+    JS_ASSERT(!cx->executingTrace);
+    cx->executingTrace = true;
+
+    
     JS_TRACE_MONITOR(cx).recorder = new (&gc) TraceRecorder(cx, anchor, f, ti,
-            ngslots, globalTypeMap, stackTypeMap, expectedInnerExit);
+                                                            ngslots, globalTypeMap, stackTypeMap,
+                                                            expectedInnerExit);
     if (cx->throwing) {
         js_AbortRecording(cx, NULL, "setting up recorder failed");
         return false;
@@ -2000,7 +2014,8 @@ js_RecordLoopEdge(JSContext* cx, TraceRecorder* r, jsbytecode* oldpc, uintN& inl
         case LOOP_EXIT:
             
             if (innermostNestedGuard) {
-                js_AbortRecording(cx, oldpc, "Inner tree took different side exit, abort recording");
+                js_AbortRecording(cx, oldpc,
+                                  "Inner tree took different side exit, abort recording");
                 return js_AttemptToExtendTree(cx, innermostNestedGuard, lr);
             }
             
@@ -2109,14 +2124,22 @@ js_ExecuteTree(JSContext* cx, Fragment** treep, uintN& inlineCallCount,
     uint64 start = rdtsc();
 #endif
 
-    JS_ASSERT(!cx->runningJittedCode);
-    cx->runningJittedCode = JS_TRUE;
+    
+
+
+
+
+    bool executingTrace = cx->executingTrace;
+    if (!executingTrace)
+        cx->executingTrace = true;
     GuardRecord* lr = u.func(&state, NULL);
-    cx->runningJittedCode = JS_FALSE;
+    if (!executingTrace)
+        cx->executingTrace = false;
 
     
 
 
+    int slots;
     if (lr->exit->exitType == NESTED_EXIT) {
         
 
@@ -2132,9 +2155,11 @@ js_ExecuteTree(JSContext* cx, Fragment** treep, uintN& inlineCallCount,
                     js_SynthesizeFrame(cx, callstack[i]);
                 
 
-                unsigned slots = FlushNativeStackFrame(cx, calldepth,
-                        lr->exit->typeMap + lr->exit->numGlobalSlots,
-                        stack, &cx->fp->argv[-2]);
+                slots = FlushNativeStackFrame(cx, calldepth,
+                                              lr->exit->typeMap + lr->exit->numGlobalSlots,
+                                              stack, &cx->fp->argv[-2]);
+                if (slots < 0)
+                    return NULL;
                 callstack += calldepth;
                 inlineCallCount += calldepth;
                 stack += slots;
@@ -2200,13 +2225,16 @@ js_ExecuteTree(JSContext* cx, Fragment** treep, uintN& inlineCallCount,
     JS_ASSERT(exit_gslots == tm->globalTypeMap->length());
 
     
-    FlushNativeGlobalFrame(cx, exit_gslots, gslots, globalTypeMap, global);
+    slots = FlushNativeGlobalFrame(cx, exit_gslots, gslots, globalTypeMap, global);
+    if (slots < 0)
+        return NULL;
     JS_ASSERT(globalFrameSize == STOBJ_NSLOTS(globalObj));
     JS_ASSERT(*(uint64*)&global[globalFrameSize] == 0xdeadbeefdeadbeefLL);
 
     
-    debug_only(unsigned slots =)
-    FlushNativeStackFrame(cx, e->calldepth, e->typeMap + e->numGlobalSlots, stack, NULL);
+    slots = FlushNativeStackFrame(cx, e->calldepth, e->typeMap + e->numGlobalSlots, stack, NULL);
+    if (slots < 0)
+        return NULL;
     JS_ASSERT(slots == e->numStackSlots);
 
     AUDIT(sideExitIntoInterpreter);
@@ -5101,7 +5129,8 @@ TraceRecorder::record_JSOP_IN()
     } else {
         if (!JSVAL_IS_STRING(lval))
             ABORT_TRACE("non-string left operand to JSOP_IN");
-        id = ATOM_TO_JSID(lval);
+        if (!js_ValueToStringId(cx, lval, &id))
+            return false;
     }
 
     
