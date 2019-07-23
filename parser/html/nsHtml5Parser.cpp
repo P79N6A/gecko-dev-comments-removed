@@ -415,9 +415,6 @@ nsHtml5Parser::Terminate(void)
   nsCOMPtr<nsIParser> kungFuDeathGrip(this);
   nsRefPtr<nsHtml5StreamParser> streamKungFuDeathGrip(mStreamParser);
   nsRefPtr<nsHtml5TreeOpExecutor> treeOpKungFuDeathGrip(mExecutor);
-  
-  
-  CancelParsingEvents();
   if (mStreamParser) {
     mStreamParser->Terminate();
   }
