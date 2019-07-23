@@ -921,12 +921,11 @@ XPC_SJOW_Construct(JSContext *cx, JSObject *obj, uintN argc, jsval *argv,
 
   
   
-  JSObject *wrapperObj = ::JS_NewObject(cx, &sXPC_SJOW_JSClass.base, nsnull,
-                                        nsnull);
+  JSObject *wrapperObj =
+    ::JS_NewObjectWithGivenProto(cx, &sXPC_SJOW_JSClass.base, nsnull,
+                                 objToWrap);
 
-  if (!wrapperObj ||
-      !::JS_SetPrototype(cx, wrapperObj, nsnull) ||
-      !::JS_SetParent(cx, wrapperObj, objToWrap)) {
+  if (!wrapperObj) {
     
     return JS_FALSE;
   }
@@ -982,11 +981,9 @@ XPC_SJOW_Iterator(JSContext *cx, JSObject *obj, JSBool keysonly)
   }
 
   
-  JSObject *wrapperIter = ::JS_NewObject(cx, &sXPC_SJOW_JSClass.base, nsnull,
-                                         nsnull);
-  if (!wrapperIter ||
-      !::JS_SetParent(cx, wrapperIter, innerObj) ||
-      !::JS_SetPrototype(cx, wrapperIter, nsnull)) {
+  JSObject *wrapperIter =
+    ::JS_NewObjectWithGivenProto(cx, &sXPC_SJOW_JSClass.base, nsnull, innerObj);
+  if (!wrapperIter) {
     return nsnull;
   }
 
