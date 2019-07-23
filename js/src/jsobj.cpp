@@ -327,9 +327,19 @@ js_SetProtoOrParent(JSContext *cx, JSObject *obj, uint32 slot, JSObject *pobj)
     }
 
     
+
+
+
+
+
+
+
+
+
+
     if (slot == JSSLOT_PROTO &&
-        OBJ_IS_ARRAY(cx, pobj) &&
-        pobj->fslots[JSSLOT_ARRAY_LENGTH] != 0) {
+        pobj &&
+        (OBJ_IS_ARRAY(cx, obj) || OBJ_IS_DELEGATE(cx, obj))) {
         rt->anyArrayProtoHasElement = JS_TRUE;
     }
     return JS_TRUE;
@@ -3186,6 +3196,9 @@ js_DefineProperty(JSContext *cx, JSObject *obj, jsid id, jsval value,
 
 
 
+
+
+
 #define ADD_PROPERTY_HELPER(cx,clasp,obj,scope,sprop,vp,cleanup)              \
     JS_BEGIN_MACRO                                                            \
         if ((clasp)->addProperty != JS_PropertyStub) {                        \
@@ -3198,6 +3211,8 @@ js_DefineProperty(JSContext *cx, JSObject *obj, jsid id, jsval value,
                     LOCKED_OBJ_WRITE_BARRIER(cx, obj, (sprop)->slot, *(vp));  \
             }                                                                 \
         }                                                                     \
+        if (STOBJ_IS_DELEGATE(obj) && JSID_IS_INT(sprop->id))                 \
+            cx->runtime->anyArrayProtoHasElement = JS_TRUE;                   \
     JS_END_MACRO
 
 JSBool
