@@ -1739,12 +1739,17 @@ PrepareSortPattern(FcPattern *aPattern, double aFallbackSize,
        cairo_font_options_set_antialias (options, CAIRO_ANTIALIAS_GRAY);
        cairo_ft_font_options_substitute(options, aPattern);
        cairo_font_options_destroy(options);
-    }
-#ifdef MOZ_WIDGET_GTK2
-    else {
-       ApplyGdkScreenFontOptions(aPattern);
-    }
+    } else {
+#ifdef MOZ_GFX_OPTIMIZE_MOBILE
+       cairo_font_options_t *options = cairo_font_options_create();
+       cairo_font_options_set_hint_style(options, CAIRO_HINT_STYLE_NONE);
+       cairo_ft_font_options_substitute(options, aPattern);
+       cairo_font_options_destroy(options);
 #endif
+#ifdef MOZ_WIDGET_GTK2
+       ApplyGdkScreenFontOptions(aPattern);
+#endif
+    }
 
     
     
@@ -2521,7 +2526,11 @@ CreateScaledFont(FcPattern *aPattern)
     
     
     
+#ifdef MOZ_GFX_OPTIMIZE_MOBILE
+    cairo_font_options_set_hint_metrics(fontOptions, CAIRO_HINT_METRICS_OFF);
+#else
     cairo_font_options_set_hint_metrics(fontOptions, CAIRO_HINT_METRICS_ON);
+#endif
 
     
     
@@ -2545,10 +2554,12 @@ CreateScaledFont(FcPattern *aPattern)
     
     
     
-    FcBool hinting;
+    FcBool hinting = FcFalse;
+#ifndef MOZ_GFX_OPTIMIZE_MOBILE
     if (FcPatternGetBool(aPattern, FC_HINTING, 0, &hinting) != FcResultMatch) {
         hinting = FcTrue;
     }
+#endif
     cairo_hint_style_t hint_style;
     if (!hinting) {
         hint_style = CAIRO_HINT_STYLE_NONE;
