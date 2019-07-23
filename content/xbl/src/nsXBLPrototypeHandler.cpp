@@ -67,7 +67,6 @@
 #include "nsPIWindowRoot.h"
 #include "nsIDOMWindowInternal.h"
 #include "nsIServiceManager.h"
-#include "nsContentUtils.h"
 #include "nsIScriptError.h"
 #include "nsXPIDLString.h"
 #include "nsReadableUtils.h"
@@ -156,7 +155,7 @@ nsXBLPrototypeHandler::~nsXBLPrototypeHandler()
   }
 
   
-  delete mNextHandler;
+  NS_CONTENT_DELETE_LIST_MEMBER(nsXBLPrototypeHandler, this, mNextHandler);
 }
 
 already_AddRefed<nsIContent>
