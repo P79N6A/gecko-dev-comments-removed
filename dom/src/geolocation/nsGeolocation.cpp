@@ -52,7 +52,7 @@
 
 #include <math.h>
 
-#ifdef NS_OSSO
+#ifdef NS_MAEMO_LOCATION
 #include "MaemoLocationProvider.h"
 #endif
 
@@ -470,7 +470,7 @@ nsGeolocationService::StartDevice()
     mProvider = do_GetService(NS_GEOLOCATION_PROVIDER_CONTRACTID);
 
     
-#ifdef NS_OSSO
+#ifdef NS_MAEMO_LOCATION
     if (!mProvider)
     {
       
