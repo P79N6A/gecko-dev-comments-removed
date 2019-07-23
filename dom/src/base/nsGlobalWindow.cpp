@@ -4579,6 +4579,7 @@ nsGlobalWindow::Open(const nsAString& aUrl, const nsAString& aName,
 {
   return OpenInternal(aUrl, aName, aOptions,
                       PR_FALSE,          
+                      PR_FALSE,          
                       PR_TRUE,           
                       PR_FALSE,          
                       nsnull, nsnull,    
@@ -4631,6 +4632,7 @@ nsGlobalWindow::Open(nsIDOMWindow **_retval)
   return OpenInternal(url, name, options,
                       PR_FALSE,          
                       PR_FALSE,          
+                      PR_FALSE,          
                       PR_TRUE,           
                       nsnull, nsnull,    
                       GetPrincipal(),    
@@ -4647,6 +4649,7 @@ nsGlobalWindow::OpenDialog(const nsAString& aUrl, const nsAString& aName,
 {
   return OpenInternal(aUrl, aName, aOptions,
                       PR_TRUE,                    
+                      PR_FALSE,                   
                       PR_TRUE,                    
                       PR_FALSE,                   
                       nsnull, aExtraArgument,     
@@ -4706,6 +4709,7 @@ nsGlobalWindow::OpenDialog(nsIDOMWindow** _retval)
 
   return OpenInternal(url, name, options,
                       PR_TRUE,             
+                      PR_FALSE,            
                       PR_FALSE,            
                       PR_FALSE,            
                       argvArray, nsnull,   
@@ -5237,6 +5241,7 @@ nsGlobalWindow::ShowModalDialog(const nsAString& aURI, nsIVariant *aArgs,
 
   nsresult rv = OpenInternal(aURI, EmptyString(), options,
                              PR_FALSE,          
+                             PR_TRUE,           
                              PR_TRUE,           
                              PR_FALSE,          
                              nsnull, aArgs,     
@@ -6445,15 +6450,15 @@ nsGlobalWindow::CloseBlockScriptTerminationFunc(nsISupports *aRef)
 nsresult
 nsGlobalWindow::OpenInternal(const nsAString& aUrl, const nsAString& aName,
                              const nsAString& aOptions, PRBool aDialog,
-                             PRBool aCalledNoScript, PRBool aDoJSFixups,
-                             nsIArray *argv,
+                             PRBool aContentModal, PRBool aCalledNoScript,
+                             PRBool aDoJSFixups, nsIArray *argv,
                              nsISupports *aExtraArgument,
                              nsIPrincipal *aCalleePrincipal,
                              JSContext *aJSCallerContext,
                              nsIDOMWindow **aReturn)
 {
   FORWARD_TO_OUTER(OpenInternal, (aUrl, aName, aOptions, aDialog,
-                                  aCalledNoScript, aDoJSFixups,
+                                  aContentModal, aCalledNoScript, aDoJSFixups,
                                   argv, aExtraArgument, aCalleePrincipal,
                                   aJSCallerContext, aReturn),
                    NS_ERROR_NOT_INITIALIZED);
@@ -6574,8 +6579,11 @@ nsGlobalWindow::OpenInternal(const nsAString& aUrl, const nsAString& aName,
       
       
       
-      nsCOMPtr<nsIJSContextStack> stack =
-        do_GetService(sJSStackContractID);
+      nsCOMPtr<nsIJSContextStack> stack;
+
+      if (!aContentModal) {
+        stack = do_GetService(sJSStackContractID);
+      }
 
       if (stack) {
         rv = stack->Push(nsnull);
