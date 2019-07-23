@@ -130,11 +130,22 @@ public:
   }
 
   static nsresult WrapNative(JSContext *cx, JSObject *scope,
-                             nsISupports *native, const nsIID& aIID,
+                             nsISupports *native, const nsIID* aIID,
                              jsval *vp,
                              
                              
                              nsIXPConnectJSObjectHolder** aHolder = nsnull);
+
+  
+  static nsresult WrapNative(JSContext *cx, JSObject *scope,
+                             nsISupports *native, jsval *vp,
+                             
+                             
+                             nsIXPConnectJSObjectHolder** aHolder = nsnull)
+  {
+    return WrapNative(cx, scope, native, nsnull, vp, aHolder);
+  }
+
   static nsresult ThrowJSException(JSContext *cx, nsresult aResult);
 
   static nsresult InitDOMJSClass(JSContext *cx, JSObject *obj);

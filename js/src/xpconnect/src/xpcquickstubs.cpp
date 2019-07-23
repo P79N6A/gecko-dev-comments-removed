@@ -743,7 +743,7 @@ xpc_qsStringToJsval(JSContext *cx, const nsAString &str, jsval *rval)
 
 JSBool
 xpc_qsXPCOMObjectToJsval(XPCCallContext &ccx, nsISupports *p,
-                         const nsIID &iid, jsval *rval)
+                         XPCNativeInterface *interface, jsval *rval)
 {
     
     
@@ -751,14 +751,18 @@ xpc_qsXPCOMObjectToJsval(XPCCallContext &ccx, nsISupports *p,
     JSObject *scope = ccx.GetCurrentJSObject();
     NS_ASSERTION(scope, "bad ccx");
 
+    if(!interface)
+        return xpc_qsThrow(ccx, NS_ERROR_XPC_BAD_CONVERT_NATIVE);
+
     
     
     
     
     
     nsresult rv;
-    if(!XPCConvert::NativeInterface2JSObject(ccx, rval, nsnull, p, &iid, scope,
-                                             PR_TRUE, OBJ_IS_NOT_GLOBAL, &rv))
+    if(!XPCConvert::NativeInterface2JSObject(ccx, rval, nsnull, p, nsnull,
+                                             interface, scope, PR_TRUE,
+                                             OBJ_IS_NOT_GLOBAL, &rv))
     {
         
         

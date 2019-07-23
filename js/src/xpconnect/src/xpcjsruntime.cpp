@@ -41,6 +41,7 @@
 
 
 #include "xpcprivate.h"
+#include "dom_quickstubs.h"
 
 
 
@@ -605,6 +606,8 @@ JSBool XPCJSRuntime::GCCallback(JSContext *cx, JSGCStatus status)
                 self->mDetachedWrappedNativeProtoMap->
                     Enumerate(DetachedWrappedNativeProtoMarker, nsnull);
 
+                DOM_MarkInterfaces();
+
                 
                 
                 
@@ -999,6 +1002,8 @@ XPCJSRuntime::~XPCJSRuntime()
     XPCStringConvert::ShutdownDOMStringFinalizer();
 
     XPCConvert::RemoveXPCOMUCStringFinalizer();
+
+    DOM_ClearInterfaces();
 
     if(mJSHolders.ops)
     {
