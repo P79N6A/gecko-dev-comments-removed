@@ -167,6 +167,8 @@ nsDOMFileReader::~nsDOMFileReader()
   if (mListenerManager) 
     mListenerManager->Disconnect();
 
+  FreeFileData();
+
   nsLayoutStatics::Release();
 }
 
@@ -309,9 +311,7 @@ nsDOMFileReader::Abort()
   mFile = nsnull;
 
   
-  PR_Free(mFileData);
-  mFileData = nsnull;
-  mDataLen = 0;
+  FreeFileData();
 
   
   DispatchProgressEvent(NS_LITERAL_STRING(ABORT_STR));
@@ -449,6 +449,7 @@ nsDOMFileReader::OnStopRequest(nsIRequest *aRequest,
 
   
   if (NS_FAILED(aStatus)) {
+    FreeFileData();
     DispatchError(aStatus);
     return NS_OK;
   }
@@ -466,6 +467,8 @@ nsDOMFileReader::OnStopRequest(nsIRequest *aRequest,
     default:
      return NS_ERROR_FAILURE;
   }
+
+  FreeFileData();
 
   
   DispatchProgressEvent(NS_LITERAL_STRING(LOAD_STR));
@@ -485,11 +488,15 @@ nsDOMFileReader::ReadFileContent(nsIDOMFile* aFile,
 
   
   Abort();
-  mDataFormat = aDataFormat;
-  mCharset = aCharset;
   mError = nsnull;
   SetDOMStringToNull(mResult);
   mReadTransferred = 0;
+  mReadTotal = 0;
+  mReadyState = nsIDOMFileReader::EMPTY;
+  FreeFileData();
+
+  mDataFormat = aDataFormat;
+  mCharset = aCharset;
 
   
   nsresult rv;
