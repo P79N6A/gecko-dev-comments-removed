@@ -98,6 +98,11 @@ static const char kIniFile[] = "crashreporter.ini";
 
 static void LoadSettings()
 {
+  
+
+
+
+
   StringTable settings;
   if (ReadStringsFromFile(gSettingsPath + "/" + kIniFile, settings, true)) {
     if (settings.find("Email") != settings.end()) {
@@ -125,6 +130,11 @@ static void LoadSettings()
 
 static void SaveSettings()
 {
+  
+
+
+
+
   StringTable settings;
 
   ReadStringsFromFile(gSettingsPath + "/" + kIniFile, settings, true);

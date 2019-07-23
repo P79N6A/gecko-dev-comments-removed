@@ -181,6 +181,10 @@ static bool CheckBoolKey(const wchar_t* key,
                          const wchar_t* valueName,
                          bool* enabled)
 {
+  
+
+
+
   *enabled = false;
   bool found = false;
   HKEY hRegKey;
@@ -208,6 +212,10 @@ static bool CheckBoolKey(const wchar_t* key,
 
 static void SetBoolKey(const wchar_t* key, const wchar_t* value, bool enabled)
 {
+  
+
+
+
   HKEY hRegKey;
 
   
