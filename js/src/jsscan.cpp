@@ -677,34 +677,41 @@ js_ReportCompileErrorNumber(JSContext *cx, JSTokenStream *ts, JSParseNode *pn,
 }
 
 static JSBool
-GrowStringBuffer(JSStringBuffer *sb, size_t newlength)
+GrowStringBuffer(JSStringBuffer *sb, size_t amount)
 {
-    ptrdiff_t offset;
-    jschar *bp;
-
-    offset = sb->ptr - sb->base;
+    ptrdiff_t offset = sb->ptr - sb->base;
     JS_ASSERT(offset >= 0);
-    newlength += offset + 1;
 
     
-    const size_t CHUNK_SIZE = JS_BIT(24);
-    if (newlength < CHUNK_SIZE)
-        newlength = JS_BIT(JS_CeilingLog2(newlength));
-    else
-        newlength = JS_ROUNDUP(newlength, CHUNK_SIZE);
-    if ((size_t)offset < newlength && newlength < ~(size_t)0 / sizeof(jschar))
-        bp = (jschar *) realloc(sb->base, newlength * sizeof(jschar));
-    else
-        bp = NULL;
-    if (!bp) {
-        free(sb->base);
-        sb->base = STRING_BUFFER_ERROR_BASE;
-        return JS_FALSE;
+
+
+
+    size_t newlength = offset + amount + 1;
+    if (size_t(offset) < newlength) {
+        
+        const size_t CHUNK_SIZE_MASK = JS_BITMASK(24);
+
+        if (newlength <= CHUNK_SIZE_MASK)
+            newlength = JS_BIT(JS_CeilingLog2(newlength));
+        else if (newlength & CHUNK_SIZE_MASK)
+            newlength = (newlength | CHUNK_SIZE_MASK) + 1;
+
+        
+        if (size_t(offset) < newlength && newlength < ~size_t(0) / sizeof(jschar)) {
+            jschar *bp = (jschar *) realloc(sb->base, newlength * sizeof(jschar));
+            if (bp) {
+                sb->base = bp;
+                sb->ptr = bp + offset;
+                sb->limit = bp + newlength - 1;
+                return true;
+            }
+        }
     }
-    sb->base = bp;
-    sb->ptr = bp + offset;
-    sb->limit = bp + newlength - 1;
-    return JS_TRUE;
+
+    
+    free(sb->base);
+    sb->base = STRING_BUFFER_ERROR_BASE;
+    return false;
 }
 
 static void
