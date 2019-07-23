@@ -448,20 +448,26 @@ XPCWrapper::ResolveNativeProperty(JSContext *cx, JSObject *wrapperObj,
     return MaybePreserveWrapper(cx, wn, flags);
   }
 
+  
+  
+  jsval memberval;
+  if (!member->GetValue(ccx, iface, &memberval)) {
+    return ThrowException(NS_ERROR_XPC_BAD_CONVERT_JS, cx);
+  }
+
+  
+  AUTO_MARK_JSVAL(ccx, memberval);
+
   JSString *str = JSVAL_TO_STRING(id);
   if (!str) {
     return ThrowException(NS_ERROR_UNEXPECTED, cx);
   }
 
-  
-  
   jsval v;
   uintN attrs = JSPROP_ENUMERATE;
 
   if (member->IsConstant()) {
-    if (!member->GetConstantValue(ccx, iface, &v)) {
-      return ThrowException(NS_ERROR_XPC_BAD_CONVERT_JS, cx);
-    }
+    v = memberval;
   } else if (member->IsAttribute()) {
     
     
@@ -475,27 +481,23 @@ XPCWrapper::ResolveNativeProperty(JSContext *cx, JSObject *wrapperObj,
     
     
 
-    jsval funval;
-    if (!member->NewFunctionObject(ccx, iface, wrapper->GetFlatJSObject(),
-                                   &funval)) {
-      return ThrowException(NS_ERROR_XPC_BAD_CONVERT_JS, cx);
+    JSObject* funobj = xpc_CloneJSFunction(ccx, JSVAL_TO_OBJECT(memberval),
+                                           wrapper->GetFlatJSObject());
+    if (!funobj) {
+      return JS_FALSE;
     }
 
-    AUTO_MARK_JSVAL(ccx, funval);
+    AUTO_MARK_JSVAL(ccx, OBJECT_TO_JSVAL(funobj));
 
 #ifdef DEBUG_XPCNativeWrapper
     printf("Wrapping function object for %s\n",
            ::JS_GetStringBytes(JSVAL_TO_STRING(id)));
 #endif
 
-    if (!WrapFunction(cx, wrapperObj, JSVAL_TO_OBJECT(funval), &v,
-                      isNativeWrapper)) {
+    if (!WrapFunction(cx, wrapperObj, funobj, &v, isNativeWrapper)) {
       return JS_FALSE;
     }
   }
-
-  
-  AUTO_MARK_JSVAL(ccx, v);
 
   
   jsval oldFlags;
@@ -602,12 +604,14 @@ XPCWrapper::GetOrSetNativeProperty(JSContext *cx, JSObject *obj,
     return JS_TRUE;
   }
 
-  if (member->IsConstant()) {
-    jsval memberval;
-    if (!member->GetConstantValue(ccx, iface, &memberval)) {
-      return ThrowException(NS_ERROR_XPC_BAD_CONVERT_JS, cx);
-    }
+  
+  
+  jsval memberval;
+  if (!member->GetValue(ccx, iface, &memberval)) {
+    return ThrowException(NS_ERROR_XPC_BAD_CONVERT_JS, cx);
+  }
 
+  if (member->IsConstant()) {
     
     
     if (aIsSet) {
@@ -626,13 +630,16 @@ XPCWrapper::GetOrSetNativeProperty(JSContext *cx, JSObject *obj,
     return JS_TRUE;
   }
 
-  jsval funval;
-  if (!member->NewFunctionObject(ccx, iface, wrapper->GetFlatJSObject(),
-                                 &funval)) {
-    return ThrowException(NS_ERROR_XPC_BAD_CONVERT_JS, cx);
-  }
+  
+  
+  AUTO_MARK_JSVAL(ccx, memberval);
 
-  AUTO_MARK_JSVAL(ccx, funval);
+  
+  JSObject* funobj = xpc_CloneJSFunction(ccx, JSVAL_TO_OBJECT(memberval),
+                                         wrapper->GetFlatJSObject());
+  if (!funobj) {
+    return JS_FALSE;
+  }
 
   jsval *argv = nsnull;
   uintN argc = 0;
@@ -659,8 +666,8 @@ XPCWrapper::GetOrSetNativeProperty(JSContext *cx, JSObject *obj,
 
   
   jsval v;
-  if (!::JS_CallFunctionValue(cx, wrapper->GetFlatJSObject(), funval, argc,
-                              argv, &v)) {
+  if (!::JS_CallFunctionValue(cx, wrapper->GetFlatJSObject(),
+                              OBJECT_TO_JSVAL(funobj), argc, argv, &v)) {
     return JS_FALSE;
   }
 
@@ -704,22 +711,34 @@ XPCWrapper::NativeToString(JSContext *cx, XPCWrappedNative *wrappedNative,
 
   XPCNativeInterface *iface = ccx.GetInterface();
   XPCNativeMember *member = ccx.GetMember();
-  JSString* str = nsnull;
+  JSBool overridden = JS_FALSE;
+  jsval toStringVal;
 
   
   
-  if (iface && member && member->IsMethod()) {
-    jsval toStringVal;
-    if (!member->NewFunctionObject(ccx, iface, wn_obj, &toStringVal)) {
+  if (iface && member) {
+    if (!member->GetValue(ccx, iface, &toStringVal)) {
       return JS_FALSE;
     }
 
+    overridden = member->IsMethod();
+  }
+
+  JSString* str = nsnull;
+  if (overridden) {
     
 
     AUTO_MARK_JSVAL(ccx, toStringVal);
 
+    JSObject *funobj = xpc_CloneJSFunction(ccx, JSVAL_TO_OBJECT(toStringVal),
+                                           wn_obj);
+    if (!funobj) {
+      return JS_FALSE;
+    }
+
     jsval v;
-    if (!::JS_CallFunctionValue(cx, wn_obj, toStringVal, argc, argv, &v)) {
+    if (!::JS_CallFunctionValue(cx, wn_obj, OBJECT_TO_JSVAL(funobj), argc, argv,
+                                &v)) {
       return JS_FALSE;
     }
 
