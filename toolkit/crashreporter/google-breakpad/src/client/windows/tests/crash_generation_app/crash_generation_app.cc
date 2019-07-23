@@ -183,7 +183,7 @@ bool ShowDumpResults(const wchar_t* dump_path,
     delete [] text;
   }
 
-  QueueUserWorkItem(AppendTextWorker, text, WT_EXECUTEDEFAULT);
+  AppendTextWorker(text);
   return succeeded;
 }
 
@@ -467,7 +467,6 @@ int APIENTRY _tWinMain(HINSTANCE instance,
 
   CustomClientInfo custom_info = {kCustomInfoEntries, kCustomInfoCount};
 
-  CrashServerStart();
   
   
   _CrtSetReportMode(_CRT_ASSERT, 0);

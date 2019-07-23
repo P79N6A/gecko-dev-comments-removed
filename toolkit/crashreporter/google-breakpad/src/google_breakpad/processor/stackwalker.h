@@ -42,7 +42,6 @@
 #define GOOGLE_BREAKPAD_PROCESSOR_STACKWALKER_H__
 
 #include <vector>
-#include "google_breakpad/common/breakpad_types.h"
 
 namespace google_breakpad {
 
@@ -95,16 +94,6 @@ class Stackwalker {
               const CodeModules *modules,
               SymbolSupplier *supplier,
               SourceLineResolverInterface *resolver);
-
-  
-  
-  
-  
-  
-  
-  
-  
-  bool InstructionAddressSeemsValid(u_int64_t address);
 
   
   

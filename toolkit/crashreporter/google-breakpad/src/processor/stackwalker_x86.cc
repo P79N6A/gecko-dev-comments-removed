@@ -79,7 +79,6 @@ StackFrame* StackwalkerX86::GetContextFrame() {
   
   frame->context = *context_;
   frame->context_validity = StackFrameX86::CONTEXT_VALID_ALL;
-  frame->trust = StackFrameX86::FRAME_TRUST_CONTEXT;
   frame->instruction = frame->context.eip;
 
   return frame;
@@ -93,7 +92,7 @@ StackFrame* StackwalkerX86::GetCallerFrame(
     BPLOG(ERROR) << "Can't get caller frame without memory or stack";
     return NULL;
   }
-  StackFrameX86::FrameTrust trust = StackFrameX86::FRAME_TRUST_NONE;
+
   StackFrameX86 *last_frame = static_cast<StackFrameX86*>(
       stack->frames()->back());
   StackFrameInfo *last_frame_info = stack_frame_info.back().get();
@@ -184,7 +183,6 @@ StackFrame* StackwalkerX86::GetCallerFrame(
   if (last_frame_info && last_frame_info->valid == StackFrameInfo::VALID_ALL) {
     
     traditional_frame = false;
-    trust = StackFrameX86::FRAME_TRUST_CFI;
     if (!last_frame_info->program_string.empty()) {
       
       
@@ -282,7 +280,6 @@ StackFrame* StackwalkerX86::GetCallerFrame(
     
     
     
-    trust = StackFrameX86::FRAME_TRUST_FP;
     program_string = "$eip $ebp 4 + ^ = "
                      "$esp $ebp 8 + = "
                      "$ebp $ebp ^ =";
@@ -296,26 +293,7 @@ StackFrame* StackwalkerX86::GetCallerFrame(
   if (!evaluator.Evaluate(program_string, &dictionary_validity) ||
       dictionary_validity.find("$eip") == dictionary_validity.end() ||
       dictionary_validity.find("$esp") == dictionary_validity.end()) {
-    
-    
-    
-    
-    
-    
-    u_int32_t location_start = last_frame->context.esp;
-    u_int32_t location, eip;
-    if (!ScanForReturnAddress(location_start, location, eip)) {
-      
-      
-      return NULL;
-    }
-
-    
-    
-    
-    dictionary["$eip"] = eip;
-    dictionary["$esp"] = location + 4;
-    trust = StackFrameX86::FRAME_TRUST_SCAN;
+    return NULL;
   }
 
   
@@ -343,18 +321,33 @@ StackFrame* StackwalkerX86::GetCallerFrame(
 
     u_int32_t eip = dictionary["$eip"];
     if (modules_ && !modules_->GetModuleForAddress(eip)) {
+      const int kRASearchWords = 15;
+
       
       
       u_int32_t location_start = dictionary[".raSearchStart"] + 4;
-      u_int32_t location;
-      if (ScanForReturnAddress(location_start, location, eip)) {
-        
-        
-        
-        dictionary["$eip"] = eip;
-        dictionary["$esp"] = location + 4;
-        offset = location - location_start;
-        trust = StackFrameX86::FRAME_TRUST_CFI_SCAN;
+
+      for (u_int32_t location = location_start;
+           location <= location_start + kRASearchWords * 4;
+           location += 4) {
+        if (!memory_->GetMemoryAtAddress(location, &eip))
+          break;
+
+        if (modules_->GetModuleForAddress(eip)) {
+          
+          
+          
+          
+          
+          
+          
+          
+
+          dictionary["$eip"] = eip;
+          dictionary["$esp"] = location + 4;
+          offset = location - location_start;
+          break;
+        }
       }
     }
 
@@ -399,7 +392,6 @@ StackFrame* StackwalkerX86::GetCallerFrame(
   
   StackFrameX86 *frame = new StackFrameX86();
 
-  frame->trust = trust;
   frame->context = last_frame->context;
   frame->context.eip = dictionary["$eip"];
   frame->context.esp = dictionary["$esp"];
@@ -436,27 +428,5 @@ StackFrame* StackwalkerX86::GetCallerFrame(
   return frame;
 }
 
-bool StackwalkerX86::ScanForReturnAddress(u_int32_t location_start,
-                                          u_int32_t &location_found,
-                                          u_int32_t &eip_found) {
-  const int kRASearchWords = 15;
-  for (u_int32_t location = location_start;
-       location <= location_start + kRASearchWords * 4;
-       location += 4) {
-    u_int32_t eip;
-    if (!memory_->GetMemoryAtAddress(location, &eip))
-      break;
-
-    if (modules_ && modules_->GetModuleForAddress(eip) &&
-        InstructionAddressSeemsValid(eip)) {
-
-      eip_found = eip;
-      location_found = location;
-      return true;
-    }
-  }
-  
-  return false;
-}
 
 }  

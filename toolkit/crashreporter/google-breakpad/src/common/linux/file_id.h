@@ -35,30 +35,25 @@
 
 #include <limits.h>
 
-#include "common/linux/guid_creator.h"
-
 namespace google_breakpad {
-
-static const size_t kMDGUIDSize = sizeof(MDGUID);
 
 class FileID {
  public:
-  explicit FileID(const char* path);
-  ~FileID() {}
+  FileID(const char *path);
+  ~FileID() {};
 
   
   
   
   
-  
-  bool ElfFileIdentifier(uint8_t identifier[kMDGUIDSize]);
+  bool ElfFileIdentifier(unsigned char identifier[16]);
 
   
   
   
   
-  static void ConvertIdentifierToString(const uint8_t identifier[kMDGUIDSize],
-                                        char* buffer, int buffer_length);
+  static void ConvertIdentifierToString(const unsigned char identifier[16],
+                                        char *buffer, int buffer_length);
 
  private:
   
@@ -68,3 +63,4 @@ class FileID {
 }  
 
 #endif  
+

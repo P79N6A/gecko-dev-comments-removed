@@ -37,7 +37,7 @@
 
 
 
-typedef map<string, dwarf2reader::SectionMap *> ArchSectionMap;
+typedef hash_map<string, dwarf2reader::SectionMap *> ArchSectionMap;
 
 @interface DumpSymbols : NSObject {
  @protected

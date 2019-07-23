@@ -118,13 +118,11 @@ bool PDBSourceLineWriter::PrintLines(IDiaEnumLineNumbers *lines) {
       return false;
     }
 
-    DWORD dia_source_id;
-    if (FAILED(line->get_sourceFileId(&dia_source_id))) {
+    DWORD source_id;
+    if (FAILED(line->get_sourceFileId(&source_id))) {
       fprintf(stderr, "failed to get line source file id\n");
       return false;
     }
-    
-    DWORD source_id = GetRealFileID(dia_source_id);
 
     DWORD line_num;
     if (FAILED(line->get_lineNumber(&line_num))) {
@@ -138,18 +136,17 @@ bool PDBSourceLineWriter::PrintLines(IDiaEnumLineNumbers *lines) {
   return true;
 }
 
-bool PDBSourceLineWriter::PrintFunction(IDiaSymbol *function,
-                                        IDiaSymbol *block) {
+bool PDBSourceLineWriter::PrintFunction(IDiaSymbol *function) {
   
   
   DWORD rva;
-  if (FAILED(block->get_relativeVirtualAddress(&rva))) {
+  if (FAILED(function->get_relativeVirtualAddress(&rva))) {
     fprintf(stderr, "couldn't get rva\n");
     return false;
   }
 
   ULONGLONG length;
-  if (FAILED(block->get_length(&length))) {
+  if (FAILED(function->get_length(&length))) {
     fprintf(stderr, "failed to get function length\n");
     return false;
   }
@@ -218,16 +215,7 @@ bool PDBSourceLineWriter::PrintSourceFiles() {
         return false;
       }
 
-      wstring file_name_string(file_name);
-      if (!FileIDIsCached(file_name_string)) {
-        
-        CacheFileID(file_name_string, file_id);
-        fwprintf(output_, L"FILE %d %s\n", file_id, file_name);
-      } else {
-        
-        
-        StoreDuplicateFileID(file_name_string, file_id);
-      }
+      fwprintf(output_, L"FILE %d %s\n", file_id, file_name);
       file.Release();
     }
     compiland.Release();
@@ -267,7 +255,7 @@ bool PDBSourceLineWriter::PrintFunctions() {
     
     
     if (tag == SymTagFunction) {
-      if (!PrintFunction(symbol, symbol)) {
+      if (!PrintFunction(symbol)) {
         return false;
       }
     } else if (tag == SymTagPublicSymbol) {
@@ -277,64 +265,6 @@ bool PDBSourceLineWriter::PrintFunctions() {
     }
     symbol.Release();
   } while (SUCCEEDED(symbols->Next(1, &symbol, &count)) && count == 1);
-
-  
-  
-  
-  
-  
-  
-  
-  CComPtr<IDiaSymbol> global;
-  if (FAILED(session_->get_globalScope(&global))) {
-    fprintf(stderr, "get_globalScope failed\n");
-    return false;
-  }
-
-  CComPtr<IDiaEnumSymbols> compilands;
-  if (FAILED(global->findChildren(SymTagCompiland, NULL,
-                                  nsNone, &compilands))) {
-    fprintf(stderr, "findChildren failed on the global\n");
-    return false;
-  }
-
-  CComPtr<IDiaSymbol> compiland;
-  while (SUCCEEDED(compilands->Next(1, &compiland, &count)) && count == 1) {
-    CComPtr<IDiaEnumSymbols> blocks;
-    if (FAILED(compiland->findChildren(SymTagBlock, NULL,
-                                       nsNone, &blocks))) {
-      fprintf(stderr, "findChildren failed on a compiland\n");
-      return false;
-    }
-
-    CComPtr<IDiaSymbol> block;
-    while (SUCCEEDED(blocks->Next(1, &block, &count)) && count == 1) {
-      
-      CComPtr<IDiaSymbol> parent;
-      DWORD tag;
-      if (SUCCEEDED(block->get_lexicalParent(&parent)) &&
-          SUCCEEDED(parent->get_symTag(&tag)) &&
-          tag == SymTagFunction) {
-        
-        
-        DWORD func_rva, block_rva;
-        ULONGLONG func_length;
-        if (SUCCEEDED(block->get_relativeVirtualAddress(&block_rva)) &&
-            SUCCEEDED(parent->get_relativeVirtualAddress(&func_rva)) &&
-            SUCCEEDED(parent->get_length(&func_length))) {
-          if (block_rva < func_rva || block_rva > (func_rva + func_length)) {
-            if (!PrintFunction(parent, block)) {
-              return false;
-            }
-          }
-        }
-      }
-      parent.Release();
-      block.Release();
-    }
-    blocks.Release();
-    compiland.Release();
-  }
 
   return true;
 }

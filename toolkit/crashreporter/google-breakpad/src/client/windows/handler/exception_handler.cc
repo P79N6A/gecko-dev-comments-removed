@@ -249,12 +249,12 @@ ExceptionHandler::~ExceptionHandler() {
       
       
       fprintf(stderr, "warning: removing Breakpad handler out of order\n");
-      vector<ExceptionHandler*>::iterator iterator = handler_stack_->begin();
-      while (iterator != handler_stack_->end()) {
+      for (vector<ExceptionHandler*>::iterator iterator =
+               handler_stack_->begin();
+           iterator != handler_stack_->end();
+           ++iterator) {
         if (*iterator == this) {
-          iterator = handler_stack_->erase(iterator);
-        } else {
-          ++iterator;
+          handler_stack_->erase(iterator);
         }
       }
     }

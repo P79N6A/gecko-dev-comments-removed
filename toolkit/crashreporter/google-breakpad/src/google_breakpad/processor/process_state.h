@@ -36,9 +36,8 @@
 
 #include <string>
 #include <vector>
-#include "google_breakpad/common/breakpad_types.h"
 #include "google_breakpad/processor/system_info.h"
-#include "google_breakpad/processor/minidump.h"
+#include "google_breakpad/common/breakpad_types.h"
 
 namespace google_breakpad {
 
@@ -61,12 +60,8 @@ class ProcessState {
   bool crashed() const { return crashed_; }
   string crash_reason() const { return crash_reason_; }
   u_int64_t crash_address() const { return crash_address_; }
-  string assertion() const { return assertion_; }
   int requesting_thread() const { return requesting_thread_; }
   const vector<CallStack*>* threads() const { return &threads_; }
-  const vector<MinidumpMemoryRegion*>* thread_memory_regions() const {
-    return &thread_memory_regions_;
-  }
   const SystemInfo* system_info() const { return &system_info_; }
   const CodeModules* modules() const { return modules_; }
 
@@ -96,11 +91,6 @@ class ProcessState {
   
   
   
-  string assertion_;
-
-  
-  
-  
   
   
   
@@ -111,7 +101,6 @@ class ProcessState {
   
   
   vector<CallStack*> threads_;
-  vector<MinidumpMemoryRegion*> thread_memory_regions_;
 
   
   SystemInfo system_info_;

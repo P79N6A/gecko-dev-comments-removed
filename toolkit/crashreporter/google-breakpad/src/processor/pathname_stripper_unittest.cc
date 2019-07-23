@@ -27,8 +27,6 @@
 
 
 
-#include <cstdio>
-
 #include "processor/pathname_stripper.h"
 #include "processor/logging.h"
 
