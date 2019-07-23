@@ -405,7 +405,7 @@ TextRunWordCache::FinishTextRun(gfxTextRun *aTextRun, gfxTextRun *aNewRun,
                     
                     
                     tmpTextRun = aNewRun->GetFontGroup()->MakeTextRun(
-                        aTextRun->GetTextUnicode(), length, aParams,
+                        aTextRun->GetTextUnicode() + sourceOffset, length, aParams,
                         aNewRun->GetFlags());
                     source = tmpTextRun;
                     sourceOffset = 0;
