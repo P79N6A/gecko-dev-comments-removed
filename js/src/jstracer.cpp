@@ -2859,21 +2859,15 @@ NativeToValueBase(JSContext* cx, jsval& v, JSTraceType type, double* slot)
         debug_only_printf(LC_TMTracer, "double<%g> ", d);
         if (JSDOUBLE_IS_INT(d, i))
             goto store_int;
-      store_double: {
+      store_double:
+        if (js_NewDoubleInRootedValue(cx, d, &v))
+            return true;
+
         
 
 
 
-            if (JS_THREAD_DATA(cx)->gcFreeLists.doubles) {
-#ifdef DEBUG
-            JSBool ok =
-#endif
-                js_NewDoubleInRootedValue(cx, d, &v);
-            JS_ASSERT(ok);
-            return true;
-        }
         return E::handleDoubleOOM(cx, d, v);
-      }
 
       case TT_JSVAL:
         v = *(jsval*)slot;
@@ -2936,6 +2930,7 @@ NativeToValue(JSContext* cx, jsval& v, JSTraceType type, double* slot)
 
 struct FailDoubleOOMHandler {
     static bool handleDoubleOOM(JSContext *cx, double d, jsval& v) {
+        js_ReportOutOfMemory(cx);
         return false;
     }
 };
