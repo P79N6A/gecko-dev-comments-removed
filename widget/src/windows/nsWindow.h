@@ -447,8 +447,9 @@ protected:
   
   void ClearThemeRegion();
   void SetThemeRegion();
-private:
 
+  void StopFlashing();
+private:
 
 #ifdef DEBUG
   void DebugPrintEvent(nsGUIEvent& aEvent, HWND aWnd);
