@@ -39,7 +39,7 @@
 
 #include <cairo.h>
 
-#if CAIRO_HAS_QPAINTER_SURFACE
+#if CAIRO_HAS_QT_SURFACE
 
 class QPainter;
 class QImage;
