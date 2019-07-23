@@ -575,7 +575,7 @@ nsPlacesDBUtils.prototype = {
 
 
 
-  checkAndFixDatabase: function PDBU_checkAndFixDatabase() {
+  checkAndFixDatabase: function PDBU_checkAndFixDatabase(aLogCallback) {
     let log = [];
     let self = this;
     let sep = "- - -";
@@ -593,15 +593,25 @@ nsPlacesDBUtils.prototype = {
       return log[logIndex] == "ok";
     }
 
-    function vacuum() {
+    function vacuum(aVacuumCallback) {
       log.push("VACUUM");
       let dirSvc = Cc["@mozilla.org/file/directory_service;1"].
                    getService(Ci.nsIProperties);
       let placesDBFile = dirSvc.get("ProfD", Ci.nsILocalFile);
       placesDBFile.append("places.sqlite");
       log.push("places.sqlite: " + placesDBFile.fileSize + " byte");
-      self._dbConn.executeSimpleSQL("VACUUM");
       log.push(sep);
+      let stmt = self._dbConn.createStatement("VACUUM");
+      stmt.executeAsync({
+        handleResult: function() {},
+        handleError: function() {
+          Cu.reportError("Maintenance VACUUM failed");
+        },
+        handleCompletion: function(aReason) {
+          aVacuumCallback();
+        }
+      });
+      stmt.finalize();
     }
 
     function backup() {
@@ -630,6 +640,25 @@ nsPlacesDBUtils.prototype = {
     function cleanup() {
       log.push("CLEANUP");
       self.maintenanceOnIdle()
+      log.push(sep);
+    }
+
+    function expire() {
+      log.push("EXPIRE");
+      
+      
+      let expiration = Cc["@mozilla.org/places/expiration;1"].
+                       getService(Ci.nsIObserver);
+      
+      let prefs = Cc["@mozilla.org/preferences-service;1"].
+                  getService(Ci.nsIPrefBranch);
+      let limitURIs = prefs.getIntPref(
+        "places.history.expiration.transient_current_max_pages");
+      if (limitURIs >= 0)
+        log.push("Current unique URIs limit: " + limitURIs);
+      
+      expiration.observe(null, "places-debug-start-expiration",
+                         -1 );
       log.push(sep);
     }
 
@@ -673,12 +702,24 @@ nsPlacesDBUtils.prototype = {
     
     if (integrityIsGood) {
       cleanup();
-      vacuum();
-      stats();
+      expire();
+      vacuum(function () {
+        stats();
+        if (aLogCallback) {
+          aLogCallback(log);
+        }
+        else {
+          try {
+            let console = Cc["@mozilla.org/consoleservice;1"].
+                          getService(Ci.nsIConsoleService);
+            console.logStringMessage(log.join('\n'));
+          }
+          catch(ex) {}
+        }
+      });
     }
-
-    return log.join('\n');
   }
+
 };
 
 __defineGetter__("PlacesDBUtils", function() {

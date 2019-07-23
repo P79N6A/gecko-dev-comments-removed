@@ -99,6 +99,10 @@ const PREF_MAX_URIS = "max_pages";
 const PREF_MAX_URIS_NOTSET = -1; 
 
 
+
+const PREF_READONLY_CALCULATED_MAX_URIS = "transient_current_max_pages";
+
+
 const PREF_INTERVAL_SECONDS = "interval_seconds";
 const PREF_INTERVAL_SECONDS_NOTSET = 3 * 60;
 
@@ -701,6 +705,9 @@ nsPlacesExpiration.prototype = {
       this._urisLimit = Math.max(MIN_URIS,
                                  parseInt(cachesize / AVG_SIZE_PER_URIENTRY));
     }
+    
+    this._prefBranch.setIntPref(PREF_READONLY_CALCULATED_MAX_URIS,
+                                this._urisLimit);
 
     
     try {
