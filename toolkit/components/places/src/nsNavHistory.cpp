@@ -3876,6 +3876,12 @@ PlacesSQLQueryBuilder::OrderBy()
   switch(mSortingMode)
   {
     case nsINavHistoryQueryOptions::SORT_BY_NONE:
+      
+      
+      
+      if (mQueryType == nsINavHistoryQueryOptions::QUERY_TYPE_BOOKMARKS &&
+          mResultType == nsINavHistoryQueryOptions::RESULTS_AS_URI)
+        mQueryString += NS_LITERAL_CSTRING(" ORDER BY b.id ASC ");
       break;
     case nsINavHistoryQueryOptions::SORT_BY_TITLE_ASCENDING:
     case nsINavHistoryQueryOptions::SORT_BY_TITLE_DESCENDING:
