@@ -37,29 +37,16 @@
 @namespace url(http://www.w3.org/1999/xhtml); 
 
 
- 
-
-
-input[type=image] {
-  border: 2px solid blue;
-}
-
-
-input[type=image][disabled] {
-  border-color: GrayText;
-}
-
-
 
 
 
 li {
-  list-style-position: inside; 
+  list-style-position: inside;
 }
 
 
-li ul, li ol, li dir, li menu { 
-  list-style-position: outside; 
+li ul, li ol, li dir, li menu {
+  list-style-position: outside;
 }
 
 
@@ -265,8 +252,8 @@ img[align=right] {
 
 
 
-*[_moz-rs-heading] { 
-  font-size: inherit !important; 
+*[_moz-rs-heading] {
+  font-size: inherit !important;
 }
 
 
