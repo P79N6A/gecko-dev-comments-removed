@@ -113,6 +113,42 @@ public:
 public:
   nsresult ResetIMETextPWBuf();
 
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  static void HandleNewLines(nsString &aString, PRInt32 aNewLineHandling);
+
+  
+
+
+
+
+
+
+
+
+
+  static nsresult FillBufWithPWChars(nsAString *aOutString, PRInt32 aLength);
+
 protected:
 
   
@@ -185,10 +221,6 @@ protected:
                                      const nsAString          *aInString,
                                      nsAString                *aOutString,
                                      PRInt32                   aMaxLength);
-  
-  
-                                        
-  nsresult FillBufWithPWChars(nsAString *aOutString, PRInt32 aLength);
 
   
   nsresult RemoveIMETextFromPWBuf(PRUint32 &aStart, nsAString *aIMEString);
