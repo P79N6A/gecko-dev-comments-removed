@@ -340,9 +340,6 @@ extern const JSGCFreeListSet js_GCEmptyFreeListSet;
 extern void
 js_RevokeGCLocalFreeLists(JSContext *cx);
 
-extern void
-js_DestroyScriptsToGC(JSContext *cx, JSThreadData *data);
-
 struct JSWeakRoots {
     
     void            *newborn[GCX_NTYPES];
