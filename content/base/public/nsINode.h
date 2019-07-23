@@ -155,7 +155,10 @@ enum {
   NODE_DESCENDANTS_NEED_FRAMES = 0x00100000U,
 
   
-  NODE_SCRIPT_TYPE_OFFSET =               21,
+  NODE_IS_ELEMENT              = 0x00200000U,
+
+  
+  NODE_SCRIPT_TYPE_OFFSET =               22,
 
   NODE_SCRIPT_TYPE_SIZE =                  4,
 
@@ -330,6 +333,13 @@ public:
 
 
   virtual PRBool IsNodeOfType(PRUint32 aFlags) const = 0;
+
+  
+
+
+  PRBool IsElement() const {
+    return HasFlag(NODE_IS_ELEMENT);
+  }
 
   
 
