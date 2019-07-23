@@ -2205,8 +2205,7 @@ gc_lock_traversal(JSDHashTable *table, JSDHashEntryHdr *hdr, uint32 num,
 void
 js_TraceStackFrame(JSTracer *trc, JSStackFrame *fp)
 {
-    uintN depth, nslots, minargs;
-    jsval *vp;
+    uintN nslots, minargs, skip;
 
     if (fp->callobj)
         JS_CALL_OBJECT_TRACER(trc, fp->callobj, "call");
@@ -2221,11 +2220,9 @@ js_TraceStackFrame(JSTracer *trc, JSStackFrame *fp)
 
 
 
-            depth = fp->script->depth;
-            nslots = (JS_UPTRDIFF(fp->sp, fp->spbase)
-                      < depth * sizeof(jsval))
-                     ? (uintN)(fp->sp - fp->spbase)
-                     : depth;
+            JS_ASSERT(JS_UPTRDIFF(fp->sp, fp->spbase) <=
+                      fp->script->depth * sizeof(jsval));
+            nslots = (uintN) (fp->sp - fp->spbase);
             TRACE_JSVALS(trc, nslots, fp->spbase, "operand");
         }
     }
@@ -2239,32 +2236,20 @@ js_TraceStackFrame(JSTracer *trc, JSStackFrame *fp)
         JS_CALL_OBJECT_TRACER(trc, fp->callee, "callee");
 
     if (fp->argv) {
-        
         nslots = fp->argc;
+        skip = 0;
         if (fp->fun) {
             minargs = FUN_MINARGS(fp->fun);
             if (minargs > nslots)
                 nslots = minargs;
-            if (!FUN_INTERPRETED(fp->fun))
+            if (!FUN_INTERPRETED(fp->fun)) {
+                JS_ASSERT(!(fp->fun->flags & JSFUN_FAST_NATIVE));
                 nslots += fp->fun->u.n.extra;
-        }
-        nslots += 2;
-        vp = fp->argv - 2;
-        if (fp->down && fp->down->spbase) {
-            
-
-
-
-
-
-            if (JS_UPTRDIFF(vp, fp->down->spbase) <
-                JS_UPTRDIFF(fp->down->sp, fp->down->spbase)) {
-                JS_ASSERT((size_t)nslots >= (size_t)(fp->down->sp - vp));
-                nslots -= (uintN)(fp->down->sp - vp);
-                vp = fp->down->sp;
             }
+            if (fp->fun->flags & JSFRAME_ROOTED_ARGV)
+                skip = 2 + fp->argc;
         }
-        TRACE_JSVALS(trc, nslots, vp, "arg");
+        TRACE_JSVALS(trc, 2 + nslots - skip, fp->argv - 2 + skip, "operand");
     }
     JS_CALL_VALUE_TRACER(trc, fp->rval, "rval");
     if (fp->vars)

@@ -1391,9 +1391,8 @@ find_replen(JSContext *cx, ReplaceData *rdata, size_t *sizep)
     lambda = rdata->lambda;
     if (lambda) {
         uintN argc, i, j, m, n, p;
-        jsval *sp, *oldsp, rval;
+        jsval *invokevp, *sp;
         void *mark;
-        JSStackFrame *fp;
         JSBool ok;
 
         
@@ -1415,11 +1414,12 @@ find_replen(JSContext *cx, ReplaceData *rdata, size_t *sizep)
 
         p = rdata->base.regexp->parenCount;
         argc = 1 + p + 2;
-        sp = js_AllocStack(cx, 2 + argc, &mark);
-        if (!sp)
+        invokevp = js_AllocStack(cx, 2 + argc, &mark);
+        if (!invokevp)
             return JS_FALSE;
 
         
+        sp = invokevp;
         *sp++ = OBJECT_TO_JSVAL(lambda);
         *sp++ = OBJECT_TO_JSVAL(OBJ_GET_PARENT(cx, lambda));
 
@@ -1463,21 +1463,14 @@ find_replen(JSContext *cx, ReplaceData *rdata, size_t *sizep)
         *sp++ = INT_TO_JSVAL((jsint)cx->regExpStatics.leftContext.length);
         *sp++ = STRING_TO_JSVAL(rdata->base.str);
 
-        
-        fp = cx->fp;
-        oldsp = fp->sp;
-        fp->sp = sp;
-        ok = js_Invoke(cx, argc, JSINVOKE_INTERNAL);
-        rval = fp->sp[-1];
-        fp->sp = oldsp;
-
+        ok = js_Invoke(cx, argc, invokevp, JSINVOKE_INTERNAL);
         if (ok) {
             
 
 
 
 
-            repstr = js_ValueToString(cx, rval);
+            repstr = js_ValueToString(cx, *invokevp);
             if (!repstr) {
                 ok = JS_FALSE;
             } else {
