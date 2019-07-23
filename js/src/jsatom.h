@@ -168,6 +168,18 @@ struct JSAtomList : public JSAtomSet
 
 
 
+struct JSAutoAtomList: public JSAtomList
+{
+    JSAutoAtomList(JSCompiler *c): compiler(c) {}
+    ~JSAutoAtomList();
+  private:
+    JSCompiler *compiler;       
+};
+
+
+
+
+
 
 
 class JSAtomListIterator {
