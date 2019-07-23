@@ -84,6 +84,7 @@
 #include "nsIWindowProvider.h"
 #include "nsIMutableArray.h"
 #include "nsISupportsArray.h"
+#include "nsIDeviceContext.h"
 
 #include "nsIPrefBranch.h"
 #include "nsIPrefService.h"
@@ -1865,6 +1866,12 @@ nsWindowWatcher::SizeOpenedDocShellItem(nsIDocShellTreeItem *aDocShellItem,
   if (!treeOwnerAsWin) 
     return;
 
+  nsCOMPtr<nsIWidget> mainWidget;
+  treeOwnerAsWin->GetMainWidget(getter_AddRefs(mainWidget));
+  nsCOMPtr<nsIDeviceContext> ctx = mainWidget->GetDeviceContext();
+
+  float DevPixelsPerCSSPixel = float(ctx->AppUnitsPerCSSPixel()) / ctx->AppUnitsPerDevPixel();
+
   
 
 
@@ -1885,17 +1892,17 @@ nsWindowWatcher::SizeOpenedDocShellItem(nsIDocShellTreeItem *aDocShellItem,
 
   
   if (aSizeSpec.mLeftSpecified) {
-    left = aSizeSpec.mLeft;
+    left = aSizeSpec.mLeft * DevPixelsPerCSSPixel;
   }
 
   if (aSizeSpec.mTopSpecified) {
-    top = aSizeSpec.mTop;
+    top = aSizeSpec.mTop * DevPixelsPerCSSPixel;
   }
 
   
   if (aSizeSpec.mOuterWidthSpecified) {
     if (!aSizeSpec.mUseDefaultWidth) {
-      width = aSizeSpec.mOuterWidth;
+      width = aSizeSpec.mOuterWidth * DevPixelsPerCSSPixel;
     } 
   }
   else if (aSizeSpec.mInnerWidthSpecified) {
@@ -1903,14 +1910,14 @@ nsWindowWatcher::SizeOpenedDocShellItem(nsIDocShellTreeItem *aDocShellItem,
     if (aSizeSpec.mUseDefaultWidth) {
       width = width - chromeWidth;
     } else {
-      width = aSizeSpec.mInnerWidth;
+      width = aSizeSpec.mInnerWidth * DevPixelsPerCSSPixel;
     }
   }
 
   
   if (aSizeSpec.mOuterHeightSpecified) {
     if (!aSizeSpec.mUseDefaultHeight) {
-      height = aSizeSpec.mOuterHeight;
+      height = aSizeSpec.mOuterHeight * DevPixelsPerCSSPixel;
     } 
   }
   else if (aSizeSpec.mInnerHeightSpecified) {
@@ -1918,7 +1925,7 @@ nsWindowWatcher::SizeOpenedDocShellItem(nsIDocShellTreeItem *aDocShellItem,
     if (aSizeSpec.mUseDefaultHeight) {
       height = height - chromeHeight;
     } else {
-      height = aSizeSpec.mInnerHeight;
+      height = aSizeSpec.mInnerHeight * DevPixelsPerCSSPixel;
     }
   }
 
