@@ -116,9 +116,9 @@ png_warning(png_structp png_ptr, png_const_charp warning_message)
                   break;
        }
      }
-     if (png_ptr != NULL && png_ptr->warning_fn != NULL)
-        (*(png_ptr->warning_fn))(png_ptr, warning_message + offset);
    }
+   if (png_ptr != NULL && png_ptr->warning_fn != NULL)
+      (*(png_ptr->warning_fn))(png_ptr, warning_message + offset);
    else
       png_default_warning(png_ptr, warning_message + offset);
 }

@@ -395,6 +395,21 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef PNG_H
 #define PNG_H
 
@@ -405,9 +420,9 @@
 
 
 
-#define PNG_LIBPNG_VER_STRING "1.2.31"
+#define PNG_LIBPNG_VER_STRING "1.2.34"
 #define PNG_HEADER_VERSION_STRING \
-   " libpng version 1.2.31 - August 21, 2008\n"
+   " libpng version 1.2.34 - December 18, 2008\n"
 
 #define PNG_LIBPNG_VER_SONUM   0
 #define PNG_LIBPNG_VER_DLLNUM  13
@@ -415,7 +430,7 @@
 
 #define PNG_LIBPNG_VER_MAJOR   1
 #define PNG_LIBPNG_VER_MINOR   2
-#define PNG_LIBPNG_VER_RELEASE 31
+#define PNG_LIBPNG_VER_RELEASE 34
 
 
 
@@ -443,7 +458,7 @@
 
 
 
-#define PNG_LIBPNG_VER 10231 /* 1.2.31 */
+#define PNG_LIBPNG_VER 10234 /* 1.2.34 */
 
 #ifndef PNG_VERSION_INFO_ONLY
 
@@ -1163,7 +1178,10 @@ typedef void (PNGAPI *png_unknown_chunk_ptr) PNGARG((png_structp));
 #define PNG_TRANSFORM_SWAP_ALPHA     0x0100    /* read and write */
 #define PNG_TRANSFORM_SWAP_ENDIAN    0x0200    /* read and write */
 #define PNG_TRANSFORM_INVERT_ALPHA   0x0400    /* read and write */
-#define PNG_TRANSFORM_STRIP_FILLER   0x0800    /* WRITE only */
+#define PNG_TRANSFORM_STRIP_FILLER   0x0800    /* WRITE only, deprecated */
+
+#define PNG_TRANSFORM_STRIP_FILLER_BEFORE 0x0800  /* WRITE only */
+#define PNG_TRANSFORM_STRIP_FILLER_AFTER  0x1000  /* WRITE only */
 
 
 #define PNG_FLAG_MNG_EMPTY_PLTE     0x01
@@ -1516,7 +1534,7 @@ struct png_struct_def
 
 
 
-typedef png_structp version_1_2_31;
+typedef png_structp version_1_2_34;
 
 typedef png_struct FAR * FAR * png_structpp;
 
@@ -2638,33 +2656,80 @@ extern PNG_EXPORT(void, png_write_png) PNGARG((png_structp png_ptr,
 #if !defined(PNG_DEBUG_FILE) && defined(_MSC_VER)
 #include <crtdbg.h>
 #if (PNG_DEBUG > 1)
-#define png_debug(l,m)  _RPT0(_CRT_WARN,m)
-#define png_debug1(l,m,p1)  _RPT1(_CRT_WARN,m,p1)
-#define png_debug2(l,m,p1,p2) _RPT2(_CRT_WARN,m,p1,p2)
+#ifndef _DEBUG
+#  define _DEBUG
+#endif
+#ifndef png_debug
+#define png_debug(l,m)  _RPT0(_CRT_WARN,m PNG_STRING_NEWLINE)
+#endif
+#ifndef png_debug1
+#define png_debug1(l,m,p1)  _RPT1(_CRT_WARN,m PNG_STRING_NEWLINE,p1)
+#endif
+#ifndef png_debug2
+#define png_debug2(l,m,p1,p2) _RPT2(_CRT_WARN,m PNG_STRING_NEWLINE,p1,p2)
+#endif
 #endif
 #else 
 #ifndef PNG_DEBUG_FILE
 #define PNG_DEBUG_FILE stderr
 #endif 
 #if (PNG_DEBUG > 1)
+#ifndef png_debug
+
+
+#ifdef __STDC__
 #define png_debug(l,m) \
 { \
      int num_tabs=l; \
-     fprintf(PNG_DEBUG_FILE,"%s"m,(num_tabs==1 ? "\t" : \
+     fprintf(PNG_DEBUG_FILE,"%s"m PNG_STRING_NEWLINE,(num_tabs==1 ? "\t" : \
        (num_tabs==2 ? "\t\t":(num_tabs>2 ? "\t\t\t":"")))); \
 }
+#endif
+#ifndef png_debug1
 #define png_debug1(l,m,p1) \
 { \
      int num_tabs=l; \
-     fprintf(PNG_DEBUG_FILE,"%s"m,(num_tabs==1 ? "\t" : \
+     fprintf(PNG_DEBUG_FILE,"%s"m PNG_STRING_NEWLINE,(num_tabs==1 ? "\t" : \
        (num_tabs==2 ? "\t\t":(num_tabs>2 ? "\t\t\t":""))),p1); \
 }
+#endif
+#ifndef png_debug2
 #define png_debug2(l,m,p1,p2) \
 { \
      int num_tabs=l; \
-     fprintf(PNG_DEBUG_FILE,"%s"m,(num_tabs==1 ? "\t" : \
+     fprintf(PNG_DEBUG_FILE,"%s"m PNG_STRING_NEWLINE,(num_tabs==1 ? "\t" : \
        (num_tabs==2 ? "\t\t":(num_tabs>2 ? "\t\t\t":""))),p1,p2); \
 }
+#endif
+#else 
+#ifndef png_debug
+#define png_debug(l,m) \
+     int num_tabs=l; \
+     char format[256]; \
+     snprintf(format,256,"%s%s%s",(num_tabs==1 ? "\t" : \
+       (num_tabs==2 ? "\t\t":(num_tabs>2 ? "\t\t\t":""))), \
+       m,PNG_STRING_NEWLINE); \
+     fprintf(PNG_DEBUG_FILE,format);
+#endif
+#ifndef png_debug1
+#define png_debug1(l,m,p1) \
+     int num_tabs=l; \
+     char format[256]; \
+     snprintf(format,256,"%s%s%s",(num_tabs==1 ? "\t" : \
+       (num_tabs==2 ? "\t\t":(num_tabs>2 ? "\t\t\t":""))), \
+       m,PNG_STRING_NEWLINE); \
+     fprintf(PNG_DEBUG_FILE,format,p1);
+#endif
+#ifndef png_debug2
+#define png_debug2(l,m,p1,p2) \
+     int num_tabs=l; \
+     char format[256]; \
+     snprintf(format,256,"%s%s%s",(num_tabs==1 ? "\t" : \
+       (num_tabs==2 ? "\t\t":(num_tabs>2 ? "\t\t\t":""))), \
+       m,PNG_STRING_NEWLINE); \
+     fprintf(PNG_DEBUG_FILE,format,p1,p2);
+#endif
+#endif 
 #endif 
 #endif 
 #endif 
@@ -3740,6 +3805,15 @@ png_infop info_ptr, png_uint_32 *res_x, png_uint_32 *res_y, int *unit_type));
 
 
 PNG_EXTERN png_uint_32 png_read_chunk_header PNGARG((png_structp png_ptr));
+
+
+#if defined(PNG_cHRM_SUPPORTED)
+PNG_EXTERN int png_check_cHRM_fixed  PNGARG((png_structp png_ptr,
+   png_fixed_point int_white_x, png_fixed_point int_white_y,
+   png_fixed_point int_red_x, png_fixed_point int_red_y, png_fixed_point
+   int_green_x, png_fixed_point int_green_y, png_fixed_point int_blue_x,
+   png_fixed_point int_blue_y));
+#endif
 
 
 

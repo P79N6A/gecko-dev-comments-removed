@@ -802,6 +802,12 @@
 
 
 
+#ifndef PNG_STRING_NEWLINE
+#define PNG_STRING_NEWLINE "\n"
+#endif
+
+
+
 
 
 
