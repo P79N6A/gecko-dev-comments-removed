@@ -871,7 +871,7 @@ nsFtpState::R_syst() {
             NS_ERROR("Server type list format unrecognized.");
             
             
-             nsCOMPtr<nsIStringBundleService> bundleService =
+            nsCOMPtr<nsIStringBundleService> bundleService =
                 do_GetService(NS_STRINGBUNDLE_CONTRACTID);
             if (!bundleService)
                 return FTP_ERROR;
