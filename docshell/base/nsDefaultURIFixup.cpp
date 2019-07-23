@@ -800,24 +800,35 @@ nsresult nsDefaultURIFixup::KeywordURIFixup(const nsACString & aURIString,
     
     
     
+    
+
+    
+    
+    
+    
+    
+    
+    
+    
 
     
     
     
     
-    
-    
-    
-    
+    PRUint32 dotLoc   = PRUint32(aURIString.FindChar('.'));
+    PRUint32 colonLoc = PRUint32(aURIString.FindChar(':'));
+    PRUint32 spaceLoc = PRUint32(aURIString.FindChar(' '));
+    if (spaceLoc == 0) {
+        
+        spaceLoc = PRUint32(kNotFound);
+    }
+    PRUint32 qMarkLoc = PRUint32(aURIString.FindChar('?'));
+    PRUint32 quoteLoc = NS_MIN(PRUint32(aURIString.FindChar('"')),
+                               PRUint32(aURIString.FindChar('\'')));
 
-    PRInt32 dotLoc   = aURIString.FindChar('.');
-    PRInt32 colonLoc = aURIString.FindChar(':');
-    PRInt32 spaceLoc = aURIString.FindChar(' ');
-    PRInt32 qMarkLoc = aURIString.FindChar('?');
-
-    if ((dotLoc == kNotFound || (spaceLoc > 0 && spaceLoc < dotLoc)) &&
-        (colonLoc == kNotFound || (spaceLoc > 0 && spaceLoc < colonLoc)) &&
-        (spaceLoc > 0 && (qMarkLoc == kNotFound || spaceLoc < qMarkLoc)) ||
+    if (((spaceLoc < dotLoc || quoteLoc < dotLoc) &&
+         (spaceLoc < colonLoc || quoteLoc < colonLoc) &&
+         (spaceLoc < qMarkLoc || quoteLoc < qMarkLoc)) ||
         qMarkLoc == 0)
     {
         KeywordToURI(aURIString, aURI);
