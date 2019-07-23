@@ -129,24 +129,6 @@ struct JSTitle {
 #define JS_NOTIFY_CONDVAR(cv)       PR_NotifyCondVar(cv)
 #define JS_NOTIFY_ALL_CONDVAR(cv)   PR_NotifyAllCondVar(cv)
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-JS_END_EXTERN_C
-#include "jsscope.h"
-JS_BEGIN_EXTERN_C
-
 #ifdef JS_DEBUG_TITLE_LOCKS
 
 #define SET_OBJ_INFO(obj_, file_, line_)                                       \
