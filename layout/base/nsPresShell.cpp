@@ -4414,14 +4414,34 @@ PresShell::DoFlushPendingNotifications(mozFlushType aType,
     
     
     mDocument->FlushPendingNotifications(Flush_ContentAndNotify);
+
+    
+    
     if (!mIsDestroying) {
       mFrameConstructor->ProcessPendingRestyles();
     }
 
+    
+    
+    
     if (!mIsDestroying) {
       mDocument->BindingManager()->ProcessAttachedQueue();
     }
 
+    
+    
+    
+    
+    
+    
+    if (!mIsDestroying) {
+      mFrameConstructor->ProcessPendingRestyles();
+    }
+
+    
+    
+    
+    
     if (aType >= Flush_Layout && !mIsDestroying) {
       mFrameConstructor->RecalcQuotesAndCounters();
       ProcessReflowCommands(aInterruptibleReflow);
