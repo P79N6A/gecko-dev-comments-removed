@@ -45,10 +45,32 @@
 
 
 enum nsChangeHint {
-  nsChangeHint_RepaintFrame = 0x01,  
-  nsChangeHint_ReflowFrame = 0x02,   
-  nsChangeHint_SyncFrameView = 0x04, 
-  nsChangeHint_UpdateCursor = 0x08,  
+  
+  nsChangeHint_RepaintFrame = 0x01,
+
+  
+  
+  nsChangeHint_NeedReflow = 0x02,
+
+  
+  
+  nsChangeHint_ClearAncestorIntrinsics = 0x04,
+
+  
+  
+  nsChangeHint_ClearDescendantIntrinsics = 0x08,
+
+  
+  
+  
+  nsChangeHint_NeedDirtyReflow = 0x10,
+
+  
+  nsChangeHint_SyncFrameView = 0x20,
+
+  
+  nsChangeHint_UpdateCursor = 0x40,
+
   
 
 
@@ -58,14 +80,13 @@ enum nsChangeHint {
 
 
 
-  nsChangeHint_UpdateEffects = 0x10,
-  nsChangeHint_ReconstructFrame = 0x20   
-                                         
+  nsChangeHint_UpdateEffects = 0x80,
+
   
   
+  nsChangeHint_ReconstructFrame = 0x100
 };
 
-#ifdef DEBUG_roc
 
 
 
@@ -75,7 +96,6 @@ inline void operator!=(nsChangeHint s1, nsChangeHint s2) {}
 inline void operator==(nsChangeHint s1, nsChangeHint s2) {}
 inline void operator<=(nsChangeHint s1, nsChangeHint s2) {}
 inline void operator>=(nsChangeHint s1, nsChangeHint s2) {}
-#endif
 
 
 
@@ -108,11 +128,15 @@ inline PRBool NS_IsHintSubset(nsChangeHint aSubset, nsChangeHint aSuperSet) {
   nsChangeHint(0)
 #define NS_STYLE_HINT_VISUAL \
   nsChangeHint(nsChangeHint_RepaintFrame | nsChangeHint_SyncFrameView)
+#define nsChangeHint_ReflowFrame                        \
+  nsChangeHint(nsChangeHint_NeedReflow |                \
+               nsChangeHint_ClearAncestorIntrinsics |   \
+               nsChangeHint_ClearDescendantIntrinsics | \
+               nsChangeHint_NeedDirtyReflow)
 #define NS_STYLE_HINT_REFLOW \
   nsChangeHint(NS_STYLE_HINT_VISUAL | nsChangeHint_ReflowFrame)
 #define NS_STYLE_HINT_FRAMECHANGE \
   nsChangeHint(NS_STYLE_HINT_REFLOW | nsChangeHint_ReconstructFrame)
-
 
 
 
