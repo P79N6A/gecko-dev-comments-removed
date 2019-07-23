@@ -2036,6 +2036,19 @@ PresShell::Destroy()
   mFrameConstructor->WillDestroyFrameTree();
   FrameManager()->Destroy();
 
+  
+  
+  
+  if (mPresContext) {
+    
+    
+    
+    
+    
+    mPresContext->PropertyTable()->DeleteAllProperties();
+  }
+
+
   NS_WARN_IF_FALSE(!mWeakFrames, "Weak frames alive after destroying FrameManager");
   while (mWeakFrames) {
     mWeakFrames->Clear(this);
@@ -2045,13 +2058,6 @@ PresShell::Destroy()
   mStyleSet->Shutdown(mPresContext);
 
   if (mPresContext) {
-    
-    
-    
-    
-    
-    mPresContext->PropertyTable()->DeleteAllProperties();
-
     
     
     
