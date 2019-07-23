@@ -1476,6 +1476,7 @@ js_IsLoopExit(JSContext* cx, JSScript* script, jsbytecode* header, jsbytecode* p
 struct FrameInfo {
     JSObject*       callee;     
     jsbytecode*     callpc;     
+    uint8*          typemap;    
     union {
         struct {
             uint16  spdist;     
@@ -4603,9 +4604,22 @@ TraceRecorder::interpretedFunctionCall(jsval& fval, JSFunction* fun, uintN argc)
         ABORT_TRACE("can't trace calls with too few args requiring argv move");
     }
 
+    
+    unsigned stackSlots = js_NativeStackSlots(cx, 0);
+    LIns* data = lir_buf_writer->skip(stackSlots * sizeof(uint8));
+    uint8* typemap = (uint8 *)data->payload();
+    uint8* m = typemap;
+    
+
+
+    FORALL_SLOTS_IN_PENDING_FRAMES(cx, 0,
+        *m++ = determineSlotType(vp);
+    );
+    
     FrameInfo fi = {
         JSVAL_TO_OBJECT(fval),
         fp->regs->pc,
+        typemap,
         { { fp->regs->sp - fp->slots, argc } }
     };
 
