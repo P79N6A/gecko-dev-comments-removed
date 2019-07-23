@@ -3127,6 +3127,11 @@ nsPrintEngine::FinishPrintPreview()
 
 #ifdef NS_PRINT_PREVIEW
 
+  if (!mPrt) {
+    
+    return rv;
+  }
+
   rv = DocumentReadyForPrinting();
 
   SetIsCreatingPrintPreview(PR_FALSE);
