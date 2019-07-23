@@ -6374,7 +6374,12 @@ ExecuteTree(JSContext* cx, Fragment* f, uintN& inlineCallCount,
     state->sp = stack_buffer + (ti->nativeStackBase/sizeof(double));
     state->eos = stack_buffer + MAX_NATIVE_STACK_SLOTS;
 
-    JS_ASSERT(JS_MAX_INLINE_CALL_COUNT > inlineCallCount);
+    
+
+
+
+
+    JS_ASSERT(inlineCallCount <= JS_MAX_INLINE_CALL_COUNT);
 
     
     FrameInfo* callstack_buffer[MAX_CALL_STACK_ENTRIES];
