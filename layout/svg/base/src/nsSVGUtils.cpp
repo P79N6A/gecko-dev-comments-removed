@@ -208,6 +208,29 @@ GetFrameForContent(nsIContent* aContent)
   return nsGenericElement::GetPrimaryFrameFor(aContent, doc);
 }
 
+nsIContent*
+nsSVGUtils::GetParentElement(nsIContent *aContent)
+{
+  
+  
+  
+  
+  nsIDocument* ownerDoc = aContent->GetOwnerDoc();
+  nsBindingManager* bindingManager =
+    ownerDoc ? ownerDoc->BindingManager() : nsnull;
+
+  if (bindingManager) {
+    
+    nsIContent *result = bindingManager->GetInsertionParent(aContent);
+    if (result) {
+      return result;
+    }
+  }
+
+  
+  return aContent->GetParent();
+}
+
 float
 nsSVGUtils::GetFontSize(nsIContent *aContent)
 {
@@ -386,31 +409,13 @@ nsSVGUtils::GetNearestViewportElement(nsIContent *aContent,
 {
   *aNearestViewportElement = nsnull;
 
-  nsBindingManager *bindingManager = nsnull;
-  
-  
-  
-  
-  nsIDocument* ownerDoc = aContent->GetOwnerDoc();
-  if (ownerDoc) {
-    bindingManager = ownerDoc->BindingManager();
-  }
-
   nsCOMPtr<nsIContent> element = aContent;
   nsCOMPtr<nsIContent> ancestor;
   unsigned short ancestorCount = 0;
 
   while (1) {
 
-    ancestor = nsnull;
-    if (bindingManager) {
-      
-      ancestor = bindingManager->GetInsertionParent(element);
-    }
-    if (!ancestor) {
-      
-      ancestor = element->GetParent();
-    }
+    ancestor = GetParentElement(element);
 
     nsCOMPtr<nsIDOMSVGFitToViewBox> fitToViewBox = do_QueryInterface(element);
 
@@ -439,16 +444,6 @@ nsSVGUtils::GetFarthestViewportElement(nsIContent *aContent,
 {
   *aFarthestViewportElement = nsnull;
 
-  nsBindingManager *bindingManager = nsnull;
-  
-  
-  
-  
-  nsIDocument* ownerDoc = aContent->GetOwnerDoc();
-  if (ownerDoc) {
-    bindingManager = ownerDoc->BindingManager();
-  }
-
   nsCOMPtr<nsIContent> element = aContent;
   nsCOMPtr<nsIContent> ancestor;
   nsCOMPtr<nsIDOMSVGElement> SVGElement;
@@ -456,15 +451,7 @@ nsSVGUtils::GetFarthestViewportElement(nsIContent *aContent,
 
   while (1) {
 
-    ancestor = nsnull;
-    if (bindingManager) {
-      
-      ancestor = bindingManager->GetInsertionParent(element);
-    }
-    if (!ancestor) {
-      
-      ancestor = element->GetParent();
-    }
+    ancestor = GetParentElement(element);
 
     nsCOMPtr<nsIDOMSVGFitToViewBox> fitToViewBox = do_QueryInterface(element);
 

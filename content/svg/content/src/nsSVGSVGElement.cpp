@@ -50,7 +50,6 @@
 #include "nsSVGPoint.h"
 #include "nsSVGTransform.h"
 #include "nsIDOMEventTarget.h"
-#include "nsBindingManager.h"
 #include "nsIFrame.h"
 #include "nsISVGSVGFrame.h" 
 #include "nsSVGNumber.h"
@@ -775,31 +774,13 @@ nsSVGSVGElement::GetCTM(nsIDOMSVGMatrix **_retval)
 
   
 
-  nsBindingManager *bindingManager = nsnull;
-  
-  
-  
-  
-  nsIDocument* ownerDoc = GetOwnerDoc();
-  if (ownerDoc) {
-    bindingManager = ownerDoc->BindingManager();
-  }
-
   nsCOMPtr<nsIContent> element = this;
   nsCOMPtr<nsIContent> ancestor;
   unsigned short ancestorCount = 0;
   nsCOMPtr<nsIDOMSVGMatrix> ancestorCTM;
 
   while (1) {
-    ancestor = nsnull;
-    if (bindingManager) {
-      
-      ancestor = bindingManager->GetInsertionParent(element);
-    }
-    if (!ancestor) {
-      
-      ancestor = element->GetParent();
-    }
+    ancestor = nsSVGUtils::GetParentElement(element);
     if (!ancestor) {
       
       break;
@@ -897,31 +878,13 @@ nsSVGSVGElement::GetScreenCTM(nsIDOMSVGMatrix **_retval)
 
   
 
-  nsBindingManager *bindingManager = nsnull;
-  
-  
-  
-  
-  nsIDocument* ownerDoc = GetOwnerDoc();
-  if (ownerDoc) {
-    bindingManager = ownerDoc->BindingManager();
-  }
-
   nsCOMPtr<nsIContent> element = this;
   nsCOMPtr<nsIContent> ancestor;
   unsigned short ancestorCount = 0;
   nsCOMPtr<nsIDOMSVGMatrix> ancestorScreenCTM;
 
   while (1) {
-    ancestor = nsnull;
-    if (bindingManager) {
-      
-      ancestor = bindingManager->GetInsertionParent(element);
-    }
-    if (!ancestor) {
-      
-      ancestor = element->GetParent();
-    }
+    ancestor = nsSVGUtils::GetParentElement(element);
     if (!ancestor) {
       
       break;

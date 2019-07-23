@@ -42,7 +42,6 @@
 #include "nsSMILAnimationController.h"
 #include "nsSMILAnimationFunction.h"
 #include "nsISMILAttr.h"
-#include "nsBindingManager.h"
 
 
 
@@ -112,7 +111,7 @@ nsSVGAnimationElement::GetTargetElementContent()
   }
 
   
-  return GetParentElement();
+  return nsSVGUtils::GetParentElement(this);
 }
 
 nsIAtom*
@@ -357,28 +356,6 @@ nsSVGAnimationElement::GetTimeContainer()
       static_cast<nsSVGSVGElement*>(ownerDOMSVG.get());
     result = ownerSVG->GetTimedDocumentRoot();
   }
-
-  return result;
-}
-
-nsIContent*
-nsSVGAnimationElement::GetParentElement()
-{
-  nsCOMPtr<nsIContent> result;
-  nsBindingManager*   bindingManager = nsnull;
-  nsIDocument*        ownerDoc = GetOwnerDoc();
-
-  if (ownerDoc)
-    bindingManager = ownerDoc->BindingManager();
-
-  if (bindingManager)
-    
-    result = bindingManager->GetInsertionParent(this);
-
-  if (!result)
-    
-    
-    result = GetParent();
 
   return result;
 }

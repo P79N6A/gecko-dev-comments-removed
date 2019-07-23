@@ -262,22 +262,8 @@ nsSVGElement::AfterSetAttr(PRInt32 aNamespaceID, nsIAtom* aName,
        aName == nsGkAtoms::requiredExtensions ||
        aName == nsGkAtoms::systemLanguage)) {
 
-    nsIContent* parent = nsnull;
+    nsIContent* parent = nsSVGUtils::GetParentElement(this);
   
-    nsIContent* bindingParent = GetBindingParent();
-    if (bindingParent) {
-      nsIDocument* doc = bindingParent->GetOwnerDoc();
-      if (doc) {
-        parent = doc->BindingManager()->GetInsertionParent(bindingParent);
-      }
-    }
-
-    if (!parent) {
-      
-      
-      parent = GetParent();
-    }
-
     if (parent &&
         parent->NodeInfo()->Equals(nsGkAtoms::svgSwitch, kNameSpaceID_SVG)) {
       static_cast<nsSVGSwitchElement*>(parent)->MaybeInvalidate();
@@ -913,29 +899,8 @@ nsSVGElement::GetOwnerSVGElement(nsIDOMSVGSVGElement * *aOwnerSVGElement)
 {
   *aOwnerSVGElement = nsnull;
 
-  nsBindingManager *bindingManager = nsnull;
+  nsIContent* parent = nsSVGUtils::GetParentElement(this);
   
-  
-  
-  
-  nsIDocument* ownerDoc = GetOwnerDoc();
-  if (ownerDoc) {
-    bindingManager = ownerDoc->BindingManager();
-  }
-
-  nsIContent* parent = nsnull;
-  
-  if (bindingManager) {
-    
-    parent = bindingManager->GetInsertionParent(this);
-  }
-
-  if (!parent) {
-    
-    
-    parent = GetParent();
-  }
-
   while (parent && parent->GetNameSpaceID() == kNameSpaceID_SVG) {
     nsIAtom* tag = parent->Tag();
     if (tag == nsGkAtoms::foreignObject) {
@@ -948,16 +913,7 @@ nsSVGElement::GetOwnerSVGElement(nsIDOMSVGSVGElement * *aOwnerSVGElement)
       NS_ADDREF(*aOwnerSVGElement);
       return NS_OK;
     }
-    nsIContent* next = nsnull;
-
-    if (bindingManager) {
-      next = bindingManager->GetInsertionParent(parent);
-    }
-    if (!next) {
-      
-      next = parent->GetParent();
-    }
-    
+    nsIContent* next = nsSVGUtils::GetParentElement(parent);
     parent = next;
   }
 

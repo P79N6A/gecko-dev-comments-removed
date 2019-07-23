@@ -43,7 +43,6 @@
 #include "nsGkAtoms.h"
 #include "nsSVGMatrix.h"
 #include "nsIDOMEventTarget.h"
-#include "nsBindingManager.h"
 #include "nsIFrame.h"
 #include "nsISVGChildFrame.h"
 #include "nsIDOMSVGPoint.h"
@@ -146,27 +145,7 @@ NS_IMETHODIMP nsSVGGraphicElement::GetCTM(nsIDOMSVGMatrix **_retval)
     currentDoc->FlushPendingNotifications(Flush_Layout);
   }
 
-  nsBindingManager *bindingManager = nsnull;
-  
-  
-  
-  
-  nsIDocument* ownerDoc = GetOwnerDoc();
-  if (ownerDoc) {
-    bindingManager = ownerDoc->BindingManager();
-  }
-
-  nsIContent* parent = nsnull;
-  nsCOMPtr<nsIDOMSVGMatrix> parentCTM;
-
-  if (bindingManager) {
-    
-    parent = bindingManager->GetInsertionParent(this);
-  }
-  if (!parent) {
-    
-    parent = GetParent();
-  }
+  nsIContent* parent = nsSVGUtils::GetParentElement(this);
 
   nsCOMPtr<nsIDOMSVGLocatable> locatableElement = do_QueryInterface(parent);
   if (!locatableElement) {
@@ -176,6 +155,7 @@ NS_IMETHODIMP nsSVGGraphicElement::GetCTM(nsIDOMSVGMatrix **_retval)
   }
 
   
+  nsCOMPtr<nsIDOMSVGMatrix> parentCTM;
   rv = locatableElement->GetCTM(getter_AddRefs(parentCTM));
   if (NS_FAILED(rv)) return rv;
 
@@ -194,27 +174,7 @@ NS_IMETHODIMP nsSVGGraphicElement::GetScreenCTM(nsIDOMSVGMatrix **_retval)
     currentDoc->FlushPendingNotifications(Flush_Layout);
   }
 
-  nsBindingManager *bindingManager = nsnull;
-  
-  
-  
-  
-  nsIDocument* ownerDoc = GetOwnerDoc();
-  if (ownerDoc) {
-    bindingManager = ownerDoc->BindingManager();
-  }
-
-  nsIContent* parent = nsnull;
-  nsCOMPtr<nsIDOMSVGMatrix> parentScreenCTM;
-
-  if (bindingManager) {
-    
-    parent = bindingManager->GetInsertionParent(this);
-  }
-  if (!parent) {
-    
-    parent = GetParent();
-  }
+  nsIContent* parent = nsSVGUtils::GetParentElement(this);
 
   nsCOMPtr<nsIDOMSVGLocatable> locatableElement = do_QueryInterface(parent);
   if (!locatableElement) {
@@ -224,6 +184,7 @@ NS_IMETHODIMP nsSVGGraphicElement::GetScreenCTM(nsIDOMSVGMatrix **_retval)
   }
 
   
+  nsCOMPtr<nsIDOMSVGMatrix> parentScreenCTM;
   rv = locatableElement->GetScreenCTM(getter_AddRefs(parentScreenCTM));
   if (NS_FAILED(rv)) return rv;
 
