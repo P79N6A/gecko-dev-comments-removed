@@ -3112,8 +3112,16 @@ js_GC(JSContext *cx, JSGCInvocationKind gckind)
         ok = callback(cx, JSGC_BEGIN);
         if (gckind & GC_LOCK_HELD)
             JS_LOCK_GC(rt);
-        if (!ok && gckind != GC_LAST_CONTEXT)
+        if (!ok && gckind != GC_LAST_CONTEXT) {
+            
+
+
+
+
+            if (rt->gcLevel == 0 && (gckind & GC_LOCK_HELD))
+                JS_NOTIFY_GC_DONE(rt);
             return;
+        }
     }
 
     
