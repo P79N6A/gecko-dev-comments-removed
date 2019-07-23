@@ -186,6 +186,48 @@ BoxBlurVertical(unsigned char* aInput,
     }
 }
 
+static void ComputeLobes(PRInt32 aRadius, PRInt32 aLobes[3][2])
+{
+    PRInt32 major, minor, final;
+
+    
+
+
+
+    PRInt32 z = aRadius/3;
+    switch (aRadius % 3) {
+    case 0:
+        
+        major = minor = final = z;
+        break;
+    case 1:
+        
+        
+        
+        
+        
+        
+        
+        major = z + 1;
+        minor = final = z;
+        break;
+    case 2:
+        
+        major = final = z + 1;
+        minor = z;
+        break;
+    }
+    NS_ASSERTION(major + minor + final == aRadius,
+                 "Lobes don't sum to the right length");
+
+    aLobes[0][0] = major;
+    aLobes[0][1] = minor;
+    aLobes[1][0] = minor;
+    aLobes[1][1] = major;
+    aLobes[2][0] = final;
+    aLobes[2][1] = final;
+}
+
 void
 gfxAlphaBoxBlur::Paint(gfxContext* aDestinationCtx, const gfxPoint& offset)
 {
@@ -196,12 +238,6 @@ gfxAlphaBoxBlur::Paint(gfxContext* aDestinationCtx, const gfxPoint& offset)
 
     
     if (mBlurRadius.width != 0 || mBlurRadius.height != 0) {
-        
-        
-        
-        mBlurRadius.width = PR_MAX(mBlurRadius.width, 2);
-        mBlurRadius.height = PR_MAX(mBlurRadius.height, 2);
-
         nsTArray<unsigned char> tempAlphaDataBuf;
         if (!tempAlphaDataBuf.SetLength(mImageSurface->GetDataSize()))
             return; 
@@ -211,19 +247,19 @@ gfxAlphaBoxBlur::Paint(gfxContext* aDestinationCtx, const gfxPoint& offset)
         PRInt32 rows = mImageSurface->Height();
 
         if (mBlurRadius.width > 0) {
-            PRInt32 longLobe = mBlurRadius.width / 2;
-            PRInt32 shortLobe = (mBlurRadius.width & 1) ? longLobe : longLobe - 1;
-            BoxBlurHorizontal(boxData, tmpData, longLobe, shortLobe, stride, rows);
-            BoxBlurHorizontal(tmpData, boxData, shortLobe, longLobe, stride, rows);
-            BoxBlurHorizontal(boxData, tmpData, longLobe, longLobe, stride, rows);
+            PRInt32 lobes[3][2];
+            ComputeLobes(mBlurRadius.width, lobes);
+            BoxBlurHorizontal(boxData, tmpData, lobes[0][0], lobes[0][1], stride, rows);
+            BoxBlurHorizontal(tmpData, boxData, lobes[1][0], lobes[1][1], stride, rows);
+            BoxBlurHorizontal(boxData, tmpData, lobes[2][0], lobes[2][1], stride, rows);
         }
 
         if (mBlurRadius.height > 0) {
-            PRInt32 longLobe = mBlurRadius.height / 2;
-            PRInt32 shortLobe = (mBlurRadius.height & 1) ? longLobe : longLobe - 1;
-            BoxBlurVertical(tmpData, boxData, longLobe, shortLobe, stride, rows);
-            BoxBlurVertical(boxData, tmpData, shortLobe, longLobe, stride, rows);
-            BoxBlurVertical(tmpData, boxData, longLobe, longLobe, stride, rows);
+            PRInt32 lobes[3][2];
+            ComputeLobes(mBlurRadius.height, lobes);
+            BoxBlurVertical(tmpData, boxData, lobes[0][0], lobes[0][1], stride, rows);
+            BoxBlurVertical(boxData, tmpData, lobes[1][0], lobes[1][1], stride, rows);
+            BoxBlurVertical(tmpData, boxData, lobes[2][0], lobes[2][1], stride, rows);
         }
     }
 
@@ -241,7 +277,8 @@ gfxAlphaBoxBlur::Paint(gfxContext* aDestinationCtx, const gfxPoint& offset)
     }
 }
 
-static const gfxFloat GAUSSIAN_SCALE_FACTOR = 3 * sqrt(2 * M_PI) / 4;
+
+static const gfxFloat GAUSSIAN_SCALE_FACTOR = (3 * sqrt(2 * M_PI) / 4) * (3/2);
 
 gfxIntSize gfxAlphaBoxBlur::CalculateBlurRadius(const gfxPoint& aStd)
 {
