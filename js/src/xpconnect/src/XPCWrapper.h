@@ -111,7 +111,6 @@ XPC_XOW_ClassNeedsXOW(const char *name)
   return JS_FALSE;
 }
 
-extern JSExtendedClass sXPC_COW_JSClass;
 extern JSExtendedClass sXPC_SJOW_JSClass;
 extern JSExtendedClass sXPC_SOW_JSClass;
 extern JSExtendedClass sXPC_XOW_JSClass;
@@ -378,6 +377,7 @@ public:
                                uintN argc, jsval *argv, jsval *rval,
                                JSBool isNativeWrapper);
 
+private:
   
 
 
