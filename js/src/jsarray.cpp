@@ -320,13 +320,17 @@ ResizeSlots(JSContext *cx, JSObject *obj, uint32 oldsize, uint32 size)
         return JS_TRUE;
     }
 
-    if (size > ~(uint32)0 / sizeof(jsval)) {
+    
+
+
+
+    if (size >= MAX_DSLOTS_LENGTH) {
         js_ReportAllocationOverflow(cx);
         return JS_FALSE;
     }
 
     slots = obj->dslots ? obj->dslots - 1 : NULL;
-    newslots = (jsval *) JS_realloc(cx, slots, sizeof (jsval) * (size + 1));
+    newslots = (jsval *) JS_realloc(cx, slots, (size + 1) * sizeof(jsval));
     if (!newslots)
         return JS_FALSE;
 
@@ -896,8 +900,15 @@ js_Array_dense_setelem(JSContext* cx, JSObject* obj, jsint i, jsval v)
     
 
 
-    if (i < 0)
-        return JS_FALSE;
+    JS_ASSERT((MAX_DSLOTS_LENGTH > JSVAL_INT_MAX) == (sizeof(jsval) != sizeof(uint32)));
+    if (MAX_DSLOTS_SIZE > JSVAL_INT_MAX) {
+        
+
+
+
+        if (i < 0)
+            return JS_FALSE;
+    }
 
     
 

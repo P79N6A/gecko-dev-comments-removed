@@ -202,6 +202,12 @@ struct JSObject {
 
 
 
+#define MAX_DSLOTS_LENGTH   (JS_MAX(~(uint32)0, ~(size_t)0) / sizeof(jsval))
+
+
+
+
+
 
 
 #define STOBJ_NSLOTS(obj)                                                     \

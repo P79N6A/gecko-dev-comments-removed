@@ -6463,54 +6463,31 @@ TraceRecorder::guardDenseArray(JSObject* obj, LIns* obj_ins, ExitType exitType)
 }
 
 JS_REQUIRES_STACK bool
-TraceRecorder::guardDenseArrayIndex(JSObject* obj, jsint idx, LIns* obj_ins,
-                                    LIns* dslots_ins, LIns* idx_ins, ExitType exitType)
+TraceRecorder::guardPrototypeHasNoIndexedProperties(JSObject* obj, LIns* obj_ins, ExitType exitType)
 {
-    jsuint capacity = js_DenseArrayCapacity(obj);
+    
 
-    bool cond = (jsuint(idx) < jsuint(obj->fslots[JSSLOT_ARRAY_LENGTH]) && jsuint(idx) < capacity);
-    if (cond) {
-        VMSideExit* exit = snapshot(exitType);
-        
+
+
+    VMSideExit* exit = snapshot(exitType);
+
+    if (js_PrototypeHasIndexedProperties(cx, obj))
+        return false;
+
+    while ((obj = JSVAL_TO_OBJECT(obj->fslots[JSSLOT_PROTO])) != NULL) {
+        obj_ins = stobj_get_fslot(obj_ins, JSSLOT_PROTO);
+        LIns* map_ins = lir->insLoad(LIR_ldp, obj_ins, (int)offsetof(JSObject, map));
+        LIns* ops_ins;
+        if (!map_is_native(obj->map, map_ins, ops_ins))
+            ABORT_TRACE("non-native object involved along prototype chain");
+
+        LIns* shape_ins = addName(lir->insLoad(LIR_ld, map_ins, offsetof(JSScope, shape)),
+                                  "shape");
         guard(true,
-              lir->ins2(LIR_ult, idx_ins, stobj_get_fslot(obj_ins, JSSLOT_ARRAY_LENGTH)),
+              addName(lir->ins2i(LIR_eq, shape_ins, OBJ_SHAPE(obj)), "guard(shape)"),
               exit);
-        
-        guard(false,
-              lir->ins_eq0(dslots_ins),
-              exit);
-        
-        guard(true,
-              lir->ins2(LIR_ult,
-                        idx_ins,
-                        lir->insLoad(LIR_ldp, dslots_ins, 0 - (int)sizeof(jsval))),
-              exit);
-    } else {
-        
-        LIns* br1 = lir->insBranch(LIR_jf,
-                                   lir->ins2(LIR_ult,
-                                             idx_ins,
-                                             stobj_get_fslot(obj_ins, JSSLOT_ARRAY_LENGTH)),
-                                   NULL);
-
-        
-        LIns* br2 = lir->insBranch(LIR_jt, lir->ins_eq0(dslots_ins), NULL);
-
-        
-        LIns* br3 = lir->insBranch(LIR_jf,
-                                   lir->ins2(LIR_ult,
-                                             idx_ins,
-                                             lir->insLoad(LIR_ldp,
-                                                          dslots_ins,
-                                                          -(int)sizeof(jsval))),
-                                   NULL);
-        lir->insGuard(LIR_x, lir->insImm(1), createGuardRecord(snapshot(exitType)));
-        LIns* label = lir->ins0(LIR_label);
-        br1->target(label);
-        br2->target(label);
-        br3->target(label);
     }
-    return cond;
+    return true;
 }
 
 bool
@@ -8476,46 +8453,65 @@ TraceRecorder::prop(JSObject* obj, LIns* obj_ins, uint32& slot, LIns*& v_ins)
 }
 
 JS_REQUIRES_STACK bool
-TraceRecorder::elem(jsval& oval, jsval& idx, jsval*& vp, LIns*& v_ins, LIns*& addr_ins)
+TraceRecorder::elem(jsval& oval, jsval& ival, jsval*& vp, LIns*& v_ins, LIns*& addr_ins)
 {
     
-    if (JSVAL_IS_PRIMITIVE(oval) || !JSVAL_IS_INT(idx))
+    if (JSVAL_IS_PRIMITIVE(oval) || !JSVAL_IS_INT(ival))
         return false;
 
     JSObject* obj = JSVAL_TO_OBJECT(oval);
     LIns* obj_ins = get(&oval);
+    jsint idx = JSVAL_TO_INT(ival);
+    LIns* idx_ins = makeNumberInt32(get(&ival));
 
     
     if (!guardDenseArray(obj, obj_ins))
         return false;
 
+    VMSideExit* exit = snapshot(BRANCH_EXIT);
+
     
-    jsint i = JSVAL_TO_INT(idx);
-    LIns* idx_ins = makeNumberInt32(get(&idx));
-
     LIns* dslots_ins = lir->insLoad(LIR_ldp, obj_ins, offsetof(JSObject, dslots));
-    if (!guardDenseArrayIndex(obj, i, obj_ins, dslots_ins, idx_ins, BRANCH_EXIT)) {
+    jsuint capacity = js_DenseArrayCapacity(obj);
+    bool within = (jsuint(idx) < jsuint(obj->fslots[JSSLOT_ARRAY_LENGTH]) && jsuint(idx) < capacity);
+    if (!within) {
         
-
-
-
-        if (js_PrototypeHasIndexedProperties(cx, obj))
-            return false;
-
-        VMSideExit* exit = snapshot(BRANCH_EXIT);
-        while ((obj = JSVAL_TO_OBJECT(obj->fslots[JSSLOT_PROTO])) != NULL) {
-            obj_ins = stobj_get_fslot(obj_ins, JSSLOT_PROTO);
-            LIns* map_ins = lir->insLoad(LIR_ldp, obj_ins, (int)offsetof(JSObject, map));
-            LIns* ops_ins;
-            if (!map_is_native(obj->map, map_ins, ops_ins))
-                ABORT_TRACE("non-native object involved along prototype chain");
-
-            LIns* shape_ins = addName(lir->insLoad(LIR_ld, map_ins, offsetof(JSScope, shape)),
-                                      "shape");
-            guard(true,
-                  addName(lir->ins2i(LIR_eq, shape_ins, OBJ_SHAPE(obj)), "guard(shape)"),
-                  exit);
+        LIns* br1 = NULL;
+        if (MAX_DSLOTS_SIZE > JS_BITMASK(30) && !idx_ins->isconst()) {
+            JS_ASSERT(sizeof(jsval) == 8); 
+            br1 = lir->insBranch(LIR_jt,
+                                 lir->ins2i(LIR_lt, idx_ins, 0),
+                                 NULL);
         }
+
+        
+        LIns* br2 = lir->insBranch(LIR_jf,
+                                   lir->ins2(LIR_ult,
+                                             idx_ins,
+                                             stobj_get_fslot(obj_ins, JSSLOT_ARRAY_LENGTH)),
+                                   NULL);
+
+        
+        LIns* br3 = lir->insBranch(LIR_jt, lir->ins_eq0(dslots_ins), NULL);
+
+        
+        LIns* br4 = lir->insBranch(LIR_jf,
+                                   lir->ins2(LIR_ult,
+                                             idx_ins,
+                                             lir->insLoad(LIR_ldp,
+                                                          dslots_ins,
+                                                          -(int)sizeof(jsval))),
+                                   NULL);
+        lir->insGuard(LIR_x, lir->insImm(1), createGuardRecord(exit));
+        LIns* label = lir->ins0(LIR_label);
+        if (br1)
+            br1->target(label);
+        br2->target(label);
+        br3->target(label);
+        br4->target(label);
+
+        if (!guardPrototypeHasNoIndexedProperties(obj, obj_ins, MISMATCH_EXIT))
+            return false;
 
         
         v_ins = lir->insImm(JSVAL_TO_PSEUDO_BOOLEAN(JSVAL_VOID));
@@ -8524,23 +8520,53 @@ TraceRecorder::elem(jsval& oval, jsval& idx, jsval*& vp, LIns*& v_ins, LIns*& ad
     }
 
     
-    
-    vp = &obj->dslots[i];
-    if (*vp == JSVAL_HOLE)
-        ABORT_TRACE("can't see through hole in dense array");
+    if (MAX_DSLOTS_SIZE > JS_BITMASK(30) && !idx_ins->isconst()) {
+        JS_ASSERT(sizeof(jsval) == 8); 
+        guard(false,
+              lir->ins2i(LIR_lt, idx_ins, 0),
+              exit);
+    }
 
+    
+    guard(true,
+          lir->ins2(LIR_ult, idx_ins, stobj_get_fslot(obj_ins, JSSLOT_ARRAY_LENGTH)),
+          exit);
+
+    
+    guard(false,
+          lir->ins_eq0(dslots_ins),
+          exit);
+
+    
+    guard(true,
+          lir->ins2(LIR_ult,
+                    idx_ins,
+                    lir->insLoad(LIR_ldp, dslots_ins, 0 - (int)sizeof(jsval))),
+          exit);
+
+    
+    vp = &obj->dslots[jsuint(idx)];
     addr_ins = lir->ins2(LIR_piadd, dslots_ins,
                          lir->ins2i(LIR_pilsh, idx_ins, (sizeof(jsval) == 4) ? 2 : 3));
-
-    
     v_ins = lir->insLoad(LIR_ldp, addr_ins, 0);
-    unbox_jsval(*vp, v_ins, snapshot(BRANCH_EXIT));
+    unbox_jsval(*vp, v_ins, exit);
 
     if (JSVAL_TAG(*vp) == JSVAL_BOOLEAN) {
         
+
+
+
+        LIns* br = lir->insBranch(LIR_jf,
+                                  lir->ins2i(LIR_eq, v_ins, JSVAL_TO_PSEUDO_BOOLEAN(JSVAL_HOLE)),
+                                  NULL);
+        if (!guardPrototypeHasNoIndexedProperties(obj, obj_ins, MISMATCH_EXIT))
+            return false;
+        br->target(lir->ins0(LIR_label));
+
         
-        guard(false, lir->ins2(LIR_eq, v_ins, INS_CONST(JSVAL_TO_PSEUDO_BOOLEAN(JSVAL_HOLE))),
-              MISMATCH_EXIT);
+
+
+        v_ins = lir->ins2i(LIR_and, v_ins, ~(JSVAL_HOLE_FLAG >> JSVAL_TAGBITS));
     }
     return true;
 }
