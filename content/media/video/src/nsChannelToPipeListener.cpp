@@ -42,17 +42,11 @@
 #include "nsChannelToPipeListener.h"
 #include "nsICachingChannel.h"
 
-#define HTTP_OK_CODE 200
-#define HTTP_PARTIAL_RESPONSE_CODE 206
-
-nsChannelToPipeListener::nsChannelToPipeListener(
-    nsMediaDecoder* aDecoder,
-    PRBool aSeeking) :
+nsChannelToPipeListener::nsChannelToPipeListener(nsMediaDecoder* aDecoder) :
   mDecoder(aDecoder),
   mIntervalStart(0),
   mIntervalEnd(0),
-  mTotalBytes(0),
-  mSeeking(aSeeking)
+  mTotalBytes(0)
 {
 }
 
@@ -104,25 +98,10 @@ nsresult nsChannelToPipeListener::OnStartRequest(nsIRequest* aRequest, nsISuppor
   if (hc) {
     PRUint32 responseStatus = 0; 
     hc->GetResponseStatus(&responseStatus);
-    if (mSeeking && responseStatus == HTTP_OK_CODE) {
-      
-      
-      
-      
-      mDecoder->SetSeekable(PR_FALSE);
-    }
-    else if (!mSeeking && 
-             (responseStatus == HTTP_OK_CODE ||
-              responseStatus == HTTP_PARTIAL_RESPONSE_CODE)) {
-      
-      
+    if (responseStatus == 200) {
       PRInt32 cl = 0;
       hc->GetContentLength(&cl);
       mDecoder->SetTotalBytes(cl);
-
-      
-      
-      mDecoder->SetSeekable(responseStatus == HTTP_PARTIAL_RESPONSE_CODE);
     }
   }
 

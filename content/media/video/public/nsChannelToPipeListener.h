@@ -67,9 +67,7 @@ class nsChannelToPipeListener : public nsIStreamListener
   NS_DECL_NSISTREAMLISTENER
 
   public:
-  
-  
-  nsChannelToPipeListener(nsMediaDecoder* aDecoder, PRBool aSeeking = PR_FALSE);
+  nsChannelToPipeListener(nsMediaDecoder* aDecoder);
   nsresult Init();
   nsresult GetInputStream(nsIInputStream** aStream);
   void Stop();
@@ -97,9 +95,6 @@ private:
 
   
   PRInt64 mTotalBytes;
-
-  
-  PRPackedBool mSeeking;
 };
 
 #endif
