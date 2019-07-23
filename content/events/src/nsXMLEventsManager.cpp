@@ -377,20 +377,11 @@ nsXMLEventsManager::AttributeChanged(nsIDocument* aDocument,
       AddXMLEventsContent(aContent);
       nsXMLEventsListener::InitXMLEventsListener(aDocument, this, aContent);
     }
-    else if (aContent->GetIDAttributeName() == aAttribute) {
-      if (aModType == nsIDOMMutationEvent::REMOVAL)
-        mListeners.Enumerate(EnumAndSetIncomplete, aContent);
-      else if (aModType == nsIDOMMutationEvent::MODIFICATION) {
-        
-        mListeners.Enumerate(EnumAndSetIncomplete, aContent);
-        
-        AddListeners(aDocument);
-      }
-      else {
-        
-        
-        AddListeners(aDocument);
-      }
+    else if (aContent->IsPotentialIDAttributeName(aNameSpaceID, aAttribute)) {
+      
+      mListeners.Enumerate(EnumAndSetIncomplete, aContent);
+      
+      AddListeners(aDocument);
     }
   }
 }

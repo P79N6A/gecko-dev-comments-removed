@@ -63,8 +63,8 @@ class nsIDocShell;
 
 
 #define NS_ICONTENT_IID       \
-{ 0x36b375cb, 0xf01e, 0x4c18, \
-  { 0xbf, 0x9e, 0xba, 0xad, 0x77, 0x1d, 0xce, 0x22 } }
+{ 0x609baee8, 0x3c0a, 0x4122, \
+  { 0x9c, 0xc6, 0xe4, 0xc9, 0x83, 0x53, 0xff, 0x9c } }
 
 
 class nsIContent_base : public nsINode {
@@ -214,7 +214,18 @@ public:
 
 
 
-  virtual nsIAtom *GetIDAttributeName() const = 0;
+
+
+  virtual nsIAtom* GetIDAttributeName(PRInt32& aNameSpaceID) const = 0;
+
+  
+
+
+
+
+
+  virtual PRBool IsPotentialIDAttributeName(PRInt32 aNameSpaceID,
+                                            nsIAtom* aAtom) const = 0;
 
   
 
