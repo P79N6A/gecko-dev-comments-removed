@@ -516,13 +516,27 @@ public:
 
 
 
-  PRBool HandleShortcutNavigation(nsIDOMKeyEvent* aKeyEvent);
+
+
+  PRBool HandleShortcutNavigation(nsIDOMKeyEvent* aKeyEvent,
+                                  nsMenuPopupFrame* aFrame);
 
   
 
 
 
   PRBool HandleKeyboardNavigation(PRUint32 aKeyCode);
+
+  
+
+
+
+
+  PRBool HandleKeyboardNavigationInPopup(nsMenuPopupFrame* aFrame,
+                                         nsNavigationDirection aDir)
+  {
+    return HandleKeyboardNavigationInPopup(nsnull, aFrame, aDir);
+  }
 
   NS_IMETHODIMP HandleEvent(nsIDOMEvent* aEvent) { return NS_OK; }
 
@@ -595,9 +609,27 @@ protected:
                             PRBool aDeselectMenu);
 
   
+
+
+  PRBool HandleKeyboardNavigationInPopup(nsMenuChainItem* aItem,
+                                         nsNavigationDirection aDir)
+  {
+    return HandleKeyboardNavigationInPopup(aItem, aItem->Frame(), aDir);
+  }
+
+private:
   
-  PRBool HandleKeyboardNavigationInPopup(nsMenuChainItem* item,
+
+
+
+
+
+
+  PRBool HandleKeyboardNavigationInPopup(nsMenuChainItem* aItem,
+                                         nsMenuPopupFrame* aFrame,
                                          nsNavigationDirection aDir);
+
+protected:
 
   
 
