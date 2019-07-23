@@ -277,6 +277,15 @@ public:
 
 
 
+    eMetric_MaemoClassic,
+
+    
+
+
+
+
+
+
 
 
 
