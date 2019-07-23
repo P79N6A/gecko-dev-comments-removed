@@ -139,8 +139,6 @@ nsAppShell::ProcessNextNativeEvent(PRBool mayWait)
     
     if (PeekKeyAndIMEMessage(&msg, NULL) ||
         ::PeekMessageW(&msg, NULL, WM_MOUSEFIRST, WM_MOUSELAST, PM_REMOVE) || 
-        
-        ::PeekMessageW(&msg, NULL, 0, WM_USER - 1, PM_REMOVE) || 
         ::PeekMessageW(&msg, NULL, 0, 0, PM_REMOVE)) {
       gotMessage = PR_TRUE;
       if (msg.message == WM_QUIT) {
