@@ -882,6 +882,14 @@ Assembler::LD32_nochk(Register r, int32_t imm)
         return;
     }
 
+
+#ifdef NJ_ARM_HAVE_MOVW
+    
+    
+    if (((imm >> 16) & 0xFFFF) != 0)
+        MOVT(r, (imm >> 16) & 0xFFFF);
+    MOVW(r, imm & 0xFFFF);
+#else
     
     
 
@@ -896,6 +904,7 @@ Assembler::LD32_nochk(Register r, int32_t imm)
     asm_output("  (%d(PC) = 0x%x)", offset, imm);
 
     LDR_nochk(r,PC,offset);
+#endif
 }
 
 void
@@ -934,7 +943,6 @@ Assembler::asm_ld_imm(Register d, int32_t imm)
     } else {
         underrunProtect(LD32_size);
         LD32_nochk(d, imm);
-        asm_output("ld  %s,0x%x",gpn(d), imm);
     }
 }
 
