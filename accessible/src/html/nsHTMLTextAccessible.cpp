@@ -38,7 +38,6 @@
 
 
 #include "nsHTMLTextAccessible.h"
-#include "nsAccessibleTreeWalker.h"
 #include "nsIAccessibleDocument.h"
 #include "nsIAccessibleEvent.h"
 #include "nsIFrame.h"
