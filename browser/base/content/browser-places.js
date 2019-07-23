@@ -822,3 +822,37 @@ var PlacesStarButton = {
   onItemVisited: function() { },
   onItemMoved: function() { }
 };
+
+
+
+
+function placesMigrationTasks() {
+  
+  
+  if (gPrefService.getBoolPref("browser.places.migratePostDataAnnotations")) {
+    const annosvc = PlacesUtils.annotations;
+    const bmsvc = PlacesUtils.bookmarks;
+    const oldPostDataAnno = "URIProperties/POSTData";
+    var pages = annosvc.getPagesWithAnnotation(oldPostDataAnno, {});
+    for (let i = 0; i < pages.length; i++) {
+      try {
+        let uri = pages[i];
+        var postData = annosvc.getPageAnnotation(uri, oldPostDataAnno);
+        
+        
+        
+        
+        
+        let bookmarks = bmsvc.getBookmarkIdsForURI(uri, {});
+        for (let i = 0; i < bookmarks.length; i++) {
+          var keyword = bmsvc.getKeywordForBookmark(bookmarks[i]);
+          if (keyword)
+            annosvc.setItemAnnotation(bookmarks[i], POST_DATA_ANNO, postData, 0, annosvc.EXPIRE_NEVER); 
+        }
+        
+        annosvc.removePageAnnotation(uri, oldPostDataAnno);
+      } catch(ex) {}
+    }
+    gPrefService.setBoolPref("browser.places.migratePostDataAnnotations", false);
+  }
+}

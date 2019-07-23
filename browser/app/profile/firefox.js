@@ -590,5 +590,10 @@ pref("browser.places.createdSmartBookmarks", false);
 
 
 
+pref("browser.places.migratePostDataAnnotations", true);
+
+
+
+
 
 pref("browser.ssl_override_behavior", 1);
