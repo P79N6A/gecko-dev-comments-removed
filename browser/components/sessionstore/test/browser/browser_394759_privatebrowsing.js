@@ -59,16 +59,15 @@ function test() {
   ss.setBrowserState(blankState);
 
   
+  
+  
   let os = Cc["@mozilla.org/observer-service;1"].
            getService(Ci.nsIObserverService);
   os.addObserver({observe: function(aSubject, aTopic, aData) {
     os.removeObserver(this, aTopic);
-    info("sessionstore.js was written");
-    if (gPrefService.prefHasUserValue("browser.sessionstore.interval"))
-      gPrefService.clearUserPref("browser.sessionstore.interval");
-
+    info("sessionstore.js is being written");
     executeSoon(continue_test);
-  }}, "sessionstore-state-write-complete", false);
+  }}, "sessionstore-state-write", false);
 
   
   let profilePath = Cc["@mozilla.org/file/directory_service;1"].
@@ -78,7 +77,7 @@ function test() {
   sessionStoreJS.append("sessionstore.js");
   if (sessionStoreJS.exists())
     sessionStoreJS.remove(false);
-  ok(sessionStoreJS.exists() == false, "sessionstore.js was removed");
+  info("sessionstore.js was correctly removed: " + (!sessionStoreJS.exists()));
 
   
   
@@ -90,6 +89,8 @@ function continue_test() {
            getService(Ci.nsIWindowWatcher);
   let pb = Cc["@mozilla.org/privatebrowsing;1"].
            getService(Ci.nsIPrivateBrowsingService);
+  
+  ok(!pb.privateBrowsingEnabled, "Private Browsing is disabled");
   let ss = Cc["@mozilla.org/browser/sessionstore;1"].
            getService(Ci.nsISessionStore);
 
@@ -168,8 +169,11 @@ function continue_test() {
                        "restored when exiting PB mode");
                   }
 
-                  if (aTestIndex == TESTS.length - 1)
+                  if (aTestIndex == TESTS.length - 1) {
+                    if (gPrefService.prefHasUserValue("browser.sessionstore.interval"))
+                      gPrefService.clearUserPref("browser.sessionstore.interval");
                     finish();
+                  }
                   else {
                     
                     openWindowAndTest(aTestIndex + 1, !aRunNextTestInPBMode);
