@@ -225,8 +225,8 @@ function Script(t, x) {
 
 Array.prototype.__defineProperty__(
     'top',
-    function () { 
-        return this.length && this[this.length-1]; 
+    function () {
+        return this.length && this[this.length-1];
     },
     false, false, true
 );
@@ -812,6 +812,12 @@ loop:
             if (t.scanOperand) {
                 operators.push(new Node(t));  
             } else {
+                
+                if (t.tokens[(t.tokenIndex + t.lookahead - 1) & 3].lineno !=
+                    t.lineno) {
+                    break loop;
+                }
+
                 
                 while (opPrecedence[operators.top().type] > opPrecedence[tt])
                     reduce();
