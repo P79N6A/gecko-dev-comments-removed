@@ -418,6 +418,129 @@ NS_HandleScriptError(nsIScriptGlobalObject *aScriptGlobal,
   return called;
 }
 
+class ScriptErrorEvent : public nsRunnable
+{
+public:
+  ScriptErrorEvent(nsIScriptGlobalObject* aScriptGlobal,
+                   PRUint32 aLineNr, PRUint32 aColumn, PRUint32 aFlags,
+                   const nsAString& aErrorMsg,
+                   const nsAString& aFileName,
+                   const nsAString& aSourceLine,
+                   PRBool aDispatchEvent)
+  : mScriptGlobal(aScriptGlobal), mLineNr(aLineNr), mColumn(aColumn),
+    mFlags(aFlags), mErrorMsg(aErrorMsg), mFileName(aFileName),
+    mSourceLine(aSourceLine), mDispatchEvent(aDispatchEvent) {}
+
+  NS_IMETHOD Run()
+  {
+    nsEventStatus status = nsEventStatus_eIgnore;
+    
+    if (mDispatchEvent) {
+      nsCOMPtr<nsPIDOMWindow> win(do_QueryInterface(mScriptGlobal));
+      nsIDocShell* docShell = win ? win->GetDocShell() : nsnull;
+      if (docShell &&
+          !JSREPORT_IS_WARNING(mFlags) &&
+          !sHandlingScriptError) {
+        sHandlingScriptError = PR_TRUE; 
+
+        nsCOMPtr<nsPresContext> presContext;
+        docShell->GetPresContext(getter_AddRefs(presContext));
+
+        if (presContext) {
+          nsScriptErrorEvent errorevent(PR_TRUE, NS_LOAD_ERROR);
+
+          errorevent.fileName = mFileName.get();
+
+          nsCOMPtr<nsIScriptObjectPrincipal> sop(do_QueryInterface(win));
+          NS_ENSURE_STATE(sop);
+          nsIPrincipal* p = sop->GetPrincipal();
+          NS_ENSURE_STATE(p);
+
+          PRBool sameOrigin = mFileName.IsVoid();
+
+          if (p && !sameOrigin) {
+            nsCOMPtr<nsIURI> errorURI;
+            NS_NewURI(getter_AddRefs(errorURI), mFileName);
+            if (errorURI) {
+              
+              
+              
+              
+              sameOrigin = NS_SUCCEEDED(p->CheckMayLoad(errorURI, PR_FALSE));
+            }
+          }
+
+          NS_NAMED_LITERAL_STRING(xoriginMsg, "Script error.");
+          if (sameOrigin) {
+            errorevent.errorMsg = mErrorMsg.get();
+            errorevent.lineNr = mLineNr;
+          } else {
+            NS_WARNING("Not same origin error!");
+            errorevent.errorMsg = xoriginMsg.get();
+            errorevent.lineNr = 0;
+          }
+
+          nsEventDispatcher::Dispatch(win, presContext, &errorevent, nsnull,
+                                      &status);
+        }
+
+        sHandlingScriptError = PR_FALSE;
+      }
+    }
+
+    if (status != nsEventStatus_eConsumeNoDefault) {
+      
+      
+      nsCOMPtr<nsIScriptError> errorObject =
+        do_CreateInstance("@mozilla.org/scripterror;1");
+
+      if (errorObject != nsnull) {
+        nsresult rv = NS_ERROR_NOT_AVAILABLE;
+
+        
+        nsCOMPtr<nsIScriptObjectPrincipal> scriptPrincipal =
+          do_QueryInterface(mScriptGlobal);
+        NS_ASSERTION(scriptPrincipal, "Global objects must implement "
+                     "nsIScriptObjectPrincipal");
+        nsCOMPtr<nsIPrincipal> systemPrincipal;
+        sSecurityManager->GetSystemPrincipal(getter_AddRefs(systemPrincipal));
+        const char * category =
+          scriptPrincipal->GetPrincipal() == systemPrincipal
+          ? "chrome javascript"
+          : "content javascript";
+
+        rv = errorObject->Init(mErrorMsg.get(), mFileName.get(),
+                               mSourceLine.get(),
+                               mLineNr, mColumn, mFlags,
+                               category);
+
+        if (NS_SUCCEEDED(rv)) {
+          nsCOMPtr<nsIConsoleService> consoleService =
+            do_GetService(NS_CONSOLESERVICE_CONTRACTID, &rv);
+          if (NS_SUCCEEDED(rv)) {
+            consoleService->LogMessage(errorObject);
+          }
+        }
+      }
+    }
+    return NS_OK;
+  }
+
+
+  nsCOMPtr<nsIScriptGlobalObject> mScriptGlobal;
+  PRUint32                        mLineNr;
+  PRUint32                        mColumn;
+  PRUint32                        mFlags;
+  nsString                        mErrorMsg;
+  nsString                        mFileName;
+  nsString                        mSourceLine;
+  PRBool                          mDispatchEvent;
+
+  static PRBool sHandlingScriptError;
+};
+
+PRBool ScriptErrorEvent::sHandlingScriptError = PR_FALSE;
+
 
 
 
@@ -457,8 +580,6 @@ NS_ScriptErrorReporter(JSContext *cx,
   
   nsIScriptContext *context = nsJSUtils::GetDynamicScriptContext(cx);
 
-  nsEventStatus status = nsEventStatus_eIgnore;
-
   
   
   ::JS_ClearPendingException(cx);
@@ -468,9 +589,11 @@ NS_ScriptErrorReporter(JSContext *cx,
 
     if (globalObject) {
       nsAutoString fileName, msg;
-      NS_NAMED_LITERAL_STRING(xoriginMsg, "Script error.");
-
-      fileName.AssignWithConversion(report->filename);
+      if (!report->filename) {
+        fileName.SetIsVoid(PR_TRUE);
+      } else {
+        fileName.AssignWithConversion(report->filename);
+      }
 
       const PRUnichar *m = reinterpret_cast<const PRUnichar*>
                                              (report->ucmessage);
@@ -482,107 +605,20 @@ NS_ScriptErrorReporter(JSContext *cx,
         msg.AssignWithConversion(message);
       }
 
+
       
-      
 
 
 
 
 
-      {
-        
-        
-        
-        nsCOMPtr<nsPIDOMWindow> win(do_QueryInterface(globalObject));
-        nsIDocShell *docShell = win ? win->GetDocShell() : nsnull;
-        if (docShell &&
-            (report->errorNumber != JSMSG_OUT_OF_MEMORY &&
-              !JSREPORT_IS_WARNING(report->flags))) {
-          static PRInt32 errorDepth; 
-          ++errorDepth;
-
-          nsCOMPtr<nsPresContext> presContext;
-          docShell->GetPresContext(getter_AddRefs(presContext));
-
-          if (presContext && errorDepth < 2) {
-            nsScriptErrorEvent errorevent(PR_TRUE, NS_LOAD_ERROR);
-
-            errorevent.fileName = fileName.get();
-
-            nsCOMPtr<nsIScriptObjectPrincipal> sop(do_QueryInterface(win));
-            nsIPrincipal *p = sop->GetPrincipal();
-
-            PRBool sameOrigin = (report->filename == nsnull);
-
-            if (p && !sameOrigin) {
-              nsCOMPtr<nsIURI> errorURI;
-              NS_NewURI(getter_AddRefs(errorURI), report->filename);
-
-              if (errorURI) {
-                
-                
-                
-                
-                sameOrigin = NS_SUCCEEDED(p->CheckMayLoad(errorURI, PR_FALSE));
-              }
-            }
-
-            if (sameOrigin) {
-              errorevent.errorMsg = msg.get();
-              errorevent.lineNr = report->lineno;
-            } else {
-              errorevent.errorMsg = xoriginMsg.get();
-              errorevent.lineNr = 0;
-            }
-
-            
-            
-            nsEventDispatcher::Dispatch(win, presContext, &errorevent, nsnull,
-                                        &status);
-          }
-
-          --errorDepth;
-        }
-      }
-
-      if (status != nsEventStatus_eConsumeNoDefault) {
-        
-        
-        nsCOMPtr<nsIScriptError> errorObject =
-          do_CreateInstance("@mozilla.org/scripterror;1");
-
-        if (errorObject != nsnull) {
-          nsresult rv = NS_ERROR_NOT_AVAILABLE;
-
-          
-          nsCOMPtr<nsIScriptObjectPrincipal> scriptPrincipal =
-            do_QueryInterface(globalObject);
-          NS_ASSERTION(scriptPrincipal, "Global objects must implement "
-                       "nsIScriptObjectPrincipal");
-          nsCOMPtr<nsIPrincipal> systemPrincipal;
-          sSecurityManager->GetSystemPrincipal(getter_AddRefs(systemPrincipal));
-          const char * category =
-            scriptPrincipal->GetPrincipal() == systemPrincipal
-            ? "chrome javascript"
-            : "content javascript";
-
-          PRUint32 column = report->uctokenptr - report->uclinebuf;
-
-          rv = errorObject->Init(msg.get(), fileName.get(),
-                                 reinterpret_cast<const PRUnichar*>
-                                                 (report->uclinebuf),
-                                 report->lineno, column, report->flags,
-                                 category);
-
-          if (NS_SUCCEEDED(rv)) {
-            nsCOMPtr<nsIConsoleService> consoleService =
-              do_GetService(NS_CONSOLESERVICE_CONTRACTID, &rv);
-            if (NS_SUCCEEDED(rv)) {
-              consoleService->LogMessage(errorObject);
-            }
-          }
-        }
-      }
+      nsAutoString sourceLine;
+      sourceLine.Assign(reinterpret_cast<const PRUnichar*>(report->uclinebuf));
+      nsContentUtils::AddScriptRunner(
+        new ScriptErrorEvent(globalObject, report->lineno,
+                             report->uctokenptr - report->uclinebuf,
+                             report->flags, msg, fileName, sourceLine,
+                             report->errorNumber != JSMSG_OUT_OF_MEMORY));
     }
   }
 
@@ -607,8 +643,7 @@ NS_ScriptErrorReporter(JSContext *cx,
   } else {
     error.Append(message);
   }
-  if (status != nsEventStatus_eIgnore && !JSREPORT_IS_WARNING(report->flags))
-    error.Append(" Error was suppressed by event handler\n");
+
   fprintf(stderr, "%s\n", error.get());
   fflush(stderr);
 #endif
