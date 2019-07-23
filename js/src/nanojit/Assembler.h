@@ -278,8 +278,7 @@ namespace nanojit
             Register    getBaseReg(LOpcode op, LIns *i, int &d, RegisterMask allow);
             int         findMemFor(LIns* i);
             Register    findRegFor(LIns* i, RegisterMask allow);
-            void        findRegFor2(RegisterMask allow, LIns* ia, Reservation* &resva, LIns *ib, Reservation* &resvb);
-            void        findRegFor2b(RegisterMask allow, LIns* ia, Register &ra, LIns *ib, Register &rb);
+            void        findRegFor2(RegisterMask allow, LIns* ia, Register &ra, LIns *ib, Register &rb);
             Register    findSpecificRegFor(LIns* i, Register r);
             Register    findSpecificRegForUnallocated(LIns* i, Register r);
             Register    prepResultReg(LIns *i, RegisterMask allow);
@@ -294,11 +293,6 @@ namespace nanojit
 
             bool isKnownReg(Register r) {
                 return r != UnknownReg;
-            }
-
-            Reservation* getresv(LIns *x) {
-                Reservation* r = x->resv();
-                return r->used ? r : 0;
             }
 
             Allocator&          alloc;              
@@ -349,7 +343,7 @@ namespace nanojit
             void        asm_qjoin(LIns *ins);
             void        asm_store32(LIns *val, int d, LIns *base);
             void        asm_store64(LIns *val, int d, LIns *base);
-            void        asm_restore(LInsp, Reservation*, Register);
+            void        asm_restore(LInsp, Register);
             void        asm_load(int d, Register r);
             void        asm_spilli(LInsp i, bool pop);
             void        asm_spill(Register rr, int d, bool pop, bool quad);
@@ -371,7 +365,7 @@ namespace nanojit
             void        asm_i2f(LInsp ins);
             void        asm_u2f(LInsp ins);
             void        asm_promote(LIns *ins);
-            Register    asm_prep_fcall(Reservation *rR, LInsp ins);
+            Register    asm_prep_fcall(LInsp ins);
             void        asm_nongp_copy(Register r, Register s);
             void        asm_call(LInsp);
             Register    asm_binop_rhs_reg(LInsp ins);
@@ -413,11 +407,6 @@ namespace nanojit
             avmplus::Config &config;
     };
 
-    inline int32_t disp(Reservation* r)
-    {
-        
-        return stack_direction(4 * int32_t(r->arIndex));
-    }
     inline int32_t disp(LIns* ins)
     {
         

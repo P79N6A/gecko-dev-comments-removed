@@ -146,7 +146,7 @@ namespace nanojit
             verbose_only( if (_logc->lcbits & LC_Assembly) {
                             setOutputForEOL("  <= restore %s",
                             _thisfrag->lirbuf->names->formatRef(vicIns)); } )
-            asm_restore(vicIns, vicIns->resv(), r);
+            asm_restore(vicIns, r);
 
             
             _allocator.addActive(r, ins);
@@ -299,39 +299,36 @@ namespace nanojit
     }
     #endif 
 
-    void Assembler::findRegFor2(RegisterMask allow, LIns* ia, Reservation* &resva, LIns* ib, Reservation* &resvb)
+    void Assembler::findRegFor2(RegisterMask allow, LIns* ia, Register& ra, LIns* ib, Register& rb)
     {
-        if (ia == ib)
-        {
-            findRegFor(ia, allow);
-            resva = resvb = ia->resvUsed();
-        }
-        else
-        {
-            resvb = ib->resv();
-            bool rbDone = (resvb->used && isKnownReg(resvb->reg) && (allow & rmask(resvb->reg)));
+        if (ia == ib) {
+            ra = rb = findRegFor(ia, allow);
+        } else {
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            bool rbDone = !ib->isUnusedOrHasUnknownReg() && (rb = ib->getReg(), allow & rmask(rb));
             if (rbDone) {
-                
-                allow &= ~rmask(resvb->reg);
+                allow &= ~rmask(rb);    
             }
-            Register ra = findRegFor(ia, allow);
-            resva = ia->resv();
-            NanoAssert(error() || (resva->used && isKnownReg(ra)));
+            ra = findRegFor(ia, allow);
             if (!rbDone) {
                 allow &= ~rmask(ra);
-                findRegFor(ib, allow);
-                resvb = ib->resvUsed();
+                rb = findRegFor(ib, allow);
             }
         }
-    }
-
-    
-    void Assembler::findRegFor2b(RegisterMask allow, LIns* ia, Register &ra, LIns* ib, Register &rb)
-    {
-        Reservation *resva, *resvb;
-        findRegFor2(allow, ia, resva, ib, resvb);
-        ra = resva->reg;
-        rb = resvb->reg;
     }
 
     Register Assembler::findSpecificRegFor(LIns* i, Register w)
@@ -561,7 +558,7 @@ namespace nanojit
         verbose_only( if (_logc->lcbits & LC_Assembly) {
                         setOutputForEOL("  <= restore %s",
                         _thisfrag->lirbuf->names->formatRef(vic)); } )
-        asm_restore(vic, vic->resv(), r);
+        asm_restore(vic, r);
     }
 
     void Assembler::patch(GuardRecord *lr)
@@ -1013,7 +1010,7 @@ namespace nanojit
                     if (isKnownReg(r)) {
                         _allocator.retire(r);
                         ins->setReg(UnknownReg);
-                        asm_restore(ins, ins->resv(), r);
+                        asm_restore(ins, r);
                     }
                     freeRsrcOf(ins, 0);
                     break;
@@ -1414,7 +1411,7 @@ namespace nanojit
                     if (ARM_VFP && op == LIR_fcall)
                     {
                         
-                        rr = asm_prep_fcall(getresv(ins), ins);
+                        rr = asm_prep_fcall(ins);
                     }
                     else
                     {
