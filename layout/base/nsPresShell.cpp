@@ -4401,7 +4401,14 @@ PresShell::DoFlushPendingNotifications(mozFlushType aType,
     
     viewManager->BeginUpdateViewBatch();
 
-    mFrameConstructor->ProcessPendingRestyles();
+    
+    
+    
+    
+    mDocument->FlushPendingNotifications(Flush_ContentAndNotify);
+    if (!mIsDestroying) {
+      mFrameConstructor->ProcessPendingRestyles();
+    }
 
     if (aType >= Flush_Layout && !mIsDestroying) {
       mFrameConstructor->RecalcQuotesAndCounters();
