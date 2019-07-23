@@ -360,6 +360,10 @@ mozInlineSpellStatus::FinishInitOnEvent(mozInlineSpellWordUtil& aWordUtil)
 nsresult
 mozInlineSpellStatus::FinishNavigationEvent(mozInlineSpellWordUtil& aWordUtil)
 {
+  nsCOMPtr<nsIEditor> editor = do_QueryReferent(mSpellChecker->mEditor);
+  if (! editor)
+    return NS_ERROR_FAILURE; 
+
   NS_ASSERTION(mAnchorRange, "No anchor for navigation!");
   nsCOMPtr<nsIDOMNode> newAnchorNode, oldAnchorNode;
   PRInt32 newAnchorOffset, oldAnchorOffset;
@@ -377,6 +381,12 @@ mozInlineSpellStatus::FinishNavigationEvent(mozInlineSpellWordUtil& aWordUtil)
   rv = aWordUtil.GetRangeForWord(oldAnchorNode, oldAnchorOffset,
                                  getter_AddRefs(oldWord));
   NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  editor = do_QueryReferent(mSpellChecker->mEditor);
+  if (! editor)
+    return NS_ERROR_FAILURE; 
+
   nsCOMPtr<nsIDOMNSRange> oldWordNS = do_QueryInterface(oldWord, &rv);
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -574,6 +584,7 @@ nsresult mozInlineSpellChecker::Cleanup()
 
     rv = UnregisterEventListeners();
   }
+  mEditor = nsnull;
 
   return rv;
 }
@@ -1304,6 +1315,11 @@ nsresult mozInlineSpellChecker::DoSpellCheck(mozInlineSpellWordUtil& aWordUtil,
   aWordUtil.SetPosition(beginNode, beginOffset);
 
   
+  editor = do_QueryReferent(mEditor);
+  if (! editor)
+    return NS_ERROR_FAILURE;
+  
+  
   nsCOMPtr<nsIDOMNSRange> noCheckRange, createdRange;
   if (aStatus->mNoCheckRange)
     noCheckRange = do_QueryInterface(aStatus->mNoCheckRange);
@@ -1397,7 +1413,7 @@ nsresult mozInlineSpellChecker::DoSpellCheck(mozInlineSpellWordUtil& aWordUtil,
     
     if (wordsSinceTimeCheck >= INLINESPELL_TIMEOUT_CHECK_FREQUENCY) {
       wordsSinceTimeCheck = 0;
-      if (PR_Now() > beginTime + INLINESPELL_CHECK_TIMEOUT * PR_USEC_PER_MSEC) {
+      if (PR_Now() > PRTime(beginTime + INLINESPELL_CHECK_TIMEOUT * PR_USEC_PER_MSEC)) {
         
 
         
@@ -1426,6 +1442,10 @@ nsresult
 mozInlineSpellChecker::ResumeCheck(mozInlineSpellStatus* aStatus)
 {
   if (! mSpellCheck)
+    return NS_OK; 
+
+  nsCOMPtr<nsIEditor> editor = do_QueryReferent(mEditor);
+  if (! editor)
     return NS_OK; 
 
   mozInlineSpellWordUtil wordUtil;
