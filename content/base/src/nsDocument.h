@@ -741,7 +741,7 @@ protected:
   nsCOMArray<nsIStyleSheet> mCatalogSheets;
 
   
-  nsTObserverArray<nsIDocumentObserver> mObservers;
+  nsTObserverArray<nsIDocumentObserver*> mObservers;
 
   
   

@@ -49,7 +49,6 @@
 #include "nsCycleCollectionParticipant.h"
 
 class nsIDOMEvent;
-class nsVoidArray;
 class nsIAtom;
 struct EventTypeData;
 
@@ -189,17 +188,17 @@ protected:
   nsresult GetDOM2EventGroup(nsIDOMEventGroup** aGroup);
   PRBool ListenerCanHandle(nsListenerStruct* aLs, nsEvent* aEvent);
 
-  nsTObserverArray<nsListenerStruct> mListeners;
-  nsISupports*                       mTarget;  
-  PRUint32                           mMayHaveMutationListeners : 1;
+  nsTObserverArray<nsListenerStruct*> mListeners;
+  nsISupports*                        mTarget;  
+  PRUint32                            mMayHaveMutationListeners : 1;
   
   
   
-  PRUint32                           mNoListenerForEvent : 31;
-  nsCOMPtr<nsIAtom>                  mNoListenerForEventAtom;
+  PRUint32                            mNoListenerForEvent : 31;
+  nsCOMPtr<nsIAtom>                   mNoListenerForEventAtom;
 
-  static PRUint32                    mInstanceCount;
-  static jsval                       sAddListenerID;
+  static PRUint32                     mInstanceCount;
+  static jsval                        sAddListenerID;
 };
 
 #endif 
