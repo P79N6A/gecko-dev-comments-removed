@@ -389,16 +389,34 @@ SplitURL(nsIURI *aChromeURI, nsCString& aPackage, nsCString& aProvider, nsCStrin
   } else {
     
     
-    PRInt32 origLen = aFile.Length();
-    PRInt32 newLen = nsUnescapeCount(aFile.BeginWriting());
-    if (origLen != newLen) {
-        aFile.SetLength(newLen);
-        nofile = PR_TRUE; 
+    
+    
+    const char* pos = aFile.BeginReading();
+    const char* end = aFile.EndReading();
+    while (pos < end) {
+      switch (*pos) {
+        case ':':
+          return NS_ERROR_FAILURE;
+        case '.':
+          if (pos[1] == '.')
+            return NS_ERROR_FAILURE;
+          break;
+        case '%':
+          
+          
+          if (pos[1] == '2' &&
+               ( pos[2] == 'e' || pos[2] == 'E' || 
+                 pos[2] == '5' ))
+            return NS_ERROR_FAILURE;
+          break;
+        case '?':
+        case '#':
+          
+          pos = end;
+          continue;
+      }
+      ++pos;
     }
-
-    if (aFile.Find(NS_LITERAL_CSTRING("..")) != kNotFound ||
-        aFile.FindChar(':') != kNotFound)
-      return NS_ERROR_FAILURE;
   }
   if (aModified)
     *aModified = nofile;
