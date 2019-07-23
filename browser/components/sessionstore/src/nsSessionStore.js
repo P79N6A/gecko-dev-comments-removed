@@ -52,6 +52,7 @@
 
 
 
+
 const Cc = Components.classes;
 const Ci = Components.interfaces;
 const Cr = Components.results;
@@ -74,6 +75,7 @@ const NOTIFY_WINDOWS_RESTORED = "sessionstore-windows-restored";
 const OBSERVING = [
   "domwindowopened", "domwindowclosed",
   "quit-application-requested", "quit-application-granted",
+  "browser-lastwindow-close-granted",
   "quit-application", "browser:purge-session-history",
   "private-browsing", "browser:purge-domain-data",
   "private-browsing-change-granted"
@@ -168,6 +170,11 @@ SessionStoreService.prototype = {
 
   
   _clearingOnShutdown: false,
+
+#ifndef XP_MACOSX
+  
+  _restoreLastWindow: false,
+#endif
 
 
 
@@ -329,6 +336,15 @@ SessionStoreService.prototype = {
       
       this._loadState = STATE_QUITTING;
       break;
+#ifndef XP_MACOSX
+    case "browser-lastwindow-close-granted":
+      
+      
+      
+      
+      this._restoreLastWindow = true;
+      break;
+#endif
     case "quit-application":
       if (aData == "restart") {
         this._prefBranch.setBoolPref("sessionstore.resume_session_once", true);
@@ -569,6 +585,7 @@ SessionStoreService.prototype = {
         delete this._initialState;
         
         
+        
         this.saveState(true);
       }
       else {
@@ -586,7 +603,38 @@ SessionStoreService.prototype = {
       let followUp = this._statesToRestore[aWindow.__SS_restoreID].windows.length == 1;
       this.restoreWindow(aWindow, this._statesToRestore[aWindow.__SS_restoreID], true, followUp);
     }
-    
+#ifndef XP_MACOSX
+    else if (this._restoreLastWindow && aWindow.toolbar.visible &&
+             this._closedWindows.length && this._doResumeSession() &&
+             !this._inPrivateBrowsing) {
+
+      
+      
+      let state = null;
+      this._closedWindows = this._closedWindows.filter(function(aWinState) {
+        if (!state && !aWinState.isPopup) {
+          state = aWinState;
+          return false;
+        }
+        return true;
+      });
+      if (state) {
+        delete state.hidden;
+        state = { windows: [state] };
+        this._restoreCount = 1;
+        this.restoreWindow(aWindow, state, this._isCmdLineEmpty(aWindow));
+      }
+      
+      this._prefBranch.setBoolPref("sessionstore.resume_session_once", false);
+    }
+    if (this._restoreLastWindow && aWindow.toolbar.visible) {
+      
+      
+      
+      this._restoreLastWindow = false;
+    }
+#endif
+
     var tabbrowser = aWindow.getBrowser();
     var tabpanels = tabbrowser.mPanelContainer;
     
