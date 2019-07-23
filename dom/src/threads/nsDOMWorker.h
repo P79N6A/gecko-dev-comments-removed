@@ -197,7 +197,7 @@ public:
 
 
 
-  enum DOMWorkerStatus {
+  enum Status {
     
     eRunning = 0,
 
@@ -307,7 +307,7 @@ private:
   PRInt32 mErrorHandlerRecursionCount;
 
   
-  DOMWorkerStatus mStatus;
+  Status mStatus;
 
   
   PRIntervalTime mExpirationTime;
