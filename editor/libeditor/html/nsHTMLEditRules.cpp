@@ -2408,6 +2408,7 @@ nsHTMLEditRules::WillDeleteSelection(nsISelection *aSelection,
       {
         
         
+        NS_ENSURE_STATE(leftParent && rightParent);
         
         
         nsCOMPtr<nsIDOMNode> leftBlockParent;
