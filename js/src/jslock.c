@@ -1027,10 +1027,9 @@ js_Unlock(JSThinLock *tl, jsword me)
 
 
 
-    if (tl->owner == me) {
-        tl->owner = 0;
+    if (js_CompareAndSwap(&tl->owner, me, 0))
         return;
-    }
+
     JS_ASSERT(Thin_GetWait(tl->owner));
     if (Thin_RemoveWait(ReadWord(tl->owner)) == me)
         js_Dequeue(tl);
