@@ -37,11 +37,13 @@
 
 
 
-try {
-  var histsvc = Cc["@mozilla.org/browser/nav-history-service;1"].getService(Ci.nsINavHistoryService);
-} catch(ex) {
-  do_throw("Could not get history service\n");
-} 
+var hs = Cc["@mozilla.org/browser/nav-history-service;1"].
+         getService(Ci.nsINavHistoryService);
+var bh = hs.QueryInterface(Ci.nsIBrowserHistory);
+var bs = Cc["@mozilla.org/browser/nav-bookmarks-service;1"].
+         getService(Ci.nsINavBookmarksService);
+var ps = Cc["@mozilla.org/preferences-service;1"].
+         getService(Ci.nsIPrefBranch);
 
 
 
@@ -52,205 +54,202 @@ try {
 
 
 
-function add_visit(aURI, aDayOffset) {
-  var placeID = histsvc.addVisit(aURI,
-                                 (Date.now() + aDayOffset*86400000) * 1000,
-                                 null,
-                                 histsvc.TRANSITION_TYPED, 
-                                 false, 
-                                 0);
-  do_check_true(placeID > 0);
-  return placeID;
+function add_normalized_visit(aURI, aTime, aDayOffset) {
+  var dateObj = new Date(aTime);
+  
+  dateObj.setHours(0);
+  dateObj.setMinutes(0);
+  dateObj.setSeconds(0);
+  dateObj.setMilliseconds(0);
+  
+  var PRTimeWithOffset = (dateObj.getTime() + aDayOffset * 86400000) * 1000;
+  print("Adding visit to " + aURI.spec + " at " + new Date(PRTimeWithOffset/1000));
+  var visitId = hs.addVisit(aURI,
+                            PRTimeWithOffset,
+                            null,
+                            hs.TRANSITION_TYPED, 
+                            false, 
+                            0);
+  do_check_true(visitId > 0);
+  return visitId;
 }
 
+var nowObj = new Date();
 
-var dayLabels = 
-[ 
-  "Today", 
-  "Yesterday", 
-  "2 days ago", 
-  "3 days ago",
-  "4 days ago",
-  "5 days ago",
-  "6 days ago",
-  "Older than 6 days"
+
+var containers = [
+  { label: "Today",               offset: 0                     },
+  { label: "Yesterday",           offset: -1                    },
+  { label: "Last 7 days",         offset: -3                    },
+  { label: "This month",          offset: -8                    },
+  { label: "",                    offset: -nowObj.getDate()-1   },
+  { label: "Older than 6 months", offset: -nowObj.getDate()-186 },
 ];
 
 
-function fill_history() {
-  const checkOlderOffset = 4;
 
+
+function fill_history() {
+  print("\n\n*** TEST Fill History\n");
   
-  for (var i=checkOlderOffset; i<dayLabels.length; i++)
-  {
+  
+  for (var i = 0; i < containers.length; i++) {
+    var container = containers[i];
     var testURI = uri("http://mirror"+i+".mozilla.com/b");
-    add_visit(testURI, -i);
+    add_normalized_visit(testURI, nowObj.getTime(), container.offset);
     var testURI = uri("http://mirror"+i+".mozilla.com/a");
-    add_visit(testURI, -i);
+    add_normalized_visit(testURI, nowObj.getTime(), container.offset);
     var testURI = uri("http://mirror"+i+".google.com/b");
-    add_visit(testURI, -i);
+    add_normalized_visit(testURI, nowObj.getTime(), container.offset);
     var testURI = uri("http://mirror"+i+".google.com/a");
-    add_visit(testURI, -i);
+    add_normalized_visit(testURI, nowObj.getTime(), container.offset);
   }
 
-  var options = histsvc.getNewQueryOptions();
+  var options = hs.getNewQueryOptions();
   options.resultType = options.RESULTS_AS_DATE_SITE_QUERY;
-  var query = histsvc.getNewQuery();
-  var result = histsvc.executeQuery(query, options);
+  var query = hs.getNewQuery();
+
+  var result = hs.executeQuery(query, options);
   var root = result.root;
   root.containerOpen = true;
-  do_check_eq(root.childCount, dayLabels.length - checkOlderOffset);
 
-  for (var i=checkOlderOffset; i<dayLabels.length; i++)
-  {
-    var node = root.getChild(i-checkOlderOffset);
-    do_check_eq(node.title, dayLabels[i]);
+  var cc = root.childCount;
+  print("Found containers:");
+  for (var i = 0; i < cc; i++) {
+    var container = containers[i];
+    var node = root.getChild(i);
+    print(node.title);
+    if (container.label)
+      do_check_eq(node.title, container.label);
   }
-
-
-  
-  
-  root.containerOpen = false;
-  
-  
-  for (var i=0; i<checkOlderOffset; i++)
-  {
-    var testURI = uri("http://mirror"+i+".mozilla.com/d");
-    add_visit(testURI, -i);
-    var testURI = uri("http://mirror"+i+".mozilla.com/c");
-    add_visit(testURI, -i);
-    var testURI = uri("http://mirror"+i+".google.com/d");
-    add_visit(testURI, -i);
-    var testURI = uri("http://mirror"+i+".google.com/c");
-    add_visit(testURI, -i);
-  }
-
+  do_check_eq(cc, containers.length);
   root.containerOpen = false;
 }
 
-function test_RESULTS_AS_DATE_SITE_QUERY() {
 
-  var options = histsvc.getNewQueryOptions();
+
+
+
+function test_RESULTS_AS_DATE_SITE_QUERY() {
+  print("\n\n*** TEST RESULTS_AS_DATE_SITE_QUERY\n");
+  var options = hs.getNewQueryOptions();
   options.resultType = options.RESULTS_AS_DATE_SITE_QUERY;
-  var query = histsvc.getNewQuery();
-  var result = histsvc.executeQuery(query, options);
+  var query = hs.getNewQuery();
+  var result = hs.executeQuery(query, options);
   var root = result.root;
   root.containerOpen = true;
-  do_check_eq(root.childCount, dayLabels.length);
 
   
-  for (var i=0; i<dayLabels.length; i++)
-  {
-    var node = root.getChild(i);
-    do_check_eq(node.title, dayLabels[i]);
-  }
-
-  
-  var dayNode = root.getChild(4).QueryInterface(Ci.nsINavHistoryContainerResultNode);
+  var dayNode = root.getChild(0)
+                    .QueryInterface(Ci.nsINavHistoryContainerResultNode);
   dayNode.containerOpen = true;
   do_check_eq(dayNode.childCount, 2);
 
   
-  var site1 = dayNode.getChild(0).QueryInterface(Ci.nsINavHistoryContainerResultNode);
-  do_check_eq(site1.title, "mirror4.google.com");
+  var site1 = dayNode.getChild(0)
+                     .QueryInterface(Ci.nsINavHistoryContainerResultNode);
+  do_check_eq(site1.title, "mirror0.google.com");
 
-  var site2 = dayNode.getChild(1).QueryInterface(Ci.nsINavHistoryContainerResultNode);
-  do_check_eq(site2.title, "mirror4.mozilla.com");
+  var site2 = dayNode.getChild(1)
+                     .QueryInterface(Ci.nsINavHistoryContainerResultNode);
+  do_check_eq(site2.title, "mirror0.mozilla.com");
 
   site1.containerOpen = true;
   do_check_eq(site1.childCount, 2);
 
   
   var site1visit = site1.getChild(0);
-  do_check_eq(site1visit.uri, "http://mirror4.google.com/a");
+  do_check_eq(site1visit.uri, "http://mirror0.google.com/a");
 
   site1.containerOpen = false;
   dayNode.containerOpen = false;
   root.containerOpen = false;
-
 }
 
-function test_RESULTS_AS_DATE_QUERY() {
 
-  var options = histsvc.getNewQueryOptions();
+
+
+function test_RESULTS_AS_DATE_QUERY() {
+  print("\n\n*** TEST RESULTS_AS_DATE_QUERY\n");
+  var options = hs.getNewQueryOptions();
   options.resultType = options.RESULTS_AS_DATE_QUERY;
-  var query = histsvc.getNewQuery();
-  var result = histsvc.executeQuery(query, options);
+  var query = hs.getNewQuery();
+  var result = hs.executeQuery(query, options);
   var root = result.root;
   root.containerOpen = true;
-  do_check_eq(root.childCount, dayLabels.length);
 
-  
-  for (var i=0; i<dayLabels.length; i++)
-  {
+  var cc = root.childCount;
+  do_check_eq(cc, containers.length);
+  print("Found containers:");
+  for (var i = 0; i < cc; i++) {
+    var container = containers[i];
     var node = root.getChild(i);
-    do_check_eq(node.title, dayLabels[i]);
+    print(node.title);
+    if (container.label)
+      do_check_eq(node.title, container.label);
   }
 
   
-  var dayNode = root.getChild(3).QueryInterface(Ci.nsINavHistoryContainerResultNode);
+  var dayNode = root.getChild(0)
+                    .QueryInterface(Ci.nsINavHistoryContainerResultNode);
   dayNode.containerOpen = true;
   do_check_eq(dayNode.childCount, 4);
-  do_check_eq(dayNode.title, "3 days ago");
 
   
   var visit1 = dayNode.getChild(0);
-  do_check_eq(visit1.uri, "http://mirror3.google.com/c");
+  do_check_eq(visit1.uri, "http://mirror0.google.com/a");
 
   var visit2 = dayNode.getChild(3);
-  do_check_eq(visit2.uri, "http://mirror3.mozilla.com/d");
+  do_check_eq(visit2.uri, "http://mirror0.mozilla.com/b");
 
   dayNode.containerOpen = false;
   root.containerOpen = false;
 }
 
+
+
+
 function test_RESULTS_AS_SITE_QUERY() {
-
+  print("\n\n*** TEST RESULTS_AS_SITE_QUERY\n");
   
-  var bmsvc = Cc["@mozilla.org/browser/nav-bookmarks-service;1"].
-              getService(Ci.nsINavBookmarksService);
-  bmsvc.insertBookmark(bmsvc.toolbarFolder, uri("http://foobar"),
-                       bmsvc.DEFAULT_INDEX, "");
+  bs.insertBookmark(bs.toolbarFolder, uri("http://foobar"),
+                    bs.DEFAULT_INDEX, "");
 
-  var options = histsvc.getNewQueryOptions();
+  var options = hs.getNewQueryOptions();
   options.resultType = options.RESULTS_AS_SITE_QUERY;
-  var query = histsvc.getNewQuery();
-  var result = histsvc.executeQuery(query, options);
+  var query = hs.getNewQuery();
+  var result = hs.executeQuery(query, options);
   var root = result.root;
   root.containerOpen = true;
-  do_check_eq(root.childCount, dayLabels.length*2);
+  do_check_eq(root.childCount, containers.length * 2);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
   
-  var expectedResult = 
-  [
-    "mirror0.google.com",
-    "mirror0.mozilla.com",
-    "mirror1.google.com",
-    "mirror1.mozilla.com",
-    "mirror2.google.com",
-    "mirror2.mozilla.com",
-    "mirror3.google.com",
-    "mirror3.mozilla.com",
-    "mirror4.google.com",
-    "mirror4.mozilla.com",
-    "mirror5.google.com",   
-    "mirror5.mozilla.com",
-    "mirror6.google.com",
-    "mirror6.mozilla.com",
-    "mirror7.google.com",
-    "mirror7.mozilla.com"
-  ];
-
-  
-  var siteNode = root.getChild(dayLabels.length+2).QueryInterface(Ci.nsINavHistoryContainerResultNode);
-  do_check_eq(siteNode.title,  expectedResult[dayLabels.length+2] );
+  var siteNode = root.getChild(6)
+                     .QueryInterface(Ci.nsINavHistoryContainerResultNode);
+  do_check_eq(siteNode.title, "mirror3.google.com");
 
   siteNode.containerOpen = true;
   do_check_eq(siteNode.childCount, 2);
 
   
-  var visit = siteNode.getChild(0);
-  do_check_eq(visit.uri, "http://mirror5.google.com/a");
+  var visitNode = siteNode.getChild(0);
+  do_check_eq(visitNode.uri, "http://mirror3.google.com/a");
 
   siteNode.containerOpen = false;
   root.containerOpen = false;
@@ -258,6 +257,11 @@ function test_RESULTS_AS_SITE_QUERY() {
 
 
 function run_test() {
+  
+  ps.setIntPref("browser.history_expire_days", 365);
+
+  
+  bh.removeAllPages();
 
   fill_history();
   test_RESULTS_AS_DATE_SITE_QUERY();
