@@ -263,7 +263,19 @@ public:
 
 
   void LeavePresShell(nsIFrame* aReferenceFrame, const nsRect& aDirtyRect);
+
   
+
+
+
+
+  PRBool IsInTransform() { return mInTransform; }
+  
+
+
+
+  void SetInTransform(PRBool aInTransform) { mInTransform = aInTransform; }
+
   
 
 
@@ -301,6 +313,25 @@ public:
     nsDisplayListBuilder* mBuilder;
     PRPackedBool          mOldValue;
   };
+
+  
+
+
+  class AutoInTransformSetter;
+  friend class AutoInTransformSetter;
+  class AutoInTransformSetter {
+  public:
+    AutoInTransformSetter(nsDisplayListBuilder* aBuilder, PRBool aInTransform)
+      : mBuilder(aBuilder), mOldValue(aBuilder->mInTransform) { 
+      aBuilder->mInTransform = aInTransform;
+    }
+    ~AutoInTransformSetter() {
+      mBuilder->mInTransform = mOldValue;
+    }
+  private:
+    nsDisplayListBuilder* mBuilder;
+    PRPackedBool          mOldValue;
+  };  
   
   
   nsDisplayTableItem* GetCurrentTableItem() { return mCurrentTableItem; }
@@ -337,6 +368,9 @@ private:
   PRPackedBool                   mIsAtRootOfPseudoStackingContext;
   PRPackedBool                   mPaintAllFrames;
   PRPackedBool                   mAccurateVisibleRegions;
+  
+  
+  PRPackedBool                   mInTransform;
 };
 
 class nsDisplayItem;

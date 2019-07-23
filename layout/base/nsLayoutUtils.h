@@ -476,6 +476,7 @@ public:
   static nsRect RoundGfxRectToAppRect(const gfxRect &aRect, float aFactor);
 
 
+  enum { PAINT_IN_TRANSFORM = 0x01 };
   
 
 
@@ -487,8 +488,11 @@ public:
 
 
 
+
+
   static nsresult PaintFrame(nsIRenderingContext* aRenderingContext, nsIFrame* aFrame,
-                             const nsRegion& aDirtyRegion, nscolor aBackstop);
+                             const nsRegion& aDirtyRegion, nscolor aBackstop,
+                             PRUint32 aFlags = 0);
 
   
 
