@@ -52,10 +52,12 @@ protected:
     : nsSVGTextFrameBase(aContext),
       mMetricsState(unsuspended),
       mPropagateTransform(PR_TRUE),
-      mPositioningDirty(PR_TRUE) {}
+      mPositioningDirty(PR_FALSE) {}
 
 public:
   
+  NS_IMETHOD  SetInitialChildList(nsIAtom*  aListName,
+                                  nsIFrame* aChildList);
   NS_IMETHOD  AttributeChanged(PRInt32         aNameSpaceID,
                                nsIAtom*        aAttribute,
                                PRInt32         aModType);
@@ -82,11 +84,6 @@ public:
   virtual void NotifySVGChanged(PRUint32 aFlags);
   NS_IMETHOD NotifyRedrawSuspended();
   NS_IMETHOD NotifyRedrawUnsuspended();
-  
-  
-  NS_IMETHOD PaintSVG(nsSVGRenderState* aContext, nsRect *aDirtyRect);
-  NS_IMETHOD GetFrameForPointSVG(float x, float y, nsIFrame** hit);  
-  NS_IMETHOD UpdateCoveredRegion();
   NS_IMETHOD GetBBox(nsIDOMSVGRect **_retval);
   
   
@@ -106,12 +103,7 @@ public:
   void NotifyGlyphMetricsChange();
 
 private:
-  
-
-
-
-
-  void UpdateGlyphPositioning(PRBool aForceGlobalTransform);
+  void UpdateGlyphPositioning();
 
   nsCOMPtr<nsIDOMSVGMatrix> mCanvasTM;
   nsCOMPtr<nsIDOMSVGMatrix> mOverrideCTM;
