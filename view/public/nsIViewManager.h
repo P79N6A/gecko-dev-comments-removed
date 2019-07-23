@@ -481,31 +481,6 @@ public:
 
 
   NS_IMETHOD SynthesizeMouseMove(PRBool aFromScroll)=0;
-   
-  
-
-
-
-
-
-  virtual void SuppressFocusEvents()=0;
-  
-  
-
-
-
-
-
-
-
-
-  virtual void UnsuppressFocusEvents()=0;
-
-  
-
-
-  virtual PRBool IsFocusSuppressed()=0;
-
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsIViewManager, NS_IVIEWMANAGER_IID)

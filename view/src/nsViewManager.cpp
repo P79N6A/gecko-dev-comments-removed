@@ -935,59 +935,6 @@ void nsViewManager::UpdateViews(nsView *aView, PRUint32 aUpdateFlags)
   }
 }
 
-nsView *nsViewManager::sCurrentlyFocusView = nsnull;
-nsView *nsViewManager::sViewFocusedBeforeSuppression = nsnull;
-PRInt32 nsViewManager::sSuppressCount = 0;
-
-void nsViewManager::SuppressFocusEvents()
-{
-  sSuppressCount++;
-  if (sSuppressCount == 1) {
-    
-    
-    SetViewFocusedBeforeSuppression(GetCurrentlyFocusedView());
-  }  
-}
-
-void nsViewManager::UnsuppressFocusEvents()
-{
-  sSuppressCount--;
-  if (sSuppressCount > 0 ||
-      GetCurrentlyFocusedView() == GetViewFocusedBeforeSuppression())
-  return;
-
-  
-  nsIWidget *widget = nsnull;
-  nsEventStatus status;
-
-  
-  
-  
-  nsIView *currentFocusBeforeBlur = GetCurrentlyFocusedView();
-
-  
-  
-  if (GetViewFocusedBeforeSuppression()) {
-    widget = GetViewFocusedBeforeSuppression()->GetWidget();
-    if (widget) {
-      nsGUIEvent event(PR_TRUE, NS_LOSTFOCUS, widget);
-      widget->DispatchEvent(&event, status);
-    }
-  }
-
-  
-  if (GetCurrentlyFocusedView() &&
-      currentFocusBeforeBlur == GetCurrentlyFocusedView())
-  {
-    widget = GetCurrentlyFocusedView()->GetWidget();
-    if (widget) {
-      nsGUIEvent event(PR_TRUE, NS_GOTFOCUS, widget);
-      widget->DispatchEvent(&event, status); 
-    }
-  }
-
-}
-
 NS_IMETHODIMP nsViewManager::DispatchEvent(nsGUIEvent *aEvent, nsEventStatus *aStatus)
 {
   *aStatus = nsEventStatus_eIgnore;
@@ -1191,13 +1138,6 @@ NS_IMETHODIMP nsViewManager::DispatchEvent(nsGUIEvent *aEvent, nsEventStatus *aS
 
     default:
       {
-        if (aEvent->message == NS_GOTFOCUS) {
-          SetCurrentlyFocusedView(nsView::GetViewFor(aEvent->widget));
-        }
-        if ((aEvent->message == NS_GOTFOCUS || aEvent->message == NS_LOSTFOCUS) &&
-             nsViewManager::IsFocusSuppressed()) 
-          break;
-        
         if ((NS_IS_MOUSE_EVENT(aEvent) &&
              
              static_cast<nsMouseEvent*>(aEvent)->reason ==
