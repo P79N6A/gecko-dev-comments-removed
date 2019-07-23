@@ -92,7 +92,7 @@ union nsPluginPort;
   BOOL mIsPluginView;
 
   NSEvent* mCurKeyEvent;   
-  PRBool  mKeyHandled;
+  PRBool mKeyDownHandled;
   
   
   NSRange mMarkedRange;
