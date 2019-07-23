@@ -147,8 +147,6 @@ function LivemarkService() {
     new G_ObserverServiceObserver('xpcom-shutdown',
                                   BindToObject(this._shutdown, this),
                                   true );
-  new G_Alarm(BindToObject(this._fireTimer, this), LIVEMARK_TIMEOUT,
-              true );
 
   if (IS_CONTRACTID in Cc)
     this._idleService = Cc[IS_CONTRACTID].getService(Ci.nsIIdleService);
@@ -183,6 +181,14 @@ LivemarkService.prototype = {
     return this.__history;
   },
 
+  _updateTimer: null,
+  start: function LS_start() {
+    if (this._updateTimer)
+      return;
+    this._updateTimer = new G_Alarm(BindToObject(this._fireTimer, this),
+                                    LIVEMARK_TIMEOUT, true );
+  },
+
   
   _pushLivemark: function LS__pushLivemark(folderId, feedURI) {
     return this._livemarks.push({folderId: folderId, feedURI: feedURI});
@@ -203,6 +209,12 @@ LivemarkService.prototype = {
     for (var livemark in this._livemarks) {
       if (livemark.loadGroup)
         livemark.loadGroup.cancel(NS_BINDING_ABORTED);
+    }
+
+    
+    if (this._updateTimer) {
+      this._updateTimer.cancel();
+      this._updateTimer = null;
     }
   },
 

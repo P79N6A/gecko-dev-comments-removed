@@ -1054,6 +1054,13 @@ function delayedStartup()
   
   
   
+  setTimeout(function() PlacesUtils.livemarks.start(), 5000);
+
+  
+  
+  
+  
+  
   setTimeout(function() Cc["@mozilla.org/download-manager;1"].
                         getService(Ci.nsIDownloadManager), 10000);
 }
