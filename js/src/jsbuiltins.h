@@ -454,6 +454,7 @@ JS_DECLARE_CALLINFO(js_ArrayCompPush)
 
 
 JS_DECLARE_CALLINFO(js_AllocFlatClosure)
+JS_DECLARE_CALLINFO(js_PutArguments)
 
 
 JS_DECLARE_CALLINFO(js_NumberToString)

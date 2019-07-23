@@ -71,7 +71,7 @@ struct JSStackFrame {
     jsbytecode      *imacpc;        
     jsval           *slots;         
     JSObject        *callobj;       
-    JSObject        *argsobj;       
+    jsval           argsobj;        
     JSObject        *varobj;        
     JSObject        *callee;        
     JSScript        *script;        

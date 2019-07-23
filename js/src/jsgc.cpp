@@ -110,11 +110,6 @@ extern "C" {
 #   define JS_GC_USE_MMAP 1
 #  endif
 #  include <windows.h>
-# elif defined(__SYMBIAN32__)
-
-
-
-
 # else
 #  if defined(XP_UNIX) || defined(XP_BEOS)
 #   include <unistd.h>
@@ -2887,7 +2882,7 @@ js_TraceStackFrame(JSTracer *trc, JSStackFrame *fp)
     if (fp->callobj)
         JS_CALL_OBJECT_TRACER(trc, fp->callobj, "call");
     if (fp->argsobj)
-        JS_CALL_OBJECT_TRACER(trc, fp->argsobj, "arguments");
+        JS_CALL_OBJECT_TRACER(trc, JSVAL_TO_OBJECT(fp->argsobj), "arguments");
     if (fp->varobj)
         JS_CALL_OBJECT_TRACER(trc, fp->varobj, "variables");
     if (fp->script) {
