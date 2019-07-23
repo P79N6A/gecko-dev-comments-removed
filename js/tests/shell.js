@@ -278,14 +278,27 @@ function escapeString (str)
 
 
 
+
+
+
+
 if (typeof assertEq == 'undefined')
 {
   var assertEq =
-    function (actual, expected)
+    function (actual, expected, message)
     {
-      if (actual !== expected)
+      function SameValue(v1, v2)
       {
-        throw new TypeError('Assertion failed: got "' + actual + '", expected "' + expected);
+        if (v1 === 0 && v2 === 0)
+          return 1 / v1 === 1 / v2;
+        if (v1 !== v1 && v2 !== v2)
+          return true;
+        return v1 === v2;
+      }
+      if (!SameValue(actual, expected))
+      {
+        throw new TypeError('Assertion failed: got "' + actual + '", expected "' + expected +
+                            (message ? ": " + message : ""));
       }
     };
 }
