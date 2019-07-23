@@ -12679,7 +12679,7 @@ TraceRecorder::record_JSOP_INSTANCEOF()
     LIns* status_ins = lir->insLoad(LIR_ld,
                                     lirbuf->state,
                                     (int) offsetof(InterpState, builtinStatus));
-    guard(true, lir->ins_eq0(status_ins), STATUS_EXIT);
+    pendingGuardCondition = lir->ins_eq0(status_ins);
     leaveDeepBailCall();
 
     return JSRS_CONTINUE;
