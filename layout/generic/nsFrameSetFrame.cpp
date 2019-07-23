@@ -1378,7 +1378,6 @@ nsHTMLFramesetFrame::RecalculateBorderResize()
   
   PRUint32 numChildren = mContent->GetChildCount();
   for (childIndex = 0; childIndex < numChildren; childIndex++) {
-    childTypes[childIndex] = BLANK;
     nsIContent *child = mContent->GetChildAt(childIndex);
 
     if (child->IsNodeOfType(nsINode::eHTML)) {
@@ -1394,9 +1393,6 @@ nsHTMLFramesetFrame::RecalculateBorderResize()
         break;
       }
     }
-  }
-  for (; childIndex < numCells; ++childIndex) {
-    childTypes[childIndex] = BLANK;
   }
 
   
