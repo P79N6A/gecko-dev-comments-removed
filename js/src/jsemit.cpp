@@ -3636,9 +3636,9 @@ EmitVariables(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn,
 
 
 
-
             JS_ASSERT(pn2->pn_type == TOK_ASSIGN);
-            if (pn->pn_count == 1 && !forInLet) {
+            JS_ASSERT(!forInVar);
+            if (pn->pn_count == 1) {
                 
 
 
@@ -3663,45 +3663,8 @@ EmitVariables(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn,
             if (!EmitDestructuringDecls(cx, cg, PN_OP(pn), pn3))
                 return JS_FALSE;
 
-#if JS_HAS_BLOCK_SCOPE
-            
-
-
-
-            if (forInLet) {
-                JSBool useful = JS_FALSE;
-
-                JS_ASSERT(pn->pn_count == 1);
-                if (!CheckSideEffects(cx, cg, pn2->pn_right, &useful))
-                    return JS_FALSE;
-                if (!useful)
-                    return JS_TRUE;
-            }
-#endif
-
             if (!js_EmitTree(cx, cg, pn2->pn_right))
                 return JS_FALSE;
-
-#if JS_HAS_BLOCK_SCOPE
-            
-
-
-
-
-
-
-
-
-
-
-
-
-            if (forInVar) {
-                pn->pn_extra |= PNX_POPVAR;
-                if (forInLet)
-                    break;
-            }
-#endif
 
             
 
@@ -3737,22 +3700,7 @@ EmitVariables(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn,
 
             pn3 = pn2->pn_expr;
             if (pn3) {
-#if JS_HAS_BLOCK_SCOPE
-                
-
-
-
-                if (forInLet) {
-                    JSBool useful = JS_FALSE;
-
-                    JS_ASSERT(pn->pn_count == 1);
-                    if (!CheckSideEffects(cx, cg, pn3, &useful))
-                        return JS_FALSE;
-                    if (!useful)
-                        return JS_TRUE;
-                }
-#endif
-
+                JS_ASSERT(!forInVar);
                 if (op == JSOP_SETNAME) {
                     JS_ASSERT(!let);
                     EMIT_INDEX_OP(JSOP_BINDNAME, atomIndex);
@@ -3772,11 +3720,9 @@ EmitVariables(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn,
                     tc->topStmt = stmt->down;
                     tc->topScopeStmt = scopeStmt->downScope;
                 }
-#ifdef __GNUC__
-                else {
-                    stmt = scopeStmt = NULL;    
-                }
-#endif
+# ifdef __GNUC__
+                else stmt = scopeStmt = NULL;   
+# endif
 #endif
 
                 oldflags = cg->treeContext.flags;
@@ -3802,20 +3748,10 @@ EmitVariables(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn,
 
 
 
-
-
-
-
-
-
-
-
-
-
-
         JS_ASSERT(pn3 == pn2->pn_expr);
-        if (forInVar && (!pn3 || let)) {
+        if (forInVar) {
             JS_ASSERT(pn->pn_count == 1);
+            JS_ASSERT(!pn3);
             break;
         }
 
@@ -5133,9 +5069,9 @@ js_EmitTree(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
         ok = js_PopStatementCG(cx, cg);
         break;
 
-      case TOK_BODY:
+      case TOK_SEQ:
         JS_ASSERT(pn->pn_arity == PN_LIST);
-        js_PushStatement(&cg->treeContext, &stmtInfo, STMT_BODY, top);
+        js_PushStatement(&cg->treeContext, &stmtInfo, STMT_SEQ, top);
         for (pn2 = pn->pn_head; pn2; pn2 = pn2->pn_next) {
             if (!js_EmitTree(cx, cg, pn2))
                 return JS_FALSE;

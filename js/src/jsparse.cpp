@@ -1309,7 +1309,7 @@ FunctionDef(JSContext *cx, JSTokenStream *ts, JSTreeContext *tc,
             block = NewParseNode(cx, ts, PN_LIST, tc);
             if (!block)
                 return NULL;
-            block->pn_type = TOK_BODY;
+            block->pn_type = TOK_SEQ;
             block->pn_pos = body->pn_pos;
             PN_INIT_LIST_1(block, body);
 
@@ -2095,6 +2095,79 @@ DestructuringExpr(JSContext *cx, BindData *data, JSTreeContext *tc,
     return pn;
 }
 
+
+static JSParseNode *
+CloneParseTree(JSContext *cx, JSParseNode *opn, JSTreeContext *tc)
+{
+    JSParseNode *pn, *pn2, *opn2;
+
+    pn = NewOrRecycledNode(cx, tc);
+    if (!pn)
+        return NULL;
+    pn->pn_type = opn->pn_type;
+    pn->pn_pos = opn->pn_pos;
+    pn->pn_op = opn->pn_op;
+    pn->pn_arity = opn->pn_arity;
+
+    switch (pn->pn_arity) {
+#define NULLCHECK(e)   if (!(e)) return NULL
+
+      case PN_FUNC:
+        NULLCHECK(pn->pn_funpob =
+                  js_NewParsedObjectBox(cx, tc->parseContext, opn->pn_funpob->object));
+        NULLCHECK(pn->pn_body = CloneParseTree(cx, opn->pn_body, tc));
+        pn->pn_flags = opn->pn_flags;
+        pn->pn_index = opn->pn_index;
+        break;
+
+      case PN_LIST:
+        PN_INIT_LIST(pn);
+        for (opn2 = opn->pn_head; opn2; opn2 = opn2->pn_next) {
+            NULLCHECK(pn2 = CloneParseTree(cx, opn2, tc));
+            PN_APPEND(pn, pn2);
+        }
+        pn->pn_extra = opn->pn_extra;
+        break;
+
+      case PN_TERNARY:
+        NULLCHECK(pn->pn_kid1 = CloneParseTree(cx, opn->pn_kid1, tc));
+        NULLCHECK(pn->pn_kid2 = CloneParseTree(cx, opn->pn_kid2, tc));
+        NULLCHECK(pn->pn_kid3 = CloneParseTree(cx, opn->pn_kid3, tc));
+        break;
+
+      case PN_BINARY:
+        NULLCHECK(pn->pn_left = CloneParseTree(cx, opn->pn_left, tc));
+        if (opn->pn_right != opn->pn_left)
+            NULLCHECK(pn->pn_right = CloneParseTree(cx, opn->pn_right, tc));
+        else
+            pn->pn_right = pn->pn_left;
+        pn->pn_val = opn->pn_val;
+        pn->pn_iflags = opn->pn_iflags;
+        break;
+
+      case PN_UNARY:
+        NULLCHECK(pn->pn_kid = CloneParseTree(cx, opn->pn_kid, tc));
+        pn->pn_num = opn->pn_num;
+        pn->pn_hidden = opn->pn_hidden;
+        break;
+
+      case PN_NAME:
+        
+        pn->pn_u = opn->pn_u;
+        if (opn->pn_expr)
+            NULLCHECK(pn->pn_expr = CloneParseTree(cx, opn->pn_expr, tc));
+        break;
+
+      case PN_NULLARY:
+        
+        pn->pn_u = opn->pn_u;
+        break;
+
+#undef NULLCHECK
+    }
+    return pn;
+}
+
 #endif 
 
 extern const char js_with_statement_str[];
@@ -2537,11 +2610,10 @@ Statement(JSContext *cx, JSTokenStream *ts, JSTreeContext *tc)
 
       case TOK_FOR:
       {
+        JSParseNode *pnseq = NULL;
 #if JS_HAS_BLOCK_SCOPE
-        JSParseNode *pnlet;
+        JSParseNode *pnlet = NULL;
         JSStmtInfo blockInfo;
-
-        pnlet = NULL;
 #endif
 
         
@@ -2661,6 +2733,9 @@ Statement(JSContext *cx, JSTokenStream *ts, JSTreeContext *tc)
                 return NULL;
             }
 
+            
+            pn2 = NULL;
+
             if (TOKEN_TYPE_IS_DECL(tt)) {
                 
                 pn1->pn_extra |= PNX_FORINVAR;
@@ -2670,10 +2745,79 @@ Statement(JSContext *cx, JSTokenStream *ts, JSTreeContext *tc)
 
 
 
+
                 pn2 = pn1->pn_head;
-                if (pn2->pn_type == TOK_NAME && pn2->pn_expr)
-                    pn1->pn_extra |= PNX_POPVAR;
-            } else {
+                if (pn2->pn_type == TOK_NAME && pn2->pn_expr
+#if JS_HAS_DESTRUCTURING
+                    || pn2->pn_type == TOK_ASSIGN
+#endif
+                    ) {
+                    pnseq = NewParseNode(cx, ts, PN_LIST, tc);
+                    if (!pnseq)
+                        return NULL;
+                    pnseq->pn_type = TOK_SEQ;
+                    pnseq->pn_pos.begin = pn->pn_pos.begin;
+                    if (tt == TOK_LET) {
+                        
+
+
+
+                        pn3 = NewParseNode(cx, ts, PN_UNARY, tc);
+                        if (!pn3)
+                            return NULL;
+                        pn3->pn_type = TOK_SEMI;
+                        pn3->pn_op = JSOP_NOP;
+#if JS_HAS_DESTRUCTURING
+                        if (pn2->pn_type == TOK_ASSIGN) {
+                            pn4 = pn2->pn_right;
+                            pn2 = pn1->pn_head = pn2->pn_left;
+                        } else
+#endif
+                        {
+                            pn4 = pn2->pn_expr;
+                            pn2->pn_expr = NULL;
+                        }
+                        pn3->pn_pos = pn4->pn_pos;
+                        pn3->pn_kid = pn4;
+                        PN_INIT_LIST_1(pnseq, pn3);
+                    } else {
+                        
+
+
+
+
+
+
+
+                        pn1->pn_extra &= ~PNX_FORINVAR;
+                        pn1->pn_extra |= PNX_POPVAR;
+                        PN_INIT_LIST_1(pnseq, pn1);
+
+#if JS_HAS_DESTRUCTURING
+                        if (pn2->pn_type == TOK_ASSIGN) {
+                            pn1 = CloneParseTree(cx, pn2->pn_left, tc);
+                            if (!pn1)
+                                return NULL;
+                        } else
+#endif
+                        {
+                            pn1 = NewParseNode(cx, ts, PN_NAME, tc);
+                            if (!pn1)
+                                return NULL;
+                            pn1->pn_type = TOK_NAME;
+                            pn1->pn_op = JSOP_NAME;
+                            pn1->pn_pos = pn2->pn_pos;
+                            pn1->pn_atom = pn2->pn_atom;
+                            pn1->pn_expr = NULL;
+                            pn1->pn_slot = -1;
+                            pn1->pn_const = pn2->pn_const;
+                        }
+                        pn2 = pn1;
+                    }
+                }
+            }
+
+            if (!pn2) {
                 pn2 = pn1;
 #if JS_HAS_LVALUE_RETURN
                 if (pn2->pn_type == TOK_LP &&
@@ -2802,6 +2946,11 @@ Statement(JSContext *cx, JSTokenStream *ts, JSTreeContext *tc)
             pn = pnlet;
         }
 #endif
+        if (pnseq) {
+            pnseq->pn_pos.end = pn->pn_pos.end;
+            PN_APPEND(pnseq, pn);
+            pn = pnseq;
+        }
         js_PopStatement(tc);
         return pn;
 

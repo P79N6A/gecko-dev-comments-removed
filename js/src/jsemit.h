@@ -66,8 +66,7 @@ typedef enum JSStmtType {
     STMT_LABEL,                 
     STMT_IF,                    
     STMT_ELSE,                  
-    STMT_BODY,                  
-
+    STMT_SEQ,                   
     STMT_BLOCK,                 
     STMT_SWITCH,                
     STMT_WITH,                  

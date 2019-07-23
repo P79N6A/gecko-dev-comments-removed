@@ -134,7 +134,7 @@ typedef enum JSTokenType {
     TOK_ARRAYPUSH = 79,                 
     TOK_LEXICALSCOPE = 80,              
     TOK_LET = 81,                       
-    TOK_BODY = 82,                      
+    TOK_SEQ = 82,                       
 
     TOK_RESERVED,                       
     TOK_LIMIT                           
