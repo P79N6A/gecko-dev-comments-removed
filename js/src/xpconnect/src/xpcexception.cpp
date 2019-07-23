@@ -121,9 +121,6 @@ nsXPCException::GetNSResultCount()
 NS_INTERFACE_MAP_BEGIN(nsXPCException)
   NS_INTERFACE_MAP_ENTRY(nsIException)
   NS_INTERFACE_MAP_ENTRY(nsIXPCException)
-#ifdef XPC_USE_SECURITY_CHECKED_COMPONENT
-  NS_INTERFACE_MAP_ENTRY(nsISecurityCheckedComponent)
-#endif
   NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, nsIException)
   NS_IMPL_QUERY_CLASSINFO(nsXPCException)
 NS_INTERFACE_MAP_END_THREADSAFE
@@ -484,43 +481,3 @@ nsXPCException::NewException(const char *aMessage,
     *exceptn = NS_STATIC_CAST(nsIXPCException*, e);
     return NS_OK;
 }
-
-#ifdef XPC_USE_SECURITY_CHECKED_COMPONENT
-
-
-NS_IMETHODIMP
-nsXPCException::CanCreateWrapper(const nsIID * iid, char **_retval)
-{
-    *_retval = xpc_CloneAllAccess();
-    return NS_OK;
-}
-
-
-NS_IMETHODIMP
-nsXPCException::CanCallMethod(const nsIID * iid, const PRUnichar *methodName, char **_retval)
-{
-    static const char* allowed[] = { "toString", nsnull};
-
-    *_retval = xpc_CheckAccessList(methodName, allowed);
-    return NS_OK;
-}
-
-
-NS_IMETHODIMP
-nsXPCException::CanGetProperty(const nsIID * iid, const PRUnichar *propertyName, char **_retval)
-{
-    static const char* allowed[] = { "message", "result", "name", nsnull};
-
-    *_retval = xpc_CheckAccessList(propertyName, allowed);
-    return NS_OK;
-}
-
-
-NS_IMETHODIMP
-nsXPCException::CanSetProperty(const nsIID * iid, const PRUnichar *propertyName, char **_retval)
-{
-    
-    *_retval = nsnull;
-    return NS_OK;
-}
-#endif

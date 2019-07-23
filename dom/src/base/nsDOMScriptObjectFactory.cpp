@@ -316,13 +316,18 @@ static nsresult
 CreateXPConnectException(nsresult aResult, nsIException *aDefaultException,
                          nsIException **_retval)
 {
-  nsresult rv = NS_OK;
-  nsCOMPtr<nsIXPCException> exception(
-      do_CreateInstance("@mozilla.org/js/xpc/Exception;1", &rv));
-  NS_ENSURE_SUCCESS(rv, rv);
+  
+  
+  nsCOMPtr<nsIXPCException> exception(do_QueryInterface(aDefaultException));
+  if (!exception) {
+    nsresult rv = NS_OK;
+    exception = do_CreateInstance("@mozilla.org/js/xpc/Exception;1", &rv);
+    NS_ENSURE_SUCCESS(rv, rv);
 
-  rv = exception->Initialize(nsnull, aResult, nsnull, nsnull, nsnull, nsnull);
-  NS_ENSURE_SUCCESS(rv, rv);
+    rv = exception->Initialize(nsnull, aResult, nsnull, nsnull, nsnull,
+                               nsnull);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
 
   NS_ADDREF(*_retval = exception);
   return NS_OK;
