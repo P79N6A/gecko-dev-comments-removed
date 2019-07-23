@@ -724,11 +724,8 @@ nsJARChannel::OnDownloadComplete(nsIDownloader *downloader,
 {
     nsresult rv;
 
-    
     nsCOMPtr<nsIChannel> channel(do_QueryInterface(request));
     if (channel) {
-        channel->GetSecurityInfo(getter_AddRefs(mSecurityInfo));
-
         PRUint32 loadFlags;
         channel->GetLoadFlags(&loadFlags);
         if (loadFlags & LOAD_REPLACE) {
@@ -748,8 +745,15 @@ nsJARChannel::OnDownloadComplete(nsIDownloader *downloader,
                     mJarURI = newURI;
                 }
             }
-            status = rv;
+            if (NS_SUCCEEDED(status)) {
+                status = rv;
+            }
         }
+    }
+
+    if (NS_SUCCEEDED(status) && channel) {
+        
+        channel->GetSecurityInfo(getter_AddRefs(mSecurityInfo));
 
         nsCOMPtr<nsIHttpChannel> httpChannel(do_QueryInterface(channel));
         if (httpChannel) {
@@ -774,12 +778,9 @@ nsJARChannel::OnDownloadComplete(nsIDownloader *downloader,
                 mIsUnsafe = unsafe;
             }
         }
-
-        
-        
     }
 
-    if (mIsUnsafe) {
+    if (NS_SUCCEEDED(status) && mIsUnsafe) {
         PRBool allowUnpack = PR_FALSE;
 
         nsCOMPtr<nsIPrefBranch> prefs =
