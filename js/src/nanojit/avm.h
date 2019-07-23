@@ -34,6 +34,7 @@
 #define avm_h___
 
 #include <assert.h>
+#include <string.h>
 #include "jstypes.h"
 
 namespace avmplus
@@ -42,12 +43,23 @@ namespace avmplus
 
 #define AvmAssert(x) assert(x)
 
+    typedef JSUint16 uint16_t;
     typedef JSUint32 uint32_t;
     
-    class GC {
+    class AvmCore 
+    {
     };
     
-    class GCObject {
+    class OSDep
+    {
+    };
+    
+    class GC 
+    {
+    };
+    
+    class GCObject 
+    {
     };
     
     
@@ -454,6 +466,125 @@ namespace avmplus
             }
             return -(lo + 1);  
         }
+    };
+    
+    
+
+
+
+
+
+
+
+
+
+
+ 
+    class BitSet
+    {
+        public:
+            enum {  kUnit = 8*sizeof(long),
+                    kDefaultCapacity = 4   };
+
+            BitSet()
+            {
+                capacity = kDefaultCapacity;
+                reset();
+            }
+            
+            ~BitSet()
+            {
+                if (capacity > kDefaultCapacity)
+                    delete bits.ptr;
+            }
+
+            void reset()
+            {
+                if (capacity > kDefaultCapacity)
+                    for(int i=0; i<capacity; i++)
+                        bits.ptr[i] = 0;
+                else
+                    for(int i=0; i<capacity; i++)
+                        bits.ar[i] = 0;
+            }
+
+            void set(GC *gc, int bitNbr)
+            {
+                int index = bitNbr / kUnit;
+                int bit = bitNbr % kUnit;
+                if (index >= capacity)
+                    grow(gc, index+1);
+
+                if (capacity > kDefaultCapacity)
+                    bits.ptr[index] |= (1<<bit);
+                else
+                    bits.ar[index] |= (1<<bit);
+            }
+
+            void clear(int bitNbr)
+            {
+                int index = bitNbr / kUnit;
+                int bit = bitNbr % kUnit;
+                if (index < capacity)
+                {
+                    if (capacity > kDefaultCapacity)
+                        bits.ptr[index] &= ~(1<<bit);
+                    else
+                        bits.ar[index] &= ~(1<<bit);
+                }
+            }
+
+            bool get(int bitNbr) const
+            {
+                int index = bitNbr / kUnit;
+                int bit = bitNbr % kUnit;
+                bool value = false;
+                if (index < capacity)
+                {
+                    if (capacity > kDefaultCapacity)
+                        value = ( bits.ptr[index] & (1<<bit) ) ? true : false;
+                    else
+                        value = ( bits.ar[index] & (1<<bit) ) ? true : false;
+                }
+                return value;
+            }
+
+        private:
+            
+            void grow(GC *gc, int newCapacity)
+            {
+                
+                newCapacity *= 2;
+                
+                long* newBits = new long[newCapacity * sizeof(long)];
+                memset(newBits, 0, newCapacity * sizeof(long));
+
+                
+                if (capacity > kDefaultCapacity)
+                    for(int i=0; i<capacity; i++)
+                        newBits[i] = bits.ptr[i];
+                else
+                    for(int i=0; i<capacity; i++)
+                        newBits[i] = bits.ar[i];
+
+                
+                if (capacity > kDefaultCapacity)
+                    delete bits.ptr;
+
+                bits.ptr = newBits;
+                capacity = newCapacity;
+            }
+
+            
+            
+            
+            int capacity;
+            union
+            {
+                long ar[kDefaultCapacity];
+                long*  ptr;
+            }
+            bits;
     };
 }
 
