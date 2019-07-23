@@ -1544,8 +1544,8 @@ js_ContinueRecording(JSContext* cx, TraceRecorder* r, jsbytecode* oldpc, uintN& 
         return false; 
     }
 #endif  
+    Fragmento* fragmento = JS_TRACE_MONITOR(cx).fragmento;
     if (r->isLoopHeader(cx)) { 
-        Fragmento* fragmento = JS_TRACE_MONITOR(cx).fragmento;
         if (fragmento->assm()->error()) {
             
             r->blacklist();
@@ -1559,6 +1559,12 @@ js_ContinueRecording(JSContext* cx, TraceRecorder* r, jsbytecode* oldpc, uintN& 
         js_DeleteRecorder(cx);
         return false; 
     }
+    
+    Fragment* f = fragmento->getLoop(cx->fp->regs->pc);
+    if (f && !r->getCallDepth()) { 
+        
+    }
+    
     AUDIT(returnToDifferentLoopHeader);
     debug_only(printf("loop edge %d -> %d, header %d\n",
             oldpc - cx->fp->script->code,
