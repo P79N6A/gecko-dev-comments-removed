@@ -48,13 +48,13 @@ class nsSVGMaskFrame : public nsSVGMaskFrameBase
 {
   friend nsIFrame*
   NS_NewSVGMaskFrame(nsIPresShell* aPresShell, nsIContent* aContent, nsStyleContext* aContext);
-
+protected:
   nsSVGMaskFrame(nsStyleContext* aContext) :
     nsSVGMaskFrameBase(aContext),
     mMaskParentMatrix(nsnull),
     mInUse(PR_FALSE) {}
 
- public:
+public:
   
   already_AddRefed<gfxPattern> ComputeMaskAlpha(nsSVGRenderState *aContext,
                                                 nsISVGChildFrame* aParent,
@@ -75,7 +75,7 @@ class nsSVGMaskFrame : public nsSVGMaskFrameBase
   }
 #endif
 
- private:
+private:
   
   
   
