@@ -570,7 +570,15 @@ nsBlockFrame::GetAdditionalChildListName(PRInt32 aIndex) const
  PRBool
 nsBlockFrame::IsContainingBlock() const
 {
-  return PR_TRUE;
+  
+  
+  
+  
+  
+  
+  nsIAtom *pseudoType = GetStyleContext()->GetPseudoType();
+  return pseudoType != nsCSSAnonBoxes::mozAnonymousBlock &&
+         pseudoType != nsCSSAnonBoxes::mozAnonymousPositionedBlock;
 }
 
  PRBool
