@@ -323,6 +323,8 @@ private:
   
   
   nsString mDocumentURI;
+
+  friend class nsDOMStorage2;
   nsRefPtr<nsDOMStorage> mStorage;
 };
 
