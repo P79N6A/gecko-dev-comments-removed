@@ -1635,7 +1635,7 @@ nsLayoutUtils::GetNextContinuationOrSpecialSibling(nsIFrame *aFrame)
   if ((aFrame->GetStateBits() & NS_FRAME_IS_SPECIAL) != 0) {
     
     
-    aFrame = aFrame->GetFirstInFlow();
+    aFrame = aFrame->GetFirstContinuation();
 
     void* value = aFrame->GetProperty(nsGkAtoms::IBSplitSpecialSibling);
     return static_cast<nsIFrame*>(value);
