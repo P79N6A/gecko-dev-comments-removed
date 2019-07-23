@@ -891,6 +891,28 @@ public:
 
 
 
+
+
+
+
+
+
+
+  static nsresult DispatchChromeEvent(nsIDocument* aDoc,
+                                      nsISupports* aTarget,
+                                      const nsAString& aEventName,
+                                      PRBool aCanBubble,
+                                      PRBool aCancelable,
+                                      PRBool *aDefaultAction = nsnull);
+
+  
+
+
+
+
+
+
+
   static PRBool IsEventAttributeName(nsIAtom* aName, PRInt32 aType);
 
   
