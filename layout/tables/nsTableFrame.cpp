@@ -668,9 +668,8 @@ nsTableFrame::CreateAnonymousColGroupFrame(nsTableColGroupType aColGroupType)
   nsIPresShell *shell = presContext->PresShell();
 
   nsRefPtr<nsStyleContext> colGroupStyle;
-  colGroupStyle = shell->StyleSet()->ResolvePseudoStyleFor(colGroupContent,
-                                                           nsCSSAnonBoxes::tableColGroup,
-                                                           mStyleContext);
+  colGroupStyle = shell->StyleSet()->
+    ResolveAnonymousBoxStyle(nsCSSAnonBoxes::tableColGroup, mStyleContext);
   
   nsIFrame* newFrame = NS_NewTableColGroupFrame(shell, colGroupStyle);
   if (newFrame) {
@@ -733,9 +732,8 @@ nsTableFrame::AppendAnonymousColFrames(nsTableColGroupFrame* aColGroupFrame,
     
     iContent = aColGroupFrame->GetContent();
     parentStyleContext = aColGroupFrame->GetStyleContext();
-    styleContext = shell->StyleSet()->ResolvePseudoStyleFor(iContent,
-                                                            nsCSSAnonBoxes::tableCol,
-                                                            parentStyleContext);
+    styleContext = shell->StyleSet()->
+      ResolveAnonymousBoxStyle(nsCSSAnonBoxes::tableCol, parentStyleContext);
     
     NS_ASSERTION(iContent, "null content in CreateAnonymousColFrames");
 

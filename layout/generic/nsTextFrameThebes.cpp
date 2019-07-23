@@ -3162,8 +3162,9 @@ nsTextPaintStyle::InitSelectionColors()
       selectionStatus == nsISelectionController::SELECTION_ON) {
     nsRefPtr<nsStyleContext> sc = nsnull;
     sc = mPresContext->StyleSet()->
-      ProbePseudoStyleFor(selectionContent, nsCSSPseudoElements::mozSelection,
-                          mFrame->GetStyleContext());
+      ProbePseudoElementStyle(selectionContent,
+                              nsCSSPseudoElements::ePseudo_mozSelection,
+                              mFrame->GetStyleContext());
     
     if (sc) {
       const nsStyleBackground* bg = sc->GetStyleBackground();

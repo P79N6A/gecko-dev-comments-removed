@@ -55,6 +55,8 @@
 #include "nsCOMArray.h"
 #include "nsAutoPtr.h"
 #include "nsIStyleRule.h"
+#include "nsCSSPseudoElements.h"
+#include "nsCSSAnonBoxes.h"
 
 class nsIURI;
 class nsCSSFontFaceRule;
@@ -105,6 +107,7 @@ class nsStyleSet
   already_AddRefed<nsStyleContext>
   ResolveStyleForRules(nsStyleContext* aParentContext,
                        nsIAtom* aPseudoTag,
+                       nsCSSPseudoElements::Type aPseudoType,
                        nsRuleNode *aRuleNode,
                        const nsCOMArray<nsIStyleRule> &aRules);
 
@@ -121,21 +124,71 @@ class nsStyleSet
   
   
   
+  already_AddRefed<nsStyleContext>
+  ResolvePseudoElementStyle(nsIContent* aParentContent,
+                            nsCSSPseudoElements::Type aType,
+                            nsStyleContext* aParentContext) {
+    return ResolvePseudoStyleFor(aParentContent,
+                                 nsCSSPseudoElements::GetPseudoAtom(aType),
+                                 aType,
+                                 aParentContext);
+  }
+
+  
+  
+  
+  already_AddRefed<nsStyleContext>
+  ProbePseudoElementStyle(nsIContent* aParentContent,
+                          nsCSSPseudoElements::Type aType,
+                          nsStyleContext* aParentContext);
+  
+  
+  
+  already_AddRefed<nsStyleContext>
+  ResolveAnonymousBoxStyle(nsIAtom* aPseudoTag,
+                           nsStyleContext* aParentContext) {
+#ifdef DEBUG
+    PRBool isAnonBox = nsCSSAnonBoxes::IsAnonBox(aPseudoTag)
+#ifdef MOZ_XUL
+                 && !nsCSSAnonBoxes::IsTreePseudoElement(aPseudoTag)
+#endif
+      ;
+    NS_PRECONDITION(isAnonBox, "Unexpected pseudo");
+#endif
+    return ResolvePseudoStyleFor(nsnull, aPseudoTag,
+                                 nsCSSPseudoElements::ePseudo_AnonBox,
+                                 aParentContext);
+  }
+
+#ifdef MOZ_XUL
+  
+  
+  
+  already_AddRefed<nsStyleContext>
+  ResolveXULTreePseudoStyle(nsIContent* aParentContent,
+                            nsIAtom* aPseudoTag,
+                            nsStyleContext* aParentContext,
+                            nsICSSPseudoComparator* aComparator) {
+    NS_PRECONDITION(nsCSSAnonBoxes::IsTreePseudoElement(aPseudoTag),
+                    "Unexpected pseudo");
+    return ResolvePseudoStyleFor(aParentContent, aPseudoTag,
+                                 nsCSSPseudoElements::ePseudo_XULTree,
+                                 aParentContext, aComparator);
+  }
+#endif
+
+private:
+  
+  
+  
   
   already_AddRefed<nsStyleContext>
   ResolvePseudoStyleFor(nsIContent* aParentContent,
                         nsIAtom* aPseudoTag,
+                        nsCSSPseudoElements::Type aPseudoType,
                         nsStyleContext* aParentContext,
                         nsICSSPseudoComparator* aComparator = nsnull);
-
-  
-  
-  
-  already_AddRefed<nsStyleContext>
-  ProbePseudoStyleFor(nsIContent* aParentContent,
-                      nsIAtom* aPseudoTag,
-                      nsStyleContext* aParentContext);
-
+public:
   
   
   PRBool AppendFontFaceRules(nsPresContext* aPresContext,
@@ -311,7 +364,8 @@ class nsStyleSet
   already_AddRefed<nsStyleContext> GetContext(nsPresContext* aPresContext,
                                               nsStyleContext* aParentContext,
                                               nsRuleNode* aRuleNode,
-                                              nsIAtom* aPseudoTag);
+                                              nsIAtom* aPseudoTag,
+                                              nsCSSPseudoElements::Type aPseudoType);
 
   nsPresContext* PresContext() { return mRuleTree->GetPresContext(); }
 
