@@ -276,6 +276,14 @@ function run_test() {
   }
 
   
+  bmsvc.createFolder(testRoot, "tmp", 1);
+  bmsvc.removeChildAt(testRoot, 1);
+
+  
+  bmsvc.insertItem(root, uri("http://blah.com"), 1);
+  bmsvc.removeChildAt(root, 1);
+
+  
   var tmpFolder = bmsvc.createFolder(testRoot, "tmp", 2);
   do_check_eq(bmsvc.indexOfFolder(testRoot, tmpFolder), 2);
 
@@ -320,9 +328,9 @@ function run_test() {
     var result = histsvc.executeQuery(query, options);
     var rootNode = result.root;
     rootNode.containerOpen = true;
-    do_check_eq(rootNode.childCount, 3);
-    rootNode.containerOpen = false;
-  } catch(ex) { do_throw("removeFolderChildren(): " + ex); }
+  } catch(ex) { do_throw("test removeFolderChildren() - querying for children failed: " + ex); }
+  do_check_eq(rootNode.childCount, 3);
+  rootNode.containerOpen = false;
   
   bmsvc.removeFolderChildren(tmpFolder);
   

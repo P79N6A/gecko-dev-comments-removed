@@ -155,4 +155,21 @@ function run_test() {
   root.containerOpen = true;
   do_check_eq(root.childCount, 1);
   root.containerOpen = false;
+
+  
+  
+  var store = Cc["@mozilla.org/storage/service;1"].
+    getService(Ci.mozIStorageService);
+  
+  var file = Cc["@mozilla.org/file/directory_service;1"].
+    getService(Ci.nsIProperties).
+    get("ProfD", Ci.nsILocalFile);
+  file.append("places.sqlite");
+  var db = store.openDatabase(file);
+  var q = "SELECT id FROM moz_bookmarks";
+  try {
+    var statement = db.createStatement(q);
+  } catch(ex) {
+    do_throw("bookmarks table does not have id field, schema is too old!");
+  }
 }
