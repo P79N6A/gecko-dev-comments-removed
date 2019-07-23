@@ -275,7 +275,8 @@ extern  "C" int cacheflush(char *addr, int nbytes, int cache);
 #endif
 
 #ifdef AVMPLUS_SPARC
-#ifdef __linux__  
+
+#ifdef linux  
 void sync_instruction_memory(caddr_t v, u_int len)
 {
     caddr_t end = v + len;
