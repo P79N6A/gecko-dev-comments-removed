@@ -2875,13 +2875,11 @@ pref("html5.enable", false);
 pref("html5.offmainthread", true);
 
 
-pref("html5.flushtimer.startdelay", 200);
+
+pref("html5.flushtimer.initialdelay", 200);
 
 
-pref("html5.flushtimer.continuedelay", 150);
-
-
-pref("html5.flushtimer.interval", 120);
+pref("html5.flushtimer.subsequentdelay", 120);
 
 
 pref("browser.history.allowPushState", true);
