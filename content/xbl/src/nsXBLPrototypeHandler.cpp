@@ -70,6 +70,7 @@
 #include "nsContentUtils.h"
 #include "nsIScriptError.h"
 #include "nsXPIDLString.h"
+#include "nsReadableUtils.h"
 #include "nsGkAtoms.h"
 #include "nsGUIEvent.h"
 #include "nsIXPConnect.h"
@@ -605,19 +606,7 @@ nsXBLPrototypeHandler::KeyEventMatched(nsIDOMKeyEvent* aKeyEvent)
 
   if (mMisc) {
     aKeyEvent->GetCharCode(&code);
-    
-    if (!IS_IN_BMP(code))
-      return PR_FALSE;
-
-    
-    
-    
-    PRBool isShift;
-    aKeyEvent->GetShiftKey(&isShift);
-    if ((mKeyMask & cShiftMask) && isShift)
-      code = ToUpperCase(PRUnichar(code));
-    else
-      code = ToLowerCase(PRUnichar(code));
+    code = ToLowerCase(PRUnichar(code));
   }
   else
     aKeyEvent->GetKeyCode(&code);
@@ -941,19 +930,11 @@ nsXBLPrototypeHandler::ConstructPrototype(nsIContent* aKeyElement,
   if (!key.IsEmpty()) {
     if (mKeyMask == 0)
       mKeyMask = cAllModifiers;
-    
-    
-    if ((mKeyMask & (cShift | cShiftMask)) == (cShift | cShiftMask))
-      ToUpperCase(key);
-    else
-      ToLowerCase(key);
+    ToLowerCase(key);
 
     
     mMisc = 1;
-    
-    
     mDetail = key[0];
-
     const PRUint8 GTK2Modifiers = cShift | cControl | cShiftMask | cControlMask;
     if ((mKeyMask & GTK2Modifiers) == GTK2Modifiers &&
         modifiers.First() != PRUnichar(',') &&
@@ -1023,11 +1004,7 @@ nsXBLPrototypeHandler::ModifiersMatchMask(nsIDOMUIEvent* aEvent)
       return PR_FALSE;
   }
 
-  
-  
-  
-  
-  if (!(key && mMisc) && (mKeyMask & cShiftMask)) {
+  if (mKeyMask & cShiftMask) {
     key ? key->GetShiftKey(&keyPresent) : mouse->GetShiftKey(&keyPresent);
     if (keyPresent != ((mKeyMask & cShift) != 0))
       return PR_FALSE;
