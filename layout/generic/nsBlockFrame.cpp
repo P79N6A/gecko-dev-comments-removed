@@ -935,17 +935,6 @@ nsBlockFrame::Reflow(nsPresContext*           aPresContext,
     return NS_OK;
   }
 
-  
-  
-  
-  nsRect ocBounds;
-  nsReflowStatus ocStatus = NS_FRAME_COMPLETE;
-  if (GetPrevInFlow()) {
-    ReflowOverflowContainerChildren(aPresContext, aReflowState, ocBounds, 0,
-                                    ocStatus);
-  }
-
-
   PRBool marginRoot = BlockIsMarginRoot(this);
   nsBlockReflowState state(aReflowState, aPresContext, this, aMetrics,
                            marginRoot, marginRoot, needFloatManager);
@@ -965,9 +954,22 @@ nsBlockFrame::Reflow(nsPresContext*           aPresContext,
   
   
   DrainOverflowLines(state);
-  DrainFloatContinuations(state);
 
   
+  nsRect ocBounds;
+  nsReflowStatus ocStatus = NS_FRAME_COMPLETE;
+  if (GetPrevInFlow()) {
+    ReflowOverflowContainerChildren(aPresContext, aReflowState, ocBounds, 0,
+                                    ocStatus);
+  }
+
+  
+  
+  nsOverflowContinuationTracker tracker(aPresContext, this, PR_FALSE);
+  state.mOverflowTracker = &tracker;
+
+  
+  DrainFloatContinuations(state);
   nsRect fcBounds;
   nsReflowStatus fcStatus = NS_FRAME_COMPLETE;
   rv = ReflowFloatContinuations(state, fcBounds, fcStatus);
@@ -1947,7 +1949,7 @@ nsBlockFrame::ReflowDirtyLines(nsBlockReflowState& aState)
       
       aState.mPresContext->CheckForInterrupt(this);
     } else {
-      aState.mOverflowTracker.Skip(line->mFirstChild, aState.mReflowStatus);
+      aState.mOverflowTracker->Skip(line->mFirstChild, aState.mReflowStatus);
         
         
         
@@ -3164,7 +3166,7 @@ nsBlockFrame::ReflowBlockFrame(nsBlockReflowState& aState,
             
             if (!madeContinuation &&
                 (NS_FRAME_IS_OVERFLOW_CONTAINER & nextFrame->GetStateBits())) {
-              aState.mOverflowTracker.Finish(frame);
+              aState.mOverflowTracker->Finish(frame);
               nsContainerFrame* parent =
                 static_cast<nsContainerFrame*>(nextFrame->GetParent());
               rv = parent->StealFrame(aState.mPresContext, nextFrame);
@@ -3245,7 +3247,7 @@ nsBlockFrame::ReflowBlockFrame(nsBlockReflowState& aState,
             }
 
             
-            aState.mOverflowTracker.Insert(nextFrame, frameReflowStatus);
+            aState.mOverflowTracker->Insert(nextFrame, frameReflowStatus);
             NS_MergeReflowStatusInto(&aState.mReflowStatus, frameReflowStatus);
 
 #ifdef NOISY_VERTICAL_MARGINS
