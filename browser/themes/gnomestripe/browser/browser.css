@@ -839,14 +839,6 @@ toolbar[iconsize="small"] #paste-button:not([disabled="true"]):hover:active {
   -moz-margin-end: 5px;
 }
 
-
-
-
-
-#urlbar-icons-spacer {
-  width: 100px;
-}
-
 #urlbar-icons {
   height: 18px;
 }
