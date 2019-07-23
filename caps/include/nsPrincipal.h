@@ -140,7 +140,6 @@ protected:
 
   nsCOMPtr<nsIURI> mCodebase;
   nsCOMPtr<nsIURI> mDomain;
-  nsCOMPtr<nsIURI> mOrigin;
   PRPackedBool mTrusted;
   PRPackedBool mInitialized;
   
