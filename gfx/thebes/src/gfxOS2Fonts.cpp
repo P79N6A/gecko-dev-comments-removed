@@ -105,6 +105,41 @@ gfxOS2Font::~gfxOS2Font()
 }
 
 
+static void FillMetricsDefaults(gfxFont::Metrics *aMetrics)
+{
+    aMetrics->emAscent = 0.8 * aMetrics->emHeight;
+    aMetrics->emDescent = 0.2 * aMetrics->emHeight;
+    aMetrics->maxAscent = aMetrics->emAscent;
+    aMetrics->maxDescent = aMetrics->maxDescent;
+    aMetrics->maxHeight = aMetrics->emHeight;
+    aMetrics->internalLeading = 0.0;
+    aMetrics->externalLeading = 0.2 * aMetrics->emHeight;
+    aMetrics->spaceWidth = 0.5 * aMetrics->emHeight;
+    aMetrics->maxAdvance = aMetrics->spaceWidth;
+    aMetrics->aveCharWidth = aMetrics->spaceWidth;
+    aMetrics->zeroOrAveCharWidth = aMetrics->spaceWidth;
+    aMetrics->xHeight = 0.5 * aMetrics->emHeight;
+    aMetrics->underlineSize = aMetrics->emHeight / 14.0;
+    aMetrics->underlineOffset = -aMetrics->underlineSize;
+    aMetrics->strikeoutOffset = 0.25 * aMetrics->emHeight;
+    aMetrics->strikeoutSize = aMetrics->underlineSize;
+    aMetrics->superscriptOffset = aMetrics->xHeight;
+    aMetrics->subscriptOffset = aMetrics->xHeight;
+}
+
+
+
+static void SnapLineToPixels(gfxFloat& aOffset, gfxFloat& aSize)
+{
+    gfxFloat snappedSize = PR_MAX(NS_floor(aSize + 0.5), 1.0);
+    
+    gfxFloat offset = aOffset - 0.5 * (aSize - snappedSize);
+    
+    aOffset = NS_floor(offset + 0.5);
+    aSize = snappedSize;
+}
+
+
 
 
 
@@ -120,14 +155,17 @@ const gfxFont::Metrics& gfxOS2Font::GetMetrics()
 
     
     mMetrics = new gfxFont::Metrics;
-    mMetrics->emHeight = GetStyle()->size;
     mSpaceGlyph = 0;
+
+    
+    
+    mMetrics->emHeight = NS_floor(GetStyle()->size + 0.5);
 
     FT_Face face = cairo_ft_scaled_font_lock_face(CairoScaledFont());
     if (!face) {
         
         
-        
+        FillMetricsDefaults(mMetrics);
         return *mMetrics;
     }
     if (!face->charmap) {
@@ -135,12 +173,14 @@ const gfxFont::Metrics& gfxOS2Font::GetMetrics()
         
         
         cairo_ft_scaled_font_unlock_face(CairoScaledFont());
+        FillMetricsDefaults(mMetrics);
         return *mMetrics;
     }
 
-    double emUnit = 1.0 * face->units_per_EM;
-    double xScale = face->size->metrics.x_ppem / emUnit;
-    double yScale = face->size->metrics.y_ppem / emUnit;
+    
+    gfxFloat emUnit = 1.0 * face->units_per_EM;
+    gfxFloat xScale = face->size->metrics.x_ppem / emUnit;
+    gfxFloat yScale = face->size->metrics.y_ppem / emUnit;
 
     FT_UInt gid; 
 
@@ -157,6 +197,7 @@ const gfxFont::Metrics& gfxOS2Font::GetMetrics()
         mSpaceGlyph = gid;
     } else {
         NS_ASSERTION(gid, "this font doesn't have a space glyph!");
+        mMetrics->spaceWidth = face->max_advance_width * xScale;
     }
 
     
@@ -165,7 +206,7 @@ const gfxFont::Metrics& gfxOS2Font::GetMetrics()
         
         FT_Load_Glyph(face, gid, FT_LOAD_NO_SCALE);
         mMetrics->xHeight = face->glyph->metrics.height * yScale;
-        mMetrics->aveCharWidth = face->glyph->metrics.width * xScale;
+        mMetrics->aveCharWidth = face->glyph->metrics.horiAdvance * xScale;
     } else {
         
         
@@ -179,8 +220,8 @@ const gfxFont::Metrics& gfxOS2Font::GetMetrics()
         FT_Load_Glyph(face, gid, FT_LOAD_NO_SCALE);
         mMetrics->zeroOrAveCharWidth = face->glyph->metrics.horiAdvance * xScale;
     } else {
-         
-         mMetrics->zeroOrAveCharWidth = mMetrics->aveCharWidth;
+        
+        mMetrics->zeroOrAveCharWidth = mMetrics->aveCharWidth;
     }
 
     
@@ -194,13 +235,13 @@ const gfxFont::Metrics& gfxOS2Font::GetMetrics()
     TT_OS2 *os2 = (TT_OS2 *)FT_Get_Sfnt_Table(face, ft_sfnt_os2);
     if (os2 && os2->version != 0xFFFF) { 
         
-        mMetrics->aveCharWidth = os2->xAvgCharWidth * xScale;
+        mMetrics->aveCharWidth = PR_MAX(mMetrics->aveCharWidth,
+                                        os2->xAvgCharWidth * xScale);
 
-        mMetrics->superscriptOffset = os2->ySuperscriptYOffset * yScale;
-        mMetrics->superscriptOffset = PR_MAX(1, mMetrics->superscriptOffset);
+        mMetrics->superscriptOffset = PR_MAX(os2->ySuperscriptYOffset * yScale, 1.0);
         
-        mMetrics->subscriptOffset   = fabs(os2->ySubscriptYOffset * yScale);
-        mMetrics->subscriptOffset   = PR_MAX(1, fabs(mMetrics->subscriptOffset));
+        mMetrics->subscriptOffset   = PR_MAX(fabs(os2->ySubscriptYOffset * yScale),
+                                             1.0);
         mMetrics->strikeoutOffset   = os2->yStrikeoutPosition * yScale;
         mMetrics->strikeoutSize     = os2->yStrikeoutSize * yScale;
     } else {
@@ -210,6 +251,8 @@ const gfxFont::Metrics& gfxOS2Font::GetMetrics()
         mMetrics->strikeoutOffset   = mMetrics->emHeight * 0.3;
         mMetrics->strikeoutSize     = face->underline_thickness * yScale;
     }
+    SnapLineToPixels(mMetrics->strikeoutOffset, mMetrics->strikeoutSize);
+
     
     mMetrics->underlineOffset = face->underline_position * yScale;
     mMetrics->underlineSize   = face->underline_thickness * yScale;
@@ -218,17 +261,22 @@ const gfxFont::Metrics& gfxOS2Font::GetMetrics()
     mMetrics->emAscent        = face->ascender * yScale;
     mMetrics->emDescent       = -face->descender * yScale;
     mMetrics->maxHeight       = face->height * yScale;
-    mMetrics->maxAscent       = face->bbox.yMax * yScale;
-    mMetrics->maxDescent      = -face->bbox.yMin * yScale;
-    mMetrics->maxAdvance      = face->max_advance_width * xScale;
     
-    double lineHeight = mMetrics->maxAscent + mMetrics->maxDescent;
-    if (lineHeight > mMetrics->emHeight) {
-        mMetrics->internalLeading = lineHeight - mMetrics->emHeight;
-    } else {
-        mMetrics->internalLeading = 0;
-    }
-    mMetrics->externalLeading = 0; 
+    mMetrics->maxAscent       = PR_MAX(face->bbox.yMax * yScale,
+                                       mMetrics->emAscent);
+    mMetrics->maxDescent      = PR_MAX(-face->bbox.yMin * yScale,
+                                       mMetrics->emDescent);
+    mMetrics->maxAdvance      = PR_MAX(face->max_advance_width * xScale,
+                                       mMetrics->aveCharWidth);
+
+    
+    
+    
+    mMetrics->internalLeading = NS_floor(mMetrics->maxHeight
+                                         - mMetrics->emHeight + 0.5);
+    gfxFloat lineHeight = NS_floor(mMetrics->maxHeight + 0.5);
+    mMetrics->externalLeading = lineHeight
+                              - mMetrics->internalLeading - mMetrics->emHeight;
 
     SanitizeMetrics(mMetrics, PR_FALSE);
 
@@ -237,7 +285,7 @@ const gfxFont::Metrics& gfxOS2Font::GetMetrics()
            "  %s (%s)\n"
            "  emHeight=%f == %f=gfxFont::style.size == %f=adjSz\n"
            "  maxHeight=%f  xHeight=%f\n"
-           "  aveCharWidth=%f==xWidth  spaceWidth=%f\n"
+           "  aveCharWidth=%f(x) zeroOrAveWidth=%f(0) spaceWidth=%f\n"
            "  supOff=%f SubOff=%f   strOff=%f strSz=%f\n"
            "  undOff=%f undSz=%f    intLead=%f extLead=%f\n"
            "  emAsc=%f emDesc=%f maxH=%f\n"
@@ -247,7 +295,7 @@ const gfxFont::Metrics& gfxOS2Font::GetMetrics()
            os2 && os2->version != 0xFFFF ? "has OS/2 table" : "no OS/2 table!",
            mMetrics->emHeight, GetStyle()->size, mAdjustedSize,
            mMetrics->maxHeight, mMetrics->xHeight,
-           mMetrics->aveCharWidth, mMetrics->spaceWidth,
+           mMetrics->aveCharWidth, mMetrics->zeroOrAveCharWidth, mMetrics->spaceWidth,
            mMetrics->superscriptOffset, mMetrics->subscriptOffset,
            mMetrics->strikeoutOffset, mMetrics->strikeoutSize,
            mMetrics->underlineOffset, mMetrics->underlineSize,
