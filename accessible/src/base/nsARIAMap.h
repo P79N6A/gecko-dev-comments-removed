@@ -325,7 +325,7 @@ struct nsARIAMap
   
 
 
-  static nsStateMapEntry nsARIAMap::gWAIStateMap[];
+  static nsStateMapEntry gWAIStateMap[];
 
   
 
