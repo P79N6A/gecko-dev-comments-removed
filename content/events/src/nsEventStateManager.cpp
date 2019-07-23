@@ -3133,7 +3133,8 @@ nsEventStateManager::PostHandleEvent(nsPresContext* aPresContext,
             !(aEvent->flags & NS_EVENT_FLAG_NO_DEFAULT_CALLED_IN_CONTENT));
         }
       } else if (aEvent->message == NS_DRAGDROP_OVER && !isChromeDoc) {
-        dragSession->SetCanDrop(PR_FALSE);
+        
+        dragSession->SetOnlyChromeDrop(PR_TRUE);
       }
 
       
