@@ -1578,11 +1578,6 @@ nsNSSComponent::InitializeNSS(PRBool showWarningBox)
 
       mNSSInitialized = PR_TRUE;
 
-      
-      
-      
-      CERT_SetUsePKIXForValidation(PR_TRUE);
-
       ::NSS_SetDomesticPolicy();
       
       
