@@ -74,7 +74,7 @@
 
 
 
-
+#include "nsBidiKeyboard.h"
 
 
 NS_GENERIC_FACTORY_CONSTRUCTOR(nsWindow)
@@ -95,8 +95,7 @@ NS_GENERIC_FACTORY_CONSTRUCTOR(nsScreenManagerQt)
 NS_GENERIC_FACTORY_CONSTRUCTOR(nsClipboard)
 NS_GENERIC_FACTORY_CONSTRUCTOR(nsClipboardHelper)
 
-
-
+NS_GENERIC_FACTORY_CONSTRUCTOR(nsBidiKeyboard)
 
 
 
@@ -153,15 +152,17 @@ static const nsModuleComponentInfo components[] =
     { "Clipboard Helper",
       NS_CLIPBOARDHELPER_CID,
       "@mozilla.org/widget/clipboardhelper;1",
-      nsClipboardHelperConstructor }
+      nsClipboardHelperConstructor },
 
 
 
 
 
 
-
-
+    { "Qt Bidi Keyboard",
+      NS_BIDIKEYBOARD_CID,
+      "@mozilla.org/widget/bidikeyboard;1",
+      nsBidiKeyboardConstructor }
 
 
 
