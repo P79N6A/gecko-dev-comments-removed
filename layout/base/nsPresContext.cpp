@@ -1623,7 +1623,7 @@ nsPresContext::EnsureVisible()
     
     nsCOMPtr<nsIDocumentViewer> docV(do_QueryInterface(cv));
     if (docV) {
-      nsCOMPtr<nsPresContext> currentPresContext;
+      nsRefPtr<nsPresContext> currentPresContext;
       docV->GetPresContext(getter_AddRefs(currentPresContext));
       if (currentPresContext == this) {
         
