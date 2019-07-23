@@ -814,7 +814,7 @@ void DebugCheckChildSize(nsIFrame*            aChild,
 
 
 static nscoord
-CalcUnpaginagedHeight(nsPresContext*       aPresContext,
+CalcUnpaginagedHeight(nsPresContext*        aPresContext,
                       nsTableCellFrame&     aCellFrame, 
                       nsTableFrame&         aTableFrame,
                       nscoord               aVerticalBorderPadding)
@@ -857,13 +857,10 @@ NS_METHOD nsTableCellFrame::Reflow(nsPresContext*           aPresContext,
   }
 
   
-  nscoord availHeight = aReflowState.availableHeight;
-
-  
   nsTableFrame::CheckRequestSpecialHeightReflow(aReflowState);
 
   aStatus = NS_FRAME_COMPLETE;
-  nsSize availSize(aReflowState.availableWidth, availHeight);
+  nsSize availSize(aReflowState.availableWidth, aReflowState.availableHeight);
 
   
   nsTableFrame* tableFrame = nsTableFrame::GetTableFrame(this);
@@ -881,9 +878,9 @@ NS_METHOD nsTableCellFrame::Reflow(nsPresContext*           aPresContext,
   nscoord leftInset   = borderPadding.left;
 
   
-  availSize.width -= leftInset+rightInset;
-  if (NS_UNCONSTRAINEDSIZE!=availSize.height)
-    availSize.height -= topInset+bottomInset;
+  availSize.width -= leftInset + rightInset;
+  if (NS_UNCONSTRAINEDSIZE != availSize.height)
+    availSize.height -= topInset + bottomInset;
 
   
   
