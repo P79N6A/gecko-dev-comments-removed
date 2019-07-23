@@ -528,6 +528,14 @@ typedef JSObject *
 
 
 
+typedef JSObject *
+(* JS_DLL_CALLBACK JSIteratorOp)(JSContext *cx, JSObject *obj,
+                                 JSBool keysonly);
+
+
+
+
+
 
 
 typedef void
