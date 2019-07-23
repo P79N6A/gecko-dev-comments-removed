@@ -1448,6 +1448,17 @@ js_InternalInvoke(JSContext *cx, JSObject *obj, jsval fval, uintN flags,
     JSBool ok;
 
     js_LeaveTrace(cx);
+
+#ifdef JS_TRACER
+    
+
+
+
+    uint32 oldOptions = cx->options;
+    if ((oldOptions & JSOPTION_JIT) && obj != JS_GetGlobalForObject(cx, obj))
+        cx->options &= ~JSOPTION_JIT;
+#endif
+
     invokevp = js_AllocStack(cx, 2 + argc, &mark);
     if (!invokevp)
         return JS_FALSE;
@@ -1477,6 +1488,13 @@ js_InternalInvoke(JSContext *cx, JSObject *obj, jsval fval, uintN flags,
     }
 
     js_FreeStack(cx, mark);
+
+#ifdef JS_TRACER
+    
+    if (oldOptions & JSOPTION_JIT)
+        cx->options |= JSOPTION_JIT;
+#endif
+
     return ok;
 }
 
@@ -1539,12 +1557,9 @@ js_Execute(JSContext *cx, JSObject *chain, JSScript *script,
 
 
 
-
     uint32 oldOptions = cx->options;
-    if ((oldOptions & JSOPTION_JIT) &&
-        chain != JS_GetGlobalForObject(cx, chain)) {
+    if ((oldOptions & JSOPTION_JIT) && chain != JS_GetGlobalForObject(cx, chain))
         cx->options &= ~JSOPTION_JIT;
-    }
 #endif
 
 #ifdef INCLUDE_MOZILLA_DTRACE
