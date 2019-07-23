@@ -480,17 +480,7 @@ class nsTSubstring_CharT : public nsTAString_CharT
 
 
 
-      nsTSubstring_CharT(const substring_tuple_type& tuple)
-#ifdef MOZ_V1_STRING_ABI
-        : abstract_string_type(nsnull, 0, F_NONE)
-#else
-        : mData(nsnull),
-          mLength(0),
-          mFlags(F_NONE)
-#endif
-        {
-          Assign(tuple);
-        }
+      NS_COM nsTSubstring_CharT(const substring_tuple_type& tuple);
 
         
 
@@ -519,35 +509,15 @@ class nsTSubstring_CharT : public nsTAString_CharT
 #endif
 
         
-      nsTSubstring_CharT()
-#ifdef MOZ_V1_STRING_ABI
-        : abstract_string_type(
-              const_cast<char_type*>(char_traits::sEmptyBuffer), 0, F_TERMINATED) {}
-#else
-        : mData(const_cast<char_type*>(char_traits::sEmptyBuffer)),
-          mLength(0),
-          mFlags(F_TERMINATED) {}
-#endif
+      NS_COM nsTSubstring_CharT();
 
         
       explicit
-      nsTSubstring_CharT( PRUint32 flags )
-#ifdef MOZ_V1_STRING_ABI
-        : abstract_string_type(flags) {}
-#else
-        : mFlags(flags) {}
-#endif
+      NS_COM nsTSubstring_CharT( PRUint32 flags );
 
         
         
-      nsTSubstring_CharT( const self_type& str )
-#ifdef MOZ_V1_STRING_ABI
-        : abstract_string_type(str.mData, str.mLength, str.mFlags & (F_TERMINATED | F_VOIDED)) {}
-#else
-        : mData(str.mData),
-          mLength(str.mLength),
-          mFlags(str.mFlags & (F_TERMINATED | F_VOIDED)) {}
-#endif
+      NS_COM nsTSubstring_CharT( const self_type& str );
 
         
 
