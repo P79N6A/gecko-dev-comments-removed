@@ -333,12 +333,17 @@ function DoneTests()
     goQuitApplication();
 }
 
-function CanvasToURL(canvas)
-{
-    var ctx = whichCanvas.getContext("2d");
-    return canvas.toDataURL();
+function setupZoom(contentRootElement) {
+    if (!contentRootElement.hasAttribute('reftest-zoom'))
+        return;
+    gBrowser.markupDocumentViewer.fullZoom =
+        contentRootElement.getAttribute('reftest-zoom');
 }
 
+function resetZoom() {
+    gBrowser.markupDocumentViewer.fullZoom = 1.0;
+}
+    
 function OnDocumentLoad(event)
 {
     if (event.target != gBrowser.contentDocument)
@@ -382,6 +387,8 @@ function OnDocumentLoad(event)
        ps.footerStrRight = "";
        gBrowser.docShell.contentViewer.setPageMode(true, ps);
     }
+
+    setupZoom(contentRootElement);
 
     if (shouldWait()) {
         
@@ -441,8 +448,18 @@ function DocumentLoaded()
 
 
     var win = gBrowser.contentWindow;
-    canvas.getContext("2d").drawWindow(win, win.scrollX, win.scrollY,
-                                       canvas.width, canvas.height, "rgb(255,255,255)");
+    var ctx = canvas.getContext("2d");
+    var scale = gBrowser.markupDocumentViewer.fullZoom;
+    ctx.save();
+    
+    
+    
+    ctx.scale(scale, scale);
+    ctx.drawWindow(win, win.scrollX, win.scrollY,
+                   canvas.width, canvas.height, "rgb(255,255,255)");
+    ctx.restore();
+
+    resetZoom();
 
     switch (gState) {
         case 1:
