@@ -55,7 +55,9 @@
 #include "nsILineInputStream.h"
 #include "nsIEffectiveTLDService.h"
 
+#include "nsTArray.h"
 #include "nsCOMArray.h"
+#include "nsIMutableArray.h"
 #include "nsArrayEnumerator.h"
 #include "nsEnumeratorUtils.h"
 #include "nsAutoPtr.h"
@@ -85,11 +87,15 @@ static const char kCookieFileName[] = "cookies.sqlite";
 #define COOKIES_SCHEMA_VERSION 2
 
 static const PRInt64 kCookieStaleThreshold = 60 * PR_USEC_PER_SEC; 
+static const PRInt64 kCookiePurgeAge = 30 * 24 * 60 * 60 * PR_USEC_PER_SEC; 
 
 static const char kOldCookieFileName[] = "cookies.txt";
 
 #undef  LIMIT
 #define LIMIT(x, low, high, default) ((x) >= (low) && (x) <= (high) ? (x) : (default))
+
+#undef  ADD_TEN_PERCENT
+#define ADD_TEN_PERCENT(i) ((i) + (i)/10)
 
 
 
@@ -116,6 +122,7 @@ static const PRUint32 BEHAVIOR_REJECT        = 2;
 static const char kPrefCookiesPermissions[] = "network.cookie.cookieBehavior";
 static const char kPrefMaxNumberOfCookies[] = "network.cookie.maxNumber";
 static const char kPrefMaxCookiesPerHost[]  = "network.cookie.maxPerHost";
+static const char kPrefCookiePurgeAge[]     = "network.cookie.purgeAge";
 
 
 struct nsCookieAttributes
@@ -206,7 +213,13 @@ static PRLogModuleInfo *sCookieLog = PR_NewLogModule("cookie");
 
 #define COOKIE_LOGFAILURE(a, b, c, d)    LogFailure(a, b, c, d)
 #define COOKIE_LOGSUCCESS(a, b, c, d, e) LogSuccess(a, b, c, d, e)
-#define COOKIE_LOGEVICTED(a)             LogEvicted(a)
+
+#define COOKIE_LOGEVICTED(a)                   \
+  PR_BEGIN_MACRO                               \
+    if (PR_LOG_TEST(sCookieLog, PR_LOG_DEBUG)) \
+      LogEvicted(a);                           \
+  PR_END_MACRO
+
 #define COOKIE_LOGSTRING(lvl, fmt)   \
   PR_BEGIN_MACRO                     \
     PR_LOG(sCookieLog, lvl, fmt);    \
@@ -299,11 +312,6 @@ LogSuccess(PRBool aSetCookie, nsIURI *aHostURI, const char *aCookieString, nsCoo
 static void
 LogEvicted(nsCookie *aCookie)
 {
-  
-  if (!PR_LOG_TEST(sCookieLog, PR_LOG_DEBUG)) {
-    return;
-  }
-
   PR_LOG(sCookieLog, PR_LOG_DEBUG,("===== COOKIE EVICTED =====\n"));
 
   LogCookie(aCookie);
@@ -380,6 +388,7 @@ nsCookieService::nsCookieService()
  , mCookiesPermissions(BEHAVIOR_ACCEPT)
  , mMaxNumberOfCookies(kMaxNumberOfCookies)
  , mMaxCookiesPerHost(kMaxCookiesPerHost)
+ , mCookiePurgeAge(kCookiePurgeAge)
 {
 }
 
@@ -400,6 +409,7 @@ nsCookieService::Init()
     prefBranch->AddObserver(kPrefCookiesPermissions, this, PR_TRUE);
     prefBranch->AddObserver(kPrefMaxNumberOfCookies, this, PR_TRUE);
     prefBranch->AddObserver(kPrefMaxCookiesPerHost,  this, PR_TRUE);
+    prefBranch->AddObserver(kPrefCookiePurgeAge,     this, PR_TRUE);
     PrefChanged(prefBranch);
   }
 
@@ -691,6 +701,7 @@ nsCookieService::Observe(nsISupports     *aSubject,
 
       NS_ASSERTION(mDBState == &mDefaultDBState, "already in private state");
       NS_ASSERTION(mPrivateDBState.cookieCount == 0, "private count not 0");
+      NS_ASSERTION(mPrivateDBState.cookieOldestTime == LL_MAXINT, "private time not reset");
       NS_ASSERTION(mPrivateDBState.hostTable.Count() == 0, "private table not empty");
       NS_ASSERTION(mPrivateDBState.dbConn == NULL, "private DB connection not null");
 
@@ -706,6 +717,7 @@ nsCookieService::Observe(nsISupports     *aSubject,
       NS_ASSERTION(!mPrivateDBState.dbConn, "private DB connection not null");
 
       mPrivateDBState.cookieCount = 0;
+      mPrivateDBState.cookieOldestTime = LL_MAXINT;
       if (mPrivateDBState.hostTable.IsInitialized())
         mPrivateDBState.hostTable.Clear();
 
@@ -818,12 +830,14 @@ nsCookieService::NotifyRejected(nsIURI *aHostURI)
 
 
 
+
+
 void
-nsCookieService::NotifyChanged(nsICookie2      *aCookie,
+nsCookieService::NotifyChanged(nsISupports     *aSubject,
                                const PRUnichar *aData)
 {
   if (mObserverService)
-    mObserverService->NotifyObservers(aCookie, "cookie-changed", aData);
+    mObserverService->NotifyObservers(aSubject, "cookie-changed", aData);
 }
 
 
@@ -843,6 +857,9 @@ nsCookieService::PrefChanged(nsIPrefBranch *aPrefBranch)
 
   if (NS_SUCCEEDED(aPrefBranch->GetIntPref(kPrefMaxCookiesPerHost, &val)))
     mMaxCookiesPerHost = (PRUint16) LIMIT(val, 1, 0xFFFF, kMaxCookiesPerHost);
+
+  if (NS_SUCCEEDED(aPrefBranch->GetIntPref(kPrefCookiePurgeAge, &val)))
+    mCookiePurgeAge = LIMIT(val, 0, PR_INT32_MAX, PR_INT32_MAX) * PR_USEC_PER_SEC;
 }
 
 
@@ -938,7 +955,7 @@ nsCookieService::Add(const nsACString &aDomain,
     return NS_ERROR_OUT_OF_MEMORY;
   }
 
-  AddInternal(cookie, currentTimeInUsec / PR_USEC_PER_SEC, nsnull, nsnull, PR_TRUE);
+  AddInternal(cookie, currentTimeInUsec, nsnull, nsnull, PR_TRUE);
   return NS_OK;
 }
 
@@ -1182,7 +1199,7 @@ nsCookieService::ImportCookies(nsIFile *aCookieFile)
     if (originalCookieCount == 0)
       AddCookieToList(newCookie);
     else
-      AddInternal(newCookie, currentTime, nsnull, nsnull, PR_TRUE);
+      AddInternal(newCookie, currentTimeInUsec, nsnull, nsnull, PR_TRUE);
   }
 
   COOKIE_LOGSTRING(PR_LOG_DEBUG, ("ImportCookies(): %ld cookies imported", mDBState->cookieCount));
@@ -1199,25 +1216,28 @@ nsCookieService::ImportCookies(nsIFile *aCookieFile)
 static inline PRBool ispathdelimiter(char c) { return c == '/' || c == '?' || c == '#' || c == ';'; }
 
 
-class CompareCookiesForSendingComparator
+class CompareCookiesForSending
 {
-  public:
-  PRBool Equals(const nsCookie* aCookie1, const nsCookie* aCookie2) const {
-    return PR_FALSE; 
-  }
-  PRBool LessThan(const nsCookie* aCookie1, const nsCookie* aCookie2) const {
+public:
+  PRBool Equals(const nsCookie* aCookie1, const nsCookie* aCookie2) const
+  {
     
-    int rv = aCookie2->Path().Length() - aCookie1->Path().Length();
-    if (rv == 0) {
-      
-      
-      
-      
-      
-      
-      rv = (aCookie1->CreationID() > aCookie2->CreationID() ? 1 : -1);
-    }
-    return rv < 0;
+    return PR_FALSE;
+  }
+
+  PRBool LessThan(const nsCookie* aCookie1, const nsCookie* aCookie2) const
+  {
+    
+    PRInt32 result = aCookie2->Path().Length() - aCookie1->Path().Length();
+    if (result != 0)
+      return result < 0;
+
+    
+    
+    
+    
+    
+    return aCookie1->CreationID() < aCookie2->CreationID();
   }
 };
 
@@ -1358,7 +1378,7 @@ nsCookieService::GetCookieInternal(nsIURI      *aHostURI,
   
   
   
-  foundCookieList.Sort(CompareCookiesForSendingComparator());
+  foundCookieList.Sort(CompareCookiesForSending());
 
   nsCAutoString cookieData;
   for (PRInt32 i = 0; i < count; ++i) {
@@ -1481,7 +1501,7 @@ nsCookieService::SetCookieInternal(nsIURI             *aHostURI,
 
   
   
-  AddInternal(cookie, PR_Now() / PR_USEC_PER_SEC, aHostURI, savedCookieHeader.get(), aFromHttp);
+  AddInternal(cookie, PR_Now(), aHostURI, savedCookieHeader.get(), aFromHttp);
   return newCookie;
 }
 
@@ -1492,11 +1512,13 @@ nsCookieService::SetCookieInternal(nsIURI             *aHostURI,
 
 void
 nsCookieService::AddInternal(nsCookie   *aCookie,
-                             PRInt64     aCurrentTime,
+                             PRInt64     aCurrentTimeInUsec,
                              nsIURI     *aHostURI,
                              const char *aCookieHeader,
                              PRBool      aFromHttp)
 {
+  PRInt64 currentTime = aCurrentTimeInUsec / PR_USEC_PER_SEC;
+
   
   if (!aFromHttp && aCookie->IsHttpOnly()) {
     COOKIE_LOGFAILURE(SET_COOKIE, aHostURI, aCookieHeader, "cookie is httponly; coming from script");
@@ -1510,7 +1532,7 @@ nsCookieService::AddInternal(nsCookie   *aCookie,
 
   nsListIter matchIter;
   PRBool foundCookie = FindCookie(aCookie->Host(), aCookie->Name(), aCookie->Path(),
-                                  matchIter, aCurrentTime);
+                                  matchIter, currentTime);
 
   nsRefPtr<nsCookie> oldCookie;
   if (foundCookie) {
@@ -1525,7 +1547,7 @@ nsCookieService::AddInternal(nsCookie   *aCookie,
     RemoveCookieFromList(matchIter);
 
     
-    if (aCookie->Expiry() <= aCurrentTime) {
+    if (aCookie->Expiry() <= currentTime) {
       COOKIE_LOGFAILURE(SET_COOKIE, aHostURI, aCookieHeader, "previously stored cookie was deleted");
       NotifyChanged(oldCookie, NS_LITERAL_STRING("deleted").get());
       return;
@@ -1537,36 +1559,33 @@ nsCookieService::AddInternal(nsCookie   *aCookie,
 
   } else {
     
-    if (aCookie->Expiry() <= aCurrentTime) {
+    if (aCookie->Expiry() <= currentTime) {
       COOKIE_LOGFAILURE(SET_COOKIE, aHostURI, aCookieHeader, "cookie has already expired");
       return;
     }
 
     
-    nsEnumerationData data(aCurrentTime, LL_MAXINT);
+    nsEnumerationData data(currentTime, LL_MAXINT);
     if (CountCookiesFromHostInternal(aCookie->RawHost(), data) >= mMaxCookiesPerHost) {
       
       oldCookie = data.iter.current;
+      COOKIE_LOGEVICTED(oldCookie);
       RemoveCookieFromList(data.iter);
 
-    } else if (mDBState->cookieCount >= mMaxNumberOfCookies) {
-      
-      RemoveExpiredCookies(aCurrentTime);
-
-      
-      if (mDBState->cookieCount >= mMaxNumberOfCookies) {
-        
-        data.oldestTime = LL_MAXINT;
-        FindOldestCookie(data);
-        oldCookie = data.iter.current;
-        RemoveCookieFromList(data.iter);
-      }
-    }
-
-    
-    if (oldCookie) {
-      COOKIE_LOGEVICTED(oldCookie);
       NotifyChanged(oldCookie, NS_LITERAL_STRING("deleted").get());
+
+    } else if (mDBState->cookieCount >= ADD_TEN_PERCENT(mMaxNumberOfCookies)) {
+      PRInt64 maxAge = aCurrentTimeInUsec - mDBState->cookieOldestTime;
+      PRInt64 purgeAge = ADD_TEN_PERCENT(mCookiePurgeAge);
+      if (maxAge >= purgeAge) {
+        
+        
+        
+        
+        
+        
+        PurgeCookies(aCurrentTimeInUsec);
+      }
     }
   }
 
@@ -2124,35 +2143,159 @@ nsCookieService::RemoveAllFromMemory()
   
   mDBState->hostTable.Clear();
   mDBState->cookieCount = 0;
+  mDBState->cookieOldestTime = LL_MAXINT;
 }
 
-PLDHashOperator
-removeExpiredCallback(nsCookieEntry *aEntry,
-                      void          *aArg)
+
+
+struct nsPurgeData
 {
-  const PRInt64 &currentTime = *static_cast<PRInt64*>(aArg);
+  nsPurgeData(PRInt64 aCurrentTime,
+              PRInt64 aPurgeTime,
+              nsTArray<nsListIter> &aPurgeList,
+              nsIMutableArray *aRemovedList)
+   : currentTime(aCurrentTime)
+   , purgeTime(aPurgeTime)
+   , oldestTime(LL_MAXINT)
+   , purgeList(aPurgeList)
+   , removedList(aRemovedList) {}
+
+  
+  PRInt64 currentTime;
+
+  
+  PRInt64 purgeTime;
+
+  
+  PRInt64 oldestTime;
+
+  
+  nsTArray<nsListIter> &purgeList;
+
+  
+  nsIMutableArray *removedList;
+};
+
+
+class CompareCookiesByAge {
+public:
+  PRBool Equals(const nsListIter &a, const nsListIter &b) const
+  {
+    
+    return PR_FALSE;
+  }
+
+  PRBool LessThan(const nsListIter &a, const nsListIter &b) const
+  {
+    
+    PRInt64 result = a.current->LastAccessed() - b.current->LastAccessed();
+    if (result != 0)
+      return result < 0;
+
+    return a.current->CreationID() < b.current->CreationID();
+  }
+};
+
+PLDHashOperator
+purgeCookiesCallback(nsCookieEntry *aEntry,
+                     void          *aArg)
+{
+  nsPurgeData &data = *static_cast<nsPurgeData*>(aArg);
   for (nsListIter iter(aEntry, nsnull, aEntry->Head()); iter.current; ) {
-    if (iter.current->Expiry() <= currentTime)
+    
+    if (iter.current->Expiry() <= data.currentTime) {
+      nsCookie *cookie = iter.current;
+      data.removedList->AppendElement(cookie, PR_FALSE);
+      COOKIE_LOGEVICTED(cookie);
+
       
       nsCookieService::gCookieService->RemoveCookieFromList(iter);
-    else
+
+    } else {
+      
+      if (iter.current->LastAccessed() <= data.purgeTime) {
+        data.purgeList.AppendElement(iter);
+
+      } else if (iter.current->LastAccessed() < data.oldestTime) {
+        
+        data.oldestTime = iter.current->LastAccessed();
+      }
+
       ++iter;
+    }
   }
   return PL_DHASH_NEXT;
 }
 
 
 void
-nsCookieService::RemoveExpiredCookies(PRInt64 aCurrentTime)
+nsCookieService::PurgeCookies(PRInt64 aCurrentTimeInUsec)
 {
   NS_ASSERTION(mDBState->hostTable.Count() > 0, "table is empty");
 #ifdef PR_LOGGING
   PRUint32 initialCookieCount = mDBState->cookieCount;
-#endif
-  mDBState->hostTable.EnumerateEntries(removeExpiredCallback, &aCurrentTime);
   COOKIE_LOGSTRING(PR_LOG_DEBUG,
-    ("RemoveExpiredCookies(): %ld purged; %ld remain",
-     initialCookieCount - mDBState->cookieCount, mDBState->cookieCount));
+    ("PurgeCookies(): beginning purge with %ld cookies and %lld age",
+     mDBState->cookieCount, aCurrentTimeInUsec - mDBState->cookieOldestTime));
+#endif
+
+  nsAutoTArray<nsListIter, kMaxNumberOfCookies> purgeList;
+
+  nsCOMPtr<nsIMutableArray> removedList = do_CreateInstance(NS_ARRAY_CONTRACTID);
+  if (!removedList)
+    return;
+
+  nsPurgeData data(aCurrentTimeInUsec / PR_USEC_PER_SEC,
+    aCurrentTimeInUsec - mCookiePurgeAge, purgeList, removedList);
+  mDBState->hostTable.EnumerateEntries(purgeCookiesCallback, &data);
+
+#ifdef PR_LOGGING
+  PRUint32 postExpiryCookieCount = mDBState->cookieCount;
+#endif
+
+  
+  
+  purgeList.Sort(CompareCookiesByAge());
+
+  
+  PRUint32 excess = mDBState->cookieCount - mMaxNumberOfCookies;
+  if (purgeList.Length() > excess) {
+    
+    data.oldestTime = purgeList[excess].current->LastAccessed();
+
+    purgeList.SetLength(excess);
+  }
+
+  
+  
+  
+  for (PRUint32 i = 0; i < purgeList.Length(); ++i) {
+    nsListIter iter(purgeList[i].entry, nsnull, purgeList[i].entry->Head());
+    for (; iter.current; ++iter) {
+      if (iter.current == purgeList[i].current) {
+        
+        nsCookie *cookie = iter.current;
+        removedList->AppendElement(cookie, PR_FALSE);
+        COOKIE_LOGEVICTED(cookie);
+
+        RemoveCookieFromList(iter);
+        break;
+      }
+    }
+  }
+
+  
+  NotifyChanged(removedList, NS_LITERAL_STRING("batch-deleted").get());
+
+  
+  mDBState->cookieOldestTime = data.oldestTime;
+
+  COOKIE_LOGSTRING(PR_LOG_DEBUG,
+    ("PurgeCookies(): %ld expired; %ld purged; %ld remain; %lld oldest age",
+     initialCookieCount - postExpiryCookieCount,
+     mDBState->cookieCount - postExpiryCookieCount,
+     mDBState->cookieCount,
+     aCurrentTimeInUsec - mDBState->cookieOldestTime));
 }
 
 
@@ -2380,6 +2523,10 @@ nsCookieService::AddCookieToList(nsCookie *aCookie, PRBool aWriteToDB)
   ++mDBState->cookieCount;
 
   
+  if (aCookie->LastAccessed() < mDBState->cookieOldestTime)
+    mDBState->cookieOldestTime = aCookie->LastAccessed();
+
+  
   if (aWriteToDB && !aCookie->IsSession() && mDBState->dbConn) {
     
     mozStorageStatementScoper scoper(mDBState->stmtInsert);
@@ -2426,24 +2573,3 @@ nsCookieService::UpdateCookieInList(nsCookie *aCookie, PRInt64 aLastAccessed)
   }
 }
 
-static PLDHashOperator
-findOldestCallback(nsCookieEntry *aEntry,
-                   void          *aArg)
-{
-  nsEnumerationData *data = static_cast<nsEnumerationData*>(aArg);
-  for (nsListIter iter(aEntry, nsnull, aEntry->Head()); iter.current; ++iter) {
-    
-    if (data->oldestTime > iter.current->LastAccessed()) {
-      data->oldestTime = iter.current->LastAccessed();
-      data->iter = iter;
-    }
-  }
-  return PL_DHASH_NEXT;
-}
-
-void
-nsCookieService::FindOldestCookie(nsEnumerationData &aData)
-{
-  NS_ASSERTION(mDBState->hostTable.Count() > 0, "table is empty");
-  mDBState->hostTable.EnumerateEntries(findOldestCallback, &aData);
-}

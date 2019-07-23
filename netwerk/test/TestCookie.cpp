@@ -759,41 +759,7 @@ main(PRInt32 argc, char *argv[])
       GetACookie(cookieService, "http://creation.ordering.tests/", nsnull, getter_Copies(cookie));
       rv[0] = CheckResult(cookie.get(), MUST_EQUAL, expected.get());
 
-      
-      
-      nsCAutoString host;
-      for (PRInt32 i = 0; i < 3010; ++i) {
-        host = NS_LITERAL_CSTRING("http://eviction.");
-        host.AppendInt(i);
-        host += NS_LITERAL_CSTRING(".tests/");
-        SetACookie(cookieService, host.get(), nsnull, "test=eviction", nsnull);
-
-        if (i == 9) {
-          
-          
-          PR_Sleep(2 * PR_TicksPerSecond());
-        }
-      }
-      rv[1] = NS_SUCCEEDED(cookieMgr->GetEnumerator(getter_AddRefs(enumerator)));
-      i = 0;
-      rv[2] = PR_FALSE; 
-      while (NS_SUCCEEDED(enumerator->HasMoreElements(&more)) && more) {
-        nsCOMPtr<nsISupports> cookie;
-        if (NS_FAILED(enumerator->GetNext(getter_AddRefs(cookie)))) break;
-        ++i;
-        
-        
-        nsCOMPtr<nsICookie2> cookie2(do_QueryInterface(cookie));
-        if (!cookie2) break;
-        nsCAutoString domain;
-        cookie2->GetRawHost(domain);
-        PRInt32 hostNumber;
-        PRInt32 numInts = PR_sscanf(domain.get(), "eviction.%ld.tests", &hostNumber);
-        if (numInts != 1 || hostNumber < 10) break;
-      }
-      rv[2] = i == 3000;
-
-      allTestsPassed = PrintResult(rv, 3) && allTestsPassed;
+      allTestsPassed = PrintResult(rv, 1) && allTestsPassed;
 
 
       
