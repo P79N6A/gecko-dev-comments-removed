@@ -331,9 +331,9 @@ nsNSSComponent::~nsNSSComponent()
 
   PR_LOG(gPIPNSSLog, PR_LOG_DEBUG, ("nsNSSComponent::dtor\n"));
 
-  if(mUpdateTimerInitialized == PR_TRUE){
+  if (mUpdateTimerInitialized) {
     PR_Lock(mCrlTimerLock);
-    if(crlDownloadTimerOn == PR_TRUE){
+    if (crlDownloadTimerOn) {
       mTimer->Cancel();
     }
     crlDownloadTimerOn = PR_FALSE;
@@ -1131,14 +1131,14 @@ nsresult nsNSSComponent::getParamsForNextCrlToDownload(nsAutoString *url, PRTime
   }
 
   for(PRUint32 i=0;i<noOfCrls;i++) {
-    PRBool autoUpdateEnabled;
-    nsAutoString tempCrlKey;
-  
     
+    PRBool autoUpdateEnabled = PR_FALSE;
     rv = pref->GetBoolPref(*(allCrlsToBeUpdated+i), &autoUpdateEnabled);
-    if( (NS_FAILED(rv)) || (autoUpdateEnabled==PR_FALSE) ){
+    if (NS_FAILED(rv) || !autoUpdateEnabled) {
       continue;
     }
+
+    nsAutoString tempCrlKey;
 
     
     nsCAutoString enabledPrefCString(*(allCrlsToBeUpdated+i));
@@ -1249,7 +1249,7 @@ nsNSSComponent::DefineNextTimer()
   
   PR_Lock(mCrlTimerLock);
 
-  if(crlDownloadTimerOn == PR_TRUE){
+  if (crlDownloadTimerOn) {
     mTimer->Cancel();
   }
 
@@ -1290,7 +1290,7 @@ nsNSSComponent::StopCRLUpdateTimer()
 {
   
   
-  if(mUpdateTimerInitialized == PR_TRUE){
+  if (mUpdateTimerInitialized) {
     if(crlsScheduledForDownload != nsnull){
       crlsScheduledForDownload->Reset();
       delete crlsScheduledForDownload;
@@ -1298,7 +1298,7 @@ nsNSSComponent::StopCRLUpdateTimer()
     }
 
     PR_Lock(mCrlTimerLock);
-    if(crlDownloadTimerOn == PR_TRUE){
+    if (crlDownloadTimerOn) {
       mTimer->Cancel();
     }
     crlDownloadTimerOn = PR_FALSE;
@@ -1317,7 +1317,7 @@ nsNSSComponent::InitializeCRLUpdateTimer()
   nsresult rv;
     
   
-  if(mUpdateTimerInitialized == PR_FALSE){
+  if (!mUpdateTimerInitialized) {
     mTimer = do_CreateInstance("@mozilla.org/timer;1", &rv);
     if(NS_FAILED(rv)){
       return rv;
@@ -1867,7 +1867,7 @@ nsNSSComponent::VerifySignature(const char* aRSABuf, PRUint32 aRSABufLen,
   
   PRBool rv = SEC_PKCS7VerifyDetachedSignature(p7_info, certUsageObjectSigner,
                                                &digest, HASH_AlgSHA1, PR_FALSE);
-  if (rv != PR_TRUE) {
+  if (!rv) {
     *aErrorCode = PR_GetError();
   }
 
@@ -2980,7 +2980,7 @@ PSMContentDownloader::handleContentDownloadError(nsresult errCode)
     
     nssComponent->GetPIPNSSBundleString("CrlImportFailureNetworkProblem", tmpMessage);
       
-    if(mDoSilentDownload == PR_TRUE){
+    if (mDoSilentDownload) {
       
       nsCAutoString updateErrCntPrefStr(CRL_AUTOUPDATE_ERRCNT_PREF);
       nsCAutoString updateErrDetailPrefStr(CRL_AUTOUPDATE_ERRDETAIL_PREF);
