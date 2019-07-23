@@ -89,6 +89,9 @@ nsDocAccessible::nsDocAccessible(nsIDOMNode *aDOMNode, nsIWeakReference* aShell)
   mIsLoadCompleteFired(PR_FALSE), mInFlushPendingEvents(PR_FALSE)
 {
   
+  mAccessNodeCache.Init(kDefaultCacheSize);
+
+  
   if (!mDOMNode)
     return;
 
@@ -112,9 +115,6 @@ nsDocAccessible::nsDocAccessible(nsIDOMNode *aDOMNode, nsIWeakReference* aShell)
       }
     }
   }
-
-  
-  mAccessNodeCache.Init(kDefaultCacheSize);
 
   nsCOMPtr<nsIDocShellTreeItem> docShellTreeItem =
     nsCoreUtils::GetDocShellTreeItemFor(mDOMNode);
