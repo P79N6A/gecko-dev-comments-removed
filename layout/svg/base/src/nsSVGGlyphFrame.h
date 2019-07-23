@@ -44,11 +44,11 @@
 #include "nsISVGChildFrame.h"
 #include "gfxContext.h"
 #include "gfxFont.h"
-#include "gfxTextRunCache.h"
 
-struct nsSVGCharacterPosition;
 class nsSVGTextFrame;
 class nsSVGGlyphFrame;
+class CharacterIterator;
+struct CharacterPosition;
 
 typedef nsSVGGeometryFrame nsSVGGlyphFrameBase;
 
@@ -61,8 +61,14 @@ class nsSVGGlyphFrame : public nsSVGGlyphFrameBase,
                       nsIFrame* parentFrame, nsStyleContext* aContext);
 protected:
   nsSVGGlyphFrame(nsStyleContext* aContext)
-    : nsSVGGlyphFrameBase(aContext), 
-      mWhitespaceHandling(COMPRESS_WHITESPACE) {}
+    : nsSVGGlyphFrameBase(aContext),
+      mTextRun(nsnull),
+      mWhitespaceHandling(COMPRESS_WHITESPACE)
+      {}
+  ~nsSVGGlyphFrame()
+  {
+    ClearTextRun();
+  }
 
 public:
    
@@ -107,10 +113,13 @@ public:
 #endif
 
   
+  
   NS_IMETHOD PaintSVG(nsSVGRenderState *aContext, nsRect *aDirtyRect);
   NS_IMETHOD GetFrameForPointSVG(float x, float y, nsIFrame** hit);
-  NS_IMETHOD_(nsRect) GetCoveredRegion();
   NS_IMETHOD UpdateCoveredRegion();
+  NS_IMETHOD GetBBox(nsIDOMSVGRect **_retval);
+
+  NS_IMETHOD_(nsRect) GetCoveredRegion();
   NS_IMETHOD InitialUpdate();
   virtual void NotifySVGChanged(PRUint32 aFlags);
   NS_IMETHOD NotifyRedrawSuspended();
@@ -118,7 +127,6 @@ public:
   NS_IMETHOD SetMatrixPropagation(PRBool aPropagate) { return NS_OK; }
   NS_IMETHOD SetOverrideCTM(nsIDOMSVGMatrix *aCTM) { return NS_ERROR_FAILURE; }
   virtual already_AddRefed<nsIDOMSVGMatrix> GetOverrideCTM() { return nsnull; }
-  NS_IMETHOD GetBBox(nsIDOMSVGRect **_retval);
   NS_IMETHOD_(PRBool) IsDisplayContainer() { return PR_FALSE; }
   NS_IMETHOD_(PRBool) HasValidCoveredRect() { return PR_TRUE; }
 
@@ -127,12 +135,22 @@ public:
   virtual nsresult UpdateGraphic(PRBool suppressInvalidation = PR_FALSE);
 
   
+  
   NS_IMETHOD GetStartPositionOfChar(PRUint32 charnum, nsIDOMSVGPoint **_retval);
   NS_IMETHOD GetEndPositionOfChar(PRUint32 charnum, nsIDOMSVGPoint **_retval);
   NS_IMETHOD GetExtentOfChar(PRUint32 charnum, nsIDOMSVGRect **_retval);
   NS_IMETHOD GetRotationOfChar(PRUint32 charnum, float *_retval);
-  NS_IMETHOD_(float) GetBaselineOffset(PRUint16 baselineIdentifier);
-  NS_IMETHOD_(float) GetAdvance();
+  
+
+
+
+  NS_IMETHOD_(float) GetBaselineOffset(PRUint16 baselineIdentifier,
+                                       PRBool aForceGlobalTransform);
+  
+
+
+
+  NS_IMETHOD_(float) GetAdvance(PRBool aForceGlobalTransform);
 
   NS_IMETHOD_(void) SetGlyphPosition(float x, float y);
   NS_IMETHOD_(nsSVGTextPathFrame*) FindTextPathParent();
@@ -147,6 +165,7 @@ public:
   NS_IMETHOD_(PRBool) IsAbsolutelyPositioned();
 
   
+  
   NS_IMETHOD_(PRUint32) GetNumberOfChars();
   NS_IMETHOD_(float) GetComputedTextLength();
   NS_IMETHOD_(float) GetSubStringLength(PRUint32 charnum, PRUint32 fragmentChars);
@@ -156,66 +175,47 @@ public:
   NS_IMETHOD_(void) SetWhitespaceHandling(PRUint8 aWhitespaceHandling);
 
 protected:
-  struct nsSVGCharacterPosition {
-    gfxPoint pos;
-    gfxFloat angle;
-    PRBool draw;
-  };
+  friend class CharacterIterator;
 
   
   
-  class nsSVGAutoGlyphHelperContext;
-  friend class nsSVGAutoGlyphHelperContext;
-
   
   
-  class nsSVGAutoGlyphHelperContext
-  {
-  public:
-    nsSVGAutoGlyphHelperContext(nsSVGGlyphFrame *aSource,
-                                const nsString &aText)
-    {
-      Init(aSource, aText);
-    }
-
-    nsSVGAutoGlyphHelperContext(nsSVGGlyphFrame *aSource,
-                                const nsString &aText,
-                                nsSVGCharacterPosition **cp);
-
-    gfxContext *GetContext() { return mCT; }
-    gfxTextRun *GetTextRun() { return mTextRun.get(); }
-
-  private:
-    void Init(nsSVGGlyphFrame *aSource, const nsString &aText);
-
-    nsRefPtr<gfxContext>         mCT;
-    gfxTextRunCache::AutoTextRun mTextRun;
-  };
-
+  static PRUint32 GetTextRunUnitsFactor() { return 64; }
   
-  gfxTextRun *GetTextRun(gfxContext *aCtx,
-                         const nsString &aText);
+  
+
+
+
+
+
+
+
+
+  PRBool EnsureTextRun(float *aDrawScale, float *aMetricsScale,
+                       PRBool aForceGlobalTransform);
+  void ClearTextRun();
 
   PRBool GetCharacterData(nsAString & aCharacterData);
-  nsresult GetCharacterPosition(gfxContext *aContext,
-                                const nsString &aText,
-                                nsSVGCharacterPosition **aCharacterPosition);
+  PRBool GetCharacterPositions(nsTArray<CharacterPosition>* aCharacterPositions,
+                               float aMetricsScale);
 
-  enum FillOrStroke { FILL, STROKE};
-
-  void LoopCharacters(gfxContext *aCtx, const nsString &aText,
-                      const nsSVGCharacterPosition *aCP,
-                      FillOrStroke aFillOrStroke);
+  void AddCharactersToPath(CharacterIterator *aIter,
+                           gfxContext *aContext);
+  void AddBoundingBoxesToPath(CharacterIterator *aIter,
+                              gfxContext *aContext);
+  void FillCharacters(CharacterIterator *aIter,
+                      gfxContext *aContext);
 
   void UpdateGeometry(PRBool bRedraw, PRBool suppressInvalidation);
   void UpdateMetrics();
   PRBool ContainsPoint(float x, float y);
-  nsresult GetGlobalTransform(gfxContext *aContext);
+  PRBool GetGlobalTransform(gfxMatrix *aContext);
   nsresult GetHighlight(PRUint32 *charnum, PRUint32 *nchars,
                         nscolor *foreground, nscolor *background);
 
-  nsRefPtr<gfxFontGroup> mFontGroup;
-  nsAutoPtr<gfxFontStyle> mFontStyle;
+  
+  gfxTextRun *mTextRun;
   gfxPoint mPosition;
   PRUint8 mWhitespaceHandling;
 };
