@@ -566,7 +566,18 @@ BrowserGlue.prototype = {
     }
     else {
       
-      this._prefs.setIntPref("browser.places.smartBookmarksVersion", 0);
+      
+      
+      var autoExportHTML = false;
+      try {
+        autoExportHTML = this._prefs.getBoolPref("browser.bookmarks.autoExportHTML");
+      } catch(ex) {}
+      var smartBookmarksVersion = 0;
+      try {
+        smartBookmarksVersion = this._prefs.getIntPref("browser.places.smartBookmarksVersion");
+      } catch(ex) {}
+      if (!autoExportHTML && smartBookmarksVersion != -1)
+        this._prefs.setIntPref("browser.places.smartBookmarksVersion", 0);
 
       
       var dirService = Cc["@mozilla.org/file/directory_service;1"].
