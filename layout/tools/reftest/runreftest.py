@@ -40,6 +40,7 @@
 Runs the reftest test harness.
 """
 
+import logging
 import sys, shutil, os, os.path
 SCRIPT_DIRECTORY = os.path.abspath(os.path.realpath(os.path.dirname(sys.argv[0])))
 sys.path.append(SCRIPT_DIRECTORY)
@@ -116,15 +117,38 @@ Are you executing $objdir/_tests/reftest/runreftest.py?""" \
       browserEnv["GNOME_DISABLE_CRASH_DIALOG"] = "1"
 
     
+    log = logging.getLogger()
+
     
+    leakLogFile = os.path.join(profileDir, "runreftest_leaks.log")
+    browserEnv["XPCOM_MEM_LEAK_LOG"] = leakLogFile
+
+    def processLeakLog():
+      "Process the leak log."
+      
+      if os.path.exists(leakLogFile):
+        leaks = open(leakLogFile, "r")
+        
+        log.info(leaks.read().rstrip())
+        leaks.close()
+
+    
+    
+    log.info("REFTEST INFO | runreftest.py | Performing extension manager registration: start.\n")
     (status, start) = automation.runApp(None, browserEnv, options.app,
                                         profileDir,
                                         extraArgs = ["-silent"])
     
+    log.info("\nREFTEST INFO | runreftest.py | Performing extension manager registration: end.")
+
+    
+    log.info("REFTEST INFO | runreftest.py | Running tests: start.\n")
     reftestlist = getFullPath(args[0])
     (status, start) = automation.runApp(None, browserEnv, options.app,
                                         profileDir,
                                         extraArgs = ["-reftest", reftestlist])
+    processLeakLog()
+    log.info("\nREFTEST INFO | runreftest.py | Running tests: end.")
   finally:
     if profileDir is not None:
       shutil.rmtree(profileDir)
