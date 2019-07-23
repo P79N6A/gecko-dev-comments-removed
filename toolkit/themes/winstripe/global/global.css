@@ -165,6 +165,10 @@ resizer[dir="bottomright"] {
   cursor: se-resize;
 }
 
+window:not([active="true"]) menubar > menu {
+  color: ThreeDShadow;
+}
+
 
 
 sidebarheader {
