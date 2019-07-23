@@ -6124,8 +6124,6 @@ nsFrame::BoxReflow(nsBoxLayoutState&        aState,
       
       
       
-      
-      
 
       
       aDesiredSize.width = aDesiredSize.mOverflowArea.XMost();
