@@ -82,8 +82,6 @@ XPC_SJOW_Construct(JSContext *cx, JSObject *obj, uintN argc, jsval *argv,
 JS_STATIC_DLL_CALLBACK(JSBool)
 XPC_SJOW_Equality(JSContext *cx, JSObject *obj, jsval v, JSBool *bp);
 
-static JSNative sEvalNative;
-
 static inline
 JSBool
 ThrowException(nsresult ex, JSContext *cx)
@@ -881,7 +879,7 @@ XPC_SJOW_Construct(JSContext *cx, JSObject *obj, uintN argc, jsval *argv,
   if (JS_GET_CLASS(cx, objToWrap) == &js_ScriptClass ||
       (::JS_ObjectIsFunction(cx, objToWrap) &&
        ::JS_GetFunctionNative(cx, ::JS_ValueToFunction(cx, argv[0])) ==
-       sEvalNative)) {
+       XPCWrapper::sEvalNative)) {
     return ThrowException(NS_ERROR_INVALID_ARG, cx);
   }
 
@@ -1000,25 +998,8 @@ XPC_SJOW_AttachNewConstructorObject(XPCCallContext &ccx,
   
   
   
-  
-  if (!sEvalNative &&
-      XPCWrappedNative::GetWrappedNativeOfJSObject(ccx, aGlobalObject)) {
-    jsval eval_val;
-    if (!::JS_GetProperty(ccx, aGlobalObject, "eval", &eval_val)) {
-      return ThrowException(NS_ERROR_UNEXPECTED, ccx);
-    }
-
-    if (JSVAL_IS_PRIMITIVE(eval_val) ||
-        !::JS_ObjectIsFunction(ccx, JSVAL_TO_OBJECT(eval_val))) {
-      return ThrowException(NS_ERROR_UNEXPECTED, ccx);
-    }
-
-    sEvalNative =
-      ::JS_GetFunctionNative(ccx, ::JS_ValueToFunction(ccx, eval_val));
-
-    if (!sEvalNative) {
-      return ThrowException(NS_ERROR_UNEXPECTED, ccx);
-    }
+  if (!XPCWrapper::FindEval(ccx, aGlobalObject)) {
+    return PR_FALSE;
   }
 
   JSObject *class_obj =

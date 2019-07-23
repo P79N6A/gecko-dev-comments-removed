@@ -119,6 +119,40 @@ public:
   
 
 
+
+  static JSNative sEvalNative;
+
+  
+
+
+  static JSBool FindEval(XPCCallContext &ccx, JSObject *obj) {
+    if (sEvalNative) {
+      return JS_TRUE;
+    }
+
+    jsval eval_val;
+    if (!::JS_GetProperty(ccx, obj, "eval", &eval_val)) {
+      return ThrowException(NS_ERROR_UNEXPECTED, ccx);
+    }
+
+    if (JSVAL_IS_PRIMITIVE(eval_val) ||
+        !::JS_ObjectIsFunction(ccx, JSVAL_TO_OBJECT(eval_val))) {
+      return ThrowException(NS_ERROR_UNEXPECTED, ccx);
+    }
+
+    sEvalNative =
+      ::JS_GetFunctionNative(ccx, ::JS_ValueToFunction(ccx, eval_val));
+
+    if (!sEvalNative) {
+      return ThrowException(NS_ERROR_UNEXPECTED, ccx);
+    }
+
+    return JS_TRUE;
+  }
+
+  
+
+
   static JSBool ThrowException(nsresult ex, JSContext *cx) {
     XPCThrower::Throw(ex, cx);
     return JS_FALSE;
