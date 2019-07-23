@@ -294,6 +294,25 @@ nsIWidget* nsBaseWidget::GetParent(void)
 
 
 
+nsIWidget* nsBaseWidget::GetTopLevelWidget(PRInt32* aLevelsUp)
+{
+  nsIWidget *topLevelWidget, *widget = this;
+  if (aLevelsUp)
+    *aLevelsUp = -1;
+  while (widget) {
+    topLevelWidget = widget;
+    widget = widget->GetParent();
+    if (aLevelsUp)
+      ++*aLevelsUp;
+  }
+  return topLevelWidget;
+}
+
+
+
+
+
+
 nsIWidget* nsBaseWidget::GetSheetWindowParent(void)
 {
   return nsnull;

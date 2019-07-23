@@ -119,6 +119,41 @@ typedef struct _nsCocoaWindowList {
 @end
 
 
+static const float sLeopardHeaderStartGrey = 197/255.0f;
+static const float sLeopardHeaderEndGrey = 150/255.0f;
+static const float sLeopardHeaderBackgroundStartGrey = 233/255.0f;
+static const float sLeopardHeaderBackgroundEndGrey = 207/255.0f;
+
+
+static const float sLeopardTitlebarBorderGrey = 64/255.0f;
+static const float sLeopardTitlebarBackgroundBorderGrey = 135/255.0f;
+
+struct UnifiedGradientInfo {
+  float titlebarHeight;
+  float toolbarHeight;
+  BOOL windowIsMain;
+  BOOL drawTitlebar; 
+};
+
+
+
+static void unifiedShading(void* aInfo, const float* aIn, float* aOut)
+{
+  UnifiedGradientInfo* info = (UnifiedGradientInfo*)aInfo;
+  
+  float start = info->titlebarHeight / (info->titlebarHeight + info->toolbarHeight - 1);
+  const float startGrey = info->windowIsMain ? sLeopardHeaderStartGrey : sLeopardHeaderBackgroundStartGrey;
+  const float endGrey = info->windowIsMain ? sLeopardHeaderEndGrey : sLeopardHeaderBackgroundEndGrey;
+  
+  
+  float a = info->drawTitlebar ? *aIn * start : start + *aIn * (1 - start);
+  float result = (1.0f - a) * startGrey + a * endGrey;
+  aOut[0] = result;
+  aOut[1] = result;
+  aOut[2] = result;
+  aOut[3] = 1.0f;
+}
+
 
 
 @interface TitlebarAndBackgroundColor : NSColor
@@ -127,7 +162,6 @@ typedef struct _nsCocoaWindowList {
   NSColor *mInactiveTitlebarColor;
   NSColor *mBackgroundColor;
   NSWindow *mWindow; 
-  float mTitlebarHeight;
 }
 
 - (id)initWithActiveTitlebarColor:(NSColor*)aActiveTitlebarColor
@@ -144,17 +178,20 @@ typedef struct _nsCocoaWindowList {
 - (NSColor*)backgroundColor;
 
 - (NSWindow*)window;
-- (float)titlebarHeight;
 @end
 
 
 @interface ToolbarWindow : NSWindow
 {
   TitlebarAndBackgroundColor *mColor;
+  float mUnifiedToolbarHeight;
+  BOOL mSuppressPainting;
 }
 - (void)setTitlebarColor:(NSColor*)aColor forActiveWindow:(BOOL)aActive;
-- (NSColor*)activeTitlebarColor;
-- (NSColor*)inactiveTitlebarColor;
+- (void)setUnifiedToolbarHeight:(float)aToolbarHeight;
+- (float)unifiedToolbarHeight;
+- (float)titlebarHeight;
+- (BOOL)isPaintingSuppressed;
 
 
 - (NSColor*)windowBackgroundColor;
