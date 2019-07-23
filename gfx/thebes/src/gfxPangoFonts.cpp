@@ -1330,8 +1330,15 @@ gfxFcPangoFontSet::SortPreferredFonts()
 
     FcFontSet *sets[1] = { fontSet };
     FcResult result;
+#ifdef SOLARIS
+    
+    
+    fontSet.own(FcFontSetSort(FcConfigGetCurrent(), sets, 1, mSortPattern,
+                              FcFalse, NULL, &result));
+#else
     fontSet.own(FcFontSetSort(NULL, sets, 1, mSortPattern,
                               FcFalse, NULL, &result));
+#endif
 
     if (truncateMarker != NULL && fontSet) {
         nsAutoRef<FcFontSet> truncatedSet(FcFontSetCreate());
