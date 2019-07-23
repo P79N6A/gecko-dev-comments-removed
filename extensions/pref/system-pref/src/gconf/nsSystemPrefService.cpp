@@ -611,7 +611,8 @@ GConfProxy::~GConfProxy()
         delete mObservers;
     }
 
-    PR_UnloadLibrary(mGConfLib);
+    
+    
 }
 
 PRBool
