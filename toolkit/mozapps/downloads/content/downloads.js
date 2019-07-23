@@ -690,7 +690,22 @@ var gDownloadViewController = {
       copySourceLocation(aSelectedItem);
     },
     cmd_clearList: function() {
-      gDownloadManager.cleanUp();
+      
+      if (gSearchTerms == "") {
+        gDownloadManager.cleanUp();
+      }
+      else {
+        
+        
+        let item;
+        while ((item = gDownloadsView.lastChild) && !item.inProgress)
+          removeDownload(item);
+
+        
+        gSearchBox.value = "";
+        gSearchBox.doCommand();
+        gDownloadsView.focus();
+      }
     }
   }
 };
@@ -1014,7 +1029,7 @@ function getReferrerOrSource(aDownload)
 function buildDownloadList(aForceBuild)
 {
   
-  let prevSearch = gSearchTerms ? gSearchTerms.join(" ") : null;
+  let prevSearch = gSearchTerms.join(" ");
 
   
   gSearchTerms = gSearchBox.value.replace(/^\s+|\s+$/g, "").
