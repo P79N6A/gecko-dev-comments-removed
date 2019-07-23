@@ -4459,6 +4459,27 @@ function testRebranding2() {
 testRebranding2.expected = "ok";
 test(testRebranding2);
 
+function testBug502914() {
+    
+    
+    function f1() {}
+    function C() {}
+    var x = C.prototype = {m: f1};
+    x.m();  
+    var arr = [new C, new C, new C, x];
+    try {
+        for (var i = 0; i < 4; i++) {
+            arr[i].m = 12;
+            x.m();  
+        }
+    } catch (exc) {
+        return exc.constructor.name;
+    }
+    return "no exception";
+}
+testBug502914.expected = "TypeError";
+test(testBug502914);
+
 function testLambdaCtor() {
     var a = [];
     for (var x = 0; x < RUNLOOP; ++x) {
