@@ -42,6 +42,7 @@
 #include "nsIAccessible.h"
 #include "nsIAccessNode.h"
 #include "nsIAccessibleRole.h"
+#include "nsIAccessibleText.h"
 #include "nsARIAMap.h"
 
 #include "nsIDOMNode.h"
@@ -159,6 +160,18 @@ public:
      GetARIATreeItemParent(nsIAccessible *aStartTreeItem,
                            nsIContent *aStartTreeItemContent,
                            nsIAccessible **aTreeItemParent);
+
+  
+
+
+
+
+
+
+
+  static already_AddRefed<nsIAccessibleText>
+    GetTextAccessibleFromSelection(nsISelection *aSelection,
+                                   nsIDOMNode **aNode = nsnull);
 
   
 
