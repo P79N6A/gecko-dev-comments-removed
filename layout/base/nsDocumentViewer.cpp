@@ -2401,10 +2401,15 @@ DocumentViewerImpl::CreateDeviceContext(nsIView* aContainerView)
   nsIWidget* widget = nsnull;
   if (aContainerView) {
     widget = aContainerView->GetNearestWidget(nsnull);
-    if (widget) {
-      widget = widget->GetTopLevelWidget();
-    }
   }
+  
+  if (!widget) {
+    widget = mParentWidget;
+  }
+  if (widget) {
+    widget = widget->GetTopLevelWidget();
+  }
+
   mDeviceContext->Init(widget);
   return NS_OK;
 }
