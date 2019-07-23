@@ -1288,11 +1288,29 @@ TraceRecorder::closeLoop(Fragmento* fragmento)
 void
 TraceRecorder::emitTreeCall(Fragment* inner, GuardRecord* lr)
 {
-    LIns* args[] = { lir->insImmPtr(inner), lirbuf->state };
+    
+
+
+
+    if (callDepth > 0) {
+        
+
+        unsigned sp_adj = nativeStackSlots(callDepth - 1, cx->fp->down) * sizeof(double);
+        lir->insStorei(lir->ins2i(LIR_add, lirbuf->sp, sp_adj), 
+                lirbuf->state, offsetof(InterpState, sp));
+    }
+    
+    LIns* args[] = { lir->insImmPtr(inner), lirbuf->state }; 
     LIns* ret = lir->insCall(F_CallTree, args);
+    
+
     LIns* g = guard(true, lir->ins2(LIR_eq, ret, lir->insImmPtr(lr)), NESTED_EXIT);
+    
     SideExit* exit = g->exit();
     import(exit->numGlobalSlots, exit->typeMap, exit->typeMap + exit->numGlobalSlots);
+    
+    if (callDepth > 0)
+        lir->insStorei(lirbuf->sp, lirbuf->state, offsetof(InterpState, sp));
 }
 
 int
@@ -1560,8 +1578,7 @@ js_ContinueRecording(JSContext* cx, TraceRecorder* r, jsbytecode* oldpc, uintN& 
     }
     
     Fragment* f = fragmento->getLoop(cx->fp->regs->pc);
-    if (nesting_enabled &&
-            f->code() && !r->getCallDepth()) { 
+    if (nesting_enabled && f->code()) {
         JS_ASSERT(f->vmprivate);
         
         GuardRecord* lr = js_ExecuteTree(cx, f, inlineCallCount);
