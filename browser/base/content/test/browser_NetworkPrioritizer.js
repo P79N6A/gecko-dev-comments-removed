@@ -34,6 +34,24 @@
 
 
 
+
+function waitForActivation(cb, win) {
+  if (!win)
+    win = window;
+
+  let fm = Cc["@mozilla.org/focus-manager;1"].getService(Ci.nsIFocusManager);
+  if (fm.activeWindow == win) {
+    cb();
+    return;
+  }
+
+  win.addEventListener("activate", function () {
+    win.removeEventListener("activate", arguments.callee, false);
+    executeSoon(cb);
+  }, false);
+  win.focus();
+}
+
 function test() {
   
 
@@ -104,21 +122,17 @@ function test() {
       window_B.addEventListener("load", function(aEvent) {
         window_B.removeEventListener("load", arguments.callee, false);
         window_B.gBrowser.addEventListener("load", function(aEvent) {
-          
-          
-          if (window_B.gBrowser.currentURI.spec == "about:blank")
-            return;
           window_B.gBrowser.removeEventListener("load", arguments.callee, true);
 
-          waitForFocus(function() {
+          waitForActivation(function () {
             isWindowState(window_A, [10, 0]);
             isWindowState(window_B, [-10]);
 
-            waitForFocus(function() {
+            waitForActivation(function () {
               isWindowState(window_A, [0, -10]);
               isWindowState(window_B, [0]);
 
-              waitForFocus(function() {
+              waitForActivation(function () {
                 isWindowState(window_A, [10, 0]);
                 isWindowState(window_B, [-10]);
 
@@ -177,7 +191,7 @@ function test() {
   function runNextTest() {
     if (tests.length) {
       
-      waitForFocus(tests.shift());
+      waitForActivation(tests.shift());
     } else {
       finish();
     }
