@@ -105,7 +105,6 @@ function run_test() {
   
   
   
-  bmsvc.removeFolderChildren(bmsvc.bookmarksRoot);
   try {
     importer.importHTMLFromFile(bookmarksFileOld, true);
   } catch(ex) { do_throw("couldn't import legacy bookmarks file: " + ex); }
@@ -124,28 +123,29 @@ function run_test() {
     importer.importHTMLFromFile(bookmarksFileNew, true);
   } catch(ex) { do_throw("couldn't import the exported file: " + ex); }
   testCanonicalBookmarks(bmsvc.bookmarksRoot); 
+  
 
-  
-  
-  
-  
-  var testFolder = bmsvc.createFolder(bmsvc.bookmarksRoot, "test-import", bmsvc.DEFAULT_INDEX);
-  try {
-    importer.importHTMLFromFileToFolder(bookmarksFileOld, testFolder, true);
-  } catch(ex) { do_throw("couldn't import the exported file to folder: " + ex); }
-  testCanonicalBookmarks(testFolder);
-  bmsvc.removeFolder(testFolder);
 
-  
-  
-  
-  
-  var testFolder = bmsvc.createFolder(bmsvc.bookmarksRoot, "test-import", bmsvc.DEFAULT_INDEX);
-  try {
-    importer.importHTMLFromFileToFolder(bookmarksFileNew, testFolder, true);
-  } catch(ex) { do_throw("couldn't import the exported file to folder: " + ex); }
-  testCanonicalBookmarks(testFolder); 
-  bmsvc.removeFolder(testFolder);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
   
   
