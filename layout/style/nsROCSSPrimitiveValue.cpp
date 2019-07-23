@@ -46,6 +46,7 @@
 #include "nsXPIDLString.h"
 #include "nsCRT.h"
 #include "nsPresContext.h"
+#include "nsStyleUtil.h"
 
 nsROCSSPrimitiveValue::nsROCSSPrimitiveValue(PRInt32 aAppUnitsPerInch)
   : mType(CSS_PX), mAppUnitsPerInch(aAppUnitsPerInch)
@@ -58,44 +59,6 @@ nsROCSSPrimitiveValue::~nsROCSSPrimitiveValue()
 {
   Reset();
 }
-
-void
-nsROCSSPrimitiveValue::GetEscapedURI(nsIURI *aURI, PRUnichar **aReturn)
-{
-  nsCAutoString specUTF8;
-  aURI->GetSpec(specUTF8);
-  NS_ConvertUTF8toUTF16 spec(specUTF8);
-
-  PRUint16 length = spec.Length();
-  PRUnichar *escaped = (PRUnichar *)nsMemory::Alloc(length * 2 * sizeof(PRUnichar) + sizeof(PRUnichar('\0')));
-
-  if (escaped) {
-    PRUnichar *ptr = escaped;
-
-    for (PRUint16 i = 0; i < length; ++i) {
-      switch (spec[i]) {
-        case ' ' : 
-        case '\t': 
-        case '(' : 
-        case ')' : 
-        case '\'': 
-        case '"' : 
-        case ',' : 
-        case '\\': 
-          
-          
-          *ptr++ = '\\';
-          break;
-        default:
-          break;
-      }
-      *ptr++ = spec[i];
-    }
-    *ptr = 0;
-  }
-  *aReturn = escaped;
-}
-
 
 NS_IMPL_ADDREF(nsROCSSPrimitiveValue)
 NS_IMPL_RELEASE(nsROCSSPrimitiveValue)
@@ -142,12 +105,14 @@ nsROCSSPrimitiveValue::GetCssText(nsAString& aCssText)
       }
     case CSS_URI :
       {
-        nsXPIDLString uri;
         if (mValue.mURI) {
-          GetEscapedURI(mValue.mURI, getter_Copies(uri));
-          tmpStr.Assign(NS_LITERAL_STRING("url(") +
-                        uri +
-                        NS_LITERAL_STRING(")"));
+          nsCAutoString specUTF8;
+          mValue.mURI->GetSpec(specUTF8);
+
+          tmpStr.AssignLiteral("url(");
+          nsStyleUtil::AppendEscapedCSSString(NS_ConvertUTF8toUTF16(specUTF8),
+                                              tmpStr);
+          tmpStr.AppendLiteral(")");
         } else {
           
           
