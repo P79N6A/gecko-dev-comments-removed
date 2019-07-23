@@ -852,7 +852,7 @@ pref("intl.locale.matchOS",                 false);
 pref("intl.fallbackCharsetList.ISO-8859-1", "windows-1252");
 pref("font.language.group",                 "chrome://global/locale/intl.properties");
 
-pref("font.mathfont-family", "STIXNonUnicode, STIXSize1, STIXGeneral, Cambria Math, Standard Symbols L, DejaVu Sans");
+pref("font.mathfont-family", "STIXNonUnicode, STIXSize1, STIXGeneral, Standard Symbols L, DejaVu Sans, Cambria Math");
 
 
 
@@ -1445,6 +1445,9 @@ pref("font.default.zh-HK", "sans-serif");
 pref("font.size.variable.zh-HK", 16);
 pref("font.size.fixed.zh-HK", 16);
 
+
+pref("font.mathfont-family", "STIXNonUnicode, STIXSize1, STIXGeneral, Symbol, DejaVu Sans, Cambria Math");
+
 pref("ui.key.menuAccessKeyFocuses", true);
 
 
@@ -1867,7 +1870,7 @@ pref("font.size.variable.zh-HK", 15);
 pref("font.size.fixed.zh-HK", 16);
 
 
-pref("font.mathfont-family", "STIXNonUnicode, STIXSize1, STIXGeneral, Cambria Math, Symbol, DejaVu Sans");
+pref("font.mathfont-family", "STIXNonUnicode, STIXSize1, STIXGeneral, Symbol, DejaVu Sans, Cambria Math");
 
 
 
