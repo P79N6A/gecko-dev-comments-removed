@@ -65,8 +65,6 @@ public:
     MOZ_COUNT_DTOR(nsXBLProtoImpl);
     
     
-    for (nsXBLProtoImplMember* curr = mMembers; curr; curr=curr->GetNext())
-      curr->Destroy(mClassObject != nsnull);
     delete mMembers;
     delete mFields;
   }
@@ -108,11 +106,7 @@ public:
   }
 
 protected:
-  
-  
-  
-  
-  void DestroyMembers(nsXBLProtoImplMember* aBrokenMember);
+  void DestroyMembers();
   
 public:
   nsCString mClassName; 

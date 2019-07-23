@@ -53,10 +53,7 @@
 
 nsXBLProtoImplMethod::nsXBLProtoImplMethod(const PRUnichar* aName) :
   nsXBLProtoImplMember(aName), 
-  mUncompiledMethod(nsnull)
-#ifdef DEBUG
-  , mIsCompiled(PR_FALSE)
-#endif
+  mUncompiledMethod(BIT_UNCOMPILED)
 {
   MOZ_COUNT_CTOR(nsXBLProtoImplMethod);
 }
@@ -64,62 +61,61 @@ nsXBLProtoImplMethod::nsXBLProtoImplMethod(const PRUnichar* aName) :
 nsXBLProtoImplMethod::~nsXBLProtoImplMethod()
 {
   MOZ_COUNT_DTOR(nsXBLProtoImplMethod);
-}
 
-void
-nsXBLProtoImplMethod::Destroy(PRBool aIsCompiled)
-{
-  NS_PRECONDITION(aIsCompiled == mIsCompiled,
-                  "Incorrect aIsCompiled in nsXBLProtoImplMethod::Destroy");
-  if (aIsCompiled) {
-    mJSMethodObject = nsnull;
-  }
-  else {
-    delete mUncompiledMethod;
-    mUncompiledMethod = nsnull;
+  if (!IsCompiled()) {
+    delete GetUncompiledMethod();
   }
 }
 
 void 
 nsXBLProtoImplMethod::AppendBodyText(const nsAString& aText)
 {
-  NS_PRECONDITION(!mIsCompiled,
+  NS_PRECONDITION(!IsCompiled(),
                   "Must not be compiled when accessing uncompiled method");
-  if (!mUncompiledMethod) {
-    mUncompiledMethod = new nsXBLUncompiledMethod();
-    if (!mUncompiledMethod)
+
+  nsXBLUncompiledMethod* uncompiledMethod = GetUncompiledMethod();
+  if (!uncompiledMethod) {
+    uncompiledMethod = new nsXBLUncompiledMethod();
+    if (!uncompiledMethod)
       return;
+    SetUncompiledMethod(uncompiledMethod);
   }
 
-  mUncompiledMethod->AppendBodyText(aText);
+  uncompiledMethod->AppendBodyText(aText);
 }
 
 void 
 nsXBLProtoImplMethod::AddParameter(const nsAString& aText)
 {
-  NS_PRECONDITION(!mIsCompiled,
+  NS_PRECONDITION(!IsCompiled(),
                   "Must not be compiled when accessing uncompiled method");
-  if (!mUncompiledMethod) {
-    mUncompiledMethod = new nsXBLUncompiledMethod();
-    if (!mUncompiledMethod)
+
+  nsXBLUncompiledMethod* uncompiledMethod = GetUncompiledMethod();
+  if (!uncompiledMethod) {
+    uncompiledMethod = new nsXBLUncompiledMethod();
+    if (!uncompiledMethod)
       return;
+    SetUncompiledMethod(uncompiledMethod);
   }
 
-  mUncompiledMethod->AddParameter(aText);
+  uncompiledMethod->AddParameter(aText);
 }
 
 void
 nsXBLProtoImplMethod::SetLineNumber(PRUint32 aLineNumber)
 {
-  NS_PRECONDITION(!mIsCompiled,
+  NS_PRECONDITION(!IsCompiled(),
                   "Must not be compiled when accessing uncompiled method");
-  if (!mUncompiledMethod) {
-    mUncompiledMethod = new nsXBLUncompiledMethod();
-    if (!mUncompiledMethod)
+
+  nsXBLUncompiledMethod* uncompiledMethod = GetUncompiledMethod();
+  if (!uncompiledMethod) {
+    uncompiledMethod = new nsXBLUncompiledMethod();
+    if (!uncompiledMethod)
       return;
+    SetUncompiledMethod(uncompiledMethod);
   }
 
-  mUncompiledMethod->SetLineNumber(aLineNumber);
+  uncompiledMethod->SetLineNumber(aLineNumber);
 }
 
 nsresult
@@ -129,7 +125,7 @@ nsXBLProtoImplMethod::InstallMember(nsIScriptContext* aContext,
                                     void* aTargetClassObject,
                                     const nsCString& aClassStr)
 {
-  NS_PRECONDITION(mIsCompiled,
+  NS_PRECONDITION(IsCompiled(),
                   "Should not be installing an uncompiled method");
   JSContext* cx = (JSContext*) aContext->GetNativeContext();
 
@@ -177,36 +173,34 @@ nsresult
 nsXBLProtoImplMethod::CompileMember(nsIScriptContext* aContext, const nsCString& aClassStr,
                                     void* aClassObject)
 {
-  NS_PRECONDITION(!mIsCompiled,
+  NS_PRECONDITION(!IsCompiled(),
                   "Trying to compile an already-compiled method");
   NS_PRECONDITION(aClassObject,
                   "Must have class object to compile");
 
-#ifdef DEBUG
-  
-  mIsCompiled = PR_TRUE;
-#endif
-  
-  
-  if (!mUncompiledMethod)
-    return NS_OK;
+  nsXBLUncompiledMethod* uncompiledMethod = GetUncompiledMethod();
 
   
-  if (!mName) {
-    delete mUncompiledMethod;
-    mUncompiledMethod = nsnull;
+  if (!uncompiledMethod) {
+    
+    mJSMethodObject = nsnull;
+
     return NS_OK;
   }
 
-#ifdef DEBUG
   
-  
-  mIsCompiled = PR_FALSE;
-#endif
+  if (!mName) {
+    delete uncompiledMethod;
+
+    
+    mJSMethodObject = nsnull;
+
+    return NS_OK;
+  }
 
   
   
-  PRInt32 paramCount = mUncompiledMethod->GetParameterCount();
+  PRInt32 paramCount = uncompiledMethod->GetParameterCount();
   char** args = nsnull;
   if (paramCount > 0) {
     args = new char*[paramCount];
@@ -216,7 +210,7 @@ nsXBLProtoImplMethod::CompileMember(nsIScriptContext* aContext, const nsCString&
 
   
   PRInt32 argPos = 0; 
-  for (nsXBLParameter* curr = mUncompiledMethod->mParameters; 
+  for (nsXBLParameter* curr = uncompiledMethod->mParameters; 
        curr; 
        curr = curr->mNext) {
     args[argPos] = curr->mName;
@@ -225,7 +219,7 @@ nsXBLProtoImplMethod::CompileMember(nsIScriptContext* aContext, const nsCString&
 
   
   nsDependentString body;
-  PRUnichar *bodyText = mUncompiledMethod->mBodyText.GetText();
+  PRUnichar *bodyText = uncompiledMethod->mBodyText.GetText();
   if (bodyText)
     body.Rebind(bodyText);
 
@@ -245,39 +239,27 @@ nsXBLProtoImplMethod::CompileMember(nsIScriptContext* aContext, const nsCString&
                                           (const char**)args,
                                           body, 
                                           functionUri.get(),
-                                          mUncompiledMethod->mBodyText.GetLineNumber(),
+                                          uncompiledMethod->mBodyText.GetLineNumber(),
                                           PR_TRUE,
                                           (void **) &methodObject);
 
   
-  delete mUncompiledMethod;
+  delete uncompiledMethod;
   delete [] args;
   if (NS_FAILED(rv)) {
-    mUncompiledMethod = nsnull;
+    SetUncompiledMethod(nsnull);
     return rv;
   }
 
   mJSMethodObject = methodObject;
 
-  if (methodObject) {
-    
-    if (NS_FAILED(rv)) {
-      mJSMethodObject = nsnull;
-    }
-  }
-  
-#ifdef DEBUG
-  mIsCompiled = NS_SUCCEEDED(rv);
-#endif
-  return rv;
+  return NS_OK;
 }
 
 void
 nsXBLProtoImplMethod::Trace(TraceCallback aCallback, void *aClosure) const
 {
-  NS_ASSERTION(mIsCompiled, "Shouldn't traverse uncompiled method");
-
-  if (mJSMethodObject) {
+  if (IsCompiled() && mJSMethodObject) {
     aCallback(nsIProgrammingLanguage::JAVASCRIPT, mJSMethodObject, aClosure);
   }
 }
@@ -285,7 +267,7 @@ nsXBLProtoImplMethod::Trace(TraceCallback aCallback, void *aClosure) const
 nsresult
 nsXBLProtoImplAnonymousMethod::Execute(nsIContent* aBoundElement)
 {
-  NS_PRECONDITION(mIsCompiled, "Can't execute uncompiled method");
+  NS_PRECONDITION(IsCompiled(), "Can't execute uncompiled method");
   
   if (!mJSMethodObject) {
     
