@@ -283,7 +283,10 @@ function BookmarkThisTab()
   if (tab.localName != "tab")
     tab = getBrowser().mCurrentTab;
 
-  PlacesCommandHook.bookmarkPage(tab.linkedBrowser)
+  setTimeout(function() { 
+    PlacesCommandHook.bookmarkPage(tab.linkedBrowser, true, getBrowser(),
+                                   "overlap")
+  }, 0);
 }
 
 
@@ -3056,7 +3059,8 @@ function BrowserToolboxCustomizeDone(aToolboxChanged)
   if (gURLBar) {
     gURLBar.value = url == "about:blank" ? "" : url;
     SetPageProxyState("valid");
-    XULBrowserWindow.asyncUpdateUI();    
+    XULBrowserWindow.asyncUpdateUI();
+    PlacesStarButton.updateState();
   }
 
   
@@ -3523,7 +3527,7 @@ nsBrowserStatusHandler.prototype =
         }
 
         
-        PlacesStarButton.updateState(aLocationURI);
+        PlacesStarButton.updateState();
       }
     }
     UpdateBackForwardCommands(gBrowser.webNavigation);

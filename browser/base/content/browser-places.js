@@ -37,7 +37,147 @@
 
 
 
+
 var PlacesCommandHook = {
+  
+  QueryInterface: function PCH_QueryInterface(aIID) {
+    if (aIID.equals(Ci.nsIDOMEventListener) ||
+        aIID.equals(Ci.nsISupports))
+      return this;
+
+    throw Cr.NS_NOINTERFACE;
+  },
+
+  
+  get panel() {
+    return document.getElementById("editBookmarkPanel");
+  },
+
+  
+  handleEvent: function PCH_handleEvent(aEvent) {
+    if (aEvent.originalTarget != this.panel)
+      return;
+
+    
+    
+    gAddBookmarksPanel.saveItem();
+    gAddBookmarksPanel.uninitPanel();
+  },
+
+  _overlayLoaded: false,
+  _overlayLoading: false,
+  showEditBookmarkPopup:
+  function PCH_showEditBookmarkPopup(aItemId, aAnchorElement, aPosition) {
+    
+    
+    if (this._overlayLoading)
+      return;
+
+    if (this._overlayLoaded) {
+      this._doShowEditBookmarkPanel(aItemId, aAnchorElement, aPosition);
+      return;
+    }
+
+    var loadObserver = {
+      _self: this,
+      _itemId: aItemId,
+      _anchorElement: aAnchorElement,
+      _position: aPosition,
+      observe: function (aSubject, aTopic, aData) {
+        
+        setTimeout(function(aSelf) {
+          aSelf._self._overlayLoading = false;
+          aSelf._self._overlayLoaded = true;
+          aSelf._self._doShowEditBookmarkPanel(aItemId, aSelf._anchorElement,
+                                               aSelf._position);
+        }, 0, this);
+      }
+    };
+    this._overlayLoading = true;
+    document.loadOverlay("chrome://browser/content/places/editBookmarkOverlay.xul",
+                         loadObserver);
+  },
+
+  _doShowEditBookmarkPanel:
+  function PCH__doShowEditBookmarkPanel(aItemId, aAnchorElement, aPosition) {
+    var panel = this.panel;
+    panel.openPopup(aAnchorElement, aPosition, -1, -1);
+
+    gAddBookmarksPanel.initPanel(aItemId, PlacesUtils.tm, this.doneCallback,
+                                 { hiddenRows: "description" });
+    panel.addEventListener("popuphiding", this, false);
+  },
+
+  doneCallback: function PCH_doneCallback(aSavedChanges) {
+    var panel = PlacesCommandHook.panel;
+    panel.removeEventListener("popuphiding", PlacesCommandHook, false);
+    gAddBookmarksPanel.uninitPanel();
+    panel.hidePopup();
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+  
+  bookmarkPage: function PCH_bookmarkPage(aBrowser, aShowEditUI,
+                                          aAnchorElement, aPosition) {
+    var uri = aBrowser.currentURI;
+
+    var itemId = PlacesUtils.getMostRecentBookmarkForURI(uri);
+    if (itemId == -1) {
+      
+      
+      
+      
+      
+      
+      var webNav = aBrowser.webNavigation;
+      var url = webNav.currentURI;
+      var title;
+      var description;
+      try {
+        title = webNav.document.title;
+        description = PlacesUtils.getDescriptionFromDocument(webNav.document);
+      }
+      catch (e) { }
+
+      var descAnno = { name: DESCRIPTION_ANNO, value: description };
+      var txn = PlacesUtils.ptm.createItem(uri, PlacesUtils.placesRootId, -1,
+                                           title, null, [descAnno]);
+      PlacesUtils.ptm.commitTransaction(txn);
+      if (aShowEditUI)
+        itemId = PlacesUtils.getMostRecentBookmarkForURI(uri);
+    }
+
+    if (aShowEditUI)
+      this.showEditBookmarkPopup(itemId, aAnchorElement, aPosition);
+  },
+
+  
+
+
+  bookmarkCurrentPage: function PCH_bookmarkCurrentPage(aShowEditUI) {
+    
+    
+    var starIcon = document.getElementById("star-icon");
+    if (starIcon && isElementVisible(starIcon)) {
+      this.bookmarkPage(getBrowser().selectedBrowser, aShowEditUI, starIcon,
+                        "after_end");
+    }
+    else {
+      this.bookmarkPage(getBrowser().selectedBrowser, aShowEditUI, getBrowser(),
+                        "overlap");
+    }
+  },
+
   
 
 
@@ -46,45 +186,17 @@ var PlacesCommandHook = {
 
 
   bookmarkLink: function PCH_bookmarkLink(url, title) {
-    var ios = 
-        Cc["@mozilla.org/network/io-service;1"].
-        getService(Ci.nsIIOService);
-    var linkURI = ios.newURI(url, null, null);
-
-    PlacesUtils.showMinimalAddBookmarkUI(linkURI, title);
-  },
-
-  
-
-
-
-
-  bookmarkPage: function PCH_bookmarkPage(aBrowser) {
-    
-    
-    
-    
-    
-    
-    var webNav = aBrowser.webNavigation;
-    var url = webNav.currentURI;
-    var title;
-    var description;
-    try {
-      title = webNav.document.title;
-      description = PlacesUtils.getDescriptionFromDocument(webNav.document);
+    var linkURI = IO.newURI(url)
+    var itemId = PlacesUtils.getMostRecentBookmarkForURI(linkURI);
+    if (itemId == -1) {
+      var txn = PlacesUtils.ptm.createItem(linkURI, PlacesUtils.placesRootId, -1,
+                                           title);
+      PlacesUtils.ptm.commitTransaction(txn);
+      itemId = PlacesUtils.getMostRecentBookmarkForURI(linkURI);
     }
-    catch (e) { }
-    PlacesUtils.showMinimalAddBookmarkUI(url, title, description);
+
+    PlacesCommandHook.showEditBookmarkPopup(itemId, getBrowser(), "overlap");
   },
-
-  
-
-
-  bookmarkCurrentPage: function PCH_bookmarkCurrentPage() {
-    this.bookmarkPage(getBrowser().selectedBrowser);
-  },
-
 
   
 
@@ -603,131 +715,31 @@ var PlacesStarButton = {
   },
 
   QueryInterface: function PSB_QueryInterface(aIID) {
-    if (aIID.equals(Ci.nsIDOMEventListener) ||
-        aIID.equals(Ci.nsINavBookmarkObserver) ||
+    if (aIID.equals(Ci.nsINavBookmarkObserver) ||
         aIID.equals(Ci.nsISupports))
       return this;
 
     throw Cr.NS_NOINTERFACE;
   },
 
-  get panel() {
-    return document.getElementById("editBookmarkPanel");
-  },
-
   _starred: false,
   _batching: false,
-  _overlayLoaded: false,
-  _overlayLoading: false,
 
   updateState: function PSB_updateState() {
+    var starIcon = document.getElementById("star-icon");
+    if (!starIcon)
+      return;
+
     var uri = getBrowser().currentURI;
     this._starred = uri && PlacesUtils.bookmarks.isBookmarked(uri);
     if (this._starred)
-      document.getElementById("star-icon").setAttribute("starred", "true");
+      starIcon.setAttribute("starred", "true");
     else
-      document.getElementById("star-icon").removeAttribute("starred");
-  },
-
-  _star: function PSB_star(aBrowser) {
-    var uri = aBrowser.currentURI;
-    if (!uri)
-      throw "No URL";
-
-    var title = PlacesUtils.history.getPageTitle(uri);
-
-    var descAnno = {
-      name: DESCRIPTION_ANNO,
-      value: PlacesUtils.getDescriptionFromDocument(aBrowser.contentDocument)
-    };
-    var txn = PlacesUtils.ptm.createItem(uri, PlacesUtils.placesRootId, -1,
-                                         title, null, [descAnno]);
-    PlacesUtils.ptm.commitTransaction(txn);
-  },
-
-  
-  handleEvent: function PSB_handleEvent(aEvent) {
-    if (aEvent.originalTarget != this.panel)
-      return;
-
-    
-    
-    gAddBookmarksPanel.saveItem();
-    gAddBookmarksPanel.uninitPanel();
-  },
-
-  showBookmarkPagePopup: function PSB_showBookmarkPagePopup(aBrowser) {
-    
-    
-    if (this._overlayLoading)
-      return;
-
-    if (this._overlayLoaded) {
-      this._doShowBookmarkPagePopup(aBrowser);
-      return;
-    }
-
-    var loadObserver = {
-      _self: this,
-      _browser: aBrowser,
-      observe: function (aSubject, aTopic, aData) {
-        
-        setTimeout(function(aSelf) {
-          aSelf._self._overlayLoading = false;
-          aSelf._self._overlayLoaded = true;
-          aSelf._self._doShowBookmarkPagePopup(aSelf._browser);
-        }, 0, this);
-      }
-    };
-    this._overlayLoading = true;
-    document.loadOverlay("chrome://browser/content/places/editBookmarkOverlay.xul", loadObserver);
-  },
-
-  _doShowBookmarkPagePopup: function PSB__doShowBookmarkPagePopup(aBrowser) {
-    const bms = PlacesUtils.bookmarks;
-
-    var dockTo = document.getElementById("star-icon");
-    if (!dockTo)
-      dockTo = getBrowser();
-
-    var panel = this.panel;
-    panel.showPopup(dockTo, -1, -1, "popup", "bottomright", "topright");
-
-    var uri = aBrowser.currentURI;
-
-    var itemId = -1;
-    var bmkIds = bms.getBookmarkIdsForURI(uri, {});
-    for each (var bk in bmkIds) {
-      
-      var folder = bms.getFolderIdForItem(bk);
-      if (folder == PlacesUtils.placesRootId ||
-          bms.getFolderIdForItem(folder) != PlacesUtils.tagRootId) {
-        itemId = bk;
-        break;
-      }
-    }
-    if (itemId == -1) {
-      
-      
-      itemId = this._star(aBrowser);
-    }
-    gAddBookmarksPanel.initPanel(itemId, PlacesUtils.tm, this.doneCallback,
-                                 { hiddenRows: "description" });
-    panel.addEventListener("popuphiding", this, false);
+      starIcon.removeAttribute("starred");
   },
 
   onClick: function PSB_onClick(aEvent) {
-    if (this._starred)
-      this.showBookmarkPagePopup(getBrowser());
-    else
-      this._star(getBrowser());
-  },
-
-  doneCallback: function PSB_doneCallback(aSavedChanges) {
-    var panel = PlacesStarButton.panel;
-    panel.removeEventListener("popuphiding", PlacesStarButton, false);
-    gAddBookmarksPanel.uninitPanel();
-    panel.hidePopup();
+    PlacesCommandHook.bookmarkCurrentPage(this._starred);
   },
 
   

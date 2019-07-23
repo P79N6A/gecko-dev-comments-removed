@@ -1504,6 +1504,24 @@ var PlacesUtils = {
 
 
 
+  getMostRecentBookmarkForURI:
+  function PU_getMostRecentBookmarkForURI(aURI) {
+    var bmkIds = this.bookmarks.getBookmarkIdsForURI(aURI, {});
+    for each (var bk in bmkIds) {
+      
+      var folder = this.bookmarks.getFolderIdForItem(bk);
+      if (folder == this.placesRootId ||
+        this.bookmarks.getFolderIdForItem(folder) != this.tagRootId) {
+        return bk;
+      }
+    }
+    return -1;
+  },
+
+  
+
+
+
 
 
 
