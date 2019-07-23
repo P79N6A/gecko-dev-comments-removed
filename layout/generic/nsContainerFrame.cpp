@@ -224,7 +224,14 @@ nsContainerFrame::RemoveFrame(nsIAtom*  aListName,
       
       
       
-      parent->mFrames.DestroyFrame(aOldFrame);
+      if (parent == this) {
+        parent->mFrames.DestroyFrame(aOldFrame);
+      } else {
+        
+        
+        parent->RemoveFrame(nsnull, aOldFrame);
+        break;
+      }
       aOldFrame = oldFrameNextContinuation;
       if (aOldFrame) {
         parent = static_cast<nsContainerFrame*>(aOldFrame->GetParent());
