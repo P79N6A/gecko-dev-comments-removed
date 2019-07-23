@@ -458,9 +458,11 @@ void nsCSSScanner::Close()
   mReadPointer = nsnull;
 
   
+#ifdef CSS_REPORT_PARSE_ERRORS
   mFileName.Truncate();
   mURI = nsnull;
   mError.Truncate();
+#endif
   if (mPushback != mLocalPushback) {
     delete [] mPushback;
     mPushback = mLocalPushback;
