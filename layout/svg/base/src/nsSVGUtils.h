@@ -434,6 +434,18 @@ public:
 
 
 
+  static nsresult GfxRectToIntRect(const gfxRect& aIn, nsIntRect* aOut);
+
+  
+
+
+  static void ClipToGfxRect(nsIntRect* aRect, const gfxRect& aGfxRect);
+
+  
+
+
+
+
   static PRBool
   CanOptimizeOpacity(nsIFrame *aFrame);
 

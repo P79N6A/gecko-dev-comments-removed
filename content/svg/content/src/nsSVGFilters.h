@@ -39,10 +39,12 @@
 
 #include "nsSVGStylableElement.h"
 #include "nsSVGLength2.h"
-#include "nsSVGString.h"
 #include "nsIFrame.h"
+#include "gfxRect.h"
+#include "gfxImageSurface.h"
 
 class nsSVGFilterResource;
+class nsSVGString;
 
 typedef nsSVGStylableElement nsSVGFEBase;
 
@@ -55,38 +57,69 @@ class nsSVGFE : public nsSVGFEBase
 {
   friend class nsSVGFilterInstance;
 
+public:
+  class ColorModel {
+  public:
+    enum ColorSpace { SRGB, LINEAR_RGB };
+    enum AlphaChannel { UNPREMULTIPLIED, PREMULTIPLIED };
+
+    ColorModel(ColorSpace aColorSpace, AlphaChannel aAlphaChannel) :
+      mColorSpace(aColorSpace), mAlphaChannel(aAlphaChannel) {}
+    ColorModel() :
+      mColorSpace(SRGB), mAlphaChannel(PREMULTIPLIED) {}
+    PRBool operator==(const ColorModel& aOther) const {
+      return mColorSpace == aOther.mColorSpace &&
+             mAlphaChannel == aOther.mAlphaChannel;
+    }
+    ColorSpace   mColorSpace;
+    AlphaChannel mAlphaChannel;
+  };
+
+  struct Image {
+    
+    nsRefPtr<gfxImageSurface> mImage;
+    
+    gfxRect                   mFilterPrimitiveSubregion;
+    ColorModel                mColorModel;
+  };
+
 protected:
   nsSVGFE(nsINodeInfo *aNodeInfo) : nsSVGFEBase(aNodeInfo) {}
 
   struct ScaleInfo {
-    nsRefPtr<gfxImageSurface> mRealSource;
     nsRefPtr<gfxImageSurface> mRealTarget;
     nsRefPtr<gfxImageSurface> mSource;
     nsRefPtr<gfxImageSurface> mTarget;
-    nsRect mRect; 
+    nsIntRect mDataRect; 
     PRPackedBool mRescaling;
   };
 
-  nsresult SetupScalingFilter(nsSVGFilterInstance *aInstance,
-                              nsSVGFilterResource *aResource,
-                              nsSVGString *aIn,
-                              nsSVGNumber2 *aUnitX, nsSVGNumber2 *aUnitY,
-                              ScaleInfo *aScaleInfo);
+  ScaleInfo SetupScalingFilter(nsSVGFilterInstance *aInstance,
+                               const Image *aSource,
+                               const Image *aTarget,
+                               const nsIntRect& aDataRect,
+                               nsSVGNumber2 *aUnitX, nsSVGNumber2 *aUnitY);
 
-  void FinishScalingFilter(nsSVGFilterResource *aResource,
-                           ScaleInfo *aScaleInfo);
-
+  void FinishScalingFilter(ScaleInfo *aScaleInfo);
 
 public:
-  nsSVGFilterInstance::ColorModel
-  GetColorModel(nsSVGFilterInstance* aInstance, nsSVGString* aIn) {
-    return nsSVGFilterInstance::ColorModel (
-          (OperatesOnSRGB(aInstance, aIn) ?
-             nsSVGFilterInstance::ColorModel::SRGB :
-             nsSVGFilterInstance::ColorModel::LINEAR_RGB),
+  ColorModel
+  GetInputColorModel(nsSVGFilterInstance* aInstance, PRUint32 aInputIndex,
+                     Image* aImage) {
+    return ColorModel(
+          (OperatesOnSRGB(aInstance, aInputIndex, aImage) ?
+             ColorModel::SRGB : ColorModel::LINEAR_RGB),
           (OperatesOnPremultipledAlpha() ?
-             nsSVGFilterInstance::ColorModel::PREMULTIPLIED :
-             nsSVGFilterInstance::ColorModel::UNPREMULTIPLIED));
+             ColorModel::PREMULTIPLIED : ColorModel::UNPREMULTIPLIED));
+  }
+
+  ColorModel
+  GetOutputColorModel(nsSVGFilterInstance* aInstance) {
+    return ColorModel(
+          (OperatesOnSRGB(aInstance, 0, nsnull) ?
+             ColorModel::SRGB : ColorModel::LINEAR_RGB),
+          (OperatesOnPremultipledAlpha() ?
+             ColorModel::PREMULTIPLIED : ColorModel::UNPREMULTIPLIED));
   }
 
   
@@ -98,7 +131,7 @@ public:
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_NSIDOMSVGFILTERPRIMITIVESTANDARDATTRIBUTES
 
-  virtual nsSVGString* GetResultImageName()=0;
+  virtual nsSVGString* GetResultImageName() = 0;
   
   
   virtual void GetSourceImageNames(nsTArray<nsSVGString*>* aSources);
@@ -108,7 +141,7 @@ public:
   
   
   
-  virtual nsRect ComputeTargetBBox(const nsTArray<nsRect>& aSourceBBoxes,
+  virtual nsIntRect ComputeTargetBBox(const nsTArray<nsIntRect>& aSourceBBoxes,
           const nsSVGFilterInstance& aInstance);
   
   
@@ -117,15 +150,27 @@ public:
   
   
   
-  virtual void ComputeNeededSourceBBoxes(const nsRect& aTargetBBox,
-          nsTArray<nsRect>& aSourceBBoxes, const nsSVGFilterInstance& aInstance);
-  
-  virtual nsresult Filter(nsSVGFilterInstance* aInstance) = 0;
+  virtual void ComputeNeededSourceBBoxes(const nsIntRect& aTargetBBox,
+          nsTArray<nsIntRect>& aSourceBBoxes, const nsSVGFilterInstance& aInstance);
 
-  static nsRect GetMaxRect() {
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  virtual nsresult Filter(nsSVGFilterInstance* aInstance,
+                          const nsTArray<const Image*>& aSources,
+                          const Image* aTarget,
+                          const nsIntRect& aDataRect) = 0;
+
+  static nsIntRect GetMaxRect() {
     
     
-    return nsRect(PR_INT32_MIN/2, PR_INT32_MIN/2, PR_INT32_MAX, PR_INT32_MAX);
+    return nsIntRect(PR_INT32_MIN/2, PR_INT32_MIN/2, PR_INT32_MAX, PR_INT32_MAX);
   }
 
   operator nsISupports*() { return static_cast<nsIContent*>(this); }
@@ -133,8 +178,11 @@ public:
 protected:
   virtual PRBool OperatesOnPremultipledAlpha() { return PR_TRUE; }
 
-  virtual PRBool OperatesOnSRGB(nsSVGFilterInstance*,
-                                nsSVGString*) {
+  
+  
+  
+  virtual PRBool OperatesOnSRGB(nsSVGFilterInstance* aInstance,
+                                PRUint32 aInputIndex, Image* aImage) {
     nsIFrame* frame = GetPrimaryFrame();
     if (!frame) return PR_FALSE;
 
