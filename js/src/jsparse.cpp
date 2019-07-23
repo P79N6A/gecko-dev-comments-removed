@@ -2249,8 +2249,7 @@ Parser::setFunctionKinds(JSFunctionBox *funbox, uint32& tcflags)
                     FUN_METER(onlyfreevar);
                     FUN_SET_KIND(fun, JSFUN_NULL_CLOSURE);
                 } else if (!mutation &&
-                           !(~funbox->tcflags
-                             & (TCF_FUN_IS_GENERATOR | TCF_FUN_ENTRAINS_SCOPES))) {
+                           !(funbox->tcflags & (TCF_FUN_IS_GENERATOR | TCF_FUN_ENTRAINS_SCOPES))) {
                     
 
 
