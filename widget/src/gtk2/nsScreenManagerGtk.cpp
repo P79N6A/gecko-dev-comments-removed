@@ -107,7 +107,6 @@ root_window_event_filter(GdkXEvent *aGdkXEvent, GdkEvent *aGdkEvent,
 
 nsScreenManagerGtk :: nsScreenManagerGtk ( )
   : mXineramalib(nsnull)
-  , mXineramaIsActive(PR_FALSE)
   , mRootWindow(nsnull)
 {
   
@@ -131,12 +130,6 @@ nsScreenManagerGtk :: ~nsScreenManagerGtk()
 
 
 
-#ifdef MOZ_X11
-  if (mXineramalib && mXineramalib != SCREEN_MANAGER_LIBRARY_LOAD_FAILED &&
-      !mXineramaIsActive) {
-    PR_UnloadLibrary(mXineramalib);
-  }
-#endif
 }
 
 
@@ -197,9 +190,6 @@ nsScreenManagerGtk :: Init()
     if (_XnrmIsActive && _XnrmQueryScreens &&
         _XnrmIsActive(GDK_DISPLAY())) {
       screenInfo = _XnrmQueryScreens(GDK_DISPLAY(), &numScreens);
-
-      
-      mXineramaIsActive = numScreens > 0;
     }
   }
 
