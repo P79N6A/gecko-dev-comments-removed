@@ -211,7 +211,9 @@ SmartCardMonitoringThread::SetTokenName(CK_SLOT_ID slotid,
   if (mHash) {
     if (tokenName) {
       int len = strlen(tokenName) + 1;
-      char *entry = (char *)malloc(len+sizeof(PRUint32));
+      
+
+      char *entry = (char *)PR_Malloc(len+sizeof(PRUint32));
      
       if (entry) {  
         memcpy(entry,&series,sizeof(PRUint32));
@@ -221,8 +223,10 @@ SmartCardMonitoringThread::SetTokenName(CK_SLOT_ID slotid,
         return;
       }
     } 
-    
-    PL_HashTableRemove(mHash,(void *)slotid);
+    else {
+      
+      PL_HashTableRemove(mHash,(void *)slotid);
+    }
   }
 }
 
