@@ -41,6 +41,7 @@
 
 
 
+
 #ifndef nsICSSStyleRule_h___
 #define nsICSSStyleRule_h___
 
@@ -77,14 +78,27 @@ private:
 
 struct nsPseudoClassList {
 public:
-  nsPseudoClassList(nsIAtom* aAtom, const PRUnichar *aString = nsnull);
+  nsPseudoClassList(nsIAtom* aAtom);
+  nsPseudoClassList(nsIAtom* aAtom, const PRUnichar *aString);
+  nsPseudoClassList(nsIAtom* aAtom, const PRInt32 *aIntPair);
   ~nsPseudoClassList(void);
 
   
   nsPseudoClassList* Clone() const { return Clone(PR_TRUE); }
 
   nsCOMPtr<nsIAtom> mAtom;
-  PRUnichar*        mString;
+  union {
+    
+    
+    
+    
+    
+    
+    
+    void*           mMemory; 
+    PRUnichar*      mString;
+    PRInt32*        mNumbers;
+  } u;
   nsPseudoClassList* mNext;
 private: 
   nsPseudoClassList* Clone(PRBool aDeep) const;
@@ -141,7 +155,9 @@ public:
   void SetTag(const nsString& aTag);
   void AddID(const nsString& aID);
   void AddClass(const nsString& aClass);
-  void AddPseudoClass(nsIAtom* aPseudoClass, const PRUnichar* aString = nsnull);
+  void AddPseudoClass(nsIAtom* aPseudoClass);
+  void AddPseudoClass(nsIAtom* aPseudoClass, const PRUnichar* aString);
+  void AddPseudoClass(nsIAtom* aPseudoClass, const PRInt32* aIntPair);
   void AddAttribute(PRInt32 aNameSpace, const nsString& aAttr);
   void AddAttribute(PRInt32 aNameSpace, const nsString& aAttr, PRUint8 aFunc, 
                     const nsString& aValue, PRBool aCaseSensitive);
@@ -153,6 +169,7 @@ public:
                 PRBool aAppend = PR_FALSE) const;
 
 private:
+  void AddPseudoClassInternal(nsPseudoClassList *aPseudoClass);
   nsCSSSelector* Clone(PRBool aDeepNext, PRBool aDeepNegations) const;
 
   void AppendNegationToString(nsAString& aString);
