@@ -59,7 +59,6 @@ function makeSymLink(from, toName, relative) {
 
   if (isUnix && (from.leafName == DOES_NOT_EXIST || from.isSymlink())) {
     
-    
     if (from.leafName != DOES_NOT_EXIST) {
       let fromN = from.clone();
       fromN.normalize();
