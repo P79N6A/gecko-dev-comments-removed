@@ -717,7 +717,6 @@ struct InterpState
     FrameInfo**    callstackBase;       
     uintN*         inlineCallCountp;    
     VMSideExit**   innermostNestedGuardp;
-    void*          stackMark;
     VMSideExit*    innermost;
 #ifdef EXECUTE_TREE_TIMER
     uint64         startTime;
