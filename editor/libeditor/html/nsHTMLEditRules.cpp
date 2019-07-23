@@ -7573,26 +7573,28 @@ nsHTMLEditRules::AdjustSelection(nsISelection *aSelection, nsIEditor::EDirection
   nsCOMPtr<nsIDOMNode> theblock;
   if (IsBlockNode(selNode)) theblock = selNode;
   else theblock = mHTMLEditor->GetBlockNodeParent(selNode);
-  PRBool bIsEmptyNode;
-  res = mHTMLEditor->IsEmptyNode(theblock, &bIsEmptyNode, PR_FALSE, PR_FALSE);
-  if (NS_FAILED(res)) return res;
-  
-  if (bIsEmptyNode && mHTMLEditor->CanContainTag(selNode, NS_LITERAL_STRING("br")))
-  {
-    nsIDOMElement *rootElement = mHTMLEditor->GetRoot();
-    if (!rootElement) return NS_ERROR_FAILURE;
-    nsCOMPtr<nsIDOMNode> rootNode(do_QueryInterface(rootElement));
-    if (selNode == rootNode)
-    {
-      
-      
-      
-      return NS_OK;
-    }
-
-    nsCOMPtr<nsIDOMNode> brNode;
+  if (theblock && mHTMLEditor->IsEditable(theblock)) {
+    PRBool bIsEmptyNode;
+    res = mHTMLEditor->IsEmptyNode(theblock, &bIsEmptyNode, PR_FALSE, PR_FALSE);
+    if (NS_FAILED(res)) return res;
     
-    return CreateMozBR(selNode, selOffset, address_of(brNode));
+    if (bIsEmptyNode && mHTMLEditor->CanContainTag(selNode, NS_LITERAL_STRING("br")))
+    {
+      nsIDOMElement *rootElement = mHTMLEditor->GetRoot();
+      if (!rootElement) return NS_ERROR_FAILURE;
+      nsCOMPtr<nsIDOMNode> rootNode(do_QueryInterface(rootElement));
+      if (selNode == rootNode)
+      {
+        
+        
+        
+        return NS_OK;
+      }
+
+      nsCOMPtr<nsIDOMNode> brNode;
+      
+      return CreateMozBR(selNode, selOffset, address_of(brNode));
+    }
   }
   
   
