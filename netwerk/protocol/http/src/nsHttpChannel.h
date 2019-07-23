@@ -194,6 +194,9 @@ private:
     nsresult InstallOfflineCacheListener();
 
     
+    void ClearBogusContentEncodingIfNeeded();
+
+    
     nsresult SetupByteRangeRequest(PRUint32 partialLen);
     nsresult ProcessPartialContent();
     nsresult OnDoneReadingPartialCacheEntry(PRBool *streamDone);

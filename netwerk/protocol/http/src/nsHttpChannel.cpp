@@ -879,25 +879,7 @@ nsHttpChannel::ProcessNormal()
     
     mCachedContentIsPartial = PR_FALSE;
 
-    
-    
-    
-    
-    
-    
-    if (mResponseHead->HasHeaderValue(nsHttp::Content_Encoding, "gzip") && (
-        mResponseHead->ContentType().EqualsLiteral(APPLICATION_GZIP) ||
-        mResponseHead->ContentType().EqualsLiteral(APPLICATION_GZIP2) ||
-        mResponseHead->ContentType().EqualsLiteral(APPLICATION_GZIP3))) {
-        
-        mResponseHead->ClearHeader(nsHttp::Content_Encoding);
-    }
-    else if (mResponseHead->HasHeaderValue(nsHttp::Content_Encoding, "compress") && (
-             mResponseHead->ContentType().EqualsLiteral(APPLICATION_COMPRESS) ||
-             mResponseHead->ContentType().EqualsLiteral(APPLICATION_COMPRESS2))) {
-        
-        mResponseHead->ClearHeader(nsHttp::Content_Encoding);
-    }
+    ClearBogusContentEncodingIfNeeded();
 
     
     
@@ -1199,6 +1181,9 @@ nsHttpChannel::ProcessPartialContent()
     NS_ENSURE_TRUE(mCachedResponseHead, NS_ERROR_NOT_INITIALIZED);
     NS_ENSURE_TRUE(mCacheEntry, NS_ERROR_NOT_INITIALIZED);
 
+    
+    ClearBogusContentEncodingIfNeeded();
+    
     
     
     if (PL_strcasecmp(mResponseHead->PeekHeader(nsHttp::Content_Encoding),
@@ -2231,6 +2216,30 @@ nsHttpChannel::InstallOfflineCacheListener()
     mListener = tee;
 
     return NS_OK;
+}
+
+void
+nsHttpChannel::ClearBogusContentEncodingIfNeeded()
+{
+    
+    
+    
+    
+    
+    
+    if (mResponseHead->HasHeaderValue(nsHttp::Content_Encoding, "gzip") && (
+        mResponseHead->ContentType().EqualsLiteral(APPLICATION_GZIP) ||
+        mResponseHead->ContentType().EqualsLiteral(APPLICATION_GZIP2) ||
+        mResponseHead->ContentType().EqualsLiteral(APPLICATION_GZIP3))) {
+        
+        mResponseHead->ClearHeader(nsHttp::Content_Encoding);
+    }
+    else if (mResponseHead->HasHeaderValue(nsHttp::Content_Encoding, "compress") && (
+             mResponseHead->ContentType().EqualsLiteral(APPLICATION_COMPRESS) ||
+             mResponseHead->ContentType().EqualsLiteral(APPLICATION_COMPRESS2))) {
+        
+        mResponseHead->ClearHeader(nsHttp::Content_Encoding);
+    }
 }
 
 
