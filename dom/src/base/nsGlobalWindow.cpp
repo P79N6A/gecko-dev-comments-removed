@@ -7884,15 +7884,15 @@ nsGlobalWindow::RunTimeout(nsTimeout *aTimeout)
 
     PR_REMOVE_LINK(timeout);
 
-    
-    timeout->Release();
-
     if (isInterval) {
       
       
-
+      
       InsertTimeoutIntoList(timeout);
     }
+
+    
+    timeout->Release();
   }
 
   
