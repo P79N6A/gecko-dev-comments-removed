@@ -524,7 +524,6 @@ nsExternalHelperAppService::~nsExternalHelperAppService()
 NS_IMETHODIMP nsExternalHelperAppService::DoContent(const nsACString& aMimeContentType,
                                                     nsIRequest *aRequest,
                                                     nsIInterfaceRequestor *aWindowContext,
-                                                    PRBool aForceSave,
                                                     nsIStreamListener ** aStreamListener)
 {
   nsAutoString fileName;
@@ -641,8 +640,7 @@ NS_IMETHODIMP nsExternalHelperAppService::DoContent(const nsACString& aMimeConte
                                                             buf,
                                                             aWindowContext,
                                                             fileName,
-                                                            reason,
-                                                            aForceSave);
+                                                            reason);
   if (!handler)
     return NS_ERROR_OUT_OF_MEMORY;
   NS_ADDREF(*aStreamListener = handler);
@@ -993,12 +991,11 @@ nsExternalAppHandler::nsExternalAppHandler(nsIMIMEInfo * aMIMEInfo,
                                            const nsCSubstring& aTempFileExtension,
                                            nsIInterfaceRequestor* aWindowContext,
                                            const nsAString& aSuggestedFilename,
-                                           PRUint32 aReason, PRBool aForceSave)
+                                           PRUint32 aReason)
 : mMimeInfo(aMIMEInfo)
 , mWindowContext(aWindowContext)
 , mWindowToClose(nsnull)
 , mSuggestedFileName(aSuggestedFilename)
-, mForceSave(aForceSave)
 , mCanceled(PR_FALSE)
 , mShouldCloseWindow(PR_FALSE)
 , mReceivedDispositionInfo(PR_FALSE)
@@ -1473,13 +1470,6 @@ NS_IMETHODIMP nsExternalAppHandler::OnStartRequest(nsIRequest *request, nsISuppo
     alwaysAsk = (action != nsIMIMEInfo::saveToDisk);
   }
 
-  
-  
-  if (mForceSave) {
-    alwaysAsk = PR_FALSE;
-    action = nsIMIMEInfo::saveToDisk;
-  }
-  
   if (alwaysAsk)
   {
     
