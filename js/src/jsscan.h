@@ -329,15 +329,19 @@ js_fgets(char *buf, int size, FILE *file);
 extern JSTokenType
 js_CheckKeyword(const jschar *chars, size_t length);
 
-#define js_IsKeyword(chars, length) \
-    (js_CheckKeyword(chars, length) != TOK_EOF)
-
 
 
 
 
 extern JS_FRIEND_API(void)
 js_MapKeywords(void (*mapfun)(const char *));
+
+
+
+
+
+extern JSBool
+js_IsIdentifier(JSString *str);
 
 
 
