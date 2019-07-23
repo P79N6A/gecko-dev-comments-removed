@@ -394,37 +394,10 @@ nsContainerFrame::PositionFrameView(nsIFrame* aKidFrame)
   vm->MoveViewTo(view, pt.x, pt.y);
 }
 
-
-
-static PRBool
-NonZeroStyleCoord(const nsStyleCoord& aCoord) {
-  switch (aCoord.GetUnit()) {
-  case eStyleUnit_Percent:
-    return aCoord.GetPercentValue() > 0;
-  case eStyleUnit_Coord:
-    return aCoord.GetCoordValue() > 0;
-  case eStyleUnit_Null:
-    return PR_FALSE;
-  default:
-    return PR_TRUE;
-  }
-}
-
 static PRBool
 HasNonZeroBorderRadius(nsStyleContext* aStyleContext) {
   const nsStyleBorder* border = aStyleContext->GetStyleBorder();
-
-  nsStyleCoord coord;
-  border->mBorderRadius.GetTop(coord);
-  if (NonZeroStyleCoord(coord)) return PR_TRUE;
-  border->mBorderRadius.GetRight(coord);
-  if (NonZeroStyleCoord(coord)) return PR_TRUE;
-  border->mBorderRadius.GetBottom(coord);
-  if (NonZeroStyleCoord(coord)) return PR_TRUE;
-  border->mBorderRadius.GetLeft(coord);
-  if (NonZeroStyleCoord(coord)) return PR_TRUE;
-
-  return PR_FALSE;
+  return nsLayoutUtils::HasNonZeroSide(border->mBorderRadius);
 }
 
 static void
@@ -473,7 +446,7 @@ SyncFrameViewGeometryDependentProperties(nsPresContext*  aPresContext,
         
         
         if (aView->HasWidget() && aView == rootView) {
-          viewHasTransparentContent = hasBG && (bg->mBackgroundFlags & NS_STYLE_BG_COLOR_TRANSPARENT);
+          viewHasTransparentContent = nsLayoutUtils::FrameHasTransparency(aFrame);
           aView->GetWidget()->SetWindowTranslucency(viewHasTransparentContent);
         }
       }

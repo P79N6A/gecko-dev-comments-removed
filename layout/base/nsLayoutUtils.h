@@ -676,6 +676,20 @@ public:
   static nscoord CharsToCoord(const nsStyleCoord& aStyle,
                               nsIRenderingContext* aRenderingContext,
                               nsStyleContext* aStyleContext);
+
+  
+
+
+
+
+  static PRBool HasNonZeroSide(const nsStyleSides& aSides);
+
+  
+
+
+
+
+  static PRBool FrameHasTransparency(nsIFrame* aFrame);
 };
 
 #endif 
