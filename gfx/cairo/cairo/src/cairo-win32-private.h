@@ -117,6 +117,9 @@ enum {
 
     
     CAIRO_WIN32_SURFACE_CAN_RECT_GRADIENT = (1<<6),
+
+    
+    CAIRO_WIN32_SURFACE_CAN_CONVERT_TO_DIB = (1<<7),
 };
 
 cairo_status_t
