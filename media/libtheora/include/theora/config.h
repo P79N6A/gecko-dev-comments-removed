@@ -2,6 +2,9 @@
 
 
 
+
+
+
 #define HAVE_DLFCN_H 1
 
 
@@ -29,7 +32,7 @@
 #define HAVE_STRING_H 1
 
 
-#define HAVE_SYS_SOUNDCARD_H 1
+
 
 
 #define HAVE_SYS_STAT_H 1
@@ -39,6 +42,13 @@
 
 
 #define HAVE_UNISTD_H 1
+
+
+
+#define LT_OBJDIR ".libs/"
+
+
+
 
 
 
@@ -56,13 +66,16 @@
 #define PACKAGE_NAME "libtheora"
 
 
-#define PACKAGE_STRING "libtheora 1.0"
+#define PACKAGE_STRING "libtheora 1.1.0"
 
 
 #define PACKAGE_TARNAME "libtheora"
 
 
-#define PACKAGE_VERSION "1.0"
+#define PACKAGE_URL ""
+
+
+#define PACKAGE_VERSION "1.1.0"
 
 
 #define STDC_HEADERS 1
@@ -74,7 +87,4 @@
 
 
 
- 
-
-
-#define VERSION "1.0"
+#define VERSION "1.1.0"

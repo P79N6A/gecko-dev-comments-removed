@@ -259,9 +259,6 @@ typedef struct{
   
 
 
-  
-
-
   int           target_bitrate;
   
 

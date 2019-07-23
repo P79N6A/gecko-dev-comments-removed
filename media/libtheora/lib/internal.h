@@ -14,27 +14,65 @@
 
 
 
-
 #if !defined(_internal_H)
 # define _internal_H (1)
 # include <stdlib.h>
+# include <limits.h>
 # if defined(HAVE_CONFIG_H)
 #  include <config.h>
 # endif
 # include "theora/codec.h"
 # include "theora/theora.h"
-# include "dec/ocintrin.h"
-# include "dec/huffman.h"
-# include "dec/quant.h"
-
 
 # if defined(_MSC_VER)
-#  pragma warning(disable:4554) /* order of operations */
-#  pragma warning(disable:4799) /* disable missing EMMS warnings */
+
+#  pragma warning(disable:4799)
+
+#  pragma warning(disable:4554)
+# endif
+
+# if defined(__GNUC_PREREQ)
+#  if __GNUC_PREREQ(4,2)
+#   pragma GCC diagnostic ignored "-Wparentheses"
+#  endif
+# endif
+
+# include "ocintrin.h"
+# include "huffman.h"
+# include "quant.h"
+
+
+# if defined(OC_X86_ASM)
+#  if defined(__GNUC__)
+#   define OC_ALIGN8(expr) expr __attribute__((aligned(8)))
+#   define OC_ALIGN16(expr) expr __attribute__((aligned(16)))
+#  elif defined(_MSC_VER)
+#   define OC_ALIGN8(expr) __declspec (align(8)) expr
+#   define OC_ALIGN16(expr) __declspec (align(16)) expr
+#  endif
+# endif
+# if !defined(OC_ALIGN8)
+#  define OC_ALIGN8(expr) expr
+# endif
+# if !defined(OC_ALIGN16)
+#  define OC_ALIGN16(expr) expr
 # endif
 
 
-# define OC_VENDOR_STRING "Xiph.Org libTheora I 20081020 3 2 1"
+
+typedef struct oc_sb_flags              oc_sb_flags;
+typedef struct oc_border_info           oc_border_info;
+typedef struct oc_fragment              oc_fragment;
+typedef struct oc_fragment_plane        oc_fragment_plane;
+typedef struct oc_base_opt_vtable       oc_base_opt_vtable;
+typedef struct oc_base_opt_data         oc_base_opt_data;
+typedef struct oc_state_dispatch_vtable oc_state_dispatch_vtable;
+typedef struct oc_theora_state          oc_theora_state;
+
+
+
+
+# define OC_VENDOR_STRING "Xiph.Org libtheora 1.1 20090822 (Thusnelda)"
 
 
 # define TH_VERSION_MAJOR (3)
@@ -98,17 +136,9 @@
 #define OC_NMODES              (8)
 
 
-#define OC_MODE_NOT_CODED      (8)
-
-
-
-#define OC_PL  (1)
-
-#define OC_PUL (2)
-
-#define OC_PU  (4)
-
-#define OC_PUR (8)
+#define OC_FRAME_FOR_MODE(_x) \
+ OC_UNIBBLE_TABLE32(OC_FRAME_PREV,OC_FRAME_SELF,OC_FRAME_PREV,OC_FRAME_PREV, \
+  OC_FRAME_PREV,OC_FRAME_GOLD,OC_FRAME_GOLD,OC_FRAME_PREV,(_x))
 
 
 
@@ -123,16 +153,6 @@
 
 
 
-typedef struct oc_theora_state oc_theora_state;
-
-
-
-
-typedef int         oc_sb_map[4][4];
-
-typedef int         oc_mb_map[3][4];
-
-typedef signed char oc_mv[2];
 
 
 
@@ -149,12 +169,6 @@ typedef signed char oc_mv[2];
 
 
 
-typedef struct{
-  unsigned  coded_fully:1;
-  unsigned  coded_partially:1;
-  unsigned  quad_valid:4;
-  oc_sb_map map;
-}oc_sb;
 
 
 
@@ -165,118 +179,121 @@ typedef struct{
 
 
 
-typedef struct{
-  
-
-
-  int           mode;
-  
-  int           x;
-  
-  int           y;
-  
-
-
-
-  oc_mb_map     map;
-}oc_mb;
 
 
 
 
+typedef ptrdiff_t       oc_sb_map_quad[4];
+
+typedef oc_sb_map_quad  oc_sb_map[4];
+
+typedef ptrdiff_t       oc_mb_map_plane[4];
+
+typedef oc_mb_map_plane oc_mb_map[3];
+
+typedef signed char     oc_mv[2];
+
+
+
+
+struct oc_sb_flags{
+  unsigned char coded_fully:1;
+  unsigned char coded_partially:1;
+  unsigned char quad_valid:4;
+};
 
 
 
 
 
-typedef struct{
+
+struct oc_border_info{
   
 
   ogg_int64_t mask;
   
 
   int         npixels;
-}oc_border_info;
+};
 
 
 
 
-typedef struct{
+struct oc_fragment{
   
-  unsigned        coded:1;
-  
-
-
-
-  unsigned        invalid:1;
-  
-  unsigned        qi:6;
-  
-
-
-  signed int      mbmode:8;
-  
-
-
-  signed int      dc:16;
+  unsigned   coded:1;
   
 
 
 
 
-
-  unsigned char  *buffer[4];
+  unsigned   invalid:1;
+  
+  unsigned   qii:6;
+  
+  unsigned   mb_mode:3;
   
 
 
-  oc_border_info *border;
+
+
+  signed int borderi:5;
   
-  oc_mv           mv;
-}oc_fragment;
+
+
+  signed int dc:16;
+};
 
 
 
 
-typedef struct{
+struct oc_fragment_plane{
   
-  int nhfrags;
+  int       nhfrags;
   
-  int nvfrags;
+  int       nvfrags;
   
-  int froffset;
+  ptrdiff_t froffset;
   
-  int nfrags;
+  ptrdiff_t nfrags;
   
-  int nhsbs;
+  unsigned  nhsbs;
   
-  int nvsbs;
+  unsigned  nvsbs;
   
-  int sboffset;
+  unsigned  sboffset;
   
-  int nsbs;
-}oc_fragment_plane;
+  unsigned  nsbs;
+};
 
 
 
 
-typedef struct{
-  void (*frag_recon_intra)(unsigned char *_dst,int _dst_ystride,
-   const ogg_int16_t *_residue);
-  void (*frag_recon_inter)(unsigned char *_dst,int _dst_ystride,
-   const unsigned char *_src,int _src_ystride,const ogg_int16_t *_residue);
-  void (*frag_recon_inter2)(unsigned char *_dst,int _dst_ystride,
-   const unsigned char *_src1,int _src1_ystride,const unsigned char *_src2,
-   int _src2_ystride,const ogg_int16_t *_residue);
-  void (*state_frag_copy)(const oc_theora_state *_state,
-   const int *_fragis,int _nfragis,int _dst_frame,int _src_frame,int _pli);
-  void (*state_frag_recon)(oc_theora_state *_state,oc_fragment *_frag,
-   int _pli,ogg_int16_t _dct_coeffs[128],int _last_zzi,int _ncoefs,
-   ogg_uint16_t _dc_iquant,const ogg_uint16_t _ac_iquant[64]);
+struct oc_base_opt_vtable{
+  void (*frag_copy)(unsigned char *_dst,
+   const unsigned char *_src,int _ystride);
+  void (*frag_recon_intra)(unsigned char *_dst,int _ystride,
+   const ogg_int16_t _residue[64]);
+  void (*frag_recon_inter)(unsigned char *_dst,
+   const unsigned char *_src,int _ystride,const ogg_int16_t _residue[64]);
+  void (*frag_recon_inter2)(unsigned char *_dst,const unsigned char *_src1,
+   const unsigned char *_src2,int _ystride,const ogg_int16_t _residue[64]);
+  void (*idct8x8)(ogg_int16_t _y[64],int _last_zzi);
+  void (*state_frag_recon)(const oc_theora_state *_state,ptrdiff_t _fragi,
+   int _pli,ogg_int16_t _dct_coeffs[64],int _last_zzi,ogg_uint16_t _dc_quant);
+  void (*state_frag_copy_list)(const oc_theora_state *_state,
+   const ptrdiff_t *_fragis,ptrdiff_t _nfragis,
+   int _dst_frame,int _src_frame,int _pli);
+  void (*state_loop_filter_frag_rows)(const oc_theora_state *_state,
+   int _bv[256],int _refi,int _pli,int _fragy0,int _fragy_end);  
   void (*restore_fpu)(void);
-  void (*state_loop_filter_frag_rows)(oc_theora_state *_state,int *_bv,
-   int _refi,int _pli,int _fragy0,int _fragy_end);  
-}oc_base_opt_vtable;
+};
 
+
+
+struct oc_base_opt_data{
+  const unsigned char *dct_fzig_zag;
+};
 
 
 
@@ -286,56 +303,62 @@ struct oc_theora_state{
   
   oc_base_opt_vtable  opt_vtable;
   
+  oc_base_opt_data    opt_data;
+  
   ogg_uint32_t        cpu_flags;
   
   oc_fragment_plane   fplanes[3];
   
-  int                 nfrags;
-  
   oc_fragment        *frags;
   
-  int                 nsbs;
+
+  ptrdiff_t          *frag_buf_offs;
   
-  oc_sb              *sbs;
+  oc_mv              *frag_mvs;
   
-  int                 nhmbs;
+  ptrdiff_t           nfrags;
   
-  int                 nvmbs;
+  oc_sb_map          *sb_maps;
   
-  int                 nmbs;
+  oc_sb_flags        *sb_flags;
+  
+  unsigned            nsbs;
   
 
 
-  oc_mb              *mbs;
-  
-  int                *coded_fragis;
-  
-  int                 ncoded_fragis[3];
+
+  oc_mb_map          *mb_maps;
   
 
 
-  int                *uncoded_fragis;
+  signed char        *mb_modes;
   
-  int                 nuncoded_fragis[3];
+  unsigned            nhmbs;
   
-  int                *coded_mbis;
+  unsigned            nvmbs;
   
-  int                 ncoded_mbis;
+  size_t              nmbs;
   
 
-
-  th_ycbcr_buffer     input;
+  ptrdiff_t          *coded_fragis;
+  
+  ptrdiff_t           ncoded_fragis[3];
+  
+  ptrdiff_t           ntotal_coded_fragis;
+  
+  int                 ref_frame_idx[4];
+  
+  th_ycbcr_buffer     ref_frame_bufs[4];
+  
+  unsigned char      *ref_frame_data[4];
+  
+  int                 ref_ystride[3];
   
   int                 nborders;
   
 
+
   oc_border_info      borders[16];
-  
-  int                 ref_frame_idx[3];
-  
-  th_ycbcr_buffer     ref_frame_bufs[3];
-  
-  unsigned char      *ref_frame_data;
   
   ogg_int64_t         keyframe_num;
   
@@ -343,14 +366,17 @@ struct oc_theora_state{
   
   ogg_int64_t         granpos;
   
-  int                 frame_type;
+  unsigned char       frame_type;
   
-  int                 qis[3];
+  unsigned char       granpos_bias;
   
-  int                 nqis;
+  unsigned char       nqis;
   
-  oc_quant_table     *dequant_tables[2][3];
-  oc_quant_tables     dequant_table_data[2][3];
+  unsigned char       qis[3];
+  
+
+  ogg_uint16_t       *dequant_tables[64][3][2];
+  OC_ALIGN16(oc_quant_table      dequant_table_data[64][3][2]);
   
   unsigned char       loop_filter_limits[64];
 };
@@ -370,24 +396,19 @@ typedef void (*oc_set_chroma_mvs_func)(oc_mv _cbmvs[4],const oc_mv _lbmvs[4]);
 
 
 
+extern const unsigned char OC_FZIG_ZAG[128];
 
 
-
-extern const int OC_FZIG_ZAG[128];
-
-
-extern const int OC_IZIG_ZAG[64];
-
-extern const int OC_FRAME_FOR_MODE[OC_NMODES];
+extern const unsigned char OC_IZIG_ZAG[64];
 
 
-extern const int OC_MB_MAP[2][2];
+extern const unsigned char OC_MB_MAP[2][2];
 
 
-extern const int OC_MB_MAP_IDXS[TH_PF_NFORMATS][12];
+extern const unsigned char OC_MB_MAP_IDXS[TH_PF_NFORMATS][12];
 
 
-extern const int OC_MB_MAP_NIDXS[TH_PF_NFORMATS];
+extern const unsigned char OC_MB_MAP_NIDXS[TH_PF_NFORMATS];
 
 
 
@@ -403,12 +424,7 @@ void oc_free_2d(void *_ptr);
 void oc_ycbcr_buffer_flip(th_ycbcr_buffer _dst,
  const th_ycbcr_buffer _src);
 
-int oc_dct_token_skip(int _token,int _extra_bits);
-
-int oc_frag_pred_dc(const oc_fragment *_frag,
- const oc_fragment_plane *_fplane,int _x,int _y,int _pred_last[3]);
-
-int oc_state_init(oc_theora_state *_state,const th_info *_info);
+int oc_state_init(oc_theora_state *_state,const th_info *_info,int _nrefs);
 void oc_state_clear(oc_theora_state *_state);
 void oc_state_vtable_init_c(oc_theora_state *_state);
 void oc_state_borders_fill_rows(oc_theora_state *_state,int _refi,int _pli,
@@ -418,8 +434,8 @@ void oc_state_borders_fill(oc_theora_state *_state,int _refi);
 void oc_state_fill_buffer_ptrs(oc_theora_state *_state,int _buf_idx,
  th_ycbcr_buffer _img);
 int oc_state_mbi_for_pos(oc_theora_state *_state,int _mbx,int _mby);
-int oc_state_get_mv_offsets(oc_theora_state *_state,int *_offsets,
- int _dx,int _dy,int _ystride,int _pli);
+int oc_state_get_mv_offsets(const oc_theora_state *_state,int _offsets[2],
+ int _pli,int _dx,int _dy);
 
 int oc_state_loop_filter_init(oc_theora_state *_state,int *_bv);
 void oc_state_loop_filter(oc_theora_state *_state,int _frame);
@@ -429,39 +445,42 @@ int oc_state_dump_frame(const oc_theora_state *_state,int _frame,
 #endif
 
 
+void oc_frag_copy(const oc_theora_state *_state,unsigned char *_dst,
+ const unsigned char *_src,int _ystride);
 void oc_frag_recon_intra(const oc_theora_state *_state,
- unsigned char *_dst,int _dst_ystride,const ogg_int16_t *_residue);
-void oc_frag_recon_inter(const oc_theora_state *_state,
- unsigned char *_dst,int _dst_ystride,
- const unsigned char *_src,int _src_ystride,const ogg_int16_t *_residue);
+ unsigned char *_dst,int _dst_ystride,const ogg_int16_t _residue[64]);
+void oc_frag_recon_inter(const oc_theora_state *_state,unsigned char *_dst,
+ const unsigned char *_src,int _ystride,const ogg_int16_t _residue[64]);
 void oc_frag_recon_inter2(const oc_theora_state *_state,
- unsigned char *_dst,int _dst_ystride,
- const unsigned char *_src1,int _src1_ystride,const unsigned char *_src2,
- int _src2_ystride,const ogg_int16_t *_residue);
-void oc_state_frag_copy(const oc_theora_state *_state,const int *_fragis,
- int _nfragis,int _dst_frame,int _src_frame,int _pli);
-void oc_state_frag_recon(oc_theora_state *_state,oc_fragment *_frag,
- int _pli,ogg_int16_t _dct_coeffs[128],int _last_zzi,int _ncoefs,
- ogg_uint16_t _dc_iquant,const ogg_uint16_t _ac_iquant[64]);
-void oc_state_loop_filter_frag_rows(oc_theora_state *_state,int *_bv,
- int _refi,int _pli,int _fragy0,int _fragy_end);
+ unsigned char *_dst,const unsigned char *_src1,const unsigned char *_src2,
+ int _ystride,const ogg_int16_t _residue[64]);
+void oc_idct8x8(const oc_theora_state *_state,ogg_int16_t _y[64],int _last_zzi);
+void oc_state_frag_recon(const oc_theora_state *_state,ptrdiff_t _fragi,
+ int _pli,ogg_int16_t _dct_coeffs[64],int _last_zzi,ogg_uint16_t _dc_quant);
+void oc_state_frag_copy_list(const oc_theora_state *_state,
+ const ptrdiff_t *_fragis,ptrdiff_t _nfragis,
+ int _dst_frame,int _src_frame,int _pli);
+void oc_state_loop_filter_frag_rows(const oc_theora_state *_state,
+ int _bv[256],int _refi,int _pli,int _fragy0,int _fragy_end);
 void oc_restore_fpu(const oc_theora_state *_state);
 
 
+void oc_frag_copy_c(unsigned char *_dst,
+ const unsigned char *_src,int _src_ystride);
 void oc_frag_recon_intra_c(unsigned char *_dst,int _dst_ystride,
- const ogg_int16_t *_residue);
-void oc_frag_recon_inter_c(unsigned char *_dst,int _dst_ystride,
- const unsigned char *_src,int _src_ystride,const ogg_int16_t *_residue);
-void oc_frag_recon_inter2_c(unsigned char *_dst,int _dst_ystride,
- const unsigned char *_src1,int _src1_ystride,const unsigned char *_src2,
- int _src2_ystride,const ogg_int16_t *_residue);
-void oc_state_frag_copy_c(const oc_theora_state *_state,const int *_fragis,
- int _nfragis,int _dst_frame,int _src_frame,int _pli);
-void oc_state_frag_recon_c(oc_theora_state *_state,oc_fragment *_frag,
- int _pli,ogg_int16_t _dct_coeffs[128],int _last_zzi,int _ncoefs,
- ogg_uint16_t _dc_iquant,const ogg_uint16_t _ac_iquant[64]);
-void oc_state_loop_filter_frag_rows_c(oc_theora_state *_state,int *_bv,
- int _refi,int _pli,int _fragy0,int _fragy_end);
+ const ogg_int16_t _residue[64]);
+void oc_frag_recon_inter_c(unsigned char *_dst,
+ const unsigned char *_src,int _ystride,const ogg_int16_t _residue[64]);
+void oc_frag_recon_inter2_c(unsigned char *_dst,const unsigned char *_src1,
+ const unsigned char *_src2,int _ystride,const ogg_int16_t _residue[64]);
+void oc_idct8x8_c(ogg_int16_t _y[64],int _last_zzi);
+void oc_state_frag_recon_c(const oc_theora_state *_state,ptrdiff_t _fragi,
+ int _pli,ogg_int16_t _dct_coeffs[64],int _last_zzi,ogg_uint16_t _dc_quant);
+void oc_state_frag_copy_list_c(const oc_theora_state *_state,
+ const ptrdiff_t *_fragis,ptrdiff_t _nfragis,
+ int _dst_frame,int _src_frame,int _pli);
+void oc_state_loop_filter_frag_rows_c(const oc_theora_state *_state,
+ int _bv[256],int _refi,int _pli,int _fragy0,int _fragy_end);
 void oc_restore_fpu_c(void);
 
 
@@ -472,16 +491,15 @@ void oc_restore_fpu_c(void);
 
 
 typedef void (*oc_state_clear_func)(theora_state *_th);
-typedef int (*oc_state_control_func)(theora_state *th,int req,
- void *buf,size_t buf_sz);
+typedef int (*oc_state_control_func)(theora_state *th,int _req,
+ void *_buf,size_t _buf_sz);
 typedef ogg_int64_t (*oc_state_granule_frame_func)(theora_state *_th,
  ogg_int64_t _granulepos);
 typedef double (*oc_state_granule_time_func)(theora_state *_th,
  ogg_int64_t _granulepos);
 
-typedef struct oc_state_dispatch_vtbl oc_state_dispatch_vtbl;
 
-struct oc_state_dispatch_vtbl{
+struct oc_state_dispatch_vtable{
   oc_state_clear_func         clear;
   oc_state_control_func       control;
   oc_state_granule_frame_func granule_frame;

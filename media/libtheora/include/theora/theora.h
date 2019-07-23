@@ -144,16 +144,6 @@ extern "C"
 
 
 
-
-
-
-
-
-
-
-
-
-
 typedef struct {
     int   y_width;      
     int   y_height;     
@@ -306,6 +296,13 @@ typedef struct theora_comment{
 
 
 
+
+
+
+
+
+
+
 #define TH_DECCTL_GET_PPLEVEL_MAX (1)
 
 
@@ -353,18 +350,8 @@ typedef struct theora_comment{
 
 
 
-
-
-
-
-
-
-
-
-
-
-
 #define TH_ENCCTL_SET_QUANT_PARAMS (2)
+
 
 
 
@@ -406,6 +393,7 @@ typedef struct theora_comment{
 
 
 
+
 #define TH_ENCCTL_GET_SPLEVEL_MAX (12)
 
 
@@ -420,7 +408,9 @@ typedef struct theora_comment{
 
 
 
+
 #define TH_ENCCTL_SET_SPLEVEL (14)
+
 
 
 #define OC_FAULT       -1       /**< General failure */

@@ -20,7 +20,7 @@
 
 #include "cpu.h"
 
-#if !defined(USE_ASM)
+#if !defined(OC_X86_ASM)
 static ogg_uint32_t oc_cpu_flags_get(void){
   return 0;
 }
@@ -166,7 +166,7 @@ static ogg_uint32_t oc_cpu_flags_get(void){
   
   else if(ecx==0x444D4163&&edx==0x69746E65&&ebx==0x68747541||
    
-   ecx==0x43534E20&&edx==0x79622065&&ebx==0x646F6547){
+   ecx==0x43534e20&&edx==0x79622065&&ebx==0x646f6547){
     
     cpuid(0x80000000,eax,ebx,ecx,edx);
     if(eax<0x80000001)flags=0;
@@ -192,7 +192,6 @@ static ogg_uint32_t oc_cpu_flags_get(void){
 
     cpuid(1,eax,ebx,ecx,edx);
     flags=oc_parse_intel_flags(edx,ecx);
-    cpuid(0x80000000,eax,ebx,ecx,edx);
     if(eax>=0x80000001){
       
 

@@ -43,7 +43,15 @@ extern "C" {
 
 
 
+
+
+
+
 #define TH_DECCTL_GET_PPLEVEL_MAX (1)
+
+
+
+
 
 
 
@@ -83,6 +91,15 @@ extern "C" {
 
 
 #define TH_DECCTL_SET_STRIPE_CB (7)
+
+
+#define TH_DECCTL_SET_TELEMETRY_MBMODE (9)
+
+#define TH_DECCTL_SET_TELEMETRY_MV (11)
+
+#define TH_DECCTL_SET_TELEMETRY_QI (13)
+
+#define TH_DECCTL_SET_TELEMETRY_BITS (15)
 
 
 
@@ -276,6 +293,7 @@ extern int th_decode_ctl(th_dec_ctx *_dec,int _req,void *_buf,
 
 extern int th_decode_packetin(th_dec_ctx *_dec,const ogg_packet *_op,
  ogg_int64_t *_granpos);
+
 
 
 
