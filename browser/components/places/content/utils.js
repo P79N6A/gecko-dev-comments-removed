@@ -733,7 +733,8 @@ var PlacesUtils = {
 
     var result = this.history.executeQuery(query, options);
     result.root.containerOpen = true;
-    return asContainer(result.root);
+    asContainer(result.root);
+    return result;
   },
 
   
