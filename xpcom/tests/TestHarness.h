@@ -40,15 +40,46 @@
 
 
 
+
 #ifndef TestHarness_h__
 #define TestHarness_h__
 
-#include "nsIServiceManager.h"
 #include "nsComponentManagerUtils.h"
+#include "nsServiceManagerUtils.h"
 #include "nsCOMPtr.h"
 #include "nsAutoPtr.h"
+#include "nsStringGlue.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdarg.h>
+
+
+
+
+
+
+void fail(const char* msg, ...)
+{
+  va_list ap;
+
+  printf("FAIL ");
+
+  va_start(ap, msg);
+  vprintf(msg, ap);
+  va_end(ap);
+
+  putchar('\n');
+}
+
+
+
+
+
+void passed(const char* test)
+{
+  printf("%s PASSED!\n", test);
+}
+
 
 class ScopedXPCOM
 {
@@ -62,7 +93,7 @@ class ScopedXPCOM
       nsresult rv = NS_InitXPCOM2(&mServMgr, NULL, dirSvcProvider);
       if (NS_FAILED(rv))
       {
-        printf("FAIL NS_InitXPCOM2 returned failure code %x\n", rv);
+        fail("NS_InitXPCOM2 returned failure code 0x%x", rv);
         mServMgr = NULL;
       }
     }
@@ -75,7 +106,7 @@ class ScopedXPCOM
         nsresult rv = NS_ShutdownXPCOM(NULL);
         if (NS_FAILED(rv))
         {
-          printf("FAIL XPCOM shutdown failed with code %x\n", rv);
+          fail("XPCOM shutdown failed with code 0x%x", rv);
           exit(1);
         }
       }

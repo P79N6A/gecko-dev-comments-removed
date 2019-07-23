@@ -336,12 +336,17 @@ public:
             
             
             
-
+            
+            
+            
+            
+            
+            
             NS_WARNING("got a High Surrogate but no low surrogate");
 
             if (err)
               *err = PR_TRUE;
-            *buffer = p;
+            *buffer = p - 1;
             return 0xFFFD;
           }
       }
@@ -364,91 +369,6 @@ public:
       *err = PR_TRUE;
     return 0;
   }
-
-#ifdef MOZILLA_INTERNAL_API
-
-  static PRUint32 NextChar(nsAString::const_iterator& iter,
-                           const nsAString::const_iterator& end,
-                           PRBool *err = nsnull)
-  {
-    if (iter == end)
-      {
-        if (err)
-          *err = PR_TRUE;
-
-        return 0;
-      }
-
-    PRUnichar c = *iter++;
-
-    if (!IS_SURROGATE(c)) 
-      {
-        if (err)
-          *err = PR_FALSE;
-        return c;
-      }
-    else if (NS_IS_HIGH_SURROGATE(c)) 
-      {
-        if (iter == end)
-          {
-            
-            
-            
-
-            NS_WARNING("Unexpected end of buffer after high surrogate");
-
-            if (err)
-              *err = PR_TRUE;
-            return 0xFFFD;
-          }
-
-        
-        PRUnichar h = c;
-
-        c = *iter++;
-
-        if (NS_IS_LOW_SURROGATE(c))
-          {
-            
-            
-            PRUint32 ucs4 = SURROGATE_TO_UCS4(h, c);
-            if (err)
-              *err = PR_FALSE;
-            return ucs4;
-          }
-        else
-          {
-            
-            
-            
-
-            NS_WARNING("got a High Surrogate but no low surrogate");
-
-            if (err)
-              *err = PR_TRUE;
-            return 0xFFFD;
-          }
-      }
-    else 
-      {
-        
-
-        
-        
-        
-
-        NS_WARNING("got a low Surrogate but no high surrogate");
-
-        if (err)
-          *err = PR_TRUE;
-        return 0xFFFD;
-      }
-
-    if (err)
-      *err = PR_TRUE;
-    return 0;
-  }
-#endif 
 };
 
 
@@ -687,6 +607,15 @@ class ConvertUTF16toUTF8
                     *out++ = 0xBF;
                     *out++ = 0xBD;
 
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    p--;
+
                     NS_WARNING("got a High Surrogate but no low surrogate");
                   }
               }
@@ -767,6 +696,15 @@ class CalculateUTF8Size
                     
                     
                     mSize += 3;
+
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    p--;
 
                     NS_WARNING("got a high Surrogate but no low surrogate");
                   }
