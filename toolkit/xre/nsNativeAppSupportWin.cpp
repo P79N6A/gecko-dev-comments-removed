@@ -594,7 +594,13 @@ struct MessageWindow {
         };
         
         
+#ifdef WINCE
+        
+        
+        ::SetForegroundWindow( (HWND)(((ULONG) mHandle) | 0x01) );
+#else
         ::SetForegroundWindow( mHandle );
+#endif
         ::SendMessage( mHandle, WM_COPYDATA, 0, (LPARAM)&cds );
         return NS_OK;
     }
