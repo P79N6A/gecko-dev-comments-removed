@@ -4673,15 +4673,14 @@ js_Interpret(JSContext *cx)
                     PCMETER(cache->pctestentry = entry);
                     PCMETER(cache->tests++);
                     PCMETER(cache->settests++);
-                    if (entry->kpc == regs.pc &&
-                        entry->kshape == kshape &&
-                        PCVCAP_SHAPE(entry->vcap) == rt->protoHazardShape) {
-                        JS_ASSERT(PCVCAP_TAG(entry->vcap) == 0);
-
+                    if (entry->kpc == regs.pc && entry->kshape == kshape) {
+                        JS_ASSERT(PCVCAP_TAG(entry->vcap) <= 1);
                         if (JS_LOCK_OBJ_IF_SHAPE(cx, obj, kshape)) {
                             JS_ASSERT(PCVAL_IS_SPROP(entry->vword));
                             sprop = PCVAL_TO_SPROP(entry->vword);
                             JS_ASSERT(!(sprop->attrs & JSPROP_READONLY));
+                            JS_ASSERT_IF(!(sprop->attrs & JSPROP_SHARED),
+                                         PCVCAP_TAG(entry->vcap) == 0);
 
                             JSScope *scope = OBJ_SCOPE(obj);
                             JS_ASSERT(!SCOPE_IS_SEALED(scope));
@@ -4694,10 +4693,19 @@ js_Interpret(JSContext *cx)
 
 
                             bool checkForAdd;
-                            if (scope->object == obj ||
-                                (sprop->attrs & JSPROP_SHARED)) {
-                                if (sprop == scope->lastProp ||
-                                    SCOPE_HAS_PROPERTY(scope, sprop)) {
+                            if (sprop->attrs & JSPROP_SHARED) {
+                                if (PCVCAP_TAG(entry->vcap) == 0 ||
+                                    ((obj2 = OBJ_GET_PROTO(cx, obj)) &&
+                                     OBJ_IS_NATIVE(obj2) &&
+                                     OBJ_SHAPE(obj2) == PCVCAP_SHAPE(entry->vcap))) {
+                                    goto fast_set_propcache_hit;
+                                }
+
+                                
+                                checkForAdd = false;
+                            } else if (scope->object == obj) {
+                                if (sprop == scope->lastProp || SCOPE_HAS_PROPERTY(scope, sprop)) {
+                                  fast_set_propcache_hit:
                                     PCMETER(cache->pchits++);
                                     PCMETER(cache->setpchits++);
                                     NATIVE_SET(cx, obj, sprop, entry, &rval);
@@ -4708,7 +4716,6 @@ js_Interpret(JSContext *cx)
                                     !(sprop->attrs & JSPROP_SHARED) &&
                                     sprop->parent == scope->lastProp &&
                                     !SCOPE_HAD_MIDDLE_DELETE(scope);
-
                             } else {
                                 scope = js_GetMutableScope(cx, obj);
                                 if (!scope) {
