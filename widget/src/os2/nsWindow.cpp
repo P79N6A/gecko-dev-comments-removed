@@ -2037,17 +2037,19 @@ nsWindow::ConfigureChildren(const nsTArray<Configuration>& aConfigurations)
     
     
     
+    
+    
     w->Resize(configuration.mBounds.x, configuration.mBounds.y,
-              r.width + r.x, r.height + r.y, PR_TRUE);
+              r.width + r.x, r.height + r.y, PR_FALSE);
 
     
     
     
     
     HWND hwnd = WinQueryWindow( w->mWnd, QW_TOP);
-    ::WinSetWindowPos(hwnd, 0, 0, 0,
-                      configuration.mBounds.width, configuration.mBounds.height,
-                      SWP_MOVE | SWP_SIZE);
+    WinSetWindowPos(hwnd, 0, 0, r.height + r.y - configuration.mBounds.height,
+                    configuration.mBounds.width, configuration.mBounds.height,
+                    SWP_MOVE | SWP_SIZE);
 
     
     
@@ -2108,7 +2110,22 @@ void nsWindow::Scroll(const nsIntPoint& aDelta, const nsIntRect& aSource,
   
   HPS hps = 0;
   CheckDragStatus(ACTION_SCROLL, &hps);
-  ::WinScrollWindow(mWnd, aDelta.x, -aDelta.y, &clip, &clip, NULL, NULL, flags);
+
+  
+  
+  
+  
+  HWND hChild;
+  HENUM hEnum = WinBeginEnumWindows(mWnd);
+  while ((hChild = WinGetNextWindow(hEnum)) != 0) {
+    HWND hGrandChild;
+    if ((hGrandChild = WinQueryWindow(hChild, QW_TOP)) != 0)
+      WinSendMsg(hGrandChild, WM_VRNDISABLED, 0, 0);
+  }
+  WinEndEnumWindows(hEnum);
+
+  
+  WinScrollWindow(mWnd, aDelta.x, -aDelta.y, &clip, &clip, NULL, NULL, flags);
 
   
   
