@@ -284,8 +284,20 @@ public:
 
 
 
+
+
   static nsIContent *FindNeighbourPointingToNode(nsIContent *aForNode,
-                                                 nsIAtom *aRelationAttr,
+                                                 nsIAtom **aRelationAttrs, 
+                                                 PRUint32 aAttrNum,
+                                                 nsIAtom *aTagName = nsnull,
+                                                 PRUint32 aAncestorLevelsToSearch = 5);
+
+  
+
+
+
+  static nsIContent *FindNeighbourPointingToNode(nsIContent *aForNode,
+                                                 nsIAtom *aRelationAttr, 
                                                  nsIAtom *aTagName = nsnull,
                                                  PRUint32 aAncestorLevelsToSearch = 5);
 
@@ -302,6 +314,19 @@ public:
 
 
 
+
+
+  static nsIContent *FindDescendantPointingToID(const nsString *aId,
+                                                nsIContent *aLookContent,
+                                                nsIAtom **aRelationAttrs,
+                                                PRUint32 aAttrNum = 1,
+                                                nsIContent *aExcludeContent = nsnull,
+                                                nsIAtom *aTagType = nsAccessibilityAtoms::label);
+
+  
+
+
+
   static nsIContent *FindDescendantPointingToID(const nsString *aId,
                                                 nsIContent *aLookContent,
                                                 nsIAtom *aRelationAttr,
@@ -311,7 +336,8 @@ public:
   
   static nsIContent *FindDescendantPointingToIDImpl(nsCString& aIdWithSpaces,
                                                     nsIContent *aLookContent,
-                                                    nsIAtom *aRelationAttrs,
+                                                    nsIAtom **aRelationAttrs,
+                                                    PRUint32 aAttrNum = 1,
                                                     nsIContent *aExcludeContent = nsnull,
                                                     nsIAtom *aTagType = nsAccessibilityAtoms::label);
 };
