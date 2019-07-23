@@ -69,7 +69,7 @@
 
 
 
-class nsSetSelectionAfterTableEdit
+class NS_STACK_CLASS nsSetSelectionAfterTableEdit
 {
   private:
     nsCOMPtr<nsITableEditor> mEd;
@@ -99,7 +99,7 @@ class nsSetSelectionAfterTableEdit
 };
 
 
-class nsSelectionBatcher
+class NS_STACK_CLASS nsSelectionBatcher
 {
 private:
   nsCOMPtr<nsISelectionPrivate> mSelection;

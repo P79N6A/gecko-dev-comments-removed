@@ -67,7 +67,7 @@ class nsHTMLEditor;
 
 
 
-class nsWSRunObject
+class NS_STACK_CLASS nsWSRunObject
 {
   public:
 
@@ -226,7 +226,7 @@ class nsWSRunObject
     
     
     
-    struct WSPoint
+    struct NS_STACK_CLASS WSPoint
     {
       nsCOMPtr<nsIContent> mTextNode;
       PRInt16 mOffset;

@@ -56,7 +56,7 @@ class nsPlaintextEditor;
 
 
 
-class nsAutoPlaceHolderBatch
+class NS_STACK_CLASS nsAutoPlaceHolderBatch
 {
   private:
     nsCOMPtr<nsIEditor> mEd;
@@ -82,7 +82,7 @@ class nsAutoEditBatch : public nsAutoPlaceHolderBatch
 
 
 
-class nsAutoSelectionReset
+class NS_STACK_CLASS nsAutoSelectionReset
 {
   private:
     
@@ -103,7 +103,7 @@ class nsAutoSelectionReset
 
 
 
-class nsAutoRules
+class NS_STACK_CLASS nsAutoRules
 {
   public:
   
@@ -134,7 +134,7 @@ class nsAutoRules
 
 
 
-class nsAutoTxnsConserveSelection
+class NS_STACK_CLASS nsAutoTxnsConserveSelection
 {
   public:
   
@@ -163,7 +163,7 @@ class nsAutoTxnsConserveSelection
 
 
 
-class nsAutoUpdateViewBatch
+class NS_STACK_CLASS nsAutoUpdateViewBatch
 {
   public:
   
@@ -201,7 +201,7 @@ class nsBoolDomIterFunctor
     virtual PRBool operator()(nsIDOMNode* aNode)=0;
 };
 
-class nsDOMIterator
+class NS_STACK_CLASS nsDOMIterator
 {
   public:
     nsDOMIterator();
@@ -239,7 +239,7 @@ class nsTrivialFunctor : public nsBoolDomIterFunctor
 
 
 
-struct DOMPoint
+struct NS_STACK_CLASS DOMPoint
 {
   nsCOMPtr<nsIDOMNode> node;
   PRInt32 offset;

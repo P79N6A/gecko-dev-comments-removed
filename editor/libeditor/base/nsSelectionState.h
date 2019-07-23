@@ -135,7 +135,7 @@ class nsRangeUpdater
 
 
 
-class nsAutoTrackDOMPoint
+class NS_STACK_CLASS nsAutoTrackDOMPoint
 {
   private:
     nsRangeUpdater &mRU;
@@ -170,7 +170,7 @@ class nsAutoTrackDOMPoint
 
 
 
-class nsAutoReplaceContainerSelNotify
+class NS_STACK_CLASS nsAutoReplaceContainerSelNotify
 {
   private:
     nsRangeUpdater &mRU;
@@ -198,7 +198,7 @@ class nsAutoReplaceContainerSelNotify
 
 
 
-class nsAutoRemoveContainerSelNotify
+class NS_STACK_CLASS nsAutoRemoveContainerSelNotify
 {
   private:
     nsRangeUpdater &mRU;
@@ -233,7 +233,7 @@ class nsAutoRemoveContainerSelNotify
 
 
 
-class nsAutoInsertContainerSelNotify
+class NS_STACK_CLASS nsAutoInsertContainerSelNotify
 {
   private:
     nsRangeUpdater &mRU;
@@ -257,7 +257,7 @@ class nsAutoInsertContainerSelNotify
 
 
 
-class nsAutoMoveNodeSelNotify
+class NS_STACK_CLASS nsAutoMoveNodeSelNotify
 {
   private:
     nsRangeUpdater &mRU;
