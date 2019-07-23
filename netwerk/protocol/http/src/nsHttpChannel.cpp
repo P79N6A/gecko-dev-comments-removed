@@ -707,8 +707,19 @@ nsHttpChannel::CallOnStartRequest()
         
         
         
-        nsInputStreamPump* pump = mCachePump ? mCachePump : mTransactionPump;
-        pump->PeekStream(CallTypeSniffers, NS_STATIC_CAST(nsIChannel*, this));
+        
+
+        nsIChannel* thisChannel = NS_STATIC_CAST(nsIChannel*, this);
+
+        PRBool typeSniffersCalled = PR_FALSE;
+        if (mCachePump) {
+          typeSniffersCalled =
+            NS_SUCCEEDED(mCachePump->PeekStream(CallTypeSniffers, thisChannel));
+        }
+        
+        if (!typeSniffersCalled && mTransactionPump) {
+          mTransactionPump->PeekStream(CallTypeSniffers, thisChannel);
+        }
     }
 
     LOG(("  calling mListener->OnStartRequest\n"));
