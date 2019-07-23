@@ -49,8 +49,8 @@
 #undef THIS
 #endif
 
-enum JSTNErrType { INFALLIBLE, FAIL_STATUS, FAIL_NULL, FAIL_NEG, FAIL_VOID, FAIL_COOKIE };
-enum { JSTN_ERRTYPE_MASK = 0x07, JSTN_UNBOX_AFTER = 0x08, JSTN_MORE = 0x10 };
+enum JSTNErrType { INFALLIBLE, FAIL_NULL, FAIL_NEG, FAIL_VOID, FAIL_JSVAL };
+enum { JSTN_ERRTYPE_MASK = 7, JSTN_MORE = 8 };
 
 #define JSTN_ERRTYPE(jstn)  ((jstn)->flags & JSTN_ERRTYPE_MASK)
 
@@ -141,64 +141,30 @@ struct JSTraceableNative {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #define _JS_CTYPE(ctype, size, pch, ach, flags)     (ctype, size, pch, ach, flags)
-#define _JS_JSVAL_CTYPE(size, pch, ach, flags)  (jsval, size, pch, ach, (flags | JSTN_UNBOX_AFTER))
-
-#define _JS_CTYPE_CONTEXT           _JS_CTYPE(JSContext *,            _JS_PTR,"C", "", INFALLIBLE)
-#define _JS_CTYPE_RUNTIME           _JS_CTYPE(JSRuntime *,            _JS_PTR,"R", "", INFALLIBLE)
-#define _JS_CTYPE_THIS              _JS_CTYPE(JSObject *,             _JS_PTR,"T", "", INFALLIBLE)
-#define _JS_CTYPE_THIS_DOUBLE       _JS_CTYPE(jsdouble,               _JS_F64,"D", "", INFALLIBLE)
-#define _JS_CTYPE_THIS_STRING       _JS_CTYPE(JSString *,             _JS_PTR,"S", "", INFALLIBLE)
-#define _JS_CTYPE_PC                _JS_CTYPE(jsbytecode *,           _JS_PTR,"P", "", INFALLIBLE)
-#define _JS_CTYPE_JSVAL             _JS_JSVAL_CTYPE(                  _JS_PTR, "","v", INFALLIBLE)
-#define _JS_CTYPE_JSVAL_RETRY       _JS_JSVAL_CTYPE(                  _JS_PTR, --, --, FAIL_COOKIE)
-#define _JS_CTYPE_JSVAL_FAIL        _JS_JSVAL_CTYPE(                  _JS_PTR, --, --, FAIL_STATUS)
-#define _JS_CTYPE_BOOL              _JS_CTYPE(JSBool,                 _JS_I32, "","i", INFALLIBLE)
-#define _JS_CTYPE_BOOL_RETRY        _JS_CTYPE(int32,                  _JS_I32, --, --, FAIL_VOID)
-#define _JS_CTYPE_BOOL_FAIL         _JS_CTYPE(int32,                  _JS_I32, --, --, FAIL_STATUS)
-#define _JS_CTYPE_INT32             _JS_CTYPE(int32,                  _JS_I32, "","i", INFALLIBLE)
-#define _JS_CTYPE_INT32_RETRY       _JS_CTYPE(int32,                  _JS_I32, --, --, FAIL_NEG)
-#define _JS_CTYPE_UINT32            _JS_CTYPE(uint32,                 _JS_I32, --, --, INFALLIBLE)
-#define _JS_CTYPE_DOUBLE            _JS_CTYPE(jsdouble,               _JS_F64, "","d", INFALLIBLE)
-#define _JS_CTYPE_STRING            _JS_CTYPE(JSString *,             _JS_PTR, "","s", INFALLIBLE)
-#define _JS_CTYPE_STRING_RETRY      _JS_CTYPE(JSString *,             _JS_PTR, --, --, FAIL_NULL)
-#define _JS_CTYPE_STRING_FAIL       _JS_CTYPE(JSString *,             _JS_PTR, --, --, FAIL_STATUS)
-#define _JS_CTYPE_OBJECT            _JS_CTYPE(JSObject *,             _JS_PTR, "","o", INFALLIBLE)
-#define _JS_CTYPE_OBJECT_RETRY_NULL _JS_CTYPE(JSObject *,             _JS_PTR, --, --, FAIL_NULL)
-#define _JS_CTYPE_OBJECT_FAIL       _JS_CTYPE(JSObject *,             _JS_PTR, --, --, FAIL_STATUS)
-#define _JS_CTYPE_REGEXP            _JS_CTYPE(JSObject *,             _JS_PTR, "","r", INFALLIBLE)
-#define _JS_CTYPE_SCOPEPROP         _JS_CTYPE(JSScopeProperty *,      _JS_PTR, --, --, INFALLIBLE)
-#define _JS_CTYPE_SIDEEXIT          _JS_CTYPE(SideExit *,             _JS_PTR, --, --, INFALLIBLE)
-#define _JS_CTYPE_INTERPSTATE       _JS_CTYPE(InterpState *,          _JS_PTR, --, --, INFALLIBLE)
-#define _JS_CTYPE_FRAGMENT          _JS_CTYPE(nanojit::Fragment *,    _JS_PTR, --, --, INFALLIBLE)
+#define _JS_CTYPE_CONTEXT          _JS_CTYPE(JSContext *,            _JS_PTR,"C", "", INFALLIBLE)
+#define _JS_CTYPE_RUNTIME          _JS_CTYPE(JSRuntime *,            _JS_PTR,"R", "", INFALLIBLE)
+#define _JS_CTYPE_THIS             _JS_CTYPE(JSObject *,             _JS_PTR,"T", "", INFALLIBLE)
+#define _JS_CTYPE_THIS_DOUBLE      _JS_CTYPE(jsdouble,               _JS_F64,"D", "", INFALLIBLE)
+#define _JS_CTYPE_THIS_STRING      _JS_CTYPE(JSString *,             _JS_PTR,"S", "", INFALLIBLE)
+#define _JS_CTYPE_PC               _JS_CTYPE(jsbytecode *,           _JS_PTR,"P", "", INFALLIBLE)
+#define _JS_CTYPE_JSVAL            _JS_CTYPE(jsval,                  _JS_PTR, "","v", INFALLIBLE)
+#define _JS_CTYPE_JSVAL_FAIL       _JS_CTYPE(jsval,                  _JS_PTR, --, --, FAIL_JSVAL)
+#define _JS_CTYPE_BOOL             _JS_CTYPE(JSBool,                 _JS_I32, "","i", INFALLIBLE)
+#define _JS_CTYPE_BOOL_FAIL        _JS_CTYPE(int32,                  _JS_I32, --, --, FAIL_VOID)
+#define _JS_CTYPE_INT32            _JS_CTYPE(int32,                  _JS_I32, "","i", INFALLIBLE)
+#define _JS_CTYPE_INT32_FAIL       _JS_CTYPE(int32,                  _JS_I32, --, --, FAIL_NEG)
+#define _JS_CTYPE_UINT32           _JS_CTYPE(uint32,                 _JS_I32, --, --, INFALLIBLE)
+#define _JS_CTYPE_DOUBLE           _JS_CTYPE(jsdouble,               _JS_F64, "","d", INFALLIBLE)
+#define _JS_CTYPE_STRING           _JS_CTYPE(JSString *,             _JS_PTR, "","s", INFALLIBLE)
+#define _JS_CTYPE_STRING_FAIL      _JS_CTYPE(JSString *,             _JS_PTR, --, --, FAIL_NULL)
+#define _JS_CTYPE_OBJECT           _JS_CTYPE(JSObject *,             _JS_PTR, "","o", INFALLIBLE)
+#define _JS_CTYPE_OBJECT_FAIL_NULL _JS_CTYPE(JSObject *,             _JS_PTR, --, --, FAIL_NULL)
+#define _JS_CTYPE_REGEXP           _JS_CTYPE(JSObject *,             _JS_PTR, "","r", INFALLIBLE)
+#define _JS_CTYPE_SCOPEPROP        _JS_CTYPE(JSScopeProperty *,      _JS_PTR, --, --, INFALLIBLE)
+#define _JS_CTYPE_SIDEEXIT         _JS_CTYPE(SideExit *,             _JS_PTR, --, --, INFALLIBLE)
+#define _JS_CTYPE_INTERPSTATE      _JS_CTYPE(InterpState *,          _JS_PTR, --, --, INFALLIBLE)
+#define _JS_CTYPE_FRAGMENT         _JS_CTYPE(nanojit::Fragment *,    _JS_PTR, --, --, INFALLIBLE)
 
 #define _JS_EXPAND(tokens)  tokens
 

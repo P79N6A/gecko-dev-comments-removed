@@ -213,9 +213,7 @@ enum ExitType {
     OOM_EXIT,
     OVERFLOW_EXIT,
     UNSTABLE_LOOP_EXIT,
-    TIMEOUT_EXIT,
-    DEEP_BAIL_EXIT,
-    STATUS_EXIT
+    TIMEOUT_EXIT
 };
 
 struct VMSideExit : public nanojit::SideExit
@@ -246,18 +244,20 @@ static inline uint8* getFullTypeMap(nanojit::SideExit* exit)
     return getStackTypeMap(exit);
 }
 
-struct FrameInfo {
-    JSObject*       callee;     
-    JSObject*       block;      
-    intptr_t        ip_adj;     
-    union {
-        struct {
-            uint16  spdist;     
-            uint16  argc;       
-        } s;
-        uint32      word;       
-    };
-};
+struct InterpState
+{
+    void* sp; 
+    void* rp; 
+    void* gp; 
+    JSContext *cx; 
+    void* eos; 
+    void* eor; 
+    VMSideExit* lastTreeExitGuard; 
+    VMSideExit* lastTreeCallGuard; 
+
+    void* rpAtLastTreeCall; 
+    JSObject* globalObj; 
+}; 
 
 struct UnstableExit
 {
@@ -309,37 +309,18 @@ public:
     }
 };
 
-#if defined(JS_JIT_SPEW) && (defined(NANOJIT_IA32) || (defined(NANOJIT_AMD64) && defined(__GNUC__)))
-# define EXECUTE_TREE_TIMER
-#endif
-
-struct InterpState
-{
-    double        *sp;                  
-    double        *global;              
-    void          *rp;                  
-    JSContext     *cx;                  
-    double        *eos;                 
-    void          *eor;                 
-    VMSideExit*    lastTreeExitGuard;   
-    VMSideExit*    lastTreeCallGuard;   
-                                        
-    void*          rpAtLastTreeCall;    
-    TreeInfo*      outermostTree;       
-    JSObject*      globalObj;           
-    double*        stackBase;           
-    FrameInfo**    callstackBase;       
-    uintN*         inlineCallCountp;    
-    VMSideExit** innermostNestedGuardp;
-    void*          stackMark;
-    VMSideExit*    innermost;
-#ifdef EXECUTE_TREE_TIMER
-    uint64         startTime;
-#endif
-#ifdef DEBUG
-    bool           jsframe_pop_blocks_set_on_entry;
-#endif
-}; 
+struct FrameInfo {
+    JSObject*       callee;     
+    JSObject*       block;      
+    intptr_t        ip_adj;     
+    union {
+        struct {
+            uint16  spdist;     
+            uint16  argc;       
+        } s;
+        uint32      word;       
+    };
+};
 
 enum JSMonitorRecordingStatus {
     JSMRS_CONTINUE,

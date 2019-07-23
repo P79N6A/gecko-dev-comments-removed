@@ -93,9 +93,6 @@ typedef struct JSGSNCache {
 #define JS_CLEAR_GSN_CACHE(cx)      GSN_CACHE_CLEAR(&JS_GSN_CACHE(cx))
 #define JS_METER_GSN_CACHE(cx,cnt)  GSN_CACHE_METER(&JS_GSN_CACHE(cx), cnt)
 
-typedef struct InterpState InterpState;
-typedef struct VMSideExit VMSideExit;
-
 #ifdef __cplusplus
 namespace nanojit {
     class Fragment;
@@ -132,25 +129,7 @@ typedef struct JSTraceMonitor {
 
 
 
-
-
-
-
-
-
-
-
-
-    JSPackedBool            onTrace;
-
-    
-
-
-
-    JSPackedBool            prohibitRecording;
-
-    
-    JSPackedBool            useReservedObjects;
+    JSBool                  onTrace;
 
     CLS(nanojit::LirBuffer) lirbuf;
     CLS(nanojit::Fragmento) fragmento;
@@ -167,6 +146,7 @@ typedef struct JSTraceMonitor {
 
 
     JSObject                *reservedObjects;
+    JSBool                  useReservedObjects;
 
     
 
@@ -177,8 +157,6 @@ typedef struct JSTraceMonitor {
     
     CLS(TraceRecorder)      abortStack;
 } JSTraceMonitor;
-
-typedef struct InterpStruct InterpStruct;
 
 #ifdef JS_TRACER
 # define JS_ON_TRACE(cx)            (JS_TRACE_MONITOR(cx).onTrace)
@@ -282,14 +260,6 @@ typedef enum JSRuntimeState {
     JSRTS_UP,
     JSRTS_LANDING
 } JSRuntimeState;
-
-#ifdef JS_TRACER
-typedef enum JSBuiltinStatus {
-    JSBUILTIN_OK = 0,
-    JSBUILTIN_BAILED = 1,
-    JSBUILTIN_ERROR = 2
-} JSBuiltinStatus;
-#endif
 
 typedef enum JSBuiltinFunctionId {
     JSBUILTIN_ObjectToIterator,
@@ -1014,23 +984,6 @@ struct JSContext {
     
     
     jsbytecode         *pcHint;
-
-#ifdef JS_TRACER
-    
-
-
-
-
-    InterpState         *interpState;
-    VMSideExit          *bailExit;
-
-    
-
-
-
-
-    uint32              builtinStatus;
-#endif
 };
 
 #define BEGIN_PC_HINT(pc)       (cx->pcHint = (pc))
