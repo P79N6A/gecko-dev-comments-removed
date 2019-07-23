@@ -228,46 +228,6 @@ js_StringToInt32(JSContext* cx, JSString* str)
 }
 JS_DEFINE_CALLINFO_2(extern, INT32, js_StringToInt32, CONTEXT, STRING, 1, 1)
 
-SideExit* FASTCALL
-js_CallTree(InterpState* state, Fragment* f)
-{
-    union { NIns *code; GuardRecord* (FASTCALL *func)(InterpState*, Fragment*); } u;
-
-    u.code = f->code();
-    JS_ASSERT(u.code);
-
-    GuardRecord* rec;
-#if defined(JS_NO_FASTCALL) && defined(NANOJIT_IA32)
-    SIMULATE_FASTCALL(rec, state, NULL, u.func);
-#else
-    rec = u.func(state, NULL);
-#endif
-    VMSideExit* lr = (VMSideExit*)rec->exit;
-
-    if (lr->exitType == NESTED_EXIT) {
-        
-
-
-        if (!state->lastTreeCallGuard) {
-            state->lastTreeCallGuard = lr;
-            FrameInfo** rp = (FrameInfo**)state->rp;
-            state->rpAtLastTreeCall = rp + lr->calldepth;
-        }
-    } else {
-        
-
-
-        state->lastTreeExitGuard = lr;
-    }
-
-    
-
-    state->outermostTreeExitGuard = lr;
-
-    return lr;
-}
-JS_DEFINE_CALLINFO_2(extern, SIDEEXIT, js_CallTree, INTERPSTATE, FRAGMENT, 0, 0)
-
 JSBool FASTCALL
 js_AddProperty(JSContext* cx, JSObject* obj, JSScopeProperty* sprop)
 {

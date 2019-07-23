@@ -1731,7 +1731,6 @@ static JSBool
 BindDestructuringArg(JSContext *cx, BindData *data, JSAtom *atom,
                      JSTreeContext *tc)
 {
-    JSAtomListElement *ale;
     JSParseNode *pn;
 
     
@@ -1741,10 +1740,6 @@ BindDestructuringArg(JSContext *cx, BindData *data, JSAtom *atom,
         tc->flags |= TCF_FUN_PARAM_EVAL;
 
     JS_ASSERT(tc->flags & TCF_IN_FUNCTION);
-    ale = tc->decls.lookup(atom);
-    pn = data->pn;
-    if (!ale && !Define(pn, atom, tc))
-        return JS_FALSE;
 
     JSLocalKind localKind = js_LookupLocal(cx, tc->fun, atom, NULL);
     if (localKind != JSLOCAL_NONE) {
@@ -1752,6 +1747,11 @@ BindDestructuringArg(JSContext *cx, BindData *data, JSAtom *atom,
                                     JSREPORT_ERROR, JSMSG_DESTRUCT_DUP_ARG);
         return JS_FALSE;
     }
+    JS_ASSERT(!tc->decls.lookup(atom));
+
+    pn = data->pn;
+    if (!Define(pn, atom, tc))
+        return JS_FALSE;
 
     uintN index = tc->fun->u.i.nvars;
     if (!BindLocalVariable(cx, tc->fun, atom, JSLOCAL_VAR, true))
@@ -2578,7 +2578,8 @@ FunctionDef(JSContext *cx, JSTokenStream *ts, JSTreeContext *tc,
     JSAtomListElement *ale;
 #if JS_HAS_DESTRUCTURING
     JSParseNode *item, *list = NULL;
-    bool destructuringArg = false, duplicatedArg = false;
+    bool destructuringArg = false;
+    JSAtom *duplicatedArg = NULL;
 #endif
 
     
@@ -2807,6 +2808,10 @@ FunctionDef(JSContext *cx, JSTokenStream *ts, JSTreeContext *tc,
 
               case TOK_NAME:
               {
+                JSAtom *atom = CURRENT_TOKEN(ts).t_atom;
+                if (!DefineArg(pn, atom, fun->nargs, &funtc))
+                    return NULL;
+#ifdef JS_HAS_DESTRUCTURING
                 
 
 
@@ -2817,17 +2822,12 @@ FunctionDef(JSContext *cx, JSTokenStream *ts, JSTreeContext *tc,
 
 
 
-                JSAtom *atom = CURRENT_TOKEN(ts).t_atom;
-                if (tc->needStrictChecks() &&
-                    js_LookupLocal(cx, fun, atom, NULL) != JSLOCAL_NONE) {
-#if JS_HAS_DESTRUCTURING
+                if (js_LookupLocal(cx, fun, atom, NULL) != JSLOCAL_NONE) {
+                    duplicatedArg = atom;
                     if (destructuringArg)
                         goto report_dup_and_destructuring;
-                    duplicatedArg = true;
-#endif
                 }
-                if (!DefineArg(pn, atom, fun->nargs, &funtc))
-                    return NULL;
+#endif
                 if (!js_AddLocal(cx, fun, atom, JSLOCAL_ARG))
                     return NULL;
                 break;
@@ -2842,7 +2842,8 @@ FunctionDef(JSContext *cx, JSTokenStream *ts, JSTreeContext *tc,
 
 #if JS_HAS_DESTRUCTURING
               report_dup_and_destructuring:
-                js_ReportCompileErrorNumber(cx, TS(tc->compiler), NULL,
+                JSDefinition *dn = ALE_DEFN(funtc.decls.lookup(duplicatedArg));
+                js_ReportCompileErrorNumber(cx, TS(tc->compiler), dn,
                                             JSREPORT_ERROR,
                                             JSMSG_DESTRUCT_DUP_ARG);
                 return NULL;

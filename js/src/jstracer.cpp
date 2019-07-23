@@ -391,13 +391,13 @@ InitJITLogController()
             "  treevis      spew that tracevis/tree.py can parse\n"
             "  ------ options for Nanojit ------\n"
             "  fragprofile  count entries and exits for each fragment\n"
-            "  activation   show activation info\n"
             "  liveness     show LIR liveness at start of rdr pipeline\n"
             "  readlir      show LIR as it enters the reader pipeline\n"
             "  aftersf      show LIR after StackFilter\n"
-            "  regalloc     show regalloc details\n"
             "  assembly     show final aggregated assembly code\n"
-            "  nocodeaddrs  don't show code addresses in assembly listings\n"
+            "  regalloc     show regalloc state in 'assembly' output\n"
+            "  activation   show activation state in 'assembly' output\n"
+            "  nocodeaddrs  omit code addresses in 'assembly' output\n"
             "\n"
         );
         exit(0);
@@ -2391,9 +2391,10 @@ TraceRecorder::TraceRecorder(JSContext* cx, VMSideExit* anchor, VMFragment* frag
                                                &js_LogController);
         }
     )
+    
+    lir = new (tempAlloc()) CseFilter(lir, tempAlloc());
     if (nanojit::AvmCore::config.soft_float)
         lir = new (tempAlloc()) SoftFloatFilter(lir);
-    lir = new (tempAlloc()) CseFilter(lir, tempAlloc());
     lir = new (tempAlloc()) ExprFilter(lir);
     lir = new (tempAlloc()) FuncFilter(lir);
 #ifdef DEBUG
@@ -4280,6 +4281,17 @@ TraceRecorder::compile()
     if (outOfMemory())
         return ARECORD_STOP;
 
+    
+#if defined DEBUG && !defined WIN32
+    
+    const char* filename = cx->fp->script->filename;
+    char* label = (char*)js_malloc((filename ? strlen(filename) : 7) + 16);
+    sprintf(label, "%s:%u", filename ? filename : "<stdin>",
+            js_FramePCToLineNumber(cx, cx->fp));
+    traceMonitor->labels->add(fragment, sizeof(Fragment), 0, label);
+    js_free(label);
+#endif
+
     Assembler *assm = traceMonitor->assembler;
     JS_ASSERT(assm->error() == nanojit::None);
     nanojit::compile(assm, fragment, tempAlloc() verbose_only(, traceMonitor->labels));
@@ -4308,15 +4320,6 @@ TraceRecorder::compile()
     if (fragment == fragment->root)
         fragment->root->treeInfo = treeInfo;
 
-    
-#if defined DEBUG && !defined WIN32
-    const char* filename = cx->fp->script->filename;
-    char* label = (char*)js_malloc((filename ? strlen(filename) : 7) + 16);
-    sprintf(label, "%s:%u", filename ? filename : "<stdin>",
-            js_FramePCToLineNumber(cx, cx->fp));
-    traceMonitor->labels->add(fragment, sizeof(Fragment), 0, label);
-    js_free(label);
-#endif
     return ARECORD_CONTINUE;
 }
 
@@ -4993,11 +4996,62 @@ BuildGlobalTypeMapFromInnerTree(Queue<JSTraceType>& typeMap, VMSideExit* inner)
 JS_REQUIRES_STACK void
 TraceRecorder::emitTreeCall(TreeFragment* inner, VMSideExit* exit, LIns* inner_sp_ins)
 {
-    TreeInfo* ti = inner->treeInfo;
+    
+    LIns* args[] = { lirbuf->state }; 
+    
+    CallInfo* ci = new (traceAlloc()) CallInfo();
+    ci->_address = uintptr_t(inner->code());
+    JS_ASSERT(ci->_address);
+    ci->_argtypes = ARGSIZE_P | ARGSIZE_P << ARGSIZE_SHIFT;
+    ci->_cse = ci->_fold = 0;
+    ci->_abi = ABI_FASTCALL;
+#ifdef DEBUG
+    ci->_name = "fragment";
+#endif
+    LIns* rec = lir->insCall(ci, args);
+    LIns* lr = lir->insLoad(LIR_ldp, rec, offsetof(GuardRecord, exit));
+    LIns* nested = lir->insBranch(LIR_jt,
+                                  lir->ins2i(LIR_eq,
+                                             lir->insLoad(LIR_ld, lr, offsetof(VMSideExit, exitType)),
+                                             NESTED_EXIT),
+                                  NULL);
 
     
-    LIns* args[] = { INS_CONSTPTR(inner), lirbuf->state }; 
-    LIns* ret = lir->insCall(&js_CallTree_ci, args);
+
+
+
+
+    lir->insStorei(lr, lirbuf->state, offsetof(InterpState, lastTreeExitGuard));
+    LIns* done1 = lir->insBranch(LIR_j, NULL, NULL);
+
+    
+
+
+
+
+    nested->setTarget(lir->ins0(LIR_label));
+    LIns* done2 = lir->insBranch(LIR_jf,
+                                 lir->ins_peq0(lir->insLoad(LIR_ldp,
+                                                            lirbuf->state,
+                                                            offsetof(InterpState, lastTreeCallGuard))),
+                                 NULL);
+    lir->insStorei(lr, lirbuf->state, offsetof(InterpState, lastTreeCallGuard));
+    lir->insStorei(lir->ins2(LIR_piadd,
+                             lir->insLoad(LIR_ldp, lirbuf->state, offsetof(InterpState, rp)),
+                             lir->ins_i2p(lir->ins2i(LIR_lsh,
+                                                     lir->insLoad(LIR_ld, lr, offsetof(VMSideExit, calldepth)),
+                                                     sizeof(void*) == 4 ? 2 : 3))),
+                   lirbuf->state,
+                   offsetof(InterpState, rpAtLastTreeCall));
+    LIns* label = lir->ins0(LIR_label);
+    done1->setTarget(label);
+    done2->setTarget(label);
+
+    
+
+
+
+    lir->insStorei(lr, lirbuf->state, offsetof(InterpState, outermostTreeExitGuard));
 
     
 #ifdef DEBUG
@@ -5010,6 +5064,7 @@ TraceRecorder::emitTreeCall(TreeFragment* inner, VMSideExit* exit, LIns* inner_s
     for (i = 0; i < exit->numStackSlots; i++)
         JS_ASSERT(map[i] != TT_JSVAL);
 #endif
+
     
 
 
@@ -5017,6 +5072,8 @@ TraceRecorder::emitTreeCall(TreeFragment* inner, VMSideExit* exit, LIns* inner_s
     TypeMap fullMap(NULL);
     fullMap.add(exit->stackTypeMap(), exit->numStackSlots);
     BuildGlobalTypeMapFromInnerTree(fullMap, exit);
+
+    TreeInfo* ti = inner->treeInfo;
     import(ti, inner_sp_ins, exit->numStackSlots, fullMap.length() - exit->numStackSlots,
            exit->calldepth, fullMap.data());
 
@@ -5030,11 +5087,11 @@ TraceRecorder::emitTreeCall(TreeFragment* inner, VMSideExit* exit, LIns* inner_s
 
 
 
-    VMSideExit* nested = snapshot(NESTED_EXIT);
+    VMSideExit* nestedExit = snapshot(NESTED_EXIT);
     JS_ASSERT(exit->exitType == LOOP_EXIT);
-    guard(true, lir->ins2(LIR_peq, ret, INS_CONSTPTR(exit)), nested);
+    guard(true, lir->ins2(LIR_peq, lr, INS_CONSTPTR(exit)), nestedExit);
     debug_only_printf(LC_TMTreeVis, "TREEVIS TREECALL INNER=%p EXIT=%p GUARD=%p\n", (void*)inner,
-                      (void*)nested, (void*)exit);
+                      (void*)nestedExit, (void*)exit);
 
     
     inner->treeInfo->dependentTrees.addUnique(fragment->root);
@@ -6364,13 +6421,13 @@ static JS_ALWAYS_INLINE VMSideExit*
 ExecuteTrace(JSContext* cx, Fragment* f, InterpState& state)
 {
     JS_ASSERT(!cx->bailExit);
-    union { NIns *code; GuardRecord* (FASTCALL *func)(InterpState*, Fragment*); } u;
+    union { NIns *code; GuardRecord* (FASTCALL *func)(InterpState*); } u;
     u.code = f->code();
     GuardRecord* rec;
 #if defined(JS_NO_FASTCALL) && defined(NANOJIT_IA32)
     SIMULATE_FASTCALL(rec, state, NULL, u.func);
 #else
-    rec = u.func(&state, NULL);
+    rec = u.func(&state);
 #endif
     JS_ASSERT(!cx->bailExit);
     return (VMSideExit*)rec->exit;
@@ -7823,15 +7880,17 @@ JS_DEFINE_CALLINFO_4(extern, UINT32, GetClosureArg, CONTEXT, OBJECT, CVIPTR, DOU
 
 
 JS_REQUIRES_STACK AbortableRecordingStatus
-TraceRecorder::scopeChainProp(JSObject* obj, jsval*& vp, LIns*& ins, NameResult& nr)
+TraceRecorder::scopeChainProp(JSObject* chainHead, jsval*& vp, LIns*& ins, NameResult& nr)
 {
-    JS_ASSERT(obj != globalObj);
+    JS_ASSERT(chainHead == cx->fp->scopeChain);
+    JS_ASSERT(chainHead != globalObj);
 
     JSTraceMonitor &localtm = *traceMonitor;
 
     JSAtom* atom = atoms[GET_INDEX(cx->fp->regs->pc)];
     JSObject* obj2;
     JSProperty* prop;
+    JSObject *obj = chainHead;
     bool ok = js_FindProperty(cx, ATOM_TO_JSID(atom), &obj, &obj2, &prop);
 
     
@@ -7848,12 +7907,18 @@ TraceRecorder::scopeChainProp(JSObject* obj, jsval*& vp, LIns*& ins, NameResult&
         
         
         
+        LIns *head_ins;
         if (cx->fp->argv) {
-            LIns* obj_ins;
-            JSObject* parent = STOBJ_GET_PARENT(cx->fp->calleeObject());
-            LIns* parent_ins = stobj_get_parent(get(&cx->fp->argv[-2]));
-            CHECK_STATUS_A(traverseScopeChain(parent, parent_ins, obj, obj_ins));
+            
+            
+            
+            chainHead = cx->fp->calleeObject()->getParent();
+            head_ins = stobj_get_parent(get(&cx->fp->argv[-2]));
+        } else {
+            head_ins = scopeChain();
         }
+        LIns *obj_ins;
+        CHECK_STATUS_A(traverseScopeChain(chainHead, head_ins, obj, obj_ins));
 
         JSScopeProperty* sprop = (JSScopeProperty*) prop;
 
@@ -10333,17 +10398,16 @@ TraceRecorder::newArray(JSObject* ctor, uint32 argc, jsval* argv, jsval* rval)
     CHECK_STATUS(getClassPrototype(ctor, proto_ins));
 
     LIns *arr_ins;
-    if (argc == 0 || (argc == 1 && JSVAL_IS_NUMBER(argv[0]))) {
+    if (argc == 0) {
         
         LIns *args[] = { proto_ins, cx_ins };
         arr_ins = lir->insCall(&js_NewEmptyArray_ci, args);
         guard(false, lir->ins_peq0(arr_ins), OOM_EXIT);
-        if (argc == 1) {
-            
-            lir->insStorei(f2i(get(argv)), 
-                           arr_ins,
-                           offsetof(JSObject, fslots) + JSSLOT_ARRAY_LENGTH * sizeof(jsval));
-        }
+    } else if (argc == 1 && JSVAL_IS_NUMBER(argv[0])) {
+        
+        LIns *args[] = { f2i(get(argv)), proto_ins, cx_ins }; 
+        arr_ins = lir->insCall(&js_NewEmptyArrayWithLength_ci, args);
+        guard(false, lir->ins_peq0(arr_ins), OOM_EXIT);
     } else {
         
         LIns *args[] = { INS_CONST(argc), proto_ins, cx_ins };
