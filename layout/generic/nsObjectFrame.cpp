@@ -1836,7 +1836,8 @@ nsObjectFrame::HandleEvent(nsPresContext* aPresContext,
 
 #ifdef XP_MACOSX
   
-  if (anEvent->message == NS_MOUSE_ENTER && mInstanceOwner->GetEventModel() == NPEventModelCocoa) {
+  if ((anEvent->message == NS_MOUSE_ENTER || anEvent->message == NS_MOUSE_SCROLL) &&
+      mInstanceOwner->GetEventModel() == NPEventModelCocoa) {
     *anEventStatus = mInstanceOwner->ProcessEvent(*anEvent);
     return rv;
   }
