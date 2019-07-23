@@ -589,9 +589,6 @@ nsStyleContext::CalcStyleDifference(nsStyleContext* aOther)
 void
 nsStyleContext::Mark()
 {
-  if (mStyleIfVisited)
-    mStyleIfVisited->Mark();
-
   
   mRuleNode->Mark();
 
