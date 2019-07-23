@@ -537,8 +537,9 @@ nsWaveStateMachine::Run()
         
         
         
+        PRUint32 sampleSize = mSampleFormat == nsAudioStream::FORMAT_U8 ? 1 : 2;
         PRUint32 len = RoundDownToSample(NS_MIN(mStream->Available(),
-                                                PRUint32(mAudioStream->Available() * sizeof(short))));
+                                                PRUint32(mAudioStream->Available() * sampleSize)));
         if (len) {
           nsAutoArrayPtr<char> buf(new char[len]);
           PRUint32 got = 0;
