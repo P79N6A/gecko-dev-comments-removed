@@ -63,8 +63,9 @@ public:
 
   
   already_AddRefed<nsIMIMEInfo> GetMIMEInfoFromOS(const nsACString& aMIMEType, const nsACString& aFileExt, PRBool *aFound);
-  already_AddRefed<nsIHandlerInfo> GetProtocolInfoFromOS(const nsACString &aScheme,
-                                                         PRBool *found);
+  NS_IMETHOD GetProtocolHandlerInfoFromOS(const nsACString &aScheme, 
+                                          PRBool *found,
+                                          nsIHandlerInfo **_retval);
 
   
 

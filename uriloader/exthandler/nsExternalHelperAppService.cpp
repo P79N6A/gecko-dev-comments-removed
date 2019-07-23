@@ -706,8 +706,8 @@ NS_IMETHODIMP nsExternalHelperAppService::ExternalProtocolHandlerExists(const ch
                                                                         PRBool * aHandlerExists)
 {
   nsCOMPtr<nsIHandlerInfo> handlerInfo;
-  nsresult rv = GetProtocolHandlerInfo(
-      nsDependentCString(aProtocolScheme), getter_AddRefs(handlerInfo));
+  nsresult rv = GetProtocolHandlerInfo(nsDependentCString(aProtocolScheme), 
+                                       getter_AddRefs(handlerInfo));
   NS_ENSURE_SUCCESS(rv, rv);
 
   
@@ -890,54 +890,72 @@ static const char kExternalWarningDefaultPref[] =
   "network.protocol-handler.warn-external-default";
 
 NS_IMETHODIMP
-nsExternalHelperAppService::GetProtocolHandlerInfo(const nsACString &aScheme, 
+nsExternalHelperAppService::GetProtocolHandlerInfo(const nsACString &aScheme,
                                                    nsIHandlerInfo **aHandlerInfo)
 {
   
   
 
   PRBool exists;
-  *aHandlerInfo = GetProtocolInfoFromOS(aScheme, &exists).get();
-  if (!(*aHandlerInfo)) {
+  nsresult rv = GetProtocolHandlerInfoFromOS(aScheme, &exists, aHandlerInfo);
+  if (NS_FAILED(rv)) {
     
     return NS_ERROR_FAILURE;
   }
-
-  nsresult rv = NS_ERROR_FAILURE;
+  
+  rv = NS_ERROR_FAILURE;
   nsCOMPtr<nsIHandlerService> handlerSvc = do_GetService(NS_HANDLERSERVICE_CONTRACTID);
   if (handlerSvc)
     rv = handlerSvc->FillHandlerInfo(*aHandlerInfo, EmptyCString());
+
+  if (NS_SUCCEEDED(rv))
+    return NS_OK;
+  
+  return SetProtocolHandlerDefaults(*aHandlerInfo, exists);
+}
+
+NS_IMETHODIMP
+nsExternalHelperAppService::GetProtocolHandlerInfoFromOS(const nsACString &aScheme,
+                                                         PRBool *found,
+                                                         nsIHandlerInfo **aHandlerInfo)
+{
+  
+  return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+NS_IMETHODIMP
+nsExternalHelperAppService::SetProtocolHandlerDefaults(nsIHandlerInfo *aHandlerInfo,
+                                                       const PRBool aOSHandlerExists)
+{
   
   
-  
-  if (NS_FAILED(rv)) {
+
+  if (aOSHandlerExists) {
     
-    if (exists) {
-      
-      (*aHandlerInfo)->SetPreferredAction(nsIHandlerInfo::useSystemDefault);
+    aHandlerInfo->SetPreferredAction(nsIHandlerInfo::useSystemDefault);
 
-      
+    
+    nsCOMPtr<nsIPrefBranch> prefs(do_GetService(NS_PREFSERVICE_CONTRACTID));
+    if (!prefs)
+      return NS_OK; 
 
-      nsCOMPtr<nsIPrefBranch> prefs(do_GetService(NS_PREFSERVICE_CONTRACTID));
-      if (!prefs)
-        return NS_OK; 
-
-      nsCAutoString warningPref(kExternalWarningPrefPrefix);
-      warningPref += aScheme;
-      PRBool warn = PR_TRUE;
-      rv = prefs->GetBoolPref(warningPref.get(), &warn);
-      if (NS_FAILED(rv))
-      {
-        
-        prefs->GetBoolPref(kExternalWarningDefaultPref, &warn);
-      }
-      (*aHandlerInfo)->SetAlwaysAskBeforeHandling(warn);
-    } else {
+    nsCAutoString scheme;
+    aHandlerInfo->GetType(scheme);
+    
+    nsCAutoString warningPref(kExternalWarningPrefPrefix);
+    warningPref += scheme;
+    PRBool warn = PR_TRUE;
+    nsresult rv = prefs->GetBoolPref(warningPref.get(), &warn);
+    if (NS_FAILED(rv)) {
       
-      
-      
-      (*aHandlerInfo)->SetPreferredAction(nsIHandlerInfo::alwaysAsk);
+      prefs->GetBoolPref(kExternalWarningDefaultPref, &warn);
     }
+    aHandlerInfo->SetAlwaysAskBeforeHandling(warn);
+  } else {
+    
+    
+    
+    aHandlerInfo->SetPreferredAction(nsIHandlerInfo::alwaysAsk);
   }
 
   return NS_OK;

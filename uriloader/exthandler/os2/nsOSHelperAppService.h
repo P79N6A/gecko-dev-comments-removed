@@ -37,6 +37,7 @@
 
 
 
+
 #ifndef nsOSHelperAppService_h__
 #define nsOSHelperAppService_h__
 
@@ -68,8 +69,9 @@ public:
   already_AddRefed<nsIMIMEInfo> GetMIMEInfoFromOS(const nsACString& aMimeType,
                                                   const nsACString& aFileExt,
                                                   PRBool     *aFound);
-  already_AddRefed<nsIHandlerInfo> GetProtocolInfoFromOS(const nsACString &aScheme,
-                                                         PRBool *found);
+  NS_IMETHOD GetProtocolHandlerInfoFromOS(const nsACString &aScheme,
+                                          PRBool *found,
+                                          nsIHandlerInfo **_retval);
 
   
   NS_IMETHODIMP GetApplicationDescription(const nsACString& aScheme, nsAString& _retval);

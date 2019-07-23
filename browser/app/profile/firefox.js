@@ -532,15 +532,33 @@ pref("browser.audioFeeds.handler", "ask");
 
 
 
+pref("gecko.handlerService.defaultHandlersVersion", "chrome://browser-region/locale/region.properties");
 
 
 
-pref("gecko.handlerService.defaultHandlersVersion", "0");
 
 
 
-pref("gecko.handlerService.schemes.webcal.0.name", "WebCal Test Handler");
-pref("gecko.handlerService.schemes.webcal.0.uriTemplate", "http://handler-test.mozilla.org/webcal?url=%s");
+
+pref("gecko.handlerService.schemes.webcal.0.name", "chrome://browser-region/locale/region.properties");
+pref("gecko.handlerService.schemes.webcal.0.uriTemplate", "chrome://browser-region/locale/region.properties");
+pref("gecko.handlerService.schemes.webcal.1.name", "chrome://browser-region/locale/region.properties");
+pref("gecko.handlerService.schemes.webcal.1.uriTemplate", "chrome://browser-region/locale/region.properties");
+pref("gecko.handlerService.schemes.webcal.2.name", "chrome://browser-region/locale/region.properties");
+pref("gecko.handlerService.schemes.webcal.2.uriTemplate", "chrome://browser-region/locale/region.properties");
+pref("gecko.handlerService.schemes.webcal.3.name", "chrome://browser-region/locale/region.properties");
+pref("gecko.handlerService.schemes.webcal.3.uriTemplate", "chrome://browser-region/locale/region.properties");
+
+
+pref("gecko.handlerService.schemes.mailto.0.name", "chrome://browser-region/locale/region.properties");
+pref("gecko.handlerService.schemes.mailto.0.uriTemplate", "chrome://browser-region/locale/region.properties");
+pref("gecko.handlerService.schemes.mailto.1.name", "chrome://browser-region/locale/region.properties");
+pref("gecko.handlerService.schemes.mailto.1.uriTemplate", "chrome://browser-region/locale/region.properties");
+pref("gecko.handlerService.schemes.mailto.2.name", "chrome://browser-region/locale/region.properties");
+pref("gecko.handlerService.schemes.mailto.2.uriTemplate", "chrome://browser-region/locale/region.properties");
+pref("gecko.handlerService.schemes.mailto.3.name", "chrome://browser-region/locale/region.properties");
+pref("gecko.handlerService.schemes.mailto.3.uriTemplate", "chrome://browser-region/locale/region.properties");
+
 
 
 pref("gecko.handlerService.allowRegisterFromDifferentHost", false);

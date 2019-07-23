@@ -50,7 +50,9 @@ const CLASS_PROTOCOLINFO    = "scheme";
 const NC_NS                 = "http://home.netscape.com/NC-rdf#";
 
 
-const NC_DEFAULT_HANDLERS_VERSION = NC_NS + "defaultHandlersVersion";
+
+
+const DEFAULT_HANDLERS_VERSION = "defaultHandlersVersion";
 
 
 
@@ -143,19 +145,27 @@ HandlerService.prototype = {
       
       
       if (defaultHandlersVersion < this._prefsDefaultHandlersVersion) {
+
         
         
         this._datastoreDefaultHandlersVersion =
           this._prefsDefaultHandlersVersion;
         this._injectNewDefaults();
-      }
+      } 
     } catch (ex) {
       
       
-      this._datastoreDefaultHandlersVersion = defaultHandlersVersion;      
+      this._datastoreDefaultHandlersVersion = defaultHandlersVersion;
     }
   },
-  
+
+  get _currentLocale() {
+    var chromeRegistry = Cc["@mozilla.org/chrome/chrome-registry;1"].
+                         getService(Ci.nsIXULChromeRegistry);
+    var currentLocale = chromeRegistry.getSelectedLocale("global");
+    return currentLocale;
+  }, 
+
   _destroy: function HS__destroy() {
     this._observerSvc.removeObserver(this, "profile-before-change");
     this._observerSvc.removeObserver(this, "xpcom-shutdown");
@@ -183,15 +193,17 @@ HandlerService.prototype = {
     return false;
   },
 
+  
   get _datastoreDefaultHandlersVersion() {
-    var version = this._getValue("urn:root", NC_DEFAULT_HANDLERS_VERSION); 
+    var version = this._getValue("urn:root", NC_NS + this._currentLocale +
+                                             "_" + DEFAULT_HANDLERS_VERSION);
     
     return version ? version : -1;
   },
 
   set _datastoreDefaultHandlersVersion(aNewVersion) {
-    return this._setLiteral("urn:root", NC_DEFAULT_HANDLERS_VERSION, 
-                            aNewVersion);
+    return this._setLiteral("urn:root", NC_NS + this._currentLocale + "_" + 
+                            DEFAULT_HANDLERS_VERSION, aNewVersion);
   },
 
   get _prefsDefaultHandlersVersion() {
@@ -199,12 +211,11 @@ HandlerService.prototype = {
     var prefSvc = Cc["@mozilla.org/preferences-service;1"].
                   getService(Ci.nsIPrefService);
     var handlerSvcBranch = prefSvc.getBranch("gecko.handlerService.");
-  
+
     
-    var version = handlerSvcBranch.getComplexValue("defaultHandlersVersion",
-                                                   Ci.nsISupportsString).data;
-                                                   
-    return version;                                                   
+    return Number(handlerSvcBranch.
+                  getComplexValue("defaultHandlersVersion", 
+                                  Ci.nsIPrefLocalizedString).data);
   },
   
   _injectNewDefaults: function HS__injectNewDefaults() {
@@ -215,9 +226,6 @@ HandlerService.prototype = {
     let schemesPrefBranch = prefSvc.getBranch("gecko.handlerService.schemes.");
     let schemePrefList = schemesPrefBranch.getChildList("", {}); 
 
-    let protoSvc = Cc["@mozilla.org/uriloader/external-protocol-service;1"].
-                   getService(Ci.nsIExternalProtocolService);
-
     var schemes = {};
 
     
@@ -225,21 +233,42 @@ HandlerService.prototype = {
 
       let [scheme, handlerNumber, attribute] = schemePrefName.split(".");
 
-      if (!(scheme in schemes))
-        schemes[scheme] = {};
-      if (!(handlerNumber in schemes[scheme]))
-        schemes[scheme][handlerNumber] = {};
+      try {
+        var attrData =
+          schemesPrefBranch.getComplexValue(schemePrefName,
+                                            Ci.nsIPrefLocalizedString).data;
+        if (!(scheme in schemes))
+          schemes[scheme] = {};
+  
+        if (!(handlerNumber in schemes[scheme]))
+          schemes[scheme][handlerNumber] = {};
         
-      schemes[scheme][handlerNumber][attribute] = 
-        schemesPrefBranch.getComplexValue(schemePrefName,
-                                          Ci.nsISupportsString).data;
+        schemes[scheme][handlerNumber][attribute] = attrData;
+      } catch (ex) {}
     }
 
+    let protoSvc = Cc["@mozilla.org/uriloader/external-protocol-service;1"].
+                   getService(Ci.nsIExternalProtocolService);
     for (var scheme in schemes) {
 
       
       
-      let protoInfo = protoSvc.getProtocolHandlerInfo(scheme);  
+      
+      
+      
+      let osDefaultHandlerFound = {};
+      let protoInfo = protoSvc.getProtocolHandlerInfoFromOS(scheme, 
+                               osDefaultHandlerFound);
+      
+      try {
+        this.fillHandlerInfo(protoInfo, null);
+      } catch (ex) {
+        
+        protoSvc.setProtocolHandlerDefaults(protoInfo, 
+                                            osDefaultHandlerFound.value);
+      }
+
+      
       let possibleHandlers = protoInfo.possibleApplicationHandlers;
 
       for each (var handlerPrefs in schemes[scheme]) {
@@ -251,7 +280,7 @@ HandlerService.prototype = {
         handlerApp.name = handlerPrefs.name;                
 
         if (!this._isInHandlerArray(possibleHandlers, handlerApp)) {
-             possibleHandlers.appendElement(handlerApp, false);
+          possibleHandlers.appendElement(handlerApp, false);
         }
       }
 

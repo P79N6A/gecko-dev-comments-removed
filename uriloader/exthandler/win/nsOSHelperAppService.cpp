@@ -38,6 +38,7 @@
 
 
 
+
 #include "nsOSHelperAppService.h"
 #include "nsISupports.h"
 #include "nsString.h"
@@ -587,32 +588,33 @@ already_AddRefed<nsIMIMEInfo> nsOSHelperAppService::GetMIMEInfoFromOS(const nsAC
   return mi;
 }
 
-already_AddRefed<nsIHandlerInfo>
-nsOSHelperAppService::GetProtocolInfoFromOS(const nsACString &aScheme,
-                                            PRBool *found)
+NS_IMETHODIMP
+nsOSHelperAppService::GetProtocolHandlerInfoFromOS(const nsACString &aScheme,
+                                                   PRBool *found,
+                                                   nsIHandlerInfo **_retval)
 {
   NS_ASSERTION(!aScheme.IsEmpty(), "No scheme was specified!");
 
   nsresult rv = OSProtocolHandlerExists(nsPromiseFlatCString(aScheme).get(),
                                         found);
   if (NS_FAILED(rv))
-    return nsnull;
+    return rv;
 
   nsMIMEInfoWin *handlerInfo =
     new nsMIMEInfoWin(aScheme, nsMIMEInfoBase::eProtocolInfo);
   NS_ENSURE_TRUE(handlerInfo, nsnull);
-  NS_ADDREF(handlerInfo);
+  NS_ADDREF(*_retval = handlerInfo);
 
   if (!*found) {
     
     
-    return handlerInfo;
+    return NS_OK;
   }
 
   nsAutoString desc;
   GetApplicationDescription(aScheme, desc);
   handlerInfo->SetDefaultDescription(desc);
 
-  return handlerInfo;
+  return NS_OK;
 }
 
