@@ -93,13 +93,17 @@ public:
   }
 
   NPError NPN_RequestRead(NPByteRange* aRangeList);
+  void NPN_DestroyStream(NPReason reason);
 
 private:
+  using PBrowserStreamChild::SendNPN_DestroyStream;
+
   
 
 
 
   void DeliverData();
+  void MaybeDeliverNPP_DestroyStream();
   void SetSuspendedTimer();
   void ClearSuspendedTimer();
 
@@ -115,6 +119,16 @@ private:
   nsCString mURL;
   nsCString mHeaders;
 
+  static const NPReason kDestroyNotPending = -1;
+
+  
+
+
+
+
+
+  NPReason mDestroyPending;
+
   struct PendingData
   {
     int32_t offset;
@@ -123,6 +137,13 @@ private:
   };
   nsTArray<PendingData> mPendingData;
 
+  
+
+
+
+
+
+  ScopedRunnableMethodFactory<BrowserStreamChild> mDeliverDataTracker;
   base::RepeatingTimer<BrowserStreamChild> mSuspendedTimer;
 };
 
