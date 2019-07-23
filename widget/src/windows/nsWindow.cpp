@@ -5593,6 +5593,8 @@ DWORD nsWindow::WindowStyle()
 
 
 #if defined(WINCE)
+  
+
   switch (mWindowType) {
     case eWindowType_child:
       style = WS_CHILD;
@@ -5603,7 +5605,7 @@ DWORD nsWindow::WindowStyle()
 #if !defined(WINCE_WINDOWS_MOBILE)
       style |= WS_SYSMENU;
       if (mBorderStyle != eBorderStyle_default)
-        style |= WS_THICKFRAME | WS_MINIMIZEBOX | WS_MAXIMIZEBOX;
+        style |= WS_CAPTION | WS_THICKFRAME | WS_MINIMIZEBOX | WS_MAXIMIZEBOX;
 #endif
       break;
 
@@ -5619,7 +5621,7 @@ DWORD nsWindow::WindowStyle()
     case eWindowType_invisible:
       style = WS_BORDER;
 #if !defined(WINCE_WINDOWS_MOBILE)
-      style |= WS_OVERLAPPED | WS_SYSMENU | WS_MINIMIZEBOX | WS_MAXIMIZEBOX;
+      style |= WS_THICKFRAME | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX | WS_MAXIMIZEBOX;
 #endif
       break;
   }
