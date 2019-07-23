@@ -191,10 +191,14 @@ nsresult imgRequest::RemoveProxy(imgRequestProxy *proxy, nsresult aStatus, PRBoo
 
   if (aNotify) {
     
+    if (!(mState & stateDecodeStopped)) {
+      proxy->OnStopContainer(mImage);
+    }
+
+    
     if (!(mState & stateRequestStopped)) {
       proxy->OnStopDecode(aStatus, nsnull);
     }
-
   }
 
   
@@ -295,8 +299,11 @@ nsresult imgRequest::NotifyProxyListener(imgRequestProxy *proxy)
     mImage->ResetAnimation();
   }
 
-  if (mState & stateRequestStopped) {
+  
+  if (mState & stateDecodeStopped)
     proxy->OnStopContainer(mImage);
+
+  if (mState & stateRequestStopped) {
     proxy->OnStopDecode(GetResultFromImageStatus(mImageStatus), nsnull);
     proxy->OnStopRequest(nsnull, nsnull,
                          GetResultFromImageStatus(mImageStatus),
@@ -651,6 +658,10 @@ NS_IMETHODIMP imgRequest::OnStopContainer(imgIRequest *request,
 {
   LOG_SCOPE(gImgLog, "imgRequest::OnStopContainer");
 
+  
+  
+  mState |= stateDecodeStopped;
+
   nsTObserverArray<imgRequestProxy*>::ForwardIterator iter(mObservers);
   while (iter.HasMore()) {
     iter.GetNext()->OnStopContainer(image);
@@ -700,7 +711,7 @@ NS_IMETHODIMP imgRequest::OnStopRequest(imgIRequest *aRequest,
 NS_IMETHODIMP imgRequest::OnDiscard(imgIRequest *aRequest)
 {
   
-  PRUint32 stateBitsToClear = stateDecodeStarted;
+  PRUint32 stateBitsToClear = stateDecodeStarted | stateDecodeStopped;
   mState &= ~stateBitsToClear;
 
   
@@ -750,6 +761,7 @@ NS_IMETHODIMP imgRequest::OnStartRequest(nsIRequest *aRequest, nsISupports *ctxt
     mImageStatus &= ~imgIRequest::STATUS_FRAME_COMPLETE;
     mState &= ~stateRequestStarted;
     mState &= ~stateDecodeStarted;
+    mState &= ~stateDecodeStopped;
     mState &= ~stateRequestStopped;
   }
 
