@@ -39,6 +39,12 @@
 
 
 
+
+
+
+
+let doNotError = false;
+
 const nsIF = Ci.nsIFile;
 const nsIDM = Ci.nsIDownloadManager;
 const nsIWBP = Ci.nsIWebBrowserPersist;
@@ -61,7 +67,6 @@ function run_test()
   Cc["@mozilla.org/preferences-service;1"].
   getService(Ci.nsIPrefBranch).
   setIntPref("browser.download.manager.resumeOnWakeDelay", 1000);
-dump("%%%Set pref\n");
 
   
 
@@ -71,7 +76,6 @@ dump("%%%Set pref\n");
   
   for (let i = 0; i < 4; i++)
     data = [data,data,data,data,data,data,data,data,data,data,"\n"].join("");
-dump("%%%Generated data\n");
 
   
 
@@ -88,14 +92,11 @@ dump("%%%Generated data\n");
       let matches = meta.getHeader("Range").match(/^\s*bytes=(\d+)?-(\d+)?\s*$/);
       let from = (matches[1] === undefined) ? 0 : matches[1];
       let to = (matches[2] === undefined) ? data.length - 1 : matches[2];
-      dump("%%%meta.getHeader('Range'): " + meta.getHeader("Range") + "\n");
-      dump("%%%from: " + from + "\n");
-      dump("%%%to: " + to + "\n");
-      dump("%%%data.length: " + data.length + "\n");
       if (from >= data.length) {
         resp.setStatusLine(meta.httpVersion, 416, "Start pos too high");
         resp.setHeader("Content-Range", "*/" + data.length);
-dump("%%% Returning early - from >= data.length\n");
+        dump("Returning early - from >= data.length.  Not an error (bug 431745)\n");
+        doNotError = true;
         return;
       }
       body = body.substring(from, to + 1);
@@ -106,7 +107,6 @@ dump("%%% Returning early - from >= data.length\n");
     resp.bodyOutputStream.write(body, body.length);
   });
   httpserv.start(4444);
-dump("%%%Started server\n");
 
   
 
@@ -115,21 +115,17 @@ dump("%%%Started server\n");
   let didResumeDownload = false;
   dm.addListener({
     onDownloadStateChange: function(a, aDl) {
-dump("%%%onDownloadStateChange\n");
       if (aDl.state == nsIDM.DOWNLOAD_DOWNLOADING && !didPause) {
-dump("%%%aDl.state: DOWNLOAD_DOWNLOADING\n");
         
 
 
         notify("sleep_notification");
       } else if (aDl.state == nsIDM.DOWNLOAD_PAUSED) {
-dump("%%%aDl.state: DOWNLOAD_PAUSED\n");
         
 
 
         didPause = true;
       } else if (aDl.state == nsIDM.DOWNLOAD_FINISHED) {
-dump("%%%aDl.state: DOWNLOAD_FINISHED\n");
         
 
 
@@ -144,13 +140,16 @@ dump("%%%aDl.state: DOWNLOAD_FINISHED\n");
         aDl.targetFile.remove(false);
         
         do_test_finished();
-      } else
-        dump("%%%aDl.state: " + aDl.state + "\n");
+      }
+      else if (aDl.state == nsIDM.DOWNLOAD_FAILED) {
+        
+        do_check_true(doNotError);
+        httpserv.stop();
+        
+        do_test_finished();
+      }
     },
     onStateChange: function(a, b, aState, d, aDl) {
-dump("%%%onStateChange\n");
-dump("%%%aState: " + aState + "\n");
-dump("%%%status: " + d + "\n");
       if ((aState & nsIWPL.STATE_STOP) && didPause && !didResumeServer &&
           !didResumeDownload) {
         
@@ -164,7 +163,6 @@ dump("%%%status: " + d + "\n");
     onSecurityChange: function(a, b, c, d) { }
   });
   dm.addListener(getDownloadListener());
-dump("%%%Added listener\n");
 
   
 
@@ -185,5 +183,4 @@ dump("%%%Added listener\n");
 
   
   do_test_pending();
-dump("%%%Started test\n");
 }
