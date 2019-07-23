@@ -724,12 +724,42 @@ private:
                                        nsFrameItems&            aFrameItems,
                                        PRBool                   aHasPseudoParent);
 
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   nsresult ProcessChildren(nsFrameConstructorState& aState,
                            nsIContent*              aContent,
+                           nsStyleContext*          aStyleContext,
                            nsIFrame*                aFrame,
                            PRBool                   aCanHaveGeneratedContent,
                            nsFrameItems&            aFrameItems,
-                           PRBool                   aParentIsBlock);
+                           PRBool                   aAllowBlockStyles);
 
   
   nsresult CreateInputFrame(nsFrameConstructorState& aState,
