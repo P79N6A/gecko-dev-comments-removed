@@ -231,15 +231,13 @@ WrapFunction(JSContext* cx, JSObject* funobj, jsval *rval)
   
   
   JSFunction *funWrapper =
-    ::JS_NewFunction(cx, XPC_NW_FunctionWrapper, 0, 0, nsnull,
+    ::JS_NewFunction(cx, XPC_NW_FunctionWrapper, 0, 0, funobj,
                      "XPCNativeWrapper function wrapper");
   if (!funWrapper) {
     return JS_FALSE;
   }
 
-  JSObject* funWrapperObj = ::JS_GetFunctionObject(funWrapper);
-  ::JS_SetParent(cx, funWrapperObj, funobj);
-  *rval = OBJECT_TO_JSVAL(funWrapperObj);
+  *rval = OBJECT_TO_JSVAL(::JS_GetFunctionObject(funWrapper));
   return JS_TRUE;
 }
 
