@@ -57,6 +57,7 @@ Types = (
     'uintptr_t',
 
     
+    'nsresult',
     'nsString',
     'nsCString',
 )
