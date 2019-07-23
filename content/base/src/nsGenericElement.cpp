@@ -4281,7 +4281,9 @@ nsGenericElement::AddScriptEventListener(nsIAtom* aEventName,
   GetEventListenerManagerForAttr(getter_AddRefs(manager),
                                  getter_AddRefs(target),
                                  &defer);
-  NS_ENSURE_STATE(manager);
+  if (!manager) {
+    return NS_OK;
+  }
 
   defer = defer && aDefer; 
   PRUint32 lang = GetScriptTypeID();
