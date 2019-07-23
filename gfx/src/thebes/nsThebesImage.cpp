@@ -431,411 +431,245 @@ nsThebesImage::UnlockImagePixels(PRBool aMaskPixels)
     return NS_OK;
 }
 
-
-NS_IMETHODIMP
-nsThebesImage::Draw(nsIRenderingContext &aContext,
-                    const gfxRect &aSourceRect,
-                    const gfxRect &aSubimageRect,
-                    const gfxRect &aDestRect)
+static PRBool
+IsSafeImageTransformComponent(gfxFloat aValue)
 {
-    if (NS_UNLIKELY(aDestRect.IsEmpty())) {
-        NS_ERROR("nsThebesImage::Draw zero dest size - please fix caller.");
-        return NS_OK;
-    }
-
-    nsThebesRenderingContext *thebesRC = static_cast<nsThebesRenderingContext*>(&aContext);
-    gfxContext *ctx = thebesRC->ThebesContext();
-
-#if 0
-    fprintf (stderr, "nsThebesImage::Draw src [%f %f %f %f] dest [%f %f %f %f] trans: [%f %f] dec: [%f %f]\n",
-             aSourceRect.pos.x, aSourceRect.pos.y, aSourceRect.size.width, aSourceRect.size.height,
-             aDestRect.pos.x, aDestRect.pos.y, aDestRect.size.width, aDestRect.size.height,
-             ctx->CurrentMatrix().GetTranslation().x, ctx->CurrentMatrix().GetTranslation().y,
-             mDecoded.x, mDecoded.y, mDecoded.width, mDecoded.height);
-#endif
-
-    if (mSinglePixel) {
-        
-        if (mSinglePixelColor.a == 0.0)
-            return NS_OK;
-
-        
-        gfxContext::GraphicsOperator op = ctx->CurrentOperator();
-        if (op == gfxContext::OPERATOR_OVER && mSinglePixelColor.a == 1.0)
-            ctx->SetOperator(gfxContext::OPERATOR_SOURCE);
-
-        ctx->SetDeviceColor(mSinglePixelColor);
-        ctx->NewPath();
-        ctx->Rectangle(aDestRect, PR_TRUE);
-        ctx->Fill();
-        ctx->SetOperator(op);
-        return NS_OK;
-    }
-
-    gfxFloat xscale = aDestRect.size.width / aSourceRect.size.width;
-    gfxFloat yscale = aDestRect.size.height / aSourceRect.size.height;
-
-    gfxRect srcRect(aSourceRect);
-    gfxRect subimageRect(aSubimageRect);
-    gfxRect destRect(aDestRect);
-
-    if (!GetIsImageComplete()) {
-        gfxRect decoded = gfxRect(mDecoded.x, mDecoded.y,
-                                  mDecoded.width, mDecoded.height);
-        srcRect = srcRect.Intersect(decoded);
-        subimageRect = subimageRect.Intersect(decoded);
-
-        
-        if (NS_UNLIKELY(srcRect.size.width == 0 || srcRect.size.height == 0))
-            return NS_OK;
-
-        destRect.pos.x += (srcRect.pos.x - aSourceRect.pos.x)*xscale;
-        destRect.pos.y += (srcRect.pos.y - aSourceRect.pos.y)*yscale;
-
-        destRect.size.width  = srcRect.size.width * xscale;
-        destRect.size.height = srcRect.size.height * yscale;
-    }
-
-    
-    if (srcRect.IsEmpty() || destRect.IsEmpty())
-        return NS_OK;
-
-    
-    if (!AllowedImageSize(destRect.size.width + 1, destRect.size.height + 1))
-        return NS_ERROR_FAILURE;
-
-    
-    
-    
-    subimageRect.RoundOut();
-
-    nsRefPtr<gfxPattern> pat;
-    PRBool ctxHasNonTranslation = ctx->CurrentMatrix().HasNonTranslation();
-    if ((xscale == 1.0 && yscale == 1.0 && !ctxHasNonTranslation) ||
-        subimageRect == gfxRect(0, 0, mWidth, mHeight))
-    {
-        
-        
-        
-        
-        pat = new gfxPattern(ThebesSurface());
-    } else {
-        
-        
-        gfxIntSize size(PRInt32(subimageRect.Width()),
-                        PRInt32(subimageRect.Height()));
-        nsRefPtr<gfxASurface> temp =
-            gfxPlatform::GetPlatform()->CreateOffscreenSurface(size, mFormat);
-        if (!temp || temp->CairoStatus() != 0)
-            return NS_ERROR_FAILURE;
-
-        gfxContext tempctx(temp);
-        tempctx.SetSource(ThebesSurface(), -subimageRect.pos);
-        tempctx.SetOperator(gfxContext::OPERATOR_SOURCE);
-        tempctx.Paint();
-
-        pat = new gfxPattern(temp);
-        srcRect.MoveBy(-subimageRect.pos);
-    }
-
-    
-
-
-
-    if (aDestRect.pos.x * (1.0 / xscale) >= 32768.0 ||
-        aDestRect.pos.y * (1.0 / yscale) >= 32768.0)
-    {
-        gfxIntSize dim(NS_lroundf(destRect.size.width),
-                       NS_lroundf(destRect.size.height));
-
-        
-        if (dim.width == 0 || dim.height == 0)
-            return NS_OK;
-
-        nsRefPtr<gfxASurface> temp =
-            gfxPlatform::GetPlatform()->CreateOffscreenSurface (dim,  mFormat);
-        if (!temp || temp->CairoStatus() != 0)
-            return NS_ERROR_FAILURE;
-
-        gfxContext tempctx(temp);
-
-        gfxMatrix mat;
-        mat.Translate(srcRect.pos);
-        mat.Scale(1.0 / xscale, 1.0 / yscale);
-        pat->SetMatrix(mat);
-
-        tempctx.SetPattern(pat);
-        tempctx.SetOperator(gfxContext::OPERATOR_SOURCE);
-        tempctx.NewPath();
-        tempctx.Rectangle(gfxRect(0.0, 0.0, dim.width, dim.height));
-        tempctx.Fill();
-
-        pat = new gfxPattern(temp);
-
-        srcRect.pos.x = 0.0;
-        srcRect.pos.y = 0.0;
-        srcRect.size.width = dim.width;
-        srcRect.size.height = dim.height;
-
-        xscale = 1.0;
-        yscale = 1.0;
-    }
-
-    gfxMatrix mat;
-    mat.Translate(srcRect.pos);
-    mat.Scale(1.0/xscale, 1.0/yscale);
-
-    
-
-
-    mat.Translate(-destRect.pos);
-
-    pat->SetMatrix(mat);
-
-    nsRefPtr<gfxASurface> target = ctx->CurrentSurface();
-    switch (target->GetType()) {
-    case gfxASurface::SurfaceTypeXlib:
-    case gfxASurface::SurfaceTypeXcb:
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        if (xscale > 1.0 || yscale > 1.0 || ctxHasNonTranslation)
-            pat->SetFilter(0);
-        break;
-
-    case gfxASurface::SurfaceTypeQuartz:
-    case gfxASurface::SurfaceTypeQuartzImage:
-        
-        break;
-
-    default:
-        
-        
-        
-        if (xscale != 1.0 || yscale != 1.0 || ctxHasNonTranslation)
-            pat->SetExtend(gfxPattern::EXTEND_PAD);
-        break;
-    }
-
-    gfxContext::GraphicsOperator op = ctx->CurrentOperator();
-    if (op == gfxContext::OPERATOR_OVER && mFormat == gfxASurface::ImageFormatRGB24)
-        ctx->SetOperator(gfxContext::OPERATOR_SOURCE);
-
-    ctx->NewPath();
-    ctx->SetPattern(pat);
-#ifdef MOZ_GFX_OPTIMIZE_MOBILE
-    ctx->Rectangle(destRect, PR_TRUE);
-#else
-    ctx->Rectangle(destRect);
-#endif
-    ctx->Fill();
-
-    ctx->SetOperator(op);
-    ctx->SetDeviceColor(gfxRGBA(0,0,0,0));
-
-    return NS_OK;
+    return aValue >= -32768 && aValue <= 32767;
 }
 
-nsresult
-nsThebesImage::ThebesDrawTile(gfxContext *thebesContext,
-                              nsIDeviceContext* dx,
-                              const gfxPoint& offset,
-                              const gfxRect& targetRect,
-                              const nsIntRect& aSubimageRect,
-                              const PRInt32 xPadding,
-                              const PRInt32 yPadding)
+void
+nsThebesImage::Draw(gfxContext*        aContext,
+                    const gfxMatrix&   aUserSpaceToImageSpace,
+                    const gfxRect&     aFill,
+                    const nsIntMargin& aPadding,
+                    const nsIntRect&   aSubimage)
 {
-    NS_ASSERTION(xPadding >= 0 && yPadding >= 0, "negative padding");
+    NS_ASSERTION(!aFill.IsEmpty(), "zero dest size --- fix caller");
+    NS_ASSERTION(!aSubimage.IsEmpty(), "zero source size --- fix caller");
 
-    if (targetRect.size.width <= 0.0 || targetRect.size.height <= 0.0)
-        return NS_OK;
+    PRBool doPadding = aPadding != nsIntMargin(0,0,0,0);
+    PRBool doPartialDecode = !GetIsImageComplete();
+    gfxContext::GraphicsOperator op = aContext->CurrentOperator();
 
-    
-    if (mSinglePixel && mSinglePixelColor.a == 0.0)
-        return NS_OK;
-
-#ifdef MOZ_GFX_OPTIMIZE_MOBILE
-    PRBool doSnap = PR_TRUE;
-#else
-    PRBool doSnap = !(thebesContext->CurrentMatrix().HasNonTranslation());
-#endif
-    PRBool hasPadding = ((xPadding != 0) || (yPadding != 0));
-    gfxImageSurface::gfxImageFormat format = mFormat;
-    
-    gfxPoint tmpOffset = offset;
-
-    if (mSinglePixel && !hasPadding) {
-        thebesContext->SetDeviceColor(mSinglePixelColor);
-    } else {
-        nsRefPtr<gfxASurface> surface;
-        PRInt32 width, height;
-
-        if (hasPadding) {
-            
-
-            width = mWidth + xPadding;
-            height = mHeight + yPadding;
-
-            
-            if (!AllowedImageSize(width, height))
-                return NS_ERROR_FAILURE;
-
-            format = gfxASurface::ImageFormatARGB32;
-            surface = gfxPlatform::GetPlatform()->CreateOffscreenSurface(
-                    gfxIntSize(width, height), format);
-            if (!surface || surface->CairoStatus()) {
-                return NS_ERROR_OUT_OF_MEMORY;
-            }
-
-            gfxContext tmpContext(surface);
-            if (mSinglePixel) {
-                tmpContext.SetDeviceColor(mSinglePixelColor);
-            } else {
-                tmpContext.SetSource(ThebesSurface());
-            }
-            tmpContext.SetOperator(gfxContext::OPERATOR_SOURCE);
-            tmpContext.Rectangle(gfxRect(0, 0, mWidth, mHeight));
-            tmpContext.Fill();
-        } else {
-            width = mWidth;
-            height = mHeight;
-            surface = ThebesSurface();
-        }
+    if (mSinglePixel && !doPadding && !doPartialDecode) {
         
         
-        
-        
-        gfxFloat scale = gfxFloat(dx->AppUnitsPerDevPixel()) /
-                         gfxFloat(nsIDeviceContext::AppUnitsPerCSSPixel());
+        if (mSinglePixelColor.a == 0.0)
+            return;
 
-        if ((aSubimageRect.width < width || aSubimageRect.height < height) &&
-            (thebesContext->CurrentMatrix().HasNonTranslation() || scale != 1.0)) {
-            
-            
-            
-            
-            
-            
-            PRInt32 padX = aSubimageRect.width < width ? 1 : 0;
-            PRInt32 padY = aSubimageRect.height < height ? 1 : 0;
-            PRInt32 tileWidth = PR_MIN(aSubimageRect.width, width);
-            PRInt32 tileHeight = PR_MIN(aSubimageRect.height, height);
-            
-            
-            
-            
-            
-            
-            nsRefPtr<gfxASurface> tmpSurface;
-            tmpSurface = gfxPlatform::GetPlatform()->CreateOffscreenSurface(
-                    gfxIntSize(tileWidth + 2*padX, tileHeight + 2*padY), format);
-            if (!tmpSurface || tmpSurface->CairoStatus()) {
-                return NS_ERROR_OUT_OF_MEMORY;
-            }
+        if (op == gfxContext::OPERATOR_OVER && mSinglePixelColor.a == 1.0)
+            aContext->SetOperator(gfxContext::OPERATOR_SOURCE);
 
-            gfxContext tmpContext(tmpSurface);
-            tmpContext.SetOperator(gfxContext::OPERATOR_SOURCE);
-            gfxPattern pat(surface);
-            pat.SetExtend(gfxPattern::EXTEND_REPEAT);
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            PRInt32 destY = 0;
-            for (PRInt32 y = -1; y <= 1; ++y) {
-                PRInt32 stripHeight = y == 0 ? tileHeight : padY;
-                if (stripHeight == 0)
-                    continue;
-                PRInt32 srcY = y == 1 ? aSubimageRect.YMost() - padY : aSubimageRect.y;
-                
-                PRInt32 destX = 0;
-                for (PRInt32 x = -1; x <= 1; ++x) {
-                    PRInt32 stripWidth = x == 0 ? tileWidth : padX;
-                    if (stripWidth == 0)
-                        continue;
-                    PRInt32 srcX = x == 1 ? aSubimageRect.XMost() - padX : aSubimageRect.x;
-
-                    gfxMatrix patMat;
-                    patMat.Translate(gfxPoint(srcX - destX, srcY - destY));
-                    pat.SetMatrix(patMat);
-                    tmpContext.SetPattern(&pat);
-                    tmpContext.Rectangle(gfxRect(destX, destY, stripWidth, stripHeight));
-                    tmpContext.Fill();
-                    tmpContext.NewPath();
-                    
-                    destX += stripWidth;
-                }
-                destY += stripHeight;
-            }
-
-            
-            
-            
-            
-            tmpOffset += gfxPoint(aSubimageRect.x - padX, aSubimageRect.y - padY)/scale;
-            
-            surface = tmpSurface;
-        }
-
-        gfxMatrix patMat;
-        gfxPoint p0;
-
-        p0.x = - floor(tmpOffset.x + 0.5);
-        p0.y = - floor(tmpOffset.y + 0.5);
-        patMat.Scale(scale, scale);
-        patMat.Translate(p0);
-
-        gfxPattern pat(surface);
-        pat.SetExtend(gfxPattern::EXTEND_REPEAT);
-        pat.SetMatrix(patMat);
-
-#ifndef XP_MACOSX
-        if (scale < 1.0) {
-            
-            
-            pat.SetFilter(0);
-        }
-#endif
-
-        thebesContext->SetPattern(&pat);
+        aContext->SetDeviceColor(mSinglePixelColor);
+        aContext->NewPath();
+        aContext->Rectangle(aFill);
+        aContext->Fill();
+        aContext->SetOperator(op);
+        aContext->SetDeviceColor(gfxRGBA(0,0,0,0));
+        return;
     }
 
-    gfxContext::GraphicsOperator op = thebesContext->CurrentOperator();
-    if (op == gfxContext::OPERATOR_OVER && format == gfxASurface::ImageFormatRGB24)
-        thebesContext->SetOperator(gfxContext::OPERATOR_SOURCE);
+    gfxMatrix userSpaceToImageSpace = aUserSpaceToImageSpace;
+    gfxRect sourceRect = userSpaceToImageSpace.Transform(aFill);
+    gfxRect imageRect(0, 0, mWidth + aPadding.LeftRight(), mHeight + aPadding.TopBottom());
+    gfxRect subimage(aSubimage.x, aSubimage.y, aSubimage.width, aSubimage.height);
+    gfxRect fill = aFill;
+    nsRefPtr<gfxASurface> surface;
+    gfxImageSurface::gfxImageFormat format;
 
-    thebesContext->NewPath();
-    thebesContext->Rectangle(targetRect, doSnap);
-    thebesContext->Fill();
+    PRBool doTile = !imageRect.Contains(sourceRect);
+    if (doPadding || doPartialDecode) {
+        gfxRect available = gfxRect(mDecoded.x, mDecoded.y, mDecoded.width, mDecoded.height) +
+            gfxPoint(aPadding.left, aPadding.top);
+  
+        if (!doTile && !mSinglePixel) {
+            
+            
+            
+            sourceRect = sourceRect.Intersect(available);
+            gfxMatrix imageSpaceToUserSpace = userSpaceToImageSpace;
+            imageSpaceToUserSpace.Invert();
+            fill = imageSpaceToUserSpace.Transform(sourceRect);
+  
+            surface = ThebesSurface();
+            format = mFormat;
+            subimage = subimage.Intersect(available) - gfxPoint(aPadding.left, aPadding.top);
+            userSpaceToImageSpace.Multiply(
+                gfxMatrix().Translate(gfxPoint(aPadding.left, aPadding.top)));
+            sourceRect = sourceRect - gfxPoint(aPadding.left, aPadding.top);
+            imageRect = gfxRect(0, 0, mWidth, mHeight);
+        } else {
+            
+            gfxIntSize size(PRInt32(imageRect.Width()),
+                            PRInt32(imageRect.Height()));
+            
+            
+            format = gfxASurface::ImageFormatARGB32;
+            surface = gfxPlatform::GetPlatform()->CreateOffscreenSurface(size,
+                format);
+            if (!surface || surface->CairoStatus() != 0)
+                return;
+  
+            
+            gfxContext tmpCtx(surface);
+            tmpCtx.SetOperator(gfxContext::OPERATOR_SOURCE);
+            if (mSinglePixel) {
+                tmpCtx.SetDeviceColor(mSinglePixelColor);
+            } else {
+                tmpCtx.SetSource(ThebesSurface(), gfxPoint(aPadding.left, aPadding.top));
+            }
+            tmpCtx.Rectangle(available);
+            tmpCtx.Fill();
+        }
+    } else {
+        NS_ASSERTION(!mSinglePixel, "This should already have been handled");
+        surface = ThebesSurface();
+        format = mFormat;
+    }
+    
+    
 
-    thebesContext->SetOperator(op);
-    thebesContext->SetDeviceColor(gfxRGBA(0,0,0,0));
+    if (!AllowedImageSize(fill.size.width + 1, fill.size.height + 1)) {
+        NS_WARNING("Destination area too large, bailing out");
+        return;
+    }
 
-    return NS_OK;
+    
+    
+    
+    
+    gfxFloat deviceX, deviceY;
+    nsRefPtr<gfxASurface> currentTarget =
+        aContext->CurrentSurface(&deviceX, &deviceY);
+    gfxMatrix currentMatrix = aContext->CurrentMatrix();
+    gfxMatrix deviceToUser = currentMatrix;
+    deviceToUser.Invert();
+    deviceToUser.Translate(-gfxPoint(-deviceX, -deviceY));
+    gfxMatrix deviceToImage = deviceToUser;
+    deviceToImage.Multiply(userSpaceToImageSpace);
+  
+    
+    if (!IsSafeImageTransformComponent(deviceToImage.xx) ||
+        !IsSafeImageTransformComponent(deviceToImage.xy) ||
+        !IsSafeImageTransformComponent(deviceToImage.yx) ||
+        !IsSafeImageTransformComponent(deviceToImage.yy)) {
+        NS_WARNING("Scaling up too much, bailing out");
+        return;
+    }
+
+    PRBool pushedGroup = PR_FALSE;
+    if (!IsSafeImageTransformComponent(deviceToImage.x0) ||
+        !IsSafeImageTransformComponent(deviceToImage.y0)) {
+        
+        
+        aContext->Save();
+  
+        
+        
+        
+        aContext->IdentityMatrix();
+        gfxRect bounds = currentMatrix.TransformBounds(fill);
+        bounds.RoundOut();
+        aContext->Clip(bounds);
+        aContext->SetMatrix(currentMatrix);
+  
+        aContext->PushGroup(gfxASurface::CONTENT_COLOR_ALPHA);
+        aContext->SetOperator(gfxContext::OPERATOR_OVER);
+        pushedGroup = PR_TRUE;
+    }
+    
+  
+    nsRefPtr<gfxPattern> pattern = new gfxPattern(surface);
+    pattern->SetMatrix(userSpaceToImageSpace);
+
+    
+    
+    
+    
+    
+    if (!currentMatrix.HasNonIntegerTranslation() &&
+        !userSpaceToImageSpace.HasNonIntegerTranslation()) {
+        if (doTile) {
+            pattern->SetExtend(gfxPattern::EXTEND_REPEAT);
+        }
+    } else {
+        if (doTile || !subimage.Contains(imageRect)) {
+            
+            
+            
+            gfxRect needed = subimage.Intersect(sourceRect);
+            needed.RoundOut();
+            gfxIntSize size(PRInt32(needed.Width()), PRInt32(needed.Height()));
+            nsRefPtr<gfxASurface> temp =
+                gfxPlatform::GetPlatform()->CreateOffscreenSurface(size, format);
+            if (temp && temp->CairoStatus() == 0) {
+                gfxContext tmpCtx(temp);
+                tmpCtx.SetOperator(gfxContext::OPERATOR_SOURCE);
+                nsRefPtr<gfxPattern> tmpPattern = new gfxPattern(surface);
+                if (tmpPattern) {
+                    tmpPattern->SetExtend(gfxPattern::EXTEND_REPEAT);
+                    tmpPattern->SetMatrix(gfxMatrix().Translate(needed.pos));
+                    tmpCtx.SetPattern(tmpPattern);
+                    tmpCtx.Paint();
+                    tmpPattern = new gfxPattern(temp);
+                    if (tmpPattern) {
+                        pattern.swap(tmpPattern);
+                        pattern->SetMatrix(
+                            gfxMatrix(userSpaceToImageSpace).Multiply(gfxMatrix().Translate(-needed.pos)));
+                    }
+                }
+            }
+        }
+  
+        
+        
+        
+        switch (currentTarget->GetType()) {
+        case gfxASurface::SurfaceTypeXlib:
+        case gfxASurface::SurfaceTypeXcb:
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            pattern->SetFilter(0);
+            break;
+  
+        case gfxASurface::SurfaceTypeQuartz:
+        case gfxASurface::SurfaceTypeQuartzImage:
+            
+            break;
+
+        default:
+            
+            
+            
+            pattern->SetExtend(gfxPattern::EXTEND_PAD);
+            break;
+        }
+    }
+
+    if ((op == gfxContext::OPERATOR_OVER || pushedGroup) &&
+        format == gfxASurface::ImageFormatRGB24) {
+        aContext->SetOperator(gfxContext::OPERATOR_SOURCE);
+    }
+
+    
+    aContext->NewPath();
+    aContext->SetPattern(pattern);
+    aContext->Rectangle(fill);
+    aContext->Fill();
+  
+    aContext->SetOperator(op);
+    if (pushedGroup) {
+        aContext->PopGroupToSource();
+        aContext->Paint();
+        aContext->Restore();
+    }
 }
 
 PRBool

@@ -805,91 +805,36 @@ nsCSSRendering::PaintFocus(nsPresContext* aPresContext,
 
 
 
-
 static void
 ComputeBackgroundAnchorPoint(const nsStyleBackground& aColor,
-                             const nsRect& aOriginBounds,
-                             const nsRect& aClipBounds,
-                             nscoord aTileWidth, nscoord aTileHeight,
-                             nsPoint& aResult)
+                             const nsSize& aOriginBounds,
+                             const nsSize& aImageSize,
+                             nsPoint* aTopLeft,
+                             nsPoint* aAnchorPoint)
 {
-  nscoord x;
   if (NS_STYLE_BG_X_POSITION_LENGTH & aColor.mBackgroundFlags) {
-    x = aColor.mBackgroundXPosition.mCoord;
+    aTopLeft->x = aAnchorPoint->x = aColor.mBackgroundXPosition.mCoord;
   }
   else if (NS_STYLE_BG_X_POSITION_PERCENT & aColor.mBackgroundFlags) {
-    PRFloat64 percent = PRFloat64(aColor.mBackgroundXPosition.mFloat);
-    nscoord tilePos = nscoord(percent * PRFloat64(aTileWidth));
-    nscoord boxPos = nscoord(percent * PRFloat64(aOriginBounds.width));
-    x = boxPos - tilePos;
+    double percent = aColor.mBackgroundXPosition.mFloat;
+    aAnchorPoint->x = NSToCoordRound(percent*aOriginBounds.width);
+    aTopLeft->x = NSToCoordRound(percent*(aOriginBounds.width - aImageSize.width));
   }
   else {
-    x = 0;
+    aTopLeft->x = aAnchorPoint->x = 0;
   }
-  x += aOriginBounds.x - aClipBounds.x;
-  if (NS_STYLE_BG_REPEAT_X & aColor.mBackgroundRepeat) {
-    
-    
-    
-    
-    if (x < 0) {
-      x = -x;
-      if (x < 0) {
-        
-        x = 0;
-      }
-      x %= aTileWidth;
-      x = -x;
-    }
-    else if (x != 0) {
-      x %= aTileWidth;
-      if (x > 0) {
-        x = x - aTileWidth;
-      }
-    }
 
-    NS_POSTCONDITION((x >= -(aTileWidth - 1)) && (x <= 0), "bad computed anchor value");
-  }
-  aResult.x = x;
-
-  nscoord y;
   if (NS_STYLE_BG_Y_POSITION_LENGTH & aColor.mBackgroundFlags) {
-    y = aColor.mBackgroundYPosition.mCoord;
+    aTopLeft->y = aAnchorPoint->y = aColor.mBackgroundYPosition.mCoord;
   }
-  else if (NS_STYLE_BG_Y_POSITION_PERCENT & aColor.mBackgroundFlags){
-    PRFloat64 percent = PRFloat64(aColor.mBackgroundYPosition.mFloat);
-    nscoord tilePos = nscoord(percent * PRFloat64(aTileHeight));
-    nscoord boxPos = nscoord(percent * PRFloat64(aOriginBounds.height));
-    y = boxPos - tilePos;
+  else if (NS_STYLE_BG_Y_POSITION_PERCENT & aColor.mBackgroundFlags) {
+    double percent = aColor.mBackgroundYPosition.mFloat;
+    aAnchorPoint->y = NSToCoordRound(percent*aOriginBounds.height);
+    aTopLeft->y = NSToCoordRound(percent*(aOriginBounds.height - aImageSize.height));
   }
   else {
-    y = 0;
+    aTopLeft->y = aAnchorPoint->y = 0;
   }
-  y += aOriginBounds.y - aClipBounds.y;
-  if (NS_STYLE_BG_REPEAT_Y & aColor.mBackgroundRepeat) {
-    
-    
-    
-    
-    if (y < 0) {
-      y = -y;
-      if (y < 0) {
-        
-        y = 0;
-      }
-      y %= aTileHeight;
-      y = -y;
-    }
-    else if (y != 0) {
-      y %= aTileHeight;
-      if (y > 0) {
-        y = y - aTileHeight;
-      }
-    }
-    
-    NS_POSTCONDITION((y >= -(aTileHeight - 1)) && (y <= 0), "bad computed anchor value");
-  }
-  aResult.y = y;
 }
 
 const nsStyleBackground*
@@ -1265,84 +1210,6 @@ nsCSSRendering::PaintBackground(nsPresContext* aPresContext,
                         *border, aUsePrintSettings, aBGClipRect);
 }
 
-inline nscoord IntDivFloor(nscoord aDividend, nscoord aDivisor)
-{
-  NS_PRECONDITION(aDivisor > 0,
-                  "this function only works for positive divisors");
-  
-  
-  
-  
-  return (aDividend < 0 ? (aDividend - aDivisor + 1) : aDividend) / aDivisor;
-}
-
-inline nscoord IntDivCeil(nscoord aDividend, nscoord aDivisor)
-{
-  NS_PRECONDITION(aDivisor > 0,
-                  "this function only works for positive divisors");
-  
-  
-  
-  
-  return (aDividend > 0 ? (aDividend + aDivisor - 1) : aDividend) / aDivisor;
-}
-
-
-
-
-
-static nscoord
-FindTileStart(nscoord aDirtyStart, nscoord aTileOffset, nscoord aTileSize)
-{
-  
-  return aTileOffset +
-         IntDivFloor(aDirtyStart - aTileOffset, aTileSize) * aTileSize;
-}
-
-
-
-
-
-static nscoord
-FindTileEnd(nscoord aDirtyEnd, nscoord aTileOffset, nscoord aTileSize)
-{
-  
-  return aTileOffset +
-         IntDivCeil(aDirtyEnd - aTileOffset, aTileSize) * aTileSize;
-}
-
-static void
-PixelSnapRectangle(gfxContext* aContext, nsIDeviceContext *aDC, nsRect& aRect)
-{
-  gfxRect tmpRect;
-  tmpRect.pos.x = aDC->AppUnitsToGfxUnits(aRect.x);
-  tmpRect.pos.y = aDC->AppUnitsToGfxUnits(aRect.y);
-  tmpRect.size.width = aDC->AppUnitsToGfxUnits(aRect.width);
-  tmpRect.size.height = aDC->AppUnitsToGfxUnits(aRect.height);
-  if (aContext->UserToDevicePixelSnapped(tmpRect)) {
-    tmpRect = aContext->DeviceToUser(tmpRect);
-    aRect.x = aDC->GfxUnitsToAppUnits(tmpRect.pos.x);
-    aRect.y = aDC->GfxUnitsToAppUnits(tmpRect.pos.y);
-    aRect.width = aDC->GfxUnitsToAppUnits(tmpRect.XMost()) - aRect.x;
-    aRect.height = aDC->GfxUnitsToAppUnits(tmpRect.YMost()) - aRect.y;
-  }
-}
-
-static void
-PixelSnapPoint(gfxContext* aContext, nsIDeviceContext *aDC, nsPoint& aPoint)
-{
-  gfxRect tmpRect;
-  tmpRect.pos.x = aDC->AppUnitsToGfxUnits(aPoint.x);
-  tmpRect.pos.y = aDC->AppUnitsToGfxUnits(aPoint.y);
-  tmpRect.size.width = 0;
-  tmpRect.size.height = 0;
-  if (aContext->UserToDevicePixelSnapped(tmpRect)) {
-    tmpRect = aContext->DeviceToUser(tmpRect);
-    aPoint.x = aDC->GfxUnitsToAppUnits(tmpRect.pos.x);
-    aPoint.y = aDC->GfxUnitsToAppUnits(tmpRect.pos.y);
-  }
-}
-
 static PRBool
 IsSolidBorderEdge(const nsStyleBorder& aBorder, PRUint32 aSide)
 {
@@ -1422,6 +1289,7 @@ nsCSSRendering::PaintBackgroundWithSC(nsPresContext* aPresContext,
     }
   }
 
+  
   nsRect bgClipArea;
   if (aBGClipRect) {
     bgClipArea = *aBGClipRect;
@@ -1439,13 +1307,7 @@ nsCSSRendering::PaintBackgroundWithSC(nsPresContext* aPresContext,
     }
   }
 
-  nsIDeviceContext *dc = aPresContext->DeviceContext();
   gfxContext *ctx = aRenderingContext.ThebesContext();
-
-  
-  
-  
-  PixelSnapRectangle(ctx, dc, bgClipArea);
 
   
   
@@ -1490,56 +1352,53 @@ nsCSSRendering::PaintBackgroundWithSC(nsPresContext* aPresContext,
 
   req = nsnull;
 
-  nsRect bgOriginArea;
+  
+  nsRect bgOriginRect;
 
   nsIAtom* frameType = aForFrame->GetType();
+  nsIFrame* geometryFrame = aForFrame;
   if (frameType == nsGkAtoms::inlineFrame ||
       frameType == nsGkAtoms::positionedInlineFrame) {
     switch (aColor.mBackgroundInlinePolicy) {
     case NS_STYLE_BG_INLINE_POLICY_EACH_BOX:
-      bgOriginArea = aBorderArea;
+      bgOriginRect = nsRect(nsPoint(0,0), aBorderArea.Size());
       break;
     case NS_STYLE_BG_INLINE_POLICY_BOUNDING_BOX:
-      bgOriginArea = gInlineBGData->GetBoundingRect(aForFrame) +
-                     aBorderArea.TopLeft();
+      bgOriginRect = gInlineBGData->GetBoundingRect(aForFrame);
       break;
     default:
       NS_ERROR("Unknown background-inline-policy value!  "
                "Please, teach me what to do.");
     case NS_STYLE_BG_INLINE_POLICY_CONTINUOUS:
-      bgOriginArea = gInlineBGData->GetContinuousRect(aForFrame) +
-                     aBorderArea.TopLeft();
+      bgOriginRect = gInlineBGData->GetContinuousRect(aForFrame);
       break;
     }
-  }
-  else {
-    bgOriginArea = aBorderArea;
+  } else if (frameType == nsGkAtoms::canvasFrame) {
+    geometryFrame = aForFrame->GetFirstChild(nsnull);
+    NS_ASSERTION(geometryFrame, "A canvas with a background "
+      "image had no child frame, which is impossible according to CSS. "
+      "Make sure there isn't a background image specified on the "
+      "|:viewport| pseudo-element in |html.css|.");
+    bgOriginRect = geometryFrame->GetRect();
+  } else {
+    bgOriginRect = nsRect(nsPoint(0,0), aBorderArea.Size());
   }
 
   
   
   if (aColor.mBackgroundOrigin != NS_STYLE_BG_ORIGIN_BORDER) {
-    nsMargin border = aForFrame->GetUsedBorder();
-    aForFrame->ApplySkipSides(border);
-    bgOriginArea.Deflate(border);
+    nsMargin border = geometryFrame->GetUsedBorder();
+    geometryFrame->ApplySkipSides(border);
+    bgOriginRect.Deflate(border);
     if (aColor.mBackgroundOrigin != NS_STYLE_BG_ORIGIN_PADDING) {
-      nsMargin padding = aForFrame->GetUsedPadding();
-      aForFrame->ApplySkipSides(padding);
-      bgOriginArea.Deflate(padding);
+      nsMargin padding = geometryFrame->GetUsedPadding();
+      geometryFrame->ApplySkipSides(padding);
+      bgOriginRect.Deflate(padding);
       NS_ASSERTION(aColor.mBackgroundOrigin == NS_STYLE_BG_ORIGIN_CONTENT,
                    "unknown background-origin value");
     }
   }
 
-  
-  
-  PixelSnapRectangle(ctx, dc, bgOriginArea);
-
-  
-  
-  
-  nscoord tileWidth = imageSize.width;
-  nscoord tileHeight = imageSize.height;
   PRBool  needBackgroundColor = NS_GET_A(aColor.mBackgroundColor) > 0;
   PRIntn  repeat = aColor.mBackgroundRepeat;
 
@@ -1582,21 +1441,11 @@ nsCSSRendering::PaintBackgroundWithSC(nsPresContext* aPresContext,
                          aColor, aBorder, canDrawBackgroundColor);
   }
 
-  if ((tileWidth == 0) || (tileHeight == 0) || dirtyRect.IsEmpty()) {
-    
-    return;
-  }
-
-  nsPoint borderAreaOriginSnapped = aBorderArea.TopLeft();
-  PixelSnapPoint(ctx, dc, borderAreaOriginSnapped);
-
   
   
   
   
-
-  
-  nsPoint anchor;
+  nsPoint imageTopLeft, anchor;
   if (NS_STYLE_BG_ATTACHMENT_FIXED == aColor.mBackgroundAttachment) {
     
     
@@ -1618,7 +1467,7 @@ nsCSSRendering::PaintBackgroundWithSC(nsPresContext* aPresContext,
       
     }
 
-    nsRect viewportArea = topFrame->GetRect();
+    nsRect viewportArea(nsPoint(0, 0), topFrame->GetSize());
 
     if (!pageContentFrame) {
       
@@ -1631,69 +1480,29 @@ nsCSSRendering::PaintBackgroundWithSC(nsPresContext* aPresContext,
     }
      
     
-    ComputeBackgroundAnchorPoint(aColor, viewportArea, viewportArea, tileWidth, tileHeight, anchor);
+    ComputeBackgroundAnchorPoint(aColor, viewportArea.Size(), imageSize,
+                                 &imageTopLeft, &anchor);
 
     
     
-    anchor -= aForFrame->GetOffsetTo(topFrame);
+    nsPoint offset = viewportArea.TopLeft() - aForFrame->GetOffsetTo(topFrame);
+    imageTopLeft += offset;
+    anchor += offset;
   } else {
-    if (frameType == nsGkAtoms::canvasFrame) {
-      
-      
-      nsRect firstRootElementFrameArea;
-      nsIFrame* firstRootElementFrame = aForFrame->GetFirstChild(nsnull);
-      NS_ASSERTION(firstRootElementFrame, "A canvas with a background "
-        "image had no child frame, which is impossible according to CSS. "
-        "Make sure there isn't a background image specified on the "
-        "|:viewport| pseudo-element in |html.css|.");
-
-      
-      if (firstRootElementFrame) {
-        firstRootElementFrameArea = firstRootElementFrame->GetRect();
-
-        
-        const nsStyleBorder* borderStyle = firstRootElementFrame->GetStyleBorder();
-        firstRootElementFrameArea.Deflate(borderStyle->GetActualBorder());
-
-        
-        ComputeBackgroundAnchorPoint(aColor, firstRootElementFrameArea +
-            aBorderArea.TopLeft(), bgClipArea, tileWidth, tileHeight, anchor);
-      } else {
-        ComputeBackgroundAnchorPoint(aColor, bgOriginArea, bgClipArea, tileWidth, tileHeight, anchor);
-      }
-    } else {
-      
-      
-      ComputeBackgroundAnchorPoint(aColor, bgOriginArea, bgClipArea, tileWidth, tileHeight, anchor);
-    }
-
-    
-    anchor.x += bgClipArea.x - borderAreaOriginSnapped.x;
-    anchor.y += bgClipArea.y - borderAreaOriginSnapped.y;
+    ComputeBackgroundAnchorPoint(aColor, bgOriginRect.Size(), imageSize,
+                                 &imageTopLeft, &anchor);
+    imageTopLeft += bgOriginRect.TopLeft();
+    anchor += bgOriginRect.TopLeft();
   }
 
-  
-  
-  
-  
-  anchor.x = -anchor.x; anchor.y = -anchor.y;
-  PixelSnapPoint(ctx, dc, anchor);
-  anchor.x = -anchor.x; anchor.y = -anchor.y;
-
   ctx->Save();
-
-  nscoord appUnitsPerPixel = aPresContext->DevPixelsToAppUnits(1);
-
-  ctx->NewPath();
-  ctx->Rectangle(RectToGfxRect(dirtyRect, appUnitsPerPixel), PR_TRUE);
-  ctx->Clip();
 
   nscoord borderRadii[8];
   PRBool haveRadius = GetBorderRadiusTwips(aBorder.mBorderRadius,
                                            aForFrame->GetSize().width,
                                            borderRadii);
-
   if (haveRadius) {
+    nscoord appUnitsPerPixel = aPresContext->DevPixelsToAppUnits(1);
     gfxCornerSizes radii;
     ComputePixelRadii(borderRadii, bgClipArea,
                       aForFrame ? aForFrame->GetSkipSides() : 0,
@@ -1706,177 +1515,24 @@ nsCSSRendering::PaintBackgroundWithSC(nsPresContext* aPresContext,
     ctx->NewPath();
     ctx->RoundedRectangle(oRect, radii);
     ctx->Clip();
-  }      
-
-  
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  
-  
-  
-  nsRect tileRect(anchor, nsSize(tileWidth, tileHeight));
-  
-  
-  
-  
-  PRBool useSingleImagePath =
-    tileRect.Contains(bgClipArea - borderAreaOriginSnapped);
-
+  }
+
+  nsRect destArea(imageTopLeft + aBorderArea.TopLeft(), imageSize);
+  nsRect fillArea;
+  fillArea.IntersectRect(destArea, bgClipArea);
   if (repeat & NS_STYLE_BG_REPEAT_X) {
-    
-    
-    
-    nscoord x0 = FindTileStart(dirtyRect.x - borderAreaOriginSnapped.x, anchor.x, tileWidth);
-    nscoord x1 = FindTileEnd(dirtyRect.XMost() - borderAreaOriginSnapped.x, anchor.x, tileWidth);
-    tileRect.x = x0;
-    tileRect.width = x1 - x0;
+    fillArea.x = bgClipArea.x;
+    fillArea.width = bgClipArea.width;
   }
   if (repeat & NS_STYLE_BG_REPEAT_Y) {
-    
-    
-    
-    nscoord y0 = FindTileStart(dirtyRect.y - borderAreaOriginSnapped.y, anchor.y, tileHeight);
-    nscoord y1 = FindTileEnd(dirtyRect.YMost() - borderAreaOriginSnapped.y, anchor.y, tileHeight);
-    tileRect.y = y0;
-    tileRect.height = y1 - y0;
+    fillArea.y = bgClipArea.y;
+    fillArea.height = bgClipArea.height;
   }
 
-  
-  nsRect absTileRect = tileRect + borderAreaOriginSnapped;
-  
-  nsRect drawRect;
-  if (drawRect.IntersectRect(absTileRect, dirtyRect)) {
-    
-    
-    NS_ASSERTION(drawRect.x >= absTileRect.x && drawRect.y >= absTileRect.y,
-                 "Bogus intersection");
-    NS_ASSERTION(drawRect.x < absTileRect.x + tileWidth,
-                 "Bogus x coord for draw rect");
-    NS_ASSERTION(drawRect.y < absTileRect.y + tileHeight,
-                 "Bogus y coord for draw rect");
-    
-    nsRect sourceRect = drawRect - absTileRect.TopLeft();
-    
-    
-    
-    nsRect destRect; 
-    destRect.IntersectRect(absTileRect, bgClipArea);
-    nsRect subimageRect = destRect - borderAreaOriginSnapped - tileRect.TopLeft();
-    if (useSingleImagePath) {
-      NS_ASSERTION(sourceRect.XMost() <= tileWidth && sourceRect.YMost() <= tileHeight,
-                   "We shouldn't need to tile here");
-      
-      
-      nsLayoutUtils::DrawImage(&aRenderingContext, image,
-              destRect, drawRect, &subimageRect);
-    } else {
-      
-      
-      subimageRect.ScaleRoundOutInverse(nsIDeviceContext::AppUnitsPerCSSPixel());
-      aRenderingContext.DrawTile(image, absTileRect.x, absTileRect.y,
-              &drawRect, &subimageRect);
-    }
-  }
+  nsLayoutUtils::DrawImage(&aRenderingContext, image,
+      destArea, fillArea, anchor + aBorderArea.TopLeft(), dirtyRect);
 
   ctx->Restore();
-
 }
 
 static void

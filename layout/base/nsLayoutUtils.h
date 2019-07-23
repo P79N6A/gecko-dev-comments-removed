@@ -807,14 +807,63 @@ public:
 
 
 
-
-
-
   static nsresult DrawImage(nsIRenderingContext* aRenderingContext,
-                            imgIContainer* aImage,
-                            const nsRect& aDestRect,
-                            const nsRect& aDirtyRect,
-                            const nsRect* aSourceRect = nsnull);
+                            imgIContainer*       aImage,
+                            const nsRect&        aDest,
+                            const nsRect&        aFill,
+                            const nsPoint&       aAnchor,
+                            const nsRect&        aDirty);
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+  static nsresult DrawSingleUnscaledImage(nsIRenderingContext* aRenderingContext,
+                                          imgIContainer*       aImage,
+                                          const nsPoint&       aDest,
+                                          const nsRect&        aDirty,
+                                          const nsRect*        aSourceArea = nsnull);
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+  static nsresult DrawSingleImage(nsIRenderingContext* aRenderingContext,
+                                  imgIContainer*       aImage,
+                                  const nsRect&        aDest,
+                                  const nsRect&        aDirty,
+                                  const nsRect*        aSourceArea = nsnull);
+
+  
+
+
+
+
+
+
+  static nsRect GetWholeImageDestination(const nsIntSize& aWholeImageSize,
+                                         const nsRect& aImageSourceArea,
+                                         const nsRect& aDestArea);
 
   
 

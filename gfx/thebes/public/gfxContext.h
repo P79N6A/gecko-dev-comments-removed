@@ -345,6 +345,19 @@ public:
 
 
 
+
+
+
+
+    PRBool UserToDevicePixelSnapped(gfxPoint& pt, PRBool ignoreScale = PR_FALSE) const;
+
+    
+
+
+
+
+
+
     void PixelSnappedRectangleAndSetPattern(const gfxRect& rect, gfxPattern *pattern);
 
     

@@ -39,12 +39,14 @@
 #define nsIImage_h___
 
 #include "nsISupports.h"
-#include "nsIRenderingContext.h"
+#include "nsMargin.h"
 #include "nsRect.h"
-#include "gfxRect.h"
 
 class gfxASurface;
 class gfxPattern;
+class gfxMatrix;
+class gfxRect;
+class gfxContext;
 
 class nsIDeviceContext;
 
@@ -74,8 +76,8 @@ typedef enum {
 
 
 #define NS_IIMAGE_IID \
-{ 0x96d9d7ce, 0xe575, 0x4265, \
-  { 0x85, 0x07, 0x35, 0x55, 0x51, 0x12, 0xa4, 0x30 } }
+  { 0x455fc276, 0x01de, 0x488f, \
+    { 0x9f, 0x8f, 0x19, 0xb8, 0x5a, 0x6b, 0x11, 0x2d } }
 
 
 class nsIImage : public nsISupports
@@ -196,10 +198,23 @@ public:
 
 
 
-  NS_IMETHOD Draw(nsIRenderingContext &aContext,
-                  const gfxRect &aSourceRect,
-                  const gfxRect &aSubimageRect,
-                  const gfxRect &aDestRect) = 0;
+
+
+
+
+
+
+
+
+
+
+
+
+  virtual void Draw(gfxContext*        aContext,
+                    const gfxMatrix&   aUserSpaceToImageSpace,
+                    const gfxRect&     aFill,
+                    const nsIntMargin& aPadding,
+                    const nsIntRect&   aSubimage) = 0;
 
   
 

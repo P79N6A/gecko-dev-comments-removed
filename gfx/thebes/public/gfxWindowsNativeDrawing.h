@@ -88,18 +88,6 @@ public:
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
     gfxWindowsNativeDrawing(gfxContext *ctx,
                             const gfxRect& nativeRect,
                             PRUint32 nativeDrawFlags = CANNOT_DRAW_TO_COLOR_ALPHA |

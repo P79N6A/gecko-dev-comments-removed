@@ -3371,18 +3371,18 @@ nsTreeBodyFrame::PaintTwisty(PRInt32              aRowIndex,
       PRBool useImageRegion = PR_TRUE;
       GetImage(aRowIndex, aColumn, PR_TRUE, twistyContext, useImageRegion, getter_AddRefs(image));
       if (image) {
-        nsRect r(twistyRect.x, twistyRect.y, imageSize.width, imageSize.height);
+        nsPoint pt = twistyRect.TopLeft();
 
         
         if (imageSize.height < twistyRect.height) {
-          r.y += (twistyRect.height - imageSize.height)/2;
+          pt.y += (twistyRect.height - imageSize.height)/2;
         }
           
         
-        nsLayoutUtils::DrawImage(&aRenderingContext, image,
-                                 r, aDirtyRect, &imageSize);
+        nsLayoutUtils::DrawSingleUnscaledImage(&aRenderingContext, image,
+            pt, aDirtyRect, &imageSize);
       }
-    }        
+    }
   }
 }
 
@@ -3498,14 +3498,15 @@ nsTreeBodyFrame::PaintImage(PRInt32              aRowIndex,
     
     
     
-    
-    
-    
-    nsRect clip;
-    clip.IntersectRect(aDirtyRect, destRect);
+    nsIntSize rawImageSize;
+    image->GetWidth(&rawImageSize.width);
+    image->GetHeight(&rawImageSize.height);
+    nsRect wholeImageDest =
+      nsLayoutUtils::GetWholeImageDestination(rawImageSize, sourceRect,
+          nsRect(destRect.TopLeft(), imageDestSize));
+
     nsLayoutUtils::DrawImage(&aRenderingContext, image,
-                             nsRect(destRect.TopLeft(), imageDestSize),
-                             clip, &sourceRect);
+        wholeImageDest, destRect, destRect.TopLeft(), aDirtyRect);
   }
 
   
@@ -3653,19 +3654,19 @@ nsTreeBodyFrame::PaintCheckbox(PRInt32              aRowIndex,
   PRBool useImageRegion = PR_TRUE;
   GetImage(aRowIndex, aColumn, PR_TRUE, checkboxContext, useImageRegion, getter_AddRefs(image));
   if (image) {
-    nsRect r(checkboxRect.x, checkboxRect.y, imageSize.width, imageSize.height);
+    nsPoint pt = checkboxRect.TopLeft();
           
     if (imageSize.height < checkboxRect.height) {
-      r.y += (checkboxRect.height - imageSize.height)/2;
+      pt.y += (checkboxRect.height - imageSize.height)/2;
     }
 
     if (imageSize.width < checkboxRect.width) {
-      r.x += (checkboxRect.width - imageSize.width)/2;
+      pt.x += (checkboxRect.width - imageSize.width)/2;
     }
 
     
-    nsLayoutUtils::DrawImage(&aRenderingContext, image,
-                             r, aDirtyRect, &imageSize);
+    nsLayoutUtils::DrawSingleUnscaledImage(&aRenderingContext, image,
+        pt, aDirtyRect, &imageSize);
   }
 }
 
@@ -3719,10 +3720,17 @@ nsTreeBodyFrame::PaintProgressMeter(PRInt32              aRowIndex,
     PRBool useImageRegion = PR_TRUE;
     nsCOMPtr<imgIContainer> image;
     GetImage(aRowIndex, aColumn, PR_TRUE, meterContext, useImageRegion, getter_AddRefs(image));
-    if (image)
-      aRenderingContext.DrawTile(image, 0, 0, &meterRect, nsnull);
-    else
+    if (image) {
+      PRInt32 width, height;
+      image->GetWidth(&width);
+      image->GetHeight(&height);
+      nsSize size(width*nsIDeviceContext::AppUnitsPerCSSPixel(),
+                  height*nsIDeviceContext::AppUnitsPerCSSPixel());
+      nsLayoutUtils::DrawImage(&aRenderingContext, image,
+          nsRect(meterRect.TopLeft(), size), meterRect, meterRect.TopLeft(), aDirtyRect);
+    } else {
       aRenderingContext.FillRect(meterRect);
+    }
   }
   else if (state == nsITreeView::PROGRESS_UNDETERMINED) {
     
@@ -3731,8 +3739,15 @@ nsTreeBodyFrame::PaintProgressMeter(PRInt32              aRowIndex,
     PRBool useImageRegion = PR_TRUE;
     nsCOMPtr<imgIContainer> image;
     GetImage(aRowIndex, aColumn, PR_TRUE, meterContext, useImageRegion, getter_AddRefs(image));
-    if (image)
-      aRenderingContext.DrawTile(image, 0, 0, &meterRect, nsnull);
+    if (image) {
+      PRInt32 width, height;
+      image->GetWidth(&width);
+      image->GetHeight(&height);
+      nsSize size(width*nsIDeviceContext::AppUnitsPerCSSPixel(),
+                  height*nsIDeviceContext::AppUnitsPerCSSPixel());
+      nsLayoutUtils::DrawImage(&aRenderingContext, image,
+          nsRect(meterRect.TopLeft(), size), meterRect, meterRect.TopLeft(), aDirtyRect);
+    }
   }
 }
 

@@ -99,7 +99,8 @@ typedef enum
 
 
 #define NS_IRENDERING_CONTEXT_IID \
- { 0xa67de6b9, 0xfffa, 0x465c,{0xab, 0xea, 0xd7, 0xb3, 0x94, 0x58, 0x8a, 0x07}}
+{ 0x3a6209e8, 0xd80d, 0x42ab, \
+  { 0xad, 0x6a, 0xb8, 0x83, 0x2f, 0x7f, 0xb0, 0x9f } }
 
 
 
@@ -585,21 +586,6 @@ public:
 
 
   virtual void SetTextRunRTL(PRBool aIsRTL) = 0;
-
-  
-
-
-
-
-
-
-
-
-
-  NS_IMETHOD DrawTile(imgIContainer *aImage,
-                      nscoord aXImageStart, nscoord aYImageStart,
-                      const nsRect * aTargetRect,
-                      const nsIntRect * aSubimageRect) = 0;
 
   
 
