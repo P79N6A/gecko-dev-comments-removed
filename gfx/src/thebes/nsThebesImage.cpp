@@ -538,7 +538,7 @@ nsThebesImage::Draw(nsIRenderingContext &aContext,
 
     pat->SetMatrix(mat);
 
-#if !defined(XP_MACOSX) && !defined(XP_WIN)
+#if !defined(XP_MACOSX) && !defined(XP_WIN) && !defined(XP_OS2)
     
     
     
@@ -551,7 +551,7 @@ nsThebesImage::Draw(nsIRenderingContext &aContext,
         pat->SetFilter(0);
 #endif
 
-#if defined(XP_WIN)
+#if defined(XP_WIN) || defined(XP_OS2)
     
     
     if (xscale != 1.0 || yscale != 1.0)
