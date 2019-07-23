@@ -81,8 +81,6 @@
 #include "nsDOMError.h"
 #include "nsIPrincipal.h"
 #include "nsIScriptSecurityManager.h"
-#include "nsIScrollableView.h"
-#include "nsIView.h"
 #include "nsAttrName.h"
 #include "nsNodeUtils.h"
 
@@ -2731,13 +2729,17 @@ nsHTMLDocument::GetNumFormsSynchronous()
 }
 
 nsresult
-nsHTMLDocument::GetPixelDimensions(nsIPresShell* aShell,
-                                   PRInt32* aWidth,
-                                   PRInt32* aHeight)
+nsHTMLDocument::GetBodySize(PRInt32* aWidth,
+                            PRInt32* aHeight)
 {
   *aWidth = *aHeight = 0;
 
   FlushPendingNotifications(Flush_Layout);
+
+  nsCOMPtr<nsIPresShell> shell = GetPrimaryShell();
+  
+  if (!shell)
+    return NS_OK;
 
   
   
@@ -2748,32 +2750,14 @@ nsHTMLDocument::GetPixelDimensions(nsIPresShell* aShell,
   nsCOMPtr<nsIContent> body = do_QueryInterface(mBodyContent);
 
   
-  nsIFrame* frame = aShell->GetPrimaryFrameFor(body);
-  if (frame) {
-    nsSize                    size;
-    nsIView* view = frame->GetView();
+  nsIFrame* frame = shell->GetPrimaryFrameFor(body);
+  if (!frame)
+    return NS_OK;
+  
+  nsSize size = frame->GetSize();
 
-    
-    
-    if (view) {
-      nsIScrollableView* scrollableView = view->ToScrollableView();
-
-      if (scrollableView) {
-        scrollableView->GetScrolledView(view);
-      }
-
-      nsRect r = view->GetBounds();
-      size.height = r.height;
-      size.width = r.width;
-    }
-    
-    else {
-      size = frame->GetSize();
-    }
-
-    *aWidth = nsPresContext::AppUnitsToIntCSSPixels(size.width);
-    *aHeight = nsPresContext::AppUnitsToIntCSSPixels(size.height);
-  }
+  *aWidth = nsPresContext::AppUnitsToIntCSSPixels(size.width);
+  *aHeight = nsPresContext::AppUnitsToIntCSSPixels(size.height);
 
   return NS_OK;
 }
@@ -2782,44 +2766,18 @@ NS_IMETHODIMP
 nsHTMLDocument::GetWidth(PRInt32* aWidth)
 {
   NS_ENSURE_ARG_POINTER(aWidth);
-  *aWidth = 0;
 
-  
-  
-  
-  
-  nsCOMPtr<nsIPresShell> shell = GetPrimaryShell();
-  if (!shell) {
-    return NS_OK;
-  }
-
-  PRInt32 dummy;
-
-  
-  
-  return GetPixelDimensions(shell, aWidth, &dummy);
+  PRInt32 height;
+  return GetBodySize(aWidth, &height);
 }
 
 NS_IMETHODIMP
 nsHTMLDocument::GetHeight(PRInt32* aHeight)
 {
   NS_ENSURE_ARG_POINTER(aHeight);
-  *aHeight = 0;
 
-  
-  
-  
-  
-  nsCOMPtr<nsIPresShell> shell = GetPrimaryShell();
-  if (!shell) {
-    return NS_OK;
-  }
-
-  PRInt32 dummy;
-
-  
-  
-  return GetPixelDimensions(shell, &dummy, aHeight);
+  PRInt32 width;
+  return GetBodySize(&width, aHeight);
 }
 
 NS_IMETHODIMP
