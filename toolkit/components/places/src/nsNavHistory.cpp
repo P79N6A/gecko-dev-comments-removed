@@ -89,7 +89,7 @@ using namespace mozilla::places;
 
 
 
-#define RECENT_EVENT_THRESHOLD ((PRInt64)15 * 60 * PR_USEC_PER_SEC)
+#define RECENT_EVENT_THRESHOLD PRTime((PRInt64)15 * 60 * PR_USEC_PER_SEC)
 
 
 
