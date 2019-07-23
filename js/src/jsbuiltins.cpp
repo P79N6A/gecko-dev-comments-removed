@@ -157,6 +157,12 @@ js_Math_floor(jsdouble d)
 }
 
 jsdouble FASTCALL
+js_Math_ceil(jsdouble d)
+{
+    return ceil(d);
+}
+
+jsdouble FASTCALL
 js_Math_pow(jsdouble d, jsdouble p)
 {
 #ifdef NOTYET
@@ -528,22 +534,6 @@ js_AddProperty(JSContext* cx, JSObject* obj, JSScopeProperty* sprop)
     js_FreeSlot(cx, obj, slot);
     JS_UNLOCK_SCOPE(cx, scope);
     return false;
-}
-
-bool FASTCALL
-js_HasNamedProperty(JSContext* cx, JSObject* obj, JSString* idstr)
-{
-    jsid id;
-    if (!js_ValueToStringId(cx, STRING_TO_JSVAL(idstr), &id))
-        return JSVAL_ERROR_COOKIE;
-
-    JSObject* obj2;
-    JSProperty* prop;
-    if (!OBJ_LOOKUP_PROPERTY(cx, obj, id, &obj2, &prop))
-        return JSVAL_TO_BOOLEAN(JSVAL_VOID);
-    if (prop)
-        OBJ_DROP_PROPERTY(cx, obj2, prop);
-    return prop != NULL;
 }
 
 jsval FASTCALL
