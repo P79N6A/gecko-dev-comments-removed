@@ -1394,13 +1394,7 @@ out:
             hook(cx, &frame, JS_FALSE, &ok, hookData);
     }
 
-    
-    if (frame.callobj)
-        ok &= js_PutCallObject(cx, &frame);
-
-    
-    if (frame.argsobj)
-        ok &= js_PutArgsObject(cx, &frame);
+    ok &= frame.putActivationObjects(cx);
 
     *vp = frame.rval;
 
@@ -3282,11 +3276,7 @@ js_Interpret(JSContext *cx)
 
 
 
-                if (fp->callobj)
-                    ok &= js_PutCallObject(cx, fp);
-
-                if (fp->argsobj)
-                    ok &= js_PutArgsObject(cx, fp);
+                ok &= fp->putActivationObjects(cx);
 
 #ifdef INCLUDE_MOZILLA_DTRACE
                 
