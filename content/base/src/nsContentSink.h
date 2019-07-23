@@ -173,6 +173,8 @@ protected:
                     PRBool aExplicit);
   void ProcessOfflineManifest(nsIContent *aElement);
 
+  
+  
   void ScrollToRef();
   nsresult RefreshIfEnabled(nsIViewManager* vm);
 
@@ -209,8 +211,6 @@ protected:
   virtual void PostEvaluateScript(nsIScriptElement *aElement) {return;}
 
   virtual nsresult FlushTags() = 0;
-
-  void TryToScrollToRef();
 
   
   

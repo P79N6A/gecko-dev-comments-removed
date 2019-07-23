@@ -104,8 +104,8 @@ typedef PRUint32 nsFrameState;
 
 
 #define NS_IPRESSHELL_IID \
-{ 0xff2bdd39, 0x75ed, 0x4392, \
-  { 0x92, 0xb8, 0x8b, 0x65, 0x0c, 0x4d, 0xb5, 0x74 } }
+{ 0x228a7d67, 0x811b, 0x4d75, \
+  { 0x85, 0xc0, 0x1e, 0xe2, 0x2c, 0x0d, 0x2a, 0xf0 } }
 
 
 #define NS_PRESSHELL_SCROLL_TOP      0
@@ -428,6 +428,16 @@ public:
 
 
   NS_IMETHOD GoToAnchor(const nsAString& aAnchorName, PRBool aScroll) = 0;
+
+  
+
+
+
+
+
+
+
+  NS_IMETHOD ScrollToAnchor() = 0;
 
   
 
