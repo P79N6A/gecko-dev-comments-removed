@@ -74,7 +74,7 @@ nsImageLoader::~nsImageLoader()
   mPresContext = nsnull;
 
   if (mRequest) {
-    mRequest->CancelAndForgetObserver(NS_ERROR_FAILURE);
+    mRequest->Cancel(NS_ERROR_FAILURE);
   }
 }
 
@@ -95,7 +95,7 @@ nsImageLoader::Destroy()
   mPresContext = nsnull;
 
   if (mRequest) {
-    mRequest->CancelAndForgetObserver(NS_ERROR_FAILURE);
+    mRequest->Cancel(NS_ERROR_FAILURE);
   }
 
   mRequest = nsnull;
@@ -122,7 +122,7 @@ nsImageLoader::Load(imgIRequest *aImage)
     }
 
     
-    mRequest->CancelAndForgetObserver(NS_ERROR_FAILURE);
+    mRequest->Cancel(NS_ERROR_FAILURE);
     mRequest = nsnull;
   }
 
