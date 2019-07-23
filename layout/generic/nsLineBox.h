@@ -456,6 +456,15 @@ public:
   }
 
   
+  
+  
+  
+  PRBool ContainsAfter(nsIFrame* aFrameInLine,
+                       nsIFrame* aFrameToFind,
+                       nsLineList_iterator aLineIter,
+                       const nsLineList_iterator& aEndLines) const;
+  
+  
   PRBool IsEmpty() const;
 
   
