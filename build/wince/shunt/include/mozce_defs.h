@@ -589,9 +589,20 @@ struct color{
 	double Alpha;
 };
 
+#ifndef SEE_MASK_FLAG_DDEWAIT
+#define SEE_MASK_FLAG_DDEWAIT	0
+#endif
+
+#ifndef SEE_MASK_INVOKEIDLIST
+#define SEE_MASK_INVOKEIDLIST	0
+#endif
+
+
 
 
 #define LPRASPBDLG void*
 #define LPRASDIALDLG void*
+
+
 
 #endif
