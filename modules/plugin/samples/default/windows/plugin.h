@@ -65,7 +65,6 @@ public:
 
   
   BOOL m_bOnline;
-  BOOL m_bJava;
   BOOL m_bJavaScript;
   BOOL m_bSmartUpdate;
 

@@ -121,8 +121,8 @@ BOOL nsPluginThread::init()
   wrapperNPNFuncs.memfree          = NPN_MemFree;
   wrapperNPNFuncs.memflush         = NPN_MemFlush;
   wrapperNPNFuncs.reloadplugins    = NPN_ReloadPlugins;
-  wrapperNPNFuncs.getJavaEnv       = NPN_GetJavaEnv;
-  wrapperNPNFuncs.getJavaPeer      = NPN_GetJavaPeer;
+  wrapperNPNFuncs.getJavaEnv       = NULL;
+  wrapperNPNFuncs.getJavaPeer      = NULL;
   wrapperNPNFuncs.getvalue         = NPN_GetValue;
   wrapperNPNFuncs.setvalue         = NPN_SetValue;
   wrapperNPNFuncs.invalidaterect   = NPN_InvalidateRect;
