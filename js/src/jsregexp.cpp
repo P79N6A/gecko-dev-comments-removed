@@ -2297,6 +2297,15 @@ js_NewRegExp(JSContext *cx, JSTokenStream *ts,
         re->classList = NULL;
     }
 
+#ifdef JS_TRACER
+    
+
+
+
+
+    if (TRACING_ENABLED(cx))
+        js_CompileRegExpToNative(cx, re, &state);
+#endif
     
     endPC = EmitREBytecode(&state, re, state.treeDepth, re->program, state.result);
     if (!endPC) {
@@ -2310,6 +2319,11 @@ js_NewRegExp(JSContext *cx, JSTokenStream *ts,
 
 
 
+#if 0 
+    
+
+
+
     if ((size_t)(endPC - re->program) != state.progLength + 1) {
         JSRegExp *tmp;
         JS_ASSERT((size_t)(endPC - re->program) < state.progLength + 1);
@@ -2318,22 +2332,11 @@ js_NewRegExp(JSContext *cx, JSTokenStream *ts,
         if (tmp)
             re = tmp;
     }
+#endif    
 
     re->flags = flags;
     re->parenCount = state.parenCount;
     re->source = str;
-
-#ifdef JS_TRACER
-    
-
-
-
-
-
-
-    if (TRACING_ENABLED(cx))
-        js_CompileRegExpToNative(cx, re, &state);
-#endif
 
 out:
     JS_ARENA_RELEASE(&cx->tempPool, mark);
