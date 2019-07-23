@@ -273,7 +273,6 @@ typedef struct JSPropertyCache {
     uint32              nofills;        
     uint32              rofills;        
     uint32              disfills;       
-    uint32              oddfills;       
     uint32              modfills;       
     uint32              brandfills;     
 
@@ -344,10 +343,10 @@ typedef struct JSPropertyCache {
 
 
 extern JS_REQUIRES_STACK void
-js_FillPropertyCache(JSContext *cx, JSObject *obj, jsuword kshape,
+js_FillPropertyCache(JSContext *cx, JSObject *obj,
                      uintN scopeIndex, uintN protoIndex,
                      JSObject *pobj, JSScopeProperty *sprop,
-                     JSPropCacheEntry **entryp);
+                     JSBool cacheByPrevShape, JSPropCacheEntry **entryp);
 
 
 
@@ -465,6 +464,19 @@ extern const uint16 js_PrimitiveTestFlags[];
     (JS_ASSERT(!JSVAL_IS_VOID(thisv)),                                        \
      JSFUN_THISP_TEST(JSFUN_THISP_FLAGS((fun)->flags),                        \
                       js_PrimitiveTestFlags[JSVAL_TAG(thisv) - 1]))
+
+static inline JSObject *
+js_ComputeThisForFrame(JSContext *cx, JSStackFrame *fp)
+{
+    if (fp->flags & JSFRAME_COMPUTED_THIS)
+        return fp->thisp;
+    JSObject* obj = js_ComputeThis(cx, JS_TRUE, fp->argv);
+    if (!obj)
+        return NULL;
+    fp->thisp = obj;
+    fp->flags |= JSFRAME_COMPUTED_THIS;
+    return obj;
+}
 
 
 
