@@ -68,19 +68,23 @@
 
 
 
-#define HZ_STATE_GB		1
-#define HZ_STATE_ASCII	2
-#define HZ_STATE_TILD	3
+#define HZ_STATE_GB     1
+#define HZ_STATE_ASCII  2
+#define HZ_STATE_ODD_BYTE_FLAG 0x80
 #define HZLEAD1 '~'
 #define HZLEAD2 '{'
 #define HZLEAD3 '}'
 #define HZLEAD4 '\n'
+#define HZ_ODD_BYTE_STATE (mHZState & (HZ_STATE_ODD_BYTE_FLAG))
+#define HZ_ENCODING_STATE (mHZState & ~(HZ_STATE_ODD_BYTE_FLAG))
 
 nsHZToUnicode::nsHZToUnicode() : nsBufferDecoderSupport(1)
 {
-  mHZState = HZ_STATE_ASCII;	
+  mHZState = HZ_STATE_ASCII;    
   mRunLength = 0;
+  mOddByte = 0;
 }
+
 
 NS_IMETHODIMP nsHZToUnicode::ConvertNoBuff(
   const char* aSrc, 
@@ -91,114 +95,98 @@ NS_IMETHODIMP nsHZToUnicode::ConvertNoBuff(
   PRInt32 i=0;
   PRInt32 iSrcLength = *aSrcLength;
   PRInt32 iDestlen = 0;
-  PRUint8 ch1, ch2;
-  nsresult res = NS_OK;
   *aSrcLength=0;
-  for (i=0;i<iSrcLength;i++)
-  {
-    if ( iDestlen >= (*aDestLength) )
-    {
+  nsresult res = NS_OK;
+  char oddByte = mOddByte;
+
+  for (i=0; i<iSrcLength; i++) {
+    if (iDestlen >= (*aDestLength)) {
       res = NS_OK_UDEC_MOREOUTPUT;
       break;
     }
-    if ( *aSrc & 0x80 ) 
-    {
-      if (UINT8_IN_RANGE(0x81, aSrc[0], 0xFE) &&
-          UINT8_IN_RANGE(0x40, aSrc[1], 0xFE)) {
-        
-        *aDest = mUtil.GBKCharToUnicode(aSrc[0], aSrc[1]);
+
+    char srcByte = *aSrc++;
+    (*aSrcLength)++;
+    if (!HZ_ODD_BYTE_STATE) {
+      if (srcByte & 0x80 || srcByte == HZLEAD1 || HZ_ENCODING_STATE == HZ_STATE_GB) { 
+        oddByte = srcByte;
+        mHZState |= HZ_STATE_ODD_BYTE_FLAG;
       } else {
-        *aDest = UCS2_NO_MAPPING;
+        *aDest++ = CAST_CHAR_TO_UNICHAR(srcByte);
+        iDestlen++;
       }
-      aSrc += 2;
-      i++;
-      iDestlen++;
-      aDest++;
-      *aSrcLength = i+1;
-      continue;
-    }
-    
-    
-    ch1 = *aSrc;
-    ch2	= *(aSrc+1);
-    if (ch1 == HZLEAD1 )  
-    {
-      switch (ch2)
-      {
-        case HZLEAD2: 
+    } else {
+      if (oddByte & 0x80) { 
+        if (UINT8_IN_RANGE(0x81, oddByte, 0xFE) &&
+            UINT8_IN_RANGE(0x40, srcByte, 0xFE)) {
           
-          
-          mHZState = HZ_STATE_GB;
-          mRunLength = 0;
-          aSrc += 2;
-          i++;
-          break;
-        case HZLEAD3: 
-          
-          
-          mHZState = HZ_STATE_ASCII;
-          aSrc += 2;
-          i++;
-          if (mRunLength == 0) {
-            *aDest = UCS2_NO_MAPPING;
+          *aDest++ = mUtil.GBKCharToUnicode(oddByte, srcByte);
+        } else {
+          *aDest++ = UCS2_NO_MAPPING;
+        }
+        iDestlen++;
+      
+      
+      } else if (oddByte == HZLEAD1) { 
+        switch (srcByte) {
+          case HZLEAD2: 
+            
+            
+            mHZState = HZ_STATE_GB | HZ_ODD_BYTE_STATE;
+            mRunLength = 0;
+            break;
+
+          case HZLEAD3: 
+            
+            
+            mHZState = HZ_STATE_ASCII | HZ_ODD_BYTE_STATE;
+            if (mRunLength == 0) {
+              *aDest++ = UCS2_NO_MAPPING;
+              iDestlen++;
+            }
+            mRunLength = 0;
+            break;
+
+          case HZLEAD1: 
+            
+            *aDest++ = CAST_CHAR_TO_UNICHAR(srcByte);
             iDestlen++;
-            aDest++;
-          }
-          mRunLength = 0;
-          break;
-        case HZLEAD1: 
-          
-          aSrc++;
-          *aDest = CAST_CHAR_TO_UNICHAR(*aSrc);
-          aSrc++;
-          i++;
-          iDestlen++;
-          aDest++;
-          mRunLength++;
-          break;
-        case HZLEAD4:	
-          
-          
-          
-          
-          aSrc++;
-          break;
-        default:
-          
-          aSrc += 2;
-          *aDest = UCS2_NO_MAPPING;
-          iDestlen++;
-          aDest++;
-          break;
-      };
-      continue;
-    }
-    
-    switch (mHZState)
-    {
-      case HZ_STATE_GB:
-        
-        *aDest = mUtil.GBKCharToUnicode(aSrc[0]|0x80, aSrc[1]|0x80);
-        aSrc += 2;
-        i++;
-        iDestlen++;
-        aDest++;
+            mRunLength++;
+            break;
+
+          case HZLEAD4:   
+            
+            
+            
+            
+            
+            
+            
+            break;
+
+          default:
+            
+            
+            *aDest++ = UCS2_NO_MAPPING;
+            iDestlen++;
+            break;
+        }
+      } else if (HZ_ENCODING_STATE == HZ_STATE_GB) {
+        *aDest++ = mUtil.GBKCharToUnicode(oddByte|0x80, srcByte|0x80);
         mRunLength++;
-        break;
-      case HZ_STATE_ASCII:
-      default:
-        
-        
-        *aDest = CAST_CHAR_TO_UNICHAR(*aSrc);
-        aSrc++;
         iDestlen++;
-        aDest++;
-        break;
+      } else {
+        NS_NOTREACHED("2-byte sequence that we don't know how to handle");
+        *aDest++ = UCS2_NO_MAPPING;
+        iDestlen++;
+      }
+      oddByte = 0;
+      mHZState &= ~HZ_STATE_ODD_BYTE_FLAG;
     }
-    *aSrcLength = i+1;
-  }
+  } 
+  mOddByte = HZ_ODD_BYTE_STATE ? oddByte : 0;
   *aDestLength = iDestlen;
-  return NS_OK;
+  return res;
 }
 
 
