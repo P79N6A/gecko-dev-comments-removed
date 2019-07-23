@@ -409,11 +409,11 @@ NS_IMPL_ISUPPORTS5(nsCookieService,
                    nsISupportsWeakReference)
 
 nsCookieService::nsCookieService()
- : mCookieCount(0)
+ : mHostTable(&mDefaultHostTable)
+ , mCookieCount(0)
  , mCookiesPermissions(BEHAVIOR_ACCEPT)
  , mMaxNumberOfCookies(kMaxNumberOfCookies)
  , mMaxCookiesPerHost(kMaxCookiesPerHost)
- , mHostTable(&mDefaultHostTable)
 {
 }
 
@@ -472,6 +472,9 @@ nsCookieService::Init()
 nsresult
 nsCookieService::InitDB()
 {
+  
+  CloseDB();
+
   nsCOMPtr<nsIFile> cookieFile;
   nsresult rv = NS_GetSpecialDirectory(NS_APP_USER_PROFILE_50_DIR, getter_AddRefs(cookieFile));
   if (NS_FAILED(rv)) return rv;
@@ -618,8 +621,21 @@ nsCookieService::CreateTable()
     "expiry INTEGER, lastAccessed INTEGER, isSecure INTEGER, isHttpOnly INTEGER)"));
 }
 
+void
+nsCookieService::CloseDB()
+{
+  
+  
+  mStmtInsert = nsnull;
+  mStmtDelete = nsnull;
+  mStmtUpdate = nsnull;
+  mDBConn = nsnull;
+}
+
 nsCookieService::~nsCookieService()
 {
+  CloseDB();
+
   gCookieService = nsnull;
 }
 
@@ -643,8 +659,7 @@ nsCookieService::Observe(nsISupports     *aSubject,
       }
 
       
-      mDBConn->Close();
-      mDBConn = nsnull;
+      CloseDB();
     }
 
   } else if (!strcmp(aTopic, "profile-do-change")) {
@@ -664,10 +679,7 @@ nsCookieService::Observe(nsISupports     *aSubject,
         NotifyChanged(nsnull, NS_LITERAL_STRING("reload").get());
       }
       
-      mStmtInsert = nsnull;
-      mStmtDelete = nsnull;
-      mStmtUpdate = nsnull;
-      mDBConn = nsnull;
+      CloseDB();
       
     } else if (NS_LITERAL_STRING(NS_PRIVATE_BROWSING_LEAVE).Equals(aData)) {
       
@@ -831,8 +843,9 @@ nsCookieService::RemoveAll()
       
       nsCOMPtr<nsIFile> dbFile;
       mDBConn->GetDatabaseFile(getter_AddRefs(dbFile));
-      mDBConn->Close();
+      CloseDB();
       dbFile->Remove(PR_FALSE);
+
       InitDB();
     }
   }
