@@ -260,7 +260,6 @@ NS_IMETHODIMP nsClipboard::SetNativeClipboardData ( PRInt32 aWhichClipboard )
   IDataObject * dataObj;
   if ( NS_SUCCEEDED(CreateNativeDataObject(mTransferable, &dataObj, NULL)) ) { 
     ::OleSetClipboard(dataObj);
-    ::OleFlushClipboard();
     dataObj->Release();
   } else {
     
