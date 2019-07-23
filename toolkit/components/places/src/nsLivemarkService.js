@@ -78,6 +78,7 @@ const FAV_CONTRACTID = "@mozilla.org/browser/favicon-service;1";
 const LG_CONTRACTID = "@mozilla.org/network/load-group;1";
 const FP_CONTRACTID = "@mozilla.org/feed-processor;1";
 const SEC_CONTRACTID = "@mozilla.org/scriptsecuritymanager;1";
+const IS_CONTRACTID = "@mozilla.org/widget/idleservice;1";
 const SEC_FLAGS = Ci.nsIScriptSecurityManager.DISALLOW_INHERIT_PRINCIPAL;
 
 
@@ -85,6 +86,9 @@ var gExpiration = 3600000;
 
 
 const ERROR_EXPIRATION = 600000;
+
+
+const IDLE_TIMELIMIT = 1800000;
 
 var gIoService = Cc[IO_CONTRACTID].getService(Ci.nsIIOService);
 var gStringBundle;
@@ -130,6 +134,9 @@ function LivemarkService() {
                                   true );
   new G_Alarm(BindToObject(this._fireTimer, this), LIVEMARK_TIMEOUT, 
               true );
+
+  if (IS_CONTRACTID in Cc)
+    this._idleService = Cc[IS_CONTRACTID].getService(Ci.nsIIdleService);
 
   
   this._ans = Cc[AS_CONTRACTID].getService(Ci.nsIAnnotationService);
@@ -220,7 +227,20 @@ LivemarkService.prototype = {
         livemark.locked = false;
         return;
       }
-    } 
+
+      
+      
+      
+      var idleTime = 0;
+      try {
+        idleTime = this._idleService.idleTime;
+      } catch (ex) {  }
+      if (idleTime > IDLE_TIMELIMIT)
+      {
+        livemark.locked = false;
+        return;
+      }
+    }
     catch (ex) {
       
       this.insertLivemarkLoadingItem(this._bms, livemark);
