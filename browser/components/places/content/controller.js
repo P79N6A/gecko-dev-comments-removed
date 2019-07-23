@@ -459,7 +459,7 @@ PlacesController.prototype = {
 
       
       
-      switch(nodeType) {
+      switch (nodeType) {
         case Ci.nsINavHistoryResultNode.RESULT_TYPE_QUERY:
           nodeData["query"] = true;
           if (node.parent) {

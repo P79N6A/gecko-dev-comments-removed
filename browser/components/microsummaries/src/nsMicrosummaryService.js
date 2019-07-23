@@ -1724,7 +1724,7 @@ MicrosummaryResource.prototype = {
     
     
     
-    switch(iid) {
+    switch (iid) {
     case Ci.nsIAuthPrompt:
       return this.authPrompt;
     case Ci.nsIPrompt:

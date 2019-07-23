@@ -137,7 +137,7 @@ BrowserGlue.prototype = {
 
   
   observe: function BG_observe(subject, topic, data) {
-    switch(topic) {
+    switch (topic) {
       case "xpcom-shutdown":
         this._dispose();
         break;
