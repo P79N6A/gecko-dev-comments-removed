@@ -2352,9 +2352,10 @@ EmitPropOp(JSContext *cx, JSParseNode *pn, JSOp op, JSCodeGenerator *cg,
 {
     JSParseNode *pn2, *pndot, *pnup, *pndown;
     ptrdiff_t top;
+
     
-    
-    if (pn->pn_arity == PN_NAME && 
+    if (pn->pn_arity == PN_NAME &&
+        (op == JSOP_GETPROP || op == JSOP_CALLPROP) &&
         (pn->pn_atom == cx->runtime->atomState.protoAtom || 
          pn->pn_atom == cx->runtime->atomState.countAtom ||
          pn->pn_atom == cx->runtime->atomState.parentAtom)) {
