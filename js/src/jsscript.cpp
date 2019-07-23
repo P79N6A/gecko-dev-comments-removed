@@ -1620,19 +1620,11 @@ js_DestroyScript(JSContext *cx, JSScript *script)
 
 
 
-
-
-
-
-
-
-
-
 #ifdef CHECK_SCRIPT_OWNER
     JS_ASSERT_IF(cx->runtime->gcRunning, !script->owner);
 #endif
 
-    if (!cx->runtime->gcRegenShapes) {
+    if (!cx->runtime->gcRunning) {
         JSStackFrame *fp = js_GetTopStackFrame(cx);
 
         if (!(fp && (fp->flags & JSFRAME_EVAL))) {

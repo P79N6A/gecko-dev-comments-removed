@@ -1390,7 +1390,7 @@ namespace nanojit
                     if (label && label->addr) {
                         
                         unionRegisterState(label->regs);
-                        asm_branch(op == LIR_jf, cond, label->addr, false);
+                        asm_branch(op == LIR_jf, cond, label->addr);
                     }
                     else {
                         
@@ -1405,7 +1405,7 @@ namespace nanojit
                             
                             intersectRegisterState(label->regs);
                         }
-                        NIns *branch = asm_branch(op == LIR_jf, cond, 0, false);
+                        NIns *branch = asm_branch(op == LIR_jf, cond, 0);
                         patches.put(branch,to);
                     }
                     break;
@@ -1450,7 +1450,7 @@ namespace nanojit
                     
                     NIns* exit = asm_exit(ins); 
                     LIns* cond = ins->oprnd1();
-                    asm_branch(op == LIR_xf, cond, exit, false);
+                    asm_branch(op == LIR_xf, cond, exit);
                     break;
                 }
                 case LIR_x:
