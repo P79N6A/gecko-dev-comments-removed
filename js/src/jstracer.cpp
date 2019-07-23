@@ -94,7 +94,7 @@ static struct {
 #define AUDIT(x) (stat.x++)
 #else
 #define AUDIT(x) ((void)0)
-#endif 
+#endif DEBUG
 
 #define INS_CONST(c) addName(lir->insImm(c), #c)
 
@@ -102,8 +102,7 @@ using namespace avmplus;
 using namespace nanojit;
 
 static GC gc = GC();
-static avmplus::AvmCore s_core = avmplus::AvmCore();
-static avmplus::AvmCore* core = &s_core;
+static avmplus::AvmCore* core = new (&gc) avmplus::AvmCore();
 
 
 static bool nesting_enabled = getenv("TRACEMONKEY") && strstr(getenv("TRACEMONKEY"), "nesting");
@@ -1288,7 +1287,6 @@ TraceRecorder::closeLoop(Fragmento* fragmento)
     sprintf(label, "%s:%u", cx->fp->script->filename,
             js_PCToLineNumber(cx, cx->fp->script, cx->fp->regs->pc));
     fragmento->labels->add(fragment, sizeof(Fragment), 0, label);
-    free(label);
 #endif
 }
 
@@ -1369,16 +1367,6 @@ void
 nanojit::Assembler::asm_bailout(LIns *guard, Register state)
 {
     
-}
-
-void
-nanojit::Fragment::onDestroy()
-{
-    if (root == this) {
-        delete mergeCounts;
-        delete lirbuf;
-    }
-    delete (TreeInfo *)vmprivate;
 }
 
 void
@@ -1521,7 +1509,7 @@ js_RecordTree(JSContext* cx, JSTraceMonitor* tm, Fragment* f)
     JS_ASSERT(!f->vmprivate);
     
     
-    TreeInfo* ti = new (&gc) TreeInfo(f); 
+    TreeInfo* ti = new TreeInfo(f); 
     f->vmprivate = ti;
 
     
@@ -1812,7 +1800,7 @@ js_InitJIT(JSContext* cx)
 extern void
 js_DestroyJIT(JSContext* cx)
 {
-    JSTraceMonitor* tm = &JS_TRACE_MONITOR(cx);
+    
 #ifdef DEBUG
     printf("recorder: started(%llu), aborted(%llu), completed(%llu), different header(%llu), "
            "trees trashed(%llu), slot promoted(%llu), "
@@ -1823,8 +1811,6 @@ js_DestroyJIT(JSContext* cx)
            "global mismatch(%llu)\n", stat.traceTriggered, stat.sideExitIntoInterpreter,
            stat.typeMapMismatchAtEntry, stat.globalShapeMismatchAtEntry);
 #endif
-    verbose_only(delete tm->fragmento->labels;)
-    delete tm->fragmento;
 }
 
 extern void
@@ -1838,6 +1824,7 @@ js_FlushJITCache(JSContext* cx)
         js_AbortRecording(cx, NULL, "flush cache");
     Fragmento* fragmento = tm->fragmento;
     if (fragmento) {
+        
         fragmento->clearFrags();
 #ifdef DEBUG        
         JS_ASSERT(fragmento->labels);
@@ -1930,7 +1917,8 @@ TraceRecorder::ifop()
         guard(JSSTRING_LENGTH(JSVAL_TO_STRING(v)) == 0,
               lir->ins_eq0(lir->ins2(LIR_and,
                                      lir->insLoadi(get(&v), offsetof(JSString, length)),
-                                     INS_CONST(JSSTRING_LENGTH_MASK))), BRANCH_EXIT);
+                                     INS_CONST(JSSTRING_LENGTH_MASK))),
+              BRANCH_EXIT);
     } else {
         JS_NOT_REACHED("ifop");
     }
@@ -2237,16 +2225,16 @@ TraceRecorder::test_property_cache(JSObject* obj, LIns* obj_ins, JSObject*& obj2
     }
 
     if (obj != globalObj) {
-        if (PCVCAP_TAG(entry->vcap) > 1) {
-            OBJ_DROP_PROPERTY(cx, obj2, prop);
-            ABORT_TRACE("can't (yet) trace multi-level property cache hit");
+        if (PCVCAP_TAG(entry->vcap) <= 1) {
+            LIns* shape_ins = addName(lir->insLoadi(map_ins, offsetof(JSScope, shape)), "shape");
+            guard(true, addName(lir->ins2i(LIR_eq, shape_ins, entry->kshape), "guard(shape)"),
+                  MISMATCH_EXIT);
+        } else {
+            JS_ASSERT(entry->kpc == (jsbytecode*) atom);
+            JS_ASSERT(entry->kshape == jsuword(obj));
         }
 
-        LIns* shape_ins = addName(lir->insLoadi(map_ins, offsetof(JSScope, shape)), "shape");
-        guard(true, addName(lir->ins2i(LIR_eq, shape_ins, entry->kshape), "guard(shape)"),
-                MISMATCH_EXIT);
-
-        if (PCVCAP_TAG(entry->vcap) == 1) {
+        if (PCVCAP_TAG(entry->vcap) >= 1) {
             JS_ASSERT(OBJ_SCOPE(obj2)->shape == PCVCAP_SHAPE(entry->vcap));
 
             LIns* obj2_ins = stobj_get_fslot(obj_ins, JSSLOT_PROTO);
@@ -2257,7 +2245,7 @@ TraceRecorder::test_property_cache(JSObject* obj, LIns* obj_ins, JSObject*& obj2
                 return false;
             }
 
-            shape_ins = addName(lir->insLoadi(map_ins, offsetof(JSScope, shape)), "shape");
+            LIns* shape_ins = addName(lir->insLoadi(map_ins, offsetof(JSScope, shape)), "shape");
             guard(true, addName(lir->ins2i(LIR_eq, shape_ins, PCVCAP_SHAPE(entry->vcap)),
                   "guard(vcap_shape)"), MISMATCH_EXIT);
         }
@@ -3933,32 +3921,22 @@ TraceRecorder::record_JSOP_FORLOCAL()
     if (stateval == JSVAL_ZERO)
         goto done;
 
-    LIns* state_ins; 
-    LIns* cursor_ins;
-
-    state_ins = lir->ins2(LIR_and, stateval_ins, lir->insImmPtr((void*) ~jsval(3)));
-    cursor_ins = lir->insLoadi(state_ins, offsetof(JSNativeEnumerator, cursor));
+    LIns* state_ins = lir->ins2(LIR_and, stateval_ins, lir->insImmPtr((void*) ~jsval(3)));
+    LIns* cursor_ins = lir->insLoadi(state_ins, offsetof(JSNativeEnumerator, cursor));
     guard(false, addName(lir->ins_eq0(cursor_ins), "guard(ne->cursor != 0)"), MISMATCH_EXIT);
 
-    JSNativeEnumerator* ne;
-
-    ne = (JSNativeEnumerator*) (stateval & ~jsval(3));
+    JSNativeEnumerator* ne = (JSNativeEnumerator*) (stateval & ~jsval(3));
     if (ne->cursor == 0)
         goto done;
 
     cursor_ins = lir->ins2i(LIR_sub, cursor_ins, 1);
     lir->insStorei(cursor_ins, state_ins, offsetof(JSNativeEnumerator, cursor));
 
-    LIns* ids_ins; 
-    LIns* id_addr_ins;
-
-    ids_ins = lir->ins2i(LIR_add, state_ins, offsetof(JSNativeEnumerator, ids));
-    id_addr_ins = lir->ins2(LIR_add, ids_ins,
+    LIns* ids_ins = lir->ins2i(LIR_add, state_ins, offsetof(JSNativeEnumerator, ids));
+    LIns* id_addr_ins = lir->ins2(LIR_add, ids_ins,
                                   lir->ins2i(LIR_lsh, cursor_ins, (sizeof(jsid) == 4) ? 2 : 3));
 
-    LIns* id_ins; 
-
-    id_ins = lir->insLoadi(id_addr_ins, 0);
+    LIns* id_ins = lir->insLoadi(id_addr_ins, 0);
     var(GET_SLOTNO(cx->fp->regs->pc), id_ins);
 
     
