@@ -540,11 +540,6 @@ nsHTMLCanvasElement::InvalidateFrameSubrect(const gfxRect& damageRect)
   
   nsIFrame *frame = GetPrimaryFrame();
   if (frame) {
-    
-    
-    
-    nsAutoDisableGetUsedXAssertions noAssert;
-    
     nsRect contentArea(frame->GetContentRect());
     nsIntSize size = GetWidthHeight();
 

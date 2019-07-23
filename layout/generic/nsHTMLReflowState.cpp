@@ -1659,6 +1659,11 @@ nsHTMLReflowState::InitConstraints(nsPresContext* aPresContext,
                                    const nsMargin* aPadding)
 {
   
+  frame->DeleteProperty(nsGkAtoms::usedBorderProperty);
+  frame->DeleteProperty(nsGkAtoms::usedPaddingProperty);
+  frame->DeleteProperty(nsGkAtoms::usedMarginProperty);
+
+  
   
   if (nsnull == parentReflowState) {
     

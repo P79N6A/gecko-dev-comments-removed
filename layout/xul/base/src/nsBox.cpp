@@ -178,6 +178,11 @@ nsBox::BeginLayout(nsBoxLayoutState& aState)
       box->AddStateBits(NS_FRAME_IS_DIRTY);
   }
 
+  
+  
+  DeleteProperty(nsGkAtoms::usedBorderProperty);
+  DeleteProperty(nsGkAtoms::usedPaddingProperty);
+  DeleteProperty(nsGkAtoms::usedMarginProperty);
 
 #ifdef DEBUG_LAYOUT
   PropagateDebug(aState);
