@@ -813,7 +813,7 @@ PlacesTreeView.prototype = {
     return asContainer(this._visibleElements[aRow]).containerOpen;
   },
 
-  isContainerEmpty: function PTV_isContainerOpen(aRow) {
+  isContainerEmpty: function PTV_isContainerEmpty(aRow) {
     this._ensureValidRow(aRow);
     if (!PlacesUtils.nodeIsContainer(this._visibleElements[aRow]))
       throw Cr.NS_ERROR_INVALID_ARG;
