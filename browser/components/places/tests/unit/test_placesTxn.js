@@ -292,23 +292,19 @@ function run_test() {
   do_check_eq(observer._itemAddedIndex, 3);
 
   
-  bmsvc.setKeywordForBookmark(bkmk2Id, "test_keyword");
   var txn5 = ptSvc.removeItem(bkmk2Id);
   txn5.doTransaction();
   do_check_eq(observer._itemRemovedId, bkmk2Id);
   do_check_eq(observer._itemRemovedFolder, root);
   do_check_eq(observer._itemRemovedIndex, 2);
-  do_check_eq(bmsvc.getKeywordForBookmark(bkmk2Id), null);
   txn5.undoTransaction();
   var newbkmk2Id = observer._itemAddedId;
   do_check_eq(observer._itemAddedParent, root);
   do_check_eq(observer._itemAddedIndex, 2);
-  do_check_eq(bmsvc.getKeywordForBookmark(newbkmk2Id), "test_keyword");
   txn5.redoTransaction();
   do_check_eq(observer._itemRemovedId, newbkmk2Id);
   do_check_eq(observer._itemRemovedFolder, root);
   do_check_eq(observer._itemRemovedIndex, 2);
-  do_check_eq(bmsvc.getKeywordForBookmark(newbkmk2Id), null);
   txn5.undoTransaction();
   do_check_eq(observer._itemAddedParent, root);
   do_check_eq(observer._itemAddedIndex, 2);
