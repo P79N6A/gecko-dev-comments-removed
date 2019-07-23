@@ -4915,13 +4915,30 @@ PresShell::RenderDocument(const nsRect& aRect, PRBool aUntrusted,
             nsPresContext::AppUnitsToFloatCSSPixels(aRect.width),
             nsPresContext::AppUnitsToFloatCSSPixels(aRect.height));
   aThebesContext->Save();
-  aThebesContext->Clip(r);
 
-  aThebesContext->PushGroup(NS_GET_A(aBackgroundColor) == 0xff ?
-                            gfxASurface::CONTENT_COLOR :
-                            gfxASurface::CONTENT_COLOR_ALPHA);
+  aThebesContext->NewPath();
+#ifdef MOZ_GFX_MOBILE_OPTIMIZE
+  aThebesContext->Rectangle(r, PR_TRUE);
+#else
+  aThebesContext->Rectangle(r);
+#endif
+  aThebesContext->Clip();
 
-  aThebesContext->Save();
+  
+  
+  
+  PRBool needsGroup = PR_TRUE;
+  if (aThebesContext->CurrentOperator() == gfxContext::OPERATOR_OVER &&
+      NS_GET_A(aBackgroundColor) == 0xff)
+    needsGroup = PR_FALSE;
+
+  if (needsGroup) {
+    aThebesContext->PushGroup(NS_GET_A(aBackgroundColor) == 0xff ?
+                              gfxASurface::CONTENT_COLOR :
+                              gfxASurface::CONTENT_COLOR_ALPHA);
+
+    aThebesContext->Save();
+  }
 
   
   if (NS_GET_A(aBackgroundColor) > 0) {
@@ -4930,6 +4947,7 @@ PresShell::RenderDocument(const nsRect& aRect, PRBool aUntrusted,
     aThebesContext->Paint();
   }
 
+  
   
   
   
@@ -4979,9 +4997,12 @@ PresShell::RenderDocument(const nsRect& aRect, PRBool aUntrusted,
     }
   }
 
-  aThebesContext->Restore();
-  aThebesContext->PopGroupToSource();
-  aThebesContext->Paint();
+  
+  if (needsGroup) {
+    aThebesContext->Restore();
+    aThebesContext->PopGroupToSource();
+    aThebesContext->Paint();
+  }
 
   aThebesContext->Restore();
 
