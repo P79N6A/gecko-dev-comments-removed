@@ -104,7 +104,6 @@
 
 
 #define PREF_BRANCH_BASE                        "browser."
-#define PREF_BROWSER_HISTORY_EXPIRE_DAYS_MIN    "history_expire_days_min"
 #define PREF_BROWSER_HISTORY_EXPIRE_DAYS        "history_expire_days"
 #define PREF_BROWSER_HISTORY_EXPIRE_VISITS      "history_expire_visits"
 #define PREF_AUTOCOMPLETE_ONLY_TYPED            "urlbar.matchOnlyTyped"
@@ -173,7 +172,7 @@
 #define MAX_EXPIRE_RECORDS_ON_IDLE 200
 
 
-#define EXPIRATION_CAP_SITES 40000
+#define EXPIRATION_CAP_VISITS 20000
 
 NS_IMPL_ADDREF(nsNavHistory)
 NS_IMPL_RELEASE(nsNavHistory)
@@ -272,9 +271,8 @@ nsNavHistory* nsNavHistory::gHistoryService;
 nsNavHistory::nsNavHistory() : mNowValid(PR_FALSE),
                                mExpireNowTimer(nsnull),
                                mExpire(this),
-                               mExpireDaysMin(0),
-                               mExpireDaysMax(0),
-                               mExpireSites(0),
+                               mExpireDays(0),
+                               mExpireVisits(0),
                                mAutoCompleteOnlyTyped(PR_FALSE),
                                mBatchLevel(0),
                                mLock(nsnull),
@@ -412,9 +410,8 @@ nsNavHistory::Init()
   nsCOMPtr<nsIPrefBranch2> pbi = do_QueryInterface(mPrefBranch);
   if (pbi) {
     pbi->AddObserver(PREF_AUTOCOMPLETE_ONLY_TYPED, this, PR_FALSE);
-    pbi->AddObserver(PREF_BROWSER_HISTORY_EXPIRE_DAYS_MAX, this, PR_FALSE);
-    pbi->AddObserver(PREF_BROWSER_HISTORY_EXPIRE_DAYS_MIN, this, PR_FALSE);
-    pbi->AddObserver(PREF_BROWSER_HISTORY_EXPIRE_SITES, this, PR_FALSE);
+    pbi->AddObserver(PREF_BROWSER_HISTORY_EXPIRE_DAYS, this, PR_FALSE);
+    pbi->AddObserver(PREF_BROWSER_HISTORY_EXPIRE_VISITS, this, PR_FALSE);
   }
 
   observerService->AddObserver(this, gQuitApplicationMessage, PR_FALSE);
@@ -1420,11 +1417,10 @@ nsNavHistory::LoadPrefs()
   if (! mPrefBranch)
     return NS_OK;
 
-  mPrefBranch->GetIntPref(PREF_BROWSER_HISTORY_EXPIRE_DAYS_MAX, &mExpireDaysMax);
-  mPrefBranch->GetIntPref(PREF_BROWSER_HISTORY_EXPIRE_DAYS_MIN, &mExpireDaysMin);
-  if (NS_FAILED(mPrefBranch->GetIntPref(PREF_BROWSER_HISTORY_EXPIRE_SITES,
-                                        &mExpireSites)))
-    mExpireSites = EXPIRATION_CAP_SITES;
+  mPrefBranch->GetIntPref(PREF_BROWSER_HISTORY_EXPIRE_DAYS, &mExpireDays);
+  if (NS_FAILED(mPrefBranch->GetIntPref(PREF_BROWSER_HISTORY_EXPIRE_VISITS,
+                                        &mExpireVisits)))
+    mExpireVisits = EXPIRATION_CAP_VISITS;
   
   PRBool oldCompleteOnlyTyped = mAutoCompleteOnlyTyped;
   mPrefBranch->GetBoolPref(PREF_AUTOCOMPLETE_ONLY_TYPED,
@@ -1940,6 +1936,7 @@ nsNavHistory::AddVisit(nsIURI* aURI, PRTime aTime, PRInt64 aReferringVisit,
   PRBool newItem = PR_FALSE; 
   if (alreadyVisited) {
     
+
     rv = mDBGetPageVisitStats->GetInt64(0, &pageID);
     NS_ENSURE_SUCCESS(rv, rv);
 
@@ -2603,6 +2600,8 @@ nsNavHistory::GetHistoryDisabled(PRBool *_retval)
   *_retval = IsHistoryDisabled();
   return NS_OK;
 }
+
+
 
 
 
@@ -3521,12 +3520,10 @@ nsNavHistory::Observe(nsISupports *aSubject, const char *aTopic,
     observerService->RemoveObserver(this, gXpcomShutdown);
     observerService->RemoveObserver(this, gQuitApplicationMessage);
   } else if (nsCRT::strcmp(aTopic, "nsPref:changed") == 0) {
-    PRInt32 oldDaysMin = mExpireDaysMin;
-    PRInt32 oldDaysMax = mExpireDaysMax;
-    PRInt32 oldVisits = mExpireSites;
+    PRInt32 oldDays = mExpireDays;
+    PRInt32 oldVisits = mExpireVisits;
     LoadPrefs();
-    if (oldDaysMin != mExpireDaysMin || oldDaysMax != mExpireDaysMax ||
-        oldVisits != mExpireSites)
+    if (oldDays != mExpireDays || oldVisits != mExpireVisits)
       mExpire.OnExpirationChanged();
   }
 

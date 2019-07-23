@@ -203,7 +203,7 @@ public:
     { return mDateFormatter; }
 
   
-  PRBool IsHistoryDisabled() { return mExpireDaysMax == 0; }
+  PRBool IsHistoryDisabled() { return mExpireDays == 0; }
 
   
   mozIStorageStatement* DBGetURLPageInfo() { return mDBGetURLPageInfo; }
@@ -608,9 +608,8 @@ protected:
   static void AutoCompleteTimerCallback(nsITimer* aTimer, void* aClosure);
   void DoneSearching();
 
-  PRInt32 mExpireDaysMin;
-  PRInt32 mExpireDaysMax;
-  PRInt32 mExpireSites;
+  PRInt32 mExpireDays;
+  PRInt32 mExpireVisits;
 
   
   nsresult TokensToQueries(const nsTArray<QueryKeyValuePair>& aTokens,

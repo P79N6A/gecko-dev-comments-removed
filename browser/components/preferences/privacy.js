@@ -73,15 +73,6 @@ var gPrivacyPane = {
 
 
 
-
-
-
-
-
-
-
-
-
   
 
 
@@ -91,7 +82,6 @@ var gPrivacyPane = {
   {
     var pref = document.getElementById("browser.history_expire_days");
     var mirror = document.getElementById("browser.history_expire_days.mirror");
-    var pref_min = document.getElementById("browser.history_expire_days_min");
     var textbox = document.getElementById("historyDays");
     var checkbox = document.getElementById("rememberHistoryDays");
 
@@ -101,6 +91,25 @@ var gPrivacyPane = {
 
     checkbox.checked = (pref.value > 0);
     textbox.disabled = !checkbox.checked;
+
+    
+    textbox.setAttribute("onsynctopreference", "return gPrivacyPane._writeHistoryDaysMirror();");
+    textbox.setAttribute("preference", "browser.history_expire_days.mirror");
+    mirror.updateElements();
+  },
+
+  
+
+
+
+  _writeHistoryDaysMirror: function ()
+  {
+    var pref = document.getElementById("browser.history_expire_days");
+    var textbox = document.getElementById("historyDays");
+    pref.value = textbox.value;
+
+    
+    return undefined;
   },
 
   
@@ -117,19 +126,6 @@ var gPrivacyPane = {
 
     pref.value = checkbox.checked ? mirror.value : 0;
     textbox.disabled = !checkbox.checked;
-  },
-
-  
-
-
-
-
-  onkeyupHistoryDaysText: function ()
-  {
-    var textbox = document.getElementById("historyDays");
-    var checkbox = document.getElementById("rememberHistoryDays");
-    
-    checkbox.checked = textbox.value != 0;
   },
 
   
