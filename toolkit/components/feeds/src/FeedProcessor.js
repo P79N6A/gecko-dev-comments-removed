@@ -45,6 +45,7 @@ const Ci = Components.interfaces;
 const Cc = Components.classes;
 const Cr = Components.results;
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
+Components.utils.import("resource://gre/modules/ISO8601DateUtils.jsm");
 
 const FP_CONTRACTID = "@mozilla.org/feed-processor;1";
 const FP_CLASSID = Components.ID("{26acb1f0-28fc-43bc-867a-a46aabc85dd4}");
@@ -198,98 +199,8 @@ function makePropGetter(key) {
   }
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-const HOURS_TO_MINUTES = 60;
-const MINUTES_TO_SECONDS = 60;
-const SECONDS_TO_MILLISECONDS = 1000;
-const MINUTES_TO_MILLISECONDS = MINUTES_TO_SECONDS * SECONDS_TO_MILLISECONDS;
-const HOURS_TO_MILLISECONDS = HOURS_TO_MINUTES * MINUTES_TO_MILLISECONDS;
 function W3CToIETFDate(dateString) {
-
-  var parts = dateString.match(/(\d\d\d\d)(-(\d\d))?(-(\d\d))?(T(\d\d):(\d\d)(:(\d\d)(\.(\d+))?)?(Z|([+-])(\d\d):(\d\d))?)?/);
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-
-  
-  
-  
-  
-  var date = new Date(parts[1], parts[3] - 1, parts[5], parts[7] || 0,
-                      parts[8] || 0, parts[10] || 0, parts[12] || 0);
-
-  
-  
-  
-  
-  
-  
-  
-  
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-
-  
-  
-  
-
-  
-  var remoteToUTCOffset = 0;
-  if (parts[13] && parts[13] != "Z") {
-    var direction = (parts[14] == "+" ? 1 : -1);
-    if (parts[15])
-      remoteToUTCOffset += direction * parts[15] * HOURS_TO_MILLISECONDS;
-    if (parts[16])
-      remoteToUTCOffset += direction * parts[16] * MINUTES_TO_MILLISECONDS;
-  }
-  remoteToUTCOffset = remoteToUTCOffset * -1; 
-
-  
-  var UTCToLocalOffset = date.getTimezoneOffset() * MINUTES_TO_MILLISECONDS;
-  UTCToLocalOffset = UTCToLocalOffset * -1; 
-  date.setTime(date.getTime() + remoteToUTCOffset + UTCToLocalOffset);
-
+  var date = ISO8601DateUtils.parse(dateString);
   return date.toUTCString();
 }
 
