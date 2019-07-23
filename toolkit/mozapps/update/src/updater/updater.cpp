@@ -56,7 +56,9 @@
 # define W_OK 02
 # define R_OK 04
 # define access _access
+#ifndef WINCE
 # define putenv _putenv
+#endif
 # define snprintf _snprintf
 # define fchmod(a,b)
 
@@ -1244,6 +1246,11 @@ LaunchWinPostProcess(const WCHAR *appExe)
 static void
 LaunchCallbackApp(const NS_tchar *workingDir, int argc, NS_tchar **argv)
 {
+  
+  
+  
+  
+  
   putenv(const_cast<char*>("NO_EM_RESTART="));
   putenv(const_cast<char*>("MOZ_LAUNCHED_CHILD=1"));
 
@@ -1444,6 +1451,8 @@ int NS_main(int argc, NS_tchar **argv)
 
   gSourcePath = argv[1];
 #ifdef WINCE
+  
+  
   gDestPath = argv[3];
 #endif
 

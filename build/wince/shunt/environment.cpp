@@ -36,7 +36,14 @@
 
 
 
+
+
+
+
+#ifndef WINCE_SKIP_SHUNT_INCLUDE
 #include "include/mozce_shunt.h"
+#endif
+#include "include/environment.h"
 #include "time_conversions.h"
 #include <stdlib.h>
 #include "Windows.h"
