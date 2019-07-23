@@ -428,7 +428,7 @@ public:
   
 
 
-  NS_IMETHOD RecreateFramesFor(nsIContent* aContent) = 0;
+  virtual NS_HIDDEN_(nsresult) RecreateFramesFor(nsIContent* aContent) = 0;
 
   void PostRecreateFramesFor(nsIContent* aContent);
   void RestyleForAnimation(nsIContent* aContent);
@@ -455,27 +455,17 @@ public:
 
 
 
-  NS_IMETHOD PostReflowCallback(nsIReflowCallback* aCallback) = 0;
-  NS_IMETHOD CancelReflowCallback(nsIReflowCallback* aCallback) = 0;
+  virtual NS_HIDDEN_(nsresult) PostReflowCallback(nsIReflowCallback* aCallback) = 0;
+  virtual NS_HIDDEN_(void) CancelReflowCallback(nsIReflowCallback* aCallback) = 0;
 
-  NS_IMETHOD ClearFrameRefs(nsIFrame* aFrame) = 0;
-
-  
-
-
-
-  NS_IMETHOD CreateRenderingContext(nsIFrame *aFrame,
-                                    nsIRenderingContext** aContext) = 0;
+  virtual NS_HIDDEN_(void) ClearFrameRefs(nsIFrame* aFrame) = 0;
 
   
 
 
 
-
-
-
-
-  NS_IMETHOD GoToAnchor(const nsAString& aAnchorName, PRBool aScroll) = 0;
+  virtual NS_HIDDEN_(nsresult) CreateRenderingContext(nsIFrame *aFrame,
+                                                      nsIRenderingContext** aContext) = 0;
 
   
 
@@ -485,7 +475,17 @@ public:
 
 
 
-  NS_IMETHOD ScrollToAnchor() = 0;
+  virtual NS_HIDDEN_(nsresult) GoToAnchor(const nsAString& aAnchorName, PRBool aScroll) = 0;
+
+  
+
+
+
+
+
+
+
+  virtual NS_HIDDEN_(nsresult) ScrollToAnchor() = 0;
 
   
 
@@ -516,9 +516,9 @@ public:
 
 
 
-  NS_IMETHOD ScrollContentIntoView(nsIContent* aContent,
-                                   PRIntn      aVPercent,
-                                   PRIntn      aHPercent) = 0;
+  virtual NS_HIDDEN_(nsresult) ScrollContentIntoView(nsIContent* aContent,
+                                                     PRIntn      aVPercent,
+                                                     PRIntn      aHPercent) = 0;
 
   enum {
     SCROLL_FIRST_ANCESTOR_ONLY = 0x01,
@@ -568,19 +568,19 @@ public:
 
 
 
-  NS_IMETHOD SetIgnoreFrameDestruction(PRBool aIgnore) = 0;
+  virtual NS_HIDDEN_(void) SetIgnoreFrameDestruction(PRBool aIgnore) = 0;
 
   
 
 
 
 
-  NS_IMETHOD NotifyDestroyingFrame(nsIFrame* aFrame) = 0;
+  virtual NS_HIDDEN_(void) NotifyDestroyingFrame(nsIFrame* aFrame) = 0;
 
   
 
 
-  NS_IMETHOD GetLinkLocation(nsIDOMNode* aNode, nsAString& aLocation) = 0;
+  virtual NS_HIDDEN_(nsresult) GetLinkLocation(nsIDOMNode* aNode, nsAString& aLocation) = 0;
 
   
 
@@ -663,7 +663,7 @@ public:
 
 
 
-  NS_IMETHOD CaptureHistoryState(nsILayoutHistoryState** aLayoutHistoryState, PRBool aLeavingPage = PR_FALSE) = 0;
+  virtual NS_HIDDEN_(nsresult) CaptureHistoryState(nsILayoutHistoryState** aLayoutHistoryState, PRBool aLeavingPage = PR_FALSE) = 0;
 
   
 
@@ -686,7 +686,7 @@ public:
   
 
 
-  NS_IMETHOD DisableThemeSupport() = 0;
+  virtual NS_HIDDEN_(void) DisableThemeSupport() = 0;
 
   
 
