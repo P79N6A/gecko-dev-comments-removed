@@ -166,6 +166,21 @@ LoginManagerPrompter.prototype = {
     },
 
 
+    __ellipsis : null,
+    get _ellipsis() {
+        if (!this.__ellipsis) {
+            this.__ellipsis = "\u2026";
+            try {
+                var prefSvc = Cc["@mozilla.org/preferences-service;1"].
+                              getService(Ci.nsIPrefBranch);
+                this.__ellipsis = prefSvc.getComplexValue("intl.ellipsis",
+                                      Ci.nsIPrefLocalizedString).data;
+            } catch (e) { }
+        }
+        return this.__ellipsis;
+    },
+
+
     
     get _inPrivateBrowsing() {
       
@@ -641,8 +656,27 @@ LoginManagerPrompter.prototype = {
 
         var brandShortName =
               this._brandBundle.GetStringFromName("brandShortName");
-        var notificationText  = this._getLocalizedString(
-                                        "savePasswordText", [brandShortName]);
+        var displayHost = this._getShortDisplayHost(aLogin.hostname);
+        var notificationText;
+        if (aLogin.username) {
+            
+            
+            
+            
+            var displayUser = aLogin.username;
+            if (displayUser.length > 30) {
+                displayUser = displayUser.substring(0, 30);
+                displayUser += this._ellipsis;
+            }
+            displayUser = displayUser.replace(/['"]/g, "");
+            notificationText  = this._getLocalizedString(
+                                        "saveLoginText",
+                                        [brandShortName, displayUser, displayHost]);
+        } else {
+            notificationText  = this._getLocalizedString(
+                                        "saveLoginTextNoUsername",
+                                        [brandShortName, displayHost]);
+        }
 
         
         
@@ -719,9 +753,28 @@ LoginManagerPrompter.prototype = {
 
         var brandShortName =
                 this._brandBundle.GetStringFromName("brandShortName");
+        var displayHost = this._getShortDisplayHost(aLogin.hostname);
 
-        var dialogText         = this._getLocalizedString(
-                                        "savePasswordText", [brandShortName]);
+        var dialogText;
+        if (aLogin.username) {
+            
+            
+            
+            
+            var displayUser = aLogin.username;
+            if (displayUser.length > 30) {
+                displayUser = displayUser.substring(0, 30);
+                displayUser += this._ellipsis;
+            }
+            displayUser = displayUser.replace(/['"]/g, "");
+            dialogText = this._getLocalizedString(
+                                 "saveLoginText",
+                                 [brandShortName, displayUser, displayHost]);
+        } else {
+            dialogText = this._getLocalizedString(
+                                 "saveLoginTextNoUsername",
+                                 [brandShortName, displayHost]);
+        }
         var dialogTitle        = this._getLocalizedString(
                                         "savePasswordTitle");
         var neverButtonText    = this._getLocalizedString(
@@ -1045,6 +1098,36 @@ LoginManagerPrompter.prototype = {
 
         return hostname;
     },
+
+
+    
+
+
+
+
+
+
+    _getShortDisplayHost: function (aURIString) {
+        var displayHost;
+
+        var eTLDService = Cc["@mozilla.org/network/effective-tld-service;1"].
+                          getService(Ci.nsIEffectiveTLDService);
+        var idnService = Cc["@mozilla.org/network/idn-service;1"].
+                         getService(Ci.nsIIDNService);
+        try {
+            var uri = this._ioService.newURI(aURIString, null, null);
+            var baseDomain = eTLDService.getBaseDomain(uri);
+            displayHost = idnService.convertToDisplayIDN(baseDomain, {});
+        } catch (e) {
+            this.log("_getShortDisplayHost couldn't process " + aURIString);
+        }
+
+        if (!displayHost)
+            displayHost = aURIString;
+
+        return displayHost;
+    },
+
 
     
 
