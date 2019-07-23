@@ -1994,6 +1994,7 @@ JSObject *
 js_NewBlockObject(JSContext *cx)
 {
     JSObject *obj;
+    JSBool ok;
 
     
 
@@ -2001,7 +2002,12 @@ js_NewBlockObject(JSContext *cx)
 
 
     obj = js_NewObject(cx, &js_BlockClass, NULL, NULL);
-    if (!obj || !js_GetMutableScope(cx, obj))
+    if (!obj)
+        return NULL;
+    JS_LOCK_OBJ(cx, obj);
+    ok = js_GetMutableScope(cx, obj) != NULL;
+    JS_UNLOCK_OBJ(cx, obj);
+    if (!ok)
         return NULL;
     OBJ_SET_PROTO(cx, obj, NULL);
     return obj;
