@@ -1914,7 +1914,10 @@ NS_IMETHODIMP nsViewManager::ForceUpdate()
   }
 
   
-  UpdateWidgetsForView(mRootView);
+  if (mRootView) {
+    UpdateWidgetsForView(mRootView);
+  }
+  
   return NS_OK;
 }
 
