@@ -4945,8 +4945,14 @@ TraceRecorder::stringify(jsval& v)
         ci = &js_BooleanOrUndefinedToString_ci;
     } else {
         
-        return NULL;
+
+
+
+
+        JS_ASSERT(JSVAL_IS_NULL(v));
+        return INS_CONSTPTR(cx->runtime->atomState.nullAtom);
     }
+
     v_ins = lir->insCall(ci, args);
     guard(false, lir->ins_eq0(v_ins), OOM_EXIT);
     return v_ins;
@@ -6398,8 +6404,6 @@ TraceRecorder::record_JSOP_ADD()
 
     if (JSVAL_IS_STRING(l) || JSVAL_IS_STRING(r)) {
         LIns* args[] = { stringify(r), stringify(l), cx_ins };
-        if (!args[0] || !args[1])
-            ABORT_TRACE("can't stringify objects");
         LIns* concat = lir->insCall(&js_ConcatStrings_ci, args);
         guard(false, lir->ins_eq0(concat), OOM_EXIT);
         set(&l, concat);
@@ -6707,10 +6711,7 @@ TraceRecorder::functionCall(bool constructing, uintN argc)
             jsval& v = stackval(0 - argc);
             if (!JSVAL_IS_PRIMITIVE(v))
                 return call_imacro(call_imacros.String);
-            LIns *i = stringify(v);
-            if (!i)
-                ABORT_TRACE("can't stringify value");
-            set(&fval, i);
+            set(&fval, stringify(v));
             return true;
         }
     }
