@@ -228,15 +228,17 @@ nsXPConnect::~nsXPConnect()
 
     JSContext *cx = nsnull;
     if (mRuntime) {
+        
+        
+        
+        
+        
         cx = JS_NewContext(mRuntime->GetJSRuntime(), 8192);
     }
 
     XPCPerThreadData::CleanupAllThreads();
     mShuttingDown = JS_TRUE;
     if (cx) {
-        
-        
-        
         JS_BeginRequest(cx);
 
         
