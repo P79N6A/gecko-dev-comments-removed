@@ -5656,9 +5656,9 @@ nsCSSFrameConstructor::CreateAnonymousFrames(nsFrameConstructorState& aState,
       
       ConstructFrame(aState, content, aParentFrame, aChildItems);
     }
-
-    creator->PostCreateFrames();
   }
+
+  creator->PostCreateFrames();
 
   
   if (!aState.mPseudoFrames.IsEmpty()) {
