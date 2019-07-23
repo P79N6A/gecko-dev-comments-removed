@@ -84,6 +84,83 @@ nsTitleBarFrame::Init(nsIContent*      aContent,
   return rv;
 }
 
+class nsDisplayTitleBarRedirector : public nsDisplayWrapList {
+public:
+  nsDisplayTitleBarRedirector(nsIFrame* aFrame, nsDisplayItem* aItem,
+                              nsIFrame* aTargetFrame)
+    : nsDisplayWrapList(aFrame, aItem), mTargetFrame(aTargetFrame) {}
+  nsDisplayTitleBarRedirector(nsIFrame* aFrame, nsDisplayList* aList,
+                              nsIFrame* aTargetFrame)
+    : nsDisplayWrapList(aFrame, aList), mTargetFrame(aTargetFrame) {}
+  virtual nsIFrame* HitTest(nsDisplayListBuilder* aBuilder, nsPoint aPt,
+                            HitTestState* aState);
+  NS_DISPLAY_DECL_NAME("XULTitleBarRedirector")
+private:
+  nsIFrame* mTargetFrame;
+};
+
+nsIFrame* nsDisplayTitleBarRedirector::HitTest(nsDisplayListBuilder* aBuilder,
+                                               nsPoint aPt, HitTestState* aState)
+{
+  nsIFrame* frame = mList.HitTest(aBuilder, aPt, aState);
+  if (!frame)
+    return nsnull;
+
+  
+  
+  
+  
+  
+  
+  
+  nsIFrame* foundframe = frame;
+  while (foundframe && foundframe != mTargetFrame) {
+    nsIContent* content = foundframe->GetContent();
+    if (content) {
+      
+      if (content->GetNameSpaceID() != kNameSpaceID_XUL)
+        return frame;
+
+      nsIAtom* tag = content->Tag();
+      
+      
+      if (tag != nsGkAtoms::box &&
+          tag != nsGkAtoms::hbox &&
+          tag != nsGkAtoms::vbox &&
+          tag != nsGkAtoms::spacer &&
+          tag != nsGkAtoms::toolbar &&
+          tag != nsGkAtoms::toolbaritem &&
+          tag != nsGkAtoms::toolbarspacer &&
+          tag != nsGkAtoms::toolbarspring &&
+          tag != nsGkAtoms::toolbarseparator)
+            return frame;
+    }
+
+    foundframe = foundframe->GetParent();
+  }
+
+  
+  return mTargetFrame;
+}
+
+class nsXULTitleBarWrapper : public nsDisplayWrapper
+{
+public:
+  nsXULTitleBarWrapper(nsIFrame* aTargetFrame)
+      : mTargetFrame(aTargetFrame) {}
+  virtual nsDisplayItem* WrapList(nsDisplayListBuilder* aBuilder,
+                                  nsIFrame* aFrame, nsDisplayList* aList) {
+    return new (aBuilder) nsDisplayTitleBarRedirector(aFrame, aList, mTargetFrame);
+  }
+  virtual nsDisplayItem* WrapItem(nsDisplayListBuilder* aBuilder,
+                                  nsDisplayItem* aItem) {
+    return new (aBuilder) nsDisplayTitleBarRedirector(aItem->GetUnderlyingFrame(),
+                                                      aItem, mTargetFrame);
+  }
+private:
+  nsIFrame* mTargetFrame;
+};
+
 NS_IMETHODIMP
 nsTitleBarFrame::BuildDisplayListForChildren(nsDisplayListBuilder*   aBuilder,
                                              const nsRect&           aDirtyRect,
@@ -91,9 +168,17 @@ nsTitleBarFrame::BuildDisplayListForChildren(nsDisplayListBuilder*   aBuilder,
 {
   
   if (aBuilder->IsForEventDelivery()) {
-    if (!mContent->AttrValueIs(kNameSpaceID_None, nsGkAtoms::allowevents,
+    if (mTrackingMouseMove ||
+        !mContent->AttrValueIs(kNameSpaceID_None, nsGkAtoms::allowevents,
                                nsGkAtoms::_true, eCaseMatters))
       return NS_OK;
+
+   nsDisplayListCollection set;
+   nsresult rv = nsBoxFrame::BuildDisplayListForChildren(aBuilder, aDirtyRect, set);
+   NS_ENSURE_SUCCESS(rv, rv);
+
+   nsXULTitleBarWrapper wrapper(this);
+   return wrapper.WrapLists(aBuilder, this, set, aLists);
   }
   return nsBoxFrame::BuildDisplayListForChildren(aBuilder, aDirtyRect, aLists);
 }
