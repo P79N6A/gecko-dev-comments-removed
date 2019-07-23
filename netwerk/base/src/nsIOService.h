@@ -134,6 +134,12 @@ private:
     PRPackedBool                         mOffline;
     PRPackedBool                         mOfflineForProfileChange;
     PRPackedBool                         mManageOfflineStatus;
+
+    
+    
+    PRPackedBool                         mSettingOffline;
+    PRPackedBool                         mSetOfflineValue;
+
     nsCOMPtr<nsPISocketTransportService> mSocketTransportService;
     nsCOMPtr<nsPIDNSService>             mDNSService;
     nsCOMPtr<nsIProtocolProxyService2>   mProxyService;

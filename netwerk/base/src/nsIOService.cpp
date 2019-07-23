@@ -165,6 +165,8 @@ nsIMemory* nsIOService::gBufferCache = nsnull;
 nsIOService::nsIOService()
     : mOffline(PR_FALSE)
     , mOfflineForProfileChange(PR_FALSE)
+    , mSettingOffline(PR_FALSE)
+    , mSetOfflineValue(PR_FALSE)
     , mManageOfflineStatus(PR_TRUE)
     , mChannelEventSinks(NS_CHANNEL_EVENT_SINK_CATEGORY)
     , mContentSniffers(NS_CONTENT_SNIFFER_CATEGORY)
@@ -615,61 +617,78 @@ nsIOService::GetOffline(PRBool *offline)
 NS_IMETHODIMP
 nsIOService::SetOffline(PRBool offline)
 {
+    
+    
+    
+    
+    mSetOfflineValue = offline;
+    if (mSettingOffline) {
+        return NS_OK;
+    }
+    mSettingOffline = PR_TRUE;
+
     nsCOMPtr<nsIObserverService> observerService =
         do_GetService("@mozilla.org/observer-service;1");
-    
-    nsresult rv;
-    if (offline && !mOffline) {
-        NS_NAMED_LITERAL_STRING(offlineString, NS_IOSERVICE_OFFLINE);
-        mOffline = PR_TRUE; 
 
-        
-        
-        if (observerService)
-            observerService->NotifyObservers(static_cast<nsIIOService *>(this),
-                                             NS_IOSERVICE_GOING_OFFLINE_TOPIC,
-                                             offlineString.get());
+    while (mSetOfflineValue != mOffline) {
+        offline = mSetOfflineValue;
 
-        
-        
-        if (mDNSService) {
-            rv = mDNSService->Shutdown();
-            NS_ASSERTION(NS_SUCCEEDED(rv), "DNS service shutdown failed");
+        nsresult rv;
+        if (offline && !mOffline) {
+            NS_NAMED_LITERAL_STRING(offlineString, NS_IOSERVICE_OFFLINE);
+            mOffline = PR_TRUE; 
+
+            
+            
+            if (observerService)
+                observerService->NotifyObservers(static_cast<nsIIOService *>(this),
+                                                 NS_IOSERVICE_GOING_OFFLINE_TOPIC,
+                                                 offlineString.get());
+
+            
+            
+            if (mDNSService) {
+                rv = mDNSService->Shutdown();
+                NS_ASSERTION(NS_SUCCEEDED(rv), "DNS service shutdown failed");
+            }
+            if (mSocketTransportService) {
+                rv = mSocketTransportService->Shutdown();
+                NS_ASSERTION(NS_SUCCEEDED(rv), "socket transport service shutdown failed");
+            }
+
+            
+            if (observerService)
+                observerService->NotifyObservers(static_cast<nsIIOService *>(this),
+                                                 NS_IOSERVICE_OFFLINE_STATUS_TOPIC,
+                                                 offlineString.get());
         }
-        if (mSocketTransportService) {
-            rv = mSocketTransportService->Shutdown();
-            NS_ASSERTION(NS_SUCCEEDED(rv), "socket transport service shutdown failed");
-        }
+        else if (!offline && mOffline) {
+            
+            if (mDNSService) {
+                rv = mDNSService->Init();
+                NS_ASSERTION(NS_SUCCEEDED(rv), "DNS service init failed");
+            }
+            if (mSocketTransportService) {
+                rv = mSocketTransportService->Init();
+                NS_ASSERTION(NS_SUCCEEDED(rv), "socket transport service init failed");
+            }
+            mOffline = PR_FALSE;    
+                                    
 
-        
-        if (observerService)
-            observerService->NotifyObservers(static_cast<nsIIOService *>(this),
-                                             NS_IOSERVICE_OFFLINE_STATUS_TOPIC,
-                                             offlineString.get());
+            
+            if (mProxyService)
+                mProxyService->ReloadPAC();
+
+            
+            if (observerService)
+                observerService->NotifyObservers(static_cast<nsIIOService *>(this),
+                                                 NS_IOSERVICE_OFFLINE_STATUS_TOPIC,
+                                                 NS_LITERAL_STRING(NS_IOSERVICE_ONLINE).get());
+        }
     }
-    else if (!offline && mOffline) {
-        
-        if (mDNSService) {
-            rv = mDNSService->Init();
-            NS_ASSERTION(NS_SUCCEEDED(rv), "DNS service init failed");
-        }
-        if (mSocketTransportService) {
-            rv = mSocketTransportService->Init();
-            NS_ASSERTION(NS_SUCCEEDED(rv), "socket transport service init failed");
-        }
-        mOffline = PR_FALSE;    
-                                
-         
-        
-        if (mProxyService)
-            mProxyService->ReloadPAC();
- 
-        
-        if (observerService)
-            observerService->NotifyObservers(static_cast<nsIIOService *>(this),
-                                             NS_IOSERVICE_OFFLINE_STATUS_TOPIC,
-                                             NS_LITERAL_STRING(NS_IOSERVICE_ONLINE).get());
-    }
+
+    mSettingOffline = PR_FALSE;
+
     return NS_OK;
 }
 
