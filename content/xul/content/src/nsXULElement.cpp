@@ -151,6 +151,7 @@
 #include "nsXBLBinding.h"
 #include "nsEventDispatcher.h"
 #include "nsPresShellIterator.h"
+#include "mozAutoDocUpdate.h"
 
 
 

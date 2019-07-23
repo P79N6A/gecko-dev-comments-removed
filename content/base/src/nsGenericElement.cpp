@@ -138,6 +138,8 @@
 #include "nsCycleCollectionParticipant.h"
 #include "nsCCUncollectableMarker.h"
 
+#include "mozAutoDocUpdate.h"
+
 #ifdef MOZ_SVG
 PRBool NS_SVG_TestFeature(const nsAString &fstr);
 #endif 
@@ -2043,7 +2045,8 @@ nsGenericElement::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
   NS_PRECONDITION(!IsNativeAnonymous() || aBindingParent == this,
                   "Native anonymous content must have itself as its "
                   "own binding parent");
-  
+  NS_ASSERTION(!nsContentUtils::IsSafeToRunScript(), "Need a script blocker!");
+
   if (!aBindingParent && aParent) {
     aBindingParent = aParent->GetBindingParent();
   }
@@ -2175,6 +2178,7 @@ nsGenericElement::UnbindFromTree(PRBool aDeep, PRBool aNullParent)
   NS_PRECONDITION(aDeep || (!GetCurrentDoc() && !GetBindingParent()),
                   "Shallow unbind won't clear document and binding parent on "
                   "kids!");
+  NS_ASSERTION(!nsContentUtils::IsSafeToRunScript(), "Need a script blocker!");
   
   nsIDocument *document =
     HasFlag(NODE_FORCE_XBL_BINDINGS) ? GetOwnerDoc() : GetCurrentDoc();
@@ -3456,13 +3460,17 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(nsGenericElement)
 
   
   {
-    PRUint32 i;
-    PRUint32 kids = tmp->mAttrsAndChildren.ChildCount();
-    for (i = kids; i > 0; i--) {
+    PRUint32 childCount = tmp->mAttrsAndChildren.ChildCount();
+    if (childCount) {
       
-      
-      tmp->mAttrsAndChildren.ChildAt(i-1)->UnbindFromTree();
-      tmp->mAttrsAndChildren.RemoveChildAt(i-1);    
+      nsAutoScriptBlocker scriptBlocker;
+      while (childCount-- > 0) {
+        
+        
+        
+        tmp->mAttrsAndChildren.ChildAt(childCount)->UnbindFromTree();
+        tmp->mAttrsAndChildren.RemoveChildAt(childCount);
+      }
     }
   }  
 
