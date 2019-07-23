@@ -1483,7 +1483,7 @@ NS_IMETHODIMP nsAccessibilityService::GetAccessible(nsIDOMNode *aNode,
     return InitAccessible(newAcc, aAccessible, nsnull);
   }
 
-  PRBool isHTML = content->IsHTML();
+  PRBool isHTML = content->IsNodeOfType(nsINode::eHTML);
   if (isHTML && content->Tag() == nsAccessibilityAtoms::map) {
     
     

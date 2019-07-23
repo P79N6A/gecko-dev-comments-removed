@@ -1172,7 +1172,8 @@ nsXBLService::LoadBindingDocumentInfo(nsIContent* aBoundElement,
                   ni->Equals(nsGkAtoms::thumb, kNameSpaceID_XUL) ||
                   ((ni->Equals(nsGkAtoms::input) ||
                     ni->Equals(nsGkAtoms::select)) &&
-                   aBoundElement->IsHTML()))) && !aForceSyncLoad) {
+                   aBoundElement->IsNodeOfType(nsINode::eHTML)))) &&
+        !aForceSyncLoad) {
       
       
       

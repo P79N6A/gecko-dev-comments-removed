@@ -2092,7 +2092,7 @@ nsContentUtils::BelongsInForm(nsIDOMHTMLFormElement *aForm,
     }
 
     if (content->Tag() == nsGkAtoms::form &&
-        content->IsHTML()) {
+        content->IsNodeOfType(nsINode::eHTML)) {
       
       
 

@@ -670,7 +670,7 @@ nsIBox::AddCSSPrefSize(nsBoxLayoutState& aState, nsIBox* aBox, nsSize& aSize)
     
     
     
-    if (content && content->IsXUL()) {
+    if (content && content->IsNodeOfType(nsINode::eXUL)) {
         nsAutoString value;
         PRInt32 error;
 

@@ -79,7 +79,7 @@ public:
   
   static nsGenericHTMLElement* FromContent(nsIContent *aContent)
   {
-    if (aContent->IsHTML())
+    if (aContent->IsNodeOfType(eHTML))
       return static_cast<nsGenericHTMLElement*>(aContent);
     return nsnull;
   }

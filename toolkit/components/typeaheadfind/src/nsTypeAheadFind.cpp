@@ -831,7 +831,7 @@ nsTypeAheadFind::RangeStartsInsideLink(nsIDOMRange *aRange,
     
     
 
-    if (startContent->IsHTML()) {
+    if (startContent->IsNodeOfType(nsINode::eHTML)) {
       nsCOMPtr<nsILink> link(do_QueryInterface(startContent));
       if (link) {
         

@@ -294,15 +294,22 @@ public:
     
     eCOMMENT             = 1 << 6,
     
-    eHTML_FORM_CONTROL   = 1 << 7,
+    eHTML                = 1 << 7,
     
+    eHTML_FORM_CONTROL   = 1 << 8,
     
-    eDOCUMENT_FRAGMENT   = 1 << 8,
+    eXUL                 = 1 << 9,
+    
+    eSVG                 = 1 << 10,
+    
+    eDOCUMENT_FRAGMENT   = 1 << 11,
     
 
-    eDATA_NODE           = 1 << 9,
+    eDATA_NODE           = 1 << 12,
     
-    eMEDIA               = 1 << 10
+    eMATHML              = 1 << 13,
+    
+    eMEDIA               = 1 << 14
   };
 
   

@@ -3254,7 +3254,7 @@ nsresult nsPluginInstanceOwner::EnsureCachedAttrParamArrays()
   
   
   PRInt16 start, end, increment;
-  if (mContent->IsHTML() &&
+  if (mContent->IsNodeOfType(nsINode::eHTML) &&
       mContent->IsInHTMLDocument()) {
     
     start = numRealAttrs - 1;

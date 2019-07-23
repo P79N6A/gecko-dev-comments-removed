@@ -899,7 +899,7 @@ nsresult
 nsXBLContentSink::AddAttributes(const PRUnichar** aAtts,
                                 nsIContent* aContent)
 {
-  if (aContent->IsXUL())
+  if (aContent->IsNodeOfType(nsINode::eXUL))
     return NS_OK; 
 
   return nsXMLContentSink::AddAttributes(aAtts, aContent);

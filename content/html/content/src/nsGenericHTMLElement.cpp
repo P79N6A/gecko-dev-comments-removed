@@ -436,8 +436,8 @@ nsGenericHTMLElement::SetClassName(const nsAString& aClassName)
 static PRBool
 IsBody(nsIContent *aContent)
 {
-  return aContent->NodeInfo()->Equals(nsGkAtoms::body) &&
-         aContent->IsHTML();
+  return (aContent->NodeInfo()->Equals(nsGkAtoms::body) &&
+          aContent->IsNodeOfType(nsINode::eHTML));
 }
 
 static PRBool IS_TABLE_CELL(nsIAtom* frameType) {
@@ -752,13 +752,14 @@ nsGenericHTMLElement::GetSpellcheck(PRBool* aSpellcheck)
   *aSpellcheck = PR_FALSE;              
 
   
-  nsIContent* node;
-  for (node = this; node; node = node->GetParent()) {
-    if (node->IsHTML()) {
+  nsINode* node;
+  for (node = this; node; node = node->GetNodeParent()) {
+    if (node->IsNodeOfType(nsINode::eHTML)) {
       static nsIContent::AttrValuesArray strings[] =
         {&nsGkAtoms::_true, &nsGkAtoms::_false, nsnull};
-      switch (node->FindAttrValueIn(kNameSpaceID_None, nsGkAtoms::spellcheck,
-                                    strings, eCaseMatters)) {
+      switch (static_cast<nsIContent*>(node)->
+              FindAttrValueIn(kNameSpaceID_None, nsGkAtoms::spellcheck,
+                              strings, eCaseMatters)) {
         case 0:                         
           *aSpellcheck = PR_TRUE;
           
@@ -905,7 +906,7 @@ nsGenericHTMLElement::FindForm(nsIForm* aCurrentForm)
   while (content != bindingParent && content) {
     
     if (content->Tag() == nsGkAtoms::form &&
-        content->IsHTML()) {
+        content->IsNodeOfType(nsINode::eHTML)) {
 #ifdef DEBUG
       if (!nsContentUtils::IsInSameAnonymousTree(this, content)) {
         
@@ -958,7 +959,7 @@ static PRBool
 IsArea(nsIContent *aContent)
 {
   return (aContent->Tag() == nsGkAtoms::area &&
-          aContent->IsHTML());
+          aContent->IsNodeOfType(nsINode::eHTML));
 }
 
 PRBool
@@ -1210,7 +1211,7 @@ nsGenericHTMLElement::GetBaseTarget(nsAString& aBaseTarget) const
 PRBool
 nsGenericHTMLElement::IsNodeOfType(PRUint32 aFlags) const
 {
-  return !(aFlags & ~(eCONTENT | eELEMENT));
+  return !(aFlags & ~(eCONTENT | eELEMENT | eHTML));
 }
 
 
@@ -2292,7 +2293,7 @@ NS_IMPL_QUERY_INTERFACE_INHERITED1(nsGenericHTMLFormElement,
 PRBool
 nsGenericHTMLFormElement::IsNodeOfType(PRUint32 aFlags) const
 {
-  return !(aFlags & ~(eCONTENT | eELEMENT | eHTML_FORM_CONTROL));
+  return !(aFlags & ~(eCONTENT | eELEMENT | eHTML | eHTML_FORM_CONTROL));
 }
 
 void

@@ -394,7 +394,7 @@ nsSubDocumentFrame::GetIntrinsicWidth()
     return 0;  
   }
 
-  if (mContent->IsXUL()) {
+  if (mContent->IsNodeOfType(nsINode::eXUL)) {
     return 0;  
   }
 
@@ -412,7 +412,7 @@ nsSubDocumentFrame::GetIntrinsicHeight()
   
   NS_ASSERTION(IsInline(), "Shouldn't have been called");
 
-  if (mContent->IsXUL()) {
+  if (mContent->IsNodeOfType(nsINode::eXUL)) {
     return 0;
   }
 
@@ -685,7 +685,7 @@ nsSubDocumentFrame::AttributeChanged(PRInt32 aNameSpaceID,
     if (!mFrameLoader) 
       return NS_OK;
 
-    if (!mContent->IsXUL()) {
+    if (!mContent->IsNodeOfType(nsINode::eXUL)) {
       return NS_OK;
     }
 

@@ -481,7 +481,8 @@ nsXBLPrototypeHandler::DispatchXBLCommand(nsPIDOMEventTarget* aTarget, nsIDOMEve
     
     if (focusedContent && focusedContent->GetParent()) {
       while (content) {
-        if (content->Tag() == nsGkAtoms::a && content->IsHTML()) {
+        if (content->Tag() == nsGkAtoms::a &&
+            content->IsNodeOfType(nsINode::eHTML)) {
           isLink = PR_TRUE;
           break;
         }
