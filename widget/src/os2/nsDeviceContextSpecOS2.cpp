@@ -62,6 +62,7 @@
 #include "nsIFileStreams.h"
 #include "gfxPDFSurface.h"
 #include "gfxOS2Surface.h"
+#include "nsIPrintSettingsService.h"
 
 PRINTDLG nsDeviceContextSpecOS2::PrnDlg;
 
@@ -512,9 +513,15 @@ NS_IMETHODIMP nsDeviceContextSpecOS2::BeginDocument(PRUnichar* aTitle,
 
 NS_IMETHODIMP nsDeviceContextSpecOS2::EndDocument()
 {
+  
+  
   PRInt16 outputFormat;
   mPrintSettings->GetOutputFormat(&outputFormat);
   if (outputFormat != nsIPrintSettings::kOutputFormatNative) {
+    mPrintSettings->SetToFileName(NULL);
+    nsCOMPtr<nsIPrintSettingsService> pss = do_GetService("@mozilla.org/gfx/printsettings-service;1");
+    if (pss)
+      pss->SavePrintSettingsToPrefs(mPrintSettings, PR_TRUE, nsIPrintSettings::kInitSaveToFileName);
     return NS_OK;
   }
 
