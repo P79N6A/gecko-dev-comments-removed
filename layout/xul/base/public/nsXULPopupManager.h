@@ -360,6 +360,8 @@ public:
   
   
   
+  
+  
   static nsMenuFrame* GetPreviousMenuItem(nsIFrame* aParent,
                                           nsMenuFrame* aStart,
                                           PRBool aIsPopup);
@@ -389,9 +391,6 @@ public:
   
   
   void GetMouseLocation(nsIDOMNode** aNode, PRInt32* aOffset);
-  
-  
-  void SetMouseLocation(nsIDOMEvent* aEvent, nsIContent* aPopup);
 
   
 
@@ -408,13 +407,19 @@ public:
 
 
 
+
+
+
+
+
   void ShowPopup(nsIContent* aPopup,
                  nsIContent* aAnchorContent,
                  const nsAString& aPosition,
                  PRInt32 aXPos, PRInt32 aYPos,
                  PRBool aIsContextMenu,
                  PRBool aAttributesOverride,
-                 PRBool aSelectFirstItem);
+                 PRBool aSelectFirstItem,
+                 nsIDOMEvent* aTriggerEvent);
 
   
 
@@ -424,7 +429,8 @@ public:
 
   void ShowPopupAtScreen(nsIContent* aPopup,
                          PRInt32 aXPos, PRInt32 aYPos,
-                         PRBool aIsContextMenu);
+                         PRBool aIsContextMenu,
+                         nsIDOMEvent* aTriggerEvent);
 
   
 
@@ -592,6 +598,17 @@ protected:
 
   
   nsMenuChainItem* GetTopVisibleMenu();
+
+  
+  
+  
+  
+  void HidePopupsInList(const nsTArray<nsMenuPopupFrame *> &aFrames,
+                        PRBool aDeselectMenu);
+
+  
+  
+  void SetTriggerEvent(nsIDOMEvent* aEvent, nsIContent* aPopup);
 
   
   void ShowPopupCallback(nsIContent* aPopup,

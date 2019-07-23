@@ -103,12 +103,6 @@ private:
   nsMenuFrame* mFrame;
 };
 
-
-
-
-
-
-
 class nsMenuFrame : public nsBoxFrame, 
                     public nsIMenuFrame,
                     public nsIScrollableViewProvider
@@ -140,16 +134,17 @@ public:
   NS_IMETHOD SetInitialChildList(nsIAtom*        aListName,
                                  nsIFrame*       aChildList);
   virtual nsIAtom* GetAdditionalChildListName(PRInt32 aIndex) const;
-  virtual void Destroy(); 
+  virtual void Destroy();
 
   
   NS_IMETHOD BuildDisplayListForChildren(nsDisplayListBuilder*   aBuilder,
                                          const nsRect&           aDirtyRect,
                                          const nsDisplayListSet& aLists);
                                          
+  
   NS_IMETHOD HandleEvent(nsPresContext* aPresContext, 
                          nsGUIEvent*     aEvent,
-                         nsEventStatus*  aEventStatus); 
+                         nsEventStatus*  aEventStatus);
 
   NS_IMETHOD  AppendFrames(nsIAtom*        aListName,
                            nsIFrame*       aFrameList);
@@ -163,11 +158,9 @@ public:
 
   virtual nsIAtom* GetType() const { return nsGkAtoms::menuFrame; }
 
-  NS_IMETHOD SelectMenu(PRBool aActivateFlag); 
+  NS_IMETHOD SelectMenu(PRBool aActivateFlag);
 
   
-
-
 
 
   void OpenMenu(PRBool aSelectFirstItem);
@@ -177,8 +170,9 @@ public:
   PRBool IsChecked() { return mChecked; }
 
   NS_IMETHOD GetActiveChild(nsIDOMElement** aResult);
-  NS_IMETHOD SetActiveChild(nsIDOMElement* aChild); 
+  NS_IMETHOD SetActiveChild(nsIDOMElement* aChild);
 
+  
   
   
   
@@ -214,6 +208,7 @@ public:
   
   
   
+  
   void PopupClosed(PRBool aDeselectMenu);
 
   
@@ -236,21 +231,30 @@ protected:
 
   
   
+  nsIFrame* SetPopupFrame(nsIFrame* aChildList);
+
+  
+  
   
   void InitMenuParent(nsIFrame* aParent);
 
-  void UpdateMenuType(nsPresContext* aPresContext); 
-  void UpdateMenuSpecialState(nsPresContext* aPresContext); 
+  
+  
+  void UpdateMenuType(nsPresContext* aPresContext);
+  
+  
+  void UpdateMenuSpecialState(nsPresContext* aPresContext);
 
   
   void BuildAcceleratorText();
 
   
-  void Execute(nsGUIEvent *aEvent); 
+  void Execute(nsGUIEvent *aEvent);
 
+  
   NS_IMETHOD AttributeChanged(PRInt32 aNameSpaceID,
                               nsIAtom* aAttribute,
-                              PRInt32 aModType); 
+                              PRInt32 aModType);
   virtual ~nsMenuFrame();
 
   PRBool SizeToPopup(nsBoxLayoutState& aState, nsSize& aSize);

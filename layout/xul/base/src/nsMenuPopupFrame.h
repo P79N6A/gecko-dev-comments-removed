@@ -206,6 +206,8 @@ public:
   
   
   
+  
+  
   nsMenuFrame* Enter();
 
   nsPopupType PopupType() const { return mPopupType; }

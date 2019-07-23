@@ -216,8 +216,9 @@ nsXULPopupListener::PreLaunchPopup(nsIDOMEvent* aMouseEvent)
 
   
   nsCOMPtr<nsIDOMXULDocument> xulDocument = do_QueryInterface(content->GetDocument());
-  if (!xulDocument)
+  if (!xulDocument) {
     return NS_ERROR_FAILURE;
+  }
 
   
   xulDocument->SetPopupNode(targetNode);
@@ -453,10 +454,6 @@ nsXULPopupListener::LaunchPopup(nsIDOMEvent* aEvent, nsIContent* aTargetContent)
 
   
   
-  pm->SetMouseLocation(aEvent, popup);
-
-  
-  
   
   
   mPopupContent = popup;
@@ -465,7 +462,7 @@ nsXULPopupListener::LaunchPopup(nsIDOMEvent* aEvent, nsIContent* aTargetContent)
        (mPopupContent->HasAttr(kNameSpaceID_None, nsGkAtoms::popupanchor) &&
         mPopupContent->HasAttr(kNameSpaceID_None, nsGkAtoms::popupalign)))) {
     pm->ShowPopup(mPopupContent, content, EmptyString(), 0, 0,
-                  PR_FALSE, PR_TRUE, PR_FALSE);
+                  PR_FALSE, PR_TRUE, PR_FALSE, aEvent);
   }
   else {
     PRInt32 xPos = 0, yPos = 0;
@@ -480,7 +477,7 @@ nsXULPopupListener::LaunchPopup(nsIDOMEvent* aEvent, nsIContent* aTargetContent)
       yPos += 2;
     }
 
-    pm->ShowPopupAtScreen(mPopupContent, xPos, yPos, mIsContext);
+    pm->ShowPopupAtScreen(mPopupContent, xPos, yPos, mIsContext, aEvent);
   }
 
   return NS_OK;

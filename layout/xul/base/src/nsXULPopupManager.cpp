@@ -265,12 +265,11 @@ nsXULPopupManager::GetMouseLocation(nsIDOMNode** aNode, PRInt32* aOffset)
 }
 
 void
-nsXULPopupManager::SetMouseLocation(nsIDOMEvent* aEvent, nsIContent* aPopup)
+nsXULPopupManager::SetTriggerEvent(nsIDOMEvent* aEvent, nsIContent* aPopup)
 {
   mCachedMousePoint = nsPoint(0, 0);
 
   nsCOMPtr<nsIDOMNSUIEvent> uiEvent = do_QueryInterface(aEvent);
-  NS_ASSERTION(!aEvent || uiEvent, "Expected an nsIDOMNSUIEvent");
   if (uiEvent) {
     uiEvent->GetRangeParent(getter_AddRefs(mRangeParent));
     uiEvent->GetRangeOffset(&mRangeOffset);
@@ -349,7 +348,7 @@ nsXULPopupManager::ShowMenu(nsIContent *aMenu,
   popupFrame->InitializePopup(aMenu, position, 0, 0, PR_TRUE);
 
   if (aAsynchronous) {
-    SetMouseLocation(nsnull, nsnull);
+    SetTriggerEvent(nsnull, nsnull);
     nsCOMPtr<nsIRunnable> event =
       new nsXULPopupShowingEvent(popupFrame->GetContent(), aMenu,
                                  parentIsContextMenu, aSelectFirstItem);
@@ -370,11 +369,14 @@ nsXULPopupManager::ShowPopup(nsIContent* aPopup,
                              PRInt32 aXPos, PRInt32 aYPos,
                              PRBool aIsContextMenu,
                              PRBool aAttributesOverride,
-                             PRBool aSelectFirstItem)
+                             PRBool aSelectFirstItem,
+                             nsIDOMEvent* aTriggerEvent)
 {
   nsMenuPopupFrame* popupFrame = GetPopupFrameForContent(aPopup);
   if (!popupFrame || !MayShowPopup(popupFrame))
     return;
+
+  SetTriggerEvent(aTriggerEvent, aPopup);
 
   popupFrame->InitializePopup(aAnchorContent, aPosition, aXPos, aYPos,
                               aAttributesOverride);
@@ -386,11 +388,14 @@ nsXULPopupManager::ShowPopup(nsIContent* aPopup,
 void
 nsXULPopupManager::ShowPopupAtScreen(nsIContent* aPopup,
                                      PRInt32 aXPos, PRInt32 aYPos,
-                                     PRBool aIsContextMenu)
+                                     PRBool aIsContextMenu,
+                                     nsIDOMEvent* aTriggerEvent)
 {
   nsMenuPopupFrame* popupFrame = GetPopupFrameForContent(aPopup);
   if (!popupFrame || !MayShowPopup(popupFrame))
     return;
+
+  SetTriggerEvent(aTriggerEvent, aPopup);
 
   popupFrame->InitializePopupAtScreen(aXPos, aYPos);
 
@@ -409,6 +414,8 @@ nsXULPopupManager::ShowPopupWithAnchorAlign(nsIContent* aPopup,
   nsMenuPopupFrame* popupFrame = GetPopupFrameForContent(aPopup);
   if (!popupFrame || !MayShowPopup(popupFrame))
     return;
+
+  SetTriggerEvent(nsnull, nsnull);
 
   popupFrame->InitializePopupWithAnchorAlign(aAnchorContent, aAnchor,
                                              aAlign, aXPos, aYPos);
@@ -494,9 +501,6 @@ nsXULPopupManager::HidePopup(nsIContent* aPopup,
                              PRBool aDeselectMenu,
                              PRBool aAsynchronous)
 {
-  
-  
-
   
   nsMenuPopupFrame* popupFrame = nsnull;
   PRBool foundPanel = PR_FALSE;
@@ -708,31 +712,66 @@ nsXULPopupManager::HidePopupAfterDelay(nsMenuPopupFrame* aPopup)
 }
 
 void
-nsXULPopupManager::HidePopupsInDocument(nsIDocument* aDocument)
+nsXULPopupManager::HidePopupsInList(const nsTArray<nsMenuPopupFrame *> &aFrames,
+                                    PRBool aDeselectMenu)
 {
-  nsMenuChainItem* item = GetTopVisibleMenu();
-  while (item) {
-    nsMenuChainItem* parent = item->GetParent();
-    if (item->Content()->GetOwnerDoc() == aDocument) {
-      item->Frame()->HidePopup(PR_TRUE, ePopupInvisible);
-      item->Detach(&mCurrentMenu);
-      delete item;
-    }
-    item = parent;
+  
+  
+  
+  nsTArray<nsWeakFrame> weakPopups(aFrames.Length());
+  PRUint32 f;
+  for (f = 0; f < aFrames.Length(); f++) {
+    nsWeakFrame* wframe = weakPopups.AppendElement();
+    if (wframe)
+      *wframe = aFrames[f];
   }
 
-  item = mPanels;
-  while (item) {
-    nsMenuChainItem* parent = item->GetParent();
-    if (item->Content()->GetOwnerDoc() == aDocument) {
-      item->Frame()->HidePopup(PR_TRUE, ePopupInvisible);
-      item->Detach(&mPanels);
-      delete item;
+  for (f = 0; f < weakPopups.Length(); f++) {
+    
+    if (weakPopups[f].IsAlive()) {
+      nsMenuPopupFrame* frame =
+        static_cast<nsMenuPopupFrame *>(weakPopups[f].GetFrame());
+      frame->HidePopup(PR_TRUE, ePopupInvisible);
     }
-    item = parent;
   }
 
   SetCaptureState(nsnull);
+}
+
+void
+nsXULPopupManager::HidePopupsInDocument(nsIDocument* aDocument)
+{
+  nsTArray<nsMenuPopupFrame *> popupsToHide;
+
+  
+  nsMenuChainItem* item = mCurrentMenu;
+  while (item) {
+    nsMenuChainItem* parent = item->GetParent();
+    if (item->Frame()->PopupState() != ePopupInvisible &&
+        aDocument && item->Content()->GetOwnerDoc() == aDocument) {
+      nsMenuPopupFrame* frame = item->Frame();
+      item->Detach(&mCurrentMenu);
+      delete item;
+      popupsToHide.AppendElement(frame);
+    }
+    item = parent;
+  }
+
+  
+  item = mPanels;
+  while (item) {
+    nsMenuChainItem* parent = item->GetParent();
+    if (item->Frame()->PopupState() != ePopupInvisible &&
+        aDocument && item->Content()->GetOwnerDoc() == aDocument) {
+      nsMenuPopupFrame* frame = item->Frame();
+      item->Detach(&mPanels);
+      delete item;
+      popupsToHide.AppendElement(frame);
+    }
+    item = parent;
+  }
+
+  HidePopupsInList(popupsToHide, PR_TRUE);
 }
 
 void
@@ -760,6 +799,7 @@ nsXULPopupManager::ExecuteMenu(nsIContent* aMenu, nsEvent* aEvent)
   
   
   
+  nsTArray<nsMenuPopupFrame *> popupsToHide;
   nsMenuChainItem* item = GetTopVisibleMenu();
   if (cmm != CloseMenuMode_None) {
     while (item) {
@@ -767,14 +807,16 @@ nsXULPopupManager::ExecuteMenu(nsIContent* aMenu, nsEvent* aEvent)
       if (!item->IsMenu())
         break;
       nsMenuChainItem* next = item->GetParent();
-      item->Frame()->HidePopup(cmm == CloseMenuMode_Auto, ePopupInvisible);
+      popupsToHide.AppendElement(item->Frame());
       if (cmm == CloseMenuMode_Single) 
         break;
       item = next;
     }
-  }
 
-  SetCaptureState(nsnull);
+    
+    
+    HidePopupsInList(popupsToHide, cmm == CloseMenuMode_Auto);
+  }
 
   
   
@@ -1102,52 +1144,48 @@ nsXULPopupManager::PopupDestroyed(nsMenuPopupFrame* aPopup)
     item = item->GetParent();
   }
 
-  nsCOMPtr<nsIContent> oldMenu;
-  if (mCurrentMenu)
-    oldMenu = mCurrentMenu->Content();
+  nsTArray<nsMenuPopupFrame *> popupsToHide;
 
-  nsMenuChainItem* menuToDestroy = nsnull;
   item = mCurrentMenu;
   while (item) {
-    if (item->Frame() == aPopup) {
+    nsMenuPopupFrame* frame = item->Frame();
+    if (frame == aPopup) {
+      if (frame->PopupState() != ePopupInvisible) {
+        
+        
+        
+        
+        nsMenuChainItem* child = item->GetChild();
+        while (child) {
+          
+          
+          
+          
+          
+          nsMenuPopupFrame* childframe = child->Frame();
+          if (nsLayoutUtils::IsProperAncestorFrame(frame, childframe)) {
+            popupsToHide.AppendElement(childframe);
+          }
+          else {
+            
+            
+            HidePopup(child->Content(), PR_FALSE, PR_FALSE, PR_TRUE);
+            break;
+          }
+
+          child = child->GetChild();
+        }
+      }
+
       item->Detach(&mCurrentMenu);
-      menuToDestroy = item;
+      delete item;
       break;
     }
+
     item = item->GetParent();
   }
 
-  if (menuToDestroy) {
-    
-    
-    nsIFrame* menuToDestroyFrame = menuToDestroy->Frame();
-    item = menuToDestroy->GetChild();
-    while (item) {
-      nsMenuChainItem* next = item->GetChild();
-
-      
-      
-      
-      
-      
-      if (nsLayoutUtils::IsProperAncestorFrame(menuToDestroyFrame, item->Frame())) {
-        item->Detach(&mCurrentMenu);
-        item->Frame()->HidePopup(PR_FALSE, ePopupInvisible);
-      }
-      else {
-        HidePopup(item->Content(), PR_FALSE, PR_FALSE, PR_TRUE);
-        break;
-      }
-
-      delete item;
-      item = next;
-    }
-
-    delete menuToDestroy;
-  }
-
-  if (oldMenu)
-    SetCaptureState(oldMenu);
+  HidePopupsInList(popupsToHide, PR_FALSE);
 }
 
 PRBool
@@ -1625,13 +1663,13 @@ nsXULPopupManager::IsValidMenuItem(nsPresContext* aPresContext,
 {
   PRInt32 ns = aContent->GetNameSpaceID();
   nsIAtom *tag = aContent->Tag();
-  if (ns == kNameSpaceID_XUL &&
-       tag != nsGkAtoms::menu &&
-       tag != nsGkAtoms::menuitem)
+  if (ns == kNameSpaceID_XUL) {
+    if (tag != nsGkAtoms::menu && tag != nsGkAtoms::menuitem)
+      return PR_FALSE;
+  }
+  else if (ns != kNameSpaceID_XHTML || !aOnPopup || tag != nsGkAtoms::option) {
     return PR_FALSE;
-
-  if (ns == kNameSpaceID_XHTML && (!aOnPopup || tag != nsGkAtoms::option))
-    return PR_FALSE;
+  }
 
   PRBool skipNavigatingDisabledMenuItem = PR_TRUE;
   if (aOnPopup) {
