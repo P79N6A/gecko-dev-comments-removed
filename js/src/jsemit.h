@@ -295,9 +295,7 @@ struct JSCodeGenerator {
         uintN       currentLine;    
     } prolog, main, *current;
 
-    const char      *filename;      
     uintN           firstLine;      
-    JSPrincipals    *principals;    
     JSAtomList      atomList;       
 
     intN            stackDepth;     
@@ -352,13 +350,10 @@ struct JSCodeGenerator {
 
 
 
-
-
-extern JS_FRIEND_API(JSBool)
+extern JS_FRIEND_API(void)
 js_InitCodeGenerator(JSContext *cx, JSCodeGenerator *cg, JSParseContext *pc,
                      JSArenaPool *codePool, JSArenaPool *notePool,
-                     const char *filename, uintN lineno,
-                     JSPrincipals *principals);
+                     uintN lineno);
 
 
 

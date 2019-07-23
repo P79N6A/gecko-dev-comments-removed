@@ -84,7 +84,7 @@ typedef enum JSTokenType {
     TOK_NAME = 29,                      
     TOK_NUMBER = 30,                    
     TOK_STRING = 31,                    
-    TOK_OBJECT = 32,                    
+    TOK_REGEXP = 32,                    
     TOK_PRIMARY = 33,                   
     TOK_FUNCTION = 34,                  
     TOK_EXPORT = 35,                    
@@ -204,10 +204,8 @@ struct JSToken {
             JSOp        op;             
             JSAtom      *atom;          
         } s;
-        struct {                        
-            JSOp        op;             
-            JSParsedObjectBox *pob;     
-        } o;
+        uintN           reflags;        
+
         struct {                        
             JSAtom      *atom2;         
             JSAtom      *atom;          
@@ -217,7 +215,7 @@ struct JSToken {
 };
 
 #define t_op            u.s.op
-#define t_pob           u.o.pob
+#define t_reflags       u.reflags
 #define t_atom          u.s.atom
 #define t_atom2         u.p.atom2
 #define t_dval          u.dval
@@ -248,13 +246,11 @@ struct JSTokenStream {
     JSStringBuffer      tokenbuf;       
     const char          *filename;      
     FILE                *file;          
-    JSPrincipals        *principals;    
     JSSourceHandler     listener;       
     void                *listenerData;  
     void                *listenerTSData;
     jschar              *saveEOL;       
 
-    JSParseContext      *parseContext;
 };
 
 #define CURRENT_TOKEN(ts)       ((ts)->tokens[(ts)->cursor])
@@ -312,17 +308,12 @@ struct JSTokenStream {
 
 
 
-extern JSTokenStream *
-js_NewTokenStream(JSContext *cx, const jschar *base, size_t length,
-                  const char *filename, uintN lineno, JSPrincipals *principals);
+extern JSBool
+js_InitTokenStream(JSContext *cx, JSTokenStream *ts,
+                   const jschar *base, size_t length,
+                   FILE *fp, const char *filename, uintN lineno);
 
-extern JS_FRIEND_API(JSTokenStream *)
-js_NewBufferTokenStream(JSContext *cx, const jschar *base, size_t length);
-
-extern JS_FRIEND_API(JSTokenStream *)
-js_NewFileTokenStream(JSContext *cx, const char *filename, FILE *defaultfp);
-
-extern JS_FRIEND_API(JSBool)
+extern void
 js_CloseTokenStream(JSContext *cx, JSTokenStream *ts);
 
 extern JS_FRIEND_API(int)
@@ -362,10 +353,9 @@ js_ReportCompileErrorNumberUC(JSContext *cx, void *handle, uintN flags,
                               uintN errorNumber, ...);
 
 
-#define JSREPORT_HANDLE 0x300
+#define JSREPORT_HANDLE 0x100
 #define JSREPORT_TS     0x000
-#define JSREPORT_CG     0x100
-#define JSREPORT_PN     0x200
+#define JSREPORT_PN     0x100
 
 
 
