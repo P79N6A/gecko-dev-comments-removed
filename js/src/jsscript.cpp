@@ -1638,7 +1638,7 @@ js_DestroyScript(JSContext *cx, JSScript *script)
         JSStackFrame *fp = js_GetTopStackFrame(cx);
 
         if (!(fp && (fp->flags & JSFRAME_EVAL))) {
-            JS_PROPERTY_CACHE(cx).purgeForScript(cx, script);
+            js_PurgePropertyCacheForScript(cx, script);
 
 #ifdef CHECK_SCRIPT_OWNER
             JS_ASSERT(script->owner == cx->thread);
