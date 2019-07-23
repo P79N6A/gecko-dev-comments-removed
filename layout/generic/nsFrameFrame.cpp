@@ -181,6 +181,7 @@ public:
   NS_IMETHOD GetDocShell(nsIDocShell **aDocShell);
   NS_IMETHOD BeginSwapDocShells(nsIFrame* aOther);
   virtual void EndSwapDocShells(nsIFrame* aOther);
+  virtual nsIFrame* GetFrame() { return this; }
 
   
   virtual PRBool ReflowFinished();
@@ -626,52 +627,16 @@ nsSubDocumentFrame::Reflow(nsPresContext*           aPresContext,
 PRBool
 nsSubDocumentFrame::ReflowFinished()
 {
-  nsCOMPtr<nsIDocShell> docShell;
-  GetDocShell(getter_AddRefs(docShell));
-
-  nsCOMPtr<nsIBaseWindow> baseWindow(do_QueryInterface(docShell));
-
-  
-  if (baseWindow) {
-    PRInt32 x = 0;
-    PRInt32 y = 0;
-
+  if (mFrameLoader) {
     nsWeakFrame weakFrame(this);
-    
-    nsPresContext* presContext = PresContext();
-    baseWindow->GetPositionAndSize(&x, &y, nsnull, nsnull);
 
-    if (!weakFrame.IsAlive()) {
+    mFrameLoader->UpdatePositionAndSize(this);
+
+    if (weakFrame.IsAlive()) {
       
-      return PR_FALSE;
+      mPostedReflowCallback = PR_FALSE;
     }
-
-    
-    
-    mPostedReflowCallback = PR_FALSE;
-  
-    nsSize innerSize(GetSize());
-    if (IsInline()) {
-      nsMargin usedBorderPadding = GetUsedBorderAndPadding();
-
-      
-      
-      
-      innerSize.width  -= usedBorderPadding.LeftRight();
-      innerSize.width = NS_MAX(innerSize.width, 0);
-      
-      innerSize.height -= usedBorderPadding.TopBottom();
-      innerSize.height = NS_MAX(innerSize.height, 0);
-    }  
-
-    PRInt32 cx = presContext->AppUnitsToDevPixels(innerSize.width);
-    PRInt32 cy = presContext->AppUnitsToDevPixels(innerSize.height);
-    baseWindow->SetPositionAndSize(x, y, cx, cy, PR_FALSE);
-  } else {
-    
-    mPostedReflowCallback = PR_FALSE;
   }
-
   return PR_FALSE;
 }
 
