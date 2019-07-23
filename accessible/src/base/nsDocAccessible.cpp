@@ -2002,17 +2002,14 @@ NS_IMETHODIMP nsDocAccessible::InvalidateCacheSubtree(nsIContent *aChild,
 
   FireValueChangeForTextFields(containerAccessible);
 
-  if (!isShowing) {
+  if (childAccessible) {
     
     
-    
-    if (childAccessible) {
-      nsCOMPtr<nsIAccessibleEvent> reorderEvent =
-        new nsAccEvent(nsIAccessibleEvent::EVENT_REORDER, containerAccessible,
-                       isAsynch, nsAccEvent::eCoalesceFromSameSubtree);
-      NS_ENSURE_TRUE(reorderEvent, NS_ERROR_OUT_OF_MEMORY);
-      FireDelayedAccessibleEvent(reorderEvent);
-    }
+    nsCOMPtr<nsIAccessibleEvent> reorderEvent =
+      new nsAccEvent(nsIAccessibleEvent::EVENT_REORDER, containerAccessible,
+                     isAsynch, nsAccEvent::eCoalesceFromSameSubtree);
+    NS_ENSURE_TRUE(reorderEvent, NS_ERROR_OUT_OF_MEMORY);
+    FireDelayedAccessibleEvent(reorderEvent);
   }
 
   return NS_OK;

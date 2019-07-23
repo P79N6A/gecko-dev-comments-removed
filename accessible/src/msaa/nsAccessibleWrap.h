@@ -261,7 +261,11 @@ class nsAccessibleWrap : public nsAccessible,
     virtual  HRESULT STDMETHODCALLTYPE get_attributes(
          BSTR *attributes);
 
-  public:   
+  public: 
+    
+    
+    
+
     virtual  HRESULT STDMETHODCALLTYPE Next( 
          ULONG celt,
          VARIANT __RPC_FAR *rgVar,
@@ -312,13 +316,20 @@ class nsAccessibleWrap : public nsAccessible,
 
   static IDispatch *NativeAccessible(nsIAccessible *aXPAccessible);
 
+  
+
+
+
+
+  void UnattachIEnumVariant();
+
 protected:
   virtual nsresult FirePlatformEvent(nsIAccessibleEvent *aEvent);
 
   
   
   
-  PRUint16 mEnumVARIANTPosition;
+  PRInt32 mEnumVARIANTPosition;
 
   enum navRelations {
     NAVRELATION_CONTROLLED_BY = 0x1000,

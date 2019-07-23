@@ -75,6 +75,8 @@ static gAccessibles = 0;
 EXTERN_C GUID CDECL CLSID_Accessible =
 { 0x61044601, 0xa811, 0x4e2b, { 0xbb, 0xba, 0x17, 0xbf, 0xab, 0xd3, 0x29, 0xd7 } };
 
+static const PRInt32 kIEnumVariantDisconnected = -1;
+
 
 
 
@@ -1086,58 +1088,58 @@ STDMETHODIMP nsAccessibleWrap::put_accValue(
 
 #include "mshtml.h"
 
-STDMETHODIMP
-nsAccessibleWrap::Next(ULONG aNumElementsRequested, VARIANT FAR* pvar, ULONG FAR* aNumElementsFetched)
-{
-  
-  
-  
 
+
+
+STDMETHODIMP
+nsAccessibleWrap::Next(ULONG aNumElementsRequested, VARIANT FAR* aPVar,
+                       ULONG FAR* aNumElementsFetched)
+{
   
 __try {
   *aNumElementsFetched = 0;
 
-  PRInt32 numChildren;
-  GetChildCount(&numChildren);
+  if (aNumElementsRequested <= 0 || !aPVar)
+    return E_INVALIDARG;
 
-  if (aNumElementsRequested <= 0 || !pvar ||
-      mEnumVARIANTPosition >= numChildren) {
-    return E_FAIL;
-  }
+  if (mEnumVARIANTPosition == kIEnumVariantDisconnected)
+    return CO_E_OBJNOTCONNECTED;
 
-  VARIANT varStart;
-  VariantInit(&varStart);
-  varStart.lVal = CHILDID_SELF;
-  varStart.vt = VT_I4;
+  nsCOMPtr<nsIAccessible> traversedAcc;
+  nsresult rv = GetChildAt(mEnumVARIANTPosition, getter_AddRefs(traversedAcc));
+  if (!traversedAcc)
+    return S_FALSE;
 
-  accNavigate(NAVDIR_FIRSTCHILD, varStart, &pvar[0]);
+  for (PRUint32 i = 0; i < aNumElementsRequested; i++) {
+    VariantInit(&aPVar[i]);
 
-  for (long childIndex = 0; pvar[*aNumElementsFetched].vt == VT_DISPATCH; ++childIndex) {
-    PRBool wasAccessibleFetched = PR_FALSE;
-    nsAccessibleWrap *msaaAccessible =
-      static_cast<nsAccessibleWrap*>(pvar[*aNumElementsFetched].pdispVal);
-    if (!msaaAccessible)
+    aPVar[i].pdispVal = NativeAccessible(traversedAcc);
+    aPVar[i].vt = VT_DISPATCH;
+    (*aNumElementsFetched)++;
+
+    nsCOMPtr<nsIAccessible> nextAcc;
+    traversedAcc->GetNextSibling(getter_AddRefs(nextAcc));
+    if (!nextAcc)
       break;
-    if (childIndex >= mEnumVARIANTPosition) {
-      if (++*aNumElementsFetched >= aNumElementsRequested)
-        break;
-      wasAccessibleFetched = PR_TRUE;
-    }
-    msaaAccessible->accNavigate(NAVDIR_NEXT, varStart, &pvar[*aNumElementsFetched] );
-    if (!wasAccessibleFetched)
-      msaaAccessible->nsAccessNode::Release(); 
+
+    traversedAcc = nextAcc;
   }
 
-  mEnumVARIANTPosition += static_cast<PRUint16>(*aNumElementsFetched);
+  mEnumVARIANTPosition += *aNumElementsFetched;
+  return (*aNumElementsFetched) < aNumElementsRequested ? S_FALSE : S_OK;
+
 } __except(nsAccessNodeWrap::FilterA11yExceptions(::GetExceptionCode(), GetExceptionInformation())) { }
-  return NOERROR;
+  return E_FAIL;
 }
 
 STDMETHODIMP
 nsAccessibleWrap::Skip(ULONG aNumElements)
 {
 __try {
-  mEnumVARIANTPosition += static_cast<PRUint16>(aNumElements);
+  if (mEnumVARIANTPosition == kIEnumVariantDisconnected)
+    return CO_E_OBJNOTCONNECTED;
+
+  mEnumVARIANTPosition += aNumElements;
 
   PRInt32 numChildren;
   GetChildCount(&numChildren);
@@ -1155,6 +1157,24 @@ STDMETHODIMP
 nsAccessibleWrap::Reset(void)
 {
   mEnumVARIANTPosition = 0;
+  return NOERROR;
+}
+
+STDMETHODIMP
+nsAccessibleWrap::Clone(IEnumVARIANT FAR* FAR* ppenum)
+{
+__try {
+  *ppenum = nsnull;
+  
+  nsCOMPtr<nsIArray> childArray;
+  nsresult rv = GetChildren(getter_AddRefs(childArray));
+
+  *ppenum = new AccessibleEnumerator(childArray);
+  if (!*ppenum)
+    return E_OUTOFMEMORY;
+  NS_ADDREF(*ppenum);
+
+} __except(nsAccessNodeWrap::FilterA11yExceptions(::GetExceptionCode(), GetExceptionInformation())) { }
   return NOERROR;
 }
 
@@ -1623,30 +1643,6 @@ __try {
   return E_FAIL;
 }
 
-STDMETHODIMP
-nsAccessibleWrap::Clone(IEnumVARIANT FAR* FAR* ppenum)
-{
-__try {
-  
-  
-  *ppenum = nsnull;
-
-  nsAccessibleWrap *accessibleWrap = new nsAccessibleWrap(mDOMNode, mWeakShell);
-  if (!accessibleWrap)
-    return E_FAIL;
-
-  IAccessible *msaaAccessible = static_cast<IAccessible*>(accessibleWrap);
-  msaaAccessible->AddRef();
-  QueryInterface(IID_IEnumVARIANT, (void**)ppenum);
-  if (*ppenum)
-    (*ppenum)->Skip(mEnumVARIANTPosition); 
-  msaaAccessible->Release();
-
-} __except(nsAccessNodeWrap::FilterA11yExceptions(::GetExceptionCode(), GetExceptionInformation())) { }
-  return NOERROR;
-}
-
-
 
 STDMETHODIMP
 nsAccessibleWrap::GetTypeInfoCount(UINT *p)
@@ -1757,6 +1753,11 @@ nsAccessibleWrap::FirePlatformEvent(nsIAccessibleEvent *aEvent)
   
   NotifyWinEvent(winEvent, hWnd, OBJID_CLIENT, childID);
 
+  
+  
+  if (eventType == nsIAccessibleEvent::EVENT_REORDER)
+    UnattachIEnumVariant();
+
   return NS_OK;
 }
 
@@ -1853,6 +1854,12 @@ IDispatch *nsAccessibleWrap::NativeAccessible(nsIAccessible *aXPAccessible)
   return static_cast<IDispatch*>(msaaAccessible);
 }
 
+void
+nsAccessibleWrap::UnattachIEnumVariant()
+{
+  if (mEnumVARIANTPosition > 0)
+    mEnumVARIANTPosition = kIEnumVariantDisconnected;
+}
 
 void nsAccessibleWrap::GetXPAccessibleFor(const VARIANT& aVarChild, nsIAccessible **aXPAccessible)
 {
