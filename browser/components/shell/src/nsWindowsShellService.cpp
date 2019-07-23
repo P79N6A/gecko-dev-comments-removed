@@ -175,18 +175,10 @@ OpenKeyForReading(HKEY aKeyRoot, const nsAString& aKeyName, HKEY* aKey)
 
 
 
-typedef enum {
-  NO_SUBSTITUTION           = 0x00,
-  APP_PATH_SUBSTITUTION     = 0x01,
-  EXE_NAME_SUBSTITUTION     = 0x02
-} SettingFlags;
-
 typedef struct {
   char* keyName;
   char* valueName;
   char* valueData;
-
-  PRInt32 flags;
 } SETTING;
 
 #define APP_REG_NAME L"Firefox"
@@ -209,16 +201,16 @@ static SETTING gSettings[] = {
   
   
   
-  { MAKE_KEY_NAME1(CLS_HTML, SOP), "", VAL_OPEN, APP_PATH_SUBSTITUTION },
+  { MAKE_KEY_NAME1(CLS_HTML, SOP), "", VAL_OPEN },
 
   
-  { MAKE_KEY_NAME1(CLS_URL, SOP), "", VAL_OPEN, APP_PATH_SUBSTITUTION },
+  { MAKE_KEY_NAME1(CLS_URL, SOP), "", VAL_OPEN },
 
   
-  { MAKE_KEY_NAME1("HTTP", DI),    "", VAL_FILE_ICON, APP_PATH_SUBSTITUTION },
-  { MAKE_KEY_NAME1("HTTP", SOP),   "", VAL_OPEN, APP_PATH_SUBSTITUTION },
-  { MAKE_KEY_NAME1("HTTPS", DI),   "", VAL_FILE_ICON, APP_PATH_SUBSTITUTION },
-  { MAKE_KEY_NAME1("HTTPS", SOP),  "", VAL_OPEN, APP_PATH_SUBSTITUTION }
+  { MAKE_KEY_NAME1("HTTP", DI),    "", VAL_FILE_ICON },
+  { MAKE_KEY_NAME1("HTTP", SOP),   "", VAL_OPEN },
+  { MAKE_KEY_NAME1("HTTPS", DI),   "", VAL_FILE_ICON },
+  { MAKE_KEY_NAME1("HTTPS", SOP),  "", VAL_OPEN }
 };
 
 PRBool
@@ -264,50 +256,23 @@ nsWindowsShellService::IsDefaultBrowser(PRBool aStartupCheck,
   if (!::GetModuleFileNameW(0, exePath, MAX_BUF))
     return NS_ERROR_FAILURE;
 
-  nsAutoString appLongPath(exePath);
-
 #ifndef WINCE
   
   
-  if (!::GetShortPathNameW(exePath, exePath, sizeof(exePath)))
+  if (!::GetLongPathNameW(exePath, exePath, MAX_BUF))
     return NS_ERROR_FAILURE;
 #endif
 
-  nsAutoString appShortPath(exePath);
-  ToUpperCase(appShortPath);
+  nsAutoString appLongPath(exePath);
 
-  nsCOMPtr<nsILocalFile> lf;
-  nsresult rv = NS_NewLocalFile(appShortPath, PR_TRUE,
-                                getter_AddRefs(lf));
-  if (NS_FAILED(rv))
-    return rv;
-
-  nsAutoString exeName;
-  rv = lf->GetLeafName(exeName);
-  if (NS_FAILED(rv))
-    return rv;
-  ToUpperCase(exeName);
-
+  nsresult rv;
   PRUnichar currValue[MAX_BUF];
   for (settings = gSettings; settings < end; ++settings) {
     NS_ConvertUTF8toUTF16 dataLongPath(settings->valueData);
-    NS_ConvertUTF8toUTF16 dataShortPath(settings->valueData);
     NS_ConvertUTF8toUTF16 key(settings->keyName);
     NS_ConvertUTF8toUTF16 value(settings->valueName);
-    if (settings->flags & APP_PATH_SUBSTITUTION) {
-      PRInt32 offset = dataLongPath.Find("%APPPATH%");
-      dataLongPath.Replace(offset, 9, appLongPath);
-      
-      PRInt32 offsetQuoted = dataShortPath.Find("\"%APPPATH%\"");
-      if (offsetQuoted != -1)
-        dataShortPath.Replace(offsetQuoted, 11, appShortPath);
-      else
-        dataShortPath.Replace(offset, 9, appShortPath);
-    }
-    if (settings->flags & EXE_NAME_SUBSTITUTION) {
-      PRInt32 offset = key.Find("%APPEXE%");
-      key.Replace(offset, 8, exeName);
-    }
+    PRInt32 offset = dataLongPath.Find("%APPPATH%");
+    dataLongPath.Replace(offset, 9, appLongPath);
 
     ::ZeroMemory(currValue, sizeof(currValue));
     HKEY theKey;
@@ -323,8 +288,7 @@ nsWindowsShellService::IsDefaultBrowser(PRBool aStartupCheck,
     
     ::RegCloseKey(theKey);
     if (REG_FAILED(res) ||
-        !dataLongPath.Equals(currValue, CaseInsensitiveCompare) &&
-        !dataShortPath.Equals(currValue, CaseInsensitiveCompare)) {
+        !dataLongPath.Equals(currValue, CaseInsensitiveCompare)) {
       
       *aIsDefaultBrowser = PR_FALSE;
       return NS_OK;
