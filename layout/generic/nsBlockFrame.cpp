@@ -785,11 +785,7 @@ CalculateContainingBlockSizeForAbsolutes(const nsHTMLReflowState& aReflowState,
   
   
   
-  
   nsIFrame* frame = aReflowState.frame;
-  if (nsLayoutUtils::IsInitialContainingBlock(frame)) {
-    return nsSize(-1, -1);
-  }
 
   nsSize cbSize(aFrameSize);
     
@@ -825,13 +821,9 @@ CalculateContainingBlockSizeForAbsolutes(const nsHTMLReflowState& aReflowState,
         nsBoxLayoutState dummyState(aLastRS->frame->PresContext(),
                                     aLastRS->rendContext);
         scrollbars = scrollFrame->GetDesiredScrollbarSizes(&dummyState);
-        
-        
-        
-        
-        
+        if (!lastButOneRS->mFlags.mAssumingHScrollbar) {
           scrollbars.top = scrollbars.bottom = 0;
-        
+        }
         if (!lastButOneRS->mFlags.mAssumingVScrollbar) {
           scrollbars.left = scrollbars.right = 0;
         }
