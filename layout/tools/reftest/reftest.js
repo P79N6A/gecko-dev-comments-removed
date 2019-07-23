@@ -702,8 +702,11 @@ function OnDocumentLoad(event)
        
        
        
-       gURLs[0].minAsserts += 2;
-       gURLs[0].maxAsserts += 2;
+       
+       var xr = CC[NS_XREAPPINFO_CONTRACTID].getService(CI.nsIXULRuntime);
+       var count = (xr.widgetToolkit == "cocoa") ? 3 : 2;
+       gURLs[0].minAsserts += count;
+       gURLs[0].maxAsserts += count;
     }
 
     setupZoom(contentRootElement);
