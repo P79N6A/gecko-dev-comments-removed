@@ -39,6 +39,7 @@
 #include "nsICookie.h"
 #include "nsICookieAcceptDialog.h"
 #include "nsIDOMWindow.h"
+#include "nsPIDOMWindow.h"
 #include "nsIWindowWatcher.h"
 #include "nsIServiceManager.h"
 #include "nsString.h"
@@ -93,11 +94,22 @@ nsCookiePromptService::CookieDialog(nsIDOMWindow *aParent,
   nsCOMPtr<nsISupports> arguments = do_QueryInterface(block);
   nsCOMPtr<nsIDOMWindow> dialog;
 
+  nsCOMPtr<nsIDOMWindow> parent(aParent);
+  if (!parent) 
+    wwatcher->GetActiveWindow(getter_AddRefs(parent));
+
+  if (parent) {
+    nsCOMPtr<nsPIDOMWindow> privateParent(do_QueryInterface(parent));
+    if (privateParent)
+      privateParent = privateParent->GetPrivateRoot();
+    parent = do_QueryInterface(privateParent);
+  }
+
   
   
   
   
-  rv = wwatcher->OpenWindow(nsnull, "chrome://cookie/content/cookieAcceptDialog.xul", "_blank",
+  rv = wwatcher->OpenWindow(parent, "chrome://cookie/content/cookieAcceptDialog.xul", "_blank",
                             "centerscreen,chrome,modal,titlebar", arguments,
                             getter_AddRefs(dialog));
 
