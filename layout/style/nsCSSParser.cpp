@@ -3331,9 +3331,8 @@ CSSParserImpl::ParseDeclaration(nsresult& aErrorCode,
                      aMustCallValueAppended, aChanged);
     return PR_TRUE;
   }
-  else {
-    if (eCSSToken_Symbol == tk->mType) {
-      if ('!' == tk->mSymbol) {
+
+  if (eCSSToken_Symbol == tk->mType && '!' == tk->mSymbol) {
         
         if (!GetToken(aErrorCode, PR_TRUE)) {
           
@@ -3355,24 +3354,12 @@ CSSParserImpl::ParseDeclaration(nsresult& aErrorCode,
         
         UngetToken();
       }
-    }
-    else {
-      
-      UngetToken();
-    }
-  }
 
   
   
   
-  
   if (!GetToken(aErrorCode, PR_TRUE)) {
-    if (aCheckForBraces) {
-      
-      REPORT_UNEXPECTED_EOF(PEDeclEndEOF);
-      ClearTempData(propID);
-      return PR_FALSE;
-    }
+    
     TransferTempData(aDeclaration, propID, isImportant,
                      aMustCallValueAppended, aChanged);
     return PR_TRUE;
@@ -3383,16 +3370,9 @@ CSSParserImpl::ParseDeclaration(nsresult& aErrorCode,
                        aMustCallValueAppended, aChanged);
       return PR_TRUE;
     }
-    if (!aCheckForBraces) {
+    if (aCheckForBraces && '}' == tk->mSymbol) {
       
       
-      REPORT_UNEXPECTED_TOKEN(PEBadDeclEnd);
-      REPORT_UNEXPECTED(PEDeclDropped);
-      OUTPUT_ERROR();
-      ClearTempData(propID);
-      return PR_FALSE;
-    }
-    if ('}' == tk->mSymbol) {
       UngetToken();
       TransferTempData(aDeclaration, propID, isImportant,
                        aMustCallValueAppended, aChanged);
