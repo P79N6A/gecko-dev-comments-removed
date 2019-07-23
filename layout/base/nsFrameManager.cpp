@@ -91,6 +91,7 @@
 #include "nsLayoutUtils.h"
 #include "nsAutoPtr.h"
 #include "imgIRequest.h"
+#include "nsStyleStructInlines.h"
 
 #include "nsFrameManager.h"
 #ifdef ACCESSIBILITY
@@ -1063,6 +1064,24 @@ CaptureChange(nsStyleContext* aOldContext, nsStyleContext* aNewContext,
   return aMinChange;
 }
 
+static PRBool
+ShouldStopImage(imgIRequest *aOldImage, imgIRequest *aNewImage)
+{
+  if (!aOldImage)
+    return PR_FALSE;
+
+  PRBool stopImages = !aNewImage;
+  if (!stopImages) {
+    nsCOMPtr<nsIURI> oldURI, newURI;
+    aOldImage->GetURI(getter_AddRefs(oldURI));
+    aNewImage->GetURI(getter_AddRefs(newURI));
+    PRBool equal;
+    stopImages =
+      NS_FAILED(oldURI->Equals(newURI, &equal)) || !equal;
+  }
+  return stopImages;
+}
+
 nsChangeHint
 nsFrameManager::ReResolveStyleContext(nsPresContext    *aPresContext,
                                       nsIFrame          *aFrame,
@@ -1200,23 +1219,30 @@ nsFrameManager::ReResolveStyleContext(nsPresContext    *aPresContext,
         }
         
         
-        const nsStyleBackground* oldColor = oldContext->GetStyleBackground();
-        const nsStyleBackground* newColor = newContext->GetStyleBackground();
+        if (ShouldStopImage(
+              oldContext->GetStyleBackground()->mBackgroundImage,
+              newContext->GetStyleBackground()->mBackgroundImage)) {
+          
+          aPresContext->StopBackgroundImageFor(aFrame);
+        }
 
-        if (oldColor->mBackgroundImage) {
-          PRBool stopImages = !newColor->mBackgroundImage;
-          if (!stopImages) {
-            nsCOMPtr<nsIURI> oldURI, newURI;
-            oldColor->mBackgroundImage->GetURI(getter_AddRefs(oldURI));
-            newColor->mBackgroundImage->GetURI(getter_AddRefs(newURI));
-            PRBool equal;
-            stopImages =
-              NS_FAILED(oldURI->Equals(newURI, &equal)) || !equal;
-          }
-          if (stopImages) {
-            
-            aPresContext->StopImagesFor(aFrame);
-          }
+        imgIRequest *newBorderImage =
+          newContext->GetStyleBorder()->GetBorderImage();
+        if (ShouldStopImage(oldContext->GetStyleBorder()->GetBorderImage(),
+                            newBorderImage)) {
+          
+          aPresContext->StopBorderImageFor(aFrame);
+        }
+
+        
+        
+        
+        
+        
+        
+        
+        if (newBorderImage) {
+          aPresContext->LoadBorderImage(newBorderImage, aFrame);
         }
       }
       oldContext->Release();

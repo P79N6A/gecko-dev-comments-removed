@@ -394,8 +394,15 @@ private:
                                        imgIRequest* aImage,
                                        nsIFrame* aTargetFrame,
                                        PRBool aReflowOnLoad);
+
+  NS_HIDDEN_(void) DoStopImageFor(ImageLoaderTable& aTable,
+                                  nsIFrame* aTargetFrame);
 public:
 
+  NS_HIDDEN_(void) StopBackgroundImageFor(nsIFrame* aTargetFrame)
+  { DoStopImageFor(mImageLoaders, aTargetFrame); }
+  NS_HIDDEN_(void) StopBorderImageFor(nsIFrame* aTargetFrame)
+  { DoStopImageFor(mBorderImageLoaders, aTargetFrame); }
   
 
 

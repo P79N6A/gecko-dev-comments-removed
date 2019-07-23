@@ -216,9 +216,6 @@ nsImageLoader::RedrawDirtyFrame(const nsRect* aDamageRect)
     NS_WARN_IF_FALSE(NS_SUCCEEDED(rv), "Could not reflow after loading border-image");
     
     
-    
-    
-    return;
   }
   
   

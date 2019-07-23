@@ -434,7 +434,7 @@ nsChangeHint nsStyleBorder::CalcDifference(const nsStyleBorder& aOther) const
   
   
   if (mTwipsPerPixel == aOther.mTwipsPerPixel &&
-      mComputedBorder == aOther.mComputedBorder && 
+      GetActualBorder() == aOther.GetActualBorder() && 
       mFloatEdge == aOther.mFloatEdge) {
     
     
@@ -451,6 +451,17 @@ nsChangeHint nsStyleBorder::CalcDifference(const nsStyleBorder& aOther) const
     if (mBorderRadius != aOther.mBorderRadius ||
         !mBorderColors != !aOther.mBorderColors) {
       return NS_STYLE_HINT_VISUAL;
+    }
+
+    if (IsBorderImageLoaded() || aOther.IsBorderImageLoaded()) {
+      if (mBorderImage != aOther.mBorderImage ||
+          mBorderImageHFill != aOther.mBorderImageHFill ||
+          mBorderImageVFill != aOther.mBorderImageVFill ||
+          mBorderImageSplit != aOther.mBorderImageSplit) {
+        return NS_STYLE_HINT_VISUAL;
+      }
+      
+      
     }
 
     
