@@ -5393,10 +5393,8 @@ nsCSSFrameConstructor::CreateAnonymousFrames(nsFrameConstructorState& aState,
 #ifdef MOZ_SVG
     
     
-    if (aParent &&
-        aParent->NodeInfo()->Equals(nsGkAtoms::use, kNameSpaceID_SVG)) {
-      content->SetFlags(NODE_IS_ANONYMOUS);
-    } else
+    if (!aParent ||
+        !aParent->NodeInfo()->Equals(nsGkAtoms::use, kNameSpaceID_SVG))
 #endif
     {
       content->SetNativeAnonymous();
