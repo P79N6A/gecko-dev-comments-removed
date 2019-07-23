@@ -53,6 +53,8 @@
 
 
 #ifdef NS_DEBUG
+#include "nsIJSContextStack.h"
+#include "nsDOMJSUtils.h"
 
 #include "nspr.h" 
 
@@ -209,7 +211,14 @@ nsJSEventListener::HandleEvent(nsIDOMEvent* aEvent)
 
   
   
-  
+#ifdef NS_DEBUG
+  JSContext* cx = nsnull;
+  nsCOMPtr<nsIJSContextStack> stack =
+    do_GetService("@mozilla.org/js/xpc/ContextStack;1");
+  NS_ASSERTION(stack && NS_SUCCEEDED(stack->Peek(&cx)) && cx &&
+               GetScriptContextFromJSContext(cx) == mContext,
+               "JSEventListener has wrong script context?");
+#endif
   nsCOMPtr<nsIVariant> vrv;
   rv = mContext->CallEventHandler(mTarget, mScopeObject, funcval, iargv,
                                   getter_AddRefs(vrv));
