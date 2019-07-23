@@ -225,7 +225,7 @@ TaggingService.prototype = {
     var cc = node.childCount;
     node.containerOpen = false;
     if (cc == 0)
-      this._bms.removeItem(node.itemId);
+      this._bms.removeFolder(node.itemId);
   },
 
   
@@ -397,21 +397,46 @@ TaggingService.prototype = {
     this._inBatch = false;
   },
 
-  onItemAdded: function(aItemId, aFolderId, aIndex, aItemType) {
+  onItemAdded: function(aItemId, aFolderId, aIndex) {
     
-    if (aFolderId != this._bms.tagsFolder ||
-        aItemType != this._bms.TYPE_FOLDER)
+    if (aFolderId != this._bms.tagsFolder)
       return;
 
-    this._tagFolders[aItemId] = this._bms.getItemTitle(aItemId);
+    
+    
+    
+    
+    
+    var self = this;
+    var tm = Cc["@mozilla.org/thread-manager;1"].
+             getService(Ci.nsIThreadManager);
+    tm.mainThread.dispatch({
+      run: function() {
+        try {
+          if (!self._tagFolders[aItemId] &&
+              self._bms.getItemType(aItemId) == self._bms.TYPE_FOLDER)
+            self._tagFolders[aItemId] = self._bms.getItemTitle(aItemId);
+        }
+        catch(ex) {
+          
+          
+          
+        }
+      }
+    }, Ci.nsIThread.DISPATCH_NORMAL);
   },
 
-  onBeforeItemRemoved: function(aItemId, aItemType) {
-    if (aItemType == this._bms.TYPE_BOOKMARK)
+  onBeforeItemRemoved: function(aItemId) {
+    
+    
+    
+    try {
       this._itemsInRemoval[aItemId] = this._bms.getBookmarkURI(aItemId);
+    }
+    catch (e) {}
   },
 
-  onItemRemoved: function(aItemId, aFolderId, aIndex, aItemType) {
+  onItemRemoved: function(aItemId, aFolderId, aIndex) {
     var itemURI = this._itemsInRemoval[aItemId];
     delete this._itemsInRemoval[aItemId];
 
@@ -431,16 +456,14 @@ TaggingService.prototype = {
     }
   },
 
-  onItemChanged: function(aItemId, aProperty, aIsAnnotationProperty, aNewValue,
-                          aLastModified, aItemType) {
+  onItemChanged: function(aItemId, aProperty, aIsAnnotationProperty, aValue) {
     if (aProperty == "title" && this._tagFolders[aItemId])
       this._tagFolders[aItemId] = this._bms.getItemTitle(aItemId);
   },
 
   onItemVisited: function(aItemId, aVisitID, time) {},
 
-  onItemMoved: function(aItemId, aOldParent, aOldIndex, aNewParent, aNewIndex,
-                        aItemType) {
+  onItemMoved: function(aItemId, aOldParent, aOldIndex, aNewParent, aNewIndex) {
     if (this._tagFolders[aItemId] && this._bms.tagFolder == aOldParent &&
         this._bms.tagFolder != aNewParent)
       delete this._tagFolders[aItemId];

@@ -56,6 +56,13 @@ function run_test() {
   do_check_eq(PlacesUtils.bookmarks.getItemTitle(bookmarkId), "");
 
   
+  try {
+    PlacesUtils.bookmarks.removeFolder(bookmarkId);
+    do_throw("no exception when removing a bookmark via removeFolder()!");
+  } catch(ex) {}
+  do_check_true(PlacesUtils.bookmarks.isBookmarked(bookmarkURI));
+
+  
   PlacesUtils.bookmarks.removeItem(folderId);
   do_check_eq(PlacesUtils.bookmarks.getBookmarkIdsForURI(bookmarkURI, {}).length, 0);
   do_check_false(PlacesUtils.bookmarks.isBookmarked(bookmarkURI));
