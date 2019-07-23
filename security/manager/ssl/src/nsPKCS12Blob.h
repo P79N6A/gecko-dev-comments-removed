@@ -90,7 +90,7 @@ private:
   nsresult newPKCS12FilePassword(SECItem *);
   nsresult inputToDecoder(SEC_PKCS12DecoderContext *, nsILocalFile *);
   void unicodeToItem(const PRUnichar *, SECItem *);
-  PRBool handleError(int myerr = 0);
+  void handleError(int myerr = 0);
 
   
   
