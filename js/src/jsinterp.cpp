@@ -2879,11 +2879,11 @@ JS_INTERPRET(JSContext *cx, JSInterpreterState *state)
     script = fp->script;
     JS_ASSERT(script->length != 0);
     
-    
-    ok = false;
-
     if (state)
         RESTORE_STATE(state);
+
+    
+    ok = true;
 
     METER_OP_INIT(op);      
 
