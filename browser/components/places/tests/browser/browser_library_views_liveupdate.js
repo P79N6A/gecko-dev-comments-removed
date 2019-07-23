@@ -46,6 +46,10 @@ var gLibrary = null;
 
 function test() {
   waitForExplicitFinish();
+  
+  
+  
+  requestLongerTimeout(2);
 
   
   ok(PlacesUtils, "PlacesUtils in context");
