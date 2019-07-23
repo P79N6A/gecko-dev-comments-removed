@@ -1536,10 +1536,6 @@ var gAutoHideTabbarPrefListener = {
 
 function initializeSanitizer()
 {
-  
-  var label = gNavigatorBundle.getString("sanitizeWithPromptLabel2");
-  document.getElementById("sanitizeItem").setAttribute("label", label);
-
   const kDidSanitizeDomain = "privacy.sanitize.didShutdownSanitize";
   if (gPrefService.prefHasUserValue(kDidSanitizeDomain)) {
     gPrefService.clearUserPref(kDidSanitizeDomain);
@@ -3092,7 +3088,7 @@ const BrowserSearch = {
           setTimeout(BrowserSearch.webSearch, 0);
         }
 
-        win = window.openDialog("chrome://browser/content/", "_blank",
+        win = window.openDialog("chrome:
                                 "chrome,all,dialog=no", "about:blank");
         win.addEventListener("load", webSearchCallback, false);
       }
@@ -3257,7 +3253,7 @@ function addToUrlbarHistory(aUrlToAdd) {
 
 function toJavaScriptConsole()
 {
-  toOpenWindowByType("global:console", "chrome://global/content/console.xul");
+  toOpenWindowByType("global:console", "chrome:
 }
 
 function BrowserDownloadsUI()
@@ -3298,11 +3294,11 @@ function OpenBrowserWindow()
     charsetArg = "charset="+DocCharset;
 
     
-    win = window.openDialog("chrome://browser/content/", "_blank", "chrome,all,dialog=no", defaultArgs, charsetArg);
+    win = window.openDialog("chrome:
   }
   else 
   {
-    win = window.openDialog("chrome://browser/content/", "_blank", "chrome,all,dialog=no", defaultArgs);
+    win = window.openDialog("chrome:
   }
 
   return win;
@@ -3327,7 +3323,7 @@ function BrowserCustomizeToolbar()
 
   CombinedStopReload.uninit();
 
-  var customizeURL = "chrome://global/content/customizeToolbar.xul";
+  var customizeURL = "chrome:
   gCustomizeSheet = getBoolPref("toolbar.customization.usesheet", false);
 
   if (gCustomizeSheet) {
@@ -3494,7 +3490,7 @@ function updateEditUIVisibility()
 
 var FullScreen =
 {
-  _XULNS: "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul",
+  _XULNS: "http:
   toggle: function()
   {
     
@@ -4466,7 +4462,7 @@ var TabsProgressListener = {
         }];
         notification =
           notificationBox.appendNotification(message, "refresh-blocked",
-                                             "chrome://browser/skin/Info.png",
+                                             "chrome:
                                              notificationBox.PRIORITY_INFO_MEDIUM,
                                              buttons);
         notification.refreshURI = aURI;
