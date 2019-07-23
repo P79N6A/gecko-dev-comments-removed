@@ -840,25 +840,26 @@ nsBindingManager::ProcessAttachedQueue()
   mAttachedStack.Compact();
 }
 
-
-struct BindingTableReadClosure
-{
-  nsCOMArray<nsIContent> mBoundElements;
-  nsBindingList          mBindings;
-};
-
 PR_STATIC_CALLBACK(PLDHashOperator)
 AccumulateBindingsToDetach(nsISupports *aKey, nsXBLBinding *aBinding,
-                           void* aClosure)
+                           void* aVoidArray)
 {
-  BindingTableReadClosure* closure =
-    NS_STATIC_CAST(BindingTableReadClosure*, aClosure);
-  if (aBinding && closure->mBindings.AppendElement(aBinding)) {
-    if (!closure->mBoundElements.AppendObject(aBinding->GetBoundElement())) {
-      closure->mBindings.RemoveElementAt(closure->mBindings.Length() - 1);
-    }
-  }
+  nsVoidArray* arr = NS_STATIC_CAST(nsVoidArray*, aVoidArray);
+  
+  if (arr->AppendElement(aBinding))
+    NS_ADDREF(aBinding);
   return PL_DHASH_NEXT;
+}
+
+PR_STATIC_CALLBACK(PRBool)
+ExecuteDetachedHandler(void* aBinding, void* aClosure)
+{
+  NS_PRECONDITION(aBinding, "Null binding in list?");
+  nsXBLBinding* binding = NS_STATIC_CAST(nsXBLBinding*, aBinding);
+  binding->ExecuteDetachedHandler();
+  
+  NS_RELEASE(binding);
+  return PR_TRUE;
 }
 
 void
@@ -866,12 +867,9 @@ nsBindingManager::ExecuteDetachedHandlers()
 {
   
   if (mBindingTable.IsInitialized()) {
-    BindingTableReadClosure closure;
-    mBindingTable.EnumerateRead(AccumulateBindingsToDetach, &closure);
-    PRUint32 i, count = closure.mBindings.Length();
-    for (i = 0; i < count; ++i) {
-      closure.mBindings[i]->ExecuteDetachedHandler();
-    }
+    nsVoidArray bindingsToDetach;
+    mBindingTable.EnumerateRead(AccumulateBindingsToDetach, &bindingsToDetach);
+    bindingsToDetach.EnumerateForwards(ExecuteDetachedHandler, nsnull);
   }
 }
 
