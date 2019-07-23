@@ -85,6 +85,8 @@
 #include "nsIBaseWindow.h"
 #include "nsISound.h"
 #include "nsIRootBox.h"
+#include "nsIScreenManager.h"
+#include "nsIServiceManager.h"
 
 PRInt8 nsMenuPopupFrame::sDefaultLevelParent = -1;
 
@@ -1029,11 +1031,28 @@ nsMenuPopupFrame::SetPopupPosition(nsIFrame* aAnchorFrame, PRBool aIsMove)
   
   
   
-  nsRect screenRect;
-  if (mMenuCanOverlapOSBar)
-    devContext->GetRect(screenRect);
-  else
-    devContext->GetClientRect(screenRect);
+  nsIntRect screenRectPixels;
+  nsCOMPtr<nsIScreen> screen;
+  nsCOMPtr<nsIScreenManager> sm(do_GetService("@mozilla.org/gfx/screenmanager;1"));
+  if (sm) {
+    
+    
+    
+    
+    nsPoint pnt = mInContentShell ? rootScreenRect.TopLeft() : anchorRect.TopLeft();
+    sm->ScreenForRect(presContext->AppUnitsToDevPixels(pnt.x),
+                      presContext->AppUnitsToDevPixels(pnt.y),
+                      1, 1, getter_AddRefs(screen));
+    if (screen) {
+      if (mMenuCanOverlapOSBar)
+        screen->GetRect(&screenRectPixels.x, &screenRectPixels.y,
+                        &screenRectPixels.width, &screenRectPixels.height);
+      else
+        screen->GetAvailRect(&screenRectPixels.x, &screenRectPixels.y,
+                             &screenRectPixels.width, &screenRectPixels.height);
+    }
+  }
+  nsRect screenRect = nsIntRect::ToAppUnits(screenRectPixels, presContext->AppUnitsPerDevPixel());
 
   
   screenRect.SizeBy(-nsPresContext::CSSPixelsToAppUnits(3),
