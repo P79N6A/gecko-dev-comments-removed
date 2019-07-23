@@ -313,25 +313,7 @@ notification > button:hover:active {
 
 
 
-
-#ok, #cancel, #launch, #reveal, #pauseResume {
-	font: menu !important;
-}
-
-
-#panelFrame {
-  margin-top: 2px;
-  -moz-padding-start: 10px;
-}
-
-
-#OCSPDialog {
-  font: message-box;
-}
-
-
-
-#autoscroller {
+.autoscroller {
   height: 28px;
   width: 28px;
   border: none;
@@ -344,10 +326,10 @@ notification > button:hover:active {
   -moz-window-shadow: none;
 }
 
-#autoscroller[scrolldir="NS"] {
+.autoscroller[scrolldir="NS"] {
   background-position: right center;
 }
 
-#autoscroller[scrolldir="EW"] {
+.autoscroller[scrolldir="EW"] {
   background-position: right bottom;
 }
