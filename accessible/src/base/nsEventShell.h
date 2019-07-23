@@ -39,7 +39,11 @@
 #ifndef _nsEventShell_H_
 #define _nsEventShell_H_
 
+#include "nsCoreUtils.h"
 #include "nsAccEvent.h"
+
+
+
 
 class nsEventShell
 {
@@ -75,6 +79,81 @@ public:
 private:
   static nsCOMPtr<nsIDOMNode> sEventTargetNode;
   static PRBool sEventFromUserInput;
+};
+
+
+
+
+
+class nsAccEventQueue : public nsISupports
+{
+public:
+  nsAccEventQueue(nsDocAccessible *aDocument);
+  ~nsAccEventQueue();
+
+  NS_DECL_CYCLE_COLLECTING_ISUPPORTS
+  NS_DECL_CYCLE_COLLECTION_CLASS(nsAccEventQueue)
+
+  
+
+
+  void Push(nsAccEvent *aEvent);
+
+  
+
+
+  void Shutdown();
+
+private:
+
+  
+
+
+  void PrepareFlush();
+  
+  
+
+
+
+  void Flush();
+
+  NS_DECL_RUNNABLEMETHOD(nsAccEventQueue, Flush)
+
+  
+
+
+  void CoalesceEvents();
+
+  
+
+
+
+
+
+
+
+
+
+  void ApplyToSiblings(PRUint32 aStart, PRUint32 aEnd,
+                       PRUint32 aEventType, nsIDOMNode* aDOMNode,
+                       nsAccEvent::EEventRule aEventRule);
+
+  
+
+
+  void CoalesceReorderEventsFromSameSource(nsAccEvent *aAccEvent1,
+                                           nsAccEvent *aAccEvent2);
+
+  
+
+
+
+  void CoalesceReorderEventsFromSameTree(nsAccEvent *aAccEvent,
+                                         nsAccEvent *aDescendantAccEvent);
+
+  PRBool mProcessingStarted;
+  nsRefPtr<nsDocAccessible> mDocument;
+  nsTArray<nsRefPtr<nsAccEvent> > mEvents;
 };
 
 #endif

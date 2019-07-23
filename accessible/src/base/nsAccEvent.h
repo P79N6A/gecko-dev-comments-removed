@@ -141,45 +141,7 @@ protected:
   nsCOMPtr<nsIDOMNode> mDOMNode;
   nsCOMPtr<nsIAccessibleDocument> mDocAccessible;
 
-public:
-
-  
-
-
-
-
-
-
-  static void ApplyEventRules(nsTArray<nsRefPtr<nsAccEvent> > &aEventsToFire);
-
-private:
-  
-
-
-
-
-
-
-
-
-
-  static void ApplyToSiblings(nsTArray<nsRefPtr<nsAccEvent> > &aEventsToFire,
-                              PRUint32 aStart, PRUint32 aEnd,
-                              PRUint32 aEventType, nsIDOMNode* aDOMNode,
-                              EEventRule aEventRule);
-
-  
-
-
-  static void CoalesceReorderEventsFromSameSource(nsAccEvent *aAccEvent1,
-                                                  nsAccEvent *aAccEvent2);
-
-  
-
-
-
-  static void CoalesceReorderEventsFromSameTree(nsAccEvent *aAccEvent,
-                                                nsAccEvent *aDescendantAccEvent);
+  friend class nsAccEventQueue;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsAccEvent, NS_ACCEVENT_IMPL_CID)

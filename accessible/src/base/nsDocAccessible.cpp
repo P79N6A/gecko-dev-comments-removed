@@ -85,8 +85,7 @@ nsIAtom *nsDocAccessible::gLastFocusedFrameType = nsnull;
 nsDocAccessible::nsDocAccessible(nsIDOMNode *aDOMNode, nsIWeakReference* aShell):
   nsHyperTextAccessibleWrap(aDOMNode, aShell), mWnd(nsnull),
   mScrollPositionChangedTicks(0), mIsContentLoaded(PR_FALSE),
-  mIsLoadCompleteFired(PR_FALSE), mInFlushPendingEvents(PR_FALSE),
-  mFireEventTimerStarted(PR_FALSE)
+  mIsLoadCompleteFired(PR_FALSE)
 {
   
   mAccessNodeCache.Init(kDefaultCacheSize);
@@ -151,17 +150,14 @@ ElementTraverser(const void *aKey, nsIAccessNode *aAccessNode,
 NS_IMPL_CYCLE_COLLECTION_CLASS(nsDocAccessible)
 
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(nsDocAccessible, nsAccessible)
-  PRUint32 i, length = tmp->mEventsToFire.Length();
-  for (i = 0; i < length; ++i) {
-    NS_CYCLE_COLLECTION_NOTE_EDGE_NAME(cb, "mEventsToFire[i]");
-    cb.NoteXPCOMChild(tmp->mEventsToFire[i].get());
-  }
+  NS_CYCLE_COLLECTION_NOTE_EDGE_NAME(cb, "mEventQueue");
+  cb.NoteXPCOMChild(tmp->mEventQueue.get());
 
   tmp->mAccessNodeCache.EnumerateRead(ElementTraverser, &cb);
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(nsDocAccessible, nsAccessible)
-  NS_IMPL_CYCLE_COLLECTION_UNLINK_NSTARRAY(mEventsToFire)
+  NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mEventQueue)
   tmp->ClearCache(tmp->mAccessNodeCache);
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
@@ -610,6 +606,9 @@ nsDocAccessible::Init()
   NS_ENSURE_SUCCESS(rv, rv);
 
   
+  mEventQueue = new nsAccEventQueue(this);
+
+  
   
   nsCOMPtr<nsIAccessibleEvent> reorderEvent =
     new nsAccReorderEvent(mParent, PR_FALSE, PR_TRUE, mDOMNode);
@@ -626,6 +625,9 @@ nsDocAccessible::Shutdown()
     return NS_OK;  
   }
 
+  mEventQueue->Shutdown();
+  mEventQueue = nsnull;
+
   nsCOMPtr<nsIDocShellTreeItem> treeItem =
     nsCoreUtils::GetDocShellTreeItemFor(mDOMNode);
   ShutdownChildDocuments(treeItem);
@@ -640,21 +642,6 @@ nsDocAccessible::Shutdown()
   mDocument = nsnull;
 
   nsHyperTextAccessibleWrap::Shutdown();
-
-  if (mFireEventTimer) {
-    
-    mFireEventTimer->Cancel();
-    mFireEventTimer = nsnull;
-    mEventsToFire.Clear();
-
-    if (mFireEventTimerStarted && !mInFlushPendingEvents) {
-      
-      
-      
-      
-      NS_RELEASE_THIS();
-    }
-  }
 
   
   
@@ -1615,256 +1602,165 @@ nsDocAccessible::FireDelayedAccessibleEvent(nsIAccessibleEvent *aEvent)
   NS_ENSURE_ARG(aEvent);
 
   nsRefPtr<nsAccEvent> accEvent = nsAccUtils::QueryObject<nsAccEvent>(aEvent);
-  mEventsToFire.AppendElement(accEvent);
+  if (mEventQueue)
+    mEventQueue->Push(accEvent);
 
-  
-  nsAccEvent::ApplyEventRules(mEventsToFire);
-
-  
-  return PreparePendingEventsFlush();
-}
-
-nsresult
-nsDocAccessible::PreparePendingEventsFlush()
-{
-  nsresult rv = NS_OK;
-
-  
-  if (!mFireEventTimer) {
-    mFireEventTimer = do_CreateInstance("@mozilla.org/timer;1", &rv);
-    NS_ENSURE_SUCCESS(rv, rv);
-  }
-
-  
-  
-  
-  if (mEventsToFire.Length() > 0 && !mFireEventTimerStarted) {
-
-    rv = mFireEventTimer->InitWithFuncCallback(FlushEventsCallback,
-                                               this, 0,
-                                               nsITimer::TYPE_ONE_SHOT);
-
-    if (NS_SUCCEEDED(rv)) {
-      
-      NS_ADDREF_THIS();
-
-      mFireEventTimerStarted = PR_TRUE;
-    }
-  }
-
-  return rv;
+  return NS_OK;
 }
 
 void
-nsDocAccessible::FlushPendingEvents()
-{
-  mInFlushPendingEvents = PR_TRUE;
+nsDocAccessible::ProcessPendingEvent(nsAccEvent *aEvent)
+{  
+  nsCOMPtr<nsIAccessible> accessible;
+  aEvent->GetAccessible(getter_AddRefs(accessible));
 
-  PRUint32 length = mEventsToFire.Length();
-  NS_ASSERTION(length, "How did we get here without events to fire?");
-  nsCOMPtr<nsIPresShell> presShell = GetPresShell();
-  if (!presShell)
-    length = 0; 
-  else {
+  nsCOMPtr<nsIDOMNode> domNode;
+  aEvent->GetDOMNode(getter_AddRefs(domNode));
+
+  PRUint32 eventType = aEvent->GetEventType();
+  EIsFromUserInput isFromUserInput =
+    aEvent->IsFromUserInput() ? eFromUserInput : eNoUserInput;
+
+  PRBool isAsync = aEvent->IsAsync();
+
+  if (domNode == gLastFocusedNode && isAsync &&
+      (eventType == nsIAccessibleEvent::EVENT_SHOW ||
+       eventType == nsIAccessibleEvent::EVENT_HIDE)) {
     
     
     
     
-    
-    presShell->FlushPendingNotifications(Flush_Layout);
+    nsCOMPtr<nsIContent> focusContent(do_QueryInterface(domNode));
+    if (focusContent) {
+      nsIFrame *focusFrame = focusContent->GetPrimaryFrame();
+      nsIAtom *newFrameType =
+        (focusFrame && focusFrame->GetStyleVisibility()->IsVisible()) ?
+        focusFrame->GetType() : nsnull;
+
+      if (newFrameType == gLastFocusedFrameType) {
+        
+        
+        FireShowHideEvents(domNode, PR_TRUE, eventType, eNormalEvent,
+                           isAsync, isFromUserInput); 
+        return;
+      }
+      gLastFocusedFrameType = newFrameType;
+    }
   }
 
-  
-  
-  for (PRUint32 index = 0; index < length; index ++) {
-  
+  if (eventType == nsIAccessibleEvent::EVENT_SHOW) {
+
+    nsCOMPtr<nsIAccessible> containerAccessible;
+    if (accessible)
+      accessible->GetParent(getter_AddRefs(containerAccessible));
+
+    if (!containerAccessible) {
+      GetAccessibleInParentChain(domNode, PR_TRUE,
+                                 getter_AddRefs(containerAccessible));
+      if (!containerAccessible)
+        containerAccessible = this;
+    }
+
+    if (isAsync) {
+      
+      nsRefPtr<nsAccessible> containerAcc =
+        nsAccUtils::QueryAccessible(containerAccessible);
+      if (containerAcc)
+        containerAcc->InvalidateChildren();
+
+      
+      
+      
+      InvalidateChildrenInSubtree(domNode);
+    }
+
     
     
-    if (!mWeakShell)
-      break;
-
-    nsAccEvent *accEvent = mEventsToFire[index];
-
-    if (accEvent->GetEventRule() == nsAccEvent::eDoNotEmit)
-      continue;
-
-    nsCOMPtr<nsIAccessible> accessible;
-    accEvent->GetAccessible(getter_AddRefs(accessible));
-
-    nsCOMPtr<nsIDOMNode> domNode;
-    accEvent->GetDOMNode(getter_AddRefs(domNode));
-
-    PRUint32 eventType = accEvent->GetEventType();
-    EIsFromUserInput isFromUserInput =
-      accEvent->IsFromUserInput() ? eFromUserInput : eNoUserInput;
-
-    PRBool isAsync = accEvent->IsAsync();
-
-    if (domNode == gLastFocusedNode && isAsync &&
-        (eventType == nsIAccessibleEvent::EVENT_SHOW ||
-         eventType == nsIAccessibleEvent::EVENT_HIDE)) {
-      
-      
-      
-      
-      nsCOMPtr<nsIContent> focusContent(do_QueryInterface(domNode));
-      if (focusContent) {
-        nsIFrame *focusFrame = focusContent->GetPrimaryFrame();
-        nsIAtom *newFrameType =
-          (focusFrame && focusFrame->GetStyleVisibility()->IsVisible()) ?
-          focusFrame->GetType() : nsnull;
-
-        if (newFrameType == gLastFocusedFrameType) {
-          
-          
-          FireShowHideEvents(domNode, PR_TRUE, eventType, eNormalEvent,
-                             isAsync, isFromUserInput); 
-          continue;
-        }
-        gLastFocusedFrameType = newFrameType;
+    
+    
+    
+    if (domNode && domNode != mDOMNode) {
+      nsRefPtr<nsAccEvent> textChangeEvent =
+        CreateTextChangeEventForNode(containerAccessible, domNode, accessible,
+                                     PR_TRUE, PR_TRUE, isFromUserInput);
+      if (textChangeEvent) {
+        
+        
+        
+        nsEventShell::FireEvent(textChangeEvent);
       }
     }
 
-    if (eventType == nsIAccessibleEvent::EVENT_SHOW) {
+    
+    FireShowHideEvents(domNode, PR_FALSE, eventType, eNormalEvent, isAsync,
+                       isFromUserInput); 
+    return;
+  }
 
-      nsCOMPtr<nsIAccessible> containerAccessible;
-      if (accessible)
-        accessible->GetParent(getter_AddRefs(containerAccessible));
+  if (accessible) {
+    if (eventType == nsIAccessibleEvent::EVENT_INTERNAL_LOAD) {
+      nsRefPtr<nsDocAccessible> docAcc =
+        nsAccUtils::QueryAccessibleDocument(accessible);
+      NS_ASSERTION(docAcc, "No doc accessible for doc load event");
 
-      if (!containerAccessible) {
-        GetAccessibleInParentChain(domNode, PR_TRUE,
-                                   getter_AddRefs(containerAccessible));
-        if (!containerAccessible)
-          containerAccessible = this;
-      }
-
-      if (isAsync) {
-        
-        nsRefPtr<nsAccessible> containerAcc =
-          nsAccUtils::QueryAccessible(containerAccessible);
-        if (containerAcc)
-          containerAcc->InvalidateChildren();
-
-        
-        
-        
-        InvalidateChildrenInSubtree(domNode);
-      }
-
-      
-      
-      
-      
-      
-      if (domNode && domNode != mDOMNode) {
-        nsRefPtr<nsAccEvent> textChangeEvent =
-          CreateTextChangeEventForNode(containerAccessible, domNode, accessible,
-                                       PR_TRUE, PR_TRUE, isFromUserInput);
-        if (textChangeEvent) {
-          
-          
-          
-          nsEventShell::FireEvent(textChangeEvent);
-        }
-      }
-
-      
-      FireShowHideEvents(domNode, PR_FALSE, eventType, eNormalEvent, isAsync,
-                         isFromUserInput); 
-      continue;
+      if (docAcc)
+        docAcc->FireDocLoadEvents(nsIAccessibleEvent::EVENT_DOCUMENT_LOAD_COMPLETE);
     }
-
-    if (accessible) {
-      if (eventType == nsIAccessibleEvent::EVENT_INTERNAL_LOAD) {
-        nsRefPtr<nsDocAccessible> docAcc =
-          nsAccUtils::QueryAccessibleDocument(accessible);
-        NS_ASSERTION(docAcc, "No doc accessible for doc load event");
-
-        if (docAcc)
-          docAcc->FireDocLoadEvents(nsIAccessibleEvent::EVENT_DOCUMENT_LOAD_COMPLETE);
-      }
-      else if (eventType == nsIAccessibleEvent::EVENT_TEXT_CARET_MOVED) {
-        nsCOMPtr<nsIAccessibleText> accessibleText = do_QueryInterface(accessible);
-        PRInt32 caretOffset;
-        if (accessibleText && NS_SUCCEEDED(accessibleText->GetCaretOffset(&caretOffset))) {
+    else if (eventType == nsIAccessibleEvent::EVENT_TEXT_CARET_MOVED) {
+      nsCOMPtr<nsIAccessibleText> accessibleText = do_QueryInterface(accessible);
+      PRInt32 caretOffset;
+      if (accessibleText && NS_SUCCEEDED(accessibleText->GetCaretOffset(&caretOffset))) {
 #ifdef DEBUG_A11Y
-          PRUnichar chAtOffset;
-          accessibleText->GetCharacterAtOffset(caretOffset, &chAtOffset);
-          printf("\nCaret moved to %d with char %c", caretOffset, chAtOffset);
+        PRUnichar chAtOffset;
+        accessibleText->GetCharacterAtOffset(caretOffset, &chAtOffset);
+        printf("\nCaret moved to %d with char %c", caretOffset, chAtOffset);
 #endif
 #ifdef DEBUG_CARET
-          
-          
-          nsCOMPtr<nsIAccessible> accForFocus;
-          GetAccService()->GetAccessibleFor(gLastFocusedNode, getter_AddRefs(accForFocus));
-          nsEventShell::FireEvent(nsIAccessibleEvent::EVENT_ALERT, accForFocus);
+        
+        
+        nsCOMPtr<nsIAccessible> accForFocus;
+        GetAccService()->GetAccessibleFor(gLastFocusedNode, getter_AddRefs(accForFocus));
+        nsEventShell::FireEvent(nsIAccessibleEvent::EVENT_ALERT, accForFocus);
 #endif
-          nsRefPtr<nsAccEvent> caretMoveEvent =
-            new nsAccCaretMoveEvent(accessible, caretOffset);
-          if (!caretMoveEvent)
-            break; 
+        nsRefPtr<nsAccEvent> caretMoveEvent =
+          new nsAccCaretMoveEvent(accessible, caretOffset);
+        if (!caretMoveEvent)
+          return;
 
-          nsEventShell::FireEvent(caretMoveEvent);
+        nsEventShell::FireEvent(caretMoveEvent);
 
-          PRInt32 selectionCount;
-          accessibleText->GetSelectionCount(&selectionCount);
-          if (selectionCount) {  
-            nsEventShell::FireEvent(nsIAccessibleEvent::EVENT_TEXT_SELECTION_CHANGED,
-                                    accessible, PR_TRUE);
-          }
-        } 
-      }
-      else if (eventType == nsIAccessibleEvent::EVENT_REORDER) {
-        
-        
-        
-        nsCOMPtr<nsAccReorderEvent> reorderEvent = do_QueryInterface(accEvent);
-        if (reorderEvent->IsUnconditionalEvent() ||
-            reorderEvent->HasAccessibleInReasonSubtree()) {
-          nsEventShell::FireEvent(accEvent);
+        PRInt32 selectionCount;
+        accessibleText->GetSelectionCount(&selectionCount);
+        if (selectionCount) {  
+          nsEventShell::FireEvent(nsIAccessibleEvent::EVENT_TEXT_SELECTION_CHANGED,
+                                  accessible, PR_TRUE);
         }
+      } 
+    }
+    else if (eventType == nsIAccessibleEvent::EVENT_REORDER) {
+      
+      
+      
+      nsCOMPtr<nsAccReorderEvent> reorderEvent = do_QueryInterface(aEvent);
+      if (reorderEvent->IsUnconditionalEvent() ||
+          reorderEvent->HasAccessibleInReasonSubtree()) {
+        nsEventShell::FireEvent(aEvent);
       }
-      else {
-        nsEventShell::FireEvent(accEvent);
+    }
+    else {
+      nsEventShell::FireEvent(aEvent);
 
+      
+      if (eventType == nsIAccessibleEvent::EVENT_HIDE) {
         
-        if (eventType == nsIAccessibleEvent::EVENT_HIDE) {
-          
-          
-          nsCOMPtr<nsIDOMNode> hidingNode;
-          accEvent->GetDOMNode(getter_AddRefs(hidingNode));
-          if (hidingNode) {
-            RefreshNodes(hidingNode); 
-          }
+        
+        nsCOMPtr<nsIDOMNode> hidingNode;
+        aEvent->GetDOMNode(getter_AddRefs(hidingNode));
+        if (hidingNode) {
+          RefreshNodes(hidingNode); 
         }
       }
     }
-  }
-
-  
-  mFireEventTimerStarted = PR_FALSE;
-
-  
-  
-  
-  
-  if (mWeakShell) {
-    mEventsToFire.RemoveElementsAt(0, length);
-    PreparePendingEventsFlush();
-  }
-
-  mInFlushPendingEvents = PR_FALSE;
-  NS_RELEASE_THIS(); 
-}
-
-void nsDocAccessible::FlushEventsCallback(nsITimer *aTimer, void *aClosure)
-{
-  nsDocAccessible *accessibleDoc = static_cast<nsDocAccessible*>(aClosure);
-  NS_ASSERTION(accessibleDoc, "How did we get here without an accessible document?");
-  if (accessibleDoc) {
-    
-    
-    accessibleDoc->FlushPendingEvents();
   }
 }
 
