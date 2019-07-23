@@ -168,6 +168,9 @@ pref("extensions.dss.enabled", false);
 pref("extensions.dss.switchPending", false);    
                                                 
 
+pref("extensions.{972ce4c6-7e08-4474-a285-3208198ce6fd}.name", "chrome://browser/locale/browser.properties");
+pref("extensions.{972ce4c6-7e08-4474-a285-3208198ce6fd}.description", "chrome://browser/locale/browser.properties");
+
 pref("xpinstall.whitelist.add", "update.mozilla.org");
 pref("xpinstall.whitelist.add.103", "addons.mozilla.org");
 
@@ -222,11 +225,6 @@ pref("browser.urlbar.filter.javascript", true);
 
 
 pref("browser.urlbar.maxRichResults", 12);
-
-
-
-pref("browser.urlbar.search.chunkSize", 1000);
-pref("browser.urlbar.search.timeout", 100);
 
 
 
@@ -859,9 +857,6 @@ pref("geo.wifi.uri", "https://www.google.com/loc/json");
 #ifdef WINCE
 
 
-
-pref("browser.urlbar.search.chunkSize", 100);
-pref("browser.urlbar.search.timeout", 500);
 pref("browser.urlbar.delay", 1000);
 
 
@@ -884,6 +879,9 @@ pref("content.sink.event_probe_rate", 1);
 pref("content.sink.interactive_time", 750000); 
 pref("content.sink.initial_perf_time", 500000); 
 pref("content.sink.enable_perf_mode", 0); 
+
+
+pref("browser.sessionstore.interval", 60000);
 
 #endif 
 

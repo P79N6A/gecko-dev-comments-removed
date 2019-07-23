@@ -209,11 +209,33 @@
 
 #ifdef MOZ_IPC
 #include "base/command_line.h"
-#include "base/thread.h"
-#include "mozilla/ipc/GeckoThread.h"
+#endif
 
-using mozilla::ipc::BrowserProcessSubThread;
-using mozilla::ipc::GeckoThread;
+#ifdef WINCE
+class WindowsMutex {
+public:
+  WindowsMutex(const wchar_t *name) {
+    mHandle = CreateMutexW(0, FALSE, name);
+  }
+
+  ~WindowsMutex() {
+    Unlock();
+    CloseHandle(mHandle);
+  }
+
+  PRBool Lock(DWORD timeout = INFINITE) {
+    DWORD state = WaitForSingleObject(mHandle, timeout);
+    return state == WAIT_OBJECT_0;
+  }
+  
+  void Unlock() {
+    if (mHandle)
+      ReleaseMutex(mHandle);
+  }
+
+protected:
+  HANDLE mHandle;
+};
 #endif
 
 
@@ -1471,7 +1493,13 @@ XRE_GetBinaryPath(const char* argv0, nsILocalFile* *aResult)
   if (!bundleURL)
     return NS_ERROR_FAILURE;
 
-  rv = lfm->InitWithCFURL(bundleURL);
+  FSRef fileRef;
+  if (!CFURLGetFSRef(bundleURL, &fileRef)) {
+    CFRelease(bundleURL);
+    return NS_ERROR_FAILURE;
+  }
+
+  rv = lfm->InitWithFSRef(&fileRef);
   CFRelease(bundleURL);
 
   if (NS_FAILED(rv))
@@ -2604,10 +2632,7 @@ int
 XRE_main(int argc, char* argv[], const nsXREAppData* aAppData)
 {
 #ifdef MOZ_SPLASHSCREEN
-  nsSplashScreen *splashScreen =
-    nsSplashScreen::GetOrCreate();
-  if (splashScreen)
-    splashScreen->Open();
+  nsSplashScreen *splashScreen = nsnull;
 #endif
 
 #ifdef XP_WIN
@@ -2728,8 +2753,6 @@ XRE_main(int argc, char* argv[], const nsXREAppData* aAppData)
     }
   }
 
-  MOZ_SPLASHSCREEN_UPDATE(10);
-
   ScopedAppData appData(aAppData);
   gAppData = &appData;
 
@@ -2743,6 +2766,64 @@ XRE_main(int argc, char* argv[], const nsXREAppData* aAppData)
     Output(PR_TRUE, "Error: App:BuildID not specified in application.ini\n");
     return 1;
   }
+
+#ifdef MOZ_SPLASHSCREEN
+  
+  PRBool wantsSplash = PR_TRUE;
+  PRBool isNoSplash = (CheckArg("nosplash") == ARG_FOUND);
+  PRBool isNoRemote = (CheckArg("no-remote") == ARG_FOUND);
+
+#ifdef WINCE
+  
+  
+  WindowsMutex winStartupMutex(L"FirefoxStartupMutex");
+
+  
+  PRBool needsMutexLock = ! winStartupMutex.Lock(100);
+
+  
+  
+  
+  
+  
+  
+  if (!needsMutexLock && !isNoRemote) {
+    
+    static PRUnichar classNameBuffer[128];
+    _snwprintf(classNameBuffer, sizeof(classNameBuffer) / sizeof(PRUnichar),
+               L"%S%s",
+               gAppData->name, L"MessageWindow");
+    HANDLE h = FindWindowW(classNameBuffer, 0);
+    if (h) {
+      
+      
+      
+      wantsSplash = PR_FALSE;
+      CloseHandle(h);
+    } else {
+      
+      
+      
+      wantsSplash = PR_TRUE;
+    }
+  }
+#endif
+
+  if (wantsSplash && !isNoSplash)
+    splashScreen = nsSplashScreen::GetOrCreate();
+
+  if (splashScreen)
+    splashScreen->Open();
+
+#ifdef WINCE
+  
+  
+  if (needsMutexLock)
+    winStartupMutex.Lock();
+#endif
+
+#endif
+
 
   ScopedLogging log;
 
@@ -2967,7 +3048,7 @@ XRE_main(int argc, char* argv[], const nsXREAppData* aAppData)
 
   MOZ_SPLASHSCREEN_UPDATE(20);
 
-#ifdef MOZ_IPC
+#if defined(MOZ_IPC) && !defined(OS_WIN)
   
   char** canonArgs = new char*[gArgc];
 
@@ -3172,6 +3253,11 @@ XRE_main(int argc, char* argv[], const nsXREAppData* aAppData)
 
     rv = dirProvider.SetProfile(profD, profLD);
     NS_ENSURE_SUCCESS(rv, 1);
+
+#ifdef WINCE
+    
+    winStartupMutex.Unlock();
+#endif
 
     
 
@@ -3439,27 +3525,6 @@ XRE_main(int argc, char* argv[], const nsXREAppData* aAppData)
 
           MOZ_SPLASHSCREEN_UPDATE(90);
           {
-#if 0 && defined(OS_LINUX)
-            
-            
-             scoped_ptr<base::Thread> x11Thread(
-               new BrowserProcessSubThread(BrowserProcessSubThread::BACKGROUND_X11));
-             if (NS_UNLIKELY(!x11Thread->Start())) {
-               NS_ERROR("Failed to create chromium's X11 thread!");
-               return NS_ERROR_FAILURE;
-             }
-#endif
-#ifdef MOZ_IPC
-            scoped_ptr<base::Thread> ipcThread(
-              new BrowserProcessSubThread(BrowserProcessSubThread::IO));
-            base::Thread::Options options;
-            options.message_loop_type = MessageLoop::TYPE_IO;
-            if (NS_UNLIKELY(!ipcThread->StartWithOptions(options))) {
-              NS_ERROR("Failed to create chromium's IO thread!");
-              return NS_ERROR_FAILURE;
-            }
-#endif
-
             NS_TIMELINE_ENTER("appStartup->Run");
             rv = appStartup->Run();
             NS_TIMELINE_LEAVE("appStartup->Run");

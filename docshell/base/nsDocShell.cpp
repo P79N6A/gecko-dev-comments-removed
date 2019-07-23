@@ -4629,15 +4629,11 @@ nsDocShell::SetTitle(const PRUnichar * aTitle)
 
 
     
-    
-    
-    
-    
-    if (mOSHE && (mLoadType != LOAD_BYPASS_HISTORY) &&
-        (mLoadType != LOAD_HISTORY) && (mLoadType != LOAD_ERROR_PAGE)) {
+    if (mOSHE && mLoadType != LOAD_BYPASS_HISTORY &&
+        mLoadType != LOAD_ERROR_PAGE) {
+
         mOSHE->SetTitle(mTitle);    
     }
-
 
     return NS_OK;
 }
