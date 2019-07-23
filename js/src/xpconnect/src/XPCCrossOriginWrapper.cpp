@@ -100,7 +100,7 @@ JSExtendedClass sXPC_XOW_JSClass = {
   
   { "XPCCrossOriginWrapper",
     JSCLASS_NEW_RESOLVE | JSCLASS_IS_EXTENDED |
-    JSCLASS_HAS_RESERVED_SLOTS(XPCWrapper::sNumSlots + 1),
+    JSCLASS_HAS_RESERVED_SLOTS(XPCWrapper::sNumSlots + 2),
     XPC_XOW_AddProperty, XPC_XOW_DelProperty,
     XPC_XOW_GetProperty, XPC_XOW_SetProperty,
     XPC_XOW_Enumerate,   (JSResolveOp)XPC_XOW_NewResolve,
@@ -130,6 +130,7 @@ JSExtendedClass sXPC_XOW_JSClass = {
 
 
 static const int XPC_XOW_ScopeSlot = XPCWrapper::sNumSlots;
+static const int sUXPCObjectSlot = XPCWrapper::sNumSlots + 1;
 
 static JSBool
 XPC_XOW_toString(JSContext *cx, JSObject *obj, uintN argc, jsval *argv,
@@ -242,8 +243,9 @@ IsValFrame(JSObject *obj, jsval v, XPCWrappedNative *wn)
 
 
 nsresult
-CanAccessWrapper(JSContext *cx, JSObject *wrappedObj)
+CanAccessWrapper(JSContext *cx, JSObject *wrappedObj, JSBool *privilegeEnabled)
 {
+  
   
   nsIScriptSecurityManager *ssm = XPCWrapper::GetSecurityManager();
   if (!ssm) {
@@ -263,24 +265,16 @@ CanAccessWrapper(JSContext *cx, JSObject *wrappedObj)
   nsresult rv = ssm->IsSystemPrincipal(subjectPrin, &isSystem);
   NS_ENSURE_SUCCESS(rv, rv);
 
+  if (privilegeEnabled) {
+    *privilegeEnabled = JS_FALSE;
+  }
+
   
   
   
   
   if (isSystem) {
     return NS_OK;
-  }
-
-  
-  
-  if (fp) {
-    void *annotation = JS_GetFrameAnnotation(cx, fp);
-    rv = subjectPrin->IsCapabilityEnabled("UniversalXPConnect", annotation,
-                                          &isSystem);
-    NS_ENSURE_SUCCESS(rv, rv);
-    if (isSystem) {
-      return NS_OK;
-    }
   }
 
   nsCOMPtr<nsIPrincipal> objectPrin;
@@ -299,7 +293,17 @@ CanAccessWrapper(JSContext *cx, JSObject *wrappedObj)
   PRBool subsumes;
   rv = subjectPrin->Subsumes(objectPrin, &subsumes);
   if (NS_SUCCEEDED(rv) && !subsumes) {
-    rv = NS_ERROR_DOM_PROP_ACCESS_DENIED;
+    
+    
+    rv = ssm->IsCapabilityEnabled("UniversalXPConnect", &isSystem);
+    if (NS_SUCCEEDED(rv) && isSystem) {
+      rv = NS_OK;
+      if (privilegeEnabled) {
+        *privilegeEnabled = JS_TRUE;
+      }
+    } else {
+      rv = NS_ERROR_DOM_PROP_ACCESS_DENIED;
+    }
   }
   return rv;
 }
@@ -344,7 +348,7 @@ XPC_XOW_FunctionWrapper(JSContext *cx, JSObject *obj, uintN argc, jsval *argv,
     return ThrowException(NS_ERROR_FAILURE, cx);
   }
 
-  nsresult rv = CanAccessWrapper(cx, JSVAL_TO_OBJECT(funToCall));
+  nsresult rv = CanAccessWrapper(cx, JSVAL_TO_OBJECT(funToCall), nsnull);
   if (NS_FAILED(rv) && rv != NS_ERROR_DOM_PROP_ACCESS_DENIED) {
     return ThrowException(rv, cx);
   }
@@ -511,9 +515,6 @@ XPC_XOW_WrapObject(JSContext *cx, JSObject *parent, jsval *vp,
     return JS_TRUE;
   }
 
-  
-  
-  
   outerObj = JS_NewObjectWithGivenProto(cx, &sXPC_XOW_JSClass.base, nsnull,
                                         parent);
   if (!outerObj) {
@@ -562,7 +563,8 @@ XPC_XOW_AddProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
     return ThrowException(NS_ERROR_FAILURE, cx);
   }
 
-  nsresult rv = CanAccessWrapper(cx, wrappedObj);
+  JSBool privilegeEnabled = JS_FALSE;
+  nsresult rv = CanAccessWrapper(cx, wrappedObj, &privilegeEnabled);
   if (NS_FAILED(rv)) {
     if (rv == NS_ERROR_DOM_PROP_ACCESS_DENIED) {
       
@@ -588,7 +590,7 @@ XPC_XOW_DelProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
     return ThrowException(NS_ERROR_FAILURE, cx);
   }
 
-  nsresult rv = CanAccessWrapper(cx, wrappedObj);
+  nsresult rv = CanAccessWrapper(cx, wrappedObj, nsnull);
   if (NS_FAILED(rv)) {
     if (rv == NS_ERROR_DOM_PROP_ACCESS_DENIED) {
       
@@ -637,7 +639,9 @@ XPC_XOW_GetOrSetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp,
   if (!wrappedObj) {
     return ThrowException(NS_ERROR_ILLEGAL_VALUE, cx);
   }
-  nsresult rv = CanAccessWrapper(cx, wrappedObj);
+
+  JSBool privilegeEnabled;
+  nsresult rv = CanAccessWrapper(cx, wrappedObj, &privilegeEnabled);
   if (NS_FAILED(rv)) {
     if (rv != NS_ERROR_DOM_PROP_ACCESS_DENIED) {
       return JS_FALSE;
@@ -750,7 +754,7 @@ XPC_XOW_Enumerate(JSContext *cx, JSObject *obj)
     return ThrowException(NS_ERROR_FAILURE, cx);
   }
 
-  nsresult rv = CanAccessWrapper(cx, wrappedObj);
+  nsresult rv = CanAccessWrapper(cx, wrappedObj, nsnull);
   if (NS_FAILED(rv)) {
     if (rv == NS_ERROR_DOM_PROP_ACCESS_DENIED) {
       
@@ -761,6 +765,72 @@ XPC_XOW_Enumerate(JSContext *cx, JSObject *obj)
   }
 
   return XPCWrapper::Enumerate(cx, obj, wrappedObj);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+static JSObject *
+GetUXPCObject(JSContext *cx, JSObject *obj)
+{
+  NS_ASSERTION(STOBJ_GET_CLASS(obj) == &sXPC_XOW_JSClass.base, "wrong object");
+
+  jsval v;
+  if (!JS_GetReservedSlot(cx, obj, XPCWrapper::sFlagsSlot, &v)) {
+    return nsnull;
+  }
+
+  if (HAS_FLAGS(v, FLAG_IS_UXPC_OBJECT)) {
+    return obj;
+  }
+
+  if (!JS_GetReservedSlot(cx, obj, sUXPCObjectSlot, &v)) {
+    return nsnull;
+  }
+
+  if (JSVAL_IS_OBJECT(v)) {
+    return JSVAL_TO_OBJECT(v);
+  }
+
+  JSObject *uxpco =
+    JS_NewObjectWithGivenProto(cx, &sXPC_XOW_JSClass.base, nsnull,
+                               STOBJ_GET_PARENT(obj));
+  if (!uxpco) {
+    return nsnull;
+  }
+
+  JSAutoTempValueRooter tvr(cx, uxpco);
+
+  jsval wrappedObj, parentScope;
+  if (!JS_GetReservedSlot(cx, obj, XPCWrapper::sWrappedObjSlot, &wrappedObj) ||
+      !JS_GetReservedSlot(cx, obj, XPC_XOW_ScopeSlot, &parentScope)) {
+    return nsnull;
+  }
+
+  if (!JS_SetReservedSlot(cx, uxpco, XPCWrapper::sWrappedObjSlot, wrappedObj) ||
+      !JS_SetReservedSlot(cx, uxpco, XPCWrapper::sFlagsSlot,
+                          INT_TO_JSVAL(FLAG_IS_UXPC_OBJECT)) ||
+      !JS_SetReservedSlot(cx, uxpco, XPC_XOW_ScopeSlot, parentScope)) {
+    return nsnull;
+  }
+
+  if (!JS_SetReservedSlot(cx, obj, sUXPCObjectSlot, OBJECT_TO_JSVAL(uxpco))) {
+    return nsnull;
+  }
+
+  return uxpco;
 }
 
 static JSBool
@@ -781,7 +851,8 @@ XPC_XOW_NewResolve(JSContext *cx, JSObject *obj, jsval id, uintN flags,
     return ThrowException(NS_ERROR_FAILURE, cx);
   }
 
-  nsresult rv = CanAccessWrapper(cx, wrappedObj);
+  JSBool privilegeEnabled;
+  nsresult rv = CanAccessWrapper(cx, wrappedObj, &privilegeEnabled);
   if (NS_FAILED(rv)) {
     if (rv != NS_ERROR_DOM_PROP_ACCESS_DENIED) {
       return JS_FALSE;
@@ -800,9 +871,10 @@ XPC_XOW_NewResolve(JSContext *cx, JSObject *obj, jsval id, uintN flags,
       if (!ssm) {
         return ThrowException(NS_ERROR_NOT_INITIALIZED, cx);
       }
+
       PRUint32 action = (flags & JSRESOLVE_ASSIGNING)
-                        ? (PRUint32)nsIXPCSecurityManager::ACCESS_SET_PROPERTY
-                        : (PRUint32)nsIXPCSecurityManager::ACCESS_GET_PROPERTY;
+                        ? XPCWrapper::sSecMgrSetProp
+                        : XPCWrapper::sSecMgrGetProp;
       rv = ssm->CheckPropertyAccess(cx, wrappedObj,
                                     STOBJ_GET_CLASS(wrappedObj)->name,
                                     id, action);
@@ -816,6 +888,10 @@ XPC_XOW_NewResolve(JSContext *cx, JSObject *obj, jsval id, uintN flags,
     return XPCWrapper::ResolveNativeProperty(cx, obj, wrappedObj, wn, id,
                                              flags, objp, JS_FALSE);
 
+  }
+
+  if (privilegeEnabled && !(obj = GetUXPCObject(cx, obj))) {
+    return JS_FALSE;
   }
 
   if (id == GetRTStringByIndex(cx, XPCJSRuntime::IDX_TO_STRING)) {
@@ -869,7 +945,7 @@ XPC_XOW_Convert(JSContext *cx, JSObject *obj, JSType type, jsval *vp)
   }
 
   
-  nsresult rv = CanAccessWrapper(cx, wrappedObj);
+  nsresult rv = CanAccessWrapper(cx, wrappedObj, nsnull);
   if (NS_FAILED(rv) &&
       (rv != NS_ERROR_DOM_PROP_ACCESS_DENIED ||
        (type != JSTYPE_STRING && type != JSTYPE_VOID))) {
@@ -943,7 +1019,7 @@ XPC_XOW_Call(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
     return ThrowException(NS_ERROR_FAILURE, cx);
   }
 
-  nsresult rv = CanAccessWrapper(cx, wrappedObj);
+  nsresult rv = CanAccessWrapper(cx, wrappedObj, nsnull);
   if (NS_FAILED(rv)) {
     if (rv == NS_ERROR_DOM_PROP_ACCESS_DENIED) {
       
@@ -980,7 +1056,7 @@ XPC_XOW_Construct(JSContext *cx, JSObject *obj, uintN argc, jsval *argv,
     return ThrowException(NS_ERROR_FAILURE, cx);
   }
 
-  nsresult rv = CanAccessWrapper(cx, wrappedObj);
+  nsresult rv = CanAccessWrapper(cx, wrappedObj, nsnull);
   if (NS_FAILED(rv)) {
     if (rv == NS_ERROR_DOM_PROP_ACCESS_DENIED) {
       
@@ -1007,7 +1083,7 @@ XPC_XOW_HasInstance(JSContext *cx, JSObject *obj, jsval v, JSBool *bp)
     return ThrowException(NS_ERROR_FAILURE, cx);
   }
 
-  nsresult rv = CanAccessWrapper(cx, iface);
+  nsresult rv = CanAccessWrapper(cx, iface, nsnull);
   if (NS_FAILED(rv)) {
     if (rv == NS_ERROR_DOM_PROP_ACCESS_DENIED) {
       
@@ -1093,7 +1169,7 @@ XPC_XOW_Iterator(JSContext *cx, JSObject *obj, JSBool keysonly)
     return nsnull;
   }
 
-  nsresult rv = CanAccessWrapper(cx, wrappedObj);
+  nsresult rv = CanAccessWrapper(cx, wrappedObj, nsnull);
   if (NS_FAILED(rv)) {
     if (rv == NS_ERROR_DOM_PROP_ACCESS_DENIED) {
       
@@ -1160,7 +1236,7 @@ XPC_XOW_toString(JSContext *cx, JSObject *obj, uintN argc, jsval *argv,
     return ThrowException(NS_ERROR_FAILURE, cx);
   }
 
-  nsresult rv = CanAccessWrapper(cx, wrappedObj);
+  nsresult rv = CanAccessWrapper(cx, wrappedObj, nsnull);
   if (rv == NS_ERROR_DOM_PROP_ACCESS_DENIED) {
     nsIScriptSecurityManager *ssm = XPCWrapper::GetSecurityManager();
     if (!ssm) {

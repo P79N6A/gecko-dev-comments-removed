@@ -52,6 +52,9 @@
 
 #define FLAG_RESOLVING 0x4
 
+
+#define FLAG_IS_UXPC_OBJECT (1 << 29)
+
 #define HAS_FLAGS(_val, _flags) \
   ((PRUint32(JSVAL_TO_INT(_val)) & (_flags)) != 0)
 
@@ -79,7 +82,7 @@ XPC_XOW_WrapperMoved(JSContext *cx, XPCWrappedNative *innerObj,
                      XPCWrappedNativeScope *newScope);
 
 nsresult
-CanAccessWrapper(JSContext *cx, JSObject *wrappedObj);
+CanAccessWrapper(JSContext *cx, JSObject *wrappedObj, JSBool *privilegeEnabled);
 
 
 JSBool
@@ -282,7 +285,7 @@ public:
       return nsnull;
     }
 
-    nsresult rv = CanAccessWrapper(cx, wrapper);
+    nsresult rv = CanAccessWrapper(cx, wrapper, nsnull);
     if (NS_FAILED(rv)) {
       JS_ClearPendingException(cx);
       wrapper = nsnull;
@@ -297,7 +300,7 @@ public:
       return nsnull;
     }
 
-    nsresult rv = CanAccessWrapper(cx, wrapper);
+    nsresult rv = CanAccessWrapper(cx, wrapper, nsnull);
     if (NS_FAILED(rv)) {
       JS_ClearPendingException(cx);
       wrapper = nsnull;
