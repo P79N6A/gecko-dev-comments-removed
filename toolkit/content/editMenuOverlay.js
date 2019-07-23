@@ -39,6 +39,14 @@
 
 function goUpdateGlobalEditMenuItems()
 {
+  
+  
+  
+  
+  
+  if (typeof gEditUIVisible != "undefined" && !gEditUIVisible)
+    return;
+
   goUpdateCommand("cmd_undo");
   goUpdateCommand("cmd_redo");
   goUpdateCommand("cmd_cut");

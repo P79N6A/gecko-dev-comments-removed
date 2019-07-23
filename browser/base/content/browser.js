@@ -114,6 +114,10 @@ var gBookmarkAllTabsHandler = null;
 var gClickAndHoldTimer = null;
 #endif
 
+#ifndef XP_MACOSX
+var gEditUIVisible = true;
+#endif
+
 
 
 
@@ -1064,6 +1068,10 @@ function delayedStartup()
   
   setTimeout(function() Cc["@mozilla.org/download-manager;1"].
                         getService(Ci.nsIDownloadManager), 10000);
+
+#ifndef XP_MACOSX
+  updateEditUIVisibility();
+#endif
 }
 
 function BrowserShutdown()
@@ -3087,6 +3095,10 @@ function BrowserToolboxCustomizeDone(aToolboxChanged)
     gHomeButton.updateTooltip();
     gIdentityHandler._cacheElements();
     window.XULBrowserWindow.init();
+
+#ifndef XP_MACOSX
+  updateEditUIVisibility();
+#endif
   }
 
   UpdateUrlbarSearchSplitterState();
@@ -3124,6 +3136,62 @@ function BrowserToolboxCustomizeDone(aToolboxChanged)
 #ifndef TOOLBAR_CUSTOMIZATION_SHEET
   
   window.focus();
+#endif
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function updateEditUIVisibility()
+{
+#ifndef XP_MACOSX
+  let editMenuPopupState = document.getElementById("menu_EditPopup").state;
+  let contextMenuPopupState = document.getElementById("contentAreaContextMenu").state;
+
+  
+  
+  
+  gEditUIVisible = editMenuPopupState == "showing" ||
+                   editMenuPopupState == "open" ||
+                   contextMenuPopupState == "showing" ||
+                   contextMenuPopupState == "open" ||
+                   document.getElementById("cut-button") ||
+                   document.getElementById("copy-button") ||
+                   document.getElementById("paste-button") ? true : false;
+
+  
+  
+  if (gEditUIVisible)
+    goUpdateGlobalEditMenuItems();
+
+  
+  
+  
+  else {
+    goSetCommandEnabled("cmd_undo");
+    goSetCommandEnabled("cmd_redo");
+    goSetCommandEnabled("cmd_cut");
+    goSetCommandEnabled("cmd_copy");
+    goSetCommandEnabled("cmd_paste");
+    goSetCommandEnabled("cmd_selectAll");
+    goSetCommandEnabled("cmd_delete");
+    goSetCommandEnabled("cmd_switchTextDirection");
+  }
 #endif
 }
 
