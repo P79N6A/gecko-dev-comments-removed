@@ -128,6 +128,11 @@ typedef struct JSTraceMonitor {
     CLS(TypeMap)            globalTypeMap;
     jsval                   *recoveryDoublePool;
     jsval                   *recoveryDoublePoolPtr;
+
+    
+
+
+    CLS(nanojit::Fragmento) reFragmento;
 } JSTraceMonitor;
 
 #ifdef JS_TRACER
