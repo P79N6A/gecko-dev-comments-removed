@@ -95,6 +95,9 @@ public:
 #endif
 
 protected:
+  friend class nsNPAPIPluginInstance;
+  friend class nsNPAPIPluginStreamListener;
+
   
   static void CheckClassInitialized(void);
 
