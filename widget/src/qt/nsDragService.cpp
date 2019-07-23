@@ -66,7 +66,8 @@ nsDragService::~nsDragService()
     delete mDrag;
 }
 
-NS_IMETHODIMP nsDragService::SetDropActionType( PRUint32 aActionType )
+NS_IMETHODIMP
+nsDragService::SetDropActionType( PRUint32 aActionType )
 {
     mDropAction = Qt::IgnoreAction;
 
@@ -86,7 +87,8 @@ NS_IMETHODIMP nsDragService::SetDropActionType( PRUint32 aActionType )
     return NS_OK;
 }
 
-NS_IMETHODIMP nsDragService::SetupDragSession(
+NS_IMETHODIMP
+nsDragService::SetupDragSession(
                                 nsISupportsArray *aTransferables,
                                 PRUint32 aActionType)
 {
@@ -177,7 +179,11 @@ NS_IMETHODIMP nsDragService::SetupDragSession(
 
 
 NS_IMETHODIMP
-nsDragService::InvokeDragSession(nsIDOMNode *aDOMNode, nsISupportsArray *aTransferables, nsIScriptableRegion *aRegion, PRUint32 aActionType)
+nsDragService::InvokeDragSession(
+                                nsIDOMNode *aDOMNode,
+                                nsISupportsArray *aTransferables,
+                                nsIScriptableRegion *aRegion,
+                                PRUint32 aActionType)
 {
     qDebug("nsDragService::InvokeDragSession");
 
@@ -280,7 +286,8 @@ nsDragService::StartDragSession()
 {
     qDebug("nsDragService::StartDragSession");
 
-    return NS_ERROR_NOT_IMPLEMENTED;
+    return nsBaseDragService::StartDragSession();
+
 }
 
 
@@ -289,7 +296,8 @@ nsDragService::EndDragSession(PRBool aDoneDrag)
 {
     qDebug("nsDragService::EndDragSession");
 
-    return NS_ERROR_NOT_IMPLEMENTED;
+    return nsBaseDragService::EndDragSession(aDoneDrag);
+
 }
 
 
@@ -298,22 +306,28 @@ nsDragService::FireDragEventAtSource(PRUint32 aMsg)
 {
     qDebug("nsDragService::FireDragEventAtSource");
 
-    return NS_ERROR_NOT_IMPLEMENTED;
+    
+    return nsBaseDragService::FireDragEventAtSource(aMsg);
+
 }
+
 
 NS_IMETHODIMP
 nsDragService::Suppress()
 {
     qDebug("nsDragService::Suppress");
 
-    return NS_ERROR_NOT_IMPLEMENTED;
+    return nsBaseDragService::Suppress();
+
 }
+
 
 NS_IMETHODIMP
 nsDragService::Unsuppress()
 {
     qDebug("nsDragService::Unsuppress");
 
-    return NS_ERROR_NOT_IMPLEMENTED;
+    return nsBaseDragService::Unsuppress();
+
 }
 
