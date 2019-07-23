@@ -293,6 +293,12 @@ js_FillPropertyCache(JSContext *cx, JSObject *obj, jsuword kshape,
                         cache->pcrecycles++);
             pc = (jsbytecode *) atom;
             kshape = (jsuword) obj;
+
+            
+
+
+
+            OBJ_SET_DELEGATE(cx, obj);
         }
     }
 
