@@ -11303,8 +11303,9 @@ TraceRecorder::denseArrayElement(jsval& oval, jsval& ival, jsval*& vp, LIns*& v_
     if (!within) {
         
         LIns* br1 = NULL;
-        if (MAX_DSLOTS_LENGTH > JS_BITMASK(30) && !idx_ins->isconst()) {
-            JS_ASSERT(sizeof(jsval) == 8); 
+        if (MAX_DSLOTS_LENGTH > MAX_DSLOTS_LENGTH32 && !idx_ins->isconst()) {
+            
+            JS_ASSERT(sizeof(jsval) == 8);
             br1 = lir->insBranch(LIR_jt,
                                  lir->ins2i(LIR_lt, idx_ins, 0),
                                  NULL);
@@ -11345,8 +11346,9 @@ TraceRecorder::denseArrayElement(jsval& oval, jsval& ival, jsval*& vp, LIns*& v_
     }
 
     
-    if (MAX_DSLOTS_LENGTH > JS_BITMASK(30) && !idx_ins->isconst()) {
-        JS_ASSERT(sizeof(jsval) == 8); 
+    if (MAX_DSLOTS_LENGTH > MAX_DSLOTS_LENGTH32 && !idx_ins->isconst()) {
+        
+        JS_ASSERT(sizeof(jsval) == 8);
         guard(false,
               lir->ins2i(LIR_lt, idx_ins, 0),
               exit);

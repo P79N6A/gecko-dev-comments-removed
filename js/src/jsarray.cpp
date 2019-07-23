@@ -308,11 +308,11 @@ BigIndexToId(JSContext *cx, JSObject *obj, jsuint index, JSBool createAtom,
 }
 
 static JSBool
-ResizeSlots(JSContext *cx, JSObject *obj, uint32 oldsize, uint32 size)
+ResizeSlots(JSContext *cx, JSObject *obj, uint32 oldlen, uint32 newlen)
 {
     jsval *slots, *newslots;
 
-    if (size == 0) {
+    if (newlen == 0) {
         if (obj->dslots) {
             cx->free(obj->dslots - 1);
             obj->dslots = NULL;
@@ -320,24 +320,20 @@ ResizeSlots(JSContext *cx, JSObject *obj, uint32 oldsize, uint32 size)
         return JS_TRUE;
     }
 
-    
-
-
-
-    if (size >= MAX_DSLOTS_LENGTH) {
+    if (newlen > MAX_DSLOTS_LENGTH) {
         js_ReportAllocationOverflow(cx);
         return JS_FALSE;
     }
 
     slots = obj->dslots ? obj->dslots - 1 : NULL;
-    newslots = (jsval *) cx->realloc(slots, (size + 1) * sizeof(jsval));
+    newslots = (jsval *) cx->realloc(slots, (newlen + 1) * sizeof(jsval));
     if (!newslots)
         return JS_FALSE;
 
     obj->dslots = newslots + 1;
-    js_SetDenseArrayCapacity(obj, size);
+    js_SetDenseArrayCapacity(obj, newlen);
 
-    for (slots = obj->dslots + oldsize; slots < obj->dslots + size; slots++)
+    for (slots = obj->dslots + oldlen; slots < obj->dslots + newlen; slots++)
         *slots = JSVAL_HOLE;
 
     return JS_TRUE;
@@ -359,11 +355,11 @@ ResizeSlots(JSContext *cx, JSObject *obj, uint32 oldsize, uint32 size)
 #define CAPACITY_CHUNK  (1024 * 1024 / sizeof(jsval))
 
 static JSBool
-EnsureCapacity(JSContext *cx, JSObject *obj, uint32 capacity)
+EnsureCapacity(JSContext *cx, JSObject *obj, uint32 newcap)
 {
-    uint32 oldsize = js_DenseArrayCapacity(obj);
+    uint32 oldcap = js_DenseArrayCapacity(obj);
 
-    if (capacity > oldsize) {
+    if (newcap > oldcap) {
         
 
 
@@ -374,16 +370,16 @@ EnsureCapacity(JSContext *cx, JSObject *obj, uint32 capacity)
 
 
 
-        uint32 nextsize = (oldsize <= CAPACITY_DOUBLING_MAX)
-                          ? oldsize * 2 + 1
-                          : oldsize + (oldsize >> 3);
+        uint32 nextsize = (oldcap <= CAPACITY_DOUBLING_MAX)
+                          ? oldcap * 2 + 1
+                          : oldcap + (oldcap >> 3);
 
-        capacity = JS_MAX(capacity, nextsize);
-        if (capacity >= CAPACITY_CHUNK)
-            capacity = JS_ROUNDUP(capacity + 1, CAPACITY_CHUNK) - 1;  
-        else if (capacity < ARRAY_CAPACITY_MIN)
-            capacity = ARRAY_CAPACITY_MIN;
-        return ResizeSlots(cx, obj, oldsize, capacity);
+        newcap = JS_MAX(newcap, nextsize);
+        if (newcap >= CAPACITY_CHUNK)
+            newcap = JS_ROUNDUP(newcap + 1, CAPACITY_CHUNK) - 1; 
+        else if (newcap < ARRAY_CAPACITY_MIN)
+            newcap = ARRAY_CAPACITY_MIN;
+        return ResizeSlots(cx, obj, oldcap, newcap);
     }
     return JS_TRUE;
 }
@@ -646,8 +642,8 @@ array_length_setter(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 
     if (OBJ_IS_DENSE_ARRAY(cx, obj)) {
         
-        jsuint oldsize = js_DenseArrayCapacity(obj);
-        if (oldsize >= newlen && !ResizeSlots(cx, obj, oldsize, newlen))
+        jsuint capacity = js_DenseArrayCapacity(obj);
+        if (capacity > newlen && !ResizeSlots(cx, obj, capacity, newlen))
             return JS_FALSE;
     } else if (oldlen - newlen < (1 << 24)) {
         do {
@@ -898,8 +894,8 @@ dense_grow(JSContext* cx, JSObject* obj, jsint i, jsval v)
     
 
 
-    JS_ASSERT((MAX_DSLOTS_LENGTH > JSVAL_INT_MAX) == (sizeof(jsval) != sizeof(uint32)));
-    if (MAX_DSLOTS_LENGTH > JSVAL_INT_MAX) {
+    JS_ASSERT((MAX_DSLOTS_LENGTH > MAX_DSLOTS_LENGTH32) == (sizeof(jsval) != sizeof(uint32)));
+    if (MAX_DSLOTS_LENGTH > MAX_DSLOTS_LENGTH32) {
         
 
 
