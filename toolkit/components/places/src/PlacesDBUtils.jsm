@@ -71,7 +71,7 @@ const IDLE_TIMEOUT = 10 * 60 * 1000;
 
 
 
-const IDLE_LOOKUP_REPEAT = 30 * 60 * 1000;
+const IDLE_LOOKUP_REPEAT = 10 * 60 * 1000;
 
 
 const MAINTENANCE_REPEAT =  24 * 60 * 60;
