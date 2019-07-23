@@ -61,14 +61,6 @@
 #endif
 
 
- 
-#ifdef MORK_CONFIG_USE_ORKINFILE
-#ifndef _ORKINFILE_
-#include "orkinFile.h"
-#endif
-#endif 
-
-
 
 
 
@@ -150,19 +142,6 @@ morkFile::CloseFile(morkEnv* ev)
 
 
 
-
-nsIMdbFile*
-morkFile::AcquireFileHandle(morkEnv* ev)
-{
-  nsIMdbFile* outFile = 0;
-
-#ifdef MORK_CONFIG_USE_ORKINFILE
-  return this;
-#endif 
-  MORK_USED_1(ev);
-    
-  return outFile;
-}
 
  morkFile*
 morkFile::OpenOldFile(morkEnv* ev, nsIMdbHeap* ioHeap,
