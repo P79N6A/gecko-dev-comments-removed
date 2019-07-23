@@ -2175,8 +2175,10 @@ nsTreeBodyFrame::GetImage(PRInt32 aRowIndex, nsTreeColumn* aCol, PRBool aUseCont
     imgIRequest *imgReq = entry.request;
     imgReq->GetImageStatus(&status);
     imgReq->GetImage(aResult); 
-    PRBool animated = PR_FALSE;
-    if (*aResult)
+    PRBool animated = PR_TRUE; 
+
+    
+    if (*aResult && (status & imgIRequest::STATUS_DECODE_COMPLETE))
       (*aResult)->GetAnimated(&animated);
 
     if ((!(status & imgIRequest::STATUS_LOAD_COMPLETE)) || animated) {

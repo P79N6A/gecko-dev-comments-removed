@@ -682,6 +682,10 @@ NS_IMETHODIMP imgRequest::OnStopDecode(imgIRequest *aRequest,
   UpdateCacheEntrySize();
 
   
+  if (NS_SUCCEEDED(aStatus))
+    mImageStatus |= imgIRequest::STATUS_DECODE_COMPLETE;
+
+  
   
   
   
@@ -711,7 +715,8 @@ NS_IMETHODIMP imgRequest::OnDiscard(imgIRequest *aRequest)
   mState &= ~stateBitsToClear;
 
   
-  PRUint32 statusBitsToClear = imgIRequest::STATUS_FRAME_COMPLETE;
+  PRUint32 statusBitsToClear = imgIRequest::STATUS_FRAME_COMPLETE
+                               | imgIRequest::STATUS_DECODE_COMPLETE;
   mImageStatus &= ~statusBitsToClear;
 
   

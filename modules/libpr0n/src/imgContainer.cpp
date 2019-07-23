@@ -152,6 +152,7 @@ imgContainer::imgContainer() :
   mDiscardTimer(nsnull),
   mHasSourceData(PR_FALSE),
   mDecoded(PR_FALSE),
+  mHasBeenDecoded(PR_FALSE),
   mDecoder(nsnull),
   mWorker(nsnull),
   mBytesDecoded(0),
@@ -299,6 +300,7 @@ NS_IMETHODIMP imgContainer::ExtractFrame(PRUint32 aWhichFrame,
   img->Init(nsnull, "", INIT_FLAG_NONE);
   img->SetSize(aRegion.width, aRegion.height);
   img->mDecoded = PR_TRUE; 
+  img->mHasBeenDecoded = PR_TRUE;
 
   
   if (aFlags & FLAG_SYNC_DECODE) {
@@ -483,8 +485,20 @@ NS_IMETHODIMP imgContainer::GetAnimated(PRBool *aAnimated)
 
   NS_ENSURE_ARG_POINTER(aAnimated);
 
-  *aAnimated = (mAnim != nsnull);
   
+  if (mAnim) {
+    *aAnimated = PR_TRUE;
+    return NS_OK;
+  }
+
+  
+  
+  if (!mHasBeenDecoded)
+    return NS_ERROR_NOT_AVAILABLE;
+
+  
+  *aAnimated = PR_FALSE;
+
   return NS_OK;
 }
 
@@ -953,6 +967,7 @@ NS_IMETHODIMP imgContainer::DecodingComplete(void)
   
   
   mDecoded = PR_TRUE;
+  mHasBeenDecoded = PR_TRUE;
   if (mAnim)
     mAnim->doneDecoding = PR_TRUE;
 
