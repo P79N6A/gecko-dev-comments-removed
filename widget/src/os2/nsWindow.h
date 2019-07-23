@@ -333,6 +333,8 @@ protected:
    HBITMAP CreateTransparencyMask(PRInt32  format, PRUint8* aImageData,
                                   PRUint32 aWidth, PRUint32 aHeight);
 
+   BOOL NotifyForeignChildWindows(HWND aWnd);
+
    
    enum {
       CREATE,

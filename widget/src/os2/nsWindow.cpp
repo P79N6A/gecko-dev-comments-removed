@@ -2278,6 +2278,32 @@ NS_METHOD nsWindow::SetColorMap(nsColorMap *aColorMap)
 
 
 
+BOOL nsWindow::NotifyForeignChildWindows(HWND aWnd)
+{
+  HENUM hEnum = WinBeginEnumWindows(aWnd);
+  HWND hwnd;
+
+  while ((hwnd = WinGetNextWindow(hEnum)) != NULLHANDLE) {
+    char className[19];
+    WinQueryClassName(hwnd, 19, className);
+    if (strcmp(className, WindowClass()) != 0) {
+      
+      
+      WinSendMsg(hwnd, WM_VRNDISABLED, MPVOID, MPVOID);
+    } else {
+      
+      NotifyForeignChildWindows(hwnd);
+    }
+  }
+  return WinEndEnumWindows(hEnum);
+}
+
+
+
+
+
+
+
 NS_METHOD nsWindow::Scroll(PRInt32 aDx, PRInt32 aDy, nsRect *aClipRect)
 {
   RECTL rcl;
@@ -2298,6 +2324,7 @@ NS_METHOD nsWindow::Scroll(PRInt32 aDx, PRInt32 aDy, nsRect *aClipRect)
   HPS hps = 0;
   CheckDragStatus(ACTION_SCROLL, &hps);
 
+  NotifyForeignChildWindows(mWnd);
   WinScrollWindow( mWnd, aDx, -aDy, aClipRect ? &rcl : 0, 0, 0,
                    0, SW_SCROLLCHILDREN | SW_INVALIDATERGN);
   Update();
