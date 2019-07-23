@@ -250,7 +250,8 @@ public:
           case LIR_fneg:
               if (isPromoteInt(s0)) {
                   LIns* result = out->ins1(LIR_neg, demote(out, s0));
-                  out->insGuard(LIR_xt, out->ins1(LIR_ov, result), recorder.snapshot());
+                  out->insGuard(LIR_xt, out->ins1(LIR_ov, result), 
+                          recorder.snapshot(OVERFLOW_EXIT));
                   return out->ins1(LIR_i2f, result);
               }
               break;
@@ -296,7 +297,8 @@ public:
                 LIns* d1;
                 LIns* result = out->ins2(v, d0 = demote(out, s0), d1 = demote(out, s1));
                 if (!overflowSafe(d0) || !overflowSafe(d1))
-                    out->insGuard(LIR_xt, out->ins1(LIR_ov, result), recorder.snapshot());
+                    out->insGuard(LIR_xt, out->ins1(LIR_ov, result), 
+                            recorder.snapshot(OVERFLOW_EXIT));
                 return out->ins1(LIR_i2f, result);
             }
         } else if (v == LIR_or &&
@@ -974,8 +976,10 @@ js_IsLoopExit(JSContext* cx, JSScript* script, jsbytecode* pc)
 }
 
 SideExit*
-TraceRecorder::snapshot()
+TraceRecorder::snapshot(ExitType exitType)
 {
+    if (exitType == BRANCH_EXIT && js_IsLoopExit(cx, cx->fp->script, cx->fp->regs->pc))
+        exitType = LOOP_EXIT;
     
     unsigned stackSlots = nativeStackSlots(callDepth, cx->fp, *cx->fp->regs);
     trackNativeStackUse(stackSlots);
@@ -989,7 +993,7 @@ TraceRecorder::snapshot()
     exit.sp_adj = ((cx->fp->regs->sp - StackBase(cx->fp)) - treeInfo->entryStackDepth)
                   * sizeof(double);
     exit.rp_adj = exit.calldepth * sizeof(void*);
-    exit.loopExit = js_IsLoopExit(cx, cx->fp->script, cx->fp->regs->pc);
+    exit.exitType = exitType;
     uint8* m = exit.typeMap = (uint8 *)data->payload();
     
 
@@ -1004,11 +1008,11 @@ TraceRecorder::snapshot()
 }
 
 LIns*
-TraceRecorder::guard(bool expected, LIns* cond)
+TraceRecorder::guard(bool expected, LIns* cond, ExitType exitType)
 {
     return lir->insGuard(expected ? LIR_xf : LIR_xt,
                          cond,
-                         snapshot());
+                         snapshot(exitType));
 }
 
 bool
@@ -1091,7 +1095,7 @@ TraceRecorder::closeLoop(Fragmento* fragmento)
         debug_only(printf("Trace rejected: unstable loop variables.\n");)
         return;
     }
-    SideExit *exit = snapshot();
+    SideExit *exit = snapshot(LOOP_EXIT);
     exit->target = fragment->root;
     if (fragment == fragment->root) {
         fragment->lastIns = lir->insGuard(LIR_loop, lir->insImm(1), exit);
@@ -1365,11 +1369,21 @@ js_LoopEdge(JSContext* cx, jsbytecode* oldpc)
     if (!lr) 
         return false;
 
-    
-    if (lr->exit->loopExit)
+    switch (lr->exit->exitType) {
+    case BRANCH_EXIT:
+        
+        return js_AttemptToExtendTree(cx, lr, f);
+    case LOOP_EXIT:
+        
         return false;
-
-    return js_AttemptToExtendTree(cx, lr, f);
+    case OVERFLOW_EXIT:
+        
+        return false;
+    default:
+        JS_ASSERT(lr->exit->exitType == nanojit::OOM_EXIT);
+        
+        return false;
+    }
 }
 
 void
@@ -1840,7 +1854,8 @@ TraceRecorder::box_jsval(jsval v, LIns*& v_ins)
     if (isNumber(v)) {
         LIns* args[] = { v_ins, cx_ins };
         v_ins = lir->insCall(F_BoxDouble, args);
-        guard(false, lir->ins2(LIR_eq, v_ins, lir->insImmPtr((void*)JSVAL_ERROR_COOKIE)));
+        guard(false, lir->ins2(LIR_eq, v_ins, lir->insImmPtr((void*)JSVAL_ERROR_COOKIE)), 
+                OOM_EXIT);
         return true;
     }
     switch (JSVAL_TAG(v)) {
