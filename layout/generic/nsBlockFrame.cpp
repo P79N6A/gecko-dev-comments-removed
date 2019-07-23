@@ -3568,14 +3568,12 @@ nsBlockFrame::ReflowInlineFrame(nsBlockReflowState& aState,
   
   *aLineReflowStatus = LINE_REFLOW_OK;
 
-  
-  
-  PRBool reflowingFirstLetter = aLineLayout.GetFirstLetterStyleOK();
 #ifdef NOISY_FIRST_LETTER
   ListTag(stdout);
   printf(": reflowing ");
   nsFrame::ListTag(stdout, aFrame);
-  printf(" reflowingFirstLetter=%s\n", reflowingFirstLetter ? "on" : "off");
+  printf(" reflowingFirstLetter=%s\n",
+         aLineLayout.GetFirstLetterStyleOK() ? "on" : "off");
 #endif
 
   
@@ -3717,16 +3715,8 @@ nsBlockFrame::ReflowInlineFrame(nsBlockReflowState& aState,
     
     
     
-    PRBool splitLine = !reflowingFirstLetter && 
-      nsGkAtoms::placeholderFrame != frameType;
-    if (reflowingFirstLetter) {
-      if ((nsGkAtoms::inlineFrame == frameType) ||
-          (nsGkAtoms::lineFrame == frameType)) {
-        splitLine = PR_TRUE;
-      }
-    }
-
-    if (splitLine) {
+    if (!(frameReflowStatus & NS_INLINE_BREAK_FIRST_LETTER_COMPLETE) && 
+        nsGkAtoms::placeholderFrame != frameType) {
       
       *aLineReflowStatus = LINE_REFLOW_STOP;
       rv = SplitLine(aState, aLineLayout, aLine, aFrame->GetNextSibling(), aLineReflowStatus);

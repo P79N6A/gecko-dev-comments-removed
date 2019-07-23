@@ -375,6 +375,9 @@ typedef PRUint32 nsReflowStatus;
 #define NS_INLINE_BREAK_TYPE_MASK    0xF000
 
 
+#define NS_INLINE_BREAK_FIRST_LETTER_COMPLETE 0x10000
+
+
 
 
 #define NS_INLINE_IS_BREAK(_status) \
