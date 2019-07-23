@@ -1,11 +1,49 @@
-#ifndef MOZ_MEMORY_WINDOWS
-#  include <stdbool.h>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifndef _JEMALLOC_H_
+#define _JEMALLOC_H_
+
+
+#ifdef _MSC_VER
+#include <crtdefs.h>
 #else
-#  include <windows.h>
-#  ifndef bool
-#    define bool BOOL
-#  endif
+#include <stddef.h>
 #endif
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+typedef unsigned char jemalloc_bool;
 
 extern const char	*_malloc_options;
 
@@ -18,12 +56,12 @@ typedef struct {
 	
 
 
-	bool	opt_abort;	
-	bool	opt_junk;	
-	bool	opt_utrace;	
-	bool	opt_sysv;	
-	bool	opt_xmalloc;	
-	bool	opt_zero;	
+	jemalloc_bool	opt_abort;	
+	jemalloc_bool	opt_junk;	
+	jemalloc_bool	opt_utrace;	
+	jemalloc_bool	opt_sysv;	
+	jemalloc_bool	opt_xmalloc;	
+	jemalloc_bool	opt_zero;	
 	size_t	narenas;	
 	size_t	balance_threshold; 
 	size_t	quantum;	
@@ -136,7 +174,7 @@ typedef void reserve_cb_t(void *ctx, reserve_cnd_t cnd, size_t size);
 
 
 
-bool	reserve_cb_register(reserve_cb_t *cb, void *ctx);
+jemalloc_bool	reserve_cb_register(reserve_cb_t *cb, void *ctx);
 
 
 
@@ -149,7 +187,7 @@ bool	reserve_cb_register(reserve_cb_t *cb, void *ctx);
 
 
 
-bool	reserve_cb_unregister(reserve_cb_t *cb, void *ctx);
+jemalloc_bool	reserve_cb_unregister(reserve_cb_t *cb, void *ctx);
 
 
 
@@ -174,4 +212,10 @@ size_t	reserve_min_get(void);
 
 
 
-bool	reserve_min_set(size_t min);
+jemalloc_bool	reserve_min_set(size_t min);
+
+#ifdef __cplusplus
+} 
+#endif
+
+#endif
