@@ -4942,7 +4942,14 @@ TraceRecorder::elem(jsval& l, jsval& r, jsval*& vp, LIns*& v_ins, LIns*& addr_in
 
     
     v_ins = lir->insLoad(LIR_ldp, addr_ins, 0);
-    return unbox_jsval(*vp, v_ins);
+    if (!unbox_jsval(*vp, v_ins))
+        return false;
+    if (JSVAL_TAG(*vp) == JSVAL_BOOLEAN) {
+        
+        LIns* cins = lir->ins2(LIR_eq, v_ins, lir->insImm(JSVAL_TO_BOOLEAN(JSVAL_HOLE)));
+        v_ins = lir->ins_choose(cins, lir->insImm(2), v_ins, true);
+    }
+    return v_ins;
 }
 
 bool
