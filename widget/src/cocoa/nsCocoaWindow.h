@@ -123,6 +123,8 @@ struct UnifiedGradientInfo {
   BOOL drawTitlebar; 
 };
 
+@class ToolbarWindow;
+
 
 
 @interface TitlebarAndBackgroundColor : NSColor
@@ -130,13 +132,13 @@ struct UnifiedGradientInfo {
   NSColor *mActiveTitlebarColor;
   NSColor *mInactiveTitlebarColor;
   NSColor *mBackgroundColor;
-  NSWindow *mWindow; 
+  ToolbarWindow *mWindow; 
 }
 
 - (id)initWithActiveTitlebarColor:(NSColor*)aActiveTitlebarColor
             inactiveTitlebarColor:(NSColor*)aInactiveTitlebarColor
                   backgroundColor:(NSColor*)aBackgroundColor
-                        forWindow:(NSWindow*)aWindow;
+                        forWindow:(ToolbarWindow*)aWindow;
 
 
 - (void)setTitlebarColor:(NSColor*)aColor forActiveWindow:(BOOL)aActive;
@@ -146,7 +148,7 @@ struct UnifiedGradientInfo {
 - (void)setBackgroundColor:(NSColor*)aColor;
 - (NSColor*)backgroundColor;
 
-- (NSWindow*)window;
+- (ToolbarWindow*)window;
 @end
 
 
@@ -154,11 +156,17 @@ struct UnifiedGradientInfo {
 {
   TitlebarAndBackgroundColor *mColor;
   float mUnifiedToolbarHeight;
+  BOOL mDrawsIntoWindowFrame;
 }
 - (void)setTitlebarColor:(NSColor*)aColor forActiveWindow:(BOOL)aActive;
 - (void)setUnifiedToolbarHeight:(float)aToolbarHeight;
 - (float)unifiedToolbarHeight;
 - (float)titlebarHeight;
+- (NSRect)titlebarRect;
+- (void)setTitlebarNeedsDisplayInRect:(NSRect)aRect sync:(BOOL)aSync;
+- (void)setTitlebarNeedsDisplayInRect:(NSRect)aRect;
+- (void)setDrawsContentsIntoWindowFrame:(BOOL)aState;
+- (BOOL)drawsContentsIntoWindowFrame;
 
 
 - (NSColor*)windowBackgroundColor;
@@ -232,6 +240,7 @@ public:
     NS_IMETHOD SetWindowShadowStyle(PRInt32 aStyle);
     virtual void SetShowsToolbarButton(PRBool aShow);
     NS_IMETHOD SetWindowTitlebarColor(nscolor aColor, PRBool aActive);
+    virtual void SetDrawsInTitlebar(PRBool aState);
     virtual nsresult SynthesizeNativeMouseEvent(nsIntPoint aPoint,
                                                 PRUint32 aNativeMessage,
                                                 PRUint32 aModifierFlags);
