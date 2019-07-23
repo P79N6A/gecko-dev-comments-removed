@@ -93,13 +93,13 @@ namespace nanojit
             : "%eax", "%esi", "%ecx", "%edx"
            );
     #elif defined __SUNPRO_C || defined __SUNPRO_CC
-        asm("xchg %%esi, %%ebx\n"
+        asm("push %%ebx\n"
             "mov $0x01, %%eax\n"
             "cpuid\n"
-            "xchg %%esi, %%ebx\n"
+            "pop %%ebx\n"
             : "=d" (features)
             : 
-            : "%eax", "%ecx", "esi"
+            : "%eax", "%ecx"
            );
     #endif
         return (features & (1<<26)) != 0;
@@ -320,12 +320,6 @@ namespace nanojit
             btr RegAlloc::free[ecx], eax    
             mov r, eax
         }
-    #elif defined __SUNPRO_C || defined __SUNPRO_CC
-        asm(
-            "bsf    %1, %%edi\n\t"
-            "btr    %%edi, (%2)\n\t"
-            "movl   %%edi, %0\n\t"
-            : "=a"(r) : "d"(set), "c"(&regs.free) : "%edi", "memory" );
     #else
         asm(
             "bsf    %1, %%eax\n\t"
@@ -441,6 +435,12 @@ namespace nanojit
 
         } else if (ins->isconst()) {
             asm_int(r, ins->imm32(), false);
+            if (!ins->getArIndex()) {
+                ins->markAsClear();
+            }
+
+        } else if (ins->isconstq()) {
+            asm_quad(r, ins->imm64(), ins->imm64f(), false);
             if (!ins->getArIndex()) {
                 ins->markAsClear();
             }
@@ -1294,8 +1294,18 @@ namespace nanojit
     {
         Register rr = prepResultReg(ins, GpRegs);
         LIns *q = ins->oprnd1();
-        int d = findMemFor(q);
-        LD(rr, d+4, FP);
+        if (q->isconstq())
+        {
+            
+            
+            
+            LDi(rr, q->imm64_1());
+        }
+        else
+        {
+            int d = findMemFor(q);
+            LD(rr, d+4, FP);
+        }
     }
 
     void Assembler::asm_param(LInsp ins)
@@ -1339,80 +1349,52 @@ namespace nanojit
             LDi(r, val);
     }
 
+    void Assembler::asm_quad(Register r, uint64_t q, double d, bool canClobberCCs)
+    {
+        
+        
+        
+        
+        
+        
+        
+        
+
+        if (rmask(r) & XmmRegs) {
+            if (q == 0) {
+                
+                SSE_XORPDr(r, r);
+            } else if (d && d == (int)d && canClobberCCs) {
+                
+                Register tr = registerAllocTmp(GpRegs);
+                SSE_CVTSI2SD(r, tr);
+                SSE_XORPDr(r, r);   
+                asm_int(tr, (int)d, canClobberCCs);
+            } else {
+                const uint64_t* p = findQuadConstant(q);
+                LDSDm(r, (const double*)p);
+            }
+        } else {
+            NanoAssert(r == FST0);
+            if (q == 0) {
+                
+                FLDZ();
+            } else if (d == 1.0) {
+                FLD1();
+            } else {
+                const uint64_t* p = findQuadConstant(q);
+                FLDQdm((const double*)p);
+            }
+        }
+    }
+
     void Assembler::asm_quad(LInsp ins)
     {
         Register rr = ins->getReg();
 
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-
         if (isKnownReg(rr)) {
             NanoAssert((rmask(rr) & FpRegs) != 0);
-
-            
-            const double d = ins->imm64f();
-            const uint64_t q = ins->imm64();
-            if (rmask(rr) & XmmRegs) {
-                if (q == 0.0) {
-                    
-                    SSE_XORPDr(rr, rr);
-                } else if (d == 1.0) {
-                    
-                    
-                    
-                    static const double k_ONE = 1.0;
-                    LDSDm(rr, &k_ONE);
-                } else if (d && d == (int)d) {
-                    
-                    Register rt = registerAllocTmp(GpRegs);
-                    SSE_CVTSI2SD(rr, rt);
-                    SSE_XORPDr(rr,rr);  
-                    asm_int(rt, (int)d, true);
-                } else {
-                    findMemFor(ins);    
-                    const int d = disp(ins);
-                    SSE_LDQ(rr, d, FP); 
-                }
-            } else {
-                if (q == 0.0) {
-                    
-                    FLDZ();
-                } else if (d == 1.0) {
-                    FLD1();
-                } else {
-                    int d = findMemFor(ins);
-                    FLDQ(d,FP);
-                }
-            }
-        }
-
-        
-        
-        
-        
-        int d = disp(ins);
-        if (d)
-        {
-            STi(FP,d+4,ins->imm64_1());
-            STi(FP,d,  ins->imm64_0());
+            asm_quad(rr, ins->imm64(), ins->imm64f(), true);
         }
 
         freeResourcesOf(ins);
@@ -1425,8 +1407,18 @@ namespace nanojit
         if (!config.sse2)
         {
             Register rr = prepResultReg(ins, GpRegs);
-            int d = findMemFor(q);
-            LD(rr, d, FP);
+            if (q->isconstq())
+            {
+                
+                
+                
+                LDi(rr, q->imm64_0());
+            }
+            else
+            {
+                int d = findMemFor(q);
+                LD(rr, d, FP);
+            }
         }
         else
         {
@@ -1521,9 +1513,17 @@ namespace nanojit
                 NanoAssert(rmask(r) & FpRegs);
 
                 
-                int da = findMemFor(ins);
+                if (ins->isconstq())
+                {
+                    const uint64_t* p = findQuadConstant(ins->imm64());
+                    LDi(r, uint32_t(p));
+                }
+                else
+                {
+                    int da = findMemFor(ins);
 
-                LEA(r, da, FP);
+                    LEA(r, da, FP);
+                }
             }
             else
             {
@@ -1695,26 +1695,51 @@ namespace nanojit
             LIns* lhs = ins->oprnd2();
             Register rr = prepResultReg(ins, rmask(FST0));
 
-            
-            int db = findMemFor(rhs);
+            if (rhs->isconstq())
+            {
+                const uint64_t* p = findQuadConstant(rhs->imm64());
 
-            
+                
 
-            
-            
-            if (lhs->isUnusedOrHasUnknownReg())
-                findSpecificRegForUnallocated(lhs, rr);
+                
+                
+                if (lhs->isUnusedOrHasUnknownReg())
+                    findSpecificRegForUnallocated(lhs, rr);
 
-            NanoAssert(lhs->getReg()==FST0);
-            
-            if (op == LIR_fadd)
-                { FADD(db, FP); }
-            else if (op == LIR_fsub)
-                { FSUBR(db, FP); }
-            else if (op == LIR_fmul)
-                { FMUL(db, FP); }
-            else if (op == LIR_fdiv)
-                { FDIVR(db, FP); }
+                NanoAssert(lhs->getReg()==FST0);
+                
+                if (op == LIR_fadd)
+                    { FADDdm((const double*)p); }
+                else if (op == LIR_fsub)
+                    { FSUBRdm((const double*)p); }
+                else if (op == LIR_fmul)
+                    { FMULdm((const double*)p); }
+                else if (op == LIR_fdiv)
+                    { FDIVRdm((const double*)p); }
+            }
+            else
+            {
+                
+                int db = findMemFor(rhs);
+
+                
+
+                
+                
+                if (lhs->isUnusedOrHasUnknownReg())
+                    findSpecificRegForUnallocated(lhs, rr);
+
+                NanoAssert(lhs->getReg()==FST0);
+                
+                if (op == LIR_fadd)
+                    { FADD(db, FP); }
+                else if (op == LIR_fsub)
+                    { FSUBR(db, FP); }
+                else if (op == LIR_fmul)
+                    { FMUL(db, FP); }
+                else if (op == LIR_fdiv)
+                    { FDIVR(db, FP); }
+            }
         }
     }
 
@@ -1994,10 +2019,18 @@ namespace nanojit
                     FCOMP();
                 FLDr(FST0); 
             } else {
-                int d = findMemFor(rhs);
                 TEST_AH(mask);
                 FNSTSW_AX();        
-                FCOM((pop?1:0), d, FP);
+                if (rhs->isconstq())
+                {
+                    const uint64_t* p = findQuadConstant(rhs->imm64());
+                    FCOMdm((pop?1:0), (const double*)p);
+                }
+                else
+                {
+                    int d = findMemFor(rhs);
+                    FCOM((pop?1:0), d, FP);
+                }
             }
         }
     }
