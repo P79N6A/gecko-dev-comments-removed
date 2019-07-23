@@ -62,9 +62,6 @@ public:
   virtual ~nsDragService();
 
   
-  NS_DECL_ISUPPORTS_INHERITED
-
-  
   NS_IMETHOD InvokeDragSession(nsIDOMNode *aDOMNode, nsISupportsArray * anArrayTransferables,
                                nsIScriptableRegion * aRegion, PRUint32 aActionType);
   NS_IMETHOD EndDragSession(PRBool aDoneDrag);

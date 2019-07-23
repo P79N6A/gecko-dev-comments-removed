@@ -757,26 +757,6 @@ void nsWindow::GlobalMsgWindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lP
 
 
 
-NS_IMPL_ADDREF(nsWindow)
-NS_IMPL_RELEASE(nsWindow)
-NS_IMETHODIMP
-nsWindow::QueryInterface(const nsIID& aIID, void** aInstancePtr)
-{
-  NS_PRECONDITION(aInstancePtr, "null out param");
-
-  if (aIID.Equals(NS_GET_IID(nsIKBStateControl))) {
-    *aInstancePtr = static_cast<nsIKBStateControl*>(this);
-    NS_ADDREF(static_cast<nsBaseWidget*>(this));
-    return NS_OK;
-  }
-
-  return nsBaseWidget::QueryInterface(aIID,aInstancePtr);
-}
-
-
-
-
-
 #ifdef ACCESSIBILITY
 nsWindow::nsWindow() : nsBaseWidget()
 #else
@@ -919,6 +899,7 @@ nsWindow::~nsWindow()
 
 }
 
+NS_IMPL_ISUPPORTS_INHERITED1(nsWindow, nsBaseWidget, nsIKBStateControl)
 
 NS_METHOD nsWindow::CaptureMouse(PRBool aCapture)
 {

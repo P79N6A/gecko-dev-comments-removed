@@ -47,19 +47,10 @@
 
 #include "nsWidgetsCID.h"
 
-NS_IMPL_ADDREF_INHERITED(nsDragService, nsBaseDragService)
-NS_IMPL_RELEASE_INHERITED(nsDragService, nsBaseDragService)
-NS_IMPL_QUERY_INTERFACE2(nsDragService, nsIDragService, nsIDragSession)
-
 char *nsDragService::mDndEvent = NULL;
 int nsDragService::mDndEventLen;
 
 #define kMimeCustom			"text/_moz_htmlcontext"
-
-
-
-
-
 
 nsDragService::nsDragService()
 {
@@ -70,11 +61,6 @@ nsDragService::nsDragService()
 	mFlavourStr = nsnull;
 	mTransportFile = nsnull;
 }
-
-
-
-
-
 
 nsDragService::~nsDragService()
 {

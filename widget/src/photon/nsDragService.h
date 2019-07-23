@@ -55,8 +55,6 @@ public:
   nsDragService();
   virtual ~nsDragService();
   
-  NS_DECL_ISUPPORTS_INHERITED
-
 	
   NS_IMETHOD SetNativeDndData( PtWidget_t * widget, PhEvent_t *event );
 

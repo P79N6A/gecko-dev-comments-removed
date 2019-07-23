@@ -45,46 +45,26 @@
 #include "nsMenuBarListener.h"
 #include "nsMenuFrame.h"
 #include "nsMenuPopupFrame.h"
-#include "nsPopupSetFrame.h"
 
 class nsMenuBoxObject : public nsIMenuBoxObject, public nsBoxObject
 {
 public:
-  NS_DECL_ISUPPORTS
+  NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_NSIMENUBOXOBJECT
 
   nsMenuBoxObject();
   virtual ~nsMenuBoxObject();
-  
-protected:
 };
 
-
-NS_IMPL_ADDREF(nsMenuBoxObject)
-NS_IMPL_RELEASE(nsMenuBoxObject)
-
-NS_IMETHODIMP 
-nsMenuBoxObject::QueryInterface(REFNSIID iid, void** aResult)
-{
-  NS_PRECONDITION(aResult, "null out param");
-
-  if (iid.Equals(NS_GET_IID(nsIMenuBoxObject))) {
-    *aResult = static_cast<nsIMenuBoxObject*>(this);
-    NS_ADDREF(this);
-    return NS_OK;
-  }
-
-  return nsBoxObject::QueryInterface(iid, aResult);
-}
-  
 nsMenuBoxObject::nsMenuBoxObject()
 {
 }
 
 nsMenuBoxObject::~nsMenuBoxObject()
 {
-  
 }
+
+NS_IMPL_ISUPPORTS_INHERITED1(nsMenuBoxObject, nsBoxObject, nsIMenuBoxObject)
 
 
 NS_IMETHODIMP nsMenuBoxObject::OpenMenu(PRBool aOpenFlag)
