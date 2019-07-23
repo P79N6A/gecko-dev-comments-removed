@@ -66,6 +66,12 @@ class nsNodeWeakReference;
 class nsNodeSupportsWeakRefTearoff;
 class nsIEditor;
 
+namespace mozilla {
+namespace dom {
+class Element;
+} 
+} 
+
 enum {
   
   NODE_DOESNT_HAVE_SLOTS =       0x00000001U,
@@ -340,6 +346,12 @@ public:
   PRBool IsElement() const {
     return HasFlag(NODE_IS_ELEMENT);
   }
+
+  
+
+
+
+  mozilla::dom::Element* AsElement();
 
   
 

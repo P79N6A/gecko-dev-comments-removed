@@ -1786,7 +1786,7 @@ nsGenericElement::nsDOMSlots::~nsDOMSlots()
 }
 
 nsGenericElement::nsGenericElement(nsINodeInfo *aNodeInfo)
-  : nsIContent(aNodeInfo)
+  : Element(aNodeInfo)
 {
   
   
