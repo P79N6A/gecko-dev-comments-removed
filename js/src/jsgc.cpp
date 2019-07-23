@@ -50,14 +50,16 @@
 
 #include "jsstddef.h"
 #include <stdlib.h>     
+#include <math.h>
 #include <string.h>     
 #include "jstypes.h"
 #include "jsutil.h" 
 #include "jshash.h" 
-#include "jsapi.h"
-#include "jsatom.h"
 #include "jsbit.h"
 #include "jsclist.h"
+#include "jsprf.h"
+#include "jsapi.h"
+#include "jsatom.h"
 #include "jscntxt.h"
 #include "jsconfig.h"
 #include "jsdbgapi.h"
@@ -90,10 +92,12 @@
 
 
 
-#ifdef MOZ_MEMORY
-extern "C" {
-#include "../../memory/jemalloc/jemalloc.h"
-}
+
+#if HAS_POSIX_MEMALIGN && MOZ_MEMORY_WINDOWS
+JS_BEGIN_EXTERN_C
+extern int
+posix_memalign(void **memptr, size_t alignment, size_t size);
+JS_END_EXTERN_C
 #endif
 
 
@@ -561,7 +565,7 @@ ClearDoubleArenaFlags(JSGCArenaInfo *a)
     bitmap[DOUBLES_ARENA_BITMAP_WORDS - 1] = mask << nused;
 }
 
-static JS_ALWAYS_INLINE JSBool
+static JS_INLINE JSBool
 IsMarkedDouble(JSGCArenaInfo *a, uint32 index)
 {
     jsbitmap *bitmap;
@@ -2100,37 +2104,6 @@ js_NewWeaklyRootedDouble(JSContext *cx, jsdouble d)
     return dp;
 }
 
-JSBool
-js_AddAsGCBytes(JSContext *cx, size_t sz)
-{
-    JSRuntime *rt;
-
-    rt = cx->runtime;
-    if (rt->gcBytes >= rt->gcMaxBytes ||
-        sz > (size_t) (rt->gcMaxBytes - rt->gcBytes)
-#ifdef JS_GC_ZEAL
-        || rt->gcZeal >= 2 || (rt->gcZeal >= 1 && rt->gcPoke)
-#endif
-        ) {
-        js_GC(cx, GC_LAST_DITCH);
-        if (rt->gcBytes >= rt->gcMaxBytes ||
-            sz > (size_t) (rt->gcMaxBytes - rt->gcBytes)) {
-            JS_UNLOCK_GC(rt);
-            JS_ReportOutOfMemory(cx);
-            return JS_FALSE;
-        }
-    }
-    rt->gcBytes += (uint32) sz;
-    return JS_TRUE;
-}
-
-void
-js_RemoveAsGCBytes(JSRuntime *rt, size_t sz)
-{
-    JS_ASSERT((size_t) rt->gcBytes >= sz);
-    rt->gcBytes -= (uint32) sz;
-}
-
 
 
 
@@ -2695,19 +2668,15 @@ js_TraceStackFrame(JSTracer *trc, JSStackFrame *fp)
         JS_CALL_OBJECT_TRACER(trc, fp->varobj, "variables");
     if (fp->script) {
         js_TraceScript(trc, fp->script);
+        
+
+
+
         if (fp->regs) {
-            
-
-
-
-            JS_ASSERT((size_t) (fp->regs->sp - fp->slots) <=
-                      fp->script->nslots);
-            nslots = (uintN) (fp->regs->sp - fp->slots);
-            TRACE_JSVALS(trc, nslots, fp->slots, "slot");
+            nslots = (uintN) (fp->regs->sp - fp->spbase);
+            JS_ASSERT(nslots <= fp->script->depth);
+            TRACE_JSVALS(trc, nslots, fp->spbase, "operand");
         }
-    } else {
-        JS_ASSERT(!fp->slots);
-        JS_ASSERT(!fp->regs);
     }
 
     
@@ -2734,7 +2703,10 @@ js_TraceStackFrame(JSTracer *trc, JSStackFrame *fp)
         }
         TRACE_JSVALS(trc, 2 + nslots - skip, fp->argv - 2 + skip, "operand");
     }
+
     JS_CALL_VALUE_TRACER(trc, fp->rval, "rval");
+    if (fp->vars)
+        TRACE_JSVALS(trc, fp->nvars, fp->vars, "var");
     if (fp->scopeChain)
         JS_CALL_OBJECT_TRACER(trc, fp->scopeChain, "scope chain");
     if (fp->sharpArray)
@@ -2898,7 +2870,7 @@ js_TraceRuntime(JSTracer *trc, JSBool allAtoms)
     if (rt->gcLocksHash)
         JS_DHashTableEnumerate(rt->gcLocksHash, gc_lock_traversal, trc);
     js_TraceAtomState(trc, allAtoms);
-    js_TraceNativeEnumerators(trc);
+    js_TraceNativeIteratorStates(trc);
     js_TraceRuntimeNumberState(trc);
 
     iter = NULL;
@@ -3051,16 +3023,8 @@ js_GC(JSContext *cx, JSGCInvocationKind gckind)
         ok = callback(cx, JSGC_BEGIN);
         if (gckind & GC_LOCK_HELD)
             JS_LOCK_GC(rt);
-        if (!ok && gckind != GC_LAST_CONTEXT) {
-            
-
-
-
-
-            if (rt->gcLevel == 0 && (gckind & GC_LOCK_HELD))
-                JS_NOTIFY_GC_DONE(rt);
+        if (!ok && gckind != GC_LAST_CONTEXT)
             return;
-        }
     }
 
     
@@ -3211,6 +3175,11 @@ js_GC(JSContext *cx, JSGCInvocationKind gckind)
 #endif
 
     
+
+
+
+
+    js_DisablePropertyCache(cx);
     js_FlushPropertyCache(cx);
 
 #ifdef JS_THREADSAFE
@@ -3232,6 +3201,7 @@ js_GC(JSContext *cx, JSGCInvocationKind gckind)
             continue;
         memset(acx->thread->gcFreeLists, 0, sizeof acx->thread->gcFreeLists);
         GSN_CACHE_CLEAR(&acx->thread->gsnCache);
+        js_DisablePropertyCache(acx);
         js_FlushPropertyCache(acx);
     }
 #else
@@ -3491,6 +3461,17 @@ js_GC(JSContext *cx, JSGCInvocationKind gckind)
   }
 #endif 
 
+#ifdef JS_DUMP_LOOP_STATS
+  { static FILE *lsfp;
+    if (!lsfp)
+        lsfp = fopen("/tmp/loopstats", "w");
+    if (lsfp) {
+        JS_DumpBasicStats(&rt->loopStats, "loops", lsfp);
+        fflush(lsfp);
+    }
+  }
+#endif 
+
     JS_LOCK_GC(rt);
 
     
@@ -3504,19 +3485,14 @@ js_GC(JSContext *cx, JSGCInvocationKind gckind)
         goto restart;
     }
 
-    if (rt->shapeGen & SHAPE_OVERFLOW_BIT) {
-        
-
-
-
-
-        js_DisablePropertyCache(cx);
+    if (!(rt->shapeGen & SHAPE_OVERFLOW_BIT)) {
+        js_EnablePropertyCache(cx);
 #ifdef JS_THREADSAFE
         iter = NULL;
         while ((acx = js_ContextIterator(rt, JS_FALSE, &iter)) != NULL) {
             if (!acx->thread || acx->thread == cx->thread)
                 continue;
-            js_DisablePropertyCache(acx);
+            js_EnablePropertyCache(acx);
         }
 #endif
     }

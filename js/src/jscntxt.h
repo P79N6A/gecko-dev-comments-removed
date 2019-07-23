@@ -63,10 +63,8 @@ JS_BEGIN_EXTERN_C
 
 
 
-
-
 typedef struct JSGSNCache {
-    jsbytecode      *code;
+    JSScript        *script;
     JSDHashTable    table;
 #ifdef JS_GSNMETER
     uint32          hits;
@@ -81,7 +79,7 @@ typedef struct JSGSNCache {
 
 #define GSN_CACHE_CLEAR(cache)                                                \
     JS_BEGIN_MACRO                                                            \
-        (cache)->code = NULL;                                                 \
+        (cache)->script = NULL;                                               \
         if ((cache)->table.ops) {                                             \
             JS_DHashTableFinish(&(cache)->table);                             \
             (cache)->table.ops = NULL;                                        \
@@ -163,6 +161,11 @@ typedef struct JSPropertyTreeEntry {
     JSDHashEntryHdr     hdr;
     JSScopeProperty     *child;
 } JSPropertyTreeEntry;
+
+
+
+
+typedef struct JSNativeIteratorState JSNativeIteratorState;
 
 typedef struct JSSetSlotRequest JSSetSlotRequest;
 
@@ -377,7 +380,7 @@ struct JSRuntime {
 
 
 
-    JSNativeEnumerator  *nativeEnumerators;
+    JSNativeIteratorState *nativeIteratorStates;
 
 #ifndef JS_THREADSAFE
     
@@ -417,26 +420,10 @@ struct JSRuntime {
 
 
 
-#define NATIVE_ENUM_CACHE_LOG2  8
-#define NATIVE_ENUM_CACHE_MASK  JS_BITMASK(NATIVE_ENUM_CACHE_LOG2)
-#define NATIVE_ENUM_CACHE_SIZE  JS_BIT(NATIVE_ENUM_CACHE_LOG2)
 
-#define NATIVE_ENUM_CACHE_HASH(shape)                                         \
-    ((((shape) >> NATIVE_ENUM_CACHE_LOG2) ^ (shape)) & NATIVE_ENUM_CACHE_MASK)
-
-    jsuword             nativeEnumCache[NATIVE_ENUM_CACHE_SIZE];
-
-   
-
-
-
-
-#ifdef JS_DUMP_ENUM_CACHE_STATS
-    int32               nativeEnumProbes;
-    int32               nativeEnumMisses;
-# define ENUM_CACHE_METER(name)     JS_ATOMIC_INCREMENT(&cx->runtime->name)
-#else
-# define ENUM_CACHE_METER(name)     ((void) 0)
+#ifdef JS_DUMP_LOOP_STATS
+    
+    JSBasicStats        loopStats;
 #endif
 
 #if defined DEBUG || defined JS_DUMP_PROPTREE_STATS
@@ -1042,9 +1029,6 @@ js_ReportIsNotDefined(JSContext *cx, const char *name);
 extern JSBool
 js_ReportIsNullOrUndefined(JSContext *cx, intN spindex, jsval v,
                            JSString *fallback);
-
-extern void
-js_ReportMissingArg(JSContext *cx, jsval *vp, uintN arg);
 
 
 

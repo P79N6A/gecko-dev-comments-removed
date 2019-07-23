@@ -91,7 +91,7 @@ struct JSScript {
     jsbytecode      *code;      
     uint32          length;     
     uint16          version;    
-    uint16          nfixed;     
+    uint16          ngvars;     
 
     uint8           objectsOffset;  
 
@@ -100,23 +100,19 @@ struct JSScript {
 
     uint8           trynotesOffset; 
 
+    uint8           loopHeaders;    
+
     jsbytecode      *main;      
     JSAtomMap       atomMap;    
     const char      *filename;  
     uintN           lineno;     
-    uintN           nslots;     
+    uintN           depth;      
     JSPrincipals    *principals;
     JSObject        *object;    
 #ifdef CHECK_SCRIPT_OWNER
     JSThread        *owner;     
 #endif
 };
-
-static JS_INLINE uintN
-StackDepth(JSScript *script)
-{
-    return script->nslots - script->nfixed;
-}
 
 
 #define SCRIPT_NOTES(script)    ((jssrcnote*)((script)->code+(script)->length))
@@ -233,8 +229,8 @@ js_SweepScriptFilenames(JSRuntime *rt);
 
 
 extern JSScript *
-js_NewScript(JSContext *cx, uint32 length, uint32 nsrcnotes, uint32 natoms,
-             uint32 nobjects, uint32 nregexps, uint32 ntrynotes);
+js_NewScript(JSContext *cx, uint32 length, uint32 nsrcnotes, uint32 ntrynotes,
+             uint32 natoms, uint32 nobjects, uint32 nregexps, uint32 nloops);
 
 extern JSScript *
 js_NewScriptFromCG(JSContext *cx, JSCodeGenerator *cg);
