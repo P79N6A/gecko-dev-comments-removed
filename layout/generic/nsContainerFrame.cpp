@@ -394,12 +394,6 @@ nsContainerFrame::PositionFrameView(nsIFrame* aKidFrame)
   vm->MoveViewTo(view, pt.x, pt.y);
 }
 
-static PRBool
-HasNonZeroBorderRadius(nsStyleContext* aStyleContext) {
-  const nsStyleBorder* border = aStyleContext->GetStyleBorder();
-  return nsLayoutUtils::HasNonZeroSide(border->mBorderRadius);
-}
-
 static void
 SyncFrameViewGeometryDependentProperties(nsPresContext*  aPresContext,
                                          nsIFrame*        aFrame,
@@ -414,26 +408,10 @@ SyncFrameViewGeometryDependentProperties(nsPresContext*  aPresContext,
   PRBool hasBG =
     nsCSSRendering::FindBackground(aPresContext, aFrame, &bg, &isCanvas);
 
-  const nsStyleDisplay* display = aStyleContext->GetStyleDisplay();
-  
-  
-  
-  
-  
-  PRBool  viewHasTransparentContent =
-    !(hasBG && !(bg->mBackgroundFlags & NS_STYLE_BG_COLOR_TRANSPARENT) &&
-      !display->mAppearance && bg->mBackgroundClip == NS_STYLE_BG_CLIP_BORDER &&
-      !HasNonZeroBorderRadius(aStyleContext));
-
   if (isCanvas) {
     nsIView* rootView;
     vm->GetRootView(rootView);
     nsIView* rootParent = rootView->GetParent();
-    if (!rootParent) {
-      
-      
-      viewHasTransparentContent = PR_FALSE;
-    }
 
     nsIDocument *doc = aPresContext->PresShell()->GetDocument();
     if (doc) {
@@ -446,13 +424,11 @@ SyncFrameViewGeometryDependentProperties(nsPresContext*  aPresContext,
         
         
         if (aView->HasWidget() && aView == rootView) {
-          viewHasTransparentContent = nsLayoutUtils::FrameHasTransparency(aFrame);
-          aView->GetWidget()->SetWindowTranslucency(viewHasTransparentContent);
+          aView->GetWidget()->SetWindowTranslucency(nsLayoutUtils::FrameHasTransparency(aFrame));
         }
       }
     }
   }
-  
 }
 
 void
