@@ -251,11 +251,6 @@ protected:
                        nsIPrincipal* aSheetPrincipal);
   nsresult ReleaseScanner(void);
 
-  nsresult DoParseMediaList(const nsSubstring& aBuffer,
-                            nsIURI* aURL, 
-                            PRUint32 aLineNumber, 
-                            nsMediaList* aMediaList);
-
   PRBool GetToken(nsresult& aErrorCode, PRBool aSkipWS);
   PRBool GetURLToken(nsresult& aErrorCode);
   void UngetToken();
@@ -1113,6 +1108,12 @@ CSSParserImpl::ParseMediaList(const nsSubstring& aBuffer,
   
   aMediaList->Clear();
 
+  
+  nsresult rv = InitScanner(aBuffer, aURL, aLineNumber, aURL, nsnull);
+  if (NS_FAILED(rv)) {
+    return rv;
+  }
+
   AssertInitialState();
   NS_ASSERTION(aHTMLMode == PR_TRUE || aHTMLMode == PR_FALSE,
                "invalid PRBool");
@@ -1130,30 +1131,6 @@ CSSParserImpl::ParseMediaList(const nsSubstring& aBuffer,
   
   
 
-  nsresult rv = DoParseMediaList(aBuffer, aURL, aLineNumber, aMediaList);
-
-  if (aHTMLMode) {
-    mHTMLMediaMode = PR_FALSE;
-  }
-
-  return rv;
-}
-
-
-
-
-nsresult
-CSSParserImpl::DoParseMediaList(const nsSubstring& aBuffer,
-                                nsIURI* aURL, 
-                                PRUint32 aLineNumber, 
-                                nsMediaList* aMediaList)
-{
-  
-  nsresult rv = InitScanner(aBuffer, aURL, aLineNumber, aURL, nsnull);
-  if (NS_FAILED(rv)) {
-    return rv;
-  }
-
   if (!GatherMedia(rv, aMediaList, PRUnichar(0))) {
     aMediaList->Clear();
     aMediaList->SetNonEmpty(); 
@@ -1163,6 +1140,8 @@ CSSParserImpl::DoParseMediaList(const nsSubstring& aBuffer,
   }
   CLEAR_ERROR();
   ReleaseScanner();
+  mHTMLMediaMode = PR_FALSE;
+
   return rv;
 }
 
