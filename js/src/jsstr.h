@@ -606,14 +606,6 @@ js_ValueToString(JSContext *cx, jsval v);
 
 
 
-
-extern JS_FRIEND_API(JSBool)
-js_ValueToStringBuffer(JSContext *, jsval, JSTempVector<jschar> &);
-
-
-
-
-
 extern JS_FRIEND_API(JSString *)
 js_ValueToSource(JSContext *cx, jsval v);
 

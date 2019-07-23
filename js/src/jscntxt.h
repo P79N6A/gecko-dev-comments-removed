@@ -56,7 +56,6 @@
 #include "jspubtd.h"
 #include "jsregexp.h"
 #include "jsutil.h"
-#include "jsarray.h"
 
 JS_BEGIN_EXTERN_C
 
@@ -956,7 +955,6 @@ struct JSContext {
 
     
     JSSharpObjectMap    sharpObjectMap;
-    JSHashTable         *busyArrayTable;
 
     
     JSArgumentFormatMap *argumentFormatMap;
