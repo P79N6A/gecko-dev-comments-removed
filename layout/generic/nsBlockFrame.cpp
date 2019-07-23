@@ -1845,7 +1845,14 @@ nsBlockFrame::ReflowDirtyLines(nsBlockReflowState& aState)
 
     
     
-    if (line->IsDirty() && !willReflowAgain) {
+    
+    
+    
+    
+    
+    
+    
+    if (line->IsDirty() && (line->HasFloats() || !willReflowAgain)) {
       lastLineMovedUp = PR_TRUE;
 
       PRBool maybeReflowingForFirstTime =
@@ -1867,6 +1874,9 @@ nsBlockFrame::ReflowDirtyLines(nsBlockReflowState& aState)
           *aState.mReflowState.mDiscoveredClearance) {
         line->MarkDirty();
         willReflowAgain = PR_TRUE;
+        
+        
+        
       }
 
       if (line->HasFloats()) {
@@ -1937,8 +1947,20 @@ nsBlockFrame::ReflowDirtyLines(nsBlockReflowState& aState)
       else
         repositionViews = PR_TRUE;
 
-      
-      aState.RecoverStateFrom(line, deltaY);
+      if (willReflowAgain) {
+        NS_ASSERTION(!line->HasFloats(), "Possibly stale float cache here!");
+        
+        
+        
+        
+        
+        
+        
+        
+      } else {
+        
+        aState.RecoverStateFrom(line, deltaY);
+      }
 
       
       
