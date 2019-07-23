@@ -140,6 +140,7 @@ public:
   NS_HIDDEN_(nsresult) FillProtoInfoForSchemeFromDS(
     const nsACString& aScheme, nsIHandlerInfo * aMIMEInfo);
 
+#ifdef MOZ_RDF
   
 
 
@@ -154,6 +155,7 @@ public:
     nsIRDFResource *aTypeNodeResource, const nsCAutoString& aType,
     nsIRDFService *aRDFService, const char *aTypeNodePrefix, 
     nsIHandlerInfo * aHandlerInfo);
+#endif
     
   
 
