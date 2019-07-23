@@ -39,6 +39,7 @@
 
 
 
+
 #if defined(XP_MAC) && defined(MOZ_MAC_LOWMEM)
 #pragma optimization_level 1
 #endif
@@ -600,7 +601,10 @@ nsHTMLEditRules::WillDoAction(nsISelection *aSelection,
 
   
   
-  if (info->action == kOutputText) {
+  if (info->action == kOutputText ||
+      info->action == kUndo ||
+      info->action == kRedo)
+  {
     return nsTextEditRules::WillDoAction(aSelection, aInfo, aCancel, aHandled);
   }
 
@@ -642,7 +646,7 @@ nsHTMLEditRules::WillDoAction(nsISelection *aSelection,
       return NS_OK;
     }
   }
-    
+
   switch (info->action)
   {
     case kInsertText:
