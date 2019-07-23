@@ -17,10 +17,10 @@ function test() {
 function testMalware() {
   
   var el = newBrowser.contentDocument.getElementById("ignoreWarningButton");
-  ok(el, "Ignore warning button should be present (but hidden) for malware");
+  ok(el, "Ignore warning button should be present for malware");
   
   var style = newBrowser.contentWindow.getComputedStyle(el, null);
-  is(style.display, "none", "Ignore Warning button should be display:none for malware");
+  is(style.display, "-moz-box", "Ignore Warning button should be display:-moz-box for malware");
   
   
   newBrowser.contentWindow.location = 'http://www.mozilla.com/firefox/its-a-trap.html';
