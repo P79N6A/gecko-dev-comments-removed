@@ -4203,6 +4203,13 @@ PresShell::DoScrollContentIntoView(nsIContent* aContent,
     return;
   }
 
+  if (frame->GetStateBits() & NS_FRAME_FIRST_REFLOW) {
+    
+    
+    
+    return;
+  }
+
   
   
   
