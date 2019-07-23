@@ -37,7 +37,7 @@
 
 
 
-#include <Windows.h>
+#include <windows.h>
 #include "nscore.h"
 
 #ifndef WM_DWMCOMPOSITIONCHANGED
