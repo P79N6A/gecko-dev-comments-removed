@@ -41,6 +41,7 @@
 
 
 
+#include "jsstddef.h"
 #include <string.h>
 #include "jstypes.h"
 #include "jsbit.h"
@@ -590,9 +591,9 @@ JSClass js_ArgumentsClass = {
 #define CALL_CLASS_FIXED_RESERVED_SLOTS  2
 
 JSObject *
-js_GetCallObject(JSContext *cx, JSStackFrame *fp, JSObject *parent)
+js_GetCallObject(JSContext *cx, JSStackFrame *fp)
 {
-    JSObject *callobj, *funobj;
+    JSObject *callobj;
 
     
     JS_ASSERT(fp->fun);
@@ -600,15 +601,18 @@ js_GetCallObject(JSContext *cx, JSStackFrame *fp, JSObject *parent)
     if (callobj)
         return callobj;
 
+#ifdef DEBUG
     
-    if (!parent) {
-        funobj = fp->callee;
-        if (funobj)
-            parent = OBJ_GET_PARENT(cx, funobj);
-    }
+    JSClass *classp = OBJ_GET_CLASS(cx, fp->scopeChain);
+    if (classp == &js_WithClass || classp == &js_BlockClass || classp == &js_CallClass)
+        JS_ASSERT(OBJ_GET_PRIVATE(cx, fp->scopeChain) != fp);
+#endif
 
     
-    callobj = js_NewObject(cx, &js_CallClass, NULL, parent, 0);
+
+
+
+    callobj = js_NewObject(cx, &js_CallClass, NULL, fp->scopeChain, 0);
     if (!callobj)
         return NULL;
 
@@ -618,7 +622,9 @@ js_GetCallObject(JSContext *cx, JSStackFrame *fp, JSObject *parent)
     fp->callobj = callobj;
 
     
-    JS_ASSERT(fp->scopeChain == parent);
+
+
+
     fp->scopeChain = callobj;
     fp->varobj = callobj;
     return callobj;

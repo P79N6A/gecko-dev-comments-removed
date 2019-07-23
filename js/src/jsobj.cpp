@@ -1280,7 +1280,7 @@ obj_eval(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
 
 
-    if (caller && !caller->varobj && !js_GetCallObject(cx, caller, NULL))
+    if (caller && !caller->varobj && !js_GetCallObject(cx, caller))
         return JS_FALSE;
 
     

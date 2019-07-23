@@ -311,7 +311,7 @@ static JSBool
 script_exec_sub(JSContext *cx, JSObject *obj, uintN argc, jsval *argv,
                 jsval *rval)
 {
-    JSObject *scopeobj, *parent;
+    JSObject *scopeobj;
     JSStackFrame *caller;
     JSPrincipals *principals;
     JSScript *script;
@@ -345,8 +345,7 @@ script_exec_sub(JSContext *cx, JSObject *obj, uintN argc, jsval *argv,
         JS_ASSERT(caller->fun && !JSFUN_HEAVYWEIGHT_TEST(caller->fun->flags));
 
         
-        parent = OBJ_GET_PARENT(cx, caller->callee);
-        if (!js_GetCallObject(cx, caller, parent))
+        if (!js_GetCallObject(cx, caller))
             return JS_FALSE;
     }
 

@@ -41,6 +41,7 @@
 
 
 
+#include "jsstddef.h"
 #include <string.h>
 #include "jstypes.h"
 #include "jsutil.h" 
@@ -653,7 +654,7 @@ js_watch_set(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
                       ? js_InternalCall(cx, obj,
                                         OBJECT_TO_JSVAL((JSObject *)wp->setter),
                                         1, vp, vp)
-                      : wp->setter(cx, obj, userid, vp));
+                      : wp->setter(cx, OBJ_THIS_OBJECT(cx, obj), userid, vp));
                 if (injectFrame) {
                     
                     if (frame.callobj)
@@ -1108,7 +1109,7 @@ JS_GetFrameCallObject(JSContext *cx, JSStackFrame *fp)
 
 
 
-    return js_GetCallObject(cx, fp, NULL);
+    return js_GetCallObject(cx, fp);
 }
 
 JS_PUBLIC_API(JSObject *)
