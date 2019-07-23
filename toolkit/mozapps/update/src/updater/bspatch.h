@@ -34,6 +34,7 @@
 
 
 #include "prtypes.h"
+#include <stdio.h>
 
 typedef struct MBSPatchHeader_ {
   
@@ -68,7 +69,7 @@ typedef struct MBSPatchHeader_ {
 
 
 
-int MBS_ReadHeader(int fd, MBSPatchHeader *header);
+int MBS_ReadHeader(FILE* file, MBSPatchHeader *header);
 
 
 
@@ -81,8 +82,8 @@ int MBS_ReadHeader(int fd, MBSPatchHeader *header);
 
 
 
-int MBS_ApplyPatch(const MBSPatchHeader *header, int patchfd,
-                   unsigned char *fbuffer, int filefd);
+int MBS_ApplyPatch(const MBSPatchHeader *header, FILE* patchFile,
+                   unsigned char *fbuffer, FILE* file);
 
 typedef struct MBSPatchTriple_ {
   PRUint32 x; 
