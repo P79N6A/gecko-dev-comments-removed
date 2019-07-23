@@ -41,15 +41,6 @@
 
 #include "nsTArray.h"
 #include "nsAutoLock.h"
-#include "nsIPrincipal.h"
-#include "nsCOMPtr.h"
-
-
-
-
-
-
-
 
 
 
@@ -224,8 +215,7 @@ public:
       mStreamOffset(0), mStreamLength(-1), mPlaybackBytesPerSecond(10000),
       mPinCount(0), mCurrentMode(MODE_PLAYBACK), mClosed(PR_FALSE),
       mIsSeekable(PR_FALSE), mCacheSuspended(PR_FALSE),
-      mMetadataInPartialBlockBuffer(PR_FALSE),
-      mUsingNullPrincipal(PR_FALSE) {}
+      mMetadataInPartialBlockBuffer(PR_FALSE) {}
   ~nsMediaCacheStream();
 
   
@@ -246,8 +236,6 @@ public:
   void Close();
   
   PRBool IsClosed() const { return mClosed; }
-  
-  nsIPrincipal* GetCurrentPrincipal() { return mPrincipal; }
 
   
   
@@ -275,9 +263,7 @@ public:
   
   
   
-  
-  void NotifyDataReceived(PRInt64 aSize, const char* aData,
-                          nsIPrincipal* aPrincipal);
+  void NotifyDataReceived(PRInt64 aSize, const char* aData);
   
   void NotifyDataEnded(nsresult aStatus);
 
@@ -377,12 +363,9 @@ private:
   
   
   void CloseInternal(nsAutoMonitor* aMonitor);
-  
-  void UpdatePrincipal(nsIPrincipal* aPrincipal);
 
   
-  nsMediaChannelStream*  mClient;
-  nsCOMPtr<nsIPrincipal> mPrincipal;
+  nsMediaChannelStream* mClient;
 
   
   
@@ -418,9 +401,6 @@ private:
   PRPackedBool      mCacheSuspended;
   
   PRPackedBool      mMetadataInPartialBlockBuffer;
-  
-  
-  PRPackedBool      mUsingNullPrincipal;
 
   
   

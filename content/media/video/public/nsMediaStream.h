@@ -44,8 +44,6 @@
 #include "nsIPrincipal.h"
 #include "nsIURI.h"
 #include "nsIStreamListener.h"
-#include "nsIChannelEventSink.h"
-#include "nsIInterfaceRequestor.h"
 #include "prlock.h"
 #include "nsMediaCache.h"
 #include "nsTimeStamp.h"
@@ -152,6 +150,8 @@ public:
 
   
   
+  already_AddRefed<nsIPrincipal> GetCurrentPrincipal();
+  
   nsMediaDecoder* Decoder() { return mDecoder; }
   
   
@@ -161,8 +161,6 @@ public:
   virtual void Suspend() = 0;
   
   virtual void Resume() = 0;
-  
-  virtual already_AddRefed<nsIPrincipal> GetCurrentPrincipal() = 0;
 
   
   
@@ -319,7 +317,6 @@ public:
   virtual nsresult Close();
   virtual void     Suspend();
   virtual void     Resume();
-  virtual already_AddRefed<nsIPrincipal> GetCurrentPrincipal();
   
   PRBool IsClosed() const { return mCacheStream.IsClosed(); }
 
@@ -340,18 +337,13 @@ public:
   virtual PRBool  IsSuspendedByCache();
 
 protected:
-  class Listener : public nsIStreamListener,
-                   public nsIInterfaceRequestor,
-                   public nsIChannelEventSink
-  {
+  class Listener : public nsIStreamListener {
   public:
     Listener(nsMediaChannelStream* aStream) : mStream(aStream) {}
 
     NS_DECL_ISUPPORTS
     NS_DECL_NSIREQUESTOBSERVER
     NS_DECL_NSISTREAMLISTENER
-    NS_DECL_NSICHANNELEVENTSINK
-    NS_DECL_NSIINTERFACEREQUESTOR
 
     void Revoke() { mStream = nsnull; }
 
@@ -366,12 +358,10 @@ protected:
   nsresult OnDataAvailable(nsIRequest* aRequest,
                            nsIInputStream* aStream,
                            PRUint32 aCount);
-  nsresult OnChannelRedirect(nsIChannel* aOld, nsIChannel* aNew, PRUint32 aFlags);
 
   
   
   nsresult OpenChannel(nsIStreamListener** aStreamListener, PRInt64 aOffset);
-  void SetupChannelHeaders();
   
   void CloseChannel();
 
@@ -383,9 +373,9 @@ protected:
                                       PRUint32 *aWriteCount);
 
   
-  PRInt64            mLastSeekOffset;
   nsRefPtr<Listener> mListener;
   PRUint32           mSuspendCount;
+  PRPackedBool       mSeeking;
 
   
   nsMediaCacheStream mCacheStream;
