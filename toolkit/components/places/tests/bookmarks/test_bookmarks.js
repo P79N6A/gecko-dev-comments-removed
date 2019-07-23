@@ -171,6 +171,11 @@ function run_test() {
 
   
   var lastModified2 = bmsvc.getItemLastModified(newId);
+  LOG("test setItemTitle");
+  LOG("dateAdded = " + dateAdded);
+  LOG("beforeSetTitle = " + beforeSetTitle);
+  LOG("lastModified = " + lastModified);
+  LOG("lastModified2 = " + lastModified2);
   do_check_true(lastModified2 > lastModified);
   do_check_true(lastModified2 >= dateAdded);
   do_check_true(lastModified2 >= beforeSetTitle);
@@ -335,10 +340,13 @@ function run_test() {
 
     bmsvc.setKeywordForBookmark(kwTestItemId, "bar");
 
-    
-    
-    
-    
+    var lastModified2 = bmsvc.getItemLastModified(kwTestItemId);
+    LOG("test setKeywordForBookmark");
+    LOG("dateAdded = " + dateAdded);
+    LOG("lastModified = " + lastModified);
+    LOG("lastModified2 = " + lastModified2);
+    do_check_true(lastModified2 > lastModified);
+    do_check_true(lastModified2 >= dateAdded);
   } catch(ex) {
     do_throw("setKeywordForBookmark: " + ex);
   }
@@ -457,10 +465,13 @@ function run_test() {
   bmsvc.changeBookmarkURI(newId10, uri("http://foo11.com/"));
 
   
-  
-  
-  
-  
+  var lastModified2 = bmsvc.getItemLastModified(newId10);
+  LOG("test changeBookmarkURI");
+  LOG("dateAdded = " + dateAdded);
+  LOG("lastModified = " + lastModified);
+  LOG("lastModified2 = " + lastModified2);
+  do_check_true(lastModified2 > lastModified);
+  do_check_true(lastModified2 >= dateAdded);
 
   do_check_eq(observer._itemChangedId, newId10);
   do_check_eq(observer._itemChangedProperty, "uri");
