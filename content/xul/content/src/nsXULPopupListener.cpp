@@ -69,6 +69,7 @@
 #include "nsLayoutUtils.h"
 #include "nsFrameManager.h"
 #include "nsHTMLReflowState.h"
+#include "nsIObjectLoadingContent.h"
 
 
 #include "nsPresContext.h"
@@ -177,6 +178,15 @@ nsXULPopupListener::PreLaunchPopup(nsIDOMEvent* aMouseEvent)
     PRBool eventEnabled =
       nsContentUtils::GetBoolPref("dom.event.contextmenu.enabled", PR_TRUE);
     if (!eventEnabled) {
+      
+      
+      nsCOMPtr<nsIObjectLoadingContent> olc = do_QueryInterface(targetNode);
+      PRUint32 type;
+      if (olc && NS_SUCCEEDED(olc->GetDisplayedType(&type)) &&
+          type == nsIObjectLoadingContent::TYPE_PLUGIN) {
+        return NS_OK;
+      }
+
       
       
       
