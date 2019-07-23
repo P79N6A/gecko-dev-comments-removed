@@ -187,6 +187,10 @@ private:
   nsPluginTag*
   FindPluginEnabledForExtension(const char* aExtension, const char* &aMimeType);
 
+  
+  nsPluginTag*
+  FindTagForPlugin(nsIPlugin* aPlugin);
+
   nsresult
   FindStoppedPluginForURL(nsIURI* aURL, nsIPluginInstanceOwner *aOwner);
 
