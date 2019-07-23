@@ -113,32 +113,37 @@ const gfxFont::Metrics& gfxOS2Font::GetMetrics()
 #ifdef DEBUG_thebes_1
     printf("gfxOS2Font[%#x]::GetMetrics()\n", (unsigned)this);
 #endif
-    if (!mMetrics) {
-        mMetrics = new gfxFont::Metrics;
+    if (mMetrics) {
+        return *mMetrics;
+    }
 
-        mMetrics->emHeight = GetStyle()->size;
-
-        FT_UInt gid; 
-        FT_Face face = cairo_ft_scaled_font_lock_face(CairoScaledFont());
-        if (!face || !face->charmap) {
-            
-            
-            
-            
-            
-            
-            
-            if (face)
-                cairo_ft_scaled_font_unlock_face(CairoScaledFont());
-            return *mMetrics;
-        }
-
-        double emUnit = 1.0 * face->units_per_EM;
-        double xScale = face->size->metrics.x_ppem / emUnit;
-        double yScale = face->size->metrics.y_ppem / emUnit;
-
+    FT_Face face = cairo_ft_scaled_font_lock_face(CairoScaledFont());
+    if (!face) {
         
-        gid = FT_Get_Char_Index(face, ' ');
+        
+        
+        return *mMetrics;
+    }
+    if (!face->charmap) {
+        
+        
+        
+        cairo_ft_scaled_font_unlock_face(CairoScaledFont());
+        return *mMetrics;
+    }
+
+    mMetrics = new gfxFont::Metrics;
+    mMetrics->emHeight = GetStyle()->size;
+
+    double emUnit = 1.0 * face->units_per_EM;
+    double xScale = face->size->metrics.x_ppem / emUnit;
+    double yScale = face->size->metrics.y_ppem / emUnit;
+
+    FT_UInt gid; 
+
+    
+    gid = FT_Get_Char_Index(face, ' ');
+    if (gid) {
         
         
         
@@ -147,106 +152,108 @@ const gfxFont::Metrics& gfxOS2Font::GetMetrics()
         mMetrics->spaceWidth = face->glyph->advance.x >> 6;
         
         mSpaceGlyph = gid;
+    } else {
+        NS_ASSERTION(gid, "this font doesn't have a space glyph!");
+    }
 
+    
+    gid = FT_Get_Char_Index(face, 'x'); 
+    if (gid) {
         
-        gid = FT_Get_Char_Index(face, 'x'); 
-        if (gid) {
-            
-            FT_Load_Glyph(face, gid, FT_LOAD_NO_SCALE);
-            mMetrics->xHeight = face->glyph->metrics.height * yScale;
-            mMetrics->aveCharWidth = face->glyph->metrics.width * xScale;
-        } else {
-            
-            
-            mMetrics->xHeight = mMetrics->emHeight * 0.5;
-            mMetrics->aveCharWidth = mMetrics->emHeight * 0.5;
-        }
+        FT_Load_Glyph(face, gid, FT_LOAD_NO_SCALE);
+        mMetrics->xHeight = face->glyph->metrics.height * yScale;
+        mMetrics->aveCharWidth = face->glyph->metrics.width * xScale;
+    } else {
+        
+        
+        mMetrics->xHeight = mMetrics->emHeight * 0.5;
+        mMetrics->aveCharWidth = mMetrics->emHeight * 0.5;
+    }
 
-        
-        gid = FT_Get_Char_Index(face, '0');
-        if (gid) {
-            FT_Load_Glyph(face, gid, FT_LOAD_NO_SCALE);
-            mMetrics->zeroOrAveCharWidth = face->glyph->metrics.width * xScale;
-        } else {
-             
-             mMetrics->zeroOrAveCharWidth = mMetrics->aveCharWidth;
-        }
+    
+    gid = FT_Get_Char_Index(face, '0');
+    if (gid) {
+        FT_Load_Glyph(face, gid, FT_LOAD_NO_SCALE);
+        mMetrics->zeroOrAveCharWidth = face->glyph->metrics.width * xScale;
+    } else {
+         
+         mMetrics->zeroOrAveCharWidth = mMetrics->aveCharWidth;
+    }
 
-        
-        if (mAdjustedSize == 0 && GetStyle()->sizeAdjust != 0) {
-            gfxFloat aspect = mMetrics->xHeight / GetStyle()->size;
-            mAdjustedSize = GetStyle()->GetAdjustedSize(aspect);
-            mMetrics->emHeight = mAdjustedSize;
-        }
+    
+    if (mAdjustedSize == 0 && GetStyle()->sizeAdjust != 0) {
+        gfxFloat aspect = mMetrics->xHeight / GetStyle()->size;
+        mAdjustedSize = GetStyle()->GetAdjustedSize(aspect);
+        mMetrics->emHeight = mAdjustedSize;
+    }
 
+    
+    TT_OS2 *os2 = (TT_OS2 *)FT_Get_Sfnt_Table(face, ft_sfnt_os2);
+    if (os2 && os2->version != 0xFFFF) { 
         
-        TT_OS2 *os2 = (TT_OS2 *)FT_Get_Sfnt_Table(face, ft_sfnt_os2);
-        if (os2 && os2->version != 0xFFFF) { 
-            
-            mMetrics->aveCharWidth = os2->xAvgCharWidth * xScale;
+        mMetrics->aveCharWidth = os2->xAvgCharWidth * xScale;
 
-            mMetrics->superscriptOffset = os2->ySuperscriptYOffset * yScale;
-            mMetrics->superscriptOffset = PR_MAX(1, mMetrics->superscriptOffset);
-            
-            mMetrics->subscriptOffset   = fabs(os2->ySubscriptYOffset * yScale);
-            mMetrics->subscriptOffset   = PR_MAX(1, fabs(mMetrics->subscriptOffset));
-            mMetrics->strikeoutOffset   = os2->yStrikeoutPosition * yScale;
-            mMetrics->strikeoutSize     = os2->yStrikeoutSize * yScale;
-        } else {
-            
-            mMetrics->superscriptOffset = mMetrics->emHeight * 0.5;
-            mMetrics->subscriptOffset   = mMetrics->emHeight * 0.2;
-            mMetrics->strikeoutOffset   = mMetrics->emHeight * 0.3;
-            mMetrics->strikeoutSize     = face->underline_thickness * yScale;
-        }
+        mMetrics->superscriptOffset = os2->ySuperscriptYOffset * yScale;
+        mMetrics->superscriptOffset = PR_MAX(1, mMetrics->superscriptOffset);
         
-        mMetrics->underlineOffset = face->underline_position * yScale;
-        mMetrics->underlineSize   = face->underline_thickness * yScale;
+        mMetrics->subscriptOffset   = fabs(os2->ySubscriptYOffset * yScale);
+        mMetrics->subscriptOffset   = PR_MAX(1, fabs(mMetrics->subscriptOffset));
+        mMetrics->strikeoutOffset   = os2->yStrikeoutPosition * yScale;
+        mMetrics->strikeoutSize     = os2->yStrikeoutSize * yScale;
+    } else {
+        
+        mMetrics->superscriptOffset = mMetrics->emHeight * 0.5;
+        mMetrics->subscriptOffset   = mMetrics->emHeight * 0.2;
+        mMetrics->strikeoutOffset   = mMetrics->emHeight * 0.3;
+        mMetrics->strikeoutSize     = face->underline_thickness * yScale;
+    }
+    
+    mMetrics->underlineOffset = face->underline_position * yScale;
+    mMetrics->underlineSize   = face->underline_thickness * yScale;
 
-        
-        mMetrics->emAscent        = face->ascender * yScale;
-        mMetrics->emDescent       = -face->descender * yScale;
-        mMetrics->maxHeight       = face->height * yScale;
-        mMetrics->maxAscent       = face->bbox.yMax * yScale;
-        mMetrics->maxDescent      = -face->bbox.yMin * yScale;
-        mMetrics->maxAdvance      = face->max_advance_width * xScale;
-        
-        double lineHeight = mMetrics->maxAscent + mMetrics->maxDescent;
-        if (lineHeight > mMetrics->emHeight) {
-            mMetrics->internalLeading = lineHeight - mMetrics->emHeight;
-        } else {
-            mMetrics->internalLeading = 0;
-        }
-        mMetrics->externalLeading = 0; 
+    
+    mMetrics->emAscent        = face->ascender * yScale;
+    mMetrics->emDescent       = -face->descender * yScale;
+    mMetrics->maxHeight       = face->height * yScale;
+    mMetrics->maxAscent       = face->bbox.yMax * yScale;
+    mMetrics->maxDescent      = -face->bbox.yMin * yScale;
+    mMetrics->maxAdvance      = face->max_advance_width * xScale;
+    
+    double lineHeight = mMetrics->maxAscent + mMetrics->maxDescent;
+    if (lineHeight > mMetrics->emHeight) {
+        mMetrics->internalLeading = lineHeight - mMetrics->emHeight;
+    } else {
+        mMetrics->internalLeading = 0;
+    }
+    mMetrics->externalLeading = 0; 
 
-        SanitizeMetrics(mMetrics, PR_FALSE);
+    SanitizeMetrics(mMetrics, PR_FALSE);
 
 #ifdef DEBUG_thebes_1
-        printf("gfxOS2Font[%#x]::GetMetrics():\n"
-               "  %s (%s)\n"
-               "  emHeight=%f == %f=gfxFont::style.size == %f=adjSz\n"
-               "  maxHeight=%f  xHeight=%f\n"
-               "  aveCharWidth=%f==xWidth  spaceWidth=%f\n"
-               "  supOff=%f SubOff=%f   strOff=%f strSz=%f\n"
-               "  undOff=%f undSz=%f    intLead=%f extLead=%f\n"
-               "  emAsc=%f emDesc=%f maxH=%f\n"
-               "  maxAsc=%f maxDes=%f maxAdv=%f\n",
-               (unsigned)this,
-               NS_LossyConvertUTF16toASCII(GetName()).get(),
-               os2 && os2->version != 0xFFFF ? "has OS/2 table" : "no OS/2 table!",
-               mMetrics->emHeight, GetStyle()->size, mAdjustedSize,
-               mMetrics->maxHeight, mMetrics->xHeight,
-               mMetrics->aveCharWidth, mMetrics->spaceWidth,
-               mMetrics->superscriptOffset, mMetrics->subscriptOffset,
-               mMetrics->strikeoutOffset, mMetrics->strikeoutSize,
-               mMetrics->underlineOffset, mMetrics->underlineSize,
-               mMetrics->internalLeading, mMetrics->externalLeading,
-               mMetrics->emAscent, mMetrics->emDescent, mMetrics->maxHeight,
-               mMetrics->maxAscent, mMetrics->maxDescent, mMetrics->maxAdvance
-              );
+    printf("gfxOS2Font[%#x]::GetMetrics():\n"
+           "  %s (%s)\n"
+           "  emHeight=%f == %f=gfxFont::style.size == %f=adjSz\n"
+           "  maxHeight=%f  xHeight=%f\n"
+           "  aveCharWidth=%f==xWidth  spaceWidth=%f\n"
+           "  supOff=%f SubOff=%f   strOff=%f strSz=%f\n"
+           "  undOff=%f undSz=%f    intLead=%f extLead=%f\n"
+           "  emAsc=%f emDesc=%f maxH=%f\n"
+           "  maxAsc=%f maxDes=%f maxAdv=%f\n",
+           (unsigned)this,
+           NS_LossyConvertUTF16toASCII(GetName()).get(),
+           os2 && os2->version != 0xFFFF ? "has OS/2 table" : "no OS/2 table!",
+           mMetrics->emHeight, GetStyle()->size, mAdjustedSize,
+           mMetrics->maxHeight, mMetrics->xHeight,
+           mMetrics->aveCharWidth, mMetrics->spaceWidth,
+           mMetrics->superscriptOffset, mMetrics->subscriptOffset,
+           mMetrics->strikeoutOffset, mMetrics->strikeoutSize,
+           mMetrics->underlineOffset, mMetrics->underlineSize,
+           mMetrics->internalLeading, mMetrics->externalLeading,
+           mMetrics->emAscent, mMetrics->emDescent, mMetrics->maxHeight,
+           mMetrics->maxAscent, mMetrics->maxDescent, mMetrics->maxAdvance
+          );
 #endif
-        cairo_ft_scaled_font_unlock_face(CairoScaledFont());
-    }
+    cairo_ft_scaled_font_unlock_face(CairoScaledFont());
     return *mMetrics;
 }
 
