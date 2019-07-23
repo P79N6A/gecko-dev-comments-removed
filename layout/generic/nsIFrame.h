@@ -108,10 +108,9 @@ struct CharacterDataChangeInfo;
 
 typedef class nsIFrame nsIBox;
 
-
 #define NS_IFRAME_IID \
-  { 0xf34d7229, 0xf179, 0x40d9, \
-    { 0xa9, 0x52, 0x8f, 0xcf, 0xa9, 0xbc, 0x36, 0x47 } }
+  { 0x8bee3c3f, 0x0b4a, 0x4453, \
+    { 0xa6, 0x77, 0xf3, 0xd2, 0x56, 0xd1, 0x0e, 0xdc } }
 
 
 
@@ -995,14 +994,6 @@ public:
 
 
   virtual PRBool IsTransformed() const;
-
-  
-
-
-
-
-
-  virtual nsresult CreateWidgetForView(nsIView* aView);
 
   
 
