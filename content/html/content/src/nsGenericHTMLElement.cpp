@@ -2656,10 +2656,7 @@ nsGenericHTMLFormElement::IntrinsicState() const
     }
   }
   
-  if (mForm &&
-      
-      static_cast<const nsIFormControl*>
-                 (mForm->GetDefaultSubmitElement()) == this) {
+  if (mForm && mForm->IsDefaultSubmitElement(this)) {
       NS_ASSERTION(IsSubmitControl(),
                    "Default submit element that isn't a submit control.");
       

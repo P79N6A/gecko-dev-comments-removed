@@ -184,6 +184,7 @@ public:
   NS_IMETHOD GetActionURL(nsIURI** aActionURL);
   NS_IMETHOD GetSortedControls(nsTArray<nsIFormControl*>& aControls) const;
   NS_IMETHOD_(nsIFormControl*) GetDefaultSubmitElement() const;
+  NS_IMETHOD_(PRBool) IsDefaultSubmitElement(const nsIFormControl* aControl) const;
   NS_IMETHOD_(PRBool) HasSingleTextControl() const;
 
   
@@ -1287,7 +1288,7 @@ nsHTMLFormElement::GetElementAt(PRInt32 aIndex,
 
 static PRInt32 CompareFormControlPosition(nsIFormControl *aControl1,
                                           nsIFormControl *aControl2,
-                                          nsIContent* aForm)
+                                          const nsIContent* aForm)
 {
   NS_ASSERTION(aControl1 != aControl2, "Comparing a form control to itself");
 
@@ -1747,6 +1748,41 @@ nsHTMLFormElement::GetDefaultSubmitElement() const
                   "What happened here?");
   
   return mDefaultSubmitElement;
+}
+
+NS_IMETHODIMP_(PRBool)
+nsHTMLFormElement::IsDefaultSubmitElement(const nsIFormControl* aControl) const
+{
+  NS_PRECONDITION(aControl, "Unexpected call");
+
+  if (aControl == mDefaultSubmitElement) {
+    
+    return PR_TRUE;
+  }
+
+  if (mDefaultSubmitElement ||
+      (aControl != mFirstSubmitInElements &&
+       aControl != mFirstSubmitNotInElements)) {
+    
+    return PR_FALSE;
+  }
+
+  
+  
+  
+  
+  
+  if (!mFirstSubmitInElements || !mFirstSubmitNotInElements) {
+    
+    return PR_TRUE;
+  }
+
+  
+  nsIFormControl* defaultSubmit =
+    CompareFormControlPosition(mFirstSubmitInElements,
+                               mFirstSubmitNotInElements, this) < 0 ?
+      mFirstSubmitInElements : mFirstSubmitNotInElements;
+  return aControl == defaultSubmit;
 }
 
 NS_IMETHODIMP_(PRBool)

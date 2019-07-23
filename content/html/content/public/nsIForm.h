@@ -53,8 +53,8 @@ template<class T> class nsTArray;
 
 
 #define NS_IFORM_IID    \
-{ 0xbe97c0a6, 0xb590, 0x4154, \
-  {0xb4, 0xc3, 0xb0, 0x1c, 0x8f, 0x4a, 0x93, 0x98} }
+{ 0x6e8456c2, 0xcf49, 0x4b6d, \
+ { 0xb5, 0xfe, 0x80, 0x0d, 0x03, 0x4f, 0x55, 0x33 } }
 
 
 
@@ -193,6 +193,15 @@ public:
 
 
    NS_IMETHOD_(nsIFormControl*) GetDefaultSubmitElement() const = 0;
+
+  
+
+
+
+
+
+
+  NS_IMETHOD_(PRBool) IsDefaultSubmitElement(const nsIFormControl* aControl) const = 0;
 
    
 
