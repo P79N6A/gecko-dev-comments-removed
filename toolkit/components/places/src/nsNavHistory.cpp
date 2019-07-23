@@ -6873,8 +6873,8 @@ nsNavHistory::RowToResult(mozIStorageValueArray* aRow,
                           nsNavHistoryQueryOptions* aOptions,
                           nsNavHistoryResultNode** aResult)
 {
-  *aResult = nsnull;
   NS_ASSERTION(aRow && aOptions && aResult, "Null pointer in RowToResult");
+  *aResult = nsnull;
 
   
   nsCAutoString url;
@@ -6929,19 +6929,17 @@ nsNavHistory::RowToResult(mozIStorageValueArray* aRow,
     }
 
     rv = QueryRowToResult(itemId, url, title, accessCount, time, favicon, aResult);
-
-    
-    
-    
-    if (*aResult && (*aResult)->IsFolder() &&
-         aOptions->ResultType() != 
-           nsINavHistoryQueryOptions::RESULTS_AS_TAG_QUERY)
-      (*aResult)->GetAsContainer()->mOptions = aOptions;
-
-    
+    NS_ENSURE_STATE(*aResult);
     if (aOptions->ResultType() == nsNavHistoryQueryOptions::RESULTS_AS_TAG_QUERY) {
+      
       (*aResult)->mDateAdded = aRow->AsInt64(kGetInfoIndex_ItemDateAdded);
       (*aResult)->mLastModified = aRow->AsInt64(kGetInfoIndex_ItemLastModified);
+    }
+    else if ((*aResult)->IsFolder()) {
+      
+      
+      
+      (*aResult)->GetAsContainer()->mOptions = aOptions;
     }
 
     return rv;
