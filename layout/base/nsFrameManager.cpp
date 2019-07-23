@@ -1200,12 +1200,11 @@ nsFrameManager::ReResolveStyleContext(nsPresContext     *aPresContext,
     }
     
     
-    
-    nsStyleContext* newContext = nsnull;
+    nsRefPtr<nsStyleContext> newContext;
     if (pseudoTag == nsCSSAnonBoxes::mozNonElement) {
       NS_ASSERTION(localContent,
                    "non pseudo-element frame without content node");
-      newContext = styleSet->ResolveStyleForNonElement(parentContext).get();
+      newContext = styleSet->ResolveStyleForNonElement(parentContext);
     }
     else if (pseudoTag) {
       
@@ -1219,7 +1218,7 @@ nsFrameManager::ReResolveStyleContext(nsPresContext     *aPresContext,
         
         newContext = styleSet->ProbePseudoStyleFor(pseudoContent,
                                                    pseudoTag,
-                                                   parentContext).get();
+                                                   parentContext);
         if (!newContext) {
           
           NS_UpdateHint(aMinChange, nsChangeHint_ReconstructFrame);
@@ -1227,7 +1226,6 @@ nsFrameManager::ReResolveStyleContext(nsPresContext     *aPresContext,
                                     nsChangeHint_ReconstructFrame);
           
           newContext = oldContext;
-          newContext->AddRef();
         }
       } else {
         if (pseudoTag == nsCSSPseudoElements::firstLetter) {
@@ -1240,13 +1238,13 @@ nsFrameManager::ReResolveStyleContext(nsPresContext     *aPresContext,
         }
         newContext = styleSet->ResolvePseudoStyleFor(pseudoContent,
                                                      pseudoTag,
-                                                     parentContext).get();
+                                                     parentContext);
       }
     }
     else {
       NS_ASSERTION(localContent,
                    "non pseudo-element frame without content node");
-      newContext = styleSet->ResolveStyleFor(content, parentContext).get();
+      newContext = styleSet->ResolveStyleFor(content, parentContext);
     }
     NS_ASSERTION(newContext, "failed to get new style context");
     if (newContext) {
@@ -1257,9 +1255,7 @@ nsFrameManager::ReResolveStyleContext(nsPresContext     *aPresContext,
           
           
           
-          newContext->Release();
           newContext = oldContext;
-          newContext->AddRef();
         }
       }
 
@@ -1277,7 +1273,6 @@ nsFrameManager::ReResolveStyleContext(nsPresContext     *aPresContext,
     else {
       NS_ERROR("resolve style context failed");
       newContext = oldContext;  
-      oldContext = nsnull;
     }
 
     
@@ -1286,14 +1281,14 @@ nsFrameManager::ReResolveStyleContext(nsPresContext     *aPresContext,
       nsStyleContext* oldExtraContext = nsnull;
       oldExtraContext = aFrame->GetAdditionalStyleContext(++contextIndex);
       if (oldExtraContext) {
-        nsStyleContext* newExtraContext = nsnull;
+        nsRefPtr<nsStyleContext> newExtraContext;
         nsIAtom* const extraPseudoTag = oldExtraContext->GetPseudoType();
         NS_ASSERTION(extraPseudoTag &&
                      extraPseudoTag != nsCSSAnonBoxes::mozNonElement,
                      "extra style context is not pseudo element");
         newExtraContext = styleSet->ResolvePseudoStyleFor(content,
                                                           extraPseudoTag,
-                                                          newContext).get();
+                                                          newContext);
         if (newExtraContext) {
           if (oldExtraContext != newExtraContext) {
             aMinChange = CaptureChange(oldExtraContext, newExtraContext,
@@ -1303,7 +1298,6 @@ nsFrameManager::ReResolveStyleContext(nsPresContext     *aPresContext,
               aFrame->SetAdditionalStyleContext(contextIndex, newExtraContext);
             }
           }
-          newExtraContext->Release();
         }
       }
       else {
@@ -1504,7 +1498,6 @@ nsFrameManager::ReResolveStyleContext(nsPresContext     *aPresContext,
       
     }
 
-    newContext->Release();
   }
 
   return aMinChange;
