@@ -56,7 +56,14 @@ enum nsStyleStructID {
 #include "nsStyleStructList.h"
 #undef STYLE_STRUCT
 
-nsStyleStructID_Length 
+
+nsStyleStructID_Length,
+
+
+
+
+
+eStyleStruct_BackendOnly = nsStyleStructID_Length
 
 };
 
