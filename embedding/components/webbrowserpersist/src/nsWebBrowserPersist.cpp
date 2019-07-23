@@ -2840,8 +2840,14 @@ nsresult nsWebBrowserPersist::OnWalkDOMNode(nsIDOMNode *aNode)
                 mCurrentBaseURI = baseURI;
             }
         }
-        StoreURIAttribute(aNode, "code");
-        StoreURIAttribute(aNode, "archive");
+
+        URIData *archiveURIData = nsnull;
+        StoreURIAttribute(aNode, "archive", PR_TRUE, &archiveURIData);
+        
+        
+        if (!archiveURIData)
+            StoreURIAttribute(aNode, "code");
+
         
         mCurrentBaseURI = oldBase;
         return NS_OK;
