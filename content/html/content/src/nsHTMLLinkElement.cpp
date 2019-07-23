@@ -60,10 +60,14 @@
 #include "nsPIDOMWindow.h"
 #include "nsPLDOMEvent.h"
 
+#include "Link.h"
+using namespace mozilla::dom;
+
 class nsHTMLLinkElement : public nsGenericHTMLElement,
                           public nsIDOMHTMLLinkElement,
                           public nsILink,
-                          public nsStyleLinkElement
+                          public nsStyleLinkElement,
+                          public Link
 {
 public:
   nsHTMLLinkElement(nsINodeInfo *aNodeInfo);
@@ -121,9 +125,6 @@ protected:
                                  nsAString& aType,
                                  nsAString& aMedia,
                                  PRBool* aIsAlternate);
- 
-  
-  nsLinkState mLinkState;
 };
 
 
@@ -131,8 +132,7 @@ NS_IMPL_NS_NEW_HTML_ELEMENT(Link)
 
 
 nsHTMLLinkElement::nsHTMLLinkElement(nsINodeInfo *aNodeInfo)
-  : nsGenericHTMLElement(aNodeInfo),
-    mLinkState(eLinkState_Unknown)
+  : nsGenericHTMLElement(aNodeInfo)
 {
 }
 
@@ -234,16 +234,11 @@ nsHTMLLinkElement::LinkRemoved()
 void
 nsHTMLLinkElement::UnbindFromTree(PRBool aDeep, PRBool aNullParent)
 {
-  nsCOMPtr<nsIDocument> oldDoc = GetCurrentDoc();
-  if (oldDoc) {
-    GetCurrentDoc()->ForgetLink(this);
-    
-    
-    mLinkState = eLinkState_Unknown;
-  }
+  Link::ResetLinkState();
 
   
   
+  nsCOMPtr<nsIDocument> oldDoc = GetCurrentDoc();
   CreateAndDispatchEvent(oldDoc, NS_LITERAL_STRING("DOMLinkRemoved"));
   nsGenericHTMLElement::UnbindFromTree(aDeep, aNullParent);
   UpdateStyleSheetInternal(oldDoc);
@@ -291,14 +286,7 @@ nsHTMLLinkElement::SetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
                            PRBool aNotify)
 {
   if (aName == nsGkAtoms::href && kNameSpaceID_None == aNameSpaceID) {
-    nsIDocument* doc = GetCurrentDoc();
-    if (doc) {
-      doc->ForgetLink(this);
-        
-        
-        
-    }
-    SetLinkState(eLinkState_Unknown);
+    Link::ResetLinkState();
   }
 
   nsresult rv = nsGenericHTMLElement::SetAttr(aNameSpaceID, aName, aPrefix,
@@ -328,11 +316,7 @@ nsHTMLLinkElement::UnsetAttr(PRInt32 aNameSpaceID, nsIAtom* aAttribute,
                              PRBool aNotify)
 {
   if (aAttribute == nsGkAtoms::href && kNameSpaceID_None == aNameSpaceID) {
-    nsIDocument* doc = GetCurrentDoc();
-    if (doc) {
-      doc->ForgetLink(this);
-    }
-    SetLinkState(eLinkState_Unknown);
+    Link::ResetLinkState();
   }
 
   nsresult rv = nsGenericHTMLElement::UnsetAttr(aNameSpaceID, aAttribute,
@@ -379,13 +363,13 @@ nsHTMLLinkElement::GetLinkTarget(nsAString& aTarget)
 nsLinkState
 nsHTMLLinkElement::GetLinkState() const
 {
-  return mLinkState;
+  return Link::GetLinkState();
 }
 
 void
 nsHTMLLinkElement::SetLinkState(nsLinkState aState)
 {
-  mLinkState = aState;
+  Link::SetLinkState(aState);
 }
 
 already_AddRefed<nsIURI>
