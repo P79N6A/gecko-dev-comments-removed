@@ -4320,6 +4320,40 @@ nsNavHistory::RemovePagesInternal(const nsCString& aPlaceIdsQueryString)
 
   mozStorageTransaction transaction(mDBConn, PR_FALSE);
 
+  nsresult rv = PreparePlacesForVisitsDelete(aPlaceIdsQueryString);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
+      "DELETE FROM moz_historyvisits_view WHERE place_id IN (") +
+        aPlaceIdsQueryString +
+        NS_LITERAL_CSTRING(")"));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  rv = CleanupPlacesOnVisitsDelete(aPlaceIdsQueryString);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  return transaction.Commit();
+}
+
+
+
+
+
+
+
+
+
+
+
+
+nsresult
+nsNavHistory::PreparePlacesForVisitsDelete(const nsCString& aPlaceIdsQueryString)
+{
+  
+  if (aPlaceIdsQueryString.IsEmpty())
+    return NS_OK;
+
   
   
   
@@ -4349,12 +4383,27 @@ nsNavHistory::RemovePagesInternal(const nsCString& aPlaceIdsQueryString)
       ")"));
   NS_ENSURE_SUCCESS(rv, rv);
 
+  return NS_OK;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+nsresult
+nsNavHistory::CleanupPlacesOnVisitsDelete(const nsCString& aPlaceIdsQueryString)
+{
   
-  rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
-      "DELETE FROM moz_historyvisits_view WHERE place_id IN (") +
-        aPlaceIdsQueryString +
-        NS_LITERAL_CSTRING(")"));
-  NS_ENSURE_SUCCESS(rv, rv);
+  if (aPlaceIdsQueryString.IsEmpty())
+    return NS_OK;
 
   
   
@@ -4364,7 +4413,7 @@ nsNavHistory::RemovePagesInternal(const nsCString& aPlaceIdsQueryString)
   
   
   
-  rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
+  nsresult rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
       "DELETE FROM moz_places_view WHERE id IN ("
         "SELECT h.id FROM moz_places_temp h "
         "WHERE h.id IN ( ") + aPlaceIdsQueryString + NS_LITERAL_CSTRING(") "
@@ -4387,7 +4436,7 @@ nsNavHistory::RemovePagesInternal(const nsCString& aPlaceIdsQueryString)
   rv = FixInvalidFrecenciesForExcludedPlaces();
   NS_ENSURE_SUCCESS(rv, rv);
 
-  return transaction.Commit();
+  return NS_OK;
 }
 
 
@@ -4608,6 +4657,103 @@ nsNavHistory::RemovePagesByTimeframe(PRTime aBeginTime, PRTime aEndTime)
 
   
   UpdateBatchScoper batch(*this); 
+
+  return NS_OK;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+NS_IMETHODIMP
+nsNavHistory::RemoveVisitsByTimeframe(PRTime aBeginTime, PRTime aEndTime)
+{
+  NS_ASSERTION(NS_IsMainThread(), "This can only be called on the main thread");
+
+  nsresult rv;
+
+  
+  
+  
+  nsCString deletePlaceIdsQueryString;
+  {
+    nsCOMPtr<mozIStorageStatement> selectByTime;
+    mozStorageStatementScoper scope(selectByTime);
+    rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
+        "SELECT place_id "
+        "FROM moz_historyvisits_temp "
+        "WHERE ?1 <= visit_date AND visit_date <= ?2 "
+        "UNION "
+        "SELECT place_id "
+        "FROM moz_historyvisits "
+        "WHERE ?1 <= visit_date AND visit_date <= ?2 "
+        "EXCEPT "
+        "SELECT place_id "
+        "FROM moz_historyvisits_temp "
+        "WHERE visit_date < ?1 OR ?2 < visit_date "
+        "EXCEPT "
+        "SELECT place_id "
+        "FROM moz_historyvisits "
+        "WHERE visit_date < ?1 OR ?2 < visit_date"),
+      getter_AddRefs(selectByTime));
+    NS_ENSURE_SUCCESS(rv, rv);
+    rv = selectByTime->BindInt64Parameter(0, aBeginTime);
+    NS_ENSURE_SUCCESS(rv, rv);
+    rv = selectByTime->BindInt64Parameter(1, aEndTime);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    PRBool hasMore = PR_FALSE;
+    while (NS_SUCCEEDED(selectByTime->ExecuteStep(&hasMore)) && hasMore) {
+      PRInt64 placeId;
+      rv = selectByTime->GetInt64(0, &placeId);
+      NS_ENSURE_SUCCESS(rv, rv);
+      
+      if (placeId > 0) {
+        if (!deletePlaceIdsQueryString.IsEmpty())
+          deletePlaceIdsQueryString.AppendLiteral(",");
+        deletePlaceIdsQueryString.AppendInt(placeId);
+      }
+    }
+  }
+
+  
+  UpdateBatchScoper batch(*this); 
+
+  mozStorageTransaction transaction(mDBConn, PR_FALSE);
+
+  rv = PreparePlacesForVisitsDelete(deletePlaceIdsQueryString);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  nsCOMPtr<mozIStorageStatement> deleteVisitsStmt;
+  rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
+      "DELETE FROM moz_historyvisits_view "
+      "WHERE ?1 <= visit_date AND visit_date <= ?2"),
+    getter_AddRefs(deleteVisitsStmt));
+  NS_ENSURE_SUCCESS(rv, rv);
+  rv = deleteVisitsStmt->BindInt64Parameter(0, aBeginTime);
+  NS_ENSURE_SUCCESS(rv, rv);
+  rv = deleteVisitsStmt->BindInt64Parameter(1, aEndTime);
+  NS_ENSURE_SUCCESS(rv, rv);
+  rv = deleteVisitsStmt->Execute();
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  rv = CleanupPlacesOnVisitsDelete(deletePlaceIdsQueryString);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  rv = transaction.Commit();
+  NS_ENSURE_SUCCESS(rv, rv);
 
   return NS_OK;
 }
