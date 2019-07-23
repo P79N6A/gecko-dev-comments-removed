@@ -3606,7 +3606,7 @@ nsEditor::IsEditable(nsIDOMNode *aNode)
     if (!resultFrame)   
       return PR_FALSE;
     NS_ASSERTION(content->IsNodeOfType(nsINode::eTEXT) ||
-                 content->IsNodeOfType(nsINode::eELEMENT),
+                 content->IsElement(),
                  "frame for non element-or-text?");
     if (!content->IsNodeOfType(nsINode::eTEXT))
       return PR_TRUE;  
