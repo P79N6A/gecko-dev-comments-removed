@@ -143,24 +143,19 @@ function whereToOpenLink( e, ignoreButton, ignoreAlt )
   
 
 #ifdef XP_MACOSX
-  if (meta || (middle && middleUsesTabs)) {
+  if (meta || (middle && middleUsesTabs))
 #else
-  if (ctrl || (middle && middleUsesTabs)) {
+  if (ctrl || (middle && middleUsesTabs))
 #endif
-    if (shift)
-      return "tabshifted";
-    else
-      return "tab";
-  }
-  else if (alt) {
+    return shift ? "tabshifted" : "tab";
+
+  if (alt)
     return "save";
-  }
-  else if (shift || (middle && !middleUsesTabs)) {
+
+  if (shift || (middle && !middleUsesTabs))
     return "window";
-  }
-  else {
-    return "current";
-  }
+
+  return "current";
 }
 
 
@@ -296,7 +291,7 @@ function checkForMiddleClick(node, event) {
 function closeMenus(node)
 {
   if ("tagName" in node) {
-    if (node.namespaceURI == "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
+    if (node.namespaceURI == "http:
     && (node.tagName == "menupopup" || node.tagName == "popup"))
       node.hidePopup();
 
