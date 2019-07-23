@@ -2043,6 +2043,9 @@ SessionStoreService.prototype = {
       delete tab.__SS_extdata;
     
     for (var i = 0; i < tabData.entries.length; i++) {
+      
+      if (!tabData.entries[i].url)
+        continue;
       history.addEntry(this._deserializeHistoryEntry(tabData.entries[i], aIdMap), true);
     }
     
@@ -2183,6 +2186,9 @@ SessionStoreService.prototype = {
     
     if (aEntry.children && shEntry instanceof Ci.nsISHContainer) {
       for (var i = 0; i < aEntry.children.length; i++) {
+        
+        if (!aEntry.children[i].url)
+          continue;
         shEntry.AddChild(this._deserializeHistoryEntry(aEntry.children[i], aIdMap), i);
       }
     }
