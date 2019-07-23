@@ -199,6 +199,12 @@ protected:
                            nsIContent* aRelatedTarget,
                            nsIContent* aTargetContent,
                            nsWeakFrame& aTargetFrame);
+  
+
+
+
+  void UpdateDragDataTransfer(nsDragEvent* dragEvent);
+
   nsresult SetClickCount(nsPresContext* aPresContext, nsMouseEvent *aEvent, nsEventStatus* aStatus);
   nsresult CheckForAndDispatchClick(nsPresContext* aPresContext, nsMouseEvent *aEvent, nsEventStatus* aStatus);
   void EnsureDocument(nsPresContext* aPresContext);

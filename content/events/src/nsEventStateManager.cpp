@@ -3051,6 +3051,12 @@ nsEventStateManager::PostHandleEvent(nsPresContext* aPresContext,
       nsCOMPtr<nsIDOMNSDataTransfer> initialDataTransferNS = 
         do_QueryInterface(initialDataTransfer);
 
+      nsDragEvent *dragEvent = (nsDragEvent*)aEvent;
+
+      
+      
+      UpdateDragDataTransfer(dragEvent);
+
       
       
       
@@ -3063,7 +3069,6 @@ nsEventStateManager::PostHandleEvent(nsPresContext* aPresContext,
       PRUint32 dropEffect = nsIDragService::DRAGDROP_ACTION_NONE;
       if (nsEventStatus_eConsumeNoDefault == *aStatus) {
         
-        nsDragEvent *dragEvent = (nsDragEvent*)aEvent;
         if (dragEvent->dataTransfer) {
           
           dataTransfer = do_QueryInterface(dragEvent->dataTransfer);
@@ -3852,11 +3857,47 @@ nsEventStateManager::FireDragEnterOrExit(nsPresContext* aPresContext,
     if (status == nsEventStatus_eConsumeNoDefault || aMsg == NS_DRAGDROP_EXIT)
       SetContentState((aMsg == NS_DRAGDROP_ENTER) ? aTargetContent : nsnull,
                       NS_EVENT_STATE_DRAGOVER);
+
+    
+    
+    if (aMsg == NS_DRAGDROP_LEAVE_SYNTH || aMsg == NS_DRAGDROP_EXIT_SYNTH ||
+        aMsg == NS_DRAGDROP_ENTER)
+      UpdateDragDataTransfer(&event);
   }
 
   
   if (aTargetFrame)
     aTargetFrame->HandleEvent(aPresContext, &event, &status);
+}
+
+void
+nsEventStateManager::UpdateDragDataTransfer(nsDragEvent* dragEvent)
+{
+  NS_ASSERTION(dragEvent, "drag event is null in UpdateDragDataTransfer!");
+  if (!dragEvent->dataTransfer)
+    return;
+
+  nsCOMPtr<nsIDragSession> dragSession = nsContentUtils::GetDragSession();
+
+  if (dragSession) {
+    
+    
+    nsCOMPtr<nsIDOMDataTransfer> initialDataTransfer;
+    dragSession->GetDataTransfer(getter_AddRefs(initialDataTransfer));
+
+    
+    nsCOMPtr<nsIDOMNSDataTransfer> initialDataTransferNS = 
+      do_QueryInterface(initialDataTransfer);
+    nsCOMPtr<nsIDOMNSDataTransfer> eventTransferNS = 
+      do_QueryInterface(dragEvent->dataTransfer);
+
+    if (initialDataTransferNS && eventTransferNS) {
+      
+      nsAutoString mozCursor;
+      eventTransferNS->GetMozCursor(mozCursor);
+      initialDataTransferNS->SetMozCursor(mozCursor);
+    }
+  }
 }
 
 nsresult
