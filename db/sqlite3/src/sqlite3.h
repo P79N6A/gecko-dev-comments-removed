@@ -46,6 +46,13 @@ extern "C" {
 
 
 
+#ifndef SQLITE_EXTERN
+# define SQLITE_EXTERN extern
+#endif
+
+
+
+
 
 #ifdef SQLITE_VERSION
 # undef SQLITE_VERSION
@@ -81,8 +88,8 @@ extern "C" {
 
 
 
-#define SQLITE_VERSION         "3.4.1"
-#define SQLITE_VERSION_NUMBER 3004001
+#define SQLITE_VERSION         "3.4.2"
+#define SQLITE_VERSION_NUMBER 3004002
 
 
 
@@ -100,7 +107,7 @@ extern "C" {
 
 
 
-extern const char sqlite3_version[];
+SQLITE_EXTERN const char sqlite3_version[];
 const char *sqlite3_libversion(void);
 int sqlite3_libversion_number(void);
 
@@ -2020,7 +2027,7 @@ int sqlite3_sleep(int);
 
 
 
-extern char *sqlite3_temp_directory;
+SQLITE_EXTERN char *sqlite3_temp_directory;
 
 
 
