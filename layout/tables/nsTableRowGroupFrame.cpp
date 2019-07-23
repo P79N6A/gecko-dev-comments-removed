@@ -936,11 +936,8 @@ nsTableRowGroupFrame::CreateContinuingRowFrame(nsPresContext& aPresContext,
   }
 
   
-  nsIFrame* nextRow;
-  GetNextFrame(&aRowFrame, &nextRow);
-  (*aContRowFrame)->SetNextSibling(nextRow);
-  aRowFrame.SetNextSibling(*aContRowFrame);
-          
+  mFrames.InsertFrame(nsnull, &aRowFrame, *aContRowFrame);
+
   
   PushChildren(&aPresContext, *aContRowFrame, &aRowFrame);
 }

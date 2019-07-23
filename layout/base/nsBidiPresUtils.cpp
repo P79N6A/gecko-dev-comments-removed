@@ -53,6 +53,7 @@
 #include "nsHTMLContainerFrame.h"
 #include "nsInlineFrame.h"
 #include "nsPlaceholderFrame.h"
+#include "nsContainerFrame.h"
 
 static const PRUnichar kSpace            = 0x0020;
 static const PRUnichar kLineSeparator    = 0x2028;
@@ -117,7 +118,6 @@ SplitInlineAncestors(nsIFrame*     aFrame)
   nsIPresShell *presShell = presContext->PresShell();
   nsIFrame* frame = aFrame;
   nsIFrame* parent = aFrame->GetParent();
-  nsIFrame* newFrame = aFrame->GetNextSibling();
   nsIFrame* newParent;
 
   while (IsBidiSplittable(parent)) {
@@ -131,30 +131,28 @@ SplitInlineAncestors(nsIFrame*     aFrame)
     }
     
     
-    frame->SetNextSibling(nsnull);
-    
-    
-    nsFrameList temp(newFrame);
+    nsContainerFrame* container = do_QueryFrame(parent);
+    nsFrameList tail = container->StealFramesAfter(frame);
 
     
-    rv = nsHTMLContainerFrame::ReparentFrameViewList(presContext, temp, parent, newParent);
+    rv = nsHTMLContainerFrame::ReparentFrameViewList(presContext, tail, parent, newParent);
     if (NS_FAILED(rv)) {
       return rv;
     }
     
-    rv = newParent->InsertFrames(nsGkAtoms::nextBidi, nsnull, temp);
+    
+    rv = newParent->InsertFrames(nsGkAtoms::nextBidi, nsnull, tail);
     if (NS_FAILED(rv)) {
       return rv;
     }
     
-    nsFrameList temp2(newParent);
-    rv = grandparent->InsertFrames(nsGkAtoms::nextBidi, parent, temp2);
+    nsFrameList temp(newParent, newParent);
+    rv = grandparent->InsertFrames(nsGkAtoms::nextBidi, parent, temp);
     if (NS_FAILED(rv)) {
       return rv;
     }
     
     frame = parent;
-    newFrame = newParent;
     parent = grandparent;
   }
   

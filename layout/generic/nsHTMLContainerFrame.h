@@ -75,20 +75,6 @@ public:
 
 
 
-
-
-
-
-
-  static nsresult CreateNextInFlow(nsPresContext* aPresContext,
-                                   nsIFrame*       aOuterFrame,
-                                   nsIFrame*       aFrame,
-                                   nsIFrame*&      aNextInFlowResult);
-
-  
-
-
-
   static nsresult CreateViewForFrame(nsIFrame* aFrame,
                                      PRBool aForce);
 
@@ -101,6 +87,23 @@ public:
                                         const nsFrameList& aChildFrameList,
                                         nsIFrame*          aOldParentFrame,
                                         nsIFrame*          aNewParentFrame);
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  nsresult CreateNextInFlow(nsPresContext* aPresContext,
+                            nsIFrame*       aFrame,
+                            nsIFrame*&      aNextInFlowResult);
 
   
 

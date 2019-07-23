@@ -74,6 +74,8 @@ class nsContainerFrame : public nsSplittableFrame
 {
 public:
   NS_DECL_FRAMEARENA_HELPERS
+  NS_DECL_QUERYFRAME_TARGET(nsContainerFrame)
+  NS_DECL_QUERYFRAME
 
   
   NS_IMETHOD Init(nsIContent* aContent,
@@ -296,6 +298,17 @@ public:
   virtual nsresult StealFrame(nsPresContext* aPresContext,
                               nsIFrame*      aChild,
                               PRBool         aForceNormal = PR_FALSE);
+
+  
+
+
+
+
+
+
+
+
+  nsFrameList StealFramesAfter(nsIFrame* aChild);
 
   
 

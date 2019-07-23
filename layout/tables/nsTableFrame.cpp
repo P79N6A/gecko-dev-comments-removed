@@ -325,8 +325,6 @@ nsTableFrame::SetInitialChildList(nsIAtom*        aListName,
   
   
   
-  
-  
   nsIFrame *prevMainChild = nsnull;
   nsIFrame *prevColGroupChild = nsnull;
   while (aChildList.NotEmpty())
@@ -2923,29 +2921,25 @@ nsTableFrame::ReflowChildren(nsTableReflowState& aReflowState,
         if (!kidNextInFlow) {
           
           
-          nsIFrame*     continuingFrame;
-
           rv = presContext->PresShell()->FrameConstructor()->
-            CreateContinuingFrame(presContext, kidFrame, this,
-                                  &continuingFrame);
+            CreateContinuingFrame(presContext, kidFrame, this, &kidNextInFlow);
           if (NS_FAILED(rv)) {
             aStatus = NS_FRAME_COMPLETE;
             break;
           }
 
           
-          continuingFrame->SetNextSibling(kidFrame->GetNextSibling());
-          kidFrame->SetNextSibling(continuingFrame);
+          mFrames.InsertFrame(nsnull, kidFrame, kidNextInFlow);
+
           
           
           
           
-          rowGroups.InsertElementAt(childX + 1, continuingFrame);
         }
-        else {
-          
-          rowGroups.InsertElementAt(childX + 1, kidNextInFlow);
-        }
+
+        
+        rowGroups.InsertElementAt(childX + 1, kidNextInFlow);
+
         
         
         nsIFrame* nextSibling = kidFrame->GetNextSibling();

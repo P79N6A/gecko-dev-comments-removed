@@ -2119,23 +2119,10 @@ nsBoxFrame::RelayoutChildAtOrdinal(nsBoxLayoutState& aState, nsIBox* aChild)
   }
 
   
-  if (curPrevSib)
-    curPrevSib->SetNextSibling(aChild->GetNextSibling());
-  else
-    mFrames.SetFrames(aChild->GetNextSibling());
+  mFrames.RemoveFrame(aChild, curPrevSib);
 
-  nsIBox* newNextSib;
-  if (newPrevSib) {
-    
-    newNextSib = newPrevSib->GetNextSibling();
-    newPrevSib->SetNextSibling(aChild);
-  } else {
-    
-    newNextSib = mFrames.FirstChild();
-    mFrames.SetFrames(aChild);
-  }
-
-  aChild->SetNextSibling(newNextSib);
+  
+  mFrames.InsertFrame(nsnull, newPrevSib, aChild);
 
   return NS_OK;
 }

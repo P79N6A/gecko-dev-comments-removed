@@ -480,25 +480,25 @@ HasTextFrameDescendantOrInFlow(nsIFrame* aFrame)
 
 nsresult
 nsHTMLContainerFrame::CreateNextInFlow(nsPresContext* aPresContext,
-                                       nsIFrame*       aOuterFrame,
                                        nsIFrame*       aFrame,
                                        nsIFrame*&      aNextInFlowResult)
 {
+  NS_PRECONDITION(GetType() != nsGkAtoms::blockFrame,
+                  "you should have called nsBlockFrame::CreateContinuationFor instead");
+  NS_PRECONDITION(mFrames.ContainsFrame(aFrame), "expected an in-flow child frame");
+
   aNextInFlowResult = nsnull;
 
   nsIFrame* nextInFlow = aFrame->GetNextInFlow();
   if (nsnull == nextInFlow) {
     
     
-    nsIFrame* nextFrame = aFrame->GetNextSibling();
-
     nsresult rv = aPresContext->PresShell()->FrameConstructor()->
-      CreateContinuingFrame(aPresContext, aFrame, aOuterFrame, &nextInFlow);
+      CreateContinuingFrame(aPresContext, aFrame, this, &nextInFlow);
     if (NS_FAILED(rv)) {
       return rv;
     }
-    aFrame->SetNextSibling(nextInFlow);
-    nextInFlow->SetNextSibling(nextFrame);
+    mFrames.InsertFrame(nsnull, aFrame, nextInFlow);
 
     NS_FRAME_LOG(NS_FRAME_TRACE_NEW_FRAMES,
        ("nsHTMLContainerFrame::CreateNextInFlow: frame=%p nextInFlow=%p",

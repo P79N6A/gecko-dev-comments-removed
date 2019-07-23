@@ -268,20 +268,20 @@ nsFirstLetterFrame::Reflow(nsPresContext*          aPresContext,
     
     
     nsIFrame* nextInFlow;
-    rv = CreateNextInFlow(aPresContext, this, kid, nextInFlow);
+    rv = CreateNextInFlow(aPresContext, kid, nextInFlow);
     if (NS_FAILED(rv)) {
       return rv;
     }
 
     
     if (nextInFlow) {
-      kid->SetNextSibling(nsnull);
+      mFrames.RemoveFramesAfter(kid);
       SetOverflowFrames(aPresContext, nextInFlow);
     }
     else {
       nsIFrame* nextSib = kid->GetNextSibling();
       if (nextSib) {
-        kid->SetNextSibling(nsnull);
+        mFrames.RemoveFramesAfter(kid);
         SetOverflowFrames(aPresContext, nextSib);
       }
     }

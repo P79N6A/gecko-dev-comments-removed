@@ -127,12 +127,6 @@ public:
   virtual void PullOverflowsFromPrevInFlow();
 
   
-  
-  void StealAllFrames() {
-    mFrames.SetFrames(nsnull);
-  }
-
-  
 
 
   PRBool IsLeftMost() const {
@@ -228,10 +222,6 @@ public:
                     nsReflowStatus& aStatus);
 
   virtual void PullOverflowsFromPrevInFlow();
-
-  
-  
-  void StealFramesFrom(nsIFrame* aFrame);
 
 protected:
   nsFirstLineFrame(nsStyleContext* aContext) : nsInlineFrame(aContext) {}

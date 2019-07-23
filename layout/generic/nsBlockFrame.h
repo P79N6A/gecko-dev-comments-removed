@@ -591,6 +591,15 @@ protected:
   
   
 
+  
+
+
+
+
+
+
+
+
   virtual nsresult CreateContinuationFor(nsBlockReflowState& aState,
                                          nsLineBox*          aLine,
                                          nsIFrame*           aFrame,

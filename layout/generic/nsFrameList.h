@@ -68,6 +68,17 @@ public:
 #endif
   }
 
+  nsFrameList(nsIFrame* aFirstFrame, nsIFrame* aLastFrame) :
+    mFirstChild(aFirstFrame)
+  {
+    NS_ASSERTION(aLastFrame == LastChild(), "wrong last frame");
+
+    MOZ_COUNT_CTOR(nsFrameList);
+#ifdef DEBUG
+    CheckForLoops();
+#endif
+  }
+
   nsFrameList(const nsFrameList& aOther) :
     mFirstChild(aOther.mFirstChild)
   {
@@ -135,6 +146,13 @@ public:
 
 
   PRBool RemoveFrame(nsIFrame* aFrame, nsIFrame* aPrevSiblingHint = nsnull);
+
+  
+
+
+
+
+  nsFrameList RemoveFramesAfter(nsIFrame* aAfterFrame);
 
   
 
