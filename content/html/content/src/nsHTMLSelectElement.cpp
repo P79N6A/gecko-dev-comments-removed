@@ -1209,27 +1209,13 @@ NS_IMPL_INT_ATTR_DEFAULT_VALUE(nsHTMLSelectElement, TabIndex, tabindex, 0)
 NS_IMETHODIMP
 nsHTMLSelectElement::Blur()
 {
-  if (ShouldBlur(this)) {
-    SetElementFocus(PR_FALSE);
-  }
-
-  return NS_OK;
+  return nsGenericHTMLElement::Blur();
 }
 
 NS_IMETHODIMP
 nsHTMLSelectElement::Focus()
 {
-  if (ShouldFocus(this)) {
-    SetElementFocus(PR_TRUE);
-  }
-
-  return NS_OK;
-}
-
-void
-nsHTMLSelectElement::SetFocus(nsPresContext* aPresContext)
-{
-  DoSetFocus(aPresContext);
+  return nsGenericHTMLElement::Focus();
 }
 
 PRBool
@@ -1241,7 +1227,7 @@ nsHTMLSelectElement::IsHTMLFocusable(PRBool *aIsFocusable, PRInt32 *aTabIndex)
   if (aTabIndex && (sTabFocusModel & eTabFocus_formElementsMask) == 0) {
     *aTabIndex = -1;
   }
-  *aIsFocusable = PR_TRUE;
+  *aIsFocusable = !HasAttr(kNameSpaceID_None, nsGkAtoms::disabled);
   return PR_FALSE;
 }
 
@@ -1449,17 +1435,7 @@ nsHTMLSelectElement::PreHandleEvent(nsEventChainPreVisitor& aVisitor)
     }
   }
 
-  
-  
-  
-  
-  
-  if (nsEventStatus_eIgnore == aVisitor.mEventStatus &&
-      (aVisitor.mEvent->message == NS_BLUR_CONTENT) && formControlFrame) {
-    formControlFrame->SetFocus(PR_FALSE, PR_TRUE);
-  }
-
-  return nsGenericHTMLElement::PreHandleEvent(aVisitor);
+  return nsGenericHTMLFormElement::PreHandleEvent(aVisitor);
 }
 
 

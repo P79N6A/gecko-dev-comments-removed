@@ -172,7 +172,6 @@ public:
   virtual nsresult UnsetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
                              PRBool aNotify);
   virtual PRBool IsNodeOfType(PRUint32 aFlags) const;
-  virtual void RemoveFocus(nsPresContext *aPresContext);
   virtual PRBool IsFocusable(PRInt32 *aTabIndex = nsnull)
   {
     PRBool isFocusable = PR_FALSE;
@@ -549,13 +548,6 @@ protected:
 
 
 
-
-  void SetElementFocus(PRBool aDoFocus);
-  
-
-
-
-
   void RegUnRegAccessKey(PRBool aDoReg);
 
   
@@ -832,6 +824,8 @@ public:
   virtual PRUint32 GetDesiredIMEState();
   virtual PRInt32 IntrinsicState() const;
 
+  virtual nsresult PreHandleEvent(nsEventChainPreVisitor& aVisitor);
+
 protected:
   virtual nsresult BeforeSetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
                                  const nsAString* aValue, PRBool aNotify);
@@ -845,11 +839,6 @@ protected:
   PRBool CanBeDisabled() const;
 
   void UpdateEditableFormControlState();
-
-  void SetFocusAndScrollIntoView(nsPresContext* aPresContext);
-
-  
-  void DoSetFocus(nsPresContext* aPresContext);
 
   
   

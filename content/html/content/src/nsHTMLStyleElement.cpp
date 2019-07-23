@@ -321,8 +321,7 @@ nsHTMLStyleElement::GetStyleSheetURL(PRBool* aIsInline,
   if (*aIsInline) {
     return;
   }
-  if (GetOwnerDoc() && 
-      !(GetOwnerDoc()->IsCaseSensitive())) {
+  if (!IsInHTMLDocument()) {
     
     
     *aIsInline = PR_TRUE;

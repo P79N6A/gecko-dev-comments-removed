@@ -115,6 +115,7 @@
 #include "nsIDOMWindowInternal.h"
 #include "nsPIDOMWindow.h"
 #include "nsIDOMElement.h"
+#include "nsFocusManager.h"
 
 
 #include "nsIDOMHTMLInputElement.h"
@@ -2493,28 +2494,15 @@ nsDocument::HasFocus(PRBool* aResult)
 {
   *aResult = PR_FALSE;
 
-  nsPIDOMWindow* window = GetWindow();
-  nsIFocusController* focusController = window ?
-    window->GetRootFocusController() : nsnull;
-  if (!focusController) {
-    return NS_OK;
-  }
+  nsIFocusManager* fm = nsFocusManager::GetFocusManager();
+  if (!fm)
+    return NS_ERROR_NOT_AVAILABLE;
 
   
-  PRBool active;
-  nsresult rv = focusController->GetActive(&active);
-  NS_ENSURE_SUCCESS(rv, rv);
-  if (!active){
+  nsCOMPtr<nsIDOMWindow> focusedWindow;
+  fm->GetFocusedWindow(getter_AddRefs(focusedWindow));
+  if (!focusedWindow)
     return NS_OK;
-  }
-
-  
-  nsCOMPtr<nsIDOMWindowInternal> focusedWindow;
-  rv = focusController->GetFocusedWindow(getter_AddRefs(focusedWindow));
-  NS_ENSURE_SUCCESS(rv, rv);
-  if (!focusedWindow) {
-    return NS_ERROR_FAILURE;
-  }
 
   
   nsCOMPtr<nsIDOMDocument> domDocument;
@@ -2546,56 +2534,29 @@ nsDocument::GetActiveElement(nsIDOMElement **aElement)
   *aElement = nsnull;
 
   
-  nsPIDOMWindow* window = GetWindow();
+  nsCOMPtr<nsPIDOMWindow> window = GetWindow();
   if (!window) {
     return NS_ERROR_NOT_AVAILABLE;
   }
 
-  nsIFocusController* focusController = window->GetRootFocusController();
-  if (!focusController) {
-    return NS_ERROR_FAILURE;
-  }
+  nsIFocusManager* fm = nsFocusManager::GetFocusManager();
+  if (!fm)
+    return NS_ERROR_NOT_AVAILABLE;
 
-  nsCOMPtr<nsIDOMElement> focusedElement;
-  focusController->GetFocusedElement(getter_AddRefs(focusedElement));
-  nsCOMPtr<nsIContent> content = do_QueryInterface(focusedElement);
-  if (content) {
-    
-    nsIDocument* currentDoc = content->GetCurrentDoc();
-    if (currentDoc == this) {
-      focusedElement.swap(*aElement);
-      return NS_OK;
-    }
-
-    
-    
-    if (currentDoc) {
-      *aElement = CheckAncestryAndGetFrame(currentDoc).get();
-      if (*aElement) {
-        return NS_OK;
-      }
-    }
-  }
+  nsCOMPtr<nsPIDOMWindow> focusedWindow;
+  nsIContent* focusedContent =
+    nsFocusManager::GetFocusedDescendant(window, PR_FALSE, getter_AddRefs(focusedWindow));
 
   
-  
-  
-  nsCOMPtr<nsIDOMWindowInternal> focusedWindow;
-  focusController->GetFocusedWindow(getter_AddRefs(focusedWindow));
-  if (focusedWindow) {
+  if (focusedContent) {
     
-    
-    
-    nsCOMPtr<nsIDOMDocument> domDocument;
-    focusedWindow->GetDocument(getter_AddRefs(domDocument));
-    nsCOMPtr<nsIDocument> document = do_QueryInterface(domDocument);
-
-    if (document && (document != this)) {
-      *aElement = CheckAncestryAndGetFrame(document).get();
-      if (*aElement) {
-        return NS_OK;
-      }
+    if (focusedContent->GetOwnerDoc() != this) {
+      NS_WARNING("Focused element found from another document");
+      return NS_ERROR_FAILURE;
     }
+
+    CallQueryInterface(focusedContent, aElement);
+    return NS_OK;
   }
 
   
@@ -7502,8 +7463,13 @@ static void
 FireOrClearDelayedEvents(nsTArray<nsCOMPtr<nsIDocument> >& aDocuments,
                          PRBool aFireEvents)
 {
+  nsIFocusManager* fm = nsFocusManager::GetFocusManager();
+  if (!fm)
+    return;
+
   for (PRUint32 i = 0; i < aDocuments.Length(); ++i) {
     if (!aDocuments[i]->EventHandlingSuppressed()) {
+      fm->FireDelayedEvents(aDocuments[i]);
       nsPresShellIterator iter(aDocuments[i]);
       nsCOMPtr<nsIPresShell> shell;
       while ((shell = iter.GetNextShell())) {

@@ -76,6 +76,7 @@
 #include "nsIPresShell.h"
 #include "nsPresContext.h"
 #include "nsIDocShell.h"
+#include "nsIDocShellTreeItem.h"
 #include "nsINameSpaceManager.h"
 #include "nsDOMError.h"
 #include "nsScriptLoader.h"
@@ -97,6 +98,7 @@
 #include "nsIForm.h"
 #include "nsIFormControl.h"
 #include "nsIDOMHTMLFormElement.h"
+#include "nsFocusManager.h"
 
 #include "nsMutationEvent.h"
 
@@ -305,8 +307,7 @@ nsGenericHTMLElement::SetAttribute(const nsAString& aName,
     NS_ENSURE_SUCCESS(rv, rv);
 
     nsCOMPtr<nsIAtom> nameAtom;
-    if (GetOwnerDoc() 
-        && !(GetOwnerDoc()->IsCaseSensitive())) {
+    if (IsInHTMLDocument()) {
       nsAutoString lower;
       ToLowerCase(aName, lower);
       nameAtom = do_GetAtom(lower);
@@ -328,8 +329,7 @@ nsGenericHTMLElement::GetNodeName(nsAString& aNodeName)
 {
   mNodeInfo->GetQualifiedName(aNodeName);
 
-  if (GetOwnerDoc() 
-      && !(GetOwnerDoc()->IsCaseSensitive()))
+  if (IsInHTMLDocument())
     ToUpperCase(aNodeName);
 
   return NS_OK;
@@ -342,8 +342,7 @@ nsGenericHTMLElement::GetElementsByTagName(const nsAString& aTagname,
   nsAutoString tagName(aTagname);
 
   
-  if (GetOwnerDoc() 
-      && !(GetOwnerDoc()->IsCaseSensitive()))
+  if (IsInHTMLDocument())
     ToLowerCase(tagName);
 
   return nsGenericHTMLElementBase::GetElementsByTagName(tagName, aReturn);
@@ -641,8 +640,7 @@ nsGenericHTMLElement::GetInnerHTML(nsAString& aInnerHTML)
   nsresult rv = NS_OK;
 
   nsAutoString contentType;
-  if (!doc->IsCaseSensitive()) {
-    
+  if (IsInHTMLDocument()) {
     contentType.AssignLiteral("text/html");
   } else {
     doc->GetContentType(contentType);
@@ -1170,8 +1168,6 @@ nsGenericHTMLElement::UnsetAttr(PRInt32 aNameSpaceID, nsIAtom* aAttribute,
 already_AddRefed<nsIURI>
 nsGenericHTMLElement::GetBaseURI() const
 {
-  nsIDocument* doc = GetOwnerDoc(); 
-
   void* prop;
   if (HasFlag(NODE_HAS_PROPERTIES) && (prop = GetProperty(nsGkAtoms::htmlBaseHref))) {
     nsIURI* uri = static_cast<nsIURI*>(prop);
@@ -1182,8 +1178,9 @@ nsGenericHTMLElement::GetBaseURI() const
 
   
   
-  if (doc && !(doc->IsCaseSensitive())) {
-    nsIURI *uri = doc->GetBaseURI();
+  if (IsInHTMLDocument()) {
+    
+    nsIURI *uri = GetOwnerDoc()->GetBaseURI();
     NS_IF_ADDREF(uri);
 
     return uri;
@@ -2601,6 +2598,35 @@ nsGenericHTMLFormElement::AfterSetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
                                             aValue, aNotify);
 }
 
+nsresult
+nsGenericHTMLFormElement::PreHandleEvent(nsEventChainPreVisitor& aVisitor)
+{
+  if (NS_IS_TRUSTED_EVENT(aVisitor.mEvent)) {
+    switch (aVisitor.mEvent->message) {
+      case NS_FOCUS_CONTENT:
+      {
+        
+        
+        
+        nsIFormControlFrame* formControlFrame = GetFormControlFrame(PR_TRUE);
+        if (formControlFrame &&
+            aVisitor.mEvent->originalTarget == static_cast<nsINode*>(this))
+          formControlFrame->SetFocus(PR_TRUE, PR_TRUE);
+        break;
+      }
+      case NS_BLUR_CONTENT:
+      {
+        nsIFormControlFrame* formControlFrame = GetFormControlFrame(PR_TRUE);
+        if (formControlFrame)
+          formControlFrame->SetFocus(PR_FALSE, PR_FALSE);
+        break;
+      }
+    }
+  }
+
+  return nsGenericHTMLElement::PreHandleEvent(aVisitor);
+}
+
 PRBool
 nsGenericHTMLFormElement::CanBeDisabled() const
 {
@@ -2656,37 +2682,6 @@ nsGenericHTMLFormElement::IntrinsicState() const
   return state;
 }
 
-void
-nsGenericHTMLFormElement::SetFocusAndScrollIntoView(nsPresContext* aPresContext)
-{
-  nsIEventStateManager *esm = aPresContext->EventStateManager();
-  if (esm->SetContentState(this, NS_EVENT_STATE_FOCUS)) {
-    
-    aPresContext->Document()->
-      FlushPendingNotifications(Flush_InterruptibleLayout);
-    nsIFormControlFrame* formControlFrame = GetFormControlFrame(PR_FALSE);
-    if (formControlFrame) {
-      formControlFrame->SetFocus(PR_TRUE, PR_TRUE);
-      nsCOMPtr<nsIPresShell> presShell = aPresContext->GetPresShell();
-      if (presShell) {
-        presShell->ScrollContentIntoView(this, NS_PRESSHELL_SCROLL_IF_NOT_VISIBLE,
-                                         NS_PRESSHELL_SCROLL_IF_NOT_VISIBLE);
-      }
-    }
-  }
-}
-
-void
-nsGenericHTMLFormElement::DoSetFocus(nsPresContext* aPresContext)
-{
-  if (!aPresContext)
-    return;
-
-  if (FocusState() == eActiveWindow) {
-    SetFocusAndScrollIntoView(aPresContext);
-  }
-}
-
 nsGenericHTMLFormElement::FocusTristate
 nsGenericHTMLFormElement::FocusState()
 {
@@ -2703,24 +2698,23 @@ nsGenericHTMLFormElement::FocusState()
   
   
   
-  nsCOMPtr<nsPIDOMWindow> win = doc->GetWindow();
-  if (win) {
-    nsIFocusController *focusController = win->GetRootFocusController();
-    if (focusController) {
-      PRBool isActive = PR_FALSE;
-      focusController->GetActive(&isActive);
-      if (!isActive) {
-        focusController->SetFocusedWindow(win);
-        nsCOMPtr<nsIDOMElement> el =
-          do_QueryInterface(static_cast<nsGenericHTMLElement*>(this));
-        focusController->SetFocusedElement(el);
+  nsCOMPtr<nsIDocShellTreeItem> dsti = do_GetInterface(doc->GetWindow());
+  if (dsti) {
+    nsCOMPtr<nsIDocShellTreeItem> root;
+    dsti->GetRootTreeItem(getter_AddRefs(root));
+    nsCOMPtr<nsIDOMWindow> rootWindow = do_GetInterface(root);
 
-        return eInactiveWindow;
+    nsCOMPtr<nsIFocusManager> fm = do_GetService(FOCUSMANAGER_CONTRACTID);
+    if (fm && rootWindow) {
+      nsCOMPtr<nsIDOMWindow> activeWindow;
+      fm->GetActiveWindow(getter_AddRefs(activeWindow));
+      if (activeWindow == rootWindow) {
+        return eActiveWindow;
       }
     }
   }
 
-  return eActiveWindow;
+  return eInactiveWindow;
 }
 
 
@@ -2912,34 +2906,19 @@ nsGenericHTMLFrameElement::DestroyContent()
 
 
 
-void
-nsGenericHTMLElement::SetElementFocus(PRBool aDoFocus)
-{
-  nsCOMPtr<nsPresContext> presContext = GetPresContext();
-  if (!presContext)
-    return;
-
-  if (aDoFocus) {
-    if (IsInDoc()) {
-      
-      GetCurrentDoc()->FlushPendingNotifications(Flush_Frames);
-    }
-
-    SetFocus(presContext);
-
-    presContext->EventStateManager()->MoveCaretToFocus();
-    return;
-  }
-
-  RemoveFocus(presContext);
-}
-
 nsresult
 nsGenericHTMLElement::Blur()
 {
-  if (ShouldBlur(this)) {
-    SetElementFocus(PR_FALSE);
-  }
+  if (!ShouldBlur(this))
+    return NS_OK;
+
+  nsIDocument* doc = GetCurrentDoc();
+  if (!doc)
+    return NS_OK;
+
+  nsIDOMWindow* win = doc->GetWindow();
+  nsIFocusManager* fm = nsFocusManager::GetFocusManager();
+  return (win && fm) ? fm->ClearFocus(win) : NS_OK;
 
   return NS_OK;
 }
@@ -2947,33 +2926,9 @@ nsGenericHTMLElement::Blur()
 nsresult
 nsGenericHTMLElement::Focus()
 {
-  
-  
-  
-  if (ShouldFocus(this)) {
-    SetElementFocus(PR_TRUE);
-  }
-
-  return NS_OK;
-}
-
-void
-nsGenericHTMLElement::RemoveFocus(nsPresContext *aPresContext)
-{
-  if (!aPresContext) 
-    return;
-
-  if (IsNodeOfType(eHTML_FORM_CONTROL)) {
-    nsIFormControlFrame* formControlFrame = GetFormControlFrame(PR_TRUE);
-    if (formControlFrame) {
-      formControlFrame->SetFocus(PR_FALSE, PR_FALSE);
-    }
-  }
-  
-  if (IsInDoc()) {
-    aPresContext->EventStateManager()->SetContentState(nsnull,
-                                                       NS_EVENT_STATE_FOCUS);
-  }
+  nsIFocusManager* fm = nsFocusManager::GetFocusManager();
+  nsCOMPtr<nsIDOMElement> elem = do_QueryInterface(this);
+  return fm ? fm->SetFocus(elem, 0) : NS_OK;
 }
 
 PRBool
@@ -2994,14 +2949,13 @@ nsGenericHTMLElement::IsHTMLFocusable(PRBool *aIsFocusable, PRInt32 *aTabIndex)
   PRInt32 tabIndex = 0;   
   GetTabIndex(&tabIndex);
 
-  PRBool override, disabled;
+  PRBool override, disabled = PR_FALSE;
   if (IsEditableRoot()) {
     
     override = PR_TRUE;
 
     
     
-    disabled = PR_FALSE;
     if (!HasAttr(kNameSpaceID_None, nsGkAtoms::tabindex)) {
       
       
@@ -3062,12 +3016,12 @@ nsGenericHTMLElement::PerformAccesskey(PRBool aKeyCausesActivation,
   if (!presContext)
     return;
 
-  nsIEventStateManager *esm = presContext->EventStateManager();
-  if (!esm)
-    return;
-
   
-  esm->ChangeFocusWith(this, nsIEventStateManager::eEventFocusedByKey);
+  nsIFocusManager* fm = nsFocusManager::GetFocusManager();
+  if (fm) {
+    nsCOMPtr<nsIDOMElement> elem = do_QueryInterface(this);
+    fm->SetFocus(elem, nsIFocusManager::FLAG_BYKEY);
+  }
 
   if (aKeyCausesActivation) {
     
@@ -3427,8 +3381,7 @@ nsGenericHTMLElement::GetHashFromHrefURI(nsAString& aHash)
 const nsAttrName*
 nsGenericHTMLElement::InternalGetExistingAttrNameFromQName(const nsAString& aStr) const
 {
-  if (GetOwnerDoc() 
-      && !(GetOwnerDoc()->IsCaseSensitive())) {
+  if (IsInHTMLDocument()) {
     nsAutoString lower;
     ToLowerCase(aStr, lower);
     return mAttrsAndChildren.GetExistingAttrNameFromQName(
