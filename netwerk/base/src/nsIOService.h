@@ -107,6 +107,7 @@ public:
     }
 
     PRBool IsOffline() { return mOffline; }
+    PRBool IsLinkUp();
 
 private:
     
