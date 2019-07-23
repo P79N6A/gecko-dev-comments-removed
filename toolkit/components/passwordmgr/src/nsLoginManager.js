@@ -872,25 +872,10 @@ LoginManager.prototype = {
             this.log("Found an existing login matching this form submission");
 
             
-
-
-
-
-
-
-
-
-
-
             if (existingLogin.password != formLogin.password) {
-                if (formLogin.username) {
-                    this.log("...Updating password for existing login.");
-                    this.modifyLogin(existingLogin, formLogin);
-                } else {
-                    this.log("...passwords differ, prompting to change.");
-                    prompter = getPrompter(win);
-                    prompter.promptToChangePassword(existingLogin, formLogin);
-                }
+                this.log("...passwords differ, prompting to change.");
+                prompter = getPrompter(win);
+                prompter.promptToChangePassword(existingLogin, formLogin);
             }
 
             return;
