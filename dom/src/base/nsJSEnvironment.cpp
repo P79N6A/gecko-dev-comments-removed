@@ -1402,14 +1402,6 @@ nsJSContext::EvaluateStringWithValue(const nsAString& aScript,
                                             aURL,
                                             aLineNo,
                                             &val);
-
-    if (!ok) {
-        
-        
-        
-
-        nsContentUtils::NotifyXPCIfExceptionPending(mContext);
-    }
   }
 
   
@@ -1479,12 +1471,6 @@ JSValueToAString(JSContext *cx, jsval val, nsAString *result,
 
       return NS_ERROR_OUT_OF_MEMORY;
     }
-
-    
-    
-    
-
-    nsContentUtils::NotifyXPCIfExceptionPending(cx);
   }
 
   return NS_OK;
@@ -1742,12 +1728,6 @@ nsJSContext::ExecuteScript(void *aScriptObject,
     if (aRetValue) {
       aRetValue->Truncate();
     }
-
-    
-    
-    
-
-    nsContentUtils::NotifyXPCIfExceptionPending(mContext);
   }
 
   

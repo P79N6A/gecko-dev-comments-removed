@@ -2400,9 +2400,8 @@ XPCWrappedNative::CallMethod(XPCCallContext& ccx,
         ThrowBadResult(invokeResult, ccx);
         goto done;
     }
-    else if(ccx.GetExceptionWasThrown())
+    else if(JS_IsExceptionPending(ccx))
     {
-        
         goto done;
     }
 

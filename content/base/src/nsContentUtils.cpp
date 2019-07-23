@@ -2865,27 +2865,6 @@ nsContentUtils::IsChromeDoc(nsIDocument *aDocument)
   return aDocument->NodePrincipal() == systemPrincipal;
 }
 
-void
-nsContentUtils::NotifyXPCIfExceptionPending(JSContext* aCx)
-{
-  if (!::JS_IsExceptionPending(aCx)) {
-    return;
-  }
-
-  nsAXPCNativeCallContext *nccx = nsnull;
-  XPConnect()->GetCurrentNativeCallContext(&nccx);
-  if (nccx) {
-    
-    
-    
-    JSContext* cx;
-    nccx->GetJSContext(&cx);
-    if (cx == aCx) {
-      nccx->SetExceptionWasThrown(PR_TRUE);
-    }
-  }
-}
-
 
 nsIContentPolicy*
 nsContentUtils::GetContentPolicy()

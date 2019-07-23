@@ -69,14 +69,6 @@ public:
 
 
 
-    NS_IMETHOD GetExceptionWasThrown(PRBool *aResult) = 0;
-    NS_IMETHOD SetExceptionWasThrown(PRBool aValue) = 0;
-
-    
-
-
-
-
     NS_IMETHOD GetReturnValueWasSet(PRBool *aResult) = 0;
     NS_IMETHOD SetReturnValueWasSet(PRBool aValue) = 0;
 

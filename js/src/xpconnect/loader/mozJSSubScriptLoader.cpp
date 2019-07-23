@@ -151,7 +151,6 @@ mozJSSubScriptLoader::LoadSubScript (const PRUnichar *
     ok = JS_ConvertArguments (cx, argc, argv, "s / o", &url, &target_obj);
     if (!ok)
     {
-        cc->SetExceptionWasThrown (JS_TRUE);
         
         return NS_OK;
     }
@@ -348,7 +347,6 @@ mozJSSubScriptLoader::LoadSubScript (const PRUnichar *
     
     JS_SetErrorReporter (cx, er);
 
-    cc->SetExceptionWasThrown (!ok);
     cc->SetReturnValueWasSet (ok);
 
     JSPRINCIPALS_DROP(cx, jsPrincipals);
@@ -356,7 +354,6 @@ mozJSSubScriptLoader::LoadSubScript (const PRUnichar *
 
  return_exception:
     JS_SetPendingException (cx, STRING_TO_JSVAL(errmsg));
-    cc->SetExceptionWasThrown (JS_TRUE);
     return NS_OK;
 }
 

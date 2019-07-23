@@ -808,11 +808,6 @@ public:
   
 
 
-  static void NotifyXPCIfExceptionPending(JSContext *aCx);
-
-  
-
-
   static nsresult ReleasePtrOnShutdown(nsISupports** aSupportsPtr) {
     NS_ASSERTION(aSupportsPtr, "Expect to crash!");
     NS_ASSERTION(*aSupportsPtr, "Expect to crash!");
