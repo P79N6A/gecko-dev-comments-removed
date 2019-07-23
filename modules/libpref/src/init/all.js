@@ -860,16 +860,7 @@ pref("network.ntlm.send-lm-response", false);
 
 pref("permissions.default.image",           1); 
 
-#ifndef XP_MACOSX
-#ifdef XP_UNIX
 pref("network.proxy.type",                  5);
-#else
-pref("network.proxy.type",                  0);
-#endif
-#else
-pref("network.proxy.type",                  0);
-#endif
-
 pref("network.proxy.ftp",                   "");
 pref("network.proxy.ftp_port",              0);
 pref("network.proxy.gopher",                "");
