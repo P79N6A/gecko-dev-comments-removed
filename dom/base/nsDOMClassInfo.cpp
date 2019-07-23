@@ -143,7 +143,6 @@
 #include "nsIPluginInstanceInternal.h"
 #include "nsIObjectFrame.h"
 #include "nsIObjectLoadingContent.h"
-#include "nsIScriptablePlugin.h"
 #include "nsIPluginHost.h"
 #include "nsPIPluginHost.h"
 
@@ -9658,107 +9657,10 @@ nsHTMLPluginObjElementSH::GetPluginJSObject(JSContext *cx, JSObject *obj,
 
     if (*plugin_obj) {
       *plugin_proto = ::JS_GetPrototype(cx, *plugin_obj);
-
-      return NS_OK;
     }
   }
 
-  
-  
-  
-  
-
-  
-  nsIID scriptableIID = NS_GET_IID(nsISupports);
-  nsCOMPtr<nsISupports> scriptable_peer;
-
-  nsCOMPtr<nsIScriptablePlugin> spi(do_QueryInterface(plugin_inst));
-
-  if (spi) {
-    nsIID *scriptableInterfacePtr = nsnull;
-    spi->GetScriptableInterface(&scriptableInterfacePtr);
-
-    if (scriptableInterfacePtr) {
-      spi->GetScriptablePeer(getter_AddRefs(scriptable_peer));
-
-      scriptableIID = *scriptableInterfacePtr;
-
-      nsMemory::Free(scriptableInterfacePtr);
-    }
-  }
-
-  nsCOMPtr<nsIClassInfo> ci(do_QueryInterface(plugin_inst));
-
-  if (!scriptable_peer) {
-    if (!ci) {
-      
-      
-      
-      
-
-      return GetJavaPluginJSObject(cx, obj, plugin_inst, plugin_obj,
-                                   plugin_proto);
-    }
-
-    
-    
-    scriptable_peer = plugin_inst;
-  }
-
-  
-  
-  
-  
-
-  if (ci) {
-    
-    
-
-    PRUint32 flags;
-    ci->GetFlags(&flags);
-
-    if (!(flags & nsIClassInfo::PLUGIN_OBJECT)) {
-      
-      
-      
-
-      return NS_OK;
-    }
-  }
-
-  
-  
-  nsCOMPtr<nsIPluginHost> pluginManager =
-    do_GetService(kCPluginManagerCID);
-
-  nsCOMPtr<nsPIPluginHost> pluginHost(do_QueryInterface(pluginManager));
-
-  if(pluginHost) {
-    pluginHost->SetIsScriptableInstance(plugin_inst, PR_TRUE);
-  }
-
-  
-
-  nsCOMPtr<nsIXPConnectJSObjectHolder> holder;
-  nsresult rv = sXPConnect->WrapNative(cx, ::JS_GetParent(cx, obj),
-                                       scriptable_peer,
-                                       scriptableIID, getter_AddRefs(holder));
-  
-  
-  
-  
-  
-  NS_ENSURE_SUCCESS(rv, NS_OK);
-
-  
-  
-  nsCOMPtr<nsIXPConnectWrappedNative> pi_wrapper(do_QueryInterface(holder));
-  NS_ENSURE_TRUE(pi_wrapper, NS_ERROR_UNEXPECTED);
-
-  rv = pi_wrapper->GetJSObject(plugin_obj);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  return pi_wrapper->GetJSObjectPrototype(plugin_proto);
+  return NS_OK;
 }
 
 NS_IMETHODIMP
