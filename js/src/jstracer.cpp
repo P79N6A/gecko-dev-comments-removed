@@ -73,6 +73,12 @@
 
 
 
+
+#undef JSVAL_IS_BOOLEAN
+#define JSVAL_IS_BOOLEAN(x) JS_STATIC_ASSERT(0) 
+
+
+
 #define HOTLOOP 2
 
 
@@ -3130,13 +3136,13 @@ TraceRecorder::switchop()
               addName(lir->ins_eq0(lir->ins_eq0(lir->insCall(F_EqualStrings, args))),
                       "guard(switch on string)"),
               BRANCH_EXIT);
-    } else if (JSVAL_IS_BOOLEAN(v)) {
+    } else if (JSVAL_TAG(v) == JSVAL_BOOLEAN) {
         guard(true,
               addName(lir->ins2(LIR_eq, v_ins, lir->insImm(JSVAL_TO_BOOLEAN(v))),
                       "guard(switch on boolean)"),
               BRANCH_EXIT);
     } else {
-        ABORT_TRACE("switch on object, null, or undefined");
+        ABORT_TRACE("switch on object or null");
     }
     return true;
 }
@@ -3344,11 +3350,15 @@ TraceRecorder::cmp(LOpcode op, int flags)
         }
         rnum = js_ValueToNumber(cx, &tmp[1]);
         cond = evalCmp(op, lnum, rnum);
-    } else if (JSVAL_IS_BOOLEAN(l) && JSVAL_IS_BOOLEAN(r)) {
+    } else if ((JSVAL_TAG(l) == JSVAL_BOOLEAN) && (JSVAL_TAG(r) == JSVAL_BOOLEAN)) {
         
         
         
         cond = evalCmp(op, l, r);
+        
+        
+        
+        
     } else if (JSVAL_IS_OBJECT(l) && JSVAL_IS_OBJECT(r)) {
         if (op != LIR_feq) {
             negate = !(op == LIR_fle || op == LIR_fge);
@@ -3372,6 +3382,20 @@ TraceRecorder::cmp(LOpcode op, int flags)
         if (negate) {
             x = lir->ins_eq0(x);
             cond = !cond;
+        }
+        
+        
+        if (op != LIR_eq && (JSVAL_TAG(l) == JSVAL_BOOLEAN) && (JSVAL_TAG(r) == JSVAL_BOOLEAN)) {
+            x = lir->ins_choose(lir->ins2i(LIR_eq, 
+                                           lir->ins2i(LIR_and, 
+                                                      lir->ins2(LIR_or, l_ins, r_ins),
+                                                      JSVAL_TO_BOOLEAN(JSVAL_VOID)),
+                                           JSVAL_TO_BOOLEAN(JSVAL_VOID)),
+                                lir->insImm(JSVAL_TO_BOOLEAN(JSVAL_FALSE)),
+                                x,
+                                true);
+            if ((l == JSVAL_VOID) || (r == JSVAL_VOID))
+                cond = false;
         }
     }
     
@@ -3556,7 +3580,7 @@ TraceRecorder::test_property_cache(JSObject* obj, LIns* obj_ins, JSObject*& obj2
 
             
             pcval = PCVAL_NULL;
-            ABORT_TRACE("failed to find property");
+            return true;
         }
 
         OBJ_DROP_PROPERTY(cx, obj2, prop);
@@ -6545,7 +6569,10 @@ TraceRecorder::record_JSOP_CALLPROP()
         } else if (JSVAL_IS_NUMBER(l)) {
             i = JSProto_Number;
             debug_only(protoname = "Number.prototype";)
-        } else if (JSVAL_IS_BOOLEAN(l)) {
+        } else if (JSVAL_TAG(l) == JSVAL_BOOLEAN) {
+            if (l == JSVAL_VOID)
+                ABORT_TRACE("callprop on void");
+            guard(false, lir->ins2i(LIR_eq, get(&l), JSVAL_TO_BOOLEAN(JSVAL_VOID)), MISMATCH_EXIT);
             i = JSProto_Boolean;
             debug_only(protoname = "Boolean.prototype";)
         } else {
