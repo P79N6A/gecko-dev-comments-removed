@@ -82,10 +82,10 @@ IAsyncOperation : public IUnknown
 
 
 #ifndef CFSTR_INETURLA
-#define CFSTR_INETURLA    "UniformResourceLocator"
+#define CFSTR_INETURLA    L"UniformResourceLocator"
 #endif
 #ifndef CFSTR_INETURLW
-#define CFSTR_INETURLW    "UniformResourceLocatorW"
+#define CFSTR_INETURLW    L"UniformResourceLocatorW"
 #endif
 
 
@@ -93,10 +93,10 @@ IAsyncOperation : public IUnknown
 
 
 #ifndef CFSTR_FILEDESCRIPTORA
-# define CFSTR_FILEDESCRIPTORA   "FileGroupDescriptor"
+# define CFSTR_FILEDESCRIPTORA   L"FileGroupDescriptor"
 #endif
 #ifndef CFSTR_FILEDESCRIPTORW
-# define CFSTR_FILEDESCRIPTORW   "FileGroupDescriptorW"
+# define CFSTR_FILEDESCRIPTORW   L"FileGroupDescriptorW"
 #endif
 
 #ifdef __MINGW32__
