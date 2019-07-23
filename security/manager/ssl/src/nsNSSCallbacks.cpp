@@ -837,17 +837,17 @@ SECStatus PR_CALLBACK AuthCertificateCallback(void* client_data, PRFileDesc* fd,
           
           continue;
         }
-        
-        
 
-        if (!nssComponent) {
-          
-          nsresult rv;
-          nssComponent = do_GetService(kNSSComponentCID, &rv);
-        }
         
-        if (nssComponent) {
-          nssComponent->RememberCert(node->cert);
+        nsCAutoString nickname;
+        nickname = nsNSSCertificate::defaultServerNickname(node->cert);
+        if (!nickname.IsEmpty()) {
+          PK11SlotInfo *slot = PK11_GetInternalKeySlot();
+          if (slot) {
+            PK11_ImportCert(slot, node->cert, CK_INVALID_HANDLE, 
+                            const_cast<char*>(nickname.get()), PR_FALSE);
+            PK11_FreeSlot(slot);
+          }
         }
       }
 
