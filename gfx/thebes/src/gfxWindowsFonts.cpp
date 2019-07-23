@@ -631,15 +631,6 @@ gfxWindowsFont::ComputeMetrics()
     GetTextExtentPoint32(dc, " ", 1, &size);
     mMetrics->spaceWidth = ROUND(size.cx);
 
-    
-    
-    
-    
-    if (GetTextExtentPoint32(dc, "0", 1, &size))
-        mMetrics->zeroOrAveCharWidth = ROUND(size.cx);
-    else
-        mMetrics->zeroOrAveCharWidth = mMetrics->aveCharWidth;
-
     mSpaceGlyph = 0;
     if (metrics.tmPitchAndFamily & TMPF_TRUETYPE) {
         WORD glyph;
