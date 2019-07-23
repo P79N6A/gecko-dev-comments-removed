@@ -1359,6 +1359,26 @@ nsTextControlFrame::DelayedEditorInit()
     SetFocus(PR_TRUE, PR_FALSE);
 }
 
+PRInt32
+nsTextControlFrame::GetWrapCols()
+{
+  if (IsTextArea()) {
+    
+    nsHTMLTextWrap wrapProp;
+    ::GetWrapPropertyEnum(mContent, wrapProp);
+    if (wrapProp == eHTMLTextWrap_Off) {
+      
+      return -1;
+    }
+   
+    
+    return GetCols();
+  }
+
+  
+  return -1;
+}
+
 nsresult
 nsTextControlFrame::InitEditor()
 {
@@ -1466,22 +1486,7 @@ nsTextControlFrame::InitEditor()
   nsCOMPtr<nsIPlaintextEditor> textEditor(do_QueryInterface(mEditor));
   if (textEditor) {
     
-    if (IsTextArea()) {
-      
-      nsHTMLTextWrap wrapProp;
-      ::GetWrapPropertyEnum(mContent, wrapProp);
-      if (wrapProp == eHTMLTextWrap_Off) {
-        
-        textEditor->SetWrapWidth(-1);
-      } else {
-        
-        textEditor->SetWrapWidth(GetCols());
-      }
-    } else {
-      
-      textEditor->SetWrapColumn(-1);
-    }
-
+    textEditor->SetWrapColumn(GetWrapCols());
 
     
     PRInt32 maxLength;
@@ -1612,6 +1617,13 @@ nsTextControlFrame::CreateAnonymousContent(nsTArray<nsIContent*>& aElements)
                               NS_LITERAL_STRING("anonymous-div"), PR_FALSE);
   NS_ENSURE_SUCCESS(rv, rv);
 
+  nsAutoString styleValue;
+  PRInt32 wrapCols = GetWrapCols();
+  if (wrapCols >= 0) {
+    styleValue.AppendLiteral("white-space:pre-wrap");
+  } else {
+    styleValue.AppendLiteral("white-space:pre");
+  }
   if (!IsSingleLineTextControl()) {
     
     
@@ -1620,12 +1632,12 @@ nsTextControlFrame::CreateAnonymousContent(nsTArray<nsIContent*>& aElements)
     const nsStyleDisplay* disp = GetStyleDisplay();
     if (disp->mOverflowX != NS_STYLE_OVERFLOW_VISIBLE &&
         disp->mOverflowX != NS_STYLE_OVERFLOW_CLIP) {
-      rv = mAnonymousDiv->SetAttr(kNameSpaceID_None, nsGkAtoms::style,
-                                  NS_LITERAL_STRING("overflow: inherit;"),
-                                  PR_FALSE);
-      NS_ENSURE_SUCCESS(rv, rv);
+      styleValue.AppendLiteral(";overflow:inherit");
     }
   }
+  rv = mAnonymousDiv->SetAttr(kNameSpaceID_None, nsGkAtoms::style,
+                              styleValue, PR_FALSE);
+  NS_ENSURE_SUCCESS(rv, rv);
 
   if (!aElements.AppendElement(mAnonymousDiv))
     return NS_ERROR_OUT_OF_MEMORY;
