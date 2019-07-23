@@ -979,7 +979,9 @@ struct JSContext {
     size_t              scriptStackQuota;
 
     
-    JSRuntime           *runtime;
+    JSRuntime * const   runtime;
+
+    explicit JSContext(JSRuntime *rt) : runtime(rt) {}
 
     
     JS_REQUIRES_STACK

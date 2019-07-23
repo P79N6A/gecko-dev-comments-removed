@@ -86,7 +86,12 @@ struct JSObjectOps {
 };
 
 struct JSObjectMap {
-    JSObjectOps *ops;           
+    const JSObjectOps * const   ops;    
+    uint32                      shape;  
+
+    explicit JSObjectMap(const JSObjectOps *ops, uint32 shape) : ops(ops), shape(shape) {}
+
+    enum { SHAPELESS = 0xffffffff };
 };
 
 const uint32 JS_INITIAL_NSLOTS = 5;
@@ -979,8 +984,8 @@ js_GetterOnlyPropertyStub(JSContext *cx, JSObject *obj, jsval id, jsval *vp);
 
 
 static inline bool
-js_ObjectIsSimilarToProto(JSContext *cx, JSObject *obj, JSObjectOps *ops, JSClass *clasp,
-                          JSObject *proto)
+js_ObjectIsSimilarToProto(JSContext *cx, JSObject *obj, const JSObjectOps *ops,
+                          JSClass *clasp, JSObject *proto)
 {
     JS_ASSERT(proto == OBJ_GET_PROTO(cx, obj));
     return (proto->map->ops == ops && OBJ_GET_CLASS(cx, proto) == clasp);

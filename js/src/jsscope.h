@@ -196,15 +196,14 @@ JS_BEGIN_EXTERN_C
 
 
 
-struct JSScope {
-    JSObjectMap     map;                
+struct JSScope : public JSObjectMap
+{
 #ifdef JS_THREADSAFE
     JSTitle         title;              
 #endif
     JSObject        *object;            
     jsrefcount      nrefs;              
     uint32          freeslot;           
-    uint32          shape;              
     JSScope         *emptyScope;        
     uint8           flags;              
     int8            hashShift;          
@@ -226,9 +225,12 @@ struct JSScope {
     JSScope *createEmptyScope(JSContext *cx, JSClass *clasp);
 
   public:
+    explicit JSScope(const JSObjectOps *ops, JSObject *obj = NULL)
+      : JSObjectMap(ops, 0), object(obj) {}
+
     
-    static JSScope *create(JSContext *cx, JSObjectOps *ops, JSClass *clasp, JSObject *obj,
-                           uint32 shape);
+    static JSScope *create(JSContext *cx, const JSObjectOps *ops, JSClass *clasp,
+                           JSObject *obj, uint32 shape);
 
     static void destroy(JSContext *cx, JSScope *scope);
 
@@ -392,11 +394,25 @@ struct JSScope {
     bool owned()                { return object != NULL; }
 };
 
-#define JS_IS_SCOPE_LOCKED(cx, scope)   JS_IS_TITLE_LOCKED(cx, &(scope)->title)
+inline bool
+JS_IS_SCOPE_LOCKED(JSContext *cx, JSScope *scope)
+{
+    return JS_IS_TITLE_LOCKED(cx, &scope->title);
+}
 
-#define OBJ_SCOPE(obj)                  (JS_ASSERT(OBJ_IS_NATIVE(obj)),       \
-                                         (JSScope *) (obj)->map)
-#define OBJ_SHAPE(obj)                  (OBJ_SCOPE(obj)->shape)
+inline JSScope *
+OBJ_SCOPE(JSObject *obj)
+{
+    JS_ASSERT(OBJ_IS_NATIVE(obj));
+    return (JSScope *) obj->map;
+}
+
+inline uint32
+OBJ_SHAPE(JSObject *obj)
+{
+    JS_ASSERT(obj->map->shape != JSObjectMap::SHAPELESS);
+    return obj->map->shape;
+}
 
 
 
@@ -409,19 +425,19 @@ struct JSScope {
 
 
 
-static inline JSObject *
+inline JSObject *
 js_CastAsObject(JSPropertyOp op)
 {
     return JS_FUNC_TO_DATA_PTR(JSObject *, op);
 }
 
-static inline jsval
+inline jsval
 js_CastAsObjectJSVal(JSPropertyOp op)
 {
     return OBJECT_TO_JSVAL(JS_FUNC_TO_DATA_PTR(JSObject *, op));
 }
 
-static inline JSPropertyOp
+inline JSPropertyOp
 js_CastAsPropertyOp(JSObject *object)
 {
     return JS_DATA_TO_FUNC_PTR(JSPropertyOp, object);
