@@ -98,6 +98,8 @@ function PROT_ListManager() {
 
   this.requestBackoff_ = new RequestBackoff(3 ,
                                    10*60*1000 ,
+                                            4 ,
+                                   60*60*1000 ,
                                    60*60*1000 ,
                                    6*60*60*1000 );
 
@@ -449,6 +451,8 @@ PROT_ListManager.prototype.makeUpdateRequest_ = function(tableData) {
     G_Debug(this, 'invalid url');
     return;
   }
+
+  this.requestBackoff_.noteRequest();
 
   if (!streamer.downloadUpdates(tableList,
                                 request,

@@ -56,11 +56,21 @@ const HTTP_TEMPORARY_REDIRECT    = 307;
 
 
 
-function RequestBackoff(maxErrors, errorPeriod, timeoutIncrement, maxTimeout) {
+
+
+
+function RequestBackoff(maxErrors, errorPeriod,
+                        maxRequests, requestPeriod,
+                        timeoutIncrement, maxTimeout) {
   this.MAX_ERRORS_ = maxErrors;
   this.ERROR_PERIOD_ = errorPeriod;
+  this.MAX_REQUESTS_ = maxRequests;
+  this.REQUEST_PERIOD_ = requestPeriod;
   this.TIMEOUT_INCREMENT_ = timeoutIncrement;
   this.MAX_TIMEOUT_ = maxTimeout;
+
+  
+  this.requestTimes_ = [];
 
   
   this.errorTimes_ = [];
@@ -83,7 +93,22 @@ RequestBackoff.prototype.reset = function() {
 
 
 RequestBackoff.prototype.canMakeRequest = function() {
-  return Date.now() > this.nextRequestTime_;
+  var now = Date.now();
+  if (now <= this.nextRequestTime_) {
+    return false;
+  }
+
+  return (this.requestTimes_.length < this.MAX_REQUESTS_ ||
+          (now - this.requestTimes_[0]) > this.REQUEST_PERIOD_);
+}
+
+RequestBackoff.prototype.noteRequest = function() {
+  var now = Date.now();
+  this.requestTimes_.push(now);
+
+  
+  if (this.requestTimes_.length > this.MAX_REQUESTS_)
+    this.requestTimes_.shift();
 }
 
 
@@ -131,67 +156,3 @@ RequestBackoff.prototype.isErrorStatus = function(status) {
           HTTP_TEMPORARY_REDIRECT == status);
 }
 
-#ifdef 0
-
-var jslib = Cc["@mozilla.org/url-classifier/jslib;1"].
-            getService().wrappedJSObject;
-var _Datenow = jslib.Date.now;
-function setNow(time) {
-  jslib.Date.now = function() {
-    return time;
-  }
-}
-
-
-var rb = new jslib.RequestBackoff(2, 5, 5, 20);
-setNow(1);
-rb.noteServerResponse(200)
-if (!rb.canMakeRequest()) throw "expected ok";
-
-setNow(2);
-rb.noteServerResponse(500);
-if (!rb.canMakeRequest()) throw "expected ok";
-
-setNow(3);
-rb.noteServerResponse(200)
-if (!rb.canMakeRequest()) throw "expected ok";
-
-
-setNow(4);
-rb.noteServerResponse(502)
-if (rb.canMakeRequest()) throw "expected failed";
-if (rb.nextRequestTime_ != 9) throw "wrong next request time";
-
-
-setNow(10);
-if (!rb.canMakeRequest()) throw "expected ok";
-rb.noteServerResponse(503)
-if (rb.canMakeRequest()) throw "expected failed";
-if (rb.nextRequestTime_ != 25) throw "wrong next request time";
-
-
-setNow(30);
-if (!rb.canMakeRequest()) throw "expected ok";
-rb.noteServerResponse(302)
-if (rb.canMakeRequest()) throw "expected failed";
-if (rb.nextRequestTime_ != 50) throw "wrong next request time";
-
-
-setNow(100);
-if (!rb.canMakeRequest()) throw "expected ok";
-rb.noteServerResponse(200)
-if (!rb.canMakeRequest()) throw "expected ok";
-if (rb.nextRequestTime_ != 0) throw "wrong next request time";
-
-
-setNow(101);
-rb.noteServerResponse(500);
-if (!rb.canMakeRequest()) throw "expected ok";
-
-
-setNow(107);
-rb.noteServerResponse(500);
-if (!rb.canMakeRequest()) throw "expected ok";
-
-jslib.Date.now = _Datenow;
-#endif
