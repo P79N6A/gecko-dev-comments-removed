@@ -1038,6 +1038,12 @@ nsParser::GetRootContextKey()
 NS_IMETHODIMP
 nsParser::Terminate(void)
 {
+  
+  
+  if (mInternalState == NS_ERROR_HTMLPARSER_STOPPARSING) {
+    return NS_OK;
+  }
+
   nsresult result = NS_OK;
   
   
