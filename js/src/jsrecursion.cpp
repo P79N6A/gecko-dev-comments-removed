@@ -570,6 +570,21 @@ TraceRecorder::slurpDownFrames(jsbytecode* return_pc)
     return closeLoop(slotMap, exit);
 }
 
+class ImportFrameSlotsVisitor : public SlotVisitorBase
+{
+    TraceRecorder &mRecorder;
+public:
+    ImportFrameSlotsVisitor(TraceRecorder &recorder) : mRecorder(recorder)
+    {}
+
+    JS_REQUIRES_STACK JS_ALWAYS_INLINE bool
+    visitStackSlots(jsval *vp, size_t count, JSStackFrame* fp) {
+        for (size_t i = 0; i < count; ++i)
+            mRecorder.get(vp++);
+        return true;
+    }
+};
+
 JS_REQUIRES_STACK AbortableRecordingStatus
 TraceRecorder::downRecursion()
 {
@@ -593,6 +608,16 @@ TraceRecorder::downRecursion()
     
     LIns* rp_top = lir->ins2(LIR_piadd, lirbuf->rp, lir->insImmWord(sizeof(FrameInfo*)));
     guard(true, lir->ins2(LIR_plt, rp_top, eor_ins), OOM_EXIT);
+
+    
+
+
+
+
+
+
+    ImportFrameSlotsVisitor visitor(*this);
+    VisitStackSlots(visitor, cx, callDepth);
 
     
     lirbuf->sp = lir->ins2(LIR_piadd, lirbuf->sp, lir->insImmWord(slots * sizeof(double)));
