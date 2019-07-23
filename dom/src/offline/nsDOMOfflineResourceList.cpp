@@ -472,18 +472,19 @@ nsDOMOfflineResourceList::GetStatus(PRUint16 *aStatus)
   NS_ENSURE_SUCCESS(rv, rv);
 
   
+  nsCOMPtr<nsIApplicationCache> appCache = GetDocumentAppCache();
+  if (!appCache) {
+    *aStatus = nsIDOMOfflineResourceList::UNCACHED;
+    return NS_OK;
+  }
+
+
+  
   if (mCacheUpdate) {
     rv = mCacheUpdate->GetStatus(aStatus);
     if (NS_SUCCEEDED(rv) && *aStatus != nsIDOMOfflineResourceList::IDLE) {
       return NS_OK;
     }
-  }
-
-  
-  nsCOMPtr<nsIApplicationCache> appCache = GetDocumentAppCache();
-  if (!appCache) {
-    *aStatus = nsIDOMOfflineResourceList::UNCACHED;
-    return NS_OK;
   }
 
   nsCOMPtr<nsIApplicationCache> activeCache;
