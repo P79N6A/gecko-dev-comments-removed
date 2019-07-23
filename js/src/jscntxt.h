@@ -133,6 +133,9 @@ typedef struct JSTraceMonitor {
 
 
     CLS(nanojit::Fragmento) reFragmento;
+
+    
+    CLS(TraceRecorder)      abortStack;
 } JSTraceMonitor;
 
 #ifdef JS_TRACER
