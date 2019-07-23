@@ -161,8 +161,6 @@ public:
 
   NS_IMETHOD SetStyleSheet(nsICSSStyleSheet* aSheet);
 
-  NS_IMETHOD SetCaseSensitive(PRBool aCaseSensitive);
-
   NS_IMETHOD SetQuirkMode(PRBool aQuirkMode);
 
 #ifdef  MOZ_SVG
@@ -626,9 +624,6 @@ protected:
   PRPackedBool mHTMLMediaMode : 1;
 
   
-  PRPackedBool  mCaseSensitive : 1;
-
-  
   
   PRPackedBool  mParsingCompoundProperty : 1;
 
@@ -728,7 +723,6 @@ CSSParserImpl::CSSParserImpl()
     mNavQuirkMode(PR_FALSE),
     mUnsafeRulesEnabled(PR_FALSE),
     mHTMLMediaMode(PR_FALSE),
-    mCaseSensitive(PR_FALSE),
     mParsingCompoundProperty(PR_FALSE),
     mUnresolvablePrefixException(PR_FALSE)
 #ifdef DEBUG
@@ -759,14 +753,6 @@ CSSParserImpl::SetStyleSheet(nsICSSStyleSheet* aSheet)
     }
   }
 
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-CSSParserImpl::SetCaseSensitive(PRBool aCaseSensitive)
-{
-  NS_ASSERTION(aCaseSensitive == PR_TRUE || aCaseSensitive == PR_FALSE, "bad PRBool value");
-  mCaseSensitive = aCaseSensitive;
   return NS_OK;
 }
 
@@ -2709,7 +2695,7 @@ CSSParserImpl::ParseTypeOrUniversalSelector(PRInt32&       aDataMask,
       if (eCSSToken_Ident == mToken.mType) {  
         aDataMask |= SEL_MASK_ELEM;
 
-        aSelector.SetTag(mToken.mIdent, mCaseSensitive);
+        aSelector.SetTag(mToken.mIdent);
       }
       else if (mToken.IsSymbol('*')) {  
         aDataMask |= SEL_MASK_ELEM;
@@ -2747,8 +2733,7 @@ CSSParserImpl::ParseTypeOrUniversalSelector(PRInt32&       aDataMask,
       }
       if (eCSSToken_Ident == mToken.mType) {  
         aDataMask |= SEL_MASK_ELEM;
-       
-        aSelector.SetTag(mToken.mIdent, mCaseSensitive);
+        aSelector.SetTag(mToken.mIdent);
       }
       else if (mToken.IsSymbol('*')) {  
         aDataMask |= SEL_MASK_ELEM;
@@ -2762,7 +2747,7 @@ CSSParserImpl::ParseTypeOrUniversalSelector(PRInt32&       aDataMask,
     }
     else {  
       SetDefaultNamespaceOnSelector(aSelector);
-      aSelector.SetTag(buffer, mCaseSensitive);
+      aSelector.SetTag(buffer);
 
       aDataMask |= SEL_MASK_ELEM;
     }
@@ -2781,7 +2766,7 @@ CSSParserImpl::ParseTypeOrUniversalSelector(PRInt32&       aDataMask,
     }
     if (eCSSToken_Ident == mToken.mType) {  
       aDataMask |= SEL_MASK_ELEM;
-      aSelector.SetTag(mToken.mIdent, mCaseSensitive);
+      aSelector.SetTag(mToken.mIdent);
     }
     else if (mToken.IsSymbol('*')) {  
       aDataMask |= SEL_MASK_ELEM;
@@ -2883,9 +2868,6 @@ CSSParserImpl::ParseAttributeSelector(PRInt32&       aDataMask,
     return eSelectorParsingStatus_Error;
   }
 
-  if (! mCaseSensitive) {
-    ToLowerCase(attr);
-  }
   if (! GetToken(PR_TRUE)) { 
     REPORT_UNEXPECTED_EOF(PEAttSelInnerEOF);
     return eSelectorParsingStatus_Error;
@@ -2943,7 +2925,8 @@ CSSParserImpl::ParseAttributeSelector(PRInt32&       aDataMask,
           
           
           
-          if (!mCaseSensitive && nameSpaceID == kNameSpaceID_None) {
+          
+          if (nameSpaceID == kNameSpaceID_None) {
             static const char* caseInsensitiveHTMLAttribute[] = {
               
               "lang",
@@ -4708,13 +4691,7 @@ CSSParserImpl::ParseAttr(nsCSSValue& aValue)
             return PR_FALSE;
           }
           if (eCSSToken_Ident == mToken.mType) {
-            if (mCaseSensitive) {
-              attr.Append(mToken.mIdent);
-            } else {
-              nsAutoString buffer;
-              ToLowerCase(mToken.mIdent, buffer);
-              attr.Append(buffer);
-            }
+            attr.Append(mToken.mIdent);
           }
           else {
             REPORT_UNEXPECTED_TOKEN(PEAttributeNameExpected);
@@ -4723,12 +4700,7 @@ CSSParserImpl::ParseAttr(nsCSSValue& aValue)
           }
         }
         else {  
-          if (mCaseSensitive) {
-            attr = holdIdent;
-          }
-          else {
-            ToLowerCase(holdIdent, attr);
-          }
+          attr = holdIdent;
         }
       }
       else if (mToken.IsSymbol('*')) {  
@@ -4743,13 +4715,7 @@ CSSParserImpl::ParseAttr(nsCSSValue& aValue)
           return PR_FALSE;
         }
         if (eCSSToken_Ident == mToken.mType) {
-          if (mCaseSensitive) {
-            attr.Append(mToken.mIdent);
-          } else {
-            nsAutoString buffer;
-            ToLowerCase(mToken.mIdent, buffer);
-            attr.Append(buffer);
-          }
+          attr.Append(mToken.mIdent);
         }
         else {
           REPORT_UNEXPECTED_TOKEN(PEAttributeNameExpected);

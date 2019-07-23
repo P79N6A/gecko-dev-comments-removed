@@ -75,9 +75,6 @@ public:
   NS_IMETHOD SetStyleSheet(nsICSSStyleSheet* aSheet) = 0;
 
   
-  NS_IMETHOD SetCaseSensitive(PRBool aCaseSensitive) = 0;
-
-  
   NS_IMETHOD SetQuirkMode(PRBool aQuirkMode) = 0;
 
 #ifdef  MOZ_SVG

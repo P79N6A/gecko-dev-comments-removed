@@ -318,7 +318,6 @@ public:
   NS_IMETHOD Init(nsIDocument* aDocument);
   NS_IMETHOD DropDocumentReference(void);
 
-  NS_IMETHOD SetCaseSensitive(PRBool aCaseSensitive);
   NS_IMETHOD SetCompatibilityMode(nsCompatibility aCompatMode);
   NS_IMETHOD SetPreferredSheet(const nsAString& aTitle);
   NS_IMETHOD GetPreferredSheet(nsAString& aTitle);
@@ -494,7 +493,6 @@ private:
   PRPackedBool            mSyncCallback;
 #endif
 
-  PRPackedBool      mCaseSensitive; 
   PRPackedBool      mEnabled; 
   nsCompatibility   mCompatMode;
   nsString          mPreferredSheet;  

@@ -276,8 +276,6 @@ nsHTMLDocument::Init()
 
   
   
-  
-  CSSLoader()->SetCaseSensitive(!IsHTML());
   CSSLoader()->SetCompatibilityMode(mCompatMode);
 
   PrePopulateIdentifierMap();
@@ -682,7 +680,6 @@ nsHTMLDocument::StartDocumentLoad(const char* aCommand,
   }
 #endif
 
-  CSSLoader()->SetCaseSensitive(!IsHTML());
   CSSLoader()->SetCompatibilityMode(mCompatMode);
   
   PRBool needsParser = PR_TRUE;
