@@ -1500,6 +1500,8 @@ public:
 
 
 
+
+
   static nsresult GetASCIIOrigin(nsIPrincipal* aPrincipal,
                                  nsCString& aOrigin);
   static nsresult GetASCIIOrigin(nsIURI* aURI, nsCString& aOrigin);
