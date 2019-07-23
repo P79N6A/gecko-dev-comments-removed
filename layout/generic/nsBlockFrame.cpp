@@ -2731,9 +2731,12 @@ nsBlockFrame::ReflowBlockFrame(nsBlockReflowState& aState,
   nscoord startingY = aState.mY;
   nsCollapsingMargin incomingMargin = aState.mPrevBottomMargin;
   nscoord clearance;
+  
+  
+  nsPoint originalPosition = frame->GetPosition();
   while (PR_TRUE) {
     
-    nscoord originalY = frame->GetRect().y;
+    nscoord passOriginalY = frame->GetRect().y;
     
     clearance = 0;
     nscoord topMargin = 0;
@@ -2879,7 +2882,8 @@ nsBlockFrame::ReflowBlockFrame(nsBlockReflowState& aState,
     
     
     
-    if (!mayNeedRetry && clearanceFrame && frame->GetRect().y != originalY) {
+    if (!mayNeedRetry && clearanceFrame &&
+        frame->GetRect().y != passOriginalY) {
       Invalidate(frame->GetOverflowRect() + frame->GetPosition());
     }
     
@@ -3035,6 +3039,14 @@ nsBlockFrame::ReflowBlockFrame(nsBlockReflowState& aState,
       }
     }
     break; 
+  }
+
+  
+  
+  
+  
+  if (originalPosition != frame->GetPosition() && !frame->HasView()) {
+    nsContainerFrame::PositionChildViews(frame);
   }
   
 #ifdef DEBUG
