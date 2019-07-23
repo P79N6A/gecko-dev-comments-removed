@@ -767,11 +767,22 @@ var PlacesUtils = {
         var parts = blob.split("\n");
         
         
-        if (parts.length % 2)
+        
+        if (parts.length != 1 && parts.length % 2)
           break;
         for (var i = 0; i < parts.length; i=i+2) {
           var uriString = parts[i];
-          var titleString = parts[i+1];
+          var titleString = "";
+          if (parts.length > i+1)
+            titleString = parts[i+1];
+          else {
+            
+            try {
+              titleString = IO.newURI(uriString).QueryInterface(Ci.nsIURL)
+                              .fileName;
+            }
+            catch (e) {}
+          }
           
           if (IO.newURI(uriString)) {
             nodes.push({ uri: uriString,
