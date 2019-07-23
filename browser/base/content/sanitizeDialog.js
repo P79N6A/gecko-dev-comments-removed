@@ -157,17 +157,8 @@ var gSanitizePromptDialog = {
     this._warningIsInited = true;
 
     
-    var histServ = Cc["@mozilla.org/browser/nav-history-service;1"].
-                   getService(Ci.nsINavHistoryService);
-    var query = histServ.getNewQuery();
-    var opts = histServ.getNewQueryOptions();
-    opts.sortingMode = opts.SORT_BY_DATE_ASCENDING;
-    opts.queryType = opts.QUERY_TYPE_HISTORY;
-    var result = histServ.executeQuery(query, opts);
-    result.root.containerOpen = true;
-    var numItems = result.root.childCount;
-    var oldestTime = numItems > 0 ? result.root.getChild(0).time : null;
-    result.root.containerOpen = false;
+    
+    
 
     var warningDesc = document.getElementById("sanitizeEverythingWarning");
     warningDesc.textContent =
