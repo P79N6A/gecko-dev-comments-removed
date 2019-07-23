@@ -294,13 +294,23 @@ void nsHTMLReflowState::InitCBReflowState()
     return;
   }
 
+  
+  
+  
+  NS_ASSERTION(frame->GetType() != nsGkAtoms::tableFrame ||
+               !frame->GetParent()->IsContainingBlock(),
+               "Outer table should not be containing block");
+
   if (parentReflowState->frame->IsContainingBlock() ||
       
       
       (NS_FRAME_GET_TYPE(mFrameType) == NS_CSS_FRAME_TYPE_ABSOLUTE)) {
     
+    
+    
     if (parentReflowState->parentReflowState &&
-        IS_TABLE_CELL(parentReflowState->parentReflowState->frame->GetType())) {
+        (IS_TABLE_CELL(parentReflowState->parentReflowState->frame->GetType()) ||
+         frame->GetType() == nsGkAtoms::tableFrame)) {
       mCBReflowState = parentReflowState->parentReflowState;
     } else {
       mCBReflowState = parentReflowState;
@@ -483,16 +493,25 @@ nsHTMLReflowState::InitFrameType()
   
   
   
+
   
-  if (frame->GetStateBits() & NS_FRAME_OUT_OF_FLOW) {
+  
+  nsIFrame* frameToTest =
+    frame->GetType() == nsGkAtoms::tableFrame ? frame->GetParent() : frame;
+  NS_ASSERTION(frameToTest->GetStyleDisplay()->IsAbsolutelyPositioned() ==
+                 disp->IsAbsolutelyPositioned(),
+               "Unexpected position style");
+  NS_ASSERTION(frameToTest->GetStyleDisplay()->IsFloating() ==
+                 disp->IsFloating(), "Unexpected float style");
+  if (frameToTest->GetStateBits() & NS_FRAME_OUT_OF_FLOW) {
     if (disp->IsAbsolutelyPositioned()) {
       frameType = NS_CSS_FRAME_TYPE_ABSOLUTE;
       
       
-      if (frame->GetPrevInFlow())
+      if (frameToTest->GetPrevInFlow())
         frameType = NS_CSS_FRAME_TYPE_BLOCK;
     }
-    else if (NS_STYLE_FLOAT_NONE != disp->mFloats) {
+    else if (disp->IsFloating()) {
       frameType = NS_CSS_FRAME_TYPE_FLOATING;
     } else {
       NS_ASSERTION(disp->mDisplay == NS_STYLE_DISPLAY_POPUP,
@@ -1117,10 +1136,16 @@ nsHTMLReflowState::InitAbsoluteConstraints(nsPresContext* aPresContext,
   NS_PRECONDITION(containingBlockHeight != NS_AUTOHEIGHT,
                   "containing block height must be constrained");
 
+  nsIFrame* outOfFlow = 
+    frame->GetType() == nsGkAtoms::tableFrame ? frame->GetParent() : frame;
+  NS_ASSERTION(outOfFlow->GetStateBits() & NS_FRAME_OUT_OF_FLOW,
+               "Why are we here?");
+
   
   nsIFrame*     placeholderFrame;
 
-  aPresContext->PresShell()->GetPlaceholderFrameFor(frame, &placeholderFrame);
+  aPresContext->PresShell()->GetPlaceholderFrameFor(outOfFlow,
+                                                    &placeholderFrame);
   NS_ASSERTION(nsnull != placeholderFrame, "no placeholder frame");
 
   
