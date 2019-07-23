@@ -199,6 +199,9 @@ public:
   PRBool IsHTMLLink(nsIURI** aURI) const;
 
   
+  already_AddRefed<nsIURI> GetHrefURIForAnchors() const;
+
+  
   
   
   void GetHrefURIToMutate(nsIURI** aURI);
@@ -719,9 +722,6 @@ protected:
 
     return value > 0 ? eTrue : (value == 0 ? eFalse : eInherit);
   }
-
-  
-  already_AddRefed<nsIURI> GetHrefURIForAnchors() const;
 
 private:
   
