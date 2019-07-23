@@ -85,3 +85,4 @@ class nsHtml5SpeculativeLoader
 };
 
 #endif 
+
