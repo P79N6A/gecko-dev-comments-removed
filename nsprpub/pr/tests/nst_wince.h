@@ -62,9 +62,9 @@
 
 
 
-BOOL WINAPI DllMain( HINSTANCE hDllHandle, 
-                     DWORD     nReason, 
-                     LPVOID    lpvReserved )
+BOOL WINAPI DllMain( HANDLE hDllHandle,
+                     DWORD  nReason,
+                     LPVOID lpvReserved )
 {
   BOOLEAN bSuccess = TRUE;
 

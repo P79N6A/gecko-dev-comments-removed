@@ -2649,8 +2649,14 @@ PRInt32 _MD_getopenfileinfo64(const PRFileDesc *fd, PRFileInfo64 *info)
     return rv;
 }
 
+
+
+
+
+
+
 #ifdef SYMBIAN
-struct _MD_IOVector _md_iovector;
+struct _MD_IOVector _md_iovector; 
 #else
 struct _MD_IOVector _md_iovector = { open };
 #endif
