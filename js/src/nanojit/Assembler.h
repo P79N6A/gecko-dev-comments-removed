@@ -377,6 +377,7 @@ namespace nanojit
             NIns        *exitStart, *exitEnd;   
             NIns*       _nIns;                  
             NIns*       _nExitIns;              
+                                                
         #ifdef NJ_VERBOSE
         public:
             size_t      codeBytes;              
