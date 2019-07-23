@@ -5803,10 +5803,8 @@ IdentityHandler.prototype = {
 
 
   handleMoreInfoClick : function(event) {
-    if (event.button == 0) {
-      displaySecurityInfo();
-      event.stopPropagation();
-    }   
+    displaySecurityInfo();
+    event.stopPropagation();
   },
   
   
