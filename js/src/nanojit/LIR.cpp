@@ -112,13 +112,15 @@ namespace nanojit
 		
 		_frago->pagesRelease(_pages);
 		NanoAssert(!_pages.size());
-		_thresholdPage = 0;
 		_unused = 0;
 		_stats.lir = 0;
 		_noMem = 0;
 		for (int i = 0; i < NumSavedRegs; ++i)
 			savedRegs[i] = NULL;
 		explicitSavedRegs = false;
+		
+		_nextPage = pageAlloc();
+		NanoAssert(_nextPage || _noMem);
 	}
 
 	int32_t LirBuffer::insCount() 
@@ -152,24 +154,16 @@ namespace nanojit
 	{
 		LInsp before = _buf->next();
 		LInsp after = before+count+LIR_FAR_SLOTS;
-		if (!samepage(before,after+LirBuffer::LIR_BUF_THRESHOLD))
+		
+		if (!samepage(before,after))
 		{
-			if (!_buf->_thresholdPage)
-			{
-				
-				_buf->_thresholdPage = _buf->pageAlloc();
-				NanoAssert(_buf->_thresholdPage || _buf->_noMem);
-			}
 			
-			if (!samepage(before,after))
-			{
-				NanoAssert(_buf->_thresholdPage);
-				_buf->_unused = &_buf->_thresholdPage->lir[0];	
-				_buf->_thresholdPage = 0;  
-
-				
-				insLinkTo(LIR_skip, before-1);
-			}
+			NanoAssert(_buf->_nextPage);
+			_buf->_unused = &_buf->_nextPage->lir[0];	
+			
+			insLinkTo(LIR_skip, before-1);
+			_buf->_nextPage = _buf->pageAlloc();
+			NanoAssert(_buf->_nextPage || _buf->_noMem);
 		}
 	}
 

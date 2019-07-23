@@ -689,8 +689,6 @@ namespace nanojit
 	class LirBuffer : public avmplus::GCFinalizedObject
 	{
 		public:
-			static const uint32_t LIR_BUF_THRESHOLD = 1024/sizeof(LIns);  
-
 			DWB(Fragmento*)		_frago;
 			LirBuffer(Fragmento* frago, const CallInfo* functions);
 			virtual ~LirBuffer();
@@ -724,7 +722,7 @@ namespace nanojit
 			Page*		pageAlloc();
 
 			PageList	_pages;
-			Page*		_thresholdPage; 
+			Page*		_nextPage; 
 			LInsp		_unused;	
 			int			_noMem;		
 	};	
