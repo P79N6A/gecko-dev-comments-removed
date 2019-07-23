@@ -104,9 +104,6 @@ protected:
   nsIEditor *mEditor;   
 
   friend class TransactionFactory;
-
-  friend class nsDerivedSafe<InsertTextTxn>; 
-
 };
 
 #endif

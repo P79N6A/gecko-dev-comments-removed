@@ -181,74 +181,6 @@
 
 
 
-
-
-template <class T>
-class
-  NS_FINAL_CLASS
-  NS_STACK_CLASS
-nsDerivedSafe : public T
-    
-
-
-
-
-
-
-
-
-  {
-    private:
-#ifdef HAVE_CPP_ACCESS_CHANGING_USING
-      using T::AddRef;
-      using T::Release;
-#else
-      nsrefcnt AddRef(void);
-      nsrefcnt Release(void);
-#endif
-
-#if !defined(AIX) && !defined(IRIX)
-      void operator delete( void*, size_t );                  
-        
-#endif
-
-      nsDerivedSafe<T>& operator=( const T& );                
-        
-
-        
-
-
-
-
-
-
-    protected:
-      nsDerivedSafe();                                        
-        
-
-
-
-  };
-
-#if !defined(HAVE_CPP_ACCESS_CHANGING_USING) && defined(NEED_CPP_UNUSED_IMPLEMENTATIONS)
-template <class T>
-nsrefcnt
-nsDerivedSafe<T>::AddRef()
-  {
-    return 0;
-  }
-
-template <class T>
-nsrefcnt
-nsDerivedSafe<T>::Release()
-  {
-    return 0;
-  }
-
-#endif
-
-
-
 template <class T>
 struct already_AddRefed
     
@@ -860,7 +792,7 @@ nsCOMPtr
           return reinterpret_cast<T*>(mRawPtr);
         }
 
-      operator nsDerivedSafe<T>*() const
+      operator T*() const
           
 
 
@@ -868,15 +800,16 @@ nsCOMPtr
 
 
 
+
         {
-          return get_DerivedSafe();
+          return get();
         }
 
-      nsDerivedSafe<T>*
+      T*
       operator->() const
         {
           NS_PRECONDITION(mRawPtr != 0, "You can't dereference a NULL nsCOMPtr with operator->().");
-          return get_DerivedSafe();
+          return get();
         }
 
 #ifdef CANT_RESOLVE_CPP_CONST_AMBIGUITY
@@ -911,17 +844,12 @@ nsCOMPtr
 #endif 
 
     public:
-      nsDerivedSafe<T>&
+      T&
       operator*() const
         {
           NS_PRECONDITION(mRawPtr != 0, "You can't dereference a NULL nsCOMPtr with operator*().");
-          return *get_DerivedSafe();
+          return *get();
         }
-
-#if 0
-    private:
-      friend class nsGetterAddRefs<T>;
-#endif
 
       T**
       StartAssignment()
@@ -933,14 +861,6 @@ nsCOMPtr
           return reinterpret_cast<T**>(&mRawPtr);
 #endif
         }
-
-    private:
-      nsDerivedSafe<T>*
-      get_DerivedSafe() const
-        {
-          return reinterpret_cast<nsDerivedSafe<T>*>(mRawPtr);
-        }
-
   };
 
 
@@ -1179,11 +1099,12 @@ class nsCOMPtr<nsISupports>
 
 
 
+
         {
           return reinterpret_cast<nsISupports*>(mRawPtr);
         }
 
-      operator nsDerivedSafe<nsISupports>*() const
+      operator nsISupports*() const
           
 
 
@@ -1191,15 +1112,16 @@ class nsCOMPtr<nsISupports>
 
 
 
+
         {
-          return get_DerivedSafe();
+          return get();
         }
 
-      nsDerivedSafe<nsISupports>*
+      nsISupports*
       operator->() const
         {
           NS_PRECONDITION(mRawPtr != 0, "You can't dereference a NULL nsCOMPtr with operator->().");
-          return get_DerivedSafe();
+          return get();
         }
 
 #ifdef CANT_RESOLVE_CPP_CONST_AMBIGUITY
@@ -1235,17 +1157,12 @@ class nsCOMPtr<nsISupports>
 
     public:
 
-      nsDerivedSafe<nsISupports>&
+      nsISupports&
       operator*() const
         {
           NS_PRECONDITION(mRawPtr != 0, "You can't dereference a NULL nsCOMPtr with operator*().");
-          return *get_DerivedSafe();
+          return *get();
         }
-
-#if 0
-    private:
-      friend class nsGetterAddRefs<nsISupports>;
-#endif
 
       nsISupports**
       StartAssignment()
@@ -1257,14 +1174,6 @@ class nsCOMPtr<nsISupports>
           return reinterpret_cast<nsISupports**>(&mRawPtr);
 #endif
         }
-
-    private:
-      nsDerivedSafe<nsISupports>*
-      get_DerivedSafe() const
-        {
-          return reinterpret_cast<nsDerivedSafe<nsISupports>*>(mRawPtr);
-        }
-
   };
 
 #ifndef NSCAP_FEATURE_USE_BASE

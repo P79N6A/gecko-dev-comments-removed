@@ -1059,13 +1059,11 @@ class nsRefPtr
 
 
 
-
-
         {
           return const_cast<T*>(mRawPtr);
         }
 
-      operator nsDerivedSafe<T>*() const
+      operator T*() const
           
 
 
@@ -1073,15 +1071,16 @@ class nsRefPtr
 
 
 
+
         {
-          return get_DerivedSafe();
+          return get();
         }
 
-      nsDerivedSafe<T>*
+      T*
       operator->() const
         {
           NS_PRECONDITION(mRawPtr != 0, "You can't dereference a NULL nsRefPtr with operator->().");
-          return get_DerivedSafe();
+          return get();
         }
 
 #ifdef CANT_RESOLVE_CPP_CONST_AMBIGUITY
@@ -1116,11 +1115,11 @@ class nsRefPtr
 #endif 
 
     public:
-      nsDerivedSafe<T>&
+      T&
       operator*() const
         {
           NS_PRECONDITION(mRawPtr != 0, "You can't dereference a NULL nsRefPtr with operator*().");
-          return *get_DerivedSafe();
+          return *get();
         }
 
       T**
@@ -1133,15 +1132,6 @@ class nsRefPtr
           return reinterpret_cast<T**>(&mRawPtr);
 #endif
         }
-
-    private:
-      nsDerivedSafe<T>*
-      get_DerivedSafe() const
-        {
-          return const_cast<nsDerivedSafe<T>*>
-                           (reinterpret_cast<const nsDerivedSafe<T>*>(mRawPtr));
-        }
-      
   };
 
 #ifdef CANT_RESOLVE_CPP_CONST_AMBIGUITY
