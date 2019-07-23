@@ -141,6 +141,9 @@ CSS_PSEUDO_CLASS(mozLWThemeBrightText, ":-moz-lwtheme-brighttext")
 
 CSS_PSEUDO_CLASS(mozLWThemeDarkText, ":-moz-lwtheme-darktext")
 
+
+CSS_PSEUDO_CLASS(mozWindowInactive, ":-moz-window-inactive")
+
 #ifdef MOZ_MATHML
 CSS_STATE_PSEUDO_CLASS(mozMathIncrementScriptLevel,
                        ":-moz-math-increment-script-level",

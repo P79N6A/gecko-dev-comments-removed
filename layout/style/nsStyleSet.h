@@ -178,6 +178,11 @@ class nsStyleSet
                          nsStyleContext* aNewParentContext);
 
   
+  PRBool HasDocumentStateDependentStyle(nsPresContext* aPresContext,
+                                        nsIContent*    aContent,
+                                        PRInt32        aStateMask);
+
+  
   nsReStyleHint HasStateDependentStyle(nsPresContext* aPresContext,
                                        nsIContent*     aContent,
                                        PRInt32         aStateMask);

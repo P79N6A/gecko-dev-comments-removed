@@ -108,6 +108,7 @@ private:
 public:
   const nsString* GetLang();
   PRUint32 ContentState();
+  PRUint32 DocumentState();
   PRBool IsLink();
 
   

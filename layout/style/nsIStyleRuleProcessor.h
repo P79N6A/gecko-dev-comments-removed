@@ -114,6 +114,14 @@ public:
 
 
 
+  virtual PRBool
+    HasDocumentStateDependentStyle(StateRuleProcessorData* aData) = 0;
+
+  
+
+
+
+
 
 
 

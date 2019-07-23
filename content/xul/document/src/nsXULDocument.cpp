@@ -126,7 +126,6 @@
 #include "nsXULPopupManager.h"
 #include "nsCCUncollectableMarker.h"
 #include "nsURILoader.h"
-#include "nsCSSFrameConstructor.h"
 
 
 
@@ -4666,16 +4665,10 @@ int
 nsXULDocument::DirectionChanged(const char* aPrefName, void* aData)
 {
   
-  
-  
   nsXULDocument* doc = (nsXULDocument *)aData;
-  if (doc)
+  if (doc) {
       doc->ResetDocumentDirection();
-
-  nsIPresShell *shell = doc->GetPrimaryShell();
-  if (shell) {
-      shell->FrameConstructor()->
-          PostRestyleEvent(doc->GetRootContent(), eReStyle_Self, NS_STYLE_HINT_NONE);
+      doc->DocumentStatesChanged(NS_DOCUMENT_STATE_RTL_LOCALE);
   }
 
   return 0;

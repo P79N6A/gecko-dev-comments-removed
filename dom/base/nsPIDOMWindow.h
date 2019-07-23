@@ -78,8 +78,8 @@ class nsIArray;
 class nsPIWindowRoot;
 
 #define NS_PIDOMWINDOW_IID \
-{ 0x81cdf500, 0x2183, 0x4af6, \
-  { 0xa4, 0x56, 0x35, 0x1f, 0x4a, 0x0d, 0x1a, 0x0b } }
+{ 0xC5CB154D, 0x17C0, 0x49E9, \
+  { 0x9C, 0x83, 0xFF, 0xC7, 0x2C, 0x93, 0xAF, 0x24 } }
 
 class nsPIDOMWindow : public nsIDOMWindowInternal
 {
@@ -92,6 +92,16 @@ public:
 
   
   virtual already_AddRefed<nsPIWindowRoot> GetTopWindowRoot() = 0;
+
+  virtual void SetActive(PRBool aActive)
+  {
+    mIsActive = aActive;
+  }
+
+  PRBool IsActive()
+  {
+    return mIsActive;
+  }
 
   nsPIDOMEventTarget* GetChromeEventHandler() const
   {
@@ -490,8 +500,8 @@ protected:
       mRunningTimeout(nsnull), mMutationBits(0), mIsDocumentLoaded(PR_FALSE),
       mIsHandlingResizeEvent(PR_FALSE), mIsInnerWindow(aOuterWindow != nsnull),
       mMayHavePaintEventListener(PR_FALSE),
-      mIsModalContentWindow(PR_FALSE), mInnerWindow(nsnull),
-      mOuterWindow(aOuterWindow)
+      mIsModalContentWindow(PR_FALSE), mIsActive(PR_FALSE),
+      mInnerWindow(nsnull), mOuterWindow(aOuterWindow)
   {
   }
 
@@ -524,6 +534,9 @@ protected:
   
   
   PRPackedBool           mIsModalContentWindow;
+
+  
+  PRPackedBool           mIsActive;
 
   
   nsPIDOMWindow         *mInnerWindow;
