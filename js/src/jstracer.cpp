@@ -1102,6 +1102,7 @@ js_LoopEdge(JSContext* cx)
                     
                     fi = new VMFragmentInfo(); 
                     f->vmprivate = fi;
+
                     
                     int internableGlobals = findInternableGlobals(cx, cx->fp, NULL);
                     if (internableGlobals < 0)
@@ -1110,7 +1111,8 @@ js_LoopEdge(JSContext* cx)
                     if ((fi->ngslots = findInternableGlobals(cx, cx->fp, fi->gslots)) < 0)
                         return false;
                     fi->globalShape = OBJ_SCOPE(JS_GetGlobalForObject(cx, 
-                            cx->fp->scopeChain))->shape;
+                                                                      cx->fp->scopeChain))->shape;
+
                     
                     unsigned entryNativeFrameSlots = nativeFrameSlots(fi->ngslots,
                             cx->fp, cx->fp, *cx->fp->regs);
@@ -1119,9 +1121,11 @@ js_LoopEdge(JSContext* cx)
                             (cx->fp->regs->sp - cx->fp->spbase)) * sizeof(double);
                     fi->maxNativeFrameSlots = entryNativeFrameSlots;
                     fi->maxCallDepth = 0;
+
                     
                     fi->typeMap = (uint8*)malloc(fi->entryNativeFrameSlots * sizeof(uint8));
                     uint8* m = fi->typeMap;
+
                     
                     FORALL_SLOTS_IN_PENDING_FRAMES(cx, fi->ngslots, fi->gslots, cx->fp, cx->fp,
                         *m++ = getCoercedType(*vp)
