@@ -850,10 +850,16 @@ var gApplicationsPane = {
     
     
     
-    if (document.getElementById("typeColumn").hasAttribute("sortDirection"))
-      this._sortColumn = document.getElementById("typeColumn");
-    else if (document.getElementById("actionColumn").hasAttribute("sortDirection"))
+    if (document.getElementById("actionColumn").hasAttribute("sortDirection")) {
       this._sortColumn = document.getElementById("actionColumn");
+      
+      
+      
+      
+      document.getElementById("typeColumn").removeAttribute("sortDirection");
+    }
+    else 
+      this._sortColumn = document.getElementById("typeColumn");
 
     
     
