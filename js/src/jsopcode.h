@@ -387,6 +387,13 @@ js_DecompileValueGenerator(JSContext *cx, intN spindex, jsval v,
 #define JSDVG_IGNORE_STACK      0
 #define JSDVG_SEARCH_STACK      1
 
+
+
+
+
+extern uintN
+js_ReconstructStackDepth(JSContext *cx, JSScript *script, jsbytecode *pc);
+
 JS_END_EXTERN_C
 
 #endif
