@@ -133,14 +133,20 @@ nsXULButtonAccessible::GetState(PRUint32 *aState, PRUint32 *aExtraState)
   
   nsCOMPtr<nsIDOMXULButtonElement> xulButtonElement(do_QueryInterface(mDOMNode));
   if (xulButtonElement) {
-    PRBool checked = PR_FALSE;
-    PRInt32 checkState = 0;
-    xulButtonElement->GetChecked(&checked);
-    if (checked) {
-      *aState |= nsIAccessibleStates::STATE_PRESSED;
-      xulButtonElement->GetCheckState(&checkState);
-      if (checkState == nsIDOMXULButtonElement::CHECKSTATE_MIXED)  
-        *aState |= nsIAccessibleStates::STATE_MIXED;
+    nsAutoString type;
+    xulButtonElement->GetType(type);
+    if (type.EqualsLiteral("checkbox") || type.EqualsLiteral("radio")) {
+      *aState |= nsIAccessibleStates::STATE_CHECKABLE;
+      PRBool checked = PR_FALSE;
+      PRInt32 checkState = 0;
+      xulButtonElement->GetChecked(&checked);
+      if (checked) {
+        *aState |= nsIAccessibleStates::STATE_PRESSED;
+        xulButtonElement->GetCheckState(&checkState);
+        if (checkState == nsIDOMXULButtonElement::CHECKSTATE_MIXED) { 
+          *aState |= nsIAccessibleStates::STATE_MIXED;
+        }
+      }
     }
   }
 
@@ -365,7 +371,9 @@ nsXULCheckboxAccessible::GetState(PRUint32 *aState, PRUint32 *aExtraState)
   
   nsresult rv = nsFormControlAccessible::GetState(aState, aExtraState);
   NS_ENSURE_SUCCESS(rv, rv);
-
+  
+  *aState |= nsIAccessibleStates::STATE_CHECKABLE;
+  
   
   nsCOMPtr<nsIDOMXULCheckboxElement> xulCheckboxElement(do_QueryInterface(mDOMNode));
   if (xulCheckboxElement) {
@@ -531,6 +539,8 @@ nsXULRadioButtonAccessible::GetState(PRUint32 *aState, PRUint32 *aExtraState)
   nsresult rv = nsFormControlAccessible::GetState(aState, aExtraState);
   NS_ENSURE_SUCCESS(rv, rv);
 
+  *aState |= nsIAccessibleStates::STATE_CHECKABLE;
+  
   PRBool selected = PR_FALSE;   
 
   nsCOMPtr<nsIDOMXULSelectControlItemElement> radioButton(do_QueryInterface(mDOMNode));
