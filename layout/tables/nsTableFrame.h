@@ -79,8 +79,7 @@ public:
   nsDisplayTableItem(nsIFrame* aFrame) : nsDisplayItem(aFrame),
       mPartHasFixedBackground(PR_FALSE) {}
 
-  virtual PRBool IsVaryingRelativeToFrame(nsDisplayListBuilder* aBuilder,
-                                          nsIFrame* aAncestorFrame);
+  virtual PRBool IsVaryingRelativeToMovingFrame(nsDisplayListBuilder* aBuilder);
   
   
   

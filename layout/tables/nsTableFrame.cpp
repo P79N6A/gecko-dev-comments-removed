@@ -1262,8 +1262,7 @@ nsDisplayTableItem::GetBounds(nsDisplayListBuilder* aBuilder) {
 }
 
 PRBool
-nsDisplayTableItem::IsVaryingRelativeToFrame(nsDisplayListBuilder* aBuilder,
-                                             nsIFrame* aAncestorFrame)
+nsDisplayTableItem::IsVaryingRelativeToMovingFrame(nsDisplayListBuilder* aBuilder)
 {
   if (!mPartHasFixedBackground)
     return PR_FALSE;
@@ -1274,8 +1273,9 @@ nsDisplayTableItem::IsVaryingRelativeToFrame(nsDisplayListBuilder* aBuilder,
   
   
   
-  return mFrame == aAncestorFrame ||
-    nsLayoutUtils::IsProperAncestorFrame(aAncestorFrame, mFrame);
+  nsIFrame* rootMover = aBuilder->GetRootMovingFrame();
+  return mFrame == rootMover ||
+    nsLayoutUtils::IsProperAncestorFrame(rootMover, mFrame);
 }
 
  void
