@@ -796,8 +796,8 @@ GetAttributeSet(nsIAccessible* aAccessible)
     
     if (attributes) {
         
-        PRUint32 state;
-        aAccessible->GetFinalState(&state);
+        PRUint32 state, extraState;
+        aAccessible->GetFinalState(&state, &extraState);
         if (state & nsIAccessibleStates::STATE_HASPOPUP) {
           
           nsAutoString oldValueUnused;
