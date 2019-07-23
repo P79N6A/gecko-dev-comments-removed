@@ -369,36 +369,36 @@ ReadScriptFromStream(JSContext *cx, nsIObjectInputStream *stream,
     xdr->userdata = stream;
     JS_XDRMemSetData(xdr, data, size);
 
-    if (JS_XDRScript(xdr, script)) {
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-
-        uint32 length;
-        data = static_cast<char*>(JS_XDRMemGetData(xdr, &length));
-        if (data) {
-            JS_XDRMemSetData(xdr, nsnull, 0);
-        }
-        JS_XDRDestroy(xdr);
-    } else {
+    if (!JS_XDRScript(xdr, script)) {
         rv = NS_ERROR_FAILURE;
     }
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+
+    uint32 length;
+    data = static_cast<char*>(JS_XDRMemGetData(xdr, &length));
+    if (data) {
+        JS_XDRMemSetData(xdr, nsnull, 0);
+    }
+    JS_XDRDestroy(xdr);
 
     
     
