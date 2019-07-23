@@ -127,6 +127,13 @@ function run_test() {
   checkOrder(id1, id3, id2);
 
   
+  result.sortingMode = NHQO.SORT_BY_KEYWORD_ASCENDING;
+  checkOrder(id3, id2, id1);  
+  bmsvc.setKeywordForBookmark(id1, "a");
+  bmsvc.setKeywordForBookmark(id2, "z");
+  checkOrder(id3, id1, id2);
+
+  
   
   
 
