@@ -112,7 +112,17 @@ typedef short JCOEF;
 
 
 #define HAVE_SSE2_INTEL_MNEMONICS
+#define HAVE_SSE2_INTRINSICS
 #endif
+
+#if defined(__GNUC__) && defined(__i386__)
+#if defined(XP_MAC) || defined(XP_MACOSX)
+#define HAVE_SSE2_INTRINSICS
+#endif ! XP_MAC || XP_MACOSX
+#endif ! GNUC && i386
+
+
+
 
 
 

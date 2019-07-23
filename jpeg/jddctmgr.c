@@ -19,7 +19,9 @@
 #include "jinclude.h"
 #include "jpeglib.h"
 #include "jdct.h"		
+#ifdef HAVE_SSE2_INTRINSICS
 extern int SSE2Available;
+#endif
 
 
 
