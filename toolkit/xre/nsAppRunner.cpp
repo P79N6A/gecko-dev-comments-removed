@@ -273,6 +273,12 @@ static int    gRestartArgc;
 static char **gRestartArgv;
 
 #if defined(MOZ_WIDGET_GTK2)
+#if defined(DEBUG) || defined(NS_BUILD_REFCNT_LOGGING) \
+  || defined(NS_TRACE_MALLOC)
+#define CLEANUP_MEMORY 1
+#define PANGO_ENABLE_BACKEND
+#include <pango/pangofc-fontmap.h>
+#endif
 #include <gtk/gtk.h>
 #ifdef MOZ_X11
 #include <gdk/gdkx.h>
@@ -2424,12 +2430,42 @@ static void MOZ_gdk_display_close(GdkDisplay *display)
 #endif 
   }
   else {
+#if CLEANUP_MEMORY
+    
+    
+    
+    PangoContext *pangoContext = gdk_pango_context_get();
+#endif
+
     if (!theme_is_qt)
       gdk_display_close(display);
-#if GTK_CHECK_VERSION(2,8,0) && \
-  (defined(DEBUG) || defined(NS_BUILD_REFCNT_LOGGING) || defined(NS_TRACE_MALLOC))
-    cairo_debug_reset_static_data();
+
+#if CLEANUP_MEMORY
+    
+    PangoFontMap *fontmap = pango_context_get_font_map(pangoContext);
+    
+    
+    
+    
+    if (PANGO_IS_FC_FONT_MAP(fontmap))
+        pango_fc_font_map_shutdown(PANGO_FC_FONT_MAP(fontmap));
+    g_object_unref(pangoContext);
+    
+    
+    
+    
+    
+    
+
+#if GTK_CHECK_VERSION(2,8,0)
+    
+    
+#ifdef cairo_debug_reset_static_data
+#error "Looks like we're including Mozilla's cairo instead of system cairo"
 #endif
+    cairo_debug_reset_static_data();
+#endif 
+#endif 
   }
 }
 #endif 
