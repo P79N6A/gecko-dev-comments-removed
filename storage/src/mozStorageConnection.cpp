@@ -630,42 +630,45 @@ Connection::ExecuteAsync(mozIStorageStatement **aStatements,
 {
   int rc = SQLITE_OK;
   nsTArray<StatementData> stmts(aNumStatements);
-  for (PRUint32 i = 0; i < aNumStatements && rc == SQLITE_OK; i++) {
-    sqlite3_stmt *old_stmt =
-        static_cast<Statement *>(aStatements[i])->nativeStatement();
-    if (!old_stmt) {
-      rc = SQLITE_MISUSE;
-      break;
-    }
-    NS_ASSERTION(::sqlite3_db_handle(old_stmt) == mDBConn,
-                 "Statement must be from this database connection!");
+  {
+    SQLiteMutexAutoLock lockedScope(mDBMutex);
+    for (PRUint32 i = 0; i < aNumStatements && rc == SQLITE_OK; i++) {
+      sqlite3_stmt *old_stmt =
+          static_cast<Statement *>(aStatements[i])->nativeStatement();
+      if (!old_stmt) {
+        rc = SQLITE_MISUSE;
+        break;
+      }
+      NS_ASSERTION(::sqlite3_db_handle(old_stmt) == mDBConn,
+                   "Statement must be from this database connection!");
 
-    
-    
-    
-    sqlite3_stmt *new_stmt;
-    rc = ::sqlite3_prepare_v2(mDBConn, ::sqlite3_sql(old_stmt), -1, &new_stmt,
-                              NULL);
-    if (rc != SQLITE_OK)
-      break;
+      
+      
+      
+      sqlite3_stmt *new_stmt;
+      rc = ::sqlite3_prepare_v2(mDBConn, ::sqlite3_sql(old_stmt), -1, &new_stmt,
+                                NULL);
+      if (rc != SQLITE_OK)
+        break;
 
 #ifdef PR_LOGGING
-    PR_LOG(gStorageLog, PR_LOG_NOTICE,
-           ("Cloned statement 0x%p to 0x%p", old_stmt, new_stmt));
+      PR_LOG(gStorageLog, PR_LOG_NOTICE,
+             ("Cloned statement 0x%p to 0x%p", old_stmt, new_stmt));
 #endif
 
-    
-    rc = sqlite3_transfer_bindings(old_stmt, new_stmt);
-    if (rc != SQLITE_OK)
-      break;
+      
+      rc = sqlite3_transfer_bindings(old_stmt, new_stmt);
+      if (rc != SQLITE_OK)
+        break;
 
-    Statement *storageStmt = static_cast<Statement *>(aStatements[i]);
-    StatementData data(new_stmt, storageStmt->bindingParamsArray());
-    if (!stmts.AppendElement(data)) {
-      rc = SQLITE_NOMEM;
-      break;
-    }
-  }
+      Statement *storageStmt = static_cast<Statement *>(aStatements[i]);
+      StatementData data(new_stmt, storageStmt->bindingParamsArray());
+      if (!stmts.AppendElement(data)) {
+        rc = SQLITE_NOMEM;
+        break;
+      }
+    } 
+  } 
 
   
   nsresult rv = NS_OK;
@@ -682,8 +685,11 @@ Connection::ExecuteAsync(mozIStorageStatement **aStatements,
   }
 
   
-  for (PRUint32 i = 0; i < aNumStatements; i++)
-    (void)aStatements[i]->Reset();
+  {
+    SQLiteMutexAutoLock lockedScope(mDBMutex);
+    for (PRUint32 i = 0; i < aNumStatements; i++)
+      (void)aStatements[i]->Reset();
+  }
 
   return rv;
 }
