@@ -440,7 +440,7 @@ PRMJ_Now(void)
 
             
 
-            calibration.last = max(calibration.last,(JSInt64)highresTime);
+            calibration.last = JS_MAX(calibration.last,(JSInt64)highresTime);
             returnedTime = calibration.last;
             MUTEX_UNLOCK(&calibration.data_lock);
 
