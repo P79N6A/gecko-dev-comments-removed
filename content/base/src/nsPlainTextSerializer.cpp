@@ -1445,15 +1445,16 @@ nsPlainTextSerializer::EndLine(PRBool aSoftlinebreak)
     
     return;
   }
+
   
-  
-  
-  
-  
-  
+
+
+
+
   
   if(!(mFlags & nsIDocumentEncoder::OutputPreformatted) &&
-     (aSoftlinebreak || !mCurrentLine.EqualsLiteral("-- "))) {
+     (aSoftlinebreak || 
+     !(mCurrentLine.EqualsLiteral("-- ") || mCurrentLine.EqualsLiteral("- -- ")))) {
     
     while(currentlinelength > 0 &&
           mCurrentLine[currentlinelength-1] == ' ') {
