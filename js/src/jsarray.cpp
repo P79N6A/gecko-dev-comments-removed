@@ -822,22 +822,6 @@ slowarray_addProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
     return JS_TRUE;
 }
 
-static void
-slowarray_trace(JSTracer *trc, JSObject *obj)
-{
-    uint32 length = obj->fslots[JSSLOT_ARRAY_LENGTH];
-
-    JS_ASSERT(STOBJ_GET_CLASS(obj) == &js_SlowArrayClass);
-
-    
-
-
-
-    obj->fslots[JSSLOT_ARRAY_LENGTH] = JSVAL_VOID;
-    js_TraceObject(trc, obj);
-    obj->fslots[JSSLOT_ARRAY_LENGTH] = length;
-}
-
 static JSObjectOps js_SlowArrayObjectOps;
 
 static JSObjectOps *
@@ -1271,7 +1255,7 @@ JSClass js_ArrayClass = {
 
 JSClass js_SlowArrayClass = {
     "Array",
-    JSCLASS_HAS_RESERVED_SLOTS(1) |
+    JSCLASS_HAS_PRIVATE |
     JSCLASS_HAS_CACHED_PROTO(JSProto_Array),
     slowarray_addProperty, JS_PropertyStub, JS_PropertyStub,  JS_PropertyStub,
     JS_EnumerateStub,      JS_ResolveStub,  js_TryValueOf,    NULL,
@@ -1339,8 +1323,13 @@ js_MakeArraySlow(JSContext *cx, JSObject *obj)
 
 
 
+
+
+
     {
-        uint32 length = obj->fslots[JSSLOT_ARRAY_LENGTH];
+        JS_STATIC_ASSERT(JSSLOT_ARRAY_LENGTH == JSSLOT_PRIVATE);
+        JS_ASSERT(js_SlowArrayClass.flags & JSCLASS_HAS_PRIVATE);
+        uint32 length = uint32(obj->fslots[JSSLOT_ARRAY_LENGTH]);
         obj->fslots[JSSLOT_ARRAY_COUNT] = INT_FITS_IN_JSVAL(length)
                                           ? INT_TO_JSVAL(length)
                                           : JSVAL_VOID;
@@ -3464,7 +3453,6 @@ js_InitArrayClass(JSContext *cx, JSObject *obj)
 
     
     memcpy(&js_SlowArrayObjectOps, &js_ObjectOps, sizeof(JSObjectOps));
-    js_SlowArrayObjectOps.trace = slowarray_trace;
     js_SlowArrayObjectOps.enumerate = slowarray_enumerate;
     js_SlowArrayObjectOps.call = NULL;
 
