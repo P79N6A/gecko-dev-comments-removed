@@ -1544,12 +1544,25 @@ js_LoopEdge(JSContext* cx, jsbytecode* oldpc, uintN& inlineCallCount)
     if (tm->recorder) 
         return js_ContinueRecording(cx, tm->recorder, oldpc);
 
-    Fragment* f = tm->fragmento->getLoop(cx->fp->regs->pc);
+    
+    jsbytecode* pc = cx->fp->regs->pc;
+    Fragment* f;
+    JSFragmentCacheEntry* cacheEntry = &tm->fcache[((long)pc) % JS_FRAGMENT_CACHE_SIZE];
+    if (cacheEntry->pc == pc)
+        f = cacheEntry->fragment;
+    else {
+        f = tm->fragmento->getLoop(pc);
+        cacheEntry->pc = pc;
+        cacheEntry->fragment = f;
+    }
+
+    
     if (!f->code()) {
         if (++f->hits() >= HOTLOOP) 
             return js_RecordTree(cx, tm, f);
         return false;
     }
+    JS_ASSERT(!tm->recorder);
     
     return js_ExecuteTree(cx, f, inlineCallCount);
 }
