@@ -40,39 +40,20 @@
 
 
 
-try {
-  var histsvc = Cc["@mozilla.org/browser/nav-history-service;1"].
-                getService(Ci.nsINavHistoryService);
-  var bhist = histsvc.QueryInterface(Ci.nsIBrowserHistory);
-  var ghist = Cc["@mozilla.org/browser/global-history;2"].
-              getService(Ci.nsIGlobalHistory2);
-} catch(ex) {
-  do_throw("Could not get history services\n");
-}
+start_sync();
 
 
-try {
-  var annosvc = Cc["@mozilla.org/browser/annotation-service;1"].
-                getService(Ci.nsIAnnotationService);
-} catch(ex) {
-  do_throw("Could not get annotation service\n");
-}
-
-
-try {
-  var bmsvc = Cc["@mozilla.org/browser/nav-bookmarks-service;1"].
-              getService(Ci.nsINavBookmarksService);
-} catch(ex) {
-  do_throw("Could not get nav-bookmarks-service\n");
-}
-
-
-try {
-  var prefs = Cc["@mozilla.org/preferences-service;1"].
-              getService(Ci.nsIPrefBranch);
-} catch(ex) {
-  do_throw("Could not get prefs service\n");
-}
+var histsvc = Cc["@mozilla.org/browser/nav-history-service;1"].
+              getService(Ci.nsINavHistoryService);
+var bhist = histsvc.QueryInterface(Ci.nsIBrowserHistory);
+var ghist = Cc["@mozilla.org/browser/global-history;2"].
+            getService(Ci.nsIGlobalHistory2);
+var annosvc = Cc["@mozilla.org/browser/annotation-service;1"].
+              getService(Ci.nsIAnnotationService);
+var bmsvc = Cc["@mozilla.org/browser/nav-bookmarks-service;1"].
+            getService(Ci.nsINavBookmarksService);
+var prefs = Cc["@mozilla.org/preferences-service;1"].
+            getService(Ci.nsIPrefBranch);
 
 
 var observer = {
@@ -646,7 +627,9 @@ function startExpireBoth() {
   histsvc.removeAllPages();
   observer.expiredURI = null;
   dump("starting expiration test 3: both criteria met\n");
-
+  
+  
+  bmsvc.changeBookmarkURI(bookmark, testURI);
   
   
   var age = (Date.now() - (86400 * 2 * 1000)) * 1000;
@@ -832,5 +815,5 @@ function checkExpireBadPrefs() {
     do_throw(ex);
   }
   dump("done incremental expiration test 6\n");
-  do_test_finished();
+  finish_test();
 }
