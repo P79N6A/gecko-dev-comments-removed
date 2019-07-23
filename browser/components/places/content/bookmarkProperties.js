@@ -374,10 +374,6 @@ var BookmarkPropertiesPanel = {
         this._element("siteLocationField")
             .addEventListener("input", this, false);
       }
-
-      
-      
-      document.addEventListener("keypress", this, true);
     }
 
     window.sizeToContent();
@@ -388,27 +384,6 @@ var BookmarkPropertiesPanel = {
   handleEvent: function BPP_handleEvent(aEvent) {
     var target = aEvent.target;
     switch (aEvent.type) {
-      case "keypress":
-        function canAcceptDialog(aElement) {
-          
-          
-          
-          
-          
-          
-          return aElement.localName != "tree" &&
-                 aElement.className != "expander-up" &&
-                 aElement.className != "expander-down" &&
-                 !aElement.popupOpen &&
-                 !aElement.open &&
-                 !(aElement.localName == "textbox" &&
-                   aElement.getAttribute("multiline") == "true");
-        }
-        if (aEvent.keyCode == KeyEvent.DOM_VK_RETURN &&
-            canAcceptDialog(target))
-          document.documentElement.acceptDialog();
-        break;
-
       case "input":
         if (target.id == "editBMPanel_locationField" ||
             target.id == "editBMPanel_feedLocationField" ||
@@ -506,7 +481,6 @@ var BookmarkPropertiesPanel = {
     
     this._element("tagsSelectorRow")
         .removeEventListener("DOMAttrModified", this, false);
-    document.removeEventListener("keypress", this, true);
     this._element("folderTreeRow")
         .removeEventListener("DOMAttrModified", this, false);
     this._element("locationField")

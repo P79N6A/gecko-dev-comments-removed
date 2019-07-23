@@ -65,7 +65,7 @@ var StarUI = {
     
     element.hidden = false;
     element.addEventListener("popuphidden", this, false);
-    element.addEventListener("keypress", this, true);
+    element.addEventListener("keypress", this, false);
     return this.panel = element;
   },
 
@@ -112,25 +112,25 @@ var StarUI = {
         }
         break;
       case "keypress":
-        if (aEvent.keyCode == KeyEvent.DOM_VK_ESCAPE) {
+        if (aEvent.getPreventDefault()) {
           
-          
-          
-          if (!this._element("editBookmarkPanelContent").hidden) {
-            var elt = aEvent.target;
-            if ((elt.localName != "tree" || !elt.hasAttribute("editing")) &&
-                !elt.popupOpen)
-              this.cancelButtonOnCommand();
-          }
+          break;
         }
-        else if (aEvent.keyCode == KeyEvent.DOM_VK_RETURN) {
-          
-          
-          if (aEvent.target.localName != "tree" &&
-              aEvent.target.className != "expander-up" &&
-              aEvent.target.className != "expander-down" &&
-              !aEvent.target.popupOpen)
+        switch (aEvent.keyCode) {
+          case KeyEvent.DOM_VK_ESCAPE:
+            if (!this._element("editBookmarkPanelContent").hidden)
+              this.cancelButtonOnCommand();
+            break;
+          case KeyEvent.DOM_VK_RETURN:
+            if (aEvent.target.className == "expander-up" ||
+                aEvent.target.className == "expander-down" ||
+                aEvent.target.id == "editBMPanel_newFolderButton") {
+              
+              
+              break;
+            }
             this.panel.hidePopup();
+            break;
         }
         break;
     }
