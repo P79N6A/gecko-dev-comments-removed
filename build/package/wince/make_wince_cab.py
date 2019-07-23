@@ -72,6 +72,11 @@
 
 
 
+
+
+
+
+
 import sys
 import os
 from os.path import join
@@ -80,6 +85,7 @@ import fnmatch
 import string
 import shutil
 
+CompressFlag = "/compress"
 
 class FileEntry:
     def __init__(self, dirpath, dircount, filename, filecount, actual_filename):
@@ -301,12 +307,12 @@ def output_inf_file(program_name, app_name):
 
 
 def make_cab_file(cabwiz_path, program_name, cab_final_name):
-    make_cab_command = "\"%s\" %s.inf /compress" % (cabwiz_path, program_name)
+    make_cab_command = "\"%s\" %s %s.inf" % (cabwiz_path, CompressFlag, program_name)
     print "INFORMATION: Executing command to make %s CAB file (only works on BASH)" % program_name
     print "    [%s]" % make_cab_command
     sys.stdout.flush()
 
-    success = call([cabwiz_path, "%s.inf" % program_name, "/compress"],
+    success = call([cabwiz_path, "%s.inf" % program_name, CompressFlag],
                    stdout=open("NUL:","w"), stderr=STDOUT)
 
     if not os.path.isfile("%s.CAB" % program_name):
@@ -336,21 +342,35 @@ def purge_copied_files():
 
 
 def main():
-    if len(sys.argv) != 5:
-        print >> sys.stderr, "Usage: %s CABWIZ_PATH SOURCE_DIR PROGRAM_NAME CAB_FINAL_NAME" % sys.argv[0]
-        print >> sys.stderr, "Example: %s /c/Program\ Files/Microsoft\ Visual\ Studio\ 9.0/ fennec Fennec fennec-0.11.en-US.wince-arm.cab" % sys.argv[0]
+    args = sys.argv
+    if len(args) < 4 or len(args) > 6:
+        print >> sys.stderr, "Usage: %s [-s] [CABWIZ_PATH] SOURCE_DIR PROGRAM_NAME CAB_FINAL_NAME" % args[0]
+        print >> sys.stderr, "Example: %s /c/Program\ Files/Microsoft\ Visual\ Studio\ 9.0/ fennec Fennec fennec-0.11.en-US.wince-arm.cab" % args[0]
         sys.exit(1)
 
-    cabwiz_path = sys.argv[1]
-    source_dir = sys.argv[2]
-    program_name = sys.argv[3]
-    app_name = "%s.exe" % source_dir
-    cab_final_name = sys.argv[4]
+    args = args[1:]
 
-    if not os.path.isfile(cabwiz_path):
+    if args[0] == "-s":
+        global CompressFlag
+        CompressFlag = ""
+        args = args[1:]
+
+    cabwiz_path = None
+    if len(args) == 4:
+        cabwiz_path = args[0]
+        args = args[1:]
+    else:
+        if "VSINSTALLDIR" in os.environ:
+            cabwiz_path = os.path.join(os.environ["VSINSTALLDIR"], "SmartDevices", "SDK", "SDKTools", "cabwiz.exe")
+
+    source_dir = args[0]
+    program_name = args[1]
+    app_name = "%s.exe" % source_dir
+    cab_final_name = args[2]
+
+    if cabwiz_path is None or not os.path.isfile(cabwiz_path):
         print """***************************************************************************
-ERROR: CABWIZ_PATH is not a valid file!
-       Perhaps your VSINSTALLDIR is not properly set up?
+ERROR: CABWIZ_PATH is not a valid file, or cabwiz couldn't be found!
        EXITING...
 ***************************************************************************"""
         sys.exit(2)
