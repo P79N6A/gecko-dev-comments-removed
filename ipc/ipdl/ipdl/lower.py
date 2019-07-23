@@ -1356,6 +1356,10 @@ class Protocol(ipdl.ast.Protocol):
         assert self.decl.type.isToplevel()
         return ExprVar('ExitedCxxStack')
 
+    def onCxxStackVar(self):
+        assert self.decl.type.isToplevel()
+        return ExprVar('IsOnCxxStack')
+
     def nextActorIdExpr(self, side):
         assert self.decl.type.isToplevel()
         if side is 'parent':   op = '++'
@@ -2878,13 +2882,21 @@ class _GenerateProtocolActorCode(ipdl.ast.Visitor):
 
         
         if ptype.isToplevel() and toplevel.talksRpc():
+            
             onentered = MethodDefn(MethodDecl('OnEnteredCxxStack'))
             onentered.addstmt(StmtReturn(ExprCall(p.enteredCxxStackVar())))
 
+            
             onexited = MethodDefn(MethodDecl('OnExitedCxxStack'))
             onexited.addstmt(StmtReturn(ExprCall(p.exitedCxxStackVar())))
 
-            self.cls.addstmts([ onentered, onexited, Whitespace.NL ])
+            
+            onstack = MethodDefn(
+                MethodDecl(p.onCxxStackVar().name, ret=Type.BOOL, const=1))
+            onstack.addstmt(StmtReturn(ExprCall(
+                ExprSelect(p.channelVar(), '.', p.onCxxStackVar().name))))
+
+            self.cls.addstmts([ onentered, onexited, onstack, Whitespace.NL ])
 
         
         onclose = MethodDefn(MethodDecl('OnChannelClose'))
