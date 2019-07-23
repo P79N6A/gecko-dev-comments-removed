@@ -2270,13 +2270,7 @@ nsGenericHTMLFormElement::nsGenericHTMLFormElement(nsINodeInfo *aNodeInfo)
 nsGenericHTMLFormElement::~nsGenericHTMLFormElement()
 {
   
-  
-  NS_ASSERTION(!mForm || mForm->GetDefaultSubmitElement() != this,
-               "Content being destroyed is the default content");
-
-  
-  
-  ClearForm(PR_TRUE, PR_FALSE);
+  NS_ASSERTION(!mForm, "How did we get here?");
 }
 
 NS_IMPL_QUERY_INTERFACE_INHERITED1(nsGenericHTMLFormElement,
