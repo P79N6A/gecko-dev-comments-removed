@@ -64,10 +64,25 @@ void nsDocAccessibleWrap::SetEditor(nsIEditor* aEditor)
 
   if (needRecreate) {
     
+    AtkObject* oldAtkObj = mAtkObject;
+    
+    AtkObject* parentAtkObj = atk_object_get_parent(oldAtkObj);
+    
+    PRInt32 index = atk_object_get_index_in_parent(oldAtkObj);
+
+    
     ShutdownAtkObject();
 
     
     GetAtkObject();
+
+    
+    if (parentAtkObj && (index >= 0)) {
+      g_signal_emit_by_name(parentAtkObj, "children_changed::remove", index,
+                            oldAtkObj, NULL);
+      g_signal_emit_by_name(parentAtkObj, "children_changed::add", index,
+                            mAtkObject, NULL);
+    }
 
     
     nsCOMPtr<nsIAccessible> accChild;
