@@ -58,7 +58,7 @@ NS_DEFINE_CID(kEntityConverterCID, NS_ENTITYCONVERTER_CID);
 NS_DEFINE_CID(kSaveAsCharsetCID, NS_SAVEASCHARSET_CID);
 NS_DEFINE_CID(kUnicodeNormalizerCID, NS_UNICODE_NORMALIZER_CID);
 
-#define TESTLEN 29
+#define TESTLEN 32
 #define T2LEN TESTLEN
 #define T3LEN TESTLEN
 #define T4LEN TESTLEN
@@ -94,6 +94,9 @@ static PRUnichar t2data  [T2LEN+1] = {
   0x01F1 ,  
   0x01F2 ,  
   0x01F3 ,  
+  0x0250 ,  
+  0x0271 ,  
+  0xA641 ,  
   0x00  
 };
 
@@ -127,6 +130,9 @@ static PRUnichar t2result[T2LEN+1] =  {
   0x01F1 ,  
   0x01F1 ,  
   0x01F1 ,  
+  0x2C6F ,  
+  0x2C6E ,  
+  0xA640 ,  
   0x00  
 };
 
@@ -160,6 +166,9 @@ static PRUnichar t3data  [T3LEN+1] =  {
   0x01F1 ,  
   0x01F2 ,  
   0x01F3 ,  
+  0x2C6F ,  
+  0x2C6E ,  
+  0xA640 ,  
   0x00  
 };
 
@@ -193,6 +202,9 @@ static PRUnichar t3result[T3LEN+1] =  {
   0x01F3 ,  
   0x01F3 ,  
   0x01F3 ,  
+  0x0250 ,  
+  0x0271 ,  
+  0xA641 ,  
   0x00  
 };
 
@@ -226,6 +238,9 @@ static PRUnichar t4data  [T4LEN+2] =  {
   0x01F1 ,  
   0x01F2 ,  
   0x01F3 ,  
+  0x0250 ,  
+  0x0271 ,  
+  0xA641 ,  
   0x0041 ,  
   0x00  
 };
@@ -260,6 +275,9 @@ static PRUnichar t4result[T4LEN+2] =  {
   0x01F1 ,  
   0x01F2 ,  
   0x01F2 ,  
+  0x2C6F ,  
+  0x2C6E ,  
+  0xA640 ,  
   0x0041 ,  
   0x00  
 };
