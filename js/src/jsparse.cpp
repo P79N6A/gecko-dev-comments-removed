@@ -2235,7 +2235,28 @@ Parser::setFunctionKinds(JSFunctionBox *funbox, uint32& tcflags)
                     JSDefinition *lexdep = ALE_DEFN(ale)->resolve();
 
                     if (!lexdep->isFreeVar()) {
-                        JS_ASSERT(lexdep->frameLevel() <= funbox->level);
+                        uintN lexdepLevel = lexdep->frameLevel();
+                        JS_ASSERT(lexdepLevel <= funbox->level);
+
+                        
+                        JSFunctionBox *afunbox = funbox;
+                        do {
+                            
+
+
+
+
+
+
+
+                            if ((afunbox->parent ? afunbox->parent->tcflags : tcflags)
+                                & TCF_FUN_HEAVYWEIGHT) {
+                                nupvars = 0;
+                                goto break2;
+                            }
+                            afunbox = afunbox->parent;
+                        } while (afunbox && afunbox->level != lexdepLevel);
+
                         ++nupvars;
                         if (lexdep->isAssigned())
                             break;
@@ -2244,6 +2265,7 @@ Parser::setFunctionKinds(JSFunctionBox *funbox, uint32& tcflags)
                 if (!ale)
                     mutation = false;
 
+              break2:
                 if (nupvars == 0) {
                     FUN_METER(onlyfreevar);
                     FUN_SET_KIND(fun, JSFUN_NULL_CLOSURE);
