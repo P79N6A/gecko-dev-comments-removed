@@ -1,24 +1,24 @@
-/*
- * Copyright © 2003 Carl Worth
- *
- * Permission to use, copy, modify, distribute, and sell this software and its
- * documentation for any purpose is hereby granted without fee, provided that
- * the above copyright notice appear in all copies and that both that
- * copyright notice and this permission notice appear in supporting
- * documentation, and that the name of Carl Worth not be used in
- * advertising or publicity pertaining to distribution of the software without
- * specific, written prior permission.  Carl Worth makes no
- * representations about the suitability of this software for any purpose.  It
- * is provided "as is" without express or implied warranty.
- *
- * CARL WORTH DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE,
- * INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS, IN NO
- * EVENT SHALL CARL WORTH BE LIABLE FOR ANY SPECIAL, INDIRECT OR
- * CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE,
- * DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
- * TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
- * PERFORMANCE OF THIS SOFTWARE.
- */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #ifndef _ICINT_H_
 #define _ICINT_H_
@@ -48,16 +48,16 @@
 #undef MAX
 #define MAX(a,b) ((a) > (b) ? (a) : (b))
 
-/* C89 has implementation-defined behavior for % with negative operands.
-   C99 has well-defined behavior which is that / with integers rounds toward zero
-       and a%b is defined so that (a/b)*b + a%b == a.
 
-   The C99 version gives negative remainders rather than the modulus
-   in [0 .. b-1] that we want. This macro avoids using % with negative
-   operands to avoid both problems.
 
-   a and b are integers. b > 0.
-*/
+
+
+
+
+
+
+
+
 #define MOD(a, b) ((b) == 1 ? 0 : (a) >= 0 ? (a) % (b) : (b) - (-(a) - 1) % (b) - 1)
 
 typedef struct _FbPoint {
@@ -74,8 +74,8 @@ typedef unsigned int	Mask;
 #define CPClipMask      (1 << 6)
 #define CPLastBit       11
 
-/* Define any names that the server code will be expecting in
- * terms of libpixman names. */
+
+
 
 typedef uint8_t			CARD8;
 typedef uint16_t		CARD16;
@@ -96,7 +96,7 @@ typedef pixman_line_fixed_t	xLineFixed;
 typedef pixman_trapezoid_t	xTrapezoid;
 typedef pixman_triangle_t	xTriangle;
 
-/* These few definitions avoid me needing to include servermd.h and misc.h from Xserver/include */
+
 #ifndef BITMAP_SCANLINE_PAD
 #define BITMAP_SCANLINE_PAD  32
 #define LOG2_BITMAP_PAD		5
@@ -117,30 +117,30 @@ typedef pixman_triangle_t	xTriangle;
 #define MAXSHORT SHRT_MAX
 #define MINSHORT SHRT_MIN
 
-/* XXX: What do we need from here?
-#include "picture.h"
-*/
+
+
+
 
 #include "pixman.h"
 
-/* XXX: Most of this file is straight from fb.h and I imagine we can
-   drop quite a bit of it. Once the real ic code starts to come
-   together I can probably figure out what is not needed here. */
+
+
+
 
 #define FB_UNIT	    (1 << FB_SHIFT)
 #define FB_HALFUNIT (1 << (FB_SHIFT-1))
 #define FB_MASK	    (FB_UNIT - 1)
 #define FB_ALLONES  ((pixman_bits_t) -1)
 
-/* whether to bother to include 24bpp support */
+
 #ifndef ICNO24BIT
 #define FB_24BIT
 #endif
 
-/*
- * Unless otherwise instructed, ic includes code to advertise 24bpp
- * windows with 32bpp image format for application compatibility
- */
+
+
+
+
 
 #ifdef FB_24BIT
 #ifndef ICNO24_32
@@ -178,14 +178,14 @@ extern void fbSetBits (FbStip *bits, int stride, FbStip data);
 #if BITMAP_BIT_ORDER == LSBFirst
 #define FbScrLeft(x,n)	((x) >> (n))
 #define FbScrRight(x,n)	((x) << (n))
-/* #define FbLeftBits(x,n)	((x) & ((((FbBits) 1) << (n)) - 1)) */
+
 #define FbLeftStipBits(x,n) ((x) & ((((FbStip) 1) << (n)) - 1))
 #define FbStipMoveLsb(x,s,n)	(FbStipRight (x,(s)-(n)))
 #define FbPatternOffsetBits	0
 #else
 #define FbScrLeft(x,n)	((x) << (n))
 #define FbScrRight(x,n)	((x) >> (n))
-/* #define FbLeftBits(x,n)	((x) >> (FB_UNIT - (n))) */
+
 #define FbLeftStipBits(x,n) ((x) >> (FB_STIP_UNIT - (n)))
 #define FbStipMoveLsb(x,s,n)	(x)
 #define FbPatternOffsetBits	(sizeof (FbBits) - 1)
@@ -467,17 +467,17 @@ extern void fbSetBits (FbStip *bits, int stride, FbStip data);
     n >>= FB_STIP_SHIFT; \
 }
 
-/*
- * These macros are used to transparently stipple
- * in copy mode; the expected usage is with 'n' constant
- * so all of the conditional parts collapse into a minimal
- * sequence of partial word writes
- *
- * 'n' is the bytemask of which bytes to store, 'a' is the address
- * of the FbBits base unit, 'o' is the offset within that unit
- *
- * The term "lane" comes from the hardware term "byte-lane" which
- */
+
+
+
+
+
+
+
+
+
+
+
 
 #define FbLaneCase1(n,a,o)  ((n) == 0x01 ? \
 			     (*(CARD8 *) ((a)+FbPatternOffset(o,CARD8)) = \
@@ -504,17 +504,17 @@ extern void fbSetBits (FbStip *bits, int stride, FbStip data);
 #define FbLaneCase(n,a)   FbLaneCase4(n,(CARD8 *) (a),0)
 #endif
 
-/* Rotate a filled pixel value to the specified alignement */
+
 #define FbRot24(p,b)	    (FbScrRight(p,b) | FbScrLeft(p,24-(b)))
 #define FbRot24Stip(p,b)    (FbStipRight(p,b) | FbStipLeft(p,24-(b)))
 
-/* step a filled pixel value to the next/previous FB_UNIT alignment */
+
 #define FbNext24Pix(p)	(FbRot24(p,(24-FB_UNIT%24)))
 #define FbPrev24Pix(p)	(FbRot24(p,FB_UNIT%24))
 #define FbNext24Stip(p)	(FbRot24(p,(24-FB_STIP_UNIT%24)))
 #define FbPrev24Stip(p)	(FbRot24(p,FB_STIP_UNIT%24))
 
-/* step a rotation value to the next/previous rotation value */
+
 #if FB_UNIT == 64
 #define FbNext24Rot(r)        ((r) == 16 ? 0 : (r) + 8)
 #define FbPrev24Rot(r)        ((r) == 0 ? 16 : (r) - 8)
@@ -541,7 +541,7 @@ extern void fbSetBits (FbStip *bits, int stride, FbStip data);
 #define FbNext24RotStip(r)        ((r) == 0 ? 16 : (r) - 8)
 #define FbPrev24RotStip(r)        ((r) == 16 ? 0 : (r) + 8)
 
-/* Whether 24-bit specific code is needed for this filled pixel value */
+
 #define FbCheck24Pix(p)	((p) == FbNext24Pix(p))
 
 #define FbGetPixels(icpixels, pointer, _stride_, _bpp_, xoff, yoff) { \
@@ -567,19 +567,19 @@ extern void fbSetBits (FbStip *bits, int stride, FbStip data);
 #endif
 
 #define FbPowerOfTwo(w)	    (((w) & ((w) - 1)) == 0)
-/*
- * Accelerated tiles are power of 2 width <= FB_UNIT
- */
+
+
+
 #define FbEvenTile(w)	    ((w) <= FB_UNIT && FbPowerOfTwo(w))
-/*
- * Accelerated stipples are power of 2 width and <= FB_UNIT/dstBpp
- * with dstBpp a power of 2 as well
- */
+
+
+
+
 #define FbEvenStip(w,bpp)   ((w) * (bpp) <= FB_UNIT && FbPowerOfTwo(w) && FbPowerOfTwo(bpp))
 
-/*
- * icblt.c
- */
+
+
+
 pixman_private void
 fbBlt (pixman_bits_t   *src,
        FbStride	srcStride,
@@ -619,11 +619,11 @@ fbBlt24 (pixman_bits_t	    *srcLine,
 
 pixman_private void
 fbBltStip (FbStip   *src,
-	   FbStride srcStride,	    /* in FbStip units, not FbBits units */
+	   FbStride srcStride,	    
 	   int	    srcX,
 
 	   FbStip   *dst,
-	   FbStride dstStride,	    /* in FbStip units, not FbBits units */
+	   FbStride dstStride,	    
 	   int	    dstX,
 
 	   int	    width,
@@ -633,9 +633,9 @@ fbBltStip (FbStip   *src,
 	   FbBits   pm,
 	   int	    bpp);
 
-/*
- * icbltone.c
- */
+
+
+
 pixman_private void
 fbBltOne (FbStip   *src,
 	  FbStride srcStride,
@@ -656,25 +656,25 @@ fbBltOne (FbStip   *src,
 #ifdef FB_24BIT
 pixman_private void
 fbBltOne24 (FbStip    *src,
-	  FbStride  srcStride,	    /* FbStip units per scanline */
-	  int	    srcX,	    /* bit position of source */
+	  FbStride  srcStride,	    
+	  int	    srcX,	    
 	  FbBits    *dst,
-	  FbStride  dstStride,	    /* FbBits units per scanline */
-	  int	    dstX,	    /* bit position of dest */
-	  int	    dstBpp,	    /* bits per destination unit */
+	  FbStride  dstStride,	    
+	  int	    dstX,	    
+	  int	    dstBpp,	    
 
-	  int	    width,	    /* width in bits of destination */
-	  int	    height,	    /* height in scanlines */
+	  int	    width,	    
+	  int	    height,	    
 
-	  FbBits    fgand,	    /* rrop values */
+	  FbBits    fgand,	    
 	  FbBits    fgxor,
 	  FbBits    bgand,
 	  FbBits    bgxor);
 #endif
 
-/*
- * icstipple.c
- */
+
+
+
 
 pixman_private void
 fbTransparentSpan (pixman_bits_t   *dst,
@@ -748,7 +748,7 @@ fbStipple (pixman_bits_t   *dst,
 	   int	    xRot,
 	   int	    yRot);
 
-/* XXX: Is depth redundant here? */
+
 struct pixman_format {
     int		format_code;
     int		depth;
@@ -770,14 +770,14 @@ typedef struct _FbPixels {
     unsigned int	refcnt;
 } FbPixels;
 
-/* XXX: This is to avoid including colormap.h from the server includes */
+
 typedef uint32_t Pixel;
 
-/* icutil.c */
+
 pixman_private pixman_bits_t
 fbReplicatePixel (Pixel p, int bpp);
 
-/* fbtrap.c */
+
 
 pixman_private void
 fbRasterizeTrapezoid (pixman_image_t		*pMask,
@@ -785,8 +785,8 @@ fbRasterizeTrapezoid (pixman_image_t		*pMask,
 		      int		x_off,
 		      int		y_off);
 
-/* XXX: This is to avoid including gc.h from the server includes */
-/* clientClipType field in GC */
+
+
 #define CT_NONE			0
 #define CT_PIXMAP		1
 #define CT_REGION		2
@@ -797,12 +797,12 @@ fbRasterizeTrapezoid (pixman_image_t		*pMask,
 
 #include "icimage.h"
 
-/* iccolor.c */
 
-/* GCC 3.4 supports a "population count" builtin, which on many targets is
-   implemented with a single instruction.  There is a fallback definition
-   in libgcc in case a target does not have one, which should be just as
-   good as the static function below.  */
+
+
+
+
+
 #if __GNUC__ > 3 || (__GNUC__ == 3 && __GNUC_MINOR__ >= 4)
 static INLINE int
 _FbOnes(unsigned int mask)
@@ -815,12 +815,12 @@ pixman_private int
 _FbOnes(unsigned int mask);
 #endif
 
-/* icformat.c */
+
 
 pixman_private void
 pixman_format_init (pixman_format_t *format, int format_code);
 
-/* icimage.c */
+
 
 pixman_private pixman_image_t *
 pixman_image_createForPixels (FbPixels	*pixels,
@@ -833,7 +833,7 @@ pixman_gradient_color (pixman_gradient_stop_t *stop1,
 
 #define PictureGradientColor pixman_gradient_color
 
-/* icpixels.c */
+
 
 pixman_private FbPixels *
 FbPixelsCreate (int width, int height, int depth);
@@ -844,7 +844,7 @@ FbPixelsCreateForData (pixman_bits_t *data, int width, int height, int depth, in
 pixman_private void
 FbPixelsDestroy (FbPixels *pixels);
 
-/* ictransform.c */
+
 
 pixman_private int
 pixman_transform_point (pixman_transform_t	*transform,
@@ -852,18 +852,18 @@ pixman_transform_point (pixman_transform_t	*transform,
 
 #include "icrop.h"
 
-/* XXX: For now, I'm just wholesale pasting Xserver/render/picture.h here: */
+
 #ifndef _PICTURE_H_
 #define _PICTURE_H_
 
 typedef struct _DirectFormat	*DirectFormatPtr;
 typedef struct _PictFormat	*PictFormatPtr;
 
-/*
- * While the protocol is generous in format support, the
- * sample implementation allows only packed RGB and GBR
- * representations for data to simplify software rendering,
- */
+
+
+
+
+
 #define PICT_FORMAT(bpp,type,a,r,g,b)	(((bpp) << 24) |  \
 					 ((type) << 16) | \
 					 ((a) << 12) | \
@@ -871,9 +871,9 @@ typedef struct _PictFormat	*PictFormatPtr;
 					 ((g) << 4) | \
 					 ((b)))
 
-/*
- * gray/color formats use a visual index instead of argb
- */
+
+
+
 #define PICT_VISFORMAT(bpp,type,vi)	(((bpp) << 24) |  \
 					 ((type) << 16) | \
 					 ((vi)))
@@ -896,17 +896,17 @@ typedef struct _PictFormat	*PictFormatPtr;
 
 #define PICT_FORMAT_COLOR(f)	(PICT_FORMAT_TYPE(f) & 2)
 
-/* 32bpp formats */
+
 #define PICT_a8r8g8b8	PICT_FORMAT(32,PICT_TYPE_ARGB,8,8,8,8)
 #define PICT_x8r8g8b8	PICT_FORMAT(32,PICT_TYPE_ARGB,0,8,8,8)
 #define PICT_a8b8g8r8	PICT_FORMAT(32,PICT_TYPE_ABGR,8,8,8,8)
 #define PICT_x8b8g8r8	PICT_FORMAT(32,PICT_TYPE_ABGR,0,8,8,8)
 
-/* 24bpp formats */
+
 #define PICT_r8g8b8	PICT_FORMAT(24,PICT_TYPE_ARGB,0,8,8,8)
 #define PICT_b8g8r8	PICT_FORMAT(24,PICT_TYPE_ABGR,0,8,8,8)
 
-/* 16bpp formats */
+
 #define PICT_r5g6b5	PICT_FORMAT(16,PICT_TYPE_ARGB,0,5,6,5)
 #define PICT_b5g6r5	PICT_FORMAT(16,PICT_TYPE_ABGR,0,5,6,5)
 
@@ -919,7 +919,7 @@ typedef struct _PictFormat	*PictFormatPtr;
 #define PICT_a4b4g4r4	PICT_FORMAT(16,PICT_TYPE_ABGR,4,4,4,4)
 #define PICT_x4b4g4r4	PICT_FORMAT(16,PICT_TYPE_ABGR,0,4,4,4)
 
-/* 8bpp formats */
+
 #define PICT_a8		PICT_FORMAT(8,PICT_TYPE_A,8,0,0,0)
 #define PICT_r3g3b2	PICT_FORMAT(8,PICT_TYPE_ARGB,0,3,3,2)
 #define PICT_b2g3r3	PICT_FORMAT(8,PICT_TYPE_ABGR,0,3,3,2)
@@ -929,7 +929,7 @@ typedef struct _PictFormat	*PictFormatPtr;
 #define PICT_c8		PICT_FORMAT(8,PICT_TYPE_COLOR,0,0,0,0)
 #define PICT_g8		PICT_FORMAT(8,PICT_TYPE_GRAY,0,0,0,0)
 
-/* 4bpp formats */
+
 #define PICT_a4		PICT_FORMAT(4,PICT_TYPE_A,4,0,0,0)
 #define PICT_r1g2b1	PICT_FORMAT(4,PICT_TYPE_ARGB,0,1,2,1)
 #define PICT_b1g2r1	PICT_FORMAT(4,PICT_TYPE_ABGR,0,1,2,1)
@@ -939,44 +939,44 @@ typedef struct _PictFormat	*PictFormatPtr;
 #define PICT_c4		PICT_FORMAT(4,PICT_TYPE_COLOR,0,0,0,0)
 #define PICT_g4		PICT_FORMAT(4,PICT_TYPE_GRAY,0,0,0,0)
 
-/* 1bpp formats */
+
 #define PICT_a1		PICT_FORMAT(1,PICT_TYPE_A,1,0,0,0)
 
 #define PICT_g1		PICT_FORMAT(1,PICT_TYPE_GRAY,0,0,0,0)
 
-/*
- * For dynamic indexed visuals (GrayScale and PseudoColor), these control the
- * selection of colors allocated for drawing to Pictures.  The default
- * policy depends on the size of the colormap:
- *
- * Size		Default Policy
- * ----------------------------
- *  < 64	PolicyMono
- *  < 256	PolicyGray
- *  256		PolicyColor (only on PseudoColor)
- *
- * The actual allocation code lives in miindex.c, and so is
- * austensibly server dependent, but that code does:
- *
- * PolicyMono	    Allocate no additional colors, use black and white
- * PolicyGray	    Allocate 13 gray levels (11 cells used)
- * PolicyColor	    Allocate a 4x4x4 cube and 13 gray levels (71 cells used)
- * PolicyAll	    Allocate as big a cube as possible, fill with gray (all)
- *
- * Here's a picture to help understand how many colors are
- * actually allocated (this is just the gray ramp):
- *
- *                 gray level
- * all   0000 1555 2aaa 4000 5555 6aaa 8000 9555 aaaa bfff d555 eaaa ffff
- * b/w   0000                                                        ffff
- * 4x4x4                     5555                aaaa
- * extra      1555 2aaa 4000      6aaa 8000 9555      bfff d555 eaaa
- *
- * The default colormap supplies two gray levels (black/white), the
- * 4x4x4 cube allocates another two and nine more are allocated to fill
- * in the 13 levels.  When the 4x4x4 cube is not allocated, a total of
- * 11 cells are allocated.
- */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #define PictureCmapPolicyInvalid    -1
 #define PictureCmapPolicyDefault    0
@@ -989,7 +989,7 @@ extern pixman_private int PictureCmapPolicy;
 
 int	PictureParseCmapPolicy (const char *name);
 
-/* Fixed point updates from Carl Worth, USC, Information Sciences Institute */
+
 
 #ifdef WIN32
 typedef __int64		xFixed_32_32;
@@ -1015,10 +1015,10 @@ typedef uint32_t		xFixed_1_31;
 typedef uint32_t		xFixed_1_16;
 typedef int32_t		xFixed_16_16;
 
-/*
- * An unadorned "xFixed" is the same as xFixed_16_16,
- * (since it's quite common in the code)
- */
+
+
+
+
 typedef	xFixed_16_16	xFixed;
 #define XFIXED_BITS	16
 
@@ -1026,6 +1026,7 @@ typedef	xFixed_16_16	xFixed;
 #define IntToxFixed(i)	((xFixed) (i) << XFIXED_BITS)
 #define xFixedE		((xFixed) 1)
 #define xFixed1		(IntToxFixed(1))
+#define xFixedToDouble(f) (double) ((f) / (double) xFixed1)
 #define xFixed1MinusE	(xFixed1 - xFixedE)
 #define xFixedFrac(f)	((f) & xFixed1MinusE)
 #define xFixedFloor(f)	((f) & ~xFixed1MinusE)
@@ -1034,30 +1035,30 @@ typedef	xFixed_16_16	xFixed;
 #define xFixedFraction(f)	((f) & xFixed1MinusE)
 #define xFixedMod2(f)		((f) & (xFixed1 | xFixed1MinusE))
 
-/* whether 't' is a well defined not obviously empty trapezoid */
+
 #define xTrapezoidValid(t)  ((t)->left.p1.y != (t)->left.p2.y && \
 			     (t)->right.p1.y != (t)->right.p2.y && \
 			     (int) ((t)->bottom - (t)->top) > 0)
 
-/*
- * Standard NTSC luminance conversions:
- *
- *  y = r * 0.299 + g * 0.587 + b * 0.114
- *
- * Approximate this for a bit more speed:
- *
- *  y = (r * 153 + g * 301 + b * 58) / 512
- *
- * This gives 17 bits of luminance; to get 15 bits, lop the low two
- */
+
+
+
+
+
+
+
+
+
+
+
 
 #define CvtR8G8B8toY15(s)	(((((s) >> 16) & 0xff) * 153 + \
 				  (((s) >>  8) & 0xff) * 301 + \
 				  (((s)      ) & 0xff) * 58) >> 2)
 
-#endif /* _PICTURE_H_ */
+#endif 
 
-/* Macros needed by fbpict.c */
+
 
 #define cvt8888to0565(s)    ((((s) >> 3) & 0x001f) | \
 			     (((s) >> 5) & 0x07e0) | \
@@ -1086,4 +1087,4 @@ typedef	xFixed_16_16	xFixed;
 		       (*((a)+2) = (CARD8) ((v) >> 16))))
 #endif
 
-#endif /* _ICINT_H_ */
+#endif 

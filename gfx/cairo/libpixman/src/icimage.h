@@ -1,58 +1,58 @@
-/*
- * Copyright © 2000 Keith Packard
- *
- * Permission to use, copy, modify, distribute, and sell this software and its
- * documentation for any purpose is hereby granted without fee, provided that
- * the above copyright notice appear in all copies and that both that
- * copyright notice and this permission notice appear in supporting
- * documentation, and that the name of Keith Packard not be used in
- * advertising or publicity pertaining to distribution of the software without
- * specific, written prior permission.  Keith Packard makes no
- * representations about the suitability of this software for any purpose.  It
- * is provided "as is" without express or implied warranty.
- *
- * KEITH PACKARD DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE,
- * INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS, IN NO
- * EVENT SHALL KEITH PACKARD BE LIABLE FOR ANY SPECIAL, INDIRECT OR
- * CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE,
- * DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
- * TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
- * PERFORMANCE OF THIS SOFTWARE.
- */
 
-/* XXX: This whole file should be moved up into incint.h (and cleaned
-   up considerably as well) */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #ifndef _ICIMAGE_H_
 #define _ICIMAGE_H_
 
-/* #include "glyphstr.h" */
-/* #include "scrnintstr.h" */
 
-/* XXX: Hmmm... what's needed from here?
-#include "resource.h"
-*/
 
-/*
-typedef struct _IndexFormat {
-    VisualPtr	    pVisual;
-    ColormapPtr	    pColormap;
-    int		    nvalues;
-    xIndexValue	    *pValues;
-    void	    *devPrivate;
-} IndexFormatRec;
-*/
 
-/*
-typedef struct pixman_format {
-    uint32_t	    id;
-    uint32_t	    format;
-    unsigned char   type;
-    unsigned char   depth;
-    DirectFormatRec direct;
-    IndexFormatRec  index;
-} pixman_format_t;
-*/
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #define PICT_GRADIENT_STOPTABLE_SIZE 1024
 
@@ -101,13 +101,12 @@ typedef struct _pixman_radial_gradient_image {
     int			   stopRange;
     uint32_t		   *colorTable;
     int			   colorTableSize;
-    double		   fx;
-    double		   fy;
-    double		   dx;
-    double		   dy;
-    double		   a;
-    double		   m;
-    double		   b;
+    pixman_circle_t	   c1;
+    pixman_circle_t	   c2;
+    double		   cdx;
+    double		   cdy;
+    double		   dr;
+    double		   A;
 } pixman_radial_gradient_image_t;
 
 typedef struct _pixman_conical_gradient_image {
@@ -176,7 +175,7 @@ struct pixman_image {
     pixman_source_image_t *pSourcePict;
 };
 
-#endif /* _ICIMAGE_H_ */
+#endif 
 
 #ifndef _IC_MIPICT_H_
 #define _IC_MIPICT_H_
@@ -187,7 +186,7 @@ struct pixman_image {
 typedef uint8_t FbIndexType;
 #endif
 
-/* XXX: We're not supporting indexed operations, right? */
+
 typedef struct _FbIndexed {
     int	color;
     uint32_t	rgba[IC_MAX_INDEXED];
@@ -202,10 +201,10 @@ typedef struct _FbIndexed {
 
 #define FbIndexToEntY24(icf,rgb24) ((icf)->ent[CvtR8G8B8toY15(rgb24)])
 
-/*
-pixman_private int
-FbCreatePicture (PicturePtr pPicture);
-*/
+
+
+
+
 
 pixman_private void
 pixman_image_init (pixman_image_t *image);
@@ -213,21 +212,21 @@ pixman_image_init (pixman_image_t *image);
 pixman_private void
 pixman_image_destroyClip (pixman_image_t *image);
 
-/*
-pixman_private void
-FbValidatePicture (PicturePtr pPicture,
-		   Mask       mask);
-*/
 
-/* XXX: What should this be?
-pixman_private int
-FbClipPicture (pixman_region16_t    *region,
-	       pixman_image_t	    *image,
-	       int16_t	    xReg,
-	       int16_t	    yReg,
-	       int16_t	    xPict,
-	       int16_t	    yPict);
-*/
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 pixman_private int
 FbComputeCompositeRegion (pixman_region16_t	*region,
@@ -246,32 +245,32 @@ FbComputeCompositeRegion (pixman_region16_t	*region,
 pixman_private int
 miIsSolidAlpha (pixman_image_t *src);
 
-/*
-pixman_private int
-FbPictureInit (ScreenPtr pScreen, PictFormatPtr formats, int nformats);
-*/
 
-/*
-pixman_private void
-FbGlyphs (pixman_operator_t	op,
-	  PicturePtr	pSrc,
-	  PicturePtr	pDst,
-	  PictFormatPtr	maskFormat,
-	  int16_t		xSrc,
-	  int16_t		ySrc,
-	  int		nlist,
-	  GlyphListPtr	list,
-	  GlyphPtr	*glyphs);
-*/
 
-/*
-pixman_private void
-pixman_compositeRects (pixman_operator_t	op,
-		  PicturePtr	pDst,
-		  xRenderColor  *color,
-		  int		nRect,
-		  xRectangle    *rects);
-*/
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 pixman_private pixman_image_t *
 FbCreateAlphaPicture (pixman_image_t	*dst,
@@ -335,9 +334,9 @@ struct _FbCompositeOperand {
     pixman_compositeStep	over;
     pixman_compositeStep	down;
     pixman_compositeSet	set;
-/* XXX: We're not supporting indexed operations, right?
-    FbIndexedPtr	indexed;
-*/
+
+
+
     pixman_region16_t		*dst_clip;
     pixman_region16_t		*src_clip;
 };
@@ -353,7 +352,7 @@ typedef struct _FbAccessMap {
     pixman_compositeStore	store;
 } FbAccessMap;
 
-/* iccompose.c */
+
 
 typedef struct _FbCompSrc {
     uint32_t	value;
@@ -382,4 +381,4 @@ pixman_compositeGeneral (pixman_operator_t	op,
 			 uint16_t	width,
 			 uint16_t	height);
 
-#endif /* _IC_MIPICT_H_ */
+#endif 

@@ -67,6 +67,12 @@ _cairo_slope_compare (cairo_slope_t *a, cairo_slope_t *b)
     if (diff < 0)
 	return -1;
 
+    
+
+
+
+    if (a->dx == 0 && a->dy == 0 && b->dx == 0 && b->dy ==0)
+	return 0;
     if (a->dx == 0 && a->dy == 0)
 	return 1;
     if (b->dx == 0 && b->dy ==0)

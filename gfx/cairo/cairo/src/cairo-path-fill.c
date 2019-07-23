@@ -35,6 +35,7 @@
 
 
 #include "cairoint.h"
+#include "cairo-path-fixed-private.h"
 
 typedef struct cairo_filler {
     double tolerance;
@@ -169,6 +170,10 @@ _cairo_filler_close_path (void *closure)
     return CAIRO_STATUS_SUCCESS;
 }
 
+static cairo_int_status_t
+_cairo_path_fixed_fill_rectangle (cairo_path_fixed_t	*path,
+				  cairo_traps_t		*traps);
+
 cairo_status_t
 _cairo_path_fixed_fill_to_traps (cairo_path_fixed_t *path,
 				 cairo_fill_rule_t   fill_rule,
@@ -177,6 +182,12 @@ _cairo_path_fixed_fill_to_traps (cairo_path_fixed_t *path,
 {
     cairo_status_t status = CAIRO_STATUS_SUCCESS;
     cairo_filler_t filler;
+
+    
+
+    status = _cairo_path_fixed_fill_rectangle (path, traps);
+    if (status != CAIRO_INT_STATUS_UNSUPPORTED)
+	return status;
 
     _cairo_filler_init (&filler, tolerance, traps);
 
@@ -204,4 +215,85 @@ BAIL:
     _cairo_filler_fini (&filler);
 
     return status;
+}
+
+
+
+
+
+
+
+
+static cairo_int_status_t
+_cairo_path_fixed_fill_rectangle (cairo_path_fixed_t	*path,
+				  cairo_traps_t		*traps)
+{
+    cairo_path_buf_t *buf = path->buf_head;
+    int final;
+
+    
+
+    if (buf == NULL || buf->num_ops < 5)
+	return CAIRO_INT_STATUS_UNSUPPORTED;
+
+    if (buf->op[0] != CAIRO_PATH_OP_MOVE_TO ||
+	buf->op[1] != CAIRO_PATH_OP_LINE_TO ||
+	buf->op[2] != CAIRO_PATH_OP_LINE_TO ||
+	buf->op[3] != CAIRO_PATH_OP_LINE_TO)
+    {
+	return CAIRO_INT_STATUS_UNSUPPORTED;
+    }
+
+    
+
+
+    if (buf->op[4] == CAIRO_PATH_OP_LINE_TO) {
+	if (buf->points[4].x != buf->points[0].x ||
+	    buf->points[4].y != buf->points[0].y)
+	{
+	    return CAIRO_INT_STATUS_UNSUPPORTED;
+	}
+    } else if (buf->op[4] != CAIRO_PATH_OP_CLOSE_PATH) {
+	return CAIRO_INT_STATUS_UNSUPPORTED;
+    }
+
+    
+
+
+    final = 5;
+    if (final < buf->num_ops &&
+	buf->op[final] == CAIRO_PATH_OP_CLOSE_PATH)
+    {
+	final++;
+    }
+    if (final < buf->num_ops &&
+	buf->op[final] == CAIRO_PATH_OP_MOVE_TO)
+    {
+	final++;
+    }
+    if (final < buf->num_ops)
+	return CAIRO_INT_STATUS_UNSUPPORTED;
+
+    
+
+
+    if (buf->points[0].y == buf->points[1].y &&
+	buf->points[1].x == buf->points[2].x &&
+	buf->points[2].y == buf->points[3].y &&
+	buf->points[3].x == buf->points[0].x)
+    {
+	return _cairo_traps_tessellate_convex_quad (traps,
+						    buf->points);
+    }
+
+    if (buf->points[0].x == buf->points[1].x &&
+	buf->points[1].y == buf->points[2].y &&
+	buf->points[2].x == buf->points[3].x &&
+	buf->points[3].y == buf->points[0].y)
+    {
+	return _cairo_traps_tessellate_convex_quad (traps,
+						    buf->points);
+    }
+
+    return CAIRO_INT_STATUS_UNSUPPORTED;
 }

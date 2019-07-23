@@ -1,34 +1,36 @@
-/*
- * $XdotOrg: xc/programs/Xserver/fb/fbcompose.c,v 1.5 2005/01/13 20:49:21 sandmann Exp $
- *
- * Copyright © 2000 Keith Packard, member of The XFree86 Project, Inc.
- *             2005 Lars Knoll & Zack Rusin, Trolltech
- *
- * Permission to use, copy, modify, distribute, and sell this software and its
- * documentation for any purpose is hereby granted without fee, provided that
- * the above copyright notice appear in all copies and that both that
- * copyright notice and this permission notice appear in supporting
- * documentation, and that the name of Keith Packard not be used in
- * advertising or publicity pertaining to distribution of the software without
- * specific, written prior permission.  Keith Packard makes no
- * representations about the suitability of this software for any purpose.  It
- * is provided "as is" without express or implied warranty.
- *
- * THE COPYRIGHT HOLDERS DISCLAIM ALL WARRANTIES WITH REGARD TO THIS
- * SOFTWARE, INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND
- * FITNESS, IN NO EVENT SHALL THE COPYRIGHT HOLDERS BE LIABLE FOR ANY
- * SPECIAL, INDIRECT OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
- * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN
- * AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING
- * OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS
- * SOFTWARE.
- */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif
 #include "pixman-xserver-compat.h"
 #include "fbpict.h"
+#ifndef MOZILLA_CAIRO_NOT_DEFINED
 #include "fbmmx.h"
+#endif 
 
 #ifdef RENDER
 
@@ -38,14 +40,15 @@
 #define _USE_MATH_DEFINES
 #endif
 
+#include <assert.h>
 #include <math.h>
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
 #endif
 
-/* #define PIXMAN_CONVOLUTION */
-/* #define PIXMAN_INDEXED_FORMATS */
+
+
 
 static Bool
 PictureTransformPoint3d (pixman_transform_t *transform,
@@ -140,9 +143,9 @@ SourcePictureClassify (PicturePtr pict,
 
 typedef FASTCALL void (*fetchProc)(const FbBits *bits, int x, int width, CARD32 *buffer, miIndexedPtr indexed);
 
-/*
- * All of the fetch functions
- */
+
+
+
 
 static FASTCALL void
 fbFetch_a8r8g8b8 (const FbBits *bits, int x, int width, CARD32 *buffer, miIndexedPtr indexed)
@@ -614,11 +617,11 @@ static fetchProc fetchProcForPicture (PicturePtr pict)
     case PICT_a8b8g8r8: return fbFetch_a8b8g8r8;
     case PICT_x8b8g8r8: return fbFetch_x8b8g8r8;
 
-        /* 24bpp formats */
+        
     case PICT_r8g8b8: return fbFetch_r8g8b8;
     case PICT_b8g8r8: return fbFetch_b8g8r8;
 
-        /* 16bpp formats */
+        
     case PICT_r5g6b5: return fbFetch_r5g6b5;
     case PICT_b5g6r5: return fbFetch_b5g6r5;
 
@@ -631,7 +634,7 @@ static fetchProc fetchProcForPicture (PicturePtr pict)
     case PICT_a4b4g4r4: return fbFetch_a4b4g4r4;
     case PICT_x4b4g4r4: return fbFetch_x4b4g4r4;
 
-        /* 8bpp formats */
+        
     case PICT_a8: return  fbFetch_a8;
     case PICT_r3g3b2: return fbFetch_r3g3b2;
     case PICT_b2g3r3: return fbFetch_b2g3r3;
@@ -640,7 +643,7 @@ static fetchProc fetchProcForPicture (PicturePtr pict)
     case PICT_c8: return  fbFetch_c8;
     case PICT_g8: return  fbFetch_c8;
 
-        /* 4bpp formats */
+        
     case PICT_a4: return  fbFetch_a4;
     case PICT_r1g2b1: return fbFetch_r1g2b1;
     case PICT_b1g2r1: return fbFetch_b1g2r1;
@@ -649,7 +652,7 @@ static fetchProc fetchProcForPicture (PicturePtr pict)
     case PICT_c4: return  fbFetch_c4;
     case PICT_g4: return  fbFetch_c4;
 
-        /* 1bpp formats */
+        
     case PICT_a1: return  fbFetch_a1;
     case PICT_g1: return  fbFetch_g1;
     default:
@@ -657,9 +660,9 @@ static fetchProc fetchProcForPicture (PicturePtr pict)
     }
 }
 
-/*
- * Pixel wise fetching
- */
+
+
+
 
 typedef FASTCALL CARD32 (*fetchPixelProc)(const FbBits *bits, int offset, miIndexedPtr indexed);
 
@@ -1041,11 +1044,11 @@ static fetchPixelProc fetchPixelProcForPicture (PicturePtr pict)
     case PICT_a8b8g8r8: return fbFetchPixel_a8b8g8r8;
     case PICT_x8b8g8r8: return fbFetchPixel_x8b8g8r8;
 
-        /* 24bpp formats */
+        
     case PICT_r8g8b8: return fbFetchPixel_r8g8b8;
     case PICT_b8g8r8: return fbFetchPixel_b8g8r8;
 
-        /* 16bpp formats */
+        
     case PICT_r5g6b5: return fbFetchPixel_r5g6b5;
     case PICT_b5g6r5: return fbFetchPixel_b5g6r5;
 
@@ -1058,7 +1061,7 @@ static fetchPixelProc fetchPixelProcForPicture (PicturePtr pict)
     case PICT_a4b4g4r4: return fbFetchPixel_a4b4g4r4;
     case PICT_x4b4g4r4: return fbFetchPixel_x4b4g4r4;
 
-        /* 8bpp formats */
+        
     case PICT_a8: return  fbFetchPixel_a8;
     case PICT_r3g3b2: return fbFetchPixel_r3g3b2;
     case PICT_b2g3r3: return fbFetchPixel_b2g3r3;
@@ -1067,7 +1070,7 @@ static fetchPixelProc fetchPixelProcForPicture (PicturePtr pict)
     case PICT_c8: return  fbFetchPixel_c8;
     case PICT_g8: return  fbFetchPixel_c8;
 
-        /* 4bpp formats */
+        
     case PICT_a4: return  fbFetchPixel_a4;
     case PICT_r1g2b1: return fbFetchPixel_r1g2b1;
     case PICT_b1g2r1: return fbFetchPixel_b1g2r1;
@@ -1076,7 +1079,7 @@ static fetchPixelProc fetchPixelProcForPicture (PicturePtr pict)
     case PICT_c4: return  fbFetchPixel_c4;
     case PICT_g4: return  fbFetchPixel_c4;
 
-        /* 1bpp formats */
+        
     case PICT_a1: return  fbFetchPixel_a1;
     case PICT_g1: return  fbFetchPixel_g1;
     default:
@@ -1084,9 +1087,9 @@ static fetchPixelProc fetchPixelProcForPicture (PicturePtr pict)
     }
 }
 
-/*
- * All the store functions
- */
+
+
+
 
 typedef FASTCALL void (*storeProc) (FbBits *bits, const CARD32 *values, int x, int width, miIndexedPtr indexed);
 
@@ -1475,11 +1478,11 @@ static storeProc storeProcForPicture (PicturePtr pict)
     case PICT_a8b8g8r8: return fbStore_a8b8g8r8;
     case PICT_x8b8g8r8: return fbStore_x8b8g8r8;
 
-        /* 24bpp formats */
+        
     case PICT_r8g8b8: return fbStore_r8g8b8;
     case PICT_b8g8r8: return fbStore_b8g8r8;
 
-        /* 16bpp formats */
+        
     case PICT_r5g6b5: return fbStore_r5g6b5;
     case PICT_b5g6r5: return fbStore_b5g6r5;
 
@@ -1492,7 +1495,7 @@ static storeProc storeProcForPicture (PicturePtr pict)
     case PICT_a4b4g4r4: return fbStore_a4b4g4r4;
     case PICT_x4b4g4r4: return fbStore_x4b4g4r4;
 
-        /* 8bpp formats */
+        
     case PICT_a8: return  fbStore_a8;
     case PICT_r3g3b2: return fbStore_r3g3b2;
     case PICT_b2g3r3: return fbStore_b2g3r3;
@@ -1500,7 +1503,7 @@ static storeProc storeProcForPicture (PicturePtr pict)
     case PICT_c8: return  fbStore_c8;
     case PICT_g8: return  fbStore_c8;
 
-        /* 4bpp formats */
+        
     case PICT_a4: return  fbStore_a4;
     case PICT_r1g2b1: return fbStore_r1g2b1;
     case PICT_b1g2r1: return fbStore_b1g2r1;
@@ -1509,7 +1512,7 @@ static storeProc storeProcForPicture (PicturePtr pict)
     case PICT_c4: return  fbStore_c4;
     case PICT_g4: return  fbStore_c4;
 
-        /* 1bpp formats */
+        
     case PICT_a1: return  fbStore_a1;
     case PICT_g1: return  fbStore_g1;
     default:
@@ -1517,9 +1520,9 @@ static storeProc storeProcForPicture (PicturePtr pict)
     }
 }
 
-/*
- * Combine src and mask
- */
+
+
+
 static FASTCALL void
 fbCombineMaskU (CARD32 *src, const CARD32 *mask, int width)
 {
@@ -1532,9 +1535,9 @@ fbCombineMaskU (CARD32 *src, const CARD32 *mask, int width)
     }
 }
 
-/*
- * All of the composing functions
- */
+
+
+
 
 static FASTCALL void
 fbCombineClear (CARD32 *dest, const CARD32 *src, int width)
@@ -1701,30 +1704,30 @@ fbCombineSaturateU (CARD32 *dest, const CARD32 *src, int width)
     }
 }
 
-/*
- * All of the disjoint composing functions
 
- The four entries in the first column indicate what source contributions
- come from each of the four areas of the picture -- areas covered by neither
- A nor B, areas covered only by A, areas covered only by B and finally
- areas covered by both A and B.
 
-		Disjoint			Conjoint
-		Fa		Fb		Fa		Fb
-(0,0,0,0)	0		0		0		0
-(0,A,0,A)	1		0		1		0
-(0,0,B,B)	0		1		0		1
-(0,A,B,A)	1		min((1-a)/b,1)	1		max(1-a/b,0)
-(0,A,B,B)	min((1-b)/a,1)	1		max(1-b/a,0)	1
-(0,0,0,A)	max(1-(1-b)/a,0) 0		min(1,b/a)	0
-(0,0,0,B)	0		max(1-(1-a)/b,0) 0		min(a/b,1)
-(0,A,0,0)	min(1,(1-b)/a)	0		max(1-b/a,0)	0
-(0,0,B,0)	0		min(1,(1-a)/b)	0		max(1-a/b,0)
-(0,0,B,A)	max(1-(1-b)/a,0) min(1,(1-a)/b)	 min(1,b/a)	max(1-a/b,0)
-(0,A,0,B)	min(1,(1-b)/a)	max(1-(1-a)/b,0) max(1-b/a,0)	min(1,a/b)
-(0,A,B,0)	min(1,(1-b)/a)	min(1,(1-a)/b)	max(1-b/a,0)	max(1-a/b,0)
 
- */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #define CombineAOut 1
 #define CombineAIn  2
@@ -1740,30 +1743,30 @@ fbCombineSaturateU (CARD32 *dest, const CARD32 *src, int width)
 #define CombineBAtop	(CombineAOut|CombineBIn)
 #define CombineXor	(CombineAOut|CombineBOut)
 
-/* portion covered by a but not b */
+
 static INLINE CARD8
 fbCombineDisjointOutPart (CARD8 a, CARD8 b)
 {
-    /* min (1, (1-b) / a) */
+    
 
-    b = ~b;		    /* 1 - b */
-    if (b >= a)		    /* 1 - b >= a -> (1-b)/a >= 1 */
-	return 0xff;	    /* 1 */
-    return FbIntDiv(b,a);   /* (1-b) / a */
+    b = ~b;		    
+    if (b >= a)		    
+	return 0xff;	    
+    return FbIntDiv(b,a);   
 }
 
-/* portion covered by both a and b */
+
 static INLINE CARD8
 fbCombineDisjointInPart (CARD8 a, CARD8 b)
 {
-    /* max (1-(1-b)/a,0) */
-    /*  = - min ((1-b)/a - 1, 0) */
-    /*  = 1 - min (1, (1-b)/a) */
+    
+    
+    
 
-    b = ~b;		    /* 1 - b */
-    if (b >= a)		    /* 1 - b >= a -> (1-b)/a >= 1 */
-	return 0;	    /* 1 - 1 */
-    return ~FbIntDiv(b,a);  /* 1 - (1-b) / a */
+    b = ~b;		    
+    if (b >= a)		    
+	return 0;	    
+    return ~FbIntDiv(b,a);  
 }
 
 static FASTCALL void
@@ -1880,29 +1883,29 @@ fbCombineDisjointXorU (CARD32 *dest, const CARD32 *src, int width)
     fbCombineDisjointGeneralU (dest, src, width, CombineXor);
 }
 
-/* portion covered by a but not b */
+
 static INLINE CARD8
 fbCombineConjointOutPart (CARD8 a, CARD8 b)
 {
-    /* max (1-b/a,0) */
-    /* = 1-min(b/a,1) */
+    
+    
 
-    /* min (1, (1-b) / a) */
+    
 
-    if (b >= a)		    /* b >= a -> b/a >= 1 */
-	return 0x00;	    /* 0 */
-    return ~FbIntDiv(b,a);   /* 1 - b/a */
+    if (b >= a)		    
+	return 0x00;	    
+    return ~FbIntDiv(b,a);   
 }
 
-/* portion covered by both a and b */
+
 static INLINE CARD8
 fbCombineConjointInPart (CARD8 a, CARD8 b)
 {
-    /* min (1,b/a) */
+    
 
-    if (b >= a)		    /* b >= a -> b/a >= 1 */
-	return 0xff;	    /* 1 */
-    return FbIntDiv(b,a);   /* b/a */
+    if (b >= a)		    
+	return 0xff;	    
+    return FbIntDiv(b,a);   
 }
 
 static FASTCALL void
@@ -2012,7 +2015,7 @@ fbCombineConjointXorU (CARD32 *dest, const CARD32 *src, int width)
 static CombineFuncU fbCombineFuncU[] = {
     fbCombineClear,
     fbCombineSrcU,
-    NULL, /* CombineDst */
+    NULL, 
     fbCombineOverU,
     fbCombineOverReverseU,
     fbCombineInU,
@@ -2028,9 +2031,9 @@ static CombineFuncU fbCombineFuncU[] = {
     NULL,
     fbCombineClear,
     fbCombineSrcU,
-    NULL, /* CombineDst */
+    NULL, 
     fbCombineDisjointOverU,
-    fbCombineSaturateU, /* DisjointOverReverse */
+    fbCombineSaturateU, 
     fbCombineDisjointInU,
     fbCombineDisjointInReverseU,
     fbCombineDisjointOutU,
@@ -2044,7 +2047,7 @@ static CombineFuncU fbCombineFuncU[] = {
     NULL,
     fbCombineClear,
     fbCombineSrcU,
-    NULL, /* CombineDst */
+    NULL, 
     fbCombineConjointOverU,
     fbCombineConjointOverReverseU,
     fbCombineConjointInU,
@@ -2632,7 +2635,7 @@ fbCombineConjointXorC (CARD32 *dest, CARD32 *src, CARD32 *mask, int width)
 static CombineFuncC fbCombineFuncC[] = {
     fbCombineClearC,
     fbCombineSrcC,
-    NULL, /* Dest */
+    NULL, 
     fbCombineOverC,
     fbCombineOverReverseC,
     fbCombineInC,
@@ -2646,25 +2649,25 @@ static CombineFuncC fbCombineFuncC[] = {
     fbCombineSaturateC,
     NULL,
     NULL,
-    fbCombineClearC,	    /* 0x10 */
+    fbCombineClearC,	    
     fbCombineSrcC,
-    NULL, /* Dest */
+    NULL, 
     fbCombineDisjointOverC,
-    fbCombineSaturateC, /* DisjointOverReverse */
+    fbCombineSaturateC, 
     fbCombineDisjointInC,
     fbCombineDisjointInReverseC,
     fbCombineDisjointOutC,
     fbCombineDisjointOutReverseC,
     fbCombineDisjointAtopC,
     fbCombineDisjointAtopReverseC,
-    fbCombineDisjointXorC,  /* 0x1b */
+    fbCombineDisjointXorC,  
     NULL,
     NULL,
     NULL,
     NULL,
     fbCombineClearC,
     fbCombineSrcC,
-    NULL, /* Dest */
+    NULL, 
     fbCombineConjointOverC,
     fbCombineConjointOverReverseC,
     fbCombineConjointInC,
@@ -2740,12 +2743,13 @@ typedef struct
     CARD32        right_rb;
     int32_t       left_x;
     int32_t       right_x;
-    int32_t       width_x;
     int32_t       stepper;
 
     pixman_gradient_stop_t  *stops;
     int                      num_stops;
     unsigned int             spread;
+
+    int           need_reset;
 } GradientWalker;
 
 static void
@@ -2757,13 +2761,14 @@ _gradient_walker_init (GradientWalker  *walker,
     walker->stops     = pGradient->gradient.stops;
     walker->left_x    = 0;
     walker->right_x   = 0x10000;
-    walker->width_x   = 0;  /* will force a reset */
     walker->stepper   = 0;
     walker->left_ag   = 0;
     walker->left_rb   = 0;
     walker->right_ag  = 0;
     walker->right_rb  = 0;
     walker->spread    = spread;
+
+    walker->need_reset = TRUE;
 }
 
 static void
@@ -2853,19 +2858,21 @@ _gradient_walker_reset (GradientWalker  *walker,
 	    pixman_color_t  *tmp_c;
 	    int32_t          tmp_x;
 
-	    tmp_x   = 0x20000 - right_x;
-	    right_x = 0x20000 - left_x;
+	    tmp_x   = 0x10000 - right_x;
+	    right_x = 0x10000 - left_x;
 	    left_x  = tmp_x;
 
 	    tmp_c   = right_c;
 	    right_c = left_c;
 	    left_c  = tmp_c;
+
+            x = 0x10000 - x;
 	}
 	left_x  += (pos - x);
 	right_x += (pos - x);
 	break;
 
-    default:  /* RepeatNone */
+    default:  
 	for (n = 0; n < count; n++)
 	    if (pos < stops[n].x)
 		break;
@@ -2893,29 +2900,30 @@ _gradient_walker_reset (GradientWalker  *walker,
 
     walker->left_x   = left_x;
     walker->right_x  = right_x;
-    walker->width_x  = right_x - left_x;
     walker->left_ag  = ((left_c->alpha >> 8) << 16)   | (left_c->green >> 8);
     walker->left_rb  = ((left_c->red & 0xff00) << 8)  | (left_c->blue >> 8);
     walker->right_ag = ((right_c->alpha >> 8) << 16)  | (right_c->green >> 8);
     walker->right_rb = ((right_c->red & 0xff00) << 8) | (right_c->blue >> 8);
 
-    if ( walker->width_x == 0                      ||
+    if ( walker->left_x == walker->right_x           ||
 	 ( walker->left_ag == walker->right_ag &&
 	   walker->left_rb == walker->right_rb )   )
     {
-	walker->width_x = 1;
 	walker->stepper = 0;
     }
     else
     {
-	walker->stepper = ((1 << 24) + walker->width_x/2)/walker->width_x;
+	int32_t width = right_x - left_x;
+	walker->stepper = ((1 << 24) + width/2)/width;
     }
+
+    walker->need_reset = FALSE;
 }
 
 #define  GRADIENT_WALKER_NEED_RESET(w,x)  \
-   ( (x) < (w)->left_x || (x) - (w)->left_x >= (w)->width_x )
+   ( (w)->need_reset || (x) < (w)->left_x || (x) >= (w)->right_x)
 
-/* the following assumes that GRADIENT_WALKER_NEED_RESET(w,x) is FALSE */
+
 static CARD32
 _gradient_walker_pixel (GradientWalker  *walker,
                         xFixed_32_32     x)
@@ -2929,7 +2937,7 @@ _gradient_walker_pixel (GradientWalker  *walker,
     dist  = ((int)(x - walker->left_x)*walker->stepper) >> 16;
     idist = 256 - dist;
 
-    /* combined INTERPOLATE and premultiply */
+    
     t1 = walker->left_rb*idist + walker->right_rb*dist;
     t1 = (t1 >> 8) & 0xff00ff;
 
@@ -2947,8 +2955,6 @@ _gradient_walker_pixel (GradientWalker  *walker,
 
     return (color | (t1 & 0xff00ff) | (t2 & 0xff00));
 }
-
-
 
 static void fbFetchSourcePict(PicturePtr pict, int x, int y, int width, CARD32 *buffer, CARD32 *mask, CARD32 maskBits)
 {
@@ -2968,7 +2974,7 @@ static void fbFetchSourcePict(PicturePtr pict, int x, int y, int width, CARD32 *
         xFixed_32_32 l;
         xFixed_48_16 dx, dy, a, b, off;
 
-        /* reference point is the center of the pixel */
+        
         v.vector[0] = IntToxFixed(x) + xFixed1/2;
         v.vector[1] = IntToxFixed(y) + xFixed1/2;
         v.vector[2] = xFixed1;
@@ -2994,7 +3000,7 @@ static void fbFetchSourcePict(PicturePtr pict, int x, int y, int width, CARD32 *
         }
         if (l == 0  || (unit.vector[2] == 0 && v.vector[2] == xFixed1)) {
             xFixed_48_16 inc, t;
-            /* affine transformation only */
+            
             if (l == 0) {
                 t = 0;
                 inc = 0;
@@ -3032,7 +3038,7 @@ static void fbFetchSourcePict(PicturePtr pict, int x, int y, int width, CARD32 *
                 }
 	    }
 	}
-	else /* projective transformation */
+	else 
 	{
 	    xFixed_48_16 t;
 
@@ -3081,18 +3087,133 @@ static void fbFetchSourcePict(PicturePtr pict, int x, int y, int width, CARD32 *
 	    }
         }
     } else {
-        /* radial or conical */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        
         Bool projective = FALSE;
         double cx = 1.;
         double cy = 0.;
         double cz = 0.;
-        double rx = x;
-        double ry = y;
+        double rx = x + 0.5;
+        double ry = y + 0.5;
         double rz = 1.;
 
         if (pict->transform) {
             PictVector v;
-            /* reference point is the center of the pixel */
+            
             v.vector[0] = IntToxFixed(x) + xFixed1/2;
             v.vector[1] = IntToxFixed(y) + xFixed1/2;
             v.vector[2] = xFixed1;
@@ -3109,23 +3230,36 @@ static void fbFetchSourcePict(PicturePtr pict, int x, int y, int width, CARD32 *
         }
 
         if (pGradient->type == SourcePictTypeRadial) {
+	    pixman_radial_gradient_image_t *radial;
+	    radial = &pGradient->radial;
             if (!projective) {
-                rx -= pGradient->radial.fx;
-                ry -= pGradient->radial.fy;
-
                 while (buffer < end) {
-                    double b, c, det, s;
-
                     if (!mask || *mask++ & maskBits)
                     {
-                        xFixed_48_16  t;
+			double pdx, pdy;
+			double B, C;
+			double det;
+			double c1x = xFixedToDouble (radial->c1.x);
+			double c1y = xFixedToDouble (radial->c1.y);
+			double r1  = xFixedToDouble (radial->c1.radius);
+                        xFixed_48_16 t;
 
-                        b = 2*(rx*pGradient->radial.dx + ry*pGradient->radial.dy);
-                        c = -(rx*rx + ry*ry);
-                        det = (b * b) - (4 * pGradient->radial.a * c);
-                        s = (-b + sqrt(det))/(2. * pGradient->radial.a);
+			pdx = rx - c1x;
+			pdy = ry - c1y;
 
-                        t = (xFixed_48_16)((s*pGradient->radial.m + pGradient->radial.b)*65536);
+			B = -2 * (  pdx * radial->cdx
+				  + pdy * radial->cdy
+				  + r1 * radial->dr);
+			C = (pdx * pdx + pdy * pdy - r1 * r1);
+
+                        det = (B * B) - (4 * radial->A * C);
+			if (det < 0.0)
+			    det = 0.0;
+
+			if (radial->A < 0)
+			    t = (xFixed_48_16) ((- B - sqrt(det)) / (2.0 * radial->A) * 65536);
+			else
+			    t = (xFixed_48_16) ((- B + sqrt(det)) / (2.0 * radial->A) * 65536);
 
                         *buffer = _gradient_walker_pixel (&walker, t);
                     }
@@ -3134,37 +3268,14 @@ static void fbFetchSourcePict(PicturePtr pict, int x, int y, int width, CARD32 *
                     ry += cy;
                 }
             } else {
-                while (buffer < end) {
-                    double x, y;
-                    double b, c, det, s;
+		
 
-                    if (!mask || *mask++ & maskBits)
-                    {
-                        xFixed_48_16  t;
 
-                        if (rz != 0) {
-                            x = rx/rz;
-                            y = ry/rz;
-                        } else {
-                            x = y = 0.;
-                        }
-                        x -= pGradient->radial.fx;
-                        y -= pGradient->radial.fy;
-                        b = 2*(x*pGradient->radial.dx + y*pGradient->radial.dy);
-                        c = -(x*x + y*y);
-                        det = (b * b) - (4 * pGradient->radial.a * c);
-                        s = (-b + sqrt(det))/(2. * pGradient->radial.a);
-                        t = (xFixed_48_16)((s*pGradient->radial.m + pGradient->radial.b)*65536);
 
-                        *buffer = _gradient_walker_pixel (&walker, t);
-                    }
-                    ++buffer;
-                    rx += cx;
-                    ry += cy;
-                    rz += cz;
-                }
+
+		assert (0);
             }
-        } else /* SourcePictTypeConical */ {
+        } else  {
             double a = pGradient->conical.angle/(180.*65536);
             if (!projective) {
                 rx -= pGradient->conical.center.x/65536.;
@@ -3242,12 +3353,12 @@ static void fbFetchTransformed(PicturePtr pict, int x, int y, int width, CARD32 
     x += xoff;
     y += yoff;
 
-    /* reference point is the center of the pixel */
+    
     v.vector[0] = IntToxFixed(x) + xFixed1/2;
     v.vector[1] = IntToxFixed(y) + xFixed1/2;
     v.vector[2] = xFixed1;
 
-    /* when using convolution filters one might get here without a transform */
+    
     if (pict->transform) {
         if (!PictureTransformPoint3d (pict->transform, &v))
             return;
@@ -3359,7 +3470,7 @@ static void fbFetchTransformed(PicturePtr pict, int x, int y, int width, CARD32 
             }
         }
     } else if (pict->filter == PIXMAN_FILTER_BILINEAR || pict->filter == PIXMAN_FILTER_GOOD || pict->filter == PIXMAN_FILTER_BEST) {
-        /* adjust vector for maximum contribution at 0.5, 0.5 of each texel. */
+        
         v.vector[0] -= v.vector[2]/2;
         v.vector[1] -= v.vector[2]/2;
         unit.vector[0] -= unit.vector[2]/2;
@@ -3818,9 +3929,9 @@ fbCompositeRect (const FbComposeData *data, CARD32 *scanline_buffer)
     scanFetchProc fetchSrc = NULL, fetchMask = NULL, fetchDest = NULL;
     unsigned int srcClass  = SourcePictClassUnknown;
     unsigned int maskClass = SourcePictClassUnknown;
-    FbBits *bits = NULL;    /* squelch bogus compiler warning */
-    FbStride stride = 0;    /* squelch bogus compiler warning */
-    int	xoff = 0, yoff = 0; /* squelch bogus compiler warning */
+    FbBits *bits = NULL;    
+    FbStride stride = 0;    
+    int	xoff = 0, yoff = 0; 
 
     if (data->op == PIXMAN_OPERATOR_CLEAR)
         fetchSrc = NULL;
@@ -3896,7 +4007,7 @@ fbCompositeRect (const FbComposeData *data, CARD32 *scanline_buffer)
 	case PIXMAN_OPERATOR_CLEAR:
 	case PIXMAN_OPERATOR_SRC:
 	    fetchDest = NULL;
-	    /* fall-through */
+	    
 	case PIXMAN_OPERATOR_ADD:
 	case PIXMAN_OPERATOR_OVER:
 	    switch (data->dest->format_code) {
@@ -3927,16 +4038,17 @@ fbCompositeRect (const FbComposeData *data, CARD32 *scanline_buffer)
 	if (!compose)
 	    return;
 
-	/* XXX: The non-MMX version of some of the fbCompose functions
-	 * overwrite the source or mask data (ones that use
-	 * fbCombineMaskC, fbCombineMaskAlphaC, or fbCombineMaskValueC
-	 * as helpers).  This causes problems with the optimization in
-	 * this function that only fetches the source or mask once if
-	 * possible.  If we're on a non-MMX machine, disable this
-	 * optimization as a bandaid fix.
-	 *
-	 * https://bugs.freedesktop.org/show_bug.cgi?id=5777
-	 */
+#ifndef MOZILLA_CAIRO_NOT_DEFINED
+	
+
+
+
+
+
+
+
+
+
 #ifdef USE_MMX
 	if (!fbHaveMMX())
 #endif
@@ -3944,15 +4056,16 @@ fbCompositeRect (const FbComposeData *data, CARD32 *scanline_buffer)
 	    srcClass = SourcePictClassUnknown;
 	    maskClass = SourcePictClassUnknown;
 	}
+#endif 
 
 	for (i = 0; i < data->height; ++i) {
-	    /* fill first half of scanline with source */
+	    
 	    if (fetchSrc)
 	    {
 		if (fetchMask)
 		{
-		    /* fetch mask before source so that fetching of
-		       source can be optimized */
+		    
+
 		    fetchMask (data->mask, data->xMask, data->yMask + i,
 			       data->width, mask_buffer, NULL, 0);
 
@@ -3981,21 +4094,21 @@ fbCompositeRect (const FbComposeData *data, CARD32 *scanline_buffer)
 
 	    if (store)
 	    {
-		/* fill dest into second half of scanline */
+		
 		if (fetchDest)
 		    fetchDest (data->dest, data->xDest, data->yDest + i,
 			       data->width, dest_buffer, NULL, 0);
 
-		/* blend */
+		
 		compose (dest_buffer, src_buffer, mask_buffer, data->width);
 
-		/* write back */
+		
 		store (data->dest, data->xDest, data->yDest + i, data->width,
 		       dest_buffer);
 	    }
 	    else
 	    {
-		/* blend */
+		
 		compose (bits + (data->yDest + i+ yoff) * stride +
 			 data->xDest + xoff,
 			 src_buffer, mask_buffer, data->width);
@@ -4004,7 +4117,7 @@ fbCompositeRect (const FbComposeData *data, CARD32 *scanline_buffer)
     }
     else
     {
-	CARD32 *src_mask_buffer = NULL; /* squelch bogus compiler warning */
+	CARD32 *src_mask_buffer = NULL; 
 	CARD32 *mask_buffer = NULL;
 	CombineFuncU compose = composeFunctions.combineU[data->op];
 	if (!compose)
@@ -4014,13 +4127,13 @@ fbCompositeRect (const FbComposeData *data, CARD32 *scanline_buffer)
 	  mask_buffer = dest_buffer + data->width;
 
 	for (i = 0; i < data->height; ++i) {
-	    /* fill first half of scanline with source */
+	    
 	    if (fetchSrc)
 	    {
 		if (fetchMask)
 		{
-		    /* fetch mask before source so that fetching of
-		       source can be optimized */
+		    
+
 		    fetchMask (data->mask, data->xMask, data->yMask + i,
 			       data->width, mask_buffer, NULL, 0);
 
@@ -4069,21 +4182,21 @@ fbCompositeRect (const FbComposeData *data, CARD32 *scanline_buffer)
 
 	    if (store)
 	    {
-		/* fill dest into second half of scanline */
+		
 		if (fetchDest)
 		    fetchDest (data->dest, data->xDest, data->yDest + i,
 			       data->width, dest_buffer, NULL, 0);
 
-		/* blend */
+		
 		compose (dest_buffer, src_mask_buffer, data->width);
 
-		/* write back */
+		
 		store (data->dest, data->xDest, data->yDest + i, data->width,
 		       dest_buffer);
 	    }
 	    else
 	    {
-		/* blend */
+		
 		compose (bits + (data->yDest + i+ yoff) * stride +
 			 data->xDest + xoff,
 			 src_mask_buffer, data->width);
