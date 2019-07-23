@@ -63,6 +63,15 @@
 
 #include "jsautooplen.h"        
 
+
+#define HOTLOOP 2
+
+
+#define HOTEXIT 0
+
+
+#define DEMOTE_THRESHOLD 32
+
 #ifdef DEBUG
 #define ABORT_TRACE(msg)   do { fprintf(stdout, "abort: %d: %s\n", __LINE__, msg); return false; } while(0)
 #else
@@ -978,6 +987,7 @@ TraceRecorder::snapshot()
             ? (isPromoteInt(i) ? JSVAL_INT : JSVAL_DOUBLE)
             : JSVAL_TAG(*vp);
     );
+    ++guardCount;
     return &exit;
 }
 
@@ -1000,6 +1010,9 @@ TraceRecorder::checkType(jsval& v, uint8& t)
 
         LIns* i = get(&v);
         if (TYPEMAP_GET_TYPE(t) == JSVAL_DOUBLE) {
+            
+            if (guardCount > DEMOTE_THRESHOLD)
+                return true;
             if (isInt32(v) && !TYPEMAP_GET_FLAG(t, TYPEMAP_FLAG_DONT_DEMOTE)) {
                 
 
@@ -1200,9 +1213,6 @@ js_IsLoopExit(JSContext* cx, JSScript* script, jsbytecode* pc)
     }
     return false;
 }
-
-#define HOTLOOP 2
-#define HOTEXIT 0
 
 bool
 js_LoopEdge(JSContext* cx, jsbytecode* oldpc)
