@@ -59,9 +59,9 @@ namespace nanojit
         
         LIR64    = 0x40,            
 
-#define OPDEF(op, number, args, repkind, isStmt) \
+#define OPDEF(op, number, args, repkind) \
         LIR_##op = (number),
-#define OPDEF64(op, number, args, repkind, isStmt) \
+#define OPDEF64(op, number, args, repkind) \
         LIR_##op = ((number) | LIR64),
 #include "LIRopcode.tbl"
         LIR_sentinel
@@ -680,7 +680,20 @@ namespace nanojit
         bool isBranch() const {
             return isop(LIR_jt) || isop(LIR_jf) || isop(LIR_j);
         }
-        bool isStmt();
+
+        
+        
+        
+        
+        
+        
+        bool isStmt() {
+            return isGuard() || isBranch() ||
+                   (isCall() && !isCse()) ||
+                   isStore() ||
+                   isop(LIR_loop) || isop(LIR_label) || isop(LIR_live) ||
+                   isRet();
+        }
 
         void setTarget(LIns* t);
         LIns* getTarget();
