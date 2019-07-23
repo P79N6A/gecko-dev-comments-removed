@@ -2264,9 +2264,6 @@ extern JSErrorFormatString js_ErrorFormatString[JSErr_Limit];
 
 
 
-
-
-
 #if JS_STACK_GROWTH_DIRECTION > 0
 # define JS_CHECK_STACK_SIZE(cx, lval)  ((jsuword)&(lval) < (cx)->stackLimit)
 #else
