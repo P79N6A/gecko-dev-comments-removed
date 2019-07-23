@@ -148,7 +148,6 @@ NS_NewSVGOuterSVGFrame(nsIPresShell* aPresShell, nsIContent* aContent, nsStyleCo
 nsSVGOuterSVGFrame::nsSVGOuterSVGFrame(nsStyleContext* aContext)
     : nsSVGOuterSVGFrameBase(aContext),
       mRedrawSuspendCount(0),
-      mNeedsReflow(PR_FALSE),
       mViewportInitialized(PR_FALSE)
 {
 }
@@ -510,16 +509,12 @@ nsSVGOuterSVGFrame::UnsuspendRedraw()
 #ifdef DEBUG
 
 #endif
+
+  NS_ASSERTION(mRedrawSuspendCount >=0, "unbalanced suspend count!");
+
   if (--mRedrawSuspendCount > 0)
     return NS_OK;
-  
-  NS_ASSERTION(mRedrawSuspendCount >=0, "unbalanced suspend count!");
-  
-  
-  
-  if (mNeedsReflow)
-    InitiateReflow();
-  
+
   for (nsIFrame* kid = mFrames.FirstChild(); kid;
        kid = kid->GetNextSibling()) {
     nsISVGChildFrame* SVGFrame=nsnull;
@@ -599,20 +594,6 @@ nsSVGOuterSVGFrame::GetCanvasTM()
 }
 
 
-
-
-void nsSVGOuterSVGFrame::InitiateReflow()
-{
-  mNeedsReflow = PR_FALSE;
-  
-  nsIPresShell* presShell = PresContext()->PresShell();
-  presShell->FrameNeedsReflow(this, nsIPresShell::eStyleChange,
-                              NS_FRAME_IS_DIRTY);
-  
-  
-  
-  presShell->FlushPendingNotifications(Flush_OnlyReflow);  
-}
 
 
 void
