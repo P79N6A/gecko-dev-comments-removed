@@ -140,11 +140,11 @@ const NetUtil = {
 
 
 
-    asyncFetch: function NetUtil_asyncOpen(aSource, aCallback)
+    asyncFetch: function NetUtil_asyncOpen(aChannel, aCallback)
     {
-        if (!aSource || !aCallback) {
+        if (!aChannel || !aCallback) {
             let exception = new Components.Exception(
-                "Must have a source and a callback",
+                "Must have a channel and a callback",
                 Cr.NS_ERROR_INVALID_ARG,
                 Components.stack.caller
             );
@@ -168,12 +168,7 @@ const NetUtil = {
             }
         });
 
-        let channel = aSource;
-        if (!(channel instanceof Ci.nsIChannel)) {
-            channel = this.newChannel(aSource);
-        }
-
-        channel.asyncOpen(listener, null);
+        aChannel.asyncOpen(listener, null);
     },
 
     
@@ -207,41 +202,6 @@ const NetUtil = {
         }
 
         return this.ioService.newURI(aTarget, aOriginCharset, aBaseURI);
-    },
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-    newChannel: function NetUtil_newChannel(aWhatToLoad, aOriginCharset,
-                                            aBaseURI)
-    {
-        if (!aWhatToLoad) {
-            let exception = new Components.Exception(
-                "Must have a non-null string spec, nsIURI, or nsIFile object",
-                Cr.NS_ERROR_INVALID_ARG,
-                Components.stack.caller
-            );
-            throw exception;
-        }
-
-        let uri = aWhatToLoad;
-        if (!(aWhatToLoad instanceof Ci.nsIURI)) {
-            
-            uri = this.newURI(aWhatToLoad, aOriginCharset, aBaseURI);
-        }
-
-        return this.ioService.newChannelFromURI(uri);
     },
 
     
