@@ -53,6 +53,7 @@
 
 class nsIContent;
 class nsIURI;
+class nsIFrameFrame;
 
 #ifdef MOZ_IPC
 namespace mozilla {
@@ -93,6 +94,21 @@ public:
   nsresult ReallyStartLoading();
   void Finalize();
   nsIDocShell* GetExistingDocShell() { return mDocShell; }
+
+  
+
+
+
+  bool Show(PRInt32 marginWidth, PRInt32 marginHeight,
+            PRInt32 scrollbarPrefX, PRInt32 scrollbarPrefY,
+            nsIFrameFrame* frame);
+
+  
+
+
+
+
+  void Hide();
 
   
   
