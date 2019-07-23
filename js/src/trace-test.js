@@ -5,6 +5,7 @@
 
 
 
+
 const haveTracemonkey = !!(this.tracemonkey)
 const HOTLOOP = haveTracemonkey ? tracemonkey.HOTLOOP : 2;
 
@@ -2155,6 +2156,15 @@ function testNumToString() {
 }
 testNumToString.expected = "123456789,-123456789,123456789,-123456789,75bcd15,-75bcd15,21i3v9,-21i3v9";
 test(testNumToString);
+
+function testSubstring() {
+    for (var i = 0; i < 5; ++i) {
+        actual = "".substring(5);
+    }
+    return actual;
+}
+testSubstring.expected = "";
+test(testSubstring);
 
 
 print("\npassed:", passes.length && passes.join(","));
