@@ -51,10 +51,11 @@ try {
 } 
 
 
-var root = bmsvc.bookmarksRoot;
-
 
 function run_test() {
+  
+  var root = bmsvc.bookmarksMenuFolder;
+
   
 
 

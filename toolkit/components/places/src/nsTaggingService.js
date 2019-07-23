@@ -209,7 +209,7 @@ TaggingService.prototype = {
     if (!aTags) {
       
       
-      aTags = this.getTagsForURI(aURI);
+      aTags = this.getTagsForURI(aURI, { });
     }
 
     for (var i=0; i < aTags.length; i++) {
@@ -246,7 +246,7 @@ TaggingService.prototype = {
   },
 
   
-  getTagsForURI: function TS_getTagsForURI(aURI) {
+  getTagsForURI: function TS_getTagsForURI(aURI, aCount) {
     if (!aURI)
       throw Cr.NS_ERROR_INVALID_ARG;
 
@@ -265,6 +265,7 @@ TaggingService.prototype = {
 
     
     tags.sort();
+    aCount.value = tags.length;
     return tags;
   },
 
