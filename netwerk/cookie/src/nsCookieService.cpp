@@ -54,6 +54,7 @@
 #include "nsIObserverService.h"
 #include "nsILineInputStream.h"
 #include "nsIEffectiveTLDService.h"
+#include "nsIIDNService.h"
 
 #include "nsTArray.h"
 #include "nsCOMArray.h"
@@ -403,6 +404,9 @@ nsCookieService::Init()
 
   nsresult rv;
   mTLDService = do_GetService(NS_EFFECTIVETLDSERVICE_CONTRACTID, &rv);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  mIDNService = do_GetService(NS_IDNSERVICE_CONTRACTID, &rv);
   NS_ENSURE_SUCCESS(rv, rv);
 
   
@@ -810,9 +814,12 @@ nsCookieService::SetCookieStringInternal(nsIURI     *aHostURI,
 
   
   
-  PRBool isIPAddress;
+  
+  
+  
+  PRBool requireHostMatch;
   nsCAutoString baseDomain;
-  nsresult rv = GetBaseDomain(aHostURI, baseDomain, isIPAddress);
+  nsresult rv = GetBaseDomain(aHostURI, baseDomain, requireHostMatch);
   if (NS_FAILED(rv)) {
     COOKIE_LOGFAILURE(SET_COOKIE, aHostURI, aCookieHeader, 
                       "couldn't get base domain from URI");
@@ -821,7 +828,7 @@ nsCookieService::SetCookieStringInternal(nsIURI     *aHostURI,
 
   
   PRUint32 cookieStatus = CheckPrefs(aHostURI, aChannel, baseDomain,
-                                     isIPAddress, aCookieHeader);
+                                     requireHostMatch, aCookieHeader);
   
   switch (cookieStatus) {
   case STATUS_REJECTED:
@@ -850,7 +857,7 @@ nsCookieService::SetCookieStringInternal(nsIURI     *aHostURI,
  
   
   nsDependentCString cookieHeader(aCookieHeader);
-  while (SetCookieInternal(aHostURI, aChannel, baseDomain, isIPAddress,
+  while (SetCookieInternal(aHostURI, aChannel, baseDomain, requireHostMatch,
                            cookieHeader, serverTime, aFromHttp));
 
   return NS_OK;
@@ -972,7 +979,7 @@ nsCookieService::GetEnumerator(nsISimpleEnumerator **aEnumerator)
 }
 
 NS_IMETHODIMP
-nsCookieService::Add(const nsACString &aDomain,
+nsCookieService::Add(const nsACString &aHost,
                      const nsACString &aPath,
                      const nsACString &aName,
                      const nsACString &aValue,
@@ -982,15 +989,20 @@ nsCookieService::Add(const nsACString &aDomain,
                      PRInt64           aExpiry)
 {
   
+  nsCAutoString host(aHost);
+  nsresult rv = NormalizeHost(host);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
   
   nsCAutoString baseDomain;
-  nsresult rv = GetBaseDomainFromHost(aDomain, baseDomain);
+  rv = GetBaseDomainFromHost(host, baseDomain);
   NS_ENSURE_SUCCESS(rv, rv);
 
   PRInt64 currentTimeInUsec = PR_Now();
 
   nsRefPtr<nsCookie> cookie =
-    nsCookie::Create(aName, aValue, aDomain, aPath,
+    nsCookie::Create(aName, aValue, host, aPath,
                      aExpiry,
                      currentTimeInUsec,
                      currentTimeInUsec,
@@ -1011,13 +1023,18 @@ nsCookieService::Remove(const nsACString &aHost,
                         const nsACString &aPath,
                         PRBool           aBlocked)
 {
+  
+  nsCAutoString host(aHost);
+  nsresult rv = NormalizeHost(host);
+  NS_ENSURE_SUCCESS(rv, rv);
+
   nsCAutoString baseDomain;
-  nsresult rv = GetBaseDomainFromHost(aHost, baseDomain);
+  rv = GetBaseDomainFromHost(host, baseDomain);
   NS_ENSURE_SUCCESS(rv, rv);
 
   nsListIter matchIter;
   if (FindCookie(baseDomain,
-                 PromiseFlatCString(aHost),
+                 host,
                  PromiseFlatCString(aName),
                  PromiseFlatCString(aPath),
                  matchIter,
@@ -1029,13 +1046,11 @@ nsCookieService::Remove(const nsACString &aHost,
 
   
   if (aBlocked && mPermissionService) {
-    nsCAutoString host(NS_LITERAL_CSTRING("http://"));
     
-    
-    if (aHost.First() == '.')
-      host.Append(Substring(aHost, 1, aHost.Length() - 1));
-    else
-      host.Append(aHost);
+    if (!host.IsEmpty() && host.First() == '.')
+      host.Cut(0, 1);
+
+    host.Insert(NS_LITERAL_CSTRING("http://"), 0);
 
     nsCOMPtr<nsIURI> uri;
     NS_NewURI(getter_AddRefs(uri), host);
@@ -1323,23 +1338,27 @@ nsCookieService::GetCookieInternal(nsIURI      *aHostURI,
 
   
   
-  PRBool isIPAddress;
+  
+  
+  
+  PRBool requireHostMatch;
   nsCAutoString baseDomain, hostFromURI, pathFromURI;
-  nsresult rv = GetBaseDomain(aHostURI, baseDomain, isIPAddress);
+  nsresult rv = GetBaseDomain(aHostURI, baseDomain, requireHostMatch);
   if (NS_SUCCEEDED(rv))
     rv = aHostURI->GetAsciiHost(hostFromURI);
   if (NS_SUCCEEDED(rv))
     rv = aHostURI->GetPath(pathFromURI);
   
-  hostFromURI.Trim(".");
-  if (NS_FAILED(rv) || hostFromURI.IsEmpty()) {
+  if (!hostFromURI.IsEmpty() && hostFromURI.Last() == '.')
+    hostFromURI.Truncate(hostFromURI.Length() - 1);
+  if (NS_FAILED(rv)) {
     COOKIE_LOGFAILURE(GET_COOKIE, aHostURI, nsnull, "invalid host/path from URI");
     return;
   }
 
   
   PRUint32 cookieStatus = CheckPrefs(aHostURI, aChannel, baseDomain,
-                                     isIPAddress, nsnull);
+                                     requireHostMatch, nsnull);
   
   switch (cookieStatus) {
   case STATUS_REJECTED:
@@ -1481,7 +1500,7 @@ PRBool
 nsCookieService::SetCookieInternal(nsIURI             *aHostURI,
                                    nsIChannel         *aChannel,
                                    const nsCString    &aBaseDomain,
-                                   PRBool              aIsIPAddress,
+                                   PRBool              aRequireHostMatch,
                                    nsDependentCString &aCookieHeader,
                                    PRInt64             aServerTime,
                                    PRBool              aFromHttp)
@@ -1519,7 +1538,7 @@ nsCookieService::SetCookieInternal(nsIURI             *aHostURI,
   }
 
   
-  if (!CheckDomain(cookieAttributes, aHostURI, aBaseDomain, aIsIPAddress)) {
+  if (!CheckDomain(cookieAttributes, aHostURI, aBaseDomain, aRequireHostMatch)) {
     COOKIE_LOGFAILURE(SET_COOKIE, aHostURI, savedCookieHeader, "failed the domain tests");
     return newCookie;
   }
@@ -1920,17 +1939,24 @@ nsCookieService::ParseAttributes(nsDependentCString &aCookieHeader,
 
 
 
+
+
+
+
+
+
 nsresult
 nsCookieService::GetBaseDomain(nsIURI    *aHostURI,
                                nsCString &aBaseDomain,
-                               PRBool    &aIsIPAddress)
+                               PRBool    &aRequireHostMatch)
 {
   
   
   nsresult rv = mTLDService->GetBaseDomain(aHostURI, 0, aBaseDomain);
-  aIsIPAddress = rv == NS_ERROR_HOST_IS_IP_ADDRESS;
-  if (rv == NS_ERROR_HOST_IS_IP_ADDRESS ||
-      rv == NS_ERROR_INSUFFICIENT_DOMAIN_LEVELS) {
+  aRequireHostMatch = rv == NS_ERROR_HOST_IS_IP_ADDRESS ||
+                      rv == NS_ERROR_INSUFFICIENT_DOMAIN_LEVELS;
+  if (aRequireHostMatch) {
+    
     
     
     rv = aHostURI->GetAsciiHost(aBaseDomain);
@@ -1938,23 +1964,40 @@ nsCookieService::GetBaseDomain(nsIURI    *aHostURI,
   NS_ENSURE_SUCCESS(rv, rv);
 
   
-  aBaseDomain.Trim(".");
-  if (aBaseDomain.IsEmpty())
-    return NS_ERROR_INVALID_ARG;
+  if (!aBaseDomain.IsEmpty() && aBaseDomain.Last() == '.')
+    aBaseDomain.Truncate(aBaseDomain.Length() - 1);
 
-  aIsIPAddress = PR_FALSE;
+  
+  if (aBaseDomain.IsEmpty()) {
+    PRBool isFileURI = PR_FALSE;
+    aHostURI->SchemeIs("file", &isFileURI);
+    if (!isFileURI)
+      return NS_ERROR_INVALID_ARG;
+  }
+
   return NS_OK;
 }
 
-nsresult 
+
+
+
+
+
+
+
+nsresult
 nsCookieService::GetBaseDomainFromHost(const nsACString &aHost,
                                        nsCString        &aBaseDomain)
 {
   
-  nsCAutoString host(aHost);
-  host.Trim(".");
-  if (host.IsEmpty())
+  if (!aHost.IsEmpty() && aHost.Last() == '.')
     return NS_ERROR_INVALID_ARG;
+
+  
+  nsDependentCString host(aHost);
+  PRBool domain = !host.IsEmpty() && host.First() == '.';
+  if (domain)
+    host.Rebind(host.BeginReading() + 1, host.EndReading());
 
   
   
@@ -1963,10 +2006,39 @@ nsCookieService::GetBaseDomainFromHost(const nsACString &aHost,
       rv == NS_ERROR_INSUFFICIENT_DOMAIN_LEVELS) {
     
     
+    
+    
+    if (domain)
+      return NS_ERROR_INVALID_ARG;
+
     aBaseDomain = host;
     return NS_OK;
   }
   return rv;
+}
+
+
+
+
+nsresult
+nsCookieService::NormalizeHost(nsCString &aHost)
+{
+  if (!IsASCII(aHost)) {
+    nsCAutoString host;
+    nsresult rv = mIDNService->ConvertUTF8toACE(aHost, host);
+    if (NS_FAILED(rv))
+      return rv;
+
+    aHost = host;
+  }
+
+  
+  
+  if (aHost.Length() > 1 && aHost.Last() == '.')
+    aHost.Truncate(aHost.Length() - 1);
+
+  ToLowerCase(aHost);
+  return NS_OK;
 }
 
 
@@ -1982,7 +2054,7 @@ static inline PRBool IsSubdomainOf(const nsCString &a, const nsCString &b)
 
 PRBool
 nsCookieService::IsForeign(const nsCString &aBaseDomain,
-                           PRBool           aHostIsIPAddress,
+                           PRBool           aRequireHostMatch,
                            nsIURI          *aFirstURI)
 {
   nsCAutoString firstHost;
@@ -1990,18 +2062,18 @@ nsCookieService::IsForeign(const nsCString &aBaseDomain,
     
     return PR_TRUE;
   }
+
   
-  firstHost.Trim(".");
+  if (!firstHost.IsEmpty() && firstHost.Last() == '.')
+    firstHost.Truncate(firstHost.Length() - 1);
 
   
   
   
   
-  if (aHostIsIPAddress)
+  if (aRequireHostMatch)
     return !firstHost.Equals(aBaseDomain);
 
-  
-  
   
   return !IsSubdomainOf(firstHost, aBaseDomain);
 }
@@ -2010,7 +2082,7 @@ PRUint32
 nsCookieService::CheckPrefs(nsIURI          *aHostURI,
                             nsIChannel      *aChannel,
                             const nsCString &aBaseDomain,
-                            PRBool           aIsIPAddress,
+                            PRBool           aRequireHostMatch,
                             const char      *aCookieHeader)
 {
   nsresult rv;
@@ -2057,7 +2129,7 @@ nsCookieService::CheckPrefs(nsIURI          *aHostURI,
     nsCOMPtr<nsIURI> firstURI;
     rv = mPermissionService->GetOriginatingURI(aChannel, getter_AddRefs(firstURI));
 
-    if (NS_FAILED(rv) || IsForeign(aBaseDomain, aIsIPAddress, firstURI)) {
+    if (NS_FAILED(rv) || IsForeign(aBaseDomain, aRequireHostMatch, firstURI)) {
       COOKIE_LOGFAILURE(aCookieHeader ? SET_COOKIE : GET_COOKIE, aHostURI, aCookieHeader, "originating server test failed");
       return STATUS_REJECTED;
     }
@@ -2072,15 +2144,15 @@ PRBool
 nsCookieService::CheckDomain(nsCookieAttributes &aCookieAttributes,
                              nsIURI             *aHostURI,
                              const nsCString    &aBaseDomain,
-                             PRBool              aIsIPAddress)
+                             PRBool              aRequireHostMatch)
 {
   
   nsCAutoString hostFromURI;
   aHostURI->GetAsciiHost(hostFromURI);
 
   
-  hostFromURI.Trim(".");
-  NS_ASSERTION(!hostFromURI.IsEmpty(), "empty host");
+  if (!hostFromURI.IsEmpty() && hostFromURI.Last() == '.')
+    hostFromURI.Truncate(hostFromURI.Length() - 1);
 
   
   if (!aCookieAttributes.host.IsEmpty()) {
@@ -2096,7 +2168,7 @@ nsCookieService::CheckDomain(nsCookieAttributes &aCookieAttributes,
     
     
     
-    if (aIsIPAddress)
+    if (aRequireHostMatch)
       return hostFromURI.Equals(aCookieAttributes.host);
 
     
@@ -2468,12 +2540,14 @@ NS_IMETHODIMP
 nsCookieService::CountCookiesFromHost(const nsACString &aHost,
                                       PRUint32         *aCountFromHost)
 {
+  
+  nsCAutoString host(aHost);
+  nsresult rv = NormalizeHost(host);
+  NS_ENSURE_SUCCESS(rv, rv);
+
   nsCAutoString baseDomain;
-  nsresult rv = GetBaseDomainFromHost(aHost, baseDomain);
-  if (NS_FAILED(rv)) {
-    *aCountFromHost = 0;
-    return NS_OK;
-  }
+  rv = GetBaseDomainFromHost(host, baseDomain);
+  NS_ENSURE_SUCCESS(rv, rv);
 
   
   nsEnumerationData data(PR_Now() / PR_USEC_PER_SEC, LL_MININT);
@@ -2487,10 +2561,14 @@ NS_IMETHODIMP
 nsCookieService::GetCookiesFromHost(const nsACString     &aHost,
                                     nsISimpleEnumerator **aEnumerator)
 {
+  
+  nsCAutoString host(aHost);
+  nsresult rv = NormalizeHost(host);
+  NS_ENSURE_SUCCESS(rv, rv);
+
   nsCAutoString baseDomain;
-  nsresult rv = GetBaseDomainFromHost(aHost, baseDomain);
-  if (NS_FAILED(rv))
-    return NS_NewEmptyEnumerator(aEnumerator);
+  rv = GetBaseDomainFromHost(host, baseDomain);
+  NS_ENSURE_SUCCESS(rv, rv);
 
   nsCOMArray<nsICookie> cookieList(mMaxCookiesPerHost);
   PRInt64 currentTime = PR_Now() / PR_USEC_PER_SEC;
