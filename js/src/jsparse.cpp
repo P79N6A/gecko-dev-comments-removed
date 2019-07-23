@@ -158,9 +158,12 @@ static uint32 recyclednodes = 0;
 
 JSBool
 js_InitParseContext(JSContext *cx, JSParseContext *pc, JSPrincipals *principals,
+                    JSStackFrame *callerFrame,
                     const jschar *base, size_t length,
                     FILE *fp, const char *filename, uintN lineno)
 {
+    JS_ASSERT_IF(callerFrame, callerFrame->script);
+
     pc->tempPoolMark = JS_ARENA_MARK(&cx->tempPool);
     if (!js_InitTokenStream(cx, TS(pc), base, length, fp, filename, lineno)) {
         JS_ARENA_RELEASE(&cx->tempPool, pc->tempPoolMark);
@@ -169,6 +172,7 @@ js_InitParseContext(JSContext *cx, JSParseContext *pc, JSPrincipals *principals,
     if (principals)
         JSPRINCIPALS_HOLD(cx, principals);
     pc->principals = principals;
+    pc->callerFrame = callerFrame;
     pc->nodeList = NULL;
     pc->traceListHead = NULL;
 
@@ -455,69 +459,14 @@ CheckGetterOrSetter(JSContext *cx, JSTokenStream *ts, JSTokenType tt)
 }
 #endif
 
-static void
-MaybeSetupFrame(JSContext *cx, JSObject *chain, JSStackFrame *oldfp,
-                JSStackFrame *newfp)
-{
-    
-
-
-
-
-    if (oldfp &&
-        oldfp->varobj &&
-        oldfp->scopeChain == chain &&
-        !(oldfp->flags & JSFRAME_SPECIAL)) {
-        return;
-    }
-
-    memset(newfp, 0, sizeof *newfp);
-
-    
-    newfp->varobj = newfp->scopeChain = chain;
-    if (cx->options & JSOPTION_VAROBJFIX) {
-        while ((chain = JS_GetParent(cx, chain)) != NULL)
-            newfp->varobj = chain;
-    }
-    newfp->down = oldfp;
-    if (oldfp) {
-        
-
-
-
-
-        newfp->flags = oldfp->flags & (JSFRAME_SPECIAL | JSFRAME_SCRIPT_OBJECT);
-        while (oldfp->flags & JSFRAME_SPECIAL) {
-            oldfp = oldfp->down;
-            if (!oldfp)
-                break;
-        }
-        if (oldfp && (newfp->flags & JSFRAME_SPECIAL)) {
-            newfp->varobj = oldfp->varobj;
-            newfp->callee = oldfp->callee;
-            newfp->fun = oldfp->fun;
-        }
-    }
-    cx->fp = newfp;
-}
-
 
 
 
 JSParseNode *
 js_ParseScript(JSContext *cx, JSObject *chain, JSParseContext *pc)
 {
-    JSStackFrame *fp, frame;
     JSTreeContext tc;
     JSParseNode *pn;
-
-    
-
-
-
-
-    fp = cx->fp;
-    MaybeSetupFrame(cx, chain, fp, &frame);
 
     
 
@@ -528,6 +477,7 @@ js_ParseScript(JSContext *cx, JSObject *chain, JSParseContext *pc)
 
 
     TREE_CONTEXT_INIT(&tc, pc);
+    tc.u.scopeChain = chain;
     pn = Statements(cx, TS(pc), &tc);
     if (pn) {
         if (!js_MatchToken(cx, TS(pc), TOK_EOF)) {
@@ -542,20 +492,19 @@ js_ParseScript(JSContext *cx, JSObject *chain, JSParseContext *pc)
     }
 
     TREE_CONTEXT_FINISH(cx, &tc);
-    cx->fp = fp;
     return pn;
 }
 
 
 
 
-JSScript *
-js_CompileScript(JSContext *cx, JSObject *obj, JSPrincipals *principals,
-                 uint32 tcflags, const jschar *chars, size_t length,
+extern JSScript *
+js_CompileScript(JSContext *cx, JSObject *scopeChain, JSStackFrame *callerFrame,
+                 JSPrincipals *principals, uint32 tcflags,
+                 const jschar *chars, size_t length,
                  FILE *file, const char *filename, uintN lineno)
 {
     JSParseContext pc;
-    JSStackFrame *fp, frame;
     JSArenaPool codePool, notePool;
     JSCodeGenerator cg;
     JSTokenType tt;
@@ -566,22 +515,20 @@ js_CompileScript(JSContext *cx, JSObject *obj, JSPrincipals *principals,
     void *sbrk(ptrdiff_t), *before = sbrk(0);
 #endif
 
-    JS_ASSERT(!(tcflags & ~(TCF_COMPILE_N_GO | TCF_NO_SCRIPT_RVAL | TCF_STATIC_DEPTH_MASK)));
-
-    if (!js_InitParseContext(cx, &pc, principals, chars, length, file,
-                             filename, lineno)) {
-        return NULL;
-    }
+    JS_ASSERT(!(tcflags & ~(TCF_COMPILE_N_GO | TCF_NO_SCRIPT_RVAL |
+                            TCF_STATIC_DEPTH_MASK)));
 
     
 
 
 
+    JS_ASSERT_IF(callerFrame, tcflags & TCF_COMPILE_N_GO);
+    JS_ASSERT_IF(TCF_GET_STATIC_DEPTH(tcflags) != 0, callerFrame);
 
-
-
-    fp = cx->fp;
-    MaybeSetupFrame(cx, obj, fp, &frame);
+    if (!js_InitParseContext(cx, &pc, principals, callerFrame, chars, length,
+                             file, filename, lineno)) {
+        return NULL;
+    }
 
     JS_INIT_ARENA_POOL(&codePool, "code", 1024, sizeof(jsbytecode),
                        &cx->scriptStackQuota);
@@ -592,11 +539,10 @@ js_CompileScript(JSContext *cx, JSObject *obj, JSPrincipals *principals,
 
     
     cg.treeContext.flags |= (uint16) tcflags;
+    cg.treeContext.u.scopeChain = scopeChain;
     cg.staticDepth = TCF_GET_STATIC_DEPTH(tcflags);
 
     
-
-
     for (;;) {
         pc.tokenStream.flags |= TSF_OPERAND;
         tt = js_PeekToken(cx, &pc.tokenStream);
@@ -614,7 +560,6 @@ js_CompileScript(JSContext *cx, JSObject *obj, JSPrincipals *principals,
             script = NULL;
             goto out;
         }
-
         JS_ASSERT(!cg.treeContext.blockNode);
 
         if (!js_FoldConstants(cx, pn, &cg.treeContext) ||
@@ -692,9 +637,9 @@ js_CompileScript(JSContext *cx, JSObject *obj, JSPrincipals *principals,
 
 #ifdef JS_SCOPE_DEPTH_METER
     if (script) {
-        JSObject *pobj = obj;
+        JSObject *obj = scopeChain;
         uintN depth = 1;
-        while ((pobj = OBJ_GET_PARENT(cx, pobj)) != NULL)
+        while ((obj = OBJ_GET_PARENT(cx, obj)) != NULL)
             ++depth;
         JS_BASIC_STATS_ACCUM(&cx->runtime->hostenvScopeDepthStats, depth);
     }
@@ -704,7 +649,6 @@ js_CompileScript(JSContext *cx, JSObject *obj, JSPrincipals *principals,
     js_FinishCodeGenerator(cx, &cg);
     JS_FinishArenaPool(&codePool);
     JS_FinishArenaPool(&notePool);
-    cx->fp = fp;
     js_FinishParseContext(cx, &pc);
     return script;
 
@@ -849,8 +793,8 @@ ReportBadReturn(JSContext *cx, JSTreeContext *tc, uintN flags, uintN errnum,
     const char *name;
 
     JS_ASSERT(tc->flags & TCF_IN_FUNCTION);
-    if (tc->fun->atom) {
-        name = js_AtomToPrintableString(cx, tc->fun->atom);
+    if (tc->u.fun->atom) {
+        name = js_AtomToPrintableString(cx, tc->u.fun->atom);
     } else {
         errnum = anonerrnum;
         name = NULL;
@@ -944,7 +888,7 @@ js_CompileFunctionBody(JSContext *cx, JSFunction *fun, JSPrincipals *principals,
     JSCodeGenerator funcg;
     JSParseNode *pn;
 
-    if (!js_InitParseContext(cx, &pc, principals, chars, length, NULL,
+    if (!js_InitParseContext(cx, &pc, principals, NULL, chars, length, NULL,
                              filename, lineno)) {
         return JS_FALSE;
     }
@@ -957,7 +901,7 @@ js_CompileFunctionBody(JSContext *cx, JSFunction *fun, JSPrincipals *principals,
     js_InitCodeGenerator(cx, &funcg, &pc, &codePool, &notePool,
                          pc.tokenStream.lineno);
     funcg.treeContext.flags |= TCF_IN_FUNCTION;
-    funcg.treeContext.fun = fun;
+    funcg.treeContext.u.fun = fun;
 
     
 
@@ -1025,7 +969,7 @@ BindArg(JSContext *cx, JSAtom *atom, JSTreeContext *tc)
 
 
     JS_ASSERT(tc->flags & TCF_IN_FUNCTION);
-    if (js_LookupLocal(cx, tc->fun, atom, NULL) != JSLOCAL_NONE) {
+    if (js_LookupLocal(cx, tc->u.fun, atom, NULL) != JSLOCAL_NONE) {
         name = js_AtomToPrintableString(cx, atom);
         if (!name ||
             !js_ReportCompileErrorNumber(cx, TS(tc->parseContext), NULL,
@@ -1036,7 +980,7 @@ BindArg(JSContext *cx, JSAtom *atom, JSTreeContext *tc)
         }
     }
 
-    return js_AddLocal(cx, tc->fun, atom, JSLOCAL_ARG);
+    return js_AddLocal(cx, tc->u.fun, atom, JSLOCAL_ARG);
 }
 
 static JSBool
@@ -1081,7 +1025,7 @@ BindDestructuringArg(JSContext *cx, BindData *data, JSAtom *atom,
         ALE_SET_JSOP(ale, data->op);
     }
 
-    if (js_LookupLocal(cx, tc->fun, atom, NULL) != JSLOCAL_NONE) {
+    if (js_LookupLocal(cx, tc->u.fun, atom, NULL) != JSLOCAL_NONE) {
         name = js_AtomToPrintableString(cx, atom);
         if (!name ||
             !js_ReportCompileErrorNumber(cx, TS(tc->parseContext), data->pn,
@@ -1091,7 +1035,7 @@ BindDestructuringArg(JSContext *cx, BindData *data, JSAtom *atom,
             return JS_FALSE;
         }
     } else {
-        if (!BindLocalVariable(cx, tc->fun, atom, JSLOCAL_VAR))
+        if (!BindLocalVariable(cx, tc->u.fun, atom, JSLOCAL_VAR))
             return JS_FALSE;
     }
     return JS_TRUE;
@@ -1106,7 +1050,9 @@ NewCompilerFunction(JSContext *cx, JSTreeContext *tc, JSAtom *atom,
     JSFunction *fun;
 
     JS_ASSERT((lambda & ~JSFUN_LAMBDA) == 0);
-    parent = (tc->flags & TCF_IN_FUNCTION) ? FUN_OBJECT(tc->fun) : cx->fp->varobj;
+    parent = (tc->flags & TCF_IN_FUNCTION)
+             ? FUN_OBJECT(tc->u.fun)
+             : tc->u.scopeChain;
     fun = js_NewFunction(cx, NULL, NULL, 0, JSFUN_INTERPRETED | lambda,
                          parent, atom);
     if (fun && !(tc->flags & TCF_COMPILE_N_GO)) {
@@ -1213,9 +1159,9 @@ FunctionDef(JSContext *cx, JSTokenStream *ts, JSTreeContext *tc,
 
 
 
-            localKind = js_LookupLocal(cx, tc->fun, funAtom, NULL);
+            localKind = js_LookupLocal(cx, tc->u.fun, funAtom, NULL);
             if (localKind == JSLOCAL_NONE || localKind == JSLOCAL_ARG) {
-                if (!js_AddLocal(cx, tc->fun, funAtom, JSLOCAL_VAR))
+                if (!js_AddLocal(cx, tc->u.fun, funAtom, JSLOCAL_VAR))
                     return NULL;
             }
         }
@@ -1241,7 +1187,7 @@ FunctionDef(JSContext *cx, JSTokenStream *ts, JSTreeContext *tc,
     
     TREE_CONTEXT_INIT(&funtc, tc->parseContext);
     funtc.flags |= TCF_IN_FUNCTION | (tc->flags & TCF_COMPILE_N_GO);
-    funtc.fun = fun;
+    funtc.u.fun = fun;
 
     
     MUST_MATCH_TOKEN(TOK_LP, JSMSG_PAREN_BEFORE_FORMAL);
@@ -1680,7 +1626,7 @@ BindVarOrConst(JSContext *cx, BindData *data, JSAtom *atom, JSTreeContext *tc)
         return JS_TRUE;
     }
 
-    localKind = js_LookupLocal(cx, tc->fun, atom, NULL);
+    localKind = js_LookupLocal(cx, tc->u.fun, atom, NULL);
     if (localKind == JSLOCAL_NONE) {
         
 
@@ -1692,7 +1638,7 @@ BindVarOrConst(JSContext *cx, BindData *data, JSAtom *atom, JSTreeContext *tc)
 
         localKind = (data->op == JSOP_DEFCONST) ? JSLOCAL_CONST : JSLOCAL_VAR;
         if (!js_InWithStatement(tc) &&
-            !BindLocalVariable(cx, tc->fun, atom, localKind)) {
+            !BindLocalVariable(cx, tc->u.fun, atom, localKind)) {
             return JS_FALSE;
         }
     } else if (localKind == JSLOCAL_ARG) {
@@ -3455,7 +3401,6 @@ Variables(JSContext *cx, JSTokenStream *ts, JSTreeContext *tc)
     JSStmtInfo *scopeStmt;
     BindData data;
     JSParseNode *pn, *pn2;
-    JSStackFrame *fp;
     JSAtom *atom;
 
     
@@ -3495,7 +3440,6 @@ Variables(JSContext *cx, JSTokenStream *ts, JSTreeContext *tc)
 
 
 
-    fp = cx->fp;
     if (let) {
         JS_ASSERT(tc->blockChain == scopeStmt->u.blockObj);
         data.binder = BindLet;
@@ -5206,7 +5150,6 @@ JS_FRIEND_API(JSParseNode *)
 js_ParseXMLText(JSContext *cx, JSObject *chain, JSParseContext *pc,
                 JSBool allowList)
 {
-    JSStackFrame *fp, frame;
     JSParseNode *pn;
     JSTreeContext tc;
     JSTokenType tt;
@@ -5216,9 +5159,8 @@ js_ParseXMLText(JSContext *cx, JSObject *chain, JSParseContext *pc,
 
 
 
-    fp = cx->fp;
-    MaybeSetupFrame(cx, chain, fp, &frame);
     TREE_CONTEXT_INIT(&tc, pc);
+    tc.u.scopeChain = chain;
 
     
     TS(pc)->flags |= TSF_OPERAND | TSF_XMLONLYMODE;
@@ -5235,7 +5177,6 @@ js_ParseXMLText(JSContext *cx, JSObject *chain, JSParseContext *pc,
 
     TS(pc)->flags &= ~TSF_XMLONLYMODE;
     TREE_CONTEXT_FINISH(cx, &tc);
-    cx->fp = fp;
     return pn;
 }
 

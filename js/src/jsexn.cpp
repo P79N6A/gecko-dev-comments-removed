@@ -1174,9 +1174,8 @@ js_ErrorToException(JSContext *cx, const char *message, JSErrorReport *reportp)
     
 
 
-
     JS_ASSERT(reportp);
-    if (!cx->fp || JSREPORT_IS_WARNING(reportp->flags))
+    if (JSREPORT_IS_WARNING(reportp->flags))
         return JS_FALSE;
 
     
