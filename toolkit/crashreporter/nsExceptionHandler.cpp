@@ -66,6 +66,7 @@
 #endif
 
 #include <stdlib.h>
+#include <time.h>
 #include <prenv.h>
 #include <prio.h>
 #include "nsDebug.h"
@@ -399,21 +400,33 @@ typedef nsresult (*InitDataFunc)(nsACString&);
 
 
 static nsresult 
-GetOrInit(nsIFile* aFile, nsACString& aContents, InitDataFunc aInitFunc)
+GetOrInit(nsILocalFile* aDir, const nsAString& filename,
+          nsACString& aContents, InitDataFunc aInitFunc)
 {
   PRBool exists;
-  nsresult rv = aFile->Exists(&exists);
+
+  nsCOMPtr<nsIFile> dataFile;
+  nsresult rv = aDir->Clone(getter_AddRefs(dataFile));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  rv = dataFile->Append(filename);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  rv = dataFile->Exists(&exists);
   NS_ENSURE_SUCCESS(rv, rv);
 
   if (!exists) {
     
     rv = aInitFunc(aContents);
     NS_ENSURE_SUCCESS(rv, rv);
-    return WriteDataToFile(aFile, aContents);
+    rv = WriteDataToFile(dataFile, aContents);
+  }
+  else {
+    
+    rv = GetFileContents(dataFile, aContents);
   }
 
-  
-  return GetFileContents(aFile, aContents);
+  return rv;
 }
 
 
@@ -455,21 +468,38 @@ InitUserID(nsACString& aUserID)
 
 
 
+static nsresult
+InitInstallTime(nsACString& aInstallTime)
+{
+  time_t t = time(NULL);
+  char buf[16];
+  sprintf(buf, "%ld", t);
+  aInstallTime = buf;
+  
+  return NS_OK;
+}
 
 
-nsresult SetupExtraData(nsILocalFile* aAppDataDirectory)
+
+
+
+nsresult SetupExtraData(nsILocalFile* aAppDataDirectory,
+                        const nsACString& aBuildID)
 {
   nsresult rv = aAppDataDirectory->Append(NS_LITERAL_STRING("Crash Reports"));
   NS_ENSURE_SUCCESS(rv, rv);
 
-  nsCOMPtr<nsIFile> userIDfile;
-  if (NS_SUCCEEDED(aAppDataDirectory->Clone(getter_AddRefs(userIDfile)))
-      && NS_SUCCEEDED(userIDfile->Append(NS_LITERAL_STRING("UserID")))) {
-    nsCAutoString userID;
-    if (NS_SUCCEEDED(GetOrInit(userIDfile, userID, InitUserID))) {
-      AnnotateCrashReport(NS_LITERAL_CSTRING("UserID"), userID);
-    }
-  }
+  nsCAutoString data;
+  if(NS_SUCCEEDED(GetOrInit(aAppDataDirectory, NS_LITERAL_STRING("UserID"),
+                            data, InitUserID)))
+    AnnotateCrashReport(NS_LITERAL_CSTRING("UserID"), data);
+
+  if(NS_SUCCEEDED(GetOrInit(aAppDataDirectory,
+                            NS_LITERAL_STRING("InstallTime") +
+                            NS_ConvertASCIItoUTF16(aBuildID),
+                            data, InitInstallTime)))
+    AnnotateCrashReport(NS_LITERAL_CSTRING("InstallTime"), data);
+
   return NS_OK;
 }
 
