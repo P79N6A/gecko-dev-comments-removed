@@ -45,7 +45,6 @@
 #include "nsIRenderingContext.h"
 
 #include "gfxPoint.h"
-#include "nsNativeWidget.h"
 
 class nsIView;
 class nsIFontMetrics;
@@ -171,8 +170,8 @@ const PRUint8 kUseAltDCFor_SURFACE_DIM     = 0x08;
 
 
 #define NS_IDEVICE_CONTEXT_IID   \
-{ 0xeca27eb2, 0xef6f, 0x4142, \
-  { 0xbf, 0x77, 0x89, 0xc1, 0x4e, 0x59, 0x51, 0x71 } }
+{ 0x40aebd88, 0xa82b, 0x48b0, \
+  { 0x8a, 0x44, 0xbe, 0x51, 0x51, 0x00, 0x64, 0xa7 } }
 
 
 typedef void * nsPalette;
@@ -218,7 +217,7 @@ public:
 
 
 
-  NS_IMETHOD  Init(nsNativeWidget aWidget) = 0;
+  NS_IMETHOD  Init(nsIWidget* aWidget) = 0;
 
   
 
