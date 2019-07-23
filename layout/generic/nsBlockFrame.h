@@ -234,6 +234,11 @@ public:
   virtual PRBool CachedIsEmpty();
   virtual PRBool IsSelfEmpty();
 
+  
+  
+  
+  PRBool BulletIsEmpty() const;
+
   virtual void MarkIntrinsicWidthsDirty();
   virtual nscoord GetMinWidth(nsIRenderingContext *aRenderingContext);
   virtual nscoord GetPrefWidth(nsIRenderingContext *aRenderingContext);
