@@ -79,7 +79,16 @@ enum {
 
   
   
+  
+  
+  
   NODE_IS_ANONYMOUS =            0x00000008U,
+
+  
+  
+  
+  
+  
   
   NODE_IS_IN_ANONYMOUS_SUBTREE = 0x00000010U,
 
@@ -653,6 +662,9 @@ public:
 
   void UnsetFlags(PtrBits aFlagsToUnset)
   {
+    NS_ASSERTION(!(aFlagsToUnset &
+                   (NODE_IS_ANONYMOUS | NODE_IS_IN_ANONYMOUS_SUBTREE)),
+                 "Trying to unset write-only flags");
     PtrBits* flags = HasSlots() ? &FlagsAsSlots()->mFlags :
                                   &mFlagsOrSlots;
     *flags &= ~aFlagsToUnset;
