@@ -2010,7 +2010,7 @@ nsListControlFrame::MouseUp(nsIDOMEvent* aMouseEvent)
     
     nsCOMPtr<nsIPrivateDOMEvent> privateEvent(do_QueryInterface(aMouseEvent));
     nsMouseEvent * mouseEvent;
-    privateEvent->GetInternalNSEvent((nsEvent**)&mouseEvent);
+    mouseEvent = (nsMouseEvent *) privateEvent->GetInternalNSEvent();
 
     PRInt32 selectedIndex;
     if (NS_SUCCEEDED(GetIndexFromDOMEvent(aMouseEvent, selectedIndex))) {

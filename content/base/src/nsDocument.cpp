@@ -3873,8 +3873,7 @@ nsDocument::DispatchContentLoadedEvents()
         
         
 
-        nsEvent* innerEvent;
-        privateEvent->GetInternalNSEvent(&innerEvent);
+        nsEvent* innerEvent = privateEvent->GetInternalNSEvent();
         if (innerEvent) {
           nsEventStatus status = nsEventStatus_eIgnore;
 
