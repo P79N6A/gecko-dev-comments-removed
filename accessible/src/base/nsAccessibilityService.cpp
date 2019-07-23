@@ -1401,12 +1401,25 @@ NS_IMETHODIMP nsAccessibilityService::GetAccessible(nsIDOMNode *aNode,
         nsAutoString tableRole;
         while ((tableContent = tableContent->GetParent()) != nsnull) {
           if (tableContent->Tag() == nsAccessibilityAtoms::table) {
-            nsIFrame *tableFrame = aPresShell->GetPrimaryFrameFor(tableContent);
-            if (!tableFrame || tableFrame->GetType() != nsAccessibilityAtoms::tableOuterFrame ||
-                nsAccessNode::HasRoleAttribute(tableContent)) {
-              
-              
-              
+            
+            
+            
+
+            nsCOMPtr<nsIDOMNode> tableNode(do_QueryInterface(tableContent));
+            if (tableNode) {
+              nsRoleMapEntry *tableRoleMapEntry =
+                nsAccUtils::GetRoleMapEntry(tableNode);
+              if (tableRoleMapEntry &&
+                  tableRoleMapEntry != &nsARIAMap::gLandmarkRoleMap) {
+                tryTagNameOrFrame = PR_FALSE;
+                break;
+              }
+            }
+
+            nsIFrame *tableFrame =
+              aPresShell->GetPrimaryFrameFor(tableContent);
+            if (!tableFrame ||
+                tableFrame->GetType() != nsAccessibilityAtoms::tableOuterFrame) {
               tryTagNameOrFrame = PR_FALSE;
             }
             break;
