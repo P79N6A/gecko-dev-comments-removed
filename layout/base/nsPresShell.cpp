@@ -1033,7 +1033,12 @@ protected:
   
   PRBool   ProcessReflowCommands(PRBool aInterruptible);
   void     ClearReflowEventStatus();
+  
+  
+  
   void     PostReflowEvent();
+  
+  void     DoPostReflowEvent();
 
   
   PRBool DoReflow(nsIFrame* aFrame, PRBool aInterruptible);
@@ -1292,6 +1297,14 @@ protected:
                                   
 
   static void sPaintSuppressionCallback(nsITimer* aTimer, void* aPresShell); 
+
+  
+  
+  
+  
+  nsCOMPtr<nsITimer> mReflowContinueTimer;
+  static void sReflowContinueCallback(nsITimer* aTimer, void* aPresShell);
+  PRBool PostReflowEventOffTimer();
 
   MOZ_TIMER_DECLARE(mReflowWatch)  
   MOZ_TIMER_DECLARE(mFrameCreationWatch)  
@@ -1899,6 +1912,12 @@ PresShell::Destroy()
   if (mPaintSuppressionTimer) {
     mPaintSuppressionTimer->Cancel();
     mPaintSuppressionTimer = nsnull;
+  }
+
+  
+  if (mReflowContinueTimer) {
+    mReflowContinueTimer->Cancel();
+    mReflowContinueTimer = nsnull;
   }
 
   if (mCaret) {
@@ -6863,6 +6882,14 @@ PresShell::PostReflowEvent()
       mDirtyRoots.Length() == 0)
     return;
 
+  if (!mPresContext->HasPendingInterrupt() || !PostReflowEventOffTimer()) {
+    DoPostReflowEvent();
+  }
+}
+
+void
+PresShell::DoPostReflowEvent()
+{
   nsRefPtr<ReflowEvent> ev = new ReflowEvent(this);
   if (NS_FAILED(NS_DispatchToCurrentThread(ev))) {
     NS_WARNING("failed to dispatch reflow event");
@@ -6870,7 +6897,8 @@ PresShell::PostReflowEvent()
     mReflowEvent = ev;
 #ifdef DEBUG
     if (VERIFY_REFLOW_NOISY_RC & gVerifyReflowFlags) {
-      printf("\n*** PresShell::PostReflowEvent(), this=%p, event=%p\n", (void*)this, (void*)ev);
+      printf("\n*** PresShell::DoPostReflowEvent(), this=%p, event=%p\n",
+             (void*)this, (void*)ev);
     }
 #endif    
   }
@@ -6923,6 +6951,32 @@ MarkFramesDirtyToRoot(nsPtrHashKey<nsIFrame>* p, void* closure)
   }
 
   return PL_DHASH_NEXT;
+}
+
+void
+PresShell::sReflowContinueCallback(nsITimer* aTimer, void* aPresShell)
+{
+  nsRefPtr<PresShell> self = static_cast<PresShell*>(aPresShell);
+
+  NS_PRECONDITION(aTimer == self->mReflowContinueTimer, "Unexpected timer");
+  self->mReflowContinueTimer = nsnull;
+  self->DoPostReflowEvent();
+}
+
+PRBool
+PresShell::PostReflowEventOffTimer()
+{
+  NS_PRECONDITION(!mReflowEvent.IsPending(), "Shouldn't get here");
+  if (!mReflowContinueTimer) {
+    mReflowContinueTimer = do_CreateInstance("@mozilla.org/timer;1");
+    if (!mReflowContinueTimer ||
+        NS_FAILED(mReflowContinueTimer->
+                    InitWithFuncCallback(sReflowContinueCallback, this, 0,
+                                         nsITimer::TYPE_ONE_SHOT))) {
+      return PR_FALSE;
+    }
+  }
+  return PR_TRUE;
 }
 
 PRBool
