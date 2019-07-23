@@ -555,7 +555,7 @@ bool
 TypeMap::matches(TypeMap& other)
 {
     JS_ASSERT(length() == other.length()); 
-    return !(data(), other.data(), length());
+    return !memcmp(data(), other.data(), length());
 }
 
 TraceRecorder::TraceRecorder(JSContext* cx, GuardRecord* _anchor,
