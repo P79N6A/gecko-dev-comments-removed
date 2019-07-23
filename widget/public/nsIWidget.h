@@ -1116,7 +1116,7 @@ class nsIWidget : public nsISupports {
 
 
 
-    virtual nsresult ActivateNativeMenuItemAt(const nsAString& aString) = 0;
+    virtual nsresult ActivateNativeMenuItemAt(const nsAString& indexString) = 0;
 
 protected:
     
