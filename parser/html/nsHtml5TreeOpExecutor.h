@@ -168,7 +168,10 @@ class nsHtml5TreeOpExecutor : public nsContentSink,
     
 
 
-    NS_IMETHOD SetDocumentCharset(nsACString& aCharset);
+    NS_IMETHOD SetDocumentCharset(nsACString& aCharset) {
+    	NS_NOTREACHED("No one should call this.");
+    	return NS_ERROR_NOT_IMPLEMENTED;
+    }
 
     
 
@@ -209,6 +212,10 @@ class nsHtml5TreeOpExecutor : public nsContentSink,
       mNodeInfoManager = aManager;
     }
     
+    
+
+    void SetDocumentCharsetAndSource(nsACString& aCharset, PRInt32 aCharsetSource);
+
     void SetStreamParser(nsHtml5StreamParser* aStreamParser) {
       mStreamParser = aStreamParser;
     }

@@ -48,12 +48,12 @@
 #include "nsHtml5TreeOpExecutor.h"
 #include "nsHtml5UTF16Buffer.h"
 #include "nsIInputStream.h"
-#include "nsICharsetAlias.h"
 #include "mozilla/Mutex.h"
 #include "nsHtml5AtomTable.h"
 #include "nsHtml5Speculation.h"
 #include "nsITimer.h"
 #include "nsICharsetDetector.h"
+#include "nsAHtml5EncodingDeclarationHandler.h"
 
 class nsHtml5Parser;
 
@@ -103,7 +103,9 @@ enum eHtml5StreamState {
 };
 
 class nsHtml5StreamParser : public nsIStreamListener,
-                            public nsICharsetDetectionObserver {
+                            public nsICharsetDetectionObserver,
+                            public nsAHtml5EncodingDeclarationHandler
+{
 
   friend class nsHtml5RequestStopper;
   friend class nsHtml5DataAvailable;
@@ -137,7 +139,7 @@ class nsHtml5StreamParser : public nsIStreamListener,
     
 
 
-    void internalEncodingDeclaration(nsString* aEncoding);
+    virtual void internalEncodingDeclaration(nsString* aEncoding);
 
     
 
