@@ -3557,6 +3557,8 @@ nsGlobalWindow::SetFullScreen(PRBool aFullScreen)
 {
   FORWARD_TO_OUTER(SetFullScreen, (aFullScreen), NS_ERROR_NOT_INITIALIZED);
 
+  NS_ENSURE_TRUE(mDocShell, NS_ERROR_FAILURE);
+
   PRBool rootWinFullScreen;
   GetFullScreen(&rootWinFullScreen);
   
@@ -3609,12 +3611,14 @@ nsGlobalWindow::GetFullScreen(PRBool* aFullScreen)
   
   
   nsCOMPtr<nsIDocShellTreeItem> treeItem = do_QueryInterface(mDocShell);
-  nsCOMPtr<nsIDocShellTreeItem> rootItem;
-  treeItem->GetRootTreeItem(getter_AddRefs(rootItem));
-  if (rootItem != treeItem) {
-    nsCOMPtr<nsIDOMWindowInternal> window = do_GetInterface(rootItem);
-    if (window)
-      return window->GetFullScreen(aFullScreen);
+  if (treeItem) {
+    nsCOMPtr<nsIDocShellTreeItem> rootItem;
+    treeItem->GetRootTreeItem(getter_AddRefs(rootItem));
+    if (rootItem != treeItem) {
+      nsCOMPtr<nsIDOMWindowInternal> window = do_GetInterface(rootItem);
+      if (window)
+        return window->GetFullScreen(aFullScreen);
+    }
   }
 
   
