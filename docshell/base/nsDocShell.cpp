@@ -727,6 +727,7 @@ nsDocShell::LoadURI(nsIURI * aURI,
     nsCOMPtr<nsIInputStream> headersStream;
     nsCOMPtr<nsISupports> owner;
     PRBool inheritOwner = PR_FALSE;
+    PRBool ownerIsExplicit = PR_FALSE;
     PRBool sendReferrer = PR_TRUE;
     nsCOMPtr<nsISHEntry> shEntry;
     nsXPIDLString target;
@@ -745,6 +746,7 @@ nsDocShell::LoadURI(nsIURI * aURI,
 
         aLoadInfo->GetOwner(getter_AddRefs(owner));
         aLoadInfo->GetInheritOwner(&inheritOwner);
+        aLoadInfo->GetOwnerIsExplicit(&ownerIsExplicit);
         aLoadInfo->GetSHEntry(getter_AddRefs(shEntry));
         aLoadInfo->GetTarget(getter_Copies(target));
         aLoadInfo->GetPostDataStream(getter_AddRefs(postStream));
@@ -862,84 +864,99 @@ nsDocShell::LoadURI(nsIURI * aURI,
               ("nsDocShell[%p]: loading from session history", this));
 #endif
 
-        rv = LoadHistoryEntry(shEntry, loadType);
+        return LoadHistoryEntry(shEntry, loadType);
     }
+
     
-    else {
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        nsCOMPtr<nsIScriptSecurityManager> secMan =
-            do_GetService(NS_SCRIPTSECURITYMANAGER_CONTRACTID, &rv);
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+
+    nsCOMPtr<nsIScriptSecurityManager> secMan =
+        do_GetService(NS_SCRIPTSECURITYMANAGER_CONTRACTID, &rv);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    if (owner && mItemType != typeChrome) {
+        nsCOMPtr<nsIPrincipal> ownerPrincipal = do_QueryInterface(owner);
+        PRBool isSystem;
+        rv = secMan->IsSystemPrincipal(ownerPrincipal, &isSystem);
         NS_ENSURE_SUCCESS(rv, rv);
 
-        if (owner && mItemType != typeChrome) {
-            nsCOMPtr<nsIPrincipal> ownerPrincipal = do_QueryInterface(owner);
-            PRBool isSystem;
-            rv = secMan->IsSystemPrincipal(ownerPrincipal, &isSystem);
-            NS_ENSURE_SUCCESS(rv, rv);
-            
-            if (isSystem) {
-                owner = nsnull;
-                inheritOwner = PR_TRUE;
+        if (isSystem) {
+            if (ownerIsExplicit) {
+                return NS_ERROR_DOM_SECURITY_ERR;
             }
+            owner = nsnull;
+            inheritOwner = PR_TRUE;
         }
-        if (!owner && !inheritOwner) {
+    }
+    if (!owner && !inheritOwner && !ownerIsExplicit) {
+        
+        rv = secMan->SubjectPrincipalIsSystem(&inheritOwner);
+        if (NS_FAILED(rv)) {
             
-            rv = secMan->SubjectPrincipalIsSystem(&inheritOwner);
-            if (NS_FAILED(rv)) {
-                
-                inheritOwner = PR_FALSE;
-            }
+            inheritOwner = PR_FALSE;
         }
-
-        PRUint32 flags = 0;
-
-        if (inheritOwner)
-            flags |= INTERNAL_LOAD_FLAGS_INHERIT_OWNER;
-
-        if (!sendReferrer)
-            flags |= INTERNAL_LOAD_FLAGS_DONT_SEND_REFERRER;
-            
-        if (aLoadFlags & LOAD_FLAGS_ALLOW_THIRD_PARTY_FIXUP)
-            flags |= INTERNAL_LOAD_FLAGS_ALLOW_THIRD_PARTY_FIXUP;
-
-        if (aLoadFlags & LOAD_FLAGS_FIRST_LOAD)
-            flags |= INTERNAL_LOAD_FLAGS_FIRST_LOAD;
-
-        if (aLoadFlags & LOAD_FLAGS_BYPASS_CLASSIFIER)
-            flags |= INTERNAL_LOAD_FLAGS_BYPASS_CLASSIFIER;
-
-        rv = InternalLoad(aURI,
-                          referrer,
-                          owner,
-                          flags,
-                          target.get(),
-                          nsnull,         
-                          postStream,
-                          headersStream,
-                          loadType,
-                          nsnull,         
-                          aFirstParty,
-                          nsnull,         
-                          nsnull);        
     }
 
-    return rv;
+    PRUint32 flags = 0;
+
+    if (inheritOwner)
+        flags |= INTERNAL_LOAD_FLAGS_INHERIT_OWNER;
+
+    if (!sendReferrer)
+        flags |= INTERNAL_LOAD_FLAGS_DONT_SEND_REFERRER;
+            
+    if (aLoadFlags & LOAD_FLAGS_ALLOW_THIRD_PARTY_FIXUP)
+        flags |= INTERNAL_LOAD_FLAGS_ALLOW_THIRD_PARTY_FIXUP;
+
+    if (aLoadFlags & LOAD_FLAGS_FIRST_LOAD)
+        flags |= INTERNAL_LOAD_FLAGS_FIRST_LOAD;
+
+    if (aLoadFlags & LOAD_FLAGS_BYPASS_CLASSIFIER)
+        flags |= INTERNAL_LOAD_FLAGS_BYPASS_CLASSIFIER;
+
+    return InternalLoad(aURI,
+                        referrer,
+                        owner,
+                        flags,
+                        target.get(),
+                        nsnull,         
+                        postStream,
+                        headersStream,
+                        loadType,
+                        nsnull,         
+                        aFirstParty,
+                        nsnull,         
+                        nsnull);        
 }
 
 NS_IMETHODIMP
@@ -4579,37 +4596,38 @@ nsDocShell::ForceRefreshURI(nsIURI * aURI,
     
 
 
+    loadInfo->SetOwnerIsExplicit(PR_TRUE);
+
+    
+
+
     PRBool equalUri = PR_FALSE;
     nsresult rv = aURI->Equals(mCurrentURI, &equalUri);
-    if (NS_SUCCEEDED(rv) && (!equalUri) && aMetaRefresh) {
+    if (NS_SUCCEEDED(rv) && (!equalUri) && aMetaRefresh &&
+        aDelay <= REFRESH_REDIRECT_TIMER) {
 
         
 
 
 
-        if (aDelay <= REFRESH_REDIRECT_TIMER) {
-            loadInfo->SetLoadType(nsIDocShellLoadInfo::loadNormalReplace);
+        loadInfo->SetLoadType(nsIDocShellLoadInfo::loadNormalReplace);
             
-            
+        
 
 
-            nsCOMPtr<nsIURI> internalReferrer;
-            GetReferringURI(getter_AddRefs(internalReferrer));
-            if (internalReferrer) {
-                loadInfo->SetReferrer(internalReferrer);
-            }
+        nsCOMPtr<nsIURI> internalReferrer;
+        GetReferringURI(getter_AddRefs(internalReferrer));
+        if (internalReferrer) {
+            loadInfo->SetReferrer(internalReferrer);
         }
-        else
-            loadInfo->SetLoadType(nsIDocShellLoadInfo::loadRefresh);
-        
-
-
-
-        LoadURI(aURI, loadInfo, nsIWebNavigation::LOAD_FLAGS_NONE, PR_TRUE);
-        return NS_OK;
     }
-    else
+    else {
         loadInfo->SetLoadType(nsIDocShellLoadInfo::loadRefresh);
+    }
+
+    
+
+
 
     LoadURI(aURI, loadInfo, nsIWebNavigation::LOAD_FLAGS_NONE, PR_TRUE);
 
@@ -4826,6 +4844,18 @@ nsDocShell::SetupRefreshURIFromHeader(nsIURI * aBaseURI,
                 CheckLoadURI(aBaseURI, uri,
                              nsIScriptSecurityManager::
                              LOAD_IS_AUTOMATIC_DOCUMENT_REPLACEMENT);
+
+            if (NS_SUCCEEDED(rv)) {
+                PRBool isjs = PR_TRUE;
+                rv = NS_URIChainHasFlags(uri,
+                  nsIProtocolHandler::URI_OPENING_EXECUTES_SCRIPT, &isjs);
+                NS_ENSURE_SUCCESS(rv, rv);
+
+                if (isjs) {
+                    return NS_ERROR_FAILURE;
+                }
+            }
+
             if (NS_SUCCEEDED(rv)) {
                 
                 
