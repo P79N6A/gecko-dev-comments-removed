@@ -6287,6 +6287,7 @@ js_Interpret(JSContext *cx)
           END_VARLEN_CASE
 
           BEGIN_CASE(JSOP_RETSUB)
+            
             rval = POP();
             lval = POP();
             JS_ASSERT(JSVAL_IS_BOOLEAN(lval));

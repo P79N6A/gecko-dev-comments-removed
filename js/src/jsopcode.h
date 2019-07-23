@@ -340,6 +340,13 @@ js_GetIndexFromBytecode(JSContext *cx, JSScript *script, jsbytecode *pc,
 extern uintN
 js_GetVariableBytecodeLength(jsbytecode *pc);
 
+
+
+
+
+extern uintN
+js_GetVariableStackUseLength(JSOp op, jsbytecode *pc);
+
 #ifdef DEBUG
 
 
