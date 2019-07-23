@@ -55,6 +55,7 @@ class nsNativeRootAccessibleWrap: public nsRootAccessible
 {
 public:
     nsNativeRootAccessibleWrap(AtkObject *aAccessible);
+    ~nsNativeRootAccessibleWrap();
 };
 
 #endif   
