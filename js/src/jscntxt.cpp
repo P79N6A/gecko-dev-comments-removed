@@ -1844,11 +1844,27 @@ js_InvokeOperationCallback(JSContext *cx)
 
 
 
-    if (cx->runtime->gcIsNeeded)
+    JSRuntime *rt = cx->runtime;
+    if (rt->gcIsNeeded) {
         js_GC(cx, GC_NORMAL);
+
+        
+
+
+
+        bool delayedOutOfMemory;
+        JS_LOCK_GC(rt);
+        delayedOutOfMemory = (rt->gcBytes > rt->gcMaxBytes);
+        JS_UNLOCK_GC(rt);
+        if (delayedOutOfMemory) {
+            js_ReportOutOfMemory(cx);
+            return false;
+        }
+    }
 #ifdef JS_THREADSAFE
-    else
+    else {
         JS_YieldRequest(cx);
+    }
 #endif
 
     JSOperationCallback cb = cx->operationCallback;
