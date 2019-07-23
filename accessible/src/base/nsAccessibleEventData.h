@@ -187,9 +187,60 @@ private:
                               PRUint32 aStart, PRUint32 aEnd,
                               PRUint32 aEventType, nsIDOMNode* aDOMNode,
                               EEventRule aEventRule);
+
+  
+
+
+  static void CoalesceReorderEventsFromSameSource(nsAccEvent *aAccEvent1,
+                                                  nsAccEvent *aAccEvent2);
+
+  
+
+
+
+  static void CoalesceReorderEventsFromSameTree(nsAccEvent *aAccEvent,
+                                                nsAccEvent *aDescendantAccEvent);
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsAccEvent, NS_ACCEVENT_IMPL_CID)
+
+
+#define NS_ACCREORDEREVENT_IMPL_CID                     \
+{  /* f2629eb8-2458-4358-868c-3912b15b767a */           \
+  0xf2629eb8,                                           \
+  0x2458,                                               \
+  0x4358,                                               \
+  { 0x86, 0x8c, 0x39, 0x12, 0xb1, 0x5b, 0x76, 0x7a }    \
+}
+
+class nsAccReorderEvent : public nsAccEvent
+{
+public:
+
+  nsAccReorderEvent(nsIAccessible *aAccTarget, PRBool aIsAsynch,
+                    PRBool aIsUnconditional, nsIDOMNode *aReasonNode);
+
+  NS_DECLARE_STATIC_IID_ACCESSOR(NS_ACCREORDEREVENT_IMPL_CID)
+
+  NS_DECL_ISUPPORTS_INHERITED
+
+  
+
+
+  PRBool IsUnconditionalEvent();
+
+  
+
+
+  PRBool HasAccessibleInReasonSubtree();
+
+private:
+  PRBool mUnconditionalEvent;
+  nsCOMPtr<nsIDOMNode> mReasonNode;
+};
+
+NS_DEFINE_STATIC_IID_ACCESSOR(nsAccReorderEvent, NS_ACCREORDEREVENT_IMPL_CID)
+
 
 class nsAccStateChangeEvent: public nsAccEvent,
                              public nsIAccessibleStateChangeEvent

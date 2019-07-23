@@ -1704,6 +1704,18 @@ NS_IMETHODIMP nsDocAccessible::FlushPendingEvents()
           }
         } 
       }
+      else if (eventType == nsIAccessibleEvent::EVENT_REORDER) {
+        
+        
+        
+        nsAccReorderEvent* reorderEvent = nsnull;
+        CallQueryInterface(accessibleEvent, &reorderEvent);
+        if (reorderEvent->IsUnconditionalEvent() ||
+            reorderEvent->HasAccessibleInReasonSubtree()) {
+          nsAccEvent::PrepareForEvent(accessibleEvent);
+          FireAccessibleEvent(accessibleEvent);
+        }
+      }
       else {
         
         
@@ -2050,15 +2062,29 @@ NS_IMETHODIMP nsDocAccessible::InvalidateCacheSubtree(nsIContent *aChild,
 
   FireValueChangeForTextFields(containerAccessible);
 
-  if (childAccessible) {
-    
-    
-    nsCOMPtr<nsIAccessibleEvent> reorderEvent =
-      new nsAccEvent(nsIAccessibleEvent::EVENT_REORDER, containerAccessible,
-                     isAsynch, nsAccEvent::eCoalesceFromSameSubtree);
-    NS_ENSURE_TRUE(reorderEvent, NS_ERROR_OUT_OF_MEMORY);
-    FireDelayedAccessibleEvent(reorderEvent);
-  }
+  
+  
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+  PRBool isUnconditionalEvent = childAccessible ||
+    aChild && nsAccUtils::HasAccessibleChildren(childNode);
+
+  nsCOMPtr<nsIAccessibleEvent> reorderEvent =
+    new nsAccReorderEvent(containerAccessible, isAsynch,
+                          isUnconditionalEvent,
+                          aChild ? childNode : nsnull);
+  NS_ENSURE_TRUE(reorderEvent, NS_ERROR_OUT_OF_MEMORY);
+
+  FireDelayedAccessibleEvent(reorderEvent);
 
   return NS_OK;
 }

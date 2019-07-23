@@ -318,6 +318,11 @@ nsAccEvent::ApplyEventRules(nsCOMArray<nsIAccessibleEvent> &aEventsToFire)
             continue; 
 
           if (thisEvent->mDOMNode == tailEvent->mDOMNode) {
+            if (thisEvent->mEventType == nsIAccessibleEvent::EVENT_REORDER) {
+              CoalesceReorderEventsFromSameSource(thisEvent, tailEvent);
+              continue;
+            }
+
             
             thisEvent->mEventRule = nsAccEvent::eDoNotEmit;
             continue;
@@ -325,6 +330,11 @@ nsAccEvent::ApplyEventRules(nsCOMArray<nsIAccessibleEvent> &aEventsToFire)
           if (nsCoreUtils::IsAncestorOf(tailEvent->mDOMNode,
                                         thisEvent->mDOMNode)) {
             
+            if (thisEvent->mEventType == nsIAccessibleEvent::EVENT_REORDER) {
+              CoalesceReorderEventsFromSameTree(tailEvent, thisEvent);
+              continue;
+            }
+
             
             
             thisEvent->mEventRule = nsAccEvent::eDoNotEmit;
@@ -335,6 +345,11 @@ nsAccEvent::ApplyEventRules(nsCOMArray<nsIAccessibleEvent> &aEventsToFire)
           if (nsCoreUtils::IsAncestorOf(thisEvent->mDOMNode,
                                         tailEvent->mDOMNode)) {
             
+            if (thisEvent->mEventType == nsIAccessibleEvent::EVENT_REORDER) {
+              CoalesceReorderEventsFromSameTree(thisEvent, tailEvent);
+              continue;
+            }
+
             
             
             tailEvent->mEventRule = nsAccEvent::eDoNotEmit;
@@ -386,6 +401,91 @@ nsAccEvent::ApplyToSiblings(nsCOMArray<nsIAccessibleEvent> &aEventsToFire,
     }
   }
 }
+
+
+void
+nsAccEvent::CoalesceReorderEventsFromSameSource(nsAccEvent *aAccEvent1,
+                                                nsAccEvent *aAccEvent2)
+{
+  
+  nsAccReorderEvent* reorderEvent1 = nsnull;
+  CallQueryInterface(aAccEvent1, &reorderEvent1);
+  if (reorderEvent1->IsUnconditionalEvent()) {
+    aAccEvent2->mEventRule = nsAccEvent::eDoNotEmit;
+    return;
+  }
+
+  
+  nsAccReorderEvent* reorderEvent2 = nsnull;
+  CallQueryInterface(aAccEvent2, &reorderEvent2);
+  if (reorderEvent2->IsUnconditionalEvent()) {
+    aAccEvent1->mEventRule = nsAccEvent::eDoNotEmit;
+    return;
+  }
+
+  
+  if (reorderEvent1->HasAccessibleInReasonSubtree())
+    aAccEvent2->mEventRule = nsAccEvent::eDoNotEmit;
+  else
+    aAccEvent1->mEventRule = nsAccEvent::eDoNotEmit;
+}
+
+void
+nsAccEvent::CoalesceReorderEventsFromSameTree(nsAccEvent *aAccEvent,
+                                              nsAccEvent *aDescendantAccEvent)
+{
+  
+  nsAccReorderEvent* reorderEvent = nsnull;
+  CallQueryInterface(aAccEvent, &reorderEvent);
+  if (reorderEvent->IsUnconditionalEvent()) {
+    aDescendantAccEvent->mEventRule = nsAccEvent::eDoNotEmit;
+    return;
+  }
+
+  
+  
+  if (reorderEvent->HasAccessibleInReasonSubtree())
+    aDescendantAccEvent->mEventRule = nsAccEvent::eDoNotEmit;
+  else
+    aAccEvent->mEventRule = nsAccEvent::eDoNotEmit;
+}
+
+
+
+
+NS_IMPL_ISUPPORTS_INHERITED1(nsAccReorderEvent, nsAccEvent,
+                             nsAccReorderEvent)
+
+nsAccReorderEvent::nsAccReorderEvent(nsIAccessible *aAccTarget,
+                                     PRBool aIsAsynch,
+                                     PRBool aIsUnconditional,
+                                     nsIDOMNode *aReasonNode) :
+  nsAccEvent(::nsIAccessibleEvent::EVENT_REORDER, aAccTarget,
+             aIsAsynch, nsAccEvent::eCoalesceFromSameSubtree),
+  mUnconditionalEvent(aIsUnconditional), mReasonNode(aReasonNode)
+{
+}
+
+PRBool
+nsAccReorderEvent::IsUnconditionalEvent()
+{
+  return mUnconditionalEvent;
+}
+
+PRBool
+nsAccReorderEvent::HasAccessibleInReasonSubtree()
+{
+  if (!mReasonNode)
+    return PR_FALSE;
+
+  nsCOMPtr<nsIAccessible> accessible;
+  nsAccessNode::GetAccService()->GetAccessibleFor(mReasonNode,
+                                                  getter_AddRefs(accessible));
+
+  return accessible || nsAccUtils::HasAccessibleChildren(mReasonNode);
+}
+
+
 
 
 NS_IMPL_ISUPPORTS_INHERITED1(nsAccStateChangeEvent, nsAccEvent,

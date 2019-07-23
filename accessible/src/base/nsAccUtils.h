@@ -154,6 +154,11 @@ public:
   
 
 
+  static PRBool HasAccessibleChildren(nsIDOMNode *aNode);
+
+  
+
+
 
 
 
