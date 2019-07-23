@@ -222,7 +222,7 @@ static SETTING gSettings[] = {
 };
 
 PRBool
-nsWindowsShellService::IsDefaultBrowserVista(PRBool aStartupCheck, PRBool* aIsDefaultBrowser)
+nsWindowsShellService::IsDefaultBrowserVista(PRBool* aIsDefaultBrowser)
 {
 #if !defined(MOZ_DISABLE_VISTA_SDK_REQUIREMENTS)
   IApplicationAssociationRegistration* pAAR;
@@ -232,18 +232,12 @@ nsWindowsShellService::IsDefaultBrowserVista(PRBool aStartupCheck, PRBool* aIsDe
                                 CLSCTX_INPROC,
                                 IID_IApplicationAssociationRegistration,
                                 (void**)&pAAR);
-  
+
   if (SUCCEEDED(hr)) {
     hr = pAAR->QueryAppIsDefaultAll(AL_EFFECTIVE,
                                     APP_REG_NAME,
                                     aIsDefaultBrowser);
-    
-    
-    
-    
-    if (aStartupCheck)
-      mCheckedThisSession = PR_TRUE;
-    
+
     pAAR->Release();
     return PR_TRUE;
   }
@@ -316,26 +310,29 @@ nsWindowsShellService::IsDefaultBrowser(PRBool aStartupCheck,
     ::ZeroMemory(currValue, sizeof(currValue));
     HKEY theKey;
     rv = OpenKeyForReading(HKEY_CLASSES_ROOT, key, &theKey);
-    if (NS_SUCCEEDED(rv)) {
-      DWORD len = sizeof currValue;
-      DWORD res = ::RegQueryValueExW(theKey, PromiseFlatString(value).get(),
-                                     NULL, NULL, (LPBYTE)currValue, &len);
+    if (NS_FAILED(rv)) {
+      *aIsDefaultBrowser = PR_FALSE;
+      break;
+    }
+
+    DWORD len = sizeof currValue;
+    DWORD res = ::RegQueryValueExW(theKey, PromiseFlatString(value).get(),
+                                   NULL, NULL, (LPBYTE)currValue, &len);
+    
+    ::RegCloseKey(theKey);
+    if (REG_FAILED(res) ||
+        !dataLongPath.Equals(currValue, CaseInsensitiveCompare) &&
+        !dataShortPath.Equals(currValue, CaseInsensitiveCompare)) {
       
-      ::RegCloseKey(theKey);
-      if (REG_FAILED(res) ||
-          !dataLongPath.Equals(currValue, CaseInsensitiveCompare) &&
-          !dataShortPath.Equals(currValue, CaseInsensitiveCompare)) {
-        
-        *aIsDefaultBrowser = PR_FALSE;
-        return NS_OK;
-      }
+      *aIsDefaultBrowser = PR_FALSE;
+      return NS_OK;
     }
   }
 
   
   
-  if (aIsDefaultBrowser)
-    IsDefaultBrowserVista(aStartupCheck, aIsDefaultBrowser);
+  if (*aIsDefaultBrowser)
+    IsDefaultBrowserVista(aIsDefaultBrowser);
 
   return NS_OK;
 }
@@ -358,8 +355,8 @@ nsWindowsShellService::SetDefaultBrowser(PRBool aClaimAllTypes, PRBool aForAllUs
   rv = appHelper->AppendNative(NS_LITERAL_CSTRING("helper.exe"));
   NS_ENSURE_SUCCESS(rv, rv);
 
-  nsCAutoString appHelperPath;
-  rv = appHelper->GetNativePath(appHelperPath);
+  nsAutoString appHelperPath;
+  rv = appHelper->GetPath(appHelperPath);
   NS_ENSURE_SUCCESS(rv, rv);
 
   if (aForAllUsers) {
@@ -368,11 +365,11 @@ nsWindowsShellService::SetDefaultBrowser(PRBool aClaimAllTypes, PRBool aForAllUs
     appHelperPath.AppendLiteral(" /SetAsDefaultAppUser");
   }
 
-  STARTUPINFO si = {sizeof(si), 0};
+  STARTUPINFOW si = {sizeof(si), 0};
   PROCESS_INFORMATION pi = {0};
 
-  BOOL ok = CreateProcess(NULL, (LPSTR)appHelperPath.get(), NULL, NULL,
-                          FALSE, 0, NULL, NULL, &si, &pi);
+  BOOL ok = CreateProcessW(NULL, (LPWSTR)appHelperPath.get(), NULL, NULL,
+                           FALSE, 0, NULL, NULL, &si, &pi);
 
   if (!ok)
     return NS_ERROR_FAILURE;
@@ -766,8 +763,8 @@ nsWindowsShellService::GetUnreadMailCount(PRUint32* aCount)
     if (REG_SUCCEEDED(res))
       *aCount = unreadCount;
 
-  
-  ::RegCloseKey(accountKey);
+    
+    ::RegCloseKey(accountKey);
   }
 
   return NS_OK;
