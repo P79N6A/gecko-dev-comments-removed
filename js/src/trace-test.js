@@ -5721,6 +5721,21 @@ function testInitelemWithSetter() {
 }
 test(testInitelemWithSetter);
 
+function testDeepBailFromHasInstance() {
+    var arr = [StopIteration, StopIteration, StopIteration, StopIteration, {}];
+    var obj = {};
+    var x;
+    var result = 'no error';
+    try {
+        for (var i = 0; i < arr.length; i++)
+            x = (obj instanceof arr[i]);  
+    } catch (exc) {
+        result = exc.constructor.name;
+    }
+    assertEq(result, 'TypeError');
+}
+test(testDeepBailFromHasInstance);
+
 
 
 
