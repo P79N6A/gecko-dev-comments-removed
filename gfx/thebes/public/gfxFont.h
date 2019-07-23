@@ -467,7 +467,11 @@ public:
 
 
 
-        TEXT_NEED_BOUNDING_BOX       = 0x0200
+        TEXT_NEED_BOUNDING_BOX       = 0x0200,
+        
+
+
+        TEXT_DISABLE_LIGATURES       = 0x0400,
     };
 
     
