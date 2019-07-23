@@ -1687,7 +1687,21 @@ void nsGfxScrollFrameInner::ScrollVisual(nsIntPoint aPixDelta)
     nearestWidget->Scroll(aPixDelta, blitRects, configurations);
     AdjustViewsAndWidgets(mScrolledFrame, PR_TRUE);
     repaintRegion.MoveBy(-nearestWidgetOffset + offsetToDisplayRoot);
-    vm->UpdateViewAfterScroll(view, repaintRegion);
+
+    {
+      
+      
+      
+      
+      
+      
+      
+      nsContentUtils::AddScriptBlockerAndPreventAddingRunners();
+      vm->UpdateViewAfterScroll(view, repaintRegion);
+      nsContentUtils::RemoveScriptBlocker();
+      
+      
+    }
 
     nsIFrame* presContextRootFrame = presContext->FrameManager()->GetRootFrame();
     if (nearestWidget == presContextRootFrame->GetWindow()) {
