@@ -472,8 +472,15 @@ typedef enum JSCharType {
 
 
 
+extern const bool js_alnum[];
 
-#define JS_ISWORD(c)    ((c) < 128 && (isalnum(c) || (c) == '_'))
+
+
+
+
+
+
+#define JS_ISWORD(c)    ((c) < 128 && js_alnum[(c)])
 
 #define JS_ISIDSTART(c) (JS_ISLETTER(c) || (c) == '_' || (c) == '$')
 #define JS_ISIDENT(c)   (JS_ISIDPART(c) || (c) == '_' || (c) == '$')

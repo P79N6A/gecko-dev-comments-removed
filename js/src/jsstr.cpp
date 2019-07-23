@@ -4798,6 +4798,27 @@ const jschar js_uriUnescaped_ucstr[] =
      'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z',
      '-', '_', '.', '!', '~', '*', '\'', '(', ')', 0};
 
+
+
+
+
+const bool js_alnum[] = {
+
+ false, false, false, false, false, false, false, false, false, false,
+ false, false, false, false, false, false, false, false, false, false,
+ false, false, false, false, false, false, false, false, false, false,
+ false, false, false, false, false, false, false, false, false, false,
+ false, false, false, false, false, false, false, false, true,  true,
+ true,  true,  true,  true,  true,  true,  true,  true,  false, false,
+ false, false, false, false, false, true,  true,  true,  true,  true,
+ true,  true,  true,  true,  true,  true,  true,  true,  true,  true,
+ true,  true,  true,  true,  true,  true,  true,  true,  true,  true,
+ true,  false, false, false, false, true,  false, true,  true,  true,
+ true,  true,  true,  true,  true,  true,  true,  true,  true,  true,
+ true,  true,  true,  true,  true,  true,  true,  true,  true,  true,
+ true,  true,  true,  false, false, false, false, false
+};
+
 #define URI_CHUNK 64U
 
 
