@@ -70,15 +70,11 @@ class TableBackgroundPainter
 
 
 
-
-
-
     TableBackgroundPainter(nsTableFrame*        aTableFrame,
                            Origin               aOrigin,
                            nsPresContext*       aPresContext,
                            nsIRenderingContext& aRenderingContext,
-                           const nsRect&        aDirtyRect,
-                           const nsPoint&       aPt);
+                           const nsRect&        aDirtyRect);
 
     
     ~TableBackgroundPainter();
@@ -227,7 +223,6 @@ class TableBackgroundPainter
 
     nsPresContext*      mPresContext;
     nsIRenderingContext& mRenderingContext;
-    nsPoint              mRenderPt;
     nsRect               mDirtyRect;
 #ifdef DEBUG
     nsCompatibility      mCompatMode;
