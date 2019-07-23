@@ -68,7 +68,7 @@ protected:
 
 protected:
   
-  nsCOMPtr<nsITreeBoxObject> mTree; 
+  nsITreeBoxObject* mTree; 
 
   PRBool mSuppressed; 
   PRInt32 mCurrentIndex; 
