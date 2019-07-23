@@ -38,6 +38,7 @@
 
 
 
+
 #include "nsNativeThemeGTK.h"
 #include "nsThemeConstants.h"
 #include "gtkdrawing.h"
@@ -729,44 +730,12 @@ GetExtraSizeForWidget(PRUint8 aWidgetType, nsIntMargin* aExtra)
   }
 }
 
-static GdkRectangle
-ConvertToGdkRect(const nsRect &aRect, PRInt32 aP2A)
-{
-  GdkRectangle gdk_rect;
-  gdk_rect.x = NSAppUnitsToIntPixels(aRect.x, aP2A);
-  gdk_rect.y = NSAppUnitsToIntPixels(aRect.y, aP2A);
-  gdk_rect.width = NSAppUnitsToIntPixels(aRect.XMost(), aP2A) - gdk_rect.x;
-  gdk_rect.height = NSAppUnitsToIntPixels(aRect.YMost(), aP2A) - gdk_rect.y;
-  return gdk_rect;
-}
-
-static GdkRectangle
-ConvertGfxToGdkRect(const gfxRect &aRect, const gfxPoint &aTranslation)
-{
-  GdkRectangle gdk_rect;
-  gdk_rect.x = NSToIntRound(aRect.X()) - NSToIntRound(aTranslation.x);
-  gdk_rect.y = NSToIntRound(aRect.Y()) - NSToIntRound(aTranslation.y);
-  gdk_rect.width = NSToIntRound(aRect.Width());
-  gdk_rect.height = NSToIntRound(aRect.Height());
-  return gdk_rect;
-}
-
-static gfxRect
-ConvertToGfxRect(const nsRect &aRect, PRInt32 aP2A)
-{
-  gfxRect rect(NSAppUnitsToFloatPixels(aRect.x, aP2A),
-               NSAppUnitsToFloatPixels(aRect.y, aP2A),
-               NSAppUnitsToFloatPixels(aRect.width, aP2A),
-               NSAppUnitsToFloatPixels(aRect.height, aP2A));
-  return rect;
-}
-
 NS_IMETHODIMP
 nsNativeThemeGTK::DrawWidgetBackground(nsIRenderingContext* aContext,
                                        nsIFrame* aFrame,
                                        PRUint8 aWidgetType,
                                        const nsRect& aRect,
-                                       const nsRect& aClipRect)
+                                       const nsRect& aDirtyRect)
 {
   GtkWidgetState state;
   GtkThemeWidgetType gtkWidgetType;
@@ -775,25 +744,75 @@ nsNativeThemeGTK::DrawWidgetBackground(nsIRenderingContext* aContext,
   if (!GetGtkWidgetAndState(aWidgetType, aFrame, gtkWidgetType, &state,
                             &flags))
     return NS_OK;
+
+  gfxContext* ctx = aContext->ThebesContext();
+  nsPresContext *presContext = aFrame->PresContext();
+
+  gfxRect rect = presContext->AppUnitsToGfxUnits(aRect);
+  gfxRect dirtyRect = presContext->AppUnitsToGfxUnits(aDirtyRect);
+
+  
+  
+  
+  
+  PRBool snapXY = ctx->UserToDevicePixelSnapped(rect);
+  if (snapXY) {
     
-  nsCOMPtr<nsIDeviceContext> dctx = nsnull;
-  aContext->GetDeviceContext(*getter_AddRefs(dctx));
-  PRInt32 p2a = dctx->AppUnitsPerDevPixel();
+    dirtyRect = ctx->UserToDevice(dirtyRect);
+  }
 
   
-  nsRect drawingRect(aClipRect);
+  dirtyRect.MoveBy(-rect.pos);
+  
+  
+  dirtyRect.RoundOut();
+
+  
+  
+  nsIntRect widgetRect(0, 0, NS_lround(rect.Width()), NS_lround(rect.Height()));
+
+  
+  nsIntRect drawingRect(PRInt32(dirtyRect.X()),
+                        PRInt32(dirtyRect.Y()),
+                        PRInt32(dirtyRect.Width()),
+                        PRInt32(dirtyRect.Height()));
+  if (!drawingRect.IntersectRect(widgetRect, drawingRect))
+    return NS_OK;
+
   nsIntMargin extraSize;
-  GetExtraSizeForWidget(aWidgetType, &extraSize);
   
-  nsMargin extraSizeAppUnits(NSIntPixelsToAppUnits(extraSize.left, p2a),
-                             NSIntPixelsToAppUnits(extraSize.top, p2a),
-                             NSIntPixelsToAppUnits(extraSize.right, p2a),
-                             NSIntPixelsToAppUnits(extraSize.bottom, p2a));
-  drawingRect.Inflate(extraSizeAppUnits);
+  
+  
+  if (GetExtraSizeForWidget(aWidgetType, &extraSize)) {
+    drawingRect.Inflate(extraSize);
+  }
 
   
-  nsIRenderingContext::AutoPushTranslation
-    autoTranslation(aContext, drawingRect.x, drawingRect.y);
+
+  
+  
+  GdkRectangle gdk_clip = {0, 0, drawingRect.width, drawingRect.height};
+
+  GdkRectangle gdk_rect = {-drawingRect.x, -drawingRect.y,
+                           widgetRect.width, widgetRect.height};
+
+  ThemeRenderer renderer(state, gtkWidgetType, flags, direction,
+                         gdk_rect, gdk_clip);
+
+  
+  
+  
+  
+  
+  PRUint32 rendererFlags = gfxXlibNativeRenderer::DRAW_SUPPORTS_OFFSET;
+   
+  
+  gfxContextAutoSaveRestore autoSR(ctx);
+  if (snapXY) {
+    
+    ctx->IdentityMatrix(); 
+  }
+  ctx->Translate(rect.pos + gfxPoint(drawingRect.x, drawingRect.y));
 
   NS_ASSERTION(!IsWidgetTypeDisabled(mDisabledWidgetTypes, aWidgetType),
                "Trying to render an unsafe widget!");
@@ -805,53 +824,9 @@ nsNativeThemeGTK::DrawWidgetBackground(nsIRenderingContext* aContext,
     oldHandler = XSetErrorHandler(NativeThemeErrorHandler);
   }
 
-  gfxContext* ctx = aContext->ThebesContext();
-  gfxMatrix current = ctx->CurrentMatrix();
-
-  
-  
-  
-  
-  
-  
-  GdkRectangle gdk_rect, gdk_clip;
-  gfxRect gfx_rect = ConvertToGfxRect(aRect - drawingRect.TopLeft(), p2a);
-  gfxRect gfx_clip = ConvertToGfxRect(drawingRect - drawingRect.TopLeft(), p2a);
-  if (ctx->UserToDevicePixelSnapped(gfx_rect) &&
-      ctx->UserToDevicePixelSnapped(gfx_clip)) {
-    gfxPoint currentTranslation = current.GetTranslation();
-    gdk_rect = ConvertGfxToGdkRect(gfx_rect, currentTranslation);
-    gdk_clip = ConvertGfxToGdkRect(gfx_clip, currentTranslation);
-  }
-  else {
-    gdk_rect = ConvertToGdkRect(aRect - drawingRect.TopLeft(), p2a);
-    gdk_clip = ConvertToGdkRect(drawingRect - drawingRect.TopLeft(), p2a);
-  }
-  ThemeRenderer renderer(state, gtkWidgetType, flags, direction, gdk_rect, gdk_clip);
-
-  
-  gfxRect rect(0, 0, NSAppUnitsToIntPixels(drawingRect.width, p2a),
-                     NSAppUnitsToIntPixels(drawingRect.height, p2a));
-
-  PRUint32 rendererFlags = gfxXlibNativeRenderer::DRAW_SUPPORTS_OFFSET;
-  
-  
-  PRBool snapXY = ctx->UserToDevicePixelSnapped(rect) &&
-    !current.HasNonTranslation();
-  if (snapXY) {
-    gfxMatrix translation;
-    translation.Translate(rect.TopLeft());
-    ctx->SetMatrix(translation);
-    renderer.Draw(gdk_x11_get_default_xdisplay(), ctx,
-                  NSToCoordRound(rect.Width()), NSToCoordRound(rect.Height()),
-                  rendererFlags, nsnull);
-    ctx->SetMatrix(current);
-  } else {
-    renderer.Draw(gdk_x11_get_default_xdisplay(), ctx,
-                  NSToIntCeil(NSAppUnitsToFloatPixels(drawingRect.width, p2a)),
-                  NSToIntCeil(NSAppUnitsToFloatPixels(drawingRect.height, p2a)),
-                  rendererFlags, nsnull);
-  }
+  renderer.Draw(gdk_x11_get_default_xdisplay(), ctx,
+                drawingRect.width, drawingRect.height,
+                rendererFlags, nsnull);
 
   if (!safeState) {
     gdk_flush();
