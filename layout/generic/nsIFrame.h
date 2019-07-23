@@ -2315,6 +2315,12 @@ NS_PTR_TO_INT32(frame->GetProperty(nsGkAtoms::embeddingLevel))
 
   virtual nsILineIterator* GetLineIterator() = 0;
 
+  
+
+
+
+  virtual void PullOverflowsFromPrevInFlow() {}
+
 protected:
   
   nsRect           mRect;

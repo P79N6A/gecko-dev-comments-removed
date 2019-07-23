@@ -123,6 +123,8 @@ public:
 
   virtual PRBool CanContinueTextRun() const;
 
+  virtual void PullOverflowsFromPrevInFlow();
+
   
   
   void StealAllFrames() {
@@ -221,6 +223,8 @@ public:
                     nsHTMLReflowMetrics& aDesiredSize,
                     const nsHTMLReflowState& aReflowState,
                     nsReflowStatus& aStatus);
+
+  virtual void PullOverflowsFromPrevInFlow();
 
   
   

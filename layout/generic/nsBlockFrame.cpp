@@ -1857,6 +1857,7 @@ nsBlockFrame::ReflowDirtyLines(nsBlockReflowState& aState)
       aState.ReconstructMarginAbove(line);
     }
 
+    PRBool reflowedPrevLine = !needToRecoverState;
     if (needToRecoverState) {
       needToRecoverState = PR_FALSE;
 
@@ -2001,6 +2002,15 @@ nsBlockFrame::ReflowDirtyLines(nsBlockReflowState& aState)
       }
 
       needToRecoverState = PR_TRUE;
+
+      if (reflowedPrevLine && !line->IsBlock() &&
+          aState.mPresContext->HasPendingInterrupt()) {
+        
+        for (nsIFrame* inlineKid = line->mFirstChild; inlineKid;
+             inlineKid = inlineKid->GetFirstChild(nsnull)) {
+          inlineKid->PullOverflowsFromPrevInFlow();
+        }
+      }
     }
 
     
