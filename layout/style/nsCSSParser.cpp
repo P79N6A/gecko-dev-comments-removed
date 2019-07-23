@@ -5542,6 +5542,8 @@ PRBool CSSParserImpl::ParseBorderColors(nsresult& aErrorCode,
         aErrorCode = NS_OK;
         return PR_TRUE;
       }
+      
+      
       if (ParseVariant(aErrorCode, value, VARIANT_HCK|VARIANT_NONE, nsCSSProps::kBorderColorKTable)) {
         list->mNext = new nsCSSValueList();
         list = list->mNext;
