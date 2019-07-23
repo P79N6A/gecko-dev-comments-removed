@@ -290,12 +290,6 @@ protected:
 
 
 
-  void RemoveNewlines(nsString &aString);
-
-  
-
-
-
 
   PRBool GetMaxLength(PRInt32* aMaxLength);
 
