@@ -1106,7 +1106,10 @@ nsMediaCache::Update()
 
       
       
-      PRInt64 desiredOffset = stream->GetCachedDataEndInternal(stream->mStreamOffset);
+      PRInt64 dataOffset = stream->GetCachedDataEndInternal(stream->mStreamOffset);
+
+      
+      PRInt64 desiredOffset = dataOffset;
       if (stream->mIsSeekable) {
         if (desiredOffset > stream->mChannelOffset &&
             desiredOffset <= stream->mChannelOffset + SEEK_VS_READ_THRESHOLD) {
@@ -1137,8 +1140,7 @@ nsMediaCache::Update()
       
       
       PRBool enableReading;
-      if (stream->mStreamLength >= 0 &&
-          desiredOffset >= stream->mStreamLength) {
+      if (stream->mStreamLength >= 0 && dataOffset >= stream->mStreamLength) {
         
         
         
@@ -1150,7 +1152,7 @@ nsMediaCache::Update()
         
         LOG(PR_LOG_DEBUG, ("Stream %p at end of stream", stream));
         enableReading = !stream->mCacheSuspended &&
-          desiredOffset == stream->mChannelOffset;
+          stream->mStreamLength == stream->mChannelOffset;
       } else if (desiredOffset < stream->mStreamOffset) {
         
         
