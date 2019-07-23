@@ -52,6 +52,26 @@ namespace ctypes {
 
 
 template<class IntegerType>
+static IntegerType
+Convert(jsdouble d)
+{
+  return IntegerType(d);
+}
+
+#ifdef _MSC_VER
+
+
+template<>
+static PRUint64
+Convert<PRUint64>(jsdouble d)
+{
+  return d > 0x7fffffffffffffffui64 ?
+         PRUint64(d - 0x8000000000000000ui64) + 0x8000000000000000ui64 :
+         PRUint64(d);
+}
+#endif
+
+template<class IntegerType>
 static bool
 jsvalToIntStrict(jsval aValue, IntegerType *aResult)
 {
@@ -65,7 +85,7 @@ jsvalToIntStrict(jsval aValue, IntegerType *aResult)
   }
   if (JSVAL_IS_DOUBLE(aValue)) {
     jsdouble d = *JSVAL_TO_DOUBLE(aValue);
-    *aResult = IntegerType(d);
+    *aResult = Convert<IntegerType>(d);
 
     
     
