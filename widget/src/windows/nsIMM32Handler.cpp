@@ -74,8 +74,10 @@ static UINT sWM_MSIME_MOUSE = 0;
 PRPackedBool nsIMM32Handler::sIsComposingOnPlugin = PR_FALSE;
 PRPackedBool nsIMM32Handler::sIsStatusChanged = PR_FALSE;
 
+#ifndef WINCE
 UINT nsIMM32Handler::sCodePage = 0;
 DWORD nsIMM32Handler::sIMEProperty = 0;
+#endif
 
  void
 nsIMM32Handler::EnsureHandlerInstance()
