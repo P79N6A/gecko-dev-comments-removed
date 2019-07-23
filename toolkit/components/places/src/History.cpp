@@ -163,6 +163,12 @@ History::History()
 History::~History()
 {
   gService = NULL;
+#ifdef DEBUG
+  if (mObservers.IsInitialized()) {
+    NS_ASSERTION(mObservers.Count() == 0,
+                 "Not all Links were removed before we disappear!");
+  }
+#endif
 }
 
 void
@@ -241,18 +247,24 @@ History::RegisterVisitedCallback(nsIURI* aURI,
   }
 
   
+#ifdef DEBUG
+  bool keyAlreadyExists = !!mObservers.GetEntry(aURI);
+#endif
   KeyClass* key = mObservers.PutEntry(aURI);
   NS_ENSURE_TRUE(key, NS_ERROR_OUT_OF_MEMORY);
   ObserverArray& observers = key->array;
 
   if (observers.IsEmpty()) {
+    NS_ASSERTION(!keyAlreadyExists,
+                 "An empty key was kept around in our hashtable!");
+
     
     
     
     nsresult rv = VisitedQuery::Start(aURI);
     if (NS_FAILED(rv)) {
       
-      (void)UnregisterVisitedCallback(aURI, aLink);
+      mObservers.RemoveEntry(aURI);
       return rv;
     }
   }
