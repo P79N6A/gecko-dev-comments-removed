@@ -135,7 +135,7 @@ function evaluateTypein()
 {
   var code = document.getElementById("TextboxEval").value;
   var iframe = document.getElementById("Evaluator");
-  iframe.setAttribute("src", "javascript: " + code);
+  iframe.contentDocument.location = "javascript: " + encodeURIComponent(code);
 }
 
 function displayResult()
@@ -146,8 +146,6 @@ function displayResult()
   if (result)
     gConsole.mCService.logStringMessage(result);
     
-  var iframe = document.getElementById("Evaluator");
-  iframe.setAttribute("src", "chrome://global/content/blank.html");
 }
 
 
