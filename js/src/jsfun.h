@@ -98,14 +98,6 @@ extern JS_FRIEND_DATA(JSClass) js_FunctionClass;
     (!JSVAL_IS_PRIMITIVE(v) &&                                                \
      OBJ_GET_CLASS(cx, JSVAL_TO_OBJECT(v)) == &js_FunctionClass)
 
-
-
-
-
-#define GET_FUNCTION_PRIVATE(cx, funobj)                                      \
-    (JS_ASSERT(OBJ_GET_CLASS(cx, funobj) == &js_FunctionClass),               \
-     (JSFunction *) OBJ_GET_PRIVATE(cx, funobj))
-
 extern JSObject *
 js_InitFunctionClass(JSContext *cx, JSObject *obj);
 
@@ -182,49 +174,6 @@ js_PutArgsObject(JSContext *cx, JSStackFrame *fp);
 
 extern JSBool
 js_XDRFunction(JSXDRState *xdr, JSObject **objp);
-
-typedef enum JSLocalKind {
-    JSLOCAL_NONE,
-    JSLOCAL_ARG,
-    JSLOCAL_VAR,
-    JSLOCAL_CONST
-} JSLocalKind;
-
-extern JSBool
-js_AddLocal(JSContext *cx, JSFunction *fun, JSAtom *atom, JSLocalKind kind);
-
-
-
-
-
-
-
-extern JSLocalKind
-js_LookupLocal(JSContext *cx, JSFunction *fun, JSAtom *atom, uintN *indexp);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-extern JSAtom **
-js_GetLocalNames(JSContext *cx, JSFunction *fun, JSArenaPool *pool,
-                 uint32 **bitmap);
-
-
-
-
-
-#define JS_HIDDEN_ARG_GETTER    ((JSPropertyOp) sizeof(jsuword))
-#define JS_HIDDEN_VAR_GETTER    ((JSPropertyOp) (2 * sizeof(jsuword)))
 
 JS_END_EXTERN_C
 
