@@ -69,12 +69,51 @@ enum {
 
 const uint32 SHAPE_OVERFLOW_BIT = JS_BIT(32 - PCVCAP_TAGBITS);
 
+
+
+
+
+
+
+
+
+
+class PCVal
+{
+  private:
+    enum {
+        OBJECT = 0,
+        SLOT = 1,
+        SPROP = 2,
+        TAG = 3
+    };
+
+    jsuword v;
+
+  public:
+    bool isNull() const { return v == 0; }
+    void setNull() { v = 0; }
+
+    bool isObject() const { return (v & TAG) == OBJECT; }
+    JSObject *toObject() const { JS_ASSERT(isObject()); return reinterpret_cast<JSObject *>(v); }
+    jsval toJsval() const { return OBJECT_TO_JSVAL(toObject()); }
+    void setObject(JSObject *obj) { v = reinterpret_cast<jsuword>(obj); }
+
+    bool isSlot() const { return v & SLOT; }
+    uint32 toSlot() const { JS_ASSERT(isSlot()); return uint32(v) >> 1; }
+    void setSlot(uint32 slot) { v = (jsuword(slot) << 1) | SLOT; }
+
+    bool isSprop() const { return (v & TAG) == SPROP; }
+    JSScopeProperty *toSprop() const { JS_ASSERT(isSprop()); return reinterpret_cast<JSScopeProperty *>(v & ~TAG); }
+    void setSprop(JSScopeProperty *sprop) { JS_ASSERT(sprop); v = reinterpret_cast<jsuword>(sprop) | SPROP; }
+};
+
 struct PropertyCacheEntry
 {
     jsbytecode          *kpc;           
     jsuword             kshape;         
     jsuword             vcap;           
-    jsuword             vword;          
+    PCVal               vword;          
 
     bool adding() const { return vcapTag() == 0 && kshape != vshape(); }
     bool directHit() const { return vcapTag() == 0 && kshape == vshape(); }
@@ -85,7 +124,7 @@ struct PropertyCacheEntry
     jsuword protoIndex() const { return vcap & PCVCAP_PROTOMASK; }
 
     void assign(jsbytecode *kpc, jsuword kshape, jsuword vshape,
-                uintN scopeIndex, uintN protoIndex, jsuword vword) {
+                uintN scopeIndex, uintN protoIndex, PCVal vword) {
         JS_ASSERT(kshape < SHAPE_OVERFLOW_BIT);
         JS_ASSERT(vshape < SHAPE_OVERFLOW_BIT);
         JS_ASSERT(scopeIndex <= PCVCAP_SCOPEMASK);
@@ -194,41 +233,6 @@ struct PropertyCache
     inline void assertEmpty() {}
 #endif
 };
-
-
-
-
-enum {
-    PCVAL_OBJECT = 0,
-    PCVAL_SLOT = 1,
-    PCVAL_SPROP = 2,
-
-    PCVAL_TAGBITS = 2,
-    PCVAL_TAGMASK = JS_BITMASK(PCVAL_TAGBITS),
-
-    PCVAL_NULL = 0
-};
-
-inline jsuword PCVAL_TAG(jsuword v) { return v & PCVAL_TAGMASK; }
-inline jsuword PCVAL_CLRTAG(jsuword v) { return v & ~jsuword(PCVAL_TAGMASK); }
-inline jsuword PCVAL_SETTAG(jsuword v, jsuword t) { return v | t; }
-
-inline bool PCVAL_IS_NULL(jsuword v) { return v == PCVAL_NULL; }
-
-inline bool PCVAL_IS_OBJECT(jsuword v) { return PCVAL_TAG(v) == PCVAL_OBJECT; }
-inline JSObject *PCVAL_TO_OBJECT(jsuword v) { JS_ASSERT(PCVAL_IS_OBJECT(v)); return (JSObject *) v; }
-inline jsuword OBJECT_TO_PCVAL(JSObject *obj) { return jsuword(obj); }
-
-inline jsval PCVAL_OBJECT_TO_JSVAL(jsuword v) { return OBJECT_TO_JSVAL(PCVAL_TO_OBJECT(v)); }
-inline jsuword JSVAL_OBJECT_TO_PCVAL(jsval v) { return OBJECT_TO_PCVAL(JSVAL_TO_OBJECT(v)); }
-
-inline bool PCVAL_IS_SLOT(jsuword v) { return v & PCVAL_SLOT; }
-inline jsuint PCVAL_TO_SLOT(jsuword v) { JS_ASSERT(PCVAL_IS_SLOT(v)); return jsuint(v) >> 1; }
-inline jsuword SLOT_TO_PCVAL(jsuint i) { return (jsuword(i) << 1) | PCVAL_SLOT; }
-
-inline bool PCVAL_IS_SPROP(jsuword v) { return PCVAL_TAG(v) == PCVAL_SPROP; }
-inline JSScopeProperty *PCVAL_TO_SPROP(jsuword v) { JS_ASSERT(PCVAL_IS_SPROP(v)); return (JSScopeProperty *) PCVAL_CLRTAG(v); }
-inline jsuword SPROP_TO_PCVAL(JSScopeProperty *sprop) { return PCVAL_SETTAG(jsuword(sprop), PCVAL_SPROP); }
 
 } 
 
