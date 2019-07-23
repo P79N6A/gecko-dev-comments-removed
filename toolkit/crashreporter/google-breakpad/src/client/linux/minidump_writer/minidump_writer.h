@@ -48,6 +48,12 @@ namespace google_breakpad {
 bool WriteMinidump(const char* filename, pid_t crashing_process,
                    const void* blob, size_t blob_size);
 
+
+
+
+
+bool WriteMinidump(const char* filename, pid_t process);
+
 }  
 
 #endif  

@@ -56,6 +56,7 @@ const char kLinuxGateLibraryName[] = "linux-gate.so";
 
 
 struct ThreadInfo {
+  pid_t tid;    
   pid_t tgid;   
   pid_t ppid;   
 
@@ -90,6 +91,16 @@ struct MappingInfo {
   char name[NAME_MAX];
 };
 
+
+bool AttachThread(pid_t pid);
+
+
+bool DetachThread(pid_t pid);
+
+
+
+bool GetThreadRegisters(ThreadInfo* info);
+
 class LinuxDumper {
  public:
   explicit LinuxDumper(pid_t pid);
@@ -98,12 +109,14 @@ class LinuxDumper {
   bool Init();
 
   
-  bool ThreadsSuspend();
-  bool ThreadsResume();
+  
+  
+  bool ThreadsAttach(pid_t except=0);
+  bool ThreadsDetach();
 
   
   
-  bool ThreadInfoGet(pid_t tid, ThreadInfo* info);
+  bool ThreadInfoGet(ThreadInfo* info);
 
   
   const wasteful_vector<pid_t> &threads() { return threads_; }

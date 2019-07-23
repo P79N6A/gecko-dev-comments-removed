@@ -162,6 +162,19 @@ class ExceptionHandler {
 
   
   
+  
+  
+  
+  
+  
+  
+  static bool WriteMinidumpForChild(pid_t child,
+                                    const std::string &dump_path,
+                                    MinidumpCallback callback,
+                                    void *callback_context);
+
+  
+  
   struct CrashContext {
     siginfo_t siginfo;
     pid_t tid;  
