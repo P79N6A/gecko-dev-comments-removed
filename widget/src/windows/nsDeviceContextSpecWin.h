@@ -64,34 +64,34 @@ public:
 
   NS_IMETHOD Init(nsIWidget* aWidget, nsIPrintSettings* aPS, PRBool aIsPrintPreview);
 
-  void GetDriverName(char *&aDriverName) const   { aDriverName = mDriverName;     }
-  void GetDeviceName(char *&aDeviceName) const   { aDeviceName = mDeviceName;     }
+  void GetDriverName(PRUnichar *&aDriverName) const   { aDriverName = mDriverName;     }
+  void GetDeviceName(PRUnichar *&aDeviceName) const   { aDeviceName = mDeviceName;     }
 
   
   
   
   
-  void GetDevMode(LPDEVMODE &aDevMode);
+  void GetDevMode(LPDEVMODEW &aDevMode);
 
   
   nsresult GetDataFromPrinter(const PRUnichar * aName, nsIPrintSettings* aPS = nsnull);
 
   static nsresult SetPrintSettingsFromDevMode(nsIPrintSettings* aPrintSettings, 
-                                              LPDEVMODE         aDevMode);
+                                              LPDEVMODEW         aDevMode);
 
 protected:
 
-  void SetDeviceName(char* aDeviceName);
-  void SetDriverName(char* aDriverName);
-  void SetDevMode(LPDEVMODE aDevMode);
+  void SetDeviceName(const PRUnichar* aDeviceName);
+  void SetDriverName(const PRUnichar* aDriverName);
+  void SetDevMode(LPDEVMODEW aDevMode);
 
   void SetupPaperInfoFromSettings();
 
   virtual ~nsDeviceContextSpecWin();
 
-  char*     mDriverName;
-  char*     mDeviceName;
-  LPDEVMODE mDevMode;
+  PRUnichar*      mDriverName;
+  PRUnichar*      mDeviceName;
+  LPDEVMODEW mDevMode;
 
   nsCOMPtr<nsIPrintSettings> mPrintSettings;
 };
