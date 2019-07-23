@@ -247,7 +247,6 @@
 # include "jscpucfg.h"      
 #elif defined(XP_UNIX) || defined(XP_BEOS) || defined(XP_OS2) || defined(CROSS_COMPILE)
 # include "jsautocfg.h"     
-# include "jsosdep.h"       
 #else
 # error "Must define one of XP_BEOS, XP_OS2, XP_WIN or XP_UNIX"
 #endif
