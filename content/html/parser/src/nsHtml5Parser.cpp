@@ -688,8 +688,9 @@ nsHtml5Parser::OnStartRequest(nsIRequest* aRequest, nsISupports* aContext)
 
 
 nsresult
-nsHtml5Parser::OnStopRequest(nsIRequest* aRequest, nsISupports* aContext,
-                        nsresult status)
+nsHtml5Parser::OnStopRequest(nsIRequest* aRequest, 
+                             nsISupports* aContext,
+                             nsresult status)
 {
   mTreeBuilder->MaybeFlush();
   NS_ASSERTION((mRequest == aRequest), "Got Stop on wrong stream.");
@@ -718,42 +719,15 @@ nsHtml5Parser::OnStopRequest(nsIRequest* aRequest, nsISupports* aContext,
       break;
   }
 
-
-    
-    
-    
-    
-
-
-
-
-
-
-
   mStreamListenerState = eOnStop;
 
   if (!mScriptsExecuting) {
     ParseUntilSuspend();
   }
 
-  
-  
-
-  
-  
   if (mObserver) {
     mObserver->OnStopRequest(aRequest, aContext, status);
   }
-
-
-
-
-
-
-
-
-
-
 
   return rv;
 }
