@@ -483,6 +483,15 @@ public:
 
 
 
+
+  static nsresult GetFontMetricsForStyleContext(nsStyleContext* aStyleContext,
+                                                nsIFontMetrics** aFontMetrics);
+
+  
+
+
+
+
   static nsIFrame* FindChildContainingDescendant(nsIFrame* aParent, nsIFrame* aDescendantFrame);
   
   
