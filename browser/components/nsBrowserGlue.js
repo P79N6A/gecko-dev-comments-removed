@@ -58,6 +58,9 @@ BrowserGlue.prototype = {
       case "xpcom-shutdown":
         this._dispose();
         break;
+      case "profile-before-change":
+        this._onProfileChange();
+        break;
       case "profile-change-teardown": 
         this._onProfileShutdown();
         break;
@@ -80,6 +83,7 @@ BrowserGlue.prototype = {
     
     const osvr = Components.classes['@mozilla.org/observer-service;1']
                            .getService(Components.interfaces.nsIObserverService);
+    osvr.addObserver(this, "profile-before-change", false);
     osvr.addObserver(this, "profile-change-teardown", false);
     osvr.addObserver(this, "xpcom-shutdown", false);
     osvr.addObserver(this, "final-ui-startup", false);
@@ -92,6 +96,7 @@ BrowserGlue.prototype = {
     
     const osvr = Components.classes['@mozilla.org/observer-service;1']
                            .getService(Components.interfaces.nsIObserverService);
+    osvr.removeObserver(this, "profile-before-change");
     osvr.removeObserver(this, "profile-change-teardown");
     osvr.removeObserver(this, "xpcom-shutdown");
     osvr.removeObserver(this, "final-ui-startup");
@@ -136,15 +141,19 @@ BrowserGlue.prototype = {
     this._profileStarted = true;
   },
 
-  
-  _onProfileShutdown: function() 
+  _onProfileChange: function()
   {
+    
     
     if (this._profileStarted) {
       
       this._shutdownPlaces();
     }
+  },
 
+  
+  _onProfileShutdown: function() 
+  {
     
     
     const appStartup = Components.classes['@mozilla.org/toolkit/app-startup;1']
