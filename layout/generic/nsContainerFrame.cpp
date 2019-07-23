@@ -598,36 +598,12 @@ nsContainerFrame::SyncFrameViewProperties(nsPresContext*  aPresContext,
   }
 
   
-  if (0 == (aFlags & NS_FRAME_NO_VISIBILITY)) {
+  if (0 == (aFlags & NS_FRAME_NO_VISIBILITY) &&
+      !aFrame->SupportsVisibilityHidden()) {
     
-    PRBool  viewIsVisible = PR_TRUE;
-
-    if (!aStyleContext->GetStyleVisibility()->IsVisible() &&
-        !aFrame->SupportsVisibilityHidden()) {
-      
-      
-      
-      
-      viewIsVisible = PR_FALSE;
-    } else if (IsMenuPopup(aFrame)) {
-      
-      nsIWidget* widget = aView->GetWidget();
-      if (widget) {
-        nsWindowType windowType;
-        widget->GetWindowType(windowType);
-        if (windowType == eWindowType_popup) {
-          widget->IsVisible(viewIsVisible);
-        }
-      }
-      else {
-        
-        
-        viewIsVisible = PR_FALSE;
-      }
-    }
-
-    vm->SetViewVisibility(aView, viewIsVisible ? nsViewVisibility_kShow :
-                          nsViewVisibility_kHide);
+    vm->SetViewVisibility(aView,
+        aStyleContext->GetStyleVisibility()->IsVisible()
+            ? nsViewVisibility_kShow : nsViewVisibility_kHide);
   }
 
   
