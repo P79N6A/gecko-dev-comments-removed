@@ -174,6 +174,15 @@ enum {
   TSMDocumentID mPluginTSMDoc;
 
   
+  NSTrackingRectTag mTrackingRect;
+
+  enum MouseEnterState {
+    eMouseEnterState_Unknown,
+    eMouseEnterState_Inside,
+    eMouseEnterState_Outside
+  } mMouseEnterState;
+
+  
   
   
   
@@ -210,6 +219,10 @@ enum {
 - (void)setTransparent:(BOOL)transparent;
 
 - (void)sendFocusEvent:(PRUint32)eventType;
+
+- (MouseEnterState)mouseEnterState;
+
+- (NSTrackingRectTag)trackingRect;
 
 - (void)handleMouseMoved:(NSEvent*)aEvent;
 
