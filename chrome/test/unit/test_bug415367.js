@@ -1,0 +1,84 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+const Cc = Components.classes;
+const Ci = Components.interfaces;
+
+var gIOS = Cc["@mozilla.org/network/io-service;1"]
+            .getService(Ci.nsIIOService);
+
+function test_uri(obj)
+{
+  var uri = null;
+  var failed = false;
+  var message = "";
+  try {
+    uri = gIOS.newURI(obj.uri, null, null);
+    if (!obj.result) {
+      failed = true;
+      message = obj.uri + " should not be accepted as a valid URI";
+    }
+  }
+  catch (ex) {
+    if (obj.result) {
+      failed = true;
+      message = obj.uri + " should be accepted as a valid URI";
+    }
+  }
+  if (failed)
+    do_throw(message);
+  if (obj.result) {
+    do_check_true(uri != null);
+    do_check_eq(uri.spec, obj.uri);
+  }
+}
+
+function run_test()
+{
+  var tests = [
+    {uri: "chrome://blah/content/blah.xul", result: true},
+    {uri: "chrome://blah/content/:/blah/blah.xul", result: false},
+    {uri: "chrome://blah/content/%252e./blah/blah.xul", result: false},
+    {uri: "chrome://blah/content/%252e%252e/blah/blah.xul", result: false},
+    {uri: "chrome://blah/content/blah.xul?param=%252e./blah/", result: true},
+    {uri: "chrome://blah/content/blah.xul?param=:/blah/", result: true},
+    {uri: "chrome://blah/content/blah.xul?param=%252e%252e/blah/", result: true},
+  ];
+  for (var i = 0; i < tests.length; ++ i)
+    test_uri(tests[i]);
+}
