@@ -114,14 +114,6 @@ toolbarbutton.bookmark-item {
   max-width: 13em;
 }
 
-%ifdef MOZ_WIDGET_GTK2
-
-.bookmark-item > .menu-iconic-left,
-.searchbar-engine-menuitem > .menu-iconic-left {
-  visibility: inherit;
-}
-%endif
-
 #editBMPanel_tagsSelector {
   
   width: auto;
