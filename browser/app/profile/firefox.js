@@ -702,6 +702,9 @@ pref("browser.offline-apps.notify", true);
 pref("browser.zoom.full", true);
 
 
+pref("browser.zoom.siteSpecific", true);
+
+
 pref("editor.singleLine.pasteNewlines", 2);
 
 
