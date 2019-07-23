@@ -45,6 +45,9 @@
 #include "nsAccessibilityService.h"
 
 #include "nsIComponentManager.h"
+#include "nsIDOMDocument.h"
+#include "nsIDOMWindow.h"
+#include "nsIWindowMediator.h"
 #include "nsServiceManagerUtils.h"
 
 nsApplicationAccessible::nsApplicationAccessible() :
@@ -260,6 +263,40 @@ nsApplicationAccessible::CacheChildren()
 {
   
   
+  
+
+  
+  
+  
+  
+  
+
+  nsCOMPtr<nsIWindowMediator> windowMediator =
+    do_GetService(NS_WINDOWMEDIATOR_CONTRACTID);
+
+  nsCOMPtr<nsISimpleEnumerator> windowEnumerator;
+  nsresult rv = windowMediator->GetEnumerator(nsnull,
+                                              getter_AddRefs(windowEnumerator));
+  if (NS_FAILED(rv))
+    return;
+
+  PRBool hasMore = PR_FALSE;
+  windowEnumerator->HasMoreElements(&hasMore);
+  while (hasMore) {
+    nsCOMPtr<nsISupports> window;
+    windowEnumerator->GetNext(getter_AddRefs(window));
+    nsCOMPtr<nsIDOMWindow> DOMWindow = do_QueryInterface(window);
+    if (DOMWindow) {
+      nsCOMPtr<nsIDOMDocument> DOMDocument;
+      DOMWindow->GetDocument(getter_AddRefs(DOMDocument));
+      if (DOMDocument) {
+        nsCOMPtr<nsIAccessible> accessible;
+        GetAccService()->GetAccessibleFor(DOMDocument,
+                                          getter_AddRefs(accessible));
+      }
+    }
+    windowEnumerator->HasMoreElements(&hasMore);
+  }
 }
 
 nsAccessible*
