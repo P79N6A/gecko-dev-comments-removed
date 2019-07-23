@@ -80,7 +80,6 @@
 
 
 
-
 static const char kHttpOnlyPrefix[] = "#HttpOnly_";
 
 static const char kCookieFileName[] = "cookies.sqlite";
