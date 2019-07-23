@@ -341,7 +341,7 @@ protected:
 
 
 
-  virtual void PaintTextDecorationLine(gfxContext* aCtx,
+  virtual void PaintTextDecorationLine(nsIRenderingContext& aRenderingContext,
                                        const nsPoint& aPt,
                                        nsLineBox* aLine,
                                        nscolor aColor,

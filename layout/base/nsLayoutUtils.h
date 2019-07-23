@@ -507,14 +507,6 @@ public:
 
 
 
-  static nsRect GetTextShadowRectsUnion(const nsRect& aTextAndDecorationsRect,
-                                        nsIFrame* aFrame);
-
-  
-
-
-
-
 
   static nsresult GetFontMetricsForFrame(nsIFrame* aFrame,
                                          nsIFontMetrics** aFontMetrics);

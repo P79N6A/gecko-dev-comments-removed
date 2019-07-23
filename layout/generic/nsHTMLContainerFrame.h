@@ -176,7 +176,7 @@ protected:
 
 
 
-  virtual void PaintTextDecorationLine(gfxContext* aCtx,
+  virtual void PaintTextDecorationLine(nsIRenderingContext& aRenderingContext,
                                        const nsPoint& aPt,
                                        nsLineBox* aLine,
                                        nscolor aColor,
@@ -186,7 +186,6 @@ protected:
                                        const PRUint8 aDecoration);
 
   friend class nsDisplayTextDecoration;
-  friend class nsDisplayTextShadow;
 };
 
 #endif 
