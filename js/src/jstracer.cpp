@@ -165,7 +165,7 @@ jitstats_getProperty(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 #define JITSTAT(x) case STAT ## x ## ID: result = jitstats.x; break;
 #include "jitstats.tbl"
 #undef JITSTAT
-      default:
+    default:
         *vp = JSVAL_VOID;
         return JS_TRUE;
     }
@@ -1695,13 +1695,13 @@ static bool
 js_IsLoopEdge(jsbytecode* pc, jsbytecode* header)
 {
     switch (*pc) {
-      case JSOP_IFEQ:
-      case JSOP_IFNE:
+    case JSOP_IFEQ:
+    case JSOP_IFNE:
         return ((pc + GET_JUMP_OFFSET(pc)) == header);
-      case JSOP_IFEQX:
-      case JSOP_IFNEX:
+    case JSOP_IFEQX:
+    case JSOP_IFNEX:
         return ((pc + GET_JUMPX_OFFSET(pc)) == header);
-      default:
+    default:
         JS_ASSERT((*pc == JSOP_AND) || (*pc == JSOP_ANDX) || 
                   (*pc == JSOP_OR) || (*pc == JSOP_ORX));
     }
@@ -1788,7 +1788,7 @@ TraceRecorder::snapshot(ExitType exitType)
     bool resumeAfter = (pendingTraceableNative &&
                         JSTN_ERRTYPE(pendingTraceableNative) == FAIL_JSVAL);
     if (resumeAfter) {
-        JS_ASSERT(*pc == JSOP_CALL || *pc == JSOP_NEXTITER);
+        JS_ASSERT(cs.format & JOF_RETVAL);
         pc += cs.length;
         regs->pc = pc;
         MUST_FLOW_THROUGH(restore_pc);
@@ -1817,9 +1817,8 @@ TraceRecorder::snapshot(ExitType exitType)
 
     
 
-
     if (resumeAfter) {
-        m[(pc[-cs.length] == JSOP_NEXTITER) ? -2 : -1] = JSVAL_BOXED;
+        m[-1] = JSVAL_BOXED;
 
         
         MUST_FLOW_LABEL(restore_pc);
@@ -1959,8 +1958,7 @@ TraceRecorder::checkType(jsval& v, uint8 t, jsval*& stage_val, LIns*& stage_ins,
                             typeChar[t]););
     }
 #endif
-    debug_only_v(printf("checkType(tag=%d, t=%d) stage_count=%d\n",
-                        (int) JSVAL_TAG(v), t, stage_count);)
+    debug_only_v(printf("checkType(tag=%d, t=%d) stage_count=%d\n", JSVAL_TAG(v), t, stage_count);)
     return JSVAL_TAG(v) == t;
 }
 
@@ -2376,17 +2374,17 @@ TraceRecorder::flipIf(jsbytecode* pc, bool& cond)
 {
     if (js_IsLoopEdge(pc, (jsbytecode*)fragment->root->ip)) {
         switch (*pc) {
-          case JSOP_IFEQ:
-          case JSOP_IFEQX:
+        case JSOP_IFEQ:
+        case JSOP_IFEQX:
             if (!cond)
                 return;
             break;
-          case JSOP_IFNE:
-          case JSOP_IFNEX:
+        case JSOP_IFNE:
+        case JSOP_IFNEX:
             if (cond)
                 return;
             break;
-          default:
+        default:
             JS_NOT_REACHED("flipIf");
         }
         
@@ -2958,7 +2956,7 @@ js_RecordLoopEdge(JSContext* cx, TraceRecorder* r, uintN& inlineCallCount)
         }
         Fragment* old;
         switch (lr->exitType) {
-          case LOOP_EXIT:
+        case LOOP_EXIT:
             
             if (innermostNestedGuard) {
                 js_AbortRecording(cx, "Inner tree took different side exit, abort recording");
@@ -3495,15 +3493,15 @@ monitor_loop:
 
 
     switch (lr->exitType) {
-      case UNSTABLE_LOOP_EXIT:
+    case UNSTABLE_LOOP_EXIT:
         return js_AttemptToStabilizeTree(cx, lr, match, NULL);
-      case BRANCH_EXIT:
+    case BRANCH_EXIT:
         return js_AttemptToExtendTree(cx, lr, NULL, NULL);
-      case LOOP_EXIT:
+    case LOOP_EXIT:
         if (innermostNestedGuard)
             return js_AttemptToExtendTree(cx, innermostNestedGuard, lr, NULL);
         return false;
-      default:
+    default:
         
         return false;
     }
@@ -4271,12 +4269,14 @@ TraceRecorder::binary(LOpcode op)
             rightNumber = true;
         }
     }
-    if (l == JSVAL_VOID) {
-        a = lir->insImmq(0);
+    if (JSVAL_TAG(l) == JSVAL_BOOLEAN) {
+        LIns* args[] = { a, cx_ins };
+        a = lir->insCall(&js_BooleanToNumber_ci, args);
         leftNumber = true;
     }
-    if (r == JSVAL_VOID) {
-        b = lir->insImmq(0);
+    if (JSVAL_TAG(r) == JSVAL_BOOLEAN) {
+        LIns* args[] = { b, cx_ins };
+        b = lir->insCall(&js_BooleanToNumber_ci, args);
         rightNumber = true;
     }
     if (leftNumber && rightNumber) {
@@ -5958,23 +5958,23 @@ TraceRecorder::record_FastNativeCallComplete()
 
 
 
-    JS_ASSERT(*cx->fp->regs->pc == JSOP_CALL);
+    JS_ASSERT(js_CodeSpec[*cx->fp->regs->pc].format & JOF_RETVAL);
 
     jsval& v = stackval(-1);
     LIns* v_ins = get(&v);
     
     bool ok = true;
     switch (JSTN_ERRTYPE(pendingTraceableNative)) {
-      case FAIL_JSVAL:
+    case FAIL_JSVAL:
         ok = unbox_jsval(v, v_ins);
         if (ok)
             set(&v, v_ins);
         break;
-      case FAIL_NEG:
+    case FAIL_NEG:
         
         JS_ASSERT(JSVAL_IS_NUMBER(v));
         break;
-      default:
+    default:
         
         if (JSVAL_IS_NUMBER(v) &&
             (pendingTraceableNative->builtin->_argtypes & 3) == nanojit::ARGSIZE_LO) {
@@ -6488,37 +6488,31 @@ TraceRecorder::record_JSOP_ITER()
         LIns* v_ins = lir->insCall(&js_FastValueToIterator_ci, args);
         guard(false, lir->ins_eq0(v_ins), MISMATCH_EXIT);
         set(&v, v_ins);
-
-        LIns* void_ins = INS_CONST(JSVAL_TO_BOOLEAN(JSVAL_VOID));
-        stack(0, void_ins);
         return true;
     }
 
     ABORT_TRACE("for-in on a primitive value");
 }
 
-static JSTraceableNative js_FastCallIteratorNext_tn = {
-    NULL,                               
-    &js_FastCallIteratorNext_ci,        
-    "C",                                
-    "o",                                
-    FAIL_JSVAL                          
-};
-
 bool
-TraceRecorder::record_JSOP_NEXTITER()
+TraceRecorder::forInLoop(jsval* vp)
 {
-    jsval& iterobj_val = stackval(-2);
+    jsval& iterobj_val = stackval(-1);
     if (!JSVAL_IS_PRIMITIVE(iterobj_val)) {
         LIns* args[] = { get(&iterobj_val), cx_ins };
         LIns* v_ins = lir->insCall(&js_FastCallIteratorNext_ci, args);
         guard(false, lir->ins2(LIR_eq, v_ins, INS_CONST(JSVAL_ERROR_COOKIE)), OOM_EXIT);
 
         LIns* flag_ins = lir->ins_eq0(lir->ins2(LIR_eq, v_ins, INS_CONST(JSVAL_HOLE)));
-        stack(-1, v_ins);
+        LIns* iter_ins = get(vp);
+        jsval expected = JSVAL_IS_VOID(*vp) ? JSVAL_STRING : JSVAL_TAG(*vp);
+        if (!box_jsval(expected, iter_ins))
+            return false;
+        iter_ins = lir->ins_choose(flag_ins, v_ins, iter_ins);
+        if (!unbox_jsval(expected, iter_ins))
+            return false;
+        set(vp, iter_ins);
         stack(0, flag_ins);
-
-        pendingTraceableNative = &js_FastCallIteratorNext_tn;
         return true;
     }
 
@@ -6526,24 +6520,9 @@ TraceRecorder::record_JSOP_NEXTITER()
 }
 
 bool
-TraceRecorder::record_IteratorNextComplete()
-{
-    JS_ASSERT(pendingTraceableNative);
-    JS_ASSERT(*cx->fp->regs->pc == JSOP_NEXTITER);
-
-    jsval& v = stackval(-2);
-    LIns* v_ins = get(&v);
-    if (unbox_jsval(v, v_ins)) {
-        set(&v, v_ins);
-        return true;
-    }
-    return false;
-}
-
-bool
 TraceRecorder::record_JSOP_ENDITER()
 {
-    LIns* args[] = { stack(-2), cx_ins };
+    LIns* args[] = { stack(-1), cx_ins };
     LIns* ok_ins = lir->insCall(&js_CloseIterator_ci, args);
     guard(false, lir->ins_eq0(ok_ins), MISMATCH_EXIT);
     return true;
@@ -6553,11 +6532,7 @@ bool
 TraceRecorder::record_JSOP_FORNAME()
 {
     jsval* vp;
-    if (name(vp)) {
-        set(vp, stack(-1));
-        return true;
-    }
-    return false;
+    return name(vp) && forInLoop(vp);
 }
 
 bool
@@ -6569,19 +6544,25 @@ TraceRecorder::record_JSOP_FORPROP()
 bool
 TraceRecorder::record_JSOP_FORELEM()
 {
-    return record_JSOP_DUP();
+    return false;
 }
 
 bool
 TraceRecorder::record_JSOP_FORARG()
 {
-    return record_JSOP_SETARG();
+    return forInLoop(&argval(GET_ARGNO(cx->fp->regs->pc)));
 }
 
 bool
 TraceRecorder::record_JSOP_FORLOCAL()
 {
-    return record_JSOP_SETLOCAL();
+    return forInLoop(&varval(GET_SLOTNO(cx->fp->regs->pc)));
+}
+
+bool
+TraceRecorder::record_JSOP_FORCONST()
+{
+    return false;
 }
 
 bool
@@ -6654,7 +6635,6 @@ TraceRecorder::record_JSOP_IN()
             return false;
     }
 
-    
     
     
     
@@ -7657,9 +7637,11 @@ js_DumpPeerStability(Fragmento* frago, const void* ip)
 
 #define UNUSED(n) bool TraceRecorder::record_JSOP_UNUSED##n() { return false; }
 
+UNUSED(74)
+UNUSED(76)
+UNUSED(77)
 UNUSED(78)
 UNUSED(79)
-UNUSED(103)
 UNUSED(131)
 UNUSED(201)
 UNUSED(202)
@@ -7668,7 +7650,5 @@ UNUSED(204)
 UNUSED(205)
 UNUSED(206)
 UNUSED(207)
-UNUSED(208)
-UNUSED(209)
 UNUSED(219)
 UNUSED(226)
