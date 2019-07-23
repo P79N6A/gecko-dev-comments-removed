@@ -141,6 +141,10 @@ function test() {
       let window = openDialog(location, "_blank", settings, url);
       window.addEventListener("load", function(aEvent) {
         window.gBrowser.addEventListener("load", function(aEvent) {
+          
+          
+          
+          window.gBrowser.addTab();
           window.gBrowser.removeEventListener("load", arguments.callee, true);
           executeSoon(function() {
             window.close();
