@@ -3944,6 +3944,10 @@ Decompile(SprintStack *ss, jsbytecode *pc, intN nb, JSOp nextop)
                     len = JSOP_CALL_LENGTH;
 
                     
+                    LOCAL_ASSERT(pc[len] == JSOP_RESUME);
+                    len += JSOP_RESUME_LENGTH;
+
+                    
 
 
 
