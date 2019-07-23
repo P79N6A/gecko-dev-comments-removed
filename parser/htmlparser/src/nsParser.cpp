@@ -503,7 +503,7 @@ nsSpeculativeScriptThread::StartParsing(nsParser *aParser)
       
       
       PRUint32 distance = Distance(start, end);
-      start.advance(PR_MIN(mNumConsumed - context->mNumConsumed, distance));
+      start.advance(NS_MIN(mNumConsumed - context->mNumConsumed, distance));
     }
 
     if (start == end) {
@@ -2721,7 +2721,7 @@ nsParser::DetectMetaTag(const char* aBytes,
   
   
   const nsASingleFragmentCString& str =
-      Substring(aBytes, aBytes + PR_MIN(aLen, 2048));
+      Substring(aBytes, aBytes + NS_MIN(aLen, 2048));
   
   nsACString::const_iterator begin, end;
 
