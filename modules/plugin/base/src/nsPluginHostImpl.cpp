@@ -169,10 +169,6 @@
 #include <mach-o/fat.h>
 #endif
 
-#ifdef XP_OS2
-#include "nsILegacyPluginWrapperOS2.h"
-#endif
-
 
 
 #define kPluginTmpDirName NS_LITERAL_CSTRING("plugtmp")
