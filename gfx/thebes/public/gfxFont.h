@@ -589,7 +589,8 @@ public:
 
 
     virtual PRBool SetPotentialLineBreaks(PRUint32 aStart, PRUint32 aLength,
-                                          PRPackedBool *aBreakBefore);
+                                          PRPackedBool *aBreakBefore,
+                                          gfxContext *aRefContext);
 
     
 
@@ -719,7 +720,8 @@ public:
 
     virtual PRBool SetLineBreaks(PRUint32 aStart, PRUint32 aLength,
                                  PRBool aLineBreakBefore, PRBool aLineBreakAfter,
-                                 gfxFloat *aAdvanceWidthDelta);
+                                 gfxFloat *aAdvanceWidthDelta,
+                                 gfxContext *aRefContext);
 
     
 
