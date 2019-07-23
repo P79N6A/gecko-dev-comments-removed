@@ -242,6 +242,7 @@ struct InterpState
     VMSideExit* lastTreeCallGuard; 
 
     void* rpAtLastTreeCall; 
+    JSObject* globalObj; 
 }; 
 
 struct UnstableExit
@@ -326,6 +327,7 @@ class TraceRecorder : public avmplus::GCObject {
     nanojit::LIns*          gp_ins;
     nanojit::LIns*          eos_ins;
     nanojit::LIns*          eor_ins;
+    nanojit::LIns*          globalObj_ins;
     nanojit::LIns*          rval_ins;
     nanojit::LIns*          inner_sp_ins;
     bool                    deepAborted;
