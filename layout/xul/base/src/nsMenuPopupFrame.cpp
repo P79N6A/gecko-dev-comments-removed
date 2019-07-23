@@ -958,8 +958,6 @@ nsMenuPopupFrame::SetPopupPosition(nsIFrame* aAnchorFrame, PRBool aIsMove)
   
   nsRect rootScreenRect = rootFrame->GetScreenRectInAppUnits();
 
-  nsCOMPtr<nsIScreenManager> screenManager(
-    do_GetService("@mozilla.org/gfx/screenmanager;1"));
   nsIDeviceContext* devContext = presContext->DeviceContext();
   nscoord offsetForContextMenu = 0;
   
@@ -1014,27 +1012,6 @@ nsMenuPopupFrame::SetPopupPosition(nsIFrame* aAnchorFrame, PRBool aIsMove)
                       nsPresContext::CSSPixelsToAppUnits(mScreenXPos) / factor);
     screenPoint.y = presContext->DevPixelsToAppUnits(
                       nsPresContext::CSSPixelsToAppUnits(mScreenYPos) / factor);
-
-    
-    
-    
-    if (screenManager) {
-      
-      nsCOMPtr<nsIScreen> screen;
-      screenManager->ScreenForRect(
-        presContext->AppUnitsToDevPixels(rootScreenRect.x),
-        presContext->AppUnitsToDevPixels(rootScreenRect.y),
-        presContext->AppUnitsToDevPixels(rootScreenRect.width),
-        presContext->AppUnitsToDevPixels(rootScreenRect.height),
-        getter_AddRefs(screen));
-      nsIntRect screenRectPixels;
-      screen->GetRect(&screenRectPixels.x, &screenRectPixels.y,
-                      &screenRectPixels.width, &screenRectPixels.height);
-      nsRect screenRect =
-        screenRectPixels.ToAppUnits(presContext->AppUnitsPerDevPixel());
-      screenPoint += screenRect.TopLeft();
-    }
-
     anchorRect = nsRect(screenPoint, nsSize(0, 0));
 
     
@@ -1056,15 +1033,16 @@ nsMenuPopupFrame::SetPopupPosition(nsIFrame* aAnchorFrame, PRBool aIsMove)
   
   nsIntRect screenRectPixels;
   nsCOMPtr<nsIScreen> screen;
-  if (screenManager) {
+  nsCOMPtr<nsIScreenManager> sm(do_GetService("@mozilla.org/gfx/screenmanager;1"));
+  if (sm) {
     
     
     
     
     nsPoint pnt = mInContentShell ? rootScreenRect.TopLeft() : anchorRect.TopLeft();
-    screenManager->ScreenForRect(presContext->AppUnitsToDevPixels(pnt.x),
-                                 presContext->AppUnitsToDevPixels(pnt.y),
-                                 1, 1, getter_AddRefs(screen));
+    sm->ScreenForRect(presContext->AppUnitsToDevPixels(pnt.x),
+                      presContext->AppUnitsToDevPixels(pnt.y),
+                      1, 1, getter_AddRefs(screen));
     if (screen) {
       if (mMenuCanOverlapOSBar)
         screen->GetRect(&screenRectPixels.x, &screenRectPixels.y,
