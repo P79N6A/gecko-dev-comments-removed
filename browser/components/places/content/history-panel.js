@@ -64,7 +64,7 @@ function HistorySidebarInit()
 
   initContextMenu();
   
-  initPlace();
+  searchHistory("");
 
   gSearchBox.focus();
 }
@@ -109,63 +109,55 @@ function historyAddBookmarks()
   PlacesUtils.showMinimalAddBookmarkUI(PlacesUtils._uri(node.uri), node.title);
 }
 
-function SetSortingAndGrouping(aOptions) 
-{
-  const NHQO = Ci.nsINavHistoryQueryOptions;
-  var sortingMode;
-  var groups = [];
-  switch (gHistoryGrouping) {
-    case "site":
-      sortingMode = NHQO.SORT_BY_TITLE_ASCENDING;
-      break; 
-    case "visited":
-      sortingMode = NHQO.SORT_BY_VISITCOUNT_DESCENDING;
-      break; 
-    case "lastvisited":
-      sortingMode = NHQO.SORT_BY_DATE_DESCENDING;
-      break; 
-    case "dayandsite":
-      groups.push(NHQO.GROUP_BY_DAY);
-      groups.push(NHQO.GROUP_BY_HOST);
-      sortingMode = NHQO.SORT_BY_TITLE_ASCENDING;
-      break;
-    default:
-      groups.push(NHQO.GROUP_BY_DAY);
-      sortingMode = NHQO.SORT_BY_TITLE_ASCENDING;
-      break;
-  }
-  aOptions.setGroupingMode(groups, groups.length);
-  aOptions.sortingMode = sortingMode;
-}
-
-function initPlace()
-{
-  
-  
-  
-  var optionsRef = {};
-  var queriesRef = {};
-  PlacesUtils.history.queryStringToQueries(ORGANIZER_ROOT_HISTORY_UNSORTED, queriesRef, {}, optionsRef);
-  SetSortingAndGrouping(optionsRef.value);
-  gHistoryTree.load(queriesRef.value, optionsRef.value);
-}
-
 function searchHistory(aInput)
 {
+  var query = PlacesUtils.history.getNewQuery();
+  var options = PlacesUtils.history.getNewQueryOptions();
+
+  const NHQO = Ci.nsINavHistoryQueryOptions;
+  var sortingMode;
+  var groups = []; 
+  var resultType;
+
   if (aInput) {
-    if (!gSearching) {
-      
-      var options = asQuery(gHistoryTree.getResult().root).queryOptions;
-      options.setGroupingMode([], 0);
-      gSearching = true;
-    }
-    
-    
-    gHistoryTree.applyFilter(aInput, false , 
-                             null , null);
+    query.searchTerms = aInput;
+    sortingMode = NHQO.SORT_BY_TITLE_ASCENDING;
+    resultType = NHQO.RESULTS_AS_URI;
   }
   else {
-    initPlace();
-    gSearching = false;
+    switch (gHistoryGrouping) {
+      case "site":
+        resultType = NHQO.RESULTS_AS_URI;
+        sortingMode = NHQO.SORT_BY_TITLE_ASCENDING;
+        break; 
+      case "visited":
+        resultType = NHQO.RESULTS_AS_URI;
+        sortingMode = NHQO.SORT_BY_VISITCOUNT_DESCENDING;
+        break; 
+      case "lastvisited":
+        resultType = NHQO.RESULTS_AS_URI;
+        sortingMode = NHQO.SORT_BY_DATE_DESCENDING;
+        break; 
+      case "dayandsite":
+        resultType = NHQO.RESULTS_AS_VISIT;
+        groups.push(NHQO.GROUP_BY_DAY);
+        groups.push(NHQO.GROUP_BY_HOST);
+        sortingMode = NHQO.SORT_BY_TITLE_ASCENDING;
+        break;
+      default:
+        resultType = NHQO.RESULTS_AS_VISIT;
+        groups.push(NHQO.GROUP_BY_DAY);
+        sortingMode = NHQO.SORT_BY_TITLE_ASCENDING;
+        break;
+    }
   }
+
+  options.setGroupingMode(groups, groups.length);
+  options.sortingMode = sortingMode;
+  options.resultType = resultType;
+
+  
+  
+  
+  gHistoryTree.load([query], options);
 }
