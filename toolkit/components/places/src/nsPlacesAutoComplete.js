@@ -425,7 +425,10 @@ nsPlacesAutoComplete.prototype = {
   stopSearch: function PAC_stopSearch()
   {
     
-    this._stopActiveQuery();
+    
+    
+    if (this._pendingQuery)
+      this._stopActiveQuery();
 
     this._finishSearch(false);
   },
