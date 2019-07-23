@@ -6209,13 +6209,8 @@ js_Interpret(JSContext *cx)
                                            NULL, NULL)) {
                     goto error;
                 }
-                if (JS_UNLIKELY(atom == cx->runtime->atomState.protoAtom)
-                    ? !js_SetPropertyHelper(cx, obj, id, &rval, &entry)
-                    : !js_DefineNativeProperty(cx, obj, id, rval, NULL, NULL,
-                                               JSPROP_ENUMERATE, 0, 0, NULL,
-                                               &entry)) {
+                if (!js_SetPropertyHelper(cx, obj, id, &rval, &entry))
                     goto error;
-                }
 #ifdef JS_TRACER
                 if (entry)
                     TRACE_1(SetPropMiss, entry);
@@ -6243,8 +6238,10 @@ js_Interpret(JSContext *cx)
 
 
 
-            if (!js_CheckRedeclaration(cx, obj, id, JSPROP_INITIALIZER, NULL, NULL))
+            if (!js_CheckRedeclaration(cx, obj, id, JSPROP_INITIALIZER, NULL,
+                                       NULL)) {
                 goto error;
+            }
 
             
 
@@ -6256,11 +6253,12 @@ js_Interpret(JSContext *cx)
                 JS_ASSERT(JSID_IS_INT(id));
                 JS_ASSERT((jsuint) JSID_TO_INT(id) < ARRAY_INIT_LIMIT);
                 if ((JSOp) regs.pc[JSOP_INITELEM_LENGTH] == JSOP_ENDINIT &&
-                    !js_SetLengthProperty(cx, obj, (jsuint) (JSID_TO_INT(id) + 1))) {
+                    !js_SetLengthProperty(cx, obj,
+                                          (jsuint) (JSID_TO_INT(id) + 1))) {
                     goto error;
                 }
             } else {
-                if (!OBJ_DEFINE_PROPERTY(cx, obj, id, rval, NULL, NULL, JSPROP_ENUMERATE, NULL))
+                if (!OBJ_SET_PROPERTY(cx, obj, id, &rval))
                     goto error;
             }
             regs.sp -= 2;
@@ -6813,7 +6811,7 @@ js_Interpret(JSContext *cx)
                 goto error;
             }
             id = INT_TO_JSID(i);
-            if (!OBJ_DEFINE_PROPERTY(cx, obj, id, rval, NULL, NULL, JSPROP_ENUMERATE, NULL))
+            if (!OBJ_SET_PROPERTY(cx, obj, id, &rval))
                 goto error;
             regs.sp--;
           END_CASE(JSOP_ARRAYPUSH)
