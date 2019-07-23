@@ -227,6 +227,10 @@ nsXPCWrappedJS::Release(void)
 {
     NS_PRECONDITION(0 != mRefCnt, "dup release");
 
+    
+    
+    XPCAutoLock lock(nsXPConnect::GetRuntime()->GetMapLock());
+
 do_decrement:
 
     nsrefcnt cnt = (nsrefcnt) PR_AtomicDecrement((PRInt32*)&mRefCnt);
@@ -324,20 +328,22 @@ nsXPCWrappedJS::GetNewOrUsed(XPCCallContext& ccx,
         goto return_wrapper;
 
     
+    
+    
     {   
         XPCAutoLock lock(rt->GetMapLock());
         root = map->Find(rootJSObj);
-    }
-    if(root)
-    {
-        if((nsnull != (wrapper = root->Find(aIID))) ||
-           (nsnull != (wrapper = root->FindInherited(aIID))))
+        if(root)
         {
-            NS_ADDREF(wrapper);
-            goto return_wrapper;
+            if((nsnull != (wrapper = root->Find(aIID))) ||
+               (nsnull != (wrapper = root->FindInherited(aIID))))
+            {
+                NS_ADDREF(wrapper);
+                goto return_wrapper;
+            }
         }
     }
-    else
+    if(!root)
     {
         
         if(rootJSObj == aJSObj)
