@@ -1519,7 +1519,8 @@ js_RecordTree(JSContext* cx, JSTraceMonitor* tm, Fragment* f)
 #endif
     }
 
-    JS_ASSERT(!f->vmprivate);
+    if (f->vmprivate)
+        js_TrashTree(cx, f);
     
     
     TreeInfo* ti = new (&gc) TreeInfo(f); 
