@@ -327,10 +327,9 @@ PlacesTreeView.prototype = {
     }
 
     
-    if (previouslySelectedNodes.length > 0)
-      selection.selectEventsSuppressed = true;
-
+    selection.selectEventsSuppressed = true;
     this._tree.beginUpdateBatch();
+
     if (replaceCount)
       this._tree.rowCountChanged(startReplacement, -replaceCount);
     if (newElements.length)
@@ -349,8 +348,8 @@ PlacesTreeView.prototype = {
         }
         
         
-        if (!parent)
-          item.containerOpen = !item.containerOpen;
+        if (!parent && !item.containerOpen)
+          item.containerOpen = true;
       }
     }
 
@@ -394,9 +393,8 @@ PlacesTreeView.prototype = {
         selection.rangedSelect(previouslySelectedNodes[0].oldIndex,
                                previouslySelectedNodes[0].oldIndex, true);
       }
-
-      selection.selectEventsSuppressed = false;
     }
+    selection.selectEventsSuppressed = false;
   },
 
   _convertPRTimeToString: function PTV__convertPRTimeToString(aTime) {
