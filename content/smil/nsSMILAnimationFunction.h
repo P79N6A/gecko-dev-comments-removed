@@ -326,8 +326,9 @@ protected:
   virtual nsresult GetValues(const nsISMILAttr& aSMILAttr,
                              nsSMILValueArray& aResult);
 
-  void     CheckKeyTimes(PRUint32 aNumValues);
-  void     CheckKeySplines(PRUint32 aNumValues);
+  virtual void CheckValueListDependentAttrs(PRUint32 aNumValues);
+  void         CheckKeyTimes(PRUint32 aNumValues);
+  void         CheckKeySplines(PRUint32 aNumValues);
 
   
   

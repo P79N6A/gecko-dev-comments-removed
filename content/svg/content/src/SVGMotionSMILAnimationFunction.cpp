@@ -81,7 +81,13 @@ SVGMotionSMILAnimationFunction::SetAttr(nsIAtom* aAttribute,
                                         nsAttrValue& aResult,
                                         nsresult* aParseResult)
 {
-  if (aAttribute == nsGkAtoms::rotate) {
+  
+  if (aAttribute == nsGkAtoms::keyPoints) {
+    nsresult rv = SetKeyPoints(aValue, aResult);
+    if (aParseResult) {
+      *aParseResult = rv;
+    }
+  } else if (aAttribute == nsGkAtoms::rotate) {
     nsresult rv = SetRotate(aValue, aResult);
     if (aParseResult) {
       *aParseResult = rv;
@@ -103,7 +109,9 @@ SVGMotionSMILAnimationFunction::SetAttr(nsIAtom* aAttribute,
 PRBool
 SVGMotionSMILAnimationFunction::UnsetAttr(nsIAtom* aAttribute)
 {
-  if (aAttribute == nsGkAtoms::rotate) {
+  if (aAttribute == nsGkAtoms::keyPoints) {
+    UnsetKeyPoints();
+  } else if (aAttribute == nsGkAtoms::rotate) {
     UnsetRotate();
   } else if (aAttribute == nsGkAtoms::by ||
              aAttribute == nsGkAtoms::from ||
@@ -234,14 +242,18 @@ SVGMotionSMILAnimationFunction::
 PRBool
 SVGMotionSMILAnimationFunction::
   GenerateValuesForPathAndPoints(gfxFlattenedPath* aPath,
+                                 PRBool aIsKeyPoints,
                                  nsTArray<double>& aPointDistances,
                                  nsTArray<nsSMILValue>& aResult)
 {
   NS_ABORT_IF_FALSE(aResult.IsEmpty(), "outparam is non-empty");
 
+  
+  
+  double distanceMultiplier = aIsKeyPoints ? aPath->GetLength() : 1.0;
   const PRUint32 numPoints = aPointDistances.Length();
   for (PRUint32 i = 0; i < numPoints; ++i) {
-    double curDist = aPointDistances[i];
+    double curDist = aPointDistances[i] * distanceMultiplier;
     if (!aResult.AppendElement(
           SVGMotionSMILType::ConstructSMILValue(aPath, curDist,
                                                 mRotateType, mRotateAngle))) {
@@ -268,13 +280,85 @@ SVGMotionSMILAnimationFunction::GetValues(const nsISMILAttr& aSMILAttr,
   NS_ABORT_IF_FALSE(!mPathVertices.IsEmpty(), "have a path but no vertices");
 
   
-  PRBool success = GenerateValuesForPathAndPoints(mPath, mPathVertices,
+  PRBool isUsingKeyPoints = !mKeyPoints.IsEmpty();
+  PRBool success = GenerateValuesForPathAndPoints(mPath, isUsingKeyPoints,
+                                                  isUsingKeyPoints ?
+                                                  mKeyPoints : mPathVertices,
                                                   aResult);
   if (!success) {
     return NS_ERROR_OUT_OF_MEMORY;
   }
 
   return NS_OK;
+}
+
+void
+SVGMotionSMILAnimationFunction::
+  CheckValueListDependentAttrs(PRUint32 aNumValues)
+{
+  
+  nsSMILAnimationFunction::CheckValueListDependentAttrs(aNumValues);
+
+  
+  CheckKeyPoints();
+}
+
+void
+SVGMotionSMILAnimationFunction::CheckKeyPoints()
+{
+  if (!HasAttr(nsGkAtoms::keyPoints))
+    return;
+
+  
+  if (GetCalcMode() == CALC_PACED) {
+    SetKeyPointsErrorFlag(PR_FALSE);
+  }
+
+  if (mKeyPoints.IsEmpty()) {
+    
+    SetKeyPointsErrorFlag(PR_TRUE);
+    return;
+  }
+
+  
+  
+  
+  
+  
+  
+  
+  
+}
+
+nsresult
+SVGMotionSMILAnimationFunction::SetKeyPoints(const nsAString& aKeyPoints,
+                                             nsAttrValue& aResult)
+{
+  mKeyPoints.Clear();
+  aResult.SetTo(aKeyPoints);
+
+  nsresult rv =
+    nsSMILParserUtils::ParseSemicolonDelimitedProgressList(aKeyPoints, PR_FALSE,
+                                                           mKeyPoints);
+
+  if (NS_SUCCEEDED(rv) && mKeyPoints.Length() < 1)
+    rv = NS_ERROR_FAILURE;
+
+  if (NS_FAILED(rv)) {
+    mKeyPoints.Clear();
+  }
+
+  mHasChanged = PR_TRUE;
+
+  return NS_OK;
+}
+
+void
+SVGMotionSMILAnimationFunction::UnsetKeyPoints()
+{
+  mKeyTimes.Clear();
+  SetKeyPointsErrorFlag(PR_FALSE);
+  mHasChanged = PR_TRUE;
 }
 
 nsresult
