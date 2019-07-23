@@ -93,10 +93,6 @@ using namespace mozilla::places;
 
 
 
-#define BOOKMARK_REDIRECT_TIME_THRESHOLD ((PRInt64)2 * 60 * PR_USEC_PER_SEC)
-
-
-
 
 
 
@@ -5160,35 +5156,11 @@ nsNavHistory::AddURIInternal(nsIURI* aURI, PRTime aTime, PRBool aRedirect,
   PRInt64 visitID = 0;
   PRInt64 sessionID = 0;
   nsresult rv = AddVisitChain(aURI, aTime, aToplevel, aRedirect, aReferrer,
-                              &visitID, &sessionID, &redirectBookmark);
+                              &visitID, &sessionID);
   NS_ENSURE_SUCCESS(rv, rv);
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  if (redirectBookmark) {
-    nsNavBookmarks *bookmarkService = nsNavBookmarks::GetBookmarksService();
-    if (bookmarkService) {
-      PRTime now = GetNow();
-      bookmarkService->AddBookmarkToHash(redirectBookmark,
-                                         now - BOOKMARK_REDIRECT_TIME_THRESHOLD);
-    }
-  }
 
   return transaction.Commit();
 }
-
-
-
-
-
-
 
 
 
@@ -5212,8 +5184,7 @@ nsNavHistory::AddVisitChain(nsIURI* aURI,
                             PRBool aIsRedirect,
                             nsIURI* aReferrerURI,
                             PRInt64* aVisitID,
-                            PRInt64* aSessionID,
-                            PRInt64* aRedirectBookmark)
+                            PRInt64* aSessionID)
 {
   
   
@@ -5248,15 +5219,6 @@ nsNavHistory::AddVisitChain(nsIURI* aURI,
       return NS_OK;
 
     
-    nsNavBookmarks *bookmarkService = nsNavBookmarks::GetBookmarksService();
-    PRBool isBookmarked;
-    if (bookmarkService &&
-        NS_SUCCEEDED(bookmarkService->IsBookmarked(redirectSourceURI, &isBookmarked))
-        && isBookmarked) {
-      GetUrlIdFor(redirectSourceURI, aRedirectBookmark, PR_FALSE);
-    }
-
-    
     
     
     
@@ -5266,8 +5228,7 @@ nsNavHistory::AddVisitChain(nsIURI* aURI,
                        PR_TRUE, 
                        aReferrerURI, 
                        &sourceVisitId, 
-                       aSessionID,
-                       aRedirectBookmark);
+                       aSessionID);
     NS_ENSURE_SUCCESS(rv, rv);
 
     

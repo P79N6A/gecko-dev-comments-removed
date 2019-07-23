@@ -158,6 +158,32 @@ function check_no_bookmarks() {
 
 
 
+
+function DBConn()
+{
+  let db = Cc["@mozilla.org/browser/nav-history-service;1"].
+           getService(Ci.nsPIPlacesDatabase).
+           DBConnection;
+  if (db.connectionReady)
+    return db;
+
+  
+  let file = dirSvc.get('ProfD', Ci.nsIFile);
+  file.append("places.sqlite");
+  let storageService = Cc["@mozilla.org/storage/service;1"].
+                       getService(Ci.mozIStorageService);
+
+  try {
+    return dbConn = storageService.openDatabase(file);
+  }
+  catch(ex) {}
+
+  return null;
+}
+
+
+
+
 function flush_main_thread_events()
 {
   let tm = Cc["@mozilla.org/thread-manager;1"].getService(Ci.nsIThreadManager);
