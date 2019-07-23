@@ -5,16 +5,13 @@
 
 
 
-
-
-
 #define HAVE_DLFCN_H 1
 
 
 #define HAVE_FCNTL_H 1
 
 
-#define HAVE_GETOPT_LONG
+#define HAVE_GETOPT_LONG 
 
 
 #define HAVE_INTTYPES_H 1
@@ -24,10 +21,6 @@
 
 
 #define HAVE_MEMORY_H 1
-
-
-
-#define HAVE_REALLOC 1
 
 
 #define HAVE_SSIZE_T 1
@@ -70,7 +63,7 @@
 #define OGGZ_OFF_MAX 0x7FFFFFFFFFFFFFFFLL
 
 
-#define OGG_H_CONST_CORRECT
+
 
 
 #define PACKAGE "liboggz"
@@ -113,23 +106,10 @@
 
 
 
-#if defined AC_APPLE_UNIVERSAL_BUILD
-# if defined __BIG_ENDIAN__
-#  define WORDS_BIGENDIAN 1
-# endif
-#else
-# ifndef WORDS_BIGENDIAN
 
-# endif
-#endif
 
 
 #define _FILE_OFFSET_BITS 64
-
-#include "prcpucfg.h"
-#ifdef IS_BIG_ENDIAN
-#define WORDS_BIGENDIAN
-#endif
 
 
 #define _LARGEFILE_SOURCE 1
@@ -146,8 +126,10 @@
 
 
 
-
-
+#include "prcpucfg.h"
+#ifdef IS_BIG_ENDIAN
+#define WORDS_BIGENDIAN
+#endif
 
 
 
