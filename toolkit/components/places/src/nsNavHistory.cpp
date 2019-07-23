@@ -3105,35 +3105,19 @@ nsNavHistory::GetCount(PRUint32 *aCount)
 
 
 
-
-NS_IMETHODIMP
-nsNavHistory::RemovePages(nsIURI **aURIs, PRUint32 aLength, PRBool aDoBatchNotify)
+nsresult
+nsNavHistory::RemovePagesInternal(const nsCString& aPlaceIdsQueryString)
 {
   
-  nsCString deletePlaceIdsQueryString;
-  nsresult rv;
-  for (PRInt32 i = 0; i < aLength; i++) {
-    PRInt64 placeId;
-    rv = GetUrlIdFor(aURIs[i], &placeId, PR_FALSE);
-    NS_ENSURE_SUCCESS(rv, rv);
-    if (placeId != 0) {
-      if (!deletePlaceIdsQueryString.IsEmpty())
-        deletePlaceIdsQueryString.AppendLiteral(",");
-      deletePlaceIdsQueryString.AppendInt(placeId);
-    }
-  }
-
-  
-  if (deletePlaceIdsQueryString.IsEmpty())
+  if (aPlaceIdsQueryString.IsEmpty())
     return NS_OK;
 
   mozStorageTransaction transaction(mDBConn, PR_FALSE);
-  nsCOMPtr<mozIStorageStatement> statement;
 
   
-  rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
+  nsresult rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
       "DELETE FROM moz_historyvisits WHERE place_id IN (") +
-        deletePlaceIdsQueryString +
+        aPlaceIdsQueryString +
         NS_LITERAL_CSTRING(")"));
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -3148,7 +3132,7 @@ nsNavHistory::RemovePages(nsIURI **aURIs, PRUint32 aLength, PRBool aDoBatchNotif
   rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
       "DELETE FROM moz_places WHERE id IN ("
         "SELECT h.id FROM moz_places h WHERE h.id IN (") +
-        deletePlaceIdsQueryString +
+        aPlaceIdsQueryString +
         NS_LITERAL_CSTRING(") AND "
         "NOT EXISTS (SELECT b.id FROM moz_bookmarks b WHERE b.fk = h.id) AND "
         "NOT EXISTS (SELECT a.id FROM moz_annos a WHERE a.place_id = h.id))"));
@@ -3161,22 +3145,51 @@ nsNavHistory::RemovePages(nsIURI **aURIs, PRUint32 aLength, PRBool aDoBatchNotif
   
   rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
       "UPDATE moz_places SET frecency = -1 WHERE id IN(") +
-        deletePlaceIdsQueryString +
+        aPlaceIdsQueryString +
         NS_LITERAL_CSTRING(")"));
   NS_ENSURE_SUCCESS(rv, rv);
- 
+
   
   
   
   
   rv = FixInvalidFrecenciesForExcludedPlaces();
   NS_ENSURE_SUCCESS(rv, rv);
- 
+
   
   
   
+
+  return transaction.Commit();
+}
+
+
+
+
+
+
+
+
+
+
+NS_IMETHODIMP
+nsNavHistory::RemovePages(nsIURI **aURIs, PRUint32 aLength, PRBool aDoBatchNotify)
+{
+  nsresult rv;
   
-  rv = transaction.Commit();
+  nsCString deletePlaceIdsQueryString;
+  for (PRInt32 i = 0; i < aLength; i++) {
+    PRInt64 placeId;
+    rv = GetUrlIdFor(aURIs[i], &placeId, PR_FALSE);
+    NS_ENSURE_SUCCESS(rv, rv);
+    if (placeId != 0) {
+      if (!deletePlaceIdsQueryString.IsEmpty())
+        deletePlaceIdsQueryString.AppendLiteral(",");
+      deletePlaceIdsQueryString.AppendInt(placeId);
+    }
+  }
+
+  rv = RemovePagesInternal(deletePlaceIdsQueryString);
   NS_ENSURE_SUCCESS(rv, rv);
 
   
@@ -3217,14 +3230,10 @@ nsNavHistory::RemovePage(nsIURI *aURI)
 
 
 
-
-
 NS_IMETHODIMP
 nsNavHistory::RemovePagesFromHost(const nsACString& aHost, PRBool aEntireDomain)
 {
   nsresult rv;
-  mozStorageTransaction transaction(mDBConn, PR_FALSE);
-
   
   
   if (aHost.IsEmpty())
@@ -3259,30 +3268,12 @@ nsNavHistory::RemovePagesFromHost(const nsACString& aHost, PRBool aEntireDomain)
   else
     conditionString.AssignLiteral("h.rev_host = ?1 ");
 
-  
-  
-  
-  
-  
-  
-  
-  
-  
-
-  
-  conditionString.AppendLiteral("AND (b.type = ?3 OR b.id IS NULL) ");
-
-  
-  conditionString.AppendLiteral("AND (a.expiration = ?4 OR a.id IS NULL) ");
-
-  
-  nsCAutoString getURIsForDeletion = NS_LITERAL_CSTRING(
-    "SELECT h.id, h.url, b.id, a.id FROM moz_places h "
-      "LEFT OUTER JOIN moz_bookmarks b ON h.id = b.fk "
-      "LEFT OUTER JOIN moz_annos a ON h.id = a.place_id WHERE ") +
-      conditionString;
   nsCOMPtr<mozIStorageStatement> statement;
-  rv = mDBConn->CreateStatement(getURIsForDeletion, getter_AddRefs(statement));
+
+  
+  rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
+      "SELECT h.id FROM moz_places h WHERE ") +
+      conditionString, getter_AddRefs(statement));
   NS_ENSURE_SUCCESS(rv, rv);
   rv = statement->BindStringParameter(0, revHostDot);
   NS_ENSURE_SUCCESS(rv, rv);
@@ -3290,110 +3281,24 @@ nsNavHistory::RemovePagesFromHost(const nsACString& aHost, PRBool aEntireDomain)
     rv = statement->BindStringParameter(1, revHostSlash);
     NS_ENSURE_SUCCESS(rv, rv);
   }
-  rv = statement->BindInt32Parameter(2, nsNavBookmarks::TYPE_BOOKMARK);
-  NS_ENSURE_SUCCESS(rv, rv);
-  rv = statement->BindInt32Parameter(3, nsIAnnotationService::EXPIRE_NEVER);
-  NS_ENSURE_SUCCESS(rv, rv);
 
-  nsCAutoString deletedPlaceIds;
-  nsCAutoString deletedPlaceIdsBookmarked;
-  nsCAutoString deletedPlaceIdsWithAnno;
-  nsCStringArray deletedURIs;
-
+  nsCString hostPlaceIds;
   PRBool hasMore = PR_FALSE;
   while ((statement->ExecuteStep(&hasMore) == NS_OK) && hasMore) {
-    nsCAutoString thisURIString;
-    if (NS_FAILED(statement->GetUTF8String(1, thisURIString)) || 
-        thisURIString.IsEmpty())
-      continue; 
-    if (!deletedURIs.AppendCString(thisURIString))
-      return NS_ERROR_OUT_OF_MEMORY;
-
-    if (!deletedPlaceIds.IsEmpty())
-      deletedPlaceIds.AppendLiteral(", ");
-
+    if (!hostPlaceIds.IsEmpty())
+      hostPlaceIds.AppendLiteral(",");
     PRInt64 placeId;
     rv = statement->GetInt64(0, &placeId);
     NS_ENSURE_SUCCESS(rv, rv);
-    deletedPlaceIds.AppendInt(placeId);
-    if (statement->AsInt64(2)) {
-      if (!deletedPlaceIdsBookmarked.IsEmpty())
-        deletedPlaceIdsBookmarked.AppendLiteral(", ");
-      deletedPlaceIdsBookmarked.AppendInt(placeId);
-    }
-    if (statement->AsInt64(3)) {
-      if (!deletedPlaceIdsWithAnno.IsEmpty())
-        deletedPlaceIdsWithAnno.AppendLiteral(", ");
-      deletedPlaceIdsWithAnno.AppendInt(placeId);
-    }
+    hostPlaceIds.AppendInt(placeId);
   }
 
-  
-  rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
-    "DELETE FROM moz_historyvisits WHERE place_id IN (") +
-      deletedPlaceIds + NS_LITERAL_CSTRING(")"));
+  rv = RemovePagesInternal(hostPlaceIds);
   NS_ENSURE_SUCCESS(rv, rv);
-
-  
-  rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
-    "DELETE FROM moz_annos WHERE place_id NOT IN (") +
-      deletedPlaceIdsWithAnno + NS_LITERAL_CSTRING(")"));
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  
-  
-  
-  rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
-    "DELETE FROM moz_places WHERE id IN (") + deletedPlaceIds +
-      NS_LITERAL_CSTRING(") AND id NOT IN (") + deletedPlaceIdsBookmarked +
-      NS_LITERAL_CSTRING(") AND id NOT IN (") + deletedPlaceIdsWithAnno +
-      NS_LITERAL_CSTRING(")")); 
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  
-  
-  
-  if (!deletedPlaceIdsBookmarked.IsEmpty() ||
-      !deletedPlaceIdsWithAnno.IsEmpty()) {
-    rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
-      "UPDATE moz_places SET frecency = -1 WHERE id IN (") + 
-        deletedPlaceIdsBookmarked +
-        NS_LITERAL_CSTRING(") OR id IN (") + deletedPlaceIdsWithAnno +
-        NS_LITERAL_CSTRING(")")); 
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    
-    
-    
-    rv = FixInvalidFrecenciesForExcludedPlaces();
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    
-    
-    
-  }
-  
-  transaction.Commit();
 
   
   UpdateBatchScoper batch(*this); 
-  if (deletedURIs.Count()) {
-    nsCOMPtr<nsIURI> thisURI;
-    for (PRUint32 observerIndex = 0; observerIndex < mObservers.Length();
-         observerIndex ++) {
-      const nsCOMPtr<nsINavHistoryObserver> &obs = mObservers.ElementAt(observerIndex);
-      if (! obs)
-        continue;
 
-      
-      for (PRInt32 i = 0; i < deletedURIs.Count(); i ++) {
-        if (NS_FAILED(NS_NewURI(getter_AddRefs(thisURI), *deletedURIs[i],
-                                nsnull, nsnull)))
-          continue; 
-        obs->OnDeleteURI(thisURI);
-      }
-    }
-  }
   return NS_OK;
 }
 
