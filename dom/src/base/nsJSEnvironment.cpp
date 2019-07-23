@@ -162,12 +162,25 @@ static PRLogModuleInfo* gJSDiagnostics;
 #define NS_MIN_CC_INTERVAL          10000 // ms
 
 
+#define NS_COLLECTED_OBJECTS_LIMIT  5000
+
+
+#define NS_MAX_GC_COUNT             5
+#define NS_MIN_SUSPECT_CHANGES      10
+
+
+#define NS_MAX_SUSPECT_CHANGES      100
+
+
 
 static PRUint32 sDelayedCCollectCount;
 static PRUint32 sCCollectCount;
 static PRBool sUserIsActive;
 static PRTime sPreviousCCTime;
-static PRBool sPreviousCCDidCollect;
+static PRUint32 sCollectedObjectsCounts;
+static PRUint32 sGCCount;
+static PRUint32 sCCSuspectChanges;
+static PRUint32 sCCSuspectedCount;
 static nsITimer *sGCTimer;
 static PRBool sReadyForGC;
 
@@ -839,6 +852,7 @@ MaybeGC(JSContext *cx)
       || cx->runtime->gcZeal > 0
 #endif
       ) {
+    ++sGCCount;
     JS_GC(cx);
   }
 }
@@ -3317,19 +3331,22 @@ nsJSContext::PreserveWrapper(nsIXPConnectWrappedNative *aWrapper)
 void
 nsJSContext::CC()
 {
-  sPreviousCCTime = PR_Now();
-  sDelayedCCollectCount = 0;
   ++sCCollectCount;
 #ifdef DEBUG_smaug
-  printf("Will run cycle collector (%i)\n", sCCollectCount);
+  printf("Will run cycle collector (%i), %lldms since previous.\n",
+         sCCollectCount, (PR_Now() - sPreviousCCTime) / PR_USEC_PER_MSEC);
 #endif
+  sPreviousCCTime = PR_Now();
+  sDelayedCCollectCount = 0;
+  sGCCount = 0;
+  sCCSuspectChanges = 0;
   
   
-  sPreviousCCDidCollect = nsCycleCollector_collect();
+  sCollectedObjectsCounts = nsCycleCollector_collect();
+  sCCSuspectedCount = nsCycleCollector_suspectedCount();
 #ifdef DEBUG_smaug
-  printf("(1) %s\n", sPreviousCCDidCollect ?
-                     "Cycle collector did collect nodes" :
-                     "Cycle collector did not collect nodes");
+  printf("Collected %u objects, %u suspected objects\n",
+         sCollectedObjectsCounts, sCCSuspectedCount);
 #endif
 }
 
@@ -3338,13 +3355,42 @@ PRBool
 nsJSContext::MaybeCC(PRBool aHigherProbability)
 {
   ++sDelayedCCollectCount;
+
+  
+  if (sCCSuspectChanges <= NS_MIN_SUSPECT_CHANGES ||
+      sGCCount <= NS_MAX_GC_COUNT) {
+#ifdef DEBUG_smaug
+    PRTime now = PR_Now();
+#endif
+    PRUint32 suspected = nsCycleCollector_suspectedCount();
+#ifdef DEBUG_smaug
+    printf("%u suspected objects (%lldms), sCCSuspectedCount %u\n",
+            suspected, (PR_Now() - now) / PR_USEC_PER_MSEC,
+            sCCSuspectedCount);
+#endif
+    
+    if (suspected > sCCSuspectedCount) {
+      sCCSuspectChanges += (suspected - sCCSuspectedCount);
+      sCCSuspectedCount = suspected;
+    }
+  }
+#ifdef DEBUG_smaug
+  printf("sCCSuspectChanges %u, sGCCount %u\n",
+         sCCSuspectChanges, sGCCount);
+#endif
+
   
   
-  if (aHigherProbability || sPreviousCCDidCollect) {
+  if (aHigherProbability ||
+      sCollectedObjectsCounts > NS_COLLECTED_OBJECTS_LIMIT) {
     sDelayedCCollectCount *= NS_PROBABILITY_MULTIPLIER;
   }
 
-  if (!sGCTimer && (sDelayedCCollectCount > NS_MAX_DELAYED_CCOLLECT)) {
+  if (!sGCTimer &&
+      (sDelayedCCollectCount > NS_MAX_DELAYED_CCOLLECT) &&
+      ((sCCSuspectChanges > NS_MIN_SUSPECT_CHANGES &&
+        sGCCount > NS_MAX_GC_COUNT) ||
+       (sCCSuspectChanges > NS_MAX_SUSPECT_CHANGES))) {
     if ((PR_Now() - sPreviousCCTime) >=
         PRTime(NS_MIN_CC_INTERVAL * PR_USEC_PER_MSEC)) {
       nsJSContext::CC();
@@ -3559,7 +3605,10 @@ nsJSRuntime::Startup()
   sCCollectCount = 0;
   sUserIsActive = PR_FALSE;
   sPreviousCCTime = 0;
-  sPreviousCCDidCollect = PR_FALSE;
+  sCollectedObjectsCounts = 0;
+  sGCCount = 0;
+  sCCSuspectChanges = 0;
+  sCCSuspectedCount = 0;
   sGCTimer = nsnull;
   sReadyForGC = PR_FALSE;
   sLoadInProgressGCTimer = PR_FALSE;

@@ -61,7 +61,8 @@ struct nsCycleCollectionLanguageRuntime
 
 nsresult nsCycleCollector_startup();
 
-NS_COM PRBool nsCycleCollector_collect();
+NS_COM PRUint32 nsCycleCollector_collect();
+NS_COM PRUint32 nsCycleCollector_suspectedCount();
 void nsCycleCollector_shutdown();
 
 
