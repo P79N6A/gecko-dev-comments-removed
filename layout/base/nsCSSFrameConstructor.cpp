@@ -4746,6 +4746,11 @@ nsCSSFrameConstructor::FindSVGData(nsIContent* aContent,
   }
 
   
+  if (aContent->IsNodeOfType(nsINode::eANIMATION)) {
+    return &sSuppressData;
+  }
+
+  
   
   
   if (!nsSVGFeatures::PassesConditionalProcessingTests(aContent)) {

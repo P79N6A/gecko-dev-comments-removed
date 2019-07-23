@@ -300,7 +300,9 @@ public:
 
     eDATA_NODE           = 1 << 10,
     
-    eMEDIA               = 1 << 11
+    eMEDIA               = 1 << 11,
+    
+    eANIMATION           = 1 << 12
   };
 
   
