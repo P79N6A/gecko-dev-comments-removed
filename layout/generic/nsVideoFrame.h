@@ -121,6 +121,7 @@ protected:
 
   
   
+  
   nsresult UpdatePosterSource(PRBool aNotify);
 
   virtual ~nsVideoFrame();
