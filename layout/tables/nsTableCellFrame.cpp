@@ -839,6 +839,9 @@ NS_METHOD nsTableCellFrame::Reflow(nsPresContext*          aPresContext,
   
   
   kidReflowState.mPercentHeightObserver = this;
+  
+  kidReflowState.mFlags.mSpecialHeightReflow = PR_FALSE;
+  
   if (aReflowState.mFlags.mSpecialHeightReflow ||
       (GetFirstInFlow()->GetStateBits() & NS_TABLE_CELL_HAD_SPECIAL_REFLOW)) {
     
