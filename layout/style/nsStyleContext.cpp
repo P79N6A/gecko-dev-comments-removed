@@ -442,11 +442,9 @@ nsStyleContext::CalcStyleDifference(nsStyleContext* aOther)
   
   DO_STRUCT_DIFFERENCE(Quotes);
 
-#ifdef MOZ_SVG
   maxHint = nsChangeHint(NS_STYLE_HINT_REFLOW | nsChangeHint_UpdateEffects);
   DO_STRUCT_DIFFERENCE(SVGReset);
   DO_STRUCT_DIFFERENCE(SVG);
-#endif
 
   
   

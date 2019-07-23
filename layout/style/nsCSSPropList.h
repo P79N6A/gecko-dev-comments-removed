@@ -2697,7 +2697,6 @@ CSS_PROP_FONT(
 #endif
 #endif
 
-#ifdef MOZ_SVG
 
 
 #ifndef CSS_PROP_LIST_EXCLUDE_INTERNAL
@@ -3037,7 +3036,6 @@ CSS_PROP_SVG(
     offsetof(nsStyleSVG, mTextRendering),
     eStyleAnimType_EnumU8)
 #endif 
-#endif
 
 
 
