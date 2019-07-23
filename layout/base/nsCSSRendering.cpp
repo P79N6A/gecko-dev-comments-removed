@@ -3149,25 +3149,23 @@ FindCanvasBackground(nsIFrame* aForFrame,
         nsIDocument* document = content->GetOwnerDoc();
         nsCOMPtr<nsIDOMHTMLDocument> htmlDoc = do_QueryInterface(document);
         if (htmlDoc) {
-          if (!document->IsCaseSensitive()) { 
-            nsCOMPtr<nsIDOMHTMLElement> body;
-            htmlDoc->GetBody(getter_AddRefs(body));
-            nsCOMPtr<nsIContent> bodyContent = do_QueryInterface(body);
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            if (bodyContent) {
-              nsIFrame *bodyFrame = aForFrame->PresContext()->GetPresShell()->
-                GetPrimaryFrameFor(bodyContent);
-              if (bodyFrame)
-                result = bodyFrame->GetStyleBackground();
-            }
+          nsCOMPtr<nsIDOMHTMLElement> body;
+          htmlDoc->GetBody(getter_AddRefs(body));
+          nsCOMPtr<nsIContent> bodyContent = do_QueryInterface(body);
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          if (bodyContent) {
+            nsIFrame *bodyFrame = aForFrame->PresContext()->GetPresShell()->
+              GetPrimaryFrameFor(bodyContent);
+            if (bodyFrame)
+              result = bodyFrame->GetStyleBackground();
           }
         }
       }
@@ -3221,9 +3219,6 @@ FindElementBackground(nsIFrame* aForFrame,
   if (!htmlDoc)
     return PR_TRUE;
 
-  if (document->IsCaseSensitive()) 
-    return PR_TRUE;
-  
   nsCOMPtr<nsIDOMHTMLElement> body;
   htmlDoc->GetBody(getter_AddRefs(body));
   nsCOMPtr<nsIContent> bodyContent = do_QueryInterface(body);

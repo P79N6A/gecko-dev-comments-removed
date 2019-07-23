@@ -2108,7 +2108,7 @@ nsGfxScrollFrameInner::IsLTR() const
 
     
     nsCOMPtr<nsIDOMHTMLDocument> htmlDoc = do_QueryInterface(document);
-    if (htmlDoc && !document->IsCaseSensitive()) { 
+    if (htmlDoc) {
       nsCOMPtr<nsIDOMHTMLElement> body;
       htmlDoc->GetBody(getter_AddRefs(body));
       nsCOMPtr<nsIContent> bodyContent = do_QueryInterface(body);
