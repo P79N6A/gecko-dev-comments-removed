@@ -37,6 +37,7 @@
 
 
 
+
 #include "nsResProtocolHandler.h"
 #include "nsAutoLock.h"
 #include "nsIURL.h"
@@ -176,6 +177,9 @@ nsResProtocolHandler::Init()
     
     
 
+    
+    
+
     return rv;
 }
 
@@ -229,7 +233,36 @@ nsResProtocolHandler::NewURI(const nsACString &aSpec,
         return NS_ERROR_OUT_OF_MEMORY;
     NS_ADDREF(resURL);
 
-    rv = resURL->Init(nsIStandardURL::URLTYPE_STANDARD, -1, aSpec, aCharset, aBaseURI);
+    
+    
+    
+    nsCAutoString spec;
+    const char *src = aSpec.BeginReading();
+    const char *end = aSpec.EndReading();
+    const char *last = src;
+
+    spec.SetCapacity(aSpec.Length()+1);
+    for ( ; src < end; ++src) {
+        if (*src == '%' && (src < end-2) && *(src+1) == '2') {
+           char ch = '\0';
+           if (*(src+2) == 'f' || *(src+1) == 'F')
+             ch = '/';
+           else if (*(src+2) == 'e' || *(src+2) == 'E')
+             ch = '.';
+
+           if (ch) {
+             if (last < src)
+               spec.Append(last, src-last);
+             spec.Append(ch);
+             src += 2;
+             last = src+1; 
+           }
+        }
+    }
+    if (last < src)
+      spec.Append(last, src-last);
+
+    rv = resURL->Init(nsIStandardURL::URLTYPE_STANDARD, -1, spec, aCharset, aBaseURI);
     if (NS_SUCCEEDED(rv))
         rv = CallQueryInterface(resURL, result);
     NS_RELEASE(resURL);
