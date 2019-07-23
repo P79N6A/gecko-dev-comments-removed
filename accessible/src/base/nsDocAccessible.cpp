@@ -1662,40 +1662,46 @@ void nsDocAccessible::RefreshNodes(nsIDOMNode *aStartNode)
         }
       }
     }
-
     
-    
-    aStartNode->GetFirstChild(getter_AddRefs(nextNode));
-    while (nextNode) {
-      nextNode.swap(iterNode);
-      RefreshNodes(iterNode);
-      iterNode->GetNextSibling(getter_AddRefs(nextNode));
-    }
-
-    
-    if (accessNode && accessNode != static_cast<nsIAccessNode*>(this)) {
-      
-      PRUint32 role = Role(accessible);
-      if (role == nsIAccessibleRole::ROLE_MENUPOPUP) {
-        nsCOMPtr<nsIDOMNode> domNode;
-        accessNode->GetDOMNode(getter_AddRefs(domNode));
-        nsCOMPtr<nsIDOMXULPopupElement> popup(do_QueryInterface(domNode));
-        if (!popup) {
-          
-          
-          nsAccUtils::FireAccEvent(nsIAccessibleEvent::EVENT_MENUPOPUP_END,
-                                   accessible);
-        }
+    PRUint32 role = Role(accessible);
+    if (role == nsIAccessibleRole::ROLE_MENUPOPUP) {
+      nsCOMPtr<nsIDOMNode> domNode;
+      accessNode->GetDOMNode(getter_AddRefs(domNode));
+      nsCOMPtr<nsIDOMXULPopupElement> popup(do_QueryInterface(domNode));
+      if (!popup) {
+        
+        
+        nsAccUtils::FireAccEvent(nsIAccessibleEvent::EVENT_MENUPOPUP_END,
+                                 accessible);
       }
-      
-      void *uniqueID;
-      accessNode->GetUniqueID(&uniqueID);
-      nsCOMPtr<nsPIAccessNode> privateAccessNode(do_QueryInterface(accessNode));
-      privateAccessNode->Shutdown();
-      
-      mAccessNodeCache.Remove(uniqueID);
     }
   }
+
+  
+  
+  aStartNode->GetFirstChild(getter_AddRefs(nextNode));
+  while (nextNode) {
+    nextNode.swap(iterNode);
+    RefreshNodes(iterNode);
+    iterNode->GetNextSibling(getter_AddRefs(nextNode));
+  }
+
+  if (!accessNode) {
+    return;
+  }
+  if (accessNode == this) {
+    
+    InvalidateChildren();
+    return;
+  }
+  
+  
+  nsCOMPtr<nsPIAccessNode> privateAccessNode(do_QueryInterface(accessNode));
+  privateAccessNode->Shutdown();
+  
+  void *uniqueID;
+  accessNode->GetUniqueID(&uniqueID);
+  mAccessNodeCache.Remove(uniqueID);
 }
 
 NS_IMETHODIMP nsDocAccessible::InvalidateCacheSubtree(nsIContent *aChild,
