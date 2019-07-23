@@ -60,6 +60,8 @@
 #include "nsIHttpChannel.h"
 #include "nsIMIMEHeaderParam.h"
 
+#include "nsMimeTypes.h"
+
 #define TYPE_ATOM "application/atom+xml"
 #define TYPE_RSS "application/rss+xml"
 #define TYPE_MAYBE_FEED "application/vnd.mozilla.maybe.feed"
@@ -328,6 +330,17 @@ nsFeedSniffer::GetMIMETypeFromContent(nsIRequest* request,
     channel->SetResponseHeader(NS_LITERAL_CSTRING("X-Moz-Is-Feed"),
                                NS_LITERAL_CSTRING("1"), PR_FALSE);
     sniffedType.AssignLiteral(TYPE_MAYBE_FEED);
+    return NS_OK;
+  }
+
+  
+  
+  if (!contentType.EqualsLiteral(TEXT_HTML) &&
+      !contentType.EqualsLiteral(APPLICATION_OCTET_STREAM) &&
+      
+      
+      contentType.Find("xml") == -1) {
+    sniffedType.Truncate();
     return NS_OK;
   }
 
