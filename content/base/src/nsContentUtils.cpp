@@ -3586,7 +3586,6 @@ nsContentUtils::CreateContextualFragment(nsIDOMNode* aContextNode,
       break;
   }
 
-  
   rv = parser->ParseFragment(aFragment, nsnull, tagStack,
                              !bHTML, contentType, mode);
   if (NS_SUCCEEDED(rv)) {
@@ -3595,7 +3594,7 @@ nsContentUtils::CreateContextualFragment(nsIDOMNode* aContextNode,
 
   document->SetFragmentParser(parser);
 
-  return NS_OK;
+  return rv;
 }
 
 
