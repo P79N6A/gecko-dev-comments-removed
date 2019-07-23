@@ -42,7 +42,6 @@
 #include "nsAppStartup.h"
 
 #include "nsIAppShellService.h"
-#include "nsICloseAllWindows.h"
 #include "nsIDOMWindowInternal.h"
 #include "nsIInterfaceRequestor.h"
 #include "nsILocalFile.h"
@@ -203,9 +202,6 @@ nsAppStartup::Quit(PRUint32 aMode)
   if (!mRestart) 
     mRestart = aMode & eRestart;
 
-  nsCOMPtr<nsIWindowMediator> mediator
-    (do_GetService(NS_WINDOWMEDIATOR_CONTRACTID));
-
   if (ferocity == eConsiderQuit && mConsiderQuitStopper == 0) {
     
     ferocity = eAttemptQuit;
@@ -223,33 +219,13 @@ nsAppStartup::Quit(PRUint32 aMode)
 
 
 
+    CloseAllWindows();
+
+    nsCOMPtr<nsIWindowMediator> mediator
+      (do_GetService(NS_WINDOWMEDIATOR_CONTRACTID));
     if (mediator) {
-      nsCOMPtr<nsISimpleEnumerator> windowEnumerator;
-
-      mediator->GetEnumerator(nsnull, getter_AddRefs(windowEnumerator));
-
-      if (windowEnumerator) {
-
-        while (1) {
-          PRBool more;
-          if (NS_FAILED(rv = windowEnumerator->HasMoreElements(&more)) || !more)
-            break;
-
-          nsCOMPtr<nsISupports> isupports;
-          rv = windowEnumerator->GetNext(getter_AddRefs(isupports));
-          if (NS_FAILED(rv))
-            break;
-
-          nsCOMPtr<nsIDOMWindowInternal> window = do_QueryInterface(isupports);
-          NS_ASSERTION(window, "not an nsIDOMWindowInternal");
-          if (!window)
-            continue;
-
-          window->Close();
-        }
-      }
-
       if (ferocity == eAttemptQuit) {
+        nsCOMPtr<nsISimpleEnumerator> windowEnumerator;
 
         ferocity = eForceQuit; 
 
@@ -348,6 +324,32 @@ nsAppStartup::AttemptingQuit(PRBool aAttempt)
 #endif
 
   mAttemptingQuit = aAttempt;
+}
+
+void
+nsAppStartup::CloseAllWindows()
+{
+  nsCOMPtr<nsIWindowMediator> mediator
+    (do_GetService(NS_WINDOWMEDIATOR_CONTRACTID));
+
+  nsCOMPtr<nsISimpleEnumerator> windowEnumerator;
+
+  mediator->GetEnumerator(nsnull, getter_AddRefs(windowEnumerator));
+
+  if (!windowEnumerator)
+    return;
+
+  PRBool more;
+  while (NS_SUCCEEDED(windowEnumerator->HasMoreElements(&more)) && more) {
+    nsCOMPtr<nsISupports> isupports;
+    if (NS_FAILED(windowEnumerator->GetNext(getter_AddRefs(isupports))))
+      break;
+
+    nsCOMPtr<nsIDOMWindowInternal> window = do_QueryInterface(isupports);
+    NS_ASSERTION(window, "not an nsIDOMWindowInternal");
+    if (window)
+      window->Close();
+  }
 }
 
 NS_IMETHODIMP
@@ -450,22 +452,8 @@ nsAppStartup::Observe(nsISupports *aSubject,
 {
   NS_ASSERTION(mAppShell, "appshell service notified before appshell built");
   if (!strcmp(aTopic, "profile-change-teardown")) {
-    nsresult rv;
     EnterLastWindowClosingSurvivalArea();
-    
-    
-    nsCOMPtr<nsICloseAllWindows> closer =
-            do_CreateInstance("@mozilla.org/appshell/closeallwindows;1", &rv);
-    NS_ASSERTION(closer, "Failed to create nsICloseAllWindows impl.");
-    PRBool proceedWithSwitch = PR_FALSE;
-    if (closer)
-      rv = closer->CloseAll(PR_TRUE, &proceedWithSwitch);
-
-    if (NS_FAILED(rv) || !proceedWithSwitch) {
-      nsCOMPtr<nsIProfileChangeStatus> changeStatus(do_QueryInterface(aSubject));
-      if (changeStatus)
-        changeStatus->VetoChange();
-    }
+    CloseAllWindows();
     ExitLastWindowClosingSurvivalArea();
   } else if (!strcmp(aTopic, "xul-window-registered")) {
     EnterLastWindowClosingSurvivalArea();
