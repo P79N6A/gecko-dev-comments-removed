@@ -860,7 +860,15 @@ gfxFontGroup::MakeSpaceTextRun(const Parameters *aParams, PRUint32 aFlags)
         return nsnull;
 
     gfxFont *font = GetFontAt(0);
-    textRun->SetSpaceGlyph(font, aParams->mContext, 0);
+    if (NS_UNLIKELY(GetStyle()->size == 0)) {
+        
+        
+        
+        textRun->AddGlyphRun(font, 0);
+    }
+    else {
+        textRun->SetSpaceGlyph(font, aParams->mContext, 0);
+    }
     
     
     
