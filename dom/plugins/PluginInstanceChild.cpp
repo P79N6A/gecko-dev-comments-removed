@@ -57,6 +57,25 @@ using namespace mozilla::plugins;
 
 #endif
 
+PluginInstanceChild::PluginInstanceChild(const NPPluginFuncs* aPluginIface) :
+        mPluginIface(aPluginIface)
+#if defined(OS_WIN)
+        , mPluginWindowHWND(0)
+        , mPluginWndProc(0)
+        , mPluginParentHWND(0)
+#endif
+    {
+        memset(&mWindow, 0, sizeof(mWindow));
+        mData.ndata = (void*) this;
+#if defined(MOZ_X11) && defined(XP_UNIX) && !defined(XP_MACOSX)
+        mWindow.ws_info = &mWsInfo;
+        memset(&mWsInfo, 0, sizeof(mWsInfo));
+#  ifdef MOZ_WIDGET_GTK2
+        mWsInfo.display = GDK_DISPLAY();
+#  endif
+#endif
+    }
+
 PluginInstanceChild::~PluginInstanceChild()
 {
 #if defined(OS_WIN)
@@ -303,6 +322,20 @@ PluginInstanceChild::AnswerNPP_HandleEvent(const NPEvent& event,
     
     NPEvent evcopy = event;
     *handled = mPluginIface->event(&mData, reinterpret_cast<void*>(&evcopy));
+
+#ifdef MOZ_X11
+    if (GraphicsExpose == event.type) {
+        
+        
+        
+        
+        
+        
+        
+        XSync(mWsInfo.display, False);
+    }
+#endif
+
     return true;
 }
 
@@ -358,9 +391,6 @@ PluginInstanceChild::AnswerNPP_SetWindow(const NPRemoteWindow& aWindow,
     mWindow.clipRect = aWindow.clipRect;
     mWindow.type = aWindow.type;
 
-#ifdef MOZ_WIDGET_GTK2
-    mWsInfo.display = GDK_DISPLAY();
-#endif
     mWsInfo.colormap = aWindow.colormap;
     if (!XVisualIDToInfo(mWsInfo.display, aWindow.visualID,
                          &mWsInfo.visual, &mWsInfo.depth))
