@@ -1604,6 +1604,11 @@ namespace nanojit
 			SSE_STQ(0, SP, r); 
 		} else {
 			FSTPQ(0, SP);
+			
+
+
+
+			evict(FST0);
 		}
         SUBi(ESP,8);
 		
