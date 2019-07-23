@@ -172,8 +172,8 @@ nsSimplePageSequenceFrame::Reflow(nsPresContext*          aPresContext,
   
   if (!(GetStateBits() & NS_FRAME_FIRST_REFLOW)) {
     
-    aDesiredSize.height  = mSize.height;
-    aDesiredSize.width   = mSize.width;
+    aDesiredSize.height  = mSize.height * PresContext()->GetPrintPreviewScale();
+    aDesiredSize.width   = mSize.width * PresContext()->GetPrintPreviewScale();
     aDesiredSize.mOverflowArea = nsRect(0, 0, aDesiredSize.width,
                                         aDesiredSize.height);
     FinishAndStoreOverflow(&aDesiredSize);
@@ -355,8 +355,9 @@ nsSimplePageSequenceFrame::Reflow(nsPresContext*          aPresContext,
   
   
   
+  nscoord w = (x + availSize.width + deadSpaceGap);
   aDesiredSize.height  = y * PresContext()->GetPrintPreviewScale(); 
-  aDesiredSize.width   = (x + availSize.width + deadSpaceGap) * PresContext()->GetPrintPreviewScale();
+  aDesiredSize.width   = w * PresContext()->GetPrintPreviewScale();
 
   aDesiredSize.mOverflowArea = nsRect(0, 0, aDesiredSize.width,
                                       aDesiredSize.height);
@@ -364,8 +365,8 @@ nsSimplePageSequenceFrame::Reflow(nsPresContext*          aPresContext,
 
   
   
-  mSize.width  = aDesiredSize.width;
-  mSize.height = aDesiredSize.height;
+  mSize.width  = w;
+  mSize.height = y;
 
   NS_FRAME_TRACE_REFLOW_OUT("nsSimplePageSequeceFrame::Reflow", aStatus);
   NS_FRAME_SET_TRUNCATION(aStatus, aReflowState, aDesiredSize);

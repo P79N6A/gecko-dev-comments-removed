@@ -958,6 +958,21 @@ public:
 
 
   static PRBool sDisableGetUsedXAssertions;
+
+  
+
+
+
+
+
+
+
+
+
+
+  static nsresult InitTextRunContainerForPrinting(nsIContent* aContainerContent,
+                                                  nsIFrame* aFrame,
+                                                  nsFrameState aBits);
 };
 
 class nsAutoDisableGetUsedXAssertions
