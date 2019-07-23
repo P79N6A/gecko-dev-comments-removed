@@ -285,6 +285,8 @@ NS_IMETHODIMP nsTimerImpl::Cancel()
   if (gThread)
     gThread->RemoveTimer(this);
 
+  ReleaseCallback();
+
   return NS_OK;
 }
 
@@ -378,20 +380,43 @@ void nsTimerImpl::Fire()
     gThread->UpdateFilter(mDelay, timeout, now);
 
   mFiring = PR_TRUE;
+  
+  
+  
+  CallbackUnion callback = mCallback;
+  PRUintn callbackType = mCallbackType;
+  if (callbackType == CALLBACK_TYPE_INTERFACE)
+    NS_ADDREF(callback.i);
+  else if (callbackType == CALLBACK_TYPE_OBSERVER)
+    NS_ADDREF(callback.o);
+  ReleaseCallback();
 
-  switch (mCallbackType) {
+  switch (callbackType) {
     case CALLBACK_TYPE_FUNC:
-      mCallback.c(this, mClosure);
+      callback.c(this, mClosure);
       break;
     case CALLBACK_TYPE_INTERFACE:
-      mCallback.i->Notify(this);
+      callback.i->Notify(this);
       break;
     case CALLBACK_TYPE_OBSERVER:
-      mCallback.o->Observe(static_cast<nsITimer*>(this),
-                           NS_TIMER_CALLBACK_TOPIC,
-                           nsnull);
+      callback.o->Observe(static_cast<nsITimer*>(this),
+                          NS_TIMER_CALLBACK_TOPIC,
+                          nsnull);
       break;
     default:;
+  }
+
+  
+  
+  if (mCallbackType == CALLBACK_TYPE_UNKNOWN && callbackType != TYPE_ONE_SHOT) {
+    mCallback = callback;
+    mCallbackType = callbackType;
+  } else {
+    
+    if (callbackType == CALLBACK_TYPE_INTERFACE)
+      NS_RELEASE(callback.i);
+    else if (callbackType == CALLBACK_TYPE_OBSERVER)
+      NS_RELEASE(callback.o);
   }
 
   mFiring = PR_FALSE;
