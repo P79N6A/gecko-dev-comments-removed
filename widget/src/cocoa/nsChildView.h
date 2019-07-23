@@ -91,6 +91,9 @@ union nsPluginPort;
   
   BOOL mIsPluginView;
 
+  
+  int mInSetFocusLevel;
+
   NSEvent* mCurKeyEvent;   
   PRBool mKeyDownHandled;
   
@@ -127,6 +130,9 @@ union nsPluginPort;
 
 
 - (void)delayedTearDown;
+
+-(void)setInSetFocus:(BOOL)aInSetFocus;
+-(BOOL)inSetFocus;
 @end
 
 
