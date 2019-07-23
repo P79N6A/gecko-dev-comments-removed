@@ -766,9 +766,6 @@ nsFSMultipartFormData::AddNameValuePair(nsIDOMHTMLElement* aSource,
   
   mPostDataChunk += NS_LITERAL_CSTRING("--") + mBoundary
                  + NS_LITERAL_CSTRING(CRLF)
-                 + NS_LITERAL_CSTRING("Content-Type: text/plain; charset=")
-                 + mCharset
-                 + NS_LITERAL_CSTRING(CRLF)
                  + NS_LITERAL_CSTRING("Content-Disposition: form-data; name=\"")
                  + nameStr + NS_LITERAL_CSTRING("\"" CRLF CRLF)
                  + valueStr + NS_LITERAL_CSTRING(CRLF);
@@ -1145,9 +1142,6 @@ GetSubmissionFromForm(nsGenericHTMLElement* aForm,
   
   nsCOMPtr<nsISaveAsCharset> encoder;
   nsFormSubmission::GetEncoder(aForm, charset, getter_AddRefs(encoder));
-
-  if (!encoder)
-    charset.AssignLiteral("UTF-8");
 
   
   nsCOMPtr<nsIFormProcessor> formProcessor =
