@@ -394,6 +394,9 @@ nsSVGForeignObjectFrame::NotifySVGChanged(PRUint32 aFlags)
     
     
     mCanvasTM = nsnull;
+    if (!(aFlags & SUPPRESS_INVALIDATION)) {
+      UpdateGraphic();
+    }
 
   } else if (aFlags & COORD_CONTEXT_CHANGED) {
     
