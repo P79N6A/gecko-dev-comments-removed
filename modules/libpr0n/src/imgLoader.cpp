@@ -1461,21 +1461,26 @@ NS_IMETHODIMP imgLoader::LoadImage(nsIURI *aURI,
 
     
     PutIntoCache(aURI, entry);
-
-  
   } else {
-    
     LOG_MSG_WITH_PARAM(gImgLog, 
                        "imgLoader::LoadImage |cache hit|", "request", request);
-
-    
-    request->SetLoadId(aCX);
   }
+
 
   
   if (!*_retval) {
-    LOG_MSG(gImgLog, "imgLoader::LoadImage", "creating proxy request.");
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    request->SetLoadId(aCX);
 
+    LOG_MSG(gImgLog, "imgLoader::LoadImage", "creating proxy request.");
     rv = CreateNewProxyForRequest(request, aLoadGroup, aObserver,
                                   requestFlags, aRequest, _retval);
     imgRequestProxy *proxy = static_cast<imgRequestProxy *>(*_retval);
