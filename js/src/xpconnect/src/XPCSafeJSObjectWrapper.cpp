@@ -619,6 +619,12 @@ XPC_SJOW_Enumerate(JSContext *cx, JSObject *obj)
   }
 
   
+  if (!CanCallerAccess(cx, unsafeObj)) {
+    
+    return JS_FALSE;
+  }
+
+  
   
   
   
@@ -973,15 +979,26 @@ XPC_SJOW_Equality(JSContext *cx, JSObject *obj, jsval v, JSBool *bp)
 JS_STATIC_DLL_CALLBACK(JSObject *)
 XPC_SJOW_Iterator(JSContext *cx, JSObject *obj, JSBool keysonly)
 {
-  JSObject *innerObj = GetUnsafeObject(obj);
-  if (!innerObj) {
+  obj = FindSafeObject(obj);
+  NS_ASSERTION(obj != nsnull, "FindSafeObject() returned null in class hook!");
+
+  JSObject *unsafeObj = GetUnsafeObject(obj);
+  if (!unsafeObj) {
     ThrowException(NS_ERROR_INVALID_ARG, cx);
+
+    return nsnull;
+  }
+
+  
+  if (!CanCallerAccess(cx, unsafeObj)) {
+    
     return nsnull;
   }
 
   
   JSObject *wrapperIter =
-    ::JS_NewObjectWithGivenProto(cx, &sXPC_SJOW_JSClass.base, nsnull, innerObj);
+    ::JS_NewObjectWithGivenProto(cx, &sXPC_SJOW_JSClass.base, nsnull,
+                                 unsafeObj);
   if (!wrapperIter) {
     return nsnull;
   }
@@ -994,7 +1011,7 @@ XPC_SJOW_Iterator(JSContext *cx, JSObject *obj, JSBool keysonly)
   JSAutoTempValueRooter tvr(cx, OBJECT_TO_JSVAL(wrapperIter));
 
   
-  return XPCWrapper::CreateIteratorObj(cx, wrapperIter, obj, innerObj,
+  return XPCWrapper::CreateIteratorObj(cx, wrapperIter, obj, unsafeObj,
                                        keysonly);
 }
 
