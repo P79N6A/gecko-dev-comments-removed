@@ -41,6 +41,7 @@
 
 
 
+
 #include "nsCOMPtr.h"
 #include "nsString.h"
 #include "nsXPIDLString.h"
@@ -62,7 +63,9 @@
 #include "nsNSSDialogs.h"
 #include "nsPKIParamBlock.h"
 #include "nsIKeygenThread.h"
+#include "nsIProtectedAuthThread.h"
 #include "nsNSSDialogHelper.h"
+#include "nsIWindowWatcher.h"
 #include "nsIX509CertValidity.h"
 #include "nsICRLInfo.h"
 
@@ -557,4 +560,45 @@ nsNSSDialogs::ConfirmKeyEscrow(nsIX509Cert *escrowAuthority, PRBool *_retval)
     *_retval = PR_TRUE;
   } 
   return rv;
+}
+
+NS_IMETHODIMP
+nsNSSDialogs::DisplayProtectedAuth(nsIInterfaceRequestor *aCtx, nsIProtectedAuthThread *runnable)
+{
+    
+    
+    
+    
+    
+    nsresult rv = NS_ERROR_FAILURE;
+    
+    
+    nsCOMPtr<nsIDOMWindowInternal> parent = do_GetInterface(aCtx);
+    
+    nsCOMPtr<nsIWindowWatcher> windowWatcher = 
+        do_GetService("@mozilla.org/embedcomp/window-watcher;1", &rv);
+    if (NS_FAILED(rv))
+        return rv;
+    
+    nsCOMPtr<nsIDOMWindowInternal> activeParent;
+    if (!parent)
+    {
+        nsCOMPtr<nsIDOMWindow> active;
+        windowWatcher->GetActiveWindow(getter_AddRefs(active));
+        if (active)
+        {
+            active->QueryInterface(NS_GET_IID(nsIDOMWindowInternal), getter_AddRefs(activeParent));
+            parent = activeParent;
+        }
+    }
+    
+    nsCOMPtr<nsIDOMWindow> newWindow;
+    rv = windowWatcher->OpenWindow(parent,
+        "chrome://pippki/content/protectedAuth.xul",
+        "_blank",
+        "centerscreen,chrome,modal,titlebar,close=no",
+        runnable,
+        getter_AddRefs(newWindow));
+    
+    return rv;
 }
