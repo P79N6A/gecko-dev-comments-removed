@@ -1308,6 +1308,12 @@ nsCookieService::AddInternal(nsCookie   *aCookie,
                              PRBool      aFromHttp)
 {
   
+  if (!aFromHttp && aCookie->IsHttpOnly()) {
+    COOKIE_LOGFAILURE(SET_COOKIE, aHostURI, aCookieHeader, "cookie is httponly; coming from script");
+    return;
+  }
+
+  
   
   
   mozStorageTransaction transaction(mDBConn, PR_TRUE);
@@ -1339,12 +1345,6 @@ nsCookieService::AddInternal(nsCookie   *aCookie,
     
     if (aCookie->Expiry() <= aCurrentTime) {
       COOKIE_LOGFAILURE(SET_COOKIE, aHostURI, aCookieHeader, "cookie has already expired");
-      return;
-    }
-
-    
-    if (!aFromHttp && aCookie->IsHttpOnly()) {
-      COOKIE_LOGFAILURE(SET_COOKIE, aHostURI, aCookieHeader, "cookie is httponly; coming from script");
       return;
     }
 
