@@ -41,6 +41,9 @@
 
 #include "nsIdleService.h"
 #include "nsString.h"
+#include "nsIObserverService.h"
+#include "nsIPrefBranch.h"
+#include "nsIPrefService.h"
 #include "nsIServiceManager.h"
 #include "nsDebug.h"
 #include "nsCOMArray.h"
@@ -48,9 +51,12 @@
 
 #define OBSERVER_TOPIC_IDLE "idle"
 #define OBSERVER_TOPIC_BACK "back"
+#define OBSERVER_TOPIC_IDLE_DAILY "idle-daily"
 
 #define MIN_IDLE_POLL_INTERVAL 5000
 #define MAX_IDLE_POLL_INTERVAL 300000
+
+#define PREF_LAST_DAILY "idle.lastDailyNotification"
 
 
 class IdleListenerComparator
@@ -65,13 +71,14 @@ public:
 
 nsIdleService::nsIdleService()
 {
+    
+    mTimer = do_CreateInstance(NS_TIMER_CONTRACTID);
+    StartTimer(MAX_IDLE_POLL_INTERVAL);
 }
 
 nsIdleService::~nsIdleService()
 {
-    if (mTimer) {
-        mTimer->Cancel();
-    }
+    StopTimer();
 }
 
 NS_IMETHODIMP
@@ -109,8 +116,8 @@ nsIdleService::RemoveIdleObserver(nsIObserver* aObserver, PRUint32 aTime)
     
     IdleListenerComparator c;
     if (mArrayListeners.RemoveElement(listener, c)) {
-        if (mTimer && mArrayListeners.IsEmpty()) {
-            mTimer->Cancel();
+        if (mArrayListeners.IsEmpty()) {
+            StopTimer();
         }
         return NS_OK;
     }
@@ -188,9 +195,47 @@ nsIdleService::CheckAwayState()
     }
 
     
+    if (idleTime >= MAX_IDLE_POLL_INTERVAL) {
+        nsCOMPtr<nsIPrefBranch> pref = do_GetService(NS_PREFSERVICE_CONTRACTID);
+        if (pref) {
+            
+            PRUint32 nowSec = PR_Now() / PR_USEC_PER_SEC;
+
+            
+            PRInt32 lastDaily = 0;
+            pref->GetIntPref(PREF_LAST_DAILY, &lastDaily);
+
+            
+            if (nowSec - lastDaily > 86400) {
+                nsCOMPtr<nsIObserverService> observerService =
+                    do_GetService("@mozilla.org/observer-service;1");
+                observerService->NotifyObservers(nsnull,
+                                                 OBSERVER_TOPIC_IDLE_DAILY,
+                                                 nsnull);
+
+                pref->SetIntPref(PREF_LAST_DAILY, nowSec);
+            }
+        }
+    }
+
+    
+    StartTimer(nextPoll);
+}
+
+void
+nsIdleService::StartTimer(PRUint32 aDelay)
+{
+    if (mTimer) {
+        StopTimer();
+        mTimer->InitWithFuncCallback(IdleTimerCallback, this, aDelay,
+                                     nsITimer::TYPE_ONE_SHOT);
+    }
+}
+
+void
+nsIdleService::StopTimer()
+{
     if (mTimer) {
         mTimer->Cancel();
-        mTimer->InitWithFuncCallback(IdleTimerCallback, this, nextPoll,
-                                     nsITimer::TYPE_ONE_SHOT);
     }
 }
