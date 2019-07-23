@@ -827,6 +827,18 @@ var AddonManager = {
   
   PERM_CAN_UPGRADE: 8,
 
+  
+  
+  SCOPE_PROFILE: 1,
+  
+  SCOPE_USER: 2,
+  
+  SCOPE_APPLICATION: 4,
+  
+  SCOPE_SYSTEM: 8,
+  
+  SCOPE_ALL: 15,
+
   getInstallForURL: function AM_getInstallForURL(url, callback, mimetype, hash,
                                                  name, iconURL, version,
                                                  loadGroup) {
