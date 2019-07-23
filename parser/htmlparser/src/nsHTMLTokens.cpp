@@ -775,6 +775,7 @@ CTextToken::ConsumeParsedCharacterData(PRBool aDiscardFirstNewline,
 
   nsScannerIterator currPos, endPos, altEndPos;
   PRUint32 truncPos = 0;
+  PRInt32 truncNewlineCount = 0;
   aScanner.CurrentPosition(currPos);
   aScanner.EndReading(endPos);
 
@@ -839,6 +840,7 @@ CTextToken::ConsumeParsedCharacterData(PRBool aDiscardFirstNewline,
           
           
           theContent.writable().Truncate(truncPos);
+          mNewlineCount = truncNewlineCount;
           aScanner.SetPosition(altEndPos, PR_FALSE, PR_TRUE);
         }
         
@@ -857,6 +859,7 @@ CTextToken::ConsumeParsedCharacterData(PRBool aDiscardFirstNewline,
       
       altEndPos = currPos;
       truncPos = theContent.str().Length();
+      truncNewlineCount = mNewlineCount;
     }
 
     if (Distance(currPos, endPos) >= termStrLen) {
