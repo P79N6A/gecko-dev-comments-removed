@@ -122,9 +122,12 @@ gfxWindowsPlatform::FontEnumProc(const ENUMLOGFONTEXW *lpelfe,
 
     nsRefPtr<FontEntry> fe;
     if (!thisp->mFonts.Get(name, &fe)) {
-        fe = new FontEntry(nsDependentString(logFont.lfFaceName), (PRUint16)fontType);
+        fe = new FontEntry(nsDependentString(logFont.lfFaceName));
         thisp->mFonts.Put(name, fe);
     }
+
+    if (metrics.ntmFlags & NTM_TYPE1)
+        fe->mIsType1 = PR_TRUE;
 
     
     fe->mCharset[metrics.tmCharSet] = 1;
@@ -134,11 +137,6 @@ gfxWindowsPlatform::FontEnumProc(const ENUMLOGFONTEXW *lpelfe,
 
     
     fe->mDefaultWeight = metrics.tmWeight;
-
-    if (metrics.ntmFlags & NTM_TYPE1) {
-        fe->mSymbolFont = PR_TRUE;
-        fe->mUnicodeFont = PR_FALSE;
-    }
 
     fe->mFamily = logFont.lfPitchAndFamily & 0xF0;
     fe->mPitch = logFont.lfPitchAndFamily & 0x0F;
@@ -213,6 +211,8 @@ gfxWindowsPlatform::FontGetCMapDataProc(nsStringHashKey::KeyType aKey,
         nsresult rv = ReadCMAP(hdc, aFontEntry);
 
         if (NS_FAILED(rv)) {
+            if (aFontEntry->mIsType1)
+                aFontEntry->mSymbolFont = PR_TRUE;
             aFontEntry->mUnicodeFont = PR_FALSE;
             
         }
