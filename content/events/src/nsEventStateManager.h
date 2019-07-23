@@ -225,15 +225,38 @@ protected:
   void FlushPendingEvents(nsPresContext* aPresContext);
   nsIFocusController* GetFocusControllerForDocument(nsIDocument* aDocument);
 
+  
+
+
   typedef enum {
     eAccessKeyProcessingNormal = 0,
     eAccessKeyProcessingUp,
     eAccessKeyProcessingDown
   } ProcessingAccessKeyState;
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   void HandleAccessKey(nsPresContext* aPresContext,
                        nsKeyEvent* aEvent,
                        nsEventStatus* aStatus,
-                       PRInt32 aChildOffset,
+                       nsIDocShellTreeItem* aBubbledFrom,
                        ProcessingAccessKeyState aAccessKeyState,
                        PRInt32 aModifierMask);
 

@@ -1152,7 +1152,7 @@ nsEventStateManager::PreHandleEvent(nsPresContext* aPresContext,
       
       if (modifierMask && (modifierMask == sChromeAccessModifier ||
                            modifierMask == sContentAccessModifier))
-        HandleAccessKey(aPresContext, keyEvent, aStatus, -1,
+        HandleAccessKey(aPresContext, keyEvent, aStatus, nsnull,
                         eAccessKeyProcessingNormal, modifierMask);
     }
   case NS_KEY_DOWN:
@@ -1249,15 +1249,11 @@ GetAccessModifierMask(nsISupports* aDocShell)
   }
 }
 
-
-
-
-
 void
 nsEventStateManager::HandleAccessKey(nsPresContext* aPresContext,
                                      nsKeyEvent *aEvent,
                                      nsEventStatus* aStatus,
-                                     PRInt32 aChildOffset,
+                                     nsIDocShellTreeItem* aBubbledFrom,
                                      ProcessingAccessKeyState aAccessKeyState,
                                      PRInt32 aModifierMask)
 {
@@ -1293,16 +1289,15 @@ nsEventStateManager::HandleAccessKey(nsPresContext* aPresContext,
     docShell->GetChildCount(&childCount);
     for (PRInt32 counter = 0; counter < childCount; counter++) {
       
-      if (aAccessKeyState == eAccessKeyProcessingUp && counter == aChildOffset)
+      nsCOMPtr<nsIDocShellTreeItem> subShellItem;
+      docShell->GetChildAt(counter, getter_AddRefs(subShellItem));
+      if (aAccessKeyState == eAccessKeyProcessingUp &&
+          subShellItem == aBubbledFrom)
         continue;
 
-      nsCOMPtr<nsIDocShellTreeItem> subShellItem;
-      nsCOMPtr<nsIPresShell> subPS;
-      nsCOMPtr<nsPresContext> subPC;
-
-      docShell->GetChildAt(counter, getter_AddRefs(subShellItem));
       nsCOMPtr<nsIDocShell> subDS = do_QueryInterface(subShellItem);
       if (subDS && IsShellVisible(subDS)) {
+        nsCOMPtr<nsIPresShell> subPS;
         subDS->GetPresShell(getter_AddRefs(subPS));
 
         
@@ -1318,7 +1313,7 @@ nsEventStateManager::HandleAccessKey(nsPresContext* aPresContext,
           NS_STATIC_CAST(nsEventStateManager *, subPC->EventStateManager());
 
         if (esm)
-          esm->HandleAccessKey(subPC, aEvent, aStatus, -1,
+          esm->HandleAccessKey(subPC, aEvent, aStatus, nsnull,
                                eAccessKeyProcessingDown, aModifierMask);
 
         if (nsEventStatus_eConsumeNoDefault == *aStatus)
@@ -1331,7 +1326,7 @@ nsEventStateManager::HandleAccessKey(nsPresContext* aPresContext,
   if (eAccessKeyProcessingDown != aAccessKeyState && nsEventStatus_eConsumeNoDefault != *aStatus) {
     nsCOMPtr<nsIDocShellTreeItem> docShell(do_QueryInterface(pcContainer));
     if (!docShell) {
-      NS_WARNING("no docShellTreeNode for presContext");
+      NS_WARNING("no docShellTreeItem for presContext");
       return;
     }
 
@@ -1339,9 +1334,6 @@ nsEventStateManager::HandleAccessKey(nsPresContext* aPresContext,
     docShell->GetParent(getter_AddRefs(parentShellItem));
     nsCOMPtr<nsIDocShell> parentDS = do_QueryInterface(parentShellItem);
     if (parentDS) {
-      PRInt32 myOffset;
-      docShell->GetChildOffset(&myOffset);
-
       nsCOMPtr<nsIPresShell> parentPS;
 
       parentDS->GetPresShell(getter_AddRefs(parentPS));
@@ -1354,7 +1346,7 @@ nsEventStateManager::HandleAccessKey(nsPresContext* aPresContext,
         NS_STATIC_CAST(nsEventStateManager *, parentPC->EventStateManager());
 
       if (esm)
-        esm->HandleAccessKey(parentPC, aEvent, aStatus, myOffset,
+        esm->HandleAccessKey(parentPC, aEvent, aStatus, docShell,
                              eAccessKeyProcessingUp, aModifierMask);
     }
   }

@@ -40,6 +40,7 @@
 
 
 
+
 #ifdef MOZ_LOGGING
 
 #define FORCE_PR_LOG 1
@@ -2191,17 +2192,9 @@ nsDocShell::SetTreeOwner(nsIDocShellTreeOwner * aTreeOwner)
 }
 
 NS_IMETHODIMP
-nsDocShell::SetChildOffset(PRInt32 aChildOffset)
+nsDocShell::SetChildOffset(PRUint32 aChildOffset)
 {
     mChildOffset = aChildOffset;
-    return NS_OK;
-}
-
-NS_IMETHODIMP
-nsDocShell::GetChildOffset(PRInt32 * aChildOffset)
-{
-    NS_ENSURE_ARG_POINTER(aChildOffset);
-    *aChildOffset = mChildOffset;
     return NS_OK;
 }
 
@@ -2248,11 +2241,17 @@ nsDocShell::AddChild(nsIDocShellTreeItem * aChild)
     
     nsresult res = AddChildLoader(childAsDocLoader);
     NS_ENSURE_SUCCESS(res, res);
+    NS_ASSERTION(mChildList.Count() > 0,
+                 "child list must not be empty after a successful add");
 
     
     
     
-    aChild->SetChildOffset(mChildList.Count() - 1);
+    {
+        nsCOMPtr<nsIDocShell> childDocShell = do_QueryInterface(aChild);
+        if (childDocShell)
+            childDocShell->SetChildOffset(mChildList.Count() - 1);
+    }
 
     
     if (mGlobalHistory) {

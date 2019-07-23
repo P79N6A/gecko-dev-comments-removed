@@ -535,7 +535,16 @@ protected:
     PRUint32                   mAppType;
 
     
-    PRInt32                    mChildOffset;
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    PRUint32                   mChildOffset;
 
     PRUint32                   mBusyFlags;
 
