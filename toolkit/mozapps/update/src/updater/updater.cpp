@@ -1312,9 +1312,7 @@ UpdateThreadFunc(void *param)
 
 int NS_main(int argc, NS_tchar **argv)
 {
-#ifndef WINCE
   InitProgressUI(&argc, &argv);
-#endif
   
   
   
