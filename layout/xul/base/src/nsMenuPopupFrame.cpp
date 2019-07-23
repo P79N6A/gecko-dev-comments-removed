@@ -1006,9 +1006,7 @@ nsMenuPopupFrame::SetPopupPosition(nsIFrame* aAnchorFrame)
   PRInt32 screenRightTwips  = rect.XMost();
   PRInt32 screenBottomTwips = rect.YMost();
 
-  if (mPopupAnchor != POPUPALIGNMENT_NONE) {
-    NS_ASSERTION(mScreenXPos == -1 && mScreenYPos == -1,
-                 "screen position used with anchor");
+  if (mPopupAnchor != POPUPALIGNMENT_NONE && mScreenXPos == -1 && mScreenYPos == -1) {
     
     
     
@@ -1175,8 +1173,19 @@ nsMenuPopupFrame::SetPopupPosition(nsIFrame* aAnchorFrame)
       
       
       
-      if (screenBottomTwips - screenViewLocY >
-          screenViewLocY - screenTopTwips) {
+      if (screenViewLocY > screenBottomTwips) {
+        
+        
+        
+        
+
+        
+        
+        NS_ASSERTION(mRect.height <= screenBottomTwips - screenTopTwips, "height too large");
+        ypos += screenBottomTwips - screenViewLocY - mRect.height;
+      }
+      else if (screenBottomTwips - screenViewLocY >
+               screenViewLocY - screenTopTwips) {
         
         
         
