@@ -407,11 +407,12 @@ extern JSString *
 js_NewStringCopyZ(JSContext *cx, const jschar *s);
 
 
-extern void
-js_FinalizeString(JSContext *cx, JSString *str);
+
+
+
 
 extern void
-js_FinalizeStringRT(JSRuntime *rt, JSString *str);
+js_FinalizeStringRT(JSRuntime *rt, JSString *str, uintN gctype, JSContext *cx);
 
 
 
