@@ -379,8 +379,6 @@ nsNavHistory::PerformAutoComplete()
   if (!mCurrentListener)
     return NS_OK;
 
-  mCurrentResult->SetSearchString(mCurrentSearchString);
-
   nsresult rv;
   
   if (!mCurrentChunkOffset) {
@@ -510,6 +508,7 @@ nsNavHistory::StartSearch(const nsAString & aSearchString,
   nsresult rv;
   mCurrentResult = do_CreateInstance(NS_AUTOCOMPLETESIMPLERESULT_CONTRACTID, &rv);
   NS_ENSURE_SUCCESS(rv, rv);
+  mCurrentResult->SetSearchString(aSearchString);
 
   
   
@@ -523,7 +522,6 @@ nsNavHistory::StartSearch(const nsAString & aSearchString,
     
     if (mAutoCompleteFinishedSearch && prevMatchCount == 0) {
       
-      mCurrentResult->SetSearchString(mCurrentSearchString);
       mCurrentResult->SetSearchResult(nsIAutoCompleteResult::RESULT_NOMATCH);
       mCurrentResult->SetDefaultIndex(-1);
 
