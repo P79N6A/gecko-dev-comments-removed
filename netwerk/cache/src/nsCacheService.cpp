@@ -518,10 +518,13 @@ PRInt32
 nsCacheProfilePrefObserver::MemoryCacheCapacity()
 {
     PRInt32 capacity = mMemoryCacheCapacity;
-    if (capacity >= 0)
+    if (capacity >= 0) {
+        CACHE_LOG_DEBUG(("Memory cache capacity forced to %d\n", capacity));
         return capacity;
+    }
 
     PRUint64 bytes = PR_GetPhysicalMemorySize();
+    CACHE_LOG_DEBUG(("Physical Memory size is %llu\n", bytes));
 
     if (LL_CMP(bytes, ==, LL_ZERO))
         return 0;
@@ -970,7 +973,9 @@ nsCacheService::CreateMemoryDevice()
     if (!mMemoryDevice)       return NS_ERROR_OUT_OF_MEMORY;
     
     
-    mMemoryDevice->SetCapacity(mObserver->MemoryCacheCapacity());
+    PRInt32 capacity = mObserver->MemoryCacheCapacity();
+    CACHE_LOG_DEBUG(("Creating memory device with capacity %d\n", capacity));
+    mMemoryDevice->SetCapacity(capacity);
 
     nsresult rv = mMemoryDevice->Init();
     if (NS_FAILED(rv)) {
@@ -1150,6 +1155,9 @@ nsCacheService::OpenCacheEntry(nsCacheSession *           session,
                                nsICacheListener *         listener,
                                nsICacheEntryDescriptor ** result)
 {
+    CACHE_LOG_DEBUG(("Opening entry for session %p, key %s, mode %d, blocking %d\n",
+                     session, PromiseFlatCString(key).get(), accessRequested,
+                     blockingMode));
     NS_ASSERTION(gService, "nsCacheService::gService is null.");
     if (result)
         *result = nsnull;
@@ -1168,6 +1176,8 @@ nsCacheService::OpenCacheEntry(nsCacheSession *           session,
                                           &request);
     if (NS_FAILED(rv))  return rv;
 
+    CACHE_LOG_DEBUG(("Created request %p\n", request));
+
     rv = gService->ProcessRequest(request, PR_TRUE, result);
 
     
@@ -1182,6 +1192,8 @@ nsresult
 nsCacheService::ActivateEntry(nsCacheRequest * request, 
                               nsCacheEntry ** result)
 {
+    CACHE_LOG_DEBUG(("Activate entry for request %p\n", request));
+    
     nsresult        rv = NS_OK;
 
     NS_ASSERTION(request != nsnull, "ActivateEntry called with no request");
@@ -1196,11 +1208,14 @@ nsCacheService::ActivateEntry(nsCacheRequest * request,
 
     
     nsCacheEntry *entry = mActiveEntries.GetEntry(request->mKey);
+    CACHE_LOG_DEBUG(("Active entry for request %p is %p\n", request, entry));
 
     if (!entry) {
         
         PRBool collision = PR_FALSE;
         entry = SearchCacheDevices(request->mKey, request->StoragePolicy(), &collision);
+        CACHE_LOG_DEBUG(("Device search for request %p returned %p\n",
+                         request, entry));
         
         if (collision) return NS_ERROR_CACHE_IN_USE;
 
@@ -1251,6 +1266,7 @@ nsCacheService::ActivateEntry(nsCacheRequest * request,
     if (!entry->IsActive()) {
         rv = mActiveEntries.AddEntry(entry);
         if (NS_FAILED(rv)) goto error;
+        CACHE_LOG_DEBUG(("Added entry %p to mActiveEntries\n", entry));
         entry->MarkActive();  
     }
     *result = entry;
@@ -1270,11 +1286,16 @@ nsCacheService::SearchCacheDevices(nsCString * key, nsCacheStoragePolicy policy,
 {
     nsCacheEntry * entry = nsnull;
 
+    CACHE_LOG_DEBUG(("mMemoryDevice: 0x%p\n", mMemoryDevice));
+
     *collision = PR_FALSE;
     if ((policy == nsICache::STORE_ANYWHERE) || (policy == nsICache::STORE_IN_MEMORY)) {
         
-        if (mMemoryDevice)
+        if (mMemoryDevice) {
             entry = mMemoryDevice->FindEntry(key, collision);
+            CACHE_LOG_DEBUG(("Searching mMemoryDevice for key %s found: 0x%p, "
+                             "collision: %d\n", key->get(), entry, collision));
+        }
     }
 
     if (!entry && 
@@ -1386,6 +1407,7 @@ nsCacheService::DoomEntry_Internal(nsCacheEntry * entry)
 {
     if (entry->IsDoomed())  return NS_OK;
     
+    CACHE_LOG_DEBUG(("Dooming entry %p\n", entry));
     nsresult  rv = NS_OK;
     entry->MarkDoomed();
     
@@ -1396,6 +1418,7 @@ nsCacheService::DoomEntry_Internal(nsCacheEntry * entry)
     if (entry->IsActive()) {
         
         mActiveEntries.RemoveEntry(entry);
+        CACHE_LOG_DEBUG(("Removed entry %p from mActiveEntries\n", entry));
         entry->MarkInactive();
      }
 
@@ -1455,6 +1478,8 @@ void
 nsCacheService::OnProfileChanged()
 {
     if (!gService)  return;
+
+    CACHE_LOG_DEBUG(("nsCacheService::OnProfileChanged"));
  
     nsCacheServiceAutoLock lock;
     
@@ -1496,9 +1521,13 @@ nsCacheService::OnProfileChanged()
     if (gService->mMemoryDevice) {
         if (gService->mEnableMemoryDevice) {
             
-            gService->mMemoryDevice->SetCapacity(gService->mObserver->MemoryCacheCapacity());
+            PRInt32 capacity = gService->mObserver->MemoryCacheCapacity();
+            CACHE_LOG_DEBUG(("Resetting memory device capacity to %d\n",
+                             capacity));
+            gService->mMemoryDevice->SetCapacity(capacity);
         } else {
             
+            CACHE_LOG_DEBUG(("memory device disabled\n"));
             gService->mMemoryDevice->SetCapacity(0);
             
         }
@@ -1558,18 +1587,25 @@ void
 nsCacheService::SetMemoryCache()
 {
     if (!gService)  return;
+
+    CACHE_LOG_DEBUG(("nsCacheService::SetMemoryCache"));
+
     nsCacheServiceAutoLock lock;
 
     gService->mEnableMemoryDevice = gService->mObserver->MemoryCacheEnabled();
 
     if (gService->mEnableMemoryDevice) {
         if (gService->mMemoryDevice) {
+            PRInt32 capacity = mObserver->MemoryCacheCapacity();
             
-            gService->mMemoryDevice->SetCapacity(gService->mObserver->MemoryCacheCapacity());
+            CACHE_LOG_DEBUG(("Resetting memory device capacity to %d\n",
+                             capacity));
+            gService->mMemoryDevice->SetCapacity(capacity);
         }
     } else {
         if (gService->mMemoryDevice) {
             
+            CACHE_LOG_DEBUG(("memory device disabled\n"));
             gService->mMemoryDevice->SetCapacity(0);
             
         }
@@ -1720,6 +1756,7 @@ nsCacheService::ValidateEntry(nsCacheEntry * entry)
 void
 nsCacheService::DeactivateEntry(nsCacheEntry * entry)
 {
+    CACHE_LOG_DEBUG(("Deactivating entry %p\n", entry));
     nsresult  rv = NS_OK;
     NS_ASSERTION(entry->IsNotInUse(), "### deactivating an entry while in use!");
     nsCacheDevice * device = nsnull;
@@ -1733,11 +1770,16 @@ nsCacheService::DeactivateEntry(nsCacheEntry * entry)
     } else if (entry->IsActive()) {
         
         mActiveEntries.RemoveEntry(entry);
+        CACHE_LOG_DEBUG(("Removed deactivated entry %p from mActiveEntries\n",
+                         entry));
         entry->MarkInactive();
 
         
         device = EnsureEntryHasDevice(entry); 
         if (!device) {
+            CACHE_LOG_DEBUG(("DeactivateEntry: unable to bind active "
+                             "entry %p\n",
+                             entry));
             NS_WARNING("DeactivateEntry: unable to bind active entry\n");
             return;
         }
