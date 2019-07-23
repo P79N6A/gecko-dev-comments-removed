@@ -69,8 +69,8 @@
 #include "jsscope.h"
 #include "jsscript.h"
 #include "jsstr.h"
-
 #include "jsdbgapi.h"   
+#include "jsstaticcheck.h"
 
 #if JS_HAS_GENERATORS
 #include "jsiter.h"
@@ -635,7 +635,7 @@ obj_toSource(JSContext *cx, uintN argc, jsval *vp)
 
     JS_CHECK_RECURSION(cx, return JS_FALSE);
 
-    
+    MUST_FLOW_THROUGH("out");
     JS_PUSH_TEMP_ROOT(cx, 4, localroot, &tvr);
 
     
@@ -1235,6 +1235,7 @@ js_obj_eval(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
     }
 
     
+    MUST_FLOW_THROUGH("out");
     if (!scopeobj) {
 #if JS_HAS_EVAL_THIS_SCOPE
         
@@ -2839,6 +2840,7 @@ js_ConstructObject(JSContext *cx, JSClass *clasp, JSObject *proto,
 
 
     JS_PUSH_SINGLE_TEMP_ROOT(cx, cval, &tvr);
+    MUST_FLOW_THROUGH("out");
 
     
 

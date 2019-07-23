@@ -68,6 +68,7 @@
 #include "jsscope.h"
 #include "jsscript.h"
 #include "jsstr.h"
+#include "jsstaticcheck.h"
 #ifdef JS_TRACER
 #include "jstracer.h"
 #endif
@@ -931,7 +932,7 @@ js_OnUnknownMethod(JSContext *cx, jsval *vp)
     obj = JSVAL_TO_OBJECT(vp[1]);
     JS_PUSH_SINGLE_TEMP_ROOT(cx, JSVAL_NULL, &tvr);
 
-    
+    MUST_FLOW_THROUGH("out");
     id = ATOM_TO_JSID(cx->runtime->atomState.noSuchMethodAtom);
 #if JS_HAS_XML_SUPPORT
     if (OBJECT_IS_XML(cx, obj)) {
@@ -1270,7 +1271,7 @@ have_fun:
     frame.xmlNamespace = NULL;
     frame.blockChain = NULL;
 
-    
+    MUST_FLOW_THROUGH("out");
     cx->fp = &frame;
 
     
@@ -2658,7 +2659,7 @@ js_Interpret(JSContext *cx)
         DO_OP();                                                              \
     JS_END_MACRO
 
-    
+    MUST_FLOW_THROUGH("exit");
     ++cx->interpLevel;
 
     
@@ -5691,6 +5692,7 @@ js_Interpret(JSContext *cx)
 
 
 
+            MUST_FLOW_THROUGH("restore");
             fp->scopeChain = obj;
             rval = OBJECT_TO_JSVAL(obj);
 
@@ -5750,6 +5752,7 @@ js_Interpret(JSContext *cx)
             }
 
             
+            MUST_FLOW_LABEL(restore)
             fp->scopeChain = obj2;
             if (!ok) {
                 cx->weakRoots.newborn[GCX_OBJECT] = NULL;
@@ -5838,6 +5841,7 @@ js_Interpret(JSContext *cx)
 
 
 
+            MUST_FLOW_THROUGH("restore2");
             fp->scopeChain = obj;
             rval = OBJECT_TO_JSVAL(obj);
 
@@ -5864,6 +5868,7 @@ js_Interpret(JSContext *cx)
                                      NULL);
 
             
+            MUST_FLOW_LABEL(restore2)
             fp->scopeChain = obj2;
             if (!ok) {
                 cx->weakRoots.newborn[GCX_OBJECT] = NULL;

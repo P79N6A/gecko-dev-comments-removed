@@ -65,8 +65,8 @@
 #include "jsscan.h"
 #include "jsscope.h"
 #include "jsscript.h"
-
 #include "jsautooplen.h"
+#include "jsstaticcheck.h"
 
 
 #define BYTECODE_CHUNK  256     /* code allocation increment */
@@ -2978,6 +2978,7 @@ EmitSwitch(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn,
 
 
 
+        MUST_FLOW_THROUGH("out");
         if (cg->spanDeps) {
             
 
