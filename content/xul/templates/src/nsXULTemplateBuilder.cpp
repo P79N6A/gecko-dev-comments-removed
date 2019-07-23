@@ -91,6 +91,7 @@
 #include "nsString.h"
 #include "nsVoidArray.h"
 #include "nsXPIDLString.h"
+#include "nsWhitespaceTokenizer.h"
 #include "nsGkAtoms.h"
 #include "nsXULElement.h"
 #include "jsapi.h"
@@ -1754,11 +1755,15 @@ nsXULTemplateBuilder::CompileQueries()
 
     
     
-    if (flags.Find(NS_LITERAL_STRING("dont-test-empty")) >= 0)
+    
+    nsWhitespaceTokenizer tokenizer(flags);
+    while (tokenizer.hasMoreTokens()) {
+      const nsDependentSubstring& token(tokenizer.nextToken());
+      if (token.EqualsLiteral("dont-test-empty"))
         mFlags |= eDontTestEmpty;
-
-    if (flags.Find(NS_LITERAL_STRING("dont-recurse")) >= 0)
+      else if (token.EqualsLiteral("dont-recurse"))
         mFlags |= eDontRecurse;
+    }
 
     nsCOMPtr<nsIDOMNode> rootnode = do_QueryInterface(mRoot);
     nsresult rv =
