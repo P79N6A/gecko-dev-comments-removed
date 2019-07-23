@@ -239,6 +239,9 @@ pref("browser.fixup.alternate.suffix", ".com");
 pref("browser.fixup.hide_user_pass", true);
 
 
+pref("browser.urlbar.autocomplete.enabled", true);
+
+
 
 
 

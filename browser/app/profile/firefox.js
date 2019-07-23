@@ -219,11 +219,6 @@ pref("browser.urlbar.autoFill", false);
 
 
 pref("browser.urlbar.matchBehavior", 1);
-
-
-
-
-pref("browser.urlbar.search.sources", 3);
 pref("browser.urlbar.filter.javascript", true);
 
 

@@ -57,6 +57,43 @@ var gPrivacyPane = {
 
 
 
+  readSuggestionPref: function PPP_readSuggestionPref()
+  {
+    let getVal = function(aPref)
+      document.getElementById("browser.urlbar." + aPref).value;
+
+    
+    if (!getVal("autocomplete.enabled"))
+      return -1;
+
+    
+    return getVal("default.behavior") & 3;
+  },
+
+  
+
+
+
+  writeSuggestionPref: function PPP_writeSuggestionPref()
+  {
+    let menuVal = document.getElementById("locationBarSuggestion").value;
+    let enabled = menuVal != -1;
+
+    
+    if (enabled) {
+      
+      let behavior = document.getElementById("browser.urlbar.default.behavior");
+      behavior.value = behavior.value >> 2 << 2 | menuVal;
+    }
+
+    
+    return enabled;
+  },
+
+  
+
+
+
 
 
 

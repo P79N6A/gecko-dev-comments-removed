@@ -703,13 +703,13 @@ nsNavHistory::StartSearch(const nsAString & aSearchString,
   
   
   
-  if (mAutoCompleteSearchSources == SEARCH_NONE ||
+  if (!mAutoCompleteEnabled ||
       (!prevSearchString.IsEmpty() &&
        StringBeginsWith(mCurrentSearchString, prevSearchString) &&
        (StartsWithJS(prevSearchString) == StartsWithJS(mCurrentSearchString)))) {
 
     
-    if (mAutoCompleteSearchSources == SEARCH_NONE ||
+    if (!mAutoCompleteEnabled ||
         (mAutoCompleteFinishedSearch && prevMatchCount == 0)) {
       
       mCurrentResult->SetSearchResult(nsIAutoCompleteResult::RESULT_NOMATCH);
@@ -870,13 +870,6 @@ nsNavHistory::ProcessTokensForSpecialSearch()
 {
   
   mAutoCompleteCurrentBehavior = mAutoCompleteDefaultBehavior;
-
-  
-  if (mAutoCompleteSearchSources == SEARCH_HISTORY)
-    SET_BEHAVIOR(History);
-  else if (mAutoCompleteSearchSources == SEARCH_BOOKMARK)
-    SET_BEHAVIOR(Bookmark);
-  
 
   
   for (PRInt32 i = PRInt32(mCurrentSearchTokens.Length()); --i >= 0;) {
