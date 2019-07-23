@@ -189,10 +189,6 @@ static NS_DEFINE_CID(kDOMEventGroupCID, NS_DOMEVENTGROUP_CID);
 
 #include "nsIContentSecurityPolicy.h"
 
-#include "mozilla/dom/Link.h"
-using namespace mozilla::dom;
-
-
 
 static PRBool gCSPEnabled = PR_TRUE;
 
@@ -200,6 +196,122 @@ static PRBool gCSPEnabled = PR_TRUE;
 static PRLogModuleInfo* gDocumentLeakPRLog;
 static PRLogModuleInfo* gCspPRLog;
 #endif
+
+void
+nsUint32ToContentHashEntry::Destroy()
+{
+  HashSet* set = GetHashSet();
+  if (set) {
+    delete set;
+  } else {
+    nsIContent* content = GetContent();
+    NS_IF_RELEASE(content);
+  }
+}
+
+nsresult
+nsUint32ToContentHashEntry::PutContent(nsIContent* aVal)
+{
+  
+  HashSet* set = GetHashSet();
+  if (set) {
+    nsISupportsHashKey* entry = set->PutEntry(aVal);
+    return entry ? NS_OK : NS_ERROR_OUT_OF_MEMORY;
+  }
+
+  
+  nsIContent* oldVal = GetContent();
+  if (oldVal) {
+    nsresult rv = InitHashSet(&set);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    nsISupportsHashKey* entry = set->PutEntry(oldVal);
+    if (!entry) {
+      
+      
+      delete set;
+      SetContent(oldVal);
+      
+      NS_RELEASE(oldVal);
+      return NS_ERROR_OUT_OF_MEMORY;
+    }
+    
+    NS_RELEASE(oldVal);
+
+    entry = set->PutEntry(aVal);
+    return entry ? NS_OK : NS_ERROR_OUT_OF_MEMORY;
+  }
+
+  
+  return SetContent(aVal);
+}
+
+void
+nsUint32ToContentHashEntry::RemoveContent(nsIContent* aVal)
+{
+  
+  HashSet* set = GetHashSet();
+  if (set) {
+    set->RemoveEntry(aVal);
+    if (set->Count() == 0) {
+      delete set;
+      mValOrHash = nsnull;
+    }
+    return;
+  }
+
+  
+  nsIContent* v = GetContent();
+  if (v == aVal) {
+    NS_IF_RELEASE(v);
+    mValOrHash = nsnull;
+  }
+}
+
+nsresult
+nsUint32ToContentHashEntry::InitHashSet(HashSet** aSet)
+{
+  HashSet* newSet = new HashSet();
+  if (!newSet) {
+    return NS_ERROR_OUT_OF_MEMORY;
+  }
+
+  nsresult rv = newSet->Init();
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  mValOrHash = newSet;
+  *aSet = newSet;
+  return NS_OK;
+}
+
+static PLDHashOperator
+nsUint32ToContentHashEntryVisitorCallback(nsISupportsHashKey* aEntry,
+                                          void* aClosure)
+{
+  nsUint32ToContentHashEntry::Visitor* visitor =
+    static_cast<nsUint32ToContentHashEntry::Visitor*>(aClosure);
+  visitor->Visit(static_cast<nsIContent*>(aEntry->GetKey()));
+  return PL_DHASH_NEXT;
+}
+
+void
+nsUint32ToContentHashEntry::VisitContent(Visitor* aVisitor)
+{
+  HashSet* set = GetHashSet();
+  if (set) {
+    set->EnumerateEntries(nsUint32ToContentHashEntryVisitorCallback, aVisitor);
+    if (set->Count() == 0) {
+      delete set;
+      mValOrHash = nsnull;
+    }
+    return;
+  }
+
+  nsIContent* v = GetContent();
+  if (v) {
+    aVisitor->Visit(v);
+  }
+}
 
 #define NAME_NOT_VALID ((nsBaseContentList*)1)
 
@@ -1604,6 +1716,26 @@ BoxObjectTraverser(const void* key, nsPIBoxObject* boxObject, void* userArg)
   return PL_DHASH_NEXT;
 }
 
+class LinkMapTraversalVisitor : public nsUint32ToContentHashEntry::Visitor
+{
+public:
+  nsCycleCollectionTraversalCallback *mCb;
+  virtual void Visit(nsIContent* aContent)
+  {
+    NS_CYCLE_COLLECTION_NOTE_EDGE_NAME(*mCb, "mLinkMap entry");
+    mCb->NoteXPCOMChild(aContent);
+  }
+};
+
+static PLDHashOperator
+LinkMapTraverser(nsUint32ToContentHashEntry* aEntry, void* userArg)
+{
+  LinkMapTraversalVisitor visitor;
+  visitor.mCb = static_cast<nsCycleCollectionTraversalCallback*>(userArg);
+  aEntry->VisitContent(&visitor);
+  return PL_DHASH_NEXT;
+}
+
 static PLDHashOperator
 IdentifierMapEntryTraverse(nsIdentifierMapEntry *aEntry, void *aArg)
 {
@@ -1669,6 +1801,12 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(nsDocument)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(mOriginalDocument)
 
   
+  
+  if (tmp->mLinkMap.IsInitialized()) {
+    tmp->mLinkMap.EnumerateEntries(LinkMapTraverser, &cb);
+  }
+
+  
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMARRAY(mStyleSheets)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMARRAY(mCatalogSheets)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMARRAY(mPreloadingImages)
@@ -1692,6 +1830,11 @@ NS_IMPL_CYCLE_COLLECTION_TRACE_END
 
 
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(nsDocument)
+  
+  
+  
+  tmp->DestroyLinkMap();
+
   
   tmp->mExternalResourceMap.Shutdown();
 
@@ -1733,7 +1876,7 @@ nsDocument::Init()
   }
 
   mIdentifierMap.Init();
-  (void)mStyledLinks.Init();
+  mLinkMap.Init();
   mRadioGroups.Init();
 
   
@@ -7345,60 +7488,107 @@ static PRUint32 GetURIHash(nsIURI* aURI)
 }
 
 void
-nsDocument::AddStyleRelevantLink(Link* aLink)
+nsDocument::AddStyleRelevantLink(nsIContent* aContent, nsIURI* aURI)
 {
-  NS_ASSERTION(aLink, "Passing in a null link.  Expect crashes RSN!");
-#ifdef DEBUG
-  nsPtrHashKey<Link>* entry = mStyledLinks.GetEntry(aLink);
-  NS_ASSERTION(!entry, "Document already knows about this Link!");
-  mStyledLinksCleared = false;
-#endif
-  (void)mStyledLinks.PutEntry(aLink);
+  nsUint32ToContentHashEntry* entry = mLinkMap.PutEntry(GetURIHash(aURI));
+  if (!entry) 
+    return;
+  entry->PutContent(aContent);
 }
 
 void
-nsDocument::ForgetLink(Link* aLink)
+nsDocument::ForgetLink(nsIContent* aContent)
 {
-  NS_ASSERTION(aLink, "Passing in a null link.  Expect crashes RSN!");
-#ifdef DEBUG
-  nsPtrHashKey<Link>* entry = mStyledLinks.GetEntry(aLink);
-  NS_ASSERTION(entry || mStyledLinksCleared,
-               "Document knows nothing about this Link!");
-#endif
-  (void)mStyledLinks.RemoveEntry(aLink);
+  
+  
+  
+  if (mLinkMap.Count() == 0)
+    return;
+
+  nsCOMPtr<nsIURI> uri;
+  if (!aContent->IsLink(getter_AddRefs(uri)))
+    return;
+  PRUint32 hash = GetURIHash(uri);
+  nsUint32ToContentHashEntry* entry = mLinkMap.GetEntry(hash);
+  if (!entry)
+    return;
+
+  entry->RemoveContent(aContent);
+  if (entry->IsEmpty()) {
+    
+    
+    mLinkMap.RemoveEntry(hash);
+  }
 }
 
 void
 nsDocument::DestroyLinkMap()
 {
-#ifdef DEBUG
-  mStyledLinksCleared = true;
-#endif
-  mStyledLinks.Clear();
+  mLinkMap.Clear();
 }
 
-static
-PLDHashOperator
-EnumerateStyledLinks(nsPtrHashKey<Link>* aEntry, void* aArray)
+class RefreshLinkStateVisitor : public nsUint32ToContentHashEntry::Visitor
 {
-  nsTArray<Link*>* array = static_cast<nsTArray<Link*>*>(aArray);
-  (void)array->AppendElement(aEntry->GetKey());
+public:
+  nsCOMArray<nsIContent> contentVisited;
+
+  virtual void Visit(nsIContent* aContent) {
+    
+    
+    
+    aContent->SetLinkState(eLinkState_Unknown);
+    contentVisited.AppendObject(aContent);
+  }
+};
+
+static PLDHashOperator
+RefreshLinkStateTraverser(nsUint32ToContentHashEntry* aEntry,
+                               void* userArg)
+{
+  RefreshLinkStateVisitor *visitor =
+    static_cast<RefreshLinkStateVisitor*>(userArg);
+
+  aEntry->VisitContent(visitor);
   return PL_DHASH_NEXT;
+}
+
+
+
+static void
+DropCachedHrefsRecursive(nsIContent * const elem)
+{
+  
+  
+  
+  
+  
+  elem->DropCachedHref();
+
+  PRUint32 childCount;
+  nsIContent * const * child = elem->GetChildArray(&childCount);
+  nsIContent * const * end = child + childCount;
+  for ( ; child != end; ++child) {
+    DropCachedHrefsRecursive(*child);
+  }
 }
 
 void
 nsDocument::RefreshLinkHrefs()
 {
-  
-  
-  
-  nsTArray<Link*> linksToNotify(mStyledLinks.Count());
-  (void)mStyledLinks.EnumerateEntries(EnumerateStyledLinks, &linksToNotify);
+  if (!GetRootContent())
+    return;
 
   
+  DropCachedHrefsRecursive(GetRootContent());
+
+  
+  RefreshLinkStateVisitor visitor;
+  mLinkMap.EnumerateEntries(RefreshLinkStateTraverser, &visitor);
+
   MOZ_AUTO_DOC_UPDATE(this, UPDATE_CONTENT_STATE, PR_TRUE);
-  for (nsTArray_base::size_type i = 0; i < linksToNotify.Length(); i++) {
-    linksToNotify[i]->ResetLinkState(true);
+  for (PRUint32 count = visitor.contentVisited.Count(), i = 0; i < count; i++) {
+    ContentStatesChanged(visitor.contentVisited[i],
+                         nsnull, NS_EVENT_STATE_VISITED);
   }
 }
 
