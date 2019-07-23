@@ -403,11 +403,8 @@ private:
 
 
   nsresult ConstructTable(nsFrameConstructorState& aState,
-                          nsIContent*              aContent,
+                          FrameConstructionItem&   aItem,
                           nsIFrame*                aParentFrame,
-                          nsIAtom*                 aTag,
-                          PRInt32                  aNameSpaceID,
-                          nsStyleContext*          aStyleContext,
                           const nsStyleDisplay*    aDisplay,
                           nsFrameItems&            aFrameItems,
                           nsIFrame**               aNewFrame);
@@ -417,11 +414,8 @@ private:
 
 
   nsresult ConstructTablePart(nsFrameConstructorState& aState,
-                              nsIContent*              aContent,
+                              FrameConstructionItem&   aItem,
                               nsIFrame*                aParentFrame,
-                              nsIAtom*                 aTag,
-                              PRInt32                  aNameSpaceID,
-                              nsStyleContext*          aStyleContext,
                               const nsStyleDisplay*    aDisplay,
                               nsFrameItems&            aFrameItems,
                               nsIFrame**               aNewFrame);
@@ -591,15 +585,10 @@ private:
 
 
 
-
-
   typedef nsresult
     (nsCSSFrameConstructor::* FrameFullConstructor)(nsFrameConstructorState& aState,
-                                                    nsIContent* aContent,
+                                                    FrameConstructionItem& aItem,
                                                     nsIFrame* aParentFrame,
-                                                    nsIAtom* aTag,
-                                                    PRInt32 aNameSpaceID,
-                                                    nsStyleContext* aStyleContext,
                                                     const nsStyleDisplay* aStyleDisplay,
                                                     nsFrameItems& aFrameItems,
                                                     nsIFrame** aFrame);
@@ -756,6 +745,8 @@ private:
     
     
     PRPackedBool mIsGeneratedContent;
+    
+    PRPackedBool mIsRootPopupgroup;
 
   private:
     FrameConstructionItem(const FrameConstructionItem& aOther); 
@@ -812,11 +803,8 @@ private:
   
   
   nsresult ConstructButtonFrame(nsFrameConstructorState& aState,
-                                nsIContent*              aContent,
+                                FrameConstructionItem&    aItem,
                                 nsIFrame*                aParentFrame,
-                                nsIAtom*                 aTag,
-                                PRInt32                  aNameSpaceID,
-                                nsStyleContext*          aStyleContext,
                                 const nsStyleDisplay*    aStyleDisplay,
                                 nsFrameItems&            aFrameItems,
                                 nsIFrame**               aNewFrame);
@@ -824,11 +812,8 @@ private:
   
   
   nsresult ConstructSelectFrame(nsFrameConstructorState& aState,
-                                nsIContent*              aContent,
+                                FrameConstructionItem&   aItem,
                                 nsIFrame*                aParentFrame,
-                                nsIAtom*                 aTag,
-                                PRInt32                  aNameSpaceID,
-                                nsStyleContext*          aStyleContext,
                                 const nsStyleDisplay*    aStyleDisplay,
                                 nsFrameItems&            aFrameItems,
                                 nsIFrame**               aNewFrame);
@@ -836,11 +821,8 @@ private:
   
   
   nsresult ConstructFieldSetFrame(nsFrameConstructorState& aState,
-                                  nsIContent*              aContent,
+                                  FrameConstructionItem&   aItem,
                                   nsIFrame*                aParentFrame,
-                                  nsIAtom*                 aTag,
-                                  PRInt32                  aNameSpaceID,
-                                  nsStyleContext*          aStyleContext,
                                   const nsStyleDisplay*    aStyleDisplay,
                                   nsFrameItems&            aFrameItems,
                                   nsIFrame**               aNewFrame);
@@ -900,19 +882,11 @@ private:
 
 
 
-
-
-
-
-  nsresult ConstructFrameFromData(const FrameConstructionData* aData,
-                                  nsFrameConstructorState& aState,
-                                  nsIContent* aContent,
-                                  nsIFrame* aParentFrame,
-                                  nsIAtom* aTag,
-                                  PRInt32 aNameSpaceID,
-                                  nsStyleContext* aStyleContext,
-                                  nsFrameItems& aFrameItems,
-                                  PRBool aHasPseudoParent);
+  nsresult ConstructFrameFromItemInternal(FrameConstructionItem& aItem,
+                                          nsFrameConstructorState& aState,
+                                          nsIFrame* aParentFrame,
+                                          nsFrameItems& aFrameItems,
+                                          PRBool aHasPseudoParent);
 
   
   
@@ -1011,11 +985,8 @@ private:
                                                   nsStyleContext* aStyleContext);
 
   nsresult ConstructSVGForeignObjectFrame(nsFrameConstructorState& aState,
-                                          nsIContent* aContent,
+                                          FrameConstructionItem&   aItem,
                                           nsIFrame* aParentFrame,
-                                          nsIAtom* aTag,
-                                          PRInt32 aNameSpaceID,
-                                          nsStyleContext* aStyleContext,
                                           const nsStyleDisplay* aStyleDisplay,
                                           nsFrameItems& aFrameItems,
                                           nsIFrame** aNewFrame);
@@ -1030,11 +1001,8 @@ private:
 
 
   nsresult ConstructScrollableBlock(nsFrameConstructorState& aState,
-                                    nsIContent*              aContent,
+                                    FrameConstructionItem&   aItem,
                                     nsIFrame*                aParentFrame,
-                                    nsIAtom*                 aTag,
-                                    PRInt32                  aNameSpaceID,
-                                    nsStyleContext*          aStyleContext,
                                     const nsStyleDisplay*    aDisplay,
                                     nsFrameItems&            aFrameItems,
                                     nsIFrame**               aNewFrame);
@@ -1043,11 +1011,8 @@ private:
 
 
   nsresult ConstructNonScrollableBlock(nsFrameConstructorState& aState,
-                                       nsIContent*              aContent,
+                                       FrameConstructionItem&   aItem,
                                        nsIFrame*                aParentFrame,
-                                       nsIAtom*                 aTag,
-                                       PRInt32                  aNameSpaceID,
-                                       nsStyleContext*          aStyleContext,
                                        const nsStyleDisplay*    aDisplay,
                                        nsFrameItems&            aFrameItems,
                                        nsIFrame**               aNewFrame);
@@ -1226,11 +1191,8 @@ private:
                           PRBool                   aAbsPosContainer);
 
   nsresult ConstructInline(nsFrameConstructorState& aState,
-                           nsIContent*              aContent,
+                           FrameConstructionItem&   aItem,
                            nsIFrame*                aParentFrame,
-                           nsIAtom*                 aTag,
-                           PRInt32                  aNameSpaceID,
-                           nsStyleContext*          aStyleContext,
                            const nsStyleDisplay*    aDisplay,
                            nsFrameItems&            aFrameItems,
                            nsIFrame**               aNewFrame);
