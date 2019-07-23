@@ -443,6 +443,10 @@ protected:
     msg.lParam  = lParam;
     return msg;
   }
+
+  
+  void ClearThemeRegion();
+  void SetThemeRegion();
 private:
 
 
@@ -528,6 +532,8 @@ protected:
   static PRBool gSwitchKeyboardLayout;
 
   HKL           mLastKeyboardLayout;
+
+  nsPopupType   mPopupType;
 
   
   nsNativeDragTarget * mNativeDragTarget;

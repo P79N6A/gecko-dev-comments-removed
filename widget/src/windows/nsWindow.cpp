@@ -95,6 +95,7 @@
 #else
 
 #include "nsUXThemeData.h"
+#include "nsUXThemeConstants.h"
 #include "nsKeyboardLayout.h"
 #include "nsNativeDragTarget.h"
 
@@ -763,6 +764,7 @@ nsWindow::nsWindow() : nsBaseWidget()
   mOldIMC             = NULL;
   mIMEEnabled         = nsIWidget::IME_STATUS_ENABLED;
   mIsPluginWindow     = PR_FALSE;
+  mPopupType          = ePopupTypeAny;
 
   mLeadByte = '\0';
   mBlurEventSuppressionLevel = 0;
@@ -1326,6 +1328,7 @@ nsWindow::StandardWindowCreate(nsIWidget *aParent,
   if (nsnull != aInitData) {
     SetWindowType(aInitData->mWindowType);
     SetBorderStyle(aInitData->mBorderStyle);
+    mPopupType = aInitData->mPopupHint;
   }
 
   mContentType = aInitData ? aInitData->mContentType : eContentTypeInherit;
@@ -1994,6 +1997,38 @@ NS_METHOD nsWindow::ConstrainPosition(PRBool aAllowSlop,
 
 
 
+void nsWindow::ClearThemeRegion()
+{
+#ifndef WINCE
+  SetWindowRgn(mWnd, NULL, false);
+#endif
+}
+
+void nsWindow::SetThemeRegion()
+{
+#ifndef WINCE
+  
+  
+  
+  
+  
+  if (nsUXThemeData::sIsVistaOrLater && mTransparencyMode != eTransparencyGlass &&
+      mWindowType == eWindowType_popup && (mPopupType == ePopupTypeTooltip || mPopupType == ePopupTypePanel)) {
+    HRGN hRgn = nsnull;
+    RECT rect = {0,0,mBounds.width,mBounds.height};
+    
+    nsUXThemeData::getThemeBackgroundRegion(nsUXThemeData::GetTheme(eUXTooltip), GetDC(mWnd), TTP_STANDARD, TS_NORMAL, &rect, &hRgn);
+    if (hRgn) {
+      if (!SetWindowRgn(mWnd, hRgn, false)) 
+        DeleteObject(hRgn);
+    }
+  }
+#endif
+}
+
+
+
+
 
 
 NS_METHOD nsWindow::Move(PRInt32 aX, PRInt32 aY)
@@ -2048,8 +2083,10 @@ NS_METHOD nsWindow::Move(PRInt32 aX, PRInt32 aY)
                             SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOSIZE));
     }
     else {
+      ClearThemeRegion();
       VERIFY(::SetWindowPos(mWnd, NULL, aX, aY, 0, 0,
                             SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOSIZE));
+      SetThemeRegion();
     }
   }
   return NS_OK;
@@ -2094,7 +2131,9 @@ NS_METHOD nsWindow::Resize(PRInt32 aWidth, PRInt32 aHeight, PRBool aRepaint)
                             mWnd, NULL, 0, 0, aWidth, GetHeight(aHeight), flags));
     }
     else {
+      ClearThemeRegion();
       VERIFY(::SetWindowPos(mWnd, NULL, 0, 0, aWidth, GetHeight(aHeight), flags));
+      SetThemeRegion();
     }
   }
 
@@ -2140,12 +2179,15 @@ NS_METHOD nsWindow::Resize(PRInt32 aX, PRInt32 aY, PRInt32 aWidth, PRInt32 aHeig
       flags |= SWP_NOREDRAW;
     }
 #endif
+
     if (NULL != deferrer) {
       VERIFY(((nsWindow *)par)->mDeferredPositioner = ::DeferWindowPos(deferrer,
                             mWnd, NULL, aX, aY, aWidth, GetHeight(aHeight), flags));
     }
     else {
+      ClearThemeRegion();
       VERIFY(::SetWindowPos(mWnd, NULL, aX, aY, aWidth, GetHeight(aHeight), flags));
+      SetThemeRegion();
     }
   }
 
