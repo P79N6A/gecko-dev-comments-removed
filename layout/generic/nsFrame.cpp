@@ -3451,22 +3451,25 @@ nsPoint nsIFrame::GetOffsetTo(const nsIFrame* aOther) const
 {
   NS_PRECONDITION(aOther,
                   "Must have frame for destination coordinate system!");
-  
-  
-  
   nsPoint offset(0, 0);
   const nsIFrame* f;
-  for (f = this; !f->HasView() && f != aOther; f = f->GetParent()) {
+  for (f = this; f != aOther && f;
+       f = nsLayoutUtils::GetCrossDocParentFrame(f, &offset)) {
     offset += f->GetPosition();
   }
-  
+
   if (f != aOther) {
     
-    nsPoint toViewOffset(0, 0);
-    nsIView* otherView = aOther->GetClosestView(&toViewOffset);
-    offset += f->GetView()->GetOffsetTo(otherView) - toViewOffset;
+    
+    
+    nsPoint negativeOffset(0,0);
+    while (aOther) {
+      offset -= aOther->GetPosition();
+      aOther = nsLayoutUtils::GetCrossDocParentFrame(aOther, &negativeOffset);
+    }
+    offset -= negativeOffset;
   }
-  
+
   return offset;
 }
 
@@ -3531,88 +3534,6 @@ NS_IMETHODIMP nsFrame::GetOffsetFromView(nsPoint&  aOffset,
   if (frame)
     *aView = frame->GetView();
   return NS_OK;
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-NS_IMETHODIMP nsFrame::GetOriginToViewOffset(nsPoint&        aOffset,
-                                             nsIView**       aView) const
-{
-  nsresult rv = NS_OK;
-
-  aOffset.MoveTo(0,0);
-
-  if (aView)
-    *aView = nsnull;
-
-  if (HasView()) {
-    nsIView *view = GetView();
-    nsIView *parentView = nsnull;
-    nsPoint offsetToParentView;
-    rv = GetOffsetFromView(offsetToParentView, &parentView);
-
-    if (NS_SUCCEEDED(rv)) {
-      nsPoint viewOffsetFromParent(0,0);
-      nsIView *pview = view;
-
-      nsIViewManager* vVM = view->GetViewManager();
-
-      while (pview && pview != parentView) {
-        viewOffsetFromParent += pview->GetPosition();
-
-        nsIView *tmpView = pview->GetParent();
-        if (tmpView && vVM != tmpView->GetViewManager()) {
-          
-          
-          break;
-        }
-        pview = tmpView;
-      }
-
-#ifdef DEBUG_KIN
-      if (pview != parentView) {
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        NS_WARNING("view is not a descendant of parentView!");
-      }
-#endif 
-
-      if (pview == parentView)
-        aOffset = offsetToParentView - viewOffsetFromParent;
-
-      if (aView)
-        *aView = view;
-    }
-  }
-
-  return rv;
 }
 
  PRBool
