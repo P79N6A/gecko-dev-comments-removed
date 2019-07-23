@@ -1847,7 +1847,7 @@ namespace nanojit
 			}
 			else
 			{
-				_frago->core()->console << s << "\n";
+                nj_dprintf("%s\n", s);
 			}
 		}
 

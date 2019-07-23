@@ -242,6 +242,26 @@ namespace nanojit
 #define pageBottom(x)		( (int*)(alignTo(x,NJ_PAGE_SIZE)+NJ_PAGE_SIZE)-1 )
 #define samepage(x,y)		(pageTop(x) == pageTop(y))
 
+
+
+
+
+
+#if defined(NJ_VERBOSE)
+
+# if defined(__GNUC__)
+# define PRINTF_CHECK(x, y) __attribute__((format(__printf__, x, y)))
+# else
+# define PRINTF_CHECK(x, y)
+# endif
+
+
+void nj_dprintf( const char* format, ... ) PRINTF_CHECK(1,2);
+
+#endif 
+
+
+
 #include "Native.h"
 #include "LIR.h"
 #include "RegAlloc.h"
