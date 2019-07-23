@@ -247,9 +247,11 @@ protected:
   
   
   
+  
   void SetRGBData(PRInt32 aWidth,
                   PRInt32 aHeight,
                   float aFramerate,
+                  float aAspectRatio,
                   unsigned char* aRGBBuffer);
 
 protected:
@@ -294,6 +296,9 @@ protected:
   
   
   float mFramerate;
+
+  
+  float mAspectRatio;
 
   
   PRPackedBool mSizeChanged;
