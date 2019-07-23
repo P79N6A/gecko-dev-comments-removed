@@ -4356,8 +4356,7 @@ nsTypedSelection::selectFrames(nsPresContext* aPresContext, nsIRange *aRange, PR
   nsIPresShell *presShell = aPresContext->GetPresShell();
   if (!presShell)
     return NS_OK;
-  
-  presShell->FlushPendingNotifications(Flush_Frames);
+
   
   presShell = aPresContext->GetPresShell();
   if (!presShell)
