@@ -225,6 +225,13 @@ protected:
 
   nsIContent* GetNestedInsertionPoint(nsIContent* aParent, nsIContent* aChild);
 
+  
+  
+  
+  
+  void HandleChildInsertion(nsIContent* aContainer, nsIContent* aChild,
+                            PRUint32 aIndexInContainer, PRBool aAppend);
+
 #define NS_BINDINGMANAGER_NOTIFY_OBSERVERS(func_, params_) \
   NS_OBSERVER_ARRAY_NOTIFY_OBSERVERS(mObservers, nsIMutationObserver, \
                                      func_, params_);
