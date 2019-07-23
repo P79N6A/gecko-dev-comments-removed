@@ -249,13 +249,14 @@ nsPrincipal::Equals(nsIPrincipal *aOther, PRBool *aResult)
   }
 
   if (this != aOther) {
-    if (mCert) {
-      PRBool otherHasCert;
-      aOther->GetHasCertificate(&otherHasCert);
-      if (!otherHasCert) {
-        return NS_OK;
-      }
+    PRBool otherHasCert;
+    aOther->GetHasCertificate(&otherHasCert);
+    if (otherHasCert != (mCert != nsnull)) {
+      
+      return NS_OK;
+    }
 
+    if (mCert) {
       nsCAutoString str;
       aOther->GetFingerprint(str);
       *aResult = str.Equals(mCert->fingerprint);
@@ -292,8 +293,9 @@ nsPrincipal::Equals(nsIPrincipal *aOther, PRBool *aResult)
 
     
     *aResult =
-      NS_SUCCEEDED(nsScriptSecurityManager::GetScriptSecurityManager()
-                   ->CheckSameOriginPrincipal(this, aOther));
+      NS_SUCCEEDED(nsScriptSecurityManager::CheckSameOriginPrincipal(this,
+                                                                     aOther,
+                                                                     PR_FALSE));
     return NS_OK;
   }
 

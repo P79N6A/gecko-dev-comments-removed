@@ -726,16 +726,6 @@ nsScriptSecurityManager::CheckSameOriginURI(nsIURI* aSourceURI,
     return NS_OK;
 }
 
-NS_IMETHODIMP
-nsScriptSecurityManager::CheckSameOriginPrincipal(nsIPrincipal* aSourcePrincipal,
-                                                  nsIPrincipal* aTargetPrincipal)
-{
-    return CheckSameOriginPrincipalInternal(aSourcePrincipal,
-                                            aTargetPrincipal,
-                                            PR_FALSE);
-}
-
-
 nsresult
 nsScriptSecurityManager::CheckPropertyAccessImpl(PRUint32 aAction,
                                                  nsAXPCNativeCallContext* aCallContext,
@@ -962,10 +952,11 @@ nsScriptSecurityManager::CheckPropertyAccessImpl(PRUint32 aAction,
     return rv;
 }
 
+
 nsresult
-nsScriptSecurityManager::CheckSameOriginPrincipalInternal(nsIPrincipal* aSubject,
-                                                          nsIPrincipal* aObject,
-                                                          PRBool aIsCheckConnect)
+nsScriptSecurityManager::CheckSameOriginPrincipal(nsIPrincipal* aSubject,
+                                                  nsIPrincipal* aObject,
+                                                  PRBool aIsCheckConnect)
 {
     
 
@@ -1035,8 +1026,19 @@ nsScriptSecurityManager::CheckSameOriginDOMProp(nsIPrincipal* aSubject,
                                                 PRUint32 aAction,
                                                 PRBool aIsCheckConnect)
 {
-    nsresult rv = CheckSameOriginPrincipalInternal(aSubject, aObject,
-                                                   aIsCheckConnect);
+    nsresult rv;
+    if (aIsCheckConnect) {
+        
+        
+        
+        rv = CheckSameOriginPrincipal(aSubject, aObject, aIsCheckConnect);
+    } else {
+        PRBool subsumes;
+        rv = aSubject->Subsumes(aObject, &subsumes);
+        if (NS_SUCCEEDED(rv) && !subsumes) {
+            rv = NS_ERROR_DOM_PROP_ACCESS_DENIED;
+        }
+    }
     
     if (NS_SUCCEEDED(rv))
         return NS_OK;
@@ -1696,9 +1698,12 @@ nsScriptSecurityManager::CheckFunctionAccess(JSContext *aCx, void *aFunObj,
     if (!object)
         return NS_ERROR_FAILURE;        
 
-    
-    
-    return CheckSameOriginPrincipalInternal(subject, object, PR_TRUE);
+    PRBool subsumes;
+    rv = subject->Subsumes(object, &subsumes);
+    if (NS_SUCCEEDED(rv) && !subsumes) {
+        rv = NS_ERROR_DOM_PROP_ACCESS_DENIED;
+    }
+    return rv;
 }
 
 NS_IMETHODIMP
