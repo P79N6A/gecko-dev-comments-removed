@@ -425,10 +425,8 @@ struct JSParsedObjectBox {
     JSObject            *object;
 };
 
+
 struct JSParseContext {
-    JSTokenStream       tokenStream;
-    void                *tempPoolMark;  
-    JSPrincipals        *principals;    
     JSParseNode         *nodeList;      
 
     JSParsedObjectBox   *traceListHead; 
@@ -447,48 +445,30 @@ struct JSParseContext {
 
 
 
-#define TS(pc) (&(pc)->tokenStream)
-
-
-
-
 extern JS_FRIEND_API(JSParseNode *)
-js_ParseScript(JSContext *cx, JSObject *chain, JSParseContext *pc);
+js_ParseTokenStream(JSContext *cx, JSObject *chain, JSTokenStream *ts);
 
-extern JS_FRIEND_API(JSScript *)
-js_CompileScript(JSContext *cx, JSObject *chain, JSParseContext *pc);
+extern JS_FRIEND_API(JSBool)
+js_CompileTokenStream(JSContext *cx, JSObject *chain, JSTokenStream *ts,
+                      JSCodeGenerator *cg);
 
 extern JSBool
-js_CompileFunctionBody(JSContext *cx, JSParseContext *pc, JSFunction *fun);
+js_CompileFunctionBody(JSContext *cx, JSTokenStream *ts, JSFunction *fun);
 
 extern JSBool
 js_FoldConstants(JSContext *cx, JSParseNode *pn, JSTreeContext *tc);
 
 #if JS_HAS_XML_SUPPORT
 JS_FRIEND_API(JSParseNode *)
-js_ParseXMLText(JSContext *cx, JSObject *chain, JSParseContext *pc,
-                JSBool allowList);
+js_ParseXMLTokenStream(JSContext *cx, JSObject *chain, JSTokenStream *ts,
+                       JSBool allowList);
 #endif
 
-
-
-
-
-
-
-
-
-extern JS_FRIEND_API(JSBool)
-js_InitParseContext(JSContext *cx, JSParseContext *pc,
-                    const jschar *base, size_t length, FILE *fp,
-                    const char *filename, uintN lineno);
-
-extern JS_FRIEND_API(void)
-js_FinishParseContext(JSContext *cx, JSParseContext *pc);
+extern void
+js_InitParseContext(JSContext *cx, JSParseContext *pc);
 
 extern void
-js_InitCompilePrincipals(JSContext *cx, JSParseContext *pc,
-                         JSPrincipals *principals);
+js_FinishParseContext(JSContext *cx, JSParseContext *pc);
 
 
 
