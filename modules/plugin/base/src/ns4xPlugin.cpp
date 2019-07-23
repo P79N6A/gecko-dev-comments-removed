@@ -244,15 +244,19 @@ _FP2TV(void *fp)
 
 
 
+
+
 void NS_NotifyPluginCall(PRIntervalTime startTime) 
 {
   PRIntervalTime endTime = PR_IntervalNow() - startTime;
-  nsCOMPtr<nsIObserverService> notifyUIService = do_GetService("@mozilla.org/observer-service;1");
+  nsCOMPtr<nsIObserverService> notifyUIService =
+    do_GetService("@mozilla.org/observer-service;1");
   float runTimeInSeconds = float(endTime) / PR_TicksPerSecond();
   nsAutoString runTimeString;
   runTimeString.AppendFloat(runTimeInSeconds);
   const PRUnichar* runTime = runTimeString.get();
-  notifyUIService->NotifyObservers(nsnull, "experimental-notify-plugin-call", runTime);
+  notifyUIService->NotifyObservers(nsnull, "experimental-notify-plugin-call",
+                                   runTime);
 }
 
 
