@@ -888,7 +888,7 @@ const nsHTMLElement gHTMLElements[] = {
               eHTMLTag_unknown,eHTMLTag_unknown,
               &gParamParents,&gParamParents,
      &gPAutoClose,0,0,0,
-              kNone, kNone, kNone,
+              kSpecial, kNone, kNone,
            kNonContainer, kNoPropRange,
                 &gParamParents,0,
   },
