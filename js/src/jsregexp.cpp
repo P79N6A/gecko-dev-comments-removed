@@ -2155,7 +2155,9 @@ class RegExpNativeCompiler {
         bool oom = false;
         
         Fragmento* fragmento = JS_TRACE_MONITOR(cx).reFragmento;
-        fragment = fragmento->getAnchor(re);
+        fragment = fragmento->getLoop(re);
+        if (!fragment) 
+            fragment = fragmento->getAnchor(re);
         fragment->lirbuf = new (&gc) LirBuffer(fragmento, NULL);
         
         fragment->root = fragment;
@@ -2830,9 +2832,10 @@ void
 js_DestroyRegExp(JSContext *cx, JSRegExp *re)
 {
     if (JS_ATOMIC_DECREMENT(&re->nrefs) == 0) {
-#ifdef JS_TRACER
-        JS_TRACE_MONITOR(cx).reFragmento->clearFrag(re);
-#endif
+        
+        Fragment* fragment = JS_TRACE_MONITOR(cx).reFragmento->getLoop(re);
+        if (fragment) 
+            fragment->blacklist();
         if (re->classList) {
             uintN i;
             for (i = 0; i < re->classCount; i++) {
@@ -3644,7 +3647,8 @@ MatchRegExp(REGlobalData *gData, REMatchState *x)
 
     
     if (((fragment = JS_TRACE_MONITOR(gData->cx).reFragmento->getLoop(gData->regexp)) != NULL)
-        && fragment->code()) {
+        && fragment->code()
+        && !fragment->isBlacklisted()) {
         union { NIns *code; REMatchState* (FASTCALL *func)(void*, void*); } u;
         u.code = fragment->code();
         REMatchState *lr;
