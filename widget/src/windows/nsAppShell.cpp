@@ -42,6 +42,10 @@
 #include "nsThreadUtils.h"
 #include "WinTaskbar.h"
 
+
+#include <windows.h> 
+#include <tlhelp32.h> 
+
 #ifdef WINCE
 BOOL WaitMessage(VOID)
 {
@@ -155,6 +159,85 @@ nsAppShell::Init()
   return nsBaseAppShell::Init();
 }
 
+
+
+
+
+
+
+
+#if defined(_MSC_VER) && defined(_M_IX86)
+
+#define LOADEDMODULEINFO_STRSIZE 23
+#define NUM_LOADEDMODULEINFO 250
+
+struct LoadedModuleInfo {
+  void* mStartAddr;
+  void* mEndAddr;
+  char mName[LOADEDMODULEINFO_STRSIZE + 1];
+};
+
+static LoadedModuleInfo* sLoadedModules = 0;
+
+static void
+CollectNewLoadedModules()
+{
+  HANDLE hModuleSnap = INVALID_HANDLE_VALUE;
+  MODULEENTRY32 module;
+
+  
+  hModuleSnap = CreateToolhelp32Snapshot(TH32CS_SNAPMODULE, 0);
+  if (hModuleSnap == INVALID_HANDLE_VALUE)
+    return;
+
+  
+  module.dwSize = sizeof(MODULEENTRY32);
+
+  
+  
+  PRBool done = !Module32First(hModuleSnap, &module);
+  while (!done) {
+    PRBool found = PR_FALSE;
+    PRUint32 i;
+    for (i = 0; i < NUM_LOADEDMODULEINFO &&
+                sLoadedModules[i].mStartAddr; ++i) {
+      if (sLoadedModules[i].mStartAddr == module.modBaseAddr &&
+          !strcmp(module.szModule, sLoadedModules[i].mName)) {
+        found = PR_TRUE;
+        break;
+      }
+    }
+
+    if (!found && i < NUM_LOADEDMODULEINFO) {
+      sLoadedModules[i].mStartAddr = module.modBaseAddr;
+      sLoadedModules[i].mEndAddr = module.modBaseAddr + module.modBaseSize;
+      strncpy(sLoadedModules[i].mName, module.szModule,
+              LOADEDMODULEINFO_STRSIZE);
+      sLoadedModules[i].mName[LOADEDMODULEINFO_STRSIZE] = 0;
+    }
+
+    done = !Module32Next(hModuleSnap, &module);
+  }
+
+  PRUint32 i;
+  for (i = 0; i < NUM_LOADEDMODULEINFO &&
+              sLoadedModules[i].mStartAddr; ++i) {}
+
+  CloseHandle(hModuleSnap);
+}
+
+NS_IMETHODIMP
+nsAppShell::Run(void)
+{
+  LoadedModuleInfo modules[NUM_LOADEDMODULEINFO];
+  memset(modules, 0, sizeof(modules));
+  sLoadedModules = modules;
+
+  return nsBaseAppShell::Run();
+}
+
+#endif
+
 void
 nsAppShell::ScheduleNativeEventCallback()
 {
@@ -166,6 +249,13 @@ nsAppShell::ScheduleNativeEventCallback()
 PRBool
 nsAppShell::ProcessNextNativeEvent(PRBool mayWait)
 {
+#if defined(_MSC_VER) && defined(_M_IX86)
+  if (sXPCOMHasLoadedNewDLLs && sLoadedModules) {
+    sXPCOMHasLoadedNewDLLs = PR_FALSE;
+    CollectNewLoadedModules();
+  }
+#endif
+
   PRBool gotMessage = PR_FALSE;
 
   do {
