@@ -113,13 +113,17 @@ def GetVCSFilename(file, srcdir):
             if srcdir is not None:
                 
                 
-                
                 file = os.path.normpath(file)
-                file = file.replace(srcdir, "", 1)
+                
+                
+                
+                if file.lower().startswith(srcdir.lower()):
+                    file = file[len(srcdir):]
                 (head, tail) = os.path.split(srcdir)
                 if tail == "":
                     tail = os.path.basename(head)
                 file = tail + file
+            
             file = file.replace("\\", "/")
             return "cvs:%s:%s:%s" % (root, file, rev)
     file = file.replace("\\", "/")
