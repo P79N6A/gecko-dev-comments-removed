@@ -2791,12 +2791,19 @@ js_TraceStackFrame(JSTracer *trc, JSStackFrame *fp)
         JS_CALL_OBJECT_TRACER(trc, fp->varobj, "variables");
     if (fp->script) {
         js_TraceScript(trc, fp->script);
-        if (fp->regs) {
+
+        
+        if (fp->slots) {
             
 
 
 
-            nslots = (uintN) (fp->regs->sp - fp->slots);
+            if (fp->regs) {
+                nslots = (uintN) (fp->regs->sp - fp->slots);
+                JS_ASSERT(nslots >= fp->script->nfixed);
+            } else {
+                nslots = fp->script->nfixed;
+            }
             TRACE_JSVALS(trc, nslots, fp->slots, "slot");
         }
     } else {
