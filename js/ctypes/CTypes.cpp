@@ -99,11 +99,11 @@ static JSClass sCDataProtoClass = {
 
 static JSClass sCTypeClass = {
   "CType",
-  JSCLASS_HAS_RESERVED_SLOTS(CTYPE_SLOTS),
+  JSCLASS_HAS_RESERVED_SLOTS(CTYPE_SLOTS) | JSCLASS_MARK_IS_TRACE,
   JS_PropertyStub, JS_PropertyStub, JS_PropertyStub, JS_PropertyStub,
   JS_EnumerateStub, JS_ResolveStub, JS_ConvertStub, CType::Finalize,
   NULL, NULL, CType::ConstructData, CType::ConstructData, NULL,
-  CType::HasInstance, NULL, NULL
+  CType::HasInstance, JS_CLASS_TRACE(CType::Trace), NULL
 };
 
 static JSClass sCDataClass = {
@@ -111,7 +111,7 @@ static JSClass sCDataClass = {
   JSCLASS_HAS_RESERVED_SLOTS(CDATA_SLOTS),
   JS_PropertyStub, JS_PropertyStub, ArrayType::Getter, ArrayType::Setter,
   JS_EnumerateStub, JS_ResolveStub, JS_ConvertStub, CData::Finalize,
-  JSCLASS_NO_OPTIONAL_MEMBERS
+  NULL, NULL, FunctionType::Call, FunctionType::Call, NULL, NULL, NULL, NULL
 };
 
 #define CTYPESFN_FLAGS \
@@ -197,6 +197,16 @@ static JSPropertySpec sStructProps[] = {
 static JSFunctionSpec sStructInstanceFunctions[] = {
   JS_FN("addressOfField", StructType::AddressOfField, 1, CDATAFN_FLAGS),
   JS_FS_END
+};
+
+static JSFunctionSpec sFunctionFunction =
+  JS_FN("FunctionType", FunctionType::Create, 2, CTYPESFN_FLAGS);
+
+static JSPropertySpec sFunctionProps[] = {
+  { "argTypes", 0, CTYPESPROP_FLAGS, FunctionType::ArgTypesGetter, NULL },
+  { "returnType", 0, CTYPESPROP_FLAGS, FunctionType::ReturnTypeGetter, NULL },
+  { "abi", 0, CTYPESPROP_FLAGS, FunctionType::ABIGetter, NULL },
+  { 0, 0, 0, NULL, NULL }
 };
 
 static JSClass sInt64ProtoClass = {
@@ -442,6 +452,7 @@ DefineABIConstant(JSContext* cx,
 }
 
 
+
 static JSBool
 InitTypeConstructor(JSContext* cx,
                     JSObject* parent,
@@ -638,6 +649,12 @@ InitTypeClasses(JSContext* cx, JSObject* parent)
     return false;
   JSAutoTempValueRooter sroot(cx, protos[SLOT_STRUCTDATAPROTO]);
 
+  if (!InitTypeConstructor(cx, parent, CTypeProto, CDataProto,
+         sFunctionFunction, sFunctionProps, NULL, NULL,
+         protos[SLOT_FUNCTIONPROTO], protos[SLOT_FUNCTIONDATAPROTO]))
+    return false;
+  JSAutoTempValueRooter froot(cx, protos[SLOT_FUNCTIONDATAPROTO]);
+
   protos[SLOT_CDATAPROTO] = CDataProto;
 
   
@@ -663,7 +680,8 @@ InitTypeClasses(JSContext* cx, JSObject* parent)
   if (!AttachProtos(cx, CTypeProto, protos) ||
       !AttachProtos(cx, protos[SLOT_POINTERPROTO], protos) ||
       !AttachProtos(cx, protos[SLOT_ARRAYPROTO], protos) ||
-      !AttachProtos(cx, protos[SLOT_STRUCTPROTO], protos))
+      !AttachProtos(cx, protos[SLOT_STRUCTPROTO], protos) ||
+      !AttachProtos(cx, protos[SLOT_FUNCTIONPROTO], protos))
      return false;
 
   
@@ -856,6 +874,7 @@ jsvalToInteger(JSContext* cx, jsval val, IntegerType* result)
       case TYPE_unsigned_char:
       case TYPE_jschar:
       case TYPE_pointer:
+      case TYPE_function:
       case TYPE_array:
       case TYPE_struct:
         
@@ -946,6 +965,7 @@ jsvalToFloat(JSContext *cx, jsval val, FloatType* result)
       case TYPE_unsigned_char:
       case TYPE_jschar:
       case TYPE_pointer:
+      case TYPE_function:
       case TYPE_array:
       case TYPE_struct:
         
@@ -1315,6 +1335,7 @@ ConvertToJS(JSContext* cx,
     break;
   }
   case TYPE_pointer:
+  case TYPE_function:
   case TYPE_array:
   case TYPE_struct: {
     
@@ -1510,6 +1531,14 @@ ImplicitConvert(JSContext* cx,
       break;
     }
     return TypeError(cx, "pointer", val);
+  }
+  case TYPE_function: {
+    if (JSVAL_IS_NULL(val)) {
+      
+      *static_cast<void**>(buffer) = NULL;
+      break;
+    }
+    return TypeError(cx, "function", val);
   }
   case TYPE_array: {
     JSObject* baseType = ArrayType::GetBaseType(cx, targetType);
@@ -1730,6 +1759,14 @@ ExplicitConvert(JSContext* cx, jsval val, JSObject* targetType, void* buffer)
     *static_cast<uintptr_t*>(buffer) = result;
     break;
   }
+  case TYPE_function: {
+    
+    uintptr_t result;
+    if (!jsvalToPtrExplicit(cx, val, &result))
+      return TypeError(cx, "function", val);
+    *static_cast<uintptr_t*>(buffer) = result;
+    break;
+  }
   case TYPE_float32_t:
   case TYPE_float64_t:
   case TYPE_float:
@@ -1799,6 +1836,35 @@ BuildTypeName(JSContext* cx, JSObject* typeObj)
       prevGrouping = currentGrouping;
       continue;
     }
+    case TYPE_function: {
+      FunctionInfo* fninfo = FunctionType::GetFunctionInfo(cx, currentType);
+
+      
+      result.Insert('*', 0);
+
+      
+      if (GetABICode(cx, fninfo->mABI) == ABI_STDCALL)
+        result.Insert(NS_LITERAL_STRING("__stdcall "), 0);
+
+      
+      result.Insert('(', 0);
+      result.Append(')');
+
+      
+      result.Append('(');
+      for (PRUint32 i = 0; i < fninfo->mArgTypes.Length(); ++i) {
+        JSString* argName = CType::GetName(cx, fninfo->mArgTypes[i]);
+        result.Append(GetString(argName));
+        if (i != fninfo->mArgTypes.Length() - 1)
+          result.Append(NS_LITERAL_STRING(", "));
+      }
+      result.Append(')');
+
+      
+      currentType = fninfo->mReturnType;
+      prevGrouping = currentGrouping;
+      continue;
+    }
     default:
       
       break;
@@ -1855,6 +1921,40 @@ BuildTypeSource(JSContext* cx, JSObject* typeObj, bool makeShort)
     
     result.Append(BuildTypeSource(cx, baseType, makeShort));
     result.Append(NS_LITERAL_STRING(".ptr"));
+    break;
+  }
+  case TYPE_function: {
+    FunctionInfo* fninfo = FunctionType::GetFunctionInfo(cx, typeObj);
+
+    result.Append(NS_LITERAL_STRING("ctypes.FunctionType("));
+
+    switch (GetABICode(cx, fninfo->mABI)) {
+    case ABI_DEFAULT:
+      result.Append(NS_LITERAL_STRING("ctypes.default_abi, "));
+      break;
+    case ABI_STDCALL:
+      result.Append(NS_LITERAL_STRING("ctypes.stdcall_abi, "));
+      break;
+    case INVALID_ABI:
+      JS_NOT_REACHED("invalid abi");
+      break;
+    }
+
+    
+    
+    result.Append(BuildTypeSource(cx, fninfo->mReturnType, true));
+
+    if (fninfo->mArgTypes.Length() > 0) {
+      result.Append(NS_LITERAL_STRING(", ["));
+      for (PRUint32 i = 0; i < fninfo->mArgTypes.Length(); ++i) {
+        result.Append(BuildTypeSource(cx, fninfo->mArgTypes[i], true));
+        if (i != fninfo->mArgTypes.Length() - 1)
+          result.Append(NS_LITERAL_STRING(", "));
+      }
+      result.Append(']');
+    }
+
+    result.Append(')');
     break;
   }
   case TYPE_array: {
@@ -1974,7 +2074,8 @@ BuildDataSource(JSContext* cx, JSObject* typeObj, void* data, bool isImplicit)
     result.Append(GetString(src));
     break;
   }
-  case TYPE_pointer: {
+  case TYPE_pointer:
+  case TYPE_function: {
     if (isImplicit) {
       
       
@@ -2093,6 +2194,8 @@ CType::ConstructData(JSContext* cx,
     return JS_FALSE;
   case TYPE_pointer:
     return PointerType::ConstructData(cx, obj, argc, argv, rval);
+  case TYPE_function:
+    return FunctionType::ConstructData(cx, obj, argc, argv, rval);
   case TYPE_array:
     return ArrayType::ConstructData(cx, obj, argc, argv, rval);
   case TYPE_struct:
@@ -2251,6 +2354,13 @@ CType::Finalize(JSContext* cx, JSObject* obj)
 
   
   switch (TypeCode(JSVAL_TO_INT(slot))) {
+  case TYPE_function: {
+    
+    ASSERT_OK(JS_GetReservedSlot(cx, obj, SLOT_FNINFO, &slot));
+    if (!JSVAL_IS_VOID(slot))
+      delete static_cast<FunctionInfo*>(JSVAL_TO_PRIVATE(slot));
+    break;
+  }
   case TYPE_struct:
     
     ASSERT_OK(JS_GetReservedSlot(cx, obj, SLOT_FIELDINFO, &slot));
@@ -2267,6 +2377,41 @@ CType::Finalize(JSContext* cx, JSObject* obj)
       delete[] ffiType->elements;
       delete ffiType;
     }
+
+    break;
+  }
+  default:
+    
+    break;
+  }
+}
+
+void
+CType::Trace(JSTracer* trc, JSObject* obj)
+{
+  JSContext* cx = trc->context;
+
+  
+  jsval slot;
+  if (!JS_GetReservedSlot(cx, obj, SLOT_TYPECODE, &slot) || JSVAL_IS_VOID(slot))
+    return;
+
+  
+  switch (TypeCode(JSVAL_TO_INT(slot))) {
+  case TYPE_function: {
+    
+    ASSERT_OK(JS_GetReservedSlot(cx, obj, SLOT_FNINFO, &slot));
+    if (JSVAL_IS_VOID(slot))
+      return;
+
+    FunctionInfo* fninfo = static_cast<FunctionInfo*>(JSVAL_TO_PRIVATE(slot));
+    JS_ASSERT(fninfo);
+
+    
+    JS_CALL_TRACER(trc, fninfo->mABI, JSTRACE_OBJECT, "abi");
+    JS_CALL_TRACER(trc, fninfo->mReturnType, JSTRACE_OBJECT, "returnType");
+    for (PRUint32 i = 0; i < fninfo->mArgTypes.Length(); ++i)
+      JS_CALL_TRACER(trc, fninfo->mArgTypes[i], JSTRACE_OBJECT, "argType");
 
     break;
   }
@@ -2324,6 +2469,27 @@ CType::TypesEqual(JSContext* cx, JSObject* t1, JSObject* t2)
     
     return TypesEqual(cx, b1, b2);
   }
+  case TYPE_function: {
+    FunctionInfo* f1 = FunctionType::GetFunctionInfo(cx, t1);
+    FunctionInfo* f2 = FunctionType::GetFunctionInfo(cx, t2);
+
+    
+    if (f1->mABI != f2->mABI)
+      return false;
+
+    if (!TypesEqual(cx, f1->mReturnType, f2->mReturnType))
+      return false;
+
+    if (f1->mArgTypes.Length() != f2->mArgTypes.Length())
+      return false;
+
+    for (PRUint32 i = 0; i < f1->mArgTypes.Length(); ++i) {
+      if (!TypesEqual(cx, f1->mArgTypes[i], f2->mArgTypes[i]))
+        return false;
+    }
+
+    return true;
+  }
   case TYPE_array: {
     
     
@@ -2339,7 +2505,7 @@ CType::TypesEqual(JSContext* cx, JSObject* t1, JSObject* t2)
   }
   case TYPE_struct:
     
-    return t1 == t2;
+    return false;
   default:
     
     return true;
@@ -3798,23 +3964,23 @@ StructType::AddressOfField(JSContext* cx, uintN argc, jsval *vp)
 
 
 static bool
-GetABI(JSContext* cx, jsval aCallType, ffi_abi& aResult)
+GetABI(JSContext* cx, jsval abiType, ffi_abi& result)
 {
-  if (JSVAL_IS_PRIMITIVE(aCallType))
+  if (JSVAL_IS_PRIMITIVE(abiType))
     return false;
 
-  ABICode abi = GetABICode(cx, JSVAL_TO_OBJECT(aCallType));
+  ABICode abi = GetABICode(cx, JSVAL_TO_OBJECT(abiType));
 
   
   
   
   switch (abi) {
   case ABI_DEFAULT:
-    aResult = FFI_DEFAULT_ABI;
+    result = FFI_DEFAULT_ABI;
     return true;
   case ABI_STDCALL:
 #if (defined(_WIN32) && !defined(_WIN64)) || defined(_OS2)
-    aResult = FFI_STDCALL;
+    result = FFI_STDCALL;
     return true;
 #endif
   case INVALID_ABI:
@@ -3823,143 +3989,327 @@ GetABI(JSContext* cx, jsval aCallType, ffi_abi& aResult)
   return false;
 }
 
-static JSBool
-PrepareType(JSContext* aContext, jsval aType, Type& aResult)
+static JSObject*
+PrepareType(JSContext* cx, jsval type)
 {
-  if (JSVAL_IS_PRIMITIVE(aType) ||
-      !CType::IsCType(aContext, JSVAL_TO_OBJECT(aType))) {
-    JS_ReportError(aContext, "not a ctypes type");
-    return false;
+  if (JSVAL_IS_PRIMITIVE(type) ||
+      !CType::IsCType(cx, JSVAL_TO_OBJECT(type))) {
+    JS_ReportError(cx, "not a ctypes type");
+    return NULL;
   }
 
-  JSObject* typeObj = JSVAL_TO_OBJECT(aType);
-  TypeCode typeCode = CType::GetTypeCode(aContext, typeObj);
+  JSObject* result = JSVAL_TO_OBJECT(type);
+  TypeCode typeCode = CType::GetTypeCode(cx, result);
 
   if (typeCode == TYPE_array) {
     
     
-    JSObject* baseType = ArrayType::GetBaseType(aContext, typeObj);
-    typeObj = PointerType::CreateInternal(aContext, NULL, baseType, NULL);
-    if (!typeObj)
-      return false;
+    JSObject* baseType = ArrayType::GetBaseType(cx, result);
+    result = PointerType::CreateInternal(cx, NULL, baseType, NULL);
+    if (!result)
+      return NULL;
 
   } else if (typeCode == TYPE_void_t) {
     
-    JS_ReportError(aContext, "Cannot have void argument type");
-    return false;
+    JS_ReportError(cx, "Cannot have void argument type");
+    return NULL;
   }
 
   
-  JS_ASSERT(CType::GetSize(aContext, typeObj) != 0);
+  JS_ASSERT(CType::GetSize(cx, result) != 0);
 
-  aResult.mType = typeObj;
-  aResult.mFFIType = *CType::GetFFIType(aContext, typeObj);
-  return true;
+  return result;
 }
 
-static JSBool
-PrepareResultType(JSContext* aContext, jsval aType, Type& aResult)
+static JSObject*
+PrepareReturnType(JSContext* cx, jsval type)
 {
-  if (JSVAL_IS_PRIMITIVE(aType) ||
-      !CType::IsCType(aContext, JSVAL_TO_OBJECT(aType))) {
-    JS_ReportError(aContext, "not a ctypes type");
-    return false;
+  if (JSVAL_IS_PRIMITIVE(type) ||
+      !CType::IsCType(cx, JSVAL_TO_OBJECT(type))) {
+    JS_ReportError(cx, "not a ctypes type");
+    return NULL;
   }
 
-  JSObject* typeObj = JSVAL_TO_OBJECT(aType);
-  TypeCode typeCode = CType::GetTypeCode(aContext, typeObj);
+  JSObject* result = JSVAL_TO_OBJECT(type);
+  TypeCode typeCode = CType::GetTypeCode(cx, result);
 
   
   if (typeCode == TYPE_array) {
-    JS_ReportError(aContext, "Result type cannot be an array");
-    return false;
+    JS_ReportError(cx, "Result type cannot be an array");
+    return NULL;
   }
 
   
-  JS_ASSERT(typeCode == TYPE_void_t || CType::GetSize(aContext, typeObj) != 0);
+  JS_ASSERT(typeCode == TYPE_void_t || CType::GetSize(cx, result) != 0);
 
-  aResult.mType = typeObj;
-  aResult.mFFIType = *CType::GetFFIType(aContext, typeObj);
-  return true;
+  return result;
 }
 
-Function::Function()
-  : mNext(NULL)
+static FunctionInfo*
+NewFunctionInfo(JSContext* cx,
+                jsval abiType,
+                jsval returnType,
+                jsval* argTypes,
+                uintN argLength)
 {
-}
-
-Function::~Function()
-{
-}
-
-JSBool
-Function::Init(JSContext* aContext,
-               PRFuncPtr aFunc,
-               jsval aCallType,
-               jsval aResultType,
-               jsval* aArgTypes,
-               uintN aArgLength)
-{
-  mFunc = aFunc;
-
-  
-  if (!GetABI(aContext, aCallType, mCallType)) {
-    JS_ReportError(aContext, "Invalid ABI specification");
-    return false;
+  nsAutoPtr<FunctionInfo> fninfo(new FunctionInfo());
+  if (!fninfo) {
+    JS_ReportOutOfMemory(cx);
+    return NULL;
   }
 
   
-  if (!PrepareResultType(aContext, aResultType, mResultType))
-    return false;
+  ffi_abi abi;
+  if (!GetABI(cx, abiType, abi)) {
+    JS_ReportError(cx, "Invalid ABI specification");
+    return NULL;
+  }
+  fninfo->mABI = JSVAL_TO_OBJECT(abiType);
 
   
-  mArgTypes.SetCapacity(aArgLength);
-  for (PRUint32 i = 0; i < aArgLength; ++i) {
-    if (!PrepareType(aContext, aArgTypes[i], *mArgTypes.AppendElement()))
-      return false;
+  fninfo->mReturnType = PrepareReturnType(cx, returnType);
+  if (!fninfo->mReturnType)
+    return NULL;
+  ffi_type* rtype = CType::GetFFIType(cx, fninfo->mReturnType);
 
-    
-    mFFITypes.AppendElement(&mArgTypes[i].mFFIType);
+  
+  if (!fninfo->mArgTypes.SetCapacity(argLength) ||
+      !fninfo->mFFITypes.SetCapacity(argLength)) {
+    JS_ReportOutOfMemory(cx);
+    return NULL;
   }
 
-  ffi_status status = ffi_prep_cif(&mCIF, mCallType, mFFITypes.Length(),
-                                   &mResultType.mFFIType, mFFITypes.Elements());
+  for (PRUint32 i = 0; i < argLength; ++i) {
+    JSObject* argType = PrepareType(cx, argTypes[i]);
+    if (!argType)
+      return NULL;
+
+    fninfo->mArgTypes.AppendElement(argType);
+    fninfo->mFFITypes.AppendElement(CType::GetFFIType(cx, argType));
+  }
+
+  ffi_status status = ffi_prep_cif(&fninfo->mCIF, abi,
+    fninfo->mFFITypes.Length(), rtype, fninfo->mFFITypes.Elements());
   switch (status) {
   case FFI_OK:
-    return true;
+    return fninfo.forget();
   case FFI_BAD_ABI:
-    JS_ReportError(aContext, "Invalid ABI specification");
-    return false;
+    JS_ReportError(cx, "Invalid ABI specification");
+    return NULL;
   case FFI_BAD_TYPEDEF:
-    JS_ReportError(aContext, "Invalid type specification");
-    return false;
+    JS_ReportError(cx, "Invalid type specification");
+    return NULL;
   default:
-    JS_ReportError(aContext, "Unknown libffi error");
-    return false;
+    JS_ReportError(cx, "Unknown libffi error");
+    return NULL;
   }
 }
 
 JSBool
-Function::Execute(JSContext* cx, PRUint32 argc, jsval* vp)
+FunctionType::Create(JSContext* cx, uintN argc, jsval* vp)
 {
-  if (argc != mArgTypes.Length()) {
+  
+  if (argc < 2 || argc > 3) {
+    JS_ReportError(cx, "FunctionType takes two or three arguments");
+    return JS_FALSE;
+  }
+
+  jsval* argv = JS_ARGV(cx, vp);
+  nsAutoTArray<jsval, 16> argTypes;
+  JSObject* arrayObj = NULL;
+
+  if (argc == 3) {
+    
+    if (JSVAL_IS_PRIMITIVE(argv[2]) ||
+        !JS_IsArrayObject(cx, JSVAL_TO_OBJECT(argv[2]))) {
+      JS_ReportError(cx, "third argument must be an array");
+      return JS_FALSE;
+    }
+
+    arrayObj = JSVAL_TO_OBJECT(argv[2]);
+    jsuint len;
+    ASSERT_OK(JS_GetArrayLength(cx, arrayObj, &len));
+
+    if (!argTypes.SetLength(len)) {
+      JS_ReportOutOfMemory(cx);
+      return JS_FALSE;
+    }
+
+    for (jsuint i = 0; i < len; ++i)
+      argTypes[i] = JSVAL_VOID;
+  }
+
+  
+  JS_ASSERT(!argTypes.Length() || arrayObj);
+  JSAutoTempValueRooter items(cx, argTypes.Length(), argTypes.Elements());
+  for (jsuint i = 0; i < argTypes.Length(); ++i) {
+    if (!JS_GetElement(cx, arrayObj, i, &argTypes[i]))
+      return JS_FALSE;
+  }
+
+  JSObject* result = CreateInternal(cx, argv[0], argv[1],
+      argTypes.Elements(), argTypes.Length());
+  if (!result)
+    return JS_FALSE;
+
+  JS_SET_RVAL(cx, vp, OBJECT_TO_JSVAL(result));
+  return JS_TRUE;
+}
+
+JSObject*
+FunctionType::CreateInternal(JSContext* cx,
+                             jsval abi,
+                             jsval rtype,
+                             jsval* argtypes,
+                             jsuint arglen)
+{
+  
+  nsAutoPtr<FunctionInfo> fninfo(NewFunctionInfo(cx, abi, rtype, argtypes, arglen));
+  if (!fninfo)
+    return NULL;
+
+  
+  
+  JSObject* typeProto = CType::GetProtoFromType(cx, fninfo->mReturnType,
+                                                SLOT_FUNCTIONPROTO);
+  JSObject* dataProto = CType::GetProtoFromType(cx, fninfo->mReturnType,
+                                                SLOT_FUNCTIONDATAPROTO);
+
+  
+  JSObject* typeObj = CType::Create(cx, typeProto, dataProto, TYPE_function,
+                        NULL, INT_TO_JSVAL(sizeof(void*)),
+                        INT_TO_JSVAL(ffi_type_pointer.alignment),
+                        &ffi_type_pointer, NULL);
+  if (!typeObj)
+    return NULL;
+  JSAutoTempValueRooter root(cx, typeObj);
+
+  
+  if (!JS_SetReservedSlot(cx, typeObj, SLOT_FNINFO,
+         PRIVATE_TO_JSVAL(fninfo.get())))
+    return NULL;
+  fninfo.forget();
+
+  
+  nsAutoString typeName = BuildTypeName(cx, typeObj);
+  JSString* name = NewUCString(cx, typeName);
+  if (!name ||
+      !JS_SetReservedSlot(cx, typeObj, SLOT_NAME, STRING_TO_JSVAL(name)))
+    return NULL;
+
+  return typeObj;
+}
+
+JSBool
+FunctionType::ConstructData(JSContext* cx,
+                            JSObject* obj,
+                            uintN argc,
+                            jsval* argv,
+                            jsval* rval)
+{
+  if (!CType::IsCType(cx, obj) || CType::GetTypeCode(cx, obj) != TYPE_function) {
+    JS_ReportError(cx, "not a FunctionType");
+    return JS_FALSE;
+  }
+
+  if (argc > 1) {
+    JS_ReportError(cx, "constructor takes zero or one argument");
+    return JS_FALSE;
+  }
+
+  JSObject* result = CData::Create(cx, obj, NULL, NULL, true);
+  if (!result)
+    return JS_FALSE;
+
+  *rval = OBJECT_TO_JSVAL(result);
+
+  if (argc == 1) {
+    
+    if (!ExplicitConvert(cx, argv[0], obj, CData::GetData(cx, result)))
+      return JS_FALSE;
+  }
+
+  return JS_TRUE;
+}
+
+JSObject*
+FunctionType::ConstructWithLibrary(JSContext* cx,
+                                   JSObject* typeObj,
+                                   JSObject* libraryObj,
+                                   PRFuncPtr fnptr)
+{
+  JS_ASSERT(CType::IsCType(cx, typeObj));
+  JS_ASSERT(CType::GetTypeCode(cx, typeObj) == TYPE_function);
+
+  
+  JSObject* result = CData::Create(cx, typeObj, libraryObj, &fnptr, true);
+  if (!result)
+    return NULL;
+  JSAutoTempValueRooter root(cx, result);
+
+  
+  
+  
+  
+  
+  
+  if (!JS_SealObject(cx, result, JS_FALSE))
+    return NULL;
+
+  return result;
+}
+
+JSBool
+FunctionType::Call(JSContext* cx,
+                   JSObject* obj,
+                   uintN argc,
+                   jsval* argv,
+                   jsval* rval)
+{
+  
+  obj = JSVAL_TO_OBJECT(JS_ARGV_CALLEE(argv));
+  if (!CData::IsCData(cx, obj)) {
+    JS_ReportError(cx, "not a CData");
+    return false;
+  }
+
+  JSObject* typeObj = CData::GetCType(cx, obj);
+  if (CType::GetTypeCode(cx, typeObj) != TYPE_function) {
+    JS_ReportError(cx, "not a FunctionType");
+    return false;
+  }
+
+  FunctionInfo* fninfo = GetFunctionInfo(cx, typeObj);
+
+  if (argc != fninfo->mArgTypes.Length()) {
     JS_ReportError(cx, "Number of arguments does not match declaration");
     return false;
   }
 
   
+  jsval slot;
+  ASSERT_OK(JS_GetReservedSlot(cx, obj, SLOT_REFERENT, &slot));
+  if (!JSVAL_IS_VOID(slot) && Library::IsLibrary(cx, JSVAL_TO_OBJECT(slot))) {
+    PRLibrary* library = Library::GetLibrary(cx, JSVAL_TO_OBJECT(slot));
+    if (!library) {
+      JS_ReportError(cx, "library is not open");
+      return false;
+    }
+  }
+
+  
   nsAutoTArray<AutoValue, 16> values;
   nsAutoTArray<AutoValue, 16> strings;
-  for (PRUint32 i = 0; i < mArgTypes.Length(); ++i) {
+  for (PRUint32 i = 0; i < fninfo->mArgTypes.Length(); ++i) {
     AutoValue& value = *values.AppendElement();
-    jsval arg = JS_ARGV(cx, vp)[i];
     bool freePointer = false;
-    if (!value.SizeToType(cx, mArgTypes[i].mType)) {
+    if (!value.SizeToType(cx, fninfo->mArgTypes[i])) {
       JS_ReportAllocationOverflow(cx);
       return false;
     }
 
-    if (!ImplicitConvert(cx, arg, mArgTypes[i].mType, value.mData, true, &freePointer))
+    if (!ImplicitConvert(cx, argv[i], fninfo->mArgTypes[i], value.mData, true,
+           &freePointer))
       return false;
 
     if (freePointer) {
@@ -3970,117 +4320,105 @@ Function::Execute(JSContext* cx, PRUint32 argc, jsval* vp)
   }
 
   
-  AutoValue resultValue;
-  if (CType::GetTypeCode(cx, mResultType.mType) != TYPE_void_t &&
-      !resultValue.SizeToType(cx, mResultType.mType)) {
+  AutoValue returnValue;
+  if (CType::GetTypeCode(cx, fninfo->mReturnType) != TYPE_void_t &&
+      !returnValue.SizeToType(cx, fninfo->mReturnType)) {
     JS_ReportAllocationOverflow(cx);
     return false;
   }
+
+  uintptr_t fn = *reinterpret_cast<uintptr_t*>(CData::GetData(cx, obj));
 
   
   
   jsrefcount rc = JS_SuspendRequest(cx);
 
-  ffi_call(&mCIF, FFI_FN(mFunc), resultValue.mData, reinterpret_cast<void**>(values.Elements()));
+  ffi_call(&fninfo->mCIF, FFI_FN(fn), returnValue.mData,
+    reinterpret_cast<void**>(values.Elements()));
 
   JS_ResumeRequest(cx, rc);
 
   
-  jsval rval;
-  if (!ConvertToJS(cx, mResultType.mType, NULL, resultValue.mData, false, true, &rval))
-    return false;
-
-  JS_SET_RVAL(cx, vp, rval);
-  return true;
+  return ConvertToJS(cx, fninfo->mReturnType, NULL, returnValue.mData,
+                     false, true, rval);
 }
 
-void
-Function::Trace(JSTracer *trc)
+FunctionInfo*
+FunctionType::GetFunctionInfo(JSContext* cx, JSObject* obj)
 {
-  
-  JS_CALL_TRACER(trc, mResultType.mType, JSTRACE_OBJECT, "CType");
+  JS_ASSERT(CType::IsCType(cx, obj));
+  JS_ASSERT(CType::GetTypeCode(cx, obj) == TYPE_function);
 
-  
-  for (PRUint32 i = 0; i < mArgTypes.Length(); ++i)
-    JS_CALL_TRACER(trc, mArgTypes[i].mType, JSTRACE_OBJECT, "CType");
-}
-
-
-
-
-
-JSObject*
-Function::Create(JSContext* aContext,
-                 JSObject* aLibrary,
-                 PRFuncPtr aFunc,
-                 const char* aName,
-                 jsval aCallType,
-                 jsval aResultType,
-                 jsval* aArgTypes,
-                 uintN aArgLength)
-{
-  
-  nsAutoPtr<Function> self(new Function());
-  if (!self) {
-    JS_ReportOutOfMemory(aContext);
-    return NULL;
-  }
-
-  
-  if (!self->Init(aContext, aFunc, aCallType, aResultType, aArgTypes, aArgLength))
-    return NULL;
-
-  
-  JSFunction* fn = JS_NewFunction(aContext, JSNative(Function::Call),
-                     aArgLength, JSFUN_FAST_NATIVE, NULL, aName);
-  if (!fn)
-    return NULL;
-
-  JSObject* fnObj = JS_GetFunctionObject(fn);
-  JSAutoTempValueRooter fnRoot(aContext, fnObj);
-
-  
-  if (!JS_SetReservedSlot(aContext, fnObj, SLOT_FUNCTION, PRIVATE_TO_JSVAL(self.get())))
-    return NULL;
-
-  
-  if (!JS_SetReservedSlot(aContext, fnObj, SLOT_LIBRARYOBJ, OBJECT_TO_JSVAL(aLibrary)))
-    return NULL;
-
-  
-  
-  
-  if (!Library::AddFunction(aContext, aLibrary, self))
-    return NULL;
-
-  self.forget();
-  return fnObj;
-}
-
-static Function*
-GetFunction(JSContext* cx, JSObject* obj)
-{
   jsval slot;
-  JS_GetReservedSlot(cx, obj, SLOT_FUNCTION, &slot);
-  return static_cast<Function*>(JSVAL_TO_PRIVATE(slot));
+  ASSERT_OK(JS_GetReservedSlot(cx, obj, SLOT_FNINFO, &slot));
+  JS_ASSERT(!JSVAL_IS_VOID(slot) && JSVAL_TO_PRIVATE(slot));
+
+  return static_cast<FunctionInfo*>(JSVAL_TO_PRIVATE(slot));
 }
 
 JSBool
-Function::Call(JSContext* cx, uintN argc, jsval* vp)
+FunctionType::ArgTypesGetter(JSContext* cx, JSObject* obj, jsval idval, jsval* vp)
 {
-  JSObject* callee = JSVAL_TO_OBJECT(JS_CALLEE(cx, vp));
-
-  jsval slot;
-  JS_GetReservedSlot(cx, callee, SLOT_LIBRARYOBJ, &slot);
-
-  PRLibrary* library = Library::GetLibrary(cx, JSVAL_TO_OBJECT(slot));
-  if (!library) {
-    JS_ReportError(cx, "library is not open");
+  if (!CType::IsCType(cx, obj) || CType::GetTypeCode(cx, obj) != TYPE_function) {
+    JS_ReportError(cx, "not a FunctionType");
     return JS_FALSE;
   }
 
-  return GetFunction(cx, callee)->Execute(cx, argc, vp);
+  
+  ASSERT_OK(JS_GetReservedSlot(cx, obj, SLOT_ARGS_T, vp));
+  if (!JSVAL_IS_VOID(*vp))
+    return JS_TRUE;
+
+  
+  JSObject* argTypes = JS_NewArrayObject(cx, 0, NULL);
+  if (!argTypes)
+    return JS_FALSE;
+  JSAutoTempValueRooter argsroot(cx, argTypes);
+
+  FunctionInfo* fninfo = GetFunctionInfo(cx, obj);
+  for (PRUint32 i = 0; i < fninfo->mArgTypes.Length(); ++i) {
+    if (!JS_DefineElement(cx, argTypes, i, OBJECT_TO_JSVAL(fninfo->mArgTypes[i]),
+           NULL, NULL, JSPROP_ENUMERATE | JSPROP_READONLY | JSPROP_PERMANENT))
+      return JS_FALSE;
+  }
+
+  
+  if (!JS_SealObject(cx, argTypes, JS_FALSE) ||
+      !JS_SetReservedSlot(cx, obj, SLOT_ARGS_T, OBJECT_TO_JSVAL(argTypes)))
+    return JS_FALSE;
+
+  *vp = OBJECT_TO_JSVAL(argTypes);
+  return JS_TRUE;
 }
+
+JSBool
+FunctionType::ReturnTypeGetter(JSContext* cx, JSObject* obj, jsval idval, jsval* vp)
+{
+  if (!CType::IsCType(cx, obj) || CType::GetTypeCode(cx, obj) != TYPE_function) {
+    JS_ReportError(cx, "not a FunctionType");
+    return JS_FALSE;
+  }
+
+  
+  *vp = OBJECT_TO_JSVAL(GetFunctionInfo(cx, obj)->mReturnType);
+  return JS_TRUE;
+}
+
+JSBool
+FunctionType::ABIGetter(JSContext* cx, JSObject* obj, jsval idval, jsval* vp)
+{
+  if (!CType::IsCType(cx, obj) || CType::GetTypeCode(cx, obj) != TYPE_function) {
+    JS_ReportError(cx, "not a FunctionType");
+    return JS_FALSE;
+  }
+
+  
+  *vp = OBJECT_TO_JSVAL(GetFunctionInfo(cx, obj)->mABI);
+  return JS_TRUE;
+}
+
+
+
 
 
 
@@ -4115,8 +4453,9 @@ CData::Create(JSContext* cx,
   JS_ASSERT(CType::IsCType(cx, typeObj));
   JS_ASSERT(CType::IsSizeDefined(cx, typeObj));
   JS_ASSERT(ownResult || source);
-  JS_ASSERT(!refObj || CData::IsCData(cx, refObj));
-  JS_ASSERT(!refObj || !ownResult);
+  if (refObj) {
+    JS_ASSERT(CData::IsCData(cx, refObj) ? !ownResult : ownResult);
+  }
 
   
   jsval slot;

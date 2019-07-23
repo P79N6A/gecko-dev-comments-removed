@@ -78,6 +78,7 @@ enum TypeCode {
 #define DEFINE_TYPE(name, type, ffiType) TYPE_##name,
 #include "typedefs.h"
   TYPE_pointer,
+  TYPE_function,
   TYPE_array,
   TYPE_struct
 };
@@ -99,6 +100,16 @@ struct PropertySpec
   JSPropertyOp setter;
 };
 
+
+struct FunctionInfo
+{
+  ffi_cif mCIF;
+  JSObject* mABI;
+  JSObject* mReturnType;
+  nsTArray<JSObject*> mArgTypes;
+  nsTArray<ffi_type*> mFFITypes;
+};
+
 JSBool InitTypeClasses(JSContext* cx, JSObject* parent);
 
 JSBool ConvertToJS(JSContext* cx, JSObject* typeObj, JSObject* dataObj, void* data, bool wantPrimitive, bool ownResult, jsval* result);
@@ -113,15 +124,17 @@ enum CABISlot {
 };
 
 enum CTypeProtoSlot {
-  SLOT_POINTERPROTO     = 0, 
-  SLOT_ARRAYPROTO       = 1, 
-  SLOT_STRUCTPROTO      = 2, 
-  SLOT_CDATAPROTO       = 3, 
-  SLOT_POINTERDATAPROTO = 4, 
-  SLOT_ARRAYDATAPROTO   = 5, 
-  SLOT_STRUCTDATAPROTO  = 6, 
-  SLOT_INT64PROTO       = 7, 
-  SLOT_UINT64PROTO      = 8, 
+  SLOT_POINTERPROTO      = 0,  
+  SLOT_ARRAYPROTO        = 1,  
+  SLOT_STRUCTPROTO       = 2,  
+  SLOT_FUNCTIONPROTO     = 3,  
+  SLOT_CDATAPROTO        = 4,  
+  SLOT_POINTERDATAPROTO  = 5,  
+  SLOT_ARRAYDATAPROTO    = 6,  
+  SLOT_STRUCTDATAPROTO   = 7,  
+  SLOT_FUNCTIONDATAPROTO = 8,  
+  SLOT_INT64PROTO        = 9,  
+  SLOT_UINT64PROTO       = 10, 
   CTYPEPROTO_SLOTS
 };
 
@@ -140,14 +153,9 @@ enum CTypeSlot {
   SLOT_LENGTH    = 8, 
   SLOT_FIELDS    = 7, 
   SLOT_FIELDINFO = 8, 
+  SLOT_FNINFO    = 7, 
+  SLOT_ARGS_T    = 8, 
   CTYPE_SLOTS
-};
-
-enum FunctionSlot
-{
-  SLOT_FUNCTION = 0,
-  SLOT_LIBRARYOBJ = 1
-  
 };
 
 enum CDataSlot {
@@ -177,6 +185,7 @@ class CType {
 public:
   static JSObject* Create(JSContext* cx, JSObject* typeProto, JSObject* dataProto, TypeCode type, JSString* name, jsval size, jsval align, ffi_type* ffiType, PropertySpec* ps);
   static JSObject* DefineBuiltin(JSContext* cx, JSObject* parent, const char* propName, JSObject* typeProto, JSObject* dataProto, const char* name, TypeCode type, jsval size, jsval align, ffi_type* ffiType);
+  static void Trace(JSTracer* trc, JSObject* obj);
   static void Finalize(JSContext* cx, JSObject* obj);
 
   static JSBool ConstructAbstract(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval);
@@ -253,13 +262,6 @@ public:
 };
 
 
-struct Type
-{
-  ffi_type mFFIType;
-  JSObject* mType;
-};
-
-
 struct AutoValue
 {
   AutoValue() : mData(NULL) { }
@@ -281,34 +283,21 @@ struct AutoValue
   void* mData;
 };
 
-class Function
-{
+class FunctionType {
 public:
-  Function();
+  static JSBool Create(JSContext* cx, uintN argc, jsval* vp);
+  static JSObject* CreateInternal(JSContext* cx, jsval abi, jsval rtype, jsval* argtypes, jsuint arglen);
 
-  Function*& Next() { return mNext; }
-  void Trace(JSTracer *trc);
+  static JSBool ConstructData(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval);
+  static JSObject* ConstructWithLibrary(JSContext* cx, JSObject* typeObj, JSObject* libraryObj, PRFuncPtr fnptr);
 
-  static JSObject* Create(JSContext* aContext, JSObject* aLibrary, PRFuncPtr aFunc, const char* aName, jsval aCallType, jsval aResultType, jsval* aArgTypes, uintN aArgLength);
-  static JSBool Call(JSContext* cx, uintN argc, jsval* vp);
+  static JSBool Call(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval);
 
-  ~Function();
-
-private:
-  JSBool Init(JSContext* aContext, PRFuncPtr aFunc, jsval aCallType, jsval aResultType, jsval* aArgTypes, uintN aArgLength);
-  JSBool Execute(JSContext* cx, PRUint32 argc, jsval* vp);
-
-protected:
-  PRFuncPtr mFunc;
-
-  ffi_abi mCallType;
-  Type mResultType;
-  nsAutoTArray<Type, 16> mArgTypes;
-  nsAutoTArray<ffi_type*, 16> mFFITypes;
-
-  ffi_cif mCIF;
-
-  Function* mNext;
+  static FunctionInfo* GetFunctionInfo(JSContext* cx, JSObject* obj);
+  static JSObject* GetLibrary(JSContext* cx, JSObject* obj);
+  static JSBool ArgTypesGetter(JSContext* cx, JSObject* obj, jsval idval, jsval* vp);
+  static JSBool ReturnTypeGetter(JSContext* cx, JSObject* obj, jsval idval, jsval* vp);
+  static JSBool ABIGetter(JSContext* cx, JSObject* obj, jsval idval, jsval* vp);
 };
 
 class CData {
