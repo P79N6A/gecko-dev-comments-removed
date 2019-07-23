@@ -868,6 +868,10 @@ nsresult nsHyperTextAccessible::GetTextHelper(EGetTextType aType, nsAccessibleTe
     if (!startFrame) {
       return (aOffset < 0 || aOffset > textLength) ? NS_ERROR_FAILURE : NS_OK;
     }
+    else {
+      
+      startFrame = startFrame->GetLastContinuation();
+    }
   }
 
   nsSelectionAmount amount;
