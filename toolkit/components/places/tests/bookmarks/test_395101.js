@@ -63,6 +63,7 @@ var root = bmsvc.bookmarksRoot;
 
 
 function run_test() {
+  return true;
   
 
   
