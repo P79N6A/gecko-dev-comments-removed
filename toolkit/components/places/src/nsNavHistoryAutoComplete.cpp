@@ -491,6 +491,9 @@ nsNavHistory::StartSearch(const nsAString & aSearchString,
   
   ToLowerCase(mOrigSearchString, mCurrentSearchString);
 
+  
+  mCurrentSearchString = FixupURIText(mCurrentSearchString);
+
   mCurrentListener = aListener;
 
   nsresult rv;
@@ -1006,6 +1009,15 @@ nsNavHistory::FixupURIText(const nsAString &aURIText)
 {
   
   NS_ConvertUTF16toUTF8 escaped(aURIText);
+
+  
+  
+  if (StringBeginsWith(escaped, NS_LITERAL_CSTRING("https://")))
+    escaped.Cut(0, 8);
+  else if (StringBeginsWith(escaped, NS_LITERAL_CSTRING("http://")))
+    escaped.Cut(0, 7);
+  else if (StringBeginsWith(escaped, NS_LITERAL_CSTRING("ftp://")))
+    escaped.Cut(0, 6);
 
   nsString fixedUp;
   
