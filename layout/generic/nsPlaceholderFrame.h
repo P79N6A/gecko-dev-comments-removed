@@ -149,6 +149,9 @@ public:
   }
 #endif
 
+  NS_IMETHOD GetParentStyleContextFrame(nsPresContext* aPresContext,
+                                        nsIFrame**      aProviderFrame,
+                                        PRBool*         aIsChild);
   
 
 

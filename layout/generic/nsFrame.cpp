@@ -5501,6 +5501,8 @@ nsFrame::CorrectStyleParentFrame(nsIFrame* aProspectiveParent,
   }
 
   
+  
+  
   nsIFrame* parent = aProspectiveParent;
   do {
     if (parent->GetStateBits() & NS_FRAME_IS_SPECIAL) {
@@ -5522,7 +5524,13 @@ nsFrame::CorrectStyleParentFrame(nsIFrame* aProspectiveParent,
     }
       
     nsIAtom* parentPseudo = parent->GetStyleContext()->GetPseudoType();
-    if (!parentPseudo || !nsCSSAnonBoxes::IsAnonBox(parentPseudo)) {
+    if (!parentPseudo ||
+        (!nsCSSAnonBoxes::IsAnonBox(parentPseudo) &&
+         
+         
+         
+         
+         aChildPseudo != nsGkAtoms::placeholderFrame)) {
       return parent;
     }
 

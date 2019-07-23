@@ -159,6 +159,22 @@ nsPlaceholderFrame::CanContinueTextRun() const
   return mOutOfFlowFrame->CanContinueTextRun();
 }
 
+NS_IMETHODIMP
+nsPlaceholderFrame::GetParentStyleContextFrame(nsPresContext* aPresContext,
+                                               nsIFrame**      aProviderFrame,
+                                               PRBool*         aIsChild)
+{
+  NS_PRECONDITION(GetParent(), "How can we not have a parent here?");
+  *aIsChild = PR_FALSE;
+
+  
+  
+  
+  *aProviderFrame =
+    CorrectStyleParentFrame(GetParent(), nsGkAtoms::placeholderFrame);
+}
+
+
 #ifdef DEBUG
 static void
 PaintDebugPlaceholder(nsIFrame* aFrame, nsIRenderingContext* aCtx,
