@@ -747,94 +747,92 @@ PRBool nsCSSScanner::NextURL(nsresult& aErrorCode, nsCSSToken& aToken)
   if (ch < 0) {
     return PR_FALSE;
   }
-  if (ch < 256) {
-    PRUint8* lexTable = gLexTable;
+  PRUint8* lexTable = gLexTable;
 
-    
-    if ((ch == '"') || (ch == '\'')) {
-      return ParseString(aErrorCode, ch, aToken);
-    }
+  
+  if ((ch == '"') || (ch == '\'')) {
+    return ParseString(aErrorCode, ch, aToken);
+  }
 
-    
-    if ((lexTable[ch] & IS_WHITESPACE) != 0) {
-      aToken.mType = eCSSToken_WhiteSpace;
-      aToken.mIdent.Assign(PRUnichar(ch));
-      (void) EatWhiteSpace(aErrorCode);
-      return PR_TRUE;
-    }
-    if (ch == '/') {
-      PRInt32 nextChar = Peek(aErrorCode);
-      if (nextChar == '*') {
-        (void) Read(aErrorCode);
+  
+  if (ch < 256 && (lexTable[ch] & IS_WHITESPACE) != 0) {
+    aToken.mType = eCSSToken_WhiteSpace;
+    aToken.mIdent.Assign(PRUnichar(ch));
+    (void) EatWhiteSpace(aErrorCode);
+    return PR_TRUE;
+  }
+  if (ch == '/') {
+    PRInt32 nextChar = Peek(aErrorCode);
+    if (nextChar == '*') {
+      (void) Read(aErrorCode);
 #if 0
-        
-        
-        
-        
-        aToken.mIdent.SetCapacity(2);
-        aToken.mIdent.Assign(PRUnichar(ch));
-        aToken.mIdent.Append(PRUnichar(nextChar));
-        return ParseCComment(aErrorCode, aToken);
+      
+      
+      
+      
+      aToken.mIdent.SetCapacity(2);
+      aToken.mIdent.Assign(PRUnichar(ch));
+      aToken.mIdent.Append(PRUnichar(nextChar));
+      return ParseCComment(aErrorCode, aToken);
 #endif
-        return SkipCComment(aErrorCode) && Next(aErrorCode, aToken);
-      }
+      return SkipCComment(aErrorCode) && Next(aErrorCode, aToken);
     }
+  }
 
-    
-    
-    
-    
-    
-    
-    
-    
+  
+  
+  
+  
+  
+  
+  
+  
 
-    aToken.mType = eCSSToken_InvalidURL;
-    nsString& ident = aToken.mIdent;
-    ident.SetLength(0);
+  aToken.mType = eCSSToken_InvalidURL;
+  nsString& ident = aToken.mIdent;
+  ident.SetLength(0);
 
-    if (ch == ')') {
-      Pushback(ch);
-      
-      aToken.mType = eCSSToken_URL;
-    } else {
-      
-      Pushback(ch);
-      PRBool ok = PR_TRUE;
-      for (;;) {
-        ch = Read(aErrorCode);
-        if (ch < 0) break;
-        if (ch == CSS_ESCAPE) {
-          ParseAndAppendEscape(aErrorCode, ident);
-        } else if ((ch == '"') || (ch == '\'') || (ch == '(')) {
-          
-          ok = PR_FALSE;
-        } else if ((256 > ch) && ((gLexTable[ch] & IS_WHITESPACE) != 0)) {
-          
-          (void) EatWhiteSpace(aErrorCode);
-          if (LookAhead(aErrorCode, ')')) {
-            Pushback(')');  
-            
-            break;
-          }
-          
-          
-          ok = PR_FALSE;
-        } else if (ch == ')') {
-          Unread();
+  if (ch == ')') {
+    Pushback(ch);
+    
+    aToken.mType = eCSSToken_URL;
+  } else {
+    
+    Pushback(ch);
+    PRBool ok = PR_TRUE;
+    for (;;) {
+      ch = Read(aErrorCode);
+      if (ch < 0) break;
+      if (ch == CSS_ESCAPE) {
+        ParseAndAppendEscape(aErrorCode, ident);
+      } else if ((ch == '"') || (ch == '\'') || (ch == '(')) {
+        
+        ok = PR_FALSE;
+      } else if ((256 > ch) && ((gLexTable[ch] & IS_WHITESPACE) != 0)) {
+        
+        (void) EatWhiteSpace(aErrorCode);
+        if (LookAhead(aErrorCode, ')')) {
+          Pushback(')');  
           
           break;
-        } else {
-          
-          ident.Append(PRUnichar(ch));
         }
+        
+        
+        ok = PR_FALSE;
+      } else if (ch == ')') {
+        Unread();
+        
+        break;
+      } else {
+        
+        ident.Append(PRUnichar(ch));
       }
+    }
 
-      
-      
-      if (ok) {
-        aToken.mType = eCSSToken_URL;
-      }
+    
+    
+    if (ok) {
+      aToken.mType = eCSSToken_URL;
     }
   }
   return PR_TRUE;
