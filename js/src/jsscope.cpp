@@ -113,6 +113,9 @@ CreateScopeTable(JSContext *cx, JSScope *scope, JSBool report)
 
 
 
+
+
+
         sizeLog2 = JS_CeilingLog2(2 * scope->entryCount);
         scope->hashShift = JS_DHASH_BITS - sizeLog2;
     } else {
@@ -261,9 +264,8 @@ js_SearchScope(JSScope *scope, jsid id, JSBool adding)
         return spp;
     }
 
-    METER(hashes);
-
     
+    METER(hashes);
     hash0 = SCOPE_HASH0(id);
     hashShift = scope->hashShift;
     hash1 = SCOPE_HASH1(hash0, hashShift);
@@ -334,6 +336,9 @@ ChangeScope(JSContext *cx, JSScope *scope, int change)
     int oldlog2, newlog2;
     uint32 oldsize, newsize, nbytes;
     JSScopeProperty **table, **oldtable, **spp, **oldspp, *sprop;
+
+    if (!scope->table)
+        return CreateScopeTable(cx, scope, JS_TRUE);
 
     
     oldlog2 = JS_DHASH_BITS - scope->hashShift;
@@ -1086,7 +1091,7 @@ js_AddScopeProperty(JSContext *cx, JSScope *scope, jsid id,
             }
             SCOPE_SET_MIDDLE_DELETE(scope);
         }
-        SCOPE_GENERATE_PCTYPE(cx, scope);
+        SCOPE_MAKE_UNIQUE_SHAPE(cx, scope);
 
         
 
@@ -1261,10 +1266,7 @@ js_AddScopeProperty(JSContext *cx, JSScope *scope, jsid id,
 
 
 
-        if (!scope->lastProp || scope->shape == scope->lastProp->shape)
-            scope->shape = sprop->shape;
-        else
-            SCOPE_GENERATE_PCTYPE(cx, scope);
+        SCOPE_EXTEND_SHAPE(cx, scope, sprop);
 
         
         if (scope->table)
@@ -1403,7 +1405,7 @@ js_ChangeScopePropertyAttrs(JSContext *cx, JSScope *scope,
         if (scope->shape == sprop->shape)
             scope->shape = newsprop->shape;
         else
-            SCOPE_GENERATE_PCTYPE(cx, scope);
+            SCOPE_MAKE_UNIQUE_SHAPE(cx, scope);
     }
 #ifdef JS_DUMP_PROPTREE_STATS
     else
@@ -1473,7 +1475,7 @@ js_RemoveScopeProperty(JSContext *cx, JSScope *scope, jsid id)
     } else if (!SCOPE_HAD_MIDDLE_DELETE(scope)) {
         SCOPE_SET_MIDDLE_DELETE(scope);
     }
-    SCOPE_GENERATE_PCTYPE(cx, scope);
+    SCOPE_MAKE_UNIQUE_SHAPE(cx, scope);
     CHECK_ANCESTOR_LINE(scope, JS_TRUE);
 
     

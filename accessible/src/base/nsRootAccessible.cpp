@@ -845,6 +845,7 @@ nsresult nsRootAccessible::HandleEventWithTarget(nsIDOMEvent* aEvent,
     }
   }
   else if (eventType.EqualsLiteral("DOMMenuItemActive")) {
+    PRBool fireFocus = PR_FALSE;
     if (!treeItemAccessible) {
 #ifdef MOZ_XUL
       if (isTree) {
@@ -857,6 +858,8 @@ nsresult nsRootAccessible::HandleEventWithTarget(nsIDOMEvent* aEvent,
       NS_ENSURE_TRUE(menuFrame, NS_ERROR_FAILURE);
       nsIMenuFrame* imenuFrame;
       CallQueryInterface(menuFrame, &imenuFrame);
+      if (imenuFrame)
+        fireFocus = PR_TRUE;
       
       if (imenuFrame && imenuFrame->IsOnMenuBar() &&
                        !imenuFrame->IsOnActiveMenuBar()) {
@@ -880,8 +883,26 @@ nsresult nsRootAccessible::HandleEventWithTarget(nsIDOMEvent* aEvent,
         }
       }
     }
-    nsAccEvent::PrepareForEvent(aTargetNode, PR_TRUE);  
-    FireAccessibleFocusEvent(accessible, aTargetNode, aEvent, PR_TRUE, PR_TRUE);
+    if (!fireFocus) {
+      nsCOMPtr<nsIDOMNode> realFocusedNode = GetCurrentFocus();
+      nsCOMPtr<nsIContent> realFocusedContent = do_QueryInterface(realFocusedNode);
+      nsCOMPtr<nsIContent> targetContent = do_QueryInterface(aTargetNode);
+      nsIContent *containerContent = targetContent;
+      while (containerContent) {
+        nsCOMPtr<nsIDOMXULPopupElement> popup = do_QueryInterface(containerContent);
+        if (popup || containerContent == realFocusedContent) { 
+          
+          
+          fireFocus = PR_TRUE;
+          break;
+        }
+        containerContent = containerContent->GetParent();
+      }
+    }
+    if (fireFocus) {
+      nsAccEvent::PrepareForEvent(aTargetNode, PR_TRUE);  
+      FireAccessibleFocusEvent(accessible, aTargetNode, aEvent, PR_TRUE, PR_TRUE);
+    }
   }
   else if (eventType.EqualsLiteral("DOMMenuBarActive")) {  
     nsAccEvent::PrepareForEvent(aTargetNode, PR_TRUE);
