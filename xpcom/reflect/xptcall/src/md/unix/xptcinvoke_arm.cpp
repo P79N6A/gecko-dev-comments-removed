@@ -60,65 +60,8 @@
 
 
 
-static PRUint32
-invoke_count_words(PRUint32 paramCount, nsXPTCVariant* s)
-{
-    PRUint32 result = 0;
-    for(PRUint32 i = 0; i < paramCount; i++, s++)
-    {
-        if(s->IsPtrData())
-        {
-            result++;
-            continue;
-        }
-        switch(s->type)
-        {
-        case nsXPTType::T_I8     :
-        case nsXPTType::T_I16    :
-        case nsXPTType::T_I32    :
-            result++;
-            break;
-        case nsXPTType::T_I64    :
-            result+=VAR_STACK_SIZE_64;
-            break;
-        case nsXPTType::T_U8     :
-        case nsXPTType::T_U16    :
-        case nsXPTType::T_U32    :
-            result++;
-            break;
-        case nsXPTType::T_U64    :
-            result+=VAR_STACK_SIZE_64;
-            break;
-        case nsXPTType::T_FLOAT  :
-            result++;
-            break;
-        case nsXPTType::T_DOUBLE :
-            result+=VAR_STACK_SIZE_64;
-            break;
-        case nsXPTType::T_BOOL   :
-        case nsXPTType::T_CHAR   :
-        case nsXPTType::T_WCHAR  :
-            result++;
-            break;
-        default:
-            
-            result++;
-            break;
-        }
-    }
 
-#ifdef __ARM_EABI__
-    
-
-
-    if (result % 2 == 0)
-        result++;
-#endif
-
-    return result;
-}
-
-static void
+static PRUint32*
 invoke_copy_to_stack(PRUint32* d, PRUint32 paramCount, nsXPTCVariant* s)
 {
     for(PRUint32 i = 0; i < paramCount; i++, d++, s++)
@@ -155,6 +98,7 @@ invoke_copy_to_stack(PRUint32* d, PRUint32 paramCount, nsXPTCVariant* s)
             break;
         }
     }
+    return d;
 }
 
 extern "C" {
@@ -163,7 +107,6 @@ extern "C" {
         PRUint32 Index;         
         PRUint32 Count;         
         nsXPTCVariant* params;  
-        PRUint32 fn_count;     
         PRUint32 fn_copy;      
     };
 }
@@ -179,7 +122,6 @@ NS_InvokeByIndex(nsISupports* that, PRUint32 methodIndex,
     my_params.Count = paramCount;
     my_params.params = params;
     my_params.fn_copy = (PRUint32) &invoke_copy_to_stack;
-    my_params.fn_count = (PRUint32) &invoke_count_words;
 
 
 
@@ -207,22 +149,20 @@ NS_InvokeByIndex(nsISupports* that, PRUint32 methodIndex,
 
  
   __asm__ __volatile__(
-    "ldr	r1, [%1, #12]	\n\t"	
-    "ldr	ip, [%1, #16]	\n\t"	
     "ldr	r0, [%1,  #8]	\n\t"
-    "mov	lr, pc		\n\t"	
-    "mov	pc, ip		\n\t"
-    "mov	r4, r0, lsl #2	\n\t"	
+    "mov	r4, r0, lsl #3	\n\t"	
+#ifdef __ARM_EABI__
+    "add        r4, r4, #4      \n\t"
+#endif
     "sub	sp, sp, r4	\n\t"	
+    "add        r0, %1, #8      \n\t"
+    "ldmia      r0, {r1, r2, ip} \n\t"
     "mov	r0, sp		\n\t"	
-    "ldr	r1, [%1,  #8]	\n\t"	
-    "ldr	r2, [%1, #12]	\n\t"	
-    "ldr	ip, [%1, #20]	\n\t"	
-    "mov	lr, pc		\n\t"	
-    "mov	pc, ip		\n\t"	
-    "ldr	r0, [%1]	\n\t"	
+    "blx        ip              \n\t"
+    "sub        r4, r0, sp      \n\t"
+    
+    "ldmia      %1, {r0, r2}    \n\t"
     "ldr	r1, [r0, #0]	\n\t"	
-    "ldr	r2, [%1, #4]	\n\t"
     "mov	r2, r2, lsl #2	\n\t"	
 #if defined(__GXX_ABI_VERSION) && __GXX_ABI_VERSION >= 100 
     "ldr        ip, [r1, r2]    \n\t"   
@@ -237,8 +177,7 @@ NS_InvokeByIndex(nsISupports* that, PRUint32 methodIndex,
     "addle	sp, sp, r4	\n\t"	
     "movle	r4, #0		\n\t"	
     "ldr	r0, [%1, #0]	\n\t"	
-    "mov	lr, pc		\n\t"	
-    "mov	pc, ip		\n\t"
+    "blx        ip              \n\t"
     "add	sp, sp, r4	\n\t"	
     "mov	%0, r0		\n\t"	
     : "=r" (result)
