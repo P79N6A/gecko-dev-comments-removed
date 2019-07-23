@@ -80,14 +80,7 @@ typedef PRUint32 nscolor;
 
 
 
-#define MOZ_BLEND(target, bg, fg, alpha) \
-        FAST_DIVIDE_BY_255(target, (bg)*(255-(alpha)) + (fg)*(alpha))
-
-
-
-
 NS_GFX_(PRBool) NS_HexToRGB(const nsString& aBuf, nscolor* aResult);
-
 
 
 

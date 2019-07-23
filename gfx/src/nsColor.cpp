@@ -216,25 +216,37 @@ NS_GFX_(PRBool) NS_ColorNameToRGB(const nsAString& aColorName, nscolor* aResult)
   return PR_FALSE;
 }
 
+
+
+
+#define MOZ_BLEND(target, bg, fg, fgalpha)       \
+  FAST_DIVIDE_BY_255(target, (bg)*(255-fgalpha) + (fg)*(fgalpha))
+
 NS_GFX_(nscolor)
 NS_ComposeColors(nscolor aBG, nscolor aFG)
 {
-  PRIntn bgAlpha = NS_GET_A(aBG);
+  
   PRIntn r, g, b, a;
 
-  
-  MOZ_BLEND(r, 0, NS_GET_R(aBG), bgAlpha);
-  MOZ_BLEND(g, 0, NS_GET_G(aBG), bgAlpha);
-  MOZ_BLEND(b, 0, NS_GET_B(aBG), bgAlpha);
-  a = bgAlpha;
+  PRIntn bgAlpha = NS_GET_A(aBG);
+  PRIntn fgAlpha = NS_GET_A(aFG);
 
   
-  PRIntn fgAlpha = NS_GET_A(aFG);
-  MOZ_BLEND(r, r, NS_GET_R(aFG), fgAlpha);
-  MOZ_BLEND(g, g, NS_GET_G(aFG), fgAlpha);
-  MOZ_BLEND(b, b, NS_GET_B(aFG), fgAlpha);
-  MOZ_BLEND(a, a, 255, fgAlpha);
   
+  FAST_DIVIDE_BY_255(a, bgAlpha*(255-fgAlpha));
+  a = fgAlpha + a;
+  PRIntn blendAlpha;
+  if (a == 0) {
+    
+    
+    blendAlpha = 255;
+  } else {
+    blendAlpha = (fgAlpha*255)/a;
+  }
+  MOZ_BLEND(r, NS_GET_R(aBG), NS_GET_R(aFG), blendAlpha);
+  MOZ_BLEND(g, NS_GET_G(aBG), NS_GET_G(aFG), blendAlpha);
+  MOZ_BLEND(b, NS_GET_B(aBG), NS_GET_B(aFG), blendAlpha);
+
   return NS_RGBA(r, g, b, a);
 }
 
