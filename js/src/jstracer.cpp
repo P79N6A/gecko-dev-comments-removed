@@ -1179,7 +1179,7 @@ mergeTypeMaps(uint8** partial, unsigned* plength, uint8* complete, unsigned clen
 }
 
 
-static void
+static JS_REQUIRES_STACK void
 specializeTreesToMissingGlobals(JSContext* cx, TreeInfo* root)
 {
     TreeInfo* ti = root;
