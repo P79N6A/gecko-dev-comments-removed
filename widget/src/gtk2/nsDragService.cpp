@@ -176,40 +176,43 @@ nsDragService::InvokeDragSession(nsIDOMNode *aDOMNode,
     
     mSourceDataItems = aArrayTransferables;
     
-    GtkTargetList *sourceList = 0;
+    GtkTargetList *sourceList = GetSourceList();
 
-    sourceList = GetSourceList();
+    if (!sourceList)
+        return NS_OK;
 
-    if (sourceList) {
-        
-        GdkDragAction action = GDK_ACTION_DEFAULT;
+    
+    GdkDragAction action = GDK_ACTION_DEFAULT;
 
-        if (aActionType & DRAGDROP_ACTION_COPY)
-            action = (GdkDragAction)(action | GDK_ACTION_COPY);
-        if (aActionType & DRAGDROP_ACTION_MOVE)
-            action = (GdkDragAction)(action | GDK_ACTION_MOVE);
-        if (aActionType & DRAGDROP_ACTION_LINK)
-            action = (GdkDragAction)(action | GDK_ACTION_LINK);
+    if (aActionType & DRAGDROP_ACTION_COPY)
+        action = (GdkDragAction)(action | GDK_ACTION_COPY);
+    if (aActionType & DRAGDROP_ACTION_MOVE)
+        action = (GdkDragAction)(action | GDK_ACTION_MOVE);
+    if (aActionType & DRAGDROP_ACTION_LINK)
+        action = (GdkDragAction)(action | GDK_ACTION_LINK);
 
-        
-        
-        
-        
-        
-        
-        GdkEvent event;
-        memset(&event, 0, sizeof(GdkEvent));
-        event.type = GDK_BUTTON_PRESS;
-        event.button.window = mHiddenWidget->window;
-        event.button.time = nsWindow::mLastButtonPressTime;
+    
+    
+    
+    
+    
+    
+    GdkEvent event;
+    memset(&event, 0, sizeof(GdkEvent));
+    event.type = GDK_BUTTON_PRESS;
+    event.button.window = mHiddenWidget->window;
+    event.button.time = nsWindow::mLastButtonPressTime;
 
-        
-        GdkDragContext *context = gtk_drag_begin(mHiddenWidget,
-                                                 sourceList,
-                                                 action,
-                                                 1,
-                                                 &event);
+    
+    GdkDragContext *context = gtk_drag_begin(mHiddenWidget,
+                                             sourceList,
+                                             action,
+                                             1,
+                                             &event);
 
+    if (!context) {
+        rv = NS_ERROR_FAILURE;
+    } else {
         PRBool needsFallbackIcon = PR_FALSE;
         nsIntRect dragRect;
         nsPresContext* pc;
@@ -239,11 +242,11 @@ nsDragService::InvokeDragSession(nsIDOMNode *aDOMNode,
 
         if (needsFallbackIcon)
           gtk_drag_set_icon_default(context);
-
-        gtk_target_list_unref(sourceList);
     }
 
-    return NS_OK;
+    gtk_target_list_unref(sourceList);
+
+    return rv;
 }
 
 PRBool
