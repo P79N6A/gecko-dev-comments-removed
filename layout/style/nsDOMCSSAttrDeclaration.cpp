@@ -50,6 +50,7 @@
 #include "nsContentUtils.h"
 #include "nsIContent.h"
 #include "nsIPrincipal.h"
+#include "nsNodeUtils.h"
 
 nsDOMCSSAttributeDeclaration::nsDOMCSSAttributeDeclaration(nsIContent *aContent
 #ifdef MOZ_SMIL
@@ -108,6 +109,19 @@ nsDOMCSSAttributeDeclaration::DeclarationChanged()
 nsIDocument*
 nsDOMCSSAttributeDeclaration::DocToUpdate()
 {
+  
+  
+  
+  
+#ifdef MOZ_SMIL
+  if (!mIsSMILOverride)
+#endif
+  {
+    nsNodeUtils::AttributeWillChange(mContent, kNameSpaceID_None,
+                                     nsGkAtoms::style,
+                                     nsIDOMMutationEvent::MODIFICATION);
+  }
+  
   
   
   return mContent->GetOwnerDoc();

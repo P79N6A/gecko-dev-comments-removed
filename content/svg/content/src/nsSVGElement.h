@@ -364,6 +364,20 @@ private:
 
   void ResetOldStyleBaseType(nsISVGValue *svg_value);
 
+  struct ObservableModificationData {
+    
+    
+    
+    ObservableModificationData(const nsAttrName* aName, PRUint32 aModType):
+      name(aName), modType(aModType)
+    {}
+    const nsAttrName* name;
+    PRUint8 modType;
+  };
+  ObservableModificationData
+    GetModificationDataForObservable(nsISVGValue* aObservable,
+                                     nsISVGValue::modificationType aModType);
+
   nsCOMPtr<nsICSSStyleRule> mContentStyleRule;
   nsAttrAndChildArray mMappedAttributes;
 

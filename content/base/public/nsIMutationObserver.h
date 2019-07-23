@@ -149,6 +149,10 @@ public:
 
 
 
+
+
+
+
   virtual void AttributeWillChange(nsIDocument* aDocument,
                                    nsIContent*  aContent,
                                    PRInt32      aNameSpaceID,

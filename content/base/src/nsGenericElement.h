@@ -769,12 +769,15 @@ protected:
 
 
 
+
+
+
   nsresult SetAttrAndNotify(PRInt32 aNamespaceID,
                             nsIAtom* aName,
                             nsIAtom* aPrefix,
                             const nsAString& aOldValue,
                             nsAttrValue& aParsedValue,
-                            PRBool aModification,
+                            PRUint8 aModType,
                             PRBool aFireMutation,
                             PRBool aNotify,
                             const nsAString* aValueForAfterSetAttr);
@@ -825,6 +828,7 @@ protected:
 
 
 
+
   
   
   virtual nsresult BeforeSetAttr(PRInt32 aNamespaceID, nsIAtom* aName,
@@ -834,6 +838,7 @@ protected:
   }
 
   
+
 
 
 
