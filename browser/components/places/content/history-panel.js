@@ -155,7 +155,7 @@ function searchHistory(aInput)
   if (aInput) {
     if (!gSearching) {
       
-      var options = gHistoryTree.getResult().root.queryOptions;
+      var options = asQuery(gHistoryTree.getResult().root).queryOptions;
       options.setGroupingMode([], 0);
       gSearching = true;
     }
