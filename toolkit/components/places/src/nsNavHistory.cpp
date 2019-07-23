@@ -1196,56 +1196,6 @@ nsNavHistory::InitStatements()
   
   
   rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
-      "SELECT h.id, h.url, h.title, h.rev_host, h.visit_count, "
-          SQL_STR_FRAGMENT_MAX_VISIT_DATE( "h.id" )
-          ", f.url, null, null "
-        "FROM moz_places_temp h "
-        "LEFT JOIN moz_historyvisits_temp v_t ON h.id = v_t.place_id "
-        "LEFT JOIN moz_historyvisits v ON h.id = v.place_id "
-        "LEFT JOIN moz_favicons f ON h.favicon_id = f.id "
-        "WHERE v.id = ?1 OR v_t.id = ?1 "
-      "UNION ALL "
-      "SELECT h.id, h.url, h.title, h.rev_host, h.visit_count, "
-          SQL_STR_FRAGMENT_MAX_VISIT_DATE( "h.id" )
-          ", f.url, null, null "
-        "FROM moz_places h "
-        "LEFT JOIN moz_historyvisits_temp v_t ON h.id = v_t.place_id "
-        "LEFT JOIN moz_historyvisits v ON h.id = v.place_id "
-        "LEFT JOIN moz_favicons f ON h.favicon_id = f.id "
-        "WHERE v.id = ?1 OR v_t.id = ?1 "
-      "LIMIT 1"),
-    getter_AddRefs(mDBVisitToURLResult));
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  
-  
-  
-  
-  rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
-      "SELECT h.id, h.url, h.title, h.rev_host, h.visit_count, "
-          "v.visit_date, f.url, v.session, null "
-        "FROM moz_places_temp h "
-        "LEFT JOIN moz_historyvisits_temp v_t ON h.id = v_t.place_id "
-        "LEFT JOIN moz_historyvisits v ON h.id = v.place_id "
-        "LEFT JOIN moz_favicons f ON h.favicon_id = f.id "
-        "WHERE v.id = ?1 OR v_t.id = ?1 "
-      "UNION ALL "
-      "SELECT h.id, h.url, h.title, h.rev_host, h.visit_count, "
-          "v.visit_date, f.url, v.session, null "
-        "FROM moz_places h "
-        "LEFT JOIN moz_historyvisits_temp v_t ON h.id = v_t.place_id "
-        "LEFT JOIN moz_historyvisits v ON h.id = v.place_id "
-        "LEFT JOIN moz_favicons f ON h.favicon_id = f.id "
-        "WHERE v.id = ?1 OR v_t.id = ?1 "
-      "LIMIT 1"),
-    getter_AddRefs(mDBVisitToVisitResult));
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  
-  
-  
-  
-  rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
       "SELECT b.fk, h.url, COALESCE(b.title, h.title), "
         "h.rev_host, h.visit_count, "
         SQL_STR_FRAGMENT_MAX_VISIT_DATE( "b.fk" )
@@ -6462,12 +6412,12 @@ nsNavHistory::VisitIdToResultNode(PRInt64 visitId,
     case nsNavHistoryQueryOptions::RESULTS_AS_VISIT:
     case nsNavHistoryQueryOptions::RESULTS_AS_FULL_VISIT:
       
-      statement = mDBVisitToVisitResult;
+      statement = GetDBVisitToVisitResult();
       break;
 
     case nsNavHistoryQueryOptions::RESULTS_AS_URI:
       
-      statement = mDBVisitToURLResult;
+      statement = GetDBVisitToURLResult();
       break;
 
     default:
@@ -6475,6 +6425,7 @@ nsNavHistory::VisitIdToResultNode(PRInt64 visitId,
       
       return NS_OK;
   }
+  NS_ENSURE_TRUE(statement, NS_ERROR_UNEXPECTED);
 
   mozStorageStatementScoper scoper(statement);
   nsresult rv = statement->BindInt64Parameter(0, visitId);
@@ -7364,6 +7315,74 @@ nsNavHistory::GetBundle()
   NS_ENSURE_SUCCESS(rv, nsnull);
 
   return mBundle;
+}
+
+mozIStorageStatement *
+nsNavHistory::GetDBVisitToVisitResult()
+{
+  if (mDBVisitToVisitResult)
+    return mDBVisitToVisitResult;
+
+  
+  
+  
+  
+  nsresult rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
+      "SELECT h.id, h.url, h.title, h.rev_host, h.visit_count, "
+          "v.visit_date, f.url, v.session, null "
+        "FROM moz_places_temp h "
+        "LEFT JOIN moz_historyvisits_temp v_t ON h.id = v_t.place_id "
+        "LEFT JOIN moz_historyvisits v ON h.id = v.place_id "
+        "LEFT JOIN moz_favicons f ON h.favicon_id = f.id "
+        "WHERE v.id = ?1 OR v_t.id = ?1 "
+      "UNION ALL "
+      "SELECT h.id, h.url, h.title, h.rev_host, h.visit_count, "
+          "v.visit_date, f.url, v.session, null "
+        "FROM moz_places h "
+        "LEFT JOIN moz_historyvisits_temp v_t ON h.id = v_t.place_id "
+        "LEFT JOIN moz_historyvisits v ON h.id = v.place_id "
+        "LEFT JOIN moz_favicons f ON h.favicon_id = f.id "
+        "WHERE v.id = ?1 OR v_t.id = ?1 "
+      "LIMIT 1"),
+    getter_AddRefs(mDBVisitToVisitResult));
+  NS_ENSURE_SUCCESS(rv, nsnull);
+
+  return mDBVisitToVisitResult;
+}
+
+mozIStorageStatement *
+nsNavHistory::GetDBVisitToURLResult()
+{
+  if (mDBVisitToURLResult)
+    return mDBVisitToURLResult;
+
+  
+  
+  
+  
+  nsresult rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
+      "SELECT h.id, h.url, h.title, h.rev_host, h.visit_count, "
+          SQL_STR_FRAGMENT_MAX_VISIT_DATE( "h.id" )
+          ", f.url, null, null "
+        "FROM moz_places_temp h "
+        "LEFT JOIN moz_historyvisits_temp v_t ON h.id = v_t.place_id "
+        "LEFT JOIN moz_historyvisits v ON h.id = v.place_id "
+        "LEFT JOIN moz_favicons f ON h.favicon_id = f.id "
+        "WHERE v.id = ?1 OR v_t.id = ?1 "
+      "UNION ALL "
+      "SELECT h.id, h.url, h.title, h.rev_host, h.visit_count, "
+          SQL_STR_FRAGMENT_MAX_VISIT_DATE( "h.id" )
+          ", f.url, null, null "
+        "FROM moz_places h "
+        "LEFT JOIN moz_historyvisits_temp v_t ON h.id = v_t.place_id "
+        "LEFT JOIN moz_historyvisits v ON h.id = v.place_id "
+        "LEFT JOIN moz_favicons f ON h.favicon_id = f.id "
+        "WHERE v.id = ?1 OR v_t.id = ?1 "
+      "LIMIT 1"),
+    getter_AddRefs(mDBVisitToURLResult));
+  NS_ENSURE_SUCCESS(rv, nsnull);
+
+  return mDBVisitToURLResult;
 }
 
 

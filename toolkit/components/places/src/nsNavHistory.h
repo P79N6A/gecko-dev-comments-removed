@@ -408,7 +408,10 @@ protected:
   nsCOMPtr<mozIStorageStatement> mDBSetPlaceTitle; 
 
   
+  
+  mozIStorageStatement *GetDBVisitToURLResult();
   nsCOMPtr<mozIStorageStatement> mDBVisitToURLResult; 
+  mozIStorageStatement *GetDBVisitToVisitResult();
   nsCOMPtr<mozIStorageStatement> mDBVisitToVisitResult; 
   nsCOMPtr<mozIStorageStatement> mDBBookmarkToUrlResult; 
 
