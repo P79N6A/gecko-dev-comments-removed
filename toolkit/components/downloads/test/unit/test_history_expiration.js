@@ -41,6 +41,11 @@
 
 function run_test()
 {
+  
+  
+  if (!("@mozilla.org/browser/nav-history-service;1" in Cc))
+    return;
+
   let dm = Cc["@mozilla.org/download-manager;1"].
            getService(Ci.nsIDownloadManager);
   let db = dm.DBConnection;
