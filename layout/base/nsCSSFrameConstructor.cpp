@@ -6218,7 +6218,8 @@ nsCSSFrameConstructor::ContentAppended(nsIContent*     aContainer,
       PRUint32 containerCount = aContainer->GetChildCount();
       for (PRUint32 i = aNewIndexInContainer; i < containerCount; i++) {
         nsIContent* content = aContainer->GetChildAt(i);
-        if (mPresShell->GetPrimaryFrameFor(content)
+        if ((mPresShell->GetPrimaryFrameFor(content) ||
+             mPresShell->FrameManager()->GetUndisplayedContent(content))
 #ifdef MOZ_XUL
             
             
