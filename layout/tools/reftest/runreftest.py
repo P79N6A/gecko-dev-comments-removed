@@ -142,7 +142,8 @@ Are you executing $objdir/_tests/reftest/runreftest.py?""" \
     
     status = automation.runApp(None, browserEnv, options.app, profileDir,
                                extraArgs = ["-silent"],
-                               symbolsPath=options.symbolsPath)
+                               symbolsPath=options.symbolsPath,
+                               xrePath=options.xrePath)
     
     automation.log.info("\nREFTEST INFO | runreftest.py | Performing extension manager registration: end.")
 
@@ -155,7 +156,9 @@ Are you executing $objdir/_tests/reftest/runreftest.py?""" \
     automation.log.info("REFTEST INFO | runreftest.py | Running tests: start.\n")
     reftestlist = getFullPath(args[0])
     status = automation.runApp(None, browserEnv, options.app, profileDir,
-                               extraArgs = ["-reftest", reftestlist])
+                               extraArgs = ["-reftest", reftestlist],
+                               symbolsPath=options.symbolsPath,
+                               xrePath=options.xrePath)
     automation.processLeakLog(leakLogFile, options.leakThreshold)
     automation.log.info("\nREFTEST INFO | runreftest.py | Running tests: end.")
   finally:
