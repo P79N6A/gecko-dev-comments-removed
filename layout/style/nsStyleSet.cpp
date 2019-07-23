@@ -750,6 +750,7 @@ nsStyleSet::WalkRestrictionRule(nsIAtom* aPseudoType)
 {
   
   if (aPseudoType) {
+    mRuleWalker->SetLevel(eAgentSheet, PR_FALSE);
     if (aPseudoType == nsCSSPseudoElements::firstLetter)
       mRuleWalker->Forward(mFirstLetterRule);
     else if (aPseudoType == nsCSSPseudoElements::firstLine)
