@@ -43,6 +43,7 @@
 #include "nsIObserver.h"
 #include "nsIURI.h"
 
+#include "nsWeakPtr.h"
 #include "nsCycleCollectionParticipant.h"
 
 #include "nsIDOMGeoGeolocation.h"
@@ -188,7 +189,7 @@ public:
   nsIURI* GetURI() { return mURI; }
 
   
-  nsIDOMWindow* GetOwner() { return mOwner; }
+  nsIWeakReference* GetOwner() { return mOwner; }
 
   
   PRBool OwnerStillExists();
@@ -208,7 +209,7 @@ private:
   PRBool mUpdateInProgress;
 
   
-  nsPIDOMWindow* mOwner;
+  nsWeakPtr mOwner;
 
   
   nsCOMPtr<nsIURI> mURI;
