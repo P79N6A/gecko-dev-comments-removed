@@ -47,12 +47,23 @@ function test() {
            getService(Ci.nsIPrivateBrowsingService);
   let consoleService = Cc["@mozilla.org/consoleservice;1"].
                        getService(Ci.nsIConsoleService);
+  const kExitMessage = "Message to signal the end of the test";
   waitForExplicitFinish();
 
   let consoleObserver = {
     observe: function (aMessage) {
       if (!aMessage.message)
         this.gotNull = true;
+      else if (aMessage.message == kExitMessage) {
+        
+        ok(this.gotNull, "Console should be cleared after leaving the private mode");
+        
+        ok(!messageExists(), "Message should not exist after leaving the private mode");
+
+        consoleService.unregisterListener(consoleObserver);
+        prefBranch.clearUserPref("browser.privatebrowsing.keep_current_session");
+        finish();
+      }
     },
     gotNull: false
   };
@@ -84,18 +95,6 @@ function test() {
   ok(messageExists(), "Message should exist after entering the private mode");
   pb.privateBrowsingEnabled = false;
 
-  let timer = Cc["@mozilla.org/timer;1"].
-              createInstance(Ci.nsITimer);
-  timer.initWithCallback({
-    notify: function(timer) {
-      
-      ok(consoleObserver.gotNull, "Console should be cleared after leaving the private mode");
-      
-      ok(!messageExists(), "Message should not exist after leaving the private mode");
-
-      consoleService.unregisterListener(consoleObserver);
-      prefBranch.clearUserPref("browser.privatebrowsing.keep_current_session");
-      finish();
-    }
-  }, 1000, Ci.nsITimer.TYPE_ONE_SHOT);
+  
+  consoleService.logStringMessage(kExitMessage);
 }
