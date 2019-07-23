@@ -112,10 +112,6 @@ public:
 
   
   
-  nsresult GetNetworkStatus();
-
-  
-  
   
   void CancelAndAbort(nsresult aStatus);
 
@@ -184,7 +180,6 @@ private:
   PRPackedBool mLoading;
   PRPackedBool mProcessing;
   PRPackedBool mHadLastPart;
-  PRUint32 mNetworkStatus;
   PRUint32 mImageStatus;
   PRUint32 mState;
   nsCString mContentType;

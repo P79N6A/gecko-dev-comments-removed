@@ -196,14 +196,7 @@ NS_IMETHODIMP imgRequestProxy::IsPending(PRBool *_retval)
 
 NS_IMETHODIMP imgRequestProxy::GetStatus(nsresult *aStatus)
 {
-  
-  
-  if (!mOwner)
-    return NS_ERROR_FAILURE;
-
-  *aStatus = mOwner->GetNetworkStatus();
-
-  return NS_OK;
+  return NS_ERROR_NOT_IMPLEMENTED;
 }
 
 

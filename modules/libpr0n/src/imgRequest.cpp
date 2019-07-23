@@ -83,8 +83,8 @@ NS_IMPL_ISUPPORTS8(imgRequest, imgILoad,
 
 imgRequest::imgRequest() : 
   mLoading(PR_FALSE), mProcessing(PR_FALSE), mHadLastPart(PR_FALSE),
-  mNetworkStatus(0), mImageStatus(imgIRequest::STATUS_NONE), mState(0),
-  mCacheId(0), mValidator(nsnull), mIsMultiPartChannel(PR_FALSE),
+  mImageStatus(imgIRequest::STATUS_NONE), mState(0), mCacheId(0),
+  mValidator(nsnull), mIsMultiPartChannel(PR_FALSE),
   mImageSniffers("image-sniffing-services") 
 {
   
@@ -781,7 +781,6 @@ NS_IMETHODIMP imgRequest::OnStopRequest(nsIRequest *aRequest, nsISupports *ctxt,
   
   
   if (mRequest) {
-    mRequest->GetStatus(&mNetworkStatus);
     mRequest = nsnull;  
   }
 
@@ -990,18 +989,6 @@ imgRequest::SniffMimeType(const char *buf, PRUint32 len)
       return;
     }
   }
-}
-
-nsresult 
-imgRequest::GetNetworkStatus()
-{
-  nsresult status;
-  if (mRequest)
-    mRequest->GetStatus(&status);
-  else
-    status = mNetworkStatus;
-
-  return status;
 }
 
 
