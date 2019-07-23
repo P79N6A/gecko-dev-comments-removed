@@ -538,8 +538,7 @@ FeedHandlerInfo.prototype = {
 
   _shellSvc:
 #ifdef HAVE_SHELL_SERVICE
-    Cc["@mozilla.org/browser/shell-service;1"].
-    getService(Ci.nsIShellService),
+    getShellService(),
 #else
     null,
 #endif
