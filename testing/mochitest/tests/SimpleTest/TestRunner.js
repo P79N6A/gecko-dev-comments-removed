@@ -71,8 +71,9 @@ TestRunner._toggle = function(el) {
 
 TestRunner._makeIframe = function (url, retry) {
     var iframe = $('testframe');
-    if (url != "about:blank" && (!document.hasFocus() ||
-        document.activeElement != iframe)) {
+    if (url != "about:blank" &&
+        (("hasFocus" in document && !document.hasFocus()) ||
+         ("activeElement" in document && document.activeElement != iframe))) {
         
         
         window.focus();
