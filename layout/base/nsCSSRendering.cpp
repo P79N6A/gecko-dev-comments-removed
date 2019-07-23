@@ -1725,7 +1725,7 @@ PaintBackgroundLayer(nsPresContext* aPresContext,
   req = nsnull;
 
   
-  nsRect bgOriginRect;
+  nsRect bgOriginRect(0, 0, 0, 0);
 
   nsIAtom* frameType = aForFrame->GetType();
   nsIFrame* geometryFrame = aForFrame;
@@ -1747,18 +1747,20 @@ PaintBackgroundLayer(nsPresContext* aPresContext,
     }
   } else if (frameType == nsGkAtoms::canvasFrame) {
     geometryFrame = aForFrame->GetFirstChild(nsnull);
-    NS_ASSERTION(geometryFrame, "A canvas with a background "
-      "image had no child frame, which is impossible according to CSS. "
-      "Make sure there isn't a background image specified on the "
-      "|:viewport| pseudo-element in |html.css|.");
-    bgOriginRect = geometryFrame->GetRect();
+    
+    
+    
+    
+    if (geometryFrame) {
+      bgOriginRect = geometryFrame->GetRect();
+    }
   } else {
     bgOriginRect = nsRect(nsPoint(0,0), aBorderArea.Size());
   }
 
   
   
-  if (aLayer.mOrigin != NS_STYLE_BG_ORIGIN_BORDER) {
+  if (aLayer.mOrigin != NS_STYLE_BG_ORIGIN_BORDER && geometryFrame) {
     nsMargin border = geometryFrame->GetUsedBorder();
     geometryFrame->ApplySkipSides(border);
     bgOriginRect.Deflate(border);
