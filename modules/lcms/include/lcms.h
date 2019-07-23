@@ -1524,9 +1524,17 @@ typedef struct {
         } FVEC3, FAR* LPFVEC3;
 
 typedef struct {                
-        FVEC3 v[3];
+        FVEC3 v[4];             
+                                
         } FMAT3, FAR* LPFMAT3;
 
+
+typedef struct {
+        BYTE _Buffer[sizeof(FMAT3) + 16];
+        LPFMAT3 F;
+        } FMAT3A, FAR* LPFMAT3A;
+
+void      cdecl FMAT3ASetup(LPFMAT3A m);
 
 void      cdecl VEC3init(LPVEC3 r, double x, double y, double z);   
 void      cdecl VEC3initF(LPWVEC3 r, double x, double y, double z); 
@@ -1853,7 +1861,7 @@ typedef struct {
 
                union {
                   WMAT3 W;
-                  FMAT3 F;
+                  FMAT3A FA; 
                } Matrix;
 
                L16PARAMS p16;       

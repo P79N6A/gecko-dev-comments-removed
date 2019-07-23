@@ -239,6 +239,12 @@ int FromFloatDomain(Float a)
 
 
 
+void FMAT3ASetup(LPFMAT3A m)
+{
+       m -> F = (LPFMAT3) (m -> _Buffer + (16 - (((unsigned) m -> _Buffer) % 16)));
+}
+
+
 
 
 
