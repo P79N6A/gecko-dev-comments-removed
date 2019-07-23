@@ -3672,6 +3672,13 @@ nsDocShell::Destroy()
 
     
     
+    if (mOSHE)
+      mOSHE->SetEditorData(nsnull);
+    if (mLSHE)
+      mLSHE->SetEditorData(nsnull);
+      
+    
+    
     if (mContentListener) {
         mContentListener->DropDocShellreference();
         mContentListener->SetParentContentListener(nsnull);
