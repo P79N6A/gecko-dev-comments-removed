@@ -2796,16 +2796,14 @@ TraceRecorder::ifop()
         jsdpun u;
         u.d = 0;
         LIns* v_ins = get(&v);
-
         
         
         
         
-        if (!v_ins->isconst() && !v_ins->isconstq()) {
+        if (!v_ins->isconst() && !v_ins->isconstq())
             guard(d == 0 || JSDOUBLE_IS_NaN(d),
                   lir->ins2(LIR_feq, v_ins, lir->insImmq(u.u64)),
                   BRANCH_EXIT);
-        }
     } else if (JSVAL_IS_STRING(v)) {
         guard(JSSTRING_LENGTH(JSVAL_TO_STRING(v)) == 0,
               lir->ins_eq0(lir->ins2(LIR_piand,
@@ -2940,10 +2938,6 @@ TraceRecorder::cmp(LOpcode op, int flags)
     LIns* l_ins = get(&l);
     LIns* r_ins = get(&r);
 
-    
-    if (isAnyConst(r_ins) && isAnyConst(l_ins))
-        return true;
-
     if (JSVAL_IS_STRING(l) && JSVAL_IS_STRING(r)) {
         JS_ASSERT(!negate);
         LIns* args[] = { r_ins, l_ins };
@@ -3055,15 +3049,18 @@ TraceRecorder::cmp(LOpcode op, int flags)
         ABORT_TRACE("unsupported operand types for cmp");
     }
 
-    if (flags & CMP_CASE) {
-        guard(cond, x, BRANCH_EXIT);
-        return true;
-    }
-
     
+    if (!(isAnyConst(r_ins) && isAnyConst(l_ins))) {
+        if (flags & CMP_CASE) {
+            guard(cond, x, BRANCH_EXIT);
+            return true;
+        }
 
-    if (flags & CMP_TRY_BRANCH_AFTER_COND) 
-        fuseIf(cx->fp->regs->pc + 1, cond, x);
+        
+
+        if (flags & CMP_TRY_BRANCH_AFTER_COND) 
+            fuseIf(cx->fp->regs->pc + 1, cond, x);
+    }
 
     
 
@@ -3087,10 +3084,6 @@ TraceRecorder::equal(int flags)
     LIns* r_ins = get(&r);
     LIns* l_ins = get(&l);
 
-    
-    if (isAnyConst(r_ins) && isAnyConst(l_ins))
-        return true;
-
     if (JSVAL_IS_STRING(l) && JSVAL_IS_STRING(r)) {
         LIns* args[] = { r_ins, l_ins };
         bool cond = js_EqualStrings(JSVAL_TO_STRING(l), JSVAL_TO_STRING(r)) ^ negate;
@@ -3098,15 +3091,18 @@ TraceRecorder::equal(int flags)
         if (!negate)
             x = lir->ins_eq0(x);
 
-        if (flags & CMP_CASE) {
-            guard(cond, x, BRANCH_EXIT);
-            return true;
-        }
-
         
+        if (!(isAnyConst(r_ins) && isAnyConst(l_ins))) {
+            if (flags & CMP_CASE) {
+                guard(cond, x, BRANCH_EXIT);
+                return true;
+            }
 
-        if (flags & CMP_TRY_BRANCH_AFTER_COND)
-            fuseIf(cx->fp->regs->pc + 1, cond, x);
+            
+
+            if (flags & CMP_TRY_BRANCH_AFTER_COND)
+                fuseIf(cx->fp->regs->pc + 1, cond, x);
+        }
 
         
 
@@ -3122,15 +3118,18 @@ TraceRecorder::equal(int flags)
         if (negate)
             x = lir->ins_eq0(x);
 
-        if (flags & CMP_CASE) {
-            guard(cond, x, BRANCH_EXIT);
-            return true;
-        }
-
         
+        if (!(isAnyConst(r_ins) && isAnyConst(l_ins))) {
+            if (flags & CMP_CASE) {
+                guard(cond, x, BRANCH_EXIT);
+                return true;
+            }
 
-        if (flags & CMP_TRY_BRANCH_AFTER_COND)
-            fuseIf(cx->fp->regs->pc + 1, cond, x);
+            
+
+            if (flags & CMP_TRY_BRANCH_AFTER_COND)
+                fuseIf(cx->fp->regs->pc + 1, cond, x);
+        }
 
         
 
@@ -3979,7 +3978,8 @@ TraceRecorder::record_JSOP_NEW()
         LIns* args[] = { get(&fval), cx_ins };
         LIns* tv_ins = lir->insCall(F_FastNewObject, args);
         guard(false, lir->ins_eq0(tv_ins), OOM_EXIT);
-        set(&tval, tv_ins);
+        jsval& tv = stackval(0 - (1 + argc));
+        set(&tv, tv_ins);
         return interpretedFunctionCall(fval, fun, argc);
     }
 
