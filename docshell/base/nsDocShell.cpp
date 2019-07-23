@@ -3952,6 +3952,12 @@ nsDocShell::Stop(PRUint32 aStopFlags)
     
     mRestorePresentationEvent.Revoke();
 
+    if (mLoadType == LOAD_ERROR_PAGE && mLSHE) {
+        
+        SetHistoryEntry(&mOSHE, mLSHE);
+        SetHistoryEntry(&mLSHE, nsnull);
+    }
+
     if (nsIWebNavigation::STOP_CONTENT & aStopFlags) {
         
         if (mContentViewer)
@@ -4141,8 +4147,6 @@ nsDocShell::InitWindow(nativeWindow parentNativeWindow,
                        nsIWidget * parentWidget, PRInt32 x, PRInt32 y,
                        PRInt32 cx, PRInt32 cy)
 {
-    NS_ENSURE_ARG(parentWidget);        
-
     SetParentWidget(parentWidget);
     SetPositionAndSize(x, y, cx, cy, PR_FALSE);
 
@@ -6341,22 +6345,11 @@ nsDocShell::CaptureState()
     NS_ENSURE_SUCCESS(rv, rv);
 
     
-    nsCOMPtr<nsIPresShell> shell;
-    nsDocShell::GetPresShell(getter_AddRefs(shell));
-    if (shell) {
-        nsIViewManager *vm = shell->GetViewManager();
-        if (vm) {
-            nsIView *rootView = nsnull;
-            vm->GetRootView(rootView);
-            if (rootView) {
-                nsIWidget *widget = rootView->GetWidget();
-                if (widget) {
-                    nsIntRect bounds(0, 0, 0, 0);
-                    widget->GetBounds(bounds);
-                    rv = mOSHE->SetViewerBounds(bounds);
-                }
-            }
-        }
+    if (mContentViewer) {
+        nsIntRect bounds;
+        mContentViewer->GetBounds(bounds);
+        rv = mOSHE->SetViewerBounds(bounds);
+        NS_ENSURE_SUCCESS(rv, rv);
     }
 
     
@@ -6690,10 +6683,7 @@ nsDocShell::RestoreFromHistory()
                 rootViewSibling = oldRootView->GetNextSibling();
                 rootViewParent = oldRootView->GetParent();
 
-                nsIWidget *widget = oldRootView->GetWidget();
-                if (widget) {
-                    widget->GetBounds(newBounds);
-                }
+                mContentViewer->GetBounds(newBounds);
             }
         }
     }
@@ -6938,15 +6928,12 @@ nsDocShell::RestoreFromHistory()
     
 
     if (newRootView) {
-        nsIWidget *widget = newRootView->GetWidget();
-        if (widget && !newBounds.IsEmpty() && newBounds != oldBounds) {
+        if (!newBounds.IsEmpty() && newBounds != oldBounds) {
 #ifdef DEBUG_PAGE_CACHE
             printf("resize widget(%d, %d, %d, %d)\n", newBounds.x,
                    newBounds.y, newBounds.width, newBounds.height);
 #endif
-
-            widget->Resize(newBounds.x, newBounds.y, newBounds.width,
-                           newBounds.height, PR_FALSE);
+            mContentViewer->SetBounds(newBounds);
         }
     }
 
