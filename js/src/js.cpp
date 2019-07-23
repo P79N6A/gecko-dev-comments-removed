@@ -2579,7 +2579,7 @@ ShapeOf(JSContext *cx, uintN argc, jsval *vp)
 #ifdef JS_THREADSAFE
 
 static JSBool
-Sleep_fn(JSContext *cx, uintN argc, jsval *vp)
+Sleep(JSContext *cx, uintN argc, jsval *vp)
 {
     jsdouble t_secs;
     PRUint32 t_ticks;
@@ -2908,7 +2908,7 @@ static JSFunctionSpec shell_functions[] = {
     JS_FS("arrayInfo",       js_ArrayInfo,       1,0,0),
 #endif
 #ifdef JS_THREADSAFE
-    JS_FN("sleep",          Sleep_fn,       1,0),
+    JS_FN("sleep",          Sleep,          1,0),
     JS_FN("scatter",        Scatter,        1,0),
 #endif
     JS_FS_END
@@ -3797,7 +3797,7 @@ MakeAbsolutePathname(JSContext *cx, const char *from, const char *leaf)
 
     
     dirlen = slash - from + 1;
-    dir = JS_malloc(cx, dirlen + strlen(leaf) + 1);
+    dir = (char*) JS_malloc(cx, dirlen + strlen(leaf) + 1);
     if (!dir)
         return NULL;
 
@@ -3845,7 +3845,7 @@ snarf(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
             if (len == -1 || fseek(file, 0, SEEK_SET) == EOF) {
                 JS_ReportError(cx, "can't seek start of %s", pathname);
             } else {
-                buf = JS_malloc(cx, len + 1);
+                buf = (char*) JS_malloc(cx, len + 1);
                 if (buf) {
                     cc = fread(buf, 1, len, file);
                     if (cc != len) {
