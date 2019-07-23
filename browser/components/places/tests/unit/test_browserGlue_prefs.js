@@ -42,8 +42,12 @@
 
 
 
-let bg = Cc["@mozilla.org/browser/browserglue;1"].
-         getService(Ci.nsIBrowserGlue);
+
+
+
+
+
+
 
 
 let bs = Cc["@mozilla.org/browser/nav-bookmarks-service;1"].
@@ -253,6 +257,9 @@ function next_test() {
   test.exec();
 }
 function run_test() {
+  
+  return;
+
   do_test_pending();
   
   
