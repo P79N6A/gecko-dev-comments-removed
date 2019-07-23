@@ -605,10 +605,9 @@ TypeMap::captureStackTypes(JSContext* cx, unsigned callDepth)
     uint8* m = map;
     FORALL_SLOTS_IN_PENDING_FRAMES(cx, callDepth,
         uint8 type = getCoercedType(*vp);
-        if ((type == JSVAL_INT) &&
-            oracle.isStackSlotUndemotable(cx->fp->script, cx->fp->regs->pc, unsigned(m - map))) {
+        if ((type == JSVAL_INT) && oracle.isStackSlotUndemotable(cx->fp->script,
+                cx->fp->regs->pc, unsigned(m - map)))
             type = JSVAL_DOUBLE;
-        }
         *m++ = type;
     );
 }
@@ -1361,7 +1360,7 @@ TraceRecorder::closeLoop(Fragmento* fragmento)
         return;
     }
     if (treeInfo->maxNativeStackSlots >= MAX_NATIVE_STACK_SLOTS) {
-        debug_only(printf("Trace rejected: excessive stack use.\n"));
+        debug_only(printf("Trace rejected: excess stack use.\n"));
         fragment->blacklist();
         return;
     }
@@ -1730,7 +1729,7 @@ js_ContinueRecording(JSContext* cx, TraceRecorder* r, jsbytecode* oldpc, uintN& 
     }
     
     Fragment* f = fragmento->getLoop(cx->fp->regs->pc);
-    if (nesting_enabled && f->code() && !((TreeInfo*)f->vmprivate)->globalSlots.length()) {
+    if (nesting_enabled && f && f->code() && !((TreeInfo*)f->vmprivate)->globalSlots.length()) {
         JS_ASSERT(f->vmprivate);
         
         GuardRecord* lr = js_ExecuteTree(cx, f, inlineCallCount);
@@ -1946,6 +1945,8 @@ js_LoopEdge(JSContext* cx, jsbytecode* oldpc, uintN& inlineCallCount)
         f = cacheEntry->fragment;
     } else {
         f = tm->fragmento->getLoop(pc);
+        if (!f)
+            f = tm->fragmento->newLoop(pc);
         cacheEntry->pc = pc;
         cacheEntry->fragment = f;
     }
