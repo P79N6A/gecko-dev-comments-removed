@@ -103,8 +103,7 @@ public:
 
 
     NS_IMETHOD DidBuildModel(nsresult anErrorCode, PRBool aNotifySink,
-                             nsIParser* aParser,
-                             nsIContentSink* aSink) = 0;
+                             nsIParser* aParser) = 0;
 
     
 
@@ -112,9 +111,7 @@ public:
 
 
 
-    NS_IMETHOD BuildModel(nsIParser* aParser, nsITokenizer* aTokenizer,
-                          nsITokenObserver* anObserver,
-                          nsIContentSink* aSink) = 0;
+    NS_IMETHOD BuildModel(nsIParser* aParser, nsITokenizer* aTokenizer) = 0;
 
     
 
@@ -134,7 +131,7 @@ public:
 
 
 
-    NS_IMETHOD WillResumeParse(nsIContentSink* aSink) = 0;
+    NS_IMETHOD WillResumeParse() = 0;
 
     
 
@@ -142,7 +139,7 @@ public:
 
 
 
-    NS_IMETHOD WillInterruptParse(nsIContentSink* aSink) = 0;
+    NS_IMETHOD WillInterruptParse() = 0;
 
     
 
@@ -178,19 +175,22 @@ public:
     NS_IMETHOD_(void) Terminate() = 0;
 
     NS_IMETHOD_(PRInt32) GetType() = 0;
+
+    NS_IMETHOD_(nsITokenizer*) CreateTokenizer() = 0;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsIDTD, NS_IDTD_IID)
 
 #define NS_DECL_NSIDTD \
     NS_IMETHOD WillBuildModel(  const CParserContext& aParserContext, nsITokenizer* aTokenizer, nsIContentSink* aSink);\
-    NS_IMETHOD DidBuildModel(nsresult anErrorCode,PRBool aNotifySink,nsIParser* aParser,nsIContentSink* aSink);\
-    NS_IMETHOD BuildModel(nsIParser* aParser,nsITokenizer* aTokenizer,nsITokenObserver* anObserver,nsIContentSink* aSink);\
-    NS_IMETHOD HandleToken(CToken* aToken,nsIParser* aParser);\
-    NS_IMETHOD WillResumeParse(nsIContentSink* aSink = 0);\
-    NS_IMETHOD WillInterruptParse(nsIContentSink* aSink = 0);\
+    NS_IMETHOD DidBuildModel(nsresult anErrorCode, PRBool aNotifySink, nsIParser* aParser);\
+    NS_IMETHOD BuildModel(nsIParser* aParser, nsITokenizer* aTokenizer);\
+    NS_IMETHOD HandleToken(CToken* aToken, nsIParser* aParser);\
+    NS_IMETHOD WillResumeParse();\
+    NS_IMETHOD WillInterruptParse();\
     NS_IMETHOD_(PRBool) CanContain(PRInt32 aParent,PRInt32 aChild) const;\
     NS_IMETHOD_(PRBool) IsContainer(PRInt32 aTag) const;\
     NS_IMETHOD_(void)  Terminate();\
-    NS_IMETHOD_(PRInt32) GetType();
+    NS_IMETHOD_(PRInt32) GetType();\
+    NS_IMETHOD_(nsITokenizer*) CreateTokenizer();
 #endif 
