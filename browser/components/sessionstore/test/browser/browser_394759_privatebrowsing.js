@@ -56,10 +56,28 @@ function test() {
   ok(sessionStoreJS.exists() == false, "sessionstore.js was removed");
   
   
-  gPrefService.setIntPref("browser.sessionstore.interval", 0);
+  gPrefService.setIntPref("browser.sessionstore.interval", 100);
   
   sessionStoreJS = profilePath.clone();
   sessionStoreJS.append("sessionstore.js");
+
+  
+  let os = Cc["@mozilla.org/observer-service;1"].
+           getService(Ci.nsIObserverService);
+  os.addObserver({observe: function(aSubject, aTopic, aData) {
+    gPrefService.clearUserPref("browser.sessionstore.interval");
+    os.removeObserver(this, aTopic);
+    executeSoon(continue_test);
+  }}, "sessionstore-state-write-complete", false);
+
+  
+  os.addObserver({observe: function(aSubject, aTopic, aData) {
+    
+    
+    
+    info("Windows status has been restored, was that expected?");
+    os.removeObserver(this, aTopic);
+  }}, "sessionstore-windows-restored", false);
 
   
   
@@ -71,27 +89,6 @@ function test() {
     _closedWindows: []
   });
   ss.setBrowserState(blankState);
-
-  waitForSessionStoreJS();
-}
-
-let pass = 0;
-const MAX_PASS = 6;
-function waitForSessionStoreJS() {
-  if (++pass > MAX_PASS) {
-    ok(false, "Timed out waiting for sessionstore.js");
-    finish();
-  }
-
-  let profilePath = Cc["@mozilla.org/file/directory_service;1"].
-                    getService(Ci.nsIProperties).
-                    get("ProfD", Ci.nsIFile);
-  let sessionStoreJS = profilePath.clone();
-  sessionStoreJS.append("sessionstore.js");
-  if (sessionStoreJS.exists())
-    executeSoon(continue_test);
-  else
-    setTimeout(500, waitForSessionStoreJS);
 }
 
 function continue_test() {
@@ -105,8 +102,6 @@ function continue_test() {
   let closedWindowCount = ss.getClosedWindowCount();
   is(closedWindowCount, 0, "Correctly set window count");
 
-  gPrefService.clearUserPref("browser.sessionstore.interval");
-
   
   let now = Date.now();
   const TESTS = [
@@ -118,6 +113,7 @@ function continue_test() {
       value: "uniq" + (++now) },
   ];
 
+  let loadWasCalled = false;
   function openWindowAndTest(aTestIndex, aRunNextTestInPBMode) {
     info("Opening new window");
     let windowObserver = {
@@ -125,13 +121,13 @@ function continue_test() {
         if (aTopic === "domwindowopened") {
           info("New window has been opened");
           let win = aSubject.QueryInterface(Ci.nsIDOMWindow);
-          is(win.document.readyState, "uninitialized");
           win.addEventListener("load", function onLoad(event) {
             win.removeEventListener("load", onLoad, false);
             info("New window has been loaded");
             win.gBrowser.addEventListener("load", function(aEvent) {
               win.gBrowser.removeEventListener("load", arguments.callee, true);
               info("New window browser has been loaded");
+              loadWasCalled = true;
               executeSoon(function() {
                 
                 win.gBrowser.addTab();
@@ -188,24 +184,20 @@ function continue_test() {
               });
             }, true);
           }, false);
-          
-          let els = Cc["@mozilla.org/eventlistenerservice;1"].
-                    getService(Ci.nsIEventListenerService);
-          let infos = els.getListenerInfoFor(win, {});
-          is(infos.length, 1, "Window has 1 listener");
-          is(infos[0].type, "load", "Window has load listener");
-          ok(!infos[0].capturing, "Window does not have a capture listener");
         }
         else if (aTopic === "domwindowclosed") {
           info("Window closed");
           ww.unregisterNotification(this);
+          if (!loadWasCalled) {
+            ok(false, "Window was closed before load could fire!");
+            finish();
+          }
         }
       }
     };
     ww.registerNotification(windowObserver);
     
-    let newWin = openDialog(location, "_blank", "chrome,all,dialog=no", TESTS[aTestIndex].url);
-    is(newWin.document.readyState, "uninitialized");
+    openDialog(location, "_blank", "chrome,all,dialog=no", TESTS[aTestIndex].url);
   }
 
   openWindowAndTest(0, true);
