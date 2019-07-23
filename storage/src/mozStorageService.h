@@ -49,7 +49,6 @@
 #include "prlock.h"
 
 #include "mozIStorageService.h"
-#include "mozStorageBackground.h"
 
 class mozStorageConnection;
 
@@ -77,11 +76,6 @@ private:
 
 
     PRLock *mLock;
-
-    
-
-
-    mozStorageBackground mBackground;
 protected:
     nsCOMPtr<nsIFile> mProfileStorageFile;
 

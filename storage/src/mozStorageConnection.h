@@ -53,6 +53,8 @@
 #include <sqlite3.h>
 
 class nsIFile;
+class nsIEventTarget;
+class nsIThread;
 class mozIStorageService;
 
 class mozStorageConnection : public mozIStorageConnection
@@ -69,6 +71,15 @@ public:
 
     
     sqlite3 *GetNativeConnection() { return mDBConn; }
+
+    
+
+
+
+
+
+
+    already_AddRefed<nsIEventTarget> getAsyncExecutionTarget();
 
 private:
     ~mozStorageConnection();
@@ -92,6 +103,18 @@ protected:
 
     sqlite3 *mDBConn;
     nsCOMPtr<nsIFile> mDatabaseFile;
+
+    
+
+
+    PRLock *mAsyncExecutionMutex;
+
+    
+
+
+
+
+    nsCOMPtr<nsIThread> mAsyncExecutionThread;
 
     PRLock *mTransactionMutex;
     PRBool mTransactionInProgress;

@@ -85,9 +85,6 @@ mozStorageService::Init()
     if (!mLock)
         return NS_ERROR_OUT_OF_MEMORY;
 
-    nsresult rv = mBackground.initialize();
-    NS_ENSURE_SUCCESS(rv, rv);
-
     
     
     
