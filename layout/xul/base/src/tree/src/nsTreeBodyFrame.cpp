@@ -2433,7 +2433,10 @@ nsTreeBodyFrame::CalcHorzWidth(const ScrollParts& aParts)
 {
   
   
-  mAdjustWidth = mRect.width - aParts.mColumnsFrame->GetRect().width;
+  if (aParts.mColumnsFrame)
+    mAdjustWidth = mRect.width - aParts.mColumnsFrame->GetRect().width;
+  else
+    mAdjustWidth = 0;
 
   nscoord width = 0;
   nscoord height;
