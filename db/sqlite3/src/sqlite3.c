@@ -453,7 +453,7 @@ extern "C" {
 
 
 
-#define SQLITE_VERSION         "3.5.4.1"
+#define SQLITE_VERSION         "3.5.4.2"
 #define SQLITE_VERSION_NUMBER 3005004
 
 
@@ -10324,12 +10324,13 @@ SQLITE_API int sqlite3_mutex_notheld(sqlite3_mutex *p){
 
 
 struct sqlite3_mutex {
-  PSZ  mutexName;   
   HMTX mutex;       
   int  id;          
   int  nRef;        
   TID  owner;       
 };
+
+#define OS2_MUTEX_INITIALIZER   0,0,0,0
 
 
 
@@ -10371,46 +10372,55 @@ struct sqlite3_mutex {
 
 
 SQLITE_API sqlite3_mutex *sqlite3_mutex_alloc(int iType){
-  PSZ mutex_name = "\\SEM32\\SQLITE\\MUTEX";
-  int mutex_name_len = strlen(mutex_name) + 1; 
-  sqlite3_mutex *p;
-
+  sqlite3_mutex *p = NULL;
   switch( iType ){
     case SQLITE_MUTEX_FAST:
     case SQLITE_MUTEX_RECURSIVE: {
       p = sqlite3MallocZero( sizeof(*p) );
       if( p ){
-        p->mutexName = (PSZ)malloc(mutex_name_len);
-        sqlite3_snprintf(mutex_name_len, p->mutexName, "%s", mutex_name);
         p->id = iType;
-        DosCreateMutexSem(p->mutexName, &p->mutex, 0, FALSE);
-        DosOpenMutexSem(p->mutexName, &p->mutex);
+        if( DosCreateMutexSem( 0, &p->mutex, 0, FALSE ) != NO_ERROR ){
+          sqlite3_free( p );
+          p = NULL;
+        }
       }
       break;
     }
     default: {
-      static sqlite3_mutex staticMutexes[5];
-      static int isInit = 0;
-      while( !isInit ) {
-        static long lock = 0;
-        DosEnterCritSec();
-        lock++;
-        if( lock == 1 ) {
-          int i;
-          DosExitCritSec();
-          for(i = 0; i < sizeof(staticMutexes)/sizeof(staticMutexes[0]); i++) {
-            staticMutexes[i].mutexName = (PSZ)malloc(mutex_name_len + 1);
-            sqlite3_snprintf(mutex_name_len + 1, 
-                             staticMutexes[i].mutexName, "%s%1d", mutex_name, i);
-            DosCreateMutexSem(staticMutexes[i].mutexName,
-                              &staticMutexes[i].mutex, 0, FALSE);
-            DosOpenMutexSem(staticMutexes[i].mutexName,
-                            &staticMutexes[i].mutex);
+      static volatile int isInit = 0;
+      static sqlite3_mutex staticMutexes[] = {
+        { OS2_MUTEX_INITIALIZER, },
+        { OS2_MUTEX_INITIALIZER, },
+        { OS2_MUTEX_INITIALIZER, },
+        { OS2_MUTEX_INITIALIZER, },
+        { OS2_MUTEX_INITIALIZER, },
+      };
+      if ( !isInit ){
+        APIRET rc;
+        PTIB ptib;
+        PPIB ppib;
+        HMTX mutex;
+        char name[32];
+        DosGetInfoBlocks( &ptib, &ppib );
+        sqlite3_snprintf( sizeof(name), name, "\\SEM32\\SQLITE%04x",
+                          ppib->pib_ulpid );
+        while( !isInit ){
+          mutex = 0;
+          rc = DosCreateMutexSem( name, &mutex, 0, FALSE);
+          if( rc == NO_ERROR ){
+            int i;
+            if( !isInit ){
+              for( i = 0; i < sizeof(staticMutexes)/sizeof(staticMutexes[0]); i++ ){
+                DosCreateMutexSem( 0, &staticMutexes[i].mutex, 0, FALSE );
+              }
+              isInit = 1;
+            }
+            DosCloseMutexSem( mutex );
+          }else if( rc == ERROR_DUPLICATE_NAME ){
+            DosSleep( 1 );
+          }else{
+            return p;
           }
-          isInit = 1;
-        } else {
-          DosExitCritSec();
-          DosSleep(1);
         }
       }
       assert( iType-2 >= 0 );
@@ -10432,9 +10442,8 @@ SQLITE_API void sqlite3_mutex_free(sqlite3_mutex *p){
   assert( p );
   assert( p->nRef==0 );
   assert( p->id==SQLITE_MUTEX_FAST || p->id==SQLITE_MUTEX_RECURSIVE );
-  DosCloseMutexSem(p->mutex);
-  free(p->mutexName);
-  sqlite3_free(p);
+  DosCloseMutexSem( p->mutex );
+  sqlite3_free( p );
 }
 
 
@@ -14855,15 +14864,10 @@ int os2Write(
 
 int os2Truncate( sqlite3_file *id, i64 nByte ){
   APIRET rc = NO_ERROR;
-  ULONG filePosition = 0L;
   os2File *pFile = (os2File*)id;
   OSTRACE3( "TRUNCATE %d %lld\n", pFile->h, nByte );
   SimulateIOError( return SQLITE_IOERR_TRUNCATE );
-  rc = DosSetFilePtr( pFile->h, nByte, FILE_BEGIN, &filePosition );
-  if( rc != NO_ERROR ){
-    return SQLITE_IOERR;
-  }
-  rc = DosSetFilePtr( pFile->h, 0L, FILE_END, &filePosition );
+  rc = DosSetFileSize( pFile->h, nByte );
   return rc == NO_ERROR ? SQLITE_OK : SQLITE_IOERR;
 }
 
@@ -15117,15 +15121,16 @@ int os2Lock( sqlite3_file *id, int locktype ){
 
 
 int os2CheckReservedLock( sqlite3_file *id ){
-  APIRET rc = NO_ERROR;
+  int r = 0;
   os2File *pFile = (os2File*)id;
   assert( pFile!=0 );
   if( pFile->locktype>=RESERVED_LOCK ){
-    rc = 1;
-    OSTRACE3( "TEST WR-LOCK %d %d (local)\n", pFile->h, rc );
+    r = 1;
+    OSTRACE3( "TEST WR-LOCK %d %d (local)\n", pFile->h, r );
   }else{
     FILELOCK  LockArea,
               UnlockArea;
+    APIRET rc = NO_ERROR;
     memset(&LockArea, 0, sizeof(LockArea));
     memset(&UnlockArea, 0, sizeof(UnlockArea));
     LockArea.lOffset = RESERVED_BYTE;
@@ -15135,17 +15140,18 @@ int os2CheckReservedLock( sqlite3_file *id ){
     rc = DosSetFileLocks( pFile->h, &UnlockArea, &LockArea, 2000L, 1L );
     OSTRACE3( "TEST WR-LOCK %d lock reserved byte rc=%d\n", pFile->h, rc );
     if( rc == NO_ERROR ){
-      int r;
+      APIRET rcu = NO_ERROR; 
       LockArea.lOffset = 0L;
       LockArea.lRange = 0L;
       UnlockArea.lOffset = RESERVED_BYTE;
       UnlockArea.lRange = 1L;
-      r = DosSetFileLocks( pFile->h, &UnlockArea, &LockArea, 2000L, 1L );
-      OSTRACE3( "TEST WR-LOCK %d unlock reserved byte r=%d\n", pFile->h, r );
+      rcu = DosSetFileLocks( pFile->h, &UnlockArea, &LockArea, 2000L, 1L );
+      OSTRACE3( "TEST WR-LOCK %d unlock reserved byte r=%d\n", pFile->h, rcu );
     }
-    OSTRACE3( "TEST WR-LOCK %d %d (remote)\n", pFile->h, rc );
+    r = !(rc == NO_ERROR);
+    OSTRACE3( "TEST WR-LOCK %d %d (remote)\n", pFile->h, r );
   }
-  return rc;
+  return r;
 }
 
 
@@ -15337,14 +15343,7 @@ static int os2Open(
   }
 
   
-  
-  if( flags & (SQLITE_OPEN_MAIN_DB | SQLITE_OPEN_TEMP_DB) ){
-    ulOpenMode |= OPEN_FLAGS_RANDOM;
-    OSTRACE1( "OPEN random access\n" );
-  }else{
-    ulOpenMode |= OPEN_FLAGS_SEQUENTIAL;
-    OSTRACE1( "OPEN sequential access\n" );
-  }
+  ulOpenMode |= OPEN_FLAGS_RANDOM;
   ulOpenMode |= OPEN_FLAGS_FAIL_ON_ERROR;
 
   rc = DosOpen( (PSZ)zName,
@@ -15455,8 +15454,7 @@ static int os2GetTempname( sqlite3_vfs *pVfs, int nBuf, char *zBuf ){
     j--;
   }
   zTempPath[j] = '\0';
-  assert( nBuf>=pVfs->mxPathname );
-  sqlite3_snprintf( pVfs->mxPathname-30, zBuf,
+  sqlite3_snprintf( nBuf-30, zBuf,
                     "%s\\"SQLITE_TEMP_FILE_PREFIX, zTempPath );
   j = strlen( zBuf );
   sqlite3Randomness( 20, &zBuf[j] );
@@ -15480,24 +15478,8 @@ static int os2FullPathname(
   int nFull,                  
   char *zFull                 
 ){
-  if( strchr(zRelative, ':') ){
-    sqlite3_snprintf( nFull, zFull, "%s", zRelative );
-  }else{
-    ULONG ulDriveNum = 0;
-    ULONG ulDriveMap = 0;
-    ULONG cbzBufLen = SQLITE_TEMPNAME_SIZE;
-    char *zBuff = (char*)malloc( cbzBufLen );
-    if( zBuff == 0 ){
-      return SQLITE_NOMEM;
-    }
-    DosQueryCurrentDisk( &ulDriveNum, &ulDriveMap );
-    if( DosQueryCurrentDir( ulDriveNum, (PBYTE)zBuff, &cbzBufLen ) == NO_ERROR ){
-      sqlite3_snprintf( nFull, zFull, "%c:\\%s\\%s",
-                               (char)('A' + ulDriveNum - 1), zBuff, zRelative);
-    }
-    free( zBuff );
-  }
-  return SQLITE_OK;
+  APIRET rc = DosQueryPathInfo( zRelative, FIL_QUERYFULLNAME, zFull, nFull );
+  return rc == NO_ERROR ? SQLITE_OK : SQLITE_IOERR;
 }
 
 #ifndef SQLITE_OMIT_LOAD_EXTENSION
