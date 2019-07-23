@@ -41,6 +41,7 @@
 #include "nsISupports.h"
 #include "nsColor.h"
 #include "nsCoord.h"
+#include "nsRect.h"
 
 #include "prthread.h"
 #include "nsEvent.h"
@@ -53,7 +54,6 @@ class   nsIFontMetrics;
 class   nsIRenderingContext;
 class   nsIDeviceContext;
 class   nsIRegion;
-struct  nsRect;
 struct  nsFont;
 class   nsIEventListener;
 class   nsIRollupListener;
@@ -96,8 +96,8 @@ typedef nsEventStatus (*PR_CALLBACK EVENT_CALLBACK)(nsGUIEvent *event);
 
 
 #define NS_IWIDGET_IID \
-{ 0x594d22a3, 0xef2d, 0x4189, \
-  { 0x9b, 0xc1, 0x3c, 0x3d, 0xa5, 0x86, 0xf4, 0x7a } }
+{ 0x3d304df2, 0x8e6b, 0x4f09, \
+  { 0x87, 0x82, 0x98, 0xbd, 0x64, 0x9c, 0x7e, 0x96 } }
 
 
 
@@ -1045,6 +1045,17 @@ class nsIWidget : public nsISupports {
 
 
     NS_IMETHOD SetWindowTitlebarColor(nscolor aColor, PRBool aActive) = 0;
+    
+    
+
+
+
+
+
+
+
+
+    virtual PRBool ShowsResizeIndicator(nsIntRect* aResizerRect) = 0;
 
     
 
