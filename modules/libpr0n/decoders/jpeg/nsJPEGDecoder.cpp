@@ -90,6 +90,8 @@ METHODDEF(void) skip_input_data (j_decompress_ptr jd, long num_bytes);
 METHODDEF(void) term_source (j_decompress_ptr jd);
 METHODDEF(void) my_error_exit (j_common_ptr cinfo);
 
+static void cmyk_convert_rgb(JSAMPROW row, JDIMENSION width);
+
 
 #define MAX_JPEG_MARKER_LENGTH  (((PRUint32)1 << 16) - 1)
 
@@ -422,6 +424,11 @@ nsresult nsJPEGDecoder::ProcessData(const char *data, PRUint32 count, PRUint32 *
       case JCS_YCbCr:
         mInfo.out_color_space = JCS_RGB;
         break;
+      case JCS_CMYK:
+      case JCS_YCCK:
+        
+        mInfo.out_color_space = JCS_CMYK;
+        break;
       default:
         mState = JPEG_ERROR;
         PR_LOG(gJPEGDecoderAccountingLog, PR_LOG_DEBUG,
@@ -699,8 +706,7 @@ nsJPEGDecoder::OutputScanlines()
       }
 
       JSAMPROW sampleRow = (JSAMPROW)imageRow;
-      if (!mTransform || (mInfo.out_color_space != JCS_GRAYSCALE &&
-                          mInfo.out_color_space != JCS_CMYK)) {
+      if (mInfo.output_components == 3) {
         
         sampleRow += mInfo.output_width;
       }
@@ -726,11 +732,20 @@ nsJPEGDecoder::OutputScanlines()
                   3 * mInfo.output_width);
           sampleRow += mInfo.output_width;
         }
-      } else if (gfxPlatform::IsCMSEnabled()) {
-        
-        cmsHTRANSFORM transform = gfxPlatform::GetCMSRGBTransform();
-        if (transform) {
-          cmsDoTransform(transform, sampleRow, sampleRow, mInfo.output_width);
+      } else {
+        if (mInfo.out_color_space == JCS_CMYK) {
+          
+          
+          
+          cmyk_convert_rgb((JSAMPROW)imageRow, mInfo.output_width);
+          sampleRow += mInfo.output_width;
+        }
+        if (gfxPlatform::IsCMSEnabled()) {
+          
+          cmsHTRANSFORM transform = gfxPlatform::GetCMSRGBTransform();
+          if (transform) {
+            cmsDoTransform(transform, sampleRow, sampleRow, mInfo.output_width);
+          }
         }
       }
 
@@ -1265,5 +1280,52 @@ ycc_rgb_convert_argb (j_decompress_ptr cinfo,
                     ( range_limit_y[((int) RIGHT_SHIFT(Cb_g_tab[cb] + Cr_g_tab[cr], SCALEBITS))] << 8 ) |
                     ( range_limit_y[Cb_b_tab[cb]] );
     }
+  }
+}
+
+
+
+
+
+
+
+
+
+static void cmyk_convert_rgb(JSAMPROW row, JDIMENSION width)
+{
+  
+  JSAMPROW in = row + width*4;
+  JSAMPROW out = in;
+
+  for (PRUint32 i = width; i > 0; i--) {
+    in -= 4;
+    out -= 3;
+
+    
+    
+    
+
+    
+    
+    
+    
+
+    
+    
+    
+
+    
+    
+    
+    
+  
+    
+    const PRUint32 iC = in[0];
+    const PRUint32 iM = in[1];
+    const PRUint32 iY = in[2];
+    const PRUint32 iK = in[3];
+    out[0] = iC*iK/255;   
+    out[1] = iM*iK/255;   
+    out[2] = iY*iK/255;   
   }
 }
