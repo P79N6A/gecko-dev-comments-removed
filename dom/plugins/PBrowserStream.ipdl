@@ -49,7 +49,7 @@ namespace plugins {
  * NPBrowserStream represents a NPStream sent from the browser to the plugin.
  */
 
-rpc protocol PPluginStream
+rpc protocol PBrowserStream
 {
   manager PPluginInstance;
 
