@@ -5698,38 +5698,16 @@ JS_SetGCZeal(JSContext *cx, uint8 zeal)
 
 
 
-#if defined(XP_WIN)
+#if !defined(STATIC_JS_API) && defined(XP_WIN)
+
 #include <windows.h>
 
 
 
 
-
-
-
-
-
-
-
-
-#ifdef _WIN32
 BOOL WINAPI DllMain (HINSTANCE hDLL, DWORD dwReason, LPVOID lpReserved)
 {
     return TRUE;
 }
 
-#else  
-
-int CALLBACK LibMain( HINSTANCE hInst, WORD wDataSeg,
-                      WORD cbHeapSize, LPSTR lpszCmdLine )
-{
-    return TRUE;
-}
-
-BOOL CALLBACK __loadds WEP(BOOL fSystemExit)
-{
-    return TRUE;
-}
-
-#endif 
-#endif 
+#endif
