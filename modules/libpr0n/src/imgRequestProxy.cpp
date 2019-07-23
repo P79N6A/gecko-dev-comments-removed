@@ -343,15 +343,6 @@ NS_IMETHODIMP imgRequestProxy::Clone(imgIDecoderObserver* aObserver,
 }
 
 
-NS_IMETHODIMP imgRequestProxy::GetImagePrincipal(nsIPrincipal **aPrincipal)
-{
-  if (!mOwner)
-    return NS_ERROR_FAILURE;
-
-  return mOwner->GetPrincipal(aPrincipal);
-}
-
-
 
 NS_IMETHODIMP imgRequestProxy::GetPriority(PRInt32 *priority)
 {
