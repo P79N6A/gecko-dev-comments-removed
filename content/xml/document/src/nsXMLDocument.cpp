@@ -540,10 +540,8 @@ nsXMLDocument::EndLoad()
   mChannelIsPending = PR_FALSE;
   mLoopingForSyncLoad = PR_FALSE;
 
-  mSynchronousDOMContentLoaded = (mLoadedAsData || mLoadedAsInteractiveData);
   nsDocument::EndLoad();
-  if (mSynchronousDOMContentLoaded) {
-    mSynchronousDOMContentLoaded = PR_FALSE;
+  if (mLoadedAsData || mLoadedAsInteractiveData) {
     nsDocument::SetReadyStateInternal(nsIDocument::READYSTATE_COMPLETE);
     
     

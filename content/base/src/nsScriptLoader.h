@@ -208,6 +208,14 @@ public:
   
 
 
+  PRUint32 HasPendingOrCurrentScripts()
+  {
+    return mCurrentScript || GetFirstPendingRequest();
+  }
+
+  
+
+
 
 
 
