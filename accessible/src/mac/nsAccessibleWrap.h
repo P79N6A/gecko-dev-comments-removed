@@ -76,7 +76,9 @@ class nsAccessibleWrap : public nsAccessible
     
     virtual nsresult Shutdown ();
     virtual nsresult InvalidateChildren ();
-    
+
+    NS_IMETHOD FireAccessibleEvent(nsIAccessibleEvent *aEvent);
+
     
     
     PRBool IsFlat() {

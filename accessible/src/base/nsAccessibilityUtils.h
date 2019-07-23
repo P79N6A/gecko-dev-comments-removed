@@ -40,6 +40,7 @@
 #define nsAccessibilityUtils_h_
 
 #include "nsAccessibilityAtoms.h"
+#include "nsIAccessible.h"
 
 #include "nsIDOMNode.h"
 #include "nsIPersistentProperties2.h"
@@ -101,7 +102,16 @@ public:
   static void SetAccAttrsForXULSelectControlItem(nsIDOMNode *aNode,
                                                  nsIPersistentProperties *aAttributes);
 
+  
+
+
+
   static PRBool HasListener(nsIContent *aContent, const nsAString& aEventType);
+
+  
+
+
+  static nsresult FireAccEvent(PRUint32 aEventType, nsIAccessible *aAccessible);
 };
 
 #endif
