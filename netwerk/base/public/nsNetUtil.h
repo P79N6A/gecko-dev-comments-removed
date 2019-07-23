@@ -1443,30 +1443,6 @@ NS_GetFinalChannelURI(nsIChannel* channel, nsIURI** uri)
     return channel->GetOriginalURI(uri);
 }
 
-
-
-
-
-
-
-
-
-
-
-inline PRBool
-NS_OfflineAppAllowed(nsIURI *aURI, nsIPrefBranch *aPrefBranch = nsnull)
-{
-    nsresult rv;
-    nsCOMPtr<nsINetUtil_MOZILLA_1_9_1> util = do_GetIOService(&rv);
-    NS_ENSURE_SUCCESS(rv, PR_FALSE);
-
-    PRBool allowed;
-    rv = util->OfflineAppAllowed(aURI, aPrefBranch, &allowed);
-    NS_ENSURE_SUCCESS(rv, PR_FALSE);
-
-    return allowed;
-}
-
 static inline PRInt32
 GetEffectivePort(nsIURI* aURI)
 {

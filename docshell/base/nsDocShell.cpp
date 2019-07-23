@@ -107,6 +107,8 @@
 #include "nsIScrollableView.h"
 #include "nsIScriptChannel.h"
 #include "nsIURIClassifier.h"
+#include "nsIOfflineCacheUpdate.h"
+#include "nsCPrefetchService.h"
 
 
 
@@ -7322,6 +7324,31 @@ nsDocShell::GetInheritedPrincipal(PRBool aConsiderCurrentDocument)
     return nsnull;
 }
 
+PRBool
+nsDocShell::ShouldCheckAppCache(nsIURI *aURI)
+{
+    
+    
+    
+    nsCOMPtr<nsIDocShellTreeItem> root;
+    GetSameTypeRootTreeItem(getter_AddRefs(root));
+    if (root != this) {
+        return PR_FALSE;
+    }
+
+    nsCOMPtr<nsIOfflineCacheUpdateService> offlineService =
+        do_GetService(NS_OFFLINECACHEUPDATESERVICE_CONTRACTID);
+    if (!offlineService) {
+        return PR_FALSE;
+    }
+
+    PRBool allowed;
+    nsresult rv = offlineService->OfflineAppAllowedForURI(aURI,
+                                                          nsnull,
+                                                          &allowed);
+    return NS_SUCCEEDED(rv) && allowed;
+}
+
 nsresult
 nsDocShell::DoURILoad(nsIURI * aURI,
                       nsIURI * aReferrerURI,
@@ -7347,12 +7374,7 @@ nsDocShell::DoURILoad(nsIURI * aURI,
         
         loadFlags |= nsIChannel::LOAD_INITIAL_DOCUMENT_URI;
 
-        
-        
-        
-        nsCOMPtr<nsIDocShellTreeItem> root;
-        GetSameTypeRootTreeItem(getter_AddRefs(root));
-        if (root == this && NS_OfflineAppAllowed(aURI)) {
+        if (ShouldCheckAppCache(aURI)) {
             loadFlags |= nsICachingChannel::LOAD_CHECK_OFFLINE_CACHE;
         }
     }
