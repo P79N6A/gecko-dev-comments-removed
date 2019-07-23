@@ -214,8 +214,12 @@ public:
   nsIPresShell* GetPresShell() const { return mShell; }
 
   
-  
-  nsRootPresContext* RootPresContext();
+
+
+
+
+  nsRootPresContext* GetRootPresContext();
+  virtual PRBool IsRoot() { return PR_FALSE; }
 
   nsIDocument* Document() const
   {
@@ -1174,6 +1178,8 @@ public:
 
 
   void DidApplyPluginGeometryUpdates();
+
+  virtual PRBool IsRoot() { return PR_TRUE; }
 
 private:
   nsTHashtable<nsPtrHashKey<nsObjectFrame> > mRegisteredPlugins;

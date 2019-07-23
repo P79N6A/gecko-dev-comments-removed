@@ -7502,7 +7502,10 @@ nsCSSFrameConstructor::ProcessRestyledFrames(nsStyleChangeList& aChangeList)
     
     
     nsIFrame* rootFrame = mPresShell->FrameManager()->GetRootFrame();
-    presContext->RootPresContext()->UpdatePluginGeometry(rootFrame);
+    nsRootPresContext* rootPC = presContext->GetRootPresContext();
+    if (rootPC) {
+      rootPC->UpdatePluginGeometry(rootFrame);
+    }
   }
 
   
