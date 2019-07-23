@@ -131,7 +131,7 @@ struct REHashKey;
 struct FrameInfo;
 struct VMSideExit;
 struct TreeFragment;
-struct TracerState;
+struct InterpState;
 template<typename T> class Queue;
 typedef Queue<uint16> SlotList;
 class TypeMap;
@@ -165,7 +165,7 @@ class ContextAllocPolicy
 };
 
 
-struct TracerState 
+struct InterpState
 {
     JSContext*     cx;                  
     double*        stackBase;           
@@ -185,7 +185,7 @@ struct TracerState
     VMSideExit**   innermostNestedGuardp;
     VMSideExit*    innermost;
     uint64         startTime;
-    TracerState*   prev;
+    InterpState*   prev;
 
     
     
@@ -199,9 +199,9 @@ struct TracerState
     uintN          nativeVpLen;
     jsval*         nativeVp;
 
-    TracerState(JSContext *cx, TraceMonitor *tm, TreeFragment *ti,
+    InterpState(JSContext *cx, TraceMonitor *tm, TreeFragment *ti,
                 uintN &inlineCallCountp, VMSideExit** innermostNestedGuardp);
-    ~TracerState();
+    ~InterpState();
 };
 
 
@@ -721,11 +721,7 @@ struct JSClassProtoCache {
 #endif
 };
 
-namespace js {
-
-typedef Vector<JSGCChunkInfo *, 32, SystemAllocPolicy> GCChunks;
-
-} 
+typedef js::Vector<JSGCChunkInfo*, 0, js::SystemAllocPolicy> GCEmptyChunks;
 
 struct JSRuntime {
     
@@ -749,11 +745,8 @@ struct JSRuntime {
     uint32              protoHazardShape;
 
     
-    js::GCChunks        gcChunks;
-    size_t              gcChunkCursor;
-#ifdef DEBUG
-    JSGCArena           *gcEmptyArenaList;
-#endif
+    JSGCChunkInfo       *gcChunkList;
+    GCEmptyChunks       gcEmptyChunks;
     JSGCArenaList       gcArenaList[FINALIZE_LIMIT];
     JSGCDoubleArenaList gcDoubleArenaList;
     JSDHashTable        gcRootsHash;
@@ -1180,42 +1173,9 @@ namespace js {
 class AutoGCRooter;
 }
 
-struct JSRegExpStatics {
-    JSString    *input;         
-    JSBool      multiline;      
-    JSSubString lastMatch;      
-    JSSubString lastParen;      
-    JSSubString leftContext;    
-    JSSubString rightContext;   
-    js::Vector<JSSubString> parens; 
-
-    JSRegExpStatics(JSContext *cx) : parens(cx) {}
-
-    bool copy(const JSRegExpStatics& other) {
-        input = other.input;
-        multiline = other.multiline;
-        lastMatch = other.lastMatch;
-        lastParen = other.lastParen;
-        leftContext = other.leftContext;
-        rightContext = other.rightContext;
-        if (!parens.resize(other.parens.length()))
-            return false;
-        memcpy(parens.begin(), other.parens.begin(), sizeof(JSSubString) * parens.length());
-        return true;
-    }
-
-    void clear() {
-        input = NULL;
-        multiline = false;
-        lastMatch = lastParen = leftContext = rightContext = js_EmptySubString;
-        parens.clear();
-    }
-};
-
 struct JSContext
 {
-    explicit JSContext(JSRuntime *rt) :
-      runtime(rt), regExpStatics(this), busyArrays(this) {}
+    explicit JSContext(JSRuntime *rt) : runtime(rt), busyArrays(this) {}
 
     
 
@@ -1431,7 +1391,7 @@ struct JSContext
 
 
 
-    js::TracerState     *tracerState;
+    js::InterpState     *interpState;
     js::VMSideExit      *bailExit;
 
     
@@ -1710,19 +1670,14 @@ class AutoGCRooter {
     void operator=(AutoGCRooter &ida);
 };
 
-class AutoSaveRestoreWeakRoots : private AutoGCRooter
+class AutoSaveWeakRoots : private AutoGCRooter
 {
   public:
-    explicit AutoSaveRestoreWeakRoots(JSContext *cx
-                                      JS_GUARD_OBJECT_NOTIFIER_PARAM)
+    explicit AutoSaveWeakRoots(JSContext *cx
+                               JS_GUARD_OBJECT_NOTIFIER_PARAM)
       : AutoGCRooter(cx, WEAKROOTS), savedRoots(cx->weakRoots)
     {
         JS_GUARD_OBJECT_NOTIFIER_INIT;
-    }
-
-    ~AutoSaveRestoreWeakRoots()
-    {
-        context->weakRoots = savedRoots;
     }
 
     friend void AutoGCRooter::trace(JSTracer *trc);
