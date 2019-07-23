@@ -126,9 +126,14 @@ nsFontFaceLoader::OnStreamComplete(nsIStreamLoader* aLoader,
   }
 
   
-  fontUpdate = ctx->GetUserFontSet()->OnLoadComplete(mFontEntry, aLoader,
-                                                     aString, aStringLen,
-                                                     aStatus);
+  gfxUserFontSet *userFontSet = ctx->GetUserFontSet();
+  if (!userFontSet) {
+    return aStatus;
+  }
+  
+  fontUpdate = userFontSet->OnLoadComplete(mFontEntry, aLoader,
+                                           aString, aStringLen,
+                                           aStatus);
 
   
   if (fontUpdate) {
