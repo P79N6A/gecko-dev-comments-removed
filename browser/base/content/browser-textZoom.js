@@ -77,6 +77,12 @@ var FullZoom = {
                        getService(Ci.nsIContentPrefService);
   },
 
+  get _prefBranch FullZoom_get__prefBranch() {
+    delete this._prefBranch;
+    return this._prefBranch = Cc["@mozilla.org/preferences-service;1"].
+                              getService(Ci.nsIPrefBranch2);
+  },
+
   
   _siteSpecificPref: undefined,
 
@@ -119,7 +125,9 @@ var FullZoom = {
 
     
     
-    gObserverService.addObserver(this, "private-browsing", true);
+    let os = Cc["@mozilla.org/observer-service;1"].
+             getService(Ci.nsIObserverService);
+    os.addObserver(this, "private-browsing", true);
 
     
     this._inPrivateBrowsing = Cc["@mozilla.org/privatebrowsing;1"].
@@ -127,17 +135,19 @@ var FullZoom = {
                               privateBrowsingEnabled;
 
     this._siteSpecificPref =
-      gPrefService.getBoolPref("browser.zoom.siteSpecific");
+      this._prefBranch.getBoolPref("browser.zoom.siteSpecific");
     this.updateBackgroundTabs = 
-      gPrefService.getBoolPref("browser.zoom.updateBackgroundTabs");
+      this._prefBranch.getBoolPref("browser.zoom.updateBackgroundTabs");
     
     
-    gPrefService.addObserver("browser.zoom.", this, true);
+    this._prefBranch.addObserver("browser.zoom.", this, true);
   },
 
   destroy: function FullZoom_destroy() {
-    gObserverService.removeObserver(this, "private-browsing");
-    gPrefService.removeObserver("browser.zoom.", this);
+    let os = Cc["@mozilla.org/observer-service;1"].
+             getService(Ci.nsIObserverService);
+    os.removeObserver(this, "private-browsing");
+    this._prefBranch.removeObserver("browser.zoom.", this);
     this._cps.removeObserver(this.name, this);
     window.removeEventListener("DOMMouseScroll", this, false);
     delete this._cps;
@@ -203,11 +213,11 @@ var FullZoom = {
         switch(aData) {
           case "browser.zoom.siteSpecific":
             this._siteSpecificPref =
-              gPrefService.getBoolPref("browser.zoom.siteSpecific");
+              this._prefBranch.getBoolPref("browser.zoom.siteSpecific");
             break;
           case "browser.zoom.updateBackgroundTabs":
             this.updateBackgroundTabs =
-              gPrefService.getBoolPref("browser.zoom.updateBackgroundTabs");
+              this._prefBranch.getBoolPref("browser.zoom.updateBackgroundTabs");
             break;
         }
         break;
