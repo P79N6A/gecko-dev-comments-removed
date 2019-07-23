@@ -224,7 +224,6 @@ public:
 
 
 
-
   static void PaintDecorationLine(gfxContext* aGfxContext,
                                   const nscolor aColor,
                                   const gfxPoint& aPt,
@@ -232,8 +231,7 @@ public:
                                   const gfxFloat aAscent,
                                   const gfxFloat aOffset,
                                   const PRUint8 aDecoration,
-                                  const PRUint8 aStyle,
-                                  const PRBool aIsRTL);
+                                  const PRUint8 aStyle);
 
   
 
