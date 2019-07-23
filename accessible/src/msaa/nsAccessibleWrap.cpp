@@ -94,18 +94,11 @@ nsAccessibleWrap::~nsAccessibleWrap()
 {
 }
 
+NS_IMPL_ISUPPORTS_INHERITED0(nsAccessibleWrap, nsAccessible);
 
 
 
-STDMETHODIMP_(ULONG) nsAccessibleWrap::AddRef()
-{
-  return nsAccessNode::AddRef();
-}
 
-STDMETHODIMP_(ULONG) nsAccessibleWrap::Release()
-{
-  return nsAccessNode::Release();
-}
 
 
 STDMETHODIMP nsAccessibleWrap::QueryInterface(REFIID iid, void** ppv)

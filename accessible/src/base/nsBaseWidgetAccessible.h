@@ -40,7 +40,7 @@
 #define _nsBaseWidgetAccessible_H_
 
 #include "nsAccessibleWrap.h"
-#include "nsHyperTextAccessible.h"
+#include "nsHyperTextAccessibleWrap.h"
 #include "nsIContent.h"
 
 class nsIDOMNode;
@@ -70,7 +70,7 @@ public:
 
 
 
-class nsLinkableAccessible : public nsHyperTextAccessible
+class nsLinkableAccessible : public nsHyperTextAccessibleWrap
 {
 public:
   enum { eAction_Jump = 0 };

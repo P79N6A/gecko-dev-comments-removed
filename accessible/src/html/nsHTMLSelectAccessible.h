@@ -148,7 +148,7 @@ protected:
 
 
 
-class nsHTMLSelectOptionAccessible : public nsHyperTextAccessible
+class nsHTMLSelectOptionAccessible : public nsHyperTextAccessibleWrap
 {
 public:
   enum { eAction_Select = 0 };  
