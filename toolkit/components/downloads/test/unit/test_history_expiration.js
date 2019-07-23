@@ -121,9 +121,11 @@ function run_test()
   
   let prefs = Cc["@mozilla.org/preferences-service;1"].
               getService(Ci.nsIPrefBranch);
-  prefs.setIntPref("browser.history_expire_sites", 0);
-  prefs.setIntPref("browser.history_expire_days_min", 0);
-  prefs.setIntPref("browser.history_expire_days", 0);
+  prefs.setIntPref("places.history.expiration.max_pages", 0);
+
+  
+  let expire = Cc["@mozilla.org/places/expiration;1"].getService(Ci.nsIObserver);
+  expire.observe(null, "places-debug-start-expiration", null);
 
   
   do_test_pending();
