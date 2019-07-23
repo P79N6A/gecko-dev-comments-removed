@@ -1411,6 +1411,23 @@ DocumentViewerImpl::Destroy()
       }
     }
 
+#ifdef NS_PRINTING
+  if (mPrintEngine) {
+    
+    
+#ifdef NS_PRINT_PREVIEW
+    PRBool doingPrintPreview;
+    mPrintEngine->GetDoingPrintPreview(&doingPrintPreview);
+    if (doingPrintPreview) {
+      mPrintEngine->FinishPrintPreview();
+    }
+#endif
+
+    mPrintEngine->Destroy();
+    mPrintEngine = nsnull;
+  }
+#endif
+
     Hide();
 
     
@@ -1469,21 +1486,6 @@ DocumentViewerImpl::Destroy()
   
   
   
-
-#ifdef NS_PRINTING
-  if (mPrintEngine) {
-#ifdef NS_PRINT_PREVIEW
-    PRBool doingPrintPreview;
-    mPrintEngine->GetDoingPrintPreview(&doingPrintPreview);
-    if (doingPrintPreview) {
-      mPrintEngine->FinishPrintPreview();
-    }
-#endif
-
-    mPrintEngine->Destroy();
-    mPrintEngine = nsnull;
-  }
-#endif
 
   
   if (mPreviousViewer) {
