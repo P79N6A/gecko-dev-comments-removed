@@ -74,7 +74,6 @@ struct JSStackFrame {
     jsval           argsobj;        
 
     JSObject        *varobj;        
-    JSObject        *callee;        
     JSScript        *script;        
     JSFunction      *fun;           
     JSObject        *thisp;         
@@ -144,6 +143,10 @@ struct JSStackFrame {
         } else if (argsobj) {
             js_PutArgsObject(cx, this);
         }
+    }
+
+    JSObject *callee() {
+        return argv ? JSVAL_TO_OBJECT(argv[-2]) : NULL;
     }
 };
 

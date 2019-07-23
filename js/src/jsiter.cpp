@@ -735,7 +735,6 @@ js_NewGenerator(JSContext *cx, JSStackFrame *fp)
 
     
     gen->frame.script = fp->script;
-    gen->frame.callee = fp->callee;
     gen->frame.fun = fp->fun;
 
     
