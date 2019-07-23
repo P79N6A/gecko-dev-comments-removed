@@ -93,13 +93,7 @@ enum {
   NODE_IS_EDITABLE =             0x00000100U,
 
   
-  
-  NODE_MAY_HAVE_ID =             0x00000200U,
-  NODE_MAY_HAVE_CLASS =          0x00000400U,
-  NODE_MAY_HAVE_STYLE =          0x00000800U,
-
-  
-  NODE_SCRIPT_TYPE_OFFSET =               12,
+  NODE_SCRIPT_TYPE_OFFSET =                9,
 
   NODE_SCRIPT_TYPE_SIZE =                  4,
 
