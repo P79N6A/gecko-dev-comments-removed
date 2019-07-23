@@ -26,6 +26,7 @@
         worker.postMessage("stop");
         break;
       case "stopped":
+        ok(true, "worker correctly stopped");
         SimpleTest.finish();
         break;
       default:
@@ -47,4 +48,3 @@
 </pre>
 </body>
 </html>
-
