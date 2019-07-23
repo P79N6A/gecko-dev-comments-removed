@@ -76,9 +76,15 @@ js_AtomToPrintableString(JSContext *cx, JSAtom *atom)
 
 
 
+
 JS_STATIC_ASSERT(JSTYPE_LIMIT == 8);
+JS_STATIC_ASSERT(JSVAL_TO_BOOLEAN(JSVAL_VOID) == 2);
+JS_STATIC_ASSERT(JSTYPE_VOID == 0);
+
 const char *const js_common_atom_names[] = {
     "",                         
+    js_false_str,               
+    js_true_str,                
     js_undefined_str,           
     js_object_str,              
     js_function_str,            
@@ -87,8 +93,6 @@ const char *const js_common_atom_names[] = {
     "boolean",                  
     js_null_str,                
     "xml",                      
-    js_false_str,               
-    js_true_str,                
     js_null_str,                
 
 #define JS_PROTO(name,code,init) js_##name##_str,

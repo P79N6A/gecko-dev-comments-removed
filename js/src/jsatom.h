@@ -163,8 +163,11 @@ struct JSAtomState {
     JSAtom              *emptyAtom;
 
     
-    JSAtom              *typeAtoms[JSTYPE_LIMIT];
+
+
+
     JSAtom              *booleanAtoms[2];
+    JSAtom              *typeAtoms[JSTYPE_LIMIT];
     JSAtom              *nullAtom;
 
     
@@ -280,14 +283,13 @@ extern const char *const js_common_atom_names[];
 
 
 
-
-#define JS_TYPE_STR(type)    (js_common_atom_names[1 + (type)])
-#define JS_BOOLEAN_STR(type) (js_common_atom_names[1 + JSTYPE_LIMIT + (type)])
+#define JS_BOOLEAN_STR(type) (js_common_atom_names[1 + (type)])
+#define JS_TYPE_STR(type)    (js_common_atom_names[1 + 2 + (type)])
 
 JS_STATIC_ASSERT(1 * sizeof(JSAtom *) ==
-                 offsetof(JSAtomState, typeAtoms) - ATOM_OFFSET_START);
-JS_STATIC_ASSERT((1 + JSTYPE_LIMIT) * sizeof(JSAtom *) ==
                  offsetof(JSAtomState, booleanAtoms) - ATOM_OFFSET_START);
+JS_STATIC_ASSERT((1 + 2) * sizeof(JSAtom *) ==
+                 offsetof(JSAtomState, typeAtoms) - ATOM_OFFSET_START);
 
 
 #define JS_PROTO(name,code,init) extern const char js_##name##_str[];

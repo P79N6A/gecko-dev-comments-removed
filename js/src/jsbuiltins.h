@@ -42,7 +42,7 @@
 
 #ifdef JS_TRACER
 
-#include "nanojit/nanojit.h"
+#include "nanojit.h"
 
 enum JSTNErrType { INFALLIBLE, FAIL_NULL, FAIL_NEG, FAIL_VOID, FAIL_JSVAL };
 enum { JSTN_ERRTYPE_MASK = 7, JSTN_MORE = 8 };
@@ -329,6 +329,9 @@ JS_DECLARE_CALLINFO(js_Array_1int)
 JS_DECLARE_CALLINFO(js_Array_1str)
 JS_DECLARE_CALLINFO(js_Array_2obj)
 JS_DECLARE_CALLINFO(js_Array_3num)
+
+
+JS_DECLARE_CALLINFO(js_BooleanToString)
 
 
 JS_DECLARE_CALLINFO(js_FastNewDate)
