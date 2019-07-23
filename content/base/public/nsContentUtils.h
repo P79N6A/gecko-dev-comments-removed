@@ -52,6 +52,7 @@
 #include "nsDOMClassInfoID.h"
 #include "nsIClassInfo.h"
 #include "nsIDOM3Node.h"
+#include "nsDataHashtable.h"
 #include "nsIScriptRuntime.h"
 #include "nsIScriptGlobalObject.h"
 
@@ -98,6 +99,22 @@ class nsIBidiKeyboard;
 #endif
 
 extern const char kLoadAsData[];
+
+enum EventNameType {
+  EventNameType_None = 0x0000,
+  EventNameType_HTML = 0x0001,
+  EventNameType_XUL = 0x0002,
+  EventNameType_SVGGraphic = 0x0004, 
+  EventNameType_SVGSVG = 0x0008, 
+
+  EventNameType_HTMLXUL = 0x0003,
+  EventNameType_All = 0xFFFF
+};
+
+struct EventNameMapping {
+  PRUint32  mId;
+  PRInt32 mType;
+};
 
 class nsContentUtils
 {
@@ -789,6 +806,25 @@ public:
 
 
 
+  static PRBool IsEventAttributeName(nsIAtom* aName, PRInt32 aType);
+
+  
+
+
+
+
+
+
+  static PRUint32 GetEventId(nsIAtom* aName);
+
+  
+
+
+
+
+
+
+
 
 
 
@@ -984,6 +1020,9 @@ public:
   };
 
 private:
+
+  static PRBool InitializeEventTable();
+
   static nsresult doReparentContentWrapper(nsIContent *aChild,
                                            JSContext *cx,
                                            JSObject *aOldGlobal,
@@ -1020,6 +1059,8 @@ private:
   static imgILoader* sImgLoader;
 
   static nsIConsoleService* sConsoleService;
+
+  static nsDataHashtable<nsISupportsHashKey, EventNameMapping>* sEventTable;
 
   static nsIStringBundleService* sStringBundleService;
   static nsIStringBundle* sStringBundles[PropertiesFile_COUNT];

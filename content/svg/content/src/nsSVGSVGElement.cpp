@@ -1218,17 +1218,14 @@ nsSVGSVGElement::DidModifySVGObservable (nsISVGValue* observable,
 PRBool
 nsSVGSVGElement::IsEventName(nsIAtom* aName)
 {
-  return IsGraphicElementEventName(aName) ||
-
   
 
 
 
 
 
-         aName == nsGkAtoms::onunload    ||
-         aName == nsGkAtoms::onscroll    ||
-         aName == nsGkAtoms::onzoom;
+  return nsContentUtils::IsEventAttributeName(aName,
+         (EventNameType_SVGGraphic | EventNameType_SVGSVG));
 }
 
 
