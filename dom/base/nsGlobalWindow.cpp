@@ -9068,7 +9068,9 @@ nsNavigator::GetPlatform(nsAString& aPlatform)
     
     
     
-#if defined(WIN32)
+#if defined(_WIN64)
+    aPlatform.AssignLiteral("Win64");
+#elif defined(WIN32)
     aPlatform.AssignLiteral("Win32");
 #elif defined(XP_MACOSX) && defined(__ppc__)
     aPlatform.AssignLiteral("MacPPC");
