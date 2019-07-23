@@ -791,3 +791,6 @@ pref("app.support.baseURL", "http://support.mozilla.com/1/%APP%/%VERSION%/%OS%/%
 
 
 pref("security.alternate_certificate_error_page", "certerror");
+
+
+pref("browser.privatebrowsing.autostart", false);
