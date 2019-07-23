@@ -44,6 +44,7 @@
 #include "nsIDOMNode.h"
 
 #include "nsEditRules.h"
+#include "nsITimer.h"
 
 
 
@@ -56,11 +57,12 @@
 
 
 
-class nsTextEditRules : public nsIEditRules
+class nsTextEditRules : public nsIEditRules, public nsITimerCallback
 {
 public:
+  NS_DECL_NSITIMERCALLBACK
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
-  NS_DECL_CYCLE_COLLECTION_CLASS(nsTextEditRules)
+  NS_DECL_CYCLE_COLLECTION_CLASS_AMBIGUOUS(nsTextEditRules, nsIEditRules)
   
               nsTextEditRules();
   virtual     ~nsTextEditRules();
@@ -186,7 +188,7 @@ protected:
   
   
                                         
-  nsresult EchoInsertionToPWBuff(PRInt32 aStart, PRInt32 aEnd, nsAString *aOutString);
+  nsresult FillBufWithPWChars(nsAString *aOutString, PRInt32 aLength);
 
   
   nsresult RemoveIMETextFromPWBuf(PRUint32 &aStart, nsAString *aIMEString);
@@ -198,6 +200,8 @@ protected:
                                      PRInt32               aSelOffset, 
                                      nsIEditor::EDirection aAction,
                                      PRBool               *aCancel);
+
+  nsresult HideLastPWInput();
 
   
   nsPlaintextEditor   *mEditor;        
@@ -216,6 +220,9 @@ protected:
                                                
                                                
   PRInt32              mTheAction;     
+  nsCOMPtr<nsITimer>   mTimer;
+  PRUint32             mLastStart, mLastLength;
+
   
   friend class nsAutoLockRulesSniffing;
 
