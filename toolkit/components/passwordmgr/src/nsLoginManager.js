@@ -262,7 +262,7 @@ LoginManager.prototype = {
             var domDoc = domWin.document;
 
             
-            if (! domDoc instanceof Ci.nsIDOMHTMLDocument)
+            if (!(domDoc instanceof Ci.nsIDOMHTMLDocument))
                 return;
 
             this._pwmgr.log("onStateChange accepted: req = " + (aRequest ?
