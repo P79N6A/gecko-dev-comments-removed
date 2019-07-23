@@ -178,6 +178,9 @@ LoginManagerStorage_legacy.prototype = {
 
     addLogin : function (login) {
         
+        this._checkLoginValues(login);
+
+        
         
         
         
@@ -272,6 +275,9 @@ LoginManagerStorage_legacy.prototype = {
 
 
     modifyLogin : function (oldLogin, newLogin) {
+        
+        this._checkLoginValues(newLogin);
+
         this.removeLogin(oldLogin);
         this.addLogin(newLogin);
     },
@@ -341,6 +347,14 @@ LoginManagerStorage_legacy.prototype = {
 
 
     setLoginSavingEnabled : function (hostname, enabled) {
+        
+        
+        if (hostname == "." ||
+            hostname.indexOf("\r") != -1 ||
+            hostname.indexOf("\n") != -1 ||
+            hostname.indexOf("\0") != -1)
+            throw "Invalid hostname";
+
         if (enabled)
             delete this._disabledHosts[hostname];
         else
@@ -453,6 +467,45 @@ LoginManagerStorage_legacy.prototype = {
         }
 
         return result;
+    },
+
+
+    
+
+
+
+
+
+
+    _checkLoginValues : function (aLogin) {
+        function badCharacterPresent(l, c) {
+            return ((l.formSubmitURL && l.formSubmitURL.indexOf(c) != -1) ||
+                    (l.httpRealm     && l.httpRealm.indexOf(c)     != -1) ||
+                                        l.hostname.indexOf(c)      != -1  ||
+                                        l.usernameField.indexOf(c) != -1  ||
+                                        l.passwordField.indexOf(c) != -1);
+        }
+
+        
+        
+        if (badCharacterPresent(aLogin, "\0"))
+            throw "login values can't contain nulls";
+
+        
+        if (badCharacterPresent(aLogin, "\r") ||
+            badCharacterPresent(aLogin, "\n"))
+            throw "login values can't contain newlines";
+
+        
+        if (aLogin.usernameField == "." ||
+            aLogin.formSubmitURL == ".")
+            throw "login values can't be periods";
+
+        
+        
+        
+        if (aLogin.hostname.indexOf(" (") != -1)
+            throw "bad parens in hostname";
     },
 
 

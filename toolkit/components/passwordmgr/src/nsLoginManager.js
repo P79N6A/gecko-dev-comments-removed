@@ -477,6 +477,10 @@ LoginManager.prototype = {
 
 
     setLoginSavingEnabled : function (hostname, enabled) {
+        
+        if (hostname.indexOf("\0") != -1)
+            throw "Invalid hostname";
+
         this.log("Saving logins for " + hostname + " enabled? " + enabled);
         return this._storage.setLoginSavingEnabled(hostname, enabled);
     },
