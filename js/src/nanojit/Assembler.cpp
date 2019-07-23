@@ -417,23 +417,23 @@ namespace nanojit
     
     
     
-    Register Assembler::getBaseReg(LIns *i, int &d, RegisterMask allow)
+    Register Assembler::getBaseReg(LInsp base, int &d, RegisterMask allow)
     {
     #if !PEDANTIC
-        if (i->isop(LIR_alloc)) {
+        if (base->isop(LIR_alloc)) {
             
             
             
             
             
             
-            d += findMemFor(i);
+            d += findMemFor(base);
             return FP;
         }
     #else
         (void) d;
     #endif
-        return findRegFor(i, allow);
+        return findRegFor(base, allow);
     }
 
     

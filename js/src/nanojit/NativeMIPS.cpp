@@ -391,7 +391,7 @@ namespace nanojit
 
     void Assembler::asm_regarg(ArgSize sz, LInsp p, Register r)
     {
-        NanoAssert(isKnownReg(r));
+        NanoAssert(deprecated_isKnownReg(r));
         if (sz & ARGSIZE_MASK_INT) {
             
             if (p->isconst())
@@ -427,7 +427,7 @@ namespace nanojit
     {
         bool isF64 = arg->isF64();
         Register rr;
-        if (arg->isUsed() && (rr = arg->deprecated_getReg(), isKnownReg(rr))) {
+        if (arg->isUsed() && (rr = arg->deprecated_getReg(), deprecated_isKnownReg(rr))) {
             
             
             if (!cpu_has_fpu || !isF64) {
@@ -542,7 +542,7 @@ namespace nanojit
         Register ft = registerAllocTmp(FpRegs & ~(rmask(fr)));    
 
         
-        NanoAssert(isKnownReg(v));
+        NanoAssert(deprecated_isKnownReg(v));
 
         
         
@@ -642,7 +642,7 @@ namespace nanojit
 
         deprecated_freeRsrcOf(ins, false);
 
-        if (cpu_has_fpu && isKnownReg(rr)) {
+        if (cpu_has_fpu && deprecated_isKnownReg(rr)) {
             asm_spill(rr, d, false, true);
             asm_li_d(rr, ins->imm64_1(), ins->imm64_0());
         }
@@ -682,7 +682,7 @@ namespace nanojit
         NanoAssert(IsGpReg(rbase));
         deprecated_freeRsrcOf(ins, false);
 
-        if (cpu_has_fpu && isKnownReg(rd)) {
+        if (cpu_has_fpu && deprecated_isKnownReg(rd)) {
             NanoAssert(IsFpReg(rd));
             asm_ldst64 (false, rd, dr, rbase);
         }
@@ -690,7 +690,7 @@ namespace nanojit
             
             
             
-            NanoAssert(!isKnownReg(rd));
+            NanoAssert(!deprecated_isKnownReg(rd));
             NanoAssert(ds != 0);
 
             NanoAssert(isS16(dr) && isS16(dr+4));
@@ -949,8 +949,8 @@ namespace nanojit
         Register rb;
 
         
-        NanoAssert(isKnownReg(rr));
-        NanoAssert(isKnownReg(ra));
+        NanoAssert(deprecated_isKnownReg(rr));
+        NanoAssert(deprecated_isKnownReg(ra));
         allow &= ~rmask(rr);
         allow &= ~rmask(ra);
 
@@ -1018,7 +1018,7 @@ namespace nanojit
 
         
         rb = (rhs == lhs) ? ra : findRegFor(rhs, allow);
-        NanoAssert(isKnownReg(rb));
+        NanoAssert(deprecated_isKnownReg(rb));
 
         switch (op) {
             case LIR_add:
