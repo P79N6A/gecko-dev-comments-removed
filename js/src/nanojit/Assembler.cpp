@@ -355,8 +355,7 @@ namespace nanojit
 	
 	void Assembler::pageValidate()
 	{
-		if (error()) return;
-		
+        NanoAssert(!error());
 		
 		NanoAssertMsg( onPage(_nIns)&& onPage(_nExitIns,true), "Native instruction pointer overstep paging bounds; check overrideProtect for last instruction");
 	}
@@ -366,7 +365,7 @@ namespace nanojit
 	
 	void Assembler::resourceConsistencyCheck()
 	{
-		if (error()) return;
+        NanoAssert(!error());
 
 #ifdef NANOJIT_IA32
         NanoAssert((_allocator.active[FST0] && _fpuStkDepth == -1) ||
