@@ -1962,7 +1962,8 @@ nsNavHistory::AddVisit(nsIURI* aURI, PRTime aTime, PRInt64 aReferringVisit,
 
     
     
-    hidden = (aTransitionType == TRANSITION_EMBED || aIsRedirect);
+    hidden = (aTransitionType == TRANSITION_EMBED || aIsRedirect ||
+              aTransitionType == TRANSITION_DOWNLOAD);
 
     typed = (aTransitionType == TRANSITION_TYPED);
 
