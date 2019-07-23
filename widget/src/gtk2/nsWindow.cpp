@@ -5624,9 +5624,6 @@ plugin_client_message_filter(GdkXEvent *gdk_xevent,
     
     
     
-    Display *dpy ;
-    dpy = GDK_WINDOW_XDISPLAY((GdkWindow*)(gPluginFocusWindow->
-                GetNativeData(NS_NATIVE_WINDOW)));
     if (gdk_x11_get_xatom_by_name("WM_PROTOCOLS")
             != xevent->xclient.message_type) {
         return return_val;
