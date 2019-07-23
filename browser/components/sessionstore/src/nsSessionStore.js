@@ -1775,7 +1775,10 @@ SessionStoreService.prototype = {
     if (activeWindow) {
       this.activeWindowSSiCache = activeWindow.__SSi || "";
     }
-    ix = this.activeWindowSSiCache ? windows.indexOf(this.activeWindowSSiCache) : -1;
+    ix = windows.indexOf(this.activeWindowSSiCache);
+    
+    if (ix != -1 && total[ix].sizemode == "minimized")
+      ix = -1;
 
     return { windows: total, selectedWindow: ix + 1, _closedWindows: lastClosedWindowsCopy };
   },
