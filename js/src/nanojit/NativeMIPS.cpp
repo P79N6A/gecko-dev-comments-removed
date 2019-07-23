@@ -530,7 +530,7 @@ namespace nanojit
         default:
             BADOPCODE(op);
         }
-        
+
         TAG("asm_store32(value=%p{%s}, dr=%d, base=%p{%s})",
             value, lirNames[value->opcode()], dr, base, lirNames[base->opcode()]);
     }
@@ -1128,7 +1128,7 @@ namespace nanojit
         }
         else
             BADOPCODE(op);
-            
+
         TAG("asm_store64(value=%p{%s}, dr=%d, base=%p{%s})",
             value, lirNames[value->opcode()], dr, base, lirNames[base->opcode()]);
     }
@@ -1502,7 +1502,7 @@ namespace nanojit
 
 
 
-    void 
+    void
     Assembler::asm_arg(ArgType ty, LInsp arg, Register& r, Register& fr, int& stkd)
     {
         
@@ -1529,7 +1529,7 @@ namespace nanojit
 
     void
     Assembler::asm_call(LInsp ins)
-    { 
+    {
         Register rr;
         LOpcode op = ins->opcode();
 

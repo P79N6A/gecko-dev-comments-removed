@@ -281,7 +281,7 @@ namespace nanojit
             btr RegAlloc::free[ecx], eax    
             mov r, eax
         }
-	#elif defined __SUNPRO_CC
+    #elif defined __SUNPRO_CC
         
         
         

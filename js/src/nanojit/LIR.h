@@ -123,14 +123,14 @@ namespace nanojit
     NanoStaticAssert((LIR_le^1)  == LIR_ge  && (LIR_ge^1)  == LIR_le);
     NanoStaticAssert((LIR_ult^1) == LIR_ugt && (LIR_ugt^1) == LIR_ult);
     NanoStaticAssert((LIR_ule^1) == LIR_uge && (LIR_uge^1) == LIR_ule);
-    
+
 #ifdef NANOJIT_64BIT
     NanoStaticAssert((LIR_qlt^1)  == LIR_qgt  && (LIR_qgt^1)  == LIR_qlt);
     NanoStaticAssert((LIR_qle^1)  == LIR_qge  && (LIR_qge^1)  == LIR_qle);
     NanoStaticAssert((LIR_qult^1) == LIR_qugt && (LIR_qugt^1) == LIR_qult);
     NanoStaticAssert((LIR_qule^1) == LIR_quge && (LIR_quge^1) == LIR_qule);
 #endif
-    
+
     NanoStaticAssert((LIR_flt^1) == LIR_fgt && (LIR_fgt^1) == LIR_flt);
     NanoStaticAssert((LIR_fle^1) == LIR_fge && (LIR_fge^1) == LIR_fle);
 
@@ -347,14 +347,14 @@ namespace nanojit
         return isCses[op] == 1;
     }
     inline bool isRetOpcode(LOpcode op) {
-        return 
+        return
 #if defined NANOJIT_64BIT
             op == LIR_qret ||
 #endif
             op == LIR_ret || op == LIR_fret;
     }
     inline bool isCmovOpcode(LOpcode op) {
-        return 
+        return
 #if defined NANOJIT_64BIT
             op == LIR_qcmov ||
 #endif
@@ -829,7 +829,7 @@ namespace nanojit
         bool isconstq() const {
             return
 #ifdef NANOJIT_64BIT
-                isop(LIR_quad) || 
+                isop(LIR_quad) ||
 #endif
                 isop(LIR_float);
         }
@@ -869,9 +869,9 @@ namespace nanojit
             return retType() == LTy_F64;
         }
         bool isN64() const {
-            return 
+            return
 #ifdef NANOJIT_64BIT
-                isI64() ||       
+                isI64() ||
 #endif
                 isF64();
         }
