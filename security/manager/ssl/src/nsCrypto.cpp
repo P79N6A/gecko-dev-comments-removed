@@ -68,6 +68,7 @@
 #include "nsIFilePicker.h"
 #include "nsJSPrincipals.h"
 #include "nsIPrincipal.h"
+#include "nsIScriptSecurityManager.h"
 #include "nsXPIDLString.h"
 #include "nsIGenKeypairInfoDlg.h"
 #include "nsIDOMCryptoDialogs.h"
@@ -303,132 +304,6 @@ nsCrypto::GetEnableSmartCardEvents(PRBool *aEnable)
 {
   *aEnable = mEnableSmartCardEvents;
   return NS_OK;
-}
-
-
-
-
-
-static nsresult
-cryptojs_GetScriptPrincipal(JSContext *cx, JSScript *script,
-                            nsIPrincipal **result)
-{
-  if (!script) {
-    *result = nsnull;
-    return NS_OK;
-  }
-  JSPrincipals *jsp = JS_GetScriptPrincipals(cx, script);
-  if (!jsp) {
-    return NS_ERROR_FAILURE;
-  }
-  nsJSPrincipals *nsJSPrin = static_cast<nsJSPrincipals *>(jsp);
-  *result = nsJSPrin->nsIPrincipalPtr;
-  if (!*result) {
-    return NS_ERROR_FAILURE;
-  }
-  NS_ADDREF(*result);
-  return NS_OK;
-}
-
-static nsresult
-cryptojs_GetObjectPrincipal(JSContext *aCx, JSObject *aObj,
-                            nsIPrincipal **result)
-{
-  JSObject *parent = aObj;
-  do
-  {
-    JSClass *jsClass = JS_GetClass(aCx, parent);
-    const uint32 privateNsISupports = JSCLASS_HAS_PRIVATE | 
-                                      JSCLASS_PRIVATE_IS_NSISUPPORTS;
-    if (jsClass && (jsClass->flags & (privateNsISupports)) == 
-                    privateNsISupports)
-    {
-      nsISupports *supports = (nsISupports *) JS_GetPrivate(aCx, parent);
-      nsCOMPtr<nsIScriptObjectPrincipal> objPrin = do_QueryInterface(supports);
-              
-      if (!objPrin)
-      {
-        
-
-
-
-        nsCOMPtr<nsIXPConnectWrappedNative> xpcNative = 
-                                            do_QueryInterface(supports);
-
-        if (xpcNative) {
-          objPrin = do_QueryWrappedNative(xpcNative);
-        }
-      }
-
-      if (objPrin && ((*result = objPrin->GetPrincipal()))) {
-        NS_ADDREF(*result);
-        return NS_OK;
-      }
-    }
-    parent = JS_GetParent(aCx, parent);
-  } while (parent);
-
-  
-  return NS_ERROR_FAILURE;
-}
-
-static nsresult
-cryptojs_GetFunctionObjectPrincipal(JSContext *cx, JSObject *obj,
-                                    nsIPrincipal **result)
-{
-  JSFunction *fun = (JSFunction *) JS_GetPrivate(cx, obj);
-
-  JSScript *script = JS_GetFunctionScript(cx, fun);
-  if (script && JS_GetFunctionObject(fun) != obj)
-  {
-    
-    
-    
-    
-    return cryptojs_GetObjectPrincipal(cx, obj, result);
-  }
-  return cryptojs_GetScriptPrincipal(cx, script, result);
-}
-
-static nsresult
-cryptojs_GetFramePrincipal(JSContext *cx, JSStackFrame *fp,
-                           nsIPrincipal **principal)
-{
-  JSObject *obj = JS_GetFrameFunctionObject(cx, fp);
-  if (!obj) {
-    JSScript *script = JS_GetFrameScript(cx, fp);
-    return cryptojs_GetScriptPrincipal(cx, script, principal);
-  }
-  return cryptojs_GetFunctionObjectPrincipal(cx, obj, principal);
-}
-
-already_AddRefed<nsIPrincipal>
-nsCrypto::GetScriptPrincipal(JSContext *cx)
-{
-  JSStackFrame *fp = nsnull;
-  nsIPrincipal *principal=nsnull;
-
-  for (fp = JS_FrameIterator(cx, &fp); fp; fp = JS_FrameIterator(cx, &fp)) {
-    cryptojs_GetFramePrincipal(cx, fp, &principal);
-    if (principal != nsnull) {
-      break;
-    }
-  }
-
-  if (principal)
-    return principal;
-
-  nsIScriptContext *scriptContext = GetScriptContextFromJSContext(cx);
-
-  if (scriptContext)
-  {
-    nsCOMPtr<nsIScriptObjectPrincipal> globalData =
-      do_QueryInterface(scriptContext->GetGlobalObject());
-    NS_ENSURE_TRUE(globalData, nsnull);
-    NS_IF_ADDREF(principal = globalData->GetPrincipal());
-  }
-
-  return principal;
 }
 
 
@@ -2116,9 +1991,14 @@ nsCrypto::GenerateCRMFRequest(nsIDOMCRMFObject** aReturn)
   
 
 
-  nsCOMPtr<nsIPrincipal>principals;
-  principals = GetScriptPrincipal(cx);
-  NS_ASSERTION(principals, "Couldn't get the principals");
+  nsCOMPtr<nsIScriptSecurityManager> secMan =
+    do_GetService(NS_SCRIPTSECURITYMANAGER_CONTRACTID);
+  NS_ENSURE_TRUE(secMan, NS_ERROR_UNEXPECTED);
+  
+  nsCOMPtr<nsIPrincipal> principals;
+  secMan->GetSubjectPrincipal(getter_AddRefs(principals));
+  NS_ENSURE_TRUE(principals, NS_ERROR_UNEXPECTED);
+  
   nsCryptoRunArgs *args = new nsCryptoRunArgs();
   if (!args)
     return NS_ERROR_OUT_OF_MEMORY;
