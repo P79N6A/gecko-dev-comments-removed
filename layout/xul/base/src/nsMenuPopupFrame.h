@@ -183,22 +183,7 @@ public:
   NS_IMETHOD SetInitialChildList(nsIAtom*        aListName,
                                  nsIFrame*       aChildList);
 
-  virtual PRBool IsLeaf() const
-  {
-    if (!mGeneratedChildren && mPopupType == ePopupTypeMenu) {
-      
-      
-      
-      
-      
-      nsIContent* parentContent = mContent->GetParent();
-      if (parentContent &&
-          !parentContent->HasAttr(kNameSpaceID_None, nsGkAtoms::sizetopopup))
-        return PR_TRUE;
-    }
-
-    return PR_FALSE;
-  }
+  virtual PRBool IsLeaf() const;
 
   
   
