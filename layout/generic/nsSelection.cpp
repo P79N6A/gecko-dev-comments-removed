@@ -159,15 +159,14 @@ struct CachedOffsetForFrame {
 
 struct RangeData
 {
-  RangeData(nsIRange* aRange, PRInt32 aEndIndex) :
-    mRange(aRange), mEndIndex(aEndIndex) {}
+  RangeData(nsIRange* aRange) :
+    mRange(aRange) {}
 
   nsCOMPtr<nsIRange> mRange;
-  PRInt32 mEndIndex; 
   nsTextRangeStyle mTextRangeStyle;
 };
 
-static RangeData sEmptyData(nsnull, 0);
+static RangeData sEmptyData(nsnull);
 
 
 
@@ -207,6 +206,8 @@ public:
                                PRBool aDoFlush,
                                PRInt16 aVPercent = NS_PRESSHELL_SCROLL_ANYWHERE,
                                PRInt16 aHPercent = NS_PRESSHELL_SCROLL_ANYWHERE);
+  nsresult      SubtractRange(RangeData* aRange, nsIRange* aSubtract,
+                              nsTArray<RangeData>* aOutput);
   nsresult      AddItem(nsIRange *aRange, PRInt32* aOutIndex = nsnull);
   nsresult      RemoveItem(nsIRange *aRange);
   nsresult      RemoveCollapsedRanges();
@@ -304,64 +305,39 @@ private:
   nsresult     selectFrames(nsPresContext* aPresContext, nsIRange *aRange, PRBool aSelect);
   nsresult     getTableCellLocationFromRange(nsIRange *aRange, PRInt32 *aSelectionType, PRInt32 *aRow, PRInt32 *aCol);
   nsresult     addTableCellRange(nsIRange *aRange, PRBool *aDidAddRange, PRInt32 *aOutIndex);
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-
-#ifdef DEBUG
-  PRBool ValidateRanges();
-#endif
 
   PRInt32 FindInsertionPoint(
-      const nsTArray<PRInt32>* aRemappingArray,
+      nsTArray<RangeData>* aElementArray,
       nsINode* aPointNode, PRInt32 aPointOffset,
       PRInt32 (*aComparator)(nsINode*,PRInt32,nsIRange*));
-  void MoveIndexToFirstMatch(PRInt32* aIndex, nsINode* aNode,
-                             PRInt32 aOffset,
-                             const nsTArray<PRInt32>* aArray,
-                             PRBool aUseBeginning);
-  void MoveIndexToNextMismatch(PRInt32* aIndex, nsINode* aNode,
-                               PRInt32 aOffset,
-                               const nsTArray<PRInt32>* aRemappingArray,
-                               PRBool aUseBeginning);
-  PRInt32 FindRangeGivenPoint(nsINode* aBeginNode, PRInt32 aBeginOffset,
-                              nsINode* aEndNode, PRInt32 aEndOffset,
-                              PRInt32 aStartSearchingHere);
+  PRBool EqualsRangeAtPoint(nsINode* aBeginNode, PRInt32 aBeginOffset,
+                            nsINode* aEndNode, PRInt32 aEndOffset,
+                            PRInt32 aRangeIndex);
   nsresult GetRangesForIntervalCOMArray(nsINode* aBeginNode, PRInt32 aBeginOffset,
                                         nsINode* aEndNode, PRInt32 aEndOffset,
                                         PRBool aAllowAdjacent,
                                         nsCOMArray<nsIRange>* aRanges);
+  void GetIndicesForInterval(nsINode* aBeginNode, PRInt32 aBeginOffset,
+                             nsINode* aEndNode, PRInt32 aEndOffset,
+                             PRBool aAllowAdjacent,
+                             PRInt32 *aStartIndex, PRInt32 *aEndIndex);
   RangeData* FindRangeData(nsIDOMRange* aRange);
 
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
   nsTArray<RangeData> mRanges;
-  nsTArray<PRInt32> mRangeEndings;    
+
   nsCOMPtr<nsIRange> mAnchorFocusRange;
   nsRefPtr<nsFrameSelection> mFrameSelection;
   nsWeakPtr mPresShellWeak;
@@ -999,7 +975,7 @@ nsFrameSelection::ConstrainFrameAndPointToAnchorSubtree(nsIFrame  *aFrame,
   PRInt32 anchorFrameOffset = 0;
 
   PRInt8 index = GetIndexFromSelectionType(nsISelectionController::SELECTION_NORMAL);
-  if (! mDomSelections[index])
+  if (!mDomSelections[index])
     return NS_ERROR_NULL_POINTER;
 
   result = mDomSelections[index]->GetAnchorNode(getter_AddRefs(anchorNode));
@@ -1067,7 +1043,7 @@ nsFrameSelection::ConstrainFrameAndPointToAnchorSubtree(nsIFrame  *aFrame,
   NS_ENSURE_STATE(mShell);
   *aRetFrame = mShell->GetPrimaryFrameFor(anchorRoot);
 
-  if (! *aRetFrame)
+  if (!*aRetFrame)
     return NS_ERROR_FAILURE;
 
   
@@ -3608,48 +3584,6 @@ CompareToRangeEnd(nsINode* aCompareNode, PRInt32 aCompareOffset,
                                        aRange->EndOffset());
 }
 
-#ifdef DEBUG
-
-
-PRBool
-nsTypedSelection::ValidateRanges()
-{
-  if (mRanges.Length() != mRangeEndings.Length()) {
-    NS_NOTREACHED("Lengths don't match");
-    return PR_FALSE;
-  }
-
-  
-  PRUint32 i;
-  for (i = 0; i < mRanges.Length(); i ++) {
-    if (mRanges[i].mEndIndex < 0 ||
-        mRanges[i].mEndIndex >= (PRInt32)mRangeEndings.Length()) {
-      NS_NOTREACHED("Sorted index is out of bounds");
-      return PR_FALSE;
-    }
-    if (mRangeEndings[mRanges[i].mEndIndex] != (PRInt32)i) {
-      NS_NOTREACHED("Beginning or ending isn't correct");
-      return PR_FALSE;
-    }
-  }
-
-  
-  for (i = 0; i < mRangeEndings.Length(); i ++) {
-    if (mRangeEndings[i] < 0 ||
-        mRangeEndings[i] >= (PRInt32)mRanges.Length()) {
-      NS_NOTREACHED("Ending refers to invalid index");
-      return PR_FALSE;
-    }
-  }
-
-  return PR_TRUE;
-}
-#endif
-
-
-
-
-
 
 
 
@@ -3661,23 +3595,16 @@ nsTypedSelection::ValidateRanges()
 
 PRInt32
 nsTypedSelection::FindInsertionPoint(
-    const nsTArray<PRInt32>* aRemappingArray,
+    nsTArray<RangeData>* aElementArray,
     nsINode* aPointNode, PRInt32 aPointOffset,
     PRInt32 (*aComparator)(nsINode*,PRInt32,nsIRange*))
 {
-  NS_ASSERTION(!aRemappingArray || aRemappingArray->Length() == mRanges.Length(),
-               "Remapping array must have the same entries as the range array");
-
   PRInt32 beginSearch = 0;
-  PRInt32 endSearch = mRanges.Length(); 
+  PRInt32 endSearch = aElementArray->Length(); 
   while (endSearch - beginSearch > 0) {
     PRInt32 center = (endSearch - beginSearch) / 2 + beginSearch;
 
-    nsIRange* range;
-    if (aRemappingArray)
-      range = mRanges[(*aRemappingArray)[center]].mRange;
-    else
-      range = mRanges[center].mRange;
+    nsIRange* range = (*aElementArray)[center].mRange;
 
     PRInt32 cmp = aComparator(aPointNode, aPointOffset, range);
 
@@ -3693,6 +3620,77 @@ nsTypedSelection::FindInsertionPoint(
   return beginSearch;
 }
 
+
+
+
+
+
+
+nsresult
+nsTypedSelection::SubtractRange(RangeData* aRange, nsIRange* aSubtract,
+                                nsTArray<RangeData>* aOutput)
+{
+  nsIRange* range = aRange->mRange;
+
+  
+  PRInt32 cmp = CompareToRangeStart(range->GetStartParent(),
+                                    range->StartOffset(),
+                                    aSubtract);
+  
+  
+  PRInt32 cmp2 = CompareToRangeEnd(range->GetEndParent(),
+                                   range->EndOffset(),
+                                   aSubtract);
+
+  
+  
+  
+  
+
+  if (cmp2 > 0) {
+    
+    
+    nsIRange* postOverlap = new nsRange();
+    if (!postOverlap)
+      return NS_ERROR_OUT_OF_MEMORY;
+    
+    nsresult rv =
+      postOverlap->SetStart(aSubtract->GetEndParent(), aSubtract->EndOffset());
+    NS_ENSURE_SUCCESS(rv, rv);
+    rv =
+     postOverlap->SetEnd(range->GetEndParent(), range->EndOffset());
+    NS_ENSURE_SUCCESS(rv, rv);
+    if (!postOverlap->Collapsed()) {
+      if (!aOutput->InsertElementAt(0, RangeData(postOverlap)))
+        return NS_ERROR_OUT_OF_MEMORY;
+      (*aOutput)[0].mTextRangeStyle = aRange->mTextRangeStyle;
+    }
+  }
+
+  if (cmp < 0) {
+    
+    
+    nsIRange* preOverlap = new nsRange();
+    if (!preOverlap)
+      return NS_ERROR_OUT_OF_MEMORY;
+
+    nsresult rv =
+     preOverlap->SetStart(range->GetStartParent(), range->StartOffset());
+    NS_ENSURE_SUCCESS(rv, rv);
+    rv =
+     preOverlap->SetEnd(aSubtract->GetStartParent(), aSubtract->StartOffset());
+    NS_ENSURE_SUCCESS(rv, rv);
+    
+    if (!preOverlap->Collapsed()) {
+      if (!aOutput->InsertElementAt(0, RangeData(preOverlap)))
+        return NS_ERROR_OUT_OF_MEMORY;
+      (*aOutput)[0].mTextRangeStyle = aRange->mTextRangeStyle;
+    }
+  }
+
+  return NS_OK;
+}
+
 nsresult
 nsTypedSelection::AddItem(nsIRange *aItem, PRInt32 *aOutIndex)
 {
@@ -3702,88 +3700,96 @@ nsTypedSelection::AddItem(nsIRange *aItem, PRInt32 *aOutIndex)
     return NS_ERROR_UNEXPECTED;
   if (aOutIndex)
     *aOutIndex = -1;
-  
-  NS_ASSERTION(ValidateRanges(), "Ranges out of sync");
 
   
   if (mRanges.Length() == 0) {
-    if (! mRanges.AppendElement(RangeData(aItem, 0)))
+    if (!mRanges.AppendElement(RangeData(aItem)))
       return NS_ERROR_OUT_OF_MEMORY;
-    if (! mRangeEndings.AppendElement(0)) {
-      mRanges.Clear();
-      return NS_ERROR_OUT_OF_MEMORY;
-    }
     if (aOutIndex)
       *aOutIndex = 0;
     return NS_OK;
   }
 
-  PRInt32 beginInsertionPoint =
-    FindInsertionPoint(nsnull, aItem->GetStartParent(), aItem->StartOffset(),
-                       CompareToRangeStart);
+  PRInt32 startIndex, endIndex;
+  GetIndicesForInterval(aItem->GetStartParent(), aItem->StartOffset(),
+                        aItem->GetEndParent(), aItem->EndOffset(),
+                        PR_FALSE, &startIndex, &endIndex);
 
-  if (aOutIndex)
-    *aOutIndex = beginInsertionPoint;
-  
-  
-  
-  
-  
-
-  
-  PRInt32 index = FindRangeGivenPoint(aItem->GetStartParent(),
-                                      aItem->StartOffset(),
-                                      aItem->GetEndParent(),
-                                      aItem->EndOffset(),
-                                      beginInsertionPoint);
-  if (index >= 0) {
+  if (endIndex == -1) {
     
+    
+    startIndex = 0;
+    endIndex = 0;
+  } else if (startIndex == -1) {
+    
+    
+    startIndex = mRanges.Length();
+    endIndex = endIndex;
+  }
+
+  if (startIndex == endIndex) {
+    
+    if (!mRanges.InsertElementAt(startIndex, RangeData(aItem)))
+      return NS_ERROR_OUT_OF_MEMORY;
     if (aOutIndex)
-      *aOutIndex = index;
+      *aOutIndex = startIndex;
     return NS_OK;
   }
 
-  PRInt32 endInsertionPoint =
-    FindInsertionPoint(&mRangeEndings, aItem->GetEndParent(),
-                       aItem->EndOffset(), CompareToRangeEnd);
+  
+  PRBool sameRange = EqualsRangeAtPoint(aItem->GetStartParent(),
+                                        aItem->StartOffset(),
+                                        aItem->GetEndParent(),
+                                        aItem->EndOffset(), startIndex);
+  if (sameRange) {
+    *aOutIndex = startIndex;
+    return NS_OK;
+  }
 
   
   
-  if (! mRanges.InsertElementAt(beginInsertionPoint,
-        RangeData(aItem, endInsertionPoint))) {
+  
+  
+  
+  
+  nsTArray<RangeData> overlaps;
+  if (!overlaps.InsertElementAt(0, mRanges[startIndex]))
     return NS_ERROR_OUT_OF_MEMORY;
+
+  if (endIndex - 1 != startIndex) {
+    if (!overlaps.InsertElementAt(1, mRanges[endIndex - 1]))
+      return NS_ERROR_OUT_OF_MEMORY;
   }
-  if (! mRangeEndings.InsertElementAt(endInsertionPoint, beginInsertionPoint)) {
-    mRanges.RemoveElementAt(beginInsertionPoint);
+
+  
+  mRanges.RemoveElementsAt(startIndex, endIndex - startIndex);
+
+  nsTArray<RangeData> temp;
+  for (PRInt32 i = overlaps.Length() - 1; i >= 0; i--) {
+    nsresult rv = SubtractRange(&overlaps[i], aItem, &temp);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
+
+  
+  PRInt32 insertionPoint = FindInsertionPoint(&temp, aItem->GetStartParent(),
+                                              aItem->StartOffset(),
+                                              CompareToRangeStart);
+
+  if (!temp.InsertElementAt(insertionPoint, RangeData(aItem)))
     return NS_ERROR_OUT_OF_MEMORY;
-  }
-  
-  
-  PRUint32 i;
-  for (i = 0; i < mRangeEndings.Length(); i ++) {
-    if (mRangeEndings[i] >= beginInsertionPoint)
-      mRangeEndings[i] ++;
-  }
 
   
-  
-  mRangeEndings[endInsertionPoint] = beginInsertionPoint;
+  if (!mRanges.InsertElementsAt(startIndex, temp))
+    return NS_ERROR_OUT_OF_MEMORY;
 
-  
-  for (i = endInsertionPoint + 1; i < mRangeEndings.Length(); i ++)
-    mRanges[mRangeEndings[i]].mEndIndex = i;
-
-  NS_ASSERTION(ValidateRanges(), "Ranges out of sync");
   return NS_OK;
 }
-
 
 nsresult
 nsTypedSelection::RemoveItem(nsIRange *aItem)
 {
   if (!aItem)
     return NS_ERROR_NULL_POINTER;
-  NS_ASSERTION(ValidateRanges(), "Ranges out of sync");
 
   
   
@@ -3799,27 +3805,8 @@ nsTypedSelection::RemoveItem(nsIRange *aItem)
   }
   if (idx < 0)
     return NS_ERROR_INVALID_ARG;
+
   mRanges.RemoveElementAt(idx);
-
-  
-  PRInt32 endingIndex = -1;
-  for (i = 0; i < mRangeEndings.Length(); i ++) {
-    if (mRangeEndings[i] == idx)
-      endingIndex = i;
-    if (mRangeEndings[i] > idx)
-      mRangeEndings[i] --;
-  }
-  NS_ASSERTION(endingIndex >= 0 && endingIndex < (PRInt32)mRangeEndings.Length(),
-               "Index not found in ending list");
-
-  
-  mRangeEndings.RemoveElementAt(endingIndex);
-
-  
-  for (i = endingIndex; i < mRangeEndings.Length(); i ++)
-    mRanges[mRangeEndings[i]].mEndIndex = i;
-
-  NS_ASSERTION(ValidateRanges(), "Ranges out of sync");
   return NS_OK;
 }
 
@@ -3847,7 +3834,6 @@ nsTypedSelection::Clear(nsPresContext* aPresContext)
     selectFrames(aPresContext, mRanges[i].mRange, 0);
   }
   mRanges.Clear();
-  mRangeEndings.Clear();
 
   
   SetDirection(eDirNext);
@@ -3860,116 +3846,6 @@ nsTypedSelection::Clear(nsPresContext* aPresContext)
   }
 
   return NS_OK;
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-void
-nsTypedSelection::MoveIndexToFirstMatch(PRInt32* aIndex, nsINode* aNode,
-                                        PRInt32 aOffset,
-                                        const nsTArray<PRInt32>* aRemappingArray,
-                                        PRBool aUseBeginning)
-{
-  while (*aIndex > 0) {
-    nsIRange* range;
-    if (aRemappingArray)
-      range = mRanges[(*aRemappingArray)[(*aIndex) - 1]].mRange;
-    else
-      range = mRanges[(*aIndex) - 1].mRange;
-
-    nsINode* curNode;
-    PRInt32 curOffset;
-    if (aUseBeginning) {
-      curNode = range->GetStartParent();
-      curOffset = range->StartOffset();
-    } else {
-      curNode = range->GetEndParent();
-      curOffset = range->EndOffset();
-    }
-
-    if (curNode != aNode)
-      break; 
-    if (curOffset != aOffset)
-      break; 
-
-    
-    (*aIndex) --;
-  }
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-void
-nsTypedSelection::MoveIndexToNextMismatch(PRInt32* aIndex, nsINode* aNode,
-                                          PRInt32 aOffset,
-                                          const nsTArray<PRInt32>* aRemappingArray,
-                                          PRBool aUseBeginning)
-{
-  while (*aIndex < (PRInt32)mRanges.Length()) {
-    nsIRange* range;
-    if (aRemappingArray)
-      range = mRanges[(*aRemappingArray)[*aIndex]].mRange;
-    else
-      range = mRanges[*aIndex].mRange;
-
-    nsINode* curNode;
-    PRInt32 curOffset;
-    if (aUseBeginning) {
-      curNode = range->GetStartParent();
-      curOffset = range->StartOffset();
-    } else {
-      curNode = range->GetEndParent();
-      curOffset = range->EndOffset();
-    }
-
-    if (curNode != aNode)
-      break; 
-    if (curOffset != aOffset)
-      break; 
-
-    
-    (*aIndex) ++;
-  }
 }
 
 NS_IMETHODIMP
@@ -3992,7 +3868,7 @@ nsTypedSelection::GetRangesForInterval(nsIDOMNode* aBeginNode, PRInt32 aBeginOff
                                        PRUint32 *aResultCount,
                                        nsIDOMRange ***aResults)
 {
-  if (! aBeginNode || ! aEndNode || ! aResultCount || ! aResults)
+  if (!aBeginNode || ! aEndNode || ! aResultCount || ! aResults)
     return NS_ERROR_NULL_POINTER;
 
   *aResultCount = 0;
@@ -4046,83 +3922,112 @@ nsTypedSelection::GetRangesForIntervalCOMArray(nsIDOMNode* aBeginNode, PRInt32 a
   return NS_OK;
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 nsresult
 nsTypedSelection::GetRangesForIntervalCOMArray(nsINode* aBeginNode, PRInt32 aBeginOffset,
                                                nsINode* aEndNode, PRInt32 aEndOffset,
                                                PRBool aAllowAdjacent,
                                                nsCOMArray<nsIRange>* aRanges)
 {
-  NS_ASSERTION(ValidateRanges(), "Ranges out of sync");
   aRanges->Clear();
-  if (mRanges.Length() == 0)
+  PRInt32 startIndex, endIndex;
+  GetIndicesForInterval(aBeginNode, aBeginOffset, aEndNode, aEndOffset,
+                        aAllowAdjacent, &startIndex, &endIndex);
+  if (startIndex == -1 || endIndex == -1)
     return NS_OK;
 
-  
-  
-  
+  for (PRInt32 i = startIndex; i < endIndex; i++) {
+    if (!aRanges->AppendObject(mRanges[i].mRange))
+      return NS_ERROR_OUT_OF_MEMORY;
+  }
+
+  return NS_OK;
+}
+
+
+
+
+
+
+
+void
+nsTypedSelection::GetIndicesForInterval(nsINode* aBeginNode,
+                                        PRInt32 aBeginOffset,
+                                        nsINode* aEndNode, PRInt32 aEndOffset,
+                                        PRBool aAllowAdjacent,
+                                        PRInt32 *aStartIndex,
+                                        PRInt32 *aEndIndex)
+{
+  if (aStartIndex)
+    *aStartIndex = -1;
+  if (aEndIndex)
+    *aEndIndex = -1;
+
+  if (mRanges.Length() == 0)
+    return;
 
   
   
-  PRInt32 beginningIndex =
-    FindInsertionPoint(nsnull, aEndNode, aEndOffset, &CompareToRangeStart);
-  if (beginningIndex == 0)
-    return NS_OK; 
+  PRInt32 endsBeforeIndex =
+    FindInsertionPoint(&mRanges, aEndNode, aEndOffset, &CompareToRangeStart);
+  if (endsBeforeIndex == 0)
+    return; 
+  *aEndIndex = endsBeforeIndex;
 
-  
-  PRInt32 endingIndex =
-    FindInsertionPoint(&mRangeEndings, aBeginNode, aBeginOffset,
-                       &CompareToRangeEnd);
-  if (endingIndex == (PRInt32)mRangeEndings.Length())
-    return NS_OK; 
+  PRInt32 beginsAfterIndex =
+    FindInsertionPoint(&mRanges, aBeginNode, aBeginOffset, &CompareToRangeEnd);
+  if (beginsAfterIndex == (PRInt32) mRanges.Length())
+    return; 
 
-  
-  
   if (aAllowAdjacent) {
     
     
     
+    if (endsBeforeIndex < mRanges.Length()) {
+      nsINode* endNode = mRanges[endsBeforeIndex].mRange->GetStartParent();
+      PRInt32 endOffset = mRanges[endsBeforeIndex].mRange->StartOffset();
+      if (endNode == aEndNode && endOffset == aEndOffset)
+        endsBeforeIndex++;
+    }
+
     
     
     
-    
-    
-    
-    
-    MoveIndexToFirstMatch(&endingIndex, aBeginNode, aBeginOffset,
-                          &mRangeEndings, PR_FALSE);
-    MoveIndexToNextMismatch(&beginningIndex, aEndNode, aEndOffset,
-                            nsnull, PR_TRUE);
   } else {
     
     
+    nsINode* startNode = mRanges[beginsAfterIndex].mRange->GetEndParent();
+    PRInt32 startOffset = mRanges[beginsAfterIndex].mRange->EndOffset();
+    if (startNode == aBeginNode && startOffset == aBeginOffset)
+      beginsAfterIndex++;
+
     
     
     
-    MoveIndexToNextMismatch(&endingIndex, aBeginNode, aBeginOffset,
-                            &mRangeEndings, PR_FALSE);
-    MoveIndexToFirstMatch(&beginningIndex, aEndNode, aEndOffset,
-                          nsnull, PR_TRUE);
   }
 
-  
-  
-  if (beginningIndex > (PRInt32)mRangeEndings.Length() - endingIndex) {
-    
-    for (PRInt32 i = endingIndex; i < (PRInt32)mRangeEndings.Length(); i ++) {
-      if (mRangeEndings[i] < beginningIndex) {
-        if (! aRanges->AppendObject(mRanges[mRangeEndings[i]].mRange))
-          return NS_ERROR_OUT_OF_MEMORY;
-      }
-    }
-  } else {
-    for (PRInt32 i = 0; i < beginningIndex; i ++) {
-      if (mRanges[i].mEndIndex >= endingIndex) {
-        if (! aRanges->AppendObject(mRanges[i].mRange))
-          return NS_ERROR_OUT_OF_MEMORY;
-      }
-    }
-  }
-  return NS_OK;
+  *aStartIndex = beginsAfterIndex;
+  *aEndIndex = endsBeforeIndex;
+  return;
 }
 
 
@@ -4146,49 +4051,19 @@ RangeMatchesEndPoint(nsIRange* aRange, nsINode* aNode, PRInt32 aOffset)
 
 
 
-
-
-
-
-
-
-
-
-
-PRInt32
-nsTypedSelection::FindRangeGivenPoint(
+PRBool
+nsTypedSelection::EqualsRangeAtPoint(
     nsINode* aBeginNode, PRInt32 aBeginOffset,
     nsINode* aEndNode, PRInt32 aEndOffset,
-    PRInt32 aStartSearchingHere)
+    PRInt32 aRangeIndex)
 {
-  PRInt32 i;
-  NS_ASSERTION(aStartSearchingHere >= 0 && aStartSearchingHere <= (PRInt32)mRanges.Length(),
-               "Input searching seed is not in range.");
-
-  
-  for (i = aStartSearchingHere; i >= 0 && i < (PRInt32)mRanges.Length(); i --) {
-    if (RangeMatchesBeginPoint(mRanges[i].mRange, aBeginNode, aBeginOffset)) {
-      if (RangeMatchesEndPoint(mRanges[i].mRange, aEndNode, aEndOffset))
-        return i;
-    } else {
-      
-      break;
-    }
+  if (aRangeIndex >=0 && aRangeIndex < mRanges.Length()) {
+    nsIRange* range = mRanges[aRangeIndex].mRange;
+    if (RangeMatchesBeginPoint(range, aBeginNode, aBeginOffset)
+        && RangeMatchesEndPoint(range, aEndNode, aEndOffset))
+      return PR_TRUE;
   }
-
-  
-  for (i = aStartSearchingHere + 1; i < (PRInt32)mRanges.Length(); i ++) {
-    if (RangeMatchesBeginPoint(mRanges[i].mRange, aBeginNode, aBeginOffset)) {
-      if (RangeMatchesEndPoint(mRanges[i].mRange, aEndNode, aEndOffset))
-        return i;
-    } else {
-      
-      break;
-    }
-  }
-
-  
-  return -1;
+  return PR_FALSE;
 }
 
 
@@ -4483,7 +4358,7 @@ nsTypedSelection::LookUpSelection(nsIContent *aContent, PRInt32 aContentOffset,
                                   SelectionType aType, PRBool aSlowCheck)
 {
   nsresult rv;
-  if (! aContent || ! aReturnDetails)
+  if (!aContent || ! aReturnDetails)
     return NS_ERROR_NULL_POINTER;
 
   
@@ -4542,7 +4417,7 @@ nsTypedSelection::LookUpSelection(nsIContent *aContent, PRInt32 aContentOffset,
       continue; 
 
     SelectionDetails* details = new SelectionDetails;
-    if (! details)
+    if (!details)
       return NS_ERROR_OUT_OF_MEMORY;
 
     details->mNext = *aReturnDetails;
@@ -5053,7 +4928,7 @@ nsTypedSelection::GetEnumerator(nsIEnumerator **aIterator)
 {
   nsresult status = NS_ERROR_OUT_OF_MEMORY;
   nsSelectionIterator *iterator =  new nsSelectionIterator(this);
-  if ( iterator && NS_FAILED(status = CallQueryInterface(iterator, aIterator)) )
+  if (iterator && NS_FAILED(status = CallQueryInterface(iterator, aIterator)) )
     delete iterator;
   return status;
 }
@@ -5240,7 +5115,7 @@ nsTypedSelection::Collapse(nsINode* aParentNode, PRInt32 aOffset)
   mFrameSelection->ClearTableCellSelection();
 
   nsCOMPtr<nsIRange> range = new nsRange();
-  if (! range){
+  if (!range) {
     NS_ASSERTION(PR_FALSE,"Couldn't make a range - nsFrameSelection::Collapse");
     return NS_ERROR_UNEXPECTED;
   }
@@ -5346,7 +5221,6 @@ nsTypedSelection::GetIsCollapsed(PRBool* aIsCollapsed)
 NS_IMETHODIMP
 nsTypedSelection::GetRangeCount(PRInt32* aRangeCount)
 {
-  NS_ASSERTION(ValidateRanges(), "Ranges out of sync");
   *aRangeCount = (PRInt32)mRanges.Length();
 
   return NS_OK;
@@ -5355,8 +5229,6 @@ nsTypedSelection::GetRangeCount(PRInt32* aRangeCount)
 NS_IMETHODIMP
 nsTypedSelection::GetRangeAt(PRInt32 aIndex, nsIDOMRange** aReturn)
 {
-  NS_ASSERTION(ValidateRanges(), "Ranges out of sync");
-
   *aReturn = mRanges.SafeElementAt(aIndex, sEmptyData).mRange;
   if (!*aReturn) {
     return NS_ERROR_INVALID_ARG;
@@ -5370,7 +5242,6 @@ nsTypedSelection::GetRangeAt(PRInt32 aIndex, nsIDOMRange** aReturn)
 nsIRange*
 nsTypedSelection::GetRangeAt(PRInt32 aIndex)
 {
-  NS_ASSERTION(ValidateRanges(), "Ranges out of sync");
   return mRanges.SafeElementAt(aIndex, sEmptyData).mRange;
 }
 
@@ -5725,7 +5596,6 @@ nsTypedSelection::ContainsNode(nsIDOMNode* aNode, PRBool aAllowPartial,
   nsresult rv;
   if (!aYes)
     return NS_ERROR_NULL_POINTER;
-  NS_ASSERTION(ValidateRanges(), "Ranges out of sync");
   *aYes = PR_FALSE;
 
   nsCOMPtr<nsINode> node = do_QueryInterface(aNode);
