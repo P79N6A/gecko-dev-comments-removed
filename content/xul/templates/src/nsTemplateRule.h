@@ -150,10 +150,7 @@ public:
 
 
 
-
-
-
-    nsresult GetAction(nsIContent** aAction) const;
+    nsIContent* GetAction() const { return mAction; }
 
     
 

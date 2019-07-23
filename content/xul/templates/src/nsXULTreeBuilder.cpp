@@ -1400,8 +1400,6 @@ nsXULTreeBuilder::GetTemplateActionRowFor(PRInt32 aRow, nsIContent** aResult)
     
     nsTreeRows::Row& row = *(mRows[aRow]);
 
-    nsCOMPtr<nsIContent> action;
-
     
     
     
@@ -1410,10 +1408,8 @@ nsXULTreeBuilder::GetTemplateActionRowFor(PRInt32 aRow, nsIContent** aResult)
         nsTemplateQuerySet* qs = mQuerySets[row.mMatch->QuerySetPriority()];
         nsTemplateRule* rule = qs->GetRuleAt(ruleindex);
         if (rule) {
-            rule->GetAction(getter_AddRefs(action));
-
             nsCOMPtr<nsIContent> children;
-            nsXULContentUtils::FindChildByTag(action, kNameSpaceID_XUL,
+            nsXULContentUtils::FindChildByTag(rule->GetAction(), kNameSpaceID_XUL,
                                               nsGkAtoms::treechildren,
                                               getter_AddRefs(children));
             if (children) {
