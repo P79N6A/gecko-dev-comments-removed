@@ -523,10 +523,11 @@ function initFileInfo(aFI, aURL, aURLCharset, aDocument,
   }
 }
 
-Components.utils.import("resource:
-
 function getTargetFile(aFpP,  aSkipPrompt)
 {
+  if (typeof gDownloadLastDir != "object")
+    Components.utils.import("resource:
+
   const prefSvcContractID = "@mozilla.org/preferences-service;1";
   const prefSvcIID = Components.interfaces.nsIPrefService;                              
   var prefs = Components.classes[prefSvcContractID]
