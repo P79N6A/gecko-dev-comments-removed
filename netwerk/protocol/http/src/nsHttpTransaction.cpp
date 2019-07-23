@@ -180,26 +180,32 @@ nsHttpTransaction::Init(PRUint8 caps,
     NS_ASSERTION(requestHead, "ouch");
     NS_ASSERTION(target, "ouch");
 
-    
-    rv = net_NewTransportEventSinkProxy(getter_AddRefs(mTransportSink),
-                                        eventsink, target, PR_TRUE);
-    if (NS_FAILED(rv)) return rv;
-
     mActivityDistributor = do_GetService(NS_HTTPACTIVITYDISTRIBUTOR_CONTRACTID, &rv);
     if (NS_FAILED(rv)) return rv;
 
-    PRBool active;
-    rv = mActivityDistributor->GetIsActive(&active);
-    if (NS_SUCCEEDED(rv) && active) {
+    PRBool activityDistributorActive;
+    rv = mActivityDistributor->GetIsActive(&activityDistributorActive);
+    if (NS_SUCCEEDED(rv) && activityDistributorActive) {
         
         
         mChannel = do_QueryInterface(eventsink);
         LOG(("nsHttpTransaction::Init() " \
              "mActivityDistributor is active " \
              "this=%x", this));
-    } else
+    } else {
         
+        activityDistributorActive = PR_FALSE;
         mActivityDistributor = nsnull;
+    }
+
+    
+    
+    
+    
+    rv = net_NewTransportEventSinkProxy(getter_AddRefs(mTransportSink),
+                                        eventsink, target,
+                                        !activityDistributorActive);
+    if (NS_FAILED(rv)) return rv;
 
     NS_ADDREF(mConnInfo = cinfo);
     mCallbacks = callbacks;
