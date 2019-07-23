@@ -453,7 +453,10 @@ static BYTE  gLastMouseButton = 0;
 
 
 
-static PRUint32 gLastInputEventTime = 0;
+#ifndef WINCE
+static
+#endif
+PRUint32 gLastInputEventTime = 0;
 
 static int gTrimOnMinimize = 2; 
 
@@ -676,6 +679,9 @@ nsWindow::nsWindow() : nsBaseWidget()
   }
   NS_ASSERTION(sIsOleInitialized, "***** OLE is not initialized!\n");
 #endif
+
+  
+  gLastInputEventTime = PR_IntervalToMicroseconds(PR_IntervalNow());
 
   sInstanceCount++;
 }
