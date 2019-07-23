@@ -269,6 +269,11 @@ namespace nanojit
 extern "C" void __clear_cache(char *BEG, char *END);
 #endif
 
+#if defined(AVMPLUS_UNIX) && defined(NANOJIT_MIPS)
+#include <asm/cachectl.h>
+extern  "C" int cacheflush(char *addr, int nbytes, int cache);
+#endif
+
 #ifdef AVMPLUS_SPARC
 #ifdef __linux__  
 void sync_instruction_memory(caddr_t v, u_int len)
@@ -327,6 +332,12 @@ extern  "C" void sync_instruction_memory(caddr_t v, u_int len);
     
     void CodeAlloc::flushICache(void *start, size_t len) {
             sync_instruction_memory((char*)start, len);
+    }
+
+#elif defined(AVMPLUS_UNIX) && defined(NANOJIT_MIPS)
+    void CodeAlloc::flushICache(void *start, size_t len) {
+        
+        cacheflush((char *)start, len, BCACHE);
     }
 
 #elif defined AVMPLUS_UNIX
