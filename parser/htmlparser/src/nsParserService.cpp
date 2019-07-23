@@ -214,7 +214,7 @@ nsParserService::CheckQName(const nsAString& aQName,
   }
 
   
-  if (result & (1 << 0) || result & (1 << 1)) {
+  if (result == (1 << 0) || result == (1 << 1)) {
     return NS_ERROR_DOM_INVALID_CHARACTER_ERR;
   }
 

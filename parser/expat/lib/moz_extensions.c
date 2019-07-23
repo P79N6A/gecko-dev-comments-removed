@@ -70,32 +70,31 @@ int MOZ_XMLCheckQName(const char* ptr, const char* end, int ns_aware,
   do {
     switch (BYTE_TYPE(ptr)) {
     case BT_COLON:
-      if (ns_aware) {
-        if (*colon != 0 || nmstrt || ptr + 2 == end) {
-          
-
-          result |= MOZ_EXPAT_MALFORMED;
-        }
-        *colon = ptr;
-        nmstrt = 1;
-      }
-      else if (nmstrt) {
+      if (nmstrt) {
         
-        result |= MOZ_EXPAT_MALFORMED;
-        nmstrt = 0;
+
+        return ns_aware ? MOZ_EXPAT_MALFORMED : MOZ_EXPAT_INVALID_CHARACTER;
       }
+      if (ns_aware && (ptr + 2 == end || *colon)) {
+        
+
+        return MOZ_EXPAT_MALFORMED;
+      }
+      *colon = ptr;
+      nmstrt = ns_aware; 
       break;
     case BT_NONASCII:
-      if (nmstrt) {
-        if (!IS_NMSTRT_CHAR_MINBPC(ptr)) {
-          
+      if (nmstrt && !IS_NMSTRT_CHAR_MINBPC(ptr)) {
+        
 
-          result |= IS_NAME_CHAR_MINBPC(ptr) ? MOZ_EXPAT_MALFORMED :
-                                               MOZ_EXPAT_INVALID_CHARACTER;
-        }
+
+
+        return (IS_NAME_CHAR_MINBPC(ptr) && ns_aware) ?
+               MOZ_EXPAT_MALFORMED :
+               MOZ_EXPAT_INVALID_CHARACTER;
       }
-      else if (!IS_NAME_CHAR_MINBPC(ptr)) {
-        result |= MOZ_EXPAT_INVALID_CHARACTER;
+      if (!IS_NAME_CHAR_MINBPC(ptr)) {
+        return MOZ_EXPAT_INVALID_CHARACTER;
       }
       nmstrt = 0;
       break;
@@ -107,13 +106,11 @@ int MOZ_XMLCheckQName(const char* ptr, const char* end, int ns_aware,
     case BT_NAME:
     case BT_MINUS:
       if (nmstrt) {
-        result |= MOZ_EXPAT_MALFORMED;
-        nmstrt = 0;
+        return MOZ_EXPAT_INVALID_CHARACTER;
       }
       break;
     default:
-      result |= MOZ_EXPAT_INVALID_CHARACTER;
-      nmstrt = 0;
+      return MOZ_EXPAT_INVALID_CHARACTER;
     }
     ptr += 2;
   } while (ptr != end);
