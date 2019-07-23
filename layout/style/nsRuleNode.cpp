@@ -2325,8 +2325,12 @@ nsRuleNode::SetFont(nsPresContext* aPresContext, nsStyleContext* aContext,
 
   
   if (aFontData.mScriptMinSize.IsLengthUnit()) {
+    
+    
+    
     aFont->mScriptMinSize =
-      CalcLength(aFontData.mScriptMinSize, aContext, aPresContext, aInherited);
+      CalcLengthWith(aFontData.mScriptMinSize, aParentFont->mSize, aParentFont, nsnull,
+                     aPresContext, aInherited);
   }
 
   
