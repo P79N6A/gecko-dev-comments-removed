@@ -4316,8 +4316,8 @@ nsHTMLEditRules::CreateStyleForInsertText(nsISelection *aSelection, nsIDOMDocume
   nsCOMPtr<nsIDOMNode> node, tmp;
   PRInt32 offset;
   nsresult res = mHTMLEditor->GetStartNodeAndOffset(aSelection, address_of(node), &offset);
-  if (NS_FAILED(res)) return res;
-  PropItem *item = nsnull;
+  NS_ENSURE_SUCCESS(res, res);
+  nsAutoPtr<PropItem> item;
   
   
   if (mDidDeleteSelection && 
@@ -4327,11 +4327,11 @@ nsHTMLEditRules::CreateStyleForInsertText(nsISelection *aSelection, nsIDOMDocume
        (mTheAction == nsEditor::kOpDeleteSelection)))
   {
     res = ReapplyCachedStyles();
-    if (NS_FAILED(res)) return res;
+    NS_ENSURE_SUCCESS(res, res);
   }
   
   res = ClearCachedStyles();  
-  if (NS_FAILED(res)) return res;  
+  NS_ENSURE_SUCCESS(res, res);
 
   
   
@@ -4353,7 +4353,7 @@ nsHTMLEditRules::CreateStyleForInsertText(nsISelection *aSelection, nsIDOMDocume
     nsAutoString curValue;
     res = mHTMLEditor->GetInlinePropertyBase(propItem->tag, &(propItem->attr), nsnull, 
                                              &bFirst, &bAny, &bAll, &curValue, PR_FALSE);
-    if (NS_FAILED(res)) return res;
+    NS_ENSURE_SUCCESS(res, res);
     
     if (!bAny)  
     {
@@ -4362,12 +4362,12 @@ nsHTMLEditRules::CreateStyleForInsertText(nsISelection *aSelection, nsIDOMDocume
   }
   
   
-  mHTMLEditor->mTypeInState->TakeClearProperty(&item);
+  mHTMLEditor->mTypeInState->TakeClearProperty(getter_Transfers(item));
   while (item)
   {
     nsCOMPtr<nsIDOMNode> leftNode, rightNode, secondSplitParent, newSelParent, savedBR;
     res = mHTMLEditor->SplitStyleAbovePoint(address_of(node), &offset, item->tag, &item->attr, address_of(leftNode), address_of(rightNode));
-    if (NS_FAILED(res)) return res;
+    NS_ENSURE_SUCCESS(res, res);
     PRBool bIsEmptyNode;
     if (leftNode)
     {
@@ -4376,7 +4376,7 @@ nsHTMLEditRules::CreateStyleForInsertText(nsISelection *aSelection, nsIDOMDocume
       {
         
         res = mEditor->DeleteNode(leftNode);
-        if (NS_FAILED(res)) return res;
+        NS_ENSURE_SUCCESS(res, res);
       }
     }
     if (rightNode)
@@ -4394,7 +4394,7 @@ nsHTMLEditRules::CreateStyleForInsertText(nsISelection *aSelection, nsIDOMDocume
       }
       offset = 0;
       res = mHTMLEditor->SplitStyleAbovePoint(address_of(secondSplitParent), &offset, item->tag, &(item->attr), address_of(leftNode), address_of(rightNode));
-      if (NS_FAILED(res)) return res;
+      NS_ENSURE_SUCCESS(res, res);
       
       if (!leftNode) return NS_ERROR_FAILURE;
       newSelParent = mHTMLEditor->GetLeftmostChild(leftNode);
@@ -4404,14 +4404,14 @@ nsHTMLEditRules::CreateStyleForInsertText(nsISelection *aSelection, nsIDOMDocume
       if (savedBR)
       {
         res = mEditor->MoveNode(savedBR, newSelParent, 0);
-        if (NS_FAILED(res)) return res;
+        NS_ENSURE_SUCCESS(res, res);
       }
       mHTMLEditor->IsEmptyNode(rightNode, &bIsEmptyNode, PR_FALSE, PR_TRUE);
       if (bIsEmptyNode)
       {
         
         res = mEditor->DeleteNode(rightNode);
-        if (NS_FAILED(res)) return res;
+        NS_ENSURE_SUCCESS(res, res);
       }
       
       PRInt32 newSelOffset = 0;
@@ -4422,15 +4422,13 @@ nsHTMLEditRules::CreateStyleForInsertText(nsISelection *aSelection, nsIDOMDocume
         
         nsAutoTrackDOMPoint tracker(mHTMLEditor->mRangeUpdater, address_of(newSelParent), &newSelOffset);
         res = mHTMLEditor->RemoveStyleInside(leftNode, item->tag, &(item->attr));
-        if (NS_FAILED(res)) return res;
+        NS_ENSURE_SUCCESS(res, res);
       }
       
       node = newSelParent;
       offset = newSelOffset;
     }
-    
-    delete item;
-    mHTMLEditor->mTypeInState->TakeClearProperty(&item);
+    mHTMLEditor->mTypeInState->TakeClearProperty(getter_Transfers(item));
     weDidSometing = PR_TRUE;
   }
   
@@ -4438,9 +4436,9 @@ nsHTMLEditRules::CreateStyleForInsertText(nsISelection *aSelection, nsIDOMDocume
   PRInt32 relFontSize;
   
   res = mHTMLEditor->mTypeInState->TakeRelativeFontSize(&relFontSize);
-  if (NS_FAILED(res)) return res;
-  res = mHTMLEditor->mTypeInState->TakeSetProperty(&item);
-  if (NS_FAILED(res)) return res;
+  NS_ENSURE_SUCCESS(res, res);
+  res = mHTMLEditor->mTypeInState->TakeSetProperty(getter_Transfers(item));
+  NS_ENSURE_SUCCESS(res, res);
   
   if (item || relFontSize) 
   {                        
@@ -4448,18 +4446,18 @@ nsHTMLEditRules::CreateStyleForInsertText(nsISelection *aSelection, nsIDOMDocume
     {
       
       res = mHTMLEditor->SplitNodeDeep(node, node, offset, &offset);
-      if (NS_FAILED(res)) return res;
+      NS_ENSURE_SUCCESS(res, res);
       node->GetParentNode(getter_AddRefs(tmp));
       node = tmp;
     }
     nsCOMPtr<nsIDOMNode> newNode;
     nsCOMPtr<nsIDOMText> nodeAsText;
     res = aDoc->CreateTextNode(EmptyString(), getter_AddRefs(nodeAsText));
-    if (NS_FAILED(res)) return res;
+    NS_ENSURE_SUCCESS(res, res);
     if (!nodeAsText) return NS_ERROR_NULL_POINTER;
     newNode = do_QueryInterface(nodeAsText);
     res = mHTMLEditor->InsertNode(newNode, node, offset);
-    if (NS_FAILED(res)) return res;
+    NS_ENSURE_SUCCESS(res, res);
     node = newNode;
     offset = 0;
     weDidSometing = PR_TRUE;
@@ -4473,17 +4471,15 @@ nsHTMLEditRules::CreateStyleForInsertText(nsISelection *aSelection, nsIDOMDocume
       for (j=0; j<abs(relFontSize); j++)
       {
         res = mHTMLEditor->RelativeFontChangeOnTextNode(dir, nodeAsText, 0, -1);
-        if (NS_FAILED(res)) return res;
+        NS_ENSURE_SUCCESS(res, res);
       }
     }
     
     while (item)
     {
       res = mHTMLEditor->SetInlinePropertyOnNode(node, item->tag, &item->attr, &item->value);
-      if (NS_FAILED(res)) return res;
-      
-      delete item;
-      mHTMLEditor->mTypeInState->TakeSetProperty(&item);
+      NS_ENSURE_SUCCESS(res, res);
+      mHTMLEditor->mTypeInState->TakeSetProperty(getter_Transfers(item));
     }
   }
   if (weDidSometing)
