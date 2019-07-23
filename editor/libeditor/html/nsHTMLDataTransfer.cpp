@@ -1117,8 +1117,33 @@ NS_IMETHODIMP nsHTMLEditor::PrepareHTMLTransferable(nsITransferable **aTransfera
       }
       (*aTransferable)->AddDataFlavor(kHTMLMime);
       (*aTransferable)->AddDataFlavor(kFileMime);
-      
-      (*aTransferable)->AddDataFlavor(kJPEGImageMime);
+
+      nsCOMPtr<nsIPrefBranch> prefs = do_GetService(NS_PREFSERVICE_CONTRACTID);
+      PRInt32 clipboardPasteOrder = 1; 
+
+      if (prefs)
+      {
+        prefs->GetIntPref("clipboard.paste_image_type", &clipboardPasteOrder);
+        switch (clipboardPasteOrder)
+        {
+          case 0:  
+            (*aTransferable)->AddDataFlavor(kJPEGImageMime);
+            (*aTransferable)->AddDataFlavor(kPNGImageMime);
+            (*aTransferable)->AddDataFlavor(kGIFImageMime);
+            break;
+          case 1:  
+          default:
+            (*aTransferable)->AddDataFlavor(kPNGImageMime);
+            (*aTransferable)->AddDataFlavor(kJPEGImageMime);
+            (*aTransferable)->AddDataFlavor(kGIFImageMime);
+            break;
+          case 2:  
+            (*aTransferable)->AddDataFlavor(kGIFImageMime);
+            (*aTransferable)->AddDataFlavor(kJPEGImageMime);
+            (*aTransferable)->AddDataFlavor(kPNGImageMime);
+            break;
+        }
+      }
     }
     (*aTransferable)->AddDataFlavor(kUnicodeMime);
   }
@@ -1383,14 +1408,23 @@ NS_IMETHODIMP nsHTMLEditor::InsertFromTransferable(nsITransferable *transferable
         }
       }
     }
-    else if (0 == nsCRT::strcmp(bestFlavor, kJPEGImageMime))
+    else if (0 == nsCRT::strcmp(bestFlavor, kJPEGImageMime) ||
+             0 == nsCRT::strcmp(bestFlavor, kPNGImageMime) ||
+             0 == nsCRT::strcmp(bestFlavor, kGIFImageMime))
     {
       nsCOMPtr<nsIInputStream> imageStream(do_QueryInterface(genericDataObj));
       NS_ENSURE_TRUE(imageStream, NS_ERROR_FAILURE);
 
       nsCOMPtr<nsIFile> fileToUse;
       NS_GetSpecialDirectory(NS_OS_TEMP_DIR, getter_AddRefs(fileToUse));
-      fileToUse->Append(NS_LITERAL_STRING("moz-screenshot.jpg"));
+
+      if (0 == nsCRT::strcmp(bestFlavor, kJPEGImageMime))
+        fileToUse->Append(NS_LITERAL_STRING("moz-screenshot.jpg"));
+      else if (0 == nsCRT::strcmp(bestFlavor, kPNGImageMime))
+        fileToUse->Append(NS_LITERAL_STRING("moz-screenshot.png"));
+      else if (0 == nsCRT::strcmp(bestFlavor, kGIFImageMime))
+        fileToUse->Append(NS_LITERAL_STRING("moz-screenshot.gif"));
+
       nsCOMPtr<nsILocalFile> path = do_QueryInterface(fileToUse);
       path->CreateUnique(nsIFile::NORMAL_FILE_TYPE, 0600);
 
@@ -1952,7 +1986,7 @@ NS_IMETHODIMP nsHTMLEditor::CanPaste(PRInt32 aSelectionType, PRBool *aCanPaste)
   
   const char* textEditorFlavors[] = { kUnicodeMime };
   const char* textHtmlEditorFlavors[] = { kUnicodeMime, kHTMLMime,
-                                          kJPEGImageMime };
+                                          kJPEGImageMime, kPNGImageMime, kGIFImageMime };
 
   PRUint32 editorFlags;
   GetFlags(&editorFlags);

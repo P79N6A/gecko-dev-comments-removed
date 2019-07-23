@@ -129,3 +129,10 @@ pref("editor.dont_lock_spell_files", true);
 #endif
 
 pref("editor.CR_creates_new_p",      false);
+
+
+
+pref("clipboard.paste_image_type", 1);
+#ifdef XP_WIN
+pref("clipboard.paste_image_quality", 92); 
+#endif
