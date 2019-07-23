@@ -152,7 +152,6 @@ struct JSTraceMonitor {
 
 
 
-
     JSContext               *tracecx;
 
     CLS(VMAllocator)        dataAlloc;   
