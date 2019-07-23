@@ -40,6 +40,7 @@
 
 
 
+
 const nsIF = Ci.nsIFile;
 const nsIDM = Ci.nsIDownloadManager;
 const nsIWBP = Ci.nsIWebBrowserPersist;
@@ -119,9 +120,8 @@ function run_test()
         
         do_check_eq(data.length, aDl.targetFile.fileSize);
         
-        
-        true || do_check_eq(data.length, aDl.amountTransferred);
-        true || do_check_eq(data.length, aDl.size);
+        do_check_eq(data.length, aDl.amountTransferred);
+        do_check_eq(data.length, aDl.size);
 
         httpserv.stop();
         
