@@ -195,6 +195,9 @@
 #define NS_THEME_SCALE_TICK                               117
 
 
+#define NS_THEME_GROUPBOX                                  149
+
+
 
 
 #define NS_THEME_CHECKBOX_CONTAINER                        150
