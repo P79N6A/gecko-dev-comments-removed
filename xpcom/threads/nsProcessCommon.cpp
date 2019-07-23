@@ -65,6 +65,11 @@
 #include <signal.h>
 #endif
 
+#ifdef WINCE
+#include <windows.h> 
+#include "prmem.h"
+#endif
+
 
 
 
