@@ -150,8 +150,10 @@ main(int argc, char* argv[])
         if (NS_FAILED(rv)) return rv;
 
         rv = RunBlockingTest(nsDependentCString(hostName), port, file);
+#if defined(PR_LOGGING)
         if (NS_FAILED(rv))
             LOG(("RunBlockingTest failed [rv=%x]\n", rv));
+#endif
 
         
         
