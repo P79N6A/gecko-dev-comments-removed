@@ -45,10 +45,12 @@
 #include "nsIChangeManager.h"
 #include "nsWeakReference.h"
 #include "nsIWidget.h"
+#include "nsAutoPtr.h"
 
 #import <Cocoa/Cocoa.h>
 
 class nsIMenu;
+class nsMenuItemIconX;
 
 
 
@@ -117,6 +119,7 @@ protected:
   nsWeakPtr                 mDocShellWeakRef;     
   nsCOMPtr<nsIContent>      mContent;
   nsCOMPtr<nsIContent>      mCommandContent;
+  nsRefPtr<nsMenuItemIconX> mIcon;
   
   PRUint8           mModifiers;
   PRPackedBool      mIsSeparator;

@@ -40,6 +40,7 @@
 #define nsMenuX_h_
 
 #include "nsCOMPtr.h"
+#include "nsAutoPtr.h"
 #include "nsIMenu.h"
 #include "nsIMenuListener.h"
 #include "nsIChangeManager.h"
@@ -53,6 +54,7 @@
 class nsIMenuBar;
 class nsIMenuListener;
 class nsMenuX;
+class nsMenuItemIconX;
 
 
 
@@ -152,6 +154,7 @@ protected:
     nsWeakPtr                   mDocShellWeakRef;       
     nsCOMPtr<nsIContent>        mMenuContent;           
     nsCOMPtr<nsIMenuListener>   mListener;              
+    nsRefPtr<nsMenuItemIconX>   mIcon;
 
     
     PRInt16                     mMacMenuID;
