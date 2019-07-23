@@ -2705,6 +2705,7 @@ TraceRecorder::record_JSOP_BITAND()
     return binary(LIR_and);
 }
 
+
 bool
 TraceRecorder::record_JSOP_EQ()
 {
@@ -2745,6 +2746,7 @@ TraceRecorder::record_JSOP_EQ()
     }
     return cmp(LIR_feq);
 }
+
 
 bool
 TraceRecorder::record_JSOP_NE()
@@ -3721,12 +3723,18 @@ TraceRecorder::record_JSOP_LOOKUPSWITCH()
 bool
 TraceRecorder::record_JSOP_STRICTEQ()
 {
+    
+    
+    
     return record_JSOP_EQ();
 }
 
 bool
 TraceRecorder::record_JSOP_STRICTNE()
 {
+    
+    
+    
     return record_JSOP_NE();
 }
 
