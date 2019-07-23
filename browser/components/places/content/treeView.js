@@ -306,7 +306,7 @@ PlacesTreeView.prototype = {
       replaceCount-=1;
 
     
-    var nodesToSelect = [];
+    var previouslySelectedNodes = [];
     var selection = this.selection;
     var rc = selection.getRangeCount();
     for (var rangeIndex = 0; rangeIndex < rc; rangeIndex++) {
@@ -317,7 +317,8 @@ PlacesTreeView.prototype = {
         continue;
 
       for (var nodeIndex = min.value; nodeIndex <= lastIndex; nodeIndex++)
-        nodesToSelect.push(this._visibleElements[nodeIndex]);
+        previouslySelectedNodes.push({ node: this._visibleElements[nodeIndex],
+                                       oldIndex: nodeIndex });
     }
 
     
@@ -345,7 +346,7 @@ PlacesTreeView.prototype = {
     }
 
     
-    if (nodesToSelect.length > 0)
+    if (previouslySelectedNodes.length > 0)
       selection.selectEventsSuppressed = true;
 
     this._tree.beginUpdateBatch();
@@ -373,14 +374,14 @@ PlacesTreeView.prototype = {
     this._tree.endUpdateBatch();
 
     
-    if (nodesToSelect.length > 0) {
-      for each (var node in nodesToSelect) {
-        var index = node.viewIndex;
+    if (previouslySelectedNodes.length > 0) {
+      for each (var nodeInfo in previouslySelectedNodes) {
+        var index = nodeInfo.node.viewIndex;
 
         
         
         if (index == -1) { 
-          var itemId = node.itemId;
+          var itemId = nodeInfo.node.itemId;
           if (itemId != 1) { 
             for (i=0; i < newElements.length && index == -1; i++) {
               if (newElements[i].itemId == itemId)
@@ -388,7 +389,7 @@ PlacesTreeView.prototype = {
             }
           }
           else { 
-            var uri = node.uri;
+            var uri = nodeInfo.node.uri;
             if (uri) {
               for (i=0; i < newElements.length && index == -1; i++) {
                 if (newElements[i].uri == uri)
@@ -400,6 +401,16 @@ PlacesTreeView.prototype = {
         if (index != -1)
           selection.rangedSelect(index, index, true);
       }
+
+      
+      
+      if (previouslySelectedNodes.length == 1 &&
+          selection.getRangeCount() == 0 &&
+          this._visibleElements.length > previouslySelectedNodes[0].oldIndex) {
+        selection.rangedSelect(previouslySelectedNodes[0].oldIndex,
+                               previouslySelectedNodes[0].oldIndex, true);
+      }
+
       selection.selectEventsSuppressed = false;
     }
   },
@@ -668,6 +679,17 @@ PlacesTreeView.prototype = {
       return; 
 
     
+    
+    var selectNext = false;
+    var selection = this.selection;
+    if (selection.getRangeCount() == 1) {
+      var min = { }, max = { };
+      selection.getRangeAt(0, min, max);
+      if (min.value == max.value)
+        selectNext = true;
+    }
+
+    
     var count = this._countVisibleRowsForItem(aItem);
 
     
@@ -710,6 +732,10 @@ PlacesTreeView.prototype = {
     
     if (!aParent.hasChildren)
       this.itemChanged(aParent);
+
+    
+    if (selectNext && this._visibleElements.length > oldViewIndex)
+      selection.rangedSelect(oldViewIndex, oldViewIndex, true);
   },
 
   
