@@ -84,17 +84,8 @@
   </frameset>
 
   
-  <iframe src="geo.html" onload="test_MicroformatsAPI();">
-  </iframe>
 
-  
-  <div class="adr" id="01-extended-address">
-    <span class="extended-address">Park Bench</span>
-  </div>
-  
-  <pre id="test">
   <script class="testbody" type="text/javascript">
-
   // Called from the onload of the iframe
   function test_MicroformatsAPI() {
     // I'm going to try to do this without getting XPConnect priv's, make sure
@@ -151,5 +142,15 @@
     is(count, 1, "One hCard");
   }
   </script>
+
+  
+  <iframe src="geo.html" onload="test_MicroformatsAPI();">
+  </iframe>
+
+  
+  <div class="adr" id="01-extended-address">
+    <span class="extended-address">Park Bench</span>
+  </div>
+
 </body>
 </html>
