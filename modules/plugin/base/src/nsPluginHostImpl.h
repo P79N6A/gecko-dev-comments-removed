@@ -58,7 +58,7 @@
 #include "nsIFileUtilities.h"
 #include "nsICookieStorage.h"
 #include "nsPluginsDir.h"
-#include "nsVoidArray.h"  
+#include "nsVoidArray.h"
 #include "nsPluginDirServiceProvider.h"
 #include "nsAutoPtr.h"
 #include "nsWeakPtr.h"
@@ -69,8 +69,6 @@
 #include "nsWeakReference.h"
 #include "nsThreadUtils.h"
 #include "nsTArray.h"
-
-
 #include "nsIFactory.h"
 
 class nsNPAPIPlugin;

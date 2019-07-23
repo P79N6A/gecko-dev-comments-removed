@@ -86,7 +86,6 @@ nsNPAPIPluginStreamListener::nsNPAPIPluginStreamListener(nsNPAPIPluginInstance* 
                                           sizeof("javascript:") - 1) == 0),
     mResponseHeaderBuf(nsnull)
 {
-  
   memset(&mNPStream, 0, sizeof(mNPStream));
 
   NS_IF_ADDREF(mInst);
@@ -286,7 +285,6 @@ nsNPAPIPluginStreamListener::SuspendRequest()
 
   if (!pluginInfoNPAPI || !(request = pluginInfoNPAPI->GetRequest())) {
     NS_ERROR("Trying to suspend a non-suspendable stream!");
-
     return NS_ERROR_FAILURE;
   }
 
@@ -307,9 +305,8 @@ nsNPAPIPluginStreamListener::ResumeRequest()
   nsIRequest *request = pluginInfoNPAPI->GetRequest();
 
   
-  if (request) {
+  if (request)
     request->Resume();
-  }
 
   mIsSuspended = PR_FALSE;
 }
@@ -332,7 +329,6 @@ nsNPAPIPluginStreamListener::StopDataPump()
 {
   if (mDataPumpTimer) {
     mDataPumpTimer->Cancel();
-
     mDataPumpTimer = nsnull;
   }
 }
@@ -431,8 +427,7 @@ nsNPAPIPluginStreamListener::OnDataAvailable(nsIPluginStreamInfo* pluginInfo,
   nsresult rv = NS_OK;
   while (NS_SUCCEEDED(rv) && length > 0) {
     if (input && length) {
-      if (mStreamBufferSize < mStreamBufferByteCount + length &&
-          mIsSuspended) {
+      if (mStreamBufferSize < mStreamBufferByteCount + length && mIsSuspended) {
         
         
         
@@ -440,7 +435,7 @@ nsNPAPIPluginStreamListener::OnDataAvailable(nsIPluginStreamInfo* pluginInfo,
         
         
         mStreamBufferSize = mStreamBufferByteCount + length;
-        char *buf = (char *)PR_Realloc(mStreamBuffer, mStreamBufferSize);
+        char *buf = (char*)PR_Realloc(mStreamBuffer, mStreamBufferSize);
         if (!buf)
           return NS_ERROR_OUT_OF_MEMORY;
 
@@ -544,7 +539,6 @@ nsNPAPIPluginStreamListener::OnDataAvailable(nsIPluginStreamInfo* pluginInfo,
       if (!mStreamStarted) {
         
         
-
         return NS_BINDING_ABORTED;
       }
 
@@ -707,9 +701,7 @@ nsNPAPIPluginStreamListener::Notify(nsITimer *aTimer)
 
   if (NS_FAILED(rv)) {
     
-
     aTimer->Cancel();
-
     return NS_OK;
   }
 
@@ -720,9 +712,7 @@ nsNPAPIPluginStreamListener::Notify(nsITimer *aTimer)
     
     
     
-
     ResumeRequest();
-
     
     StopDataPump();
   }
@@ -868,7 +858,7 @@ NS_IMETHODIMP nsNPAPIPluginInstance::Stop(void)
   OnPluginDestroy(&fNPP);
 
   if (fCallbacks->destroy == NULL)
-    return NS_ERROR_FAILURE; 
+    return NS_ERROR_FAILURE;
 
   NPSavedData *sdata = 0;
 
@@ -904,23 +894,18 @@ already_AddRefed<nsPIDOMWindow>
 nsNPAPIPluginInstance::GetDOMWindow()
 {
   nsCOMPtr<nsPIPluginInstancePeer> pp (do_QueryInterface(mPeer));
-  if (!pp) {
+  if (!pp)
     return nsnull;
-  }
 
   nsCOMPtr<nsIPluginInstanceOwner> owner;
   pp->GetOwner(getter_AddRefs(owner));
-
-  if (!owner) {
+  if (!owner)
     return nsnull;
-  }
 
   nsCOMPtr<nsIDocument> doc;
   owner->GetDocument(getter_AddRefs(doc));
-
-  if (!doc) {
+  if (!doc)
     return nsnull;
-  }
 
   nsPIDOMWindow *window = doc->GetWindow();
   NS_IF_ADDREF(window);
@@ -957,9 +942,10 @@ nsresult nsNPAPIPluginInstance::InitializePlugin(nsIPluginInstancePeer* peer)
       const char* const* pnames = nsnull;
       const char* const* pvalues = nsnull;    
       if (NS_SUCCEEDED(taginfo->GetParameters(pcount, pnames, pvalues))) {
-        NS_ASSERTION(nsnull == values[count], "attribute/parameter array not setup correctly for 4.x plugins");
+        NS_ASSERTION(!values[count], "attribute/parameter array not setup correctly for NPAPI plugins");
         if (pcount)
           count += ++pcount; 
+                             
       }
     }
   }
@@ -1105,7 +1091,6 @@ NS_IMETHODIMP nsNPAPIPluginInstance::SetWindow(nsPluginWindow* window)
     
     
     
-
   }
   return NS_OK;
 }
@@ -1133,9 +1118,9 @@ nsresult nsNPAPIPluginInstance::NewNotifyStream(nsIPluginStreamListener** listen
   is->mNext = mStreams;
   is->mPluginStreamListener = stream;
   mStreams = is;
-  stream->SetCallNotify(aCallNotify);  
+  stream->SetCallNotify(aCallNotify); 
 
-  NS_ADDREF(stream);  
+  NS_ADDREF(stream); 
     
   nsresult res = stream->QueryInterface(kIPluginStreamListenerIID, (void**)listener);
 
@@ -1243,17 +1228,14 @@ nsresult nsNPAPIPluginInstance::GetValueInternal(NPPVariable variable, void* val
 
 #ifdef XP_OS2
     
-    if (res == NS_OK && variable == NPPVpluginScriptableInstance)
-    {
+    if (res == NS_OK && variable == NPPVpluginScriptableInstance) {
       nsCOMPtr<nsILegacyPluginWrapperOS2> wrapper =
                do_GetService(NS_LEGACY_PLUGIN_WRAPPER_CONTRACTID, &res);
-      if (res == NS_OK)
-      {
+      if (res == NS_OK) {
         nsIID *iid = nsnull; 
         res = (*fCallbacks->getvalue)(&fNPP, NPPVpluginScriptableIID, (void *)&iid);
         if (res == NS_OK)
-          res = wrapper->MaybeWrap(*iid, *(nsISupports**)value,
-                                   (nsISupports**)value);
+          res = wrapper->MaybeWrap(*iid, *(nsISupports**)value, (nsISupports**)value);
       }
     }
 #endif
@@ -1298,7 +1280,7 @@ NS_IMETHODIMP nsNPAPIPluginInstance::GetValue(nsPluginInstanceVariable variable,
 
 nsresult nsNPAPIPluginInstance::GetNPP(NPP* aNPP) 
 {
-  if (aNPP != nsnull)
+  if (aNPP)
     *aNPP = &fNPP;
   else
     return NS_ERROR_NULL_POINTER;
@@ -1308,7 +1290,7 @@ nsresult nsNPAPIPluginInstance::GetNPP(NPP* aNPP)
 
 nsresult nsNPAPIPluginInstance::GetCallbacks(const NPPluginFuncs ** aCallbacks)
 {
-  if (aCallbacks != nsnull)
+  if (aCallbacks)
     *aCallbacks = fCallbacks;
   else
     return NS_ERROR_NULL_POINTER;
@@ -1467,7 +1449,6 @@ nsNPAPIPluginInstance::PushPopupsEnabledState(PRBool aEnabled)
 
   if (!mPopupStates.AppendElement(NS_INT32_TO_PTR(oldState))) {
     
-
     window->PopPopupControlState(oldState);
   }
 }
