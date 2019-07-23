@@ -1195,17 +1195,18 @@ PRBool nsXULWindow::LoadMiscPersistentAttributesFromXUL()
     }
 
     
+    
+    
+    mWindow->SetSizeMode(sizeMode);
+
+    
     if (sizeMode == nsSizeMode_Fullscreen) {
       if (!DispatchCustomEvent(NS_LITERAL_STRING("fullscreen"), PR_TRUE, PR_FALSE)) {
         
         
-        sizeMode = nsSizeMode_Maximized;
-        mWindow->SetSizeMode(sizeMode);
+        mWindow->SetSizeMode(nsSizeMode_Maximized);
       }
     }
-
-    
-    mWindow->SetSizeMode(sizeMode);
 
     gotState = PR_TRUE;
   }
