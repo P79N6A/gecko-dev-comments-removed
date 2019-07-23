@@ -274,4 +274,10 @@ function DBConn()
 
 
 
-Cc["@mozilla.org/places/sync;1"].getService(Ci.nsISupports);
+
+function flush_main_thread_events()
+{
+  let tm = Cc["@mozilla.org/thread-manager;1"].getService(Ci.nsIThreadManager);
+  while (tm.mainThread.hasPendingEvents())
+    tm.mainThread.processNextEvent(false);
+}

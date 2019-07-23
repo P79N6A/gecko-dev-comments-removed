@@ -460,7 +460,7 @@ tests.push({
 
 tests.push({
   name: "D.4",
-  desc: "Move orphan items to unsorted folde",
+  desc: "Move orphan items to unsorted folder",
 
   _orphanBookmarkId: null,
   _orphanSeparatorId: null,
@@ -1081,7 +1081,7 @@ tests.push({
   _separatorId: null,
 
   setup: function() {
-  
+    
     hs.addVisit(this._uri1, Date.now() * 1000, null,
                 hs.TRANSITION_TYPED, false, 0);
     hs.addVisit(this._uri2, Date.now() * 1000, null,
@@ -1156,6 +1156,12 @@ os.addObserver(observer, FINISHED_MAINTANANCE_NOTIFICATION_TOPIC, false);
 
 
 function run_test() {
+  
+  
+  hs.addVisit(uri("http://force.bookmarks.hash"), Date.now() * 1000, null,
+              hs.TRANSITION_TYPED, false, 0);
+  do_check_false(bs.isBookmarked(uri("http://force.bookmarks.hash")));
+
   
   stmt = mDBConn.createStatement("SELECT MAX(id) FROM moz_bookmarks");
   stmt.executeStep();
