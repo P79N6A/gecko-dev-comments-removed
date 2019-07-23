@@ -117,3 +117,18 @@ NS_METHOD NS_GetCurrentToolkit(nsIToolkit* *aResult)
   }
   return rv;
 }
+
+void nsToolkit::CreateSharedGC(void)
+{
+    if (mSharedGC)
+        return;
+
+    mSharedGC = new QPixmap();
+}
+
+Qt::HANDLE
+nsToolkit::GetSharedGC(void)
+{
+    
+    return mSharedGC->handle();
+}
