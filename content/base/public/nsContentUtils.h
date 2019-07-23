@@ -1023,6 +1023,13 @@ public:
 
 
   static PRUint32 GetKBStateControlStatusFromIMEStatus(PRUint32 aState);
+
+  
+
+
+
+
+  static void NotifyInstalledMenuKeyboardListener(PRBool aInstalling);
 private:
 
   static PRBool InitializeEventTable();
