@@ -5234,6 +5234,12 @@ nsDocShell::BeginRestore(nsIContentViewer *aContentViewer, PRBool aTop)
         
         
         
+        mFiredUnloadEvent = PR_FALSE;
+        
+        
+        
+        
+        
         rv = BeginRestoreChildren();
         NS_ENSURE_SUCCESS(rv, rv);
     }
@@ -6292,6 +6298,10 @@ nsDocShell::InternalLoad(nsIURI * aURI,
                          nsIDocShell** aDocShell,
                          nsIRequest** aRequest)
 {
+    if (mFiredUnloadEvent) {
+      return NS_OK; 
+    }
+
     nsresult rv = NS_OK;
 
 #ifdef PR_LOGGING
