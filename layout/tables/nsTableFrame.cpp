@@ -3279,6 +3279,7 @@ nsTableFrame::DistributeHeightToRows(const nsHTMLReflowState& aReflowState,
   }
 
   
+  
   nsTableRowGroupFrame* firstUnStyledRG  = nsnull;
   nsTableRowFrame*      firstUnStyledRow = nsnull;
   for (rgX = 0; rgX < rowGroups.Length() && !firstUnStyledRG; rgX++) {
@@ -3296,33 +3297,48 @@ nsTableFrame::DistributeHeightToRows(const nsHTMLReflowState& aReflowState,
     }
   }
 
-  nsTableRowFrame* lastElligibleRow = nsnull;
+  nsTableRowFrame* lastEligibleRow = nsnull;
+  
+  
   
   
   nscoord divisor = 0;
-  PRUint32 rowCount = 0;
-  for (rgX = 0; rgX < rowGroups.Length(); rgX++) {
-    nsTableRowGroupFrame* rgFrame = rowGroups[rgX];
-    if (!firstUnStyledRG || !rgFrame->HasStyleHeight()) {
-      nsTableRowFrame* rowFrame = rgFrame->GetFirstRow();
-      while (rowFrame) {
-        if (!firstUnStyledRG || !rowFrame->HasStyleHeight()) {
-          NS_ASSERTION(rowFrame->GetSize().height >= 0, "negative height");
-          divisor += rowFrame->GetSize().height;
-          ++rowCount;
-          lastElligibleRow = rowFrame;
+  PRInt32 eligibleRows = 0;
+  PRBool expandEmptyRows = PR_FALSE;
+
+  if (!firstUnStyledRow) {
+    
+    divisor = GetRowCount();
+  }
+  else {
+    for (rgX = 0; rgX < rowGroups.Length(); rgX++) {
+      nsTableRowGroupFrame* rgFrame = rowGroups[rgX];
+      if (!firstUnStyledRG || !rgFrame->HasStyleHeight()) {
+        nsTableRowFrame* rowFrame = rgFrame->GetFirstRow();
+        while (rowFrame) {
+          if (!firstUnStyledRG || !rowFrame->HasStyleHeight()) {
+            NS_ASSERTION(rowFrame->GetSize().height >= 0,
+                         "negative row frame height");
+            divisor += rowFrame->GetSize().height;
+            eligibleRows++;
+            lastEligibleRow = rowFrame;
+          }
+          rowFrame = rowFrame->GetNextRow();
         }
-        rowFrame = rowFrame->GetNextRow();
+      }
+    }
+    if (divisor <= 0) {
+      if (eligibleRows > 0) {
+        expandEmptyRows = PR_TRUE;
+      }
+      else {
+        NS_ERROR("invalid divisor");
+        return;
       }
     }
   }
-  if (divisor < 0) {
-    NS_ERROR("invalid divisor");
-    return;
-  }
-
   
-  pctBasis = aAmount - amountUsed;
+  nscoord heightToDistribute = aAmount - amountUsed;
   yOriginRG = borderPadding.top + cellSpacingY;
   yEndRG = yOriginRG;
   for (rgX = 0; rgX < rowGroups.Length(); rgX++) {
@@ -3331,22 +3347,31 @@ nsTableFrame::DistributeHeightToRows(const nsHTMLReflowState& aReflowState,
     nscoord yOriginRow = 0;
     nsRect rgRect = rgFrame->GetRect();
     
-    if (!firstUnStyledRG || !rgFrame->HasStyleHeight()) {
+    if (!firstUnStyledRG || !rgFrame->HasStyleHeight() || !eligibleRows) {
       nsTableRowFrame* rowFrame = rgFrame->GetFirstRow();
       while (rowFrame) {
         nsRect rowRect = rowFrame->GetRect();
         
-        if (!firstUnStyledRow || !rowFrame->HasStyleHeight()) {
-          
-          float percent;
-          if (divisor != 0) {
-            percent = float(rowRect.height) / float(divisor);
-          } else {
-            percent = 1.0f / float(rowCount);
+        if (!firstUnStyledRow || !rowFrame->HasStyleHeight() || !eligibleRows) {          
+          float ratio;
+          if (eligibleRows) {
+            if (!expandEmptyRows) {
+              
+              
+              ratio = float(rowRect.height) / float(divisor);
+            } else {
+              
+              ratio = 1.0f / float(eligibleRows);
+            }
+          }
+          else {
+            
+            ratio = 1.0f / float(divisor);
           }
           
-          nscoord amountForRow = (rowFrame == lastElligibleRow) 
-                                 ? aAmount - amountUsed : NSToCoordRound(((float)(pctBasis)) * percent);
+          
+          nscoord amountForRow = (rowFrame == lastEligibleRow) 
+                                 ? aAmount - amountUsed : NSToCoordRound(((float)(heightToDistribute)) * ratio);
           amountForRow = PR_MIN(amountForRow, aAmount - amountUsed);
           
           nsRect newRowRect(rowRect.x, yOriginRow, rowRect.width, rowRect.height + amountForRow);
