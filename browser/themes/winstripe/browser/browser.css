@@ -1754,7 +1754,6 @@ toolbarbutton.bookmark-item[dragover="true"][open="true"] {
 
 #urlbar[chromedir="ltr"] {
   -moz-margin-start: 4px;
-  
 }
 
 #urlbar > .autocomplete-textbox-container {
@@ -1767,7 +1766,6 @@ toolbarbutton.bookmark-item[dragover="true"][open="true"] {
 
 #urlbar[chromedir="ltr"] > #identity-box {
   -moz-margin-start: -4px;
-  
 }
 
 #identity-box > hbox {
@@ -1789,11 +1787,6 @@ toolbarbutton.bookmark-item[dragover="true"][open="true"] {
   background-position: 0 10px;
   -moz-border-radius-topleft: 21px;
   -moz-border-radius-bottomleft: 21px;
-  
-
-
-
-
 }
 
 #urlbar[chromedir="ltr"] > .autocomplete-textbox-container > .textbox-input-box {
