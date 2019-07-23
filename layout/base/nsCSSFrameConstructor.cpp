@@ -7489,6 +7489,13 @@ nsCSSFrameConstructor::ConstructSVGFrame(nsFrameConstructorState& aState,
 }
 #endif 
 
+
+
+
+
+
+
+
 PRBool
 nsCSSFrameConstructor::PageBreakBefore(nsFrameConstructorState& aState,
                                        nsIContent*              aContent,
@@ -7498,9 +7505,9 @@ nsCSSFrameConstructor::PageBreakBefore(nsFrameConstructorState& aState,
 {
   const nsStyleDisplay* display = aStyleContext->GetStyleDisplay();
 
-  
-  
   if (NS_STYLE_DISPLAY_NONE != display->mDisplay &&
+      NS_STYLE_POSITION_FIXED    != display->mPosition &&
+      NS_STYLE_POSITION_ABSOLUTE != display->mPosition &&
       (NS_STYLE_DISPLAY_TABLE == display->mDisplay ||
        !IsTableRelated(display->mDisplay, PR_TRUE))) { 
     if (display->mBreakBefore) {

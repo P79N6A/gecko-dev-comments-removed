@@ -706,6 +706,13 @@ public:
   PRBool IsLastLineInList();
   nsBlockFrame* GetContainer() { return mFrame; }
   PRBool GetInOverflow() { return mInOverflowLines != nsnull; }
+
+
+  
+
+
+  line_iterator End();
+
   
 
 

@@ -950,7 +950,7 @@ nsHTMLReflowState::CalculateHypotheticalBox(nsPresContext*    aPresContext,
       
       
       
-      if (lineBox != blockFrame->end_lines()) {
+      if (lineBox != iter.End()) {
         nsIFrame * firstFrame = lineBox->mFirstChild;
         PRBool found = PR_FALSE;
         PRBool allEmpty = PR_TRUE;
