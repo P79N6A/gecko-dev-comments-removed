@@ -907,22 +907,6 @@ nsLineLayout::ReflowFrame(nsIFrame* aFrame,
         if (frag) {
           pfd->SetFlag(PFD_ISNONWHITESPACETEXTFRAME,
                        !content->TextIsOnlyWhitespace());
-
-#ifdef IBMBIDI
-          if (mPresContext->BidiEnabled()) {
-            if (frag->Is2b()) {
-              
-              
-              PRUnichar ch = 
- *frag->Get2b();
-              if (IS_BIDI_DIACRITIC(ch)) {
-                mPresContext->PropertyTable()->SetProperty(aFrame,
-                           nsGkAtoms::endsInDiacritic, NS_INT32_TO_PTR(ch),
-                                                           nsnull, nsnull);
-              }
-            }
-          }
-#endif 
         }
       }
     }
