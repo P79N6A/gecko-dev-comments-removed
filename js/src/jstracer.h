@@ -45,6 +45,7 @@
 #ifdef JS_TRACER
 
 #include "jscntxt.h"
+#include "jsstddef.h"
 #include "jstypes.h"
 #include "jslock.h"
 #include "jsnum.h"
@@ -205,12 +206,40 @@ public:
 };
 
 enum ExitType {
+    
+
+
+
+
+
     BRANCH_EXIT,
-    CASE_EXIT,          
-    DEFAULT_EXIT,       
+
+    
+
+
+    CASE_EXIT,
+
+    
+
+
+    DEFAULT_EXIT,
+
     LOOP_EXIT,
     NESTED_EXIT,
+
+    
+
+
+
+
+
+
+
     MISMATCH_EXIT,
+
+    
+
+
     OOM_EXIT,
     OVERFLOW_EXIT,
     UNSTABLE_LOOP_EXIT,
