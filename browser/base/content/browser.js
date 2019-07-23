@@ -1950,11 +1950,11 @@ function checkForDirectoryListing()
   }
 }
 
-function URLBarSetURI(aURI) {
+function URLBarSetURI(aURI, aMustUseURI) {
   var value = getBrowser().userTypedValue;
   var state = "invalid";
 
-  if (!value) {
+  if (!value || aMustUseURI) {
     if (aURI) {
       
       
