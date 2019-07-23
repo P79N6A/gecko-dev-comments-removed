@@ -155,6 +155,8 @@ pluginDrawWindow(InstanceData* instanceData, GdkDrawable* gdkWindow)
   int width = window.width;
   int height = window.height;
 
+  ++instanceData->paintCount;
+
   if (instanceData->scriptableObject->drawMode == DM_SOLID_COLOR) {
     
     pluginDrawSolid(instanceData, gdkWindow, x, y, width, height);
