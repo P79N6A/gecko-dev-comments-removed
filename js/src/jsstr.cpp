@@ -2724,6 +2724,16 @@ js_NewString(JSContext *cx, jschar *chars, size_t length)
     JSString *str;
 
     if (length > JSSTRING_LENGTH_MASK) {
+        if (JS_ON_TRACE(cx)) {
+            
+
+
+
+            if (!js_CanLeaveTrace(cx))
+                return NULL;
+
+            js_LeaveTrace(cx);
+        }
         js_ReportAllocationOverflow(cx);
         return NULL;
     }
@@ -2925,7 +2935,7 @@ js_FinalizeStringRT(JSRuntime *rt, JSString *str, intN type, JSContext *cx)
             }
         }
     }
-    if (valid && JSSTRING_IS_DEFLATED(str))
+    if (valid)
         js_PurgeDeflatedStringCache(rt, str);
 }
 
@@ -3444,7 +3454,6 @@ js_SetStringBytes(JSContext *cx, JSString *str, char *bytes, size_t length)
     if (ok)
         rt->deflatedStringCacheBytes += length;
 #endif
-    JSSTRING_SET_DEFLATED(str);
 
     JS_RELEASE_LOCK(rt->deflatedStringCacheLock);
     return ok;
@@ -3499,7 +3508,6 @@ js_GetStringBytes(JSContext *cx, JSString *str)
 #ifdef DEBUG
                 rt->deflatedStringCacheBytes += JSSTRING_LENGTH(str);
 #endif
-                JSSTRING_SET_DEFLATED(str);
             } else {
                 if (cx)
                     JS_free(cx, bytes);
