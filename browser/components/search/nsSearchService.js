@@ -1556,13 +1556,6 @@ Engine.prototype = {
     
 
 
-    function sTrim(aStr) {
-      return aStr.replace(/^\s+/g, "").replace(/\s+$/g, "");
-    }
-
-    
-
-
 
 
 
@@ -1616,11 +1609,11 @@ Engine.prototype = {
 
       var section = {};
       for (var i = 0; i < lines.length; i++) {
-        var line = sTrim(lines[i]);
+        var line = lines[i].trim();
 
         var els = line.split("=");
-        var name = sTrim(els.shift().toLowerCase());
-        var value = sTrim(els.join("="));
+        var name = els.shift().trim().toLowerCase();
+        var value = els.join("=").trim();
 
         if (!name || !value)
           continue;
@@ -1629,7 +1622,7 @@ Engine.prototype = {
         
         value = value.replace(/^["']/, "")
                      .replace(/["']\s*[\\\/]?>?\s*$/, "") || "";
-        value = sTrim(value);
+        value = value.trim();
 
         
         if (!(name in section))
@@ -1747,7 +1740,7 @@ Engine.prototype = {
       lines.forEach(function (line) {
         
         
-        line = sTrim(line).replace(/^<input/i, "").replace(/>$/, "");
+        line = line.trim().replace(/^<input/i, "").replace(/>$/, "");
 
         
         const directionalInput = /^(prev|next)/i;
