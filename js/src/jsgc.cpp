@@ -110,6 +110,11 @@ extern "C" {
 #   define JS_GC_USE_MMAP 1
 #  endif
 #  include <windows.h>
+# elif defined(__SYMBIAN32__)
+
+
+
+
 # else
 #  if defined(XP_UNIX) || defined(XP_BEOS)
 #   include <unistd.h>
