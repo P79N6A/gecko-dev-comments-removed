@@ -895,10 +895,12 @@ TraceRecorder::TraceRecorder(JSContext* cx, GuardRecord* _anchor, Fragment* _fra
     this->applyingArguments = false;
     this->trashTree = false;
     this->whichTreeToTrash = _fragment->root;
+    this->global_dslots = this->globalObj->dslots;
 
     debug_only_v(printf("recording starting from %s:%u@%u\n", cx->fp->script->filename,
                         js_PCToLineNumber(cx, cx->fp->script, cx->fp->regs->pc),
                         cx->fp->regs->pc - cx->fp->script->code););
+    debug_only_v(printf("globalObj=%p, shape=%d\n", this->globalObj, OBJ_SHAPE(this->globalObj));)
 
     lir = lir_buf_writer = new (&gc) LirBufWriter(lirbuf);
 #ifdef DEBUG
@@ -2650,6 +2652,12 @@ js_MonitorRecording(TraceRecorder* tr)
 
     
     tr->applyingArguments = false;
+
+    
+    if (tr->global_dslots != tr->globalObj->dslots) {
+        js_AbortRecording(cx, NULL, "globalObj->dslots reallocated");
+        return false;
+    }
 
     
     if (tr->wasDeepAborted()) {
