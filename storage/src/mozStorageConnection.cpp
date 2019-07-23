@@ -56,7 +56,7 @@
 #include "mozIStorageFunction.h"
 
 #include "mozStorageEvents.h"
-#include "mozStorageUnicodeFunctions.h"
+#include "mozStorageSQLFunctions.h"
 #include "mozStorageConnection.h"
 #include "mozStorageService.h"
 #include "mozStorageStatement.h"
@@ -370,8 +370,7 @@ Connection::initialize(nsIFile *aDatabaseFile)
 #endif
 
   
-  srv = StorageUnicodeFunctions::RegisterFunctions(mDBConn);
-  if (srv != SQLITE_OK) {
+  if (registerFunctions(mDBConn) != SQLITE_OK) {
     mDBConn = nsnull;
     return ConvertResultCode(srv);
   }
