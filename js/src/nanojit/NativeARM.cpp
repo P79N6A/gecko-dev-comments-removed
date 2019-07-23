@@ -1277,6 +1277,8 @@ Assembler::asm_spill(Register rr, int d, bool pop, bool quad)
     (void) pop;
     (void) quad;
     NanoAssert(d);
+    
+    
     if (_config.arm_vfp && IsFpReg(rr)) {
         if (isS8(d >> 2)) {
             FSTD(rr, FP, d);
