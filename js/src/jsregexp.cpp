@@ -2006,7 +2006,6 @@ typedef js::Vector<LIns *, 4, js::ContextAllocPolicy> LInsList;
 
 static GC gc;
 static avmplus::AvmCore s_core = avmplus::AvmCore();
-static avmplus::AvmCore* core = &s_core;
 
 
 static Fragment*
