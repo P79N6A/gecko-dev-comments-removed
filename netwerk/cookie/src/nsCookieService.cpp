@@ -553,10 +553,19 @@ nsCookieService::InitDB()
   NS_ENSURE_SUCCESS(rv, rv);
 
   
-  if (!tableExists)
-    return ImportCookies();
+  if (tableExists)
+    return Read();
 
-  return Read();
+  rv = NS_GetSpecialDirectory(NS_APP_USER_PROFILE_50_DIR, getter_AddRefs(cookieFile));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  cookieFile->AppendNative(NS_LITERAL_CSTRING(kOldCookieFileName));
+  rv = ImportCookies(cookieFile);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  cookieFile->Remove(PR_FALSE);
+  return NS_OK;
 }
 
 
@@ -929,17 +938,12 @@ nsCookieService::Read()
   return NS_OK;
 }
 
-nsresult
-nsCookieService::ImportCookies()
+NS_IMETHODIMP
+nsCookieService::ImportCookies(nsIFile *aCookieFile)
 {
-  nsCOMPtr<nsIFile> cookieFile;
-  NS_GetSpecialDirectory(NS_APP_USER_PROFILE_50_DIR, getter_AddRefs(cookieFile));
-  if (cookieFile)
-    cookieFile->AppendNative(NS_LITERAL_CSTRING(kOldCookieFileName));
-
   nsresult rv;
   nsCOMPtr<nsIInputStream> fileInputStream;
-  rv = NS_NewLocalFileInputStream(getter_AddRefs(fileInputStream), cookieFile);
+  rv = NS_NewLocalFileInputStream(getter_AddRefs(fileInputStream), aCookieFile);
   if (NS_FAILED(rv)) return rv;
 
   nsCOMPtr<nsILineInputStream> lineInputStream = do_QueryInterface(fileInputStream, &rv);
@@ -958,7 +962,7 @@ nsCookieService::ImportCookies()
   PRInt32 numInts;
   PRInt64 expires;
   PRBool isDomain, isHttpOnly = PR_FALSE;
-  nsCookie *newCookie;
+  PRUint32 originalCookieCount = mCookieCount;
 
   
   
@@ -1031,7 +1035,7 @@ nsCookieService::ImportCookies()
     }
 
     
-    newCookie =
+    nsRefPtr<nsCookie> newCookie =
       nsCookie::Create(Substring(buffer, nameIndex, cookieIndex - nameIndex - 1),
                        Substring(buffer, cookieIndex, buffer.Length() - cookieIndex),
                        host,
@@ -1050,20 +1054,11 @@ nsCookieService::ImportCookies()
     
     newCookie->SetCreationID(--creationIDCounter);
 
-    if (!AddCookieToList(newCookie)) {
-      
-      
-      
-      
-      
-      
-      
-      delete newCookie;
-    }
+    if (originalCookieCount == 0)
+      AddCookieToList(newCookie);
+    else
+      AddInternal(newCookie, currentTime, nsnull, nsnull, PR_TRUE);
   }
-
-  
-  cookieFile->Remove(PR_FALSE);
 
   COOKIE_LOGSTRING(PR_LOG_DEBUG, ("ImportCookies(): %ld cookies imported", mCookieCount));
 
