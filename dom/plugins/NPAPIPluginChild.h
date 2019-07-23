@@ -52,7 +52,7 @@
 #include "npfunctions.h"
 #include "nsplugindefs.h"
 
-#include "base/hash_tables.h"
+#include "nsAutoPtr.h"
 
 #include "mozilla/plugins/NPAPIProtocolChild.h"
 #include "mozilla/plugins/NPPInstanceChild.h"
@@ -102,7 +102,6 @@ protected:
 
     virtual NPPProtocolChild* NPPConstructor(
         const String& aMimeType,
-        const int& aHandle,
         const uint16_t& aMode,
         const StringArray& aNames,
         const StringArray& aValues,
@@ -129,9 +128,6 @@ private:
 
     std::string mPluginFilename;
     PRLibrary* mLibrary;
-
-
-
 
     
 #ifdef OS_LINUX
