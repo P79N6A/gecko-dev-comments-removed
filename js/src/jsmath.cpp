@@ -171,7 +171,7 @@ math_atan2(JSContext *cx, uintN argc, jsval *vp)
     y = js_ValueToNumber(cx, &vp[3]);
     if (JSVAL_IS_NULL(vp[3]))
         return JS_FALSE;
-#if !JS_USE_FDLIBM_MATH && defined(_MSC_VER)
+#if defined(_MSC_VER)
     
 
 
@@ -348,7 +348,6 @@ math_pow(JSContext *cx, uintN argc, jsval *vp)
     y = js_ValueToNumber(cx, &vp[3]);
     if (JSVAL_IS_NULL(vp[3]))
         return JS_FALSE;
-#if !JS_USE_FDLIBM_MATH
     
 
 
@@ -362,7 +361,6 @@ math_pow(JSContext *cx, uintN argc, jsval *vp)
         *vp = JSVAL_ONE;
         return JS_TRUE;
     }
-#endif
     z = fd_pow(x, y);
     return js_NewNumberInRootedValue(cx, z, vp);
 }
