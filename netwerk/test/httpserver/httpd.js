@@ -502,11 +502,18 @@ nsHttpServer.prototype =
   
   start: function(port)
   {
+    this._start(port, "localhost")
+  },
+
+  _start: function(port, host)
+  {
     if (this._socket)
       throw Cr.NS_ERROR_ALREADY_INITIALIZED;
 
     this._port = port;
     this._doQuit = this._socketClosed = false;
+
+    this._host = host;
 
     
     
@@ -518,13 +525,18 @@ nsHttpServer.prototype =
 
     try
     {
+      var loopback = true;
+      if (this._host != "127.0.0.1" && this._host != "localhost") {
+        var loopback = false;
+      }
+
       var socket = new ServerSocket(this._port,
-                                    true, 
+                                    loopback, 
                                     maxConnections);
       dumpn(">>> listening on port " + socket.port + ", " + maxConnections +
             " pending connections");
       socket.asyncListen(this);
-      this._identity._initialize(port, true);
+      this._identity._initialize(port, host, true);
       this._socket = socket;
     }
     catch (e)
@@ -921,7 +933,7 @@ ServerIdentity.prototype =
       
       
       this._primaryPort = -1;
-      this._initialize(this._defaultPort, false);
+      this._initialize(this._defaultPort, host, false);
     }
 
     return present;
@@ -987,16 +999,17 @@ ServerIdentity.prototype =
 
 
 
-  _initialize: function(port, addSecondaryDefault)
+  _initialize: function(port, host, addSecondaryDefault)
   {
+    this._host = host;
     if (this._primaryPort !== -1)
-      this.add("http", "localhost", port);
+      this.add("http", host, port);
     else
       this.setPrimary("http", "localhost", port);
     this._defaultPort = port;
 
     
-    if (addSecondaryDefault)
+    if (addSecondaryDefault && host != "127.0.0.1")
       this.add("http", "127.0.0.1", port);
   },
 
@@ -1007,20 +1020,22 @@ ServerIdentity.prototype =
 
   _teardown: function()
   {
+    if (this._host != "127.0.0.1") {
+      
+      this.remove("http", "127.0.0.1", this._defaultPort);
+    }
     
-    this.remove("http", "127.0.0.1", this._defaultPort);
-
     
     
     if (this._primaryScheme == "http" &&
-        this._primaryHost == "localhost" &&
+        this._primaryHost == this._host &&
         this._primaryPort == this._defaultPort)
     {
       
       
       var port = this._defaultPort;
       this._defaultPort = -1;
-      this.remove("http", "localhost", port);
+      this.remove("http", this._host, port);
 
       
       this._primaryPort = -1;
@@ -1028,7 +1043,7 @@ ServerIdentity.prototype =
     else
     {
       
-      this.remove("http", "localhost", this._defaultPort);
+      this.remove("http", this._host, this._defaultPort);
     }
   },
 
