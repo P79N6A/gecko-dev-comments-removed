@@ -279,11 +279,11 @@ namespace nanojit
         ArgSize sizes[MAXARGS];
         uint32_t argc = call->get_sizes(sizes);
         int32_t stkd = 0;
-        
+
         if (indirect) {
             argc--;
             asm_arg(ARGSIZE_P, ins->arg(argc), EAX, stkd);
-            if (!config.fixed_esp) 
+            if (!config.fixed_esp)
                 stkd = 0;
         }
 
@@ -296,7 +296,7 @@ namespace nanojit
                 r = argRegs[n++]; 
             }
             asm_arg(sz, ins->arg(j), r, stkd);
-            if (!config.fixed_esp) 
+            if (!config.fixed_esp)
                 stkd = 0;
         }
 
@@ -572,7 +572,7 @@ namespace nanojit
                 case LIR_ldc32f:
                     SSE_CVTSS2SD(rr, rr);
                     SSE_LDSS(rr, db, rb);
-                    SSE_XORPDr(rr,rr);  
+                    SSE_XORPDr(rr,rr);
                     break;
                 default:
                     NanoAssertMsg(0, "asm_load64 should never receive this LIR opcode");
@@ -581,7 +581,7 @@ namespace nanojit
         }
         else
         {
-            
+
             int dr = disp(ins);
             Register rb;
             if (base->isop(LIR_alloc)) {
@@ -1434,7 +1434,7 @@ namespace nanojit
         }
     }
 
-	
+    
 #if defined __SUNPRO_CC
     
     
@@ -1609,6 +1609,7 @@ namespace nanojit
             SSE_STQ(stkd, SP, r);
         } else {
             FSTPQ(stkd, SP);
+
             
             
             
@@ -1616,8 +1617,7 @@ namespace nanojit
             
             
             
-            
-            
+
             
 
 
@@ -2053,6 +2053,6 @@ namespace nanojit
         SWAP(NIns*, codeEnd, exitEnd);
         verbose_only( SWAP(size_t, codeBytes, exitBytes); )
     }
-    
+
     #endif
 }

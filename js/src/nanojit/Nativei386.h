@@ -189,11 +189,11 @@ namespace nanojit
  #define IMM8(i)    \
      _nIns -= 1;     \
      *((int8_t*)_nIns) = (int8_t)(i)
- 
+
  #define IMM16(i)    \
      _nIns -= 2;     \
      *((int16_t*)_nIns) = (int16_t)(i)
- 
+
 #define IMM32(i)    \
     _nIns -= 4;     \
     *((int32_t*)_nIns) = (int32_t)(i)

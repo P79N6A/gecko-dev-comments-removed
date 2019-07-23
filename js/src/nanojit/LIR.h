@@ -1464,7 +1464,7 @@ namespace nanojit
 
         
         
-        LInsp read(); 
+        LInsp read();
 
         
         LInsp pos() {
@@ -1506,7 +1506,7 @@ namespace nanojit
     public:
         LoadFilter(LirWriter *out, Allocator& alloc)
             : LirWriter(out), sp(NULL), rp(NULL)
-        { 
+        {
             uint32_t kInitialCaps[LInsLast + 1];
             kInitialCaps[LInsImm]   = 1;
             kInitialCaps[LInsImmq]  = 1;

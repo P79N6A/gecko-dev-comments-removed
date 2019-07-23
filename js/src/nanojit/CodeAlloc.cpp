@@ -263,12 +263,12 @@ extern "C" void __clear_cache(char *BEG, char *END);
 #ifdef __linux__  
 void sync_instruction_memory(caddr_t v, u_int len)
 {
-	caddr_t end = v + len;
-	caddr_t p = v;
-	while (p < end) {
-		asm("flush %0" : : "r" (p));
-		p += 32;
-	}
+    caddr_t end = v + len;
+    caddr_t p = v;
+    while (p < end) {
+        asm("flush %0" : : "r" (p));
+        p += 32;
+    }
 }
 #else
 extern  "C" void sync_instruction_memory(caddr_t v, u_int len);
@@ -324,12 +324,12 @@ extern  "C" void sync_instruction_memory(caddr_t v, u_int len);
     void CodeAlloc::flushICache(void *start, size_t len) {
         cacheflush((int)start, (int)start + len, 0);
     }
-	#else
+    #else
     
     void CodeAlloc::flushICache(void *start, size_t len) {
         __clear_cache((char*)start, (char*)start + len);
     }
-	#endif
+    #endif
 #endif 
 
     void CodeAlloc::addBlock(CodeList* &blocks, CodeList* b) {

@@ -117,7 +117,7 @@ Assembler::CountLeadingZeroes(uint32_t data)
 
 
 
-#elif defined(__GNUC__) && !(defined(ANDROID) && __ARM_ARCH__ <= 5) 
+#elif defined(__GNUC__) && !(defined(ANDROID) && __ARM_ARCH__ <= 5)
     
     __asm (
         "   clz     %0, %1  \n"
@@ -596,7 +596,7 @@ Assembler::genEpilogue()
 
 
 
-void 
+void
 Assembler::asm_arg(ArgSize sz, LInsp arg, Register& r, int& stkd)
 {
     
@@ -722,7 +722,7 @@ Assembler::asm_arg_64(LInsp arg, Register& r, int& stkd)
     }
 }
 
-void 
+void
 Assembler::asm_regarg(ArgSize sz, LInsp p, Register r)
 {
     NanoAssert(isKnownReg(r));
@@ -1264,7 +1264,7 @@ Assembler::asm_restore(LInsp i, Register r)
             
             
             if (
-                does_next_instruction_exist(_nIns, codeStart, codeEnd, 
+                does_next_instruction_exist(_nIns, codeStart, codeEnd,
                                                    exitStart, exitEnd)
                 && 
                    do_peep_2_1(&merged, _nIns[0], _nIns[1])) {
@@ -1295,7 +1295,7 @@ Assembler::asm_spill(Register rr, int d, bool pop, bool quad)
             
             
             if (
-                does_next_instruction_exist(_nIns, codeStart, codeEnd, 
+                does_next_instruction_exist(_nIns, codeStart, codeEnd,
                                                    exitStart, exitEnd)
                 && 
                    do_peep_2_1(&merged, _nIns[0], _nIns[1])) {
@@ -2252,7 +2252,7 @@ Assembler::asm_cond(LInsp ins)
 {
     Register r = prepResultReg(ins, AllowableFlagRegs);
     LOpcode op = ins->opcode();
-    
+
     switch(op)
     {
         case LIR_eq:  SETEQ(r); break;
@@ -2379,7 +2379,7 @@ Assembler::asm_arith(LInsp ins)
             
             
             
-            
+
             if ((ARM_ARCH > 5) || (rr != rb)) {
                 
                 
@@ -2394,7 +2394,7 @@ Assembler::asm_arith(LInsp ins)
             } else {
                 
                 
-                
+
                 
                 if (rr != ra) {
                     
@@ -2436,7 +2436,7 @@ Assembler::asm_arith(LInsp ins)
                 }
             }
             break;
-        
+
         
         
         

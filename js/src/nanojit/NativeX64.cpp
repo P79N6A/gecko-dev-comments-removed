@@ -1260,7 +1260,7 @@ namespace nanojit
             }
             Register r = prepResultReg(ins, GpRegs); 
             MOVZX8(r, r);
-            if (op == LIR_fgt) 
+            if (op == LIR_fgt)
                 SETA(r);
             else
                 SETAE(r);
@@ -1401,7 +1401,7 @@ namespace nanojit
                 regalloc_load(ins, FpRegs, rr, dr, rb);
                 NanoAssert(IsFpReg(rr));
                 CVTSS2SD(rr, rr);
-                MOVSSRM(rr, dr, rb); 
+                MOVSSRM(rr, dr, rb);
                 break;
             default:
                 NanoAssertMsg(0, "asm_load64 should never receive this LIR opcode");
@@ -1510,7 +1510,7 @@ namespace nanojit
 
         
         
-        const RegisterMask SrcRegs = 
+        const RegisterMask SrcRegs =
                         (op == LIR_stb) ?
                         (GpRegs & ~(1<<RSP | 1<<RBP | 1<<RSI | 1<<RDI)) :
                         GpRegs;
