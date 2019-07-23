@@ -1324,35 +1324,36 @@ nsBindingManager::ContentRemoved(nsIDocument* aDocument,
                                  nsIContent* aChild,
                                  PRInt32 aIndexInContainer)
 {
+  if (aIndexInContainer != -1 &&
+      (mContentListTable.ops || mAnonymousNodesTable.ops)) {
+    
+    nsCOMPtr<nsIContent> point = GetNestedInsertionPoint(aContainer, aChild);
+
+    if (point) {
+      nsCOMPtr<nsIDOMNodeList> nodeList;
+      PRBool isAnonymousContentList;
+      GetXBLChildNodesInternal(point, getter_AddRefs(nodeList),
+                               &isAnonymousContentList);
+      
+      if (nodeList && isAnonymousContentList) {
+        
+        nsAnonymousContentList* contentList = NS_STATIC_CAST(nsAnonymousContentList*, NS_STATIC_CAST(nsIDOMNodeList*, nodeList));
+        PRInt32 count = contentList->GetInsertionPointCount();
+        for (PRInt32 i =0; i < count; i++) {
+          nsXBLInsertionPoint* point = contentList->GetInsertionPointAt(i);
+          if (point->GetInsertionIndex() != -1) {
+            point->RemoveChild(aChild);
+          }
+        }
+      }
+    }  
+  }
+
   NS_BINDINGMANAGER_NOTIFY_OBSERVERS(ContentRemoved,
                                      (aDocument, aContainer, aChild,
                                       aIndexInContainer));  
 
-  if (aIndexInContainer == -1 ||
-      (!mContentListTable.ops && !mAnonymousNodesTable.ops))
-    
-    return;
 
-  nsCOMPtr<nsIContent> point = GetNestedInsertionPoint(aContainer, aChild);
-
-  if (point) {
-    nsCOMPtr<nsIDOMNodeList> nodeList;
-    PRBool isAnonymousContentList;
-    GetXBLChildNodesInternal(point, getter_AddRefs(nodeList),
-                             &isAnonymousContentList);
-
-    if (nodeList && isAnonymousContentList) {
-      
-      nsAnonymousContentList* contentList = NS_STATIC_CAST(nsAnonymousContentList*, NS_STATIC_CAST(nsIDOMNodeList*, nodeList));
-      PRInt32 count = contentList->GetInsertionPointCount();
-      for (PRInt32 i =0; i < count; i++) {
-        nsXBLInsertionPoint* point = contentList->GetInsertionPointAt(i);
-        if (point->GetInsertionIndex() != -1) {
-          point->RemoveChild(aChild);
-        }
-      }
-    }
-  }
 }
 
 void
