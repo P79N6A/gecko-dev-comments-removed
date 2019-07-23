@@ -28,6 +28,7 @@ main(int argc, char **argv)
 
 
   args[i++] = "/D_WINDOWS";
+  args[i++] = "/DNO_ERRNO";
 
   args[i++] = "/Zc:wchar_t-";          
   args[i++] = "/GS-";                  
