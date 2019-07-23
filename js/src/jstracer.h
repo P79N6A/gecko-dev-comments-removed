@@ -150,6 +150,13 @@ public:
     void            clear();
 };
 
+#ifdef JS_JIT_SPEW
+extern bool js_verboseDebug;
+#define debug_only_v(x) if (js_verboseDebug) { x; }
+#else
+#define debug_only_v(x)
+#endif
+
 
 
 
