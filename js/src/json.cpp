@@ -1109,6 +1109,11 @@ js_ConsumeJSONText(JSContext *cx, JSONParser *jp, const jschar *data, uint32 len
                     return JS_FALSE;
             } else if (c == '\\') {
                 *jp->statep = JSON_PARSE_STATE_STRING_ESCAPE;
+            } else if (c < 31) {
+                
+                
+                JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_JSON_BAD_PARSE);
+                return JS_FALSE;
             } else {
                 if (!jp->buffer.append(c))
                     return JS_FALSE;
