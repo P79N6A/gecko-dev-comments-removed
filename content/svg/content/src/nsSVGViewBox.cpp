@@ -40,11 +40,13 @@
 #include "nsSVGUtils.h"
 #include "prdtoa.h"
 #include "nsTextFormatter.h"
+#include "nsCharSeparatedTokenizer.h"
 #ifdef MOZ_SMIL
 #include "nsSMILValue.h"
 #include "SVGViewBoxSMILType.h"
 #endif 
 
+#define NUM_VIEWBOX_COMPONENTS 4
 using namespace mozilla;
 
 
@@ -140,27 +142,29 @@ nsSVGViewBox::SetBaseValue(float aX, float aY, float aWidth, float aHeight,
 static nsresult
 ToSVGViewBoxRect(const nsAString& aStr, nsSVGViewBoxRect *aViewBox)
 {
-  nsresult rv = NS_OK;
-
-  char *str = ToNewUTF8String(aStr);
-
-  char *rest = str;
-  char *token;
-
-  float vals[4];
+  nsCharSeparatedTokenizer
+    tokenizer(aStr, ',',
+              nsCharSeparatedTokenizer::SEPARATOR_OPTIONAL);
+  float vals[NUM_VIEWBOX_COMPONENTS];
   PRUint32 i;
-  for (i = 0; i < 4; ++i) {
-    if (!(token = nsCRT::strtok(rest, SVG_COMMA_WSP_DELIM, &rest)))
-      break; 
+  for (i = 0; i < NUM_VIEWBOX_COMPONENTS && tokenizer.hasMoreTokens(); ++i) {
+    NS_ConvertUTF16toUTF8 utf8Token(tokenizer.nextToken());
+    const char *token = utf8Token.get();
+    if (*token == '\0') {
+      return NS_ERROR_DOM_SYNTAX_ERR; 
+    }
 
     char *end;
     vals[i] = float(PR_strtod(token, &end));
-    if (*end != '\0' || !NS_FloatIsFinite(vals[i]))
-      break; 
+    if (*end != '\0' || !NS_FloatIsFinite(vals[i])) {
+      return NS_ERROR_DOM_SYNTAX_ERR; 
+    }
   }
-  if (i != 4 || (nsCRT::strtok(rest, SVG_COMMA_WSP_DELIM, &rest) != 0)) {
-    
-    rv = NS_ERROR_DOM_SYNTAX_ERR;
+
+  if (i != NUM_VIEWBOX_COMPONENTS ||              
+      tokenizer.hasMoreTokens() ||                
+      tokenizer.lastTokenEndedWithSeparator()) {  
+    return NS_ERROR_DOM_SYNTAX_ERR;
   } else {
     aViewBox->x = vals[0];
     aViewBox->y = vals[1];
@@ -168,9 +172,7 @@ ToSVGViewBoxRect(const nsAString& aStr, nsSVGViewBoxRect *aViewBox)
     aViewBox->height = vals[3];
   }
 
-  nsMemory::Free(str);
-
-  return rv;
+  return NS_OK;
 }
 
 nsresult

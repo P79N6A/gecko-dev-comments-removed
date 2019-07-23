@@ -39,7 +39,7 @@
 #include "nsSVGElement.h"
 #include "nsSVGLength2.h"
 #include "nsContentCreatorFunctions.h" 
-
+#include "nsCharSeparatedTokenizer.h"
 
 namespace mozilla {
 
@@ -117,61 +117,41 @@ SVGMotionSMILPathUtils::PathGenerator::GetResultingPath()
 
 
 
-static PRBool
-ParseOneCoordinate(char** aRest, nsSVGLength2& aLengthVal)
-{
-  aLengthVal.Init();
-
-  
-  
-  
-  
-  
-  
-  char* token = nsCRT::strtok(*aRest, SVG_COMMA_WSP_DELIM, aRest);
-  if (!token) {
-    return PR_FALSE;
-  }
-
-  
-  nsresult rv = aLengthVal.SetBaseValueString(NS_ConvertASCIItoUTF16(token),
-                                              nsnull, PR_FALSE);
-  return NS_SUCCEEDED(rv);
-}
-
 PRBool
 SVGMotionSMILPathUtils::PathGenerator::
   ParseCoordinatePair(const nsAString& aCoordPairStr,
                       float& aXVal, float& aYVal)
 {
-  nsSVGLength2 xLength, yLength;
+  nsCharSeparatedTokenizer
+    tokenizer(aCoordPairStr, ',',
+              nsCharSeparatedTokenizer::SEPARATOR_OPTIONAL);
+
+  nsSVGLength2 x, y;
+  nsresult rv;
+
+  if (!tokenizer.hasMoreTokens()) { 
+    return PR_FALSE;
+  }
   
-  char* str = ToNewCString(aCoordPairStr);
-  char* rest = str;
-  PRBool success = PR_FALSE;
-
-  if (ParseOneCoordinate(&rest, xLength) &&
-      ParseOneCoordinate(&rest, yLength)) {
-
-    
-    PRBool foundTrailingNonWhitespace = PR_FALSE;
-    while (*rest != '\0') {
-      if (!IsSVGWhitespace(*rest)) {
-        foundTrailingNonWhitespace = PR_TRUE;
-        break;
-      }
-    }
-    if (!foundTrailingNonWhitespace) {
-      success = PR_TRUE;
-    }
+  x.Init();
+  rv = x.SetBaseValueString(tokenizer.nextToken(), nsnull, PR_FALSE);
+  if (NS_FAILED(rv) ||                
+      !tokenizer.hasMoreTokens()) {   
+    return PR_FALSE;
   }
-  nsMemory::Free(str);
 
-  if (success) {
-    aXVal = xLength.GetBaseValue(mSVGElement);
-    aYVal = yLength.GetBaseValue(mSVGElement);
+  
+  y.Init();
+  rv = y.SetBaseValueString(tokenizer.nextToken(), nsnull, PR_FALSE);
+  if (NS_FAILED(rv) ||                           
+      tokenizer.lastTokenEndedWithSeparator() || 
+      tokenizer.hasMoreTokens()) {               
+    return PR_FALSE;
   }
-  return success;
+
+  aXVal = x.GetBaseValue(mSVGElement);
+  aYVal = y.GetBaseValue(mSVGElement);
+  return PR_TRUE;
 }
 
 
