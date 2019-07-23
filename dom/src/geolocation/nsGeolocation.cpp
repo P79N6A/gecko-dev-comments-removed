@@ -548,7 +548,7 @@ nsGeolocationService::IsBetterPosition(nsIDOMGeoPosition *aSomewhere)
 
   
   
-  double max_accuracy = PR_MAX(oldAccuracy, newAccuracy);
+  double max_accuracy = NS_MAX(oldAccuracy, newAccuracy);
   if (delta > max_accuracy)
     return PR_TRUE;
 
