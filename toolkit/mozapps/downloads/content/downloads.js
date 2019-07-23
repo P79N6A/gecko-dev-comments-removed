@@ -498,6 +498,8 @@ var gContextMenus = [
     , "menuitem_openReferrer"
     , "menuitem_copyLocation"
     , "menuseparator"
+    , "menuitem_selectAll"
+    , "menuseparator"
     , "menuitem_clearList"
   ],
   
@@ -508,15 +510,7 @@ var gContextMenus = [
     , "menuitem_openReferrer"
     , "menuitem_copyLocation"
     , "menuseparator"
-    , "menuitem_removeFromList"
-    , "menuitem_clearList"
-  ],
-  
-  [
-    "menuitem_retry"
-    , "menuseparator"
-    , "menuitem_openReferrer"
-    , "menuitem_copyLocation"
+    , "menuitem_selectAll"
     , "menuseparator"
     , "menuitem_removeFromList"
     , "menuitem_clearList"
@@ -527,6 +521,20 @@ var gContextMenus = [
     , "menuseparator"
     , "menuitem_openReferrer"
     , "menuitem_copyLocation"
+    , "menuseparator"
+    , "menuitem_selectAll"
+    , "menuseparator"
+    , "menuitem_removeFromList"
+    , "menuitem_clearList"
+  ],
+  
+  [
+    "menuitem_retry"
+    , "menuseparator"
+    , "menuitem_openReferrer"
+    , "menuitem_copyLocation"
+    , "menuseparator"
+    , "menuitem_selectAll"
     , "menuseparator"
     , "menuitem_removeFromList"
     , "menuitem_clearList"
@@ -541,6 +549,8 @@ var gContextMenus = [
     , "menuitem_openReferrer"
     , "menuitem_copyLocation"
     , "menuseparator"
+    , "menuitem_selectAll"
+    , "menuseparator"
     , "menuitem_clearList"
   ],
   
@@ -552,12 +562,16 @@ var gContextMenus = [
     , "menuitem_openReferrer"
     , "menuitem_copyLocation"
     , "menuseparator"
+    , "menuitem_selectAll"
+    , "menuseparator"
     , "menuitem_clearList"
   ],
   
   [
     "menuitem_openReferrer"
     , "menuitem_copyLocation"
+    , "menuseparator"
+    , "menuitem_selectAll"
     , "menuseparator"
     , "menuitem_removeFromList"
     , "menuitem_clearList"
@@ -569,12 +583,16 @@ var gContextMenus = [
     , "menuitem_openReferrer"
     , "menuitem_copyLocation"
     , "menuseparator"
+    , "menuitem_selectAll"
+    , "menuseparator"
     , "menuitem_clearList"
   ],
   
   [
     "menuitem_openReferrer"
     , "menuitem_copyLocation"
+    , "menuseparator"
+    , "menuitem_selectAll"
     , "menuseparator"
     , "menuitem_removeFromList"
     , "menuitem_clearList"
@@ -583,6 +601,8 @@ var gContextMenus = [
   [
     "menuitem_openReferrer"
     , "menuitem_copyLocation"
+    , "menuseparator"
+    , "menuitem_selectAll"
     , "menuseparator"
     , "menuitem_removeFromList"
     , "menuitem_clearList"
