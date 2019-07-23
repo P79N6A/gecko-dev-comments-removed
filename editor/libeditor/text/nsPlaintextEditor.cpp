@@ -1810,31 +1810,6 @@ nsPlaintextEditor::SelectEntireDocument(nsISelection *aSelection)
 #pragma mark -
 #endif
 
-
-NS_IMETHODIMP nsPlaintextEditor::GetLayoutObject(nsIDOMNode *aNode, nsISupports **aLayoutObject)
-{
-  nsCOMPtr<nsIPresShell> ps = do_QueryReferent(mPresShellWeak);
-  if (!ps) return NS_ERROR_NOT_INITIALIZED;
-
-  nsresult result = NS_ERROR_NULL_POINTER;
-  if (aNode)
-  { 
-    nsCOMPtr<nsIContent> nodeAsContent( do_QueryInterface(aNode) );
-    if (nodeAsContent)
-    { 
-      
-      *aLayoutObject = nsnull;
-      result = ps->GetLayoutObjectFor(nodeAsContent, aLayoutObject);
-    }
-  }
-
-  return result;
-}
-
-#ifdef XP_MAC
-#pragma mark -
-#endif
-
 nsresult
 nsPlaintextEditor::SetAttributeOrEquivalent(nsIDOMElement * aElement,
                                             const nsAString & aAttribute,

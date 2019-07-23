@@ -4271,32 +4271,6 @@ nsHTMLEditor::SelectAll()
 #endif
 
 
-NS_IMETHODIMP nsHTMLEditor::GetLayoutObject(nsIDOMNode *aNode, nsISupports **aLayoutObject)
-{
-  nsresult result = NS_ERROR_FAILURE;  
-  if (!mPresShellWeak) return NS_ERROR_NOT_INITIALIZED;
-  nsCOMPtr<nsIPresShell> ps = do_QueryReferent(mPresShellWeak);
-  if (!ps) return NS_ERROR_NOT_INITIALIZED;
-
-  if ((nsnull!=aNode))
-  { 
-    nsCOMPtr<nsIContent> nodeAsContent( do_QueryInterface(aNode) );
-    if (nodeAsContent)
-    { 
-      
-      *aLayoutObject = nsnull;
-      result = ps->GetLayoutObjectFor(nodeAsContent, aLayoutObject);
-    }
-  }
-  else {
-    result = NS_ERROR_NULL_POINTER;
-  }
-
-  return result;
-}
-
-
-
 
 void nsHTMLEditor::IsTextPropertySetByContent(nsIDOMNode        *aNode,
                                               nsIAtom           *aProperty, 

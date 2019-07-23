@@ -459,14 +459,6 @@ protected:
   }
 
   
-
-
-
-
-
-  NS_IMETHOD GetLayoutObject(nsIDOMNode *aInNode, nsISupports **aOutLayoutObject);
-
-  
   PRBool SetCaretInTableCell(nsIDOMElement* aElement);
   PRBool IsElementInBody(nsIDOMElement* aElement);
 

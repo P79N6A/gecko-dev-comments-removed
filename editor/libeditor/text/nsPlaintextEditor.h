@@ -174,13 +174,6 @@ protected:
   virtual nsresult CreateEventListeners();
 
   
-
-
-
-
-
-  NS_IMETHOD GetLayoutObject(nsIDOMNode *aInNode, nsISupports **aOutLayoutObject);
-  
   NS_IMETHOD GetAndInitDocEncoder(const nsAString& aFormatType,
                                   PRUint32 aFlags,
                                   const nsACString& aCharset,
