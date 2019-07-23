@@ -51,9 +51,6 @@ class nsIObserver;
 
 
 
-
-
-
 class mozStorageBackground
 {
 public:

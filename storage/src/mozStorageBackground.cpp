@@ -37,16 +37,13 @@
 
 
 
-#include "nsAutoLock.h"
-#include "nsIFile.h"
 #include "nsIThreadPool.h"
 #include "nsXPCOMCIDInternal.h"
 #include "nsIObserver.h"
 #include "nsIObserverService.h"
+#include "nsServiceManagerUtils.h"
 
 #include "mozStorageCID.h"
-#include "mozIStorageService.h"
-#include "mozStorageConnection.h"
 #include "mozStorageBackground.h"
 
 namespace {
