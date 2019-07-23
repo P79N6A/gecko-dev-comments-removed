@@ -4414,7 +4414,16 @@ PresShell::ClearMouseCapture(nsIView* aView)
     if (aView) {
       
       
-      nsIFrame* frame = GetPrimaryFrameFor(gCaptureInfo.mContent);
+      
+      nsIFrame* frame = nsnull;
+      nsIDocument* doc = gCaptureInfo.mContent->GetCurrentDoc();
+      if (doc) {
+        nsIPresShell *shell = doc->GetPrimaryShell();
+        if (shell) {
+          frame = shell->GetPrimaryFrameFor(gCaptureInfo.mContent);
+        }
+      }
+
       if (frame) {
         nsIView* view = frame->GetClosestView();
         while (view) {
@@ -6035,6 +6044,8 @@ PresShell::HandleEvent(nsIView         *aView,
   nsIFrame* frame = static_cast<nsIFrame*>(aView->GetClientData());
 
   if (NS_IS_MOUSE_EVENT(aEvent) && GetCapturingContent()) {
+    
+    
     
     
     
