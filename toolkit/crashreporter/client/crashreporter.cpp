@@ -547,6 +547,8 @@ int main(int argc, char** argv)
     
     queryParameters.erase("ServerURL");
 
+    queryParameters["Throttleable"] = "1";
+
     
     const char *appfile = getenv("MOZ_CRASHREPORTER_RESTART_XUL_APP_FILE");
     if (appfile && *appfile) {
