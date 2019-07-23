@@ -48,6 +48,7 @@
 #include "nsIPrefService.h"
 #include "nsIPrefBranch2.h"
 #include "nsIProxyObjectManager.h"
+#include "nsIJSContextStack.h"
 
 #include <math.h>
 
@@ -180,7 +181,18 @@ nsGeolocationRequest::Allow()
                                    NS_PROXY_ASYNC | NS_PROXY_ALWAYS,
                                    getter_AddRefs(callbackProxy));
 
+
+    
+    nsCOMPtr<nsIJSContextStack> stack(do_GetService("@mozilla.org/js/xpc/ContextStack;1"));
+    if (!stack || NS_FAILED(stack->Push(nsnull)))
+      return NS_OK; 
+
     callbackProxy->HandleEvent(positionError);
+
+    
+    JSContext* cx;
+    stack->Pop(&cx);
+
     return rv;
   }
 
@@ -207,6 +219,11 @@ nsGeolocationRequest::SendLocation(nsIDOMGeoPosition* position)
   if (mCleared || !mAllowed)
     return;
 
+  
+  nsCOMPtr<nsIJSContextStack> stack(do_GetService("@mozilla.org/js/xpc/ContextStack;1"));
+  if (!stack || NS_FAILED(stack->Push(nsnull)))
+    return; 
+  
   
   if (mFuzzLocation)
   {
@@ -246,10 +263,15 @@ nsGeolocationRequest::SendLocation(nsIDOMGeoPosition* position)
                                                           velocity,
                                                           time);
     mCallback->HandleEvent(somewhere);
-    return;
   }
+  else
+  {
+    mCallback->HandleEvent(position);
+  }
+
   
-  mCallback->HandleEvent(position);
+  JSContext* cx;
+  stack->Pop(&cx);
 }
 
 void
