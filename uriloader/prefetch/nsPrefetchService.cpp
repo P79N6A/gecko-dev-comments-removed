@@ -157,28 +157,28 @@ nsPrefetchQueueEnumerator::GetNext(nsISupports **aItem)
 void
 nsPrefetchQueueEnumerator::Increment()
 {
-    do {
-        if (!mStarted) {
-            
-            
-            
-            mStarted = PR_TRUE;
-            mCurrent = mService->GetCurrentNode();
-            if (!mCurrent)
-                mCurrent = mService->GetQueueHead();
-        }
-        else if (mCurrent) {
-            if (mCurrent == mService->GetCurrentNode()) {
-                
-                
-                mCurrent = mService->GetQueueHead();
-            }
-            else {
-                
-                mCurrent = mCurrent->mNext;
-            }
-        }
-    } while (mCurrent);
+  if (!mStarted) {
+    
+    
+    
+    mStarted = PR_TRUE;
+    mCurrent = mService->GetCurrentNode();
+    if (!mCurrent)
+      mCurrent = mService->GetQueueHead();
+    return;
+  }
+
+  if (mCurrent) {
+    if (mCurrent == mService->GetCurrentNode()) {
+      
+      
+      mCurrent = mService->GetQueueHead();
+    }
+    else {
+      
+      mCurrent = mCurrent->mNext;
+    }
+  }
 }
 
 
@@ -586,19 +586,10 @@ nsPrefetchService::DequeueNode(nsPrefetchNode **node)
 void
 nsPrefetchService::EmptyQueue()
 {
-    nsPrefetchNode *prev = 0;
-    nsPrefetchNode *node = mQueueHead;
-
-    while (node) {
-        nsPrefetchNode *next = node->mNext;
-        if (prev)
-            prev->mNext = next;
-        else
-            mQueueHead = next;
-        NS_RELEASE(node);
-
-        node = next;
-    }
+    do {
+        nsRefPtr<nsPrefetchNode> node;
+        DequeueNode(getter_AddRefs(node));
+    } while (mQueueHead);
 }
 
 void
@@ -951,6 +942,7 @@ nsPrefetchService::Observe(nsISupports     *aSubject,
 
     if (!strcmp(aTopic, NS_XPCOM_SHUTDOWN_OBSERVER_ID)) {
         StopPrefetching();
+        EmptyQueue();
         mDisabled = PR_TRUE;
     }
     else if (!strcmp(aTopic, NS_PREFBRANCH_PREFCHANGE_TOPIC_ID)) {
@@ -968,6 +960,7 @@ nsPrefetchService::Observe(nsISupports     *aSubject,
             if (!mDisabled) {
                 LOG(("disabling prefetching\n"));
                 StopPrefetching();
+                EmptyQueue();
                 mDisabled = PR_TRUE;
                 RemoveProgressListener();
             }
