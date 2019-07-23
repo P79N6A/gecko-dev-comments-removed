@@ -944,14 +944,14 @@ namespace nanojit
 #ifndef NANOJIT_64BIT
         NanoAssert(op != LIR_qcall); 
 #endif
+#if defined(NANOJIT_ARM)
+        
+        if (!_config.arm_vfp && op == LIR_fcall)
+            op = LIR_icall;
+#endif
 
         int32_t argc = ci->count_args();
         NanoAssert(argc <= (int)MAXARGS);
-
-#if defined(NANOJIT_ARM)
-        if (!_config.arm_vfp && op == LIR_fcall)
-            op = LIR_callh;
-#endif
 
         
         
@@ -962,11 +962,7 @@ namespace nanojit
         
         LInsC* insC = (LInsC*)_buf->makeRoom(sizeof(LInsC));
         LIns*  ins  = insC->getLIns();
-#ifndef NANOJIT_64BIT
-        ins->initLInsC(op==LIR_callh ? LIR_icall : op, args2, ci);
-#else
         ins->initLInsC(op, args2, ci);
-#endif
         return ins;
     }
 
@@ -2534,8 +2530,10 @@ namespace nanojit
             break;
 
         case LIR_callh:
-            checkLInsHasOpcode(op, 1, a, LIR_fcall);
-            formals[0] = LTy_F64;
+            
+            
+            checkLInsHasOpcode(op, 1, a, LIR_icall);
+            formals[0] = LTy_I32;
             break;
 
         case LIR_file:
