@@ -46,13 +46,16 @@
 #include "nsIContent.h"
 #include "nsIDOMElement.h"
 
+
 static PRBool
 GetCSSComputedValue(nsIContent* aElem,
                     nsCSSProperty aPropID,
                     nsAString& aResult)
 {
-  NS_ENSURE_TRUE(nsSMILCSSProperty::IsPropertyAnimatable(aPropID),
-                 PR_FALSE);
+  NS_ABORT_IF_FALSE(!nsCSSProps::IsShorthand(aPropID),
+                    "Can't look up computed value of shorthand property");
+  NS_ABORT_IF_FALSE(nsSMILCSSProperty::IsPropertyAnimatable(aPropID),
+                    "Shouldn't get here for non-animatable properties");
 
   nsIDocument* doc = aElem->GetCurrentDoc();
   if (!doc) {
@@ -73,8 +76,7 @@ GetCSSComputedValue(nsIContent* aElem,
   nsresult rv = NS_NewComputedDOMStyle(domElement, EmptyString(), shell,
                                        getter_AddRefs(computedStyle));
 
-  if (NS_SUCCEEDED(rv) && computedStyle) {
-    
+  if (NS_SUCCEEDED(rv)) {
     computedStyle->GetPropertyValue(aPropID, aResult);
     return PR_TRUE;
   }
@@ -94,6 +96,20 @@ nsSMILCSSProperty::nsSMILCSSProperty(nsCSSProperty aPropID,
 nsSMILValue
 nsSMILCSSProperty::GetBaseValue() const
 {
+  
+  if (nsCSSProps::IsShorthand(mPropID)) {
+    
+    
+    
+    
+    
+    
+    
+    
+    return nsSMILValue(&nsSMILCSSValueType::sSingleton);
+  }
+
+  
   
   
   nsCOMPtr<nsIDOMCSSStyleDeclaration> overrideStyle;
@@ -118,18 +134,11 @@ nsSMILCSSProperty::GetBaseValue() const
     overrideDecl->SetPropertyValue(mPropID, cachedOverrideStyleVal);
   }
 
+  
   nsSMILValue baseValue;
   if (didGetComputedVal) {
-    
-    nsSMILCSSValueType::sSingleton.Init(baseValue);
-    if (!nsCSSProps::IsShorthand(mPropID) &&
-        !nsSMILCSSValueType::sSingleton.ValueFromString(mPropID, mElement,
-                                                        computedStyleVal,
-                                                        baseValue)) {
-      nsSMILCSSValueType::sSingleton.Destroy(baseValue);
-      NS_ABORT_IF_FALSE(baseValue.IsNull(),
-                        "Destroy should leave us with null-typed value");
-    }
+    nsSMILCSSValueType::ValueFromString(mPropID, mElement,
+                                        computedStyleVal, baseValue);
   }
   return baseValue;
 }
@@ -140,14 +149,9 @@ nsSMILCSSProperty::ValueFromString(const nsAString& aStr,
                                    nsSMILValue& aValue) const
 {
   NS_ENSURE_TRUE(IsPropertyAnimatable(mPropID), NS_ERROR_FAILURE);
-  nsSMILCSSValueType::sSingleton.Init(aValue);
-  PRBool success =
-    nsSMILCSSValueType::sSingleton.ValueFromString(mPropID, mElement,
-                                                   aStr, aValue);
-  if (!success) {
-    nsSMILCSSValueType::sSingleton.Destroy(aValue);
-  }
-  return success ? NS_OK : NS_ERROR_FAILURE;
+
+  nsSMILCSSValueType::ValueFromString(mPropID, mElement, aStr, aValue);
+  return aValue.IsNull() ? NS_ERROR_FAILURE : NS_OK;
 }
 
 nsresult
@@ -155,26 +159,23 @@ nsSMILCSSProperty::SetAnimValue(const nsSMILValue& aValue)
 {
   NS_ENSURE_TRUE(IsPropertyAnimatable(mPropID), NS_ERROR_FAILURE);
 
-  nsresult rv = NS_OK;
+  
   nsAutoString valStr;
-
-  if (nsSMILCSSValueType::sSingleton.ValueToString(aValue, valStr)) {
-    
-    nsCOMPtr<nsIDOMCSSStyleDeclaration> overrideStyle;
-    mElement->GetSMILOverrideStyle(getter_AddRefs(overrideStyle));
-    NS_ABORT_IF_FALSE(overrideStyle, "Need a non-null overrideStyle");
-
-    nsCOMPtr<nsICSSDeclaration> overrideDecl =
-      do_QueryInterface(overrideStyle);
-    if (overrideDecl) {
-      overrideDecl->SetPropertyValue(mPropID, valStr);
-    }
-  } else {
+  if (!nsSMILCSSValueType::ValueToString(aValue, valStr)) {
     NS_WARNING("Failed to convert nsSMILValue for CSS property into a string");
-    rv = NS_ERROR_FAILURE;
+    return NS_ERROR_FAILURE;
   }
 
-  return rv;
+  
+  nsCOMPtr<nsIDOMCSSStyleDeclaration> overrideStyle;
+  mElement->GetSMILOverrideStyle(getter_AddRefs(overrideStyle));
+  NS_ABORT_IF_FALSE(overrideStyle, "Need a non-null overrideStyle");
+
+  nsCOMPtr<nsICSSDeclaration> overrideDecl = do_QueryInterface(overrideStyle);
+  if (overrideDecl) {
+    overrideDecl->SetPropertyValue(mPropID, valStr);
+  }
+  return NS_OK;
 }
 
 void

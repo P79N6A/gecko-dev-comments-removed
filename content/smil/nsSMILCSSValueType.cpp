@@ -303,22 +303,14 @@ GetPresContextForElement(nsIContent* aElem)
   return shell ? shell->GetPresContext() : nsnull;
 }
 
-PRBool
-nsSMILCSSValueType::ValueFromString(nsCSSProperty aPropID,
-                                    nsIContent* aTargetElement,
-                                    const nsAString& aString,
-                                    nsSMILValue& aValue) const
+
+static PRBool
+ValueFromStringHelper(nsCSSProperty aPropID,
+                      nsIContent* aTargetElement,
+                      nsPresContext* aPresContext,
+                      const nsAString& aString,
+                      nsStyleAnimation::Value& aStyleAnimValue)
 {
-  NS_ABORT_IF_FALSE(aValue.mType == &nsSMILCSSValueType::sSingleton,
-                    "Passed-in value is wrong type");
-  NS_ABORT_IF_FALSE(!aValue.mU.mPtr, "expecting barely-initialized outparam");
-
-  nsPresContext* presContext = GetPresContextForElement(aTargetElement);
-  if (!presContext) {
-    NS_WARNING("Not parsing animation value; unable to get PresContext");
-    return PR_FALSE;
-  }
-
   
   
   
@@ -327,35 +319,63 @@ nsSMILCSSValueType::ValueFromString(nsCSSProperty aPropID,
   PRUint32 subStringBegin = 0;
   PRInt32 absValuePos = nsSMILParserUtils::CheckForNegativeNumber(aString);
   if (absValuePos > 0) {
-    subStringBegin = (PRUint32)absValuePos;
     isNegative = PR_TRUE;
+    subStringBegin = (PRUint32)absValuePos; 
   }
   nsDependentSubstring subString(aString, subStringBegin);
-  nsStyleAnimation::Value parsedValue;
-  if (nsStyleAnimation::ComputeValue(aPropID, aTargetElement,
-                                     subString, parsedValue)) {
-    if (isNegative) {
-      InvertSign(parsedValue);
-    }
-    if (aPropID == eCSSProperty_font_size) {
-      
-      NS_ABORT_IF_FALSE(parsedValue.GetUnit() == nsStyleAnimation::eUnit_Coord,
-                        "'font-size' value with unexpected style unit");
-      parsedValue.SetCoordValue(parsedValue.GetCoordValue() /
-                                presContext->TextZoom());
-    }
-    aValue.mU.mPtr = new ValueWrapper(aPropID, parsedValue, presContext);
-    return aValue.mU.mPtr != nsnull;
+  if (!nsStyleAnimation::ComputeValue(aPropID, aTargetElement,
+                                      subString, aStyleAnimValue)) {
+    return PR_FALSE;
   }
-  return PR_FALSE;
+  if (isNegative) {
+    InvertSign(aStyleAnimValue);
+  }
+  
+  if (aPropID == eCSSProperty_font_size) {
+    
+    NS_ABORT_IF_FALSE(aStyleAnimValue.GetUnit() ==
+                        nsStyleAnimation::eUnit_Coord,
+                      "'font-size' value with unexpected style unit");
+    aStyleAnimValue.SetCoordValue(aStyleAnimValue.GetCoordValue() /
+                                  aPresContext->TextZoom());
+  }
+  return PR_TRUE;
 }
+
+
+void
+nsSMILCSSValueType::ValueFromString(nsCSSProperty aPropID,
+                                    nsIContent* aTargetElement,
+                                    const nsAString& aString,
+                                    nsSMILValue& aValue)
+{
+  NS_ABORT_IF_FALSE(aValue.IsNull(), "Outparam should be null-typed");
+  nsPresContext* presContext = GetPresContextForElement(aTargetElement);
+  if (!presContext) {
+    NS_WARNING("Not parsing animation value; unable to get PresContext");
+    return;
+  }
+
+  nsStyleAnimation::Value parsedValue;
+  if (ValueFromStringHelper(aPropID, aTargetElement, presContext,
+                            aString, parsedValue)) {
+    sSingleton.Init(aValue);
+    aValue.mU.mPtr = new ValueWrapper(aPropID, parsedValue, presContext);
+    if (!aValue.mU.mPtr) {
+      
+      
+      sSingleton.Destroy(aValue);
+    }
+  }
+}
+
 
 PRBool
 nsSMILCSSValueType::ValueToString(const nsSMILValue& aValue,
-                                  nsAString& aString) const
+                                  nsAString& aString)
 {
   NS_ABORT_IF_FALSE(aValue.mType == &nsSMILCSSValueType::sSingleton,
-                    "Passed-in value is wrong type");
+                    "Unexpected SMIL value type");
   const ValueWrapper* wrapper = ExtractValueWrapper(aValue);
   return !wrapper ||
     nsStyleAnimation::UncomputeValue(wrapper->mPropID, wrapper->mPresContext,

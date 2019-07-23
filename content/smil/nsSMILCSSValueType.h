@@ -72,6 +72,7 @@ public:
                                            nsSMILValue& aResult) const;
 
   
+  
 
 
 
@@ -87,8 +88,10 @@ public:
 
 
 
-  PRBool ValueFromString(nsCSSProperty aPropID, nsIContent* aTargetElement,
-                         const nsAString& aString, nsSMILValue& aValue) const;
+
+  static void ValueFromString(nsCSSProperty aPropID,
+                              nsIContent* aTargetElement,
+                              const nsAString& aString, nsSMILValue& aValue);
 
   
 
@@ -102,7 +105,7 @@ public:
 
 
 
-  PRBool ValueToString(const nsSMILValue& aValue, nsAString& aString) const;
+  static PRBool ValueToString(const nsSMILValue& aValue, nsAString& aString);
 
   
   static nsSMILCSSValueType sSingleton;
