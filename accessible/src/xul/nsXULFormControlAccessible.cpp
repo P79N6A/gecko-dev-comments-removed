@@ -400,51 +400,59 @@ nsAccessibleWrap(aNode, aShell)
 { 
 }
 
-NS_IMETHODIMP nsXULGroupboxAccessible::GetRole(PRUint32 *_retval)
+NS_IMETHODIMP nsXULGroupboxAccessible::GetRole(PRUint32 *aRole)
 {
-  *_retval = nsIAccessibleRole::ROLE_GROUPING;
+  *aRole = nsIAccessibleRole::ROLE_GROUPING;
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsXULGroupboxAccessible::GetState(PRUint32 *aState, PRUint32 *aExtraState)
+nsXULGroupboxAccessible::GetName(nsAString& aName)
 {
-  
-  nsresult rv = nsAccessible::GetState(aState, aExtraState);
-  NS_ENSURE_SUCCESS(rv, rv);
+  aName.Truncate();
 
-  *aState &= ~nsIAccessibleStates::STATE_FOCUSABLE;
+  nsCOMPtr<nsIAccessible> label;
+  GetAccessibleRelated(nsIAccessibleRelation::RELATION_LABELLED_BY,
+                       getter_AddRefs(label));
+  if (label) {
+    return label->GetName(aName);
+  }
 
   return NS_OK;
 }
 
-NS_IMETHODIMP nsXULGroupboxAccessible::GetName(nsAString& aName)
+NS_IMETHODIMP
+nsXULGroupboxAccessible::GetAccessibleRelated(PRUint32 aRelationType,
+                                              nsIAccessible **aRelated)
 {
-  aName.Truncate();  
+  *aRelated = nsnull;
 
-  if (mRoleMapEntry) {
-    nsAccessible::GetName(aName);
-    if (!aName.IsEmpty()) {
-      return NS_OK;
-    }
+  nsresult rv = nsAccessibleWrap::GetAccessibleRelated(aRelationType, aRelated);
+  if (NS_FAILED(rv) || *aRelated) {
+    
+    return rv;
   }
-  nsCOMPtr<nsIDOMElement> element(do_QueryInterface(mDOMNode));
-  if (element) {
-    nsCOMPtr<nsIDOMNodeList> captions;
-    nsAutoString nameSpaceURI;
-    element->GetNamespaceURI(nameSpaceURI);
-    element->GetElementsByTagNameNS(nameSpaceURI, NS_LITERAL_STRING("caption"), 
-                                    getter_AddRefs(captions));
-    if (captions) {
-      nsCOMPtr<nsIDOMNode> captionNode;
-      captions->Item(0, getter_AddRefs(captionNode));
-      if (captionNode) {
-        element = do_QueryInterface(captionNode);
-        NS_ASSERTION(element, "No nsIDOMElement for caption node!");
-        element->GetAttribute(NS_LITERAL_STRING("label"), aName) ;
+
+  if (aRelationType == nsIAccessibleRelation::RELATION_LABELLED_BY) {
+    
+    
+    
+    nsCOMPtr<nsIAccessible> testLabelAccessible;
+    while (NextChild(testLabelAccessible)) {
+      if (Role(testLabelAccessible) == nsIAccessibleRole::ROLE_LABEL) {
+        
+        nsCOMPtr<nsIAccessible> testGroupboxAccessible;
+        testLabelAccessible->GetAccessibleRelated(nsIAccessibleRelation::RELATION_LABEL_FOR,
+                                                  getter_AddRefs(testGroupboxAccessible));
+        if (testGroupboxAccessible == this) {
+          
+          NS_ADDREF(*aRelated = testLabelAccessible);
+          return NS_OK;
+        }
       }
     }
   }
+
   return NS_OK;
 }
 
