@@ -158,10 +158,10 @@ namespace nanojit
             static char  outlineEOL[512];  
             static char* outputAlign(char* s, int col);
 
-            void FASTCALL outputForEOL(const char* format, ...);
-            void FASTCALL output(const char* s);
-            void FASTCALL outputf(const char* format, ...);
-            void FASTCALL output_asm(const char* s);
+            void outputForEOL(const char* format, ...);
+            void output(const char* s);
+            void outputf(const char* format, ...);
+            void output_asm(const char* s);
 
             bool outputAddr, vpad[3];  
             void printActivationState();
