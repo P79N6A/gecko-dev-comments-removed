@@ -2180,19 +2180,21 @@ nsGfxScrollFrameInner::CreateAnonymousContent(nsTArray<nsIContent*>& aElements)
   
   
   
-  PRBool canHaveHorizontal;
-  PRBool canHaveVertical;
-  if (!mIsRoot) {
-    ScrollbarStyles styles = scrollable->GetScrollbarStyles();
-    canHaveHorizontal = styles.mHorizontal != NS_STYLE_OVERFLOW_HIDDEN;
-    canHaveVertical = styles.mVertical != NS_STYLE_OVERFLOW_HIDDEN;
-    if (!canHaveHorizontal && !canHaveVertical) {
-      
-      return NS_OK;
-    }
-  } else {
-    canHaveHorizontal = PR_TRUE;
-    canHaveVertical = PR_TRUE;
+  
+  
+  
+  
+
+  
+  
+  
+  
+  ScrollbarStyles styles = scrollable->GetScrollbarStyles();
+  PRBool canHaveHorizontal = styles.mHorizontal != NS_STYLE_OVERFLOW_HIDDEN;
+  PRBool canHaveVertical = styles.mVertical != NS_STYLE_OVERFLOW_HIDDEN;
+  if (!canHaveHorizontal && !canHaveVertical) {
+    
+    return NS_OK;
   }
 
   
