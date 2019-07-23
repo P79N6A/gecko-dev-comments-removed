@@ -1,121 +1,121 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+#!/usr/bin/env/python
+# qsgen.py - Generate XPConnect quick stubs.
+#
+# ***** BEGIN LICENSE BLOCK *****
+# Version: MPL 1.1/GPL 2.0/LGPL 2.1
+#
+# The contents of this file are subject to the Mozilla Public License Version
+# 1.1 (the "License"); you may not use this file except in compliance with
+# the License. You may obtain a copy of the License at
+# http://www.mozilla.org/MPL/
+#
+# Software distributed under the License is distributed on an "AS IS" basis,
+# WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+# for the specific language governing rights and limitations under the
+# License.
+#
+# The Original Code is mozilla.org code.
+#
+# The Initial Developer of the Original Code is
+#   Mozilla Foundation.
+# Portions created by the Initial Developer are Copyright (C) 2008
+# the Initial Developer. All Rights Reserved.
+#
+# Contributor(s):
+#   Jason Orendorff <jorendorff@mozilla.com>
+#
+# Alternatively, the contents of this file may be used under the terms of
+# either of the GNU General Public License Version 2 or later (the "GPL"),
+# or the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+# in which case the provisions of the GPL or the LGPL are applicable instead
+# of those above. If you wish to allow use of your version of this file only
+# under the terms of either the GPL or the LGPL, and not to allow others to
+# use your version of this file under the terms of the MPL, indicate your
+# decision by deleting the provisions above and replace them with the notice
+# and other provisions required by the GPL or the LGPL. If you do not delete
+# the provisions above, a recipient may use your version of this file under
+# the terms of any one of the MPL, the GPL or the LGPL.
+#
+# ***** END LICENSE BLOCK *****
+
+# =About quick stubs=
+# qsgen.py generates "quick stubs", custom SpiderMonkey getters, setters, and
+# methods for specified XPCOM interface members.  These quick stubs serve at
+# runtime as replacements for the XPConnect functions XPC_WN_GetterSetter and
+# XPC_WN_CallMethod, which are the extremely generic (and slow) SpiderMonkey
+# getter/setter/methods otherwise used for all XPCOM member accesses from JS.
+#
+# There are two ways quick stubs win:
+#   1. Pure, transparent optimization by partial evaluation.
+#   2. Cutting corners.
+#
+# == Partial evaluation ==
+# Partial evaluation is when you execute part of a program early (before or at
+# compile time) so that you don't have to execute it at run time.  In this
+# case, everything that involves interpreting xptcall data (for example, the
+# big methodInfo loops in XPCWrappedNative::CallMethod and the switch statement
+# in XPCConert::JSData2Native) might as well happen at build time, since all
+# the type information for any given member is already known.  That's what this
+# script does.  It gets the information from IDL instead of XPT files.  Apart
+# from that, the code in this script is very similar to what you'll find in
+# XPConnect itself.  The advantage is that it runs once, at build time, not in
+# tight loops at run time.
+#
+# == Cutting corners ==
+# The XPConnect versions have to be slow because they do tons of work that's
+# only necessary in a few cases.  The quick stubs skip a lot of that work.  So
+# quick stubs necessarily differ from XPConnect in potentially observable ways.
+# For many specific interface members, the differences are not observable from
+# scripts or don't matter enough to worry about; but you do have to be careful
+# which members you decide to generate quick stubs for.
+#
+# The complete list of known differences, as of this writing, after an
+# assiduous search:
+#
+# - Quick stubs affect the handling of naming conflicts--that is, which C++
+#   method gets called when a script uses an XPCOM feature that is declared in
+#   more than one of the interfaces the object implements.  Without quick
+#   stubs, XPConnect just walks the interfaces in the order they're listed by
+#   nsClassInfo.  You get the first interface that implements a feature with
+#   that name.  With quick stubs, it's the same except that non-quick-stubbed
+#   features are shadowed.
+#
+# - Quick stub methods are JSFastNative, which means that when a quick stub
+#   method is called, no JS stack frame is created.  This doesn't affect
+#   Mozilla security checks because they look for scripted JSStackFrames, not
+#   native ones.
+#
+#   It does affect the 'stack' property of JavaScript exceptions, though: the
+#   stubbed member will not appear.  (Note that if the stubbed member itself
+#   fails, the member name will appear in the 'message' property.)
+#
+# - Many quick stubs don't create an XPCCallContext.  In those cases, no entry
+#   is added to the XPCCallContext stack.  So native implementations of
+#   quick-stubbed methods must avoid nsXPConnect::GetCurrentNativeCallContext.
+#
+#   (Even when a quick stub does have an XPCCallContext, it never pushes it all
+#   the way to READY_TO_CALL state, so a lot of its members are garbage.  But
+#   this doesn't endanger native implementations of non-quick-stubbed methods
+#   that use GetCurrentNativeCallContext and are called indirectly from
+#   quick-stubbed methods, because only the current top XPCCallContext is
+#   exposed--nsAXPCNativeCallContext does not expose
+#   XPCCallContext::GetPrevCallContext.)
+#
+# - Quick stubs never suspend the JS request.  So they are only suitable for
+#   main-thread-only interfaces.
+#
+# - Quick stubs don't call XPCContext::SetLastResult.  This is visible on the
+#   Components object.
+#
+# - Quick stubs skip a security check that XPConnect does in
+#   XPCWrappedNative::CallMethod.  This means the security manager doesn't have
+#   an opportunity to veto accesses to members for which quick stubs exist.
+#
+# - There are many features of IDL that XPConnect supports but qsgen does not,
+#   including dependent types, arrays, and out parameters.
+#
+# - Since quick stubs are JSPropertyOps, we have to do additional work to make
+#   __lookup[GS]etter__ work on them.
 
 
 import xpidl
@@ -123,11 +123,11 @@ import header
 import os, re
 import sys
 
-
+# === Preliminaries
 
 MAX_TRACEABLE_NATIVE_ARGS = 8
 
-
+# --makedepend-output support.
 make_dependencies = []
 make_targets = []
 
@@ -170,7 +170,7 @@ def getBuiltinOrNativeTypeName(t):
         return None
 
 
-
+# === Reading the file
 
 class UserError(Exception):
     pass
@@ -178,8 +178,8 @@ class UserError(Exception):
 def findIDL(includePath, irregularFilenames, interfaceName):
     filename = irregularFilenames.get(interfaceName, interfaceName) + '.idl'
     for d in includePath:
-        
-        
+        # Not os.path.join: we need a forward slash even on Windows because
+        # this filename ends up in makedepend output.
         path = d + '/' + filename
         if os.path.exists(path):
             return path
@@ -203,21 +203,21 @@ def removeStubMember(memberId, member):
 def addStubMember(memberId, member, traceable):
     mayTrace = False
     if member.kind == 'method':
-        
+        # This code MUST match writeTraceableQuickStub
         haveCallee = memberNeedsCallee(member)
-        
-        
-        
-        
-        
+        # Traceable natives support up to MAX_TRACEABLE_NATIVE_ARGS
+        # total arguments.  We always have two prefix arguments
+        # (CONTEXT and THIS) and when haveCallee is true also have
+        # CALLEE.  We can only output a traceable native if our number
+        # of arguments is no bigger than can be handled.
         prefixArgCount = 2 + int(haveCallee);
         mayTrace = (len(member.params) <= MAX_TRACEABLE_NATIVE_ARGS - prefixArgCount)
 
         for param in member.params:
             for attrname, value in vars(param).items():
                 if value is True:
-                    
-                    
+                    # Let the tracer call the regular fastnative method if there
+                    # are optional arguments.
                     if attrname == 'optional':
                         mayTrace = False
                         continue
@@ -228,10 +228,10 @@ def addStubMember(memberId, member, traceable):
 
     member.traceable = traceable and mayTrace
 
-    
+    # Add this member to the list.
     member.iface.stubMembers.append(member)
 
-def checkStubMember(member, isCustom):
+def checkStubMember(member):
     memberId = member.iface.name + "." + member.name
     if member.kind not in ('method', 'attribute'):
         raise UserError("Member %s is %r, not a method or attribute."
@@ -246,14 +246,13 @@ def checkStubMember(member, isCustom):
 
     if (member.kind == 'attribute'
           and not member.readonly
-          and isSpecificInterfaceType(member.realtype, 'nsIVariant')
-          and not isCustom):
+          and isSpecificInterfaceType(member.realtype, 'nsIVariant')):
         raise UserError(
             "Attribute %s: Non-readonly attributes of type nsIVariant "
             "are not supported."
             % memberId)
 
-    
+    # Check for unknown properties.
     for attrname, value in vars(member).items():
         if value is True and attrname not in ('readonly','optional_argc','traceable'):
             raise UserError("%s %s: unrecognized property %r"
@@ -274,12 +273,12 @@ class Configuration:
         self.includePath = includePath
         config = {}
         execfile(filename, config)
-        
+        # required settings
         for name in ('name', 'members'):
             if name not in config:
                 raise UserError(filename + ": `%s` was not defined." % name)
             setattr(self, name, config[name])
-        
+        # optional settings
         self.irregularFilenames = config.get('irregularFilenames', {})
         self.customIncludes = config.get('customIncludes', [])
         self.customQuickStubs = config.get('customQuickStubs', [])
@@ -287,11 +286,11 @@ class Configuration:
         self.customMethodCalls = config.get('customMethodCalls', {})
 
 def readConfigFile(filename, includePath, cachedir, traceable):
-    
+    # Read the config file.
     conf = Configuration(filename, includePath)
 
-    
-    
+    # Now read IDL files to connect the information in the config file to
+    # actual XPCOM interfaces, methods, and attributes.
     interfaces = []
     interfacesByName = {}
     parser = xpidl.IDLParser(cachedir)
@@ -318,7 +317,7 @@ def readConfigFile(filename, includePath, cachedir, traceable):
         add = True
         interfaceName, memberName = parseMemberId(memberId)
 
-        
+        # If the interfaceName starts with -, then remove this entry from the list
         if interfaceName[0] == '-':
             add = False
             interfaceName = interfaceName[1:]
@@ -333,7 +332,7 @@ def readConfigFile(filename, includePath, cachedir, traceable):
             if not add:
                 raise UserError("Can't use negation in stub list with wildcard, in %s.*" % interfaceName)
 
-            
+            # Stub all scriptable members of this interface.
             for member in iface.members:
                 if member.kind in ('method', 'attribute') and not member.noscript:
                     cmc = conf.customMethodCalls.get(interfaceName + "_" + header.methodNativeName(member), None)
@@ -345,7 +344,7 @@ def readConfigFile(filename, includePath, cachedir, traceable):
                     if member.iface not in stubbedInterfaces:
                         stubbedInterfaces.append(member.iface)
         else:
-            
+            # Look up a member by name.
             if memberName not in iface.namemap:
                 idlFile = iface.idl.parser.lexer.filename
                 raise UserError("Interface %s has no member %r. "
@@ -366,21 +365,19 @@ def readConfigFile(filename, includePath, cachedir, traceable):
             else:
                 removeStubMember(memberId, member)
 
-    
+    # Now go through and check all the interfaces' members
     for iface in stubbedInterfaces:
         for member in iface.stubMembers:
-            cmc = conf.customMethodCalls.get(iface.name + "_" + header.methodNativeName(member), None)
-            skipgen = cmc is not None and cmc.get('skipgen', False)
-            checkStubMember(member, skipgen)
+            checkStubMember(member)
 
     for iface in conf.customReturnInterfaces:
-        
+        # just ensure that it exists so that we can grab it later
         iface = getInterface(iface, errorLoc='looking for %s' % (iface,))
 
     return conf, interfaces
 
 
-
+# === Generating the header file
 
 def writeHeaderFile(filename, name):
     print "Creating header file", filename
@@ -404,7 +401,7 @@ def writeHeaderFile(filename, name):
     finally:
         f.close()
 
-
+# === Generating the source file
 
 def substitute(template, vals):
     """ Simple replacement for string.Template, which isn't in Python 2.3. """
@@ -412,7 +409,7 @@ def substitute(template, vals):
         return vals[match.group(1)]
     return re.sub(r'\${(\w+)}', replacement, template)
 
-
+# From JSData2Native.
 argumentUnboxingTemplates = {
     'octet':
         "    uint32 ${name}_u32;\n"
@@ -485,22 +482,22 @@ argumentUnboxingTemplates = {
         "        return JS_FALSE;\n"
     }
 
-
-
-
-
-
+# From JSData2Native.
+#
+# Omitted optional arguments are treated as though the caller had passed JS
+# `null`; this behavior is from XPCWrappedNative::CallMethod.
+#
 def writeArgumentUnboxing(f, i, name, type, haveCcx, optional, rvdeclared,
                           nullBehavior, undefinedBehavior):
-    
-    
-    
-    
-    
-    
-    
-    
-    
+    # f - file to write to
+    # i - int or None - Indicates the source jsval.  If i is an int, the source
+    #     jsval is argv[i]; otherwise it is *vp.  But if Python i >= C++ argc,
+    #     which can only happen if optional is True, the argument is missing;
+    #     use JSVAL_NULL as the source jsval instead.
+    # name - str - name of the native C++ variable to create.
+    # type - xpidl.{Interface,Native,Builtin} - IDL type of argument
+    # optional - bool - True if the parameter is optional.
+    # rvdeclared - bool - False if no |nsresult rv| has been declared earlier.
 
     isSetter = (i is None)
 
@@ -528,10 +525,10 @@ def writeArgumentUnboxing(f, i, name, type, haveCcx, optional, rvdeclared,
         if template is not None:
             f.write(substitute(template, params))
             return rvdeclared
-        
+        # else fall through; the type isn't supported yet.
     elif isInterfaceType(type):
         if type.name == 'nsIVariant':
-            
+            # Totally custom.
             assert haveCcx
             template = (
                 "    nsCOMPtr<nsIVariant> ${name}(already_AddRefed<nsIVariant>("
@@ -541,7 +538,7 @@ def writeArgumentUnboxing(f, i, name, type, haveCcx, optional, rvdeclared,
             f.write(substitute(template, params))
             return rvdeclared
         elif type.name == 'nsIAtom':
-            
+            # Should have special atomizing behavior.  Fall through.
             pass
         else:
             if not rvdeclared:
@@ -573,13 +570,13 @@ def writeArgumentUnboxing(f, i, name, type, haveCcx, optional, rvdeclared,
 
 def writeResultDecl(f, type, varname):
     if isVoidType(type):
-        return  
+        return  # nothing to declare
     
     t = unaliasType(type)
     if t.kind == 'builtin':
         if not t.nativename.endswith('*'):
             if type.kind == 'typedef':
-                typeName = type.name  
+                typeName = type.name  # use it
             else:
                 typeName = t.nativename
             f.write("    %s %s;\n" % (typeName, varname))
@@ -608,7 +605,7 @@ def outParamForm(name, type):
     else:
         return 'getter_AddRefs(%s)' % name
 
-
+# From NativeData2JS.
 resultConvTemplates = {
     'void':
             "    ${jsvalRef} = JSVAL_VOID;\n"
@@ -664,7 +661,7 @@ def writeResultConv(f, type, jsvalPtr, jsvalRef):
     The emitted code contains a return statement; it returns JS_TRUE on
     success, JS_FALSE on error.
     """
-    
+    # From NativeData2JS.
     typeName = getBuiltinOrNativeTypeName(type)
     if typeName is not None:
         template = resultConvTemplates.get(typeName)
@@ -673,7 +670,7 @@ def writeResultConv(f, type, jsvalPtr, jsvalRef):
                       'jsvalPtr': jsvalPtr}
             f.write(substitute(template, values))
             return
-        
+        # else fall through; this type isn't supported yet
     elif isInterfaceType(type):
         if isVariantType(type):
             f.write("    return xpc_qsVariantToJsval(lccx, result, %s);\n"
@@ -731,14 +728,13 @@ def writeQuickStub(f, customMethodCalls, member, stubName, isSetter=False):
 
     signature = "static JSBool\n"
     if isAttr:
-        
+        # JSPropertyOp signature.
         signature += "%s(JSContext *cx, JSObject *obj, jsval id,%s jsval *vp)\n"
     else:
-        
+        # JSFastNative.
         signature += "%s(JSContext *cx, uintN argc,%s jsval *vp)\n"
 
     customMethodCall = customMethodCalls.get(stubName, None)
-
     if customMethodCall is None:
         customMethodCall = customMethodCalls.get(member.iface.name + '_', None)
         if customMethodCall is not None:
@@ -748,9 +744,9 @@ def writeQuickStub(f, customMethodCalls, member, stubName, isSetter=False):
             elif isSetter:
                 templateName += '_Set'
 
-            
-            
-            
+            # Generate the code for the stub, calling the template function
+            # that's shared between the stubs. The stubs can't have additional
+            # arguments, only the template function can.
             callTemplate = signature % (stubName, '')
             callTemplate += "{\n"
 
@@ -766,9 +762,9 @@ def writeQuickStub(f, customMethodCalls, member, stubName, isSetter=False):
                                  % (templateName, argumentValues))
             callTemplate += "}\n\n"
 
-            
-            
-            
+            # Fall through and create the template function stub called from the
+            # real stubs, but only generate the stub once. Otherwise, just write
+            # out the call to the template function and return.
             templateGenerated = templateName + '_generated'
             if templateGenerated in customMethodCall:
                 f.write(callTemplate)
@@ -783,12 +779,14 @@ def writeQuickStub(f, customMethodCalls, member, stubName, isSetter=False):
                 code = customMethodCall['setter_code']
             stubName = templateName
     else:
+        if customMethodCall.get('skipgen', False):
+            return
         callTemplate = ""
         code = customMethodCall['code']
 
-    
+    # Function prolog.
 
-    
+    # Only template functions can have additional arguments.
     if customMethodCall is None or not 'additionalArguments' in customMethodCall:
         additionalArguments = ''
     else:
@@ -797,13 +795,13 @@ def writeQuickStub(f, customMethodCalls, member, stubName, isSetter=False):
     f.write("{\n")
     f.write("    XPC_QS_ASSERT_CONTEXT_OK(cx);\n")
 
-    
+    # For methods, compute "this".
     if isMethod:
         f.write("    JSObject *obj = JS_THIS_OBJECT(cx, vp);\n"
                 "    if (!obj)\n"
                 "        return JS_FALSE;\n")
 
-    
+    # Create ccx if needed.
     haveCcx = memberNeedsCcx(member)
     if haveCcx:
         f.write("    XPCCallContext ccx(JS_CALLER, cx, obj, "
@@ -817,17 +815,17 @@ def writeQuickStub(f, customMethodCalls, member, stubName, isSetter=False):
         elif isGetter:
             f.write("    JSObject *callee = nsnull;\n")
 
-    
+    # Get the 'self' pointer.
     if customMethodCall is None or not 'thisType' in customMethodCall:
         f.write("    %s *self;\n" % member.iface.name)
     else:
         f.write("    %s *self;\n" % customMethodCall['thisType'])
     f.write("    xpc_qsSelfRef selfref;\n")
-    
-    
+    # Don't use FromCcx for getters or setters; the way we construct the ccx in
+    # a getter/setter causes it to find the wrong wrapper in some cases.
     if haveCcx:
-        
-        
+        # Undocumented, but the interpreter puts 'this' at argv[-1],
+        # which is vp[1]; and it's ok to overwrite it.
         f.write("    if (!xpc_qsUnwrapThisFromCcx(ccx, &self, &selfref.ptr, "
                 "&vp[1]))\n")
         f.write("        return JS_FALSE;\n")
@@ -838,7 +836,7 @@ def writeQuickStub(f, customMethodCalls, member, stubName, isSetter=False):
             f.write("    JSAutoTempValueRooter tvr(cx);\n")
             pthisval = 'tvr.addr()'
         else:
-            pthisval = '&vp[1]' 
+            pthisval = '&vp[1]' # as above, ok to overwrite vp[1]
 
         if not isSetter and isInterfaceType(member.realtype):
             f.write("    XPCLazyCallContext lccx(JS_CALLER, cx, obj);\n")
@@ -850,7 +848,7 @@ def writeQuickStub(f, customMethodCalls, member, stubName, isSetter=False):
         f.write("        return JS_FALSE;\n")
 
     if isMethod:
-        
+        # If there are any required arguments, check argc.
         requiredArgs = len(member.params)
         while requiredArgs and member.params[requiredArgs-1].optional:
             requiredArgs -= 1
@@ -859,14 +857,14 @@ def writeQuickStub(f, customMethodCalls, member, stubName, isSetter=False):
             f.write("        return xpc_qsThrow(cx, "
                     "NS_ERROR_XPC_NOT_ENOUGH_ARGS);\n")
 
-    
+    # Convert in-parameters.
     rvdeclared = False
     if isMethod:
         if len(member.params) > 0:
             f.write("    jsval *argv = JS_ARGV(cx, vp);\n")
         for i, param in enumerate(member.params):
             validateParam(member, param)
-            
+            # Emit code to convert this argument from jsval.
             rvdeclared = writeArgumentUnboxing(
                 f, i, 'arg%d' % i, param.realtype,
                 haveCcx=haveCcx,
@@ -903,11 +901,11 @@ def writeQuickStub(f, customMethodCalls, member, stubName, isSetter=False):
         selfname = prefix + 'self'
         nsresultname = prefix + 'rv'
 
-        
+        # Prepare out-parameter.
         if isMethod or isGetter:
             writeResultDecl(f, member.realtype, resultname)
 
-        
+        # Call the method.
         if isMethod:
             comName = header.methodNativeName(member)
             argv = ['arg' + str(i) for i, p in enumerate(member.params)]
@@ -937,7 +935,7 @@ def writeQuickStub(f, customMethodCalls, member, stubName, isSetter=False):
             f.write("#endif\n")
 
     if canFail:
-        
+        # Check for errors.
         f.write("    if (NS_FAILED(rv))\n")
         if isMethod:
             if haveCcx:
@@ -954,21 +952,21 @@ def writeQuickStub(f, customMethodCalls, member, stubName, isSetter=False):
             f.write("        return xpc_qsThrowGetterSetterFailed(cx, rv, " +
                     "JSVAL_TO_OBJECT(%s), id);\n" % thisval)
 
-    
+    # Convert the return value.
     if isMethod or isGetter:
         writeResultConv(f, member.realtype, 'vp', '*vp')
     else:
         f.write("    return JS_TRUE;\n")
 
-    
+    # Epilog.
     f.write("}\n\n")
 
-    
+    # Now write out the call to the template function.
     if customMethodCall is not None:
         f.write(callTemplate)
 
-
-
+# Only these types can be returned (note: no strings);
+# if the type isn't one of these, then traceTypeMap['_default'] is used
 traceReturnTypeMap = {
     'void':
         ["jsval ", "JSVAL", "JSVAL_VOID"],
@@ -988,9 +986,9 @@ traceReturnTypeMap = {
         ["jsdouble ", "DOUBLE", "0"],
     }
 
-
-
-
+# This list extends the above list, but includes types that
+# are valid for arguments only, namely strings.  It also
+# includes the default jsval type.
 traceTypeMap = {
     '[astring]':
         ["JSString *", "STRING", "nsnull"],
@@ -1099,10 +1097,10 @@ def writeTraceableArgumentConversion(f, member, i, name, type, haveCcx,
         if template is not None:
             f.write(substitute(template, params))
             return rvdeclared
-        
+        # else fall through; the type isn't supported yet.
     elif isInterfaceType(type):
         if type.name == 'nsIVariant':
-            
+            # Totally custom.
             assert haveCcx
             template = (
                 "    nsCOMPtr<nsIVariant> ${name}(already_AddRefed<nsIVariant>("
@@ -1112,7 +1110,7 @@ def writeTraceableArgumentConversion(f, member, i, name, type, haveCcx,
             writeFailure(f, getTraceInfoDefaultReturn(member.realtype), 2)
             return rvdeclared
         elif type.name == 'nsIAtom':
-            
+            # Should have special atomizing behavior.  Fall through.
             pass
         else:
             if not rvdeclared:
@@ -1126,7 +1124,7 @@ def writeTraceableArgumentConversion(f, member, i, name, type, haveCcx,
             if haveCcx:
                 f.write("        xpc_qsThrowBadArgWithCcx(ccx, rv, %d);\n" % i)
             else:
-                
+                # XXX Fix this to return a real error!
                 f.write("        xpc_qsThrowBadArgWithDetails(cx, rv, %d, "
                         "\"%s\", \"%s\");\n"
                         % (i, member.iface.name, member.name))
@@ -1178,7 +1176,7 @@ def writeTraceableResultConv(f, type):
                                    getTraceInfoDefaultReturn(type), 2) }
             f.write(substitute(template, values))
             return
-        
+        # else fall through; this type isn't supported yet
     elif isInterfaceType(type):
         if isVariantType(type):
             f.write("    JSBool ok = xpc_qsVariantToJsval(lccx, result, "
@@ -1212,10 +1210,10 @@ def writeTraceableQuickStub(f, customMethodCalls, member, stubName):
     if customMethodCall is not None and customMethodCall.get('skipgen', False):
         return
 
-    
+    # Write the function
     f.write("static %sFASTCALL\n" % getTraceReturnType(member.realtype))
     f.write("%s(JSContext *cx, JSObject *obj" % (stubName + "_tn"))
-    
+    # This code MUST match the arguments length check in addStubMember
     if memberNeedsCallee(member):
         f.write(", JSObject *callee")
         traceInfo["params"].append("CALLEE")
@@ -1225,13 +1223,13 @@ def writeTraceableQuickStub(f, customMethodCalls, member, stubName):
     f.write(")\n{\n");
     f.write("    XPC_QS_ASSERT_CONTEXT_OK(cx);\n")
 
-    
+    # Create ccx if needed.
     if haveCcx:
         f.write("    XPCCallContext ccx(JS_CALLER, cx, obj, callee);\n")
         if isInterfaceType(member.realtype):
             f.write("    XPCLazyCallContext lccx(ccx);\n")
 
-    
+    # Get the 'self' pointer.
     if customMethodCall is None or not 'thisType' in customMethodCall:
         f.write("    %s *self;\n" % member.iface.name)
     else:
@@ -1252,7 +1250,7 @@ def writeTraceableQuickStub(f, customMethodCalls, member, stubName):
 
     argNames = []
 
-    
+    # Convert in-parameters.
     rvdeclared = False
     for i, param in enumerate(member.params):
         validateParam(member, param)
@@ -1275,10 +1273,10 @@ def writeTraceableQuickStub(f, customMethodCalls, member, stubName):
         selfname = prefix + 'self'
         nsresultname = prefix + 'rv'
 
-        
+        # Prepare out-parameter.
         writeResultDecl(f, member.realtype, resultname)
 
-        
+        # Call the method.
         comName = header.methodNativeName(member)
         if not isVoidType(member.realtype):
             argNames.append(outParamForm(resultname, member.realtype))
@@ -1287,43 +1285,38 @@ def writeTraceableQuickStub(f, customMethodCalls, member, stubName):
         f.write("    %s = %s->%s(%s);\n"
                 % (nsresultname, selfname, comName, args))
 
-        
+        # Check for errors.
         f.write("    if (NS_FAILED(rv)) {\n")
         if haveCcx:
             f.write("        xpc_qsThrowMethodFailedWithCcx(ccx, rv);\n")
         else:
-            
+            # XXX Replace with a real error message!
             f.write("        xpc_qsThrowMethodFailedWithDetails(cx, rv, "
                     "\"%s\", \"%s\");\n" % (member.iface.name, member.name))
         writeFailure(f, getTraceInfoDefaultReturn(member.realtype), 2)
 
-    
+    # Convert the return value.
     writeTraceableResultConv(f, member.realtype)
 
-    
+    # Epilog.
     f.write("}\n\n")
 
-    
+    # Write the JS_DEFINE_TRCINFO block
     f.write("JS_DEFINE_TRCINFO_1(%s,\n" % stubName)
-    f.write("    (%d, (static, %s, %s, %s, 0, 0)))\n\n"
+    f.write("    (%d, (static, %s, %s, %s, 0, nanojit::ACC_STORE_ANY)))\n\n"
             % (len(traceInfo["params"]), traceInfo["type"], stubName + "_tn",
                ", ".join(traceInfo["params"])))
 
 def writeAttrStubs(f, customMethodCalls, attr):
-    cmc = customMethodCalls.get(attr.iface.name + "_" + header.methodNativeName(attr), None)
-    custom = cmc and cmc.get('skipgen', False)
-
     getterName = (attr.iface.name + '_'
                   + header.attributeNativeName(attr, True))
-    if not custom:
-        writeQuickStub(f, customMethodCalls, attr, getterName)
+    writeQuickStub(f, customMethodCalls, attr, getterName)
     if attr.readonly:
         setterName = 'js_GetterOnlyPropertyStub'
     else:
         setterName = (attr.iface.name + '_'
                       + header.attributeNativeName(attr, False))
-        if not custom:
-            writeQuickStub(f, customMethodCalls, attr, setterName, isSetter=True)
+        writeQuickStub(f, customMethodCalls, attr, setterName, isSetter=True)
 
     ps = ('{"%s", %s, %s}'
           % (attr.name, getterName, setterName))
@@ -1331,25 +1324,15 @@ def writeAttrStubs(f, customMethodCalls, attr):
 
 def writeMethodStub(f, customMethodCalls, method):
     """ Write a method stub to `f`. Return an xpc_qsFunctionSpec initializer. """
-
-    cmc = customMethodCalls.get(method.iface.name + "_" + header.methodNativeName(method), None)
-    custom = cmc and cmc.get('skipgen', False)
-
     stubName = method.iface.name + '_' + header.methodNativeName(method)
-    if not custom:
-        writeQuickStub(f, customMethodCalls, method, stubName)
+    writeQuickStub(f, customMethodCalls, method, stubName)
     fs = '{"%s", %s, %d}' % (method.name, stubName, len(method.params))
     return fs
 
 def writeTraceableStub(f, customMethodCalls, method):
     """ Write a method stub to `f`. Return an xpc_qsTraceableSpec initializer. """
-
-    cmc = customMethodCalls.get(method.iface.name + "_" + header.methodNativeName(method), None)
-    custom = cmc and cmc.get('skipgen', False)
-
     stubName = method.iface.name + '_' + header.methodNativeName(method)
-    if not custom:
-        writeTraceableQuickStub(f, customMethodCalls, method, stubName)
+    writeTraceableQuickStub(f, customMethodCalls, method, stubName)
     fs = '{"%s", %s, %d}' % (method.name,
                              "JS_DATA_TO_FUNC_PTR(JSNative, &%s_trcinfo)" % stubName,
                              len(method.params))
@@ -1394,7 +1377,7 @@ def writeStubsForInterface(f, customMethodCalls, iface):
     f.write('\n\n')
 
 def hashIID(iid):
-    
+    # See nsIDKey::HashCode in nsHashtable.h.
     return int(iid[:8], 16)
 
 uuid_re = re.compile(r'^([0-9a-f]{8})-([0-9a-f]{4})-([0-9a-f]{4})-([0-9a-f]{4})-([0-9a-f]{12})$')
@@ -1427,20 +1410,20 @@ def writeResultXPCInterfacesArray(f, conf, resulttypes):
 def writeDefiner(f, conf, interfaces):
     f.write("// === Definer\n\n")
 
-    
+    # generate the static hash table
     loadFactor = 0.6
     size = int(len(interfaces) / loadFactor)
     buckets = [[] for i in range(size)]
     for iface in interfaces:
-        
-        
+        # This if-statement discards interfaces specified with
+        # "nsInterfaceName.*" that don't have any stub-able members.
         if iface.stubMembers:
             h = hashIID(iface.attributes.uuid)
             buckets[h % size].append(iface)
 
-    
-    
-    
+    # Calculate where each interface's entry will show up in tableData.  Where
+    # there are hash collisions, the extra entries are added at the end of the
+    # table.
     entryIndexes = {}
     arraySize = size
     for i, bucket in enumerate(buckets):
@@ -1455,7 +1438,7 @@ def writeDefiner(f, conf, interfaces):
                for i in range(arraySize)]
     for i, bucket in enumerate(buckets):
         for j, iface in enumerate(bucket):
-            
+            # iid field
             uuid = iface.attributes.uuid.lower()
             m = uuid_re.match(uuid)
             assert m is not None
@@ -1465,7 +1448,7 @@ def writeDefiner(f, conf, interfaces):
                         m4[4:6], m4[6:8], m4[8:10], m4[10:12]))
             iid = ('{0x%s, 0x%s, 0x%s, %s}' % (m0, m1, m2, m3arr))
 
-            
+            # properties field
             properties = "nsnull"
             for member in iface.stubMembers:
                 if member.kind == 'attribute':
@@ -1473,21 +1456,21 @@ def writeDefiner(f, conf, interfaces):
                     properties = iface.name + "_properties"
                     break
 
-            
+            # member field
             functions = "nsnull"
             for member in iface.stubMembers:
                 if member.kind == 'method' and not member.traceable:
                     functions = iface.name + "_functions"
                     break
 
-            
+            # traceables field
             traceables = "nsnull"
             for member in iface.stubMembers:
                 if member.traceable:
                     traceables = iface.name + "_traceables"
                     break
 
-            
+            # parentInterface field
             baseName = iface.base
             while baseName is not None:
                 piface = iface.idl.getName(baseName, None)
@@ -1499,14 +1482,14 @@ def writeDefiner(f, conf, interfaces):
             else:
                 parentInterface = "XPC_QS_NULL_INDEX"
 
-            
+            # chain field
             if j == len(bucket) - 1:
                 chain = "XPC_QS_NULL_INDEX"
             else:
                 k = entryIndexes[bucket[j+1].attributes.uuid]
                 chain = str(k)
 
-            
+            # add entry
             entry = "    {%s, %s, %s, %s, %s, %s}" % (
                 iid, properties, functions, traceables, parentInterface, chain)
             entries[entryIndexes[iface.attributes.uuid]] = entry
@@ -1515,7 +1498,7 @@ def writeDefiner(f, conf, interfaces):
     f.write(",\n".join(entries))
     f.write("\n    };\n\n")
 
-    
+    # the definer function (entry point to this quick stubs file)
     f.write("JSBool %s_DefineQuickStubs(" % conf.name)
     f.write("JSContext *cx, JSObject *proto, uintN flags, PRUint32 count, "
             "const nsID **iids)\n"
@@ -1529,11 +1512,6 @@ stubTopTemplate = '''\
 /* THIS FILE IS AUTOGENERATED - DO NOT EDIT */
 #include "jsapi.h"
 #include "jscntxt.h"
-/* Include nanojit.h early to avoid conflicting with nscore's |#define free|.
- * NB: needs to be kept in sync with jsbuiltins.h */
-#ifdef JS_TRACER
-#  include "nanojit/nanojit.h"
-#endif
 #include "prtypes.h"
 #include "nsID.h"
 #include "%s"
@@ -1602,7 +1580,7 @@ def writeStubFile(filename, headerFilename, conf, interfaces):
         f.close()
 
 def makeQuote(filename):
-    return filename.replace(' ', '\\ ')  
+    return filename.replace(' ', '\\ ')  # enjoy!
 
 def writeMakeDependOutput(filename):
     print "Creating makedepend file", filename

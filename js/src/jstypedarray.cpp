@@ -339,7 +339,7 @@ js_TypedArray_uint8_clamp_double(const double x)
     return y;
 }
 
-JS_DEFINE_CALLINFO_1(extern, INT32, js_TypedArray_uint8_clamp_double, DOUBLE, 1, 1)
+JS_DEFINE_CALLINFO_1(extern, INT32, js_TypedArray_uint8_clamp_double, DOUBLE, 1, nanojit::ACC_NONE)
 
 
 struct uint8_clamped {
@@ -520,18 +520,9 @@ class TypedArrayTemplate
         jsuint index;
         
         if (!tarray->isArrayIndex(cx, id, &index)) {
-#if 0
             JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL,
                                  JSMSG_TYPED_ARRAY_BAD_INDEX);
             return false;
-#endif
-            
-            
-            
-            
-            
-            *vp = JSVAL_VOID;
-            return true;
         }
 
         if (JSVAL_IS_INT(*vp)) {
