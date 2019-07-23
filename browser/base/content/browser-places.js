@@ -753,13 +753,9 @@ var BookmarksMenuDropHandler = {
 
 
   getSupportedFlavours: function BMDH_getSupportedFlavours() {
-    var flavorSet = new FlavourSet();
     var view = document.getElementById("bookmarksMenuPopup");
-    var types = PlacesUtils.GENERIC_VIEW_DROP_TYPES
-    for (var i = 0; i < types.length; ++i)
-      flavorSet.appendFlavour(types[i]);
-    return flavorSet;
-  }, 
+    return view.getSupportedFlavours();
+  },
 
   
 
@@ -784,11 +780,9 @@ var BookmarksMenuDropHandler = {
 
 
   onDrop: function BMDH_onDrop(event, data, session) {
-    var view = document.getElementById("bookmarksMenuPopup");
     
     var ip = new InsertionPoint(PlacesUtils.bookmarksMenuFolderId, -1);
     PlacesControllerDragHelper.onDrop(ip);
-    view._rebuild();
   }
 };
 
