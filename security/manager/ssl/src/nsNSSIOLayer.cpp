@@ -2802,6 +2802,9 @@ nsNSSBadCertHandler(void *arg, PRFileDesc *sslSocket)
         default:
           
           nsHandleSSLError(infoObject, i_node->error);
+          
+          
+          PR_SetError(i_node->error, 0);
           return cancel_and_failure(infoObject);
       }
     }
