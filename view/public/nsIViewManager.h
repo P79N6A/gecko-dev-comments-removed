@@ -64,8 +64,8 @@ enum nsRectVisibility {
 
 
 #define NS_IVIEWMANAGER_IID   \
-{ 0x143945d0, 0x0a20, 0x4bf0, \
-  { 0xa0, 0x4d, 0xad, 0x21, 0x2a, 0xb9, 0xac, 0xc2 } }
+{ 0x8d6c85d1, 0x5e2a, 0x4510, \
+  { 0xaf, 0xf0, 0x50, 0x56, 0x76, 0xab, 0x9b, 0x48 } }
 
 class nsIViewManager : public nsISupports
 {
@@ -394,41 +394,6 @@ public:
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-  NS_IMETHOD RenderOffscreen(nsIView* aView, nsRect aRect, PRBool aUntrusted,
-                             PRBool aIgnoreViewportScrolling,
-                             nscolor aBackgroundColor,
-                             nsIRenderingContext** aRenderedContext) = 0;
-
-  
-
-
-
-
-  NS_IMETHOD AddCompositeListener(nsICompositeListener *aListener) = 0;
-
-  
-
-
-
-
-  NS_IMETHOD RemoveCompositeListener(nsICompositeListener *aListener) = 0;
-
-  
-
-
-
-
   NS_IMETHOD GetWidget(nsIWidget **aWidget) = 0;
 
   
@@ -494,45 +459,6 @@ public:
 
 
   NS_IMETHOD SynthesizeMouseMove(PRBool aFromScroll)=0;
-  
-  
-
-
-
-
-
-
-
-
-
-  class BlendingBuffers {
-  public:
-    BlendingBuffers(nsIRenderingContext* aCleanupContext);
-    ~BlendingBuffers();
-  
-    
-    nsCOMPtr<nsIRenderingContext> mCleanupContext;
-    
-    
-    nsCOMPtr<nsIRenderingContext> mBlackCX;
-    
-    nsCOMPtr<nsIRenderingContext> mWhiteCX;
-  
-    PRBool mOwnBlackSurface;
-    
-    nsIDrawingSurface*  mBlack;
-    
-    nsIDrawingSurface*  mWhite;
-  
-    
-    
-    nsPoint mOffset;
-  };
-
-  virtual BlendingBuffers* CreateBlendingBuffers(nsIRenderingContext *aRC, PRBool aBorrowContext,
-                                                 nsIDrawingSurface* aBorrowSurface, PRBool aNeedAlpha,
-                                                 const nsRect& aArea) = 0;
-  virtual nsIBlender* GetBlender() = 0;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsIViewManager, NS_IVIEWMANAGER_IID)
