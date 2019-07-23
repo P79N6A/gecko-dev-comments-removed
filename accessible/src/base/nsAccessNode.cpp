@@ -856,9 +856,7 @@ nsAccessNode::GetARIARole(nsIContent *aContent, nsString& aRole)
     }
   }
   
-  
-  else if (!aContent->GetAttr(kNameSpaceID_XHTML, nsAccessibilityAtoms::role, aRole) &&
-           !aContent->GetAttr(kNameSpaceID_XHTML2_Unofficial, nsAccessibilityAtoms::role, aRole)) {
+  else if (!aContent->GetAttr(kNameSpaceID_XHTML, nsAccessibilityAtoms::role, aRole)) {
     return PR_FALSE;
   }
 
