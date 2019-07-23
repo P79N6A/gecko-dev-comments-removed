@@ -1977,19 +1977,18 @@ IsTablePseudo(nsIFrame* aFrame)
 
 
 nsCSSFrameConstructor::ParentType
-nsCSSFrameConstructor::GetParentType(nsIFrame* aParentFrame)
+nsCSSFrameConstructor::GetParentType(nsIAtom* aFrameType)
 {
-  nsIAtom* type = aParentFrame->GetType();
-  if (type == nsGkAtoms::tableFrame) {
+  if (aFrameType == nsGkAtoms::tableFrame) {
     return eTypeTable;
   }
-  if (type == nsGkAtoms::tableRowGroupFrame) {
+  if (aFrameType == nsGkAtoms::tableRowGroupFrame) {
     return eTypeRowGroup;
   }
-  if (type == nsGkAtoms::tableRowFrame) {
+  if (aFrameType == nsGkAtoms::tableRowFrame) {
     return eTypeRow;
   }
-  if (type == nsGkAtoms::tableColGroupFrame) {
+  if (aFrameType == nsGkAtoms::tableColGroupFrame) {
     return eTypeColGroup;
   }
 
@@ -7270,6 +7269,7 @@ nsCSSFrameConstructor::ContentRemoved(nsIContent* aContainer,
         return NS_OK;
       }
       parentFrame = childFrame->GetParent();
+      parentType = parentFrame->GetType();
 
 #ifdef NOISY_FIRST_LETTER
       printf("  ==> revised parentFrame=");
@@ -7354,8 +7354,12 @@ nsCSSFrameConstructor::ContentRemoved(nsIContent* aContainer,
     
     
     
+    
+    
+    
     if (aContainer && aIndexInContainer >= 0 &&
-        aFlags != REMOVE_FOR_RECONSTRUCTION) {
+        aFlags != REMOVE_FOR_RECONSTRUCTION &&
+        GetParentType(parentType) == eTypeBlock) {
       
       
       

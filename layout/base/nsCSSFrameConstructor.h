@@ -470,7 +470,12 @@ private:
   (((PRUint32)(_type)) << FCDATA_PARENT_TYPE_OFFSET)
 
   
-  static ParentType GetParentType(nsIFrame* aParentFrame);
+  static ParentType GetParentType(nsIFrame* aParentFrame) {
+    return GetParentType(aParentFrame->GetType());
+  }
+
+  
+  static ParentType GetParentType(nsIAtom* aFrameType);
 
   
 
