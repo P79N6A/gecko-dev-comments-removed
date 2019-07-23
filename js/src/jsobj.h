@@ -82,20 +82,6 @@ struct JSObjectOps {
     JSSetRequiredSlotOp setRequiredSlot;
 };
 
-
-
-
-
-
-
-
-
-
-
-struct JSProperty {
-    jsid id;
-};
-
 struct JSObjectMap {
     jsrefcount  nrefs;          
     JSObjectOps *ops;           
