@@ -6021,14 +6021,6 @@ nsDocShell::RestoreFromHistory()
 
     nsCOMPtr<nsIDocument> document = do_QueryInterface(domDoc);
     if (document) {
-        nsCOMPtr<nsIDocShellTreeItem> parent;
-        GetParent(getter_AddRefs(parent));
-        nsCOMPtr<nsIDOMDocument> parentDoc = do_GetInterface(parent);
-        nsCOMPtr<nsIDocument> d = do_QueryInterface(parentDoc);
-        if (d && d->EventHandlingSuppressed()) {
-            document->SuppressEventHandling(d->EventHandlingSuppressed());
-        }
-
         
         
         
