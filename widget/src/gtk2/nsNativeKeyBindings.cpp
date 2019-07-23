@@ -294,17 +294,19 @@ nsNativeKeyBindings::KeyPress(const nsNativeKeyEvent& aEvent,
 
   gHandled = PR_FALSE;
 
-  const nsGUIEvent *guiEvent = static_cast<nsGUIEvent*>(aEvent.nativeEvent);
+  gtk_bindings_activate(GTK_OBJECT(mNativeTarget),
+                        keyCode, GdkModifierType(modifiers));
 
-  if (guiEvent &&
-      (guiEvent->message == NS_KEY_PRESS || guiEvent->message == NS_KEY_UP || guiEvent->message == NS_KEY_DOWN) &&
-       guiEvent->nativeMsg)
-    gtk_bindings_activate_event(GTK_OBJECT(mNativeTarget),
-                                static_cast<GdkEventKey*>(guiEvent->nativeMsg)); 
 
-  if (!gHandled)
-    gtk_bindings_activate(GTK_OBJECT(mNativeTarget),
-                          keyCode, GdkModifierType(modifiers)); 
+
+
+
+
+
+
+
+
+
 
 
   gCurrentCallback = nsnull;
