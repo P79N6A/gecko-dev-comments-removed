@@ -56,8 +56,8 @@
   -moz-box-flex: 1; 
 }
 
-#PersonalToolbar {
-  min-height: 26px;
+#personal-bookmarks {
+  min-height: 29px;
 }
 
 #wrapper-search-container #searchbar html|*.textbox-input {
