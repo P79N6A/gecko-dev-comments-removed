@@ -385,14 +385,13 @@ LoginManagerPrompter.prototype = {
 
         
         
-        newBar.ignoreFirstLocationChange = true;
+        newBar.persistence++;
 
         
         
         
         
-        var now = Date.now() / 1000;
-        newBar.ignoreLocationChangeTimeout = now + 10; 
+        newBar.timeout = Date.now() + 10000; 
 
         if (oldBar) {
             this.log("(...and removing old save-password notification bar)");

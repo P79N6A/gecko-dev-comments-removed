@@ -3602,14 +3602,7 @@ nsBrowserStatusHandler.prototype =
         
         
         var nBox = gBrowser.getNotificationBox(selectedBrowser);
-        for (var n = nBox.allNotifications.length - 1; n >= 0; n--) {
-          var notify = nBox.allNotifications[n];
-          if (notify.ignoreFirstLocationChange)
-            notify.ignoreFirstLocationChange = false;
-          else if (!notify.ignoreLocationChangeTimeout ||
-            (Date.now() / 1000) > notify.ignoreLocationChangeTimeout)
-            nBox.removeNotification(notify);
-        }
+        nBox.removeTransientNotifications();
       }
     }
     selectedBrowser.lastURI = aLocationURI;
