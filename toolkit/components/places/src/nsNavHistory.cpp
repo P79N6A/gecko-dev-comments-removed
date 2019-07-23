@@ -4576,9 +4576,14 @@ nsNavHistory::RemovePage(nsIURI *aURI)
 {
   NS_ASSERTION(NS_IsMainThread(), "This can only be called on the main thread");
 
+  
+  ENUMERATE_WEAKARRAY(mObservers, nsINavHistoryObserver,
+                      OnBeforeDeleteURI(aURI))
+
   nsIURI** URIs = &aURI;
   nsresult rv = RemovePages(URIs, 1, PR_FALSE);
   NS_ENSURE_SUCCESS(rv, rv);
+
   
   ENUMERATE_WEAKARRAY(mObservers, nsINavHistoryObserver, OnDeleteURI(aURI))
   return NS_OK;

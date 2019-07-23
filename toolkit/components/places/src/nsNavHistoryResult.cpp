@@ -2770,6 +2770,12 @@ nsNavHistoryQueryResultNode::OnTitleChanged(nsIURI* aURI,
 }
 
 
+NS_IMETHODIMP
+nsNavHistoryQueryResultNode::OnBeforeDeleteURI(nsIURI *aURI)
+{
+  return NS_OK;
+}
+
 
 
 
@@ -4341,6 +4347,14 @@ NS_IMETHODIMP
 nsNavHistoryResult::OnTitleChanged(nsIURI* aURI, const nsAString& aPageTitle)
 {
   ENUMERATE_HISTORY_OBSERVERS(OnTitleChanged(aURI, aPageTitle));
+  return NS_OK;
+}
+
+
+
+NS_IMETHODIMP
+nsNavHistoryResult::OnBeforeDeleteURI(nsIURI *aURI)
+{
   return NS_OK;
 }
 
