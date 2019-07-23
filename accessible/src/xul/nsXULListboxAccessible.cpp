@@ -1157,8 +1157,7 @@ nsXULListCellAccessible::GetColumnHeaderCells(nsIArray **aHeaderCells)
 
   nsCOMPtr<nsIAccessibleTable> table;
   GetTable(getter_AddRefs(table));
-  if (!table)
-    return NS_OK;
+  NS_ENSURE_STATE(table); 
 
   
   nsCOMPtr<nsIAccessible> tableAcc(do_QueryInterface(table));
@@ -1209,8 +1208,7 @@ nsXULListCellAccessible::GetRowHeaderCells(nsIArray **aHeaderCells)
 
   nsCOMPtr<nsIAccessibleTable> table;
   GetTable(getter_AddRefs(table));
-  if (!table)
-    return NS_OK;
+  NS_ENSURE_STATE(table); 
 
   
   return nsAccUtils::GetHeaderCellsFor(table, this,
@@ -1229,8 +1227,7 @@ nsXULListCellAccessible::IsSelected(PRBool *aIsSelected)
 
   nsCOMPtr<nsIAccessibleTable> table;
   GetTable(getter_AddRefs(table));
-  if (!table)
-    return NS_OK;
+  NS_ENSURE_STATE(table); 
 
   PRInt32 rowIdx = -1;
   GetRowIndex(&rowIdx);
@@ -1259,6 +1256,7 @@ nsXULListCellAccessible::GetAttributesInternal(nsIPersistentProperties *aAttribu
   
   nsCOMPtr<nsIAccessibleTable> table;
   GetTable(getter_AddRefs(table));
+  NS_ENSURE_STATE(table); 
 
   PRInt32 rowIdx = -1;
   GetRowIndex(&rowIdx);
