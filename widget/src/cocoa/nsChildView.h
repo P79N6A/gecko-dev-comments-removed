@@ -155,9 +155,6 @@ enum {
   NSMutableArray* mPendingDirtyRects;
   BOOL mPendingFullDisplay;
 
-  PRIntervalTime mLastShadowInvalidation;
-  BOOL mNeedsShadowInvalidation;
-
   
   
   

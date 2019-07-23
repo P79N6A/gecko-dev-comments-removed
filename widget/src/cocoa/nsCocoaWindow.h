@@ -68,10 +68,14 @@ typedef struct _nsCocoaWindowList {
 
 @interface BaseWindow : NSWindow
 {
+  
   NSMutableDictionary* mState;
   BOOL mDrawsIntoWindowFrame;
   NSColor* mActiveTitlebarColor;
   NSColor* mInactiveTitlebarColor;
+
+  
+  BOOL mScheduledShadowInvalidation;
 }
 
 - (void)importState:(NSDictionary*)aState;
@@ -80,6 +84,9 @@ typedef struct _nsCocoaWindowList {
 - (BOOL)drawsContentsIntoWindowFrame;
 - (void)setTitlebarColor:(NSColor*)aColor forActiveWindow:(BOOL)aActive;
 - (NSColor*)titlebarColorForActiveWindow:(BOOL)aActive;
+
+- (void)deferredInvalidateShadow;
+- (void)invalidateShadow;
 
 @end
 
