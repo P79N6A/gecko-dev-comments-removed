@@ -3925,9 +3925,9 @@ nsHTMLDocument::TurnEditingOff()
   editorDocShell->GetEditor(getter_AddRefs(editor));
   nsCOMPtr<nsIEditorStyleSheets> editorss = do_QueryInterface(editor);
   if (editorss) {
-    editorss->RemoveOverrideStyleSheet(NS_LITERAL_STRING("resource:/res/contenteditable.css"));
+    editorss->RemoveOverrideStyleSheet(NS_LITERAL_STRING("resource://gre/res/contenteditable.css"));
     if (mEditingState == eDesignMode)
-      editorss->RemoveOverrideStyleSheet(NS_LITERAL_STRING("resource:/res/designmode.css"));
+      editorss->RemoveOverrideStyleSheet(NS_LITERAL_STRING("resource://gre/res/designmode.css"));
   }
 
   if (mEditingState == eDesignMode) {
@@ -4006,7 +4006,7 @@ nsHTMLDocument::EditingStateChanged()
   nsCOMPtr<nsIEditorStyleSheets> editorss = do_QueryInterface(editor, &rv);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  editorss->AddOverrideStyleSheet(NS_LITERAL_STRING("resource:/res/contenteditable.css"));
+  editorss->AddOverrideStyleSheet(NS_LITERAL_STRING("resource://gre/res/contenteditable.css"));
 
   
   
@@ -4016,7 +4016,7 @@ nsHTMLDocument::EditingStateChanged()
   PRBool spellRecheckAll = PR_FALSE;
   if (designMode) {
     
-    editorss->AddOverrideStyleSheet(NS_LITERAL_STRING("resource:/res/designmode.css"));
+    editorss->AddOverrideStyleSheet(NS_LITERAL_STRING("resource://gre/res/designmode.css"));
 
     
     PRBool tmp;
@@ -4041,7 +4041,7 @@ nsHTMLDocument::EditingStateChanged()
   }
   else if (mEditingState == eDesignMode) {
     
-    editorss->RemoveOverrideStyleSheet(NS_LITERAL_STRING("resource:/res/designmode.css"));
+    editorss->RemoveOverrideStyleSheet(NS_LITERAL_STRING("resource://gre/res/designmode.css"));
 
     rv = docshell->SetAllowJavascript(mScriptsEnabled);
     NS_ENSURE_SUCCESS(rv, rv);

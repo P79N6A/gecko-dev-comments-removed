@@ -322,7 +322,7 @@ nsHTMLEditor::Init(nsIDOMDocument *aDoc, nsIPresShell *aPresShell,
 
     if (!(mFlags & eEditorAllowInteraction)) {
       
-      AddOverrideStyleSheet(NS_LITERAL_STRING("resource:/res/EditorOverride.css"));
+      AddOverrideStyleSheet(NS_LITERAL_STRING("resource://gre/res/EditorOverride.css"));
     }
 
     nsCOMPtr<nsISelection>selection;
