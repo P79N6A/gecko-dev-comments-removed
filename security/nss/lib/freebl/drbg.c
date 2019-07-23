@@ -382,6 +382,9 @@ static PRStatus rng_init(void)
     unsigned int numBytes;
     if (globalrng == NULL) {
 	
+
+	PR_STATIC_ASSERT(sizeof(bytes) >= SHA256_LENGTH);
+	
 	globalrng = &theGlobalRng;
         PORT_Assert(NULL == globalrng->lock);
 	
@@ -413,6 +416,10 @@ static PRStatus rng_init(void)
 	}
 	
 	globalrng->isValid = PR_TRUE;
+
+	
+
+	prng_generateNewBytes(globalrng, bytes, SHA256_LENGTH, NULL, 0);
 
 	
 	RNG_SystemInfoForRNG();

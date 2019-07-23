@@ -47,7 +47,9 @@
 
 #if defined(XP_WIN) || defined (XP_PC)
 #include <time.h>
+#ifndef WINCE
 #include <conio.h>
+#endif
 #endif
 
 #if defined(__sun) && !defined(SVR4)
@@ -112,7 +114,7 @@ UpdateRNG(void)
     
     fd = fileno(stdin);
 
-#if defined(XP_UNIX) && !defined(VMS)
+#if defined(XP_UNIX)
     tcgetattr(fd, &tio);
     orig_lflag = tio.c_lflag;
     orig_cc_min = tio.c_cc[VMIN];
@@ -127,9 +129,7 @@ UpdateRNG(void)
     
     count = 0;
     while (count < sizeof randbuf) {
-#ifdef VMS
-	c = GENERIC_GETCHAR_NOECHO();
-#elif XP_UNIX
+#if defined(XP_UNIX) || defined(WINCE)
 	c = getc(stdin);
 #else
 	c = getch();
@@ -149,20 +149,15 @@ UpdateRNG(void)
 
     FPS "\n\n");
     FPS "Finished.  Press enter to continue: ");
-#if defined(VMS)
-    while((c = GENERIC_GETCHAR_NO_ECHO()) != '\r' && c != EOF)
-	;
-#else
     while ((c = getc(stdin)) != '\n' && c != EOF)
 	;
-#endif
     if (c == EOF) 
 	rv = -1;
     FPS "\n");
 
 #undef FPS
 
-#if defined(XP_UNIX) && !defined(VMS)
+#if defined(XP_UNIX)
     
     tio.c_lflag = orig_lflag;
     tio.c_cc[VMIN] = orig_cc_min;

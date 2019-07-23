@@ -78,11 +78,13 @@ mkstempflags(char *path, int extraFlags)
 	return (_gettemp(path, &fd, extraFlags) ? fd : -1);
 }
 
+#ifdef WINCE 
 char *
 mktemp(char *path)
 {
 	return(_gettemp(path, (int *)NULL, 0) ? path : (char *)NULL);
 }
+#endif
 
 
 

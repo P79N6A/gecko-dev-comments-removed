@@ -284,14 +284,6 @@ typedef uLong FAR uLongf;
    typedef Byte       *voidp;
 #endif
 
-#if 0           
-#  include <sys/types.h> 
-#  include <unistd.h>    
-#  ifdef VMS
-#    include <unixio.h>   
-#  endif
-#  define z_off_t off_t
-#endif
 #ifndef SEEK_SET
 #  define SEEK_SET        0       /* Seek from beginning of file.  */
 #  define SEEK_CUR        1       /* Seek from current position.  */

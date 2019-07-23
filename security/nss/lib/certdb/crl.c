@@ -3136,6 +3136,7 @@ static SECStatus addCRLToCache(CERTCertDBHandle* dbhandle, SECItem* crl,
         rv = SECFailure;
         
         SECITEM_ZfreeItem(entry->crl, PR_TRUE);
+        entry->crl = NULL;
     }
     return rv;
 }
@@ -3206,6 +3207,10 @@ SECStatus cert_CacheCRLByGeneralName(CERTCertDBHandle* dbhandle, SECItem* crl,
             if (!removed)
             {
                 rv = SECFailure;
+		
+            }
+            else
+            {
                 rv2 = NamedCRLCacheEntry_Destroy(oldEntry);
                 PORT_Assert(SECSuccess == rv2);
             }
@@ -3249,7 +3254,11 @@ SECStatus cert_CacheCRLByGeneralName(CERTCertDBHandle* dbhandle, SECItem* crl,
                 PORT_Assert(removed);
                 if (!removed)
                 {
+		    
                     rv = SECFailure;
+                }
+                else
+                {
                     rv2 = NamedCRLCacheEntry_Destroy(oldEntry);
                     PORT_Assert(SECSuccess == rv2);
                 }

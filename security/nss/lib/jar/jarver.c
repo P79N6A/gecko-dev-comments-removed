@@ -343,11 +343,11 @@ jar_parse_any(JAR *jar, int type, JAR_Signer *signer,
 
     
     
-    while (raw_len) {
+    while (raw_len > 0) {
 	JAR_Metainfo *met;
 
 	raw_manifest = jar_eat_line(1, PR_TRUE, raw_manifest, &raw_len);
-	if (!*raw_manifest)
+	if (raw_len <= 0 || !*raw_manifest)
 	    break;
 
 	met = PORT_ZNew(JAR_Metainfo);
@@ -443,7 +443,7 @@ jar_parse_any(JAR *jar, int type, JAR_Signer *signer,
     }
 
     
-    while (raw_len) {
+    while (raw_len > 0) {
 	*x_md5 = 0;
 	*x_sha = 0;
 	*x_name = 0;
@@ -461,7 +461,7 @@ jar_parse_any(JAR *jar, int type, JAR_Signer *signer,
 	    } else
 		sec = raw_manifest;
 
-	    if (!PORT_Strncasecmp(sec, "Name:", 5)) {
+	    if (sec_len > 0 && !PORT_Strncasecmp(sec, "Name:", 5)) {
 		if (type == jarTypeMF)
 		    mfdig = jar_digest_section(sec, sec_len);
 		else
@@ -470,9 +470,9 @@ jar_parse_any(JAR *jar, int type, JAR_Signer *signer,
 	}
 
 
-	while (raw_len) {
+	while (raw_len > 0) {
 	    raw_manifest = jar_eat_line(1, PR_TRUE, raw_manifest, &raw_len);
-	    if (!*raw_manifest)
+	    if (raw_len <= 0 || !*raw_manifest)
 		break; 
 
 	    if (PORT_Strlen(raw_manifest) >= SZ) {
@@ -751,49 +751,68 @@ loser:
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 static char *
 jar_eat_line(int lines, int eating, char *data, long *len)
 {
-    char *ret;
+    char *start = data;
+    long maxLen = *len;
 
-    ret = data;
-    if (!*len)
-	return ret;
+    if (maxLen <= 0)
+	return start;
+
+#define GO_ON ((data - start) < maxLen)
 
     
 
-
-    for ( ; lines; lines--) {
-	while (*data && *data != '\n')
+    for ( ; lines > 0; lines--) {
+	while (GO_ON && *data && *data != '\r' && *data != '\n')
 	    data++;
 
 	
-	if (*data == '\n')
+	if (GO_ON && *data == '\r')
 	    data++;
 
 	
-	while (*data == 0 && data - ret < *len)
+	if (GO_ON && *data == '\n')
+	    data++;
+
+	
+	while (GO_ON && !*data)
 	    data++;
     }
-
-    *len -= data - ret;
-    ret = data;
-
-    if (eating) {
+    maxLen -= data - start;           
+    *len  = maxLen;
+    start = data;                     
+    if (maxLen > 0 && eating) {
 	
-	while (*data && *data != '\n' && *data != '\r')
+	while (GO_ON && *data && *data != '\n' && *data != '\r')
 	    data++;
 
 	
-	if (*data == '\r')
+	if (GO_ON && *data == '\r')
 	    *data++ = 0;
 
 	
-	if (*data == '\n')
+	if (GO_ON && *data == '\n')
 	    *data++ = 0;
     }
-    return ret;
+    return start;
 }
+#undef GO_ON
 
 
 
@@ -811,9 +830,9 @@ jar_digest_section(char *manifest, long length)
     global_end = manifest;
     global_len = length;
 
-    while (global_len) {
+    while (global_len > 0) {
 	global_end = jar_eat_line(1, PR_FALSE, global_end, &global_len);
-	if (*global_end == 0 || *global_end == '\n')
+	if (global_len > 0 && (*global_end == 0 || *global_end == '\n'))
 	    break;
     }
     return JAR_calculate_digest (manifest, global_end - manifest);

@@ -611,12 +611,12 @@ sftkdb_FreeUpdatePasswordKey(SFTKDBHandle *handle)
     SECItem *key = NULL;
 
     
-    if (handle->type == SFTK_CERTDB_TYPE) {
+    if (!handle) {
 	return;
     }
 
     
-    if (!handle) {
+    if (handle->type == SFTK_CERTDB_TYPE) {
 	return;
     }
 

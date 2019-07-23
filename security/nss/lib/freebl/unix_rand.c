@@ -629,44 +629,6 @@ GiveSystemInfo(void)
 }
 #endif 
 
-#if defined(VMS)
-#include <c_asm.h>
-
-static void
-GiveSystemInfo(void)
-{
-    long si;
- 
-    
-
-
-
-
-    si = sysconf(_SC_CHILD_MAX);
-    RNG_RandomUpdate(&si, sizeof(si));
- 
-    si = sysconf(_SC_STREAM_MAX);
-    RNG_RandomUpdate(&si, sizeof(si));
- 
-    si = sysconf(_SC_OPEN_MAX);
-    RNG_RandomUpdate(&si, sizeof(si));
-}
- 
-
-
-
-
-
-static size_t
-GetHighResClock(void *buf, size_t maxbytes)
-{
-    unsigned long t;
- 
-    t = asm("rpcc %v0");
-    return CopyLowBits(buf, maxbytes, &t, sizeof(t));
-}
- 
-#endif 
 
 #ifdef BEOS
 #include <be/kernel/OS.h>
@@ -880,9 +842,6 @@ safe_pclose(FILE *fp)
     return status;
 }
 
-
-#if !defined(VMS)
-
 #ifdef DARWIN
 #include <crt_externs.h>
 #endif
@@ -1023,65 +982,6 @@ void RNG_SystemInfoForRNG(void)
 #endif
 
 }
-#else
-void RNG_SystemInfoForRNG(void)
-{
-    FILE *fp;
-    char buf[BUFSIZ];
-    size_t bytes;
-    int extra;
-    char **cp;
-    extern char **environ;
-    char *randfile;
- 
-    GiveSystemInfo();
- 
-    bytes = RNG_GetNoise(buf, sizeof(buf));
-    RNG_RandomUpdate(buf, bytes);
- 
-    
-
-
-
-
-
-    cp = environ;
-    while (*cp) {
-	RNG_RandomUpdate(*cp, strlen(*cp));
-	cp++;
-    }
-    RNG_RandomUpdate(environ, (char*)cp - (char*)environ);
- 
-    
-    if (gethostname(buf, sizeof(buf)) > 0) {
-	RNG_RandomUpdate(buf, strlen(buf));
-    }
-    GiveSystemInfo();
- 
-    
-    randfile = getenv("NSRANDFILE");
-    if ( ( randfile != NULL ) && ( randfile[0] != '\0') ) {
-	RNG_FileForRNG(randfile);
-    }
-
-    
-
-
-
-
-
-    extra = 1000;
-    while (extra > 0) {
-        cp = environ;
-        while (*cp) {
-	    int n = strlen(*cp);
-	    RNG_RandomUpdate(*cp, n);
-	    extra -= n;
-	    cp++;
-        }
-    }
-}
-#endif
 
 #define TOTAL_FILE_LIMIT 1000000	/* one million */
 

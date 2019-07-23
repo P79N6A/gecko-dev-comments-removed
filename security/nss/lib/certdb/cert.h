@@ -1610,25 +1610,25 @@ CERT_EncodeNoticeReference(PLArenaPool *arena,
 
 
 extern const CERTRevocationFlags*
-CERT_GetPKIXVerifyNistRevocationPolicy();
+CERT_GetPKIXVerifyNistRevocationPolicy(void);
 
 
 
 
 extern const CERTRevocationFlags*
-CERT_GetClassicOCSPEnabledSoftFailurePolicy();
+CERT_GetClassicOCSPEnabledSoftFailurePolicy(void);
 
 
 
 
 extern const CERTRevocationFlags*
-CERT_GetClassicOCSPEnabledHardFailurePolicy();
+CERT_GetClassicOCSPEnabledHardFailurePolicy(void);
 
 
 
 
 extern const CERTRevocationFlags*
-CERT_GetClassicOCSPDisabledPolicy();
+CERT_GetClassicOCSPDisabledPolicy(void);
 
 
 
@@ -1662,7 +1662,7 @@ SECStatus CERT_SetUsePKIXForValidation(PRBool enable);
 
 
 
-PRBool CERT_GetUsePKIXForValidation();
+PRBool CERT_GetUsePKIXForValidation(void);
 
 SEC_END_PROTOS
 
