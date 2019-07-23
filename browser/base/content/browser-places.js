@@ -823,21 +823,6 @@ var PlacesMenuDNDController = {
 
 
 
-  onDragExit: function PMDC_onDragExit(event) {
-    
-    if ("closeTime" in this._timers)
-      return;
-      
-    this._setDragTimer("closeTime", this._closePopups, 
-                       this._springLoadDelay, [event.target]);
-  },
-  
-  
-
-
-
-
-
 
 
 
@@ -880,38 +865,6 @@ var PlacesMenuDNDController = {
   _isContainer: function PMDC__isContainer(node) {
     return node.localName == "menu" || 
            node.localName == "toolbarbutton" && node.getAttribute("type") == "menu";
-  },
-  
-  
-
-
-
-
-
-  _closePopups: function PMDC__closePopups(target) {
-    if (PlacesControllerDragHelper.draggingOverChildNode(target))
-      return;
-
-    if ("closeTime" in this._timers)
-      delete this._timers.closeTime;
-    
-    
-    var bookmarksMenu = document.getElementById("bookmarksMenu");
-    bookmarksMenu.firstChild.hidePopup();
-
-    var bookmarksBar = document.getElementById("bookmarksBarContent");
-    if (bookmarksBar) {
-      
-      bookmarksBar._chevron.firstChild.hidePopup();
-
-      
-      var toolbarItems = bookmarksBar.childNodes;
-      for (var i = 0; i < toolbarItems.length; ++i) {
-        var item = toolbarItems[i]
-        if (this._isContainer(item))
-          item.firstChild.hidePopup();
-      }
-    }
   },
   
   
