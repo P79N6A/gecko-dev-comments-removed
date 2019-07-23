@@ -5038,6 +5038,12 @@ nsDocShell::CreateAboutBlankContentViewer(nsIPrincipal* aPrincipal)
   }
 
   
+  
+  
+  
+  mFiredUnloadEvent = PR_FALSE;
+
+  
   nsCOMPtr<nsICategoryManager> catMan(do_GetService(NS_CATEGORYMANAGER_CONTRACTID));
   if (!catMan)
     return NS_ERROR_FAILURE;
