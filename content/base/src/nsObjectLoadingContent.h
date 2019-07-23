@@ -414,10 +414,10 @@ class nsObjectLoadingContent : public nsImageLoadingContent
 
 
 
-    PRBool                      mInstantiating : 1;
+    PRPackedBool                mInstantiating : 1;
     
-    PRBool                      mUserDisabled  : 1;
-    PRBool                      mSuppressed    : 1;
+    PRPackedBool                mUserDisabled  : 1;
+    PRPackedBool                mSuppressed    : 1;
     
     PluginSupportState          mPluginState;
 
