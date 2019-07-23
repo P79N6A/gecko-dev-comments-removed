@@ -2030,7 +2030,6 @@ nsresult nsExternalAppHandler::OpenWithApplication()
 
 
 
-
 NS_IMETHODIMP nsExternalAppHandler::LaunchWithApplication(nsIFile * aApplication, PRBool aRememberThisPreference)
 {
   if (mCanceled)
@@ -2041,8 +2040,8 @@ NS_IMETHODIMP nsExternalAppHandler::LaunchWithApplication(nsIFile * aApplication
   
   mReceivedDispositionInfo = PR_TRUE; 
   if (mMimeInfo && aApplication) {
-    nsLocalHandlerApp *handlerApp(new nsLocalHandlerApp(EmptyString(), 
-                                                        aApplication));
+    PlatformLocalHandlerApp_t *handlerApp =
+      new PlatformLocalHandlerApp_t(EmptyString(), aApplication);
     mMimeInfo->SetPreferredApplicationHandler(handlerApp);
   }
 

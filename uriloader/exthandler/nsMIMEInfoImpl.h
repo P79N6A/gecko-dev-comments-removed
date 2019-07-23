@@ -161,24 +161,6 @@ class nsMIMEInfoBase : public nsIMIMEInfo {
 
 
 
-
-
-
-
-
-
-
-
-    static NS_HIDDEN_(nsresult) 
-        LaunchWithWebHandler(nsIWebHandlerApp *aApp, nsIURI *aURI,
-                             nsIInterfaceRequestor *aWindowContext);
-
-    
-
-
-
-
-
     static NS_HIDDEN_(nsresult) GetLocalFileFromURI(nsIURI *aURI,
                                                     nsILocalFile **aFile);
 

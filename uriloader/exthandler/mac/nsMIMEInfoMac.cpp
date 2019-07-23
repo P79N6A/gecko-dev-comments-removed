@@ -99,49 +99,6 @@ nsMIMEInfoMac::LaunchWithFile(nsIFile *aFile)
   return app->LaunchWithDoc(localFile, PR_FALSE); 
 }
 
-NS_IMETHODIMP
-nsMIMEInfoMac::LaunchWithURI(nsIURI* aURI,
-                             nsIInterfaceRequestor* aWindowContext)
-{
-  nsCOMPtr<nsIFile> application;
-  nsresult rv;
-
-  
-  
-  
-  NS_ASSERTION(mClass == eProtocolInfo,
-               "nsMIMEInfoBase should be a protocol handler");
-
-  if (mPreferredAction == useHelperApp) {
-
-    
-    nsCOMPtr<nsIWebHandlerApp> webHandlerApp =
-      do_QueryInterface(mPreferredApplication, &rv);
-    if (NS_SUCCEEDED(rv)) {
-      return LaunchWithWebHandler(webHandlerApp, aURI, aWindowContext);         
-    }
-
-    
-    nsCOMPtr<nsILocalHandlerApp> localHandlerApp =
-        do_QueryInterface(mPreferredApplication, &rv);
-    NS_ENSURE_SUCCESS(rv, rv);
-    
-    rv = localHandlerApp->GetExecutable(getter_AddRefs(application));
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    
-    nsCAutoString spec;
-    aURI->GetSpec(spec);
-    return OpenApplicationWithURI(application, spec);
-  } 
-  
-  if (mPreferredAction == useSystemDefault) {
-    return LoadUriInternal(aURI);
-  }
-  
-  return NS_ERROR_INVALID_ARG;
-}
-
 nsresult 
 nsMIMEInfoMac::LoadUriInternal(nsIURI *aURI)
 {
@@ -167,51 +124,3 @@ nsMIMEInfoMac::GetHasDefaultHandler(PRBool *_retval)
   return NS_OK;
 }
 
-
-
-
-
-
-nsresult
-nsMIMEInfoMac::OpenApplicationWithURI(nsIFile* aApplication, 
-                                      const nsCString& aURI)
-{
-  nsresult rv;
-  nsCOMPtr<nsILocalFileMac> lfm(do_QueryInterface(aApplication, &rv));
-  NS_ENSURE_SUCCESS(rv, rv);
-  
-  CFURLRef appURL;
-  rv = lfm->GetCFURL(&appURL);
-  if (NS_FAILED(rv))
-    return rv;
-  
-  const UInt8* uriString = (const UInt8*)aURI.get();
-  CFURLRef uri = ::CFURLCreateWithBytes(NULL, uriString, aURI.Length(),
-                                        kCFStringEncodingUTF8, NULL);
-  if (!uri) {
-    ::CFRelease(appURL);
-    return NS_ERROR_OUT_OF_MEMORY;
-  }
-  
-  CFArrayRef uris = ::CFArrayCreate(NULL, (const void**)&uri, 1, NULL);
-  if (!uris) {
-    ::CFRelease(uri);
-    ::CFRelease(appURL);
-    return NS_ERROR_OUT_OF_MEMORY;
-  }
-  
-  LSLaunchURLSpec launchSpec;
-  launchSpec.appURL = appURL;
-  launchSpec.itemURLs = uris;
-  launchSpec.passThruParams = NULL;
-  launchSpec.launchFlags = kLSLaunchDefaults;
-  launchSpec.asyncRefCon = NULL;
-  
-  OSErr err = ::LSOpenFromURLSpec(&launchSpec, NULL);
-  
-  ::CFRelease(uris);
-  ::CFRelease(uri);
-  ::CFRelease(appURL);
-  
-  return err != noErr ? NS_ERROR_FAILURE : NS_OK;
-}

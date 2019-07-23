@@ -63,6 +63,28 @@ public:
 protected:
   nsString mName;
   nsCOMPtr<nsIFile> mExecutable;
+  
+  
+
+
+
+
+
+
+
+   NS_HIDDEN_(nsresult) LaunchWithIProcess(const nsCString &aArg);
+
 };
+
+
+
+#ifdef XP_MACOSX
+# ifndef NSLOCALHANDLERAPPMAC_H_  
+# include "mac/nsLocalHandlerAppMac.h"
+typedef nsLocalHandlerAppMac PlatformLocalHandlerApp_t;
+# endif
+#else 
+typedef nsLocalHandlerApp PlatformLocalHandlerApp_t;
+#endif
 
 #endif 

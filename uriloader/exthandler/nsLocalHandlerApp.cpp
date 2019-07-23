@@ -39,6 +39,8 @@
 
 
 #include "nsLocalHandlerApp.h"
+#include "nsIURI.h"
+#include "nsIProcess.h"
 
 
 
@@ -91,6 +93,32 @@ nsLocalHandlerApp::Equals(nsIHandlerApp *aHandlerApp, PRBool *_retval)
   return executable->Equals(mExecutable, _retval);
 }
 
+NS_IMETHODIMP
+nsLocalHandlerApp::LaunchWithURI(nsIURI *aURI,
+                                 nsIInterfaceRequestor *aWindowContext)
+{
+  
+  nsCAutoString spec;
+  aURI->GetSpec(spec);
+  return LaunchWithIProcess(spec);
+}
+
+nsresult
+nsLocalHandlerApp::LaunchWithIProcess(const nsCString& aArg)
+{
+  nsresult rv;
+  nsCOMPtr<nsIProcess> process = do_CreateInstance(NS_PROCESS_CONTRACTID, &rv);
+  if (NS_FAILED(rv))
+    return rv;
+
+  if (NS_FAILED(rv = process->Init(mExecutable)))
+    return rv;
+
+  const char *string = aArg.get();
+
+  PRUint32 pid;
+  return process->Run(PR_FALSE, &string, 1, &pid);
+}
 
 
 

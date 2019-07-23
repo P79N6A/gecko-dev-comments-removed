@@ -36,6 +36,7 @@
 
 
 
+
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 
 
@@ -82,6 +83,38 @@ nsWebHandlerApp.prototype = {
       return true;
 
     return false;
+  },
+
+  launchWithURI: function nWHA__launchWithURI(aURI, aWindowContext) {
+
+    
+    
+    
+    
+
+    
+    var escapedUriSpecToHandle = encodeURIComponent(aURI.spec);
+
+    
+    var uriToSend = this.uriTemplate.replace("%s", escapedUriSpecToHandle);
+
+    
+    var ioService = Components.classes["@mozilla.org/network/io-service;1"].
+                    getService(Components.interfaces.nsIIOService);
+    var channel = ioService.newChannel(uriToSend, null, null);
+    channel.loadFlags = Components.interfaces.nsIChannel.LOAD_DOCUMENT_URI;
+
+    
+    var uriLoader = Components.classes["@mozilla.org/uriloader;1"].
+                    getService(Components.interfaces.nsIURILoader);
+    
+    
+    
+    
+    
+    uriLoader.openURI(channel, true, aWindowContext);
+
+    return;
   },
 
   

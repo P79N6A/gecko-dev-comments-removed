@@ -387,8 +387,6 @@ NS_IMETHODIMP
 nsMIMEInfoBase::LaunchWithURI(nsIURI* aURI,
                               nsIInterfaceRequestor* aWindowContext)
 {
-  nsresult rv;
-
   
   
   
@@ -403,26 +401,7 @@ nsMIMEInfoBase::LaunchWithURI(nsIURI* aURI,
     if (!mPreferredApplication)
       return NS_ERROR_FILE_NOT_FOUND;
 
-    
-    nsCOMPtr<nsIWebHandlerApp> webHandler = 
-      do_QueryInterface(mPreferredApplication, &rv);
-    if (NS_SUCCEEDED(rv)) {
-      return LaunchWithWebHandler(webHandler, aURI, aWindowContext);         
-    }
-
-    
-    nsCOMPtr<nsILocalHandlerApp> localHandler = 
-      do_QueryInterface(mPreferredApplication, &rv);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    nsCOMPtr<nsIFile> executable;
-    rv = localHandler->GetExecutable(getter_AddRefs(executable));
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    
-    nsCAutoString spec;
-    aURI->GetSpec(spec);
-    return LaunchWithIProcess(executable, spec);
+    return mPreferredApplication->LaunchWithURI(aURI, aWindowContext);
   } 
 
   return NS_ERROR_INVALID_ARG;
@@ -457,70 +436,6 @@ nsMIMEInfoBase::LaunchWithIProcess(nsIFile* aApp, const nsCString& aArg)
 
   PRUint32 pid;
   return process->Run(PR_FALSE, &string, 1, &pid);
-}
-
-
-nsresult
-nsMIMEInfoBase::LaunchWithWebHandler(nsIWebHandlerApp *aApp, nsIURI *aURI,
-                                     nsIInterfaceRequestor *aWindowContext) 
-{
-  
-  nsCAutoString uriTemplate;
-  nsresult rv = aApp->GetUriTemplate(uriTemplate);
-  if (NS_FAILED(rv)) {
-    return NS_ERROR_INVALID_ARG;
-  }
-
-  
-  nsCAutoString uriSpecToHandle;
-  rv = aURI->GetSpec(uriSpecToHandle);
-  if (NS_FAILED(rv)) {
-    return NS_ERROR_INVALID_ARG;
-  }
-
-  
-  
-  
-  
-
-  
-  
-  
-  nsCAutoString escapedUriSpecToHandle;
-  NS_EscapeURL(uriSpecToHandle, esc_Minimal | esc_Forced | esc_Colon,
-               escapedUriSpecToHandle);
-
-  
-  
-  
-  uriTemplate.ReplaceSubstring(NS_LITERAL_CSTRING("%s"),
-                               escapedUriSpecToHandle);
-
-  
-  
-  nsCOMPtr<nsIURI> uriToSend;
-  rv = NS_NewURI(getter_AddRefs(uriToSend), uriTemplate);
-  if (NS_FAILED(rv))
-    return rv;
-
-  
-  nsCOMPtr<nsIChannel> newChannel;
-  rv = NS_NewChannel(getter_AddRefs(newChannel), uriToSend, nsnull, nsnull,
-                     nsnull, nsIChannel::LOAD_DOCUMENT_URI);
-  if (NS_FAILED(rv))
-    return rv;
-
-  
-  nsCOMPtr<nsIURILoader> uriLoader = do_GetService(NS_URI_LOADER_CONTRACTID, 
-                                                   &rv);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  
-  
-  
-  
-  
-  return uriLoader->OpenURI(newChannel, PR_TRUE, aWindowContext);
 }
 
 
