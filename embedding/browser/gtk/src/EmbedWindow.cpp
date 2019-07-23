@@ -38,9 +38,9 @@
 
 
 
-#include <nsCWebBrowser.h>
-#include <nsIComponentManager.h>
-#include <nsIDocShellTreeItem.h>
+#include "nsCWebBrowser.h"
+#include "nsIComponentManager.h"
+#include "nsIDocShellTreeItem.h"
 #include "nsIWidget.h"
 
 #include "EmbedWindow.h"

@@ -46,7 +46,7 @@
 #include "EmbedWindow.h"
 
 
-#include <nsIWebBrowser.h>
+#include "nsIWebBrowser.h"
 
 #include "gtkmozembedmarshal.h"
 

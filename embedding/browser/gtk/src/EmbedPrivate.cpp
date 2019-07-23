@@ -35,8 +35,8 @@
 
 
 
-#include <nsIDocShell.h>
-#include <nsIWebProgress.h>
+#include "nsIDocShell.h"
+#include "nsIWebProgress.h"
 #include "nsIWidget.h"
 #include "nsCRT.h"
 #include "nsNetUtil.h"
@@ -46,32 +46,32 @@
 #include "nsAppDirectoryServiceDefs.h"
 
 
-#include <nsIInterfaceRequestor.h>
+#include "nsIInterfaceRequestor.h"
 
-#include <nsIComponentManager.h>
+#include "nsIComponentManager.h"
 
 
-#include <nsIWindowWatcher.h>
+#include "nsIWindowWatcher.h"
 
-#include <nsILocalFile.h>
+#include "nsILocalFile.h"
 
 #include "nsXULAppAPI.h"
 
 
 
-#include <nsIDOMWindow.h>
-#include <nsPIDOMWindow.h>
-#include <nsIDOMWindowInternal.h>
+#include "nsIDOMWindow.h"
+#include "nsPIDOMWindow.h"
+#include "nsIDOMWindowInternal.h"
 
 
-#include <nsIDOMBarProp.h>
+#include "nsIDOMBarProp.h"
 
 
-#include <nsIFocusController.h>
+#include "nsIFocusController.h"
 
 
-#include <nsIGenericFactory.h>
-#include <nsIComponentRegistrar.h>
+#include "nsIGenericFactory.h"
+#include "nsIComponentRegistrar.h"
 
 
 #include "EmbedPrivate.h"

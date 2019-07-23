@@ -38,7 +38,7 @@
 
 
 
-#include <nsString.h>
+#include "nsString.h"
 #include <gtk/gtk.h>
 
 #define EMBED_MAX_BUTTONS 3
