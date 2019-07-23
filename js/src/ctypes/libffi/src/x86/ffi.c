@@ -293,7 +293,7 @@ void ffi_call(ffi_cif *cif, void (*fn)(void), void *rvalue, void **avalue)
     case FFI_WIN64:
       {
         
-        
+
         unsigned int i;
         for (i=0; i < cif->nargs;i++) {
           size_t size = cif->arg_types[i]->size;
@@ -586,9 +586,9 @@ ffi_prep_raw_closure_loc (ffi_raw_closure* closure,
   }
 
   
-  
-  
-  
+
+
+
 
   for (i = cif->nargs-1; i >= 0; i--)
     {
