@@ -89,6 +89,10 @@ gfxOS2Font::~gfxOS2Font()
 #define MOZ_FT_TRUNC(x) ((x) >> 6)
 #define CONVERT_DESIGN_UNITS_TO_PIXELS(v, s) \
         MOZ_FT_TRUNC(MOZ_FT_ROUND(FT_MulFix((v), (s))))
+#define CONVERT_DESIGN_UNITS_TO_PIXELS_X(v) \
+        CONVERT_DESIGN_UNITS_TO_PIXELS(v, face->size->metrics.x_scale)
+#define CONVERT_DESIGN_UNITS_TO_PIXELS_Y(v) \
+        CONVERT_DESIGN_UNITS_TO_PIXELS(v, face->size->metrics.y_scale)
 
 const gfxFont::Metrics& gfxOS2Font::GetMetrics()
 {
@@ -98,78 +102,67 @@ const gfxFont::Metrics& gfxOS2Font::GetMetrics()
     if (!mMetrics) {
         mMetrics = new gfxFont::Metrics;
     
-        
-        
         FT_UInt gid;
         FT_Face face = cairo_ft_scaled_font_lock_face(CairoScaledFont());
 
-#if 0
-        
-        
-        gid = FT_Get_Char_Index(face, 'm'); 
-        FT_Load_Glyph(face, gid, FT_LOAD_DEFAULT); 
-        gfxFloat scale = face->glyph->metrics.height / mStyle.size;
-        
-#endif
-        
-        
-        gfxFloat scale = face->units_per_EM / 8;
-    
         
         gid = FT_Get_Char_Index(face, 'x'); 
         FT_Load_Glyph(face, gid, FT_LOAD_DEFAULT); 
-        mMetrics->xHeight = face->glyph->metrics.height / scale;
-        mMetrics->aveCharWidth = face->glyph->metrics.width / scale;
+        mMetrics->xHeight = CONVERT_DESIGN_UNITS_TO_PIXELS_Y(face->glyph->metrics.height);
+        mMetrics->aveCharWidth = CONVERT_DESIGN_UNITS_TO_PIXELS_X(face->glyph->metrics.width);
         
         gid = FT_Get_Char_Index(face, ' ');
         FT_Load_Glyph(face, gid, FT_LOAD_DEFAULT);
         
         
-        mMetrics->spaceWidth = face->glyph->advance.x / scale * 2;
+        mMetrics->spaceWidth = CONVERT_DESIGN_UNITS_TO_PIXELS_X(face->glyph->advance.x) * 2;
         
         mSpaceGlyph = gid;
     
         
         TT_OS2 *os2 = (TT_OS2 *)FT_Get_Sfnt_Table(face, ft_sfnt_os2);
         if (os2 && os2->version !=  0xFFFF) { 
-            mMetrics->superscriptOffset = PR_MAX(1, os2->ySuperscriptYOffset) / scale;
+            mMetrics->superscriptOffset = CONVERT_DESIGN_UNITS_TO_PIXELS_Y(os2->ySuperscriptYOffset);
+            mMetrics->superscriptOffset = PR_MAX(1, mMetrics->superscriptOffset);
             
-            mMetrics->subscriptOffset   = PR_MAX(1, fabs(os2->ySubscriptYOffset)) / scale;
+            mMetrics->subscriptOffset   = CONVERT_DESIGN_UNITS_TO_PIXELS_Y(os2->ySubscriptYOffset);
+            mMetrics->subscriptOffset   = PR_MAX(1, fabs(mMetrics->subscriptOffset));
         } else {
-            mMetrics->superscriptOffset = mMetrics->xHeight / scale;
-            mMetrics->subscriptOffset   = mMetrics->xHeight / scale;
+            mMetrics->superscriptOffset = mMetrics->xHeight;
+            mMetrics->subscriptOffset   = mMetrics->xHeight;
         }
         
-        mMetrics->strikeoutOffset = mMetrics->xHeight / 2.0 / scale;
-        mMetrics->strikeoutSize   = face->underline_thickness / scale;
-        mMetrics->underlineOffset = face->underline_position / scale;
-        mMetrics->underlineSize   = face->underline_thickness / scale;
+        mMetrics->strikeoutOffset = mMetrics->xHeight / 2.0;
+        mMetrics->strikeoutSize   = CONVERT_DESIGN_UNITS_TO_PIXELS_Y(face->underline_thickness);
+        mMetrics->underlineOffset = CONVERT_DESIGN_UNITS_TO_PIXELS_Y(face->underline_position);
+        mMetrics->underlineSize   = CONVERT_DESIGN_UNITS_TO_PIXELS_Y(face->underline_thickness);
     
         
-        mMetrics->emHeight        = face->size->metrics.y_ppem;
-        mMetrics->emAscent        = face->ascender / scale;
-        mMetrics->emDescent       = face->descender / scale;
-        mMetrics->maxHeight       = face->height / scale;
-        mMetrics->maxAscent       = face->bbox.yMax / scale;
-        mMetrics->maxDescent      = face->bbox.yMin / scale;
-        mMetrics->maxAdvance      = face->max_advance_width / scale;
+        mMetrics->emHeight        = CONVERT_DESIGN_UNITS_TO_PIXELS_Y(face->size->metrics.y_ppem);
+        mMetrics->emAscent        = CONVERT_DESIGN_UNITS_TO_PIXELS_Y(face->ascender);
+        mMetrics->emDescent       = -CONVERT_DESIGN_UNITS_TO_PIXELS_Y(face->descender);
+        mMetrics->maxHeight       = CONVERT_DESIGN_UNITS_TO_PIXELS_Y(face->height);
+        mMetrics->maxAscent       = CONVERT_DESIGN_UNITS_TO_PIXELS_Y(face->bbox.yMax);
+        mMetrics->maxDescent      = -CONVERT_DESIGN_UNITS_TO_PIXELS_Y(face->bbox.yMin);
+        mMetrics->maxAdvance      = CONVERT_DESIGN_UNITS_TO_PIXELS_X(face->max_advance_width);
         
-        mMetrics->internalLeading = (face->bbox.yMax - face->bbox.yMin
-                                     - mMetrics->xHeight) / scale;
+        double lineHeight = mMetrics->maxAscent + mMetrics->maxDescent;
+        if (lineHeight > mMetrics->emHeight) {
+            mMetrics->internalLeading = lineHeight - mMetrics->emHeight;
+        } else {
+            mMetrics->internalLeading = 0;
+        }
         mMetrics->externalLeading = 0; 
     
 #ifdef DEBUG_thebes_1
         printf("gfxOS2Font[%#x]::GetMetrics():\n"
-               "  scale=%f\n"
                "  emHeight=%f==%f=gfxFont::mStyle.size\n"
                "  maxHeight=%f\n"
                "  xHeight=%f\n"
                "  aveCharWidth=%f==xWidth\n"
                "  spaceWidth=%f\n",
                (unsigned)this,
-               scale,
-               mStyle.size,
-               mMetrics->emHeight,
+               mMetrics->emHeight, mStyle.size,
                mMetrics->maxHeight,
                mMetrics->xHeight,
                mMetrics->aveCharWidth,
