@@ -146,6 +146,9 @@ function run_test() {
   checkOrder(id3, id1, id2);
 
   
+  
+  
+  
   annosvc.setItemAnnotationString(id1, "testAnno", "c", 0, 0);
   checkOrder(id1, id3, id2);
 }

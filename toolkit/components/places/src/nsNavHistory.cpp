@@ -208,6 +208,8 @@ const PRInt32 nsNavHistory::kGetInfoIndex_VisitDate = 5;
 const PRInt32 nsNavHistory::kGetInfoIndex_FaviconURL = 6;
 const PRInt32 nsNavHistory::kGetInfoIndex_SessionId = 7;
 const PRInt32 nsNavHistory::kGetInfoIndex_ItemId = 8;
+const PRInt32 nsNavHistory::kGetInfoIndex_ItemDateAdded = 9;
+const PRInt32 nsNavHistory::kGetInfoIndex_ItemLastModified = 10;
 
 const PRInt32 nsNavHistory::kAutoCompleteIndex_URL = 0;
 const PRInt32 nsNavHistory::kAutoCompleteIndex_Title = 1;
@@ -385,7 +387,7 @@ nsNavHistory::Init()
 
 
 
-#define PLACES_SCHEMA_VERSION 4
+#define PLACES_SCHEMA_VERSION 5
 
 nsresult
 nsNavHistory::InitDB(PRBool *aDoImport)
@@ -489,7 +491,7 @@ nsNavHistory::InitDB(PRBool *aDoImport)
       }
 
       
-      if (DBSchemaVersion < 4) {
+      if (DBSchemaVersion < 5) {
         rv = ForceMigrateBookmarksDB(mDBConn);
         NS_ENSURE_SUCCESS(rv, rv);
       }
@@ -780,7 +782,7 @@ nsNavHistory::InitStatements()
   rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
       "SELECT b.fk, h.url, b.title, h.rev_host, h.visit_count, "
         "(SELECT MAX(visit_date) FROM moz_historyvisits WHERE place_id = b.fk), "
-        "f.url, null, null "
+        "f.url, null, null, b.dateAdded, b.lastModified "
       "FROM moz_bookmarks b "
       "JOIN moz_places h ON b.fk = h.id "
       "LEFT OUTER JOIN moz_favicons f ON h.favicon_id = f.id "
@@ -2067,7 +2069,7 @@ nsNavHistory::GetQueryResults(const nsCOMArray<nsNavHistoryQuery>& aQueries,
       queryString = NS_LITERAL_CSTRING(
         "SELECT b.fk, h.url, b.title, h.rev_host, h.visit_count, "
         "(SELECT MAX(visit_date) FROM moz_historyvisits WHERE place_id = b.fk), "
-        "f.url, null, b.id "
+        "f.url, null, b.id, b.dateAdded, b.lastModified "
       "FROM moz_bookmarks b "
       "JOIN moz_places h ON b.fk = h.id "
       "LEFT OUTER JOIN moz_historyvisits v ON b.fk = v.place_id "
@@ -3931,6 +3933,8 @@ nsNavHistory::RowToResult(mozIStorageValueArray* aRow,
     if (NS_SUCCEEDED(aRow->GetIsNull(kGetInfoIndex_ItemId, &isNull)) &&
         !isNull) {
       (*aResult)->mItemId = aRow->AsInt64(kGetInfoIndex_ItemId);
+      (*aResult)->mDateAdded = aRow->AsInt64(kGetInfoIndex_ItemDateAdded);
+      (*aResult)->mLastModified = aRow->AsInt64(kGetInfoIndex_ItemLastModified);
     }
     NS_ADDREF(*aResult);
     return NS_OK;

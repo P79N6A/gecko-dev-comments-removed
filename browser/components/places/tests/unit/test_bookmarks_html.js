@@ -196,7 +196,6 @@ function testCanonicalBookmarks(aFolder) {
   toolbar.containerOpen = true;
   do_check_eq(toolbar.childCount, 2);
   
-
   
   var livemark = toolbar.getChild(1);
   
@@ -216,6 +215,12 @@ function testCanonicalBookmarks(aFolder) {
   var testFolder = rootNode.getChild(5);
   do_check_eq(testFolder.type, testFolder.RESULT_TYPE_FOLDER);
   do_check_eq(testFolder.title, "test");
+
+  
+  do_check_eq(bmsvc.getItemDateAdded(testFolder.itemId)/1000000, 1177541020);
+  
+  do_check_eq(bmsvc.getItemLastModified(testFolder.itemId)/1000000, 1177541050);
+
   testFolder = testFolder.QueryInterface(Ci.nsINavHistoryQueryResultNode);
   do_check_eq(testFolder.hasChildren, true);
   
@@ -243,7 +248,11 @@ function testCanonicalBookmarks(aFolder) {
   do_check_true(annosvc.itemHasAnnotation(testBookmark1.itemId,
                                           LOAD_IN_SIDEBAR_ANNO));
   
+  do_check_eq(testBookmark1.dateAdded/1000000, 1177375336);
+
   
+  do_check_eq(testBookmark1.lastModified/1000000, 1177375423);
+
   
   var pageURI = iosvc.newURI(testBookmark1.uri, "", null);
   do_check_true(annosvc.pageHasAnnotation(pageURI, POST_DATA_ANNO));

@@ -116,10 +116,12 @@ static NS_DEFINE_CID(kParserCID, NS_PARSER_CID);
 #define KEY_ICON_URI_LOWER "icon_uri"
 #define KEY_SHORTCUTURL_LOWER "shortcuturl"
 #define KEY_POST_DATA_LOWER "post_data"
-#define KEY_ID_LOWER "id"
+#define KEY_ITEM_ID_LOWER "item_id"
 #define KEY_NAME_LOWER "name"
 #define KEY_MICSUM_GEN_URI_LOWER "micsum_gen_uri"
-#define KEY_GENERATED_TITLE "generated_title"
+#define KEY_GENERATED_TITLE_LOWER "generated_title"
+#define KEY_DATE_ADDED_LOWER "add_date"
+#define KEY_LAST_MODIFIED_LOWER "last_modified"
 
 #define LOAD_IN_SIDEBAR_ANNO NS_LITERAL_CSTRING("bookmarkProperties/loadInSidebar")
 #define DESCRIPTION_ANNO NS_LITERAL_CSTRING("bookmarkProperties/description")
@@ -149,7 +151,10 @@ public:
       mContainerID(aID),
       mContainerNesting(0),
       mLastContainerType(Container_Normal),
-      mInDescription(PR_FALSE)
+      mInDescription(PR_FALSE),
+      mPreviousId(0),
+      mPreviousDateAdded(0),
+      mPreviousLastModifiedDate(0)
   {
   }
 
@@ -217,6 +222,11 @@ public:
 
   
   PRInt64 mPreviousId;
+
+  
+  
+  PRTime mPreviousDateAdded;
+  PRTime mPreviousLastModifiedDate;
 };
 
 
@@ -392,6 +402,11 @@ protected:
     NS_ASSERTION(mFrames.Length() > 0, "Asking for frame when there are none!");
     return mFrames[mFrames.Length() - 1];
   }
+  BookmarkImportFrame& PreviousFrame()
+  {
+    NS_ASSERTION(mFrames.Length() > 1, "Asking for frame when there are not enough!");
+    return mFrames[mFrames.Length() - 2];
+  }
   nsresult NewFrame();
   nsresult PopFrame();
 
@@ -400,6 +415,7 @@ protected:
   nsresult SetFaviconForFolder(PRInt64 aFolder, const nsACString& aFavicon);
 
   PRInt64 ConvertImportedIdToInternalId(const nsCString& aId);
+  PRTime ConvertImportedDateToInternalDate(const nsACString& aDate);
 
 #ifdef DEBUG_IMPORT
   
@@ -493,13 +509,15 @@ BookmarkContentSink::OpenContainer(const nsIParserNode& aNode)
 NS_IMETHODIMP
 BookmarkContentSink::CloseContainer(const nsHTMLTag aTag)
 {
-  
-  
-  
   BookmarkImportFrame& frame = CurFrame();
+
+  
+  
+  
   if (frame.mInDescription) {
     frame.mPreviousText.Trim(kWhitespace); 
     if (!frame.mPreviousText.IsEmpty()) {
+
       PRInt64 itemId = !frame.mPreviousLink ?
                        frame.mContainerID : frame.mPreviousId;
                     
@@ -513,6 +531,29 @@ BookmarkContentSink::CloseContainer(const nsHTMLTag aTag)
                                                     nsIAnnotationService::EXPIRE_NEVER);
       }
       frame.mPreviousText.Truncate();
+
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+
+      PRTime lastModified;
+      if (!frame.mPreviousLink) {
+        lastModified = PreviousFrame().mPreviousLastModifiedDate;
+      } else {
+        lastModified = frame.mPreviousLastModifiedDate;
+      }
+
+      if (itemId > 0 && lastModified > 0) {
+        rv = mBookmarksService->SetItemLastModified(itemId, lastModified);
+        NS_ASSERTION(NS_SUCCEEDED(rv), "SetItemLastModified failed");
+      }
     }
     frame.mInDescription = PR_FALSE;
   }
@@ -693,9 +734,15 @@ BookmarkContentSink::HandleHeadBegin(const nsIParserNode& node)
       } else if (node.GetKeyAt(i).LowerCaseEqualsLiteral(KEY_PLACESROOT_LOWER)) {
         frame.mLastContainerType = BookmarkImportFrame::Container_Places;
         break;
-      } else if (node.GetKeyAt(i).LowerCaseEqualsLiteral(KEY_ID_LOWER)) {
+      } else if (node.GetKeyAt(i).LowerCaseEqualsLiteral(KEY_ITEM_ID_LOWER)) {
         frame.mLastContainerId =
           ConvertImportedIdToInternalId(NS_ConvertUTF16toUTF8(node.GetValueAt(i)));
+      } else if (node.GetKeyAt(i).LowerCaseEqualsLiteral(KEY_DATE_ADDED_LOWER)) {
+        frame.mPreviousDateAdded =
+          ConvertImportedDateToInternalDate(NS_ConvertUTF16toUTF8(node.GetValueAt(i)));
+      } else if (node.GetKeyAt(i).LowerCaseEqualsLiteral(KEY_LAST_MODIFIED_LOWER)) {
+        frame.mPreviousLastModifiedDate =
+          ConvertImportedDateToInternalDate(NS_ConvertUTF16toUTF8(node.GetValueAt(i)));
       }
     }
   }
@@ -737,7 +784,7 @@ BookmarkContentSink::HandleLinkBegin(const nsIParserNode& node)
 
   
   frame.mPreviousText.Truncate();
-
+  
   
   nsAutoString href;
   nsAutoString feedUrl;
@@ -747,9 +794,12 @@ BookmarkContentSink::HandleLinkBegin(const nsIParserNode& node)
   nsAutoString keyword;
   nsAutoString postData;
   nsAutoString webPanel;
-  nsAutoString id;
+  nsAutoString itemId;
   nsAutoString micsumGenURI;
   nsAutoString generatedTitle;
+  nsAutoString dateAdded;
+  nsAutoString lastModified;
+
   PRInt32 attrCount = node.GetAttributeCount();
   for (PRInt32 i = 0; i < attrCount; i ++) {
     const nsAString& key = node.GetKeyAt(i);
@@ -769,12 +819,16 @@ BookmarkContentSink::HandleLinkBegin(const nsIParserNode& node)
       postData = node.GetValueAt(i);
     } else if (key.LowerCaseEqualsLiteral(KEY_WEB_PANEL_LOWER)) {
       webPanel = node.GetValueAt(i);
-    } else if (key.LowerCaseEqualsLiteral(KEY_ID_LOWER)) {
-      id = node.GetValueAt(i);
+    } else if (key.LowerCaseEqualsLiteral(KEY_ITEM_ID_LOWER)) {
+      itemId = node.GetValueAt(i);
     } else if (key.LowerCaseEqualsLiteral(KEY_MICSUM_GEN_URI_LOWER)) {
       micsumGenURI = node.GetValueAt(i);
-    } else if (key.LowerCaseEqualsLiteral(KEY_GENERATED_TITLE)) {
+    } else if (key.LowerCaseEqualsLiteral(KEY_GENERATED_TITLE_LOWER)) {
       generatedTitle = node.GetValueAt(i);
+    } else if (key.LowerCaseEqualsLiteral(KEY_DATE_ADDED_LOWER)) {
+      dateAdded = node.GetValueAt(i);
+    } else if (key.LowerCaseEqualsLiteral(KEY_LAST_MODIFIED_LOWER)) {
+      lastModified = node.GetValueAt(i);
     }
   }
   href.Trim(kWhitespace);
@@ -785,9 +839,11 @@ BookmarkContentSink::HandleLinkBegin(const nsIParserNode& node)
   keyword.Trim(kWhitespace);
   postData.Trim(kWhitespace);
   webPanel.Trim(kWhitespace);
-  id.Trim(kWhitespace);
+  itemId.Trim(kWhitespace);
   micsumGenURI.Trim(kWhitespace);
   generatedTitle.Trim(kWhitespace);
+  dateAdded.Trim(kWhitespace);
+  lastModified.Trim(kWhitespace);
 
   
   
@@ -817,7 +873,12 @@ BookmarkContentSink::HandleLinkBegin(const nsIParserNode& node)
   }
 
   
-  frame.mPreviousId = ConvertImportedIdToInternalId(NS_ConvertUTF16toUTF8(id));
+  frame.mPreviousId = ConvertImportedIdToInternalId(NS_ConvertUTF16toUTF8(itemId));
+
+  
+  if (!lastModified.IsEmpty()) {
+    frame.mPreviousLastModifiedDate = ConvertImportedDateToInternalDate(NS_ConvertUTF16toUTF8(lastModified));
+  }
 
   
   
@@ -838,6 +899,17 @@ BookmarkContentSink::HandleLinkBegin(const nsIParserNode& node)
     rv = mBookmarksService->InsertItem(frame.mContainerID, frame.mPreviousLink,
                                        mBookmarksService->DEFAULT_INDEX, &frame.mPreviousId);
     NS_ASSERTION(NS_SUCCEEDED(rv), "InsertItem failed");
+
+    
+    
+    
+    if (!dateAdded.IsEmpty()) {
+      PRTime convertedDateAdded = ConvertImportedDateToInternalDate(NS_ConvertUTF16toUTF8(dateAdded));
+      if (convertedDateAdded) {
+        rv = mBookmarksService->SetItemDateAdded(frame.mPreviousId, convertedDateAdded);
+        NS_ASSERTION(NS_SUCCEEDED(rv), "SetItemDateAdded failed");
+      }
+    }
   }
 
   
@@ -940,11 +1012,6 @@ BookmarkContentSink::HandleLinkEnd()
     }
 
     if (!isLivemark) {
-#ifdef DEBUG_IMPORT
-      PrintNesting();
-      printf("Creating livemark '%s' %lld\n",
-             NS_ConvertUTF16toUTF8(frame.mPreviousText).get(), frame.mPreviousId);
-#endif
       if (mIsImportDefaults) {
         rv = mLivemarkService->CreateLivemarkFolderOnly(mBookmarksService,
                                                    frame.mContainerID,
@@ -963,16 +1030,32 @@ BookmarkContentSink::HandleLinkEnd()
                                          &frame.mPreviousId);
         NS_ASSERTION(NS_SUCCEEDED(rv), "CreateLivemark failed!");
       }
+#ifdef DEBUG_IMPORT
+      PrintNesting();
+      printf("Creating livemark '%s' %lld\n",
+             NS_ConvertUTF16toUTF8(frame.mPreviousText).get(), frame.mPreviousId);
+#endif
     }
   }
   else if (frame.mPreviousLink) {
 #ifdef DEBUG_IMPORT
     PrintNesting();
-    printf("Creating bookmark '%s'\n",
-           NS_ConvertUTF16toUTF8(frame.mPreviousText).get());
+    printf("Creating bookmark '%s' %lld\n",
+           NS_ConvertUTF16toUTF8(frame.mPreviousText).get(), frame.mPreviousId);
 #endif
     mBookmarksService->SetItemTitle(frame.mPreviousId, frame.mPreviousText);
   }
+
+  
+  
+  
+  if (frame.mPreviousId > 0 && frame.mPreviousLastModifiedDate > 0) {
+    rv = mBookmarksService->SetItemLastModified(frame.mPreviousId, frame.mPreviousLastModifiedDate);
+    NS_ASSERTION(NS_SUCCEEDED(rv), "SetItemLastModified failed");
+    
+    
+  }
+
   frame.mPreviousText.Truncate();
 }
 
@@ -987,17 +1070,17 @@ BookmarkContentSink::HandleSeparator(const nsIParserNode& aNode)
 
   
   PRInt64 id = 0;
-  nsAutoString idAttr;
+  nsAutoString itemIdAttr;
   PRInt32 attrCount = aNode.GetAttributeCount();
   for (PRInt32 i = 0; i < attrCount; i ++) {
     const nsAString& key = aNode.GetKeyAt(i);
-    if (key.LowerCaseEqualsLiteral(KEY_ID_LOWER)) {
-      idAttr = aNode.GetValueAt(i);
+    if (key.LowerCaseEqualsLiteral(KEY_ITEM_ID_LOWER)) {
+      itemIdAttr = aNode.GetValueAt(i);
     }
   }
 
-  idAttr.Trim(kWhitespace);
-  id = ConvertImportedIdToInternalId(NS_ConvertUTF16toUTF8(idAttr));
+  itemIdAttr.Trim(kWhitespace);
+  id = ConvertImportedIdToInternalId(NS_ConvertUTF16toUTF8(itemIdAttr));
 
   
   if (id > 0) {
@@ -1040,6 +1123,11 @@ BookmarkContentSink::HandleSeparator(const nsIParserNode& aNode)
 
     if (!name.IsEmpty())
       mBookmarksService->SetItemTitle(itemId, name);
+
+    
+    
+    
+    
   }
 }
 
@@ -1142,6 +1230,18 @@ BookmarkContentSink::NewFrame()
   printf("\n");
 #endif
 
+  BookmarkImportFrame& frame = CurFrame();
+  if (frame.mPreviousDateAdded > 0) {
+    nsresult rv = mBookmarksService->SetItemDateAdded(ourID, frame.mPreviousDateAdded);
+    NS_ASSERTION(NS_SUCCEEDED(rv), "SetItemDateAdded failed");
+    frame.mPreviousDateAdded = 0;
+  }
+  if (frame.mPreviousLastModifiedDate > 0) {
+    nsresult rv = mBookmarksService->SetItemLastModified(ourID, frame.mPreviousLastModifiedDate);
+    NS_ASSERTION(NS_SUCCEEDED(rv), "SetItemLastModified failed");
+    
+  }
+
   if (!mFrames.AppendElement(BookmarkImportFrame(ourID)))
     return NS_ERROR_OUT_OF_MEMORY;
   return NS_OK;
@@ -1211,7 +1311,7 @@ BookmarkContentSink::SetFaviconForURI(nsIURI* aPageURI, nsIURI* aIconURI,
     faviconSpec.AssignLiteral("http://www.mozilla.org/2005/made-up-favicon/");
     faviconSpec.AppendInt(serialNumber);
     faviconSpec.AppendLiteral("-");
-    faviconSpec.AppendInt(PR_Now());
+    faviconSpec.AppendInt(PR_Now()); 
     rv = NS_NewURI(getter_AddRefs(faviconURI), faviconSpec);
     NS_ENSURE_SUCCESS(rv, rv);
     serialNumber ++;
@@ -1299,7 +1399,7 @@ BookmarkContentSink::SetFaviconForFolder(PRInt64 aFolder,
 PRInt64
 BookmarkContentSink::ConvertImportedIdToInternalId(const nsCString& aId) {
   PRInt64 intId = 0;
-  if (aId.IsEmpty() || Substring(aId, 0, 4).Equals(NS_LITERAL_CSTRING("rdf:"), CaseInsensitiveCompare))
+  if (aId.IsEmpty())
     return intId;
   nsresult rv;
   intId = aId.ToInteger(&rv);
@@ -1308,6 +1408,22 @@ BookmarkContentSink::ConvertImportedIdToInternalId(const nsCString& aId) {
   return intId;
 }
 
+
+PRTime
+BookmarkContentSink::ConvertImportedDateToInternalDate(const nsACString& aDate) {
+  PRTime convertedDate = 0;
+  if (!aDate.IsEmpty()) {
+    nsresult rv;
+    convertedDate = aDate.ToInteger(&rv);
+    if (NS_SUCCEEDED(rv)) {
+      convertedDate *= 1000000; 
+    }
+    else {
+      convertedDate = 0;
+    }
+  }
+  return convertedDate;
+}
 
 
 
@@ -1363,9 +1479,11 @@ static const char kFeedURIAttribute[] = " FEEDURL=\"";
 static const char kWebPanelAttribute[] = " WEB_PANEL=\"true\"";
 static const char kKeywordAttribute[] = " SHORTCUTURL=\"";
 static const char kPostDataAttribute[] = " POST_DATA=\"";
-static const char kIdAttribute[] = " ID=\"";
+static const char kItemIdAttribute[] = " ITEM_ID=\"";
 static const char kNameAttribute[] = " NAME=\"";
-static const char kMicsumGenURIEquals[]    = " MICSUM_GEN_URI=\"";
+static const char kMicsumGenURIAttribute[]    = " MICSUM_GEN_URI=\"";
+static const char kDateAddedAttribute[] = " ADD_DATE=\"";
+static const char kLastModifiedAttribute[] = " LAST_MODIFIED=\"";
 
 
 
@@ -1496,6 +1614,27 @@ WriteFaviconAttribute(const nsACString& aURI, nsIOutputStream* aOutput)
 
 
 
+static nsresult
+WriteDateAttribute(const char aAttributeStart[], PRInt32 aLength, PRTime aAttributeValue, nsIOutputStream* aOutput)
+{
+  
+  PRUint32 dummy;
+  nsresult rv = aOutput->Write(aAttributeStart, aLength, &dummy);
+  NS_ENSURE_SUCCESS(rv, rv);
+  
+  nsCAutoString dateInSeconds;
+  aAttributeValue/= 1000000; 
+  dateInSeconds.AppendInt(aAttributeValue);  
+  rv = aOutput->Write(dateInSeconds.get(), dateInSeconds.Length(), &dummy);
+  NS_ENSURE_SUCCESS(rv, rv);
+  return aOutput->Write(kQuoteStr, sizeof(kQuoteStr)-1, &dummy);
+}
+
+
+
+
+
+
 nsresult
 nsPlacesImportExportService::WriteContainer(PRInt64 aFolder, const nsACString& aIndent,
                                nsIOutputStream* aOutput)
@@ -1537,6 +1676,26 @@ nsPlacesImportExportService::WriteContainerHeader(PRInt64 aFolder, const nsACStr
   rv = aOutput->Write(kContainerIntro, sizeof(kContainerIntro)-1, &dummy);
   NS_ENSURE_SUCCESS(rv, rv);
 
+  
+  PRTime dateAdded = 0;
+  rv = mBookmarksService->GetItemDateAdded(aFolder, &dateAdded);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  if (dateAdded) {
+    rv = WriteDateAttribute(kDateAddedAttribute, sizeof(kDateAddedAttribute)-1, dateAdded, aOutput);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
+
+  
+  PRTime lastModified = 0;
+  rv = mBookmarksService->GetItemLastModified(aFolder, &lastModified);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  if (lastModified) {
+    rv = WriteDateAttribute(kLastModifiedAttribute, sizeof(kLastModifiedAttribute)-1, lastModified, aOutput);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
+
   PRInt64 placesRoot;
   rv = mBookmarksService->GetPlacesRoot(&placesRoot);
   NS_ENSURE_SUCCESS(rv,rv);
@@ -1560,13 +1719,13 @@ nsPlacesImportExportService::WriteContainerHeader(PRInt64 aFolder, const nsACStr
     rv = aOutput->Write(kToolbarFolderAttribute, sizeof(kToolbarFolderAttribute)-1, &dummy);
     NS_ENSURE_SUCCESS(rv, rv);
   }
-
   
-  rv = aOutput->Write(kIdAttribute, sizeof(kIdAttribute)-1, &dummy);
+  
+  rv = aOutput->Write(kItemIdAttribute, sizeof(kItemIdAttribute)-1, &dummy);
   NS_ENSURE_SUCCESS(rv, rv);
-  nsCAutoString id;
-  id.AppendInt(aFolder);
-  rv = aOutput->Write(id.get(), id.Length(), &dummy);
+  nsCAutoString itemIdAttr;
+  itemIdAttr.AppendInt(aFolder); 
+  rv = aOutput->Write(itemIdAttr.get(), itemIdAttr.Length(), &dummy);
   NS_ENSURE_SUCCESS(rv, rv);
   rv = aOutput->Write(kQuoteStr, sizeof(kQuoteStr)-1, &dummy);
   NS_ENSURE_SUCCESS(rv, rv);
@@ -1693,6 +1852,26 @@ nsPlacesImportExportService::WriteItem(nsINavHistoryResultNode* aItem,
   NS_ENSURE_SUCCESS(rv, rv);
 
   
+  PRTime dateAdded = 0;
+  rv = aItem->GetDateAdded(&dateAdded);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  if (dateAdded) {
+    rv = WriteDateAttribute(kDateAddedAttribute, sizeof(kDateAddedAttribute)-1, dateAdded, aOutput);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
+
+  
+  PRTime lastModified = 0;
+  rv = aItem->GetLastModified(&lastModified);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  if (lastModified) {
+    rv = WriteDateAttribute(kLastModifiedAttribute, sizeof(kLastModifiedAttribute)-1, lastModified, aOutput);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
+
+  
   rv = WriteFaviconAttribute(uri, aOutput);
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -1702,11 +1881,11 @@ nsPlacesImportExportService::WriteItem(nsINavHistoryResultNode* aItem,
   NS_ENSURE_SUCCESS(rv, rv);
 
   
-  rv = aOutput->Write(kIdAttribute, sizeof(kIdAttribute)-1, &dummy);
+  rv = aOutput->Write(kItemIdAttribute, sizeof(kItemIdAttribute)-1, &dummy);
   NS_ENSURE_SUCCESS(rv, rv);
-  nsCAutoString id;
-  id.AppendInt(itemId);
-  rv = aOutput->Write(id.get(), id.Length(), &dummy);
+  nsCAutoString itemIdAttr;
+  itemIdAttr.AppendInt(itemId); 
+  rv = aOutput->Write(itemIdAttr.get(), itemIdAttr.Length(), &dummy);
   NS_ENSURE_SUCCESS(rv, rv);
   rv = aOutput->Write(kQuoteStr, sizeof(kQuoteStr)-1, &dummy);
   NS_ENSURE_SUCCESS(rv, rv);
@@ -1775,7 +1954,7 @@ nsPlacesImportExportService::WriteItem(nsINavHistoryResultNode* aItem,
     NS_ENSURE_SUCCESS(rv, rv);
 
     
-    rv = aOutput->Write(kMicsumGenURIEquals, sizeof(kMicsumGenURIEquals)-1, &dummy);
+    rv = aOutput->Write(kMicsumGenURIAttribute, sizeof(kMicsumGenURIAttribute)-1, &dummy);
     NS_ENSURE_SUCCESS(rv, rv);
     rv = WriteEscapedUrl(spec, aOutput);
     NS_ENSURE_SUCCESS(rv, rv);
@@ -1869,11 +2048,11 @@ nsPlacesImportExportService::WriteLivemark(PRInt64 aFolderId, const nsACString& 
   }
 
   
-  rv = aOutput->Write(kIdAttribute, sizeof(kIdAttribute)-1, &dummy);
+  rv = aOutput->Write(kItemIdAttribute, sizeof(kItemIdAttribute)-1, &dummy);
   NS_ENSURE_SUCCESS(rv, rv);
-  nsCAutoString id;
-  id.AppendInt(aFolderId);
-  rv = aOutput->Write(id.get(), id.Length(), &dummy);
+  nsCAutoString itemIdAttr;
+  itemIdAttr.AppendInt(aFolderId); 
+  rv = aOutput->Write(itemIdAttr.get(), itemIdAttr.Length(), &dummy);
   NS_ENSURE_SUCCESS(rv, rv);
   rv = aOutput->Write(kQuoteStr, sizeof(kQuoteStr)-1, &dummy);
   NS_ENSURE_SUCCESS(rv, rv);
