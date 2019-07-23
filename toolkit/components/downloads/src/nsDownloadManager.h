@@ -40,6 +40,7 @@
 
 
 
+
 #ifndef downloadmanager___h___
 #define downloadmanager___h___
 
@@ -93,10 +94,23 @@ public:
   static nsDownloadManager *GetSingleton();
 
   virtual ~nsDownloadManager();
-  nsDownloadManager() {};
+  nsDownloadManager() :
+      mDBType(DATABASE_DISK)
+  {
+  }
 
 protected:
-  nsresult InitDB(PRBool *aDoImport);
+  enum DatabaseType
+  {
+    DATABASE_DISK = 0, 
+    DATABASE_MEMORY
+  };
+
+  nsresult InitFileDB(PRBool *aDoImport);
+  nsresult InitMemoryDB();
+  already_AddRefed<mozIStorageConnection> GetFileDBConnection(nsIFile *dbFile) const;
+  already_AddRefed<mozIStorageConnection> GetMemoryDBConnection() const;
+  nsresult SwitchDatabaseTypeTo(enum DatabaseType aType);
   nsresult CreateTable();
   nsresult ImportDownloadHistory();
 
@@ -253,6 +267,8 @@ private:
   nsCOMPtr<mozIStorageStatement> mUpdateDownloadStatement;
   nsCOMPtr<mozIStorageStatement> mGetIdsForURIStatement;
   nsAutoPtr<mozStorageTransaction> mHistoryTransaction;
+
+  enum DatabaseType mDBType;
 
   static nsDownloadManager *gDownloadManagerService;
 
