@@ -952,10 +952,18 @@ var PlacesUIUtils = {
   
 
 
+
+
+
+
+
+
   createMenuItemForNode:
-  function PUU_createMenuItemForNode(aNode) {
+  function PUU_createMenuItemForNode(aNode, aDocument) {
     var element;
-    var document = this._getCurrentActiveWin().document;
+    
+    
+    var document = aDocument || this._getTopBrowserWin().document;
     var type = aNode.type;
     if (type == Ci.nsINavHistoryResultNode.RESULT_TYPE_SEPARATOR) {
       element = document.createElement("menuseparator");
@@ -1384,7 +1392,7 @@ var PlacesUIUtils = {
 
     if (lmStatus && !aPopup._lmStatusMenuItem) {
       
-      let document = this._getCurrentActiveWin().document;
+      let document = aPopup.ownerDocument;
       aPopup._lmStatusMenuItem = document.createElement("menuitem");
       aPopup._lmStatusMenuItem.setAttribute("lmStatus", lmStatus);
       aPopup._lmStatusMenuItem.setAttribute("label", this.getString(lmStatus));
