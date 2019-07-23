@@ -71,6 +71,7 @@
 
 #include "nsToolkit.h"
 #include "nsIDeviceContext.h"
+#include "nsIdleService.h"
 #include "nsIRenderingContext.h"
 #include "nsIRegion.h"
 #include "nsIRollupListener.h"
@@ -1265,6 +1266,9 @@ nsWindow::InitButtonEvent(nsMouseEvent &aMoveEvent,
 nsEventStatus
 nsWindow::OnButtonPressEvent(QGraphicsSceneMouseEvent *aEvent)
 {
+    
+    UserActivity();
+
     QPointF pos = aEvent->pos();
 
     
@@ -1312,6 +1316,9 @@ nsWindow::OnButtonPressEvent(QGraphicsSceneMouseEvent *aEvent)
 nsEventStatus
 nsWindow::OnButtonReleaseEvent(QGraphicsSceneMouseEvent *aEvent)
 {
+    
+    UserActivity();
+
     PRUint16 domButton;
 
     switch (aEvent->button()) {
@@ -1409,6 +1416,9 @@ nsWindow::OnKeyPressEvent(QKeyEvent *aEvent)
 {
     LOGFOCUS(("OnKeyPressEvent [%p]\n", (void *)this));
 
+    
+    UserActivity();
+
     PRBool setNoDefault = PR_FALSE;
 
     
@@ -1463,6 +1473,9 @@ nsEventStatus
 nsWindow::OnKeyReleaseEvent(QKeyEvent *aEvent)
 {
     LOGFOCUS(("OnKeyReleaseEvent [%p]\n", (void *)this));
+
+    
+    UserActivity();
 
     if (isContextMenuKeyEvent(aEvent)) {
         
@@ -2509,5 +2522,17 @@ nsWindow::GetIMEEnabled(PRUint32* aState)
 
     *aState = mWidget->isVKBOpen() ? IME_STATUS_ENABLED : IME_STATUS_DISABLED;
     return NS_OK;
+}
+
+void
+nsWindow::UserActivity()
+{
+  if (!mIdleService) {
+    mIdleService = do_GetService("@mozilla.org/widget/idleservice;1");
+  }
+
+  if (mIdleService) {
+    mIdleService->ResetIdleTimeOut();
+  }
 }
 
