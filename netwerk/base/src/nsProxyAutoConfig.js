@@ -96,16 +96,17 @@ nsProxyAutoConfig.prototype = {
             return null;
 
         
-        var rval = this._sandBox.FindProxyForURL(testURI, testHost);
+        try {
+            var rval = this._sandBox.FindProxyForURL(testURI, testHost);
+        } catch (e) {
+            throw new XPCSafeJSObjectWrapper(e);
+        }
         return rval;
     }
 }
 
 function proxyAlert(msg) {
-    
-    if (typeof msg != "string")
-        msg = new XPCSafeJSObjectWrapper(msg).toString();
-
+    msg = new XPCSafeJSObjectWrapper(msg);
     try {
         
         var cns = Components.classes["@mozilla.org/consoleservice;1"]
@@ -127,9 +128,7 @@ function myIpAddress() {
 
 
 function dnsResolve(host) {
-    if (typeof host != "string")
-        host = new XPCSafeJSObjectWrapper(host).toString();
-
+    host = new XPCSafeJSObjectWrapper(host);
     try {
         return dns.resolve(host, 0).getNextAddrAsString();
     } catch (e) {
