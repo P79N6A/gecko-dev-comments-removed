@@ -900,22 +900,6 @@ void nsCaret::GetViewForRendering(nsIFrame *caretFrame,
   if (!caretFrame || !outRenderingView)
     return;
 
-  
-  
-  
-  
-  if (coordType == eIMECoordinates) {
-#if defined(XP_MACOSX) || defined(XP_WIN)
-   
-   
-   coordType = eTopLevelWindowCoordinates; 
-#else
-   
-   
-   coordType = eRenderingViewCoordinates; 
-#endif
-  }
-
   *outRenderingView = nsnull;
   if (outRelativeView)
     *outRelativeView = nsnull;
