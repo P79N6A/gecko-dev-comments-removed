@@ -256,23 +256,10 @@ public:
 
   already_AddRefed<nsILoadGroup> GetDocumentLoadGroup();
 
-  
-
-
-
-  PRBool GetPlayedOrSeeked() { return mHasPlayedOrSeeked; }
-
 protected:
   class MediaLoadListener;
   class LoadNextSourceEvent;
   class SelectResourceEvent;
-
-  
-
-
-
-
-  void SetPlayedOrSeeked(PRBool aValue);
 
   
 
@@ -482,8 +469,4 @@ protected:
   
   
   PRPackedBool mAllowSuspendAfterFirstFrame;
-
-  
-  
-  PRPackedBool mHasPlayedOrSeeked;
 };
