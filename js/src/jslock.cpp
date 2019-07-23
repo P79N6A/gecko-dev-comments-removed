@@ -187,8 +187,14 @@ JS_STATIC_ASSERT(sizeof(jsword) == sizeof(int));
 static JS_INLINE int
 NativeCompareAndSwap(jsword *w, jsword ov, jsword nv)
 {
-    volatile int *vp = (volatile int*)w;
-    return !__kernel_cmpxchg(ov, nv, vp);
+    volatile int *vp = (volatile int *) w;
+    PRInt32 failed = 1;
+
+    
+    do {
+        failed = __kernel_cmpxchg(ov, nv, vp);
+    } while (failed && *vp == ov);
+    return !failed;
 }
 
 #else
