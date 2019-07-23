@@ -726,6 +726,9 @@ public:
   nsresult VerifyQueriesParsed();
 
   
+  nsNavHistoryQueryOptions* Options();
+
+  
   
   PRBool mContentsValid;
 
