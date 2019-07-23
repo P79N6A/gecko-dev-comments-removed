@@ -55,6 +55,17 @@ const RELOAD_ACTION_MOVE = 3;
 
 
 
+const REMOVE_PAGES_CHUNKLEN = 300;
+
+
+
+
+const REMOVE_PAGES_MAX_SINGLEREMOVES = 10;
+
+
+
+
+
 
 
 
@@ -918,13 +929,38 @@ PlacesController.prototype = {
     
     
     var nodes = this._view.getSelectionNodes();
+    var URIs = [];
+    var bhist = PlacesUtils.history.QueryInterface(Ci.nsIBrowserHistory);
+    var resultView = this._view.getResultView();
     for (var i = 0; i < nodes.length; ++i) {
       var node = nodes[i];
-      var bhist = PlacesUtils.history.QueryInterface(Ci.nsIBrowserHistory);
       if (PlacesUtils.nodeIsHost(node))
         bhist.removePagesFromHost(node.title, true);
-      else if (PlacesUtils.nodeIsURI(node))
-        bhist.removePage(PlacesUtils._uri(node.uri));
+      else if (PlacesUtils.nodeIsURI(node)) {
+        var uri = PlacesUtils._uri(node.uri);
+        
+        if (URIs.indexOf(uri) < 0) {
+          URIs.push(uri);
+        }
+      }
+    }
+
+    
+    
+    if (URIs.length > REMOVE_PAGES_MAX_SINGLEREMOVES) {
+      
+      for (var i = 0; i < URIs.length; i += REMOVE_PAGES_CHUNKLEN) {
+        var URIslice = URIs.slice(i, Math.max(i + REMOVE_PAGES_CHUNKLEN, URIs.length));
+        
+        bhist.removePages(URIslice, URIslice.length,
+                          (i + REMOVE_PAGES_CHUNKLEN) >= URIs.length);
+      }
+    }
+    else {
+      
+      
+      for (var i = 0; i < URIs.length; ++i)
+        bhist.removePage(URIs[i]);
     }
   },
 

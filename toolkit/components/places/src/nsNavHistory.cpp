@@ -3094,24 +3094,38 @@ nsNavHistory::GetCount(PRUint32 *aCount)
 
 
 
+
+
+
 NS_IMETHODIMP
-nsNavHistory::RemovePage(nsIURI *aURI)
+nsNavHistory::RemovePages(nsIURI **aURIs, PRUint32 aLength, PRBool aDoBatchNotify)
 {
-  PRInt64 placeId;
-  nsresult rv = GetUrlIdFor(aURI, &placeId, PR_TRUE);
-  NS_ENSURE_SUCCESS(rv, rv);
+  
+  nsCString deletePlaceIdsQueryString;
+  nsresult rv;
+  for (PRInt32 i = 0; i < aLength; i++) {
+    PRInt64 placeId;
+    rv = GetUrlIdFor(aURIs[i], &placeId, PR_FALSE);
+    NS_ENSURE_SUCCESS(rv, rv);
+    if (placeId != 0) {
+      if (!deletePlaceIdsQueryString.IsEmpty())
+        deletePlaceIdsQueryString.AppendLiteral(",");
+      deletePlaceIdsQueryString.AppendInt(placeId);
+    }
+  }
+
+  
+  if (deletePlaceIdsQueryString.IsEmpty())
+    return NS_OK;
 
   mozStorageTransaction transaction(mDBConn, PR_FALSE);
   nsCOMPtr<mozIStorageStatement> statement;
 
   
-  rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
-      "DELETE FROM moz_historyvisits WHERE place_id = ?1"),
-      getter_AddRefs(statement));
-  NS_ENSURE_SUCCESS(rv, rv);
-  rv = statement->BindInt64Parameter(0, placeId);
-  NS_ENSURE_SUCCESS(rv, rv);
-  rv = statement->Execute();
+  rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
+      "DELETE FROM moz_historyvisits WHERE place_id IN (") +
+        deletePlaceIdsQueryString +
+        NS_LITERAL_CSTRING(")"));
   NS_ENSURE_SUCCESS(rv, rv);
 
   
@@ -3119,66 +3133,63 @@ nsNavHistory::RemovePage(nsIURI *aURI)
   (void)mExpire.OnDeleteURI();
 
   
-  nsAnnotationService* annosvc = nsAnnotationService::GetAnnotationService();
-  NS_ENSURE_STATE(annosvc);
-  nsTArray<nsCString> annoNames;
-  rv = annosvc->GetAnnotationNamesTArray(placeId, &annoNames, PR_FALSE);
+  
+  
+  
+  rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
+      "DELETE FROM moz_places WHERE id IN ("
+        "SELECT h.id FROM moz_places h WHERE h.id IN (") +
+        deletePlaceIdsQueryString +
+        NS_LITERAL_CSTRING(") AND "
+        "NOT EXISTS (SELECT b.id FROM moz_bookmarks b WHERE b.fk = h.id) AND "
+        "NOT EXISTS (SELECT a.id FROM moz_annos a WHERE a.place_id = h.id))"));
   NS_ENSURE_SUCCESS(rv, rv);
 
   
-  nsNavBookmarks* bookmarksService = nsNavBookmarks::GetBookmarksService();
-  NS_ENSURE_STATE(bookmarksService);
-  PRBool bookmarked = PR_FALSE;
-  rv = bookmarksService->IsBookmarked(aURI, &bookmarked);
+  
+  
+  
+  
+  rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
+      "UPDATE moz_places SET frecency = -1 WHERE id IN(") +
+        deletePlaceIdsQueryString +
+        NS_LITERAL_CSTRING(")"));
+  NS_ENSURE_SUCCESS(rv, rv);
+ 
+  
+  
+  
+  
+  rv = FixInvalidFrecenciesForExcludedPlaces();
+  NS_ENSURE_SUCCESS(rv, rv);
+ 
+  
+  
+  
+  
+  rv = transaction.Commit();
   NS_ENSURE_SUCCESS(rv, rv);
 
   
-  
-  if (annoNames.Length() == 0 && !bookmarked) {
-    
-    
+  if (aDoBatchNotify)
+    UpdateBatchScoper batch(*this); 
 
-    
-    rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
-        "DELETE FROM moz_places WHERE id = ?1"),
-        getter_AddRefs(statement));
-    NS_ENSURE_SUCCESS(rv, rv);
-    rv = statement->BindInt64Parameter(0, placeId);
-    NS_ENSURE_SUCCESS(rv, rv);
-    rv = statement->Execute();
-    NS_ENSURE_SUCCESS(rv, rv);
-  }
-  else {
-    
-    
-    
-    
-    
-    rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
-        "UPDATE moz_places SET frecency = -1 WHERE id = ?1"),
-        getter_AddRefs(statement));
-    NS_ENSURE_SUCCESS(rv, rv);
-    rv = statement->BindInt64Parameter(0, placeId);
-    NS_ENSURE_SUCCESS(rv, rv);
-    rv = statement->Execute();
-    NS_ENSURE_SUCCESS(rv, rv);
+  return NS_OK;
+}
 
-    
-    
-    
-    
-    rv = FixInvalidFrecenciesForExcludedPlaces();
-    NS_ENSURE_SUCCESS(rv, rv);
 
-    
-    
-    
-  }
 
+
+
+
+
+ NS_IMETHODIMP
+nsNavHistory::RemovePage(nsIURI *aURI)
+{
+  nsIURI** URIs = &aURI;
+  nsresult rv = RemovePages(URIs, 1, PR_FALSE);
+  NS_ENSURE_SUCCESS(rv, rv);
   
-  
-  
-  transaction.Commit();
   ENUMERATE_WEAKARRAY(mObservers, nsINavHistoryObserver, OnDeleteURI(aURI))
   return NS_OK;
 }
