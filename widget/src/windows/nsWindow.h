@@ -377,13 +377,6 @@ protected:
   
 
 
-  static PRUint8*         Data32BitTo1Bit(PRUint8* aImageData, PRUint32 aWidth, PRUint32 aHeight);
-  static PRBool           IsCursorTranslucencySupported();
-  static HBITMAP          DataToBitmap(PRUint8* aImageData, PRUint32 aWidth, PRUint32 aHeight, PRUint32 aDepth);
-
-  
-
-
   UINT                    MapFromNativeToDOM(UINT aNativeKeyCode);
   void                    StopFlashing();
   static PRBool           IsTopLevelMouseExit(HWND aWnd);
