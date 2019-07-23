@@ -2246,7 +2246,8 @@ nsFormControlList::AddElementToTable(nsIFormControl* aChild,
       
       list->AppendElement(newChild);
 
-      nsCOMPtr<nsISupports> listSupports = do_QueryInterface(list);
+      nsCOMPtr<nsISupports> listSupports =
+        do_QueryInterface(static_cast<nsIDOMNodeList>(list));
 
       
       NS_ENSURE_TRUE(mNameLookupTable.Put(aName, listSupports),
