@@ -120,8 +120,7 @@ Link::LinkState() const
   Link *self = const_cast<Link *>(this);
 
   
-  nsIContent *content = self->Content();
-  if (!content->IsInDoc()) {
+  if (!self->Content()->IsInDoc()) {
     self->mLinkState = eLinkState_Unvisited;
   }
 
@@ -143,12 +142,6 @@ Link::LinkState() const
 
       
       self->mLinkState = eLinkState_Unvisited;
-
-      
-      nsIDocument *doc = content->GetCurrentDoc();
-      if (doc) {
-        doc->AddStyleRelevantLink(content, hrefURI);
-      }
     }
   }
 
@@ -475,11 +468,9 @@ Link::ResetLinkState()
   nsIContent *content = Content();
 
   
-  if (mRegistered) {
-    nsIDocument *doc = content->GetCurrentDoc();
-    if (doc) {
-      doc->ForgetLink(content);
-    }
+  nsIDocument *doc = content->GetCurrentDoc();
+  if (doc) {
+    doc->ForgetLink(content);
   }
 
   UnregisterFromHistory();
