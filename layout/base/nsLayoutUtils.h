@@ -1157,6 +1157,29 @@ public:
 
   static SurfaceFromElementResult SurfaceFromElement(nsIDOMElement *aElement,
                                                      PRUint32 aSurfaceFlags = 0);
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  static nsIContent*
+    GetEditableRootContentByContentEditable(nsIDocument* aDocument);
 };
 
 class nsSetAttrRunnable : public nsRunnable

@@ -43,6 +43,8 @@
 #include "nsIFormControlFrame.h"
 #include "nsPresContext.h"
 #include "nsIContent.h"
+#include "nsIDOMDocument.h"
+#include "nsIDOMHTMLDocument.h"
 #include "nsFrameList.h"
 #include "nsGkAtoms.h"
 #include "nsIAtom.h"
@@ -3548,6 +3550,40 @@ nsLayoutUtils::SurfaceFromElement(nsIDOMElement *aElement,
   result.mIsWriteOnly = PR_FALSE;
 
   return result;
+}
+
+
+nsIContent*
+nsLayoutUtils::GetEditableRootContentByContentEditable(nsIDocument* aDocument)
+{
+  
+  if (!aDocument || aDocument->HasFlag(NODE_IS_EDITABLE)) {
+    return nsnull;
+  }
+
+  
+  
+  
+  
+  nsCOMPtr<nsIDOMHTMLDocument> domHTMLDoc = do_QueryInterface(aDocument);
+  if (!domHTMLDoc) {
+    return nsnull;
+  }
+
+  nsIContent* rootContent = aDocument->GetRootContent();
+  if (rootContent && rootContent->IsEditable()) {
+    return rootContent;
+  }
+
+  
+  
+  nsCOMPtr<nsIDOMHTMLElement> body;
+  nsresult rv = domHTMLDoc->GetBody(getter_AddRefs(body));
+  nsCOMPtr<nsIContent> content = do_QueryInterface(body);
+  if (NS_SUCCEEDED(rv) && content && content->IsEditable()) {
+    return content;
+  }
+  return nsnull;
 }
 
 nsSetAttrRunnable::nsSetAttrRunnable(nsIContent* aContent, nsIAtom* aAttrName,

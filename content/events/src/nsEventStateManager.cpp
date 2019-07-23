@@ -2749,9 +2749,33 @@ nsEventStateManager::PostHandleEvent(nsPresContext* aPresContext,
           activeContent = mCurrentTarget->GetContent();
         }
 
-        
-        
         nsIFrame* currFrame = mCurrentTarget;
+
+        
+        
+        
+        
+        
+        
+        
+        
+        if (newFocus && !newFocus->IsEditable()) {
+          nsIDocument *doc = newFocus->GetCurrentDoc();
+          if (doc && newFocus == doc->GetRootContent()) {
+            nsIContent *bodyContent =
+              nsLayoutUtils::GetEditableRootContentByContentEditable(doc);
+            if (bodyContent) {
+              nsIFrame* bodyFrame = bodyContent->GetPrimaryFrame();
+              if (bodyFrame) {
+                currFrame = bodyFrame;
+                newFocus = bodyContent;
+              }
+            }
+          }
+        }
+
+        
+        
         while (currFrame) {
           
           

@@ -164,6 +164,15 @@ protected:
 
 
 
+  PRBool IsNonFocusableRoot(nsIContent* aContent);
+
+  
+
+
+
+
+
+
 
 
 
