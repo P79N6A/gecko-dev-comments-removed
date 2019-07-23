@@ -113,10 +113,12 @@ public:
 
 
 
+
+
   virtual PRBool GetWidgetOverflow(nsIDeviceContext* aContext,
                                    nsIFrame* aFrame,
                                    PRUint8 aWidgetType,
-                                   nsRect* aResult)
+                                    nsRect* aOverflowRect)
   { return PR_FALSE; }
 
   

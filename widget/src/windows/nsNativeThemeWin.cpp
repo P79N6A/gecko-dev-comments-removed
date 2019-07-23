@@ -1610,7 +1610,7 @@ nsNativeThemeWin::GetWidgetPadding(nsIDeviceContext* aContext,
 PRBool
 nsNativeThemeWin::GetWidgetOverflow(nsIDeviceContext* aContext, 
                                     nsIFrame* aFrame,
-                                    PRUint8 aWidgetType,
+                                    PRUint8 aOverflowRect,
                                     nsRect* aResult)
 {
   
@@ -1632,9 +1632,7 @@ nsNativeThemeWin::GetWidgetOverflow(nsIDeviceContext* aContext,
       PRInt32 p2a = aContext->AppUnitsPerDevPixel();
       
       nsMargin m(0, p2a, p2a, p2a);
-      nsRect r(nsPoint(0, 0), aFrame->GetSize());
-      r.Inflate (m);
-      *aResult = r;
+      aOverflowRect->Inflate (m);
       return PR_TRUE;
     }
   }
