@@ -853,6 +853,11 @@ nsresult imgFrame::LockImageData()
   if (mImageSurface)
     mImageSurface->Flush();
 
+#ifdef USE_WIN_SURFACE
+  if (mWinSurface)
+    mWinSurface->Flush();
+#endif
+
   return NS_OK;
 }
 
@@ -871,6 +876,11 @@ nsresult imgFrame::UnlockImageData()
   
   if (mImageSurface)
     mImageSurface->MarkDirty();
+
+#ifdef USE_WIN_SURFACE
+  if (mWinSurface)
+    mWinSurface->MarkDirty();
+#endif
 
 #ifdef XP_MACOSX
   
