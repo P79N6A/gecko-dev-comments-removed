@@ -49,8 +49,20 @@ function run_test() {
            QueryInterface(Ci.nsIObserver);
 
   
+  do_check_false(pb.autoStarted);
+
+  
   pb.observe(null, "profile-after-change", "");
 
   
   do_check_true(pb.privateBrowsingEnabled);
+
+  
+  do_check_true(pb.autoStarted);
+
+  
+  pb.privateBrowsingEnabled = false;
+
+  
+  do_check_false(pb.autoStarted);
 }

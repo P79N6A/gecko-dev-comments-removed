@@ -794,3 +794,6 @@ pref("security.alternate_certificate_error_page", "certerror");
 
 
 pref("browser.privatebrowsing.autostart", false);
+
+
+pref("browser.privatebrowsing.dont_prompt_on_enter", false);

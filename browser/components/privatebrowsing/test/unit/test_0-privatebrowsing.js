@@ -66,12 +66,16 @@ function run_test() {
 
   
   do_check_false(pb.privateBrowsingEnabled);
+  
+  do_check_false(pb.autoStarted);
 
   
   pb.privateBrowsingEnabled = true;
   do_check_true(pb.privateBrowsingEnabled);
+  do_check_false(pb.autoStarted);
   pb.privateBrowsingEnabled = false;
   do_check_false(pb.privateBrowsingEnabled);
+  do_check_false(pb.autoStarted);
 
   
   var observer = {
