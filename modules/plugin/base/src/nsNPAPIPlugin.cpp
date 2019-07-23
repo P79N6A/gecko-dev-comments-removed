@@ -2608,9 +2608,6 @@ _getauthenticationinfo(NPP instance, const char *protocol, const char *host,
   return NPERR_NO_ERROR;
 }
 
-
-
-PR_BEGIN_EXTERN_C
 uint32_t NP_CALLBACK
 _scheduletimer(NPP instance, uint32_t interval, NPBool repeat, PluginTimerFunc timerFunc)
 {
@@ -2620,7 +2617,6 @@ _scheduletimer(NPP instance, uint32_t interval, NPBool repeat, PluginTimerFunc t
 
   return inst->ScheduleTimer(interval, repeat, timerFunc);
 }
-PR_END_EXTERN_C
 
 void NP_CALLBACK
 _unscheduletimer(NPP instance, uint32_t timerID)
