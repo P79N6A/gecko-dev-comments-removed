@@ -273,10 +273,6 @@ public:
 
   nsIFrame* GetTopBlockChild(nsPresContext *aPresContext);
 
-  
-  
-  line_iterator FindLineFor(nsIFrame* aFrame);
-
   static nsresult GetCurrentLine(nsBlockReflowState *aState, nsLineBox **aOutCurrentLine);
 
   
@@ -692,8 +688,20 @@ class nsBlockInFlowLineIterator {
 public:
   typedef nsBlockFrame::line_iterator line_iterator;
   nsBlockInFlowLineIterator(nsBlockFrame* aFrame, line_iterator aLine, PRBool aInOverflow);
+  
+
+
+
   nsBlockInFlowLineIterator(nsBlockFrame* aFrame, PRBool* aFoundValidLine);
   
+
+
+
+
+
+  nsBlockInFlowLineIterator(nsBlockFrame* aFrame, nsIFrame* aFindFrame,
+                            PRBool* aFoundValidLine);
+
   line_iterator GetLine() { return mLine; }
   PRBool IsLastLineInList();
   nsBlockFrame* GetContainer() { return mFrame; }

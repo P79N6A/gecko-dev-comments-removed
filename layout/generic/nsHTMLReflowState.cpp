@@ -936,11 +936,11 @@ nsHTMLReflowState::CalculateHypotheticalBox(nsPresContext*    aPresContext,
   nsBlockFrame* blockFrame;
   if (NS_SUCCEEDED(aContainingBlock->QueryInterface(kBlockFrameCID,
                                   reinterpret_cast<void**>(&blockFrame)))) {
-    
-    
-    nsIFrame *blockChild =
-      nsLayoutUtils::FindChildContainingDescendant(blockFrame, aPlaceholderFrame);
-    nsBlockFrame::line_iterator lineBox = blockFrame->FindLineFor(blockChild);
+    PRBool isValid;
+    nsBlockInFlowLineIterator iter(blockFrame, aPlaceholderFrame, &isValid);
+    NS_ASSERTION(isValid, "Can't find placeholder!");
+    NS_ASSERTION(iter.GetContainer() == blockFrame, "Found placeholder in wrong block!");
+    nsBlockFrame::line_iterator lineBox = iter.GetLine();
 
     
     
