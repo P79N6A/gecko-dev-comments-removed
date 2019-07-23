@@ -309,7 +309,7 @@ num_toLocaleString(JSContext *cx, uintN argc, jsval *vp)
     JSString *numStr, *str;
     const char *num, *end, *tmpSrc;
     char *buf, *tmpDest;
-    const char *dec;
+    const char *nint;
     int digits, size, remainder, nrepeat;
 
     
@@ -325,16 +325,27 @@ num_toLocaleString(JSContext *cx, uintN argc, jsval *vp)
         return JS_FALSE;
 
     
-    dec = strchr(num, '.');
-    digits = dec ? dec - num : (int)strlen(num);
+
+
+
+    nint = num;
+    if (*nint == '-')
+        nint++;
+    while (*nint >= '0' && *nint <= '9')
+        nint++;
+    digits = nint - num;
     end = num + digits;
+    if (!digits)
+        return JS_TRUE;
 
     rt = cx->runtime;
     thousandsLength = strlen(rt->thousandsSeparator);
     decimalLength = strlen(rt->decimalSeparator);
 
     
-    size = digits + (dec ? decimalLength + strlen(dec + 1) : 0);
+    size = digits + (*nint ? strlen(nint + 1) + 1 : 0);
+    if (*nint == '.')
+        size += decimalLength;
 
     numGrouping = tmpGroup = rt->numGrouping;
     remainder = digits;
@@ -376,12 +387,12 @@ num_toLocaleString(JSContext *cx, uintN argc, jsval *vp)
             tmpGroup--;
     }
 
-    if (dec) {
+    if (*nint == '.') {
         strcpy(tmpDest, rt->decimalSeparator);
         tmpDest += decimalLength;
-        strcpy(tmpDest, dec + 1);
+        strcpy(tmpDest, nint + 1);
     } else {
-        *tmpDest++ = '\0';
+        strcpy(tmpDest, nint);
     }
 
     if (cx->localeCallbacks && cx->localeCallbacks->localeToUnicode)
