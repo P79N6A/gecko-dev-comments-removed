@@ -1712,12 +1712,11 @@ nsTextControlFrame::CreateAnonymousContent(nsTArray<nsIContent*>& aElements)
 
   
   nsCOMPtr<nsINodeInfo> nodeInfo;
-  nsresult rv = doc->NodeInfoManager()->GetNodeInfo(nsGkAtoms::div, nsnull,
-                                                    kNameSpaceID_XHTML,
-                                                    getter_AddRefs(nodeInfo));
-  NS_ENSURE_SUCCESS(rv, rv);
+  nodeInfo = doc->NodeInfoManager()->GetNodeInfo(nsGkAtoms::div, nsnull,
+                                                 kNameSpaceID_XHTML);
+  NS_ENSURE_TRUE(nodeInfo, NS_ERROR_FAILURE);
 
-  rv = NS_NewHTMLElement(getter_AddRefs(mAnonymousDiv), nodeInfo, PR_FALSE);
+  nsresult rv = NS_NewHTMLElement(getter_AddRefs(mAnonymousDiv), nodeInfo, PR_FALSE);
   NS_ENSURE_SUCCESS(rv, rv);
 
   

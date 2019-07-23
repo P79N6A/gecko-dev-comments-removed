@@ -85,8 +85,8 @@ public:
   
 
 
-  nsresult GetNodeInfo(nsIAtom *aName, nsIAtom *aPrefix,
-                       PRInt32 aNamespaceID, nsINodeInfo** aNodeInfo);
+  already_AddRefed<nsINodeInfo> GetNodeInfo(nsIAtom *aName, nsIAtom *aPrefix,
+                                            PRInt32 aNamespaceID);
   nsresult GetNodeInfo(const nsAString& aName, nsIAtom *aPrefix,
                        PRInt32 aNamespaceID, nsINodeInfo** aNodeInfo);
   nsresult GetNodeInfo(const nsAString& aQualifiedName,

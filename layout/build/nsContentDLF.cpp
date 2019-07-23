@@ -350,18 +350,15 @@ nsContentDLF::CreateBlankDocument(nsILoadGroup *aLoadGroup,
     nsCOMPtr<nsINodeInfo> htmlNodeInfo;
 
     
-    nim->GetNodeInfo(nsGkAtoms::html, 0, kNameSpaceID_None,
-                     getter_AddRefs(htmlNodeInfo));
+    htmlNodeInfo = nim->GetNodeInfo(nsGkAtoms::html, 0, kNameSpaceID_None);
     nsCOMPtr<nsIContent> htmlElement = NS_NewHTMLHtmlElement(htmlNodeInfo);
 
     
-    nim->GetNodeInfo(nsGkAtoms::head, 0, kNameSpaceID_None,
-                     getter_AddRefs(htmlNodeInfo));
+    htmlNodeInfo = nim->GetNodeInfo(nsGkAtoms::head, 0, kNameSpaceID_None);
     nsCOMPtr<nsIContent> headElement = NS_NewHTMLHeadElement(htmlNodeInfo);
 
     
-    nim->GetNodeInfo(nsGkAtoms::body, 0, kNameSpaceID_None,
-                     getter_AddRefs(htmlNodeInfo));
+    htmlNodeInfo = nim->GetNodeInfo(nsGkAtoms::body, 0, kNameSpaceID_None);
     nsCOMPtr<nsIContent> bodyElement = NS_NewHTMLBodyElement(htmlNodeInfo);
 
     
