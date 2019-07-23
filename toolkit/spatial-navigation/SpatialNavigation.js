@@ -126,52 +126,26 @@ function _onInputKeyPress (event, callback) {
       return;
   }
 
-  
-  if (target instanceof Ci.nsIDOMHTMLInputElement &&
-     (target.type == "text" || target.type == "password")) {
-
+  if ((target instanceof Ci.nsIDOMHTMLInputElement && (target.type == "text" || target.type == "password")) ||
+      target instanceof Ci.nsIDOMHTMLTextAreaElement ) {
     
-    if (key != PrefObserver['keyCodeUp'] &&
-        key != PrefObserver['keyCodeDown']) {
-
-      
-      if (target.selectionEnd - target.selectionStart > 0)
-        return;
-
-      
-      if (target.textLength > 0)
-        if (key == PrefObserver['keyCodeLeft']) {
-          
-          if (target.selectionStart != 0)
-            return;
-        }
-        else if (key == PrefObserver['keyCodeRight']) {
-          
-          if (target.textLength != target.selectionEnd)
-            return;
-        }
-    }
-  }
-  
-  else if (target instanceof Ci.nsIDOMHTMLTextAreaElement) {
-
     
     if (target.selectionEnd - target.selectionStart > 0)
       return;
     
     
     if (target.textLength > 0) {
-      if (key == PrefObserver['keyCodeUp'] ||
-          key == PrefObserver['keyCodeLeft']) {
+      if (key == PrefObserver['keyCodeRight'] ||
+          key == PrefObserver['keyCodeDown'] ) {
+        
+        if (target.textLength != target.selectionEnd)
+          return;
+      }
+      else
+      {
         
         if (target.selectionStart != 0)
           return;
-      }
-      else {
-        if (key == PrefObserver['keyCodeDown'] ||
-            key == PrefObserver['keyCodeRight'])
-          if (target.selectionEnd != target.textLength)
-            return;
       }
     }
   }
