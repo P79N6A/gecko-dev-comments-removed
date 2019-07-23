@@ -517,7 +517,6 @@ printCCMap(PRUint16* aCCMap)
 {
   PRUint32 page = CCMAP_BEGIN_AT_START_OF_MAP;
   while (NextNonEmptyCCMapPage(aCCMap, &page)) {
-    
     int i;
     PRUint32 pagechar = page;
   
