@@ -269,6 +269,7 @@ public:
   
   
   
+  
   void NotifyDataStarted(PRInt64 aOffset);
   
   
@@ -320,6 +321,8 @@ public:
   
   
   void SetPlaybackRate(PRUint32 aBytesPerSecond);
+  
+  PRBool IsSeekable();
 
   
   

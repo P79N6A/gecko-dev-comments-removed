@@ -158,7 +158,11 @@ public:
   
   virtual nsresult Close() = 0;
   
-  virtual void Suspend() = 0;
+  
+  
+  
+  
+  virtual void Suspend(PRBool aCloseImmediately) = 0;
   
   virtual void Resume() = 0;
   
@@ -311,7 +315,7 @@ public:
   
   
   
-  nsresult CacheClientSeek(PRInt64 aOffset);
+  nsresult CacheClientSeek(PRInt64 aOffset, PRBool aResume);
   
   nsresult CacheClientSuspend();
   
@@ -320,7 +324,7 @@ public:
   
   virtual nsresult Open(nsIStreamListener** aStreamListener);
   virtual nsresult Close();
-  virtual void     Suspend();
+  virtual void     Suspend(PRBool aCloseImmediately);
   virtual void     Resume();
   virtual already_AddRefed<nsIPrincipal> GetCurrentPrincipal();
   
@@ -374,7 +378,7 @@ protected:
 
   
   
-  nsresult OpenChannel(nsIStreamListener** aStreamListener, PRInt64 aOffset);
+  nsresult OpenChannel(nsIStreamListener** aStreamListener);
   void SetupChannelHeaders();
   
   void CloseChannel();
@@ -387,9 +391,15 @@ protected:
                                       PRUint32 *aWriteCount);
 
   
-  PRInt64            mLastSeekOffset;
+  PRInt64            mOffset;
   nsRefPtr<Listener> mListener;
   PRUint32           mSuspendCount;
+  
+  
+  PRPackedBool       mReopenOnError;
+  
+  
+  PRPackedBool       mIgnoreClose;
 
   
   nsMediaCacheStream mCacheStream;
