@@ -6527,10 +6527,8 @@ nsWindowSH::NewResolve(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
   
   
   
-  JSStackFrame *fp = NULL;
   if ((flags & JSRESOLVE_ASSIGNING) &&
       !(flags & JSRESOLVE_WITH) &&
-      !(JS_FrameIterator(cx, &fp) && fp->regs && (JSOp)*fp->regs->pc == JSOP_BINDNAME) &&
       win->IsInnerWindow()) {
     JSObject *realObj;
     wrapper->GetJSObject(&realObj);
@@ -6564,9 +6562,14 @@ nsWindowSH::NewResolve(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
       
       
       
+      
+      
+      
+      
 
       JSString *str = JSVAL_TO_STRING(id);
-      if (!::JS_DefineUCProperty(cx, obj, ::JS_GetStringChars(str),
+      if (!::js_CheckUndeclaredVarAssignment(cx) ||
+          !::JS_DefineUCProperty(cx, obj, ::JS_GetStringChars(str),
                                  ::JS_GetStringLength(str), JSVAL_VOID,
                                  JS_PropertyStub, JS_PropertyStub,
                                  JSPROP_ENUMERATE)) {

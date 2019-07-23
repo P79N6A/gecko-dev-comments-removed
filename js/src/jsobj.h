@@ -711,9 +711,16 @@ extern JSBool
 js_GetMethod(JSContext *cx, JSObject *obj, jsid id, jsval *vp,
              JSPropCacheEntry **entryp);
 
+
+
+
+
+extern JS_FRIEND_API(JSBool)
+js_CheckUndeclaredVarAssignment(JSContext *cx);
+
 extern JSBool
-js_SetPropertyHelper(JSContext *cx, JSObject *obj, jsid id,
-                     JSBool unqualified, jsval *vp, JSPropCacheEntry **entryp);
+js_SetPropertyHelper(JSContext *cx, JSObject *obj, jsid id, jsval *vp,
+                     JSPropCacheEntry **entryp);
 
 extern JSBool
 js_SetProperty(JSContext *cx, JSObject *obj, jsid id, jsval *vp);
