@@ -152,9 +152,6 @@ static const char tagChar[]  = "OIDISIBI";
 #define MAX_GLOBAL_SLOTS 4096
 
 
-#define MAX_TABLE_SWITCH 256
-
-
 #define MAX_INTERP_STACK_BYTES                                                \
     (MAX_NATIVE_STACK_SLOTS * sizeof(jsval) +                                 \
      MAX_CALL_STACK_ENTRIES * sizeof(JSInlineFrame) +                         \
@@ -3713,17 +3710,25 @@ TraceRecorder::set(jsval* p, LIns* i, bool initializing, bool demote)
             x = writeBack(i, lirbuf->sp, -treeInfo->nativeStackBase + nativeStackOffset(p), demote);
         nativeFrameTracker.set(p, x);
     } else {
-#define ASSERT_VALID_CACHE_HIT(base, offset)                                  \
-    JS_ASSERT(base == lirbuf->sp || base == lirbuf->state);                   \
-    JS_ASSERT(offset == ((base == lirbuf->sp)                                 \
-        ? -treeInfo->nativeStackBase + nativeStackOffset(p)                   \
-        : nativeGlobalOffset(p)));                                            \
-
         JS_ASSERT(x->isop(LIR_sti) || x->isop(LIR_stqi));
-        ASSERT_VALID_CACHE_HIT(x->oprnd2(), x->disp());
-        writeBack(i, x->oprnd2(), x->disp(), demote);
+
+        int disp;
+        LIns *base = x->oprnd2();
+#ifdef NANOJIT_ARM
+        if (base->isop(LIR_piadd)) {
+            disp = base->oprnd2()->imm32();
+            base = base->oprnd1();
+        } else
+#endif
+        disp = x->disp();
+
+        JS_ASSERT(base == lirbuf->sp || base == lirbuf->state);
+        JS_ASSERT(disp == ((base == lirbuf->sp) ?
+                  -treeInfo->nativeStackBase + nativeStackOffset(p) :
+                  nativeGlobalOffset(p)));
+
+        writeBack(i, base, disp, demote);
     }
-#undef ASSERT_VALID_CACHE_HIT
 }
 
 JS_REQUIRES_STACK LIns*
@@ -8328,7 +8333,10 @@ TraceRecorder::tableswitch()
     }
 
     
-    if ((high + 1 - low) > MAX_TABLE_SWITCH)
+
+
+
+    if ((high + 1 - low) * sizeof(intptr_t*) + 128 > (unsigned) LARGEST_UNDERRUN_PROT)
         return InjectStatus(switchop());
 
     
@@ -9421,7 +9429,7 @@ TraceRecorder::unbox_jsval(jsval v, LIns* v_ins, VMSideExit* exit)
                         INS_CONSTWORD(JSVAL_STRING)),
               exit);
         return lir->ins2(LIR_piand, v_ins, addName(lir->insImmWord(~JSVAL_TAGMASK),
-    					           "~JSVAL_TAGMASK"));
+                                                   "~JSVAL_TAGMASK"));
     }
 }
 
