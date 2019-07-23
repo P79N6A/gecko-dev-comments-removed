@@ -605,6 +605,10 @@ static void ReparentFrame(nsIFrame* aFrame, nsIFrame* aOldParent,
 
 
 
+
+
+
+
  void
 nsBlockFrame::MarkIntrinsicWidthsDirty()
 {
@@ -664,6 +668,7 @@ nsBlockFrame::GetMinWidth(nsIRenderingContext *aRenderingContext)
         }
         
 
+        data.line = &line;
         nsIFrame *kid = line->mFirstChild;
         for (PRInt32 i = 0, i_end = line->GetChildCount(); i != i_end;
              ++i, kid = kid->GetNextSibling()) {
@@ -735,6 +740,7 @@ nsBlockFrame::GetPrefWidth(nsIRenderingContext *aRenderingContext)
         }
         
 
+        data.line = &line;
         nsIFrame *kid = line->mFirstChild;
         for (PRInt32 i = 0, i_end = line->GetChildCount(); i != i_end;
              ++i, kid = kid->GetNextSibling()) {
@@ -4803,12 +4809,19 @@ nsBlockFrame::AddFrames(nsIFrame* aFrameList,
       prevSibLine->SetChildCount(prevSibLine->GetChildCount() - rem);
       prevSibLine->MarkDirty();
     }
+    
+    
+    prevSibLine->SetInvalidateTextRuns(PR_TRUE);
+    if (prevSibLine.next() != end_lines()) {
+      prevSibLine.next()->SetInvalidateTextRuns(PR_TRUE);
+    }
 
     
     aPrevSibling->SetNextSibling(aFrameList);
   }
   else if (! mLines.empty()) {
     prevSiblingNextFrame = mLines.front()->mFirstChild;
+    mLines.front()->SetInvalidateTextRuns(PR_TRUE);
   }
 
   
@@ -5137,6 +5150,10 @@ found_frame:;
     NS_ERROR("can't find deleted frame in lines");
     return NS_ERROR_FAILURE;
   }
+  
+  if (line != mLines.front()) {
+    line.prev()->SetInvalidateTextRuns(PR_TRUE);
+  }
 
   if (prevSibling && !prevSibling->GetNextSibling()) {
     
@@ -5148,6 +5165,8 @@ found_frame:;
   while ((line != line_end) && (nsnull != aDeletedFrame)) {
     NS_ASSERTION(this == aDeletedFrame->GetParent(), "messed up delete code");
     NS_ASSERTION(line->Contains(aDeletedFrame), "frame not in line");
+
+    line->SetInvalidateTextRuns(PR_TRUE);
 
     
     
@@ -5294,6 +5313,10 @@ found_frame:;
 #endif
       }
     }
+  }
+
+  if (line.next() != line_end) {
+    line.next()->SetInvalidateTextRuns(PR_TRUE);
   }
 
 #ifdef DEBUG
@@ -6028,8 +6051,12 @@ nsBlockFrame::ChildIsDirty(nsIFrame* aChild)
   } else {
     
     line_iterator fline = FindLineFor(aChild);
-    if (fline != end_lines())
+    if (fline != end_lines()) {
+      
+      
+      fline->SetInvalidateTextRuns(PR_TRUE);
       MarkLineDirty(fline);
+    }
   }
 
   nsBlockFrameSuper::ChildIsDirty(aChild);
