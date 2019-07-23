@@ -213,6 +213,45 @@ SimpleTest.waitForExplicitFinish = function () {
     SimpleTest._stopOnLoad = false;
 };
 
+SimpleTest.waitForFocus_started = false;
+SimpleTest.waitForFocus_loaded = false;
+SimpleTest.waitForFocus_focused = false;
+
+
+
+
+
+SimpleTest.waitForFocus = function (callback, targetWindow) {
+    SimpleTest.waitForFocus_started = false;
+    SimpleTest.waitForFocus_loaded = false;
+    SimpleTest.waitForFocus_focused = false;
+
+    if (!targetWindow)
+      targetWindow = window;
+
+    function maybeRunTests(event) {
+        if (SimpleTest.waitForFocus_loaded &&
+            SimpleTest.waitForFocus_focused &&
+            !SimpleTest.waitForFocus_started) {
+            SimpleTest.waitForFocus_started = true;
+            callback();
+        }
+    }
+
+    function waitForEvent(event) {
+        SimpleTest["waitForFocus_" + event.type + "ed"] = true;
+        targetWindow.removeEventListener(event.type, waitForEvent, false);
+        setTimeout(maybeRunTests, 0);
+    }
+
+    targetWindow.addEventListener("load", waitForEvent, false);
+    targetWindow.addEventListener("focus", waitForEvent, false);
+
+    
+    if (!(targetWindow instanceof Components.interfaces.nsIDOMChromeWindow))
+      targetWindow.focus();
+};
+
 
 
 
