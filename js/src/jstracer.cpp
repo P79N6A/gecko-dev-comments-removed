@@ -888,6 +888,60 @@ FlushNativeStackFrame(JSContext* cx, unsigned callDepth, uint8* mp, double* np)
 }
 
 
+bool
+SwitchNativeGlobalFrame(JSContext* cx, 
+        unsigned from_ngslots, uint16* from_gslots, uint8* from_mp, double* from_np, 
+        unsigned to_ngslots, uint16* to_gslots, uint8* to_mp, double* to_np)
+{
+    JSObject* globalObj = JS_GetGlobalForObject(cx, cx->fp->scopeChain);
+    uint16* from_gslots_stop = from_gslots + from_ngslots;
+    uint16* to_gslots_stop = to_gslots + to_ngslots;
+    
+    uint16* double_write_buffer_base = (uint16*)alloca(sizeof(uint16) * from_ngslots);
+    uint16* double_write_buffer = double_write_buffer_base;
+    while ((from_gslots < from_gslots_stop) && (to_gslots < to_gslots_stop)) {
+        uint16 from_slot = *from_gslots;
+        uint16 to_slot = *to_gslots;
+        if (from_slot == to_slot) {
+            
+            *to_np++ = *from_np++;
+            ++from_gslots; ++from_mp;
+            ++to_gslots; ++to_mp;
+        } else if (from_slot < to_slot) {
+            
+            if (*from_mp++ == JSVAL_DOUBLE) 
+                *double_write_buffer++ = *from_np++;
+            else if (!NativeToValue(cx, STOBJ_GET_SLOT(globalObj, from_slot), 
+                    from_mp[-1], from_np++))
+                return false;
+        } else {
+            
+            if (!ValueToNative(STOBJ_GET_SLOT(globalObj, to_slot),
+                    *to_mp++, to_np++))
+                return false;
+        }
+    }
+    while (from_gslots < from_gslots_stop) {
+        uint16 from_slot = *from_gslots++;
+        
+        if (*from_mp++ == JSVAL_DOUBLE) 
+            *double_write_buffer++ = *from_np++;
+        else if (!NativeToValue(cx, STOBJ_GET_SLOT(globalObj, from_slot), 
+                from_mp[-1], from_np++))
+            return false;
+    }
+    while (to_gslots < to_gslots_stop) {
+        uint16 to_slot = *to_gslots++;
+        
+        if (!ValueToNative(STOBJ_GET_SLOT(globalObj, to_slot),
+                *to_mp++, to_np++))
+            return false;
+    }
+    
+    return true;
+}    
+
+
 void
 TraceRecorder::import(LIns* base, ptrdiff_t offset, jsval* p, uint8& t,
         const char *prefix, int index, jsuword *localNames)
@@ -2441,7 +2495,6 @@ TraceRecorder::synthesize_frame(JSFunction* fun, JSStackFrame* down, uintN argc,
     JSInlineFrame* newifp;
 
     nframeslots = JS_HOWMANY(sizeof(JSInlineFrame), sizeof(jsval));
-    nbytes = (nframeslots + script->nslots) * sizeof(jsval);
 
     
     if (fun->nargs <= argc) {
