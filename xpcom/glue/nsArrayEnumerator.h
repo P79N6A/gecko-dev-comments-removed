@@ -51,7 +51,7 @@ class nsCOMArray_base;
 
 
 NS_COM_GLUE nsresult
-NS_NewArrayEnumerator(nsISimpleEnumerator* *result,
+NS_NewArrayEnumerator(nsISimpleEnumerator* *result NS_OUTPARAM,
                       nsIArray* array);
 
 
@@ -59,7 +59,7 @@ NS_NewArrayEnumerator(nsISimpleEnumerator* *result,
 
 
 NS_COM_GLUE nsresult
-NS_NewArrayEnumerator(nsISimpleEnumerator* *aResult,
+NS_NewArrayEnumerator(nsISimpleEnumerator* *aResult NS_OUTPARAM,
                       const nsCOMArray_base& aArray);
 
 #endif

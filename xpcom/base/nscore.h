@@ -258,19 +258,6 @@
 
 
 
-#ifdef STATIC_CHECKING
-# define NS_SCRIPTABLE __attribute__((user("NS_script")))
-# define NS_OUTPARAM  __attribute__((user("NS_outparam")))
-# define NS_INOUTPARAM __attribute__((user("NS_inoutparam")))
-#else
-# define NS_SCRIPTABLE
-# define NS_OUTPARAM
-# define NS_INOUTPARAM
-#endif
-
-
-
-
 #define NS_IMETHOD          NS_IMETHOD_(nsresult)
 #define NS_IMETHODIMP       NS_IMETHODIMP_(nsresult)
 #define NS_METHOD           NS_METHOD_(nsresult)
@@ -507,6 +494,19 @@ typedef PRUint32 nsrefcnt;
 #else
 #define NS_STACK_CLASS
 #define NS_FINAL_CLASS
+#endif
+
+
+
+
+#ifdef NS_STATIC_CHECKING
+# define NS_SCRIPTABLE __attribute__((user("NS_script")))
+# define NS_OUTPARAM  __attribute__((user("NS_outparam")))
+# define NS_INOUTPARAM __attribute__((user("NS_inoutparam")))
+#else
+# define NS_SCRIPTABLE
+# define NS_OUTPARAM
+# define NS_INOUTPARAM
 #endif
 
 #endif
