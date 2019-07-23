@@ -106,7 +106,7 @@ function test() {
           gPrefService.clearUserPref(PREF_INTERVAL);
         gBrowser.removeTab(tab);
         finish();
-      }, 2500); 
-    }, 2500); 
+      }, 3500); 
+    }, 3500); 
   }, true);
 }
