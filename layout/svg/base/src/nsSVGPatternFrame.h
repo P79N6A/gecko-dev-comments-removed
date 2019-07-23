@@ -39,8 +39,6 @@
 #ifndef __NS_SVGPATTERNFRAME_H__
 #define __NS_SVGPATTERNFRAME_H__
 
-#include "nsISVGValueObserver.h"
-#include "nsWeakReference.h"
 #include "nsIDOMSVGAnimatedString.h"
 #include "nsIDOMSVGMatrix.h"
 #include "nsSVGPaintServerFrame.h"
@@ -55,11 +53,14 @@ class gfxASurface;
 
 typedef nsSVGPaintServerFrame  nsSVGPatternFrameBase;
 
-class nsSVGPatternFrame : public nsSVGPatternFrameBase,
-                          public nsISVGValueObserver
+
+
+
+
+class nsSVGPatternFrame : public nsSVGPatternFrameBase
 {
 public:
-  friend nsIFrame* NS_NewSVGPatternFrame(nsIPresShell* aPresShell, 
+  friend nsIFrame* NS_NewSVGPatternFrame(nsIPresShell* aPresShell,
                                          nsIContent*   aContent,
                                          nsStyleContext* aContext);
 
@@ -75,19 +76,7 @@ public:
                                   nsSVGGeometryFrame *aSource,
                                   float aGraphicOpacity);
 
-  
-  NS_IMETHOD QueryInterface(const nsIID& aIID, void** aInstancePtr);
-private:
-  NS_IMETHOD_(nsrefcnt) AddRef() { return 1; }
-  NS_IMETHOD_(nsrefcnt) Release() { return 1; }
-
 public:
-  
-  NS_IMETHOD WillModifySVGObservable(nsISVGValue* observable, 
-                                     nsISVGValue::modificationType aModType);
-  NS_IMETHOD DidModifySVGObservable(nsISVGValue* observable, 
-                                    nsISVGValue::modificationType aModType);
-  
   
   virtual already_AddRefed<nsIDOMSVGMatrix> GetCanvasTM();
 
@@ -117,11 +106,13 @@ protected:
   nsSVGPatternFrame(nsStyleContext* aContext,
                     nsIDOMSVGURIReference *aRef);
 
-  virtual ~nsSVGPatternFrame();
-
   
-  PRBool checkURITarget(nsIAtom *);
-  PRBool checkURITarget();
+  nsSVGPatternFrame* GetReferencedPattern();
+  
+  
+  
+  nsSVGPatternElement* GetPatternWithAttr(nsIAtom *aAttrName, nsIContent *aDefault);
+
   
   nsSVGLength2 *GetX();
   nsSVGLength2 *GetY();
@@ -132,7 +123,7 @@ protected:
   PRUint16 GetPatternContentUnits();
   gfxMatrix GetPatternTransform();
 
-  NS_IMETHOD GetPreserveAspectRatio(nsIDOMSVGAnimatedPreserveAspectRatio 
+  NS_IMETHOD GetPreserveAspectRatio(nsIDOMSVGAnimatedPreserveAspectRatio
                                                      **aPreserveAspectRatio);
   NS_IMETHOD GetPatternFirstChild(nsIFrame **kid);
   NS_IMETHOD GetViewBox(nsIDOMSVGRect * *aMatrix);
@@ -146,23 +137,26 @@ protected:
   nsresult   ConstructCTM(nsIDOMSVGMatrix **ctm,
                           nsIDOMSVGRect *callerBBox,
                           nsIDOMSVGMatrix *callerCTM);
-  nsresult   GetCallerGeometry(nsIDOMSVGMatrix **aCTM, 
+  nsresult   GetCallerGeometry(nsIDOMSVGMatrix **aCTM,
                                nsIDOMSVGRect **aBBox,
-                               nsSVGElement **aContent, 
+                               nsSVGElement **aContent,
                                nsSVGGeometryFrame *aSource);
 
 private:
   
   
   
-  nsSVGGeometryFrame                     *mSource;
-  nsCOMPtr<nsIDOMSVGMatrix>               mCTM;
+  nsSVGGeometryFrame               *mSource;
+  nsCOMPtr<nsIDOMSVGMatrix>         mCTM;
 
 protected:
-  nsSVGPatternFrame                      *mNextPattern;
-  nsCOMPtr<nsIDOMSVGAnimatedString> 	  mHref;
-  PRPackedBool                            mLoopFlag;
+  nsCOMPtr<nsIDOMSVGAnimatedString> mHref;
+  
+  PRPackedBool                      mLoopFlag;
+  
+  
+  PRPackedBool                      mPaintLoopFlag;
+  PRPackedBool                      mNoHRefURI;
 };
 
 #endif
-
