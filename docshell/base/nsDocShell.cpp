@@ -3794,35 +3794,14 @@ nsDocShell::LoadErrorPage(nsIURI *aURI, const PRUnichar *aURL,
                 spec.get(), NS_ConvertUTF16toUTF8(aURL).get(), chanName.get()));
     }
 #endif
-    
-    if (aFailedChannel) {
-        mURIResultedInDocument = PR_TRUE;
-        OnLoadingSite(aFailedChannel, PR_TRUE, PR_FALSE);
-    } else if (aURI) {
-        mURIResultedInDocument = PR_TRUE;
-        OnNewURI(aURI, nsnull, nsnull, mLoadType, PR_TRUE, PR_FALSE);
-    }
-    
-    
-    if (mSessionHistory && !mLSHE) {
-        PRInt32 idx;
-        mSessionHistory->GetRequestedIndex(&idx);
-        if (idx == -1)
-            mSessionHistory->GetIndex(&idx);
-
-        nsCOMPtr<nsIHistoryEntry> entry;
-        mSessionHistory->GetEntryAtIndex(idx, PR_FALSE,
-                                         getter_AddRefs(entry));
-        mLSHE = do_QueryInterface(entry);
-    }
+    mFailedChannel = aFailedChannel;
+    mFailedURI = aURI;
+    mFailedLoadType = mLoadType;
 
     nsCAutoString url;
     nsCAutoString charset;
     if (aURI)
     {
-        
-        SetCurrentURI(aURI);
-
         nsresult rv = aURI->GetSpec(url);
         rv |= aURI->GetOriginCharset(charset);
         NS_ENSURE_SUCCESS(rv, rv);
@@ -3951,10 +3930,15 @@ nsDocShell::Stop(PRUint32 aStopFlags)
     
     mRestorePresentationEvent.Revoke();
 
-    if (mLoadType == LOAD_ERROR_PAGE && mLSHE) {
-        
-        SetHistoryEntry(&mOSHE, mLSHE);
-        SetHistoryEntry(&mLSHE, nsnull);
+    if (mLoadType == LOAD_ERROR_PAGE) {
+        if (mLSHE) {
+            
+            SetHistoryEntry(&mOSHE, mLSHE);
+            SetHistoryEntry(&mLSHE, nsnull);
+        }
+
+        mFailedChannel = nsnull;
+        mFailedURI = nsnull;
     }
 
     if (nsIWebNavigation::STOP_CONTENT & aStopFlags) {
@@ -7030,6 +7014,49 @@ nsDocShell::CreateContentViewer(const char *aContentType,
     
     
     mURIResultedInDocument = PR_TRUE;
+
+    if (mLoadType == LOAD_ERROR_PAGE) {
+        
+        
+        
+
+        
+        
+        mLoadType = mFailedLoadType;
+
+        nsCOMPtr<nsIChannel> failedChannel = mFailedChannel;
+        nsCOMPtr<nsIURI> failedURI = mFailedURI;
+        mFailedChannel = nsnull;
+        mFailedURI = nsnull;
+
+        
+        if (failedChannel) {
+            mURIResultedInDocument = PR_TRUE;
+            OnLoadingSite(failedChannel, PR_TRUE, PR_FALSE);
+        } else if (failedURI) {
+            mURIResultedInDocument = PR_TRUE;
+            OnNewURI(failedURI, nsnull, nsnull, mLoadType, PR_TRUE, PR_FALSE);
+        }
+
+        
+        
+        if (mSessionHistory && !mLSHE) {
+            PRInt32 idx;
+            mSessionHistory->GetRequestedIndex(&idx);
+            if (idx == -1)
+                mSessionHistory->GetIndex(&idx);
+
+            nsCOMPtr<nsIHistoryEntry> entry;
+            mSessionHistory->GetEntryAtIndex(idx, PR_FALSE,
+                                             getter_AddRefs(entry));
+            mLSHE = do_QueryInterface(entry);
+        }
+
+        
+        SetCurrentURI(failedURI);
+
+        mLoadType = LOAD_ERROR_PAGE;
+    }
 
     PRBool onLocationChangeNeeded = OnLoadingSite(aOpenedChannel, PR_FALSE);
 
