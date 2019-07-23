@@ -717,12 +717,7 @@ nsContainerFrame::PositionChildViews(nsIFrame* aFrame)
       childFrame = childFrame->GetNextSibling();
     }
 
-    
-    
-    
-    do {
-      childListName = aFrame->GetAdditionalChildListName(childListIndex++);
-    } while (childListName == nsGkAtoms::popupList);
+    childListName = aFrame->GetAdditionalChildListName(childListIndex++);
   } while (childListName);
 }
 

@@ -49,12 +49,13 @@
 #include "nsIAtom.h"
 #include "nsCOMPtr.h"
 #include "nsBoxFrame.h"
-#include "nsMenuFrame.h"
 #include "nsMenuBarListener.h"
+#include "nsMenuListener.h"
 #include "nsIMenuParent.h"
 #include "nsIWidget.h"
 
 class nsIContent;
+class nsIMenuFrame;
 
 nsIFrame* NS_NewMenuBarFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
 
@@ -62,25 +63,47 @@ class nsMenuBarFrame : public nsBoxFrame, public nsIMenuParent
 {
 public:
   nsMenuBarFrame(nsIPresShell* aShell, nsStyleContext* aContext);
+  virtual ~nsMenuBarFrame();
+
+  NS_DECL_ISUPPORTS
 
   
-  virtual nsMenuFrame* GetCurrentMenuItem();
-  NS_IMETHOD SetCurrentMenuItem(nsMenuFrame* aMenuItem);
-  virtual void CurrentMenuIsBeingDestroyed();
-  NS_IMETHOD ChangeMenuItem(nsMenuFrame* aMenuItem, PRBool aSelectFirstItem);
-
+  virtual nsIMenuFrame* GetCurrentMenuItem();
+  NS_IMETHOD SetCurrentMenuItem(nsIMenuFrame* aMenuItem);
+  virtual nsIMenuFrame* GetNextMenuItem(nsIMenuFrame* aStart);
+  virtual nsIMenuFrame* GetPreviousMenuItem(nsIMenuFrame* aStart);
   NS_IMETHOD SetActive(PRBool aActiveFlag); 
+  NS_IMETHOD GetIsActive(PRBool& isActive) { isActive = IsActive(); return NS_OK; }
+  NS_IMETHOD IsMenuBar(PRBool& isMenuBar) { isMenuBar = PR_TRUE; return NS_OK; }
+  NS_IMETHOD ConsumeOutsideClicks(PRBool& aConsumeOutsideClicks) \
+    {aConsumeOutsideClicks = PR_FALSE; return NS_OK;}
+  NS_IMETHOD ClearRecentlyRolledUp();
+  NS_IMETHOD RecentlyRolledUp(nsIMenuFrame *aMenuFrame, PRBool *aJustRolledUp);
 
-  virtual PRBool IsMenuBar() { return PR_TRUE; }
-  virtual PRBool IsContextMenu() { return PR_FALSE; }
-  virtual PRBool IsActive() { return mIsActive; }
-  virtual PRBool IsMenu() { return PR_FALSE; }
-  virtual PRBool IsOpen() { return PR_TRUE; } 
+  NS_IMETHOD SetIsContextMenu(PRBool aIsContextMenu) { return NS_OK; }
+  NS_IMETHOD GetIsContextMenu(PRBool& aIsContextMenu) { aIsContextMenu = PR_FALSE; return NS_OK; }
 
-  PRBool IsMenuOpen() { return mCurrentMenu && mCurrentMenu->IsOpen(); }
+  NS_IMETHOD GetParentPopup(nsIMenuParent** aResult) { *aResult = nsnull;
+                                                       return NS_OK;}
 
-  void InstallKeyboardNavigator();
-  void RemoveKeyboardNavigator();
+  NS_IMETHOD IsActive() { return mIsActive; }
+
+  NS_IMETHOD IsOpen();
+  NS_IMETHOD KillPendingTimers();
+  NS_IMETHOD CancelPendingTimers() { return NS_OK; }
+
+  
+  NS_IMETHOD DismissChain();
+
+  
+  NS_IMETHOD HideChain();
+
+  NS_IMETHOD InstallKeyboardNavigator();
+  NS_IMETHOD RemoveKeyboardNavigator();
+
+  NS_IMETHOD GetWidget(nsIWidget **aWidget);
+  
+  NS_IMETHOD AttachedDismissalListener() { return NS_OK; }
 
   NS_IMETHOD Init(nsIContent*      aContent,
                   nsIFrame*        aParent,
@@ -88,24 +111,24 @@ public:
 
   virtual void Destroy();
 
-  virtual nsIAtom* GetType() const { return nsGkAtoms::menuBarFrame; }
 
 
+  
+  void ToggleMenuActiveState();
+  
+  
+  NS_IMETHOD KeyboardNavigation(PRUint32 aKeyCode, PRBool& aHandledFlag);
+  NS_IMETHOD ShortcutNavigation(nsIDOMKeyEvent* aKeyEvent, PRBool& aHandledFlag);
+  
+  NS_IMETHOD Escape(PRBool& aHandledFlag);
+  
+  NS_IMETHOD Enter();
 
   
-  
-  nsMenuFrame* ToggleMenuActiveState();
+  nsIMenuFrame* FindMenuWithShortcut(nsIDOMKeyEvent* aKeyEvent);
 
-  
-  
-  virtual PRBool MenuClosed();
-
-  
-  
-  nsMenuFrame* Enter();
-
-  
-  nsMenuFrame* FindMenuWithShortcut(nsIDOMKeyEvent* aKeyEvent);
+  PRBool IsValidItem(nsIContent* aContent);
+  PRBool IsDisabled(nsIContent* aContent);
 
   virtual PRBool IsFrameOfType(PRUint32 aFlags) const
   {
@@ -124,11 +147,14 @@ public:
 
 protected:
   nsMenuBarListener* mMenuBarListener; 
+  nsMenuListener* mKeyboardNavigator;
 
   PRBool mIsActive; 
+  nsIMenuFrame* mCurrentMenu; 
+
   
   
-  nsMenuFrame* mCurrentMenu;
+  nsIMenuFrame* mRecentRollupMenu; 
 
   nsIDOMEventTarget* mTarget;
 

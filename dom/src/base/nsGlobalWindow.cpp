@@ -158,7 +158,6 @@
 #include "nsEventDispatcher.h"
 #include "nsIObserverService.h"
 #include "nsNetUtil.h"
-#include "nsXULPopupManager.h"
 
 #include "plbase64.h"
 
@@ -3036,10 +3035,10 @@ nsGlobalWindow::CheckSecurityWidthAndHeight(PRInt32* aWidth, PRInt32* aHeight)
 {
   if (!nsContentUtils::IsCallerTrustedForWrite()) {
     
-    nsXULPopupManager* pm = nsXULPopupManager::GetInstance();
-    nsCOMPtr<nsIDocument> doc(do_QueryInterface(mDocument));
-    if (pm && doc)
-      pm->HidePopupsInDocument(doc);
+    nsCOMPtr<nsIPresShell> presShell;
+    mDocShell->GetPresShell(getter_AddRefs(presShell));
+    if (presShell)
+      presShell->HidePopups();
   }
 
   
@@ -3069,10 +3068,10 @@ nsGlobalWindow::CheckSecurityLeftAndTop(PRInt32* aLeft, PRInt32* aTop)
 
   if (!nsContentUtils::IsCallerTrustedForWrite()) {
     
-    nsXULPopupManager* pm = nsXULPopupManager::GetInstance();
-    nsCOMPtr<nsIDocument> doc(do_QueryInterface(mDocument));
-    if (pm && doc)
-      pm->HidePopupsInDocument(doc);
+    nsCOMPtr<nsIPresShell> presShell;
+    mDocShell->GetPresShell(getter_AddRefs(presShell));
+    if (presShell)
+      presShell->HidePopups();
 
     PRInt32 screenLeft, screenTop, screenWidth, screenHeight;
     PRInt32 winLeft, winTop, winWidth, winHeight;

@@ -49,10 +49,9 @@
 
 #include "nsBoxFrame.h"
 #include "nsFrameList.h"
-#include "nsGkAtoms.h"
 #include "nsIMenuParent.h"
 #include "nsIMenuFrame.h"
-#include "nsXULPopupManager.h"
+#include "nsMenuDismissalListener.h"
 #include "nsITimer.h"
 #include "nsISupportsArray.h"
 #include "nsIDOMText.h"
@@ -62,20 +61,10 @@
 nsIFrame* NS_NewMenuFrame(nsIPresShell* aPresShell, nsStyleContext* aContext, PRUint32 aFlags);
 
 class nsMenuBarFrame;
+class nsMenuPopupFrame;
 class nsIScrollableView;
 
 #define NS_STATE_ACCELTEXT_IS_DERIVED  NS_STATE_BOX_CHILD_RESERVED
-
-
-enum nsMenuType {
-  
-  eMenuType_Normal = 0,
-  
-  eMenuType_Checkbox = 1,
-  
-  
-  eMenuType_Radio = 2
-};
 
 class nsMenuFrame;
 
@@ -161,35 +150,36 @@ public:
   NS_IMETHOD  RemoveFrame(nsIAtom*        aListName,
                           nsIFrame*       aOldFrame);
 
-  virtual nsIAtom* GetType() const { return nsGkAtoms::menuFrame; }
+  
 
+  NS_IMETHOD ActivateMenu(PRBool aActivateFlag); 
   NS_IMETHOD SelectMenu(PRBool aActivateFlag); 
+  NS_IMETHOD OpenMenu(PRBool aActivateFlag); 
 
+  NS_IMETHOD MenuIsOpen(PRBool& aResult) { aResult = IsOpen(); return NS_OK; }
+  NS_IMETHOD MenuIsContainer(PRBool& aResult) { aResult = IsMenu(); return NS_OK; }
+  NS_IMETHOD MenuIsChecked(PRBool& aResult) { aResult = mChecked; return NS_OK; }
+  NS_IMETHOD MenuIsDisabled(PRBool& aResult) { aResult = IsDisabled(); return NS_OK; }
   
-
-
-
-
-  void OpenMenu(PRBool aSelectFirstItem);
-  
-  void CloseMenu(PRBool aDeselectMenu);
-
-  PRBool IsChecked() { return mChecked; }
-
   NS_IMETHOD GetActiveChild(nsIDOMElement** aResult);
   NS_IMETHOD SetActiveChild(nsIDOMElement* aChild); 
 
-  
-  
-  
-  nsMenuFrame* Enter();
+  NS_IMETHOD UngenerateMenu(); 
+
+  NS_IMETHOD SelectFirstItem(); 
+
+  NS_IMETHOD Escape(PRBool& aHandledFlag); 
+  NS_IMETHOD Enter(); 
+  NS_IMETHOD ShortcutNavigation(nsIDOMKeyEvent* aKeyEvent, PRBool& aHandledFlag); 
+  NS_IMETHOD KeyboardNavigation(PRUint32 aKeyCode, PRBool& aHandledFlag); 
 
   NS_IMETHOD SetParent(const nsIFrame* aParent);
 
   virtual nsIMenuParent *GetMenuParent() { return mMenuParent; }
-  const nsAString& GetRadioGroupName() { return mGroupName; }
-  nsMenuType GetMenuType() { return mType; }
-  nsMenuPopupFrame* GetPopup() { return mPopupFrame; }
+  virtual nsIFrame *GetMenuChild() { return mPopupFrames.FirstChild(); }
+  NS_IMETHOD GetRadioGroupName(nsString &aName) { aName = mGroupName; return NS_OK; }
+  NS_IMETHOD GetMenuType(nsMenuType &aType) { aType = mType; return NS_OK; }
+  NS_IMETHOD MarkAsGenerated();
 
   
 
@@ -199,26 +189,12 @@ public:
 
   nsresult DestroyPopupFrames(nsPresContext* aPresContext);
 
-  virtual PRBool IsOnMenuBar() { return mMenuParent && mMenuParent->IsMenuBar(); }
-  virtual PRBool IsOnActiveMenuBar() { return IsOnMenuBar() && mMenuParent->IsActive(); }
-  virtual PRBool IsOpen();
-  virtual PRBool IsMenu();
+  PRBool IsOpen() { return mMenuOpen; }
+  PRBool IsMenu();
   PRBool IsDisabled();
   PRBool IsGenerated();
-  void ToggleMenuState();
+  NS_IMETHOD ToggleMenuState(); 
 
-  
-  
-  
-  void PopupOpened();
-  
-  
-  
-  void PopupClosed(PRBool aDeselectMenu);
-
-  
-  
-  PRBool IsOnMenu() { return mMenuParent && mMenuParent->IsMenu(); }
   void SetIsMenu(PRBool aIsMenu) { mIsMenu = aIsMenu; }
 
 #ifdef DEBUG
@@ -230,23 +206,40 @@ public:
 
   static PRBool IsSizedToPopup(nsIContent* aContent, PRBool aRequireAlways);
 
+  static nsIMenuParent *GetContextMenu();
+
 protected:
   friend class nsMenuTimerMediator;
+  
+  virtual void RePositionPopup(nsBoxLayoutState& aState);
+
+  void
+  ConvertPosition(nsIContent* aPopupElt, nsString& aAnchor, nsString& aAlign);
+
   friend class nsASyncMenuInitialization;
-
-  
-  
-  
-  void InitMenuParent(nsIFrame* aParent);
-
   void UpdateMenuType(nsPresContext* aPresContext); 
   void UpdateMenuSpecialState(nsPresContext* aPresContext); 
+
+  void OpenMenuInternal(PRBool aActivateFlag); 
+  void GetMenuChildrenElement(nsIContent** aResult);
 
   
   void BuildAcceleratorText();
 
   
   void Execute(nsGUIEvent *aEvent); 
+
+  
+  PRBool OnCreate(); 
+
+  
+  PRBool OnCreated(); 
+
+  
+  PRBool OnDestroy(); 
+
+  
+  PRBool OnDestroyed(); 
 
   NS_IMETHOD AttributeChanged(PRInt32 aNameSpaceID,
                               nsIAtom* aAttribute,
@@ -261,16 +254,14 @@ protected:
 #endif
   NS_HIDDEN_(nsresult) Notify(nsITimer* aTimer);
 
+  nsFrameList mPopupFrames;
   PRPackedBool mIsMenu; 
+  PRPackedBool mMenuOpen;
+  PRPackedBool mCreateHandlerSucceeded;  
   PRPackedBool mChecked;              
   nsMenuType mType;
 
   nsIMenuParent* mMenuParent; 
-
-  
-  nsMenuPopupFrame* mPopupFrame;
-
-  nsSize mLastPref;
 
   
   nsRefPtr<nsMenuTimerMediator> mTimerMediator;
@@ -278,6 +269,7 @@ protected:
   nsCOMPtr<nsITimer> mOpenTimer;
 
   nsString mGroupName;
+  nsSize mLastPref;
   
   
   static nsrefcnt gRefCnt; 

@@ -55,6 +55,7 @@
 #include "nsILookAndFeel.h"
 #include "nsIDOMHTMLInputElement.h"
 #include "nsIMenuFrame.h"
+#include "nsIMenuParent.h"
 #include "nsWidgetAtoms.h"
 #include <malloc.h>
 
@@ -786,8 +787,8 @@ nsNativeThemeWin::GetThemePartAndState(nsIFrame* aFrame, PRUint8 aWidgetType,
       nsIContent* content = aFrame->GetContent();
 
       nsIFrame* parentFrame = aFrame->GetParent();
-      if (parentFrame->GetType() == nsWidgetAtoms::menuFrame ||
-          (content && content->IsNodeOfType(nsINode::eHTML)))
+      nsCOMPtr<nsIMenuFrame> menuFrame(do_QueryInterface(parentFrame));
+      if (menuFrame || (content && content->IsNodeOfType(nsINode::eHTML)) )
          
          aFrame = parentFrame;
 
@@ -1410,7 +1411,9 @@ nsNativeThemeWin::ClassicGetWidgetBorder(nsIDeviceContext* aContext,
       if (menuFrame) {
         
         
-        isTopLevel = menuFrame->IsOnMenuBar();
+        nsIMenuParent *menuParent = menuFrame->GetMenuParent();
+        if (menuParent)
+          menuParent->IsMenuBar(isTopLevel);
       }
 
       
@@ -1630,9 +1633,11 @@ nsresult nsNativeThemeWin::ClassicGetThemePartAndState(nsIFrame* aFrame, PRUint8
         
         
         
-        isTopLevel = menuFrame->IsOnMenuBar();
-        isOpen = menuFrame->IsOpen();
-        isContainer = menuFrame->IsMenu();
+        nsIMenuParent *menuParent = menuFrame->GetMenuParent();
+        if (menuParent)
+          menuParent->IsMenuBar(isTopLevel);
+        menuFrame->MenuIsOpen(isOpen);
+        menuFrame->MenuIsContainer(isContainer);
       }
 
       if (IsDisabled(aFrame))
@@ -1699,8 +1704,8 @@ nsresult nsNativeThemeWin::ClassicGetThemePartAndState(nsIFrame* aFrame, PRUint8
       
       nsIContent* content = aFrame->GetContent();
       nsIFrame* parentFrame = aFrame->GetParent();
-      if (parentFrame->GetType() == nsWidgetAtoms::menuFrame ||
-          (content && content->IsNodeOfType(nsINode::eHTML)))
+      nsCOMPtr<nsIMenuFrame> menuFrame(do_QueryInterface(parentFrame));
+      if (menuFrame || (content && content->IsNodeOfType(nsINode::eHTML)) )
          
          aFrame = parentFrame;
          

@@ -111,7 +111,6 @@
 #ifdef MOZ_XUL
 #include "nsIXULDocument.h"
 #endif
-#include "nsXULPopupManager.h"
 #include "nsPrintfCString.h"
 
 #include "nsIClipboardHelper.h"
@@ -1154,9 +1153,10 @@ DocumentViewerImpl::PageHide(PRBool aIsUnload)
 
   
   
-  nsXULPopupManager* pm = nsXULPopupManager::GetInstance();
-  if (pm && mDocument)
-    pm->HidePopupsInDocument(mDocument);
+  if (mPresShell) {
+    nsCOMPtr<nsIPresShell> kungFuDeathGrip = mPresShell;
+    mPresShell->HidePopups();
+  }
 
   return NS_OK;
 }

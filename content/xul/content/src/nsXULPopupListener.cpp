@@ -44,7 +44,6 @@
 
 
 
-#include "nsXULPopupListener.h"
 #include "nsCOMPtr.h"
 #include "nsGkAtoms.h"
 #include "nsIDOMElement.h"
@@ -52,23 +51,27 @@
 #include "nsIDOMNodeList.h"
 #include "nsIDOMDocument.h"
 #include "nsIDOMDocumentXBL.h"
+#include "nsIXULPopupListener.h"
+#include "nsIDOMMouseListener.h"
+#include "nsIDOMContextMenuListener.h"
 #include "nsContentCID.h"
 #include "nsContentUtils.h"
-#include "nsXULPopupManager.h"
 
 #include "nsIScriptContext.h"
 #include "nsIDOMWindowInternal.h"
 #include "nsIDOMXULDocument.h"
 #include "nsIDocument.h"
+#include "nsIContent.h"
+#include "nsIDOMMouseEvent.h"
 #include "nsIDOMNSUIEvent.h"
 #include "nsIDOMEventTarget.h"
 #include "nsIDOMNSEvent.h"
 #include "nsServiceManagerUtils.h"
 #include "nsIPrincipal.h"
 #include "nsIScriptSecurityManager.h"
-#include "nsLayoutUtils.h"
-#include "nsFrameManager.h"
-#include "nsHTMLReflowState.h"
+
+#include "nsIBoxObject.h"
+#include "nsIPopupBoxObject.h"
 
 
 #include "nsPresContext.h"
@@ -76,8 +79,9 @@
 #include "nsIEventStateManager.h"
 #include "nsIFocusController.h"
 #include "nsPIDOMWindow.h"
-#include "nsIViewManager.h"
 #include "nsDOMError.h"
+
+#include "nsIFrame.h"
 #include "nsIMenuFrame.h"
 
 
@@ -86,49 +90,124 @@
 #define NS_CONTEXT_MENU_IS_MOUSEUP 1
 #endif
 
-nsXULPopupListener::nsXULPopupListener(nsIDOMElement *aElement, PRBool aIsContext)
-  : mElement(aElement), mPopupContent(nsnull), mIsContext(aIsContext)
+
+
+
+
+
+
+class XULPopupListenerImpl : public nsIXULPopupListener,
+                             public nsIDOMMouseListener,
+                             public nsIDOMContextMenuListener
+{
+public:
+    XULPopupListenerImpl(void);
+    virtual ~XULPopupListenerImpl(void);
+
+public:
+    
+    NS_DECL_ISUPPORTS
+
+    
+    NS_IMETHOD Init(nsIDOMElement* aElement, const XULPopupType& popupType);
+
+    
+    NS_IMETHOD MouseDown(nsIDOMEvent* aMouseEvent);
+    NS_IMETHOD MouseUp(nsIDOMEvent* aMouseEvent) { return NS_OK; }
+    NS_IMETHOD MouseClick(nsIDOMEvent* aMouseEvent) { return NS_OK; }
+    NS_IMETHOD MouseDblClick(nsIDOMEvent* aMouseEvent) { return NS_OK; }
+    NS_IMETHOD MouseOver(nsIDOMEvent* aMouseEvent) { return NS_OK; }
+    NS_IMETHOD MouseOut(nsIDOMEvent* aMouseEvent) { return NS_OK; }
+
+    
+    NS_IMETHOD ContextMenu(nsIDOMEvent* aContextMenuEvent);
+
+    
+    NS_IMETHOD HandleEvent(nsIDOMEvent* anEvent) { return NS_OK; }
+
+protected:
+
+    virtual nsresult LaunchPopup(nsIDOMEvent* anEvent);
+    virtual nsresult LaunchPopup(PRInt32 aClientX, PRInt32 aClientY) ;
+
+private:
+
+    nsresult PreLaunchPopup(nsIDOMEvent* aMouseEvent);
+    nsresult FireFocusOnTargetContent(nsIDOMNode* aTargetNode);
+
+    
+    nsIDOMElement* mElement;               
+
+    
+    nsCOMPtr<nsIPopupBoxObject> mPopup;
+
+    
+    XULPopupType popupType;
+    
+};
+
+
+      
+XULPopupListenerImpl::XULPopupListenerImpl(void)
+  : mElement(nsnull)
 {
 }
 
-nsXULPopupListener::~nsXULPopupListener(void)
+XULPopupListenerImpl::~XULPopupListenerImpl(void)
 {
-  ClosePopup();
+  if (mPopup) {
+    mPopup->HidePopup();
+  }
+  
+#ifdef DEBUG_REFS
+    --gInstanceCount;
+    fprintf(stdout, "%d - RDF: XULPopupListenerImpl\n", gInstanceCount);
+#endif
 }
 
-NS_IMPL_ADDREF(nsXULPopupListener)
-NS_IMPL_RELEASE(nsXULPopupListener)
+NS_IMPL_ADDREF(XULPopupListenerImpl)
+NS_IMPL_RELEASE(XULPopupListenerImpl)
 
 
-NS_INTERFACE_MAP_BEGIN(nsXULPopupListener)
+NS_INTERFACE_MAP_BEGIN(XULPopupListenerImpl)
+  NS_INTERFACE_MAP_ENTRY(nsIXULPopupListener)
   NS_INTERFACE_MAP_ENTRY(nsIDOMMouseListener)
   NS_INTERFACE_MAP_ENTRY(nsIDOMContextMenuListener)
   NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsIDOMEventListener, nsIDOMMouseListener)
+  NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, nsIXULPopupListener)
 NS_INTERFACE_MAP_END
+
+NS_IMETHODIMP
+XULPopupListenerImpl::Init(nsIDOMElement* aElement, const XULPopupType& popup)
+{
+  mElement = aElement; 
+  popupType = popup;
+  return NS_OK;
+}
 
 
 
 
 nsresult
-nsXULPopupListener::MouseDown(nsIDOMEvent* aMouseEvent)
+XULPopupListenerImpl::MouseDown(nsIDOMEvent* aMouseEvent)
 {
-  if(!mIsContext)
+  if(popupType != eXULPopupType_context)
     return PreLaunchPopup(aMouseEvent);
   else
     return NS_OK;
 }
 
 nsresult
-nsXULPopupListener::ContextMenu(nsIDOMEvent* aMouseEvent)
+XULPopupListenerImpl::ContextMenu(nsIDOMEvent* aMouseEvent)
 {
-  if(mIsContext)
+  if(popupType == eXULPopupType_context)
     return PreLaunchPopup(aMouseEvent);
   else 
     return NS_OK;
 }
 
 nsresult
-nsXULPopupListener::PreLaunchPopup(nsIDOMEvent* aMouseEvent)
+XULPopupListenerImpl::PreLaunchPopup(nsIDOMEvent* aMouseEvent)
 {
   PRUint16 button;
 
@@ -151,7 +230,7 @@ nsXULPopupListener::PreLaunchPopup(nsIDOMEvent* aMouseEvent)
   mouseEvent->GetTarget(getter_AddRefs(target));
   nsCOMPtr<nsIDOMNode> targetNode = do_QueryInterface(target);
 
-  if (!targetNode && mIsContext) {
+  if (!targetNode && popupType == eXULPopupType_context) {
     
     nsCOMPtr<nsIDOMWindow> domWin = do_QueryInterface(target);
     if (!domWin) {
@@ -171,7 +250,7 @@ nsXULPopupListener::PreLaunchPopup(nsIDOMEvent* aMouseEvent)
 
   PRBool preventDefault;
   nsUIEvent->GetPreventDefault(&preventDefault);
-  if (preventDefault && targetNode && mIsContext) {
+  if (preventDefault && targetNode && popupType == eXULPopupType_context) {
     
     
     PRBool eventEnabled =
@@ -204,8 +283,8 @@ nsXULPopupListener::PreLaunchPopup(nsIDOMEvent* aMouseEvent)
   
   
   
-  nsCOMPtr<nsIContent> targetContent = do_QueryInterface(target);
-  if (!mIsContext) {
+  if (popupType == eXULPopupType_popup) {
+    nsCOMPtr<nsIContent> targetContent = do_QueryInterface(target);
     nsIAtom *tag = targetContent ? targetContent->Tag() : nsnull;
     if (tag == nsGkAtoms::menu || tag == nsGkAtoms::menuitem)
       return NS_OK;
@@ -216,38 +295,48 @@ nsXULPopupListener::PreLaunchPopup(nsIDOMEvent* aMouseEvent)
 
   
   nsCOMPtr<nsIDOMXULDocument> xulDocument = do_QueryInterface(content->GetDocument());
-  if (!xulDocument)
+  if (!xulDocument) {
+    NS_ERROR("Popup attached to an element that isn't in XUL!");
     return NS_ERROR_FAILURE;
+  }
 
   
-  xulDocument->SetPopupNode(targetNode);
+  
+  xulDocument->SetPopupNode( targetNode );
+  xulDocument->SetTrustedPopupEvent( aMouseEvent );
 
   nsCOMPtr<nsIDOMNSEvent> nsevent(do_QueryInterface(aMouseEvent));
 
-  if (mIsContext) {
+  switch (popupType) {
+    case eXULPopupType_popup:
+      
+      mouseEvent->GetButton(&button);
+      if (button == 0) {
+        
+        LaunchPopup(aMouseEvent);
+        aMouseEvent->StopPropagation();
+        aMouseEvent->PreventDefault();
+      }
+      break;
+    case eXULPopupType_context:
+
+      
 #ifndef NS_CONTEXT_MENU_IS_MOUSEUP
-    
-    
-    FireFocusOnTargetContent(targetNode);
+      
+      
+      FireFocusOnTargetContent(targetNode);
 #endif
+      LaunchPopup(aMouseEvent);
+      aMouseEvent->StopPropagation();
+      aMouseEvent->PreventDefault();
+      break;
   }
-  else {
-    
-    mouseEvent->GetButton(&button);
-    if (button != 0)
-      return NS_OK;
-  }
-
-  
-  LaunchPopup(aMouseEvent, targetContent);
-  aMouseEvent->StopPropagation();
-  aMouseEvent->PreventDefault();
-
+  xulDocument->SetTrustedPopupEvent(nsnull);
   return NS_OK;
 }
 
 nsresult
-nsXULPopupListener::FireFocusOnTargetContent(nsIDOMNode* aTargetNode)
+XULPopupListenerImpl::FireFocusOnTargetContent(nsIDOMNode* aTargetNode)
 {
   nsresult rv;
   nsCOMPtr<nsIDOMDocument> domDoc;
@@ -322,22 +411,23 @@ nsXULPopupListener::FireFocusOnTargetContent(nsIDOMNode* aTargetNode)
 
 
 
-
-
-
-void
-nsXULPopupListener::ClosePopup()
+nsresult
+XULPopupListenerImpl::LaunchPopup ( nsIDOMEvent* anEvent )
 {
-  if (mPopupContent) {
+  
+  nsCOMPtr<nsIDOMMouseEvent> mouseEvent ( do_QueryInterface(anEvent) );
+  if (!mouseEvent) {
     
-    
-    
-    nsXULPopupManager* pm = nsXULPopupManager::GetInstance();
-    if (pm)
-      pm->HidePopup(mPopupContent, PR_FALSE, PR_TRUE, PR_TRUE);
-    mPopupContent = nsnull;  
+    return NS_OK;
   }
-} 
+
+  PRInt32 xPos, yPos;
+  mouseEvent->GetClientX(&xPos); 
+  mouseEvent->GetClientY(&yPos); 
+
+  return LaunchPopup(xPos, yPos);
+}
+
 
 static void
 GetImmediateChild(nsIContent* aContent, nsIAtom *aTag, nsIContent** aResult) 
@@ -356,9 +446,52 @@ GetImmediateChild(nsIContent* aContent, nsIAtom *aTag, nsIContent** aResult)
   return;
 }
 
+static void ConvertPosition(nsIDOMElement* aPopupElt, nsString& aAnchor, nsString& aAlign, PRInt32& aY)
+{
+  nsAutoString position;
+  aPopupElt->GetAttribute(NS_LITERAL_STRING("position"), position);
+  if (position.IsEmpty())
+    return;
 
-
-
+  if (position.EqualsLiteral("before_start")) {
+    aAnchor.AssignLiteral("topleft");
+    aAlign.AssignLiteral("bottomleft");
+  }
+  else if (position.EqualsLiteral("before_end")) {
+    aAnchor.AssignLiteral("topright");
+    aAlign.AssignLiteral("bottomright");
+  }
+  else if (position.EqualsLiteral("after_start")) {
+    aAnchor.AssignLiteral("bottomleft");
+    aAlign.AssignLiteral("topleft");
+  }
+  else if (position.EqualsLiteral("after_end")) {
+    aAnchor.AssignLiteral("bottomright");
+    aAlign.AssignLiteral("topright");
+  }
+  else if (position.EqualsLiteral("start_before")) {
+    aAnchor.AssignLiteral("topleft");
+    aAlign.AssignLiteral("topright");
+  }
+  else if (position.EqualsLiteral("start_after")) {
+    aAnchor.AssignLiteral("bottomleft");
+    aAlign.AssignLiteral("bottomright");
+  }
+  else if (position.EqualsLiteral("end_before")) {
+    aAnchor.AssignLiteral("topright");
+    aAlign.AssignLiteral("topleft");
+  }
+  else if (position.EqualsLiteral("end_after")) {
+    aAnchor.AssignLiteral("bottomright");
+    aAlign.AssignLiteral("bottomleft");
+  }
+  else if (position.EqualsLiteral("overlap")) {
+    aAnchor.AssignLiteral("topleft");
+    aAlign.AssignLiteral("topleft");
+  }
+  else if (position.EqualsLiteral("after_pointer"))
+    aY += 21;
+}
 
 
 
@@ -372,13 +505,20 @@ GetImmediateChild(nsIContent* aContent, nsIAtom *aTag, nsIContent** aResult)
 
 
 nsresult
-nsXULPopupListener::LaunchPopup(nsIDOMEvent* aEvent, nsIContent* aTargetContent)
+XULPopupListenerImpl::LaunchPopup(PRInt32 aClientX, PRInt32 aClientY)
 {
   nsresult rv = NS_OK;
 
   nsAutoString type(NS_LITERAL_STRING("popup"));
-  if (mIsContext)
+  if ( popupType == eXULPopupType_context ) {
     type.AssignLiteral("context");
+    
+    
+    
+    
+    aClientX += 2;
+    aClientY += 2;
+  }
 
   nsAutoString identifier;
   mElement->GetAttribute(type, identifier);
@@ -404,14 +544,14 @@ nsXULPopupListener::LaunchPopup(nsIDOMEvent* aEvent, nsIContent* aTargetContent)
   }
 
   
-  nsCOMPtr<nsIDOMElement> popupElement;
+  nsCOMPtr<nsIDOMElement> popupContent;
 
   if (identifier.EqualsLiteral("_child")) {
     nsCOMPtr<nsIContent> popup;
 
     GetImmediateChild(content, nsGkAtoms::menupopup, getter_AddRefs(popup));
     if (popup)
-      popupElement = do_QueryInterface(popup);
+      popupContent = do_QueryInterface(popup);
     else {
       nsCOMPtr<nsIDOMDocumentXBL> nsDoc(do_QueryInterface(domDocument));
       nsCOMPtr<nsIDOMNodeList> list;
@@ -426,7 +566,7 @@ nsXULPopupListener::LaunchPopup(nsIDOMEvent* aEvent, nsIContent* aTargetContent)
 
           if (childContent->NodeInfo()->Equals(nsGkAtoms::menupopup,
                                                kNameSpaceID_XUL)) {
-            popupElement = do_QueryInterface(childContent);
+            popupContent = do_QueryInterface(childContent);
             break;
           }
         }
@@ -434,60 +574,57 @@ nsXULPopupListener::LaunchPopup(nsIDOMEvent* aEvent, nsIContent* aTargetContent)
     }
   }
   else if (NS_FAILED(rv = domDocument->GetElementById(identifier,
-                                              getter_AddRefs(popupElement)))) {
+                                              getter_AddRefs(popupContent)))) {
     
     
     NS_ERROR("GetElementById had some kind of spasm.");
     return rv;
   }
-
-  
-  if ( !popupElement || popupElement == mElement)
+  if ( !popupContent )
     return NS_OK;
 
   
   
-  nsCOMPtr<nsIContent> popup = do_QueryInterface(popupElement);
+  nsCOMPtr<nsIContent> popup = do_QueryInterface(popupContent);
   nsIContent* parent = popup->GetParent();
   if (parent) {
     nsIDocument* doc = parent->GetCurrentDoc();
     nsIPresShell* presShell = doc ? doc->GetPrimaryShell() : nsnull;
     nsIFrame* frame = presShell ? presShell->GetPrimaryFrameFor(parent) : nsnull;
-    if (frame && frame->GetType() == nsGkAtoms::menuFrame)
-      return NS_OK;
-  }
-
-  nsXULPopupManager* pm = nsXULPopupManager::GetInstance();
-  if (!pm)
-    return NS_OK;
-
-  
-  
-  pm->SetMouseLocation(aEvent);
-
-  
-  
-  mPopupContent = popup;
-  if (mPopupContent->HasAttr(kNameSpaceID_None, nsGkAtoms::position) ||
-      mPopupContent->HasAttr(kNameSpaceID_None, nsGkAtoms::popupanchor) ||
-      mPopupContent->HasAttr(kNameSpaceID_None, nsGkAtoms::popupalign)) {
-    pm->ShowPopup(mPopupContent, content, EmptyString(), 0, 0,
-                  mIsContext, PR_TRUE, PR_FALSE);
-  }
-  else {
-    PRInt32 xPos = 0, yPos = 0;
-    nsCOMPtr<nsIDOMMouseEvent> mouseEvent = do_QueryInterface(aEvent);
-    mouseEvent->GetScreenX(&xPos);
-    mouseEvent->GetScreenY(&yPos);
-
-    if (mIsContext) {
-      
-      
-      xPos += 2;
-      yPos += 2;
+    if (frame) {
+      nsIMenuFrame* menu = nsnull;
+      CallQueryInterface(frame, &menu);
+      NS_ENSURE_FALSE(menu, NS_OK);
     }
+  }
 
-    pm->ShowPopupAtScreen(mPopupContent, xPos, yPos, mIsContext);
+  
+  nsPIDOMWindow *domWindow = document->GetWindow();
+
+  if (domWindow) {
+    
+    nsAutoString anchorAlignment;
+    popupContent->GetAttribute(NS_LITERAL_STRING("popupanchor"), anchorAlignment);
+
+    nsAutoString popupAlignment;
+    popupContent->GetAttribute(NS_LITERAL_STRING("popupalign"), popupAlignment);
+
+    PRInt32 xPos = aClientX, yPos = aClientY;
+
+    ConvertPosition(popupContent, anchorAlignment, popupAlignment, yPos);
+    if (!anchorAlignment.IsEmpty() && !popupAlignment.IsEmpty())
+      xPos = yPos = -1;
+
+    nsCOMPtr<nsIBoxObject> popupBox;
+    nsCOMPtr<nsIDOMXULElement> xulPopupElt(do_QueryInterface(popupContent));
+    xulPopupElt->GetBoxObject(getter_AddRefs(popupBox));
+    nsCOMPtr<nsIPopupBoxObject> popupBoxObject(do_QueryInterface(popupBox));
+    if (popupBoxObject) {
+      mPopup = popupBoxObject;
+      popupBoxObject->ShowPopup(mElement, popupContent, xPos, yPos, 
+                                type.get(), anchorAlignment.get(), 
+                                popupAlignment.get());
+    }
   }
 
   return NS_OK;
@@ -495,14 +632,13 @@ nsXULPopupListener::LaunchPopup(nsIDOMEvent* aEvent, nsIContent* aTargetContent)
 
 
 nsresult
-NS_NewXULPopupListener(nsIDOMElement* aElement, PRBool aIsContext,
-                       nsIDOMEventListener** aListener)
+NS_NewXULPopupListener(nsIXULPopupListener** pop)
 {
-    nsXULPopupListener* pl = new nsXULPopupListener(aElement, aIsContext);
-    if (!pl)
+    XULPopupListenerImpl* popup = new XULPopupListenerImpl();
+    if (!popup)
       return NS_ERROR_OUT_OF_MEMORY;
-
-    *aListener = NS_STATIC_CAST(nsIDOMMouseListener *, pl);
-    NS_ADDREF(*aListener);
+    
+    NS_ADDREF(popup);
+    *pop = popup;
     return NS_OK;
 }

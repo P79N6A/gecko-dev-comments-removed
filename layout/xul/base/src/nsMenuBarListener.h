@@ -87,10 +87,6 @@ protected:
 
   static PRUint32 GetModifiers(nsIDOMKeyEvent* event);
 
-  
-  
-  void ToggleMenuActiveState();
-
   nsMenuBarFrame* mMenuBarFrame; 
   PRBool mAccessKeyDown;         
   static PRBool mAccessKeyFocuses; 
