@@ -292,6 +292,14 @@ public:
 
 #define TRUETYPE_TAG(a, b, c, d) ((a) << 24 | (b) << 16 | (c) << 8 | (d))
 
+
+struct FontDataOverlay {
+    
+    PRUint32  overlaySrc;    
+    PRUint32  overlaySrcLen; 
+    PRUint32  overlayDest;   
+};
+    
 class THEBES_API gfxFontUtils {
 
 public:
@@ -332,6 +340,7 @@ public:
              PRPackedBool& aUnicodeFont, PRPackedBool& aSymbolFont);
 
 #ifdef XP_WIN
+
     
     
     
@@ -339,7 +348,7 @@ public:
     
     static nsresult
     MakeEOTHeader(const PRUint8 *aFontData, PRUint32 aFontDataLength,
-                  nsTArray<PRUint8> *aHeader);
+                  nsTArray<PRUint8> *aHeader, FontDataOverlay *aOverlay);
 #endif
 
     
