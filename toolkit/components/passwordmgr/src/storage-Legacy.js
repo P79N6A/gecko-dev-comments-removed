@@ -130,8 +130,8 @@ LoginManagerStorage_legacy.prototype = {
         this._disabledHosts = {};
 
         
-        this._prefBranch = Cc["@mozilla.org/preferences-service;1"]
-                                .getService(Ci.nsIPrefService);
+        this._prefBranch = Cc["@mozilla.org/preferences-service;1"].
+                           getService(Ci.nsIPrefService);
         this._prefBranch = this._prefBranch.getBranch("signon.");
         this._prefBranch.QueryInterface(Ci.nsIPrefBranch2);
 
@@ -139,8 +139,8 @@ LoginManagerStorage_legacy.prototype = {
 
         
         
-        var tokenDB = Cc["@mozilla.org/security/pk11tokendb;1"]
-                            .getService(Ci.nsIPK11TokenDB);
+        var tokenDB = Cc["@mozilla.org/security/pk11tokendb;1"].
+                      getService(Ci.nsIPK11TokenDB);
 
         var token = tokenDB.getInternalKeyToken();
         if (token.needsUserInit) {
@@ -764,8 +764,8 @@ LoginManagerStorage_legacy.prototype = {
             return;
         }
 
-        var inputStream = Cc["@mozilla.org/network/file-input-stream;1"]
-                                .createInstance(Ci.nsIFileInputStream);
+        var inputStream = Cc["@mozilla.org/network/file-input-stream;1"].
+                          createInstance(Ci.nsIFileInputStream);
         
         inputStream.init(this._signonsFile, 0x01, -1, null);
         var lineStream = inputStream.QueryInterface(Ci.nsILineInputStream);
@@ -1218,8 +1218,8 @@ LoginManagerStorage_legacy.prototype = {
             } else {
                 plainOctet = this._decoderRing.decryptString(cipherText);
             }
-            var converter = Cc["@mozilla.org/intl/scriptableunicodeconverter"]
-                              .createInstance(Ci.nsIScriptableUnicodeConverter);
+            var converter = Cc["@mozilla.org/intl/scriptableunicodeconverter"].
+                            createInstance(Ci.nsIScriptableUnicodeConverter);
             converter.charset = "UTF-8";
             plainText = converter.ConvertToUnicode(plainOctet);
         } catch (e) {

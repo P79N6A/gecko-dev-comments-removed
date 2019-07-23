@@ -59,8 +59,8 @@ LoginManager.prototype = {
     __logService : null, 
     get _logService() {
         if (!this.__logService)
-            this.__logService = Cc["@mozilla.org/consoleservice;1"]
-                                    .getService(Ci.nsIConsoleService);
+            this.__logService = Cc["@mozilla.org/consoleservice;1"].
+                                getService(Ci.nsIConsoleService);
         return this.__logService;
     },
 
@@ -68,8 +68,8 @@ LoginManager.prototype = {
     __ioService: null, 
     get _ioService() {
         if (!this.__ioService)
-            this.__ioService = Cc["@mozilla.org/network/io-service;1"]
-                                    .getService(Ci.nsIIOService);
+            this.__ioService = Cc["@mozilla.org/network/io-service;1"].
+                               getService(Ci.nsIIOService);
         return this.__ioService;
     },
 
@@ -77,9 +77,9 @@ LoginManager.prototype = {
     __formFillService : null, 
     get _formFillService() {
         if (!this.__formFillService)
-            this.__formFillService = Cc[
-                                "@mozilla.org/satchel/form-fill-controller;1"]
-                                    .getService(Ci.nsIFormFillController);
+            this.__formFillService =
+                            Cc["@mozilla.org/satchel/form-fill-controller;1"].
+                            getService(Ci.nsIFormFillController);
         return this.__formFillService;
     },
 
@@ -87,8 +87,8 @@ LoginManager.prototype = {
     __storage : null, 
     get _storage() {
         if (!this.__storage) {
-            this.__storage = Cc["@mozilla.org/login-manager/storage/legacy;1"]
-                                .createInstance(Ci.nsILoginManagerStorage);
+            this.__storage = Cc["@mozilla.org/login-manager/storage/legacy;1"].
+                             createInstance(Ci.nsILoginManagerStorage);
             try {
                 this.__storage.init();
             } catch (e) {
@@ -100,7 +100,7 @@ LoginManager.prototype = {
         return this.__storage;
     },
 
-    _prefBranch : null, 
+    _prefBranch  : null, 
     _nsLoginInfo : null, 
 
     _remember : true,  
@@ -125,8 +125,8 @@ LoginManager.prototype = {
         this._observer._pwmgr            = this;
 
         
-        this._prefBranch = Cc["@mozilla.org/preferences-service;1"]
-            .getService(Ci.nsIPrefService).getBranch("signon.");
+        this._prefBranch = Cc["@mozilla.org/preferences-service;1"].
+                           getService(Ci.nsIPrefService).getBranch("signon.");
         this._prefBranch.QueryInterface(Ci.nsIPrefBranch2);
         this._prefBranch.addObserver("", this._observer, false);
 
@@ -142,14 +142,14 @@ LoginManager.prototype = {
 
 
         
-        var observerService = Cc["@mozilla.org/observer-service;1"]
-                                .getService(Ci.nsIObserverService);
+        var observerService = Cc["@mozilla.org/observer-service;1"].
+                              getService(Ci.nsIObserverService);
         observerService.addObserver(this._observer, "earlyformsubmit", false);
         observerService.addObserver(this._observer, "xpcom-shutdown", false);
 
         
-        var progress = Cc["@mozilla.org/docloaderservice;1"]
-                        .getService(Ci.nsIWebProgress);
+        var progress = Cc["@mozilla.org/docloaderservice;1"].
+                       getService(Ci.nsIWebProgress);
         progress.addProgressListener(this._webProgressListener,
                                      Ci.nsIWebProgress.NOTIFY_STATE_DOCUMENT);
 
@@ -714,7 +714,7 @@ LoginManager.prototype = {
         
         function getPrompter(aWindow) {
             var prompterSvc = Cc["@mozilla.org/login-manager/prompter;1"].
-                            createInstance(Ci.nsILoginManagerPrompter);
+                              createInstance(Ci.nsILoginManagerPrompter);
             prompterSvc.init(aWindow);
             return prompterSvc;
         }
@@ -1173,8 +1173,8 @@ UserAutoCompleteResult.prototype = {
             this.defaultIndex--;
 
         if (removeFromDB) {
-            var pwmgr = Cc["@mozilla.org/login-manager;1"]
-                            .getService(Ci.nsILoginManager);
+            var pwmgr = Cc["@mozilla.org/login-manager;1"].
+                        getService(Ci.nsILoginManager);
             pwmgr.removeLogin(removedLogin);
         }
     },
