@@ -54,6 +54,22 @@ bdo[dir] {
 
 
 
+
+
+
+
+
+
+address, blockquote, body, caption, center, col, colgroup, dd, dir, div, dl, dt,
+fieldset, form, h1, h2, h3, h4, h5, h6, hr, html, isindex, li, listing, map, 
+marquee, menu, noframes, ol, p, plaintext, pre, table, tbody, td, tfoot, th, 
+thead, tr, ul, xmp {
+  unicode-bidi: embed;
+}
+
+
+
+
 html, div, map, dt, isindex, form {
   display: block;
 }
