@@ -2840,6 +2840,11 @@ public:
     
 
 
+    NS_IMETHOD InvalidateOwner() { return NS_ERROR_NOT_IMPLEMENTED; }
+
+    
+
+
     UpPluginInstancePeer2(void *pvThis) :
         UpPluginInstancePeerBase(pvThis, (nsIPluginInstancePeer2*)this, kPluginInstancePeer2IID)
     {
