@@ -45,12 +45,14 @@
 #include "nsID.h"
 #include "nsIObserver.h"
 #include "nsIUrlClassifierDBService.h"
+#include "nsIURIClassifier.h"
 
 class nsUrlClassifierDBServiceWorker;
 
 
 
 class nsUrlClassifierDBService : public nsIUrlClassifierDBService,
+                                 public nsIURIClassifier,
                                  public nsIObserver
 {
 public:
@@ -69,11 +71,16 @@ public:
 
   NS_DECL_ISUPPORTS
   NS_DECL_NSIURLCLASSIFIERDBSERVICE
+  NS_DECL_NSIURICLASSIFIER
   NS_DECL_NSIOBSERVER
 
 private:
   
   ~nsUrlClassifierDBService();
+
+  nsresult LookupURI(nsIURI* uri,
+                     nsIUrlClassifierCallback* c,
+                     PRBool needsProxy);
 
   
   nsUrlClassifierDBService(nsUrlClassifierDBService&);
@@ -85,6 +92,10 @@ private:
   nsresult Shutdown();
   
   nsCOMPtr<nsUrlClassifierDBServiceWorker> mWorker;
+
+  
+  
+  PRBool mCheckMalware;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsUrlClassifierDBService, NS_URLCLASSIFIERDBSERVICE_CID)

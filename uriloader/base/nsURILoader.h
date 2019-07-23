@@ -92,4 +92,10 @@ protected:
   friend class nsDocumentOpenInfo;
 };
 
+
+
+
+
+#define NS_ERROR_MALWARE_URI   NS_ERROR_GENERATE_FAILURE(NS_ERROR_MODULE_URILOADER, 30)
+
 #endif 

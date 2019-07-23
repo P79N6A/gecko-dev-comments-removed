@@ -53,6 +53,12 @@
 
 
 
+#define NS_URICLASSIFIERSERVICE_CONTRACTID "@mozilla.org/uriclassifierservice"
+
+
+
+
+
 
 
 
