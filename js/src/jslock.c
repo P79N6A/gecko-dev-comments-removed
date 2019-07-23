@@ -353,7 +353,30 @@ ShareScope(JSContext *cx, JSScope *scope)
         JS_NOTIFY_ALL_CONDVAR(rt->scopeSharingDone);
     }
     js_InitLock(&scope->lock);
-    scope->u.count = 0;
+    if (scope == rt->setSlotScope) {
+        
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        scope->lock.owner = CX_THINLOCK_ID(scope->ownercx);
+#ifdef NSPR_LOCK
+        JS_ACQUIRE_LOCK((JSLock*)scope->lock.fat);
+#endif
+        scope->u.count = 1;
+    } else {
+        scope->u.count = 0;
+    }
     js_FinishSharingScope(cx, scope);
 }
 
@@ -445,6 +468,17 @@ ClaimScope(JSScope *scope, JSContext *cx)
         }
 
         
+
+
+
+
+
+
+
+
+
+
+
 
 
 
