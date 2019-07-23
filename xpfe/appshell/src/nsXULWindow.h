@@ -127,7 +127,7 @@ protected:
    NS_IMETHOD GetWindowDOMElement(nsIDOMElement** aDOMElement);
    NS_IMETHOD GetDOMElementById(char* aID, nsIDOMElement** aDOMElement);
 
-  
+   
    NS_HIDDEN_(nsresult) ContentShellAdded(nsIDocShellTreeItem* aContentShell,
                                           PRBool aPrimary, PRBool aTargetable,
                                           const nsAString& aID);
