@@ -722,15 +722,19 @@ ContextualAnalysis(PRUnichar prev, PRUnichar cur, PRUnichar next,
       
       if (prev == cur)
         return CLASS_CHARACTER;
+      
+      
+      PRBool shouldReturn = !aState.UseConservativeBreaking() &&
+        (cur == U_SLASH ?
+         aState.HasPreviousSlash() : aState.HasPreviousBackslash());
+
       if (cur == U_SLASH) {
         aState.NotifySeenSlash();
       } else {
         aState.NotifySeenBackslash();
       }
-      
-      if (!aState.UseConservativeBreaking() &&
-          (cur == U_SLASH ?
-           aState.HasPreviousSlash() : aState.HasPreviousBackslash()))
+
+      if (shouldReturn)
         return CLASS_OPEN;
     } else if (cur == U_PERCENT) {
       
