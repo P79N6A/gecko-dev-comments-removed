@@ -1111,6 +1111,7 @@ function prepareForStartup() {
 
   
   gBrowser.addProgressListener(window.XULBrowserWindow, Components.interfaces.nsIWebProgress.NOTIFY_ALL);
+  gBrowser.addTabsProgressListener(window.TabsProgressListener);
 
   
   gBrowser.addEventListener("DOMLinkAdded", DOMLinkHandler, false);
@@ -1274,7 +1275,9 @@ function delayedStartup(isLoadingBlank, mustLoadSidebar) {
   gBrowser.addEventListener("command", BrowserOnCommand, false);
 
   tabPreviews.init();
+#ifdef USE_TAB_PREVIEWS
   ctrlTab.init();
+#endif
 
   
   
@@ -1321,8 +1324,9 @@ function delayedStartup(isLoadingBlank, mustLoadSidebar) {
 function BrowserShutdown()
 {
   tabPreviews.uninit();
+#ifdef USE_TAB_PREVIEWS
   ctrlTab.uninit();
-
+#endif
   gGestureSupport.init(false);
 
   try {
@@ -1339,6 +1343,7 @@ function BrowserShutdown()
 
   try {
     gBrowser.removeProgressListener(window.XULBrowserWindow);
+    gBrowser.removeTabsProgressListener(window.TabsProgressListener);
   } catch (ex) {
   }
 
@@ -1409,7 +1414,7 @@ function nonBrowserWindowStartup()
 
   
   
-  if (window.location.href == "chrome://browser/content/hiddenWindow.xul")
+  if (window.location.href == "chrome:
   {
     var hiddenWindowDisabledItems = ['cmd_close', 'minimizeWindow', 'zoomWindow'];
     for (var id in hiddenWindowDisabledItems)
@@ -1728,14 +1733,14 @@ function openLocation()
     }
     else {
       
-      win = window.openDialog("chrome://browser/content/", "_blank",
+      win = window.openDialog("chrome:
                               "chrome,all,dialog=no", "about:blank");
       win.addEventListener("load", openLocationCallback, false);
     }
     return;
   }
 #endif
-  openDialog("chrome://browser/content/openLocation.xul", "_blank",
+  openDialog("chrome:
              "chrome,modal,titlebar", window);
 }
 
@@ -1749,7 +1754,7 @@ function BrowserOpenTab()
 {
   if (!gBrowser) {
     
-    window.openDialog("chrome://browser/content/", "_blank",
+    window.openDialog("chrome:
                       "chrome,all,dialog=no", "about:blank");
     return;
   }
@@ -2016,7 +2021,7 @@ function BrowserPageInfo(doc, initialTab)
   var args = {doc: doc, initialTab: initialTab};
   return toOpenDialogByTypeAndUrl("Browser:page-info",
                                   doc ? doc.location : window.content.document.location,
-                                  "chrome://browser/content/pageinfo/pageInfo.xul",
+                                  "chrome:
                                   "chrome,toolbar,dialog=no,resizable",
                                   args);
 }
@@ -2241,11 +2246,11 @@ function BrowserImport()
   if (win)
     win.focus();
   else {
-    window.openDialog("chrome://browser/content/migration/migration.xul",
+    window.openDialog("chrome:
                       "migration", "centerscreen,chrome,resizable=no");
   }
 #else
-  window.openDialog("chrome://browser/content/migration/migration.xul",
+  window.openDialog("chrome:
                     "migration", "modal,centerscreen,chrome,resizable=no");
 #endif
 }
@@ -2278,7 +2283,7 @@ function BrowserOnCommand(event) {
           Components.utils.reportError("Couldn't get ssl_override pref: " + e);
         }
         
-        window.openDialog('chrome://pippki/content/exceptionDialog.xul',
+        window.openDialog('chrome:
                           '','chrome,centerscreen,modal', params);
         
         
@@ -2361,7 +2366,7 @@ function BrowserOnCommand(event) {
         notificationBox.appendNotification(
           title,
           "blocked-badware-page",
-          "chrome://global/skin/icons/blacklist_favicon.png",
+          "chrome:
           notificationBox.PRIORITY_CRITICAL_HIGH,
           buttons
         );
@@ -2530,10 +2535,10 @@ function getMarkupDocumentViewer()
 function FillInHTMLTooltip(tipElement)
 {
   var retVal = false;
-  if (tipElement.namespaceURI == "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul")
+  if (tipElement.namespaceURI == "http:
     return retVal;
 
-  const XLinkNS = "http://www.w3.org/1999/xlink";
+  const XLinkNS = "http:
 
 
   var titleText = null;
@@ -2957,7 +2962,7 @@ const BrowserSearch = {
           setTimeout(BrowserSearch.webSearch, 0);
         }
 
-        win = window.openDialog("chrome:
+        win = window.openDialog("chrome://browser/content/", "_blank",
                                 "chrome,all,dialog=no", "about:blank");
         win.addEventListener("load", webSearchCallback, false);
       }
@@ -3106,7 +3111,7 @@ function addToUrlbarHistory(aUrlToAdd) {
 
 function toJavaScriptConsole()
 {
-  toOpenWindowByType("global:console", "chrome:
+  toOpenWindowByType("global:console", "chrome://global/content/console.xul");
 }
 
 function BrowserDownloadsUI()
@@ -3796,8 +3801,7 @@ var XULBrowserWindow = {
   },
   
   onLinkIconAvailable: function (aBrowser) {
-    if (gProxyFavIcon && gBrowser.mCurrentBrowser == aBrowser &&
-        gBrowser.userTypedValue === null)
+    if (gProxyFavIcon && gBrowser.userTypedValue === null)
       PageProxySetIcon(aBrowser.mIconURL); 
   },
 
@@ -4044,55 +4048,6 @@ var XULBrowserWindow = {
     this.updateStatusField();
   },
 
-  onRefreshAttempted: function (aWebProgress, aURI, aDelay, aSameURI) {
-    if (gPrefService.getBoolPref("accessibility.blockautorefresh")) {
-      let brandBundle = document.getElementById("bundle_brand");
-      let brandShortName = brandBundle.getString("brandShortName");
-      let refreshButtonText =
-        gNavigatorBundle.getString("refreshBlocked.goButton");
-      let refreshButtonAccesskey =
-        gNavigatorBundle.getString("refreshBlocked.goButton.accesskey");
-      let message =
-        gNavigatorBundle.getFormattedString(aSameURI ? "refreshBlocked.refreshLabel"
-                                                     : "refreshBlocked.redirectLabel",
-                                            [brandShortName]);
-      let topBrowser = getBrowserFromContentWindow(aWebProgress.DOMWindow.top);
-      let docShell = aWebProgress.DOMWindow
-                                 .QueryInterface(Ci.nsIInterfaceRequestor)
-                                 .getInterface(Ci.nsIWebNavigation)
-                                 .QueryInterface(Ci.nsIDocShell);
-      let notificationBox = gBrowser.getNotificationBox(topBrowser);
-      let notification = notificationBox.getNotificationWithValue("refresh-blocked");
-      if (notification) {
-        notification.label = message;
-        notification.refreshURI = aURI;
-        notification.delay = aDelay;
-        notification.docShell = docShell;
-      } else {
-        let buttons = [{
-          label: refreshButtonText,
-          accessKey: refreshButtonAccesskey,
-          callback: function (aNotification, aButton) {
-            var refreshURI = aNotification.docShell
-                                          .QueryInterface(Ci.nsIRefreshURI);
-            refreshURI.forceRefreshURI(aNotification.refreshURI,
-                                       aNotification.delay, true);
-          }
-        }];
-        notification =
-          notificationBox.appendNotification(message, "refresh-blocked",
-                                             "chrome://browser/skin/Info.png",
-                                             notificationBox.PRIORITY_INFO_MEDIUM,
-                                             buttons);
-        notification.refreshURI = aURI;
-        notification.delay = aDelay;
-        notification.docShell = docShell;
-      }
-      return false;
-    }
-    return true;
-  },
-
   
   _state: null,
   _host: undefined,
@@ -4247,6 +4202,73 @@ var XULBrowserWindow = {
       observerService.notifyObservers(content, notification, urlStr);
     } catch (e) {
     }
+  }
+}
+
+var TabsProgressListener = {
+  onProgressChange: function (aBrowser, aWebProgress, aRequest,
+                              aCurSelfProgress, aMaxSelfProgress,
+                              aCurTotalProgress, aMaxTotalProgress) {
+  },
+
+  onStateChange: function (aBrowser, aWebProgress, aRequest, aStateFlags, aStatus) {
+  },
+
+  onLocationChange: function (aBrowser, aWebProgress, aRequest, aLocationURI) {
+  },
+  
+  onStatusChange: function (aBrowser, aWebProgress, aRequest, aStatus, aMessage) {
+  },
+
+  onRefreshAttempted: function (aBrowser, aWebProgress, aURI, aDelay, aSameURI) {
+    if (gPrefService.getBoolPref("accessibility.blockautorefresh")) {
+      let brandBundle = document.getElementById("bundle_brand");
+      let brandShortName = brandBundle.getString("brandShortName");
+      let refreshButtonText =
+        gNavigatorBundle.getString("refreshBlocked.goButton");
+      let refreshButtonAccesskey =
+        gNavigatorBundle.getString("refreshBlocked.goButton.accesskey");
+      let message =
+        gNavigatorBundle.getFormattedString(aSameURI ? "refreshBlocked.refreshLabel"
+                                                     : "refreshBlocked.redirectLabel",
+                                            [brandShortName]);
+      let docShell = aWebProgress.DOMWindow
+                                 .QueryInterface(Ci.nsIInterfaceRequestor)
+                                 .getInterface(Ci.nsIWebNavigation)
+                                 .QueryInterface(Ci.nsIDocShell);
+      let notificationBox = gBrowser.getNotificationBox(aBrowser);
+      let notification = notificationBox.getNotificationWithValue("refresh-blocked");
+      if (notification) {
+        notification.label = message;
+        notification.refreshURI = aURI;
+        notification.delay = aDelay;
+        notification.docShell = docShell;
+      } else {
+        let buttons = [{
+          label: refreshButtonText,
+          accessKey: refreshButtonAccesskey,
+          callback: function (aNotification, aButton) {
+            var refreshURI = aNotification.docShell
+                                          .QueryInterface(Ci.nsIRefreshURI);
+            refreshURI.forceRefreshURI(aNotification.refreshURI,
+                                       aNotification.delay, true);
+          }
+        }];
+        notification =
+          notificationBox.appendNotification(message, "refresh-blocked",
+                                             "chrome://browser/skin/Info.png",
+                                             notificationBox.PRIORITY_INFO_MEDIUM,
+                                             buttons);
+        notification.refreshURI = aURI;
+        notification.delay = aDelay;
+        notification.docShell = docShell;
+      }
+      return false;
+    }
+    return true;
+  },
+
+  onSecurityChange: function (aBrowser, aWebProgress, aRequest, aState) {
   }
 }
 
