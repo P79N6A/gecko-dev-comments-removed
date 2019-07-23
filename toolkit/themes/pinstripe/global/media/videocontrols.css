@@ -1,7 +1,7 @@
 @namespace url("http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul");
 
 .controlBar {
-    height: 24px;
+    height: 28px;
     background-color: rgba(35,31,32,0.74);
 }
 
@@ -11,8 +11,8 @@
     -moz-appearance: none;
     margin: 0px;
     padding: 0px;
-    min-height: 24px;
-    min-width: 24px;
+    min-height: 28px;
+    min-width: 28px;
 }
 .playButton[paused="true"] {
     background: url(chrome://global/skin/media/playButton.png) no-repeat center;
@@ -24,10 +24,58 @@
     -moz-appearance: none;
     margin: 0px;
     padding: 0px;
-    min-height: 24px;
-    min-width: 24px;
+    min-height: 28px;
+    min-width: 33px;
 }
 .muteButton[muted="true"] {
     background: url(chrome://global/skin/media/unmuteButton.png) no-repeat center;
 }
 
+.backgroundBar {
+    
+    margin-top: 10px;
+    margin-bottom: 10px;
+    background-color: rgba(255,255,255,0.5);
+    -moz-border-radius: 4px 4px;
+}
+
+.bufferBar, .progressBar {
+    
+    margin: 10px 0px 10px 0px;
+    -moz-appearance: none;
+    min-width: 0px;
+}
+
+
+.bufferBar .progress-bar {
+    
+
+
+
+
+    background-color: rgba(255,255,255,0.5);
+    -moz-border-radius: 4px 4px;
+}
+
+.progressBar .progress-bar {
+    background-color: white;
+    -moz-border-radius: 4px 4px;
+}
+
+
+.scale-slider {
+    
+    -moz-appearance: none;
+    background: none;
+    margin: 0;
+}
+
+
+.scale-thumb {
+    
+    -moz-appearance: none;
+    background: url(chrome://global/skin/media/scrubberThumb.png) no-repeat center;
+    border: none;
+    min-width: 11px;
+    min-height: 20px;
+}
