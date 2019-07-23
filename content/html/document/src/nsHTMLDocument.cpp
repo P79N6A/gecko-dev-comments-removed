@@ -1822,8 +1822,11 @@ nsHTMLDocument::OpenCommon(const nsACString& aContentType, PRBool aReplace)
   
   
   nsCOMPtr<nsISupports> securityInfo;
+  nsCOMPtr<nsIURI> uri, baseURI;
   if (callerDoc) {
     securityInfo = callerDoc->GetSecurityInfo();
+    uri = callerDoc->GetDocumentURI();
+    baseURI = callerDoc->GetBaseURI();
   }
 
   nsCOMPtr<nsIPrincipal> callerPrincipal;
@@ -1852,18 +1855,6 @@ nsHTMLDocument::OpenCommon(const nsACString& aContentType, PRBool aReplace)
   if (NS_FAILED(callerPrincipal->Equals(NodePrincipal(), &equals)) ||
       !equals) {
     return NS_ERROR_DOM_SECURITY_ERR;
-  }
-
-  
-  
-  
-  nsCOMPtr<nsIURI> uri;
-  callerPrincipal->GetURI(getter_AddRefs(uri));
-
-  if (!uri) {
-    rv = NS_NewURI(getter_AddRefs(uri),
-                   NS_LITERAL_CSTRING("about:blank"));
-    NS_ENSURE_SUCCESS(rv, rv);
   }
 
   
@@ -1896,6 +1887,9 @@ nsHTMLDocument::OpenCommon(const nsACString& aContentType, PRBool aReplace)
   if (NS_FAILED(rv)) {
     return rv;
   }
+
+  
+  
 
   
   
@@ -1969,6 +1963,9 @@ nsHTMLDocument::OpenCommon(const nsACString& aContentType, PRBool aReplace)
   
 
   Reset(channel, group);
+  if (baseURI) {
+    mDocumentBaseURI = baseURI;
+  }
 
   if (root) {
     

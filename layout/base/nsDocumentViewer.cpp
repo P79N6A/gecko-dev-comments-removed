@@ -125,6 +125,7 @@
 #include "nsITimelineService.h"
 #include "nsGfxCIID.h"
 #include "nsStyleSheetService.h"
+#include "ImageErrors.h"
 
 #include "nsIPrompt.h"
 #include "imgIContainer.h" 
@@ -963,7 +964,12 @@ DocumentViewerImpl::LoadComplete(nsresult aStatus)
 
   
   PRBool restoring = PR_FALSE;
-  if(NS_SUCCEEDED(aStatus) && window) {
+  
+  
+  
+  
+  if(window &&
+     (NS_SUCCEEDED(aStatus) || aStatus == NS_IMAGELIB_ERROR_LOAD_ABORTED)) {
     nsEventStatus status = nsEventStatus_eIgnore;
     nsEvent event(PR_TRUE, NS_LOAD);
     event.flags |= NS_EVENT_FLAG_CANT_BUBBLE;

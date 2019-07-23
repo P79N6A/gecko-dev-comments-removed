@@ -245,6 +245,8 @@ nsLocation::CheckURL(nsIURI* aURI, nsIDocShellLoadInfo** aLoadInfo)
 
 
 
+
+
 nsresult
 nsLocation::FindUsableBaseURI(nsIURI * aBaseURI, nsIDocShell * aParent,
                               nsIURI ** aUsableURI)
