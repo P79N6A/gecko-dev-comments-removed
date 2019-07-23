@@ -148,7 +148,7 @@ namespace nanojit
     #define _CONST const
 #endif
 
-#ifdef NJ_SOFTFLOAT
+#if NJ_SOFTFLOAT_SUPPORTED
     _CONST bool cpu_has_fpu = false;
 #else
     _CONST bool cpu_has_fpu = true;
@@ -470,9 +470,11 @@ namespace nanojit
     {
         
         NanoAssert((stkd & 3) == 0);
-        
-        
-        NanoAssert(cpu_has_fpu || arg->isop(LIR_qjoin));
+#if NJ_SOFTFLOAT_SUPPORTED
+        NanoAssert(arg->isop(LIR_qjoin));
+#else
+        NanoAssert(cpu_has_fpu);
+#endif
 
         
         
@@ -579,22 +581,6 @@ namespace nanojit
         TAG("asm_u2f(ins=%p{%s})", ins, lirNames[ins->opcode()]);
     }
 
-    void Assembler::asm_qjoin(LIns *ins)
-    {
-        int d = findMemFor(ins);
-        NanoAssert(d && isS16(d));
-        LIns* lo = ins->oprnd1();
-        LIns* hi = ins->oprnd2();
-
-        Register r = findRegFor(hi, GpRegs);
-        SW(r, d+mswoff(), FP);
-        r = findRegFor(lo, GpRegs);             
-        SW(r, d+lswoff(), FP);
-        deprecated_freeRsrcOf(ins);             
-
-        TAG("asm_qjoin(ins=%p{%s})", ins, lirNames[ins->opcode()]);
-    }
-
     void Assembler::asm_fop(LIns *ins)
     {
         NanoAssert(cpu_has_fpu);
@@ -654,6 +640,7 @@ namespace nanojit
         TAG("asm_immf(ins=%p{%s})", ins, lirNames[ins->opcode()]);
     }
 
+#ifdef NANOJIT_64BIT
     void
     Assembler::asm_q2i(LIns *)
     {
@@ -666,6 +653,7 @@ namespace nanojit
         TODO(asm_promote);
         TAG("asm_promote(ins=%p{%s})", ins, lirNames[ins->opcode()]);
     }
+#endif
 
     void Assembler::asm_load64(LIns *ins)
     {
@@ -718,19 +706,15 @@ namespace nanojit
     {
         Register r = deprecated_prepResultReg(ins, GpRegs);
         LOpcode op = ins->opcode();
+        LIns *a = ins->oprnd1();
+        LIns *b = ins->oprnd2();
 
-        
-        if (op == LIR_ov) {
-            ovreg = r;
-        }
-        else {
-            LIns *a = ins->oprnd1();
-            LIns *b = ins->oprnd2();
-            asm_cmp(op, a, b, r);
-        }
+        asm_cmp(op, a, b, r);
+
         TAG("asm_cond(ins=%p{%s})", ins, lirNames[ins->opcode()]);
     }
 
+#if NJ_SOFTFLOAT_SUPPORTED
     void Assembler::asm_qhi(LIns *ins)
     {
         Register rr = deprecated_prepResultReg(ins, GpRegs);
@@ -748,6 +732,24 @@ namespace nanojit
         LW(rr, d+lswoff(), FP);
         TAG("asm_qlo(ins=%p{%s})", ins, lirNames[ins->opcode()]);
     }
+
+    void Assembler::asm_qjoin(LIns *ins)
+    {
+        int d = findMemFor(ins);
+        NanoAssert(d && isS16(d));
+        LIns* lo = ins->oprnd1();
+        LIns* hi = ins->oprnd2();
+
+        Register r = findRegFor(hi, GpRegs);
+        SW(r, d+mswoff(), FP);
+        r = findRegFor(lo, GpRegs);             
+        SW(r, d+lswoff(), FP);
+        deprecated_freeRsrcOf(ins);             
+
+        TAG("asm_qjoin(ins=%p{%s})", ins, lirNames[ins->opcode()]);
+    }
+
+#endif
 
     void Assembler::asm_neg_not(LIns *ins)
     {
@@ -848,7 +850,6 @@ namespace nanojit
 
         releaseRegisters();
         assignSavedRegs();
-        ovreg = deprecated_UnknownReg;
 
         LIns *value = ins->oprnd1();
         if (ins->isop(LIR_ret)) {
@@ -856,14 +857,13 @@ namespace nanojit
         }
         else {
             NanoAssert(ins->isop(LIR_fret));
-            if (cpu_has_fpu)
-                findSpecificRegFor(value, FV0);
-            else {
-                NanoAssert(value->isop(LIR_qjoin));
-                
-                findSpecificRegFor(value->oprnd1(), V0); 
-                findSpecificRegFor(value->oprnd2(), V1); 
-            }
+#if NJ_SOFTFLOAT_SUPPORTED
+            NanoAssert(value->isop(LIR_qjoin));
+            findSpecificRegFor(value->oprnd1(), V0); 
+            findSpecificRegFor(value->oprnd2(), V1); 
+#else
+            findSpecificRegFor(value, FV0);
+#endif
         }
         TAG("asm_ret(ins=%p{%s})", ins, lirNames[ins->opcode()]);
     }
@@ -940,7 +940,7 @@ namespace nanojit
         
         
         Register ra = !lhs->isInReg() ? findSpecificRegFor(lhs, rr) : lhs->deprecated_getReg();
-        Register rb;
+        Register rb, t;
 
         
         NanoAssert(deprecated_isKnownReg(rr));
@@ -953,19 +953,27 @@ namespace nanojit
             if (isS16(rhsc)) {
                 
                 switch (op) {
-                case LIR_add:
-                    if (ovreg != deprecated_UnknownReg)
-                        SLT(ovreg, rr, ra);
+                case LIR_addxov:
+                    SLT(AT, rr, ra);
                     ADDIU(rr, ra, rhsc);
                     goto done;
-                case LIR_sub:
+                case LIR_add:
+                    ADDIU(rr, ra, rhsc);
+                    goto done;
+                case LIR_subxov:
                     if (isS16(-rhsc)) {
-                        if (ovreg != deprecated_UnknownReg)
-                            SLT(ovreg, ra, rr);
+                        SLT(AT, ra, rr);
                         ADDIU(rr, ra, -rhsc);
                         goto done;
                     }
                     break;
+                case LIR_sub:
+                    if (isS16(-rhsc)) {
+                        ADDIU(rr, ra, -rhsc);
+                        goto done;
+                    }
+                    break;
+                case LIR_mulxov:
                 case LIR_mul:
                     
                     
@@ -1012,11 +1020,14 @@ namespace nanojit
         
         rb = (rhs == lhs) ? ra : findRegFor(rhs, allow);
         NanoAssert(deprecated_isKnownReg(rb));
+        allow &= ~rmask(rb);
 
         switch (op) {
+            case LIR_addxov:
+                SLT(AT, rr, ra);
+                ADDU(rr, ra, rb);
+                break;
             case LIR_add:
-                if (ovreg != deprecated_UnknownReg)
-                    SLT(ovreg,rr,ra);
                 ADDU(rr, ra, rb);
                 break;
             case LIR_and:
@@ -1028,9 +1039,11 @@ namespace nanojit
             case LIR_xor:
                 XOR(rr, ra, rb);
                 break;
+            case LIR_subxov:
+                SLT(AT,ra,rr);
+                SUBU(rr, ra, rb);
+                break;
             case LIR_sub:
-                if (ovreg != deprecated_UnknownReg)
-                    SLT(ovreg,ra,rr);
                 SUBU(rr, ra, rb);
                 break;
             case LIR_lsh:
@@ -1045,46 +1058,69 @@ namespace nanojit
                 SRLV(rr, ra, rb);
                 ANDI(rb, rb, 31);
                 break;
-            case LIR_mul:
-                if (ovreg != deprecated_UnknownReg) {
-                    
-                    
-                    
-                    
-                    
-                    
-                    
-                    
-                    
-                    SLTU(ovreg,ZERO,ovreg);
-                    XOR(ovreg,ovreg,AT);
-                    MFHI(ovreg);
-                    SRA(AT,rr,31);
-                    MFLO(rr);
-                    MULT(ra, rb);
-                }
-                else
-                    MUL(rr, ra, rb);
+            case LIR_mulxov:
+                t = registerAllocTmp(allow);
+                
+                
+                
+                
+                
+                
+                
+                
+                XOR(AT, AT, t);
+                MFHI(AT);
+                SRA(t, rr, 31);
+                MFLO(rr);
+                MULT(ra, rb);
                 break;
-            case LIR_div:
-            case LIR_mod:
+            case LIR_mul:
+                MUL(rr, ra, rb);
+                break;
             default:
                 BADOPCODE(op);
         }
     done:
-        ovreg = deprecated_UnknownReg;     
         TAG("asm_arith(ins=%p{%s})", ins, lirNames[ins->opcode()]);
     }
 
     void Assembler::asm_store64(LOpcode op, LIns *value, int dr, LIns *base)
     {
-        Register rbase;
         
+#if NANOJIT_64BIT
         NanoAssert (op == LIR_stqi || op == LIR_st32f || op == LIR_stfi);
+#else
+        NanoAssert (op == LIR_st32f || op == LIR_stfi);
+#endif
 
         switch (op) {
             case LIR_stfi:
-                
+                if (cpu_has_fpu) {
+                    Register rbase = findRegFor(base, GpRegs);
+
+                    if (value->isconstf())
+                        asm_store_imm64(value, dr, rbase);
+                    else {
+                        Register fr = findRegFor(value, FpRegs);
+                        asm_ldst64(true, fr, dr, rbase);
+                    }
+                }
+                else {
+                    Register rbase = findRegFor(base, GpRegs);
+                    
+
+                    int ds = findMemFor(value);
+
+                    
+                    
+                    
+                    
+                    SW(AT, dr+4, rbase);
+                    LW(AT, ds+4, FP);
+                    SW(AT, dr,   rbase);
+                    LW(AT, ds,   FP);
+                }
+
                 break;
             case LIR_st32f:
                 NanoAssertMsg(0, "NJ_EXPANDED_LOADSTORE_SUPPORTED not yet supported for this architecture");
@@ -1093,41 +1129,6 @@ namespace nanojit
                 BADOPCODE(op);
                 return;
         }
-
-        if (op == LIR_stfi) {
-            if (base->isop(LIR_alloc)) {
-                rbase = FP;
-                dr += findMemFor(base);
-            }
-            else
-                rbase = findRegFor(base, GpRegs);
-
-            if (value->isconstf())
-                asm_store_imm64(value, dr, rbase);
-            else if (!cpu_has_fpu || value->isop(LIR_ldq)) {
-
-                int ds = findMemFor(value);
-
-                
-                
-                
-                
-                SW(AT, dr+4, rbase);
-                LW(AT, ds+4, FP);
-                SW(AT, dr,   rbase);
-                LW(AT, ds,   FP);
-            }
-            else {
-                NanoAssert (cpu_has_fpu);
-                
-                
-                Register fr = !value->isInReg() ?
-                    findRegFor(value, FpRegs) : value->getReg();
-                asm_ldst64(true, fr, dr, rbase);
-            }
-        }
-        else
-            BADOPCODE(op);
 
         TAG("asm_store64(value=%p{%s}, dr=%d, base=%p{%s})",
             value, lirNames[value->opcode()], dr, base, lirNames[base->opcode()]);
@@ -1231,18 +1232,16 @@ namespace nanojit
 #define SEG(addr) (uint32_t(addr) & 0xf0000000)
 #define SEGOFFS(addr) (uint32_t(addr) & 0x0fffffff)
 
-    NIns* Assembler::asm_branch(bool branchOnFalse, LIns *cond, NIns * const targ)
+
+    
+    
+    
+    NIns* Assembler::asm_branchtarget(NIns * const targ)
     {
-        LOpcode condop = cond->opcode();
-        NanoAssert(cond->isCond());
         bool inrange;
-        RegisterMask allow = isFCmpOpcode(condop) ? FpRegs : GpRegs;
-        LIns *a = cond->oprnd1();
-        LIns *b = cond->oprnd2();
-        Register ra = findRegFor(a, allow);
-        Register rb = (b==a) ? ra : findRegFor(b, allow & ~rmask(ra));
         NIns *btarg = targ;
 
+        
         
         if (targ)
             underrunProtect(2 * 4);    
@@ -1260,13 +1259,12 @@ namespace nanojit
         
         
         
-        if (inrange) {
+        if (inrange)
             NOP();
-        }
         else {
-            underrunProtect(5 * 4);                        
             NIns *tramp = _nSlot;
             if (targ) {
+                
                 if (SEG(targ) == SEG(tramp)) {
                     
                     
@@ -1275,11 +1273,15 @@ namespace nanojit
                     
                     
                     
-                    tramp = _nSlot;
-                    trampJ(targ);
-                    trampNOP();                                    
 
-                    NOP();                                        
+                    underrunProtect(4 * 4);             
+
+                    NOP();                              
+
+                    
+                    trampJ(targ);
+                    trampNOP();                         
+
                 }
                 else {
                     
@@ -1289,28 +1291,46 @@ namespace nanojit
                     
                     
                     
-                    tramp = _nSlot;
-                    trampADDIU(AT,AT,lo(uint32_t(targ)));
-                    trampJR(AT);
-                    trampNOP();                                    
+                    
 
-                    LUI(AT,hi(uint32_t(targ)));                        
+                    underrunProtect(5 * 4);             
+
+                    LUI(AT,hi(uint32_t(targ)));         
+
+                    
+                    trampADDIU(AT, AT, lo(uint32_t(targ)));
+                    trampJR(AT);
+                    trampNOP();                         
+
                 }
             }
             else {
                 
                 
                 
+                
+
+                underrunProtect(5 * 4);                 
+
+                NOP();                                  
+
                 trampNOP();
                 trampNOP();
                 trampNOP();
 
-                NOP();
             }
             btarg = tramp;
         }
 
+        return btarg;
+    }
+
+
+    NIns* Assembler::asm_bxx(bool branchOnFalse, LOpcode condop, Register ra, Register rb, NIns * const targ)
+    {
         NIns *patch = NULL;
+        NIns *btarg = asm_branchtarget(targ);
+
         if (cpu_has_fpu && isFCmpOpcode(condop)) {
             
             
@@ -1323,7 +1343,7 @@ namespace nanojit
                 patch = _nIns;
                 if (cpu_has_fpuhazard)
                     NOP();
-                C_EQ_D(ra,rb);
+                C_EQ_D(ra, rb);
                 break;
             case LIR_flt:
                 if (branchOnFalse)
@@ -1333,7 +1353,7 @@ namespace nanojit
                 patch = _nIns;
                 if (cpu_has_fpuhazard)
                     NOP();
-                C_LT_D(ra,rb);
+                C_LT_D(ra, rb);
                 break;
             case LIR_fgt:
                 if (branchOnFalse)
@@ -1343,7 +1363,7 @@ namespace nanojit
                 patch = _nIns;
                 if (cpu_has_fpuhazard)
                     NOP();
-                C_LT_D(rb,ra);
+                C_LT_D(rb, ra);
                 break;
             case LIR_fle:
                 if (branchOnFalse)
@@ -1353,7 +1373,7 @@ namespace nanojit
                 patch = _nIns;
                 if (cpu_has_fpuhazard)
                     NOP();
-                C_LE_D(ra,rb);
+                C_LE_D(ra, rb);
                 break;
             case LIR_fge:
                 if (branchOnFalse)
@@ -1363,7 +1383,7 @@ namespace nanojit
                 patch = _nIns;
                 if (cpu_has_fpuhazard)
                     NOP();
-                C_LE_D(rb,ra);
+                C_LE_D(rb, ra);
                 break;
             default:
                 BADOPCODE(condop);
@@ -1379,91 +1399,115 @@ namespace nanojit
                 
                 
                 if (branchOnFalse)
-                    BNE(ra,rb,btarg);
+                    BNE(ra, rb, btarg);
                 else
-                    BEQ(ra,rb,btarg);
+                    BEQ(ra, rb, btarg);
                 patch = _nIns;
                 break;
             case LIR_lt:
                 if (branchOnFalse)
-                    BEQ(AT,ZERO,btarg);
+                    BEQ(AT, ZERO, btarg);
                 else
-                    BNE(AT,ZERO,btarg);
+                    BNE(AT, ZERO, btarg);
                 patch = _nIns;
-                SLT(AT,ra,rb);
+                SLT(AT, ra, rb);
                 break;
             case LIR_gt:
                 if (branchOnFalse)
-                    BEQ(AT,ZERO,btarg);
+                    BEQ(AT, ZERO, btarg);
                 else
-                    BNE(AT,ZERO,btarg);
+                    BNE(AT, ZERO, btarg);
                 patch = _nIns;
-                SLT(AT,rb,ra);
+                SLT(AT, rb, ra);
                 break;
             case LIR_le:
                 if (branchOnFalse)
-                    BNE(AT,ZERO,btarg);
+                    BNE(AT, ZERO, btarg);
                 else
-                    BEQ(AT,ZERO,btarg);
+                    BEQ(AT, ZERO, btarg);
                 patch = _nIns;
-                SLT(AT,rb,ra);
+                SLT(AT, rb, ra);
                 break;
             case LIR_ge:
                 if (branchOnFalse)
-                    BNE(AT,ZERO,btarg);
+                    BNE(AT, ZERO, btarg);
                 else
-                    BEQ(AT,ZERO,btarg);
+                    BEQ(AT, ZERO, btarg);
                 patch = _nIns;
-                SLT(AT,ra,rb);
+                SLT(AT, ra, rb);
                 break;
             case LIR_ult:
                 if (branchOnFalse)
-                    BEQ(AT,ZERO,btarg);
+                    BEQ(AT, ZERO, btarg);
                 else
-                    BNE(AT,ZERO,btarg);
+                    BNE(AT, ZERO, btarg);
                 patch = _nIns;
-                SLTU(AT,ra,rb);
+                SLTU(AT, ra, rb);
                 break;
             case LIR_ugt:
                 if (branchOnFalse)
-                    BEQ(AT,ZERO,btarg);
+                    BEQ(AT, ZERO, btarg);
                 else
-                    BNE(AT,ZERO,btarg);
+                    BNE(AT, ZERO, btarg);
                 patch = _nIns;
-                SLTU(AT,rb,ra);
+                SLTU(AT, rb, ra);
                 break;
             case LIR_ule:
                 if (branchOnFalse)
-                    BNE(AT,ZERO,btarg);
+                    BNE(AT, ZERO, btarg);
                 else
-                    BEQ(AT,ZERO,btarg);
+                    BEQ(AT, ZERO, btarg);
                 patch = _nIns;
-                SLT(AT,rb,ra);
+                SLT(AT, rb, ra);
                 break;
             case LIR_uge:
                 if (branchOnFalse)
-                    BNE(AT,ZERO,btarg);
+                    BNE(AT, ZERO, btarg);
                 else
-                    BEQ(AT,ZERO,btarg);
+                    BEQ(AT, ZERO, btarg);
                 patch = _nIns;
-                SLTU(AT,ra,rb);
+                SLTU(AT, ra, rb);
                 break;
             default:
                 BADOPCODE(condop);
             }
         }
-        TAG("asm_branch(branchOnFalse=%d, cond=%p{%s}, targ=%p)",
-            branchOnFalse, cond, lirNames[cond->opcode()], targ);
+        TAG("asm_bxx(branchOnFalse=%d, condop=%s, ra=%s rb=%s targ=%p)",
+            branchOnFalse, lirNames[condop], gpn(ra), gpn(rb), targ);
         return patch;
+    }
+
+    void Assembler::asm_branch_xov(LOpcode op, NIns* target)
+    {
+        USE(op);
+        NanoAssert(target != NULL);
+
+        (void) asm_bxx(true, LIR_eq, AT, ZERO, target);
+
+        TAG("asm_branch_xov(op=%s, target=%p)", lirNames[op], target);
+    }
+
+    NIns* Assembler::asm_branch(bool branchOnFalse, LIns *cond, NIns * const targ)
+    {
+        NanoAssert(cond->isCmp());
+        LOpcode condop = cond->opcode();
+        RegisterMask allow = isFCmpOpcode(condop) ? FpRegs : GpRegs;
+        LIns *a = cond->oprnd1();
+        LIns *b = cond->oprnd2();
+        Register ra = findRegFor(a, allow);
+        Register rb = (b==a) ? ra : findRegFor(b, allow & ~rmask(ra));
+
+        return asm_bxx(branchOnFalse, condop, ra, rb, targ);
     }
 
     void Assembler::asm_j(NIns * const targ, bool bdelay)
     {
-        underrunProtect(2*4);    
-        if (targ)
-            NanoAssert(SEG(targ) == SEG(_nIns));
-        if (bdelay)
+        NanoAssert(targ != NULL);
+        NanoAssert(SEG(targ) == SEG(_nIns));
+        if (bdelay) {
+            underrunProtect(2*4);    
             NOP();
+        }
         J(targ);
         TAG("asm_j(targ=%p) bdelay=%d", targ);
     }
@@ -1685,6 +1729,7 @@ namespace nanojit
         if (destKnown) {
             
             
+            underrunProtect(2 * 4);     
             MOVE(V0, ZERO);
             asm_j(frag->fragEntry, false);
         }
@@ -1698,6 +1743,7 @@ namespace nanojit
             
             
             
+            underrunProtect(2 * 4);     
             ADDIU(V0, V0, lo(int32_t(lr)));
             asm_j(_epilogue, false);
             LUI(V0, hi(int32_t(lr)));
@@ -1707,7 +1753,6 @@ namespace nanojit
         
         verbose_only(
             if (_logc->lcbits & LC_FragProfile) {
-                underrunProtect(4*4);
                 
                 
                 
@@ -1841,8 +1886,10 @@ namespace nanojit
 
         if (op == LIR_icall)
             prefer = rmask(V0);
+#if NJ_SOFTFLOAT_SUPPORTED
         else if (op == LIR_callh)
             prefer = rmask(V1);
+#endif
         else if (op == LIR_fcall)
             prefer = rmask(FV0);
         else if (op == LIR_param) {
