@@ -40,16 +40,15 @@
 
 
 
+
 #include "nsEffectiveTLDService.h"
 #include "nsAppDirectoryServiceDefs.h"
-#include "nsDataHashtable.h"
 #include "nsDirectoryServiceUtils.h"
 #include "nsDirectoryServiceDefs.h"
 #include "nsFileStreams.h"
 #include "nsIFile.h"
 #include "nsIIDNService.h"
 #include "nsNetUtil.h"
-#include "nsString.h"
 
 
 
@@ -57,156 +56,60 @@
 
 #define EFF_TLD_FILENAME NS_LITERAL_CSTRING("effective_tld_names.dat")
 
-
-
-#define EFF_TLD_SERVICE_DEBUG 0
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-struct SubdomainNode;
-typedef nsDataHashtable<nsCStringHashKey, SubdomainNode *> SubdomainNodeHash;
-struct SubdomainNode {
-  PRBool exception;
-  PRBool stopOK;
-  SubdomainNodeHash children;
-};
-
-static void EmptyEffectiveTLDTree();
-static nsresult LoadEffectiveTLDFiles();
-static nsresult NormalizeHostname(nsCString &aHostname);
-static PRInt32 FindEarlierDot(const nsACString &aHostname, PRInt32 aDotLoc);
-static SubdomainNode *FindMatchingChildNode(SubdomainNode *parent,
-                                            const nsCSubstring &aSubname,
-                                            PRBool aCreateNewNode);
-
-nsEffectiveTLDService* nsEffectiveTLDService::sInstance = nsnull;
-static SubdomainNode sSubdomainTreeHead;
-
 NS_IMPL_ISUPPORTS1(nsEffectiveTLDService, nsIEffectiveTLDService)
 
 
 
-#if defined(EFF_TLD_SERVICE_DEBUG) && EFF_TLD_SERVICE_DEBUG
+#define PL_ARENA_CONST_ALIGN_MASK 3
+#include "plarena.h"
+
+static PLArenaPool *gArena = nsnull;
+
+#define ARENA_SIZE 512
 
 
 
-
-PR_STATIC_CALLBACK(PLDHashOperator)
-LOG_EFF_TLD_NODE(const nsACString& aKey, SubdomainNode *aData, void *aLevel)
+static char *
+ArenaStrDup(const char* str, PLArenaPool* aArena)
 {
-  
-  PRInt32 *level = (PRInt32 *) aLevel;
-  for (PRInt32 i = 0; i < *level; i++)    printf("-");
-  if (aData->exception)                   printf("!");
-  if (aData->stopOK)                      printf("^");
-  printf("'%s'\n", PromiseFlatCString(aKey).get());
-
-  
-  PRInt32 newlevel = (*level) + 1;
-  aData->children.EnumerateRead(LOG_EFF_TLD_NODE, &newlevel);
-
-  return PL_DHASH_NEXT;
-}
-#endif 
-
-
-
-
-void LOG_EFF_TLD_TREE(const char *msg = "",
-                  SubdomainNode *head = &sSubdomainTreeHead)
-{
-#if defined(EFF_TLD_SERVICE_DEBUG) && EFF_TLD_SERVICE_DEBUG
-  if (msg && msg != "")
-    printf("%s\n", msg);
-
-  PRInt32 level = 0;
-  head->children.EnumerateRead(LOG_EFF_TLD_NODE, &level);
-#endif 
-
-  return;
+  void *mem;
+  PRUint32 size = strlen(str) + 1;
+  PL_ARENA_ALLOCATE(mem, aArena, size);
+  if (mem)
+    memcpy(mem, str, size);
+  return static_cast<char*>(mem);
 }
 
-
-
-
-
-
+nsDomainEntry::nsDomainEntry(const char *aDomain)
+ : mDomain(ArenaStrDup(aDomain, gArena))
+ , mIsNormal(PR_FALSE)
+ , mIsException(PR_FALSE)
+ , mIsWild(PR_FALSE)
+{
+}
 
 
 
 nsresult
 nsEffectiveTLDService::Init()
 {
-  sSubdomainTreeHead.exception = PR_FALSE;
-  sSubdomainTreeHead.stopOK = PR_FALSE;
-  nsresult rv = NS_OK;
-  if (!sSubdomainTreeHead.children.Init())
-    rv = NS_ERROR_OUT_OF_MEMORY;
+  if (!mHash.Init())
+    return NS_ERROR_OUT_OF_MEMORY;
 
-  if (NS_SUCCEEDED(rv))
-    rv = LoadEffectiveTLDFiles();
-
-  
-  if (NS_FAILED(rv))
-    EmptyEffectiveTLDTree();
-
-  return rv;
+  return LoadEffectiveTLDFiles();
 }
-
-
 
 nsEffectiveTLDService::nsEffectiveTLDService()
 {
-  NS_ASSERTION(!sInstance, "Multiple effective-TLD services being created");
-  sInstance = this;
 }
-
-
 
 nsEffectiveTLDService::~nsEffectiveTLDService()
 {
-  NS_ASSERTION(sInstance == this, "Multiple effective-TLD services exist");
-  EmptyEffectiveTLDTree();
-  sInstance = nsnull;
+  if (gArena) {
+    PL_FinishArenaPool(gArena);
+    delete gArena;
+  }
+  gArena = nsnull;
 }
 
 
@@ -220,226 +123,81 @@ nsEffectiveTLDService::GetEffectiveTLDLength(const nsACString &aHostname,
 {
   
   
-  
-  PRInt32 nameLength = aHostname.Length();
-  PRInt32 trailingDotOffset = (nameLength && aHostname.Last() == '.' ? 1 : 0);
-  PRInt32 defaultTLDLength;
-  PRInt32 dotLoc = FindEarlierDot(aHostname, nameLength - 1 - trailingDotOffset);
-  if (dotLoc < 0) {
-    defaultTLDLength = nameLength;
-  }
-  else {
-    defaultTLDLength = nameLength - dotLoc - 1;
-  }
-  *effTLDLength = static_cast<PRUint32>(defaultTLDLength);
-
-  
-  
   nsCAutoString normHostname(aHostname);
   nsresult rv = NormalizeHostname(normHostname);
   if (NS_FAILED(rv))
     return rv;
 
   
-  SubdomainNode *node = &sSubdomainTreeHead;
-  dotLoc = nameLength - trailingDotOffset;
-  while (dotLoc > 0) {
-    PRInt32 nextDotLoc = FindEarlierDot(normHostname, dotLoc - 1);
-    const nsCSubstring &subname = Substring(normHostname, nextDotLoc + 1,
-                                            dotLoc - nextDotLoc - 1);
-    SubdomainNode *child = FindMatchingChildNode(node, subname, false);
-    if (nsnull == child)
-      break;
-    if (child->exception) {
+  PRUint32 trailingDot = normHostname.Last() == '.';
+  if (trailingDot)
+    normHostname.Truncate(normHostname.Length() - 1);
+
+  
+  
+  
+  const char *prevDomain = nsnull;
+  const char *currDomain = normHostname.get();
+  const char *nextDot = strchr(currDomain, '.');
+  const char *end = currDomain + normHostname.Length();
+  while (1) {
+    if (!nextDot) {
       
-      *effTLDLength = static_cast<PRUint32>(nameLength - dotLoc - 1);
-      node = child;
+      *effTLDLength = end - currDomain;
       break;
     }
-    
-    
-    if (child->stopOK)
-      *effTLDLength = static_cast<PRUint32>(nameLength - nextDotLoc - 1);
-    node = child;
-    dotLoc = nextDotLoc;
+
+    nsDomainEntry *entry = mHash.GetEntry(currDomain);
+    if (entry) {
+      if (entry->IsWild() && prevDomain) {
+        
+        *effTLDLength = end - prevDomain;
+        break;
+
+      } else if (entry->IsNormal()) {
+        
+        *effTLDLength = end - currDomain;
+        break;
+
+      } else if (entry->IsException()) {
+        
+        *effTLDLength = end - nextDot - 1;
+        break;
+      }
+    }
+
+    prevDomain = currDomain;
+    currDomain = nextDot + 1;
+    nextDot = strchr(currDomain, '.');
   }
+
+  
+  *effTLDLength += trailingDot;
 
   return NS_OK;
 }
 
 
 
-PR_STATIC_CALLBACK(PLDHashOperator)
-DeleteSubdomainNode(const nsACString& aKey, SubdomainNode *aData, void *aUser)
+
+
+
+nsresult
+nsEffectiveTLDService::NormalizeHostname(nsCString &aHostname)
 {
-  
-  
-  
-  if (nsnull != aData && aData->children.IsInitialized()) {
-    
-    aData->children.EnumerateRead(DeleteSubdomainNode, nsnull);
-
-    
-    aData->children.Clear();
-  }
-
-  return PL_DHASH_NEXT;
-}
-
-
-
-
-
-void
-EmptyEffectiveTLDTree()
-{
-  if (sSubdomainTreeHead.children.IsInitialized()) {
-    sSubdomainTreeHead.children.EnumerateRead(DeleteSubdomainNode, nsnull);
-    sSubdomainTreeHead.children.Clear();
-  }
-  return;
-}
-
-
-
-
-
-
-nsresult NormalizeHostname(nsCString &aHostname)
-{
-  nsresult rv = NS_OK;
-
   if (IsASCII(aHostname)) {
     ToLowerCase(aHostname);
-  }
-  else {
-    nsCOMPtr<nsIIDNService> idnServ = do_GetService(NS_IDNSERVICE_CONTRACTID);
-    if (idnServ)
-      rv = idnServ->Normalize(aHostname, aHostname);
+    return NS_OK;
   }
 
-  return rv;
+  if (!mIDNService) {
+    nsresult rv;
+    mIDNService = do_GetService(NS_IDNSERVICE_CONTRACTID, &rv);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
+
+  return mIDNService->Normalize(aHostname, aHostname);
 }
-
-
-
-
-
-
-void
-FillStringInformation(const nsACString &aString, const char **start,
-                      PRUint32 *length)
-{
-  nsACString::const_iterator iter;
-  aString.BeginReading(iter);
-  *start = iter.get();
-  *length = iter.size_forward();
-  return;
-}
-
-
-
-
-
-PRInt32
-FindEarlierDot(const nsACString &aHostname, PRInt32 aDotLoc)
-{
-  if (aDotLoc < 0)
-    return -1;
-
-  
-  
-  const char *start;
-  PRUint32 length;
-  FillStringInformation(aHostname, &start, &length);
-  PRInt32 endLoc = length - 1;
-
-  if (aDotLoc < endLoc)
-    endLoc = aDotLoc;
-  for (const char *where = start + endLoc; where >= start; --where) {
-    if (*where == '.')
-      return (where - start);
-  }
-
-  return -1;
-}
-
-
-
-
-
-PRInt32
-FindEndOfName(const nsACString &aHostname) {
-  
-  
-  const char *start;
-  PRUint32 length;
-  FillStringInformation(aHostname, &start, &length);
-
-  for (const char *where = start; where < start + length; ++where) {
-    if (*where == ' ' || *where == '\t')
-      return (where - start);
-  }
-
-  return length;
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-SubdomainNode *
-FindMatchingChildNode(SubdomainNode *parent, const nsCSubstring &aSubname,
-                      PRBool aCreateNewNode)
-{
-  
-  nsCAutoString name(aSubname);
-  PRBool exception = PR_FALSE;
-
-  
-  if (name.Length() > 0 && name.First() == '!') {
-    exception = PR_TRUE;
-    name.Cut(0, 1);
-  }
-
-  
-  SubdomainNode *result = nsnull;
-  SubdomainNode *match;
-  if (parent->children.Get(name, &match)) {
-    result = match;
-  }
-
-  
-  else if (aCreateNewNode) {
-    SubdomainNode *node = new SubdomainNode;
-    if (node) {
-      node->exception = exception;
-      node->stopOK = PR_FALSE;
-      if (node->children.Init() && parent->children.Put(name, node))
-        result = node;
-    }
-  }
-
-  
-  else if (parent->children.Get(NS_LITERAL_CSTRING("*"), &match)) {
-    result = match;
-  }
-
-  return result;
-}
-
 
 
 
@@ -448,26 +206,49 @@ FindMatchingChildNode(SubdomainNode *parent, const nsCSubstring &aSubname,
 
 
 nsresult
-AddEffectiveTLDEntry(nsCString &aDomainName) {
-  SubdomainNode *node = &sSubdomainTreeHead;
+nsEffectiveTLDService::AddEffectiveTLDEntry(nsCString &aDomainName)
+{
+  
+  if (!gArena) {
+    gArena = new PLArenaPool;
+    NS_ENSURE_TRUE(gArena, NS_ERROR_OUT_OF_MEMORY);
+    PL_INIT_ARENA_POOL(gArena, "eTLDArena", ARENA_SIZE);
+  }
+
+  PRBool isException = PR_FALSE, isWild = PR_FALSE;
+
+  
+  if (aDomainName.First() == '!') {
+    isException = PR_TRUE;
+    aDomainName.Cut(0, 1);
+
+  
+  } else if (StringBeginsWith(aDomainName, NS_LITERAL_CSTRING("*."))) {
+    isWild = PR_TRUE;
+    aDomainName.Cut(0, 2);
+
+    NS_ASSERTION(!StringBeginsWith(aDomainName, NS_LITERAL_CSTRING("*.")),
+                 "only one wildcard level supported!");
+  }
 
   
   nsresult rv = NormalizeHostname(aDomainName);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  PRInt32 dotLoc = FindEndOfName(aDomainName);
-  while (dotLoc > 0) {
-    PRInt32 nextDotLoc = FindEarlierDot(aDomainName, dotLoc - 1);
-    const nsCSubstring &subname = Substring(aDomainName, nextDotLoc + 1,
-                                            dotLoc - nextDotLoc - 1);
-    dotLoc = nextDotLoc;
-    node = FindMatchingChildNode(node, subname, true);
-    if (!node)
-      return NS_ERROR_OUT_OF_MEMORY;
+  nsDomainEntry *entry = mHash.PutEntry(aDomainName.get());
+  NS_ENSURE_TRUE(entry, NS_ERROR_FAILURE);
+
+  
+  if (!entry->GetKey()) {
+    mHash.RawRemoveEntry(entry);
+    return NS_ERROR_OUT_OF_MEMORY;
   }
 
   
-  node->stopOK = true;
+  entry->IsWild() |= isWild;
+  entry->IsException() |= isException;
+  
+  entry->IsNormal() |= isWild || !isException;
 
   return NS_OK;
 }
@@ -516,12 +297,29 @@ LocateEffectiveTLDFile(nsCOMPtr<nsIFile>& foundFile, PRBool aUseProfile)
   return rv;
 }
 
+void
+TruncateAtWhitespace(nsCString &aString)
+{
+  
+  
+  nsASingleFragmentCString::const_char_iterator begin, iter, end;
+  aString.BeginReading(begin);
+  aString.EndReading(end);
+
+  for (iter = begin; iter != end; ++iter) {
+    if (*iter == ' ' || *iter == '\t') {
+      aString.Truncate(iter - begin);
+      break;
+    }
+  }
+}
+
 
 
 
 
 nsresult
-LoadOneEffectiveTLDFile(nsCOMPtr<nsIFile>& effTLDFile)
+nsEffectiveTLDService::LoadOneEffectiveTLDFile(nsCOMPtr<nsIFile>& effTLDFile)
 {
   
   nsCOMPtr<nsIInputStream> fileStream;
@@ -536,34 +334,30 @@ LoadOneEffectiveTLDFile(nsCOMPtr<nsIFile>& effTLDFile)
   NS_ENSURE_SUCCESS(rv, rv);
 
   nsCAutoString lineData;
-  PRBool moreData = PR_TRUE;
-  NS_NAMED_LITERAL_CSTRING(commentMarker, "//");
-  while (moreData) {
-    rv = lineStream->ReadLine(lineData, &moreData);
-    if (NS_SUCCEEDED(rv)) {
-      if (! lineData.IsEmpty() &&
-          ! StringBeginsWith(lineData, commentMarker)) {
-        rv = AddEffectiveTLDEntry(lineData);
-      }
-    }
-    else {
-      NS_WARNING("Error reading effective-TLD file; attempting to continue");
+  PRBool isMore;
+  NS_NAMED_LITERAL_CSTRING(kCommentMarker, "//");
+  while (NS_SUCCEEDED(lineStream->ReadLine(lineData, &isMore)) && isMore) {
+    if (StringBeginsWith(lineData, kCommentMarker))
+      continue;
+
+    TruncateAtWhitespace(lineData);
+    if (!lineData.IsEmpty()) {
+      rv = AddEffectiveTLDEntry(lineData);
+      NS_WARN_IF_FALSE(NS_SUCCEEDED(rv), "Error adding effective TLD to list");
     }
   }
 
-  LOG_EFF_TLD_TREE("Effective-TLD tree:");
-
-  return rv;
+  return NS_OK;
 }
 
 
 
 
 nsresult
-LoadEffectiveTLDFiles()
+nsEffectiveTLDService::LoadEffectiveTLDFiles()
 {
   nsCOMPtr<nsIFile> effTLDFile;
-  nsresult rv = LocateEffectiveTLDFile(effTLDFile, false);
+  nsresult rv = LocateEffectiveTLDFile(effTLDFile, PR_FALSE);
 
   
   
@@ -575,7 +369,7 @@ LoadEffectiveTLDFiles()
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
-  rv = LocateEffectiveTLDFile(effTLDFile, true);
+  rv = LocateEffectiveTLDFile(effTLDFile, PR_TRUE);
 
   
   
