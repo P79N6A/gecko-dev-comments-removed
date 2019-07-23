@@ -986,9 +986,6 @@ nsImageFrame::DisplayAltFeedback(nsIRenderingContext& aRenderingContext,
   NS_ABORT_IF_FALSE(gIconLoad, "How did we succeed in Init then?");
 
   
-  NS_ABORT_IF_FALSE(aRequest, "Calling DisplayAltFeedback without an image");
-
-  
   nsRect  inner = GetInnerArea() + aPt;
 
   
@@ -1033,15 +1030,16 @@ nsImageFrame::DisplayAltFeedback(nsIRenderingContext& aRenderingContext,
     
     
     
-    if (!mDisplayingIcon) {
+    if (aRequest && !mDisplayingIcon) {
       gIconLoad->AddIconObserver(this);
       mDisplayingIcon = PR_TRUE;
     }
 
 
     
-    PRUint32 imageStatus;
-    aRequest->GetImageStatus(&imageStatus);
+    PRUint32 imageStatus = 0;
+    if (aRequest)
+      aRequest->GetImageStatus(&imageStatus);
     if (imageStatus & imgIRequest::STATUS_FRAME_COMPLETE) {
       nsCOMPtr<imgIContainer> imgCon;
       aRequest->GetImage(getter_AddRefs(imgCon));
