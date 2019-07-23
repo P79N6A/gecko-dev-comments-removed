@@ -1356,7 +1356,8 @@ namespace nanojit
             
             
             if (_logc->lcbits & LC_Assembly) {
-                outputf("    %s", _thisfrag->lirbuf->names->formatIns(ins));
+                LirNameMap* names = _thisfrag->lirbuf->names;
+                outputf("    %s", names->formatIns(ins));
                 if (ins->isGuard() && ins->oprnd1()) {
                     
                     
@@ -1366,12 +1367,17 @@ namespace nanojit
                     
                     
                     outputf("    %s       # codegen'd with the %s",
-                            _thisfrag->lirbuf->names->formatIns(ins->oprnd1()), lirNames[op]);
+                            names->formatIns(ins->oprnd1()), lirNames[op]);
 
                 } else if (ins->isop(LIR_cmov) || ins->isop(LIR_qcmov)) {
                     
                     outputf("    %s       # codegen'd with the %s",
-                            _thisfrag->lirbuf->names->formatIns(ins->oprnd1()), lirNames[op]);
+                            names->formatIns(ins->oprnd1()), lirNames[op]);
+
+                } else if (ins->isop(LIR_mod)) {
+                    
+                    outputf("    %s       # codegen'd with the mod",
+                            names->formatIns(ins->oprnd1()));
                 }
             }
 #endif
