@@ -110,7 +110,10 @@
 #define PREF_AUTOCOMPLETE_ENABLED               "urlbar.autocomplete.enabled"
 #define PREF_DB_CACHE_PERCENTAGE                "history_cache_percentage"
 #define PREF_BROWSER_IMPORT_BOOKMARKS           "browser.places.importBookmarksHTML"
-
+#define PREF_BROWSER_IMPORT_DEFAULTS            "browser.places.importDefaults"
+#define PREF_BROWSER_CREATEDSMARTBOOKMARKS      "browser.places.createdSmartBookmarks"
+#define PREF_BROWSER_LEFTPANEFOLDERID           "browser.places.leftPaneFolderId"
+      
 
 
 
@@ -502,6 +505,17 @@ nsNavHistory::InitDBFile(PRBool aForceInit)
     if (prefs) {
       rv = prefs->SetBoolPref(PREF_BROWSER_IMPORT_BOOKMARKS, PR_TRUE);
       NS_ENSURE_SUCCESS(rv, rv);
+
+      rv = prefs->SetBoolPref(PREF_BROWSER_IMPORT_DEFAULTS, PR_TRUE);
+      NS_ENSURE_SUCCESS(rv, rv);  
+
+      
+      rv = prefs->SetBoolPref(PREF_BROWSER_CREATEDSMARTBOOKMARKS, PR_FALSE);
+      NS_ENSURE_SUCCESS(rv, rv);  
+      
+      
+      rv = prefs->SetIntPref(PREF_BROWSER_LEFTPANEFOLDERID, -1);
+      NS_ENSURE_SUCCESS(rv, rv); 
     }
   }
 
