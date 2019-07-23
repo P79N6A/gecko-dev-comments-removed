@@ -11792,6 +11792,7 @@ nsCSSFrameConstructor::LazyGenerateChildrenEvent::Run()
   
   nsIFrame* frame = mPresShell->GetPrimaryFrameFor(mContent);
   if (frame && frame->GetType() == nsGkAtoms::menuPopupFrame) {
+    nsWeakFrame weakFrame(frame);
 #ifdef MOZ_XUL
     
     
@@ -11827,7 +11828,7 @@ nsCSSFrameConstructor::LazyGenerateChildrenEvent::Run()
       fc->EndUpdate();
     }
 
-    if (mCallback)
+    if (mCallback && weakFrame.IsAlive())
       mCallback(mContent, frame, mArg);
 
     
