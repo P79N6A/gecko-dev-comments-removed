@@ -734,6 +734,9 @@ PlacesTreeView.prototype = {
     if (!this._tree || !this._result)
       return;
 
+    
+    window.updateCommands("sort");
+
     var columns = this._tree.columns;
 
     
