@@ -1290,7 +1290,7 @@ var ApplicationModule = {
     categoryManager.addCategoryEntry("app-startup", CLASS_NAME, "service," + CONTRACT_ID, true, true);
 
     
-    categoryManager.addCategoryEntry("JavaScript global property", "Application", CONTRACT_ID, true, true);
+    categoryManager.addCategoryEntry("JavaScript global privileged property", "Application", CONTRACT_ID, true, true);
   },
 
   unregisterSelf: function am_us(aCompMgr, aLocation, aType) {
