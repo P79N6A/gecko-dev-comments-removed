@@ -45,17 +45,18 @@
 #include "nsIRequestObserver.h"
 
 
+#include "nsAutoPtr.h"
 #include "nsCOMPtr.h"
 #include "nsStringGlue.h"
 #include "nsTArray.h"
-
-
-#include "nsDOMWorkerXHR.h"
 
 class nsIJSXMLHttpRequest;
 class nsIThread;
 class nsIVariant;
 class nsIXMLHttpRequest;
+class nsIXMLHttpRequestUpload;
+class nsIXPConnectWrappedNative;
+class nsDOMWorkerXHR;
 class nsDOMWorkerXHREvent;
 class nsDOMWorkerXHRFinishSyncXHRRunnable;
 class nsDOMWorkerXHRWrappedListener;
@@ -71,11 +72,6 @@ class nsDOMWorkerXHRProxy : public nsIRunnable,
   friend class nsDOMWorkerXHRLastProgressOrLoadEvent;
   friend class nsDOMWorkerXHR;
   friend class nsDOMWorkerXHRUpload;
-
-  typedef nsCOMPtr<nsIDOMEventListener> Listener;
-  typedef nsTArray<Listener> ListenerArray;
-
-  typedef nsRefPtr<nsDOMWorkerXHRWrappedListener> WrappedListener;
 
   typedef nsresult (NS_STDCALL nsIDOMEventTarget::*EventListenerFunction)
     (const nsAString&, nsIDOMEventListener*, PRBool);
@@ -118,27 +114,14 @@ protected:
   void AddRemoveXHRListeners(PRBool aAdd);
   void FlipOwnership();
 
-  nsresult AddEventListener(PRUint32 aType,
-                            nsIDOMEventListener* aListener,
-                            PRBool aOnXListener,
-                            PRBool aUploadListener);
+  nsresult UploadEventListenerAdded();
 
-  nsresult RemoveEventListener(PRUint32 aType,
-                               nsIDOMEventListener* aListener,
-                               PRBool aUploadListener);
-
-  already_AddRefed<nsIDOMEventListener> GetOnXListener(PRUint32 aType,
-                                                       PRBool aUploadListener);
-
-  nsresult HandleWorkerEvent(nsDOMWorkerXHREvent* aEvent, PRBool aUploadEvent);
-
-  nsresult HandleWorkerEvent(nsIDOMEvent* aEvent, PRBool aUploadEvent);
+  nsresult HandleWorkerEvent(nsDOMWorkerXHREvent* aEvent,
+                             PRBool aUploadEvent);
 
   nsresult HandleEventInternal(PRUint32 aType,
                                nsIDOMEvent* aEvent,
                                PRBool aUploadEvent);
-
-  void ClearEventListeners();
 
   
   nsresult GetAllResponseHeaders(char** _retval);
@@ -162,10 +145,12 @@ protected:
 
   
   
-  PRBool HasListenersForType(PRUint32 aType, nsIDOMEvent* aEvent = nsnull);
+  PRBool HasListenersForType(const nsAString& aType,
+                             nsIDOMEvent* aEvent = nsnull);
 
   
   nsDOMWorkerXHR* mWorkerXHR;
+  nsCOMPtr<nsIXPConnectWrappedNative> mWorkerXHRWN;
 
   
   nsIXMLHttpRequest* mXHR;
@@ -178,12 +163,6 @@ protected:
 
   nsRefPtr<nsDOMWorkerXHREvent> mLastXHREvent;
   nsRefPtr<nsDOMWorkerXHREvent> mLastProgressOrLoadEvent;
-
-  nsTArray<ListenerArray> mXHRListeners;
-  nsTArray<WrappedListener> mXHROnXListeners;
-
-  nsTArray<ListenerArray> mUploadListeners;
-  nsTArray<WrappedListener> mUploadOnXListeners;
 
   SyncEventQueue* mSyncEventQueue;
 
