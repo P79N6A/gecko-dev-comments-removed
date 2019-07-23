@@ -114,11 +114,19 @@ function nsFastStartupObserver() {
         if (_browserWindowCount == 0)
           scheduleMemoryCleanup();
       }
+    } else if (topic == "quit-application-granted") {
+      let appstartup = Cc["@mozilla.org/toolkit/app-startup;1"].
+                       getService(Ci.nsIAppStartup);
+      appstartup.exitLastWindowClosingSurvivalArea();
     }
   }
 
   
-  this.QueryInterface = XPCOMUtils.generateQI([Ci.nsIObserver]);
+
+
+
+
+  this.QueryInterface = XPCOMUtils.generateQI([Ci.nsIObserver, Ci.nsISupportsWeakReference]);
 }
 
 function nsFastStartupCLH() { }
@@ -129,10 +137,8 @@ nsFastStartupCLH.prototype = {
   
   handle: function fs_handle(cmdLine) {
     
-    if (!cmdLine.handleFlag("faststart", false))
-      return;
-
-    cmdLine.preventDefault = true;
+    if (cmdLine.handleFlag("faststart-hidden", false))
+      cmdLine.preventDefault = true;
 
     try {
       
@@ -142,19 +148,24 @@ nsFastStartupCLH.prototype = {
 
       this.inited = true;
 
+      let fsobs = new nsFastStartupObserver();
       let wwatch = Cc["@mozilla.org/embedcomp/window-watcher;1"].
                    getService(Ci.nsIWindowWatcher);
-      wwatch.registerNotification(new nsFastStartupObserver());
+      wwatch.registerNotification(fsobs);
 
       let appstartup = Cc["@mozilla.org/toolkit/app-startup;1"].
                        getService(Ci.nsIAppStartup);
+
+      let obsService = Cc["@mozilla.org/observer-service;1"].getService(Ci.nsIObserverService);
+      obsService.addObserver(fsobs, "quit-application-granted", true);
+
       appstartup.enterLastWindowClosingSurvivalArea();
     } catch (e) {
       Cu.reportError(e);
     }
   },
 
-  helpInfo: "    -faststart\n",
+  helpInfo: "    -faststart-hidden\n",
 
   
   QueryInterface: XPCOMUtils.generateQI([Ci.nsICommandLineHandler]),
