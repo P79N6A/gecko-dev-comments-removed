@@ -95,7 +95,7 @@ function run_test() {
   var result = histsvc.executeQuery(query, options);
   var rootNode = result.root;
   rootNode.containerOpen = true;
-  do_check_eq(rootNode.childCount, 0);
+  do_check_eq(rootNode.childCount, 1);
 
   
   query.searchTerms = "WALRUS";
