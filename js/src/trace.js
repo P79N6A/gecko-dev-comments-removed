@@ -1,9 +1,11 @@
 f = function() {
 	var q = 1;
 	
-	for (var i = 0; i < 5000; ++i)
-		q += 2.5;
+	for (var i = 0; i < 5000; ++i) {
+		q += 2;
+		q += 2;
 		
+	}
 	print("q=" + q + " i=" + i);
 }
 

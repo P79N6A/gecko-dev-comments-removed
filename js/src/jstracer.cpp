@@ -255,6 +255,9 @@ public:
                     return out->ins2(op, demote(out, lhs), demote(out, rhs));
                 }
             }
+            if (s0->isop(LIR_i2f) || s0->isop(LIR_u2f)) {
+                return s0->oprnd1();
+            }
             break;
         case F_BoxDouble:
             LInsp s1 = args[1];
@@ -671,8 +674,17 @@ TraceRecorder::guard(bool expected, LIns* cond)
 bool
 TraceRecorder::checkType(jsval& v, int type)
 {
-    if (type == JSVAL_DOUBLE && isNumber(v))
+    
+    JS_ASSERT(type != JSVAL_INT);
+    if (type == JSVAL_DOUBLE && isNumber(v)) {
+        
+
+        LIns* i = get(&v);
+        if (i->isop(LIR_i2f)) {
+            printf("yes!\n");
+        }
         return true;
+    }
     return JSVAL_TAG(v) == (jsuint)type;
 }
 
