@@ -661,6 +661,16 @@ MarkIBSpecialPrevSibling(nsIFrame *aAnonymousFrame,
 
 
 
+static PRBool
+IsOutOfFlowList(nsIAtom* aListName)
+{
+  return
+    aListName == nsGkAtoms::floatList ||
+    aListName == nsGkAtoms::absoluteList ||
+    aListName == nsGkAtoms::overflowOutOfFlowList ||
+    aListName == nsGkAtoms::fixedList;
+}
+
 
 
 
@@ -8421,8 +8431,7 @@ nsCSSFrameConstructor::FindFrameForContentSibling(nsIContent* aContent,
   }
 
   
-  
-  sibling = sibling->GetFirstContinuation();
+  NS_ASSERTION(!sibling->GetPrevContinuation(), "How did that happen?");
 
   if (aPrevSibling) {
     
@@ -9438,10 +9447,7 @@ DoDeletingFrameSubtree(nsFrameManager* aFrameManager,
     
     do {
       childListName = aFrame->GetAdditionalChildListName(childListIndex++);
-    } while (childListName == nsGkAtoms::floatList    ||
-             childListName == nsGkAtoms::absoluteList ||
-             childListName == nsGkAtoms::overflowOutOfFlowList ||
-             childListName == nsGkAtoms::fixedList);
+    } while (IsOutOfFlowList(childListName));
   } while (childListName);
 
   return NS_OK;
@@ -10933,7 +10939,8 @@ nsCSSFrameConstructor::FindFrameWithContent(nsFrameManager*  aFrameManager,
                    kidFrame, aParentContent);
 #endif
             nsIFrame* matchingFrame =
-                FindFrameWithContent(aFrameManager, kidFrame,
+                FindFrameWithContent(aFrameManager,
+                                     nsPlaceholderFrame::GetRealFrameFor(kidFrame),
                                      aParentContent, aContent, nsnull);
 
             if (matchingFrame) {
@@ -10964,7 +10971,9 @@ nsCSSFrameConstructor::FindFrameWithContent(nsFrameManager*  aFrameManager,
         aHint = nsnull;
         searchAgain = PR_TRUE;
       } else {
-        listName = aParentFrame->GetAdditionalChildListName(listIndex++);
+        do {
+          listName = aParentFrame->GetAdditionalChildListName(listIndex++);
+        } while (IsOutOfFlowList(listName));
       }
     } while(listName || searchAgain);
 
