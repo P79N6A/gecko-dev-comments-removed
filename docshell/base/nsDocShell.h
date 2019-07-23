@@ -700,6 +700,13 @@ protected:
     
     
     
+    nsCOMPtr<nsIURI>           mFailedURI;
+    nsCOMPtr<nsIChannel>       mFailedChannel;
+    PRUint32                   mFailedLoadType;
+
+    
+    
+    
 
     nsIDocShellTreeOwner *     mTreeOwner; 
     nsPIDOMEventTarget *       mChromeEventHandler; 
