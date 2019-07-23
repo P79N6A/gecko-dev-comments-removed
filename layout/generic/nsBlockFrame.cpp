@@ -1509,15 +1509,9 @@ nsBlockFrame::MarkLineDirty(line_iterator aLine, const nsLineList* aLineList)
 nsresult
 nsBlockFrame::PrepareResizeReflow(nsBlockReflowState& aState)
 {
-  
-  
-  aState.GetAvailableSpace();
-
   const nsStyleText* styleText = GetStyleText();
   
   PRBool tryAndSkipLines =
-      
-      !aState.IsImpactedByFloat() &&
       
       (NS_STYLE_TEXT_ALIGN_LEFT == styleText->mTextAlign ||
        (NS_STYLE_TEXT_ALIGN_DEFAULT == styleText->mTextAlign &&
