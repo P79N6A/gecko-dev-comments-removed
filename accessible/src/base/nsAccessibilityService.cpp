@@ -938,30 +938,19 @@ nsAccessibilityService::CreateHTMLCaptionAccessible(nsIFrame *aFrame, nsIAccessi
   return NS_OK;
 }
 
-NS_IMETHODIMP nsAccessibilityService::GetCachedAccessible(nsIDOMNode *aNode, 
-                                                          nsIWeakReference *aWeakShell,
-                                                          nsIAccessible **aAccessible)
-{
-  nsCOMPtr<nsIAccessNode> accessNode;
-  nsresult rv = GetCachedAccessNode(aNode, aWeakShell, getter_AddRefs(accessNode));
-  nsCOMPtr<nsIAccessible> accessible(do_QueryInterface(accessNode));
-  NS_IF_ADDREF(*aAccessible = accessible);
-  return rv;
-}
-
-NS_IMETHODIMP nsAccessibilityService::GetCachedAccessNode(nsIDOMNode *aNode, 
-                                                          nsIWeakReference *aWeakShell,
-                                                          nsIAccessNode **aAccessNode)
+already_AddRefed<nsIAccessNode>
+nsAccessibilityService::GetCachedAccessNode(nsIDOMNode *aNode, 
+                                            nsIWeakReference *aWeakShell)
 {
   nsCOMPtr<nsIAccessibleDocument> accessibleDoc =
     nsAccessNode::GetDocAccessibleFor(aWeakShell);
 
-  if (!accessibleDoc) {
-    *aAccessNode = nsnull;
-    return NS_ERROR_FAILURE;
-  }
+  if (!accessibleDoc)
+    return nsnull;
 
-  return accessibleDoc->GetCachedAccessNode(static_cast<void*>(aNode), aAccessNode);
+  nsRefPtr<nsDocAccessible> docAccessible =
+    nsAccUtils::QueryObject<nsDocAccessible>(accessibleDoc);
+  return docAccessible->GetCachedAccessNode(static_cast<void*>(aNode));
 }
 
 NS_IMETHODIMP
@@ -1295,23 +1284,19 @@ nsAccessibilityService::GetAccessible(nsIDOMNode *aNode,
 #endif
 
   
-  
-  nsCOMPtr<nsIAccessNode> accessNode;
-  GetCachedAccessNode(aNode, aWeakShell, getter_AddRefs(accessNode));
-
-  nsCOMPtr<nsIAccessible> newAcc;
-  if (accessNode) {
+  nsCOMPtr<nsIAccessNode> cachedAccessNode =
+    GetCachedAccessNode(aNode, aWeakShell);
+  if (cachedAccessNode) {
     
     
     
-    
-    newAcc = do_QueryInterface(accessNode);
-    if (newAcc) {
-      NS_ADDREF(*aAccessible = newAcc);
+    CallQueryInterface(cachedAccessNode, aAccessible);
+    NS_ASSERTION(*aAccessible, "Bad cache update!");
+    if (*aAccessible)
       return NS_OK;
-    }
   }
 
+  nsCOMPtr<nsIAccessible> newAcc;
   nsCOMPtr<nsIContent> content(do_QueryInterface(aNode));
 
   
@@ -1323,15 +1308,15 @@ nsAccessibilityService::GetAccessible(nsIDOMNode *aNode,
     nodeIsDoc = do_QueryInterface(aNode);
     NS_ENSURE_TRUE(nodeIsDoc, NS_ERROR_FAILURE); 
 
+#ifdef DEBUG
+    
     nsCOMPtr<nsIAccessibleDocument> accessibleDoc =
-      nsAccessNode::GetDocAccessibleFor(aWeakShell);
-    if (accessibleDoc) {
-      newAcc = do_QueryInterface(accessibleDoc);
-      NS_ASSERTION(newAcc, "nsIAccessibleDocument is not an nsIAccessible");
-    }
-    else {
-      CreateRootAccessible(aPresShell, nodeIsDoc, getter_AddRefs(newAcc)); 
-    }
+      nsAccessNode::GetDocAccessibleFor(nodeIsDoc);
+    NS_ASSERTION(!accessibleDoc,
+                 "Trying to create already cached accessible document!");
+#endif
+
+    CreateRootAccessible(aPresShell, nodeIsDoc, getter_AddRefs(newAcc)); 
 
     NS_IF_ADDREF(*aAccessible = newAcc);
     return NS_OK;
@@ -1385,7 +1370,10 @@ nsAccessibilityService::GetAccessible(nsIDOMNode *aNode,
             PRInt32 childCount;
             imageAcc->GetChildCount(&childCount);
             
-            return GetCachedAccessible(aNode, aWeakShell, aAccessible);
+            nsCOMPtr<nsIAccessNode> cachedAreaAcc =
+              GetCachedAccessNode(aNode, aWeakShell);
+            if (cachedAreaAcc)
+              CallQueryInterface(cachedAreaAcc, aAccessible);
           }
         }
 

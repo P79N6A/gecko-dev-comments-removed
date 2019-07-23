@@ -156,6 +156,18 @@ public:
 
 
 
+
+
+
+
+  already_AddRefed<nsIAccessNode> GetCachedAccessNode(void *aUniqueID);
+
+  
+
+
+
+
+
   void CacheAccessNode(void *aUniqueID, nsIAccessNode *aAccessNode);
 
   

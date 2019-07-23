@@ -110,6 +110,17 @@ public:
                                     nsIWeakReference *aPresShell,
                                     nsIAccessible **aAccessible);
 
+  
+
+
+
+
+
+
+
+  already_AddRefed<nsIAccessNode> GetCachedAccessNode(nsIDOMNode *aNode,
+                                                      nsIWeakReference *aShell);
+
 private:
   
 

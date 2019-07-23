@@ -539,16 +539,30 @@ NS_IMETHODIMP nsDocAccessible::GetAssociatedEditor(nsIEditor **aEditor)
   return NS_OK;
 }
 
-NS_IMETHODIMP nsDocAccessible::GetCachedAccessNode(void *aUniqueID, nsIAccessNode **aAccessNode)
+already_AddRefed<nsIAccessNode>
+nsDocAccessible::GetCachedAccessNode(void *aUniqueID)
 {
-  GetCacheEntry(mAccessNodeCache, aUniqueID, aAccessNode); 
+  nsIAccessNode* accessNode = nsnull;
+  GetCacheEntry(mAccessNodeCache, aUniqueID, &accessNode);
+
+  
+  
+  if (!accessNode) {
+    void* thisUniqueID = nsnull;
+    GetUniqueID(&thisUniqueID);
+    if (thisUniqueID == aUniqueID) {
+      NS_ADDREF(this);
+      return this;
+    }
+  }
+
 #ifdef DEBUG
   
   
   
   
   nsRefPtr<nsAccessible> acc =
-    nsAccUtils::QueryObject<nsAccessible>(*aAccessNode);
+    nsAccUtils::QueryObject<nsAccessible>(accessNode);
 
   if (acc) {
     nsAccessible* parent(acc->GetCachedParent());
@@ -556,7 +570,7 @@ NS_IMETHODIMP nsDocAccessible::GetCachedAccessNode(void *aUniqueID, nsIAccessNod
       parent->TestChildCache(acc);
   }
 #endif
-  return NS_OK;
+  return accessNode;
 }
 
 
@@ -600,9 +614,6 @@ nsDocAccessible::Init()
   AddEventListeners();
 
   GetParent(); 
-
-  nsresult rv = nsHyperTextAccessibleWrap::Init();
-  NS_ENSURE_SUCCESS(rv, rv);
 
   
   mEventQueue = new nsAccEventQueue(this);
@@ -1763,8 +1774,7 @@ nsDocAccessible::ProcessPendingEvent(nsAccEvent *aEvent)
 
 void nsDocAccessible::InvalidateChildrenInSubtree(nsIDOMNode *aStartNode)
 {
-  nsCOMPtr<nsIAccessNode> accessNode;
-  GetCachedAccessNode(aStartNode, getter_AddRefs(accessNode));
+  nsCOMPtr<nsIAccessNode> accessNode = GetCachedAccessNode(aStartNode);
   nsRefPtr<nsAccessible> acc(nsAccUtils::QueryAccessible(accessNode));
   if (acc)
     acc->InvalidateChildren();
@@ -1785,8 +1795,7 @@ void nsDocAccessible::RefreshNodes(nsIDOMNode *aStartNode)
     return; 
   }
 
-  nsCOMPtr<nsIAccessNode> accessNode;
-  GetCachedAccessNode(aStartNode, getter_AddRefs(accessNode));
+  nsCOMPtr<nsIAccessNode> accessNode = GetCachedAccessNode(aStartNode);
 
   
   
@@ -1942,8 +1951,7 @@ nsDocAccessible::InvalidateCacheSubtree(nsIContent *aChild,
   }
 
   
-  nsCOMPtr<nsIAccessNode> childAccessNode;
-  GetCachedAccessNode(childNode, getter_AddRefs(childAccessNode));
+  nsCOMPtr<nsIAccessNode> childAccessNode = GetCachedAccessNode(childNode);
   nsCOMPtr<nsIAccessible> childAccessible = do_QueryInterface(childAccessNode);
 
 #ifdef DEBUG_A11Y
@@ -2124,8 +2132,7 @@ nsDocAccessible::GetAccessibleInParentChain(nsIDOMNode *aNode,
                                                 aAccessible);
     }
     else { 
-      nsCOMPtr<nsIAccessNode> accessNode;
-      GetCachedAccessNode(currentNode, getter_AddRefs(accessNode)); 
+      nsCOMPtr<nsIAccessNode> accessNode = GetCachedAccessNode(currentNode);
       if (accessNode) {
         CallQueryInterface(accessNode, aAccessible); 
       }
@@ -2149,8 +2156,7 @@ nsDocAccessible::FireShowHideEvents(nsIDOMNode *aDOMNode,
   if (!aAvoidOnThisNode) {
     if (aEventType == nsIAccessibleEvent::EVENT_HIDE) {
       
-      nsCOMPtr<nsIAccessNode> accessNode;
-      GetCachedAccessNode(aDOMNode, getter_AddRefs(accessNode));
+      nsCOMPtr<nsIAccessNode> accessNode = GetCachedAccessNode(aDOMNode);
       accessible = do_QueryInterface(accessNode);
     } else {
       
