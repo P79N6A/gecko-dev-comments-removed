@@ -7175,6 +7175,8 @@ nsDocument::OnPageShow(PRBool aPersisted, nsIDOMEventTarget* aDispatchStartTarge
 
   
   if (!aDispatchStartTarget) {
+    
+    
     mIsShowing = PR_TRUE;
   }
  
@@ -7217,6 +7219,8 @@ nsDocument::OnPageHide(PRBool aPersisted, nsIDOMEventTarget* aDispatchStartTarge
 
   
   if (!aDispatchStartTarget) {
+    
+    
     mIsShowing = PR_FALSE;
   }
 
