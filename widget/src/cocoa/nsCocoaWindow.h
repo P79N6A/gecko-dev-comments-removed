@@ -196,6 +196,8 @@ public:
     NS_IMETHOD SetAnimatedResize(PRUint16 aAnimation);
     NS_IMETHOD GetAnimatedResize(PRUint16* aAnimation);
 
+    virtual gfxASurface* GetThebesSurface();
+
     
     virtual PRBool DragEvent(unsigned int aMessage, Point aMouseGlobal, UInt16 aKeyModifiers);
 
