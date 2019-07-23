@@ -524,7 +524,9 @@ read_more_data:
       
 
 
-      if (me->buffer != NULL) {
+
+
+      if (me->buffer != NULL && !me->shutdown) {
         oggplay_buffer_set_last_data(me, me->buffer);
       }
 
