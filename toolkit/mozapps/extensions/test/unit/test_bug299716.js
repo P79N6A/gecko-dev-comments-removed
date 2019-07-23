@@ -177,19 +177,37 @@ registrar.registerFactory(psID,
                           "@mozilla.org/embedcomp/prompt-service;1",
                           PromptServiceFactory);
 
-const updateListener = {
-  _state: -1,
-
+const installListener = {
   
-  onStateChange: function onStateChange(aAddon, aState, aValue) {
-    if ((this._state == -1) &&
-        (aState == Components.interfaces.nsIXPIProgressDialog.DIALOG_CLOSE)) {
-      this._state = aState;
-      next_test();
-    }
+  onDownloadStarted: function(aAddon) {
+    
   },
 
-  onProgress: function onProgress(aAddon, aValue, aMaxValue) {
+  onDownloadEnded: function(aAddon) {
+    
+  },
+
+  onInstallStarted: function(aAddon) {
+    
+  },
+
+  onCompatibilityCheckStarted: function(aAddon) {
+    
+  },
+
+  onCompatibilityCheckEnded: function(aAddon, aStatus) {
+    
+  },
+
+  onInstallEnded: function(aAddon, aStatus) {
+    
+  },
+
+  onInstallsCompleted: function() {
+    next_test();
+  },
+
+  onDownloadProgress: function onProgress(aAddon, aValue, aMaxValue) {
     
   }
 };
@@ -349,8 +367,6 @@ function run_test() {
   startupEM();
   dump("\n\n*** INSTALLING NEW ITEMS\n\n");
 
-  gEM.addUpdateListener(updateListener);
-
   for (var i = 0; i < ADDONS.length; i++) {
     gEM.installItemFromFile(do_get_addon(ADDONS[i].addon),
                             NS_INSTALL_LOCATION_APPPROFILE);
@@ -430,6 +446,8 @@ function run_test_pt3() {
       addonsArray.splice(i, 1);
     }
   }
+
+  gEM.addInstallListener(installListener);
 
   do_check_true(addonsArray.length > 0);
   gEM.addDownloads(addonsArray, addonsArray.length, null);
