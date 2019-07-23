@@ -102,7 +102,8 @@ public:
   
 
   
-  NS_IMETHOD GetFragment(nsIDOMDocumentFragment** aFragment);
+  NS_IMETHOD GetFragment(PRBool aWillOwnFragment,
+                         nsIDOMDocumentFragment** aFragment);
   NS_IMETHOD SetTargetDocument(nsIDocument* aDocument);
   NS_IMETHOD WillBuildContent();
   NS_IMETHOD DidBuildContent();
@@ -400,14 +401,19 @@ nsXMLFragmentContentSink::StartLayout()
 
 
 NS_IMETHODIMP 
-nsXMLFragmentContentSink::GetFragment(nsIDOMDocumentFragment** aFragment)
+nsXMLFragmentContentSink::GetFragment(PRBool aWillOwnFragment,
+                                      nsIDOMDocumentFragment** aFragment)
 {
   *aFragment = nsnull;
   if (mParseError) {
     
     return NS_ERROR_DOM_SYNTAX_ERR;
   } else if (mRoot) {
-    return CallQueryInterface(mRoot, aFragment);
+    nsresult rv = CallQueryInterface(mRoot, aFragment);
+    if (NS_SUCCEEDED(rv) && aWillOwnFragment) {
+      mRoot = nsnull;
+    }
+    return rv;
   } else {
     return NS_OK;
   }

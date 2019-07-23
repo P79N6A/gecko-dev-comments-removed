@@ -903,8 +903,11 @@ public:
 
 
 
+
+
   static nsresult CreateContextualFragment(nsIDOMNode* aContextNode,
                                            const nsAString& aFragment,
+                                           PRBool aWillOwnFragment,
                                            nsIDOMDocumentFragment** aReturn);
 
   
