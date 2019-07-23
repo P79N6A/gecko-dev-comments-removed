@@ -44,7 +44,9 @@
 #include "nsHttpRequestHead.h"
 #include "nsHttpResponseHead.h"
 #include "nsHttpChunkedDecoder.h"
+#include "nsNetSegmentUtils.h"
 #include "nsTransportUtils.h"
+#include "nsNetUtil.h"
 #include "nsProxyRelease.h"
 #include "nsIOService.h"
 #include "nsAutoLock.h"
@@ -266,7 +268,12 @@ nsHttpTransaction::Init(PRUint8 caps,
         rv = multi->AppendStream(requestBody);
         if (NS_FAILED(rv)) return rv;
 
-        mRequestStream = multi;
+        
+        
+        
+        rv = NS_NewBufferedInputStream(getter_AddRefs(mRequestStream), multi,
+                                       NET_DEFAULT_SEGMENT_SIZE);
+        if (NS_FAILED(rv)) return rv;
     }
     else
         mRequestStream = headers;
