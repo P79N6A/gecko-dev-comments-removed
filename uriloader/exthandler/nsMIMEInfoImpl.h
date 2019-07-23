@@ -47,6 +47,7 @@
 #include "nsIFile.h"
 #include "nsCOMPtr.h"
 #include "nsIURI.h"
+#include "nsIProcess.h"
 
 
 
@@ -140,6 +141,9 @@ class nsMIMEInfoBase : public nsIMIMEInfo {
 
     virtual NS_HIDDEN_(nsresult) LoadUriInternal(nsIURI *aURI) = 0;
 
+    static already_AddRefed<nsIProcess> InitProcess(nsIFile* aApp,
+                                                    nsresult* aResult);
+
     
 
 
@@ -151,6 +155,8 @@ class nsMIMEInfoBase : public nsIMIMEInfo {
 
     static NS_HIDDEN_(nsresult) LaunchWithIProcess(nsIFile* aApp,
                                                    const nsCString &aArg);
+    static NS_HIDDEN_(nsresult) LaunchWithIProcess(nsIFile* aApp,
+                                                   const nsString &aArg);
 
     
 
