@@ -87,8 +87,11 @@ function test() {
     ok(pb.privateBrowsingEnabled, "private browsing enabled");
 
     
-    isnot(prePBModeTimeStamp, getSessionstorejsModificationTime(),
-      "sessionstore.js should be modified when entering the private browsing mode");
+    
+
+
+
+
 
     
     let startPBModeTimeStamp = getSessionstorejsModificationTime();
