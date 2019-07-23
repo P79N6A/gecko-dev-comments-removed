@@ -719,13 +719,13 @@ FontEntry::TestCharacterMap(PRUint32 aCh)
                 hasGlyph = PR_TRUE;
         }
 
-        if (hasGlyph) {
-            mCharacterMap.set(aCh);
-            return PR_TRUE;         
-        }
-
         SelectObject(dc, oldFont);
         ReleaseDC(NULL, dc);
+
+        if (hasGlyph) {
+            mCharacterMap.set(aCh);
+            return PR_TRUE;
+        }
     }
 
     return PR_FALSE;
@@ -1014,7 +1014,11 @@ gfxWindowsFont::Measure(gfxTextRun *aTextRun,
     
     if (aBoundingBoxType == TIGHT_HINTED_OUTLINE_EXTENTS &&
         mAntialiasOption != CAIRO_ANTIALIAS_NONE) {
-        nsRefPtr<gfxWindowsFont> tempFont =
+        
+        
+        
+        
+        nsAutoPtr<gfxWindowsFont> tempFont =
             new gfxWindowsFont(GetFontEntry(), GetStyle(), CAIRO_ANTIALIAS_NONE);
         if (tempFont) {
             return tempFont->Measure(aTextRun, aStart, aEnd,
