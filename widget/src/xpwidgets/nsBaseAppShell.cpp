@@ -60,6 +60,7 @@ nsBaseAppShell::nsBaseAppShell()
   , mEventloopNestingState(eEventloopNone)
   , mRunWasCalled(PR_FALSE)
   , mExiting(PR_FALSE)
+  , mBlockNativeEvent(PR_FALSE)
 {
 }
 
@@ -102,10 +103,22 @@ nsBaseAppShell::NativeEventCallback()
   
   
 
-  EventloopNestingState prevVal = mEventloopNestingState;
   nsIThread *thread = NS_GetCurrentThread();
+  PRBool prevBlockNativeEvent = mBlockNativeEvent;
+  if (mEventloopNestingState == eEventloopOther) {
+    if (!NS_HasPendingEvents(thread))
+      return;
+    
+    
+    
+    
+    mBlockNativeEvent = PR_TRUE;
+  }
+
+  EventloopNestingState prevVal = mEventloopNestingState;
   NS_ProcessPendingEvents(thread, THREAD_EVENT_STARVATION_LIMIT);
   mEventloopNestingState = prevVal;
+  mBlockNativeEvent = prevBlockNativeEvent;
 
   
   
@@ -197,6 +210,9 @@ nsBaseAppShell::ResumeNative(void)
 NS_IMETHODIMP
 nsBaseAppShell::OnDispatchedEvent(nsIThreadInternal *thr)
 {
+  if (mBlockNativeEvent)
+    return NS_OK;
+
   PRInt32 lastVal = PR_AtomicSet(&mNativeEventPending, 1);
   if (lastVal == 1)
     return NS_OK;
@@ -210,6 +226,18 @@ NS_IMETHODIMP
 nsBaseAppShell::OnProcessNextEvent(nsIThreadInternal *thr, PRBool mayWait,
                                    PRUint32 recursionDepth)
 {
+  if (mBlockNativeEvent) {
+    if (!mayWait)
+      return NS_OK;
+    
+    
+    
+    
+    mBlockNativeEvent = PR_FALSE;
+    if (NS_HasPendingEvents(thr))
+      OnDispatchedEvent(thr); 
+  }
+
   PRIntervalTime start = PR_IntervalNow();
   PRIntervalTime limit = THREAD_EVENT_STARVATION_LIMIT;
 

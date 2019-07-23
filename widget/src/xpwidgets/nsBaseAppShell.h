@@ -120,6 +120,16 @@ private:
   EventloopNestingState mEventloopNestingState;
   PRPackedBool mRunWasCalled;
   PRPackedBool mExiting;
+  
+
+
+
+
+
+
+
+
+  PRPackedBool mBlockNativeEvent;
 };
 
 #endif 
