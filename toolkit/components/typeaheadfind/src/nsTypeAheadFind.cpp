@@ -1175,7 +1175,7 @@ nsTypeAheadFind::IsRangeVisible(nsIPresShell *aPresShell,
   
   
   
-  nsCOMPtr<nsIBidirectionalEnumerator> frameTraversal;
+  nsCOMPtr<nsIFrameEnumerator> frameTraversal;
   nsCOMPtr<nsIFrameTraversal> trav(do_CreateInstance(kFrameTraversalCID));
   if (trav)
     trav->NewFrameTraversal(getter_AddRefs(frameTraversal),
@@ -1191,9 +1191,7 @@ nsTypeAheadFind::IsRangeVisible(nsIPresShell *aPresShell,
 
   while (rectVisibility == nsRectVisibility_kAboveViewport || rectVisibility == nsRectVisibility_kZeroAreaRect) {
     frameTraversal->Next();
-    nsISupports* currentItem;
-    frameTraversal->CurrentItem(&currentItem);
-    frame = static_cast<nsIFrame*>(currentItem);
+    frame = frameTraversal->CurrentItem();
     if (!frame)
       return PR_FALSE;
 

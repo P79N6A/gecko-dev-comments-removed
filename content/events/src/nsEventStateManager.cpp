@@ -4362,7 +4362,7 @@ nsEventStateManager::GetNextTabbableContent(nsIContent* aRootContent,
   nsresult rv;
   nsCOMPtr<nsIFrameTraversal> trav(do_CreateInstance(kFrameTraversalCID, &rv));
   NS_ENSURE_SUCCESS(rv, rv);
-  nsCOMPtr<nsIBidirectionalEnumerator> frameTraversal;
+  nsCOMPtr<nsIFrameEnumerator> frameTraversal;
 
   
   if (!aStartFrame) {
@@ -4381,7 +4381,7 @@ nsEventStateManager::GetNextTabbableContent(nsIContent* aRootContent,
                                 );
     NS_ENSURE_SUCCESS(rv, rv);
     if (!forward) {
-      rv = frameTraversal->Last();
+      frameTraversal->Last();
     }
   }
   else {
@@ -4397,15 +4397,16 @@ nsEventStateManager::GetNextTabbableContent(nsIContent* aRootContent,
         !aStartContent->IsNodeOfType(nsINode::eHTML)) {
       
       
-      rv = forward ? frameTraversal->Next() : frameTraversal->Prev();
+      if (forward)
+        frameTraversal->Next();
+      else
+        frameTraversal->Prev();
     }
   }
 
   
-  while (NS_SUCCEEDED(rv)) {
-    nsISupports* currentItem;
-    frameTraversal->CurrentItem(&currentItem);
-    *aResultFrame = (nsIFrame*)currentItem;
+  while (1) {
+    *aResultFrame = frameTraversal->CurrentItem();
     if (!*aResultFrame) {
       break;
     }
@@ -4437,7 +4438,10 @@ nsEventStateManager::GetNextTabbableContent(nsIContent* aRootContent,
         return NS_OK;
       }
     }
-    rv = forward ? frameTraversal->Next() : frameTraversal->Prev();
+    if (forward)
+      frameTraversal->Next();
+    else
+      frameTraversal->Prev();
   }
 
   
@@ -5544,7 +5548,7 @@ nsEventStateManager::GetDocSelectionLocation(nsIContent **aStartContent,
         if (nodeValue.Length() == *aStartOffset && !isFormControl &&
             startContent != mDocument->GetRootContent()) {
           
-          nsCOMPtr<nsIBidirectionalEnumerator> frameTraversal;
+          nsCOMPtr<nsIFrameEnumerator> frameTraversal;
 
           nsCOMPtr<nsIFrameTraversal> trav(do_CreateInstance(kFrameTraversalCID,
                                                              &rv));
@@ -5566,9 +5570,8 @@ nsEventStateManager::GetDocSelectionLocation(nsIContent **aStartContent,
             
             
             frameTraversal->Next();
-            nsISupports* currentItem;
-            frameTraversal->CurrentItem(&currentItem);
-            if (nsnull == (newCaretFrame = static_cast<nsIFrame*>(currentItem))) {
+            newCaretFrame = frameTraversal->CurrentItem();
+            if (nsnull == newCaretFrame) {
               break;
             }
             newCaretContent = newCaretFrame->GetContent();            
