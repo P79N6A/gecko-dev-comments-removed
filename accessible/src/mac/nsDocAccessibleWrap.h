@@ -41,7 +41,18 @@
 
 #include "nsDocAccessible.h"
 
-typedef nsDocAccessible nsDocAccessibleWrap;
+class nsDocAccessibleWrap: public nsDocAccessible
+{
+public:
+    nsDocAccessibleWrap(nsIDOMNode *aNode, nsIWeakReference *aShell);
+    virtual ~nsDocAccessibleWrap();
+
+    
+
+    
+
+
+    virtual nsresult Init ();
+};
 
 #endif
-
