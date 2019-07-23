@@ -228,11 +228,32 @@ EnsureLegalActivity(JSContext *cx, JSObject *obj)
     return JS_TRUE;
   }
 
+  
   JSStackFrame *frame = nsnull;
-  uint32 fileFlags = JS_GetTopScriptFilenameFlags(cx, NULL);
-  if (!JS_FrameIterator(cx, &frame) ||
-      fileFlags == JSFILENAME_NULL ||
-      (fileFlags & JSFILENAME_SYSTEM)) {
+  while (JS_FrameIterator(cx, &frame) && !JS_GetFrameScript(cx, frame)) {
+    continue;
+  }
+
+  if (!frame) {
+    
+    
+    return JS_TRUE;
+  }
+
+  
+  
+  JSBool isClone = JS_FALSE;
+  JSFunction *fun = JS_GetFrameFunction(cx, frame);
+  if (fun) {
+    JSObject *funobj = JS_GetFrameFunctionObject(cx, frame);
+    if (funobj != JS_GetFunctionObject(fun)) {
+      isClone = JS_TRUE;
+    }
+  }
+
+  uint32 fileFlags = JS_GetScriptFilenameFlags(JS_GetFrameScript(cx, frame));
+  NS_ASSERTION(fileFlags != JSFILENAME_NULL, "Invalid flags for a filename");
+  if (!isClone && (fileFlags & JSFILENAME_SYSTEM)) {
     
     return JS_TRUE;
   }
