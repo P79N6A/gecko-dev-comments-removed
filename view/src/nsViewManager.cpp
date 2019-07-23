@@ -110,14 +110,8 @@ public:
 
 static PRBool IsViewVisible(nsView *aView)
 {
-  for (nsIView *view = aView; view; view = view->GetParent()) {
-    
-    
-    
-    
-    if (view->GetVisibility() == nsViewVisibility_kHide)
-      return PR_FALSE;
-  }
+  if (!aView->IsEffectivelyVisible())
+    return PR_FALSE;
 
   
   
@@ -1231,8 +1225,7 @@ NS_IMETHODIMP nsViewManager::GrabMouseEvents(nsIView *aView, PRBool &aResult)
 
   
   
-  if (aView && static_cast<nsView*>(aView)->GetVisibility()
-               == nsViewVisibility_kHide) {
+  if (aView && !static_cast<nsView*>(aView)->IsEffectivelyVisible()) {
     aView = nsnull;
   }
 
@@ -1585,16 +1578,6 @@ NS_IMETHODIMP nsViewManager::SetViewVisibility(nsIView *aView, nsViewVisibility 
         else {
           UpdateView(view, NS_VMREFRESH_NO_SYNC);
         }
-      }
-    }
-
-    
-    
-    
-    for (nsView* childView = view->GetFirstChild(); childView;
-         childView = childView->GetNextSibling()) {
-      if (!childView->GetClientData()) {
-        childView->SetVisibility(aVisible);
       }
     }
   }
@@ -1967,7 +1950,7 @@ NS_IMETHODIMP nsViewManager::GetRectVisibility(nsIView *aView,
   }
 
   
-  if (view->GetVisibility() == nsViewVisibility_kHide) {
+  if (!view->IsEffectivelyVisible()) {
     return NS_OK; 
   }
 
