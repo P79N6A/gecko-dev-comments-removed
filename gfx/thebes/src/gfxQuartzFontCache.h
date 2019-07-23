@@ -65,16 +65,18 @@ struct FontSearch {
 
 class MacOSFamilyEntry;
 class gfxQuartzFontCache;
+class FontEntryStandardFaceComparator;
 
 
 class MacOSFontEntry : public gfxFontEntry
 {
 public:
     friend class gfxQuartzFontCache;
+    friend class FontEntryStandardFaceComparator;
 
     
     MacOSFontEntry(const nsAString& aPostscriptName, PRInt32 aAppleWeight, PRUint32 aTraits, 
-                    MacOSFamilyEntry *aFamily);
+                   MacOSFamilyEntry *aFamily, PRBool aIsStandardFace = PR_FALSE);
 
     const nsString& FamilyName();
 
@@ -94,6 +96,7 @@ protected:
 
     ATSUFontID mATSUFontID;
     PRPackedBool mATSUIDInitialized;
+    PRPackedBool mStandardFace;
 };
 
 
@@ -150,6 +153,9 @@ public:
         for (i = 0; i < numFonts; i++)
             mAvailableFonts[i]->mIsBadUnderlineFont = aIsBadUnderlineFont;
     }
+
+    
+    void SortAvailableFonts();
 
 protected:
     
