@@ -1321,6 +1321,17 @@ obj_eval(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
     MUST_FLOW_THROUGH("out");
     uintN staticLevel = caller->script->staticLevel + 1;
     if (!scopeobj) {
+
+        
+
+
+
+        callerScopeChain = js_GetScopeChain(cx, caller);
+        if (!callerScopeChain) {
+            ok = JS_FALSE;
+            goto out;
+        }
+
 #if JS_HAS_EVAL_THIS_SCOPE
         
 
@@ -1330,12 +1341,6 @@ obj_eval(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
         if (indirectCall) {
             
             staticLevel = 0;
-
-            callerScopeChain = js_GetScopeChain(cx, caller);
-            if (!callerScopeChain) {
-                ok = JS_FALSE;
-                goto out;
-            }
 
             OBJ_TO_INNER_OBJECT(cx, obj);
             if (!obj) {
@@ -1367,20 +1372,16 @@ obj_eval(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
                 setCallerVarObj = JS_TRUE;
                 JS_PUSH_TEMP_ROOT_OBJECT(cx, callerVarObj, &varobjtvr);
             }
+        } else {
+            
+
+
+
+
+
+            scopeobj = callerScopeChain;
         }
 #endif
-
-        
-
-
-
-
-
-        scopeobj = js_GetScopeChain(cx, caller);
-        if (!scopeobj) {
-            ok = JS_FALSE;
-            goto out;
-        }
     } else {
         scopeobj = js_GetWrappedObject(cx, scopeobj);
         OBJ_TO_INNER_OBJECT(cx, scopeobj);
