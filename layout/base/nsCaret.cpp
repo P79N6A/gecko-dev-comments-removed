@@ -712,8 +712,7 @@ nsCaret::DrawAtPositionWithHint(nsIDOMNode*             aNode,
     }
 
     
-    rv = UpdateCaretRects(theFrame, theFrameOffset);
-    if (NS_FAILED(rv))
+    if (!UpdateCaretRects(theFrame, theFrameOffset))
       return PR_FALSE;
   }
 
@@ -1073,11 +1072,14 @@ void nsCaret::DrawCaret(PRBool aInvalidate)
   ToggleDrawnStatus();
 }
 
-nsresult nsCaret::UpdateCaretRects(nsIFrame* aFrame, PRInt32 aFrameOffset)
+PRBool
+nsCaret::UpdateCaretRects(nsIFrame* aFrame, PRInt32 aFrameOffset)
 {
   NS_ASSERTION(aFrame, "Should have a frame here");
 
   nsCOMPtr<nsISelection> domSelection = do_QueryReferent(mDomSelectionWeak);
+  if (!domSelection)
+    return PR_FALSE;
   nscoord bidiIndicatorSize;
   GetGeometry(domSelection, &mCaretRect, &bidiIndicatorSize);
 
@@ -1086,27 +1088,18 @@ nsresult nsCaret::UpdateCaretRects(nsIFrame* aFrame, PRInt32 aFrameOffset)
   if (NS_STYLE_DIRECTION_RTL == vis->mDirection)
     mCaretRect.x -= mCaretRect.width;
 
-  return UpdateHookRect(domSelection, bidiIndicatorSize);
-}
-
-nsresult nsCaret::UpdateHookRect(nsISelection* aSelection,
-                                 nscoord aBidiIndicatorSize)
-{
+#ifdef IBMBIDI
   mHookRect.Empty();
 
-#ifdef IBMBIDI
   
-  PRBool isCaretRTL=PR_FALSE;
+  PRBool isCaretRTL = PR_FALSE;
   nsIBidiKeyboard* bidiKeyboard = nsContentUtils::GetBidiKeyboard();
-  if (!bidiKeyboard || NS_FAILED(bidiKeyboard->IsLangRTL(&isCaretRTL)))
-    
-    
-    
-    return NS_OK;
-  if (mBidiUI)
-  {
-    if (isCaretRTL != mKeyboardRTL)
-    {
+  
+  
+  
+  if (bidiKeyboard && NS_SUCCEEDED(bidiKeyboard->IsLangRTL(&isCaretRTL)) &&
+      mBidiUI) {
+    if (isCaretRTL != mKeyboardRTL) {
       
 
 
@@ -1116,24 +1109,21 @@ nsresult nsCaret::UpdateHookRect(nsISelection* aSelection,
 
  
       mKeyboardRTL = isCaretRTL;
-      if (NS_SUCCEEDED(aSelection->SelectionLanguageChange(mKeyboardRTL)))
-      {
-        return NS_ERROR_FAILURE;
-      }
+      if (NS_SUCCEEDED(domSelection->SelectionLanguageChange(mKeyboardRTL)))
+        return PR_FALSE;
     }
     
     
     
     mHookRect.SetRect(mCaretRect.x + ((isCaretRTL) ?
-                      aBidiIndicatorSize * -1 :
+                      bidiIndicatorSize * -1 :
                       mCaretRect.width),
-                      mCaretRect.y + aBidiIndicatorSize,
-                      aBidiIndicatorSize,
+                      mCaretRect.y + bidiIndicatorSize,
+                      bidiIndicatorSize,
                       mCaretRect.width);
   }
 #endif 
-
-  return NS_OK;
+  return PR_TRUE;
 }
 
 
