@@ -497,7 +497,8 @@ nsIEProfileMigrator::GetSourceHomePageURL(nsACString& aResult)
     return NS_OK;
   
   NS_NAMED_LITERAL_STRING(homeURLValName, "Start Page");
-  nsAutoString  homeURLVal;
+  nsAutoString homeURLVal;
+
   if (NS_SUCCEEDED(regKey->ReadStringValue(homeURLValName, homeURLVal))) {
     
     
@@ -506,11 +507,40 @@ nsIEProfileMigrator::GetSourceHomePageURL(nsACString& aResult)
     nsCAutoString  homePageURL;
     nsCOMPtr<nsIURI> homePageURI;
 
-    if (NS_SUCCEEDED(NS_NewURI(getter_AddRefs(homePageURI), homeURLVal)))
-        if (NS_SUCCEEDED(homePageURI->GetSpec(homePageURL)) 
-            && !homePageURL.IsEmpty())
-            aResult.Assign(homePageURL);
+    if (NS_SUCCEEDED(NS_NewURI(getter_AddRefs(homePageURI), homeURLVal))) {
+      if (NS_SUCCEEDED(homePageURI->GetSpec(homePageURL)) && !homePageURL.IsEmpty()) {
+          aResult.Assign(homePageURL);
+      }
+    }
   }
+
+  
+  
+  
+  NS_NAMED_LITERAL_STRING(ssRegKeyName, "Secondary Start Pages");
+  nsAutoString secondaryList;
+
+  if (NS_SUCCEEDED(regKey->ReadStringValue(ssRegKeyName, secondaryList)) &&
+      !secondaryList.IsEmpty()) {
+    nsTArray<nsCString> parsedList;
+    if (!ParseString(NS_ConvertUTF16toUTF8(secondaryList), '\0', parsedList))
+      return NS_OK;
+
+    
+    for (PRUint32 index = 0; index < parsedList.Length(); ++index) {
+      nsCOMPtr<nsIURI> uri;
+      nsCAutoString homePage;
+      
+      
+      if (NS_SUCCEEDED(NS_NewURI(getter_AddRefs(uri), parsedList[index]))) {
+        if (NS_SUCCEEDED(uri->GetSpec(homePage)) && !homePage.IsEmpty()) {
+            aResult.AppendLiteral("|");
+            aResult.Append(homePage);
+        }
+      }
+    }
+  }
+
   return NS_OK;
 }
 
