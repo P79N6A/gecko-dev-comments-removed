@@ -5554,7 +5554,14 @@ function WindowIsClosing()
 {
   var cn = gBrowser.tabContainer.childNodes;
   var numtabs = cn.length;
-  var reallyClose = true;
+  var reallyClose = 
+    closeWindow(false,
+                function () {
+                  return gBrowser.warnAboutClosingTabs(true);
+                });
+
+  if (!reallyClose)
+    return false;
 
   for (var i = 0; reallyClose && i < numtabs; ++i) {
     var ds = gBrowser.getBrowserForTab(cn[i]).docShell;
@@ -5563,16 +5570,7 @@ function WindowIsClosing()
       reallyClose = false;
   }
 
-  if (!reallyClose)
-    return false;
-
-  
-  
-  
-  return closeWindow(false,
-    function () {
-      return gBrowser.warnAboutClosingTabs(true);
-    });
+  return reallyClose;
 }
 
 var MailIntegration = {
