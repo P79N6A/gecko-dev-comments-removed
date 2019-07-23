@@ -457,6 +457,9 @@ public:
 
   nsIContent* GetLimiter() { return mLimiter; }
 
+  nsIContent* GetAncestorLimiter() { return mAncestorLimiter; }
+  void SetAncestorLimiter(nsIContent *aLimiter);
+
   
 
 
@@ -631,6 +634,8 @@ private:
   PRInt32 mBatching;
     
   nsIContent *mLimiter;     
+  nsIContent *mAncestorLimiter; 
+                                
   nsIPresShell *mShell;
 
   PRInt16 mSelectionChangeReason; 

@@ -73,7 +73,7 @@ nsDocShellEditorData::~nsDocShellEditorData()
     nsCOMPtr<nsIDOMWindow> domWindow = do_GetInterface(mDocShell);
     
     
-    mEditingSession->TearDownEditorOnWindow(domWindow);
+    mEditingSession->TearDownEditorOnWindow(domWindow, PR_TRUE);
   }
   else if (mEditor) 
   {
@@ -104,7 +104,8 @@ nsDocShellEditorData::MakeEditable(PRBool inWaitForUriLoad )
     mEditor = nsnull;
   }
   
-  mMakeEditable = PR_TRUE;
+  if (inWaitForUriLoad)
+    mMakeEditable = PR_TRUE;
   return NS_OK;
 }
 
@@ -191,6 +192,8 @@ nsDocShellEditorData::SetEditor(nsIEditor *inEditor)
     }
       
     mEditor = inEditor;    
+    if (!mEditor)
+      mMakeEditable = PR_FALSE;
   }   
   
   return NS_OK;

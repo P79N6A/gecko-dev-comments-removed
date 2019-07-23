@@ -93,6 +93,8 @@
 #include "nsString.h"
 #include "nsThreadUtils.h"
 #include "nsUnicharUtils.h"
+#include "nsIContent.h"
+#include "nsIEventStateManager.h"
 
 
 
@@ -1107,6 +1109,11 @@ mozInlineSpellChecker::SkipSpellCheckForNode(nsIEditor* aEditor,
       parent->GetParentNode(getter_AddRefs(nextParent));
       parent = nextParent;
     }
+  }
+  else {
+    
+    nsCOMPtr<nsIContent> content = do_QueryInterface(aNode);
+    *checkSpelling = content->IntrinsicState() & NS_EVENT_STATE_MOZ_READWRITE;
   }
 
   return NS_OK;

@@ -585,6 +585,51 @@ nsHTMLEditRules::WillDoAction(nsISelection *aSelection,
     
   
   nsTextRulesInfo *info = NS_STATIC_CAST(nsTextRulesInfo*, aInfo);
+
+  
+  
+  if (info->action == kOutputText) {
+    return nsTextEditRules::WillDoAction(aSelection, aInfo, aCancel, aHandled);
+  }
+
+  nsCOMPtr<nsIDOMRange> domRange;
+  nsresult rv = aSelection->GetRangeAt(0, getter_AddRefs(domRange));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  nsCOMPtr<nsIDOMNode> selStartNode;
+  rv = domRange->GetStartContainer(getter_AddRefs(selStartNode));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  if (!mHTMLEditor->IsModifiableNode(selStartNode))
+  {
+    *aCancel = PR_TRUE;
+
+    return NS_OK;
+  }
+
+  nsCOMPtr<nsIDOMNode> selEndNode;
+  rv = domRange->GetEndContainer(getter_AddRefs(selEndNode));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  if (selStartNode != selEndNode)
+  {
+    if (!mHTMLEditor->IsModifiableNode(selEndNode))
+    {
+      *aCancel = PR_TRUE;
+
+      return NS_OK;
+    }
+
+    nsCOMPtr<nsIRange> range = do_QueryInterface(domRange);
+    nsCOMPtr<nsIDOMNode> ancestor =
+      do_QueryInterface(range->GetCommonAncestor());
+    if (!mHTMLEditor->IsModifiableNode(ancestor))
+    {
+      *aCancel = PR_TRUE;
+
+      return NS_OK;
+    }
+  }
     
   switch (info->action)
   {
@@ -1569,6 +1614,13 @@ nsHTMLEditRules::WillInsertBreak(nsISelection *aSelection, PRBool *aCancel, PRBo
     
   if (!blockParent) return NS_ERROR_FAILURE;
   
+  
+  if (!mHTMLEditor->IsModifiableNode(blockParent))
+  {
+    *aCancel = PR_TRUE;
+    return NS_OK;
+  }
+
   
   
   
