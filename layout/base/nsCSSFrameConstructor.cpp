@@ -7645,6 +7645,10 @@ nsCSSFrameConstructor::ReconstructDocElementHierarchyInternal()
       
       nsIFrame* docElementFrame =
         state.mFrameManager->GetPrimaryFrameFor(rootContent, -1);
+      if (!docElementFrame) {
+        NS_NOTREACHED("Really should have doc element frame here");
+        return NS_ERROR_UNEXPECTED;
+      }
         
       
       
@@ -7658,21 +7662,18 @@ nsCSSFrameConstructor::ReconstructDocElementHierarchyInternal()
         state.mFrameManager->ClearPlaceholderFrameMap();
         state.mFrameManager->ClearUndisplayedContentMap();
 
-        if (docElementFrame) {
-          
         
-          
+        
+        
 
-          NS_ASSERTION(docElementFrame->GetParent() == mDocElementContainingBlock,
-                       "Unexpected doc element parent frame");
+        NS_ASSERTION(docElementFrame->GetParent() == mDocElementContainingBlock,
+                     "Unexpected doc element parent frame");
 
-          
-          rv = state.mFrameManager->RemoveFrame(mDocElementContainingBlock,
-                                                nsnull, docElementFrame);
-          if (NS_FAILED(rv)) {
-            return rv;
-          }
-
+        
+        rv = state.mFrameManager->RemoveFrame(mDocElementContainingBlock,
+                                              nsnull, docElementFrame);
+        if (NS_FAILED(rv)) {
+          return rv;
         }
 
         
