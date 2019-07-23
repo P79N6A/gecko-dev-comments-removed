@@ -222,18 +222,81 @@ public:
 
 
 public:
+  
+  
+  
+  
+  
+  
+   
+  
+
+
+
+
   NS_IMETHOD GetNumLines(PRInt32* aResult);
+
+  
+
+
+
   NS_IMETHOD GetDirection(PRBool* aIsRightToLeft);
   
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   NS_IMETHOD GetLine(PRInt32 aLineNumber,
                      nsIFrame** aFirstFrameOnLine,
                      PRInt32* aNumFramesOnLine,
                      nsRect& aLineBounds,
                      PRUint32* aLineFlags);
   
-  NS_IMETHOD FindLineContaining(nsIFrame* aFrame, PRInt32* aLineNumberResult);
-  NS_IMETHOD FindLineAt(nscoord aY, PRInt32* aLineNumberResult);
   
+
+
+
+
+
+
+
+  NS_IMETHOD FindLineContaining(nsIFrame* aFrame, PRInt32* aLineNumberResult);
+  
+  
+
+
+  NS_IMETHOD FindLineAt(nscoord aY, PRInt32* aLineNumberResult);
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
   NS_IMETHOD FindFrameAt(PRInt32 aLineNumber,
                          nscoord aX,
                          nsIFrame** aFrameFound,
@@ -241,11 +304,25 @@ public:
                          PRBool* aXIsAfterLastFrame);
 
 #ifdef IBMBIDI
+   
+
+
+
+
+
+
+
   NS_IMETHOD CheckLineOrder(PRInt32                  aLine,
                             PRBool                   *aIsReordered,
                             nsIFrame                 **aFirstVisual,
                             nsIFrame                 **aLastVisual);
 #endif
+
+  
+
+
+
+  
   NS_IMETHOD GetNextSiblingOnLine(nsIFrame*& aFrame, PRInt32 aLineNumber);
 
   
