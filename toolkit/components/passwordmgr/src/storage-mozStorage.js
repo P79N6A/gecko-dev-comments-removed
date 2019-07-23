@@ -1042,7 +1042,7 @@ LoginManagerStorage_mozStorage.prototype = {
         
         
         
-        filenamePrefs = ["SignonFileName3", "SignonFileName2", "SignonFileName"];
+        let filenamePrefs = ["SignonFileName3", "SignonFileName2", "SignonFileName"];
         for each (let prefname in filenamePrefs) {
             let filename = this._prefBranch.getCharPref(prefname);
             let file = this._profileDir.clone();
