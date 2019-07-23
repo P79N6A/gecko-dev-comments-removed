@@ -40,7 +40,7 @@
 #include "nsString.h"
 #include "nsServiceManagerUtils.h"
 #include "nsIDocumentLoaderFactory.h"
-#include "nsIPluginManager.h"
+#include "nsIPluginHost.h"
 
 NS_IMPL_ISUPPORTS1(nsWebNavigationInfo, nsIWebNavigationInfo)
 
@@ -84,12 +84,12 @@ nsWebNavigationInfo::IsTypeSupported(const nsACString& aType,
   }
   
   
-  nsCOMPtr<nsIPluginManager> pluginManager =
-    do_GetService("@mozilla.org/plugin/manager;1");
-  if (pluginManager) {
+  nsCOMPtr<nsIPluginHost> pluginHost =
+    do_GetService(MOZ_PLUGIN_HOST_CONTRACTID);
+  if (pluginHost) {
     
     
-    rv = pluginManager->ReloadPlugins(PR_FALSE);
+    rv = pluginHost->ReloadPlugins(PR_FALSE);
     if (NS_SUCCEEDED(rv)) {
       
       

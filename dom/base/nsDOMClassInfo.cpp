@@ -460,7 +460,6 @@
 
 #include "nsIDOMNSMouseEvent.h"
 
-static NS_DEFINE_CID(kCPluginManagerCID, NS_PLUGINMANAGER_CID);
 static NS_DEFINE_CID(kDOMSOF_CID, NS_DOM_SCRIPT_OBJECT_FACTORY_CID);
 
 static const char kDOMStringBundleURL[] =
@@ -9713,14 +9712,10 @@ nsHTMLPluginObjElementSH::NewResolve(nsIXPConnectWrappedNative *wrapper,
       
       
 
-      nsCOMPtr<nsIPluginHost> pluginManager =
-        do_GetService(kCPluginManagerCID);
-
-      nsCOMPtr<nsPIPluginHost> pluginHost(do_QueryInterface(pluginManager));
-
-      if (pluginHost) {
-        pluginHost->SetIsScriptableInstance(pi, PR_TRUE);
-      }
+      nsCOMPtr<nsIPluginHost> pluginHost = do_GetService(MOZ_PLUGIN_HOST_CONTRACTID);
+      nsCOMPtr<nsPIPluginHost> piPluginHost(do_QueryInterface(pluginHost));
+      if (piPluginHost)
+        piPluginHost->SetIsScriptableInstance(pi, PR_TRUE);
 
       nsCOMPtr<nsIXPConnectJSObjectHolder> holder;
       rv = sXPConnect->WrapNative(cx, obj, pi, *iid, getter_AddRefs(holder));

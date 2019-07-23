@@ -55,7 +55,6 @@
 
 #include "nsJSNPRuntime.h"
 
-static NS_DEFINE_IID(kCPluginManagerCID, NS_PLUGINMANAGER_CID); 
 static NS_DEFINE_IID(kIPluginStreamListenerIID, NS_IPLUGINSTREAMLISTENER_IID);
 
 

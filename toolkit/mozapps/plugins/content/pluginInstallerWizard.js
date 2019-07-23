@@ -676,9 +676,9 @@ function wizardFinish(){
 
     
     try {
-      var pm = Components.classes["@mozilla.org/plugin/manager;1"]
-                         .getService(Components.interfaces.nsIPluginManager);
-      pm.reloadPlugins(false);
+      var ph = Components.classes["@mozilla.org/plugin/host;1"]
+                         .getService(Components.interfaces.nsIPluginHost);
+      ph.reloadPlugins(false);
     }
     catch (e) {
       

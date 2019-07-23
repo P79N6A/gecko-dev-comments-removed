@@ -398,7 +398,6 @@ class nsIPlugin;
 class nsIPluginInstance;                
 
 
-class nsIPluginManager;                 
 class nsIPluginInstancePeer;            
 class nsIWindowlessPluginInstancePeer;  
 class nsIPluginTagInfo;                 

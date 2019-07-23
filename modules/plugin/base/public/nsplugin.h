@@ -117,12 +117,6 @@
 
 
 
-#include "nsIPluginManager.h"
-
-
-
-
-
 
 #include "nsIPluginInstancePeer.h"
 
@@ -147,14 +141,6 @@
 
 
 
-
-
-
-
-
-
-
-#include "nsIPluginManager2.h"
 
 
 
