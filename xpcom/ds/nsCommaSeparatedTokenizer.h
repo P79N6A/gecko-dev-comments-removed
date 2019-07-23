@@ -80,6 +80,11 @@ public:
         return mIter != mEnd;
     }
 
+    PRBool lastTokenEndedWithComma()
+    {
+        return mLastTokenEndedWithComma;
+    }
+
     
 
 
@@ -101,9 +106,10 @@ public:
               ++mIter;
           }
         }
+        mLastTokenEndedWithComma = mIter != mEnd;
+
         
-        
-        if (mIter != mEnd) {
+        if (mLastTokenEndedWithComma) {
             NS_ASSERTION(*mIter == ',', "Ended loop too soon");
             ++mIter;
 
@@ -117,6 +123,7 @@ public:
 
 private:
     nsSubstring::const_char_iterator mIter, mEnd;
+    PRPackedBool mLastTokenEndedWithComma;
 
     PRBool isWhitespace(PRUnichar aChar)
     {

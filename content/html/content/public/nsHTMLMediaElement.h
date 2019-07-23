@@ -160,7 +160,13 @@ public:
 
   
   
-  static PRBool CanHandleMediaType(const char* aMIMEType);
+  
+  
+  
+  
+  static PRBool CanHandleMediaType(const char* aMIMEType,
+                                   const char*** aSupportedCodecs,
+                                   const char*** aMaybeSupportedCodecs);
 
   
 
