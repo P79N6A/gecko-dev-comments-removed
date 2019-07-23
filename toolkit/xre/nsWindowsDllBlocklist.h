@@ -99,6 +99,10 @@ static DllBlockInfo sWindowsDllBlocklist[] = {
   
   
   {"radhslib.dll", UNVERSIONED},
+
+  
+  
+  {"vksaver.dll", MAKE_VERSION(1,0,0,1)},
   
   
   { "mozdllblockingtest.dll", ALL_VERSIONS },
