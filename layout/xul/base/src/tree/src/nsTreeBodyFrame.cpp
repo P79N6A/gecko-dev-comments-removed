@@ -1350,7 +1350,7 @@ nsTreeBodyFrame::AdjustForCellText(nsAutoString& aText,
   if (width > maxWidth) {
     
     
-    const nsDependentString kEllipsis = nsContentUtils::GetLocalizedEllipsis();
+    const nsDependentString& kEllipsis = nsContentUtils::GetLocalizedEllipsis();
     nscoord ellipsisWidth;
     aRenderingContext.SetTextRunRTL(PR_FALSE);
     aRenderingContext.GetWidth(kEllipsis, ellipsisWidth);

@@ -628,7 +628,7 @@ nsTextBoxFrame::CalculateTitleForWidth(nsPresContext*      aPresContext,
         return;  
     }
 
-    const nsDependentString kEllipsis = nsContentUtils::GetLocalizedEllipsis();
+    const nsDependentString& kEllipsis = nsContentUtils::GetLocalizedEllipsis();
     
     mCroppedTitle.Assign(kEllipsis);
 
@@ -819,7 +819,7 @@ nsTextBoxFrame::UpdateAccessTitle()
         return;
     }
 
-    const nsDependentString kEllipsis = nsContentUtils::GetLocalizedEllipsis();
+    const nsDependentString& kEllipsis = nsContentUtils::GetLocalizedEllipsis();
     PRUint32 offset = mTitle.Length();
     if (StringEndsWith(mTitle, kEllipsis)) {
         offset -= kEllipsis.Length();
