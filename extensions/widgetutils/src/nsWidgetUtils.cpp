@@ -279,27 +279,29 @@ nsWidgetUtils::MouseMove(nsIDOMEvent* aDOMEvent)
   if(g_lastX == MIN_INT || g_lastY == MIN_INT)
     return NS_OK;
 
-  mWindow->ScrollBy(dx, dy);
-  g_lastX = x;
-  g_lastY = y;
 
 
 
 
 
 
+  nsEventStatus statusX;
+  nsMouseScrollEvent scrollEventX(PR_TRUE, NS_MOUSE_SCROLL, mWidget);
+  scrollEventX.delta = dx;
+  scrollEventX.scrollFlags = nsMouseScrollEvent::kIsHorizontal | nsMouseScrollEvent::kIsPixels;
+  mViewManager->DispatchEvent(&scrollEventX, &statusX);
+  if(statusX != nsEventStatus_eIgnore ){
+    g_lastX = x;
+  }
 
-
-
-
-
-
-
-
-
-
-
-
+  nsEventStatus statusY;
+  nsMouseScrollEvent scrollEventY(PR_TRUE, NS_MOUSE_SCROLL, mWidget);
+  scrollEventY.delta = dy;
+  scrollEventY.scrollFlags = nsMouseScrollEvent::kIsVertical | nsMouseScrollEvent::kIsPixels;
+  mViewManager->DispatchEvent(&scrollEventY, &statusY);
+  if(statusY != nsEventStatus_eIgnore ){
+    g_lastY = y;
+  }
 
   return NS_OK;
 }
