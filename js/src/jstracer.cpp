@@ -4278,13 +4278,13 @@ js_MonitorLoopEdge(JSContext* cx, uintN& inlineCallCount)
 JS_REQUIRES_STACK JSMonitorRecordingStatus
 TraceRecorder::monitorRecording(JSContext* cx, TraceRecorder* tr, JSOp op)
 {
-    JS_ASSERT(!tr->fragment->lastIns);
-
     
     if (tr->wasDeepAborted()) {
         js_AbortRecording(cx, "deep abort requested");
         return JSMRS_STOP;
     }
+
+    JS_ASSERT(!tr->fragment->lastIns);
 
     
 
