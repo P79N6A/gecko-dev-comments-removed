@@ -197,7 +197,7 @@ InlineSpellChecker.prototype = {
 
     for (var i = 0; i < list.length; i ++) {
       
-      isoStrArray = list[i].split("-");
+      isoStrArray = list[i].split(/[-_]/);
       var displayName = "";
       if (gLanguageBundle && isoStrArray[0]) {
         try {
