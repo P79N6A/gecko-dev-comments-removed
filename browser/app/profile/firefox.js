@@ -548,7 +548,6 @@ pref("gecko.handlerService.allowRegisterFromDifferentHost", false);
 #ifdef MOZ_SAFE_BROWSING
 
 pref("browser.safebrowsing.enabled", true);
-pref("browser.safebrowsing.remoteLookups", false);
 
 
 pref("browser.safebrowsing.malware.enabled", true);

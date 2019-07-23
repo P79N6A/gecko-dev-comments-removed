@@ -44,20 +44,6 @@ var safebrowsing = {
   controller: null,
   phishWarden: null,
 
-  
-  
-  
-  progressListener: null,
-  progressListenerCallback: {
-    requests: [],
-    onDocNavStart: function(request, url) {
-      this.requests.push({
-        'request': request,
-        'url': url
-      });
-    }
-  },
-
   startup: function() {
     setTimeout(safebrowsing.deferredStartup, 2000);
 
@@ -77,11 +63,7 @@ var safebrowsing = {
 
     malwareWarden.maybeToggleUpdateChecking();
 
-    
-
-    safebrowsing.progressListener.QueryInterface(Ci.nsIWebProgressListener);
-    var phishWarden = new appContext.PROT_PhishingWarden(
-        safebrowsing.progressListener, getBrowser());
+    var phishWarden = new appContext.PROT_PhishingWarden();
     safebrowsing.phishWarden = phishWarden;
 
     
@@ -93,34 +75,6 @@ var safebrowsing = {
     phishWarden.maybeToggleUpdateChecking();
     safebrowsing.controller = new appContext.PROT_Controller(
         window, getBrowser(), phishWarden);
-
-    
-    
-    safebrowsing.progressListener.globalProgressListenerEnabled = false;
-    
-    
-    
-    
-    if (!phishWarden.phishWardenEnabled_) {
-      safebrowsing.progressListenerCallback.requests = null;
-      safebrowsing.progressListenerCallback.onDocNavStart = null;
-      safebrowsing.progressListenerCallback = null;
-      safebrowsing.progressListener = null;
-      return;
-    }
-
-    var pendingRequests = safebrowsing.progressListenerCallback.requests;
-    for (var i = 0; i < pendingRequests.length; ++i) {
-      var request = pendingRequests[i].request;
-      var url = pendingRequests[i].url;
-
-      phishWarden.onDocNavStart(request, url);
-    }
-    
-    safebrowsing.progressListenerCallback.requests = null;
-    safebrowsing.progressListenerCallback.onDocNavStart = null;
-    safebrowsing.progressListenerCallback = null;
-    safebrowsing.progressListener = null;
   },
 
   
@@ -189,17 +143,6 @@ var safebrowsing = {
     return reportUrl;
   }
 }
-
-
-
-
-safebrowsing.progressListener =
-  Components.classes["@mozilla.org/browser/safebrowsing/navstartlistener;1"]
-            .createInstance(Components.interfaces.nsIDocNavStartProgressListener);
-safebrowsing.progressListener.callback =
-  safebrowsing.progressListenerCallback;
-safebrowsing.progressListener.globalProgressListenerEnabled = true;
-safebrowsing.progressListener.delay = 0;
 
 window.addEventListener("load", safebrowsing.startup, false);
 window.addEventListener("unload", safebrowsing.shutdown, false);

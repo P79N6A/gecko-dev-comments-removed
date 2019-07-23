@@ -81,10 +81,6 @@ function PROT_DataProvider() {
   
   this.prefs_.addObserver(kPhishWardenEnabledPref,
                           BindToObject(this.loadDataProviderPrefs_, this));
-
-  
-  this.prefs_.addObserver(kPhishWardenRemoteLookups,
-                          BindToObject(this.loadDataProviderPrefs_, this));
 }
 
 
@@ -138,14 +134,6 @@ PROT_DataProvider.prototype.updateListManager_ = function() {
   
   
   var isEnabled = this.prefs_.getPref(kPhishWardenEnabledPref, false);
-  var remoteLookups = this.prefs_.getPref(kPhishWardenRemoteLookups, false);
-  if (isEnabled && remoteLookups) {
-    listManager.setKeyUrl(this.getKeyURL());
-  } else {
-    
-    listManager.setKeyUrl("");
-  }
-
   listManager.setGethashUrl(this.getGethashURL());
 }
 

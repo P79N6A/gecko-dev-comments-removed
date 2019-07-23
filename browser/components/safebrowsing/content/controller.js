@@ -99,12 +99,6 @@ function PROT_Controller(win, tabBrowser, phishingWarden) {
   
   this.browserView_ = new PROT_BrowserView(this.tabBrowser_);
 
-  
-  
-  
-  
-  this.phishingWarden_.addBrowserView(this.browserView_);
-
   G_Debug(this, "Controller initialized.");
 }
 
@@ -113,9 +107,6 @@ function PROT_Controller(win, tabBrowser, phishingWarden) {
 
 PROT_Controller.prototype.shutdown = function(e) {
   G_Debug(this, "Browser window closing. Shutting controller down.");
-  if (this.browserView_) {
-    this.phishingWarden_.removeBrowserView(this.browserView_);
-  }
 
   if (this.commandController_) {
     this.win_.controllers.removeController(this.commandController_);
