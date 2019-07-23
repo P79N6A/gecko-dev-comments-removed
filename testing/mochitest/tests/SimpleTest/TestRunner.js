@@ -12,21 +12,33 @@ TestRunner._currentTest = 0;
 TestRunner.currentTestURL = "";
 TestRunner._urls = [];
 
+TestRunner.timeout = 300; 
+TestRunner.maxTimeouts = 4; 
 
 
 
 
-TestRunner._testCheckPoint = -1;
+TestRunner._numTimeouts = 0;
+TestRunner._currentTestStartTime = Date.now();
+
 TestRunner._checkForHangs = function() {
   if (TestRunner._currentTest < TestRunner._urls.length) {
-    if (TestRunner._testCheckPoint == TestRunner._currentTest) {
+    var runtime = (Date.now() - TestRunner._currentTestStartTime) / 1000;
+    if (runtime >= TestRunner.timeout) {
       var frameWindow = $('testframe').contentWindow.wrappedJSObject ||
                        	$('testframe').contentWindow;
       frameWindow.SimpleTest.ok(false, "Test timed out.");
+
+      
+      
+      if (++TestRunner._numTimeouts >= TestRunner.maxTimeouts) {
+        TestRunner._haltTests = true;
+        frameWindow.SimpleTest.ok(false, "Too many test timeouts, giving up.");
+      }
+
       frameWindow.SimpleTest.finish();
     }
-    TestRunner._testCheckPoint = TestRunner._currentTest;
-    TestRunner.deferred = callLater(300, TestRunner._checkForHangs); 
+    TestRunner.deferred = callLater(30, TestRunner._checkForHangs); 
   }
 }
 
@@ -84,13 +96,17 @@ TestRunner.runTests = function () {
 
 
 
+TestRunner._haltTests = false;
 TestRunner.runNextTest = function() {
-    if (TestRunner._currentTest < TestRunner._urls.length) {
+    if (TestRunner._currentTest < TestRunner._urls.length &&
+        !TestRunner._haltTests) {
         var url = TestRunner._urls[TestRunner._currentTest];
         TestRunner.currentTestURL = url;
 
         $("current-test-path").innerHTML = url;
         
+        TestRunner._currentTestStartTime = Date.now();
+
         if (TestRunner.logEnabled)
             TestRunner.logger.log("Running " + url + "...");
         
