@@ -109,9 +109,7 @@ function browserWindowsCount(expected, msg) {
   if (typeof expected == "number")
     expected = [expected, expected];
   let count = 0;
-  let e = Cc["@mozilla.org/appshell/window-mediator;1"]
-            .getService(Ci.nsIWindowMediator)
-            .getEnumerator("navigator:browser");
+  let e = Services.wm.getEnumerator("navigator:browser");
   while (e.hasMoreElements()) {
     if (!e.getNext().closed)
       ++count;
@@ -172,8 +170,6 @@ function test() {
       aCancel.QueryInterface(Ci.nsISupportsPRBool).data = true;
     }
   }
-  let observerService = Cc["@mozilla.org/observer-service;1"].
-                        getService(Ci.nsIObserverService);
 
   
 
@@ -194,7 +190,7 @@ function test() {
   function setupTestsuite(testFn) {
     
     for (let o in observing)
-      observerService.addObserver(observer, o, false);
+      Services.obs.addObserver(observer, o, false);
 
     
     oldWinType = document.documentElement.getAttribute("windowtype");
@@ -207,7 +203,7 @@ function test() {
   function cleanupTestsuite(callback) {
     
     for (let o in observing)
-      observerService.removeObserver(observer, o, false);
+      Services.obs.removeObserver(observer, o, false);
 
     
     [

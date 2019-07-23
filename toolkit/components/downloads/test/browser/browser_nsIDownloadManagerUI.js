@@ -105,9 +105,7 @@ function test()
   db.executeSimpleSQL("DELETE FROM moz_downloads");
 
   
-  var wm = Cc["@mozilla.org/appshell/window-mediator;1"].
-           getService(Ci.nsIWindowMediator);
-  var win = wm.getMostRecentWindow("Download:Manager");
+  var win = Services.wm.getMostRecentWindow("Download:Manager");
   if (win)
     win.close();
 
@@ -117,7 +115,7 @@ function test()
 
   
   function finishUp() {
-    var win = wm.getMostRecentWindow("Download:Manager");
+    var win = Services.wm.getMostRecentWindow("Download:Manager");
 
     
     for each (var t in testFuncs)

@@ -90,10 +90,6 @@ function test() {
                                        "u"+(i+1), "p"+(i+1)));
 
     
-    let ww = Cc["@mozilla.org/embedcomp/window-watcher;1"].
-             getService(Ci.nsIWindowWatcher);
-
-    
     const PWMGR_DLG = "chrome://passwordmgr/content/passwordManager.xul";
     let pwmgrdlg = window.openDialog(PWMGR_DLG, "Toolkit:PasswordManager", "");
     SimpleTest.waitForFocus(doTest, pwmgrdlg);
@@ -115,9 +111,9 @@ function test() {
 
             
             if (showMode) {
-                ww.registerNotification(function (aSubject, aTopic, aData) {
+                Services.ww.registerNotification(function (aSubject, aTopic, aData) {
                     if (aTopic == "domwindowclosed")
-                        ww.unregisterNotification(arguments.callee);
+                        Services.ww.unregisterNotification(arguments.callee);
                     else if (aTopic == "domwindowopened") {
                         let win = aSubject.QueryInterface(Ci.nsIDOMEventTarget);
                         SimpleTest.waitForFocus(function() {
@@ -127,11 +123,9 @@ function test() {
                 });
             }
 
-            let obsSvc = Cc["@mozilla.org/observer-service;1"].
-                         getService(Ci.nsIObserverService);
-            obsSvc.addObserver(function (aSubject, aTopic, aData) {
+            Services.obs.addObserver(function (aSubject, aTopic, aData) {
                 if (aTopic == "passwordmgr-password-toggle-complete") {
-                    obsSvc.removeObserver(arguments.callee, aTopic, false);
+                    Services.obs.removeObserver(arguments.callee, aTopic, false);
                     func();
                 }
             }, "passwordmgr-password-toggle-complete", false);
@@ -234,9 +228,9 @@ function test() {
                 checkColumnEntries(2, expectedValues);
                 checkSortDirection(passwordCol, true);
                 
-                ww.registerNotification(function (aSubject, aTopic, aData) {
+                Services.ww.registerNotification(function (aSubject, aTopic, aData) {
                     
-                    ww.unregisterNotification(arguments.callee);
+                    Services.ww.unregisterNotification(arguments.callee);
 
                     pwmgr.removeAllLogins();
                     finish();
