@@ -26,7 +26,7 @@
 #include "qcmsint.h"
 
 
-#if defined(_M_IX86) || defined(__i386__) || defined(_M_AMD64) || defined(__x86_64__)
+#if defined(_M_IX86) || defined(__i386__) || defined(__i386) || defined(_M_AMD64) || defined(__x86_64__) || defined(__x86_64)
 #define X86
 #endif 
 
@@ -1062,7 +1062,7 @@ static void cpuid(uint32_t fxn, uint32_t *a, uint32_t *b, uint32_t *c, uint32_t 
        *c = c_;
        *d = d_;
 }
-#elif defined(__GNUC__) && defined(__i386__)
+#elif (defined(__GNUC__) || defined(__SUNPRO_C)) && (defined(__i386__) || defined(__i386))
 #define HAS_CPUID
 
 
@@ -1088,7 +1088,7 @@ static void cpuid(uint32_t fxn, uint32_t *a, uint32_t *b, uint32_t *c, uint32_t 
 
 static int sse_version_available(void)
 {
-#if defined(__x86_64__) || defined(_M_AMD64)
+#if defined(__x86_64__) || defined(__x86_64) || defined(_M_AMD64)
 	
 
 
