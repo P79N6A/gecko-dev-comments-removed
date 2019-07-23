@@ -1510,6 +1510,11 @@ void
 nsListBoxBodyFrame::RemoveChildFrame(nsBoxLayoutState &aState,
                                      nsIFrame         *aFrame)
 {
+  if (aFrame == GetContentInsertionFrame()) {
+    
+    return;
+  }
+  
   nsPresContext* presContext = PresContext();
   nsCSSFrameConstructor* fc = presContext->PresShell()->FrameConstructor();
   fc->RemoveMappingsForFrameSubtree(aFrame);
