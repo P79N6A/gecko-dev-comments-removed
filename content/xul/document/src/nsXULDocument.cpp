@@ -2016,6 +2016,7 @@ nsXULDocument::Init()
 nsresult
 nsXULDocument::StartLayout(void)
 {
+    mMayStartLayout = PR_TRUE;
     nsCOMPtr<nsIPresShell> shell = GetPrimaryShell();
     if (shell) {
 
@@ -2054,8 +2055,6 @@ nsXULDocument::StartLayout(void)
                 }
             }
         }
-
-        mMayStartLayout = PR_TRUE;
 
         
         
