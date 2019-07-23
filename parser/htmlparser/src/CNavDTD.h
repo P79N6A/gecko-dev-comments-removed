@@ -223,7 +223,8 @@ private:
 
 
 
-    void CreateContextStackFor(eHTMLTags aChild);
+
+    void CreateContextStackFor(eHTMLTags aParent, eHTMLTags aChild);
 
     
 
