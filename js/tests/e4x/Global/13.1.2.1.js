@@ -512,7 +512,7 @@ function testIsXMLName(buffer)
         {
             
             
-            result += '[' + rangestart + '-' + rangeend + '] ' +
+            result += rangestart + '-' + rangeend + ' ' +
                 rangemessage + nl;
             rangemessage = rangestart = rangeend = null;
         }
@@ -534,7 +534,7 @@ function testIsXMLName(buffer)
             else
             {
                 
-                result += '[' + rangestart + '-' + rangeend + '] ' +
+                result += rangestart + '-' + rangeend + ' ' +
                     rangemessage + nl;
                 rangemessage = message;
                 rangestart = rangeend = formatChar(c);
@@ -544,7 +544,7 @@ function testIsXMLName(buffer)
 
     if (rangemessage)
     {
-        result += '[' + rangestart + '-' + rangeend + '] ' +
+        result += rangestart + '-' + rangeend + ' ' +
             rangemessage + nl;
     }
 

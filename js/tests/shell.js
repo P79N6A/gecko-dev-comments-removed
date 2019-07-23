@@ -39,6 +39,14 @@
 
 
 
+
+
+
+if (typeof version != 'undefined')
+{
+  version(150);
+}
+
 var FAILED = "FAILED!: ";
 var STATUS = "STATUS: ";
 var VERBOSE = false;
@@ -146,7 +154,7 @@ function TestCase(n, d, e, a)
 }
 
 TestCase.prototype.dump = function () {
-  dump('jstest: '      + this.path + ' ' +
+  dump('\njstest: '      + this.path + ' ' +
        'bug: '         + this.bugnumber + ' ' +
        'result: '      + (this.passed ? 'PASSED':'FAILED') + ' ' +
        'type: '        + this.type + ' ' +
@@ -223,7 +231,7 @@ function toPrinted(value)
   {
     value = String(value);
   }
-  value = value.replace(/\\n/g, '\\\\n').replace(/\n/g, '\\n');
+  value = value.replace(/\\n/g, 'NL').replace(/\n/g, 'NL').replace(/\\r/g, 'CR');
   return value;
 }
 
