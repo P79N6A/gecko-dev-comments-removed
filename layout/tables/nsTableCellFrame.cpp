@@ -835,10 +835,16 @@ NS_METHOD nsTableCellFrame::Reflow(nsPresContext*          aPresContext,
 
   nsHTMLReflowState kidReflowState(aPresContext, aReflowState, firstKid,
                                    availSize);
+
   
   
   
-  kidReflowState.mPercentHeightObserver = this;
+  if (!aReflowState.mFlags.mSpecialHeightReflow) {
+    
+    
+    
+    kidReflowState.mPercentHeightObserver = this;
+  }
   
   kidReflowState.mFlags.mSpecialHeightReflow = PR_FALSE;
   

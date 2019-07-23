@@ -3164,10 +3164,7 @@ nsFrame::DidReflow(nsPresContext*           aPresContext,
   
   
   
-  
   if (aReflowState && aReflowState->mPercentHeightObserver &&
-      ((NS_UNCONSTRAINEDSIZE == aReflowState->ComputedHeight()) ||         
-       (0                    == aReflowState->ComputedHeight()))        && 
       (eStyleUnit_Percent == aReflowState->mStylePosition->mHeight.GetUnit())) {
 
     nsIFrame* prevInFlow = GetPrevInFlow();
