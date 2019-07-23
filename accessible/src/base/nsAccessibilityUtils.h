@@ -300,6 +300,14 @@ public:
 
 
 
+  static PRBool IsXLink(nsIContent *aContent);
+
+  
+
+
+
+
+
    static nsRoleMapEntry* GetRoleMapEntry(nsIDOMNode *aNode);
 
   
