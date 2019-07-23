@@ -816,7 +816,7 @@ Assembler::asm_call(LInsp ins)
     
     
     
-    if (ARM_VFP) {
+    if (ARM_VFP && ins->isUsed()) {
         
         ArgSize         rsize = (ArgSize)(call->_argtypes & ARGSIZE_MASK_ANY);
 
