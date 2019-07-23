@@ -19,6 +19,12 @@ var gCloneTests = gSmallTests.concat([
 
 
 
+var gReplayTests = gSmallTests.concat([
+  { name:"bug533822.ogg", type:"audio/ogg" },
+]);
+
+
+
 
 
 var gPlayTests = [
