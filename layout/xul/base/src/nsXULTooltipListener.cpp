@@ -390,7 +390,7 @@ nsXULTooltipListener::ShowTooltip()
 {
   
   GetTooltipFor(mSourceNode, getter_AddRefs(mCurrentTooltip));
-  if (!mCurrentTooltip)
+  if (!mCurrentTooltip || mSourceNode == mCurrentTooltip)
     return NS_ERROR_FAILURE; 
 
   
