@@ -355,4 +355,29 @@ static const char kEventTypeNames[][40] = {
   "reorder"                                  
 };
 
+
+
+
+
+static const char kRelationTypeNames[][20] = {
+  "unknown",             
+  "controlled by",       
+  "controller for",      
+  "label for",           
+  "labelled by",         
+  "member of",           
+  "node child of",       
+  "flows to",            
+  "flows from",          
+  "subwindow of",        
+  "embeds",              
+  "embedded by",         
+  "popup for",           
+  "parent window of",    
+  "described by",        
+  "description for",     
+  "default button"       
+};
+
 #endif 
+

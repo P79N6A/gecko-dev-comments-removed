@@ -1057,6 +1057,21 @@ nsAccessibilityService::GetStringEventType(PRUint32 aEventType,
 }
 
 
+NS_IMETHODIMP
+nsAccessibilityService::GetStringRelationType(PRUint32 aRelationType,
+                                              nsAString& aString)
+{
+  if (aRelationType >= NS_ARRAY_LENGTH(kRelationTypeNames)) {
+    aString.AssignLiteral("unknown");
+    return NS_OK;
+  }
+
+  CopyUTF8toUTF16(kRelationTypeNames[aRelationType], aString);
+  return NS_OK;
+}
+
+
+
 
 
 
