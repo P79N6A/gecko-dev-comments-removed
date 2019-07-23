@@ -147,7 +147,7 @@ nsContextMenu.prototype = {
     
     
     var onPlainTextLink = false;
-    if (this.isTextSelected) {
+    if (this.isTextSelected && !this.onLink) {
       
       let selection =  document.commandDispatcher.focusedWindow
                                .getSelection();
