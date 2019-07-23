@@ -359,11 +359,8 @@ oggplay_data_handle_cmml_data(OggPlayDecode *decode,
   size_t              record_size = sizeof(OggPlayTextRecord);
 
   
-  if ((size < 0) || (size+1 < 0)) {
-    return E_OGGPLAY_TYPE_OVERFLOW;
-  }
-  size += 1;
-  
+  record_size += 1;
+
   if 
   (
     oggplay_check_add_overflow (record_size, size, &record_size)
