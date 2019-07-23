@@ -1,0 +1,68 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+menulist#name[droppable="false"] {
+  
+
+  
+  -moz-appearance: textfield;
+  cursor: text;
+
+  border: 2px solid;
+  -moz-border-top-colors: ThreeDShadow ThreeDDarkShadow;
+  -moz-border-right-colors: ThreeDHighlight ThreeDLightShadow;
+  -moz-border-bottom-colors: ThreeDHighlight ThreeDLightShadow;
+  -moz-border-left-colors: ThreeDShadow ThreeDDarkShadow;
+  background-color: -moz-Field;
+  color: -moz-FieldText;
+}
+
+menulist#name[droppable="false"] > .menulist-editable-box {
+  
+  -moz-appearance: none;
+  padding: 2px 2px 3px 4px;
+}
+
+
+menulist#name[droppable="false"] > .menulist-dropmarker,
+menulist#name[droppable="false"] > menupopup {
+  display: none;
+}

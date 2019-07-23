@@ -1,0 +1,126 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+@namespace url("http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul");
+@namespace html url("http://www.w3.org/1999/xhtml");
+
+
+
+textbox {
+  cursor: default;
+  padding: 0;
+}
+
+
+textbox.padded {
+  padding: 1px 0px 1px 2px;
+}
+
+.textbox-input-box {
+  margin: 0 3px;
+  -moz-box-align: center;
+}
+
+
+
+.autocomplete-history-dropmarker {
+  -moz-appearance: none !important;
+  border: none !important;
+  background-color: transparent !important;
+  padding: 0px;
+  list-style-image: url("chrome://global/skin/icons/autocomplete-dropmarker.png");
+  margin: 0px;
+}
+
+
+
+popup[type="autocomplete"],
+.autocomplete-history-popup {
+  padding: 0px !important;
+  background-color: -moz-Field !important;
+  font: icon;
+  -moz-appearance: none;
+  border-top: 1px solid #C3C3C3 !important;
+}
+
+.autocomplete-history-popup {
+  max-height: 180px;
+  border-top: 1px solid #C3C3C3 !important;
+}
+
+
+
+.autocomplete-tree {
+  -moz-appearance: none !important;
+  border: none !important;
+  background-color: transparent !important;
+}
+
+.autocomplete-treecol {
+  -moz-appearance: none !important;
+  margin: 0 !important;
+  border: none !important;
+  padding: 0 !important;
+}
+
+.autocomplete-treebody::-moz-tree-cell-text {
+  padding-left: 2px;
+}
+
+treechildren.autocomplete-treebody::-moz-tree-row(selected) {
+ background-color: -moz-mac-alternateprimaryhighlight;
+}
+
+treechildren.autocomplete-treebody::-moz-tree-cell-text(selected) {
+  color: #FFFFFF !important;
+}
+
+
+
+toolbarpaletteitem > toolbaritem > textbox > hbox > hbox > html|*.textbox-input {
+  visibility: hidden;
+}
+
+toolbarpaletteitem > toolbaritem > * > textbox > hbox > hbox > html|*.textbox-input {
+  visibility: hidden;
+}

@@ -1,0 +1,54 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+@import url("chrome://inspector/skin");
+@import url("chrome://inspector/content/extensions/treeEditable.css");
+
+#olcPropPriority {
+  list-style-image: url("chrome://inspector/skin/iconImportant.gif");
+}
+
+#olbStyleProps::-moz-tree-image(olcPropPriority, important) {
+  list-style-image: url("chrome://inspector/skin/iconImportant.gif");
+}
+
+
+
+#olcLine {
+  width: 5em;
+}
+

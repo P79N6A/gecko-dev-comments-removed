@@ -1,0 +1,280 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+@namespace url("http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul");
+
+
+
+button {
+  -moz-appearance: button;
+  margin: 1px 5px 2px 5px;
+  min-width: 6.3em;
+  border: 3px solid;
+  -moz-border-top-colors: transparent ThreeDHighlight ThreeDLightShadow;
+  -moz-border-right-colors: transparent ThreeDDarkShadow ThreeDShadow;
+  -moz-border-bottom-colors: transparent ThreeDDarkShadow ThreeDShadow;
+  -moz-border-left-colors: transparent ThreeDHighlight ThreeDLightShadow;
+  background-color: ThreeDFace;
+  color: ButtonText;
+}
+
+.button-box {
+  -moz-appearance: button-focus;
+  border: 1px solid transparent;
+  padding-top: 1px;
+  padding-bottom: 2px;
+  -moz-padding-start: 3px;
+  -moz-padding-end: 4px;
+}
+
+.button-icon {
+  margin-right: 2px;
+}
+
+.button-text {
+  margin: 0 !important;
+  text-align: center;
+}
+
+
+
+button:focus {
+  -moz-border-top-colors: ThreeDDarkShadow ThreeDHighlight transparent;
+  -moz-border-right-colors: ThreeDDarkShadow ThreeDDarkShadow ThreeDShadow;
+  -moz-border-bottom-colors: ThreeDDarkShadow ThreeDDarkShadow ThreeDShadow;
+  -moz-border-left-colors: ThreeDDarkShadow ThreeDHighlight transparent;
+}
+
+button:focus > .button-box {
+  border: 1px dotted ThreeDDarkShadow;
+}
+
+
+
+button[default="true"] {
+  -moz-border-top-colors: ThreeDDarkShadow ThreeDHighlight ThreeDLightShadow;
+  -moz-border-right-colors: ThreeDDarkShadow ThreeDDarkShadow ThreeDShadow;
+  -moz-border-bottom-colors: ThreeDDarkShadow ThreeDDarkShadow ThreeDShadow;
+  -moz-border-left-colors: ThreeDDarkShadow ThreeDHighlight ThreeDLightShadow;
+}
+
+
+
+button:hover {
+  color: -moz-buttonhovertext;
+  background-color: -moz-buttonhoverface;
+}
+
+
+
+button:hover:active,
+button[open="true"],
+button[checked="true"] {
+  -moz-border-top-colors: ThreeDDarkShadow ThreeDShadow transparent;
+  -moz-border-right-colors: ThreeDDarkShadow ThreeDShadow transparent;
+  -moz-border-bottom-colors: ThreeDDarkShadow ThreeDShadow transparent;
+  -moz-border-left-colors: ThreeDDarkShadow ThreeDShadow transparent;
+  color: ButtonText;
+}
+
+button:hover:active > .button-box,
+button[open="true"] > .button-box,
+button[checked="true"] > .button-box {
+  padding-top: 2px;
+  padding-bottom: 1px;
+  -moz-padding-start: 4px;
+  -moz-padding-end: 3px;
+}
+
+
+
+button[disabled="true"],
+button[disabled="true"]:hover:active {
+  -moz-border-top-colors: transparent ThreeDHighlight ThreeDLightShadow !important;
+  -moz-border-right-colors: transparent ThreeDDarkShadow ThreeDShadow !important;
+  -moz-border-bottom-colors: transparent ThreeDDarkShadow ThreeDShadow !important;
+  -moz-border-left-colors: transparent ThreeDHighlight ThreeDLightShadow !important;
+  color: GrayText;
+}
+
+button[disabled="true"] > .button-box {
+  padding-top: 1px !important;
+  padding-bottom: 2px !important;
+  -moz-padding-start: 3px !important;
+  -moz-padding-end: 4px !important;
+}
+
+
+
+button[type="menu-button"] {
+  -moz-box-align: center;
+  -moz-box-pack: center;
+  margin: 0;
+  border: none;
+}
+
+.button-menu-dropmarker,
+.button-menubutton-dropmarker {
+  -moz-appearance: none !important;
+  margin: 1px;
+  background-color: transparent !important;
+  border: none !important;
+  min-width:11px;
+  min-height:11px;
+}
+  
+.button-menubutton-dropmarker[open="true"] {
+  margin-top: 2px;
+  margin-bottom: 0px;
+  -moz-margin-start: 2px;
+  -moz-margin-end: 0px;
+}
+
+
+
+button.plain {
+  border: 0px !important;
+  margin: 0px !important;
+  padding: 0px !important;
+}
+
+button[type="disclosure"] {
+  border: 0px !important;
+  margin: 0px !important;
+  padding: 0px !important;
+  -moz-appearance: none;
+  list-style-image: url("chrome://global/skin/tree/twisty-clsd.png");
+  min-width: 0px !important;
+  background-color: transparent;
+}
+
+button[type="disclosure"][open="true"] {
+  list-style-image: url("chrome://global/skin/tree/twisty-open.png"); 
+}
+
+
+
+
+
+button[icon="accept"] .button-icon {
+  list-style-image: url("moz-icon://stock/gtk-ok?size=button");
+}
+
+button[icon="cancel"] .button-icon {
+  list-style-image: url("moz-icon://stock/gtk-cancel?size=button");
+}
+
+button[icon="help"] .button-icon {
+  list-style-image: url("moz-icon://stock/gtk-help?size=button");
+}
+
+button[icon="open"] .button-icon {
+  list-style-image: url("moz-icon://stock/gtk-open?size=button");
+}
+
+button[icon="save"] .button-icon {
+  list-style-image: url(moz-icon://stock/gtk-save?size=button);
+}
+
+button[icon="find"] .button-icon {
+  list-style-image: url("moz-icon://stock/gtk-find?size=button");
+}
+
+button[icon="clear"] .button-icon {
+  list-style-image: url("moz-icon://stock/gtk-clear?size=button");
+}
+
+button[icon="yes"] .button-icon {
+  list-style-image: url("moz-icon://stock/gtk-yes?size=button");
+}
+
+button[icon="no"] .button-icon {
+  list-style-image: url("moz-icon://stock/gtk-no?size=button");
+}
+
+button[icon="apply"] .button-icon {
+  list-style-image: url("moz-icon://stock/gtk-apply?size=button");
+}
+
+button[icon="close"] .button-icon {
+  list-style-image: url("moz-icon://stock/gtk-close?size=button");
+}
+
+button[icon="print"] .button-icon {
+  list-style-image: url("moz-icon://stock/gtk-print?size=button");
+}
+
+button[icon="add"] .button-icon {
+  list-style-image: url("moz-icon://stock/gtk-add?size=button");
+}
+
+button[icon="remove"] .button-icon {
+  list-style-image: url("moz-icon://stock/gtk-remove?size=button");
+}
+
+button[icon="refresh"] .button-icon {
+  list-style-image: url("moz-icon://stock/gtk-refresh?size=button");
+}
+
+button[icon="go-forward"] .button-icon {
+  list-style-image: url("moz-icon://stock/gtk-go-forward?size=button");
+}
+
+button[icon="go-back"] .button-icon {
+  list-style-image: url("moz-icon://stock/gtk-go-back?size=button");
+}
+
+button[icon="properties"] .button-icon {
+  list-style-image: url("moz-icon://stock/gtk-properties?size=button");
+}
+
+button[icon="select-font"] .button-icon {
+  list-style-image: url("moz-icon://stock/gtk-select-font?size=button");
+}
+
+button[icon="select-color"] .button-icon {
+  list-style-image: url("moz-icon://stock/gtk-color-picker?size=button");
+}
+
+button[icon="network"] .button-icon {
+  list-style-image: url("moz-icon://stock/gtk-network?size=button");
+}

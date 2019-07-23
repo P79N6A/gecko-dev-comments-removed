@@ -1,0 +1,91 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+panel[disabled="true"] > .viewer-pane-box-1 {
+  visibility: collapse;
+}
+
+.viewer-list {
+  list-style-image: url("chrome://inspector/skin/iconViewerList.gif");
+}
+
+.viewer-list[disabled="true"] {
+  list-style-image: url("chrome://inspector/skin/iconViewerList-dis.gif");
+}
+
+.viewer-menu > .toolbarbutton-box > .toolbarbutton-dropmarker {
+  display: none;
+}
+
+.viewer-menu {
+  list-style-image: url("chrome://inspector/skin/iconViewerMenu.gif");
+}
+
+.viewer-menu[disabled="true"] {
+  list-style-image: url("chrome://inspector/skin/iconViewerMenu-dis.gif");
+}
+
+.viewer-pane-toolbox {
+  border-right: none;
+}
+
+.viewer-pane-header > toolbargrippy {
+  display: none;
+}
+
+.viewer-pane-header > .toolbar-holder {
+  border-bottom: none;
+}
+
+.viewer-pane-header[disabled="true"] > .toolbar-holder {
+  border-bottom: 1px solid ThreeDShadow;
+}
+
+.viewer-pane-box-2 {
+  border-left: 1px solid ThreeDShadow;
+  border-right: 1px solid ThreeDShadow;
+}
+
+.viewer-pane-toolbox {
+  border-top: none;
+  border-bottom: none;
+}
+
+.viewer-pane-header > toolbargrippy {
+  display: none;
+}
+

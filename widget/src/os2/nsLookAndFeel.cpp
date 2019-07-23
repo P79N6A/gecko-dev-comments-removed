@@ -1,0 +1,460 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define INCL_WIN
+#include <os2.h>
+#include "nsLookAndFeel.h"
+#include "nsFont.h"
+#include "nsSize.h"
+ 
+nsLookAndFeel::nsLookAndFeel() : nsXPLookAndFeel()
+{
+}
+
+nsLookAndFeel::~nsLookAndFeel()
+{
+}
+
+nsresult nsLookAndFeel::NativeGetColor(const nsColorID aID, nscolor &aColor)
+{
+  nsresult res = NS_OK;
+
+  int idx;
+  switch (aID) {
+    case eColor_WindowBackground:
+        idx = SYSCLR_WINDOW;
+        break;
+    case eColor_WindowForeground:
+        idx = SYSCLR_WINDOWTEXT;
+        break;
+    case eColor_WidgetBackground:
+        idx = SYSCLR_BUTTONMIDDLE;
+        break;
+    case eColor_WidgetForeground:
+        idx = SYSCLR_WINDOWTEXT; 
+        break;
+    case eColor_WidgetSelectBackground:
+        idx = SYSCLR_HILITEBACKGROUND;
+        break;
+    case eColor_WidgetSelectForeground:
+        idx = SYSCLR_HILITEFOREGROUND;
+        break;
+    case eColor_Widget3DHighlight:
+        idx = SYSCLR_BUTTONLIGHT;
+        break;
+    case eColor_Widget3DShadow:
+        idx = SYSCLR_BUTTONDARK;
+        break;
+    case eColor_TextBackground:
+        idx = SYSCLR_WINDOW;
+        break;
+    case eColor_TextForeground:
+        idx = SYSCLR_WINDOWTEXT;
+        break;
+    case eColor_TextSelectBackground:
+    case eColor_IMESelectedRawTextBackground:
+    case eColor_IMESelectedConvertedTextBackground:
+        idx = SYSCLR_HILITEBACKGROUND;
+        break;
+    case eColor_TextSelectForeground:
+    case eColor_IMESelectedRawTextForeground:
+    case eColor_IMESelectedConvertedTextForeground:
+        idx = SYSCLR_HILITEFOREGROUND;
+        break;
+    case eColor_IMERawInputBackground:
+    case eColor_IMEConvertedTextBackground:
+        aColor = NS_TRANSPARENT;
+        return NS_OK;
+    case eColor_IMERawInputForeground:
+    case eColor_IMEConvertedTextForeground:
+        aColor = NS_SAME_AS_FOREGROUND_COLOR;
+        return NS_OK;
+    case eColor_IMERawInputUnderline:
+    case eColor_IMEConvertedTextUnderline:
+        aColor = NS_SAME_AS_FOREGROUND_COLOR;
+        return NS_OK;
+    case eColor_IMESelectedRawTextUnderline:
+    case eColor_IMESelectedConvertedTextUnderline:
+        aColor = NS_TRANSPARENT;
+        return NS_OK;
+
+    
+    case eColor_activeborder:
+      idx = SYSCLR_ACTIVEBORDER;
+      break;
+    case eColor_activecaption:
+      idx = SYSCLR_ACTIVETITLETEXT;
+      break;
+    case eColor_appworkspace:
+      idx = SYSCLR_APPWORKSPACE;
+      break;
+    case eColor_background:
+      idx = SYSCLR_BACKGROUND;
+      break;
+    case eColor_buttonface:
+    case eColor__moz_buttonhoverface:
+      idx = SYSCLR_BUTTONMIDDLE;
+      break;
+    case eColor_buttonhighlight:
+      idx = SYSCLR_BUTTONLIGHT;
+      break;
+    case eColor_buttonshadow:
+      idx = SYSCLR_BUTTONDARK;
+      break;
+    case eColor_buttontext:
+    case eColor__moz_buttonhovertext:
+      idx = SYSCLR_MENUTEXT;
+      break;
+    case eColor_captiontext:
+      idx = SYSCLR_WINDOWTEXT;
+      break;
+    case eColor_graytext:
+      idx = SYSCLR_MENUDISABLEDTEXT;
+      break;
+    case eColor_highlight:
+      idx = SYSCLR_HILITEBACKGROUND;
+      break;
+    case eColor_highlighttext:
+      idx = SYSCLR_HILITEFOREGROUND;
+      break;
+    case eColor_inactiveborder:
+      idx = SYSCLR_INACTIVEBORDER;
+      break;
+    case eColor_inactivecaption:
+      idx = SYSCLR_INACTIVETITLE;
+      break;
+    case eColor_inactivecaptiontext:
+      idx = SYSCLR_INACTIVETITLETEXT;
+      break;
+    case eColor_infobackground:
+      aColor = NS_RGB( 255, 255, 228);
+      return res;
+    case eColor_infotext:
+      idx = SYSCLR_WINDOWTEXT;
+      break;
+    case eColor_menu:
+      idx = SYSCLR_MENU;
+      break;
+    case eColor_menutext:
+      idx = SYSCLR_MENUTEXT;
+      break;
+    case eColor_scrollbar:
+      idx = SYSCLR_SCROLLBAR;
+      break;
+    case eColor_threeddarkshadow:
+      idx = SYSCLR_BUTTONDARK;
+      break;
+    case eColor_threedface:
+      idx = SYSCLR_BUTTONMIDDLE;
+      break;
+    case eColor_threedhighlight:
+      idx = SYSCLR_BUTTONLIGHT;
+      break;
+    case eColor_threedlightshadow:
+      idx = SYSCLR_BUTTONMIDDLE;
+      break;
+    case eColor_threedshadow:
+      idx = SYSCLR_BUTTONDARK;
+      break;
+    case eColor_window:
+      idx = SYSCLR_WINDOW;
+      break;
+    case eColor_windowframe:
+      idx = SYSCLR_WINDOWFRAME;
+      break;
+    case eColor_windowtext:
+      idx = SYSCLR_WINDOWTEXT;
+      break;
+    case eColor__moz_field:
+      idx = SYSCLR_ENTRYFIELD;
+      break;
+    case eColor__moz_fieldtext:
+      idx = SYSCLR_WINDOWTEXT;
+      break;
+    case eColor__moz_dialog:
+    case eColor__moz_cellhighlight:
+      idx = SYSCLR_DIALOGBACKGROUND;
+      break;
+    case eColor__moz_dialogtext:
+    case eColor__moz_cellhighlighttext:
+      idx = SYSCLR_WINDOWTEXT;
+      break;
+    case eColor__moz_buttondefault:
+      idx = SYSCLR_BUTTONDEFAULT;
+      break;
+    case eColor__moz_menuhover:
+      idx = SYSCLR_MENUHILITEBGND;
+      break;
+    case eColor__moz_menuhovertext:
+    case eColor__moz_menubarhovertext:
+      idx = SYSCLR_MENUHILITE;
+      break;
+    default:
+      idx = SYSCLR_WINDOW;
+      break;
+  }
+
+  long lColor = WinQuerySysColor( HWND_DESKTOP, idx, 0);
+
+  int iRed = (lColor & RGB_RED) >> 16;
+  int iGreen = (lColor & RGB_GREEN) >> 8;
+  int iBlue = (lColor & RGB_BLUE);
+
+  aColor = NS_RGB( iRed, iGreen, iBlue);
+
+  return res;
+}
+  
+NS_IMETHODIMP nsLookAndFeel::GetMetric(const nsMetricID aID, PRInt32 & aMetric)
+{
+  nsresult res = nsXPLookAndFeel::GetMetric(aID, aMetric);
+  if (NS_SUCCEEDED(res))
+      return res;
+  res = NS_OK;
+
+  switch (aID) {
+    case eMetric_WindowTitleHeight:
+        aMetric = WinQuerySysValue( HWND_DESKTOP, SV_CYTITLEBAR);
+        break;
+    case eMetric_WindowBorderWidth:
+        aMetric = WinQuerySysValue( HWND_DESKTOP, SV_CXSIZEBORDER);
+        break;
+    case eMetric_WindowBorderHeight:
+        aMetric = WinQuerySysValue( HWND_DESKTOP, SV_CYSIZEBORDER);
+        break;
+    case eMetric_Widget3DBorder:
+        aMetric = WinQuerySysValue( HWND_DESKTOP, SV_CXBORDER);
+        break;
+    case eMetric_TextFieldBorder:
+        aMetric = 3;
+        break;
+    case eMetric_TextFieldHeight:
+        aMetric = 24;
+        break;
+    case eMetric_ButtonHorizontalInsidePaddingNavQuirks:
+        aMetric = 10;
+        break;
+    case eMetric_ButtonHorizontalInsidePaddingOffsetNavQuirks:
+        aMetric = 8;
+        break;
+    case eMetric_CheckboxSize:
+        aMetric = 12;
+        break;
+    case eMetric_RadioboxSize:
+        aMetric = 12;
+        break;
+    case eMetric_TextHorizontalInsideMinimumPadding:
+        aMetric = 3;
+        break;
+    case eMetric_TextVerticalInsidePadding:
+        aMetric = 0;
+        break;
+    case eMetric_TextShouldUseVerticalInsidePadding:
+        aMetric = 0;
+        break;
+    case eMetric_TextShouldUseHorizontalInsideMinimumPadding:
+        aMetric = 1;
+        break;
+    case eMetric_ListShouldUseHorizontalInsideMinimumPadding:
+        aMetric = 0;
+        break;
+    case eMetric_ListHorizontalInsideMinimumPadding:
+        aMetric = 3;
+        break;
+    case eMetric_ListShouldUseVerticalInsidePadding:
+        aMetric = 0;
+        break;
+    case eMetric_ListVerticalInsidePadding:
+        aMetric = 0;
+        break;
+    case eMetric_CaretBlinkTime:
+        aMetric = WinQuerySysValue( HWND_DESKTOP, SV_CURSORRATE);
+        break;
+    case eMetric_CaretWidth:
+        aMetric = 1;
+        break;
+    case eMetric_ShowCaretDuringSelection:
+        aMetric = 0;
+        break;
+    case eMetric_SelectTextfieldsOnKeyFocus:
+        
+        
+        aMetric = 0;
+        break;
+    case eMetric_SubmenuDelay:
+        aMetric = 300;
+        break;
+    case eMetric_MenusCanOverlapOSBar:
+        
+        aMetric = 1;
+        break;
+    case eMetric_ScrollArrowStyle:
+        aMetric = eMetric_ScrollArrowStyleSingle;
+        break;
+    case eMetric_ScrollSliderStyle:
+        aMetric = eMetric_ScrollThumbStyleProportional;
+        break;
+    case eMetric_TreeOpenDelay:
+        aMetric = 1000;
+        break;
+    case eMetric_TreeCloseDelay:
+        aMetric = 0;
+        break;
+    case eMetric_TreeLazyScrollDelay:
+        aMetric = 150;
+        break;
+    case eMetric_TreeScrollDelay:
+        aMetric = 100;
+        break;
+    case eMetric_TreeScrollLinesMax:
+        aMetric = 3;
+        break;
+
+    default:
+        aMetric = 0;
+        res = NS_ERROR_FAILURE;
+  }
+  return res;
+}
+
+NS_IMETHODIMP nsLookAndFeel::GetMetric(const nsMetricFloatID aID, float & aMetric)
+{
+  nsresult res = nsXPLookAndFeel::GetMetric(aID, aMetric);
+  if (NS_SUCCEEDED(res))
+    return res;
+  res = NS_OK;
+
+  switch (aID) {
+    case eMetricFloat_TextFieldVerticalInsidePadding:
+        aMetric = 0.25f;
+        break;
+    case eMetricFloat_TextFieldHorizontalInsidePadding:
+        aMetric = 1.025f;
+        break;
+    case eMetricFloat_TextAreaVerticalInsidePadding:
+        aMetric = 0.40f;
+        break;
+    case eMetricFloat_TextAreaHorizontalInsidePadding:
+        aMetric = 0.40f;
+        break;
+    case eMetricFloat_ListVerticalInsidePadding:
+        aMetric = 0.10f;
+        break;
+    case eMetricFloat_ListHorizontalInsidePadding:
+        aMetric = 0.40f;
+        break;
+    case eMetricFloat_ButtonVerticalInsidePadding:
+        aMetric = 0.25f;
+        break;
+    case eMetricFloat_ButtonHorizontalInsidePadding:
+        aMetric = 0.25f;
+        break;
+    case eMetricFloat_IMEUnderlineRelativeSize:
+        aMetric = 1.0f;
+        break;
+    default:
+        aMetric = -1.0;
+        res = NS_ERROR_FAILURE;
+  }
+  return res;
+}
+
+
+#ifdef NS_DEBUG
+
+NS_IMETHODIMP nsLookAndFeel::GetNavSize(const nsMetricNavWidgetID aWidgetID,
+                                        const nsMetricNavFontID   aFontID, 
+                                        const PRInt32             aFontSize, 
+                                        nsSize &aSize)
+{
+  nsresult rv = nsXPLookAndFeel::GetNavSize(aWidgetID, aFontID, aFontSize,
+                                            aSize);
+  if (NS_SUCCEEDED(rv))
+      return rv;
+
+  aSize.width  = 0;
+  aSize.height = 0;
+
+  if (aFontSize < 1 || aFontSize > 7) {
+    return NS_ERROR_FAILURE;
+  }
+
+  PRInt32 kTextFieldWidths[2][7] = {
+    {106,147,169,211,253,338,506}, 
+    {152,214,237,281,366,495,732}  
+  };
+
+  PRInt32 kTextFieldHeights[2][7] = {
+    {18,21,24,27,33,45,63}, 
+    {18,21,24,27,34,48,67}  
+  };
+
+  PRInt32 kTextAreaWidths[2][7] = {
+    {121,163,184,226,268,352,520}, 
+    {163,226,247,289,373,499,730}  
+  };
+
+  PRInt32 kTextAreaHeights[2][7] = {
+    {40,44,48,52,60,76,100}, 
+    {40,44,48,52,62,80,106}  
+  };
+
+  switch (aWidgetID) {
+    case eMetricSize_TextField:
+      aSize.width  = kTextFieldWidths[aFontID][aFontSize-1];
+      aSize.height = kTextFieldHeights[aFontID][aFontSize-1];
+      break;
+    case eMetricSize_TextArea:
+      aSize.width  = kTextAreaWidths[aFontID][aFontSize-1];
+      aSize.height = kTextAreaHeights[aFontID][aFontSize-1];
+      break;
+   
+   case eMetricSize_ListBox:
+   case eMetricSize_ComboBox:
+   case eMetricSize_Radio:
+   case eMetricSize_CheckBox:
+   case eMetricSize_Button:
+      break;
+  } 
+
+  return NS_OK;
+
+}
+#endif

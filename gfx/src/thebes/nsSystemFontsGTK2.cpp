@@ -1,0 +1,268 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#include <stdlib.h>
+
+#include "nsIDeviceContext.h"
+#include "nsIRenderingContext.h"
+#include "prlink.h"
+
+#include <gtk/gtk.h>
+#include <gdk/gdk.h>
+#include <gdk/gdkx.h>
+
+#include <pango/pango.h>
+#include <pango/pangox.h>
+#include <pango/pango-fontmap.h>
+
+#include <fontconfig/fontconfig.h>
+#include "nsSystemFontsGTK2.h"
+#include "gfxPlatformGtk.h"
+
+
+
+static gboolean
+(* PTR_pango_font_description_get_size_is_absolute)(PangoFontDescription*)
+    = nsnull;
+
+static void InitPangoLib()
+{
+    static PRBool initialized = PR_FALSE;
+    if (initialized)
+        return;
+    initialized = PR_TRUE;
+
+    PRLibrary* lib = PR_LoadLibrary("libpango-1.0.so");
+    if (!lib)
+        return;
+
+    PTR_pango_font_description_get_size_is_absolute =
+        (gboolean (*)(PangoFontDescription*))
+        PR_FindFunctionSymbol(lib, "pango_font_description_get_size_is_absolute");
+
+    
+}
+
+static gboolean
+MOZ_pango_font_description_get_size_is_absolute(PangoFontDescription *desc)
+{
+    if (PTR_pango_font_description_get_size_is_absolute) {
+        return PTR_pango_font_description_get_size_is_absolute(desc);
+    }
+
+    
+    return PR_FALSE;
+}
+
+#define DEFAULT_PIXEL_FONT_SIZE 16.0f
+
+nsSystemFontsGTK2::nsSystemFontsGTK2()
+  : mDefaultFontName(NS_LITERAL_STRING("sans-serif"))
+  , mButtonFontName(NS_LITERAL_STRING("sans-serif"))
+  , mFieldFontName(NS_LITERAL_STRING("sans-serif"))
+  , mMenuFontName(NS_LITERAL_STRING("sans-serif"))
+  , mDefaultFontStyle(FONT_STYLE_NORMAL, FONT_VARIANT_NORMAL,
+                 FONT_WEIGHT_NORMAL, FONT_DECORATION_NONE,
+                 DEFAULT_PIXEL_FONT_SIZE, NS_LITERAL_CSTRING(""),
+                 0.0f, PR_TRUE, PR_FALSE)
+  , mButtonFontStyle(FONT_STYLE_NORMAL, FONT_VARIANT_NORMAL,
+                FONT_WEIGHT_NORMAL, FONT_DECORATION_NONE,
+                DEFAULT_PIXEL_FONT_SIZE, NS_LITERAL_CSTRING(""),
+                0.0f, PR_TRUE, PR_FALSE)
+  , mFieldFontStyle(FONT_STYLE_NORMAL, FONT_VARIANT_NORMAL,
+               FONT_WEIGHT_NORMAL, FONT_DECORATION_NONE,
+               DEFAULT_PIXEL_FONT_SIZE, NS_LITERAL_CSTRING(""),
+               0.0f, PR_TRUE, PR_FALSE)
+  , mMenuFontStyle(FONT_STYLE_NORMAL, FONT_VARIANT_NORMAL,
+               FONT_WEIGHT_NORMAL, FONT_DECORATION_NONE,
+               DEFAULT_PIXEL_FONT_SIZE, NS_LITERAL_CSTRING(""),
+               0.0f, PR_TRUE, PR_FALSE)
+{
+    InitPangoLib();
+
+    
+
+
+
+
+    
+    GtkWidget *label = gtk_label_new("M");
+    GtkWidget *parent = gtk_fixed_new();
+    GtkWidget *window = gtk_window_new(GTK_WINDOW_POPUP);
+
+    gtk_container_add(GTK_CONTAINER(parent), label);
+    gtk_container_add(GTK_CONTAINER(window), parent);
+
+    gtk_widget_ensure_style(label);
+
+    GetSystemFontInfo(label, &mDefaultFontName, &mDefaultFontStyle);
+
+    gtk_widget_destroy(window);  
+
+    
+    GtkWidget *entry = gtk_entry_new();
+    parent = gtk_fixed_new();
+    window = gtk_window_new(GTK_WINDOW_POPUP);
+
+    gtk_container_add(GTK_CONTAINER(parent), entry);
+    gtk_container_add(GTK_CONTAINER(window), parent);
+    gtk_widget_ensure_style(entry);
+
+    GetSystemFontInfo(entry, &mFieldFontName, &mFieldFontStyle);
+
+    gtk_widget_destroy(window);  
+
+    
+    GtkWidget *accel_label = gtk_accel_label_new("M");
+    GtkWidget *menuitem = gtk_menu_item_new();
+    GtkWidget *menu = gtk_menu_new();
+    gtk_object_ref(GTK_OBJECT(menu));
+    gtk_object_sink(GTK_OBJECT(menu));
+
+    gtk_container_add(GTK_CONTAINER(menuitem), accel_label);
+    gtk_menu_append(GTK_MENU(menu), menuitem);
+
+    gtk_widget_ensure_style(accel_label);
+
+    GetSystemFontInfo(accel_label, &mMenuFontName, &mMenuFontStyle);
+
+    gtk_widget_unref(menu);
+
+    
+    parent = gtk_fixed_new();
+    GtkWidget *button = gtk_button_new();
+    label = gtk_label_new("M");
+    window = gtk_window_new(GTK_WINDOW_POPUP);
+          
+    gtk_container_add(GTK_CONTAINER(button), label);
+    gtk_container_add(GTK_CONTAINER(parent), button);
+    gtk_container_add(GTK_CONTAINER(window), parent);
+
+    gtk_widget_ensure_style(label);
+
+    GetSystemFontInfo(label, &mButtonFontName, &mButtonFontStyle);
+
+    gtk_widget_destroy(window);  
+}
+
+nsresult
+nsSystemFontsGTK2::GetSystemFontInfo(GtkWidget *aWidget, nsString *aFontName,
+                                     gfxFontStyle *aFontStyle) const
+{
+    GtkSettings *settings = gtk_widget_get_settings(aWidget);
+
+    aFontStyle->style       = FONT_STYLE_NORMAL;
+    aFontStyle->decorations = FONT_DECORATION_NONE;
+
+    gchar *fontname;
+    g_object_get(settings, "gtk-font-name", &fontname, NULL);
+
+    PangoFontDescription *desc;
+    desc = pango_font_description_from_string(fontname);
+
+    aFontStyle->systemFont = PR_TRUE;
+
+    g_free(fontname);
+
+    NS_NAMED_LITERAL_STRING(quote, "\"");
+    NS_ConvertUTF8toUTF16 family(pango_font_description_get_family(desc));
+    *aFontName = quote + family + quote;
+
+    aFontStyle->weight = pango_font_description_get_weight(desc);
+
+    float size = float(pango_font_description_get_size(desc) / PANGO_SCALE);
+
+    
+
+    if (!MOZ_pango_font_description_get_size_is_absolute(desc)) {
+        
+        size *= float(gfxPlatformGtk::DPI()) / 72.0f;
+    }
+
+    
+
+    aFontStyle->size = size;
+  
+    pango_font_description_free(desc);
+
+    return NS_OK;
+}
+
+nsresult
+nsSystemFontsGTK2::GetSystemFont(nsSystemFontID anID, nsString *aFontName,
+                                 gfxFontStyle *aFontStyle) const
+{
+    switch (anID) {
+    case eSystemFont_Menu:         
+    case eSystemFont_PullDownMenu: 
+        *aFontName = mMenuFontName;
+        *aFontStyle = mMenuFontStyle;
+        break;
+
+    case eSystemFont_Field:        
+    case eSystemFont_List:         
+        *aFontName = mFieldFontName;
+        *aFontStyle = mFieldFontStyle;
+        break;
+
+    case eSystemFont_Button:       
+        *aFontName = mButtonFontName;
+        *aFontStyle = mButtonFontStyle;
+        break;
+
+    case eSystemFont_Caption:      
+    case eSystemFont_Icon:         
+    case eSystemFont_MessageBox:   
+    case eSystemFont_SmallCaption: 
+    case eSystemFont_StatusBar:    
+    case eSystemFont_Window:       
+    case eSystemFont_Document:     
+    case eSystemFont_Workspace:    
+    case eSystemFont_Desktop:      
+    case eSystemFont_Info:         
+    case eSystemFont_Dialog:       
+    case eSystemFont_Tooltips:     
+    case eSystemFont_Widget:       
+        *aFontName = mDefaultFontName;
+        *aFontStyle = mDefaultFontStyle;
+        break;
+    }
+
+    return NS_OK;
+}

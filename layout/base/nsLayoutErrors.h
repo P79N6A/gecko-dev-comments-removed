@@ -1,0 +1,65 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifndef nsLayoutErrors_h___
+#define nsLayoutErrors_h___
+
+
+#define NS_TABLELAYOUT_CELL_NOT_FOUND \
+  NS_ERROR_GENERATE_SUCCESS(NS_ERROR_MODULE_LAYOUT, 0)
+
+
+#define NS_POSITION_BEFORE_TABLE \
+  NS_ERROR_GENERATE_SUCCESS(NS_ERROR_MODULE_LAYOUT, 3)
+
+
+
+#define NS_ERROR_FRAME_REPLACED \
+  NS_ERROR_GENERATE_FAILURE(NS_ERROR_MODULE_LAYOUT, 4)
+
+
+
+
+#define NS_STATE_PROPERTY_EXISTS NS_OK
+
+
+#define NS_STATE_PROPERTY_NOT_THERE \
+  NS_ERROR_GENERATE_SUCCESS(NS_ERROR_MODULE_LAYOUT, 5)
+
+
+#endif 

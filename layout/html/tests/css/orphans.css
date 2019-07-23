@@ -1,0 +1,45 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+GOOD { orphans: 5 } 
+GOOD { orphans: inherit; } 
+BAD { orphans: energy }
+BAD { orphans: auto; }
+BAD { orphans: none; }
+BAD { orphans: 5 2 }
+BAD { orphans: -5; }
+BAD { orphans: .5; }

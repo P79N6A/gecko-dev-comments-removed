@@ -1,0 +1,259 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#include  <locale.h>
+#include "prmem.h"
+#include "nsCollationUnix.h"
+#include "nsIServiceManager.h"
+#include "nsIComponentManager.h"
+#include "nsLocaleCID.h"
+#include "nsILocaleService.h"
+#include "nsIPlatformCharset.h"
+#include "nsIPosixLocale.h"
+#include "nsCOMPtr.h"
+#include "nsIPrefBranch.h"
+#include "nsIPrefService.h"
+#include "nsIPrefLocalizedString.h"
+#include "nsUnicharUtils.h"
+#include "nsCRT.h"
+
+
+inline void nsCollationUnix::DoSetLocale()
+{
+  char *locale = setlocale(LC_COLLATE, NULL);
+  mSavedLocale.Assign(locale ? locale : "");
+  if (!mSavedLocale.EqualsIgnoreCase(mLocale.get())) {
+    (void) setlocale(LC_COLLATE, PromiseFlatCString(Substring(mLocale,0,MAX_LOCALE_LEN)).get());
+  }
+}
+
+inline void nsCollationUnix::DoRestoreLocale()
+{
+  if (!mSavedLocale.EqualsIgnoreCase(mLocale.get())) { 
+    (void) setlocale(LC_COLLATE, PromiseFlatCString(Substring(mSavedLocale,0,MAX_LOCALE_LEN)).get());
+  }
+}
+
+nsCollationUnix::nsCollationUnix() 
+{
+  mCollation = NULL;
+  mUseCodePointOrder = PR_FALSE;
+}
+
+nsCollationUnix::~nsCollationUnix() 
+{
+  if (mCollation != NULL)
+    delete mCollation;
+}
+
+NS_IMPL_ISUPPORTS1(nsCollationUnix, nsICollation)
+
+nsresult nsCollationUnix::Initialize(nsILocale* locale) 
+{
+#define kPlatformLocaleLength 64
+  NS_ASSERTION(mCollation == NULL, "Should only be initialized once");
+
+  nsresult res;
+
+  nsCOMPtr<nsIPrefBranch> prefBranch = do_GetService(NS_PREFSERVICE_CONTRACTID);
+  if (prefBranch) {
+    nsCOMPtr<nsIPrefLocalizedString> prefLocalString;
+    res = prefBranch->GetComplexValue("intl.collationOption",
+                                      NS_GET_IID(nsIPrefLocalizedString),
+                                      getter_AddRefs(prefLocalString));
+    if (NS_SUCCEEDED(res) && prefLocalString) {
+      nsXPIDLString prefValue;
+      prefLocalString->GetData(getter_Copies(prefValue));
+      mUseCodePointOrder =
+        prefValue.LowerCaseEqualsLiteral("usecodepointorder");
+    }
+  }
+
+  mCollation = new nsCollation;
+  if (mCollation == NULL) {
+    NS_ASSERTION(0, "mCollation creation failed");
+    return NS_ERROR_OUT_OF_MEMORY;
+  }
+
+  
+  mLocale.Assign('C');
+
+  nsAutoString localeStr;
+  NS_NAMED_LITERAL_STRING(aCategory, "NSILOCALE_COLLATE##PLATFORM");
+
+  
+  if (locale == nsnull) {
+    nsCOMPtr<nsILocaleService> localeService = 
+             do_GetService(NS_LOCALESERVICE_CONTRACTID, &res);
+    if (NS_SUCCEEDED(res)) {
+      nsCOMPtr<nsILocale> appLocale;
+      res = localeService->GetApplicationLocale(getter_AddRefs(appLocale));
+      if (NS_SUCCEEDED(res)) {
+        res = appLocale->GetCategory(aCategory, localeStr);
+        NS_ASSERTION(NS_SUCCEEDED(res), "failed to get app locale info");
+      }
+    }
+  }
+  else {
+    res = locale->GetCategory(aCategory, localeStr);
+    NS_ASSERTION(NS_SUCCEEDED(res), "failed to get locale info");
+  }
+
+  
+  if (NS_SUCCEEDED(res)) {
+    
+    if (localeStr.LowerCaseEqualsLiteral("en_us")) { 
+      localeStr.AssignLiteral("C");
+    }
+
+    nsCOMPtr <nsIPosixLocale> posixLocale = do_GetService(NS_POSIXLOCALE_CONTRACTID, &res);
+    if (NS_SUCCEEDED(res)) {
+      res = posixLocale->GetPlatformLocale(localeStr, mLocale);
+    }
+
+    nsCOMPtr <nsIPlatformCharset> platformCharset = do_GetService(NS_PLATFORMCHARSET_CONTRACTID, &res);
+    if (NS_SUCCEEDED(res)) {
+      nsCAutoString mappedCharset;
+      res = platformCharset->GetDefaultCharsetForLocale(localeStr, mappedCharset);
+      if (NS_SUCCEEDED(res)) {
+        mCollation->SetCharset(mappedCharset.get());
+      }
+    }
+  }
+
+  return NS_OK;
+}
+
+
+nsresult nsCollationUnix::CompareString(PRInt32 strength,
+                                        const nsAString& string1,
+                                        const nsAString& string2,
+                                        PRInt32* result) 
+{
+  nsresult res = NS_OK;
+
+  nsAutoString stringNormalized1, stringNormalized2;
+  if (strength != kCollationCaseSensitive) {
+    res = mCollation->NormalizeString(string1, stringNormalized1);
+    if (NS_FAILED(res)) {
+      return res;
+    }
+    res = mCollation->NormalizeString(string2, stringNormalized2);
+    if (NS_FAILED(res)) {
+      return res;
+    }
+  } else {
+    stringNormalized1 = string1;
+    stringNormalized2 = string2;
+  }
+
+  
+  char *str1, *str2;
+
+  res = mCollation->UnicodeToChar(stringNormalized1, &str1);
+  if (NS_SUCCEEDED(res) && str1 != NULL) {
+    res = mCollation->UnicodeToChar(stringNormalized2, &str2);
+    if (NS_SUCCEEDED(res) && str2 != NULL) {
+      if (mUseCodePointOrder) {
+        *result = strcmp(str1, str2);
+      }
+      else {
+        DoSetLocale();
+        *result = strcoll(str1, str2);
+        DoRestoreLocale();
+      }
+      PR_Free(str2);
+    }
+    PR_Free(str1);
+  }
+
+  return res;
+}
+
+
+nsresult nsCollationUnix::AllocateRawSortKey(PRInt32 strength, 
+                                             const nsAString& stringIn,
+                                             PRUint8** key, PRUint32* outLen)
+{
+  nsresult res = NS_OK;
+
+  nsAutoString stringNormalized;
+  if (strength != kCollationCaseSensitive) {
+    res = mCollation->NormalizeString(stringIn, stringNormalized);
+    if (NS_FAILED(res))
+      return res;
+  } else {
+    stringNormalized = stringIn;
+  }
+  
+  char *str;
+
+  res = mCollation->UnicodeToChar(stringNormalized, &str);
+  if (NS_SUCCEEDED(res) && str != NULL) {
+    if (mUseCodePointOrder) {
+      *key = (PRUint8 *)str;
+      *outLen = strlen(str) + 1;
+    } else {
+      DoSetLocale();
+      
+      size_t len = strxfrm(nsnull, str, 0) + 1;
+      void *buffer = PR_Malloc(len);
+      if (!buffer) {
+        res = NS_ERROR_OUT_OF_MEMORY;
+      } else if (strxfrm((char *)buffer, str, len) >= len) {
+        PR_Free(buffer);
+        res = NS_ERROR_FAILURE;
+      } else {
+        *key = (PRUint8 *)buffer;
+        *outLen = len;
+      }
+      DoRestoreLocale();
+      PR_Free(str);
+    }
+  }
+
+  return res;
+}
+
+nsresult nsCollationUnix::CompareRawSortKey(const PRUint8* key1, PRUint32 len1, 
+                                            const PRUint8* key2, PRUint32 len2, 
+                                            PRInt32* result)
+{
+  *result = PL_strcmp((const char *)key1, (const char *)key2);
+  return NS_OK;
+}

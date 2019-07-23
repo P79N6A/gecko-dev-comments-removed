@@ -1,0 +1,471 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+var dialog;
+var printService       = null;
+var printOptions       = null;
+var gOriginalNumCopies = 1;
+
+var paramBlock;
+var gPrefs             = null;
+var gPrintSettings     = null;
+var gWebBrowserPrint   = null;
+var gPrintSetInterface = Components.interfaces.nsIPrintSettings;
+var doDebug            = false;
+
+
+function initDialog()
+{
+  dialog = new Object;
+
+  dialog.propertiesButton = document.getElementById("properties");
+  dialog.descText         = document.getElementById("descText");
+
+  dialog.printRangeGroup = document.getElementById("printRangeGroup");
+  dialog.allPagesRadio   = document.getElementById("allPagesRadio");
+  dialog.rangeRadio      = document.getElementById("rangeRadio");
+  dialog.selectionRadio  = document.getElementById("selectionRadio");
+  dialog.fromPageInput   = document.getElementById("fromPageInput");
+  dialog.fromPageLabel   = document.getElementById("fromPageLabel");
+  dialog.toPageInput     = document.getElementById("toPageInput");
+  dialog.toPageLabel     = document.getElementById("toPageLabel");
+
+  dialog.numCopiesInput  = document.getElementById("numCopiesInput");  
+
+  dialog.printFrameGroup      = document.getElementById("printFrameGroup");
+  dialog.asLaidOutRadio       = document.getElementById("asLaidOutRadio");
+  dialog.selectedFrameRadio   = document.getElementById("selectedFrameRadio");
+  dialog.eachFrameSepRadio    = document.getElementById("eachFrameSepRadio");
+  dialog.printFrameGroupLabel = document.getElementById("printFrameGroupLabel");
+
+  dialog.fileCheck       = document.getElementById("fileCheck");
+  dialog.printerLabel    = document.getElementById("printerLabel");
+  dialog.printerList     = document.getElementById("printerList");
+
+  dialog.printButton     = document.documentElement.getButton("accept");
+
+  
+  dialog.fpDialog        = document.getElementById("fpDialog");
+
+  dialog.enabled         = false;
+}
+
+
+function checkInteger(element)
+{
+  var value = element.value;
+  if (value && value.length > 0) {
+    value = value.replace(/[^0-9]/g,"");
+    if (!value) value = "";
+    element.value = value;
+  }
+  if (!value || value < 1 || value > 999)
+    dialog.printButton.setAttribute("disabled","true");
+  else
+    dialog.printButton.removeAttribute("disabled");
+}
+
+
+function stripTrailingWhitespace(element)
+{
+  var value = element.value;
+  value = value.replace(/\s+$/,"");
+  element.value = value;
+}
+
+
+function getPrinterDescription(printerName)
+{
+  var s = "";
+
+  try {
+    
+    s = gPrefs.getCharPref("print.printer_" + printerName + ".printer_description")
+  } catch(e) {
+  }
+    
+  return s;
+}
+
+
+function listElement(aListElement)
+  {
+    this.listElement = aListElement;
+  }
+
+listElement.prototype =
+  {
+    clearList:
+      function ()
+        {
+          
+          var popup = this.listElement.firstChild;
+          if (popup) {
+            this.listElement.removeChild(popup);
+          }
+        },
+
+    appendPrinterNames: 
+      function (aDataObject) 
+        { 
+          var list = document.getElementById("printerList"); 
+          var strDefaultPrinterName = "";
+          var printerName;
+
+          
+          while (aDataObject.hasMoreElements()) {
+            printerName = aDataObject.getNext();
+            printerName = printerName.QueryInterface(Components.interfaces.nsISupportsString);
+            var printerNameStr = printerName.toString();
+            if (strDefaultPrinterName == "")
+               strDefaultPrinterName = printerNameStr;
+
+            list.appendItem(printerNameStr, printerNameStr, getPrinterDescription(printerNameStr));
+          }
+          if (strDefaultPrinterName != "") {
+            this.listElement.removeAttribute("disabled");
+          } else {
+            var stringBundle = srGetStrBundle("chrome://global/locale/printing.properties");
+            this.listElement.setAttribute("value", strDefaultPrinterName);
+            this.listElement.setAttribute("label", stringBundle.GetStringFromName("noprinter"));
+
+            
+            this.listElement.setAttribute("disabled", "true");
+            dialog.printerLabel.setAttribute("disabled","true");
+            dialog.propertiesButton.setAttribute("disabled","true");
+            dialog.fileCheck.setAttribute("disabled","true");
+            dialog.printButton.setAttribute("disabled","true");
+          }
+
+          return strDefaultPrinterName;
+        } 
+  };
+
+
+function getPrinters()
+{
+  var printerEnumerator = printOptions.availablePrinters();
+
+  var selectElement = new listElement(dialog.printerList);
+  selectElement.clearList();
+  var strDefaultPrinterName = selectElement.appendPrinterNames(printerEnumerator);
+
+  selectElement.listElement.value = strDefaultPrinterName;
+
+  
+  setPrinterDefaultsForSelectedPrinter();
+}
+
+
+
+
+function setPrinterDefaultsForSelectedPrinter()
+{
+  gPrintSettings.printerName = dialog.printerList.value;
+  
+  dialog.descText.value = getPrinterDescription(gPrintSettings.printerName);
+  
+  
+  printService.initPrintSettingsFromPrinter(gPrintSettings.printerName, gPrintSettings);
+  
+  
+  printService.initPrintSettingsFromPrefs(gPrintSettings, true, gPrintSetInterface.kInitSaveAll);
+  
+  if (doDebug) {
+    dump("setPrinterDefaultsForSelectedPrinter: printerName='"+gPrintSettings.printerName+"', paperName='"+gPrintSettings.paperName+"'\n");
+  }
+}
+
+
+function displayPropertiesDialog()
+{
+  gPrintSettings.numCopies = dialog.numCopiesInput.value;
+  try {
+    var printingPromptService = Components.classes["@mozilla.org/embedcomp/printingprompt-service;1"]
+                                                 .getService(Components.interfaces.nsIPrintingPromptService);
+    if (printingPromptService) {
+      printingPromptService.showPrinterProperties(null, dialog.printerList.value, gPrintSettings);
+      dialog.numCopiesInput.value = gPrintSettings.numCopies;
+    }
+  } catch(e) {
+    dump("problems getting printingPromptService\n");
+  }
+}
+
+
+function doPrintRange(inx)
+{
+  if (inx == 1) {
+    dialog.fromPageInput.removeAttribute("disabled");
+    dialog.fromPageLabel.removeAttribute("disabled");
+    dialog.toPageInput.removeAttribute("disabled");
+    dialog.toPageLabel.removeAttribute("disabled");
+  } else {
+    dialog.fromPageInput.setAttribute("disabled","true");
+    dialog.fromPageLabel.setAttribute("disabled","true");
+    dialog.toPageInput.setAttribute("disabled","true");
+    dialog.toPageLabel.setAttribute("disabled","true");
+  }
+}
+
+
+function loadDialog()
+{
+  var print_copies        = 1;
+  var print_selection_radio_enabled = false;
+  var print_frametype     = gPrintSetInterface.kSelectedFrame;
+  var print_howToEnableUI = gPrintSetInterface.kFrameEnableNone;
+  var print_tofile        = "";
+
+  try {
+    gPrefs = Components.classes["@mozilla.org/preferences-service;1"].getService(Components.interfaces.nsIPrefBranch);
+
+    printService = Components.classes["@mozilla.org/gfx/printsettings-service;1"];
+    if (printService) {
+      printService = printService.getService();
+      if (printService) {
+        printService = printService.QueryInterface(Components.interfaces.nsIPrintSettingsService);
+        printOptions = printService.QueryInterface(Components.interfaces.nsIPrintOptions);
+      }
+    }
+  } catch(e) {}
+
+  
+  getPrinters();
+
+  if (gPrintSettings) {
+    print_tofile        = gPrintSettings.printToFile;
+    gOriginalNumCopies  = gPrintSettings.numCopies;
+
+    print_copies        = gPrintSettings.numCopies;
+    print_frametype     = gPrintSettings.printFrameType;
+    print_howToEnableUI = gPrintSettings.howToEnableFrameUI;
+    print_selection_radio_enabled = gPrintSettings.GetPrintOptions(gPrintSetInterface.kEnableSelectionRB);
+  }
+
+  if (doDebug) {
+    dump("loadDialog*********************************************\n");
+    dump("print_tofile            "+print_tofile+"\n");
+    dump("print_frame             "+print_frametype+"\n");
+    dump("print_howToEnableUI     "+print_howToEnableUI+"\n");
+    dump("selection_radio_enabled "+print_selection_radio_enabled+"\n");
+  }
+
+  dialog.printRangeGroup.selectedItem = dialog.allPagesRadio;
+  if (print_selection_radio_enabled) {
+    dialog.selectionRadio.removeAttribute("disabled");
+  } else {
+    dialog.selectionRadio.setAttribute("disabled","true");
+  }
+  doPrintRange(dialog.rangeRadio.selected);
+  dialog.fromPageInput.value  = 1;
+  dialog.toPageInput.value    = 1;
+  dialog.numCopiesInput.value = print_copies;
+
+  if (doDebug) {
+    dump("print_howToEnableUI: "+print_howToEnableUI+"\n");
+  }
+
+  
+  if (print_howToEnableUI == gPrintSetInterface.kFrameEnableAll) {
+    dialog.asLaidOutRadio.removeAttribute("disabled");
+
+    dialog.selectedFrameRadio.removeAttribute("disabled");
+    dialog.eachFrameSepRadio.removeAttribute("disabled");
+    dialog.printFrameGroupLabel.removeAttribute("disabled");
+
+    
+    dialog.printFrameGroup.selectedItem = dialog.selectedFrameRadio;
+
+  } else if (print_howToEnableUI == gPrintSetInterface.kFrameEnableAsIsAndEach) {
+    dialog.asLaidOutRadio.removeAttribute("disabled");       
+
+    dialog.selectedFrameRadio.setAttribute("disabled","true"); 
+    dialog.eachFrameSepRadio.removeAttribute("disabled");       
+    dialog.printFrameGroupLabel.removeAttribute("disabled");    
+
+    
+    dialog.printFrameGroup.selectedItem = dialog.eachFrameSepRadio;
+
+  } else {
+    dialog.asLaidOutRadio.setAttribute("disabled","true");
+    dialog.selectedFrameRadio.setAttribute("disabled","true");
+    dialog.eachFrameSepRadio.setAttribute("disabled","true");
+    dialog.printFrameGroupLabel.setAttribute("disabled","true");
+  }
+}
+
+
+function onLoad()
+{
+  
+  initDialog();
+
+  
+  
+
+  gPrintSettings   = window.arguments[0].QueryInterface(gPrintSetInterface);
+  gWebBrowserPrint = window.arguments[1].QueryInterface(Components.interfaces.nsIWebBrowserPrint);
+  paramBlock       = window.arguments[2].QueryInterface(Components.interfaces.nsIDialogParamBlock);
+
+  
+  paramBlock.SetInt(0, 0);
+
+  loadDialog();
+}
+
+
+function onAccept()
+{
+  if (gPrintSettings != null) {
+    var print_howToEnableUI = gPrintSetInterface.kFrameEnableNone;
+
+    
+    gPrintSettings.printerName = dialog.printerList.value;
+    print_howToEnableUI        = gPrintSettings.howToEnableFrameUI;
+    gPrintSettings.printToFile = dialog.fileCheck.checked;
+
+    if (gPrintSettings.printToFile)
+      if (!chooseFile())
+        return false;
+
+    if (dialog.allPagesRadio.selected) {
+      gPrintSettings.printRange = gPrintSetInterface.kRangeAllPages;
+    } else if (dialog.rangeRadio.selected) {
+      gPrintSettings.printRange = gPrintSetInterface.kRangeSpecifiedPageRange;
+    } else if (dialog.selectionRadio.selected) {
+      gPrintSettings.printRange = gPrintSetInterface.kRangeSelection;
+    }
+    gPrintSettings.startPageRange = dialog.fromPageInput.value;
+    gPrintSettings.endPageRange   = dialog.toPageInput.value;
+    gPrintSettings.numCopies      = dialog.numCopiesInput.value;
+
+    var frametype = gPrintSetInterface.kNoFrames;
+    if (print_howToEnableUI != gPrintSetInterface.kFrameEnableNone) {
+      if (dialog.asLaidOutRadio.selected) {
+        frametype = gPrintSetInterface.kFramesAsIs;
+      } else if (dialog.selectedFrameRadio.selected) {
+        frametype = gPrintSetInterface.kSelectedFrame;
+      } else if (dialog.eachFrameSepRadio.selected) {
+        frametype = gPrintSetInterface.kEachFrameSep;
+      } else {
+        frametype = gPrintSetInterface.kSelectedFrame;
+      }
+    }
+    gPrintSettings.printFrameType = frametype;
+    if (doDebug) {
+      dump("onAccept*********************************************\n");
+      dump("frametype      "+frametype+"\n");
+      dump("numCopies      "+gPrintSettings.numCopies+"\n");
+      dump("printRange     "+gPrintSettings.printRange+"\n");
+      dump("printerName    "+gPrintSettings.printerName+"\n");
+      dump("startPageRange "+gPrintSettings.startPageRange+"\n");
+      dump("endPageRange   "+gPrintSettings.endPageRange+"\n");
+      dump("printToFile    "+gPrintSettings.printToFile+"\n");
+    }
+  }
+
+  var saveToPrefs = false;
+
+  saveToPrefs = gPrefs.getBoolPref("print.save_print_settings");
+
+  if (saveToPrefs && printService != null) {
+    var flags = gPrintSetInterface.kInitSavePaperSizeType  | 
+                gPrintSetInterface.kInitSavePaperSizeUnit  |
+                gPrintSetInterface.kInitSavePaperWidth     | 
+                gPrintSetInterface.kInitSavePaperHeight    |
+                gPrintSetInterface.kInitSavePaperName      | 
+                gPrintSetInterface.kInitSaveColorSpace     |
+                gPrintSetInterface.kInitSaveInColor        |
+                gPrintSetInterface.kInitSaveResolutionName |
+                gPrintSetInterface.kInitSaveDownloadFonts  |
+                gPrintSetInterface.kInitSavePrintCommand   |
+                gPrintSetInterface.kInitSaveShrinkToFit    |
+                gPrintSetInterface.kInitSaveScaling;
+    printService.savePrintSettingsToPrefs(gPrintSettings, true, flags);
+  }
+
+  
+  if (paramBlock) {
+    paramBlock.SetInt(0, 1);
+  } else {
+    dump("*** FATAL ERROR: No paramBlock\n");
+  }
+
+  return true;
+}
+
+
+function onCancel()
+{
+  
+  if (paramBlock) {
+    paramBlock.SetInt(0, 0);
+  } else {
+    dump("*** FATAL ERROR: No paramBlock\n");
+  }
+
+  return true;
+}
+
+
+const nsIFilePicker = Components.interfaces.nsIFilePicker;
+function chooseFile()
+{
+  try {
+    var fp = Components.classes["@mozilla.org/filepicker;1"]
+             .createInstance(nsIFilePicker);
+    fp.init(window, dialog.fpDialog.getAttribute("label"), nsIFilePicker.modeSave);
+    fp.appendFilters(nsIFilePicker.filterAll);
+    if (fp.show() != Components.interfaces.nsIFilePicker.returnCancel &&
+        fp.file && fp.file.path) {
+      gPrintSettings.toFileName = fp.file.path;
+      return true;
+    }
+  } catch(ex) {
+    dump(ex);
+  }
+
+  return false;
+}
+

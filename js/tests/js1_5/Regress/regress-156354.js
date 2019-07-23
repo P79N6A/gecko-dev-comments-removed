@@ -1,0 +1,128 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+var UBound = 0;
+var bug = 156354;
+var summary = 'Testing propertyIsEnumerable() on non-existent property';
+var status = '';
+var statusitems = [];
+var actual = '';
+var actualvalues = [];
+var expect= '';
+var expectedvalues = [];
+
+
+status = inSection(1);
+actual = this.propertyIsEnumerable('XYZ');
+expect = false;
+addThis();
+
+status = inSection(2);
+actual = this.propertyIsEnumerable('');
+expect = false;
+addThis();
+
+status = inSection(3);
+actual = this.propertyIsEnumerable(undefined);
+expect = false;
+addThis();
+
+status = inSection(4);
+actual = this.propertyIsEnumerable(null);
+expect = false;
+addThis();
+
+status = inSection(5);
+actual = this.propertyIsEnumerable('\u02b1');
+expect = false;
+addThis();
+
+
+var obj = {prop1:null};
+
+status = inSection(6);
+actual = obj.propertyIsEnumerable('prop1');
+expect = true;
+addThis();
+
+status = inSection(7);
+actual = obj.propertyIsEnumerable('prop2');
+expect = false;
+addThis();
+
+
+status = inSection(8);
+eval("actual = obj.propertyIsEnumerable('prop2')");
+expect = false;
+addThis();
+
+
+
+
+test();
+
+
+
+function addThis()
+{
+  statusitems[UBound] = status;
+  actualvalues[UBound] = actual;
+  expectedvalues[UBound] = expect;
+  UBound++;
+}
+
+
+function test()
+{
+  enterFunc('test');
+  printBugNumber(bug);
+  printStatus(summary);
+
+  for (var i=0; i<UBound; i++)
+  {
+    reportCompare(expectedvalues[i], actualvalues[i], statusitems[i]);
+  }
+
+  exitFunc ('test');
+}

@@ -1,0 +1,47 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+GOOD { border-style: none; }
+GOOD { border-style: dotted; }
+GOOD { border-style: dashed; }
+GOOD { border-style: solid; }
+GOOD { border-style: double; }
+GOOD { border-style: groove; }
+GOOD { border-style: ridge; }
+GOOD { border-style: inset; }
+GOOD { border-style: outset; }
+GOOD { border-style: dashed none; }
+GOOD { border-style: dashed dotted none; }
+GOOD { border-style: dashed dotted inset none; }

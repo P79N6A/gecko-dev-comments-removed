@@ -1,0 +1,62 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+var bug = 356238;
+var summary = 'bug 356238';
+var actual = 'No Error';
+var expect = 'No Error';
+
+printBugNumber (bug);
+printStatus (summary);
+
+var xml = <xml><child><a/></child></xml>;
+var child = xml.child[0];
+
+try {
+  child.insertChildBefore(null, xml.child);
+  actual = "insertChildBefore succeded when it should throw an exception";
+} catch (e) {
+}
+
+var list = child.*;
+var text = uneval(list[1]);
+if (text !== "undefined")
+  throw "child got unecxpected second element: "+text;
+
+TEST(1, expect, actual);
+END();

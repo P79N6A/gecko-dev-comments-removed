@@ -1,0 +1,480 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#include "nsAppStartup.h"
+
+#include "nsIAppShellService.h"
+#include "nsICloseAllWindows.h"
+#include "nsIDOMWindowInternal.h"
+#include "nsIInterfaceRequestor.h"
+#include "nsILocalFile.h"
+#include "nsIObserverService.h"
+#include "nsIPrefBranch.h"
+#include "nsIPrefService.h"
+#include "nsIProfileChangeStatus.h"
+#include "nsIPromptService.h"
+#include "nsIStringBundle.h"
+#include "nsISupportsPrimitives.h"
+#include "nsITimelineService.h"
+#include "nsIWebBrowserChrome.h"
+#include "nsIWindowMediator.h"
+#include "nsIWindowWatcher.h"
+#include "nsIXULWindow.h"
+#include "nsNativeCharsetUtils.h"
+#include "nsThreadUtils.h"
+#include "nsAutoPtr.h"
+#include "nsStringGlue.h"
+
+#include "prprf.h"
+#include "nsCRT.h"
+#include "nsIInterfaceRequestorUtils.h"
+#include "nsWidgetsCID.h"
+#include "nsAppShellCID.h"
+#include "nsXPFEComponentsCID.h"
+
+static NS_DEFINE_CID(kAppShellCID, NS_APPSHELL_CID);
+
+class nsAppExitEvent : public nsRunnable {
+private:
+  nsRefPtr<nsAppStartup> mService;
+
+public:
+  nsAppExitEvent(nsAppStartup *service) : mService(service) {}
+
+  NS_IMETHOD Run() {
+    
+    mService->mAppShell->Exit();
+
+    
+    mService->mShuttingDown = PR_FALSE;
+    mService->mRunning = PR_FALSE;
+    return NS_OK;
+  }
+};
+
+
+
+
+
+nsAppStartup::nsAppStartup() :
+  mConsiderQuitStopper(0),
+  mRunning(PR_FALSE),
+  mShuttingDown(PR_FALSE),
+  mAttemptingQuit(PR_FALSE),
+  mRestart(PR_FALSE)
+{ }
+
+
+nsresult
+nsAppStartup::Init()
+{
+  nsresult rv;
+
+  
+  mAppShell = do_GetService(kAppShellCID, &rv);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  nsCOMPtr<nsIObserverService> os
+    (do_GetService("@mozilla.org/observer-service;1", &rv));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  os->AddObserver(this, "profile-change-teardown", PR_TRUE);
+  os->AddObserver(this, "xul-window-registered", PR_TRUE);
+  os->AddObserver(this, "xul-window-destroyed", PR_TRUE);
+
+  return NS_OK;
+}
+
+
+
+
+
+
+NS_IMPL_THREADSAFE_ISUPPORTS5(nsAppStartup,
+                              nsIAppStartup,
+                              nsIWindowCreator,
+                              nsIWindowCreator2,
+                              nsIObserver,
+                              nsISupportsWeakReference)
+
+
+
+
+
+
+NS_IMETHODIMP
+nsAppStartup::CreateHiddenWindow()
+{
+  nsCOMPtr<nsIAppShellService> appShellService
+    (do_GetService(NS_APPSHELLSERVICE_CONTRACTID));
+  NS_ENSURE_TRUE(appShellService, NS_ERROR_FAILURE);
+
+  return appShellService->CreateHiddenWindow(mAppShell);
+}
+
+
+NS_IMETHODIMP
+nsAppStartup::Run(void)
+{
+  NS_ASSERTION(!mRunning, "Reentrant appstartup->Run()");
+
+  
+  
+  
+  
+
+  if (!mShuttingDown && mConsiderQuitStopper != 0) {
+#ifdef XP_MACOSX
+    EnterLastWindowClosingSurvivalArea();
+#endif
+
+    mRunning = PR_TRUE;
+
+    nsresult rv = mAppShell->Run();
+    if (NS_FAILED(rv))
+      return rv;
+  }
+
+  return mRestart ? NS_SUCCESS_RESTART_APP : NS_OK;
+}
+
+
+NS_IMETHODIMP
+nsAppStartup::Quit(PRUint32 aMode)
+{
+  PRUint32 ferocity = (aMode & 0xF);
+
+  
+  
+  
+  nsresult rv = NS_OK;
+  PRBool postedExitEvent = PR_FALSE;
+
+  if (mShuttingDown)
+    return NS_OK;
+
+  
+
+
+  if (ferocity == eForceQuit) {
+    NS_WARNING("attempted to force quit");
+    
+  }
+
+  mShuttingDown = PR_TRUE;
+  if (!mRestart) 
+    mRestart = aMode & eRestart;
+
+  nsCOMPtr<nsIWindowMediator> mediator
+    (do_GetService(NS_WINDOWMEDIATOR_CONTRACTID));
+
+  if (ferocity == eConsiderQuit && mConsiderQuitStopper == 0) {
+    
+    ferocity = eAttemptQuit;
+  }
+
+  
+
+
+
+  if (ferocity == eAttemptQuit || ferocity == eForceQuit) {
+
+    AttemptingQuit(PR_TRUE);
+
+    
+
+
+
+    if (mediator) {
+      nsCOMPtr<nsISimpleEnumerator> windowEnumerator;
+
+      mediator->GetEnumerator(nsnull, getter_AddRefs(windowEnumerator));
+
+      if (windowEnumerator) {
+
+        while (1) {
+          PRBool more;
+          if (NS_FAILED(rv = windowEnumerator->HasMoreElements(&more)) || !more)
+            break;
+
+          nsCOMPtr<nsISupports> isupports;
+          rv = windowEnumerator->GetNext(getter_AddRefs(isupports));
+          if (NS_FAILED(rv))
+            break;
+
+          nsCOMPtr<nsIDOMWindowInternal> window = do_QueryInterface(isupports);
+          NS_ASSERTION(window, "not an nsIDOMWindowInternal");
+          if (!window)
+            continue;
+
+          window->Close();
+        }
+      }
+
+      if (ferocity == eAttemptQuit) {
+
+        ferocity = eForceQuit; 
+
+        
+
+
+
+
+
+        mediator->GetEnumerator(nsnull, getter_AddRefs(windowEnumerator));
+        if (windowEnumerator) {
+          PRBool more;
+          while (windowEnumerator->HasMoreElements(&more), more) {
+            
+
+            ferocity = eAttemptQuit;
+            nsCOMPtr<nsISupports> window;
+            windowEnumerator->GetNext(getter_AddRefs(window));
+            nsCOMPtr<nsIDOMWindowInternal> domWindow(do_QueryInterface(window));
+            if (domWindow) {
+              PRBool closed = PR_FALSE;
+              domWindow->GetClosed(&closed);
+              if (!closed) {
+                rv = NS_ERROR_FAILURE;
+                break;
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  if (ferocity == eForceQuit) {
+    
+
+    
+    
+    nsCOMPtr<nsIObserverService> obsService
+      (do_GetService("@mozilla.org/observer-service;1"));
+    if (obsService) {
+      NS_NAMED_LITERAL_STRING(shutdownStr, "shutdown");
+      NS_NAMED_LITERAL_STRING(restartStr, "restart");
+      obsService->NotifyObservers(nsnull, "quit-application",
+        mRestart ? restartStr.get() : shutdownStr.get());
+    }
+
+    nsCOMPtr<nsIAppShellService> appShellService
+      (do_GetService(NS_APPSHELLSERVICE_CONTRACTID));
+    NS_ASSERTION(appShellService, "We're gonna leak something.");
+    if (appShellService)
+      appShellService->DestroyHiddenWindow();
+
+    if (!mRunning) {
+      postedExitEvent = PR_TRUE;
+    }
+    else {
+      
+      
+      
+      nsCOMPtr<nsIRunnable> event = new nsAppExitEvent(this);
+      rv = NS_DispatchToCurrentThread(event);
+      if (NS_SUCCEEDED(rv)) {
+        postedExitEvent = PR_TRUE;
+      }
+      else {
+        NS_WARNING("failed to dispatch nsAppExitEvent");
+      }
+    }
+  }
+
+  
+  
+  if (!postedExitEvent)
+    mShuttingDown = PR_FALSE;
+  return rv;
+}
+
+
+
+
+
+void
+nsAppStartup::AttemptingQuit(PRBool aAttempt)
+{
+#ifdef XP_MACOSX
+  if (aAttempt) {
+    
+    if (!mAttemptingQuit)
+      ExitLastWindowClosingSurvivalArea();
+  } else {
+    
+    if (mAttemptingQuit)
+      EnterLastWindowClosingSurvivalArea();
+  }
+#endif
+
+  mAttemptingQuit = aAttempt;
+}
+
+NS_IMETHODIMP
+nsAppStartup::EnterLastWindowClosingSurvivalArea(void)
+{
+  ++mConsiderQuitStopper;
+  return NS_OK;
+}
+
+
+NS_IMETHODIMP
+nsAppStartup::ExitLastWindowClosingSurvivalArea(void)
+{
+  NS_ASSERTION(mConsiderQuitStopper > 0, "consider quit stopper out of bounds");
+  --mConsiderQuitStopper;
+
+  if (!mShuttingDown && mRunning && mConsiderQuitStopper == 0)
+    Quit(eAttemptQuit);
+
+  return NS_OK;
+}
+
+
+
+
+
+NS_IMETHODIMP
+nsAppStartup::CreateChromeWindow(nsIWebBrowserChrome *aParent,
+                                 PRUint32 aChromeFlags,
+                                 nsIWebBrowserChrome **_retval)
+{
+  PRBool cancel;
+  return CreateChromeWindow2(aParent, aChromeFlags, 0, 0, &cancel, _retval);
+}
+
+
+
+
+
+
+NS_IMETHODIMP
+nsAppStartup::CreateChromeWindow2(nsIWebBrowserChrome *aParent,
+                                  PRUint32 aChromeFlags,
+                                  PRUint32 aContextFlags,
+                                  nsIURI *aURI,
+                                  PRBool *aCancel,
+                                  nsIWebBrowserChrome **_retval)
+{
+  NS_ENSURE_ARG_POINTER(aCancel);
+  NS_ENSURE_ARG_POINTER(_retval);
+  *aCancel = PR_FALSE;
+  *_retval = 0;
+
+  nsCOMPtr<nsIXULWindow> newWindow;
+
+  if (aParent) {
+    nsCOMPtr<nsIXULWindow> xulParent(do_GetInterface(aParent));
+    NS_ASSERTION(xulParent, "window created using non-XUL parent. that's unexpected, but may work.");
+
+    if (xulParent)
+      xulParent->CreateNewWindow(aChromeFlags, mAppShell, getter_AddRefs(newWindow));
+    
+    
+  } else { 
+    
+
+
+    if (aChromeFlags & nsIWebBrowserChrome::CHROME_DEPENDENT)
+      NS_WARNING("dependent window created without a parent");
+
+    nsCOMPtr<nsIAppShellService> appShell(do_GetService(NS_APPSHELLSERVICE_CONTRACTID));
+    if (!appShell)
+      return NS_ERROR_FAILURE;
+    
+    appShell->CreateTopLevelWindow(0, 0, aChromeFlags,
+                                   nsIAppShellService::SIZE_TO_CONTENT,
+                                   nsIAppShellService::SIZE_TO_CONTENT,
+                                   mAppShell, getter_AddRefs(newWindow));
+  }
+
+  
+  if (newWindow) {
+    newWindow->SetContextFlags(aContextFlags);
+    nsCOMPtr<nsIInterfaceRequestor> thing(do_QueryInterface(newWindow));
+    if (thing)
+      CallGetInterface(thing.get(), _retval);
+  }
+
+  return *_retval ? NS_OK : NS_ERROR_FAILURE;
+}
+
+
+
+
+
+
+NS_IMETHODIMP
+nsAppStartup::Observe(nsISupports *aSubject,
+                      const char *aTopic, const PRUnichar *aData)
+{
+  NS_ASSERTION(mAppShell, "appshell service notified before appshell built");
+  if (!strcmp(aTopic, "profile-change-teardown")) {
+    nsresult rv;
+    EnterLastWindowClosingSurvivalArea();
+    
+    
+    nsCOMPtr<nsICloseAllWindows> closer =
+            do_CreateInstance("@mozilla.org/appshell/closeallwindows;1", &rv);
+    NS_ASSERTION(closer, "Failed to create nsICloseAllWindows impl.");
+    PRBool proceedWithSwitch = PR_FALSE;
+    if (closer)
+      rv = closer->CloseAll(PR_TRUE, &proceedWithSwitch);
+
+    if (NS_FAILED(rv) || !proceedWithSwitch) {
+      nsCOMPtr<nsIProfileChangeStatus> changeStatus(do_QueryInterface(aSubject));
+      if (changeStatus)
+        changeStatus->VetoChange();
+    }
+    ExitLastWindowClosingSurvivalArea();
+  } else if (!strcmp(aTopic, "xul-window-registered")) {
+    EnterLastWindowClosingSurvivalArea();
+    AttemptingQuit(PR_FALSE);
+  } else if (!strcmp(aTopic, "xul-window-destroyed")) {
+    ExitLastWindowClosingSurvivalArea();
+  } else {
+    NS_ERROR("Unexpected observer topic.");
+  }
+
+  return NS_OK;
+}

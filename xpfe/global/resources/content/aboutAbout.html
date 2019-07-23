@@ -1,0 +1,126 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<html>
+<head>
+<title>About About</title>
+<style type="text/css">
+h1 {
+  text-align: center;
+}
+
+table {
+  border-collapse: collapse;
+  border: 1px solid black;
+  width: 300px;
+  margin: auto;
+}
+
+tr {
+  background-color: #eeeeee;
+  border: 1px solid black;
+}
+
+td {
+  text-align: center;
+}
+
+a {
+  display: block;
+  padding: 0.5em;
+  vertical-align: middle;
+}
+
+.note {
+  text-align: center;
+  font-style: italic;
+}
+</style>
+<script type="application/x-javascript">
+
+var gProtocols = new Array();
+var gContainer;
+window.onload = Start;
+function Start()
+{
+  gContainer = document.getElementById("abouts");
+
+  findAbouts();
+}
+
+function findAbouts()
+{
+  for (var cid in Components.classes) {
+    var result = cid.match(/@mozilla.org\/network\/protocol\/about;1\?what\=(.*)$/);
+    if (result) {
+      gProtocols.push(result[1]);
+    }
+  }
+
+  gProtocols.sort();
+  for (var i in gProtocols) {
+    createProtocolListing(gProtocols[i]);
+  }
+}
+
+function createProtocolListing(aProtocol)
+{
+  var uri = "about:" + aProtocol;
+
+  var tr = document.createElement("tr");
+  var td = document.createElement("td");
+  var link = document.createElement("a");
+  var text = document.createTextNode(uri);
+
+  link.href = uri;
+  link.appendChild(text);
+  td.appendChild(link);
+  tr.appendChild(td);
+  gContainer.appendChild(tr);
+}
+
+</script>
+</head>
+
+<body>
+<h1>about:about</h1>
+<p class="note">Note: not all of the following URIs may be useful as listed.  For instance, some may require query strings.</p>
+<table id="abouts"></table>
+</body>
+</html>

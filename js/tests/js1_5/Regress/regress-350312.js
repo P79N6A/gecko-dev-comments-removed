@@ -1,0 +1,112 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+var bug = 350312;
+var summary = 'Accessing wrong stack slot with nested catch/finally';
+var actual = '';
+var expect = '';
+
+
+
+test();
+
+
+function test()
+{
+  enterFunc ('test');
+  printBugNumber (bug);
+  printStatus (summary);
+  
+  var counter = 0;
+
+  function f(x,y) { 
+
+    try 
+    { 
+      throw x;
+    } 
+    catch(e) 
+    { 
+      if (y) 
+        throw e;
+    } 
+    finally 
+    { 
+      try
+      { 
+        actual += 'finally,';
+        throw 42;
+      } 
+      catch(e2) 
+      { 
+        actual += e2;
+        print(e2); 
+        if (++counter > 10)
+        {
+          throw 'Infinite loop...';
+        }
+      } 
+    } 
+    return 'returned';
+  }
+
+  expect = 'finally,42';
+  actual = '';
+
+  try
+  {
+    print('test 1');
+    f(2, 1);
+  }
+  catch(ex)
+  {
+  }
+  reportCompare(expect, actual, summary);
+
+  actual = '';
+  try
+  {
+    print('test 2');
+    f(2, 0);
+  }
+  catch(ex)
+  {
+  }
+  reportCompare(expect, actual, summary);
+
+  exitFunc ('test');
+}

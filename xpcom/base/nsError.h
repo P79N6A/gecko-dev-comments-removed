@@ -1,0 +1,323 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifndef nsError_h__
+#define nsError_h__
+
+#ifndef nscore_h___
+#include "nscore.h"  
+#endif
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define NS_ERROR_MODULE_XPCOM      1
+#define NS_ERROR_MODULE_BASE       2
+#define NS_ERROR_MODULE_GFX        3
+#define NS_ERROR_MODULE_WIDGET     4
+#define NS_ERROR_MODULE_CALENDAR   5
+#define NS_ERROR_MODULE_NETWORK    6
+#define NS_ERROR_MODULE_PLUGINS    7
+#define NS_ERROR_MODULE_LAYOUT     8
+#define NS_ERROR_MODULE_HTMLPARSER 9
+#define NS_ERROR_MODULE_RDF        10
+#define NS_ERROR_MODULE_UCONV      11
+#define NS_ERROR_MODULE_REG        12
+#define NS_ERROR_MODULE_FILES      13
+#define NS_ERROR_MODULE_DOM        14
+#define NS_ERROR_MODULE_IMGLIB     15
+#define NS_ERROR_MODULE_MAILNEWS   16
+#define NS_ERROR_MODULE_EDITOR     17
+#define NS_ERROR_MODULE_XPCONNECT  18
+#define NS_ERROR_MODULE_PROFILE    19
+#define NS_ERROR_MODULE_LDAP       20
+#define NS_ERROR_MODULE_SECURITY   21
+#define NS_ERROR_MODULE_DOM_XPATH  22
+#define NS_ERROR_MODULE_DOM_RANGE  23
+#define NS_ERROR_MODULE_URILOADER  24
+#define NS_ERROR_MODULE_CONTENT    25
+#define NS_ERROR_MODULE_PYXPCOM    26
+#define NS_ERROR_MODULE_XSLT       27
+#define NS_ERROR_MODULE_IPC        28
+#define NS_ERROR_MODULE_SVG        29
+#define NS_ERROR_MODULE_STORAGE    30
+#define NS_ERROR_MODULE_SCHEMA     31
+
+
+
+
+
+
+
+
+#define NS_ERROR_MODULE_GENERAL    51  
+
+
+
+
+
+
+#define NS_FAILED(_nsresult) (NS_UNLIKELY((_nsresult) & 0x80000000))
+#define NS_SUCCEEDED(_nsresult) (NS_LIKELY(!((_nsresult) & 0x80000000)))
+
+
+
+
+
+#define NS_ERROR_SEVERITY_SUCCESS       0
+#define NS_ERROR_SEVERITY_ERROR         1
+
+
+
+
+
+
+#define NS_ERROR_MODULE_BASE_OFFSET 0x45
+
+
+
+
+
+#define NS_ERROR_GENERATE(sev,module,code) \
+    ((nsresult) (((PRUint32)(sev)<<31) | ((PRUint32)(module+NS_ERROR_MODULE_BASE_OFFSET)<<16) | ((PRUint32)(code))) )
+
+#define NS_ERROR_GENERATE_SUCCESS(module,code) \
+    ((nsresult) (((PRUint32)(NS_ERROR_SEVERITY_SUCCESS)<<31) | ((PRUint32)(module+NS_ERROR_MODULE_BASE_OFFSET)<<16) | ((PRUint32)(code))) )
+
+#define NS_ERROR_GENERATE_FAILURE(module,code) \
+    ((nsresult) (((PRUint32)(NS_ERROR_SEVERITY_ERROR)<<31) | ((PRUint32)(module+NS_ERROR_MODULE_BASE_OFFSET)<<16) | ((PRUint32)(code))) )
+
+
+
+
+
+#define NS_ERROR_GET_CODE(err)     ((err) & 0xffff)
+#define NS_ERROR_GET_MODULE(err)   (((((err) >> 16) - NS_ERROR_MODULE_BASE_OFFSET) & 0x1fff))
+#define NS_ERROR_GET_SEVERITY(err) (((err) >> 31) & 0x1)
+
+
+
+
+
+
+
+
+#define NS_OK                              0
+
+#define NS_ERROR_BASE                      ((nsresult) 0xC1F30000)
+
+
+#define NS_ERROR_NOT_INITIALIZED           (NS_ERROR_BASE + 1)
+
+
+#define NS_ERROR_ALREADY_INITIALIZED       (NS_ERROR_BASE + 2)
+
+
+#define NS_ERROR_NOT_IMPLEMENTED           ((nsresult) 0x80004001L)
+
+
+#define NS_NOINTERFACE                     ((nsresult) 0x80004002L)
+#define NS_ERROR_NO_INTERFACE              NS_NOINTERFACE
+
+#define NS_ERROR_INVALID_POINTER           ((nsresult) 0x80004003L)
+#define NS_ERROR_NULL_POINTER              NS_ERROR_INVALID_POINTER
+
+
+#define NS_ERROR_ABORT                     ((nsresult) 0x80004004L)
+
+
+#define NS_ERROR_FAILURE                   ((nsresult) 0x80004005L)
+
+
+#define NS_ERROR_UNEXPECTED                ((nsresult) 0x8000ffffL)
+
+
+#define NS_ERROR_OUT_OF_MEMORY             ((nsresult) 0x8007000eL)
+
+
+#define NS_ERROR_ILLEGAL_VALUE             ((nsresult) 0x80070057L)
+#define NS_ERROR_INVALID_ARG               NS_ERROR_ILLEGAL_VALUE
+
+
+#define NS_ERROR_NO_AGGREGATION            ((nsresult) 0x80040110L)
+
+
+#define NS_ERROR_NOT_AVAILABLE             ((nsresult) 0x80040111L)
+
+
+#define NS_ERROR_FACTORY_NOT_REGISTERED    ((nsresult) 0x80040154L)
+
+
+#define NS_ERROR_FACTORY_REGISTER_AGAIN    ((nsresult) 0x80040155L)
+
+
+#define NS_ERROR_FACTORY_NOT_LOADED        ((nsresult) 0x800401f8L)
+
+
+#define NS_ERROR_FACTORY_NO_SIGNATURE_SUPPORT \
+                                           (NS_ERROR_BASE + 0x101)
+
+
+#define NS_ERROR_FACTORY_EXISTS            (NS_ERROR_BASE + 0x100)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define NS_ERROR_PROXY_INVALID_IN_PARAMETER        ((nsresult) 0x80010010L)
+
+
+
+
+
+#define NS_ERROR_PROXY_INVALID_OUT_PARAMETER        ((nsresult) 0x80010011L)
+
+
+
+
+ 
+
+ 
+#define NS_BASE_STREAM_CLOSED         NS_ERROR_GENERATE_FAILURE(NS_ERROR_MODULE_BASE, 2)
+ 
+#define NS_BASE_STREAM_OSERROR        NS_ERROR_GENERATE_FAILURE(NS_ERROR_MODULE_BASE, 3)
+ 
+#define NS_BASE_STREAM_ILLEGAL_ARGS   NS_ERROR_GENERATE_FAILURE(NS_ERROR_MODULE_BASE, 4)
+ 
+#define NS_BASE_STREAM_NO_CONVERTER   NS_ERROR_GENERATE_FAILURE(NS_ERROR_MODULE_BASE, 5)
+ 
+#define NS_BASE_STREAM_BAD_CONVERSION NS_ERROR_GENERATE_FAILURE(NS_ERROR_MODULE_BASE, 6)
+
+#define NS_BASE_STREAM_WOULD_BLOCK    NS_ERROR_GENERATE_FAILURE(NS_ERROR_MODULE_BASE, 7)
+
+
+#define NS_ERROR_FILE_UNRECOGNIZED_PATH         NS_ERROR_GENERATE_FAILURE(NS_ERROR_MODULE_FILES, 1)
+#define NS_ERROR_FILE_UNRESOLVABLE_SYMLINK      NS_ERROR_GENERATE_FAILURE(NS_ERROR_MODULE_FILES, 2)
+#define NS_ERROR_FILE_EXECUTION_FAILED          NS_ERROR_GENERATE_FAILURE(NS_ERROR_MODULE_FILES, 3)
+#define NS_ERROR_FILE_UNKNOWN_TYPE              NS_ERROR_GENERATE_FAILURE(NS_ERROR_MODULE_FILES, 4)
+#define NS_ERROR_FILE_DESTINATION_NOT_DIR       NS_ERROR_GENERATE_FAILURE(NS_ERROR_MODULE_FILES, 5)
+#define NS_ERROR_FILE_TARGET_DOES_NOT_EXIST     NS_ERROR_GENERATE_FAILURE(NS_ERROR_MODULE_FILES, 6)
+#define NS_ERROR_FILE_COPY_OR_MOVE_FAILED       NS_ERROR_GENERATE_FAILURE(NS_ERROR_MODULE_FILES, 7)
+#define NS_ERROR_FILE_ALREADY_EXISTS            NS_ERROR_GENERATE_FAILURE(NS_ERROR_MODULE_FILES, 8)
+#define NS_ERROR_FILE_INVALID_PATH              NS_ERROR_GENERATE_FAILURE(NS_ERROR_MODULE_FILES, 9)
+#define NS_ERROR_FILE_DISK_FULL                 NS_ERROR_GENERATE_FAILURE(NS_ERROR_MODULE_FILES, 10)
+#define NS_ERROR_FILE_CORRUPTED                 NS_ERROR_GENERATE_FAILURE(NS_ERROR_MODULE_FILES, 11)
+#define NS_ERROR_FILE_NOT_DIRECTORY             NS_ERROR_GENERATE_FAILURE(NS_ERROR_MODULE_FILES, 12)
+#define NS_ERROR_FILE_IS_DIRECTORY              NS_ERROR_GENERATE_FAILURE(NS_ERROR_MODULE_FILES, 13)
+#define NS_ERROR_FILE_IS_LOCKED                 NS_ERROR_GENERATE_FAILURE(NS_ERROR_MODULE_FILES, 14)
+#define NS_ERROR_FILE_TOO_BIG                   NS_ERROR_GENERATE_FAILURE(NS_ERROR_MODULE_FILES, 15)
+#define NS_ERROR_FILE_NO_DEVICE_SPACE           NS_ERROR_GENERATE_FAILURE(NS_ERROR_MODULE_FILES, 16)
+#define NS_ERROR_FILE_NAME_TOO_LONG             NS_ERROR_GENERATE_FAILURE(NS_ERROR_MODULE_FILES, 17)
+#define NS_ERROR_FILE_NOT_FOUND                 NS_ERROR_GENERATE_FAILURE(NS_ERROR_MODULE_FILES, 18)
+#define NS_ERROR_FILE_READ_ONLY                 NS_ERROR_GENERATE_FAILURE(NS_ERROR_MODULE_FILES, 19)
+#define NS_ERROR_FILE_DIR_NOT_EMPTY             NS_ERROR_GENERATE_FAILURE(NS_ERROR_MODULE_FILES, 20)
+#define NS_ERROR_FILE_ACCESS_DENIED             NS_ERROR_GENERATE_FAILURE(NS_ERROR_MODULE_FILES, 21)
+
+#define NS_SUCCESS_FILE_DIRECTORY_EMPTY         NS_ERROR_GENERATE_SUCCESS(NS_ERROR_MODULE_FILES, 1)
+
+ 
+
+#define NS_SUCCESS_AGGREGATE_RESULT             NS_ERROR_GENERATE_SUCCESS(NS_ERROR_MODULE_FILES, 2)
+
+ 
+
+#define NS_ERROR_CANNOT_CONVERT_DATA            NS_ERROR_GENERATE_FAILURE(NS_ERROR_MODULE_XPCOM,  1)
+#define NS_ERROR_OBJECT_IS_IMMUTABLE            NS_ERROR_GENERATE_FAILURE(NS_ERROR_MODULE_XPCOM,  2)
+#define NS_ERROR_LOSS_OF_SIGNIFICANT_DATA       NS_ERROR_GENERATE_FAILURE(NS_ERROR_MODULE_XPCOM,  3)
+
+#define NS_SUCCESS_LOSS_OF_INSIGNIFICANT_DATA   NS_ERROR_GENERATE_SUCCESS(NS_ERROR_MODULE_XPCOM,  1)
+
+
+
+
+
+#define NS_ERROR_ILLEGAL_DURING_SHUTDOWN        NS_ERROR_GENERATE_FAILURE(NS_ERROR_MODULE_XPCOM, 30)
+
+ 
+
+
+
+
+
+
+
+extern NS_COM nsresult
+NS_ErrorAccordingToNSPR();
+
+
+#ifdef _MSC_VER
+#pragma warning(disable: 4251) /* 'nsCOMPtr<class nsIInputStream>' needs to have dll-interface to be used by clients of class 'nsInputStream' */
+#pragma warning(disable: 4275) /* non dll-interface class 'nsISupports' used as base for dll-interface class 'nsIRDFNode' */
+#endif
+
+#endif
+

@@ -1,0 +1,187 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+@import url("chrome://global/locale/intl.css");
+
+@import url("chrome://global/skin/formatting.css");
+
+@namespace url("http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul");
+
+
+
+checkbox {
+  -moz-binding: url("chrome://global/content/bindings/checkbox.xml#checkbox-with-spacing");
+}
+
+radio {
+  -moz-binding: url("chrome://global/skin/globalBindings.xml#radio-with-spacing");
+}
+
+menulist > menupopup,
+.menulist-menupopup {
+  -moz-binding: url("chrome://global/content/bindings/popup.xml#popup-scrollbars");
+}
+
+.menulist-compact {
+  -moz-binding: url("chrome://global/content/bindings/menulist.xml#menulist-compact");
+}
+
+progressmeter[mode="undetermined"] {
+  -moz-binding: url("chrome://global/content/bindings/progressmeter.xml#progressmeter-undetermined");
+}
+
+
+
+window,
+page,
+dialog,
+wizard,
+prefwindow {
+  -moz-appearance: window;
+  background-color: -moz-Dialog;
+  color: -moz-DialogText;
+  font: message-box;
+}
+
+window.dialog {
+  padding: 8px 10px 10px 8px;
+}
+
+[wait-cursor] {
+  cursor: wait !important;
+}
+
+
+
+.message-icon,
+.alert-icon,
+.error-icon,
+.question-icon {
+  width: 32px;
+  height: 32px;
+}
+
+.message-icon {
+  list-style-image: url("chrome://global/skin/icons/Message.png");
+}
+
+.alert-icon {
+  list-style-image: url("chrome://global/skin/icons/Warning.png");
+}
+
+.error-icon {
+  list-style-image: url("chrome://global/skin/icons/Error.png");
+}
+
+.question-icon {
+  list-style-image: url("chrome://global/skin/icons/Question.png");
+}
+
+
+
+iframe {
+  border: none;
+  width: 100px;
+  height: 100px;
+  min-width: 10px;
+  min-height: 10px;
+}
+
+
+
+statusbar {
+  -moz-appearance: statusbar;
+  border-top: 1px solid ThreeDLightShadow;
+  border-left: 1px solid ThreeDShadow;
+  border-right: 1px solid ThreeDHighlight;
+  border-bottom: 1px solid ThreeDHighlight;
+  background-color: -moz-Dialog;
+  min-height: 22px;
+}
+
+statusbarpanel {
+  -moz-appearance: statusbarpanel;
+  -moz-box-align: center;
+  -moz-box-pack: center;
+  border-left: 1px solid ThreeDHighlight;
+  border-top: 1px solid ThreeDHighlight;
+  border-right: 1px solid ThreeDShadow;
+  border-bottom: 1px solid ThreeDShadow;
+  padding: 0 4px;
+}
+
+.statusbar-resizerpanel {
+  -moz-box-align: end;
+  -moz-box-pack: end;
+  -moz-appearance: resizerpanel;
+  padding: 0px;
+  border: none;
+}
+
+.statusbarpanel-iconic,  .statusbarpanel-iconic-text, .statusbarpanel-menu-iconic {
+  padding: 0px 1px 0px 1px;
+}
+
+resizer[dir="bottomright"] {
+  -moz-appearance: resizer;
+  cursor: se-resize;
+}
+
+
+
+sidebarheader {
+  -moz-appearance: toolbox;
+  height: 25px;
+  background-color: -moz-Dialog;
+  border-bottom: 1px solid ThreeDShadow;
+  border-top: 1px solid ThreeDHighlight;
+}
+
+sidebarheader > label {
+  -moz-padding-start: 4px;
+}
+
+
+
+.toolbar-focustarget {
+  -moz-user-focus: ignore !important;
+}

@@ -1,0 +1,227 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#include "nsXULAppAPI.h"
+#include "nsINIParser.h"
+#include "nsILocalFile.h"
+#include "nsAppRunner.h"
+#include "nsCRTGlue.h"
+
+void
+SetAllocatedString(const char *&str, const char *newvalue)
+{
+  NS_Free(NS_CONST_CAST(char*, str));
+  if (newvalue) {
+    str = NS_strdup(newvalue);
+  }
+  else {
+    str = nsnull;
+  }
+}
+
+void
+SetAllocatedString(const char *&str, const nsACString &newvalue)
+{
+  NS_Free(NS_CONST_CAST(char*, str));
+  if (newvalue.IsEmpty()) {
+    str = nsnull;
+  }
+  else {
+    str = ToNewCString(newvalue);
+  }
+}
+
+ScopedAppData::ScopedAppData(const nsXREAppData* aAppData)
+{
+  Zero();
+
+  SetAllocatedString(this->vendor, aAppData->vendor);
+  SetAllocatedString(this->name, aAppData->name);
+  SetAllocatedString(this->version, aAppData->version);
+  SetAllocatedString(this->buildID, aAppData->buildID);
+  SetAllocatedString(this->ID, aAppData->ID);
+  SetAllocatedString(this->copyright, aAppData->copyright);
+  SetStrongPtr(this->directory, aAppData->directory);
+  this->flags = aAppData->flags;
+
+  if (aAppData->size > offsetof(nsXREAppData, xreDirectory)) {
+    SetStrongPtr(this->xreDirectory, aAppData->xreDirectory);
+    SetAllocatedString(this->minVersion, aAppData->minVersion);
+    SetAllocatedString(this->maxVersion, aAppData->maxVersion);
+  }
+}
+
+ScopedAppData::~ScopedAppData()
+{
+  SetAllocatedString(this->vendor, nsnull);
+  SetAllocatedString(this->name, nsnull);
+  SetAllocatedString(this->version, nsnull);
+  SetAllocatedString(this->buildID, nsnull);
+  SetAllocatedString(this->ID, nsnull);
+  SetAllocatedString(this->copyright, nsnull);
+
+  NS_IF_RELEASE(this->directory);
+
+  SetStrongPtr(this->xreDirectory, (nsILocalFile*) nsnull);
+  SetAllocatedString(this->minVersion, nsnull);
+  SetAllocatedString(this->maxVersion, nsnull);
+}
+
+nsresult
+XRE_CreateAppData(nsILocalFile* aINIFile, nsXREAppData **aAppData)
+{
+  NS_ENSURE_ARG(aINIFile && aAppData);
+
+  nsXREAppData *data = new ScopedAppData();
+  if (!data)
+    return NS_ERROR_OUT_OF_MEMORY;
+
+  nsresult rv = XRE_ParseAppData(aINIFile, data);
+  if (NS_FAILED(rv)) {
+    delete data;
+  }
+  else {
+    *aAppData = data;
+  }
+
+  return rv;
+}
+
+struct ReadString {
+  const char *section;
+  const char *key;
+  const char **buffer;
+};
+
+static void
+ReadStrings(nsINIParser &parser, const ReadString *reads)
+{
+  nsresult rv;
+  nsCString str;
+
+  while (reads->section) {
+    rv = parser.GetString(reads->section, reads->key, str);
+    if (NS_SUCCEEDED(rv)) {
+      SetAllocatedString(*reads->buffer, str);
+    }
+
+    ++reads;
+  }
+}
+
+struct ReadFlag {
+  const char *section;
+  const char *key;
+  PRUint32 flag;
+};
+
+static void
+ReadFlags(nsINIParser &parser, const ReadFlag *reads, PRUint32 *buffer)
+{
+  nsresult rv;
+  char buf[6]; 
+
+  while (reads->section) {
+    rv = parser.GetString(reads->section, reads->key, buf, sizeof(buf));
+    if (NS_SUCCEEDED(rv) || rv == NS_ERROR_LOSS_OF_SIGNIFICANT_DATA) {
+      if (buf[0] == '1' || buf[0] == 't' || buf[0] == 'T') {
+        *buffer |= reads->flag;
+      }
+      if (buf[0] == '0' || buf[0] == 'f' || buf[0] == 'F') {
+        *buffer &= ~reads->flag;
+      }
+    }
+
+    ++reads;
+  }
+}
+
+nsresult
+XRE_ParseAppData(nsILocalFile* aINIFile, nsXREAppData *aAppData)
+{
+  NS_ENSURE_ARG(aINIFile && aAppData);
+
+  nsresult rv;
+
+  nsINIParser parser;
+  rv = parser.Init(aINIFile);
+  if (NS_FAILED(rv))
+    return rv;
+
+  nsCString str;
+
+  ReadString strings[] = {
+    { "App", "Vendor",    &aAppData->vendor },
+    { "App", "Name",      &aAppData->name },
+    { "App", "Version",   &aAppData->version },
+    { "App", "BuildID",   &aAppData->buildID },
+    { "App", "ID",        &aAppData->ID },
+    { "App", "Copyright", &aAppData->copyright },
+    { nsnull }
+  };
+  ReadStrings(parser, strings);
+
+  ReadFlag flags[] = {
+    { "XRE", "EnableProfileMigrator", NS_XRE_ENABLE_PROFILE_MIGRATOR },
+    { "XRE", "EnableExtensionManager", NS_XRE_ENABLE_EXTENSION_MANAGER },
+    { nsnull }
+  };
+  ReadFlags(parser, flags, &aAppData->flags);
+
+  if (aAppData->size > offsetof(nsXREAppData, xreDirectory)) {
+    ReadString strings2[] = {
+      { "Gecko", "MinVersion", &aAppData->minVersion },
+      { "Gecko", "MaxVersion", &aAppData->maxVersion },
+      { nsnull }
+    };
+    ReadStrings(parser, strings2);
+  }
+
+  return NS_OK;
+}
+
+void
+XRE_FreeAppData(nsXREAppData *aAppData)
+{
+  if (!aAppData) {
+    NS_ERROR("Invalid arg");
+    return;
+  }
+
+  ScopedAppData* sad = NS_STATIC_CAST(ScopedAppData*, aAppData);
+  delete sad;
+}

@@ -1,0 +1,153 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#include "nsCRT.h"
+#include "nsFixedSizeAllocator.h"
+
+nsFixedSizeAllocator::Bucket *
+nsFixedSizeAllocator::AddBucket(size_t aSize)
+{
+    void* p;
+    PL_ARENA_ALLOCATE(p, &mPool, sizeof(Bucket));
+    if (! p)
+        return nsnull;
+
+    Bucket* bucket = NS_STATIC_CAST(Bucket*, p);
+    bucket->mSize  = aSize;
+    bucket->mFirst = nsnull;
+    bucket->mNext  = mBuckets;
+
+    mBuckets = bucket;
+    return bucket;
+}
+
+nsresult
+nsFixedSizeAllocator::Init(const char* aName,
+                           const size_t* aBucketSizes,
+                           PRInt32 aNumBuckets,
+                           PRInt32 aInitialSize,
+                           PRInt32 aAlign)
+{
+    NS_PRECONDITION(aNumBuckets > 0, "no buckets");
+    if (aNumBuckets <= 0)
+        return NS_ERROR_INVALID_ARG;
+
+    
+    if (mBuckets)
+        PL_FinishArenaPool(&mPool);
+
+    PRInt32 bucketspace = aNumBuckets * sizeof(Bucket);
+    PL_InitArenaPool(&mPool, aName, bucketspace + aInitialSize, aAlign);
+
+    mBuckets = nsnull;
+    for (PRInt32 i = 0; i < aNumBuckets; ++i)
+        AddBucket(aBucketSizes[i]);
+
+    return NS_OK;
+}
+
+nsFixedSizeAllocator::Bucket *
+nsFixedSizeAllocator::FindBucket(size_t aSize)
+{
+    Bucket** link = &mBuckets;
+    Bucket* bucket;
+
+    while ((bucket = *link) != nsnull) {
+        if (aSize == bucket->mSize) {
+            
+            
+            *link = bucket->mNext;
+            bucket->mNext = mBuckets;
+            mBuckets = bucket;
+            return bucket;
+        }
+
+        link = &bucket->mNext;
+    }
+    return nsnull;
+}
+
+void*
+nsFixedSizeAllocator::Alloc(size_t aSize)
+{
+    Bucket* bucket = FindBucket(aSize);
+    if (! bucket) {
+        
+        bucket = AddBucket(aSize);
+        if (! bucket)
+            return nsnull;
+    }
+
+    void* next;
+    if (bucket->mFirst) {
+        next = bucket->mFirst;
+        bucket->mFirst = bucket->mFirst->mNext;
+    }
+    else {
+        PL_ARENA_ALLOCATE(next, &mPool, aSize);
+        if (!next)
+            return nsnull;
+    }
+
+#ifdef DEBUG
+    memset(next, 0xc8, aSize);
+#endif
+
+    return next;
+}
+
+void
+nsFixedSizeAllocator::Free(void* aPtr, size_t aSize)
+{
+    FreeEntry* entry = NS_REINTERPRET_CAST(FreeEntry*, aPtr);
+    Bucket* bucket = FindBucket(aSize);
+
+#ifdef DEBUG
+    NS_ASSERTION(bucket && bucket->mSize == aSize, "ack! corruption! bucket->mSize != aSize!");
+    memset(aPtr, 0xd8, bucket->mSize);
+#endif
+
+    entry->mNext = bucket->mFirst;
+    bucket->mFirst = entry;
+}

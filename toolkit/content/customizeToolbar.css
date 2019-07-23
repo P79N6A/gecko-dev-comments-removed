@@ -1,0 +1,59 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+@namespace url("http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"); 
+@namespace html url("http://www.w3.org/1999/xhtml"); 
+
+#palette-box {
+  overflow: auto; 
+  margin: 0px 15px 10px 15px;
+}
+
+#palette-box > hbox > toolbarpaletteitem {
+  padding-top: 8px;
+  padding-bottom: 8px;
+}
+
+#palette-box > hbox {
+  min-height: 8em;
+}
+
+#main-box > box {
+  overflow: hidden; 
+}

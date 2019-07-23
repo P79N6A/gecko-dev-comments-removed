@@ -1,0 +1,79 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+@namespace url("http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul");
+
+
+
+splitter {
+  -moz-box-align: center;
+  -moz-box-pack: center;
+  cursor: ew-resize;
+  min-width: 9px;
+  min-height: 9px;
+  background: url("chrome://global/skin/splitter/dimple.png") transparent no-repeat center;  
+}
+
+
+
+splitter[orient="vertical"] {
+  cursor: ns-resize;
+  min-width: 0px;
+  min-height: 9px;
+  min-width: 9px;  
+  background: url("chrome://global/skin/splitter/dimple.png") transparent no-repeat center;
+}
+
+
+  
+grippy {
+  cursor: pointer;
+  margin: 0px 1px;
+  min-width: 5px;
+  min-height: 42px;
+}
+
+splitter[orient="vertical"] > grippy {
+  margin: 1px 0px;
+  min-width: 42px;
+  min-height: 5px;
+}

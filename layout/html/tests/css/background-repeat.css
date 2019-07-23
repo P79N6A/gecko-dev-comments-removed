@@ -1,0 +1,44 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+GOOD { background-repeat: repeat; }
+GOOD { background-repeat: repeat-x; }
+GOOD { background-repeat: repeat-y; }
+GOOD { background-repeat: no-repeat; }
+BAD { background-repeat: medium; }
+BAD { background-repeat: #23; }
+BAD { background-repeat: 23pt; }
+BAD { background-repeat: "foo"; }
+BAD { background-repeat: repeat-x repeat-y; }

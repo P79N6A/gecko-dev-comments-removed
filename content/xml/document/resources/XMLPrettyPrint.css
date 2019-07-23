@@ -1,0 +1,79 @@
+@charset "UTF-8";
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+@import url("resource://gre/res/viewsource.css");
+
+#header {
+  background-color: #ccc;
+  border-bottom: 3px solid black;
+  padding: 0.5em;
+  margin-bottom: 1em;
+}
+
+table {
+  border-spacing: 0;
+  margin: 0;
+}
+
+td {
+  padding: 0;
+}
+
+.indent {
+  margin-left: 1em;
+}
+
+.spacer {
+  width: 1em;
+}
+
+.expander {
+  cursor: pointer;
+  -moz-user-select: none;
+  vertical-align: top;
+  text-align: center;
+}
+
+.expander-closed > * > .expander-content {
+  display: none;
+}
+
+.comment {
+  font-family: monospace;
+  white-space: pre;
+}

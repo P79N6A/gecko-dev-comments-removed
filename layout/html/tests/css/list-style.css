@@ -1,0 +1,45 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+GOOD { list-style: disc; }
+GOOD { list-style: disc inside; }
+GOOD { list-style: inside disc; }
+GOOD { list-style: inside disc url(fowl.gif); }
+GOOD { list-style: disc url(fowl.gif) inside; }
+GOOD { list-style: url(fowl.gif) inside disc; }
+
+BAD { list-style: none inside disc; }
+BAD { list-style: inside disc none; }
+BAD { list-style: disc none inside; }

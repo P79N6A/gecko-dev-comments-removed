@@ -1,0 +1,47 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+GOOD { Background-Attachment: Scroll; }
+GOOD { Background-Attachment: Fixed; }
+BAD { Background-Attachments: Fixed; }
+BAD { Background-Attachment: Scroll Fixed; }
+BAD { Background-Attachment: Fixed tiny; }
+BAD { Background-Attachment: tiny Scroll; }
+BAD { Background-Attachment: tiny Fixed; }
+BAD { Background-Attachment: medium; }
+BAD { Background-Attachment: 12pt; }
+BAD { Background-Attachment: red; }
+BAD { Background-Attachment: url("foo.html"); }
+BAD { Background-Attachment: smelly; }

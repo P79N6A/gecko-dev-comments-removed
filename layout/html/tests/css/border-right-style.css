@@ -1,0 +1,47 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+GOOD { border-right-style: inherit; } 
+GOOD { border-right-style: none; } 
+GOOD { border-right-style: hidden; } 
+GOOD { border-right-style: outset; } 
+BAD { border-right-style: far-left; }
+BAD { border-right-style: ridge inset; }
+BAD { border-right-style: groove outset; }
+BAD { border-right-style: null; }
+BAD { border-right-style: empty; }

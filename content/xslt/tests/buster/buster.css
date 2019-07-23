@@ -1,0 +1,53 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+label.head {
+  padding:     5px;
+  font-size:   medium;
+  font-weight: bold;
+}
+
+treechildren::-moz-tree-cell(success yes)
+{
+  background-color: green ;
+}
+
+treechildren::-moz-tree-cell(success no)
+{
+  background-color: red ;
+}

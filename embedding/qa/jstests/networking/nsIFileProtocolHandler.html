@@ -1,0 +1,192 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<html>
+
+<title>nsIFileProtocolHandler Tets case</title>
+
+<head>
+
+<script type="text/javascript" src="http://mozilla.org/quality/embed/jstests/bridge.js"></script>
+<script type="text/javascript" src="nsIFileProtocolHandler.js"></script>
+
+<script type="text/javascript">
+
+const LOCAL_FILE_CTRID =
+	"@mozilla.org/file/local;1" ;
+const nsILocalFile =
+	Components.interfaces.nsILocalFile
+
+var protocolhandler ;
+
+var buffer ;
+
+function WritePassFail()
+{
+
+  if (protocolhandler.success)
+  {
+	  buffer += "<td>"+ protocolhandler.returnvalue +"</td>" ;
+	  buffer += "<td>Pass</td>"
+  }
+  else
+  {
+	  buffer += "<td>" +"Exception: " + protocolhandler.exception + "</td>" ;
+	  buffer += "<td bgcolor='#FF0000'>Fail</td>"
+  }
+
+  buffer += "</tr>"
+  protocolhandler.exception= null;
+
+}
+
+
+function WriteTableHeader(name,params)
+{
+	buffer += "<tr>" ;
+	buffer += "<td>" + name + "</td>" ;
+	buffer += "<td>" + params + "</td>" ;
+}
+
+
+function WriteHeader()
+{
+
+	buffer = "<b>Results for <a href='http://lxr.mozilla.org/seamonkey/source/netwerk/protocol/file/public/nsIFileProtocolHandler.idl'>nsIFileProtocolHandler :</a></b><br><br>"
+	buffer += "<table border cols=4 width='70%'>"
+	buffer += "<tr>"
+	buffer += "<td><b>Property/Method</b></td>"
+	buffer += "<td><b>Params</b></td>"
+	buffer += "<td><b>Output/Bug/Error</b></td>"
+	buffer += "<td><b>Result</b></td>"
+	buffer += "</tr>"
+
+}
+
+
+function WriteFooter()
+{
+	buffer += "</table>"
+}
+
+
+function Writebuffer(buffer)
+{
+
+	if (isRunningStandalone())
+	{
+	   document.clear();
+	   document.write(buffer);
+	}
+	else
+		WriteResults(buffer);
+
+}
+
+
+function RunAllTests()
+{
+
+	protocolhandler =  new FileProtocolHandler() ;
+	if (protocolhandler.exception)
+	{
+	  Writebuffer(protocolhandler.exception);
+	  return ;
+	}
+
+	WriteHeader();
+
+    newFileURI();
+    getFileFromURLSpec();
+    getURLSpecFromFile();
+
+	WriteFooter();
+
+
+	Writebuffer(buffer) ;
+}
+
+function newFileURI()
+{
+	  netscape.security.PrivilegeManager.enablePrivilege("UniversalBrowserRead");
+	   netscape.security.PrivilegeManager.enablePrivilege("UniversalXPConnect");
+
+	   var file = Components.classes[LOCAL_FILE_CTRID].
+	                createInstance(nsILocalFile)
+	    file.initWithPath("d:\\try.txt");
+
+
+	protocolhandler.newFileURI(file);
+	WriteTableHeader("newFileURI","nsIFile");
+	WritePassFail();
+}
+
+function getFileFromURLSpec()
+{
+	var url =  "file:///c:/";
+	protocolhandler.getFileFromURLSpec(url);
+	WriteTableHeader("getFileFromURLSpec","URL");
+	WritePassFail();
+}
+
+function getURLSpecFromFile()
+{
+   netscape.security.PrivilegeManager.enablePrivilege("UniversalBrowserRead");
+   netscape.security.PrivilegeManager.enablePrivilege("UniversalXPConnect");
+
+   var file = Components.classes[LOCAL_FILE_CTRID].
+                createInstance(nsILocalFile)
+    file.initWithPath("d:\\try.txt");
+
+    protocolhandler.getURLSpecFromFile(file);
+	WriteTableHeader("getURLSpecFromFile","nsIFile");
+	WritePassFail();
+
+}
+
+</script>
+
+</head>
+
+<body>
+
+<script type="text/javascript">
+   RunAllTests();
+</script>
+</body>
+
+</html>

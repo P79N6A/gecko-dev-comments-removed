@@ -1,0 +1,45 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 
+
+
+ 
+
+#include <prlog.h>
+#include <signal.h>
+
+extern PRLogModuleInfo *PhGfxLog;

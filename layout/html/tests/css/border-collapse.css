@@ -1,0 +1,44 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+GOOD { border-collapse: inherit; } 
+GOOD { border-collapse: collapse; } 
+GOOD { border-collapse: separate; } 
+BAD { border-collapse: inherited; }
+BAD { border-collapse: collapse separate; }
+BAD { border-collapse: eclectus; }
+

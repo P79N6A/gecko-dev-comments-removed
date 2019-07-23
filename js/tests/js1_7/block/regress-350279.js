@@ -1,0 +1,67 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+var bug = 350279;
+var summary = 'Assertion failure: left->pn_type == TOK_RC';
+var actual = 'No Crash';
+var expect = 'No Crash';
+
+
+
+test();
+
+
+function test()
+{
+  enterFunc ('test');
+  printBugNumber (bug);
+  printStatus (summary);
+
+  expect = 'SyntaxError: invalid array comprehension left-hand side';
+  try
+  {
+    eval('let [2 for (x in [])] = 4;');
+  }
+  catch(ex)
+  {
+    actual = ex + '';
+  }
+
+  reportCompare(expect, actual, summary);
+
+  exitFunc ('test');
+}

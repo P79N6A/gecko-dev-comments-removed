@@ -1,0 +1,45 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#include "prlog.h"
+
+extern PRLogModuleInfo *gSysPrefLog;
+#define SYSPREF_LOG(args) PR_LOG(gSysPrefLog, PR_LOG_DEBUG, args)

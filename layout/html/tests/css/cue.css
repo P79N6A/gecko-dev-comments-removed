@@ -1,0 +1,47 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+GOOD { cue: inherit } 
+GOOD { cue: url("pop.au") }
+GOOD { cue: url("zip.aiff") url("bang.wav") }
+GOOD { cue: none url("bang.wav") }
+GOOD { cue: none inherit }
+GOOD { cue: url("zip.aiff") url("bang.wav") }
+BAD { cue: inherited }
+BAD { cue: url("zip.aiff") url("bang.wav") url("bang.wav") }
+

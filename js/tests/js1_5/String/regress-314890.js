@@ -1,0 +1,82 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+var bug = 314890;
+var summary = 'String == should short circuit for object identify';
+var actual = '';
+var expect = '';
+
+printBugNumber (bug);
+printStatus (summary);
+
+var s1 = 'x';
+var s2;
+var count = 0;
+
+var data = {X:[], Y:[]};
+for (var power = 0; power < 20; power++)
+{  
+  s1 = s1 + s1;
+  s2 = s1;
+
+  data.X.push(s1.length);
+  var start = new Date();
+  for (var count = 0; count < 1000; count++)
+  {
+    if (s1 == s2)
+    {
+      ++count;
+    }
+  }
+  var stop = new Date();
+  data.Y.push(stop - start);
+  gc();
+}
+
+var order = BigO(data);
+
+var msg = '';
+for (var p = 0; p < data.X.length; p++)
+{ 
+  msg += '(' + data.X[p] + ', ' + data.Y[p] + '); ';
+}
+printStatus(msg);
+printStatus('Order: ' + order);
+reportCompare(true, order < 1, 'BigO ' + order + ' < 1');
+
+reportCompare(expect, actual, summary);
+

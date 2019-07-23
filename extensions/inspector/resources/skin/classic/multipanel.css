@@ -1,0 +1,55 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 
+.multipanel-label-box {
+  border-bottom: 1px solid ThreeDShadow;
+  background-color: ThreeDFace;
+  color: ButtonText;
+}
+
+.multipanel-label-box-2 {
+  border: 1px outset ThreeDFace;
+  padding: 2px 4px;
+}
+
+.multipanel-title {
+  margin: 0px !important;
+}
+
+multipanel[disabled="true"] > .multipanel-label-box {
+  color: ThreeDShadow;
+}

@@ -1,0 +1,77 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+@import url("chrome://inspector/skin");
+
+#bxURLBar {
+  padding: 2px;
+}
+
+#imgURLBarIcon {
+  list-style-image: url("chrome://communicator/skin/bookmarks/location.gif");
+}
+
+#bxSearch {
+  height: 150px;
+}
+
+#splPanels {
+  width: 5px;
+}
+
+
+
+#btnSelecting {
+  list-style-image: url("chrome://inspector/skin/btnSelecting.gif");
+}
+
+#btnSelecting[checked="true"] {
+  list-style-image: url("chrome://inspector/skin/btnSelecting-act.gif");
+}
+
+#btnSelecting[disabled="true"] {
+  list-style-image: url("chrome://inspector/skin/btnSelecting-dis.gif");
+}
+
+#btnFind {
+  list-style-image: url("chrome://inspector/skin/btnFind.gif");
+}
+
+#btnFind[disabled="true"] {
+  list-style-image: url("chrome://inspector/skin/btnFind-dis.gif");
+}
+

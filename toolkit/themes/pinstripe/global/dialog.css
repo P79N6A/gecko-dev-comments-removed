@@ -1,0 +1,131 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+@namespace url("http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul");
+
+
+
+#commonDialog > image {
+	margin-right: 14px !important;
+}
+
+#commonDialog > .dialog-button-box {
+	margin-left: 80px;
+}
+
+dialog { 
+  -moz-appearance: dialog;
+  padding: 14px;
+}
+
+
+
+.dialog-button {
+  font: menu;
+}
+
+
+
+dialogheader {
+  margin: 0px 5px 5px 5px;
+  border: 2px solid;
+  -moz-border-top-colors: ThreeDShadow ThreeDDarkShadow;
+  -moz-border-right-colors: ThreeDHighlight ThreeDDarkShadow;
+  -moz-border-bottom-colors: ThreeDHighlight ThreeDDarkShadow;
+  -moz-border-left-colors: ThreeDShadow ThreeDDarkShadow;
+  padding: 5px 8px;
+  background-color: Highlight;
+  color: HighlightText;
+}
+
+.dialogheader-title {
+  margin: 0px !important;
+  font-size: larger;
+  font-weight: bold;
+  display: none;
+}
+
+
+
+.header-large {
+  -moz-box-orient: vertical;
+  margin: 0;
+  border-left: none;
+  border-right: none;
+  border-top: 1px solid;
+  -moz-border-top-colors: #FFFFFF;
+  -moz-border-bottom-colors: #9999FF #777777;
+  padding: 12px 5px 12px 25px;
+  background-color: #CCCCFF;
+  color: #000000;
+}
+
+.header-large > .dialogheader-title {
+  font: inherit;
+  font-weight: bold;
+}
+
+.header-large > .dialogheader-description {
+  margin-left: 12px !important;
+}
+
+.dialogheader-description {
+	font-weight: bold !important;
+	border: 1px solid blue;
+}
+
+.dialogheader-title {
+	font-weight: bold !important;
+	border: 1px solid red;
+}
+
+#loginContainer {
+	padding-top: 10px;
+}
+
+#findDialog, #findDialog > menu, #findDialog > groupbox {
+	font: menu !important;
+}
+
+#dialog.caseSensitive {
+	margin-top: 8px;
+}

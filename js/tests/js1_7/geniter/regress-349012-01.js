@@ -1,0 +1,82 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+var bug = 349012;
+var summary = 'closing a generator fails to report error if yield during close is ignored';
+var actual = '';
+var expect = '';
+
+
+
+test();
+
+
+if (typeof quit != 'undefined')
+{
+  quit(0);
+}
+
+function test()
+{
+  enterFunc ('test');
+  printBugNumber (bug);
+  printStatus (summary);
+
+  expect = "Inner finally,Outer finally";
+
+  function gen()
+  {
+    try {
+      try {
+        yield 1;
+      } finally {
+        actual += "Inner finally";
+        yield 2;
+      }
+    } finally {
+      actual += ",Outer finally";
+    }
+  }
+
+  var iter = gen();
+  iter.next();
+  iter = null;
+  gc();
+
+  reportCompare(expect, actual, summary);
+  exitFunc ('test');
+}

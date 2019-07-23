@@ -1,0 +1,89 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+START("13.4.4.12 - XML Descendants");
+
+var bug = 289117;
+var summary = '13.4.4.12 - XML Descendants';
+var actual = '';
+var expect = '';
+
+printBugNumber (bug);
+printStatus (summary);
+
+var xhtmlMarkup = <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en"><head><title>XHTML example</title></head><body><p>Kibology for all</p></body></html>;
+
+expect =  'element:http://www.w3.org/1999/xhtml::head;' + 
+'element:http://www.w3.org/1999/xhtml::title;' + 
+'text:XHTML example;' + 
+'element:http://www.w3.org/1999/xhtml::body;' + 
+'element:http://www.w3.org/1999/xhtml::p;' + 
+'text:Kibology for all;';
+
+actual = '';
+
+for each (var descendant in xhtmlMarkup..*) {
+    actual += descendant.nodeKind() + ':';
+    var name = descendant.name();
+    if (name) {
+        actual += name;
+    }
+    else {
+        actual += descendant.toString();
+    }
+    actual += ';'
+}
+
+TEST(1, expect, actual);
+
+actual = '';
+
+for each (var descendant in xhtmlMarkup.descendants()) {
+    actual += descendant.nodeKind() + ':';
+    var name = descendant.name();
+    if (name) {
+        actual += name;
+    }
+    else {
+        actual += descendant.toString();
+    }
+    actual += ';'
+}
+
+TEST(2, expect, actual);
+
+END();

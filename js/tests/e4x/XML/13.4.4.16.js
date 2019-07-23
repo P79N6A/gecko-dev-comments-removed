@@ -1,0 +1,76 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+START("13.4.4.16 - XML hasSimpleContent()");
+
+TEST(1, true, XML.prototype.hasOwnProperty("hasSimpleContent"));
+    
+x = 
+<alpha attr1="value1">
+    <bravo>one</bravo>
+    <charlie>
+        two
+        three
+        <echo>four</echo>
+    </charlie>
+    <delta />
+    <foxtrot attr2="value2">five</foxtrot>
+    <golf attr3="value3" />
+    <hotel>
+        six
+        seven
+    </hotel>
+    <india><juliet /></india>
+</alpha>;
+
+TEST(2, false, x.hasSimpleContent());
+TEST(3, true, x.bravo.hasSimpleContent());
+TEST(4, false, x.charlie.hasSimpleContent());
+TEST(5, true, x.delta.hasSimpleContent());
+TEST(6, true, x.foxtrot.hasSimpleContent());
+TEST(7, true, x.golf.hasSimpleContent());
+TEST(8, true, x.hotel.hasSimpleContent());
+TEST(9, true, x.@attr1.hasSimpleContent());
+TEST(10, true, x.bravo.child(0).hasSimpleContent());
+TEST(11, false, x.india.hasSimpleContent());
+
+END();

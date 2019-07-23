@@ -1,0 +1,536 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#include "nsNetUtil.h"
+#include "nsIURI.h"
+#include "nsIIOService.h"
+#include "nsIOutputStream.h"
+#include "nsIComponentManager.h"
+#include "nsILocalStore.h"
+#include "nsIRDFDataSource.h"
+#include "nsIRDFRemoteDataSource.h"
+#include "nsIRDFService.h"
+#include "nsIServiceManager.h"
+#include "nsRDFCID.h"
+#include "nsXPIDLString.h"
+#include "plstr.h"
+#include "rdf.h"
+#include "nsCOMPtr.h"
+#include "nsWeakPtr.h"
+#include "nsAppDirectoryServiceDefs.h"
+#include "nsIObserver.h"
+#include "nsIObserverService.h"
+#include "nsWeakReference.h"
+#include "nsCRTGlue.h"
+#include "nsCRT.h"
+#include "nsEnumeratorUtils.h"
+
+
+
+class LocalStoreImpl : public nsILocalStore,
+                       public nsIRDFDataSource,
+                       public nsIRDFRemoteDataSource,
+                       public nsIObserver,
+                       public nsSupportsWeakReference
+{
+protected:
+    nsCOMPtr<nsIRDFDataSource> mInner;
+
+    LocalStoreImpl();
+    virtual ~LocalStoreImpl();
+    nsresult Init();
+    nsresult LoadData();
+
+    friend NS_IMETHODIMP
+    NS_NewLocalStore(nsISupports* aOuter, REFNSIID aIID, void** aResult);
+
+    nsCOMPtr<nsISupportsArray> mObservers;
+    nsCOMPtr<nsIRDFService>    mRDFService;
+
+public:
+    
+    NS_DECL_ISUPPORTS
+
+    
+
+    
+    
+    NS_IMETHOD GetURI(char* *aURI);
+
+    NS_IMETHOD GetSource(nsIRDFResource* aProperty,
+                         nsIRDFNode* aTarget,
+                         PRBool aTruthValue,
+                         nsIRDFResource** aSource) {
+        return mInner->GetSource(aProperty, aTarget, aTruthValue, aSource);
+    }
+
+    NS_IMETHOD GetSources(nsIRDFResource* aProperty,
+                          nsIRDFNode* aTarget,
+                          PRBool aTruthValue,
+                          nsISimpleEnumerator** aSources) {
+        return mInner->GetSources(aProperty, aTarget, aTruthValue, aSources);
+    }
+
+    NS_IMETHOD GetTarget(nsIRDFResource* aSource,
+                         nsIRDFResource* aProperty,
+                         PRBool aTruthValue,
+                         nsIRDFNode** aTarget) {
+        return mInner->GetTarget(aSource, aProperty, aTruthValue, aTarget);
+    }
+
+    NS_IMETHOD GetTargets(nsIRDFResource* aSource,
+                          nsIRDFResource* aProperty,
+                          PRBool aTruthValue,
+                          nsISimpleEnumerator** aTargets) {
+        return mInner->GetTargets(aSource, aProperty, aTruthValue, aTargets);
+    }
+
+    NS_IMETHOD Assert(nsIRDFResource* aSource, 
+                      nsIRDFResource* aProperty, 
+                      nsIRDFNode* aTarget,
+                      PRBool aTruthValue) {
+        return mInner->Assert(aSource, aProperty, aTarget, aTruthValue);
+    }
+
+    NS_IMETHOD Unassert(nsIRDFResource* aSource,
+                        nsIRDFResource* aProperty,
+                        nsIRDFNode* aTarget) {
+        return mInner->Unassert(aSource, aProperty, aTarget);
+    }
+
+    NS_IMETHOD Change(nsIRDFResource* aSource,
+                      nsIRDFResource* aProperty,
+                      nsIRDFNode* aOldTarget,
+                      nsIRDFNode* aNewTarget) {
+        return mInner->Change(aSource, aProperty, aOldTarget, aNewTarget);
+    }
+
+    NS_IMETHOD Move(nsIRDFResource* aOldSource,
+                    nsIRDFResource* aNewSource,
+                    nsIRDFResource* aProperty,
+                    nsIRDFNode* aTarget) {
+        return mInner->Move(aOldSource, aNewSource, aProperty, aTarget);
+    }
+
+    NS_IMETHOD HasAssertion(nsIRDFResource* aSource,
+                            nsIRDFResource* aProperty,
+                            nsIRDFNode* aTarget,
+                            PRBool aTruthValue,
+                            PRBool* hasAssertion) {
+        return mInner->HasAssertion(aSource, aProperty, aTarget, aTruthValue, hasAssertion);
+    }
+
+    NS_IMETHOD AddObserver(nsIRDFObserver* aObserver) {
+        
+        
+        if (! mObservers) {
+            nsresult rv;
+            rv = NS_NewISupportsArray(getter_AddRefs(mObservers));
+            if (NS_FAILED(rv)) return rv;
+        }
+
+        mObservers->AppendElement(aObserver);
+        return NS_OK;
+    }
+
+    NS_IMETHOD RemoveObserver(nsIRDFObserver* aObserver) {
+        if (mObservers) {
+            mObservers->RemoveElement(aObserver);
+        }
+        return NS_OK;
+    }
+
+    NS_IMETHOD HasArcIn(nsIRDFNode *aNode, nsIRDFResource *aArc, PRBool *_retval) {
+        return mInner->HasArcIn(aNode, aArc, _retval);
+    }
+
+    NS_IMETHOD HasArcOut(nsIRDFResource *aSource, nsIRDFResource *aArc, PRBool *_retval) {
+        return mInner->HasArcOut(aSource, aArc, _retval);
+    }
+
+    NS_IMETHOD ArcLabelsIn(nsIRDFNode* aNode,
+                           nsISimpleEnumerator** aLabels) {
+        return mInner->ArcLabelsIn(aNode, aLabels);
+    }
+
+    NS_IMETHOD ArcLabelsOut(nsIRDFResource* aSource,
+                            nsISimpleEnumerator** aLabels) {
+        return mInner->ArcLabelsOut(aSource, aLabels);
+    }
+
+    NS_IMETHOD GetAllResources(nsISimpleEnumerator** aResult) {
+        return mInner->GetAllResources(aResult);
+    }
+
+    NS_IMETHOD GetAllCmds(nsIRDFResource* aSource,
+                              nsISimpleEnumerator** aCommands);
+
+    NS_IMETHOD IsCommandEnabled(nsISupportsArray* aSources,
+                                nsIRDFResource*   aCommand,
+                                nsISupportsArray* aArguments,
+                                PRBool* aResult);
+
+    NS_IMETHOD DoCommand(nsISupportsArray* aSources,
+                         nsIRDFResource*   aCommand,
+                         nsISupportsArray* aArguments);
+
+    NS_IMETHOD BeginUpdateBatch() {
+        return mInner->BeginUpdateBatch();
+    }
+                                                                                
+    NS_IMETHOD EndUpdateBatch() {
+        return mInner->EndUpdateBatch();
+    }
+
+    NS_IMETHOD GetLoaded(PRBool* _result);
+	NS_IMETHOD Init(const char *uri);
+	NS_IMETHOD Flush();
+	NS_IMETHOD FlushTo(const char *aURI);
+	NS_IMETHOD Refresh(PRBool sync);
+	
+	
+	NS_DECL_NSIOBSERVER
+};
+
+
+
+
+LocalStoreImpl::LocalStoreImpl(void)
+{
+}
+
+LocalStoreImpl::~LocalStoreImpl(void)
+{
+    if (mRDFService)
+        mRDFService->UnregisterDataSource(this);
+}
+
+
+NS_IMETHODIMP
+NS_NewLocalStore(nsISupports* aOuter, REFNSIID aIID, void** aResult)
+{
+    NS_PRECONDITION(aOuter == nsnull, "no aggregation");
+    if (aOuter)
+        return NS_ERROR_NO_AGGREGATION;
+
+    NS_PRECONDITION(aResult != nsnull, "null ptr");
+    if (! aResult)
+        return NS_ERROR_NULL_POINTER;
+
+    LocalStoreImpl* impl = new LocalStoreImpl();
+    if (! impl)
+        return NS_ERROR_OUT_OF_MEMORY;
+
+    NS_ADDREF(impl);
+
+    nsresult rv;
+    rv = impl->Init();
+    if (NS_SUCCEEDED(rv)) {
+        
+        rv = impl->QueryInterface(aIID, aResult);
+    }
+
+    NS_RELEASE(impl);
+    return rv;
+}
+
+
+
+
+NS_IMPL_ADDREF(LocalStoreImpl)
+NS_IMPL_RELEASE(LocalStoreImpl)
+
+NS_IMETHODIMP
+LocalStoreImpl::QueryInterface(REFNSIID aIID, void** aResult)
+{
+static NS_DEFINE_IID(kISupportsIID, NS_ISUPPORTS_IID);
+
+    NS_PRECONDITION(aResult != nsnull, "null ptr");
+    if (! aResult)
+        return NS_ERROR_NULL_POINTER;
+
+    if (aIID.Equals(kISupportsIID) ||
+        aIID.Equals(NS_GET_IID(nsILocalStore))) {
+        *aResult = NS_STATIC_CAST(nsILocalStore*, this);
+    }
+    else if (aIID.Equals(NS_GET_IID(nsIRDFDataSource))) {
+        *aResult = NS_STATIC_CAST(nsIRDFDataSource *, this);
+    }
+    else if (aIID.Equals(NS_GET_IID(nsIRDFRemoteDataSource))) {
+        *aResult = NS_STATIC_CAST(nsIRDFRemoteDataSource *, this);
+    }
+    else if (aIID.Equals(NS_GET_IID(nsIObserver))) {
+        *aResult = NS_STATIC_CAST(nsIObserver *, this);
+    }
+    else if (aIID.Equals(NS_GET_IID(nsISupportsWeakReference))) {
+        *aResult = NS_STATIC_CAST(nsISupportsWeakReference *, this);
+    }
+    else {
+        *aResult = nsnull;
+        return NS_NOINTERFACE;
+    }
+
+    NS_ADDREF(this);
+    return NS_OK;
+}
+
+
+
+
+
+
+
+
+NS_IMETHODIMP
+LocalStoreImpl::GetLoaded(PRBool* _result)
+{
+	nsCOMPtr<nsIRDFRemoteDataSource> remote = do_QueryInterface(mInner);
+    NS_ASSERTION(remote != nsnull, "not an nsIRDFRemoteDataSource");
+	if (! remote)
+        return NS_ERROR_UNEXPECTED;
+
+    return remote->GetLoaded(_result);
+}
+
+
+NS_IMETHODIMP
+LocalStoreImpl::Init(const char *uri)
+{
+	return(NS_OK);
+}
+
+NS_IMETHODIMP
+LocalStoreImpl::Flush()
+{
+	nsCOMPtr<nsIRDFRemoteDataSource> remote = do_QueryInterface(mInner);
+    NS_ASSERTION(remote != nsnull, "not an nsIRDFRemoteDataSource");
+	if (! remote)
+        return NS_ERROR_UNEXPECTED;
+
+    return remote->Flush();
+}
+
+NS_IMETHODIMP
+LocalStoreImpl::FlushTo(const char *aURI)
+{
+  
+  return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+NS_IMETHODIMP
+LocalStoreImpl::Refresh(PRBool sync)
+{
+	nsCOMPtr<nsIRDFRemoteDataSource> remote = do_QueryInterface(mInner);
+    NS_ASSERTION(remote != nsnull, "not an nsIRDFRemoteDataSource");
+	if (! remote)
+        return NS_ERROR_UNEXPECTED;
+
+    return remote->Refresh(sync);
+}
+
+nsresult
+LocalStoreImpl::Init()
+{
+    nsresult rv;
+
+    rv = LoadData();
+    if (NS_FAILED(rv)) return rv;
+
+    
+    mRDFService = do_GetService(NS_RDF_CONTRACTID "/rdf-service;1", &rv);
+    if (NS_FAILED(rv)) return rv;
+
+    mRDFService->RegisterDataSource(this, PR_FALSE);
+
+    
+    nsCOMPtr<nsIObserverService> obs =
+        do_GetService("@mozilla.org/observer-service;1");
+
+    if (obs) {
+        obs->AddObserver(this, "profile-before-change", PR_TRUE);
+        obs->AddObserver(this, "profile-do-change", PR_TRUE);
+    }
+
+    return NS_OK;
+}
+
+nsresult
+LocalStoreImpl::LoadData()
+{
+    nsresult rv;
+
+    
+    
+
+    nsCOMPtr<nsIFile> aFile;
+    rv = NS_GetSpecialDirectory(NS_APP_LOCALSTORE_50_FILE, getter_AddRefs(aFile));
+    if (NS_FAILED(rv)) return rv;
+
+    PRBool fileExistsFlag = PR_FALSE;
+    (void)aFile->Exists(&fileExistsFlag);
+    if (!fileExistsFlag) {
+        
+        (void)aFile->Create(nsIFile::NORMAL_FILE_TYPE, 0666);
+
+        nsCOMPtr<nsIOutputStream> outStream;
+        rv = NS_NewLocalFileOutputStream(getter_AddRefs(outStream), aFile);
+        if (NS_FAILED(rv))
+            return rv;
+
+        const char defaultRDF[] = 
+            "<?xml version=\"1.0\"?>\n" \
+            "<RDF:RDF xmlns:RDF=\"" RDF_NAMESPACE_URI "\"\n" \
+            "         xmlns:NC=\""  NC_NAMESPACE_URI "\">\n" \
+            "  <!-- Empty -->\n" \
+            "</RDF:RDF>\n";
+
+        PRUint32 count;
+        rv = outStream->Write(defaultRDF, sizeof(defaultRDF)-1, &count);
+        if (NS_FAILED(rv))
+            return rv;
+
+        if (count != sizeof(defaultRDF)-1)
+            return NS_ERROR_UNEXPECTED;
+
+        
+        
+        
+        fileExistsFlag = PR_FALSE;
+        (void)aFile->Exists(&fileExistsFlag);
+        if (!fileExistsFlag)
+            return NS_ERROR_UNEXPECTED;
+    }
+
+    mInner = do_CreateInstance(NS_RDF_DATASOURCE_CONTRACTID_PREFIX "xml-datasource", &rv);
+    if (NS_FAILED(rv)) return rv;
+
+    nsCOMPtr<nsIRDFRemoteDataSource> remote = do_QueryInterface(mInner, &rv);
+    if (NS_FAILED(rv)) return rv;
+
+    nsCOMPtr<nsIURI> aURI;
+    rv = NS_NewFileURI(getter_AddRefs(aURI), aFile);
+    if (NS_FAILED(rv)) return rv;
+
+    nsCAutoString spec;
+    rv = aURI->GetSpec(spec);
+    if (NS_FAILED(rv)) return rv;
+
+    rv = remote->Init(spec.get());
+    if (NS_FAILED(rv)) return rv;
+
+    
+    return remote->Refresh(PR_TRUE);
+}
+
+
+NS_IMETHODIMP
+LocalStoreImpl::GetURI(char* *aURI)
+{
+    NS_PRECONDITION(aURI != nsnull, "null ptr");
+    if (! aURI)
+        return NS_ERROR_NULL_POINTER;
+
+    *aURI = NS_strdup("rdf:local-store");
+    if (! *aURI)
+        return NS_ERROR_OUT_OF_MEMORY;
+
+    return NS_OK;
+}
+
+
+NS_IMETHODIMP
+LocalStoreImpl::GetAllCmds(nsIRDFResource* aSource,
+                               nsISimpleEnumerator** aCommands)
+{
+	return(NS_NewEmptyEnumerator(aCommands));
+}
+
+NS_IMETHODIMP
+LocalStoreImpl::IsCommandEnabled(nsISupportsArray* aSources,
+                                 nsIRDFResource*   aCommand,
+                                 nsISupportsArray* aArguments,
+                                 PRBool* aResult)
+{
+    *aResult = PR_TRUE;
+    return NS_OK;
+}
+
+NS_IMETHODIMP
+LocalStoreImpl::DoCommand(nsISupportsArray* aSources,
+                          nsIRDFResource*   aCommand,
+                          nsISupportsArray* aArguments)
+{
+    
+    return NS_OK;
+}
+
+NS_IMETHODIMP
+LocalStoreImpl::Observe(nsISupports *aSubject, const char *aTopic, const PRUnichar *someData)
+{
+    nsresult rv = NS_OK;
+
+    if (!nsCRT::strcmp(aTopic, "profile-before-change")) {
+        
+        if (mInner) {
+            nsCOMPtr<nsIRDFRemoteDataSource> remote = do_QueryInterface(mInner);
+            if (remote)
+                remote->Flush();
+        }
+
+        
+        
+        mInner = do_CreateInstance(NS_RDF_DATASOURCE_CONTRACTID_PREFIX "in-memory-datasource");
+
+        if (!nsCRT::strcmp(NS_ConvertUTF16toUTF8(someData).get(), "shutdown-cleanse")) {
+            nsCOMPtr<nsIFile> aFile;
+            rv = NS_GetSpecialDirectory(NS_APP_LOCALSTORE_50_FILE, getter_AddRefs(aFile));
+            if (NS_SUCCEEDED(rv))
+                rv = aFile->Remove(PR_FALSE);
+        }
+    }
+    else if (!nsCRT::strcmp(aTopic, "profile-do-change")) {
+        rv = LoadData();
+    }
+    return rv;
+}

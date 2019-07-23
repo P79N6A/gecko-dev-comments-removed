@@ -1,0 +1,42 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+@import url("chrome://inspector/skin/titledSplitter.css");
+
+.titled-splitter {
+  -moz-binding: url("titledSplitter.xml#titledSplitter") !important;
+}

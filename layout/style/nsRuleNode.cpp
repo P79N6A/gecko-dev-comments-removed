@@ -1,0 +1,4554 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#include "nsRuleNode.h"
+#include "nscore.h"
+#include "nsIServiceManager.h"
+#include "nsIDeviceContext.h"
+#include "nsILookAndFeel.h"
+#include "nsIPresShell.h"
+#include "nsIFontMetrics.h"
+#include "nsIDocShellTreeItem.h"
+#include "nsStyleUtil.h"
+#include "nsCSSPseudoElements.h"
+#include "nsThemeConstants.h"
+#include "nsITheme.h"
+#include "pldhash.h"
+#include "nsStyleContext.h"
+#include "nsStyleSet.h"
+#include "nsSize.h"
+#include "imgIRequest.h"
+#include "nsRuleData.h"
+#include "nsILanguageAtomService.h"
+#include "nsIStyleRule.h"
+
+
+
+
+struct nsRuleList {
+  nsRuleNode* mRuleNode;
+  nsRuleList* mNext;
+  
+public:
+  nsRuleList(nsRuleNode* aNode, nsRuleList* aNext= nsnull) {
+    MOZ_COUNT_CTOR(nsRuleList);
+    mRuleNode = aNode;
+    mNext = aNext;
+  }
+ 
+  ~nsRuleList() {
+    MOZ_COUNT_DTOR(nsRuleList);
+    mRuleNode->Destroy();
+    if (mNext)
+      mNext->Destroy(mNext->mRuleNode->mPresContext);
+  }
+
+  void* operator new(size_t sz, nsPresContext* aContext) CPP_THROW_NEW {
+    return aContext->AllocateFromShell(sz);
+  };
+  void operator delete(void* aPtr) {} 
+                                      
+
+  void Destroy(nsPresContext* aContext) {
+    this->~nsRuleList();
+    aContext->FreeToShell(sizeof(nsRuleList), this);
+  }
+
+  
+  nsRuleList* DestroySelf(nsPresContext* aContext) {
+    nsRuleList *next = mNext;
+    MOZ_COUNT_DTOR(nsRuleList); 
+    aContext->FreeToShell(sizeof(nsRuleList), this);
+    return next;
+  }
+};
+
+
+
+
+
+struct ChildrenHashEntry : public PLDHashEntryHdr {
+  
+  nsRuleNode *mRuleNode;
+};
+
+PR_STATIC_CALLBACK(const void *)
+ChildrenHashGetKey(PLDHashTable *table, PLDHashEntryHdr *hdr)
+{
+  ChildrenHashEntry *entry = NS_STATIC_CAST(ChildrenHashEntry*, hdr);
+  return entry->mRuleNode->GetRule();
+}
+
+PR_STATIC_CALLBACK(PRBool)
+ChildrenHashMatchEntry(PLDHashTable *table, const PLDHashEntryHdr *hdr,
+                         const void *key)
+{
+  const ChildrenHashEntry *entry =
+    NS_STATIC_CAST(const ChildrenHashEntry*, hdr);
+  return entry->mRuleNode->GetRule() == key;
+}
+
+static PLDHashTableOps ChildrenHashOps = {
+  
+  
+  
+  
+  PL_DHashAllocTable,
+  PL_DHashFreeTable,
+  ChildrenHashGetKey,
+  PL_DHashVoidPtrKeyStub,
+  ChildrenHashMatchEntry,
+  PL_DHashMoveEntryStub,
+  PL_DHashClearEntryStub,
+  PL_DHashFinalizeStub,
+  NULL
+};
+
+
+
+
+
+
+static void EnsureBlockDisplay(PRUint8& display)
+{
+  
+  switch (display) {
+  case NS_STYLE_DISPLAY_NONE :
+    
+  case NS_STYLE_DISPLAY_TABLE :
+  case NS_STYLE_DISPLAY_BLOCK :
+  case NS_STYLE_DISPLAY_LIST_ITEM :
+    
+    
+    
+    break;
+
+  case NS_STYLE_DISPLAY_INLINE_TABLE :
+    
+    display = NS_STYLE_DISPLAY_TABLE;
+    break;
+
+  default :
+    
+    display = NS_STYLE_DISPLAY_BLOCK;
+  }
+}
+
+
+nsString& Unquote(nsString& aString)
+{
+  PRUnichar start = aString.First();
+  PRUnichar end = aString.Last();
+
+  if ((start == end) && 
+      ((start == PRUnichar('\"')) || 
+       (start == PRUnichar('\'')))) {
+    PRInt32 length = aString.Length();
+    aString.Truncate(length - 1);
+    aString.Cut(0, 1);
+  }
+  return aString;
+}
+
+nscoord CalcLength(const nsCSSValue& aValue,
+                   const nsFont* aFont, 
+                   nsStyleContext* aStyleContext,
+                   nsPresContext* aPresContext,
+                   PRBool& aInherited)
+{
+  NS_ASSERTION(aValue.IsLengthUnit(), "not a length unit");
+  if (aValue.IsFixedLengthUnit()) {
+    return aPresContext->TwipsToAppUnits(aValue.GetLengthTwips());
+  }
+  nsCSSUnit unit = aValue.GetUnit();
+  if (unit == eCSSUnit_Pixel) {
+    return nsPresContext::CSSPixelsToAppUnits(aValue.GetFloatValue());
+  }
+  
+  aInherited = PR_TRUE;
+  const nsFont* font;
+  if (aStyleContext) {
+    font = &aStyleContext->GetStyleFont()->mFont;
+  } else {
+    font = aFont;
+  }
+  switch (unit) {
+    case eCSSUnit_EM:
+    case eCSSUnit_Char: {
+      return NSToCoordRound(aValue.GetFloatValue() * (float)font->size);
+      
+    }
+    case eCSSUnit_EN: {
+      return NSToCoordRound((aValue.GetFloatValue() * (float)font->size) / 2.0f);
+    }
+    case eCSSUnit_XHeight: {
+      nsCOMPtr<nsIFontMetrics> fm = aPresContext->GetMetricsFor(*font);
+      nscoord xHeight;
+      fm->GetXHeight(xHeight);
+      return NSToCoordRound(aValue.GetFloatValue() * (float)xHeight);
+    }
+    case eCSSUnit_CapHeight: {
+      NS_NOTYETIMPLEMENTED("cap height unit");
+      nscoord capHeight = ((font->size / 3) * 2); 
+      return NSToCoordRound(aValue.GetFloatValue() * (float)capHeight);
+    }
+    default:
+      NS_NOTREACHED("unexpected unit");
+      break;
+  }
+  return 0;
+}
+
+#define SETCOORD_NORMAL       0x01   // N
+#define SETCOORD_AUTO         0x02   // A
+#define SETCOORD_INHERIT      0x04   // H
+#define SETCOORD_PERCENT      0x08   // P
+#define SETCOORD_FACTOR       0x10   // F
+#define SETCOORD_LENGTH       0x20   // L
+#define SETCOORD_INTEGER      0x40   // I
+#define SETCOORD_ENUMERATED   0x80   // E
+
+#define SETCOORD_LP     (SETCOORD_LENGTH | SETCOORD_PERCENT)
+#define SETCOORD_LH     (SETCOORD_LENGTH | SETCOORD_INHERIT)
+#define SETCOORD_AH     (SETCOORD_AUTO | SETCOORD_INHERIT)
+#define SETCOORD_LAH    (SETCOORD_AUTO | SETCOORD_LENGTH | SETCOORD_INHERIT)
+#define SETCOORD_LPH    (SETCOORD_LP | SETCOORD_INHERIT)
+#define SETCOORD_LPAH   (SETCOORD_LP | SETCOORD_AH)
+#define SETCOORD_LPEH   (SETCOORD_LP | SETCOORD_ENUMERATED | SETCOORD_INHERIT)
+#define SETCOORD_LE     (SETCOORD_LENGTH | SETCOORD_ENUMERATED)
+#define SETCOORD_LEH    (SETCOORD_LE | SETCOORD_INHERIT)
+#define SETCOORD_IA     (SETCOORD_INTEGER | SETCOORD_AUTO)
+#define SETCOORD_LAE    (SETCOORD_LENGTH | SETCOORD_AUTO | SETCOORD_ENUMERATED)
+
+
+static PRBool SetCoord(const nsCSSValue& aValue, nsStyleCoord& aCoord, 
+                       const nsStyleCoord& aParentCoord,
+                       PRInt32 aMask, nsStyleContext* aStyleContext,
+                       nsPresContext* aPresContext, PRBool& aInherited)
+{
+  PRBool  result = PR_TRUE;
+  if (aValue.GetUnit() == eCSSUnit_Null) {
+    result = PR_FALSE;
+  }
+  else if (((aMask & SETCOORD_LENGTH) != 0) && 
+           (aValue.GetUnit() == eCSSUnit_Char)) {
+    aCoord.SetIntValue(NSToIntFloor(aValue.GetFloatValue()), eStyleUnit_Chars);
+  } 
+  else if (((aMask & SETCOORD_LENGTH) != 0) && 
+           aValue.IsLengthUnit()) {
+    aCoord.SetCoordValue(CalcLength(aValue, nsnull, aStyleContext, aPresContext, aInherited));
+  } 
+  else if (((aMask & SETCOORD_PERCENT) != 0) && 
+           (aValue.GetUnit() == eCSSUnit_Percent)) {
+    aCoord.SetPercentValue(aValue.GetPercentValue());
+  } 
+  else if (((aMask & SETCOORD_INTEGER) != 0) && 
+           (aValue.GetUnit() == eCSSUnit_Integer)) {
+    aCoord.SetIntValue(aValue.GetIntValue(), eStyleUnit_Integer);
+  } 
+  else if (((aMask & SETCOORD_ENUMERATED) != 0) && 
+           (aValue.GetUnit() == eCSSUnit_Enumerated)) {
+    aCoord.SetIntValue(aValue.GetIntValue(), eStyleUnit_Enumerated);
+  } 
+  else if (((aMask & SETCOORD_AUTO) != 0) && 
+           (aValue.GetUnit() == eCSSUnit_Auto)) {
+    aCoord.SetAutoValue();
+  } 
+  else if (((aMask & SETCOORD_INHERIT) != 0) && 
+           (aValue.GetUnit() == eCSSUnit_Inherit)) {
+    aCoord = aParentCoord;  
+    aInherited = PR_TRUE;
+  }
+  else if (((aMask & SETCOORD_NORMAL) != 0) && 
+           (aValue.GetUnit() == eCSSUnit_Normal)) {
+    aCoord.SetNormalValue();
+  }
+  else if (((aMask & SETCOORD_FACTOR) != 0) && 
+           (aValue.GetUnit() == eCSSUnit_Number)) {
+    aCoord.SetFactorValue(aValue.GetFloatValue());
+  }
+  else {
+    result = PR_FALSE;  
+  }
+  return result;
+}
+
+static PRBool SetColor(const nsCSSValue& aValue, const nscolor aParentColor, 
+                       nsPresContext* aPresContext, nsStyleContext *aContext,
+                       nscolor& aResult, PRBool& aInherited)
+{
+  PRBool  result = PR_FALSE;
+  nsCSSUnit unit = aValue.GetUnit();
+
+  if (eCSSUnit_Color == unit) {
+    aResult = aValue.GetColorValue();
+    result = PR_TRUE;
+  }
+  else if (eCSSUnit_String == unit) {
+    nsAutoString  value;
+    aValue.GetStringValue(value);
+    nscolor rgba;
+    if (NS_ColorNameToRGB(value, &rgba)) {
+      aResult = rgba;
+      result = PR_TRUE;
+    }
+  }
+  else if (eCSSUnit_Integer == unit) {
+    PRInt32 intValue = aValue.GetIntValue();
+    if (0 <= intValue) {
+      nsILookAndFeel* look = aPresContext->LookAndFeel();
+      nsILookAndFeel::nsColorID colorID = (nsILookAndFeel::nsColorID) intValue;
+      if (NS_SUCCEEDED(look->GetColor(colorID, aResult))) {
+        result = PR_TRUE;
+      }
+    }
+    else {
+      switch (intValue) {
+        case NS_COLOR_MOZ_HYPERLINKTEXT:
+          aResult = aPresContext->DefaultLinkColor();
+          break;
+        case NS_COLOR_MOZ_VISITEDHYPERLINKTEXT:
+          aResult = aPresContext->DefaultVisitedLinkColor();
+          break;
+        case NS_COLOR_MOZ_ACTIVEHYPERLINKTEXT:
+          aResult = aPresContext->DefaultActiveLinkColor();
+          break;
+        case NS_COLOR_CURRENTCOLOR:
+          
+          
+          aInherited = PR_TRUE;
+          aResult = aContext->GetStyleColor()->mColor;
+          break;
+        default:
+          NS_NOTREACHED("Should never have an unknown negative colorID.");
+          break;
+      }
+      result = PR_TRUE;
+    }
+  }
+  else if (eCSSUnit_Inherit == unit) {
+    aResult = aParentColor;
+    result = PR_TRUE;
+    aInherited = PR_TRUE;
+  }
+  return result;
+}
+
+
+
+void* 
+nsRuleNode::operator new(size_t sz, nsPresContext* aPresContext) CPP_THROW_NEW
+{
+  
+  return aPresContext->AllocateFromShell(sz);
+}
+
+
+
+void 
+nsRuleNode::Destroy()
+{
+  
+  this->~nsRuleNode();
+  
+  
+  
+  mPresContext->FreeToShell(sizeof(nsRuleNode), this);
+}
+
+nsRuleNode* nsRuleNode::CreateRootNode(nsPresContext* aPresContext)
+{
+  return new (aPresContext) nsRuleNode(aPresContext, nsnull, nsnull);
+}
+
+nsILanguageAtomService* nsRuleNode::gLangService = nsnull;
+
+nsRuleNode::nsRuleNode(nsPresContext* aContext, nsIStyleRule* aRule, nsRuleNode* aParent)
+  : mPresContext(aContext),
+    mParent(aParent),
+    mRule(aRule),
+    mChildrenTaggedPtr(nsnull),
+    mDependentBits(0),
+    mNoneBits(0)
+{
+  MOZ_COUNT_CTOR(nsRuleNode);
+  NS_IF_ADDREF(mRule);
+}
+
+PR_STATIC_CALLBACK(PLDHashOperator)
+DeleteRuleNodeChildren(PLDHashTable *table, PLDHashEntryHdr *hdr,
+                       PRUint32 number, void *arg)
+{
+  ChildrenHashEntry *entry = NS_STATIC_CAST(ChildrenHashEntry*, hdr);
+  entry->mRuleNode->Destroy();
+  return PL_DHASH_NEXT;
+}
+
+nsRuleNode::~nsRuleNode()
+{
+  MOZ_COUNT_DTOR(nsRuleNode);
+  if (mStyleData.mResetData || mStyleData.mInheritedData)
+    mStyleData.Destroy(0, mPresContext);
+  if (ChildrenAreHashed()) {
+    PLDHashTable *children = ChildrenHash();
+    PL_DHashTableEnumerate(children, DeleteRuleNodeChildren, nsnull);
+    PL_DHashTableDestroy(children);
+  } else if (HaveChildren())
+    ChildrenList()->Destroy(mPresContext);
+  NS_IF_RELEASE(mRule);
+}
+
+nsresult 
+nsRuleNode::Transition(nsIStyleRule* aRule, nsRuleNode** aResult)
+{
+  nsRuleNode* next = nsnull;
+
+  if (HaveChildren() && !ChildrenAreHashed()) {
+    PRInt32 numKids = 0;
+    nsRuleList* curr = ChildrenList();
+    while (curr && curr->mRuleNode->mRule != aRule) {
+      curr = curr->mNext;
+      ++numKids;
+    }
+    if (curr)
+      next = curr->mRuleNode;
+    else if (numKids >= kMaxChildrenInList)
+      ConvertChildrenToHash();
+  }
+
+  if (ChildrenAreHashed()) {
+    ChildrenHashEntry *entry = NS_STATIC_CAST(ChildrenHashEntry*,
+        PL_DHashTableOperate(ChildrenHash(), aRule, PL_DHASH_ADD));
+    if (!entry) {
+      *aResult = nsnull;
+      return NS_ERROR_OUT_OF_MEMORY;
+    }
+    if (entry->mRuleNode)
+      next = entry->mRuleNode;
+    else {
+      next = entry->mRuleNode =
+          new (mPresContext) nsRuleNode(mPresContext, aRule, this);
+      if (!next) {
+        PL_DHashTableRawRemove(ChildrenHash(), entry);
+        *aResult = nsnull;
+        return NS_ERROR_OUT_OF_MEMORY;
+      }
+    }
+  } else if (!next) {
+    
+    next = new (mPresContext) nsRuleNode(mPresContext, aRule, this);
+    if (!next) {
+      *aResult = nsnull;
+      return NS_ERROR_OUT_OF_MEMORY;
+    }
+    nsRuleList* newChildrenList = new (mPresContext) nsRuleList(next, ChildrenList());
+    if (NS_UNLIKELY(!newChildrenList)) {
+      next->Destroy();
+      *aResult = nsnull;
+      return NS_ERROR_OUT_OF_MEMORY;
+    }
+    SetChildrenList(newChildrenList);
+  }
+  
+  *aResult = next;
+  return NS_OK;
+}
+
+void
+nsRuleNode::ConvertChildrenToHash()
+{
+  NS_ASSERTION(!ChildrenAreHashed() && HaveChildren(),
+               "must have a non-empty list of children");
+  PLDHashTable *hash = PL_NewDHashTable(&ChildrenHashOps, nsnull,
+                                        sizeof(ChildrenHashEntry),
+                                        kMaxChildrenInList * 4);
+  if (!hash)
+    return;
+  for (nsRuleList* curr = ChildrenList(); curr;
+       curr = curr->DestroySelf(mPresContext)) {
+    
+    ChildrenHashEntry *entry = NS_STATIC_CAST(ChildrenHashEntry*,
+        PL_DHashTableOperate(hash, curr->mRuleNode->mRule, PL_DHASH_ADD));
+    NS_ASSERTION(!entry->mRuleNode, "duplicate entries in list");
+    entry->mRuleNode = curr->mRuleNode;
+  }
+  SetChildrenHash(hash);
+}
+
+PR_STATIC_CALLBACK(PLDHashOperator)
+ClearStyleDataHelper(PLDHashTable *table, PLDHashEntryHdr *hdr,
+                               PRUint32 number, void *arg)
+{
+  ChildrenHashEntry *entry = NS_STATIC_CAST(ChildrenHashEntry*, hdr);
+  entry->mRuleNode->ClearStyleData();
+  return PL_DHASH_NEXT;
+}
+
+nsresult
+nsRuleNode::ClearStyleData()
+{
+  
+  if (mStyleData.mResetData || mStyleData.mInheritedData)
+    mStyleData.Destroy(0, mPresContext);
+
+  mNoneBits &= ~NS_STYLE_INHERIT_MASK;
+  mDependentBits &= ~NS_STYLE_INHERIT_MASK;
+
+  if (ChildrenAreHashed())
+    PL_DHashTableEnumerate(ChildrenHash(),
+                           ClearStyleDataHelper, nsnull);
+  else
+    for (nsRuleList* curr = ChildrenList(); curr; curr = curr->mNext)
+      curr->mRuleNode->ClearStyleData();
+
+  return NS_OK;
+}
+
+inline void
+nsRuleNode::PropagateNoneBit(PRUint32 aBit, nsRuleNode* aHighestNode)
+{
+  nsRuleNode* curr = this;
+  for (;;) {
+    NS_ASSERTION(!(curr->mNoneBits & aBit), "propagating too far");
+    curr->mNoneBits |= aBit;
+    if (curr == aHighestNode)
+      break;
+    curr = curr->mParent;
+  }
+}
+
+inline void
+nsRuleNode::PropagateDependentBit(PRUint32 aBit, nsRuleNode* aHighestNode)
+{
+  for (nsRuleNode* curr = this; curr != aHighestNode; curr = curr->mParent) {
+    if (curr->mDependentBits & aBit) {
+#ifdef DEBUG
+      while (curr != aHighestNode) {
+        NS_ASSERTION(curr->mDependentBits & aBit, "bit not set");
+        curr = curr->mParent;
+      }
+#endif
+      break;
+    }
+
+    curr->mDependentBits |= aBit;
+  }
+}
+
+
+
+
+
+
+
+
+
+struct PropertyCheckData {
+  size_t offset;
+  nsCSSType type;
+};
+
+
+
+
+
+
+typedef nsRuleNode::RuleDetail
+  (* PR_CALLBACK CheckCallbackFn)(const nsRuleDataStruct& aData,
+                                  nsRuleNode::RuleDetail aResult);
+
+
+struct StructCheckData {
+  const PropertyCheckData* props;
+  PRInt32 nprops;
+  CheckCallbackFn callback;
+};
+
+
+
+
+
+
+
+inline void
+ExamineCSSValue(const nsCSSValue& aValue,
+                PRUint32& aSpecifiedCount, PRUint32& aInheritedCount)
+{
+  if (aValue.GetUnit() != eCSSUnit_Null) {
+    ++aSpecifiedCount;
+    if (aValue.GetUnit() == eCSSUnit_Inherit) {
+      ++aInheritedCount;
+    }
+  }
+}
+
+static void
+ExamineCSSValuePair(const nsCSSValuePair* aValuePair,
+                    PRUint32& aSpecifiedCount, PRUint32& aInheritedCount)
+{
+  NS_PRECONDITION(aValuePair, "Must have a value pair");
+  
+  ExamineCSSValue(aValuePair->mXValue, aSpecifiedCount, aInheritedCount);
+  ExamineCSSValue(aValuePair->mYValue, aSpecifiedCount, aInheritedCount);
+}
+
+static void
+ExamineCSSRect(const nsCSSRect* aRect,
+               PRUint32& aSpecifiedCount, PRUint32& aInheritedCount)
+{
+  NS_PRECONDITION(aRect, "Must have a rect");
+
+  NS_FOR_CSS_SIDES(side) {
+    ExamineCSSValue(aRect->*(nsCSSRect::sides[side]),
+                    aSpecifiedCount, aInheritedCount);
+  }
+}
+
+PR_STATIC_CALLBACK(nsRuleNode::RuleDetail)
+CheckFontCallback(const nsRuleDataStruct& aData,
+                  nsRuleNode::RuleDetail aResult)
+{
+  const nsRuleDataFont& fontData =
+      NS_STATIC_CAST(const nsRuleDataFont&, aData);
+  if (eCSSUnit_Enumerated == fontData.mFamily.GetUnit()) {
+    
+    
+    NS_ASSERTION(aResult == nsRuleNode::eRulePartialReset ||
+                 aResult == nsRuleNode::eRuleFullReset ||
+                 aResult == nsRuleNode::eRulePartialMixed ||
+                 aResult == nsRuleNode::eRuleFullMixed,
+                 "we know we already have a reset-counted property");
+    PRInt32 family = fontData.mFamily.GetIntValue();
+    if ((family == NS_STYLE_FONT_CAPTION) ||
+        (family == NS_STYLE_FONT_ICON) ||
+        (family == NS_STYLE_FONT_MENU) ||
+        (family == NS_STYLE_FONT_MESSAGE_BOX) ||
+        (family == NS_STYLE_FONT_SMALL_CAPTION) ||
+        (family == NS_STYLE_FONT_STATUS_BAR) ||
+        (family == NS_STYLE_FONT_WINDOW) ||
+        (family == NS_STYLE_FONT_DOCUMENT) ||
+        (family == NS_STYLE_FONT_WORKSPACE) ||
+        (family == NS_STYLE_FONT_DESKTOP) ||
+        (family == NS_STYLE_FONT_INFO) ||
+        (family == NS_STYLE_FONT_DIALOG) ||
+        (family == NS_STYLE_FONT_BUTTON) ||
+        (family == NS_STYLE_FONT_PULL_DOWN_MENU) ||
+        (family == NS_STYLE_FONT_LIST) ||
+        (family == NS_STYLE_FONT_FIELD)) {
+      
+      if (aResult == nsRuleNode::eRulePartialMixed ||
+          aResult == nsRuleNode::eRuleFullMixed) {
+        aResult = nsRuleNode::eRuleFullMixed;
+      } else {
+        aResult = nsRuleNode::eRuleFullReset;
+      }
+    }
+  }
+
+  
+  if ((fontData.mSize.IsRelativeLengthUnit() &&
+       fontData.mSize.GetUnit() != eCSSUnit_Pixel) ||
+      fontData.mSize.GetUnit() == eCSSUnit_Percent) {
+    NS_ASSERTION(aResult == nsRuleNode::eRulePartialReset ||
+                 aResult == nsRuleNode::eRuleFullReset ||
+                 aResult == nsRuleNode::eRulePartialMixed ||
+                 aResult == nsRuleNode::eRuleFullMixed,
+                 "we know we already have a reset-counted property");
+    
+    if (aResult == nsRuleNode::eRulePartialReset)
+      aResult = nsRuleNode::eRulePartialMixed;
+    else if (aResult == nsRuleNode::eRuleFullReset)
+      aResult = nsRuleNode::eRuleFullMixed;
+  }
+
+  return aResult;
+}
+
+PR_STATIC_CALLBACK(nsRuleNode::RuleDetail)
+CheckColorCallback(const nsRuleDataStruct& aData,
+                   nsRuleNode::RuleDetail aResult)
+{
+  const nsRuleDataColor& colorData =
+      NS_STATIC_CAST(const nsRuleDataColor&, aData);
+
+  
+  if (colorData.mColor.GetUnit() == eCSSUnit_Integer && 
+      colorData.mColor.GetIntValue() == NS_COLOR_CURRENTCOLOR) {
+    NS_ASSERTION(aResult == nsRuleNode::eRuleFullReset,
+                 "we should already be counted as full-reset");
+    aResult = nsRuleNode::eRuleFullInherited;
+  }
+
+  return aResult;
+}
+
+
+
+
+#define CSS_PROP_INCLUDE_NOT_CSS
+
+static const PropertyCheckData FontCheckProperties[] = {
+#define CSS_PROP_FONT(name_, id_, method_, datastruct_, member_, type_, kwtable_) \
+  { offsetof(nsRuleData##datastruct_, member_), type_ },
+#include "nsCSSPropList.h"
+#undef CSS_PROP_FONT
+};
+
+static const PropertyCheckData DisplayCheckProperties[] = {
+#define CSS_PROP_DISPLAY(name_, id_, method_, datastruct_, member_, type_, kwtable_) \
+  { offsetof(nsRuleData##datastruct_, member_), type_ },
+#include "nsCSSPropList.h"
+#undef CSS_PROP_DISPLAY
+};
+
+static const PropertyCheckData VisibilityCheckProperties[] = {
+#define CSS_PROP_VISIBILITY(name_, id_, method_, datastruct_, member_, type_, kwtable_) \
+  { offsetof(nsRuleData##datastruct_, member_), type_ },
+#include "nsCSSPropList.h"
+#undef CSS_PROP_VISIBILITY
+};
+
+static const PropertyCheckData MarginCheckProperties[] = {
+#define CSS_PROP_MARGIN(name_, id_, method_, datastruct_, member_, type_, kwtable_) \
+  { offsetof(nsRuleData##datastruct_, member_), type_ },
+#include "nsCSSPropList.h"
+#undef CSS_PROP_MARGIN
+};
+
+static const PropertyCheckData BorderCheckProperties[] = {
+#define CSS_PROP_BORDER(name_, id_, method_, datastruct_, member_, type_, kwtable_) \
+  { offsetof(nsRuleData##datastruct_, member_), type_ },
+#include "nsCSSPropList.h"
+#undef CSS_PROP_BORDER
+};
+
+static const PropertyCheckData PaddingCheckProperties[] = {
+#define CSS_PROP_PADDING(name_, id_, method_, datastruct_, member_, type_, kwtable_) \
+  { offsetof(nsRuleData##datastruct_, member_), type_ },
+#include "nsCSSPropList.h"
+#undef CSS_PROP_PADDING
+};
+
+static const PropertyCheckData OutlineCheckProperties[] = {
+#define CSS_PROP_OUTLINE(name_, id_, method_, datastruct_, member_, type_, kwtable_) \
+  { offsetof(nsRuleData##datastruct_, member_), type_ },
+#include "nsCSSPropList.h"
+#undef CSS_PROP_OUTLINE
+};
+
+static const PropertyCheckData ListCheckProperties[] = {
+#define CSS_PROP_LIST(name_, id_, method_, datastruct_, member_, type_, kwtable_) \
+  { offsetof(nsRuleData##datastruct_, member_), type_ },
+#include "nsCSSPropList.h"
+#undef CSS_PROP_LIST
+};
+
+static const PropertyCheckData ColorCheckProperties[] = {
+#define CSS_PROP_COLOR(name_, id_, method_, datastruct_, member_, type_, kwtable_) \
+  { offsetof(nsRuleData##datastruct_, member_), type_ },
+#include "nsCSSPropList.h"
+#undef CSS_PROP_COLOR
+};
+
+static const PropertyCheckData BackgroundCheckProperties[] = {
+#define CSS_PROP_BACKGROUND(name_, id_, method_, datastruct_, member_, type_, kwtable_) \
+  { offsetof(nsRuleData##datastruct_, member_), type_ },
+#include "nsCSSPropList.h"
+#undef CSS_PROP_BACKGROUND
+};
+
+static const PropertyCheckData PositionCheckProperties[] = {
+#define CSS_PROP_POSITION(name_, id_, method_, datastruct_, member_, type_, kwtable_) \
+  { offsetof(nsRuleData##datastruct_, member_), type_ },
+#include "nsCSSPropList.h"
+#undef CSS_PROP_POSITION
+};
+
+static const PropertyCheckData TableCheckProperties[] = {
+#define CSS_PROP_TABLE(name_, id_, method_, datastruct_, member_, type_, kwtable_) \
+  { offsetof(nsRuleData##datastruct_, member_), type_ },
+#include "nsCSSPropList.h"
+#undef CSS_PROP_TABLE
+};
+
+static const PropertyCheckData TableBorderCheckProperties[] = {
+#define CSS_PROP_TABLEBORDER(name_, id_, method_, datastruct_, member_, type_, kwtable_) \
+  { offsetof(nsRuleData##datastruct_, member_), type_ },
+#include "nsCSSPropList.h"
+#undef CSS_PROP_TABLEBORDER
+};
+
+static const PropertyCheckData ContentCheckProperties[] = {
+#define CSS_PROP_CONTENT(name_, id_, method_, datastruct_, member_, type_, kwtable_) \
+  { offsetof(nsRuleData##datastruct_, member_), type_ },
+#include "nsCSSPropList.h"
+#undef CSS_PROP_CONTENT
+};
+
+static const PropertyCheckData QuotesCheckProperties[] = {
+#define CSS_PROP_QUOTES(name_, id_, method_, datastruct_, member_, type_, kwtable_) \
+  { offsetof(nsRuleData##datastruct_, member_), type_ },
+#include "nsCSSPropList.h"
+#undef CSS_PROP_QUOTES
+};
+
+static const PropertyCheckData TextCheckProperties[] = {
+#define CSS_PROP_TEXT(name_, id_, method_, datastruct_, member_, type_, kwtable_) \
+  { offsetof(nsRuleData##datastruct_, member_), type_ },
+#include "nsCSSPropList.h"
+#undef CSS_PROP_TEXT
+};
+
+static const PropertyCheckData TextResetCheckProperties[] = {
+#define CSS_PROP_TEXTRESET(name_, id_, method_, datastruct_, member_, type_, kwtable_) \
+  { offsetof(nsRuleData##datastruct_, member_), type_ },
+#include "nsCSSPropList.h"
+#undef CSS_PROP_TEXTRESET
+};
+
+static const PropertyCheckData UserInterfaceCheckProperties[] = {
+#define CSS_PROP_USERINTERFACE(name_, id_, method_, datastruct_, member_, type_, kwtable_) \
+  { offsetof(nsRuleData##datastruct_, member_), type_ },
+#include "nsCSSPropList.h"
+#undef CSS_PROP_USERINTERFACE
+};
+
+static const PropertyCheckData UIResetCheckProperties[] = {
+#define CSS_PROP_UIRESET(name_, id_, method_, datastruct_, member_, type_, kwtable_) \
+  { offsetof(nsRuleData##datastruct_, member_), type_ },
+#include "nsCSSPropList.h"
+#undef CSS_PROP_UIRESET
+};
+
+static const PropertyCheckData XULCheckProperties[] = {
+#define CSS_PROP_XUL(name_, id_, method_, datastruct_, member_, type_, kwtable_) \
+  { offsetof(nsRuleData##datastruct_, member_), type_ },
+#include "nsCSSPropList.h"
+#undef CSS_PROP_XUL
+};
+
+#ifdef MOZ_SVG
+static const PropertyCheckData SVGCheckProperties[] = {
+#define CSS_PROP_SVG(name_, id_, method_, datastruct_, member_, type_, kwtable_) \
+  { offsetof(nsRuleData##datastruct_, member_), type_ },
+#include "nsCSSPropList.h"
+#undef CSS_PROP_SVG
+};
+
+static const PropertyCheckData SVGResetCheckProperties[] = {
+#define CSS_PROP_SVGRESET(name_, id_, method_, datastruct_, member_, type_, kwtable_) \
+  { offsetof(nsRuleData##datastruct_, member_), type_ },
+#include "nsCSSPropList.h"
+#undef CSS_PROP_SVGRESET
+};  
+#endif
+
+static const PropertyCheckData ColumnCheckProperties[] = {
+#define CSS_PROP_COLUMN(name_, id_, method_, datastruct_, member_, type_, kwtable_) \
+  { offsetof(nsRuleData##datastruct_, member_), type_ },
+#include "nsCSSPropList.h"
+#undef CSS_PROP_COLUMN
+};
+
+#undef CSS_PROP_INCLUDE_NOT_CSS
+  
+static const StructCheckData gCheckProperties[] = {
+
+#define STYLE_STRUCT(name, checkdata_cb, ctor_args) \
+  {name##CheckProperties, \
+   sizeof(name##CheckProperties)/sizeof(PropertyCheckData), \
+   checkdata_cb},
+#include "nsStyleStructList.h"
+#undef STYLE_STRUCT
+  {nsnull, 0, nsnull}
+
+};
+
+
+
+
+
+inline const nsCSSValue&
+ValueAtOffset(const nsRuleDataStruct& aRuleDataStruct, size_t aOffset)
+{
+  return * NS_REINTERPRET_CAST(const nsCSSValue*,
+                     NS_REINTERPRET_CAST(const char*, &aRuleDataStruct) + aOffset);
+}
+
+inline const nsCSSRect*
+RectAtOffset(const nsRuleDataStruct& aRuleDataStruct, size_t aOffset)
+{
+  return NS_REINTERPRET_CAST(const nsCSSRect*,
+                     NS_REINTERPRET_CAST(const char*, &aRuleDataStruct) + aOffset);
+}
+
+inline const nsCSSValuePair*
+ValuePairAtOffset(const nsRuleDataStruct& aRuleDataStruct, size_t aOffset)
+{
+  return NS_REINTERPRET_CAST(const nsCSSValuePair*,
+                     NS_REINTERPRET_CAST(const char*, &aRuleDataStruct) + aOffset);
+}
+
+inline const nsCSSValueList*
+ValueListAtOffset(const nsRuleDataStruct& aRuleDataStruct, size_t aOffset)
+{
+  return * NS_REINTERPRET_CAST(const nsCSSValueList*const*,
+                     NS_REINTERPRET_CAST(const char*, &aRuleDataStruct) + aOffset);
+}
+
+inline const nsCSSValueList**
+ValueListArrayAtOffset(const nsRuleDataStruct& aRuleDataStruct, size_t aOffset)
+{
+  return * NS_REINTERPRET_CAST(const nsCSSValueList**const*,
+                     NS_REINTERPRET_CAST(const char*, &aRuleDataStruct) + aOffset);
+}
+
+inline const nsCSSCounterData*
+CounterDataAtOffset(const nsRuleDataStruct& aRuleDataStruct, size_t aOffset)
+{
+  return * NS_REINTERPRET_CAST(const nsCSSCounterData*const*,
+                     NS_REINTERPRET_CAST(const char*, &aRuleDataStruct) + aOffset);
+}
+
+inline const nsCSSQuotes*
+QuotesAtOffset(const nsRuleDataStruct& aRuleDataStruct, size_t aOffset)
+{
+  return * NS_REINTERPRET_CAST(const nsCSSQuotes*const*,
+                     NS_REINTERPRET_CAST(const char*, &aRuleDataStruct) + aOffset);
+}
+
+inline nsRuleNode::RuleDetail
+nsRuleNode::CheckSpecifiedProperties(const nsStyleStructID aSID,
+                                     const nsRuleDataStruct& aRuleDataStruct)
+{
+  const StructCheckData *structData = gCheckProperties + aSID;
+
+  
+  PRUint32 total = 0,      
+           specified = 0,  
+           inherited = 0;  
+                           
+
+  for (const PropertyCheckData *prop = structData->props,
+                           *prop_end = prop + structData->nprops;
+       prop != prop_end;
+       ++prop)
+    switch (prop->type) {
+
+      case eCSSType_Value:
+        ++total;
+        ExamineCSSValue(ValueAtOffset(aRuleDataStruct, prop->offset),
+                        specified, inherited);
+        break;
+
+      case eCSSType_Rect:
+        total += 4;
+        ExamineCSSRect(RectAtOffset(aRuleDataStruct, prop->offset),
+                       specified, inherited);
+        break;
+
+      case eCSSType_ValuePair:
+        total += 2;
+        ExamineCSSValuePair(ValuePairAtOffset(aRuleDataStruct, prop->offset),
+                            specified, inherited);
+        break;
+        
+      case eCSSType_ValueList:
+        {
+          ++total;
+          const nsCSSValueList* valueList =
+              ValueListAtOffset(aRuleDataStruct, prop->offset);
+          if (valueList) {
+            ++specified;
+            if (eCSSUnit_Inherit == valueList->mValue.GetUnit()) {
+              ++inherited;
+            }
+          }
+        }
+        break;
+
+      case eCSSType_CounterData:
+        {
+          ++total;
+          const nsCSSCounterData* counterData =
+              CounterDataAtOffset(aRuleDataStruct, prop->offset);
+          if (counterData) {
+            ++specified;
+            if (eCSSUnit_Inherit == counterData->mCounter.GetUnit()) {
+              ++inherited;
+            }
+          }
+        }
+        break;
+
+      case eCSSType_Quotes:
+        {
+          ++total;
+          const nsCSSQuotes* quotes =
+              QuotesAtOffset(aRuleDataStruct, prop->offset);
+          if (quotes) {
+            ++specified;
+            if (eCSSUnit_Inherit == quotes->mOpen.GetUnit()) {
+              ++inherited;
+            }
+          }
+        }
+        break;
+
+      default:
+        NS_NOTREACHED("unknown type");
+        break;
+
+    }
+
+#if 0
+  printf("CheckSpecifiedProperties: SID=%d total=%d spec=%d inh=%d.\n",
+         aSID, total, specified, inherited);
+#endif
+
+  
+
+
+
+
+  nsRuleNode::RuleDetail result;
+  if (inherited == total)
+    result = eRuleFullInherited;
+  else if (specified == total) {
+    if (inherited == 0)
+      result = eRuleFullReset;
+    else
+      result = eRuleFullMixed;
+  } else if (specified == 0)
+    result = eRuleNone;
+  else if (specified == inherited)
+    result = eRulePartialInherited;
+  else if (inherited == 0)
+    result = eRulePartialReset;
+  else
+    result = eRulePartialMixed;
+
+  if (structData->callback) {
+    result = (*structData->callback)(aRuleDataStruct, result);
+  }
+
+  return result;
+}
+
+const nsStyleStruct*
+nsRuleNode::GetDisplayData(nsStyleContext* aContext)
+{
+  nsRuleDataDisplay displayData; 
+  nsRuleData ruleData(eStyleStruct_Display, mPresContext, aContext);
+  ruleData.mDisplayData = &displayData;
+
+  return WalkRuleTree(eStyleStruct_Display, aContext, &ruleData, &displayData);
+}
+
+const nsStyleStruct*
+nsRuleNode::GetVisibilityData(nsStyleContext* aContext)
+{
+  nsRuleDataDisplay displayData; 
+  nsRuleData ruleData(eStyleStruct_Visibility, mPresContext, aContext);
+  ruleData.mDisplayData = &displayData;
+
+  return WalkRuleTree(eStyleStruct_Visibility, aContext, &ruleData, &displayData);
+}
+
+const nsStyleStruct*
+nsRuleNode::GetTextData(nsStyleContext* aContext)
+{
+  nsRuleDataText textData; 
+  nsRuleData ruleData(eStyleStruct_Text, mPresContext, aContext);
+  ruleData.mTextData = &textData;
+
+  return WalkRuleTree(eStyleStruct_Text, aContext, &ruleData, &textData);
+}
+
+const nsStyleStruct*
+nsRuleNode::GetTextResetData(nsStyleContext* aContext)
+{
+  nsRuleDataText textData; 
+  nsRuleData ruleData(eStyleStruct_TextReset, mPresContext, aContext);
+  ruleData.mTextData = &textData;
+
+  const nsStyleStruct* res = WalkRuleTree(eStyleStruct_TextReset, aContext, &ruleData, &textData);
+  textData.mTextShadow = nsnull; 
+  return res;
+}
+
+const nsStyleStruct*
+nsRuleNode::GetUserInterfaceData(nsStyleContext* aContext)
+{
+  nsRuleDataUserInterface uiData; 
+  nsRuleData ruleData(eStyleStruct_UserInterface, mPresContext, aContext);
+  ruleData.mUserInterfaceData = &uiData;
+
+  const nsStyleStruct* res = WalkRuleTree(eStyleStruct_UserInterface, aContext, &ruleData, &uiData);
+  uiData.mCursor = nsnull; 
+  return res;
+}
+
+const nsStyleStruct*
+nsRuleNode::GetUIResetData(nsStyleContext* aContext)
+{
+  nsRuleDataUserInterface uiData; 
+  nsRuleData ruleData(eStyleStruct_UIReset, mPresContext, aContext);
+  ruleData.mUserInterfaceData = &uiData;
+
+  const nsStyleStruct* res = WalkRuleTree(eStyleStruct_UIReset, aContext, &ruleData, &uiData);
+  return res;
+}
+
+const nsStyleStruct*
+nsRuleNode::GetFontData(nsStyleContext* aContext)
+{
+  nsRuleDataFont fontData; 
+  nsRuleData ruleData(eStyleStruct_Font, mPresContext, aContext);
+  ruleData.mFontData = &fontData;
+
+  return WalkRuleTree(eStyleStruct_Font, aContext, &ruleData, &fontData);
+}
+
+const nsStyleStruct*
+nsRuleNode::GetColorData(nsStyleContext* aContext)
+{
+  nsRuleDataColor colorData; 
+  nsRuleData ruleData(eStyleStruct_Color, mPresContext, aContext);
+  ruleData.mColorData = &colorData;
+
+  return WalkRuleTree(eStyleStruct_Color, aContext, &ruleData, &colorData);
+}
+
+const nsStyleStruct*
+nsRuleNode::GetBackgroundData(nsStyleContext* aContext)
+{
+  nsRuleDataColor colorData; 
+  nsRuleData ruleData(eStyleStruct_Background, mPresContext, aContext);
+  ruleData.mColorData = &colorData;
+
+  return WalkRuleTree(eStyleStruct_Background, aContext, &ruleData, &colorData);
+}
+
+const nsStyleStruct*
+nsRuleNode::GetMarginData(nsStyleContext* aContext)
+{
+  nsRuleDataMargin marginData; 
+  nsRuleData ruleData(eStyleStruct_Margin, mPresContext, aContext);
+  ruleData.mMarginData = &marginData;
+
+  return WalkRuleTree(eStyleStruct_Margin, aContext, &ruleData, &marginData);
+}
+
+const nsStyleStruct*
+nsRuleNode::GetBorderData(nsStyleContext* aContext)
+{
+  nsRuleDataMargin marginData; 
+  nsRuleData ruleData(eStyleStruct_Border, mPresContext, aContext);
+  ruleData.mMarginData = &marginData;
+
+  return WalkRuleTree(eStyleStruct_Border, aContext, &ruleData, &marginData);
+}
+
+const nsStyleStruct*
+nsRuleNode::GetPaddingData(nsStyleContext* aContext)
+{
+  nsRuleDataMargin marginData; 
+  nsRuleData ruleData(eStyleStruct_Padding, mPresContext, aContext);
+  ruleData.mMarginData = &marginData;
+
+  return WalkRuleTree(eStyleStruct_Padding, aContext, &ruleData, &marginData);
+}
+
+const nsStyleStruct*
+nsRuleNode::GetOutlineData(nsStyleContext* aContext)
+{
+  nsRuleDataMargin marginData; 
+  nsRuleData ruleData(eStyleStruct_Outline, mPresContext, aContext);
+  ruleData.mMarginData = &marginData;
+
+  return WalkRuleTree(eStyleStruct_Outline, aContext, &ruleData, &marginData);
+}
+
+const nsStyleStruct*
+nsRuleNode::GetListData(nsStyleContext* aContext)
+{
+  nsRuleDataList listData; 
+  nsRuleData ruleData(eStyleStruct_List, mPresContext, aContext);
+  ruleData.mListData = &listData;
+
+  return WalkRuleTree(eStyleStruct_List, aContext, &ruleData, &listData);
+}
+
+const nsStyleStruct*
+nsRuleNode::GetPositionData(nsStyleContext* aContext)
+{
+  nsRuleDataPosition posData; 
+  nsRuleData ruleData(eStyleStruct_Position, mPresContext, aContext);
+  ruleData.mPositionData = &posData;
+
+  return WalkRuleTree(eStyleStruct_Position, aContext, &ruleData, &posData);
+}
+
+const nsStyleStruct*
+nsRuleNode::GetTableData(nsStyleContext* aContext)
+{
+  nsRuleDataTable tableData; 
+  nsRuleData ruleData(eStyleStruct_Table, mPresContext, aContext);
+  ruleData.mTableData = &tableData;
+
+  return WalkRuleTree(eStyleStruct_Table, aContext, &ruleData, &tableData);
+}
+
+const nsStyleStruct*
+nsRuleNode::GetTableBorderData(nsStyleContext* aContext)
+{
+  nsRuleDataTable tableData; 
+  nsRuleData ruleData(eStyleStruct_TableBorder, mPresContext, aContext);
+  ruleData.mTableData = &tableData;
+
+  return WalkRuleTree(eStyleStruct_TableBorder, aContext, &ruleData, &tableData);
+}
+
+const nsStyleStruct*
+nsRuleNode::GetContentData(nsStyleContext* aContext)
+{
+  nsRuleDataContent contentData; 
+  nsRuleData ruleData(eStyleStruct_Content, mPresContext, aContext);
+  ruleData.mContentData = &contentData;
+
+  const nsStyleStruct* res = WalkRuleTree(eStyleStruct_Content, aContext, &ruleData, &contentData);
+  contentData.mCounterIncrement = contentData.mCounterReset = nsnull;
+  contentData.mContent = nsnull; 
+  return res;
+}
+
+const nsStyleStruct*
+nsRuleNode::GetQuotesData(nsStyleContext* aContext)
+{
+  nsRuleDataContent contentData; 
+  nsRuleData ruleData(eStyleStruct_Quotes, mPresContext, aContext);
+  ruleData.mContentData = &contentData;
+
+  const nsStyleStruct* res = WalkRuleTree(eStyleStruct_Quotes, aContext, &ruleData, &contentData);
+  contentData.mQuotes = nsnull; 
+  return res;
+}
+
+const nsStyleStruct*
+nsRuleNode::GetXULData(nsStyleContext* aContext)
+{
+  nsRuleDataXUL xulData; 
+  nsRuleData ruleData(eStyleStruct_XUL, mPresContext, aContext);
+  ruleData.mXULData = &xulData;
+
+  return WalkRuleTree(eStyleStruct_XUL, aContext, &ruleData, &xulData);
+}
+
+const nsStyleStruct*
+nsRuleNode::GetColumnData(nsStyleContext* aContext)
+{
+  nsRuleDataColumn columnData; 
+  nsRuleData ruleData(eStyleStruct_Column, mPresContext, aContext);
+  ruleData.mColumnData = &columnData;
+
+  return WalkRuleTree(eStyleStruct_Column, aContext, &ruleData, &columnData);
+}
+
+#ifdef MOZ_SVG
+const nsStyleStruct*
+nsRuleNode::GetSVGData(nsStyleContext* aContext)
+{
+  nsRuleDataSVG svgData; 
+  nsRuleData ruleData(eStyleStruct_SVG, mPresContext, aContext);
+  ruleData.mSVGData = &svgData;
+
+  const nsStyleStruct *res = WalkRuleTree(eStyleStruct_SVG, aContext, &ruleData, &svgData);
+  svgData.mStrokeDasharray = nsnull; 
+  return res;
+}
+
+const nsStyleStruct*
+nsRuleNode::GetSVGResetData(nsStyleContext* aContext)
+{
+  nsRuleDataSVG svgData; 
+  nsRuleData ruleData(eStyleStruct_SVGReset, mPresContext, aContext);
+  ruleData.mSVGData = &svgData;
+
+  return WalkRuleTree(eStyleStruct_SVGReset, aContext, &ruleData, &svgData);
+}
+#endif
+
+const nsStyleStruct*
+nsRuleNode::WalkRuleTree(const nsStyleStructID aSID,
+                         nsStyleContext* aContext, 
+                         nsRuleData* aRuleData,
+                         nsRuleDataStruct* aSpecificData)
+{
+  
+  nsStyleStruct* startStruct = nsnull;
+  
+  nsRuleNode* ruleNode = this;
+  nsRuleNode* highestNode = nsnull; 
+                                    
+                                    
+                                    
+  nsRuleNode* rootNode = this; 
+                               
+                               
+                               
+                               
+  RuleDetail detail = eRuleNone;
+  PRUint32 bit = nsCachedStyleData::GetBitForSID(aSID);
+
+  while (ruleNode) {
+    
+    
+    if (ruleNode->mNoneBits & bit)
+      break;
+
+    
+    
+    
+    
+    if (detail == eRuleNone)
+      while (ruleNode->mDependentBits & bit) {
+        NS_ASSERTION(ruleNode->mStyleData.GetStyleData(aSID) == nsnull,
+                     "dependent bit with cached data makes no sense");
+        
+        rootNode = ruleNode;
+        ruleNode = ruleNode->mParent;
+        NS_ASSERTION(!(ruleNode->mNoneBits & bit), "can't have both bits set");
+      }
+
+    
+    
+    startStruct = ruleNode->mStyleData.GetStyleData(aSID);
+    if (startStruct)
+      break; 
+             
+             
+
+    
+    nsIStyleRule *rule = ruleNode->mRule;
+    if (rule)
+      rule->MapRuleInfoInto(aRuleData);
+
+    
+    
+    RuleDetail oldDetail = detail;
+    detail = CheckSpecifiedProperties(aSID, *aSpecificData);
+  
+    if (oldDetail == eRuleNone && detail != eRuleNone)
+      highestNode = ruleNode;
+
+    if (detail == eRuleFullReset ||
+        detail == eRuleFullMixed ||
+        detail == eRuleFullInherited)
+      break; 
+             
+
+    
+    rootNode = ruleNode;
+    ruleNode = ruleNode->mParent;
+  }
+
+  PRBool isReset = nsCachedStyleData::IsReset(aSID);
+  if (!highestNode)
+    highestNode = rootNode;
+
+  if (!aRuleData->mCanStoreInRuleTree)
+    detail = eRulePartialMixed; 
+                                
+
+  if (detail == eRuleNone && startStruct && !aRuleData->mPostResolveCallback) {
+    
+    
+    
+    
+    
+    PropagateDependentBit(bit, ruleNode);
+    return startStruct;
+  }
+  else if (!startStruct && ((!isReset && (detail == eRuleNone || detail == eRulePartialInherited)) 
+                             || detail == eRuleFullInherited)) {
+    
+    
+
+    
+    
+    
+    
+    
+    
+    
+    if (highestNode != this && !isReset)
+      PropagateNoneBit(bit, highestNode);
+    
+    
+    
+    
+    nsStyleContext* parentContext = aContext->GetParent();
+    if (parentContext) {
+      
+      
+      
+      
+      const nsStyleStruct* parentStruct = parentContext->GetStyleData(aSID);
+      aContext->AddStyleBit(bit); 
+      aContext->SetStyle(aSID, NS_CONST_CAST(nsStyleStruct*, parentStruct));
+      return parentStruct;
+    }
+    else
+      
+      
+      return SetDefaultOnRoot(aSID, aContext);
+  }
+
+  
+  const nsStyleStruct* res;
+#define STYLE_STRUCT_TEST aSID
+#define STYLE_STRUCT(name, checkdata_cb, ctor_args)                           \
+  res = Compute##name##Data(startStruct, *aSpecificData, aContext,            \
+                      highestNode, detail, !aRuleData->mCanStoreInRuleTree);
+#include "nsStyleStructList.h"
+#undef STYLE_STRUCT
+#undef STYLE_STRUCT_TEST
+
+  
+  if (aRuleData->mPostResolveCallback && (NS_LIKELY(res != nsnull)))
+    (*aRuleData->mPostResolveCallback)((nsStyleStruct*)res, aRuleData);
+
+  
+  return res;
+}
+
+static PRBool
+IsChrome(nsPresContext* aPresContext)
+{
+  PRBool isChrome = PR_FALSE;
+  nsCOMPtr<nsISupports> container = aPresContext->GetContainer();
+  if (container) {
+    nsresult result;
+    nsCOMPtr<nsIDocShellTreeItem> docShell(do_QueryInterface(container, &result));
+    if (NS_SUCCEEDED(result) && docShell) {
+      PRInt32 docShellType;
+      result = docShell->GetItemType(&docShellType);
+      if (NS_SUCCEEDED(result)) {
+        isChrome = nsIDocShellTreeItem::typeChrome == docShellType;
+      }
+    }
+  }
+  return isChrome;
+}
+
+const nsStyleStruct*
+nsRuleNode::SetDefaultOnRoot(const nsStyleStructID aSID, nsStyleContext* aContext)
+{
+  switch (aSID) {
+    case eStyleStruct_Font: 
+    {
+      nsStyleFont* fontData = new (mPresContext) nsStyleFont(mPresContext);
+      if (NS_LIKELY(fontData != nsnull)) {
+        nscoord minimumFontSize =
+          mPresContext->GetCachedIntPref(kPresContext_MinimumFontSize);
+
+        if (minimumFontSize > 0 && !IsChrome(mPresContext)) {
+          fontData->mFont.size = PR_MAX(fontData->mSize, minimumFontSize);
+        }
+        else {
+          fontData->mFont.size = fontData->mSize;
+        }
+        aContext->SetStyle(eStyleStruct_Font, fontData);
+      }
+      return fontData;
+    }
+    case eStyleStruct_Display:
+    {
+      nsStyleDisplay* disp = new (mPresContext) nsStyleDisplay();
+      if (NS_LIKELY(disp != nsnull)) {
+        aContext->SetStyle(eStyleStruct_Display, disp);
+      }
+      return disp;
+    }
+    case eStyleStruct_Visibility:
+    {
+      nsStyleVisibility* vis = new (mPresContext) nsStyleVisibility(mPresContext);
+      if (NS_LIKELY(vis != nsnull)) {
+        aContext->SetStyle(eStyleStruct_Visibility, vis);
+      }
+      return vis;
+    }
+    case eStyleStruct_Text:
+    {
+      nsStyleText* text = new (mPresContext) nsStyleText();
+      if (NS_LIKELY(text != nsnull)) {
+        aContext->SetStyle(eStyleStruct_Text, text);
+      }
+      return text;
+    }
+    case eStyleStruct_TextReset:
+    {
+      nsStyleTextReset* text = new (mPresContext) nsStyleTextReset();
+      if (NS_LIKELY(text != nsnull)) {
+        aContext->SetStyle(eStyleStruct_TextReset, text);
+      }
+      return text;
+    }
+    case eStyleStruct_Color:
+    {
+      nsStyleColor* color = new (mPresContext) nsStyleColor(mPresContext);
+      if (NS_LIKELY(color != nsnull)) {
+        aContext->SetStyle(eStyleStruct_Color, color);
+      }
+      return color;
+    }
+    case eStyleStruct_Background:
+    {
+      nsStyleBackground* bg = new (mPresContext) nsStyleBackground(mPresContext);
+      if (NS_LIKELY(bg != nsnull)) {
+        aContext->SetStyle(eStyleStruct_Background, bg);
+      }
+      return bg;
+    }
+    case eStyleStruct_Margin:
+    {
+      nsStyleMargin* margin = new (mPresContext) nsStyleMargin();
+      if (NS_LIKELY(margin != nsnull)) {
+        aContext->SetStyle(eStyleStruct_Margin, margin);
+      }
+      return margin;
+    }
+    case eStyleStruct_Border:
+    {
+      nsStyleBorder* border = new (mPresContext) nsStyleBorder(mPresContext);
+      if (NS_LIKELY(border != nsnull)) {
+        aContext->SetStyle(eStyleStruct_Border, border);
+      }
+      return border;
+    }
+    case eStyleStruct_Padding:
+    {
+      nsStylePadding* padding = new (mPresContext) nsStylePadding();
+      if (NS_LIKELY(padding != nsnull)) {
+        aContext->SetStyle(eStyleStruct_Padding, padding);
+      }
+      return padding;
+    }
+    case eStyleStruct_Outline:
+    {
+      nsStyleOutline* outline = new (mPresContext) nsStyleOutline(mPresContext);
+      if (NS_LIKELY(outline != nsnull)) {
+        aContext->SetStyle(eStyleStruct_Outline, outline);
+      }
+      return outline;
+    }
+    case eStyleStruct_List:
+    {
+      nsStyleList* list = new (mPresContext) nsStyleList();
+      if (NS_LIKELY(list != nsnull)) {
+        aContext->SetStyle(eStyleStruct_List, list);
+      }
+      return list;
+    }
+    case eStyleStruct_Position:
+    {
+      nsStylePosition* pos = new (mPresContext) nsStylePosition();
+      if (NS_LIKELY(pos != nsnull)) {
+        aContext->SetStyle(eStyleStruct_Position, pos);
+      }
+      return pos;
+    }
+    case eStyleStruct_Table:
+    {
+      nsStyleTable* table = new (mPresContext) nsStyleTable();
+      if (NS_LIKELY(table != nsnull)) {
+        aContext->SetStyle(eStyleStruct_Table, table);
+      }
+      return table;
+    }
+    case eStyleStruct_TableBorder:
+    {
+      nsStyleTableBorder* table = new (mPresContext) nsStyleTableBorder(mPresContext);
+      if (NS_LIKELY(table != nsnull)) {
+        aContext->SetStyle(eStyleStruct_TableBorder, table);
+      }
+      return table;
+    }
+    case eStyleStruct_Content:
+    {
+      nsStyleContent* content = new (mPresContext) nsStyleContent();
+      if (NS_LIKELY(content != nsnull)) {
+        aContext->SetStyle(eStyleStruct_Content, content);
+      }
+      return content;
+    }
+    case eStyleStruct_Quotes:
+    {
+      nsStyleQuotes* quotes = new (mPresContext) nsStyleQuotes();
+      if (NS_LIKELY(quotes != nsnull)) {
+        aContext->SetStyle(eStyleStruct_Quotes, quotes);
+      }
+      return quotes;
+    }
+    case eStyleStruct_UserInterface:
+    {
+      nsStyleUserInterface* ui = new (mPresContext) nsStyleUserInterface();
+      if (NS_LIKELY(ui != nsnull)) {
+        aContext->SetStyle(eStyleStruct_UserInterface, ui);
+      }
+      return ui;
+    }
+    case eStyleStruct_UIReset:
+    {
+      nsStyleUIReset* ui = new (mPresContext) nsStyleUIReset();
+      if (NS_LIKELY(ui != nsnull)) {
+        aContext->SetStyle(eStyleStruct_UIReset, ui);
+      }
+      return ui;
+    }
+
+    case eStyleStruct_XUL:
+    {
+      nsStyleXUL* xul = new (mPresContext) nsStyleXUL();
+      if (NS_LIKELY(xul != nsnull)) {
+        aContext->SetStyle(eStyleStruct_XUL, xul);
+      }
+      return xul;
+    }
+
+    case eStyleStruct_Column:
+    {
+      nsStyleColumn* column = new (mPresContext) nsStyleColumn();
+      if (NS_LIKELY(column != nsnull)) {
+        aContext->SetStyle(eStyleStruct_Column, column);
+      }
+      return column;
+    }
+
+#ifdef MOZ_SVG
+    case eStyleStruct_SVG:
+    {
+      nsStyleSVG* svg = new (mPresContext) nsStyleSVG();
+      if (NS_LIKELY(svg != nsnull)) {
+        aContext->SetStyle(eStyleStruct_SVG, svg);
+      }
+      return svg;
+    }
+
+    case eStyleStruct_SVGReset:
+    {
+      nsStyleSVGReset* svgReset = new (mPresContext) nsStyleSVGReset();
+      if (NS_LIKELY(svgReset != nsnull)) {
+        aContext->SetStyle(eStyleStruct_SVGReset, svgReset);
+      }
+      return svgReset;
+    }
+#endif
+  }
+  return nsnull;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void
+nsRuleNode::AdjustLogicalBoxProp(nsStyleContext* aContext,
+                                 const nsCSSValue& aLTRSource,
+                                 const nsCSSValue& aRTLSource,
+                                 const nsCSSValue& aLTRLogicalValue,
+                                 const nsCSSValue& aRTLLogicalValue,
+                                 const nsStyleSides& aParentRect,
+                                 nsStyleSides& aRect,
+                                 PRUint8 aSide,
+                                 PRInt32 aMask,
+                                 PRBool& aInherited)
+{
+  PRBool LTRlogical = aLTRSource.GetUnit() == eCSSUnit_Enumerated &&
+                      aLTRSource.GetIntValue() == NS_BOXPROP_SOURCE_LOGICAL;
+  PRBool RTLlogical = aRTLSource.GetUnit() == eCSSUnit_Enumerated &&
+                      aRTLSource.GetIntValue() == NS_BOXPROP_SOURCE_LOGICAL;
+  if (LTRlogical || RTLlogical) {
+    
+    
+    
+    aInherited = PR_TRUE;
+    PRUint8 dir = aContext->GetStyleVisibility()->mDirection;
+
+    nsStyleCoord parentCoord;
+    nsStyleCoord coord;
+    aParentRect.Get(aSide, parentCoord);
+    if (dir == NS_STYLE_DIRECTION_LTR) {
+      if (LTRlogical &&
+          SetCoord(aLTRLogicalValue, coord, parentCoord, aMask, aContext,
+                   mPresContext, aInherited))
+        aRect.Set(aSide, coord);
+    } else {
+      if (RTLlogical &&
+          SetCoord(aRTLLogicalValue, coord, parentCoord, aMask, aContext,
+                   mPresContext, aInherited))
+        aRect.Set(aSide, coord);
+    }
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define COMPUTE_START_INHERITED(type_, ctorargs_, data_, parentdata_, rdtype_, rdata_) \
+  nsStyleContext* parentContext = aContext->GetParent();                      \
+                                                                              \
+  const nsRuleData##rdtype_& rdata_ =                                         \
+    NS_STATIC_CAST(const nsRuleData##rdtype_&, aData);                        \
+  nsStyle##type_* data_ = nsnull;                                             \
+  const nsStyle##type_* parentdata_ = nsnull;                                 \
+  PRBool inherited = aInherited;                                              \
+                                                                              \
+  if (parentContext && aRuleDetail != eRuleFullReset)                         \
+    parentdata_ = parentContext->GetStyle##type_();                           \
+  if (aStartStruct)                                                           \
+    /* We only need to compute the delta between this computed data and */    \
+    /* our computed data. */                                                  \
+    data_ = new (mPresContext)                                                \
+            nsStyle##type_(*NS_STATIC_CAST(nsStyle##type_*, aStartStruct));   \
+  else {                                                                      \
+    /* XXXldb What about eRuleFullInherited?  Which path is faster? */        \
+    if (aRuleDetail != eRuleFullMixed && aRuleDetail != eRuleFullReset) {     \
+      /* No question. We will have to inherit. Go ahead and init */           \
+      /* with inherited vals from parent. */                                  \
+      inherited = PR_TRUE;                                                    \
+      if (parentdata_)                                                        \
+        data_ = new (mPresContext) nsStyle##type_(*parentdata_);              \
+      else                                                                    \
+        data_ = new (mPresContext) nsStyle##type_ ctorargs_;                  \
+    }                                                                         \
+    else                                                                      \
+      data_ = new (mPresContext) nsStyle##type_ ctorargs_;                    \
+  }                                                                           \
+                                                                              \
+  if (NS_UNLIKELY(!data_))                                                    \
+    return nsnull;  /* Out Of Memory */                                       \
+  if (!parentdata_)                                                           \
+    parentdata_ = data_;
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define COMPUTE_START_RESET(type_, ctorargs_, data_, parentdata_, rdtype_, rdata_) \
+  nsStyleContext* parentContext = aContext->GetParent();                      \
+                                                                              \
+  const nsRuleData##rdtype_& rdata_ =                                         \
+    NS_STATIC_CAST(const nsRuleData##rdtype_&, aData);                        \
+  nsStyle##type_* data_;                                                      \
+  if (aStartStruct)                                                           \
+    /* We only need to compute the delta between this computed data and */    \
+    /* our computed data. */                                                  \
+    data_ = new (mPresContext)                                                \
+            nsStyle##type_(*NS_STATIC_CAST(nsStyle##type_*, aStartStruct));   \
+  else                                                                        \
+    data_ = new (mPresContext) nsStyle##type_ ctorargs_;                      \
+                                                                              \
+  if (NS_UNLIKELY(!data_))                                                    \
+    return nsnull;  /* Out Of Memory */                                       \
+                                                                              \
+  const nsStyle##type_* parentdata_ = data_;                                  \
+  if (parentContext &&                                                        \
+      aRuleDetail != eRuleFullReset &&                                        \
+      aRuleDetail != eRulePartialReset &&                                     \
+      aRuleDetail != eRuleNone)                                               \
+    parentdata_ = parentContext->GetStyle##type_();                           \
+  PRBool inherited = aInherited;
+
+
+
+
+
+
+
+#define COMPUTE_END_INHERITED(type_, data_)                                   \
+  if (inherited)                                                              \
+    /* We inherited, and therefore can't be cached in the rule node.  We */   \
+    /* have to be put right on the style context. */                          \
+    aContext->SetStyle(eStyleStruct_##type_, data_);                          \
+  else {                                                                      \
+    /* We were fully specified and can therefore be cached right on the */    \
+    /* rule node. */                                                          \
+    if (!aHighestNode->mStyleData.mInheritedData) {                           \
+      aHighestNode->mStyleData.mInheritedData =                               \
+        new (mPresContext) nsInheritedStyleData;                              \
+      if (NS_UNLIKELY(!aHighestNode->mStyleData.mInheritedData)) {            \
+        data_->Destroy(mPresContext);                                         \
+        return nsnull;                                                        \
+      }                                                                       \
+    }                                                                         \
+    aHighestNode->mStyleData.mInheritedData->m##type_##Data = data_;          \
+    /* Propagate the bit down. */                                             \
+    PropagateDependentBit(NS_STYLE_INHERIT_BIT(type_), aHighestNode);         \
+  }                                                                           \
+                                                                              \
+  return data_;
+
+
+
+
+
+
+
+#define COMPUTE_END_RESET(type_, data_)                                       \
+  if (inherited)                                                              \
+    /* We inherited, and therefore can't be cached in the rule node.  We */   \
+    /* have to be put right on the style context. */                          \
+    aContext->SetStyle(eStyleStruct_##type_, data_);                          \
+  else {                                                                      \
+    /* We were fully specified and can therefore be cached right on the */    \
+    /* rule node. */                                                          \
+    if (!aHighestNode->mStyleData.mResetData) {                               \
+      aHighestNode->mStyleData.mResetData =                                   \
+        new (mPresContext) nsResetStyleData;                                  \
+      if (NS_UNLIKELY(!aHighestNode->mStyleData.mResetData)) {                \
+        data_->Destroy(mPresContext);                                         \
+        return nsnull;                                                        \
+      }                                                                       \
+    }                                                                         \
+    aHighestNode->mStyleData.mResetData->m##type_##Data = data_;              \
+    /* Propagate the bit down. */                                             \
+    PropagateDependentBit(NS_STYLE_INHERIT_BIT(type_), aHighestNode);         \
+  }                                                                           \
+                                                                              \
+  return data_;
+  
+ void
+nsRuleNode::SetFont(nsPresContext* aPresContext, nsStyleContext* aContext,
+                    nscoord aMinFontSize,
+                    PRBool aIsGeneric, const nsRuleDataFont& aFontData,
+                    const nsFont& aDefaultFont, const nsStyleFont* aParentFont,
+                    nsStyleFont* aFont, PRBool& aInherited)
+{
+  const nsFont* defaultVariableFont =
+    aPresContext->GetDefaultFont(kPresContext_DefaultVariableFont_ID);
+
+  
+  if (eCSSUnit_String == aFontData.mFamily.GetUnit()) {
+    
+    
+    if (!aIsGeneric) {
+      
+      if (!aFont->mFont.name.IsEmpty())
+        aFont->mFont.name.Append((PRUnichar)',');
+      
+      aFont->mFont.name.Append(aDefaultFont.name);
+    }
+    aFont->mFont.familyNameQuirks =
+        (aPresContext->CompatibilityMode() == eCompatibility_NavQuirks &&
+         aFontData.mFamilyFromHTML);
+  }
+  else if (eCSSUnit_Enumerated == aFontData.mFamily.GetUnit()) {
+    nsSystemFontID sysID;
+    switch (aFontData.mFamily.GetIntValue()) {
+      
+      
+      case NS_STYLE_FONT_CAPTION:       sysID = eSystemFont_Caption;      break;    
+      case NS_STYLE_FONT_ICON:          sysID = eSystemFont_Icon;         break;
+      case NS_STYLE_FONT_MENU:          sysID = eSystemFont_Menu;         break;
+      case NS_STYLE_FONT_MESSAGE_BOX:   sysID = eSystemFont_MessageBox;   break;
+      case NS_STYLE_FONT_SMALL_CAPTION: sysID = eSystemFont_SmallCaption; break;
+      case NS_STYLE_FONT_STATUS_BAR:    sysID = eSystemFont_StatusBar;    break;
+      case NS_STYLE_FONT_WINDOW:        sysID = eSystemFont_Window;       break;    
+      case NS_STYLE_FONT_DOCUMENT:      sysID = eSystemFont_Document;     break;
+      case NS_STYLE_FONT_WORKSPACE:     sysID = eSystemFont_Workspace;    break;
+      case NS_STYLE_FONT_DESKTOP:       sysID = eSystemFont_Desktop;      break;
+      case NS_STYLE_FONT_INFO:          sysID = eSystemFont_Info;         break;
+      case NS_STYLE_FONT_DIALOG:        sysID = eSystemFont_Dialog;       break;
+      case NS_STYLE_FONT_BUTTON:        sysID = eSystemFont_Button;       break;
+      case NS_STYLE_FONT_PULL_DOWN_MENU:sysID = eSystemFont_PullDownMenu; break;
+      case NS_STYLE_FONT_LIST:          sysID = eSystemFont_List;         break;
+      case NS_STYLE_FONT_FIELD:         sysID = eSystemFont_Field;        break;
+    }
+
+    
+    aFont->mFont.size = defaultVariableFont->size;
+
+    if (NS_FAILED(aPresContext->DeviceContext()->GetSystemFont(sysID,
+                                                             &aFont->mFont))) {
+        aFont->mFont.name = defaultVariableFont->name;
+    }
+    
+    aFont->mSize = aFont->mFont.size =
+      nsStyleFont::ZoomText(aPresContext, aFont->mFont.size);
+
+    aFont->mFont.familyNameQuirks = PR_FALSE;
+
+    
+    
+
+#ifdef XP_WIN
+    
+    
+    
+    
+    
+    
+    switch (sysID) {
+      
+      
+      
+      
+      
+      
+      case eSystemFont_Field:
+      case eSystemFont_Button:
+      case eSystemFont_List:
+        
+        aFont->mSize = nsStyleFont::ZoomText(aPresContext,
+             PR_MAX(defaultVariableFont->size - aPresContext->PointsToAppUnits(2), 0));
+        break;
+    }
+#endif
+  }
+  else if (eCSSUnit_Inherit == aFontData.mFamily.GetUnit()) {
+    aInherited = PR_TRUE;
+    aFont->mFont.name = aParentFont->mFont.name;
+    aFont->mFont.familyNameQuirks = aParentFont->mFont.familyNameQuirks;
+  }
+  else if (eCSSUnit_Initial == aFontData.mFamily.GetUnit()) {
+    aFont->mFont.name = aDefaultFont.name;
+    aFont->mFont.familyNameQuirks = PR_FALSE;
+  }
+
+  
+  if (eCSSUnit_Enumerated == aFontData.mStyle.GetUnit()) {
+    aFont->mFont.style = aFontData.mStyle.GetIntValue();
+  }
+  else if (eCSSUnit_Normal == aFontData.mStyle.GetUnit()) {
+    aFont->mFont.style = NS_STYLE_FONT_STYLE_NORMAL;
+  }
+  else if (eCSSUnit_Inherit == aFontData.mStyle.GetUnit()) {
+    aInherited = PR_TRUE;
+    aFont->mFont.style = aParentFont->mFont.style;
+  }
+  else if (eCSSUnit_Initial == aFontData.mStyle.GetUnit()) {
+    aFont->mFont.style = aDefaultFont.style;
+  }
+
+  
+  if (eCSSUnit_Enumerated == aFontData.mVariant.GetUnit()) {
+    aFont->mFont.variant = aFontData.mVariant.GetIntValue();
+  }
+  else if (eCSSUnit_Normal == aFontData.mVariant.GetUnit()) {
+    aFont->mFont.variant = NS_STYLE_FONT_VARIANT_NORMAL;
+  }
+  else if (eCSSUnit_Inherit == aFontData.mVariant.GetUnit()) {
+    aInherited = PR_TRUE;
+    aFont->mFont.variant = aParentFont->mFont.variant;
+  }
+  else if (eCSSUnit_Initial == aFontData.mVariant.GetUnit()) {
+    aFont->mFont.variant = aDefaultFont.variant;
+  }
+
+  
+  if (eCSSUnit_Integer == aFontData.mWeight.GetUnit()) {
+    aFont->mFont.weight = aFontData.mWeight.GetIntValue();
+  }
+  else if (eCSSUnit_Enumerated == aFontData.mWeight.GetUnit()) {
+    PRInt32 value = aFontData.mWeight.GetIntValue();
+    switch (value) {
+      case NS_STYLE_FONT_WEIGHT_NORMAL:
+      case NS_STYLE_FONT_WEIGHT_BOLD:
+        aFont->mFont.weight = value;
+        break;
+      case NS_STYLE_FONT_WEIGHT_BOLDER:
+      case NS_STYLE_FONT_WEIGHT_LIGHTER:
+        aInherited = PR_TRUE;
+        aFont->mFont.weight = nsStyleUtil::ConstrainFontWeight(aParentFont->mFont.weight + value);
+        break;
+    }
+  }
+  else if (eCSSUnit_Normal == aFontData.mWeight.GetUnit()) {
+    aFont->mFont.weight = NS_STYLE_FONT_WEIGHT_NORMAL;
+  }
+  else if (eCSSUnit_Inherit == aFontData.mWeight.GetUnit()) {
+    aInherited = PR_TRUE;
+    aFont->mFont.weight = aParentFont->mFont.weight;
+  }
+  else if (eCSSUnit_Initial == aFontData.mWeight.GetUnit()) {
+    aFont->mFont.weight = aDefaultFont.weight;
+  }
+
+  
+  PRBool zoom = PR_FALSE;
+  if (eCSSUnit_Enumerated == aFontData.mSize.GetUnit()) {
+    PRInt32 value = aFontData.mSize.GetIntValue();
+    PRInt32 scaler = aPresContext->FontScaler();
+    float scaleFactor = nsStyleUtil::GetScalingFactor(scaler);
+
+    zoom = PR_TRUE;
+    if ((NS_STYLE_FONT_SIZE_XXSMALL <= value) && 
+        (value <= NS_STYLE_FONT_SIZE_XXLARGE)) {
+      aFont->mSize = nsStyleUtil::CalcFontPointSize(value, (PRInt32)aDefaultFont.size, scaleFactor, aPresContext, eFontSize_CSS);
+    }
+    else if (NS_STYLE_FONT_SIZE_XXXLARGE == value) {
+      
+      aFont->mSize = nsStyleUtil::CalcFontPointSize(value, (PRInt32)aDefaultFont.size, scaleFactor, aPresContext);
+    }
+    else if (NS_STYLE_FONT_SIZE_LARGER      == value ||
+             NS_STYLE_FONT_SIZE_SMALLER     == value) {
+
+      aInherited = PR_TRUE;
+
+      
+      
+      nscoord parentSize =
+          nsStyleFont::UnZoomText(aPresContext, aParentFont->mSize);
+
+      if (NS_STYLE_FONT_SIZE_LARGER == value) {
+        aFont->mSize = nsStyleUtil::FindNextLargerFontSize(parentSize, (PRInt32)aDefaultFont.size,
+                                                           scaleFactor, aPresContext, eFontSize_CSS);
+        NS_ASSERTION(aFont->mSize > parentSize, "FindNextLargerFontSize failed.");
+      } 
+      else {
+        aFont->mSize = nsStyleUtil::FindNextSmallerFontSize(parentSize, (PRInt32)aDefaultFont.size,
+                                                            scaleFactor, aPresContext, eFontSize_CSS);
+        NS_ASSERTION(aFont->mSize < parentSize, 
+            "FindNextSmallerFontSize failed; this is expected if parentFont size <= 1px");
+      }
+    } else {
+      NS_NOTREACHED("unexpected value");
+    }
+  }
+  else if (aFontData.mSize.IsLengthUnit()) {
+    aFont->mSize = CalcLength(aFontData.mSize, &aParentFont->mFont, nsnull, aPresContext, aInherited);
+    zoom = aFontData.mSize.IsFixedLengthUnit() ||
+           aFontData.mSize.GetUnit() == eCSSUnit_Pixel;
+  }
+  else if (eCSSUnit_Percent == aFontData.mSize.GetUnit()) {
+    aInherited = PR_TRUE;
+    aFont->mSize = NSToCoordRound(float(aParentFont->mSize) *
+                                  aFontData.mSize.GetPercentValue());
+    zoom = PR_FALSE;
+  }
+  else if (eCSSUnit_Inherit == aFontData.mSize.GetUnit()) {
+    aInherited = PR_TRUE;
+    aFont->mSize = aParentFont->mSize;
+    zoom = PR_FALSE;
+  }
+  else if (eCSSUnit_Initial == aFontData.mSize.GetUnit()) {
+    aFont->mSize = aDefaultFont.size;
+    zoom = PR_TRUE;
+  }
+
+  
+  
+  if (zoom)
+    aFont->mSize = nsStyleFont::ZoomText(aPresContext, aFont->mSize);
+
+  
+  aFont->mFont.size = PR_MAX(aFont->mSize, aMinFontSize);
+
+  
+  if (eCSSUnit_Number == aFontData.mSizeAdjust.GetUnit()) {
+    aFont->mFont.sizeAdjust = aFontData.mSizeAdjust.GetFloatValue();
+  }
+  else if (eCSSUnit_None == aFontData.mSizeAdjust.GetUnit()) {
+    aFont->mFont.sizeAdjust = 0.0f;
+  }
+  else if (eCSSUnit_Inherit == aFontData.mSizeAdjust.GetUnit()) {
+    aInherited = PR_TRUE;
+    aFont->mFont.sizeAdjust = aParentFont->mFont.sizeAdjust;
+  }
+  else if (eCSSUnit_Initial == aFontData.mSizeAdjust.GetUnit()) {
+    aFont->mFont.sizeAdjust = 0.0f;
+  }
+}
+
+
+
+
+
+ void
+nsRuleNode::SetGenericFont(nsPresContext* aPresContext,
+                           nsStyleContext* aContext,
+                           const nsRuleDataFont& aFontData,
+                           PRUint8 aGenericFontID, nscoord aMinFontSize,
+                           nsStyleFont* aFont)
+{
+  
+  nsAutoVoidArray contextPath;
+  nsStyleContext* higherContext = aContext->GetParent();
+  while (higherContext) {
+    if (higherContext->GetStyleFont()->mFlags & aGenericFontID) {
+      
+      break;
+    }
+    contextPath.AppendElement(higherContext);
+    higherContext = higherContext->GetParent();
+  }
+
+  
+
+  
+  
+  
+  const nsFont* defaultFont = aPresContext->GetDefaultFont(aGenericFontID);
+  nsStyleFont parentFont(*defaultFont);
+  parentFont.mSize = parentFont.mFont.size
+      = nsStyleFont::ZoomText(aPresContext, parentFont.mSize);
+  if (higherContext) {
+    const nsStyleFont* tmpFont = higherContext->GetStyleFont();
+    parentFont.mFlags = tmpFont->mFlags;
+    parentFont.mFont = tmpFont->mFont;
+    parentFont.mSize = tmpFont->mSize;
+  }
+  aFont->mFlags = parentFont.mFlags;
+  aFont->mFont = parentFont.mFont;
+  aFont->mSize = parentFont.mSize;
+
+  PRBool dummy;
+  PRUint32 fontBit = nsCachedStyleData::GetBitForSID(eStyleStruct_Font);
+  
+  for (PRInt32 i = contextPath.Count() - 1; i >= 0; --i) {
+    nsStyleContext* context = (nsStyleContext*)contextPath[i];
+    nsRuleDataFont fontData; 
+    nsRuleData ruleData(eStyleStruct_Font, aPresContext, context);
+    ruleData.mFontData = &fontData;
+
+    
+    for (nsRuleNode* ruleNode = context->GetRuleNode(); ruleNode;
+         ruleNode = ruleNode->GetParent()) {
+      if (ruleNode->mNoneBits & fontBit)
+        
+        break;
+
+      nsIStyleRule *rule = ruleNode->GetRule();
+      if (rule)
+        rule->MapRuleInfoInto(&ruleData);
+    }
+
+    
+    fontData.mFamily.Reset(); 
+
+    nsRuleNode::SetFont(aPresContext, context, aMinFontSize,
+                        PR_TRUE, fontData, *defaultFont,
+                        &parentFont, aFont, dummy);
+
+    
+    
+    if (ruleData.mPostResolveCallback)
+      (ruleData.mPostResolveCallback)((nsStyleStruct*)aFont, &ruleData);
+
+    parentFont.mFlags = aFont->mFlags;
+    parentFont.mFont = aFont->mFont;
+    parentFont.mSize = aFont->mSize;
+  }
+
+  
+  
+  
+  nsRuleNode::SetFont(aPresContext, aContext, aMinFontSize,
+                      PR_TRUE, aFontData, *defaultFont,
+                      &parentFont, aFont, dummy);
+}
+
+static PRBool ExtractGeneric(const nsString& aFamily, PRBool aGeneric,
+                             void *aData)
+{
+  nsAutoString *data = NS_STATIC_CAST(nsAutoString*, aData);
+
+  if (aGeneric) {
+    *data = aFamily;
+    return PR_FALSE; 
+  }
+  return PR_TRUE;
+}
+
+const nsStyleStruct* 
+nsRuleNode::ComputeFontData(nsStyleStruct* aStartStruct,
+                            const nsRuleDataStruct& aData, 
+                            nsStyleContext* aContext, 
+                            nsRuleNode* aHighestNode,
+                            const RuleDetail& aRuleDetail, PRBool aInherited)
+{
+  COMPUTE_START_INHERITED(Font, (mPresContext), font, parentFont,
+                          Font, fontData)
+
+  
+  nscoord minimumFontSize = 
+    mPresContext->GetCachedIntPref(kPresContext_MinimumFontSize);
+
+  if (minimumFontSize < 0)
+    minimumFontSize = 0;
+
+  PRBool useDocumentFonts =
+    mPresContext->GetCachedBoolPref(kPresContext_UseDocumentFonts);
+
+  
+  
+  
+  
+  if ((!useDocumentFonts || minimumFontSize > 0) && IsChrome(mPresContext)) {
+    
+    
+    useDocumentFonts = PR_TRUE;
+    minimumFontSize = 0;
+  }
+
+  
+  PRUint8 generic = kGenericFont_NONE;
+  if (eCSSUnit_String == fontData.mFamily.GetUnit()) {
+    fontData.mFamily.GetStringValue(font->mFont.name);
+    
+    
+    nsFont::GetGenericID(font->mFont.name, &generic);
+
+    
+    
+    if (!useDocumentFonts) {
+      
+      nsAutoString genericName;
+      if (!font->mFont.EnumerateFamilies(ExtractGeneric, &genericName)) {
+        
+        font->mFont.name = genericName;
+        nsFont::GetGenericID(genericName, &generic);
+
+        
+        if (generic != kGenericFont_moz_fixed &&
+            generic != kGenericFont_monospace) {
+          font->mFont.name.Truncate();
+          generic = kGenericFont_NONE;
+        }
+      } else {
+        
+        font->mFont.name.Truncate();
+        generic = kGenericFont_NONE;
+      }
+    }
+  }
+
+  
+  if (generic == kGenericFont_NONE) {
+    
+    
+    
+    const nsFont* defaultFont =
+      mPresContext->GetDefaultFont(parentFont->mFlags & NS_STYLE_FONT_FACE_MASK);
+
+    nsRuleNode::SetFont(mPresContext, aContext, minimumFontSize, PR_FALSE,
+                        fontData, *defaultFont, parentFont, font, inherited);
+  }
+  else {
+    
+    inherited = PR_TRUE;
+    nsRuleNode::SetGenericFont(mPresContext, aContext, fontData, generic,
+                               minimumFontSize, font);
+  }
+  
+  font->mFlags &= ~NS_STYLE_FONT_FACE_MASK;
+  font->mFlags |= generic;
+
+  COMPUTE_END_INHERITED(Font, font)
+}
+
+const nsStyleStruct*
+nsRuleNode::ComputeTextData(nsStyleStruct* aStartStruct,
+                            const nsRuleDataStruct& aData, 
+                            nsStyleContext* aContext, 
+                            nsRuleNode* aHighestNode,
+                            const RuleDetail& aRuleDetail, PRBool aInherited)
+{
+  COMPUTE_START_INHERITED(Text, (), text, parentText, Text, textData)
+
+    
+  SetCoord(textData.mLetterSpacing, text->mLetterSpacing, parentText->mLetterSpacing,
+           SETCOORD_LH | SETCOORD_NORMAL, aContext, mPresContext, inherited);
+
+  
+  if (eCSSUnit_Percent == textData.mLineHeight.GetUnit()) {
+    inherited = PR_TRUE;
+    
+    text->mLineHeight.SetCoordValue(
+        nscoord(float(aContext->GetStyleFont()->mFont.size) *
+                textData.mLineHeight.GetPercentValue()));
+  } else {
+    SetCoord(textData.mLineHeight, text->mLineHeight, parentText->mLineHeight,
+             SETCOORD_LH | SETCOORD_FACTOR | SETCOORD_NORMAL,
+             aContext, mPresContext, inherited);
+    if (textData.mLineHeight.IsFixedLengthUnit() ||
+        textData.mLineHeight.GetUnit() == eCSSUnit_Pixel) {
+      nscoord lh = nsStyleFont::ZoomText(mPresContext,
+                                         text->mLineHeight.GetCoordValue());
+      nscoord minimumFontSize =
+        mPresContext->GetCachedIntPref(kPresContext_MinimumFontSize);
+
+      if (minimumFontSize > 0 && !IsChrome(mPresContext)) {
+        
+        
+        
+        inherited = PR_TRUE;
+        const nsStyleFont *font = aContext->GetStyleFont();
+        if (font->mSize != 0) {
+          lh = nscoord(float(lh) * float(font->mFont.size) / float(font->mSize));
+        } else {
+          lh = minimumFontSize;
+        }
+      }
+      text->mLineHeight.SetCoordValue(lh);
+    }
+  }
+
+
+  
+  if (eCSSUnit_Enumerated == textData.mTextAlign.GetUnit()) {
+    text->mTextAlign = textData.mTextAlign.GetIntValue();
+  }
+  else if (eCSSUnit_String == textData.mTextAlign.GetUnit()) {
+    NS_NOTYETIMPLEMENTED("align string");
+  }
+  else if (eCSSUnit_Inherit == textData.mTextAlign.GetUnit()) {
+    inherited = PR_TRUE;
+    text->mTextAlign = parentText->mTextAlign;
+  }
+  else if (eCSSUnit_Initial == textData.mTextAlign.GetUnit())
+    text->mTextAlign = NS_STYLE_TEXT_ALIGN_DEFAULT;
+
+  
+  SetCoord(textData.mTextIndent, text->mTextIndent, parentText->mTextIndent,
+           SETCOORD_LPH, aContext, mPresContext, inherited);
+
+  
+  if (eCSSUnit_Enumerated == textData.mTextTransform.GetUnit()) {
+    text->mTextTransform = textData.mTextTransform.GetIntValue();
+  }
+  else if (eCSSUnit_None == textData.mTextTransform.GetUnit()) {
+    text->mTextTransform = NS_STYLE_TEXT_TRANSFORM_NONE;
+  }
+  else if (eCSSUnit_Inherit == textData.mTextTransform.GetUnit()) {
+    inherited = PR_TRUE;
+    text->mTextTransform = parentText->mTextTransform;
+  }
+
+  
+  if (eCSSUnit_Enumerated == textData.mWhiteSpace.GetUnit()) {
+    text->mWhiteSpace = textData.mWhiteSpace.GetIntValue();
+  }
+  else if (eCSSUnit_Normal == textData.mWhiteSpace.GetUnit()) {
+    text->mWhiteSpace = NS_STYLE_WHITESPACE_NORMAL;
+  }
+  else if (eCSSUnit_Inherit == textData.mWhiteSpace.GetUnit()) {
+    inherited = PR_TRUE;
+    text->mWhiteSpace = parentText->mWhiteSpace;
+  }
+
+  
+  SetCoord(textData.mWordSpacing, text->mWordSpacing, parentText->mWordSpacing,
+           SETCOORD_LH | SETCOORD_NORMAL, aContext, mPresContext, inherited);
+
+  COMPUTE_END_INHERITED(Text, text)
+}
+
+const nsStyleStruct*
+nsRuleNode::ComputeTextResetData(nsStyleStruct* aStartStruct,
+                                 const nsRuleDataStruct& aData, 
+                                 nsStyleContext* aContext, 
+                                 nsRuleNode* aHighestNode,
+                                 const RuleDetail& aRuleDetail, PRBool aInherited)
+{
+  COMPUTE_START_RESET(TextReset, (), text, parentText, Text, textData)
+  
+  
+  SetCoord(textData.mVerticalAlign, text->mVerticalAlign, parentText->mVerticalAlign,
+           SETCOORD_LPH | SETCOORD_ENUMERATED, aContext, mPresContext, inherited);
+
+  
+  if (eCSSUnit_Enumerated == textData.mDecoration.GetUnit()) {
+    PRInt32 td = textData.mDecoration.GetIntValue();
+    text->mTextDecoration = td;
+    if (td & NS_STYLE_TEXT_DECORATION_PREF_ANCHORS) {
+      PRBool underlineLinks =
+        mPresContext->GetCachedBoolPref(kPresContext_UnderlineLinks);
+      if (underlineLinks) {
+        text->mTextDecoration |= NS_STYLE_TEXT_DECORATION_UNDERLINE;
+      }
+      else {
+        text->mTextDecoration &= ~NS_STYLE_TEXT_DECORATION_UNDERLINE;
+      }
+    }
+  }
+  else if (eCSSUnit_None == textData.mDecoration.GetUnit()) {
+    text->mTextDecoration = NS_STYLE_TEXT_DECORATION_NONE;
+  }
+  else if (eCSSUnit_Inherit == textData.mDecoration.GetUnit()) {
+    inherited = PR_TRUE;
+    text->mTextDecoration = parentText->mTextDecoration;
+  }
+
+  
+  if (eCSSUnit_Normal == textData.mUnicodeBidi.GetUnit() ) {
+    text->mUnicodeBidi = NS_STYLE_UNICODE_BIDI_NORMAL;
+  }
+  else if (eCSSUnit_Enumerated == textData.mUnicodeBidi.GetUnit() ) {
+    text->mUnicodeBidi = textData.mUnicodeBidi.GetIntValue();
+  }
+  else if (eCSSUnit_Inherit == textData.mUnicodeBidi.GetUnit() ) {
+    inherited = PR_TRUE;
+    text->mUnicodeBidi = parentText->mUnicodeBidi;
+  }
+
+  COMPUTE_END_RESET(TextReset, text)
+}
+
+const nsStyleStruct*
+nsRuleNode::ComputeUserInterfaceData(nsStyleStruct* aStartStruct,
+                                     const nsRuleDataStruct& aData, 
+                                     nsStyleContext* aContext, 
+                                     nsRuleNode* aHighestNode,
+                                     const RuleDetail& aRuleDetail,
+                                     PRBool aInherited)
+{
+  COMPUTE_START_INHERITED(UserInterface, (), ui, parentUI,
+                          UserInterface, uiData)
+
+  
+  nsCSSValueList*  list = uiData.mCursor;
+  if (nsnull != list) {
+    delete [] ui->mCursorArray;
+    ui->mCursorArray = nsnull;
+    ui->mCursorArrayLength = 0;
+
+    if (eCSSUnit_Inherit == list->mValue.GetUnit()) {
+      inherited = PR_TRUE;
+      ui->mCursor = parentUI->mCursor;
+      ui->CopyCursorArrayFrom(*parentUI);
+    }
+    else {
+      
+      
+      PRUint32 arrayLength = 0;
+      for (nsCSSValueList *list2 = list;
+           list2->mValue.GetUnit() == eCSSUnit_Array; list2 = list2->mNext)
+        if (list2->mValue.GetArrayValue()->Item(0).GetImageValue())
+          ++arrayLength;
+
+      if (arrayLength != 0) {
+        ui->mCursorArray = new nsCursorImage[arrayLength];
+        if (ui->mCursorArray) {
+          ui->mCursorArrayLength = arrayLength;
+
+          for (nsCursorImage *item = ui->mCursorArray;
+               list->mValue.GetUnit() == eCSSUnit_Array;
+               list = list->mNext) {
+            nsCSSValue::Array *arr = list->mValue.GetArrayValue();
+            imgIRequest *req = arr->Item(0).GetImageValue();
+            if (req) {
+              item->mImage = req;
+              if (arr->Item(1).GetUnit() != eCSSUnit_Null) {
+                item->mHaveHotspot = PR_TRUE;
+                item->mHotspotX = arr->Item(1).GetFloatValue(),
+                item->mHotspotY = arr->Item(2).GetFloatValue();
+              }
+              ++item;
+            }
+          }
+        }
+      }
+
+      if (eCSSUnit_Enumerated == list->mValue.GetUnit()) {
+        ui->mCursor = list->mValue.GetIntValue();
+      }
+      else if (eCSSUnit_Auto == list->mValue.GetUnit()) {
+        ui->mCursor = NS_STYLE_CURSOR_AUTO;
+      }
+    }
+  }
+
+  
+  if (eCSSUnit_Enumerated == uiData.mUserInput.GetUnit()) {
+    ui->mUserInput = uiData.mUserInput.GetIntValue();
+  }
+  else if (eCSSUnit_Auto == uiData.mUserInput.GetUnit()) {
+    ui->mUserInput = NS_STYLE_USER_INPUT_AUTO;
+  }
+  else if (eCSSUnit_None == uiData.mUserInput.GetUnit()) {
+    ui->mUserInput = NS_STYLE_USER_INPUT_NONE;
+  }
+  else if (eCSSUnit_Inherit == uiData.mUserInput.GetUnit()) {
+    inherited = PR_TRUE;
+    ui->mUserInput = parentUI->mUserInput;
+  }
+
+  
+  if (eCSSUnit_Enumerated == uiData.mUserModify.GetUnit()) {
+    ui->mUserModify = uiData.mUserModify.GetIntValue();
+  }
+  else if (eCSSUnit_Inherit == uiData.mUserModify.GetUnit()) {
+    inherited = PR_TRUE;
+    ui->mUserModify = parentUI->mUserModify;
+  }
+
+  
+  if (eCSSUnit_Enumerated == uiData.mUserFocus.GetUnit()) {
+    ui->mUserFocus = uiData.mUserFocus.GetIntValue();
+  }
+  else if (eCSSUnit_None == uiData.mUserFocus.GetUnit()) {
+    ui->mUserFocus = NS_STYLE_USER_FOCUS_NONE;
+  }
+  else if (eCSSUnit_Normal == uiData.mUserFocus.GetUnit()) {
+    ui->mUserFocus = NS_STYLE_USER_FOCUS_NORMAL;
+  }
+  else if (eCSSUnit_Inherit == uiData.mUserFocus.GetUnit()) {
+    inherited = PR_TRUE;
+    ui->mUserFocus = parentUI->mUserFocus;
+  }
+
+  COMPUTE_END_INHERITED(UserInterface, ui)
+}
+
+const nsStyleStruct*
+nsRuleNode::ComputeUIResetData(nsStyleStruct* aStartStruct,
+                               const nsRuleDataStruct& aData, 
+                               nsStyleContext* aContext, 
+                               nsRuleNode* aHighestNode,
+                               const RuleDetail& aRuleDetail, PRBool aInherited)
+{
+  COMPUTE_START_RESET(UIReset, (), ui, parentUI, UserInterface, uiData)
+  
+  
+  if (eCSSUnit_Enumerated == uiData.mUserSelect.GetUnit()) {
+    ui->mUserSelect = uiData.mUserSelect.GetIntValue();
+  }
+  else if (eCSSUnit_None == uiData.mUserSelect.GetUnit()) {
+    ui->mUserSelect = NS_STYLE_USER_SELECT_NONE;
+  }
+  else if (eCSSUnit_Inherit == uiData.mUserSelect.GetUnit()) {
+    inherited = PR_TRUE;
+    ui->mUserSelect = parentUI->mUserSelect;
+  }
+
+  
+  if (eCSSUnit_Integer == uiData.mForceBrokenImageIcon.GetUnit()) {
+    ui->mForceBrokenImageIcon = uiData.mForceBrokenImageIcon.GetIntValue();
+  }
+  COMPUTE_END_RESET(UIReset, ui)
+}
+
+const nsStyleStruct*
+nsRuleNode::ComputeDisplayData(nsStyleStruct* aStartStruct,
+                               const nsRuleDataStruct& aData, 
+                               nsStyleContext* aContext, 
+                               nsRuleNode* aHighestNode,
+                               const RuleDetail& aRuleDetail, PRBool aInherited)
+{
+  COMPUTE_START_RESET(Display, (), display, parentDisplay,
+                      Display, displayData)
+  nsIAtom* pseudoTag = aContext->GetPseudoType();
+  PRBool generatedContent = (pseudoTag == nsCSSPseudoElements::before || 
+                             pseudoTag == nsCSSPseudoElements::after);
+  NS_ASSERTION(!generatedContent || parentContext,
+               "Must have parent context for generated content");
+  if (parentDisplay == display && generatedContent)
+    parentDisplay = parentContext->GetStyleDisplay();
+
+  
+  if (eCSSUnit_Number == displayData.mOpacity.GetUnit()) {
+    display->mOpacity = displayData.mOpacity.GetFloatValue();
+    if (display->mOpacity > 1.0f)
+      display->mOpacity = 1.0f;
+    if (display->mOpacity < 0.0f)
+      display->mOpacity = 0.0f;
+  }
+  else if (eCSSUnit_Inherit == displayData.mOpacity.GetUnit()) {
+    inherited = PR_TRUE;
+    display->mOpacity = parentDisplay->mOpacity;
+  }
+
+  
+  if (eCSSUnit_Enumerated == displayData.mDisplay.GetUnit()) {
+    display->mDisplay = displayData.mDisplay.GetIntValue();
+  }
+  else if (eCSSUnit_None == displayData.mDisplay.GetUnit()) {
+    display->mDisplay = NS_STYLE_DISPLAY_NONE;
+  }
+  else if (eCSSUnit_Inherit == displayData.mDisplay.GetUnit()) {
+    inherited = PR_TRUE;
+    display->mDisplay = parentDisplay->mDisplay;
+  }
+
+  
+  if (eCSSUnit_Enumerated == displayData.mAppearance.GetUnit()) {
+    display->mAppearance = displayData.mAppearance.GetIntValue();
+  }
+  else if (eCSSUnit_None == displayData.mAppearance.GetUnit()) {
+    display->mAppearance = NS_THEME_NONE;
+  }
+  else if (eCSSUnit_Inherit == displayData.mAppearance.GetUnit()) {
+    inherited = PR_TRUE;
+    display->mAppearance = parentDisplay->mAppearance;
+  }
+
+  
+  if (eCSSUnit_URL == displayData.mBinding.GetUnit()) {
+    display->mBinding = displayData.mBinding.GetURLValue();
+  }
+  else if (eCSSUnit_None == displayData.mBinding.GetUnit()) {
+    display->mBinding = nsnull;
+  }
+  else if (eCSSUnit_Inherit == displayData.mBinding.GetUnit()) {
+    inherited = PR_TRUE;
+    display->mBinding = parentDisplay->mBinding;
+  }
+
+  
+  if (eCSSUnit_Enumerated == displayData.mPosition.GetUnit()) {
+    display->mPosition = displayData.mPosition.GetIntValue();
+  }
+  else if (eCSSUnit_Inherit == displayData.mPosition.GetUnit()) {
+    inherited = PR_TRUE;
+    display->mPosition = parentDisplay->mPosition;
+  }
+
+  
+  if (eCSSUnit_Enumerated == displayData.mClear.GetUnit()) {
+    display->mBreakType = displayData.mClear.GetIntValue();
+  }
+  else if (eCSSUnit_None == displayData.mClear.GetUnit()) {
+    display->mBreakType = NS_STYLE_CLEAR_NONE;
+  }
+  else if (eCSSUnit_Inherit == displayData.mClear.GetUnit()) {
+    inherited = PR_TRUE;
+    display->mBreakType = parentDisplay->mBreakType;
+  }
+
+  
+  if (eCSSUnit_Enumerated == displayData.mBreakBefore.GetUnit()) {
+    display->mBreakBefore = (NS_STYLE_PAGE_BREAK_ALWAYS == displayData.mBreakBefore.GetIntValue());
+  }
+  if (eCSSUnit_Enumerated == displayData.mBreakAfter.GetUnit()) {
+    display->mBreakAfter = (NS_STYLE_PAGE_BREAK_ALWAYS == displayData.mBreakAfter.GetIntValue());
+  }
+  
+
+  
+  if (eCSSUnit_Enumerated == displayData.mFloat.GetUnit()) {
+    display->mFloats = displayData.mFloat.GetIntValue();
+  }
+  else if (eCSSUnit_None == displayData.mFloat.GetUnit()) {
+    display->mFloats = NS_STYLE_FLOAT_NONE;
+  }
+  else if (eCSSUnit_Inherit == displayData.mFloat.GetUnit()) {
+    inherited = PR_TRUE;
+    display->mFloats = parentDisplay->mFloats;
+  }
+
+  
+  if (eCSSUnit_Enumerated == displayData.mOverflowX.GetUnit()) {
+    display->mOverflowX = displayData.mOverflowX.GetIntValue();
+  }
+  else if (eCSSUnit_Auto == displayData.mOverflowX.GetUnit()) {
+    display->mOverflowX = NS_STYLE_OVERFLOW_AUTO;
+  }
+  else if (eCSSUnit_Inherit == displayData.mOverflowX.GetUnit()) {
+    inherited = PR_TRUE;
+    display->mOverflowX = parentDisplay->mOverflowX;
+  }
+
+  
+  if (eCSSUnit_Enumerated == displayData.mOverflowY.GetUnit()) {
+    display->mOverflowY = displayData.mOverflowY.GetIntValue();
+  }
+  else if (eCSSUnit_Auto == displayData.mOverflowY.GetUnit()) {
+    display->mOverflowY = NS_STYLE_OVERFLOW_AUTO;
+  }
+  else if (eCSSUnit_Inherit == displayData.mOverflowY.GetUnit()) {
+    inherited = PR_TRUE;
+    display->mOverflowY = parentDisplay->mOverflowY;
+  }
+
+  
+  
+  
+  if (display->mOverflowX != display->mOverflowY &&
+      (display->mOverflowX == NS_STYLE_OVERFLOW_VISIBLE ||
+       display->mOverflowX == NS_STYLE_OVERFLOW_CLIP ||
+       display->mOverflowY == NS_STYLE_OVERFLOW_VISIBLE ||
+       display->mOverflowY == NS_STYLE_OVERFLOW_CLIP)) {
+    
+    
+    inherited = PR_TRUE;
+
+    
+    
+    if (display->mOverflowX == NS_STYLE_OVERFLOW_CLIP)
+      display->mOverflowX = NS_STYLE_OVERFLOW_HIDDEN;
+    if (display->mOverflowY == NS_STYLE_OVERFLOW_CLIP)
+      display->mOverflowY = NS_STYLE_OVERFLOW_HIDDEN;
+
+    
+    
+    if (display->mOverflowX == NS_STYLE_OVERFLOW_VISIBLE)
+      display->mOverflowX = NS_STYLE_OVERFLOW_AUTO;
+    if (display->mOverflowY == NS_STYLE_OVERFLOW_VISIBLE)
+      display->mOverflowY = NS_STYLE_OVERFLOW_AUTO;
+  }
+
+  
+  if (eCSSUnit_Inherit == displayData.mClip.mTop.GetUnit()) { 
+    inherited = PR_TRUE;
+    display->mClipFlags = parentDisplay->mClipFlags;
+    display->mClip = parentDisplay->mClip;
+  }
+  else {
+    PRBool  fullAuto = PR_TRUE;
+
+    display->mClipFlags = 0; 
+
+    if (eCSSUnit_Auto == displayData.mClip.mTop.GetUnit()) {
+      display->mClip.y = 0;
+      display->mClipFlags |= NS_STYLE_CLIP_TOP_AUTO;
+    } 
+    else if (displayData.mClip.mTop.IsLengthUnit()) {
+      display->mClip.y = CalcLength(displayData.mClip.mTop, nsnull, aContext, mPresContext, inherited);
+      fullAuto = PR_FALSE;
+    }
+    if (eCSSUnit_Auto == displayData.mClip.mBottom.GetUnit()) {
+      
+      
+      
+      display->mClip.height = NS_MAXSIZE;
+      display->mClipFlags |= NS_STYLE_CLIP_BOTTOM_AUTO;
+    } 
+    else if (displayData.mClip.mBottom.IsLengthUnit()) {
+      display->mClip.height = CalcLength(displayData.mClip.mBottom, nsnull, aContext, mPresContext, inherited) -
+                              display->mClip.y;
+      fullAuto = PR_FALSE;
+    }
+    if (eCSSUnit_Auto == displayData.mClip.mLeft.GetUnit()) {
+      display->mClip.x = 0;
+      display->mClipFlags |= NS_STYLE_CLIP_LEFT_AUTO;
+    } 
+    else if (displayData.mClip.mLeft.IsLengthUnit()) {
+      display->mClip.x = CalcLength(displayData.mClip.mLeft, nsnull, aContext, mPresContext, inherited);
+      fullAuto = PR_FALSE;
+    }
+    if (eCSSUnit_Auto == displayData.mClip.mRight.GetUnit()) {
+      
+      
+      
+      display->mClip.width = NS_MAXSIZE;
+      display->mClipFlags |= NS_STYLE_CLIP_RIGHT_AUTO;
+    } 
+    else if (displayData.mClip.mRight.IsLengthUnit()) {
+      display->mClip.width = CalcLength(displayData.mClip.mRight, nsnull, aContext, mPresContext, inherited) -
+                             display->mClip.x;
+      fullAuto = PR_FALSE;
+    }
+    display->mClipFlags &= ~NS_STYLE_CLIP_TYPE_MASK;
+    if (fullAuto) {
+      display->mClipFlags |= NS_STYLE_CLIP_AUTO;
+    }
+    else {
+      display->mClipFlags |= NS_STYLE_CLIP_RECT;
+    }
+  }
+
+  
+  if (generatedContent) {
+    
+    
+    
+    
+    
+    
+    
+
+    if (display->mPosition != NS_STYLE_POSITION_STATIC)
+      display->mPosition = NS_STYLE_POSITION_STATIC;
+    if (display->mFloats != NS_STYLE_FLOAT_NONE)
+      display->mFloats = NS_STYLE_FLOAT_NONE;
+
+    PRUint8 displayValue = display->mDisplay;
+    if (displayValue != NS_STYLE_DISPLAY_NONE &&
+        displayValue != NS_STYLE_DISPLAY_INLINE &&
+        displayValue != NS_STYLE_DISPLAY_INLINE_BLOCK) {
+      inherited = PR_TRUE;
+      
+      if (parentDisplay->IsBlockLevel() ||
+          parentDisplay->mDisplay == NS_STYLE_DISPLAY_INLINE_BLOCK) {
+        
+        
+        
+        
+        if (displayValue != NS_STYLE_DISPLAY_BLOCK &&
+            displayValue != NS_STYLE_DISPLAY_MARKER)
+          display->mDisplay = NS_STYLE_DISPLAY_BLOCK;
+      } else {
+        
+        
+        
+        
+        display->mDisplay = NS_STYLE_DISPLAY_INLINE;
+      }
+    }
+  }
+  else if (display->mDisplay != NS_STYLE_DISPLAY_NONE) {
+    
+    
+    
+
+    
+    
+    if (display->mFloats != NS_STYLE_FLOAT_NONE) {
+      EnsureBlockDisplay(display->mDisplay);
+      
+      
+      
+      
+      inherited = PR_TRUE;
+    } else if (nsCSSPseudoElements::firstLetter == pseudoTag) {
+      
+      
+      display->mDisplay = NS_STYLE_DISPLAY_INLINE;
+      
+      
+      
+      
+      inherited = PR_TRUE;
+    }
+    
+    
+    
+    if (display->IsAbsolutelyPositioned()) {
+      
+      
+      
+      display->mOriginalDisplay = display->mDisplay;
+      EnsureBlockDisplay(display->mDisplay);
+      display->mFloats = NS_STYLE_FLOAT_NONE;
+      
+      
+      
+      
+      inherited = PR_TRUE;
+    }
+  }
+
+  COMPUTE_END_RESET(Display, display)
+}
+
+const nsStyleStruct*
+nsRuleNode::ComputeVisibilityData(nsStyleStruct* aStartStruct,
+                                  const nsRuleDataStruct& aData, 
+                                  nsStyleContext* aContext, 
+                                  nsRuleNode* aHighestNode,
+                                  const RuleDetail& aRuleDetail, PRBool aInherited)
+{
+  COMPUTE_START_INHERITED(Visibility, (mPresContext),
+                          visibility, parentVisibility,
+                          Display, displayData)
+
+  
+  if (eCSSUnit_Enumerated == displayData.mDirection.GetUnit()) {
+    visibility->mDirection = displayData.mDirection.GetIntValue();
+    if (NS_STYLE_DIRECTION_RTL == visibility->mDirection)
+      mPresContext->SetBidiEnabled(PR_TRUE);
+  }
+  else if (eCSSUnit_Inherit == displayData.mDirection.GetUnit()) {
+    inherited = PR_TRUE;
+    visibility->mDirection = parentVisibility->mDirection;
+  }
+
+  
+  if (eCSSUnit_Enumerated == displayData.mVisibility.GetUnit()) {
+    visibility->mVisible = displayData.mVisibility.GetIntValue();
+  }
+  else if (eCSSUnit_Inherit == displayData.mVisibility.GetUnit()) {
+    inherited = PR_TRUE;
+    visibility->mVisible = parentVisibility->mVisible;
+  }
+
+  
+  
+  if (eCSSUnit_String == displayData.mLang.GetUnit()) {
+    if (!gLangService) {
+      CallGetService(NS_LANGUAGEATOMSERVICE_CONTRACTID, &gLangService);
+    }
+
+    if (gLangService) {
+      nsAutoString lang;
+      displayData.mLang.GetStringValue(lang);
+      visibility->mLangGroup = gLangService->LookupLanguage(lang);
+    }
+  } 
+
+  COMPUTE_END_INHERITED(Visibility, visibility)
+}
+
+const nsStyleStruct*
+nsRuleNode::ComputeColorData(nsStyleStruct* aStartStruct,
+                             const nsRuleDataStruct& aData, 
+                             nsStyleContext* aContext, 
+                             nsRuleNode* aHighestNode,
+                             const RuleDetail& aRuleDetail, PRBool aInherited)
+{
+  COMPUTE_START_INHERITED(Color, (mPresContext), color, parentColor,
+                          Color, colorData)
+
+  
+  
+  
+  if (colorData.mColor.GetUnit() == eCSSUnit_Integer && 
+      colorData.mColor.GetIntValue() == NS_COLOR_CURRENTCOLOR) {
+    color->mColor = parentColor->mColor;
+    inherited = PR_TRUE;
+  } else {
+    SetColor(colorData.mColor, parentColor->mColor, mPresContext, aContext, color->mColor, 
+             inherited);
+  }
+
+  COMPUTE_END_INHERITED(Color, color)
+}
+
+const nsStyleStruct*
+nsRuleNode::ComputeBackgroundData(nsStyleStruct* aStartStruct,
+                                  const nsRuleDataStruct& aData, 
+                                  nsStyleContext* aContext, 
+                                  nsRuleNode* aHighestNode,
+                                  const RuleDetail& aRuleDetail, PRBool aInherited)
+{
+  COMPUTE_START_RESET(Background, (mPresContext), bg, parentBG,
+                      Color, colorData)
+
+  
+  PRUint8 parentFlags = parentBG->mBackgroundFlags;
+
+  
+  if (eCSSUnit_Inherit == colorData.mBackColor.GetUnit()) { 
+    bg->mBackgroundColor = parentBG->mBackgroundColor;
+    bg->mBackgroundFlags &= ~NS_STYLE_BG_COLOR_TRANSPARENT;
+    bg->mBackgroundFlags |= (parentFlags & NS_STYLE_BG_COLOR_TRANSPARENT);
+    inherited = PR_TRUE;
+  }
+  else if (SetColor(colorData.mBackColor, parentBG->mBackgroundColor, 
+                    mPresContext, aContext, bg->mBackgroundColor, inherited)) {
+    bg->mBackgroundFlags &= ~NS_STYLE_BG_COLOR_TRANSPARENT;
+    
+    
+    if (!mPresContext->GetCachedBoolPref(kPresContext_UseDocumentColors) &&
+        !IsChrome(mPresContext)) {
+      bg->mBackgroundColor = mPresContext->DefaultBackgroundColor();
+    }
+  }
+  else if (eCSSUnit_Enumerated == colorData.mBackColor.GetUnit()) {
+    
+    bg->mBackgroundFlags |= NS_STYLE_BG_COLOR_TRANSPARENT;
+  }
+
+  
+  if (eCSSUnit_Image == colorData.mBackImage.GetUnit()) {
+    bg->mBackgroundImage = colorData.mBackImage.GetImageValue();
+  }
+  else if (eCSSUnit_None == colorData.mBackImage.GetUnit()) {
+    bg->mBackgroundImage = nsnull;
+  }
+  else if (eCSSUnit_Inherit == colorData.mBackImage.GetUnit()) {
+    inherited = PR_TRUE;
+    bg->mBackgroundImage = parentBG->mBackgroundImage;
+  }
+
+  if (bg->mBackgroundImage) {
+    bg->mBackgroundFlags &= ~NS_STYLE_BG_IMAGE_NONE;
+  } else {
+    bg->mBackgroundFlags |= NS_STYLE_BG_IMAGE_NONE;
+  }
+
+  
+  if (eCSSUnit_Enumerated == colorData.mBackRepeat.GetUnit()) {
+    bg->mBackgroundRepeat = colorData.mBackRepeat.GetIntValue();
+  }
+  else if (eCSSUnit_Inherit == colorData.mBackRepeat.GetUnit()) {
+    inherited = PR_TRUE;
+    bg->mBackgroundRepeat = parentBG->mBackgroundRepeat;
+  }
+
+  
+  if (eCSSUnit_Enumerated == colorData.mBackAttachment.GetUnit()) {
+    bg->mBackgroundAttachment = colorData.mBackAttachment.GetIntValue();
+  }
+  else if (eCSSUnit_Inherit == colorData.mBackAttachment.GetUnit()) {
+    inherited = PR_TRUE;
+    bg->mBackgroundAttachment = parentBG->mBackgroundAttachment;
+  }
+
+  
+  if (eCSSUnit_Enumerated == colorData.mBackClip.GetUnit()) {
+    bg->mBackgroundClip = colorData.mBackClip.GetIntValue();
+  }
+  else if (eCSSUnit_Inherit == colorData.mBackClip.GetUnit()) {
+    bg->mBackgroundClip = parentBG->mBackgroundClip;
+  }
+  else if (eCSSUnit_Initial == colorData.mBackClip.GetUnit()) {
+    bg->mBackgroundClip = NS_STYLE_BG_CLIP_BORDER;
+  }
+
+  
+  if (eCSSUnit_Enumerated == colorData.mBackInlinePolicy.GetUnit()) {
+    bg->mBackgroundInlinePolicy = colorData.mBackInlinePolicy.GetIntValue();
+  }
+  else if (eCSSUnit_Inherit == colorData.mBackInlinePolicy.GetUnit()) {
+    bg->mBackgroundInlinePolicy = parentBG->mBackgroundInlinePolicy;
+  }
+  else if (eCSSUnit_Initial == colorData.mBackInlinePolicy.GetUnit()) {
+    bg->mBackgroundInlinePolicy = NS_STYLE_BG_INLINE_POLICY_CONTINUOUS;
+  }
+
+  
+  if (eCSSUnit_Enumerated == colorData.mBackOrigin.GetUnit()) {
+    bg->mBackgroundOrigin = colorData.mBackOrigin.GetIntValue();
+  }
+  else if (eCSSUnit_Inherit == colorData.mBackOrigin.GetUnit()) {
+    bg->mBackgroundOrigin = parentBG->mBackgroundOrigin;
+  }
+  else if (eCSSUnit_Initial == colorData.mBackOrigin.GetUnit()) {
+    bg->mBackgroundOrigin = NS_STYLE_BG_ORIGIN_PADDING;
+  }
+
+  
+  if (eCSSUnit_Percent == colorData.mBackPositionX.GetUnit()) {
+    bg->mBackgroundXPosition.mFloat = colorData.mBackPositionX.GetPercentValue();
+    bg->mBackgroundFlags |= NS_STYLE_BG_X_POSITION_PERCENT;
+    bg->mBackgroundFlags &= ~NS_STYLE_BG_X_POSITION_LENGTH;
+  }
+  else if (colorData.mBackPositionX.IsLengthUnit()) {
+    bg->mBackgroundXPosition.mCoord = CalcLength(colorData.mBackPositionX, nsnull, 
+                                                 aContext, mPresContext, inherited);
+    bg->mBackgroundFlags |= NS_STYLE_BG_X_POSITION_LENGTH;
+    bg->mBackgroundFlags &= ~NS_STYLE_BG_X_POSITION_PERCENT;
+  }
+  else if (eCSSUnit_Enumerated == colorData.mBackPositionX.GetUnit()) {
+    bg->mBackgroundXPosition.mFloat = (float)colorData.mBackPositionX.GetIntValue() / 100.0f;
+    bg->mBackgroundFlags |= NS_STYLE_BG_X_POSITION_PERCENT;
+    bg->mBackgroundFlags &= ~NS_STYLE_BG_X_POSITION_LENGTH;
+  }
+  else if (eCSSUnit_Inherit == colorData.mBackPositionX.GetUnit()) {
+    inherited = PR_TRUE;
+    bg->mBackgroundXPosition = parentBG->mBackgroundXPosition;
+    bg->mBackgroundFlags &= ~(NS_STYLE_BG_X_POSITION_LENGTH | NS_STYLE_BG_X_POSITION_PERCENT);
+    bg->mBackgroundFlags |= (parentFlags & (NS_STYLE_BG_X_POSITION_LENGTH | NS_STYLE_BG_X_POSITION_PERCENT));
+  }
+
+  if (eCSSUnit_Percent == colorData.mBackPositionY.GetUnit()) {
+    bg->mBackgroundYPosition.mFloat = colorData.mBackPositionY.GetPercentValue();
+    bg->mBackgroundFlags |= NS_STYLE_BG_Y_POSITION_PERCENT;
+    bg->mBackgroundFlags &= ~NS_STYLE_BG_Y_POSITION_LENGTH;
+  }
+  else if (colorData.mBackPositionY.IsLengthUnit()) {
+    bg->mBackgroundYPosition.mCoord = CalcLength(colorData.mBackPositionY, nsnull,
+                                                 aContext, mPresContext, inherited);
+    bg->mBackgroundFlags |= NS_STYLE_BG_Y_POSITION_LENGTH;
+    bg->mBackgroundFlags &= ~NS_STYLE_BG_Y_POSITION_PERCENT;
+  }
+  else if (eCSSUnit_Enumerated == colorData.mBackPositionY.GetUnit()) {
+    bg->mBackgroundYPosition.mFloat = (float)colorData.mBackPositionY.GetIntValue() / 100.0f;
+    bg->mBackgroundFlags |= NS_STYLE_BG_Y_POSITION_PERCENT;
+    bg->mBackgroundFlags &= ~NS_STYLE_BG_Y_POSITION_LENGTH;
+  }
+  else if (eCSSUnit_Inherit == colorData.mBackPositionY.GetUnit()) {
+    inherited = PR_TRUE;
+    bg->mBackgroundYPosition = parentBG->mBackgroundYPosition;
+    bg->mBackgroundFlags &= ~(NS_STYLE_BG_Y_POSITION_LENGTH | NS_STYLE_BG_Y_POSITION_PERCENT);
+    bg->mBackgroundFlags |= (parentFlags & (NS_STYLE_BG_Y_POSITION_LENGTH | NS_STYLE_BG_Y_POSITION_PERCENT));
+  }
+
+  COMPUTE_END_RESET(Background, bg)
+}
+
+const nsStyleStruct*
+nsRuleNode::ComputeMarginData(nsStyleStruct* aStartStruct,
+                              const nsRuleDataStruct& aData, 
+                              nsStyleContext* aContext, 
+                              nsRuleNode* aHighestNode,
+                              const RuleDetail& aRuleDetail, PRBool aInherited)
+{
+  COMPUTE_START_RESET(Margin, (), margin, parentMargin, Margin, marginData)
+
+  
+  nsStyleCoord  coord;
+  nsStyleCoord  parentCoord;
+  NS_FOR_CSS_SIDES(side) {
+    parentMargin->mMargin.Get(side, parentCoord);
+    if (SetCoord(marginData.mMargin.*(nsCSSRect::sides[side]),
+                 coord, parentCoord, SETCOORD_LPAH,
+                 aContext, mPresContext, inherited)) {
+      margin->mMargin.Set(side, coord);
+    }
+  }
+
+  AdjustLogicalBoxProp(aContext,
+                       marginData.mMarginLeftLTRSource,
+                       marginData.mMarginLeftRTLSource,
+                       marginData.mMarginStart, marginData.mMarginEnd,
+                       parentMargin->mMargin, margin->mMargin,
+                       NS_SIDE_LEFT, SETCOORD_LPAH, inherited);
+  AdjustLogicalBoxProp(aContext,
+                       marginData.mMarginRightLTRSource,
+                       marginData.mMarginRightRTLSource,
+                       marginData.mMarginEnd, marginData.mMarginStart,
+                       parentMargin->mMargin, margin->mMargin,
+                       NS_SIDE_RIGHT, SETCOORD_LPAH, inherited);
+
+  margin->RecalcData();
+  COMPUTE_END_RESET(Margin, margin)
+}
+
+const nsStyleStruct* 
+nsRuleNode::ComputeBorderData(nsStyleStruct* aStartStruct,
+                              const nsRuleDataStruct& aData, 
+                              nsStyleContext* aContext, 
+                              nsRuleNode* aHighestNode,
+                              const RuleDetail& aRuleDetail, PRBool aInherited)
+{
+  COMPUTE_START_RESET(Border, (mPresContext), border, parentBorder,
+                      Margin, marginData)
+
+  
+  nsStyleCoord  coord;
+  nsStyleCoord  parentCoord;
+  { 
+    NS_FOR_CSS_SIDES(side) {
+      const nsCSSValue &value = marginData.mBorderWidth.*(nsCSSRect::sides[side]);
+      NS_ASSERTION(eCSSUnit_Percent != value.GetUnit(),
+                   "Percentage borders not implemented yet "
+                   "If implementing, make sure to fix all consumers of "
+                   "nsStyleBorder, the IsPercentageAwareChild method, "
+                   "the nsAbsoluteContainingBlock::FrameDependsOnContainer "
+                   "method, the "
+                   "nsLineLayout::IsPercentageAwareReplacedElement method "
+                   "and probably some other places");
+      if (eCSSUnit_Enumerated == value.GetUnit()) {
+        NS_ASSERTION(value.GetIntValue() == NS_STYLE_BORDER_WIDTH_THIN ||
+                     value.GetIntValue() == NS_STYLE_BORDER_WIDTH_MEDIUM ||
+                     value.GetIntValue() == NS_STYLE_BORDER_WIDTH_THICK,
+                     "Unexpected enum value");
+        border->SetBorderWidth(side,
+                               (mPresContext->GetBorderWidthTable())[value.GetIntValue()]);
+      }
+      else if (SetCoord(value, coord, parentCoord, SETCOORD_LENGTH, aContext,
+                        mPresContext, inherited)) {
+        if (coord.GetUnit() == eStyleUnit_Coord) {
+          border->SetBorderWidth(side, coord.GetCoordValue());
+        }
+#ifdef DEBUG
+        else {
+          NS_ASSERTION(coord.GetUnit() == eStyleUnit_Chars, "unexpected unit");
+          NS_WARNING("Border set in chars; we don't handle that");
+        }
+#endif        
+      }
+      else if (eCSSUnit_Inherit == value.GetUnit()) {
+        inherited = PR_TRUE;
+        border->SetBorderWidth(side, parentBorder->GetBorderWidth(side));
+      }
+      else if (eCSSUnit_Initial == value.GetUnit()) {
+        border->SetBorderWidth(side,
+          (mPresContext->GetBorderWidthTable())[NS_STYLE_BORDER_WIDTH_MEDIUM]);
+      }
+    }
+  }
+
+  
+  const nsCSSRect& ourStyle = marginData.mBorderStyle;
+  { 
+    NS_FOR_CSS_SIDES(side) {
+      const nsCSSValue &value = ourStyle.*(nsCSSRect::sides[side]);
+      nsCSSUnit unit = value.GetUnit();
+      if (eCSSUnit_Enumerated == unit) {
+        border->SetBorderStyle(side, value.GetIntValue());
+      }
+      else if (eCSSUnit_None == unit || eCSSUnit_Initial == unit) {
+        border->SetBorderStyle(side, NS_STYLE_BORDER_STYLE_NONE);
+      }
+      else if (eCSSUnit_Inherit == unit) {
+        inherited = PR_TRUE;
+        border->SetBorderStyle(side, parentBorder->GetBorderStyle(side));
+      }
+    }
+  }
+
+  
+  nscolor borderColor;
+  nscolor unused = NS_RGB(0,0,0);
+  
+  { 
+    NS_FOR_CSS_SIDES(side) {
+      nsCSSValueList* list =
+          marginData.mBorderColors.*(nsCSSValueListRect::sides[side]);
+      if (list) {
+        
+        
+        border->EnsureBorderColors();
+        border->ClearBorderColors(side);
+        while (list) {
+          if (SetColor(list->mValue, unused, mPresContext, aContext, borderColor, inherited))
+            border->AppendBorderColor(side, borderColor, PR_FALSE);
+          else if (eCSSUnit_Enumerated == list->mValue.GetUnit() &&
+                   NS_STYLE_COLOR_TRANSPARENT == list->mValue.GetIntValue())
+            border->AppendBorderColor(side, nsnull, PR_TRUE);
+          list = list->mNext;
+        }
+      }
+    }
+  }
+
+  
+  const nsCSSRect& ourBorderColor = marginData.mBorderColor;
+  PRBool transparent;
+  PRBool foreground;
+
+  { 
+    NS_FOR_CSS_SIDES(side) {
+      const nsCSSValue &value = ourBorderColor.*(nsCSSRect::sides[side]);
+      if (eCSSUnit_Inherit == value.GetUnit()) {
+        if (parentContext) {
+          inherited = PR_TRUE;
+          parentBorder->GetBorderColor(side, borderColor,
+                                       transparent, foreground);
+          if (transparent)
+            border->SetBorderTransparent(side);
+          else if (foreground) {
+            
+            
+            
+            
+            
+            border->SetBorderColor(side, parentContext->GetStyleColor()->mColor);
+          } else
+            border->SetBorderColor(side, borderColor);
+        } else {
+          
+          border->SetBorderToForeground(side);
+        }
+      }
+      else if (SetColor(value, unused, mPresContext, aContext, borderColor, inherited)) {
+        border->SetBorderColor(side, borderColor);
+      }
+      else if (eCSSUnit_Enumerated == value.GetUnit()) {
+        switch (value.GetIntValue()) {
+          case NS_STYLE_COLOR_TRANSPARENT:
+            border->SetBorderTransparent(side);
+            break;
+          case NS_STYLE_COLOR_MOZ_USE_TEXT_COLOR:
+            border->SetBorderToForeground(side);
+            break;
+        }
+      }
+    }
+  }
+
+  
+  { 
+    NS_FOR_CSS_SIDES(side) {
+      parentBorder->mBorderRadius.Get(side, parentCoord);
+      if (SetCoord(marginData.mBorderRadius.*(nsCSSRect::sides[side]), coord,
+                   parentCoord, SETCOORD_LPH, aContext, mPresContext,
+                   inherited))
+        border->mBorderRadius.Set(side, coord);
+    }
+  }
+
+  
+  if (eCSSUnit_Enumerated == marginData.mFloatEdge.GetUnit())
+    border->mFloatEdge = marginData.mFloatEdge.GetIntValue();
+  else if (eCSSUnit_Inherit == marginData.mFloatEdge.GetUnit()) {
+    inherited = PR_TRUE;
+    border->mFloatEdge = parentBorder->mFloatEdge;
+  }
+
+  COMPUTE_END_RESET(Border, border)
+}
+  
+const nsStyleStruct*
+nsRuleNode::ComputePaddingData(nsStyleStruct* aStartStruct,
+                               const nsRuleDataStruct& aData, 
+                               nsStyleContext* aContext, 
+                               nsRuleNode* aHighestNode,
+                               const RuleDetail& aRuleDetail, PRBool aInherited)
+{
+  COMPUTE_START_RESET(Padding, (), padding, parentPadding, Margin, marginData)
+
+  
+  nsStyleCoord  coord;
+  nsStyleCoord  parentCoord;
+  NS_FOR_CSS_SIDES(side) {
+    parentPadding->mPadding.Get(side, parentCoord);
+    if (SetCoord(marginData.mPadding.*(nsCSSRect::sides[side]),
+                 coord, parentCoord, SETCOORD_LPH,
+                 aContext, mPresContext, inherited)) {
+      padding->mPadding.Set(side, coord);
+    }
+  }
+
+  AdjustLogicalBoxProp(aContext,
+                       marginData.mPaddingLeftLTRSource,
+                       marginData.mPaddingLeftRTLSource,
+                       marginData.mPaddingStart, marginData.mPaddingEnd,
+                       parentPadding->mPadding, padding->mPadding,
+                       NS_SIDE_LEFT, SETCOORD_LPH, inherited);
+  AdjustLogicalBoxProp(aContext,
+                       marginData.mPaddingRightLTRSource,
+                       marginData.mPaddingRightRTLSource,
+                       marginData.mPaddingEnd, marginData.mPaddingStart,
+                       parentPadding->mPadding, padding->mPadding,
+                       NS_SIDE_RIGHT, SETCOORD_LPH, inherited);
+
+  padding->RecalcData();
+  COMPUTE_END_RESET(Padding, padding)
+}
+
+const nsStyleStruct*
+nsRuleNode::ComputeOutlineData(nsStyleStruct* aStartStruct,
+                               const nsRuleDataStruct& aData, 
+                               nsStyleContext* aContext, 
+                               nsRuleNode* aHighestNode,
+                               const RuleDetail& aRuleDetail, PRBool aInherited)
+{
+  COMPUTE_START_RESET(Outline, (mPresContext), outline, parentOutline,
+                      Margin, marginData)
+
+  
+  SetCoord(marginData.mOutlineWidth, outline->mOutlineWidth, parentOutline->mOutlineWidth,
+           SETCOORD_LEH, aContext, mPresContext, inherited);
+
+  
+  SetCoord(marginData.mOutlineOffset, outline->mOutlineOffset, parentOutline->mOutlineOffset,
+           SETCOORD_LH, aContext, mPresContext, inherited);
+  
+
+  
+  nscolor outlineColor;
+  nscolor unused = NS_RGB(0,0,0);
+  if (eCSSUnit_Inherit == marginData.mOutlineColor.GetUnit()) {
+    if (parentContext) {
+      inherited = PR_TRUE;
+      if (parentOutline->GetOutlineColor(outlineColor))
+        outline->SetOutlineColor(outlineColor);
+      else {
+#ifdef GFX_HAS_INVERT
+        outline->SetOutlineInitialColor();
+#else
+        
+        
+        
+        
+        
+        outline->SetOutlineColor(parentContext->GetStyleColor()->mColor);
+#endif
+      }
+    } else {
+      outline->SetOutlineInitialColor();
+    }
+  }
+  else if (SetColor(marginData.mOutlineColor, unused, mPresContext, aContext, outlineColor, inherited))
+    outline->SetOutlineColor(outlineColor);
+  else if (eCSSUnit_Enumerated == marginData.mOutlineColor.GetUnit())
+    outline->SetOutlineInitialColor();
+
+
+  nsStyleCoord  coord;
+  nsStyleCoord  parentCoord;
+  { 
+    NS_FOR_CSS_SIDES(side) {
+      parentOutline->mOutlineRadius.Get(side, parentCoord);
+      if (SetCoord(marginData.mOutlineRadius.*(nsCSSRect::sides[side]), coord,
+                   parentCoord, SETCOORD_LPH, aContext, mPresContext,
+                   inherited))
+        outline->mOutlineRadius.Set(side, coord);
+    }
+  }
+
+  
+  if (eCSSUnit_Enumerated == marginData.mOutlineStyle.GetUnit())
+    outline->SetOutlineStyle(marginData.mOutlineStyle.GetIntValue());
+  else if (eCSSUnit_None == marginData.mOutlineStyle.GetUnit())
+    outline->SetOutlineStyle(NS_STYLE_BORDER_STYLE_NONE);
+  else if (eCSSUnit_Auto == marginData.mOutlineStyle.GetUnit()) {
+    outline->SetOutlineStyle(NS_STYLE_BORDER_STYLE_AUTO);
+  } else if (eCSSUnit_Inherit == marginData.mOutlineStyle.GetUnit()) {
+    inherited = PR_TRUE;
+    outline->SetOutlineStyle(parentOutline->GetOutlineStyle());
+  }
+
+  outline->RecalcData(mPresContext);
+  COMPUTE_END_RESET(Outline, outline)
+}
+
+const nsStyleStruct* 
+nsRuleNode::ComputeListData(nsStyleStruct* aStartStruct,
+                            const nsRuleDataStruct& aData, 
+                            nsStyleContext* aContext, 
+                            nsRuleNode* aHighestNode,
+                            const RuleDetail& aRuleDetail, PRBool aInherited)
+{
+  COMPUTE_START_INHERITED(List, (), list, parentList, List, listData)
+
+  
+  if (eCSSUnit_Enumerated == listData.mType.GetUnit()) {
+    list->mListStyleType = listData.mType.GetIntValue();
+  }
+  else if (eCSSUnit_None == listData.mType.GetUnit()) {
+    list->mListStyleType = NS_STYLE_LIST_STYLE_NONE;
+  }
+  else if (eCSSUnit_Inherit == listData.mType.GetUnit()) {
+    inherited = PR_TRUE;
+    list->mListStyleType = parentList->mListStyleType;
+  }
+
+  
+  if (eCSSUnit_Image == listData.mImage.GetUnit()) {
+    list->mListStyleImage = listData.mImage.GetImageValue();
+  }
+  else if (eCSSUnit_None == listData.mImage.GetUnit()) {
+    list->mListStyleImage = nsnull;
+  }
+  else if (eCSSUnit_Inherit == listData.mImage.GetUnit()) {
+    inherited = PR_TRUE;
+    list->mListStyleImage = parentList->mListStyleImage;
+  }
+
+  
+  if (eCSSUnit_Enumerated == listData.mPosition.GetUnit()) {
+    list->mListStylePosition = listData.mPosition.GetIntValue();
+  }
+  else if (eCSSUnit_Inherit == listData.mPosition.GetUnit()) {
+    inherited = PR_TRUE;
+    list->mListStylePosition = parentList->mListStylePosition;
+  }
+
+  
+  if (eCSSUnit_Inherit == listData.mImageRegion.mTop.GetUnit()) { 
+    inherited = PR_TRUE;
+    list->mImageRegion = parentList->mImageRegion;
+  }
+  else {
+    if (eCSSUnit_Auto == listData.mImageRegion.mTop.GetUnit())
+      list->mImageRegion.y = 0;
+    else if (listData.mImageRegion.mTop.IsLengthUnit())
+      list->mImageRegion.y = CalcLength(listData.mImageRegion.mTop, nsnull, aContext, mPresContext, inherited);
+      
+    if (eCSSUnit_Auto == listData.mImageRegion.mBottom.GetUnit())
+      list->mImageRegion.height = 0;
+    else if (listData.mImageRegion.mBottom.IsLengthUnit())
+      list->mImageRegion.height = CalcLength(listData.mImageRegion.mBottom, nsnull, aContext, 
+                                            mPresContext, inherited) - list->mImageRegion.y;
+  
+    if (eCSSUnit_Auto == listData.mImageRegion.mLeft.GetUnit())
+      list->mImageRegion.x = 0;
+    else if (listData.mImageRegion.mLeft.IsLengthUnit())
+      list->mImageRegion.x = CalcLength(listData.mImageRegion.mLeft, nsnull, aContext, mPresContext, inherited);
+      
+    if (eCSSUnit_Auto == listData.mImageRegion.mRight.GetUnit())
+      list->mImageRegion.width = 0;
+    else if (listData.mImageRegion.mRight.IsLengthUnit())
+      list->mImageRegion.width = CalcLength(listData.mImageRegion.mRight, nsnull, aContext, mPresContext, inherited) -
+                                list->mImageRegion.x;
+  }
+
+  COMPUTE_END_INHERITED(List, list)
+}
+
+const nsStyleStruct* 
+nsRuleNode::ComputePositionData(nsStyleStruct* aStartStruct,
+                                const nsRuleDataStruct& aData, 
+                                nsStyleContext* aContext, 
+                                nsRuleNode* aHighestNode,
+                                const RuleDetail& aRuleDetail, PRBool aInherited)
+{
+  COMPUTE_START_RESET(Position, (), pos, parentPos, Position, posData)
+
+  
+  nsStyleCoord  coord;
+  nsStyleCoord  parentCoord;
+  NS_FOR_CSS_SIDES(side) {
+    parentPos->mOffset.Get(side, parentCoord);
+    if (SetCoord(posData.mOffset.*(nsCSSRect::sides[side]),
+                 coord, parentCoord, SETCOORD_LPAH,
+                 aContext, mPresContext, inherited)) {
+      pos->mOffset.Set(side, coord);
+    }
+  }
+
+  if (posData.mWidth.GetUnit() == eCSSUnit_Proportional)
+    pos->mWidth.SetIntValue((PRInt32)(posData.mWidth.GetFloatValue()), eStyleUnit_Proportional);
+  else 
+    SetCoord(posData.mWidth, pos->mWidth, parentPos->mWidth,
+             SETCOORD_LPAH, aContext, mPresContext, inherited);
+  SetCoord(posData.mMinWidth, pos->mMinWidth, parentPos->mMinWidth,
+           SETCOORD_LPH, aContext, mPresContext, inherited);
+  if (! SetCoord(posData.mMaxWidth, pos->mMaxWidth, parentPos->mMaxWidth,
+                 SETCOORD_LPH, aContext, mPresContext, inherited)) {
+    if (eCSSUnit_None == posData.mMaxWidth.GetUnit()) {
+      pos->mMaxWidth.Reset();
+    }
+  }
+
+  SetCoord(posData.mHeight, pos->mHeight, parentPos->mHeight,
+           SETCOORD_LPAH, aContext, mPresContext, inherited);
+  SetCoord(posData.mMinHeight, pos->mMinHeight, parentPos->mMinHeight,
+           SETCOORD_LPH, aContext, mPresContext, inherited);
+  if (! SetCoord(posData.mMaxHeight, pos->mMaxHeight, parentPos->mMaxHeight,
+                 SETCOORD_LPH, aContext, mPresContext, inherited)) {
+    if (eCSSUnit_None == posData.mMaxHeight.GetUnit()) {
+      pos->mMaxHeight.Reset();
+    }
+  }
+
+  
+  if (eCSSUnit_Enumerated == posData.mBoxSizing.GetUnit()) {
+    pos->mBoxSizing = posData.mBoxSizing.GetIntValue();
+  }
+  else if (eCSSUnit_Inherit == posData.mBoxSizing.GetUnit()) {
+    inherited = PR_TRUE;
+    pos->mBoxSizing = parentPos->mBoxSizing;
+  }
+
+  
+  if (! SetCoord(posData.mZIndex, pos->mZIndex, parentPos->mZIndex,
+                 SETCOORD_IA, aContext, nsnull, inherited)) {
+    if (eCSSUnit_Inherit == posData.mZIndex.GetUnit()) {
+      
+      inherited = PR_TRUE;
+      pos->mZIndex = parentPos->mZIndex;
+    }
+  }
+
+  COMPUTE_END_RESET(Position, pos)
+}
+
+const nsStyleStruct* 
+nsRuleNode::ComputeTableData(nsStyleStruct* aStartStruct,
+                             const nsRuleDataStruct& aData, 
+                             nsStyleContext* aContext, 
+                             nsRuleNode* aHighestNode,
+                             const RuleDetail& aRuleDetail, PRBool aInherited)
+{
+  COMPUTE_START_RESET(Table, (), table, parentTable, Table, tableData)
+
+  
+  if (eCSSUnit_Enumerated == tableData.mLayout.GetUnit())
+    table->mLayoutStrategy = tableData.mLayout.GetIntValue();
+  else if (eCSSUnit_Auto == tableData.mLayout.GetUnit())
+    table->mLayoutStrategy = NS_STYLE_TABLE_LAYOUT_AUTO;
+  else if (eCSSUnit_Inherit == tableData.mLayout.GetUnit()) {
+    inherited = PR_TRUE;
+    table->mLayoutStrategy = parentTable->mLayoutStrategy;
+  }
+
+  
+  if (eCSSUnit_Enumerated == tableData.mRules.GetUnit())
+    table->mRules = tableData.mRules.GetIntValue();
+
+  
+  if (eCSSUnit_Enumerated == tableData.mFrame.GetUnit())
+    table->mFrame = tableData.mFrame.GetIntValue();
+
+  
+  if (eCSSUnit_Enumerated == tableData.mCols.GetUnit() ||
+      eCSSUnit_Integer == tableData.mCols.GetUnit())
+    table->mCols = tableData.mCols.GetIntValue();
+
+  
+  if (eCSSUnit_Enumerated == tableData.mSpan.GetUnit() ||
+      eCSSUnit_Integer == tableData.mSpan.GetUnit())
+    table->mSpan = tableData.mSpan.GetIntValue();
+    
+  COMPUTE_END_RESET(Table, table)
+}
+
+const nsStyleStruct* 
+nsRuleNode::ComputeTableBorderData(nsStyleStruct* aStartStruct,
+                                   const nsRuleDataStruct& aData, 
+                                   nsStyleContext* aContext, 
+                                   nsRuleNode* aHighestNode,
+                                   const RuleDetail& aRuleDetail, PRBool aInherited)
+{
+  COMPUTE_START_INHERITED(TableBorder, (mPresContext), table, parentTable,
+                          Table, tableData)
+
+  
+  if (eCSSUnit_Enumerated == tableData.mBorderCollapse.GetUnit()) {
+    table->mBorderCollapse = tableData.mBorderCollapse.GetIntValue();
+  }
+  else if (eCSSUnit_Inherit == tableData.mBorderCollapse.GetUnit()) {
+    inherited = PR_TRUE;
+    table->mBorderCollapse = parentTable->mBorderCollapse;
+  }
+
+  
+  SetCoord(tableData.mBorderSpacing.mXValue, table->mBorderSpacingX,
+           parentTable->mBorderSpacingX, SETCOORD_LH,
+           aContext, mPresContext, inherited);
+  
+  SetCoord(tableData.mBorderSpacing.mYValue, table->mBorderSpacingY,
+           parentTable->mBorderSpacingY, SETCOORD_LH,
+           aContext, mPresContext, inherited);
+
+  
+  if (eCSSUnit_Enumerated == tableData.mCaptionSide.GetUnit()) {
+    table->mCaptionSide = tableData.mCaptionSide.GetIntValue();
+  }
+  else if (eCSSUnit_Inherit == tableData.mCaptionSide.GetUnit()) {
+    inherited = PR_TRUE;
+    table->mCaptionSide = parentTable->mCaptionSide;
+  }
+
+  
+  if (eCSSUnit_Enumerated == tableData.mEmptyCells.GetUnit()) {
+    table->mEmptyCells = tableData.mEmptyCells.GetIntValue();
+  }
+  else if (eCSSUnit_Inherit == tableData.mEmptyCells.GetUnit()) {
+    inherited = PR_TRUE;
+    table->mEmptyCells = parentTable->mEmptyCells;
+  }
+
+  COMPUTE_END_INHERITED(TableBorder, table)
+}
+
+const nsStyleStruct* 
+nsRuleNode::ComputeContentData(nsStyleStruct* aStartStruct,
+                               const nsRuleDataStruct& aData, 
+                               nsStyleContext* aContext, 
+                               nsRuleNode* aHighestNode,
+                               const RuleDetail& aRuleDetail, PRBool aInherited)
+{
+  COMPUTE_START_RESET(Content, (), content, parentContent,
+                      Content, contentData)
+
+  
+  PRUint32 count;
+  nsAutoString  buffer;
+  nsCSSValueList* contentValue = contentData.mContent;
+  if (contentValue) {
+    if (eCSSUnit_Normal == contentValue->mValue.GetUnit() ||
+        eCSSUnit_Initial == contentValue->mValue.GetUnit()) {
+      
+      content->AllocateContents(0);
+    }
+    else if (eCSSUnit_Inherit == contentValue->mValue.GetUnit()) {
+      inherited = PR_TRUE;
+      count = parentContent->ContentCount();
+      if (NS_SUCCEEDED(content->AllocateContents(count))) {
+        while (0 < count--) {
+          content->ContentAt(count) = parentContent->ContentAt(count);
+        }
+      }
+    }
+    else {
+      count = 0;
+      while (contentValue) {
+        count++;
+        contentValue = contentValue->mNext;
+      }
+      if (NS_SUCCEEDED(content->AllocateContents(count))) {
+        const nsAutoString  nullStr;
+        count = 0;
+        contentValue = contentData.mContent;
+        while (contentValue) {
+          const nsCSSValue& value = contentValue->mValue;
+          nsCSSUnit unit = value.GetUnit();
+          nsStyleContentType type;
+          nsStyleContentData &data = content->ContentAt(count++);
+          switch (unit) {
+            case eCSSUnit_String:   type = eStyleContentType_String;    break;
+            case eCSSUnit_Image:    type = eStyleContentType_Image;       break;
+            case eCSSUnit_Attr:     type = eStyleContentType_Attr;      break;
+            case eCSSUnit_Counter:  type = eStyleContentType_Counter;   break;
+            case eCSSUnit_Counters: type = eStyleContentType_Counters;  break;
+            case eCSSUnit_Enumerated:
+              switch (value.GetIntValue()) {
+                case NS_STYLE_CONTENT_OPEN_QUOTE:     
+                  type = eStyleContentType_OpenQuote;     break;
+                case NS_STYLE_CONTENT_CLOSE_QUOTE:
+                  type = eStyleContentType_CloseQuote;    break;
+                case NS_STYLE_CONTENT_NO_OPEN_QUOTE:
+                  type = eStyleContentType_NoOpenQuote;   break;
+                case NS_STYLE_CONTENT_NO_CLOSE_QUOTE:
+                  type = eStyleContentType_NoCloseQuote;  break;
+                case NS_STYLE_CONTENT_ALT_CONTENT:
+                  type = eStyleContentType_AltContent;    break;
+                default:
+                  NS_ERROR("bad content value");
+              }
+              break;
+            default:
+              NS_ERROR("bad content type");
+          }
+          data.mType = type;
+          if (type == eStyleContentType_Image) {
+            data.mContent.mImage = value.GetImageValue();
+            NS_IF_ADDREF(data.mContent.mImage);
+          }
+          else if (type <= eStyleContentType_Attr) {
+            value.GetStringValue(buffer);
+            Unquote(buffer);
+            data.mContent.mString = NS_strdup(buffer.get());
+          }
+          else if (type <= eStyleContentType_Counters) {
+            data.mContent.mCounters = value.GetArrayValue();
+            data.mContent.mCounters->AddRef();
+          }
+          else {
+            data.mContent.mString = nsnull;
+          }
+          contentValue = contentValue->mNext;
+        }
+      } 
+    }
+  }
+
+  
+  nsCSSCounterData* ourIncrement = contentData.mCounterIncrement;
+  if (ourIncrement) {
+    if (eCSSUnit_None == ourIncrement->mCounter.GetUnit() ||
+        eCSSUnit_Initial == ourIncrement->mCounter.GetUnit()) {
+      content->AllocateCounterIncrements(0);
+    }
+    else if (eCSSUnit_Inherit == ourIncrement->mCounter.GetUnit()) {
+      inherited = PR_TRUE;
+      count = parentContent->CounterIncrementCount();
+      if (NS_SUCCEEDED(content->AllocateCounterIncrements(count))) {
+        while (0 < count--) {
+          const nsStyleCounterData *data =
+            parentContent->GetCounterIncrementAt(count);
+          content->SetCounterIncrementAt(count, data->mCounter, data->mValue);
+        }
+      }
+    }
+    else if (eCSSUnit_String == ourIncrement->mCounter.GetUnit()) {
+      count = 0;
+      while (ourIncrement) {
+        count++;
+        ourIncrement = ourIncrement->mNext;
+      }
+      if (NS_SUCCEEDED(content->AllocateCounterIncrements(count))) {
+        count = 0;
+        ourIncrement = contentData.mCounterIncrement;
+        while (ourIncrement) {
+          PRInt32 increment;
+          if (eCSSUnit_Integer == ourIncrement->mValue.GetUnit()) {
+            increment = ourIncrement->mValue.GetIntValue();
+          }
+          else {
+            increment = 1;
+          }
+          ourIncrement->mCounter.GetStringValue(buffer);
+          content->SetCounterIncrementAt(count++, buffer, increment);
+          ourIncrement = ourIncrement->mNext;
+        }
+      }
+    }
+  }
+
+  
+  nsCSSCounterData* ourReset = contentData.mCounterReset;
+  if (ourReset) {
+    if (eCSSUnit_None == ourReset->mCounter.GetUnit() ||
+        eCSSUnit_Initial == ourReset->mCounter.GetUnit()) {
+      content->AllocateCounterResets(0);
+    }
+    else if (eCSSUnit_Inherit == ourReset->mCounter.GetUnit()) {
+      inherited = PR_TRUE;
+      count = parentContent->CounterResetCount();
+      if (NS_SUCCEEDED(content->AllocateCounterResets(count))) {
+        while (0 < count--) {
+          const nsStyleCounterData *data =
+            parentContent->GetCounterResetAt(count);
+          content->SetCounterResetAt(count, data->mCounter, data->mValue);
+        }
+      }
+    }
+    else if (eCSSUnit_String == ourReset->mCounter.GetUnit()) {
+      count = 0;
+      while (ourReset) {
+        count++;
+        ourReset = ourReset->mNext;
+      }
+      if (NS_SUCCEEDED(content->AllocateCounterResets(count))) {
+        count = 0;
+        ourReset = contentData.mCounterReset;
+        while (ourReset) {
+          PRInt32 reset;
+          if (eCSSUnit_Integer == ourReset->mValue.GetUnit()) {
+            reset = ourReset->mValue.GetIntValue();
+          }
+          else {
+            reset = 0;
+          }
+          ourReset->mCounter.GetStringValue(buffer);
+          content->SetCounterResetAt(count++, buffer, reset);
+          ourReset = ourReset->mNext;
+        }
+      }
+    }
+  }
+
+  
+  SetCoord(contentData.mMarkerOffset, content->mMarkerOffset, parentContent->mMarkerOffset,
+           SETCOORD_LH | SETCOORD_AUTO, aContext, mPresContext, inherited);
+    
+  COMPUTE_END_RESET(Content, content)
+}
+
+const nsStyleStruct* 
+nsRuleNode::ComputeQuotesData(nsStyleStruct* aStartStruct,
+                              const nsRuleDataStruct& aData, 
+                              nsStyleContext* aContext, 
+                              nsRuleNode* aHighestNode,
+                              const RuleDetail& aRuleDetail, PRBool aInherited)
+{
+  COMPUTE_START_INHERITED(Quotes, (), quotes, parentQuotes,
+                          Content, contentData)
+
+  
+  PRUint32 count;
+  nsAutoString  buffer;
+  nsCSSQuotes* ourQuotes = contentData.mQuotes;
+  if (ourQuotes) {
+    nsAutoString  closeBuffer;
+    if (eCSSUnit_Inherit == ourQuotes->mOpen.GetUnit()) {
+      inherited = PR_TRUE;
+      count = parentQuotes->QuotesCount();
+      if (NS_SUCCEEDED(quotes->AllocateQuotes(count))) {
+        while (0 < count--) {
+          parentQuotes->GetQuotesAt(count, buffer, closeBuffer);
+          quotes->SetQuotesAt(count, buffer, closeBuffer);
+        }
+      }
+    }
+    else if (eCSSUnit_None == ourQuotes->mOpen.GetUnit()) {
+      quotes->AllocateQuotes(0);
+    }
+    else if (eCSSUnit_String == ourQuotes->mOpen.GetUnit()) {
+      count = 0;
+      while (ourQuotes) {
+        count++;
+        ourQuotes = ourQuotes->mNext;
+      }
+      if (NS_SUCCEEDED(quotes->AllocateQuotes(count))) {
+        count = 0;
+        ourQuotes = contentData.mQuotes;
+        while (ourQuotes) {
+          ourQuotes->mOpen.GetStringValue(buffer);
+          ourQuotes->mClose.GetStringValue(closeBuffer);
+          Unquote(buffer);
+          Unquote(closeBuffer);
+          quotes->SetQuotesAt(count++, buffer, closeBuffer);
+          ourQuotes = ourQuotes->mNext;
+        }
+      }
+    }
+  }
+
+  COMPUTE_END_INHERITED(Quotes, quotes)
+}
+
+const nsStyleStruct* 
+nsRuleNode::ComputeXULData(nsStyleStruct* aStartStruct,
+                           const nsRuleDataStruct& aData, 
+                           nsStyleContext* aContext, 
+                           nsRuleNode* aHighestNode,
+                           const RuleDetail& aRuleDetail, PRBool aInherited)
+{
+  COMPUTE_START_RESET(XUL, (), xul, parentXUL, XUL, xulData)
+
+  
+  if (eCSSUnit_Enumerated == xulData.mBoxAlign.GetUnit()) {
+    xul->mBoxAlign = xulData.mBoxAlign.GetIntValue();
+  }
+  else if (eCSSUnit_Inherit == xulData.mBoxAlign.GetUnit()) {
+    inherited = PR_TRUE;
+    xul->mBoxAlign = parentXUL->mBoxAlign;
+  }
+
+  
+  if (eCSSUnit_Enumerated == xulData.mBoxDirection.GetUnit()) {
+    xul->mBoxDirection = xulData.mBoxDirection.GetIntValue();
+  }
+  else if (eCSSUnit_Inherit == xulData.mBoxDirection.GetUnit()) {
+    inherited = PR_TRUE;
+    xul->mBoxDirection = parentXUL->mBoxDirection;
+  }
+
+  
+  if (eCSSUnit_Number == xulData.mBoxFlex.GetUnit()) {
+    xul->mBoxFlex = xulData.mBoxFlex.GetFloatValue();
+  }
+  else if (eCSSUnit_Inherit == xulData.mBoxOrient.GetUnit()) {
+    inherited = PR_TRUE;
+    xul->mBoxFlex = parentXUL->mBoxFlex;
+  }
+
+  
+  if (eCSSUnit_Enumerated == xulData.mBoxOrient.GetUnit()) {
+    xul->mBoxOrient = xulData.mBoxOrient.GetIntValue();
+  }
+  else if (eCSSUnit_Inherit == xulData.mBoxOrient.GetUnit()) {
+    inherited = PR_TRUE;
+    xul->mBoxOrient = parentXUL->mBoxOrient;
+  }
+
+  
+  if (eCSSUnit_Enumerated == xulData.mBoxPack.GetUnit()) {
+    xul->mBoxPack = xulData.mBoxPack.GetIntValue();
+  }
+  else if (eCSSUnit_Inherit == xulData.mBoxPack.GetUnit()) {
+    inherited = PR_TRUE;
+    xul->mBoxPack = parentXUL->mBoxPack;
+  }
+
+  
+  if (eCSSUnit_Integer == xulData.mBoxOrdinal.GetUnit()) {
+    xul->mBoxOrdinal = xulData.mBoxOrdinal.GetIntValue();
+  }
+
+  COMPUTE_END_RESET(XUL, xul)
+}
+
+const nsStyleStruct* 
+nsRuleNode::ComputeColumnData(nsStyleStruct* aStartStruct,
+                              const nsRuleDataStruct& aData, 
+                              nsStyleContext* aContext, 
+                              nsRuleNode* aHighestNode,
+                              const RuleDetail& aRuleDetail, PRBool aInherited)
+{
+  COMPUTE_START_RESET(Column, (), column, parent, Column, columnData)
+
+  
+  SetCoord(columnData.mColumnWidth,
+           column->mColumnWidth, parent->mColumnWidth, SETCOORD_LAH,
+           aContext, mPresContext, inherited);
+
+  
+  SetCoord(columnData.mColumnGap,
+           column->mColumnGap, parent->mColumnGap,
+           SETCOORD_LPH | SETCOORD_NORMAL, aContext, mPresContext, inherited);
+
+  
+  if (eCSSUnit_Auto == columnData.mColumnCount.GetUnit()) {
+    column->mColumnCount = NS_STYLE_COLUMN_COUNT_AUTO;
+  } else if (eCSSUnit_Integer == columnData.mColumnCount.GetUnit()) {
+    column->mColumnCount = columnData.mColumnCount.GetIntValue();
+    
+    column->mColumnCount = PR_MIN(column->mColumnCount, 1000);
+  } else if (eCSSUnit_Inherit == columnData.mColumnCount.GetUnit()) {
+    inherited = PR_TRUE;
+    column->mColumnCount = parent->mColumnCount;
+  }
+
+  COMPUTE_END_RESET(Column, column)
+}
+
+#ifdef MOZ_SVG
+static void
+SetSVGPaint(const nsCSSValuePair& aValue, const nsStyleSVGPaint& parentPaint,
+            nsPresContext* aPresContext, nsStyleContext *aContext, 
+            nsStyleSVGPaint& aResult, PRBool& aInherited)
+{
+  if (aValue.mXValue.GetUnit() == eCSSUnit_Inherit) {
+    aResult = parentPaint;
+    aInherited = PR_TRUE;
+  } else if (aValue.mXValue.GetUnit() == eCSSUnit_None) {
+    aResult.mType = eStyleSVGPaintType_None;
+  } else if (aValue.mXValue.GetUnit() == eCSSUnit_URL) {
+    aResult.mType = eStyleSVGPaintType_Server;
+    aResult.mPaint.mPaintServer = aValue.mXValue.GetURLValue();
+    NS_IF_ADDREF(aResult.mPaint.mPaintServer);
+    if (aValue.mYValue.GetUnit() == eCSSUnit_None) {
+      aResult.mFallbackColor = NS_RGBA(0, 0, 0, 0);
+    } else {
+      NS_ASSERTION(aValue.mYValue.GetUnit() != eCSSUnit_Inherit, "cannot inherit fallback colour");
+      SetColor(aValue.mYValue, NS_RGB(0, 0, 0), aPresContext, aContext, aResult.mFallbackColor, aInherited);
+    }
+  } else if (SetColor(aValue.mXValue, parentPaint.mPaint.mColor, aPresContext, aContext, aResult.mPaint.mColor, aInherited)) {
+    aResult.mType = eStyleSVGPaintType_Color;
+  }
+}
+
+static void
+SetSVGOpacity(const nsCSSValue& aValue, float parentOpacity, float& opacity, PRBool& aInherited)
+{
+  if (aValue.GetUnit() == eCSSUnit_Inherit) {
+    opacity = parentOpacity;
+    aInherited = PR_TRUE;
+  }
+  else if (aValue.GetUnit() == eCSSUnit_Number) {
+    opacity = aValue.GetFloatValue();
+    opacity = PR_MAX(opacity, 0.0f);
+    opacity = PR_MIN(opacity, 1.0f);
+  }
+}
+
+const nsStyleStruct* 
+nsRuleNode::ComputeSVGData(nsStyleStruct* aStartStruct,
+                           const nsRuleDataStruct& aData, 
+                           nsStyleContext* aContext, 
+                           nsRuleNode* aHighestNode,
+                           const RuleDetail& aRuleDetail, PRBool aInherited)
+{
+  COMPUTE_START_INHERITED(SVG, (), svg, parentSVG, SVG, SVGData)
+
+  
+  if (eCSSUnit_Enumerated == SVGData.mClipRule.GetUnit()) {
+    svg->mClipRule = SVGData.mClipRule.GetIntValue();
+  }
+  else if (eCSSUnit_Inherit == SVGData.mClipRule.GetUnit()) {
+    inherited = PR_TRUE;
+    svg->mClipRule = parentSVG->mClipRule;
+  }
+
+  
+  if (eCSSUnit_Enumerated == SVGData.mColorInterpolation.GetUnit()) {
+    svg->mColorInterpolation = SVGData.mColorInterpolation.GetIntValue();
+  }
+  else if (eCSSUnit_Auto == SVGData.mColorInterpolation.GetUnit()) {
+    svg->mColorInterpolation = NS_STYLE_COLOR_INTERPOLATION_AUTO;
+  }
+  else if (eCSSUnit_Inherit == SVGData.mColorInterpolation.GetUnit()) {
+    inherited = PR_TRUE;
+    svg->mColorInterpolation = parentSVG->mColorInterpolation;
+  }
+  else if (eCSSUnit_Initial == SVGData.mColorInterpolation.GetUnit()) {
+    svg->mColorInterpolation = NS_STYLE_COLOR_INTERPOLATION_SRGB;
+  }
+
+  
+  if (eCSSUnit_Enumerated == SVGData.mColorInterpolationFilters.GetUnit()) {
+    svg->mColorInterpolationFilters = SVGData.mColorInterpolationFilters.GetIntValue();
+  }
+  else if (eCSSUnit_Auto == SVGData.mColorInterpolationFilters.GetUnit()) {
+    svg->mColorInterpolationFilters = NS_STYLE_COLOR_INTERPOLATION_AUTO;
+  }
+  else if (eCSSUnit_Inherit == SVGData.mColorInterpolationFilters.GetUnit()) {
+    inherited = PR_TRUE;
+    svg->mColorInterpolationFilters = parentSVG->mColorInterpolationFilters;
+  }
+  else if (eCSSUnit_Initial == SVGData.mColorInterpolation.GetUnit()) {
+    svg->mColorInterpolation = NS_STYLE_COLOR_INTERPOLATION_LINEARRGB;
+  }
+
+  
+  SetSVGPaint(SVGData.mFill, parentSVG->mFill, mPresContext, aContext, svg->mFill, inherited);
+
+  
+  SetSVGOpacity(SVGData.mFillOpacity, parentSVG->mFillOpacity, svg->mFillOpacity, inherited);
+
+  
+  if (eCSSUnit_Enumerated == SVGData.mFillRule.GetUnit()) {
+    svg->mFillRule = SVGData.mFillRule.GetIntValue();
+  }
+  else if (eCSSUnit_Inherit == SVGData.mFillRule.GetUnit()) {
+    inherited = PR_TRUE;
+    svg->mFillRule = parentSVG->mFillRule;
+  }
+
+  
+  if (eCSSUnit_URL == SVGData.mMarkerEnd.GetUnit()) {
+    svg->mMarkerEnd = SVGData.mMarkerEnd.GetURLValue();
+  } else if (eCSSUnit_None == SVGData.mMarkerEnd.GetUnit()) {
+    svg->mMarkerEnd = nsnull;
+  } else if (eCSSUnit_Inherit == SVGData.mMarkerEnd.GetUnit()) {
+    inherited = PR_TRUE;
+    svg->mMarkerEnd = parentSVG->mMarkerEnd;
+  }
+
+  
+  if (eCSSUnit_URL == SVGData.mMarkerMid.GetUnit()) {
+    svg->mMarkerMid = SVGData.mMarkerMid.GetURLValue();
+  } else if (eCSSUnit_None == SVGData.mMarkerMid.GetUnit()) {
+    svg->mMarkerMid = nsnull;
+  } else if (eCSSUnit_Inherit == SVGData.mMarkerMid.GetUnit()) {
+    inherited = PR_TRUE;
+    svg->mMarkerMid = parentSVG->mMarkerMid;
+  }
+
+  
+  if (eCSSUnit_URL == SVGData.mMarkerStart.GetUnit()) {
+    svg->mMarkerStart = SVGData.mMarkerStart.GetURLValue();
+  } else if (eCSSUnit_None == SVGData.mMarkerStart.GetUnit()) {
+    svg->mMarkerStart = nsnull;
+  } else if (eCSSUnit_Inherit == SVGData.mMarkerStart.GetUnit()) {
+    inherited = PR_TRUE;
+    svg->mMarkerStart = parentSVG->mMarkerStart;
+  }
+
+  
+  if (eCSSUnit_Enumerated == SVGData.mPointerEvents.GetUnit()) {
+    svg->mPointerEvents = SVGData.mPointerEvents.GetIntValue();
+  } else if (eCSSUnit_None == SVGData.mPointerEvents.GetUnit()) {
+    svg->mPointerEvents = NS_STYLE_POINTER_EVENTS_NONE;
+  } else if (eCSSUnit_Inherit == SVGData.mPointerEvents.GetUnit()) {
+    inherited = PR_TRUE;
+    svg->mPointerEvents = parentSVG->mPointerEvents;
+  }
+
+  
+  if (eCSSUnit_Enumerated == SVGData.mShapeRendering.GetUnit()) {
+    svg->mShapeRendering = SVGData.mShapeRendering.GetIntValue();
+  }
+  else if (eCSSUnit_Auto == SVGData.mShapeRendering.GetUnit()) {
+    svg->mShapeRendering = NS_STYLE_SHAPE_RENDERING_AUTO;
+  }
+  else if (eCSSUnit_Inherit == SVGData.mShapeRendering.GetUnit()) {
+    inherited = PR_TRUE;
+    svg->mShapeRendering = parentSVG->mShapeRendering;
+  }
+
+  
+  SetSVGPaint(SVGData.mStroke, parentSVG->mStroke, mPresContext, aContext, svg->mStroke, inherited);
+
+  
+  nsCSSValueList *list = SVGData.mStrokeDasharray;
+  if (list) {
+    if (eCSSUnit_Inherit == list->mValue.GetUnit()) {
+      
+      if (!svg->mStrokeDasharray) {
+        inherited = PR_TRUE;
+        svg->mStrokeDasharrayLength = parentSVG->mStrokeDasharrayLength;
+        if (svg->mStrokeDasharrayLength) {
+          svg->mStrokeDasharray = new nsStyleCoord[svg->mStrokeDasharrayLength];
+          if (svg->mStrokeDasharray)
+            memcpy(svg->mStrokeDasharray,
+                   parentSVG->mStrokeDasharray,
+                   svg->mStrokeDasharrayLength * sizeof(float));
+          else
+            svg->mStrokeDasharrayLength = 0;
+        }
+      }
+    } else {
+      delete [] svg->mStrokeDasharray;
+      svg->mStrokeDasharray = nsnull;
+      svg->mStrokeDasharrayLength = 0;
+      
+      if (eCSSUnit_Initial != list->mValue.GetUnit() &&
+          eCSSUnit_None    != list->mValue.GetUnit()) {
+        
+        nsCSSValueList *value = SVGData.mStrokeDasharray;
+        while (nsnull != value) {
+          ++svg->mStrokeDasharrayLength;
+          value = value->mNext;
+        }
+        
+        NS_ASSERTION(svg->mStrokeDasharrayLength != 0, "no dasharray items");
+        
+        svg->mStrokeDasharray = new nsStyleCoord[svg->mStrokeDasharrayLength];
+
+        if (svg->mStrokeDasharray) {
+          value = SVGData.mStrokeDasharray;
+          PRUint32 i = 0;
+          while (nsnull != value) {
+            SetCoord(value->mValue,
+                     svg->mStrokeDasharray[i++], nsnull,
+                     SETCOORD_LP | SETCOORD_FACTOR,
+                     aContext, mPresContext, inherited);
+            value = value->mNext;
+          }
+        } else
+          svg->mStrokeDasharrayLength = 0;
+      }
+    }
+  }
+
+  
+  SetCoord(SVGData.mStrokeDashoffset,
+           svg->mStrokeDashoffset, parentSVG->mStrokeDashoffset,
+           SETCOORD_LPH | SETCOORD_FACTOR,
+           aContext, mPresContext, inherited);
+
+  
+  if (eCSSUnit_Enumerated == SVGData.mStrokeLinecap.GetUnit()) {
+    svg->mStrokeLinecap = SVGData.mStrokeLinecap.GetIntValue();
+  }
+  else if (eCSSUnit_Inherit == SVGData.mStrokeLinecap.GetUnit()) {
+    inherited = PR_TRUE;
+    svg->mStrokeLinecap = parentSVG->mStrokeLinecap;
+  }
+
+  
+  if (eCSSUnit_Enumerated == SVGData.mStrokeLinejoin.GetUnit()) {
+    svg->mStrokeLinejoin = SVGData.mStrokeLinejoin.GetIntValue();
+  }
+  else if (eCSSUnit_Inherit == SVGData.mStrokeLinejoin.GetUnit()) {
+    inherited = PR_TRUE;
+    svg->mStrokeLinejoin = parentSVG->mStrokeLinejoin;
+  }
+
+  
+  if (eCSSUnit_Number == SVGData.mStrokeMiterlimit.GetUnit()) {
+    svg->mStrokeMiterlimit = SVGData.mStrokeMiterlimit.GetFloatValue();
+  }
+  else if (eCSSUnit_Inherit == SVGData.mStrokeMiterlimit.GetUnit()) {
+    svg->mStrokeMiterlimit = parentSVG->mStrokeMiterlimit;
+    inherited = PR_TRUE;
+  }
+
+  
+  SetSVGOpacity(SVGData.mStrokeOpacity, parentSVG->mStrokeOpacity, svg->mStrokeOpacity, inherited);  
+
+  
+  SetCoord(SVGData.mStrokeWidth,
+           svg->mStrokeWidth, parentSVG->mStrokeWidth,
+           SETCOORD_LPH | SETCOORD_FACTOR,
+           aContext, mPresContext, inherited);
+
+  
+  if (eCSSUnit_Enumerated == SVGData.mTextAnchor.GetUnit()) {
+    svg->mTextAnchor = SVGData.mTextAnchor.GetIntValue();
+  }
+  else if (eCSSUnit_Inherit == SVGData.mTextAnchor.GetUnit()) {
+    inherited = PR_TRUE;
+    svg->mTextAnchor = parentSVG->mTextAnchor;
+  }
+  
+  
+  if (eCSSUnit_Enumerated == SVGData.mTextRendering.GetUnit()) {
+    svg->mTextRendering = SVGData.mTextRendering.GetIntValue();
+  }
+  else if (eCSSUnit_Auto == SVGData.mTextRendering.GetUnit()) {
+    svg->mTextRendering = NS_STYLE_TEXT_RENDERING_AUTO;
+  }
+  else if (eCSSUnit_Inherit == SVGData.mTextRendering.GetUnit()) {
+    inherited = PR_TRUE;
+    svg->mTextRendering = parentSVG->mTextRendering;
+  }
+
+  COMPUTE_END_INHERITED(SVG, svg)
+}
+
+const nsStyleStruct* 
+nsRuleNode::ComputeSVGResetData(nsStyleStruct* aStartStruct,
+                                const nsRuleDataStruct& aData,
+                                nsStyleContext* aContext, 
+                                nsRuleNode* aHighestNode,
+                                const RuleDetail& aRuleDetail, PRBool aInherited)
+{
+  COMPUTE_START_RESET(SVGReset, (), svgReset, parentSVGReset, SVG, SVGData)
+
+  
+  SetColor(SVGData.mStopColor, parentSVGReset->mStopColor,
+           mPresContext, aContext, svgReset->mStopColor, inherited);
+
+  
+  SetColor(SVGData.mFloodColor, parentSVGReset->mFloodColor,
+           mPresContext, aContext, svgReset->mFloodColor, inherited);
+
+  
+  if (eCSSUnit_URL == SVGData.mClipPath.GetUnit()) {
+    svgReset->mClipPath = SVGData.mClipPath.GetURLValue();
+  } else if (eCSSUnit_None == SVGData.mClipPath.GetUnit()) {
+    svgReset->mClipPath = nsnull;
+  } else if (eCSSUnit_Inherit == SVGData.mClipPath.GetUnit()) {
+    inherited = PR_TRUE;
+    svgReset->mClipPath = parentSVGReset->mClipPath;
+  }
+
+  
+  SetSVGOpacity(SVGData.mStopOpacity, parentSVGReset->mStopOpacity,
+                svgReset->mStopOpacity, inherited);
+
+  
+  SetSVGOpacity(SVGData.mFloodOpacity, parentSVGReset->mFloodOpacity,
+                svgReset->mFloodOpacity, inherited);
+
+  
+  if (eCSSUnit_Enumerated == SVGData.mDominantBaseline.GetUnit()) {
+    svgReset->mDominantBaseline = SVGData.mDominantBaseline.GetIntValue();
+  }
+  else if (eCSSUnit_Auto == SVGData.mDominantBaseline.GetUnit()) {
+    svgReset->mDominantBaseline = NS_STYLE_DOMINANT_BASELINE_AUTO;
+  }
+  else if (eCSSUnit_Inherit == SVGData.mDominantBaseline.GetUnit()) {
+    inherited = PR_TRUE;
+    svgReset->mDominantBaseline = parentSVGReset->mDominantBaseline;
+  }
+
+  
+  if (eCSSUnit_URL == SVGData.mFilter.GetUnit()) {
+    svgReset->mFilter = SVGData.mFilter.GetURLValue();
+  } else if (eCSSUnit_None == SVGData.mFilter.GetUnit()) {
+    svgReset->mFilter = nsnull;
+  } else if (eCSSUnit_Inherit == SVGData.mFilter.GetUnit()) {
+    inherited = PR_TRUE;
+    svgReset->mFilter = parentSVGReset->mFilter;
+  }
+
+  
+  if (eCSSUnit_URL == SVGData.mMask.GetUnit()) {
+    svgReset->mMask = SVGData.mMask.GetURLValue();
+  } else if (eCSSUnit_None == SVGData.mMask.GetUnit()) {
+    svgReset->mMask = nsnull;
+  } else if (eCSSUnit_Inherit == SVGData.mMask.GetUnit()) {
+    inherited = PR_TRUE;
+    svgReset->mMask = parentSVGReset->mMask;
+  }
+  
+  COMPUTE_END_RESET(SVGReset, svgReset)
+}
+#endif
+
+inline const nsStyleStruct* 
+nsRuleNode::GetParentData(const nsStyleStructID aSID)
+{
+  NS_PRECONDITION(mDependentBits & nsCachedStyleData::GetBitForSID(aSID),
+                  "should be called when node depends on parent data");
+  NS_ASSERTION(mStyleData.GetStyleData(aSID) == nsnull,
+               "both struct and dependent bits present");
+  
+  
+  PRUint32 bit = nsCachedStyleData::GetBitForSID(aSID);
+  nsRuleNode *ruleNode = mParent;
+  while (ruleNode->mDependentBits & bit) {
+    NS_ASSERTION(ruleNode->mStyleData.GetStyleData(aSID) == nsnull,
+                 "both struct and dependent bits present");
+    ruleNode = ruleNode->mParent;
+  }
+
+  return ruleNode->mStyleData.GetStyleData(aSID);
+}
+
+#define STYLE_STRUCT(name_, checkdata_cb_, ctor_args_)                      \
+inline const nsStyle##name_ *                                               \
+nsRuleNode::GetParent##name_()                                              \
+{                                                                           \
+  NS_PRECONDITION(mDependentBits &                                          \
+                  nsCachedStyleData::GetBitForSID(eStyleStruct_##name_),    \
+                  "should be called when node depends on parent data");     \
+  NS_ASSERTION(mStyleData.GetStyle##name_() == nsnull,                      \
+               "both struct and dependent bits present");                   \
+  /* Walk up the rule tree from this rule node (towards less specific */    \
+  /* rules). */                                                             \
+  PRUint32 bit = nsCachedStyleData::GetBitForSID(eStyleStruct_##name_);     \
+  nsRuleNode *ruleNode = mParent;                                           \
+  while (ruleNode->mDependentBits & bit) {                                  \
+    NS_ASSERTION(ruleNode->mStyleData.GetStyle##name_() == nsnull,          \
+                 "both struct and dependent bits present");                 \
+    ruleNode = ruleNode->mParent;                                           \
+  }                                                                         \
+                                                                            \
+  return ruleNode->mStyleData.GetStyle##name_();                            \
+}
+#include "nsStyleStructList.h"
+#undef STYLE_STRUCT
+
+const nsStyleStruct* 
+nsRuleNode::GetStyleData(nsStyleStructID aSID, 
+                         nsStyleContext* aContext,
+                         PRBool aComputeData)
+{
+  const nsStyleStruct *data;
+  if (mDependentBits & nsCachedStyleData::GetBitForSID(aSID)) {
+    
+    
+    
+    data = GetParentData(aSID);
+    NS_ASSERTION(data, "dependent bits set but no cached struct present");
+    return data;
+  }
+
+  data = mStyleData.GetStyleData(aSID);
+  if (NS_LIKELY(data != nsnull))
+    return data; 
+
+  if (NS_UNLIKELY(!aComputeData))
+    return nsnull;
+
+  
+#define STYLE_STRUCT_TEST aSID
+#define STYLE_STRUCT(name, checkdata_cb, ctor_args) \
+  data = Get##name##Data(aContext);
+#include "nsStyleStructList.h"
+#undef STYLE_STRUCT
+#undef STYLE_STRUCT_TEST
+
+  if (NS_LIKELY(data != nsnull))
+    return data;
+
+  NS_NOTREACHED("could not create style struct");
+  
+  
+  
+  
+  
+  
+  return mPresContext->PresShell()->StyleSet()->
+    DefaultStyleData()->GetStyleData(aSID);
+}
+
+
+
+#define STYLE_STRUCT(name_, checkdata_cb_, ctor_args_)                        \
+const nsStyle##name_*                                                         \
+nsRuleNode::GetStyle##name_(nsStyleContext* aContext, PRBool aComputeData)    \
+{                                                                             \
+  const nsStyle##name_ *data;                                                 \
+  if (mDependentBits &                                                        \
+      nsCachedStyleData::GetBitForSID(eStyleStruct_##name_)) {                \
+    data = GetParent##name_();                                                \
+    NS_ASSERTION(data, "dependent bits set but no cached struct present");    \
+    return data;                                                              \
+  }                                                                           \
+                                                                              \
+  data = mStyleData.GetStyle##name_();                                        \
+  if (NS_LIKELY(data != nsnull))                                              \
+    return data;                                                              \
+                                                                              \
+  if (NS_UNLIKELY(!aComputeData))                                             \
+    return nsnull;                                                            \
+                                                                              \
+  data =                                                                      \
+    NS_STATIC_CAST(const nsStyle##name_ *, Get##name_##Data(aContext));       \
+                                                                              \
+  if (NS_LIKELY(data != nsnull))                                              \
+    return data;                                                              \
+                                                                              \
+  NS_NOTREACHED("could not create style struct");                             \
+  return                                                                      \
+    NS_STATIC_CAST(const nsStyle##name_ *,                                    \
+                   mPresContext->PresShell()->StyleSet()->                    \
+                     DefaultStyleData()->GetStyleData(eStyleStruct_##name_)); \
+}
+#include "nsStyleStructList.h"
+#undef STYLE_STRUCT
+
+void
+nsRuleNode::Mark()
+{
+  for (nsRuleNode *node = this;
+       node && !(node->mDependentBits & NS_RULE_NODE_GC_MARK);
+       node = node->mParent)
+    node->mDependentBits |= NS_RULE_NODE_GC_MARK;
+}
+
+PR_STATIC_CALLBACK(PLDHashOperator)
+SweepRuleNodeChildren(PLDHashTable *table, PLDHashEntryHdr *hdr,
+                      PRUint32 number, void *arg)
+{
+  ChildrenHashEntry *entry = NS_STATIC_CAST(ChildrenHashEntry*, hdr);
+  if (entry->mRuleNode->Sweep())
+    return PL_DHASH_REMOVE; 
+  return PL_DHASH_NEXT;
+}
+
+PRBool
+nsRuleNode::Sweep()
+{
+  
+  
+  
+  
+  if (!(mDependentBits & NS_RULE_NODE_GC_MARK) && !IsRoot()) {
+    Destroy();
+    return PR_TRUE;
+  }
+
+  
+  mDependentBits &= ~NS_RULE_NODE_GC_MARK;
+
+  
+  
+  if (HaveChildren()) {
+    if (ChildrenAreHashed()) {
+      PLDHashTable *children = ChildrenHash();
+      PL_DHashTableEnumerate(children, SweepRuleNodeChildren, nsnull);
+    } else {
+      for (nsRuleList **children = ChildrenListPtr(); *children; ) {
+        if ((*children)->mRuleNode->Sweep()) {
+          
+          
+          
+          *children = (*children)->DestroySelf(mPresContext);
+        } else {
+          
+          children = &(*children)->mNext;
+        }
+      }
+    }
+  }
+  return PR_FALSE;
+}

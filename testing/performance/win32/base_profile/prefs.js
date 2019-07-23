@@ -1,0 +1,4 @@
+# Mozilla User Preferences
+
+user_pref("app.update.lastUpdateTime.addon-background-update-timer", 1151474110);user_pref("app.update.lastUpdateTime.background-update-timer", 1151474109);user_pref("browser.dom.window.dump.enabled", true);user_pref("browser.search.selectedEngine", "Google");user_pref("browser.startup.homepage_override.mstone", "rv:1.8.0.4");user_pref("extensions.lastAppVersion", "1.5.0.4");user_pref("google.webacc.ui.initialized", true);user_pref("gwanetwork.http.max-connections", 24);user_pref("gwanetwork.http.max-connections-per-server", 8);user_pref("gwanetwork.http.max-persistent-connections-per-proxy", 4);user_pref("intl.charsetmenu.browser.cache", "ISO-8859-1, UTF-8");user_pref("network.cookie.prefsMigrated", true);user_pref("browser.shell.checkDefaultBrowser", false);user_pref("dom.allow_scripts_to_close_windows", true);user_pref("extensions.checkCompatibility", false);
+user_pref("extensions.update.notifyUser", false);

@@ -1,0 +1,45 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+GOOD { text-decoration: none; }
+GOOD { text-decoration: underline; }
+GOOD { text-decoration: overline; }
+GOOD { text-decoration: line-through; }
+GOOD { text-decoration: blink; }
+GOOD { text-decoration: overline underline; }
+GOOD { text-decoration: line-through overline underline; }
+GOOD { text-decoration: blink line-through overline underline; }
+BAD { text-decoration: blink fish line-through overline underline; }
+BAD { text-decoration: none blink; }

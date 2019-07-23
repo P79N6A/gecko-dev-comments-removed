@@ -1,0 +1,53 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+GOOD { font-size-adjust: 0 } 
+GOOD { font-size-adjust: 126 } 
+GOOD { font-size-adjust: .1 } 
+GOOD { font-size-adjust:  0.556} 
+GOOD { font-size-adjust:  57.0 } 
+GOOD { font-size-adjust:  +7 } 
+GOOD { font-size-adjust:  -126} 
+GOOD { font-size-adjust:  -.1} 
+GOOD { font-size-adjust:  -0.556} 
+GOOD { font-size-adjust:  -57.0 } 
+GOOD { font-size-adjust: none; } 
+GOOD { font-size-adjust: inherit; } 
+BAD { font-size-adjust: inherited }
+BAD { font-size-adjust: 12 none; }
+BAD { font-size-adjust: four; }

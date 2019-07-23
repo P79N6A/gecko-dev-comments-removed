@@ -1,0 +1,301 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#include <assert.h>
+#include <Windows.h>
+#include <WinInet.h>
+
+
+#pragma warning( disable : 4530 ) 
+
+#include <fstream>
+
+#include "common/windows/string_utils-inl.h"
+
+#include "common/windows/http_upload.h"
+
+namespace google_airbag {
+
+using std::ifstream;
+using std::ios;
+
+static const wchar_t kUserAgent[] = L"Airbag/1.0 (Windows)";
+
+
+class HTTPUpload::AutoInternetHandle {
+ public:
+  explicit AutoInternetHandle(HINTERNET handle) : handle_(handle) {}
+  ~AutoInternetHandle() {
+    if (handle_) {
+      InternetCloseHandle(handle_);
+    }
+  }
+
+  HINTERNET get() { return handle_; }
+
+ private:
+  HINTERNET handle_;
+};
+
+
+bool HTTPUpload::SendRequest(const wstring &url,
+                             const map<wstring, wstring> &parameters,
+                             const wstring &upload_file,
+                             const wstring &file_part_name) {
+  
+  if (!CheckParameters(parameters)) {
+    return false;
+  }
+
+  
+  wchar_t scheme[16], host[256], path[256];
+  URL_COMPONENTS components;
+  memset(&components, 0, sizeof(components));
+  components.dwStructSize = sizeof(components);
+  components.lpszScheme = scheme;
+  components.dwSchemeLength = sizeof(scheme);
+  components.lpszHostName = host;
+  components.dwHostNameLength = sizeof(host);
+  components.lpszUrlPath = path;
+  components.dwUrlPathLength = sizeof(path);
+  if (!InternetCrackUrl(url.c_str(), static_cast<DWORD>(url.size()),
+                        0, &components)) {
+    return false;
+  }
+  bool secure = false;
+  if (wcscmp(scheme, L"https") == 0) {
+    secure = true;
+  } else if (wcscmp(scheme, L"http") != 0) {
+    return false;
+  }
+
+  AutoInternetHandle internet(InternetOpen(kUserAgent,
+                                           INTERNET_OPEN_TYPE_PRECONFIG,
+                                           NULL,  
+                                           NULL,  
+                                           0));   
+  if (!internet.get()) {
+    return false;
+  }
+
+  AutoInternetHandle connection(InternetConnect(internet.get(),
+                                                host,
+                                                components.nPort,
+                                                NULL,    
+                                                NULL,    
+                                                INTERNET_SERVICE_HTTP,
+                                                0,       
+                                                NULL));  
+  if (!connection.get()) {
+    return false;
+  }
+
+  DWORD http_open_flags = secure ? INTERNET_FLAG_SECURE : 0;
+  AutoInternetHandle request(HttpOpenRequest(connection.get(),
+                                             L"POST",
+                                             path,
+                                             NULL,    
+                                             NULL,    
+                                             NULL,    
+                                             http_open_flags,
+                                             NULL));  
+  if (!request.get()) {
+    return false;
+  }
+
+  wstring boundary = GenerateMultipartBoundary();
+  wstring content_type_header = GenerateRequestHeader(boundary);
+  HttpAddRequestHeaders(request.get(),
+                        content_type_header.c_str(),
+                        -1, HTTP_ADDREQ_FLAG_ADD);
+
+  string request_body;
+  GenerateRequestBody(parameters, upload_file,
+                      file_part_name, boundary, &request_body);
+
+  if (!HttpSendRequest(request.get(), NULL, 0,
+                       const_cast<char *>(request_body.data()),
+                       static_cast<DWORD>(request_body.size()))) {
+    return false;
+  }
+
+  
+  wchar_t http_status[4];
+  DWORD http_status_size = sizeof(http_status);
+  if (!HttpQueryInfo(request.get(), HTTP_QUERY_STATUS_CODE,
+                     static_cast<LPVOID>(&http_status), &http_status_size,
+                     0)) {
+    return false;
+  }
+
+  return (wcscmp(http_status, L"200") == 0);
+}
+
+
+wstring HTTPUpload::GenerateMultipartBoundary() {
+  
+  static const wchar_t kBoundaryPrefix[] = L"---------------------------";
+  static const int kBoundaryLength = 27 + 16 + 1;
+
+  
+  int r0 = rand();
+  int r1 = rand();
+
+  wchar_t temp[kBoundaryLength];
+  WindowsStringUtils::safe_swprintf(temp, kBoundaryLength, L"%s%08X%08X",
+                                    kBoundaryPrefix, r0, r1);
+  return wstring(temp);
+}
+
+
+wstring HTTPUpload::GenerateRequestHeader(const wstring &boundary) {
+  wstring header = L"Content-Type: multipart/form-data; boundary=";
+  header += boundary;
+  return header;
+}
+
+
+bool HTTPUpload::GenerateRequestBody(const map<wstring, wstring> &parameters,
+                                     const wstring &upload_file,
+                                     const wstring &file_part_name,
+                                     const wstring &boundary,
+                                     string *request_body) {
+  vector<char> contents;
+  GetFileContents(upload_file, &contents);
+  if (contents.empty()) {
+    return false;
+  }
+
+  string boundary_str = WideToUTF8(boundary);
+  if (boundary_str.empty()) {
+    return false;
+  }
+
+  request_body->clear();
+
+  
+  for (map<wstring, wstring>::const_iterator pos = parameters.begin();
+       pos != parameters.end(); ++pos) {
+    request_body->append("--" + boundary_str + "\r\n");
+    request_body->append("Content-Disposition: form-data; name=\"" +
+                         WideToUTF8(pos->first) + "\"\r\n\r\n" +
+                         WideToUTF8(pos->second) + "\r\n");
+  }
+
+  
+  string filename_utf8 = WideToUTF8(upload_file);
+  if (filename_utf8.empty()) {
+    return false;
+  }
+
+  string file_part_name_utf8 = WideToUTF8(file_part_name);
+  if (file_part_name_utf8.empty()) {
+    return false;
+  }
+
+  request_body->append("--" + boundary_str + "\r\n");
+  request_body->append("Content-Disposition: form-data; "
+                       "name=\"" + file_part_name_utf8 + "\"; "
+                       "filename=\"" + filename_utf8 + "\"\r\n");
+  request_body->append("Content-Type: application/octet-stream\r\n");
+  request_body->append("\r\n");
+
+  request_body->append(&(contents[0]), contents.size());
+  request_body->append("\r\n");
+  request_body->append("--" + boundary_str + "--\r\n");
+  return true;
+}
+
+
+void HTTPUpload::GetFileContents(const wstring &filename,
+                                 vector<char> *contents) {
+  
+  
+  
+  
+#if _MSC_VER >= 1400  
+  ifstream file;
+  file.open(filename.c_str(), ios::binary);
+#else  
+  ifstream file(_wfopen(filename.c_str(), L"rb"));
+#endif  
+  if (file.is_open()) {
+    file.seekg(0, ios::end);
+    int length = file.tellg();
+    contents->resize(length);
+    file.seekg(0, ios::beg);
+    file.read(&((*contents)[0]), length);
+    file.close();
+  } else {
+    contents->clear();
+  }
+}
+
+
+string HTTPUpload::WideToUTF8(const wstring &wide) {
+  if (wide.length() == 0) {
+    return string();
+  }
+
+  
+  int charcount = WideCharToMultiByte(CP_UTF8, 0, wide.c_str(), -1,
+                                      NULL, 0, NULL, NULL);
+  if (charcount == 0) {
+    return string();
+  }
+
+  
+  char *buf = new char[charcount];
+  WideCharToMultiByte(CP_UTF8, 0, wide.c_str(), -1, buf, charcount,
+                      NULL, NULL);
+
+  string result(buf);
+  delete[] buf;
+  return result;
+}
+
+
+bool HTTPUpload::CheckParameters(const map<wstring, wstring> &parameters) {
+  for (map<wstring, wstring>::const_iterator pos = parameters.begin();
+       pos != parameters.end(); ++pos) {
+    const wstring &str = pos->first;
+    if (str.size() == 0) {
+      return false;  
+    }
+    for (unsigned int i = 0; i < str.size(); ++i) {
+      wchar_t c = str[i];
+      if (c < 32 || c == '"' || c > 127) {
+        return false;
+      }
+    }
+  }
+  return true;
+}
+
+}  

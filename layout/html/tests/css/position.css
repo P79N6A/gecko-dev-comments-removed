@@ -1,0 +1,40 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+GOOD { position: static; }
+GOOD { position: relative; }
+GOOD { position: absolute; }
+BAD { position: 12; }
+BAD { position: medium; }

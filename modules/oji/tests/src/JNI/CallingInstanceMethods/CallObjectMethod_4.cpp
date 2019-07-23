@@ -1,0 +1,55 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#include "JNIEnvTests.h"
+#include "CallingInstanceMethods.h"
+
+JNI_OJIAPITest(JNIEnv_CallObjectMethod_4)
+{
+  GET_JNI_FOR_TEST
+
+  IMPLEMENT_GetMethodID_METHOD("Test1", "Test1_method_string", "(ZBCSIJFDLjava/lang/String;[Ljava/lang/String;)Ljava/lang/String;");
+  char *path = "asdf";
+  jstring jpath=env->NewStringUTF("sdsadasdasd");
+  jstring value = (jstring)env->CallObjectMethod(obj, MethodID, (jboolean)JNI_TRUE, (jbyte)MIN_JBYTE, (jchar)0, (jshort)1, (jint)123, (jlong)20, (jfloat)10., (jdouble)100, (jobject)NULL, (jobject)NULL);
+  if(value == NULL){
+     return TestResult::PASS("CallObjectMethod for public not inherited method (sig = (ZBCSIJFDLjava/lang/String;[Ljava/lang/String;)Ljava/lang/String;) return correct value");
+  }else{
+     return TestResult::FAIL("CallObjectMethod for public not inherited method (sig = (ZBCSIJFDLjava/lang/String;[Ljava/lang/String;)Ljava/lang/String;) return incorrect value");
+  }
+
+}
+

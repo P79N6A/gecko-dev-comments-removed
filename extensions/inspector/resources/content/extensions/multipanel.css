@@ -1,0 +1,50 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+@namespace url("http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul");
+
+multipanelset {
+  -moz-binding: url("chrome://inspector/content/extensions/multipanel.xml#multipanelset");
+  display: -moz-box;
+  -moz-box-orient: vertical;
+}
+
+multipanel {
+  -moz-binding: url("chrome://inspector/content/extensions/multipanel.xml#multipanel");
+  display: -moz-box;
+  -moz-box-orient: vertical;
+}

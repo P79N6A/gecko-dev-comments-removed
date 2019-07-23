@@ -1,0 +1,185 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifndef nsHTMLContainerFrame_h___
+#define nsHTMLContainerFrame_h___
+
+#include "nsContainerFrame.h"
+class nsString;
+class nsAbsoluteFrame;
+class nsPlaceholderFrame;
+struct nsStyleDisplay;
+struct nsStylePosition;
+struct nsHTMLReflowMetrics;
+struct nsHTMLReflowState;
+class nsLineBox;
+
+
+
+#ifdef DEBUG
+#define CRAZY_W 500000
+
+
+#define CRAZY_H 22500000
+
+#define CRAZY_WIDTH(_x) (((_x) < -CRAZY_W) || ((_x) > CRAZY_W))
+#define CRAZY_HEIGHT(_y) (((_y) < -CRAZY_H) || ((_y) > CRAZY_H))
+#endif
+
+class nsDisplayTextDecoration;
+
+
+
+class nsHTMLContainerFrame : public nsContainerFrame {
+public:
+
+  
+
+
+
+
+
+
+
+
+  static nsresult CreateNextInFlow(nsPresContext* aPresContext,
+                                   nsIFrame*       aOuterFrame,
+                                   nsIFrame*       aFrame,
+                                   nsIFrame*&      aNextInFlowResult);
+
+  
+
+
+
+
+
+
+
+
+
+  static nsresult CreateViewForFrame(nsIFrame* aFrame,
+                                     nsIFrame* aContentParentFrame,
+                                     PRBool aForce);
+
+  static nsresult ReparentFrameView(nsPresContext* aPresContext,
+                                    nsIFrame*       aChildFrame,
+                                    nsIFrame*       aOldParentFrame,
+                                    nsIFrame*       aNewParentFrame);
+
+  static nsresult ReparentFrameViewList(nsPresContext* aPresContext,
+                                        nsIFrame*       aChildFrameList,
+                                        nsIFrame*       aOldParentFrame,
+                                        nsIFrame*       aNewParentFrame);
+
+  
+
+
+
+
+  NS_IMETHOD BuildDisplayList(nsDisplayListBuilder*   aBuilder,
+                              const nsRect&           aDirtyRect,
+                              const nsDisplayListSet& aLists);
+                              
+  nsresult DisplayTextDecorations(nsDisplayListBuilder* aBuilder,
+                                  nsDisplayList* aBelowTextDecorations,
+                                  nsDisplayList* aAboveTextDecorations,
+                                  nsLineBox* aLine);
+
+protected:
+  nsHTMLContainerFrame(nsStyleContext *aContext) : nsContainerFrame(aContext) {}
+
+  
+
+
+
+
+
+  nsresult DisplayTextDecorationsAndChildren(nsDisplayListBuilder* aBuilder, 
+                                             const nsRect& aDirtyRect,
+                                             const nsDisplayListSet& aLists);
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  void GetTextDecorations(nsPresContext* aPresContext, 
+                          PRBool aIsBlock,
+                          PRUint8& aDecorations, 
+                          nscolor& aUnderColor, 
+                          nscolor& aOverColor, 
+                          nscolor& aStrikeColor);
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+  virtual void PaintTextDecorationLine(nsIRenderingContext& aRenderingContext,
+                                       nsPoint aPt,
+                                       nsLineBox* aLine,
+                                       nscolor aColor,
+                                       nscoord aOffset,
+                                       nscoord aAscent,
+                                       nscoord aSize);
+                                       
+  friend class nsDisplayTextDecoration;
+};
+
+#endif 

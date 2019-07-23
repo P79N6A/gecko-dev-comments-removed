@@ -1,0 +1,160 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#include "nsCOMPtr.h"
+
+nsresult
+nsQueryInterface::operator()( const nsIID& aIID, void** answer ) const
+	{
+		nsresult status;
+		if ( mRawPtr )
+			{
+				status = mRawPtr->QueryInterface(aIID, answer);
+#ifdef NSCAP_FEATURE_TEST_NONNULL_QUERY_SUCCEEDS
+				NS_ASSERTION(NS_SUCCEEDED(status), "interface not found---were you expecting that?");
+#endif
+			}
+		else
+			status = NS_ERROR_NULL_POINTER;
+		
+		return status;
+	}
+
+nsresult
+nsQueryInterfaceWithError::operator()( const nsIID& aIID, void** answer ) const
+	{
+		nsresult status;
+		if ( mRawPtr )
+			{
+				status = mRawPtr->QueryInterface(aIID, answer);
+#ifdef NSCAP_FEATURE_TEST_NONNULL_QUERY_SUCCEEDS
+				NS_ASSERTION(NS_SUCCEEDED(status), "interface not found---were you expecting that?");
+#endif
+			}
+		else
+			status = NS_ERROR_NULL_POINTER;
+		
+		if ( mErrorPtr )
+			*mErrorPtr = status;
+		return status;
+	}
+
+nsCOMPtr_base::~nsCOMPtr_base()
+	{
+	  NSCAP_LOG_RELEASE(this, mRawPtr);
+		if ( mRawPtr )
+			NSCAP_RELEASE(this, mRawPtr);
+	}
+
+void
+nsCOMPtr_base::assign_with_AddRef( nsISupports* rawPtr )
+	{
+    if ( rawPtr )
+    	NSCAP_ADDREF(this, rawPtr);
+    assign_assuming_AddRef(rawPtr);
+	}
+
+void
+nsCOMPtr_base::assign_from_qi( const nsQueryInterface qi, const nsIID& iid )
+  {
+    union { nsISupports *mSupports; void *mVoid; } newRawPtr;
+    if ( NS_FAILED( qi(iid, &newRawPtr.mVoid) ) )
+      newRawPtr.mSupports = 0;
+    assign_assuming_AddRef(newRawPtr.mSupports);
+  }
+
+void
+nsCOMPtr_base::assign_from_qi_with_error( const nsQueryInterfaceWithError& qi, const nsIID& iid )
+  {
+    union { nsISupports* mSupports; void *mVoid; } newRawPtr;
+    if ( NS_FAILED( qi(iid, &newRawPtr.mVoid) ) )
+      newRawPtr.mSupports = 0;
+    assign_assuming_AddRef(newRawPtr.mSupports);
+  }
+
+void
+nsCOMPtr_base::assign_from_gs_cid( const nsGetServiceByCID gs, const nsIID& iid )
+  {
+    union { nsISupports* mSupports; void *mVoid; } newRawPtr;
+    if ( NS_FAILED( gs(iid, &newRawPtr.mVoid) ) )
+      newRawPtr.mSupports = 0;
+    assign_assuming_AddRef(newRawPtr.mSupports);
+  }
+
+void
+nsCOMPtr_base::assign_from_gs_cid_with_error( const nsGetServiceByCIDWithError& gs, const nsIID& iid )
+  {
+    union { nsISupports* mSupports; void *mVoid; } newRawPtr;
+    if ( NS_FAILED( gs(iid, &newRawPtr.mVoid) ) )
+      newRawPtr.mSupports = 0;
+    assign_assuming_AddRef(newRawPtr.mSupports);
+  }
+
+void
+nsCOMPtr_base::assign_from_gs_contractid( const nsGetServiceByContractID gs, const nsIID& iid )
+  {
+    union { nsISupports* mSupports; void *mVoid; } newRawPtr;
+    if ( NS_FAILED( gs(iid, &newRawPtr.mVoid) ) )
+      newRawPtr.mSupports = 0;
+    assign_assuming_AddRef(newRawPtr.mSupports);
+  }
+
+void
+nsCOMPtr_base::assign_from_gs_contractid_with_error( const nsGetServiceByContractIDWithError& gs, const nsIID& iid )
+  {
+    union { nsISupports* mSupports; void *mVoid; } newRawPtr;
+    if ( NS_FAILED( gs(iid, &newRawPtr.mVoid) ) )
+      newRawPtr.mSupports = 0;
+    assign_assuming_AddRef(newRawPtr.mSupports);
+  }
+
+void
+nsCOMPtr_base::assign_from_helper( const nsCOMPtr_helper& helper, const nsIID& iid )
+  {
+    union { nsISupports* mSupports; void *mVoid; } newRawPtr;
+    if ( NS_FAILED( helper(iid, &newRawPtr.mVoid) ) )
+      newRawPtr.mSupports = 0;
+    assign_assuming_AddRef(newRawPtr.mSupports);
+  }
+
+void**
+nsCOMPtr_base::begin_assignment()
+  {
+    assign_assuming_AddRef(0);
+    return NS_REINTERPRET_CAST(void**, &mRawPtr);
+  }

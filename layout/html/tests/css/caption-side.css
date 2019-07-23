@@ -1,0 +1,47 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+GOOD { caption-side: inherit; } 
+GOOD { caption-side: top; } 
+GOOD { caption-side: bottom; } 
+GOOD { caption-side: left; } 
+GOOD { caption-side: right; } 
+BAD { caption-side: far-right; }
+BAD { caption-side: iguana; }
+BAD { caption-side: bottom-left; }
+BAD { caption-side: top inherit; }

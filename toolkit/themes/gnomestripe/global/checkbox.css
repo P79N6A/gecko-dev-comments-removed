@@ -1,0 +1,131 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+@namespace url("http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul");
+
+
+
+checkbox {
+  -moz-appearance: checkbox-container;
+  margin: 2px 4px;
+  border-left: 2px transparent;
+  border-right: 2px transparent;
+}
+
+
+
+
+
+
+
+
+
+
+.checkbox-spacer-box {
+  -moz-appearance: checkbox;
+  -moz-box-align: center;
+  border-right: 4px solid transparent;
+}
+
+.checkbox-label-center-box {
+  -moz-box-align: center;
+}
+
+.checkbox-label-box {
+  border: 1px solid transparent;
+  -moz-appearance: checkbox-label;
+}
+
+.checkbox-icon[src] {
+  -moz-margin-end: 2px;
+}
+
+.checkbox-label {
+  margin: 0 !important;
+}
+
+
+
+checkbox:focus > .checkbox-label-center-box > .checkbox-label-box {
+  border: 1px dotted ThreeDDarkShadow;
+}
+
+
+
+checkbox[disabled="true"] > .checkbox-spacer-box > .checkbox-check {
+  background-color: -moz-Dialog;
+}
+
+checkbox[disabled="true"] {
+  color: GrayText !important;
+}
+
+
+
+.checkbox-check {
+  border: 2px solid;
+  -moz-border-top-colors: ThreeDShadow ThreeDDarkShadow;
+  -moz-border-right-colors: ThreeDHighlight ThreeDLightShadow;
+  -moz-border-bottom-colors: ThreeDHighlight ThreeDLightShadow;
+  -moz-border-left-colors: ThreeDShadow ThreeDDarkShadow;
+  min-width: 13px;
+  min-height: 13px;
+  background: -moz-Field no-repeat 50% 50%;
+}
+
+checkbox:hover {
+  color: -moz-buttonhovertext;
+}
+
+checkbox:hover:active > .checkbox-spacer-box > .checkbox-check {
+  background-color: -moz-Dialog;
+}
+
+
+
+checkbox[checked="true"] > .checkbox-spacer-box > .checkbox-check {
+  background-image: url("chrome://global/skin/checkbox/cbox-check.gif");
+}
+
+checkbox[checked="true"][disabled="true"] > .checkbox-spacer-box > .checkbox-check {
+  background-image: url("chrome://global/skin/checkbox/cbox-check-dis.gif") !important
+}
+

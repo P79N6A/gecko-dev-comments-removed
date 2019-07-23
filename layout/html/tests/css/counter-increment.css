@@ -1,0 +1,47 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+GOOD { counter-increment: inherit } 
+GOOD { counter-increment: none; } 
+GOOD { counter-increment: rabbit; } 
+GOOD { counter-increment: rabbit 1; } 
+GOOD { counter-increment: rabbit 942 } 
+GOOD { counter-increment: rabbit -12; } 
+GOOD { counter-increment: rabbit 0 } 
+BAD { counter-increment: none to inherit }
+BAD { counter-increment: cooler 4 5 -1; }

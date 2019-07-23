@@ -1,0 +1,68 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+@namespace url("http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul");
+@namespace html url("http://www.w3.org/1999/xhtml");
+
+textbox[type="number"] {
+  -moz-appearance: none;
+  padding: 0 !important;
+  border: none;
+  cursor: default;
+}
+
+html|*.numberbox-input {
+  text-align: right;
+}
+
+.numberbox-input-box {
+  -moz-box-align: center;
+  -moz-appearance: textfield;
+  cursor: text;
+  margin-right: -1px;
+  border: 2px solid;
+  -moz-border-top-colors: ThreeDShadow ThreeDDarkShadow;
+  -moz-border-right-colors: ThreeDHighlight ThreeDLightShadow;
+  -moz-border-bottom-colors: ThreeDHighlight ThreeDLightShadow;
+  -moz-border-left-colors: ThreeDShadow ThreeDDarkShadow;
+  padding: 3px;
+  background-color: -moz-Field;
+  color: -moz-FieldText;
+}

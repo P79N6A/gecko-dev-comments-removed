@@ -1,0 +1,62 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+START("13.4.4.17 - XML inScopeNamespaces()");
+
+TEST(1, true, XML.prototype.hasOwnProperty("inScopeNamespaces"));
+ 
+x =
+<alpha xmlns:foo="http://foo/" xmlns:bar="http://bar/">
+    <bravo>one</bravo>
+</alpha>;
+
+namespaces = x.bravo.inScopeNamespaces();
+
+TEST(2, "foo", namespaces[0].prefix);
+TEST(3, "http://foo/", namespaces[0].uri);
+TEST(4, "bar", namespaces[1].prefix);
+TEST(5, "http://bar/", namespaces[1].uri);
+TEST(6, "", namespaces[2].prefix);
+TEST(7, "", namespaces[2].uri);
+TEST(8, 3, namespaces.length);
+
+END();

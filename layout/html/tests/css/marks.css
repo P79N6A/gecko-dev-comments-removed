@@ -1,0 +1,45 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+GOOD :before { marks: cross; } 
+GOOD :before { marks: crop; } 
+GOOD :after  { marks: cross crop } 
+GOOD :after  { marks: crop cross } 
+GOOD :before { marks: none; } 
+GOOD :before { marks: inherit; } 
+BAD { marks: babushka }
+BAD { marks: auto; }

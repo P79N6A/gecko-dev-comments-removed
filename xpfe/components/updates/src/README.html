@@ -1,0 +1,82 @@
+<html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<body>
+<span class="LXRSHORTDESC">
+<h1>
+Update Notifications
+</h1>
+</span>
+
+<span class="LXRLONGDESC">
+<h2>
+The updates.rdf datasource
+</h2>
+The updates.rdf datasource is an RDF file containing information about the latest updates available for the client.  It can be stored remotely.  
+</span>
+
+<h3>
+The updates.rdf preference
+</h3>
+The updates.rdf datasource is stored in a localized pref in communicator-region's region.properties file.  The datasource pref is <code>update_notifications.provider.0.datasource</code>.  See the update notifications specification at: <a href="http://www.mozilla.org/xpapps/updates/spec.html">http://www.mozilla.org/xpapps/updates/spec.html</a>.
+
+<h3>
+The updates.rdf format
+</h3>
+This RDF file stores the product name, the latest version available, the regsitry name (as registered in the mozilla version registry), and the URL to take users to if a new update has been detected and users wish to get it. The update notification module looks for this information rooted at the <code>urn:updates:latest</code> node.<p>
+
+An example of the updates.rdf file follows:
+<xmp>
+<?xml version="1.0"?>
+<RDF:RDF xmlns:RDF="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+         xmlns:NC="http://home.netscape.com/NC-rdf#">
+
+  <RDF:Description about="urn:updates:latest">
+    <NC:registryName>Browser</NC:registryName>
+    <NC:version>1.0.0.0</NC:version>
+    <NC:URL>http://home.netscape.com/computing/download/index.html</NC:URL>
+    <NC:productName>Mozilla</NC:productName>
+  </RDF:Description>
+
+</RDF:RDF>
+</xmp>
+
+<hr>
+Contact: <a href="mailto:sgehani@netscape.com">sgehani@netscape.com</a>
+</body>
+</html>

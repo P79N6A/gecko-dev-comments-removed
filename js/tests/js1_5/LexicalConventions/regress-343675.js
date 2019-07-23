@@ -1,0 +1,80 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+var bug = 343675;
+var summary = 'Allow keywords, reserved words as function names';
+var actual = '';
+var expect = 'No Error';
+
+
+
+test();
+
+
+function test()
+{
+  enterFunc ('test');
+  printBugNumber (bug);
+  printStatus (summary);
+  
+  var words = [
+    'break', 'else', 'new', 'var', 'case', 'finally', 'return', 'void', 
+    'catch', 'for', 'switch', 'while', 'continue', 'function', 'this', 
+    'with', 'default', 'if', 'throw', 'delete', 'in', 'try', 'do', 
+    'instanceof', 'typeof',
+    'abstract', 'enum', 'int', 'short', 'boolean', 'export', 'interface', 
+    'static', 'byte', 'extends', 'long', 'super', 'char', 'final', 'native', 
+    'synchronized', 'class', 'float', 'package', 'throws', 'const', 'goto', 
+    'private', 'transient', 'debugger', 'implements', 'protected', 'volatile', 
+    'double', 'import', 'public'];
+
+  for (var i = 0; i < words.length; i++)
+  {
+    try
+    {
+      actual = 'No Error';
+      eval('function ' + words[i] + '() {}');
+    }
+    catch(ex)
+    {
+      actual = ex + '';
+    }
+    reportCompare(expect, actual, summary + ': ' + words[i]);
+  }
+
+  exitFunc ('test');
+}

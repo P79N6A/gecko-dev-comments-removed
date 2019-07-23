@@ -1,0 +1,72 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+var bug = 338652;
+var summary = 'Force GC when JSRuntime.gcMallocBytes hits ' +
+  'JSRuntime.gcMaxMallocBytes';
+var actual = 'No Crash';
+var expect = 'No Crash';
+
+printBugNumber (bug);
+printStatus (summary);
+print('This test should never fail explicitly. ' + 
+               'You must view the memory usage during the test. ' + 
+               'This test fails if the memory usage repeatedly spikes ' +
+               'by several hundred megabytes.');
+
+function dosubst()
+{
+  var f = '0x';
+  var s = f;
+
+  for (var i = 0; i < 18; i++)
+  {
+    s += s;
+  }
+
+  var index = s.indexOf(f);
+  while (index != -1 && index < 10000) {
+    s = s.substr(0, index) + '1' + s.substr(index + f.length);
+    index = s.indexOf(f);
+  }
+
+}
+
+dosubst();  
+
+reportCompare(expect, actual, summary);

@@ -1,0 +1,5271 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#include "nsCOMPtr.h"
+#include "nsHTMLParts.h"
+#include "nsCRT.h"
+#include "nsSplittableFrame.h"
+#include "nsLineLayout.h"
+#include "nsString.h"
+#include "nsUnicharUtils.h"
+#include "nsPresContext.h"
+#include "nsIContent.h"
+#include "nsStyleConsts.h"
+#include "nsStyleContext.h"
+#include "nsCoord.h"
+#include "nsIFontMetrics.h"
+#include "nsIRenderingContext.h"
+#include "nsIPresShell.h"
+#include "nsITimer.h"
+#include "prtime.h"
+#include "nsVoidArray.h"
+#include "prprf.h"
+#include "nsIDOMText.h"
+#include "nsIDocument.h"
+#include "nsIDeviceContext.h"
+#include "nsICaret.h"
+#include "nsCSSPseudoElements.h"
+#include "nsCompatibility.h"
+#include "nsCSSColorUtils.h"
+#include "nsLayoutUtils.h"
+#include "nsDisplayList.h"
+#include "nsFrame.h"
+#include "nsTextTransformer.h"
+#include "nsTextFrameUtils.h"
+#include "nsTextRunTransformations.h"
+
+#include "nsTextFragment.h"
+#include "nsGkAtoms.h"
+#include "nsFrameSelection.h"
+#include "nsISelection.h"
+#include "nsIDOMRange.h"
+#include "nsILookAndFeel.h"
+#include "nsCSSRendering.h"
+#include "nsContentUtils.h"
+#include "nsLineBreaker.h"
+
+#include "nsILineIterator.h"
+
+#include "nsIServiceManager.h"
+#ifdef ACCESSIBILITY
+#include "nsIAccessible.h"
+#include "nsIAccessibilityService.h"
+#endif
+#include "nsAutoPtr.h"
+#include "nsStyleSet.h"
+
+#include "nsBidiFrames.h"
+#include "nsBidiPresUtils.h"
+#include "nsBidiUtils.h"
+
+#include "nsIThebesFontMetrics.h"
+#include "gfxFont.h"
+#include "gfxContext.h"
+
+#ifdef NS_DEBUG
+#undef NOISY_BLINK
+#undef NOISY_REFLOW
+#undef NOISY_TRIM
+#else
+#undef NOISY_BLINK
+#undef NOISY_REFLOW
+#undef NOISY_TRIM
+#endif
+
+
+
+
+
+#define TEXT_FIRST_LETTER    0x00400000
+
+
+#define TEXT_START_OF_LINE   0x00800000
+
+
+#define TEXT_END_OF_LINE     0x01000000
+
+#define TEXT_HYPHEN_BREAK    0x02000000
+
+#define TEXT_REFLOW_FLAGS    \
+  (TEXT_FIRST_LETTER|TEXT_START_OF_LINE|TEXT_END_OF_LINE|TEXT_HYPHEN_BREAK)
+
+
+
+#define TEXT_IS_ONLY_WHITESPACE    0x08000000
+
+#define TEXT_ISNOT_ONLY_WHITESPACE 0x10000000
+
+#define TEXT_WHITESPACE_FLAGS      0x18000000
+
+
+
+#define TEXT_IS_RUN_OWNER          0x20000000
+
+
+#define TEXT_BLINK_ON              0x80000000
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class nsTextFrame;
+class PropertyProvider;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+struct TextRunMappedFlow {
+  nsTextFrame* mStartFrame;
+  PRInt32      mDOMOffsetToBeforeTransformOffset;
+  
+  PRUint32     mContentLength;
+};
+
+
+
+
+
+
+struct TextRunUserData {
+  TextRunMappedFlow* mMappedFlows;
+  PRInt32            mMappedFlowCount;
+
+  PRUint32           mLastFlowIndex;
+};
+
+
+
+
+
+
+class nsTextPaintStyle {
+public:
+  nsTextPaintStyle(nsTextFrame* aFrame);
+
+  nscolor GetTextColor();
+  
+
+
+
+  PRBool GetSelectionColors(nscolor* aForeColor,
+                            nscolor* aBackColor);
+  void GetIMESelectionColors(PRInt32  aIndex,
+                             nscolor* aForeColor,
+                             nscolor* aBackColor);
+  
+  PRBool GetIMEUnderline(PRInt32  aIndex,
+                         nscolor* aLineColor,
+                         float*   aRelativeSize);
+
+  nsPresContext* GetPresContext() { return mPresContext; }
+
+  enum {
+    eIndexRawInput = 0,
+    eIndexSelRawText,
+    eIndexConvText,
+    eIndexSelConvText
+  };
+
+protected:
+  nsTextFrame*   mFrame;
+  nsPresContext* mPresContext;
+  PRPackedBool   mInitCommonColors;
+  PRPackedBool   mInitSelectionColors;
+
+  
+
+  PRInt16      mSelectionStatus; 
+  nscolor      mSelectionTextColor;
+  nscolor      mSelectionBGColor;
+
+  
+
+  PRInt32 mSufficientContrast;
+  nscolor mFrameBackgroundColor;
+
+  
+  struct nsIMEColor {
+    PRBool mInit;
+    nscolor mTextColor;
+    nscolor mBGColor;
+    nscolor mUnderlineColor;
+  };
+  nsIMEColor mIMEColor[4];
+  
+  float mIMEUnderlineRelativeSize;
+
+  
+  void InitCommonColors();
+  PRBool InitSelectionColors();
+
+  nsIMEColor* GetIMEColor(PRInt32 aIndex);
+  void InitIMEColor(PRInt32 aIndex);
+
+  PRBool EnsureSufficientContrast(nscolor *aForeColor, nscolor *aBackColor);
+
+  nscolor GetResolvedForeColor(nscolor aColor, nscolor aDefaultForeColor,
+                               nscolor aBackColor);
+};
+
+class nsTextFrame : public nsFrame {
+public:
+  nsTextFrame(nsStyleContext* aContext) : nsFrame(aContext)
+  {
+    NS_ASSERTION(mContentOffset == 0, "Bogus content offset");
+    NS_ASSERTION(mContentLength == 0, "Bogus content length");
+  }
+  
+  
+  NS_IMETHOD BuildDisplayList(nsDisplayListBuilder*   aBuilder,
+                              const nsRect&           aDirtyRect,
+                              const nsDisplayListSet& aLists);
+
+  NS_IMETHOD Init(nsIContent*      aContent,
+                  nsIFrame*        aParent,
+                  nsIFrame*        aPrevInFlow);
+
+  virtual void Destroy();
+  
+  NS_IMETHOD GetCursor(const nsPoint& aPoint,
+                       nsIFrame::Cursor& aCursor);
+  
+  NS_IMETHOD CharacterDataChanged(nsPresContext* aPresContext,
+                                  nsIContent*     aChild,
+                                  PRBool          aAppend);
+                                  
+  NS_IMETHOD DidSetStyleContext();
+  
+  virtual nsIFrame* GetNextContinuation() const {
+    return mNextContinuation;
+  }
+  NS_IMETHOD SetNextContinuation(nsIFrame* aNextContinuation) {
+    NS_ASSERTION (!aNextContinuation || GetType() == aNextContinuation->GetType(),
+                  "setting a next continuation with incorrect type!");
+    NS_ASSERTION (!nsSplittableFrame::IsInNextContinuationChain(aNextContinuation, this),
+                  "creating a loop in continuation chain!");
+    mNextContinuation = aNextContinuation;
+    if (aNextContinuation)
+      aNextContinuation->RemoveStateBits(NS_FRAME_IS_FLUID_CONTINUATION);
+    return NS_OK;
+  }
+  virtual nsIFrame* GetNextInFlowVirtual() const { return GetNextInFlow(); }
+  nsIFrame* GetNextInFlow() const {
+    return mNextContinuation && (mNextContinuation->GetStateBits() & NS_FRAME_IS_FLUID_CONTINUATION) ? 
+      mNextContinuation : nsnull;
+  }
+  NS_IMETHOD SetNextInFlow(nsIFrame* aNextInFlow) {
+    NS_ASSERTION (!aNextInFlow || GetType() == aNextInFlow->GetType(),
+                  "setting a next in flow with incorrect type!");
+    NS_ASSERTION (!nsSplittableFrame::IsInNextContinuationChain(aNextInFlow, this),
+                  "creating a loop in continuation chain!");
+    mNextContinuation = aNextInFlow;
+    if (aNextInFlow)
+      aNextInFlow->AddStateBits(NS_FRAME_IS_FLUID_CONTINUATION);
+    return NS_OK;
+  }
+  virtual nsIFrame* GetLastInFlow() const;
+  virtual nsIFrame* GetLastContinuation() const;
+  
+  virtual nsSplittableType GetSplittableType() const {
+    return NS_FRAME_SPLITTABLE;
+  }
+  
+  
+
+
+
+
+  virtual nsIAtom* GetType() const;
+  
+  virtual PRBool IsFrameOfType(PRUint32 aFlags) const
+  {
+    
+    
+    return nsFrame::IsFrameOfType(aFlags & ~(nsIFrame::eReplaced));
+  }
+
+#ifdef DEBUG
+  NS_IMETHOD List(FILE* out, PRInt32 aIndent) const;
+  NS_IMETHOD GetFrameName(nsAString& aResult) const;
+  NS_IMETHOD_(nsFrameState) GetDebugStateBits() const ;
+#endif
+  
+  virtual ContentOffsets CalcContentOffsetsFromFramePoint(nsPoint aPoint);
+   
+  NS_IMETHOD SetSelected(nsPresContext* aPresContext,
+                         nsIDOMRange *aRange,
+                         PRBool aSelected,
+                         nsSpread aSpread);
+  
+  virtual PRBool PeekOffsetNoAmount(PRBool aForward, PRInt32* aOffset);
+  virtual PRBool PeekOffsetCharacter(PRBool aForward, PRInt32* aOffset);
+  virtual PRBool PeekOffsetWord(PRBool aForward, PRBool aWordSelectEatSpace, PRBool aIsKeyboardSelect,
+                                PRInt32* aOffset, PRBool* aSawBeforeType);
+
+  NS_IMETHOD CheckVisibility(nsPresContext* aContext, PRInt32 aStartIndex, PRInt32 aEndIndex, PRBool aRecurse, PRBool *aFinished, PRBool *_retval);
+  
+  NS_IMETHOD GetOffsets(PRInt32 &start, PRInt32 &end)const;
+  
+  virtual void AdjustOffsetsForBidi(PRInt32 start, PRInt32 end);
+  
+  NS_IMETHOD GetPointFromOffset(nsPresContext*         inPresContext,
+                                nsIRenderingContext*    inRendContext,
+                                PRInt32                 inOffset,
+                                nsPoint*                outPoint);
+  
+  NS_IMETHOD  GetChildFrameContainingOffset(PRInt32     inContentOffset,
+                                            PRBool                  inHint,
+                                            PRInt32*                outFrameContentOffset,
+                                            nsIFrame*               *outChildFrame);
+  
+  virtual PRBool IsVisibleInSelection(nsISelection* aSelection);
+  
+  virtual PRBool IsEmpty();
+  virtual PRBool IsSelfEmpty() { return IsEmpty(); }
+  
+  
+
+
+
+  virtual PRBool HasTerminalNewline() const;
+  
+#ifdef ACCESSIBILITY
+  NS_IMETHOD GetAccessible(nsIAccessible** aAccessible);
+#endif
+  
+  virtual nscoord GetMinWidth(nsIRenderingContext *aRenderingContext);
+  virtual nscoord GetPrefWidth(nsIRenderingContext *aRenderingContext);
+  virtual void AddInlineMinWidth(nsIRenderingContext *aRenderingContext,
+                                 InlineMinWidthData *aData);
+  virtual void AddInlinePrefWidth(nsIRenderingContext *aRenderingContext,
+                                  InlinePrefWidthData *aData);
+  virtual nsSize ComputeSize(nsIRenderingContext *aRenderingContext,
+                             nsSize aCBSize, nscoord aAvailableWidth,
+                             nsSize aMargin, nsSize aBorder, nsSize aPadding,
+                             PRBool aShrinkWrap);
+  NS_IMETHOD Reflow(nsPresContext* aPresContext,
+                    nsHTMLReflowMetrics& aMetrics,
+                    const nsHTMLReflowState& aReflowState,
+                    nsReflowStatus& aStatus);
+  virtual PRBool CanContinueTextRun() const;
+  NS_IMETHOD TrimTrailingWhiteSpace(nsPresContext* aPresContext,
+                                    nsIRenderingContext& aRC,
+                                    nscoord& aDeltaWidth,
+                                    PRBool& aLastCharIsJustifiable);
+
+  void AddInlineMinWidthForFlow(nsIRenderingContext *aRenderingContext,
+                                nsIFrame::InlineMinWidthData *aData);
+  void AddInlinePrefWidthForFlow(nsIRenderingContext *aRenderingContext,
+                                 InlinePrefWidthData *aData);
+
+  
+  void PaintText(nsIRenderingContext* aRenderingContext, nsPoint aPt,
+                 const nsRect& aDirtyRect);
+  
+  void PaintTextDecorations(gfxContext* aCtx, const gfxRect& aDirtyRect,
+                            const gfxPoint& aFramePt, nsTextPaintStyle& aTextStyle,
+                            PropertyProvider& aProvider);
+  
+  
+  
+  PRBool PaintTextWithSelection(gfxContext* aCtx,
+                                const gfxPoint& aFramePt,
+                                const gfxPoint& aTextBaselinePt,
+                                const gfxRect& aDirtyRect,
+                                PropertyProvider& aProvider,
+                                nsTextPaintStyle& aTextPaintStyle);
+  
+  
+  
+  void PaintTextWithSelectionColors(gfxContext* aCtx,
+                                    const gfxPoint& aFramePt,
+                                    const gfxPoint& aTextBaselinePt,
+                                    const gfxRect& aDirtyRect,
+                                    PropertyProvider& aProvider,
+                                    nsTextPaintStyle& aTextPaintStyle,
+                                    SelectionDetails* aDetails,
+                                    SelectionType* aAllTypes);
+  
+  void PaintTextSelectionDecorations(gfxContext* aCtx,
+                                     const gfxPoint& aFramePt,
+                                     const gfxPoint& aTextBaselinePt,
+                                     const gfxRect& aDirtyRect,
+                                     PropertyProvider& aProvider,
+                                     nsTextPaintStyle& aTextPaintStyle,
+                                     SelectionDetails* aDetails,
+                                     SelectionType aSelectionType);
+
+  PRInt16 GetSelectionStatus(PRInt16* aSelectionFlags);
+
+#ifdef DEBUG
+  void ToCString(nsString& aBuf, PRInt32* aTotalContentLength) const;
+#endif
+
+  PRInt32 GetContentOffset() { return mContentOffset; }
+  PRInt32 GetContentLength() { return mContentLength; }
+
+  
+  
+  
+  
+  PRInt32 GetInFlowContentLength();
+
+  
+  
+  void ClearTextRun();
+  
+
+
+
+
+
+
+
+
+
+  gfxSkipCharsIterator EnsureTextRun(nsIRenderingContext* aRC = nsnull,
+                                     nsBlockFrame* aBlock = nsnull,
+                                     const nsLineList::iterator* aLine = nsnull,
+                                     PRUint32* aFlowEndInTextRun = nsnull);
+
+  gfxTextRun* GetTextRun() { return mTextRun; }
+  void SetTextRun(gfxTextRun* aTextRun) { mTextRun = aTextRun; }
+  
+  PRInt32 GetColumn() { return mColumn; }
+
+  
+  
+  
+  PRInt32 GetTrimmedContentLength(const nsTextFragment* aFrag,
+                                  const gfxSkipCharsIterator& aIterator);
+
+protected:
+  virtual ~nsTextFrame();
+  
+  nsIFrame*   mNextContinuation;
+  PRInt32     mContentOffset;
+  PRInt32     mContentLength;
+  PRInt32     mColumn;
+  nscoord     mAscent;
+  gfxTextRun* mTextRun;
+
+  SelectionDetails* GetSelectionDetails();
+  
+  void AdjustSelectionPointsForBidi(SelectionDetails *sdptr,
+                                    PRInt32 textLength,
+                                    PRBool isRTLChars,
+                                    PRBool isOddLevel,
+                                    PRBool isBidiSystem);
+  
+  void SetOffsets(PRInt32 start, PRInt32 end);
+};
+
+PRInt32 nsTextFrame::GetInFlowContentLength() {
+#ifdef IBMBIDI
+  nsTextFrame* nextBidi = nsnull;
+  PRInt32      start = -1, end;
+
+  if (mState & NS_FRAME_IS_BIDI) {
+    nextBidi = NS_STATIC_CAST(nsTextFrame*, GetLastInFlow()->GetNextContinuation());
+    if (nextBidi) {
+      nextBidi->GetOffsets(start, end);
+      return start - mContentOffset;
+    }
+  }
+#endif 
+  return mContent->TextLength() - mContentOffset;
+}
+
+
+
+
+
+
+static PRBool IsCSSWordSpacingSpace(const nsTextFragment* aFrag, PRUint32 aPos)
+{
+  NS_ASSERTION(aPos < aFrag->GetLength(), "No text for IsSpace!");
+  PRUnichar ch = aFrag->CharAt(aPos);
+  if (ch == ' ' || ch == 0x3000) { 
+    if (!aFrag->Is2b())
+      return PR_TRUE;
+    return !nsTextFrameUtils::IsSpaceCombiningSequenceTail(
+        aFrag->Get2b() + aPos + 1, aFrag->GetLength() - (aPos + 1));
+  } else {
+    return ch == '\t' || ch == '\n';
+  }
+}
+
+static PRBool IsSpace(const PRUnichar* aChars, PRUint32 aLength)
+{
+  NS_ASSERTION(aLength > 0, "No text for IsSpace!");
+  PRUnichar ch = *aChars;
+  if (ch == ' ') {
+    return !nsTextFrameUtils::IsSpaceCombiningSequenceTail(aChars + 1, aLength - 1);
+  } else {
+    return ch == '\t' || ch == '\n';
+  }
+}
+
+static PRBool IsSpace(char aCh)
+{
+  return aCh == ' ' || aCh == '\t' || aCh == '\n';
+}
+
+static PRBool IsSpace(const nsTextFragment* aFrag, PRUint32 aPos)
+{
+  NS_ASSERTION(aPos < aFrag->GetLength(), "No text for IsSpace!");
+  PRUnichar ch = aFrag->CharAt(aPos);
+  if (ch == ' ') {
+    if (!aFrag->Is2b())
+      return PR_TRUE;
+    return !nsTextFrameUtils::IsSpaceCombiningSequenceTail(
+        aFrag->Get2b() + aPos + 1, aFrag->GetLength() - (aPos + 1));
+  } else {
+    return ch == '\t' || ch == '\n';
+  }
+}
+
+static PRUint32 GetWhitespaceCount(const nsTextFragment* frag, PRInt32 aStartOffset,
+                                   PRInt32 aLength, PRInt32 aDirection)
+{
+  PRInt32 count = 0;
+  if (frag->Is2b()) {
+    const PRUnichar* str = frag->Get2b() + aStartOffset;
+    PRInt32 fragLen = frag->GetLength() - aStartOffset;
+    for (; count < aLength; ++count) {
+      if (!IsSpace(str, fragLen))
+        break;
+      str += aDirection;
+      fragLen -= aDirection;
+    }
+  } else {
+    const char* str = frag->Get1b() + aStartOffset;
+    for (; count < aLength; ++count) {
+      if (!IsSpace(*str))
+        break;
+      str += aDirection;
+    }
+  }
+  return count;
+}
+
+
+
+
+
+
+
+
+
+
+class BuildTextRunsScanner {
+public:
+  BuildTextRunsScanner(nsPresContext* aPresContext, nsBlockFrame* aBlockFrame,
+                       gfxContext* aContext) :
+    mCurrentFramesAllSameTextRun(nsnull), mBlockFrame(aBlockFrame),
+    mContext(aContext), mBidiEnabled(aPresContext->BidiEnabled()) {
+    ResetRunInfo();
+  }
+
+  void SetAtStartOfLine() {
+    mStartOfLine = PR_TRUE;
+    mTrimNextRunLeadingWhitespace = PR_TRUE;
+  }
+  void SetCommonAncestorWithLastFrame(nsIFrame* aFrame) {
+    mCommonAncestorWithLastFrame = aFrame;
+  }
+  nsIFrame* GetCommonAncestorWithLastFrame() {
+    return mCommonAncestorWithLastFrame;
+  }
+  void ScanFrame(nsIFrame* aFrame);
+  void FlushFrames(PRBool aFlushLineBreaks);
+  void ResetRunInfo() {
+    mLastFrame = nsnull;
+    mMappedFlows.Clear();
+    mMaxTextLength = 0;
+    mDoubleByteText = PR_FALSE;
+  }
+  void AccumulateRunInfo(nsTextFrame* aFrame);
+  void BuildTextRunForFrames(void* aTextBuffer);
+  void AssignTextRun(gfxTextRun* aTextRun);
+  nsTextFrame* GetNextBreakBeforeFrame(PRUint32* aIndex);
+  void SetupBreakSinksForTextRun(gfxTextRun* aTextRun, const void* aText, PRUint32 aLength,
+                                 PRBool aIs2b, PRBool aIsExistingTextRun);
+
+  PRBool StylesMatchForTextRun(nsIFrame* aFrame1, nsIFrame* aFrame2);
+
+  
+  
+  
+  
+  struct MappedFlow {
+    nsTextFrame* mStartFrame;
+    nsTextFrame* mEndFrame;
+    
+    
+    
+    
+    
+    nsIFrame*    mAncestorControllingInitialBreak;
+    PRInt32      mContentOffset;
+    PRInt32      mContentEndOffset;
+    PRUint32     mTransformedTextOffset; 
+  };
+
+  class BreakSink : public nsILineBreakSink {
+  public:
+    BreakSink(gfxTextRun* aTextRun, PRUint32 aOffsetIntoTextRun,
+              PRBool aExistingTextRun) :
+                  mTextRun(aTextRun), mOffsetIntoTextRun(aOffsetIntoTextRun),
+                  mChangedBreaks(PR_FALSE), mExistingTextRun(aExistingTextRun) {}
+
+    virtual void SetBreaks(PRUint32 aOffset, PRUint32 aLength,
+                           PRPackedBool* aBreakBefore) {
+      if (mTextRun->SetPotentialLineBreaks(aOffset + mOffsetIntoTextRun, aLength,
+                                           aBreakBefore)) {
+        mChangedBreaks = PR_TRUE;
+      }
+    }
+
+    gfxTextRun*  mTextRun;
+    PRUint32     mOffsetIntoTextRun;
+    PRPackedBool mChangedBreaks;
+    PRPackedBool mExistingTextRun;
+  };
+
+private:
+  nsAutoTArray<MappedFlow,10>   mMappedFlows;
+  nsAutoTArray<nsTextFrame*,50> mLineBreakBeforeFrames;
+  nsAutoTArray<BreakSink,10>    mBreakSinks;
+  nsLineBreaker                 mLineBreaker;
+  gfxTextRun*                   mCurrentFramesAllSameTextRun;
+  nsBlockFrame*                 mBlockFrame;
+  gfxContext*                   mContext;
+  nsTextFrame*                  mLastFrame;
+  
+  
+  nsIFrame*                     mCommonAncestorWithLastFrame;
+  
+  PRUint32                      mMaxTextLength;
+  PRPackedBool                  mDoubleByteText;
+  PRPackedBool                  mBidiEnabled;
+  PRPackedBool                  mStartOfLine;
+  PRPackedBool                  mTrimNextRunLeadingWhitespace;
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+static void
+BuildTextRuns(nsIRenderingContext* aRC, nsTextFrame* aForFrame,
+              nsBlockFrame* aBlockFrame, const nsLineList::iterator* aForFrameLine)
+{
+  if (!aBlockFrame) {
+    aBlockFrame = nsLayoutUtils::FindNearestBlockAncestor(aForFrame);
+  }
+
+  
+  
+  nsBlockFrame::line_iterator line;
+  if (aForFrameLine) {
+    line = *aForFrameLine;
+  } else {
+    nsIFrame* immediateChild =
+      nsLayoutUtils::FindChildContainingDescendant(aBlockFrame, aForFrame);
+    line = aBlockFrame->FindLineFor(immediateChild);
+    NS_ASSERTION(line != aBlockFrame->end_lines(),
+                 "Frame is not in the block!!!");
+  }
+  nsBlockFrame::line_iterator firstLine = aBlockFrame->begin_lines();
+  while (line != firstLine) {
+    --line;
+    if (line->IsBlock() || !line->IsLineWrapped()) {
+      ++line;
+      break;
+    }
+  }
+
+  
+  
+  
+  
+  nsBlockFrame::line_iterator endLines = aBlockFrame->end_lines();
+  gfxContext* ctx = NS_STATIC_CAST(gfxContext*,
+    aRC->GetNativeGraphicData(nsIRenderingContext::NATIVE_THEBES_CONTEXT));
+  BuildTextRunsScanner scanner(aForFrame->GetPresContext(), aBlockFrame, ctx);
+  NS_ASSERTION(line != endLines && !line->IsBlock(), "Where is this frame anyway??");
+  nsIFrame* child = line->mFirstChild;
+  do {
+    scanner.SetAtStartOfLine();
+    scanner.SetCommonAncestorWithLastFrame(nsnull);
+    PRInt32 i;
+    for (i = line->GetChildCount() - 1; i >= 0; --i) {
+      scanner.ScanFrame(child);
+      if (scanner.GetCommonAncestorWithLastFrame()) {
+        NS_ASSERTION(aBlockFrame == scanner.GetCommonAncestorWithLastFrame()->GetParent(),
+                     "Bad mCommonAncestorWithLastFrame");
+        scanner.SetCommonAncestorWithLastFrame(aBlockFrame);
+      }
+      child = child->GetNextSibling();
+    }
+    if (!line->IsLineWrapped()) {
+      
+      break;
+    }
+    ++line;
+  } while (line != endLines && !line->IsBlock());
+
+  
+  scanner.SetAtStartOfLine();
+  scanner.FlushFrames(PR_TRUE);
+}
+
+static PRUnichar*
+ExpandBuffer(PRUnichar* aDest, PRUint8* aSrc, PRUint32 aCount)
+{
+  while (aCount) {
+    *aDest = *aSrc;
+    ++aDest;
+    ++aSrc;
+    --aCount;
+  }
+  return aDest;
+}
+
+static void*
+TransformTextToBuffer(nsTextFrame* aFrame, PRInt32 aContentLength,
+                      void* aBuffer, PRInt32 aCharSize, gfxSkipCharsBuilder* aBuilder,
+                      PRPackedBool* aIncomingWhitespace)
+{
+  const nsTextFragment* frag = aFrame->GetContent()->GetText();
+  PRInt32 contentStart = aFrame->GetContentOffset();
+  PRBool compressWhitespace = !aFrame->GetStyleText()->WhiteSpaceIsSignificant();
+  PRUint32 analysisFlags;
+
+  if (frag->Is2b()) {
+    NS_ASSERTION(aCharSize == 2, "Wrong size buffer!");
+    return nsTextFrameUtils::TransformText(
+        frag->Get2b() + contentStart, aContentLength, NS_STATIC_CAST(PRUnichar*, aBuffer),
+        compressWhitespace, aIncomingWhitespace, aBuilder, &analysisFlags);
+  } else {
+    if (aCharSize == 2) {
+      
+      
+      nsAutoTArray<PRUint8,BIG_TEXT_NODE_SIZE> tempBuf;
+      if (!tempBuf.AppendElements(aContentLength))
+        return nsnull;
+      PRUint8* end = nsTextFrameUtils::TransformText(
+          NS_REINTERPRET_CAST(const PRUint8*, frag->Get1b()) + contentStart, aContentLength,
+          tempBuf.Elements(), compressWhitespace, aIncomingWhitespace, aBuilder, &analysisFlags);
+      return ExpandBuffer(NS_STATIC_CAST(PRUnichar*, aBuffer),
+                          tempBuf.Elements(), end - tempBuf.Elements());
+    } else {
+      return nsTextFrameUtils::TransformText(
+          NS_REINTERPRET_CAST(const PRUint8*, frag->Get1b()) + contentStart, aContentLength,
+          NS_STATIC_CAST(PRUint8*, aBuffer),
+          compressWhitespace, aIncomingWhitespace, aBuilder, &analysisFlags);
+    }
+  }
+}
+
+static void
+ReconstructTextForRun(gfxTextRun* aTextRun, PRBool aRememberText,
+                      BuildTextRunsScanner* aSetupBreaks,
+                      PRPackedBool* aIncomingWhitespace)
+{
+  gfxSkipCharsBuilder builder;
+  nsAutoTArray<PRUint8,BIG_TEXT_NODE_SIZE> buffer;
+  PRUint32 charSize = (aTextRun->GetFlags() & gfxTextRunFactory::TEXT_IS_8BIT) ? 1 : 2;
+  PRInt32 length;
+  void* bufEnd;
+  nsTextFrame* f;
+
+  if (aTextRun->GetFlags() & nsTextFrameUtils::TEXT_IS_SIMPLE_FLOW) {
+    f = NS_STATIC_CAST(nsTextFrame*, aTextRun->GetUserData());
+    const nsTextFragment* frag = f->GetContent()->GetText();
+    length = frag->GetLength() - f->GetContentOffset();
+    if (!buffer.AppendElements(length*charSize))
+      return;
+    bufEnd = TransformTextToBuffer(f, length, buffer.Elements(), charSize, &builder,
+                                   aIncomingWhitespace);
+    if (!bufEnd)
+      return;
+  } else {
+    TextRunUserData* userData = NS_STATIC_CAST(TextRunUserData*, aTextRun->GetUserData());
+    length = 0;
+    PRInt32 i;
+    for (i = 0; i < userData->mMappedFlowCount; ++i) {
+      TextRunMappedFlow* flow = &userData->mMappedFlows[i];
+      length += flow->mContentLength;
+    }
+    if (!buffer.AppendElements(length*charSize))
+      return;
+
+    bufEnd = buffer.Elements();
+    for (i = 0; i < userData->mMappedFlowCount; ++i) {
+      TextRunMappedFlow* flow = &userData->mMappedFlows[i];
+      if (i > 0) {
+        
+        
+        
+        NS_ASSERTION(flow->mStartFrame->GetStyleContext() ==
+                     userData->mMappedFlows[i - 1].mStartFrame->GetStyleContext(),
+                     "Frames in flow should have same style contexts");
+      }
+      bufEnd = TransformTextToBuffer(flow->mStartFrame, flow->mContentLength, bufEnd,
+                                     charSize, &builder, aIncomingWhitespace);
+      if (!bufEnd)
+        return;
+    }
+    f = userData->mMappedFlows[0].mStartFrame;
+  }
+  PRUint32 transformedLength = NS_STATIC_CAST(PRUint8*, bufEnd) - buffer.Elements();
+  if (charSize == 2) {
+    transformedLength >>= 1;
+  }
+
+  if (aRememberText) {
+    if (charSize == 2) {
+      aTextRun->RememberText(NS_REINTERPRET_CAST(PRUnichar*, buffer.Elements()), transformedLength);
+    } else {
+      aTextRun->RememberText(buffer.Elements(), transformedLength);
+    }
+  }
+
+  if (aSetupBreaks) {
+    aSetupBreaks->SetupBreakSinksForTextRun(aTextRun, buffer.Elements(), transformedLength,
+                                            charSize == 2, PR_TRUE);
+  }
+}
+
+
+
+
+
+void BuildTextRunsScanner::FlushFrames(PRBool aFlushLineBreaks)
+{
+  if (mMappedFlows.Length() == 0)
+    return;
+
+  if (mCurrentFramesAllSameTextRun &&
+      ((mCurrentFramesAllSameTextRun->GetFlags() & nsTextFrameUtils::TEXT_INCOMING_WHITESPACE) != 0) ==
+      mTrimNextRunLeadingWhitespace) {
+    
+    
+    
+    
+
+    
+    
+    ReconstructTextForRun(mCurrentFramesAllSameTextRun, PR_FALSE, this,
+                          &mTrimNextRunLeadingWhitespace);
+  } else {
+    nsAutoTArray<PRUint8,BIG_TEXT_NODE_SIZE> buffer;
+    if (!buffer.AppendElements(mMaxTextLength*(mDoubleByteText ? 2 : 1)))
+      return;
+    BuildTextRunForFrames(buffer.Elements());
+  }
+
+  if (aFlushLineBreaks) {
+    mLineBreaker.Reset();
+    PRUint32 i;
+    for (i = 0; i < mBreakSinks.Length(); ++i) {
+      if (!mBreakSinks[i].mExistingTextRun || mBreakSinks[i].mChangedBreaks) {
+        
+        
+      }
+    }
+    mBreakSinks.Clear();
+  }
+
+  ResetRunInfo();
+}
+
+void BuildTextRunsScanner::AccumulateRunInfo(nsTextFrame* aFrame)
+{
+  mMaxTextLength += aFrame->GetContentLength();
+  mDoubleByteText |= aFrame->GetContent()->GetText()->Is2b();
+  mLastFrame = aFrame;
+  mCommonAncestorWithLastFrame = aFrame;
+
+  if (mStartOfLine) {
+    mLineBreakBeforeFrames.AppendElement(aFrame);
+    mStartOfLine = PR_FALSE;
+  }
+}
+
+PRBool
+BuildTextRunsScanner::StylesMatchForTextRun(nsIFrame* aFrame1, nsIFrame* aFrame2)
+{
+  if (mBidiEnabled &&
+      NS_GET_EMBEDDING_LEVEL(aFrame1) != NS_GET_EMBEDDING_LEVEL(aFrame2))
+    return PR_FALSE;
+
+  nsStyleContext* sc1 = aFrame1->GetStyleContext();
+  nsStyleContext* sc2 = aFrame2->GetStyleContext();
+
+  if (sc1 == sc2)
+    return PR_TRUE;
+  return sc1->GetStyleFont()->mFont.BaseEquals(sc2->GetStyleFont()->mFont) &&
+    sc1->GetStyleVisibility()->mLangGroup == sc2->GetStyleVisibility()->mLangGroup;
+}
+
+void BuildTextRunsScanner::ScanFrame(nsIFrame* aFrame)
+{
+  
+  if (mMappedFlows.Length() > 0) {
+    MappedFlow* mappedFlow = &mMappedFlows[mMappedFlows.Length() - 1];
+    if (mappedFlow->mEndFrame == aFrame) {
+      NS_ASSERTION(aFrame->GetType() == nsGkAtoms::textFrame,
+                   "Flow-sibling of a text frame is not a text frame?");
+
+      
+      if (mLastFrame->GetStyleContext() == aFrame->GetStyleContext()) {
+        nsTextFrame* frame = NS_STATIC_CAST(nsTextFrame*, aFrame);
+        mappedFlow->mEndFrame = NS_STATIC_CAST(nsTextFrame*, frame->GetNextInFlow());
+        
+        
+        
+        
+        mappedFlow->mContentEndOffset =
+          PR_MAX(mappedFlow->mContentEndOffset,
+                 frame->GetContentOffset() + frame->GetContentLength());
+        AccumulateRunInfo(frame);
+        return;
+      }
+    }
+  }
+
+  
+  if (aFrame->GetType() == nsGkAtoms::textFrame) {
+    nsTextFrame* frame = NS_STATIC_CAST(nsTextFrame*, aFrame);
+
+    if (mLastFrame && !StylesMatchForTextRun(mLastFrame, aFrame)) {
+      FlushFrames(PR_FALSE);
+    }
+
+    MappedFlow* mappedFlow = mMappedFlows.AppendElement();
+    if (!mappedFlow)
+      return;
+
+    mappedFlow->mStartFrame = frame;
+    mappedFlow->mEndFrame = NS_STATIC_CAST(nsTextFrame*, frame->GetNextInFlow());
+    mappedFlow->mAncestorControllingInitialBreak = mCommonAncestorWithLastFrame;
+    mappedFlow->mContentOffset = frame->GetContentOffset();
+    mappedFlow->mContentEndOffset =
+      frame->GetContentOffset() + frame->GetContentLength();
+    mappedFlow->mTransformedTextOffset = 0;
+    mLastFrame = frame;
+
+    AccumulateRunInfo(frame);
+    if (mMappedFlows.Length() == 1) {
+      mCurrentFramesAllSameTextRun = frame->GetTextRun();
+    } else {
+      if (mCurrentFramesAllSameTextRun != frame->GetTextRun()) {
+        mCurrentFramesAllSameTextRun = nsnull;
+      }
+    }
+    return;
+  }
+
+  PRBool continueTextRun = aFrame->CanContinueTextRun();
+  PRBool descendInto = PR_TRUE;
+  if (!continueTextRun) {
+    FlushFrames(PR_TRUE);
+    mCommonAncestorWithLastFrame = nsnull;
+    
+    
+    descendInto = !aFrame->IsFloatContainingBlock();
+    mStartOfLine = PR_FALSE;
+    mTrimNextRunLeadingWhitespace = PR_FALSE;
+  }
+
+  if (descendInto) {
+    nsIFrame* f;
+    for (f = aFrame->GetFirstChild(nsnull); f; f = f->GetNextSibling()) {
+      ScanFrame(f);
+      if (mCommonAncestorWithLastFrame) {
+        NS_ASSERTION(aFrame == mCommonAncestorWithLastFrame->GetParent(),
+                     "Bad mCommonAncestorWithLastFrame");
+        mCommonAncestorWithLastFrame = aFrame;
+      }
+    }
+  }
+
+  if (!continueTextRun) {
+    FlushFrames(PR_TRUE);
+    mCommonAncestorWithLastFrame = nsnull;
+    mTrimNextRunLeadingWhitespace = PR_FALSE;
+  }
+}
+
+static nscoord StyleToCoord(const nsStyleCoord& aCoord)
+{
+  if (eStyleUnit_Coord == aCoord.GetUnit()) {
+    return aCoord.GetCoordValue();
+  } else {
+    return 0;
+  }
+}
+
+static void
+DestroyUserData(void* aUserData)
+{
+  TextRunUserData* userData = NS_STATIC_CAST(TextRunUserData*, aUserData);
+  if (userData) {
+    nsMemory::Free(userData);
+  }
+}
+ 
+nsTextFrame*
+BuildTextRunsScanner::GetNextBreakBeforeFrame(PRUint32* aIndex)
+{
+  PRUint32 index = *aIndex;
+  if (index >= mLineBreakBeforeFrames.Length())
+    return nsnull;
+  *aIndex = index + 1;
+  return NS_STATIC_CAST(nsTextFrame*, mLineBreakBeforeFrames.ElementAt(index));
+}
+
+static PRUint32
+GetSpacingFlags(const nsStyleCoord& aStyleCoord)
+{
+  nscoord spacing = StyleToCoord(aStyleCoord);
+  if (!spacing)
+    return 0;
+  if (spacing > 0)
+    return gfxTextRunFactory::TEXT_ENABLE_SPACING;
+  return gfxTextRunFactory::TEXT_ENABLE_SPACING |
+         gfxTextRunFactory::TEXT_ENABLE_NEGATIVE_SPACING;
+}
+
+static gfxFontGroup*
+GetFontGroupForFrame(nsIFrame* aFrame)
+{
+  nsIDeviceContext* devContext = aFrame->GetPresContext()->DeviceContext();
+  const nsStyleFont* fontStyle = aFrame->GetStyleFont();
+  const nsStyleVisibility* visibilityStyle = aFrame->GetStyleVisibility();
+  nsCOMPtr<nsIFontMetrics> metrics;
+  devContext->GetMetricsFor(fontStyle->mFont, visibilityStyle->mLangGroup,
+                            *getter_AddRefs(metrics));
+  if (!metrics) 
+    return nsnull;
+
+  nsIFontMetrics* metricsRaw = metrics;
+  nsIThebesFontMetrics* fm = NS_STATIC_CAST(nsIThebesFontMetrics*, metricsRaw);
+  return fm->GetThebesFontGroup();
+}
+
+static gfxTextRun*
+GetSpecialString(gfxFontGroup* aFontGroup, gfxFontGroup::SpecialString aSpecial,
+                 gfxTextRun* aTextRun)
+{
+  if (!aFontGroup)
+    return nsnull;
+  return aFontGroup->GetSpecialStringTextRun(aSpecial, aTextRun);
+}
+
+static gfxFont::Metrics
+GetFontMetrics(gfxFontGroup* aFontGroup)
+{
+  if (!aFontGroup)
+    return gfxFont::Metrics();
+  gfxFont* font = aFontGroup->GetFontAt(0);
+  if (!font)
+    return gfxFont::Metrics();
+  return font->GetMetrics();
+}
+
+void
+BuildTextRunsScanner::BuildTextRunForFrames(void* aTextBuffer)
+{
+  gfxSkipCharsBuilder builder;
+
+  const void* textPtr = aTextBuffer;
+  PRBool anySmallcapsStyle = PR_FALSE;
+  PRBool anyTextTransformStyle = PR_FALSE;
+  nsIContent* lastContent = nsnull;
+  PRInt32 endOfLastContent = 0;
+  PRBool anyMixedStyleFlows = PR_FALSE;
+  PRUint32 textFlags =
+    mTrimNextRunLeadingWhitespace ? nsTextFrameUtils::TEXT_INCOMING_WHITESPACE : 0;
+
+  nsAutoTArray<PRUint32,50> textBreakPoints;
+  
+  if (!textBreakPoints.AppendElements(mLineBreakBeforeFrames.Length() + 1))
+    return;
+
+  TextRunUserData dummyData;
+  TextRunMappedFlow dummyMappedFlow;
+
+  TextRunUserData* userData;
+  
+  
+  if (mMappedFlows.Length() == 1 && !mMappedFlows[0].mEndFrame &&
+      !mMappedFlows[0].mContentOffset) {
+    userData = &dummyData;
+    dummyData.mMappedFlows = &dummyMappedFlow;
+  } else {
+    userData = NS_STATIC_CAST(TextRunUserData*,
+      nsMemory::Alloc(sizeof(TextRunUserData) + mMappedFlows.Length()*sizeof(TextRunMappedFlow)));
+    userData->mMappedFlows = NS_REINTERPRET_CAST(TextRunMappedFlow*, userData + 1);
+  }
+  userData->mMappedFlowCount = mMappedFlows.Length();
+  userData->mLastFlowIndex = 0;
+
+  PRUint32 finalMappedFlowCount = 0;
+  PRUint32 currentTransformedTextOffset = 0;
+
+  PRUint32 nextBreakIndex = 0;
+  nsTextFrame* nextBreakBeforeFrame = GetNextBreakBeforeFrame(&nextBreakIndex);
+
+  PRUint32 i;
+  for (i = 0; i < mMappedFlows.Length(); ++i) {
+    MappedFlow* mappedFlow = &mMappedFlows[i];
+    nsTextFrame* f = mappedFlow->mStartFrame;
+
+    mappedFlow->mTransformedTextOffset = currentTransformedTextOffset;
+
+    
+    const nsStyleText* textStyle = f->GetStyleText();
+    if (NS_STYLE_TEXT_TRANSFORM_NONE != textStyle->mTextTransform) {
+      anyTextTransformStyle = PR_TRUE;
+    }
+    textFlags |= GetSpacingFlags(textStyle->mLetterSpacing);
+    textFlags |= GetSpacingFlags(textStyle->mWordSpacing);
+    PRBool compressWhitespace = !textStyle->WhiteSpaceIsSignificant();
+    if (NS_STYLE_TEXT_ALIGN_JUSTIFY == textStyle->mTextAlign && compressWhitespace) {
+      textFlags |= gfxTextRunFactory::TEXT_ENABLE_SPACING;
+    }
+    const nsStyleFont* fontStyle = f->GetStyleFont();
+    if (NS_STYLE_FONT_VARIANT_SMALL_CAPS == fontStyle->mFont.variant) {
+      anySmallcapsStyle = PR_TRUE;
+    }
+
+    
+    nsIContent* content = f->GetContent();
+    const nsTextFragment* frag = content->GetText();
+    PRInt32 contentStart = mappedFlow->mContentOffset;
+    PRInt32 contentEnd = mappedFlow->mContentEndOffset;
+    PRInt32 contentLength = contentEnd - contentStart;
+
+    if (content == lastContent) {
+      NS_ASSERTION(endOfLastContent >= contentStart,
+                   "Gap in textframes mapping content?!"); 
+      
+      contentStart = PR_MAX(contentStart, endOfLastContent);
+      if (contentStart >= contentEnd)
+        continue;
+      anyMixedStyleFlows = PR_TRUE;
+      userData->mMappedFlows[finalMappedFlowCount - 1].mContentLength += contentLength;
+    } else {
+      TextRunMappedFlow* newFlow = &userData->mMappedFlows[finalMappedFlowCount];
+
+      newFlow->mStartFrame = mappedFlow->mStartFrame;
+      newFlow->mDOMOffsetToBeforeTransformOffset = builder.GetCharCount() - mappedFlow->mContentOffset;
+      newFlow->mContentLength = contentLength;
+      ++finalMappedFlowCount;
+
+      while (nextBreakBeforeFrame && nextBreakBeforeFrame->GetContent() == content) {
+        textBreakPoints[nextBreakIndex - 1] =
+          nextBreakBeforeFrame->GetContentOffset() + newFlow->mDOMOffsetToBeforeTransformOffset;
+        nextBreakBeforeFrame = GetNextBreakBeforeFrame(&nextBreakIndex);
+      }
+    }
+
+    PRUint32 analysisFlags;
+    if (frag->Is2b()) {
+      NS_ASSERTION(mDoubleByteText, "Wrong buffer char size!");
+      PRUnichar* bufStart = NS_STATIC_CAST(PRUnichar*, aTextBuffer);
+      PRUnichar* bufEnd = nsTextFrameUtils::TransformText(
+          frag->Get2b() + contentStart, contentLength, bufStart,
+          compressWhitespace, &mTrimNextRunLeadingWhitespace, &builder, &analysisFlags);
+      aTextBuffer = bufEnd;
+    } else {
+      if (mDoubleByteText) {
+        
+        
+        nsAutoTArray<PRUint8,BIG_TEXT_NODE_SIZE> tempBuf;
+        if (!tempBuf.AppendElements(contentLength)) {
+          DestroyUserData(userData);
+          return;
+        }
+        PRUint8* bufStart = tempBuf.Elements();
+        PRUint8* end = nsTextFrameUtils::TransformText(
+            NS_REINTERPRET_CAST(const PRUint8*, frag->Get1b()) + contentStart, contentLength,
+            bufStart, compressWhitespace, &mTrimNextRunLeadingWhitespace,
+            &builder, &analysisFlags);
+        aTextBuffer = ExpandBuffer(NS_STATIC_CAST(PRUnichar*, aTextBuffer),
+                                   tempBuf.Elements(), end - tempBuf.Elements());
+      } else {
+        PRUint8* bufStart = NS_STATIC_CAST(PRUint8*, aTextBuffer);
+        PRUint8* end = nsTextFrameUtils::TransformText(
+            NS_REINTERPRET_CAST(const PRUint8*, frag->Get1b()) + contentStart, contentLength,
+            bufStart,
+            compressWhitespace, &mTrimNextRunLeadingWhitespace, &builder, &analysisFlags);
+        aTextBuffer = end;
+      }
+    }
+    textFlags |= analysisFlags;
+
+    currentTransformedTextOffset =
+      (NS_STATIC_CAST(const PRUint8*, aTextBuffer) - NS_STATIC_CAST(const PRUint8*, textPtr)) >> mDoubleByteText;
+
+    lastContent = content;
+    endOfLastContent = contentEnd;
+  }
+
+  
+  if (!builder.IsOK()) {
+    DestroyUserData(userData);
+    return;
+  }
+
+  void* finalUserData;
+  if (userData == &dummyData) {
+    textFlags |= nsTextFrameUtils::TEXT_IS_SIMPLE_FLOW;
+    userData = nsnull;
+    finalUserData = mMappedFlows[0].mStartFrame;
+  } else {
+    userData = NS_STATIC_CAST(TextRunUserData*,
+      nsMemory::Realloc(userData, sizeof(TextRunUserData) + finalMappedFlowCount*sizeof(TextRunMappedFlow)));
+    if (!userData)
+      return;
+    userData->mMappedFlows = NS_REINTERPRET_CAST(TextRunMappedFlow*, userData + 1);
+    finalUserData = userData;
+  }
+
+  PRUint32 transformedLength = currentTransformedTextOffset;
+
+  if (!(textFlags & nsTextFrameUtils::TEXT_WAS_TRANSFORMED) &&
+      mMappedFlows.Length() == 1) {
+    
+    
+    const nsTextFragment* frag = lastContent->GetText();
+    if (frag->Is2b()) {
+      textPtr = frag->Get2b() + mMappedFlows[0].mContentOffset;
+    } else {
+      textPtr = frag->Get1b() + mMappedFlows[0].mContentOffset;
+    }
+    textFlags |= gfxTextRunFactory::TEXT_IS_PERSISTENT;
+  }
+
+  
+  nsTextFrame* firstFrame = mMappedFlows[0].mStartFrame;
+  gfxFontGroup* fontGroup = GetFontGroupForFrame(firstFrame);
+  if (!fontGroup) {
+    DestroyUserData(userData);
+    return;
+  }
+
+  
+  gfxTextRunFactory* factory = fontGroup;
+  nsRefPtr<nsTransformingTextRunFactory> transformingFactory;
+
+  if (anySmallcapsStyle) {
+    transformingFactory = new nsFontVariantTextRunFactory(fontGroup);
+    factory = transformingFactory;
+  }
+
+  if (anyTextTransformStyle) {
+    transformingFactory = new nsCaseTransformTextRunFactory(factory, transformingFactory);
+    factory = transformingFactory;
+  }
+
+  if (!factory) {
+    DestroyUserData(userData);
+    return;
+  }
+  nsTArray<nsStyleContext*> styles;
+  if (transformingFactory) {
+    for (i = 0; i < mMappedFlows.Length(); ++i) {
+      MappedFlow* mappedFlow = &mMappedFlows[i];
+      PRUint32 end = i == mMappedFlows.Length() - 1 ? transformedLength :
+          mMappedFlows[i + 1].mTransformedTextOffset;
+      nsStyleContext* sc = mappedFlow->mStartFrame->GetStyleContext();
+      PRUint32 j;
+      for (j = mappedFlow->mTransformedTextOffset; j < end; ++j) {
+        styles.AppendElement(sc);
+      }
+    }
+    transformingFactory->SetStyles(styles.Elements());
+  }
+
+  if (textFlags & nsTextFrameUtils::TEXT_HAS_TAB) {
+    textFlags |= gfxTextRunFactory::TEXT_ENABLE_SPACING;
+  }
+  if (textFlags & nsTextFrameUtils::TEXT_HAS_SHY) {
+    textFlags |= gfxTextRunFactory::TEXT_ENABLE_HYPHEN_BREAKS;
+  }
+  if (!(textFlags & nsTextFrameUtils::TEXT_HAS_NON_ASCII)) {
+    textFlags |= gfxTextRunFactory::TEXT_IS_ASCII;
+  }
+  if (mBidiEnabled && (NS_GET_EMBEDDING_LEVEL(firstFrame) & 1)) {
+    textFlags |= gfxTextRunFactory::TEXT_IS_RTL;
+  }
+
+  gfxSkipChars skipChars;
+  skipChars.TakeFrom(&builder);
+  
+  NS_ASSERTION(nextBreakIndex == mLineBreakBeforeFrames.Length(),
+               "Didn't find all the frames to break-before...");
+  gfxSkipCharsIterator iter(skipChars);
+  for (i = 0; i < nextBreakIndex; ++i) {
+    PRUint32* breakPoint = &textBreakPoints[i];
+    *breakPoint = iter.ConvertOriginalToSkipped(*breakPoint);
+  }
+  if (mStartOfLine) {
+    textBreakPoints[nextBreakIndex] = transformedLength;
+    ++nextBreakIndex;
+  }
+
+  gfxTextRunFactory::Parameters params =
+      { mContext, finalUserData, firstFrame->GetStyleVisibility()->mLangGroup, &skipChars,
+        textBreakPoints.Elements(), nextBreakIndex,
+        firstFrame->GetPresContext()->AppUnitsPerDevPixel(), textFlags };
+
+  gfxTextRun* textRun;
+  if (mDoubleByteText) {
+    if (textFlags & gfxTextRunFactory::TEXT_IS_ASCII) {
+      NS_WARNING("Hmm ... why are we taking the Unicode path when the text is all ASCII?");
+    }
+    const PRUnichar* text = NS_STATIC_CAST(const PRUnichar*, textPtr);
+    textRun = factory->MakeTextRun(text, transformedLength, &params);
+    if (!textRun) {
+      DestroyUserData(userData);
+      return;
+    }
+    if (anyMixedStyleFlows) {
+      
+      textRun->RememberText(text, transformedLength);
+    }
+  } else {
+    const PRUint8* text = NS_STATIC_CAST(const PRUint8*, textPtr);
+    textRun = factory->MakeTextRun(text, transformedLength, &params);
+    if (!textRun) {
+      DestroyUserData(userData);
+      return;
+    }
+    if (anyMixedStyleFlows) {
+      
+      textRun->RememberText(text, transformedLength);
+    }
+  }
+  
+  
+  
+  
+  SetupBreakSinksForTextRun(textRun, textPtr, transformedLength, mDoubleByteText,
+                            PR_FALSE);
+
+  
+  
+  AssignTextRun(textRun);
+}
+
+void
+BuildTextRunsScanner::SetupBreakSinksForTextRun(gfxTextRun* aTextRun, const void* aText, PRUint32 aLength,
+                                                PRBool aIs2b, PRBool aIsExistingTextRun)
+{
+  
+  nsIAtom* lang = mMappedFlows[0].mStartFrame->GetStyleVisibility()->mLangGroup;
+  PRUint32 i;
+  for (i = 0; i < mMappedFlows.Length(); ++i) {
+    MappedFlow* mappedFlow = &mMappedFlows[i];
+    BreakSink* breakSink = mBreakSinks.AppendElement(
+      BreakSink(aTextRun, mappedFlow->mTransformedTextOffset, aIsExistingTextRun));
+    if (!breakSink)
+      return;
+    PRUint32 offset = mappedFlow->mTransformedTextOffset;
+
+    PRUint32 length =
+      (i == mMappedFlows.Length() - 1 ? aLength : mMappedFlows[i + 1].mTransformedTextOffset)
+      - offset;
+
+    PRUint32 flags = 0;
+    if (!mappedFlow->mAncestorControllingInitialBreak ||
+        mappedFlow->mAncestorControllingInitialBreak->GetStyleText()->WhiteSpaceCanWrap()) {
+      flags |= nsLineBreaker::BREAK_NONWHITESPACE_BEFORE;
+    }
+    if (mappedFlow->mStartFrame->GetStyleText()->WhiteSpaceCanWrap()) {
+      flags |= nsLineBreaker::BREAK_WHITESPACE | nsLineBreaker::BREAK_NONWHITESPACE_INSIDE;
+    }
+    
+    
+    
+    if (aIs2b) {
+      mLineBreaker.AppendText(lang, NS_STATIC_CAST(const PRUnichar*, aText) + offset,
+                              length, flags, breakSink);
+    } else {
+      mLineBreaker.AppendText(lang, NS_STATIC_CAST(const PRUint8*, aText) + offset,
+                              length, flags, breakSink);
+    }
+  }
+}
+
+
+
+
+class StaticTextProvider : public gfxTextRun::TextProvider {
+public:
+  StaticTextProvider(gfxTextRun* aTextRun) : mTextRun(aTextRun) {}
+
+  virtual void ForceRememberText() {
+    PRPackedBool incomingWhitespace =
+      (mTextRun->GetFlags() & nsTextFrameUtils::TEXT_INCOMING_WHITESPACE) != 0;
+    ReconstructTextForRun(mTextRun, PR_TRUE, nsnull, &incomingWhitespace);
+  }
+
+protected:
+  gfxTextRun* mTextRun;
+};
+
+void
+BuildTextRunsScanner::AssignTextRun(gfxTextRun* aTextRun)
+{
+  nsIContent* lastContent = nsnull;
+  PRUint32 i;
+  for (i = 0; i < mMappedFlows.Length(); ++i) {
+    MappedFlow* mappedFlow = &mMappedFlows[i];
+    nsTextFrame* f = mappedFlow->mStartFrame;
+    nsIContent* content = f->GetContent();
+    if (content != lastContent) {
+      f->AddStateBits(TEXT_IS_RUN_OWNER);
+      content = lastContent;
+    }
+    for (; f != mappedFlow->mEndFrame;
+         f = NS_STATIC_CAST(nsTextFrame*, f->GetNextContinuation())) {
+      f->ClearTextRun();
+      f->SetTextRun(aTextRun);
+    }
+  }
+}
+
+gfxSkipCharsIterator
+nsTextFrame::EnsureTextRun(nsIRenderingContext* aRC, nsBlockFrame* aBlock,
+                           const nsLineList::iterator* aLine,
+                           PRUint32* aFlowEndInTextRun)
+{
+  if (!mTextRun) {
+    if (!aRC) {
+      nsCOMPtr<nsIRenderingContext> rendContext;      
+      nsresult rv = GetPresContext()->PresShell()->
+        CreateRenderingContext(this, getter_AddRefs(rendContext));
+      if (NS_SUCCEEDED(rv)) {
+        BuildTextRuns(rendContext, this, aBlock, aLine);
+      }
+    } else {
+      BuildTextRuns(aRC, this, aBlock, aLine);
+    }      
+    if (!mTextRun) {
+      
+      
+      static const gfxSkipChars emptySkipChars;
+      return gfxSkipCharsIterator(emptySkipChars, 0);
+    }
+  }
+
+  if (mTextRun->GetFlags() & nsTextFrameUtils::TEXT_IS_SIMPLE_FLOW) {
+    if (aFlowEndInTextRun) {
+      *aFlowEndInTextRun = mTextRun->GetLength();
+    }
+    return gfxSkipCharsIterator(mTextRun->GetSkipChars(), 0, mContentOffset);
+  }
+
+  TextRunUserData* userData = NS_STATIC_CAST(TextRunUserData*, mTextRun->GetUserData());
+  
+  PRInt32 direction;
+  PRInt32 startAt = userData->mLastFlowIndex;
+  
+  for (direction = 1; direction >= -1; direction -= 2) {
+    PRInt32 i;
+    for (i = startAt; 0 <= i && i < userData->mMappedFlowCount; i += direction) {
+      TextRunMappedFlow* flow = &userData->mMappedFlows[i];
+      if (flow->mStartFrame->GetContent() == mContent) {
+        
+        
+        
+        
+        userData->mLastFlowIndex = i;
+        gfxSkipCharsIterator iter(mTextRun->GetSkipChars(),
+                                  flow->mDOMOffsetToBeforeTransformOffset, mContentOffset);
+        if (aFlowEndInTextRun) {
+          if (i + 1 < userData->mMappedFlowCount) {
+            gfxSkipCharsIterator end(mTextRun->GetSkipChars());
+            *aFlowEndInTextRun = end.ConvertOriginalToSkipped(
+                flow[1].mStartFrame->GetContentOffset() + flow[1].mDOMOffsetToBeforeTransformOffset);
+          } else {
+            *aFlowEndInTextRun = mTextRun->GetLength();
+          }
+        }
+        return iter;
+      }
+      ++flow;
+    }
+    startAt = userData->mLastFlowIndex - 1;
+  }
+  NS_ERROR("Can't find flow containing this frame???");
+  static const gfxSkipChars emptySkipChars;
+  return gfxSkipCharsIterator(emptySkipChars, 0);
+}
+
+PRInt32
+nsTextFrame::GetTrimmedContentLength(const nsTextFragment* aFrag,
+                                     const gfxSkipCharsIterator& aIterator)
+{
+  NS_ASSERTION(mTextRun, "Need textrun here");
+
+  if (!(GetStateBits() & TEXT_END_OF_LINE) ||
+      GetStyleText()->WhiteSpaceIsSignificant())
+    return mContentLength;
+
+  gfxSkipCharsIterator iter(aIterator);
+
+  
+  PRInt32 length;
+  for (length = mContentLength; length > 0; --length) {
+    iter.SetOriginalOffset(mContentOffset + length - 1);
+    if (!iter.IsOriginalCharSkipped() &&
+        !IsSpace(aFrag, iter.GetOriginalOffset()))
+      break;
+  }
+  return length;
+}
+
+
+
+
+
+
+
+
+static PRBool IsJustifiableCharacter(const nsTextFragment* aFrag, PRInt32 aPos,
+                                     PRBool aLangIsCJ)
+{
+  PRUnichar ch = aFrag->CharAt(aPos);
+  if (0x20u == ch || 0xa0u == ch) {
+    
+    if (!aFrag->Is2b())
+      return PR_TRUE;
+    return !nsTextFrameUtils::IsSpaceCombiningSequenceTail(
+        aFrag->Get2b() + aPos + 1, aFrag->GetLength() - (aPos + 1));
+  }
+  if (ch < 0x2150u)
+    return PR_FALSE;
+  if (aLangIsCJ && (
+       (0x2150u <= ch && ch <= 0x22ffu) || 
+       (0x2460u <= ch && ch <= 0x24ffu) || 
+       (0x2580u <= ch && ch <= 0x27bfu) || 
+       (0x27f0u <= ch && ch <= 0x2bffu) || 
+                                           
+                                           
+       (0x2e80u <= ch && ch <= 0x312fu) || 
+                                           
+                                           
+       (0x3190u <= ch && ch <= 0xabffu) || 
+                                           
+                                           
+                                           
+       (0xf900u <= ch && ch <= 0xfaffu) || 
+       (0xff5eu <= ch && ch <= 0xff9fu)    
+     ))
+    return PR_TRUE;
+  return PR_FALSE;
+}
+
+static void ClearMetrics(nsHTMLReflowMetrics& aMetrics)
+{
+  aMetrics.width = 0;
+  aMetrics.height = 0;
+  aMetrics.ascent = 0;
+#ifdef MOZ_MATHML
+  aMetrics.mBoundingMetrics.Clear();
+#endif
+}
+
+static PRInt32 FindChar(const nsTextFragment* frag,
+                        PRInt32 aOffset, PRInt32 aLength, PRUnichar ch)
+{
+  PRInt32 i = 0;
+  if (frag->Is2b()) {
+    const PRUnichar* str = frag->Get2b() + aOffset;
+    for (; i < aLength; ++i) {
+      if (*str == ch)
+        return i + aOffset;
+      ++str;
+    }
+  } else {
+    if (PRUint16(ch) <= 0xFF) {
+      const char* str = frag->Get1b() + aOffset;
+      void* p = memchr(str, ch, aLength);
+      if (p)
+        return (NS_STATIC_CAST(char*, p) - str) + aOffset;
+    }
+  }
+  return -1;
+}
+
+static PRBool IsChineseJapaneseLangGroup(nsIFrame* aFrame)
+{
+  nsIAtom* langGroup = aFrame->GetStyleVisibility()->mLangGroup;
+  return langGroup == nsGkAtoms::Japanese
+      || langGroup == nsGkAtoms::Chinese
+      || langGroup == nsGkAtoms::Taiwanese
+      || langGroup == nsGkAtoms::HongKongChinese;
+}
+
+#ifdef DEBUG
+static PRBool IsInBounds(const gfxSkipCharsIterator& aStart, PRInt32 aContentLength,
+                         PRUint32 aOffset, PRUint32 aLength) {
+  if (aStart.GetSkippedOffset() > aOffset)
+    return PR_FALSE;
+  gfxSkipCharsIterator iter(aStart);
+  iter.AdvanceSkipped(aLength);
+  return iter.GetOriginalOffset() <= aStart.GetOriginalOffset() + aContentLength;
+}
+#endif
+
+class PropertyProvider : public gfxTextRun::PropertyProvider {
+public:
+  
+
+
+
+  PropertyProvider(gfxTextRun* aTextRun, const nsStyleText* aTextStyle,
+                   const nsTextFragment* aFrag, nsTextFrame* aFrame,
+                   const gfxSkipCharsIterator& aStart, PRInt32 aLength)
+    : mTextRun(aTextRun), mFontGroup(nsnull), mTextStyle(aTextStyle), mFrag(aFrag),
+      mFrame(aFrame), mStart(aStart), mLength(aLength),
+      mWordSpacing(StyleToCoord(mTextStyle->mWordSpacing)),
+      mLetterSpacing(StyleToCoord(mTextStyle->mLetterSpacing)),
+      mJustificationSpacing(0),
+      mHyphenWidth(-1)
+  {
+    NS_ASSERTION(mStart.IsInitialized(), "Start not initialized?");
+  }
+
+  
+
+
+
+
+  PropertyProvider(nsTextFrame* aFrame, const gfxSkipCharsIterator& aStart)
+    : mTextRun(aFrame->GetTextRun()), mFontGroup(nsnull), mTextStyle(aFrame->GetStyleText()),
+      mFrag(aFrame->GetContent()->GetText()),
+      mFrame(aFrame), mStart(aStart), mLength(aFrame->GetContentLength()),
+      mWordSpacing(StyleToCoord(mTextStyle->mWordSpacing)),
+      mLetterSpacing(StyleToCoord(mTextStyle->mLetterSpacing)),
+      mJustificationSpacing(0),
+      mHyphenWidth(-1)
+  {
+    NS_ASSERTION(mTextRun, "Textrun not initialized!");
+  }
+
+  
+  void InitializeForDisplay(PRBool aTrimAfter);
+
+  virtual void ForceRememberText() {
+    PRPackedBool incomingWhitespace =
+      (mTextRun->GetFlags() & nsTextFrameUtils::TEXT_INCOMING_WHITESPACE) != 0;
+    ReconstructTextForRun(mTextRun, PR_TRUE, nsnull, &incomingWhitespace);
+  }
+
+  virtual void GetSpacing(PRUint32 aStart, PRUint32 aLength, Spacing* aSpacing);
+  virtual gfxFloat GetHyphenWidth();
+  virtual void GetHyphenationBreaks(PRUint32 aStart, PRUint32 aLength,
+                                    PRPackedBool* aBreakBefore);
+
+  
+
+
+  PRUint32 ComputeJustifiableCharacters(PRInt32 aOffset, PRInt32 aLength);
+  void FindEndOfJustificationRange(gfxSkipCharsIterator* aIter);
+
+  
+
+
+  PRUint32 GetTabExpansionCount(PRUint32 aOffset, PRUint32 aLength);
+
+  nsTextFrame* GetFrame() { return mFrame; }
+  
+  
+  
+  const gfxSkipCharsIterator& GetStart() { return mStart; }
+  PRUint32 GetOriginalLength() { return mLength; }
+  const nsTextFragment* GetFragment() { return mFrag; }
+
+  gfxFontGroup* GetFontGroup() {
+    if (!mFontGroup) {
+      mFontGroup = GetFontGroupForFrame(mFrame);
+    }
+    return mFontGroup;
+  }
+
+protected:
+  void SetupJustificationSpacing();
+
+  
+  PRUint8* ComputeTabSpaceCount(PRUint32 aOffset, PRUint32 aLength);
+
+  gfxTextRun*           mTextRun;
+  gfxFontGroup*         mFontGroup;
+  const nsStyleText*    mTextStyle;
+  const nsTextFragment* mFrag;
+  nsTextFrame*          mFrame;
+  gfxSkipCharsIterator  mStart;  
+  nsTArray<PRUint8>     mTabSpaceCounts;  
+  PRUint32              mCurrentColumn;
+  PRInt32               mLength; 
+  gfxFloat              mWordSpacing;     
+  gfxFloat              mLetterSpacing;   
+  gfxFloat              mJustificationSpacing;
+  gfxFloat              mHyphenWidth;
+};
+
+PRUint32
+PropertyProvider::ComputeJustifiableCharacters(PRInt32 aOffset, PRInt32 aLength)
+{
+  
+  nsSkipCharsRunIterator
+    run(mStart, nsSkipCharsRunIterator::LENGTH_INCLUDES_SKIPPED, aLength);
+  run.SetOriginalOffset(aOffset);
+  PRUint32 justifiableChars = 0;
+  PRBool isCJK = IsChineseJapaneseLangGroup(mFrame);
+  while (run.NextRun()) {
+    PRInt32 i;
+    for (i = 0; i < run.GetRunLength(); ++i) {
+      justifiableChars +=
+        IsJustifiableCharacter(mFrag, run.GetOriginalOffset() + i, isCJK);
+    }
+  }
+  return justifiableChars;
+}
+
+
+
+
+class RunCharFlags {
+public:
+  RunCharFlags(const nsSkipCharsRunIterator& aRun, gfxTextRun* aTextRun) {
+    mBufPtr = mBuffer.AppendElements(aRun.GetRunLength());
+    if (!mBufPtr)
+      return;
+    NS_ASSERTION(!aRun.IsSkipped(), "Can't get flags for skipped chars");
+    aTextRun->GetCharFlags(aRun.GetPos().GetSkippedOffset(),
+                           aRun.GetRunLength(), mBufPtr);
+  }
+  RunCharFlags(PRUint32 aStart, PRUint32 aLength, gfxTextRun* aTextRun) {
+    mBufPtr = mBuffer.AppendElements(aLength);
+    if (!mBufPtr)
+      return;
+    aTextRun->GetCharFlags(aStart, aLength, mBufPtr);
+  }
+
+  
+  PRUint8 GetFlags(PRUint32 aIndex) { return mBufPtr[aIndex]; }
+  PRUint8* get() { return mBufPtr; }
+
+private:
+  nsAutoTArray<PRUint8,BIG_TEXT_NODE_SIZE> mBuffer;
+  PRUint8*                                 mBufPtr;
+};
+
+PRUint8*
+PropertyProvider::ComputeTabSpaceCount(PRUint32 aOffset, PRUint32 aLength)
+{
+  PRUint32 tabsEnd = mStart.GetSkippedOffset() + mTabSpaceCounts.Length();
+  
+  
+  
+  
+  if (aOffset + aLength > tabsEnd) {
+    PRUint32 column = mTabSpaceCounts.Length() ? mCurrentColumn : mFrame->GetColumn();
+    PRInt32 count = aOffset + aLength - tabsEnd;
+    nsSkipCharsRunIterator
+      run(mStart, nsSkipCharsRunIterator::LENGTH_UNSKIPPED_ONLY, count);
+    run.SetSkippedOffset(tabsEnd);
+    while (run.NextRun()) {
+      RunCharFlags charFlags(run, mTextRun);
+      PRInt32 i;
+
+      if (!charFlags.get())
+        break;
+      for (i = 0; i < run.GetRunLength(); ++i) {
+        if (mFrag->CharAt(i + run.GetOriginalOffset()) == '\t') {
+          PRInt32 spaces = 8 - column%8;
+          column += spaces;
+          
+          mTabSpaceCounts.AppendElement(spaces - 1);
+        } else {
+          if (charFlags.GetFlags(i) & gfxTextRun::CLUSTER_START) {
+            ++column;
+          }
+          mTabSpaceCounts.AppendElement(0);
+        }
+      }
+    }
+    mCurrentColumn = column;
+  }
+
+  return mTabSpaceCounts.Elements() + aOffset - mStart.GetSkippedOffset();
+}
+
+
+
+
+static PRUint32 FindClusterStart(PRUint8* aFlags, PRUint32 aPos)
+{
+  while (aPos > 0) {
+    if (aFlags[aPos] & gfxTextRun::CLUSTER_START)
+      break;
+    --aPos;
+  }
+  return aPos;
+}
+
+
+
+
+static void FindClusterStart(gfxTextRun* aTextRun,
+                             gfxSkipCharsIterator* aPos)
+{
+  while (aPos->GetOriginalOffset() > 0) {
+    if (aPos->IsOriginalCharSkipped() ||
+        (aTextRun->GetCharFlags(aPos->GetSkippedOffset()) & gfxTextRun::CLUSTER_START)) {
+      break;
+    }
+    aPos->AdvanceOriginal(-1);
+  }
+}
+
+
+
+
+static PRUint32 FindClusterEnd(PRUint8* aFlags, PRUint32 aLength, PRUint32 aPos)
+{
+  NS_PRECONDITION(aPos < aLength, "character outside string");
+  while (aPos + 1 < aLength) {
+    if (aFlags[aPos + 1] & gfxTextRun::CLUSTER_START)
+      break;
+    ++aPos;
+  }
+  return aPos;
+}
+
+
+
+
+static void FindClusterEnd(gfxTextRun* aTextRun, PRInt32 aOriginalEnd,
+                           gfxSkipCharsIterator* aPos)
+{
+  NS_PRECONDITION(aPos->GetOriginalOffset() < aOriginalEnd,
+                  "character outside string");
+  aPos->AdvanceOriginal(1);
+  while (aPos->GetOriginalOffset() < aOriginalEnd) {
+    if (aPos->IsOriginalCharSkipped() ||
+        (aTextRun->GetCharFlags(aPos->GetSkippedOffset()) & gfxTextRun::CLUSTER_START)) {
+      break;
+    }
+    aPos->AdvanceOriginal(1);
+  }
+  aPos->AdvanceOriginal(-1);
+}
+
+
+void
+PropertyProvider::GetSpacing(PRUint32 aStart, PRUint32 aLength,
+                             Spacing* aSpacing)
+{
+  NS_PRECONDITION(IsInBounds(mStart, mLength, aStart, aLength), "Range out of bounds");
+
+  PRUint32 index;
+  for (index = 0; index < aLength; ++index) {
+    aSpacing[index].mBefore = 0.0;
+    aSpacing[index].mAfter = 0.0;
+  }
+
+  
+  gfxSkipCharsIterator start(mStart);
+  start.SetSkippedOffset(aStart);
+
+  
+  if (mWordSpacing || mLetterSpacing) {
+    
+    nsSkipCharsRunIterator
+      run(start, nsSkipCharsRunIterator::LENGTH_UNSKIPPED_ONLY, aLength);
+    while (run.NextRun()) {
+      RunCharFlags charFlags(run, mTextRun);
+      PRUint32 runOffsetInSubstring = run.GetSkippedOffset() - aStart;
+      if (!charFlags.get())
+        break;
+
+      PRInt32 i;
+      for (i = 0; i < run.GetRunLength(); ++i) {
+        if (i + 1 >= run.GetRunLength() ||
+            (charFlags.GetFlags(i + 1) & gfxTextRun::CLUSTER_START)) {
+          
+          aSpacing[runOffsetInSubstring + i].mAfter += mLetterSpacing;
+        }
+        if (IsCSSWordSpacingSpace(mFrag, i + run.GetOriginalOffset())) {
+          
+          
+          PRUint32 clusterLastChar =
+            FindClusterEnd(charFlags.get(), run.GetRunLength(), i);
+          aSpacing[runOffsetInSubstring + clusterLastChar].mAfter += mWordSpacing;
+        }
+      }
+    }
+  }
+
+  
+  if (mTextRun->GetFlags() & nsTextFrameUtils::TEXT_HAS_TAB) {
+    
+    
+    
+    PRUint8* tabSpaceList = ComputeTabSpaceCount(aStart, aLength);
+    gfxTextRun* spaceTextRun =
+      GetSpecialString(GetFontGroup(), gfxFontGroup::STRING_SPACE, mTextRun);
+    gfxFloat spaceWidth = mLetterSpacing + mWordSpacing;
+    if (spaceTextRun) {
+      spaceWidth += spaceTextRun->GetAdvanceWidth(0,  spaceTextRun->GetLength(), nsnull);
+    }
+    for (index = 0; index < aLength; ++index) {
+      PRInt32 tabSpaces = tabSpaceList[index];
+      aSpacing[index].mAfter += spaceWidth*tabSpaces;
+    }
+  }
+
+  
+  if (mJustificationSpacing) {
+    gfxFloat halfJustificationSpace = mJustificationSpacing/2;
+    
+    
+    PRBool isCJK = IsChineseJapaneseLangGroup(mFrame);
+    gfxSkipCharsIterator justificationEnd(mStart);
+    FindEndOfJustificationRange(&justificationEnd);
+
+    nsSkipCharsRunIterator
+      run(start, nsSkipCharsRunIterator::LENGTH_UNSKIPPED_ONLY, aLength);
+    while (run.NextRun()) {
+      RunCharFlags charFlags(run, mTextRun);
+      if (!charFlags.get())
+        break;
+
+      PRInt32 i;
+      PRInt32 runOffsetInSubstring = run.GetSkippedOffset() - aStart;
+      for (i = 0; i < run.GetRunLength(); ++i) {
+        if (IsJustifiableCharacter(mFrag, run.GetOriginalOffset() + i, isCJK)) {
+          PRInt32 clusterFirstChar =
+            FindClusterStart(charFlags.get(), i);
+          PRInt32 clusterLastChar =
+            FindClusterEnd(charFlags.get(), run.GetRunLength(), i);
+          
+          if (run.GetOriginalOffset() + clusterLastChar <
+              justificationEnd.GetOriginalOffset()) {
+            aSpacing[clusterFirstChar + runOffsetInSubstring].mBefore += halfJustificationSpace;
+            aSpacing[clusterLastChar + runOffsetInSubstring].mAfter += halfJustificationSpace;
+          }
+        }
+      }
+    }
+  }
+}
+
+PRUint32
+PropertyProvider::GetTabExpansionCount(PRUint32 aStart, PRUint32 aLength)
+{
+  if (!(mTextRun->GetFlags() & nsTextFrameUtils::TEXT_HAS_TAB))
+    return 0;
+
+  PRUint8* spaces = ComputeTabSpaceCount(aStart, aLength);
+  PRUint32 i;
+  PRUint32 sum = 0;
+  for (i = 0; i < aLength; ++i) {
+    sum += spaces[i];
+  }
+  return sum;
+}
+
+gfxFloat
+PropertyProvider::GetHyphenWidth()
+{
+  if (mHyphenWidth < 0) {
+    gfxTextRun* hyphenTextRun =
+      GetSpecialString(GetFontGroup(), gfxFontGroup::STRING_HYPHEN, mTextRun);
+    mHyphenWidth = mLetterSpacing;
+    if (hyphenTextRun) {
+      mHyphenWidth += hyphenTextRun->GetAdvanceWidth(0, hyphenTextRun->GetLength(), nsnull);
+    }
+  }
+  return mHyphenWidth;
+}
+
+void
+PropertyProvider::GetHyphenationBreaks(PRUint32 aStart, PRUint32 aLength,
+                                       PRPackedBool* aBreakBefore)
+{
+  NS_PRECONDITION(IsInBounds(mStart, mLength, aStart, aLength), "Range out of bounds");
+
+  if (!mTextStyle->WhiteSpaceCanWrap()) {
+    memset(aBreakBefore, PR_FALSE, aLength);
+    return;
+  }
+
+  
+  nsSkipCharsRunIterator
+    run(mStart, nsSkipCharsRunIterator::LENGTH_INCLUDES_SKIPPED, aLength);
+  run.SetSkippedOffset(aStart);
+  
+  run.SetVisitSkipped();
+
+  PRBool allowHyphenBreakBeforeNextChar =
+    run.GetPos().GetOriginalOffset() > mStart.GetOriginalOffset() &&
+    mFrag->CharAt(run.GetPos().GetOriginalOffset() - 1) == CH_SHY;
+
+  while (run.NextRun()) {
+    NS_ASSERTION(run.GetRunLength() > 0, "Shouldn't return zero-length runs");
+    if (run.IsSkipped()) {
+      
+      
+      
+      allowHyphenBreakBeforeNextChar =
+        mFrag->CharAt(run.GetOriginalOffset() + run.GetRunLength() - 1) == CH_SHY;
+    } else {
+      PRInt32 runOffsetInSubstring = run.GetSkippedOffset() - aStart;
+      memset(aBreakBefore + runOffsetInSubstring, 0, run.GetRunLength());
+      aBreakBefore[runOffsetInSubstring] = allowHyphenBreakBeforeNextChar;
+      allowHyphenBreakBeforeNextChar = PR_FALSE;
+    }
+  }
+}
+
+void
+PropertyProvider::InitializeForDisplay(PRBool aTrimAfter)
+{
+  if (aTrimAfter) {
+    mLength = mFrame->GetTrimmedContentLength(mFrag, mStart);
+  }
+  SetupJustificationSpacing();
+}
+
+static PRUint32 GetSkippedDistance(const gfxSkipCharsIterator& aStart,
+                                   const gfxSkipCharsIterator& aEnd)
+{
+  return aEnd.GetSkippedOffset() - aStart.GetSkippedOffset();
+}
+
+void
+PropertyProvider::FindEndOfJustificationRange(gfxSkipCharsIterator* aIter)
+{
+  if (!(mFrame->GetStateBits() & TEXT_END_OF_LINE))
+    return;
+
+  
+  aIter->SetOriginalOffset(mStart.GetOriginalOffset() + mLength);
+  while (aIter->GetOriginalOffset() > mStart.GetOriginalOffset()) {
+    aIter->AdvanceOriginal(-1);
+    if (!aIter->IsOriginalCharSkipped() &&
+        (mTextRun->GetCharFlags(aIter->GetSkippedOffset()) & gfxTextRun::CLUSTER_START))
+      break;
+  }
+}
+
+void
+PropertyProvider::SetupJustificationSpacing()
+{
+  if (NS_STYLE_TEXT_ALIGN_JUSTIFY != mTextStyle->mTextAlign ||
+      mTextStyle->WhiteSpaceIsSignificant())
+    return;
+
+  gfxSkipCharsIterator end(mStart);
+  end.AdvanceOriginal(mLength);
+  gfxSkipCharsIterator realEnd(end);
+  FindEndOfJustificationRange(&end);
+
+  PRInt32 justifiableCharacters =
+    ComputeJustifiableCharacters(mStart.GetOriginalOffset(),
+                                 end.GetOriginalOffset() - mStart.GetOriginalOffset());
+  if (justifiableCharacters == 0) {
+    
+    
+    return;
+  }
+
+  gfxFloat naturalWidth =
+    mTextRun->GetAdvanceWidth(mStart.GetSkippedOffset(),
+                              GetSkippedDistance(mStart, realEnd), this);
+  gfxFloat totalJustificationSpace = mFrame->GetSize().width - naturalWidth;
+  if (totalJustificationSpace <= 0) {
+    
+    return;
+  }
+  
+  mJustificationSpacing = totalJustificationSpace/justifiableCharacters;
+}
+
+
+
+
+
+class nsBlinkTimer : public nsITimerCallback
+{
+public:
+  nsBlinkTimer();
+  virtual ~nsBlinkTimer();
+
+  NS_DECL_ISUPPORTS
+
+  void AddFrame(nsPresContext* aPresContext, nsIFrame* aFrame);
+
+  PRBool RemoveFrame(nsIFrame* aFrame);
+
+  PRInt32 FrameCount();
+
+  void Start();
+
+  void Stop();
+
+  NS_DECL_NSITIMERCALLBACK
+
+  static nsresult AddBlinkFrame(nsPresContext* aPresContext, nsIFrame* aFrame);
+  static nsresult RemoveBlinkFrame(nsIFrame* aFrame);
+  
+  static PRBool   GetBlinkIsOff() { return sState == 3; }
+  
+protected:
+
+  struct FrameData {
+    nsPresContext* mPresContext;  
+    nsIFrame*       mFrame;
+
+
+    FrameData(nsPresContext* aPresContext,
+              nsIFrame*       aFrame)
+      : mPresContext(aPresContext), mFrame(aFrame) {}
+  };
+
+  nsCOMPtr<nsITimer> mTimer;
+  nsVoidArray     mFrames;
+  nsPresContext* mPresContext;
+
+protected:
+
+  static nsBlinkTimer* sTextBlinker;
+  static PRUint32      sState; 
+  
+};
+
+nsBlinkTimer* nsBlinkTimer::sTextBlinker = nsnull;
+PRUint32      nsBlinkTimer::sState = 0;
+
+#ifdef NOISY_BLINK
+static PRTime gLastTick;
+#endif
+
+nsBlinkTimer::nsBlinkTimer()
+{
+}
+
+nsBlinkTimer::~nsBlinkTimer()
+{
+  Stop();
+  sTextBlinker = nsnull;
+}
+
+void nsBlinkTimer::Start()
+{
+  nsresult rv;
+  mTimer = do_CreateInstance("@mozilla.org/timer;1", &rv);
+  if (NS_OK == rv) {
+    mTimer->InitWithCallback(this, 250, nsITimer::TYPE_REPEATING_PRECISE);
+  }
+}
+
+void nsBlinkTimer::Stop()
+{
+  if (nsnull != mTimer) {
+    mTimer->Cancel();
+  }
+}
+
+NS_IMPL_ISUPPORTS1(nsBlinkTimer, nsITimerCallback)
+
+void nsBlinkTimer::AddFrame(nsPresContext* aPresContext, nsIFrame* aFrame) {
+  FrameData* frameData = new FrameData(aPresContext, aFrame);
+  mFrames.AppendElement(frameData);
+  if (1 == mFrames.Count()) {
+    Start();
+  }
+}
+
+PRBool nsBlinkTimer::RemoveFrame(nsIFrame* aFrame) {
+  PRInt32 i, n = mFrames.Count();
+  PRBool rv = PR_FALSE;
+  for (i = 0; i < n; i++) {
+    FrameData* frameData = (FrameData*) mFrames.ElementAt(i);
+
+    if (frameData->mFrame == aFrame) {
+      rv = mFrames.RemoveElementAt(i);
+      delete frameData;
+      break;
+    }
+  }
+  
+  if (0 == mFrames.Count()) {
+    Stop();
+  }
+  return rv;
+}
+
+PRInt32 nsBlinkTimer::FrameCount() {
+  return mFrames.Count();
+}
+
+NS_IMETHODIMP nsBlinkTimer::Notify(nsITimer *timer)
+{
+  
+  
+  
+  sState = (sState + 1) % 4;
+  if (sState == 1 || sState == 2)
+    
+    return NS_OK;
+
+#ifdef NOISY_BLINK
+  PRTime now = PR_Now();
+  char buf[50];
+  PRTime delta;
+  LL_SUB(delta, now, gLastTick);
+  gLastTick = now;
+  PR_snprintf(buf, sizeof(buf), "%lldusec", delta);
+  printf("%s\n", buf);
+#endif
+
+  PRInt32 i, n = mFrames.Count();
+  for (i = 0; i < n; i++) {
+    FrameData* frameData = (FrameData*) mFrames.ElementAt(i);
+
+    
+    
+    nsRect bounds(nsPoint(0, 0), frameData->mFrame->GetSize());
+    frameData->mFrame->Invalidate(bounds, PR_FALSE);
+  }
+  return NS_OK;
+}
+
+
+
+nsresult nsBlinkTimer::AddBlinkFrame(nsPresContext* aPresContext, nsIFrame* aFrame)
+{
+  if (!sTextBlinker)
+  {
+    sTextBlinker = new nsBlinkTimer;
+    if (!sTextBlinker) return NS_ERROR_OUT_OF_MEMORY;
+  }
+  
+  NS_ADDREF(sTextBlinker);
+
+  sTextBlinker->AddFrame(aPresContext, aFrame);
+  return NS_OK;
+}
+
+
+
+nsresult nsBlinkTimer::RemoveBlinkFrame(nsIFrame* aFrame)
+{
+  NS_ASSERTION(sTextBlinker, "Should have blink timer here");
+  
+  nsBlinkTimer* blinkTimer = sTextBlinker;    
+  if (!blinkTimer) return NS_OK;
+  
+  blinkTimer->RemoveFrame(aFrame);  
+  NS_RELEASE(blinkTimer);
+  
+  return NS_OK;
+}
+
+
+
+static nscolor
+EnsureDifferentColors(nscolor colorA, nscolor colorB)
+{
+  if (colorA == colorB) {
+    nscolor res;
+    res = NS_RGB(NS_GET_R(colorA) ^ 0xff,
+                 NS_GET_G(colorA) ^ 0xff,
+                 NS_GET_B(colorA) ^ 0xff);
+    return res;
+  }
+  return colorA;
+}
+
+
+
+
+static nscolor
+DarkenColor(nscolor aColor)
+{
+  PRUint16  hue,sat,value;
+
+  
+  NS_RGB2HSV(aColor,hue,sat,value);
+
+  
+  
+  
+  
+  
+  
+  if (value > sat) {
+    value = sat;
+    
+    NS_HSV2RGB(aColor,hue,sat,value);
+  }
+  return aColor;
+}
+
+
+
+
+static PRBool
+ShouldDarkenColors(nsPresContext* aPresContext)
+{
+  return !aPresContext->GetBackgroundColorDraw() &&
+    !aPresContext->GetBackgroundImageDraw();
+}
+
+nsTextPaintStyle::nsTextPaintStyle(nsTextFrame* aFrame)
+  : mFrame(aFrame),
+    mPresContext(aFrame->GetPresContext()),
+    mInitCommonColors(PR_FALSE),
+    mInitSelectionColors(PR_FALSE)
+{
+  for (int i = 0; i < 4; i++)
+    mIMEColor[i].mInit = PR_FALSE;
+  mIMEUnderlineRelativeSize = -1.0f;
+}
+
+PRBool
+nsTextPaintStyle::EnsureSufficientContrast(nscolor *aForeColor, nscolor *aBackColor)
+{
+  InitCommonColors();
+
+  
+  
+  PRInt32 backLuminosityDifference =
+            NS_LUMINOSITY_DIFFERENCE(*aBackColor, mFrameBackgroundColor);
+  if (backLuminosityDifference >= mSufficientContrast)
+    return PR_FALSE;
+
+  
+  
+  PRInt32 foreLuminosityDifference =
+            NS_LUMINOSITY_DIFFERENCE(*aForeColor, mFrameBackgroundColor);
+  if (backLuminosityDifference < foreLuminosityDifference) {
+    nscolor tmpColor = *aForeColor;
+    *aForeColor = *aBackColor;
+    *aBackColor = tmpColor;
+    return PR_TRUE;
+  }
+  return PR_FALSE;
+}
+
+nscolor
+nsTextPaintStyle::GetTextColor()
+{
+  nscolor color = mFrame->GetStyleColor()->mColor;
+  if (ShouldDarkenColors(mPresContext)) {
+    color = DarkenColor(color);
+  }
+  return color;
+}
+
+PRBool
+nsTextPaintStyle::GetSelectionColors(nscolor* aForeColor,
+                                     nscolor* aBackColor)
+{
+  NS_ASSERTION(aForeColor, "aForeColor is null");
+  NS_ASSERTION(aBackColor, "aBackColor is null");
+
+  if (!InitSelectionColors())
+    return PR_FALSE;
+
+  *aForeColor = mSelectionTextColor;
+  *aBackColor = mSelectionBGColor;
+  return PR_TRUE;
+}
+
+void
+nsTextPaintStyle::GetIMESelectionColors(PRInt32  aIndex,
+                                        nscolor* aForeColor,
+                                        nscolor* aBackColor)
+{
+  NS_ASSERTION(aForeColor, "aForeColor is null");
+  NS_ASSERTION(aBackColor, "aBackColor is null");
+  NS_ASSERTION(aIndex >= 0 && aIndex < 4, "Index out of range");
+
+  nsIMEColor* IMEColor = GetIMEColor(aIndex);
+  *aForeColor = IMEColor->mTextColor;
+  *aBackColor = IMEColor->mBGColor;
+}
+
+PRBool
+nsTextPaintStyle::GetIMEUnderline(PRInt32  aIndex,
+                                  nscolor* aLineColor,
+                                  float*   aRelativeSize)
+{
+  NS_ASSERTION(aLineColor, "aLineColor is null");
+  NS_ASSERTION(aRelativeSize, "aRelativeSize is null");
+  NS_ASSERTION(aIndex >= 0 && aIndex < 4, "Index out of range");
+
+  nsIMEColor* IMEColor = GetIMEColor(aIndex);
+  if (IMEColor->mUnderlineColor == NS_TRANSPARENT ||
+      mIMEUnderlineRelativeSize <= 0.0f)
+    return PR_FALSE;
+
+  *aLineColor = IMEColor->mUnderlineColor;
+  *aRelativeSize = mIMEUnderlineRelativeSize;
+  return PR_TRUE;
+}
+
+void
+nsTextPaintStyle::InitCommonColors()
+{
+  if (mInitCommonColors)
+    return;
+
+  nsStyleContext* sc = mFrame->GetStyleContext();
+
+  const nsStyleBackground* bg =
+    nsCSSRendering::FindNonTransparentBackground(sc);
+  NS_ASSERTION(bg, "Cannot find NonTransparentBackground.");
+  mFrameBackgroundColor = bg->mBackgroundColor;
+
+  nsILookAndFeel* look = mPresContext->LookAndFeel();
+  nscolor defaultWindowBackgroundColor, selectionTextColor, selectionBGColor;
+  look->GetColor(nsILookAndFeel::eColor_TextSelectBackground,
+                 selectionBGColor);
+  look->GetColor(nsILookAndFeel::eColor_TextSelectForeground,
+                 selectionTextColor);
+  look->GetColor(nsILookAndFeel::eColor_WindowBackground,
+                 defaultWindowBackgroundColor);
+
+  mSufficientContrast =
+    PR_MIN(PR_MIN(NS_SUFFICIENT_LUMINOSITY_DIFFERENCE,
+                  NS_LUMINOSITY_DIFFERENCE(selectionTextColor,
+                                           selectionBGColor)),
+                  NS_LUMINOSITY_DIFFERENCE(defaultWindowBackgroundColor,
+                                           selectionBGColor));
+
+  mInitCommonColors = PR_TRUE;
+}
+
+static nsIFrame* GetNonGeneratedAncestor(nsIFrame* f) {
+  while (f->GetStateBits() & NS_FRAME_GENERATED_CONTENT) {
+    f = f->GetParent();
+  }
+  return f;
+}
+
+static nsIContent*
+FindElementAncestor(nsINode* aNode)
+{
+  while (aNode && !aNode->IsNodeOfType(nsINode::eELEMENT)) {
+    aNode = aNode->GetParent();
+  }
+  return NS_STATIC_CAST(nsIContent*, aNode);
+}
+
+PRBool
+nsTextPaintStyle::InitSelectionColors()
+{
+  if (mInitSelectionColors)
+    return PR_TRUE;
+
+  PRInt16 selectionFlags;
+  PRInt16 selectionStatus = mFrame->GetSelectionStatus(&selectionFlags);
+  if (!(selectionFlags & nsISelectionDisplay::DISPLAY_TEXT) ||
+      selectionStatus < nsISelectionController::SELECTION_ON) {
+    
+    
+    
+    return PR_FALSE;
+  }
+
+  mInitSelectionColors = PR_TRUE;
+
+  nsIFrame* nonGeneratedAncestor = GetNonGeneratedAncestor(mFrame);
+  nsIContent* selectionContent = FindElementAncestor(nonGeneratedAncestor->GetContent());
+
+  if (selectionContent &&
+      selectionStatus == nsISelectionController::SELECTION_ON) {
+    nsRefPtr<nsStyleContext> sc = nsnull;
+    sc = mPresContext->StyleSet()->
+      ProbePseudoStyleFor(selectionContent, nsCSSPseudoElements::mozSelection,
+                          mFrame->GetStyleContext());
+    
+    if (sc) {
+      const nsStyleBackground* bg = sc->GetStyleBackground();
+      mSelectionBGColor = bg->mBackgroundColor;
+      if (bg->mBackgroundFlags & NS_STYLE_BG_COLOR_TRANSPARENT) {
+        mSelectionBGColor = NS_RGBA(0,0,0,0);
+      }
+      mSelectionTextColor = sc->GetStyleColor()->mColor;
+      return PR_TRUE;
+    }
+  }
+
+  nsILookAndFeel* look = mPresContext->LookAndFeel();
+
+  nscolor selectionBGColor;
+  look->GetColor(nsILookAndFeel::eColor_TextSelectBackground,
+                 selectionBGColor);
+
+  if (selectionStatus == nsISelectionController::SELECTION_ATTENTION) {
+    look->GetColor(nsILookAndFeel::eColor_TextSelectBackgroundAttention,
+                   mSelectionBGColor);
+    mSelectionBGColor  = EnsureDifferentColors(mSelectionBGColor,
+                                               selectionBGColor);
+  } else if (selectionStatus != nsISelectionController::SELECTION_ON) {
+    look->GetColor(nsILookAndFeel::eColor_TextSelectBackgroundDisabled,
+                   mSelectionBGColor);
+    mSelectionBGColor  = EnsureDifferentColors(mSelectionBGColor,
+                                               selectionBGColor);
+  } else {
+    mSelectionBGColor = selectionBGColor;
+  }
+
+  look->GetColor(nsILookAndFeel::eColor_TextSelectForeground,
+                 mSelectionTextColor);
+
+  
+  if (mSelectionTextColor == NS_DONT_CHANGE_COLOR) {
+    mSelectionTextColor = EnsureDifferentColors(mFrame->GetStyleColor()->mColor,
+                                                mSelectionBGColor);
+  } else {
+    EnsureSufficientContrast(&mSelectionTextColor, &mSelectionBGColor);
+  }
+  return PR_TRUE;
+}
+
+nsTextPaintStyle::nsIMEColor*
+nsTextPaintStyle::GetIMEColor(PRInt32 aIndex)
+{
+  InitIMEColor(aIndex);
+  return &mIMEColor[aIndex];
+}
+
+struct ColorIDTriple {
+  nsILookAndFeel::nsColorID mForeground, mBackground, mLine;
+};
+static ColorIDTriple IMEColorIDs[] = {
+  { nsILookAndFeel::eColor_IMERawInputForeground,
+    nsILookAndFeel::eColor_IMERawInputBackground,
+    nsILookAndFeel::eColor_IMERawInputUnderline },
+  { nsILookAndFeel::eColor_IMESelectedRawTextForeground,
+    nsILookAndFeel::eColor_IMESelectedRawTextBackground,
+    nsILookAndFeel::eColor_IMESelectedRawTextUnderline },
+  { nsILookAndFeel::eColor_IMEConvertedTextForeground,
+    nsILookAndFeel::eColor_IMEConvertedTextBackground,
+    nsILookAndFeel::eColor_IMEConvertedTextUnderline },
+  { nsILookAndFeel::eColor_IMESelectedConvertedTextForeground,
+    nsILookAndFeel::eColor_IMESelectedConvertedTextBackground,
+    nsILookAndFeel::eColor_IMESelectedConvertedTextUnderline }
+};
+
+void
+nsTextPaintStyle::InitIMEColor(PRInt32 aIndex)
+{
+  nsIMEColor* IMEColor = &mIMEColor[aIndex];
+  if (IMEColor->mInit)
+    return;
+
+  ColorIDTriple* colorIDs = &IMEColorIDs[aIndex];
+
+  nsILookAndFeel* look = mPresContext->LookAndFeel();
+  nscolor foreColor, backColor, lineColor;
+  look->GetColor(colorIDs->mForeground, foreColor);
+  look->GetColor(colorIDs->mBackground, backColor);
+  look->GetColor(colorIDs->mLine, lineColor);
+
+  
+  NS_ASSERTION(foreColor != NS_TRANSPARENT,
+               "foreColor cannot be NS_TRANSPARENT");
+  NS_ASSERTION(backColor != NS_SAME_AS_FOREGROUND_COLOR,
+               "backColor cannot be NS_SAME_AS_FOREGROUND_COLOR");
+  NS_ASSERTION(backColor != NS_40PERCENT_FOREGROUND_COLOR,
+               "backColor cannot be NS_40PERCENT_FOREGROUND_COLOR");
+
+  foreColor = GetResolvedForeColor(foreColor, GetTextColor(), backColor);
+
+  if (NS_GET_A(backColor) > 0)
+    EnsureSufficientContrast(&foreColor, &backColor);
+
+  lineColor = GetResolvedForeColor(lineColor, foreColor, backColor);
+
+  IMEColor->mTextColor       = foreColor;
+  IMEColor->mBGColor         = backColor;
+  IMEColor->mUnderlineColor  = lineColor;
+  IMEColor->mInit            = PR_TRUE;
+
+  if (mIMEUnderlineRelativeSize == -1.0f) {
+    look->GetMetric(nsILookAndFeel::eMetricFloat_IMEUnderlineRelativeSize,
+                    mIMEUnderlineRelativeSize);
+    NS_ASSERTION(mIMEUnderlineRelativeSize >= 0.0f,
+                 "underline size must be larger than 0");
+  }
+}
+
+inline nscolor Get40PercentColor(nscolor aForeColor, nscolor aBackColor)
+{
+  nscolor foreColor = NS_RGBA(NS_GET_R(aForeColor),
+                              NS_GET_G(aForeColor),
+                              NS_GET_B(aForeColor),
+                              (PRUint8)(255 * 0.4f));
+  return NS_ComposeColors(aBackColor, foreColor);
+}
+
+nscolor
+nsTextPaintStyle::GetResolvedForeColor(nscolor aColor,
+                                       nscolor aDefaultForeColor,
+                                       nscolor aBackColor)
+{
+  if (aColor == NS_SAME_AS_FOREGROUND_COLOR)
+    return aDefaultForeColor;
+
+  if (aColor != NS_40PERCENT_FOREGROUND_COLOR)
+    return aColor;
+
+  
+  nscolor actualBGColor = aBackColor;
+  if (actualBGColor == NS_TRANSPARENT) {
+    InitCommonColors();
+    actualBGColor = mFrameBackgroundColor;
+  }
+  return Get40PercentColor(aDefaultForeColor, actualBGColor);
+}
+
+
+
+#ifdef ACCESSIBILITY
+NS_IMETHODIMP nsTextFrame::GetAccessible(nsIAccessible** aAccessible)
+{
+  if (!IsEmpty() || GetNextInFlow()) {
+
+    nsCOMPtr<nsIAccessibilityService> accService = do_GetService("@mozilla.org/accessibilityService;1");
+
+    if (accService) {
+      return accService->CreateHTMLTextAccessible(NS_STATIC_CAST(nsIFrame*, this), aAccessible);
+    }
+  }
+  return NS_ERROR_FAILURE;
+}
+#endif
+
+
+
+NS_IMETHODIMP
+nsTextFrame::Init(nsIContent*      aContent,
+                  nsIFrame*        aParent,
+                  nsIFrame*        aPrevInFlow)
+{
+  NS_ASSERTION(!aPrevInFlow, "Can't be a continuation!");
+  nsresult rv = nsFrame::Init(aContent, aParent, aPrevInFlow);
+  
+  
+  
+  
+  mContentLength = GetInFlowContentLength();
+  return rv;
+}
+
+void
+nsTextFrame::Destroy()
+{
+  if (mNextContinuation) {
+    mNextContinuation->SetPrevInFlow(nsnull);
+  }
+  ClearTextRun();
+  
+  nsFrame::Destroy();
+}
+
+class nsContinuingTextFrame : public nsTextFrame {
+public:
+  friend nsIFrame* NS_NewContinuingTextFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
+
+  NS_IMETHOD Init(nsIContent*      aContent,
+                  nsIFrame*        aParent,
+                  nsIFrame*        aPrevInFlow);
+
+  virtual void Destroy();
+
+  virtual nsIFrame* GetPrevContinuation() const {
+    return mPrevContinuation;
+  }
+  NS_IMETHOD SetPrevContinuation(nsIFrame* aPrevContinuation) {
+    NS_ASSERTION (!aPrevContinuation || GetType() == aPrevContinuation->GetType(),
+                  "setting a prev continuation with incorrect type!");
+    NS_ASSERTION (!nsSplittableFrame::IsInPrevContinuationChain(aPrevContinuation, this),
+                  "creating a loop in continuation chain!");
+    mPrevContinuation = aPrevContinuation;
+    RemoveStateBits(NS_FRAME_IS_FLUID_CONTINUATION);
+    return NS_OK;
+  }
+  virtual nsIFrame* GetPrevInFlowVirtual() const { return GetPrevInFlow(); }
+  nsIFrame* GetPrevInFlow() const {
+    return (GetStateBits() & NS_FRAME_IS_FLUID_CONTINUATION) ? mPrevContinuation : nsnull;
+  }
+  NS_IMETHOD SetPrevInFlow(nsIFrame* aPrevInFlow) {
+    NS_ASSERTION (!aPrevInFlow || GetType() == aPrevInFlow->GetType(),
+                  "setting a prev in flow with incorrect type!");
+    NS_ASSERTION (!nsSplittableFrame::IsInPrevContinuationChain(aPrevInFlow, this),
+                  "creating a loop in continuation chain!");
+    mPrevContinuation = aPrevInFlow;
+    AddStateBits(NS_FRAME_IS_FLUID_CONTINUATION);
+    return NS_OK;
+  }
+  virtual nsIFrame* GetFirstInFlow() const;
+  virtual nsIFrame* GetFirstContinuation() const;
+
+  virtual void AddInlineMinWidth(nsIRenderingContext *aRenderingContext,
+                                 InlineMinWidthData *aData);
+  virtual void AddInlinePrefWidth(nsIRenderingContext *aRenderingContext,
+                                  InlinePrefWidthData *aData);
+  
+protected:
+  nsContinuingTextFrame(nsStyleContext* aContext) : nsTextFrame(aContext) {}
+  nsIFrame* mPrevContinuation;
+};
+
+NS_IMETHODIMP
+nsContinuingTextFrame::Init(nsIContent* aContent,
+                            nsIFrame*   aParent,
+                            nsIFrame*   aPrevInFlow)
+{
+  NS_ASSERTION(aPrevInFlow, "Must be a continuation!");
+  
+  nsresult rv = nsFrame::Init(aContent, aParent, aPrevInFlow);
+
+  nsIFrame* nextContinuation = aPrevInFlow->GetNextContinuation();
+  
+  SetPrevInFlow(aPrevInFlow);
+  aPrevInFlow->SetNextInFlow(this);
+  nsTextFrame* prev = NS_STATIC_CAST(nsTextFrame*, aPrevInFlow);
+  mTextRun = prev->GetTextRun();
+  mContentOffset = prev->GetContentOffset() + prev->GetContentLength();
+#ifdef IBMBIDI
+  if (aPrevInFlow->GetStateBits() & NS_FRAME_IS_BIDI) {
+    PRInt32 start, end;
+    aPrevInFlow->GetOffsets(start, mContentOffset);
+
+    nsPropertyTable *propTable = GetPresContext()->PropertyTable();
+    propTable->SetProperty(this, nsGkAtoms::embeddingLevel,
+          propTable->GetProperty(aPrevInFlow, nsGkAtoms::embeddingLevel),
+                           nsnull, nsnull);
+    propTable->SetProperty(this, nsGkAtoms::baseLevel,
+              propTable->GetProperty(aPrevInFlow, nsGkAtoms::baseLevel),
+                           nsnull, nsnull);
+    propTable->SetProperty(this, nsGkAtoms::charType,
+               propTable->GetProperty(aPrevInFlow, nsGkAtoms::charType),
+                           nsnull, nsnull);
+    if (nextContinuation) {
+      SetNextContinuation(nextContinuation);
+      nextContinuation->SetPrevContinuation(this);
+      nextContinuation->GetOffsets(start, end);
+      mContentLength = PR_MAX(1, start - mContentOffset);
+    }
+    mState |= NS_FRAME_IS_BIDI;
+  } 
+#endif 
+
+  return rv;
+}
+
+void
+nsContinuingTextFrame::Destroy()
+{
+  if (mPrevContinuation || mNextContinuation) {
+    nsSplittableFrame::RemoveFromFlow(this);
+  }
+  
+  nsFrame::Destroy();
+}
+
+nsIFrame*
+nsContinuingTextFrame::GetFirstInFlow() const
+{
+  
+  nsIFrame *firstInFlow,
+           *previous = NS_CONST_CAST(nsIFrame*,
+                                     NS_STATIC_CAST(const nsIFrame*, this));
+  do {
+    firstInFlow = previous;
+    previous = firstInFlow->GetPrevInFlow();
+  } while (previous);
+  return firstInFlow;
+}
+
+nsIFrame*
+nsContinuingTextFrame::GetFirstContinuation() const
+{
+  
+  nsIFrame *firstContinuation,
+  *previous = NS_CONST_CAST(nsIFrame*,
+                            NS_STATIC_CAST(const nsIFrame*, mPrevContinuation));
+  do {
+    firstContinuation = previous;
+    previous = firstContinuation->GetPrevContinuation();
+  } while (previous);
+  return firstContinuation;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+ nscoord
+nsTextFrame::GetMinWidth(nsIRenderingContext *aRenderingContext)
+{
+  return nsLayoutUtils::MinWidthFromInline(this, aRenderingContext);
+}
+
+
+ nscoord
+nsTextFrame::GetPrefWidth(nsIRenderingContext *aRenderingContext)
+{
+  return nsLayoutUtils::PrefWidthFromInline(this, aRenderingContext);
+}
+
+ void
+nsContinuingTextFrame::AddInlineMinWidth(nsIRenderingContext *aRenderingContext,
+                                         InlineMinWidthData *aData)
+{
+  
+  return;
+}
+
+ void
+nsContinuingTextFrame::AddInlinePrefWidth(nsIRenderingContext *aRenderingContext,
+                                          InlinePrefWidthData *aData)
+{
+  
+  return;
+}
+
+static void 
+DestroySelectionDetails(SelectionDetails* aDetails)
+{
+  while (aDetails) {
+    SelectionDetails* next = aDetails->mNext;
+    delete aDetails;
+    aDetails = next;
+  }
+}
+
+
+
+#if defined(DEBUG_rbs) || defined(DEBUG_bzbarsky)
+static void
+VerifyNotDirty(nsFrameState state)
+{
+  PRBool isZero = state & NS_FRAME_FIRST_REFLOW;
+  PRBool isDirty = state & NS_FRAME_IS_DIRTY;
+  if (!isZero && isDirty)
+    NS_WARNING("internal offsets may be out-of-sync");
+}
+#define DEBUG_VERIFY_NOT_DIRTY(state) \
+VerifyNotDirty(state)
+#else
+#define DEBUG_VERIFY_NOT_DIRTY(state)
+#endif
+
+nsIFrame*
+NS_NewTextFrame(nsIPresShell* aPresShell, nsStyleContext* aContext)
+{
+  return new (aPresShell) nsTextFrame(aContext);
+}
+
+nsIFrame*
+NS_NewContinuingTextFrame(nsIPresShell* aPresShell, nsStyleContext* aContext)
+{
+  return new (aPresShell) nsContinuingTextFrame(aContext);
+}
+
+nsTextFrame::~nsTextFrame()
+{
+  if (0 != (mState & TEXT_BLINK_ON))
+  {
+    nsBlinkTimer::RemoveBlinkFrame(this);
+  }
+}
+
+NS_IMETHODIMP
+nsTextFrame::GetCursor(const nsPoint& aPoint,
+                       nsIFrame::Cursor& aCursor)
+{
+  FillCursorInformationFromStyle(GetStyleUserInterface(), aCursor);  
+  if (NS_STYLE_CURSOR_AUTO == aCursor.mCursor) {
+    aCursor.mCursor = NS_STYLE_CURSOR_TEXT;
+
+    
+    nsIFrame *ancestorFrame = this;
+    while ((ancestorFrame = ancestorFrame->GetParent()) != nsnull) {
+      nsIContent *ancestorContent = ancestorFrame->GetContent();
+      if (ancestorContent && ancestorContent->HasAttr(kNameSpaceID_None, nsGkAtoms::tabindex)) {
+        nsAutoString tabIndexStr;
+        ancestorContent->GetAttr(kNameSpaceID_None, nsGkAtoms::tabindex, tabIndexStr);
+        if (!tabIndexStr.IsEmpty()) {
+          PRInt32 rv, tabIndexVal = tabIndexStr.ToInteger(&rv);
+          if (NS_SUCCEEDED(rv) && tabIndexVal >= 0) {
+            aCursor.mCursor = NS_STYLE_CURSOR_DEFAULT;
+            break;
+          }
+        }
+      }
+    }
+  }
+
+  return NS_OK;
+}
+
+nsIFrame*
+nsTextFrame::GetLastInFlow() const
+{
+  nsTextFrame* lastInFlow = NS_CONST_CAST(nsTextFrame*, this);
+  while (lastInFlow->GetNextInFlow())  {
+    lastInFlow = NS_STATIC_CAST(nsTextFrame*, lastInFlow->GetNextInFlow());
+  }
+  NS_POSTCONDITION(lastInFlow, "illegal state in flow chain.");
+  return lastInFlow;
+}
+nsIFrame*
+nsTextFrame::GetLastContinuation() const
+{
+  nsTextFrame* lastInFlow = NS_CONST_CAST(nsTextFrame*, this);
+  while (lastInFlow->mNextContinuation)  {
+    lastInFlow = NS_STATIC_CAST(nsTextFrame*, lastInFlow->mNextContinuation);
+  }
+  NS_POSTCONDITION(lastInFlow, "illegal state in continuation chain.");
+  return lastInFlow;
+}
+
+static void
+ClearAllTextRunReferences(nsTextFrame* aFrame, gfxTextRun* aTextRun)
+{
+  aFrame->RemoveStateBits(TEXT_IS_RUN_OWNER);
+  while (aFrame) {
+    if (aFrame->GetTextRun() != aTextRun)
+      break;
+    aFrame->SetTextRun(nsnull);
+    aFrame = NS_STATIC_CAST(nsTextFrame*, aFrame->GetNextContinuation());
+  }
+}
+
+void
+nsTextFrame::ClearTextRun()
+{
+  
+  gfxTextRun* textRun = mTextRun;
+  
+  if (!textRun || !(GetStateBits() & TEXT_IS_RUN_OWNER))
+    return;
+
+  
+  
+  if (textRun->GetFlags() & nsTextFrameUtils::TEXT_IS_SIMPLE_FLOW) {
+    nsIFrame* firstInFlow = NS_STATIC_CAST(nsIFrame*, textRun->GetUserData());
+    ClearAllTextRunReferences(NS_STATIC_CAST(nsTextFrame*, firstInFlow), textRun);
+  } else {
+    TextRunUserData* userData =
+      NS_STATIC_CAST(TextRunUserData*, textRun->GetUserData());
+    PRInt32 i;
+    for (i = 0; i < userData->mMappedFlowCount; ++i) {
+      ClearAllTextRunReferences(userData->mMappedFlows[i].mStartFrame, textRun);
+    }
+    DestroyUserData(userData);
+  }
+  delete textRun;
+}
+
+NS_IMETHODIMP
+nsTextFrame::CharacterDataChanged(nsPresContext* aPresContext,
+                                  nsIContent*     aChild,
+                                  PRBool          aAppend)
+{
+  ClearTextRun();
+
+  nsTextFrame* targetTextFrame;
+  nsTextFrame* lastTextFrame;
+  PRInt32 nodeLength = mContent->GetText()->GetLength();
+
+  if (aAppend) {
+    lastTextFrame = NS_STATIC_CAST(nsTextFrame*, GetLastContinuation());
+    lastTextFrame->mState &= ~TEXT_WHITESPACE_FLAGS;
+    lastTextFrame->mState |= NS_FRAME_IS_DIRTY;
+    targetTextFrame = lastTextFrame;
+  } else {
+    
+    
+    nsTextFrame* textFrame = this;
+    PRInt32 newLength = nodeLength;
+    do {
+      textFrame->mState &= ~TEXT_WHITESPACE_FLAGS;
+      textFrame->mState |= NS_FRAME_IS_DIRTY;
+      
+      textFrame->mContentLength = PR_MIN(mContentLength, newLength);
+      newLength -= textFrame->mContentLength;
+      lastTextFrame = textFrame;
+      textFrame = NS_STATIC_CAST(nsTextFrame*, textFrame->GetNextContinuation());
+    } while (textFrame);
+    targetTextFrame = this;
+  }
+  
+  lastTextFrame->mContentLength = PR_MAX(0, nodeLength - lastTextFrame->mContentOffset);
+
+  
+  aPresContext->GetPresShell()->FrameNeedsReflow(targetTextFrame,
+                                                 nsIPresShell::eStyleChange);
+
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsTextFrame::DidSetStyleContext()
+{
+  ClearTextRun();
+  return NS_OK;
+} 
+
+class nsDisplayText : public nsDisplayItem {
+public:
+  nsDisplayText(nsTextFrame* aFrame) : nsDisplayItem(aFrame) {
+    MOZ_COUNT_CTOR(nsDisplayText);
+  }
+#ifdef NS_BUILD_REFCNT_LOGGING
+  virtual ~nsDisplayText() {
+    MOZ_COUNT_DTOR(nsDisplayText);
+  }
+#endif
+
+  virtual nsRect GetBounds(nsDisplayListBuilder* aBuilder) {
+    return mFrame->GetOverflowRect() + aBuilder->ToReferenceFrame(mFrame);
+  }
+  virtual nsIFrame* HitTest(nsDisplayListBuilder* aBuilder, nsPoint aPt) { return mFrame; }
+  virtual void Paint(nsDisplayListBuilder* aBuilder, nsIRenderingContext* aCtx,
+     const nsRect& aDirtyRect);
+  NS_DISPLAY_DECL_NAME("Text")
+};
+
+void
+nsDisplayText::Paint(nsDisplayListBuilder* aBuilder,
+     nsIRenderingContext* aCtx, const nsRect& aDirtyRect) {
+  NS_STATIC_CAST(nsTextFrame*, mFrame)->
+    PaintText(aCtx, aBuilder->ToReferenceFrame(mFrame), aDirtyRect);
+}
+
+NS_IMETHODIMP
+nsTextFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
+                              const nsRect&           aDirtyRect,
+                              const nsDisplayListSet& aLists)
+{
+  if (!IsVisibleForPainting(aBuilder))
+    return NS_OK;
+  
+  DO_GLOBAL_REFLOW_COUNT_DSP("nsTextFrame");
+
+  if ((0 != (mState & TEXT_BLINK_ON)) && nsBlinkTimer::GetBlinkIsOff())
+    return NS_OK;
+    
+  return aLists.Content()->AppendNewToTop(new (aBuilder) nsDisplayText(this));
+}
+
+static nsIContent*
+GetContentAndOffsetsForSelection(nsTextFrame* aFrame, PRInt32* aOffset, PRInt32* aLength)
+{
+  *aOffset = aFrame->GetContentOffset();
+  *aLength = aFrame->GetContentLength();
+  nsIContent* content = aFrame->GetContent();
+
+  nsIFrame* parent = aFrame->GetParent();
+  if (parent && (aFrame->GetStateBits() & NS_FRAME_GENERATED_CONTENT)) {
+    content = parent->GetContent();
+    if (!content)
+      return nsnull;
+
+    if (aOffset && aLength) {
+      
+      
+      nsIFrame *grandParent = parent->GetParent();
+      if (grandParent) {
+        nsIFrame *firstParent = grandParent->GetFirstChild(nsnull);
+        if (firstParent) {
+          *aLength = 0;
+          if (firstParent == parent) {
+            
+            *aOffset = 0;
+          } else {
+            *aOffset = content->GetChildCount();
+          }
+        }
+      }
+    }
+  }
+
+  return content;
+}
+
+SelectionDetails*
+nsTextFrame::GetSelectionDetails()
+{
+  PRInt32 offset, length;
+  nsIContent* content = GetContentAndOffsetsForSelection(this, &offset, &length);
+  return GetFrameSelection()->LookUpSelection(content, offset, length, PR_FALSE);
+}
+
+static void
+FillClippedRect(gfxContext* aCtx, nsPresContext* aPresContext,
+                nscolor aColor, const gfxRect& aDirtyRect, const gfxRect& aRect)
+{
+  gfxRect r = aRect.Intersect(aDirtyRect);
+  
+  float t2p = 1.0/aPresContext->AppUnitsPerDevPixel();
+  aCtx->NewPath();
+  
+  aCtx->Rectangle(gfxRect(r.X()*t2p, r.Y()*t2p, r.Width()*t2p, r.Height()*t2p), PR_TRUE);
+  aCtx->SetColor(gfxRGBA(aColor));
+  aCtx->Fill();
+}
+
+void 
+nsTextFrame::PaintTextDecorations(gfxContext* aCtx, const gfxRect& aDirtyRect,
+                                  const gfxPoint& aFramePt,
+                                  nsTextPaintStyle& aTextPaintStyle,
+                                  PropertyProvider& aProvider)
+{
+  
+  
+  
+  if (eCompatibility_NavQuirks != aTextPaintStyle.GetPresContext()->CompatibilityMode())
+    return;
+
+  PRBool useOverride = PR_FALSE;
+  nscolor overrideColor;
+
+  PRUint8 decorations = NS_STYLE_TEXT_DECORATION_NONE;
+  
+  PRUint8 decorMask = NS_STYLE_TEXT_DECORATION_UNDERLINE | 
+                      NS_STYLE_TEXT_DECORATION_OVERLINE |
+                      NS_STYLE_TEXT_DECORATION_LINE_THROUGH;    
+  nscolor overColor, underColor, strikeColor;
+  nsStyleContext* context = GetStyleContext();
+  PRBool hasDecorations = context->HasTextDecorations();
+
+  while (hasDecorations) {
+    const nsStyleTextReset* styleText = context->GetStyleTextReset();
+    if (!useOverride && 
+        (NS_STYLE_TEXT_DECORATION_OVERRIDE_ALL & styleText->mTextDecoration)) {
+      
+      
+      useOverride = PR_TRUE;
+      overrideColor = context->GetStyleColor()->mColor;          
+    }
+
+    PRUint8 useDecorations = decorMask & styleText->mTextDecoration;
+    if (useDecorations) {
+      nscolor color = context->GetStyleColor()->mColor;
+  
+      if (NS_STYLE_TEXT_DECORATION_UNDERLINE & useDecorations) {
+        underColor = useOverride ? overrideColor : color;
+        decorMask &= ~NS_STYLE_TEXT_DECORATION_UNDERLINE;
+        decorations |= NS_STYLE_TEXT_DECORATION_UNDERLINE;
+      }
+      if (NS_STYLE_TEXT_DECORATION_OVERLINE & useDecorations) {
+        overColor = useOverride ? overrideColor : color;
+        decorMask &= ~NS_STYLE_TEXT_DECORATION_OVERLINE;
+        decorations |= NS_STYLE_TEXT_DECORATION_OVERLINE;
+      }
+      if (NS_STYLE_TEXT_DECORATION_LINE_THROUGH & useDecorations) {
+        strikeColor = useOverride ? overrideColor : color;
+        decorMask &= ~NS_STYLE_TEXT_DECORATION_LINE_THROUGH;
+        decorations |= NS_STYLE_TEXT_DECORATION_LINE_THROUGH;
+      }
+    }
+    if (0 == decorMask)
+      break;
+    context = context->GetParent();
+    if (!context)
+      break;
+    hasDecorations = context->HasTextDecorations();
+  }
+
+  if (!decorations)
+    return;
+
+  gfxFont::Metrics fontMetrics = GetFontMetrics(aProvider.GetFontGroup());
+  gfxFloat pix2app = mTextRun->GetAppUnitsPerDevUnit();
+
+  if (decorations & NS_FONT_DECORATION_OVERLINE) {
+    FillClippedRect(aCtx, aTextPaintStyle.GetPresContext(), overColor, aDirtyRect,
+                    gfxRect(aFramePt.x, aFramePt.y,
+                            GetRect().width, fontMetrics.underlineSize*pix2app));
+  }
+  if (decorations & NS_FONT_DECORATION_UNDERLINE) {
+    FillClippedRect(aCtx, aTextPaintStyle.GetPresContext(), underColor, aDirtyRect,
+                    gfxRect(aFramePt.x,
+                            aFramePt.y + mAscent - fontMetrics.underlineOffset,
+                            GetRect().width, fontMetrics.underlineSize*pix2app));
+  }
+  if (decorations & NS_FONT_DECORATION_LINE_THROUGH) {
+    FillClippedRect(aCtx, aTextPaintStyle.GetPresContext(), strikeColor, aDirtyRect,
+                    gfxRect(aFramePt.x,
+                            aFramePt.y + mAscent - fontMetrics.strikeoutOffset,
+                            GetRect().width, fontMetrics.strikeoutSize*pix2app));
+  }
+}
+
+
+static const SelectionType SelectionTypesWithDecorations =
+  nsISelectionController::SELECTION_SPELLCHECK |
+  nsISelectionController::SELECTION_IME_RAWINPUT |
+  nsISelectionController::SELECTION_IME_SELECTEDRAWTEXT |
+  nsISelectionController::SELECTION_IME_CONVERTEDTEXT |
+  nsISelectionController::SELECTION_IME_SELECTEDCONVERTEDTEXT;
+
+static void DrawIMEUnderline(gfxContext* aContext, PRInt32 aIndex,
+    nsTextPaintStyle& aTextPaintStyle, const gfxPoint& aBaselinePt, gfxFloat aWidth,
+    const gfxRect& aDirtyRect, const gfxFont::Metrics& aFontMetrics)
+{
+  float p2t = aTextPaintStyle.GetPresContext()->AppUnitsPerDevPixel();
+  nscolor color;
+  float relativeSize;
+  if (!aTextPaintStyle.GetIMEUnderline(aIndex, &color, &relativeSize))
+    return;
+
+  gfxFloat y = aBaselinePt.y - aFontMetrics.underlineOffset*p2t;
+  gfxFloat size = aFontMetrics.underlineSize*p2t;
+  FillClippedRect(aContext, aTextPaintStyle.GetPresContext(),
+                  color, aDirtyRect,
+                  gfxRect(aBaselinePt.x + size, y,
+                          PR_MAX(0, aWidth - 2*size), relativeSize*size));
+}
+
+
+
+
+
+static void DrawSelectionDecorations(gfxContext* aContext, SelectionType aType,
+    nsTextPaintStyle& aTextPaintStyle, const gfxPoint& aBaselinePt, gfxFloat aWidth,
+    const gfxRect& aDirtyRect, const gfxFont::Metrics& aFontMetrics)
+{
+  float p2t = aTextPaintStyle.GetPresContext()->AppUnitsPerDevPixel();
+  float t2p = 1/p2t;
+
+  switch (aType) {
+    case nsISelectionController::SELECTION_SPELLCHECK: {
+      gfxFloat y = aBaselinePt.y*t2p - aFontMetrics.underlineOffset;
+      aContext->SetDash(gfxContext::gfxLineDotted);
+      aContext->SetColor(gfxRGBA(1.0, 0.0, 0.0));
+      aContext->SetLineWidth(1.0);
+      aContext->NewPath();
+      aContext->Line(gfxPoint(aBaselinePt.x*t2p, y),
+                     gfxPoint((aBaselinePt.x + aWidth)*t2p, y));
+      aContext->Stroke();
+      break;
+    }
+
+    case nsISelectionController::SELECTION_IME_RAWINPUT:
+      DrawIMEUnderline(aContext, nsTextPaintStyle::eIndexRawInput, aTextPaintStyle,
+                       aBaselinePt, aWidth, aDirtyRect, aFontMetrics);
+      break;
+    case nsISelectionController::SELECTION_IME_SELECTEDRAWTEXT:
+      DrawIMEUnderline(aContext, nsTextPaintStyle::eIndexSelRawText, aTextPaintStyle,
+                       aBaselinePt, aWidth, aDirtyRect, aFontMetrics);
+      break;
+    case nsISelectionController::SELECTION_IME_CONVERTEDTEXT:
+      DrawIMEUnderline(aContext, nsTextPaintStyle::eIndexConvText, aTextPaintStyle,
+                       aBaselinePt, aWidth, aDirtyRect, aFontMetrics);
+      break;
+    case nsISelectionController::SELECTION_IME_SELECTEDCONVERTEDTEXT:
+      DrawIMEUnderline(aContext, nsTextPaintStyle::eIndexSelConvText, aTextPaintStyle,
+                       aBaselinePt, aWidth, aDirtyRect, aFontMetrics);
+      break;
+
+    default:
+      NS_WARNING("Requested selection decorations when there aren't any");
+      break;
+  }
+}
+
+
+
+
+
+
+
+
+
+static PRBool GetSelectionTextColors(SelectionType aType, nsTextPaintStyle& aTextPaintStyle,
+                                     nscolor* aForeground, nscolor* aBackground)
+{
+  switch (aType) {
+    case nsISelectionController::SELECTION_NORMAL:
+      return aTextPaintStyle.GetSelectionColors(aForeground, aBackground);
+
+    case nsISelectionController::SELECTION_IME_RAWINPUT:
+      aTextPaintStyle.GetIMESelectionColors(nsTextPaintStyle::eIndexRawInput,
+                                            aForeground, aBackground);
+      return PR_TRUE;
+    case nsISelectionController::SELECTION_IME_SELECTEDRAWTEXT:
+      aTextPaintStyle.GetIMESelectionColors(nsTextPaintStyle::eIndexSelRawText,
+                                            aForeground, aBackground);
+      return PR_TRUE;
+    case nsISelectionController::SELECTION_IME_CONVERTEDTEXT:
+      aTextPaintStyle.GetIMESelectionColors(nsTextPaintStyle::eIndexConvText,
+                                            aForeground, aBackground);
+      return PR_TRUE;
+    case nsISelectionController::SELECTION_IME_SELECTEDCONVERTEDTEXT:
+      aTextPaintStyle.GetIMESelectionColors(nsTextPaintStyle::eIndexSelConvText,
+                                            aForeground, aBackground);
+      return PR_TRUE;
+      
+    default:
+      *aForeground = aTextPaintStyle.GetTextColor();
+      *aBackground = NS_RGBA(0,0,0,0);
+      return PR_FALSE;
+  }
+}
+
+
+
+
+
+
+
+
+class SelectionIterator {
+public:
+  
+
+
+
+  SelectionIterator(SelectionType* aSelectionBuffer, PRInt32 aStart,
+                    PRInt32 aLength, PropertyProvider& aProvider,
+                    gfxTextRun* aTextRun);
+  
+  
+
+
+
+
+
+
+
+
+
+
+
+  PRBool GetNextSegment(gfxFloat* aXOffset, PRUint32* aOffset, PRUint32* aLength,
+                        gfxFloat* aHyphenWidth, SelectionType* aType);
+  void UpdateWithAdvance(gfxFloat aAdvance) {
+    mXOffset += aAdvance*mTextRun->GetDirection();
+  }
+
+private:
+  SelectionType*          mSelectionBuffer;
+  PropertyProvider&       mProvider;
+  gfxTextRun*             mTextRun;
+  gfxSkipCharsIterator    mIterator;
+  PRInt32                 mOriginalStart;
+  PRInt32                 mOriginalEnd;
+  gfxFloat                mXOffset;
+};
+
+SelectionIterator::SelectionIterator(SelectionType* aSelectionBuffer,
+    PRInt32 aStart, PRInt32 aLength, PropertyProvider& aProvider,
+    gfxTextRun* aTextRun)
+  : mSelectionBuffer(aSelectionBuffer), mProvider(aProvider),
+    mTextRun(aTextRun), mIterator(aProvider.GetStart()),
+    mOriginalStart(aStart), mOriginalEnd(aStart + aLength),
+    mXOffset(mTextRun->IsRightToLeft() ? aProvider.GetFrame()->GetSize().width : 0)
+{
+  mIterator.SetOriginalOffset(aStart);
+}
+
+PRBool SelectionIterator::GetNextSegment(gfxFloat* aXOffset,
+    PRUint32* aOffset, PRUint32* aLength, gfxFloat* aHyphenWidth, SelectionType* aType)
+{
+  for (;;) {
+    if (mIterator.GetOriginalOffset() >= mOriginalEnd)
+      return PR_FALSE;
+  
+    
+    PRUint32 runOffset = mIterator.GetSkippedOffset();
+  
+    PRInt32 index = mIterator.GetOriginalOffset() - mOriginalStart;
+    SelectionType type = mSelectionBuffer[index];
+    do {
+      ++index;
+      if (mSelectionBuffer[index] != type)
+        break;
+    } while (mOriginalStart + index < mOriginalEnd);
+    mIterator.SetOriginalOffset(index + mOriginalStart);
+  
+    
+    while (mIterator.GetOriginalOffset() < mOriginalEnd &&
+           !mIterator.IsOriginalCharSkipped() &&
+           !(mTextRun->GetCharFlags(mIterator.GetSkippedOffset()) & gfxTextRun::CLUSTER_START)) {
+      mIterator.AdvanceOriginal(1);
+    }
+  
+    
+    if (runOffset < mIterator.GetSkippedOffset()) {    
+      *aOffset = runOffset;
+      *aLength = mIterator.GetSkippedOffset() - runOffset;
+      *aXOffset = mXOffset;
+      *aHyphenWidth = 0;
+      if (mIterator.GetOriginalOffset() == mOriginalEnd &&
+          (mProvider.GetFrame()->GetStateBits() & TEXT_HYPHEN_BREAK)) {
+        *aHyphenWidth = mProvider.GetHyphenWidth();
+      }
+      *aType = type;
+      return PR_TRUE;
+    }
+  }
+}
+
+
+
+void
+nsTextFrame::PaintTextWithSelectionColors(gfxContext* aCtx,
+    const gfxPoint& aFramePt,
+    const gfxPoint& aTextBaselinePt, const gfxRect& aDirtyRect,
+    PropertyProvider& aProvider, nsTextPaintStyle& aTextPaintStyle,
+    SelectionDetails* aDetails, SelectionType* aAllTypes)
+{
+  PRInt32 contentOffset = aProvider.GetStart().GetOriginalOffset();
+  PRInt32 contentLength = aProvider.GetOriginalLength();
+
+  
+  nsAutoTArray<SelectionType,BIG_TEXT_NODE_SIZE> prevailingSelectionsBuffer;
+  if (!prevailingSelectionsBuffer.AppendElements(contentLength))
+    return;
+  SelectionType* prevailingSelections = prevailingSelectionsBuffer.Elements();
+  PRInt32 i;
+  SelectionType allTypes = 0;
+  for (i = 0; i < contentLength; ++i) {
+    prevailingSelections[i] = nsISelectionController::SELECTION_NONE;
+  }
+
+  SelectionDetails *sdptr = aDetails;
+  PRBool anyBackgrounds = PR_FALSE;
+  while (sdptr) {
+    PRInt32 start = PR_MAX(0, sdptr->mStart - contentOffset);
+    PRInt32 end = PR_MIN(contentLength, sdptr->mEnd - contentOffset);
+    SelectionType type = sdptr->mType;
+    if (start < end) {
+      allTypes |= type;
+      
+      nscolor foreground, background;
+      if (GetSelectionTextColors(type, aTextPaintStyle, &foreground, &background)) {
+        if (NS_GET_A(background) > 0) {
+          anyBackgrounds = PR_TRUE;
+        }
+        for (i = start; i < end; ++i) {
+          PRInt16 currentPrevailingSelection = prevailingSelections[i];
+          
+          if (currentPrevailingSelection == nsISelectionController::SELECTION_NONE ||
+              type < currentPrevailingSelection) {
+            prevailingSelections[i] = type;
+          }
+        }
+      }
+    }
+    sdptr = sdptr->mNext;
+  }
+  *aAllTypes = allTypes;
+
+  gfxFloat xOffset, hyphenWidth;
+  PRUint32 offset, length; 
+  SelectionType type;
+  
+  if (anyBackgrounds) {
+    SelectionIterator iterator(prevailingSelections, contentOffset, contentLength,
+                               aProvider, mTextRun);
+    while (iterator.GetNextSegment(&xOffset, &offset, &length, &hyphenWidth, &type)) {
+      nscolor foreground, background;
+      GetSelectionTextColors(type, aTextPaintStyle, &foreground, &background);
+      
+      gfxFloat advance = hyphenWidth +
+        mTextRun->GetAdvanceWidth(offset, length, &aProvider);
+      if (NS_GET_A(background) > 0) {
+        gfxFloat x = xOffset - (mTextRun->IsRightToLeft() ? advance : 0);
+        FillClippedRect(aCtx, aTextPaintStyle.GetPresContext(),
+                        background, aDirtyRect,
+                        gfxRect(aFramePt.x + x, aFramePt.y, advance, GetSize().height));
+      }
+      iterator.UpdateWithAdvance(advance);
+    }
+  }
+  
+  
+  SelectionIterator iterator(prevailingSelections, contentOffset, contentLength,
+                             aProvider, mTextRun);
+  while (iterator.GetNextSegment(&xOffset, &offset, &length, &hyphenWidth, &type)) {
+    nscolor foreground, background;
+    GetSelectionTextColors(type, aTextPaintStyle, &foreground, &background);
+    
+    aCtx->SetColor(gfxRGBA(foreground));
+    gfxFloat advance;
+    mTextRun->Draw(aCtx, gfxPoint(aFramePt.x + xOffset, aTextBaselinePt.y), offset, length,
+                   &aDirtyRect, &aProvider, &advance);
+    if (hyphenWidth) {
+      
+      gfxFloat hyphenBaselineX = aFramePt.x + xOffset + mTextRun->GetDirection()*advance;
+      gfxTextRun* hyphenTextRun =
+        GetSpecialString(aProvider.GetFontGroup(), gfxFontGroup::STRING_HYPHEN, mTextRun);
+      if (hyphenTextRun) {
+        hyphenTextRun->Draw(aCtx, gfxPoint(hyphenBaselineX, aTextBaselinePt.y),
+                            0, hyphenTextRun->GetLength(), &aDirtyRect, nsnull, nsnull);
+      }
+      advance += hyphenWidth;
+    }
+    iterator.UpdateWithAdvance(advance);
+  }
+}
+
+void
+nsTextFrame::PaintTextSelectionDecorations(gfxContext* aCtx,
+    const gfxPoint& aFramePt,
+    const gfxPoint& aTextBaselinePt, const gfxRect& aDirtyRect,
+    PropertyProvider& aProvider, nsTextPaintStyle& aTextPaintStyle,
+    SelectionDetails* aDetails, SelectionType aSelectionType)
+{
+  PRInt32 contentOffset = aProvider.GetStart().GetOriginalOffset();
+  PRInt32 contentLength = aProvider.GetOriginalLength();
+
+  
+  
+  nsAutoTArray<SelectionType,BIG_TEXT_NODE_SIZE> selectedCharsBuffer;
+  if (!selectedCharsBuffer.AppendElements(contentLength))
+    return;
+  SelectionType* selectedChars = selectedCharsBuffer.Elements();
+  PRInt32 i;
+  for (i = 0; i < contentLength; ++i) {
+    selectedChars[i] = nsISelectionController::SELECTION_NONE;
+  }
+
+  SelectionDetails *sdptr = aDetails;
+  while (sdptr) {
+    if (sdptr->mType == aSelectionType) {
+      PRInt32 start = PR_MAX(0, sdptr->mStart - contentOffset);
+      PRInt32 end = PR_MIN(contentLength, sdptr->mEnd - contentOffset);
+      for (i = start; i < end; ++i) {
+        selectedChars[i] = aSelectionType;
+      }
+    }
+    sdptr = sdptr->mNext;
+  }
+
+  gfxFont::Metrics decorationMetrics = GetFontMetrics(aProvider.GetFontGroup());
+
+  SelectionIterator iterator(selectedChars, contentOffset, contentLength,
+                             aProvider, mTextRun);
+  gfxFloat xOffset, hyphenWidth;
+  PRUint32 offset, length;
+  SelectionType type;
+  while (iterator.GetNextSegment(&xOffset, &offset, &length, &hyphenWidth, &type)) {
+    gfxFloat advance = hyphenWidth +
+      mTextRun->GetAdvanceWidth(offset, length, &aProvider);
+    if (type == aSelectionType) {
+      gfxFloat x = xOffset - (mTextRun->IsRightToLeft() ? advance : 0);
+      DrawSelectionDecorations(aCtx, aSelectionType, aTextPaintStyle,
+                               gfxPoint(x, aTextBaselinePt.y), advance,
+                               aDirtyRect, decorationMetrics);
+    }
+    iterator.UpdateWithAdvance(advance);
+  }
+}
+
+PRBool
+nsTextFrame::PaintTextWithSelection(gfxContext* aCtx,
+    const gfxPoint& aFramePt,
+    const gfxPoint& aTextBaselinePt, const gfxRect& aDirtyRect,
+    PropertyProvider& aProvider, nsTextPaintStyle& aTextPaintStyle)
+{
+  SelectionDetails* details = GetSelectionDetails();
+  if (!details)
+    return PR_FALSE;
+
+  SelectionType allTypes;
+  PaintTextWithSelectionColors(aCtx, aFramePt, aTextBaselinePt, aDirtyRect,
+                               aProvider, aTextPaintStyle, details, &allTypes);
+  PaintTextDecorations(aCtx, aDirtyRect, aFramePt, aTextPaintStyle, aProvider);
+  PRInt32 i;
+  
+  
+  
+  
+  allTypes &= SelectionTypesWithDecorations;
+  for (i = nsISelectionController::NUM_SELECTIONTYPES - 1; i >= 1; --i) {
+    SelectionType type = 1 << (i - 1);
+    if (allTypes & type) {
+      
+      
+      
+      PaintTextSelectionDecorations(aCtx, aFramePt, aTextBaselinePt, aDirtyRect,
+                                    aProvider, aTextPaintStyle, details, type);
+    }
+  }
+
+  DestroySelectionDetails(details);
+  return PR_TRUE;
+}
+
+static PRUint32
+ComputeTransformedLength(PropertyProvider& aProvider)
+{
+  gfxSkipCharsIterator iter(aProvider.GetStart());
+  PRUint32 start = iter.GetSkippedOffset();
+  iter.AdvanceOriginal(aProvider.GetOriginalLength());
+  return iter.GetSkippedOffset() - start;
+}
+
+void
+nsTextFrame::PaintText(nsIRenderingContext* aRenderingContext, nsPoint aPt,
+                       const nsRect& aDirtyRect)
+{
+  
+  gfxSkipCharsIterator iter = EnsureTextRun(aRenderingContext);
+  if (!mTextRun)
+    return;
+
+  nsTextPaintStyle textPaintStyle(this);
+  PropertyProvider provider(this, iter);
+  
+  provider.InitializeForDisplay(PR_TRUE);
+
+  gfxContext* ctx = NS_STATIC_CAST(gfxContext*,
+      aRenderingContext->GetNativeGraphicData(nsIRenderingContext::NATIVE_THEBES_CONTEXT));
+
+  gfxPoint framePt(aPt.x, aPt.y);
+  gfxPoint textBaselinePt(
+      mTextRun->IsRightToLeft() ? gfxFloat(aPt.x + GetSize().width) : framePt.x,
+      aPt.y + mAscent);
+
+  gfxRect dirtyRect(aDirtyRect.x, aDirtyRect.y,
+                    aDirtyRect.width, aDirtyRect.height);
+
+  
+  if (GetNonGeneratedAncestor(this)->GetStateBits() & NS_FRAME_SELECTED_CONTENT) {
+    if (PaintTextWithSelection(ctx, framePt, textBaselinePt,
+                               dirtyRect, provider, textPaintStyle))
+      return;
+  }
+
+  gfxFloat advanceWidth;
+  gfxFloat* needAdvanceWidth =
+    (GetStateBits() & TEXT_HYPHEN_BREAK) ? &advanceWidth : nsnull;
+  ctx->SetColor(gfxRGBA(textPaintStyle.GetTextColor()));
+  
+  mTextRun->Draw(ctx, textBaselinePt,
+                 provider.GetStart().GetSkippedOffset(),
+                 ComputeTransformedLength(provider),
+                 &dirtyRect, &provider, needAdvanceWidth);
+  if (GetStateBits() & TEXT_HYPHEN_BREAK) {
+    gfxFloat hyphenBaselineX = textBaselinePt.x + mTextRun->GetDirection()*advanceWidth;
+    gfxTextRun* hyphenTextRun =
+      GetSpecialString(provider.GetFontGroup(), gfxFontGroup::STRING_HYPHEN, mTextRun);
+    if (hyphenTextRun) {
+      hyphenTextRun->Draw(ctx, gfxPoint(hyphenBaselineX, textBaselinePt.y),
+                          0, hyphenTextRun->GetLength(), &dirtyRect, nsnull, nsnull);
+    }
+  }
+  PaintTextDecorations(ctx, dirtyRect, framePt, textPaintStyle, provider);
+}
+
+PRInt16
+nsTextFrame::GetSelectionStatus(PRInt16* aSelectionFlags)
+{
+  
+  nsCOMPtr<nsISelectionController> selectionController;
+  nsresult rv = GetSelectionController(GetPresContext(),
+                                       getter_AddRefs(selectionController));
+  if (NS_FAILED(rv) || !selectionController)
+    return nsISelectionController::SELECTION_OFF;
+
+  selectionController->GetSelectionFlags(aSelectionFlags);
+
+  PRInt16 selectionValue;
+  selectionController->GetDisplaySelection(&selectionValue);
+
+  return selectionValue;
+}
+
+PRBool
+nsTextFrame::IsVisibleInSelection(nsISelection* aSelection)
+{
+  
+  PRBool isSelected = (mState & NS_FRAME_SELECTED_CONTENT) == NS_FRAME_SELECTED_CONTENT;
+  if (!isSelected)
+    return PR_FALSE;
+    
+  SelectionDetails* details = GetSelectionDetails();
+  PRBool found = PR_FALSE;
+    
+  
+  SelectionDetails *sdptr = details;
+  while (sdptr) {
+    if (sdptr->mEnd > mContentOffset &&
+        sdptr->mStart < mContentOffset + mContentLength &&
+        sdptr->mType == nsISelectionController::SELECTION_NORMAL) {
+      found = PR_TRUE;
+      break;
+    }
+    sdptr = sdptr->mNext;
+  }
+  DestroySelectionDetails(details);
+
+  return found;
+}
+
+static PRUint32
+CountCharsFit(gfxTextRun* aTextRun, PRUint32 aStart, PRUint32 aLength,
+              gfxFloat aWidth, PropertyProvider* aProvider)
+{
+  PRUint32 last = 0;
+  gfxFloat totalWidth = 0;
+  PRUint32 i;
+  for (i = 1; i <= aLength; ++i) {
+    if (i == aLength ||
+        (aTextRun->GetCharFlags(aStart + i) & gfxTextRun::CLUSTER_START)) {
+      totalWidth += aTextRun->GetAdvanceWidth(aStart + last, i - last, aProvider);
+      if (totalWidth > aWidth)
+        return last;
+      last = i;
+    }
+  }
+  return 0;
+}
+
+nsIFrame::ContentOffsets
+nsTextFrame::CalcContentOffsetsFromFramePoint(nsPoint aPoint) {
+  ContentOffsets offsets;
+  
+  gfxSkipCharsIterator iter = EnsureTextRun();
+  if (!mTextRun)
+    return offsets;
+  
+  PropertyProvider provider(this, iter);
+  
+  provider.InitializeForDisplay(PR_FALSE);
+  gfxFloat width = mTextRun->IsRightToLeft() ? mRect.width - aPoint.x : aPoint.x;
+  gfxTextRun::Metrics metrics;
+  PRUint32 skippedLength = ComputeTransformedLength(provider);
+
+  PRUint32 charsFit = CountCharsFit(mTextRun,
+      provider.GetStart().GetSkippedOffset(), skippedLength, width, &provider);
+
+  PRInt32 selectedOffset;
+  if (charsFit < skippedLength) {
+    
+    
+    
+    gfxSkipCharsIterator extraCluster(provider.GetStart());
+    extraCluster.AdvanceSkipped(charsFit);
+    gfxSkipCharsIterator extraClusterLastChar(extraCluster);
+    FindClusterEnd(mTextRun,
+                   provider.GetStart().GetOriginalOffset() + provider.GetOriginalLength(),
+                   &extraClusterLastChar);
+    gfxFloat charWidth =
+        mTextRun->GetAdvanceWidth(extraCluster.GetSkippedOffset(),
+                                  GetSkippedDistance(extraCluster, extraClusterLastChar) + 1,
+                                  &provider);
+    selectedOffset = width <= metrics.mAdvanceWidth + charWidth/2
+        ? extraCluster.GetOriginalOffset()
+        : extraClusterLastChar.GetOriginalOffset() + 1;
+  } else {
+    
+    
+    
+    
+    
+    selectedOffset =
+        provider.GetStart().GetOriginalOffset() + provider.GetOriginalLength();
+  }
+
+  offsets.content = GetContent();
+  offsets.offset = offsets.secondaryOffset = selectedOffset;
+  offsets.associateWithNext = mContentOffset == offsets.offset;
+  return offsets;
+}
+
+
+NS_IMETHODIMP
+nsTextFrame::SetSelected(nsPresContext* aPresContext,
+                         nsIDOMRange *aRange,
+                         PRBool aSelected,
+                         nsSpread aSpread)
+{
+  DEBUG_VERIFY_NOT_DIRTY(mState);
+#if 0 
+  if (mState & NS_FRAME_IS_DIRTY)
+    return NS_ERROR_UNEXPECTED;
+#endif
+
+  if (aSelected && ParentDisablesSelection())
+    return NS_OK;
+
+  
+  PRBool selectable;
+  IsSelectable(&selectable, nsnull);
+  if (!selectable)
+    return NS_OK;
+
+  PRBool found = PR_FALSE;
+  if (aRange) {
+    
+    nsCOMPtr<nsIDOMNode> endNode;
+    PRInt32 endOffset;
+    nsCOMPtr<nsIDOMNode> startNode;
+    PRInt32 startOffset;
+    aRange->GetEndContainer(getter_AddRefs(endNode));
+    aRange->GetEndOffset(&endOffset);
+    aRange->GetStartContainer(getter_AddRefs(startNode));
+    aRange->GetStartOffset(&startOffset);
+    nsCOMPtr<nsIDOMNode> thisNode = do_QueryInterface(GetContent());
+
+    if (thisNode == startNode)
+    {
+      if ((mContentOffset + mContentLength) >= startOffset)
+      {
+        found = PR_TRUE;
+        if (thisNode == endNode)
+        { 
+          if (endOffset == startOffset) 
+            found = PR_FALSE;
+
+          if (mContentOffset > endOffset)
+            found = PR_FALSE;
+        }
+      }
+    }
+    else if (thisNode == endNode)
+    {
+      if (mContentOffset < endOffset)
+        found = PR_TRUE;
+      else
+      {
+        found = PR_FALSE;
+      }
+    }
+    else
+    {
+      found = PR_TRUE;
+    }
+  }
+  else {
+    
+    found = PR_TRUE;
+  }
+
+  if ( aSelected )
+    AddStateBits(NS_FRAME_SELECTED_CONTENT);
+  else
+  { 
+    SelectionDetails *details = GetSelectionDetails();
+    if (!details) {
+      RemoveStateBits(NS_FRAME_SELECTED_CONTENT);
+    } else {
+      DestroySelectionDetails(details);
+    }
+  }
+  if (found) {
+    
+    Invalidate(GetOverflowRect(), PR_FALSE);
+  }
+  if (aSpread == eSpreadDown)
+  {
+    nsIFrame* frame = GetPrevContinuation();
+    while(frame){
+      frame->SetSelected(aPresContext, aRange,aSelected,eSpreadNone);
+      frame = frame->GetPrevContinuation();
+    }
+    frame = GetNextContinuation();
+    while (frame){
+      frame->SetSelected(aPresContext, aRange,aSelected,eSpreadNone);
+      frame = frame->GetNextContinuation();
+    }
+  }
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsTextFrame::GetPointFromOffset(nsPresContext* aPresContext,
+                                nsIRenderingContext* inRendContext,
+                                PRInt32 inOffset,
+                                nsPoint* outPoint)
+{
+  if (!aPresContext || !inRendContext || !outPoint)
+    return NS_ERROR_NULL_POINTER;
+
+  outPoint->x = 0;
+  outPoint->y = 0;
+
+  DEBUG_VERIFY_NOT_DIRTY(mState);
+  if (mState & NS_FRAME_IS_DIRTY)
+    return NS_ERROR_UNEXPECTED;
+
+  if (mContentLength <= 0) {
+    return NS_OK;
+  }
+
+  gfxSkipCharsIterator iter = EnsureTextRun();
+  if (!mTextRun)
+    return NS_ERROR_FAILURE;
+
+  PropertyProvider properties(this, iter);
+  
+  
+  properties.InitializeForDisplay(PR_FALSE);  
+
+  if (inOffset < mContentOffset){
+    NS_WARNING("offset before this frame's content");
+    inOffset = mContentOffset;
+  } else if (inOffset > mContentOffset + mContentLength) {
+    NS_WARNING("offset after this frame's content");
+    inOffset = mContentOffset + mContentLength;
+  }
+  PRInt32 trimmedOffset = properties.GetStart().GetOriginalOffset();
+  PRInt32 trimmedEnd = trimmedOffset + properties.GetOriginalLength();
+  inOffset = PR_MAX(inOffset, trimmedOffset);
+  inOffset = PR_MIN(inOffset, trimmedEnd);
+
+  iter.SetOriginalOffset(inOffset);
+
+  if (inOffset < trimmedEnd &&
+      !iter.IsOriginalCharSkipped() &&
+      !(mTextRun->GetCharFlags(iter.GetSkippedOffset()) & gfxTextRun::CLUSTER_START)) {
+    NS_WARNING("GetPointFromOffset called for non-cluster boundary");
+    FindClusterStart(mTextRun, &iter);
+  }
+
+  gfxFloat advanceWidth =
+    mTextRun->GetAdvanceWidth(properties.GetStart().GetSkippedOffset(),
+                              GetSkippedDistance(properties.GetStart(), iter),
+                              &properties);
+  nscoord width = NSToCoordCeil(advanceWidth);
+
+  if (mTextRun->IsRightToLeft()) {
+    outPoint->x = mRect.width - width;
+  } else {
+    outPoint->x = width;
+  }
+  outPoint->y = 0;
+
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsTextFrame::GetChildFrameContainingOffset(PRInt32 inContentOffset,
+                                           PRBool  inHint,
+                                           PRInt32* outFrameContentOffset,
+                                           nsIFrame **outChildFrame)
+{
+  DEBUG_VERIFY_NOT_DIRTY(mState);
+#if 0 
+  if (mState & NS_FRAME_IS_DIRTY)
+    return NS_ERROR_UNEXPECTED;
+#endif
+
+  if (nsnull == outChildFrame)
+    return NS_ERROR_NULL_POINTER;
+  PRInt32 contentOffset = inContentOffset;
+  
+  if (contentOffset != -1) 
+    contentOffset = inContentOffset - mContentOffset;
+
+  if ((contentOffset > mContentLength) || ((contentOffset == mContentLength) && inHint) )
+  {
+    
+    nsIFrame* nextContinuation = GetNextContinuation();
+    if (nextContinuation)
+    {
+      return nextContinuation->GetChildFrameContainingOffset(inContentOffset, inHint, outFrameContentOffset, outChildFrame);
+    }
+    else {
+      if (contentOffset != mContentLength) 
+        return NS_ERROR_FAILURE;
+    }
+  }
+
+  if (inContentOffset < mContentOffset) 
+  {
+    *outChildFrame = GetPrevInFlow();
+    if (*outChildFrame)
+      return (*outChildFrame)->GetChildFrameContainingOffset(inContentOffset, inHint,
+        outFrameContentOffset,outChildFrame);
+    else
+      return NS_OK; 
+  }
+  
+  *outFrameContentOffset = contentOffset;
+  *outChildFrame = this;
+  return NS_OK;
+}
+
+PRBool
+nsTextFrame::PeekOffsetNoAmount(PRBool aForward, PRInt32* aOffset)
+{
+  NS_ASSERTION(aOffset && *aOffset <= mContentLength, "aOffset out of range");
+
+  gfxSkipCharsIterator iter = EnsureTextRun();
+  if (!mTextRun)
+    return PR_FALSE;
+
+  PRInt32 length = GetTrimmedContentLength(mContent->GetText(), iter);
+  
+  return iter.ConvertOriginalToSkipped(mContentOffset + length) >
+         iter.ConvertOriginalToSkipped(mContentOffset);
+}
+
+PRBool
+nsTextFrame::PeekOffsetCharacter(PRBool aForward, PRInt32* aOffset)
+{
+  NS_ASSERTION(aOffset && *aOffset <= mContentLength, "aOffset out of range");
+
+  PRBool selectable;
+  PRUint8 selectStyle;  
+  IsSelectable(&selectable, &selectStyle);
+  if (selectStyle == NS_STYLE_USER_SELECT_ALL)
+    return PR_FALSE;
+
+  gfxSkipCharsIterator iter = EnsureTextRun();
+  if (!mTextRun)
+    return PR_FALSE;
+
+  PRInt32 length = GetTrimmedContentLength(mContent->GetText(), iter);
+
+  
+  PRInt32 startOffset = mContentOffset + (*aOffset < 0 ? mContentLength : *aOffset);
+
+  if (!aForward) {
+    *aOffset = 0;
+    PRInt32 i;
+    for (i = PR_MIN(mContentOffset + length, startOffset) - 1; i >= mContentOffset; --i) {
+      iter.SetOriginalOffset(i);
+      if (!iter.IsOriginalCharSkipped() &&
+          (mTextRun->GetCharFlags(iter.GetSkippedOffset()) & gfxTextRun::CLUSTER_START)) {
+        *aOffset = i - mContentOffset;
+        return PR_TRUE;
+      }
+    }
+  } else {
+    *aOffset = mContentLength;
+    PRInt32 i;
+    
+    
+    
+    for (i = startOffset; i < mContentOffset + length; ++i) {
+      iter.SetOriginalOffset(i);
+      if (!iter.IsOriginalCharSkipped() &&
+          (mTextRun->GetCharFlags(iter.GetSkippedOffset()) & gfxTextRun::CLUSTER_START)) {
+        *aOffset = i - mContentOffset;
+        return PR_TRUE;
+      }
+    }
+  }
+  
+  return PR_FALSE;
+}
+
+PRBool
+nsTextFrame::PeekOffsetWord(PRBool aForward, PRBool aWordSelectEatSpace, PRBool aIsKeyboardSelect,
+                            PRInt32* aOffset, PRBool* aSawBeforeType)
+{
+  NS_ASSERTION (aOffset && *aOffset <= mContentLength, "aOffset out of range");
+
+  PRBool selectable;
+  PRUint8 selectStyle;
+  IsSelectable(&selectable, &selectStyle);
+  if (selectStyle == NS_STYLE_USER_SELECT_ALL)
+    return PR_FALSE;
+
+  const nsTextFragment* frag = mContent->GetText();
+  gfxSkipCharsIterator iter = EnsureTextRun();
+  if (!mTextRun)
+    return PR_FALSE;
+
+  PRInt32 length = GetTrimmedContentLength(frag, iter);
+
+  
+  PRInt32 startOffset = mContentOffset + (*aOffset < 0 ? mContentLength : *aOffset);
+  startOffset = PR_MIN(startOffset, mContentOffset + length);
+
+  
+  PRInt32 offset = mContentOffset;
+  PRInt32 runLength;
+  if (iter.IsOriginalCharSkipped(&runLength)) {
+    offset += runLength;
+  }
+  startOffset = PR_MAX(startOffset, offset);
+
+  PRBool isWhitespace;
+  PRBool stopAfterPunctuation = nsTextTransformer::GetWordSelectStopAtPunctuation();
+  PRBool stopBeforePunctuation = stopAfterPunctuation && aIsKeyboardSelect;
+  PRInt32 direction = aForward ? 1 : -1;
+  *aOffset = aForward ? mContentLength : 0;
+
+  PRInt32 nextWordStart = nsTextFrameUtils::FindWordBoundary(frag,
+      mTextRun, &iter, offset, length, startOffset,
+      direction, stopBeforePunctuation, stopAfterPunctuation, &isWhitespace);
+  if (nextWordStart < 0)
+    return PR_FALSE;
+
+  if (aWordSelectEatSpace == isWhitespace || !*aSawBeforeType) {
+    *aOffset = nextWordStart - mContentOffset;
+    if (aWordSelectEatSpace == isWhitespace) {
+      *aSawBeforeType = PR_TRUE;
+    }
+
+    for (;;) {
+      nextWordStart = nsTextFrameUtils::FindWordBoundary(frag,
+        mTextRun, &iter, offset, length, nextWordStart,
+        direction, stopBeforePunctuation, stopAfterPunctuation, &isWhitespace);
+      if (nextWordStart < 0 ||
+          (aWordSelectEatSpace ? !isWhitespace : *aSawBeforeType))
+        break;
+      *aOffset = nextWordStart - mContentOffset;
+      if (aWordSelectEatSpace == isWhitespace) {
+        *aSawBeforeType = PR_TRUE;
+      }
+    }
+  } else {
+    *aOffset = aForward ? 0 : mContentLength;
+  }
+  return PR_TRUE;
+}
+
+ 
+
+NS_IMETHODIMP
+nsTextFrame::CheckVisibility(nsPresContext* aContext, PRInt32 aStartIndex,
+    PRInt32 aEndIndex, PRBool aRecurse, PRBool *aFinished, PRBool *aRetval)
+{
+  if (!aRetval)
+    return NS_ERROR_NULL_POINTER;
+
+  
+  
+  
+  for (nsTextFrame* f = this; f;
+       f = NS_STATIC_CAST(nsTextFrame*, GetNextContinuation())) {
+    if (f->PeekOffsetNoAmount(PR_TRUE, nsnull)) {
+      *aRetval = PR_TRUE;
+      return NS_OK;
+    }
+  }
+
+  *aRetval = PR_FALSE;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsTextFrame::GetOffsets(PRInt32 &start, PRInt32 &end) const
+{
+  start = mContentOffset;
+  end = mContentOffset+mContentLength;
+  return NS_OK;
+}
+
+
+
+
+
+
+
+static PRBool
+FindFirstLetterRange(const nsTextFragment* aFrag,
+                     gfxTextRun* aTextRun,
+                     PRInt32 aOffset, PRInt32* aLength)
+{
+  
+  PRInt32 i;
+  PRInt32 length = *aLength;
+  for (i = 0; i < length; ++i) {
+    if (!IsSpace(aFrag, aOffset + i) &&
+        !nsTextFrameUtils::IsPunctuationMark(aFrag->CharAt(aOffset + i)))
+      break;
+  }
+
+  if (i == length)
+    return PR_FALSE;
+
+  
+  while (i + 1 < length) {
+    PRUint8 flags = aTextRun->GetCharFlags(aOffset + i + 1);
+    if (flags & gfxTextRun::CLUSTER_START)
+      break;
+  }
+  *aLength = i + 1;
+  return PR_TRUE;
+}
+
+static void
+AddCharToMetrics(gfxFloat aWidth, PropertyProvider* aProvider,
+                 gfxFontGroup::SpecialString aSpecial, gfxTextRun* aTextRun,
+                 gfxTextRun::Metrics* aMetrics, PRBool aTightBoundingBox)
+{
+  gfxRect charRect;
+  if (aTightBoundingBox) {
+    gfxTextRun* specialTextRun =
+      GetSpecialString(aProvider->GetFontGroup(), aSpecial, aTextRun);
+    gfxTextRun::Metrics charMetrics;
+    if (specialTextRun) {
+      charMetrics =
+        specialTextRun->MeasureText(0, specialTextRun->GetLength(), PR_TRUE, nsnull);
+    }
+    charRect = charMetrics.mBoundingBox;
+  } else {
+    
+    charRect = gfxRect(0, -aMetrics->mAscent, aWidth,
+                       aMetrics->mAscent + aMetrics->mDescent);
+  }
+  if (aTextRun->IsRightToLeft()) {
+    
+    
+    aMetrics->mBoundingBox.MoveBy(gfxPoint(aWidth, 0));
+  } else {
+    
+    charRect.MoveBy(gfxPoint(aMetrics->mAdvanceWidth, 0));
+  }
+  aMetrics->mBoundingBox = aMetrics->mBoundingBox.Union(charRect);
+
+  aMetrics->mAdvanceWidth += aWidth;
+}
+
+static nsRect ConvertGfxRectOutward(const gfxRect& aRect)
+{
+  nsRect r;
+  r.x = NSToCoordFloor(aRect.X());
+  r.y = NSToCoordFloor(aRect.Y());
+  r.width = NSToCoordCeil(aRect.XMost()) - r.x;
+  r.height = NSToCoordCeil(aRect.YMost()) - r.y;
+  return r;
+}
+
+static PRUint32
+GetLengthOfTrimmedText(const nsTextFragment* aFrag,
+                       PRUint32 aStart, PRUint32 aEnd,
+                       gfxSkipCharsIterator* aIterator)
+{
+  aIterator->SetSkippedOffset(aEnd);
+  while (aIterator->GetSkippedOffset() > aStart) {
+    aIterator->AdvanceSkipped(-1);
+    if (!IsSpace(aFrag, aIterator->GetOriginalOffset()))
+      return aIterator->GetSkippedOffset() + 1 - aStart;
+  }
+  return 0;
+}
+
+
+
+void
+nsTextFrame::AddInlineMinWidthForFlow(nsIRenderingContext *aRenderingContext,
+                                      nsIFrame::InlineMinWidthData *aData)
+{
+  PRUint32 flowEndInTextRun;
+  gfxSkipCharsIterator iter =
+    EnsureTextRun(aRenderingContext, nsnull, nsnull, &flowEndInTextRun);
+  if (!mTextRun)
+    return;
+
+  PRUint32 start = iter.GetSkippedOffset();
+  if (start >= flowEndInTextRun)
+    return;
+  PRUint32 length = flowEndInTextRun - start;
+
+  PropertyProvider provider(this, iter);
+  RunCharFlags flags(start, length, mTextRun);  
+  nscoord maxAdvance = NSToCoordCeil(
+    GetFontMetrics(provider.GetFontGroup()).maxAdvance*mTextRun->GetAppUnitsPerDevUnit());
+
+  PRBool leadingWord = PR_TRUE;
+  if (flags.GetFlags(0) & gfxTextRun::LINE_BREAK_BEFORE) {
+    aData->Break(aRenderingContext);
+    leadingWord = PR_FALSE;
+  }
+
+  PRUint32 i;
+  PRUint32 wordStart = start;
+  
+  for (i = 1; i < length; ++i) {
+    if (flags.GetFlags(i) & gfxTextRun::LINE_BREAK_BEFORE) {
+      
+      
+      PRUint32 wordLength = i - wordStart;
+      if (!leadingWord || nscoord(wordLength*maxAdvance) > aData->prevLines) {
+        if (!GetStyleText()->WhiteSpaceIsSignificant()) {
+          
+          wordLength =
+            GetLengthOfTrimmedText(provider.GetFragment(), wordStart, i, &iter);
+        }
+        if (wordLength > 0) {
+          
+          
+          aData->trailingWhitespace = 0;
+          aData->currentLine +=
+            NSToCoordCeil(mTextRun->GetAdvanceWidth(wordStart, wordLength, &provider));
+          aData->Break(aRenderingContext);
+        } else if (leadingWord) {
+          aData->Break(aRenderingContext);
+        }
+        leadingWord = PR_FALSE;
+      }
+      wordStart = i;
+    }
+  }
+
+  aData->currentLine +=
+    NSToCoordCeil(mTextRun->GetAdvanceWidth(wordStart, length - wordStart, &provider));
+
+  if (!GetStyleText()->WhiteSpaceIsSignificant()) {
+    
+    PRUint32 wordEnd = wordStart +
+      GetLengthOfTrimmedText(provider.GetFragment(), wordStart, flowEndInTextRun, &iter);
+    gfxFloat width = mTextRun->GetAdvanceWidth(wordEnd,
+                                               flowEndInTextRun - wordEnd, &provider);
+    aData->trailingWhitespace += NSToCoordCeil(width);
+  }
+}
+
+
+
+ void
+nsTextFrame::AddInlineMinWidth(nsIRenderingContext *aRenderingContext,
+                               nsIFrame::InlineMinWidthData *aData)
+{
+  AddInlineMinWidthForFlow(aRenderingContext, aData);
+  if (mTextRun && !(mTextRun->GetFlags() & nsTextFrameUtils::TEXT_IS_SIMPLE_FLOW)) {
+    
+    
+    nsTextFrame* f = this;
+    for (;;) {
+      f = NS_STATIC_CAST(nsTextFrame*, f->GetNextContinuation());
+      if (!f)
+        break;
+      if (f->GetStateBits() & TEXT_IS_RUN_OWNER) {
+        f->AddInlineMinWidthForFlow(aRenderingContext, aData);
+      }
+    }
+  }
+}
+
+
+
+void
+nsTextFrame::AddInlinePrefWidthForFlow(nsIRenderingContext *aRenderingContext,
+                                       nsIFrame::InlinePrefWidthData *aData)
+{
+  PRUint32 flowEndInTextRun;
+  gfxSkipCharsIterator iter =
+    EnsureTextRun(aRenderingContext, nsnull, nsnull, &flowEndInTextRun);
+  if (!mTextRun)
+    return;
+
+  PropertyProvider provider(this, iter);
+  if (!GetStyleText()->WhiteSpaceIsSignificant()) {
+    
+    PRUint32 start = iter.GetSkippedOffset();
+    if (start >= flowEndInTextRun)
+      return;
+    PRUint32 trimmedLength =
+      GetLengthOfTrimmedText(provider.GetFragment(), start, flowEndInTextRun, &iter);
+    aData->currentLine +=
+      NSToCoordCeil(mTextRun->GetAdvanceWidth(start, trimmedLength, &provider));
+
+    PRUint32 trimmedEnd = start + trimmedLength;
+    nscoord trimWidth = NSToCoordCeil(mTextRun->GetAdvanceWidth(trimmedEnd, flowEndInTextRun - trimmedEnd, &provider));
+    if (trimmedLength == 0) {
+      aData->trailingWhitespace += trimWidth;
+    } else {
+      aData->trailingWhitespace = trimWidth;
+    }
+  } else {
+    
+    PRInt32 end = mContentOffset + GetInFlowContentLength();
+    PRUint32 startRun = iter.GetSkippedOffset();
+    const nsTextFragment* frag = GetContent()->GetText();
+    while (iter.GetOriginalOffset() < end) {
+      if (frag->CharAt(iter.GetOriginalOffset()) == '\n') {
+        PRUint32 endRun = iter.GetSkippedOffset();
+        aData->currentLine +=
+          NSToCoordCeil(mTextRun->GetAdvanceWidth(startRun, endRun - startRun, &provider));
+        aData->Break(aRenderingContext);
+        startRun = endRun;
+      }
+      iter.AdvanceOriginal(1);
+    }
+    aData->currentLine +=
+      NSToCoordCeil(mTextRun->GetAdvanceWidth(startRun, iter.GetSkippedOffset() - startRun, &provider));
+    aData->trailingWhitespace = 0;
+  }
+}
+
+
+
+ void
+nsTextFrame::AddInlinePrefWidth(nsIRenderingContext *aRenderingContext,
+                                nsIFrame::InlinePrefWidthData *aData)
+{
+  AddInlinePrefWidthForFlow(aRenderingContext, aData);
+  if (mTextRun && !(mTextRun->GetFlags() & nsTextFrameUtils::TEXT_IS_SIMPLE_FLOW)) {
+    
+    
+    nsTextFrame* f = this;
+    for (;;) {
+      f = NS_STATIC_CAST(nsTextFrame*, f->GetNextContinuation());
+      if (!f)
+        break;
+      if (f->GetStateBits() & TEXT_IS_RUN_OWNER) {
+        f->AddInlinePrefWidthForFlow(aRenderingContext, aData);
+      }
+    }
+  }
+}
+
+ nsSize
+nsTextFrame::ComputeSize(nsIRenderingContext *aRenderingContext,
+                         nsSize aCBSize, nscoord aAvailableWidth,
+                         nsSize aMargin, nsSize aBorder, nsSize aPadding,
+                         PRBool aShrinkWrap)
+{
+  
+  return nsSize(NS_UNCONSTRAINEDSIZE, NS_UNCONSTRAINEDSIZE);
+}
+
+NS_IMETHODIMP
+nsTextFrame::Reflow(nsPresContext*           aPresContext,
+                    nsHTMLReflowMetrics&     aMetrics,
+                    const nsHTMLReflowState& aReflowState,
+                    nsReflowStatus&          aStatus)
+{
+  DO_GLOBAL_REFLOW_COUNT("nsTextFrame");
+  DISPLAY_REFLOW(aPresContext, this, aReflowState, aMetrics, aStatus);
+#ifdef NOISY_REFLOW
+  ListTag(stdout);
+  printf(": BeginReflow: availableSize=%d,%d\n",
+         aReflowState.availableWidth, aReflowState.availableHeight);
+#endif
+
+  
+  
+  
+
+  
+  
+  
+  RemoveStateBits(TEXT_REFLOW_FLAGS | TEXT_WHITESPACE_FLAGS);
+
+  nsTextFrame* prevInFlow = NS_STATIC_CAST(nsTextFrame*, GetPrevInFlow());
+  if (prevInFlow) {
+    
+    
+    mContentOffset = prevInFlow->GetContentOffset() + prevInFlow->GetContentLength();
+  }
+
+  PRInt32 maxContentLength = GetInFlowContentLength();
+
+  
+  
+  
+  
+  if (!aReflowState.mLineLayout || !maxContentLength) {
+    ClearMetrics(aMetrics);
+    mContentLength = maxContentLength;
+    aStatus = NS_FRAME_COMPLETE;
+    return NS_OK;
+  }
+
+  nsLineLayout& lineLayout = *aReflowState.mLineLayout;
+
+  if (aPresContext->BidiEnabled()) {
+    
+    
+    aPresContext->SetIsBidiSystem(PR_TRUE);
+  }
+
+  if (aReflowState.mFlags.mBlinks) {
+    if (0 == (mState & TEXT_BLINK_ON)) {
+      mState |= TEXT_BLINK_ON;
+      nsBlinkTimer::AddBlinkFrame(aPresContext, this);
+    }
+  }
+  else {
+    if (0 != (mState & TEXT_BLINK_ON)) {
+      mState &= ~TEXT_BLINK_ON;
+      nsBlinkTimer::RemoveBlinkFrame(this);
+    }
+  }
+
+  const nsStyleText* textStyle = GetStyleText();
+
+  PRBool atStartOfLine = lineLayout.CanPlaceFloatNow();
+  if (atStartOfLine) {
+    AddStateBits(TEXT_START_OF_LINE);
+  }
+
+  PRInt32 column = lineLayout.GetColumn();
+  mColumn = column;
+
+  
+  
+  PRBool layoutDependentTextRun =
+    lineLayout.GetFirstLetterStyleOK() || lineLayout.GetInFirstLine();
+  PRInt32 currentContentLength = mContentLength;
+  if (layoutDependentTextRun) {
+    
+    ClearTextRun();
+    
+    
+    
+    
+    mContentLength = maxContentLength;
+  }
+  PRUint32 flowEndInTextRun;
+  gfxSkipCharsIterator iter =
+    EnsureTextRun(aReflowState.rendContext,
+                  NS_STATIC_CAST(nsBlockFrame*, lineLayout.GetLineContainerFrame()),
+                  lineLayout.GetLine(), &flowEndInTextRun);
+  if (layoutDependentTextRun) {
+    mContentLength = currentContentLength;
+  }
+
+  if (!mTextRun) {
+    ClearMetrics(aMetrics);
+    mContentLength = maxContentLength;
+    aStatus = NS_FRAME_COMPLETE;
+    return NS_OK;
+  }
+
+  const nsTextFragment* frag = mContent->GetText();
+  
+  
+  
+  PRInt32 length = maxContentLength;
+  PRInt32 offset = mContentOffset;
+
+  
+  PRInt32 newLineOffset = -1;
+  if (textStyle->WhiteSpaceIsSignificant()) {
+    newLineOffset = FindChar(frag, offset, length, '\n');
+    if (newLineOffset >= 0) {
+      length = newLineOffset + 1 - offset;
+    }
+  }
+
+  
+  PRBool completedFirstLetter = PR_FALSE;
+  if (lineLayout.GetFirstLetterStyleOK()) {
+    AddStateBits(TEXT_FIRST_LETTER);
+    completedFirstLetter = FindFirstLetterRange(frag, mTextRun, offset, &length);
+  }
+
+  
+  
+  
+  
+  iter.SetOriginalOffset(offset);
+  PropertyProvider provider(mTextRun, textStyle, frag, this, iter, length);
+
+  PRUint32 transformedOffset = provider.GetStart().GetSkippedOffset();
+
+  
+  gfxTextRun::Metrics textMetrics;
+  PRBool needTightBoundingBox = (GetStateBits() & TEXT_FIRST_LETTER) != 0;
+#ifdef MOZ_MATHML
+  if (NS_REFLOW_CALC_BOUNDING_METRICS & aMetrics.mFlags) {
+    needTightBoundingBox = PR_TRUE;
+  }
+#endif
+  
+  
+  
+  gfxSkipCharsIterator end(provider.GetStart());
+
+  PRBool suppressInitialBreak = PR_FALSE;
+  if (!lineLayout.LineIsBreakable()) {
+    suppressInitialBreak = PR_TRUE;
+  } else {
+    PRBool trailingTextFrameCanWrap;
+    nsIFrame* lastTextFrame = lineLayout.GetTrailingTextFrame(&trailingTextFrameCanWrap);
+    if (!lastTextFrame) {
+      suppressInitialBreak = PR_TRUE;
+    }
+  }
+
+  PRInt32 lastBreak;
+  PRInt32 charsFit;
+  PRBool usedHyphenation;
+  if (lineLayout.HaveForcedBreakPosition()) {
+    
+    
+    PRInt32 forceBreakAt = lineLayout.GetForcedBreakPosition(mContent);
+    if (forceBreakAt >= offset && forceBreakAt <= offset + length) {
+      charsFit = forceBreakAt - offset;
+      end.SetOriginalOffset(forceBreakAt);
+      if (charsFit == length) {
+        
+        usedHyphenation = PR_FALSE;
+      } else {
+        
+        if (end.IsOriginalCharSkipped()) {
+          usedHyphenation = PR_FALSE;
+        } else {
+          PRPackedBool breakData;
+          provider.GetHyphenationBreaks(end.GetSkippedOffset(), 1, &breakData);
+          usedHyphenation = breakData;
+        }
+      }
+    } else {
+      charsFit = length;
+      end.SetOriginalOffset(offset + charsFit);
+      usedHyphenation = PR_FALSE;
+    }
+    PRUint32 transformedLen = GetSkippedDistance(provider.GetStart(), end);
+    mTextRun->SetLineBreaks(transformedOffset, transformedLen,
+                            (GetStateBits() & TEXT_START_OF_LINE) != 0,
+                            charsFit < length, &provider, nsnull);
+    textMetrics =
+      mTextRun->MeasureText(transformedOffset, transformedLen,
+                            needTightBoundingBox, &provider);
+    lastBreak = -1;
+  } else {
+    
+    
+    PRUint32 transformedLength;
+    if (offset + length >= PRInt32(frag->GetLength())) {
+      NS_ASSERTION(offset + length == PRInt32(frag->GetLength()),
+                   "Content offset/length out of bounds");
+      NS_ASSERTION(flowEndInTextRun >= transformedOffset,
+                   "Negative flow length?");
+      transformedLength = flowEndInTextRun - transformedOffset;
+    } else {
+      
+      
+      gfxSkipCharsIterator iter(provider.GetStart());
+      iter.SetOriginalOffset(offset + length);
+      transformedLength = iter.GetSkippedOffset() - transformedOffset;
+    }
+    PRUint32 transformedLastBreak = 0;
+    PRUint32 transformedCharsFit =
+      mTextRun->BreakAndMeasureText(transformedOffset, transformedLength,
+                                    (GetStateBits() & TEXT_START_OF_LINE) != 0,
+                                    aReflowState.availableWidth,
+                                    &provider, suppressInitialBreak,
+                                    &textMetrics, needTightBoundingBox,
+                                    &usedHyphenation, &transformedLastBreak);
+    end.SetSkippedOffset(transformedOffset + transformedCharsFit);
+    charsFit = end.GetOriginalOffset() - offset;
+    
+    
+    lastBreak = -1;
+    if (charsFit >= length) {
+      charsFit = length;
+      if (transformedLastBreak != PR_UINT32_MAX) {
+        
+        
+        end.SetSkippedOffset(transformedOffset + transformedLastBreak);
+        
+        lastBreak = end.GetOriginalOffset();
+        
+        end.SetOriginalOffset(offset + charsFit);
+      }
+    }
+  }
+  if (usedHyphenation) {
+    
+    AddCharToMetrics(provider.GetHyphenWidth(), &provider, gfxFontGroup::STRING_HYPHEN,
+                     mTextRun, &textMetrics, needTightBoundingBox);
+    AddStateBits(TEXT_HYPHEN_BREAK);
+  }
+
+  
+  
+  PRBool suckedUpWhitespace = PR_FALSE;
+  if (charsFit < length) {
+    PRInt32 whitespaceCount = GetWhitespaceCount(frag, offset + charsFit, length - charsFit, 1);
+    if (whitespaceCount > 0) {
+      charsFit += whitespaceCount;
+      PRUint32 currentEnd = end.GetSkippedOffset();
+      end.SetOriginalOffset(offset + charsFit);
+      gfxFloat width = mTextRun->GetAdvanceWidth(currentEnd,
+          end.GetSkippedOffset() - currentEnd, &provider);
+      AddCharToMetrics(width, &provider, gfxFontGroup::STRING_SPACE, mTextRun, &textMetrics,
+                       needTightBoundingBox);
+      suckedUpWhitespace = PR_TRUE;
+    }
+  } else {
+    
+    if (lastBreak >= 0) {
+      lineLayout.NotifyOptionalBreakPosition(mContent, lastBreak);
+    }
+  }
+  mContentLength = offset + charsFit - mContentOffset;
+
+  
+  
+  
+
+  
+  
+  if (GetStateBits() & TEXT_FIRST_LETTER) {
+    textMetrics.mAscent = PR_MAX(0, -textMetrics.mBoundingBox.Y());
+    textMetrics.mDescent = PR_MAX(0, textMetrics.mBoundingBox.YMost());
+    textMetrics.mAdvanceWidth = textMetrics.mBoundingBox.XMost();
+  }
+  
+  
+  
+  aMetrics.width = NSToCoordCeil(PR_MAX(0, textMetrics.mAdvanceWidth));
+  aMetrics.ascent = NSToCoordCeil(textMetrics.mAscent);
+  aMetrics.height = aMetrics.ascent + NSToCoordCeil(textMetrics.mDescent);
+  NS_ASSERTION(aMetrics.ascent >= 0, "Negative ascent???");
+  NS_ASSERTION(aMetrics.height - aMetrics.ascent >= 0, "Negative descent???");
+
+  mAscent = aMetrics.ascent;
+
+  
+  nsRect boundingBox =
+    ConvertGfxRectOutward(textMetrics.mBoundingBox + gfxPoint(0, textMetrics.mAscent));
+  aMetrics.mOverflowArea.UnionRect(boundingBox,
+                                   nsRect(0, 0, aMetrics.width, aMetrics.height));
+
+#ifdef MOZ_MATHML
+  
+  if (needTightBoundingBox) {
+    aMetrics.mBoundingMetrics.ascent =
+      NSToCoordCeil(PR_MAX(0, -textMetrics.mBoundingBox.Y()));
+    aMetrics.mBoundingMetrics.descent =
+      NSToCoordCeil(PR_MAX(0, textMetrics.mBoundingBox.YMost()));
+    aMetrics.mBoundingMetrics.leftBearing =
+      NSToCoordFloor(textMetrics.mBoundingBox.X());
+    aMetrics.mBoundingMetrics.rightBearing =
+      NSToCoordCeil(textMetrics.mBoundingBox.XMost());
+    aMetrics.mBoundingMetrics.width = aMetrics.width;
+  }
+#endif
+
+  
+  
+  
+
+  
+  column += textMetrics.mClusterCount +
+      provider.GetTabExpansionCount(provider.GetStart().GetSkippedOffset(),
+                                    GetSkippedDistance(provider.GetStart(), end));
+  lineLayout.SetColumn(column);
+  lineLayout.SetUnderstandsWhiteSpace(PR_TRUE);
+  PRBool endsInWhitespace = PR_FALSE;
+  if (charsFit > 0) {
+    endsInWhitespace = IsSpace(frag, offset + charsFit - 1);
+    lineLayout.SetInWord(!endsInWhitespace);
+    lineLayout.SetEndsInWhiteSpace(endsInWhitespace);
+    PRBool wrapping = textStyle->WhiteSpaceCanWrap();
+    lineLayout.SetTrailingTextFrame(this, wrapping);
+    if (charsFit == length && endsInWhitespace && wrapping) {
+      
+      lineLayout.NotifyOptionalBreakPosition(mContent, offset + length);
+    }
+  } else {
+    
+    
+    
+    lineLayout.SetEndsInWhiteSpace(PR_FALSE);
+    lineLayout.SetTrailingTextFrame(nsnull, PR_FALSE);
+  }
+  if (completedFirstLetter) {
+    lineLayout.SetFirstLetterStyleOK(PR_FALSE);
+  }
+
+  
+  aStatus = mContentLength == maxContentLength
+    ? NS_FRAME_COMPLETE : NS_FRAME_NOT_COMPLETE;
+
+  if (charsFit == 0 && length > 0) {
+    
+    aStatus = NS_INLINE_LINE_BREAK_BEFORE();
+  } else if (mContentLength > 0 && mContentLength - 1 == newLineOffset) {
+    
+    aStatus = NS_INLINE_LINE_BREAK_AFTER(aStatus);
+    lineLayout.SetLineEndsInBR(PR_TRUE);
+  } else if (suckedUpWhitespace && aStatus == NS_FRAME_COMPLETE) {
+    
+    lineLayout.SetLineEndsInSoftBR(PR_TRUE);
+  } else if (lineLayout.GetLineEndsInSoftBR() && !lineLayout.GetEndsInWhiteSpace()) {
+    
+    aStatus = NS_INLINE_LINE_BREAK_BEFORE();
+  }
+
+  
+  if (NS_STYLE_TEXT_ALIGN_JUSTIFY == textStyle->mTextAlign &&
+      !textStyle->WhiteSpaceIsSignificant()) {
+    
+    
+    PRInt32 numJustifiableCharacters =
+      provider.ComputeJustifiableCharacters(offset, charsFit);
+    NS_ASSERTION(numJustifiableCharacters <= textMetrics.mClusterCount,
+                 "Justifiable characters combined???");
+    lineLayout.SetTextJustificationWeights(numJustifiableCharacters,
+        textMetrics.mClusterCount - numJustifiableCharacters);
+  }
+
+  if (layoutDependentTextRun) {
+    
+    ClearTextRun();
+  }
+
+  Invalidate(nsRect(nsPoint(0, 0), GetSize()));
+
+#ifdef NOISY_REFLOW
+  ListTag(stdout);
+  printf(": desiredSize=%d,%d(b=%d) status=%x\n",
+         aMetrics.width, aMetrics.height, aMetrics.ascent,
+         aStatus);
+#endif
+  NS_FRAME_SET_TRUNCATION(aStatus, aReflowState, aMetrics);
+  return NS_OK;
+}
+
+ PRBool
+nsTextFrame::CanContinueTextRun() const
+{
+  
+  return PR_TRUE;
+}
+
+NS_IMETHODIMP
+nsTextFrame::TrimTrailingWhiteSpace(nsPresContext* aPresContext,
+                                    nsIRenderingContext& aRC,
+                                    nscoord& aDeltaWidth,
+                                    PRBool& aLastCharIsJustifiable)
+{
+  aLastCharIsJustifiable = PR_FALSE;
+  aDeltaWidth = 0;
+
+  AddStateBits(TEXT_END_OF_LINE);
+
+  if (!mContentLength)
+    return NS_OK;
+
+  gfxSkipCharsIterator iter = EnsureTextRun(&aRC);
+  if (!mTextRun)
+    return NS_ERROR_FAILURE;
+  PRUint32 trimmedStart = iter.GetSkippedOffset();
+
+  const nsTextFragment* frag = mContent->GetText();
+  PRInt32 length = GetTrimmedContentLength(frag, iter);
+  PRUint32 trimmedEnd = iter.ConvertOriginalToSkipped(mContentOffset + length);
+
+  const nsStyleText* textStyle = GetStyleText();
+  gfxFloat delta = 0;
+  if (length < mContentLength) {
+    PropertyProvider provider(mTextRun, textStyle, frag, this, iter, mContentLength);
+    PRUint32 end = iter.ConvertOriginalToSkipped(mContentOffset + mContentLength);
+    if (trimmedEnd < end) {
+      delta = mTextRun->GetAdvanceWidth(trimmedEnd, end - trimmedEnd, &provider);
+      
+      
+      
+      aLastCharIsJustifiable = PR_TRUE;
+    }
+  }
+
+  if (!aLastCharIsJustifiable &&
+      NS_STYLE_TEXT_ALIGN_JUSTIFY == textStyle->mTextAlign) {
+    
+    PropertyProvider provider(mTextRun, textStyle, frag, this, iter, mContentLength);
+    PRBool isCJK = IsChineseJapaneseLangGroup(this);
+    gfxSkipCharsIterator justificationEnd(iter);
+    provider.FindEndOfJustificationRange(&justificationEnd);
+
+    PRInt32 i;
+    for (i = justificationEnd.GetOriginalOffset(); i < mContentOffset + length; ++i) {
+      if (IsJustifiableCharacter(frag, i, isCJK)) {
+        aLastCharIsJustifiable = PR_TRUE;
+      }
+    }
+  }
+
+  StaticTextProvider textProvider(mTextRun);
+
+  gfxFloat advanceDelta;
+  mTextRun->SetLineBreaks(trimmedStart, trimmedEnd - trimmedStart,
+                          (GetStateBits() & TEXT_START_OF_LINE) != 0, PR_TRUE,
+                          &textProvider, &advanceDelta);
+
+  
+  
+  
+  aDeltaWidth = NSToCoordFloor(delta - advanceDelta);
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  if (aDeltaWidth < 0) {
+    NS_WARNING("Negative deltawidth, something odd is happening");
+  }
+
+  
+
+#ifdef NOISY_TRIM
+  ListTag(stdout);
+  printf(": trim => %d\n", aDeltaWidth);
+#endif
+  return NS_OK;
+}
+
+#ifdef DEBUG
+
+void
+nsTextFrame::ToCString(nsString& aBuf, PRInt32* aTotalContentLength) const
+{
+  
+  const nsTextFragment* frag = mContent->GetText();
+  if (!frag) {
+    return;
+  }
+
+  
+  *aTotalContentLength = frag->GetLength();
+
+  
+  if (0 == mContentLength) {
+    return;
+  }
+  PRInt32 fragOffset = mContentOffset;
+  PRInt32 n = fragOffset + mContentLength;
+  while (fragOffset < n) {
+    PRUnichar ch = frag->CharAt(fragOffset++);
+    if (ch == '\r') {
+      aBuf.AppendLiteral("\\r");
+    } else if (ch == '\n') {
+      aBuf.AppendLiteral("\\n");
+    } else if (ch == '\t') {
+      aBuf.AppendLiteral("\\t");
+    } else if ((ch < ' ') || (ch >= 127)) {
+      aBuf.AppendLiteral("\\0");
+      aBuf.AppendInt((PRInt32)ch, 8);
+    } else {
+      aBuf.Append(ch);
+    }
+  }
+}
+#endif
+
+nsIAtom*
+nsTextFrame::GetType() const
+{
+  return nsGkAtoms::textFrame;
+} 
+
+ PRBool
+nsTextFrame::IsEmpty()
+{
+  NS_ASSERTION(!(mState & TEXT_IS_ONLY_WHITESPACE) ||
+               !(mState & TEXT_ISNOT_ONLY_WHITESPACE),
+               "Invalid state");
+  
+  
+  if (GetStyleText()->WhiteSpaceIsSignificant()) {
+    return PR_FALSE;
+  }
+
+  if (mState & TEXT_ISNOT_ONLY_WHITESPACE) {
+    return PR_FALSE;
+  }
+
+  if (mState & TEXT_IS_ONLY_WHITESPACE) {
+    return PR_TRUE;
+  }
+  
+  PRBool isEmpty = mContent->TextIsOnlyWhitespace();
+  mState |= (isEmpty ? TEXT_IS_ONLY_WHITESPACE : TEXT_ISNOT_ONLY_WHITESPACE);
+  return isEmpty;
+}
+
+#ifdef DEBUG
+NS_IMETHODIMP
+nsTextFrame::GetFrameName(nsAString& aResult) const
+{
+  return MakeFrameName(NS_LITERAL_STRING("Text"), aResult);
+}
+
+NS_IMETHODIMP_(nsFrameState)
+nsTextFrame::GetDebugStateBits() const
+{
+  
+  return nsFrame::GetDebugStateBits() &
+    ~(TEXT_WHITESPACE_FLAGS | TEXT_REFLOW_FLAGS);
+}
+
+NS_IMETHODIMP
+nsTextFrame::List(FILE* out, PRInt32 aIndent) const
+{
+  
+  IndentBy(out, aIndent);
+  ListTag(out);
+#ifdef DEBUG_waterson
+  fprintf(out, " [parent=%p]", mParent);
+#endif
+  if (HasView()) {
+    fprintf(out, " [view=%p]", NS_STATIC_CAST(void*, GetView()));
+  }
+
+  PRInt32 totalContentLength;
+  nsAutoString tmp;
+  ToCString(tmp, &totalContentLength);
+
+  
+  PRBool isComplete = (mContentOffset + mContentLength) == totalContentLength;
+  fprintf(out, "[%d,%d,%c] ", 
+          mContentOffset, mContentLength,
+          isComplete ? 'T':'F');
+  
+  if (nsnull != mNextSibling) {
+    fprintf(out, " next=%p", NS_STATIC_CAST(void*, mNextSibling));
+  }
+  nsIFrame* prevContinuation = GetPrevContinuation();
+  if (nsnull != prevContinuation) {
+    fprintf(out, " prev-continuation=%p", NS_STATIC_CAST(void*, prevContinuation));
+  }
+  if (nsnull != mNextContinuation) {
+    fprintf(out, " next-continuation=%p", NS_STATIC_CAST(void*, mNextContinuation));
+  }
+
+  
+  fprintf(out, " {%d,%d,%d,%d}", mRect.x, mRect.y, mRect.width, mRect.height);
+  if (0 != mState) {
+    if (mState & NS_FRAME_SELECTED_CONTENT) {
+      fprintf(out, " [state=%08x] SELECTED", mState);
+    } else {
+      fprintf(out, " [state=%08x]", mState);
+    }
+  }
+  fprintf(out, " sc=%p", NS_STATIC_CAST(void*, mStyleContext));
+  nsIAtom* pseudoTag = mStyleContext->GetPseudoType();
+  if (pseudoTag) {
+    nsAutoString atomString;
+    pseudoTag->ToString(atomString);
+    fprintf(out, " pst=%s",
+            NS_LossyConvertUTF16toASCII(atomString).get());
+  }
+  fputs("<\n", out);
+
+  
+  aIndent++;
+
+  IndentBy(out, aIndent);
+  fputs("\"", out);
+  fputs(NS_LossyConvertUTF16toASCII(tmp).get(), out);
+  fputs("\"\n", out);
+
+  aIndent--;
+  IndentBy(out, aIndent);
+  fputs(">\n", out);
+
+  return NS_OK;
+}
+#endif
+
+void nsTextFrame::AdjustSelectionPointsForBidi(SelectionDetails *sdptr,
+                                               PRInt32 textLength,
+                                               PRBool isRTLChars,
+                                               PRBool isOddLevel,
+                                               PRBool isBidiSystem)
+{
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  if (isOddLevel ^ (isRTLChars && isBidiSystem)) {
+
+    PRInt32 swap  = sdptr->mStart;
+    sdptr->mStart = textLength - sdptr->mEnd;
+    sdptr->mEnd   = textLength - swap;
+
+    
+    
+    
+    
+    NS_ASSERTION((sdptr->mStart >= 0) , "mStart >= 0");
+    if(sdptr->mStart < 0 )
+      sdptr->mStart = 0;
+
+    NS_ASSERTION((sdptr->mEnd >= 0) , "mEnd >= 0");
+    if(sdptr->mEnd < 0 )
+      sdptr->mEnd = 0;
+
+    NS_ASSERTION((sdptr->mStart <= sdptr->mEnd), "mStart <= mEnd");
+    if(sdptr->mStart > sdptr->mEnd)
+      sdptr->mEnd = sdptr->mStart;
+  }
+  
+  return;
+}
+
+void
+nsTextFrame::AdjustOffsetsForBidi(PRInt32 aStart, PRInt32 aEnd)
+{
+  AddStateBits(NS_FRAME_IS_BIDI);
+  SetOffsets(aStart, aEnd);
+}
+
+void
+nsTextFrame::SetOffsets(PRInt32 aStart, PRInt32 aEnd)
+{
+  mContentOffset = aStart;
+  mContentLength = aEnd - aStart;
+}
+
+
+
+
+
+PRBool
+nsTextFrame::HasTerminalNewline() const
+{
+  const nsTextFragment* frag = mContent->GetText();
+  if (frag && mContentLength > 0) {
+    PRUnichar ch = frag->CharAt(mContentOffset + mContentLength - 1);
+    if (ch == '\n')
+      return PR_TRUE;
+  }
+  return PR_FALSE;
+}

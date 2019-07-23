@@ -1,0 +1,46 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+GOOD { border-bottom-color: inherit; } 
+GOOD { border-bottom-color: green; } 
+GOOD { border-bottom-color: #f00; } 
+GOOD { border-bottom-color: #0000ea; } 
+GOOD { border-bottom-color: rgb(50,50,50); } 
+BAD { border-bottom-color: bleu; }
+BAD { border-bottom-color: blue red; }
+BAD { border-bottom-color: #-f00; }

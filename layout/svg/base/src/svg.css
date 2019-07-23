@@ -1,0 +1,70 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+@namespace url(http://www.w3.org/2000/svg);
+
+svg {
+  
+
+
+
+  font-family: sans-serif;
+}
+
+style, script, symbol {
+ display: none;
+}
+
+switch {
+ -moz-binding: none !important;
+} 
+
+svg:not(:root), symbol, image, marker, pattern, foreignObject {
+ overflow: hidden;
+}
+
+foreignObject {
+  margin: 0 ! important;
+  padding: 0 ! important;
+  border: none ! important;
+}
+
+*|*::-moz-svg-foreign-content {
+  display: block !important;
+  position: static !important;
+}

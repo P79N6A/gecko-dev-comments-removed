@@ -1,0 +1,54 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 
+#define NS_QABROWSERUIGLUE_CONTRACTID "@mozilla.org/qaembed-browseruiglue;1"
+#define NS_QABROWSERUIGLUE_CID \
+{0x243e56f6, 0xeaab, 0x469b,   \
+{0xba, 0x36, 0xfd, 0xfc, 0xbc, 0xbe, 0x73, 0x77}}
+
+
+#define NS_QABROWSERCHROME_CONTRACTID "@mozilla.org/qaembed-browserchrome;1"
+#define NS_QABROWSERCHROME_CID \
+{0xa7ddddd, 0x9bb9, 0x411e,    \
+{0xb2, 0x80, 0xab, 0x1b, 0x83, 0x4b, 0x88, 0x80}}
+
+
+#define NS_QABROWSERVIEW_CONTRACTID "@mozilla.org/qaembed-browserview;1"
+#define NS_QABROWSERVIEW_CID \
+{0x6f5af858, 0xe5c2, 0x4b5a, \
+{0x9e, 0xf1, 0x9e, 0x19, 0xa3, 0xab, 0x92, 0x18}}

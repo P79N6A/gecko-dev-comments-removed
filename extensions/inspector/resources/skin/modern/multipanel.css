@@ -1,0 +1,59 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+.multipanel-label-box {
+  border-bottom: 1px solid #555555;
+  background-color: #A7B5C2;
+  color: #000000;
+}
+
+.multipanel-label-box-2 {
+  border-top: 1px solid #DEE7EE;
+  border-right: 1px solid #8998AA;
+  border-bottom: 1px solid #8998AA;
+  border-left: 1px solid #DEE7EE;
+  padding: 2px 4px;
+}
+
+.multipanel-title {
+  margin: 0px !important;
+}
+
+multipanel[disabled="true"] > .multipanel-label-box {
+  color: #8C99AB;
+}
+

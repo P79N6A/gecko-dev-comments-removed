@@ -1,0 +1,53 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+var bug = 260541;
+var summary = 'Recursive Error object should not crash';
+var actual = 'Crash';
+var expect = 'No Crash';
+
+printBugNumber (bug);
+printStatus (summary);
+  
+var myErr = new Error( "Error Text" );
+myErr.name = myErr;
+
+actual = 'No Crash';
+
+reportCompare(expect, actual, summary);

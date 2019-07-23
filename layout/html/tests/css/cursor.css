@@ -1,0 +1,42 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+GOOD { cursor: arrow; }
+GOOD { cursor: hand; }
+GOOD { cursor: ibeam; }
+GOOD { cursor: inherit; }
+BAD { cursor: thin; }
+BAD { cursor: 3.0in; }
+BAD { cursor: thin dotted; }

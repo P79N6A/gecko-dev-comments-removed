@@ -1,0 +1,59 @@
+<html>
+<head>
+<style id="s">
+  ol {
+    counter-reset: section;
+    list-style-type: none;
+  }
+  li:before {
+    counter-increment: section;
+    content: counters(section, ".") " ";
+  }
+</style>
+
+</head>
+<body>
+<ol>
+  <li>item</li>          
+  <li>item               
+    <ol>
+      <li>item</li>      
+      <li>item</li>      
+      <li>item           
+        <ol>
+          <li>item</li>  
+          <li>item</li>  
+        </ol>
+        <ol>
+          <li>item</li>  
+          <li>item</li>  
+          <li>item</li>  
+        </ol>
+      </li>
+      <li>item</li>      
+    </ol>
+  </li>
+  <li>item</li>          
+  <li>item</li>          
+</ol>
+<ol>
+  <li>item</li>          
+  <li>item</li>          
+</ol>
+
+<script>
+s = document.getElementById("s");
+t = s.textContent;
+
+function foo()
+{
+  document.body.offsetHeight;
+  s.textContent = "ol { color: #ddd}";
+  document.body.offsetHeight;
+  s.textContent = t;
+}
+foo();
+</script>
+
+</body>
+</html>

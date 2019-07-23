@@ -1,0 +1,79 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifndef __ATK_RELATION_TYPE_H__
+#define __ATK_RELATION_TYPE_H__
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+typedef enum
+{
+  ATK_RELATION_NULL = 0,
+  ATK_RELATION_CONTROLLED_BY,
+  ATK_RELATION_CONTROLLER_FOR,
+  ATK_RELATION_LABEL_FOR,
+  ATK_RELATION_LABELLED_BY,
+  ATK_RELATION_MEMBER_OF,
+  ATK_RELATION_NODE_CHILD_OF,
+  ATK_RELATION_FLOWS_TO,
+  ATK_RELATION_FLOWS_FROM,
+  ATK_RELATION_SUBWINDOW_OF, 
+  ATK_RELATION_EMBEDS, 
+  ATK_RELATION_EMBEDDED_BY, 
+  ATK_RELATION_POPUP_FOR, 
+  ATK_RELATION_PARENT_WINDOW_OF, 
+  ATK_RELATION_DESCRIBED_BY,
+  ATK_RELATION_DESCRIPTION_FOR,
+  ATK_RELATION_LAST_DEFINED
+} AtkRelationType;
+
+#ifdef __cplusplus
+}
+#endif 
+
+#endif

@@ -1,0 +1,106 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+@namespace url("http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul");
+@namespace html url("http://www.w3.org/1999/xhtml");
+
+
+
+textbox 
+{
+  -moz-appearance: textfield;
+  cursor: text;
+  margin: 2px 4px;
+  border: 2px solid;
+  -moz-border-top-colors: ThreeDShadow ThreeDDarkShadow;
+  -moz-border-right-colors: ThreeDHighlight ThreeDLightShadow;
+  -moz-border-bottom-colors: ThreeDHighlight ThreeDLightShadow;
+  -moz-border-left-colors: ThreeDShadow ThreeDDarkShadow;
+  padding: 2px 2px 3px 4px;
+  background-color: -moz-Field;
+  color: -moz-FieldText;
+}
+    
+html|*.textbox-input, 
+html|*.textbox-textarea {
+  margin: 0px !important;
+  border: none !important;
+  padding: 0px !important;
+  background-color: inherit;
+  color: inherit;
+  font: inherit;
+}
+
+.textbox-input-box menupopup {
+  cursor: default;
+}
+
+
+
+textbox[readonly="true"] {
+  background-color: -moz-Dialog;
+  color: -moz-DialogText;
+}
+
+
+
+textbox[disabled="true"] {
+  cursor: default;
+  background-color: -moz-Dialog;
+  color: GrayText;
+} 
+
+
+
+textbox.plain {
+  -moz-appearance: none !important;
+  padding: 0px !important;
+  margin: 0px !important;
+  border: none !important;
+}
+
+
+
+toolbarpaletteitem > toolbaritem > textbox > .textbox-input-box > html|*.textbox-input {
+  visibility: hidden;
+}
+

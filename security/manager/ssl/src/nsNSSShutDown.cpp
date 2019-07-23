@@ -1,0 +1,508 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#include "nsNSSShutDown.h"
+#include "nsCOMPtr.h"
+
+#ifdef PR_LOGGING
+extern PRLogModuleInfo* gPIPNSSLog;
+#endif
+
+struct ObjectHashEntry : PLDHashEntryHdr {
+  nsNSSShutDownObject *obj;
+};
+
+PR_STATIC_CALLBACK(const void *)
+ObjectSetGetKey(PLDHashTable *table, PLDHashEntryHdr *hdr)
+{
+  ObjectHashEntry *entry = NS_STATIC_CAST(ObjectHashEntry*, hdr);
+  return entry->obj;
+}
+
+PR_STATIC_CALLBACK(PRBool)
+ObjectSetMatchEntry(PLDHashTable *table, const PLDHashEntryHdr *hdr,
+                         const void *key)
+{
+  const ObjectHashEntry *entry = NS_STATIC_CAST(const ObjectHashEntry*, hdr);
+  return entry->obj == NS_STATIC_CAST(const nsNSSShutDownObject*, key);
+}
+
+PR_STATIC_CALLBACK(PRBool)
+ObjectSetInitEntry(PLDHashTable *table, PLDHashEntryHdr *hdr,
+                     const void *key)
+{
+  ObjectHashEntry *entry = NS_STATIC_CAST(ObjectHashEntry*, hdr);
+  entry->obj = NS_CONST_CAST(nsNSSShutDownObject*, NS_STATIC_CAST(const nsNSSShutDownObject*, key));
+  return PR_TRUE;
+}
+
+static PLDHashTableOps gSetOps = {
+  PL_DHashAllocTable,
+  PL_DHashFreeTable,
+  ObjectSetGetKey,
+  PL_DHashVoidPtrKeyStub,
+  ObjectSetMatchEntry,
+  PL_DHashMoveEntryStub,
+  PL_DHashClearEntryStub,
+  PL_DHashFinalizeStub,
+  ObjectSetInitEntry
+};
+
+nsNSSShutDownList *nsNSSShutDownList::singleton = nsnull;
+
+nsNSSShutDownList::nsNSSShutDownList()
+{
+  mListLock = PR_NewLock();
+  mActiveSSLSockets = 0;
+  mPK11LogoutCancelObjects.ops = nsnull;
+  mObjects.ops = nsnull;
+  PL_DHashTableInit(&mObjects, &gSetOps, nsnull,
+                    sizeof(ObjectHashEntry), 16);
+  PL_DHashTableInit(&mPK11LogoutCancelObjects, &gSetOps, nsnull,
+                    sizeof(ObjectHashEntry), 16);
+}
+
+nsNSSShutDownList::~nsNSSShutDownList()
+{
+  if (mListLock) {
+    PR_DestroyLock(mListLock);
+    mListLock = nsnull;
+  }
+  if (mObjects.ops) {
+    PL_DHashTableFinish(&mObjects);
+    mObjects.ops = nsnull;
+  }
+  if (mPK11LogoutCancelObjects.ops) {
+    PL_DHashTableFinish(&mPK11LogoutCancelObjects);
+    mPK11LogoutCancelObjects.ops = nsnull;
+  }
+  PR_ASSERT(this == singleton);
+  singleton = nsnull;
+}
+
+void nsNSSShutDownList::remember(nsNSSShutDownObject *o)
+{
+  if (!singleton)
+    return;
+  
+  PR_ASSERT(o);
+  PR_Lock(singleton->mListLock);
+    PL_DHashTableOperate(&singleton->mObjects, o, PL_DHASH_ADD);
+  PR_Unlock(singleton->mListLock);
+}
+
+void nsNSSShutDownList::forget(nsNSSShutDownObject *o)
+{
+  if (!singleton)
+    return;
+  
+  PR_ASSERT(o);
+  PR_Lock(singleton->mListLock);
+    PL_DHashTableOperate(&singleton->mObjects, o, PL_DHASH_REMOVE);
+  PR_Unlock(singleton->mListLock);
+}
+
+void nsNSSShutDownList::remember(nsOnPK11LogoutCancelObject *o)
+{
+  if (!singleton)
+    return;
+  
+  PR_ASSERT(o);
+  PR_Lock(singleton->mListLock);
+    PL_DHashTableOperate(&singleton->mPK11LogoutCancelObjects, o, PL_DHASH_ADD);
+  PR_Unlock(singleton->mListLock);
+}
+
+void nsNSSShutDownList::forget(nsOnPK11LogoutCancelObject *o)
+{
+  if (!singleton)
+    return;
+  
+  PR_ASSERT(o);
+  PR_Lock(singleton->mListLock);
+    PL_DHashTableOperate(&singleton->mPK11LogoutCancelObjects, o, PL_DHASH_REMOVE);
+  PR_Unlock(singleton->mListLock);
+}
+
+void nsNSSShutDownList::trackSSLSocketCreate()
+{
+  if (!singleton)
+    return;
+  
+  PR_Lock(singleton->mListLock);
+    ++singleton->mActiveSSLSockets;
+  PR_Unlock(singleton->mListLock);
+}
+
+void nsNSSShutDownList::trackSSLSocketClose()
+{
+  if (!singleton)
+    return;
+  
+  PR_Lock(singleton->mListLock);
+    --singleton->mActiveSSLSockets;
+  PR_Unlock(singleton->mListLock);
+}
+  
+PRBool nsNSSShutDownList::areSSLSocketsActive()
+{
+  if (!singleton) {
+    
+    
+    
+    
+    return PR_FALSE;
+  }
+  
+  PRBool retval;
+  PR_Lock(singleton->mListLock);
+    retval = (singleton->mActiveSSLSockets > 0);
+  PR_Unlock(singleton->mListLock);
+
+  return retval;
+}
+
+nsresult nsNSSShutDownList::doPK11Logout()
+{
+    PR_LOG(gPIPNSSLog, PR_LOG_DEBUG, ("canceling all open SSL sockets to disallow future IO\n"));
+  
+  
+  
+  
+
+  PR_Lock(mListLock);
+    PL_DHashTableEnumerate(&mPK11LogoutCancelObjects, doPK11LogoutHelper, 0);
+  PR_Unlock(mListLock);
+
+  return NS_OK;
+}
+
+PLDHashOperator PR_CALLBACK
+nsNSSShutDownList::doPK11LogoutHelper(PLDHashTable *table, 
+  PLDHashEntryHdr *hdr, PRUint32 number, void *arg)
+{
+  ObjectHashEntry *entry = NS_STATIC_CAST(ObjectHashEntry*, hdr);
+
+  nsOnPK11LogoutCancelObject *pklco = 
+    NS_REINTERPRET_CAST(nsOnPK11LogoutCancelObject*, entry->obj);
+
+  if (pklco) {
+    pklco->logout();
+  }
+
+  return PL_DHASH_NEXT;
+}
+
+PRBool nsNSSShutDownList::isUIActive()
+{
+  PRBool canDisallow = mActivityState.ifPossibleDisallowUI(nsNSSActivityState::test_only);
+  PRBool bIsUIActive = !canDisallow;
+  return bIsUIActive;
+}
+
+PRBool nsNSSShutDownList::ifPossibleDisallowUI()
+{
+  PRBool isNowDisallowed = mActivityState.ifPossibleDisallowUI(nsNSSActivityState::do_it_for_real);
+  return isNowDisallowed;
+}
+
+void nsNSSShutDownList::allowUI()
+{
+  mActivityState.allowUI();
+}
+
+nsresult nsNSSShutDownList::evaporateAllNSSResources()
+{
+  if (PR_SUCCESS != mActivityState.restrictActivityToCurrentThread()) {
+    PR_LOG(gPIPNSSLog, PR_LOG_DEBUG, ("failed to restrict activity to current thread\n"));
+    return NS_ERROR_FAILURE;
+  }
+
+  PR_LOG(gPIPNSSLog, PR_LOG_DEBUG, ("now evaporating NSS resources\n"));
+  int removedCount;
+  do {
+    PR_Lock(mListLock);
+      removedCount = PL_DHashTableEnumerate(&mObjects, evaporateAllNSSResourcesHelper, 0);
+    PR_Unlock(mListLock);
+  } while (removedCount > 0);
+
+  mActivityState.releaseCurrentThreadActivityRestriction();
+  return NS_OK;
+}
+
+PLDHashOperator PR_CALLBACK
+nsNSSShutDownList::evaporateAllNSSResourcesHelper(PLDHashTable *table, 
+  PLDHashEntryHdr *hdr, PRUint32 number, void *arg)
+{
+    ObjectHashEntry *entry = NS_STATIC_CAST(ObjectHashEntry*, hdr);
+    PR_Unlock(singleton->mListLock);
+
+  entry->obj->shutdown(nsNSSShutDownObject::calledFromList);
+
+    PR_Lock(singleton->mListLock);
+
+    
+    
+    
+    return (PLDHashOperator)(PL_DHASH_STOP | PL_DHASH_REMOVE);
+}
+
+nsNSSShutDownList *nsNSSShutDownList::construct()
+{
+  if (singleton) {
+    
+    return nsnull;
+  }
+
+  singleton = new nsNSSShutDownList();
+  return singleton;
+}
+
+nsNSSActivityState::nsNSSActivityState()
+:mNSSActivityStateLock(nsnull), 
+ mNSSActivityChanged(nsnull),
+ mNSSActivityCounter(0),
+ mBlockingUICounter(0),
+ mIsUIForbidden(PR_FALSE),
+ mNSSRestrictedThread(nsnull)
+{
+  mNSSActivityStateLock = PR_NewLock();
+  if (!mNSSActivityStateLock)
+    return;
+
+  mNSSActivityChanged = PR_NewCondVar(mNSSActivityStateLock);
+}
+
+nsNSSActivityState::~nsNSSActivityState()
+{
+  if (mNSSActivityChanged) {
+    PR_DestroyCondVar(mNSSActivityChanged);
+    mNSSActivityChanged = nsnull;
+  }
+
+  if (mNSSActivityStateLock) {
+    PR_DestroyLock(mNSSActivityStateLock);
+    mNSSActivityStateLock = nsnull;
+  }
+}
+
+void nsNSSActivityState::enter()
+{
+  PR_Lock(mNSSActivityStateLock);
+
+    while (mNSSRestrictedThread && mNSSRestrictedThread != PR_GetCurrentThread()) {
+      PR_WaitCondVar(mNSSActivityChanged, PR_INTERVAL_NO_TIMEOUT);
+    }
+
+    ++mNSSActivityCounter;
+  
+  PR_Unlock(mNSSActivityStateLock);
+}
+
+void nsNSSActivityState::leave()
+{
+  PR_Lock(mNSSActivityStateLock);
+
+    --mNSSActivityCounter;
+
+    if (!mNSSActivityCounter) {
+      PR_NotifyAllCondVar(mNSSActivityChanged);
+    }
+
+  PR_Unlock(mNSSActivityStateLock);
+}
+
+void nsNSSActivityState::enterBlockingUIState()
+{
+  PR_Lock(mNSSActivityStateLock);
+
+    ++mBlockingUICounter;
+
+  PR_Unlock(mNSSActivityStateLock);
+}
+
+void nsNSSActivityState::leaveBlockingUIState()
+{
+  PR_Lock(mNSSActivityStateLock);
+
+    --mBlockingUICounter;
+
+  PR_Unlock(mNSSActivityStateLock);
+}
+
+PRBool nsNSSActivityState::isBlockingUIActive()
+{
+  PRBool retval;
+
+  PR_Lock(mNSSActivityStateLock);
+    retval = (mBlockingUICounter > 0);
+  PR_Unlock(mNSSActivityStateLock);
+
+  return retval;
+}
+
+PRBool nsNSSActivityState::isUIForbidden()
+{
+  PRBool retval;
+  
+  PR_Lock(mNSSActivityStateLock);
+    retval = mIsUIForbidden;
+  PR_Unlock(mNSSActivityStateLock);
+
+  return retval;
+}
+
+PRBool nsNSSActivityState::ifPossibleDisallowUI(RealOrTesting rot)
+{
+  PRBool retval = PR_FALSE;
+
+  PR_Lock(mNSSActivityStateLock);
+
+    
+
+    if (!mBlockingUICounter) {
+      
+      retval = PR_TRUE;
+      if (rot == do_it_for_real) {
+        
+        mIsUIForbidden = PR_TRUE;
+        
+        
+        
+        
+        
+        
+      }
+    }
+  
+  PR_Unlock(mNSSActivityStateLock);
+
+  return retval;
+}
+
+void nsNSSActivityState::allowUI()
+{
+  PR_Lock(mNSSActivityStateLock);
+
+    mIsUIForbidden = PR_FALSE;
+  
+  PR_Unlock(mNSSActivityStateLock);
+}
+
+PRStatus nsNSSActivityState::restrictActivityToCurrentThread()
+{
+  PRStatus retval = PR_FAILURE;
+
+  PR_Lock(mNSSActivityStateLock);
+  
+    if (!mBlockingUICounter) {
+      while (0 < mNSSActivityCounter && !mBlockingUICounter) {
+        PR_WaitCondVar(mNSSActivityChanged, PR_TicksPerSecond());
+      }
+      
+      if (mBlockingUICounter) {
+        
+        
+        PR_ASSERT(0);
+      }
+      else {
+        mNSSRestrictedThread = PR_GetCurrentThread();
+        retval = PR_SUCCESS;
+      }
+    }
+  
+  PR_Unlock(mNSSActivityStateLock);
+
+  return retval;
+}
+
+void nsNSSActivityState::releaseCurrentThreadActivityRestriction()
+{
+  PR_Lock(mNSSActivityStateLock);
+
+    mNSSRestrictedThread = nsnull;
+    mIsUIForbidden = PR_FALSE;
+
+    PR_NotifyAllCondVar(mNSSActivityChanged);
+
+  PR_Unlock(mNSSActivityStateLock);
+}
+
+nsNSSShutDownPreventionLock::nsNSSShutDownPreventionLock()
+{
+  nsNSSActivityState *state = nsNSSShutDownList::getActivityState();
+  if (!state)
+    return;
+
+  state->enter();
+}
+
+nsNSSShutDownPreventionLock::~nsNSSShutDownPreventionLock()
+{
+  nsNSSActivityState *state = nsNSSShutDownList::getActivityState();
+  if (!state)
+    return;
+  
+  state->leave();
+}
+
+nsPSMUITracker::nsPSMUITracker()
+{
+  nsNSSActivityState *state = nsNSSShutDownList::getActivityState();
+  if (!state)
+    return;
+  
+  state->enterBlockingUIState();
+}
+
+nsPSMUITracker::~nsPSMUITracker()
+{
+  nsNSSActivityState *state = nsNSSShutDownList::getActivityState();
+  if (!state)
+    return;
+  
+  state->leaveBlockingUIState();
+}
+
+PRBool nsPSMUITracker::isUIForbidden()
+{
+  nsNSSActivityState *state = nsNSSShutDownList::getActivityState();
+  if (!state)
+    return PR_FALSE;
+
+  return state->isUIForbidden();
+}

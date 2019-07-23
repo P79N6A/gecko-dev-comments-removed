@@ -1,0 +1,94 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+var bug     = "347674";
+var summary = "ReferenceError thrown when accessing exception bound in a " +
+              "catch block in a try block within that catch block";
+var actual, expect;
+
+printBugNumber(bug);
+printStatus(summary);
+
+
+
+
+
+var failed = false;
+
+function foo()
+{
+  try
+  {
+    throw "32.9";
+  }
+  catch (e)
+  {
+    try
+    {
+      var errorCode = /^(\d+)\s+.*$/.exec(e)[1];
+    }
+    catch (e2)
+    {
+      void("*** internal error: e == " + e + ", e2 == " + e2);
+      throw e2;
+    }
+  }
+}
+
+try
+{
+  try
+  {
+    foo();
+  }
+  catch (ex)
+  {
+    if (!(ex instanceof TypeError))
+      throw "Wrong value thrown!\n" +
+            "  expected: a TypeError ('32.9' doesn't match the regexp)\n" +
+            "  actual: " + ex;
+  }
+}
+catch (e)
+{
+  failed = e;
+}
+
+expect = false;
+actual = failed;
+
+reportCompare(expect, actual, summary);

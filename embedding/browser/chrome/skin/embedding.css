@@ -1,0 +1,67 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+window {
+
+    width: 640px;
+    height: 480px;
+
+}
+
+#back-button
+  {
+	  list-style-image      : url("chrome://embed/content/back.gif");
+  }
+
+#forward-button
+  {
+	  list-style-image      : url("chrome://embed/content/forward.gif");
+  }
+
+#stop-button 
+  {
+	  list-style-image      : url("chrome://embed/content/skin/stop.gif");
+  }
+
+#reload-button 
+  {
+	  list-style-image      : url("chrome://embed/content/skin/reload.gif");
+  }
+

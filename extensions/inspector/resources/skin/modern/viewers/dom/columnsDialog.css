@@ -1,0 +1,59 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+@import url("chrome://inspector/skin");
+
+#trColumns {
+  background-color: #C7D0D9;
+}
+
+.column-selector {
+  border: 1px outset #C7D0D9;
+  padding: 2px;
+  background-color: #C7D0D9;
+  vertical-align: middle;
+}
+
+.attr-column-selector,
+.attr-column-selector[focused="true"] {
+  margin: 0;
+  border: none;
+}
+
+[col-dragging="true"] {
+  border: 1px solid black;
+}

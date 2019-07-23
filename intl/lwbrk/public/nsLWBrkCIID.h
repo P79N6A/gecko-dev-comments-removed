@@ -1,0 +1,54 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifndef nsLWBrkCIID_h__
+#define nsLWBrkCIID_h__
+
+
+#define NS_LBRK_CID \
+{ 0x2bf64764, 0x997f, 0x450d, \
+    { 0xaf, 0x96, 0x30, 0x28, 0xd1, 0xa9, 0x2, 0xb0 } }
+
+#define NS_LBRK_CONTRACTID "@mozilla.org/intl/lbrk;1"
+
+
+#define NS_WBRK_CID \
+{ 0x2bf64765, 0x997f, 0x450d, \
+    { 0xaf, 0x96, 0x30, 0x28, 0xd1, 0xa9, 0x2, 0xb0 } }
+
+#define NS_WBRK_CONTRACTID "@mozilla.org/intl/wbrk;1"
+
+#endif

@@ -1,0 +1,64 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifndef nsNativeDetectors_h__
+#define nsNativeDetectors_h__
+
+#include "nsIFactory.h"
+
+
+#define NS_JA_NATIVE_DETECTOR_CID \
+{ 0x4fe25140, 0x3944, 0x11d3, { 0x91, 0x42, 0x0, 0x60, 0x8, 0xa6, 0xed, 0xf6 } };
+
+
+#define NS_JA_NATIVE_STRING_DETECTOR_CID \
+{ 0x57296530, 0x3644, 0x11d3, { 0x91, 0x42, 0x0, 0x60, 0x8, 0xa6, 0xed, 0xf6 } }
+
+
+#define NS_KO_NATIVE_DETECTOR_CID \
+{ 0x4fe25141, 0x3944, 0x11d3, { 0x91, 0x42, 0x0, 0x60, 0x8, 0xa6, 0xed, 0xf6 } };
+
+
+#define NS_KO_NATIVE_STRING_DETECTOR_CID \
+{ 0x4fe25142, 0x3944, 0x11d3, { 0x91, 0x42, 0x0, 0x60, 0x8, 0xa6, 0xed, 0xf6 } };
+
+nsIFactory* NEW_JA_NATIVEDETECTOR_FACTORY();
+nsIFactory* NEW_JA_STRING_NATIVEDETECTOR_FACTORY();
+nsIFactory* NEW_KO_NATIVEDETECTOR_FACTORY();
+nsIFactory* NEW_KO_STRING_NATIVEDETECTOR_FACTORY();
+
+#endif 

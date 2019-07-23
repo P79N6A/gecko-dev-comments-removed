@@ -1,0 +1,179 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+window {
+	background: #FF9; 
+	color: black;
+	}
+
+
+table { width: 100%; }
+
+box#tabs { padding: 1px; }
+
+
+
+
+
+
+
+
+
+
+
+
+
+window[debug] { background: yellow; }
+window[debug] box { background: red; }
+window[debug] div { background: green; }
+
+
+
+table {
+	
+	}
+
+td, th {
+	line-height: 1;
+	padding: 0;
+	}
+
+
+box#outer { overflow: scroll; }
+
+
+
+
+
+
+
+
+
+button, td[class~="button"], td[class~="tab"] {
+	text-align: center;
+	vertical-align: middle;
+	cursor: pointer;
+	border: 1px outset #FF9;
+	padding: 1px;
+	color: black;
+	background: #FF9;
+	}
+
+td[class~="button"]:active, td[class~="tab"]:active {
+	border-style: inset;
+	padding: 2px 0px 0px 2px;
+	background: #fc3;
+	}
+
+td[class~="tab"][class~="disable"] {
+	color: #888;
+	}
+
+td[class~="tab"][class~="disable"]:active {
+	
+	background: #FF9;
+	}
+
+td[id="DateOutput"], td[id="MonthOutput"] {
+	vertical-align: middle;
+	text-align: center;
+	font-weight: bold;
+	}
+
+
+
+
+
+
+table[class~="data"] tbody[id="ApptTable"] tr {
+	cursor: pointer;
+	}
+
+
+
+
+
+	}
+*/
+
+table[class~="data"] th, table[class~="data"] td {
+	text-align: left;
+	vertical-align: baseline;
+	}
+
+
+
+
+
+table#add th {
+	text-align: right;
+	font-weight: bold;
+	}
+
+table#add th:after {
+	content: ":";
+	}
+
+
+
+
+
+
+
+td[class~="caldate"] {
+	cursor: pointer;
+	text-align: center;
+	border: 1px solid transparent;
+	}
+
+
+
+td[class~="caldate"][class~="nowshowing"] {
+	background: #f90;
+	color: black;
+	}
+
+
+
+td[class~="caldate"][class~="today"] {
+	border: 1px solid black;
+	
+	}

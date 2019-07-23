@@ -1,0 +1,49 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+GOOD { padding: 17.0in; }
+GOOD { padding: 120%; }
+GOOD { padding: 17.0in 120%; }
+GOOD { padding: 17.0in 17.0in; }
+GOOD { padding: 120% 17.0in; }
+GOOD { padding: 120% 120%; }
+GOOD { padding: 17.0in 17.0in 17.0in; }
+GOOD { padding: 17.0in 17.0in 120%; }
+GOOD { padding: 17.0in 120% 17.0in; }
+GOOD { padding: 17.0in 17.0in 17.0in 17.0in; }
+GOOD { padding: 17.0in 120% 17.0in 17.0in; }
+GOOD { padding: 120% 120% 17.0in 17.0in; }
+GOOD { padding: 120% 120% 120% 17.0in; }
+GOOD { padding: 120% 120% 120% 120%; }

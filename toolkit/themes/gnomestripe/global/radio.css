@@ -1,0 +1,144 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+@namespace url("http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul");
+
+
+
+radio {
+  -moz-appearance: radio-container;
+  margin: 2px 4px;
+  border-left: 2px transparent;
+  border-right: 2px transparent;
+}
+
+
+
+
+
+
+
+
+
+
+.radio-spacer-box {
+  -moz-appearance: radio;
+  -moz-box-align: center;
+  border-right: 4px solid transparent;
+  border-top: 1px;
+  border-bottom: 1px;
+}
+
+.radio-label-center-box {
+  -moz-box-align: center;
+}
+
+.radio-label-box {
+  border: 1px solid transparent;
+  -moz-appearance: radio-label;
+}
+
+.radio-icon[src] {
+  -moz-margin-end: 2px;
+}
+
+.radio-label {
+  margin: 0 !important;
+}
+
+
+
+radio[focused="true"] > .radio-label-center-box > .radio-label-box {
+  border: 1px dotted ThreeDDarkShadow;
+}
+
+
+
+radio[disabled="true"] > .radio-spacer-box > .radio-check-box1 {
+  background-color: -moz-Dialog;
+}
+
+radio[disabled="true"] {
+  color: GrayText !important;
+}
+
+
+
+.radio-check-box1 {
+  border-top: 1px solid ThreeDShadow;
+  border-right: 1px solid ThreeDHighlight;
+  border-bottom: 1px solid ThreeDHighlight;
+  border-left: 1px solid ThreeDShadow;
+  -moz-border-radius: 50%;
+  min-width: 12px;
+  min-height: 12px;
+  background-color: -moz-Field;
+}
+
+.radio-check-box2 {
+  border-top: 1px solid ThreeDDarkShadow;
+  border-right: 1px solid ThreeDLightShadow;
+  border-bottom: 1px solid ThreeDLightShadow;
+  border-left: 1px solid ThreeDDarkShadow;
+  -moz-border-radius: 50%;
+  padding: 2px;
+  width: 4px;
+  height: 4px;
+  list-style-image: none;
+}
+
+radio:hover {
+  color: -moz-buttonhovertext;
+}
+
+radio:hover:active > .radio-spacer-box > .radio-check-box1 {
+  background-color: -moz-Dialog;
+}
+
+
+
+radio[selected="true"] > .radio-spacer-box > .radio-check-box1 > .radio-check-box2 {
+  list-style-image: url("chrome://global/skin/radio/radio-check.gif");
+}
+
+radio[selected="true"][disabled="true"] > .radio-spacer-box > .radio-check-box1 > .radio-check-box2 {
+  list-style-image: url("chrome://global/skin/radio/radio-check-dis.gif") !important
+}

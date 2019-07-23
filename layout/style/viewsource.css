@@ -1,0 +1,118 @@
+@charset "utf-8";
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+@namespace url(http://www.w3.org/1999/xhtml); 
+
+*|*:root {
+  background-color: white;
+}
+#viewsource {
+  font-family: -moz-fixed;
+  font-weight: normal;
+  color: black;
+  white-space: pre;
+}
+#viewsource.wrap {
+  white-space: -moz-pre-wrap;
+}
+pre {
+  font: inherit;
+  color: inherit;
+  white-space: inherit; 
+  margin: 0;
+}
+.start-tag {
+ color: purple;
+ font-weight: bold;
+}
+.end-tag {
+ color: purple;
+ font-weight: bold; 
+}
+.comment {
+ color: green;
+ font-style: italic;
+}
+.cdata {
+ color: #CC0066;
+}
+.doctype {
+ color: steelblue;
+ font-style: italic;
+}
+.pi {
+ color: orchid;
+ font-style: italic;
+}
+.entity {
+ color:#FF4500;
+ font-weight: normal;
+}
+.text {
+  font-weight: normal;
+}
+.attribute-name {
+ color: black;
+ font-weight: bold;
+}
+.attribute-value {
+ color: blue;
+ font-weight: normal;
+}
+.summary {
+ display: block;
+ background-color: #FFFFCC;
+ width: 90%;
+ border: solid;
+ border-width: 1pt;
+ font-family: sans-serif;
+}
+.popup {
+  font-weight: normal;
+}
+.markupdeclaration {
+ color: steelblue;
+ font-style: italic;
+}
+.error, .error > .start-tag, .error > .end-tag,
+.error > .comment, .error > .cdata, .error > .doctype,
+.error > .pi, .error > .entity, .error > .attribute-name,
+.error > .attribute-value {
+  color: red;
+  font-weight: bold;
+}

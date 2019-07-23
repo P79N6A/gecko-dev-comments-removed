@@ -1,0 +1,44 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifndef __SIMPLECID_H
+#define __SIMPLECID_H
+
+
+#define NS_SIMPLEPLUGIN_CID { 0x312da841, 0x3dbf, 0x11d3, { 0xbc, 0xfb, 0x0, 0xa0, 0xc9, 0xc8, 0xd9, 0x1d } }
+
+#endif

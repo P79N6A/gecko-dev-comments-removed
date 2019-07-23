@@ -1,0 +1,40 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+GOOD { opacity: inherit; }
+GOOD { opacity: .75; }
+GOOD { opacity: 25%; }
+BAD { opacity: blue; }
+BAD { opacity: 3.5em; }

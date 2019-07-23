@@ -1,0 +1,118 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+@import url("chrome://global/content/autocomplete.css");
+  
+@namespace url("http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul");
+@namespace html url("http://www.w3.org/1999/xhtml");
+
+
+
+textbox {
+  -moz-appearance: textfield;
+  cursor: text;
+  margin: 4px 4px;
+  border: 3px solid;
+  -moz-border-top-colors: transparent #888888 #000000;
+  -moz-border-right-colors: transparent #FFFFFF #000000;
+  -moz-border-bottom-colors: transparent #FFFFFF #000000;
+  -moz-border-left-colors: transparent #888888 #000000;
+  -moz-border-radius-topright: 2px;
+  -moz-border-radius-bottomleft: 2px;
+  
+  padding: 0px;
+  background-color: -moz-Field;
+  color: -moz-FieldText;
+}
+    
+html|*.textbox-input, 
+html|*.textbox-textarea {
+  margin: 0px !important;
+  border: none !important;
+  padding: 0px !important;
+  background-color: inherit;
+  color: inherit;
+  font: inherit;
+}
+
+
+
+textbox[focused="true"] {
+  -moz-border-top-colors: -moz-mac-focusring -moz-mac-focusring #000000;
+  -moz-border-right-colors: -moz-mac-focusring -moz-mac-focusring #000000;
+  -moz-border-bottom-colors: -moz-mac-focusring -moz-mac-focusring #000000;
+  -moz-border-left-colors: -moz-mac-focusring -moz-mac-focusring #000000;
+}
+
+
+
+textbox[readonly="true"] {
+  background-color: -moz-Dialog;
+  color: -moz-DialogText;
+}
+
+
+
+textbox[disabled="true"] {
+  cursor: default;
+  -moz-border-top-colors: transparent ThreeDShadow -moz-Dialog;
+  -moz-border-right-colors: transparent ThreeDShadow -moz-Dialog;
+  -moz-border-bottom-colors: transparent ThreeDShadow -moz-Dialog;
+  -moz-border-left-colors: transparent ThreeDShadow -moz-Dialog;
+  background-color: -moz-Dialog;
+  color: GrayText;
+} 
+
+
+
+textbox.plain {
+  -moz-appearance: none !important;
+  padding: 0px !important;
+  margin: 0px !important;
+  border: none !important;
+}
+
+
+
+
+#search-box {
+}

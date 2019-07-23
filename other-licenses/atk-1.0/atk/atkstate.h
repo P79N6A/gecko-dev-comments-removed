@@ -1,0 +1,132 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifndef __ATK_STATE_H__
+#define __ATK_STATE_H__
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#include <glib-object.h>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 
+typedef enum
+{
+  ATK_STATE_INVALID,
+  ATK_STATE_ACTIVE,
+  ATK_STATE_ARMED,
+  ATK_STATE_BUSY,
+  ATK_STATE_CHECKED,
+  ATK_STATE_DEFUNCT,
+  ATK_STATE_EDITABLE,
+  ATK_STATE_ENABLED,
+  ATK_STATE_EXPANDABLE,
+  ATK_STATE_EXPANDED,
+  ATK_STATE_FOCUSABLE,
+  ATK_STATE_FOCUSED,
+  ATK_STATE_HORIZONTAL,
+  ATK_STATE_ICONIFIED,
+  ATK_STATE_MODAL,
+  ATK_STATE_MULTI_LINE,
+  ATK_STATE_MULTISELECTABLE,
+  ATK_STATE_OPAQUE,
+  ATK_STATE_PRESSED,
+  ATK_STATE_RESIZABLE,
+  ATK_STATE_SELECTABLE,
+  ATK_STATE_SELECTED,
+  ATK_STATE_SENSITIVE,
+  ATK_STATE_SHOWING,
+  ATK_STATE_SINGLE_LINE,
+  ATK_STATE_STALE,
+  ATK_STATE_TRANSIENT,
+  ATK_STATE_VERTICAL,
+  ATK_STATE_VISIBLE,
+  ATK_STATE_MANAGES_DESCENDANTS,
+  ATK_STATE_INDETERMINATE,
+  ATK_STATE_TRUNCATED,
+  ATK_STATE_REQUIRED,
+  ATK_STATE_INVALID_ENTRY,
+  ATK_STATE_SUPPORTS_AUTOCOMPLETION,
+  ATK_STATE_SELECTABLE_TEXT,
+  ATK_STATE_DEFAULT,
+  ATK_STATE_ANIMATED,
+  ATK_STATE_VISITED,
+	
+  ATK_STATE_LAST_DEFINED
+} AtkStateType;
+
+typedef guint64      AtkState;
+
+AtkStateType atk_state_type_register            (const gchar *name);
+
+G_CONST_RETURN gchar* atk_state_type_get_name   (AtkStateType type);
+AtkStateType          atk_state_type_for_name   (const gchar  *name);
+
+#ifdef __cplusplus
+}
+#endif 
+
+#endif

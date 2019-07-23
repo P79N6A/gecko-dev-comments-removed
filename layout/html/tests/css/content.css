@@ -1,0 +1,67 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+GOOD:after  { content: inherit; } 
+GOOD:before { content: "Border Collie"; } 
+GOOD:after  { content: "Border 'Collie'"; } 
+GOOD:before { content: "Border \"Collie\""; } 
+GOOD:after  { content: 'Border "Collie"'; } 
+GOOD:before { content: 'Border \'Collie\''; } 
+GOOD:before { content: "Border\A Collie" }
+GOOD:after  { content: A[TITLE="splitting the str\
+ing in the middle"] {}"; } 
+GOOD:before { content: A[TITLE="The Vatican Rag"]; } 
+GOOD:after  { content: url("http://www.rotten.com/today/"); } 
+GOOD:after  { content: url("beautiful-music.wav") }
+GOOD:before { content: counter(x, none); } 
+GOOD:after  { content: counter(y, 10); } 
+GOOD:before { content: counter(number, upper-roman)}
+GOOD:after  { content: attr(enigma) }
+GOOD:before { content: open-quote }
+GOOD:after  { content: close-quote }
+GOOD:before { content: no-open-quote }
+GOOD:after  { content: no-close-quote }
+GOOD:before { content: open-quote "Border\A Collie" close-quote } 
+GOOD:before { content: "a string of text" open-quote url("http://www.rotten.com/today/") no-open-quote counter(number, upper-roman) no-close-quote attr(enigma) close-quote } 
+BAD:after  { content: this is a string; }
+BAD:before { content: "this is a "string""; } 
+BAD:after  { content: "this is a "string'"; } 
+BAD:before { content: 'this is a "string""; } 
+BAD:after  { content: quote }
+BAD:before { content: url(beautiful-music.wav) }
+BAD:after  { content: counter(y, 10) inherit }
+BAD:before { content: open-quote "some kinda string' close-quote }
+  

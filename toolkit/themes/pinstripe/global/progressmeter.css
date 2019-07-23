@@ -1,0 +1,88 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+@namespace url("http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul");
+
+
+
+progressmeter {
+  -moz-appearance: progressbar;
+  margin: 2px 4px;
+  min-width: 128px;
+  height: 12px;
+}
+
+
+
+.progress-remainder[flex="100"], .progress-remainder[flex="0"] {
+
+  background-image: none !important;
+  -moz-appearance: none;
+}
+
+
+
+.progressmeter-statusbar {
+  margin: 0;
+  border-width: 1px;
+}
+
+
+.progressmeter-statusbar > .progressmeter-remainder {
+}
+
+
+
+.progressmeter-statusbar[mode="determined"]  {
+ margin: 0;
+  border-width: 1px;
+}
+
+
+
+
+#progress, #progress0 {
+	  vertical-align: baseline !important;
+          -moz-appearance: progressbar;
+           border-left: 1px solid #cccccc;
+  border-right: 1px solid #cccccc;
+}

@@ -1,0 +1,78 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+var bug = 354998;
+var summary = 'prototype should not be enumerated for XML objects.';
+var actual = '';
+var expect = '';
+
+printBugNumber (bug);
+printStatus (summary);
+
+function test()
+{
+  var list = <><a/><b/></>;
+  var count = 0;
+  var now = Date.now;
+  var time = now();
+  for (var i in list) {
+    ++count;
+  }
+  time = now() - time; 
+  if (count != 2) {
+    if (count < 2)
+      throw "Enumerator has not looped over all properties, count="+count;
+    throw "Enumerator has looped over prototype chain of xml, count="+count;
+  }
+  return time;
+}
+
+var time1 = test(); 
+
+for (var i = 0; i != 1000*1000; ++i)
+  Object.prototype[i] = i;
+
+var time2 = test(); 
+if (time1 * 10 < time2) {
+  throw "Assigns to Object.prototype increased time of XML enumeration from "+
+        time1+"ms to "+time2+"ms";
+}
+
+TEST(1, expect, actual);
+
+END();

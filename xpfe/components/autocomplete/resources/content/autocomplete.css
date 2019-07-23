@@ -1,0 +1,30 @@
+
+.autocomplete-result-popupset {
+  width: 0 !important;
+}
+
+.autocomplete-result-popup {
+  display: -moz-popup !important;
+}
+
+
+
+.autocomplete-result-popup[hidden="true"] {
+  visibility: hidden;
+}
+
+
+
+
+
+
+popupset {
+  max-width: 0px;
+  width: 0px;
+  min-width: 0%;
+  min-height: 0%;
+}
+
+treecolpicker {
+  display: none;
+}

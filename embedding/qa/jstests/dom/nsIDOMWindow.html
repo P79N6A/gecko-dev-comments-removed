@@ -1,0 +1,291 @@
+<html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<head>
+
+<title>nsIDOMWindow Tets case</title>
+
+
+<script type="text/javascript" src="http://www.mozilla.org/quality/embed/jstests/bridge.js"></script>
+<script type="text/javascript">
+
+var gObject ;
+var buffer ;
+var newwindow ;
+newwindow = window.open("http://www.google.com","_blank");
+self.focus();
+
+function getDomWindowObject(thewindow)
+{
+
+	 //if(gObject)
+	//	return gObject;
+	 try
+	 {
+		netscape.security.PrivilegeManager.enablePrivilege("UniversalBrowserAccess");
+		netscape.security.PrivilegeManager.enablePrivilege("UniversalXPConnect");
+		var ifaceReq = thewindow.QueryInterface(Components.interfaces.nsIInterfaceRequestor);
+
+		if (!ifaceReq)
+		{
+			if (isRunningStandalone())
+				alert("Exception: " + e);
+			else
+				WriteResults("Unable to get the interface requester");
+		}
+
+		 gObject = ifaceReq.getInterface(Components.interfaces.nsIDOMWindow);
+		 return gObject;
+	 }
+	 catch(e){
+		if (isRunningStandalone())
+			alert("Exception: " + e);
+		else
+			WriteResults(buffer + "Exception: " + e);
+	  }
+}
+
+function WritePassFail(aValue,e)
+{
+
+  if( aValue ==  "Pass")
+  {
+	  buffer += "<td>"+" " +"</td>" ;
+	  buffer += "<td>Pass</td>"
+  }
+  else
+  {
+	  buffer += "<td>" +"Exception: " + e + "</td>" ;
+	  buffer += "<td bgcolor='#FF0000'>Fail</td>"
+  }
+
+  buffer += "</tr>"
+
+}
+
+function RunAllTests()
+{
+	// "<td bgcolor='#FF0000'>
+	buffer = "<b>Results for <a href='http://lxr.mozilla.org/seamonkey/source/dom/public/idl/base/nsIDOMWindow.idl'>nsIDOMWindow:</a></b><br><br>"
+	buffer += "<table border cols=4 width='70%'>"
+	buffer += "<tr>"
+	buffer += "<td><b>Property/Method</b></td>"
+	buffer += "<td><b>Params</b></td>"
+	buffer += "<td><b>Bug/Error</b></td>"
+	buffer += "<td><b>Result</b></td>"
+	buffer += "</tr>"
+
+	GetDocument();
+
+	buffer += "</table>"
+	if (isRunningStandalone())
+	{
+	   document.clear();
+	   document.write(buffer);
+	}
+	else
+		WriteResults(buffer);
+}
+
+function GetDocument()
+{
+	var dom = getDomWindowObject(window);
+
+	buffer += "<tr>"
+	buffer += "<td>document(get)</td>"
+	buffer += "<td>none</td>"
+
+	try{
+
+		netscape.security.PrivilegeManager.enablePrivilege("UniversalBrowserRead");
+		netscape.security.PrivilegeManager.enablePrivilege("UniversalXPConnect");
+
+		rv =  dom.document;
+		if (rv)
+			WritePassFail("Pass",1);
+
+
+		buffer += "<tr>"
+		buffer += "<td>parent(get)</td>"
+		buffer += "<td>none</td>"
+
+		rv =  dom.parent;
+		if (rv)
+			WritePassFail("Pass",1);
+
+		buffer += "<tr>"
+		buffer += "<td>top(get)</td>"
+		buffer += "<td>none</td>"
+
+		rv =  dom.top;
+		if (rv)
+			WritePassFail("Pass",1);
+		else
+			WritePassFail("Fail",rv);
+
+		buffer += "<tr>"
+		buffer += "<td>scrollbars(get)</td>"
+		buffer += "<td>none</td>"
+
+		rv =  dom.scrollbars;
+		if (rv)
+			WritePassFail("Pass",1);
+		else
+			WritePassFail("Fail",rv);
+
+		buffer += "<tr>"
+		buffer += "<td>frames(get)</td>"
+		buffer += "<td>none</td>"
+
+		rv =  dom.frames;
+		if (rv)
+			WritePassFail("Pass",1);
+		else
+			WritePassFail("Fail",rv);
+
+		buffer += "<tr>"
+		buffer += "<td>name(set)</td>"
+		buffer += "<td>DOMString name</td>"
+
+		dom.name= "myname" ;
+ 		WritePassFail("Pass",1);
+
+		buffer += "<tr>"
+		buffer += "<td>name(get)</td>"
+		buffer += "<td>none</td>"
+
+		rv =  dom.name;
+		if (rv)
+			WritePassFail("Pass",1);
+		else
+			WritePassFail("Fail",rv);
+
+		buffer += "<tr>"
+		buffer += "<td>textZoom(get)</td>"
+		buffer += "<td>none</td>"
+
+		//rv =  dom.textzoom;
+		WritePassFail("Pass","noscript Attribute");
+
+		buffer += "<tr>"
+		buffer += "<td>textZoom(set)</td>"
+		buffer += "<td>float textZoom</td>"
+
+		//dom.textzoom= 12 ;
+		WritePassFail("Pass","noscript Attribute");
+
+		buffer += "<tr>"
+		buffer += "<td>scrollX(get)</td>"
+		buffer += "<td>none</td>"
+
+		rv = window.scrollX ;
+		WritePassFail("Pass",1);
+
+		buffer += "<tr>"
+		buffer += "<td>scrollY(get)</td>"
+		buffer += "<td>none</td>"
+
+		rv = window.scrollY;
+		WritePassFail("Pass",1);
+
+		buffer += "<tr>"
+		buffer += "<td>scrollTo()</td>"
+		buffer += "<td>long xScroll,long yScroll</td>"
+
+		rv = window.scrollTo(5,5);
+		WritePassFail("Pass",1);
+
+
+		buffer += "<tr>"
+		buffer += "<td>getSelection()</td>"
+		buffer += "<td>none</td>"
+
+		rv = dom.getSelection();
+		if (rv)
+			WritePassFail("Pass",1);
+		else
+			WritePassFail("Fail",1);
+
+		buffer += "<tr>"
+		buffer += "<td>scrollByLines()</td>"
+		buffer += "<td>long numLines</td>"
+
+		dom.scrollByLines(5);
+		WritePassFail("Pass",1);
+
+
+		buffer += "<tr>"
+		buffer += "<td>scrollByPages()</td>"
+		buffer += "<td>long numPages</td>"
+
+		dom.scrollByPages(1);
+		WritePassFail("Pass",1);
+
+		buffer += "<tr>"
+		buffer += "<td>sizeToContent()</td>"
+		buffer += "<td>none</td>"
+
+		//alert("sdfadf");
+
+
+	    dom = getDomWindowObject(newwindow);
+
+
+		dom.sizeToContent();
+		WritePassFail("Pass",1);
+
+		newwindow.close();
+	 }
+	 catch(e){
+		WritePassFail("Fail",e);
+	  }
+}
+
+
+</script>
+
+<base target="main">
+
+</head>
+
+<body onload="setTimeout('RunAllTests();', 1000);">
+</body>
+
+</html>
+
+

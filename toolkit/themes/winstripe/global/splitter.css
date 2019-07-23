@@ -1,0 +1,73 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+@namespace url("http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul");
+
+
+
+splitter {
+  -moz-box-align: center;
+  -moz-box-pack: center;
+  cursor: e-resize;
+  border-width: 0 2px;
+  border-style: solid;
+  -moz-border-left-colors: ThreeDShadow ThreeDHighlight;
+  -moz-border-right-colors: ThreeDDarkShadow ThreeDFace;
+  min-width: 6px;
+  background-color: ThreeDFace;
+}
+
+
+
+splitter[orient="vertical"] {
+  cursor: n-resize;
+  border-width: 2px 0;
+  -moz-border-top-colors: ThreeDShadow ThreeDHighlight;
+  -moz-border-bottom-colors: ThreeDDarkShadow ThreeDFace;
+  min-height: 6px;
+}
+
+
+
+grippy {
+  display: none;
+}

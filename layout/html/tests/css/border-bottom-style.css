@@ -1,0 +1,47 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+GOOD { border-bottom-style: inherit; } 
+GOOD { border-bottom-style: solid; } 
+GOOD { border-bottom-style: double; } 
+GOOD { border-bottom-style: inset; } 
+BAD { border-bottom-style: far-right; }
+BAD { border-bottom-style: ridge dotted; }
+BAD { border-bottom-style: dashed outset; }
+BAD { border-bottom-style: null; }
+BAD { border-bottom-style: empty; }

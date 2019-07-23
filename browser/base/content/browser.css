@@ -1,0 +1,22 @@
+searchbar {
+  -moz-binding: url("chrome://browser/content/search/search.xml#searchbar");
+}
+
+
+
+toolbar[printpreview="true"] {
+  -moz-binding: url("chrome://global/content/printPreviewBindings.xml#printpreviewtoolbar");
+}
+
+menuitem.spell-suggestion {
+  font-weight:bold;
+}
+
+#sidebar-box toolbarbutton.tabs-closebutton {
+  -moz-user-focus: normal;
+}
+
+
+window[sizemode="maximized"] #content .notification-inner {
+	border-right: 0px !important;
+}

@@ -1,0 +1,146 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifndef gtkmozembedprivate_h
+#define gtkmozembedprivate_h
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#include "gtkmozembed.h"
+
+
+
+enum {
+  LINK_MESSAGE,
+  JS_STATUS,
+  LOCATION,
+  TITLE,
+  PROGRESS,
+  PROGRESS_ALL,
+  NET_STATE,
+  NET_STATE_ALL,
+  NET_START,
+  NET_STOP,
+  NEW_WINDOW,
+  VISIBILITY,
+  DESTROY_BROWSER,
+  OPEN_URI,
+  SIZE_TO,
+  DOM_KEY_DOWN,
+  DOM_KEY_PRESS,
+  DOM_KEY_UP,
+  DOM_MOUSE_DOWN,
+  DOM_MOUSE_UP,
+  DOM_MOUSE_CLICK,
+  DOM_MOUSE_DBL_CLICK,
+  DOM_MOUSE_OVER,
+  DOM_MOUSE_OUT,
+  SECURITY_CHANGE,
+  STATUS_CHANGE,
+  DOM_ACTIVATE,
+  DOM_FOCUS_IN,
+  DOM_FOCUS_OUT,
+  ALERT,
+  ALERT_CHECK,
+  CONFIRM,
+  CONFIRM_CHECK,
+  CONFIRM_EX,
+  PROMPT,
+  PROMPT_AUTH,
+  SELECT,
+  DOWNLOAD_REQUEST,
+  DOM_MOUSE_SCROLL,
+  DOM_MOUSE_LONG_PRESS,
+  DOM_FOCUS,
+  DOM_BLUR,
+  UPLOAD_DIALOG,
+  ICON_CHANGED,
+  MAILTO,
+  NETWORK_ERROR,
+  EMBED_LAST_SIGNAL
+};
+
+
+extern guint moz_embed_signals[EMBED_LAST_SIGNAL];
+
+#if 0
+enum {
+  COMMON_CERT_DIALOG,
+  COMMON_CERT_PASSWD_DIALOG,
+  COMMON_CERT_DETAILS_DIALOG,
+  COMMON_HISTORY_ADDED,
+  COMMON_ON_SUBMIT_SIGNAL,
+  COMMON_SELECT_MATCH_SIGNAL,
+  COMMON_MODAL_DIALOG,
+  COMMON_LAST_SIGNAL
+};
+#endif
+
+enum {
+  COMMON_CERT_ERROR,
+  COMMON_SELECT_LOGIN,
+  COMMON_REMEMBER_LOGIN,
+  COMMON_ASK_COOKIE,
+  COMMON_LAST_SIGNAL
+};
+
+extern guint moz_embed_common_signals[COMMON_LAST_SIGNAL];
+
+enum
+{
+  DOWNLOAD_STARTED_SIGNAL,
+  DOWNLOAD_STOPPED_SIGNAL,
+  DOWNLOAD_COMPLETED_SIGNAL,
+  DOWNLOAD_FAILED_SIGNAL,
+  DOWNLOAD_DESTROYED_SIGNAL,
+  DOWNLOAD_PROGRESS_SIGNAL,
+  DOWNLOAD_LAST_SIGNAL
+};
+
+extern guint moz_embed_download_signals[DOWNLOAD_LAST_SIGNAL];
+extern void gtk_moz_embed_single_create_window(GtkMozEmbed **aNewEmbed,
+                                               guint aChromeFlags);
+#ifdef __cplusplus
+}
+#endif 
+
+#endif
+

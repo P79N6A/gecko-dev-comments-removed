@@ -1,0 +1,41 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+GOOD { direction: ltr; }
+GOOD { direction: rtl; }
+GOOD { direction: inherit; }
+BAD { direction: thin; }
+BAD { direction: 3.0in; }
+BAD { direction: thin dotted; }

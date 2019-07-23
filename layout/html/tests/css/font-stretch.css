@@ -1,0 +1,53 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+GOOD { font-stretch: normal } 
+GOOD { font-stretch: wider } 
+GOOD { font-stretch: narrower } 
+GOOD { font-stretch: ultra-condensed } 
+GOOD { font-stretch: extra-condensed } 
+GOOD { font-stretch: condensed } 
+GOOD { font-stretch: semi-condensed } 
+GOOD { font-stretch: semi-expanded } 
+GOOD { font-stretch: expanded } 
+GOOD { font-stretch: extra-expanded } 
+GOOD { font-stretch: ultra-expanded } 
+GOOD { font-stretch: inherit; } 
+BAD { font-stretch: none }
+BAD { font-stretch: widest; }
+BAD { font-stretch: ultra-condensed expanded; }

@@ -1,0 +1,43 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+GOOD :before { marker-offset: 3em; } 
+GOOD :before { marker-offset: -12pt; } 
+GOOD :after  { marker-offset: auto } 
+GOOD :before { marker-offset: inherit; } 
+BAD { marker-offset: none }
+BAD { marker-offset: auto inherit; }

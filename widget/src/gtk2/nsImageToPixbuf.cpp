@@ -1,0 +1,160 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#include <gdk-pixbuf/gdk-pixbuf.h>
+
+#ifdef MOZ_CAIRO_GFX
+#include "gfxASurface.h"
+#include "gfxImageSurface.h"
+#include "gfxContext.h"
+#endif
+
+#include "nsIGdkPixbufImage.h"
+
+#include "nsAutoPtr.h"
+
+#include "nsImageToPixbuf.h"
+
+NS_IMPL_ISUPPORTS1(nsImageToPixbuf, nsIImageToPixbuf)
+
+inline unsigned char
+unpremultiply (unsigned char color,
+               unsigned char alpha)
+{
+    if (alpha == 0)
+        return 0;
+    
+    return (color * 255 + alpha / 2) / alpha;
+}
+
+NS_IMETHODIMP_(GdkPixbuf*)
+nsImageToPixbuf::ConvertImageToPixbuf(nsIImage* aImage)
+{
+    return ImageToPixbuf(aImage);
+}
+
+GdkPixbuf*
+nsImageToPixbuf::ImageToPixbuf(nsIImage* aImage)
+{
+#ifdef MOZ_CAIRO_GFX
+    PRInt32 width = aImage->GetWidth(),
+            height = aImage->GetHeight();
+
+    nsRefPtr<gfxASurface> surface;
+    aImage->GetSurface(getter_AddRefs(surface));
+
+    return SurfaceToPixbuf(surface, width, height);
+#else
+    nsCOMPtr<nsIGdkPixbufImage> img(do_QueryInterface(aImage));
+    if (img)
+        return img->GetGdkPixbuf();
+    return NULL;
+#endif
+}
+
+#ifdef MOZ_CAIRO_GFX
+GdkPixbuf*
+nsImageToPixbuf::SurfaceToPixbuf(gfxASurface* aSurface, PRInt32 aWidth, PRInt32 aHeight)
+{
+    nsRefPtr<gfxImageSurface> imgSurface;
+    if (aSurface->GetType() == gfxASurface::SurfaceTypeImage) {
+        imgSurface = NS_STATIC_CAST(gfxImageSurface*,
+                                    NS_STATIC_CAST(gfxASurface*, aSurface));
+    } else {
+        imgSurface = new gfxImageSurface(gfxIntSize(aWidth, aHeight),
+					 gfxImageSurface::ImageFormatARGB32);
+                                       
+        if (!imgSurface)
+            return nsnull;
+
+        nsRefPtr<gfxContext> context = new gfxContext(imgSurface);
+        if (!context)
+            return nsnull;
+
+        context->SetOperator(gfxContext::OPERATOR_SOURCE);
+        context->SetSource(aSurface);
+        context->Paint();
+    }
+
+    GdkPixbuf* pixbuf = gdk_pixbuf_new(GDK_COLORSPACE_RGB, PR_TRUE, 8,
+                                       aWidth, aHeight);
+    if (!pixbuf)
+        return nsnull;
+
+    PRUint32 rowstride = gdk_pixbuf_get_rowstride (pixbuf);
+    guchar* pixels = gdk_pixbuf_get_pixels (pixbuf);
+
+    long cairoStride = imgSurface->Stride();
+    unsigned char* cairoData = imgSurface->Data();
+
+    gfxASurface::gfxImageFormat format = imgSurface->Format();
+
+    for (PRInt32 row = 0; row < aHeight; ++row) {
+        for (PRInt32 col = 0; col < aWidth; ++col) {
+            guchar* pixel = pixels + row * rowstride + 4 * col;
+
+            PRUint32* cairoPixel = NS_REINTERPRET_CAST(PRUint32*,
+                                   (cairoData + row * cairoStride + 4 * col));
+
+            if (format == gfxASurface::ImageFormatARGB32) {
+                const PRUint8 a = (*cairoPixel >> 24) & 0xFF;
+                const PRUint8 r = unpremultiply((*cairoPixel >> 16) & 0xFF, a);
+                const PRUint8 g = unpremultiply((*cairoPixel >>  8) & 0xFF, a);
+                const PRUint8 b = unpremultiply((*cairoPixel >>  0) & 0xFF, a);
+
+                *pixel++ = r;
+                *pixel++ = g;
+                *pixel++ = b;
+                *pixel++ = a;
+            } else {
+                NS_ASSERTION(format == gfxASurface::ImageFormatRGB24,
+                             "unexpected format");
+                const PRUint8 r = (*cairoPixel >> 16) & 0xFF;
+                const PRUint8 g = (*cairoPixel >>  8) & 0xFF;
+                const PRUint8 b = (*cairoPixel >>  0) & 0xFF;
+
+                *pixel++ = r;
+                *pixel++ = g;
+                *pixel++ = b;
+                *pixel++ = 0xFF; 
+            }
+        }
+    }
+
+    return pixbuf;
+}
+#endif

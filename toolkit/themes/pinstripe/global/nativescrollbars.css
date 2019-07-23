@@ -1,0 +1,90 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+@namespace url("http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul");
+@namespace html url("http://www.w3.org/1999/xhtml");
+
+
+
+scrollbar {
+  -moz-appearance: scrollbar;
+  -moz-binding: url(chrome://global/content/bindings/nativescrollbar.xml#scrollbar);
+  min-width: 16px;
+  cursor: default;
+  background-color: white;
+}
+
+html|select[size]:not([size="0"]):not([size="1"]) > scrollbar,
+html|select[multiple] > scrollbar {
+  -moz-appearance: scrollbar-small;
+  min-width: 11px;
+}
+
+
+
+scrollcorner {
+  
+  -moz-binding: url(chrome://global/content/bindings/scrollbar.xml#scrollbar-base);
+  width: 16px;
+  cursor: default;
+  background-color: white;
+}
+
+
+
+
+@media print {
+  html|div scrollbar {
+    -moz-appearance: scrollbar;
+    -moz-binding: url(chrome://global/content/bindings/nativescrollbar.xml#scrollbar);
+    min-width: 16px;
+    cursor: default;
+  }
+}
+
+
+
+thumb {
+  background: url("chrome://global/skin/icons/thumb.png") transparent center no-repeat;
+  min-width: 15px;
+}
+

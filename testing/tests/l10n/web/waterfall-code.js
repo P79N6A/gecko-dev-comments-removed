@@ -1,0 +1,186 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+var waterfallView = {
+  __proto__: baseView,
+  scale: 1/60,
+  unstyle: function() {
+    this.content.innerHTML = '';
+  },
+  updateView: function(aResult) {
+    YAHOO.widget.Logger.log('waterfallView.updateView called');
+    var head = document.getElementById('head');
+    head.innerHTML = '<th></th>';
+    this.content.innerHTML = '';
+    for each (var loc in controller.locales) {
+      var h = document.createElement('th');
+      h.className = 'wf-locale-head ' + view.getClass(loc);
+      h.textContent = loc;
+      head.appendChild(h);
+    }
+    var heads = head.childNodes;
+    var lastDate = -1;
+    function pad(aNumber, length) {
+      str = String(aNumber);
+      while (str.length < length) {
+        str = '0' + str;
+      }
+      return str;
+    };
+    for (var i = aResult.length - 1; i >= 0; i--) {
+      var wf = document.createElement('tr');
+      wf.className = 'waterfall-row';
+      wf.setAttribute('style','vertical-align: top;');
+      this.content.appendChild(wf);
+      var b = aResult[i];
+      var height = Math.floor((b[1][1] - b[1][0]) * this.scale);
+      var style = "height: " + height + "px;";
+      wf.setAttribute('style', style);
+      var cell = view.getCell();
+      cell.className = 'cell-label';
+      var d = this.getUTCDate(b[0]);
+      var label = pad(d.getUTCHours(), 2) + ':' +
+        pad(d.getUTCMinutes(), 2);
+      if (lastDate != d.getUTCDate()) {
+        lastDate = d.getUTCDate();
+        label = d.getUTCDate() +'/'+ (d.getUTCMonth()+1) + '<br>' + label;
+      }
+      cell.innerHTML = label +
+        '<br><a href="javascript:controller.showLog(\'' + b[0] + '\');">L</a>';
+      wf.appendChild(cell);
+      var locs = keys(b[2]);
+      var h = 1;
+      for each (loc in locs) {
+        if (h >= heads.length) {
+          YAHOO.widget.Logger.log("dropping result for " + loc);
+          continue;
+        }        
+        while (heads[h].textContent < loc) {
+          
+          cell = view.getCell();
+          cell.className = view.getClass(heads[h].textContent)
+          wf.appendChild(cell);
+          h++;
+          if (h >= heads.length) {
+            YAHOO.widget.Logger.log("dropping result for " + loc);
+            continue;
+          }
+        }
+        if (heads[h].textContent > loc) {
+          YAHOO.widget.Logger.log("dropping result for " + loc);
+          continue;
+        }
+        cell = view.getCell();
+        cell.innerHTML = '&nbsp;';
+        if (b[2][loc] & 2) {
+          cell.className = 'busted ';
+        }
+        else if (b[2][loc] & 1) {
+          cell.className = 'fair ';
+        }
+        else {
+          cell.className = 'good ';
+        }
+        cell.className += ' ' + view.getClass(loc);
+        wf.appendChild(cell);
+        h++;
+      }
+      if (i == 0) {
+        continue;
+      }
+      
+      continue;
+      wf = document.createElement('tr');
+      wf.className = 'waterfall-row';
+      wf.setAttribute('style','vertical-align: top;');
+      this.content.appendChild(wf);
+      var b = aResult[i];
+      var height = Math.floor((b[1][0] - aResult[i-1][1][1]) * this.scale);
+      var style = "height: " + height + "px;";
+      wf.setAttribute('style', style);
+      
+    }
+  },
+  setUpHandlers: function() {
+    _t = this;
+  },
+  destroyHandlers: function() {
+  },
+  
+  getUTCDate: function(aTag) {
+    var D = new Date();
+    var d = aTag.split(/[ -]/).map(function(aEl){return Number(aEl);});
+    d[1] -= 1; 
+    D.setTime(Date.UTC.apply(null,d));
+    return D;
+  }
+};
+var waterfallController = {
+  __proto__: baseController,
+  beforeSelect: function() {
+    this.result = {};
+    this.isShown = false;
+    waterfallView.setUpHandlers();
+    var _t = this;
+    var callback = function(obj) {
+      delete _t.req;
+      if (view != waterfallView) {
+        
+        return;
+      }
+      _t.result = obj;
+      _t.tag = obj[obj.length - 1][0]; 
+      controller.addLocales(keys(obj[obj.length - 1][2]));
+      waterfallView.updateView(_t.result);
+    };
+    this.req = JSON.get('results/waterfall.json', callback);
+  },
+  beforeUnSelect: function() {
+    if (this.req) {
+      this.req.abort();
+      delete this.req;
+    }
+    waterfallView.unstyle();
+    waterfallView.destroyHandlers();
+  },
+  showView: function(aClosure) {
+    
+  }
+};
+controller.addPane('Tinder', 'waterfall', waterfallController, 
+                   waterfallView);

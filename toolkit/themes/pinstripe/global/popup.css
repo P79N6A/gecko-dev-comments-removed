@@ -1,0 +1,87 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+@namespace url("http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul");
+
+
+
+menupopup,
+popup {
+  -moz-appearance: menupopup;
+}
+
+
+
+.popup-internal-box {
+        -moz-appearance: none;
+	padding: 4px 0px 4px 0px !important;
+}
+
+
+
+tooltip {
+  -moz-appearance: tooltip;
+  margin-top: 18px;
+  padding: 2px 3px;
+  max-width: 40em;
+  color: InfoText;
+  font: message-box;
+}
+
+.tooltip-label {
+  margin: 0px !important;
+}
+
+tooltip[titletip="true"] {
+ 
+
+
+  max-width: none;
+}
+
+
+
+menulist > menupopup,
+.menulist-menupopup {
+  min-width: 0px;
+}

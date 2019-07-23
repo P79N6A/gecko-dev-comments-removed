@@ -1,0 +1,557 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#include "nsAccessibleTreeWalker.h"
+#include "nsAccessibilityAtoms.h"
+#include "nsHTMLFormControlAccessible.h"
+#include "nsIDOMHTMLInputElement.h"
+#include "nsIDOMNSEditableElement.h"
+#include "nsIDOMNSHTMLButtonElement.h"
+#include "nsIDOMHTMLFormElement.h"
+#include "nsIDOMHTMLLegendElement.h"
+#include "nsIDOMHTMLTextAreaElement.h"
+#include "nsIFrame.h"
+#include "nsINameSpaceManager.h"
+#include "nsISelectionController.h"
+#include "nsITextControlFrame.h"
+
+
+
+nsHTMLCheckboxAccessible::nsHTMLCheckboxAccessible(nsIDOMNode* aNode, nsIWeakReference* aShell):
+nsFormControlAccessible(aNode, aShell)
+{ 
+}
+
+NS_IMETHODIMP nsHTMLCheckboxAccessible::GetRole(PRUint32 *_retval)
+{
+  *_retval = nsIAccessibleRole::ROLE_CHECKBUTTON;
+  return NS_OK;
+}
+
+NS_IMETHODIMP nsHTMLCheckboxAccessible::GetNumActions(PRUint8 *_retval)
+{
+  *_retval = 1;
+  return NS_OK;
+}
+
+NS_IMETHODIMP nsHTMLCheckboxAccessible::GetActionName(PRUint8 aIndex, nsAString& aName)
+{
+  if (aIndex == eAction_Click) {    
+    
+    PRUint32 state;
+    GetState(&state);
+
+    if (state & nsIAccessibleStates::STATE_CHECKED)
+      aName.AssignLiteral("uncheck"); 
+    else
+      aName.AssignLiteral("check"); 
+
+    return NS_OK;
+  }
+  return NS_ERROR_INVALID_ARG;
+}
+
+NS_IMETHODIMP nsHTMLCheckboxAccessible::DoAction(PRUint8 index)
+{
+  if (index == 0) {   
+    return DoCommand();
+  }
+  return NS_ERROR_INVALID_ARG;
+}
+
+NS_IMETHODIMP nsHTMLCheckboxAccessible::GetState(PRUint32 *_retval)
+{
+  nsFormControlAccessible::GetState(_retval);
+  PRBool checked = PR_FALSE;   
+
+  nsCOMPtr<nsIDOMHTMLInputElement> htmlCheckboxElement(do_QueryInterface(mDOMNode));
+  if (htmlCheckboxElement) 
+    htmlCheckboxElement->GetChecked(&checked);
+
+  if (checked) 
+    *_retval |= nsIAccessibleStates::STATE_CHECKED;
+  
+  return NS_OK;
+}
+
+
+
+nsHTMLRadioButtonAccessible::nsHTMLRadioButtonAccessible(nsIDOMNode* aNode, nsIWeakReference* aShell):
+nsRadioButtonAccessible(aNode, aShell)
+{ 
+}
+
+NS_IMETHODIMP nsHTMLRadioButtonAccessible::GetState(PRUint32 *_retval)
+{
+  nsAccessibleWrap::GetState(_retval);
+  PRBool checked = PR_FALSE;   
+
+  nsCOMPtr<nsIDOMHTMLInputElement> htmlRadioElement(do_QueryInterface(mDOMNode));
+  if (htmlRadioElement) 
+    htmlRadioElement->GetChecked(&checked);
+
+  if (checked) 
+    *_retval |= nsIAccessibleStates::STATE_CHECKED;
+
+  return NS_OK;
+}
+
+
+
+nsHTMLButtonAccessible::nsHTMLButtonAccessible(nsIDOMNode* aNode, nsIWeakReference* aShell):
+nsHyperTextAccessible(aNode, aShell)
+{ 
+}
+
+NS_IMETHODIMP nsHTMLButtonAccessible::GetNumActions(PRUint8 *_retval)
+{
+  *_retval = 1;
+  return NS_OK;
+}
+
+NS_IMETHODIMP nsHTMLButtonAccessible::GetActionName(PRUint8 aIndex, nsAString& aName)
+{
+  if (aIndex == eAction_Click) {
+    aName.AssignLiteral("press"); 
+    return NS_OK;
+  }
+  return NS_ERROR_INVALID_ARG;
+}
+
+NS_IMETHODIMP nsHTMLButtonAccessible::DoAction(PRUint8 index)
+{
+  if (index == eAction_Click) {
+    return DoCommand();
+  }
+  return NS_ERROR_INVALID_ARG;
+}
+
+NS_IMETHODIMP nsHTMLButtonAccessible::GetState(PRUint32 *_retval)
+{
+  nsCOMPtr<nsIDOMElement> element(do_QueryInterface(mDOMNode));
+  if (!element) {
+    return NS_ERROR_FAILURE;  
+  }
+  nsHyperTextAccessible::GetState(_retval);
+  nsAutoString buttonType;
+  element->GetAttribute(NS_LITERAL_STRING("type"), buttonType);
+  if (buttonType.LowerCaseEqualsLiteral("submit"))
+    *_retval |= nsIAccessibleStates::STATE_DEFAULT;
+
+  return NS_OK;
+}
+
+NS_IMETHODIMP nsHTMLButtonAccessible::GetRole(PRUint32 *_retval)
+{
+  *_retval = nsIAccessibleRole::ROLE_PUSHBUTTON;
+  return NS_OK;
+}
+
+NS_IMETHODIMP nsHTMLButtonAccessible::GetName(nsAString& aName)
+{
+  nsCOMPtr<nsIContent> content(do_QueryInterface(mDOMNode));
+  if (!content) {
+    return NS_ERROR_FAILURE; 
+  }
+
+  nsAutoString name;
+  if (!content->GetAttr(kNameSpaceID_None, nsAccessibilityAtoms::value,
+                        name) &&
+      !content->GetAttr(kNameSpaceID_None, nsAccessibilityAtoms::alt,
+                        name)) {
+    if (mRoleMapEntry) {
+      
+      GetHTMLName(name, PR_FALSE);
+    }
+    if (name.IsEmpty()) {
+      
+      nsIFrame* frame = GetFrame();
+      if (frame) {
+        nsIFormControlFrame* fcFrame;
+        frame->QueryInterface(NS_GET_IID(nsIFormControlFrame),
+                              (void**) &fcFrame);
+        if (fcFrame)
+          fcFrame->GetFormProperty(nsAccessibilityAtoms::defaultLabel, name);
+      }
+    }
+    if (name.IsEmpty() &&
+        !content->GetAttr(kNameSpaceID_None, nsAccessibilityAtoms::title,
+                          name) &&
+        !content->GetAttr(kNameSpaceID_None, nsAccessibilityAtoms::src,
+                          name)) {
+      content->GetAttr(kNameSpaceID_None, nsAccessibilityAtoms::data, name);
+    }
+  }
+
+  name.CompressWhitespace();
+  aName = name;
+
+  return NS_OK;
+}
+
+
+
+
+nsHTML4ButtonAccessible::nsHTML4ButtonAccessible(nsIDOMNode* aNode, nsIWeakReference* aShell):
+nsHyperTextAccessible(aNode, aShell)
+{ 
+}
+
+NS_IMETHODIMP nsHTML4ButtonAccessible::GetNumActions(PRUint8 *_retval)
+{
+  *_retval = 1;
+  return NS_OK;;
+}
+
+NS_IMETHODIMP nsHTML4ButtonAccessible::GetActionName(PRUint8 aIndex, nsAString& aName)
+{
+  if (aIndex == eAction_Click) {
+    aName.AssignLiteral("press"); 
+    return NS_OK;
+  }
+  return NS_ERROR_INVALID_ARG;
+}
+
+NS_IMETHODIMP nsHTML4ButtonAccessible::DoAction(PRUint8 index)
+{
+  if (index == 0) {
+    return DoCommand();
+  }
+  return NS_ERROR_INVALID_ARG;
+}
+
+NS_IMETHODIMP nsHTML4ButtonAccessible::GetRole(PRUint32 *_retval)
+{
+  *_retval = nsIAccessibleRole::ROLE_PUSHBUTTON;
+  return NS_OK;
+}
+
+NS_IMETHODIMP nsHTML4ButtonAccessible::GetState(PRUint32 *_retval)
+{
+  nsCOMPtr<nsIDOMElement> element(do_QueryInterface(mDOMNode));
+  if (!element) {
+    return NS_ERROR_FAILURE;  
+  }
+  nsHyperTextAccessible::GetState(_retval);
+  *_retval |= nsIAccessibleStates::STATE_FOCUSABLE;
+
+  nsAutoString buttonType;
+  element->GetAttribute(NS_LITERAL_STRING("type"), buttonType);
+  if (buttonType.LowerCaseEqualsLiteral("submit"))
+    *_retval |= nsIAccessibleStates::STATE_DEFAULT;
+
+  return NS_OK;
+}
+
+
+
+nsHTMLTextFieldAccessible::nsHTMLTextFieldAccessible(nsIDOMNode* aNode, nsIWeakReference* aShell):
+nsHyperTextAccessible(aNode, aShell)
+{
+}
+
+NS_IMPL_ISUPPORTS_INHERITED2(nsHTMLTextFieldAccessible, nsAccessible, nsIAccessibleText, nsIAccessibleEditableText)
+
+NS_IMETHODIMP nsHTMLTextFieldAccessible::Init()
+{
+  CheckForEditor();
+  return nsHyperTextAccessible::Init();
+}
+
+NS_IMETHODIMP nsHTMLTextFieldAccessible::Shutdown()
+{
+  if (mEditor) {
+    mEditor->RemoveEditActionListener(this);
+    mEditor = nsnull;
+  }
+  return nsHyperTextAccessible::Shutdown();
+}
+
+NS_IMETHODIMP nsHTMLTextFieldAccessible::GetRole(PRUint32 *aRole)
+{
+  *aRole = nsIAccessibleRole::ROLE_ENTRY;
+  nsCOMPtr<nsIContent> content(do_QueryInterface(mDOMNode));
+  if (content &&
+      content->AttrValueIs(kNameSpaceID_None, nsAccessibilityAtoms::type,
+                           nsAccessibilityAtoms::password, eIgnoreCase)) {
+    *aRole = nsIAccessibleRole::ROLE_PASSWORD_TEXT;
+  }
+  return NS_OK;
+}
+
+NS_IMETHODIMP nsHTMLTextFieldAccessible::GetValue(nsAString& _retval)
+{
+  PRUint32 state;
+  GetState(&state);
+  if (state & nsIAccessibleStates::STATE_PROTECTED)    
+    return NS_ERROR_FAILURE;
+
+  nsCOMPtr<nsIDOMHTMLTextAreaElement> textArea(do_QueryInterface(mDOMNode));
+  if (textArea) {
+    return textArea->GetValue(_retval);
+  }
+  
+  nsCOMPtr<nsIDOMHTMLInputElement> inputElement(do_QueryInterface(mDOMNode));
+  if (inputElement) {
+    return inputElement->GetValue(_retval);
+  }
+
+  return NS_ERROR_FAILURE;
+}
+
+NS_IMETHODIMP nsHTMLTextFieldAccessible::GetState(PRUint32 *aState)
+{
+  nsresult rv = nsHyperTextAccessible::GetState(aState);
+  if (NS_FAILED(rv)) {
+    return rv;
+  }
+
+  
+  nsCOMPtr<nsIContent> content(do_QueryInterface(mDOMNode));
+  NS_ASSERTION(content, "Should not have gotten here if upcalled GetExtState() succeeded");
+
+  if (content->AttrValueIs(kNameSpaceID_None, nsAccessibilityAtoms::type,
+                           nsAccessibilityAtoms::password, eIgnoreCase)) {
+    *aState |= nsIAccessibleStates::STATE_PROTECTED;
+  }
+  else {
+    nsCOMPtr<nsIAccessible> parent;
+    GetParent(getter_AddRefs(parent));
+    if (parent && Role(parent) == nsIAccessibleRole::ROLE_AUTOCOMPLETE) {
+      *aState |= nsIAccessibleStates::STATE_HASPOPUP;
+    }
+  }
+
+  if (content->HasAttr(kNameSpaceID_None, nsAccessibilityAtoms::readonly)) {
+    *aState |= nsIAccessibleStates::STATE_READONLY;
+  }
+
+  return NS_OK;
+}
+
+NS_IMETHODIMP nsHTMLTextFieldAccessible::GetExtState(PRUint32 *aExtState)
+{
+  nsresult rv = nsHyperTextAccessible::GetExtState(aExtState);
+  if (NS_FAILED(rv)) {
+    return rv;
+  }
+
+  nsCOMPtr<nsIDOMHTMLInputElement> htmlInput(do_QueryInterface(mDOMNode, &rv));
+  
+  *aExtState |= htmlInput ? nsIAccessibleStates::EXT_STATE_SINGLE_LINE :
+                            nsIAccessibleStates::EXT_STATE_MULTI_LINE;
+
+  PRUint32 state;
+  GetState(&state);
+  const PRUint32 kNonEditableStates = nsIAccessibleStates::STATE_READONLY |
+                                      nsIAccessibleStates::STATE_UNAVAILABLE;
+  if (0 == (state & kNonEditableStates)) {
+    *aExtState |= nsIAccessibleStates::EXT_STATE_EDITABLE;
+    nsCOMPtr<nsIContent> content = do_QueryInterface(mDOMNode);
+    if (content && (content = content->GetBindingParent()) != nsnull &&
+        content->NodeInfo()->Equals(nsAccessibilityAtoms::textbox, kNameSpaceID_XUL)) {
+      
+      if (content->AttrValueIs(kNameSpaceID_None, nsAccessibilityAtoms::type,
+                               NS_LITERAL_STRING("autocomplete"), eIgnoreCase)) {
+        *aExtState |= nsIAccessibleStates::EXT_STATE_SUPPORTS_AUTOCOMPLETION;
+      }
+    } else if (gIsFormFillEnabled && htmlInput &&
+               !(state & nsIAccessibleStates::STATE_PROTECTED)) {
+      
+      
+      
+      
+      
+      nsAutoString autocomplete;
+      htmlInput->GetAttribute(NS_LITERAL_STRING("autocomplete"), autocomplete);
+      if (!autocomplete.LowerCaseEqualsLiteral("off")) {
+        nsCOMPtr<nsIDOMHTMLFormElement> form;
+        htmlInput->GetForm(getter_AddRefs(form));
+        if (form)
+          form->GetAttribute(NS_LITERAL_STRING("autocomplete"), autocomplete);
+        if (!form || !autocomplete.LowerCaseEqualsLiteral("off")) {
+          *aExtState |= nsIAccessibleStates::EXT_STATE_SUPPORTS_AUTOCOMPLETION;
+        }
+      }
+    }
+  }
+
+  return NS_OK;
+}
+
+NS_IMETHODIMP nsHTMLTextFieldAccessible::GetNumActions(PRUint8 *_retval)
+{
+  *_retval = 1;
+  return NS_OK;;
+}
+
+NS_IMETHODIMP nsHTMLTextFieldAccessible::GetActionName(PRUint8 aIndex, nsAString& aName)
+{
+  if (aIndex == eAction_Click) {
+    aName.AssignLiteral("activate");
+    return NS_OK;
+  }
+  return NS_ERROR_INVALID_ARG;
+}
+
+NS_IMETHODIMP nsHTMLTextFieldAccessible::DoAction(PRUint8 index)
+{
+  if (index == 0) {
+    nsCOMPtr<nsIDOMHTMLInputElement> element(do_QueryInterface(mDOMNode));
+    if ( element )
+    {
+      element->Focus();
+      return NS_OK;
+    }
+    return NS_ERROR_FAILURE;
+  }
+  return NS_ERROR_INVALID_ARG;
+}
+
+void nsHTMLTextFieldAccessible::SetEditor(nsIEditor* aEditor)
+{
+  mEditor = aEditor;
+  if (mEditor)
+    mEditor->AddEditActionListener(this);
+}
+
+void nsHTMLTextFieldAccessible::CheckForEditor()
+{
+  nsCOMPtr<nsIDOMNSEditableElement> editableElt(do_QueryInterface(mDOMNode));
+  if (!editableElt) {
+    return;
+  }
+
+  nsCOMPtr<nsIEditor> editor;
+  nsresult rv = editableElt->GetEditor(getter_AddRefs(editor));
+  if (NS_SUCCEEDED(rv)) {
+    SetEditor(editor);
+  }
+}
+
+
+
+
+
+
+
+nsHTMLGroupboxAccessible::nsHTMLGroupboxAccessible(nsIDOMNode* aNode, nsIWeakReference* aShell):
+nsAccessibleWrap(aNode, aShell)
+{ 
+}
+
+NS_IMETHODIMP nsHTMLGroupboxAccessible::GetRole(PRUint32 *_retval)
+{
+  *_retval = nsIAccessibleRole::ROLE_GROUPING;
+  return NS_OK;
+}
+
+NS_IMETHODIMP nsHTMLGroupboxAccessible::GetState(PRUint32 *_retval)
+{
+  
+  *_retval = 0;
+
+  return NS_OK;
+}
+
+NS_IMETHODIMP nsHTMLGroupboxAccessible::GetName(nsAString& aName)
+{
+  if (mRoleMapEntry) {
+    nsAccessible::GetName(aName);
+    if (!aName.IsEmpty()) {
+      return NS_OK;
+    }
+  }
+
+  nsCOMPtr<nsIDOMElement> element(do_QueryInterface(mDOMNode));
+  if (element) {
+    nsCOMPtr<nsIDOMNodeList> legends;
+    nsAutoString nameSpaceURI;
+    element->GetNamespaceURI(nameSpaceURI);
+    element->GetElementsByTagNameNS(nameSpaceURI, NS_LITERAL_STRING("legend"),
+                                  getter_AddRefs(legends));
+    if (legends) {
+      nsCOMPtr<nsIDOMNode> legendNode;
+      legends->Item(0, getter_AddRefs(legendNode));
+      nsCOMPtr<nsIContent> legendContent(do_QueryInterface(legendNode));
+      if (legendContent) {
+        aName.Truncate();  
+        return AppendFlatStringFromSubtree(legendContent, &aName);
+      }
+    }
+  }
+  return NS_OK;
+}
+
+void nsHTMLGroupboxAccessible::CacheChildren()
+{
+  if (!mWeakShell) {
+    
+    mAccChildCount = eChildCountUninitialized;
+    return;
+  }
+
+  if (mAccChildCount == eChildCountUninitialized) {
+    PRBool allowsAnonChildren = PR_FALSE;
+    GetAllowsAnonChildAccessibles(&allowsAnonChildren);
+    nsAccessibleTreeWalker walker(mWeakShell, mDOMNode, allowsAnonChildren);
+    walker.mState.frame = GetFrame();
+    PRInt32 childCount = 0;
+    walker.GetFirstChild();
+    
+    if (walker.mState.accessible && walker.mState.domNode) {
+      nsCOMPtr<nsIDOMNode> mightBeLegendNode;
+      walker.mState.domNode->GetParentNode(getter_AddRefs(mightBeLegendNode));
+      nsCOMPtr<nsIDOMHTMLLegendElement> legend(do_QueryInterface(mightBeLegendNode));
+      if (legend) {
+        walker.GetNextSibling();      
+      }
+    }
+    SetFirstChild(walker.mState.accessible);
+    nsCOMPtr<nsPIAccessible> privatePrevAccessible;
+    while (walker.mState.accessible) {
+      ++ childCount;
+      privatePrevAccessible = do_QueryInterface(walker.mState.accessible);
+      privatePrevAccessible->SetParent(this);
+      walker.GetNextSibling();
+      privatePrevAccessible->SetNextSibling(walker.mState.accessible);
+    }
+    mAccChildCount = childCount;
+  }
+}

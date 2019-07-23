@@ -1,0 +1,44 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+@namespace url(http://www.w3.org/1999/xhtml); 
+
+embed:-moz-type-unsupported, applet:-moz-type-unsupported,
+object:-moz-has-handlerref:-moz-type-unsupported {
+  -moz-binding: url('chrome://mozapps/content/plugins/missingPlugin.xml#missingPlugin') !important;
+}
+
+

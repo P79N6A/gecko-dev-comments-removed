@@ -1,0 +1,41 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+GOOD { font-variant: normal; }
+GOOD { font-variant: small-caps; }
+BAD { font-variant: green; }
+BAD { font-variant: 120% 240%; }
+BAD { font-variant: medium; }
+BAD { font-variant: "kanji"; }

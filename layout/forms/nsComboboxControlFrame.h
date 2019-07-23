@@ -1,0 +1,268 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifndef nsComboboxControlFrame_h___
+#define nsComboboxControlFrame_h___
+
+#ifdef DEBUG_evaughan
+
+#endif
+
+#ifdef DEBUG_rods
+
+
+
+
+
+#endif
+
+
+#define NS_SKIP_NOTIFY_INDEX -2
+
+#include "nsAreaFrame.h"
+#include "nsIFormControlFrame.h"
+#include "nsIComboboxControlFrame.h"
+#include "nsIAnonymousContentCreator.h"
+#include "nsISelectControlFrame.h"
+#include "nsIRollupListener.h"
+#include "nsPresState.h"
+#include "nsCSSFrameConstructor.h"
+#include "nsIScrollableViewProvider.h"
+#include "nsIStatefulFrame.h"
+#include "nsIDOMMouseListener.h"
+#include "nsThreadUtils.h"
+
+class nsIView;
+class nsStyleContext;
+class nsIListControlFrame;
+class nsIScrollableView;
+class nsComboboxDisplayFrame;
+
+
+
+
+
+#define NS_COMBO_FRAME_POPUP_LIST_INDEX   (NS_BLOCK_FRAME_ABSOLUTE_LIST_INDEX + 1)
+
+class nsComboboxControlFrame : public nsAreaFrame,
+                               public nsIFormControlFrame,
+                               public nsIComboboxControlFrame,
+                               public nsIAnonymousContentCreator,
+                               public nsISelectControlFrame,
+                               public nsIRollupListener,
+                               public nsIScrollableViewProvider,
+                               public nsIStatefulFrame
+{
+public:
+  friend nsIFrame* NS_NewComboboxControlFrame(nsIPresShell* aPresShell, nsStyleContext* aContext, PRUint32 aFlags);
+  friend class nsComboboxDisplayFrame;
+
+  nsComboboxControlFrame(nsStyleContext* aContext);
+  ~nsComboboxControlFrame();
+
+  
+  NS_IMETHOD QueryInterface(const nsIID& aIID, void** aInstancePtr);
+
+  
+  virtual nsresult CreateAnonymousContent(nsTArray<nsIContent*>& aElements);
+  virtual nsIFrame* CreateFrameFor(nsIContent* aContent);
+
+#ifdef ACCESSIBILITY
+  NS_IMETHOD GetAccessible(nsIAccessible** aAccessible);
+#endif
+
+  virtual nscoord GetMinWidth(nsIRenderingContext *aRenderingContext);
+
+  virtual nscoord GetPrefWidth(nsIRenderingContext *aRenderingContext);
+
+  NS_IMETHOD Reflow(nsPresContext*          aCX,
+                    nsHTMLReflowMetrics&     aDesiredSize,
+                    const nsHTMLReflowState& aReflowState,
+                    nsReflowStatus&          aStatus);
+
+  NS_IMETHOD HandleEvent(nsPresContext* aPresContext,
+                         nsGUIEvent* aEvent,
+                         nsEventStatus* aEventStatus);
+
+  NS_IMETHOD BuildDisplayList(nsDisplayListBuilder*   aBuilder,
+                              const nsRect&           aDirtyRect,
+                              const nsDisplayListSet& aLists);
+
+  void PaintFocus(nsIRenderingContext& aRenderingContext, nsPoint aPt);
+
+  
+  
+  
+  virtual nsIAtom* GetType() const;
+
+  virtual PRBool IsFrameOfType(PRUint32 aFlags) const
+  {
+    return nsAreaFrame::IsFrameOfType(aFlags &
+      ~(nsIFrame::eReplaced | nsIFrame::eReplacedContainsBlock));
+  }
+
+#ifdef NS_DEBUG
+  NS_IMETHOD GetFrameName(nsAString& aResult) const;
+#endif
+  virtual void Destroy();
+  virtual nsIFrame* GetFirstChild(nsIAtom* aListName) const;
+  NS_IMETHOD SetInitialChildList(nsIAtom*        aListName,
+                                 nsIFrame*       aChildList);
+  virtual nsIAtom* GetAdditionalChildListName(PRInt32 aIndex) const;
+
+  virtual nsIFrame* GetContentInsertionFrame();
+
+  
+  virtual nsresult SetFormProperty(nsIAtom* aName, const nsAString& aValue);
+  virtual nsresult GetFormProperty(nsIAtom* aName, nsAString& aValue) const; 
+  virtual void SetFocus(PRBool aOn, PRBool aRepaint);
+
+  
+  virtual PRBool IsDroppedDown() { return mDroppedDown; }
+  virtual void ShowDropDown(PRBool aDoDropDown);
+  virtual nsIFrame* GetDropDown();
+  virtual void SetDropDown(nsIFrame* aDropDownFrame);
+  virtual void RollupFromList();
+  virtual void AbsolutelyPositionDropDown();
+  virtual PRInt32 GetIndexOfDisplayArea();
+  NS_IMETHOD RedisplaySelectedText();
+  virtual PRInt32 UpdateRecentIndex(PRInt32 aIndex);
+  virtual void OnContentReset();
+
+  
+  NS_IMETHOD AddOption(nsPresContext* aPresContext, PRInt32 index);
+  NS_IMETHOD RemoveOption(nsPresContext* aPresContext, PRInt32 index);
+  NS_IMETHOD GetOptionSelected(PRInt32 aIndex, PRBool* aValue);
+  NS_IMETHOD DoneAddingChildren(PRBool aIsDone);
+  NS_IMETHOD OnOptionSelected(nsPresContext* aPresContext,
+                              PRInt32 aIndex,
+                              PRBool aSelected);
+  NS_IMETHOD OnSetSelectedIndex(PRInt32 aOldIndex, PRInt32 aNewIndex);
+
+  
+  
+  NS_IMETHOD Rollup();
+   
+   
+  NS_IMETHOD ShouldRollupOnMouseWheelEvent(PRBool *aShouldRollup)
+    { *aShouldRollup = PR_TRUE; return NS_OK;}
+  
+  
+
+  
+  NS_IMETHOD ShouldRollupOnMouseActivate(PRBool *aShouldRollup)
+    { *aShouldRollup = PR_FALSE; return NS_OK;}
+
+  
+  virtual nsIScrollableView* GetScrollableView();
+
+  
+  NS_IMETHOD SaveState(SpecialStateID aStateID, nsPresState** aState);
+  NS_IMETHOD RestoreState(nsPresState* aState);
+
+  static PRBool ToolkitHasNativePopup();
+
+protected:
+
+  
+  nsresult ReflowDropdown(nsPresContext*          aPresContext, 
+                          const nsHTMLReflowState& aReflowState);
+
+protected:
+  class RedisplayTextEvent;
+  friend class RedisplayTextEvent;
+
+  class RedisplayTextEvent : public nsRunnable {
+  public:
+    NS_DECL_NSIRUNNABLE
+    RedisplayTextEvent(nsComboboxControlFrame *c) : mControlFrame(c) {}
+    void Revoke() { mControlFrame = nsnull; }
+  private:
+    nsComboboxControlFrame *mControlFrame;
+  };
+  
+  void ShowPopup(PRBool aShowPopup);
+  void ShowList(nsPresContext* aPresContext, PRBool aShowList);
+  void CheckFireOnChange();
+  void FireValueChangeEvent();
+  nsresult RedisplayText(PRInt32 aIndex);
+  void HandleRedisplayTextEvent();
+  void ActuallyDisplayText(PRBool aNotify);
+  NS_IMETHOD ToggleList(nsPresContext* aPresContext);
+
+  nsFrameList              mPopupFrames;             
+  nsCOMPtr<nsIContent>     mDisplayContent;          
+  nsCOMPtr<nsIContent>     mButtonContent;           
+  nsIFrame*                mDisplayFrame;            
+  nsIFrame*                mButtonFrame;             
+  nsIFrame*                mDropdownFrame;           
+  nsIFrame*                mTextFrame;               
+  nsIListControlFrame *    mListControlFrame;        
+
+  
+  
+  nscoord mDisplayWidth;
+  
+  PRPackedBool          mDroppedDown;             
+  PRPackedBool          mInRedisplayText;
+
+  nsRevocableEventPtr<RedisplayTextEvent> mRedisplayTextEvent;
+
+  PRInt32               mRecentSelectedIndex;
+  PRInt32               mDisplayedIndex;
+  nsString              mDisplayedOptionText;
+
+  
+  
+  nsCOMPtr<nsIDOMMouseListener> mButtonListener;
+
+  
+  
+  static nsComboboxControlFrame * mFocused;
+
+#ifdef DO_REFLOW_COUNTER
+  PRInt32 mReflowId;
+#endif
+
+private:
+  NS_IMETHOD_(nsrefcnt) AddRef() { return NS_OK; }
+  NS_IMETHOD_(nsrefcnt) Release() { return NS_OK; }
+};
+
+#endif

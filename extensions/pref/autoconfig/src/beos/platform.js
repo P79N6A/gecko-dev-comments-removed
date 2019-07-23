@@ -1,0 +1,2 @@
+
+platform.value = "beos";

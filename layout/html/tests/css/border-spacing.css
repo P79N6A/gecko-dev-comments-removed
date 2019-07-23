@@ -1,0 +1,43 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+GOOD { border-spacing: inherit; } 
+GOOD { border-spacing: 15pt; } 
+GOOD { border-spacing: 5ex 2em; } 
+BAD { border-spacing: -3px; }
+BAD { border-spacing: 5; }
+BAD { border-spacing: 1in -5pc; }

@@ -1,0 +1,54 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+@namespace xlink url(http://www.w3.org/1999/xlink);
+
+root {
+  display: block;
+  padding: +5px;
+}
+
+p {
+  display: block;
+}
+
+mylink {
+  display: block;
+  cursor: pointer;
+  color: blue;
+  text-decoration: underline;
+}
+

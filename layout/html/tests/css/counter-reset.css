@@ -1,0 +1,47 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+GOOD { counter-reset: inherit } 
+GOOD { counter-reset: none; } 
+GOOD { counter-reset: rabbit; } 
+GOOD { counter-reset: rabbit 1; } 
+GOOD { counter-reset: rabbit 942 } 
+GOOD { counter-reset: rabbit -12; } 
+GOOD { counter-reset: rabbit 0 } 
+BAD { counter-reset: none to inherit }
+BAD { counter-reset: cooler 4 5 -1; }

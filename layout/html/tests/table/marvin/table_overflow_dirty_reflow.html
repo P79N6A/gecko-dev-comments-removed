@@ -1,0 +1,89 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN"
+            "http://www.w3.org/TR/html4/strict.dtd">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"> 
+<title>testscase for table overflow handling - dirty reflow due to caption removal</title>
+<style type="text/css">
+table { 
+  width:200px;
+  background-color:blue;
+}
+#spacer {
+height:100px;
+}
+#outer { 
+   width:50px;
+   height:50px;
+   background-color:green;
+}
+#inner { 
+   width:400px;
+   height:300px;
+   background-color:red;
+}
+#target {
+  vertical-align:top;
+}
+caption {caption-side:top;
+background-color:orange;}
+</style>
+<script type="text/javascript">
+function domfunc(){
+var table= document.getElementById("t1");
+var caption= document.getElementById("c1");
+ table.removeChild(caption);
+}
+</script>
+
+</head>
+
+<body  onload="domfunc()">
+<table  id="t1" cellspacing="0" cellpadding="0">
+<caption id="c1">
+cap
+</caption>
+ <tr>
+  <td id="spacer">foo</td>
+  <td id="target"><div id="outer"><div id="inner">d</div></div></td>
+ </tr>
+</table>
+
+</body>
+
+</html>
