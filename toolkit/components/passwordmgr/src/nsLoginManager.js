@@ -84,6 +84,15 @@ LoginManager.prototype = {
     },
 
 
+    __observerService : null, 
+    get _observerService() {
+        if (!this.__observerService)
+            this.__observerService = Cc["@mozilla.org/observer-service;1"].
+                                     getService(Ci.nsIObserverService);
+        return this.__observerService;
+    },
+
+
     __storage : null, 
     get _storage() {
         if (!this.__storage) {
@@ -155,10 +164,8 @@ LoginManager.prototype = {
 
 
         
-        var observerService = Cc["@mozilla.org/observer-service;1"].
-                              getService(Ci.nsIObserverService);
-        observerService.addObserver(this._observer, "earlyformsubmit", false);
-        observerService.addObserver(this._observer, "xpcom-shutdown", false);
+        this._observerService.addObserver(this._observer, "earlyformsubmit", false);
+        this._observerService.addObserver(this._observer, "xpcom-shutdown", false);
 
         
         var progress = Cc["@mozilla.org/docloaderservice;1"].
@@ -966,7 +973,7 @@ LoginManager.prototype = {
                 previousActionOrigin = actionOrigin;
             }
             this.log("_fillDocument processing form[" + i + "]");
-            foundLogins = this._fillForm(form, autofillForm, foundLogins);
+            foundLogins = this._fillForm(form, autofillForm, false, foundLogins)[1];
         } 
     },
 
@@ -979,7 +986,11 @@ LoginManager.prototype = {
 
 
 
-    _fillForm : function (form, autofillForm, foundLogins) {
+
+
+
+
+    _fillForm : function (form, autofillForm, ignoreAutocomplete, foundLogins) {
         
         
         
@@ -989,7 +1000,7 @@ LoginManager.prototype = {
 
         
         if (passwordField == null)
-            return foundLogins;
+            return [false, foundLogins];
 
         
         if (foundLogins == null) {
@@ -1027,7 +1038,7 @@ LoginManager.prototype = {
 
         
         if (logins.length == 0)
-            return foundLogins;
+            return [false, foundLogins];
 
 
         
@@ -1041,55 +1052,72 @@ LoginManager.prototype = {
         
         
         var isFormDisabled = false;
-        if (this._isAutocompleteDisabled(form) ||
-            this._isAutocompleteDisabled(usernameField) ||
-            this._isAutocompleteDisabled(passwordField)) {
+        if (!ignoreAutocomplete &&
+            (this._isAutocompleteDisabled(form) ||
+             this._isAutocompleteDisabled(usernameField) ||
+             this._isAutocompleteDisabled(passwordField))) {
 
             isFormDisabled = true;
             this.log("form not filled, has autocomplete=off");
         }
 
-        if (autofillForm && !isFormDisabled) {
+        
+        
+        var selectedLogin = null;
 
-            if (usernameField && usernameField.value) {
-                
-                
+        if (usernameField && usernameField.value) {
+            
+            
 
-                var username = usernameField.value;
+            var username = usernameField.value;
 
-                var matchingLogin;
-                var found = logins.some(function(l) {
-                                            matchingLogin = l;
-                                            return (l.username == username);
-                                        });
-                if (found)
-                    passwordField.value = matchingLogin.password;
-                else
-                    this.log("Password not filled. None of the stored " +
-                             "logins match the username already present.");
+            var matchingLogin;
+            var found = logins.some(function(l) {
+                                        matchingLogin = l;
+                                        return (l.username == username);
+                                    });
+            if (found)
+                selectedLogin = matchingLogin;
+            else
+                this.log("Password not filled. None of the stored " +
+                         "logins match the username already present.");
 
-            } else if (usernameField && logins.length == 2) {
-                
-                
-                
-                
-                
-                if (!logins[0].username && logins[1].username) {
-                    usernameField.value = logins[1].username;
-                    passwordField.value = logins[1].password;
-                } else if (!logins[1].username && logins[0].username) {
-                    usernameField.value = logins[0].username;
-                    passwordField.value = logins[0].password;
-                }
-            } else if (logins.length == 1) {
-                if (usernameField)
-                    usernameField.value = logins[0].username;
-                passwordField.value = logins[0].password;
-            } else {
-                this.log("Multiple logins for form, so not filling any.");
-            }
+        } else if (usernameField && logins.length == 2) {
+            
+            
+            
+            
+            
+            if (!logins[0].username && logins[1].username)
+                selectedLogin = logins[1];
+            else if (!logins[1].username && logins[0].username)
+                selectedLogin = logins[0];
+        } else if (logins.length == 1) {
+            selectedLogin = logins[0];
+        } else {
+            this.log("Multiple logins for form, so not filling any.");
         }
-        return foundLogins;
+
+        var didFillForm = false;
+        if (selectedLogin && autofillForm && !isFormDisabled) {
+            
+            if (usernameField)
+                usernameField.value = selectedLogin.username;
+            passwordField.value = selectedLogin.password;
+            didFillForm = true;
+        } else if (selectedLogin && !autofillForm) {
+            
+            
+            this._observerService.notifyObservers(form, "passwordmgr-found-form", "noAutofillForms");
+            this.log("autofillForms=false but form can be filled; notified observers");
+        } else if (selectedLogin && isFormDisabled) {
+            
+            
+            this._observerService.notifyObservers(form, "passwordmgr-found-form", "autocompleteOff");
+            this.log("autocomplete=off but form can be filled; notified observers");
+        }
+
+        return [didFillForm, foundLogins];
     },
 
 
@@ -1100,7 +1128,7 @@ LoginManager.prototype = {
 
     fillForm : function (form) {
         this.log("fillForm processing form[id=" + form.id + "]");
-        this._fillForm(form, true, null)
+        return this._fillForm(form, true, true, null)[0];
     },
 
 
