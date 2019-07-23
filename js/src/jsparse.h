@@ -729,12 +729,20 @@ JSParseNode::isFunArg() const
 inline void
 JSParseNode::setFunArg()
 {
-    if (pn_defn) {
-        ((JSDefinition *)this)->pn_dflags |= PND_FUNARG;
-    } else if (pn_used) {
+    
+
+
+
+
+
+
+
+
+
+    JS_ASSERT(!(pn_defn & pn_used));
+    if (pn_used)
         pn_lexdef->pn_dflags |= PND_FUNARG;
-        pn_dflags |= PND_FUNARG;
-    }
+    pn_dflags |= PND_FUNARG;
 }
 
 struct JSObjectBox {
@@ -784,7 +792,7 @@ struct JSFunctionBoxQueue {
     JSFunctionBox *pull() {
         if (tail == head)
             return NULL;
-        JS_ASSERT(tail != head);
+        JS_ASSERT(tail < head);
         JSFunctionBox *funbox = vector[tail++ & lengthMask];
         funbox->queued = false;
         return funbox;
