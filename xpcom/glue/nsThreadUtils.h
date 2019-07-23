@@ -262,21 +262,6 @@ protected:
 #undef  IMETHOD_VISIBILITY
 #define IMETHOD_VISIBILITY NS_VISIBILITY_HIDDEN
 
-template <class ClassType, bool Owning>
-struct RunnableMethodReceiver {
-  ClassType *mObj;
-  RunnableMethodReceiver(ClassType *obj) : mObj(obj) { NS_IF_ADDREF(mObj); }
- ~RunnableMethodReceiver() { Revoke(); }
-  void Revoke() { NS_IF_RELEASE(mObj); }
-};
-
-template <class ClassType>
-struct RunnableMethodReceiver<ClassType, false> {
-  ClassType *mObj;
-  RunnableMethodReceiver(ClassType *obj) : mObj(obj) {}
-  void Revoke() { mObj = nsnull; }
-};
-
 
 
 
@@ -286,23 +271,7 @@ template <class ClassType,
 class nsRunnableMethod : public nsRunnable
 {
 public:
-  typedef ReturnType (ClassType::*Method)();
-
-  nsRunnableMethod(ClassType *obj, Method method)
-    : mReceiver(obj)
-    , mMethod(method)
-  {}
-
-  NS_IMETHOD Run() {
-    if (!mReceiver.mObj)
-      return NS_OK;
-    (mReceiver.mObj->*mMethod)();
-    return NS_OK;
-  }
-
-  void Revoke() {
-    mReceiver.Revoke();
-  }
+  virtual void Revoke() = 0;
 
   
   
@@ -322,15 +291,65 @@ public:
 
   
   typedef typename ReturnTypeEnforcer<ReturnType>::ReturnTypeIsSafe check;
+};
 
-protected:
-  virtual ~nsRunnableMethod() {
-    Revoke();
+template <class ClassType, bool Owning>
+struct nsRunnableMethodReceiver {
+  ClassType *mObj;
+  nsRunnableMethodReceiver(ClassType *obj) : mObj(obj) { NS_IF_ADDREF(mObj); }
+ ~nsRunnableMethodReceiver() { Revoke(); }
+  void Revoke() { NS_IF_RELEASE(mObj); }
+};
+
+template <class ClassType>
+struct nsRunnableMethodReceiver<ClassType, false> {
+  ClassType *mObj;
+  nsRunnableMethodReceiver(ClassType *obj) : mObj(obj) {}
+  void Revoke() { mObj = nsnull; }
+};
+
+template <typename Method, bool Owning> struct nsRunnableMethodTraits;
+
+template <class C, typename R, bool Owning>
+struct nsRunnableMethodTraits<R (C::*)(), Owning> {
+  typedef C class_type;
+  typedef R return_type;
+  typedef nsRunnableMethod<C, R, Owning> base_type;
+};
+
+#ifdef HAVE_STDCALL
+template <class C, typename R, bool Owning>
+struct nsRunnableMethodTraits<R (__stdcall C::*)(), Owning> {
+  typedef C class_type;
+  typedef R return_type;
+  typedef nsRunnableMethod<C, R, Owning> base_type;
+};
+#endif
+
+template <typename Method, bool Owning>
+class nsRunnableMethodImpl
+  : public nsRunnableMethodTraits<Method, Owning>::base_type
+{
+  typedef typename nsRunnableMethodTraits<Method, Owning>::class_type ClassType;
+  nsRunnableMethodReceiver<ClassType, Owning> mReceiver;
+  Method mMethod;
+
+public:
+  nsRunnableMethodImpl(ClassType *obj,
+                       Method method)
+    : mReceiver(obj)
+    , mMethod(method)
+  {}
+
+  NS_IMETHOD Run() {
+    if (NS_LIKELY(mReceiver.mObj))
+      ((*mReceiver.mObj).*mMethod)();
+    return NS_OK;
   }
 
-private:
-  RunnableMethodReceiver<ClassType, Owning> mReceiver;
-  Method mMethod;
+  void Revoke() {
+    mReceiver.Revoke();
+  }
 };
 
 
@@ -343,17 +362,20 @@ private:
 
 
 
-
-
-
-#define NS_NEW_RUNNABLE_METHOD(class_, obj_, method_) \
-    ns_new_runnable_method(obj_, &class_::method_)
-
-template<class ClassType, typename ReturnType>
-nsRunnableMethod<ClassType, ReturnType>*
-ns_new_runnable_method(ClassType* obj, ReturnType (ClassType::*method)())
+template<typename PtrType, typename Method>
+NS_COM_GLUE
+typename nsRunnableMethodTraits<Method, true>::base_type*
+NS_NewRunnableMethod(PtrType ptr, Method method)
 {
-  return new nsRunnableMethod<ClassType, ReturnType>(obj, method);
+  return new nsRunnableMethodImpl<Method, true>(ptr, method);
+}
+
+template<typename PtrType, typename Method>
+NS_COM_GLUE
+typename nsRunnableMethodTraits<Method, false>::base_type*
+NS_NewNonOwningRunnableMethod(PtrType ptr, Method method)
+{
+  return new nsRunnableMethodImpl<Method, false>(ptr, method);
 }
 
 #endif  
