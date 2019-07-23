@@ -543,14 +543,13 @@ js_CompileScript(JSContext *cx, JSObject *scopeChain, JSStackFrame *callerFrame,
     cg.treeContext.u.scopeChain = scopeChain;
     cg.staticDepth = TCF_GET_STATIC_DEPTH(tcflags);
 
-    if (callerFrame && (tcflags & TCF_COMPILE_N_GO)) {
+    if ((tcflags & TCF_COMPILE_N_GO) && callerFrame && callerFrame->fun) {
         
 
 
 
 
-        JSParsedObjectBox *pob;
-        pob = js_NewParsedObjectBox(cx, &pc, FUN_OBJECT(callerFrame->fun));
+        JSParsedObjectBox *pob = js_NewParsedObjectBox(cx, &pc, callerFrame->callee);
         pob->emitLink = cg.objectList.lastPob;
         cg.objectList.lastPob = pob;
         cg.objectList.length++;
