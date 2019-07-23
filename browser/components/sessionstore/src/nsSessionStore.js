@@ -483,10 +483,6 @@ SessionStoreService.prototype = {
     tabbrowser.removeEventListener("TabClose", this, true);
     tabbrowser.removeEventListener("TabSelect", this, true);
     
-    for (var i = 0; i < tabpanels.childNodes.length; i++) {
-      this.onTabRemove(aWindow, tabpanels.childNodes[i], true);
-    }
-    
     if (this._loadState == STATE_RUNNING) { 
       
       this._collectWindowData(aWindow);
@@ -501,6 +497,10 @@ SessionStoreService.prototype = {
       
       
       this.saveStateDelayed();
+    }
+    
+    for (var i = 0; i < tabpanels.childNodes.length; i++) {
+      this.onTabRemove(aWindow, tabpanels.childNodes[i], true);
     }
     
     
