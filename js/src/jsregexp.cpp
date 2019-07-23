@@ -2224,6 +2224,15 @@ class RegExpNativeCompiler {
         return pos;
     }
 
+#ifdef AVMPLUS_ARM
+
+
+
+#undef USE_DOUBLE_CHAR_MATCH
+#else
+#define USE_DOUBLE_CHAR_MATCH
+#endif
+
     JSBool compileNode(RENode* node, LIns* pos, LInsList& fails) 
     {
         for (; node; node = node->next) {
@@ -2235,6 +2244,7 @@ class RegExpNativeCompiler {
                 pos = compileEmpty(node, pos, fails);
                 break;
             case REOP_FLAT:
+#ifdef USE_DOUBLE_CHAR_MATCH
                 if (node->u.flat.length == 1) {
                     if (node->next && node->next->op == REOP_FLAT && 
                         node->next->u.flat.length == 1) {
@@ -2258,6 +2268,14 @@ class RegExpNativeCompiler {
                    if (pos && i == node->u.flat.length - 1)
                        pos = compileFlatSingleChar(((jschar*) node->kid)[i], pos, fails);
                 }
+#else
+                for (size_t i = 0; i < node->u.flat.length; i++) {
+                    if (fragment->lirbuf->outOMem()) 
+                        return JS_FALSE;
+                    pos = compileFlatSingleChar(((jschar*) node->kid)[i], pos, fails);
+                    if (!pos) break;
+                }
+#endif
                 break;
             case REOP_ALT:
             case REOP_ALTPREREQ:

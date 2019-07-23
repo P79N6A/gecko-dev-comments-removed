@@ -2705,8 +2705,5 @@ pref("network.tcp.sendbuffer", 131072);
 #endif
 
 #ifdef WINCE
-
-
-pref("javascript.options.jit.content",      false);
 pref("mozilla.widget.disable-native-theme", true);
 #endif

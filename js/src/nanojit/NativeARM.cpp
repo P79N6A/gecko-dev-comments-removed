@@ -178,6 +178,19 @@ Assembler::genEpilogue()
     return _nIns;
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
 void
 Assembler::asm_call(LInsp ins)
 {
@@ -193,11 +206,12 @@ Assembler::asm_call(LInsp ins)
 #endif
     atypes >>= 2;
 
-    
-    
-    
-    
     bool arg0IsInt32FollowedByFloat = false;
+#ifndef UNDER_CE
+    
+    
+    
+    
     while ((atypes & 3) != ARGSIZE_NONE) {
         if (((atypes >> 2) & 3) == ARGSIZE_LO &&
             ((atypes >> 0) & 3) == ARGSIZE_F &&
@@ -208,6 +222,7 @@ Assembler::asm_call(LInsp ins)
         }
         atypes >>= 2;
     }
+#endif
 
 #ifdef NJ_ARM_VFP
     if (rsize == ARGSIZE_F) {
@@ -244,6 +259,21 @@ Assembler::asm_call(LInsp ins)
         Register r = (i + roffset) < 4 ? argRegs[i+roffset] : UnknownReg;
 #ifdef NJ_ARM_VFP
         if (sz == ARGSIZE_F) {
+#ifdef UNDER_CE
+            if (r >= R0 && r <= R2) {
+                
+                roffset++;
+                FMRRD(r, nextreg(r), sr);
+            } else if (r == R3) {
+                
+                
+                STR_preindex(Scratch, SP, -4);
+                FMRDL(Scratch, sr);
+                FMRDH(r, sr);
+            } else {
+                asm_pusharg(arg);
+            }
+#else
             if (r == R0 || r == R2) {
                 roffset++;
             } else if (r == R1) {
@@ -263,6 +293,7 @@ Assembler::asm_call(LInsp ins)
             } else {
                 asm_pusharg(arg);
             }
+#endif
         } else {
             asm_arg(sz, arg, r);
         }
@@ -271,6 +302,7 @@ Assembler::asm_call(LInsp ins)
         asm_arg(sz, arg, r);
 #endif
 
+        
         if (i == 0 && arg0IsInt32FollowedByFloat)
             roffset = 1;
     }
@@ -1373,14 +1405,24 @@ Assembler::asm_ld(LInsp ins)
     Register rr = prepResultReg(ins, GpRegs);
     int d = disp->constval();
     Register ra = getBaseReg(base, d, GpRegs);
-    if (op == LIR_ld || op == LIR_ldc)
+
+    
+    if (op == LIR_ld || op == LIR_ldc) {
         LD(rr, d, ra);
-    else if (op == LIR_ldcb)
-        LDRB(rr, d, ra);
-    else if (op == LIR_ldcs)
+        return;
+    }
+
+    
+    if (op == LIR_ldcs) {
         LDRH(rr, d, ra);
-    else
-        NanoAssertMsg(0, "Unsupported instruction in asm_ld");
+    }
+
+    
+    if (op == LIR_ldcb) {
+        LDRB(rr, d, ra);
+    }
+
+    NanoAssertMsg(0, "Unsupported instruction in asm_ld");
 }
 
 void
