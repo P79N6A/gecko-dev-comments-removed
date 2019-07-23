@@ -383,12 +383,21 @@ js_IsArrayLike(JSContext *cx, JSObject *obj, JSBool *answerp, jsuint *lengthp)
 
 
 
+
+
+
+
+
+
 static JSBool
 array_length_getter(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 {
-    *vp = (OBJ_GET_CLASS(cx, obj) == &js_ArrayClass)
-          ? STOBJ_GET_SLOT(obj, JSSLOT_ARRAY_LENGTH)
-          : JSVAL_ZERO;
+    do {
+        if (OBJ_GET_CLASS(cx, obj) == &js_ArrayClass) {
+            *vp = STOBJ_GET_SLOT(obj, JSSLOT_ARRAY_LENGTH);
+            break;
+        }
+    } while ((obj = OBJ_GET_PROTO(cx, obj)) != NULL);
     return JS_TRUE;
 }
 
@@ -401,7 +410,13 @@ array_length_setter(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
     JSTempValueRooter tvr;
     JSBool ok;
 
-    JS_ASSERT(OBJ_GET_CLASS(cx, obj) == &js_ArrayClass);
+    if (OBJ_GET_CLASS(cx, obj) != &js_ArrayClass) {
+        jsid lengthId = ATOM_TO_JSID(cx->runtime->atomState.lengthAtom);
+
+        return OBJ_DEFINE_PROPERTY(cx, obj, lengthId, *vp, NULL, NULL,
+                                   JSPROP_ENUMERATE, NULL);
+    }
+
     if (!ValueIsLength(cx, *vp, &newlen))
         return JS_FALSE;
     if (!js_GetLengthProperty(cx, obj, &oldlen))
