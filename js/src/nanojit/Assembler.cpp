@@ -1027,7 +1027,9 @@ namespace nanojit
 	void Assembler::gen(LirFilter* reader,  NInsList& loopJumps)
 	{
 		
-		NanoAssert(reader->pos()->isop(LIR_x) || reader->pos()->isop(LIR_loop));
+		NanoAssert(reader->pos()->isop(LIR_x) ||
+		           reader->pos()->isop(LIR_loop) ||
+		           reader->pos()->isop(LIR_ret));
 		 
 		for (LInsp ins = reader->read(); ins != 0 && !error(); ins = reader->read())
 		{
