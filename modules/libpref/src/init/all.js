@@ -2763,6 +2763,8 @@ pref("image.http.accept", "image/png,image/*;q=0.8,*/*;q=0.5");
 
 
 pref("webgl.enabled_for_all_sites", false);
+pref("webgl.software_render", false);
+pref("webgl.osmesalib", "");
 
 #ifdef XP_WIN
 #ifndef WINCE
