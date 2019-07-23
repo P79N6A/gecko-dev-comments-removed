@@ -27,11 +27,12 @@ function run_test() {
   pm.add(permURI, "test/expiration-perm-nexp", 1, pm.EXPIRE_NEVER, 0);
 
   
-  do_check_eq(0, pm.testPermission(permURI, "test/expiration-perm-exp"));
-
-  
   do_check_eq(1, pm.testPermission(permURI, "test/expiration-perm-exp3"));
   do_check_eq(1, pm.testPermission(permURI, "test/expiration-perm-nexp"));
+
+  
+  do_test_pending();
+  do_timeout(10, "verifyFirstExpiration();");
 
   
   do_test_pending();
@@ -40,6 +41,11 @@ function run_test() {
   
   do_test_pending();
   do_timeout(300, "end_test();");
+}
+
+function verifyFirstExpiration() { 
+  do_check_eq(0, pm.testPermission(permURI, "test/expiration-perm-exp"));
+  do_test_finished();
 }
 
 function verifyExpiration() { 
