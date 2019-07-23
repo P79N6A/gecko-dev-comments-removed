@@ -431,8 +431,7 @@ nsSVGPatternFrame::GetReferencedPattern()
   if (!property) {
     
     nsSVGPatternElement *pattern = static_cast<nsSVGPatternElement *>(mContent);
-    nsAutoString href;
-    pattern->mStringAttributes[nsSVGPatternElement::HREF].GetAnimValue(href, pattern);
+    const nsString &href = pattern->mStringAttributes[nsSVGPatternElement::HREF].GetAnimValue();
     if (href.IsEmpty()) {
       mNoHRefURI = PR_TRUE;
       return nsnull; 
