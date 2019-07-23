@@ -572,11 +572,14 @@ oggz_seek_guess (ogg_int64_t unit_at, ogg_int64_t unit_target,
 static oggz_off_t
 oggz_offset_end (OGGZ * oggz)
 {
+#ifndef WINCE
   int fd;
   struct stat statbuf;
+#endif
   oggz_off_t offset_end = -1;
 
   if (oggz->file != NULL) {
+#ifndef WINCE
     if ((fd = fileno (oggz->file)) == -1) {
       
       return -1;
@@ -598,6 +601,12 @@ oggz_offset_end (OGGZ * oggz)
       
       
     }
+#else
+    int current = ftell(oggz->file);
+    fseek (oggz->file, 0, SEEK_END);
+    offset_end = ftell (oggz->file);
+    fseek (oggz->file, current, SEEK_SET);
+#endif
   } else {
     oggz_off_t offset_save;
 
