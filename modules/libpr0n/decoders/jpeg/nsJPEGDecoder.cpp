@@ -565,7 +565,12 @@ nsresult nsJPEGDecoder::ProcessData(const char *data, PRUint32 count, PRUint32 *
     {
       LOG_SCOPE(gJPEGlog, "nsJPEGDecoder::ProcessData -- JPEG_DECOMPRESS_SEQUENTIAL case");
       
-      if (!OutputScanlines()) {
+      PRBool suspend;
+      nsresult rv = OutputScanlines(&suspend);
+      if (NS_FAILED(rv))
+        return rv;
+      
+      if (suspend) {
         PR_LOG(gJPEGDecoderAccountingLog, PR_LOG_DEBUG,
                ("} (I/O suspension after OutputScanlines() - SEQUENTIAL)"));
         return NS_OK; 
@@ -611,7 +616,12 @@ nsresult nsJPEGDecoder::ProcessData(const char *data, PRUint32 count, PRUint32 *
         if (mInfo.output_scanline == 0xffffff)
           mInfo.output_scanline = 0;
 
-        if (!OutputScanlines()) {
+        PRBool suspend;
+        nsresult rv = OutputScanlines(&suspend);
+        if (NS_FAILED(rv))
+          return rv;
+
+        if (suspend) {
           if (mInfo.output_scanline == 0) {
             
 
@@ -688,11 +698,13 @@ nsresult nsJPEGDecoder::ProcessData(const char *data, PRUint32 count, PRUint32 *
 }
 
 
-PRBool
-nsJPEGDecoder::OutputScanlines()
+nsresult
+nsJPEGDecoder::OutputScanlines(PRBool* suspend)
 {
+  *suspend = PR_FALSE;
+
   const PRUint32 top = mInfo.output_scanline;
-  PRBool rv = PR_TRUE;
+  nsresult rv = NS_OK;
 
   mFrame->LockImageData();
   
@@ -709,7 +721,7 @@ nsJPEGDecoder::OutputScanlines()
       if (mInfo.cconvert->color_convert == ycc_rgb_convert_argb) {
         
         if (jpeg_read_scanlines(&mInfo, (JSAMPARRAY)&imageRow, 1) != 1) {
-          rv = PR_FALSE; 
+          *suspend = PR_TRUE; 
           break;
         }
         continue; 
@@ -723,7 +735,7 @@ nsJPEGDecoder::OutputScanlines()
 
           
       if (jpeg_read_scanlines(&mInfo, &sampleRow, 1) != 1) {
-        rv = PR_FALSE; 
+        *suspend = PR_TRUE; 
         break;
       }
 
@@ -787,7 +799,7 @@ nsJPEGDecoder::OutputScanlines()
   if (top != mInfo.output_scanline) {
       nsIntRect r(0, top, mInfo.output_width, mInfo.output_scanline-top);
       nsCOMPtr<nsIImage> img(do_GetInterface(mFrame));
-      img->ImageUpdated(nsnull, nsImageUpdateFlags_kBitsChanged, &r);
+      rv = img->ImageUpdated(nsnull, nsImageUpdateFlags_kBitsChanged, &r);
       mObserver->OnDataAvailable(nsnull, mFrame, &r);
   }
   

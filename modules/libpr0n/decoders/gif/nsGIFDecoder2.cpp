@@ -199,14 +199,17 @@ static NS_METHOD ReadDataOut(nsIInputStream* in,
 
 
 
-void
+nsresult
 nsGIFDecoder2::FlushImageData(PRUint32 fromRow, PRUint32 rows)
 {
   nsIntRect r(0, fromRow, mGIFStruct.screen_width, rows);
 
   
   nsCOMPtr<nsIImage> img(do_GetInterface(mImageFrame));
-  img->ImageUpdated(nsnull, nsImageUpdateFlags_kBitsChanged, &r);
+  nsresult rv = img->ImageUpdated(nsnull, nsImageUpdateFlags_kBitsChanged, &r);
+  if (NS_FAILED(rv)) {
+    return rv;
+  }
 
   
   
@@ -214,25 +217,29 @@ nsGIFDecoder2::FlushImageData(PRUint32 fromRow, PRUint32 rows)
     r.y += mGIFStruct.y_offset;
     mObserver->OnDataAvailable(nsnull, mImageFrame, &r);
   }
+  return NS_OK;
 }
 
-void
+nsresult
 nsGIFDecoder2::FlushImageData()
 {
+  nsresult rv = NS_OK;
+
   switch (mCurrentPass - mLastFlushedPass) {
     case 0:  
       if (mCurrentRow - mLastFlushedRow)
-        FlushImageData(mLastFlushedRow + 1, mCurrentRow - mLastFlushedRow);
+        rv = FlushImageData(mLastFlushedRow + 1, mCurrentRow - mLastFlushedRow);
       break;
   
     case 1:  
-      FlushImageData(0, mCurrentRow + 1);
-      FlushImageData(mLastFlushedRow + 1, mGIFStruct.height - (mLastFlushedRow + 1));
+      rv = FlushImageData(0, mCurrentRow + 1);
+      rv |= FlushImageData(mLastFlushedRow + 1, mGIFStruct.height - (mLastFlushedRow + 1));
       break;
 
     default:   
-      FlushImageData(0, mGIFStruct.height);
+      rv = FlushImageData(0, mGIFStruct.height);
   }
+  return rv;
 }
 
 
@@ -245,14 +252,14 @@ nsresult nsGIFDecoder2::ProcessData(unsigned char *data, PRUint32 count, PRUint3
 
   
   if (!mGIFStruct.images_decoded && mImageFrame) {
-    FlushImageData();
+    rv = FlushImageData();
     mLastFlushedRow = mCurrentRow;
     mLastFlushedPass = mCurrentPass;
   }
 
   *_retval = count;
 
-  return NS_OK;
+  return rv;
 }
 
 
@@ -370,7 +377,7 @@ void nsGIFDecoder2::EndImageFrame()
   
   if (!mGIFStruct.images_decoded) {
     
-    FlushImageData();
+    (void) FlushImageData();
 
     
     

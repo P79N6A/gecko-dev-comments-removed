@@ -189,7 +189,10 @@ void nsPNGDecoder::EndImageFrame()
 
     nsIntRect r(0, 0, width, height);
     nsCOMPtr<nsIImage> img(do_GetInterface(mFrame));
-    img->ImageUpdated(nsnull, nsImageUpdateFlags_kBitsChanged, &r);
+    if (NS_FAILED(img->ImageUpdated(nsnull, nsImageUpdateFlags_kBitsChanged, &r))) {
+      mError = PR_TRUE;
+      
+    }
     mObserver->OnDataAvailable(nsnull, mFrame, &r);
   }
 
@@ -816,7 +819,10 @@ row_callback(png_structp png_ptr, png_bytep new_row,
       
       nsIntRect r(0, row_num, width, 1);
       nsCOMPtr<nsIImage> img(do_GetInterface(decoder->mFrame));
-      img->ImageUpdated(nsnull, nsImageUpdateFlags_kBitsChanged, &r);
+      if (NS_FAILED(img->ImageUpdated(nsnull, nsImageUpdateFlags_kBitsChanged, &r))) {
+        decoder->mError = PR_TRUE;  
+        return;
+      }
       decoder->mObserver->OnDataAvailable(nsnull, decoder->mFrame, &r);
     }
   }
