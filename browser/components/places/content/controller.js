@@ -127,6 +127,13 @@ PlacesController.prototype = {
     case "cmd_redo":
       return PlacesUIUtils.ptm.numberOfRedoItems > 0;
     case "cmd_cut":
+      var nodes = this._view.getSelectionNodes();
+      
+      for (var i = 0; i < nodes.length; i++) {
+        if (nodes[i].itemId == -1)
+          return false;
+      }
+      
     case "cmd_delete":
       return this._hasRemovableSelection(false);
     case "placesCmd_deleteDataHost":
@@ -901,9 +908,14 @@ PlacesController.prototype = {
       if (this._shouldSkipNode(node, removedFolders))
         continue;
 
-      if (PlacesUtils.nodeIsFolder(node))
+      if (PlacesUtils.nodeIsFolder(node)) {
+        
+        
         removedFolders.push(node);
+      }
       else if (PlacesUtils.nodeIsTagQuery(node.parent)) {
+        
+        
         var tagItemId = PlacesUtils.getConcreteItemId(node.parent);
         var uri = PlacesUtils._uri(node.uri);
         transactions.push(PlacesUIUtils.ptm.untagURI(uri, [tagItemId]));
@@ -916,19 +928,30 @@ PlacesController.prototype = {
         
         
         
+        
         var tag = node.title;
         var URIs = PlacesUtils.tagging.getURIsForTag(tag);
         for (var j = 0; j < URIs.length; j++)
           transactions.push(PlacesUIUtils.ptm.untagURI(URIs[j], [tag]));
         continue;
       }
-      else if (PlacesUtils.nodeIsQuery(node.parent) &&
+      else if (PlacesUtils.nodeIsURI(node) &&
+               PlacesUtils.nodeIsQuery(node.parent) &&
                asQuery(node.parent).queryOptions.queryType ==
-                Ci.nsINavHistoryQueryOptions.QUERY_TYPE_HISTORY &&
-               node.uri) {
+                 Ci.nsINavHistoryQueryOptions.QUERY_TYPE_HISTORY) {
         
         var bhist = PlacesUtils.history.QueryInterface(Ci.nsIBrowserHistory);
         bhist.removePage(PlacesUtils._uri(node.uri));
+        
+        continue;
+      }
+      else if (PlacesUtils.nodeIsQuery(node) &&
+               asQuery(node).queryOptions.queryType ==
+                 Ci.nsINavHistoryQueryOptions.QUERY_TYPE_HISTORY) {
+        
+        
+        this._removeHistoryContainer(node);
+        
         continue;
       }
 
@@ -969,24 +992,17 @@ PlacesController.prototype = {
 
     for (var i = 0; i < nodes.length; ++i) {
       var node = nodes[i];
-      if (PlacesUtils.nodeIsHost(node))
-        bhist.removePagesFromHost(node.title, true);
-      else if (PlacesUtils.nodeIsURI(node)) {
+      if (PlacesUtils.nodeIsURI(node)) {
         var uri = PlacesUtils._uri(node.uri);
         
         if (URIs.indexOf(uri) < 0) {
           URIs.push(uri);
         }
       }
-      else if (PlacesUtils.nodeIsDay(node)) {
-        var query = node.getQueries({})[0];
-        var beginTime = query.beginTime;
-        var endTime = query.endTime;
-        NS_ASSERT(query && beginTime && endTime,
-                  "A valid date container query should exist!");
-        
-        bhist.removePagesByTimeframe(beginTime+1, endTime);
-      }
+      else if (PlacesUtils.nodeIsQuery(node) &&
+               asQuery(node).queryOptions.queryType ==
+                 Ci.nsINavHistoryQueryOptions.QUERY_TYPE_HISTORY)
+        this._removeHistoryContainer(node);
     }
 
     
@@ -1006,6 +1022,32 @@ PlacesController.prototype = {
       
       for (var i = 0; i < URIs.length; ++i)
         bhist.removePage(URIs[i]);
+    }
+  },
+
+  
+
+
+
+
+  _removeHistoryContainer: function PC_removeHistoryContainer(aContainerNode) {
+    var bhist = PlacesUtils.history.QueryInterface(Ci.nsIBrowserHistory);
+    if (PlacesUtils.nodeIsHost(aContainerNode)) {
+      
+      bhist.removePagesFromHost(aContainerNode.title, true);
+    }
+    else if (PlacesUtils.nodeIsDay(aContainerNode)) {
+      
+      var query = aContainerNode.getQueries({})[0];
+      var beginTime = query.beginTime;
+      var endTime = query.endTime;
+      NS_ASSERT(query && beginTime && endTime,
+                "A valid date container query should exist!");
+      
+      
+      
+      
+      bhist.removePagesByTimeframe(beginTime+1, endTime);
     }
   },
 

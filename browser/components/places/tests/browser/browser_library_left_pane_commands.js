@@ -1,0 +1,151 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+const TEST_URI = "http://www.mozilla.org/";
+
+var gTests = [];
+var gLibrary;
+
+
+
+gTests.push({
+  desc: "Bug 489351 - Date containers under History in Library cannot be deleted/cut",
+  run: function() {
+    var bhist = PlacesUtils.history.QueryInterface(Ci.nsIBrowserHistory);
+    
+    PlacesUtils.history.addVisit(PlacesUtils._uri(TEST_URI), Date.now() * 1000,
+                                 null, PlacesUtils.history.TRANSITION_TYPED,
+                                 false, 0);
+    ok(bhist.isVisited(PlacesUtils._uri(TEST_URI)), "Visit has been added");
+
+    
+    var PO = gLibrary.PlacesOrganizer;
+    PO.selectLeftPaneQuery('History');
+    isnot(PO._places.selectedNode, null, "We correctly selected History");
+
+    
+    ok(!PO._places.controller.isCommandEnabled("cmd_cut"),
+       "Cut command is disabled");
+    ok(!PO._places.controller.isCommandEnabled("cmd_delete"),
+       "Delete command is disabled");
+    var historyNode = PO._places.selectedNode
+                        .QueryInterface(Ci.nsINavHistoryContainerResultNode);
+    historyNode.containerOpen = true;
+
+    
+    is(historyNode.childCount, 1, "History node has one child");
+    var todayNode = historyNode.getChild(0);
+    var todayNodeExpectedTitle = PlacesUtils.getString("finduri-AgeInDays-is-0");
+    is(todayNode.title, todayNodeExpectedTitle,
+       "History child is the expected container");
+
+    
+    PO._places.selectNode(todayNode);
+    is(PO._places.selectedNode, todayNode,
+       "We correctly selected Today container");
+    
+    ok(!PO._places.controller.isCommandEnabled("cmd_cut"),
+       "Cut command is disabled");
+    ok(PO._places.controller.isCommandEnabled("cmd_delete"),
+       "Delete command is enabled");
+
+    
+    PO._places.controller.doCommand("cmd_delete");
+    ok(!bhist.isVisited(PlacesUtils._uri(TEST_URI)), "Visit has been removed");
+
+    
+    is(historyNode.childCount, 0, "History node has no more children");
+
+    historyNode.containerOpen = false;
+    nextTest();
+  }
+});
+
+
+
+function nextTest() {
+  if (gTests.length) {
+    var test = gTests.shift();
+    ok(true, "TEST: " + test.desc);
+    test.run();
+  }
+  else {
+    
+    gLibrary.close();
+    
+    finish();
+  }
+}
+
+var ww = Cc["@mozilla.org/embedcomp/window-watcher;1"].
+         getService(Ci.nsIWindowWatcher);
+
+var windowObserver = {
+  observe: function(aSubject, aTopic, aData) {
+    if (aTopic === "domwindowopened") {
+      ww.unregisterNotification(this);
+      gLibrary = aSubject.QueryInterface(Ci.nsIDOMWindow);
+      gLibrary.addEventListener("load", function onLoad(event) {
+        gLibrary.removeEventListener("load", onLoad, false);
+        executeSoon(function () {
+          
+          nextTest();
+        });
+      }, false);
+    }
+  }
+};
+
+function test() {
+  waitForExplicitFinish();
+  
+  ok(PlacesUtils, "PlacesUtils is running in chrome context");
+  ok(PlacesUIUtils, "PlacesUIUtils is running in chrome context");
+
+  
+  ww.registerNotification(windowObserver);
+  ww.openWindow(null,
+                "chrome://browser/content/places/places.xul",
+                "",
+                "chrome,toolbar=yes,dialog=no,resizable",
+                null);
+}
