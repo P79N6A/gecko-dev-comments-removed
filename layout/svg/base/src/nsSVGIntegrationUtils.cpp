@@ -209,15 +209,6 @@ public:
                      const nsIntRect* aDirtyRect)
   {
     nsIRenderingContext* ctx = aContext->GetRenderingContext(aTarget);
-    gfxContext* gfxCtx = aContext->GetGfxContext();
-
-    
-    
-    
-    gfxFloat scale =
-      nsPresContext::AppUnitsToFloatCSSPixels(aTarget->PresContext()->AppUnitsPerDevPixel());
-    gfxCtx->Scale(scale, scale);
-
     nsIRenderingContext::AutoPushTranslation push(ctx, -mOffset.x, -mOffset.y);
     nsRect dirty;
     if (aDirtyRect) {
