@@ -1776,22 +1776,10 @@ nsNativeThemeWin::ThemeNeedsComboboxDropmarker()
   return PR_TRUE;
 }
 
-nsITheme::Transparency
-nsNativeThemeWin::GetWidgetTransparency(nsIFrame* aFrame, PRUint8 aWidgetType)
+nsTransparencyMode
+nsNativeThemeWin::GetWidgetTransparency(PRUint8 aWidgetType)
 {
-  HANDLE theme = GetTheme(aWidgetType);
-  
-  if (!theme)
-    return eUnknownTransparency;
-
-  PRInt32 part, state;
-  nsresult rv = GetThemePartAndState(aFrame, aWidgetType, part, state);
-  
-  NS_ENSURE_SUCCESS(rv, eUnknownTransparency);
-
-  if (nsUXThemeData::isThemeBackgroundPartiallyTransparent(theme, part, state))
-    return eTransparent;
-  return eOpaque;
+  return eTransparencyOpaque;
 }
 
 
