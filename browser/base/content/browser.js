@@ -75,13 +75,8 @@ var gPrevCharset = null;
 var gProxyFavIcon = null;
 var gLastValidURLStr = "";
 var gInPrintPreviewMode = false;
-let gDownloadMgr = null;
-
-
-var gContextMenu = null;
-
-var gAutoHideTabbarPrefListener = null;
-var gBookmarkAllTabsHandler = null;
+var gDownloadMgr = null;
+var gContextMenu = null; 
 
 #ifndef XP_MACOSX
 var gEditUIVisible = true;
@@ -1213,7 +1208,7 @@ function delayedStartup(isLoadingBlank, mustLoadSidebar) {
   initializeSanitizer();
 
   
-  gAutoHideTabbarPrefListener = new AutoHideTabbarPrefListener();
+  gAutoHideTabbarPrefListener.toggleAutoHideTabbar();
   gPrefService.addObserver(gAutoHideTabbarPrefListener.domain,
                            gAutoHideTabbarPrefListener, false);
 
@@ -1300,7 +1295,7 @@ function delayedStartup(isLoadingBlank, mustLoadSidebar) {
   }
 
   
-  gBookmarkAllTabsHandler = new BookmarkAllTabsHandler();
+  gBookmarkAllTabsHandler.init();
 
   
   
@@ -1501,24 +1496,13 @@ function nonBrowserWindowShutdown()
 }
 #endif
 
-function AutoHideTabbarPrefListener()
-{
-  this.toggleAutoHideTabbar();
-}
-
-AutoHideTabbarPrefListener.prototype =
-{
+var gAutoHideTabbarPrefListener = {
   domain: "browser.tabs.autoHide",
-  observe: function (aSubject, aTopic, aPrefName)
-  {
-    if (aTopic != "nsPref:changed" || aPrefName != this.domain)
-      return;
-
-    this.toggleAutoHideTabbar();
+  observe: function (aSubject, aTopic, aPrefName) {
+    if (aTopic == "nsPref:changed" && aPrefName == this.domain)
+      this.toggleAutoHideTabbar();
   },
-
-  toggleAutoHideTabbar: function ()
-  {
+  toggleAutoHideTabbar: function () {
     if (gBrowser.tabContainer.childNodes.length == 1 &&
         window.toolbar.visible) {
       var aVisible = false;
@@ -4396,22 +4380,12 @@ var TabsProgressListener = {
   }
 }
 
-function nsBrowserAccess()
-{
-}
+function nsBrowserAccess() { }
 
-nsBrowserAccess.prototype =
-{
-  QueryInterface : function(aIID)
-  {
-    if (aIID.equals(Ci.nsIBrowserDOMWindow) ||
-        aIID.equals(Ci.nsISupports))
-      return this;
-    throw Components.results.NS_NOINTERFACE;
-  },
+nsBrowserAccess.prototype = {
+  QueryInterface: XPCOMUtils.generateQI([Ci.nsIBrowserDOMWindow, Ci.nsISupports]),
 
-  openURI : function(aURI, aOpener, aWhere, aContext)
-  {
+  openURI: function (aURI, aOpener, aWhere, aContext) {
     var newWindow = null;
     var isExternal = (aContext == Ci.nsIBrowserDOMWindow.OPEN_EXTERNAL);
 
@@ -4482,8 +4456,7 @@ nsBrowserAccess.prototype =
     return newWindow;
   },
 
-  isTabContentWindow : function(aWindow)
-  {
+  isTabContentWindow: function (aWindow) {
     return gBrowser.browsers.some(function (browser) browser.contentWindow == aWindow);
   }
 }
@@ -5888,187 +5861,185 @@ function getPluginInfo(pluginElement)
   return {mimetype: tagMimetype, pluginsPage: pluginsPage};
 }
 
-function missingPluginInstaller(){
-}
+var gMissingPluginInstaller = {
 
-missingPluginInstaller.prototype.installSinglePlugin = function(aEvent){
-  var missingPluginsArray = {};
+  installSinglePlugin: function (aEvent) {
+    var missingPluginsArray = {};
 
-  var pluginInfo = getPluginInfo(aEvent.target);
-  missingPluginsArray[pluginInfo.mimetype] = pluginInfo;
+    var pluginInfo = getPluginInfo(aEvent.target);
+    missingPluginsArray[pluginInfo.mimetype] = pluginInfo;
 
-  if (missingPluginsArray) {
-    window.openDialog("chrome://mozapps/content/plugins/pluginInstallerWizard.xul",
-                      "PFSWindow", "chrome,centerscreen,resizable=yes",
-                      {plugins: missingPluginsArray, browser: gBrowser.selectedBrowser});
-  }
-
-  aEvent.stopPropagation();
-}
-
-missingPluginInstaller.prototype.managePlugins = function(aEvent){
-  BrowserOpenAddonsMgr("plugins");
-  aEvent.stopPropagation();
-}
-
-missingPluginInstaller.prototype.newMissingPlugin = function(aEvent){
-  
-  
-  if (!(aEvent.target instanceof Components.interfaces.nsIObjectLoadingContent))
-    return;
-
-  
-  
-  
-  
-
-  if (aEvent.type != "PluginBlocklisted" &&
-      aEvent.type != "PluginOutdated" &&
-      !(aEvent.target instanceof HTMLObjectElement)) {
-    aEvent.target.addEventListener("click",
-                                   gMissingPluginInstaller.installSinglePlugin,
-                                   true);
-  }
-
-  let hideBarPrefName = aEvent.type == "PluginOutdated" ?
-                  "plugins.hide_infobar_for_outdated_plugin" :
-                  "plugins.hide_infobar_for_missing_plugin";
-  if (gPrefService.getBoolPref(hideBarPrefName))
-    return;
-
-  var browser = gBrowser.getBrowserForDocument(aEvent.target.ownerDocument
-                                                     .defaultView.top.document);
-  if (!browser.missingPlugins)
-    browser.missingPlugins = {};
-
-  var pluginInfo = getPluginInfo(aEvent.target);
-
-  browser.missingPlugins[pluginInfo.mimetype] = pluginInfo;
-
-  var notificationBox = gBrowser.getNotificationBox(browser);
-
-  
-  
-
-  
-  if (notificationBox.getNotificationWithValue("outdated-plugins"))
-    return;
-  var blockedNotification = notificationBox.getNotificationWithValue("blocked-plugins");
-  var missingNotification = notificationBox.getNotificationWithValue("missing-plugins");
-  var priority = notificationBox.PRIORITY_WARNING_MEDIUM;
-
-  function showBlocklistInfo() {
-    var url = formatURL("extensions.blocklist.detailsURL", true);
-    gBrowser.loadOneTab(url, {inBackground: false});
-    return true;
-  }
-
-  function showOutdatedPluginsInfo() {
-    var url = formatURL("plugins.update.url", true);
-    gBrowser.loadOneTab(url, {inBackground: false});
-    return true;
-  }
-
-  function showPluginsMissing() {
-    
-    var missingPluginsArray = gBrowser.selectedBrowser.missingPlugins;
     if (missingPluginsArray) {
-      window.openDialog("chrome://mozapps/content/plugins/pluginInstallerWizard.xul",
-                        "PFSWindow", "chrome,centerscreen,resizable=yes",
-                        {plugins: missingPluginsArray, browser: gBrowser.selectedBrowser});
+      openDialog("chrome://mozapps/content/plugins/pluginInstallerWizard.xul",
+                 "PFSWindow", "chrome,centerscreen,resizable=yes",
+                 {plugins: missingPluginsArray, browser: gBrowser.selectedBrowser});
     }
-  }
 
-  if (aEvent.type == "PluginBlocklisted") {
-    if (blockedNotification || missingNotification)
-      return;
+    aEvent.stopPropagation();
+  },
 
-    let iconURL = "chrome://mozapps/skin/plugins/pluginBlocked-16.png";
-    let messageString = gNavigatorBundle.getString("blockedpluginsMessage.title");
-    let buttons = [{
-      label: gNavigatorBundle.getString("blockedpluginsMessage.infoButton.label"),
-      accessKey: gNavigatorBundle.getString("blockedpluginsMessage.infoButton.accesskey"),
-      popup: null,
-      callback: showBlocklistInfo
-    }, {
-      label: gNavigatorBundle.getString("blockedpluginsMessage.searchButton.label"),
-      accessKey: gNavigatorBundle.getString("blockedpluginsMessage.searchButton.accesskey"),
-      popup: null,
-      callback: showOutdatedPluginsInfo
-    }];
+  managePlugins: function (aEvent) {
+    BrowserOpenAddonsMgr("plugins");
+    aEvent.stopPropagation();
+  },
 
-    notificationBox.appendNotification(messageString, "blocked-plugins",
-                                       iconURL, priority, buttons);
-  }
-  else if (aEvent.type == "PluginOutdated") {
+  newMissingPlugin: function (aEvent) {
     
-    if (blockedNotification)
-      blockedNotification.close();
-    if (missingNotification)
-      missingNotification.close();
-
-    let iconURL = "chrome://mozapps/skin/plugins/pluginOutdated-16.png";
-    let messageString = gNavigatorBundle.getString("outdatedpluginsMessage.title");
-    let buttons = [{
-      label: gNavigatorBundle.getString("outdatedpluginsMessage.updateButton.label"),
-      accessKey: gNavigatorBundle.getString("outdatedpluginsMessage.updateButton.accesskey"),
-      popup: null,
-      callback: showOutdatedPluginsInfo
-    }];
-
-    notificationBox.appendNotification(messageString, "outdated-plugins",
-                                       iconURL, priority, buttons);
-  }
-  else if (aEvent.type == "PluginNotFound") {
-    if (missingNotification)
+    
+    if (!(aEvent.target instanceof Ci.nsIObjectLoadingContent))
       return;
 
     
-    if (blockedNotification)
-      blockedNotification.close();
-
-    let iconURL = "chrome://mozapps/skin/plugins/pluginGeneric-16.png";
-    let messageString = gNavigatorBundle.getString("missingpluginsMessage.title");
-    let buttons = [{
-      label: gNavigatorBundle.getString("missingpluginsMessage.button.label"),
-      accessKey: gNavigatorBundle.getString("missingpluginsMessage.button.accesskey"),
-      popup: null,
-      callback: showPluginsMissing
-    }];
-  
-    notificationBox.appendNotification(messageString, "missing-plugins",
-                                       iconURL, priority, buttons);
-  }
-}
-
-missingPluginInstaller.prototype.newDisabledPlugin = function(aEvent){
-  
-  
-  if (!(aEvent.target instanceof Components.interfaces.nsIObjectLoadingContent))
-    return;
-
-  aEvent.target.addEventListener("click",
-                                 gMissingPluginInstaller.managePlugins,
-                                 true);
-}
-
-missingPluginInstaller.prototype.refreshBrowser = function(aEvent) {
-  
-  var browser = aEvent.originalTarget;
-  var notificationBox = gBrowser.getNotificationBox(browser);
-  var notification = notificationBox.getNotificationWithValue("missing-plugins");
-
-  
-  browser.missingPlugins = null;
-  if (notification) {
     
-    notificationBox.removeNotification(notification);
-  }
-  
-  browser.reload();
-}
+    
+    
 
-var gMissingPluginInstaller = new missingPluginInstaller();
+    if (aEvent.type != "PluginBlocklisted" &&
+        aEvent.type != "PluginOutdated" &&
+        !(aEvent.target instanceof HTMLObjectElement)) {
+      aEvent.target.addEventListener("click",
+                                     gMissingPluginInstaller.installSinglePlugin,
+                                     true);
+    }
+
+    let hideBarPrefName = aEvent.type == "PluginOutdated" ?
+                    "plugins.hide_infobar_for_outdated_plugin" :
+                    "plugins.hide_infobar_for_missing_plugin";
+    if (gPrefService.getBoolPref(hideBarPrefName))
+      return;
+
+    var browser = gBrowser.getBrowserForDocument(aEvent.target.ownerDocument
+                                                       .defaultView.top.document);
+    if (!browser.missingPlugins)
+      browser.missingPlugins = {};
+
+    var pluginInfo = getPluginInfo(aEvent.target);
+
+    browser.missingPlugins[pluginInfo.mimetype] = pluginInfo;
+
+    var notificationBox = gBrowser.getNotificationBox(browser);
+
+    
+    
+
+    
+    if (notificationBox.getNotificationWithValue("outdated-plugins"))
+      return;
+    var blockedNotification = notificationBox.getNotificationWithValue("blocked-plugins");
+    var missingNotification = notificationBox.getNotificationWithValue("missing-plugins");
+    var priority = notificationBox.PRIORITY_WARNING_MEDIUM;
+
+    function showBlocklistInfo() {
+      var url = formatURL("extensions.blocklist.detailsURL", true);
+      gBrowser.loadOneTab(url, {inBackground: false});
+      return true;
+    }
+
+    function showOutdatedPluginsInfo() {
+      var url = formatURL("plugins.update.url", true);
+      gBrowser.loadOneTab(url, {inBackground: false});
+      return true;
+    }
+
+    function showPluginsMissing() {
+      
+      var missingPluginsArray = gBrowser.selectedBrowser.missingPlugins;
+      if (missingPluginsArray) {
+        openDialog("chrome://mozapps/content/plugins/pluginInstallerWizard.xul",
+                   "PFSWindow", "chrome,centerscreen,resizable=yes",
+                   {plugins: missingPluginsArray, browser: gBrowser.selectedBrowser});
+      }
+    }
+
+    if (aEvent.type == "PluginBlocklisted") {
+      if (blockedNotification || missingNotification)
+        return;
+
+      let iconURL = "chrome://mozapps/skin/plugins/pluginBlocked-16.png";
+      let messageString = gNavigatorBundle.getString("blockedpluginsMessage.title");
+      let buttons = [{
+        label: gNavigatorBundle.getString("blockedpluginsMessage.infoButton.label"),
+        accessKey: gNavigatorBundle.getString("blockedpluginsMessage.infoButton.accesskey"),
+        popup: null,
+        callback: showBlocklistInfo
+      }, {
+        label: gNavigatorBundle.getString("blockedpluginsMessage.searchButton.label"),
+        accessKey: gNavigatorBundle.getString("blockedpluginsMessage.searchButton.accesskey"),
+        popup: null,
+        callback: showOutdatedPluginsInfo
+      }];
+
+      notificationBox.appendNotification(messageString, "blocked-plugins",
+                                         iconURL, priority, buttons);
+    }
+    else if (aEvent.type == "PluginOutdated") {
+      
+      if (blockedNotification)
+        blockedNotification.close();
+      if (missingNotification)
+        missingNotification.close();
+
+      let iconURL = "chrome://mozapps/skin/plugins/pluginOutdated-16.png";
+      let messageString = gNavigatorBundle.getString("outdatedpluginsMessage.title");
+      let buttons = [{
+        label: gNavigatorBundle.getString("outdatedpluginsMessage.updateButton.label"),
+        accessKey: gNavigatorBundle.getString("outdatedpluginsMessage.updateButton.accesskey"),
+        popup: null,
+        callback: showOutdatedPluginsInfo
+      }];
+
+      notificationBox.appendNotification(messageString, "outdated-plugins",
+                                         iconURL, priority, buttons);
+    }
+    else if (aEvent.type == "PluginNotFound") {
+      if (missingNotification)
+        return;
+
+      
+      if (blockedNotification)
+        blockedNotification.close();
+
+      let iconURL = "chrome://mozapps/skin/plugins/pluginGeneric-16.png";
+      let messageString = gNavigatorBundle.getString("missingpluginsMessage.title");
+      let buttons = [{
+        label: gNavigatorBundle.getString("missingpluginsMessage.button.label"),
+        accessKey: gNavigatorBundle.getString("missingpluginsMessage.button.accesskey"),
+        popup: null,
+        callback: showPluginsMissing
+      }];
+    
+      notificationBox.appendNotification(messageString, "missing-plugins",
+                                         iconURL, priority, buttons);
+    }
+  },
+
+  newDisabledPlugin: function (aEvent) {
+    
+    
+    if (!(aEvent.target instanceof Ci.nsIObjectLoadingContent))
+      return;
+
+    aEvent.target.addEventListener("click",
+                                   gMissingPluginInstaller.managePlugins,
+                                   true);
+  },
+
+  refreshBrowser: function (aEvent) {
+    
+    var browser = aEvent.originalTarget;
+    var notificationBox = gBrowser.getNotificationBox(browser);
+    var notification = notificationBox.getNotificationWithValue("missing-plugins");
+
+    
+    browser.missingPlugins = null;
+    if (notification) {
+      
+      notificationBox.removeNotification(notification);
+    }
+    
+    browser.reload();
+  }
+};
 
 function convertFromUnicode(charset, str)
 {
@@ -6318,20 +6289,12 @@ function formatURL(aFormat, aIsPref) {
 
 
 
-function BookmarkAllTabsHandler() {
-  this._command = document.getElementById("Browser:BookmarkAllTabs");
-  gBrowser.addEventListener("TabOpen", this, true);
-  gBrowser.addEventListener("TabClose", this, true);
-  this._updateCommandState();
-}
-
-BookmarkAllTabsHandler.prototype = {
-  QueryInterface: function BATH_QueryInterface(aIID) {
-    if (aIID.equals(Ci.nsIDOMEventListener) ||
-        aIID.equals(Ci.nsISupports))
-      return this;
-
-    throw Cr.NS_NOINTERFACE;
+var gBookmarkAllTabsHandler = {
+  init: function () {
+    this._command = document.getElementById("Browser:BookmarkAllTabs");
+    gBrowser.tabContainer.addEventListener("TabOpen", this, true);
+    gBrowser.tabContainer.addEventListener("TabClose", this, true);
+    this._updateCommandState();
   },
 
   _updateCommandState: function BATH__updateCommandState(aTabClose) {
