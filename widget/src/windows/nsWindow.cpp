@@ -1773,11 +1773,13 @@ NS_IMETHODIMP nsWindow::SetSizeMode(PRInt32 aMode) {
   if (aMode == mSizeMode)
     return NS_OK;
 
+#ifdef WINCE
   
   
   if (mWindowType == eWindowType_dialog || mWindowType == eWindowType_toplevel) {
     aMode = nsSizeMode_Maximized;
   }
+#endif
 
   
   rv = nsBaseWidget::SetSizeMode(aMode);
