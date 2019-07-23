@@ -100,6 +100,9 @@ class nsDocAccessible : public nsHyperTextAccessibleWrap,
     NS_IMETHOD_(nsIFrame *) GetFrame(void);
 
     
+    NS_IMETHOD GetAssociatedEditor(nsIEditor **aEditor);
+
+    
 
 
 
@@ -139,9 +142,6 @@ class nsDocAccessible : public nsHyperTextAccessibleWrap,
     void RemoveScrollListener();
     void RefreshNodes(nsIDOMNode *aStartNode);
     static void ScrollTimerCallback(nsITimer *aTimer, void *aClosure);
-    void CheckForEditor();
-    virtual void SetEditor(nsIEditor *aEditor);
-    virtual already_AddRefed<nsIEditor> GetEditor() { nsIEditor *editor = mEditor; NS_IF_ADDREF(editor); return editor; }
 
     
 
@@ -180,7 +180,6 @@ class nsDocAccessible : public nsHyperTextAccessibleWrap,
     PRUint16 mScrollPositionChangedTicks; 
     PRPackedBool mIsContentLoaded;
     nsCOMArray<nsIAccessibleEvent> mEventsToFire;
-    nsCOMPtr<nsIEditor> mEditor;
 
 protected:
     PRBool mIsAnchor;
