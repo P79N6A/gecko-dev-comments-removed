@@ -720,6 +720,9 @@ nsThebesDeviceContext::CalcPrintingSize()
         
         size = reinterpret_cast<gfxOS2Surface*>(mPrintingSurface.get())->GetSize();
         
+        size.width = NSFloatPixelsToAppUnits(size.width, AppUnitsPerDevPixel());
+        size.height = NSFloatPixelsToAppUnits(size.height, AppUnitsPerDevPixel());
+        
         HDC dc = GetPrintHDC();
         LONG value;
         if (DevQueryCaps(dc, CAPS_COLOR_BITCOUNT, 1, &value))
