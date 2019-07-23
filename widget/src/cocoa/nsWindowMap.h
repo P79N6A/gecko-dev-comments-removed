@@ -63,6 +63,7 @@
 
 + (WindowDataMap*)sharedWindowDataMap;
 
+- (void)ensureDataForWindow:(NSWindow*)inWindow;
 - (id)dataForWindow:(NSWindow*)inWindow;
 
 
