@@ -89,13 +89,11 @@ void*
 nanojit::CodeAlloc::allocCodeChunk(size_t nbytes) {
     void * buffer;
     posix_memalign(&buffer, 4096, nbytes);
-    VMPI_setPageProtection(mem, nbytes, true , true );
     return buffer;
 }
 
 void
 nanojit::CodeAlloc::freeCodeChunk(void *p, size_t nbytes) {
-    VMPI_setPageProtection(mem, nbytes, false , true );
     ::free(p);
 }
 
@@ -157,28 +155,13 @@ nanojit::CodeAlloc::freeCodeChunk(void *p, size_t nbytes) {
 
 void*
 nanojit::CodeAlloc::allocCodeChunk(size_t nbytes) {
-    void* mem = valloc(nbytes);
-    VMPI_setPageProtection(mem, nbytes, true , true );
-    return mem;
+    return valloc(nbytes);
 }
 
 void
 nanojit::CodeAlloc::freeCodeChunk(void *p, size_t nbytes) {
-    VMPI_setPageProtection(mem, nbytes, false , true );
     ::free(p);
 }
 
 #endif 
-
-
-
-
-
-void
-nanojit::CodeAlloc::markCodeChunkWrite(void*, size_t)
-{}
-
-void
-nanojit::CodeAlloc::markCodeChunkExec(void*, size_t)
-{}
 
