@@ -650,8 +650,7 @@ nsWindowWatcher::OpenWindowJSInternal(nsIDOMWindow *aParent,
     
     
     
-    if (!chromeParent &&
-        (chromeFlags & nsIWebBrowserChrome::CHROME_DEPENDENT)) {
+    if (!chromeParent && (chromeFlags & nsIWebBrowserChrome::CHROME_MODAL)) {
       PRBool parentVisible = PR_TRUE;
       nsCOMPtr<nsIBaseWindow> parentWindow(do_GetInterface(parentTreeOwner));
       nsCOMPtr<nsIWidget> parentWidget;
