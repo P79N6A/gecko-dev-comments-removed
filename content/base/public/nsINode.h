@@ -100,43 +100,39 @@ enum {
 
   
   
-  NODE_MAY_HAVE_FRAME =          0x00000040U,
+  NODE_FORCE_XBL_BINDINGS =      0x00000040U,
+
+  
+  NODE_MAY_BE_IN_BINDING_MNGR =  0x00000080U,
+
+  NODE_IS_EDITABLE =             0x00000100U,
 
   
   
-  NODE_FORCE_XBL_BINDINGS =      0x00000080U,
+  NODE_MAY_HAVE_ID =             0x00000200U,
+  
+  
+  NODE_MAY_HAVE_CLASS =          0x00000400U,
+  NODE_MAY_HAVE_STYLE =          0x00000800U,
+
+  NODE_IS_INSERTION_PARENT =     0x00001000U,
 
   
-  NODE_MAY_BE_IN_BINDING_MNGR =  0x00000100U,
-
-  NODE_IS_EDITABLE =             0x00000200U,
-
-  
-  
-  NODE_MAY_HAVE_ID =             0x00000400U,
-  
-  
-  NODE_MAY_HAVE_CLASS =          0x00000800U,
-  NODE_MAY_HAVE_STYLE =          0x00001000U,
-
-  NODE_IS_INSERTION_PARENT =     0x00002000U,
-
-  
-  NODE_HAS_EMPTY_SELECTOR =      0x00004000U,
+  NODE_HAS_EMPTY_SELECTOR =      0x00002000U,
 
   
   
-  NODE_HAS_SLOW_SELECTOR =       0x00008000U,
+  NODE_HAS_SLOW_SELECTOR =       0x00004000U,
 
   
   
-  NODE_HAS_EDGE_CHILD_SELECTOR = 0x00010000U,
+  NODE_HAS_EDGE_CHILD_SELECTOR = 0x00008000U,
 
   
   
   
   NODE_HAS_SLOW_SELECTOR_NOAPPEND
-                               = 0x00020000U,
+                               = 0x00010000U,
 
   NODE_ALL_SELECTOR_FLAGS =      NODE_HAS_EMPTY_SELECTOR |
                                  NODE_HAS_SLOW_SELECTOR |
@@ -144,10 +140,10 @@ enum {
                                  NODE_HAS_SLOW_SELECTOR_NOAPPEND,
 
   NODE_MAY_HAVE_CONTENT_EDITABLE_ATTR
-                               = 0x00040000U,
+                               = 0x00020000U,
 
   NODE_ATTACH_BINDING_ON_POSTCREATE
-                               = 0x00080000U,
+                               = 0x00040000U,
 
   
   NODE_SCRIPT_TYPE_OFFSET =               20,
@@ -246,8 +242,8 @@ private:
 
 
 #define NS_INODE_IID \
-{ 0xc6485d02, 0x7c8a, 0x42fd, \
- { 0x97, 0x15, 0x0f, 0x67, 0xfd, 0x69, 0xd5, 0x3e } }
+{ 0x7244fd04, 0xa8e9, 0x4839, \
+ { 0x92, 0x48, 0xb2, 0xe0, 0xd8, 0xd8, 0x85, 0x0d } }
  
 
 
@@ -733,7 +729,6 @@ public:
   void SetFlags(PtrBits aFlagsToSet)
   {
     NS_ASSERTION(!(aFlagsToSet & (NODE_IS_ANONYMOUS |
-                                  NODE_MAY_HAVE_FRAME |
                                   NODE_IS_NATIVE_ANONYMOUS_ROOT |
                                   NODE_IS_IN_ANONYMOUS_SUBTREE |
                                   NODE_ATTACH_BINDING_ON_POSTCREATE)) ||

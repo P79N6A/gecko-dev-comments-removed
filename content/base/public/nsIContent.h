@@ -71,10 +71,9 @@ enum nsLinkState {
 };
 
 
-
 #define NS_ICONTENT_IID       \
-{ 0xc726e716, 0xa4be, 0x4202, \
-  { 0x8a, 0x5e, 0x32, 0xd0, 0x52, 0x59, 0x03, 0xe8 } }
+{ 0xe88a767e, 0x1ca1, 0x4855, \
+ { 0xa7, 0xa4, 0x37, 0x9f, 0x07, 0x89, 0x45, 0xef } }
 
 
 
@@ -706,25 +705,6 @@ public:
   {
   }
 
-  
-
-
-
-
-  virtual void SetMayHaveFrame(PRBool aMayHaveFrame)
-  {
-  }
-
-  
-
-
-
-
-  virtual PRBool MayHaveFrame() const
-  {
-    return PR_TRUE;
-  }
-    
   
 
 
