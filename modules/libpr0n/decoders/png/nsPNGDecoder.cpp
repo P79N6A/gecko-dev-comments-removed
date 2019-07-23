@@ -61,15 +61,19 @@
 
 static void PNGAPI info_callback(png_structp png_ptr, png_infop info_ptr);
 static void PNGAPI row_callback(png_structp png_ptr, png_bytep new_row,
-                           png_uint_32 row_num, int pass);
-static void PNGAPI frame_info_callback(png_structp png_ptr, png_uint_32 frame_num);
+                                png_uint_32 row_num, int pass);
+static void PNGAPI frame_info_callback(png_structp png_ptr,
+                                       png_uint_32 frame_num);
 static void PNGAPI end_callback(png_structp png_ptr, png_infop info_ptr);
-static void PNGAPI error_callback(png_structp png_ptr, png_const_charp error_msg);
-static void PNGAPI warning_callback(png_structp png_ptr, png_const_charp warning_msg);
+static void PNGAPI error_callback(png_structp png_ptr,
+                                  png_const_charp error_msg);
+static void PNGAPI warning_callback(png_structp png_ptr,
+                                    png_const_charp warning_msg);
 
 #ifdef PR_LOGGING
 static PRLogModuleInfo *gPNGLog = PR_NewLogModule("PNGDecoder");
-static PRLogModuleInfo *gPNGDecoderAccountingLog = PR_NewLogModule("PNGDecoderAccounting");
+static PRLogModuleInfo *gPNGDecoderAccountingLog =
+                        PR_NewLogModule("PNGDecoderAccounting");
 #endif
 
 
@@ -116,7 +120,7 @@ nsPNGDecoder::~nsPNGDecoder()
 }
 
 
-void nsPNGDecoder::CreateFrame(png_uint_32 x_offset, png_uint_32 y_offset, 
+void nsPNGDecoder::CreateFrame(png_uint_32 x_offset, png_uint_32 y_offset,
                                PRInt32 width, PRInt32 height,
                                gfxASurface::gfxImageFormat format)
 {
@@ -141,7 +145,8 @@ void nsPNGDecoder::CreateFrame(png_uint_32 x_offset, png_uint_32 y_offset,
     mObserver->OnStartFrame(nsnull, numFrames - 1);
 
   PR_LOG(gPNGDecoderAccountingLog, PR_LOG_DEBUG,
-         ("PNGDecoderAccounting: nsPNGDecoder::CreateFrame -- created image frame with %dx%d pixels in container %p",
+         ("PNGDecoderAccounting: nsPNGDecoder::CreateFrame -- created image"
+          " frame with %dx%d pixels in container %p",
           width, height,
           mImage.get ()));
 
@@ -156,7 +161,7 @@ void nsPNGDecoder::SetAnimFrameInfo()
   png_byte dispose_op;
   png_byte blend_op;
   PRInt32 timeout; 
-  
+
   delay_num = png_get_next_frame_delay_num(mPNG, mInfo);
   delay_den = png_get_next_frame_delay_den(mPNG, mInfo);
   dispose_op = png_get_next_frame_dispose_op(mPNG, mInfo);
@@ -167,25 +172,28 @@ void nsPNGDecoder::SetAnimFrameInfo()
   } else {
     if (delay_den == 0)
       delay_den = 100; 
-    
+
     
     
     timeout = static_cast<PRInt32>
-                         (static_cast<PRFloat64>(delay_num) * 1000 / delay_den);
+              (static_cast<PRFloat64>(delay_num) * 1000 / delay_den);
   }
 
   PRUint32 numFrames = 0;
   mImage->GetNumFrames(&numFrames);
 
   mImage->SetFrameTimeout(numFrames - 1, timeout);
-  
+
   if (dispose_op == PNG_DISPOSE_OP_PREVIOUS)
-      mImage->SetFrameDisposalMethod(numFrames - 1, imgIContainer::kDisposeRestorePrevious);
+      mImage->SetFrameDisposalMethod(numFrames - 1,
+                                     imgIContainer::kDisposeRestorePrevious);
   else if (dispose_op == PNG_DISPOSE_OP_BACKGROUND)
-      mImage->SetFrameDisposalMethod(numFrames - 1, imgIContainer::kDisposeClear);
+      mImage->SetFrameDisposalMethod(numFrames - 1,
+                                     imgIContainer::kDisposeClear);
   else
-      mImage->SetFrameDisposalMethod(numFrames - 1, imgIContainer::kDisposeKeep);
-  
+      mImage->SetFrameDisposalMethod(numFrames - 1,
+                                     imgIContainer::kDisposeKeep);
+
   if (blend_op == PNG_BLEND_OP_SOURCE)
       mImage->SetFrameBlendMethod(numFrames - 1, imgIContainer::kBlendSource);
   
@@ -211,7 +219,8 @@ void nsPNGDecoder::EndImageFrame()
     PRUint32 curFrame;
     mImage->GetCurrentFrameIndex(&curFrame);
     if (mObserver)
-      mObserver->OnDataAvailable(nsnull, curFrame == numFrames - 1, &mFrameRect);
+      mObserver->OnDataAvailable(nsnull, curFrame == numFrames - 1,
+                                 &mFrameRect);
   }
 
   mImage->EndFrameDecode(numFrames - 1);
@@ -269,7 +278,7 @@ NS_IMETHODIMP nsPNGDecoder::Init(imgIContainer *aImage,
   
   
 
-  mPNG = png_create_read_struct(PNG_LIBPNG_VER_STRING, 
+  mPNG = png_create_read_struct(PNG_LIBPNG_VER_STRING,
                                 NULL, error_callback, warning_callback);
   if (!mPNG) {
     return NS_ERROR_OUT_OF_MEMORY;
@@ -287,7 +296,7 @@ NS_IMETHODIMP nsPNGDecoder::Init(imgIContainer *aImage,
     png_set_keep_unknown_chunks(mPNG, 1, color_chunks, 2);
   }
   png_set_keep_unknown_chunks(mPNG, 1, unused_chunks,
-     (int)sizeof(unused_chunks)/5);   
+     (int)sizeof(unused_chunks)/5);
 #endif
 
   
@@ -341,7 +350,8 @@ nsPNGDecoder::Write(const char *aBuffer, PRUint32 aCount)
       return NS_OK;
 
     
-    PRUint32 bytesToRead = PR_MIN(aCount, BYTES_NEEDED_FOR_DIMENSIONS - mHeaderBytesRead);
+    PRUint32 bytesToRead = PR_MIN(aCount, BYTES_NEEDED_FOR_DIMENSIONS -
+                                  mHeaderBytesRead);
     memcpy(mHeaderBuf + mHeaderBytesRead, aBuffer, bytesToRead);
     mHeaderBytesRead += bytesToRead;
 
@@ -480,16 +490,18 @@ PNGGetColorProfile(png_structp png_ptr, png_infop info_ptr,
 
     if (profile) {
       int fileIntent;
-      png_set_gray_to_rgb(png_ptr); 
+      png_set_gray_to_rgb(png_ptr);
       png_get_sRGB(png_ptr, info_ptr, &fileIntent);
-      PRUint32 map[] = { QCMS_INTENT_PERCEPTUAL, QCMS_INTENT_RELATIVE_COLORIMETRIC,
-                         QCMS_INTENT_SATURATION, QCMS_INTENT_ABSOLUTE_COLORIMETRIC };
+      PRUint32 map[] = { QCMS_INTENT_PERCEPTUAL,
+                         QCMS_INTENT_RELATIVE_COLORIMETRIC,
+                         QCMS_INTENT_SATURATION,
+                         QCMS_INTENT_ABSOLUTE_COLORIMETRIC };
       *intent = map[fileIntent];
     }
   }
 
   
-  if (!profile && 
+  if (!profile &&
        png_get_valid(png_ptr, info_ptr, PNG_INFO_gAMA) &&
        png_get_valid(png_ptr, info_ptr, PNG_INFO_cHRM)) {
     qcms_CIE_xyYTRIPLE primaries;
@@ -507,7 +519,8 @@ PNGGetColorProfile(png_structp png_ptr, png_infop info_ptr,
 
     png_get_gAMA(png_ptr, info_ptr, &gammaOfFile);
 
-    profile = qcms_profile_create_rgb_with_gamma(whitePoint, primaries, 1/gammaOfFile);
+    profile = qcms_profile_create_rgb_with_gamma(whitePoint, primaries,
+                                                 1.0/gammaOfFile);
 
     if (profile)
       png_set_gray_to_rgb(png_ptr);
@@ -543,13 +556,14 @@ info_callback(png_structp png_ptr, png_infop info_ptr)
   png_bytep trans = NULL;
   int num_trans = 0;
 
-  nsPNGDecoder *decoder = static_cast<nsPNGDecoder*>(png_get_progressive_ptr(png_ptr));
+  nsPNGDecoder *decoder =
+               static_cast<nsPNGDecoder*>(png_get_progressive_ptr(png_ptr));
   nsresult rv;
 
   
   png_get_IHDR(png_ptr, info_ptr, &width, &height, &bit_depth, &color_type,
                &interlace_type, &compression_type, &filter_type);
-  
+
   
   if (width > MOZ_PNG_MAX_DIMENSION || height > MOZ_PNG_MAX_DIMENSION)
     longjmp(decoder->mPNG->jmpbuf, 1);
@@ -594,7 +608,8 @@ info_callback(png_structp png_ptr, png_infop info_ptr)
     png_set_strip_16(png_ptr);
 
   qcms_data_type inType;
-  PRUint32 intent, pIntent;
+  PRUint32 intent = -1;
+  PRUint32 pIntent;
   if (gfxPlatform::GetCMSMode() != eCMSMode_Off) {
     intent = gfxPlatform::GetRenderingIntent();
     decoder->mInProfile = PNGGetColorProfile(png_ptr, info_ptr,
@@ -612,10 +627,10 @@ info_callback(png_structp png_ptr, png_infop info_ptr)
       outType = QCMS_DATA_RGB_8;
 
     decoder->mTransform = qcms_transform_create(decoder->mInProfile,
-                                             inType,
-                                             gfxPlatform::GetCMSOutputProfile(),
-                                             outType,
-                                             (qcms_intent)intent);
+                                           inType,
+                                           gfxPlatform::GetCMSOutputProfile(),
+                                           outType,
+                                           (qcms_intent)intent);
   } else {
     png_set_gray_to_rgb(png_ptr);
     PNGDoGammaCorrection(png_ptr, info_ptr);
@@ -669,13 +684,13 @@ info_callback(png_structp png_ptr, png_infop info_ptr)
 
   if (png_get_valid(png_ptr, info_ptr, PNG_INFO_acTL))
     png_set_progressive_frame_fn(png_ptr, frame_info_callback, NULL);
-  
+
   if (png_get_first_frame_is_hidden(png_ptr, info_ptr)) {
     decoder->mFrameIsHidden = PR_TRUE;
   } else {
     decoder->CreateFrame(0, 0, width, height, decoder->format);
   }
-  
+
   if (decoder->mTransform &&
       (channels <= 2 || interlace_type == PNG_INTERLACE_ADAM7)) {
     PRUint32 bpp[] = { 0, 3, 4, 3, 4 };
@@ -688,19 +703,20 @@ info_callback(png_structp png_ptr, png_infop info_ptr)
 
   if (interlace_type == PNG_INTERLACE_ADAM7) {
     if (height < PR_INT32_MAX / (width * channels))
-      decoder->interlacebuf = (PRUint8 *)nsMemory::Alloc(channels * width * height);
+      decoder->interlacebuf = (PRUint8 *)nsMemory::Alloc(channels *
+                                                         width * height);
     if (!decoder->interlacebuf) {
       longjmp(decoder->mPNG->jmpbuf, 5); 
     }
   }
-  
+
   
 
 
 
 
   png_set_crc_action(png_ptr, NULL, PNG_CRC_ERROR_QUIT);
-  
+
   return;
 }
 
@@ -735,8 +751,9 @@ row_callback(png_structp png_ptr, png_bytep new_row,
 
 
 
-  nsPNGDecoder *decoder = static_cast<nsPNGDecoder*>(png_get_progressive_ptr(png_ptr));
-  
+  nsPNGDecoder *decoder =
+               static_cast<nsPNGDecoder*>(png_get_progressive_ptr(png_ptr));
+
   
   if (decoder->mFrameIsHidden)
     return;
@@ -757,7 +774,8 @@ row_callback(png_structp png_ptr, png_bytep new_row,
 
     if (decoder->mTransform) {
       if (decoder->mCMSLine) {
-        qcms_transform_data(decoder->mTransform, line, decoder->mCMSLine, iwidth);
+        qcms_transform_data(decoder->mTransform, line, decoder->mCMSLine,
+                            iwidth);
         
         PRUint32 channels = decoder->mChannels;
         if (channels == 2 || channels == 4) {
@@ -779,7 +797,7 @@ row_callback(png_structp png_ptr, png_bytep new_row,
         
         for (; (NS_PTR_TO_UINT32(line) & 0x3) && idx; --idx) {
           *cptr32++ = GFX_PACKED_PIXEL(0xFF, line[0], line[1], line[2]);
-          line += 3; 
+          line += 3;
         }
 
         
@@ -829,7 +847,8 @@ row_callback(png_structp png_ptr, png_bytep new_row,
       PRUint32 curFrame;
       decoder->mImage->GetCurrentFrameIndex(&curFrame);
       if (decoder->mObserver)
-        decoder->mObserver->OnDataAvailable(nsnull, curFrame == numFrames - 1, &r);
+        decoder->mObserver->OnDataAvailable(nsnull,
+                                            curFrame == numFrames - 1, &r);
     }
   }
 }
@@ -840,20 +859,21 @@ frame_info_callback(png_structp png_ptr, png_uint_32 frame_num)
 {
   png_uint_32 x_offset, y_offset;
   PRInt32 width, height;
-  
-  nsPNGDecoder *decoder = static_cast<nsPNGDecoder*>(png_get_progressive_ptr(png_ptr));
-  
+
+  nsPNGDecoder *decoder =
+               static_cast<nsPNGDecoder*>(png_get_progressive_ptr(png_ptr));
+
   
   if (!decoder->mFrameIsHidden)
     decoder->EndImageFrame();
-  
+
   decoder->mFrameIsHidden = PR_FALSE;
-  
+
   x_offset = png_get_next_frame_x_offset(png_ptr, decoder->mInfo);
   y_offset = png_get_next_frame_y_offset(png_ptr, decoder->mInfo);
   width = png_get_next_frame_width(png_ptr, decoder->mInfo);
   height = png_get_next_frame_height(png_ptr, decoder->mInfo);
-  
+
   decoder->CreateFrame(x_offset, y_offset, width, height, decoder->format);
 }
 
@@ -872,11 +892,12 @@ end_callback(png_structp png_ptr, png_infop info_ptr)
 
 
 
-  nsPNGDecoder *decoder = static_cast<nsPNGDecoder*>(png_get_progressive_ptr(png_ptr));
+  nsPNGDecoder *decoder =
+               static_cast<nsPNGDecoder*>(png_get_progressive_ptr(png_ptr));
 
   
   NS_ABORT_IF_FALSE(!decoder->mError, "Finishing up PNG but hit error!");
-  
+
   if (png_get_valid(png_ptr, info_ptr, PNG_INFO_acTL)) {
     PRInt32 num_plays = png_get_num_plays(png_ptr, info_ptr);
     decoder->mImage->SetLoopCount(num_plays - 1);
