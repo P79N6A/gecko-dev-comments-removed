@@ -297,6 +297,22 @@ typedef enum JSCharType {
 extern JSBool
 js_InitRuntimeStringState(JSContext *cx);
 
+
+
+
+
+#define UNIT_STRING_LIMIT 256
+
+
+
+
+
+
+
+
+extern JSString *
+js_GetUnitString(JSContext *cx, jschar c);
+
 extern void
 js_FinishRuntimeStringState(JSContext *cx);
 

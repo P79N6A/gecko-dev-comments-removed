@@ -249,7 +249,11 @@ struct JSRuntime {
 #endif
 
     
+
+
+
     JSString            *emptyString;
+    JSString            **unitStrings;
 
     
     JSCList             contextList;
@@ -638,6 +642,9 @@ struct JSContext {
 
 
     uint8               xmlSettingFlags;
+    uint8               padding;
+#else
+    uint16              padding;
 #endif
 
     

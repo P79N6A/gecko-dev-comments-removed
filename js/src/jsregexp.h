@@ -155,8 +155,7 @@ js_InitRegExpClass(JSContext *cx, JSObject *obj);
 
 
 extern JSBool
-js_regexp_toString(JSContext *cx, JSObject *obj, uintN argc, jsval *argv,
-                   jsval *rval);
+js_regexp_toString(JSContext *cx, JSObject *obj, jsval *vp);
 
 
 

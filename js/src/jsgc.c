@@ -1943,7 +1943,8 @@ gc_lock_traversal(JSDHashTable *table, JSDHashEntryHdr *hdr, uint32 num,
 void
 js_TraceStackFrame(JSTracer *trc, JSStackFrame *fp)
 {
-    uintN depth, nslots;
+    uintN depth, nslots, minargs;
+
     if (fp->callobj)
         JS_CALL_OBJECT_TRACER(trc, fp->callobj, "call");
     if (fp->argsobj)
@@ -1971,41 +1972,19 @@ js_TraceStackFrame(JSTracer *trc, JSStackFrame *fp)
               (fp->fun && JSFUN_THISP_FLAGS(fp->fun->flags)));
     JS_CALL_VALUE_TRACER(trc, (jsval)fp->thisp, "this");
 
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    if (fp->callee)
+        JS_CALL_OBJECT_TRACER(trc, fp->callee, "callee");
 
     if (fp->argv) {
         nslots = fp->argc;
         if (fp->fun) {
-            if (fp->fun->nargs > nslots)
-                nslots = fp->fun->nargs;
+            minargs = FUN_MINARGS(fp->fun);
+            if (minargs > nslots)
+                nslots = minargs;
             if (!FUN_INTERPRETED(fp->fun))
                 nslots += fp->fun->u.n.extra;
         }
-        TRACE_JSVALS(trc, nslots, fp->argv, "arg");
+        TRACE_JSVALS(trc, nslots + 2, fp->argv - 2, "arg");
     }
     JS_CALL_VALUE_TRACER(trc, fp->rval, "rval");
     if (fp->vars)

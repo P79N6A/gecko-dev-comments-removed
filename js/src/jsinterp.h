@@ -61,6 +61,7 @@ struct JSStackFrame {
     JSObject        *callobj;       
     JSObject        *argsobj;       
     JSObject        *varobj;        
+    JSObject        *callee;        
     JSScript        *script;        
     JSFunction      *fun;           
     JSObject        *thisp;         
@@ -110,6 +111,8 @@ typedef struct JSInlineFrame {
 #define JSFRAME_ITERATOR      0x800 /* trying to get an iterator for for-in */
 #define JSFRAME_POP_BLOCKS   0x1000 /* scope chain contains blocks to pop */
 #define JSFRAME_GENERATOR    0x2000 /* frame belongs to generator-iterator */
+#define JSFRAME_IN_FAST_CALL 0x4000 /* calling frame is calling a fast native */
+#define JSFRAME_DID_SET_RVAL 0x8000 /* fast native used JS_SET_RVAL(cx, vp) */
 
 #define JSFRAME_OVERRIDE_SHIFT 24   /* override bit-set params; see jsfun.c */
 #define JSFRAME_OVERRIDE_BITS  8
@@ -150,6 +153,18 @@ extern void         js_DumpCallTable(JSContext *cx);
 
 extern JSObject *
 js_GetScopeChain(JSContext *cx, JSStackFrame *fp);
+
+
+
+
+
+
+
+
+
+
+extern JSBool
+js_GetPrimitiveThis(JSContext *cx, jsval *vp, JSClass *clasp, jsval *thisvp);
 
 
 
