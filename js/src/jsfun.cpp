@@ -112,7 +112,7 @@ GetArgsLength(JSObject *obj)
     return argc;
 }
 
-static inline void 
+static inline void
 SetArgsPrivateNative(JSObject *argsobj, js_ArgsPrivateNative *apn)
 {
     JS_ASSERT(STOBJ_GET_CLASS(argsobj) == &js_ArgumentsClass);
@@ -292,7 +292,7 @@ js_Arguments(JSContext *cx, JSObject *parent, uint32 argc, JSObject *callee,
 }
 #endif
 
-JS_DEFINE_CALLINFO_6(extern, OBJECT, js_Arguments, CONTEXT, OBJECT, UINT32, OBJECT, 
+JS_DEFINE_CALLINFO_6(extern, OBJECT, js_Arguments, CONTEXT, OBJECT, UINT32, OBJECT,
                      DOUBLEPTR, APNPTR, 0, 0)
 
 
@@ -3062,16 +3062,17 @@ js_FreezeLocalNames(JSContext *cx, JSFunction *fun)
 #endif
 }
 
-extern JSAtom *
-js_FindDuplicateFormal(JSFunction *fun)
+JSAtom *
+JSFunction::findDuplicateFormal() const
 {
-    unsigned nargs = fun->nargs;
     if (nargs <= 1)
         return NULL;
 
     
-    if (nargs <= MAX_ARRAY_LOCALS) {
-        jsuword *array = fun->u.i.names.array;
+    unsigned n = nargs + u.i.nvars + u.i.nupvars;
+    if (n <= MAX_ARRAY_LOCALS) {
+        jsuword *array = u.i.names.array;
+
         
         for (unsigned i = 0; i < nargs; i++) {
             for (unsigned j = i + 1; j < nargs; j++) {
@@ -3087,6 +3088,6 @@ js_FindDuplicateFormal(JSFunction *fun)
 
 
 
-    JSNameIndexPair *dup = fun->u.i.names.map->lastdup;
+    JSNameIndexPair *dup = u.i.names.map->lastdup;
     return dup ? dup->name : NULL;
 }
