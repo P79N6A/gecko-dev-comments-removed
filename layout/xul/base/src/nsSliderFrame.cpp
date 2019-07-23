@@ -89,10 +89,10 @@ GetContentOfBox(nsIBox *aBox)
 
 
 
-static PRInt32
+static PRBool
 GetScrollToClick()
 {
-  PRInt32 scrollToClick = PR_FALSE;
+  PRBool scrollToClick = PR_FALSE;
   nsresult rv;
   nsCOMPtr<nsILookAndFeel> lookNFeel =
     do_GetService("@mozilla.org/widget/lookandfeel;1", &rv);
