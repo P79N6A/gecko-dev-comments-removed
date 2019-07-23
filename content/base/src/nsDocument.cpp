@@ -5727,9 +5727,7 @@ nsDocument::FlushPendingNotifications(mozFlushType aType)
 
   
 
-  nsPIDOMWindow *window = GetWindow();
-
-  if (aType <= Flush_ContentAndNotify || !window) {
+  if (aType <= Flush_ContentAndNotify) {
     
     return;
   }

@@ -810,6 +810,13 @@ public:
   
 
 
+
+
+  static PRBool IsInChromeDocshell(nsIDocument *aDocument);
+
+  
+
+
   static nsresult ReleasePtrOnShutdown(nsISupports** aSupportsPtr) {
     NS_ASSERTION(aSupportsPtr, "Expect to crash!");
     NS_ASSERTION(*aSupportsPtr, "Expect to crash!");
