@@ -1387,6 +1387,21 @@ nsTextControlFrame::CalcIntrinsicSize(nsIRenderingContext* aRenderingContext,
 void
 nsTextControlFrame::DelayedEditorInit()
 {
+  nsIDocument* doc = mContent->GetCurrentDoc();
+  if (!doc) {
+    return;
+  }
+  
+  nsWeakFrame weakFrame(this);
+
+  
+  
+  
+  doc->FlushPendingNotifications(Flush_ContentAndNotify);
+  if (!weakFrame.IsAlive()) {
+    return;
+  }
+  
   
   
   nsAutoScriptBlocker scriptBlocker;
