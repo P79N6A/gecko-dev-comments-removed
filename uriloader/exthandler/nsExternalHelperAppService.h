@@ -242,13 +242,6 @@ protected:
 
 
 
-#define DATA_BUFFER_SIZE (4096*2) 
-
-
-
-
-
-
 
 
 
@@ -359,7 +352,8 @@ protected:
 
   nsCOMPtr<nsIFile> mFinalFileDestination;
 
-  char mDataBuffer[DATA_BUFFER_SIZE];
+  PRUint32 mBufferSize;
+  char    *mDataBuffer;
 
   
 

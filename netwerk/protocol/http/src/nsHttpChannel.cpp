@@ -83,7 +83,6 @@
 #include "nsAuthInformationHolder.h"
 #include "nsICacheService.h"
 #include "nsDNSPrefetch.h"
-#include "nsNetSegmentUtils.h"
 
 
 #define BYPASS_LOCAL_CACHE(loadFlags) \

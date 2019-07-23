@@ -1110,6 +1110,7 @@ nsExternalAppHandler::nsExternalAppHandler(nsIMIMEInfo * aMIMEInfo,
 , mContentLength(-1)
 , mProgress(0)
 , mRequest(nsnull)
+, mDataBuffer(nsnull)
 {
 
   
@@ -1138,12 +1139,30 @@ nsExternalAppHandler::nsExternalAppHandler(nsIMIMEInfo * aMIMEInfo,
   EnsureSuggestedFileName();
 
   gExtProtSvc->AddRef();
+
+  nsCOMPtr<nsIPrefBranch> prefs(do_GetService(NS_PREFSERVICE_CONTRACTID));
+  if (!prefs)
+    return;
+
+  mBufferSize = 8192;
+  PRInt32 size;
+  nsresult rv = prefs->GetIntPref("network.buffer.cache.size", &size);
+  if (NS_SUCCEEDED(rv)) {
+    mBufferSize = size;
+  }
+
+  mDataBuffer = (char*) malloc(mBufferSize);
+  if (!mDataBuffer)
+    return;
 }
 
 nsExternalAppHandler::~nsExternalAppHandler()
 {
   
   gExtProtSvc->Release();
+
+  if (mDataBuffer)
+    free(mDataBuffer);
 }
 
 NS_IMETHODIMP nsExternalAppHandler::SetWebProgressListener(nsIWebProgressListener2 * aWebProgressListener)
@@ -1758,7 +1777,7 @@ NS_IMETHODIMP nsExternalAppHandler::OnDataAvailable(nsIRequest *request, nsISupp
 {
   nsresult rv = NS_OK;
   
-  if (mCanceled) 
+  if (mCanceled || !mDataBuffer) 
     return request->Cancel(NS_BINDING_ABORTED);
 
   
@@ -1771,7 +1790,7 @@ NS_IMETHODIMP nsExternalAppHandler::OnDataAvailable(nsIRequest *request, nsISupp
     while (NS_SUCCEEDED(rv) && count > 0) 
     {
       readError = PR_TRUE;
-      rv = inStr->Read(mDataBuffer, PR_MIN(count, DATA_BUFFER_SIZE - 1), &numBytesRead);
+      rv = inStr->Read(mDataBuffer, PR_MIN(count, mBufferSize - 1), &numBytesRead);
       if (NS_SUCCEEDED(rv))
       {
         if (count >= numBytesRead)
