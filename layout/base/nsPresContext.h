@@ -468,9 +468,6 @@ public:
 
   PRBool IsPaginated() const { return mPaginated; }
   
-  PRBool GetRenderedPositionVaryingContent() const { return mRenderedPositionVaryingContent; }
-  void SetRenderedPositionVaryingContent() { mRenderedPositionVaryingContent = PR_TRUE; }
-
   
 
 
@@ -1015,7 +1012,6 @@ protected:
   unsigned              mPendingThemeChanged : 1;
   unsigned              mPendingMediaFeatureValuesChanged : 1;
   unsigned              mPrefChangePendingNeedsReflow : 1;
-  unsigned              mRenderedPositionVaryingContent : 1;
 
   
   unsigned              mUserFontSetDirty : 1;

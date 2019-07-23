@@ -1981,10 +1981,6 @@ PaintBackgroundLayer(nsPresContext* aPresContext,
     
     
     
-
-    
-    aPresContext->SetRenderedPositionVaryingContent();
-
     nsIFrame* topFrame =
       aPresContext->PresShell()->FrameManager()->GetRootFrame();
     NS_ASSERTION(topFrame, "no root frame");

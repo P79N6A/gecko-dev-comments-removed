@@ -1392,34 +1392,6 @@ nsIFrame::BuildDisplayListForStackingContext(nsDisplayListBuilder* aBuilder,
   return rv;
 }
 
-class nsDisplaySummary : public nsDisplayItem
-{
-public:
-  nsDisplaySummary(nsIFrame* aFrame) : nsDisplayItem(aFrame) {
-    MOZ_COUNT_CTOR(nsDisplaySummary);
-  }
-#ifdef NS_BUILD_REFCNT_LOGGING
-  virtual ~nsDisplaySummary() {
-    MOZ_COUNT_DTOR(nsDisplaySummary);
-  }
-#endif
-
-  virtual nsRect GetBounds(nsDisplayListBuilder* aBuilder);
-  NS_DISPLAY_DECL_NAME("Summary")
-};
-
-nsRect
-nsDisplaySummary::GetBounds(nsDisplayListBuilder* aBuilder) {
-  return mFrame->GetOverflowRect() + aBuilder->ToReferenceFrame(mFrame);
-}
-
-static void
-AddSummaryFrameToList(nsDisplayListBuilder* aBuilder,
-                      nsIFrame* aFrame, nsDisplayList* aList)
-{
-  aList->AppendNewToTop(new (aBuilder) nsDisplaySummary(aFrame));
-}
-
 nsresult
 nsIFrame::BuildDisplayListForChild(nsDisplayListBuilder*   aBuilder,
                                    nsIFrame*               aChild,
@@ -1501,27 +1473,6 @@ nsIFrame::BuildDisplayListForChild(nsDisplayListBuilder*   aBuilder,
       
       
       
-    }
-
-    
-    
-    if (aBuilder->GetRootMovingFrame() == this &&
-        !PresContext()->GetRenderedPositionVaryingContent()) {
-      
-      
-      
-      
-      
-      
-      
-      
-      AddSummaryFrameToList(aBuilder, aChild, aLists.BlockBorderBackgrounds());
-      AddSummaryFrameToList(aBuilder, aChild, aLists.BorderBackground());
-      AddSummaryFrameToList(aBuilder, aChild, aLists.Content());
-      AddSummaryFrameToList(aBuilder, aChild, aLists.Floats());
-      AddSummaryFrameToList(aBuilder, aChild, aLists.PositionedDescendants());      
-      AddSummaryFrameToList(aBuilder, aChild, aLists.Outlines());
-      return NS_OK;
     }
   }
 
