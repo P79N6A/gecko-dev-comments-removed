@@ -203,7 +203,7 @@ FindOnBoundary(const nsAString &aToken, const nsAString &aTarget)
     
     
     
-    if (!IsWordBoundary(*targetStart++))
+    if (!IsWordBoundary(ToLowerCase(*targetStart++)))
       while (targetStart != targetEnd && !IsWordBoundary(*targetStart))
         targetStart++;
 

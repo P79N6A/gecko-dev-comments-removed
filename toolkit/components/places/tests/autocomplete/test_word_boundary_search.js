@@ -39,6 +39,9 @@
 
 
 
+
+
+
 let katakana = ["\u30a8", "\u30c9"]; 
 let ideograph = ["\u4efb", "\u5929", "\u5802"]; 
 
@@ -114,4 +117,6 @@ let gTests = [
 
   ["12: Extra negative assert that we don't match in the middle",
    "ch", []],
+  ["13: Don't match one character after a camel-case word boundary (bug 429498)",
+   "atch", []],
 ];
