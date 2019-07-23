@@ -301,6 +301,11 @@ public:
   virtual nsresult AppendTextTo(nsAString& aText, PRUint32 aStartOffset,
                                 PRUint32 aLength);
 
+  
+
+
+  void TestChildCache(nsAccessible *aCachedChild);
+
 protected:
 
   
@@ -310,11 +315,6 @@ protected:
 
 
   virtual void CacheChildren();
-
-  
-
-
-  void TestChildCache(nsAccessible *aCachedChild);
 
   
 
