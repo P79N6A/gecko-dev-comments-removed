@@ -83,6 +83,10 @@ let gStr = {
   timeSecondsLeft: "timeSecondsLeft",
   timeFewSeconds: "timeFewSeconds",
   timeUnknown: "timeUnknown",
+  doneStatus: "doneStatus",
+  doneSize: "doneSize",
+  doneSizeUnknown: "doneSizeUnknown",
+
   units: ["bytes", "kilobyte", "megabyte", "gigabyte"],
 
   fileExecutableSecurityWarningTitle: "fileExecutableSecurityWarningTitle",
@@ -159,6 +163,8 @@ function downloadCompleted(aDownload)
 
     
     dl.setAttribute("startTime", Math.round(aDownload.startTime / 1000));
+    dl.setAttribute("currBytes", aDownload.amountTransferred);
+    dl.setAttribute("maxBytes", aDownload.size);
 
     
     
@@ -807,6 +813,53 @@ function updateStatus(aItem, aDownload) {
 
         
         status = replaceInsert(status, 4, remain);
+      }
+
+      break;
+    case nsIDM.DOWNLOAD_FINISHED:
+      let (stateSize = {}) {
+        stateSize[nsIDM.DOWNLOAD_FINISHED] = function() {
+          
+          let fileSize = Number(aItem.getAttribute("maxBytes"));
+          let sizeText = gStr.doneSizeUnknown;
+          if (fileSize >= 0) {
+            let [size, unit] = convertByteUnits(fileSize);
+            sizeText = replaceInsert(gStr.doneSize, 1, size);
+            sizeText = replaceInsert(sizeText, 2, unit);
+          }
+          return sizeText;
+        };
+
+        
+        status = replaceInsert(gStr.doneStatus, 1, stateSize[state]());
+      }
+
+      let (displayHost,
+           ioService = Cc["@mozilla.org/network/io-service;1"].
+                       getService(Ci.nsIIOService),
+           eTLDService = Cc["@mozilla.org/network/effective-tld-service;1"].
+                         getService(Ci.nsIEffectiveTLDService)) {
+        
+        let uri = ioService.newURI(getReferrerOrSource(aItem), null, null);
+
+        try {
+          
+          displayHost = eTLDService.getBaseDomain(uri);
+        } catch (e) {
+          
+          displayHost = uri.host;
+        }
+
+        
+        if (displayHost.length == 0)
+          displayHost = uri.spec;
+
+        
+        else if (uri.port != -1)
+          displayHost += ":" + uri.port;
+
+        
+        status = replaceInsert(status, 2, displayHost);
       }
 
       break;
