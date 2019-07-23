@@ -109,11 +109,7 @@ public:
 
   
   NS_IMETHOD GetName(nsAString& aName);
-
-  
-  
-  
-  NS_IMETHOD GetParent(nsIAccessible **aParentAccessible);
+  NS_IMETHOD GetParent(nsIAccessible **aParent);
 
   
   virtual nsresult Shutdown();
@@ -121,7 +117,6 @@ public:
   
   virtual nsresult GetRoleInternal(PRUint32 *aRole);
   virtual nsresult GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState);
-  virtual void SetParent(nsIAccessible *aParent);
   virtual nsresult AppendTextTo(nsAString& aText, PRUint32 aStartOffset,
                                 PRUint32 aLength);
 
@@ -132,7 +127,6 @@ protected:
   
   
   
-  nsIAccessible *mWeakParent;
   nsString mBulletText;
 };
 

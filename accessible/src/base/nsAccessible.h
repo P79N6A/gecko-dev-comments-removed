@@ -204,8 +204,7 @@ public:
   
 
 
-
-  virtual void SetParent(nsIAccessible *aParent);
+  void SetParent(nsIAccessible *aParent);
 
   
 

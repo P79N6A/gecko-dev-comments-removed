@@ -34,17 +34,26 @@ function waitForEvent(aEventType, aTarget, aFunc, aContext, aArg1, aArg2)
 {
   var handler = {
     handleEvent: function handleEvent(aEvent) {
-      if (!aTarget || aTarget == aEvent.DOMNode) {
-        unregisterA11yEventListener(aEventType, this);
 
-        window.setTimeout(
-          function ()
-          {
-            aFunc.call(aContext, aArg1, aArg2);
-          },
-          0
-        );
+      if (aTarget) {
+        if (aTarget instanceof nsIAccessible &&
+            aTarget != aEvent.accessible)
+          return;
+
+        if (aTarget instanceof nsIDOMNode &&
+            aTarget != aEvent.DOMNode)
+          return;
       }
+
+      unregisterA11yEventListener(aEventType, this);
+
+      window.setTimeout(
+        function ()
+        {
+          aFunc.call(aContext, aArg1, aArg2);
+        },
+        0
+      );
     }
   };
 
@@ -90,6 +99,12 @@ function unregisterA11yEventListener(aEventType, aEventHandler)
 
 
 const INVOKER_ACTION_FAILED = 1;
+
+
+
+
+
+const DO_NOT_FINISH_TEST = 1;
 
 
 
@@ -240,8 +255,10 @@ function eventQueue(aEventType)
       gA11yEventApplicantsCount--;
       listenA11yEvents(false);
 
-      this.onFinish();
-      SimpleTest.finish();
+      var res = this.onFinish();
+      if (res != DO_NOT_FINISH_TEST)
+        SimpleTest.finish();
+
       return;
     }
 
@@ -526,6 +543,54 @@ function eventQueue(aEventType)
 
 
 
+function sequence()
+{
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+  this.append = function sequence_append(aProcessor, aEventType, aTarget,
+                                         aItemID)
+  {
+    var item = new sequenceItem(aProcessor, aEventType, aTarget, aItemID);
+    this.items.push(item);
+  }
+
+  
+
+
+  this.processNext = function sequence_processNext()
+  {
+    this.idx++;
+    if (this.idx >= this.items.length) {
+      ok(false, "End of sequence: nothing to process!");
+      SimpleTest.finish();
+      return;
+    }
+
+    this.items[this.idx].startProcess();
+  }
+
+  this.items = new Array();
+  this.idx = -1;
+}
+
+
+
+
+
+
+
 
 
 
@@ -636,4 +701,43 @@ function dumpInfoToDOM(aInfo, aDumpNode)
 
   container.textContent = aInfo;
   dumpElm.appendChild(container);
+}
+
+
+
+
+
+
+
+
+function sequenceItem(aProcessor, aEventType, aTarget, aItemID)
+{
+  
+  
+  this.startProcess = function sequenceItem_startProcess()
+  {
+    this.queue.invoke();
+  }
+  
+  var item = this;
+  
+  this.queue = new eventQueue();
+  this.queue.onFinish = function()
+  {
+    aProcessor.onProcessed();
+    return DO_NOT_FINISH_TEST;
+  }
+  
+  var invoker = {
+    invoke: function invoker_invoke() {
+      return aProcessor.process();
+    },
+    getID: function invoker_getID()
+    {
+      return aItemID;
+    },
+    eventSeq: [ new invokerChecker(aEventType, aTarget) ]
+  };
+  
+  this.queue.push(invoker);
 }
