@@ -171,11 +171,9 @@ WifiGeoPositionProvider.prototype = {
         
         
         
-        let prefService = Cc["@mozilla.org/preferences-service;1"].getService(Ci.nsIPrefBranch);
-        if (prefService.getIntPref("network.cookie.lifetimePolicy") != 0) {
-            let branch = prefService.getBranch("geo.wifi.access_token.");
-            branch.deleteBranch("");
-        }
+        let prefBranch = Cc["@mozilla.org/preferences-service;1"].getService(Ci.nsIPrefBranch);
+        if (prefBranch.getIntPref("network.cookie.lifetimePolicy") != 0)
+            prefBranch.deleteBranch("geo.wifi.access_token.");
 
         let os = Cc["@mozilla.org/observer-service;1"].getService(Ci.nsIObserverService);
         os.removeObserver(this, "private-browsing");
