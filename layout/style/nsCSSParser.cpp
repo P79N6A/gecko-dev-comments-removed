@@ -85,6 +85,62 @@
 #include "nsDOMError.h"
 
 
+#define VARIANT_KEYWORD         0x000001  // K
+#define VARIANT_LENGTH          0x000002  // L
+#define VARIANT_PERCENT         0x000004  // P
+#define VARIANT_COLOR           0x000008  // C eCSSUnit_Color, eCSSUnit_String (e.g.  "red")
+#define VARIANT_URL             0x000010  // U
+#define VARIANT_NUMBER          0x000020  // N
+#define VARIANT_INTEGER         0x000040  // I
+#define VARIANT_ANGLE           0x000080  // G
+#define VARIANT_FREQUENCY       0x000100  // F
+#define VARIANT_TIME            0x000200  // T
+#define VARIANT_STRING          0x000400  // S
+#define VARIANT_COUNTER         0x000800  // 
+#define VARIANT_ATTR            0x001000  //
+#define VARIANT_IDENTIFIER      0x002000  // D
+#define VARIANT_AUTO            0x010000  // A
+#define VARIANT_INHERIT         0x020000  // H eCSSUnit_Initial, eCSSUnit_Inherit
+#define VARIANT_NONE            0x040000  // O
+#define VARIANT_NORMAL          0x080000  // M
+#define VARIANT_SYSFONT         0x100000  // eCSSUnit_System_Font
+
+
+#define VARIANT_AL   (VARIANT_AUTO | VARIANT_LENGTH)
+#define VARIANT_LP   (VARIANT_LENGTH | VARIANT_PERCENT)
+#define VARIANT_AH   (VARIANT_AUTO | VARIANT_INHERIT)
+#define VARIANT_AHLP (VARIANT_AH | VARIANT_LP)
+#define VARIANT_AHI  (VARIANT_AH | VARIANT_INTEGER)
+#define VARIANT_AHK  (VARIANT_AH | VARIANT_KEYWORD)
+#define VARIANT_AHKLP (VARIANT_AHLP | VARIANT_KEYWORD)
+#define VARIANT_AUK  (VARIANT_AUTO | VARIANT_URL | VARIANT_KEYWORD)
+#define VARIANT_AHUK (VARIANT_AH | VARIANT_URL | VARIANT_KEYWORD)
+#define VARIANT_AHL  (VARIANT_AH | VARIANT_LENGTH)
+#define VARIANT_AHKL (VARIANT_AHK | VARIANT_LENGTH)
+#define VARIANT_HK   (VARIANT_INHERIT | VARIANT_KEYWORD)
+#define VARIANT_HKF  (VARIANT_HK | VARIANT_FREQUENCY)
+#define VARIANT_HKL  (VARIANT_HK | VARIANT_LENGTH)
+#define VARIANT_HKLP (VARIANT_HK | VARIANT_LP)
+#define VARIANT_HKLPO (VARIANT_HKLP | VARIANT_NONE)
+#define VARIANT_HL   (VARIANT_INHERIT | VARIANT_LENGTH)
+#define VARIANT_HI   (VARIANT_INHERIT | VARIANT_INTEGER)
+#define VARIANT_HLP  (VARIANT_HL | VARIANT_PERCENT)
+#define VARIANT_HLPN (VARIANT_HLP | VARIANT_NUMBER)
+#define VARIANT_HLPO (VARIANT_HLP | VARIANT_NONE)
+#define VARIANT_HTP  (VARIANT_INHERIT | VARIANT_TIME | VARIANT_PERCENT)
+#define VARIANT_HMK  (VARIANT_HK | VARIANT_NORMAL)
+#define VARIANT_HMKI (VARIANT_HMK | VARIANT_INTEGER)
+#define VARIANT_HC   (VARIANT_INHERIT | VARIANT_COLOR)
+#define VARIANT_HCK  (VARIANT_HK | VARIANT_COLOR)
+#define VARIANT_HUO  (VARIANT_INHERIT | VARIANT_URL | VARIANT_NONE)
+#define VARIANT_AHUO (VARIANT_AUTO | VARIANT_HUO)
+#define VARIANT_HPN  (VARIANT_INHERIT | VARIANT_PERCENT | VARIANT_NUMBER)
+#define VARIANT_HOK  (VARIANT_HK | VARIANT_NONE)
+#define VARIANT_HN   (VARIANT_INHERIT | VARIANT_NUMBER)
+#define VARIANT_HON  (VARIANT_HN | VARIANT_NONE)
+#define VARIANT_HOS  (VARIANT_INHERIT | VARIANT_NONE | VARIANT_STRING)
+
+
 
 
 class CSSParserImpl : public nsICSSParser {
@@ -227,8 +283,10 @@ protected:
   PRBool ParseCharsetRule(nsresult& aErrorCode, RuleAppendFunc aAppendFunc, void* aProcessData);
   PRBool ParseImportRule(nsresult& aErrorCode, RuleAppendFunc aAppendFunc, void* aProcessData);
   PRBool GatherURL(nsresult& aErrorCode, nsString& aURL);
+  
   PRBool GatherMedia(nsresult& aErrorCode, nsMediaList* aMedia,
                      PRUnichar aStopSymbol);
+  PRBool ParseMediaQueryExpression(nsresult& aErrorCode, nsMediaQuery* aQuery);
   PRBool ProcessImport(nsresult& aErrorCode,
                        const nsString& aURLSpec,
                        nsMediaList* aMedia,
@@ -1051,6 +1109,8 @@ CSSParserImpl::ParseMediaList(const nsSubstring& aBuffer,
                               nsMediaList* aMediaList,
                               PRBool aHTMLMode)
 {
+  
+  
   aMediaList->Clear();
 
   AssertInitialState();
@@ -1094,8 +1154,12 @@ CSSParserImpl::DoParseMediaList(const nsSubstring& aBuffer,
     return rv;
   }
 
-  if (!GatherMedia(rv, aMediaList, PRUnichar(0)) && !mHTMLMediaMode) {
-    OUTPUT_ERROR();
+  if (!GatherMedia(rv, aMediaList, PRUnichar(0))) {
+    aMediaList->Clear();
+    aMediaList->SetNonEmpty(); 
+    if (!mHTMLMediaMode) {
+      OUTPUT_ERROR();
+    }
   }
   CLEAR_ERROR();
   ReleaseScanner();
@@ -1417,50 +1481,261 @@ PRBool CSSParserImpl::GatherURL(nsresult& aErrorCode, nsString& aURL)
   return PR_FALSE;
 }
 
+
 PRBool CSSParserImpl::GatherMedia(nsresult& aErrorCode,
                                   nsMediaList* aMedia,
                                   PRUnichar aStopSymbol)
 {
-  for (;;) {
-    if (!GetToken(aErrorCode, PR_TRUE)) {
-      REPORT_UNEXPECTED_EOF(PEGatherMediaEOF);
-      break;
-    }
-    if (eCSSToken_Ident != mToken.mType) {
-      REPORT_UNEXPECTED_TOKEN(PEGatherMediaNotIdent);
-      UngetToken();
-      break;
-    }
-    ToLowerCase(mToken.mIdent);  
-    nsCOMPtr<nsIAtom> medium = do_GetAtom(mToken.mIdent);
-    aMedia->AppendAtom(medium);
-
-    if (!GetToken(aErrorCode, PR_TRUE)) {
-      
-      if (aStopSymbol == PRUnichar(0))
-        return PR_TRUE;
-
-      
-      
-      
-      REPORT_UNEXPECTED_EOF(PEGatherMediaEOF);
-      if (aStopSymbol == PRUnichar(';'))
-        return PR_TRUE;
-      break;
-    }
-
-    if (eCSSToken_Symbol == mToken.mType &&
-        mToken.mSymbol == aStopSymbol) {
-      UngetToken();
+  
+  
+  
+  if (!GetToken(aErrorCode, PR_TRUE)) {
+    
+    if (aStopSymbol == PRUnichar(0))
       return PR_TRUE;
-    } else if (eCSSToken_Symbol != mToken.mType ||
-               mToken.mSymbol != ',') {
-      REPORT_UNEXPECTED_TOKEN(PEGatherMediaNotComma);
-      UngetToken();
+
+    
+    
+    
+    REPORT_UNEXPECTED_EOF(PEGatherMediaEOF);
+    return aStopSymbol == PRUnichar(';');
+  }
+
+  if (eCSSToken_Symbol == mToken.mType &&
+      mToken.mSymbol == aStopSymbol) {
+    UngetToken();
+    return PR_TRUE;
+  }
+  UngetToken();
+  aMedia->SetNonEmpty();
+
+  for (;;) {
+    
+    
+    nsMediaQuery *query;
+    {
+      nsAutoPtr<nsMediaQuery> queryHolder(new nsMediaQuery);
+      if (!queryHolder) {
+        aErrorCode = NS_ERROR_OUT_OF_MEMORY;
+        return PR_FALSE;
+      }
+      query = queryHolder;
+
+      
+      
+      
+      nsresult rv = aMedia->AppendQuery(queryHolder);
+      if (NS_FAILED(rv)) {
+        aErrorCode = rv;
+        return PR_FALSE;
+      }
+      NS_ASSERTION(!queryHolder, "ownership should have been transferred");
+    }
+
+    if (ExpectSymbol(aErrorCode, '(', PR_TRUE)) {
+      
+      UngetToken(); 
+      query->SetType(nsGkAtoms::all);
+      query->SetTypeOmitted();
+      
+      if (!ParseMediaQueryExpression(aErrorCode, query)) {
+        OUTPUT_ERROR();
+        query->SetHadUnknownExpression();
+      }
+    } else {
+      nsCOMPtr<nsIAtom> mediaType;
+      PRBool gotNotOrOnly = PR_FALSE;
+      for (;;) {
+        if (!GetToken(aErrorCode, PR_TRUE)) {
+          REPORT_UNEXPECTED_EOF(PEGatherMediaEOF);
+          return PR_FALSE;
+        }
+        if (eCSSToken_Ident != mToken.mType) {
+          REPORT_UNEXPECTED_TOKEN(PEGatherMediaNotIdent);
+          UngetToken();
+          return PR_FALSE;
+        }
+        
+        ToLowerCase(mToken.mIdent);
+        mediaType = do_GetAtom(mToken.mIdent);
+        if (gotNotOrOnly ||
+            (mediaType != nsGkAtoms::_not && mediaType != nsGkAtoms::only))
+          break;
+        gotNotOrOnly = PR_TRUE;
+        if (mediaType == nsGkAtoms::_not)
+          query->SetNegated();
+        else
+          query->SetHasOnly();
+      }
+      query->SetType(mediaType);
+    }
+
+    for (;;) {
+      if (!GetToken(aErrorCode, PR_TRUE)) {
+        
+        if (aStopSymbol == PRUnichar(0))
+          return PR_TRUE;
+
+        
+        
+        
+        REPORT_UNEXPECTED_EOF(PEGatherMediaEOF);
+        return aStopSymbol == PRUnichar(';');
+      }
+
+      if (eCSSToken_Symbol == mToken.mType &&
+          mToken.mSymbol == aStopSymbol) {
+        UngetToken();
+        return PR_TRUE;
+      }
+      if (eCSSToken_Symbol == mToken.mType && mToken.mSymbol == ',') {
+        
+        break;
+      }
+      if (eCSSToken_Ident != mToken.mType ||
+          !mToken.mIdent.LowerCaseEqualsLiteral("and")) {
+        REPORT_UNEXPECTED_TOKEN(PEGatherMediaNotComma);
+        UngetToken();
+        return PR_FALSE;
+      }
+      if (!ParseMediaQueryExpression(aErrorCode, query)) {
+        OUTPUT_ERROR();
+        query->SetHadUnknownExpression();
+      }
+    }
+  }
+  NS_NOTREACHED("unreachable code");
+  return PR_FALSE; 
+}
+
+PRBool CSSParserImpl::ParseMediaQueryExpression(nsresult& aErrorCode, nsMediaQuery* aQuery)
+{
+  if (!ExpectSymbol(aErrorCode, '(', PR_TRUE)) {
+    REPORT_UNEXPECTED_TOKEN(PEMQExpectedExpressionStart);
+    return PR_FALSE;
+  }
+  if (! GetToken(aErrorCode, PR_TRUE)) {
+    REPORT_UNEXPECTED_EOF(PEMQExpressionEOF);
+    return PR_FALSE;
+  }
+  if (eCSSToken_Ident != mToken.mType) {
+    REPORT_UNEXPECTED_TOKEN(PEMQExpectedFeatureName);
+    SkipUntil(aErrorCode, ')');
+    return PR_FALSE;
+  }
+
+  nsMediaExpression *expr = aQuery->NewExpression();
+  if (!expr) {
+    aErrorCode = NS_ERROR_OUT_OF_MEMORY;
+    SkipUntil(aErrorCode, ')');
+    return PR_FALSE;
+  }
+
+  
+  ToLowerCase(mToken.mIdent);
+  const PRUnichar *featureString;
+  if (StringBeginsWith(mToken.mIdent, NS_LITERAL_STRING("min-"))) {
+    expr->mRange = nsMediaExpression::eMin;
+    featureString = mToken.mIdent.get() + 4;
+  } else if (StringBeginsWith(mToken.mIdent, NS_LITERAL_STRING("max-"))) {
+    expr->mRange = nsMediaExpression::eMax;
+    featureString = mToken.mIdent.get() + 4;
+  } else {
+    expr->mRange = nsMediaExpression::eEqual;
+    featureString = mToken.mIdent.get();
+  }
+
+  nsCOMPtr<nsIAtom> mediaFeatureAtom = do_GetAtom(featureString);
+  const nsMediaFeature *feature = nsMediaFeatures::features;
+  for (; feature->mName; ++feature) {
+    if (*(feature->mName) == mediaFeatureAtom) {
       break;
     }
   }
-  return PR_FALSE;
+  if (!feature->mName ||
+      (expr->mRange != nsMediaExpression::eEqual &&
+       feature->mRangeType != nsMediaFeature::eMinMaxAllowed)) {
+    REPORT_UNEXPECTED_TOKEN(PEMQExpectedFeatureName);
+    SkipUntil(aErrorCode, ')');
+    return PR_FALSE;
+  }
+  expr->mFeature = feature;
+
+  if (! GetToken(aErrorCode, PR_TRUE)) {
+    REPORT_UNEXPECTED_EOF(PEMQExpressionEOF);
+    return PR_FALSE;
+  }
+  if (eCSSToken_Symbol != mToken.mType ||
+      (mToken.mSymbol != PRUnichar(':') && mToken.mSymbol != PRUnichar(')'))) {
+    REPORT_UNEXPECTED_TOKEN(PEMQExpectedFeatureNameEnd);
+    SkipUntil(aErrorCode, ')');
+    return PR_FALSE;
+  }
+
+  if (mToken.mSymbol == PRUnichar(')')) {
+    
+    expr->mValue.Reset();
+    return PR_TRUE;
+  }
+
+  PRBool rv;
+  switch (feature->mValueType) {
+    case nsMediaFeature::eLength:
+      rv = ParsePositiveVariant(aErrorCode, expr->mValue,
+                                VARIANT_LENGTH, nsnull);
+      break;
+    case nsMediaFeature::eInteger:
+      rv = ParsePositiveVariant(aErrorCode, expr->mValue,
+                                VARIANT_INTEGER, nsnull);
+      break;
+    case nsMediaFeature::eIntRatio:
+      {
+        
+        
+        nsRefPtr<nsCSSValue::Array> a = nsCSSValue::Array::Create(2);
+        if (!a) {
+          aErrorCode = NS_ERROR_OUT_OF_MEMORY;
+          SkipUntil(aErrorCode, ')');
+          return PR_FALSE;
+        }
+        expr->mValue.SetArrayValue(a, eCSSUnit_Array);
+        
+        
+        
+        rv = ParseVariant(aErrorCode, a->Item(0), VARIANT_INTEGER, nsnull) &&
+             a->Item(0).GetIntValue() > 0 &&
+             ExpectSymbol(aErrorCode, '/', PR_TRUE) &&
+             ParseVariant(aErrorCode, a->Item(1), VARIANT_INTEGER, nsnull) &&
+             a->Item(1).GetIntValue() > 0;
+      }
+      break;
+    case nsMediaFeature::eResolution:
+      rv = GetToken(aErrorCode, PR_TRUE) && mToken.IsDimension() &&
+           mToken.mIntegerValid && mToken.mNumber > 0.0f;
+      if (rv) {
+        
+        
+        NS_ASSERTION(!mToken.mIdent.IsEmpty(), "IsDimension lied");
+        if (mToken.mIdent.LowerCaseEqualsLiteral("dpi")) {
+          expr->mValue.SetFloatValue(mToken.mNumber, eCSSUnit_Inch);
+        } else if (mToken.mIdent.LowerCaseEqualsLiteral("dpcm")) {
+          expr->mValue.SetFloatValue(mToken.mNumber, eCSSUnit_Centimeter);
+        } else {
+          rv = PR_FALSE;
+        }
+      }
+      break;
+    case nsMediaFeature::eEnumerated:
+      rv = ParseVariant(aErrorCode, expr->mValue, VARIANT_KEYWORD,
+                        feature->mKeywordTable);
+      break;
+  }
+  if (!rv) {
+    REPORT_UNEXPECTED(PEMQExpectedFeatureValue);
+    return PR_FALSE;
+  }
+
+  return ExpectSymbol(aErrorCode, ')', PR_TRUE);
 }
 
 
@@ -3695,62 +3970,6 @@ CSSParserImpl::DoTransferTempData(nsCSSDeclaration* aDeclaration,
     } break;
   }
 }
-
-
-#define VARIANT_KEYWORD         0x000001  // K
-#define VARIANT_LENGTH          0x000002  // L
-#define VARIANT_PERCENT         0x000004  // P
-#define VARIANT_COLOR           0x000008  // C eCSSUnit_Color, eCSSUnit_String (e.g.  "red")
-#define VARIANT_URL             0x000010  // U
-#define VARIANT_NUMBER          0x000020  // N
-#define VARIANT_INTEGER         0x000040  // I
-#define VARIANT_ANGLE           0x000080  // G
-#define VARIANT_FREQUENCY       0x000100  // F
-#define VARIANT_TIME            0x000200  // T
-#define VARIANT_STRING          0x000400  // S
-#define VARIANT_COUNTER         0x000800  // 
-#define VARIANT_ATTR            0x001000  //
-#define VARIANT_IDENTIFIER      0x002000  // D
-#define VARIANT_AUTO            0x010000  // A
-#define VARIANT_INHERIT         0x020000  // H eCSSUnit_Initial, eCSSUnit_Inherit
-#define VARIANT_NONE            0x040000  // O
-#define VARIANT_NORMAL          0x080000  // M
-#define VARIANT_SYSFONT         0x100000  // eCSSUnit_System_Font
-
-
-#define VARIANT_AL   (VARIANT_AUTO | VARIANT_LENGTH)
-#define VARIANT_LP   (VARIANT_LENGTH | VARIANT_PERCENT)
-#define VARIANT_AH   (VARIANT_AUTO | VARIANT_INHERIT)
-#define VARIANT_AHLP (VARIANT_AH | VARIANT_LP)
-#define VARIANT_AHI  (VARIANT_AH | VARIANT_INTEGER)
-#define VARIANT_AHK  (VARIANT_AH | VARIANT_KEYWORD)
-#define VARIANT_AHKLP (VARIANT_AHLP | VARIANT_KEYWORD)
-#define VARIANT_AUK  (VARIANT_AUTO | VARIANT_URL | VARIANT_KEYWORD)
-#define VARIANT_AHUK (VARIANT_AH | VARIANT_URL | VARIANT_KEYWORD)
-#define VARIANT_AHL  (VARIANT_AH | VARIANT_LENGTH)
-#define VARIANT_AHKL (VARIANT_AHK | VARIANT_LENGTH)
-#define VARIANT_HK   (VARIANT_INHERIT | VARIANT_KEYWORD)
-#define VARIANT_HKF  (VARIANT_HK | VARIANT_FREQUENCY)
-#define VARIANT_HKL  (VARIANT_HK | VARIANT_LENGTH)
-#define VARIANT_HKLP (VARIANT_HK | VARIANT_LP)
-#define VARIANT_HKLPO (VARIANT_HKLP | VARIANT_NONE)
-#define VARIANT_HL   (VARIANT_INHERIT | VARIANT_LENGTH)
-#define VARIANT_HI   (VARIANT_INHERIT | VARIANT_INTEGER)
-#define VARIANT_HLP  (VARIANT_HL | VARIANT_PERCENT)
-#define VARIANT_HLPN (VARIANT_HLP | VARIANT_NUMBER)
-#define VARIANT_HLPO (VARIANT_HLP | VARIANT_NONE)
-#define VARIANT_HTP  (VARIANT_INHERIT | VARIANT_TIME | VARIANT_PERCENT)
-#define VARIANT_HMK  (VARIANT_HK | VARIANT_NORMAL)
-#define VARIANT_HMKI (VARIANT_HMK | VARIANT_INTEGER)
-#define VARIANT_HC   (VARIANT_INHERIT | VARIANT_COLOR)
-#define VARIANT_HCK  (VARIANT_HK | VARIANT_COLOR)
-#define VARIANT_HUO  (VARIANT_INHERIT | VARIANT_URL | VARIANT_NONE)
-#define VARIANT_AHUO (VARIANT_AUTO | VARIANT_HUO)
-#define VARIANT_HPN  (VARIANT_INHERIT | VARIANT_PERCENT | VARIANT_NUMBER)
-#define VARIANT_HOK  (VARIANT_HK | VARIANT_NONE)
-#define VARIANT_HN   (VARIANT_INHERIT | VARIANT_NUMBER)
-#define VARIANT_HON  (VARIANT_HN | VARIANT_NONE)
-#define VARIANT_HOS  (VARIANT_INHERIT | VARIANT_NONE | VARIANT_STRING)
 
 static const nsCSSProperty kBorderTopIDs[] = {
   eCSSProperty_border_top_width,

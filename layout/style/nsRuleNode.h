@@ -738,6 +738,10 @@ public:
 
   static PRBool
     HasAuthorSpecifiedRules(nsStyleContext* aStyleContext, PRUint32 ruleTypeMask);
+
+  
+  static nscoord CalcLengthWithInitialFont(nsPresContext* aPresContext,
+                                           const nsCSSValue& aValue);
 };
 
 #endif

@@ -746,4 +746,16 @@
 
 #endif 
 
+
+
+
+
+
+#define NS_STYLE_ORIENTATION_PORTRAIT           0
+#define NS_STYLE_ORIENTATION_LANDSCAPE          1
+
+
+#define NS_STYLE_SCAN_PROGRESSIVE               0
+#define NS_STYLE_SCAN_INTERLACE                 1
+
 #endif 

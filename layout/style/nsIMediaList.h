@@ -41,16 +41,89 @@
 
 
 
+
 #ifndef nsIMediaList_h_
 #define nsIMediaList_h_
 
 #include "nsIDOMMediaList.h"
 #include "nsAString.h"
-#include "nsCOMArray.h"
+#include "nsTArray.h"
 #include "nsIAtom.h"
+#include "nsMediaFeatures.h"
+#include "nsCSSValue.h"
+
 class nsPresContext;
 class nsICSSStyleSheet;
 class nsCSSStyleSheet;
+
+struct nsMediaExpression {
+  enum Range { eMin, eMax, eEqual };
+
+  const nsMediaFeature *mFeature;
+  Range mRange;
+  nsCSSValue mValue;
+
+  
+  PRBool Matches(nsPresContext* aPresContext,
+                 const nsCSSValue& aActualValue) const;
+};
+
+class nsMediaQuery {
+public:
+  nsMediaQuery()
+    : mNegated(PR_FALSE)
+    , mHasOnly(PR_FALSE)
+    , mTypeOmitted(PR_FALSE)
+    , mHadUnknownExpression(PR_FALSE)
+  {
+  }
+
+private:
+  
+  nsMediaQuery(const nsMediaQuery& aOther)
+    : mNegated(aOther.mNegated)
+    , mHasOnly(aOther.mHasOnly)
+    , mTypeOmitted(aOther.mTypeOmitted)
+    , mHadUnknownExpression(aOther.mHadUnknownExpression)
+    , mMediaType(aOther.mMediaType)
+    
+    , mExpressions(aOther.mExpressions)
+  {
+  }
+
+public:
+
+  void SetNegated()                     { mNegated = PR_TRUE; }
+  void SetHasOnly()                     { mHasOnly = PR_TRUE; }
+  void SetTypeOmitted()                 { mTypeOmitted = PR_TRUE; }
+  void SetHadUnknownExpression()        { mHadUnknownExpression = PR_TRUE; }
+  void SetType(nsIAtom* aMediaType)     { 
+                                          NS_ASSERTION(aMediaType,
+                                                       "expected non-null");
+                                          mMediaType = aMediaType;
+                                        }
+
+  
+  
+  
+  
+  nsMediaExpression* NewExpression()    { return mExpressions.AppendElement(); }
+
+  void AppendToString(nsAString& aString) const;
+
+  nsMediaQuery* Clone() const;
+
+  
+  PRBool Matches(nsPresContext* aPresContext) const;
+
+private:
+  PRPackedBool mNegated;
+  PRPackedBool mHasOnly; 
+  PRPackedBool mTypeOmitted; 
+  PRPackedBool mHadUnknownExpression;
+  nsCOMPtr<nsIAtom> mMediaType;
+  nsTArray<nsMediaExpression> mExpressions;
+};
 
 class nsMediaList : public nsIDOMMediaList {
 public:
@@ -64,15 +137,24 @@ public:
   nsresult SetText(const nsAString& aMediaText);
   PRBool Matches(nsPresContext* aPresContext);
   nsresult SetStyleSheet(nsICSSStyleSheet* aSheet);
-  nsresult AppendAtom(nsIAtom* aMediumAtom) {
-    return mArray.AppendObject(aMediumAtom) ? NS_OK : NS_ERROR_OUT_OF_MEMORY;
+  nsresult AppendQuery(nsAutoPtr<nsMediaQuery>& aQuery) {
+    
+    if (!mArray.AppendElement(aQuery.get())) {
+      return NS_ERROR_OUT_OF_MEMORY;
+    }
+    aQuery.forget();
+    return NS_OK;
   }
 
   nsresult Clone(nsMediaList** aResult);
 
-  PRInt32 Count() { return mArray.Count(); }
-  nsIAtom* MediumAt(PRInt32 aIndex) { return mArray[aIndex]; }
-  void Clear() { mArray.Clear(); }
+  PRInt32 Count() { return mArray.Length(); }
+  nsMediaQuery* MediumAt(PRInt32 aIndex) { return mArray[aIndex]; }
+  void Clear() { mArray.Clear(); mIsEmpty = PR_TRUE; }
+  
+  
+  
+  void SetNonEmpty() { mIsEmpty = PR_FALSE; }
 
 protected:
   ~nsMediaList();
@@ -80,7 +162,8 @@ protected:
   nsresult Delete(const nsAString & aOldMedium);
   nsresult Append(const nsAString & aOldMedium);
 
-  nsCOMArray<nsIAtom> mArray;
+  nsTArray<nsAutoPtr<nsMediaQuery> > mArray;
+  PRBool mIsEmpty;
   
   
   
