@@ -563,15 +563,6 @@ int oggz_get_numtracks (OGGZ * oggz);
 
 long oggz_serialno_new (OGGZ * oggz);
 
-
-
-
-
-
-
-const char *
-oggz_content_type (OggzStreamContent content);
-
 #include <oggz/oggz_off_t.h>
 #include <oggz/oggz_read.h>
 #include <oggz/oggz_stream.h>

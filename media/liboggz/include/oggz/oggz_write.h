@@ -182,7 +182,6 @@ int oggz_write_set_hungry_callback (OGGZ * oggz,
 
 
 
-
 int oggz_write_feed (OGGZ * oggz, ogg_packet * op, long serialno, int flush,
 		     int * guard);
 

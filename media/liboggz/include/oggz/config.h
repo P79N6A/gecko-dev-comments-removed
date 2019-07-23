@@ -2,16 +2,13 @@
 
 
 
-
-
-
 #define HAVE_DLFCN_H 1
 
 
 #define HAVE_FCNTL_H 1
 
 
-#define HAVE_GETOPT_LONG
+#define HAVE_GETOPT_LONG 
 
 
 #define HAVE_INTTYPES_H 1
@@ -49,10 +46,6 @@
 
 
 #define HAVE_UNISTD_H 1
-
-
-
-#define LT_OBJDIR ".libs/"
 
 
 
@@ -110,24 +103,13 @@
 
 
 
-#if defined AC_APPLE_UNIVERSAL_BUILD
-# if defined __BIG_ENDIAN__
-#  define WORDS_BIGENDIAN 1
-# endif
-#else
-# ifndef WORDS_BIGENDIAN
 
-# endif
-#endif
 
 
 #define _FILE_OFFSET_BITS 64
 
 
 #define _LARGEFILE_SOURCE 1
-
-
-
 
 
 

@@ -472,8 +472,6 @@
 
 
 
-
-
 int oggz_auto_identify (OGGZ *oggz, ogg_page *og, long serialno);
 
 #endif 
