@@ -3587,7 +3587,7 @@ nsWindow::NativeCreate(nsIWidget        *aParent,
         
         const char *envValue = PR_GetEnv(sAccEnv);
         if (envValue) {
-            sAccessibilityEnabled = atoi(envValue);
+            sAccessibilityEnabled = atoi(envValue) != 0;
             LOG(("Accessibility Env %s=%s\n", sAccEnv, envValue));
         }
         
