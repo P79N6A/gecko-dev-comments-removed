@@ -270,8 +270,8 @@ protected:
 
   PRPackedBool         mIsResizing;     
   PRPackedBool         mWindowMadeHere; 
-  PRPackedBool         mVisible;        
   PRPackedBool         mSheetNeedsShow; 
+                                        
   PRPackedBool         mModal;
 };
 
