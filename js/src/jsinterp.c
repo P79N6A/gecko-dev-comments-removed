@@ -2764,6 +2764,10 @@ interrupt:
 
           EMPTY_CASE(JSOP_GROUP)
 
+          
+          BEGIN_CASE(JSOP_LINENO)
+          END_CASE(JSOP_LINENO)
+
           BEGIN_CASE(JSOP_PUSH)
             PUSH_OPND(JSVAL_VOID);
           END_CASE(JSOP_PUSH)
