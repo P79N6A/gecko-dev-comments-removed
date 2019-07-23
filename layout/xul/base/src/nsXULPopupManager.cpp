@@ -59,6 +59,25 @@
 #include "nsIInterfaceRequestorUtils.h"
 #include "nsIBaseWindow.h"
 
+
+nsNavigationDirection DirectionFromKeyCode_lr_tb [6] = {
+  eNavigationDirection_Last,   
+  eNavigationDirection_First,  
+  eNavigationDirection_Start,  
+  eNavigationDirection_Before, 
+  eNavigationDirection_End,    
+  eNavigationDirection_After   
+};
+
+nsNavigationDirection DirectionFromKeyCode_rl_tb [6] = {
+  eNavigationDirection_Last,   
+  eNavigationDirection_First,  
+  eNavigationDirection_End,    
+  eNavigationDirection_Before, 
+  eNavigationDirection_Start,  
+  eNavigationDirection_After   
+};
+
 nsXULPopupManager* nsXULPopupManager::sInstance = nsnull;
 
 nsIContent* nsMenuChainItem::Content()

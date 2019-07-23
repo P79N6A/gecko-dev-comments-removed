@@ -121,27 +121,15 @@ enum nsNavigationDirection {
 
 
 
-static nsNavigationDirection DirectionFromKeyCode_lr_tb [6] = {
-  eNavigationDirection_Last,   
-  eNavigationDirection_First,  
-  eNavigationDirection_Start,  
-  eNavigationDirection_Before, 
-  eNavigationDirection_End,    
-  eNavigationDirection_After   
-};
+
+extern nsNavigationDirection DirectionFromKeyCode_lr_tb [6];
 
 
 
 
 
-static nsNavigationDirection DirectionFromKeyCode_rl_tb [6] = {
-  eNavigationDirection_Last,   
-  eNavigationDirection_First,  
-  eNavigationDirection_End,    
-  eNavigationDirection_Before, 
-  eNavigationDirection_Start,  
-  eNavigationDirection_After   
-};
+
+extern nsNavigationDirection DirectionFromKeyCode_rl_tb [6];
 
 #define NS_DIRECTION_FROM_KEY_CODE(frame, direction, keycode)    \
   NS_ASSERTION(NS_VK_HOME == NS_VK_END + 1, "Broken ordering");  \
