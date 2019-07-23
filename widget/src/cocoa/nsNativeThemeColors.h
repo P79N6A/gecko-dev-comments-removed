@@ -44,7 +44,11 @@ enum ColorName {
   headerStartGrey,
   headerEndGrey,
   headerBorderGrey,
-  toolbarTopBorderGrey
+  toolbarTopBorderGrey,
+  statusbarFirstTopBorderGrey,
+  statusbarSecondTopBorderGrey,
+  statusbarGradientStartGrey,
+  statusbarGradientEndGrey
 };
 
 static const int sLeopardThemeColors[][2] = {
@@ -53,7 +57,12 @@ static const int sLeopardThemeColors[][2] = {
   { 0xC5, 0xE9 }, 
   { 0x96, 0xCA }, 
   { 0x42, 0x89 }, 
-  { 0xC0, 0xE2 }  
+  { 0xC0, 0xE2 }, 
+  
+  { 0x42, 0x86 }, 
+  { 0xD8, 0xEE }, 
+  { 0xBD, 0xE4 }, 
+  { 0x96, 0xCF }  
 };
 
 
