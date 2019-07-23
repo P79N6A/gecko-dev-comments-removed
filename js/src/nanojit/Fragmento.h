@@ -128,7 +128,7 @@ namespace nanojit
 
 
 
-    class Fragment : public avmplus::GCFinalizedObject
+    class Fragment
     {
         public:
             Fragment(const void*);
