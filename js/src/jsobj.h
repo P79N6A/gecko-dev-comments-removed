@@ -318,11 +318,12 @@ extern JSClass  js_BlockClass;
 
 
 
-
 #define JSSLOT_BLOCK_DEPTH      (JSSLOT_PRIVATE + 1)
 
+#define OBJ_IS_CLONED_BLOCK(obj)                                              \
+    (OBJ_SCOPE(obj)->object != (obj))
 #define OBJ_BLOCK_COUNT(cx,obj)                                               \
-    ((obj)->map->freeslot - (JSSLOT_BLOCK_DEPTH + 1))
+    (OBJ_SCOPE(obj)->entryCount)
 #define OBJ_BLOCK_DEPTH(cx,obj)                                               \
     JSVAL_TO_INT(STOBJ_GET_SLOT(obj, JSSLOT_BLOCK_DEPTH))
 #define OBJ_SET_BLOCK_DEPTH(cx,obj,depth)                                     \
