@@ -9,9 +9,10 @@
 #include "chrome/common/child_process.h"
 #include "chrome/common/chrome_switches.h"
 #include "chrome/common/ipc_logging.h"
+#ifndef CHROMIUM_MOZILLA_BUILD
 #include "chrome/common/plugin_messages.h"
 #include "webkit/glue/webkit_glue.h"
-
+#endif
 
 
 const size_t ChildThread::kV8StackSize = 1024 * 1024;
@@ -26,9 +27,11 @@ ChildThread::ChildThread(Thread::Options options)
       switches::kProcessChannelID);
 
   if (CommandLine::ForCurrentProcess()->HasSwitch(switches::kUserAgent)) {
+#ifndef CHROMIUM_MOZILLA_BUILD
     webkit_glue::SetUserAgent(WideToUTF8(
         CommandLine::ForCurrentProcess()->GetSwitchValue(
             switches::kUserAgent)));
+#endif
   }
 }
 
@@ -65,6 +68,7 @@ void ChildThread::RemoveRoute(int32 routing_id) {
 }
 
 void ChildThread::OnMessageReceived(const IPC::Message& msg) {
+#ifndef CHROMIUM_MOZILLA_BUILD
   
   if (resource_dispatcher_->OnMessageReceived(msg))
     return;
@@ -78,6 +82,7 @@ void ChildThread::OnMessageReceived(const IPC::Message& msg) {
     owner_loop_->PostTask(FROM_HERE, new MessageLoop::QuitTask());
     return;
   }
+#endif
 
   if (msg.routing_id() == MSG_ROUTING_CONTROL) {
     OnControlMessageReceived(msg);
@@ -91,14 +96,23 @@ ChildThread* ChildThread::current() {
 }
 
 void ChildThread::Init() {
+#ifndef CHROMIUM_MOZILLA_BUILD
   channel_.reset(new IPC::SyncChannel(channel_name_,
       IPC::Channel::MODE_CLIENT, this, NULL, owner_loop_, true,
       ChildProcess::current()->GetShutDownEvent()));
+#else
+  channel_.reset(new IPC::Channel(channel_name_,
+                                  IPC::Channel::MODE_CLIENT,
+                                  this));
+#endif
+
 #ifdef IPC_MESSAGE_LOG_ENABLED
   IPC::Logging::current()->SetIPCSender(this);
 #endif
 
+#ifndef CHROMIUM_MOZILLA_BUILD
   resource_dispatcher_.reset(new ResourceDispatcher(this));
+#endif
 }
 
 void ChildThread::CleanUp() {
@@ -108,7 +122,9 @@ void ChildThread::CleanUp() {
   
   
   channel_.reset();
+#ifndef CHROMIUM_MOZILLA_BUILD
   resource_dispatcher_.reset();
+#endif
 }
 
 void ChildThread::OnProcessFinalRelease() {
@@ -117,9 +133,11 @@ void ChildThread::OnProcessFinalRelease() {
     return;
   }
 
+#ifndef CHROMIUM_MOZILLA_BUILD
   
   
   
   
   Send(new PluginProcessHostMsg_ShutdownRequest);
+#endif
 }

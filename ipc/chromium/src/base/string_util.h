@@ -107,6 +107,9 @@ bool IsWprintfFormatPortable(const wchar_t* format);
 #error Define string operations appropriately for your platform
 #endif
 
+#ifdef CHROMIUM_MOZILLA_BUILD
+namespace base {
+#endif
 
 
 
@@ -114,6 +117,9 @@ bool IsWprintfFormatPortable(const wchar_t* format);
 const std::string& EmptyString();
 const std::wstring& EmptyWString();
 const string16& EmptyString16();
+#ifdef CHROMIUM_MOZILLA_BUILD
+}
+#endif
 
 extern const wchar_t kWhitespaceWide[];
 extern const char kWhitespaceASCII[];

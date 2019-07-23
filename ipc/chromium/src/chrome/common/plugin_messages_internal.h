@@ -4,8 +4,6 @@
 
 #include "base/shared_memory.h"
 #include "chrome/common/ipc_message_macros.h"
-#include "webkit/glue/webcursor.h"
-
 
 
 

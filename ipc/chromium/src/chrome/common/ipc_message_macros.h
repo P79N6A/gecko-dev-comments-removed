@@ -40,7 +40,11 @@
 
 
 
+#ifndef CHROMIUM_MOZILLA_BUILD
+#include "IPC/IPCMessageUtils.h"
+#else
 #include "chrome/common/ipc_message_utils.h"
+#endif
 
 
 #ifndef MESSAGES_INTERNAL_FILE
