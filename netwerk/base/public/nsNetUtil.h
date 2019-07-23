@@ -1304,4 +1304,26 @@ NS_GetInnermostURI(nsIURI *uri)
     return uri;
 }
 
+
+
+
+
+
+
+
+inline nsresult
+NS_GetFinalChannelURI(nsIChannel* channel, nsIURI** uri)
+{
+    *uri = nsnull;
+    nsLoadFlags loadFlags = 0;
+    nsresult rv = channel->GetLoadFlags(&loadFlags);
+    NS_ENSURE_SUCCESS(rv, rv);
+    
+    if (loadFlags & nsIChannel::LOAD_REPLACE) {
+        return channel->GetURI(uri);
+    }
+    
+    return channel->GetOriginalURI(uri);
+}
+
 #endif 

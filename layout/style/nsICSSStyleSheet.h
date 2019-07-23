@@ -55,8 +55,8 @@ class nsIPrincipal;
 
 
 #define NS_ICSS_STYLE_SHEET_IID     \
-{ 0x36541c18, 0xe735, 0x48ef, \
- { 0x86, 0x22, 0x3a, 0x48, 0x12, 0x75, 0xb7, 0x57 } }
+{ 0x74fa10f3, 0xfab7, 0x425a, \
+ { 0xa7, 0xdd, 0xe2, 0xaf, 0xd1, 0xba, 0x7a, 0x07 } }
 
 class nsICSSStyleSheet : public nsIStyleSheet {
 public:
@@ -87,7 +87,8 @@ public:
 
 
 
-  NS_IMETHOD  SetURIs(nsIURI* aSheetURI, nsIURI* aBaseURI) = 0;
+  NS_IMETHOD  SetURIs(nsIURI* aSheetURI, nsIURI* aOriginalSheetURI,
+                      nsIURI* aBaseURI) = 0;
 
   
 

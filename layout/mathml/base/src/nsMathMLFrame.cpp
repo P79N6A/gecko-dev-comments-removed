@@ -594,7 +594,7 @@ GetMathMLAttributeStyleSheet(nsPresContext* aPresContext,
   nsCOMPtr<nsICSSStyleSheet> cssSheet(do_CreateInstance(kCSSStyleSheetCID));
   if (!cssSheet)
     return;
-  cssSheet->SetURIs(uri, uri);
+  cssSheet->SetURIs(uri, nsnull, uri);
   cssSheet->SetTitle(NS_ConvertASCIItoUTF16(kTitle));
   
   cssSheet->SetComplete();

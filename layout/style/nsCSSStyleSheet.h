@@ -74,6 +74,7 @@ public:
 
   nsAutoVoidArray        mSheets;
   nsCOMPtr<nsIURI>       mSheetURI; 
+  nsCOMPtr<nsIURI>       mOriginalSheetURI;  
   nsCOMPtr<nsIURI>       mBaseURI; 
   nsCOMPtr<nsIPrincipal> mPrincipal;
   nsCOMArray<nsICSSRule> mOrderedRules;
@@ -136,7 +137,8 @@ public:
   NS_IMETHOD ReplaceRuleInGroup(nsICSSGroupRule* aGroup, nsICSSRule* aOld, nsICSSRule* aNew);
   NS_IMETHOD StyleSheetCount(PRInt32& aCount) const;
   NS_IMETHOD GetStyleSheetAt(PRInt32 aIndex, nsICSSStyleSheet*& aSheet) const;
-  NS_IMETHOD SetURIs(nsIURI* aSheetURI, nsIURI* aBaseURI);
+  NS_IMETHOD SetURIs(nsIURI* aSheetURI, nsIURI* aOriginalSheetURI,
+                     nsIURI* aBaseURI);
   virtual NS_HIDDEN_(void) SetPrincipal(nsIPrincipal* aPrincipal);
   virtual NS_HIDDEN_(nsIPrincipal*) Principal() const;
   NS_IMETHOD SetTitle(const nsAString& aTitle);

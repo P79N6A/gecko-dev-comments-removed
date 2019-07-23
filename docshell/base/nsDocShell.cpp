@@ -7760,12 +7760,7 @@ nsDocShell::OnLoadingSite(nsIChannel * aChannel, PRBool aFireOnLocationChange,
     
     
     
-    nsLoadFlags loadFlags = 0;
-    aChannel->GetLoadFlags(&loadFlags);
-    if (loadFlags & nsIChannel::LOAD_REPLACE)
-        aChannel->GetURI(getter_AddRefs(uri));
-    else
-        aChannel->GetOriginalURI(getter_AddRefs(uri));
+    NS_GetFinalChannelURI(aChannel, getter_AddRefs(uri));
     NS_ENSURE_TRUE(uri, PR_FALSE);
 
     return OnNewURI(uri, aChannel, mLoadType, aFireOnLocationChange,
