@@ -173,9 +173,8 @@ class nsStyleSet
   
   
   already_AddRefed<nsStyleContext>
-    ReParentStyleContext(nsPresContext* aPresContext,
-                         nsStyleContext* aStyleContext,
-                         nsStyleContext* aNewParentContext);
+  ReparentStyleContext(nsStyleContext* aStyleContext,
+                       nsStyleContext* aNewParentContext);
 
   
   PRBool HasDocumentStateDependentStyle(nsPresContext* aPresContext,
@@ -336,11 +335,11 @@ class nsStyleSet
                           RuleProcessorData* aData,
                           PRBool aWalkAllXBLStylesheets);
 
-  already_AddRefed<nsStyleContext> GetContext(nsPresContext* aPresContext,
-                                              nsStyleContext* aParentContext,
-                                              nsRuleNode* aRuleNode,
-                                              nsIAtom* aPseudoTag,
-                                              nsCSSPseudoElements::Type aPseudoType);
+  already_AddRefed<nsStyleContext>
+  GetContext(nsStyleContext* aParentContext,
+             nsRuleNode* aRuleNode,
+             nsIAtom* aPseudoTag,
+             nsCSSPseudoElements::Type aPseudoType);
 
   nsPresContext* PresContext() { return mRuleTree->GetPresContext(); }
 
