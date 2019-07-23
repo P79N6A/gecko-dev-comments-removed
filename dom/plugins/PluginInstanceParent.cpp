@@ -480,7 +480,8 @@ PluginInstanceParent::NPP_SetWindow(const NPWindow* aWindow)
         
         
         
-        if (!AllocShmem(window.width * window.height * 4, &mShSurface)) {
+        if (!AllocShmem(window.width * window.height * 4, SharedMemory::TYPE_BASIC,
+                        &mShSurface)) {
             PLUGIN_LOG_DEBUG(("Shared memory could not be allocated."));
             return NPERR_GENERIC_ERROR;
         }
