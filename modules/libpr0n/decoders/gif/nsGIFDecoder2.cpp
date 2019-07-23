@@ -86,6 +86,9 @@
 
 #include "imgContainer.h"
 
+#include "gfxPlatform.h"
+#include "lcms.h"
+
 
 
 
@@ -821,13 +824,25 @@ nsresult nsGIFDecoder2::GifWrite(const PRUint8 *buf, PRUint32 len)
         memcpy(mGIFStruct.global_colormap, buf, size);
         buf += size;
         len -= size;
+        GETN(0, gif_global_colormap);
+        break;
       }
 
       GETN(1, gif_image_start);
       break;
 
     case gif_global_colormap:
-      
+      if (gfxPlatform::IsCMSEnabled()) {
+        
+        cmsHTRANSFORM transform = gfxPlatform::GetCMSRGBTransform();
+        if (transform) {
+          cmsDoTransform(transform,
+                         mGIFStruct.global_colormap,
+                         mGIFStruct.global_colormap,
+                         mGIFStruct.global_colormap_size);
+        }
+      }
+
       GETN(1, gif_image_start);
       break;
 
@@ -1073,6 +1088,8 @@ nsresult nsGIFDecoder2::GifWrite(const PRUint8 *buf, PRUint32 len)
         memcpy(mGIFStruct.local_colormap, buf, size);
         buf += size;
         len -= size;
+        GETN(0, gif_image_colormap);
+        break;
       } else {
         
         mGIFStruct.is_local_colormap_defined = PR_FALSE;
@@ -1081,7 +1098,17 @@ nsresult nsGIFDecoder2::GifWrite(const PRUint8 *buf, PRUint32 len)
       break;
 
     case gif_image_colormap:
-      
+      if (gfxPlatform::IsCMSEnabled()) {
+        
+        cmsHTRANSFORM transform = gfxPlatform::GetCMSRGBTransform();
+        if (transform) {
+          cmsDoTransform(transform,
+                         mGIFStruct.local_colormap,
+                         mGIFStruct.local_colormap,
+                         mGIFStruct.local_colormap_size);
+        }
+      }
+
       GETN(1, gif_lzw_start);
       break;
 

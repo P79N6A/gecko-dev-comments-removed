@@ -50,6 +50,7 @@
 #include "imgILoad.h"
 #include "nsIInputStream.h"
 #include "nsIPipe.h"
+#include "lcms.h"
 
 extern "C" {
 #include "jpeglib.h"
@@ -117,6 +118,12 @@ public:
   PRUint32 mBackBufferLen; 
   PRUint32 mBackBufferSize; 
   PRUint32 mBackBufferUnreadLen; 
+
+  JOCTET  *mProfile;
+  PRUint32 mProfileLength;
+
+  cmsHPROFILE mInProfile;
+  cmsHTRANSFORM mTransform;
 
   PRPackedBool mReading;
 };

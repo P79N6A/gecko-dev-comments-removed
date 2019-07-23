@@ -45,6 +45,9 @@
 #include "gfxTypes.h"
 #include "gfxASurface.h"
 
+typedef void* cmsHPROFILE;
+typedef void* cmsHTRANSFORM;
+
 class gfxImageSurface;
 class gfxFontGroup;
 struct gfxFontStyle;
@@ -135,10 +138,32 @@ public:
 
     void GetPrefFonts(const char *aLangGroup, nsString& array, PRBool aAppendUnicode = PR_TRUE);
 
+    
+
+
+    static PRBool IsCMSEnabled();
+
+    
+
+
+    static cmsHPROFILE GetCMSOutputProfile();
+
+    
+
+
+    static cmsHTRANSFORM GetCMSRGBTransform();
+
+    
+
+
+    static cmsHTRANSFORM GetCMSRGBATransform();
+
 protected:
     gfxPlatform() { }
     virtual ~gfxPlatform();
 
+private:
+    virtual cmsHPROFILE GetPlatformCMSOutputProfile();
 };
 
 #endif 
