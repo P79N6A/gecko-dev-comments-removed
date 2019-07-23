@@ -37,6 +37,8 @@
 
 
 
+
+
 #include <stdio.h>
 
 #include "nsError.h"
@@ -227,6 +229,8 @@ mozStorageConnection::CreateStatement(const nsACString& aSQLStatement,
     NS_ASSERTION(mDBConn, "connection not initialized");
 
     mozStorageStatement *statement = new mozStorageStatement();
+    if (!statement)
+      return NS_ERROR_OUT_OF_MEMORY;
     NS_ADDREF(statement);
 
     nsresult rv = statement->Initialize (this, aSQLStatement);
@@ -305,23 +309,20 @@ mozStorageConnection::IndexExists(const nsACString& aIndexName, PRBool* _retval)
         return ConvertResultCode(srv);
     }
 
-    PRBool exists = PR_FALSE;
+    *_retval = PR_FALSE;
 
     srv = sqlite3_step(stmt);
     
     sqlite3_finalize(stmt);
 
     if (srv == SQLITE_ROW) {
-        exists = PR_TRUE;
-    } else if (srv == SQLITE_DONE) {
-        exists = PR_FALSE;
+        *_retval = PR_TRUE;
     } else if (srv == SQLITE_ERROR) {
         HandleSqliteError("IndexExists finalize");
         return NS_ERROR_FAILURE;
     }
 
-    *_retval = exists;
-    return NS_OK;
+    return ConvertResultCode(srv);
 }
 
 
@@ -341,7 +342,7 @@ NS_IMETHODIMP
 mozStorageConnection::BeginTransaction()
 {
     if (mTransactionInProgress)
-        return NS_ERROR_FAILURE; 
+        return NS_ERROR_FAILURE;
     nsresult rv = ExecuteSimpleSQL (NS_LITERAL_CSTRING("BEGIN TRANSACTION"));
     if (NS_SUCCEEDED(rv))
         mTransactionInProgress = PR_TRUE;
@@ -352,7 +353,7 @@ NS_IMETHODIMP
 mozStorageConnection::BeginTransactionAs(PRInt32 aTransactionType)
 {
     if (mTransactionInProgress)
-        return NS_ERROR_FAILURE; 
+        return NS_ERROR_FAILURE;
     nsresult rv;
     switch(aTransactionType) {
         case TRANSACTION_DEFERRED:
@@ -442,12 +443,10 @@ mozStorageConnection::CreateFunction(const char *aFunctionName,
                                      PRInt32 aNumArguments,
                                      mozIStorageFunction *aFunction)
 {
-    nsresult rv;
-
     
     
     PRUint32 idx;
-    rv = mFunctions->IndexOf (0, aFunction, &idx);
+    nsresult rv = mFunctions->IndexOf (0, aFunction, &idx);
     if (rv != NS_ERROR_FAILURE) {
         
         return NS_ERROR_FAILURE;
@@ -466,10 +465,7 @@ mozStorageConnection::CreateFunction(const char *aFunctionName,
         return ConvertResultCode(srv);
     }
 
-    rv = mFunctions->AppendElement (aFunction, PR_FALSE);
-    if (NS_FAILED(rv)) return rv;
-
-    return NS_OK;
+    return mFunctions->AppendElement(aFunction, PR_FALSE);
 }
 
 
