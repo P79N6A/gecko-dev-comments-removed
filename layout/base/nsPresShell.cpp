@@ -5320,6 +5320,11 @@ PresShell::RenderNode(nsIDOMNode* aNode,
   nsRect area;
   nsTArray<nsAutoPtr<RangePaintInfo> > rangeItems;
 
+  
+  nsCOMPtr<nsINode> node = do_QueryInterface(aNode);
+  if (!node->IsInDoc())
+    return nsnull;
+  
   nsCOMPtr<nsIDOMRange> range;
   NS_NewRange(getter_AddRefs(range));
   range->SelectNode(aNode);
