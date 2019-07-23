@@ -1902,6 +1902,15 @@ function testBug465272() {
 testBug465272.expected = "3,3,3,3,3"
 test(testBug465272);
 
+function testBug465483() {
+	var a = new Array(4);
+	var c = 0;
+	for each (i in [4, 'a', 'b', (void 0)]) a[c++] = '' + (i + i);
+	return a.join(',');
+}
+testBug465483.expected = '8,aa,bb,NaN';
+test(testBug465483);
+
 
 
 
