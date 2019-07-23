@@ -665,35 +665,9 @@ PlacesTreeView.prototype = {
   },
 
   
-
-
-
-
-
-
-
-
-  itemRemoved: function PTV_itemRemoved(aParent, aItem, aOldIndex) {
-    NS_ASSERT(this._result, "Got a notification but have no result!");
-    if (!this._tree)
-      return; 
-
+  
+  _fixViewIndexOnRemove: function PTV_fixViewIndexOnRemove(aItem, aParent) {
     var oldViewIndex = aItem.viewIndex;
-    if (oldViewIndex < 0)
-      return; 
-
-    
-    
-    var selectNext = false;
-    var selection = this.selection;
-    if (selection.getRangeCount() == 1) {
-      var min = { }, max = { };
-      selection.getRangeAt(0, min, max);
-      if (min.value == max.value &&
-          this.nodeForTreeIndex(min.value) == aItem)
-        selectNext = true;
-    }
-
     
     var count = this._countVisibleRowsForItem(aItem);
 
@@ -701,10 +675,8 @@ PlacesTreeView.prototype = {
     
     
     while (true) {
-      NS_ASSERT(oldViewIndex <= this._visibleElements.length,
-                "Trying to remove invalid row");
       if (oldViewIndex > this._visibleElements.length)
-        return;
+        throw("Trying to remove an item with an invalid viewIndex");
 
       this._visibleElements.splice(oldViewIndex, count);
       for (var i = oldViewIndex; i < this._visibleElements.length; i++)
@@ -737,6 +709,42 @@ PlacesTreeView.prototype = {
     
     if (!aParent.hasChildren)
       this.itemChanged(aParent);
+
+    return;
+  },
+
+  
+
+
+
+
+
+
+
+
+  itemRemoved: function PTV_itemRemoved(aParent, aItem, aOldIndex) {
+    NS_ASSERT(this._result, "Got a notification but have no result!");
+    if (!this._tree)
+      return; 
+
+    var oldViewIndex = aItem.viewIndex;
+    if (oldViewIndex < 0)
+      return; 
+
+    
+    
+    var selectNext = false;
+    var selection = this.selection;
+    if (selection.getRangeCount() == 1) {
+      var min = { }, max = { };
+      selection.getRangeAt(0, min, max);
+      if (min.value == max.value &&
+          this.nodeForTreeIndex(min.value) == aItem)
+        selectNext = true;
+    }
+
+    
+    this._fixViewIndexOnRemove(aItem, aParent);
 
     
     if (selectNext && this._visibleElements.length > oldViewIndex)
@@ -778,8 +786,9 @@ PlacesTreeView.prototype = {
       selection.selectEventsSuppressed = true;
 
     
-    this._visibleElements.splice(oldViewIndex, count);
-    this._tree.rowCountChanged(oldViewIndex, -count);
+    this._fixViewIndexOnRemove(aItem, aOldParent);
+
+    
     this.itemInserted(aNewParent, aItem, aNewIndex);
 
     
