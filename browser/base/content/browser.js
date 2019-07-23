@@ -2680,15 +2680,29 @@ function FillInHTMLTooltip(tipElement)
     tipElement = tipElement.parentNode;
   }
 
-  var texts = [titleText, XLinkTitleText];
-  var tipNode = document.getElementById("aHTMLTooltip");
-  tipNode.style.direction = direction;
+  var tipNode = document.getElementById("aHTMLTooltip").firstChild;
+  var label = tipNode.firstChild;
 
-  for (var i = 0; i < texts.length; ++i) {
-    var t = texts[i];
-    if (t && t.search(/\S/) >= 0) {
+  for each (var t in [titleText, XLinkTitleText]) {
+    if (t && /\S/.test(t)) {
+      tipNode.style.direction = direction;
+
       
-      tipNode.setAttribute("label", t.replace(/\s+/g, " ") );
+      
+      
+      
+      
+      t = t.replace(/[\r\t]/g, ' ');
+      t = t.replace(/\n/g, '');
+      
+      label.textContent = t;
+      
+      
+      tipNode.width = "";
+      tipNode.height = "";
+      tipNode.width = label.boxObject.width;
+      tipNode.height = label.boxObject.height;
+
       retVal = true;
     }
   }
