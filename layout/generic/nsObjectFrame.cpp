@@ -1138,6 +1138,8 @@ nsObjectFrame::PrintPlugin(nsIRenderingContext& aRenderingContext,
   
   void* dc;
   dc = aRenderingContext.GetNativeGraphicData(nsIRenderingContext::NATIVE_WINDOWS_DC);
+  if (!dc)
+    return; 
 
   npprint.print.embedPrint.platformPrint = dc;
   npprint.print.embedPrint.window = window;
