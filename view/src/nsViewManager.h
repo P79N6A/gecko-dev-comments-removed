@@ -317,7 +317,8 @@ private:
     nsRect oldDim;
     nsRect newDim(0, 0, aWidth, aHeight);
     mRootView->GetDimensions(oldDim);
-    if (oldDim != newDim) {
+    
+    if (!oldDim.IsExactEqual(newDim)) {
       
       mRootView->SetDimensions(newDim, PR_TRUE, PR_FALSE);
       if (mObserver)
