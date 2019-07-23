@@ -107,12 +107,16 @@
 #define THUNK_BASED_THIS_ADJUST
 
 #elif defined(__OpenBSD__) 
+#if __GNUC__ >= 3
+#define THUNK_BASED_THIS_ADJUST
+#else
 
 #include <sys/param.h>
 #if OpenBSD <= 199905
 #define THUNK_BASED_THIS_ADJUST
 #else
 #define CFRONT_STYLE_THIS_ADJUST
+#endif
 #endif
 
 #elif defined(__bsdi__) 
