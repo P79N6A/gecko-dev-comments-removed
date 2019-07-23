@@ -2015,11 +2015,15 @@ TraceRecorder::test_property_cache_direct_slot(JSObject* obj, LIns* obj_ins, uin
 
     
     if (PCVAL_IS_SPROP(pcval)) {
-        JS_ASSERT(js_CodeSpec[*cx->fp->regs->pc].format & JOF_SET);
         JSScopeProperty* sprop = PCVAL_TO_SPROP(pcval);
 
-        if (!SPROP_HAS_STUB_SETTER(sprop))
-            ABORT_TRACE("non-stub setter");
+        if (js_CodeSpec[*cx->fp->regs->pc].format & JOF_SET) {
+            if (!SPROP_HAS_STUB_SETTER(sprop))
+                ABORT_TRACE("non-stub setter");
+        } else {
+            if (!SPROP_HAS_STUB_GETTER(sprop))
+                ABORT_TRACE("non-stub getter");
+        }
         if (!SPROP_HAS_VALID_SLOT(sprop, OBJ_SCOPE(obj)))
             ABORT_TRACE("no valid slot");
         slot = sprop->slot;
