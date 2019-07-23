@@ -4035,26 +4035,20 @@ js_EmitTree(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
 
         CG_SWITCH_TO_PROLOG(cg);
 
-        op = JSOP_DEFFUN;
-#ifdef __GNUC__
-        slot = 0;   
+        if (!(cg->treeContext.flags & TCF_IN_FUNCTION)) {
+            
+
+
+
+            JS_ASSERT(!cg->treeContext.topStmt);
+            op = (cx->fp->flags & JSFRAME_EVAL) ? JSOP_CLOSURE : JSOP_DEFFUN;
+            EMIT_INDEX_OP(op, index);
+        } else {
+#ifdef DEBUG
+            JSLocalKind localKind =
 #endif
-        JS_ASSERT((cg->treeContext.flags & TCF_IN_FUNCTION) ||
-                  !cg->treeContext.topStmt);
-
-        if ((cg->treeContext.flags & TCF_IN_FUNCTION) ||
-            ((cx->fp->flags & JSFRAME_SPECIAL) && cx->fp->fun)) {
-            JSFunction *parentFun;
-            JSLocalKind localKind;
-
-            parentFun = (cg->treeContext.flags & TCF_IN_FUNCTION)
-                        ? cg->treeContext.fun
-                        : cx->fp->fun;
-            localKind = js_LookupLocal(cx, parentFun, fun->atom, &slot);
-            if (localKind == JSLOCAL_VAR || localKind == JSLOCAL_CONST)
-                op = JSOP_DEFLOCALFUN;
-            else
-                JS_ASSERT(!(cg->treeContext.flags & TCF_IN_FUNCTION));
+                js_LookupLocal(cx, cg->treeContext.fun, fun->atom, &slot);
+            JS_ASSERT(localKind == JSLOCAL_VAR || localKind == JSLOCAL_CONST);
 
             
 
@@ -4070,15 +4064,9 @@ js_EmitTree(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
                           &js_BlockClass);
                 OBJ_SET_PARENT(cx, fun->object, stmt->down->u.blockObj);
             }
-        }
-
-        if (op == JSOP_DEFLOCALFUN) {
-            if (!EmitSlotIndexOp(cx, op, slot, index, cg))
+            if (!EmitSlotIndexOp(cx, JSOP_DEFLOCALFUN, slot, index, cg))
                 return JS_FALSE;
-        } else {
-            EMIT_INDEX_OP(op, index);
         }
-
         CG_SWITCH_TO_MAIN(cg);
         break;
       }

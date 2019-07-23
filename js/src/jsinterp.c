@@ -2138,6 +2138,9 @@ JS_STATIC_ASSERT(JSOP_GETARG_LENGTH == JSOP_CALLARG_LENGTH);
 JS_STATIC_ASSERT(JSOP_GETLOCAL_LENGTH == JSOP_CALLLOCAL_LENGTH);
 JS_STATIC_ASSERT(JSOP_XMLNAME_LENGTH == JSOP_CALLXMLNAME_LENGTH);
 
+
+JS_STATIC_ASSERT(JSOP_DEFFUN_LENGTH == JSOP_CLOSURE_LENGTH);
+
 JSBool
 js_Interpret(JSContext *cx, jsbytecode *pc, jsval *result)
 {
@@ -4904,15 +4907,8 @@ interrupt:
 
           BEGIN_CASE(JSOP_DEFFUN)
             LOAD_FUNCTION(0);
-            fun = GET_FUNCTION_PRIVATE(cx, obj);
-            id = ATOM_TO_JSID(fun->atom);
 
             
-
-
-
-
-
 
 
 
@@ -4938,7 +4934,28 @@ interrupt:
 
 
             JS_ASSERT(!fp->blockChain);
+            JS_ASSERT((fp->flags & JSFRAME_EVAL) == 0);
+            JS_ASSERT(fp->scopeChain == fp->varobj);
             obj2 = fp->scopeChain;
+
+            
+
+
+
+            attrs = JSPROP_ENUMERATE | JSPROP_PERMANENT;
+            SAVE_SP_AND_PC(fp);
+
+          do_deffun:
+            
+            ASSERT_SAVED_SP_AND_PC(fp);
+
+            
+
+
+
+
+
+
             if (OBJ_GET_PARENT(cx, obj) != obj2) {
                 obj = js_CloneFunctionObject(cx, obj, obj2);
                 if (!obj) {
@@ -4960,15 +4977,7 @@ interrupt:
 
 
 
-            attrs = JSPROP_ENUMERATE;
-            if (!(fp->flags & JSFRAME_EVAL))
-                attrs |= JSPROP_PERMANENT;
-
-            
-
-
-
-
+            fun = GET_FUNCTION_PRIVATE(cx, obj);
             flags = JSFUN_GSFLAG2ATTR(fun->flags);
             if (flags) {
                 attrs |= flags | JSPROP_SHARED;
@@ -4982,25 +4991,39 @@ interrupt:
 
 
             parent = fp->varobj;
-            SAVE_SP_AND_PC(fp);
+
+            
+
+
+
+
+
+            id = ATOM_TO_JSID(fun->atom);
             ok = js_CheckRedeclaration(cx, parent, id, attrs, NULL, NULL);
             if (ok) {
-                ok = OBJ_DEFINE_PROPERTY(cx, parent, id, rval,
-                                         (flags & JSPROP_GETTER)
-                                         ? JS_EXTENSION (JSPropertyOp) obj
-                                         : NULL,
-                                         (flags & JSPROP_SETTER)
-                                         ? JS_EXTENSION (JSPropertyOp) obj
-                                         : NULL,
-                                         attrs,
-                                         &prop);
+                if (attrs == JSPROP_ENUMERATE) {
+                    JS_ASSERT(fp->flags & JSFRAME_EVAL);
+                    JS_ASSERT(op == JSOP_CLOSURE);
+                    ok = OBJ_SET_PROPERTY(cx, parent, id, &rval);
+                } else {
+                    ok = OBJ_DEFINE_PROPERTY(cx, parent, id, rval,
+                                             (flags & JSPROP_GETTER)
+                                             ? JS_EXTENSION (JSPropertyOp) obj
+                                             : NULL,
+                                             (flags & JSPROP_SETTER)
+                                             ? JS_EXTENSION (JSPropertyOp) obj
+                                             : NULL,
+                                             attrs,
+                                             NULL);
+                }
             }
 
             
             fp->scopeChain = obj2;
-            if (!ok)
+            if (!ok) {
+                cx->weakRoots.newborn[GCX_OBJECT] = NULL;
                 goto out;
-            OBJ_DROP_PROPERTY(cx, parent, prop);
+            }
           END_CASE(JSOP_DEFFUN)
 
           BEGIN_CASE(JSOP_DEFLOCALFUN)
@@ -5183,6 +5206,7 @@ interrupt:
 
 
 
+
             LOAD_FUNCTION(0);
 
             
@@ -5198,53 +5222,16 @@ interrupt:
                 ok = JS_FALSE;
                 goto out;
             }
-            if (OBJ_GET_PARENT(cx, obj) != obj2) {
-                obj = js_CloneFunctionObject(cx, obj, obj2);
-                if (!obj) {
-                    ok = JS_FALSE;
-                    goto out;
-                }
-            }
 
             
 
 
 
+            attrs = JSPROP_ENUMERATE;
+            if (!(fp->flags & JSFRAME_EVAL))
+                attrs |= JSPROP_PERMANENT;
 
-            fp->scopeChain = obj;
-            rval = OBJECT_TO_JSVAL(obj);
-
-            
-
-
-
-
-            fun = GET_FUNCTION_PRIVATE(cx, obj);
-            attrs = JSFUN_GSFLAG2ATTR(fun->flags);
-            if (attrs) {
-                attrs |= JSPROP_SHARED;
-                rval = JSVAL_VOID;
-            }
-            parent = fp->varobj;
-            ok = OBJ_DEFINE_PROPERTY(cx, parent, ATOM_TO_JSID(fun->atom), rval,
-                                     (attrs & JSPROP_GETTER)
-                                     ? JS_EXTENSION (JSPropertyOp) obj
-                                     : NULL,
-                                     (attrs & JSPROP_SETTER)
-                                     ? JS_EXTENSION (JSPropertyOp) obj
-                                     : NULL,
-                                     attrs | JSPROP_ENUMERATE
-                                           | JSPROP_PERMANENT,
-                                     &prop);
-
-            
-            fp->scopeChain = obj2;
-            if (!ok) {
-                cx->weakRoots.newborn[GCX_OBJECT] = NULL;
-                goto out;
-            }
-            OBJ_DROP_PROPERTY(cx, parent, prop);
-          END_CASE(JSOP_CLOSURE)
+            goto do_deffun;
 
 #if JS_HAS_GETTER_SETTER
           BEGIN_CASE(JSOP_GETTER)
