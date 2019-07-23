@@ -171,9 +171,22 @@ nsResProtocolHandler::Init()
     
     
     
-    rv = AddSpecialDir(NS_GRE_DIR, NS_LITERAL_CSTRING("gre"));
+    NS_NAMED_LITERAL_CSTRING(strGRE_DIR, "gre");
+    rv = AddSpecialDir(NS_GRE_DIR, strGRE_DIR);
     NS_ENSURE_SUCCESS(rv, rv);
 
+    
+    nsCOMPtr<nsIURI> greURI;
+    nsCOMPtr<nsIURI> greResURI;
+    GetSubstitution(strGRE_DIR, getter_AddRefs(greURI));
+#ifdef MOZ_CHROME_FILE_FORMAT_JAR
+    NS_NAMED_LITERAL_CSTRING(strGRE_RES_URL, "jar:chrome/toolkit.jar!/res/");
+#else
+    NS_NAMED_LITERAL_CSTRING(strGRE_RES_URL, "chrome/toolkit/res/");
+#endif
+    rv = mIOService->NewURI(strGRE_RES_URL, nsnull, greURI,
+                            getter_AddRefs(greResURI));
+    SetSubstitution(NS_LITERAL_CSTRING("gre-resources"), greResURI);
     
     
 
