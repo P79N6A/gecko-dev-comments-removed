@@ -1859,6 +1859,25 @@ JS_SetCallReturnValue2(JSContext *cx, jsval v);
 
 
 
+
+
+extern JS_PUBLIC_API(JSStackFrame *)
+JS_SaveFrameChain(JSContext *cx);
+
+extern JS_PUBLIC_API(void)
+JS_RestoreFrameChain(JSContext *cx, JSStackFrame *fp);
+
+
+
+
+
+
+
+
+
+
+
+
 extern JS_PUBLIC_API(JSString *)
 JS_NewString(JSContext *cx, char *bytes, size_t length);
 
