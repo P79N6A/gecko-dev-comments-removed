@@ -1526,13 +1526,13 @@ TraceRecorder::emitTreeCall(Fragment* inner, GuardRecord* lr)
     
     lir->insStorei(ret, lirbuf->state, offsetof(InterpState, nestedExit));
     
-
-    guard(true, lir->ins2(LIR_eq, ret, lir->insImmPtr(lr)), NESTED_EXIT);
-    
     if (callDepth > 0) {
         lir->insStorei(lirbuf->sp, lirbuf->state, offsetof(InterpState, sp));
         lir->insStorei(lirbuf->rp, lirbuf->state, offsetof(InterpState, rp));
     }
+    
+
+    guard(true, lir->ins2(LIR_eq, ret, lir->insImmPtr(lr)), NESTED_EXIT);
 }
 
 int
@@ -1972,10 +1972,6 @@ js_ExecuteTree(JSContext* cx, Fragment** treep, uintN& inlineCallCount)
         
         lr = state.nestedExit;
     }
-
-    
-
-    JS_ASSERT(state.rp == callstack);
 
     
 
