@@ -77,6 +77,12 @@ public:
   
   
   NS_IMETHOD GetThebesSurface(gfxASurface **surface) = 0;
+
+  
+  
+  
+  
+  NS_IMETHOD SetIsOpaque(PRBool isOpaque) = 0;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsICanvasRenderingContextInternal,
