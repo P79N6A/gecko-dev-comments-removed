@@ -206,6 +206,10 @@ JS_BEGIN_EXTERN_C
 
 
 
+
+
+
+
 struct JSEmptyScope;
 
 #define SPROP_INVALID_SLOT              0xffffffff
@@ -361,12 +365,10 @@ struct JSScope : public JSObjectMap
 
     void trace(JSTracer *trc);
 
-    void brandingShapeChange(JSContext *cx, uint32 slot, jsval v);
     void deletingShapeChange(JSContext *cx, JSScopeProperty *sprop);
     bool methodShapeChange(JSContext *cx, JSScopeProperty *sprop, jsval toval);
     bool methodShapeChange(JSContext *cx, uint32 slot, jsval toval);
     void protoShapeChange(JSContext *cx);
-    void sealingShapeChange(JSContext *cx);
     void shadowingShapeChange(JSContext *cx, JSScopeProperty *sprop);
 
 
@@ -400,8 +402,11 @@ struct JSScope : public JSObjectMap
 
 
     bool sealed()               { return flags & SEALED; }
-    void setSealed()            {
+
+    void seal(JSContext *cx) {
         JS_ASSERT(!isSharedEmpty());
+        JS_ASSERT(!sealed());
+        generateOwnShape(cx);
         flags |= SEALED;
     }
 
@@ -411,7 +416,15 @@ struct JSScope : public JSObjectMap
 
 
     bool branded()              { JS_ASSERT(!generic()); return flags & BRANDED; }
-    void setBranded()           { flags |= BRANDED; }
+
+    bool brand(JSContext *cx, uint32 slot, jsval v) {
+        JS_ASSERT(!branded());
+        generateOwnShape(cx);
+        if (js_IsPropertyCacheDisabled(cx))  
+            return false;
+        flags |= BRANDED;
+        return true;
+    }
 
     bool generic()              { return flags & GENERIC; }
     void setGeneric()           { flags |= GENERIC; }
@@ -554,23 +567,28 @@ js_CastAsObjectJSVal(JSPropertyOp op)
     return OBJECT_TO_JSVAL(JS_FUNC_TO_DATA_PTR(JSObject *, op));
 }
 
+namespace js {
+class PropertyTree;
+}
+
 struct JSScopeProperty {
     friend struct JSScope;
-    friend void js_SweepScopeProperties(JSContext *cx);
-    friend JSScopeProperty * js_GetPropertyTreeChild(JSContext *cx, JSScopeProperty *parent,
-                                                     const JSScopeProperty &child);
+    friend class js::PropertyTree;
+    friend JSDHashOperator js::RemoveNodeIfDead(JSDHashTable *table, JSDHashEntryHdr *hdr,
+                                                uint32 number, void *arg);
+    friend void js::SweepScopeProperties(JSContext *cx);
 
     jsid            id;                 
-private:
+  private:
     JSPropertyOp    rawGetter;          
     JSPropertyOp    rawSetter;          
 
-public:
+  public:
     uint32          slot;               
-private:
+  private:
     uint8           attrs;              
     uint8           flags;              
-public:
+  public:
     int16           shortid;            
     JSScopeProperty *parent;            
     union {
@@ -583,21 +601,25 @@ public:
     };
     uint32          shape;              
 
-private:
+  private:
     
+
+
+
+
     enum {
         
-        MARK =          0x01,
+        MARK            = 0x01,
 
         
 
 
 
 
-        SHAPE_REGEN =   0x08,
+        SHAPE_REGEN     = 0x08,
 
         
-        IN_DICTIONARY = 0x20
+        IN_DICTIONARY   = 0x20
     };
 
     JSScopeProperty(jsid id, JSPropertyOp getter, JSPropertyOp setter, uint32 slot,
@@ -621,13 +643,13 @@ private:
 
     bool inDictionary() const { return (flags & IN_DICTIONARY) != 0; }
 
-public:
+  public:
     
     enum {
-        ALIAS =         0x02,
-        HAS_SHORTID =   0x04,
-        METHOD =        0x10,
-        PUBLIC_FLAGS = ALIAS | HAS_SHORTID | METHOD
+        ALIAS           = 0x02,
+        HAS_SHORTID     = 0x04,
+        METHOD          = 0x10,
+        PUBLIC_FLAGS    = ALIAS | HAS_SHORTID | METHOD
     };
 
     uintN getFlags() const { return flags & PUBLIC_FLAGS; }
@@ -681,6 +703,8 @@ public:
 
     bool get(JSContext* cx, JSObject* obj, JSObject *pobj, jsval* vp);
     bool set(JSContext* cx, JSObject* obj, jsval* vp);
+
+    inline bool isSharedPermanent() const;
 
     void trace(JSTracer *trc);
 
@@ -896,6 +920,12 @@ JSScope::search(jsid id, bool adding)
 inline bool
 JSScope::canProvideEmptyScope(JSObjectOps *ops, JSClass *clasp)
 {
+    
+
+
+
+    if (!object)
+        return false;
     return this->ops == ops && (!emptyScope || emptyScope->clasp == clasp);
 }
 
@@ -949,11 +979,10 @@ JSScopeProperty::set(JSContext* cx, JSObject* obj, jsval* vp)
     return setterOp()(cx, obj, SPROP_USERID(this), vp);
 }
 
-
 inline bool
-SPROP_IS_SHARED_PERMANENT(JSScopeProperty *sprop)
+JSScopeProperty::isSharedPermanent() const
 {
-    return !sprop->hasSlot() && !sprop->configurable();
+    return (~attrs & (JSPROP_SHARED | JSPROP_PERMANENT)) == 0;
 }
 
 extern JSScope *
@@ -961,15 +990,6 @@ js_GetMutableScope(JSContext *cx, JSObject *obj);
 
 extern void
 js_TraceId(JSTracer *trc, jsid id);
-
-extern void
-js_SweepScopeProperties(JSContext *cx);
-
-extern bool
-js_InitPropertyTree(JSRuntime *rt);
-
-extern void
-js_FinishPropertyTree(JSRuntime *rt);
 
 JS_END_EXTERN_C
 

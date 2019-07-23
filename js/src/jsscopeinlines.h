@@ -163,6 +163,7 @@ JSScope::trace(JSTracer *trc)
     JSContext *cx = trc->context;
     JSScopeProperty *sprop = lastProp;
     uint8 regenFlag = cx->runtime->gcRegenShapesScopeFlag;
+
     if (IS_GC_MARKING_TRACER(trc) && cx->runtime->gcRegenShapes && !hasRegenFlag(regenFlag)) {
         
 
@@ -185,13 +186,19 @@ JSScope::trace(JSTracer *trc)
         flags ^= JSScope::SHAPE_REGEN;
 
         
-        for (JSScope *empty = emptyScope;
-             empty && !empty->hasRegenFlag(regenFlag);
-             empty = empty->emptyScope) {
-            empty->shape = js_RegenerateShapeForGC(cx);
-            empty->flags ^= JSScope::SHAPE_REGEN;
+        JSScope *empty = emptyScope;
+        if (empty) {
+            JS_ASSERT(!empty->emptyScope);
+            if (!empty->hasRegenFlag(regenFlag)) {
+                uint32 newEmptyShape = js_RegenerateShapeForGC(cx);
+
+                JS_PROPERTY_TREE(cx).emptyShapeChange(empty->shape, newEmptyShape);
+                empty->shape = newEmptyShape;
+                empty->flags ^= JSScope::SHAPE_REGEN;
+            }
         }
     }
+
     if (sprop) {
         JS_ASSERT(hasProperty(sprop));
 

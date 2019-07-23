@@ -49,11 +49,12 @@
 #include "jsclist.h"
 #include "jslong.h"
 #include "jsatom.h"
-#include "jsversion.h"
 #include "jsdhash.h"
 #include "jsgc.h"
+#include "jshashtable.h"
 #include "jsinterp.h"
 #include "jsobj.h"
+#include "jspropertytree.h"
 #include "jsprvtd.h"
 #include "jspubtd.h"
 #include "jsregexp.h"
@@ -61,7 +62,6 @@
 #include "jsarray.h"
 #include "jstask.h"
 #include "jsvector.h"
-#include "jshashtable.h"
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -913,10 +913,15 @@ struct JSRuntime {
 
 
 
+    js::PropertyTree    propertyTree;
 
-    JSDHashTable        propertyTreeHash;
-    JSScopeProperty     *propertyFreeList;
-    JSArenaPool         propertyArenaPool;
+#define JS_PROPERTY_TREE(cx) ((cx)->runtime->propertyTree)
+
+    
+
+
+
+
     int32               propertyRemovals;
 
     

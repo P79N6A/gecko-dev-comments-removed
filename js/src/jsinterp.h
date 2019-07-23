@@ -244,12 +244,6 @@ typedef struct JSInlineFrame {
     (((((jsuword)(pc) >> PROPERTY_CACHE_LOG2) ^ (jsuword)(pc)) + (kshape)) &  \
      PROPERTY_CACHE_MASK)
 
-#define PROPERTY_CACHE_HASH_PC(pc,kshape)                                     \
-    PROPERTY_CACHE_HASH(pc, kshape)
-
-#define PROPERTY_CACHE_HASH_ATOM(atom,obj)                                    \
-    PROPERTY_CACHE_HASH((jsuword)(atom) >> 2, OBJ_SHAPE(obj))
-
 
 
 
@@ -285,6 +279,8 @@ struct JSPropCacheEntry {
     bool directHit() const {
         return PCVCAP_TAG(vcap) == 0 && kshape == PCVCAP_SHAPE(vcap);
     }
+
+    static inline bool matchShape(JSContext *cx, JSObject *obj, uint32 shape);
 };
 
 
@@ -313,8 +309,6 @@ typedef struct JSPropertyCache {
     uint32              noprotos;       
     uint32              longchains;     
     uint32              recycles;       
-    uint32              pcrecycles;     
-
     uint32              tests;          
     uint32              pchits;         
     uint32              protopchits;    
@@ -326,9 +320,9 @@ typedef struct JSPropertyCache {
     uint32              setpchits;      
     uint32              setpcmisses;    
     uint32              setmisses;      
-    uint32              idmisses;       
-    uint32              komisses;       
-    uint32              vcmisses;       
+    uint32              kpcmisses;      
+    uint32              kshapemisses;   
+    uint32              vcapmisses;     
     uint32              misses;         
     uint32              flushes;        
     uint32              pcpurges;       
@@ -369,9 +363,6 @@ typedef struct JSPropertyCache {
 #define PCVAL_TO_SPROP(v)       ((JSScopeProperty *) PCVAL_CLRTAG(v))
 #define SPROP_TO_PCVAL(sprop)   PCVAL_SETTAG(sprop, PCVAL_SPROP)
 
-inline bool
-js_MatchPropertyCacheShape(JSContext *cx, JSObject *obj, uint32 shape);
-
 
 
 
@@ -383,7 +374,7 @@ js_MatchPropertyCacheShape(JSContext *cx, JSObject *obj, uint32 shape);
 extern JS_REQUIRES_STACK JSPropCacheEntry *
 js_FillPropertyCache(JSContext *cx, JSObject *obj,
                      uintN scopeIndex, uintN protoIndex, JSObject *pobj,
-                     JSScopeProperty *sprop, JSBool adding);
+                     JSScopeProperty *sprop, JSBool adding = false);
 
 
 
@@ -405,27 +396,27 @@ js_FillPropertyCache(JSContext *cx, JSObject *obj,
     do {                                                                      \
         JSPropertyCache *cache_ = &JS_PROPERTY_CACHE(cx);                     \
         uint32 kshape_ = (JS_ASSERT(OBJ_IS_NATIVE(obj)), OBJ_SHAPE(obj));     \
-        entry = &cache_->table[PROPERTY_CACHE_HASH_PC(pc, kshape_)];          \
+        entry = &cache_->table[PROPERTY_CACHE_HASH(pc, kshape_)];             \
         PCMETER(cache_->pctestentry = entry);                                 \
         PCMETER(cache_->tests++);                                             \
         JS_ASSERT(&obj != &pobj);                                             \
         if (entry->kpc == pc && entry->kshape == kshape_) {                   \
             JSObject *tmp_;                                                   \
             pobj = obj;                                                       \
-            JS_ASSERT(PCVCAP_TAG(entry->vcap) <= 1);                          \
             if (PCVCAP_TAG(entry->vcap) == 1 &&                               \
                 (tmp_ = pobj->getProto()) != NULL) {                          \
                 pobj = tmp_;                                                  \
             }                                                                 \
                                                                               \
-            if (js_MatchPropertyCacheShape(cx,pobj,PCVCAP_SHAPE(entry->vcap))){\
+            if (JSPropCacheEntry::matchShape(cx, pobj,                        \
+                                             PCVCAP_SHAPE(entry->vcap))) {    \
                 PCMETER(cache_->pchits++);                                    \
                 PCMETER(!PCVCAP_TAG(entry->vcap) || cache_->protopchits++);   \
                 atom = NULL;                                                  \
                 break;                                                        \
             }                                                                 \
         }                                                                     \
-        atom = js_FullTestPropertyCache(cx, pc, &obj, &pobj, &entry);         \
+        atom = js_FullTestPropertyCache(cx, pc, &obj, &pobj, entry);          \
         if (atom)                                                             \
             PCMETER(cache_->misses++);                                        \
     } while (0)
@@ -433,7 +424,7 @@ js_FillPropertyCache(JSContext *cx, JSObject *obj,
 extern JS_REQUIRES_STACK JSAtom *
 js_FullTestPropertyCache(JSContext *cx, jsbytecode *pc,
                          JSObject **objp, JSObject **pobjp,
-                         JSPropCacheEntry **entryp);
+                         JSPropCacheEntry *entry);
 
 
 #define js_FinishPropertyCache(cache) ((void) 0)

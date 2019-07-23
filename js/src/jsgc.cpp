@@ -3236,7 +3236,7 @@ js_GC(JSContext *cx, JSGCInvocationKind gckind)
 
 
 
-    js_SweepScopeProperties(cx);
+    js::SweepScopeProperties(cx);
 
     
 

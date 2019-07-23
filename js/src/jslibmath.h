@@ -42,7 +42,6 @@
 #define _LIBMATH_H
 
 #include <math.h>
-#include "jsversion.h"
 
 
 

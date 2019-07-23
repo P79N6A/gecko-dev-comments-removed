@@ -6048,6 +6048,7 @@ JSCompiler::condExpr()
         pn = TernaryNode::create(tc);
         if (!pn)
             return NULL;
+
         
 
 
