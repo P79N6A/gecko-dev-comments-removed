@@ -1212,10 +1212,10 @@ struct JSExtendedClass {
     JSObjectOp          outerObject;
     JSObjectOp          innerObject;
     JSIteratorOp        iteratorObject;
+    JSObjectOp          wrappedObject;
     void                (*reserved0)(void);
     void                (*reserved1)(void);
     void                (*reserved2)(void);
-    void                (*reserved3)(void);
 };
 
 #define JSCLASS_HAS_PRIVATE             (1<<0)  /* objects have private slot */
@@ -1290,7 +1290,7 @@ struct JSExtendedClass {
 
 
 #define JSCLASS_NO_OPTIONAL_MEMBERS     0,0,0,0,0,0,0,0
-#define JSCLASS_NO_RESERVED_MEMBERS     0,0,0,0
+#define JSCLASS_NO_RESERVED_MEMBERS     0,0,0
 
 
 struct JSObjectOps {
