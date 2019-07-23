@@ -231,6 +231,10 @@ pref("browser.urlbar.search.timeout", 100);
 
 
 
+pref("browser.urlbar.delay", 50);
+
+
+
 
 pref("browser.urlbar.restrict.history", "^");
 pref("browser.urlbar.restrict.bookmark", "*");
