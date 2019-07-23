@@ -70,7 +70,10 @@ PluginThreadChild::Init()
     
     std::vector<std::wstring> values =
         CommandLine::ForCurrentProcess()->GetLooseValues();
-    DCHECK(1 == values.size());
+
+    
+    DCHECK(values.size() >= 1);
+
     std::string pluginFilename = WideToUTF8(values[0]);
 
     
