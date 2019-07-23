@@ -440,6 +440,9 @@ nsNativeDragTarget::Drop(LPDATAOBJECT pData,
   winDragService->SetDroppedLocal();
 
   
+  POINT pos;
+  GetCursorPos(&pos);
+  winDragService->SetDragEndPoint(nsIntPoint(pos.x, pos.y));
   serv->EndDragSession(PR_TRUE);
 
   
