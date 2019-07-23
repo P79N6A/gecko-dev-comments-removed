@@ -300,6 +300,10 @@ public:
 
   
   
+  void SetContentLength(PRInt64 aLength);
+
+  
+  
   
   void SetDuration(PRInt64 aDuration);
 
@@ -485,6 +489,11 @@ private:
 
   
   
+  
+  PRInt64 mContentLength;
+
+  
+  
   PRPackedBool mSeekable;
 
   
@@ -516,6 +525,7 @@ nsOggDecodeStateMachine::nsOggDecodeStateMachine(nsOggDecoder* aDecoder) :
   mCurrentFrameTime(0.0),
   mVolume(1.0),
   mDuration(-1),
+  mContentLength(-1),
   mSeekable(PR_TRUE),
   mPositionChangeQueued(PR_FALSE)
 {
@@ -557,7 +567,6 @@ nsOggDecodeStateMachine::FrameData* nsOggDecodeStateMachine::NextFrame()
     mDecoder->mPlaybackStatistics.Start(frame->mTime*PR_TicksPerSecond());
     mDecoder->mPlaybackStatistics.AddBytes(frame->mEndStreamPosition - mLastFramePosition);
     mDecoder->mPlaybackStatistics.Stop(mLastFrameTime*PR_TicksPerSecond());
-    mDecoder->UpdatePlaybackRate();
   }
   mLastFramePosition = frame->mEndStreamPosition;
 
@@ -848,6 +857,12 @@ PRInt64 nsOggDecodeStateMachine::GetDuration()
   return mDuration;
 }
 
+void nsOggDecodeStateMachine::SetContentLength(PRInt64 aLength)
+{
+  
+  mContentLength = aLength;
+}
+
 void nsOggDecodeStateMachine::SetDuration(PRInt64 aDuration)
 {
    
@@ -954,8 +969,7 @@ nsresult nsOggDecodeStateMachine::Run()
         PRBool bufferExhausted = PR_FALSE;
 
         if (!mDecodedFrames.IsFull()) {
-          PRInt64 initialDownloadPosition =
-            mDecoder->mReader->Stream()->GetCachedDataEnd(mDecoder->mDecoderPosition);
+          PRInt64 initialDownloadPosition = mDecoder->mDownloadPosition;
 
           mon.Exit();
           OggPlayErrorCode r = DecodeFrame();
@@ -992,8 +1006,8 @@ nsresult nsOggDecodeStateMachine::Run()
 
         if (bufferExhausted && mState == DECODER_STATE_DECODING &&
             mDecoder->GetState() == nsOggDecoder::PLAY_STATE_PLAYING &&
-            !mDecoder->mReader->Stream()->IsDataCachedToEndOfStream(mDecoder->mDecoderPosition) &&
-            !mDecoder->mReader->Stream()->IsSuspendedByCache()) {
+            (mDecoder->mTotalBytes < 0 ||
+             mDecoder->mDownloadPosition < mDecoder->mTotalBytes)) {
           
           
           
@@ -1015,9 +1029,8 @@ nsresult nsOggDecodeStateMachine::Run()
           NS_DispatchToMainThread(event, NS_DISPATCH_NORMAL);
 
           mBufferingStart = PR_IntervalNow();
-          PRPackedBool reliable;
-          double playbackRate = mDecoder->ComputePlaybackRate(&reliable);
-          mBufferingEndOffset = mDecoder->mDecoderPosition +
+          double playbackRate = mDecoder->GetStatistics().mPlaybackRate;
+          mBufferingEndOffset = mDecoder->mDownloadPosition +
               BUFFERING_RATE(playbackRate) * BUFFERING_WAIT;
           mState = DECODER_STATE_BUFFERING;
           LOG(PR_LOG_DEBUG, ("Changed state from DECODING to BUFFERING"));
@@ -1058,8 +1071,8 @@ nsresult nsOggDecodeStateMachine::Run()
         }
 
         mon.Enter();
+        mLastFramePosition = mDecoder->mDecoderPosition;
         mDecoder->StartProgressUpdates();
-        mLastFramePosition = mDecoder->mPlaybackPosition;
         if (mState == DECODER_STATE_SHUTDOWN)
           continue;
 
@@ -1103,12 +1116,11 @@ nsresult nsOggDecodeStateMachine::Run()
       {
         PRIntervalTime now = PR_IntervalNow();
         if ((PR_IntervalToMilliseconds(now - mBufferingStart) < BUFFERING_WAIT*1000) &&
-            mDecoder->mReader->Stream()->GetCachedDataEnd(mDecoder->mDecoderPosition) < mBufferingEndOffset &&
-            !mDecoder->mReader->Stream()->IsDataCachedToEndOfStream(mDecoder->mDecoderPosition) &&
-            !mDecoder->mReader->Stream()->IsSuspendedByCache()) {
+            mDecoder->mDownloadPosition < mBufferingEndOffset &&
+            (mDecoder->mTotalBytes < 0 || mDecoder->mDownloadPosition < mDecoder->mTotalBytes)) {
           LOG(PR_LOG_DEBUG, 
               ("In buffering: buffering data until %d bytes available or %d milliseconds", 
-               PRUint32(mBufferingEndOffset - mDecoder->mReader->Stream()->GetCachedDataEnd(mDecoder->mDecoderPosition)),
+               PRUint32(mBufferingEndOffset - mDecoder->mDownloadPosition),
                BUFFERING_WAIT*1000 - (PR_IntervalToMilliseconds(now - mBufferingStart))));
           mon.Wait(PR_MillisecondsToInterval(1000));
           if (mState == DECODER_STATE_SHUTDOWN)
@@ -1225,7 +1237,7 @@ void nsOggDecodeStateMachine::LoadOggHeaders(nsChannelReader* aReader)
     {
       nsAutoMonitor mon(mDecoder->GetMonitor());
       if (mState != DECODER_STATE_SHUTDOWN &&
-          aReader->Stream()->GetLength() >= 0 &&
+          mContentLength >= 0 && 
           mSeekable &&
           mDuration == -1) {
         mDecoder->StopProgressUpdates();
@@ -1238,7 +1250,6 @@ void nsOggDecodeStateMachine::LoadOggHeaders(nsChannelReader* aReader)
         mon.Enter();
         mDuration = d;
         mDecoder->StartProgressUpdates();
-        mDecoder->UpdatePlaybackRate();
       }
       if (mState == DECODER_STATE_SHUTDOWN)
         return;
@@ -1286,6 +1297,9 @@ float nsOggDecoder::GetDuration()
 
 nsOggDecoder::nsOggDecoder() :
   nsMediaDecoder(),
+  mTotalBytes(-1),
+  mDownloadPosition(0),
+  mProgressPosition(0),
   mDecoderPosition(0),
   mPlaybackPosition(0),
   mCurrentTime(0.0),
@@ -1294,8 +1308,8 @@ nsOggDecoder::nsOggDecoder() :
   mDuration(-1),
   mNotifyOnShutdown(PR_FALSE),
   mSeekable(PR_TRUE),
-  mReader(nsnull),
-  mMonitor(nsnull),
+  mReader(0),
+  mMonitor(0),
   mPlayState(PLAY_STATE_PAUSED),
   mNextState(PLAY_STATE_PAUSED),
   mResourceLoaded(PR_FALSE),
@@ -1334,6 +1348,8 @@ nsresult nsOggDecoder::Load(nsIURI* aURI, nsIChannel* aChannel,
   mStopping = PR_FALSE;
 
   
+  mDownloadPosition = 0;
+  mProgressPosition = 0;
   mDecoderPosition = 0;
   mPlaybackPosition = 0;
   mResourceLoaded = PR_FALSE;
@@ -1364,26 +1380,19 @@ nsresult nsOggDecoder::Load(nsIURI* aURI, nsIChannel* aChannel,
 
   mReader = new nsChannelReader();
   NS_ENSURE_TRUE(mReader, NS_ERROR_OUT_OF_MEMORY);
+  mDownloadStatistics.Reset();
+  mDownloadStatistics.Start(PR_IntervalNow());
 
-  {
-    nsAutoMonitor mon(mMonitor);
-    
-    
-    
-    nsresult rv = mReader->Init(this, mURI, aChannel, aStreamListener);
-    if (NS_FAILED(rv)) {
-      
-      mReader = nsnull;
-      return rv;
-    }
-  }
+  nsresult rv = mReader->Init(this, mURI, aChannel, aStreamListener);
+  NS_ENSURE_SUCCESS(rv, rv);
 
-  nsresult rv = NS_NewThread(getter_AddRefs(mDecodeThread));
+  rv = NS_NewThread(getter_AddRefs(mDecodeThread));
   NS_ENSURE_SUCCESS(rv, rv);
 
   mDecodeStateMachine = new nsOggDecodeStateMachine(this);
   {
     nsAutoMonitor mon(mMonitor);
+    mDecodeStateMachine->SetContentLength(mTotalBytes);
     mDecodeStateMachine->SetSeekable(mSeekable);
   }
 
@@ -1479,10 +1488,13 @@ void nsOggDecoder::Stop()
   ChangeState(PLAY_STATE_ENDED);
 
   StopProgress();
+  mDownloadStatistics.Stop(PR_IntervalNow());
 
   
   
-  mReader->Stream()->Close();
+  if (mReader) {
+    mReader->Cancel();
+  }
 
   
   
@@ -1526,11 +1538,13 @@ void nsOggDecoder::GetCurrentURI(nsIURI** aURI)
   NS_IF_ADDREF(*aURI = mURI);
 }
 
-already_AddRefed<nsIPrincipal> nsOggDecoder::GetCurrentPrincipal()
+nsIPrincipal* nsOggDecoder::GetCurrentPrincipal()
 {
-  if (!mReader)
+  if (!mReader) {
     return nsnull;
-  return mReader->Stream()->GetCurrentPrincipal();
+  }
+
+  return mReader->GetCurrentPrincipal();
 }
 
 void nsOggDecoder::MetadataLoaded()
@@ -1596,8 +1610,7 @@ void nsOggDecoder::FirstFrameLoaded()
     }
   }
 
-  if (!mResourceLoaded && mReader &&
-      mReader->Stream()->IsDataCachedToEndOfStream(mDecoderPosition)) {
+  if (!mResourceLoaded && mDownloadPosition == mTotalBytes) {
     ResourceLoaded();
   }
 }
@@ -1619,6 +1632,10 @@ void nsOggDecoder::ResourceLoaded()
       return;
 
     Progress(PR_FALSE);
+
+    
+    
+    NS_ASSERTION(mDownloadPosition == mTotalBytes, "Wrong byte count");
 
     mResourceLoaded = PR_TRUE;
     StopProgress();
@@ -1679,71 +1696,71 @@ nsOggDecoder::GetStatistics()
   Statistics result;
 
   nsAutoMonitor mon(mMonitor);
-  if (mReader) {
-    result.mDownloadRate = 
-      mReader->Stream()->GetDownloadRate(&result.mDownloadRateReliable);
-    result.mDownloadPosition =
-      mReader->Stream()->GetCachedDataEnd(mDecoderPosition);
-    result.mTotalBytes = mReader->Stream()->GetLength();
-    result.mPlaybackRate = ComputePlaybackRate(&result.mPlaybackRateReliable);
-    result.mDecoderPosition = mDecoderPosition;
-    result.mPlaybackPosition = mPlaybackPosition;
-  } else {
-    result.mDownloadRate = 0;
-    result.mDownloadRateReliable = PR_TRUE;
-    result.mPlaybackRate = 0;
+  result.mDownloadRate =
+    mDownloadStatistics.GetRate(PR_IntervalNow(), &result.mDownloadRateReliable);
+  if (mDuration >= 0 && mTotalBytes >= 0) {
+    result.mPlaybackRate = double(mTotalBytes)*1000.0/mDuration;
     result.mPlaybackRateReliable = PR_TRUE;
-    result.mDecoderPosition = 0;
-    result.mPlaybackPosition = 0;
-    result.mDownloadPosition = 0;
-    result.mTotalBytes = 0;
+  } else {
+    result.mPlaybackRate =
+      mPlaybackStatistics.GetRateAtLastStop(&result.mPlaybackRateReliable);
   }
-
+  result.mTotalBytes = mTotalBytes;
+  
+  
+  
+  result.mDownloadPosition = mProgressPosition;
+  result.mDecoderPosition = mDecoderPosition;
+  result.mPlaybackPosition = mPlaybackPosition;
   return result;
 }
 
-double nsOggDecoder::ComputePlaybackRate(PRPackedBool* aReliable)
+void nsOggDecoder::SetTotalBytes(PRInt64 aBytes)
 {
-  PRInt64 length = mReader ? mReader->Stream()->GetLength() : -1;
-  if (mDuration >= 0 && length >= 0) {
-    *aReliable = PR_TRUE;
-    return double(length)*1000.0/mDuration;
+  nsAutoMonitor mon(mMonitor);
+
+  
+  
+  
+  mTotalBytes = PR_MAX(mDownloadPosition, aBytes);
+  if (mDecodeStateMachine) {
+    mDecodeStateMachine->SetContentLength(mTotalBytes);
   }
-  return mPlaybackStatistics.GetRateAtLastStop(aReliable);
 }
 
-void nsOggDecoder::UpdatePlaybackRate()
-{
-  if (!mReader)
-    return;
-  PRPackedBool reliable;
-  PRUint32 rate = PRUint32(ComputePlaybackRate(&reliable));
-  if (!reliable) {
-    
-    
-    rate = PR_MAX(rate, 10000);
-  }
-  mReader->Stream()->SetPlaybackRate(rate);
-}
-
-void nsOggDecoder::NotifySuspendedStatusChanged()
+void nsOggDecoder::NotifyBytesDownloaded(PRInt64 aBytes)
 {
   NS_ASSERTION(NS_IsMainThread(), 
-               "nsOggDecoder::NotifyDownloadSuspended called on non-main thread");
-  if (!mReader)
-    return;
-  if (mReader->Stream()->IsSuspendedByCache() && mElement) {
-    
-    
-    mElement->NotifyAutoplayDataReady();
+               "nsOggDecoder::NotifyBytesDownloaded called on non-main thread");   
+  {
+    nsAutoMonitor mon(mMonitor);
+
+    mDownloadPosition += aBytes;
+    if (mTotalBytes >= 0) {
+      
+      mTotalBytes = PR_MAX(mTotalBytes, mDownloadPosition);
+    }
+    if (!mIgnoreProgressData) {
+      mDownloadStatistics.AddBytes(aBytes);
+      mProgressPosition = mDownloadPosition;
+    }
   }
+
+  UpdateReadyStateForData();
 }
 
-void nsOggDecoder::NotifyBytesDownloaded()
+void nsOggDecoder::NotifyDownloadSeeked(PRInt64 aOffsetBytes)
 {
-  NS_ASSERTION(NS_IsMainThread(),
-               "nsOggDecoder::NotifyBytesDownloaded called on non-main thread");   
-  UpdateReadyStateForData();
+  nsAutoMonitor mon(mMonitor);
+  
+  mDownloadPosition = mDecoderPosition = mPlaybackPosition = aOffsetBytes;
+  if (!mIgnoreProgressData) {
+    mProgressPosition = mDownloadPosition;
+  }
+  if (mTotalBytes >= 0) {
+    
+    mTotalBytes = PR_MAX(mTotalBytes, mDownloadPosition);
+  }
 }
 
 void nsOggDecoder::NotifyDownloadEnded(nsresult aStatus)
@@ -1753,7 +1770,11 @@ void nsOggDecoder::NotifyDownloadEnded(nsresult aStatus)
 
   {
     nsAutoMonitor mon(mMonitor);
-    UpdatePlaybackRate();
+    mDownloadStatistics.Stop(PR_IntervalNow());
+    if (NS_SUCCEEDED(aStatus)) {
+      
+      mTotalBytes = mDownloadPosition;
+    }
   }
 
   if (NS_SUCCEEDED(aStatus)) {
@@ -1948,7 +1969,6 @@ void nsOggDecoder::SetDuration(PRInt64 aDuration)
     if (mReader) {
       mReader->SetDuration(mDuration);
     }
-    UpdatePlaybackRate();
   }
 }
 
@@ -1968,31 +1988,30 @@ PRBool nsOggDecoder::GetSeekable()
 
 void nsOggDecoder::Suspend()
 {
+  mDownloadStatistics.Stop(PR_IntervalNow());
   if (mReader) {
-    mReader->Stream()->Suspend();
+    mReader->Suspend();
   }
 }
 
 void nsOggDecoder::Resume()
 {
   if (mReader) {
-    mReader->Stream()->Resume();
+    mReader->Resume();
   }
+  mDownloadStatistics.Start(PR_IntervalNow());
 }
 
 void nsOggDecoder::StopProgressUpdates()
 {
   mIgnoreProgressData = PR_TRUE;
-  if (mReader) {
-    mReader->Stream()->SetReadMode(nsMediaCacheStream::MODE_METADATA);
-  }
+  mDownloadStatistics.Stop(PR_IntervalNow());
 }
 
 void nsOggDecoder::StartProgressUpdates()
 {
   mIgnoreProgressData = PR_FALSE;
-  if (mReader) {
-    mReader->Stream()->SetReadMode(nsMediaCacheStream::MODE_PLAYBACK);
-    mDecoderPosition = mPlaybackPosition = mReader->Stream()->Tell();
-  }
+  
+  mProgressPosition = mDownloadPosition;
+  mDownloadStatistics.Start(PR_IntervalNow());
 }

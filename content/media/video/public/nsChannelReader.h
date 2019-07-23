@@ -39,13 +39,13 @@
 
 #include "nsAutoPtr.h"
 #include "nsMediaStream.h"
+#include "nsMediaDecoder.h"
+#include "nsIPrincipal.h"
 
 #include "oggplay/oggplay.h"
 
-class nsIURI;
 class nsIChannel;
 class nsIStreamListener;
-class nsMediaDecoder;
 
 class nsChannelReader : public OggPlayReader
 {
@@ -63,7 +63,15 @@ public:
   nsresult Init(nsMediaDecoder* aDecoder, nsIURI* aURI, nsIChannel* aChannel,
                 nsIStreamListener** aStreamListener);
 
-  nsMediaStream* Stream() { return mStream; }
+  
+  
+  void Cancel();
+
+  
+  void Suspend();
+
+  
+  void Resume();
 
   
   

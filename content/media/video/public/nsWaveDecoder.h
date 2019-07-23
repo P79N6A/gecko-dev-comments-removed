@@ -147,7 +147,7 @@ class nsWaveDecoder : public nsMediaDecoder
   ~nsWaveDecoder();
 
   virtual void GetCurrentURI(nsIURI** aURI);
-  virtual already_AddRefed<nsIPrincipal> GetCurrentPrincipal();
+  virtual nsIPrincipal* GetCurrentPrincipal();
 
   
   virtual float GetCurrentTime();
@@ -188,11 +188,14 @@ class nsWaveDecoder : public nsMediaDecoder
   
   virtual nsresult PlaybackRateChanged();
 
-  virtual void NotifySuspendedStatusChanged();
-  virtual void NotifyBytesDownloaded();
+  virtual void NotifyBytesDownloaded(PRInt64 aBytes);
+  virtual void NotifyDownloadSeeked(PRInt64 aOffset);
   virtual void NotifyDownloadEnded(nsresult aStatus);
+  virtual void NotifyBytesConsumed(PRInt64 aBytes);
 
   virtual Statistics GetStatistics();
+
+  virtual void SetTotalBytes(PRInt64 aBytes);
 
   void PlaybackPositionChanged();
 
@@ -256,6 +259,13 @@ private:
   
   
   nsAutoPtr<nsMediaStream> mStream;
+
+  
+  
+  
+  
+  
+  float mTimeOffset;
 
   
   
