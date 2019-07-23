@@ -203,17 +203,22 @@ function OnDocumentLoad(event)
         
         return;
 
+    var contentRootElement = gBrowser.contentDocument.documentElement;
+
     function shouldWait() {
-        return contentRootElement.className.split(/\s+/)
+        
+        return contentRootElement.hasAttribute('class') &&
+               contentRootElement.getAttribute('class').split(/\s+/)
                                  .indexOf("reftest-wait") != -1;
     }
 
     function doPrintMode() {
-        return contentRootElement.className.split(/\s+/)
+        
+        return contentRootElement.hasAttribute('class') &&
+               contentRootElement.getAttribute('class').split(/\s+/)
                                  .indexOf("reftest-print") != -1;
     }
 
-    var contentRootElement = gBrowser.contentDocument.documentElement;
     if (shouldWait()) {
         
         
