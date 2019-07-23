@@ -525,10 +525,8 @@ TraceRecorder::isGlobal(void* p) const
     
     if ((p >= varobj->fslots) && (p < varobj->fslots + JS_INITIAL_NSLOTS))
         return true;
-    if (global->script->ngvars < JS_INITIAL_NSLOTS)
-        return false;
-    printf("slots=%d\n", STOBJ_NSLOTS(varobj));
-    return (p >= varobj->dslots && (p < varobj->dslots + STOBJ_NSLOTS(varobj) - JS_INITIAL_NSLOTS));
+    return (varobj->dslots &&
+            p >= varobj->dslots && (p < varobj->dslots + STOBJ_NSLOTS(varobj) - JS_INITIAL_NSLOTS));
 }
 
 
