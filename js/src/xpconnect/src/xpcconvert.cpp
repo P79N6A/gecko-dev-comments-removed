@@ -1359,7 +1359,8 @@ nsresult
 XPCConvert::ConstructException(nsresult rv, const char* message,
                                const char* ifaceName, const char* methodName,
                                nsISupports* data,
-                               nsIException** exceptn)
+                               nsIException** exceptn,
+                               const jsval *jsExceptionPtr)
 {
     static const char format[] = "\'%s\' when calling method: [%s::%s]";
     const char * msg = message;
@@ -1381,6 +1382,13 @@ XPCConvert::ConstructException(nsresult rv, const char* message,
         msg = sz = JS_smprintf(format, msg, ifaceName, methodName);
 
     nsresult res = nsXPCException::NewException(msg, rv, nsnull, data, exceptn);
+
+    if(NS_SUCCEEDED(res) && jsExceptionPtr && *exceptn)
+    {
+        nsCOMPtr<nsXPCException> xpcEx = do_QueryInterface(*exceptn);
+        if(xpcEx)
+            xpcEx->SetThrownJSVal(*jsExceptionPtr);
+    }
 
     if(sz)
         JS_smprintf_free(sz);
@@ -1430,7 +1438,7 @@ XPCConvert::JSValToXPCException(XPCCallContext& ccx,
                 
                 return ConstructException(NS_ERROR_XPC_JS_THREW_NATIVE_OBJECT,
                                           nsnull, ifaceName, methodName, supports,
-                                          exceptn);
+                                          exceptn, nsnull);
             }
         }
         else
@@ -1492,7 +1500,7 @@ XPCConvert::JSValToXPCException(XPCCallContext& ccx,
             return ConstructException(NS_ERROR_XPC_JS_THREW_JS_OBJECT,
                                       JS_GetStringBytes(str),
                                       ifaceName, methodName, nsnull,
-                                      exceptn);
+                                      exceptn, &s);
         }
     }
 
@@ -1500,7 +1508,7 @@ XPCConvert::JSValToXPCException(XPCCallContext& ccx,
     {
         return ConstructException(NS_ERROR_XPC_JS_THREW_NULL,
                                   nsnull, ifaceName, methodName, nsnull,
-                                  exceptn);
+                                  exceptn, &s);
     }
 
     if(JSVAL_IS_NUMBER(s))
@@ -1533,9 +1541,11 @@ XPCConvert::JSValToXPCException(XPCCallContext& ccx,
 
         if(isResult)
             return ConstructException(rv, nsnull, ifaceName, methodName,
-                                      nsnull, exceptn);
+                                      nsnull, exceptn, &s);
         else
         {
+            
+            
             nsISupportsDouble* data;
             nsCOMPtr<nsIComponentManager> cm;
             if(NS_FAILED(NS_GetComponentManager(getter_AddRefs(cm))) || !cm ||
@@ -1547,12 +1557,13 @@ XPCConvert::JSValToXPCException(XPCCallContext& ccx,
                 return NS_ERROR_FAILURE;
             data->SetData(number);
             rv = ConstructException(NS_ERROR_XPC_JS_THREW_NUMBER, nsnull,
-                                    ifaceName, methodName, data, exceptn);
+                                    ifaceName, methodName, data, exceptn, &s);
             NS_RELEASE(data);
             return rv;
         }
     }
 
+    
     
 
     JSString* str = JS_ValueToString(cx, s);
@@ -1560,7 +1571,7 @@ XPCConvert::JSValToXPCException(XPCCallContext& ccx,
         return ConstructException(NS_ERROR_XPC_JS_THREW_STRING,
                                   JS_GetStringBytes(str),
                                   ifaceName, methodName, nsnull,
-                                  exceptn);
+                                  exceptn, &s);
     return NS_ERROR_FAILURE;
 }
 
@@ -1614,7 +1625,7 @@ XPCConvert::JSErrorToXPCException(XPCCallContext& ccx,
 
         rv = ConstructException(NS_ERROR_XPC_JAVASCRIPT_ERROR_WITH_DETAILS,
                                 formattedMsg.get(), ifaceName, methodName, data,
-                                exceptn);
+                                exceptn, nsnull);
 
         NS_RELEASE(data);
     }
@@ -1622,7 +1633,7 @@ XPCConvert::JSErrorToXPCException(XPCCallContext& ccx,
     {
         rv = ConstructException(NS_ERROR_XPC_JAVASCRIPT_ERROR,
                                 nsnull, ifaceName, methodName, nsnull,
-                                exceptn);
+                                exceptn, nsnull);
     }
     return rv;
 }
