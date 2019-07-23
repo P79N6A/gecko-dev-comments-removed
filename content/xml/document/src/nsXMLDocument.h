@@ -83,7 +83,6 @@ protected:
   
   
   PRPackedBool mChannelIsPending;
-  PRPackedBool mLoadedAsInteractiveData;
   PRPackedBool mAsync;
   PRPackedBool mLoopingForSyncLoad;
 };

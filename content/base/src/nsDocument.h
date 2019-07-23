@@ -1195,6 +1195,11 @@ protected:
 
   PRPackedBool mInXBLUpdate:1;
 
+  
+  
+  
+  PRPackedBool mLoadedAsInteractiveData:1;
+
   PRUint8 mXMLDeclarationBits;
 
   PRUint8 mDefaultElementType;
