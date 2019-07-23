@@ -2573,8 +2573,13 @@ NS_IMETHODIMP nsExternalHelperAppService::GetTypeFromExtension(const nsACString&
   
   nsCOMPtr<nsICategoryManager> catMan(do_GetService("@mozilla.org/categorymanager;1"));
   if (catMan) {
+    
+    nsCAutoString lowercaseFileExt(aFileExt);
+    ToLowerCase(lowercaseFileExt);
+    
     nsXPIDLCString type;
-    rv = catMan->GetCategoryEntry("ext-to-type-mapping", flatExt.get(), getter_Copies(type));
+    rv = catMan->GetCategoryEntry("ext-to-type-mapping", lowercaseFileExt.get(),
+                                  getter_Copies(type));
     aContentType = type;
   }
   else {
