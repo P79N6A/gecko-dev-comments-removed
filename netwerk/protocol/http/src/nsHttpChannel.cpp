@@ -5125,11 +5125,6 @@ nsHttpChannel::OnStopRequest(nsIRequest *request, nsISupports *ctxt, nsresult st
         this, request, status));
 
     
-    PRBool contentComplete = PR_FALSE;
-    if (NS_SUCCEEDED(status))
-        contentComplete = PR_TRUE;
-
-    
     if (mCanceled || NS_FAILED(mStatus))
         status = mStatus;
 
@@ -5219,7 +5214,7 @@ nsHttpChannel::OnStopRequest(nsIRequest *request, nsISupports *ctxt, nsresult st
     }
 
     if (mCacheEntry)
-        CloseCacheEntry(!contentComplete);
+        CloseCacheEntry(PR_TRUE);
 
     if (mOfflineCacheEntry)
         CloseOfflineCacheEntry();
