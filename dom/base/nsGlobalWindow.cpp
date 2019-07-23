@@ -7071,7 +7071,7 @@ nsGlobalWindow::DispatchSyncPopState()
 
     jsval jsStateObj = JSVAL_NULL;
     
-    nsAutoGCRoot(&jsStateObj, &rv);
+    nsAutoGCRoot root(&jsStateObj, &rv);
     NS_ENSURE_SUCCESS(rv, rv);
 
     
