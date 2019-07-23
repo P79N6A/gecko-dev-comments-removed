@@ -606,7 +606,7 @@ gfxWindowsFontGroup::MakeTextRun(const PRUint8 *aString, PRUint32 aLength,
     
 
 
-    if (!isComplex && (aParams->mFlags & TEXT_IS_ASCII)) {
+    if (!isComplex && (mFlags & TEXT_IS_ASCII)) {
         InitTextRunGDI(aParams->mContext, textRun,
                        reinterpret_cast<const char*>(aString), aLength);
     }
