@@ -64,6 +64,7 @@
 #include "nsIRequest.h"
 #include "nsTimer.h"
 #include "nsCycleCollectionParticipant.h"
+#include "nsThreadUtils.h"
 
 class nsIDocument;
 class nsIURI;
@@ -284,6 +285,8 @@ protected:
   
   PRBool WaitForPendingSheets() { return mPendingSheetCount > 0; }
 
+  void DoProcessLinkHeader();
+
 private:
   
   
@@ -393,6 +396,9 @@ protected:
   PRUint32 mUpdatesInNotification;
 
   PRUint32 mPendingSheetCount;
+
+  nsRevocableEventPtr<nsNonOwningRunnableMethod<nsContentSink> >
+    mProcessLinkHeaderEvent;
 
   
   MOZ_TIMER_DECLARE(mWatch)

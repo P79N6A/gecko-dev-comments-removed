@@ -3538,6 +3538,7 @@ nsDocument::SetScriptGlobalObject(nsIScriptGlobalObject *aScriptGlobalObject)
     mLayoutHistoryState = nsnull;
     mScopeObject = do_GetWeakReference(aScriptGlobalObject);
 
+#ifdef DEBUG
     
     
     nsIXPConnectWrappedNative *wrapper =
@@ -3557,14 +3558,12 @@ nsDocument::SetScriptGlobalObject(nsIScriptGlobalObject *aScriptGlobalObject)
           }
         }
         if (cx) {
-          nsCOMPtr<nsIXPConnectJSObjectHolder> newWrapper;
-          nsContentUtils::XPConnect()->
-            ReparentWrappedNativeIfFound(cx, JS_GetGlobalForObject(cx, obj),
-                                         newScope, wrapper->Native(),
-                                         getter_AddRefs(newWrapper));
+          NS_ASSERTION(JS_GetGlobalForObject(cx, obj) == newScope,
+                       "Wrong scope, this is really bad!");
         }
       }
     }
+#endif
 
     if (mAllowDNSPrefetch) {
       nsCOMPtr<nsIDocShell> docShell = do_QueryReferent(mDocumentContainer);
