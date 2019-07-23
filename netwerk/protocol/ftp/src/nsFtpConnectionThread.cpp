@@ -871,15 +871,14 @@ nsFtpState::R_syst() {
             NS_ERROR("Server type list format unrecognized.");
             
             
-            nsresult rv;
-            nsCOMPtr<nsIStringBundleService> bundleService =
-                    do_GetService(NS_STRINGBUNDLE_CONTRACTID, &rv);
-            if (NS_FAILED(rv))
+             nsCOMPtr<nsIStringBundleService> bundleService =
+                do_GetService(NS_STRINGBUNDLE_CONTRACTID);
+            if (!bundleService)
                 return FTP_ERROR;
 
             nsCOMPtr<nsIStringBundle> bundle;
-            rv = bundleService->CreateBundle(NECKO_MSGS_URL,
-                                             getter_AddRefs(bundle));
+            nsresult rv = bundleService->CreateBundle(NECKO_MSGS_URL,
+                                                      getter_AddRefs(bundle));
             if (NS_FAILED(rv))
                 return FTP_ERROR;
             
@@ -1242,8 +1241,6 @@ nsFtpState::R_stor() {
 
 nsresult
 nsFtpState::S_pasv() {
-    nsresult rv;
-
     if (!mAddressChecked) {
         
         mAddressChecked = PR_TRUE;
@@ -1254,7 +1251,7 @@ nsFtpState::S_pasv() {
         nsCOMPtr<nsISocketTransport> sTrans = do_QueryInterface(controlSocket);
         if (sTrans) {
             PRNetAddr addr;
-            rv = sTrans->GetPeerAddr(&addr);
+            nsresult rv = sTrans->GetPeerAddr(&addr);
             if (NS_SUCCEEDED(rv)) {
                 mServerIsIPv6 = addr.raw.family == PR_AF_INET6 &&
                                 !PR_IsNetAddrType(&addr, PR_IpAddrV4Mapped);
@@ -1376,12 +1373,14 @@ nsFtpState::R_pasv() {
     if (newDataConn) {
         
         nsCOMPtr<nsISocketTransportService> sts =
-            do_GetService(NS_SOCKETTRANSPORTSERVICE_CONTRACTID, &rv);
-        
+            do_GetService(NS_SOCKETTRANSPORTSERVICE_CONTRACTID);
+        if (!sts)
+            return FTP_ERROR;
+       
         nsCOMPtr<nsISocketTransport> strans;
-        rv =  sts->CreateTransport(nsnull, 0, nsDependentCString(mServerAddress),
-                                   port, mChannel->ProxyInfo(),
-                                   getter_AddRefs(strans)); 
+        rv = sts->CreateTransport(nsnull, 0, nsDependentCString(mServerAddress),
+                                  port, mChannel->ProxyInfo(),
+                                  getter_AddRefs(strans)); 
         if (NS_FAILED(rv))
             return FTP_ERROR;
         mDataTransport = strans;
@@ -1407,8 +1406,8 @@ nsFtpState::R_pasv() {
             
             
             nsCOMPtr<nsIEventTarget> stEventTarget =
-                do_GetService(NS_SOCKETTRANSPORTSERVICE_CONTRACTID, &rv);
-            if (NS_FAILED(rv))
+                do_GetService(NS_SOCKETTRANSPORTSERVICE_CONTRACTID);
+            if (!stEventTarget)
                 return FTP_ERROR;
             
             nsCOMPtr<nsIAsyncStreamCopier> copier;
