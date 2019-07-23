@@ -57,6 +57,13 @@ try {
   do_throw("Could not get annotation service\n");
 } 
 
+
+try {
+  var mssvc = Cc["@mozilla.org/microsummary/service;1"].getService(Ci.nsIMicrosummaryService);
+} catch(ex) {
+  do_throw("Could not get microsummary service\n");
+}
+
 const DESCRIPTION_ANNO = "bookmarkProperties/description";
 
 
@@ -137,7 +144,7 @@ function testCanonicalBookmarks(aFolder) {
     var testFolder = rootNode.getChild(3);
     do_check_eq(testFolder.type, testFolder.RESULT_TYPE_FOLDER);
     do_check_eq(testFolder.title, "test");
-    testFolder = testFolder.QueryInterface(Ci.nsINavHistoryFolderResultNode);
+    testFolder = testFolder.QueryInterface(Ci.nsINavHistoryQueryResultNode);
     do_check_eq(testFolder.hasChildren, true);
     
     do_check_true(annosvc.itemHasAnnotation(testFolder.itemId,
@@ -148,7 +155,10 @@ function testCanonicalBookmarks(aFolder) {
     
     testFolder.containerOpen = true;
     var cc = testFolder.childCount;
-    do_check_eq(cc, 2);
+    
+    
+    do_check_eq(cc, 1);
+
     
     var testBookmark1 = testFolder.getChild(0);
     
@@ -169,14 +179,22 @@ function testCanonicalBookmarks(aFolder) {
                 annosvc.getItemAnnotationString(testBookmark1.itemId,
                                                 DESCRIPTION_ANNO));
     
-    var testBookmark2 = testFolder.getChild(1);
-    
-    do_check_eq("http://test/micsum", testBookmark2.uri);
-    
-    do_check_eq("test microsummary", testBookmark2.title);
-    
-    
-    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     
     testFolder.containerOpen = false;
