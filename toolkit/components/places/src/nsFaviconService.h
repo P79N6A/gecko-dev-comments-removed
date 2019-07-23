@@ -41,10 +41,10 @@
 #include "nsIFaviconService.h"
 #include "nsServiceManagerUtils.h"
 #include "nsString.h"
-#include "mozIStorageConnection.h"
-#include "mozIStorageValueArray.h"
-#include "mozIStorageStatement.h"
+
 #include "nsToolkitCompsCID.h"
+
+#include "mozilla/storage.h"
 
 
 
@@ -65,7 +65,7 @@ public:
   
 
 
-  static nsFaviconService * GetSingleton();
+  static nsFaviconService* GetSingleton();
 
   
 
@@ -79,7 +79,7 @@ public:
 
 
 
-  static nsFaviconService * GetFaviconService()
+  static nsFaviconService* GetFaviconService()
   {
     if (!gFaviconService) {
       nsCOMPtr<nsIFaviconService> serv =
@@ -112,8 +112,8 @@ public:
 
 
 
-  nsresult GetFaviconDataAsync(nsIURI *aFaviconURI,
-                               mozIStorageStatementCallback *aCallback);
+  nsresult GetFaviconDataAsync(nsIURI* aFaviconURI,
+                               mozIStorageStatementCallback* aCallback);
 
   
 
@@ -124,7 +124,7 @@ public:
 
 
 
-  void checkAndNotify(nsIURI *aPageURI, nsIURI *aFaviconURI);
+  void checkAndNotify(nsIURI* aPageURI, nsIURI* aFaviconURI);
 
   
 
@@ -139,14 +139,21 @@ private:
 
   nsCOMPtr<mozIStorageConnection> mDBConn; 
 
+  
+
+
+  mozIStorageStatement* GetStatement(const nsCOMPtr<mozIStorageStatement>& aStmt);
   nsCOMPtr<mozIStorageStatement> mDBGetURL; 
   nsCOMPtr<mozIStorageStatement> mDBGetData; 
   nsCOMPtr<mozIStorageStatement> mDBGetIconInfo;
   nsCOMPtr<mozIStorageStatement> mDBInsertIcon;
   nsCOMPtr<mozIStorageStatement> mDBUpdateIcon;
   nsCOMPtr<mozIStorageStatement> mDBSetPageFavicon;
+  nsCOMPtr<mozIStorageStatement> mDBRemoveOnDiskReferences;
+  nsCOMPtr<mozIStorageStatement> mDBRemoveTempReferences;
+  nsCOMPtr<mozIStorageStatement> mDBRemoveAllFavicons;
 
-  static nsFaviconService *gFaviconService;
+  static nsFaviconService* gFaviconService;
 
   
 
@@ -176,6 +183,8 @@ private:
   void SendFaviconNotifications(nsIURI* aPage, nsIURI* aFaviconURI);
 
   friend class FaviconLoadListener;
+
+  bool mShuttingDown;
 };
 
 #define FAVICON_DEFAULT_URL "chrome://mozapps/skin/places/defaultFavicon.png"
