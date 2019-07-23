@@ -146,6 +146,7 @@
 #include "nsITransportSecurityInfo.h"
 #include "nsINSSErrorsService.h"
 #include "nsIApplicationCache.h"
+#include "nsIApplicationCacheChannel.h"
 #include "nsIApplicationCacheContainer.h"
 #include "nsIPermissionManager.h"
 
@@ -5122,6 +5123,15 @@ nsDocShell::OnRedirectStateChange(nsIChannel* aOldChannel,
             return; 
         AddToGlobalHistory(oldURI, PR_TRUE, aOldChannel);
     }
+
+    
+    nsCOMPtr<nsIApplicationCacheChannel> appCacheChannel =
+        do_QueryInterface(aNewChannel);
+    if (appCacheChannel) {
+        nsCOMPtr<nsIURI> newURI;
+        aNewChannel->GetURI(getter_AddRefs(newURI));
+        appCacheChannel->SetChooseApplicationCache(ShouldCheckAppCache(newURI));
+    }
 }
 
 NS_IMETHODIMP
@@ -7374,10 +7384,6 @@ nsDocShell::DoURILoad(nsIURI * aURI,
     if (aFirstParty) {
         
         loadFlags |= nsIChannel::LOAD_INITIAL_DOCUMENT_URI;
-
-        if (ShouldCheckAppCache(aURI)) {
-            loadFlags |= nsICachingChannel::LOAD_CHECK_OFFLINE_CACHE;
-        }
     }
 
     if (mLoadType == LOAD_ERROR_PAGE) {
@@ -7409,6 +7415,21 @@ nsDocShell::DoURILoad(nsIURI * aURI,
         }
             
         return rv;
+    }
+
+    nsCOMPtr<nsIApplicationCacheChannel> appCacheChannel =
+        do_QueryInterface(channel);
+    if (appCacheChannel) {
+        
+        
+        nsCOMPtr<nsIDocShellTreeItem> root;
+        GetSameTypeRootTreeItem(getter_AddRefs(root));
+        if (root == this) {
+            appCacheChannel->SetInheritApplicationCache(PR_FALSE);
+            
+            
+            appCacheChannel->SetChooseApplicationCache(ShouldCheckAppCache(aURI));
+        }
     }
 
     
