@@ -281,13 +281,6 @@ JS_ArenaGrow(JSArenaPool *pool, void *p, size_t size, size_t incr);
 extern JS_PUBLIC_API(void)
 JS_ArenaRelease(JSArenaPool *pool, char *mark);
 
-
-
-
-
-extern JS_PUBLIC_API(void)
-JS_ArenaFreeAllocation(JSArenaPool *pool, void *p, size_t size);
-
 #ifdef JS_ARENAMETER
 
 #include <stdio.h>
