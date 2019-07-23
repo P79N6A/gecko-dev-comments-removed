@@ -51,7 +51,7 @@ public:
   ~nsDownloadScanner();
   nsresult Init();
   nsresult ScanDownload(nsDownload *download);
-  AVCheckPolicyState CheckPolicy(const nsACString &aSource, const nsACString &aTarget);
+  AVCheckPolicyState CheckPolicy(nsIURI *aSource, nsIURI *aTarget);
 
 private:
   PRBool mHaveAVScanner;
@@ -96,6 +96,7 @@ private:
     nsString mOrigin;
     
     PRBool mIsHttpDownload;
+    PRBool mSkipSource;
     PRBool mIsReadOnlyRequest;
 
     

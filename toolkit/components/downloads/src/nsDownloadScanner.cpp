@@ -262,12 +262,33 @@ nsDownloadScanner::ListCLSID()
 
 
 AVCheckPolicyState
-nsDownloadScanner::CheckPolicy(const nsACString &aSource, const nsACString &aTarget)
+nsDownloadScanner::CheckPolicy(nsIURI *aSource, nsIURI *aTarget)
 {
-  if (aSource.IsEmpty())
+  nsresult rv;
+
+  if (!aSource || !aTarget)
     return AVPOLICY_DOWNLOAD;
 
   if (!mHaveAttachmentExecute)
+    return AVPOLICY_DOWNLOAD;
+
+  nsCAutoString source, target;
+  rv = aSource->GetSpec(source);
+  if (NS_FAILED(rv))
+    return AVPOLICY_DOWNLOAD;
+
+  rv = aTarget->GetSpec(target);
+  if (NS_FAILED(rv))
+    return AVPOLICY_DOWNLOAD;
+
+  
+  
+  
+  PRBool isDataScheme(PR_FALSE);
+  nsCOMPtr<nsIURI> innerURI = NS_GetInnermostURI(aSource);
+  if (innerURI)
+    (void)innerURI->SchemeIs("data", &isDataScheme);
+  if (isDataScheme)
     return AVPOLICY_DOWNLOAD;
 
   nsRefPtr<IAttachmentExecute> ae;
@@ -278,9 +299,8 @@ nsDownloadScanner::CheckPolicy(const nsACString &aSource, const nsACString &aTar
     return AVPOLICY_DOWNLOAD;
 
   (void)ae->SetClientGuid(GUID_MozillaVirusScannerPromptGeneric);
-  (void)ae->SetSource(NS_ConvertUTF8toUTF16(aSource).get());
-  if (!aTarget.IsEmpty())
-    (void)ae->SetLocalPath(NS_ConvertUTF8toUTF16(aTarget).get());
+  (void)ae->SetSource(NS_ConvertUTF8toUTF16(source).get());
+  (void)ae->SetLocalPath(NS_ConvertUTF8toUTF16(target).get());
 
   
   
@@ -338,7 +358,8 @@ nsresult ReleaseDispatcher::Run() {
 
 nsDownloadScanner::Scan::Scan(nsDownloadScanner *scanner, nsDownload *download)
   : mDLScanner(scanner), mThread(NULL), 
-    mDownload(download), mStatus(AVSCAN_NOTSTARTED)
+    mDownload(download), mStatus(AVSCAN_NOTSTARTED),
+    mSkipSource(PR_FALSE)
 {
   InitializeCriticalSection(&mStateSync);
 }
@@ -402,6 +423,12 @@ nsDownloadScanner::Scan::Start()
   (void)innerURI->SchemeIs("ftp", &isFtp);
   (void)innerURI->SchemeIs("https", &isHttps);
   mIsHttpDownload = isHttp || isFtp || isHttps;
+
+  
+  
+  
+  
+  (void)innerURI->SchemeIs("data", &mSkipSource);
 
   
   if (1 != ::ResumeThread(mThread)) {
@@ -485,7 +512,9 @@ nsDownloadScanner::Scan::DoScanAES()
       __try {
         (void)ae->SetClientGuid(GUID_MozillaVirusScannerPromptGeneric);
         (void)ae->SetLocalPath(mPath.BeginWriting());
-        (void)ae->SetSource(mOrigin.BeginWriting());
+        
+        if (!mSkipSource)
+          (void)ae->SetSource(mOrigin.BeginWriting());
 
         
         hr = ae->Save();

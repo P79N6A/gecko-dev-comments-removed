@@ -1367,7 +1367,7 @@ nsDownloadManager::AddDownload(DownloadType aDownloadType,
   DownloadState startState = nsIDownloadManager::DOWNLOAD_QUEUED;
 #if defined(XP_WIN) && !defined(__MINGW32__) && !defined(WINCE)
   if (mScanner) {
-    AVCheckPolicyState res = mScanner->CheckPolicy(source, target);
+    AVCheckPolicyState res = mScanner->CheckPolicy(aSource, aTarget);
     if (res == AVPOLICY_BLOCKED) {
       
       
