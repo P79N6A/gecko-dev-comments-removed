@@ -119,6 +119,9 @@ struct InlineBackgroundData
                            NS_STYLE_DIRECTION_RTL);      
       nscoord curOffset = aFrame->GetOffsetTo(mBlockFrame).x;
 
+      
+      
+      
       nsIFrame* inlineFrame = aFrame->GetPrevContinuation();
       
       
@@ -188,7 +191,7 @@ protected:
   {
     NS_PRECONDITION(aFrame, "Need a frame");
 
-    nsIFrame *prevContinuation = aFrame->GetPrevContinuation();
+    nsIFrame *prevContinuation = GetPrevContinuation(aFrame);
 
     if (!prevContinuation || mFrame != prevContinuation) {
       
@@ -210,18 +213,56 @@ protected:
     mFrame = aFrame;
   }
 
+  nsIFrame* GetPrevContinuation(nsIFrame* aFrame)
+  {
+    nsIFrame* prevCont = aFrame->GetPrevContinuation();
+    if (!prevCont && (aFrame->GetStateBits() && NS_FRAME_IS_SPECIAL)) {
+      nsIFrame* block =
+        static_cast<nsIFrame*>
+                   (aFrame->GetProperty(nsGkAtoms::IBSplitSpecialPrevSibling));
+      if (block) {
+        
+        block = block->GetFirstContinuation();
+        prevCont =
+          static_cast<nsIFrame*>
+                     (block->GetProperty(nsGkAtoms::IBSplitSpecialPrevSibling));
+        NS_ASSERTION(prevCont, "How did that happen?");
+      }
+    }
+    return prevCont;
+  }
+
+  nsIFrame* GetNextContinuation(nsIFrame* aFrame)
+  {
+    nsIFrame* nextCont = aFrame->GetNextContinuation();
+    if (!nextCont && (aFrame->GetStateBits() && NS_FRAME_IS_SPECIAL)) {
+      
+      aFrame = aFrame->GetFirstContinuation();
+      nsIFrame* block =
+        static_cast<nsIFrame*>
+                   (aFrame->GetProperty(nsGkAtoms::IBSplitSpecialSibling));
+      if (block) {
+        nextCont =
+          static_cast<nsIFrame*>
+                     (block->GetProperty(nsGkAtoms::IBSplitSpecialSibling));
+        NS_ASSERTION(nextCont, "How did that happen?");
+      }
+    }
+    return nextCont;
+  }
+
   void Init(nsIFrame* aFrame)
   {    
     
     
-    nsIFrame* inlineFrame = aFrame->GetPrevContinuation();
+    nsIFrame* inlineFrame = GetPrevContinuation(aFrame);
 
     while (inlineFrame) {
       nsRect rect = inlineFrame->GetRect();
       mContinuationPoint += rect.width;
       mUnbrokenWidth += rect.width;
       mBoundingBox.UnionRect(mBoundingBox, rect);
-      inlineFrame = inlineFrame->GetPrevContinuation();
+      inlineFrame = GetPrevContinuation(inlineFrame);
     }
 
     
@@ -231,7 +272,7 @@ protected:
       nsRect rect = inlineFrame->GetRect();
       mUnbrokenWidth += rect.width;
       mBoundingBox.UnionRect(mBoundingBox, rect);
-      inlineFrame = inlineFrame->GetNextContinuation();
+      inlineFrame = GetNextContinuation(inlineFrame);
     }
 
     mFrame = aFrame;
