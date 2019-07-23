@@ -578,9 +578,33 @@ void nsScrollPortView::Scroll(nsView *aScrolledView, nsPoint aTwipsDelta, nsPoin
       
       mViewManager->UpdateView(this, 0);
     } else { 
+      nsRect* toScrollPtr = nsnull;
+
+#ifdef XP_WIN
+      nsRect toScroll;
+      if (!updateRegion.IsEmpty()) {
+        nsRegion regionToScroll;
+        regionToScroll.Sub(nsRect(nsPoint(0,0), GetBounds().Size()),
+                           updateRegion);
+        nsRegionRectIterator iter(regionToScroll);
+        nsRect biggestRect(0,0,0,0);
+        const nsRect* r;
+        for (r = iter.Next(); r; r = iter.Next()) {
+          if (r->width*r->height > biggestRect.width*biggestRect.height) {
+            biggestRect = *r;
+          }
+        }
+        regionToScroll.Sub(regionToScroll, biggestRect);
+        updateRegion.Or(updateRegion, regionToScroll);
+        toScrollPtr = &toScroll;
+        toScroll = biggestRect;
+        toScroll.ScaleRoundOut(1.0/aP2A);
+      }
+#endif
+
       
       
-      scrollWidget->Scroll(aPixDelta.x, aPixDelta.y, nsnull);
+      scrollWidget->Scroll(aPixDelta.x, aPixDelta.y, toScrollPtr);
       mViewManager->UpdateViewAfterScroll(this, updateRegion);
     }
   }
