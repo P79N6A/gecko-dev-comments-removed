@@ -48,8 +48,7 @@
 #include "nsWeakReference.h"
 #include "nsILoadGroup.h"
 #include "nsCOMArray.h"
-#include "nsTPtrArray.h"
-#include "nsTObserverArray.h"
+#include "nsVoidArray.h"
 #include "nsString.h"
 #include "nsIChannel.h"
 #include "nsIProgressEventSink.h"
@@ -63,6 +62,7 @@
 #include "pldhash.h"
 
 struct nsRequestInfo;
+struct nsListenerInfo;
 
 
 
@@ -128,20 +128,6 @@ public:
     nsresult AddChildLoader(nsDocLoader* aChild);
     nsDocLoader* GetParent() const { return mParent; }
 
-    struct nsListenerInfo {
-      nsListenerInfo(nsIWeakReference *aListener, unsigned long aNotifyMask) 
-        : mWeakListener(aListener),
-          mNotifyMask(aNotifyMask)
-      {
-      }
-
-      
-      nsWeakPtr mWeakListener;
-
-      
-      unsigned long mNotifyMask;
-    };
-
 protected:
     virtual ~nsDocLoader();
 
@@ -151,6 +137,14 @@ protected:
 
     void Destroy();
     virtual void DestroyChildren();
+
+    nsIDocumentLoader* ChildAt(PRInt32 i) {
+        return static_cast<nsDocLoader*>(mChildList[i]);
+    }
+
+    nsIDocumentLoader* SafeChildAt(PRInt32 i) {
+        return static_cast<nsDocLoader*>(mChildList.SafeElementAt(i));
+    }
 
     void FireOnProgressChange(nsDocLoader* aLoadInitiator,
                               nsIRequest *request,
@@ -222,11 +216,11 @@ protected:
 
     nsDocLoader*               mParent;                
 
-    nsAutoTObserverArray<nsListenerInfo, 8> mListenerInfoList;
+    nsVoidArray                mListenerInfoList;
 
-    nsCOMPtr<nsILoadGroup>         mLoadGroup;
+    nsCOMPtr<nsILoadGroup>        mLoadGroup;
     
-    nsTPtrArray<nsIDocumentLoader> mChildList;
+    nsVoidArray                   mChildList;
 
     
     

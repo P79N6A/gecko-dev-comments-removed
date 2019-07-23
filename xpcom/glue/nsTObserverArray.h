@@ -126,20 +126,6 @@ class nsAutoTObserverArray : protected nsTObserverArray_base {
     
     
     
-    elem_type* Elements() {
-      return mArray.Elements();
-    }
-
-    
-    
-    
-    const elem_type* Elements() const {
-      return mArray.Elements();
-    }
-
-    
-    
-    
     
     elem_type& ElementAt(index_type i) {
       return mArray.ElementAt(i);
@@ -255,11 +241,6 @@ class nsAutoTObserverArray : protected nsTObserverArray_base {
     void Clear() {
       mArray.Clear();
       ClearIterators();
-    }
-
-    
-    void Compact() {
-      mArray.Compact();
     }
 
     

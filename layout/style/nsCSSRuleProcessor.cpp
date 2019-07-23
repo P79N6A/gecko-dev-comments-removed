@@ -942,12 +942,13 @@ RuleProcessorData::~RuleProcessorData()
   
   
   if (mPreviousSiblingData || mParentData) {
-    nsAutoTArray<RuleProcessorData*, 8> destroyQueue;
+    nsAutoVoidArray destroyQueue;
     destroyQueue.AppendElement(this);
 
     do {
-      RuleProcessorData *d = destroyQueue[destroyQueue.Length() - 1];
-      destroyQueue.RemoveElementAt(destroyQueue.Length() - 1);
+      RuleProcessorData *d = static_cast<RuleProcessorData*>
+                                        (destroyQueue.FastElementAt(destroyQueue.Count() - 1));
+      destroyQueue.RemoveElementAt(destroyQueue.Count() - 1);
 
       if (d->mPreviousSiblingData) {
         destroyQueue.AppendElement(d->mPreviousSiblingData);
@@ -960,7 +961,7 @@ RuleProcessorData::~RuleProcessorData()
 
       if (d != this)
         d->Destroy();
-    } while (destroyQueue.Length());
+    } while (destroyQueue.Count());
   }
 
   delete mLanguage;
