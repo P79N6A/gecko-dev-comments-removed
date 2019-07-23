@@ -4107,6 +4107,65 @@ JS_ObjectIsFunction(JSContext *cx, JSObject *obj)
 }
 
 JS_STATIC_DLL_CALLBACK(JSBool)
+js_generic_fast_native_method_dispatcher(JSContext *cx, uintN argc, jsval *vp)
+{
+    jsval fsv;
+    JSFunctionSpec *fs;
+    JSObject *tmp;
+    JSStackFrame *fp;
+
+    if (!JS_GetReservedSlot(cx, JSVAL_TO_OBJECT(*vp), 0, &fsv))
+        return JS_FALSE;
+    fs = (JSFunctionSpec *) JSVAL_TO_PRIVATE(fsv);
+    JS_ASSERT((~fs->flags & (JSFUN_FAST_NATIVE | JSFUN_GENERIC_NATIVE)) == 0);
+
+    
+
+
+
+
+
+    if (JSVAL_IS_PRIMITIVE(vp[2])) {
+        
+
+
+
+        if (!js_ValueToObject(cx, vp[2], &tmp))
+            return JS_FALSE;
+        vp[2] = OBJECT_TO_JSVAL(tmp);
+    }
+
+    
+
+
+
+
+
+    memmove(vp + 1, vp + 2, argc * sizeof(jsval));
+
+    
+
+
+
+    fp = cx->fp;
+    JS_ASSERT((fp->flags & JSFRAME_IN_FAST_CALL) || fp->argv == vp + 2);
+    if (!js_ComputeThis(cx, vp + 2))
+        return JS_FALSE;
+    if (!(fp->flags & JSFRAME_IN_FAST_CALL))
+        fp->thisp = JSVAL_TO_OBJECT(vp[1]);
+
+    
+
+
+
+
+    if (argc != 0)
+        --argc;
+
+    return ((JSFastNative) fs->call)(cx, argc, vp);
+}
+
+JS_STATIC_DLL_CALLBACK(JSBool)
 js_generic_native_method_dispatcher(JSContext *cx, JSObject *obj,
                                     uintN argc, jsval *argv, jsval *rval)
 {
@@ -4114,9 +4173,13 @@ js_generic_native_method_dispatcher(JSContext *cx, JSObject *obj,
     JSFunctionSpec *fs;
     JSObject *tmp;
 
+    JS_ASSERT(!(cx->fp->flags & JSFRAME_IN_FAST_CALL));
+
     if (!JS_GetReservedSlot(cx, JSVAL_TO_OBJECT(argv[-2]), 0, &fsv))
         return JS_FALSE;
     fs = (JSFunctionSpec *) JSVAL_TO_PRIVATE(fsv);
+    JS_ASSERT((fs->flags & (JSFUN_FAST_NATIVE | JSFUN_GENERIC_NATIVE)) ==
+              JSFUN_GENERIC_NATIVE);
 
     
 
@@ -4140,7 +4203,7 @@ js_generic_native_method_dispatcher(JSContext *cx, JSObject *obj,
 
 
 
-    memmove(argv - 1, argv, JS_MAX(fs->nargs + 1U, argc) * sizeof(jsval));
+    memmove(argv - 1, argv, argc * sizeof(jsval));
 
     
 
@@ -4155,10 +4218,11 @@ js_generic_native_method_dispatcher(JSContext *cx, JSObject *obj,
 
 
 
-    if (argc == 0)
-        argc = 1;
 
-    return fs->call(cx, JSVAL_TO_OBJECT(argv[-1]), argc - 1, argv, rval);
+    if (argc != 0)
+        --argc;
+
+    return fs->call(cx, JSVAL_TO_OBJECT(argv[-1]), argc, argv, rval);
 }
 
 JS_PUBLIC_API(JSBool)
@@ -4171,9 +4235,6 @@ JS_DefineFunctions(JSContext *cx, JSObject *obj, JSFunctionSpec *fs)
     CHECK_REQUEST(cx);
     ctor = NULL;
     for (; fs->name; fs++) {
-
-        
-        JS_ASSERT((fs->extra & 0xFFFF0000) == 0);
         flags = fs->flags;
 
         
@@ -4189,11 +4250,15 @@ JS_DefineFunctions(JSContext *cx, JSObject *obj, JSFunctionSpec *fs)
 
             flags &= ~JSFUN_GENERIC_NATIVE;
             fun = JS_DefineFunction(cx, ctor, fs->name,
-                                    js_generic_native_method_dispatcher,
+                                    (flags & JSFUN_FAST_NATIVE)
+                                    ? (JSNative)
+                                      js_generic_fast_native_method_dispatcher
+                                    : js_generic_native_method_dispatcher,
                                     fs->nargs + 1, flags);
             if (!fun)
                 return JS_FALSE;
             fun->u.n.extra = (uint16)fs->extra;
+            fun->u.n.minargs = (uint16)(fs->extra >> 16);
 
             
 
@@ -4203,10 +4268,13 @@ JS_DefineFunctions(JSContext *cx, JSObject *obj, JSFunctionSpec *fs)
                 return JS_FALSE;
         }
 
+        JS_ASSERT(!(flags & JSFUN_FAST_NATIVE) ||
+                  (uint16)(fs->extra >> 16) <= fs->nargs);
         fun = JS_DefineFunction(cx, obj, fs->name, fs->call, fs->nargs, flags);
         if (!fun)
             return JS_FALSE;
         fun->u.n.extra = (uint16)fs->extra;
+        fun->u.n.minargs = (uint16)(fs->extra >> 16);
     }
     return JS_TRUE;
 }
@@ -4867,6 +4935,7 @@ JS_IsRunning(JSContext *cx)
 JS_PUBLIC_API(JSBool)
 JS_IsConstructing(JSContext *cx)
 {
+    JS_ASSERT(!cx->fp || !(cx->fp->flags & JSFRAME_IN_FAST_CALL));
     return cx->fp && (cx->fp->flags & JSFRAME_CONSTRUCTING);
 }
 
@@ -4876,6 +4945,7 @@ JS_IsAssigning(JSContext *cx)
     JSStackFrame *fp;
     jsbytecode *pc;
 
+    JS_ASSERT(!cx->fp || !(cx->fp->flags & JSFRAME_IN_FAST_CALL));
     for (fp = cx->fp; fp && !fp->script; fp = fp->down)
         continue;
     if (!fp || !(pc = fp->pc))
@@ -4901,6 +4971,7 @@ JS_SaveFrameChain(JSContext *cx)
     if (!fp)
         return fp;
 
+    JS_ASSERT(!(fp->flags & JSFRAME_IN_FAST_CALL));
     JS_ASSERT(!fp->dormantNext);
     fp->dormantNext = cx->dormantFrameChain;
     cx->dormantFrameChain = fp;
