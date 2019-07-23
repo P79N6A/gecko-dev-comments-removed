@@ -110,19 +110,6 @@ radio[pane=paneAdvanced][selected="true"] {
 }
 
 
-
-
-.inline-link {
-  color: -moz-nativehyperlinktext;
-  text-decoration: underline;
-  cursor: pointer;
-}
-  
-.inline-link:focus, .inline-link:hover:active {
-  color: red;
-}
-
-
 .windowDialog,
 .windowDialog prefpane {
   padding: 0px;
