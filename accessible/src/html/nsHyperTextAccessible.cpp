@@ -2236,6 +2236,20 @@ nsHyperTextAccessible::GetSpellTextAttribute(nsIDOMNode *aNode,
     PRInt16 result;
     rv = nsrange->ComparePoint(aNode, aNodeOffset, &result);
     NS_ENSURE_SUCCESS(rv, rv);
+    
+    
+    
+    if (result == 0) {
+      nsCOMPtr<nsIDOMNode> end;
+      rv = range->GetEndContainer(getter_AddRefs(end));
+      NS_ENSURE_SUCCESS(rv, rv);
+      PRInt32 endOffset;
+      rv = range->GetEndOffset(&endOffset);
+      NS_ENSURE_SUCCESS(rv, rv);
+      if (aNode == end && aNodeOffset == endOffset) {
+        result = 1;
+      }
+    }
 
     if (result == 1) { 
       PRInt32 startHTOffset = 0;
