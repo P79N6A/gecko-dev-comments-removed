@@ -913,7 +913,7 @@ nsDocAccessible::AttributeChanged(nsIDocument *aDocument, nsIContent* aContent,
 
   nsCOMPtr<nsIDOMNode> targetNode(do_QueryInterface(aContent));
   NS_ASSERTION(targetNode, "No node for attr modified");
-  if (!targetNode) {
+  if (!targetNode || !IsNodeRelevant(targetNode)) {
     return;
   }
 
@@ -1350,7 +1350,11 @@ NS_IMETHODIMP nsDocAccessible::InvalidateCacheSubtree(nsIContent *aChild,
   
   
 
+  NS_ENSURE_TRUE(mDOMNode, NS_ERROR_FAILURE);
   nsCOMPtr<nsIDOMNode> childNode = aChild ? do_QueryInterface(aChild) : mDOMNode;
+  if (!IsNodeRelevant(childNode)) {
+    return NS_OK;  
+  }
   if (!mIsContentLoaded && mAccessNodeCache.Count() <= 1) {
     return NS_OK; 
   }

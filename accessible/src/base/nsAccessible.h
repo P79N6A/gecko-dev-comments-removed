@@ -1,4 +1,4 @@
-
+ 
 
 
 
@@ -195,6 +195,7 @@ public:
   static PRBool IsEmbeddedObject(nsIAccessible *aAcc) { PRUint32 role = Role(aAcc); return role != nsIAccessibleRole::ROLE_TEXT_LEAF && role != nsIAccessibleRole::ROLE_WHITESPACE && role != nsIAccessibleRole::ROLE_STATICTEXT; }
   static PRInt32 TextLength(nsIAccessible *aAccessible);
   static PRBool IsLeaf(nsIAccessible *aAcc) { PRInt32 numChildren; aAcc->GetChildCount(&numChildren); return numChildren > 0; }
+  static PRBool IsNodeRelevant(nsIDOMNode *aNode); 
   
   already_AddRefed<nsIAccessible> GetParent() {
     nsIAccessible *parent = nsnull;
