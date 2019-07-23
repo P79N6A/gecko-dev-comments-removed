@@ -778,9 +778,14 @@ MirrorWrappedNativeParent(JSContext *cx, XPCWrappedNative *wrapper,
     XPCWrappedNative *parent_wrapper =
       XPCWrappedNative::GetWrappedNativeOfJSObject(cx, wn_parent);
 
-    *result = XPCNativeWrapper::GetNewOrUsed(cx, parent_wrapper, nsnull);
-    if (!*result)
-      return JS_FALSE;
+    
+    
+    
+    if (parent_wrapper) {
+      *result = XPCNativeWrapper::GetNewOrUsed(cx, parent_wrapper, nsnull);
+      if (!*result)
+        return JS_FALSE;
+    }
   }
   return JS_TRUE;
 }
