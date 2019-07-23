@@ -63,10 +63,7 @@ class   nsIRollupListener;
 class   nsGUIEvent;
 struct  nsColorMap;
 class   imgIContainer;
-
-#ifdef MOZ_CAIRO_GFX
 class   gfxASurface;
-#endif
 
 
 
@@ -1030,12 +1027,10 @@ class nsIWidget : public nsISupports {
 
     NS_IMETHOD GetLastInputEventTime(PRUint32& aTime) = 0;
 
-#ifdef MOZ_CAIRO_GFX
     
 
 
     virtual gfxASurface *GetThebesSurface() = 0;
-#endif
 
     
 
