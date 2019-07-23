@@ -512,7 +512,7 @@ pref("javascript.enabled",                  true);
 pref("javascript.allow.mailnews",           false);
 pref("javascript.options.strict",           false);
 pref("javascript.options.relimit",          false);
-pref("javascript.options.jit.content",      false);
+pref("javascript.options.jit.content",      true);
 pref("javascript.options.jit.chrome",       false);
 
 
@@ -661,7 +661,6 @@ pref("network.IDN_show_punycode", false);
 
 
 pref("network.IDN.whitelist.ac", true);
-pref("network.IDN.whitelist.ar", true);
 pref("network.IDN.whitelist.at", true);
 pref("network.IDN.whitelist.br", true);
 pref("network.IDN.whitelist.ch", true);
@@ -1053,9 +1052,6 @@ pref("layout.frames.force_resizability", false);
 
 
 pref("layout.css.report_errors", true);
-
-
-pref("layout.css.visited_links_enabled", true);
 
 
 
