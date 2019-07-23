@@ -259,6 +259,9 @@ private:
   
   PRPackedBool mDefaultPluginDisabled;
 
+  
+  PRPackedBool mPluginsDisabled;
+
   nsPluginInstanceTagList mPluginInstanceTagList;
   nsTArray<PRLibrary*> mUnusedLibraries;
 
