@@ -385,6 +385,9 @@ nsAccEvent::ApplyEventRules(nsCOMArray<nsIAccessibleEvent> &aEventsToFire)
           }
         }
       } break; 
+
+      default:
+        break; 
     } 
   } 
 }
