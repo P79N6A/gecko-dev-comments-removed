@@ -1149,6 +1149,9 @@ nsOSHelperAppService::GetHandlerAndDescriptionFromMailcapFile(const nsAString& a
                 }
               } else {
                 
+                if (optionName.EqualsLiteral("needsterminal")) {
+                  match = PR_FALSE;
+                }
               }
             }
             
