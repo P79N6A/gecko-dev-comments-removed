@@ -308,7 +308,10 @@ public:
     unsigned                nStackTypes;
     uint32                  globalShape;
     SlotList*               globalSlots;
+    
     Queue<nanojit::Fragment*> dependentTrees;
+    
+    Queue<nanojit::Fragment*> linkedTrees;
     unsigned                branchCount;
     Queue<VMSideExit*>      sideExits;
     UnstableExit*           unstableExits;
