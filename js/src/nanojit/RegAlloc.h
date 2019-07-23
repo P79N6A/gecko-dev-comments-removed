@@ -119,11 +119,8 @@ namespace nanojit
             return active[r];
         }
 
-        debug_only( uint32_t    countFree(); )
         debug_only( uint32_t    countActive(); )
-        debug_only( void        checkCount(); )
         debug_only( bool        isConsistent(Register r, LIns* v); )
-        debug_only( uint32_t    count; )
         debug_only( RegisterMask managed; )    
 
         LIns*           active[LastReg + 1];    

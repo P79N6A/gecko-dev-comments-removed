@@ -132,8 +132,8 @@ namespace nanojit
         nRegisterResetAll(_allocator);
 
         
-        debug_only(_allocator.count = _allocator.countFree(); )
-        debug_only(_allocator.checkCount(); )
+        NanoAssert(0 != _allocator.free);
+        NanoAssert(0 == _allocator.countActive());
         debug_only(_fpuStkDepth = 0; )
     }
 
