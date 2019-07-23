@@ -1030,9 +1030,10 @@ nsLineLayout::ReflowFrame(nsIFrame* aFrame,
     
     
     
+    PRBool optionalBreakAfterFits;
     if (CanPlaceFrame(pfd, reflowState, notSafeToBreak, continuingTextRun,
                       savedOptionalBreakContent != nsnull, metrics,
-                      aReflowStatus)) {
+                      aReflowStatus, &optionalBreakAfterFits)) {
       
       
       
@@ -1053,7 +1054,7 @@ nsLineLayout::ReflowFrame(nsIFrame* aFrame,
           
           
           
-          if (NotifyOptionalBreakPosition(aFrame->GetContent(), PR_INT32_MAX, PR_TRUE)) {
+          if (NotifyOptionalBreakPosition(aFrame->GetContent(), PR_INT32_MAX, optionalBreakAfterFits)) {
             
             aReflowStatus = NS_INLINE_LINE_BREAK_AFTER(aReflowStatus);
           }
@@ -1146,9 +1147,12 @@ nsLineLayout::CanPlaceFrame(PerFrameData* pfd,
                             PRBool aFrameCanContinueTextRun,
                             PRBool aCanRollBackBeforeFrame,
                             nsHTMLReflowMetrics& aMetrics,
-                            nsReflowStatus& aStatus)
+                            nsReflowStatus& aStatus,
+                            PRBool* aOptionalBreakAfterFits)
 {
   NS_PRECONDITION(pfd && pfd->mFrame, "bad args, null pointers for frame data");
+  
+  *aOptionalBreakAfterFits = PR_TRUE;
   
   if (0 != pfd->mBounds.width) {
     NS_ASSERTION(aReflowState.mStyleDisplay->mFloats == NS_STYLE_FLOAT_NONE,
@@ -1205,6 +1209,7 @@ nsLineLayout::CanPlaceFrame(PerFrameData* pfd,
 #endif
     return PR_TRUE;
   }
+  *aOptionalBreakAfterFits = PR_FALSE;
 
   
   
