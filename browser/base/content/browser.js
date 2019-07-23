@@ -1614,15 +1614,21 @@ function BrowserCloseTabOrWindow()
   }
 #endif
 
-  if (gBrowser.tabContainer.childNodes.length > 1 ||
-      window.toolbar.visible && !gPrefService.getBoolPref("browser.tabs.autoHide")) {
+  if (gBrowser.tabContainer.childNodes.length > 1) {
+    gBrowser.removeCurrentTab(); 
+    return;
+  }
+
+#ifndef XP_MACOSX
+  if (gBrowser.localName == "tabbrowser" && window.toolbar.visible &&
+      !gPrefService.getBoolPref("browser.tabs.autoHide")) {
     
-    var isLastTab = gBrowser.tabContainer.childNodes.length == 1;
     gBrowser.removeCurrentTab();
-    if (isLastTab && gURLBar)
+    if (gURLBar)
       setTimeout(function() { gURLBar.focus(); }, 0);
     return;
   }
+#endif
 
   closeWindow(true);
 }
