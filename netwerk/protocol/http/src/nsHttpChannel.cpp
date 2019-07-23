@@ -2067,6 +2067,28 @@ nsHttpChannel::CheckCache()
         LOG(("%salidating based on expiration time\n", doValidation ? "V" : "Not v"));
     }
 
+    
+    
+    
+    
+    if (!doValidation && mRequestHead.Method() == nsHttp::Get) {
+        nsCAutoString query;
+        nsCOMPtr<nsIURL> url = do_QueryInterface(mURI);
+        rv = url->GetQuery(query);
+        if (NS_SUCCEEDED(rv) && !query.IsEmpty()) {
+            PRUint32 tmp; 
+            rv = mCachedResponseHead->GetExpiresValue(&tmp);
+            if (NS_FAILED(rv)) {
+                rv = mCachedResponseHead->GetMaxAgeValue(&tmp);
+                if (NS_FAILED(rv)) {
+                    LOG(("Validating based on RFC 2616 section 13.9 "
+                         "(query-url w/o explicit expiration-time)\n"));
+                    doValidation = PR_TRUE;
+                }
+            }
+        }
+    }
+    
     if (!doValidation) {
         
         
