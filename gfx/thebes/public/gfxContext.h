@@ -538,6 +538,7 @@ public:
     
 
 
+    gfxRect GetUserPathExtent();
     gfxRect GetUserFillExtent();
     gfxRect GetUserStrokeExtent();
 
