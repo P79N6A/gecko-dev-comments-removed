@@ -679,12 +679,9 @@ var PlacesUtils = {
       return new PlacesAggregateTransaction("SeparatorMove", [removeTxn, createTxn]);
     case this.TYPE_X_MOZ_URL:
     case this.TYPE_UNICODE:
-      
-      var createTxn =
-        new PlacesCreateItemTransaction(data.uri, container, index);
       var title = type == this.TYPE_X_MOZ_URL ? data.title : data.uri;
-      createTxn.childTransactions.push(
-          new PlacesEditItemTitleTransaction(-1, title));
+      var createTxn =
+        new PlacesCreateItemTransaction(data.uri, container, index, title);
       return createTxn;
     }
     return null;
