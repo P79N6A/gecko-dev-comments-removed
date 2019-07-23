@@ -548,6 +548,14 @@ nsXBLService::LoadBindings(nsIContent* aContent, nsIURI* aURL,
   if (!document)
     return NS_OK;
 
+  nsCAutoString urlspec;
+  if (nsContentUtils::GetWrapperSafeScriptFilename(document, aURL, urlspec)) {
+    
+    
+
+    return NS_OK;
+  }
+
   nsBindingManager *bindingManager = document->BindingManager();
   
   nsXBLBinding *binding = bindingManager->GetBinding(aContent);
@@ -682,28 +690,6 @@ nsXBLService::ResolveTag(nsIContent* aContent, PRInt32* aNameSpaceID,
   }
 
   return NS_OK;
-}
-
-nsIXBLDocumentInfo*
-nsXBLService::GetXBLDocumentInfo(nsIURI* aURI, nsIContent* aBoundElement)
-{
-#ifdef MOZ_XUL
-  nsXULPrototypeCache* cache = nsXULPrototypeCache::GetInstance();
-  if (cache && cache->IsEnabled()) { 
-    
-    
-    
-    return cache->GetXBLDocumentInfo(aURI);
-  }
-#endif
-
-  
-  nsIDocument* boundDocument = aBoundElement->GetOwnerDoc();
-  if (boundDocument) {
-    return boundDocument->BindingManager()->GetXBLDocumentInfo(aURI);
-  }
-
-  return nsnull;
 }
 
 

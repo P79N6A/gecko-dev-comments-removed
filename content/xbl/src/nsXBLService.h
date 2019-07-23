@@ -108,9 +108,6 @@ protected:
                                 nsIURI* aDocumentURI, nsIURI* aBindingURI, 
                                 PRBool aForceSyncLoad, nsIDocument** aResult);
 
-  nsIXBLDocumentInfo* GetXBLDocumentInfo(nsIURI* aURI,
-                                         nsIContent* aBoundElement);
-
   
 
 

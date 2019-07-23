@@ -813,6 +813,20 @@ public:
 
 
 
+
+
+
+
+  static PRBool GetWrapperSafeScriptFilename(nsIDocument *aDocument,
+                                             nsIURI *aURI,
+                                             nsACString& aScriptURI);
+
+
+  
+
+
+
+
   static PRBool IsInChromeDocshell(nsIDocument *aDocument);
 
   
