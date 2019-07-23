@@ -153,7 +153,10 @@ private:
     }
 
     
-    nsresult AsyncCall(nsAsyncCallback funcPtr);
+    
+    
+    nsresult AsyncCall(nsAsyncCallback funcPtr,
+                       nsRunnableMethod<nsHttpChannel> **retval = nsnull);
 
     PRBool   RequestIsConditional();
     nsresult Connect(PRBool firstTime = PR_TRUE);
@@ -205,6 +208,7 @@ private:
     nsresult InstallOfflineCacheListener();
     void     MaybeInvalidateCacheEntryForSubsequentGet();
     nsCacheStoragePolicy DetermineStoragePolicy();
+    void     AsyncOnExamineCachedResponse();
 
     
     void ClearBogusContentEncodingIfNeeded();

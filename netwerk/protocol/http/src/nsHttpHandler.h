@@ -195,6 +195,13 @@ public:
     
     nsresult OnChannelRedirect(nsIChannel* oldChan, nsIChannel* newChan,
                                PRUint32 flags);
+
+    
+    
+    void OnExamineCachedResponse(nsIHttpChannel *chan)
+    {
+        NotifyObservers(chan, NS_HTTP_ON_EXAMINE_CACHED_RESPONSE_TOPIC);
+    }
 private:
 
     
