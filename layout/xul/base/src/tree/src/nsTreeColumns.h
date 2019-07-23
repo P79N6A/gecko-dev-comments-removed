@@ -64,6 +64,8 @@ public:
 protected:
   nsIFrame* GetFrame();
   nsIFrame* GetFrame(nsTreeBodyFrame* aBodyFrame);
+  
+  PRBool IsLastVisible(nsTreeBodyFrame* aBodyFrame);
 
   
 
