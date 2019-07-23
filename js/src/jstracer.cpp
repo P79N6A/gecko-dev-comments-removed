@@ -311,11 +311,9 @@ public:
 
 
 #ifdef DEBUG
-#define DEF_VPNAME          char* vpname; unsigned vpnum;
 #define SET_VPNAME(name)    do { vpname = name; vpnum = 0; } while(0)
 #define INC_VPNUM()         do { ++vpnum; } while(0)
 #else
-#define DEF_VPNAME          ((void)0)
 #define SET_VPNAME(name)    ((void)0)
 #define INC_VPNUM()         ((void)0)
 #endif
@@ -326,7 +324,7 @@ public:
 
 #define FORALL_SLOTS_IN_PENDING_FRAMES(entryFrame, currentFrame, code)        \
     JS_BEGIN_MACRO                                                            \
-        DEF_VPNAME;                                                           \
+        char* vpname = ""; unsigned vpnum = 0;                                \
         /* find us the global frame */                                        \
         JSStackFrame* global = entryFrame;                                    \
         while (global->down)                                                  \
