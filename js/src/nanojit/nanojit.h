@@ -255,7 +255,7 @@ namespace nanojit {
         LC_ReadLIR     = 1<<3, 
         LC_AfterSF     = 1<<2, 
         LC_RegAlloc    = 1<<1, 
-        LC_Assembly    = 1<<0, 
+        LC_Assembly    = 1<<0  
     };
 
     class LogControl
