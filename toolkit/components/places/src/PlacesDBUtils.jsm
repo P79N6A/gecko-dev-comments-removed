@@ -282,7 +282,9 @@ nsPlacesDBUtils.prototype = {
     
     
     let deleteNoPlaceItems = this._dbConn.createStatement(
-      "DELETE FROM moz_bookmarks WHERE id IN (" +
+      "DELETE FROM moz_bookmarks WHERE id NOT IN ( " +
+        "SELECT folder_id FROM moz_bookmarks_roots " + 
+      ") AND id IN (" +
         "SELECT b.id FROM moz_bookmarks b " +
         "WHERE fk NOT NULL AND b.type = :bookmark_type " +
           "AND NOT EXISTS (SELECT url FROM moz_places_temp WHERE id = b.fk LIMIT 1) " +
@@ -293,7 +295,9 @@ nsPlacesDBUtils.prototype = {
 
     
     let deleteBogusTagChildren = this._dbConn.createStatement(
-      "DELETE FROM moz_bookmarks WHERE id IN (" +
+      "DELETE FROM moz_bookmarks WHERE id NOT IN ( " +
+        "SELECT folder_id FROM moz_bookmarks_roots " + 
+      ") AND id IN (" +
         "SELECT b.id FROM moz_bookmarks b " +
         "WHERE b.parent IN " +
           "(SELECT id FROM moz_bookmarks WHERE parent = :tags_folder) " +
@@ -305,7 +309,9 @@ nsPlacesDBUtils.prototype = {
 
     
     let deleteEmptyTags = this._dbConn.createStatement(
-      "DELETE FROM moz_bookmarks WHERE id IN (" +
+      "DELETE FROM moz_bookmarks WHERE id NOT IN ( " +
+        "SELECT folder_id FROM moz_bookmarks_roots " + 
+      ") AND id IN (" +
         "SELECT b.id FROM moz_bookmarks b " +
         "WHERE b.id IN " +
           "(SELECT id FROM moz_bookmarks WHERE parent = :tags_folder) " +
@@ -317,7 +323,9 @@ nsPlacesDBUtils.prototype = {
 
     
     let fixOrphanItems = this._dbConn.createStatement(
-      "UPDATE moz_bookmarks SET parent = :unsorted_folder WHERE id IN (" +
+      "UPDATE moz_bookmarks SET parent = :unsorted_folder WHERE id NOT IN ( " +
+        "SELECT folder_id FROM moz_bookmarks_roots " +  
+      ") AND id IN (" +
         "SELECT b.id FROM moz_bookmarks b " +
         "WHERE b.parent <> 0 " + 
         "AND NOT EXISTS " +
@@ -328,7 +336,9 @@ nsPlacesDBUtils.prototype = {
 
     
     let fixInvalidKeywords = this._dbConn.createStatement(
-      "UPDATE moz_bookmarks SET keyword_id = NULL WHERE id IN ( " +
+      "UPDATE moz_bookmarks SET keyword_id = NULL WHERE id NOT IN ( " +
+        "SELECT folder_id FROM moz_bookmarks_roots " + 
+      ") AND id IN ( " +
         "SELECT id FROM moz_bookmarks b " +
         "WHERE keyword_id NOT NULL " +
           "AND NOT EXISTS " +
@@ -341,7 +351,9 @@ nsPlacesDBUtils.prototype = {
     
     
     let fixBookmarksAsFolders = this._dbConn.createStatement(
-      "UPDATE moz_bookmarks SET type = :bookmark_type WHERE id IN ( " +
+      "UPDATE moz_bookmarks SET type = :bookmark_type WHERE id NOT IN ( " +
+        "SELECT folder_id FROM moz_bookmarks_roots " + 
+      ") AND id IN ( " +
         "SELECT id FROM moz_bookmarks b " +
         "WHERE type IN (:folder_type, :separator_type, :dynamic_type) " +
           "AND fk NOTNULL " +
@@ -356,7 +368,9 @@ nsPlacesDBUtils.prototype = {
     
     
     let fixFoldersAsBookmarks = this._dbConn.createStatement(
-      "UPDATE moz_bookmarks SET type = :folder_type WHERE id IN ( " +
+      "UPDATE moz_bookmarks SET type = :folder_type WHERE id NOT IN ( " +
+        "SELECT folder_id FROM moz_bookmarks_roots " + 
+      ") AND id IN ( " +
         "SELECT id FROM moz_bookmarks b " +
         "WHERE type = :bookmark_type " +
           "AND fk IS NULL " +
@@ -369,7 +383,9 @@ nsPlacesDBUtils.prototype = {
     
     
     let fixFoldersAsDynamic = this._dbConn.createStatement(
-      "UPDATE moz_bookmarks SET type = :folder_type WHERE id IN ( " +
+      "UPDATE moz_bookmarks SET type = :folder_type WHERE id NOT IN ( " +
+        "SELECT folder_id FROM moz_bookmarks_roots " + 
+      ") AND id IN ( " +
         "SELECT id FROM moz_bookmarks b " +
         "WHERE type = :dynamic_type " +
           "AND folder_type IS NULL " +
@@ -382,7 +398,9 @@ nsPlacesDBUtils.prototype = {
     
     
     let fixInvalidParents = this._dbConn.createStatement(
-      "UPDATE moz_bookmarks SET parent = :unsorted_folder WHERE id IN ( " +
+      "UPDATE moz_bookmarks SET parent = :unsorted_folder WHERE id NOT IN ( " +
+        "SELECT folder_id FROM moz_bookmarks_roots " +  
+      ") AND id IN ( " +
         "SELECT id FROM moz_bookmarks b " +
         "WHERE EXISTS " +
           "(SELECT id FROM moz_bookmarks WHERE id = b.parent " +
@@ -430,9 +448,10 @@ nsPlacesDBUtils.prototype = {
     
     
     let removeLivemarkStaticItems = this._dbConn.createStatement(
-      "DELETE FROM moz_bookmarks WHERE fk IN ( " +
+      "DELETE FROM moz_bookmarks WHERE type = :bookmark_type AND fk IN ( " +
         "SELECT id FROM moz_places WHERE url = :lmloading OR url = :lmfailed " +
       ")");
+    removeLivemarkStaticItems.params["bookmark_type"] = this._bms.TYPE_BOOKMARK;
     removeLivemarkStaticItems.params["lmloading"] = "about:livemark-loading";
     removeLivemarkStaticItems.params["lmfailed"] = "about:livemark-failed";
     cleanupStatements.push(removeLivemarkStaticItems);
