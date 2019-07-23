@@ -2165,19 +2165,16 @@ nsLocalFile::IsExecutable(PRBool *_retval)
         return NS_OK;
 
     
-    char* ext = (char*) _mbsrchr((const unsigned char*)leaf, '.');
-    if (!ext)
-        return NS_OK;
+    
+    char ext[5];
+    strncpy(ext, (char*) _mbsrchr((const unsigned char*)leaf, '.'), 4);
+    ext[4] = '\0'; 
 
     
-#ifdef MOZ_OS2_HIGH_MEMORY
     
     
     
     strupr(ext);
-#else
-    WinUpper(0, 0, 0, ext);
-#endif
     if (strcmp(ext, ".EXE") == 0 ||
         strcmp(ext, ".CMD") == 0 ||
         strcmp(ext, ".COM") == 0 ||
