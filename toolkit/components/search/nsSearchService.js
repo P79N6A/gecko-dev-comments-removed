@@ -2462,7 +2462,16 @@ Submission.prototype = {
 
 
 function SearchService() {
-  this._init();
+  
+  if (getBoolPref(BROWSER_SEARCH_PREF + "log", false))
+    LOG = DO_LOG;
+
+  try {
+    this._loadEngines();
+  } catch (ex) {
+    LOG("_init: failure loading engines: " + ex);
+  }
+  this._addObservers();
 }
 SearchService.prototype = {
   _engines: { },
@@ -2476,27 +2485,6 @@ SearchService.prototype = {
   
   
   _needToSetOrderPrefs: false,
-
-  _init: function() {
-    
-    if (getBoolPref(BROWSER_SEARCH_PREF + "log", false))
-      LOG = DO_LOG;
-
-    engineUpdateService.init();
-
-    try {
-      this._loadEngines();
-    } catch (ex) {
-      LOG("_init: failure loading engines: " + ex);
-    }
-
-    this._addObservers();
-
-    let selectedEngineName = getLocalizedPref(BROWSER_SEARCH_PREF +
-                                              "selectedEngine");
-    this._currentEngine = this.getEngineByName(selectedEngineName) ||
-                          this.defaultEngine;
-  },
 
   _buildCache: function SRCH_SVC__buildCache() {
     if (!getBoolPref(BROWSER_SEARCH_PREF + "cache.enabled", true))
@@ -2519,7 +2507,6 @@ SearchService.prototype = {
     cache.locale = locale;
 
     cache.directories = {};
-
 
     function getParent(engine) {
       if (engine._file)
@@ -3380,6 +3367,12 @@ SearchService.prototype = {
   },
 
   get currentEngine() {
+    if (!this._currentEngine) {
+      let selectedEngine = getLocalizedPref(BROWSER_SEARCH_PREF +
+                                            "selectedEngine");
+      this._currentEngine = this.getEngineByName(selectedEngine);
+    }
+
     if (!this._currentEngine || this._currentEngine.hidden)
       this._currentEngine = this.defaultEngine;
     return this._currentEngine;
@@ -3442,6 +3435,45 @@ SearchService.prototype = {
     }
   },
 
+  
+  notify: function SRCH_SVC_notify(aTimer) {
+    LOG("_notify: checking for updates");
+
+    if (!getBoolPref(BROWSER_SEARCH_PREF + "update", true))
+      return;
+
+    
+    
+    var currentTime = Date.now();
+    LOG("currentTime: " + currentTime);
+    for each (engine in this._engines) {
+      engine = engine.wrappedJSObject;
+      if (!engine._hasUpdates)
+        continue;
+
+      LOG("checking " + engine.name);
+
+      var expirTime = engineMetadataService.getAttr(engine, "updateexpir");
+      LOG("expirTime: " + expirTime + "\nupdateURL: " + engine._updateURL +
+          "\niconUpdateURL: " + engine._iconUpdateURL);
+
+      var engineExpired = expirTime <= currentTime;
+
+      if (!expirTime || !engineExpired) {
+        LOG("skipping engine");
+        continue;
+      }
+
+      LOG(engine.name + " has expired");
+
+      engineUpdateService.update(engine);
+
+      
+      engineUpdateService.scheduleNextUpdate(engine);
+
+    } 
+  },
+
   _addObservers: function SRCH_SVC_addObservers() {
     gObsSvc.addObserver(this, SEARCH_ENGINE_TOPIC, false);
     gObsSvc.addObserver(this, QUIT_APPLICATION_TOPIC, false);
@@ -3455,6 +3487,7 @@ SearchService.prototype = {
   QueryInterface: function SRCH_SVC_QI(aIID) {
     if (aIID.equals(Ci.nsIBrowserSearchService) ||
         aIID.equals(Ci.nsIObserver)             ||
+        aIID.equals(Ci.nsITimerCallback)        ||
         aIID.equals(Ci.nsISupports))
       return this;
     throw Cr.NS_ERROR_NO_INTERFACE;
@@ -3599,18 +3632,6 @@ function ULOG(aText) {
 }
 
 var engineUpdateService = {
-  init: function eus_init() {
-    var tm = Cc["@mozilla.org/updates/timer-manager;1"].
-             getService(Ci.nsIUpdateTimerManager);
-    
-    var interval = gPrefSvc.getIntPref(BROWSER_SEARCH_PREF + "updateinterval");
-
-    
-    var seconds = interval * 3600;
-    tm.registerTimer("search-engine-update-timer", engineUpdateService,
-                     seconds);
-  },
-
   scheduleNextUpdate: function eus_scheduleNextUpdate(aEngine) {
     var interval = aEngine._updateInterval || SEARCH_DEFAULT_UPDATE_INTERVAL;
     var milliseconds = interval * 86400000; 
@@ -3659,46 +3680,6 @@ var engineUpdateService = {
       
       (testEngine || engine)._setIcon(engine._iconUpdateURL, true);
     }
-  },
-
-  notify: function eus_Notify(aTimer) {
-    ULOG("notify called");
-
-    if (!getBoolPref(BROWSER_SEARCH_PREF + "update", true))
-      return;
-
-    
-    
-    var searchService = Cc["@mozilla.org/browser/search-service;1"].
-                        getService(Ci.nsIBrowserSearchService);
-    var currentTime = Date.now();
-    ULOG("currentTime: " + currentTime);
-    for each (engine in searchService.getEngines()) {
-      engine = engine.wrappedJSObject;
-      if (!engine._hasUpdates)
-        continue;
-
-      ULOG("checking " + engine.name);
-
-      var expirTime = engineMetadataService.getAttr(engine, "updateexpir");
-      ULOG("expirTime: " + expirTime + "\nupdateURL: " + engine._updateURL +
-           "\niconUpdateURL: " + engine._iconUpdateURL);
-
-      var engineExpired = expirTime <= currentTime;
-
-      if (!expirTime || !engineExpired) {
-        ULOG("skipping engine");
-        continue;
-      }
-
-      ULOG(engine.name + " has expired");
-
-      this.update(engine);
-
-      
-      this.scheduleNextUpdate(engine);
-
-    } 
   }
 };
 
@@ -3717,17 +3698,30 @@ const kFactory = {
 
 
 const gModule = {
+  get _catMan() {
+    return Cc["@mozilla.org/categorymanager;1"].
+           getService(Ci.nsICategoryManager);
+  },
+
   registerSelf: function (componentManager, fileSpec, location, type) {
     componentManager.QueryInterface(Ci.nsIComponentRegistrar);
     componentManager.registerFactoryLocation(kClassID,
                                              kClassName,
                                              kContractID,
                                              fileSpec, location, type);
+    this._catMan.addCategoryEntry("update-timer", kClassName,
+                                  kContractID + 
+                                  ",getService," +
+                                  "search-engine-update-timer," +
+                                  BROWSER_SEARCH_PREF + "update.interval," +
+                                  "21600", 
+                                  true, true);
   },
 
   unregisterSelf: function(componentManager, fileSpec, location) {
     componentManager.QueryInterface(Ci.nsIComponentRegistrar);
     componentManager.unregisterFactoryLocation(kClassID, fileSpec);
+    this._catMan.deleteCategoryEntry("update-timer", kClassName, true);
   },
 
   getClassObject: function (componentManager, cid, iid) {

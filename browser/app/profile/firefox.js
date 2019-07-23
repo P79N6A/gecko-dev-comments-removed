@@ -301,7 +301,7 @@ pref("browser.search.update", true);
 pref("browser.search.update.log", false);
 
 
-pref("browser.search.updateinterval", 6);
+pref("browser.search.update.interval", 21600);
 
 
 pref("browser.microsummary.enabled", true);
