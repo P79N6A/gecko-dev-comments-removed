@@ -1845,6 +1845,12 @@ nsresult nsAccessible::GetHTMLName(nsAString& aLabel, PRBool aCanAggregateSubtre
 
   
   nsAutoString label;
+  if (content->GetAttr(kNameSpaceID_None, nsAccessibilityAtoms::aria_label, label)) {
+    aLabel = label;
+    return NS_OK;
+  }
+
+  
   nsresult rv = GetTextFromRelationID(nsAccessibilityAtoms::aria_labelledby, label);
   if (NS_SUCCEEDED(rv)) {
     aLabel = label;
@@ -1896,6 +1902,12 @@ nsresult nsAccessible::GetXULName(nsAString& aLabel, PRBool aCanAggregateSubtree
 
   
   nsAutoString label;
+  if (content->GetAttr(kNameSpaceID_None, nsAccessibilityAtoms::aria_label, label)) {
+    aLabel = label;
+    return NS_OK;
+  }
+
+  
   nsresult rv = GetTextFromRelationID(nsAccessibilityAtoms::aria_labelledby, label);
   if (NS_SUCCEEDED(rv)) {
     aLabel = label;

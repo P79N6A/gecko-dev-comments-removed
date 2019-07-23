@@ -288,6 +288,8 @@ nsHTMLButtonAccessible::GetName(nsAString& aName)
   nsAutoString name;
   
   if (content->HasAttr(kNameSpaceID_None,
+                       nsAccessibilityAtoms::aria_label) ||
+      content->HasAttr(kNameSpaceID_None,
                        nsAccessibilityAtoms::aria_labelledby)) {
     GetHTMLName(name, PR_FALSE);
   }

@@ -58,6 +58,7 @@ nsXFormsLabelAccessible::GetRole(PRUint32 *aRole)
 NS_IMETHODIMP
 nsXFormsLabelAccessible::GetName(nsAString& aName)
 {
+  
   nsAutoString name;
   nsresult rv = GetTextFromRelationID(nsAccessibilityAtoms::aria_labelledby, name);
   aName = name;
