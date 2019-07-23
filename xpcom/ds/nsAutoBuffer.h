@@ -70,6 +70,11 @@
 
 
 
+
+
+
+
+
 template <class T, PRInt32 sz>
 class nsAutoBuffer
 {
@@ -83,26 +88,26 @@ public:
   ~nsAutoBuffer()
   {
     if (mBufferPtr != mStackBuffer)
-      nsMemory::Free(mBufferPtr);
+      NS_Free(mBufferPtr);
   }
 
+  
+  
   PRBool EnsureElemCapacity(PRInt32 inElemCapacity)
   {
     if (inElemCapacity <= mCurElemCapacity)
       return PR_TRUE;
-    
+
     T* newBuffer;
 
-    if (mBufferPtr != mStackBuffer)
-      newBuffer = (T*)nsMemory::Realloc((void *)mBufferPtr, inElemCapacity * sizeof(T));
-    else 
-      newBuffer = (T*)nsMemory::Alloc(inElemCapacity * sizeof(T));
+    if (mBufferPtr != mStackBuffer) {
+      newBuffer = static_cast<T*>(NS_Realloc(mBufferPtr, inElemCapacity * sizeof(T)));
+    } else {
+      newBuffer = static_cast<T*>(NS_Alloc(inElemCapacity * sizeof(T)));
+    }
 
     if (!newBuffer)
       return PR_FALSE;
-
-    if (mBufferPtr != mStackBuffer)
-      nsMemory::Free(mBufferPtr);
 
     mBufferPtr = newBuffer; 
     mCurElemCapacity = inElemCapacity;
