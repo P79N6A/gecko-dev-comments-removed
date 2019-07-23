@@ -199,6 +199,9 @@ public:
     virtual gfxFontEntry* MakePlatformFont(const gfxProxyFontEntry *aProxyEntry,
                                            const PRUint8 *aFontData,
                                            PRUint32 aLength);
+    
+    virtual PRBool ResolveFontName(const nsAString& aFontName,
+                                   nsAString& aResolvedFontName);
 
     PRBool GetStandardFamilyName(const nsAString& aFontName,
                                  nsAString& aFamilyName);
@@ -209,7 +212,21 @@ private:
     
     virtual void InitFontList();
 
+    nsresult GetFontSubstitutes();
+
+    
+
+
+
     nsTArray<nsString> mNonExistingFonts;
+
+    typedef nsDataHashtable<nsStringHashKey, nsRefPtr<gfxFontFamily> > FontTable;
+
+    
+
+
+
+    FontTable mFontSubstitutes;
 };
 
 
