@@ -135,14 +135,12 @@ function addDownload(aResultFileName)
 
   var destFile = dirSvc.get("ProfD", Ci.nsIFile);
   destFile.append(aResultFileName || "download.result");
-  var srcFile = dirSvc.get("ProfD", Ci.nsIFile);
-  srcFile.append("LICENSE");
 
   
   gDownloadCount++;
 
   var dl = dm.addDownload(nsIDownloadManager.DOWNLOAD_TYPE_DOWNLOAD,
-                          createURI("http://localhost:4444/LICENSE"),
+                          createURI("http://localhost:4444/res/language.properties"),
                           createURI(destFile), null, null,
                           Math.round(Date.now() * 1000), null, persist);
 
