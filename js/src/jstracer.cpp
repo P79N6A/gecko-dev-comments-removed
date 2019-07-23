@@ -7355,38 +7355,10 @@ CheckForSSE2()
 #if defined(_MSC_VER) && defined(WINCE)
 
 
-extern "C" int js_arm_try_thumb_op();
-extern "C" int js_arm_try_armv6t2_op();
 extern "C" int js_arm_try_armv5_op();
 extern "C" int js_arm_try_armv6_op();
 extern "C" int js_arm_try_armv7_op();
 extern "C" int js_arm_try_vfp_op();
-
-static bool
-arm_check_thumb()
-{
-    bool ret = false;
-    __try {
-        js_arm_try_thumb_op();
-        ret = true;
-    } __except(GetExceptionCode() == EXCEPTION_ILLEGAL_INSTRUCTION) {
-        ret = false;
-    }
-    return ret;
-}
-
-static bool
-arm_check_thumb2()
-{
-    bool ret = false;
-    __try {
-        js_arm_try_armv6t2_op();
-        ret = true;
-    } __except(GetExceptionCode() == EXCEPTION_ILLEGAL_INSTRUCTION) {
-        ret = false;
-    }
-    return ret;
-}
 
 static unsigned int
 arm_check_arch()
@@ -7450,7 +7422,6 @@ enable_debugger_exceptions()
 
 
 static unsigned int arm_arch = 4;
-static bool arm_has_thumb = false;
 static bool arm_has_vfp = false;
 static bool arm_has_neon = false;
 static bool arm_has_iwmmxt = false;
@@ -7471,7 +7442,6 @@ arm_read_auxv()
                     hwcap = strtoul(getenv("ARM_FORCE_HWCAP"), NULL, 0);
                 
                 
-                arm_has_thumb = (hwcap & 4) != 0;
                 arm_has_vfp = (hwcap & 64) != 0;
                 arm_has_iwmmxt = (hwcap & 512) != 0;
                 
@@ -7512,27 +7482,6 @@ arm_read_auxv()
     arm_tests_initialized = true;
 }
 
-static bool
-arm_check_thumb()
-{
-    if (!arm_tests_initialized)
-        arm_read_auxv();
-
-    return arm_has_thumb;
-}
-
-static bool
-arm_check_thumb2()
-{
-    if (!arm_tests_initialized)
-        arm_read_auxv();
-
-    
-    
-    
-    return (arm_arch >= 7);
-}
-
 static unsigned int
 arm_check_arch()
 {
@@ -7553,10 +7502,6 @@ arm_check_vfp()
 
 #else
 #warning Not sure how to check for architecture variant on your platform. Assuming ARMv4.
-static bool
-arm_check_thumb() { return false; }
-static bool
-arm_check_thumb2() { return false; }
 static unsigned int
 arm_check_arch() { return 4; }
 static bool
@@ -7619,27 +7564,17 @@ InitJIT(TraceMonitor *tm)
         disable_debugger_exceptions();
 
         bool            arm_vfp     = arm_check_vfp();
-        bool            arm_thumb   = arm_check_thumb();
-        bool            arm_thumb2  = arm_check_thumb2();
         unsigned int    arm_arch    = arm_check_arch();
 
         enable_debugger_exceptions();
 
         avmplus::AvmCore::config.arm_vfp        = arm_vfp;
         avmplus::AvmCore::config.soft_float     = !arm_vfp;
-        avmplus::AvmCore::config.arm_thumb      = arm_thumb;
-        avmplus::AvmCore::config.arm_thumb2     = arm_thumb2;
         avmplus::AvmCore::config.arm_arch       = arm_arch;
 
         
         
         JS_ASSERT(arm_arch >= 4);
-        
-        JS_ASSERT((arm_thumb) || (arm_arch == 4));
-        
-        JS_ASSERT((arm_thumb2) || (arm_arch <= 6));
-        
-        JS_ASSERT((arm_thumb2 && arm_thumb) || (!arm_thumb2));
 #endif
         did_we_check_processor_features = true;
     }
