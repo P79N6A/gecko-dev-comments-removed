@@ -54,7 +54,10 @@
 
 
 
-#if defined(__MMX__) || defined(__SSE__) || defined(__SSE2__) || defined(__SSE3__)
+
+
+
+#if 0 
 
 #if defined(WIN32)
 #define restrict
