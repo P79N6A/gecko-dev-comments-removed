@@ -1756,6 +1756,23 @@ var PlacesUtils = {
 
 
 
+  getBackupFilename:
+  function PU_getBackupFilename(aDateObj) {
+    if (!aDateObj)
+      aDateObj = new Date();
+    
+    
+    var date = aDateObj.toLocaleFormat("%Y-%m-%d");
+    return "bookmarks-" + date + ".json";
+  },
+
+  
+
+
+
+
+
+
 
 
 
@@ -1776,11 +1793,8 @@ var PlacesUtils = {
     }
 
     
-    
-    
-    var date = new Date().toLocaleFormat("%Y-%m-%d");
-    var backupFilename = "bookmarks-" + date + ".json";
-
+    var date = new Date();
+    var backupFilename = this.getBackupFilename(date);
     var backupFile = null;
     if (!aForceArchive) {
       var backupFileNames = [];
@@ -1790,7 +1804,7 @@ var PlacesUtils = {
       
       var localizedFilename = this.getFormattedString("bookmarksArchiveFilename", [date]);
       var localizedFilenamePrefix = localizedFilename.substr(0, localizedFilename.indexOf("-"));
-      var rx = new RegExp("^(bookmarks|" + localizedFilenamePrefix + ")-.+\.(json|html)");
+      var rx = new RegExp("^(bookmarks|" + localizedFilenamePrefix + ")-([0-9-]+)\.(json|html)");
 
       var entries = bookmarksBackupDir.directoryEntries;
       while (entries.hasMoreElements()) {
@@ -1798,10 +1812,11 @@ var PlacesUtils = {
         var backupName = entry.leafName;
         
         
-        if (backupName.match(rx)) {
+        var matches = backupName.match(rx);
+        if (matches) {
           if (backupName == backupFilename)
             backupFile = entry;
-          backupFileNames.push(backupName);
+          backupFileNames.push({ filename: backupName, date: matches[2] });
         }
       }
 
@@ -1815,11 +1830,12 @@ var PlacesUtils = {
         
         if (!backupFile)
           numberOfBackupsToDelete++;
-
-        backupFileNames.sort();
+        backupFileNames.sort(function compare(a, b) {
+          return a.date < b.date ? -1 : a.date > b.date ? 1 : 0;
+        });
         while (numberOfBackupsToDelete--) {
           let backupFile = bookmarksBackupDir.clone();
-          backupFile.append(backupFileNames[0]);
+          backupFile.append(backupFileNames[0].filename);
           backupFile.remove(false);
           backupFileNames.shift();
         }
