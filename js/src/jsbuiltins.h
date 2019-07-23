@@ -467,6 +467,7 @@ js_dmod(jsdouble a, jsdouble b);
 
 JS_DECLARE_CALLINFO(js_Object_tn)
 JS_DECLARE_CALLINFO(js_NewInstance)
+JS_DECLARE_CALLINFO(js_NonEmptyObject)
 
 
 JS_DECLARE_CALLINFO(js_Array_dense_setelem)
