@@ -141,15 +141,6 @@ NPError NPP_SetWindow (NPP instance, NPWindow* pNPWindow)
   return rv;
 }
 
-
-
-
-
-
-
-
-
-
 NPError	NPP_GetValue(NPP instance, NPPVariable variable, void *value)
 {
   if(instance == NULL)
@@ -171,6 +162,9 @@ NPError	NPP_GetValue(NPP instance, NPPVariable variable, void *value)
   case NPPVpluginDescriptionString:
     *((char **)value) = "NPRuntime scriptability API test plugin";
     break;
+
+  
+  
   case NPPVpluginScriptableNPObject:
     *(NPObject **)value = plugin->GetScriptableObject();
     break;
