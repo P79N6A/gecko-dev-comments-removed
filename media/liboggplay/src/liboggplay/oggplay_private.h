@@ -215,7 +215,7 @@ struct _OggPlay {
   void                    * callback_user_ptr;
   ogg_int64_t               target;
   int                       active_tracks;
-  volatile OggPlayBuffer  * buffer;  
+  volatile OggPlayBuffer  * buffer;
   ogg_int64_t               presentation_time;
   OggPlaySeekTrash        * trash;
   int                       shutdown;
@@ -231,7 +231,7 @@ oggplay_take_out_trash(OggPlay *me, OggPlaySeekTrash *trash);
 
 typedef struct {
   void (*init)(void *user_data);
-  int (*callback)(OGGZ * oggz, ogg_packet * op, long serialno, 
+  int (*callback)(OGGZ * oggz, ogg_packet * op, long serialno,
                                                           void * user_data);
   void (*shutdown)(void *user_data);
   int size;
@@ -247,7 +247,7 @@ static inline void _free(void *x) {
   free(x);
 }
 
-static inline void *_malloc(int s) { 
+static inline void *_malloc(int s) {
   void *x;
   printf("%d ", s);
   x = malloc(s);

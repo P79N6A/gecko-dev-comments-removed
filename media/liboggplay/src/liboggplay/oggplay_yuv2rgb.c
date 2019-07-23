@@ -52,7 +52,7 @@
 
 
 
- 
+
 
 #if defined(__MMX__) || defined(__SSE__) || defined(__SSE2__) || defined(__SSE3__)
 
@@ -69,7 +69,7 @@
 
 void oggplay_yuv2rgb(OggPlayYUVChannels * yuv, OggPlayRGBChannels * rgb) {
 
-  int               i;      
+  int               i;
   unsigned char   * restrict ptry;
   unsigned char   * restrict ptru;
   unsigned char   * restrict ptrv;
@@ -79,8 +79,8 @@ void oggplay_yuv2rgb(OggPlayYUVChannels * yuv, OggPlayRGBChannels * rgb) {
   register __m64    r, g, b;
   register __m64    tmp, tmp2;
 
-  zero = _mm_setzero_si64();  
-  
+  zero = _mm_setzero_si64();
+
   ptry = yuv->ptry;
   ptru = yuv->ptru;
   ptrv = yuv->ptrv;
@@ -92,17 +92,17 @@ void oggplay_yuv2rgb(OggPlayYUVChannels * yuv, OggPlayRGBChannels * rgb) {
     for (j = 0; j < yuv->y_width; j += 8) {
 
       y = (__m64*)&ptry[j];
-      
+
       ut = _m_from_int(*(int *)(ptru + j/2));
       vt = _m_from_int(*(int *)(ptrv + j/2));
 
       
       
-      
+
       ut = _m_punpcklbw(ut, zero);
       vt = _m_punpcklbw(vt, zero);
- 
-       
+
+      
       imm = _mm_set1_pi16(128);
       ut = _m_psubw(ut, imm);
       vt = _m_psubw(vt, imm);
@@ -116,20 +116,20 @@ void oggplay_yuv2rgb(OggPlayYUVChannels * yuv, OggPlayRGBChannels * rgb) {
       r = _m_pmullw(vt, imm);
       imm = _mm_set1_pi16(-74);
       imm = _m_pmullw(vt, imm);
-      g = _m_paddsw(g, imm); 
+      g = _m_paddsw(g, imm);
 
       
       imm = _mm_set1_pi16(64);
       r = _m_paddsw(r, imm);
       g = _m_paddsw(g, imm);
       imm = _mm_set1_pi16(32);
-      b = _m_paddsw(b, imm);      
+      b = _m_paddsw(b, imm);
 
       
       r = _m_psrawi(r, 7);
       g = _m_psrawi(g, 7);
       b = _m_psrawi(b, 6);
-  
+
       
       imm = _mm_set1_pi16(16);
       r = _m_psubsw(r, imm);
@@ -137,15 +137,15 @@ void oggplay_yuv2rgb(OggPlayYUVChannels * yuv, OggPlayRGBChannels * rgb) {
       b = _m_psubsw(b, imm);
 
       y = (__m64*)&ptry[j];
+
       
-      
 
 
 
 
 
 
-      tmp = _m_punpckhwd(r, r); 
+      tmp = _m_punpckhwd(r, r);
       imm = _m_punpckhbw(*y, zero);
       
       tmp = _m_paddsw(tmp, imm);
@@ -153,20 +153,20 @@ void oggplay_yuv2rgb(OggPlayYUVChannels * yuv, OggPlayRGBChannels * rgb) {
       imm2 = _m_punpcklbw(*y, zero);
       tmp2 = _m_paddsw(tmp2, imm2);
       r = _m_packuswb(tmp2, tmp);
-      
+
       tmp = _m_punpckhwd(g, g);
       tmp2 = _m_punpcklwd(g, g);
       tmp = _m_paddsw(tmp, imm);
       tmp2 = _m_paddsw(tmp2, imm2);
       g = _m_packuswb(tmp2, tmp);
-      
+
       tmp = _m_punpckhwd(b, b);
       tmp2 = _m_punpcklwd(b, b);
       tmp = _m_paddsw(tmp, imm);
       tmp2 = _m_paddsw(tmp2, imm2);
       b = _m_packuswb(tmp2, tmp);
       
-      
+
       
 
 
@@ -199,7 +199,7 @@ void oggplay_yuv2rgb(OggPlayYUVChannels * yuv, OggPlayRGBChannels * rgb) {
 
 void oggplay_yuv2bgr(OggPlayYUVChannels * yuv, OggPlayRGBChannels * rgb) {
 
-  int               i;      
+  int               i;
   unsigned char   * restrict ptry;
   unsigned char   * restrict ptru;
   unsigned char   * restrict ptrv;
@@ -209,8 +209,8 @@ void oggplay_yuv2bgr(OggPlayYUVChannels * yuv, OggPlayRGBChannels * rgb) {
   register __m64    r, g, b;
   register __m64    tmp, tmp2;
 
-  zero = _mm_setzero_si64();  
-  
+  zero = _mm_setzero_si64();
+
   ptry = yuv->ptry;
   ptru = yuv->ptru;
   ptrv = yuv->ptrv;
@@ -222,17 +222,17 @@ void oggplay_yuv2bgr(OggPlayYUVChannels * yuv, OggPlayRGBChannels * rgb) {
     for (j = 0; j < yuv->y_width; j += 8) {
 
       y = (__m64*)&ptry[j];
-      
+
       ut = _m_from_int(*(int *)(ptru + j/2));
       vt = _m_from_int(*(int *)(ptrv + j/2));
 
       
       
-      
+
       ut = _m_punpcklbw(ut, zero);
       vt = _m_punpcklbw(vt, zero);
- 
-       
+
+      
       imm = _mm_set1_pi16(128);
       ut = _m_psubw(ut, imm);
       vt = _m_psubw(vt, imm);
@@ -246,20 +246,20 @@ void oggplay_yuv2bgr(OggPlayYUVChannels * yuv, OggPlayRGBChannels * rgb) {
       r = _m_pmullw(vt, imm);
       imm = _mm_set1_pi16(-74);
       imm = _m_pmullw(vt, imm);
-      g = _m_paddsw(g, imm); 
+      g = _m_paddsw(g, imm);
 
       
       imm = _mm_set1_pi16(64);
       r = _m_paddsw(r, imm);
       g = _m_paddsw(g, imm);
       imm = _mm_set1_pi16(32);
-      b = _m_paddsw(b, imm);      
+      b = _m_paddsw(b, imm);
 
       
       r = _m_psrawi(r, 7);
       g = _m_psrawi(g, 7);
       b = _m_psrawi(b, 6);
-  
+
       
       imm = _mm_set1_pi16(16);
       r = _m_psubsw(r, imm);
@@ -267,15 +267,15 @@ void oggplay_yuv2bgr(OggPlayYUVChannels * yuv, OggPlayRGBChannels * rgb) {
       b = _m_psubsw(b, imm);
 
       y = (__m64*)&ptry[j];
+
       
-      
 
 
 
 
 
 
-      tmp = _m_punpckhwd(r, r); 
+      tmp = _m_punpckhwd(r, r);
       imm = _m_punpckhbw(*y, zero);
       
       tmp = _m_paddsw(tmp, imm);
@@ -283,20 +283,20 @@ void oggplay_yuv2bgr(OggPlayYUVChannels * yuv, OggPlayRGBChannels * rgb) {
       imm2 = _m_punpcklbw(*y, zero);
       tmp2 = _m_paddsw(tmp2, imm2);
       r = _m_packuswb(tmp2, tmp);
-      
+
       tmp = _m_punpckhwd(g, g);
       tmp2 = _m_punpcklwd(g, g);
       tmp = _m_paddsw(tmp, imm);
       tmp2 = _m_paddsw(tmp2, imm2);
       g = _m_packuswb(tmp2, tmp);
-      
+
       tmp = _m_punpckhwd(b, b);
       tmp2 = _m_punpcklwd(b, b);
       tmp = _m_paddsw(tmp, imm);
       tmp2 = _m_paddsw(tmp2, imm2);
       b = _m_packuswb(tmp2, tmp);
       
-      
+
       
 
 
@@ -359,7 +359,7 @@ void oggplay_yuv2rgb(OggPlayYUVChannels * yuv, OggPlayRGBChannels * rgb) {
 
       short pr, pg, pb;
       short r, g, b;
-      
+
     
       pr = (-41344 + ptrv[j/2] * 292) >> 8;
     
@@ -376,11 +376,11 @@ void oggplay_yuv2rgb(OggPlayYUVChannels * yuv, OggPlayRGBChannels * rgb) {
       *ptro2++ = CLAMP(g);
       *ptro2++ = CLAMP(b);
       *ptro2++ = 255;
-      
+
       r = ptry[j + 1] + pr;
       g = ptry[j + 1] + pg;
       b = ptry[j + 1] + pb;
-      
+
       *ptro2++ = CLAMP(r);
       *ptro2++ = CLAMP(g);
       *ptro2++ = CLAMP(b);
@@ -411,7 +411,7 @@ void oggplay_yuv2bgr(OggPlayYUVChannels * yuv, OggPlayRGBChannels * rgb) {
 
       short pr, pg, pb;
       short r, g, b;
-      
+
     
       pr = (-41344 + ptrv[j/2] * 292) >> 8;
     
@@ -428,11 +428,11 @@ void oggplay_yuv2bgr(OggPlayYUVChannels * yuv, OggPlayRGBChannels * rgb) {
       *ptro2++ = CLAMP(g);
       *ptro2++ = CLAMP(r);
       *ptro2++ = 255;
-      
+
       r = ptry[j + 1] + pr;
       g = ptry[j + 1] + pg;
       b = ptry[j + 1] + pb;
-      
+
       *ptro2++ = CLAMP(b);
       *ptro2++ = CLAMP(g);
       *ptro2++ = CLAMP(r);

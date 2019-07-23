@@ -8,7 +8,7 @@
 #define HAVE_FISHSOUND 
 
 
-
+#define HAVE_GLUT 
 
 
 
@@ -85,3 +85,4 @@
 
 
 
+#undef HAVE_GLUT

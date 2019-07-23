@@ -30,13 +30,13 @@
 
 
 
-    
+
 
 #ifndef _STD_SEMAPHORE_H
 #define _STD_SEMAPHORE_H
 #if defined(linux)
 #include <semaphore.h>
-#define SEM_CREATE(p,s) sem_init(&(p), 1, s) 
+#define SEM_CREATE(p,s) sem_init(&(p), 1, s)
 #define SEM_SIGNAL(p)   sem_post(&(p))
 #define SEM_WAIT(p)     sem_wait(&(p))
 #define SEM_CLOSE(p)    sem_destroy(&(p))

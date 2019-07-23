@@ -56,7 +56,7 @@ oggplay_sys_time_in_ms(void) {
 
 void
 oggplay_millisleep(long ms) {
-#ifdef WIN32	
+#ifdef WIN32
   Sleep(ms);
 #else
   struct timespec ts = {0, (ogg_int64_t)ms * 1000000LL};

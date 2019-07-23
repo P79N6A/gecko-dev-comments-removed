@@ -79,9 +79,9 @@ oggplay_data_initialise_list (OggPlayDecode *decode) {
 
 void
 oggplay_data_add_to_list_end(OggPlayDecode *decode, OggPlayDataHeader *data) {
-  
+
   data->next = NULL;
-  
+
   if (decode->data_list == NULL) {
     decode->data_list = data;
     decode->end_of_data_list = data;
@@ -90,7 +90,7 @@ oggplay_data_add_to_list_end(OggPlayDecode *decode, OggPlayDataHeader *data) {
     decode->end_of_data_list = data;
   }
 
-} 
+}
 
 #define M(x) ((x) >> 32)
 
@@ -117,25 +117,25 @@ _print_list(char *name, OggPlayDataHeader *p) {
     }
     printf("\n");
 }
- 
+
 
 void
 oggplay_data_add_to_list (OggPlayDecode *decode, OggPlayDataHeader *data) {
-  
+
   
 
 
 
-  
+
   ogg_int64_t samples_in_next_in_list;
- 
+
   
   
-  
+
   if (data->presentation_time == -1) {
     data->next = decode->untimed_data_list;
     decode->untimed_data_list = data;
-  } else { 
+  } else {
     
 
 
@@ -143,17 +143,17 @@ oggplay_data_add_to_list (OggPlayDecode *decode, OggPlayDataHeader *data) {
 
     ogg_int64_t presentation_time         = data->presentation_time;
     samples_in_next_in_list               = data->samples_in_record;
-    
+
 
     while (decode->untimed_data_list != NULL) {
       OggPlayDataHeader *untimed = decode->untimed_data_list;
 
-      presentation_time -= 
+      presentation_time -=
                 samples_in_next_in_list * decode->granuleperiod;
-      untimed->presentation_time = presentation_time; 
+      untimed->presentation_time = presentation_time;
       decode->untimed_data_list = untimed->next;
       samples_in_next_in_list = untimed->samples_in_record;
-     
+
       if (untimed->presentation_time >= decode->player->presentation_time) {
         oggplay_data_add_to_list_front(decode, untimed);
       } else {
@@ -173,9 +173,9 @@ oggplay_data_add_to_list (OggPlayDecode *decode, OggPlayDataHeader *data) {
     if (decode->stream_info == OGGPLAY_STREAM_UNINITIALISED) {
       decode->stream_info = OGGPLAY_STREAM_FIRST_DATA;
     }
-      
+
   }
-  
+
   
   
 
@@ -198,7 +198,7 @@ oggplay_data_shutdown_list (OggPlayDecode *decode) {
   oggplay_data_free_list(decode->data_list);
   oggplay_data_free_list(decode->untimed_data_list);
 
-}  
+}
 
 
 
@@ -214,7 +214,7 @@ oggplay_data_clean_list (OggPlayDecode *decode) {
   OggPlayDataHeader * p      = NULL;
 
   while (header != NULL) {
-    if 
+    if
     (
       header->lock == 0
       &&
@@ -230,7 +230,7 @@ oggplay_data_clean_list (OggPlayDecode *decode) {
         )
       )
 
-    ) 
+    )
     {
       if (p == NULL) {
         decode->data_list = decode->data_list->next;
@@ -253,7 +253,7 @@ oggplay_data_clean_list (OggPlayDecode *decode) {
 }
 
 void
-oggplay_data_initialise_header (OggPlayDecode *decode, 
+oggplay_data_initialise_header (OggPlayDecode *decode,
                 OggPlayDataHeader *header) {
   
 
@@ -267,20 +267,20 @@ oggplay_data_initialise_header (OggPlayDecode *decode,
 }
 
 void
-oggplay_data_handle_audio_data (OggPlayDecode *decode, void *data, 
+oggplay_data_handle_audio_data (OggPlayDecode *decode, void *data,
       int samples, int samplesize) {
 
   int                   num_channels;
   OggPlayAudioRecord  * record;
- 
+
   num_channels = ((OggPlayAudioDecode *)decode)->sound_info.channels;
-  record = (OggPlayAudioRecord*)calloc(sizeof(OggPlayAudioRecord) + 
+  record = (OggPlayAudioRecord*)calloc(sizeof(OggPlayAudioRecord) +
                   samples * samplesize * num_channels, 1);
 
   oggplay_data_initialise_header(decode, &(record->header));
 
   record->header.samples_in_record = samples;
-  
+
   record->data = (void *)(record + 1);
 
   memcpy(record->data, data, samples * samplesize * num_channels);
@@ -292,12 +292,12 @@ oggplay_data_handle_audio_data (OggPlayDecode *decode, void *data,
 }
 
 void
-oggplay_data_handle_cmml_data(OggPlayDecode *decode, unsigned char *data, 
+oggplay_data_handle_cmml_data(OggPlayDecode *decode, unsigned char *data,
                 int size) {
 
   OggPlayTextRecord * record;
-  
-  record = 
+
+  record =
       (OggPlayTextRecord*)calloc (sizeof(OggPlayTextRecord) + size + 1, 1);
   oggplay_data_initialise_header(decode, &(record->header));
 
@@ -308,11 +308,11 @@ oggplay_data_handle_cmml_data(OggPlayDecode *decode, unsigned char *data,
   record->data[size] = '\0';
 
   oggplay_data_add_to_list(decode, &(record->header));
-  
+
 }
 
 void
-oggplay_data_handle_theora_frame (OggPlayTheoraDecode *decode, 
+oggplay_data_handle_theora_frame (OggPlayTheoraDecode *decode,
                                     yuv_buffer *buffer) {
 
   int                   size = sizeof (OggPlayVideoRecord);
@@ -323,7 +323,7 @@ oggplay_data_handle_theora_frame (OggPlayTheoraDecode *decode,
   unsigned char       * q2;
   OggPlayVideoRecord  * record;
   OggPlayVideoData    * data;
-  
+
   if (buffer->y_stride < 0) {
     size -= buffer->y_stride * buffer->y_height;
     size -= buffer->uv_stride * buffer->uv_height * 2;
@@ -331,7 +331,7 @@ oggplay_data_handle_theora_frame (OggPlayTheoraDecode *decode,
     size += buffer->y_stride * buffer->y_height;
     size += buffer->uv_stride * buffer->uv_height * 2;
   }
- 
+
   
 
 
@@ -344,7 +344,7 @@ oggplay_data_handle_theora_frame (OggPlayTheoraDecode *decode,
   data->y = (unsigned char *)(record + 1);
   data->u = data->y + (decode->y_stride * decode->y_height);
   data->v = data->u + (decode->uv_stride * decode->uv_height);
-  
+
   
 
 
@@ -380,7 +380,7 @@ oggplay_data_handle_kate_data(OggPlayKateDecode *decode, const kate_event *ev) {
   
 
   OggPlayTextRecord * record;
-  
+
   record = (OggPlayTextRecord*)calloc (sizeof(OggPlayTextRecord) + ev->len0, 1);
   oggplay_data_initialise_header(&decode->decoder, &(record->header));
 
