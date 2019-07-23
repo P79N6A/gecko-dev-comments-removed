@@ -2438,6 +2438,9 @@ BEGIN_CASE(JSOP_OBJECT)
 END_CASE(JSOP_OBJECT)
 
 BEGIN_CASE(JSOP_REGEXP)
+{
+    JSObject *funobj;
+
     
 
 
@@ -2447,12 +2450,105 @@ BEGIN_CASE(JSOP_REGEXP)
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     index = GET_FULL_INDEX(0);
-    obj = js_CloneRegExpObject(cx, script->getRegExp(index), NULL);
-    if (!obj)
-        goto error;
-    rval = OBJECT_TO_JSVAL(obj);
+    JS_ASSERT(index < script->regexps()->length);
+
+    slot = index;
+    if (fp->fun) {
+        
+
+
+
+
+
+        funobj = JSVAL_TO_OBJECT(fp->argv[-2]);
+        slot += JSCLASS_RESERVED_SLOTS(&js_FunctionClass);
+        if (script->upvarsOffset != 0)
+            slot += script->upvars()->length;
+        if (!JS_GetReservedSlot(cx, funobj, slot, &rval))
+            goto error;
+        if (JSVAL_IS_VOID(rval))
+            rval = JSVAL_NULL;
+    } else {
+        
+
+
+
+
+
+
+        JS_ASSERT(slot < script->nfixed);
+        slot = script->nfixed - slot - 1;
+        rval = fp->slots[slot];
+#ifdef __GNUC__
+        funobj = NULL;  
+#endif
+    }
+
+    if (JSVAL_IS_NULL(rval)) {
+        
+        obj2 = fp->scopeChain;
+        while ((parent = OBJ_GET_PARENT(cx, obj2)) != NULL)
+            obj2 = parent;
+
+        
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        obj = script->getRegExp(index);
+        if (OBJ_GET_PARENT(cx, obj) != obj2) {
+            obj = js_CloneRegExpObject(cx, obj, obj2);
+            if (!obj)
+                goto error;
+        }
+        rval = OBJECT_TO_JSVAL(obj);
+
+        
+        if (fp->fun) {
+            if (!JS_SetReservedSlot(cx, funobj, slot, rval))
+                goto error;
+        } else {
+            fp->slots[slot] = rval;
+        }
+    }
+
     PUSH_OPND(rval);
+}
 END_CASE(JSOP_REGEXP)
 
 BEGIN_CASE(JSOP_ZERO)
