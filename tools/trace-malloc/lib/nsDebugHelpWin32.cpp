@@ -222,8 +222,12 @@ static BOOL CALLBACK ModuleEnumCallback(PCSTR ModuleName,
 PRBool 
 DHWImportHooker::PatchAllModules()
 {
+    
+    
+    
+    
     return dhwEnumerateLoadedModules(::GetCurrentProcess(), 
-                                     ModuleEnumCallback, this);
+               (PENUMLOADED_MODULES_CALLBACK)ModuleEnumCallback, this);
 }    
                                 
 PRBool 

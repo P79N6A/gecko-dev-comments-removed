@@ -811,7 +811,12 @@ BOOL SymGetModuleInfoEspecial(HANDLE aProcess, DWORD aAddr, PIMAGEHLP_MODULE aMo
 
 
 
-        enumRes = _EnumerateLoadedModules(aProcess, callbackEspecial, (PVOID)&aAddr);
+        
+        
+        
+        
+        
+        enumRes = _EnumerateLoadedModules(aProcess, (PENUMLOADED_MODULES_CALLBACK)callbackEspecial, (PVOID)&aAddr);
         if (FALSE != enumRes)
         {
             
@@ -878,7 +883,12 @@ BOOL SymGetModuleInfoEspecial64(HANDLE aProcess, DWORD64 aAddr, PIMAGEHLP_MODULE
 
 
 
-        enumRes = _EnumerateLoadedModules64(aProcess, callbackEspecial64, (PVOID)&aAddr);
+        
+        
+        
+        
+        
+        enumRes = _EnumerateLoadedModules64(aProcess, (PENUMLOADED_MODULES_CALLBACK64)callbackEspecial64, (PVOID)&aAddr);
         if (FALSE != enumRes)
         {
             
