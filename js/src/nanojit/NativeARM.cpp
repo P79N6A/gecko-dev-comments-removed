@@ -107,7 +107,7 @@ Assembler::CountLeadingZeroes(uint32_t data)
     
     
     
-    NanoAssert(ARM_ARCH >= 5);
+    NanoAssert(config.arm_arch >= 5);
 
 #if defined(__ARMCC__)
     
@@ -559,7 +559,7 @@ Assembler::genEpilogue()
 {
     
     
-    NanoAssert(ARM_ARCH >= 5);
+    NanoAssert(config.arm_arch >= 5);
 
     RegisterMask savingMask = rmask(FP) | rmask(PC);
 
@@ -631,11 +631,11 @@ Assembler::asm_arg_64(LInsp arg, Register& r, int& stkd)
     NanoAssert((stkd & 3) == 0);
     
     
-    NanoAssert(ARM_VFP || arg->isop(LIR_qjoin));
+    NanoAssert(config.arm_vfp || arg->isop(LIR_qjoin));
 
     Register    fp_reg = deprecated_UnknownReg;
 
-    if (ARM_VFP) {
+    if (config.arm_vfp) {
         fp_reg = findRegFor(arg, FpRegs);
         NanoAssert(isKnownReg(fp_reg));
     }
@@ -665,7 +665,7 @@ Assembler::asm_arg_64(LInsp arg, Register& r, int& stkd)
         
         
         
-        if (ARM_VFP) {
+        if (config.arm_vfp) {
             FMRRD(ra, rb, fp_reg);
         } else {
             asm_regarg(ARGSIZE_LO, arg->oprnd1(), ra);
@@ -688,7 +688,7 @@ Assembler::asm_arg_64(LInsp arg, Register& r, int& stkd)
         
         NanoAssert(stkd == 0);
 
-        if (ARM_VFP) {
+        if (config.arm_vfp) {
             
             
             
@@ -775,7 +775,7 @@ Assembler::asm_stkarg(LInsp arg, int stkd)
     if (arg->isUsed() && (rr = arg->deprecated_getReg(), isKnownReg(rr))) {
         
         
-        if (!ARM_VFP || !isF64) {
+        if (!config.arm_vfp || !isF64) {
             NanoAssert(IsGpReg(rr));
 
             STR(rr, SP, stkd);
@@ -786,7 +786,7 @@ Assembler::asm_stkarg(LInsp arg, int stkd)
             
             
             
-            NanoAssert(ARM_VFP);
+            NanoAssert(config.arm_vfp);
             NanoAssert(IsFpReg(rr));
 
 #ifdef NJ_ARM_EABI
@@ -824,7 +824,7 @@ Assembler::asm_stkarg(LInsp arg, int stkd)
 void
 Assembler::asm_call(LInsp ins)
 {
-    if (ARM_VFP && ins->isop(LIR_fcall)) {
+    if (config.arm_vfp && ins->isop(LIR_fcall)) {
         
 
 
@@ -862,13 +862,13 @@ Assembler::asm_call(LInsp ins)
 
     
     
-    NanoAssert(ARM_VFP || ins->isop(LIR_icall));
+    NanoAssert(config.arm_vfp || ins->isop(LIR_icall));
 
     
     
     
     
-    if (ARM_VFP && ins->isUsed()) {
+    if (config.arm_vfp && ins->isUsed()) {
         
         ArgSize rsize = (ArgSize)(call->_argtypes & ARGSIZE_MASK_ANY);
 
@@ -971,7 +971,7 @@ Assembler::nRegisterResetAll(RegAlloc& a)
         rmask(R0) | rmask(R1) | rmask(R2) | rmask(R3) | rmask(R4) |
         rmask(R5) | rmask(R6) | rmask(R7) | rmask(R8) | rmask(R9) |
         rmask(R10) | rmask(LR);
-    if (ARM_VFP)
+    if (config.arm_vfp)
         a.free |= FpRegs;
 
     debug_only(a.managed = a.free);
@@ -1256,7 +1256,7 @@ Assembler::asm_restore(LInsp i, Register r)
         
         
         int d = findMemFor(i);
-        if (ARM_VFP && IsFpReg(r)) {
+        if (config.arm_vfp && IsFpReg(r)) {
             if (isS8(d >> 2)) {
                 FLDD(r, FP, d);
             } else {
@@ -1287,7 +1287,7 @@ Assembler::asm_spill(Register rr, int d, bool pop, bool quad)
     (void) pop;
     (void) quad;
     if (d) {
-        if (ARM_VFP && IsFpReg(rr)) {
+        if (config.arm_vfp && IsFpReg(rr)) {
             if (isS8(d >> 2)) {
                 FSTD(rr, FP, d);
             } else {
@@ -1336,7 +1336,7 @@ Assembler::asm_load64(LInsp ins)
     switch (ins->opcode()) {
         case LIR_ldf:
         case LIR_ldfc:
-            if (ARM_VFP && isKnownReg(rr)) {
+            if (config.arm_vfp && isKnownReg(rr)) {
                 
                 NanoAssert(IsFpReg(rr));
 
@@ -1363,7 +1363,7 @@ Assembler::asm_load64(LInsp ins)
 
         case LIR_ld32f:
         case LIR_ldc32f:
-            if (ARM_VFP) {
+            if (config.arm_vfp) {
                 if (isKnownReg(rr)) {
                     NanoAssert(IsFpReg(rr));
                     FCVTDS(rr, S14);
@@ -1409,7 +1409,7 @@ Assembler::asm_store64(LOpcode op, LInsp value, int dr, LInsp base)
 
     switch (op) {
         case LIR_stfi:
-            if (ARM_VFP) {
+            if (config.arm_vfp) {
                 Register rb = findRegFor(base, GpRegs);
 
                 if (value->isconstq()) {
@@ -1458,7 +1458,7 @@ Assembler::asm_store64(LOpcode op, LInsp value, int dr, LInsp base)
             return;
 
         case LIR_st32f:
-            if (ARM_VFP) {
+            if (config.arm_vfp) {
                 Register rb = findRegFor(base, GpRegs);
 
                 if (value->isconstq()) {
@@ -1546,7 +1546,7 @@ Assembler::asm_quad(LInsp ins)
 
     deprecated_freeRsrcOf(ins, false);
 
-    if (ARM_VFP && isKnownReg(rr))
+    if (config.arm_vfp && isKnownReg(rr))
     {
         asm_spill(rr, d, false, true);
 
@@ -1570,7 +1570,7 @@ Assembler::asm_quad(LInsp ins)
 void
 Assembler::asm_nongp_copy(Register r, Register s)
 {
-    if (ARM_VFP && IsFpReg(r) && IsFpReg(s)) {
+    if (config.arm_vfp && IsFpReg(r) && IsFpReg(s)) {
         
         FCPYD(r, s);
     } else {
@@ -1820,7 +1820,7 @@ Assembler::BranchWithLink(NIns* addr)
             
             
             
-            NanoAssert(ARM_ARCH >= 5);
+            NanoAssert(config.arm_arch >= 5);
 
             
             uint32_t    H = (offs & 0x2) << 23;
@@ -1847,7 +1847,7 @@ Assembler::BLX(Register addr, bool chk )
     
     
     
-    NanoAssert(ARM_ARCH >= 5);
+    NanoAssert(config.arm_arch >= 5);
 
     NanoAssert(IsGpReg(addr));
     
@@ -1872,7 +1872,7 @@ Assembler::BLX(Register addr, bool chk )
 void
 Assembler::asm_ldr_chk(Register d, Register b, int32_t off, bool chk)
 {
-    if (ARM_VFP && IsFpReg(d)) {
+    if (config.arm_vfp && IsFpReg(d)) {
         FLDD_chk(d,b,off,chk);
         return;
     }
@@ -1947,7 +1947,7 @@ Assembler::asm_ld_imm(Register d, int32_t imm, bool chk )
     
     
     
-    if (ARM_THUMB2 && (d != PC)) {
+    if (config.arm_thumb2 && (d != PC)) {
         
         uint32_t    high_h = (uint32_t)imm >> 16;
         uint32_t    low_h = imm & 0xffff;
@@ -2190,7 +2190,7 @@ Assembler::asm_branch(bool branchOnFalse, LInsp cond, NIns* targ)
 {
     LOpcode condop = cond->opcode();
     NanoAssert(cond->isCond());
-    NanoAssert(ARM_VFP || ((condop < LIR_feq) || (condop > LIR_fge)));
+    NanoAssert(config.arm_vfp || ((condop < LIR_feq) || (condop > LIR_fge)));
 
     
     
@@ -2243,7 +2243,7 @@ Assembler::asm_branch(bool branchOnFalse, LInsp cond, NIns* targ)
     NanoAssert((cc != AL) && (cc != NV));
 
     
-    NanoAssert(ARM_VFP || !fp_cond);
+    NanoAssert(config.arm_vfp || !fp_cond);
 
     
     B_cond(cc, targ);
@@ -2252,7 +2252,7 @@ Assembler::asm_branch(bool branchOnFalse, LInsp cond, NIns* targ)
     
     NIns *at = _nIns;
 
-    if (ARM_VFP && fp_cond)
+    if (config.arm_vfp && fp_cond)
         asm_fcmp(cond);
     else
         asm_cmp(cond);
@@ -2463,7 +2463,7 @@ Assembler::asm_arith(LInsp ins)
             
             
 
-            if ((ARM_ARCH > 5) || (rr != rb)) {
+            if ((config.arm_arch > 5) || (rr != rb)) {
                 
                 
                 
@@ -2742,7 +2742,7 @@ Assembler::asm_ret(LIns *ins)
     }
     else {
         NanoAssert(ins->isop(LIR_fret));
-        if (ARM_VFP) {
+        if (config.arm_vfp) {
             Register reg = findRegFor(value, FpRegs);
             FMRRD(R0, R1, reg);
         } else {

@@ -1476,11 +1476,12 @@ namespace nanojit
 
     class LirBufWriter : public LirWriter
     {
-        LirBuffer*    _buf;        
+        LirBuffer*              _buf;        
+        const avmplus::Config&  _config;
 
         public:
-            LirBufWriter(LirBuffer* buf)
-                : LirWriter(0), _buf(buf) {
+            LirBufWriter(LirBuffer* buf, const avmplus::Config& config)
+                : LirWriter(0), _buf(buf), _config(config) {
             }
 
             

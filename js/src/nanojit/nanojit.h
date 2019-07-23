@@ -71,21 +71,6 @@
 #endif
 
 
-#if !defined(ARM_VFP)
-    #ifdef AVMPLUS_ARM
-        #if defined(NJ_ARM_VFP)
-            #define ARM_VFP      1
-        #else
-            #define ARM_VFP      0
-        #endif
-    #else
-        
-        
-        #define ARM_VFP 1
-    #endif
-#endif
-
-
 #ifdef MOZ_VALGRIND
 #  define JS_VALGRIND
 #endif
