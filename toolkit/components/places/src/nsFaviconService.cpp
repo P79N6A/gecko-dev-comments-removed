@@ -1108,6 +1108,7 @@ FaviconLoadListener::OnStopRequest(nsIRequest *aRequest, nsISupports *aContext,
   PRTime expiration = PR_Now() +
                       (PRInt64)(24 * 60 * 60) * (PRInt64)PR_USEC_PER_SEC;
 
+  mozStorageTransaction transaction(mFaviconService->mDBConn, PR_FALSE);
   
   
   
@@ -1121,8 +1122,12 @@ FaviconLoadListener::OnStopRequest(nsIRequest *aRequest, nsISupports *aContext,
                                                      &hasData, &expiration);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  mFaviconService->SendFaviconNotifications(mPageURI, mFaviconURI);
   mFaviconService->UpdateBookmarkRedirectFavicon(mPageURI, mFaviconURI);
+
+  rv = transaction.Commit();
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  mFaviconService->SendFaviconNotifications(mPageURI, mFaviconURI);
   return NS_OK;
 }
 
