@@ -37,7 +37,6 @@
 
 #include "nsIDOMHTMLVideoElement.h"
 #include "nsHTMLMediaElement.h"
-#include "nsVideoDecoder.h"
 
 class nsHTMLVideoElement : public nsHTMLMediaElement,
                            public nsIDOMHTMLVideoElement
@@ -74,7 +73,6 @@ public:
   
   
   nsIntSize GetVideoSize(nsIntSize defaultSize);
-  double GetVideoFramerate();
 
 protected:
   virtual nsresult InitializeDecoder(nsAString& aChosenMediaResource);
