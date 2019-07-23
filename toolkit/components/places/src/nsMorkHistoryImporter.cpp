@@ -36,14 +36,12 @@
 
 
 
-#include "nsMorkHistoryImporter.h"
+#include "nsMorkReader.h"
 #include "nsNavHistory.h"
 #include "mozStorageHelper.h"
 #include "prprf.h"
 #include "nsNetUtil.h"
 #include "nsTArray.h"
-
-NS_IMPL_ISUPPORTS1(nsMorkHistoryImporter, nsIMorkHistoryImporter)
 
 
 enum {
@@ -96,10 +94,10 @@ SwapBytes(PRUnichar *buffer)
 }
 
 
- PLDHashOperator PR_CALLBACK
-nsMorkHistoryImporter::AddToHistoryCB(const nsCSubstring &aRowID,
-                                      const nsTArray<nsCString> *aValues,
-                                      void *aData)
+static PLDHashOperator PR_CALLBACK
+AddToHistoryCB(const nsCSubstring &aRowID,
+               const nsTArray<nsCString> *aValues,
+               void *aData)
 {
   TableReadClosure *data = static_cast<TableReadClosure*>(aData);
   const nsMorkReader *reader = data->reader;
@@ -170,11 +168,12 @@ nsMorkHistoryImporter::AddToHistoryCB(const nsCSubstring &aRowID,
 
 
 
+
+
 NS_IMETHODIMP
-nsMorkHistoryImporter::ImportHistory(nsIFile *aFile,
-                                     nsINavHistoryService *aHistory)
+nsNavHistory::ImportHistory(nsIFile* aFile)
 {
-  NS_ENSURE_TRUE(aFile && aHistory, NS_ERROR_NULL_POINTER);
+  NS_ENSURE_TRUE(aFile, NS_ERROR_NULL_POINTER);
 
   
   PRBool exists;
@@ -192,8 +191,7 @@ nsMorkHistoryImporter::ImportHistory(nsIFile *aFile,
   NS_ENSURE_SUCCESS(rv, rv);
 
   
-  nsNavHistory *history = static_cast<nsNavHistory*>(aHistory);
-  TableReadClosure data(&reader, history);
+  TableReadClosure data(&reader, this);
   const nsTArray<nsMorkReader::MorkColumn> &columns = reader.GetColumns();
   for (PRUint32 i = 0; i < columns.Length(); ++i) {
     const nsCSubstring &name = columns[i].name;
@@ -229,18 +227,18 @@ nsMorkHistoryImporter::ImportHistory(nsIFile *aFile,
   }
 
   
-  mozIStorageConnection *conn = history->GetStorageConnection();
+  mozIStorageConnection *conn = GetStorageConnection();
   NS_ENSURE_TRUE(conn, NS_ERROR_NOT_INITIALIZED);
   mozStorageTransaction transaction(conn, PR_FALSE);
 #ifdef IN_MEMORY_LINKS
-  mozIStorageConnection *memoryConn = history->GetMemoryStorageConnection();
+  mozIStorageConnection *memoryConn = GetMemoryStorageConnection();
   mozStorageTransaction memTransaction(memoryConn, PR_FALSE);
 #endif
 
   reader.EnumerateRows(AddToHistoryCB, &data);
 
   
-  rv = history->RemoveDuplicateURIs();
+  rv = RemoveDuplicateURIs();
   NS_ENSURE_SUCCESS(rv, rv);
 
 #ifdef IN_MEMORY_LINKS
