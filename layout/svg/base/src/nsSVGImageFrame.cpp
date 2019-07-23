@@ -85,7 +85,7 @@ protected:
 
 public:
   
-  NS_IMETHOD PaintSVG(nsSVGRenderState *aContext, nsIntRect *aDirtyRect);
+  NS_IMETHOD PaintSVG(nsSVGRenderState *aContext, const nsIntRect *aDirtyRect);
   NS_IMETHOD_(nsIFrame*) GetFrameForPoint(const nsPoint &aPoint);
 
   
@@ -224,7 +224,8 @@ nsSVGImageFrame::GetImageTransform()
 
 
 NS_IMETHODIMP
-nsSVGImageFrame::PaintSVG(nsSVGRenderState *aContext, nsIntRect *aDirtyRect)
+nsSVGImageFrame::PaintSVG(nsSVGRenderState *aContext,
+                          const nsIntRect *aDirtyRect)
 {
   nsresult rv = NS_OK;
 

@@ -53,6 +53,9 @@ class nsIDOMSVGMatrix;
 class nsSVGIntegrationUtils
 {
 public:
+  
+
+
   static PRBool
   UsingEffectsForFrame(const nsIFrame* aFrame);
 

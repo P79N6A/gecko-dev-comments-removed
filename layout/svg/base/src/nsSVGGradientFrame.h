@@ -79,12 +79,6 @@ public:
   }
 #endif 
 
-  
-  NS_IMETHOD PaintSVG(gfxContext* aContext)
-  {
-    return NS_OK;  
-  }
-
 private:
 
   

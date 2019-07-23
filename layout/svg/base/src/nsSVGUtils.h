@@ -333,8 +333,8 @@ public:
   
 
   static void
-  PaintChildWithEffects(nsSVGRenderState *aContext,
-                        nsIntRect *aDirtyRect,
+  PaintFrameWithEffects(nsSVGRenderState *aContext,
+                        const nsIntRect *aDirtyRect,
                         nsIFrame *aFrame);
 
   
