@@ -54,6 +54,9 @@ nsDOMMouseEvent::nsDOMMouseEvent(nsPresContext* aPresContext,
   
   
   if (aEvent) {
+    NS_ASSERTION(static_cast<nsMouseEvent*>(mEvent)->reason
+                 != nsMouseEvent::eSynthesized,
+                 "Don't dispatch DOM events from synthesized mouse events");
     mEventIsInternal = PR_FALSE;
   }
   else {
