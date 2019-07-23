@@ -393,7 +393,24 @@ public:
   NPDrawingModel GetDrawingModel();
   WindowRef FixUpPluginWindow(PRInt32 inPaintState);
   void GUItoMacEvent(const nsGUIEvent& anEvent, EventRecord* origEvent, EventRecord& aMacEvent);
-  void SetCGContextChanged(PRBool aState) { mCGContextChanged = aState; }
+  
+  
+  void SetPluginPortChanged(PRBool aState) { mPluginPortChanged = aState; }
+  
+  
+  nsPluginPort* GetPluginPortCopy() { return &mPluginPortCopy; }
+  
+  
+  
+  
+  nsPluginPort* SetPluginPortAndDetectChange();
+  
+  
+  
+  
+  
+  void BeginCGPaint();
+  void EndCGPaint();
 #endif
 
   void SetOwner(nsObjectFrame *aOwner)
@@ -454,13 +471,18 @@ private:
   nsCOMPtr<nsITimer>          mPluginTimer;
   nsCOMPtr<nsIPluginHost>     mPluginHost;
 
+#ifdef XP_MACOSX
+  nsPluginPort                mPluginPortCopy;
+  PRInt32                     mInCGPaintLevel;
+#endif
+
   
   
   
   PRUint32                    mLastEventloopNestingLevel;
   PRPackedBool                mContentFocused;
   PRPackedBool                mWidgetVisible;    
-  PRPackedBool                mCGContextChanged;
+  PRPackedBool                mPluginPortChanged;
 
   
   
@@ -1353,30 +1375,47 @@ nsObjectFrame::PaintPlugin(nsIRenderingContext& aRenderingContext,
         return;
       }
 
-      
-      
-      
-      
-      nsPluginPort* pluginPort = mInstanceOwner->GetPluginPort();
       nsCOMPtr<nsIPluginInstance> inst;
       GetPluginInstance(*getter_AddRefs(inst));
       if (!inst) {
         NS_WARNING("null plugin instance during PaintPlugin");
+        nativeDrawing.EndNativeDrawing();
         return;
       }
       nsPluginWindow* window;
       mInstanceOwner->GetWindow(window);
       if (!window) {
         NS_WARNING("null plugin window during PaintPlugin");
+        nativeDrawing.EndNativeDrawing();
         return;
       }
+      nsPluginPort* pluginPortCopy = mInstanceOwner->GetPluginPortCopy();
+      if (!pluginPortCopy) {
+        NS_WARNING("null plugin port copy during PaintPlugin");
+        nativeDrawing.EndNativeDrawing();
+        return;
+      }
+      if (!mInstanceOwner->SetPluginPortAndDetectChange()) {
+        NS_WARNING("null plugin port during PaintPlugin");
+        nativeDrawing.EndNativeDrawing();
+        return;
+      }
+      
+      
+      
+      
+      
+      
+      
       if (window->window->cgPort.context != cgContext) {
-        pluginPort->cgPort.context = cgContext;
-        window->window = pluginPort;
-        mInstanceOwner->SetCGContextChanged(PR_TRUE);
+        window->window->cgPort.context = cgContext;
+        pluginPortCopy->cgPort.context = cgContext;
+        mInstanceOwner->SetPluginPortChanged(PR_TRUE);
       }
 
+      mInstanceOwner->BeginCGPaint();
       mInstanceOwner->Paint(aDirtyRect);
+      mInstanceOwner->EndCGPaint();
 
       nativeDrawing.EndNativeDrawing();
     } else {
@@ -2198,9 +2237,13 @@ nsPluginInstanceOwner::nsPluginInstanceOwner()
 
   mOwner = nsnull;
   mTagText = nsnull;
+#ifdef XP_MACOSX
+  memset(&mPluginPortCopy, 0, sizeof(nsPluginPort));
+  mInCGPaintLevel = 0;
+#endif
   mContentFocused = PR_FALSE;
   mWidgetVisible = PR_TRUE;
-  mCGContextChanged = PR_FALSE;
+  mPluginPortChanged = PR_FALSE;
   mNumCachedAttrs = 0;
   mNumCachedParams = 0;
   mCachedAttrParamNames = nsnull;
@@ -3249,6 +3292,60 @@ void nsPluginInstanceOwner::GUItoMacEvent(const nsGUIEvent& anEvent, EventRecord
         aMacEvent.what = nsPluginEventType_AdjustCursorEvent;
         break;
   }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+nsPluginPort* nsPluginInstanceOwner::SetPluginPortAndDetectChange()
+{
+  if (!mPluginWindow)
+    return nsnull;
+  nsPluginPort* pluginPort = GetPluginPort();
+  if (!pluginPort)
+    return nsnull;
+  mPluginWindow->window = pluginPort;
+
+  NPDrawingModel drawingModel = GetDrawingModel();
+
+#ifndef NP_NO_QUICKDRAW
+  if (drawingModel == NPDrawingModelQuickDraw) {
+    if (mPluginWindow->window->qdPort.port != mPluginPortCopy.qdPort.port) {
+      mPluginPortCopy.qdPort.port = mPluginWindow->window->qdPort.port;
+      mPluginPortChanged = PR_TRUE;
+    }
+  } else if (drawingModel == NPDrawingModelCoreGraphics)
+#endif
+  {
+    if ((mPluginWindow->window->cgPort.context != mPluginPortCopy.cgPort.context) ||
+        (mPluginWindow->window->cgPort.window != mPluginPortCopy.cgPort.window)) {
+      mPluginPortCopy.cgPort.context = mPluginWindow->window->cgPort.context;
+      mPluginPortCopy.cgPort.window = mPluginWindow->window->cgPort.window;
+      mPluginPortChanged = PR_TRUE;
+    }
+  }
+
+  return mPluginWindow->window;
+}
+
+void nsPluginInstanceOwner::BeginCGPaint()
+{
+  ++mInCGPaintLevel;
+}
+
+void nsPluginInstanceOwner::EndCGPaint()
+{
+  --mInCGPaintLevel;
+  NS_ASSERTION(mInCGPaintLevel >= 0, "Mismatched call to nsPluginInstanceOwner::EndCGPlugin()!");
 }
 
 #endif
@@ -4574,12 +4671,19 @@ WindowRef nsPluginInstanceOwner::FixUpPluginWindow(PRInt32 inPaintState)
   if (!mWidget || !mPluginWindow || !mInstance || !mOwner)
     return nsnull;
 
-  nsPluginPort* pluginPort = GetPluginPort(); 
+  NPDrawingModel drawingModel = GetDrawingModel();
+
+  
+  
+  nsPluginPort* pluginPort = nsnull;
+  if (mInCGPaintLevel > 0) {
+    pluginPort = mPluginWindow->window;
+  } else {
+    pluginPort = SetPluginPortAndDetectChange();
+  }
 
   if (!pluginPort)
     return nsnull;
-
-  NPDrawingModel drawingModel = GetDrawingModel();
 
   
   PRBool isVisible =
@@ -4656,7 +4760,7 @@ WindowRef nsPluginInstanceOwner::FixUpPluginWindow(PRInt32 inPaintState)
       mPluginWindow->clipRect.bottom  != oldClipRect.bottom)
   {
     mInstance->SetWindow(mPluginWindow);
-    mCGContextChanged = PR_FALSE;
+    mPluginPortChanged = PR_FALSE;
     
     CancelTimer();
     if (mPluginWindow->clipRect.left == mPluginWindow->clipRect.right ||
@@ -4666,9 +4770,9 @@ WindowRef nsPluginInstanceOwner::FixUpPluginWindow(PRInt32 inPaintState)
     else {
       StartTimer(NORMAL_PLUGIN_DELAY);
     }
-  } else if (mCGContextChanged) {
+  } else if (mPluginPortChanged) {
     mInstance->SetWindow(mPluginWindow);
-    mCGContextChanged = PR_FALSE;
+    mPluginPortChanged = PR_FALSE;
   }
 
 #ifndef NP_NO_QUICKDRAW
