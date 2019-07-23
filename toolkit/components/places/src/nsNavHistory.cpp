@@ -69,6 +69,9 @@
 #include "prtime.h"
 #include "prprf.h"
 #include "nsEscape.h"
+#include "nsITaggingService.h"
+#include "nsIVariant.h"
+#include "nsVariant.h"
 
 #include "mozIStorageService.h"
 #include "mozIStorageConnection.h"
@@ -4096,6 +4099,45 @@ nsNavHistory::GroupByHost(nsNavHistoryQueryResultNode *aResultNode,
   return NS_OK;
 }
 
+PRBool
+nsNavHistory::URIHasTag(nsIURI* aURI, const nsAString& aTag)
+{
+  nsresult rv;
+  nsCOMPtr<nsITaggingService> tagService =
+    do_GetService(TAGGING_SERVICE_CID, &rv);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  nsCOMPtr<nsIVariant> tagsV;
+  rv = tagService->GetTagsForURI(aURI, getter_AddRefs(tagsV));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  
+  PRUint16 dataType;
+  tagsV->GetDataType(&dataType);
+  if (dataType != nsIDataType::VTYPE_ARRAY)
+    return PR_FALSE;
+
+  
+  PRUint16 type;
+  nsIID iid;
+  PRUint32 count;
+  PRUnichar** tags;
+  rv = tagsV->GetAsArray(&type, &iid, &count, (void**)&tags);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  for (PRUint32 i = 0; i < count; i++) {
+    nsAutoString tag(tags[i]);
+    PRInt32 position = Compare(tag, aTag, nsCaseInsensitiveStringComparator());
+    if (position == 0) {
+      nsMemory::Free(tags);
+      return PR_TRUE;
+    }
+  }
+  nsMemory::Free(tags);
+  return PR_FALSE;
+}
+
 
 
 
@@ -4161,6 +4203,7 @@ nsNavHistory::FilterResultSet(nsNavHistoryQueryResultNode* aParentNode,
     if (terms.Count() == 0) {
         allTermsFound = PR_TRUE;
     } else {
+
       for (PRInt32 termIndex = 0; termIndex < terms.Count(); termIndex ++) {
         PRBool termFound = PR_FALSE;
         
@@ -4170,6 +4213,7 @@ nsNavHistory::FilterResultSet(nsNavHistoryQueryResultNode* aParentNode,
              CaseInsensitiveFindInReadable(*terms[termIndex],
                                     NS_ConvertUTF8toUTF16(aSet[nodeIndex]->mURI))))
           termFound = PR_TRUE;
+
         
         
 
@@ -4178,7 +4222,16 @@ nsNavHistory::FilterResultSet(nsNavHistoryQueryResultNode* aParentNode,
 
 
 
-        if (! termFound) {
+
+        
+        if (!termFound) {
+          nsCOMPtr<nsIURI> itemURI;
+          rv = NS_NewURI(getter_AddRefs(itemURI), aSet[nodeIndex]->mURI);
+          NS_ENSURE_SUCCESS(rv, rv);
+          termFound = URIHasTag(itemURI, *terms[termIndex]);
+        }
+
+        if (!termFound) {
           allTermsFound = PR_FALSE;
           break;
         }
