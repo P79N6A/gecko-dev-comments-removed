@@ -52,6 +52,8 @@
 # include "jslock.h"
 #endif
 
+JS_BEGIN_EXTERN_C
+
 
 
 
@@ -400,5 +402,7 @@ js_InitPropertyTree(JSRuntime *rt);
 
 extern void
 js_FinishPropertyTree(JSRuntime *rt);
+
+JS_END_EXTERN_C
 
 #endif 

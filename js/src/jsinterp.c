@@ -299,7 +299,7 @@ js_AllocStack(JSContext *cx, uintN nslots, void **markp)
     
     if (nslots == 0) {
         *markp = NULL;
-        return JS_ARENA_MARK(&cx->stackPool);
+        return (jsval *) JS_ARENA_MARK(&cx->stackPool);
     }
 
     
@@ -2181,12 +2181,13 @@ js_Interpret(JSContext *cx, jsbytecode *pc, jsval *result)
     METER_OP_INIT(op);      
 
 # define DO_OP()            JS_EXTENSION_(goto *jumpTable[op])
-# define DO_NEXT_OP(n)      do { METER_OP_PAIR(op, pc[n]); op = *(pc += (n)); \
+# define DO_NEXT_OP(n)      do { METER_OP_PAIR(op, pc[n]);                    \
+                                 op = (JSOp) *(pc += (n));                    \
                                  DO_OP(); } while (0)
 # define BEGIN_CASE(OP)     L_##OP:
 # define END_CASE(OP)       DO_NEXT_OP(OP##_LENGTH);
 # define END_VARLEN_CASE    DO_NEXT_OP(len);
-# define EMPTY_CASE(OP)     BEGIN_CASE(OP) op = *++pc; DO_OP();
+# define EMPTY_CASE(OP)     BEGIN_CASE(OP) op = (JSOp) *++pc; DO_OP();
 #else
 # define DO_OP()            goto do_op
 # define DO_NEXT_OP(n)      goto advance_pc
@@ -2221,8 +2222,8 @@ js_Interpret(JSContext *cx, jsbytecode *pc, jsval *result)
 
 
 
-    currentVersion = script->version;
-    originalVersion = cx->version;
+    currentVersion = (JSVersion) script->version;
+    originalVersion = (JSVersion) cx->version;
     if (currentVersion != originalVersion)
         js_SetVersion(cx, currentVersion);
 
@@ -3958,9 +3959,9 @@ interrupt:
                 }
 
                 
-                newifp->callerVersion = cx->version;
+                newifp->callerVersion = (JSVersion) cx->version;
                 if (JS_LIKELY(cx->version == currentVersion)) {
-                    currentVersion = script->version;
+                    currentVersion = (JSVersion) script->version;
                     if (currentVersion != cx->version)
                         js_SetVersion(cx, currentVersion);
                 }
@@ -3975,7 +3976,7 @@ interrupt:
                 JS_RUNTIME_METER(rt, inlineCalls);
 
                 
-                op = *pc;
+                op = (JSOp) *pc;
                 DO_OP();
 
               bad_inline_call:
