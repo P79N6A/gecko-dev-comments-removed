@@ -1188,7 +1188,7 @@ nsXPInstallManager::OnStopRequest(nsIRequest *request, nsISupports *ctxt,
     {
         
         
-        if ( mItem->mFile )
+        if ( mItem && mItem->mFile )
         {
             PRBool flagExists;
             nsresult rv2 ;
@@ -1206,7 +1206,8 @@ nsXPInstallManager::OnStopRequest(nsIRequest *request, nsISupports *ctxt,
             mDlg->OnStateChange( mNextItem-1,
                                  nsIXPIProgressDialog::INSTALL_DONE,
                                  errorcode );
-        mTriggers->SendStatus( mItem->mURL.get(), errorcode );
+        if (mItem)
+            mTriggers->SendStatus( mItem->mURL.get(), errorcode );
     }
     else if (mDlg)
     {
