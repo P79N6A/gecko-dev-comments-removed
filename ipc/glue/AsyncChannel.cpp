@@ -65,11 +65,16 @@ AsyncChannel::Open(Transport* aTransport, MessageLoop* aIOLoop)
     mTransport->set_listener(this);
 
     
+    
     bool needOpen = true;
     if(!aIOLoop) {
+        
         needOpen = false;
         aIOLoop = BrowserProcessSubThread
                   ::GetMessageLoop(BrowserProcessSubThread::IO);
+        
+        
+        mChannelState = ChannelIdle;
     }
 
     mIOLoop = aIOLoop;
@@ -98,6 +103,10 @@ AsyncChannel::Close()
 bool
 AsyncChannel::Send(Message* msg)
 {
+    NS_ASSERTION(ChannelIdle == mChannelState
+                 || ChannelWaiting == mChannelState,
+                 "trying to Send() to a channel not yet open");
+
     NS_PRECONDITION(MSG_ROUTING_NONE != msg->routing_id(), "need a route");
     mIOLoop->PostTask(FROM_HERE,
                       NewRunnableMethod(this, &AsyncChannel::OnSend, msg));

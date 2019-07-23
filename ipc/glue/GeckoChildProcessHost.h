@@ -56,6 +56,7 @@ public:
   bool Launch(std::vector<std::wstring> aExtraOpts=std::vector<std::wstring>());
 
   
+  virtual void OnChannelConnected(int32 peer_pid);
   virtual void OnMessageReceived(const IPC::Message& aMsg);
   virtual void OnChannelError();
 
@@ -63,6 +64,10 @@ public:
 
   IPC::Channel* GetChannel() {
     return channelp();
+  }
+
+  base::WaitableEvent* GetShutDownEvent() {
+    return GetProcessEvent();
   }
 
 protected:

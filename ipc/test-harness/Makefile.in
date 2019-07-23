@@ -40,30 +40,31 @@ srcdir = @srcdir@
 VPATH = @srcdir@
 
 include $(DEPTH)/config/autoconf.mk
-include $(topsrcdir)/config/rules.mk
 
-IPDLDIRS = \
-  dom/plugins \
-  dom/ipc \
-  ipc/test-harness \
-  ipc/testshell \
+MODULE = ipctestharness
+
+EXPORTS_NAMESPACES = mozilla/test
+EXPORTS_mozilla/test =				\
+	TestChild.h				\
+	TestParent.h				\
+	TestProcessParent.h			\
+	TestThreadChild.h			\
+	$(NULL)
+
+LIBRARY_NAME = ipctestharness_s
+LIBXUL_LIBRARY = 1
+FORCE_STATIC_LIB = 1
+EXPORT_LIBRARY = 1
+
+CPPSRCS =					\
+  TestChild.cpp					\
+  TestParent.cpp				\
+  TestProcessParent.cpp				\
+  TestThreadChild.cpp				\
   $(NULL)
 
-vpath %.ipdl $(topsrcdir)
+TOOL_DIRS += app
 
-define ADD_IPDLDIR
-include $(topsrcdir)/$(IPDLDIR)/ipdl.mk
-ALL_IPDLSRCS += $$(IPDLSRCS:%=$(IPDLDIR)/%)
-endef
-
-ALL_IPDLSRCS :=
-
-$(foreach IPDLDIR,$(IPDLDIRS),$(eval $(ADD_IPDLDIR)))
-
-export:: $(ALL_IPDLSRCS)
-	$(PYTHON) $(topsrcdir)/config/pythonpath.py \
-	  -I$(topsrcdir)/other-licenses/ply \
-	  $(srcdir)/ipdl.py \
-	  -d _ipdlheaders \
-	  $(IPDLDIRS:%=-I$(topsrcdir)/%) \
-	  $^
+include $(topsrcdir)/config/config.mk
+include $(topsrcdir)/ipc/chromium/chromium-config.mk
+include $(topsrcdir)/config/rules.mk

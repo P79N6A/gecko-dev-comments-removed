@@ -95,9 +95,25 @@ GeckoChildProcessHost::Launch(std::vector<std::wstring> aExtraOpts)
   }
   SetHandle(process);
 
+  
+  
+  
+  
+  MessageLoop* loop = MessageLoop::current();
+  bool old_state = loop->NestableTasksAllowed();
+  loop->SetNestableTasksAllowed(true);
+  
+  loop->Run();
+  loop->SetNestableTasksAllowed(old_state);
+
   return true;
 }
 
+void
+GeckoChildProcessHost::OnChannelConnected(int32 peer_pid)
+{
+    MessageLoop::current()->Quit();
+}
 void
 GeckoChildProcessHost::OnMessageReceived(const IPC::Message& aMsg)
 {

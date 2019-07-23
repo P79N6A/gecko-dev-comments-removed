@@ -36,6 +36,7 @@
 
 Types = (
     
+    'bool',
     'char',
     'short',
     'int',

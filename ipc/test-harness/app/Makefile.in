@@ -11,10 +11,10 @@
 # for the specific language governing rights and limitations under the
 # License.
 #
-# The Original Code is Mozilla Firefox.
+# The Original Code is Mozilla IPCShell.
 #
 # The Initial Developer of the Original Code is
-# The Mozilla Foundation <http://www.mozilla.org/>.
+#   Ben Turner <bent.mozilla@gmail.com>.
 # Portions created by the Initial Developer are Copyright (C) 2009
 # the Initial Developer. All Rights Reserved.
 #
@@ -34,36 +34,41 @@
 #
 # ***** END LICENSE BLOCK *****
 
-DEPTH = ../..
+DEPTH = ../../..
 topsrcdir = @top_srcdir@
 srcdir = @srcdir@
 VPATH = @srcdir@
 
 include $(DEPTH)/config/autoconf.mk
-include $(topsrcdir)/config/rules.mk
 
-IPDLDIRS = \
-  dom/plugins \
-  dom/ipc \
-  ipc/test-harness \
-  ipc/testshell \
+MODULE = ipctestharness
+PROGRAM = $(MODULE)$(BIN_SUFFIX)
+ENABLE_CXX_EXCEPTIONS = 1
+
+LOCAL_INCLUDES += -I$(topsrcdir)/toolkit/xre
+
+CPPSRCS = \
+  TestApp.cpp \
   $(NULL)
 
-vpath %.ipdl $(topsrcdir)
+LIBS = \
+  $(DIST)/lib/$(LIB_PREFIX)xpcomglue_s.$(LIB_SUFFIX) \
+  $(LIBXUL_LIBS) \
+  $(MOZ_JS_LIBS) \
+  $(NSPR_LIBS) \
+  $(NULL)
 
-define ADD_IPDLDIR
-include $(topsrcdir)/$(IPDLDIR)/ipdl.mk
-ALL_IPDLSRCS += $$(IPDLSRCS:%=$(IPDLDIR)/%)
-endef
+NSDISTMODE = copy
 
-ALL_IPDLSRCS :=
+include $(topsrcdir)/config/config.mk
 
-$(foreach IPDLDIR,$(IPDLDIRS),$(eval $(ADD_IPDLDIR)))
+ifdef _MSC_VER
+ifdef WINCE
+WIN32_EXE_LDFLAGS += -ENTRY:mainWCRTStartup
+else
+WIN32_EXE_LDFLAGS += -ENTRY:wmainCRTStartup
+endif
+endif
 
-export:: $(ALL_IPDLSRCS)
-	$(PYTHON) $(topsrcdir)/config/pythonpath.py \
-	  -I$(topsrcdir)/other-licenses/ply \
-	  $(srcdir)/ipdl.py \
-	  -d _ipdlheaders \
-	  $(IPDLDIRS:%=-I$(topsrcdir)/%) \
-	  $^
+include $(topsrcdir)/ipc/chromium/chromium-config.mk
+include $(topsrcdir)/config/rules.mk
