@@ -1277,28 +1277,19 @@ nsXMLHttpRequest::OnStartRequest(nsIRequest *request, nsISupports *ctxt)
   nsCOMPtr<nsIChannel> channel(do_QueryInterface(request));
   NS_ENSURE_TRUE(channel, NS_ERROR_UNEXPECTED);
 
+  mChannel->SetOwner(mPrincipal);
+
   mReadRequest = request;
   mContext = ctxt;
   mState |= XML_HTTP_REQUEST_PARSEBODY;
   ChangeState(XML_HTTP_REQUEST_LOADED);
 
-  
-  
-  
-  
-  
-  
-  nsCOMPtr<nsIDocument> doc = GetDocumentFromScriptContext(mScriptContext);
   nsIURI* uri = GetBaseURI();
-  nsIPrincipal* principal = nsnull;
-  if (doc) {
-    principal = doc->NodePrincipal();
-  }
 
   
   const nsAString& emptyStr = EmptyString();
   nsresult rv = nsContentUtils::CreateDocument(emptyStr, emptyStr, nsnull, uri,
-                                               uri, principal,
+                                               uri, mPrincipal,
                                                getter_AddRefs(mDocument));
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -1522,6 +1513,12 @@ nsXMLHttpRequest::Send(nsIVariant *aBody)
   
   
 
+  nsCOMPtr<nsIDocument> doc =
+    do_QueryInterface(nsContentUtils::GetDocumentFromCaller());
+  if (doc) {
+    mPrincipal = doc->NodePrincipal();
+  }
+
   
   
   nsCAutoString method;
@@ -1530,18 +1527,11 @@ nsXMLHttpRequest::Send(nsIVariant *aBody)
   if (httpChannel) {
     httpChannel->GetRequestMethod(method); 
 
-    nsCOMPtr<nsIDocument> doc =
-      do_QueryInterface(nsContentUtils::GetDocumentFromCaller());
+    if (mPrincipal) {
+      nsCOMPtr<nsIURI> codebase;
+      mPrincipal->GetURI(getter_AddRefs(codebase));
 
-    if (doc) {
-      nsIPrincipal *principal = doc->NodePrincipal();
-
-      if (principal) {
-        nsCOMPtr<nsIURI> codebase;
-        principal->GetURI(getter_AddRefs(codebase));
-
-        httpChannel->SetReferrer(codebase);
-      }
+      httpChannel->SetReferrer(codebase);
     }
   }
 
