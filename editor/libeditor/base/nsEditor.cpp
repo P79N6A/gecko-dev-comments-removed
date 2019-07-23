@@ -2501,7 +2501,7 @@ NS_IMETHODIMP nsEditor::ScrollSelectionIntoView(PRBool aScrollToAnchor)
       
       
       
-
+      
       syncScroll = !(flags & nsIPlaintextEditor::eEditorUseAsyncUpdatesMask);
     }
 
@@ -4356,9 +4356,14 @@ nsresult nsEditor::EndUpdateViewBatch()
 
       
       
-      if (flags & nsIPlaintextEditor::eEditorUseAsyncUpdatesMask)
+      if (flags & nsIPlaintextEditor::eEditorUseAsyncUpdatesMask) {
         updateFlag = NS_VMREFRESH_DEFERRED;
-
+      } else {
+        
+        
+        
+        presShell->FlushPendingNotifications(Flush_Layout);
+      }
       mViewManager->EndUpdateViewBatch(updateFlag);
     }
 
