@@ -695,6 +695,10 @@ extern JSBool
 js_CheckPrincipalsAccess(JSContext *cx, JSObject *scopeobj,
                          JSPrincipals *principals, JSAtom *caller);
 
+
+extern JSObject *
+js_GetWrappedObject(JSContext *cx, JSObject *obj);
+
 JS_END_EXTERN_C
 
 #endif 
