@@ -1768,6 +1768,7 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(nsDocument)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(mXPathEvaluatorTearoff)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(mLayoutHistoryState)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(mOnloadBlocker)
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(mFirstBaseNodeWithHref)
 
   
   
@@ -1819,6 +1820,7 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(nsDocument)
 
   NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mCachedRootContent)
   NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mDisplayDocument)
+  NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mFirstBaseNodeWithHref)
 
   NS_IMPL_CYCLE_COLLECTION_UNLINK_USERDATA
 
@@ -1971,12 +1973,9 @@ nsDocument::ResetToURI(nsIURI *aURI, nsILoadGroup *aLoadGroup,
     for (PRInt32 i = PRInt32(count) - 1; i >= 0; i--) {
       nsCOMPtr<nsIContent> content = mChildren.ChildAt(i);
 
-      
-      
-      
+      mChildren.RemoveChildAt(i);
       nsNodeUtils::ContentRemoved(this, content, i);
       content->UnbindFromTree();
-      mChildren.RemoveChildAt(i);
     }
   }
   mCachedRootContent = nsnull;
@@ -1994,7 +1993,9 @@ nsDocument::ResetToURI(nsIURI *aURI, nsILoadGroup *aLoadGroup,
   mDOMStyleSheets = nsnull;
 
   SetDocumentURI(aURI);
-  mDocumentBaseURI = mDocumentURI;
+  
+  
+  mDocumentBaseURI = nsnull;
 
   if (aLoadGroup) {
     mDocumentLoadGroup = do_GetWeakReference(aLoadGroup);
@@ -2249,7 +2250,23 @@ nsDocument::StopDocumentLoad()
 void
 nsDocument::SetDocumentURI(nsIURI* aURI)
 {
+  nsCOMPtr<nsIURI> oldBase = nsIDocument::GetBaseURI();
   mDocumentURI = NS_TryToMakeImmutable(aURI);
+  nsIURI* newBase = nsIDocument::GetBaseURI();
+
+  PRBool equalBases = PR_FALSE;
+  if (oldBase && newBase) {
+    oldBase->Equals(newBase, &equalBases);
+  }
+  else {
+    equalBases = !oldBase && !newBase;
+  }
+
+  
+  
+  if (!equalBases) {
+    RefreshLinkHrefs();
+  }
 }
 
 NS_IMETHODIMP
@@ -2789,6 +2806,7 @@ nsDocument::SetBaseURI(nsIURI* aURI)
 {
   nsresult rv = NS_OK;
 
+  nsCOMPtr<nsIURI> oldBase = nsIDocument::GetBaseURI();
   if (aURI) {
     rv = nsContentUtils::GetSecurityManager()->
       CheckLoadURIWithPrincipal(NodePrincipal(), aURI,
@@ -2798,6 +2816,21 @@ nsDocument::SetBaseURI(nsIURI* aURI)
     }
   } else {
     mDocumentBaseURI = nsnull;
+  }
+
+  nsIURI* newBase = nsIDocument::GetBaseURI();
+  PRBool equalBases = PR_FALSE;
+  if (oldBase && newBase) {
+    oldBase->Equals(newBase, &equalBases);
+  }
+  else {
+    equalBases = !oldBase && !newBase;
+  }
+
+  
+  
+  if (!equalBases) {
+    RefreshLinkHrefs();
   }
 
   return rv;
@@ -5578,8 +5611,8 @@ NS_IMETHODIMP
 nsDocument::GetBaseURI(nsAString &aURI)
 {
   nsCAutoString spec;
-  if (mDocumentBaseURI) {
-    mDocumentBaseURI->GetSpec(spec);
+  if (nsIDocument::GetBaseURI()) {
+    nsIDocument::GetBaseURI()->GetSpec(spec);
   }
 
   CopyUTF8toUTF16(spec, aURI);
@@ -7343,6 +7376,8 @@ public:
 
     
     
+    
+    
     aContent->SetLinkState(eLinkState_Unknown);
     contentVisited.AppendObject(aContent);
   }
@@ -7359,10 +7394,12 @@ nsDocument::NotifyURIVisitednessChanged(nsIURI* aURI)
   nsUint32ToContentHashEntry* entry = mLinkMap.GetEntry(GetURIHash(aURI));
   if (!entry)
     return;
-  
+
   URIVisitNotifier visitor;
   aURI->GetSpec(visitor.matchURISpec);
   entry->VisitContent(&visitor);
+
+  MOZ_AUTO_DOC_UPDATE(this, UPDATE_CONTENT_STATE, PR_TRUE);
   for (PRUint32 count = visitor.contentVisited.Count(), i = 0; i < count; ++i) {
     ContentStatesChanged(visitor.contentVisited[i],
                          nsnull, NS_EVENT_STATE_VISITED);
@@ -7383,12 +7420,119 @@ nsDocument::UpdateLinkMap()
                "Should only be updating the link map in visible documents");
   if (!mVisible)
     return;
-    
+
   PRInt32 count = mVisitednessChangedURIs.Count();
   for (PRInt32 i = 0; i < count; ++i) {
     NotifyURIVisitednessChanged(mVisitednessChangedURIs[i]);
   }
   mVisitednessChangedURIs.Clear();
+}
+
+class RefreshLinkStateVisitor : public nsUint32ToContentHashEntry::Visitor
+{
+public:
+  nsCOMArray<nsIContent> contentVisited;
+
+  virtual void Visit(nsIContent* aContent) {
+    
+    
+    
+    aContent->SetLinkState(eLinkState_Unknown);
+    contentVisited.AppendObject(aContent);
+  }
+};
+
+static PLDHashOperator
+RefreshLinkStateTraverser(nsUint32ToContentHashEntry* aEntry,
+                               void* userArg)
+{
+  RefreshLinkStateVisitor *visitor =
+    static_cast<RefreshLinkStateVisitor*>(userArg);
+
+  aEntry->VisitContent(visitor);
+  return PL_DHASH_NEXT;
+}
+
+
+
+static void
+DropCachedHrefsRecursive(nsIContent * const elem)
+{
+  
+  
+  
+  
+  
+  elem->DropCachedHref();
+
+  PRUint32 childCount;
+  nsIContent * const * child = elem->GetChildArray(&childCount);
+  nsIContent * const * end = child + childCount;
+  for ( ; child != end; ++child) {
+    DropCachedHrefsRecursive(*child);
+  }
+}
+
+void
+nsDocument::RefreshLinkHrefs()
+{
+  if (!GetRootContent())
+    return;
+
+  
+  DropCachedHrefsRecursive(GetRootContent());
+
+  
+  RefreshLinkStateVisitor visitor;
+  mLinkMap.EnumerateEntries(RefreshLinkStateTraverser, &visitor);
+
+  MOZ_AUTO_DOC_UPDATE(this, UPDATE_CONTENT_STATE, PR_TRUE);
+  for (PRUint32 count = visitor.contentVisited.Count(), i = 0; i < count; i++) {
+    ContentStatesChanged(visitor.contentVisited[i],
+                         nsnull, NS_EVENT_STATE_VISITED);
+  }
+}
+
+nsIContent*
+nsDocument::GetFirstBaseNodeWithHref()
+{
+  return mFirstBaseNodeWithHref;
+}
+
+nsresult
+nsDocument::SetFirstBaseNodeWithHref(nsIContent *elem)
+{
+  mFirstBaseNodeWithHref = elem;
+
+  if (!elem) {
+    SetBaseURI(nsnull);
+    return NS_OK;
+  }
+
+  NS_ASSERTION(elem->Tag() == nsGkAtoms::base,
+               "Setting base node to a non <base> element?");
+  NS_ASSERTION(elem->GetNameSpaceID() == kNameSpaceID_XHTML,
+               "Setting base node to a non XHTML element?");
+
+  nsIDocument* doc = elem->GetOwnerDoc();
+  nsIURI* currentURI = nsIDocument::GetDocumentURI();
+
+  
+  nsAutoString href;
+  PRBool hasHref = elem->GetAttr(kNameSpaceID_None, nsGkAtoms::href, href);
+  NS_ASSERTION(hasHref,
+               "Setting first base node to a node with no href attr?");
+
+  nsCOMPtr<nsIURI> newBaseURI;
+  nsContentUtils::NewURIWithDocumentCharset(
+    getter_AddRefs(newBaseURI), href, doc, currentURI);
+
+  
+  nsresult rv =  SetBaseURI(newBaseURI);
+  if (NS_FAILED(rv)) {
+    return SetBaseURI(nsnull);
+  }
+  return rv;
 }
 
 NS_IMETHODIMP

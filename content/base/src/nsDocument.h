@@ -1033,11 +1033,17 @@ protected:
   static PRBool TryChannelCharset(nsIChannel *aChannel,
                                   PRInt32& aCharsetSource,
                                   nsACString& aCharset);
-  
+
   void UpdateLinkMap();
   
   
   void DestroyLinkMap();
+
+  
+  void RefreshLinkHrefs();
+
+  nsIContent* GetFirstBaseNodeWithHref();
+  nsresult SetFirstBaseNodeWithHref(nsIContent *node);
 
   
   
@@ -1212,6 +1218,8 @@ protected:
   
   
   nsCOMPtr<nsIApplicationCache> mApplicationCache;
+
+  nsCOMPtr<nsIContent> mFirstBaseNodeWithHref;
 
 private:
   friend class nsUnblockOnloadEvent;

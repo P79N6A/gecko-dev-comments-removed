@@ -47,6 +47,7 @@
 #include "nsPresContext.h"
 #include "nsRuleData.h"
 #include "nsMappedAttributes.h"
+#include "nsNetUtil.h"
 
 
 extern nsAttrValue::EnumTable kListTypeTable[];
@@ -102,12 +103,30 @@ public:
                                 nsIAtom* aAttribute,
                                 const nsAString& aValue,
                                 nsAttrValue& aResult);
+  nsresult SetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
+                   const nsAString& aValue, PRBool aNotify)
+  {
+    return SetAttr(aNameSpaceID, aName, nsnull, aValue, aNotify);
+  }
+  virtual nsresult SetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
+                           nsIAtom* aPrefix, const nsAString& aValue,
+                           PRBool aNotify);
+
+  virtual nsresult UnsetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
+                             PRBool aNotify);
+
+  virtual nsresult BindToTree(nsIDocument* aDocument, nsIContent* aParent,
+                              nsIContent* aBindingParent,
+                              PRBool aCompileEventHandlers);
+
+  virtual void UnbindFromTree(PRBool aDeep = PR_TRUE,
+                              PRBool aNullParent = PR_TRUE);
+
   virtual nsMapRuleToAttributesFunc GetAttributeMappingFunction() const;
   NS_IMETHOD_(PRBool) IsAttributeMapped(const nsIAtom* aAttribute) const;
 
   virtual nsresult Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const;
 };
-
 
 NS_IMPL_NS_NEW_HTML_ELEMENT(Shared)
 
@@ -383,6 +402,156 @@ nsHTMLSharedElement::IsAttributeMapped(const nsIAtom* aAttribute) const
   }
 
   return nsGenericHTMLElement::IsAttributeMapped(aAttribute);
+}
+
+nsresult
+nsHTMLSharedElement::SetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
+                             nsIAtom* aPrefix, const nsAString& aValue,
+                             PRBool aNotify)
+{
+  nsresult rv =  nsGenericHTMLElement::SetAttr(aNameSpaceID, aName, aPrefix,
+                                               aValue, aNotify);
+
+  
+  
+  
+  if (NS_SUCCEEDED(rv) &&
+      mNodeInfo->Equals(nsGkAtoms::base, kNameSpaceID_XHTML) &&
+      aName == nsGkAtoms::href &&
+      aNameSpaceID == kNameSpaceID_None &&
+      GetOwnerDoc() == GetCurrentDoc()) {
+
+    nsIDocument* doc = GetCurrentDoc();
+    NS_ENSURE_TRUE(doc, NS_OK);
+
+    
+    
+    
+    
+    
+    
+    
+    nsIContent* firstBase = doc->GetFirstBaseNodeWithHref();
+    if (!firstBase || this == firstBase ||
+        nsContentUtils::PositionIsBefore(this, firstBase)) {
+
+      return doc->SetFirstBaseNodeWithHref(this);
+    }
+  }
+
+  return rv;
+}
+
+
+
+
+static nsIContent*
+FindBaseRecursive(nsINode * const elem)
+{
+  
+  
+  
+  
+
+  PRUint32 childCount;
+  nsIContent * const * child = elem->GetChildArray(&childCount);
+  nsIContent * const * end = child + childCount;
+  for ( ; child != end; child++) {
+    nsIContent *childElem = *child;
+
+    if (childElem->NodeInfo()->Equals(nsGkAtoms::base, kNameSpaceID_XHTML) &&
+        childElem->HasAttr(kNameSpaceID_None, nsGkAtoms::href))
+      return childElem;
+
+    nsIContent* base = FindBaseRecursive(childElem);
+    if (base)
+      return base;
+  }
+
+  return nsnull;
+}
+
+nsresult
+nsHTMLSharedElement::UnsetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
+                               PRBool aNotify)
+{
+  nsresult rv = nsGenericHTMLElement::UnsetAttr(aNameSpaceID, aName, aNotify);
+
+  
+  
+  
+  if (NS_SUCCEEDED(rv) &&
+      mNodeInfo->Equals(nsGkAtoms::base, kNameSpaceID_XHTML) &&
+      aName == nsGkAtoms::href &&
+      aNameSpaceID == kNameSpaceID_None &&
+      GetOwnerDoc() == GetCurrentDoc()) {
+
+    nsIDocument* doc = GetCurrentDoc();
+    NS_ENSURE_TRUE(doc, NS_OK);
+
+    
+    
+    if (this != doc->GetFirstBaseNodeWithHref())
+      return NS_OK;
+
+    
+    
+    nsIContent* newBaseNode = FindBaseRecursive(doc);
+    return doc->SetFirstBaseNodeWithHref(newBaseNode);
+  }
+
+  return rv;
+}
+
+nsresult
+nsHTMLSharedElement::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
+                                nsIContent* aBindingParent,
+                                PRBool aCompileEventHandlers)
+{
+  nsresult rv = nsGenericHTMLElement::BindToTree(aDocument, aParent,
+                                                 aBindingParent,
+                                                 aCompileEventHandlers);
+
+  
+  
+  if (NS_SUCCEEDED(rv) &&
+      mNodeInfo->Equals(nsGkAtoms::base, kNameSpaceID_XHTML) &&
+      HasAttr(kNameSpaceID_None, nsGkAtoms::href) &&
+      aDocument) {
+
+    
+    
+    nsINode* curBaseNode = aDocument->GetFirstBaseNodeWithHref();
+    if (!curBaseNode ||
+        nsContentUtils::PositionIsBefore(this, curBaseNode)) {
+
+      aDocument->SetFirstBaseNodeWithHref(this);
+    }
+  }
+
+  return rv;
+}
+
+void
+nsHTMLSharedElement::UnbindFromTree(PRBool aDeep, PRBool aNullParent)
+{
+  nsCOMPtr<nsIDocument> doc = GetCurrentDoc();
+
+  nsGenericHTMLElement::UnbindFromTree(aDeep, aNullParent);
+
+  
+  
+  if (doc && mNodeInfo->Equals(nsGkAtoms::base, kNameSpaceID_XHTML)) {
+
+    
+    if (this != doc->GetFirstBaseNodeWithHref())
+      return;
+
+    
+
+    nsIContent* newBaseNode = FindBaseRecursive(doc);
+    doc->SetFirstBaseNodeWithHref(newBaseNode);
+  }
 }
 
 nsMapRuleToAttributesFunc
