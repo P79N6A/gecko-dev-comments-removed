@@ -159,13 +159,19 @@ namespace nanojit
 			void FASTCALL outputf(const char* format, ...); 
 			void FASTCALL output_asm(const char* s); 
 			
-			bool _verbose, outputAddr, vpad[2];  
+			
+			
+			bool outputAddr, vpad[2];
 			void printActivationState();
 
 			StringList* _outputCache;
+
+			
+			
+			LogControl* _logc;
 			#endif
 
-			Assembler(Fragmento* frago);
+			Assembler(Fragmento* frago, LogControl* logc);
             ~Assembler() {}
 
 			void		assemble(Fragment* frag, NInsList& loopJumps);

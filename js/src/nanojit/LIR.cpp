@@ -45,18 +45,6 @@
 #endif 
 
 
-#if defined(NJ_VERBOSE)
-void nj_dprintf( const char* format, ... )
-{
-	va_list vargs;
-	va_start(vargs, format);
-	vfprintf(stdout, format, vargs);
-	va_end(vargs);
-}
-#endif 
-
-
-
 namespace nanojit
 {
     using namespace avmplus;
@@ -1486,7 +1474,7 @@ namespace nanojit
 		}
 	};
 
-    void live(GC *gc, Fragment *frag)
+    void live(GC *gc, Fragment *frag, LogControl *logc)
 	{
 		
 
@@ -1538,9 +1526,11 @@ namespace nanojit
 			}
 		}
  
-		nj_dprintf("live instruction count %d, total %u, max pressure %d\n",
-			live.retired.size(), total, live.maxlive);
-        nj_dprintf("side exits %u\n", exits);
+		logc->printf("  Live instruction count %d, total %u, max pressure %d\n",
+					 live.retired.size(), total, live.maxlive);
+        logc->printf("  Side exits %u\n", exits);
+		logc->printf("  Showing LIR instructions with live-after variables\n");
+		logc->printf("\n");
 
 		
 		LirNameMap *names = frag->lirbuf->names;
@@ -1551,7 +1541,7 @@ namespace nanojit
             char livebuf[4000], *s=livebuf;
             *s = 0;
             if (!newblock && e->i->isop(LIR_label)) {
-                nj_dprintf("\n");
+                logc->printf("\n");
             }
             newblock = false;
             for (int k=0,n=e->live.size(); k < n; k++) {
@@ -1560,9 +1550,18 @@ namespace nanojit
 				*s++ = ' '; *s = 0;
 				NanoAssert(s < livebuf+sizeof(livebuf));
             }
-			nj_dprintf("%-60s %s\n", livebuf, names->formatIns(e->i));
+			
+
+
+			const char* insn_text = names->formatIns(e->i);
+			if (strlen(insn_text) >= 30-2) {
+				logc->printf("  %-30s\n  %-30s %s\n", names->formatIns(e->i), "", livebuf);
+			} else {
+				logc->printf("  %-30s %s\n", names->formatIns(e->i), livebuf);
+			}
+
             if (e->i->isGuard() || e->i->isBranch() || e->i->isRet()) {
-				nj_dprintf("\n");
+				logc->printf("\n");
                 newblock = true;
             }
 		}
@@ -1965,11 +1964,34 @@ namespace nanojit
         AvmCore *core = frago->core();
         GC *gc = core->gc;
 
+		verbose_only(
+		LogControl *logc = assm->_logc;
+		bool anyVerb = (logc->lcbits & 0xFFFF) > 0;
+		bool asmVerb = (logc->lcbits & 0xFFFF & LC_Assembly) > 0;
+		bool liveVerb = (logc->lcbits & 0xFFFF & LC_Liveness) > 0;
+		)
+
+		
+		verbose_only( 
+        if (anyVerb) {
+			logc->printf("========================================"
+						 "========================================\n");
+			logc->printf("=== BEGIN LIR::compile(%p, %p)\n",
+						 (void*)assm, (void*)triggerFrag);
+		    logc->printf("===\n");
+		})
+		
+
+		verbose_only( if (liveVerb) {
+		    logc->printf("\n");
+			logc->printf("=== Results of liveness analysis:\n");
+		    logc->printf("===\n");
+			live(gc, triggerFrag, logc);
+		})
+
+		
 		verbose_only( StringList asmOutput(gc); )
 		verbose_only( assm->_outputCache = &asmOutput; )
-
-		verbose_only(if (assm->_verbose && core->config.verbose_live)
-			live(gc, triggerFrag);)
 
 		bool treeCompile = core->config.tree_opt && (triggerFrag->kind == BranchTrace);
 		RegAllocMap regMap(gc);
@@ -1982,27 +2004,43 @@ namespace nanojit
 			return;
 
 		
+
+		verbose_only( if (anyVerb) {
+		    logc->printf("=== Translating LIR fragments into assembly:\n");
+		})
+
 		Fragment* root = triggerFrag;
 		if (treeCompile)
 		{
 			
+			verbose_only( if (anyVerb) {
+			   logc->printf("=== -- Compile the entire tree: begin\n");
+			})
 			root = triggerFrag->root;
 			root->fragEntry = 0;
 			root->loopEntry = 0;
 			root->releaseCode(frago);
 			
 			
+			verbose_only( if (anyVerb) {
+			   logc->printf("=== -- Do the tree branches\n");
+			})
 			Fragment* frag = root->treeBranches;
-			while(frag)
+			while (frag)
 			{
 				
 				if (frag->lastIns)
 				{
+        			verbose_only( if (anyVerb) {
+					    logc->printf("=== -- Compiling branch %s ip %s\n",
+									 frago->labels->format(frag),
+									 frago->labels->format(frag->ip));
+					})
 					assm->assemble(frag, loopJumps);
-					verbose_only(if (assm->_verbose) 
-						assm->outputf("compiling branch %s ip %s",
-							frago->labels->format(frag),
-							frago->labels->format(frag->ip)); )
+					verbose_only(if (asmVerb) 
+						assm->outputf("## compiling branch %s ip %s",
+									  frago->labels->format(frag),
+									  frago->labels->format(frag->ip)); )
 					
 					NanoAssert(frag->kind == BranchTrace);
 					RegAlloc* regs = NJ_NEW(gc, RegAlloc)();
@@ -2013,14 +2051,29 @@ namespace nanojit
 				}
 				frag = frag->treeBranches;
 			}
+			verbose_only( if (anyVerb) {
+			   logc->printf("=== -- Compile the entire tree: end\n");
+			})
 		}
 		
 		
+		verbose_only( if (anyVerb) {
+		    logc->printf("=== -- Compile trunk %s: begin\n",
+						 frago->labels->format(root));
+		})
 		assm->assemble(root, loopJumps);
-		verbose_only(if (assm->_verbose) 
-			assm->outputf("compiling trunk %s",
-				frago->labels->format(root));)
-		NanoAssert(!frago->core()->config.tree_opt || root == root->anchor || root->kind == MergeTrace);			
+		verbose_only( if (anyVerb) {
+		    logc->printf("=== -- Compile trunk %s: end\n",
+						 frago->labels->format(root));
+		})
+
+		verbose_only(
+		    if (asmVerb) 
+				assm->outputf("## compiling trunk %s",
+							  frago->labels->format(root));
+		)
+		NanoAssert(!frago->core()->config.tree_opt
+				   || root == root->anchor || root->kind == MergeTrace);
 		assm->endAssembly(root, loopJumps);
 			
 		
@@ -2029,13 +2082,36 @@ namespace nanojit
 		
 		
 		
-		verbose_only( assm->_outputCache = 0; )
-		verbose_only(for(int i=asmOutput.size()-1; i>=0; --i) { assm->outputf("%s",asmOutput.get(i)); } );
+		verbose_only( if (anyVerb) {
+   		    logc->printf("\n");
+			logc->printf("=== Aggregated assembly output: BEGIN\n");
+   		    logc->printf("===\n");
+		    assm->_outputCache = 0;
+			for (int i = asmOutput.size() - 1; i >= 0; --i) { 
+				char* str = asmOutput.get(i);
+				assm->outputf("  %s", str);
+				gc->Free(str);
+			}
+   		    logc->printf("===\n");
+			logc->printf("=== Aggregated assembly output: END\n");
+		});
 
 		if (assm->error()) {
 			root->fragEntry = 0;
 			root->loopEntry = 0;
 		}
+
+		
+		verbose_only( if (anyVerb) {
+		    logc->printf("\n");
+		    logc->printf("===\n");
+		    logc->printf("=== END LIR::compile(%p, %p)\n",
+						 (void*)assm, (void*)triggerFrag);
+			logc->printf("========================================"
+						 "========================================\n");
+			logc->printf("\n");
+		});
+		
     }
 
     LInsp LoadFilter::insLoad(LOpcode v, LInsp base, LInsp disp)
@@ -2158,6 +2234,19 @@ namespace nanojit
 		strcpy(s, b);
 		return s;
 	}
+
+	
+	
+	
+
+	void LogControl::printf( const char* format, ... )
+	{
+        va_list vargs;
+        va_start(vargs, format);
+        vfprintf(stdout, format, vargs);
+        va_end(vargs);
+	}
+
 #endif 
 }
 	

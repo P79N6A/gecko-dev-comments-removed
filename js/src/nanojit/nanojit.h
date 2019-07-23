@@ -181,20 +181,16 @@ namespace nanojit
 
 #if defined(_MSC_VER) && _MSC_VER < 1400
 	#include <stdio.h>
-	#define verbose_output						if (verbose_enabled()) Assembler::output
-	#define verbose_outputf						if (verbose_enabled()) Assembler::outputf
-	#define verbose_enabled()					(_verbose)
-	#define verbose_only(x)						x
+	#define verbose_outputf			if (_logc->lcbits & LC_Assembly) \
+	                                    Assembler::outputf
+	#define verbose_only(x)		    x
 #elif defined(NJ_VERBOSE)
 	#include <stdio.h>
-	#define verbose_output						if (verbose_enabled()) Assembler::output
-	#define verbose_outputf						if (verbose_enabled()) Assembler::outputf
-	#define verbose_enabled()					(_verbose)
-	#define verbose_only(...)					__VA_ARGS__
+	#define verbose_outputf			if (_logc->lcbits & LC_Assembly) \
+	                                    Assembler::outputf
+	#define verbose_only(...)		__VA_ARGS__
 #else
-	#define verbose_output
 	#define verbose_outputf
-	#define verbose_enabled()
 	#define verbose_only(...)
 #endif 
 
@@ -247,7 +243,14 @@ namespace nanojit
 
 
 
-#if defined(NJ_VERBOSE)
+
+
+
+
+
+
+
+
 
 # if defined(__GNUC__)
 # define PRINTF_CHECK(x, y) __attribute__((format(__printf__, x, y)))
@@ -255,10 +258,41 @@ namespace nanojit
 # define PRINTF_CHECK(x, y)
 # endif
 
+namespace nanojit {
 
-void nj_dprintf( const char* format, ... ) PRINTF_CHECK(1,2);
+	
 
-#endif 
+	enum LC_Bits {
+		
+
+
+		
+		LC_Liveness    = 1<<7, 
+		LC_ReadLIR     = 1<<6, 
+		LC_AfterSF_SP  = 1<<5, 
+		LC_AfterSF_RP  = 1<<4, 
+		LC_AfterDeadF  = 1<<3, 
+		LC_RegAlloc    = 1<<2, 
+		LC_Assembly    = 1<<1, 
+		LC_NoCodeAddrs = 1<<0  
+	};
+
+	class LogControl
+	{
+	public:
+		
+		
+		void printf( const char* format, ... ) PRINTF_CHECK(2,3);
+
+		
+		uint32_t lcbits;
+	};
+
+}
+
+
+
+
 
 
 
