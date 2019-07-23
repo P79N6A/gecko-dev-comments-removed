@@ -940,6 +940,11 @@ PlacesTreeView.prototype = {
         return true;
 
       
+      
+      if (this._flatList)
+        return true;
+
+      
       if (PlacesUtils.nodeIsQuery(node)) {
         var parent = node.parent;
         if((PlacesUtils.nodeIsQuery(parent) ||
