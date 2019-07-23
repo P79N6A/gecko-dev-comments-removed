@@ -476,6 +476,7 @@ function run_test() {
 
 
 function startIncrementalExpirationTests() {
+  do_test_pending();
   startExpireNeither();
 }
 
@@ -509,6 +510,8 @@ function startExpireNeither() {
   
   histsvc.addVisit(testURI, Date.now() * 1000, null, histsvc.TRANSITION_TYPED, false, 0);
   annosvc.setPageAnnotation(testURI, testAnnoName, testAnnoVal, 0, annosvc.EXPIRE_NEVER);
+  histsvc.addVisit(triggerURI, Date.now() * 1000, null, histsvc.TRANSITION_TYPED, false, 0);
+  annosvc.setPageAnnotation(triggerURI, testAnnoName, testAnnoVal, 0, annosvc.EXPIRE_NEVER);
 
   
   prefs.setIntPref("browser.history_expire_sites", 2);
@@ -518,11 +521,10 @@ function startExpireNeither() {
   prefs.setIntPref("browser.history_expire_days", 3);
 
   
-  ghist.addURI(triggerURI, false, true, null); 
+  
 
   
-  do_test_pending();
-  do_timeout(3600, "checkExpireNeither();"); 
+  do_timeout(3600, "checkExpireNeither();");
 }
 
 function checkExpireNeither() {
@@ -530,6 +532,7 @@ function checkExpireNeither() {
   try {
     do_check_eq(observer.expiredURI, null);
     do_check_eq(annosvc.getPageAnnotationNames(testURI, {}).length, 1);
+    do_check_eq(annosvc.getPageAnnotationNames(triggerURI, {}).length, 1);
   } catch(ex) {
     do_throw(ex);
   }
@@ -558,11 +561,10 @@ function checkExpireNeither() {
 
 
 function startExpireDaysOnly() {
+  dump("startExpireDaysOnly()\n");
   
   histsvc.removeAllPages();
   observer.expiredURI = null;
-
-  dump("startExpireDaysOnly()\n");
 
   
   histsvc.addVisit(testURI, (Date.now() - (86400 * 4 * 1000)) * 1000, null, histsvc.TRANSITION_TYPED, false, 0);
@@ -581,10 +583,10 @@ function startExpireDaysOnly() {
   prefs.setIntPref("browser.history_expire_days", 3);
 
   
-  ghist.addURI(triggerURI, false, true, null); 
+  
 
   
-  do_timeout(3600, "checkExpireDaysOnly();"); 
+  do_timeout(3600, "checkExpireDaysOnly();");
 }
 
 function checkExpireDaysOnly() {
@@ -623,24 +625,26 @@ function checkExpireDaysOnly() {
 
 
 function startExpireBoth() {
+  dump("starting expiration test 3: both criteria met\n");
   
   histsvc.removeAllPages();
   observer.expiredURI = null;
-  dump("starting expiration test 3: both criteria met\n");
+
   
   
   
-  
-  
-  
-  
-  
+  var bmId = bmsvc.insertBookmark(bmsvc.toolbarFolder, testURI, bmsvc.DEFAULT_INDEX, "foo");
+  bmsvc.removeItem(bmId);
+
   
   
   var age = (Date.now() - (86400 * 2 * 1000)) * 1000;
   dump("AGE: " + age + "\n");
   histsvc.addVisit(testURI, age, null, histsvc.TRANSITION_TYPED, false, 0);
   annosvc.setPageAnnotation(testURI, testAnnoName, testAnnoVal, 0, annosvc.EXPIRE_NEVER);
+
+  histsvc.addVisit(triggerURI, Date.now() * 1000, null, histsvc.TRANSITION_TYPED, false, 0);
+  annosvc.setPageAnnotation(triggerURI, testAnnoName, testAnnoVal, 0, annosvc.EXPIRE_NEVER);
 
   
   prefs.setIntPref("browser.history_expire_sites", 1);
@@ -650,8 +654,7 @@ function startExpireBoth() {
   prefs.setIntPref("browser.history_expire_days_min", 1);
 
   
-  histsvc.addVisit(triggerURI, Date.now() * 1000, null, histsvc.TRANSITION_TYPED, false, 0);
-  annosvc.setPageAnnotation(triggerURI, testAnnoName, testAnnoVal, 0, annosvc.EXPIRE_NEVER);
+  
 
   
   do_timeout(3600, "checkExpireBoth();"); 
@@ -699,6 +702,9 @@ function startExpireNeitherOver() {
   histsvc.addVisit(testURI, Date.now() * 1000, null, histsvc.TRANSITION_TYPED, false, 0);
   annosvc.setPageAnnotation(testURI, testAnnoName, testAnnoVal, 0, annosvc.EXPIRE_NEVER);
 
+  histsvc.addVisit(triggerURI, Date.now() * 1000, null, histsvc.TRANSITION_TYPED, false, 0);
+  annosvc.setPageAnnotation(triggerURI, testAnnoName, testAnnoVal, 0, annosvc.EXPIRE_NEVER);
+
   
   prefs.setIntPref("browser.history_expire_sites", 1);
   
@@ -707,11 +713,10 @@ function startExpireNeitherOver() {
   prefs.setIntPref("browser.history_expire_days", 3);
 
   
-  histsvc.addVisit(triggerURI, Date.now() * 1000, null, histsvc.TRANSITION_TYPED, false, 0);
-  annosvc.setPageAnnotation(triggerURI, testAnnoName, testAnnoVal, 0, annosvc.EXPIRE_NEVER);
+  
 
   
-  do_timeout(3600, "checkExpireNeitherOver();"); 
+  do_timeout(3600, "checkExpireNeitherOver();");
 }
 
 function checkExpireNeitherOver() {
@@ -758,7 +763,10 @@ function startExpireHistoryDisabled() {
   prefs.setIntPref("browser.history_expire_days", 0);
 
   
-  do_timeout(3600, "checkExpireHistoryDisabled();"); 
+  
+
+  
+  do_timeout(3600, "checkExpireHistoryDisabled();");
 }
 
 function checkExpireHistoryDisabled() {
@@ -808,7 +816,10 @@ function startExpireBadPrefs() {
   prefs.setIntPref("browser.history_expire_days", 1);
 
   
-  do_timeout(3600, "checkExpireBadPrefs();"); 
+  
+
+  
+  do_timeout(3600, "checkExpireBadPrefs();");
 }
 
 function checkExpireBadPrefs() {
