@@ -103,6 +103,10 @@ class Stackwalker {
   
   MemoryRegion *memory_;
 
+  
+  
+  const CodeModules *modules_;
+
  private:
   
   
@@ -121,10 +125,6 @@ class Stackwalker {
   virtual StackFrame* GetCallerFrame(
       const CallStack *stack,
       const vector< linked_ptr<StackFrameInfo> > &stack_frame_info) = 0;
-
-  
-  
-  const CodeModules *modules_;
 
   
   SymbolSupplier *supplier_;

@@ -54,12 +54,8 @@
 
 
 
-
-#if _MSC_VER >= 1400 
-#define GB_WSU_SAFE_SWPRINTF_TERMINATE(buffer, count);
-#else  
-#define GB_WSU_SAFE_SWPRINTF_TERMINATE(buffer, count); \
-    (buffer)[(count) - 1] = L'\0';
+#if _MSC_VER < 1400  
+#define swprintf _snwprintf
 #endif  
 
 namespace google_breakpad {

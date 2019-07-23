@@ -74,12 +74,27 @@ class ExceptionHandler {
   
   
   
+  typedef bool (*DirectCallback)( void *context,
+                                  int exception_type,
+                                  int exception_code,
+                                  mach_port_t thread_name);
+
+  
+  
+  
   
   
   
   ExceptionHandler(const string &dump_path, 
                    FilterCallback filter, MinidumpCallback callback,
                    void *callback_context, bool install_handler);
+
+  
+  
+  ExceptionHandler(DirectCallback callback,
+                   void *callback_context,
+                   bool install_handler);
+
   ~ExceptionHandler();
 
   
@@ -104,7 +119,7 @@ class ExceptionHandler {
   bool InstallHandler();
 
   
-  bool UninstallHandler();
+  bool UninstallHandler(bool in_exception);
       
   
   
@@ -158,6 +173,10 @@ class ExceptionHandler {
   FilterCallback filter_;
   MinidumpCallback callback_;
   void *callback_context_;
+
+  
+  
+  DirectCallback directCallback_;
 
   
   pthread_t handler_thread_;
