@@ -473,6 +473,7 @@ enum nsDOMClassInfoID {
   eDOMClassInfo_WebGLRenderbuffer_id,
 
   
+  eDOMClassInfo_CanvasArrayBuffer_id,
   eDOMClassInfo_CanvasFloatArray_id,
   eDOMClassInfo_CanvasByteArray_id,
   eDOMClassInfo_CanvasUnsignedByteArray_id,
