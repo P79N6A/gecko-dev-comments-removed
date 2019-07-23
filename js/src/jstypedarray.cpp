@@ -70,7 +70,7 @@ using namespace js;
 
 
 
-inline ArrayBuffer *
+ArrayBuffer *
 ArrayBuffer::fromJSObject(JSObject *obj)
 {
     JS_ASSERT(obj->getClass() == &ArrayBuffer::jsclass);
@@ -187,7 +187,7 @@ ArrayBuffer::~ArrayBuffer()
 
 
 
-inline TypedArray *
+TypedArray *
 TypedArray::fromJSObject(JSObject *obj)
 {
     return reinterpret_cast<TypedArray*>(obj->getPrivate());
