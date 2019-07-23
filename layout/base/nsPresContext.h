@@ -734,6 +734,8 @@ public:
     return GetCachedBoolPref(kPresContext_UseDocumentColors) || IsChrome();
   }
 
+  PRBool           SupressingResizeReflow() const { return mSupressResizeReflow; }
+
 protected:
   friend class nsRunnableMethod<nsPresContext>;
   NS_HIDDEN_(void) ThemeChangedInternal();
@@ -778,6 +780,7 @@ protected:
 
   float                 mTextZoom;      
   float                 mFullZoom;      
+
   PRInt32               mCurAppUnitsPerDevPixel;
   PRInt32               mAutoQualityMinFontSizePixelsPref;
 
@@ -847,6 +850,10 @@ protected:
   unsigned              mPendingSysColorChanged : 1;
   unsigned              mPendingThemeChanged : 1;
   unsigned              mRenderedPositionVaryingContent : 1;
+
+  
+  
+  unsigned              mSupressResizeReflow : 1;
 
 #ifdef IBMBIDI
   unsigned              mIsVisual : 1;

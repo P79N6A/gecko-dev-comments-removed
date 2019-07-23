@@ -2501,37 +2501,41 @@ PresShell::ResizeReflow(nscoord aWidth, nscoord aHeight)
   if (!rootFrame)
     return NS_OK;
 
-  NS_ASSERTION(mViewManager, "Must have view manager");
-  nsCOMPtr<nsIViewManager> viewManagerDeathGrip = mViewManager;
-  nsIViewManager::UpdateViewBatch batch(mViewManager);
+  if (!GetPresContext()->SupressingResizeReflow())
+  {
+    NS_ASSERTION(mViewManager, "Must have view manager");
+    nsCOMPtr<nsIViewManager> viewManagerDeathGrip = mViewManager;
+    nsIViewManager::UpdateViewBatch batch(mViewManager);
 
-  
-  nsCOMPtr<nsIPresShell> kungFuDeathGrip(this);
-
-  
-  mFrameConstructor->ProcessPendingRestyles();
-  if (!mIsDestroying) {
     
+    nsCOMPtr<nsIPresShell> kungFuDeathGrip(this);
+
     
+    mFrameConstructor->ProcessPendingRestyles();
 
-    WillCauseReflow();
-    WillDoReflow();
-
-    {
+    if (!mIsDestroying) {
       
-      AUTO_LAYOUT_PHASE_ENTRY_POINT(GetPresContext(), Reflow);
-      mIsReflowing = PR_TRUE;
+      
 
-      mDirtyRoots.RemoveElement(rootFrame);
-      DoReflow(rootFrame);
-      mIsReflowing = PR_FALSE;
+      WillCauseReflow();
+      WillDoReflow();
+
+      {
+        
+        AUTO_LAYOUT_PHASE_ENTRY_POINT(GetPresContext(), Reflow);
+        mIsReflowing = PR_TRUE;
+
+        mDirtyRoots.RemoveElement(rootFrame);
+        DoReflow(rootFrame);
+        mIsReflowing = PR_FALSE;
+      }
+
+      DidCauseReflow();
+      DidDoReflow();
     }
 
-    DidCauseReflow();
-    DidDoReflow();
+    batch.EndUpdateViewBatch(NS_VMREFRESH_NO_SYNC);
   }
-
-  batch.EndUpdateViewBatch(NS_VMREFRESH_NO_SYNC);
 
   if (!mIsDestroying) {
     CreateResizeEventTimer();
