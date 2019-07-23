@@ -350,7 +350,8 @@ protected:
 
 
   PRBool GetNameIfExists(nsAString& aName) {
-    return GetAttr(kNameSpaceID_None, nsGkAtoms::name, aName);
+    GetAttr(kNameSpaceID_None, nsGkAtoms::name, aName);
+    return !aName.IsEmpty();
   }
 
   
@@ -2629,6 +2630,8 @@ nsHTMLInputElement::SubmitNamesValues(nsIFormSubmission* aFormSubmission,
       aFormSubmission->AddNameValuePair(this, NS_LITERAL_STRING("x"), xVal);
       aFormSubmission->AddNameValuePair(this, NS_LITERAL_STRING("y"), yVal);
     }
+
+    return NS_OK;
   }
 
   
