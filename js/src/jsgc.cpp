@@ -3197,6 +3197,187 @@ GCUntilDone(JSContext *cx, JSGCInvocationKind gckind  GCTIMER_PARAM)
     } while (rt->gcLevel > 1 || rt->gcPoke);
 }
 
+#ifdef JS_THREADSAFE
+
+
+
+
+
+
+static void
+DelegateGC(JSContext *cx, JSGCInvocationKind gckind)
+{
+    JSRuntime *rt = cx->runtime;
+    JS_ASSERT(rt->gcThread);
+
+    
+    rt->gcLevel++;
+    METER_UPDATE_MAX(rt->gcStats.maxlevel, rt->gcLevel);
+
+    
+
+
+
+
+    if (rt->gcThread == cx->thread)
+        return;
+
+    
+
+
+
+    size_t requestDebit = js_CountThreadRequests(cx);
+    JS_ASSERT(requestDebit <= rt->requestCount);
+#ifdef JS_TRACER
+    JS_ASSERT_IF(requestDebit == 0, !JS_ON_TRACE(cx));
+#endif
+    if (requestDebit != 0) {
+#ifdef JS_TRACER
+        if (JS_ON_TRACE(cx)) {
+            
+
+
+
+
+            AutoUnlockGC unlock(rt);
+            LeaveTrace(cx);
+        }
+#endif
+        rt->requestCount -= requestDebit;
+        if (rt->requestCount == 0)
+            JS_NOTIFY_REQUEST_DONE(rt);
+
+        
+        cx->thread->gcWaiting = true;
+        js_ShareWaitingTitles(cx);
+
+        
+        Conditionally<AutoKeepAtoms> keepIf(!!(gckind & GC_KEEP_ATOMS), rt);
+
+        
+
+
+
+        JS_ASSERT(rt->gcLevel > 0);
+        do {
+            JS_AWAIT_GC_DONE(rt);
+        } while (rt->gcLevel > 0);
+
+        cx->thread->gcWaiting = false;
+        rt->requestCount += requestDebit;
+    }
+}
+
+#endif
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+static bool
+BeginGCSession(JSContext *cx, JSGCInvocationKind gckind)
+{
+    JSRuntime *rt = cx->runtime;
+
+    METER(rt->gcStats.poke++);
+    rt->gcPoke = JS_FALSE;
+
+#ifdef JS_THREADSAFE
+    
+
+
+
+    if (rt->gcLevel > 0) {
+        DelegateGC(cx, gckind);
+        return false;
+    }
+
+    
+    rt->gcLevel = 1;
+    rt->gcThread = cx->thread;
+
+    
+
+
+
+
+
+    js_NudgeOtherContexts(cx);
+
+    
+
+
+
+
+
+    size_t requestDebit = js_CountThreadRequests(cx);
+    JS_ASSERT_IF(cx->requestDepth != 0, requestDebit >= 1);
+    JS_ASSERT(requestDebit <= rt->requestCount);
+    if (requestDebit != rt->requestCount) {
+        rt->requestCount -= requestDebit;
+
+        
+
+
+
+
+
+        cx->thread->gcWaiting = true;
+        js_ShareWaitingTitles(cx);
+        do {
+            JS_AWAIT_REQUEST_DONE(rt);
+        } while (rt->requestCount > 0);
+        cx->thread->gcWaiting = false;
+        rt->requestCount += requestDebit;
+    }
+
+#else  
+
+    
+    rt->gcLevel++;
+    METER_UPDATE_MAX(rt->gcStats.maxlevel, rt->gcLevel);
+    if (rt->gcLevel > 1)
+        return false;
+
+#endif 
+
+    
+
+
+
+
+
+
+
+    rt->gcRunning = JS_TRUE;
+    return true;
+}
+
+
+static void
+EndGCSession(JSContext *cx)
+{
+    JSRuntime *rt = cx->runtime;
+
+    rt->gcLevel = 0;
+    rt->gcRunning = rt->gcRegenShapes = false;
+#ifdef JS_THREADSAFE
+    JS_ASSERT(rt->gcThread == cx->thread);
+    rt->gcThread = NULL;
+    JS_NOTIFY_GC_DONE(rt);
+#endif
+}
+
 
 
 
@@ -3269,9 +3450,6 @@ void
 js_GC(JSContext *cx, JSGCInvocationKind gckind)
 {
     JSRuntime *rt;
-#ifdef JS_THREADSAFE
-    size_t requestDebit;
-#endif
 
     JS_ASSERT_IF(gckind == GC_LAST_DITCH, !JS_ON_TRACE(cx));
     rt = cx->runtime;
@@ -3319,136 +3497,12 @@ js_GC(JSContext *cx, JSGCInvocationKind gckind)
     if (!(gckind & GC_LOCK_HELD))
         JS_LOCK_GC(rt);
 
-    METER(rt->gcStats.poke++);
-    rt->gcPoke = JS_FALSE;
-
-#ifdef JS_THREADSAFE
-    
-
-
-
-    if (rt->gcLevel > 0) {
-        JS_ASSERT(rt->gcThread);
-
+    if (!BeginGCSession(cx, gckind)) {
         
-        rt->gcLevel++;
-        METER_UPDATE_MAX(rt->gcStats.maxlevel, rt->gcLevel);
-
-        
-
-
-
-        if (rt->gcThread != cx->thread) {
-            requestDebit = js_CountThreadRequests(cx);
-            JS_ASSERT(requestDebit <= rt->requestCount);
-#ifdef JS_TRACER
-            JS_ASSERT_IF(requestDebit == 0, !JS_ON_TRACE(cx));
-#endif
-            if (requestDebit != 0) {
-#ifdef JS_TRACER
-                if (JS_ON_TRACE(cx)) {
-                    
-
-
-
-
-                    AutoUnlockGC unlock(rt);
-                    LeaveTrace(cx);
-                }
-#endif
-                rt->requestCount -= requestDebit;
-                if (rt->requestCount == 0)
-                    JS_NOTIFY_REQUEST_DONE(rt);
-
-                
-
-
-
-                cx->thread->gcWaiting = true;
-                js_ShareWaitingTitles(cx);
-
-                
-
-
-
-                Conditionally<AutoKeepAtoms> keepIf(!!(gckind & GC_KEEP_ATOMS), rt);
-
-                
-
-
-
-                JS_ASSERT(rt->gcLevel > 0);
-                do {
-                    JS_AWAIT_GC_DONE(rt);
-                } while (rt->gcLevel > 0);
-
-                cx->thread->gcWaiting = false;
-                rt->requestCount += requestDebit;
-            }
-        }
         if (!(gckind & GC_LOCK_HELD))
             JS_UNLOCK_GC(rt);
         return;
     }
-
-    
-    rt->gcLevel = 1;
-    rt->gcThread = cx->thread;
-
-    
-
-
-
-
-
-    js_NudgeOtherContexts(cx);
-
-    
-
-
-
-
-
-    requestDebit = js_CountThreadRequests(cx);
-    JS_ASSERT_IF(cx->requestDepth != 0, requestDebit >= 1);
-    JS_ASSERT(requestDebit <= rt->requestCount);
-    if (requestDebit != rt->requestCount) {
-        rt->requestCount -= requestDebit;
-
-        
-
-
-
-
-
-        cx->thread->gcWaiting = true;
-        js_ShareWaitingTitles(cx);
-        do {
-            JS_AWAIT_REQUEST_DONE(rt);
-        } while (rt->requestCount > 0);
-        cx->thread->gcWaiting = false;
-        rt->requestCount += requestDebit;
-    }
-
-#else  
-
-    
-    rt->gcLevel++;
-    METER_UPDATE_MAX(rt->gcStats.maxlevel, rt->gcLevel);
-    if (rt->gcLevel > 1)
-        return;
-
-#endif 
-
-    
-
-
-
-
-
-
-
-    rt->gcRunning = JS_TRUE;
 
     if (gckind == GC_SET_SLOT_REQUEST) {
         JSSetSlotRequest *ssr;
@@ -3485,13 +3539,9 @@ js_GC(JSContext *cx, JSGCInvocationKind gckind)
     rt->setGCLastBytes(rt->gcBytes);
 
   done_running:
-    rt->gcLevel = 0;
-    rt->gcRunning = rt->gcRegenShapes = false;
+    EndGCSession(cx);
 
 #ifdef JS_THREADSAFE
-    rt->gcThread = NULL;
-    JS_NOTIFY_GC_DONE(rt);
-
     
 
 
