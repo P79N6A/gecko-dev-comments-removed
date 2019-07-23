@@ -149,7 +149,7 @@ namespace nanojit
         
         counter_increment(steals);
         LIns* vic = findVictim(regs, allow);
-        NanoAssert(vic != NULL);
+        NanoAssert(vic);
 
         Reservation* resv = getresv(vic);
         NanoAssert(resv);
@@ -366,7 +366,7 @@ namespace nanojit
             {
                 
                 
-                evict(r);
+                evict(r, i);
                 r = resv->reg = registerAlloc(prefer);
                 _allocator.addActive(r, i);
             } else
@@ -447,10 +447,35 @@ namespace nanojit
         i->resv()->clear();
     }
 
-    void Assembler::evict(Register r)
+    void Assembler::evictIfActive(Register r)
     {
-        registerAlloc(rmask(r));
-        _allocator.addFree(r);
+        if (_allocator.isFree(r)) {
+            
+            _allocator.used |= rmask(r);
+        } else {
+            
+            LIns* vic = _allocator.getActive(r);
+            evict(r, vic);
+        }
+    }
+
+    void Assembler::evict(Register r, LIns* vic)
+    {
+        
+        counter_increment(steals);
+
+        
+        NanoAssert(!_allocator.isFree(r));
+        NanoAssert(vic == _allocator.getActive(r));
+        Reservation* resv = getresv(vic);
+        NanoAssert(resv && r == resv->reg);
+
+        
+        _allocator.retire(r);
+        resv->reg = UnknownReg;
+
+        
+        asm_restore(vic, resv, r);
     }
 
     void Assembler::patch(GuardRecord *lr)
@@ -1526,7 +1551,7 @@ namespace nanojit
                 LIns *i = regs->getActive(r);
                 if (i) {
                     if (canRemat(i)) {
-                        evict(r);
+                        evict(r, i);
                     }
                     else {
                         int32_t pri = regs->getPriority(r);
@@ -1585,9 +1610,10 @@ namespace nanojit
     {
         
         
+        LIns* i;
         for (Register r = FirstReg; r <= LastReg; r = nextreg(r)) {
-            if ((rmask(r) & regs) && _allocator.getActive(r)) {
-                evict(r);
+            if ((rmask(r) & regs) && (i = _allocator.getActive(r))) {
+                evict(r, i);
             }
         }
     }
@@ -1618,7 +1644,7 @@ namespace nanojit
                 if (curins) {
                     
                     verbose_only( shouldMention=true; )
-                    evict(r);
+                    evict(r, curins);
                 }
 
                 #ifdef NANOJIT_IA32
@@ -1664,7 +1690,7 @@ namespace nanojit
                 if (curins && savedins) {
                     
                     verbose_only( shouldMention=true; )
-                    evict(r);
+                    evict(r, curins);
                 }
 
                 #ifdef NANOJIT_IA32
@@ -1675,7 +1701,7 @@ namespace nanojit
                     else {
                         
                         
-                        evict(r);
+                        evictIfActive(r);
                     }
                     verbose_only( shouldMention=true; )
                 }
