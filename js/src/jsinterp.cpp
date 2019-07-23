@@ -302,12 +302,8 @@ js_AllocRawStack(JSContext *cx, uintN nslots, void **markp)
     if (markp)
         *markp = JS_ARENA_MARK(&cx->stackPool);
     JS_ARENA_ALLOCATE_CAST(sp, jsval *, &cx->stackPool, nslots * sizeof(jsval));
-    if (!sp) {
-        JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_STACK_OVERFLOW,
-                             (cx->fp && cx->fp->fun)
-                             ? JS_GetFunctionName(cx->fp->fun)
-                             : "script");
-    }
+    if (!sp)
+        js_ReportOutOfScriptQuota(cx);
     return sp;
 }
 
@@ -386,30 +382,6 @@ js_FreeStack(JSContext *cx, void *mark)
 
     
     JS_ARENA_RELEASE(&cx->stackPool, mark);
-}
-
-JSBool
-js_GetArgument(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
-{
-    return JS_TRUE;
-}
-
-JSBool
-js_SetArgument(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
-{
-    return JS_TRUE;
-}
-
-JSBool
-js_GetLocalVariable(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
-{
-    return JS_TRUE;
-}
-
-JSBool
-js_SetLocalVariable(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
-{
-    return JS_TRUE;
 }
 
 JSObject *
@@ -916,7 +888,7 @@ LogCall(JSContext *cx, jsval callee, uintN argc, jsval *argv)
     key.lineno = 0;
     name = "";
     if (VALUE_IS_FUNCTION(cx, callee)) {
-        fun = (JSFunction *) OBJ_GET_PRIVATE(cx, JSVAL_TO_OBJECT(callee));
+        fun = GET_FUNCTION_PRIVATE(cx, JSVAL_TO_OBJECT(callee));
         if (fun->atom)
             name = js_AtomToPrintableString(cx, fun->atom);
         if (FUN_INTERPRETED(fun)) {
@@ -1006,8 +978,8 @@ LogCall(JSContext *cx, jsval callee, uintN argc, jsval *argv)
             break;
           case JSTYPE_FUNCTION:
             if (VALUE_IS_FUNCTION(cx, argval)) {
-                fun = (JSFunction *) OBJ_GET_PRIVATE(cx, JSVAL_TO_OBJECT(argval));
-                if (fun && fun->atom) {
+                fun = GET_FUNCTION_PRIVATE(cx, JSVAL_TO_OBJECT(argval));
+                if (fun->atom) {
                     str = ATOM_TO_STRING(fun->atom);
                     break;
                 }
@@ -1173,7 +1145,7 @@ js_Invoke(JSContext *cx, uintN argc, jsval *vp, uintN flags)
     } else {
 have_fun:
         
-        fun = (JSFunction *) OBJ_GET_PRIVATE(cx, funobj);
+        fun = GET_FUNCTION_PRIVATE(cx, funobj);
         nslots = FUN_MINARGS(fun);
         nslots = (nslots > argc) ? nslots - argc : 0;
         if (FUN_INTERPRETED(fun)) {
@@ -1494,8 +1466,7 @@ js_InternalGetOrSet(JSContext *cx, JSObject *obj, jsid id, jsval fval,
 
 
     if (!JS_CHECK_STACK_SIZE(cx, stackDummy)) {
-        JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL,
-                             JSMSG_OVER_RECURSED);
+        js_ReportOverRecursed(cx);
         return JS_FALSE;
     }
 
@@ -1517,8 +1488,7 @@ js_InternalGetOrSet(JSContext *cx, JSObject *obj, jsid id, jsval fval,
     JS_ASSERT(mode == JSACC_READ || mode == JSACC_WRITE);
     if (cx->runtime->checkObjectAccess &&
         VALUE_IS_FUNCTION(cx, fval) &&
-        FUN_INTERPRETED((JSFunction *)
-                        JS_GetPrivate(cx, JSVAL_TO_OBJECT(fval))) &&
+        FUN_INTERPRETED(GET_FUNCTION_PRIVATE(cx, JSVAL_TO_OBJECT(fval))) &&
         !cx->runtime->checkObjectAccess(cx, obj, ID_TO_VALUE(id), mode,
                                         &fval)) {
         return JS_FALSE;
@@ -1938,7 +1908,7 @@ js_InvokeConstructor(JSContext *cx, jsval *vp, uintN argc)
         parent = OBJ_GET_PARENT(cx, obj2);
 
         if (OBJ_GET_CLASS(cx, obj2) == &js_FunctionClass) {
-            funclasp = ((JSFunction *) OBJ_GET_PRIVATE(cx, obj2))->clasp;
+            funclasp = GET_FUNCTION_PRIVATE(cx, obj2)->clasp;
             if (funclasp)
                 clasp = funclasp;
         }
@@ -2353,7 +2323,7 @@ js_Interpret(JSContext *cx, jsbytecode *pc, jsval *result)
     
     ++cx->interpLevel;
     if (!JS_CHECK_STACK_SIZE(cx, stackDummy)) {
-        JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_OVER_RECURSED);
+        js_ReportOverRecursed(cx);
         ok = JS_FALSE;
         goto out2;
     }
@@ -3912,9 +3882,9 @@ interrupt:
             SAVE_SP_AND_PC(fp);
             if (VALUE_IS_FUNCTION(cx, lval)) {
                 obj = JSVAL_TO_OBJECT(lval);
-                fun = (JSFunction *) OBJ_GET_PRIVATE(cx, obj);
+                fun = GET_FUNCTION_PRIVATE(cx, obj);
 
-                if (fun->flags & JSFUN_INTERPRETED) {
+                if (FUN_INTERPRETED(fun)) {
                     uintN nframeslots, nvars, nslots, missing;
                     JSArena *a;
                     jsuword avail, nbytes;
@@ -3960,11 +3930,7 @@ interrupt:
                         JS_ARENA_ALLOCATE_CAST(newsp, jsval *, &cx->stackPool,
                                                nbytes);
                         if (!newsp) {
-                            JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL,
-                                                 JSMSG_STACK_OVERFLOW,
-                                                 (fp && fp->fun)
-                                                 ? JS_GetFunctionName(fp->fun)
-                                                 : "script");
+                            js_ReportOutOfScriptQuota(cx);
                             goto bad_inline_call;
                         }
                     }
@@ -4876,7 +4842,7 @@ interrupt:
 
           BEGIN_CASE(JSOP_DEFFUN)
             LOAD_FUNCTION(0);
-            fun = (JSFunction *) OBJ_GET_PRIVATE(cx, obj);
+            fun = GET_FUNCTION_PRIVATE(cx, obj);
             id = ATOM_TO_JSID(fun->atom);
 
             
@@ -5117,7 +5083,7 @@ interrupt:
 
 
 
-            fun = (JSFunction *) OBJ_GET_PRIVATE(cx, obj);
+            fun = GET_FUNCTION_PRIVATE(cx, obj);
             attrs = JSFUN_GSFLAG2ATTR(fun->flags);
             if (attrs) {
                 attrs |= JSPROP_SHARED;
@@ -5191,7 +5157,7 @@ interrupt:
 
 
 
-            fun = (JSFunction *) OBJ_GET_PRIVATE(cx, obj);
+            fun = GET_FUNCTION_PRIVATE(cx, obj);
             attrs = JSFUN_GSFLAG2ATTR(fun->flags);
             if (attrs) {
                 attrs |= JSPROP_SHARED;
@@ -5870,7 +5836,7 @@ interrupt:
                 
                 if (!VALUE_IS_FUNCTION(cx, rval) ||
                     (obj = JSVAL_TO_OBJECT(rval),
-                     fun = (JSFunction *) OBJ_GET_PRIVATE(cx, obj),
+                     fun = GET_FUNCTION_PRIVATE(cx, obj),
                      !PRIMITIVE_THIS_TEST(fun, lval))) {
                     ok = js_PrimitiveToObject(cx, &sp[-1]);
                     if (!ok)

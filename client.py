@@ -1,7 +1,7 @@
 
 
 NSPR_CO_TAG = 'NSPR_HEAD_20071016'
-NSS_CO_TAG  = 'NSS_3_12_ALPHA_2'
+NSS_CO_TAG  = 'NSS_3_12_ALPHA_2B'
 
 NSPR_DIRS = ('nsprpub',)
 NSS_DIRS  = ('dbm',

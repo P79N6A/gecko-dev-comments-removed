@@ -93,7 +93,7 @@ static const struct keyword keyword_defs[] = {
 #undef JS_KEYWORD
 };
 
-#define KEYWORD_COUNT (sizeof keyword_defs / sizeof keyword_defs[0])
+#define KEYWORD_COUNT JS_ARRAY_LENGTH(keyword_defs)
 
 static const struct keyword *
 FindKeyword(const jschar *s, size_t length)
@@ -202,7 +202,7 @@ GrowTokenBuf(JSStringBuffer *sb, size_t newlength)
         }
     }
     if (!base) {
-        JS_ReportOutOfMemory(cx);
+        js_ReportOutOfScriptQuota(cx);
         sb->base = STRING_BUFFER_ERROR_BASE;
         return JS_FALSE;
     }
@@ -227,7 +227,7 @@ js_InitTokenStream(JSContext *cx, JSTokenStream *ts,
          : JS_LINE_LIMIT * sizeof(jschar);
     JS_ARENA_ALLOCATE_CAST(buf, jschar *, &cx->tempPool, nb);
     if (!ts) {
-        JS_ReportOutOfMemory(cx);
+        js_ReportOutOfScriptQuota(cx);
         return JS_FALSE;
     }
     memset(buf, 0, nb);
@@ -447,7 +447,7 @@ UngetChar(JSTokenStream *ts, int32 c)
 {
     if (c == EOF)
         return;
-    JS_ASSERT(ts->ungetpos < sizeof ts->ungetbuf / sizeof ts->ungetbuf[0]);
+    JS_ASSERT(ts->ungetpos < JS_ARRAY_LENGTH(ts->ungetbuf));
     if (c == '\n')
         ts->lineno--;
     ts->ungetbuf[ts->ungetpos++] = (jschar)c;

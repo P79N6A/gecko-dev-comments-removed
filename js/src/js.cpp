@@ -1239,7 +1239,7 @@ SrcNotes(JSContext *cx, JSScript *script)
 
             index = js_GetSrcNoteOffset(sn, 0);
             JS_GET_SCRIPT_OBJECT(script, index, obj);
-            fun = (JSFunction *) OBJ_GET_PRIVATE(cx, obj);
+            fun = (JSFunction *) JS_GetPrivate(cx, obj);
             str = JS_DecompileFunction(cx, fun, JS_DONT_PRETTY_PRINT);
             bytes = str ? JS_GetStringBytes(str) : "N/A";
             fprintf(gOutFile, " function %u (%s)", index, bytes);
@@ -1448,6 +1448,10 @@ Tracing(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
     JSBool bval;
     JSString *str;
 
+#if JS_THREADED_INTERP
+    JS_ReportError(cx, "tracing not supported in JS_THREADED_INTERP builds");
+    return JS_FALSE;
+#else
     if (argc == 0) {
         *rval = BOOLEAN_TO_JSVAL(cx->tracefp != 0);
         return JS_TRUE;
@@ -1466,12 +1470,13 @@ Tracing(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
         str = JS_ValueToString(cx, argv[0]);
         if (!str)
             return JS_FALSE;
-        fprintf(gErrFile, "tracing: illegal argument %s\n",
-                JS_GetStringBytes(str));
-        return JS_TRUE;
+        JS_ReportError(cx, "tracing: illegal argument %s",
+                       JS_GetStringBytes(str));
+        return JS_FALSE;
     }
     cx->tracefp = bval ? stderr : NULL;
     return JS_TRUE;
+#endif
 }
 
 static void
