@@ -963,6 +963,8 @@ TraceRecorder::loopEdge()
         closeLoop(JS_TRACE_MONITOR(cx).fragmento);
         return false; 
     }
+    
+    stop(); 
     return false; 
 }
 
@@ -970,6 +972,13 @@ void
 TraceRecorder::stop()
 {
     fragment->blacklist();
+    if (fragment->root == fragment) {
+#ifdef DEBUG
+        printf("Root fragment aborted, trashing the type map.\n");
+#endif        
+        JS_ASSERT(fragmentInfo->typeMap);
+        fragmentInfo->typeMap = NULL;
+    }
 }
 
 int
@@ -1076,7 +1085,6 @@ js_LoopEdge(JSContext* cx)
             return false; 
         }
 #endif
-
         if (tm->recorder->loopEdge())
             return true; 
         js_DeleteRecorder(cx);
@@ -1121,8 +1129,10 @@ js_LoopEdge(JSContext* cx)
                             (cx->fp->regs->sp - cx->fp->spbase)) * sizeof(double);
                     fi->maxNativeFrameSlots = entryNativeFrameSlots;
                     fi->maxCallDepth = 0;
-
-                    
+                }
+                
+                
+                if (!fi->typeMap) {
                     fi->typeMap = (uint8*)malloc(fi->entryNativeFrameSlots * sizeof(uint8));
                     uint8* m = fi->typeMap;
 
@@ -1131,6 +1141,7 @@ js_LoopEdge(JSContext* cx)
                         *m++ = getCoercedType(*vp)
                     );
                 }
+                
                 tm->recorder = new (&gc) TraceRecorder(cx, f, fi->typeMap);
 
                 
@@ -2983,16 +2994,7 @@ bool TraceRecorder::record_JSOP_INT32()
 
 bool TraceRecorder::record_JSOP_LENGTH()
 {
-    jsval& l = stackval(-1);
-    JSObject *obj;
-    if (JSVAL_IS_PRIMITIVE(l) || !OBJ_IS_DENSE_ARRAY(cx, (obj = JSVAL_TO_OBJECT(l))))
-        ABORT_TRACE("only dense arrays supported");
-    LIns* dslots_ins;
-    if (!guardThatObjectIsDenseArray(obj, get(&l), dslots_ins))
-        ABORT_TRACE("OBJ_IS_DENSE_ARRAY but not?!?");
-    LIns* v_ins = lir->ins1(LIR_i2f, stobj_get_slot(get(&l), JSSLOT_ARRAY_LENGTH, dslots_ins));
-    set(&l, v_ins);
-    return true;
+    return false;
 }
 
 bool TraceRecorder::record_JSOP_NEWARRAY()
