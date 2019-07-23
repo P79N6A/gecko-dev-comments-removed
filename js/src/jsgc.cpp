@@ -81,32 +81,50 @@
 
 
 
-#ifndef JS_GC_USE_MMAP
+#if _POSIX_C_SOURCE >= 200112L || _XOPEN_SOURCE >= 600 || MOZ_MEMORY
+# define HAS_POSIX_MEMALIGN 1
+#else
+# define HAS_POSIX_MEMALIGN 0
+#endif
+
+
+
+
+
+#if HAS_POSIX_MEMALIGN && MOZ_MEMORY_WINDOWS
+extern int
+posix_memalign(void **memptr, size_t alignment, size_t size);
+#endif
+
+
+
+
+
+#if JS_GC_USE_MMAP || (!defined JS_GC_USE_MMAP && !HAS_POSIX_MEMALIGN)
 # if defined(XP_WIN)
-#  define JS_GC_USE_MMAP 1
-# elif defined(XP_UNIX) || defined(XP_BEOS)
-#  include <unistd.h>
-#  if defined(_POSIX_MAPPED_FILES) && _POSIX_MAPPED_FILES > 0
+#  ifndef JS_GC_USE_MMAP
 #   define JS_GC_USE_MMAP 1
 #  endif
-# endif
-#endif
-
-#ifndef JS_GC_USE_MMAP
-# define JS_GC_USE_MMAP 0
-#endif
-
-#if JS_GC_USE_MMAP
-# if defined(XP_WIN)
 #  include <windows.h>
-# elif defined(XP_UNIX) || defined(XP_BEOS)
-#  include <sys/mman.h>
-
-
-#  if !defined(MAP_ANONYMOUS) && defined(MAP_ANON)
-#   define MAP_ANONYMOUS MAP_ANON
+# else
+#  if defined(XP_UNIX) || defined(XP_BEOS)
+#   include <unistd.h>
 #  endif
+#  if _POSIX_MAPPED_FILES > 0
+#   ifndef JS_GC_USE_MMAP
+#    define JS_GC_USE_MMAP 1
+#   endif
+#   include <sys/mman.h>
 
+
+#   if !defined(MAP_ANONYMOUS) && defined(MAP_ANON)
+#    define MAP_ANONYMOUS MAP_ANON
+#   endif
+#  else
+#   if JS_GC_USE_MMAP
+#    error "JS_GC_USE_MMAP is set when mmap is not available"
+#   endif
+#  endif
 # endif
 #endif
 
@@ -172,21 +190,52 @@
 
 
 
-
-
-
-
-
-
-
 #if JS_GC_USE_MMAP
-# define GC_ARENA_SHIFT              12
+static uint32 js_gcArenasPerChunk = 0;
+static JSBool js_gcUseMmap = JS_FALSE;
+#elif HAS_POSIX_MEMALIGN
+# define js_gcArenasPerChunk 1
 #else
-# define GC_ARENA_SHIFT              10
+# define js_gcArenasPerChunk 7
 #endif
 
+#if defined(js_gcArenasPerChunk) && js_gcArenasPerChunk == 1
+# define CHUNKED_ARENA_ALLOCATION 0
+#else
+# define CHUNKED_ARENA_ALLOCATION 1
+#endif
+
+#define GC_ARENA_SHIFT              12
 #define GC_ARENA_MASK               ((jsuword) JS_BITMASK(GC_ARENA_SHIFT))
 #define GC_ARENA_SIZE               JS_BIT(GC_ARENA_SHIFT)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifndef JS_GC_ARENA_PAD
+# if HAS_POSIX_MEMALIGN && !MOZ_MEMORY
+#  define JS_GC_ARENA_PAD (2 * JS_BYTES_PER_WORD)
+# else
+#  define JS_GC_ARENA_PAD 0
+# endif
+#endif
 
 struct JSGCArenaInfo {
     
@@ -202,6 +251,9 @@ struct JSGCArenaInfo {
 
     JSGCArenaInfo   *prev;
 
+#if !CHUNKED_ARENA_ALLOCATION
+    jsuword         prevUntracedPage;
+#else
     
 
 
@@ -221,53 +273,26 @@ struct JSGCArenaInfo {
 
     
     jsuword         firstArena :        1;
+#endif
 
     union {
         jsuword     untracedThings;     
 
         JSBool      hasMarkedDoubles;   
     } u;
-};
 
-
-
-
-
-
-
-JS_STATIC_ASSERT(sizeof(JSGCArenaInfo) == 4 * sizeof(jsuword));
-
-#define NO_FREE_ARENAS              JS_BITMASK(GC_ARENA_SHIFT - 1)
-
-
-
-
-
-
-
-
-
-
-
-
-
-struct JSGCChunkInfo {
-    JSGCChunkInfo   **prevp;
-    JSGCChunkInfo   *next;
-    JSGCArenaInfo   *lastFreeArena;
-    uint32          numFreeArenas;
-};
-
-
-
-
-
-#if JS_GC_USE_MMAP
-static uint32 js_gcArenasPerChunk = 0;
-static JSBool js_gcUseMmap = JS_FALSE;
-#else
-# define js_gcArenasPerChunk 31
+#if JS_GC_ARENA_PAD != 0
+    uint8           pad[JS_GC_ARENA_PAD];
 #endif
+};
+
+
+
+
+
+
+
+JS_STATIC_ASSERT(offsetof(JSGCArenaInfo, u) == 3 * sizeof(jsuword));
 
 
 
@@ -299,8 +324,34 @@ static JSBool js_gcUseMmap = JS_FALSE;
     (JS_ASSERT((index) < js_gcArenasPerChunk),                                \
      ARENA_START_TO_INFO(chunk + ((index) << GC_ARENA_SHIFT)))
 
+#if CHUNKED_ARENA_ALLOCATION
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+struct JSGCChunkInfo {
+    JSGCChunkInfo   **prevp;
+    JSGCChunkInfo   *next;
+    JSGCArenaInfo   *lastFreeArena;
+    uint32          numFreeArenas;
+};
+
+#define NO_FREE_ARENAS              JS_BITMASK(GC_ARENA_SHIFT - 1)
+
+#ifdef js_gcArenasPerChunk
+JS_STATIC_ASSERT(1 <= js_gcArenasPerChunk &&
+                 js_gcArenasPerChunk <= NO_FREE_ARENAS);
+#endif
 
 #define GET_ARENA_CHUNK(arena, index)                                         \
     (JS_ASSERT(GET_ARENA_INDEX(arena) == index),                              \
@@ -323,6 +374,8 @@ static JSBool js_gcUseMmap = JS_FALSE;
 
 #define CHUNK_INFO_TO_INDEX(ci)                                               \
     GET_ARENA_INDEX(ARENA_START_TO_INFO((jsuword)ci))
+
+#endif
 
 
 
@@ -698,6 +751,8 @@ ShrinkPtrTable(JSPtrTable *table, const JSPtrTableInfo *info,
 #define METER_UPDATE_MAX(maxLval, rval)                                       \
     METER_IF((maxLval) < (rval), (maxLval) = (rval))
 
+#if JS_GC_USE_MMAP || !HAS_POSIX_MEMALIGN
+
 
 
 
@@ -711,11 +766,12 @@ GetMallocedChunkGapPtr(jsuword chunk)
     return (uint32 *) (chunk + (js_gcArenasPerChunk << GC_ARENA_SHIFT));
 }
 
+#endif
+
 static jsuword
-NewGCChunk()
+NewGCChunk(void)
 {
     void *p;
-    jsuword chunk;
 
 #if JS_GC_USE_MMAP
     if (js_gcUseMmap) {
@@ -723,17 +779,26 @@ NewGCChunk()
         p = VirtualAlloc(NULL, js_gcArenasPerChunk << GC_ARENA_SHIFT,
                          MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
         return (jsuword) p;
-# elif defined(XP_UNIX) || defined(XP_BEOS)
+# else
         p = mmap(NULL, js_gcArenasPerChunk << GC_ARENA_SHIFT,
                  PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
         return (p == MAP_FAILED) ? 0 : (jsuword) p;
-# else
-#  error "Not implemented"
 # endif
     }
 #endif
 
+#if HAS_POSIX_MEMALIGN
+    if (0 != posix_memalign(&p, GC_ARENA_SIZE,
+                            GC_ARENA_SIZE * js_gcArenasPerChunk -
+                            JS_GC_ARENA_PAD)) {
+        return 0;
+    }
+    return (jsuword) p;
+#else
     
+
+
+
 
 
 
@@ -749,9 +814,15 @@ NewGCChunk()
     p = malloc((js_gcArenasPerChunk + 1) << GC_ARENA_SHIFT);
     if (!p)
         return 0;
-    chunk = ((jsuword) p + GC_ARENA_MASK) & ~GC_ARENA_MASK;
-    *GetMallocedChunkGapPtr(chunk) = (uint32) (chunk - (jsuword) p);
-    return chunk;
+
+    {
+        jsuword chunk;
+
+        chunk = ((jsuword) p + GC_ARENA_MASK) & ~GC_ARENA_MASK;
+        *GetMallocedChunkGapPtr(chunk) = (uint32) (chunk - (jsuword) p);
+        return chunk;
+    }
+#endif
 }
 
 static void
@@ -762,19 +833,23 @@ DestroyGCChunk(jsuword chunk)
     if (js_gcUseMmap) {
 # if defined(XP_WIN)
         VirtualFree((void *) chunk, 0, MEM_RELEASE);
-# elif defined(XP_UNIX) || defined(XP_BEOS)
-        munmap((void *) chunk, js_gcArenasPerChunk << GC_ARENA_SHIFT);
 # else
-#  error "Not implemented"
+        munmap((void *) chunk, js_gcArenasPerChunk << GC_ARENA_SHIFT);
 # endif
         return;
     }
 #endif
 
+#if HAS_POSIX_MEMALIGN
+    free((void *) chunk);
+#else
     
     JS_ASSERT(*GetMallocedChunkGapPtr(chunk) < GC_ARENA_SIZE);
     free((void *) (chunk - *GetMallocedChunkGapPtr(chunk)));
+#endif
 }
+
+#if CHUNKED_ARENA_ALLOCATION
 
 static void
 AddChunkToList(JSRuntime *rt, JSGCChunkInfo *ci)
@@ -798,23 +873,30 @@ RemoveChunkFromList(JSRuntime *rt, JSGCChunkInfo *ci)
     }
 }
 
+#endif
+
 static JSGCArenaInfo *
 NewGCArena(JSRuntime *rt)
 {
     jsuword chunk;
-    JSGCChunkInfo *ci;
-    uint32 i;
-    JSGCArenaInfo *a, *aprev;
+    JSGCArenaInfo *a;
 
     if (rt->gcBytes >= rt->gcMaxBytes)
         return NULL;
 
+#if CHUNKED_ARENA_ALLOCATION
     if (js_gcArenasPerChunk == 1) {
+#endif
         chunk = NewGCChunk();
         if (chunk == 0)
             return NULL;
         a = ARENA_START_TO_INFO(chunk);
+#if CHUNKED_ARENA_ALLOCATION
     } else {
+        JSGCChunkInfo *ci;
+        uint32 i;
+        JSGCArenaInfo *aprev;
+
         ci = rt->gcChunkList;
         if (!ci) {
             chunk = NewGCChunk();
@@ -856,6 +938,7 @@ NewGCArena(JSRuntime *rt)
             }
         }
     }
+#endif
 
     rt->gcBytes += GC_ARENA_SIZE;
     a->prevUntracedPage = 0;
@@ -868,10 +951,6 @@ static void
 DestroyGCArenas(JSRuntime *rt, JSGCArenaInfo *last)
 {
     JSGCArenaInfo *a;
-    uint32 arenaIndex;
-    jsuword chunk;
-    uint32 chunkInfoIndex;
-    JSGCChunkInfo *ci;
 
     while (last) {
         a = last;
@@ -881,19 +960,26 @@ DestroyGCArenas(JSRuntime *rt, JSGCArenaInfo *last)
         JS_ASSERT(rt->gcBytes >= GC_ARENA_SIZE);
         rt->gcBytes -= GC_ARENA_SIZE;
 
+#if CHUNKED_ARENA_ALLOCATION
         if (js_gcArenasPerChunk == 1) {
+#endif
             DestroyGCChunk(ARENA_INFO_TO_START(a));
+#if CHUNKED_ARENA_ALLOCATION
         } else {
-#ifdef DEBUG
+            uint32 arenaIndex;
+            jsuword chunk;
+            uint32 chunkInfoIndex;
+            JSGCChunkInfo *ci;
+# ifdef DEBUG
             jsuword firstArena;
 
             firstArena = a->firstArena;
             arenaIndex = a->arenaIndex;
             memset((void *) ARENA_INFO_TO_START(a), JS_FREE_PATTERN,
-                   GC_ARENA_SIZE);
+                   GC_ARENA_SIZE - JS_GC_ARENA_PAD);
             a->firstArena = firstArena;
             a->arenaIndex = arenaIndex;
-#endif
+# endif
             arenaIndex = GET_ARENA_INDEX(a);
             chunk = GET_ARENA_CHUNK(a, arenaIndex);
             chunkInfoIndex = GET_CHUNK_INFO_INDEX(chunk);
@@ -921,6 +1007,7 @@ DestroyGCArenas(JSRuntime *rt, JSGCArenaInfo *last)
                 }
             }
         }
+# endif
     }
 }
 
@@ -1075,13 +1162,17 @@ typedef struct JSGCRootHashEntry {
 
 #define GC_ROOTS_SIZE   256
 
+#if CHUNKED_ARENA_ALLOCATION
 
 
 
 
-#define GC_ARENAS_PER_CPU_PAGE_LIMIT JS_BIT(18 - GC_ARENA_SHIFT)
+
+# define GC_ARENAS_PER_CPU_PAGE_LIMIT JS_BIT(18 - GC_ARENA_SHIFT)
 
 JS_STATIC_ASSERT(GC_ARENAS_PER_CPU_PAGE_LIMIT <= NO_FREE_ARENAS);
+
+#endif
 
 JSBool
 js_InitGC(JSRuntime *rt, uint32 maxbytes)
@@ -1123,9 +1214,9 @@ js_InitGC(JSRuntime *rt, uint32 maxbytes)
             js_gcArenasPerChunk = 7;
         }
     }
-#endif
     JS_ASSERT(1 <= js_gcArenasPerChunk &&
               js_gcArenasPerChunk <= NO_FREE_ARENAS);
+#endif
 
     InitGCArenaLists(rt);
     if (!JS_DHashTableInit(&rt->gcRootsHash, JS_DHashGetStubOps(), NULL,
