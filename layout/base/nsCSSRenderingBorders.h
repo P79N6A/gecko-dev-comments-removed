@@ -200,6 +200,11 @@ struct nsCSSBorderRenderer {
 
   
   void DrawBorders ();
+
+  
+  static void ComputeInnerRadii(const gfxCornerSizes& aRadii,
+                                const gfxFloat *aBorderSizes,
+                                gfxCornerSizes *aInnerRadiiRet);
 };
 
 #ifdef DEBUG_NEW_BORDERS
