@@ -46,6 +46,7 @@
 using namespace CrashReporter;
 using std::string;
 using std::vector;
+using std::sort;
 
 struct FileData
 {
@@ -90,7 +91,7 @@ void UIPruneSavedDumps(const std::string& directory)
 
   while (dumpfiles.size() > kSaveCount) {
     
-    string path = (--dumpfiles.end())->path;
+    string path = dumpfiles[dumpfiles.size() - 1].path;
     UIDeleteFile(path.c_str());
 
     
