@@ -1572,6 +1572,10 @@ main(int argc, char **argv, char **envp)
 
         gOldJSContextCallback = JS_SetContextCallback(rt, ContextCallback);
 
+        
+        
+        JS_SetGCParameter(rt, JSGC_TRIGGER_FACTOR, (uint32) -1);
+
         cx = JS_NewContext(rt, 8192);
         if (!cx) {
             printf("JS_NewContext failed!\n");
