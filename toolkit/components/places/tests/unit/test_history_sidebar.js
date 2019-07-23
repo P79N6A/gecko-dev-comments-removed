@@ -388,10 +388,19 @@ function test_date_liveupdate(aResultType) {
   
   hs.removePagesByTimeframe(midnight.getTime() * 1000, Date.now() * 1000);
   do_check_eq(root.childCount, visibleContainers.length - 1);
+
+  
+  
+  var last7Days = root.getChild(1)
+                      .QueryInterface(Ci.nsINavHistoryContainerResultNode);
+  last7Days.containerOpen = true;
+
+  
   
   add_normalized_visit(uri("http://www.mozilla.org/"), nowObj.getTime(), 0);
   do_check_eq(root.childCount, visibleContainers.length);
 
+  last7Days.containerOpen = false;
   root.containerOpen = false;
 
   

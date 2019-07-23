@@ -4453,7 +4453,36 @@ nsNavHistoryResult::OnVisit(nsIURI* aURI, PRInt64 aVisitId, PRTime aTime,
   ENUMERATE_HISTORY_OBSERVERS(OnVisit(aURI, aVisitId, aTime, aSessionId,
                                       aReferringId, aTransitionType, &added));
 
-  if (!added && mRootNode->mExpanded) {
+  if (!mRootNode->mExpanded)
+    return NS_OK;
+
+  
+  
+  
+  PRBool todayIsMissing = PR_FALSE;
+  PRUint32 resultType = mRootNode->mOptions->ResultType();
+  if (resultType == nsINavHistoryQueryOptions::RESULTS_AS_DATE_QUERY ||
+      resultType == nsINavHistoryQueryOptions::RESULTS_AS_DATE_SITE_QUERY) {
+    PRUint32 childCount;
+    nsresult rv = mRootNode->GetChildCount(&childCount);
+    NS_ENSURE_SUCCESS(rv, rv);
+    if (childCount) {
+      nsCOMPtr<nsINavHistoryResultNode> firstChild;
+      rv = mRootNode->GetChild(0, getter_AddRefs(firstChild));
+      NS_ENSURE_SUCCESS(rv, rv);
+      nsCAutoString title;
+      rv = firstChild->GetTitle(title);
+      NS_ENSURE_SUCCESS(rv, rv);
+      nsNavHistory* history = nsNavHistory::GetHistoryService();
+      NS_ENSURE_TRUE(history, 0);
+      nsCAutoString todayLabel;
+      history->GetStringFromName(
+        NS_LITERAL_STRING("finduri-AgeInDays-is-0").get(), todayLabel);
+      todayIsMissing = !todayLabel.Equals(title);
+    }
+  }
+
+  if (!added || todayIsMissing) {
     
     
     PRUint32 resultType = mRootNode->mOptions->ResultType();
