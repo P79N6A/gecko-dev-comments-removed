@@ -2143,18 +2143,6 @@ nsBoxFrame::RelayoutChildAtOrdinal(nsBoxLayoutState& aState, nsIBox* aChild)
   return NS_OK;
 }
 
-PRBool
-nsBoxFrame::GetWasCollapsed(nsBoxLayoutState& aState)
-{
-  return nsBox::GetWasCollapsed(aState);
-}
-
-void
-nsBoxFrame::SetWasCollapsed(nsBoxLayoutState& aState, PRBool aWas)
-{
-  nsBox::SetWasCollapsed(aState, aWas);
-}
-
 
 
 
