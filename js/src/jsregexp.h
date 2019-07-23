@@ -106,7 +106,6 @@ struct JSRegExp {
     size_t       classCount;    
     RECharSet    *classList;    
     JSString     *source;       
-    JSBool       is_native;     
     jsbytecode   program[1];    
 };
 
