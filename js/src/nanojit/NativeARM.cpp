@@ -169,27 +169,37 @@ Assembler::genPrologue()
 void
 Assembler::nFragExit(LInsp guard)
 {
-    SideExit* exit = guard->record()->exit;
-    Fragment *frag = exit->target;
-    GuardRecord *lr;
+    SideExit *  exit = guard->record()->exit;
+    Fragment *  frag = exit->target;
 
-    if (frag && frag->fragEntry) {
+    bool        target_is_known = frag && frag->fragEntry;
+
+    if (target_is_known) {
+        
         JMP_far(frag->fragEntry);
-        lr = 0;
     } else {
         
-        lr = guard->record();
+        
 
+        GuardRecord *   gr = guard->record();
+
+        
         
         
         JMP_far(_epilogue);
 
         
-        lr->jmp = _nIns;
-    }
+        
+        
+        
+        
+        
+        LDi(R2, int(gr));
 
-    
-    MOV(SP, FP);
+        
+        
+        gr->jmp = _nIns;
+    }
 
 #ifdef NJ_VERBOSE
     if (_frago->core()->config.show_stats) {
@@ -201,10 +211,7 @@ Assembler::nFragExit(LInsp guard)
 #endif
 
     
-    
-    
-    
-    LDi(R2, int(lr));
+    MOV(SP, FP);
 }
 
 NIns*
@@ -221,11 +228,17 @@ Assembler::genEpilogue()
 
     POP_mask(savingMask); 
 
+    
+    
+    
+    
+    
     MOV(SP,FP);
 
     
+    
     MOV(R0,R2); 
-
+    
     return _nIns;
 }
 
@@ -522,15 +535,32 @@ Assembler::nPatchBranch(NIns* at, NIns* target)
 
     NIns* was = 0;
 
-    if (at[0] == (NIns)( COND_AL | (0x51<<20) | (PC<<16) | (PC<<12) | (4) )) {
-        
-        was = (NIns*) at[1];
-    } else {
-        
-        
-        NanoAssert((at[0] & 0xff000000) == (COND_AL | (0xA<<24)));
-        was = (NIns*) (((intptr_t)at + 8) + (intptr_t)((at[0] & 0xffffff) << 2));
-    }
+    
+    
+    
+    debug_only(
+        if (at[0] == (NIns)( COND_AL | (0x51<<20) | (PC<<16) | (PC<<12) | (4) )) {
+            
+            
+            
+            was = (NIns*) at[1];
+        } else if ((at[0] && 0xff000000) == (NIns)( COND_AL | (0xA<<24))) {
+            
+            
+            
+            was = (NIns*) (((intptr_t)at + 8) + (intptr_t)((at[0] & 0xffffff) << 2));
+        } else {
+            
+            
+            
+            
+            
+            
+            
+            
+            was = (NIns*)-1;    
+        }
+    );
 
     
     intptr_t offs = PC_OFFSET_FROM(target, at);
@@ -1024,7 +1054,11 @@ Assembler::JMP_far(NIns* addr)
     intptr_t offs = PC_OFFSET_FROM(addr,_nIns-2);
 
     if (isS24(offs>>2)) {
+        
+        
         BKPT_nochk();
+
+        
         *(--_nIns) = (NIns)( COND_AL | (0xA<<24) | ((offs>>2) & 0xFFFFFF) );
 
         asm_output("b %p", addr);
