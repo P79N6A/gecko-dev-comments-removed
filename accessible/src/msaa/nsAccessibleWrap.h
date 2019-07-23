@@ -46,7 +46,7 @@
 #include "nsCOMPtr.h"
 #include "nsAccessible.h"
 #include "Accessible2.h"
-#include "AccessibleAction.h"
+#include "CAccessibleHyperlink.h"
 #include "CAccessibleValue.h"
 
 #define DECL_IUNKNOWN_INHERITED                                               \
@@ -89,9 +89,9 @@ Class::QueryInterface(REFIID iid, void** ppv)                                 \
 
 
 class nsAccessibleWrap : public nsAccessible,
+                         public CAccessibleHyperlink,
                          public CAccessibleValue,
                          public IAccessible2,
-                         public IAccessibleAction,
                          public IEnumVARIANT,
                          public IServiceProvider
 {
@@ -262,31 +262,6 @@ class nsAccessibleWrap : public nsAccessible,
 
     virtual  HRESULT STDMETHODCALLTYPE get_attributes(
          BSTR *attributes);
-
-  public: 
-    virtual HRESULT STDMETHODCALLTYPE nActions(
-         long *nActions);
-
-    virtual HRESULT STDMETHODCALLTYPE doAction(
-         long actionIndex);
-
-    virtual  HRESULT STDMETHODCALLTYPE get_description(
-         long actionIndex,
-         BSTR *description);
-
-    virtual  HRESULT STDMETHODCALLTYPE get_keyBinding(
-         long actionIndex,
-         long nMaxBinding,
-         BSTR **keyBinding,
-         long *nBinding);
-
-    virtual  HRESULT STDMETHODCALLTYPE get_name(
-         long actionIndex,
-         BSTR *name);
-
-    virtual  HRESULT STDMETHODCALLTYPE get_localizedName(
-         long actionIndex,
-         BSTR *localizedName);
 
   public:   
     virtual  HRESULT STDMETHODCALLTYPE Next( 
