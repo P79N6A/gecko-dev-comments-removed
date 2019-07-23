@@ -273,18 +273,24 @@ gfxASurface::CairoStatus()
 PRBool
 gfxASurface::CheckSurfaceSize(const gfxIntSize& sz, PRInt32 limit)
 {
-    if (sz.width <= 0 || sz.height <= 0)
+    if (sz.width < 0 || sz.height < 0) {
+        NS_ERROR("Surface width or height < 0!");
         return PR_FALSE;
+    }
 
     
     PRInt32 tmp = sz.width * sz.height;
-    if (tmp / sz.height != sz.width)
+    if (tmp && tmp / sz.height != sz.width) {
+        NS_ERROR("Surface size too large (would overflow)!");
         return PR_FALSE;
+    }
 
     
     tmp = tmp * 4;
-    if (tmp / 4 != sz.width * sz.height)
+    if (tmp && tmp / 4 != sz.width * sz.height) {
+        NS_ERROR("Surface size too large (would overflow)!");
         return PR_FALSE;
+    }
 
     
     if (limit &&
