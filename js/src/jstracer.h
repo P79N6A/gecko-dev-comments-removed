@@ -184,6 +184,19 @@ public:
         fragment = _fragment;
     }
 };
+
+struct FrameInfo {
+    JSObject*       callee;     
+    jsbytecode*     callpc;     
+    uint8*          typemap;    
+    union {
+        struct {
+            uint16  spdist;     
+            uint16  argc;       
+        } s;
+        uint32      word;       
+    };
+};
  
 class TraceRecorder : public GCObject {
     JSContext*              cx;

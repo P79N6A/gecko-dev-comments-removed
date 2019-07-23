@@ -344,6 +344,7 @@ namespace avmplus
         nanojit::GuardRecord* lastTreeExitGuard; 
         nanojit::GuardRecord* lastTreeCallGuard; 
 
+        void* rpAtLastTreeCall; 
     };
 
     class String

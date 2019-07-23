@@ -1696,19 +1696,6 @@ js_IsLoopEdge(jsbytecode* pc, jsbytecode* header)
     return false;
 }
 
-struct FrameInfo {
-    JSObject*       callee;     
-    jsbytecode*     callpc;     
-    uint8*          typemap;    
-    union {
-        struct {
-            uint16  spdist;     
-            uint16  argc;       
-        } s;
-        uint32      word;       
-    };
-};
-
 
 
 bool
@@ -2656,6 +2643,7 @@ js_ExecuteTree(JSContext* cx, Fragment** treep, uintN& inlineCallCount,
     state.cx = cx;
     state.lastTreeExitGuard = NULL;
     state.lastTreeCallGuard = NULL;
+    state.rpAtLastTreeCall = NULL;
     union { NIns *code; GuardRecord* (FASTCALL *func)(InterpState*, Fragment*); } u;
     u.code = f->code();
 
@@ -2688,6 +2676,10 @@ js_ExecuteTree(JSContext* cx, Fragment** treep, uintN& inlineCallCount,
 
     
 
+    GuardRecord* innermost = lr;
+
+    
+
 
 
 
@@ -2696,12 +2688,29 @@ js_ExecuteTree(JSContext* cx, Fragment** treep, uintN& inlineCallCount,
 
     FrameInfo* rp = (FrameInfo*)state.rp;
     if (lr->exit->exitType == NESTED_EXIT) {
-        if (state.lastTreeCallGuard)
-            lr = state.lastTreeCallGuard;
-        JS_ASSERT(lr->exit->exitType == NESTED_EXIT);
+        GuardRecord* nested = state.lastTreeCallGuard;
+        if (!nested) {
+            
+
+
+
+
+
+            nested = lr;
+            rp += lr->calldepth;
+        } else {
+            
+
+
+            rp = (FrameInfo*)state.rpAtLastTreeCall;
+        }
+        innermost = state.lastTreeExitGuard;
         if (innermostNestedGuardp)
-            *innermostNestedGuardp = lr;
-        rp += lr->calldepth;
+            *innermostNestedGuardp = nested;
+        JS_ASSERT(nested);
+        JS_ASSERT(nested->exit->exitType == NESTED_EXIT);
+        JS_ASSERT(state.lastTreeExitGuard);
+        JS_ASSERT(state.lastTreeExitGuard->exit->exitType != NESTED_EXIT);
     }
     while (callstack < rp) {
         
@@ -2726,24 +2735,15 @@ js_ExecuteTree(JSContext* cx, Fragment** treep, uintN& inlineCallCount,
 
     
 
-    if (lr->exit->exitType == NESTED_EXIT)
-        lr = state.lastTreeExitGuard;
-    JS_ASSERT(lr->exit->exitType != NESTED_EXIT);
-
-    
-
-    ti = (TreeInfo*)lr->from->root->vmprivate;
-
-    
-
     JS_ASSERT(rp == callstack);
-    unsigned calldepth = lr->calldepth;
+    unsigned calldepth = innermost->calldepth;
     unsigned calldepth_slots = 0;
     for (unsigned n = 0; n < calldepth; ++n) {
         int nslots = js_SynthesizeFrame(cx, callstack[n]);
         if (nslots < 0)
             return NULL;
         calldepth_slots += nslots;
+        ++inlineCallCount;
 #ifdef DEBUG        
         JSStackFrame* fp = cx->fp;
         debug_only_v(printf("synthesized shallow frame for %s:%u@%u\n",
@@ -2755,12 +2755,12 @@ js_ExecuteTree(JSContext* cx, Fragment** treep, uintN& inlineCallCount,
     
 
 
-    SideExit* e = lr->exit;
+    SideExit* e = innermost->exit;
     JSStackFrame* fp = cx->fp;
 
     
 
-    fp->regs->pc = (jsbytecode*)lr->from->root->ip + e->ip_adj;
+    fp->regs->pc = (jsbytecode*)innermost->from->root->ip + e->ip_adj;
     fp->regs->sp = StackBase(fp) + (e->sp_adj / sizeof(double)) - calldepth_slots;
     JS_ASSERT(fp->slots + fp->script->nfixed +
               js_ReconstructStackDepth(cx, fp->script, fp->regs->pc) == fp->regs->sp);
@@ -2817,12 +2817,6 @@ js_ExecuteTree(JSContext* cx, Fragment** treep, uintN& inlineCallCount,
 #endif
 
     AUDIT(sideExitIntoInterpreter);
-
-    if (!lr) 
-        return NULL;
-
-    
-    inlineCallCount += lr->calldepth;
 
     return lr;
 }
