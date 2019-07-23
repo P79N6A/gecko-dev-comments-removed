@@ -1241,87 +1241,87 @@ nsXPConnect::ReparentScopeAwareWrappers(JSContext *aJSContext,
     if(!newScope)
         return UnexpectedFailure(NS_ERROR_FAILURE);
 
+    
+    
+    nsVoidArray wrappersToMove;
+
     {   
         XPCAutoLock lock(oldScope->GetRuntime()->GetMapLock());
-
-        
-        
-
         Native2WrappedNativeMap *map = oldScope->GetWrappedNativeMap();
-        nsVoidArray wrappersToMove(map->Count());
+        wrappersToMove.SizeTo(map->Count());
         map->Enumerate(MoveableWrapperFinder, &wrappersToMove);
+    }
+
+    
+    for(PRInt32 i = 0, stop = wrappersToMove.Count(); i < stop; ++i)
+    {
+        
+        
+
+        XPCWrappedNative *wrapper =
+            static_cast<XPCWrappedNative *>(wrappersToMove[i]);
+        nsISupports *identity = wrapper->GetIdentityObject();
+        nsCOMPtr<nsIClassInfo> info(do_QueryInterface(identity));
 
         
-        for(PRInt32 i = 0, stop = wrappersToMove.Count(); i < stop; ++i)
+        
+        
+        if(SameCOMIdentity(identity, info))
+            info = nsnull;
+
+        if(!info)
+            continue;
+
+        XPCNativeScriptableCreateInfo sciProto;
+        XPCNativeScriptableCreateInfo sciWrapper;
+
+        nsresult rv =
+            XPCWrappedNative::GatherScriptableCreateInfo(identity,
+                                                         info.get(),
+                                                         &sciProto,
+                                                         &sciWrapper);
+        if(NS_FAILED(rv))
+            return NS_ERROR_FAILURE;
+
+        
+        
+        if(!sciWrapper.GetFlags().WantPreCreate())
+            continue;
+
+        JSObject *newParent = aOldScope;
+        rv = sciWrapper.GetCallback()->PreCreate(identity, ccx, aOldScope,
+                                                 &newParent);
+        if(NS_FAILED(rv))
+            return rv;
+
+        if(newParent != aOldScope)
         {
             
             
-
-            XPCWrappedNative *wrapper =
-                static_cast<XPCWrappedNative *>(wrappersToMove[i]);
-            nsISupports *identity = wrapper->GetIdentityObject();
-            nsCOMPtr<nsIClassInfo> info(do_QueryInterface(identity));
-
             
-            
-            
-            if(SameCOMIdentity(identity, info))
-                info = nsnull;
 
-            if(!info)
+            XPCWrappedNativeScope *betterScope =
+                XPCWrappedNativeScope::FindInJSObjectScope(ccx, newParent);
+            if(betterScope == oldScope)
                 continue;
 
-            XPCNativeScriptableCreateInfo sciProto;
-            XPCNativeScriptableCreateInfo sciWrapper;
-
-            nsresult rv =
-                XPCWrappedNative::GatherScriptableCreateInfo(identity,
-                                                             info.get(),
-                                                             &sciProto,
-                                                             &sciWrapper);
-            if(NS_FAILED(rv))
-                return NS_ERROR_FAILURE;
-
-            
-            
-            if(!sciWrapper.GetFlags().WantPreCreate())
-                continue;
-
-            JSObject *newParent = aOldScope;
-            rv = sciWrapper.GetCallback()->PreCreate(identity, ccx, aOldScope,
-                                                     &newParent);
-            if(NS_FAILED(rv))
-                return rv;
-
-            if(newParent != aOldScope)
-            {
-                
-                
-                
-
-                XPCWrappedNativeScope *betterScope =
-                    XPCWrappedNativeScope::FindInJSObjectScope(ccx, newParent);
-                if(betterScope == oldScope)
-                    continue;
-
-                NS_ASSERTION(betterScope == newScope, "Weird scope returned");
-            }
-            else
-            {
-                
-                continue;
-            }
-
-            
-            
-
-            nsRefPtr<XPCWrappedNative> junk;
-            rv = XPCWrappedNative::ReparentWrapperIfFound(ccx, oldScope,
-                                                          newScope, newParent,
-                                                          wrapper->GetIdentityObject(),
-                                                          getter_AddRefs(junk));
-            NS_ENSURE_SUCCESS(rv, rv);
+            NS_ASSERTION(betterScope == newScope, "Weird scope returned");
         }
+        else
+        {
+            
+            continue;
+        }
+
+        
+        
+
+        nsRefPtr<XPCWrappedNative> junk;
+        rv = XPCWrappedNative::ReparentWrapperIfFound(ccx, oldScope,
+                                                      newScope, newParent,
+                                                      wrapper->GetIdentityObject(),
+                                                      getter_AddRefs(junk));
+        NS_ENSURE_SUCCESS(rv, rv);
     }
 
     return NS_OK;
