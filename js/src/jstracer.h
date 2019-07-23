@@ -245,6 +245,9 @@ class TraceRecorder {
     jsval& varval(unsigned n) const;
     jsval& stackval(int n) const;
 
+    nanojit::LIns* scopeChain() const;
+    bool activeCallOrGlobalSlot(JSObject* obj, jsval*& vp);
+
     nanojit::LIns* arg(unsigned n);
     void arg(unsigned n, nanojit::LIns* i);
     nanojit::LIns* var(unsigned n);
@@ -306,8 +309,7 @@ class TraceRecorder {
 
 public:
     TraceRecorder(JSContext* cx, nanojit::GuardRecord*, nanojit::Fragment*, TreeInfo*,
-            unsigned ngslots, uint8* globalTypeMap, uint8* stackTypeMap, 
-            nanojit::GuardRecord* expectedInnerExit);
+            unsigned ngslots, uint8* globalTypeMap, uint8* stackTypeMap);
     ~TraceRecorder();
 
     nanojit::SideExit* snapshot(nanojit::ExitType exitType);
