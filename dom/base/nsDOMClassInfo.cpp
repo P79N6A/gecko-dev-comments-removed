@@ -66,6 +66,7 @@
 #include "jsapi.h"
 #include "jsprvtd.h"    
 #include "jscntxt.h"
+#include "jsobj.h"
 #include "jsdbgapi.h"
 
 
@@ -1563,6 +1564,13 @@ GetInternedJSVal(JSContext *cx, const char *str)
   return STRING_TO_JSVAL(s);
 }
 
+
+
+nsISupports *
+nsDOMClassInfo::GetNative(nsIXPConnectWrappedNative *wrapper, JSObject *obj)
+{
+  return wrapper ? wrapper->Native() : static_cast<nsISupports*>(obj->getPrivate());
+}
 
 nsresult
 nsDOMClassInfo::DefineStaticJSVals(JSContext *cx)
