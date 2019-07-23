@@ -86,9 +86,9 @@ nsStyleSet::nsStyleSet()
     mRuleWalker(nsnull),
     mDestroyedCount(0),
     mBatching(0),
+    mOldRuleTree(nsnull),
     mInShutdown(PR_FALSE),
     mAuthorStyleDisabled(PR_FALSE),
-    mInReconstruct(PR_FALSE),
     mDirty(0)
 {
 }
@@ -126,7 +126,7 @@ nsStyleSet::Init(nsPresContext *aPresContext)
 nsresult
 nsStyleSet::BeginReconstruct()
 {
-  NS_ASSERTION(!mInReconstruct, "Unmatched begin/end?");
+  NS_ASSERTION(!mOldRuleTree, "Unmatched begin/end?");
   NS_ASSERTION(mRuleTree, "Reconstructing before first construction?");
 
   
@@ -141,19 +141,13 @@ nsStyleSet::BeginReconstruct()
   }
 
   
-  if (!mOldRuleTrees.AppendElement(mRuleTree)) {
-    delete ruleWalker;
-    newTree->Destroy();
-    return NS_ERROR_OUT_OF_MEMORY;
-  }
+  mOldRuleTree = mRuleTree;
   
   delete mRuleWalker;
-
   
   
   
 
-  mInReconstruct = PR_TRUE;
   mRuleTree = newTree;
   mRuleWalker = ruleWalker;
 
@@ -163,8 +157,6 @@ nsStyleSet::BeginReconstruct()
 void
 nsStyleSet::EndReconstruct()
 {
-  NS_ASSERTION(mInReconstruct, "Unmatched begin/end?");
-  mInReconstruct = PR_FALSE;
 #ifdef DEBUG
   for (PRInt32 i = mRoots.Length() - 1; i >= 0; --i) {
     nsRuleNode *n = mRoots[i]->GetRuleNode();
@@ -178,13 +170,16 @@ nsStyleSet::EndReconstruct()
     
     
 
-    NS_ASSERTION(n == mRuleTree, "style context has old rule node");
+    NS_ABORT_IF_FALSE(n == mRuleTree, "style context has old rule node");
   }
 #endif
+  NS_ASSERTION(mOldRuleTree, "Unmatched begin/end?");
+  
+  mDestroyedCount = 0;
   
   
-  
-  GCRuleTrees();
+  mOldRuleTree->Destroy();
+  mOldRuleTree = nsnull;
 }
 
 void
@@ -880,15 +875,6 @@ nsStyleSet::Shutdown(nsPresContext* aPresContext)
   mRuleTree->Destroy();
   mRuleTree = nsnull;
 
-  
-  
-  
-  for (PRUint32 i = mOldRuleTrees.Length(); i > 0; ) {
-    --i;
-    mOldRuleTrees[i]->Destroy();
-  }
-  mOldRuleTrees.Clear();
-
   mDefaultStyleData.Destroy(0, aPresContext);
 }
 
@@ -909,43 +895,27 @@ nsStyleSet::NotifyStyleContextDestroyed(nsPresContext* aPresContext,
     mRoots.RemoveElement(aStyleContext);
   }
 
-  if (mInReconstruct)
+  if (mOldRuleTree)
     return;
 
   if (++mDestroyedCount == kGCInterval) {
-    GCRuleTrees();
-  }
-}
+    mDestroyedCount = 0;
 
-void
-nsStyleSet::GCRuleTrees()
-{
-  mDestroyedCount = 0;
-
-  
-  
-  
-  
-  for (PRInt32 i = mRoots.Length() - 1; i >= 0; --i) {
-    mRoots[i]->Mark();
-  }
-
-  
-#ifdef DEBUG
-  PRBool deleted =
-#endif
-    mRuleTree->Sweep();
-  NS_ASSERTION(!deleted, "Root node must not be gc'd");
-
-  
-  for (PRUint32 i = mOldRuleTrees.Length(); i > 0; ) {
-    --i;
-    if (mOldRuleTrees[i]->Sweep()) {
-      
-      mOldRuleTrees.RemoveElementAt(i);
-    } else {
-      NS_NOTREACHED("old rule tree still referenced");
+    
+    
+    
+    
+    for (PRInt32 i = mRoots.Length() - 1; i >= 0; --i) {
+      mRoots[i]->Mark();
     }
+
+    
+#ifdef DEBUG
+    PRBool deleted =
+#endif
+      mRuleTree->Sweep();
+
+    NS_ASSERTION(!deleted, "Root node must not be gc'd");
   }
 }
 
