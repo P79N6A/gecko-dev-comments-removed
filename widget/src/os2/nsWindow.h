@@ -336,6 +336,7 @@ protected:
 
    HBITMAP DataToBitmap(PRUint8* aImageData, PRUint32 aWidth,
                         PRUint32 aHeight, PRUint32 aDepth);
+   HBITMAP CreateBitmapRGB(PRUint8* aImageData, PRUint32 aWidth, PRUint32 aHeight);
    
    HBITMAP CreateTransparencyMask(PRInt32  format, PRUint8* aImageData,
                                   PRUint32 aWidth, PRUint32 aHeight);

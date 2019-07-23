@@ -1890,8 +1890,10 @@ NS_IMETHODIMP nsWindow::SetCursor(imgIContainer* aCursor,
     return rv;
 
   
-  if (format != gfxIFormats::BGR_A1 && format != gfxIFormats::BGR_A8 &&
-      format != gfxIFormats::BGR)
+  
+  if (format != gfxIFormats::BGR_A1 && format != gfxIFormats::RGB_A1 &&
+      format != gfxIFormats::BGR_A8 && format != gfxIFormats::RGB_A8 &&
+      format != gfxIFormats::BGR && format != gfxIFormats::RGB)
     return NS_ERROR_UNEXPECTED;
 
   frame->LockImageData();
@@ -1904,42 +1906,19 @@ NS_IMETHODIMP nsWindow::SetCursor(imgIContainer* aCursor,
   }
 
   
-  HBITMAP hBmp = 0;
-  hBmp = DataToBitmap(data, width, height, 24);
-  frame->UnlockImageData();
+  HBITMAP hBmp = CreateBitmapRGB(data, width, height);
   if (!hBmp)
     return NS_ERROR_FAILURE;
 
   
-  HBITMAP hAlpha = 0;
+  HBITMAP hAlpha = CreateTransparencyMask(format, data, width, height);
+  if (!hAlpha) {
+    GpiDeleteBitmap(hBmp);
+    return NS_ERROR_FAILURE;
+  }
 
   
-  if (format == gfxIFormats::BGR) {
-    hAlpha = CreateTransparencyMask(format, 0, width, height);
-    if (!hAlpha) {
-      GpiDeleteBitmap(hBmp);
-      return NS_ERROR_FAILURE;
-    }
-  }
-  
-  else {
-    PRUint8* adata;
-    frame->LockAlphaData();
-    rv = frame->GetAlphaData(&adata, &dataLen);
-    if (NS_FAILED(rv)) {
-      GpiDeleteBitmap(hBmp);
-      frame->UnlockAlphaData();
-      return rv;
-    }
-
-    
-    hAlpha = CreateTransparencyMask(format, adata, width, height);
-    frame->UnlockAlphaData();
-    if (!hAlpha) {
-      GpiDeleteBitmap(hBmp);
-      return NS_ERROR_FAILURE;
-    }
-  }
+  frame->UnlockImageData();
 
   POINTERINFO info = {0};
   info.fPointer = TRUE;
@@ -2022,6 +2001,40 @@ HBITMAP nsWindow::DataToBitmap(PRUint8* aImageData, PRUint32 aWidth,
 
 
 
+HBITMAP nsWindow::CreateBitmapRGB(PRUint8* aImageData,
+                                  PRUint32 aWidth,
+                                  PRUint32 aHeight)
+{
+  
+  const PRUint32 bpr = ALIGNEDBPR(aWidth, 24);
+  PRUint8* bmp = (PRUint8*)malloc(bpr * aHeight);
+  if (!bmp)
+    return NULL;
+
+  PRUint32* pSrc = (PRUint32*)aImageData;
+  for (PRUint32 row = aHeight; row > 0; --row) {
+    PRUint8* pDst = bmp + bpr * (row - 1);
+
+    for (PRUint32 col = aWidth; col > 0; --col) {
+      
+      
+      PRUint32 color = *pSrc++;
+      *pDst++ = color;       
+      *pDst++ = color >> 8;  
+      *pDst++ = color >> 16; 
+    }
+  }
+
+  
+  HBITMAP hAlpha = DataToBitmap(bmp, aWidth, aHeight, 24);
+
+  
+  free(bmp);
+  return hAlpha;
+}
+
+
+
 HBITMAP nsWindow::CreateTransparencyMask(gfx_format format,
                                          PRUint8* aImageData,
                                          PRUint32 aWidth,
@@ -2032,63 +2045,37 @@ HBITMAP nsWindow::CreateTransparencyMask(gfx_format format,
   PRUint32 cbData = abpr * aHeight;
 
   
-  PRUint8* mono = (PRUint8*)malloc(cbData * 2);
+  PRUint8* mono = (PRUint8*)calloc(cbData, 2);
   if (!mono)
     return NULL;
 
-  
-  memset(mono, 0x00, cbData);
-
   switch (format) {
+    
+    
 
     
-    case gfxIFormats::BGR:
-      memset(&mono[cbData], 0x00, cbData);
-      break;
-
-    
-    case gfxIFormats::BGR_A1: {
-      PRUint32* pSrc = (PRUint32*)aImageData;
-      PRUint32* pAnd = (PRUint32*)&mono[cbData];
-
-      for (PRUint32 dataNdx = 0; dataNdx < cbData; dataNdx += 4)
-        *pAnd++ = ~(*pSrc++);
-
-      break;
-    }
-
-    
+    case gfxIFormats::BGR_A1:
+    case gfxIFormats::RGB_A1:
+    case gfxIFormats::RGB_A8:
     case gfxIFormats::BGR_A8: {
-      PRUint8*  pSrc = aImageData;
-      PRUint32* pAnd = (PRUint32*)&mono[cbData];
-
-      
-      
-      for (PRUint32 dataNdx = 0; dataNdx < cbData; dataNdx += 4) {
-        PRUint32 dst = 0;
-        PRUint32 colNdx = 0;
-
+      PRInt32* pSrc = (PRInt32*)aImageData;
+      for (PRUint32 row = aHeight; row > 0; --row) {
         
-        for (PRUint32 byteNdx = 0; byteNdx < 4; byteNdx++) {
-          PRUint32 mask = 0x80 << (byteNdx * 8);
-
+        PRUint8* pDst = mono + cbData + abpr * (row - 1);
+        PRUint8 mask = 0x80;
+        for (PRUint32 col = aWidth; col > 0; --col) {
           
-          for (PRUint32 bitNdx = 0; bitNdx < 8; bitNdx++) {
-            if (*pSrc++ < 128)
-              dst |= mask;
-            mask >>= 1;
-
-            
-            
-            if (++colNdx >= aWidth) {
-              pSrc += (4 - (aWidth & 3)) & 3;
-              break;
-            }
+          
+          if (*pSrc++ >= 0) {
+            *pDst |= mask;
           }
-          if (colNdx >= aWidth)
-            break;
+
+          mask >>= 1;
+          if (!mask) {
+            pDst++;
+            mask = 0x80;
+          }
         }
-        *pAnd++ = dst;
       }
 
       break;
