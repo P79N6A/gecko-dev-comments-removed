@@ -65,6 +65,14 @@ struct JSRegExpStatics {
     JSSubString rightContext;   
 };
 
+extern JS_FRIEND_API(void)
+js_SaveRegExpStatics(JSContext *cx, JSRegExpStatics *statics,
+                     JSTempValueRooter *tvr);
+
+extern JS_FRIEND_API(void)
+js_RestoreRegExpStatics(JSContext *cx, JSRegExpStatics *statics,
+                        JSTempValueRooter *tvr);
+
 
 
 
