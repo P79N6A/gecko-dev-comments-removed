@@ -429,7 +429,7 @@ LoginManagerPrompter.prototype = {
             
             var notifyBox = this._getNotifyBox();
             if (notifyBox)
-                this._removeLoginNotifications(notifyBox);
+                this._removeSaveLoginNotification(notifyBox);
 
             var [hostname, httpRealm] = this._getAuthTarget(aChannel, aAuthInfo);
 
@@ -503,11 +503,8 @@ LoginManagerPrompter.prototype = {
 
                 this.log("Updating password for " + username +
                          " @ " + hostname + " (" + httpRealm + ")");
-                if (notifyBox)
-                    this._showChangeLoginNotification(notifyBox,
-                                                      selectedLogin, newLogin);
-                else
-                    this._pwmgr.modifyLogin(selectedLogin, newLogin);
+                
+                this._pwmgr.modifyLogin(selectedLogin, newLogin);
 
             } else {
                 this.log("Login unchanged, no further action needed.");
@@ -670,16 +667,12 @@ LoginManagerPrompter.prototype = {
 
 
 
-    _removeLoginNotifications : function (aNotifyBox) {
+    _removeSaveLoginNotification : function (aNotifyBox) {
+
         var oldBar = aNotifyBox.getNotificationWithValue("password-save");
+
         if (oldBar) {
             this.log("Removing save-password notification bar.");
-            aNotifyBox.removeNotification(oldBar);
-        }
-
-        oldBar = aNotifyBox.getNotificationWithValue("password-change");
-        if (oldBar) {
-            this.log("Removing change-password notification bar.");
             aNotifyBox.removeNotification(oldBar);
         }
     },
