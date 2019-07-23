@@ -219,4 +219,10 @@ NS_DEFINE_STATIC_IID_ACCESSOR(nsIEventStateManager, NS_IEVENTSTATEMANAGER_IID)
 #define NS_EVENT_STATE_INCREMENT_SCRIPT_LEVEL 0x00800000
 #endif
 
+#define NS_EVENT_STATE_HANDLER_BLOCKED \
+                                     0x01000000
+
+#define NS_EVENT_STATE_HANDLER_DISABLED \
+                                     0x02000000
+
 #endif

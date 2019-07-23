@@ -59,6 +59,15 @@ class AutoNotifier;
 class AutoFallback;
 class AutoSetInstantiatingToFalse;
 
+enum PluginSupportState {
+  ePluginUnsupported,  
+  ePluginDisabled,     
+                       
+  ePluginBlocklisted,  
+  ePluginOtherState    
+                       
+};
+
 
 
 
@@ -252,7 +261,7 @@ class nsObjectLoadingContent : public nsImageLoadingContent
 
 
 
-    static void FirePluginError(nsIContent* thisContent, PRBool blocklisted);
+    static void FirePluginError(nsIContent* thisContent, PluginSupportState state);
 
     ObjectType GetTypeOfContent(const nsCString& aMIMEType);
 
@@ -332,15 +341,6 @@ class nsObjectLoadingContent : public nsImageLoadingContent
     static PRBool ShouldShowDefaultPlugin(nsIContent* aContent,
                                           const nsCString& aContentType);
 
-    enum PluginSupportState {
-      ePluginUnsupported,  
-      ePluginDisabled,     
-                           
-      ePluginBlocklisted,  
-      ePluginOtherState    
-                           
-    };
-
     
 
 
@@ -419,7 +419,7 @@ class nsObjectLoadingContent : public nsImageLoadingContent
     PRBool                      mUserDisabled  : 1;
     PRBool                      mSuppressed    : 1;
     
-    PRBool                      mTypeUnsupported:1;
+    PluginSupportState          mPluginState;
 
     friend class nsAsyncInstantiateEvent;
 };
