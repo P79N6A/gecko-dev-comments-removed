@@ -582,6 +582,18 @@ NS_IMETHODIMP nsAccessible::Shutdown()
 NS_IMETHODIMP nsAccessible::InvalidateChildren()
 {
   
+
+  
+  
+  
+  
+  nsAccessible* child = static_cast<nsAccessible*>(mFirstChild);
+  while (child && child->mNextSibling != DEAD_END_ACCESSIBLE) {
+    nsIAccessible *next = child->mNextSibling;
+    child->mNextSibling = nsnull;
+    child = static_cast<nsAccessible*>(next);
+  }
+
   mAccChildCount = eChildCountUninitialized;
   mFirstChild = nsnull;
   return NS_OK;
