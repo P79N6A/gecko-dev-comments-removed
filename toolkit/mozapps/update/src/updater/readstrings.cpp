@@ -61,31 +61,24 @@ ReadStrings(const char *path, StringTable *results)
     return READ_ERROR;
 
   
-  if (!fgets(results->title, MAX_TEXT_LEN, fp))
-    return READ_ERROR;
-  if (!fgets(results->title, MAX_TEXT_LEN, fp))
-    return READ_ERROR;
-
-  
-  if (!fgets(results->title, MAX_TEXT_LEN, fp))
-    return READ_ERROR;
-  if (!fgets(results->info, MAX_TEXT_LEN, fp))
-    return READ_ERROR;
-
-  
+  unsigned read = 0;
   char *strings[] = {
     results->title, results->info, NULL
   };
   for (char **p = strings; *p; ++p) {
-    int len = strlen(*p);
-    if (len)
-      (*p)[len - 1] = '\0';
+    while (fgets(*p, MAX_TEXT_LEN, fp)) {
+      int len = strlen(*p);
+      if (len)
+        (*p)[len - 1] = '\0';
 
-    char *eq = strchr(*p, '=');
-    if (!eq)
-      return PARSE_ERROR;
-    memmove(*p, eq + 1, len - (eq - *p + 1));
+      char *eq = strchr(*p, '=');
+      if (!eq) 
+        continue;
+      memmove(*p, eq + 1, len - (eq - *p + 1));
+      ++read;
+      break;
+    }
   }
 
-  return OK;
+  return (read == (sizeof(strings) / sizeof(*strings)) - 1) ? OK : READ_ERROR;
 }
