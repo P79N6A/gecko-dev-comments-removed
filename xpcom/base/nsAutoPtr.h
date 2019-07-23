@@ -1417,6 +1417,14 @@ operator==( int lhs, const nsRefPtr<T>& rhs )
 
 #endif 
 
+template <class SourceType, class DestinationType>
+inline
+nsresult
+CallQueryInterface( nsRefPtr<SourceType>& aSourcePtr, DestinationType** aDestPtr )
+  {
+    return CallQueryInterface(aSourcePtr.get(), aDestPtr);
+  }
+
 
 
 #endif 
