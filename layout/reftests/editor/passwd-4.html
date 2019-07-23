@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+
+
+
+
+<html class="reftest-wait">
+<body onload="loaded()">
+    <input type="password">
+    <script>
+      function loaded() {
+        var i = document.getElementsByTagName("input")[0];
+        i.focus();
+        i.value += "abcdef";
+        i.blur();
+        document.documentElement.className = "";
+      }
+    </script>
+</body>
+</html>
