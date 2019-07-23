@@ -67,6 +67,8 @@ nsThebesImage::nsThebesImage()
       mImageComplete(PR_FALSE),
       mSinglePixel(PR_FALSE),
       mFormatChanged(PR_FALSE),
+      mNeverUseDeviceSurface(PR_FALSE),
+      mSinglePixelColor(0),
       mAlphaDepth(0)
 {
     static PRBool hasCheckedOptimize = PR_FALSE;
@@ -122,19 +124,25 @@ nsThebesImage::Init(PRInt32 aWidth, PRInt32 aHeight, PRInt32 aDepth, nsMaskRequi
 
     mFormat = format;
 
+    
+    
+    
 #ifdef XP_WIN
-    if (!ShouldUseImageSurfaces()) {
+    if (!mNeverUseDeviceSurface && !ShouldUseImageSurfaces()) {
         mWinSurface = new gfxWindowsSurface(gfxIntSize(mWidth, mHeight), format);
         if (mWinSurface && mWinSurface->CairoStatus() == 0) {
             
             mImageSurface = mWinSurface->GetImageSurface();
+        } else {
+            mWinSurface = nsnull;
         }
     }
-
-    if (!mImageSurface)
-        mWinSurface = nsnull;
 #endif
 
+    
+    
+    
+    
     if (!mImageSurface)
         mImageSurface = new gfxImageSurface(gfxIntSize(mWidth, mHeight), format);
 
@@ -145,7 +153,9 @@ nsThebesImage::Init(PRInt32 aWidth, PRInt32 aHeight, PRInt32 aDepth, nsMaskRequi
     }
 
 #ifdef XP_MACOSX
-    mQuartzSurface = new gfxQuartzImageSurface(mImageSurface);
+    if (!mNeverUseDeviceSurface && !ShouldUseImageSurfaces()) {
+        mQuartzSurface = new gfxQuartzImageSurface(mImageSurface);
+    }
 #endif
 
     mStride = mImageSurface->Stride();
@@ -301,7 +311,7 @@ nsThebesImage::Optimize(nsIDeviceContext* aContext)
 
     
     
-    if (ShouldUseImageSurfaces())
+    if (mNeverUseDeviceSurface || ShouldUseImageSurfaces())
         return NS_OK;
 
     mOptSurface = nsnull;
@@ -688,6 +698,66 @@ nsThebesImage::Draw(gfxContext*        aContext,
         aContext->Paint();
         aContext->Restore();
     }
+}
+
+nsresult
+nsThebesImage::Extract(const nsIntRect& aRegion,
+                       nsIImage** aResult)
+{
+    nsRefPtr<nsThebesImage> subImage(new nsThebesImage());
+    if (!subImage)
+        return NS_ERROR_OUT_OF_MEMORY;
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    subImage->mNeverUseDeviceSurface = PR_TRUE;
+
+    
+    nsMaskRequirements maskReq;
+    switch (mAlphaDepth) {
+    case 0: maskReq = nsMaskRequirements_kNoMask; break;
+    case 1: maskReq = nsMaskRequirements_kNeeds1Bit; break;
+    case 8: maskReq = nsMaskRequirements_kNeeds8Bit; break;
+    default:
+        NS_NOTREACHED("impossible alpha depth");
+        maskReq = nsMaskRequirements_kNeeds8Bit; 
+    }
+
+    nsresult rv = subImage->Init(aRegion.width, aRegion.height,
+                                 8 , maskReq);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    { 
+        gfxContext ctx(subImage->ThebesSurface());
+        ctx.SetOperator(gfxContext::OPERATOR_SOURCE);
+        if (mSinglePixel) {
+            ctx.SetDeviceColor(mSinglePixelColor);
+        } else {
+            
+            
+            
+            
+            ctx.SetSource(this->ThebesSurface(),
+                          gfxPoint(-aRegion.x, -aRegion.y));
+        }
+        ctx.Rectangle(gfxRect(0, 0, aRegion.width, aRegion.height));
+        ctx.Fill();
+    }
+
+    nsIntRect filled(0, 0, aRegion.width, aRegion.height);
+    subImage->ImageUpdated(nsnull, nsImageUpdateFlags_kBitsChanged, &filled);
+    subImage->Optimize(nsnull);
+
+    NS_ADDREF(*aResult = subImage);
+    return NS_OK;
 }
 
 PRBool
