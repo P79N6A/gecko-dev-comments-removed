@@ -629,7 +629,6 @@ namespace nanojit
 		bool isCse() const;
         bool isRet() const { return nanojit::isRetOpcode(opcode()); }
         bool isop(LOpcode o) const { return opcode() == o; }
-        #if defined(_DEBUG)
         
         
         
@@ -646,7 +645,6 @@ namespace nanojit
         bool isLInsP()   const;
         bool isLInsI()   const;
         bool isLInsI64() const;
-        #endif
 		bool isQuad() const;
 		bool isCond() const;
         bool isFloat() const;
