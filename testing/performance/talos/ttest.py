@@ -215,6 +215,7 @@ def runTest(browser_config, test_config):
 
     utils.debug("Completed test with: " + browser_results)
     
+    ffprocess.Sleep()
     ffprocess.TerminateAllProcesses("firefox")
     all_browser_results.append(browser_results)
     all_counter_results.append(counter_results)
@@ -222,7 +223,6 @@ def runTest(browser_config, test_config):
   
   
   
-  ffprocess.Sleep()
   ffsetup.MakeDirectoryContentsWritable(temp_dir)
   shutil.rmtree(temp_dir)
     
