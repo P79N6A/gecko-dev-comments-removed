@@ -424,6 +424,13 @@ js_DecompileFunctionBody(JSPrinter *jp);
 extern JSBool
 js_DecompileFunction(JSPrinter *jp);
 
+
+
+
+
+
+
+
 typedef JSBool (* JSDecompilerPtr)(JSPrinter *);
 
 extern JSString *
