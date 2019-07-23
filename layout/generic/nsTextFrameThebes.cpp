@@ -5459,6 +5459,12 @@ nsTextFrame::AdjustOffsetsForBidi(PRInt32 aStart, PRInt32 aEnd)
 {
   AddStateBits(NS_FRAME_IS_BIDI);
   SetOffsets(aStart, aEnd);
+  
+
+
+
+
+  ClearTextRun();
 }
 
 void
