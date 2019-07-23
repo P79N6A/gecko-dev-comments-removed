@@ -3084,50 +3084,19 @@ nsCSSFrameConstructor::GetParentFrame(PRInt32                  aNameSpaceID,
   return rv;
 }
 
-
-PRBool
-nsCSSFrameConstructor::IsSpecialContent(nsIContent*     aContent,
-                                        nsIAtom*        aTag,
-                                        PRInt32         aNameSpaceID,
-                                        nsStyleContext* aStyleContext)
-{
-  
-  
-  
-  if (FindHTMLData(aContent, aTag, aNameSpaceID, aStyleContext) ||
-      FindXULTagData(aContent, aTag, aNameSpaceID, aStyleContext)) {
-    return PR_TRUE;
-  }
-
-#ifdef MOZ_SVG
-  if (aNameSpaceID == kNameSpaceID_SVG && NS_SVGEnabled()) {
-    
-    return PR_TRUE;
-  }
-#endif
-
-#ifdef MOZ_MATHML
-  if (FindMathMLData(aContent, aTag, aNameSpaceID, aStyleContext)) {
-    return PR_TRUE;
-  }
-#endif
-
-  return PR_FALSE;
-}
-                                      
 nsresult
 nsCSSFrameConstructor::AdjustParentFrame(nsFrameConstructorState&     aState,
                                          nsIContent*                  aChildContent,
                                          nsIFrame* &                  aParentFrame,
-                                         nsIAtom*                     aTag,
+                                         const FrameConstructionData* aFCData,
                                          PRInt32                      aNameSpaceID,
-                                         nsStyleContext*              aChildStyle,
+                                         const nsStyleDisplay*        aDisplay,
                                          nsFrameItems* &              aFrameItems,
                                          nsFrameConstructorSaveState& aSaveState,
                                          PRBool&                      aSuppressFrame,
                                          PRBool&                      aCreatedPseudo)
 {
-  NS_PRECONDITION(aChildStyle, "Must have child's style context");
+  NS_PRECONDITION(aDisplay, "Must have child's style context");
   NS_PRECONDITION(aFrameItems, "Must have frame items to work with");
 
   aSuppressFrame = PR_FALSE;
@@ -3137,7 +3106,6 @@ nsCSSFrameConstructor::AdjustParentFrame(nsFrameConstructorState&     aState,
     return NS_OK;
   }
 
-  PRBool childIsSpecialContent = PR_FALSE; 
   
   
   
@@ -3145,11 +3113,7 @@ nsCSSFrameConstructor::AdjustParentFrame(nsFrameConstructorState&     aState,
   NS_ASSERTION(parentType != nsGkAtoms::tableOuterFrame,
                "Shouldn't be happening");
   if (parentType == nsGkAtoms::tableColGroupFrame) {
-    childIsSpecialContent = IsSpecialContent(aChildContent, aTag, aNameSpaceID,
-                                             aChildStyle);
-    if (childIsSpecialContent ||
-        (aChildStyle->GetStyleDisplay()->mDisplay !=
-         NS_STYLE_DISPLAY_TABLE_COLUMN)) {
+    if (aFCData || aDisplay->mDisplay != NS_STYLE_DISPLAY_TABLE_COLUMN) {
       aSuppressFrame = PR_TRUE;
       return NS_OK;
     }
@@ -3159,11 +3123,10 @@ nsCSSFrameConstructor::AdjustParentFrame(nsFrameConstructorState&     aState,
   
   
   if (IsTableRelated(aParentFrame->GetType(), PR_FALSE) &&
-      (!IsTableRelated(aChildStyle->GetStyleDisplay()->mDisplay, PR_TRUE) ||
+      (!IsTableRelated(aDisplay->mDisplay, PR_TRUE) ||
        
        
-       childIsSpecialContent || 
-       IsSpecialContent(aChildContent, aTag, aNameSpaceID, aChildStyle))) {
+       aFCData)) {
     nsFrameState savedStateBits  = aState.mAdditionalStateBits;
     aState.mAdditionalStateBits &= ~NS_FRAME_GENERATED_CONTENT;
     nsresult rv = GetPseudoCellFrame(aNameSpaceID, aState, *aParentFrame);
@@ -4860,38 +4823,54 @@ FindAncestorWithGeneratedContentPseudo(nsIFrame* aFrame)
   return nsnull;
 }
 
-nsresult
-nsCSSFrameConstructor::ConstructTextFrame(nsFrameConstructorState& aState,
-                                          nsIContent*              aContent,
-                                          nsIFrame*                aParentFrame,
-                                          nsStyleContext*          aStyleContext,
-                                          nsFrameItems&            aFrameItems,
-                                          PRBool                   aPseudoParent)
+#define FCDATA_DECL(_flags, _func) \
+  { _flags, { (FrameCreationFunc)_func } }
+#define SIMPLE_FCDATA(_func) FCDATA_DECL(0, _func)
+
+
+const nsCSSFrameConstructor::FrameConstructionData*
+nsCSSFrameConstructor::FindTextData(nsIFrame* aParentFrame)
 {
-  
-  if (!aPseudoParent && !aState.mPseudoFrames.IsEmpty() &&
-      !TextIsOnlyWhitespace(aContent))
-    ProcessPseudoFrames(aState, aFrameItems);
-
-  nsIFrame* newFrame = nsnull;
-
 #ifdef MOZ_SVG
   if (aParentFrame->IsFrameOfType(nsIFrame::eSVG)) {
     nsIFrame *ancestorFrame =
       nsSVGUtils::GetFirstNonAAncestorFrame(aParentFrame);
     if (ancestorFrame) {
       nsISVGTextContentMetrics* metrics = do_QueryFrame(ancestorFrame);
-      if (!metrics) {
-        return NS_OK;
+      if (metrics) {
+        static const FrameConstructionData sSVGGlyphData =
+          SIMPLE_FCDATA(NS_NewSVGGlyphFrame);
+        return &sSVGGlyphData;
       }
-      newFrame = NS_NewSVGGlyphFrame(mPresShell, aStyleContext);
     }
+    return nsnull;
   }
-  else
 #endif
-  {
-    newFrame = NS_NewTextFrame(mPresShell, aStyleContext);
+
+  static const FrameConstructionData sTextData = SIMPLE_FCDATA(NS_NewTextFrame);
+  return &sTextData;
+}
+
+nsresult
+nsCSSFrameConstructor::ConstructTextFrame(const FrameConstructionData* aData,
+                                          nsFrameConstructorState& aState,
+                                          nsIContent*              aContent,
+                                          nsIFrame*                aParentFrame,
+                                          nsStyleContext*          aStyleContext,
+                                          nsFrameItems&            aFrameItems,
+                                          PRBool                   aPseudoParent)
+{
+  if (!aData) {
+    
+    return NS_OK;
   }
+
+  
+  if (!aPseudoParent && !aState.mPseudoFrames.IsEmpty() &&
+      !TextIsOnlyWhitespace(aContent))
+    ProcessPseudoFrames(aState, aFrameItems);
+
+  nsIFrame* newFrame = (*aData->mFunc.mCreationFunc)(mPresShell, aStyleContext);
 
   if (NS_UNLIKELY(!newFrame))
     return NS_ERROR_OUT_OF_MEMORY;
@@ -4979,9 +4958,6 @@ nsCSSFrameConstructor::FindDataByTag(nsIAtom* aTag,
   return nsnull;
 }
 
-#define FCDATA_DECL(_flags, _func) \
-  { _flags, { (FrameCreationFunc)_func } }
-#define SIMPLE_FCDATA(_func) FCDATA_DECL(0, _func)
 #define SUPPRESS_FCDATA() FCDATA_DECL(FCDATA_SUPPRESS_FRAME, nsnull)
 #define SIMPLE_INT_CREATE(_int, _func) { _int, SIMPLE_FCDATA(_func) }
 #define SIMPLE_INT_CHAIN(_int, _func)                       \
@@ -5658,24 +5634,11 @@ nsCSSFrameConstructor::FindXULListItemData(nsIContent* aContent,
 
 
 const nsCSSFrameConstructor::FrameConstructionData*
-nsCSSFrameConstructor::FindXULData(nsIContent* aContent,
-                                   nsIAtom* aTag,
-                                   PRInt32 aNameSpaceID,
-                                   nsStyleContext* aStyleContext)
+nsCSSFrameConstructor::FindXULDisplayData(const nsStyleDisplay* aDisplay,
+                                          nsIContent* aContent,
+                                          nsStyleContext* aStyleContext)
 {
-  const FrameConstructionData* data =
-    FindXULTagData(aContent, aTag, aNameSpaceID, aStyleContext);
-  if (data) {
-    return data;
-  }
-
-  
-  const nsStyleDisplay* display = aStyleContext->GetStyleDisplay();
-  PRBool isXULDisplay = IsXULDisplayType(display) &&
-    (aNameSpaceID == kNameSpaceID_XUL ||
-     !IsSpecialContent(aContent, aTag, aNameSpaceID, aStyleContext));
-
-  if (!isXULDisplay) {
+  if (!IsXULDisplayType(aDisplay)) {
     return nsnull;
   }
 
@@ -5700,7 +5663,7 @@ nsCSSFrameConstructor::FindXULData(nsIContent* aContent,
   };
 
   
-  return FindDataByInt(display->mDisplay, aContent, aStyleContext,
+  return FindDataByInt(aDisplay->mDisplay, aContent, aStyleContext,
                        sXULDisplayData, NS_ARRAY_LENGTH(sXULDisplayData));
 }
 
@@ -6749,22 +6712,49 @@ nsCSSFrameConstructor::ConstructFrameInternal( nsFrameConstructorState& aState,
     return NS_OK;
   }
 
+  PRBool isText = aContent->IsNodeOfType(nsINode::eTEXT);
+  
+  const FrameConstructionData* data;
+  if (isText) {
+    data = FindTextData(aParentFrame);
+  } else {
+    data = FindHTMLData(aContent, aTag, aNameSpaceID, styleContext);
+    if (!data) {
+      data = FindXULTagData(aContent, aTag, aNameSpaceID, styleContext);
+    }
+#ifdef MOZ_MATHML
+    if (!data) {
+      data = FindMathMLData(aContent, aTag, aNameSpaceID, styleContext);
+    }
+#endif
+#ifdef MOZ_SVG
+    if (!data) {
+      data = FindSVGData(aContent, aTag, aNameSpaceID, aParentFrame,
+                         styleContext);
+    }
+#endif 
+
+    if (data && (data->mBits & FCDATA_SUPPRESS_FRAME)) {
+      return NS_OK;
+    }
+  }
+  
   nsIFrame* adjParentFrame = aParentFrame;
   nsFrameItems* frameItems = &aFrameItems;
   PRBool pseudoParent = PR_FALSE;
   PRBool suppressFrame = PR_FALSE;
   nsFrameConstructorSaveState pseudoSaveState;
   nsresult rv = AdjustParentFrame(aState, aContent, adjParentFrame,
-                                  aTag, aNameSpaceID, styleContext,
-                                  frameItems, pseudoSaveState,
-                                  suppressFrame, pseudoParent);
+                                  data, aNameSpaceID, display, frameItems,
+                                  pseudoSaveState, suppressFrame, pseudoParent);
   if (NS_FAILED(rv) || suppressFrame) {
     return rv;
   }
 
-  if (aContent->IsNodeOfType(nsINode::eTEXT)) 
-    return ConstructTextFrame(aState, aContent, adjParentFrame, styleContext,
-                              *frameItems, pseudoParent);
+  if (isText) {
+    return ConstructTextFrame(data, aState, aContent, adjParentFrame,
+                              styleContext, *frameItems, pseudoParent);
+  }
 
 #ifdef MOZ_SVG
   
@@ -6794,34 +6784,18 @@ nsCSSFrameConstructor::ConstructFrameInternal( nsFrameConstructorState& aState,
   }
 
   
-  const FrameConstructionData* data = FindHTMLData(aContent, aTag, aNameSpaceID,
-                                                   styleContext);
   if (!data) {
-    data = FindXULData(aContent, aTag, aNameSpaceID, styleContext);
+    data = FindXULDisplayData(display, aContent, aStyleContext);
   }
-
-#ifdef MOZ_MATHML
-  if (!data) {
-    data = FindMathMLData(aContent, aTag, aNameSpaceID, styleContext);
-  }
-#endif 
-
-#ifdef MOZ_SVG
-  if (!data) {
-    data = FindSVGData(aContent, aTag, aNameSpaceID, adjParentFrame, styleContext);
-  }
-#endif 
 
   if (data) {
-    if ((data->mBits & FCDATA_SUPPRESS_FRAME)
 #ifdef MOZ_XUL
-        || ((data->mBits & FCDATA_IS_POPUP) &&
-            adjParentFrame->GetType() != nsGkAtoms::menuFrame &&
-            !aState.mPopupItems.containingBlock)
-#endif 
-        ) {
+    if ((data->mBits & FCDATA_IS_POPUP) &&
+        adjParentFrame->GetType() != nsGkAtoms::menuFrame &&
+        !aState.mPopupItems.containingBlock) {
       return NS_OK;
     }
+#endif 
 
     return ConstructFrameFromData(data, aState, aContent, adjParentFrame, aTag,
                                   aNameSpaceID, styleContext, *frameItems,

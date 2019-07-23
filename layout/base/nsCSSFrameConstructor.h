@@ -699,6 +699,8 @@ private:
 
 
 
+
+
   
   
   
@@ -706,9 +708,9 @@ private:
   nsresult AdjustParentFrame(nsFrameConstructorState&     aState,
                              nsIContent*                  aChildContent,
                              nsIFrame* &                  aParentFrame,
-                             nsIAtom*                     aTag,
+                             const FrameConstructionData* aFCData,
                              PRInt32                      aNameSpaceID,
-                             nsStyleContext*              aChildStyle,
+                             const nsStyleDisplay*        aDisplay,
                              nsFrameItems* &              aFrameItems,
                              nsFrameConstructorSaveState& aSaveState,
                              PRBool&                      aSuppressFrame,
@@ -759,7 +761,10 @@ private:
                                   nsFrameItems&            aFrameItems,
                                   nsIFrame**               aNewFrame);
 
-  nsresult ConstructTextFrame(nsFrameConstructorState& aState,
+  static const FrameConstructionData* FindTextData(nsIFrame* aParentFrame);
+
+  nsresult ConstructTextFrame(const FrameConstructionData* aData,
+                              nsFrameConstructorState& aState,
                               nsIContent*              aContent,
                               nsIFrame*                aParentFrame,
                               nsStyleContext*          aStyleContext,
@@ -780,11 +785,6 @@ private:
                          nsIFrame*                aParentFrame,
                          nsStyleContext*          aStyleContext,
                          nsFrameItems&            aFrameItems);
-
-  static PRBool IsSpecialContent(nsIContent*     aContent,
-                                 nsIAtom*        aTag,
-                                 PRInt32         aNameSpaceID,
-                                 nsStyleContext* aStyleContext);
 
   
   
@@ -901,10 +901,10 @@ private:
   
   
   
-  static const FrameConstructionData* FindXULData(nsIContent* aContent,
-                                                  nsIAtom* aTag,
-                                                  PRInt32 aNameSpaceID,
-                                                  nsStyleContext* aStyleContext);
+  static const FrameConstructionData*
+    FindXULDisplayData(const nsStyleDisplay* aDisplay,
+                       nsIContent* aContent,
+                       nsStyleContext* aStyleContext);
 
 
 #ifdef MOZ_SVG
