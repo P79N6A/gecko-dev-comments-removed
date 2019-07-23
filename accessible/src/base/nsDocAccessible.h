@@ -203,6 +203,11 @@ class nsDocAccessible : public nsHyperTextAccessibleWrap,
     nsresult FireShowHideEvents(nsIDOMNode *aDOMNode, PRBool aAvoidOnThisNode, PRUint32 aEventType,
                                 PRBool aDelay, PRBool aForceIsFromUserInput);
 
+    
+
+
+    void FireValueChangeForTextFields(nsIAccessible *aPossibleTextFieldAccessible);
+
     nsAccessNodeHashtable mAccessNodeCache;
     void *mWnd;
     nsCOMPtr<nsIDocument> mDocument;
