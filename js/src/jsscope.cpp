@@ -991,7 +991,8 @@ ReportReadOnlyScope(JSContext *cx, JSScope *scope)
 JSScopeProperty *
 js_AddScopeProperty(JSContext *cx, JSScope *scope, jsid id,
                     JSPropertyOp getter, JSPropertyOp setter, uint32 slot,
-                    uintN attrs, uintN flags, intN shortid)
+                    uintN attrs, uintN flags, intN shortid,
+                    JSBool *cacheByPrevShape)
 {
     JSScopeProperty **spp, *sprop, *overwriting, **spvec, **spp2, child;
     uint32 size, splen, i;
@@ -999,6 +1000,7 @@ js_AddScopeProperty(JSContext *cx, JSScope *scope, jsid id,
     JSTempValueRooter tvr;
 
     JS_ASSERT(JS_IS_SCOPE_LOCKED(cx, scope));
+    JS_ASSERT_IF(cacheByPrevShape, !*cacheByPrevShape);
     CHECK_ANCESTOR_LINE(scope, JS_TRUE);
 
     
@@ -1273,7 +1275,16 @@ js_AddScopeProperty(JSContext *cx, JSScope *scope, jsid id,
 
 
 
-        SCOPE_EXTEND_SHAPE(cx, scope, sprop);
+
+
+
+        if (!scope->lastProp || scope->shape == scope->lastProp->shape) {
+            scope->shape = sprop->shape;
+            if (cacheByPrevShape)
+                *cacheByPrevShape = true;
+        } else {
+            scope->shape = js_GenerateShape(cx, false, sprop);
+        }
 
         
         if (scope->table)
@@ -1409,7 +1420,8 @@ js_ChangeScopePropertyAttrs(JSContext *cx, JSScope *scope,
 
         newsprop = js_AddScopeProperty(cx, scope, child.id,
                                        child.getter, child.setter, child.slot,
-                                       child.attrs, child.flags, child.shortid);
+                                       child.attrs, child.flags, child.shortid,
+                                       NULL);
     }
 
     if (newsprop) {
