@@ -61,6 +61,7 @@ inline NS_HIDDEN_(PRInt32) NS_lround(double x)
 
 
 
+#if defined(XP_WIN32) && defined(_M_IX86) && !defined(__GNUC__)
 inline NS_HIDDEN_(PRInt32) NS_lroundup30(float x)
 {
     
@@ -91,6 +92,7 @@ inline NS_HIDDEN_(PRInt32) NS_lroundup30(float x)
     }
     return i >> 1;                
 }
+#endif 
 
 inline NS_HIDDEN_(PRInt32) NS_lroundf(float x)
 {
