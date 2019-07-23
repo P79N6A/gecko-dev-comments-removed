@@ -123,7 +123,6 @@
 #include "nsIDOMNodeList.h"
 #include "nsIDOMNamedNodeMap.h"
 #include "nsIDOMDOMStringList.h"
-#include "nsIDOMDOMTokenList.h"
 #include "nsIDOMNameList.h"
 #include "nsIDOMNSElement.h"
 
@@ -622,8 +621,6 @@ static nsDOMClassInfoData sClassInfoData[] = {
                            DOM_DEFAULT_SCRIPTABLE_FLAGS)
   NS_DEFINE_CLASSINFO_DATA(DOMException, nsDOMGenericSH,
                            DOM_DEFAULT_SCRIPTABLE_FLAGS)
-  NS_DEFINE_CLASSINFO_DATA(DOMTokenList, nsDOMTokenListSH,
-                           ARRAY_SCRIPTABLE_FLAGS)
   NS_DEFINE_CLASSINFO_DATA(DocumentFragment, nsDOMGenericSH,
                            DOM_DEFAULT_SCRIPTABLE_FLAGS)
   NS_DEFINE_CLASSINFO_DATA(Element, nsElementSH,
@@ -2063,10 +2060,6 @@ nsDOMClassInfo::Init()
   DOM_CLASSINFO_MAP_BEGIN(DOMException, nsIDOMDOMException)
     DOM_CLASSINFO_MAP_ENTRY(nsIDOMDOMException)
     DOM_CLASSINFO_MAP_ENTRY(nsIException)
-  DOM_CLASSINFO_MAP_END
-
-  DOM_CLASSINFO_MAP_BEGIN(DOMTokenList, nsIDOMDOMTokenList)
-    DOM_CLASSINFO_MAP_ENTRY(nsIDOMDOMTokenList)
   DOM_CLASSINFO_MAP_END
 
   DOM_CLASSINFO_MAP_BEGIN(DocumentFragment, nsIDOMDocumentFragment)
@@ -4229,7 +4222,7 @@ nsDOMClassInfo::PostCreatePrototype(JSContext * cx, JSObject * proto)
 
   
   JSBool found;
-  if (!::JS_AlreadyHasOwnUCProperty(cx, global, reinterpret_cast<const jschar*>(mData->mNameUTF16),
+  if (!::JS_AlreadyHasOwnUCProperty(cx, global, mData->mNameUTF16,
                                     nsCRT::strlen(mData->mNameUTF16), &found)) {
     return NS_ERROR_FAILURE;
   }
@@ -5171,9 +5164,17 @@ DefineInterfaceConstants(JSContext *cx, JSObject *obj, const nsIID *aIID)
         break;
       }
       case nsXPTType::T_I32:
+      {
+        if (!JS_NewNumberValue(cx, c->GetValue()->val.i32, &v)) {
+          return NS_ERROR_UNEXPECTED;
+        }
+        break;
+      }
       case nsXPTType::T_U32:
       {
-        v = INT_TO_JSVAL(c->GetValue()->val.u32);
+        if (!JS_NewNumberValue(cx, c->GetValue()->val.u32, &v)) {
+          return NS_ERROR_UNEXPECTED;
+        }
         break;
       }
       default:
@@ -7924,19 +7925,6 @@ nsStringListSH::GetStringAt(nsISupports *aNative, PRInt32 aIndex,
                             nsAString& aResult)
 {
   nsCOMPtr<nsIDOMDOMStringList> list(do_QueryInterface(aNative));
-  NS_ENSURE_TRUE(list, NS_ERROR_UNEXPECTED);
-
-  return list->Item(aIndex, aResult);
-}
-
-
-
-
-nsresult
-nsDOMTokenListSH::GetStringAt(nsISupports *aNative, PRInt32 aIndex,
-                              nsAString& aResult)
-{
-  nsCOMPtr<nsIDOMDOMTokenList> list(do_QueryInterface(aNative));
   NS_ENSURE_TRUE(list, NS_ERROR_UNEXPECTED);
 
   return list->Item(aIndex, aResult);
