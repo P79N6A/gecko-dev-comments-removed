@@ -728,24 +728,22 @@ nsresult nsHTMLMediaElement::PickMediaElement()
   
   
   nsAutoString src;
-  if (HasAttr(kNameSpaceID_None, nsGkAtoms::src)) {
-    if (GetAttr(kNameSpaceID_None, nsGkAtoms::src, src)) {
+  if (GetAttr(kNameSpaceID_None, nsGkAtoms::src, src)) {
 #ifdef MOZ_OGG
-      
-      
-      if (mDecoder) {
-        mDecoder->ElementUnavailable();
-        mDecoder->Shutdown();
-        mDecoder = nsnull;
-      }
-
-      mDecoder = new nsOggDecoder();
-      if (mDecoder && !mDecoder->Init()) {
-        mDecoder = nsnull;
-      }
-#endif
-      return InitializeDecoder(src);
+    
+    
+    if (mDecoder) {
+      mDecoder->ElementUnavailable();
+      mDecoder->Shutdown();
+      mDecoder = nsnull;
     }
+
+    mDecoder = new nsOggDecoder();
+    if (mDecoder && !mDecoder->Init()) {
+      mDecoder = nsnull;
+    }
+#endif
+    return InitializeDecoder(src);
   }
 
   
@@ -757,14 +755,12 @@ nsresult nsHTMLMediaElement::PickMediaElement()
     
     nsCOMPtr<nsIContent> source = do_QueryInterface(child);
     if (source) {
-      if (source->HasAttr(kNameSpaceID_None, nsGkAtoms::src)) {
-        nsAutoString type;
-        nsAutoString src;
-        if (source->GetAttr(kNameSpaceID_None, nsGkAtoms::type, type) &&
-            source->GetAttr(kNameSpaceID_None, nsGkAtoms::src, src) &&
-            CreateDecoder(NS_ConvertUTF16toUTF8(type)))
-          return InitializeDecoder(src);
-      }
+      nsAutoString type;
+      nsAutoString src;
+      if (source->GetAttr(kNameSpaceID_None, nsGkAtoms::src, src) &&
+          source->GetAttr(kNameSpaceID_None, nsGkAtoms::type, type) &&
+          CreateDecoder(NS_ConvertUTF16toUTF8(type)))
+        return InitializeDecoder(src);
     }
   }
 
@@ -783,11 +779,10 @@ nsresult nsHTMLMediaElement::InitializeDecoder(const nsAString& aURISpec)
   nsresult rv;
   nsCOMPtr<nsIURI> uri;
   nsCOMPtr<nsIURI> baseURL = GetBaseURI();
-  const nsAFlatCString &charset = doc->GetDocumentCharacterSet();
-  rv = NS_NewURI(getter_AddRefs(uri), aURISpec,
-                 charset.IsEmpty() ? nsnull : charset.get(), 
-                 baseURL, 
-                 nsContentUtils::GetIOService());
+  rv = nsContentUtils::NewURIWithDocumentCharset(getter_AddRefs(uri),
+                                                 aURISpec,
+                                                 doc,
+                                                 baseURL);
   NS_ENSURE_SUCCESS(rv, rv);
 
   if (mDecoder) {
