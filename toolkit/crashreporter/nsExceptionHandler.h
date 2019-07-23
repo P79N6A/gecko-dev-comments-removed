@@ -64,10 +64,33 @@ nsresult SetupExtraData(nsILocalFile* aAppDataDirectory,
                         const nsACString& aBuildID);
 #ifdef XP_WIN32
   nsresult WriteMinidumpForException(EXCEPTION_POINTERS* aExceptionInfo);
+
+
+nsCString GetChildNotificationPipe();
+
+bool SetRemoteExceptionHandler(const nsACString& crashPipe);
 #endif
 #ifdef XP_MACOSX
   nsresult AppendObjCExceptionInfoToAppNotes(void *inException);
 #endif
+#ifdef XP_LINUX
+
+
+
+
+
+
+
+
+
+
+bool CreateNotificationPipeForChild(int* childCrashFd, int* childCrashRemapFd);
+
+
+bool SetRemoteExceptionHandler();
+#endif
+
+bool UnsetRemoteExceptionHandler();
 }
 
 #endif 
