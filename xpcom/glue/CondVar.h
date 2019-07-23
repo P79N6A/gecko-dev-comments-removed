@@ -66,20 +66,22 @@ public:
 
 
 
-    CondVar(Mutex& aLock, const char* name)
-        : mLock(&aLock) {
+    CondVar(Mutex& aLock, const char* aName) :
+        BlockingResourceBase(aName, eCondVar),
+        mLock(&aLock)
+    {
         
         mCvar = PR_NewCondVar(mLock->mLock);
         if (!mCvar)
             NS_RUNTIMEABORT("Can't allocate mozilla::CondVar");
-        Init(mCvar, name, eCondVar);
     }
 
     
 
 
 
-    ~CondVar() {
+    ~CondVar()
+    {
         NS_ASSERTION(mCvar && mLock,
                      "improperly constructed CondVar or double free");
         PR_DestroyCondVar(mCvar);
@@ -87,21 +89,27 @@ public:
         mLock = 0;
     }
 
+#ifndef DEBUG
     
 
 
       
-    nsresult Wait(PRIntervalTime interval = PR_INTERVAL_NO_TIMEOUT) {
+    nsresult Wait(PRIntervalTime interval = PR_INTERVAL_NO_TIMEOUT)
+    {
         
         return PR_WaitCondVar(mCvar, interval) == PR_SUCCESS
             ? NS_OK : NS_ERROR_FAILURE;
     }
+#else
+    nsresult Wait(PRIntervalTime interval = PR_INTERVAL_NO_TIMEOUT);
+#endif 
 
     
 
 
       
-    nsresult Notify() {
+    nsresult Notify()
+    {
         
         return PR_NotifyCondVar(mCvar) == PR_SUCCESS
             ? NS_OK : NS_ERROR_FAILURE;
@@ -111,7 +119,8 @@ public:
 
 
       
-    nsresult NotifyAll() {
+    nsresult NotifyAll()
+    {
         
         return PR_NotifyAllCondVar(mCvar) == PR_SUCCESS
             ? NS_OK : NS_ERROR_FAILURE;
@@ -122,7 +131,8 @@ public:
 
 
 
-    void AssertCurrentThreadOwnsMutex () {
+    void AssertCurrentThreadOwnsMutex()
+    {
         mLock->AssertCurrentThreadOwns();
     }
 
@@ -130,13 +140,18 @@ public:
 
 
 
-    void AssertNotCurrentThreadOwnsMutex () {
+    void AssertNotCurrentThreadOwnsMutex()
+    {
         mLock->AssertNotCurrentThreadOwns();
     }
 
 #else
-    void AssertCurrentThreadOwnsMutex () { }
-    void AssertNotCurrentThreadOwnsMutex () { }
+    void AssertCurrentThreadOwnsMutex()
+    {
+    }
+    void AssertNotCurrentThreadOwnsMutex()
+    {
+    }
 
 #endif  
 
