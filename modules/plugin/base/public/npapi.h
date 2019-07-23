@@ -136,6 +136,12 @@ typedef char*         NPMIMEType;
 
 
 
+#if !defined(__LP64__)
+#if defined(XP_MAC) || defined(XP_MACOSX)
+#pragma options align=mac68k
+#endif
+#endif 
+
 
 
 
@@ -510,6 +516,11 @@ enum NPEventType {
 
 #define NP_MAXREADY (((unsigned)(~0)<<1)>>1)
 
+#if !defined(__LP64__)
+#if defined(XP_MAC) || defined(XP_MACOSX)
+#pragma options align=reset
+#endif
+#endif 
 
 
 

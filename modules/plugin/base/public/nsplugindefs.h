@@ -114,6 +114,12 @@
 
 
 
+#if !defined(__LP64__)
+#if defined(XP_MAC) || defined(XP_MACOSX)
+#pragma options align=mac68k
+#endif
+#endif 
+
 struct nsByteRange {
     PRInt32             offset; 	
     PRUint32            length;
@@ -376,6 +382,12 @@ class nsIPluginInstance;
 
 class nsIPluginTagInfo;                 
 
+
+#if !defined(__LP64__)
+#if defined(XP_MAC) || defined(XP_MACOSX)
+#pragma options align=reset
+#endif
+#endif 
 
 #endif 
 #ifdef __OS2__
