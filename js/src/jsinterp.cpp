@@ -2926,7 +2926,7 @@ JS_INTERPRET(JSContext *cx, JSInterpreterState *state)
 #ifndef jstracer_cpp___
 # define MONITOR_BRANCH(n)                                                    \
     JS_BEGIN_MACRO                                                            \
-        if (TRACING_ENABLED(cx) &&                                            \
+        if (ENABLE_TRACER &&                                                  \
             (JS_TRACE_MONITOR(cx).freq++ & TRACE_TRIGGER_MASK) == 0) {        \
             regs.pc += n;                                                     \
             goto attempt_recording;                                           \
@@ -2935,9 +2935,9 @@ JS_INTERPRET(JSContext *cx, JSInterpreterState *state)
 #else
 # define MONITOR_BRANCH(n)                                                    \
     JS_BEGIN_MACRO                                                            \
-        if (TRACING_ENABLED(cx) &&                                            \
+        if (ENABLE_TRACER &&                                                  \
             JS_TRACE_MONITOR(cx).recorder != NULL &&                          \
-            JS_TRACE_MONITOR(cx).recorder->entryState.pc == (regs.pc + n)) {  \
+            JS_TRACE_MONITOR(cx).recorder->entryPC() == (regs.pc + n)) {  \
             goto end_recording;                                               \
         }                                                                     \
     JS_END_MACRO
