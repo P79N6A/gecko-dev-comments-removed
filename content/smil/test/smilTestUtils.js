@@ -78,8 +78,20 @@ var SMILUtil =
   },
 
   
-  getComputedStyleSimple: function(elem, prop) {
+  getComputedStyleSimple: function(elem, prop)
+  {
     return window.getComputedStyle(elem, null).getPropertyValue(prop);
+  },
+
+  getAttributeValue: function(elem, attr)
+  {
+    if (attr.attrType == "CSS") {
+      return SMILUtil.getComputedStyleWrapper(elem, attr.attrName);
+    } else if (attr.attrType == "XML") {
+      
+      
+      return SMILUtil.getComputedStyleWrapper(elem, attr.attrName);
+    }
   },
 
   
@@ -136,11 +148,15 @@ var SMILUtil =
   
   
   
-  hideSubtree : function(node, hideNodeItself)
+  hideSubtree : function(node, hideNodeItself, useXMLAttribute)
   {
     
     if (hideNodeItself) {
-      if (node.style) {
+      if (useXMLAttribute) {
+        if (node.setAttribute) {
+          node.setAttribute("display", "none");
+        }
+      } else if (node.style) {
         node.style.display = "none";
       }
     }
@@ -148,7 +164,7 @@ var SMILUtil =
     
     var child = node.firstChild;
     while (child) {
-      SMILUtil.hideSubtree(child, true);
+      SMILUtil.hideSubtree(child, true, useXMLAttribute);
       child = child.nextSibling;
     }
   },
@@ -306,7 +322,7 @@ AnimTestcase.prototype =
 
 
 
-  runTest : function(aTargetElem, aAnimAttr, aTimeData, aIsFreeze)
+  runTest : function(aTargetElem, aTargetAttr, aTimeData, aIsFreeze)
   {
     
     if (!SMILUtil.getSVGRoot().animationsPaused()) {
@@ -318,18 +334,17 @@ AnimTestcase.prototype =
 
     
     
-    var baseVal = SMILUtil.getComputedStyleWrapper(aTargetElem,
-                                                   aAnimAttr.attrName);
+    var baseVal = SMILUtil.getAttributeValue(aTargetElem, aTargetAttr);
 
     
-    var anim = this.setupAnimationElement(aAnimAttr, aTimeData, aIsFreeze);
+    var anim = this.setupAnimationElement(aTargetAttr, aTimeData, aIsFreeze);
     aTargetElem.appendChild(anim);
 
     
-    var seekList = this.buildSeekList(aAnimAttr, baseVal, aTimeData, aIsFreeze);
+    var seekList = this.buildSeekList(aTargetAttr, baseVal, aTimeData, aIsFreeze);
 
     
-    this.seekAndTest(seekList, aTargetElem, aAnimAttr.attrName);
+    this.seekAndTest(seekList, aTargetElem, aTargetAttr);
 
     
     aTargetElem.removeChild(anim);
@@ -373,7 +388,7 @@ AnimTestcase.prototype =
     for (var i in aSeekList) {
       var entry = aSeekList[i];
       SMILUtil.getSVGRoot().setCurrentTime(entry[0]);
-      is(SMILUtil.getComputedStyleWrapper(aTargetElem, aTargetAttr),
+      is(SMILUtil.getAttributeValue(aTargetElem, aTargetAttr),
          entry[1], entry[2]);
     }
   },
@@ -423,6 +438,13 @@ AnimTestcaseFrom.prototype =
   {
     var seekList = new Array();
     var msgPrefix = aAnimAttr.attrName + ": ";
+    if (aTimeData.getBeginTime() > 0.1) {
+      seekList.push([aTimeData.getBeginTime() - 0.1,
+                    aBaseVal,
+                     msgPrefix + "checking that base value is set " +
+                     "before start of animation"]);
+    }
+
     seekList.push([aTimeData.getBeginTime(),
                    this.computedValMap.fromComp || this.from,
                    msgPrefix + "checking that 'from' value is set " +
