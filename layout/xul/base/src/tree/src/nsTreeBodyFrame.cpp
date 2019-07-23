@@ -350,7 +350,7 @@ nsTreeBodyFrame::EnsureBoxObject()
   if (!mTreeBoxObject) {
     nsIContent* parent = GetBaseElement();
     if (parent) {
-      nsCOMPtr<nsIDOMNSDocument> nsDoc = do_QueryInterface(parent->GetDocument());
+      nsIDocument* nsDoc = parent->GetDocument();
       if (!nsDoc) 
         return;
       nsCOMPtr<nsIBoxObject> box;

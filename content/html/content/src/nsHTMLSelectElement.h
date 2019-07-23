@@ -46,7 +46,6 @@
 #include "nsISelectElement.h"
 #include "nsIDOMHTMLSelectElement.h"
 #include "nsIDOMNSHTMLSelectElement.h"
-#include "nsIDOMNSXBLFormControl.h"
 #include "nsIDOMHTMLFormElement.h"
 #include "nsIDOMHTMLOptionElement.h"
 #include "nsIDOMHTMLOptionsCollection.h"
@@ -242,7 +241,6 @@ private:
 class nsHTMLSelectElement : public nsGenericHTMLFormElement,
                             public nsIDOMHTMLSelectElement,
                             public nsIDOMNSHTMLSelectElement,
-                            public nsIDOMNSXBLFormControl,
                             public nsISelectElement
 {
 public:
@@ -266,9 +264,6 @@ public:
 
   
   NS_DECL_NSIDOMNSHTMLSELECTELEMENT
-
-  
-  NS_DECL_NSIDOMNSXBLFORMCONTROL
 
   
   virtual nsresult PreHandleEvent(nsEventChainPreVisitor& aVisitor);

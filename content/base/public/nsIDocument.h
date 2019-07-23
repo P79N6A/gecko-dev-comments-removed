@@ -98,11 +98,12 @@ class nsIDOMNodeList;
 class mozAutoSubtreeModified;
 struct JSObject;
 class nsFrameLoader;
+class nsIBoxObject;
 
 
 #define NS_IDOCUMENT_IID      \
-{ 0x98a4006e, 0x53c4, 0x4390, \
-  { 0xb4, 0x2d, 0x33, 0x68, 0x4a, 0xa9, 0x24, 0x04 } }
+{ 0x62579239, 0xb619, 0x4bf2, \
+  { 0x8d, 0x39, 0x0b, 0x73, 0xe8, 0x66, 0x3a, 0x85 } }
 
 
 #define NS_STYLESHEET_FROM_CATALOG                (1 << 0)
@@ -904,6 +905,12 @@ public:
 
 
   virtual void ClearBoxObjectFor(nsIContent *aContent) = 0;
+
+  
+
+
+
+  NS_IMETHOD GetBoxObjectFor(nsIDOMElement* aElement, nsIBoxObject** aResult) = 0;
 
   
 
