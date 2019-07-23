@@ -35,8 +35,8 @@
 
 
 
-#ifndef nsAirbagExceptionHandler_h__
-#define nsAirbagExceptionHandler_h__
+#ifndef nsExceptionHandler_h__
+#define nsExceptionHandler_h__
 
 #include "nscore.h"
 #include "nsXPCOM.h"

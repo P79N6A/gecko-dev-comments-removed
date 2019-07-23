@@ -35,7 +35,7 @@
 
 
 
-#include "nsAirbagExceptionHandler.h"
+#include "nsExceptionHandler.h"
 
 #if defined(XP_WIN32)
 #ifdef WIN32_LEAN_AND_MEAN
@@ -62,7 +62,7 @@
 #endif 
 
 #ifndef HAVE_CPP_2BYTE_WCHAR_T
-#error "This code expects a 2 byte wchar_t.  You should --disable-airbag."
+#error "This code expects a 2 byte wchar_t.  You should --disable-crashreporter."
 #endif
 
 #include <stdlib.h>
