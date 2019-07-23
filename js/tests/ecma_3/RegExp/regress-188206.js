@@ -99,12 +99,6 @@ testThis(' /a????/ ');
 
 
 
-status = inSection(7);
-testThis(' /*a/ ');
-
-status = inSection(8);
-testThis(' /**a/ ');
-
 status = inSection(9);
 testThis(' /+a/ ');
 
@@ -116,68 +110,6 @@ testThis(' /?a/ ');
 
 status = inSection(12);
 testThis(' /??a/ ');
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-status = inSection(13);
-checkThis(' /a*{/ ');
-
-status = inSection(14);
-checkThis(' /a{}/ ');
-
-status = inSection(15);
-checkThis(' /{a/ ');
-
-status = inSection(16);
-checkThis(' /}a/ ');
-
-status = inSection(17);
-checkThis(' /x{abc}/ ');
-
-status = inSection(18);
-checkThis(' /{{0}/ ');
-
-status = inSection(19);
-checkThis(' /{{1}/ ');
-
-status = inSection(20);
-checkThis(' /x{{0}/ ');
-
-status = inSection(21);
-checkThis(' /x{{1}/ ');
-
-status = inSection(22);
-checkThis(' /x{{0}}/ ');
-
-status = inSection(23);
-checkThis(' /x{{1}}/ ');
-
-status = inSection(24);
-checkThis(' /x{{0}}/ ');
-
-status = inSection(25);
-checkThis(' /x{{1}}/ ');
-
-status = inSection(26);
-checkThis(' /x{{0}}/ ');
-
-status = inSection(27);
-checkThis(' /x{{1}}/ ');
 
 
 
