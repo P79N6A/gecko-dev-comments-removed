@@ -909,32 +909,14 @@ nsDocAccessible::AttributeChanged(nsIDocument *aDocument, nsIContent* aContent,
     return; 
   }
 
+  if (aNameSpaceID == kNameSpaceID_WAIProperties) {
+    ARIAAttributeChanged(aContent, aAttribute);
+    return;
+  }
+
   nsCOMPtr<nsIDOMNode> targetNode(do_QueryInterface(aContent));
   NS_ASSERTION(targetNode, "No node for attr modified");
   if (!targetNode) {
-    return;
-  }
-
-  
-  if (aAttribute == nsAccessibilityAtoms::disabled) {
-    
-    
-    
-    
-    nsCOMPtr<nsIAccessibleStateChangeEvent> event =
-      new nsAccStateChangeEvent(targetNode,
-                                nsIAccessibleStates::EXT_STATE_ENABLED,
-                                PR_TRUE);
-    FireDelayedAccessibleEvent(event);
-    event = new nsAccStateChangeEvent(targetNode,
-                                      nsIAccessibleStates::EXT_STATE_SENSITIVE,
-                                      PR_TRUE);
-    FireDelayedAccessibleEvent(event);
-    return;
-  }
-
-  if (aNameSpaceID == kNameSpaceID_WAIProperties) {
-    ARIAAttributeChanged(aContent, aAttribute);
     return;
   }
 
@@ -996,6 +978,16 @@ nsDocAccessible::ARIAAttributeChanged(nsIContent* aContent, nsIAtom* aAttribute)
   if (!targetNode)
     return;
 
+  
+  if (aAttribute == nsAccessibilityAtoms::disabled) {
+    nsCOMPtr<nsIAccessibleStateChangeEvent> event =
+      new nsAccStateChangeEvent(targetNode,
+                                nsIAccessibleStates::EXT_STATE_ENABLED,
+                                PR_TRUE);
+    FireDelayedAccessibleEvent(event);
+    return;
+  }
+
   if (aAttribute == nsAccessibilityAtoms::required) {
     nsCOMPtr<nsIAccessibleStateChangeEvent> event =
       new nsAccStateChangeEvent(targetNode,
@@ -1018,7 +1010,7 @@ nsDocAccessible::ARIAAttributeChanged(nsIContent* aContent, nsIAtom* aAttribute)
     
     
     nsCOMPtr<nsIDOMNode> currentFocus = GetCurrentFocus();
-    if (currentFocus == targetNode) {
+    if (SameCOMIdentity(currentFocus, aContent)) {
       nsRefPtr<nsRootAccessible> rootAcc = GetRootAccessible();
       if (rootAcc)
         rootAcc->FireAccessibleFocusEvent(nsnull, currentFocus, nsnull, PR_TRUE);
