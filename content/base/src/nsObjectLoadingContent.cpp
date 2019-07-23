@@ -751,6 +751,21 @@ nsObjectLoadingContent::EnsureInstantiation(nsIPluginInstance** aInstance)
   }
 
   nsIFrame *nsiframe = do_QueryFrame(frame);
+
+  if (nsiframe->GetStateBits() & NS_FRAME_FIRST_REFLOW) {
+    
+    
+    
+    
+    frame = GetExistingFrame(eFlushLayout);
+
+    if (!frame) {
+      return NS_OK;
+    }
+
+    nsiframe = do_QueryFrame(frame);
+  }
+
   nsWeakFrame weakFrame(nsiframe);
 
   
