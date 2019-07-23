@@ -1264,9 +1264,8 @@ nsHTMLContentSerializer::SerializeLIValueAttribute(nsIDOMElement* aElement,
   
   
   
-  nsCOMPtr<nsIDOMNode> node = do_QueryInterface(aElement);
   PRBool found = PR_FALSE;
-  nsIDOMNode* currNode = node;
+  nsCOMPtr<nsIDOMNode> currNode = do_QueryInterface(aElement);
   nsAutoString valueStr;
   PRInt32 offset = 0;
   olState defaultOLState(0, PR_FALSE);
@@ -1299,7 +1298,9 @@ nsHTMLContentSerializer::SerializeLIValueAttribute(nsIDOMElement* aElement,
         }
       }
     }
-    currNode->GetPreviousSibling(&currNode);
+    nsCOMPtr<nsIDOMNode> tmp;
+    currNode->GetPreviousSibling(getter_AddRefs(tmp));
+    currNode.swap(tmp);
   }
   
   
