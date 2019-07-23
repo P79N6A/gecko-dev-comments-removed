@@ -45,7 +45,6 @@
 
 #include <stddef.h>
 #include <stdio.h>
-#include "jsversion.h"
 #include "js-config.h"
 #include "jspubtd.h"
 #include "jsutil.h"
@@ -2171,13 +2170,6 @@ extern JS_PUBLIC_API(JSBool)
 JS_CallFunctionValue(JSContext *cx, JSObject *obj, jsval fval, uintN argc,
                      jsval *argv, jsval *rval);
 
-extern JS_PUBLIC_API(void)
-JS_ClearOperationCallback(JSContext *cx);
-
-extern JS_PUBLIC_API(JSOperationCallback)
-JS_GetOperationCallback(JSContext *cx);
-
-#if JS_HAS_OPERATION_COUNT
 
 
 
@@ -2201,6 +2193,12 @@ JS_GetOperationCallback(JSContext *cx);
 extern JS_PUBLIC_API(void)
 JS_SetOperationCallback(JSContext *cx, JSOperationCallback callback,
                         uint32 operationLimit);
+
+extern JS_PUBLIC_API(void)
+JS_ClearOperationCallback(JSContext *cx);
+
+extern JS_PUBLIC_API(JSOperationCallback)
+JS_GetOperationCallback(JSContext *cx);
 
 
 
@@ -2229,18 +2227,6 @@ JS_SetOperationLimit(JSContext *cx, uint32 operationLimit);
 
 extern JS_PUBLIC_API(JSBranchCallback)
 JS_SetBranchCallback(JSContext *cx, JSBranchCallback cb);
-#else
-
-
-
-
-extern JS_PUBLIC_API(void)
-JS_SetOperationCallback(JSContext *cx, JSOperationCallback callback);
-
-#endif
-
-extern JS_PUBLIC_API(void)
-JS_TriggerOperationCallback(JSContext *cx);
 
 extern JS_PUBLIC_API(JSBool)
 JS_IsRunning(JSContext *cx);
