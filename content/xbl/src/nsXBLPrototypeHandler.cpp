@@ -600,25 +600,24 @@ nsXBLPrototypeHandler::KeyEventMatched(nsIDOMKeyEvent* aKeyEvent,
                                        PRUint32 aCharCode,
                                        PRBool aIgnoreShiftKey)
 {
-  if (mDetail == -1)
-    return PR_TRUE; 
+  if (mDetail != -1) {
+    
+    PRUint32 code;
 
-  
-  PRUint32 code;
-
-  if (mMisc) {
-    if (aCharCode)
-      code = aCharCode;
+    if (mMisc) {
+      if (aCharCode)
+        code = aCharCode;
+      else
+        aKeyEvent->GetCharCode(&code);
+      if (IS_IN_BMP(code))
+        code = ToLowerCase(PRUnichar(code));
+    }
     else
-      aKeyEvent->GetCharCode(&code);
-    if (IS_IN_BMP(code))
-      code = ToLowerCase(PRUnichar(code));
-  }
-  else
-    aKeyEvent->GetKeyCode(&code);
+      aKeyEvent->GetKeyCode(&code);
 
-  if (code != PRUint32(mDetail))
-    return PR_FALSE;
+    if (code != PRUint32(mDetail))
+      return PR_FALSE;
+  }
 
   return ModifiersMatchMask(aKeyEvent, aIgnoreShiftKey);
 }
