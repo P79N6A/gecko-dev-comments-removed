@@ -308,12 +308,20 @@ namespace nanojit
         return findRegFor(i, rmask(w));
     }
 
-    Register Assembler::getBaseReg(LIns *i, int &d, RegisterMask allow)
+    
+    
+    
+    
+    Register Assembler::getBaseReg(LOpcode op, LIns *i, int &d, RegisterMask allow)
     {
     #if !PEDANTIC
         if (i->isop(LIR_alloc)) {
-            d += findMemFor(i);
-            return FP;
+            int d2 = d;
+            d2 += findMemFor(i);
+            if (isValidDisplacement(op, d2)) {
+                d = d2;
+                return FP;
+            }
         }
     #else
         (void) d;
