@@ -1,0 +1,78 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+var gTestfile = 'regress-381504.js';
+
+
+var BUGNUMBER = 381504;
+var summary = 'Decompilation of dynamic member access if some parts are local variables ';
+var actual = '';
+var expect = '';
+
+
+
+test();
+
+
+function test()
+{
+  enterFunc ('test');
+  printBugNumber(BUGNUMBER);
+  printStatus (summary);
+ 
+  function _1() { return foo[bar]; }
+  expect = 'function _1() { return foo[bar]; }';
+  actual = _1 + '';
+  compareSource(expect, actual, summary);
+
+  function _2() { var bar; return foo[bar]; }
+  expect = 'function _2() { var bar; return foo[bar]; }';
+  actual = _2 + '';
+  compareSource(expect, actual, summary);
+
+  function _3() { return foo[bar.baz]; }
+  expect = 'function _3() { return foo[bar.baz]; }';
+  actual = _3 + '';
+  compareSource(expect, actual, summary);
+
+  function _4() { var bar; return foo[bar.baz]; }
+  expect = 'function _4() { var bar; return foo[bar.baz]; }';
+  actual = _4 + '';
+  compareSource(expect, actual, summary);
+
+  exitFunc ('test');
+}
