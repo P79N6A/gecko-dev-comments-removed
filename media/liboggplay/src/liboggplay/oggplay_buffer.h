@@ -39,13 +39,6 @@
 #ifndef __OGGPLAY_BUFFER_H__
 #define __OGGPLAY_BUFFER_H__
 
-
-
-
-
-
-
-
 OggPlayBuffer *
 oggplay_buffer_new_buffer(int size);
 

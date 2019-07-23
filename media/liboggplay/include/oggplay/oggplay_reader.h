@@ -63,24 +63,8 @@ typedef struct _OggPlayReader {
   long              (*io_tell)(void *user_handle);
 } OggPlayReader;
 
-
-
-
-
-
-
-
 OggPlayReader *
 oggplay_file_reader_new(char *filename);
-
-
-
-
-
-
-
-
-
 
 OggPlayReader *
 oggplay_tcp_reader_new(char *uri, char *proxy, int proxy_port);
