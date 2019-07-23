@@ -1060,12 +1060,20 @@ SetGlyphsForCharacterGroup(const PangoGlyphInfo *aGlyphs, PRUint32 aGlyphCount,
     const gchar *end = aUTF8 + aUTF8Length;
     while (1) {
         
+        
+        
         gunichar ch = g_utf8_get_char(p);
-        ++utf16Offset;
         NS_ASSERTION(!IS_SURROGATE(ch), "surrogates should not appear in UTF8");
         if (ch >= 0x10000) {
+            
             ++utf16Offset;
+        } else {
+            if (gfxFontGroup::IsInvisibleChar(PRUnichar(ch))) {
+                aTextRun->SetCharacterGlyph(utf16Offset, g.SetMissing());
+            }
         }
+        ++utf16Offset;
+
         
         p = g_utf8_next_char(p);
         if (p >= end)
@@ -1253,6 +1261,8 @@ gfxPangoFontGroup::CreateGlyphRunsXft(gfxTextRun *aTextRun,
             
             
             aTextRun->SetMissingGlyph(utf16Offset, 0);
+        } else if (ch < 0x10000 && IsInvisibleChar(PRUnichar(ch))) {
+            aTextRun->SetCharacterGlyph(utf16Offset, g.SetMissing());
         } else {
             FT_UInt glyph = XftCharIndex(dpy, xfont, ch);
             XGlyphInfo info;

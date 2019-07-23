@@ -527,6 +527,7 @@ public:
 
 
 
+
 class THEBES_API gfxTextRun {
 public:
     virtual ~gfxTextRun();
@@ -1122,6 +1123,13 @@ public:
     const gfxFontStyle *GetStyle() const { return &mStyle; }
 
     virtual gfxFontGroup *Copy(const gfxFontStyle *aStyle) = 0;
+
+    
+
+
+    static PRBool IsInvisibleChar(PRUnichar ch) {
+        return ch == '\t' || ch == '\r' || ch == '\n';
+    }
 
     
 
