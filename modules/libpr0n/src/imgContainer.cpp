@@ -276,15 +276,7 @@ NS_IMETHODIMP imgContainer::AppendFrame(gfxIImageFrame *item)
 
 
 
-NS_IMETHODIMP imgContainer::RemoveFrame(gfxIImageFrame *item)
-{
-  
-  return NS_ERROR_NOT_IMPLEMENTED;
-}
-
-
-
-NS_IMETHODIMP imgContainer::EndFrameDecode(PRUint32 aFrameNum, PRUint32 aTimeout)
+NS_IMETHODIMP imgContainer::EndFrameDecode(PRUint32 aFrameNum)
 {
   
   
@@ -305,13 +297,6 @@ NS_IMETHODIMP imgContainer::DecodingComplete(void)
   if (mNumFrames == 1)
     mFrames[0]->SetMutable(PR_FALSE);
   return NS_OK;
-}
-
-
-
-NS_IMETHODIMP imgContainer::Clear()
-{
-  return NS_ERROR_NOT_IMPLEMENTED;
 }
 
 
