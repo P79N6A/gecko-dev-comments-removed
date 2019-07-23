@@ -2780,7 +2780,7 @@ js_Interpret(JSContext *cx)
 
     if (tr) {
         if (tr->wasDeepAborted())
-            tr->removeFragmentoReferences();
+            tr->removeFragmentReferences();
         else
             tr->pushAbortStack();
     }

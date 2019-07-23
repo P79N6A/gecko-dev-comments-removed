@@ -149,7 +149,7 @@ namespace nanojit
 
 
 
-    class Assembler MMGC_SUBCLASS_DECL
+    class Assembler
     {
         friend class VerboseBlockReader;
         public:

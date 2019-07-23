@@ -98,8 +98,10 @@ namespace nanojit {
     class Assembler;
     class CodeAlloc;
     class Fragment;
-    class Fragmento;
     class LirBuffer;
+#ifdef DEBUG
+    class LabelMap;
+#endif
     extern "C++" { template<typename K, typename V, typename H> class HashMap; }
 }
 class TraceRecorder;
@@ -148,10 +150,13 @@ struct JSTraceMonitor {
     JSContext               *tracecx;
 
     CLS(nanojit::LirBuffer) lirbuf;
-    CLS(nanojit::Fragmento) fragmento;
     CLS(VMAllocator)        allocator;   
     CLS(nanojit::CodeAlloc) codeAlloc;   
     CLS(nanojit::Assembler) assembler;
+#ifdef DEBUG
+    CLS(nanojit::LabelMap)  labels;
+#endif
+
     CLS(TraceRecorder)      recorder;
     jsval                   *reservedDoublePool;
     jsval                   *reservedDoublePoolPtr;
@@ -187,8 +192,10 @@ struct JSTraceMonitor {
     CLS(nanojit::CodeAlloc) reCodeAlloc;
     CLS(nanojit::Assembler) reAssembler;
     CLS(nanojit::LirBuffer) reLirBuf;
-    CLS(nanojit::Fragmento) reFragmento;
     CLS(REHashMap)          reFragments;
+#ifdef DEBUG
+    CLS(nanojit::LabelMap)  reLabels;
+#endif
 
     
     CLS(TraceRecorder)      abortStack;

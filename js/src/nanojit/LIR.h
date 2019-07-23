@@ -781,8 +781,6 @@ namespace nanojit
     LIns* FASTCALL callArgN(LInsp i, uint32_t n);
     extern const uint8_t operandCount[];
 
-    class Fragmento;    
-
     
     class LirWriter : public GCObject
     {
