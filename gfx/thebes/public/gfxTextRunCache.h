@@ -38,152 +38,158 @@
 #ifndef GFX_TEXT_RUN_CACHE_H
 #define GFX_TEXT_RUN_CACHE_H
 
-#include "nsRefPtrHashtable.h"
-#include "nsClassHashtable.h"
-
 #include "gfxFont.h"
+#include "nsCheapSets.h"
 
-#include "prtime.h"
+
+
+
+
+
 
 class THEBES_API gfxTextRunCache {
+public:
+    gfxTextRunCache() {
+        mCache.Init(100);
+    }
+    ~gfxTextRunCache() {}
+
+    
+
+
+
+
+
+
+
+
+
+    gfxTextRun *GetOrMakeTextRun(const PRUnichar *aText, PRUint32 aLength,
+                                 gfxFontGroup *aFontGroup,
+                                 const gfxFontGroup::Parameters *aParams,
+                                 PRUint32 aFlags, PRBool *aCallerOwns = nsnull);
+    
+
+
+
+
+
+
+
+
+
+    gfxTextRun *GetOrMakeTextRun(const PRUint8 *aText, PRUint32 aLength,
+                                 gfxFontGroup *aFontGroup,
+                                 const gfxFontGroup::Parameters *aParams,
+                                 PRUint32 aFlags, PRBool *aCallerOwns = nsnull);
+
+    
+
+
+
+    virtual void NotifyRemovedFromCache(gfxTextRun *aTextRun) {}
+
+    
+
+
+
+    void RemoveTextRun(gfxTextRun *aTextRun);
+
+    
+    enum { FLAG_MASK =
+        gfxTextRunFactory::TEXT_IS_RTL |
+        gfxTextRunFactory::TEXT_ENABLE_SPACING |
+        gfxTextRunFactory::TEXT_ABSOLUTE_SPACING |
+        gfxTextRunFactory::TEXT_ENABLE_NEGATIVE_SPACING |
+        gfxTextRunFactory::TEXT_ENABLE_HYPHEN_BREAKS |
+        gfxTextRunFactory::TEXT_NEED_BOUNDING_BOX
+    };
+
+protected:
+    struct THEBES_API CacheHashKey {
+        void       *mFontOrGroup;
+        const void *mString;
+        PRUint32    mLength;
+        PRUint32    mAppUnitsPerDevUnit;
+        PRUint32    mFlags;
+        PRUint32    mStringHash;
+
+        CacheHashKey(void *aFontOrGroup, const void *aString, PRUint32 aLength,
+                     PRUint32 aAppUnitsPerDevUnit, PRUint32 aFlags, PRUint32 aStringHash)
+            : mFontOrGroup(aFontOrGroup), mString(aString), mLength(aLength),
+              mAppUnitsPerDevUnit(aAppUnitsPerDevUnit), mFlags(aFlags),
+              mStringHash(aStringHash) {}
+    };
+
+    class THEBES_API CacheHashEntry : public PLDHashEntryHdr {
+    public:
+        typedef const CacheHashKey &KeyType;
+        typedef const CacheHashKey *KeyTypePointer;
+
+        
+        
+        CacheHashEntry(KeyTypePointer aKey)  { }
+        CacheHashEntry(const CacheHashEntry& toCopy) { NS_ERROR("Should not be called"); }
+        ~CacheHashEntry() { }
+
+        PRBool KeyEquals(const KeyTypePointer aKey) const;
+        static KeyTypePointer KeyToPointer(KeyType aKey) { return &aKey; }
+        static PLDHashNumber HashKey(const KeyTypePointer aKey);
+        enum { ALLOW_MEMMOVE = PR_TRUE };
+
+        gfxTextRun *mTextRun;
+    };
+
+    CacheHashKey GetKeyForTextRun(gfxTextRun *aTextRun);
+
+    nsTHashtable<CacheHashEntry> mCache;
+};
+
+
+
+
+
+
+
+class THEBES_API gfxGlobalTextRunCache {
 public:
     
 
 
 
-    static gfxTextRunCache* GetCache() {
-        return mGlobalCache;
-    }
 
-    static nsresult Init();
+
+
+
+
+
+    static gfxTextRun *GetTextRun(const PRUnichar *aText, PRUint32 aLength,
+                                  gfxFontGroup *aFontGroup,
+                                  gfxContext *aRefContext,
+                                  PRUint32 aAppUnitsPerDevUnit,
+                                  PRUint32 aFlags);
+
     
-    
-    static void Shutdown();
-
-    
 
 
 
 
-    gfxTextRun *GetOrMakeTextRun (gfxContext* aContext, gfxFontGroup *aFontGroup,
-                                  const char *aString, PRUint32 aLength,
-                                  PRUint32 aAppUnitsPerDevUnit, PRBool aIsRTL,
-                                  PRBool aEnableSpacing, PRBool *aCallerOwns);
-    gfxTextRun *GetOrMakeTextRun (gfxContext* aContext, gfxFontGroup *aFontGroup,
-                                  const PRUnichar *aString, PRUint32 aLength,
-                                  PRUint32 aAppUnitsPerDevUnit, PRBool aIsRTL,
-                                  PRBool aEnableSpacing, PRBool *aCallerOwns);
+
+
+
+
+
+    static gfxTextRun *GetTextRun(const PRUint8 *aText, PRUint32 aLength,
+                                  gfxFontGroup *aFontGroup,
+                                  gfxContext *aRefContext,
+                                  PRUint32 aAppUnitsPerDevUnit,
+                                  PRUint32 aFlags);
 
 protected:
-    gfxTextRunCache();
+    friend class gfxPlatform;
 
-    static gfxTextRunCache *mGlobalCache;
-
-    
-
-
-
-
-
-
-    template<class GenericString, class RealString>
-    struct FontGroupAndStringT {
-        FontGroupAndStringT(gfxFontGroup *fg, const GenericString* str)
-            : mFontGroup(fg), mString(str) { }
-
-        typedef typename RealString::char_type char_type;
-
-        FontGroupAndStringT(const FontGroupAndStringT<GenericString,RealString>& other)
-            : mFontGroup(other.mFontGroup), mString(&mRealString)
-        {
-            mRealString.Assign(*other.mString);
-        }
-
-        void Realize() {
-            mRealString.Assign(*mString);
-            mString = &mRealString;
-        }
-        const char_type *GetRealString() {
-            return mRealString.get();
-        }
-
-        nsRefPtr<gfxFontGroup> mFontGroup;
-        RealString mRealString;
-        const GenericString* mString;
-    };
-
-    static PRUint32 HashDouble(const double d) {
-        if (d == 0.0)
-            return 0;
-        int exponent;
-        double mantissa = frexp (d, &exponent);
-        return (PRUint32) (2 * fabs(mantissa) - 1);
-    }
-
-    template<class T>
-    struct FontGroupAndStringHashKeyT : public PLDHashEntryHdr {
-        typedef const T& KeyType;
-        typedef const T* KeyTypePointer;
-
-        FontGroupAndStringHashKeyT(KeyTypePointer aObj) : mObj(*aObj) { }
-        FontGroupAndStringHashKeyT(const FontGroupAndStringHashKeyT<T>& other) : mObj(other.mObj) { }
-        ~FontGroupAndStringHashKeyT() { }
-
-        KeyType GetKey() const { return mObj; }
-
-        PRBool KeyEquals(KeyTypePointer aKey) const {
-            return
-                mObj.mString->Equals(*(aKey->mString)) &&
-                mObj.mFontGroup->Equals(*(aKey->mFontGroup.get()));
-        }
-
-        static KeyTypePointer KeyToPointer(KeyType aKey) { return &aKey; }
-        static PLDHashNumber HashKey(KeyTypePointer aKey) {
-            PRUint32 h1 = HashString(*(aKey->mString));
-            PRUint32 h2 = HashString(aKey->mFontGroup->GetFamilies());
-            PRUint32 h3 = HashDouble(aKey->mFontGroup->GetStyle()->size);
-
-            return h1 ^ h2 ^ h3;
-        }
-        enum { ALLOW_MEMMOVE = PR_FALSE };
-
-    private:
-        const T mObj;
-    };
-
-    struct TextRunEntry {
-        TextRunEntry(gfxTextRun *tr) : textRun(tr), lastUse(PR_Now()) { }
-        void Used() { lastUse = PR_Now(); }
-
-        gfxTextRun* textRun;
-        PRTime      lastUse;
-        
-        ~TextRunEntry() { delete textRun; }
-    };
-
-    typedef FontGroupAndStringT<nsAString, nsString> FontGroupAndString;
-    typedef FontGroupAndStringT<nsACString, nsCString> FontGroupAndCString;
-
-    typedef FontGroupAndStringHashKeyT<FontGroupAndString> FontGroupAndStringHashKey;
-    typedef FontGroupAndStringHashKeyT<FontGroupAndCString> FontGroupAndCStringHashKey;
-
-    nsClassHashtable<FontGroupAndStringHashKey, TextRunEntry> mHashTableUTF16;
-    nsClassHashtable<FontGroupAndCStringHashKey, TextRunEntry> mHashTableASCII;
-
-    void EvictUTF16();
-    void EvictASCII();
-
-    PRTime mLastUTF16Eviction;
-    PRTime mLastASCIIEviction;
-
-    static PLDHashOperator UTF16EvictEnumerator(const FontGroupAndString& key,
-                                                nsAutoPtr<TextRunEntry> &value,
-                                                void *closure);
-
-    static PLDHashOperator ASCIIEvictEnumerator(const FontGroupAndCString& key,
-                                                nsAutoPtr<TextRunEntry> &value,
-                                                void *closure);
+    static nsresult Init();
+    static void Shutdown();
 };
-
 
 #endif 

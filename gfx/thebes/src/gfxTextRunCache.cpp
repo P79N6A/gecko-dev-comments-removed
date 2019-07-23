@@ -37,302 +37,391 @@
 
 #include "gfxTextRunCache.h"
 
-static inline PRBool
-IsAscii(const char *aString, PRUint32 aLength)
+#include "nsExpirationTracker.h"
+
+static inline PRUint32
+HashMix(PRUint32 aHash, PRUnichar aCh)
 {
-    const char *end = aString + aLength;
-    while (aString < end) {
-        if (0x80 & *aString)
-            return PR_FALSE;
-        ++aString;
-    }
-    return PR_TRUE;
+    return (aHash >> 28) ^ (aHash << 4) ^ aCh;
 }
-
-static inline PRBool
-IsAscii(const PRUnichar *aString, PRUint32 aLength)
-{
-    const PRUnichar *end = aString + aLength;
-    while (aString < end) {
-        if (0x0080 <= *aString)
-            return PR_FALSE;
-        ++aString;
-    }
-    return PR_TRUE;
-}
-
-static inline PRBool
-Is8Bit(const PRUnichar *aString, PRUint32 aLength)
-{
-    const PRUnichar *end = aString + aLength;
-    while (aString < end) {
-        if (0x0100 <= *aString)
-            return PR_FALSE;
-        ++aString;
-    }
-    return PR_TRUE;
-}
-
-gfxTextRunCache* gfxTextRunCache::mGlobalCache = nsnull;
-
-static int gDisableCache = -1;
-
-gfxTextRunCache::gfxTextRunCache()
-{
-    if (getenv("MOZ_GFX_NO_TEXT_CACHE"))
-        gDisableCache = 1;
-    else
-        gDisableCache = 0;
-        
-    mHashTableUTF16.Init();
-    mHashTableASCII.Init();
-
-    mLastUTF16Eviction = mLastASCIIEviction = PR_Now();
-}
-
-
-nsresult
-gfxTextRunCache::Init()
-{
-    NS_ASSERTION(!mGlobalCache, "Why do we have an mGlobalCache?");
-    mGlobalCache = new gfxTextRunCache();
-
-    if (!mGlobalCache) {
-        return NS_ERROR_OUT_OF_MEMORY;
-    }
-
-    return NS_OK;
-}
-
-
-void
-gfxTextRunCache::Shutdown()
-{
-    delete mGlobalCache;
-    mGlobalCache = nsnull;
-}    
 
 static PRUint32
-ComputeFlags(PRBool aIsRTL, PRBool aEnableSpacing)
+HashString(const PRUnichar *aText, PRUint32 aLength, PRUint32 *aFlags)
 {
-    PRUint32 flags = 0;
-    if (aIsRTL) {
-        flags |= gfxTextRunFactory::TEXT_IS_RTL;
+    *aFlags &= ~(gfxFontGroup::TEXT_HAS_SURROGATES | gfxFontGroup::TEXT_IS_ASCII);
+    PRUint32 i;
+    PRUint32 hashCode = 0;
+    PRUnichar allBits = 0;
+    for (i = 0; i < aLength; ++i) {
+        PRUnichar ch = aText[i];
+        hashCode = HashMix(hashCode, ch);
+        allBits |= ch;
+        if (IS_SURROGATE(ch)) {
+            *aFlags |= gfxFontGroup::TEXT_HAS_SURROGATES;
+        }
     }
-    if (aEnableSpacing) {
-        flags |= gfxTextRunFactory::TEXT_ENABLE_SPACING |
-                 gfxTextRunFactory::TEXT_ABSOLUTE_SPACING |
-                 gfxTextRunFactory::TEXT_ENABLE_NEGATIVE_SPACING;
+    if (!(allBits & ~0x7F)) {
+        *aFlags |= gfxFontGroup::TEXT_IS_ASCII;
     }
-    return flags;
+    return hashCode;
 }
 
-gfxTextRun*
-gfxTextRunCache::GetOrMakeTextRun(gfxContext *aContext, gfxFontGroup *aFontGroup,
-                                  const PRUnichar *aString, PRUint32 aLength,
-                                  PRUint32 aAppUnitsPerDevUnit, PRBool aIsRTL,
-                                  PRBool aEnableSpacing, PRBool *aCallerOwns)
+static PRUint32
+HashString(const PRUint8 *aText, PRUint32 aLength, PRUint32 *aFlags)
 {
+    *aFlags &= ~(gfxFontGroup::TEXT_HAS_SURROGATES | gfxFontGroup::TEXT_IS_ASCII);
+    *aFlags |= gfxFontGroup::TEXT_IS_8BIT;
+    PRUint32 i;
+    PRUint32 hashCode = 0;
+    PRUint8 allBits = 0;
+    for (i = 0; i < aLength; ++i) {
+        PRUint8 ch = aText[i];
+        hashCode = HashMix(hashCode, ch);
+        allBits |= ch;
+    }
+    if (!(allBits & ~0x7F)) {
+        *aFlags |= gfxFontGroup::TEXT_IS_ASCII;
+    }
+    return hashCode;
+}
+
+static void *GetCacheKeyFontOrGroup(gfxTextRun *aTextRun)
+{
+    PRUint32 glyphRunCount;
+    const gfxTextRun::GlyphRun *glyphRuns = aTextRun->GetGlyphRuns(&glyphRunCount);
+    gfxFontGroup *fontGroup = aTextRun->GetFontGroup();
+    gfxFont *firstFont = fontGroup->GetFontAt(0);
+    return glyphRunCount == 1 && glyphRuns[0].mFont == firstFont
+           ? NS_STATIC_CAST(void *, firstFont)
+           : NS_STATIC_CAST(void *, fontGroup);
+}
+
+static const PRUnichar *
+CloneText(const PRUnichar *aText, PRUint32 aLength,
+          nsAutoArrayPtr<PRUnichar> *aBuffer, PRUint32 aFlags)
+{
+    if (*aBuffer == aText || (aFlags & gfxFontGroup::TEXT_IS_PERSISTENT))
+        return aText;
+    PRUnichar *newText = new PRUnichar[aLength];
+    if (!newText)
+        return nsnull;
+    memcpy(newText, aText, aLength*sizeof(PRUnichar));
+    *aBuffer = newText;
+    return newText;
+}
+
+static const PRUint8 *
+CloneText(const PRUint8 *aText, PRUint32 aLength,
+          nsAutoArrayPtr<PRUint8> *aBuffer, PRUint32 aFlags)
+{
+    if (*aBuffer == aText || (aFlags & gfxFontGroup::TEXT_IS_PERSISTENT))
+        return aText;
+    PRUint8 *newText = new PRUint8[aLength];
+    if (!newText)
+        return nsnull;
+    memcpy(newText, aText, aLength);
+    *aBuffer = newText;
+    return newText;
+}
+
+gfxTextRun *
+gfxTextRunCache::GetOrMakeTextRun(const PRUnichar *aText, PRUint32 aLength,
+                                  gfxFontGroup *aFontGroup,
+                                  const gfxFontGroup::Parameters *aParams,
+                                  PRUint32 aFlags, PRBool *aCallerOwns)
+{
+    if (aCallerOwns) {
+        *aCallerOwns = PR_TRUE;
+    }
+    if (aLength == 0) {
+        aFlags |= gfxFontGroup::TEXT_IS_PERSISTENT;
+    } else if (aLength == 1 && aText[0] == ' ') {
+        aFlags |= gfxFontGroup::TEXT_IS_PERSISTENT;
+        static const PRUnichar space = ' ';
+        aText = &space;
+    }
+
+    PRUint32 hashCode = HashString(aText, aLength, &aFlags);
+    gfxFont *font = aFontGroup->GetFontAt(0);
+    CacheHashKey key(font, aText, aLength, aParams->mAppUnitsPerDevUnit, aFlags, hashCode);
+    CacheHashEntry *entry = nsnull;
+    if (font) {
+        entry = mCache.GetEntry(key);
+    }
+    if (!entry) {
+        key.mFontOrGroup = aFontGroup;
+        entry = mCache.GetEntry(key);
+    }
+    nsAutoArrayPtr<PRUnichar> text;
+    if (entry) {
+        gfxTextRun *textRun = entry->mTextRun;
+        if (aCallerOwns) {
+            *aCallerOwns = PR_FALSE;
+            return textRun;
+        }
+        aText = CloneText(aText, aLength, &text, aFlags);
+        if (!aText)
+            return nsnull;
+        gfxTextRun *newRun =
+            textRun->Clone(aParams, aText, aLength, aFontGroup, aFlags);
+        if (newRun) {
+            entry->mTextRun = newRun;
+            NotifyRemovedFromCache(textRun);
+            text.forget();
+            return newRun;
+        }
+    }
+
+    aText = CloneText(aText, aLength, &text, aFlags);
+    if (!aText)
+        return nsnull;
+    gfxTextRun *newRun =
+        aFontGroup->MakeTextRun(aText, aLength, aParams, aFlags);
+    if (newRun) {
+        key.mFontOrGroup = GetCacheKeyFontOrGroup(newRun);
+        entry = mCache.PutEntry(key);
+        if (entry) {
+            entry->mTextRun = newRun;
+        }
+        NS_ASSERTION(!entry || entry == mCache.GetEntry(GetKeyForTextRun(newRun)),
+                     "Inconsistent hashing");
+    }
+    text.forget();
+    return newRun;
+}
+
+gfxTextRun *
+gfxTextRunCache::GetOrMakeTextRun(const PRUint8 *aText, PRUint32 aLength,
+                                  gfxFontGroup *aFontGroup,
+                                  const gfxFontGroup::Parameters *aParams,
+                                  PRUint32 aFlags, PRBool *aCallerOwns)
+{
+    if (aCallerOwns) {
+        *aCallerOwns = PR_TRUE;
+    }
+    if (aLength == 0) {
+        aFlags |= gfxFontGroup::TEXT_IS_PERSISTENT;
+    } else if (aLength == 1 && aText[0] == ' ') {
+        aFlags |= gfxFontGroup::TEXT_IS_PERSISTENT;
+        static const PRUint8 space = ' ';
+        aText = &space;
+    }
+
+    PRUint32 hashCode = HashString(aText, aLength, &aFlags);
+    gfxFont *font = aFontGroup->GetFontAt(0);
+    CacheHashKey key(font, aText, aLength, aParams->mAppUnitsPerDevUnit, aFlags, hashCode);
+    CacheHashEntry *entry = nsnull;
+    if (font) {
+        entry = mCache.GetEntry(key);
+    }
+    if (!entry) {
+        key.mFontOrGroup = aFontGroup;
+        entry = mCache.GetEntry(key);
+    }
+    nsAutoArrayPtr<PRUint8> text;
+    if (entry) {
+        gfxTextRun *textRun = entry->mTextRun;
+        if (aCallerOwns) {
+            *aCallerOwns = PR_FALSE;
+            return textRun;
+        }
+        aText = CloneText(aText, aLength, &text, aFlags);
+        if (!aText)
+            return nsnull;
+        gfxTextRun *newRun =
+            textRun->Clone(aParams, aText, aLength,
+                           aFontGroup, aFlags);
+        if (newRun) {
+            entry->mTextRun = newRun;
+            NotifyRemovedFromCache(textRun);
+            text.forget();
+            return newRun;
+        }
+    }
+
+    aText = CloneText(aText, aLength, &text, aFlags);
+    if (!aText)
+        return nsnull;
+    gfxTextRun *newRun =
+        aFontGroup->MakeTextRun(aText, aLength, aParams, aFlags);
+    if (newRun) {
+        key.mFontOrGroup = GetCacheKeyFontOrGroup(newRun);
+        entry = mCache.PutEntry(key);
+        if (entry) {
+            entry->mTextRun = newRun;
+        }
+        NS_ASSERTION(!entry || entry == mCache.GetEntry(GetKeyForTextRun(newRun)),
+                     "Inconsistent hashing");
+    }
+    text.forget();
+    return newRun;
+}
+
+gfxTextRunCache::CacheHashKey
+gfxTextRunCache::GetKeyForTextRun(gfxTextRun *aTextRun)
+{
+    PRUint32 hashCode;
+    const void *text;
+    PRUint32 length = aTextRun->GetLength();
+    if (aTextRun->GetFlags() & gfxFontGroup::TEXT_IS_8BIT) {
+        PRUint32 flags;
+        text = aTextRun->GetText8Bit();
+        hashCode = HashString(aTextRun->GetText8Bit(), length, &flags);
+    } else {
+        PRUint32 flags;
+        text = aTextRun->GetTextUnicode();
+        hashCode = HashString(aTextRun->GetTextUnicode(), length, &flags);
+    }
+    void *fontOrGroup = GetCacheKeyFontOrGroup(aTextRun);
+    return CacheHashKey(fontOrGroup, text, length, aTextRun->GetAppUnitsPerDevUnit(),
+                        aTextRun->GetFlags(), hashCode);
+}
+
+void
+gfxTextRunCache::RemoveTextRun(gfxTextRun *aTextRun)
+{
+    CacheHashKey key = GetKeyForTextRun(aTextRun);
+#ifdef DEBUG
+    CacheHashEntry *entry = mCache.GetEntry(key);
+    NS_ASSERTION(entry && entry->mTextRun == aTextRun,
+                 "Failed to find textrun in cache");
+#endif
+    mCache.RemoveEntry(key);
+}
+
+static PRBool
+CompareDifferentWidthStrings(const PRUint8 *aStr1, const PRUnichar *aStr2,
+                             PRUint32 aLength)
+{
+    PRUint32 i;
+    for (i = 0; i < aLength; ++i) {
+        if (aStr1[i] != aStr2[i])
+            return PR_FALSE;
+    }
+    return PR_TRUE;
+}
+
+PRBool
+gfxTextRunCache::CacheHashEntry::KeyEquals(const KeyTypePointer aKey) const
+{
+    gfxTextRun *textRun = mTextRun;
+    if (!textRun)
+        return PR_FALSE;
+    PRUint32 length = textRun->GetLength();
+    if (aKey->mFontOrGroup != GetCacheKeyFontOrGroup(textRun) ||
+        aKey->mLength != length ||
+        aKey->mAppUnitsPerDevUnit != textRun->GetAppUnitsPerDevUnit() ||
+        ((aKey->mFlags ^ textRun->GetFlags()) & FLAG_MASK))
+        return PR_FALSE;
+
+    if (textRun->GetFlags() & gfxFontGroup::TEXT_IS_8BIT) {
+        if (aKey->mFlags & gfxFontGroup::TEXT_IS_8BIT)
+            return memcmp(textRun->GetText8Bit(), aKey->mString, length) == 0;
+        return CompareDifferentWidthStrings(textRun->GetText8Bit(),
+                                            NS_STATIC_CAST(const PRUnichar *, aKey->mString), length);
+    } else {
+        if (!(aKey->mFlags & gfxFontGroup::TEXT_IS_8BIT))
+            return memcmp(textRun->GetTextUnicode(), aKey->mString, length*sizeof(PRUnichar)) == 0;
+        return CompareDifferentWidthStrings(NS_STATIC_CAST(const PRUint8 *, aKey->mString),
+                                            textRun->GetTextUnicode(), length);
+    }
+}
+
+PLDHashNumber
+gfxTextRunCache::CacheHashEntry::HashKey(const KeyTypePointer aKey)
+{
+    return aKey->mStringHash + (long)aKey->mFontOrGroup + aKey->mAppUnitsPerDevUnit +
+        (aKey->mFlags & FLAG_MASK);
+}
+
+
+
+
+class TextRunCache : public nsExpirationTracker<gfxTextRun,3> {
+public:
+    enum { TIMEOUT_SECONDS = 10 };
+    TextRunCache()
+        : nsExpirationTracker<gfxTextRun,3>(TIMEOUT_SECONDS*1000) {}
+    ~TextRunCache() {
+        AgeAllGenerations();
+    }
+
     
+    virtual void NotifyExpired(gfxTextRun *aTextRun) {
+        RemoveObject(aTextRun);
+        mCache.RemoveTextRun(aTextRun);
+        delete aTextRun;
+    }
+
+    gfxTextRunCache mCache;
+};
+
+static TextRunCache *gTextRunCache = nsnull;
+
+static nsresult
+UpdateOwnership(gfxTextRun *aTextRun, PRBool aOwned)
+{
+    if (!aTextRun)
+        return nsnull;
+    if (aOwned)
+        return gTextRunCache->AddObject(aTextRun);
+    if (!aTextRun->GetExpirationState()->IsTracked())
+        return NS_OK;
+    return gTextRunCache->MarkUsed(aTextRun);
+}
+
+gfxTextRun *
+gfxGlobalTextRunCache::GetTextRun(const PRUnichar *aText, PRUint32 aLength,
+                                  gfxFontGroup *aFontGroup,
+                                  gfxContext *aRefContext,
+                                  PRUint32 aAppUnitsPerDevUnit,
+                                  PRUint32 aFlags)
+{
+    if (!gTextRunCache)
+        return nsnull;
+    PRBool owned;
     gfxTextRunFactory::Parameters params = {
-        aContext, nsnull, nsnull, nsnull, 0, aAppUnitsPerDevUnit
+        aRefContext, nsnull, nsnull, nsnull, 0, aAppUnitsPerDevUnit
     };
-    PRUint32 flags = ComputeFlags(aIsRTL, aEnableSpacing);
-    if (IsAscii(aString, aLength)) {
-        flags |= gfxTextRunFactory::TEXT_IS_ASCII;
-    } else {
-        for (PRUint32 i = 0; i < aLength; ++i) {
-            if (NS_IS_HIGH_SURROGATE(aString[i])) {
-                flags |= gfxTextRunFactory::TEXT_HAS_SURROGATES;
-                break;
-            }
-        }
-    }
-
-    gfxTextRun *tr = nsnull;
-    
-    if (!gDisableCache && !aEnableSpacing) {
-        
-        EvictUTF16();
-    
-        TextRunEntry *entry;
-        nsDependentSubstring keyStr(aString, aString + aLength);
-        FontGroupAndString key(aFontGroup, &keyStr);
-
-        if (mHashTableUTF16.Get(key, &entry)) {
-            gfxTextRun *cachedTR = entry->textRun;
-            
-            
-            
-            if (cachedTR->GetAppUnitsPerDevUnit() == aAppUnitsPerDevUnit &&
-                cachedTR->IsRightToLeft() == aIsRTL) {
-                entry->Used();
-                tr = cachedTR;
-                tr->SetContext(aContext);
-            }
-        } else {
-            key.Realize();
-            
-            
-            tr = aFontGroup->MakeTextRun(key.GetRealString(), aLength, &params,
-                                         flags | gfxTextRunFactory::TEXT_IS_PERSISTENT);
-            entry = new TextRunEntry(tr);
-            mHashTableUTF16.Put(key, entry);
-        }
-    }
-
-    if (tr) {
-        *aCallerOwns = PR_FALSE;
-    } else {
-        
-        *aCallerOwns = PR_TRUE;
-        PRUnichar *newStr = new PRUnichar[aLength];
-        if (newStr) {
-            memcpy(newStr, aString, sizeof(PRUnichar)*aLength);
-            tr = aFontGroup->MakeTextRun(newStr, aLength, &params, flags);
-        }
-    }
-
-    return tr;
+    nsAutoPtr<gfxTextRun> textRun;
+    textRun = gTextRunCache->mCache.GetOrMakeTextRun(aText, aLength, aFontGroup, &params, aFlags, &owned);
+    nsresult rv = UpdateOwnership(textRun, owned);
+    if (NS_FAILED(rv))
+        return nsnull;
+    return textRun.forget();
 }
 
-gfxTextRun*
-gfxTextRunCache::GetOrMakeTextRun(gfxContext *aContext, gfxFontGroup *aFontGroup,
-                                  const char *aString, PRUint32 aLength,
-                                  PRUint32 aAppUnitsPerDevUnit, PRBool aIsRTL,
-                                  PRBool aEnableSpacing, PRBool *aCallerOwns)
+gfxTextRun *
+gfxGlobalTextRunCache::GetTextRun(const PRUint8 *aText, PRUint32 aLength,
+                                  gfxFontGroup *aFontGroup,
+                                  gfxContext *aRefContext,
+                                  PRUint32 aAppUnitsPerDevUnit,
+                                  PRUint32 aFlags)
 {
-    
-    gfxTextRunFactory::Parameters params = { 
-        aContext, nsnull, nsnull, nsnull, 0, aAppUnitsPerDevUnit
-    };
-    PRUint32 flags = ComputeFlags(aIsRTL, aEnableSpacing) | gfxTextRunFactory::TEXT_IS_8BIT;
-    if (IsAscii(aString, aLength))
-        flags |= gfxTextRunFactory::TEXT_IS_ASCII;
-
-    const PRUint8 *str = reinterpret_cast<const PRUint8*>(aString);
-
-    gfxTextRun *tr = nsnull;
-    
-    if (!gDisableCache && !aEnableSpacing) {
-        
-        EvictASCII();
-    
-        TextRunEntry *entry;
-        nsDependentCSubstring keyStr(aString, aString + aLength);
-        FontGroupAndCString key(aFontGroup, &keyStr);
-
-        if (mHashTableASCII.Get(key, &entry)) {
-            gfxTextRun *cachedTR = entry->textRun;
-            
-            
-            
-            if (cachedTR->GetAppUnitsPerDevUnit() == aAppUnitsPerDevUnit &&
-                cachedTR->IsRightToLeft() == aIsRTL) {
-                entry->Used();
-                tr = cachedTR;
-                tr->SetContext(aContext);
-            }
-        } else {
-            key.Realize();
-            
-            
-            tr = aFontGroup->MakeTextRun(reinterpret_cast<const PRUint8 *>(key.GetRealString()),
-                                         aLength, &params,
-                                         flags | gfxTextRunFactory::TEXT_IS_PERSISTENT);
-            entry = new TextRunEntry(tr);
-            mHashTableASCII.Put(key, entry);
-        }
-    }
-
-    if (tr) {
-        *aCallerOwns = PR_FALSE;
-    } else {
-        
-        *aCallerOwns = PR_TRUE;
-        PRUint8 *newStr = new PRUint8[aLength];
-        if (newStr) {
-            memcpy(newStr, str, aLength);
-            tr = aFontGroup->MakeTextRun(newStr, aLength, &params, flags);
-        }
-    }
-
-    return tr;
+    if (!gTextRunCache)
+        return nsnull;
+    PRBool owned;
+    gfxTextRunFactory::Parameters params = {
+        aRefContext, nsnull, nsnull, nsnull, 0, aAppUnitsPerDevUnit
+    };     
+    nsAutoPtr<gfxTextRun> textRun;
+    textRun = gTextRunCache->mCache.GetOrMakeTextRun(aText, aLength, aFontGroup, &params, aFlags, &owned);
+    nsresult rv = UpdateOwnership(textRun, owned);
+    if (NS_FAILED(rv))
+        return nsnull;
+    return textRun.forget();
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-#define EVICT_MIN_COUNT 1000
-
-
-#define EVICT_AGE 1000000
-
-void
-gfxTextRunCache::EvictUTF16()
+nsresult
+gfxGlobalTextRunCache::Init()
 {
-    PRTime evictBarrier = PR_Now();
-
-    if (mLastUTF16Eviction > (evictBarrier - (3*EVICT_AGE)))
-        return;
-
-    if (mHashTableUTF16.Count() < EVICT_MIN_COUNT)
-        return;
-
-    
-    mLastUTF16Eviction = evictBarrier;
-    evictBarrier -= EVICT_AGE;
-    mHashTableUTF16.Enumerate(UTF16EvictEnumerator, &evictBarrier);
+    gTextRunCache = new TextRunCache();
+    return gTextRunCache ? NS_OK : NS_ERROR_OUT_OF_MEMORY;
 }
 
 void
-gfxTextRunCache::EvictASCII()
+gfxGlobalTextRunCache::Shutdown()
 {
-    PRTime evictBarrier = PR_Now();
-
-    if (mLastASCIIEviction > (evictBarrier - (3*EVICT_AGE)))
-        return;
-
-    if (mHashTableASCII.Count() < EVICT_MIN_COUNT)
-        return;
-
-    
-    mLastASCIIEviction = evictBarrier;
-    evictBarrier -= EVICT_AGE;
-    mHashTableASCII.Enumerate(ASCIIEvictEnumerator, &evictBarrier);
-}
-
-PLDHashOperator
-gfxTextRunCache::UTF16EvictEnumerator(const FontGroupAndString& key,
-                                      nsAutoPtr<TextRunEntry> &value,
-                                      void *closure)
-{
-    PRTime t = *(PRTime *)closure;
-
-    if (value->lastUse < t)
-        return PL_DHASH_REMOVE;
-
-    return PL_DHASH_NEXT;
-}
-
-PLDHashOperator
-gfxTextRunCache::ASCIIEvictEnumerator(const FontGroupAndCString& key,
-                                      nsAutoPtr<TextRunEntry> &value,
-                                      void *closure)
-{
-    PRTime t = *(PRTime *)closure;
-
-    if (value->lastUse < t)
-        return PL_DHASH_REMOVE;
-
-    return PL_DHASH_NEXT;
+    delete gTextRunCache;
+    gTextRunCache = nsnull;
 }
