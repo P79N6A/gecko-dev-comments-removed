@@ -1426,7 +1426,17 @@ nsXMLHttpRequest::CheckChannelForCrossSiteRequest()
     mExtraRequestHeaders.Clear();
   }
 
-  return NS_OK;
+  
+  
+  nsCOMPtr<nsIURI> channelURI;
+  nsresult rv = mChannel->GetURI(getter_AddRefs(channelURI));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  nsCString userpass;
+  channelURI->GetUserPass(userpass);
+  NS_ENSURE_TRUE(userpass.IsEmpty(), NS_ERROR_DOM_BAD_URI);
+  
+  return nsCrossSiteListenerProxy::AddRequestHeaders(mChannel, mPrincipal);
 }
 
 
@@ -1579,6 +1589,8 @@ nsXMLHttpRequest::OpenRequest(const nsACString& method,
       rv = NS_NewChannel(getter_AddRefs(mACGetChannel), uri, nsnull, loadGroup,
                          nsnull, loadFlags);
       NS_ENSURE_SUCCESS(rv, rv);
+
+      rv = nsCrossSiteListenerProxy::AddRequestHeaders(mACGetChannel, mPrincipal);
 
       nsCOMPtr<nsIHttpChannel> acHttp = do_QueryInterface(mACGetChannel);
       NS_ASSERTION(acHttp, "Failed to QI to nsIHttpChannel!");
@@ -2278,10 +2290,8 @@ nsXMLHttpRequest::Send(nsIVariant *aBody)
   if (!(mState & XML_HTTP_REQUEST_XSITEENABLED)) {
     
     
-    listener = new nsCrossSiteListenerProxy(listener, mPrincipal, mChannel,
-                                            &rv);
+    listener = new nsCrossSiteListenerProxy(listener, mPrincipal);
     NS_ENSURE_TRUE(listener, NS_ERROR_OUT_OF_MEMORY);
-    NS_ENSURE_SUCCESS(rv, rv);
   }
 
   
@@ -2318,10 +2328,8 @@ nsXMLHttpRequest::Send(nsIVariant *aBody)
       new nsACProxyListener(mChannel, listener, nsnull, mPrincipal, method);
     NS_ENSURE_TRUE(acListener, NS_ERROR_OUT_OF_MEMORY);
 
-    listener = new nsCrossSiteListenerProxy(acListener, mPrincipal,
-                                            mACGetChannel, &rv);
+    listener = new nsCrossSiteListenerProxy(acListener, mPrincipal);
     NS_ENSURE_TRUE(listener, NS_ERROR_OUT_OF_MEMORY);
-    NS_ENSURE_SUCCESS(rv, rv);
 
     rv = mACGetChannel->AsyncOpen(listener, nsnull);
   }

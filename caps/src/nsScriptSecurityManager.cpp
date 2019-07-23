@@ -98,7 +98,6 @@ nsIIOService    *nsScriptSecurityManager::sIOService = nsnull;
 nsIXPConnect    *nsScriptSecurityManager::sXPConnect = nsnull;
 nsIStringBundle *nsScriptSecurityManager::sStrBundle = nsnull;
 JSRuntime       *nsScriptSecurityManager::sRuntime   = 0;
-PRInt32 nsScriptSecurityManager::sFileURIOriginPolicy = FILEURI_SOP_SELF;
 
 
 
@@ -278,7 +277,6 @@ nsScriptSecurityManager::GetSafeJSContext()
     return cx;
 }
 
-
 PRBool
 nsScriptSecurityManager::SecurityCompareURIs(nsIURI* aSourceURI,
                                              nsIURI* aTargetURI)
@@ -380,7 +378,7 @@ nsScriptSecurityManager::SecurityCompareFileURIs(nsIURI* aSourceURI,
                                                  nsIURI* aTargetURI)
 {
     
-    if (sFileURIOriginPolicy == FILEURI_SOP_TRADITIONAL)
+    if (mFileURIOriginPolicy == FILEURI_SOP_TRADITIONAL)
         return PR_TRUE;
 
 
@@ -389,7 +387,7 @@ nsScriptSecurityManager::SecurityCompareFileURIs(nsIURI* aSourceURI,
     PRBool filesAreEqual = PR_FALSE;
     if (NS_FAILED( aSourceURI->Equals(aTargetURI, &filesAreEqual) ))
         return PR_FALSE;
-    if (filesAreEqual || sFileURIOriginPolicy == FILEURI_SOP_SELF)
+    if (filesAreEqual || mFileURIOriginPolicy == FILEURI_SOP_SELF)
         return filesAreEqual;
 
 
@@ -408,7 +406,7 @@ nsScriptSecurityManager::SecurityCompareFileURIs(nsIURI* aSourceURI,
 
 
     
-    if (sFileURIOriginPolicy == FILEURI_SOP_ANYFILE)
+    if (mFileURIOriginPolicy == FILEURI_SOP_ANYFILE)
         return PR_TRUE;
 
 
@@ -427,7 +425,7 @@ nsScriptSecurityManager::SecurityCompareFileURIs(nsIURI* aSourceURI,
     }
 
     
-    if (sFileURIOriginPolicy == FILEURI_SOP_SAMEDIR)
+    if (mFileURIOriginPolicy == FILEURI_SOP_SAMEDIR)
     {
         
         PRBool sameParent = PR_FALSE;
@@ -438,7 +436,7 @@ nsScriptSecurityManager::SecurityCompareFileURIs(nsIURI* aSourceURI,
         return sameParent;
     }
 
-    if (sFileURIOriginPolicy == FILEURI_SOP_SUBDIR)
+    if (mFileURIOriginPolicy == FILEURI_SOP_SUBDIR)
     {
         
         PRBool isChild = PR_FALSE;
@@ -3261,10 +3259,11 @@ nsScriptSecurityManager::nsScriptSecurityManager(void)
       mIsJavaScriptEnabled(PR_FALSE),
       mIsMailJavaScriptEnabled(PR_FALSE),
       mIsWritingPrefs(PR_FALSE),
-      mPolicyPrefsChanged(PR_TRUE)
+      mPolicyPrefsChanged(PR_TRUE),
 #ifdef XPC_IDISPATCH_SUPPORT
-      , mXPCDefaultGrantAll(PR_FALSE)
+      mXPCDefaultGrantAll(PR_FALSE),
 #endif
+      mFileURIOriginPolicy(FILEURI_SOP_SELF)
 {
     NS_ASSERTION(sizeof(long) == sizeof(void*), "long and void* have different lengths on this platform. This may cause a security failure.");
     mPrincipals.Init(31);
@@ -3878,7 +3877,7 @@ nsScriptSecurityManager::ScriptSecurityPrefChanged()
 
     PRInt32 policy;
     rv = mSecurityPref->SecurityGetIntPref(sFileOriginPolicyPrefName, &policy);
-    sFileURIOriginPolicy = NS_SUCCEEDED(rv) ? policy : FILEURI_SOP_SELF;
+    mFileURIOriginPolicy = NS_SUCCEEDED(rv) ? policy : FILEURI_SOP_SELF;
 
 #ifdef XPC_IDISPATCH_SUPPORT
     rv = mSecurityPref->SecurityGetBoolPref(sXPCDefaultGrantAllName, &temp);

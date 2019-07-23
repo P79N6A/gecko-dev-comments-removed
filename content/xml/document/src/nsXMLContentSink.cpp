@@ -771,6 +771,9 @@ nsXMLContentSink::ProcessStyleLink(nsIContent* aElement,
                                 nsIScriptSecurityManager::ALLOW_CHROME);
     NS_ENSURE_SUCCESS(rv, NS_OK);
 
+    rv = secMan->CheckSameOriginURI(mDocumentURI, url, PR_TRUE);
+    NS_ENSURE_SUCCESS(rv, NS_OK);
+
     
     PRInt16 decision = nsIContentPolicy::ACCEPT;
     rv = NS_CheckContentLoadPolicy(nsIContentPolicy::TYPE_STYLESHEET,

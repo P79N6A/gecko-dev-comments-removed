@@ -68,7 +68,7 @@ public:
 
 
 
-    static nsresult LoadDocument(nsIURI *aURI, nsIPrincipal *aLoaderPrincipal,
+    static nsresult LoadDocument(nsIURI *aURI, nsIURI *aLoaderURI,
                                  nsILoadGroup *aLoadGroup, PRBool aForceToXML,
                                  nsIDOMDocument** aResult);
 
