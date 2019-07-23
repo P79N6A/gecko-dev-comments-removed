@@ -37,6 +37,10 @@
 
 
 
+let EXPORTED_SYMBOLS = [
+  "NetUtil",
+];
+
 
 
 
@@ -69,11 +73,12 @@ const NetUtil = {
         var sourceBuffered = ioUtil.inputStreamIsBuffered(aSource);
         var sinkBuffered = ioUtil.outputStreamIsBuffered(aSink);
 
+        var ostream = aSink;
         if (!sourceBuffered && !sinkBuffered) {
             
-            var bostream = Cc["@mozilla.org/network/buffered-output-stream;1"].
-                createInstance(Ci.nsIBufferedOutputStream);
-            bostream.init(aSink, 0x8000);
+            ostream = Cc["@mozilla.org/network/buffered-output-stream;1"].
+                      createInstance(Ci.nsIBufferedOutputStream);
+            ostream.init(aSink, 0x8000);
             sinkBuffered = true;
         }
 
@@ -85,15 +90,16 @@ const NetUtil = {
         
         
         
-        copier.init(aSource, bostream, null, sourceBuffered, sinkBuffered,
+        copier.init(aSource, ostream, null, sourceBuffered, sinkBuffered,
                     0x8000, true, true);
 
         var observer;
         if (aCallback) {
             observer = {
-            onStartRequest: function(aRequest, aContext) {},
-            onStopRequest: function(aRequest, aContext, aStatusCode) {
-              aCallback(aStatusCode);
+                onStartRequest: function(aRequest, aContext) {},
+                onStopRequest: function(aRequest, aContext, aStatusCode) {
+                    aCallback(aStatusCode);
+                }
             }
         } else {
             observer = null;
