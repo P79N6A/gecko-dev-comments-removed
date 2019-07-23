@@ -412,6 +412,10 @@ function convertTimeUnitsValue(aTime)
 
 function convertTimeUnitsUnits(aTime, aIndex)
 {
+  
+  if (aIndex < 0)
+    return "";
+
   return PluralForm.get(aTime, gStr.timeUnits[aIndex]);
 }
 
