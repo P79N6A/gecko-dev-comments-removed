@@ -107,10 +107,12 @@ protected:
   ~nsXULTooltipListener();
 
   
+  static int sTooltipPrefChanged (const char* aPref, void* aData);
   static PRBool sShowTooltips;
   static PRUint32 sTooltipListenerCount;
 
   void KillTooltipTimer();
+  void CreateAutoHideTimer();
 
 #ifdef MOZ_XUL
   void CheckTreeBodyMove(nsIDOMMouseEvent* aMouseEvent);
@@ -144,17 +146,16 @@ protected:
 
   
   nsCOMPtr<nsIDOMEvent> mCachedMouseEvent;
+
+  
+  nsCOMPtr<nsITimer> mAutoHideTimer;
+  static void sAutoHideCallback (nsITimer* aTimer, void* aListener);
   
   
   enum {
-    kTooltipMouseMoveTolerance = 7,    
+    kTooltipAutoHideTime = 5000,       
     kTooltipShowTime = 500             
   };
-
-  
-  
-  
-  PRBool mTooltipShownOnce;
 
 #ifdef MOZ_XUL
   
