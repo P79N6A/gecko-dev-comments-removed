@@ -1932,8 +1932,6 @@ nsCanvasRenderingContext2D::SetFont(const nsAString& font)
       return NS_ERROR_FAILURE;
     nsIDocument* document = presShell->GetDocument();
 
-    nsIAtom *language = presShell->GetPresContext()->GetLanguageFromCharset();
-
     nsCOMArray<nsIStyleRule> rules;
 
     nsCOMPtr<nsICSSStyleRule> rule;
@@ -1984,6 +1982,11 @@ nsCanvasRenderingContext2D::SetFont(const nsAString& font)
     const nsStyleFont* fontStyle = sc->GetStyleFont();
 
     NS_ASSERTION(fontStyle, "Could not obtain font style");
+
+    nsIAtom* language = sc->GetStyleVisibility()->mLanguage;
+    if (!language) {
+        language = presShell->GetPresContext()->GetLanguageFromCharset();
+    }
 
     
     const PRUint32 aupcp = nsPresContext::AppUnitsPerCSSPixel();
