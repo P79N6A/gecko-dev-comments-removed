@@ -186,6 +186,9 @@ SessionStoreService.prototype = {
   
   _clearingOnShutdown: false,
 
+  
+  _closingWindows: [],
+
 #ifndef XP_MACOSX
   
   _restoreLastWindow: false,
@@ -340,6 +343,14 @@ SessionStoreService.prototype = {
         }, false);
       break;
     case "domwindowclosed": 
+      if (this._closingWindows.length > 0) {
+        let index = this._closingWindows.indexOf(aSubject);
+        if (index != -1) {
+          this._closingWindows.splice(index, 1);
+          if (this._closingWindows.length == 0)
+            this._sendRestoreCompletedNotifications(true);
+        }
+      }
       this.onClose(aSubject);
       break;
     case "quit-application-requested":
@@ -905,17 +916,19 @@ SessionStoreService.prototype = {
     }
 
     
-    this._forEachBrowserWindow(function(aWindow) {
-      if (aWindow != window) {
-        aWindow.close();
-      }
-    });
-
-    
     this._closedWindows = [];
 
     
     this._restoreCount = state.windows ? state.windows.length : 0;
+
+    var self = this;
+    
+    this._forEachBrowserWindow(function(aWindow) {
+      if (aWindow != window) {
+        self._closingWindows.push(aWindow);
+        aWindow.close();
+      }
+    });
 
     
     this.restoreWindow(window, state, true);
@@ -2863,16 +2876,17 @@ SessionStoreService.prototype = {
     return jsonString;
   },
 
-  _sendRestoreCompletedNotifications: function sss_sendRestoreCompletedNotifications() {
-    if (this._restoreCount) {
+  _sendRestoreCompletedNotifications:
+  function sss_sendRestoreCompletedNotifications(aOnWindowClose) {
+    if (this._restoreCount && !aOnWindowClose)
       this._restoreCount--;
-      if (this._restoreCount == 0) {
-        
-        this._observerService.notifyObservers(null,
-          this._browserSetState ? NOTIFY_BROWSER_STATE_RESTORED : NOTIFY_WINDOWS_RESTORED,
-          "");
-        this._browserSetState = false;
-      }
+
+    if (this._restoreCount == 0 && this._closingWindows.length == 0) {
+      
+      this._observerService.notifyObservers(null,
+        this._browserSetState ? NOTIFY_BROWSER_STATE_RESTORED : NOTIFY_WINDOWS_RESTORED,
+        "");
+      this._browserSetState = false;
     }
   },
 
