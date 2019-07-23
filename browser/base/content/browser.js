@@ -2321,6 +2321,22 @@ function BrowserOnCommand(event) {
           }
         }
       }
+      else if (ot == errorDoc.getElementById('ignoreWarningButton')) {
+        
+        
+        
+        gBrowser.loadURIWithFlags(content.location.href,
+                                  nsIWebNavigation.LOAD_FLAGS_BYPASS_CLASSIFIER,
+                                  null, null, null);
+        var notificationBox = gBrowser.getNotificationBox();
+        notificationBox.appendNotification(
+          errorDoc.title, 
+          "blocked-badware-page",
+          "chrome://global/skin/icons/blacklist_favicon.png",
+          notificationBox.PRIORITY_CRITICAL_HIGH,
+          null
+        );
+      }
     }
 }
 
