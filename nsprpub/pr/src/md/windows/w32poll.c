@@ -247,6 +247,12 @@ PRInt32 _PR_MD_PR_POLL(PRPollDesc *pds, PRIntn npds, PRIntervalTime timeout)
 
     if (0 != ready) return ready;  
 
+    
+
+
+
+
+
     if ((nrd > FD_SETSIZE) || (nwt > FD_SETSIZE) || (nex > FD_SETSIZE)) {
         PR_SetError(PR_INVALID_ARGUMENT_ERROR, 0);
         return -1;

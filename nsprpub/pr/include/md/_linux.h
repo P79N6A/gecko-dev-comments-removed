@@ -417,11 +417,21 @@ extern void _MD_CleanupBeforeExit(void);
 #elif defined(__arm__)
 
 #if defined(__GLIBC__) && __GLIBC__ >= 2
+#ifdef __ARM_EABI__
+
+#define _MD_GET_SP(_t) (_t)->md.context[0].__jmpbuf[8]
+#define _MD_SET_FP(_t, val) ((_t)->md.context[0].__jmpbuf[7] = (val))
+#define _MD_GET_SP_PTR(_t) &(_MD_GET_SP(_t))
+#define _MD_GET_FP_PTR(_t) (&(_t)->md.context[0].__jmpbuf[7])
+#define _MD_SP_TYPE __ptr_t
+#else 
+
 #define _MD_GET_SP(_t) (_t)->md.context[0].__jmpbuf[20]
 #define _MD_SET_FP(_t, val) ((_t)->md.context[0].__jmpbuf[19] = (val))
 #define _MD_GET_SP_PTR(_t) &(_MD_GET_SP(_t))
 #define _MD_GET_FP_PTR(_t) (&(_t)->md.context[0].__jmpbuf[19])
 #define _MD_SP_TYPE __ptr_t
+#endif 
 #else
 #error "ARM/Linux pre-glibc2 not supported yet"
 #endif 
