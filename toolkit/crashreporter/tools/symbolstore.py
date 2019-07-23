@@ -280,6 +280,18 @@ def GetPlatformSpecificDumper(**kwargs):
             'linux2': Dumper_Linux,
             'darwin': Dumper_Mac}[sys.platform](**kwargs)
 
+def SourceIndex(fileStream, outputPath):
+    """Takes a list of files, writes info to a data block in a .stream file"""
+    
+    
+    result = True
+    pdbStreamFile = open(outputPath, "w")
+    pdbStreamFile.write('''SRCSRV: ini ------------------------------------------------\r\nVERSION=1\r\nSRCSRV: variables ------------------------------------------\r\nCVS_EXTRACT_CMD=%fnchdir%(%CVS_WORKINGDIR%)cvs.exe -d %fnvar%(%var2%) checkout -r %var4% %var3%\r\nCVS_EXTRACT_TARGET=%targ%\%var2%\%fnbksl%(%var3%)\%fnfile%(%var1%)\r\nCVS_WORKING_DIR=%targ%\%var2%\%fnbksl%(%var3%)\r\nMYSERVER=%CVSROOT%\r\nSRCSRVTRG=%CVS_WORKING_DIR%\r\nSRCSRVCMD=%CVS_EXTRACT_CMD%\r\nSRCSRV: source files ---------------------------------------\r\n''')
+    pdbStreamFile.write(fileStream) 
+    pdbStreamFile.write("SRCSRV: end ------------------------------------------------\r\n\n")
+    pdbStreamFile.close()
+    return result
+
 class Dumper:
     """This class can dump symbols from a file with debug info, and
     store the output in a directory structure that is valid for use as
@@ -296,7 +308,7 @@ class Dumper:
     ProcessDir.  Instead, call GetPlatformSpecificDumper to
     get an instance of a subclass."""
     def __init__(self, dump_syms, symbol_path,
-                 archs=None, srcdir=None, copy_debug=False, vcsinfo=False):
+                 archs=None, srcdir=None, copy_debug=False, vcsinfo=False, srcsrv=False):
         
         self.dump_syms = os.path.abspath(dump_syms)
         self.symbol_path = symbol_path
@@ -311,6 +323,7 @@ class Dumper:
             self.srcdir = None
         self.copy_debug = copy_debug
         self.vcsinfo = vcsinfo
+        self.srcsrv = srcsrv
 
     
     def ShouldProcess(self, file):
@@ -328,6 +341,10 @@ class Dumper:
     
     def FixFilenameCase(self, file):
         return file
+
+    
+    def SourceServerIndexing(self, debug_file, guid, sourceFileStream):
+        return ""
 
     def Process(self, file_or_dir):
         "Process a file or all the (valid) files in a directory."
@@ -354,6 +371,7 @@ class Dumper:
         """Dump symbols from this file into a symbol file, stored
         in the proper directory structure in  |symbol_path|."""
         result = False
+        sourceFileStream = ''
         for arch in self.archs:
             try:
                 cmd = os.popen("%s %s %s" % (self.dump_syms, arch, file), "r")
@@ -381,8 +399,13 @@ class Dumper:
                             
                             (x, index, filename) = line.split(None, 2)
                             filename = self.FixFilenameCase(filename.rstrip())
+                            sourcepath = filename
                             if self.vcsinfo:
                                 filename = GetVCSFilename(filename, self.srcdir)
+                            
+                            if filename.startswith("cvs"):
+                                (ver, checkout, source_file, revision) = filename.split(":", 3)
+                                sourceFileStream += sourcepath + "*MYSERVER*" + source_file + '*' + revision + "\r\n"
                             f.write("FILE %s %s\n" % (index, filename))
                         else:
                             
@@ -400,6 +423,9 @@ class Dumper:
                         full_path = os.path.normpath(os.path.join(self.symbol_path,
                                                                   rel_path))
                         shutil.copyfile(file, full_path)
+                    if self.srcsrv:
+                        
+                        result = self.SourceServerIndexing(debug_file, guid, sourceFileStream)
                     result = True
             except StopIteration:
                 pass
@@ -445,6 +471,26 @@ class Dumper_Win32(Dumper):
         
         self.fixedFilenameCaseCache[file] = result
         return result
+        
+    def SourceServerIndexing(self, debug_file, guid, sourceFileStream):
+        
+        cwd = os.getcwd()
+        streamFilename = debug_file + ".stream"
+        stream_output_path = os.path.join(cwd, streamFilename)
+        
+        result = SourceIndex(sourceFileStream, stream_output_path)
+        
+        if self.copy_debug:
+            pdbstr_path = os.environ.get("PDBSTR_PATH")
+            pdbstr = os.path.normpath(pdbstr_path)
+            pdb_rel_path = os.path.join(debug_file, guid, debug_file)
+            pdb_filename = os.path.normpath(os.path.join(self.symbol_path, pdb_rel_path))
+            
+            os.chdir(os.path.dirname(stream_output_path))
+            os.spawnv(os.P_WAIT, pdbstr, [pdbstr, "-w", "-p:" + pdb_filename, "-i:" + streamFilename, "-s:srcsrv"])
+            
+            os.remove(stream_output_path)
+        return result
 
 class Dumper_Linux(Dumper):
     def ShouldProcess(self, file):
@@ -481,8 +527,18 @@ def main():
     parser.add_option("-v", "--vcs-info",
                       action="store_true", dest="vcsinfo",
                       help="Try to retrieve VCS info for each FILE listed in the output")
+    parser.add_option("-i", "--source-index",
+                      action="store_true", dest="srcsrv", default=False,
+                      help="Add source index information to debug files, making them suitable for use in a source server.")
     (options, args) = parser.parse_args()
-
+    
+    
+    if options.srcsrv:
+        pdbstr = os.environ.get("PDBSTR_PATH")
+        if not os.path.exists(pdbstr):
+            print >> sys.stderr, "Invalid path to pdbstr.exe - please set/check PDBSTR_PATH.\n"
+            sys.exit(1)
+            
     if len(args) < 3:
         parser.error("not enough arguments")
         exit(1)
@@ -492,7 +548,8 @@ def main():
                                        copy_debug=options.copy_debug,
                                        archs=options.archs,
                                        srcdir=options.srcdir,
-                                       vcsinfo=options.vcsinfo)
+                                       vcsinfo=options.vcsinfo,
+                                       srcsrv=options.srcsrv)
     for arg in args[2:]:
         dumper.Process(arg)
 
