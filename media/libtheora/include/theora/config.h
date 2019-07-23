@@ -66,7 +66,7 @@
 #define PACKAGE_NAME "libtheora"
 
 
-#define PACKAGE_STRING "libtheora 1.1.0"
+#define PACKAGE_STRING "libtheora 1.1.1+svn"
 
 
 #define PACKAGE_TARNAME "libtheora"
@@ -75,7 +75,7 @@
 #define PACKAGE_URL ""
 
 
-#define PACKAGE_VERSION "1.1.0"
+#define PACKAGE_VERSION "1.1.1+svn"
 
 
 #define STDC_HEADERS 1
@@ -87,4 +87,4 @@
 
 
 
-#define VERSION "1.1.0"
+#define VERSION "1.1.1+svn"
