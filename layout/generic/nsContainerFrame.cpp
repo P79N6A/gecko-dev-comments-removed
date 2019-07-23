@@ -539,14 +539,7 @@ nsContainerFrame::SyncWindowProperties(nsPresContext*       aPresContext,
   if (!rootFrame)
     return;
 
-  nsTransparencyMode mode = nsLayoutUtils::GetFrameTransparency(aFrame);
-  
-  
-  
-  
-  if (NS_THEME_WIN_GLASS == rootFrame->GetStyleDisplay()->mAppearance) {
-    mode = eTransparencyGlass;
-  }
+  nsTransparencyMode mode = nsLayoutUtils::GetFrameTransparency(aFrame, rootFrame);
   nsIWidget* viewWidget = aView->GetWidget();
   viewWidget->SetTransparencyMode(mode);
   windowWidget->SetWindowShadowStyle(rootFrame->GetStyleUIReset()->mWindowShadow);

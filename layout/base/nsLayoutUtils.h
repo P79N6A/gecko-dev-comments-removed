@@ -964,7 +964,13 @@ public:
 
 
 
-  static nsTransparencyMode GetFrameTransparency(nsIFrame* aFrame);
+
+
+
+
+
+  static nsTransparencyMode GetFrameTransparency(nsIFrame* aBackgroundFrame,
+                                                 nsIFrame* aCSSRootFrame);
 
   
 

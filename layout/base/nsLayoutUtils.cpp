@@ -3036,31 +3036,34 @@ nsLayoutUtils::HasNonZeroCornerOnSide(const nsStyleCorners& aCorners,
 }
 
  nsTransparencyMode
-nsLayoutUtils::GetFrameTransparency(nsIFrame* aFrame) {
-  if (aFrame->GetStyleContext()->GetStyleDisplay()->mOpacity < 1.0f)
+nsLayoutUtils::GetFrameTransparency(nsIFrame* aBackgroundFrame,
+                                    nsIFrame* aCSSRootFrame) {
+  if (aCSSRootFrame->GetStyleContext()->GetStyleDisplay()->mOpacity < 1.0f)
     return eTransparencyTransparent;
 
-  if (HasNonZeroCorner(aFrame->GetStyleContext()->GetStyleBorder()->mBorderRadius))
+  if (HasNonZeroCorner(aCSSRootFrame->GetStyleContext()->GetStyleBorder()->mBorderRadius))
     return eTransparencyTransparent;
 
   nsTransparencyMode transparency;
-  if (aFrame->IsThemed(&transparency))
+  if (aCSSRootFrame->IsThemed(&transparency))
     return transparency;
 
-  if (aFrame->GetStyleDisplay()->mAppearance == NS_THEME_WIN_GLASS)
+  if (aCSSRootFrame->GetStyleDisplay()->mAppearance == NS_THEME_WIN_GLASS)
     return eTransparencyGlass;
 
   
   
   
-  if (aFrame->GetType() == nsGkAtoms::viewportFrame &&
-      !aFrame->GetFirstChild(nsnull)) {
+  if (aBackgroundFrame->GetType() == nsGkAtoms::viewportFrame &&
+      !aBackgroundFrame->GetFirstChild(nsnull)) {
     return eTransparencyOpaque;
   }
 
   const nsStyleBackground* bg;
-  if (!nsCSSRendering::FindBackground(aFrame->PresContext(), aFrame, &bg))
+  if (!nsCSSRendering::FindBackground(aBackgroundFrame->PresContext(),
+                                      aBackgroundFrame, &bg)) {
     return eTransparencyTransparent;
+  }
   if (NS_GET_A(bg->mBackgroundColor) < 255 ||
       
       bg->BottomLayer().mClip != NS_STYLE_BG_CLIP_BORDER)
