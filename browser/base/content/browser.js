@@ -673,6 +673,12 @@ function BrowserStartup()
   gBrowser = document.getElementById("content");
 
   var uriToLoad = null;
+
+  
+  
+  
+  
+  
   
   if ("arguments" in window && window.arguments[0])
     uriToLoad = window.arguments[0];
@@ -686,9 +692,26 @@ function BrowserStartup()
 #else
 # only load url passed in when we're not page cycling
   if (uriToLoad && !gIsLoadingBlank) {
-    if (window.arguments.length >= 3)
+    if (uriToLoad instanceof Components.interfaces.nsISupportsArray) {
+      var count = uriToLoad.Count();
+      var specs = [];
+      for (var i = 0; i < count; i++) {
+        var urisstring = uriToLoad.GetElementAt(i).QueryInterface(Components.interfaces.nsISupportsString);
+        specs.push(urisstring.data);
+      }
+
+      
+      
+      try {
+        gBrowser.loadTabs(specs, false, true);
+      } catch (e) {}
+    }
+    else if (window.arguments.length >= 3) {
       loadURI(uriToLoad, window.arguments[2], window.arguments[3] || null,
               window.arguments[4] || false);
+    }
+    
+    
     else
       loadOneOrMoreURIs(uriToLoad);
   }
@@ -4308,7 +4331,9 @@ nsBrowserAccess.prototype =
         
         
         var url = aURI ? aURI.spec : "about:blank";
-        newWindow = openDialog(getBrowserURL(), "_blank", "all,dialog=no", url);
+        
+        
+        newWindow = openDialog(getBrowserURL(), "_blank", "all,dialog=no", url, null, null, null);
         break;
       case Ci.nsIBrowserDOMWindow.OPEN_NEWTAB :
         var win = this._getMostRecentBrowserWindow();
