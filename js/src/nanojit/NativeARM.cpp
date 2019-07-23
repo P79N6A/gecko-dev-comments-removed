@@ -605,7 +605,8 @@ Assembler::asm_arg(ArgSize sz, LInsp arg, Register& r, int& stkd)
     if (sz == ARGSIZE_F) {
         
         asm_arg_64(arg, r, stkd);
-    } else if (sz & ARGSIZE_MASK_INT) {
+    } else {
+        NanoAssert(sz == ARGSIZE_I || sz == ARGSIZE_U);
         
         if (r < R4) {
             asm_regarg(sz, arg, r);
@@ -614,10 +615,6 @@ Assembler::asm_arg(ArgSize sz, LInsp arg, Register& r, int& stkd)
             asm_stkarg(arg, stkd);
             stkd += 4;
         }
-    } else {
-        NanoAssert(sz == ARGSIZE_Q);
-        
-        NanoAssert(false);
     }
 }
 
@@ -752,10 +749,6 @@ Assembler::asm_regarg(ArgSize sz, LInsp p, Register r)
                 findSpecificRegFor(p, r);
             }
         }
-    }
-    else if (sz == ARGSIZE_Q) {
-        
-        NanoAssert(false);
     }
     else
     {
@@ -1315,8 +1308,6 @@ Assembler::asm_spill(Register rr, int d, bool pop, bool quad)
 void
 Assembler::asm_load64(LInsp ins)
 {
-    NanoAssert(!ins->isop(LIR_ldq) && !ins->isop(LIR_ldqc));
-
     
 
     NanoAssert(ins->isF64());
@@ -1403,8 +1394,6 @@ Assembler::asm_load64(LInsp ins)
 void
 Assembler::asm_store64(LOpcode op, LInsp value, int dr, LInsp base)
 {
-    NanoAssert(op != LIR_stqi);
-
     
 
     switch (op) {
@@ -2755,18 +2744,6 @@ Assembler::asm_ret(LIns *ins)
             findSpecificRegFor(value->oprnd2(), R1); 
         }
     }
-}
-
-void
-Assembler::asm_q2i(LIns *)
-{
-    NanoAssert(0);  
-}
-
-void
-Assembler::asm_promote(LIns *)
-{
-    NanoAssert(0);  
 }
 
 void

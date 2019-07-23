@@ -93,12 +93,15 @@ namespace nanojit
 {
     const int NJ_MAX_REGISTERS = 24; 
 
-    #define NJ_MAX_STACK_ENTRY 4096
-    #define NJ_MAX_PARAMETERS 1
-    #define NJ_JTBL_SUPPORTED 1
+    #define NJ_MAX_STACK_ENTRY           4096
+    #define NJ_MAX_PARAMETERS               1
+
+    #define NJ_USES_QUAD_CONSTANTS          1
+
+    #define NJ_JTBL_SUPPORTED               1
     #define NJ_EXPANDED_LOADSTORE_SUPPORTED 1
-    #define NJ_USES_QUAD_CONSTANTS 1
     #define NJ_F2I_SUPPORTED                1
+    #define NJ_SOFTFLOAT_SUPPORTED          0
 
         
         
