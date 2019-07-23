@@ -50,6 +50,7 @@
 #   Rob Arnold <robarnold@cmu.edu>
 #   Dietrich Ayala <dietrich@mozilla.com>
 #   Gavin Sharp <gavin@gavinsharp.com>
+#   Justin Dolske <dolske@mozilla.com>
 #
 # Alternatively, the contents of this file may be used under the terms of
 # either the GNU General Public License Version 2 or later (the "GPL"), or
@@ -5936,6 +5937,17 @@ var gMissingPluginInstaller = {
     return this.crashReportHelpURL;
   },
 
+  
+  makeNicePluginName : function (aName, aFilename) {
+    if (aName == "Shockwave Flash")
+      return "Adobe Flash";
+
+    
+    
+    let newName = aName.replace(/\bplug-?in\b/i, "").replace(/[\s\d\.\-\_\(\)]+$/, "");
+    return newName;
+  },
+
   addLinkClickCallback: function (linkNode, callbackName ) {
     
     let self = this;
@@ -6175,20 +6187,22 @@ var gMissingPluginInstaller = {
     if (!aEvent.isTrusted)
       return;
 
-    if (!(aEvent instanceof Ci.nsIDOMDataContainerEvent))
+    
+    let plugin = aEvent.target;
+    if (!(aEvent instanceof Ci.nsIDOMDataContainerEvent) ||
+        !(plugin instanceof Ci.nsIObjectLoadingContent))
       return;
 
     let submittedReport = aEvent.getData("submittedCrashReport");
     let doPrompt        = true; 
     let submitReports   = true; 
     let pluginName      = aEvent.getData("pluginName");
+    let pluginFilename  = aEvent.getData("pluginFilename");
     let pluginDumpID    = aEvent.getData("pluginDumpID");
     let browserDumpID   = aEvent.getData("browserDumpID");
 
     
-    let plugin = aEvent.target;
-    if (!(plugin instanceof Ci.nsIObjectLoadingContent))
-      return;
+    pluginName = self.makeNicePluginName(pluginName, pluginFilename);
 
     
     plugin.clientTop;
