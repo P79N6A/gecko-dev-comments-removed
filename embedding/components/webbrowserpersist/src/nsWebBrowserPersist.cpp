@@ -986,8 +986,8 @@ NS_IMETHODIMP nsWebBrowserPersist::OnProgress(
     else
     {
       
-      mProgressListener->OnProgressChange(nsnull, request, nsUint64(aProgress),
-              nsUint64(aProgressMax), mTotalCurrentProgress, mTotalMaxProgress);
+      mProgressListener->OnProgressChange(nsnull, request, PRUint64(aProgress),
+              PRUint64(aProgressMax), mTotalCurrentProgress, mTotalMaxProgress);
     }
 
     

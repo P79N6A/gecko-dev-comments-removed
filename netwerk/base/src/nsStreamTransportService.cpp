@@ -94,8 +94,8 @@ private:
     
     nsCOMPtr<nsITransportEventSink> mEventSink;
     nsCOMPtr<nsIInputStream>        mSource;
-    nsUint64                        mOffset;
-    nsUint64                        mLimit;
+    PRUint64                        mOffset;
+    PRUint64                        mLimit;
     PRPackedBool                    mCloseWhenDone;
     PRPackedBool                    mFirstTime;
 
@@ -208,14 +208,12 @@ nsInputStreamTransport::Read(char *buf, PRUint32 count, PRUint32 *result)
 {
     if (mFirstTime) {
         mFirstTime = PR_FALSE;
-        if (mOffset != nsUint64(0)) {
+        if (mOffset != 0) {
             
             if (mOffset != LL_MAXUINT) {
                 nsCOMPtr<nsISeekableStream> seekable = do_QueryInterface(mSource);
-                
-                
                 if (seekable)
-                    seekable->Seek(nsISeekableStream::NS_SEEK_SET, PRUint64(mOffset));
+                    seekable->Seek(nsISeekableStream::NS_SEEK_SET, mOffset);
             }
             
             mOffset = 0;
@@ -296,8 +294,8 @@ private:
     
     nsCOMPtr<nsITransportEventSink> mEventSink;
     nsCOMPtr<nsIOutputStream>       mSink;
-    nsUint64                        mOffset;
-    nsUint64                        mLimit;
+    PRUint64                        mOffset;
+    PRUint64                        mLimit;
     PRPackedBool                    mCloseWhenDone;
     PRPackedBool                    mFirstTime;
 
@@ -410,14 +408,12 @@ nsOutputStreamTransport::Write(const char *buf, PRUint32 count, PRUint32 *result
 {
     if (mFirstTime) {
         mFirstTime = PR_FALSE;
-        if (mOffset != nsUint64(0)) {
+        if (mOffset != 0) {
             
             if (mOffset != LL_MAXUINT) {
                 nsCOMPtr<nsISeekableStream> seekable = do_QueryInterface(mSink);
-                
-                
                 if (seekable)
-                    seekable->Seek(nsISeekableStream::NS_SEEK_SET, PRUint64(mOffset));
+                    seekable->Seek(nsISeekableStream::NS_SEEK_SET, mOffset);
             }
             
             mOffset = 0;
