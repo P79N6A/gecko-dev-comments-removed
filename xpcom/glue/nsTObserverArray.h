@@ -68,6 +68,10 @@ class NS_COM_GLUE nsTObserverArray_base {
       : mIterators(nsnull) {
     }
 
+    ~nsTObserverArray_base() {
+      NS_ASSERTION(mIterators == nsnull, "iterators outlasting array");
+    }
+
     
 
 
