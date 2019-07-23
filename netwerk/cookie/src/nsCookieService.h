@@ -142,6 +142,20 @@ class nsCookieEntry : public PLDHashEntryHdr
 
 
 
+struct DBState
+{
+  DBState() : cookieCount(0) { }
+
+  nsTHashtable<nsCookieEntry>     hostTable;
+  PRUint32                        cookieCount;
+  nsCOMPtr<mozIStorageConnection> dbConn;
+  nsCOMPtr<mozIStorageStatement>  stmtInsert;
+  nsCOMPtr<mozIStorageStatement>  stmtDelete;
+  nsCOMPtr<mozIStorageStatement>  stmtUpdate;
+};
+
+
+
 
 
 
@@ -165,7 +179,8 @@ class nsCookieService : public nsICookieService
 
   protected:
     void                          PrefChanged(nsIPrefBranch *aPrefBranch);
-    nsresult                      InitDB(PRBool aDeleteExistingDB = PR_FALSE);
+    nsresult                      InitDB();
+    nsresult                      TryInitDB(PRBool aDeleteExistingDB);
     nsresult                      CreateTable();
     void                          CloseDB();
     nsresult                      Read();
@@ -193,19 +208,18 @@ class nsCookieService : public nsICookieService
 
   protected:
     
-    nsCOMPtr<mozIStorageConnection>  mDBConn;
-    nsCOMPtr<mozIStorageStatement>   mStmtInsert;
-    nsCOMPtr<mozIStorageStatement>   mStmtDelete;
-    nsCOMPtr<mozIStorageStatement>   mStmtUpdate;
     nsCOMPtr<nsIObserverService>     mObserverService;
     nsCOMPtr<nsICookiePermission>    mPermissionService;
     nsCOMPtr<nsIEffectiveTLDService> mTLDService;
 
     
-    nsTHashtable<nsCookieEntry>  *mHostTable;
-    nsTHashtable<nsCookieEntry>   mDefaultHostTable;
-    nsTHashtable<nsCookieEntry>   mPrivateHostTable;
-    PRUint32                      mCookieCount;
+    
+    
+    
+    
+    DBState                      *mDBState;
+    DBState                       mDefaultDBState;
+    DBState                       mPrivateDBState;
 
     
     PRUint8                       mCookiesPermissions;   
