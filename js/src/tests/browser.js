@@ -604,6 +604,8 @@ function jit(on)
   }
 }
 
+var gVersion = 150;
+
 function jsTestDriverBrowserInit()
 {
 
@@ -656,19 +658,25 @@ function jsTestDriverBrowserInit()
   {
     
     
-    
-    
-    
-    
-    
-    
-    if (properties.test.match(/^js1_7/))
+    if (properties.test.match(/^js1_6/))
+    {
+      properties.version = '1.6';
+    }
+    else if (properties.test.match(/^js1_7/))
     {
       properties.version = '1.7';
     }
     else if (properties.test.match(/^js1_8/))
     {
       properties.version = '1.8';
+    }
+    else if (properties.test.match(/^js1_8_1/))
+    {
+      properties.version = '1.8';
+    }
+    else
+    {
+      properties.version = '1.5';
     }
   }
 
@@ -681,6 +689,8 @@ function jsTestDriverBrowserInit()
   }
 
   gTestPath = properties.test;
+
+  gVersion = 10*parseInt(properties.version.replace(/\./g, ''));
 
   if (properties.gczeal)
   {
