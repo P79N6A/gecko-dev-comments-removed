@@ -386,6 +386,15 @@ nsresult nsMediaChannelStream::Open(nsIStreamListener **aStreamListener)
   if (NS_FAILED(rv))
     return rv;
   NS_ASSERTION(mOffset == 0, "Who set mOffset already?");
+
+  if (!mChannel) {
+    
+    
+    NS_ASSERTION(!aStreamListener,
+                 "Should have already been given a channel if we're to return a stream listener");
+    return NS_OK;
+  }
+
   return OpenChannel(aStreamListener);
 }
 
@@ -480,7 +489,14 @@ nsMediaStream* nsMediaChannelStream::CloneData(nsMediaDecoder* aDecoder)
 
   nsMediaChannelStream* stream = new nsMediaChannelStream(aDecoder, nsnull, mURI);
   if (stream) {
-    stream->RecreateChannel();
+    
+    
+    
+    
+    
+    
+    stream->mSuspendCount = 1;
+    stream->mCacheSuspendCount = 1;
     stream->mCacheStream.InitAsClone(&mCacheStream);
   }
   return stream;
@@ -578,6 +594,7 @@ void nsMediaChannelStream::Resume()
     return;
   }
 
+  NS_ASSERTION(mSuspendCount > 0, "Resume without previous Suspend!");
   --mSuspendCount;
   if (mSuspendCount == 0) {
     if (mChannel) {
@@ -688,6 +705,11 @@ nsMediaChannelStream::CacheClientSeek(PRInt64 aOffset, PRBool aResume)
     NS_ASSERTION(mSuspendCount > 0, "Too many resumes!");
     
     --mSuspendCount;
+    {
+      nsAutoLock lock(mLock);
+      NS_ASSERTION(mCacheSuspendCount > 0, "CacheClientSeek(aResume=true) without previous CacheClientSuspend!");
+      --mCacheSuspendCount;
+    }
   }
 
   nsresult rv = RecreateChannel();
@@ -717,6 +739,7 @@ nsMediaChannelStream::CacheClientResume()
   Resume();
   {
     nsAutoLock lock(mLock);
+    NS_ASSERTION(mCacheSuspendCount > 0, "CacheClientResume without previous CacheClientSuspend!");
     --mCacheSuspendCount;
   }
 
