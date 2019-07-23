@@ -254,7 +254,6 @@ typedef struct _cairo_user_data_key {
 
 
 
-
 typedef enum _cairo_status {
     CAIRO_STATUS_SUCCESS = 0,
 
@@ -290,6 +289,7 @@ typedef enum _cairo_status {
     CAIRO_STATUS_INVALID_SLANT,
     CAIRO_STATUS_INVALID_WEIGHT,
     CAIRO_STATUS_INVALID_SIZE,
+    CAIRO_STATUS_USER_FONT_NOT_IMPLEMENTED,
 
     CAIRO_STATUS_LAST_STATUS
 } cairo_status_t;
@@ -1459,7 +1459,6 @@ cairo_user_font_face_create (void);
 
 
 
-
 typedef cairo_status_t (*cairo_user_scaled_font_init_func_t) (cairo_scaled_font_t  *scaled_font,
 							      cairo_t              *cr,
 							      cairo_font_extents_t *extents);
@@ -1573,6 +1572,8 @@ typedef cairo_status_t (*cairo_user_scaled_font_render_glyph_func_t) (cairo_scal
 
 
 
+
+
 typedef cairo_status_t (*cairo_user_scaled_font_text_to_glyphs_func_t) (cairo_scaled_font_t        *scaled_font,
 									const char	           *utf8,
 									int		            utf8_len,
@@ -1581,6 +1582,8 @@ typedef cairo_status_t (*cairo_user_scaled_font_text_to_glyphs_func_t) (cairo_sc
 									cairo_text_cluster_t      **clusters,
 									int		           *num_clusters,
 									cairo_text_cluster_flags_t *cluster_flags);
+
+
 
 
 

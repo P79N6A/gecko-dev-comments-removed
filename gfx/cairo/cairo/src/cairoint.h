@@ -134,7 +134,7 @@ _cairo_win32_tmpfile (void);
 
 #ifdef __GNUC__
 #define cairo_container_of(ptr, type, member) ({ \
-    const typeof(((type *) 0)->member) *mptr__ = (ptr); \
+    const __typeof__ (((type *) 0)->member) *mptr__ = (ptr); \
     (type *) ((char *) mptr__ - offsetof (type, member)); \
 })
 #else
@@ -158,7 +158,7 @@ do {					\
     assert (NOT_REACHED);		\
 } while (0)
 #define COMPILE_TIME_ASSERT1(condition, line)		\
-    typedef int compile_time_assertion_at_line_##line##_failed [(condition)?1:-1];
+    typedef int compile_time_assertion_at_line_##line##_failed [(condition)?1:-1]
 #define COMPILE_TIME_ASSERT0(condition, line)	COMPILE_TIME_ASSERT1(condition, line)
 #define COMPILE_TIME_ASSERT(condition)		COMPILE_TIME_ASSERT0(condition, __LINE__)
 
@@ -498,6 +498,7 @@ struct _cairo_scaled_font_backend {
                            unsigned long        *length);
 
     
+
     cairo_warn cairo_int_status_t
     (*index_to_ucs4)(void                       *scaled_font,
 		     unsigned long               index,
@@ -2752,5 +2753,16 @@ CAIRO_END_DECLS
 #include "cairo-wideint-private.h"
 #include "cairo-malloc-private.h"
 #include "cairo-hash-private.h"
+
+#if HAVE_VALGRIND
+
+cairo_private void
+_cairo_debug_check_image_surface_is_defined (const cairo_surface_t *surface);
+
+#else
+
+#define _cairo_debug_check_image_surface_is_defined(X)
+
+#endif
 
 #endif
