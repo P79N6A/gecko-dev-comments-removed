@@ -77,22 +77,8 @@
 
 
 
-
-
-#define JSID_IS_HIDDEN(id)          (JSVAL_TAG((jsval)(id)) == JSVAL_BOOLEAN)
-
-#define JSID_HIDE_NAME(id)                                                    \
-    (JS_ASSERT(JSID_IS_ATOM(id)),                                             \
-     (jsid)((jsval)(id) ^ (JSVAL_STRING ^ JSVAL_BOOLEAN)))
-
-#define JSID_UNHIDE_NAME(id)                                                  \
-    (JS_ASSERT(JSID_IS_HIDDEN(id)),                                           \
-     (jsid)((jsval)(id) ^ (JSVAL_BOOLEAN ^ JSVAL_STRING)))
-
-
-
-
-#define JS_BITS_PER_UINT32 (sizeof(uint32) * JS_BITS_PER_BYTE)
+#define JS_BITS_PER_UINT32_LOG2 5
+#define JS_BITS_PER_UINT32      32
 
 
 typedef uint8  jsbytecode;

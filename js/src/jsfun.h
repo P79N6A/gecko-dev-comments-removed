@@ -47,26 +47,42 @@
 
 JS_BEGIN_EXTERN_C
 
-struct JSFunction {
-    JSObject     *object;       
-    uint16       nargs;         
+typedef struct JSLocalNameMap JSLocalNameMap;
 
-    uint16       flags;         
+
+
+
+
+
+
+
+typedef union JSLocalNames {
+    jsuword         taggedAtom;
+    jsuword         *array;
+    JSLocalNameMap  *map;
+} JSLocalNames;
+
+struct JSFunction {
+    JSObject        *object;    
+    uint16          nargs;      
+
+    uint16          flags;      
     union {
         struct {
-            uint16   extra;     
-            uint16   minargs;   
+            uint16      extra;  
+            uint16      minargs;
 
-            JSNative native;    
+            JSNative    native; 
+            JSClass     *clasp; 
         } n;
         struct {
-            uint16   nvars;     
-            uint16   spare;     
-            JSScript *script;   
+            uint16      nvars;  
+            uint16      spare;  
+            JSScript    *script;
+            JSLocalNames names; 
         } i;
     } u;
-    JSAtom       *atom;         
-    JSClass      *clasp;        
+    JSAtom          *atom;      
 };
 
 #define JSFUN_EXPR_CLOSURE   0x4000 /* expression closure: function(x)x*x */
@@ -219,12 +235,8 @@ extern JSAtom **
 js_GetLocalNames(JSContext *cx, JSFunction *fun, JSArenaPool *pool,
                  uint32 **bitmap);
 
-
-
-
-
-#define JS_HIDDEN_ARG_GETTER    ((JSPropertyOp) sizeof(jsuword))
-#define JS_HIDDEN_VAR_GETTER    ((JSPropertyOp) (2 * sizeof(jsuword)))
+extern void
+js_FreezeLocalNames(JSContext *cx, JSFunction *fun);
 
 JS_END_EXTERN_C
 
