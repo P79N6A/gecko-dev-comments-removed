@@ -5242,14 +5242,18 @@ nsDOMConstructor::Create(const PRUnichar* aName,
   
   
   
+  
   nsPIDOMWindow* outerWindow = aOwner->GetOuterWindow();
   nsPIDOMWindow* currentInner =
-    outerWindow ? outerWindow->GetCurrentInnerWindow() : nsnull;
-  if (!currentInner ||
+    outerWindow ? outerWindow->GetCurrentInnerWindow() : aOwner;
+  if (!outerWindow ||
       (aOwner != currentInner &&
-       !nsContentUtils::CanCallerAccess(currentInner))) {
+       !nsContentUtils::CanCallerAccess(currentInner) &&
+       !(currentInner = aOwner)->IsInnerWindow())) {
     return NS_ERROR_DOM_SECURITY_ERR;
   }
+  NS_ASSERTION(nsContentUtils::CanCallerAccess(currentInner),
+               "Must be able to access currentInner!");
   *aResult = new nsDOMConstructor(aName, aNameStruct, currentInner);
   NS_ENSURE_TRUE(*aResult, NS_ERROR_OUT_OF_MEMORY);
   NS_ADDREF(*aResult);
