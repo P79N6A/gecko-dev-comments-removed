@@ -151,6 +151,7 @@ public:
     eColor__moz_mac_menushadow,				
     eColor__moz_mac_menutextdisable,                    
     eColor__moz_mac_menutextselect,			
+    eColor__moz_mac_disabledtoolbartext,                    
 
   	
   	eColor__moz_mac_accentlightesthighlight,
