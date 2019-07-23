@@ -62,22 +62,9 @@ let Ci = Components.interfaces;
 let Cu = Components.utils;
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
-const kXULNS =
-    "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul";
-
 const nsIWebNavigation = Components.interfaces.nsIWebNavigation;
 
 const MAX_HISTORY_MENU_ITEMS = 15;
-
-
-#ifdef XP_MACOSX
-const BROWSER_ADD_BM_FEATURES = "centerscreen,chrome,dialog,resizable,modal";
-#else
-const BROWSER_ADD_BM_FEATURES = "centerscreen,chrome,dialog,resizable,dependent";
-#endif
-
-const TYPE_MAYBE_FEED = "application/vnd.mozilla.maybe.feed";
-const TYPE_XUL = "application/vnd.mozilla.xul+xml";
 
 
 const GLUE_CID = "@mozilla.org/browser/browserglue;1";
