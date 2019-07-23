@@ -124,7 +124,7 @@ protected:
 
   nsIContent* GetSelect();
 
-  PRPackedBool mIsInitialized;
+  PRPackedBool mSelectedChanged;
   PRPackedBool mIsSelected;
 };
 
@@ -154,7 +154,7 @@ NS_NewHTMLOptionElement(nsINodeInfo *aNodeInfo, PRBool aFromParser)
 
 nsHTMLOptionElement::nsHTMLOptionElement(nsINodeInfo *aNodeInfo)
   : nsGenericHTMLElement(aNodeInfo),
-    mIsInitialized(PR_FALSE),
+    mSelectedChanged(PR_FALSE),
     mIsSelected(PR_FALSE)
 {
 }
@@ -202,7 +202,7 @@ nsHTMLOptionElement::GetForm(nsIDOMHTMLFormElement** aForm)
 NS_IMETHODIMP
 nsHTMLOptionElement::SetSelectedInternal(PRBool aValue, PRBool aNotify)
 {
-  mIsInitialized = PR_TRUE;
+  mSelectedChanged = PR_TRUE;
   mIsSelected = aValue;
 
   if (aNotify) {
@@ -242,18 +242,8 @@ nsHTMLOptionElement::GetSelected(PRBool* aValue)
   *aValue = PR_FALSE;
 
   
-  if (!mIsInitialized) {
-    mIsInitialized = PR_TRUE;
-    PRBool selected;
-    GetDefaultSelected(&selected);
-    
-    
-    
-    
-    
-    
-    
-    SetSelectedInternal(selected, PR_FALSE);
+  if (!mSelectedChanged) {
+    return GetDefaultSelected(aValue);
   }
 
   *aValue = mIsSelected;
