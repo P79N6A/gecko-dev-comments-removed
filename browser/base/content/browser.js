@@ -1684,34 +1684,6 @@ function loadURI(uri, referrer, postData, allowThirdPartyFixup)
   }
 }
 
-function BrowserLoadURL(aTriggeringEvent, aPostData) {
-  var url = gURLBar.value;
-
-  if (aTriggeringEvent instanceof MouseEvent) {
-    if (aTriggeringEvent.button == 2)
-      return; 
-
-    
-    
-    openUILink(url, aTriggeringEvent, false, false,
-               true , aPostData);
-    return;
-  }
-
-  if (aTriggeringEvent && aTriggeringEvent.altKey) {
-    handleURLBarRevert();
-    content.focus();
-    gBrowser.loadOneTab(url, null, null, aPostData, false,
-                        true );
-    aTriggeringEvent.preventDefault();
-    aTriggeringEvent.stopPropagation();
-  }
-  else
-    loadURI(url, null, aPostData, true );
-
-  focusElement(content);
-}
-
 function getShortcutOrURI(aURL, aPostDataRef) {
   var shortcutURL = null;
   var keyword = aURL;
@@ -1991,119 +1963,6 @@ function losslessDecodeURI(aURI) {
   value = value.replace(/[\u200e\u200f\u202a\u202b\u202c\u202d\u202e]/g,
                         encodeURIComponent);
   return value;
-}
-
-
-function handleURLBarRevert() {
-  var throbberElement = document.getElementById("navigator-throbber");
-  var isScrolling = gURLBar.popupOpen;
-
-  gBrowser.userTypedValue = null;
-
-  
-  
-  if ((!throbberElement || !throbberElement.hasAttribute("busy")) && !isScrolling) {
-    URLBarSetURI();
-
-    
-    if (gURLBar.value && gURLBar.hasAttribute("focused"))
-      gURLBar.select();
-  }
-
-  
-  
-  return !isScrolling;
-}
-
-function handleURLBarCommand(aTriggeringEvent) {
-  if (!gURLBar.value)
-    return;
-
-  var postData = { };
-  canonizeUrl(aTriggeringEvent, postData);
-
-  try {
-    addToUrlbarHistory(gURLBar.value);
-  } catch (ex) {
-    
-    
-  }
-
-  BrowserLoadURL(aTriggeringEvent, postData.value);
-}
-
-function canonizeUrl(aTriggeringEvent, aPostDataRef) {
-  if (!gURLBar || !gURLBar.value)
-    return;
-
-  var url = gURLBar.value;
-
-  
-  
-  
-  
-  if (!/^\s*(www|https?)\b|\/\s*$/i.test(url) &&
-      (aTriggeringEvent instanceof KeyEvent)) {
-#ifdef XP_MACOSX
-    var accel = aTriggeringEvent.metaKey;
-#else
-    var accel = aTriggeringEvent.ctrlKey;
-#endif
-    var shift = aTriggeringEvent.shiftKey;
-
-    var suffix = "";
-
-    switch (true) {
-      case (accel && shift):
-        suffix = ".org/";
-        break;
-      case (shift):
-        suffix = ".net/";
-        break;
-      case (accel):
-        try {
-          suffix = gPrefService.getCharPref("browser.fixup.alternate.suffix");
-          if (suffix.charAt(suffix.length - 1) != "/")
-            suffix += "/";
-        } catch(e) {
-          suffix = ".com/";
-        }
-        break;
-    }
-
-    if (suffix) {
-      
-      url = url.replace(/^\s+/, "").replace(/\s+$/, "");
-
-      
-      
-      
-      
-      var firstSlash = url.indexOf("/");
-      var existingSuffix = url.indexOf(suffix.substring(0, suffix.length - 1));
-
-      
-      
-      
-      
-      
-      
-      
-      if (firstSlash >= 0) {
-        if (existingSuffix == -1 || existingSuffix > firstSlash)
-          url = url.substring(0, firstSlash) + suffix +
-                url.substring(firstSlash + 1);
-      } else
-        url = url + (existingSuffix == -1 ? suffix : "/");
-
-      url = "http://www." + url;
-    }
-  }
-
-  gURLBar.value = getShortcutOrURI(url, aPostDataRef);
-
-  
-  gBrowser.userTypedValue = gURLBar.value;
 }
 
 function UpdateUrlbarSearchSplitterState()
@@ -3049,20 +2908,11 @@ function FillHistoryMenu(aParent) {
   return true;
 }
 
-function addToUrlbarHistory(aUrlToAdd)
-{
-  if (!aUrlToAdd)
-     return;
-  if (aUrlToAdd.search(/[\x00-\x1F]/) != -1) 
-     return;
-
-   try {
-     if (aUrlToAdd.indexOf(" ") == -1) {
-       PlacesUIUtils.markPageAsTyped(aUrlToAdd);
-     }
-   }
-   catch(ex) {
-   }
+function addToUrlbarHistory(aUrlToAdd) {
+  if (aUrlToAdd &&
+      aUrlToAdd.indexOf(" ") == -1 &&
+      !/[\x00-\x1F]/.test(aUrlToAdd))
+    PlacesUIUtils.markPageAsTyped(aUrlToAdd);
 }
 
 function toJavaScriptConsole()
@@ -4832,6 +4682,7 @@ function middleMousePaste(event)
   var url = readFromClipboard();
   if (!url)
     return;
+
   var postData = { };
   url = getShortcutOrURI(url, postData);
   if (!url)
@@ -4842,6 +4693,7 @@ function middleMousePaste(event)
   } catch (ex) {
     
     
+    Cu.reportError(ex);
   }
 
   openUILink(url,
@@ -6539,7 +6391,7 @@ var gIdentityHandler = {
       return; 
 
     
-    handleURLBarRevert();
+    gURLBar.handleRevert();
 
     
     

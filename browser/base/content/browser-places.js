@@ -416,7 +416,8 @@ var PlacesCommandHook = {
     }
 
     
-    handleURLBarRevert();
+    if (gURLBar)
+      gURLBar.handleRevert();
 
     
     
