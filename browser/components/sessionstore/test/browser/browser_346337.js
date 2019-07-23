@@ -121,6 +121,10 @@ function test() {
                "The value for \"" + xpath + "\" was correctly discarded");
         
         gPrefService.setIntPref("browser.sessionstore.privacy_level", privacy_level);
+        
+        
+        if (tabbrowser.tabContainer.childNodes.length == 1)
+          tabbrowser.addTab();
         tabbrowser.removeTab(tab);
         finish();
       }, true);
