@@ -275,6 +275,18 @@ PrivateBrowsingService.prototype = {
                       getService(Ci.nsIHttpAuthManager);
         authMgr.clearAll();
 
+        
+        
+        
+        
+        
+        let ios = Cc["@mozilla.org/network/io-service;1"].
+                  getService(Ci.nsIIOService);
+        if (!ios.offline) {
+          ios.offline = true;
+          ios.offline = false;
+        }
+
         if (!this._inPrivateBrowsing) {
           
           let consoleService = Cc["@mozilla.org/consoleservice;1"].
