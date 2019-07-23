@@ -187,7 +187,10 @@ nsresult
 nsGopherContentStream::OpenSocket(nsIEventTarget *target)
 {
     
-    
+
+    if (mChannel->HasLoadFlag(nsIChannel::LOAD_NO_NETWORK_IO))
+        return NS_ERROR_NEEDS_NETWORK;
+
     
     
 

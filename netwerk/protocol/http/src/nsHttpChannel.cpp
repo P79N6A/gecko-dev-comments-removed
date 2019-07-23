@@ -272,7 +272,7 @@ nsHttpChannel::Connect(PRBool firstTime)
         
         PRBool offline = gIOService->IsOffline();
         if (offline)
-            mLoadFlags |= LOAD_ONLY_FROM_CACHE;
+            mLoadFlags |= (LOAD_ONLY_FROM_CACHE | LOAD_CHECK_OFFLINE_CACHE);
         else if (PL_strcmp(mConnectionInfo->ProxyType(), "unknown") == 0)
             return ResolveProxy();  
 
@@ -329,6 +329,10 @@ nsHttpChannel::Connect(PRBool firstTime)
 
     
     AddAuthorizationHeaders();
+
+    if (mLoadFlags & LOAD_NO_NETWORK_IO) {
+        return NS_ERROR_NEEDS_NETWORK;
+    }
 
     
     rv = SetupTransaction();
@@ -1307,7 +1311,8 @@ nsHttpChannel::OpenCacheEntry(PRBool offline, PRBool *delayed)
 
     
     nsCacheAccessMode accessRequested;
-    if (offline || (mLoadFlags & INHIBIT_CACHING)) {
+    if (mLoadFlags & (LOAD_ONLY_FROM_CACHE | INHIBIT_CACHING)) {
+        
         
         
         if (BYPASS_LOCAL_CACHE(mLoadFlags) && !offline)
@@ -1330,7 +1335,7 @@ nsHttpChannel::OpenCacheEntry(PRBool offline, PRBool *delayed)
     rv = session->OpenCacheEntry(cacheKey, accessRequested, PR_FALSE,
                                  getter_AddRefs(mCacheEntry));
 
-    if (offline &&
+    if ((mLoadFlags & LOAD_CHECK_OFFLINE_CACHE) &&
         !(NS_SUCCEEDED(rv) || rv == NS_ERROR_CACHE_WAIT_FOR_VALIDATION)) {
         
 
@@ -1547,8 +1552,10 @@ nsHttpChannel::CheckCache()
 
     
     
-    if (mCacheAccess == nsICache::ACCESS_READ &&
-        !(mLoadFlags & INHIBIT_CACHING)) {
+    
+    if (mLoadFlags & LOAD_ONLY_FROM_CACHE ||
+        (mCacheAccess == nsICache::ACCESS_READ &&
+         !(mLoadFlags & INHIBIT_CACHING))) {
         mCachedContentIsValid = PR_TRUE;
         return NS_OK;
     }
