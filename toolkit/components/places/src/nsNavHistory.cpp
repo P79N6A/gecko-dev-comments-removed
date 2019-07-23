@@ -398,7 +398,6 @@ nsNavHistory::nsNavHistory()
 , mDatabaseStatus(DATABASE_STATUS_OK)
 , mCanNotify(true)
 , mCacheObservers("history-observers")
-, mHasHistoryEntries(-1)
 {
 #ifdef LAZY_ADD
   mLazyTimerSet = PR_TRUE;
@@ -2471,12 +2470,6 @@ nsNavHistory::GetHasHistoryEntries(PRBool* aHasEntries)
   NS_ASSERTION(NS_IsMainThread(), "This can only be called on the main thread");
   NS_ENSURE_ARG_POINTER(aHasEntries);
 
-  
-  if (mHasHistoryEntries != -1) {
-    *aHasEntries = (mHasHistoryEntries == 1);
-    return NS_OK;
-  }
-
   nsCOMPtr<mozIStorageStatement> dbSelectStatement;
   nsresult rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
       "SELECT 1 "
@@ -2484,11 +2477,7 @@ nsNavHistory::GetHasHistoryEntries(PRBool* aHasEntries)
         "OR EXISTS (SELECT id FROM moz_historyvisits LIMIT 1)"),
     getter_AddRefs(dbSelectStatement));
   NS_ENSURE_SUCCESS(rv, rv);
-  rv = dbSelectStatement->ExecuteStep(aHasEntries);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  mHasHistoryEntries = *aHasEntries ? 1 : 0;
-  return NS_OK;
+  return dbSelectStatement->ExecuteStep(aHasEntries);
 }
 
 nsresult
@@ -4400,9 +4389,6 @@ nsNavHistory::RemovePagesInternal(const nsCString& aPlaceIdsQueryString)
   rv = CleanupPlacesOnVisitsDelete(aPlaceIdsQueryString);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  
-  mHasHistoryEntries = -1;
-
   return transaction.Commit();
 }
 
@@ -4842,9 +4828,6 @@ nsNavHistory::RemoveVisitsByTimeframe(PRTime aBeginTime, PRTime aEndTime)
   rv = transaction.Commit();
   NS_ENSURE_SUCCESS(rv, rv);
 
-  
-  mHasHistoryEntries = -1;
-
   return NS_OK;
 }
 
@@ -4895,9 +4878,6 @@ nsNavHistory::RemoveAllPages()
 
   rv = transaction.Commit();
   NS_ENSURE_SUCCESS(rv, rv);
-
-  
-  mHasHistoryEntries = -1;
 
   
   NOTIFY_OBSERVERS(mCanNotify, mCacheObservers, mObservers,
@@ -5519,9 +5499,6 @@ NS_IMETHODIMP
 nsNavHistory::NotifyOnPageExpired(nsIURI *aURI, PRTime aVisitTime,
                                   PRBool aWholeEntry)
 {
-  
-  mHasHistoryEntries = -1;
-
   if (aWholeEntry) {
     
     NOTIFY_OBSERVERS(mCanNotify, mCacheObservers, mObservers,
