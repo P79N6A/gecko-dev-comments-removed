@@ -155,25 +155,6 @@ function debug(aMsg) {
 
 
 function SessionStoreService() {
-  XPCOMUtils.defineLazyGetter(this, "_prefBranch", function () {
-    return Cc["@mozilla.org/preferences-service;1"].
-           getService(Ci.nsIPrefService).getBranch("browser.").
-           QueryInterface(Ci.nsIPrefBranch2);
-  });
-
-  
-  XPCOMUtils.defineLazyGetter(this, "_interval", function () {
-    
-    this._prefBranch.addObserver("sessionstore.interval", this, true);
-    return this._prefBranch.getIntPref("sessionstore.interval");
-  });
-
-  
-  XPCOMUtils.defineLazyGetter(this, "_resume_from_crash", function () {
-    
-    this._prefBranch.addObserver("sessionstore.resume_from_crash", this, true);
-    return this._prefBranch.getBoolPref("sessionstore.resume_from_crash");
-  });
 }
 
 SessionStoreService.prototype = {
@@ -191,6 +172,12 @@ SessionStoreService.prototype = {
 
   
   _loadState: STATE_STOPPED,
+
+  
+  _interval: 15000,
+
+  
+  _resume_from_crash: true,
 
   
   
@@ -242,6 +229,10 @@ SessionStoreService.prototype = {
       return;
     }
 
+    this._prefBranch = Cc["@mozilla.org/preferences-service;1"].
+                       getService(Ci.nsIPrefService).getBranch("browser.");
+    this._prefBranch.QueryInterface(Ci.nsIPrefBranch2);
+
     OBSERVING.forEach(function(aTopic) {
       ObserverSvc.addObserver(this, aTopic, true);
     }, this);
@@ -249,6 +240,14 @@ SessionStoreService.prototype = {
     var pbs = Cc["@mozilla.org/privatebrowsing;1"].
               getService(Ci.nsIPrivateBrowsingService);
     this._inPrivateBrowsing = pbs.privateBrowsingEnabled;
+
+    
+    this._interval = this._prefBranch.getIntPref("sessionstore.interval");
+    this._prefBranch.addObserver("sessionstore.interval", this, true);
+    
+    
+    this._resume_from_crash = this._prefBranch.getBoolPref("sessionstore.resume_from_crash");
+    this._prefBranch.addObserver("sessionstore.resume_from_crash", this, true);
     
     
     this._prefBranch.addObserver("sessionstore.max_tabs_undo", this, true);
