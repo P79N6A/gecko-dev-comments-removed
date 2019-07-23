@@ -46,6 +46,7 @@
 #include "nsITimer.h"
 #include "prtime.h"
 #include "nsCycleCollectionParticipant.h"
+#include "nsScriptNameSpaceManager.h"
 
 class nsIXPConnectJSObjectHolder;
 
@@ -326,6 +327,8 @@ public:
   static void Startup();
   
   static nsresult Init();
+  
+  static nsScriptNameSpaceManager* GetNameSpaceManager();
 };
 
 
