@@ -1,5 +1,6 @@
 
 
+
 #ifndef mozilla_dom_ContentProcessChild_h
 #define mozilla_dom_ContentProcessChild_h
 
@@ -9,19 +10,26 @@ namespace mozilla {
 namespace dom {
 
 class ContentProcessChild
-  : public ContentProcessProtocolChild
+    : public ContentProcessProtocolChild
 {
 public:
-  ContentProcessChild();
-  virtual ~ContentProcessChild();
+    ContentProcessChild();
+    virtual ~ContentProcessChild();
 
-  bool Init(MessageLoop* aIOLoop, IPC::Channel* aChannel);
+    bool Init(MessageLoop* aIOLoop, IPC::Channel* aChannel);
 
-  virtual IFrameEmbeddingProtocolChild* IFrameEmbeddingConstructor(const MagicWindowHandle& hwnd);
-  virtual nsresult IFrameEmbeddingDestructor(IFrameEmbeddingProtocolChild*);
+    static ContentProcessChild* GetSingleton() {
+        NS_ASSERTION(sSingleton, "not initialized");
+        return sSingleton;
+    }
+
+    virtual IFrameEmbeddingProtocolChild* IFrameEmbeddingConstructor(const MagicWindowHandle& hwnd);
+    virtual nsresult IFrameEmbeddingDestructor(IFrameEmbeddingProtocolChild*);
 
 private:
-  DISALLOW_EVIL_CONSTRUCTORS(ContentProcessChild);
+    static ContentProcessChild* sSingleton;
+
+    DISALLOW_EVIL_CONSTRUCTORS(ContentProcessChild);
 };
 
 } 
