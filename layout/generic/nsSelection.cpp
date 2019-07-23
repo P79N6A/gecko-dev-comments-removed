@@ -343,8 +343,6 @@ private:
   
   
 
-  nsTArray<RangeData> mRanges;
-  nsTArray<PRInt32> mRangeEndings;    
 #ifdef DEBUG
   PRBool ValidateRanges();
 #endif
@@ -366,19 +364,20 @@ private:
                              nsIDOMNode* aEndNode, PRInt32 aEndOffset,
                              PRInt32 aStartSearchingHere);
 
+  nsTArray<RangeData> mRanges;
+  nsTArray<PRInt32> mRangeEndings;    
   nsCOMPtr<nsIDOMRange> mAnchorFocusRange;
   nsCOMPtr<nsIDOMRange> mOriginalAnchorRange; 
-  nsDirection mDirection; 
-  PRBool mFixupState; 
-
   nsFrameSelection *mFrameSelection;
-  nsWeakPtr mPresShellWeak; 
-  SelectionType mType;
-  nsRefPtr<nsAutoScrollTimer> mAutoScrollTimer; 
+  nsWeakPtr mPresShellWeak;
+  nsRefPtr<nsAutoScrollTimer> mAutoScrollTimer;
   nsCOMArray<nsISelectionListener> mSelectionListeners;
-  PRPackedBool mTrueDirection;
   nsRevocableEventPtr<ScrollSelectionIntoViewEvent> mScrollEvent;
   CachedOffsetForFrame *mCachedOffsetForFrame;
+  nsDirection mDirection;
+  SelectionType mType;
+  PRPackedBool mTrueDirection;
+  PRPackedBool mFixupState;
 };
 
 
@@ -3987,24 +3986,25 @@ nsFrameSelection::GetDelayedCaretData()
 
 
 
-nsTypedSelection::nsTypedSelection(nsFrameSelection *aList)
-{
-  mFrameSelection = aList;
-  mFixupState = PR_FALSE;
-  mDirection = eDirNext;
-  mCachedOffsetForFrame = nsnull;
-}
-
-
 nsTypedSelection::nsTypedSelection()
+  : mFrameSelection(nsnull)
+  , mCachedOffsetForFrame(nsnull)
+  , mDirection(eDirNext)
+  , mType(nsISelectionController::SELECTION_NORMAL)
+  , mTrueDirection(PR_FALSE)
+  , mFixupState(PR_FALSE)
 {
-  mFrameSelection = nsnull;
-  mFixupState = PR_FALSE;
-  mDirection = eDirNext;
-  mCachedOffsetForFrame = nsnull;
 }
 
-
+nsTypedSelection::nsTypedSelection(nsFrameSelection *aList)
+  : mFrameSelection(aList)
+  , mCachedOffsetForFrame(nsnull)
+  , mDirection(eDirNext)
+  , mType(nsISelectionController::SELECTION_NORMAL)
+  , mTrueDirection(PR_FALSE)
+  , mFixupState(PR_FALSE)
+{
+}
 
 nsTypedSelection::~nsTypedSelection()
 {
