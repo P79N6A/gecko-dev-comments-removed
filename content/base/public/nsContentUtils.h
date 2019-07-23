@@ -1253,6 +1253,11 @@ public:
   
 
 
+  static PRBool OfflineAppAllowed(nsIPrincipal *aPrincipal);
+
+  
+
+
 
 
   static void AddScriptBlocker();
