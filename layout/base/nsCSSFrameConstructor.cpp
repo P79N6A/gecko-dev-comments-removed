@@ -7102,6 +7102,14 @@ nsCSSFrameConstructor::ConstructSVGFrame(nsFrameConstructorState& aState,
   }
   
   
+  if (aParentFrame && 
+      aParentFrame->GetType() == nsGkAtoms::svgSwitch &&
+      aParentFrame->GetFirstChild(nsnull)) {
+    *aHaltProcessing = PR_TRUE;
+    return NS_OK;
+  }
+
+  
   
   if (((aContent->HasAttr(kNameSpaceID_None, nsGkAtoms::requiredFeatures) ||
         aContent->HasAttr(kNameSpaceID_None, nsGkAtoms::requiredExtensions)) &&
