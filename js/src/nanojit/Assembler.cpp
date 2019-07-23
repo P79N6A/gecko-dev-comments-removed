@@ -155,7 +155,7 @@ namespace nanojit
         
         
         counter_increment(steals);
-        LIns* vic = findVictim(regs, allow);
+        LIns* vic = findVictim(allow);
         NanoAssert(vic);
 
         Reservation* resv = vic->resvUsed();
@@ -331,29 +331,38 @@ namespace nanojit
         return findRegFor(i, allow);
     }
 
-    Register Assembler::findRegFor(LIns* i, RegisterMask allow)
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    Register Assembler::findRegFor(LIns* ins, RegisterMask allow)
     {
-        if (i->isop(LIR_alloc)) {
+        if (ins->isop(LIR_alloc)) {
             
-            findMemFor(i);
+            findMemFor(ins);
         }
 
-        Reservation* resv = i->resv();
+        Reservation* resv = ins->resv();
         Register r = resv->reg;
 
         if (!resv->used) {
             
-            RegisterMask prefer = hint(i, allow);
+            RegisterMask prefer = hint(ins, allow);
             resv->init();
             r = resv->reg = registerAlloc(prefer);
-            _allocator.addActive(r, i);
+            _allocator.addActive(r, ins);
 
         } else if (r == UnknownReg) {
             
             
-            RegisterMask prefer = hint(i, allow);
+            RegisterMask prefer = hint(ins, allow);
             r = resv->reg = registerAlloc(prefer);
-            _allocator.addActive(r, i);
+            _allocator.addActive(r, ins);
 
         } else if (rmask(r) & allow) {
             
@@ -363,27 +372,34 @@ namespace nanojit
         } else {
             
             
-            RegisterMask prefer = hint(i, allow);
+            RegisterMask prefer = hint(ins, allow);
 #ifdef AVMPLUS_IA32
             if (((rmask(r)&XmmRegs) && !(allow&XmmRegs)) ||
                 ((rmask(r)&x87Regs) && !(allow&x87Regs)))
             {
                 
                 
-                evict(r, i);
+                evict(r, ins);
                 r = resv->reg = registerAlloc(prefer);
-                _allocator.addActive(r, i);
+                _allocator.addActive(r, ins);
             } else
 #endif
             {
                 
-                _allocator.retire(r);
+                
+                
+                
+                
+                
+                
+                
                 Register s = r;
+                _allocator.retire(s);
                 r = resv->reg = registerAlloc(prefer);
-                _allocator.addActive(r, i);
+                _allocator.addActive(r, ins);
                 if ((rmask(s) & GpRegs) && (rmask(r) & GpRegs)) {
 #ifdef NANOJIT_ARM
-                    MOV(s, r);
+                    MOV(s, r);  
 #else
                     MR(s, r);
 #endif
@@ -451,6 +467,7 @@ namespace nanojit
         i->resv()->clear();
     }
 
+    
     void Assembler::evictIfActive(Register r)
     {
         if (LIns* vic = _allocator.getActive(r)) {
@@ -458,6 +475,17 @@ namespace nanojit
         }
     }
 
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     void Assembler::evict(Register r, LIns* vic)
     {
         
@@ -838,6 +866,10 @@ namespace nanojit
                                          ins = reader->read())
         {
             
+
+
+
+
 
 
 
@@ -1581,10 +1613,9 @@ namespace nanojit
     {
         
         
-        LIns* i;
         for (Register r = FirstReg; r <= LastReg; r = nextreg(r)) {
-            if ((rmask(r) & regs) && (i = _allocator.getActive(r))) {
-                evict(r, i);
+            if ((rmask(r) & regs)) {
+                evictIfActive(r);
             }
         }
     }
@@ -1696,16 +1727,16 @@ namespace nanojit
 
     
     
-    LIns* Assembler::findVictim(RegAlloc &regs, RegisterMask allow)
+    LIns* Assembler::findVictim(RegisterMask allow)
     {
         NanoAssert(allow != 0);
         LIns *i, *a=0;
         int allow_pri = 0x7fffffff;
         for (Register r=FirstReg; r <= LastReg; r = nextreg(r))
         {
-            if ((allow & rmask(r)) && (i = regs.getActive(r)) != 0)
+            if ((allow & rmask(r)) && (i = _allocator.getActive(r)) != 0)
             {
-                int pri = canRemat(i) ? 0 : regs.getPriority(r);
+                int pri = canRemat(i) ? 0 : _allocator.getPriority(r);
                 if (!a || pri < allow_pri) {
                     a = i;
                     allow_pri = pri;
