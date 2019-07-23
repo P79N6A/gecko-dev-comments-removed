@@ -49,6 +49,7 @@
 #include "nsToolkit.h"
 #include "nsHTMLFormatConverter.h"
 #include "nsTransferable.h"
+#include "nsLookAndFeel.h"
 
 
 
@@ -81,6 +82,7 @@ NS_GENERIC_FACTORY_CONSTRUCTOR(PopupWindow)
 NS_GENERIC_FACTORY_CONSTRUCTOR(nsToolkit)
 NS_GENERIC_FACTORY_CONSTRUCTOR(nsHTMLFormatConverter)
 NS_GENERIC_FACTORY_CONSTRUCTOR(nsTransferable)
+NS_GENERIC_FACTORY_CONSTRUCTOR(nsLookAndFeel)
 
 
 
@@ -124,10 +126,10 @@ static const nsModuleComponentInfo components[] =
       NS_TRANSFERABLE_CID,
       "@mozilla.org/widget/transferable;1",
       nsTransferableConstructor },
-
-
-
-
+    { "Qt Look And Feel",
+      NS_LOOKANDFEEL_CID,
+      "@mozilla.org/widget/lookandfeel/qt;1",
+      nsLookAndFeelConstructor },
 
 
 
