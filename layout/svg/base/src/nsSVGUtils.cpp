@@ -546,9 +546,9 @@ nsSVGUtils::GetCTM(nsSVGElement *aElement, PRBool aScreenCTM)
   
   
   float x = 0.0f, y = 0.0f;
-  if (element->NodeInfo()->Equals(nsGkAtoms::svg, kNameSpaceID_SVG)) {
+  if (currentDoc && element->NodeInfo()->Equals(nsGkAtoms::svg, kNameSpaceID_SVG)) {
     nsIPresShell *presShell = currentDoc->GetPrimaryShell();
-    if (element && presShell) {
+    if (presShell) {
       nsPresContext *context = presShell->GetPresContext();
       if (context) {
         nsIFrame* frame = presShell->GetPrimaryFrameFor(element);
