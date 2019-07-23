@@ -197,6 +197,7 @@ pref("browser.chrome.site_icons", true);
 pref("browser.chrome.favicons", true);
 pref("browser.formfill.enable", true);
 pref("browser.warnOnQuit", true);
+pref("browser.warnOnRestart", true);
 
 #ifdef UNIX_BUT_NOT_MAC
 pref("browser.urlbar.clickSelectsAll", false);
@@ -609,7 +610,7 @@ pref("browser.EULA.version", 2);
 pref("browser.sessionstore.enabled", true);
 pref("browser.sessionstore.resume_from_crash", true);
 pref("browser.sessionstore.resume_session_once", false);
- 
+
 
 pref("browser.sessionstore.interval", 10000);
 

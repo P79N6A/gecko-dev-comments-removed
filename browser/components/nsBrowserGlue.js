@@ -237,7 +237,9 @@ BrowserGlue.prototype = {
           prefBranch.getBoolPref("browser.sessionstore.resume_session_once"))
         showPrompt = false;
       else
-        showPrompt = prefBranch.getBoolPref("browser.warnOnQuit");
+        showPrompt = aQuitType == "restart" ?
+                     prefBranch.getBoolPref("browser.warnOnRestart") :
+                     prefBranch.getBoolPref("browser.warnOnQuit");
     } catch (ex) {}
 
     var buttonChoice = 0;
@@ -297,10 +299,15 @@ BrowserGlue.prototype = {
         break;
       case 0:
         this._saveSession = true;
-        
-        
-        if (neverAsk.value)
-          prefBranch.setIntPref("browser.startup.page", 3);
+        if (neverAsk.value) {
+          if (aQuitType == "restart")
+            prefBranch.setBoolPref("browser.warnOnRestart", false);
+          else {
+            
+            
+            prefBranch.setIntPref("browser.startup.page", 3);
+          }
+        }
         break;
       }
     }
