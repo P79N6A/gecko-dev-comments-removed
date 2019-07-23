@@ -301,7 +301,6 @@ namespace nanojit {
 #include "RegAlloc.h"
 #include "Fragmento.h"
 #include "Assembler.h"
-#include "TraceTreeDrawer.h"
 
 #endif 
 #endif 
