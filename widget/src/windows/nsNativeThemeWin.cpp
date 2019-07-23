@@ -468,6 +468,15 @@ nsNativeThemeWin::GetTheme(PRUint8 aWidgetType)
   if (!mThemeDLL)
     return NULL;
 
+  if (!mIsVistaOrLater) {
+    
+    
+    
+    
+    if (aWidgetType == NS_THEME_DROPDOWN)
+      aWidgetType = NS_THEME_TEXTFIELD;
+  }
+
   switch (aWidgetType) {
     case NS_THEME_BUTTON:
     case NS_THEME_RADIO:
@@ -639,6 +648,12 @@ nsresult
 nsNativeThemeWin::GetThemePartAndState(nsIFrame* aFrame, PRUint8 aWidgetType, 
                                        PRInt32& aPart, PRInt32& aState)
 {
+  if (!mIsVistaOrLater) {
+    
+    if (aWidgetType == NS_THEME_DROPDOWN)
+      aWidgetType = NS_THEME_TEXTFIELD;
+  }
+
   switch (aWidgetType) {
     case NS_THEME_BUTTON: {
       aPart = BP_BUTTON;
@@ -1544,6 +1559,15 @@ nsNativeThemeWin::GetWidgetPadding(nsIDeviceContext* aContext,
   }
 
   if (mIsVistaOrLater) {
+    if (aWidgetType == NS_THEME_TEXTFIELD ||
+        aWidgetType == NS_THEME_TEXTFIELD_MULTILINE ||
+        aWidgetType == NS_THEME_DROPDOWN)
+    {
+      
+      if (aFrame->PresContext()->HasAuthorSpecifiedRules(aFrame, NS_AUTHOR_SPECIFIED_PADDING))
+        return PR_FALSE;
+    }
+
     
 
 
@@ -1554,13 +1578,7 @@ nsNativeThemeWin::GetWidgetPadding(nsIDeviceContext* aContext,
       aResult->top = aResult->bottom = 2;
       aResult->left = aResult->right = 2;
       return PR_TRUE;
-    }
-  }
-
-  
-  
-  if (IsHTMLContent(aFrame)) {
-    if (aWidgetType == NS_THEME_DROPDOWN) {
+    } else if (IsHTMLContent(aFrame) && aWidgetType == NS_THEME_DROPDOWN) {
       
 
 

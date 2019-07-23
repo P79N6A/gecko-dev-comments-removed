@@ -5159,20 +5159,35 @@ nsRuleNode::Sweep()
 }
 
  PRBool
-nsRuleNode::HasAuthorSpecifiedBorderOrBackground(nsStyleContext* aStyleContext)
+nsRuleNode::HasAuthorSpecifiedRules(nsStyleContext* aStyleContext,
+                                    PRUint32 ruleTypeMask)
 {
   nsRuleDataColor colorData;
   nsRuleDataMargin marginData;
+  PRUint32 nValues = 0;
+
+  PRUint32 inheritBits = 0;
+  if (ruleTypeMask & NS_AUTHOR_SPECIFIED_BACKGROUND)
+    inheritBits |= NS_STYLE_INHERIT_BIT(Background);
+
+  if (ruleTypeMask & NS_AUTHOR_SPECIFIED_BORDER)
+    inheritBits |= NS_STYLE_INHERIT_BIT(Border);
+
+  if (ruleTypeMask & NS_AUTHOR_SPECIFIED_PADDING)
+    inheritBits |= NS_STYLE_INHERIT_BIT(Padding);
+
   
-  nsRuleData ruleData(NS_STYLE_INHERIT_BIT(Background) |
-                        NS_STYLE_INHERIT_BIT(Border),
+  nsRuleData ruleData(inheritBits,
                       aStyleContext->PresContext(), aStyleContext);
   ruleData.mColorData = &colorData;
   ruleData.mMarginData = &marginData;
 
-  nsCSSValue* values[] = {
+  nsCSSValue* backgroundValues[] = {
     &colorData.mBackColor,
-    &colorData.mBackImage,
+    &colorData.mBackImage
+  };
+
+  nsCSSValue* borderValues[] = {
     &marginData.mBorderColor.mTop,
     &marginData.mBorderStyle.mTop,
     &marginData.mBorderWidth.mTop,
@@ -5185,7 +5200,36 @@ nsRuleNode::HasAuthorSpecifiedBorderOrBackground(nsStyleContext* aStyleContext)
     &marginData.mBorderColor.mLeft,
     &marginData.mBorderStyle.mLeft,
     &marginData.mBorderWidth.mLeft
+    
   };
+
+  nsCSSValue* paddingValues[] = {
+    &marginData.mPadding.mTop,
+    &marginData.mPadding.mRight,
+    &marginData.mPadding.mBottom,
+    &marginData.mPadding.mLeft,
+    &marginData.mPaddingStart,
+    &marginData.mPaddingEnd
+  };
+
+  nsCSSValue* values[NS_ARRAY_LENGTH(backgroundValues) +
+                     NS_ARRAY_LENGTH(borderValues) +
+                     NS_ARRAY_LENGTH(paddingValues)];
+
+  if (ruleTypeMask & NS_AUTHOR_SPECIFIED_BACKGROUND) {
+    memcpy(&values[nValues], backgroundValues, NS_ARRAY_LENGTH(backgroundValues) * sizeof(nsCSSValue*));
+    nValues += NS_ARRAY_LENGTH(backgroundValues);
+  }
+
+  if (ruleTypeMask & NS_AUTHOR_SPECIFIED_BORDER) {
+    memcpy(&values[nValues], borderValues, NS_ARRAY_LENGTH(borderValues) * sizeof(nsCSSValue*));
+    nValues += NS_ARRAY_LENGTH(borderValues);
+  }
+
+  if (ruleTypeMask & NS_AUTHOR_SPECIFIED_PADDING) {
+    memcpy(&values[nValues], paddingValues, NS_ARRAY_LENGTH(paddingValues) * sizeof(nsCSSValue*));
+    nValues += NS_ARRAY_LENGTH(paddingValues);
+  }
 
   
   
@@ -5201,13 +5245,13 @@ nsRuleNode::HasAuthorSpecifiedBorderOrBackground(nsStyleContext* aStyleContext)
         
         
         
-        for (PRUint32 i = 0; i < NS_ARRAY_LENGTH(values); ++i)
+        for (PRUint32 i = 0; i < nValues; ++i)
           if (values[i]->GetUnit() != eCSSUnit_Null)
             values[i]->SetDummyValue();
       } else {
         
         
-        for (PRUint32 i = 0; i < NS_ARRAY_LENGTH(values); ++i)
+        for (PRUint32 i = 0; i < nValues; ++i)
           if (values[i]->GetUnit() != eCSSUnit_Null &&
               values[i]->GetUnit() != eCSSUnit_Dummy) 
             return PR_TRUE;
