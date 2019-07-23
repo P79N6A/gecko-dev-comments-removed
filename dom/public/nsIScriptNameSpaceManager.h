@@ -47,6 +47,10 @@
 #define JAVASCRIPT_GLOBAL_PROPERTY_CATEGORY \
   "JavaScript global property"
 
+
+#define JAVASCRIPT_GLOBAL_PRIVILEGED_PROPERTY_CATEGORY \
+  "JavaScript global privileged property"
+
 #define JAVASCRIPT_GLOBAL_STATIC_NAMESET_CATEGORY \
   "JavaScript global static nameset"
 
