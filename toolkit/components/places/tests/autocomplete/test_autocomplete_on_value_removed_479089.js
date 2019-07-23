@@ -53,7 +53,8 @@ getService(Ci.nsINavHistoryService);
 function run_test()
 {
   
-  var historyService = histsvc.QueryInterface(Components.interfaces.nsIAutoCompleteSimpleResultListener);
+  var listener = Cc["@mozilla.org/autocomplete/search;1?name=history"].
+                 getService(Components.interfaces.nsIAutoCompleteSimpleResultListener);
 
   
   var now = Date.now() * 1000;
@@ -61,20 +62,20 @@ function run_test()
   var ref = ios.newURI("http://mozilla.com/", null, null);
   var visit = histsvc.addVisit(uri, now, ref, 1, false, 0);
   
-  var query = historyService.getNewQuery();
+  var query = histsvc.getNewQuery();
   
-  var options = historyService.getNewQueryOptions();
+  var options = histsvc.getNewQueryOptions();
   
   query.uri = uri;
   
-  var queryRes = historyService.executeQuery(query, options);
+  var queryRes = histsvc.executeQuery(query, options);
   
   queryRes.root.containerOpen = true;
   
   
   do_check_eq(queryRes.root.childCount, 1);  
   
-  historyService.onValueRemoved(null, uri.spec, true);
+  listener.onValueRemoved(null, uri.spec, true);
   
   do_check_eq(queryRes.root.childCount, 0);
   
