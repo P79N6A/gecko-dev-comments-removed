@@ -738,10 +738,15 @@ nsSVGElement::GetOwnerSVGElement(nsIDOMSVGSVGElement * *aOwnerSVGElement)
     parent = GetParent();
   }
 
-  while (parent) {    
-    nsCOMPtr<nsIDOMSVGSVGElement> SVGSVGElement = do_QueryInterface(parent);
-    if (SVGSVGElement) {
-      *aOwnerSVGElement = SVGSVGElement;
+  while (parent && parent->GetNameSpaceID() == kNameSpaceID_SVG) {
+    nsIAtom* tag = parent->Tag();
+    if (tag == nsGkAtoms::foreignObject) {
+      
+      
+      return NS_OK;
+    }
+    if (tag == nsGkAtoms::svg) {
+      *aOwnerSVGElement = static_cast<nsSVGSVGElement*>(parent);
       NS_ADDREF(*aOwnerSVGElement);
       return NS_OK;
     }
@@ -761,8 +766,9 @@ nsSVGElement::GetOwnerSVGElement(nsIDOMSVGSVGElement * *aOwnerSVGElement)
   
 
   
-  nsCOMPtr<nsIDOMSVGSVGElement> SVGSVGElement = do_QueryInterface((nsIDOMSVGElement*)this);
-  if (SVGSVGElement) return NS_OK;
+  if (Tag() == nsGkAtoms::svg) {
+    return NS_OK;
+  }
   
   
   
