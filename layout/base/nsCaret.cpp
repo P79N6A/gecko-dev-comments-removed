@@ -497,7 +497,7 @@ nsresult nsCaret::DrawAtPosition(nsIDOMNode* aNode, PRInt32 aOffset)
   return rv;
 }
 
-nsIFrame * nsCaret::GetCaretFrame(PRInt32 *aOffset)
+nsIFrame * nsCaret::GetCaretFrame()
 {
   
   if (!mDrawn)
@@ -505,17 +505,14 @@ nsIFrame * nsCaret::GetCaretFrame(PRInt32 *aOffset)
 
   
   
-  PRInt32 offset;
+  PRInt32 unused;
   nsIFrame *frame = nsnull;
   nsresult rv = GetCaretFrameForNodeOffset(mLastContent, mLastContentOffset,
                                            mLastHint, mLastBidiLevel, &frame,
-                                           &offset);
+                                           &unused);
   if (NS_FAILED(rv))
     return nsnull;
 
-  if (aOffset) {
-    *aOffset = offset;
-  }
   return frame;
 }
 
@@ -548,10 +545,7 @@ void nsCaret::PaintCaret(nsDisplayListBuilder *aBuilder,
   NS_ASSERTION(mDrawn, "The caret shouldn't be drawing");
 
   const nsRect drawCaretRect = mCaretRect + aOffset;
-  PRInt32 contentOffset;
-  nsIFrame* frame = GetCaretFrame(&contentOffset);
-  NS_ASSERTION(frame == aForFrame, "We're referring different frame");
-  nscolor foregroundColor = aForFrame->GetCaretColorAt(contentOffset);
+  nscolor cssColor = aForFrame->GetStyleColor()->mColor;
 
   
   
@@ -565,7 +559,7 @@ void nsCaret::PaintCaret(nsDisplayListBuilder *aBuilder,
       nsILookAndFeel* lookAndFeel = presContext->LookAndFeel();
       nscolor fieldText;
       if (NS_SUCCEEDED(lookAndFeel->GetColor(nsILookAndFeel::eColor__moz_fieldtext, fieldText)) &&
-          fieldText == foregroundColor) {
+          fieldText == cssColor) {
         theme->DrawWidgetBackground(aCtx, aForFrame, NS_THEME_TEXTFIELD_CARET,
                                     drawCaretRect, drawCaretRect);
         return;
@@ -573,7 +567,7 @@ void nsCaret::PaintCaret(nsDisplayListBuilder *aBuilder,
     }
   }
 
-  aCtx->SetColor(foregroundColor);
+  aCtx->SetColor(cssColor);
   aCtx->FillRect(drawCaretRect);
   if (!GetHookRect().IsEmpty())
     aCtx->FillRect(GetHookRect() + aOffset);
