@@ -142,6 +142,10 @@ template <class T> struct UnsafeRangeSizeMask {
 };
 
 
+template <class T> struct StripConst          { typedef T result; };
+template <class T> struct StripConst<const T> { typedef T result; };
+
+
 
 
 

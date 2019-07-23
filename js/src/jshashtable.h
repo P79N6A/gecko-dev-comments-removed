@@ -63,7 +63,7 @@ class HashTable : AllocPolicy
         HashNumber keyHash;
       public:
         Entry() : keyHash(0), t() {}
-        T t;
+        typename tl::StripConst<T>::result t;
 
         bool isFree() const           { return keyHash == 0; }
         void setFree()                { keyHash = 0; t = T(); }
@@ -101,8 +101,8 @@ class HashTable : AllocPolicy
         bool found() const           { return entry->isLive(); }
         operator ConvertibleToBool() { return found() ? &Ptr::nonNull : 0; }
 
-        const T &operator*() const         { return entry->t; }
-        const T *operator->() const        { return &entry->t; }
+        T &operator*() const         { return entry->t; }
+        T *operator->() const        { return &entry->t; }
     };
 
     
@@ -679,20 +679,21 @@ class HashMap
   public:
     typedef typename HashPolicy::Lookup Lookup;
 
-    
-
-
-
-
-
-    typedef struct Entry_
+    class Entry
     {
-        Entry_() : key(), value() {}
-        Entry_(const Key &k, const Value &v) : key(k), value(v) {}
+        template <class, class, class> friend class detail::HashTable;
+        void operator=(const Entry &rhs) {
+            const_cast<Key &>(key) = rhs.key;
+            value = rhs.value;
+        }
 
-        Key key;
-        mutable Value value;
-    } const Entry;
+      public:
+        Entry() : key(), value() {}
+        Entry(const Key &k, const Value &v) : key(k), value(v) {}
+
+        const Key key;
+        Value value;
+    };
 
   private:
     
@@ -701,7 +702,7 @@ class HashMap
         typedef Key KeyType;
         static const Key &getKey(Entry &e) { return e.key; }
     };
-    typedef detail::HashTable<Entry_, MapHashPolicy, AllocPolicy> Impl;
+    typedef detail::HashTable<Entry, MapHashPolicy, AllocPolicy> Impl;
 
     
     HashMap(const HashMap &);
@@ -847,7 +848,7 @@ class HashSet
         typedef T KeyType;
         static const KeyType &getKey(const T &t) { return t; }
     };
-    typedef detail::HashTable<T, SetOps, AllocPolicy> Impl;
+    typedef detail::HashTable<const T, SetOps, AllocPolicy> Impl;
 
     
     HashSet(const HashSet &);
