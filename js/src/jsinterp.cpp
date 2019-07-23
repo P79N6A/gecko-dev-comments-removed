@@ -2812,7 +2812,7 @@ JS_INTERPRET(JSContext *cx)
 
 
 
-                if (rval >= TRACE_THRESHOLD) {
+                if (JSVAL_TO_INT(rval) >= TRACE_THRESHOLD) {
                     
 
 
