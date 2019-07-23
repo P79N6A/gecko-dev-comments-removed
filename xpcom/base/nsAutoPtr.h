@@ -184,6 +184,19 @@ class nsAutoPtr
           return get();
         }
 
+      
+      
+      
+#ifndef _MSC_VER
+      template <class U, class V>
+      U&
+      operator->*(U V::* aMember)
+        {
+          NS_PRECONDITION(mRawPtr != 0, "You can't dereference a NULL nsAutoPtr with operator->*().");
+          return get()->*aMember;
+        }
+#endif
+
 #ifdef CANT_RESOLVE_CPP_CONST_AMBIGUITY
   
 
@@ -1084,6 +1097,19 @@ class nsRefPtr
           NS_PRECONDITION(mRawPtr != 0, "You can't dereference a NULL nsRefPtr with operator->().");
           return get();
         }
+
+      
+      
+      
+#ifndef _MSC_VER
+      template <class U, class V>
+      U&
+      operator->*(U V::* aMember)
+        {
+          NS_PRECONDITION(mRawPtr != 0, "You can't dereference a NULL nsRefPtr with operator->*().");
+          return get()->*aMember;
+        }
+#endif
 
 #ifdef CANT_RESOLVE_CPP_CONST_AMBIGUITY
   
