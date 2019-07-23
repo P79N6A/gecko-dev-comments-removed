@@ -92,6 +92,12 @@ class imgIContainer;
 
 
 
+
+
+
+
+
+
 struct nsStyleFont {
   nsStyleFont(const nsFont& aFont, nsPresContext *aPresContext);
   nsStyleFont(const nsStyleFont& aStyleFont);
@@ -104,6 +110,7 @@ struct nsStyleFont {
 #ifdef DEBUG
   static nsChangeHint MaxDifference();
 #endif
+  static PRBool ForceCompare() { return PR_FALSE; }
   static nsChangeHint CalcFontDifference(const nsFont& aFont1, const nsFont& aFont2);
 
   static nscoord ZoomText(nsPresContext* aPresContext, nscoord aSize);
@@ -306,6 +313,7 @@ struct nsStyleColor {
 #ifdef DEBUG
   static nsChangeHint MaxDifference();
 #endif
+  static PRBool ForceCompare() { return PR_FALSE; }
   
   void* operator new(size_t sz, nsPresContext* aContext) CPP_THROW_NEW {
     return aContext->AllocateFromShell(sz);
@@ -337,6 +345,7 @@ struct nsStyleBackground {
 #ifdef DEBUG
   static nsChangeHint MaxDifference();
 #endif
+  static PRBool ForceCompare() { return PR_FALSE; }
 
   struct Position;
   friend struct Position;
@@ -522,6 +531,7 @@ struct nsStyleMargin {
 #ifdef DEBUG
   static nsChangeHint MaxDifference();
 #endif
+  static PRBool ForceCompare() { return PR_TRUE; }
 
   nsStyleSides  mMargin;          
 
@@ -555,6 +565,7 @@ struct nsStylePadding {
 #ifdef DEBUG
   static nsChangeHint MaxDifference();
 #endif
+  static PRBool ForceCompare() { return PR_TRUE; }
   
   nsStyleSides  mPadding;         
 
@@ -718,6 +729,7 @@ struct nsStyleBorder {
 #ifdef DEBUG
   static nsChangeHint MaxDifference();
 #endif
+  static PRBool ForceCompare() { return PR_FALSE; }
   PRBool ImageBorderDiffers() const;
  
   nsStyleCorners mBorderRadius;    
@@ -930,6 +942,7 @@ struct nsStyleOutline {
 #ifdef DEBUG
   static nsChangeHint MaxDifference();
 #endif
+  static PRBool ForceCompare() { return PR_FALSE; }
  
   nsStyleCorners  mOutlineRadius; 
 
@@ -1015,6 +1028,7 @@ struct nsStyleList {
 #ifdef DEBUG
   static nsChangeHint MaxDifference();
 #endif
+  static PRBool ForceCompare() { return PR_FALSE; }
   
   PRUint8   mListStyleType;             
   PRUint8   mListStylePosition;         
@@ -1039,6 +1053,7 @@ struct nsStylePosition {
 #ifdef DEBUG
   static nsChangeHint MaxDifference();
 #endif
+  static PRBool ForceCompare() { return PR_TRUE; }
   
   nsStyleSides  mOffset;                
   nsStyleCoord  mWidth;                 
@@ -1068,6 +1083,7 @@ struct nsStyleTextReset {
 #ifdef DEBUG
   static nsChangeHint MaxDifference();
 #endif
+  static PRBool ForceCompare() { return PR_FALSE; }
   
   PRUint8 mTextDecoration;              
   PRUint8 mUnicodeBidi;                 
@@ -1092,6 +1108,7 @@ struct nsStyleText {
 #ifdef DEBUG
   static nsChangeHint MaxDifference();
 #endif
+  static PRBool ForceCompare() { return PR_FALSE; }
 
   PRUint8 mTextAlign;                   
   PRUint8 mTextTransform;               
@@ -1147,6 +1164,7 @@ struct nsStyleVisibility {
 #ifdef DEBUG
   static nsChangeHint MaxDifference();
 #endif
+  static PRBool ForceCompare() { return PR_FALSE; }
   
   PRUint8 mDirection;                  
   PRUint8   mVisible;                  
@@ -1256,6 +1274,7 @@ struct nsStyleDisplay {
 #ifdef DEBUG
   static nsChangeHint MaxDifference();
 #endif
+  static PRBool ForceCompare() { return PR_TRUE; }
 
   
   
@@ -1366,6 +1385,7 @@ struct nsStyleTable {
 #ifdef DEBUG
   static nsChangeHint MaxDifference();
 #endif
+  static PRBool ForceCompare() { return PR_FALSE; }
   
   PRUint8       mLayoutStrategy;
   PRUint8       mFrame;         
@@ -1391,6 +1411,7 @@ struct nsStyleTableBorder {
 #ifdef DEBUG
   static nsChangeHint MaxDifference();
 #endif
+  static PRBool ForceCompare() { return PR_FALSE; }
   
   nscoord       mBorderSpacingX;
   nscoord       mBorderSpacingY;
@@ -1460,6 +1481,7 @@ struct nsStyleQuotes {
 #ifdef DEBUG
   static nsChangeHint MaxDifference();
 #endif
+  static PRBool ForceCompare() { return PR_FALSE; }
   
   PRUint32  QuotesCount(void) const { return mQuotesCount; } 
 
@@ -1530,6 +1552,7 @@ struct nsStyleContent {
 #ifdef DEBUG
   static nsChangeHint MaxDifference();
 #endif
+  static PRBool ForceCompare() { return PR_FALSE; }
 
   PRUint32  ContentCount(void) const  { return mContentCount; } 
 
@@ -1634,6 +1657,7 @@ struct nsStyleUIReset {
 #ifdef DEBUG
   static nsChangeHint MaxDifference();
 #endif
+  static PRBool ForceCompare() { return PR_FALSE; }
 
   PRUint8   mUserSelect;      
   PRUint8   mForceBrokenImageIcon; 
@@ -1666,6 +1690,7 @@ struct nsStyleUserInterface {
 #ifdef DEBUG
   static nsChangeHint MaxDifference();
 #endif
+  static PRBool ForceCompare() { return PR_FALSE; }
 
   PRUint8   mUserInput;       
   PRUint8   mUserModify;      
@@ -1701,6 +1726,7 @@ struct nsStyleXUL {
 #ifdef DEBUG
   static nsChangeHint MaxDifference();
 #endif
+  static PRBool ForceCompare() { return PR_FALSE; }
   
   float         mBoxFlex;               
   PRUint32      mBoxOrdinal;            
@@ -1728,6 +1754,7 @@ struct nsStyleColumn {
 #ifdef DEBUG
   static nsChangeHint MaxDifference();
 #endif
+  static PRBool ForceCompare() { return PR_FALSE; }
 
   PRUint32     mColumnCount; 
   nsStyleCoord mColumnWidth; 
@@ -1796,6 +1823,7 @@ struct nsStyleSVG {
 #ifdef DEBUG
   static nsChangeHint MaxDifference();
 #endif
+  static PRBool ForceCompare() { return PR_FALSE; }
 
   nsStyleSVGPaint  mFill;             
   nsStyleSVGPaint  mStroke;           
@@ -1841,6 +1869,7 @@ struct nsStyleSVGReset {
 #ifdef DEBUG
   static nsChangeHint MaxDifference();
 #endif
+  static PRBool ForceCompare() { return PR_FALSE; }
 
   nsCOMPtr<nsIURI> mClipPath;         
   nsCOMPtr<nsIURI> mFilter;           
