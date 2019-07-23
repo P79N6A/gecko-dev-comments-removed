@@ -100,11 +100,9 @@ function goQuitApplication()
     return false;
   }
   
-
-
-
-
-
+  
+  if (typeof crossDomain != "undefined")
+    crossDomain.disable();
 
   const kAppStartup = '@mozilla.org/toolkit/app-startup;1';
   const kAppShell   = '@mozilla.org/appshell/appShellService;1';
