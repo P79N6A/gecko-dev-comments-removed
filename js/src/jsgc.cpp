@@ -2847,11 +2847,12 @@ js_TraceStackFrame(JSTracer *trc, JSStackFrame *fp)
 
 
 
-            if (fp->regs) {
+            if (fp->regs && fp->regs->sp) {
                 nslots = (uintN) (fp->regs->sp - fp->slots);
                 JS_ASSERT(nslots >= fp->script->nfixed);
             } else {
                 nslots = fp->script->nfixed;
+                JS_ASSERT_IF(!fp->regs->sp, nslots == 0);
             }
             TRACE_JSVALS(trc, nslots, fp->slots, "slot");
         }
