@@ -3023,52 +3023,19 @@ PresShell::CompleteMove(PRBool aForward, PRBool aExtend)
 {
   
   
-
-  nsIContent* root = mSelection->GetAncestorLimiter();
-  nsIDocument* doc;
-  if (root && (doc = root->GetOwnerDoc()) && doc->GetRootContent() != root) {
-    
-    
-    
-    
-    nsIContent* node = root;
-    PRInt32 offset = 0;
-    nsFrameSelection::HINT hint = nsFrameSelection::HINTLEFT;
-    if (aForward) {
-      nsIContent* next = node;
-      PRUint32 count;
-      while ((count = next->GetChildCount()) > 0) {
-        node = next;
-        offset = count;
-        next = next->GetChildAt(count - 1);
-      }
-
-      if (offset > 0 && node->GetChildAt(offset - 1)->Tag() == nsGkAtoms::br) {
-        --offset;
-        hint = nsFrameSelection::HINTRIGHT; 
-      }
-    }
-
-    mSelection->HandleClick(node, offset, offset, aExtend, PR_FALSE, hint);
-
-    
-    mSelection->SetAncestorLimiter(root);
-
-    
-    
-    return
-      ScrollSelectionIntoView(nsISelectionController::SELECTION_NORMAL, 
-                              nsISelectionController::SELECTION_FOCUS_REGION,
-                              PR_TRUE);
-  }
-
-  nsIFrame *frame = FrameConstructor()->GetRootElementFrame();
+  nsIContent* limiter = mSelection->GetAncestorLimiter();
+  nsIFrame* frame = limiter ? limiter->GetPrimaryFrame()
+                            : FrameConstructor()->GetRootElementFrame();
   if (!frame)
     return NS_ERROR_FAILURE;
   nsPeekOffsetStruct pos = frame->GetExtremeCaretPosition(!aForward);
-
-  mSelection->HandleClick(pos.mResultContent ,pos.mContentOffset ,pos.mContentOffset ,aExtend, PR_FALSE, aForward);
-
+  mSelection->HandleClick(pos.mResultContent, pos.mContentOffset,
+                          pos.mContentOffset, aExtend, PR_FALSE, aForward);
+  if (limiter) {
+    
+    mSelection->SetAncestorLimiter(limiter);
+  }
+    
   
   
   return ScrollSelectionIntoView(nsISelectionController::SELECTION_NORMAL, 
