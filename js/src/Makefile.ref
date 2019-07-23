@@ -87,20 +87,11 @@ CFLAGS          += $(OPTIMIZER) $(OS_CFLAGS) $(DEFINES) $(INCLUDES) $(XCFLAGS)
 INTERP_CFLAGS   += $(INTERP_OPTIMIZER) $(OS_CFLAGS) $(DEFINES) $(INCLUDES) $(XCFLAGS) $(INTERP_XCFLAGS)
 
 LDFLAGS		= $(XLDFLAGS)
-LDFLAGS += $(OS_LDFLAGS)
 
 ifdef MOZ_SHARK
 DEFINES += -DMOZ_SHARK
 CFLAGS += -F/System/Library/PrivateFrameworks
 LDFLAGS += -F/System/Library/PrivateFrameworks -framework CHUD
-endif
-ifdef MOZ_CALLGRIND
-DEFINES += -DMOZ_CALLGRIND
-endif
-ifdef MOZ_VTUNE
-DEFINES += -DMOZ_VTUNE
-CXXFLAGS += -IC:/Program\ Files/Intel/VTune/Analyzer/Include
-OTHER_LIBS += C:/Program\ Files/Intel/VTune/Analyzer/Lib/VtuneApi.lib
 endif
 
 ifndef NO_LIBM
@@ -138,7 +129,7 @@ ifdef JS_EDITLINE
 # Use the editline library, built locally.
 PREDIRS += editline
 DEFINES += -DEDITLINE
-PROG_LIBS += $(OBJDIR)/editline/libedit.a
+PROG_LIBS += editline/$(OBJDIR)/libedit.a
 endif
 endif
 
@@ -306,14 +297,13 @@ $(AUTO_HEADERS): $(OBJDIR)/jsauto%.h: js%gen.cpp
 	$(CXX) -Fo$(OBJDIR)/ -c $(CFLAGS) $<
 	link.exe -out:"$(OBJDIR)/js$*gen$(HOST_BIN_SUFFIX)" $(EXE_LINK_FLAGS) $(OBJDIR)/js$*gen.obj
 	$(OBJDIR)/js$*gen$(HOST_BIN_SUFFIX) $@
+
 else
 
-GARBAGE	+= $(AUTO_HEADERS:$(OBJDIR)/jsauto%.h=$(OBJDIR)/js%gen.d)
 $(AUTO_HEADERS): $(OBJDIR)/jsauto%.h: js%gen.cpp
 	@$(MAKE_OBJDIR)
 	$(CXX) -o $(OBJDIR)/js$*gen$(HOST_BIN_SUFFIX) $(CFLAGS) $(LDFLAGS) $<
 	$(OBJDIR)/js$*gen$(HOST_BIN_SUFFIX) $@
-
 endif
 
 # force creation of autoheaders before compiling any source that may use them
@@ -338,21 +328,22 @@ $(PROGRAM).pure: $(PROG_OBJS) $(LIBRARY)
 		$(OTHER_LIBS) $(PROG_LIBS)
 
 ifndef PREBUILT_CPUCFG
-$(filter-out jscpucfg.h $(OBJDIR)/jsautocfg.h, $(HFILES)) $(CPPFILES): $(OBJDIR)/jsautocfg.h
+$(HFILES) $(CPPFILES): $(OBJDIR)/jsautocfg.h
 
 $(OBJDIR)/jsautocfg.h: $(OBJDIR)/jscpucfg
 	rm -f $@
 	$(OBJDIR)/jscpucfg > $@
 
 $(OBJDIR)/jscpucfg: $(OBJDIR)/jscpucfg.o
-	$(CXX) $(OS_LDFLAGS) -o $@ $(OBJDIR)/jscpucfg.o
+	$(CXX) -o $@ $(OBJDIR)/jscpucfg.o
 
-GARBAGE += $(OBJDIR)/jsautocfg.h $(OBJDIR)/jscpucfg \
-	   $(OBJDIR)/jscpucfg.o $(OBJDIR)/jscpucfg.d
+# Add to TARGETS for clobber rule
+TARGETS += $(OBJDIR)/jsautocfg.h $(OBJDIR)/jscpucfg \
+	$(OBJDIR)/jscpucfg.o
 endif
 
 # Automatic make dependencies files
-DEPENDENCIES    = $(CPPFILES:%.cpp=$(OBJDIR)/%.d)
+DEPENDENCIES    = $(CFILES:%.c=$(OBJDIR)/%.d)
 
 #
 # Hardwire dependencies for jsinvoke.c
