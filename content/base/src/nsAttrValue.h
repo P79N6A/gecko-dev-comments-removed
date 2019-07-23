@@ -248,7 +248,6 @@ public:
 
 
 
-
   PRBool ParseNonNegativeIntValue(const nsAString& aString);
 
   
