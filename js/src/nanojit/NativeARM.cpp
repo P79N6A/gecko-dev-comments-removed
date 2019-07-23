@@ -517,11 +517,21 @@ Assembler::nFragExit(LInsp guard)
         
         JMP_far(_epilogue);
 
-        asm_ld_imm(R0, int(gr));
-
+        
         
         
         gr->jmp = _nIns;
+
+        
+        
+        
+        
+        
+        
+        
+        
+
+        asm_ld_imm(IP, int(gr));
     }
 
 #ifdef NJ_VERBOSE
@@ -547,6 +557,11 @@ Assembler::genEpilogue()
     RegisterMask savingMask = rmask(FP) | rmask(PC);
 
     POP_mask(savingMask); 
+
+    
+    
+    
+    MOV(R0, IP);
 
     return _nIns;
 }
@@ -926,35 +941,95 @@ Assembler::nRegisterResetAll(RegAlloc& a)
     debug_only(a.managed = a.free);
 }
 
+static inline ConditionCode
+get_cc(NIns *ins)
+{
+    return ConditionCode((*ins >> 28) & 0xF);
+}
+
+static inline bool
+branch_is_B(NIns* branch)
+{
+    return (*branch & 0x0E000000) == 0x0A000000;
+}
+
+static inline bool
+branch_is_LDR_PC(NIns* branch)
+{
+    return (*branch & 0x0F7FF000) == 0x051FF000;
+}
+
 void
 Assembler::nPatchBranch(NIns* branch, NIns* target)
 {
     
 
-    int32_t offset = PC_OFFSET_FROM(target, branch);
-
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     
 
-    
-    
-    if (isS24(offset>>2)) {
+    if (branch_is_B(branch)) {
         
-        NIns cond = *branch & 0xF0000000;
-        *branch = (NIns)( cond | (0xA<<24) | ((offset>>2) & 0xFFFFFF) );
+        
+        NanoAssert(get_cc(branch) == AL);
+
+        int32_t offset = PC_OFFSET_FROM(target, branch);
+        if (isS24(offset>>2)) {
+            
+            NIns cond = *branch & 0xF0000000;
+            *branch = (NIns)( cond | (0xA<<24) | ((offset>>2) & 0xFFFFFF) );
+        } else {
+            
+            
+            NanoAssert(*(branch+1) == BKPT_insn);
+
+            
+            NIns cond = *branch & 0xF0000000;
+            *branch++ = (NIns)( cond | (0x51<<20) | (PC<<16) | (PC<<12) | (4));
+            *branch++ = (NIns)target;
+        }
     } else {
         
         
-        NanoAssert((*branch & 0x0F7FF000) == 0x051FF000);
+        NanoAssert(branch_is_LDR_PC(branch));
 
         NIns *addr = branch+2;
         int offset = (*branch & 0xFFF) / sizeof(NIns);
-
         if (*branch & (1<<23)) {
             addr += offset;
         } else {
             addr -= offset;
         }
 
+        
         *addr = (NIns) target;
     }
 }
@@ -1399,6 +1474,8 @@ Assembler::JMP_far(NIns* addr)
         
         
         BKPT_nochk();
+
+        asm_output("bkpt");
 
         
         *(--_nIns) = (NIns)( COND_AL | (0xA<<24) | ((offs>>2) & 0xFFFFFF) );
@@ -2297,6 +2374,13 @@ void
 Assembler::asm_ret(LIns *ins)
 {
     genEpilogue();
+
+    
+    
+    
+    
+
+    MOV(IP, R0);
 
     
     MOV(SP,FP);
