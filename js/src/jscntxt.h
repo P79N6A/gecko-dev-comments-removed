@@ -130,6 +130,7 @@ typedef struct JSTraceMonitor {
 
 
     JSBool                  onTrace;
+
     CLS(nanojit::LirBuffer) lirbuf;
     CLS(nanojit::Fragmento) fragmento;
     CLS(TraceRecorder)      recorder;
@@ -980,7 +981,13 @@ struct JSContext {
 
     
     uintN               resolveFlags;
+    
+    
+    jsbytecode         *pcHint;
 };
+
+#define BEGIN_PC_HINT(pc)       cx->pcHint = pc
+#define END_PC_HINT()           cx->pcHint = NULL
 
 #ifdef JS_THREADSAFE
 # define JS_THREAD_ID(cx)       ((cx)->thread ? (cx)->thread->id : 0)
