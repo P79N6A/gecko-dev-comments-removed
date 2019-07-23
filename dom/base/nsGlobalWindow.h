@@ -762,7 +762,7 @@ protected:
   nsCOMPtr<nsIDocument> mDoc;  
   JSObject* mJSObject;
 
-  typedef nsTArray<nsCOMPtr<nsIDOMStorageEvent>> nsDOMStorageEventArray;
+  typedef nsTArray<nsCOMPtr<nsIDOMStorageEvent> > nsDOMStorageEventArray;
   nsDOMStorageEventArray mPendingStorageEvents;
   nsDataHashtable<nsStringHashKey, PRBool> *mPendingStorageEventsObsolete;
 
