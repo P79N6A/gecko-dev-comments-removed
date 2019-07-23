@@ -1411,19 +1411,30 @@ var PlacesUtils = {
         }
       }
 
-      if (aNumberOfBackups > 0 && backupFileNames.length >= aNumberOfBackups) {
-        var numberOfBackupsToDelete = backupFileNames.length - aNumberOfBackups;
+      var numberOfBackupsToDelete = 0;
+      if (aNumberOfBackups > -1)
+        numberOfBackupsToDelete = backupFileNames.length - aNumberOfBackups;
+
+      if (numberOfBackupsToDelete > 0) {
+        
+        
+        
+        if (!backupFile)
+          numberOfBackupsToDelete++;
+
         backupFileNames.sort();
         while (numberOfBackupsToDelete--) {
-          backupFile = bookmarksBackupDir.clone();
+          let backupFile = bookmarksBackupDir.clone();
           backupFile.append(backupFileNames[0]);
           backupFile.remove(false);
           backupFileNames.shift();
         }
       }
 
-      if (backupFile)
-        return; 
+      
+      
+      if (backupFile || aNumberOfBackups == 0)
+        return;
     }
 
     backupFile = bookmarksBackupDir.clone();
