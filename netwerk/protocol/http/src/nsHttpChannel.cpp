@@ -4018,13 +4018,16 @@ nsHttpChannel::AsyncOpen(nsIStreamListener *listener, nsISupports *context)
     if (NS_FAILED(rv))
         return rv;
 
-    
-    
-    nsRefPtr<nsDNSPrefetch> prefetch = new nsDNSPrefetch(mURI);
-    if (prefetch) {
-        prefetch->PrefetchHigh();
+    if (!(mConnectionInfo && mConnectionInfo->UsingHttpProxy())) {
+        
+        
+        
+        nsRefPtr<nsDNSPrefetch> prefetch = new nsDNSPrefetch(mURI);
+        if (prefetch) {
+            prefetch->PrefetchHigh();
+        }
     }
-
+    
     
     const char *cookieHeader = mRequestHead.PeekHeader(nsHttp::Cookie);
     if (cookieHeader)
