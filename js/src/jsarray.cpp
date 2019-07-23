@@ -101,6 +101,7 @@
 #include "jsstr.h"
 #include "jsstaticcheck.h"
 #include "jsvector.h"
+#include "jshashmap.h"
 
 #include "jsatominlines.h"
 
@@ -1467,17 +1468,10 @@ array_toSource(JSContext *cx, uintN argc, jsval *vp)
 }
 #endif
 
-static JSHashNumber
-js_hash_array(const void *key)
-{
-    return (JSHashNumber)JS_PTR_TO_UINT32(key) >> JSVAL_TAGBITS;
-}
-
 bool
 js_InitContextBusyArrayTable(JSContext *cx)
 {
-    cx->busyArrayTable = JS_NewHashTable(4, js_hash_array, JS_CompareValues,
-                                         JS_CompareValues, NULL, NULL);
+    cx->busyArrayTable = cx->create<JSBusyArrayTable>(cx);
     return cx->busyArrayTable != NULL;
 }
 
@@ -1491,22 +1485,16 @@ array_toString_sub(JSContext *cx, JSObject *obj, JSBool locale,
 
 
 
-    JSHashTable *table = cx->busyArrayTable;
+    JSBusyArrayTable &busy = *cx->busyArrayTable;
 
     
 
 
 
-    JSHashNumber hash = js_hash_array(obj);
-    JSHashEntry **hep = JS_HashTableRawLookup(table, hash, obj);
-    JSHashEntry *he = *hep;
-    if (!he) {
-        
-        he = JS_HashTableRawAdd(table, hep, hash, obj, NULL);
-        if (!he) {
-            JS_ReportOutOfMemory(cx);
+    JSBusyArrayTable::Pointer entryPtr = busy.lookup(obj);
+    if (!entryPtr) {
+        if (!busy.addAfterMiss(obj, false, entryPtr))
             return false;
-        }
     } else {
         
         *rval = ATOM_KEY(cx->runtime->atomState.emptyAtom);
@@ -1584,7 +1572,7 @@ array_toString_sub(JSContext *cx, JSObject *obj, JSBool locale,
 
 
 
-    JS_HashTableRemove(table, obj);
+    busy.remove(obj);
     return ok;
 }
 
