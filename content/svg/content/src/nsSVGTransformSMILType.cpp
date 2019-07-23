@@ -85,7 +85,7 @@ nsSVGTransformSMILType::Assign(nsSMILValue& aDest,
   NS_PRECONDITION(aDest.mType == aSrc.mType, "Incompatible SMIL types.");
   NS_PRECONDITION(aDest.mType == this, "Unexpected SMIL value.");
 
-  const TransformArray* srcTransforms = 
+  const TransformArray* srcTransforms =
     static_cast<const TransformArray*>(aSrc.mU.mPtr);
   TransformArray* dstTransforms = static_cast<TransformArray*>(aDest.mU.mPtr);
 
@@ -181,13 +181,13 @@ nsSVGTransformSMILType::ComputeDistance(const nsSMILValue& aFrom,
                                         const nsSMILValue& aTo,
                                         double& aDistance) const
 {
-  NS_PRECONDITION(aFrom.mType == aTo.mType, 
+  NS_PRECONDITION(aFrom.mType == aTo.mType,
       "Can't compute difference between different SMIL types.");
   NS_PRECONDITION(aFrom.mType == this, "Unexpected SMIL type.");
 
-  const TransformArray* fromTransforms = 
+  const TransformArray* fromTransforms =
     static_cast<const TransformArray*>(aFrom.mU.mPtr);
-  const TransformArray* toTransforms = 
+  const TransformArray* toTransforms =
     static_cast<const TransformArray*>(aTo.mU.mPtr);
 
   
@@ -252,9 +252,9 @@ nsSVGTransformSMILType::Interpolate(const nsSMILValue& aStartVal,
       "Unexpected type for interpolation.");
   NS_PRECONDITION(aResult.mType == this, "Unexpected result type.");
 
-  const TransformArray& startTransforms = 
+  const TransformArray& startTransforms =
     (*static_cast<const TransformArray*>(aStartVal.mU.mPtr));
-  const TransformArray& endTransforms 
+  const TransformArray& endTransforms
     (*static_cast<const TransformArray*>(aEndVal.mU.mPtr));
 
   
@@ -284,7 +284,7 @@ nsSVGTransformSMILType::Interpolate(const nsSMILValue& aStartVal,
   if (!startParams) {
     startParams = identityParams;
   }
-  
+
   const float* endParams = endTransform.mParams;
 
   
@@ -299,7 +299,7 @@ nsSVGTransformSMILType::Interpolate(const nsSMILValue& aStartVal,
   nsSVGSMILTransform resultTransform(endTransform.mTransformType, newParams);
 
   
-  TransformArray& dstTransforms = 
+  TransformArray& dstTransforms =
     (*static_cast<TransformArray*>(aResult.mU.mPtr));
   dstTransforms.Clear();
 
@@ -318,9 +318,9 @@ nsSVGTransformSMILType::GetNumTransforms(const nsSMILValue& aValue) const
 {
   NS_PRECONDITION(aValue.mType == this, "Unexpected SMIL value.");
 
-  const TransformArray& transforms = 
+  const TransformArray& transforms =
     *static_cast<const TransformArray*>(aValue.mU.mPtr);
-  
+
   return transforms.Length();
 }
 
@@ -330,14 +330,14 @@ nsSVGTransformSMILType::GetTransformAt(PRUint32 aIndex,
 {
   NS_PRECONDITION(aValue.mType == this, "Unexpected SMIL value.");
 
-  const TransformArray& transforms = 
+  const TransformArray& transforms =
     *static_cast<const TransformArray*>(aValue.mU.mPtr);
 
   if (aIndex >= transforms.Length()) {
     NS_ERROR("Attempting to access invalid transform.");
     return nsnull;
   }
-  
+
   return &transforms[aIndex];
 }
 

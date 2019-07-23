@@ -85,7 +85,7 @@ nsSMILAnimationController::~nsSMILAnimationController()
 
 nsSMILAnimationController* NS_NewSMILAnimationController(nsIDocument* aDoc)
 {
-  nsSMILAnimationController* animationController = 
+  nsSMILAnimationController* animationController =
     new nsSMILAnimationController();
   NS_ENSURE_TRUE(animationController, nsnull);
 
@@ -267,7 +267,7 @@ RemoveCompositorFromTable(nsSMILCompositor* aCompositor,
                           void* aData)
 {
   nsSMILCompositorTable* lastCompositorTable =
-    static_cast<nsSMILCompositorTable*>(aData); 
+    static_cast<nsSMILCompositorTable*>(aData);
   lastCompositorTable->RemoveEntry(aCompositor->GetKey());
   return PL_DHASH_NEXT;
 }
@@ -331,7 +331,7 @@ nsSMILAnimationController::DoSample(PRBool aSkipUnchangedContainers)
   
 
   
-  nsAutoPtr<nsSMILCompositorTable> 
+  nsAutoPtr<nsSMILCompositorTable>
     currentCompositorTable(new nsSMILCompositorTable());
   if (!currentCompositorTable)
     return;
@@ -371,12 +371,12 @@ nsSMILAnimationController::DoSample(PRBool aSkipUnchangedContainers)
  PR_CALLBACK PLDHashOperator
 nsSMILAnimationController::SampleTimeContainer(TimeContainerPtrKey* aKey,
                                                void* aData)
-{ 
+{
   NS_ENSURE_TRUE(aKey, PL_DHASH_NEXT);
   NS_ENSURE_TRUE(aKey->GetKey(), PL_DHASH_NEXT);
   NS_ENSURE_TRUE(aData, PL_DHASH_NEXT);
 
-  SampleTimeContainerParams* params = 
+  SampleTimeContainerParams* params =
     static_cast<SampleTimeContainerParams*>(aData);
 
   nsSMILTimeContainer* container = aKey->GetKey();
@@ -441,7 +441,7 @@ nsSMILAnimationController::AddAnimationToCompositorTable(
     return;
 
   nsSMILCompositor* result = aCompositorTable->PutEntry(key);
-  
+
   
   
   result->AddAnimationFunction(&aElement->AnimationFunction());
@@ -506,7 +506,7 @@ nsSMILAnimationController::AddChild(nsSMILTimeContainer& aChild)
   if (!mPauseState && mChildContainerTable.Count() == 1) {
     StartTimer();
   }
-    
+
   return NS_OK;
 }
 

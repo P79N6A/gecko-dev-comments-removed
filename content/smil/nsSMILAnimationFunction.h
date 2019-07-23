@@ -174,7 +174,7 @@ public:
 
 
 
- 
+
   
 
 
@@ -323,7 +323,7 @@ protected:
   PRPackedBool                  mHasChanged;
 
   nsSMILTime                    mBeginTime; 
-  
+
   
   
   

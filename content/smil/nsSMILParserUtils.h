@@ -102,7 +102,7 @@ public:
 
 
   static nsresult ParseClockValue(const nsAString& aSpec,
-                                  nsSMILTimeValue* aResult, 
+                                  nsSMILTimeValue* aResult,
                                   PRUint32 aFlags = 0,
                                   PRBool* aIsMedia = nsnull);
 

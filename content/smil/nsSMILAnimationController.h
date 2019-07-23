@@ -74,7 +74,7 @@ public:
   virtual void Pause(PRUint32 aType);
   virtual void Resume(PRUint32 aType);
   virtual nsSMILTime GetParentTime() const;
-  
+
   
   void RegisterAnimationElement(nsISMILAnimationElement* aAnimationElement);
   void UnregisterAnimationElement(nsISMILAnimationElement* aAnimationElement);
@@ -118,7 +118,7 @@ protected:
     TimeContainerHashtable* mActiveContainers;
     nsSMILCompositorTable*  mCompositorTable;
   };
-  
+
   
   friend nsSMILAnimationController*
   NS_NewSMILAnimationController(nsIDocument* aDoc);
@@ -159,7 +159,7 @@ protected:
   AnimationElementHashtable  mAnimationElementTable;
   TimeContainerHashtable     mChildContainerTable;
   PRPackedBool               mResampleNeeded;
-  
+
   
   
   nsIDocument* mDocument;

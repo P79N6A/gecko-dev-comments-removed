@@ -93,7 +93,7 @@ public:
 
   
   void AddAnimationFunction(nsSMILAnimationFunction* aFunc);
-  
+
   
   
   
