@@ -183,7 +183,6 @@ struct JSTreeContext {
     };
 
     JSAtomList      lexdeps;        
-    JSAtomList      upvars;         
     JSTreeContext   *parent;        
     uintN           staticLevel;    
 
