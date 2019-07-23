@@ -68,6 +68,7 @@ class nsStyleChangeList;
 class nsIFrame;
 struct nsGenConInitializer;
 class ChildIterator;
+class nsICSSAnonBoxPseudo;
 
 struct nsFindFrameHint
 {
@@ -321,6 +322,9 @@ private:
   ResolveStyleContext(nsStyleContext* aParentStyleContext,
                       nsIContent* aContent);
 
+  
+  
+  
   nsresult ConstructFrame(nsFrameConstructorState& aState,
                           nsIContent*              aContent,
                           nsIFrame*                aParentFrame,
@@ -419,43 +423,12 @@ private:
   
 
 
-
-
-
-
-
- 
-  nsresult ConstructTableFrame(nsFrameConstructorState& aState,
-                               nsIContent*              aContent,
-                               nsIFrame*                aContentParent,
-                               nsStyleContext*          aStyleContext,
-                               PRInt32                  aNameSpaceID,
-                               PRBool                   aIsPseudo,
-                               nsFrameItems&            aChildItems,
-                               nsIFrame*&               aNewOuterFrame,
-                               nsIFrame*&               aNewInnerFrame);
-
-  
-
-
   nsresult ConstructTableRow(nsFrameConstructorState& aState,
                              FrameConstructionItem&   aItem,
                              nsIFrame*                aParentFrame,
                              const nsStyleDisplay*    aStyleDisplay,
                              nsFrameItems&            aFrameItems,
                              nsIFrame**               aNewFrame);
-
-  
-
-
-  nsresult ConstructTableRowFrame(nsFrameConstructorState& aState,
-                                  nsIContent*              aContent,
-                                  nsIFrame*                aParent,
-                                  nsStyleContext*          aStyleContext,
-                                  PRInt32                  aNameSpaceID,
-                                  PRBool                   aIsPseudo,
-                                  nsFrameItems&            aChildItems,
-                                  nsIFrame*&               aNewFrame);
 
   
 
@@ -477,67 +450,30 @@ private:
                               nsFrameItems&            aFrameItems,
                               nsIFrame**               aNewFrame);
 
+private:
+  
+  enum ParentType {
+    eTypeBlock = 0, 
+    eTypeRow,
+    eTypeRowGroup,
+    eTypeColGroup,
+    eTypeTable,
+    eParentTypeCount
+  };
+
+  
+#define FCDATA_PARENT_TYPE_OFFSET 29
   
 
+#define FCDATA_DESIRED_PARENT_TYPE(_bits)           \
+  ParentType((_bits) >> FCDATA_PARENT_TYPE_OFFSET)
+  
+#define FCDATA_DESIRED_PARENT_TYPE_TO_BITS(_type)     \
+  (((PRUint32)(_type)) << FCDATA_PARENT_TYPE_OFFSET)
 
-  nsresult ConstructTableCellFrame(nsFrameConstructorState& aState,
-                                   nsIContent*              aContent,
-                                   nsIFrame*                aParentFrame,
-                                   nsStyleContext*          aStyleContext,
-                                   PRInt32                  aNameSpaceID,
-                                   PRBool                   aIsPseudo,
-                                   nsFrameItems&            aChildItems,
-                                   nsIFrame*&               aNewCellOuterFrame,
-                                   nsIFrame*&               aNewCellInnerFrame);
+  
+  static ParentType GetParentType(nsIFrame* aParentFrame);
 
-  nsresult CreatePseudoTableFrame(PRInt32                  aNameSpaceID,
-                                  nsFrameConstructorState& aState, 
-                                  nsIFrame*                aParentFrameIn = nsnull);
-
-  nsresult CreatePseudoRowGroupFrame(PRInt32                  aNameSpaceID,
-                                     nsFrameConstructorState& aState, 
-                                     nsIFrame*                aParentFrameIn = nsnull);
-
-  nsresult CreatePseudoColGroupFrame(PRInt32                  aNameSpaceID,
-                                     nsFrameConstructorState& aState, 
-                                     nsIFrame*                aParentFrameIn = nsnull);
-
-  nsresult CreatePseudoRowFrame(PRInt32                  aNameSpaceID,
-                                nsFrameConstructorState& aState, 
-                                nsIFrame*                aParentFrameIn = nsnull);
-
-  nsresult CreatePseudoCellFrame(PRInt32                  aNameSpaceID,
-                                 nsFrameConstructorState& aState, 
-                                 nsIFrame*                aParentFrameIn = nsnull);
-
-  nsresult GetPseudoTableFrame(PRInt32                  aNameSpaceID,
-                               nsFrameConstructorState& aState, 
-                               nsIFrame&                aParentFrameIn);
-
-  nsresult GetPseudoColGroupFrame(PRInt32                  aNameSpaceID,
-                                  nsFrameConstructorState& aState, 
-                                  nsIFrame&                aParentFrameIn);
-
-  nsresult GetPseudoRowGroupFrame(PRInt32                  aNameSpaceID,
-                                  nsFrameConstructorState& aState, 
-                                  nsIFrame&                aParentFrameIn);
-
-  nsresult GetPseudoRowFrame(PRInt32                  aNameSpaceID,
-                             nsFrameConstructorState& aState, 
-                             nsIFrame&                aParentFrameIn);
-
-  nsresult GetPseudoCellFrame(PRInt32                  aNameSpaceID,
-                              nsFrameConstructorState& aState, 
-                              nsIFrame&                aParentFrameIn);
-
-  nsresult CreateRequiredPseudoFrames(PRInt32                  aNameSpaceID,
-                                      nsIFrame&                aParentFrameIn,
-                                      nsIAtom*                 aChildFrameType,
-                                      nsFrameConstructorState& aState,
-                                      nsIFrame*&               aParentFrame,
-                                      PRBool&                  aIsPseudoParent);
-
-private:
   
 
 
@@ -654,6 +590,11 @@ private:
   
 
 #define FCDATA_ALLOW_BLOCK_STYLES 0x8000
+  
+
+
+
+#define FCDATA_USE_CHILD_ITEMS 0x10000
 
   
 
@@ -695,6 +636,16 @@ private:
 
   
 
+  struct PseudoParentData {
+    const FrameConstructionData mFCData;
+    nsICSSAnonBoxPseudo * const * const mPseudoType;
+  };
+  
+
+  static const PseudoParentData sPseudoParentData[eParentTypeCount];
+
+  
+
 
 
 
@@ -724,6 +675,7 @@ private:
       mItemCount(0)
     {
       PR_INIT_CLIST(&mItems);
+      memset(mDesiredParentCounts, 0, sizeof(mDesiredParentCounts));
     }
 
     ~FrameConstructionItemList() {
@@ -749,6 +701,9 @@ private:
       NS_ASSERTION(!IsEmpty(), "Someone forgot to check IsEmpty()");
       return ToItem(PR_LIST_TAIL(&mItems))->mHasInlineEnds;
     }
+    PRBool AllWantParentType(ParentType aDesiredParentType) const {
+      return mDesiredParentCounts[aDesiredParentType] == mItemCount;
+    }
 
     FrameConstructionItem* AppendItem(const FrameConstructionData* aFCData,
                                       nsIContent* aContent,
@@ -762,6 +717,7 @@ private:
       if (item) {
         PR_APPEND_LINK(item, &mItems);
         ++mItemCount;
+        ++mDesiredParentCounts[item->DesiredParentType()];
       } else {
         
         nsRefPtr<nsStyleContext> sc(aStyleContext);
@@ -774,24 +730,72 @@ private:
 
     class Iterator;
     friend class Iterator;
+
     class Iterator {
     public:
       Iterator(FrameConstructionItemList& list) :
         mCurrent(PR_NEXT_LINK(&list.mItems)),
-        mEnd(&list.mItems)
+        mEnd(&list.mItems),
+        mList(list)
+      {}
+      Iterator(const Iterator& aOther) :
+        mCurrent(aOther.mCurrent),
+        mEnd(aOther.mEnd),
+        mList(aOther.mList)
       {}
 
+      PRBool operator==(const Iterator& aOther) const {
+        NS_ASSERTION(mEnd == aOther.mEnd, "Iterators for different lists?");
+        return mCurrent == aOther.mCurrent;
+      }
+      PRBool operator!=(const Iterator& aOther) const {
+        return !(*this == aOther);
+      }
+
       operator FrameConstructionItem& () {
+        return item();
+      }
+
+      FrameConstructionItem& item() {
         return *FrameConstructionItemList::ToItem(mCurrent);
       }
       PRBool IsDone() const { return mCurrent == mEnd; }
+      PRBool AtStart() const { return mCurrent == PR_NEXT_LINK(mEnd); }
       void Next() {
         NS_ASSERTION(!IsDone(), "Should have checked IsDone()!");
         mCurrent = PR_NEXT_LINK(mCurrent);
       }
+
+      
+      
+      
+      
+      void AppendItemToList(FrameConstructionItemList& aTargetList);
+
+      
+      
+      
+      
+      
+      
+      void AppendItemsToList(const Iterator& aEnd,
+                             FrameConstructionItemList& aTargetList);
+
+      
+      
+      
+      
+      
+      void InsertItem(FrameConstructionItem* aItem);
+
+      
+      
+      void DeleteItem();
+
     private:
       PRCList* mCurrent;
       PRCList* mEnd;
+      FrameConstructionItemList& mList;
     };
 
   private:
@@ -799,10 +803,15 @@ private:
       return static_cast<FrameConstructionItem*>(item);
     }
 
+    
+    
+    void AdjustCountsForItem(FrameConstructionItem* aItem, PRInt32 aDelta);
+
     PRCList mItems;
     PRUint32 mInlineCount;
     PRUint32 mLineParticipantCount;
     PRUint32 mItemCount;
+    PRUint32 mDesiredParentCounts[eParentTypeCount];
   };
 
   typedef FrameConstructionItemList::Iterator FCItemIterator;
@@ -830,6 +839,13 @@ private:
         mContent->UnbindFromTree();
         NS_RELEASE(mContent);
       }
+    }
+
+    ParentType DesiredParentType() {
+      return FCDATA_DESIRED_PARENT_TYPE(mFCData->mBits);
+    }
+    PRBool IsWhitespace() const {
+      return mIsText && mContent->TextIsOnlyWhitespace();
     }
 
     
@@ -862,7 +878,6 @@ private:
     PRPackedBool mIsPopup;
 
     
-    
     FrameConstructionItemList mChildItems;
 
   private:
@@ -874,13 +889,10 @@ private:
 
 
 
+  nsresult CreateNeededTablePseudos(FrameConstructionItemList& aItems,
+                                    nsIFrame* aParentFrame);
 
-
-
-
-
-
-
+  
 
 
 
@@ -892,15 +904,9 @@ private:
   
   
   
-  nsresult AdjustParentFrame(nsFrameConstructorState&     aState,
-                             nsIContent*                  aChildContent,
-                             nsIFrame* &                  aParentFrame,
-                             const FrameConstructionData* aFCData,
-                             PRInt32                      aNameSpaceID,
-                             nsStyleContext*              aStyleContext,
-                             nsFrameItems* &              aFrameItems,
-                             nsFrameConstructorSaveState& aSaveState,
-                             PRBool&                      aCreatedPseudo);
+  void AdjustParentFrame(nsIFrame* &                  aParentFrame,
+                         const FrameConstructionData* aFCData,
+                         nsStyleContext*              aStyleContext);
 
   
 
@@ -950,8 +956,7 @@ private:
                               nsIContent*              aContent,
                               nsIFrame*                aParentFrame,
                               nsStyleContext*          aStyleContext,
-                              nsFrameItems&            aFrameItems,
-                              PRBool                   aPseudoParent);
+                              nsFrameItems&            aFrameItems);
 
   void AddPageBreakItem(nsIContent* aContent,
                         nsStyleContext* aMainStyleContext,
@@ -987,12 +992,10 @@ private:
 
 
 
-
   nsresult ConstructFrameFromItemInternal(FrameConstructionItem& aItem,
                                           nsFrameConstructorState& aState,
                                           nsIFrame* aParentFrame,
-                                          nsFrameItems& aFrameItems,
-                                          PRBool aHasPseudoParent);
+                                          nsFrameItems& aFrameItems);
 
   
   
@@ -1334,7 +1337,6 @@ private:
                              FrameConstructionItem& aParentItem);
 
   
-
 
 
 
