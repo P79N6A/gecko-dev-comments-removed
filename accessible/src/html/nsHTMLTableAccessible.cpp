@@ -717,7 +717,7 @@ NS_IMETHODIMP nsHTMLTableAccessible::GetDescription(nsAString& aDescription)
 }
 #endif
 
-PRBool nsHTMLTableAccessible::HasDescendant(char *aTagName)
+PRBool nsHTMLTableAccessible::HasDescendant(char *aTagName, PRBool aAllowEmpty)
 {
   nsCOMPtr<nsIDOMElement> tableElt(do_QueryInterface(mDOMNode));
   NS_ENSURE_TRUE(tableElt, PR_FALSE);
@@ -732,9 +732,28 @@ PRBool nsHTMLTableAccessible::HasDescendant(char *aTagName)
   
   if (length == 1) {
     
-    nsCOMPtr<nsIDOMNode> firstItem;
-    nodeList->Item(0, getter_AddRefs(firstItem));
-    return firstItem != mDOMNode;
+    nsCOMPtr<nsIDOMNode> foundItem;
+    nodeList->Item(0, getter_AddRefs(foundItem));
+    if (foundItem == mDOMNode) {
+      return PR_FALSE;
+    }
+    if (!aAllowEmpty) {
+      
+      
+      
+      nsCOMPtr<nsIContent> foundItemContent = do_QueryInterface(foundItem);
+      if (!foundItemContent) {
+        return PR_FALSE;
+      }
+      if (foundItemContent->GetChildCount() > 1) {
+        return PR_TRUE; 
+      }
+      nsIContent *innerItemContent = foundItemContent->GetChildAt(0);
+      if (!innerItemContent || innerItemContent->TextIsOnlyWhitespace()) {
+        return PR_FALSE;
+      }
+    }
+    return PR_TRUE;
   }
 
   return length > 0;
@@ -777,8 +796,10 @@ NS_IMETHODIMP nsHTMLTableAccessible::IsProbablyForLayout(PRBool *aIsProbablyForL
   }
   
   
-  if (content->HasAttr(kNameSpaceID_None, nsAccessibilityAtoms::summary) || HasDescendant("caption") || 
-      HasDescendant("th") || HasDescendant("thead") || HasDescendant("tfoot") || HasDescendant("colgroup")) {
+  nsAutoString summary;
+  if ((content->GetAttr(kNameSpaceID_None, nsAccessibilityAtoms::summary, summary) && !summary.IsEmpty()) || 
+      HasDescendant("caption", PR_FALSE) || HasDescendant("th") || HasDescendant("thead") ||
+      HasDescendant("tfoot")   || HasDescendant("colgroup")) {
     RETURN_LAYOUT_ANSWER(PR_FALSE, "Has caption, summary, th, thead, tfoot or colgroup -- legitimate table structures");
   }
   if (HasDescendant("table")) {
