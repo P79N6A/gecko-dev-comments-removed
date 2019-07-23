@@ -134,10 +134,12 @@ public:
   
   
 
+  nsIContent* GetParentElement();
+
   
   
   
-  nsSVGSVGElement* GetCtx();
+  virtual nsSVGSVGElement* GetCtx();
 
   virtual void DidChangeLength(PRUint8 aAttrEnum, PRBool aDoSetAttr);
   virtual void DidChangeNumber(PRUint8 aAttrEnum, PRBool aDoSetAttr);
