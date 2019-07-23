@@ -1739,9 +1739,6 @@ BEGIN_CASE(JSOP_SETMETHOD)
 
 
 
-                JS_ASSERT(!(obj->getClass()->flags &
-                            JSCLASS_SHARE_ALL_PROPERTIES));
-
                 PCMETER(cache->pchits++);
                 PCMETER(cache->addpchits++);
 
@@ -3346,7 +3343,6 @@ BEGIN_CASE(JSOP_INITMETHOD)
     obj = JSVAL_TO_OBJECT(lval);
     JS_ASSERT(obj->isNative());
     JS_ASSERT(!obj->getClass()->reserveSlots);
-    JS_ASSERT(!(obj->getClass()->flags & JSCLASS_SHARE_ALL_PROPERTIES));
 
     JSScope *scope = obj->scope();
     PropertyCacheEntry *entry;
