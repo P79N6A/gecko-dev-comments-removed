@@ -1606,6 +1606,7 @@ public:
   
   void Pop();
 
+  nsIScriptContext* GetCurrentScriptContext() { return mScx; }
 private:
   
   PRBool DoPush(JSContext* cx);
