@@ -546,10 +546,26 @@ XPCWrappedNative::GetNewOrUsed(XPCCallContext& ccx,
                      PostCreate(wrapper, ccx, wrapper->GetFlatJSObject());
             if(NS_FAILED(rv))
             {
+                
+                
+                
+                
+                
+                
+                
+                
+                NS_ERROR("PostCreate failed! This is known to cause "
+                         "inconsistent state for some class types and may even "
+                         "cause a crash in combination with a JS GC. Fix the "
+                         "failing PostCreate ASAP!");
+
                 {   
                     XPCAutoLock lock(mapLock);
                     map->Remove(wrapper);
                 }
+
+                
+                
 
                 wrapper->Release();
                 return rv;
@@ -671,6 +687,9 @@ XPCWrappedNative::~XPCWrappedNative()
 
         
         XPCAutoLock lock(GetRuntime()->GetMapLock());
+
+        
+        
         map->Remove(this);
     }
 
