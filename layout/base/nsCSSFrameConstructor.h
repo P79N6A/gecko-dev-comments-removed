@@ -1010,27 +1010,49 @@ private:
   
   
   
-  nsIFrame* FindPreviousSibling(nsIContent*       aContainer,
-                                nsIFrame*         aContainerFrame,
-                                PRInt32           aIndexInContainer,
-                                const nsIContent* aChild = nsnull);
+  
+  
+  
+  
+  nsIFrame* FindFrameForContentSibling(nsIContent* aContent,
+                                       nsIContent* aTargetContent,
+                                       PRUint8& aTargetContentDisplay,
+                                       PRBool aPrevSibling);
 
   
   
-  nsIFrame* FindNextSibling(nsIContent*       aContainer,
-                            nsIFrame*         aContainerFrame,
-                            PRInt32           aIndexInContainer,
-                            const nsIContent* aChild = nsnull);
+  nsIFrame* FindPreviousSibling(nsIContent* aContainer,
+                                PRInt32     aIndexInContainer,
+                                nsIContent* aChild);
+
+  
+  nsIFrame* FindNextSibling(nsIContent* aContainer,
+                            PRInt32     aIndexInContainer,
+                            nsIContent* aChild);
 
   
   
   
   
-  PRBool IsValidSibling(nsIFrame*              aParentFrame,
-                        nsIFrame*              aSibling,
-                        PRUint8                aSiblingDisplay,
-                        nsIContent&            aContent,
+  PRBool IsValidSibling(nsIFrame*              aSibling,
+                        nsIContent*            aContent,
                         PRUint8&               aDisplay);
+  
+  
+
+
+
+  nsIFrame*
+  FindPreviousAnonymousSibling(nsIContent*   aContainer,
+                               nsIContent*   aChild);
+
+  
+
+
+
+  nsIFrame*
+  FindNextAnonymousSibling(nsIContent*   aContainer,
+                           nsIContent*   aChild);
 
   void QuotesDirty() {
     NS_PRECONDITION(mUpdateCount != 0, "Instant quote updates are bad news");

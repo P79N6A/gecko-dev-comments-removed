@@ -8212,19 +8212,13 @@ nsCSSFrameConstructor::AppendFrames(nsFrameConstructorState&       aState,
                                     aFrameList.childList);
 }
 
+#define UNSET_DISPLAY 255
 
-
-
-
-static nsIFrame*
-FindPreviousAnonymousSibling(nsIPresShell* aPresShell,
-                             nsIDocument*  aDocument,
-                             nsIContent*   aContainer,
-                             nsIContent*   aChild)
+nsIFrame*
+nsCSSFrameConstructor::FindPreviousAnonymousSibling(nsIContent*   aContainer,
+                                                    nsIContent*   aChild)
 {
-  NS_PRECONDITION(aDocument, "null document from content element in FindNextAnonymousSibling");
-
-  nsCOMPtr<nsIDOMDocumentXBL> xblDoc(do_QueryInterface(aDocument));
+  nsCOMPtr<nsIDOMDocumentXBL> xblDoc(do_QueryInterface(mDocument));
   NS_ASSERTION(xblDoc, "null xblDoc for content element in FindNextAnonymousSibling");
   if (! xblDoc)
     return nsnull;
@@ -8253,6 +8247,7 @@ FindPreviousAnonymousSibling(nsIPresShell* aPresShell,
 
   
   
+  PRUint8 childDisplay = UNSET_DISPLAY;
   while (--index >= 0) {
     nsCOMPtr<nsIDOMNode> node;
     nodeList->Item(PRUint32(index), getter_AddRefs(node));
@@ -8261,31 +8256,9 @@ FindPreviousAnonymousSibling(nsIPresShell* aPresShell,
 
     
     
-    nsIFrame* prevSibling = aPresShell->GetPrimaryFrameFor(child);
+    nsIFrame* prevSibling = FindFrameForContentSibling(child, aChild,
+                                                       childDisplay, PR_TRUE);
     if (prevSibling) {
-      
-      
-      if (IsFrameSpecial(prevSibling)) {
-        prevSibling = GetLastSpecialSibling(prevSibling);
-      }
-
-      
-      
-      if (prevSibling->GetStateBits() & NS_FRAME_OUT_OF_FLOW) {
-        nsIFrame *placeholderFrame;
-        aPresShell->GetPlaceholderFrameFor(prevSibling, &placeholderFrame);
-        NS_ASSERTION(placeholderFrame, "no placeholder for out-of-flow frame");
-        prevSibling = placeholderFrame;
-      }
-
-      
-      
-      prevSibling = prevSibling->GetLastContinuation();
-      while (prevSibling->GetStateBits() & NS_FRAME_IS_OVERFLOW_CONTAINER) {
-        prevSibling = prevSibling->GetPrevInFlow();
-        NS_ASSERTION(prevSibling, "first-in-flow can't be overflow container");
-      }
-
       
       return prevSibling;
     }
@@ -8298,15 +8271,11 @@ FindPreviousAnonymousSibling(nsIPresShell* aPresShell,
 
 
 
-static nsIFrame*
-FindNextAnonymousSibling(nsIPresShell* aPresShell,
-                         nsIDocument*  aDocument,
-                         nsIContent*   aContainer,
-                         nsIContent*   aChild)
+nsIFrame*
+nsCSSFrameConstructor::FindNextAnonymousSibling(nsIContent*   aContainer,
+                                                nsIContent*   aChild)
 {
-  NS_PRECONDITION(aDocument, "null document from content element in FindNextAnonymousSibling");
-
-  nsCOMPtr<nsIDOMDocumentXBL> xblDoc(do_QueryInterface(aDocument));
+  nsCOMPtr<nsIDOMDocumentXBL> xblDoc(do_QueryInterface(mDocument));
   NS_ASSERTION(xblDoc, "null xblDoc for content element in FindNextAnonymousSibling");
   if (! xblDoc)
     return nsnull;
@@ -8334,6 +8303,7 @@ FindNextAnonymousSibling(nsIPresShell* aPresShell,
 
   
   
+  PRUint8 childDisplay = UNSET_DISPLAY;
   while (++index < PRInt32(length)) {
     nsCOMPtr<nsIDOMNode> node;
     nodeList->Item(PRUint32(index), getter_AddRefs(node));
@@ -8341,21 +8311,9 @@ FindNextAnonymousSibling(nsIPresShell* aPresShell,
     nsCOMPtr<nsIContent> child = do_QueryInterface(node);
 
     
-    nsIFrame* nextSibling = aPresShell->GetPrimaryFrameFor(child);
+    nsIFrame* nextSibling = FindFrameForContentSibling(child, aChild,
+                                                       childDisplay, PR_FALSE);
     if (nextSibling) {
-      
-      NS_ASSERTION(!nextSibling->GetPrevInFlow(),
-                   "primary frame is a continuation!?");
-
-      
-      
-      if (nextSibling->GetStateBits() & NS_FRAME_OUT_OF_FLOW) {
-        nsIFrame* placeholderFrame;
-        aPresShell->GetPlaceholderFrameFor(nextSibling, &placeholderFrame);
-        NS_ASSERTION(placeholderFrame, "no placeholder for out-of-flow frame");
-        nextSibling = placeholderFrame;
-      }
-
       
       return nextSibling;
     }
@@ -8364,25 +8322,25 @@ FindNextAnonymousSibling(nsIPresShell* aPresShell,
   return nsnull;
 }
 
-#define UNSET_DISPLAY 255
 
 
 
 
 
 PRBool
-nsCSSFrameConstructor::IsValidSibling(nsIFrame*              aParentFrame,
-                                      nsIFrame*              aSibling,
-                                      PRUint8                aSiblingDisplay,
-                                      nsIContent&            aContent,
+nsCSSFrameConstructor::IsValidSibling(nsIFrame*              aSibling,
+                                      nsIContent*            aContent,
                                       PRUint8&               aDisplay)
 {
-  if ((NS_STYLE_DISPLAY_TABLE_COLUMN_GROUP == aSiblingDisplay) ||
-      (NS_STYLE_DISPLAY_TABLE_COLUMN       == aSiblingDisplay) ||
-      (NS_STYLE_DISPLAY_TABLE_CAPTION      == aSiblingDisplay) ||
-      (NS_STYLE_DISPLAY_TABLE_HEADER_GROUP == aSiblingDisplay) ||
-      (NS_STYLE_DISPLAY_TABLE_ROW_GROUP    == aSiblingDisplay) ||
-      (NS_STYLE_DISPLAY_TABLE_FOOTER_GROUP == aSiblingDisplay)) {
+  nsIAtom* parentType = aSibling->GetParent()->GetType();
+  PRUint8 siblingDisplay = aSibling->GetStyleDisplay()->mDisplay;
+  if ((NS_STYLE_DISPLAY_TABLE_COLUMN_GROUP == siblingDisplay) ||
+      (NS_STYLE_DISPLAY_TABLE_COLUMN       == siblingDisplay) ||
+      (NS_STYLE_DISPLAY_TABLE_CAPTION      == siblingDisplay) ||
+      (NS_STYLE_DISPLAY_TABLE_HEADER_GROUP == siblingDisplay) ||
+      (NS_STYLE_DISPLAY_TABLE_ROW_GROUP    == siblingDisplay) ||
+      (NS_STYLE_DISPLAY_TABLE_FOOTER_GROUP == siblingDisplay) ||
+      nsGkAtoms::menuFrame == parentType) {
     
     if (UNSET_DISPLAY == aDisplay) {
       nsRefPtr<nsStyleContext> styleContext;
@@ -8396,12 +8354,17 @@ nsCSSFrameConstructor::IsValidSibling(nsIFrame*              aParentFrame,
         NS_NOTREACHED("Shouldn't happen");
         return PR_FALSE;
       }
-      styleContext = ResolveStyleContext(styleParent, &aContent);
+      styleContext = ResolveStyleContext(styleParent, aContent);
       if (!styleContext) return PR_FALSE;
       const nsStyleDisplay* display = styleContext->GetStyleDisplay();
       aDisplay = display->mDisplay;
     }
-    switch (aSiblingDisplay) {
+    if (nsGkAtoms::menuFrame == parentType) {
+      return
+        (NS_STYLE_DISPLAY_POPUP == aDisplay) ==
+        (NS_STYLE_DISPLAY_POPUP == siblingDisplay);
+    }
+    switch (siblingDisplay) {
     case NS_STYLE_DISPLAY_TABLE_COLUMN_GROUP:
       return (NS_STYLE_DISPLAY_TABLE_COLUMN_GROUP == aDisplay);
     case NS_STYLE_DISPLAY_TABLE_COLUMN:
@@ -8415,10 +8378,10 @@ nsCSSFrameConstructor::IsValidSibling(nsIFrame*              aParentFrame,
              (NS_STYLE_DISPLAY_TABLE_CAPTION      == aDisplay);
     }
   }
-  else if (nsGkAtoms::fieldSetFrame == aParentFrame->GetType()) {
+  else if (nsGkAtoms::fieldSetFrame == parentType) {
     
     nsIAtom* sibType = aSibling->GetType();
-    nsCOMPtr<nsIDOMHTMLLegendElement> legendContent(do_QueryInterface(&aContent));
+    nsCOMPtr<nsIDOMHTMLLegendElement> legendContent(do_QueryInterface(aContent));
 
     if ((legendContent  && (nsGkAtoms::legendFrame != sibType)) ||
         (!legendContent && (nsGkAtoms::legendFrame == sibType)))
@@ -8428,15 +8391,61 @@ nsCSSFrameConstructor::IsValidSibling(nsIFrame*              aParentFrame,
   return PR_TRUE;
 }
 
+nsIFrame*
+nsCSSFrameConstructor::FindFrameForContentSibling(nsIContent* aContent,
+                                                  nsIContent* aTargetContent,
+                                                  PRUint8& aTargetContentDisplay,
+                                                  PRBool aPrevSibling)
+{
+  nsIFrame* sibling = mPresShell->GetPrimaryFrameFor(aContent);
+  if (!sibling) {
+    return nsnull;
+  }
+
+  
+  
+  if (sibling->GetStateBits() & NS_FRAME_OUT_OF_FLOW) {
+    nsIFrame* placeholderFrame;
+    mPresShell->GetPlaceholderFrameFor(sibling, &placeholderFrame);
+    NS_ASSERTION(placeholderFrame, "no placeholder for out-of-flow frame");
+    sibling = placeholderFrame;
+  }
+
+  
+  NS_ASSERTION(!sibling->GetPrevContinuation(), "How did that happen?");
+
+  if (aPrevSibling) {
+    
+    
+    if (IsFrameSpecial(sibling)) {
+      sibling = GetLastSpecialSibling(sibling);
+    }
+
+    
+    
+    sibling = sibling->GetLastContinuation();
+    while (sibling->GetStateBits() & NS_FRAME_IS_OVERFLOW_CONTAINER) {
+      sibling = sibling->GetPrevInFlow();
+      NS_ASSERTION(sibling, "first-in-flow can't be overflow container");
+    }
+  }
+
+  if (aTargetContent &&
+      !IsValidSibling(sibling, aTargetContent, aTargetContentDisplay)) {
+    sibling = nsnull;
+  }
+
+  return sibling;
+}
+
 
 
 
 
 nsIFrame*
-nsCSSFrameConstructor::FindPreviousSibling(nsIContent*       aContainer,
-                                           nsIFrame*         aContainerFrame,
-                                           PRInt32           aIndexInContainer,
-                                           const nsIContent* aChild)
+nsCSSFrameConstructor::FindPreviousSibling(nsIContent* aContainer,
+                                           PRInt32     aIndexInContainer,
+                                           nsIContent* aChild)
 {
   NS_ASSERTION(aContainer, "null argument");
 
@@ -8449,38 +8458,11 @@ nsCSSFrameConstructor::FindPreviousSibling(nsIContent*       aContainer,
   
   
   while (iter-- != first) {
-    nsIFrame* prevSibling = mPresShell->GetPrimaryFrameFor(nsCOMPtr<nsIContent>(*iter));
+    nsIFrame* prevSibling =
+      FindFrameForContentSibling(nsCOMPtr<nsIContent>(*iter), aChild,
+                                 childDisplay, PR_TRUE);
 
     if (prevSibling) {
-      
-      
-      if (IsFrameSpecial(prevSibling)) {
-        prevSibling = GetLastSpecialSibling(prevSibling);
-      }
-
-      
-      
-      if (prevSibling->GetStateBits() & NS_FRAME_OUT_OF_FLOW) {
-        nsIFrame* placeholderFrame;
-        mPresShell->GetPlaceholderFrameFor(prevSibling, &placeholderFrame);
-        NS_ASSERTION(placeholderFrame, "no placeholder for out-of-flow frame");
-        prevSibling = placeholderFrame;
-      }
-
-      
-      
-      prevSibling = prevSibling->GetLastContinuation();
-      while (prevSibling->GetStateBits() & NS_FRAME_IS_OVERFLOW_CONTAINER) {
-        prevSibling = prevSibling->GetPrevInFlow();
-        NS_ASSERTION(prevSibling, "first-in-flow can't be overflow container");
-      }
-
-      const nsStyleDisplay* display = prevSibling->GetStyleDisplay();
-      if (aChild && !IsValidSibling(aContainerFrame, prevSibling,
-                                    display->mDisplay, (nsIContent&)*aChild,
-                                    childDisplay))
-        continue;
-
 #ifdef DEBUG
       nsIFrame* containerFrame = nsnull;
       containerFrame = mPresShell->GetPrimaryFrameFor(aContainer);
@@ -8499,10 +8481,9 @@ nsCSSFrameConstructor::FindPreviousSibling(nsIContent*       aContainer,
 
 
 nsIFrame*
-nsCSSFrameConstructor::FindNextSibling(nsIContent*       aContainer,
-                                       nsIFrame*         aContainerFrame,
-                                       PRInt32           aIndexInContainer,
-                                       const nsIContent* aChild)
+nsCSSFrameConstructor::FindNextSibling(nsIContent* aContainer,
+                                       PRInt32     aIndexInContainer,
+                                       nsIContent* aChild)
 {
   ChildIterator iter, last;
   nsresult rv = ChildIterator::Init(aContainer, &iter, &last);
@@ -8517,32 +8498,10 @@ nsCSSFrameConstructor::FindNextSibling(nsIContent*       aContainer,
 
   while (++iter != last) {
     nsIFrame* nextSibling =
-      mPresShell->GetPrimaryFrameFor(nsCOMPtr<nsIContent>(*iter));
+      FindFrameForContentSibling(nsCOMPtr<nsIContent>(*iter), aChild,
+                                 childDisplay, PR_FALSE);
 
     if (nextSibling) {
-      
-      NS_ASSERTION(!nextSibling->GetPrevInFlow(),
-                   "primary frame is a continuation!?");
-
-      
-      
-      const nsStyleDisplay* display = nextSibling->GetStyleDisplay();
-
-      if (aChild && !IsValidSibling(aContainerFrame, nextSibling, 
-                                    display->mDisplay, (nsIContent&)*aChild,
-                                    childDisplay))
-        continue;
-
-      
-      
-      if (nextSibling->GetStateBits() & NS_FRAME_OUT_OF_FLOW) {
-        
-        nsIFrame* placeholderFrame;
-        mPresShell->GetPlaceholderFrameFor(nextSibling, &placeholderFrame);
-        NS_ASSERTION(placeholderFrame, "no placeholder for out-of-flow frame");
-        nextSibling = placeholderFrame;
-      }
-
       
       return nextSibling;
     }
@@ -9105,8 +9064,8 @@ nsCSSFrameConstructor::ContentInserted(nsIContent*            aContainer,
   
   
   nsIFrame* prevSibling = (aIndexInContainer >= 0)
-    ? FindPreviousSibling(container, parentFrame, aIndexInContainer, aChild)
-    : FindPreviousAnonymousSibling(mPresShell, mDocument, aContainer, aChild);
+    ? FindPreviousSibling(container, aIndexInContainer, aChild)
+    : FindPreviousAnonymousSibling(aContainer, aChild);
 
   PRBool    isAppend = PR_FALSE;
   nsIFrame* appendAfterFrame;  
@@ -9115,8 +9074,8 @@ nsCSSFrameConstructor::ContentInserted(nsIContent*            aContainer,
   
   if (! prevSibling) {
     nextSibling = (aIndexInContainer >= 0)
-      ? FindNextSibling(container, parentFrame, aIndexInContainer, aChild)
-      : FindNextAnonymousSibling(mPresShell, mDocument, aContainer, aChild);
+      ? FindNextSibling(container, aIndexInContainer, aChild)
+      : FindNextAnonymousSibling(aContainer, aChild);
   }
 
   
@@ -9209,16 +9168,14 @@ nsCSSFrameConstructor::ContentInserted(nsIContent*            aContainer,
       
       
       prevSibling = (aIndexInContainer >= 0)
-        ? FindPreviousSibling(container, parentFrame, aIndexInContainer,
-                              aChild)
-        : FindPreviousAnonymousSibling(mPresShell, mDocument, aContainer,
-                                       aChild);
+        ? FindPreviousSibling(container, aIndexInContainer, aChild)
+        : FindPreviousAnonymousSibling(aContainer, aChild);
 
       
       if (! prevSibling) {
         nextSibling = (aIndexInContainer >= 0)
-          ? FindNextSibling(container, parentFrame, aIndexInContainer, aChild)
-          : FindNextAnonymousSibling(mPresShell, mDocument, aContainer, aChild);
+          ? FindNextSibling(container, aIndexInContainer, aChild)
+          : FindNextAnonymousSibling(aContainer, aChild);
       }
     }
   }
