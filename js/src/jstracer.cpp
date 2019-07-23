@@ -1496,10 +1496,6 @@ js_ExecuteTree(JSContext* cx, Fragment* f, uintN& inlineCallCount)
     JSObject* globalObj = JS_GetGlobalForObject(cx, cx->fp->scopeChain);
     if (OBJ_SCOPE(globalObj)->shape != ti->globalShape) {
         AUDIT(globalShapeMismatchAtEntry);
-        
-        
-        
-        
         debug_only(printf("global shape mismatch, flushing cache.\n"));
         js_FlushJITCache(cx);
         return NULL;
