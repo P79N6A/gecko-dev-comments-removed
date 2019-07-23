@@ -293,10 +293,12 @@ private:
 
 
 
-  void SetValueToCoord(nsROCSSPrimitiveValue* aValue, nsStyleCoord aCoord,
+  void SetValueToCoord(nsROCSSPrimitiveValue* aValue,
+                       const nsStyleCoord& aCoord,
                        PercentageBaseGetter aPercentageBaseGetter = nsnull,
                        const PRInt32 aTable[] = nsnull,
-                       nscoord aMinAppUnits = nscoord_MIN);
+                       nscoord aMinAppUnits = nscoord_MIN,
+                       nscoord aMaxAppUnits = nscoord_MAX);
 
   
 
@@ -304,8 +306,9 @@ private:
 
 
 
-  nscoord StyleCoordToNSCoord(nsStyleCoord aCoord,
-                              PercentageBaseGetter aPercentageBaseGetter);
+  nscoord StyleCoordToNSCoord(const nsStyleCoord& aCoord,
+                              PercentageBaseGetter aPercentageBaseGetter,
+                              nscoord aDefaultValue);
 
   PRBool GetFrameContentWidth(nscoord& aWidth);
   PRBool GetCBContentWidth(nscoord& aWidth);
