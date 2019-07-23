@@ -1449,11 +1449,9 @@ fun_resolve(JSContext *cx, JSObject *obj, jsval id, uintN flags,
 
 
 
-        if (!js_SetClassPrototype(cx, obj, proto,
-                                  JSPROP_ENUMERATE | JSPROP_PERMANENT)) {
-            cx->weakRoots.newborn[GCX_OBJECT] = NULL;
+        if (!js_SetClassPrototype(cx, obj, proto, JSPROP_PERMANENT))
             return JS_FALSE;
-        }
+
         *objp = obj;
         return JS_TRUE;
     }
