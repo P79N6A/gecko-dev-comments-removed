@@ -6665,48 +6665,19 @@ nsWindowSH::OuterObject(nsIXPConnectWrappedNative *wrapper, JSContext * cx,
     
     
     
-
     *_retval = nsnull;
-
     return NS_ERROR_UNEXPECTED;
   }
 
-  
-
-  
-  
-  nsresult rv;
-  if (win->IsChromeWindow()) {
-    
-    JSObject *outerObj = win->GetGlobalJSObject();
-    if (!outerObj) {
-      NS_ASSERTION(origWin->IsOuterWindow(), "What window is this?");
-      *_retval = obj;
-    } else {
-      *_retval = outerObj;
-    }
-
-    rv = NS_OK;
-  } else {
-    JSObject *winObj = win->GetGlobalJSObject();
-    if (!winObj) {
-      NS_ASSERTION(origWin->IsOuterWindow(), "What window is this?");
-      *_retval = obj;
-      rv = NS_OK;
-    } else {
-      JSObject *scope = JS_GetScopeChain(cx);
-      if (!scope) {
-        *_retval = nsnull;
-        return NS_ERROR_FAILURE;
-      }
-      scope = ::JS_GetGlobalForObject(cx, scope);
-      jsval v;
-      rv = sXPConnect->GetXOWForObject(cx, scope, winObj, &v);
-      *_retval = NS_SUCCEEDED(rv) ? JSVAL_TO_OBJECT(v) : nsnull;
-    }
+  JSObject *winObj = win->GetGlobalJSObject();
+  if (!winObj) {
+    NS_ASSERTION(origWin->IsOuterWindow(), "What window is this?");
+    *_retval = obj;
+    return NS_OK;
   }
 
-  return rv;
+  *_retval = winObj;
+  return NS_OK;
 }
 
 NS_IMETHODIMP
