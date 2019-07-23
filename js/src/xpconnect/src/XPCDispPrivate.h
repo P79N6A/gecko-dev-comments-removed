@@ -320,8 +320,8 @@ public:
     
 
 
-    inline void Mark(JSContext*);
-    
+    inline void Mark();
+
     
 
 
