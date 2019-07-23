@@ -90,6 +90,7 @@
 #include "nsStubMutationObserver.h"
 #include "nsIChannel.h"
 #include "nsCycleCollectionParticipant.h"
+#include "nsContentList.h"
 
 
 #include "nsHTMLStyleSheet.h"
@@ -210,6 +211,68 @@ class nsUint32ToContentHashEntry : public PLDHashEntryHdr
     void* mValOrHash;
 };
 
+
+
+
+
+
+
+
+
+
+
+
+
+class nsIdentifierMapEntry : public nsISupportsHashKey
+{
+public:
+  nsIdentifierMapEntry(const nsISupports* aKey) :
+    nsISupportsHashKey(aKey), mNameContentList(nsnull)
+  {
+  }
+  nsIdentifierMapEntry(const nsIdentifierMapEntry& aOther) :
+    nsISupportsHashKey(GetKey())
+  {
+    NS_ERROR("Should never be called");
+  }
+  ~nsIdentifierMapEntry();
+
+  void SetInvalidName();
+  PRBool IsInvalidName();
+  void AddNameContent(nsIContent* aContent);
+  void RemoveNameContent(nsIContent* aContent);
+  PRBool HasNameContentList() {
+    return mNameContentList != nsnull;
+  }
+  nsBaseContentList* GetNameContentList() {
+    return mNameContentList;
+  }
+  nsresult CreateNameContentList();
+
+  
+
+
+
+
+
+  nsIContent* GetIdContent(PRBool* aIsNotInDocument = nsnull);
+  PRBool AddIdContent(nsIContent* aContent);
+  PRBool RemoveIdContent(nsIContent* aContent);
+  void FlagIDNotInDocument();
+
+  void Traverse(nsCycleCollectionTraversalCallback* aCallback);
+
+  void SetDocAllList(nsContentList* aContentList) { mDocAllList = aContentList; }
+  nsContentList* GetDocAllList() { return mDocAllList; }
+
+private:
+  
+  
+  nsSmallVoidArray mIdContentList;
+  
+  nsBaseContentList *mNameContentList;
+  nsRefPtr<nsContentList> mDocAllList;
+};
 
 class nsDocHeaderData
 {
@@ -613,6 +676,12 @@ public:
   NS_DECL_NSIDOMNSEVENTTARGET
 
   
+  NS_DECL_NSIMUTATIONOBSERVER_CONTENTAPPENDED
+  NS_DECL_NSIMUTATIONOBSERVER_CONTENTINSERTED
+  NS_DECL_NSIMUTATIONOBSERVER_CONTENTREMOVED
+  NS_DECL_NSIMUTATIONOBSERVER_ATTRIBUTECHANGED
+
+  
   virtual nsIPrincipal* GetPrincipal();
 
   virtual nsresult Init();
@@ -664,6 +733,13 @@ public:
                                                const nsAString& aClasses,
                                                nsIDOMNodeList** aReturn);
 protected:
+
+  void RegisterNamedItems(nsIContent *aContent);
+  void UnregisterNamedItems(nsIContent *aContent);
+  void UpdateNameTableEntry(nsIContent *aContent);
+  void UpdateIdTableEntry(nsIContent *aContent);
+  void RemoveFromNameTable(nsIContent *aContent);
+  void RemoveFromIdTable(nsIContent *aContent);
 
   
 
@@ -772,6 +848,14 @@ protected:
   nsRefPtr<nsDOMStyleSheetSetList> mStyleSheetSetList;
   nsRefPtr<nsScriptLoader> mScriptLoader;
   nsDocHeaderData* mHeaderData;
+  
+
+
+
+
+
+
+  nsTHashtable<nsIdentifierMapEntry> mIdentifierMap;
 
   nsClassHashtable<nsStringHashKey, nsRadioGroupStruct> mRadioGroups;
 
@@ -787,6 +871,10 @@ protected:
   PRPackedBool mVisible:1;
   
   PRPackedBool mHasHadScriptHandlingObject:1;
+  
+  
+  
+  PRPackedBool mIsRegularHTML:1;
 
   PRPackedBool mHasWarnedAboutBoxObjects:1;
 
@@ -795,6 +883,20 @@ protected:
   PRUint8 mXMLDeclarationBits;
 
   PRUint8 mDefaultElementType;
+
+  PRBool IdTableIsLive() const {
+    
+    return (mIdMissCount & 0x40) != 0;
+  }
+
+  PRBool IdTableShouldBecomeLive() {
+    NS_ASSERTION(!IdTableIsLive(),
+                 "Shouldn't be called if table is already live!");
+    ++mIdMissCount;
+    return IdTableIsLive();
+  }
+
+  PRUint8 mIdMissCount;
 
   nsInterfaceHashtable<nsVoidPtrHashKey, nsPIBoxObject> *mBoxObjectTable;
   nsInterfaceHashtable<nsVoidPtrHashKey, nsISupports> *mContentWrapperHash;

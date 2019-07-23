@@ -79,10 +79,6 @@ public:
   NS_IMETHOD CloneNode(PRBool aDeep, nsIDOMNode** aReturn);
 
   
-  NS_IMETHOD GetElementById(const nsAString& aElementId,
-                            nsIDOMElement** aReturn);
-
-  
   NS_DECL_NSIINTERFACEREQUESTOR
 
   

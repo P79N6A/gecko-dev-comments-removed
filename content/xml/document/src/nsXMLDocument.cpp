@@ -563,36 +563,6 @@ nsXMLDocument::CloneNode(PRBool aDeep, nsIDOMNode** aReturn)
  
 
 
-NS_IMETHODIMP
-nsXMLDocument::GetElementById(const nsAString& aElementId,
-                              nsIDOMElement** aReturn)
-{
-  NS_ENSURE_ARG_POINTER(aReturn);
-  *aReturn = nsnull;
-
-  if (!CheckGetElementByIdArg(aElementId))
-    return NS_OK;
-
-  
-  
-  
-  nsIContent* root = GetRootContent();
-  if (!root)
-    return NS_OK;
-
-  
-  
-  
-  nsIContent *content =
-    nsContentUtils::MatchElementId(root, aElementId);
-
-  if (!content) {
-    return NS_OK;
-  }
-
-  return CallQueryInterface(content, aReturn);
-}
-
 nsresult
 nsXMLDocument::Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const
 {

@@ -1214,6 +1214,12 @@ public:
 
 
 
+  static nsIAtom* IsNamedItem(nsIContent* aContent);
+
+  
+
+
+
 
 
 

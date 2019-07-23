@@ -133,6 +133,12 @@ public:
   
 
 
+
+  PRUint32 GetGeneration() const { return mTable.generation; }
+
+  
+
+
   typedef typename EntryType::KeyType KeyType;
 
   
