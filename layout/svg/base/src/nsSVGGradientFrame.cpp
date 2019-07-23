@@ -324,11 +324,8 @@ nsSVGGradientFrame::GetSpreadMethod()
 PRBool
 nsSVGGradientFrame::SetupPaintServer(gfxContext *aContext,
                                      nsSVGGeometryFrame *aSource,
-                                     float aGraphicOpacity,
-                                     void **aClosure)
+                                     float aGraphicOpacity)
 {
-  *aClosure = nsnull;
-
   PRUint32 nStops = GetStopCount();
 
   

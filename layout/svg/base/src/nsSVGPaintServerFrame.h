@@ -59,8 +59,7 @@ public:
 
   virtual PRBool SetupPaintServer(gfxContext *aContext,
                                   nsSVGGeometryFrame *aSource,
-                                  float aOpacity,
-                                  void **aClosure) = 0;
+                                  float aOpacity) = 0;
   
   NS_IMETHOD QueryInterface(const nsIID& aIID, void** aInstancePtr);
 
