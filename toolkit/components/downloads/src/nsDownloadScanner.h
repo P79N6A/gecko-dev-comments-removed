@@ -1,5 +1,7 @@
 
 
+#if MOZ_WINSDK_TARGETVER >= MOZ_NTDDI_LONGHORN
+
 #ifndef nsDownloadScanner_h_
 #define nsDownloadScanner_h_
 
@@ -124,3 +126,5 @@ private:
   friend class nsDownloadScannerWatchdog;
 };
 #endif
+
+#endif 

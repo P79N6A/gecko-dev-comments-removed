@@ -36,7 +36,9 @@
 
 
 
- 
+
+#if MOZ_WINSDK_TARGETVER >= MOZ_NTDDI_LONGHORN
+
 #include "nsDownloadScanner.h"
 #include <comcat.h>
 #include <process.h>
@@ -944,3 +946,5 @@ nsDownloadScannerWatchdog::WatchdogThread(void *p) {
   _endthreadex(0);
   return 0;
 }
+
+#endif 
