@@ -1615,6 +1615,7 @@ nsresult nsOggDecodeStateMachine::Run()
             continue;
           }
 
+          OggPlayErrorCode r;
           
           do {
             mon.Exit();
