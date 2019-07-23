@@ -34,6 +34,8 @@
 
 
 
+
+
  
 #include "nsDownloadScanner.h"
 #include <comcat.h>
@@ -83,12 +85,22 @@
 
 
 
-
-
 #define PREF_BDA_DONTCLEAN "browser.download.antivirus.dontclean"
 
+
+
+
+
+#ifndef MOZ_VIRUS_SCANNER_PROMPT_GUID
+#define MOZ_VIRUS_SCANNER_PROMPT_GUID \
+  { 0xb50563d1, 0x16b6, 0x43c2, { 0xa6, 0x6a, 0xfa, 0xe6, 0xd2, 0x11, 0xf2, \
+  0xea } }
+#endif
+static const GUID GUID_MozillaVirusScannerPromptGeneric =
+  MOZ_VIRUS_SCANNER_PROMPT_GUID;
+
 nsDownloadScanner::nsDownloadScanner()
-  : mHaveAVScanner(PR_FALSE)
+  : mHaveAVScanner(PR_FALSE), mHaveAttachmentExecute(PR_FALSE)
 {
 }
 
@@ -99,11 +111,28 @@ nsDownloadScanner::Init()
   
   nsresult rv = NS_OK;
   CoInitialize(NULL);
-  if (ListCLSID() < 0)
+  if (!IsAESAvailable() && ListCLSID() < 0)
     rv = NS_ERROR_NOT_AVAILABLE;
   CoUninitialize();
 
   return rv;
+}
+
+PRBool
+nsDownloadScanner::IsAESAvailable()
+{
+  nsRefPtr<IAttachmentExecute> ae;
+  HRESULT hr;
+  hr = CoCreateInstance(CLSID_AttachmentServices, NULL, CLSCTX_INPROC,
+                        IID_IAttachmentExecute, getter_AddRefs(ae));
+  if (FAILED(hr)) {
+    NS_WARNING("Could not instantiate attachment execution service\n");
+    return PR_FALSE;
+  }
+
+  mHaveAVScanner = PR_TRUE;
+  mHaveAttachmentExecute = PR_TRUE;
+  return PR_TRUE;
 }
 
 PRInt32
@@ -181,7 +210,6 @@ nsDownloadScanner::Scan::Start()
   rv = file->GetPath(mPath);
   NS_ENSURE_SUCCESS(rv, rv);
 
-
   
   nsCOMPtr<nsIXULAppInfo> appinfo =
     do_GetService(XULAPPINFO_SERVICE_CONTRACTID, &rv);
@@ -191,7 +219,6 @@ nsDownloadScanner::Scan::Start()
   rv = appinfo->GetName(name);
   NS_ENSURE_SUCCESS(rv, rv);
   CopyUTF8toUTF16(name, mName);
-
 
   
   nsCOMPtr<nsIURI> uri;
@@ -203,7 +230,6 @@ nsDownloadScanner::Scan::Start()
   NS_ENSURE_SUCCESS(rv, rv);
 
   CopyUTF8toUTF16(origin, mOrigin);
-
 
   
   PRBool isHttp(PR_FALSE), isFtp(PR_FALSE), isHttps(PR_FALSE);
@@ -247,7 +273,41 @@ nsDownloadScanner::Scan::Run()
 }
 
 void
-nsDownloadScanner::Scan::DoScan()
+nsDownloadScanner::Scan::DoScanAES()
+{
+  HRESULT hr;
+  nsRefPtr<IAttachmentExecute> ae;
+  hr = CoCreateInstance(CLSID_AttachmentServices, NULL, CLSCTX_ALL,
+                        IID_IAttachmentExecute, getter_AddRefs(ae));
+
+  mStatus = AVSCAN_SCANNING;
+
+  if (SUCCEEDED(hr)) {
+    (void)ae->SetClientGuid(GUID_MozillaVirusScannerPromptGeneric);
+    (void)ae->SetLocalPath(mPath.BeginWriting());
+    (void)ae->SetSource(mOrigin.BeginWriting());
+
+    
+    hr = ae->Save();
+
+    if (SUCCEEDED(hr)) { 
+      mStatus = AVSCAN_GOOD;
+    }
+    else if (HRESULT_CODE(hr) == ERROR_FILE_NOT_FOUND) {
+      NS_WARNING("Downloaded file disappeared before it could be scanned");
+      mStatus = AVSCAN_FAILED;
+    }
+    else { 
+      mStatus = AVSCAN_UGLY;
+    }
+  }
+  else {
+    mStatus = AVSCAN_FAILED;
+  }
+}
+
+void
+nsDownloadScanner::Scan::DoScanOAV()
 {
   HRESULT hr;
   MSOAVINFO info;
@@ -261,8 +321,6 @@ nsDownloadScanner::Scan::DoScan()
   info.pwzHostName = mName.BeginWriting();
   info.u.pwzFullPath = mPath.BeginWriting();
   info.pwzOrigURL = mOrigin.BeginWriting();
-
-  CoInitialize(NULL);
 
   for (PRUint32 i = 0; i < mDLScanner->mScanCLSID.Length(); i++) {
     nsRefPtr<IOfficeAntiVirus> vScanner;
@@ -284,7 +342,7 @@ nsDownloadScanner::Scan::DoScan()
         mStatus = AVSCAN_UGLY;
         continue;
       }
-      else if (hr == ERROR_FILE_NOT_FOUND) {
+      else if (HRESULT_CODE(hr) == ERROR_FILE_NOT_FOUND) {
         NS_WARNING("Downloaded file disappeared before it could be scanned");
         mStatus = AVSCAN_FAILED;
         break;
@@ -299,7 +357,18 @@ nsDownloadScanner::Scan::DoScan()
       }
     }
   }
-  
+}
+
+void
+nsDownloadScanner::Scan::DoScan()
+{
+  CoInitialize(NULL);
+
+  if (mDLScanner->mHaveAttachmentExecute)
+    DoScanAES();
+  else
+    DoScanOAV();
+
   CoUninitialize();
 
   
