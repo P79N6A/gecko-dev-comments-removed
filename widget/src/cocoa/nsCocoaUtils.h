@@ -43,43 +43,10 @@
 
 #import <Cocoa/Cocoa.h>
 
-#if defined(MAC_OS_X_VERSION_10_5) && (MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_5)
-#define NS_LEOPARD_AND_LATER 1
-#endif
-
 #include "nsRect.h"
 #include "nsObjCExceptions.h"
 
 class nsIWidget;
-
-
-
-
-
-
-
-
-
-#ifndef NSINTEGER_DEFINED
-
-typedef int NSInteger;
-typedef unsigned int NSUInteger;
-
-#define NSIntegerMax    LONG_MAX
-#define NSIntegerMin    LONG_MIN
-#define NSUIntegerMax   ULONG_MAX
-
-#define NSINTEGER_DEFINED 1
-
-#endif  
-
-#ifndef CGFLOAT_DEFINED
-typedef float CGFloat;
-# define CGFLOAT_MIN FLT_MIN
-# define CGFLOAT_MAX FLT_MAX
-# define CGFLOAT_IS_DOUBLE 0
-# define CGFLOAT_DEFINED 1
-#endif
 
 
 class nsAutoRetainCocoaObject {
@@ -163,12 +130,6 @@ class nsCocoaUtils
 
   static void PrepareForNativeAppModalDialog();
   static void CleanUpAfterNativeAppModalDialog();
-
-  
-  
-  
-  static unsigned short GetCocoaEventKeyCode(NSEvent *theEvent);
-  static NSUInteger GetCocoaEventModifierFlags(NSEvent *theEvent);
 };
 
 #endif 
