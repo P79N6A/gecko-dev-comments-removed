@@ -80,11 +80,24 @@ if (!profileDir) {
   dirSvc.QueryInterface(Ci.nsIDirectoryService).registerProvider(provider);
 }
 
+
+
+
+
+
+
+
+
 function importDownloadsFile(aFName)
 {
   var file = do_get_file("toolkit/components/downloads/test/unit/" + aFName);
   var newFile = dirSvc.get("ProfD", Ci.nsIFile);
-  file.copyTo(newFile, "downloads.rdf");
+  if (/\.rdf$/i.test(aFName))
+    file.copyTo(newFile, "downloads.rdf");
+  else if (/\.sqlite$/i.test(aFName))
+    file.copyTo(newFile, "downloads.sqlite");
+  else
+    do_throw("Unexpected filename!");
 }
 
 function cleanup()
