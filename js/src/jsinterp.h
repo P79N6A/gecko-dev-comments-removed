@@ -129,9 +129,6 @@ struct JSStackFrame {
     JSObject        *xmlNamespace;  
     JSStackFrame    *displaySave;   
 
-#ifdef DEBUG
-    jsrefcount      pcDisabledSave; 
-#endif
 
 #ifdef __cplusplus 
     inline void assertValidStackDepth(uintN depth);
@@ -615,9 +612,6 @@ js_LeaveWith(JSContext *cx);
 
 extern JS_REQUIRES_STACK JSClass *
 js_IsActiveWithOrBlock(JSContext *cx, JSObject *obj, int stackDepth);
-
-extern jsint
-js_CountWithBlocks(JSContext *cx, JSStackFrame *fp);
 
 
 
