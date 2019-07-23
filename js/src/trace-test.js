@@ -3949,7 +3949,7 @@ test(testLirBufOOM);
 
 
 
-load("trace-test-math.js");
+load("math-trace-tests.js");
 
 
 
