@@ -41,64 +41,35 @@
 
 
 
+Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 let current_test = 0;
 
 function AutoCompleteInput(aSearches) {
   this.searches = aSearches;
 }
 AutoCompleteInput.prototype = {
-  constructor: AutoCompleteInput,
-
-  searches: null,
-
-  minResultsForPopup: 0,
   timeout: 10,
-  searchParam: "",
   textValue: "",
+  searches: null,
+  searchParam: "",
+  popupOpen: false,
+  minResultsForPopup: 0,
+  invalidate: function() {},
   disableAutoComplete: false,
   completeDefaultIndex: false,
-
-  get searchCount() {
-    return this.searches.length;
-  },
-
-  getSearchAt: function(aIndex) {
-    return this.searches[aIndex];
-  },
-
+  get popup() { return this; },
   onSearchBegin: function() {},
   onSearchComplete: function() {},
-
-  popupOpen: false,
-
-  popup: {
-    setSelectedIndex: function(aIndex) {},
-    invalidate: function() {},
-
-    
-    QueryInterface: function(iid) {
-      if (iid.equals(Ci.nsISupports) ||
-          iid.equals(Ci.nsIAutoCompletePopup))
-        return this;
-
-      throw Components.results.NS_ERROR_NO_INTERFACE;
-    }
-  },
-
-  
-  QueryInterface: function(iid) {
-    if (iid.equals(Ci.nsISupports) ||
-        iid.equals(Ci.nsIAutoCompleteInput))
-      return this;
-
-    throw Components.results.NS_ERROR_NO_INTERFACE;
-  }
-}
+  setSelectedIndex: function() {},
+  get searchCount() { return this.searches.length; },
+  getSearchAt: function(aIndex) this.searches[aIndex],
+  QueryInterface: XPCOMUtils.generateQI([Ci.nsIAutoCompleteInput, Ci.nsIAutoCompletePopup])
+};
 
 function ensure_results(aSearch, aExpected)
 {
-  let controller = Components.classes["@mozilla.org/autocomplete/controller;1"].
-                   getService(Components.interfaces.nsIAutoCompleteController);
+  let controller = Cc["@mozilla.org/autocomplete/controller;1"].
+                   getService(Ci.nsIAutoCompleteController);
 
   
   
@@ -106,7 +77,7 @@ function ensure_results(aSearch, aExpected)
 
   controller.input = input;
 
-  var numSearchesStarted = 0;
+  let numSearchesStarted = 0;
   input.onSearchBegin = function() {
     numSearchesStarted++;
     do_check_eq(numSearchesStarted, 1);
@@ -114,13 +85,6 @@ function ensure_results(aSearch, aExpected)
 
   input.onSearchComplete = function() {
     do_check_eq(numSearchesStarted, 1);
-    
-    do_check_eq(controller.searchStatus, aExpected.length ?
-                Ci.nsIAutoCompleteController.STATUS_COMPLETE_MATCH :
-                Ci.nsIAutoCompleteController.STATUS_COMPLETE_NO_MATCH);
-
-    
-    do_check_eq(controller.matchCount, aExpected.length);
 
     
     for (let i = 0; i < controller.matchCount; i++) {
@@ -131,10 +95,12 @@ function ensure_results(aSearch, aExpected)
       let j;
       for (j = 0; j < aExpected.length; j++) {
         let [uri, title] = aExpected[j];
+
         
         if (uri == undefined) continue;
+
         
-        [uri, title] = [kURIs[uri], kTitles[title]];
+        [uri, title] = [iosvc.newURI(kURIs[uri], null, null).spec, kTitles[title]];
 
         
         if (uri == value && title == comment) {
@@ -149,6 +115,14 @@ function ensure_results(aSearch, aExpected)
       if (j == aExpected.length)
         do_throw("Didn't find the current result (" + value + ", " + comment + ") in expected: " + aExpected);
     }
+
+    
+    do_check_eq(controller.matchCount, aExpected.length);
+
+    
+    do_check_eq(controller.searchStatus, aExpected.length ?
+                Ci.nsIAutoCompleteController.STATUS_COMPLETE_MATCH :
+                Ci.nsIAutoCompleteController.STATUS_COMPLETE_NO_MATCH);
 
     
     if (++current_test < gTests.length)
@@ -168,6 +142,8 @@ try {
   var bhist = histsvc.QueryInterface(Ci.nsIBrowserHistory);
   var bmsvc = Cc["@mozilla.org/browser/nav-bookmarks-service;1"].
               getService(Ci.nsINavBookmarksService);
+  var tagsvc = Cc["@mozilla.org/browser/tagging-service;1"].
+               getService(Ci.nsITaggingService);
   var iosvc = Cc["@mozilla.org/network/io-service;1"].
               getService(Ci.nsIIOService);
 } catch(ex) {
@@ -177,21 +153,60 @@ try {
 
 let gDate = new Date(Date.now() - 1000 * 60 * 60) * 1000;
 
-function addPageBook(aURI, aTitle, aBook)
+function addPageBook(aURI, aTitle, aBook, aTags, aKey)
 {
   let uri = iosvc.newURI(kURIs[aURI], null, null);
   let title = kTitles[aTitle];
 
-  print("Adding page/book: " + [aURI, aTitle, aBook, kURIs[aURI], title].join(", "));
+  let out = [aURI, aTitle, aBook, aTags, aKey];
+  out.push("\nuri=" + kURIs[aURI]);
+  out.push("\ntitle=" + title);
+
   
   bhist.addPageWithDetails(uri, title, gDate);
 
   
   if (aBook != undefined) {
     let book = kTitles[aBook];
-    bmsvc.insertBookmark(bmsvc.unfiledBookmarksFolder, uri, bmsvc.DEFAULT_INDEX, book);
+    let bmid = bmsvc.insertBookmark(bmsvc.unfiledBookmarksFolder, uri,
+      bmsvc.DEFAULT_INDEX, book);
+    out.push("\nbook=" + book);
+
+    
+    if (aKey != undefined)
+      bmsvc.setKeywordForBookmark(bmid, aKey);
+
+    
+    if (aTags != undefined && aTags.length > 0) {
+      
+      let tags = aTags.map(function(aTag) kTitles[aTag]);
+      tagsvc.tagURI(uri, tags);
+      out.push("\ntags=" + tags);
+    }
   }
+
+  print("\nAdding page/book/tag: " + out.join(", "));
 }
+
+function run_test() {
+  print("\n");
+  
+  do_test_pending();
+
+  
+  let [description, search, expected, func] = gTests[current_test];
+  print(description);
+
+  
+  if (func)
+    func();
+
+  ensure_results(search, expected);
+}
+
+
+
+
 
 
 let kURIs = [
@@ -202,9 +217,8 @@ let kTitles = [
   "Title with javascript:",
 ];
 
-let kPages = [[0,0], [1,0]];
-for each (let [uri, title, book] in kPages)
-  addPageBook(uri, title, book);
+addPageBook(0, 0); 
+addPageBook(1, 0); 
 
 
 
@@ -221,14 +235,3 @@ let gTests = [
   ["4: Match javascript: with multi-word search",
    "javascript: 5", [[1,0]]],
 ];
-
-function run_test() {
-  print("\n");
-  
-  do_test_pending();
-
-  
-  let [description, search, expected] = gTests[current_test];
-  print(description);
-  ensure_results(search, expected);
-}
