@@ -920,6 +920,21 @@ private:
 #define JS_CALLER      XPCContext::LANG_JS
 
 
+class XPCReadableJSStringWrapper : public nsDependentString
+{
+public:
+    typedef nsDependentString::char_traits char_traits;
+
+    XPCReadableJSStringWrapper(PRUnichar *chars, size_t length) :
+        nsDependentString(chars, length)
+    { }
+
+    XPCReadableJSStringWrapper() :
+        nsDependentString(char_traits::sEmptyBuffer, char_traits::sEmptyBuffer)
+    { SetIsVoid(PR_TRUE); }
+};
+
+
 
 
 
@@ -1019,6 +1034,9 @@ public:
 
     operator JSContext*() const {return GetJSContext();}
 
+    XPCReadableJSStringWrapper *NewStringWrapper(PRUnichar *str, PRUint32 len);
+    void DeleteString(nsAString *string);
+
 #ifdef XPC_IDISPATCH_SUPPORT
     
 
@@ -1103,8 +1121,29 @@ private:
     
     
     JSObject*                       mCallee;
-};
 
+#define XPCCCX_STRING_CACHE_SIZE 2
+
+    
+    
+    struct StringWrapperEntry
+    {
+        StringWrapperEntry()
+            : mInUse(PR_FALSE)
+        {
+        }
+
+        XPCReadableJSStringWrapper mString;
+        PRBool mInUse;
+    };
+
+    
+    
+    
+    
+    
+    char mStringWrapperData[sizeof(StringWrapperEntry) * XPCCCX_STRING_CACHE_SIZE];
+};
 
 
 
@@ -2664,21 +2703,6 @@ private:
 
 
 
-class XPCReadableJSStringWrapper : public nsDependentString
-{
-public:
-    typedef nsDependentString::char_traits char_traits;
-
-    XPCReadableJSStringWrapper(PRUnichar *chars, size_t length) :
-        nsDependentString(chars, length)
-    { }
-
-    XPCReadableJSStringWrapper() :
-        nsDependentString(char_traits::sEmptyBuffer, char_traits::sEmptyBuffer)
-    { SetIsVoid(PR_TRUE); }
-};
-
-
 class XPCStringConvert
 {
 public:
@@ -2686,7 +2710,8 @@ public:
     static JSString *ReadableToJSString(JSContext *cx,
                                         const nsAString &readable);
 
-    static XPCReadableJSStringWrapper *JSStringToReadable(JSString *str);
+    static XPCReadableJSStringWrapper *JSStringToReadable(XPCCallContext& ccx,
+                                                          JSString *str);
 
     static void ShutdownDOMStringFinalizer();
 

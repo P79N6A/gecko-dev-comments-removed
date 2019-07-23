@@ -163,6 +163,16 @@ XPCCallContext::XPCCallContext(XPCContext::LangType callerLanguage,
         SetArgsAndResultPtr(argc, argv, rval);
 
     CHECK_STATE(HAVE_OBJECT);
+
+    
+    StringWrapperEntry *se =
+        reinterpret_cast<StringWrapperEntry*>(&mStringWrapperData);
+
+    PRUint32 i;
+    for(i = 0; i < XPCCCX_STRING_CACHE_SIZE; ++i)
+    {
+        se[i].mInUse = PR_FALSE;
+    }
 }
 
 void
@@ -352,8 +362,73 @@ XPCCallContext::~XPCCallContext()
         }
     }
 
+#ifdef DEBUG
+    {
+        StringWrapperEntry *se =
+            reinterpret_cast<StringWrapperEntry*>(&mStringWrapperData);
+
+        PRUint32 i;
+        for(i = 0; i < XPCCCX_STRING_CACHE_SIZE; ++i)
+        {
+            NS_ASSERTION(!se[i].mInUse, "Uh, string wrapper still in use!");
+        }
+    }
+
     NS_IF_RELEASE(mXPC);
 }
+
+XPCReadableJSStringWrapper *
+XPCCallContext::NewStringWrapper(PRUnichar *str, PRUint32 len)
+{
+    StringWrapperEntry *se =
+        reinterpret_cast<StringWrapperEntry*>(&mStringWrapperData);
+
+    PRUint32 i;
+    for(i = 0; i < XPCCCX_STRING_CACHE_SIZE; ++i)
+    {
+        StringWrapperEntry& ent = se[i];
+
+        if (!ent.mInUse) {
+            ent.mInUse = PR_TRUE;
+
+            
+
+            return new (&ent.mString) XPCReadableJSStringWrapper(str, len);
+        }
+    }
+
+    
+
+    return new XPCReadableJSStringWrapper(str, len);
+}
+
+void
+XPCCallContext::DeleteString(nsAString *string)
+{
+    StringWrapperEntry *se =
+        reinterpret_cast<StringWrapperEntry*>(&mStringWrapperData);
+
+    PRUint32 i;
+    for(i = 0; i < XPCCCX_STRING_CACHE_SIZE; ++i)
+    {
+        StringWrapperEntry& ent = se[i];
+        if (string == &ent.mString)
+        {
+            
+            
+
+            ent.mInUse = PR_FALSE;
+            ent.mString.~XPCReadableJSStringWrapper();
+
+            return;
+        }
+    }
+
+    
+    
+    delete string;
+}
+
 
 NS_IMPL_QUERY_INTERFACE1(XPCCallContext, nsIXPCNativeCallContext)
 NS_IMPL_ADDREF(XPCCallContext)
