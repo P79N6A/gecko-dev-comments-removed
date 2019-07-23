@@ -36,34 +36,36 @@
 
 
 
+
 #ifndef _MOZSTORAGESTATEMENTROW_H_
 #define _MOZSTORAGESTATEMENTROW_H_
 
 #include "mozIStorageStatementWrapper.h"
 #include "nsIXPCScriptable.h"
-#include "mozStorageStatement.h"
-#include "nsString.h"
-#include "nsVoidArray.h"
 
-class mozStorageStatementRow : public mozIStorageStatementRow,
-                               public nsIXPCScriptable
+class mozStorageStatement;
+
+
+namespace mozilla {
+namespace storage {
+
+class StatementRow : public mozIStorageStatementRow
+                   , public nsIXPCScriptable
 {
 public:
-    mozStorageStatementRow(mozStorageStatement *aStatement);
+  NS_DECL_ISUPPORTS
+  NS_DECL_MOZISTORAGESTATEMENTROW
+  NS_DECL_NSIXPCSCRIPTABLE
 
-    
-    NS_DECL_ISUPPORTS
-
-    
-    NS_DECL_MOZISTORAGESTATEMENTROW
-
-    
-    NS_DECL_NSIXPCSCRIPTABLE
+  StatementRow(mozStorageStatement *aStatement);
 protected:
 
-    mozStorageStatement *mStatement;
+  mozStorageStatement *mStatement;
 
-    friend class mozStorageStatement;
+  friend class ::mozStorageStatement;
 };
+
+} 
+} 
 
 #endif 
