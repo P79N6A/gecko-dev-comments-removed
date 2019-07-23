@@ -1209,14 +1209,6 @@ function delayedStartup(isLoadingBlank, mustLoadSidebar) {
 
   
   
-  try {
-    Cc["@mozilla.org/microsummary/service;1"].getService(Ci.nsIMicrosummaryService);
-  } catch (ex) {
-    Components.utils.reportError("Failed to init microsummary service:\n" + ex);
-  }
-
-  
-  
   
   try {
     FullZoom.init();
@@ -1269,6 +1261,17 @@ function delayedStartup(isLoadingBlank, mustLoadSidebar) {
        !gPrefService.getBoolPref("browser.ctrlTab.disallowForScreenReaders")) &&
        gPrefService.getBoolPref("browser.ctrlTab.mostRecentlyUsed"))
     ctrlTab.init();
+
+  
+  
+  
+  setTimeout(function() {
+    try {
+      Cc["@mozilla.org/microsummary/service;1"].getService(Ci.nsIMicrosummaryService);
+    } catch (ex) {
+      Components.utils.reportError("Failed to init microsummary service:\n" + ex);
+    }
+  }, 4000);
 
   
   
