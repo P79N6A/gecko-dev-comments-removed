@@ -80,8 +80,21 @@ NS_NewPrompter(nsIPrompt **result, nsIDOMWindow *aParent)
 nsresult
 NS_NewAuthPrompter(nsIAuthPrompt **result, nsIDOMWindow *aParent)
 {
-
   nsresult rv;
+  nsCOMPtr<nsIPromptFactory> factory =
+    do_GetService(NS_PWMGR_AUTHPROMPTFACTORY);
+  if (factory) {
+    
+    rv = factory->GetPrompt(aParent,
+                            NS_GET_IID(nsIAuthPrompt),
+                            reinterpret_cast<void**>(result));
+    
+    
+    
+    if (rv != NS_NOINTERFACE)
+      return rv;
+  }
+
   *result = 0;
 
   nsPrompt *prompter = new nsPrompt(aParent);
