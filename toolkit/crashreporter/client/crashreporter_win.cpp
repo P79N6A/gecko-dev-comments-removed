@@ -911,7 +911,7 @@ static BOOL CALLBACK CrashReporterDialogProc(HWND hwndDlg, UINT message,
                    Str(ST_REPORTSUBMITSUCCESS).c_str() :
                    Str(ST_SUBMITFAILED).c_str());
     
-    SetTimer(hwndDlg, success ? 1 : 0, 5000, NULL);
+    SetTimer(hwndDlg, 0, 5000, NULL);
     
     return TRUE;
   }
@@ -933,7 +933,8 @@ static BOOL CALLBACK CrashReporterDialogProc(HWND hwndDlg, UINT message,
 
   case WM_TIMER: {
     
-    EndCrashReporterDialog(hwndDlg, wParam);
+    
+    EndCrashReporterDialog(hwndDlg, 1);
     return FALSE;
   }
 
@@ -1027,7 +1028,7 @@ void UIShowDefaultUI()
              MB_OK | MB_ICONSTOP);
 }
 
-void UIShowCrashUI(const string& dumpFile,
+bool UIShowCrashUI(const string& dumpFile,
                    const StringTable& queryParameters,
                    const string& sendURL,
                    const vector<string>& restartArgs)
@@ -1055,8 +1056,8 @@ void UIShowCrashUI(const string& dumpFile,
 
   gRestartArgs = restartArgs;
 
-  DialogBoxParam(NULL, MAKEINTRESOURCE(IDD_SENDDIALOG), NULL,
-                 (DLGPROC)CrashReporterDialogProc, 0);
+  return DialogBoxParam(NULL, MAKEINTRESOURCE(IDD_SENDDIALOG), NULL,
+                        (DLGPROC)CrashReporterDialogProc, 0) == 1;
 }
 
 void UIError_impl(const string& message)

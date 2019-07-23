@@ -100,6 +100,7 @@ namespace CrashReporter {
                           StringTable& strings,
                           bool escape);
   void LogMessage(const std::string& message);
+  void DeleteDump();
 }
 
 
@@ -113,7 +114,9 @@ void UIShutdown();
 void UIShowDefaultUI();
 
 
-void UIShowCrashUI(const std::string& dumpfile,
+
+
+bool UIShowCrashUI(const std::string& dumpfile,
                    const StringTable& queryParameters,
                    const std::string& sendURL,
                    const std::vector<std::string>& restartArgs);
