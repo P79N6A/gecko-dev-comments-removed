@@ -581,7 +581,11 @@ var AddonUpdateChecker = {
 
 
 
+
+
+
   getCompatibilityUpdate: function AUC_getCompatibilityUpdate(updates, version,
+                                                              ignoreCompatibility,
                                                               appVersion,
                                                               platformVersion) {
     if (!appVersion)
@@ -590,9 +594,18 @@ var AddonUpdateChecker = {
       platformVersion = Services.appinfo.platformVersion;
 
     for (let i = 0; i < updates.length; i++) {
-      if ((Services.vc.compare(updates[i].version, version) == 0) &&
-          matchesVersions(updates[i], appVersion, platformVersion))
-        return updates[i];
+      if (Services.vc.compare(updates[i].version, version) == 0) {
+        if (ignoreCompatibility) {
+          for (let j = 0; j < updates[i].targetApplications.length; j++) {
+            let id = updates[i].targetApplications[j].id;
+            if (id == Services.appinfo.ID || id == TOOLKIT_ID)
+              return updates[i];
+          }
+        }
+        else if (matchesVersions(updates[i], appVersion, platformVersion)) {
+          return updates[i];
+        }
+      }
     }
     return null;
   },
