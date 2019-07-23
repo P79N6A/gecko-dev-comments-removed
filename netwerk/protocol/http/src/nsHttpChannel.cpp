@@ -1384,21 +1384,27 @@ nsHttpChannel::OpenCacheEntry(PRBool offline, PRBool *delayed)
         accessRequested = nsICache::ACCESS_READ_WRITE; 
 
     nsCOMPtr<nsICacheSession> session;
-    rv = gHttpHandler->GetCacheSession(storagePolicy,
-                                       getter_AddRefs(session));
-    if (NS_FAILED(rv)) return rv;
-
-    
-    
-    
-    rv = session->OpenCacheEntry(cacheKey, accessRequested, PR_FALSE,
-                                 getter_AddRefs(mCacheEntry));
-
-    if ((mLoadFlags & LOAD_CHECK_OFFLINE_CACHE) &&
-        !(NS_SUCCEEDED(rv) || rv == NS_ERROR_CACHE_WAIT_FOR_VALIDATION)) {
+    if (mLoadFlags & LOAD_CHECK_OFFLINE_CACHE) {
         
+        rv = gHttpHandler->GetCacheSession(nsICache::STORE_OFFLINE,
+                                           getter_AddRefs(session));
+        if (NS_FAILED(rv)) return rv;
 
-        storagePolicy = nsICache::STORE_OFFLINE;
+        
+        
+        
+        
+        
+        
+        
+        
+        rv = session->OpenCacheEntry(cacheKey, nsICache::ACCESS_READ, PR_FALSE,
+                                     getter_AddRefs(mCacheEntry));
+    }
+
+    if (!(mLoadFlags & LOAD_CHECK_OFFLINE_CACHE) ||
+        (NS_FAILED(rv) && rv != NS_ERROR_CACHE_WAIT_FOR_VALIDATION)) 
+    {
         rv = gHttpHandler->GetCacheSession(storagePolicy,
                                            getter_AddRefs(session));
         if (NS_FAILED(rv)) return rv;
@@ -4546,6 +4552,21 @@ nsHttpChannel::GetCacheToken(nsISupports **token)
 
 NS_IMETHODIMP
 nsHttpChannel::SetCacheToken(nsISupports *token)
+{
+    return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+NS_IMETHODIMP
+nsHttpChannel::GetOfflineCacheToken(nsISupports **token)
+{
+    NS_ENSURE_ARG_POINTER(token);
+    if (!mOfflineCacheEntry)
+        return NS_ERROR_NOT_AVAILABLE;
+    return CallQueryInterface(mOfflineCacheEntry, token);
+}
+
+NS_IMETHODIMP
+nsHttpChannel::SetOfflineCacheToken(nsISupports *token)
 {
     return NS_ERROR_NOT_IMPLEMENTED;
 }

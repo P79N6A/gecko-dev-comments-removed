@@ -63,8 +63,11 @@
 #include "nsString.h"
 #include "nsTArray.h"
 #include "nsWeakReference.h"
+#include "nsICryptoHash.h"
 
 class nsOfflineCacheUpdate;
+
+class nsICacheEntryDescriptor;
 
 class nsOfflineCacheUpdateItem : public nsIDOMLoadStatus
                                , public nsIStreamListener
@@ -133,6 +136,20 @@ private:
     nsresult HandleManifestLine(const nsCString::const_iterator &aBegin,
                                 const nsCString::const_iterator &aEnd);
 
+    
+
+
+
+
+    nsresult GetOldManifestContentHash(nsIRequest *aRequest);
+    
+
+
+
+
+
+    nsresult CheckNewManifestContentHash(nsIRequest *aRequest);
+
     enum {
         PARSE_INIT,
         PARSE_CACHE_ENTRIES,
@@ -144,6 +161,11 @@ private:
     nsCString mReadBuf;
     nsCOMArray<nsIURI> mExplicitURIs;
     PRBool mNeedsUpdate;
+
+    
+    nsCOMPtr<nsICryptoHash> mManifestHash;
+    PRBool mManifestHashInitialized;
+    nsCString mOldManifestHashValue;
 };
 
 class nsOfflineCacheUpdate : public nsIOfflineCacheUpdate
