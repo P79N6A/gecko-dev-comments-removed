@@ -167,7 +167,7 @@ class nsIParserNode {
 
 
 
-    virtual void GetSource(nsString& aString)=0;
+    virtual void GetSource(nsString& aString) const = 0;
 
     
 
