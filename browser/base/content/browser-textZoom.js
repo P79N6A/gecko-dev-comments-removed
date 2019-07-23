@@ -44,7 +44,7 @@ const MOUSE_SCROLL_IS_HORIZONTAL = 1 << 2;
 
 
 
-const MOUSE_SCROLL_FULLZOOM = 5;
+const MOUSE_SCROLL_ZOOM = 3;
 
 
 
@@ -149,7 +149,7 @@ var FullZoom = {
     
     var isZoomEvent = false;
     try {
-      isZoomEvent = (gPrefService.getIntPref(pref) == MOUSE_SCROLL_FULLZOOM);
+      isZoomEvent = (gPrefService.getIntPref(pref) == MOUSE_SCROLL_ZOOM);
     } catch (e) {}
     if (!isZoomEvent)
       return;
@@ -202,6 +202,13 @@ var FullZoom = {
     this._applyPrefToSetting(this._cps.getPref(aURI, this.name));
   },
 
+  
+
+  updateMenu: function FullZoom_updateMenu() {
+    var menuItem = document.getElementById("toggle_zoom");
+
+    menuItem.setAttribute("checked", !ZoomManager.useFullZoom);
+  },
 
   
   
@@ -218,7 +225,7 @@ var FullZoom = {
 
   reset: function FullZoom_reset() {
     if (typeof this.globalValue != "undefined")
-      ZoomManager.fullZoom = this.globalValue;
+      ZoomManager.zoom = this.globalValue;
     else
       ZoomManager.reset();
 
@@ -255,11 +262,11 @@ var FullZoom = {
 
     try {
       if (typeof aValue != "undefined")
-        ZoomManager.fullZoom = this._ensureValid(aValue);
+        ZoomManager.zoom = this._ensureValid(aValue);
       else if (typeof this.globalValue != "undefined")
-        ZoomManager.fullZoom = this.globalValue;
+        ZoomManager.zoom = this.globalValue;
       else
-        ZoomManager.fullZoom = 1;
+        ZoomManager.zoom = 1;
     }
     catch(ex) {}
   },
@@ -268,8 +275,8 @@ var FullZoom = {
     if (gInPrintPreviewMode)
       return;
 
-    var fullZoom = ZoomManager.fullZoom;
-    this._cps.setPref(gBrowser.currentURI, this.name, fullZoom);
+    var zoomLevel = ZoomManager.zoom;
+    this._cps.setPref(gBrowser.currentURI, this.name, zoomLevel);
   },
 
   _removePref: function FullZoom__removePref() {
