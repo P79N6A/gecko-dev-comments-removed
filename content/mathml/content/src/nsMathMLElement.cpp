@@ -222,7 +222,7 @@ nsMathMLElement::GetAttributeMappingFunction() const
  PRBool
 nsMathMLElement::ParseNumericValue(const nsString& aString,
                                    nsCSSValue&     aCSSValue,
-                                   PRUint32        aFlags)
+                                   PRBool          aRequireLengthUnit)
 {
   nsAutoString str(aString);
   str.CompressWhitespace(); 
@@ -237,8 +237,6 @@ nsMathMLElement::ParseNumericValue(const nsString& aString,
   PRInt32 i = 0;
   PRUnichar c = str[0];
   if (c == '-') {
-    if (!(aFlags & PARSE_ALLOW_NEGATIVE))
-      return PR_FALSE;
     number.Append(c);
     i++;
 
@@ -272,16 +270,16 @@ nsMathMLElement::ParseNumericValue(const nsString& aString,
 
   nsCSSUnit cssUnit;
   if (unit.IsEmpty()) {
-    if (aFlags & PARSE_ALLOW_UNITLESS) {
-      
-      cssUnit = eCSSUnit_Number;
-    } else {
+    if (aRequireLengthUnit) {
       
       
       
       if (floatValue != 0.0)
         return PR_FALSE;
       cssUnit = eCSSUnit_Pixel;
+    } else {
+      
+      cssUnit = eCSSUnit_Number;
     }
   }
   else if (unit.EqualsLiteral("%")) {
@@ -330,7 +328,7 @@ nsMathMLElement::MapMathMLAttributesInto(const nsMappedAttributes* aAttributes,
     if (value && value->Type() == nsAttrValue::eString &&
         aData->mFontData->mScriptMinSize.GetUnit() == eCSSUnit_Null) {
       ParseNumericValue(value->GetStringValue(),
-                        aData->mFontData->mScriptMinSize, 0);
+                        aData->mFontData->mScriptMinSize, PR_TRUE);
     }
 
     value = aAttributes->GetAttr(nsGkAtoms::scriptlevel_);
@@ -365,7 +363,7 @@ nsMathMLElement::MapMathMLAttributesInto(const nsMappedAttributes* aAttributes,
     if (value && value->Type() == nsAttrValue::eString &&
         aData->mFontData->mSize.GetUnit() == eCSSUnit_Null) {
       nsAutoString str(value->GetStringValue());
-      if (!ParseNumericValue(str, aData->mFontData->mSize, 0) &&
+      if (!ParseNumericValue(str, aData->mFontData->mSize, PR_TRUE) &&
           parseSizeKeywords) {
         static const char sizes[3][7] = { "small", "normal", "big" };
         static const PRInt32 values[NS_ARRAY_LENGTH(sizes)] = {

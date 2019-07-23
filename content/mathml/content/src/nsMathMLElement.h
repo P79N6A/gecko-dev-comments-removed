@@ -78,13 +78,9 @@ public:
   NS_IMETHOD_(PRBool) IsAttributeMapped(const nsIAtom* aAttribute) const;
   virtual nsMapRuleToAttributesFunc GetAttributeMappingFunction() const;
 
-  enum {
-    PARSE_ALLOW_UNITLESS = 0x01, 
-    PARSE_ALLOW_NEGATIVE = 0x02
-  };
   static PRBool ParseNumericValue(const nsString& aString,
                                   nsCSSValue&     aCSSValue,
-                                  PRUint32        aFlags);
+                                  PRBool          aRequireLengthUnit);
 
   static void MapMathMLAttributesInto(const nsMappedAttributes* aAttributes, 
                                       nsRuleData* aRuleData);
