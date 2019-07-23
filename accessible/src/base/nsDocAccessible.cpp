@@ -1387,15 +1387,21 @@ NS_IMETHODIMP nsDocAccessible::InvalidateCacheSubtree(nsIContent *aChild,
   if (!IsNodeRelevant(childNode)) {
     return NS_OK;  
   }
-  if (!mIsContentLoaded && mAccessNodeCache.Count() <= 1 &&
-      mAccChildCount == eChildCountUninitialized) {
-    return NS_OK; 
+  if (!mIsContentLoaded && mAccessNodeCache.Count() <= 1) {
+    
+    
+    
+    
+    
+    
+    
+    return InvalidateChildren();
   }
 
   nsCOMPtr<nsIAccessNode> childAccessNode;
   GetCachedAccessNode(childNode, getter_AddRefs(childAccessNode));
   nsCOMPtr<nsIAccessible> childAccessible = do_QueryInterface(childAccessNode);
-  if (!childAccessible && mIsContentLoaded && aChangeEventType != nsIAccessibleEvent::EVENT_HIDE) {
+  if (!childAccessible && aChangeEventType != nsIAccessibleEvent::EVENT_HIDE) {
     
     
     GetAccService()->GetAccessibleFor(childNode, getter_AddRefs(childAccessible));
@@ -1452,16 +1458,12 @@ NS_IMETHODIMP nsDocAccessible::InvalidateCacheSubtree(nsIContent *aChild,
     }
   }
   if (!containerAccessible) {
-    GetAccessibleInParentChain(childNode, mIsContentLoaded, getter_AddRefs(containerAccessible));
+    GetAccessibleInParentChain(childNode, getter_AddRefs(containerAccessible));
   }
   nsCOMPtr<nsPIAccessible> privateContainerAccessible =
     do_QueryInterface(containerAccessible);
   if (privateContainerAccessible) {
     privateContainerAccessible->InvalidateChildren();
-  }
-
-  if (!mIsContentLoaded) {
-    return NS_OK;
   }
 
   
@@ -1513,7 +1515,7 @@ NS_IMETHODIMP nsDocAccessible::InvalidateCacheSubtree(nsIContent *aChild,
 }
 
 NS_IMETHODIMP
-nsDocAccessible::GetAccessibleInParentChain(nsIDOMNode *aNode, PRBool aCanCreate,
+nsDocAccessible::GetAccessibleInParentChain(nsIDOMNode *aNode,
                                             nsIAccessible **aAccessible)
 {
   
@@ -1538,12 +1540,7 @@ nsDocAccessible::GetAccessibleInParentChain(nsIDOMNode *aNode, PRBool aCanCreate
       currentNode = relevantNode;
     }
 
-    if (aCanCreate) {
-      accService->GetAccessibleInWeakShell(currentNode, mWeakShell, aAccessible);
-    }
-    else {
-      accService->GetCachedAccessible(currentNode, mWeakShell, aAccessible);
-    }
+    accService->GetAccessibleInWeakShell(currentNode, mWeakShell, aAccessible);
   } while (!*aAccessible);
 
   return NS_OK;
