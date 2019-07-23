@@ -282,7 +282,7 @@ js_CallTree(InterpState* state, Fragment* f)
 
         if (!state->lastTreeCallGuard) {
             state->lastTreeCallGuard = lr;
-            FrameInfo* rp = (FrameInfo*)state->rp;
+            FrameInfo** rp = (FrameInfo**)state->rp;
             state->rpAtLastTreeCall = rp + lr->calldepth;
         }
     } else {

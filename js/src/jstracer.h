@@ -251,7 +251,6 @@ struct FrameInfo {
     JSObject*       callee;     
     JSObject*       block;      
     intptr_t        ip_adj;     
-    uint8*          typemap;    
     union {
         struct {
             uint16  spdist;     
