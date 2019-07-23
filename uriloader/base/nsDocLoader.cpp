@@ -499,14 +499,14 @@ nsDocLoader::OnStartRequest(nsIRequest *request, nsISupports *aCtxt)
   
   
   
+  AddRequestInfo(request);
+
+  
+  
+  
+  
   
   if (mIsLoadingDocument) {
-    
-    
-    
-    
-    AddRequestInfo(request);
-
     if (loadFlags & nsIChannel::LOAD_DOCUMENT_URI) {
       
       
@@ -533,10 +533,6 @@ nsDocLoader::OnStartRequest(nsIRequest *request, nsISupports *aCtxt)
       }
     } 
   }
-  else {
-    
-    ClearRequestInfoHash();
-  }
 
   NS_ASSERTION(!mIsLoadingDocument || mDocumentRequest,
                "mDocumentRequest MUST be set for the duration of a page load!");
@@ -548,8 +544,8 @@ nsDocLoader::OnStartRequest(nsIRequest *request, nsISupports *aCtxt)
 
 NS_IMETHODIMP
 nsDocLoader::OnStopRequest(nsIRequest *aRequest, 
-                               nsISupports *aCtxt, 
-                               nsresult aStatus)
+                           nsISupports *aCtxt,
+                           nsresult aStatus)
 {
   nsresult rv = NS_OK;
 
@@ -570,115 +566,118 @@ nsDocLoader::OnStopRequest(nsIRequest *aRequest,
   }
 #endif
 
+  PRBool bFireTransferring = PR_FALSE;
+
   
   
   
   
-  if (mIsLoadingDocument) {
-    PRBool bFireTransferring = PR_FALSE;
+  
+  
+  nsRequestInfo *info = GetRequestInfo(aRequest);
+  if (info) {
+    nsInt64 oldMax = info->mMaxProgress;
+
+    info->mMaxProgress = info->mCurrentProgress;
+    
+    
+    
+    
+    
+    
+    if ((oldMax < nsInt64(0)) && (mMaxSelfProgress < nsInt64(0))) {
+      mMaxSelfProgress = CalculateMaxProgress();
+    }
 
     
     
     
+    mCompletedTotalProgress += info->mMaxProgress;
     
     
     
-    nsRequestInfo *info = GetRequestInfo(aRequest);
-    if (info) {
-      nsInt64 oldMax = info->mMaxProgress;
-
-      info->mMaxProgress = info->mCurrentProgress;
-      
-      
-      
-      
-      
-      if ((oldMax < nsInt64(0)) && (mMaxSelfProgress < nsInt64(0))) {
-        mMaxSelfProgress = CalculateMaxProgress();
-      }
+    
+    
+    
+    
+    
+    
+    if ((oldMax == LL_ZERO) && (info->mCurrentProgress == LL_ZERO)) {
+      nsCOMPtr<nsIChannel> channel(do_QueryInterface(aRequest));
 
       
       
       
-      
-      
-      
-      
-      
-      if ((oldMax == LL_ZERO) && (info->mCurrentProgress == LL_ZERO)) {
-        nsCOMPtr<nsIChannel> channel(do_QueryInterface(aRequest));
-
+      if (channel) {
+        if (NS_SUCCEEDED(aStatus)) {
+          bFireTransferring = PR_TRUE;
+        }
         
         
         
-        if (channel) {
-          if (NS_SUCCEEDED(aStatus)) {
-            bFireTransferring = PR_TRUE;
-          } 
+        
+        
+        else if (aStatus != NS_BINDING_REDIRECTED &&
+                 aStatus != NS_BINDING_RETARGETED) {
           
           
           
-          
-          
-          else if (aStatus != NS_BINDING_REDIRECTED &&
-                   aStatus != NS_BINDING_RETARGETED) {
-            
-            
-            
-            PRUint32 lf;
-            channel->GetLoadFlags(&lf);
-            if (lf & nsIChannel::LOAD_TARGETED) {
-              nsCOMPtr<nsIHttpChannel> httpChannel(do_QueryInterface(aRequest));
-              if (httpChannel) {
-                PRUint32 responseCode;
-                rv = httpChannel->GetResponseStatus(&responseCode);
-                if (NS_SUCCEEDED(rv)) {
-                  
-                  
-                  
-                  
-                  
-                  bFireTransferring = PR_TRUE;
-                }
+          PRUint32 lf;
+          channel->GetLoadFlags(&lf);
+          if (lf & nsIChannel::LOAD_TARGETED) {
+            nsCOMPtr<nsIHttpChannel> httpChannel(do_QueryInterface(aRequest));
+            if (httpChannel) {
+              PRUint32 responseCode;
+              rv = httpChannel->GetResponseStatus(&responseCode);
+              if (NS_SUCCEEDED(rv)) {
+                
+                
+                
+                
+                
+                bFireTransferring = PR_TRUE;
               }
             }
           }
         }
       }
     }
+  }
 
-    if (bFireTransferring) {
-      
-      PRInt32 flags;
+  if (bFireTransferring) {
     
-      flags = nsIWebProgressListener::STATE_TRANSFERRING | 
-              nsIWebProgressListener::STATE_IS_REQUEST;
-      
-      
-      
-      if (mProgressStateFlags & nsIWebProgressListener::STATE_START) {
-        mProgressStateFlags = nsIWebProgressListener::STATE_TRANSFERRING;
+    PRInt32 flags;
+    
+    flags = nsIWebProgressListener::STATE_TRANSFERRING |
+            nsIWebProgressListener::STATE_IS_REQUEST;
+    
+    
+    
+    if (mProgressStateFlags & nsIWebProgressListener::STATE_START) {
+      mProgressStateFlags = nsIWebProgressListener::STATE_TRANSFERRING;
 
-        
-        flags |= nsIWebProgressListener::STATE_IS_DOCUMENT;
-      }
-
-      FireOnStateChange(this, aRequest, flags, NS_OK);
+      
+      flags |= nsIWebProgressListener::STATE_IS_DOCUMENT;
     }
 
-    
-    
-    
-    
-    
-    
-    
-    doStopURLLoad(aRequest, aStatus);
-    
-    DocLoaderIsEmpty(PR_TRUE);
+    FireOnStateChange(this, aRequest, flags, NS_OK);
   }
-  else {
-    doStopURLLoad(aRequest, aStatus); 
+
+  
+  
+  
+  doStopURLLoad(aRequest, aStatus);
+  
+  
+  
+  RemoveRequestInfo(aRequest);
+  
+  
+  
+  
+  
+  if (mIsLoadingDocument) {
+    DocLoaderIsEmpty(PR_TRUE);
   }
   
   return NS_OK;
@@ -745,6 +744,10 @@ void nsDocLoader::DocLoaderIsEmpty(PRBool aFlushLayout)
     
     
     if (!IsBusy()) {
+      
+      
+      ClearInternalProgress();
+
       PR_LOG(gDocLoaderLog, PR_LOG_DEBUG, 
              ("DocLoader:%p: Is now idle...\n", this));
 
@@ -1050,7 +1053,7 @@ NS_IMETHODIMP nsDocLoader::OnProgress(nsIRequest *aRequest, nsISupports* ctxt,
     mCurrentSelfProgress += progressDelta;
 
     info->mCurrentProgress = PRInt64(aProgress);
-  } 
+  }
   
   
   
@@ -1097,6 +1100,7 @@ NS_IMETHODIMP nsDocLoader::OnStatus(nsIRequest* aRequest, nsISupports* ctxt,
       if (info->mUploading != uploading) {
         mCurrentSelfProgress  = mMaxSelfProgress  = LL_ZERO;
         mCurrentTotalProgress = mMaxTotalProgress = LL_ZERO;
+        mCompletedTotalProgress = LL_ZERO;
         info->mUploading = uploading;
         info->mCurrentProgress = LL_ZERO;
         info->mMaxProgress = LL_ZERO;
@@ -1120,6 +1124,7 @@ void nsDocLoader::ClearInternalProgress()
 
   mCurrentSelfProgress  = mMaxSelfProgress  = LL_ZERO;
   mCurrentTotalProgress = mMaxTotalProgress = LL_ZERO;
+  mCompletedTotalProgress = LL_ZERO;
 
   mProgressStateFlags = nsIWebProgressListener::STATE_STOP;
 }
@@ -1436,6 +1441,11 @@ nsresult nsDocLoader::AddRequestInfo(nsIRequest *aRequest)
   return NS_OK;
 }
 
+void nsDocLoader::RemoveRequestInfo(nsIRequest *aRequest)
+{
+  PL_DHashTableOperate(&mRequestInfoHash, aRequest, PL_DHASH_REMOVE);
+}
+
 nsRequestInfo * nsDocLoader::GetRequestInfo(nsIRequest *aRequest)
 {
   nsRequestInfo *info =
@@ -1495,7 +1505,7 @@ CalcMaxProgressCallback(PLDHashTable *table, PLDHashEntryHdr *hdr,
 
 PRInt64 nsDocLoader::CalculateMaxProgress()
 {
-  nsInt64 max = 0;
+  nsInt64 max = mCompletedTotalProgress;
   PL_DHashTableEnumerate(&mRequestInfoHash, CalcMaxProgressCallback, &max);
   return max;
 }
