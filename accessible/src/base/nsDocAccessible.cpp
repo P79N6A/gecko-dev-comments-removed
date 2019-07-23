@@ -1408,9 +1408,6 @@ NS_IMETHODIMP nsDocAccessible::InvalidateCacheSubtree(nsIContent *aChild,
     
     GetAccService()->GetAccessibleFor(childNode, getter_AddRefs(childAccessible));
   }
-  nsCOMPtr<nsPIAccessible> privateChildAccessible =
-    do_QueryInterface(childAccessible);
-  NS_ENSURE_STATE(privateChildAccessible);
 
 #ifdef DEBUG_A11Y
   nsAutoString localName;
@@ -1431,8 +1428,11 @@ NS_IMETHODIMP nsDocAccessible::InvalidateCacheSubtree(nsIContent *aChild,
       aChangeEventType == nsIAccessibleEvent::EVENT_REORDER) {
     
     
-    privateChildAccessible->FireToolkitEvent(nsIAccessibleEvent::EVENT_HIDE,
-                                             childAccessible, nsnull);
+    nsCOMPtr<nsPIAccessible> privateChildAccessible =
+      do_QueryInterface(childAccessible);
+    if (privateChildAccessible)
+      privateChildAccessible->FireToolkitEvent(nsIAccessibleEvent::EVENT_HIDE,
+                                               childAccessible, nsnull);
   }
 
   
