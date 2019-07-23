@@ -46,18 +46,13 @@ let bg = Cc["@mozilla.org/browser/browserglue;1"].
          getService(Ci.nsIBrowserGlue);
 
 
-let bs = Cc["@mozilla.org/browser/nav-bookmarks-service;1"].
-         getService(Ci.nsINavBookmarksService);
+let bs = PlacesUtils.bookmarks;
 
 
-let ps = Cc["@mozilla.org/preferences-service;1"].
-         getService(Ci.nsIPrefBranch);
-let os = Cc["@mozilla.org/observer-service;1"].
-         getService(Ci.nsIObserverService);
+let ps = Services.prefs;
+let os = Services.obs;
 
 const PREF_AUTO_EXPORT_HTML = "browser.bookmarks.autoExportHTML";
-
-const TOPIC_QUIT_APPLICATION_GRANTED = "quit-application-granted";
 
 let tests = [];
 
@@ -73,14 +68,9 @@ tests.push({
     ps.setBoolPref(PREF_AUTO_EXPORT_HTML, true);
 
     
-    try {
-      bg.QueryInterface(Ci.nsIObserver).observe(null,
-                                                TOPIC_QUIT_APPLICATION_GRANTED,
-                                                null);
-    }
-    catch(ex) {
-      
-    }
+    bg.QueryInterface(Ci.nsIObserver).observe(null,
+                                              PlacesUtils.TOPIC_SHUTDOWN,
+                                              null);
 
     
     check_bookmarks_html();
@@ -114,14 +104,9 @@ tests.push({
     let fileSize = profileBookmarksHTMLFile.fileSize;
 
     
-    try {
-      bg.QueryInterface(Ci.nsIObserver).observe(null,
-                                                TOPIC_QUIT_APPLICATION_GRANTED,
-                                                null);
-    }
-    catch(ex) {
-      
-    }
+    bg.QueryInterface(Ci.nsIObserver).observe(null,
+                                              PlacesUtils.TOPIC_SHUTDOWN,
+                                              null);
 
     
     let profileBookmarksHTMLFile = check_bookmarks_html();
@@ -153,14 +138,9 @@ tests.push({
     let fileSize = profileBookmarksJSONFile.fileSize;
 
     
-    try {
-      bg.QueryInterface(Ci.nsIObserver).observe(null,
-                                                TOPIC_QUIT_APPLICATION_GRANTED,
-                                                null);
-    }
-    catch(ex) {
-      
-    }
+    bg.QueryInterface(Ci.nsIObserver).observe(null,
+                                              PlacesUtils.TOPIC_SHUTDOWN,
+                                              null);
 
     
     do_check_true(profileBookmarksJSONFile.exists());

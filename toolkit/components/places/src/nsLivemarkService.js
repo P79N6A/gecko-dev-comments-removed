@@ -101,6 +101,8 @@ const MAX_REFRESH_TIME = 3600000;
 
 const MIN_REFRESH_TIME = 600000;
 
+const TOPIC_SHUTDOWN = "places-shutdown";
+
 function MarkLivemarkLoadFailed(aFolderId) {
   
   if (ans.itemHasAnnotation(aFolderId, LMANNO_LOADFAILED))
@@ -134,7 +136,7 @@ function LivemarkService() {
 
   
   this._obs = Cc[OS_CONTRACTID].getService(Ci.nsIObserverService);
-  this._obs.addObserver(this, "xpcom-shutdown", false);
+  this._obs.addObserver(this, TOPIC_SHUTDOWN, false);
 
   
   bms.addObserver(this, false);
@@ -204,8 +206,8 @@ LivemarkService.prototype = {
 
   
   observe: function LS_observe(aSubject, aTopic, aData) {
-    if (aTopic == "xpcom-shutdown") {
-      this._obs.removeObserver(this, "xpcom-shutdown");
+    if (aTopic == TOPIC_SHUTDOWN) {
+      this._obs.removeObserver(this, TOPIC_SHUTDOWN);
 
       
       bms.removeObserver(this);

@@ -197,17 +197,13 @@ static const PRInt64 USECS_PER_DAY = LL_INIT(20, 500654080);
 
 #define HISTORY_DATE_CONT_MAX 10
 
+
 #ifdef MOZ_XUL
 #define TOPIC_AUTOCOMPLETE_FEEDBACK_INCOMING "autocomplete-will-enter-text"
-#define TOPIC_AUTOCOMPLETE_FEEDBACK_UPDATED "places-autocomplete-feedback-updated"
 #endif
-#define TOPIC_XPCOM_SHUTDOWN "xpcom-shutdown"
 #define TOPIC_IDLE_DAILY "idle-daily"
-#define TOPIC_DATABASE_VACUUM_STARTING "places-vacuum-starting"
-#define TOPIC_DATABASE_LOCKED "places-database-locked"
-#define TOPIC_PLACES_INIT_COMPLETE "places-init-complete"
 #define TOPIC_PREF_CHANGED "nsPref:changed"
-
+#define TOPIC_GLOBAL_SHUTDOWN "profile-before-change"
 
 NS_IMPL_THREADSAFE_ADDREF(nsNavHistory)
 NS_IMPL_THREADSAFE_RELEASE(nsNavHistory)
@@ -486,7 +482,7 @@ nsNavHistory::Init()
   nsCOMPtr<nsIObserverService> obsSvc =
     do_GetService(NS_OBSERVERSERVICE_CONTRACTID);
   if (obsSvc) {
-    (void)obsSvc->AddObserver(this, TOPIC_XPCOM_SHUTDOWN, PR_FALSE);
+    (void)obsSvc->AddObserver(this, TOPIC_GLOBAL_SHUTDOWN, PR_FALSE);
     (void)obsSvc->AddObserver(this, TOPIC_IDLE_DAILY, PR_FALSE);
     (void)obsSvc->AddObserver(this, NS_PRIVATE_BROWSING_SWITCH_TOPIC, PR_FALSE);
 #ifdef MOZ_XUL
@@ -5705,16 +5701,19 @@ nsNavHistory::Observe(nsISupports *aSubject, const char *aTopic,
 {
   NS_ASSERTION(NS_IsMainThread(), "This can only be called on the main thread");
 
-  if (strcmp(aTopic, TOPIC_XPCOM_SHUTDOWN) == 0) {
+  if (strcmp(aTopic, TOPIC_GLOBAL_SHUTDOWN) == 0) {
     nsCOMPtr<nsIObserverService> os =
       do_GetService(NS_OBSERVERSERVICE_CONTRACTID);
     if (os) {
       os->RemoveObserver(this, NS_PRIVATE_BROWSING_SWITCH_TOPIC);
       os->RemoveObserver(this, TOPIC_IDLE_DAILY);
-      os->RemoveObserver(this, TOPIC_XPCOM_SHUTDOWN);
+      os->RemoveObserver(this, TOPIC_GLOBAL_SHUTDOWN);
 #ifdef MOZ_XUL
       os->RemoveObserver(this, TOPIC_AUTOCOMPLETE_FEEDBACK_INCOMING);
 #endif
+
+      
+      os->NotifyObservers(nsnull, TOPIC_PLACES_SHUTDOWN, nsnull);
     }
 
     
@@ -5724,10 +5723,6 @@ nsNavHistory::Observe(nsISupports *aSubject, const char *aTopic,
     nsresult rv = os->EnumerateObservers(TOPIC_PLACES_INIT_COMPLETE,
                                          getter_AddRefs(e));
     if (NS_SUCCEEDED(rv) && e) {
-      
-      
-      
-      
       
       
       

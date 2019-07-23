@@ -72,7 +72,7 @@ const kBookTagSQLFragment =
   book_tag_sql_fragment("tags", "GROUP_CONCAT(t.title, ',')", true);
 
 
-const kXPComShutdown = "xpcom-shutdown";
+const kTopicShutdown = "places-shutdown";
 const kPrefChanged = "nsPref:changed";
 
 
@@ -378,7 +378,7 @@ function nsPlacesAutoComplete()
   
   this._os = Cc["@mozilla.org/observer-service;1"].
               getService(Ci.nsIObserverService);
-  this._os.addObserver(this, kXPComShutdown, false);
+  this._os.addObserver(this, kTopicShutdown, false);
 
 }
 
@@ -521,8 +521,8 @@ nsPlacesAutoComplete.prototype = {
 
   observe: function PAC_observe(aSubject, aTopic, aData)
   {
-    if (aTopic == kXPComShutdown) {
-      this._os.removeObserver(this, kXPComShutdown);
+    if (aTopic == kTopicShutdown) {
+      this._os.removeObserver(this, kTopicShutdown);
 
       
       this._prefs.QueryInterface(Ci.nsIPrefBranch2).removeObserver("", this);

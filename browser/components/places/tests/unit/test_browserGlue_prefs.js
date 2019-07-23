@@ -79,7 +79,7 @@ tests.push({
     
     print("Simulate Places init");
     bg.QueryInterface(Ci.nsIObserver).observe(null,
-                                              TOPIC_PLACES_INIT_COMPLETE,
+                                              PlacesUtils.TOPIC_INIT_COMPLETE,
                                               null);
     
     
@@ -108,7 +108,7 @@ tests.push({
     
     print("Simulate Places init");
     bg.QueryInterface(Ci.nsIObserver).observe(null,
-                                              TOPIC_PLACES_INIT_COMPLETE,
+                                              PlacesUtils.TOPIC_INIT_COMPLETE,
                                               null);
     
     
@@ -136,7 +136,7 @@ tests.push({
     
     print("Simulate Places init");
     bg.QueryInterface(Ci.nsIObserver).observe(null,
-                                              TOPIC_PLACES_INIT_COMPLETE,
+                                              PlacesUtils.TOPIC_INIT_COMPLETE,
                                               null);
     
     
@@ -165,7 +165,7 @@ tests.push({
     
     print("Simulate Places init");
     bg.QueryInterface(Ci.nsIObserver).observe(null,
-                                              TOPIC_PLACES_INIT_COMPLETE,
+                                              PlacesUtils.TOPIC_INIT_COMPLETE,
                                               null);
     
     
@@ -191,7 +191,7 @@ tests.push({
     
     print("Simulate Places init");
     bg.QueryInterface(Ci.nsIObserver).observe(null,
-                                              TOPIC_PLACES_INIT_COMPLETE,
+                                              PlacesUtils.TOPIC_INIT_COMPLETE,
                                               null);
     
     let itemId = bs.getIdForItemAt(bs.toolbarFolder, SMART_BOOKMARKS_ON_TOOLBAR + 1);
@@ -217,7 +217,7 @@ tests.push({
     
     print("Simulate Places init");
     bg.QueryInterface(Ci.nsIObserver).observe(null,
-                                              TOPIC_PLACES_INIT_COMPLETE,
+                                              PlacesUtils.TOPIC_INIT_COMPLETE,
                                               null);
     
     let itemId = bs.getIdForItemAt(bs.toolbarFolder, SMART_BOOKMARKS_ON_TOOLBAR + 1);
@@ -247,9 +247,9 @@ function next_test() {
   
   
   os.addObserver(bg.QueryInterface(Ci.nsIObserver),
-                 TOPIC_PLACES_INIT_COMPLETE, false);
+                 PlacesUtils.TOPIC_INIT_COMPLETE, false);
   os.addObserver(bg.QueryInterface(Ci.nsIObserver),
-                 TOPIC_PLACES_DATABASE_LOCKED, false);
+                 PlacesUtils.TOPIC_DATABASE_LOCKED, false);
   
   let test = tests.shift();
   print("\nTEST " + (++testIndex) + ": " + test.description);

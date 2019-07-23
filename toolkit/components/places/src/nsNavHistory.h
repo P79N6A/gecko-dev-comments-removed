@@ -88,6 +88,19 @@
 #define URI_LENGTH_MAX 65536
 #define TITLE_LENGTH_MAX 4096
 
+#ifdef MOZ_XUL
+
+#define TOPIC_AUTOCOMPLETE_FEEDBACK_UPDATED "places-autocomplete-feedback-updated"
+#endif
+
+#define TOPIC_PLACES_SHUTDOWN "places-shutdown"
+
+#define TOPIC_DATABASE_LOCKED "places-database-locked"
+
+#define TOPIC_PLACES_INIT_COMPLETE "places-init-complete"
+
+#define TOPIC_DATABASE_VACUUM_STARTING "places-vacuum-starting"
+
 namespace mozilla {
 namespace places {
 
