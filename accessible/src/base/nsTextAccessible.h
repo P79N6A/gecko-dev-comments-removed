@@ -59,10 +59,9 @@ public:
   NS_IMETHOD GetChildCount(PRInt32 *_retval);
 
   
-  NS_IMETHOD AppendTextTo(nsAString& aText, PRUint32 aStartOffset, PRUint32 aLength);
-
-  
   virtual nsresult GetRoleInternal(PRUint32 *aRole);
+  virtual nsresult AppendTextTo(nsAString& aText, PRUint32 aStartOffset,
+                                PRUint32 aLength);
 };
 
 

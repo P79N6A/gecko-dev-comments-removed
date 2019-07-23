@@ -91,7 +91,7 @@ public:
 
   
   
-  NS_IMETHOD GetAllowsAnonChildAccessibles(PRBool *aAllowsAnonChildren);
+  virtual PRBool GetAllowsAnonChildAccessibles();
 
 protected:
   
@@ -128,11 +128,11 @@ public:
   nsXFormsContainerAccessible(nsIDOMNode* aNode, nsIWeakReference* aShell);
 
   
-  
-  NS_IMETHOD GetAllowsAnonChildAccessibles(PRBool *aAllowsAnonChildren);
+  virtual nsresult GetRoleInternal(PRUint32 *aRole);
 
   
-  virtual nsresult GetRoleInternal(PRUint32 *aRole);
+  
+  virtual PRBool GetAllowsAnonChildAccessibles();
 };
 
 

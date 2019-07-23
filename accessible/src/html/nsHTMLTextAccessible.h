@@ -113,7 +113,6 @@ public:
   
   
   
-  NS_IMETHOD SetParent(nsIAccessible *aParentAccessible);
   NS_IMETHOD GetParent(nsIAccessible **aParentAccessible);
 
   
@@ -122,9 +121,9 @@ public:
   
   virtual nsresult GetRoleInternal(PRUint32 *aRole);
   virtual nsresult GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState);
-
-  
-  NS_IMETHOD AppendTextTo(nsAString& aText, PRUint32 aStartOffset, PRUint32 aLength);
+  virtual void SetParent(nsIAccessible *aParent);
+  virtual nsresult AppendTextTo(nsAString& aText, PRUint32 aStartOffset,
+                                PRUint32 aLength);
 
 protected:
   

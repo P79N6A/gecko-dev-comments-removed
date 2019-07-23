@@ -87,11 +87,10 @@ NS_IMETHODIMP nsLeafAccessible::GetChildCount(PRInt32 *_retval)
 }
 
 
-NS_IMETHODIMP
-nsLeafAccessible::GetAllowsAnonChildAccessibles(PRBool *aAllowsAnonChildren)
+PRBool
+nsLeafAccessible::GetAllowsAnonChildAccessibles()
 {
-  *aAllowsAnonChildren = PR_FALSE;
-  return NS_OK;
+  return PR_FALSE;
 }
 
 

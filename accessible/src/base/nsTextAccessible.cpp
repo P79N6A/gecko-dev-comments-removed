@@ -53,8 +53,8 @@ nsLinkableAccessible(aDOMNode, aShell)
 
 
 
-NS_IMPL_ISUPPORTS_INHERITED3(nsTextAccessible, nsAccessNode,
-                             nsAccessible, nsIAccessible, nsPIAccessible)
+NS_IMPL_ISUPPORTS_INHERITED2(nsTextAccessible, nsAccessNode,
+                             nsAccessible, nsIAccessible)
 
 
 
@@ -93,7 +93,7 @@ NS_IMETHODIMP nsTextAccessible::GetChildCount(PRInt32 *_retval)
   return NS_OK;
 }
 
-NS_IMETHODIMP
+nsresult
 nsTextAccessible::AppendTextTo(nsAString& aText, PRUint32 aStartOffset, PRUint32 aLength)
 {
   nsIFrame *frame = GetFrame();

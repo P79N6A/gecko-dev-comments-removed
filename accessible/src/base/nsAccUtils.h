@@ -332,6 +332,12 @@ public:
   
 
 
+  static already_AddRefed<nsAccessible>
+    QueryAccessible(nsIAccessNode *aAccessNode);
+
+  
+
+
   static already_AddRefed<nsHTMLTableAccessible>
     QueryAccessibleTable(nsIAccessibleTable *aAccessibleTable);
   

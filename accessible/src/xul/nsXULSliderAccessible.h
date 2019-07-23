@@ -63,9 +63,7 @@ public:
   
   virtual nsresult GetRoleInternal(PRUint32 *aRole);
   virtual nsresult GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState);
-
-  
-  NS_IMETHOD GetAllowsAnonChildAccessibles(PRBool *aAllowsAnonChildren);
+  virtual PRBool GetAllowsAnonChildAccessibles();
 
 protected:
   already_AddRefed<nsIContent> GetSliderNode();

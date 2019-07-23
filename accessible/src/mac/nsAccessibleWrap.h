@@ -75,10 +75,10 @@ class nsAccessibleWrap : public nsAccessible
     void GetNativeWindow (void **aOutNativeWindow);
     
     virtual nsresult Shutdown ();
-    virtual nsresult InvalidateChildren ();
+    virtual void InvalidateChildren();
 
-    NS_IMETHOD FireAccessibleEvent(nsIAccessibleEvent *aEvent);
-    
+    virtual nsresult FireAccessibleEvent(nsIAccessibleEvent *aEvent);
+
     
     
     PRBool IsIgnored();

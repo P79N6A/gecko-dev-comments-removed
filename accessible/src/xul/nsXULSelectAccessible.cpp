@@ -959,12 +959,11 @@ NS_IMETHODIMP nsXULListitemAccessible::GetActionName(PRUint8 aIndex, nsAString& 
   return NS_ERROR_INVALID_ARG;
 }
 
-NS_IMETHODIMP
-nsXULListitemAccessible::GetAllowsAnonChildAccessibles(PRBool *aAllowsAnonChildren)
+PRBool
+nsXULListitemAccessible::GetAllowsAnonChildAccessibles()
 {
   
-  *aAllowsAnonChildren = PR_TRUE;
-  return NS_OK;
+  return PR_TRUE;
 }
 
 nsresult
@@ -1106,13 +1105,13 @@ NS_IMETHODIMP nsXULComboboxAccessible::GetDescription(nsAString& aDescription)
   return NS_OK;
 }
 
-NS_IMETHODIMP
-nsXULComboboxAccessible::GetAllowsAnonChildAccessibles(PRBool *aAllowsAnonChildren)
+PRBool
+nsXULComboboxAccessible::GetAllowsAnonChildAccessibles()
 {
-  if (!mDOMNode)
-    return NS_ERROR_FAILURE;
-
   nsCOMPtr<nsIContent> content = do_QueryInterface(mDOMNode);
+  NS_ASSERTION(content, "No content during accessible tree building!");
+  if (!content)
+    return PR_FALSE;
 
   if (content->NodeInfo()->Equals(nsAccessibilityAtoms::textbox, kNameSpaceID_XUL) ||
       content->AttrValueIs(kNameSpaceID_None, nsAccessibilityAtoms::editable,
@@ -1120,13 +1119,12 @@ nsXULComboboxAccessible::GetAllowsAnonChildAccessibles(PRBool *aAllowsAnonChildr
     
     
     
-    *aAllowsAnonChildren = PR_TRUE;
-  } else {
-    
-    
-    *aAllowsAnonChildren = PR_FALSE;
+    return PR_TRUE;
   }
-  return NS_OK;
+
+  
+  
+  return PR_FALSE;
 }
 
 

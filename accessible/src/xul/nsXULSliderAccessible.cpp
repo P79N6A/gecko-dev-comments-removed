@@ -188,15 +188,11 @@ nsXULSliderAccessible::SetCurrentValue(double aValue)
   return SetSliderAttr(nsAccessibilityAtoms::curpos, aValue);
 }
 
-
-NS_IMETHODIMP
-nsXULSliderAccessible::GetAllowsAnonChildAccessibles(PRBool *aAllowsAnonChildren)
+PRBool
+nsXULSliderAccessible::GetAllowsAnonChildAccessibles()
 {
-  NS_ENSURE_ARG_POINTER(aAllowsAnonChildren);
-
   
-  *aAllowsAnonChildren = PR_FALSE;
-  return NS_OK;
+  return PR_FALSE;
 }
 
 

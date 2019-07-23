@@ -68,12 +68,10 @@ public:
   NS_IMETHOD GetChildCount(PRInt32 *_retval);
 
   
-  NS_IMETHOD GetAllowsAnonChildAccessibles(PRBool *aAllowsAnonChildren);
-
-  
   virtual nsresult GetChildAtPoint(PRInt32 aX, PRInt32 aY,
                                    PRBool aDeepestChild,
                                    nsIAccessible **aChild);
+  virtual PRBool GetAllowsAnonChildAccessibles();
 };
 
 

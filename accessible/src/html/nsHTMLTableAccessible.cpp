@@ -420,14 +420,18 @@ void nsHTMLTableAccessible::CacheChildren()
         captionAccessible->GetPreviousSibling(getter_AddRefs(beforeCaptionAccessible));
         if (beforeCaptionAccessible) {
           
+          nsRefPtr<nsAccessible> acc =
+            nsAccUtils::QueryAccessible(beforeCaptionAccessible);
+
           nsCOMPtr<nsIAccessible> afterCaptionAccessible;
           captionAccessible->GetNextSibling(getter_AddRefs(afterCaptionAccessible));
-          nsCOMPtr<nsPIAccessible> privateAcc = do_QueryInterface(beforeCaptionAccessible);
-          privateAcc->SetNextSibling(afterCaptionAccessible);
+          acc->SetNextSibling(afterCaptionAccessible);
+
           GetFirstChild(getter_AddRefs(afterCaptionAccessible));
           SetFirstChild(captionAccessible);
-          privateAcc = do_QueryInterface(captionAccessible);
-          privateAcc->SetNextSibling(afterCaptionAccessible);        
+
+          acc = nsAccUtils::QueryAccessible(captionAccessible);
+          acc->SetNextSibling(afterCaptionAccessible);        
         }
         
         

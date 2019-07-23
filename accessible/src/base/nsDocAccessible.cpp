@@ -236,15 +236,21 @@ nsDocAccessible::GetRoleInternal(PRUint32 *aRole)
   return NS_OK;
 }
 
-NS_IMETHODIMP nsDocAccessible::SetRoleMapEntry(nsRoleMapEntry* aRoleMapEntry)
+void
+nsDocAccessible::SetRoleMapEntry(nsRoleMapEntry* aRoleMapEntry)
 {
-  NS_ENSURE_STATE(mDocument);
+  NS_ASSERTION(mDocument, "No document during initialization!");
+  if (!mDocument)
+    return;
 
   mRoleMapEntry = aRoleMapEntry;
 
   
   nsIDocument *parentDoc = mDocument->GetParentDocument();
-  NS_ENSURE_TRUE(parentDoc, NS_ERROR_FAILURE);
+  NS_ASSERTION(parentDoc, "No parent document during initialization!");
+  if (!parentDoc)
+    return;
+
   nsIContent *ownerContent = parentDoc->FindContentForSubDocument(mDocument);
   nsCOMPtr<nsIDOMNode> ownerNode(do_QueryInterface(ownerContent));
   if (ownerNode) {
@@ -252,8 +258,6 @@ NS_IMETHODIMP nsDocAccessible::SetRoleMapEntry(nsRoleMapEntry* aRoleMapEntry)
     if (roleMapEntry)
       mRoleMapEntry = roleMapEntry; 
   }
-
-  return NS_OK;
 }
 
 NS_IMETHODIMP 
@@ -323,7 +327,7 @@ nsDocAccessible::GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState)
   return NS_OK;
 }
 
-NS_IMETHODIMP
+nsresult
 nsDocAccessible::GetARIAState(PRUint32 *aState)
 {
   
@@ -331,9 +335,9 @@ nsDocAccessible::GetARIAState(PRUint32 *aState)
   nsresult rv = nsAccessible::GetARIAState(aState);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  nsCOMPtr<nsPIAccessible> privateParentAccessible = do_QueryInterface(mParent);
-  if (privateParentAccessible)  
-    return privateParentAccessible->GetARIAState(aState);
+  nsRefPtr<nsAccessible> parent = nsAccUtils::QueryAccessible(mParent);
+  if (parent)  
+    return parent->GetARIAState(aState);
 
   return rv;
 }
@@ -538,14 +542,12 @@ NS_IMETHODIMP nsDocAccessible::GetCachedAccessNode(void *aUniqueID, nsIAccessNod
   
   
   nsCOMPtr<nsIAccessible> accessible = do_QueryInterface(*aAccessNode);
-  nsCOMPtr<nsPIAccessible> privateAccessible = do_QueryInterface(accessible);
-  if (privateAccessible) {
-    nsCOMPtr<nsIAccessible> parent;
-    privateAccessible->GetCachedParent(getter_AddRefs(parent));
-    nsCOMPtr<nsPIAccessible> privateParent(do_QueryInterface(parent));
-    if (privateParent) {
-      privateParent->TestChildCache(accessible);
-    }
+  nsRefPtr<nsAccessible> acc = nsAccUtils::QueryAccessible(accessible);
+  if (acc) {
+    nsCOMPtr<nsIAccessible> parent = acc->GetCachedParent();
+    nsRefPtr<nsAccessible> parentAcc(nsAccUtils::QueryAccessible(parent));
+    if (parentAcc)
+      parentAcc->TestChildCache(accessible);
   }
 #endif
   return NS_OK;
@@ -885,11 +887,12 @@ NS_IMETHODIMP nsDocAccessible::FireDocLoadEvents(PRUint32 aEventType)
     
     AddScrollListener();
     nsCOMPtr<nsIAccessible> parent(nsAccessible::GetParent());
-    nsCOMPtr<nsPIAccessible> privateAccessible(do_QueryInterface(parent));
-    if (privateAccessible) {
+    nsRefPtr<nsAccessible> acc(nsAccUtils::QueryAccessible(parent));
+    if (acc) {
       
-      privateAccessible->InvalidateChildren();
+      acc->InvalidateChildren();
     }
+
     if (sameTypeRoot != treeItem) {
       
       
@@ -1638,10 +1641,10 @@ NS_IMETHODIMP nsDocAccessible::FlushPendingEvents()
 
       if (eventType == nsIAccessibleEvent::EVENT_ASYNCH_SHOW) {
         
-        nsCOMPtr<nsPIAccessible> privateContainerAccessible =
-          do_QueryInterface(containerAccessible);
-        if (privateContainerAccessible)
-          privateContainerAccessible->InvalidateChildren();
+        nsRefPtr<nsAccessible> containerAcc =
+          nsAccUtils::QueryAccessible(containerAccessible);
+        if (containerAcc)
+          containerAcc->InvalidateChildren();
 
         
         
@@ -1765,9 +1768,9 @@ void nsDocAccessible::InvalidateChildrenInSubtree(nsIDOMNode *aStartNode)
 {
   nsCOMPtr<nsIAccessNode> accessNode;
   GetCachedAccessNode(aStartNode, getter_AddRefs(accessNode));
-  nsCOMPtr<nsPIAccessible> accessible(do_QueryInterface(accessNode));
-  if (accessible)
-    accessible->InvalidateChildren();
+  nsRefPtr<nsAccessible> acc(nsAccUtils::QueryAccessible(accessNode));
+  if (acc)
+    acc->InvalidateChildren();
 
   
   nsCOMPtr<nsINode> node = do_QueryInterface(aStartNode);
@@ -1805,12 +1808,11 @@ void nsDocAccessible::RefreshNodes(nsIDOMNode *aStartNode)
                                  accessible);
       }
     }
-    nsCOMPtr<nsPIAccessible> privateAccessible = do_QueryInterface(accessible);
-    NS_ASSERTION(privateAccessible, "No nsPIAccessible for nsIAccessible");
+    nsRefPtr<nsAccessible> acc = nsAccUtils::QueryAccessible(accessible);
 
-    nsCOMPtr<nsIAccessible> childAccessible;
     
-    privateAccessible->GetCachedFirstChild(getter_AddRefs(childAccessible));
+    
+    nsCOMPtr<nsIAccessible> childAccessible = acc->GetCachedFirstChild();
     if (childAccessible) {
       nsCOMPtr<nsIArray> children;
       
@@ -1913,7 +1915,8 @@ NS_IMETHODIMP nsDocAccessible::InvalidateCacheSubtree(nsIContent *aChild,
       
       
       
-      return InvalidateChildren();
+      InvalidateChildren();
+      return NS_OK;
     }
     nsIEventStateManager *esm = presShell->GetPresContext()->EventStateManager();
     NS_ENSURE_TRUE(esm, NS_ERROR_FAILURE);
@@ -1926,8 +1929,11 @@ NS_IMETHODIMP nsDocAccessible::InvalidateCacheSubtree(nsIContent *aChild,
       if (!containerAccessible) {
         containerAccessible = this;
       }
-      nsCOMPtr<nsPIAccessible> privateContainer = do_QueryInterface(containerAccessible);
-      return privateContainer->InvalidateChildren();
+
+      nsRefPtr<nsAccessible> containerAcc =
+        nsAccUtils::QueryAccessible(containerAccessible);
+      containerAcc->InvalidateChildren();
+      return NS_OK;
     }     
     
     
@@ -2022,11 +2028,11 @@ NS_IMETHODIMP nsDocAccessible::InvalidateCacheSubtree(nsIContent *aChild,
     if (!isAsynch) {
       
       
-      nsCOMPtr<nsPIAccessible> privateContainerAccessible =
-        do_QueryInterface(containerAccessible);
-      if (privateContainerAccessible) {
-        privateContainerAccessible->InvalidateChildren();
-      }
+      nsRefPtr<nsAccessible> containerAcc =
+        nsAccUtils::QueryAccessible(containerAccessible);
+      if (containerAcc)
+        containerAcc->InvalidateChildren();
+
     }
     
     

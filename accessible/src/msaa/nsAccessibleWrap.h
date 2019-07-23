@@ -291,7 +291,7 @@ class nsAccessibleWrap : public nsAccessible,
         VARIANT *pVarResult, EXCEPINFO *pExcepInfo, UINT *puArgErr);
 
   
-  NS_IMETHOD FireAccessibleEvent(nsIAccessibleEvent *aEvent);
+  virtual nsresult FireAccessibleEvent(nsIAccessibleEvent *aEvent);
 
   
   static PRInt32 GetChildIDFor(nsIAccessible* aAccessible);
