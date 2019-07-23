@@ -113,7 +113,6 @@ static const size_t MAX_GLOBAL_SLOTS = 4096;
 static const size_t GLOBAL_SLOTS_BUFFER_SIZE = MAX_GLOBAL_SLOTS + 1;
 
 
-class TreeInfo;
 class VMAllocator;
 class TraceRecorder;
 class FrameInfoCache;
@@ -149,7 +148,7 @@ struct InterpState
                                         
     void*          rpAtLastTreeCall;    
     VMSideExit*    outermostTreeExitGuard; 
-    TreeInfo*      outermostTree;       
+    TreeFragment*  outermostTree;       
     uintN*         inlineCallCountp;    
     VMSideExit**   innermostNestedGuardp;
     VMSideExit*    innermost;
@@ -168,7 +167,7 @@ struct InterpState
     uintN          nativeVpLen;
     jsval*         nativeVp;
 
-    InterpState(JSContext *cx, JSTraceMonitor *tm, TreeInfo *ti,
+    InterpState(JSContext *cx, JSTraceMonitor *tm, TreeFragment *ti,
                 uintN &inlineCallCountp, VMSideExit** innermostNestedGuardp);
     ~InterpState();
 };
