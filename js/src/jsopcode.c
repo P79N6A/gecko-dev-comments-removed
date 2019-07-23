@@ -1622,6 +1622,9 @@ Decompile(SprintStack *ss, jsbytecode *pc, intN nb)
 
 
 #define ATOM_IS_IDENTIFIER(atom) js_IsIdentifier(ATOM_TO_STRING(atom))
+#define ATOM_IS_KEYWORD(atom)                                                 \
+            (js_CheckKeyword(JSSTRING_CHARS(ATOM_TO_STRING(atom)),            \
+                             JSSTRING_LENGTH(ATOM_TO_STRING(atom))) != TOK_EOF)
 
 
 
@@ -3926,7 +3929,10 @@ Decompile(SprintStack *ss, jsbytecode *pc, intN nb)
                               rval);
 #else
                 if (lastop == JSOP_GETTER || lastop == JSOP_SETTER) {
-                    if (strncmp(rval, js_function_str, 8) || rval[8] != ' ') {
+                    if (!ATOM_IS_IDENTIFIER(atom) ||
+                        ATOM_IS_KEYWORD(atom) ||
+                        strncmp(rval, js_function_str, 8) ||
+                        rval[8] != ' ') {
                         todo = Sprint(&ss->sprinter, "%s%s%s %s:%s", lval,
                                       (lval[1] != '\0') ? ", " : "", xval,
                                       (lastop == JSOP_GETTER) ? js_getter_str :
