@@ -273,7 +273,10 @@ nsScriptLoader::ProcessScriptElement(nsIScriptElement *aElement)
 
   
   
-  PRUint32 typeID = mDocument->GetRootContent()->GetScriptTypeID();
+  
+  nsCOMPtr<nsIContent> rootContent = mDocument->GetRootContent();
+  PRUint32 typeID = rootContent ? rootContent->GetScriptTypeID() :
+                                  context->GetScriptTypeID();
   PRUint32 version = 0;
   nsAutoString language, type, src;
   nsresult rv = NS_OK;
