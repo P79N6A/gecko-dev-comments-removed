@@ -77,9 +77,16 @@ function test_random_download()
 function test_dm_getDownload()
 {
   
-  var dl = dm.getDownload(1);
+  try {
+    var dl = dm.getDownload(1);
   
-  do_check_eq("CVS-Contributor-Form.pdf", dl.displayName);
+    do_check_eq("CVS-Contributor-Form.pdf", dl.displayName);
+  } catch (e) {
+    
+    
+  
+    do_check_eq(Cr.NS_ERROR_FILE_UNRECOGNIZED_PATH, e.result);
+  }
 }
 
 
