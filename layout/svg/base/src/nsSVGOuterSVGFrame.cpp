@@ -230,7 +230,8 @@ nsSVGOuterSVGFrame::GetPrefWidth(nsIRenderingContext *aRenderingContext)
   if (width.IsPercentage()) {
     
     
-    result = nsPresContext::CSSPixelsToAppUnits(300);
+    
+    result = nscoord(0);
   } else {
     result = nsPresContext::CSSPixelsToAppUnits(width.GetAnimValue(svg));
     if (result < 0) {
