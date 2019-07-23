@@ -44,6 +44,9 @@
 #include "nsPrimitiveHelpers.h"
 #include "nsICharsetConverterManager.h"
 #include "nsIServiceManager.h"
+#include "nsIImage.h"
+#include "nsImageToPixbuf.h"
+#include "nsStringStream.h"
 
 #include <gtk/gtkclipboard.h>
 #include <gtk/gtkinvisible.h>
@@ -219,6 +222,38 @@ nsClipboard::SetData(nsITransferable *aTransferable,
             }
 
             
+            
+            if (!strcmp(flavorStr, kNativeImageMime) || !strcmp(flavorStr, kPNGImageMime) ||
+                !strcmp(flavorStr, kJPEGImageMime) || !strcmp(flavorStr, kGIFImageMime)) {
+                nsCOMPtr<nsISupports> item;
+                PRUint32 len;
+                rv = aTransferable->GetTransferData(flavorStr, getter_AddRefs(item), &len);
+                nsCOMPtr<nsISupportsInterfacePointer> ptrPrimitive(do_QueryInterface(item));
+                if (!ptrPrimitive)
+                    continue;
+
+                nsCOMPtr<nsISupports> primitiveData;
+                ptrPrimitive->GetData(getter_AddRefs(primitiveData));
+                nsCOMPtr<nsIImage> image(do_QueryInterface(primitiveData));
+                if (!image) 
+                    continue;
+
+                if (NS_FAILED(image->LockImagePixels(PR_FALSE)))
+                    continue;
+                GdkPixbuf* pixbuf = nsImageToPixbuf::ImageToPixbuf(image);
+                if (!pixbuf) {
+                    image->UnlockImagePixels(PR_FALSE);
+                    continue;
+                }
+
+                GtkClipboard *aClipboard = gtk_clipboard_get(GetSelectionAtom(aWhichClipboard));
+                gtk_clipboard_set_image(aClipboard, pixbuf);
+                g_object_unref(pixbuf);
+                image->UnlockImagePixels(PR_FALSE);
+                continue;
+            }
+
+            
             GdkAtom atom = gdk_atom_intern(flavorStr, FALSE);
             AddTarget(atom, selectionAtom);
         }
@@ -279,6 +314,27 @@ nsClipboard::GetData(nsITransferable *aTransferable, PRInt32 aWhichClipboard)
                 
                 
                 continue;
+            }
+
+            
+            
+            if (!strcmp(flavorStr, kJPEGImageMime) || !strcmp(flavorStr, kPNGImageMime) || !strcmp(flavorStr, kGIFImageMime)) {
+                GdkAtom atom;
+                if (!strcmp(flavorStr, kJPEGImageMime)) 
+                    atom = gdk_atom_intern("image/jpeg", FALSE);
+                else
+                    atom = gdk_atom_intern(flavorStr, FALSE);
+
+                GtkSelectionData *selectionData = wait_for_contents(clipboard, atom);
+                if (!selectionData)
+                    continue;
+
+                nsCOMPtr<nsIInputStream> byteStream;
+                NS_NewByteInputStream(getter_AddRefs(byteStream), (const char*)selectionData->data,
+                                      selectionData->length, NS_ASSIGNMENT_COPY);
+                aTransferable->SetTransferData(flavorStr, byteStream, sizeof(nsIInputStream*));
+                gtk_selection_data_free(selectionData);
+                return NS_OK;
             }
 
             
@@ -383,6 +439,10 @@ nsClipboard::HasDataMatchingFlavors(const char** aFlavorList, PRUint32 aLength,
         for (PRInt32 j = 0; j < n_targets; j++) {
             gchar *atom_name = gdk_atom_name(targets[j]);
             if (!strcmp(atom_name, aFlavorList[i]))
+                *_retval = PR_TRUE;
+
+            
+            if (!strcmp(aFlavorList[i], kJPEGImageMime) && !strcmp(atom_name, "image/jpeg"))
                 *_retval = PR_TRUE;
 
             g_free(atom_name);
