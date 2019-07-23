@@ -49,6 +49,7 @@ var Ci = Components.interfaces;
 var Cc = Components.classes;
 var Cr = Components.results;
 
+const EXCLUDE_FROM_BACKUP_ANNO = "places/excludeFromBackup";
 const POST_DATA_ANNO = "bookmarkProperties/POSTData";
 const READ_ONLY_ANNO = "placesInternal/READ_ONLY";
 const LMANNO_FEEDURI = "livemark/feedURI";
@@ -1007,11 +1008,8 @@ var PlacesUtils = {
 
 
 
-
-
-
   restoreBookmarksFromJSONFile:
-  function PU_restoreBookmarksFromJSONFile(aFile, aExcludeItems) {
+  function PU_restoreBookmarksFromJSONFile(aFile) {
     
     var stream = Cc["@mozilla.org/network/file-input-stream;1"].
                  createInstance(Ci.nsIFileInputStream);
@@ -1031,7 +1029,7 @@ var PlacesUtils = {
     if (jsonStr.length == 0)
       return; 
 
-    this.restoreBookmarksFromJSONString(jsonStr, true, aExcludeItems);
+    this.restoreBookmarksFromJSONString(jsonStr, true);
   },
 
   
@@ -1044,9 +1042,8 @@ var PlacesUtils = {
 
 
 
-
   restoreBookmarksFromJSONString:
-  function PU_restoreBookmarksFromJSONString(aString, aReplace, aExcludeItems) {
+  function PU_restoreBookmarksFromJSONString(aString, aReplace) {
     
     var nodes = this.unwrapNodes(aString, this.TYPE_X_MOZ_PLACE_CONTAINER);
 
@@ -1065,7 +1062,10 @@ var PlacesUtils = {
       nodes: nodes[0].children,
       runBatched: function restore_runBatched() {
         if (aReplace) {
-          var excludeItems = aExcludeItems || [];
+          
+          
+          var excludeItems = this._utils.annotations
+                                 .getItemsWithAnnotation(EXCLUDE_FROM_BACKUP_ANNO, {});
           
           
           
@@ -1532,7 +1532,14 @@ var PlacesUtils = {
   
 
 
-  backupBookmarksToFile: function PU_backupBookmarksToFile(aFile, aExcludeItems) {
+
+
+
+
+
+
+
+  backupBookmarksToFile: function PU_backupBookmarksToFile(aFile) {
     if (aFile.exists() && !aFile.isWritable())
       return; 
 
@@ -1555,6 +1562,10 @@ var PlacesUtils = {
     };
 
     
+    var excludeItems = this.annotations
+                           .getItemsWithAnnotation(EXCLUDE_FROM_BACKUP_ANNO, {});
+
+    
     var options = this.history.getNewQueryOptions();
     options.expandQueries = false;
     var query = this.history.getNewQuery();
@@ -1563,7 +1574,7 @@ var PlacesUtils = {
     result.root.containerOpen = true;
     
     this.serializeNodeAsJSONToOutputStream(result.root, streamProxy,
-                                           false, false, aExcludeItems);
+                                           false, false, excludeItems);
     result.root.containerOpen = false;
 
     
@@ -1572,6 +1583,8 @@ var PlacesUtils = {
   },
 
   
+
+
 
 
 

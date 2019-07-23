@@ -36,7 +36,12 @@
 
 
 
+
 Components.utils.import("resource://gre/modules/utils.js");
+
+const EXCLUDE_FROM_BACKUP_ANNO = "places/excludeFromBackup";
+
+const PLACES_ROOTS_COUNT  = 4;
 var tests = [];
 
 
@@ -57,47 +62,80 @@ var test = {
     
     var rootNode = PlacesUtils.getFolderContents(PlacesUtils.placesRootId,
                                                  false, false).root;
+    do_check_eq(rootNode.childCount, PLACES_ROOTS_COUNT );
+    rootNode.containerOpen = false;
 
     var idx = PlacesUtils.bookmarks.DEFAULT_INDEX;
 
-    var testRoot =
-      PlacesUtils.bookmarks.createFolder(PlacesUtils.placesRootId,
-                                         "", idx);
+    
+    this._restoreRootTitle = "restore root";
+    var restoreRootId = PlacesUtils.bookmarks
+                                   .createFolder(PlacesUtils.placesRootId,
+                                                 this._restoreRootTitle, idx);
+    
+    this._restoreRootURI = uri("http://restore.uri");
+    PlacesUtils.bookmarks.insertBookmark(restoreRootId, this._restoreRootURI,
+                                         idx, "restore uri");
+    
+    this._restoreRootExcludeURI = uri("http://exclude.uri");
+    var exItemId = PlacesUtils.bookmarks
+                              .insertBookmark(restoreRootId,
+                                              this._restoreRootExcludeURI,
+                                              idx, "exclude uri");
+    
+    PlacesUtils.annotations.setItemAnnotation(exItemId,
+                                              EXCLUDE_FROM_BACKUP_ANNO, 1, 0,
+                                              PlacesUtils.annotations.EXPIRE_NEVER);
 
     
-    this._folderTitle1 = "test folder";
-    this._folderId1 = 
-      PlacesUtils.bookmarks.createFolder(testRoot, this._folderTitle1, idx);
-
+    this._excludeRootTitle = "exclude root";
+    this._excludeRootId = PlacesUtils.bookmarks
+                                     .createFolder(PlacesUtils.placesRootId,
+                                                   this._excludeRootTitle, idx);
     
-    this._testURI = uri("http://test");
-    PlacesUtils.bookmarks.insertBookmark(this._folderId1, this._testURI,
-                                         idx, "test");
-
+    PlacesUtils.annotations.setItemAnnotation(this._excludeRootId,
+                                              EXCLUDE_FROM_BACKUP_ANNO, 1, 0,
+                                              PlacesUtils.annotations.EXPIRE_NEVER);
     
-    this._folderTitle2 = "test folder";
-    this._folderId2 = 
-      PlacesUtils.bookmarks.createFolder(testRoot, this._folderTitle2, idx);
-
-    
-    PlacesUtils.bookmarks.insertBookmark(this._folderId2, this._testURI,
-                                         idx, "test");
-
-    rootNode.containerOpen = false;
+    PlacesUtils.bookmarks.insertBookmark(this._excludeRootId,
+                                         this._restoreRootExcludeURI,
+                                         idx, "exclude uri");
   },
 
-  validate: function validate() {
+  validate: function validate(aEmptyBookmarks) {
     var rootNode = PlacesUtils.getFolderContents(PlacesUtils.placesRootId,
                                                  false, false).root;
 
-    var testRootNode = rootNode.getChild(rootNode.childCount-1);
+    if (!aEmptyBookmarks) {
+      
+      
+      do_check_eq(rootNode.childCount, PLACES_ROOTS_COUNT + 2);
+      
+      var restoreRootIndex = PLACES_ROOTS_COUNT;
+      var excludeRootIndex = PLACES_ROOTS_COUNT+1;
+      var excludeRootNode = rootNode.getChild(excludeRootIndex);
+      do_check_eq(this._excludeRootTitle, excludeRootNode.title);
+      excludeRootNode.QueryInterface(Ci.nsINavHistoryQueryResultNode);
+      excludeRootNode.containerOpen = true;
+      do_check_eq(excludeRootNode.childCount, 1);
+      var excludeRootChildNode = excludeRootNode.getChild(0);
+      do_check_eq(excludeRootChildNode.uri, this._restoreRootExcludeURI.spec);
+      excludeRootNode.containerOpen = false;
+    }
+    else {
+      
+      do_check_eq(rootNode.childCount, PLACES_ROOTS_COUNT + 1);
+      var restoreRootIndex = PLACES_ROOTS_COUNT;
+    }
 
-    testRootNode.QueryInterface(Ci.nsINavHistoryQueryResultNode);
-    testRootNode.containerOpen = true;
-    do_check_eq(testRootNode.childCount, 1);
-
-    var childNode = testRootNode.getChild(0);
-    do_check_eq(childNode.title, this._folderTitle1);
+    var restoreRootNode = rootNode.getChild(restoreRootIndex);
+    do_check_eq(this._restoreRootTitle, restoreRootNode.title);
+    restoreRootNode.QueryInterface(Ci.nsINavHistoryQueryResultNode);
+    restoreRootNode.containerOpen = true;
+    do_check_eq(restoreRootNode.childCount, 1);
+    var restoreRootChildNode = restoreRootNode.getChild(0);
+    do_check_eq(restoreRootChildNode.uri, this._restoreRootURI.spec);
+    restoreRootNode.containerOpen = false;
 
     rootNode.containerOpen = false;
   }
@@ -119,7 +157,7 @@ function run_test() {
   test.populate();
 
   try {
-    PlacesUtils.backupBookmarksToFile(jsonFile, [test._folderId2]);
+    PlacesUtils.backupBookmarksToFile(jsonFile);
   } catch(ex) {
     do_throw("couldn't export to file: " + ex);
   }
@@ -132,7 +170,23 @@ function run_test() {
   }
 
   
-  test.validate();
+  
+  test.validate(false);
+
+  
+  remove_all_bookmarks();
+  
+  PlacesUtils.bookmarks.removeItem(test._excludeRootId);
+
+  
+  try {
+    PlacesUtils.restoreBookmarksFromJSONFile(jsonFile);
+  } catch(ex) {
+    do_throw("couldn't import the exported file: " + ex);
+  }
+
+  
+  test.validate(true);
 
   
   jsonFile.remove(false);
