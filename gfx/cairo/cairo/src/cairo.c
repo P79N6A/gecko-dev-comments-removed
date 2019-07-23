@@ -480,8 +480,6 @@ cairo_push_group_with_content (cairo_t *cr, cairo_content_t content)
     cairo_status_t status;
     cairo_rectangle_int_t extents;
     cairo_surface_t *parent_surface, *group_surface = NULL;
-    int width;
-    int height;
 
     if (cr->status)
 	return;
@@ -495,15 +493,10 @@ cairo_push_group_with_content (cairo_t *cr, cairo_content_t content)
     if (status)
 	goto bail;
 
-    width = extents.width;
-    height = extents.height;
-
-    if (width == 0 || height == 0)
-	width = height = 1;
-
     group_surface = cairo_surface_create_similar (_cairo_gstate_get_target (cr->gstate),
 						  content,
-						  width, height);
+						  extents.width,
+						  extents.height);
     status = cairo_surface_status (group_surface);
     if (status)
 	goto bail;
@@ -556,11 +549,11 @@ cairo_pattern_t *
 cairo_pop_group (cairo_t *cr)
 {
     cairo_surface_t *group_surface, *parent_target;
-    cairo_pattern_t *group_pattern = NULL;
+    cairo_pattern_t *group_pattern = (cairo_pattern_t*) &_cairo_pattern_nil.base;
     cairo_matrix_t group_matrix;
 
     if (cr->status)
-	return (cairo_pattern_t*) &_cairo_pattern_nil.base;
+	return group_pattern;
 
     
     group_surface = _cairo_gstate_get_target (cr->gstate);
@@ -569,7 +562,7 @@ cairo_pop_group (cairo_t *cr)
     
     if (parent_target == NULL) {
 	_cairo_set_error (cr, CAIRO_STATUS_INVALID_POP_GROUP);
-	return (cairo_pattern_t*) &_cairo_pattern_nil.base;
+	return group_pattern;
     }
 
     
@@ -2115,6 +2108,9 @@ slim_hidden_def(cairo_fill_preserve);
 
 
 
+
+
+
 void
 cairo_copy_page (cairo_t *cr)
 {
@@ -2127,6 +2123,9 @@ cairo_copy_page (cairo_t *cr)
     if (status)
 	_cairo_set_error (cr, status);
 }
+
+
+
 
 
 

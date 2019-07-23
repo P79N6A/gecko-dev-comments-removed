@@ -36,8 +36,114 @@
 
 
 
+
 #include "cairoint.h"
 #include "cairo-scaled-font-private.h"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 static cairo_bool_t
 _cairo_scaled_glyph_keys_equal (const void *abstract_key_a, const void *abstract_key_b)
@@ -297,14 +403,16 @@ _cairo_scaled_font_init_key (cairo_scaled_font_t        *scaled_font,
     scaled_font->font_face = font_face;
     scaled_font->font_matrix = *font_matrix;
     scaled_font->ctm = *ctm;
+    
+    scaled_font->ctm.x0 = 0.;
+    scaled_font->ctm.y0 = 0.;
     scaled_font->options = *options;
 
     
-
     hash = _hash_bytes_fnv ((unsigned char *)(&scaled_font->font_matrix.xx),
 			    sizeof(cairo_matrix_t), hash);
     hash = _hash_bytes_fnv ((unsigned char *)(&scaled_font->ctm.xx),
-			    sizeof(double) * 4, hash);
+			    sizeof(cairo_matrix_t), hash);
 
     hash ^= (unsigned long) scaled_font->font_face;
 
@@ -1108,10 +1216,8 @@ _cairo_scaled_font_show_glyphs (cairo_scaled_font_t    *scaled_font,
 
 	
 	
-	x = _cairo_lround (glyphs[i].x +
-                           glyph_surface->base.device_transform.x0);
-	y = _cairo_lround (glyphs[i].y +
-                           glyph_surface->base.device_transform.y0);
+	x = _cairo_lround (glyphs[i].x - glyph_surface->base.device_transform.x0);
+	y = _cairo_lround (glyphs[i].y - glyph_surface->base.device_transform.y0);
 
 	_cairo_pattern_init_for_surface (&glyph_pattern, &glyph_surface->base);
 
@@ -1286,7 +1392,7 @@ _trace_mask_to_path (cairo_image_surface_t *mask,
 	    for (bit = 7; bit >= 0 && x < a1_mask->width; bit--, x++) {
 		if (byte & (1 << bit)) {
 		    status = _add_unit_rectangle_to_path (path,
-							  x + xoff, y + yoff);
+							  x - xoff, y - yoff);
 		    if (status)
 			return status;
 		}

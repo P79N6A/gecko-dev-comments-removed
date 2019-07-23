@@ -38,7 +38,6 @@
 #include <fontconfig/fontconfig.h>
 
 #include <X11/Xlibint.h>	
-#include <X11/extensions/Xrender.h>
 
 typedef int (*cairo_xlib_error_func_t) (Display     *display,
 					XErrorEvent *event);
@@ -226,6 +225,7 @@ _cairo_xlib_display_get (Display *dpy)
     cairo_xlib_display_t *display;
     cairo_xlib_display_t **prev;
     XExtCodes *codes;
+    int major_unused, minor_unused;
 
     
 
@@ -259,6 +259,14 @@ _cairo_xlib_display_get (Display *dpy)
     display = malloc (sizeof (cairo_xlib_display_t));
     if (display == NULL)
 	goto UNLOCK;
+
+    
+
+
+
+
+
+    XRenderQueryVersion (dpy, &major_unused, &minor_unused);
 
     codes = XAddExtension (dpy);
     if (codes == NULL) {

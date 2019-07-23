@@ -2088,44 +2088,8 @@ _cairo_xcb_surface_add_glyph (xcb_connection_t *dpy,
     }
 
     
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    
-    glyph_info.x = - _cairo_lround (glyph_surface->base.device_transform.x0);
-    glyph_info.y = - _cairo_lround (glyph_surface->base.device_transform.y0);
+    glyph_info.x = _cairo_lround (glyph_surface->base.device_transform.x0);
+    glyph_info.y = _cairo_lround (glyph_surface->base.device_transform.y0);
     glyph_info.width = glyph_surface->width;
     glyph_info.height = glyph_surface->height;
     glyph_info.x_off = 0;
