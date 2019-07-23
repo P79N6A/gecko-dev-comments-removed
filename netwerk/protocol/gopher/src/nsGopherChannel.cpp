@@ -469,8 +469,7 @@ nsGopherChannel::GetProxyInfo(nsIProxyInfo** aProxyInfo)
 }
 
 nsresult
-nsGopherChannel::OpenContentStream(PRBool async, nsIInputStream **result,
-                                   nsIChannel** channel)
+nsGopherChannel::OpenContentStream(PRBool async, nsIInputStream **result)
 {
     
     if (!async)

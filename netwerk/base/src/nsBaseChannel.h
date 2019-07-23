@@ -52,7 +52,6 @@
 #include "nsIInterfaceRequestor.h"
 #include "nsIProgressEventSink.h"
 #include "nsITransport.h"
-#include "nsThreadUtils.h"
 
 
 
@@ -104,12 +103,7 @@ private:
   
   
   
-  
-  
-  
-  
-  virtual nsresult OpenContentStream(PRBool async, nsIInputStream **stream,
-                                     nsIChannel** channel) = 0;
+  virtual nsresult OpenContentStream(PRBool async, nsIInputStream **stream) = 0;
 
   
   
@@ -137,9 +131,7 @@ public:
   
   
   
-  
-  nsresult Redirect(nsIChannel *newChannel, PRUint32 redirectFlags,
-                    PRBool openNewChannel);
+  nsresult Redirect(nsIChannel *newChannel, PRUint32 redirectFlags);
 
   
   
@@ -240,31 +232,6 @@ private:
     mQueriedProgressSink = PR_FALSE;
     OnCallbacksChanged();
   }
-
-  
-  
-  void HandleAsyncRedirect(nsIChannel* newChannel);
-
-  class RedirectRunnable : public nsRunnable
-  {
-  public:
-    RedirectRunnable(nsBaseChannel* chan, nsIChannel* newChannel)
-      : mChannel(chan), mNewChannel(newChannel)
-    {
-      NS_PRECONDITION(newChannel, "Must have channel to redirect to");
-    }
-    
-    NS_IMETHOD Run()
-    {
-      mChannel->HandleAsyncRedirect(mNewChannel);
-      return NS_OK;
-    }
-
-  private:
-    nsRefPtr<nsBaseChannel> mChannel;
-    nsCOMPtr<nsIChannel> mNewChannel;
-  };
-  friend class RedirectRunnable;
 
   nsRefPtr<nsInputStreamPump>         mPump;
   nsCOMPtr<nsIInterfaceRequestor>     mCallbacks;
