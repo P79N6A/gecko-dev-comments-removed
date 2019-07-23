@@ -188,4 +188,15 @@ function run_test() {
   } catch(ex) {
     do_throw("bookmarks table does not have id field, schema is too old!");
   }
+
+  
+  add_visit(uri("http://mozilla.com"));
+  var options = histsvc.getNewQueryOptions();
+  
+  var query = histsvc.getNewQuery();
+  query.searchTerms = "moz";
+  var result = histsvc.executeQuery(query, options);
+  var root = result.root;
+  root.containerOpen = true;
+  do_check_true(root.childCount > 0);
 }

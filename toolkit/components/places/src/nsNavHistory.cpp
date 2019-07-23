@@ -4128,9 +4128,10 @@ nsNavHistory::FilterResultSet(nsNavHistoryQueryResultNode* aParentNode,
 
 
   for (PRInt32 nodeIndex = 0; nodeIndex < aSet.Count(); nodeIndex ++) {
-    if (aParentNode) {
-      if (aParentNode->mItemId == aSet[nodeIndex]->mItemId)
+    if (aParentNode && aParentNode->mItemId != -1) {
+      if (aParentNode->mItemId == aSet[nodeIndex]->mItemId) {
         continue; 
+      }
     }
 
     if (excludeQueries && IsQueryURI(aSet[nodeIndex]->mURI))
