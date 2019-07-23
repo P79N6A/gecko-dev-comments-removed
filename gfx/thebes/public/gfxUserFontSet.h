@@ -152,11 +152,16 @@ public:
 
     enum {
         
-        FLAG_FORMAT_OPENTYPE       = 1,
-        FLAG_FORMAT_TRUETYPE       = 2,
-        FLAG_FORMAT_TRUETYPE_AAT   = 4,
-        FLAG_FORMAT_EOT            = 8,
-        FLAG_FORMAT_SVG            = 16
+        
+        FLAG_FORMAT_UNKNOWN        = 1,
+        FLAG_FORMAT_OPENTYPE       = 1 << 1,
+        FLAG_FORMAT_TRUETYPE       = 1 << 2,
+        FLAG_FORMAT_TRUETYPE_AAT   = 1 << 3,
+        FLAG_FORMAT_EOT            = 1 << 4,
+        FLAG_FORMAT_SVG            = 1 << 5,
+        
+        
+        FLAG_FORMAT_NOT_USED       = ~((1 << 6)-1)
     };
 
     enum LoadStatus {

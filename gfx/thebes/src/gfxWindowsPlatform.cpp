@@ -879,19 +879,19 @@ PRBool
 gfxWindowsPlatform::IsFontFormatSupported(nsIURI *aFontURI, PRUint32 aFormatFlags)
 {
     
-    if (aFormatFlags & (gfxUserFontSet::FLAG_FORMAT_EOT | gfxUserFontSet::FLAG_FORMAT_SVG)) {
-        return PR_FALSE;
+    NS_ASSERTION(!(aFormatFlags & gfxUserFontSet::FLAG_FORMAT_NOT_USED),
+                 "strange font format hint set");
+
+    
+    if (aFormatFlags & (gfxUserFontSet::FLAG_FORMAT_OPENTYPE | 
+                        gfxUserFontSet::FLAG_FORMAT_TRUETYPE)) {
+        return PR_TRUE;
     }
 
     
-    
-    
-    if ((aFormatFlags & gfxUserFontSet::FLAG_FORMAT_TRUETYPE_AAT) 
-         && !(aFormatFlags & (gfxUserFontSet::FLAG_FORMAT_OPENTYPE | gfxUserFontSet::FLAG_FORMAT_TRUETYPE))) {
+    if (aFormatFlags != 0) {
         return PR_FALSE;
     }
-
-    
 
     
     return PR_TRUE;
