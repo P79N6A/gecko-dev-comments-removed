@@ -2568,7 +2568,11 @@ js_Interpret(JSContext *cx)
 #endif 
 
     
-    JS_ASSERT(!cx->executingTrace);
+    TraceRecorder *tr = NULL;
+    if (cx->executingTrace) {
+        tr = JS_TRACE_MONITOR(cx).recorder;
+        JS_TRACE_MONITOR(cx).recorder = NULL;
+    }
 
     
     JS_CHECK_RECURSION(cx, return JS_FALSE);
@@ -7044,6 +7048,11 @@ js_Interpret(JSContext *cx)
     if (cx->version == currentVersion && currentVersion != originalVersion)
         js_SetVersion(cx, originalVersion);
     --cx->interpLevel;
+
+    if (tr) {
+        JS_TRACE_MONITOR(cx).recorder = tr;
+        tr->deepAbort();
+    }
     return ok;
 
   atom_not_defined:
