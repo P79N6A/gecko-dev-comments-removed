@@ -120,7 +120,7 @@ function addA11yLoadEvent(aFunc)
     );
   }
 
-  addLoadEvent(waitForDocLoad);
+  SimpleTest.waitForFocus(waitForDocLoad);
 }
 
 
