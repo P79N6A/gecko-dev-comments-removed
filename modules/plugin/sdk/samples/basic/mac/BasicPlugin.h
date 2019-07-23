@@ -15,7 +15,10 @@
 
 
 
-#include "npapi.h"
+
+
+#include "../../../../base/public/npapi.h"
+#include "../../../../base/public/npfunctions.h"
 
 NPError NP_Initialize(NPNetscapeFuncs *browserFuncs);
 NPError NP_GetEntryPoints(NPPluginFuncs *pluginFuncs);
