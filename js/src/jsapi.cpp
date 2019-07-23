@@ -2626,6 +2626,14 @@ JS_NewExternalString(JSContext *cx, jschar *chars, size_t length, intN type)
 JS_PUBLIC_API(intN)
 JS_GetExternalStringGCType(JSRuntime *rt, JSString *str)
 {
+    
+
+
+
+
+    if (JSString::isStatic(str))
+        return -1;
+
     return js_GetExternalStringGCType(str);
 }
 
