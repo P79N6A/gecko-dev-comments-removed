@@ -187,10 +187,12 @@ menuitem.bookmark-item {
   list-style-image: url("moz-icon://stock/gtk-directory?size=menu");
 }
 
-
-
 .bookmark-item[container][livemark] { 
   list-style-image: url("chrome://browser/skin/page-livemarks.png");
+}
+
+.bookmark-item[container][livemark] .bookmark-item {
+  list-style-image: url("chrome://browser/skin/places/livemark-item.png");
 }
 
 .bookmark-item[container][tagContainer] {
