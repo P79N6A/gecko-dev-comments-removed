@@ -36,6 +36,7 @@
 
 
 #include "nsID.h"
+#include "prprf.h"
 #include "nsMemory.h"
 
 static const char gIDFormat[] = 
