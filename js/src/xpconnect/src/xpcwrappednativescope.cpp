@@ -631,35 +631,22 @@ GetScopeOfObject(JSContext* cx, JSObject* obj)
     nsISupports* supports;
     JSClass* clazz = JS_GET_CLASS(cx, obj);
 
-    if(!IS_WRAPPER_CLASS(clazz) ||
+    if(!clazz ||
+       !(clazz->flags & JSCLASS_HAS_PRIVATE) ||
+       !(clazz->flags & JSCLASS_PRIVATE_IS_NSISUPPORTS) ||
        !(supports = (nsISupports*) JS_GetPrivate(cx, obj)))
-    {
-#ifdef DEBUG
-        {
-            if(clazz->flags & JSCLASS_HAS_PRIVATE &&
-               clazz->flags & JSCLASS_PRIVATE_IS_NSISUPPORTS)
-            {
-                nsCOMPtr<nsIXPConnectWrappedNative> iface =
-                    do_QueryInterface((nsISupports*) JS_GetPrivate(cx, obj));
-
-                NS_ASSERTION(!iface, "Uh, how'd this happen?");
-            }
-        }
-#endif
-
         return nsnull;
-    }
 
-#ifdef DEBUG
+    nsCOMPtr<nsIXPConnectWrappedNative> iface = do_QueryInterface(supports);
+    if(iface)
     {
-        nsCOMPtr<nsIXPConnectWrappedNative> iface = do_QueryInterface(supports);
-
-        NS_ASSERTION(iface, "Uh, how'd this happen?");
+        
+        
+        
+        
+        return ((XPCWrappedNative*)supports)->GetScope();
     }
-#endif
-
-    
-    return ((XPCWrappedNative*)supports)->GetScope();
+    return nsnull;
 }
 
 
