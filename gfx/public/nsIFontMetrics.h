@@ -45,6 +45,7 @@
 class nsString;
 class nsIDeviceContext;
 class nsIAtom;
+class gfxUserFontSet;
 
 
 #define NS_IFONT_METRICS_IID   \
@@ -87,7 +88,7 @@ public:
 
 
   NS_IMETHOD  Init(const nsFont& aFont, nsIAtom* aLangGroup,
-                   nsIDeviceContext *aContext) = 0;
+                   nsIDeviceContext *aContext, gfxUserFontSet *aUserFontSet = nsnull) = 0;
 
   
 

@@ -45,6 +45,8 @@
 #include "nsIPrefService.h"
 #include "nsIPrefLocalizedString.h"
 #include "nsISupportsPrimitives.h"
+#include "nsIStreamBufferAccess.h"
+#include "nsILocalFile.h"
 
 #define NO_RANGE_FOUND 126 // bit 126 in the font unicode ranges is required to be 0
 
@@ -470,3 +472,557 @@ void gfxFontUtils::GetPrefsFontList(const char *aPrefName, nsTArray<nsString>& a
 }
 
 
+
+#ifdef XP_WIN
+
+
+
+
+#pragma pack(1)
+
+struct AutoSwap_PRUint16 {
+    operator PRUint16() { return NS_SWAP16(value); }
+    operator PRUint32() { return NS_SWAP16(value); }
+    PRUint16  value;
+};
+
+struct AutoSwap_PRInt16 {
+    operator PRInt16() { return NS_SWAP16(value); }
+    operator PRUint32() { return NS_SWAP16(value); }
+    PRInt16  value;
+};
+
+struct AutoSwap_PRUint32 {
+    operator PRUint32() { return NS_SWAP32(value); }
+    PRUint32  value;
+};
+
+struct AutoSwap_PRUint64 {
+    operator PRUint64() { return NS_SWAP64(value); }
+    PRUint64  value;
+};
+
+struct SFNTHeader {
+    AutoSwap_PRUint32    sfntVersion;            
+    AutoSwap_PRUint16    numTables;              
+    AutoSwap_PRUint16    searchRange;            
+    AutoSwap_PRUint16    entrySelector;          
+    AutoSwap_PRUint16    rangeShift;             
+};
+
+struct TableDirEntry {
+    AutoSwap_PRUint32    tag;                    
+    AutoSwap_PRUint32    checkSum;               
+    AutoSwap_PRUint32    offset;                 
+    AutoSwap_PRUint32    length;                 
+};
+
+struct HeadTable {
+    enum {
+        HEAD_MAGIC_NUMBER = 0x5F0F3CF5
+    };
+
+    AutoSwap_PRUint32    tableVersionNumber;    
+    AutoSwap_PRUint32    fontRevision;          
+    AutoSwap_PRUint32    checkSumAdjustment;    
+    AutoSwap_PRUint32    magicNumber;           
+    AutoSwap_PRUint16    flags;
+    AutoSwap_PRUint16    unitsPerEm;            
+    AutoSwap_PRUint64    created;               
+    AutoSwap_PRUint64    modified;              
+    AutoSwap_PRInt16     xMin;                  
+    AutoSwap_PRInt16     yMin;                  
+    AutoSwap_PRInt16     xMax;                  
+    AutoSwap_PRInt16     yMax;                  
+    AutoSwap_PRUint16    macStyle;              
+    AutoSwap_PRUint16    lowestRecPPEM;         
+    AutoSwap_PRInt16     fontDirectionHint;
+    AutoSwap_PRInt16     indexToLocFormat;
+    AutoSwap_PRInt16     glyphDataFormat;
+};
+
+
+struct NameHeader {
+    AutoSwap_PRUint16    format;                 
+    AutoSwap_PRUint16    count;                  
+    AutoSwap_PRUint16    stringOffset;           
+};
+
+struct NameRecord {
+    AutoSwap_PRUint16    platformID;             
+    AutoSwap_PRUint16    encodingID;             
+    AutoSwap_PRUint16    languageID;             
+    AutoSwap_PRUint16    nameID;                 
+    AutoSwap_PRUint16    length;                 
+    AutoSwap_PRUint16    offset;                 
+
+    enum {
+        NAME_ID_FAMILY = 1,
+        NAME_ID_STYLE = 2,
+        NAME_ID_FULL = 4,
+        NAME_ID_VERSION = 5,
+        PLATFORM_ID_UNICODE = 0,                 
+        PLATFORM_ID_MICROSOFT = 3,
+        ENCODING_ID_MICROSOFT_UNICODEBMP = 1,    
+        LANG_ID_MICROSOFT_EN_US = 0x0409         
+    };
+};
+
+struct OS2Table {
+    AutoSwap_PRUint16    version;                
+    AutoSwap_PRInt16     xAvgCharWidth;
+    AutoSwap_PRUint16    usWeightClass;
+    AutoSwap_PRUint16    usWidthClass;
+    AutoSwap_PRUint16    fsType;
+    AutoSwap_PRInt16     ySubscriptXSize;
+    AutoSwap_PRInt16     ySubscriptYSize;
+    AutoSwap_PRInt16     ySubscriptXOffset;
+    AutoSwap_PRInt16     ySubscriptYOffset;
+    AutoSwap_PRInt16     ySuperscriptXSize;
+    AutoSwap_PRInt16     ySuperscriptYSize;
+    AutoSwap_PRInt16     ySuperscriptXOffset;
+    AutoSwap_PRInt16     ySuperscriptYOffset;
+    AutoSwap_PRInt16     yStrikeoutSize;
+    AutoSwap_PRInt16     yStrikeoutPosition;
+    AutoSwap_PRInt16     sFamilyClass;
+    PRUint8              panose[10];
+    AutoSwap_PRUint32    unicodeRange1;
+    AutoSwap_PRUint32    unicodeRange2;
+    AutoSwap_PRUint32    unicodeRange3;
+    AutoSwap_PRUint32    unicodeRange4;
+    PRUint8              achVendID[4];
+    AutoSwap_PRUint16    fsSelection;
+    AutoSwap_PRUint16    usFirstCharIndex;
+    AutoSwap_PRUint16    usLastCharIndex;
+    AutoSwap_PRInt16     sTypoAscender;
+    AutoSwap_PRInt16     sTypoDescender;
+    AutoSwap_PRInt16     sTypoLineGap;
+    AutoSwap_PRUint16    usWinAscent;
+    AutoSwap_PRUint16    usWinDescent;
+    AutoSwap_PRUint32    codePageRange1;
+    AutoSwap_PRUint32    codePageRange2;
+    AutoSwap_PRInt16     sxHeight;
+    AutoSwap_PRInt16     sCapHeight;
+    AutoSwap_PRUint16    usDefaultChar;
+    AutoSwap_PRUint16    usBreakChar;
+    AutoSwap_PRUint16    usMaxContext;
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+struct EOTFixedHeader {
+
+    PRUint32      eotSize;            
+    PRUint32      fontDataSize;       
+    PRUint32      version;            
+    PRUint32      flags;              
+    PRUint8       panose[10];         
+    PRUint8       charset;            
+    PRUint8       italic;             
+    PRUint32      weight;             
+    PRUint16      fsType;             
+    PRUint16      magicNumber;        
+    PRUint32      unicodeRange1;      
+    PRUint32      unicodeRange2;      
+    PRUint32      unicodeRange3;      
+    PRUint32      unicodeRange4;      
+    PRUint32      codePageRange1;     
+    PRUint32      codePageRange2;     
+    PRUint32      checkSumAdjustment; 
+    PRUint32      reserved[4];        
+    PRUint16      padding1;           
+
+    enum {
+        EOT_VERSION = 0x00020001,
+        EOT_MAGIC_NUMBER = 0x504c,
+        EOT_DEFAULT_CHARSET = 0x01,
+        EOT_EMBED_PRINT_PREVIEW = 0x0004,
+        EOT_FAMILY_NAME_INDEX = 0,    
+        EOT_STYLE_NAME_INDEX = 1,
+        EOT_VERSION_NAME_INDEX = 2,
+        EOT_FULL_NAME_INDEX = 3,
+        EOT_NUM_NAMES = 4
+    };
+
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class AutoCloseFile {
+public:
+    AutoCloseFile(PRFileDesc *aFileDesc) 
+        : mFile(aFileDesc) { }
+    ~AutoCloseFile() { PR_Close(mFile); }
+    PRFileDesc *mFile;
+};
+
+static PRFileDesc *
+OpenFontFile(nsIFile *aFontData)
+{
+    
+    nsCOMPtr<nsILocalFile> localFile = do_QueryInterface(aFontData);
+    if (!localFile)
+        return nsnull;
+
+    PRFileDesc *fd;
+    nsresult rv = localFile->OpenNSPRFileDesc(PR_RDONLY, 0, &fd);
+    if (NS_FAILED(rv) || !fd)
+        return nsnull;
+
+    return fd;
+}
+
+static PRBool
+IsValidVersion(PRUint32 version)
+{
+    
+    return version == 0x10000 || version == 'OTTO' || version == 'true';
+}
+
+
+static void
+CopySwapUTF16(PRUint16 *aInBuf, PRUint16 *aOutBuf, PRUint32 aLen)
+{
+    PRUint16 *end = aInBuf + aLen;
+    while (aInBuf < end) {
+        PRUint16 value = *aInBuf;
+        *aOutBuf = (value >> 8) | (value & 0xff) << 8;
+        aOutBuf++;
+        aInBuf++;
+    }
+}
+
+
+
+
+
+struct NameRecordData {
+    PRUint32  offset;
+    PRUint32  length;
+};
+
+#if DEBUG
+static void DumpEOTHeader(PRUint8 *aHeader, PRUint32 aHeaderLen)
+{
+    PRUint32 offset = 0;
+    PRUint8 *ch = aHeader;
+
+    printf("\n\nlen == %d\n\n", aHeaderLen);
+    while (offset < aHeaderLen) {
+        printf("%7.7x    ", offset);
+        int i;
+        for (i = 0; i < 16; i++) {
+            printf("%2.2x  ", *ch++);
+        }
+        printf("\n");
+        offset += 16;
+    }
+}
+#endif
+
+nsresult
+gfxFontUtils::MakeEOTHeader(nsIFile *aFontData, nsTArray<PRUint8> *aHeader, 
+                            PRBool *aIsCFF)
+{
+    PRInt32 bytesRead;
+
+    
+    *aIsCFF = PR_FALSE;
+
+    NS_ASSERTION(aHeader, "null header");
+    NS_ASSERTION(aHeader->Length() == 0, "non-empty header passed in");
+    NS_ASSERTION(aIsCFF, "null boolean ptr");
+
+    if (!aHeader->AppendElements(sizeof(EOTFixedHeader)))
+        return NS_ERROR_OUT_OF_MEMORY;
+
+    EOTFixedHeader *eotHeader = reinterpret_cast<EOTFixedHeader*> (aHeader->Elements());
+    memset(eotHeader, 0, sizeof(EOTFixedHeader));
+
+    
+    PRFileDesc *fd = OpenFontFile(aFontData);
+    if (!fd)
+        return NS_ERROR_FAILURE;
+
+    AutoCloseFile autoCloseFile(fd);
+
+    PRFileInfo64 fileInfo;
+    if (PR_GetOpenFileInfo64(fd, &fileInfo) != PR_SUCCESS 
+        || fileInfo.size > PRInt64(0xFFFFFFFF)) 
+        return NS_ERROR_FAILURE;
+
+    PRUint32 fontDataSize = PRUint32(fileInfo.size);
+
+    
+    eotHeader->fontDataSize = fontDataSize;
+    eotHeader->version = EOTFixedHeader::EOT_VERSION;
+    eotHeader->flags = 0;  
+    eotHeader->charset = EOTFixedHeader::EOT_DEFAULT_CHARSET;
+    eotHeader->fsType = EOTFixedHeader::EOT_EMBED_PRINT_PREVIEW;
+    eotHeader->magicNumber = EOTFixedHeader::EOT_MAGIC_NUMBER;
+
+    
+    SFNTHeader sfntHeader;
+    bytesRead = PR_Read(fd, &sfntHeader, sizeof(SFNTHeader));
+    if (bytesRead != sizeof(SFNTHeader) || !IsValidVersion(sfntHeader.sfntVersion))
+        return NS_ERROR_FAILURE;
+
+    
+    PRBool foundHead = PR_FALSE, foundOS2 = PR_FALSE, foundName = PR_FALSE, foundGlyphs = PR_FALSE;
+    PRUint32 headOffset, headLen, nameOffset, nameLen, os2Offset, os2Len;
+    PRUint32 i, numTables;
+
+    numTables = sfntHeader.numTables;
+    for (i = 0; i < numTables; i++) {
+        TableDirEntry dirEntry;
+        bytesRead = PR_Read(fd, &dirEntry, sizeof(TableDirEntry));
+        if (bytesRead != sizeof(TableDirEntry))
+            return NS_ERROR_FAILURE;
+
+        switch (dirEntry.tag) {
+
+        case 'head':
+            foundHead = PR_TRUE;
+            headOffset = dirEntry.offset;
+            headLen = dirEntry.length;
+            if (headLen < sizeof(HeadTable))
+                return NS_ERROR_FAILURE;
+            break;
+
+        case 'name':
+            foundName = PR_TRUE;
+            nameOffset = dirEntry.offset;
+            nameLen = dirEntry.length;
+            break;
+
+        case 'OS/2':
+            foundOS2 = PR_TRUE;
+            os2Offset = dirEntry.offset;
+            os2Len = dirEntry.length;
+            break;
+
+        case 'glyf':  
+            foundGlyphs = PR_TRUE;
+            break;
+
+        case 'CFF ':  
+            foundGlyphs = PR_TRUE;
+            *aIsCFF = PR_TRUE;
+            break;
+
+        default:
+            break;
+        }
+
+        if (foundHead && foundName && foundOS2 && foundGlyphs)
+            break;
+    }
+
+    
+    if (!foundHead || !foundName || !foundOS2)
+        return NS_ERROR_FAILURE;
+
+    
+    PROffset64 offset;
+
+    
+    HeadTable  headData;
+    offset = PR_Seek64(fd, PROffset64(headOffset), PR_SEEK_SET);
+    if (offset == -1)
+        return NS_ERROR_FAILURE;
+    bytesRead = PR_Read(fd, &headData, sizeof(HeadTable));
+    if (bytesRead != sizeof(HeadTable) || headData.magicNumber != HeadTable::HEAD_MAGIC_NUMBER)
+        return NS_ERROR_FAILURE;
+
+    eotHeader->checkSumAdjustment = headData.checkSumAdjustment;
+
+    
+
+    
+    NameHeader nameHeader;
+
+    offset = PR_Seek64(fd, PROffset64(nameOffset), PR_SEEK_SET);
+    if (offset == -1)
+        return NS_ERROR_FAILURE;
+    bytesRead = PR_Read(fd, &nameHeader, sizeof(NameHeader));
+    if (bytesRead != sizeof(NameHeader))
+        return NS_ERROR_FAILURE;
+
+    
+
+    
+    
+    NameRecordData names[EOTFixedHeader::EOT_NUM_NAMES] = {0};
+    PRUint32 nameCount = nameHeader.count;
+
+    for (i = 0; i < nameCount; i++) {
+        NameRecord nameRecord;
+
+        bytesRead = PR_Read(fd, &nameRecord, sizeof(NameRecord));
+        if (bytesRead != sizeof(NameRecord))
+            return NS_ERROR_FAILURE;
+
+        
+        if (PRUint32(nameRecord.platformID) != NameRecord::PLATFORM_ID_MICROSOFT || 
+                PRUint32(nameRecord.encodingID) != NameRecord::ENCODING_ID_MICROSOFT_UNICODEBMP || 
+                PRUint32(nameRecord.languageID) != NameRecord::LANG_ID_MICROSOFT_EN_US)
+            continue;
+
+        switch ((PRUint32)nameRecord.nameID) {
+
+        case NameRecord::NAME_ID_FAMILY:
+            names[EOTFixedHeader::EOT_FAMILY_NAME_INDEX].offset = nameRecord.offset;
+            names[EOTFixedHeader::EOT_FAMILY_NAME_INDEX].length = nameRecord.length;
+            break;
+
+        case NameRecord::NAME_ID_STYLE:
+            names[EOTFixedHeader::EOT_STYLE_NAME_INDEX].offset = nameRecord.offset;
+            names[EOTFixedHeader::EOT_STYLE_NAME_INDEX].length = nameRecord.length;
+            break;
+
+        case NameRecord::NAME_ID_FULL:
+            names[EOTFixedHeader::EOT_FULL_NAME_INDEX].offset = nameRecord.offset;
+            names[EOTFixedHeader::EOT_FULL_NAME_INDEX].length = nameRecord.length;
+            break;
+
+        case NameRecord::NAME_ID_VERSION:
+            names[EOTFixedHeader::EOT_VERSION_NAME_INDEX].offset = nameRecord.offset;
+            names[EOTFixedHeader::EOT_VERSION_NAME_INDEX].length = nameRecord.length;
+            break;
+
+        default:
+            break;
+        }
+
+        if (names[EOTFixedHeader::EOT_FAMILY_NAME_INDEX].length &&
+            names[EOTFixedHeader::EOT_STYLE_NAME_INDEX].length &&
+            names[EOTFixedHeader::EOT_FULL_NAME_INDEX].length &&
+            names[EOTFixedHeader::EOT_VERSION_NAME_INDEX].length)
+            break;
+    }
+
+    if (!(names[EOTFixedHeader::EOT_FAMILY_NAME_INDEX].length &&
+          names[EOTFixedHeader::EOT_STYLE_NAME_INDEX].length &&
+          names[EOTFixedHeader::EOT_FULL_NAME_INDEX].length &&
+          names[EOTFixedHeader::EOT_VERSION_NAME_INDEX].length)) 
+    {
+        return NS_ERROR_FAILURE;
+    }        
+
+    
+    PRUint32 eotVariableLength = 0;
+    eotVariableLength = (names[EOTFixedHeader::EOT_FAMILY_NAME_INDEX].length & (~1)) +
+                        (names[EOTFixedHeader::EOT_STYLE_NAME_INDEX].length & (~1)) +
+                        (names[EOTFixedHeader::EOT_FULL_NAME_INDEX].length & (~1)) +
+                        (names[EOTFixedHeader::EOT_VERSION_NAME_INDEX].length & (~1)) +
+                        EOTFixedHeader::EOT_NUM_NAMES * (2  
+                                                         + 2 ) +
+                        2 ;
+
+    if (!aHeader->AppendElements(eotVariableLength))
+        return NS_ERROR_OUT_OF_MEMORY;
+
+    
+    PRUint8 *eotEnd = aHeader->Elements() + sizeof(EOTFixedHeader);
+    PROffset64 strOffset;
+    PRUint32 strLen;
+
+    for (i = 0; i < EOTFixedHeader::EOT_NUM_NAMES; i++) {
+        PRUint32 namelen = names[i].length;
+        PRUint32 nameoff = names[i].offset;  
+
+        strOffset = nameOffset + PRUint32(nameHeader.stringOffset) + nameoff;
+        offset = PR_Seek64(fd, strOffset, PR_SEEK_SET);
+        if (offset == -1)
+            return NS_ERROR_FAILURE;
+
+        
+        strLen = namelen & (~1);  
+        *((PRUint16*) eotEnd) = PRUint16(strLen);
+        eotEnd += 2;
+
+        
+        
+        bytesRead = PR_Read(fd, eotEnd, strLen);
+        if (PRUint32(bytesRead) != strLen)
+            return NS_ERROR_FAILURE;
+
+        
+        CopySwapUTF16(reinterpret_cast<PRUint16*>(eotEnd), 
+                      reinterpret_cast<PRUint16*>(eotEnd), 
+                      (strLen >> 1));  
+        eotEnd += strLen;
+
+        
+        *eotEnd++ = 0;
+        *eotEnd++ = 0;
+
+       
+       
+       
+       
+    }
+
+    
+    *eotEnd++ = 0;
+    *eotEnd++ = 0;
+
+    NS_ASSERTION(eotEnd == aHeader->Elements() + aHeader->Length(), 
+                 "header length calculation incorrect");
+                 
+    
+    OS2Table  os2Data;
+    offset = PR_Seek64(fd, PROffset64(os2Offset), PR_SEEK_SET);
+    if (offset == -1)
+        return NS_ERROR_FAILURE;
+    bytesRead = PR_Read(fd, &os2Data, sizeof(OS2Table));
+    if (bytesRead != sizeof(OS2Table))
+        return NS_ERROR_FAILURE;
+
+    memcpy(eotHeader->panose, os2Data.panose, sizeof(eotHeader->panose));
+
+    eotHeader->italic = (PRUint16) os2Data.fsSelection & 0x01;
+    eotHeader->weight = os2Data.usWeightClass;
+    eotHeader->unicodeRange1 = os2Data.unicodeRange1;
+    eotHeader->unicodeRange2 = os2Data.unicodeRange2;
+    eotHeader->unicodeRange3 = os2Data.unicodeRange3;
+    eotHeader->unicodeRange4 = os2Data.unicodeRange4;
+    eotHeader->codePageRange1 = os2Data.codePageRange1;
+    eotHeader->codePageRange2 = os2Data.codePageRange2;
+
+    eotHeader->eotSize = aHeader->Length() + fontDataSize;
+
+    
+
+    return NS_OK;
+}
+
+#endif

@@ -59,6 +59,10 @@ class gfxImageSurface;
 class gfxFont;
 class gfxFontGroup;
 struct gfxFontStyle;
+class gfxUserFontSet;
+struct gfxDownloadedFontData;
+class gfxFontEntry;
+class nsIURI;
 
 
 
@@ -184,7 +188,30 @@ public:
 
 
     virtual gfxFontGroup *CreateFontGroup(const nsAString& aFamilies,
-                                          const gfxFontStyle *aStyle) = 0;
+                                          const gfxFontStyle *aStyle,
+                                          gfxUserFontSet *aUserFontSet) = 0;
+                                          
+                                          
+    
+
+
+    virtual gfxFontEntry* LookupLocalFont(const nsAString& aFontName) { return nsnull; }
+
+    
+
+
+
+
+
+    virtual gfxFontEntry* MakePlatformFont(const gfxFontEntry *aProxyEntry, const gfxDownloadedFontData* aFontData) { return nsnull; }
+
+    
+
+
+    virtual PRBool DownloadableFontsEnabled();
+
+    
+    virtual PRBool IsFontFormatSupported(nsIURI *aFontURI, PRUint32 aFormatFlags) { return PR_FALSE; }
 
     void GetPrefFonts(const char *aLangGroup, nsString& array, PRBool aAppendUnicode = PR_TRUE);
 

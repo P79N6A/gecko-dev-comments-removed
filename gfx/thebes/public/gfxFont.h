@@ -51,8 +51,6 @@
 #include "gfxSkipChars.h"
 #include "gfxRect.h"
 #include "nsExpirationTracker.h"
-#include "nsMathUtils.h"
-#include "nsBidiUtils.h"
 
 #ifdef DEBUG
 #include <stdio.h>
@@ -63,6 +61,8 @@ class gfxTextRun;
 class nsIAtom;
 class gfxFont;
 class gfxFontGroup;
+class gfxUserFontSet;
+class gfxUserFontData;
 
 #define FONT_STYLE_NORMAL              0
 #define FONT_STYLE_ITALIC              1
@@ -140,20 +140,24 @@ struct THEBES_API gfxFontStyle {
     }
 };
 
-
 class gfxFontEntry {
 public:
     THEBES_INLINE_DECL_REFCOUNTING(gfxFontEntry)
 
     gfxFontEntry(const nsAString& aName) : 
-        mName(aName), mCmapInitialized(PR_FALSE)
+        mName(aName), mIsProxy(PR_FALSE), mIsValid(PR_TRUE), 
+        mIsBadUnderlineFont(PR_FALSE), 
+        mCmapInitialized(PR_FALSE), mUserFontData(nsnull)
     { }
 
     gfxFontEntry(const gfxFontEntry& aEntry) : 
-        mName(aEntry.mName), mItalic(aEntry.mItalic), mFixedPitch(aEntry.mFixedPitch),
-        mUnicodeFont(aEntry.mUnicodeFont), mSymbolFont(aEntry.mSymbolFont), mTrueType(aEntry.mTrueType),
-        mIsType1(aEntry.mIsType1), mWeight(aEntry.mWeight), mCmapInitialized(aEntry.mCmapInitialized),
-        mCharacterMap(aEntry.mCharacterMap)
+        mName(aEntry.mName), mItalic(aEntry.mItalic), 
+        mFixedPitch(aEntry.mFixedPitch), mUnicodeFont(aEntry.mUnicodeFont), 
+        mSymbolFont(aEntry.mSymbolFont), mTrueType(aEntry.mTrueType),
+        mIsType1(aEntry.mIsType1), mIsProxy(aEntry.mIsProxy), 
+        mIsValid(aEntry.mIsValid), mIsBadUnderlineFont(aEntry.mIsBadUnderlineFont),
+        mWeight(aEntry.mWeight), mCmapInitialized(aEntry.mCmapInitialized),
+        mCharacterMap(aEntry.mCharacterMap), mUserFontData(aEntry.mUserFontData)
     { }
 
     virtual ~gfxFontEntry();
@@ -165,7 +169,7 @@ public:
 
     PRBool IsFixedPitch() { return mFixedPitch; }
     PRBool IsItalic() { return mItalic; }
-    PRBool IsBold() { return mWeight >= 6; } 
+    PRBool IsBold() { return mWeight >= 600; } 
 
     inline PRBool HasCharacter(PRUint32 ch) {
         if (mCharacterMap.test(ch))
@@ -177,7 +181,7 @@ public:
     virtual PRBool TestCharacterMap(PRUint32 aCh);
     virtual nsresult ReadCMAP() { return 0; }
 
-    nsString mName;
+    nsString         mName;
 
     PRPackedBool     mItalic      : 1;
     PRPackedBool     mFixedPitch  : 1;
@@ -186,11 +190,23 @@ public:
     PRPackedBool     mSymbolFont  : 1;
     PRPackedBool     mTrueType    : 1;
     PRPackedBool     mIsType1     : 1;
+    PRPackedBool     mIsProxy     : 1;
+    PRPackedBool     mIsValid     : 1;
+
+    PRPackedBool     mIsBadUnderlineFont : 1;
 
     PRUint16         mWeight;
+    PRUint16         mStretch;
 
     PRPackedBool     mCmapInitialized;
     gfxSparseBitSet  mCharacterMap;
+    gfxUserFontData* mUserFontData;
+
+protected:
+    gfxFontEntry() :
+        mIsProxy(PR_FALSE), mIsValid(PR_TRUE), 
+        mCmapInitialized(PR_FALSE), mUserFontData(nsnull)
+    { }
 };
 
 
@@ -206,11 +222,16 @@ public:
     const nsString& Name() { return mName; }
 
     
-    gfxFontEntry *FindFontForStyle(const gfxFontStyle& aFontStyle, PRBool& aNeedsBold);
+    
+    gfxFontEntry *FindFontForStyle(const gfxFontStyle& aFontStyle, 
+                                   PRBool& aNeedsBold);
 
 protected:
     
-    virtual PRBool FindWeightsForStyle(gfxFontEntry* aFontsForWeights[], const gfxFontStyle& aFontStyle) { return PR_FALSE; }
+   
+    virtual PRBool FindWeightsForStyle(gfxFontEntry* aFontsForWeights[], 
+                                       const gfxFontStyle& aFontStyle) 
+    { return PR_FALSE; }
 
     nsString mName;
 };
@@ -351,7 +372,7 @@ public:
     PRUint16 GetContainedGlyphWidthAppUnits(PRUint32 aGlyphID) const {
         return mContainedGlyphWidths.Get(aGlyphID);
     }
-    
+
     PRBool IsGlyphKnown(PRUint32 aGlyphID) const {
         return mContainedGlyphWidths.Get(aGlyphID) != INVALID_WIDTH ||
             mTightGlyphExtents.GetEntry(aGlyphID) != nsnull;
@@ -638,7 +659,7 @@ public:
 
     PRBool IsSyntheticBold() { return mSyntheticBoldOffset != 0; }
     PRUint32 GetSyntheticBoldOffset() { return mSyntheticBoldOffset; }
-    
+
     gfxFontEntry *GetFontEntry() { return mFontEntry.get(); }
     PRBool HasCharacter(PRUint32 ch) {
         if (!mIsValid)
@@ -675,7 +696,7 @@ public:
         PLATFORM_TEXT_FLAGS = 0x0000F000,
         TEXTRUN_TEXT_FLAGS  = 0x00000FFF,
         SETTABLE_FLAGS      = CACHE_TEXT_FLAGS | USER_TEXT_FLAGS,
-      
+
         
 
 
@@ -1385,6 +1406,9 @@ public:
         PRPackedBool mClipBeforePart;
         PRPackedBool mClipAfterPart;
     };
+    
+    
+    PRUint64 GetUserFontSetGeneration() { return mUserFontSetGeneration; }
 
 #ifdef DEBUG
     
@@ -1488,16 +1512,15 @@ private:
     PRUint32          mFlags;
     PRUint32          mCharacterCount;
     PRUint32          mHashCode;
+    PRUint64          mUserFontSetGeneration; 
 };
 
 class THEBES_API gfxFontGroup : public gfxTextRunFactory {
 protected:
-    gfxFontGroup(const nsAString& aFamilies, const gfxFontStyle *aStyle);
+    gfxFontGroup(const nsAString& aFamilies, const gfxFontStyle *aStyle, gfxUserFontSet *aUserFontSet = nsnull);
 
 public:
-    virtual ~gfxFontGroup() {
-        mFonts.Clear();
-    }
+    virtual ~gfxFontGroup();
 
     virtual gfxFont *GetFontAt(PRInt32 i) {
         return static_cast<gfxFont*>(mFonts[i]);
@@ -1519,20 +1542,8 @@ public:
 
 
 
-    static PRBool IsInvalidChar(PRUnichar ch) {
-        if (ch >= 32) {
-            return ch == 0x0085 ||
-                ((ch & 0xFF00) == 0x2000  &&
-                 (ch == 0x200B || ch == 0x2028 || ch == 0x2029 ||
-                  IS_BIDI_CONTROL_CHAR(ch)));
-        }
-        
-        
-        
-        return ch == 0x0B || ch == '\t' || ch == '\r' || ch == '\n' || ch == '\f' ||
-            (ch >= 0x1c && ch <= 0x1f);
-    }
-
+    static PRBool IsInvalidChar(PRUnichar ch);
+    
     
 
 
@@ -1567,7 +1578,7 @@ public:
     typedef PRBool (*FontCreationCallback) (const nsAString& aName,
                                             const nsACString& aGenericName,
                                             void *closure);
-    static PRBool ForEachFont(const nsAString& aFamilies,
+     PRBool ForEachFont(const nsAString& aFamilies,
                               const nsACString& aLangGroup,
                               FontCreationCallback fc,
                               void *closure);
@@ -1595,12 +1606,25 @@ public:
 
     void ComputeRanges(nsTArray<gfxTextRange>& mRanges, const PRUnichar *aString, PRUint32 begin, PRUint32 end);
 
+    gfxUserFontSet* GetUserFontSet();
+    void SetUserFontSet(gfxUserFontSet *aUserFontSet);
+
+    
+    
+    
+    
+    PRUint64 GetGeneration();
+
+    virtual void UpdateFontList() { }
 
 protected:
     nsString mFamilies;
     gfxFontStyle mStyle;
     nsTArray< nsRefPtr<gfxFont> > mFonts;
     gfxFloat mUnderlineOffset;
+
+    gfxUserFontSet* mUserFontSet;
+    PRUint64 mCurrGeneration;  
 
     
     
@@ -1615,7 +1639,7 @@ protected:
 
 
 
-    static PRBool ForEachFontInternal(const nsAString& aFamilies,
+     PRBool ForEachFontInternal(const nsAString& aFamilies,
                                       const nsACString& aLangGroup,
                                       PRBool aResolveGeneric,
                                       PRBool aResolveFontName,

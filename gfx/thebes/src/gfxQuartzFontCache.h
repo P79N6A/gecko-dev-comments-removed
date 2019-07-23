@@ -83,13 +83,15 @@ public:
     ATSUFontID GetFontID();
     nsresult ReadCMAP();
 
-    MacOSFamilyEntry* FamilyEntry() { return mFamily; }
 protected:
+    
+    MacOSFontEntry(ATSUFontID aFontID, PRUint16 aWeight, PRUint16 aStretch, PRUint32 aItalicStyle, gfxUserFontData *aUserFontData);
+
     PRUint32 mTraits;
     MacOSFamilyEntry *mFamily;
 
-    PRPackedBool mATSUIDInitialized;
     ATSUFontID mATSUFontID;
+    PRPackedBool mATSUIDInitialized;
 };
 
 
@@ -103,9 +105,8 @@ public:
     friend class gfxQuartzFontCache;
 
     
-    MacOSFamilyEntry(nsString &aName) :
-        gfxFontFamily(aName), mOtherFamilyNamesInitialized(PR_FALSE), mHasOtherFamilyNames(PR_FALSE),
-        mIsBadUnderlineFontFamily(PR_FALSE)
+    MacOSFamilyEntry(nsAString &aName) :
+        gfxFontFamily(aName), mOtherFamilyNamesInitialized(PR_FALSE), mHasOtherFamilyNames(PR_FALSE)
     {}
   
     virtual ~MacOSFamilyEntry() {}
@@ -132,7 +133,7 @@ public:
     virtual void ReadOtherFamilyNames(AddOtherFamilyNameFunctor& aOtherFamilyFunctor);
     
     
-    MacOSFontEntry* FindFont(const nsString& aPostscriptName);
+    MacOSFontEntry* FindFont(const nsAString& aPostscriptName);
 
     
     void ReadCMAP() {
@@ -141,9 +142,12 @@ public:
             mAvailableFonts[i]->ReadCMAP();
     }
 
-
     
-    PRBool IsBadUnderlineFontFamily() { return mIsBadUnderlineFontFamily != 0; }
+    void SetBadUnderlineFont(PRBool aIsBadUnderlineFont) {
+        PRUint32 i, numFonts = mAvailableFonts.Length();
+        for (i = 0; i < numFonts; i++)
+            mAvailableFonts[i]->mIsBadUnderlineFont = aIsBadUnderlineFont;
+    }
 
 protected:
     
@@ -158,14 +162,13 @@ protected:
     nsTArray<nsRefPtr<MacOSFontEntry> >  mAvailableFonts;
     PRPackedBool mOtherFamilyNamesInitialized;
     PRPackedBool mHasOtherFamilyNames;
-    PRPackedBool mIsBadUnderlineFontFamily;
 };
 
 
 class SingleFaceFamily : public MacOSFamilyEntry
 {
 public:
-    SingleFaceFamily(nsString &aName) :
+    SingleFaceFamily(nsAString &aName) :
         MacOSFamilyEntry(aName)
     {}
     
@@ -221,6 +224,10 @@ public:
     void SetPrefFontFamilyEntries(eFontPrefLang aLangGroup, nsTArray<nsRefPtr<MacOSFamilyEntry> >& array);
     
     void AddOtherFamilyName(MacOSFamilyEntry *aFamilyEntry, nsAString& aOtherFamilyName);
+
+    gfxFontEntry* LookupLocalFont(const nsAString& aFontName);
+    
+    gfxFontEntry* MakePlatformFont(const gfxFontEntry *aProxyEntry, const gfxDownloadedFontData* aFontData);
 
 private:
     static PLDHashOperator PR_CALLBACK FindFontForCharProc(nsStringHashKey::KeyType aKey,
@@ -293,6 +300,13 @@ private:
     PRUint32 mStartIndex;
     PRUint32 mIncrement;
     PRUint32 mNumFamilies;
+    
+    
+    PRUint32 mATSGeneration;
+    
+    enum {
+        kATSGenerationInitial = -1
+    };
 };
 
 #endif 

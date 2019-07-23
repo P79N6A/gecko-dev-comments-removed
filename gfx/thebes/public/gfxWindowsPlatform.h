@@ -75,7 +75,23 @@ public:
     nsresult GetStandardFamilyName(const nsAString& aFontName, nsAString& aFamilyName);
 
     gfxFontGroup *CreateFontGroup(const nsAString &aFamilies,
-                                  const gfxFontStyle *aStyle);
+                                  const gfxFontStyle *aStyle,
+                                  gfxUserFontSet *aUserFontSet);
+
+    
+
+
+    virtual gfxFontEntry* LookupLocalFont(const nsAString& aFontName);
+
+    
+
+
+    virtual gfxFontEntry* MakePlatformFont(const gfxFontEntry *aProxyEntry, const gfxDownloadedFontData* aFontData);
+
+    
+
+
+    virtual PRBool IsFontFormatSupported(nsIURI *aFontURI, PRUint32 aFormatFlags);
 
     
 

@@ -52,6 +52,7 @@ class nsIFontMetrics;
 class nsIWidget;
 class nsIDeviceContextSpec;
 class nsIAtom;
+class gfxUserFontSet;
 
 struct nsFont;
 
@@ -332,8 +333,10 @@ public:
 
 
 
+
   NS_IMETHOD  GetMetricsFor(const nsFont& aFont, nsIAtom* aLangGroup,
-                            nsIFontMetrics*& aMetrics) = 0;
+                            nsIFontMetrics*& aMetrics, 
+                            gfxUserFontSet *aUserFontSet = nsnull) = 0;
 
   
 
@@ -342,7 +345,9 @@ public:
 
 
 
-  NS_IMETHOD  GetMetricsFor(const nsFont& aFont, nsIFontMetrics*& aMetrics) = 0;
+
+  NS_IMETHOD  GetMetricsFor(const nsFont& aFont, nsIFontMetrics*& aMetrics, 
+                            gfxUserFontSet *aUserFontSet = nsnull) = 0;
 
   
 
