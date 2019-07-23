@@ -65,6 +65,8 @@ public:
 
 
   virtual nsIView* CreateViewAndWidget(nsContentType aContentType) = 0;
+
+  virtual nsIFrame* GetFrame() = 0;
 };
 
 #endif
