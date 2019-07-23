@@ -1654,10 +1654,13 @@ nsObjectFrame::NotifyContentObjectWrapper()
   if (NS_FAILED(rv))
     return;
 
-  
-  
-  
-  helper->PostCreate(wrapper, cx, obj);
+  nsCxPusher cxPusher;
+  if (cxPusher.Push(mContent)) {
+    
+    
+    
+    helper->PostCreate(wrapper, cx, obj);
+  }
 }
 
 
