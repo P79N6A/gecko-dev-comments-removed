@@ -5045,9 +5045,9 @@ nsDocument::DoNotifyPossibleTitleChange()
   }
 
   
-  nsContentUtils::DispatchTrustedEvent(this, static_cast<nsIDocument*>(this),
-                                       NS_LITERAL_STRING("DOMTitleChanged"),
-                                       PR_TRUE, PR_TRUE);
+  nsContentUtils::DispatchChromeEvent(this, static_cast<nsIDocument*>(this),
+                                      NS_LITERAL_STRING("DOMTitleChanged"),
+                                      PR_TRUE, PR_TRUE);
 }
 
 NS_IMETHODIMP
