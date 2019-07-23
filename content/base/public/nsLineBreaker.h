@@ -80,7 +80,22 @@ class nsLineBreaker {
 public:
   nsLineBreaker();
   ~nsLineBreaker();
+  
+  static inline PRBool IsSpace(PRUnichar u)
+  {
+    return u == 0x0020 || u == 0x200b || u == '\n' || u == '\t';
+  }
 
+  static inline PRBool IsComplexChar(PRUnichar u)
+  {
+    return (0x1100 <= u && u <= 0x11ff) ||
+           (0x2e80 <= u && u <= 0xd7ff) ||
+           (0xf900 <= u && u <= 0xfaff) ||
+           (0xff00 <= u && u <= 0xffef);
+  }
+
+  
+  
   
   
   
@@ -112,9 +127,13 @@ public:
 
 
 
+
+
   nsresult AppendText(nsIAtom* aLangGroup, const PRUnichar* aText, PRUint32 aLength,
                       PRUint32 aFlags, nsILineBreakSink* aSink);
   
+
+
 
 
   nsresult AppendText(nsIAtom* aLangGroup, const PRUint8* aText, PRUint32 aLength,
@@ -155,7 +174,7 @@ private:
   nsAutoTArray<PRUnichar,100> mCurrentWord;
   
   nsAutoTArray<TextItem,2>    mTextItems;
-  PRPackedBool                mCurrentWordContainsCJK;
+  PRPackedBool                mCurrentWordContainsComplexChar;
 
   
   PRPackedBool                mAfterSpace;
