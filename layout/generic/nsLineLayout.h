@@ -157,7 +157,8 @@ protected:
 #define LL_INFIRSTLETTER               0x00002000
 #define LL_HASBULLET                   0x00004000
 #define LL_DIRTYNEXTLINE               0x00008000
-#define LL_LASTFLAG                    LL_DIRTYNEXTLINE
+#define LL_LINEATSTART                 0x00010000
+#define LL_LASTFLAG                    LL_LINEATSTART
 
   void SetFlag(PRUint32 aFlag, PRBool aValue)
   {
@@ -193,6 +194,16 @@ public:
   PRBool LineIsEmpty() const
   {
     return GetFlag(LL_LINEISEMPTY);
+  }
+
+  
+
+
+
+
+  PRBool LineAtStart() const
+  {
+    return GetFlag(LL_LINEATSTART);
   }
 
   PRBool LineIsBreakable() const;
@@ -546,7 +557,7 @@ protected:
 #endif
   PLArenaPool mArena; 
 
-  PRUint16 mFlags;
+  PRUint32 mFlags;
 
   PRUint8 mTextAlign;
 
