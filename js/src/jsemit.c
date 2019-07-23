@@ -5144,9 +5144,18 @@ js_EmitTree(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
             JS_ASSERT(cg->treeContext.flags & TCF_IN_FUNCTION);
             for (pn2 = pn->pn_head; pn2; pn2 = pn2->pn_next) {
                 if (pn2->pn_type == TOK_FUNCTION) {
-                    JS_ASSERT(pn2->pn_op == JSOP_NOP);
-                    if (!js_EmitTree(cx, cg, pn2))
-                        return JS_FALSE;
+                    if (pn2->pn_op == JSOP_NOP) {
+                        if (!js_EmitTree(cx, cg, pn2))
+                            return JS_FALSE;
+                    } else {
+                        
+
+
+
+
+
+                        JS_ASSERT(pn2->pn_op == JSOP_CLOSURE);
+                    }
                 }
             }
         }
