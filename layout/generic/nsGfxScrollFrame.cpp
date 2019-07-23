@@ -2694,6 +2694,12 @@ PRBool
 nsGfxScrollFrameInner::IsScrollbarOnRight() const
 {
   nsPresContext *presContext = mOuter->PresContext();
+
+  
+  
+  
+  if (!mIsRoot)
+    return IsLTR();
   switch (presContext->GetCachedIntPref(kPresContext_ScrollbarSide)) {
     default:
     case 0: 
