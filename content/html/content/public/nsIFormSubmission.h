@@ -56,10 +56,13 @@ class nsISaveAsCharset;
 
 
 
-class nsFormSubmission {
-
+class nsFormSubmission
+{
 public:
-  virtual ~nsFormSubmission();
+  virtual ~nsFormSubmission()
+  {
+    MOZ_COUNT_DTOR(nsFormSubmission);
+  }
 
   
 
@@ -103,7 +106,22 @@ protected:
 
 
 
-  nsFormSubmission(const nsACString& aCharset);
+  nsFormSubmission(const nsACString& aCharset)
+    : mCharset(aCharset)
+  {
+    MOZ_COUNT_CTOR(nsFormSubmission);
+  }
+
+  
+  nsCString mCharset;
+};
+
+class nsEncodingFormSubmission : public nsFormSubmission
+{
+public:
+  nsEncodingFormSubmission(const nsACString& aCharset);
+
+  virtual ~nsEncodingFormSubmission();
 
   
 
@@ -114,8 +132,7 @@ protected:
 
   nsresult EncodeVal(const nsAString& aStr, nsACString& aResult);
 
-  
-  nsCString mCharset;
+private:
   
   nsCOMPtr<nsISaveAsCharset> mEncoder;
 };
@@ -126,9 +143,7 @@ protected:
 
 
 
-
 nsresult GetSubmissionFromForm(nsGenericHTMLElement* aForm,
                                nsFormSubmission** aFormSubmission);
-
 
 #endif 
