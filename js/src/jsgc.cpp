@@ -1308,13 +1308,13 @@ js_InitGC(JSRuntime *rt, uint32 maxbytes)
 
 
 
-    rt->gcTriggerFactor = (uint32) -1;
+    rt->setGCTriggerFactor((uint32) -1);
 
     
 
 
 
-    rt->gcLastBytes = 8192;
+    rt->setGCLastBytes(8192);
 
     METER(memset(&rt->gcStats, 0, sizeof rt->gcStats));
     return JS_TRUE;
@@ -1800,6 +1800,25 @@ EnsureLocalFreeList(JSContext *cx)
 
 #endif
 
+void
+JSRuntime::setGCTriggerFactor(uint32 factor)
+{
+    JS_ASSERT(factor >= 100);
+
+    gcTriggerFactor = factor;
+    setGCLastBytes(gcLastBytes);
+}
+
+void
+JSRuntime::setGCLastBytes(size_t lastBytes)
+{
+    gcLastBytes = lastBytes;
+    uint64 triggerBytes = uint64(lastBytes) * uint64(gcTriggerFactor / 100);
+    if (triggerBytes != size_t(triggerBytes))
+        triggerBytes = size_t(-1);
+    gcTriggerBytes = size_t(triggerBytes);
+}
+
 static JS_INLINE bool
 IsGCThresholdReached(JSRuntime *rt)
 {
@@ -1814,7 +1833,7 @@ IsGCThresholdReached(JSRuntime *rt)
 
 
     return rt->gcMallocBytes >= rt->gcMaxMallocBytes ||
-           rt->gcBytes / rt->gcTriggerFactor >= rt->gcLastBytes / 100;
+           rt->gcBytes >= rt->gcTriggerBytes;
 }
 
 void *
@@ -3846,7 +3865,7 @@ out:
         goto restart;
     }
 
-    rt->gcLastBytes = rt->gcBytes;
+    rt->setGCLastBytes(rt->gcBytes);
   done_running:
     rt->gcLevel = 0;
     rt->gcRunning = JS_FALSE;
