@@ -642,7 +642,7 @@ gfxPlatform::GetCMSsRGBProfile()
 
         
 
-        cmsPrecacheProfile(gCMSsRGBProfile, CMS_PRECACHE_LI16F_FORWARD);
+        cmsPrecacheProfile(gCMSsRGBProfile, CMS_PRECACHE_LI8F_FORWARD);
     }
     return gCMSsRGBProfile;
 }
