@@ -218,6 +218,18 @@ public:
     
 
 
+
+
+
+
+
+
+
+    static int GetRenderingIntent();
+
+    
+
+
     static cmsHPROFILE GetCMSOutputProfile();
 
     

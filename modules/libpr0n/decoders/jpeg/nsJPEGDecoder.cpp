@@ -402,14 +402,23 @@ nsresult nsJPEGDecoder::ProcessData(const char *data, PRUint32 count, PRUint32 *
         
         if (mInfo.out_color_space == JCS_CMYK)
           type |= FLAVOR_SH(mInfo.saw_Adobe_marker ? 1 : 0);
+        
 
-        if (gfxPlatform::GetCMSOutputProfile())
+        if (gfxPlatform::GetCMSOutputProfile()) {
+
+          
+          int intent = gfxPlatform::GetRenderingIntent();
+          if (intent == -1)
+              intent = cmsTakeRenderingIntent(mInProfile);
+
+          
           mTransform = cmsCreateTransform(mInProfile,
                                           type,
                                           gfxPlatform::GetCMSOutputProfile(),
                                           TYPE_RGB_8,
-                                          cmsTakeRenderingIntent(mInProfile),
+                                          intent,
                                           0);
+        }
       } else {
 #ifdef DEBUG_tor
         fprintf(stderr, "ICM profile colorspace mismatch\n");

@@ -469,6 +469,45 @@ gfxPlatform::IsCMSEnabled()
     return sEnabled;
 }
 
+
+
+
+#define INTENT_DEFAULT INTENT_PERCEPTUAL
+
+PRBool
+gfxPlatform::GetRenderingIntent()
+{
+    
+    static int sIntent = -2;
+
+    if (sIntent == -2) {
+
+        
+        nsCOMPtr<nsIPrefBranch> prefs = do_GetService(NS_PREFSERVICE_CONTRACTID);
+        if (prefs) {
+            PRInt32 pIntent;
+            nsresult rv = prefs->GetIntPref("gfx.color_management.rendering_intent", 
+                                            &pIntent);
+            if (NS_SUCCEEDED(rv)) {
+              
+                
+                if ((pIntent >= INTENT_MIN) && (pIntent <= INTENT_MAX))
+                    sIntent = pIntent;
+
+                
+                else
+                    sIntent = -1;
+            }
+        }
+
+        
+        if (sIntent == -2) 
+            sIntent = INTENT_DEFAULT;
+    }
+    return sIntent;
+}
+
+
 cmsHPROFILE
 gfxPlatform::GetPlatformCMSOutputProfile()
 {

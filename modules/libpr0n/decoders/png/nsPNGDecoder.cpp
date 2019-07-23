@@ -378,7 +378,7 @@ PNGGetColorProfile(png_structp png_ptr, png_infop info_ptr,
                    int color_type, PRUint32 *inType, PRUint32 *intent)
 {
   cmsHPROFILE profile = nsnull;
-  *intent = INTENT_PERCEPTUAL;   
+  *intent = INTENT_PERCEPTUAL; 
 
 #ifndef PNG_NO_READ_iCCP
   
@@ -531,10 +531,14 @@ info_callback(png_structp png_ptr, png_infop info_ptr)
   if (bit_depth == 16)
     png_set_strip_16(png_ptr);
 
-  PRUint32 inType, intent;
+  PRUint32 inType, intent, pIntent;
   if (gfxPlatform::IsCMSEnabled()) {
+    intent = gfxPlatform::GetRenderingIntent();
     decoder->mInProfile = PNGGetColorProfile(png_ptr, info_ptr,
-                                             color_type, &inType, &intent);
+                                             color_type, &inType, &pIntent);
+    
+    if (intent == -1)
+      intent = pIntent;
   }
   if (decoder->mInProfile && gfxPlatform::GetCMSOutputProfile()) {
     PRUint32 outType;
