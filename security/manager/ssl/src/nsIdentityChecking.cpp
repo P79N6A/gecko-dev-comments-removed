@@ -158,6 +158,18 @@ static struct nsMyTrustedEVInfo myTrustedEVInfos[] = {
     "1.3.6.1.4.1.6449.1.2.1.5.1",
     "Comodo EV OID",
     SEC_OID_UNKNOWN,
+    "9F:74:4E:9F:2B:4D:BA:EC:0F:31:2C:50:B6:56:3B:8E:2D:93:C3:11",
+    "MIGFMQswCQYDVQQGEwJHQjEbMBkGA1UECBMSR3JlYXRlciBNYW5jaGVzdGVyMRAw"
+    "DgYDVQQHEwdTYWxmb3JkMRowGAYDVQQKExFDT01PRE8gQ0EgTGltaXRlZDErMCkG"
+    "A1UEAxMiQ09NT0RPIEVDQyBDZXJ0aWZpY2F0aW9uIEF1dGhvcml0eQ==",
+    "H0evqmIAcFBUTAGem2OZKg==",
+    nsnull
+  },
+  {
+    
+    "1.3.6.1.4.1.6449.1.2.1.5.1",
+    "Comodo EV OID",
+    SEC_OID_UNKNOWN,
     "66:31:BF:9E:F7:4F:9E:B6:C9:D5:A6:0C:BA:6A:BE:D1:F7:BD:EF:7B",
     "MIGBMQswCQYDVQQGEwJHQjEbMBkGA1UECBMSR3JlYXRlciBNYW5jaGVzdGVyMRAw"
     "DgYDVQQHEwdTYWxmb3JkMRowGAYDVQQKExFDT01PRE8gQ0EgTGltaXRlZDEnMCUG"
@@ -328,7 +340,7 @@ static struct nsMyTrustedEVInfo myTrustedEVInfos[] = {
     "0.0.0.0",
     0, 
     SEC_OID_UNKNOWN,
-    "00:11:22:33:44:55:66:77:88:99:AA:BB:CC:DD:EE:FF:00:11:22:33"
+    "00:11:22:33:44:55:66:77:88:99:AA:BB:CC:DD:EE:FF:00:11:22:33",
     "Cg==",
     "Cg==",
     nsnull
