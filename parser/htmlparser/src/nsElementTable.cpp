@@ -1086,11 +1086,11 @@ const nsHTMLElement gHTMLElements[] = {
     
                                  eHTMLTag_style,
               eHTMLTag_unknown,eHTMLTag_unknown,
-              &gInHead,&gInHead,
+              &gRootTags,&gRootTags,
      0,0,0,0,
-              kHeadContent, kCDATA, kNone,
+              kAllTags - kHeadContent, kCDATA, kNone,
            kNoStyleLeaksIn, kNoPropRange,
-           &gInHead,0,eHTMLTag_unknown,
+           0,0,eHTMLTag_unknown,
                         0
   },
   {
