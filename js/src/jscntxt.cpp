@@ -116,9 +116,8 @@ PurgeThreadData(JSContext *cx, JSThreadData *data)
     
 
 
-
-
-    tm->needFlush = JS_TRUE;
+    if (cx->runtime->gcRegenShapes)
+        tm->needFlush = JS_TRUE;
 
     if (tm->recorder)
         tm->recorder->deepAbort();
@@ -267,6 +266,15 @@ thread_purger(JSDHashTable *table, JSDHashEntryHdr *hdr, uint32 ,
     return JS_DHASH_NEXT;
 }
 
+static JSDHashOperator
+thread_tracer(JSDHashTable *table, JSDHashEntryHdr *hdr, uint32 ,
+              void *arg)
+{
+    JSThread *thread = ((JSThreadsHashEntry *) hdr)->thread;
+    thread->data.mark((JSTracer *)arg);
+    return JS_DHASH_NEXT;
+}
+
 #endif 
 
 JSBool
@@ -305,6 +313,16 @@ js_PurgeThreads(JSContext *cx)
     JS_DHashTableEnumerate(&cx->runtime->threads, thread_purger, cx);
 #else
     PurgeThreadData(cx, &cx->runtime->threadData);
+#endif
+}
+
+void
+js_TraceThreads(JSRuntime *rt, JSTracer *trc)
+{
+#ifdef JS_THREADSAFE
+    JS_DHashTableEnumerate(&rt->threads, thread_tracer, trc);
+#else
+    rt->threadData.mark(trc);
 #endif
 }
 
