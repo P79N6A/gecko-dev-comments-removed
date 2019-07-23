@@ -221,6 +221,9 @@ class MinidumpMemoryRegion : public MinidumpObject,
  public:
   virtual ~MinidumpMemoryRegion();
 
+  static void set_max_bytes(u_int32_t max_bytes) { max_bytes_ = max_bytes; }
+  static u_int32_t max_bytes() { return max_bytes_; }
+
   
   
   
@@ -257,6 +260,10 @@ class MinidumpMemoryRegion : public MinidumpObject,
   
   template<typename T> bool GetMemoryAtAddressInternal(u_int64_t address,
                                                        T*        value);
+
+  
+  
+  static u_int32_t max_bytes_;
 
   
   
@@ -312,6 +319,11 @@ class MinidumpThreadList : public MinidumpStream {
  public:
   virtual ~MinidumpThreadList();
 
+  static void set_max_threads(u_int32_t max_threads) {
+    max_threads_ = max_threads;
+  }
+  static u_int32_t max_threads() { return max_threads_; }
+
   unsigned int thread_count() const { return valid_ ? thread_count_ : 0; }
 
   
@@ -336,6 +348,10 @@ class MinidumpThreadList : public MinidumpStream {
   bool Read(u_int32_t aExpectedSize);
 
   
+  
+  static u_int32_t max_threads_;
+
+  
   IDToThreadMap    id_to_thread_map_;
 
   
@@ -352,6 +368,16 @@ class MinidumpModule : public MinidumpObject,
                        public CodeModule {
  public:
   virtual ~MinidumpModule();
+
+  static void set_max_cv_bytes(u_int32_t max_cv_bytes) {
+    max_cv_bytes_ = max_cv_bytes;
+  }
+  static u_int32_t max_cv_bytes() { return max_cv_bytes_; }
+
+  static void set_max_misc_bytes(u_int32_t max_misc_bytes) {
+    max_misc_bytes_ = max_misc_bytes;
+  }
+  static u_int32_t max_misc_bytes() { return max_misc_bytes_; }
 
   const MDRawModule* module() const { return valid_ ? &module_ : NULL; }
 
@@ -411,6 +437,12 @@ class MinidumpModule : public MinidumpObject,
   
   
   
+  static u_int32_t max_cv_bytes_;
+  static u_int32_t max_misc_bytes_;
+
+  
+  
+  
   
   
   bool              module_valid_;
@@ -447,6 +479,11 @@ class MinidumpModuleList : public MinidumpStream,
  public:
   virtual ~MinidumpModuleList();
 
+  static void set_max_modules(u_int32_t max_modules) {
+    max_modules_ = max_modules;
+  }
+  static u_int32_t max_modules() { return max_modules_; }
+
   
   virtual unsigned int module_count() const {
     return valid_ ? module_count_ : 0;
@@ -473,6 +510,10 @@ class MinidumpModuleList : public MinidumpStream,
   bool Read(u_int32_t expected_size);
 
   
+  
+  static u_int32_t max_modules_;
+
+  
   RangeMap<u_int64_t, unsigned int> *range_map_;
 
   MinidumpModules *modules_;
@@ -492,6 +533,11 @@ class MinidumpModuleList : public MinidumpStream,
 class MinidumpMemoryList : public MinidumpStream {
  public:
   virtual ~MinidumpMemoryList();
+
+  static void set_max_regions(u_int32_t max_regions) {
+    max_regions_ = max_regions;
+  }
+  static u_int32_t max_regions() { return max_regions_; }
 
   unsigned int region_count() const { return valid_ ? region_count_ : 0; }
 
@@ -516,6 +562,10 @@ class MinidumpMemoryList : public MinidumpStream {
   explicit MinidumpMemoryList(Minidump* minidump);
 
   bool Read(u_int32_t expected_size);
+
+  
+  
+  static u_int32_t max_regions_;
 
   
   RangeMap<u_int64_t, unsigned int> *range_map_;
@@ -690,6 +740,16 @@ class Minidump {
 
   ~Minidump();
 
+  static void set_max_streams(u_int32_t max_streams) {
+    max_streams_ = max_streams;
+  }
+  static u_int32_t max_streams() { return max_streams_; }
+
+  static void set_max_string_length(u_int32_t max_string_length) {
+    max_string_length_ = max_string_length;
+  }
+  static u_int32_t max_string_length() { return max_string_length_; }
+
   const MDRawHeader* header() const { return valid_ ? &header_ : NULL; }
 
   
@@ -778,6 +838,17 @@ class Minidump {
 
   
   bool Open();
+
+  
+  
+  
+  static u_int32_t max_streams_;
+
+  
+  
+  
+  
+  static unsigned int max_string_length_;
 
   MDRawHeader               header_;
 

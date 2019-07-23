@@ -46,9 +46,9 @@ class MinidumpProcessor {
  public:
   
   enum ProcessResult {
-    PROCESS_OK,  
-    PROCESS_ERROR,  
-    PROCESS_INTERRUPTED,  
+    PROCESS_OK,           
+    PROCESS_ERROR,        
+    PROCESS_INTERRUPTED   
   };
 
   

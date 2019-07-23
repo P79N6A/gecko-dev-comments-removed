@@ -171,7 +171,10 @@ class LinuxThread {
   int ListModules(CallbackParam<ModuleCallback> *callback_param) const;
 
   
-  uintptr_t GetThreadStackBottom(uintptr_t current_esp) const;
+  uintptr_t GetThreadStackBottom(uintptr_t current_ebp) const;
+
+  
+  bool FindSigContext(uintptr_t sighandler_ebp, struct sigcontext **sig_ctx);
 
  private:
   

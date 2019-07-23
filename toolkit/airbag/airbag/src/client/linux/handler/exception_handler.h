@@ -132,7 +132,7 @@ class ExceptionHandler {
   
   bool WriteMinidump();
 
-    
+  
   
   static bool WriteMinidump(const string &dump_path,
                             MinidumpCallback callback,
@@ -151,7 +151,14 @@ class ExceptionHandler {
   
   static void HandleException(int signo);
 
-  bool InternalWriteMinidump(int signo, const struct sigcontext *sig_ctx);
+  
+  
+  
+  
+  
+  
+  bool InternalWriteMinidump(int signo, uintptr_t sighandler_ebp,
+                             struct sigcontext **sig_ctx);
 
  private:
   FilterCallback filter_;

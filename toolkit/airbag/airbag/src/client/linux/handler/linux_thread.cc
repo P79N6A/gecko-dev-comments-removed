@@ -381,4 +381,30 @@ bool LinuxThread::IsAddressMapped(uintptr_t address) const {
   return addr.is_mapped;
 }
 
+bool LinuxThread::FindSigContext(uintptr_t sighandler_ebp,
+                                 struct sigcontext **sig_ctx) {
+  uintptr_t previous_ebp;
+  const int MAX_STACK_DEPTH = 10;
+  int depth_counter = 0;
+
+  do {
+    
+    
+    
+    
+    previous_ebp = reinterpret_cast<uintptr_t>(GetNextFrame(
+                                  reinterpret_cast<void**>(sighandler_ebp)));
+    
+    
+    
+    *sig_ctx = reinterpret_cast<struct sigcontext*>(sighandler_ebp +
+                                                    3 * sizeof(uintptr_t));
+    sighandler_ebp = previous_ebp;
+    depth_counter++;
+  } while(previous_ebp != (*sig_ctx)->ebp && sighandler_ebp != 0 &&
+          IsAddressMapped(sighandler_ebp) && depth_counter < MAX_STACK_DEPTH);
+
+  return previous_ebp == (*sig_ctx)->ebp && previous_ebp != 0;
+}
+
 }  
