@@ -786,6 +786,28 @@ nsXULElement::MaybeAddPopupListener(nsIAtom* aLocalName)
 
 
 void
+nsXULElement::UnbindFromTree(PRBool aDeep, PRBool aNullParent)
+{
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    nsDOMSlots* slots = GetExistingDOMSlots();
+    if (slots) {
+        NS_IF_RELEASE(slots->mControllers);
+    }
+
+    nsGenericElement::UnbindFromTree(aDeep, aNullParent);
+}
+
+void
 nsXULElement::SetNativeAnonymous(PRBool aAnonymous)
 {
     
