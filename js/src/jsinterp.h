@@ -142,6 +142,16 @@ struct JSStackFrame {
         }
     }
 
+    jsval calleeValue() {
+        JS_ASSERT(argv);
+        return argv[-2];
+    }
+
+    JSObject *calleeObject() {
+        JS_ASSERT(argv);
+        return JSVAL_TO_OBJECT(argv[-2]);
+    }
+
     JSObject *callee() {
         return argv ? JSVAL_TO_OBJECT(argv[-2]) : NULL;
     }
