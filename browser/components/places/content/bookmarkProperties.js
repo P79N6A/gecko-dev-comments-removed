@@ -89,7 +89,7 @@
 
 
 
-const LAST_USED_ANNO = "bookmarkPropertiesDialog/lastUsed";
+const LAST_USED_ANNO = "bookmarkPropertiesDialog/folderLastUsed";
 const STATIC_TITLE_ANNO = "bookmarks/staticTitle";
 
 
@@ -111,17 +111,6 @@ var BookmarkPropertiesPanel = {
       this.__strings = document.getElementById("stringBundle");
     }
     return this.__strings;
-  },
-
-  
-
-
-  __mss: null,
-  get _mss() {
-    if (!this.__mss)
-      this.__mss = Cc["@mozilla.org/microsummary/service;1"].
-                  getService(Ci.nsIMicrosummaryService);
-    return this.__mss;
   },
 
   _action: null,
@@ -392,6 +381,15 @@ var BookmarkPropertiesPanel = {
 
   _initFolderMenuList: function BPP__initFolderMenuList() {
     
+    var bms = PlacesUtils.bookmarks;
+    var bmMenuItem = this._element("bookmarksRootItem");
+    bmMenuItem.label = bms.getItemTitle(PlacesUtils.bookmarksMenuFolderId);
+    bmMenuItem.folderId = PlacesUtils.bookmarksMenuFolderId;
+    var toolbarItem = this._element("toolbarFolderItem");
+    toolbarItem.label = bms.getItemTitle(PlacesUtils.toolbarFolderId);
+    toolbarItem.folderId = PlacesUtils.toolbarFolderId;
+
+    
     var annos = PlacesUtils.annotations;
     var folderIds = annos.getItemsWithAnnotation(LAST_USED_ANNO, { });
 
@@ -429,7 +427,7 @@ var BookmarkPropertiesPanel = {
     }
 
     var defaultItem =
-      this._getFolderMenuItem(this._defaultInsertionPoint.itemId, true);
+      this._getFolderMenuItem(this._defaultInsertionPoint.itemId);
 
     
     
@@ -568,8 +566,9 @@ var BookmarkPropertiesPanel = {
 
     var itemToSelect = userEnteredNameField;
     try {
-      this._microsummaries = this._mss.getMicrosummaries(this._bookmarkURI,
-                                                         this._bookmarkId);
+      this._microsummaries =
+        PlacesUtils.microsummaries.getMicrosummaries(this._bookmarkURI,
+                                                     this._bookmarkId);
     }
     catch(ex) {
       
@@ -591,7 +590,8 @@ var BookmarkPropertiesPanel = {
           var menuItem = this._createMicrosummaryMenuItem(microsummary);
 
           if (this._action == ACTION_EDIT &&
-              this._mss.isMicrosummary(this._bookmarkId, microsummary))
+              PlacesUtils.microsummaries
+                         .isMicrosummary(this._bookmarkId, microsummary))
             itemToSelect = menuItem;
 
           menupopup.appendChild(menuItem);
@@ -840,9 +840,11 @@ var BookmarkPropertiesPanel = {
       
       
       
-      if ((newMicrosummary == null && this._mss.hasMicrosummary(itemId)) ||
+      if ((newMicrosummary == null &&
+           PlacesUtils.microsummaries.hasMicrosummary(itemId)) ||
           (newMicrosummary != null &&
-           !this._mss.isMicrosummary(itemId, newMicrosummary))) {
+           !PlacesUtils.microsummaries
+                       .isMicrosummary(itemId, newMicrosummary))) {
         transactions.push(
           PlacesUtils.ptm.editBookmarkMicrosummary(itemId, newMicrosummary));
       }
@@ -1008,7 +1010,10 @@ var BookmarkPropertiesPanel = {
       createTxn = this._getCreateNewBookmarkTransaction(container, index);
 
     
-    this._markFolderAsRecentlyUsed(container);
+    
+    if (container != PlacesUtils.toolbarFolderId &&
+        container != PlacesUtils.bookmarksMenuFolderId)
+      this._markFolderAsRecentlyUsed(container);
 
     
     
@@ -1058,14 +1063,7 @@ var BookmarkPropertiesPanel = {
 
   _getFolderIdFromMenuList:
   function BPP__getFolderIdFromMenuList() {
-    var selectedItem = this._folderMenuList.selectedItem
-    switch (selectedItem.id) {
-      case "bookmarksRootItem":
-        return PlacesUtils.bookmarksMenuFolderId;
-      case "toolbarFolderItem":
-        return PlacesUtils.toolbarFolderId;
-    }
-
+    var selectedItem = this._folderMenuList.selectedItem;
     NS_ASSERT("folderId" in selectedItem,
               "Invalid menuitem in the folders-menulist");
     return selectedItem.folderId;
@@ -1079,25 +1077,13 @@ var BookmarkPropertiesPanel = {
 
 
 
-
-
-
-
   _getFolderMenuItem:
-  function BPP__getFolderMenuItem(aFolderId, aCheckStaticFolderItems) {
+  function BPP__getFolderMenuItem(aFolderId) {
     var menupopup = this._folderMenuList.menupopup;
 
-    
-    for (var i=3; i < menupopup.childNodes.length; i++) {
+    for (var i=0; i < menupopup.childNodes.length; i++) {
       if (menupopup.childNodes[i].folderId == aFolderId)
         return menupopup.childNodes[i];
-    }
-
-    if (aCheckStaticFolderItems) {
-      if (aFolderId == PlacesUtils.bookmarksMenuFolderId)
-        return this._element("bookmarksRootItem")
-      if (aFolderId == PlacesUtils.toolbarFolderId)
-        return this._element("toolbarFolderItem")
     }
 
     
@@ -1129,7 +1115,7 @@ var BookmarkPropertiesPanel = {
          folderId == PlacesUtils.bookmarksMenuFolderId))
       return;
 
-    var folderItem = this._getFolderMenuItem(folderId, false);
+    var folderItem = this._getFolderMenuItem(folderId);
     this._folderMenuList.selectedItem = folderItem;
   },
 

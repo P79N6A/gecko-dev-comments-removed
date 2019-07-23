@@ -35,22 +35,11 @@
 
 
 
-const LAST_USED_ANNO = "bookmarkPropertiesDialog/lastUsed";
+const LAST_USED_ANNO = "bookmarkPropertiesDialog/folderLastUsed";
 const STATIC_TITLE_ANNO = "bookmarks/staticTitle";
 const MAX_FOLDER_ITEM_IN_MENU_LIST = 5;
 
 var gEditItemOverlay = {
-  
-
-
-  __mss: null,
-  get _mss() {
-    if (!this.__mss)
-      this.__mss = Cc["@mozilla.org/microsummary/service;1"].
-                  getService(Ci.nsIMicrosummaryService);
-    return this.__mss;
-  },
-
   _uri: null,
   _itemId: -1,
   _itemType: -1,
@@ -58,6 +47,7 @@ var gEditItemOverlay = {
   _microsummaries: null,
   _hiddenRows: [],
   _observersAdded: false,
+  _staticFoldersListBuilt: false,
 
   get itemId() {
     return this._itemId;
@@ -210,14 +200,17 @@ var gEditItemOverlay = {
 
     
     var unfiledItem = this._element("unfiledRootItem");
-    unfiledItem.label = bms.getItemTitle(PlacesUtils.unfiledBookmarksFolderId);
-    
-    unfiledItem.hidden = aSelectedFolder != PlacesUtils.unfiledBookmarksFolderId;
-
-    this._element("bmRootItem").label =
-      bms.getItemTitle(PlacesUtils.bookmarksMenuFolderId);
-    this._element("toolbarFolderItem").label =
-      bms.getItemTitle(PlacesUtils.toolbarFolderId);
+    if (!this._staticFoldersListBuilt) {
+      unfiledItem.label = bms.getItemTitle(PlacesUtils.unfiledBookmarksFolderId);
+      unfiledItem.folderId = PlacesUtils.unfiledBookmarksFolderId;
+      var bmMenuItem = this._element("bmRootItem");
+      bmMenuItem.label = bms.getItemTitle(PlacesUtils.bookmarksMenuFolderId);
+      bmMenuItem.folderId = PlacesUtils.bookmarksMenuFolderId;
+      var toolbarItem = this._element("toolbarFolderItem");
+      toolbarItem.label = bms.getItemTitle(PlacesUtils.toolbarFolderId);
+      toolbarItem.folderId = PlacesUtils.toolbarFolderId;
+      this._staticFoldersListBuilt = true;
+    }
 
     
     var folderIds = annos.getItemsWithAnnotation(LAST_USED_ANNO, { });
@@ -248,7 +241,7 @@ var gEditItemOverlay = {
       this._appendFolderItemToMenupopup(menupopup, folders[i].folderId);
     }
 
-    var defaultItem = this._getFolderMenuItem(aSelectedFolder, true);
+    var defaultItem = this._getFolderMenuItem(aSelectedFolder);
     this._folderMenuList.selectedItem = defaultItem;
 
     
@@ -327,7 +320,8 @@ var gEditItemOverlay = {
     try {
       if (this._itemType == Ci.nsINavBookmarksService.TYPE_BOOKMARK &&
           !this._readOnly)
-        this._microsummaries = this._mss.getMicrosummaries(this._uri, -1);
+        this._microsummaries = PlacesUtils.microsummaries
+                                          .getMicrosummaries(this._uri, -1);
     }
     catch(ex) {
       
@@ -348,8 +342,8 @@ var gEditItemOverlay = {
           var microsummary = enumerator.getNext()
                                        .QueryInterface(Ci.nsIMicrosummary);
           var menuItem = this._createMicrosummaryMenuItem(microsummary);
-          if (this._mss.isMicrosummary(this._itemId, microsummary))
-            itemToSelect = menuItem;
+          if (PlacesUtils.microsummaries
+                         .isMicrosummary(this._itemId, microsummary))
 
           menupopup.appendChild(menuItem);
         }
@@ -489,9 +483,11 @@ var gEditItemOverlay = {
     
     
     
-    if ((newMicrosummary == null && this._mss.hasMicrosummary(this._itemId)) ||
+    if ((newMicrosummary == null &&
+         PlacesUtils.microsummaries.hasMicrosummary(this._itemId)) ||
         (newMicrosummary != null &&
-         !this._mss.isMicrosummary(this._itemId, newMicrosummary))) {
+         !PlacesUtils.microsummaries
+                     .isMicrosummary(this._itemId, newMicrosummary))) {
       txns.push(ptm.editBookmarkMicrosummary(this._itemId, newMicrosummary));
     }
 
@@ -593,16 +589,7 @@ var gEditItemOverlay = {
 
   _getFolderIdFromMenuList:
   function EIO__getFolderIdFromMenuList() {
-    var selectedItem = this._folderMenuList.selectedItem
-    switch (selectedItem.id) {
-      case "editBMPanel_unfiledRootItem":
-        return PlacesUtils.unfiledBookmarksFolderId;
-      case "editBMPanel_bmRootItem":
-        return PlacesUtils.bookmarksMenuFolderId;
-      case "editBMPanel_toolbarFolderItem":
-        return PlacesUtils.toolbarFolderId;
-    }
-
+    var selectedItem = this._folderMenuList.selectedItem;
     NS_ASSERT("folderId" in selectedItem,
               "Invalid menuitem in the folders-menulist");
     return selectedItem.folderId;
@@ -616,27 +603,13 @@ var gEditItemOverlay = {
 
 
 
-
-
-
-
   _getFolderMenuItem:
-  function EIO__getFolderMenuItem(aFolderId, aCheckStaticFolderItems) {
+  function EIO__getFolderMenuItem(aFolderId) {
     var menupopup = this._folderMenuList.menupopup;
 
-    
-    for (var i=4;  i < menupopup.childNodes.length; i++) {
+    for (var i=0;  i < menupopup.childNodes.length; i++) {
       if (menupopup.childNodes[i].folderId == aFolderId)
         return menupopup.childNodes[i];
-    }
-
-    if (aCheckStaticFolderItems) {
-      if (aFolderId == PlacesUtils.unfiledBookmarksFolderId)
-        return this._element("unfiledRootItem");
-      if (aFolderId == PlacesUtils.bookmarksMenuFolderId)
-        return this._element("bmRootItem");
-      if (aFolderId == PlacesUtils.toolbarFolderId)
-        return this._element("toolbarFolderItem");
     }
 
     
@@ -656,7 +629,9 @@ var gEditItemOverlay = {
 
       
       
-      if (container != PlacesUtils.unfiledBookmarksFolderId)
+      if (container != PlacesUtils.unfiledBookmarksFolderId &&
+          container != PlacesUtils.toolbarFolderId &&
+          container != PlacesUtils.bookmarksMenuFolderId)
         this._markFolderAsRecentlyUsed(container);
     }
 
@@ -677,7 +652,7 @@ var gEditItemOverlay = {
     if (this._getFolderIdFromMenuList() == folderId)
       return;
 
-    var folderItem = this._getFolderMenuItem(folderId, false);
+    var folderItem = this._getFolderMenuItem(folderId);
     this._folderMenuList.selectedItem = folderItem;
     folderItem.doCommand();
   },
@@ -843,7 +818,7 @@ var gEditItemOverlay = {
         aNewParent == this._getFolderIdFromMenuList())
       return;
 
-    var folderItem = this._getFolderMenuItem(aNewParent, false);
+    var folderItem = this._getFolderMenuItem(aNewParent);
 
     
     
