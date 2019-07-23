@@ -334,6 +334,8 @@ typedef HashMap<jsbytecode*,
                 DefaultHasher<jsbytecode*>,
                 SystemAllocPolicy> RecordAttemptMap;
 
+class Oracle;
+
 
 
 
@@ -395,6 +397,7 @@ struct TraceMonitor {
     nanojit::Assembler*     assembler;
     FrameInfoCache*         frameCache;
 
+    Oracle*                 oracle;
     TraceRecorder*          recorder;
 
     GlobalState             globalStates[MONITOR_N_GLOBAL_STATES];
