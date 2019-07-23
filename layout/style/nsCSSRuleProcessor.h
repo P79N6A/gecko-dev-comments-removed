@@ -78,6 +78,7 @@ public:
 
   static void Startup();
   static void FreeSystemMetrics();
+  static PRBool HasSystemMetric(nsIAtom* aMetric);
 
   
 

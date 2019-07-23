@@ -1469,6 +1469,9 @@ nsPresContext::ThemeChangedInternal()
   nsCSSRuleProcessor::FreeSystemMetrics();
 
   
+  MediaFeatureValuesChanged(PR_TRUE);
+
+  
   
   
   
