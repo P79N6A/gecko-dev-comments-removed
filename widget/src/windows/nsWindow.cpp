@@ -617,21 +617,6 @@ void nsWindow::GlobalMsgWindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lP
 
 
 
-#ifndef WM_DWMCOMPOSITIONCHANGED
-#define WM_DWMCOMPOSITIONCHANGED        0x031E
-#endif
-
-
-typedef HRESULT (WINAPI*DwmIsCompositionEnabledProc)(BOOL *pfEnabled);
-static DwmIsCompositionEnabledProc dwmIsCompositionEnabledPtr = NULL;
-static PRBool checkedDWM = PR_FALSE;
-static PRBool IsGlassEnabled() {
-  BOOL compositionIsEnabled = FALSE;
-  if(dwmIsCompositionEnabledPtr)
-    dwmIsCompositionEnabledPtr(&compositionIsEnabled);
-  return compositionIsEnabled ? PR_TRUE : PR_FALSE;
-}
-
 
 
 
@@ -700,15 +685,6 @@ nsWindow::nsWindow() : nsBaseWidget()
   mNativeDragTarget = nsnull;
   mIsTopWidgetWindow = PR_FALSE;
   mLastKeyboardLayout = 0;
-
-  if(!checkedDWM) {
-    HMODULE hDWM = ::LoadLibrary("dwmapi.dll");
-    checkedDWM = PR_TRUE;
-    if(hDWM) {
-      dwmIsCompositionEnabledPtr = (DwmIsCompositionEnabledProc)::GetProcAddress(hDWM, "DwmIsCompositionEnabled");
-    }
-  }
-  mHasAeroGlass = ::IsGlassEnabled();
 
 #ifndef WINCE
   if (!sInstanceCount && SUCCEEDED(::OleInitialize(NULL))) {
@@ -5288,9 +5264,6 @@ PRBool nsWindow::ProcessMessage(UINT msg, WPARAM wParam, LPARAM lParam, LRESULT 
 
     }
     break;
-  case WM_DWMCOMPOSITIONCHANGED:
-    mHasAeroGlass = ::IsGlassEnabled();
-    break;
   }
 
   
@@ -5776,8 +5749,6 @@ PRBool nsWindow::OnPaint(HDC aDC)
     }
   }
 
-  PRBool haveCompositor = GetTopLevelWindow()->mHasAeroGlass;
-
   nsCOMPtr<nsIRegion> paintRgnWin;
   if (paintRgn) {
     paintRgnWin = ConvertHRGNToRegion(paintRgn);
@@ -5826,8 +5797,7 @@ PRBool nsWindow::OnPaint(HDC aDC)
         thebesContext->SetOperator(gfxContext::OPERATOR_CLEAR);
         thebesContext->Paint();
         thebesContext->SetOperator(gfxContext::OPERATOR_OVER);
-      } else if (!haveCompositor) {
-        
+      } else {
         
         thebesContext->PushGroup(gfxASurface::CONTENT_COLOR);
       }
@@ -5856,7 +5826,7 @@ PRBool nsWindow::OnPaint(HDC aDC)
         
         
         UpdateTranslucentWindow();
-      } else if (result && !haveCompositor) {
+      } else if (result) {
         
         
         thebesContext->PopGroupToSource();
