@@ -437,7 +437,7 @@ js_strchr_limit(const jschar *s, jschar c, const jschar *limit);
 
 
 extern const jschar *
-js_SkipWhiteSpace(const jschar *s);
+js_SkipWhiteSpace(const jschar *s, const jschar *end);
 
 
 
