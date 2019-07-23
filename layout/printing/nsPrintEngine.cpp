@@ -2610,7 +2610,9 @@ nsPrintEngine::GetPageRangeForSelection(nsIPresShell *        aPresShell,
 void nsPrintEngine::SetIsPrinting(PRBool aIsPrinting)
 { 
   mIsDoingPrinting = aIsPrinting;
-  if (mDocViewerPrint) {
+  
+  
+  if (mDocViewerPrint && !mIsDoingPrintPreview) {
     mDocViewerPrint->SetIsPrinting(aIsPrinting);
   }
   if (mPrt && aIsPrinting) {
