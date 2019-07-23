@@ -180,6 +180,10 @@ public:
   
   PRBool IsNoAutoHide();
 
+  
+  
+  PRBool IsTopMost();
+
   void EnsureWidget();
 
   virtual nsresult CreateWidgetForView(nsIView* aView);
