@@ -920,8 +920,8 @@ date_now(JSContext *cx, uintN argc, jsval *vp)
 }
 
 #ifdef JS_TRACER
-jsdouble FASTCALL
-js_Date_now(JSContext*)
+static jsdouble FASTCALL
+date_now_tn(JSContext*)
 {
     return PRMJ_Now() / PRMJ_USEC_PER_MSEC;
 }
@@ -1588,38 +1588,8 @@ static const char* months[] =
    "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
 };
 
-
-
-
-static void
-print_gmt_string(char* buf, size_t size, jsdouble utctime)
-{
-    JS_snprintf(buf, size, "%s, %.2d %s %.4d %.2d:%.2d:%.2d GMT",
-                days[WeekDay(utctime)],
-                DateFromTime(utctime),
-                months[MonthFromTime(utctime)],
-                YearFromTime(utctime),
-                HourFromTime(utctime),
-                MinFromTime(utctime),
-                SecFromTime(utctime));
-}
-
-static void
-print_iso_string(char* buf, size_t size, jsdouble utctime)
-{
-    JS_snprintf(buf, size, "%.4d-%.2d-%.2dT%.2d:%.2d:%.2d.%.3dZ",
-                YearFromTime(utctime),
-                MonthFromTime(utctime) + 1,
-                DateFromTime(utctime),
-                HourFromTime(utctime),
-                MinFromTime(utctime),
-                SecFromTime(utctime),
-                msFromTime(utctime));
-}
-
 static JSBool
-date_utc_format(JSContext *cx, jsval *vp,
-                void (*printFunc)(char*, size_t, jsdouble))
+date_toGMTString(JSContext *cx, uintN argc, jsval *vp)
 {
     char buf[100];
     JSString *str;
@@ -1631,25 +1601,23 @@ date_utc_format(JSContext *cx, jsval *vp,
     if (!JSDOUBLE_IS_FINITE(utctime)) {
         JS_snprintf(buf, sizeof buf, js_NaN_date_str);
     } else {
-        (*printFunc)(buf, sizeof buf, utctime);
+        
+
+
+        JS_snprintf(buf, sizeof buf, "%s, %.2d %s %.4d %.2d:%.2d:%.2d GMT",
+                    days[WeekDay(utctime)],
+                    DateFromTime(utctime),
+                    months[MonthFromTime(utctime)],
+                    YearFromTime(utctime),
+                    HourFromTime(utctime),
+                    MinFromTime(utctime),
+                    SecFromTime(utctime));
     }
     str = JS_NewStringCopyZ(cx, buf);
     if (!str)
         return JS_FALSE;
     *vp = STRING_TO_JSVAL(str);
     return JS_TRUE;
-}
-
-static JSBool
-date_toGMTString(JSContext *cx, uintN argc, jsval *vp)
-{
-    return date_utc_format(cx, vp, print_gmt_string);
-}
-
-static JSBool
-date_toISOString(JSContext *cx, uintN argc, jsval *vp)
-{
-    return date_utc_format(cx, vp, print_iso_string);
 }
 
 
@@ -1999,12 +1967,12 @@ date_valueOf(JSContext *cx, uintN argc, jsval *vp)
 #ifdef JS_TRACER
 
 
-JS_DEFINE_CALLINFO_1(DOUBLE, Date_now, CONTEXT, 0, 0)
+JS_DEFINE_CALLINFO_1(static, DOUBLE, date_now_tn, CONTEXT, 0, 0)
 
-JS_DEFINE_CALLINFO_2(OBJECT, FastNewDate, CONTEXT, OBJECT, 0, 0)
+JS_DEFINE_CALLINFO_2(extern, OBJECT, js_FastNewDate, CONTEXT, OBJECT, 0, 0)
 
 static JSTraceableNative date_now_trcinfo[] = {
-    { date_now, &ci_Date_now, "C", "", INFALLIBLE }
+    { date_now, &_JS_CALLINFO(date_now_tn), "C", "", INFALLIBLE }
 };
 
 #endif 
@@ -2059,9 +2027,6 @@ static JSFunctionSpec date_methods[] = {
     JS_FN("toLocaleFormat",      date_toLocaleFormat,     0,0),
     JS_FN("toDateString",        date_toDateString,       0,0),
     JS_FN("toTimeString",        date_toTimeString,       0,0),
-    JS_FN("toISOString",         date_toISOString,        0,0),
-    JS_FN(js_toJSON_str,         date_toISOString,        0,0),
-
 #if JS_HAS_TOSOURCE
     JS_FN(js_toSource_str,       date_toSource,           0,0),
 #endif
@@ -2169,7 +2134,7 @@ js_FastNewDate(JSContext* cx, JSObject* proto)
     jsdouble* date = js_NewWeaklyRootedDouble(cx, 0.0);
     if (!date)
         return NULL;
-    *date = js_Date_now(cx);
+    *date = date_now_tn(cx);
     obj->fslots[JSSLOT_UTC_TIME] = DOUBLE_TO_JSVAL(date);
     obj->fslots[JSSLOT_LOCAL_TIME] = DOUBLE_TO_JSVAL(cx->runtime->jsNaN);;
 
