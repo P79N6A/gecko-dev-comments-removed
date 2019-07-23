@@ -817,7 +817,11 @@ DocumentViewerImpl::InitInternal(nsIWidget* aParentWidget,
 
   PRBool makeCX = PR_FALSE;
   if (aDoCreation) {
-    if (aParentWidget && !mPresContext) {
+    
+    
+    
+    
+    if ((aParentWidget || mDocument->GetDisplayDocument()) && !mPresContext) {
       
       if (mIsPageMode) {
         
@@ -1241,11 +1245,11 @@ DocumentViewerImpl::Open(nsISupports *aState, nsISHEntry *aSHEntry)
   nsRect bounds;
   mWindow->GetBounds(bounds);
 
-  nsresult rv = InitInternal(mParentWidget, aState, bounds, PR_FALSE, PR_FALSE);
-  NS_ENSURE_SUCCESS(rv, rv);
-
   if (mDocument)
     mDocument->SetContainer(nsCOMPtr<nsISupports>(do_QueryReferent(mContainer)));
+
+  nsresult rv = InitInternal(mParentWidget, aState, bounds, PR_FALSE, PR_FALSE);
+  NS_ENSURE_SUCCESS(rv, rv);
 
   if (mPresShell)
     mPresShell->SetForwardingContainer(nsnull);
@@ -2101,13 +2105,14 @@ DocumentViewerImpl::CreateStyleSet(nsIDocument* aDocument,
   
   
   
-  PRInt32 shellType = nsIDocShellTreeItem::typeContent;;
-  nsCOMPtr<nsIDocShellTreeItem> docShell(do_QueryReferent(mContainer));
-  if (docShell) {
-    docShell->GetItemType(&shellType);
-  }
+#ifdef DEBUG
+  nsCOMPtr<nsISupports> debugDocContainer = aDocument->GetContainer();
+  nsCOMPtr<nsIDocShellTreeItem> debugDocShell(do_QueryReferent(mContainer));
+  NS_ASSERTION(SameCOMIdentity(debugDocContainer, debugDocShell),
+               "Unexpected containers");
+#endif
   nsICSSStyleSheet* sheet = nsnull;
-  if (shellType == nsIDocShellTreeItem::typeChrome) {
+  if (nsContentUtils::IsInChromeDocshell(aDocument)) {
     sheet = nsLayoutStylesheetCache::UserChromeSheet();
   }
   else {
@@ -2119,7 +2124,9 @@ DocumentViewerImpl::CreateStyleSet(nsIDocument* aDocument,
 
   
   PRBool shouldOverride = PR_FALSE;
-  nsCOMPtr<nsIDocShell> ds(do_QueryInterface(docShell));
+  
+  
+  nsCOMPtr<nsIDocShell> ds(do_QueryReferent(mContainer));
   nsCOMPtr<nsIDOMEventTarget> chromeHandler;
   nsCOMPtr<nsIURI> uri;
   nsCOMPtr<nsICSSStyleSheet> csssheet;
@@ -2296,6 +2303,23 @@ DocumentViewerImpl::CreateDeviceContext(nsIWidget* aWidget)
 {
   NS_PRECONDITION(!mPresShell && !mPresContext && !mWindow,
                   "This will screw up our existing presentation");
+  NS_PRECONDITION(mDocument, "Gotta have a document here");
+  
+  nsIDocument* doc = mDocument->GetDisplayDocument();
+  if (doc) {
+    NS_ASSERTION(!aWidget, "Shouldn't have a widget here");
+    
+    
+    nsIPresShell* shell = doc->GetPrimaryShell();
+    if (shell) {
+      nsPresContext* ctx = shell->GetPresContext();
+      if (ctx) {
+        mDeviceContext = ctx->DeviceContext();
+        return NS_OK;
+      }
+    }
+  }
+  
   
   
   mDeviceContext = do_CreateInstance(kDeviceContextCID);
@@ -2684,6 +2708,38 @@ SetChildFullZoom(nsIMarkupDocumentViewer* aChild, void* aClosure)
   aChild->SetFullZoom(ZoomInfo->mZoom);
 }
 
+PR_STATIC_CALLBACK(PRBool)
+SetExtResourceTextZoom(nsIDocument* aDocument, void* aClosure)
+{
+  
+  nsIPresShell* shell = aDocument->GetPrimaryShell();
+  if (shell) {
+    nsPresContext* ctxt = shell->GetPresContext();
+    if (ctxt) {
+      struct ZoomInfo* ZoomInfo = static_cast<struct ZoomInfo*>(aClosure);
+      ctxt->SetTextZoom(ZoomInfo->mZoom);
+    }
+  }
+
+  return PR_TRUE;
+}
+
+PR_STATIC_CALLBACK(PRBool)
+SetExtResourceFullZoom(nsIDocument* aDocument, void* aClosure)
+{
+  
+  nsIPresShell* shell = aDocument->GetPrimaryShell();
+  if (shell) {
+    nsPresContext* ctxt = shell->GetPresContext();
+    if (ctxt) {
+      struct ZoomInfo* ZoomInfo = static_cast<struct ZoomInfo*>(aClosure);
+      ctxt->SetFullZoom(ZoomInfo->mZoom);
+    }
+  }
+
+  return PR_TRUE;
+}
+
 NS_IMETHODIMP
 DocumentViewerImpl::SetTextZoom(float aTextZoom)
 {
@@ -2705,6 +2761,9 @@ DocumentViewerImpl::SetTextZoom(float aTextZoom)
   if (pc && aTextZoom != mPresContext->TextZoom()) {
       pc->SetTextZoom(aTextZoom);
   }
+
+  
+  mDocument->EnumerateExternalResources(SetExtResourceTextZoom, &ZoomInfo);
 
   batch.EndUpdateViewBatch(NS_VMREFRESH_NO_SYNC);
   
@@ -2736,6 +2795,9 @@ DocumentViewerImpl::SetFullZoom(float aFullZoom)
   if (pc) {
     pc->SetFullZoom(aFullZoom);
   }
+
+  
+  mDocument->EnumerateExternalResources(SetExtResourceFullZoom, &ZoomInfo);
 
   batch.EndUpdateViewBatch(NS_VMREFRESH_NO_SYNC);
 

@@ -609,7 +609,9 @@ nsObjectFrame::Init(nsIContent*      aContent,
                     nsIFrame*        aParent,
                     nsIFrame*        aPrevInFlow)
 {
-  mPreventInstantiation = PR_FALSE;
+  NS_PRECONDITION(aContent, "How did that happen?");
+  mPreventInstantiation =
+    (aContent->GetCurrentDoc()->GetDisplayDocument() != nsnull);
 
   PR_LOG(nsObjectFrameLM, PR_LOG_DEBUG,
          ("Initializing nsObjectFrame %p for content %p\n", this, aContent));
@@ -620,7 +622,9 @@ nsObjectFrame::Init(nsIContent*      aContent,
 void
 nsObjectFrame::Destroy()
 {
-  NS_ASSERTION(!mPreventInstantiation, "about to crash due to bug 136927");
+  NS_ASSERTION(!mPreventInstantiation ||
+               mContent && mContent->GetCurrentDoc()->GetDisplayDocument(),
+               "about to crash due to bug 136927");
 
   
   
@@ -1718,6 +1722,7 @@ nsObjectFrame::Instantiate(const char* aMimeType, nsIURI* aURI)
     return rv;
   mInstanceOwner->SetPluginHost(pluginHost);
 
+  NS_ASSERTION(!mPreventInstantiation, "Say what?");
   mPreventInstantiation = PR_TRUE;
 
   rv = InstantiatePlugin(pluginHost, aMimeType, aURI);
