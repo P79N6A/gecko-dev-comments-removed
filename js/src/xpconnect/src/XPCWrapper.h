@@ -445,6 +445,14 @@ CreateIteratorObj(JSContext *cx, JSObject *tempWrapper,
 
 
 
+
+JSObject *
+CreateSimpleIterator(JSContext *cx, JSObject *scope, JSBool keysonly,
+                     JSObject *propertyContainer);
+
+
+
+
 JSBool
 AddProperty(JSContext *cx, JSObject *wrapperObj,
             JSBool wantGetterSetter, JSObject *innerObj,
