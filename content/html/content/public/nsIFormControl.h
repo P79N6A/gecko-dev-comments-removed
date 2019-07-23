@@ -69,9 +69,8 @@ class nsIFormSubmission;
 #define NS_FORM_OBJECT         21
 
 #define NS_IFORMCONTROL_IID   \
-{ 0x119c5ce8, 0xf4b0, 0x456c, \
-  {0x83, 0x4d, 0xb1, 0x90, 0x3d, 0x99, 0x9f, 0xb3} }
-
+{ 0x52dc1f0d, 0x1683, 0x4dd7, \
+ { 0xae, 0x0a, 0xc4, 0x76, 0x10, 0x64, 0x2f, 0xa8 } }
 
 
 
@@ -99,18 +98,16 @@ public:
 
 
 
+  virtual void SetForm(nsIDOMHTMLFormElement* aForm) = 0;
+
+  
 
 
 
 
 
 
-
-
-
-  NS_IMETHOD SetForm(nsIDOMHTMLFormElement* aForm,
-                     PRBool aRemoveFromForm,
-                     PRBool aNotify) = 0;
+  virtual void ClearForm(PRBool aRemoveFromForm, PRBoqol aNotify) = 0;
 
   
 
