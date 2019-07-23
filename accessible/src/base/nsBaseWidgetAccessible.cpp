@@ -149,20 +149,21 @@ nsLinkableAccessible::GetState(PRUint32 *aState, PRUint32 *aExtraState)
 
   
   
-  nsCOMPtr<nsIAccessible> docAccessible = 
+  nsCOMPtr<nsIAccessible> docAccessible =
     do_QueryInterface(nsCOMPtr<nsIAccessibleDocument>(GetDocAccessible()));
   if (docAccessible) {
-    PRBool isEditable;
-    docAccessible->GetIsEditable(&isEditable);
-    if (isEditable) {
+    PRUint32 docState = 0, docExtraState = 0;
+    rv = docAccessible->GetFinalState(&docState, &docExtraState);
+    if (NS_SUCCEEDED(rv) &&
+        (docExtraState & nsIAccessibleStates::EXT_STATE_EDITABLE)) {
       
       *aState &= ~(nsIAccessibleStates::STATE_FOCUSED |
                    nsIAccessibleStates::STATE_FOCUSABLE);
     }
   }
+
   return NS_OK;
 }
-
 
 NS_IMETHODIMP nsLinkableAccessible::GetValue(nsAString& _retval)
 {
