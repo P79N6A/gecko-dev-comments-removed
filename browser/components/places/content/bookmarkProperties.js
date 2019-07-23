@@ -372,13 +372,11 @@ var BookmarkPropertiesPanel = {
     };
 
     if (!this._element("tagsRow").collapsed) {
-      this._element("tagsSelector")
+      this._element("tagsSelectorRow")
           .addEventListener("DOMAttrModified", this._resizeListener, false);
     }
     if (!this._element("folderRow").collapsed) {
-      this._element("folderTree")
-          .addEventListener("DOMAttrModified", this._resizeListener, false);
-      this._element("newFolderBox")
+      this._element("folderTreeRow")
           .addEventListener("DOMAttrModified", this._resizeListener, false);
     }
 
@@ -464,11 +462,9 @@ var BookmarkPropertiesPanel = {
     
     
     
-    this._element("tagsSelector")
+    this._element("tagsSelectorRow")
         .removeEventListener("DOMAttrModified", this._resizeListener, false);
-    this._element("folderTree")
-        .removeEventListener("DOMAttrModified", this._resizeListener, false);
-    this._element("newFolderBox")
+    this._element("folderTreeRow")
         .removeEventListener("DOMAttrModified", this._resizeListener, false);
     this._element("locationField")
         .removeEventListener("input", this._inputListener, false);

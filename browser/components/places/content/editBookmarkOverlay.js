@@ -88,7 +88,7 @@ var gEditItemOverlay = {
     this._element("tagsRow").collapsed = !this._uri ||
       this._hiddenRows.indexOf("tags") != -1 || isQuery;
     
-    if (!this._element("tagsSelector").collapsed &&
+    if (!this._element("tagsSelectorRow").collapsed &&
         this._element("tagsRow").collapsed)
       this.toggleTagsSelector();
     this._element("descriptionRow").collapsed =
@@ -514,12 +514,13 @@ var gEditItemOverlay = {
   uninitPanel: function EIO_uninitPanel(aHideCollapsibleElements) {
     if (aHideCollapsibleElements) {
       
-      if (!this._folderTree.collapsed)
+      var folderTreeRow = this._element("folderTreeRow");
+      if (!folderTreeRow.collapsed)
         this.toggleFolderTreeVisibility();
 
       
-      var tagsSelector = this._element("tagsSelector");
-      if (!tagsSelector.collapsed)
+      var tagsSelectorRow = this._element("tagsSelectorRow");
+      if (!tagsSelectorRow.collapsed)
         this.toggleTagsSelector();
     }
 
@@ -748,12 +749,12 @@ var gEditItemOverlay = {
 
   toggleFolderTreeVisibility: function EIO_toggleFolderTreeVisibility() {
     var expander = this._element("foldersExpander");
-    if (!this._folderTree.collapsed) {
+    var folderTreeRow = this._element("folderTreeRow");
+    if (!folderTreeRow.collapsed) {
       expander.className = "expander-down";
       expander.setAttribute("tooltiptext",
                             expander.getAttribute("tooltiptextdown"));
-      this._folderTree.collapsed =
-        this._element("newFolderBox").collapsed = true;
+      folderTreeRow.collapsed = true;
       this._element("chooseFolderSeparator").hidden =
         this._element("chooseFolderMenuItem").hidden = false;
     }
@@ -761,8 +762,7 @@ var gEditItemOverlay = {
       expander.className = "expander-up"
       expander.setAttribute("tooltiptext",
                             expander.getAttribute("tooltiptextup"));
-      this._folderTree.collapsed =
-        this._element("newFolderBox").collapsed = false;
+      folderTreeRow.collapsed = false;
 
       
       
@@ -844,7 +844,8 @@ var gEditItemOverlay = {
     }
 
     
-    if (!this._folderTree.collapsed) {
+    var folderTreeRow = this._element("folderTreeRow");
+    if (!folderTreeRow.collapsed) {
       var selectedNode = this._folderTree.selectedNode;
       if (!selectedNode ||
           PlacesUtils.getConcreteItemId(selectedNode) != container)
@@ -907,7 +908,8 @@ var gEditItemOverlay = {
 
   _rebuildTagsSelectorList: function EIO__rebuildTagsSelectorList() {
     var tagsSelector = this._element("tagsSelector");
-    if (tagsSelector.collapsed)
+    var tagsSelectorRow = this._element("tagsSelectorRow");
+    if (tagsSelectorRow.collapsed)
       return;
 
     while (tagsSelector.hasChildNodes())
@@ -929,12 +931,13 @@ var gEditItemOverlay = {
 
   toggleTagsSelector: function EIO_toggleTagsSelector() {
     var tagsSelector = this._element("tagsSelector");
+    var tagsSelectorRow = this._element("tagsSelectorRow");
     var expander = this._element("tagsSelectorExpander");
-    if (tagsSelector.collapsed) {
+    if (tagsSelectorRow.collapsed) {
       expander.className = "expander-up";
       expander.setAttribute("tooltiptext",
                             expander.getAttribute("tooltiptextup"));
-      tagsSelector.collapsed = false;
+      tagsSelectorRow.collapsed = false;
       this._rebuildTagsSelectorList();
 
       
@@ -944,7 +947,7 @@ var gEditItemOverlay = {
       expander.className = "expander-down";
       expander.setAttribute("tooltiptext",
                             expander.getAttribute("tooltiptextdown"));
-      tagsSelector.collapsed = true;
+      tagsSelectorRow.collapsed = true;
     }
   },
 

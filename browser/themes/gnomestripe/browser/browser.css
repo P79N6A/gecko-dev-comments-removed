@@ -1089,6 +1089,11 @@ toolbar[iconsize="small"] #paste-button[disabled="true"] {
 }
 
 
+#editBMPanel_folderTree {
+  min-width: 300px;
+}
+
+
 #sidebar {
   background-color: Window;
 }
