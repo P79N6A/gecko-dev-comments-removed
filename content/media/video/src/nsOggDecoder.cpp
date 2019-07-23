@@ -2033,7 +2033,10 @@ void nsOggDecoder::UpdatePlaybackRate()
     return;
   PRPackedBool reliable;
   PRUint32 rate = PRUint32(ComputePlaybackRate(&reliable));
-  if (!reliable) {
+  if (reliable) {
+    
+    rate = PR_MAX(rate, 1);
+  } else {
     
     
     rate = PR_MAX(rate, 10000);
