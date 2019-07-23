@@ -78,6 +78,7 @@ struct gfxIntSize;
 struct nsStyleFont;
 class nsSVGEnum;
 class nsISVGChildFrame;
+class nsSVGGeometryFrame;
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -495,6 +496,22 @@ public:
   static void
   WritePPM(const char *fname, gfxImageSurface *aSurface);
 #endif
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  static gfxRect PathExtentsToMaxStrokeExtents(const gfxRect& aPathExtents,
+                                               nsSVGGeometryFrame* aFrame);
 
 private:
   

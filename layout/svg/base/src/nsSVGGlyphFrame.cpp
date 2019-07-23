@@ -446,32 +446,52 @@ nsSVGGlyphFrame::UpdateCoveredRegion()
 {
   mRect.Empty();
 
-  nsRefPtr<gfxContext> tmpCtx = MakeTmpCtx();
-  SetMatrixPropagation(PR_FALSE);
-  
-  gfxRect extent = gfxRect(0, 0, 0, 0);
+  nsCOMPtr<nsIDOMSVGMatrix> ctm;
+  GetCanvasTM(getter_AddRefs(ctm));
+  gfxMatrix matrix = nsSVGUtils::ConvertSVGMatrixToThebes(ctm);
+  if (matrix.IsSingular()) {
+    return NS_ERROR_FAILURE;
+  }
 
-  if (SetupCairoStrokeGeometry(tmpCtx)) {
-    CharacterIterator iter(this, PR_TRUE);
-    gfxFloat strokeWidth = tmpCtx->CurrentLineWidth();
-    AddCharactersToPath(&iter, tmpCtx);
-    tmpCtx->SetLineWidth(strokeWidth);
-    tmpCtx->IdentityMatrix();
-    extent = tmpCtx->GetUserStrokeExtent();
+  nsRefPtr<gfxContext> tmpCtx = MakeTmpCtx();
+  tmpCtx->Multiply(matrix);
+
+  PRBool hasStroke = SetupCairoStrokeGeometry(tmpCtx);
+
+  if (!hasStroke && GetStyleSVG()->mFill.mType == eStyleSVGPaintType_None) {
+    return NS_OK;
   }
-  if (GetStyleSVG()->mFill.mType != eStyleSVGPaintType_None) {
-    CharacterIterator iter(this, PR_TRUE);
-    AddBoundingBoxesToPath(&iter, tmpCtx);
-    tmpCtx->IdentityMatrix();
-    extent = extent.Union(tmpCtx->GetUserPathExtent());
-  }
+
+  SetMatrixPropagation(PR_FALSE);
+  CharacterIterator iter(this, PR_TRUE);
+  iter.SetInitialMatrix(tmpCtx);
+  AddBoundingBoxesToPath(&iter, tmpCtx); 
   SetMatrixPropagation(PR_TRUE);
+  tmpCtx->IdentityMatrix();
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  gfxRect extent = tmpCtx->GetUserPathExtent();
+  if (hasStroke) {
+    extent = nsSVGUtils::PathExtentsToMaxStrokeExtents(extent, this);
+  }
 
   if (!extent.IsEmpty()) {
-    gfxMatrix matrix;
-    GetGlobalTransform(&matrix);
-
-    extent = matrix.TransformBounds(extent);
     mRect = nsSVGUtils::ToAppPixelRect(PresContext(), extent);
   }
 
