@@ -4079,13 +4079,17 @@ nsCSSFrameConstructor::ConstructDocElementFrame(nsFrameConstructorState& aState,
   
   if (mGfxScrollFrame) {
     nsIFrame* gfxScrollbarFrame1 = mGfxScrollFrame->GetFirstChild(nsnull);
-    if (gfxScrollbarFrame1) {
+    
+    
+    if (gfxScrollbarFrame1 &&
+        gfxScrollbarFrame1->GetType() == nsGkAtoms::scrollbarFrame) {
       
       aState.mFrameManager->
         SetPrimaryFrameFor(gfxScrollbarFrame1->GetContent(), gfxScrollbarFrame1);
 
       nsIFrame* gfxScrollbarFrame2 = gfxScrollbarFrame1->GetNextSibling();
-      if (gfxScrollbarFrame2) {
+      if (gfxScrollbarFrame2 &&
+          gfxScrollbarFrame2->GetType() == nsGkAtoms::scrollbarFrame) {
         
         aState.mFrameManager->
           SetPrimaryFrameFor(gfxScrollbarFrame2->GetContent(), gfxScrollbarFrame2);
@@ -7460,6 +7464,8 @@ nsCSSFrameConstructor::ReconstructDocElementHierarchyInternal()
         
         
         ::DeletingFrameSubtree(state.mFrameManager, docElementFrame);
+      } else {
+        state.mFrameManager->ClearUndisplayedContentIn(rootContent, nsnull);
       }
 
       

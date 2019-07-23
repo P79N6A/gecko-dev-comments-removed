@@ -415,6 +415,16 @@ nsFrameManager::SetPrimaryFrameFor(nsIContent* aContent,
   NS_ENSURE_ARG_POINTER(aContent);
   NS_ASSERTION(aPrimaryFrame && aPrimaryFrame->GetParent(),
                "BOGUS!");
+#ifdef DEBUG
+  {
+    nsIFrame *docElementCB = 
+      mPresShell->FrameConstructor()->GetDocElementContainingBlock();
+    NS_ASSERTION(aPrimaryFrame != docElementCB &&
+                 !nsLayoutUtils::IsProperAncestorFrame(aPrimaryFrame,
+                                                       docElementCB),
+                 "too high in the frame tree to be a primary frame");
+  }
+#endif
 
   
   
@@ -1312,10 +1322,28 @@ nsFrameManager::ReResolveStyleContext(nsPresContext     *aPresContext,
     }
 
     
-    if (!pseudoTag && localContent && mUndisplayedMap) {
+
+    
+    
+    
+    PRBool checkUndisplayed;
+    nsIContent *undisplayedParent;
+    if (pseudoTag) {
+      checkUndisplayed = aFrame == mPresShell->FrameConstructor()->
+                                     GetDocElementContainingBlock();
+      undisplayedParent = nsnull;
+    } else {
+      checkUndisplayed = !!localContent;
+      undisplayedParent = localContent;
+    }
+    if (checkUndisplayed && mUndisplayedMap) {
       for (UndisplayedNode* undisplayed =
-                                   mUndisplayedMap->GetFirstNode(localContent);
+                              mUndisplayedMap->GetFirstNode(undisplayedParent);
            undisplayed; undisplayed = undisplayed->mNext) {
+        NS_ASSERTION(undisplayedParent ||
+                     undisplayed->mContent ==
+                       mPresShell->GetDocument()->GetRootContent(),
+                     "undisplayed node child of null must be root");
         nsRefPtr<nsStyleContext> undisplayedContext;
         nsIAtom* const undisplayedPseudoTag = undisplayed->mStyle->GetPseudoType();
         if (!undisplayedPseudoTag) {  
