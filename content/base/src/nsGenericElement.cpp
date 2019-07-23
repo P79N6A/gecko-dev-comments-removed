@@ -2609,7 +2609,9 @@ nsGenericElement::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
     mParentPtrBits |= PARENT_BIT_INDOCUMENT;
 
     
-    UnsetFlags(NODE_FORCE_XBL_BINDINGS);
+    UnsetFlags(NODE_FORCE_XBL_BINDINGS |
+               
+               NODE_NEEDS_FRAME | NODE_DESCENDANTS_NEED_FRAMES);
   }
 
   

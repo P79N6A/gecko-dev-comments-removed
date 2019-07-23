@@ -2496,7 +2496,7 @@ PresShell::InitialReflow(nscoord aWidth, nscoord aHeight)
 
       
       
-      mFrameConstructor->ContentInserted(nsnull, root, 0, nsnull);
+      mFrameConstructor->ContentInserted(nsnull, root, 0, nsnull, PR_FALSE);
       VERIFY_STYLE_TREE;
 
       
@@ -2519,6 +2519,7 @@ PresShell::InitialReflow(nscoord aWidth, nscoord aHeight)
     
     {
       nsAutoScriptBlocker scriptBlocker;
+      mFrameConstructor->CreateNeededFrames();
       mFrameConstructor->ProcessPendingRestyles();
     }
 
@@ -2629,6 +2630,7 @@ PresShell::ResizeReflow(nscoord aWidth, nscoord aHeight)
     
     {
       nsAutoScriptBlocker scriptBlocker;
+      mFrameConstructor->CreateNeededFrames();
       mFrameConstructor->ProcessPendingRestyles();
     }
 
@@ -4603,6 +4605,7 @@ PresShell::FlushPendingNotifications(mozFlushType aType)
 #endif 
 
       nsAutoScriptBlocker scriptBlocker;
+      mFrameConstructor->CreateNeededFrames();
       mFrameConstructor->ProcessPendingRestyles();
     }
 
@@ -4621,6 +4624,7 @@ PresShell::FlushPendingNotifications(mozFlushType aType)
     
     if (!mIsDestroying) {
       nsAutoScriptBlocker scriptBlocker;
+      mFrameConstructor->CreateNeededFrames();
       mFrameConstructor->ProcessPendingRestyles();
     }
 
@@ -4792,7 +4796,7 @@ PresShell::ContentAppended(nsIDocument *aDocument,
   
   mFrameConstructor->RestyleForAppend(aContainer, aNewIndexInContainer);
 
-  mFrameConstructor->ContentAppended(aContainer, aNewIndexInContainer);
+  mFrameConstructor->ContentAppended(aContainer, aNewIndexInContainer, PR_TRUE);
   VERIFY_STYLE_TREE;
 }
 
@@ -4818,7 +4822,7 @@ PresShell::ContentInserted(nsIDocument* aDocument,
     mFrameConstructor->RestyleForInsertOrChange(aContainer, aChild);
 
   mFrameConstructor->ContentInserted(aContainer, aChild,
-                                     aIndexInContainer, nsnull);
+                                     aIndexInContainer, nsnull, PR_TRUE);
   VERIFY_STYLE_TREE;
 }
 

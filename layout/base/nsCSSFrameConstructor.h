@@ -119,13 +119,84 @@ public:
 
   nsresult ReconstructDocElementHierarchy();
 
-  nsresult ContentAppended(nsIContent*     aContainer,
-                           PRInt32         aNewIndexInContainer);
+  
+  
+  
+  
+  void CreateNeededFrames();
 
+private:
+  void CreateNeededFrames(nsIContent* aContent);
+
+  enum Operation {
+    CONTENTAPPEND,
+    CONTENTINSERT
+  };
+
+  PRBool MaybeConstructLazily(Operation aOperation,
+                              nsIContent* aContainer,
+                              nsIContent* aChild,
+                              PRInt32 aIndex);
+
+public:
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  nsresult ContentAppended(nsIContent*     aContainer,
+                           PRInt32         aNewIndexInContainer,
+                           PRBool          aAllowLazyConstruction);
+
+  
+  
   nsresult ContentInserted(nsIContent*            aContainer,
                            nsIContent*            aChild,
                            PRInt32                aIndexInContainer,
-                           nsILayoutHistoryState* aFrameState);
+                           nsILayoutHistoryState* aFrameState,
+                           PRBool                 aAllowLazyConstruction);
 
   enum RemoveFlags { REMOVE_CONTENT, REMOVE_FOR_RECONSTRUCTION };
   nsresult ContentRemoved(nsIContent* aContainer,
@@ -221,6 +292,8 @@ public:
   
   
   
+  
+  
   void ProcessPendingRestyles();
   
   
@@ -268,7 +341,7 @@ private:
   void PostRestyleEventCommon(nsIContent* aContent, nsRestyleHint aRestyleHint,
                               nsChangeHint aMinChangeHint,
                               PRBool aForAnimation);
-  void PostRestyleEventInternal();
+  void PostRestyleEventInternal(PRBool aForLazyConstruction);
 public:
 
   
@@ -1762,6 +1835,9 @@ private:
   PRPackedBool        mObservingRefreshDriver : 1;
   
   PRPackedBool        mInStyleRefresh : 1;
+  
+  
+  PRPackedBool        mInLazyFCRefresh : 1;
   PRUint32            mHoverGeneration;
   nsChangeHint        mRebuildAllExtraHint;
 
