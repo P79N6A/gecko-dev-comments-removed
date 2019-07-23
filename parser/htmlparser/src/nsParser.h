@@ -227,7 +227,8 @@ class nsParser : public nsIParser,
     NS_IMETHOD ParseFragment(const nsAString& aSourceBuffer,
                              nsISupports* aTargetNode,
                              nsIAtom* aContextLocalName,
-                             PRInt32 aContextNamespace);
+                             PRInt32 aContextNamespace,
+                             PRBool aQuirks);
                              
     
 
