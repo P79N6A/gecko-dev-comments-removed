@@ -835,6 +835,9 @@ WebContentConverterRegistrar.prototype = {
     }
 
     
+    nums.sort(function(a, b) {return a - b;});
+
+    
     for (var i = 0; i < nums.length; i++) {
       var branch = ps.getBranch(PREF_CONTENTHANDLERS_BRANCH + nums[i] + ".");
       this._registerContentHandlerWithBranch(branch);
