@@ -24,6 +24,7 @@
 
 
 
+
 <div style="height: 50px; width: 300px">
 
 <div id="display">
@@ -125,7 +126,7 @@ for (prop in gCSSProperties) {
   if (!(prop in supported_properties) &&
       info.type != CSS_TYPE_TRUE_SHORTHAND &&
       !prop.match(/^-moz-transition-/) &&
-      // FIXME: THIS SHOULD REALLY NOT BE NEEDED!
+      // FIXME (Bug 119078): THIS SHOULD REALLY NOT BE NEEDED!
       prop != "-moz-binding") {
 
     if ("prerequisites" in info) {
