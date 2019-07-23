@@ -1576,7 +1576,7 @@ NS_IMETHODIMP nsAccessibilityService::GetAccessible(nsIDOMNode *aNode,
   
   
   if (!newAcc && content->Tag() != nsAccessibilityAtoms::body && content->GetParent() && 
-      (content->IsFocusable() ||
+      (frame->IsFocusable() ||
        (isHTML && nsAccUtils::HasListener(content, NS_LITERAL_STRING("click"))) ||
        HasUniversalAriaProperty(content, aWeakShell) || roleMapEntry ||
        HasRelatedContent(content) || nsAccUtils::IsXLink(content))) {
