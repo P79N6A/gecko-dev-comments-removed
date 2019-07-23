@@ -72,16 +72,6 @@
 
 NS_IMPL_ISUPPORTS1(nsNativeThemeWin, nsITheme)
 
-static inline bool IsCheckboxWidgetType(PRUint8 aWidgetType)
-{
-  return (aWidgetType == NS_THEME_CHECKBOX || aWidgetType == NS_THEME_CHECKBOX_SMALL);
-}
-
-static inline bool IsRadioWidgetType(PRUint8 aWidgetType)
-{
-  return (aWidgetType == NS_THEME_RADIO || aWidgetType == NS_THEME_RADIO_SMALL);
-}
-
 static inline bool IsHTMLContent(nsIFrame *frame)
 {
   nsIContent* content = frame->GetContent();
@@ -261,9 +251,7 @@ nsNativeThemeWin::GetTheme(PRUint8 aWidgetType)
   switch (aWidgetType) {
     case NS_THEME_BUTTON:
     case NS_THEME_RADIO:
-    case NS_THEME_RADIO_SMALL:
     case NS_THEME_CHECKBOX:
-    case NS_THEME_CHECKBOX_SMALL:
       return nsUXThemeData::GetTheme(eUXButton);
     case NS_THEME_TEXTFIELD:
     case NS_THEME_TEXTFIELD_MULTILINE:
@@ -403,10 +391,8 @@ nsNativeThemeWin::GetThemePartAndState(nsIFrame* aFrame, PRUint8 aWidgetType,
       return NS_OK;
     }
     case NS_THEME_CHECKBOX:
-    case NS_THEME_CHECKBOX_SMALL:
-    case NS_THEME_RADIO:
-    case NS_THEME_RADIO_SMALL: {
-      bool isCheckbox = IsCheckboxWidgetType(aWidgetType);
+    case NS_THEME_RADIO: {
+      bool isCheckbox = (aWidgetType == NS_THEME_CHECKBOX);
       aPart = isCheckbox ? BP_CHECKBOX : BP_RADIO;
 
       
@@ -1124,7 +1110,7 @@ RENDER_AGAIN:
 
   
   
-  if ((IsCheckboxWidgetType(aWidgetType) || IsRadioWidgetType(aWidgetType)) &&
+  if ((aWidgetType == NS_THEME_CHECKBOX || aWidgetType == NS_THEME_RADIO) &&
       aFrame->GetContent()->IsNodeOfType(nsINode::eHTML) ||
       aWidgetType == NS_THEME_SCALE_HORIZONTAL ||
       aWidgetType == NS_THEME_SCALE_VERTICAL) {
@@ -1275,9 +1261,7 @@ nsNativeThemeWin::GetWidgetPadding(nsIDeviceContext* aContext,
     
     
     case NS_THEME_CHECKBOX:
-    case NS_THEME_CHECKBOX_SMALL:
     case NS_THEME_RADIO:
-    case NS_THEME_RADIO_SMALL:
       aResult->SizeTo(0, 0, 0, 0);
       return PR_TRUE;
   }
@@ -1653,8 +1637,8 @@ nsNativeThemeWin::WidgetIsContainer(PRUint8 aWidgetType)
 {
   
   if (aWidgetType == NS_THEME_DROPDOWN_BUTTON || 
-      IsRadioWidgetType(aWidgetType) ||
-      IsCheckboxWidgetType(aWidgetType))
+      aWidgetType == NS_THEME_RADIO ||
+      aWidgetType == NS_THEME_CHECKBOX)
     return PR_FALSE;
   return PR_TRUE;
 }
@@ -1688,9 +1672,7 @@ nsNativeThemeWin::ClassicThemeSupportsWidget(nsPresContext* aPresContext,
     case NS_THEME_TEXTFIELD:
     case NS_THEME_TEXTFIELD_MULTILINE:
     case NS_THEME_CHECKBOX:
-    case NS_THEME_CHECKBOX_SMALL:
     case NS_THEME_RADIO:
-    case NS_THEME_RADIO_SMALL:
     case NS_THEME_SCROLLBAR_BUTTON_UP:
     case NS_THEME_SCROLLBAR_BUTTON_DOWN:
     case NS_THEME_SCROLLBAR_BUTTON_LEFT:
@@ -1826,9 +1808,7 @@ nsNativeThemeWin::ClassicGetMinimumWidgetSize(nsIRenderingContext* aContext, nsI
   *aIsOverridable = PR_TRUE;
   switch (aWidgetType) {
     case NS_THEME_RADIO:
-    case NS_THEME_RADIO_SMALL:
     case NS_THEME_CHECKBOX:
-    case NS_THEME_CHECKBOX_SMALL:
       (*aResult).width = (*aResult).height = 13;
       break;
     case NS_THEME_MENUCHECKBOX:
@@ -1974,19 +1954,17 @@ nsresult nsNativeThemeWin::ClassicGetThemePartAndState(nsIFrame* aFrame, PRUint8
       return NS_OK;
     }
     case NS_THEME_CHECKBOX:
-    case NS_THEME_CHECKBOX_SMALL:
-    case NS_THEME_RADIO:
-    case NS_THEME_RADIO_SMALL: {
+    case NS_THEME_RADIO: {
       PRInt32 contentState ;
       aFocused = PR_FALSE;
 
       aPart = DFC_BUTTON;
-      aState = (IsCheckboxWidgetType(aWidgetType)) ? DFCS_BUTTONCHECK : DFCS_BUTTONRADIO;
+      aState = (aWidgetType == NS_THEME_CHECKBOX) ? DFCS_BUTTONCHECK : DFCS_BUTTONRADIO;
       nsIContent* content = aFrame->GetContent();
            
       if (content->IsNodeOfType(nsINode::eXUL)) {
         
-        if (IsCheckboxWidgetType(aWidgetType)) {
+        if (aWidgetType == NS_THEME_CHECKBOX) {
           if (IsChecked(aFrame))
             aState |= DFCS_CHECKED;
         }
@@ -2423,9 +2401,7 @@ RENDER_AGAIN:
     }
     
     case NS_THEME_CHECKBOX:
-    case NS_THEME_CHECKBOX_SMALL:
     case NS_THEME_RADIO:
-    case NS_THEME_RADIO_SMALL:
     case NS_THEME_SCROLLBAR_BUTTON_UP:
     case NS_THEME_SCROLLBAR_BUTTON_DOWN:
     case NS_THEME_SCROLLBAR_BUTTON_LEFT:
@@ -2442,7 +2418,7 @@ RENDER_AGAIN:
 
       
       
-      if (focused && (IsCheckboxWidgetType(aWidgetType) || IsRadioWidgetType(aWidgetType))) {
+      if (focused && (aWidgetType == NS_THEME_CHECKBOX || aWidgetType == NS_THEME_RADIO)) {
         
         POINT vpOrg;
         ::GetViewportOrgEx(hdc, &vpOrg);
@@ -2741,9 +2717,7 @@ nsNativeThemeWin::GetWidgetNativeDrawingFlags(PRUint8 aWidgetType)
     case NS_THEME_DROPDOWN_BUTTON:
     
     case NS_THEME_CHECKBOX:
-    case NS_THEME_CHECKBOX_SMALL:
     case NS_THEME_RADIO:
-    case NS_THEME_RADIO_SMALL:
     case NS_THEME_CHECKMENUITEM:
     case NS_THEME_RADIOMENUITEM:
     case NS_THEME_MENUCHECKBOX:

@@ -11,12 +11,6 @@
 #define NS_THEME_CHECKBOX                                  3
 
 
-#define NS_THEME_RADIO_SMALL                               4
-
-
-#define NS_THEME_CHECKBOX_SMALL                            5
-
-
 
 #define NS_THEME_BUTTON_BEVEL                              7
 
