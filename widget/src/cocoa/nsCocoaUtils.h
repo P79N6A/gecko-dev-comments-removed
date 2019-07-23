@@ -46,6 +46,27 @@
 #include "nsRect.h"
 #include "nsIWidget.h"
 
+
+
+
+
+
+
+
+
+#ifndef NSINTEGER_DEFINED
+
+typedef int NSInteger;
+typedef unsigned int NSUInteger;
+
+#define NSIntegerMax    LONG_MAX
+#define NSIntegerMin    LONG_MIN
+#define NSUIntegerMax   ULONG_MAX
+
+#define NSINTEGER_DEFINED 1
+
+#endif  
+
 @interface NSApplication (Undocumented)
 
 
