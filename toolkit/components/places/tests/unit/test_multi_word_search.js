@@ -46,6 +46,8 @@
 
 
 
+
+
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 let current_test = 0;
 
@@ -242,8 +244,8 @@ let gTests = [
    "b e", [[0,0],[1,1]]],
   ["2: Match 3 terms all in title; display bookmark title if matched",
    "b a z", [[1,1],[3,1]]],
-  ["3: Match 2 terms in url and 1 in title; bookmark title didn't match",
-   "k f t", [[2,0],[3,0]]],
+  ["3: Match 2 terms in url and 1 in title; make sure bookmark title is used for search",
+   "k f t", [[2,0]]],
   ["4: Match 3 terms in url and 1 in title",
    "d i g z", [[1,1]]],
   ["5: Match nothing",
