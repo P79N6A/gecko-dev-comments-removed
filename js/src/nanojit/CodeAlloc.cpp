@@ -64,6 +64,10 @@ namespace nanojit
     {}
 
     CodeAlloc::~CodeAlloc() {
+        reset();
+    }
+
+    void CodeAlloc::reset() {
         
         
         for (CodeList* b = heapblocks; b != 0; ) {
@@ -75,6 +79,8 @@ namespace nanojit
             totalAllocated -= bytesPerAlloc;
             b = next;
         }
+        NanoAssert(!totalAllocated);
+        heapblocks = availblocks = 0;
     }
 
     CodeList* CodeAlloc::firstBlock(CodeList* term) {

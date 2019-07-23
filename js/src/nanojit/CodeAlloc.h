@@ -153,6 +153,9 @@ namespace nanojit
         ~CodeAlloc();
 
         
+        void reset();
+
+        
         void alloc(NIns* &start, NIns* &end);
 
         
