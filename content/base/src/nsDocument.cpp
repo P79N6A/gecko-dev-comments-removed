@@ -4956,10 +4956,7 @@ nsDocument::AppendChild(nsIDOMNode* aNewChild, nsIDOMNode** aReturn)
 NS_IMETHODIMP
 nsDocument::CloneNode(PRBool aDeep, nsIDOMNode** aReturn)
 {
-  
-  *aReturn = nsnull;
-
-  return NS_OK;
+  return nsNodeUtils::CloneNodeImpl(this, aDeep, aReturn);
 }
 
 NS_IMETHODIMP
@@ -6836,4 +6833,47 @@ nsDocument::QuerySelectorAll(const nsAString& aSelector,
                              nsIDOMNodeList **aReturn)
 {
   return nsGenericElement::doQuerySelectorAll(this, aSelector, aReturn);
+}
+
+nsresult
+nsDocument::CloneDocHelper(nsDocument* clone) const
+{
+  
+  nsresult rv = clone->Init();
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  clone->nsDocument::SetDocumentURI(nsIDocument::GetDocumentURI());
+  
+  clone->SetPrincipal(NodePrincipal());
+  rv = clone->SetBaseURI(nsIDocument::GetBaseURI());
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  PRBool hasHadScriptObject = PR_TRUE;
+  nsIScriptGlobalObject* scriptObject =
+    GetScriptHandlingObject(hasHadScriptObject);
+  NS_ENSURE_STATE(scriptObject || !hasHadScriptObject);
+  clone->SetScriptHandlingObject(scriptObject);
+
+  
+  clone->SetLoadedAsData(PR_TRUE);
+
+  
+
+  
+  clone->mCharacterSet = mCharacterSet;
+  clone->mCharacterSetSource = mCharacterSetSource;
+  clone->mCompatMode = mCompatMode;
+  clone->mBidiOptions = mBidiOptions;
+  clone->mContentLanguage = mContentLanguage;
+  clone->mContentType = mContentType;
+  clone->mSecurityInfo = mSecurityInfo;
+
+  
+  clone->mIsRegularHTML = mIsRegularHTML;
+  clone->mXMLDeclarationBits = mXMLDeclarationBits;
+  clone->mBaseTarget = mBaseTarget;
+
+  return NS_OK;
 }

@@ -76,9 +76,6 @@ public:
   virtual void EndLoad();
 
   
-  NS_IMETHOD CloneNode(PRBool aDeep, nsIDOMNode** aReturn);
-
-  
   NS_DECL_NSIINTERFACEREQUESTOR
 
   
@@ -91,7 +88,6 @@ public:
 
   virtual nsresult Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const;
 
-  void SetLoadedAsData(PRBool aLoadedAsData) { mLoadedAsData = aLoadedAsData; }
 protected:
   
   
