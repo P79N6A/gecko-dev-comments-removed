@@ -4743,11 +4743,187 @@ js_Interpret(JSContext *cx)
             LOAD_INTERRUPT_HANDLER(cx);
           END_CASE(JSOP_NEW)
 
-          BEGIN_CASE(JSOP_CALL)
-          BEGIN_CASE(JSOP_EVAL)
           BEGIN_CASE(JSOP_APPLY)
+          {
             argc = GET_ARGC(regs.pc);
             vp = regs.sp - (argc + 2);
+            lval = *vp;
+            if (!VALUE_IS_FUNCTION(cx, lval))
+                goto do_call;
+            obj = JSVAL_TO_OBJECT(lval);
+            fun = GET_FUNCTION_PRIVATE(cx, obj);
+            if (FUN_INTERPRETED(fun))
+                goto do_call;
+
+            bool apply = (JSFastNative)fun->u.n.native == js_fun_apply;
+            if (!apply && (JSFastNative)fun->u.n.native != js_fun_call)
+                goto do_call;
+
+            
+
+
+
+            if (apply && argc >= 2 && !JSVAL_IS_PRIMITIVE(vp[3])) {
+                
+
+
+
+                JSBool arraylike = JS_FALSE;
+                jsuint length = 0;
+                JSObject* aobj = JSVAL_TO_OBJECT(vp[3]);
+                if (js_IsArrayLike(cx, aobj, &arraylike, &length)) {
+                    length = (uintN)JS_MIN(length, ARRAY_INIT_LIMIT - 1);
+                    jsval* newsp = vp + 2 + length;
+                    JS_ASSERT(newsp >= vp + 2);
+                    JSArena *a = cx->stackPool.current;
+                    if (jsuword(newsp) > a->limit)
+                        goto do_call; 
+                }
+            }
+            
+            obj = JS_THIS_OBJECT(cx, vp);
+            if (!obj || !OBJ_DEFAULT_VALUE(cx, obj, JSTYPE_FUNCTION, &vp[1]))
+                goto error;
+            rval = vp[1];
+
+            if (!VALUE_IS_FUNCTION(cx, rval)) {
+                str = JS_ValueToString(cx, rval);
+                if (str) {
+                    const char *bytes = js_GetStringBytes(cx, str);
+
+                    if (bytes) {
+                        JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL,
+                                             JSMSG_INCOMPATIBLE_PROTO,
+                                             js_Function_str, 
+                                             apply ? js_apply_str : "call",
+                                             bytes);
+                    }
+                }
+                goto error;
+            }
+
+            if (argc == 0) {
+                
+
+
+
+                obj = NULL;
+            } else {
+                
+                if (!JSVAL_IS_PRIMITIVE(vp[2]))
+                    obj = JSVAL_TO_OBJECT(vp[2]);
+                else if (!js_ValueToObject(cx, vp[2], &obj))
+                    goto error;
+            }
+
+            if (!apply) {
+                
+                if (argc > 0) {
+                    --argc;
+                    memmove(vp + 2, vp + 3, argc * sizeof *vp);
+                }
+                
+                
+
+
+
+            } else {
+                if (argc >= 2) { 
+                    JSObject *aobj = NULL;
+                    
+                    
+
+
+
+                    if (JSVAL_IS_NULL(vp[3]) || JSVAL_IS_VOID(vp[3])) {
+                        argc = 0;
+                    } else {
+                        
+
+
+                        JSBool arraylike = JS_FALSE;
+                        jsuint length = 0;
+                        if (!JSVAL_IS_PRIMITIVE(vp[3])) {
+                            aobj = JSVAL_TO_OBJECT(vp[3]);
+                            if (!js_IsArrayLike(cx, aobj, &arraylike, &length)) 
+                                goto error;
+                        }
+                        if (!arraylike) {
+                            JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL,
+                                                     JSMSG_BAD_APPLY_ARGS, 
+                                                     apply ? js_apply_str : "call");
+                            goto error;
+                        }
+
+                        jsuint orig_argc = argc;
+                        argc = (uintN)JS_MIN(length, ARRAY_INIT_LIMIT - 1);
+                            
+                        
+
+
+                        if (argc > orig_argc) {
+                            jsval* newsp = vp + 2 + argc;
+                            JS_ASSERT(newsp > regs.sp);
+                            JSArena *a = cx->stackPool.current;
+                            JS_ASSERT(jsuword(newsp) <= a->limit); 
+                            if ((jsuword) newsp > a->avail)
+                                a->avail = (jsuword) newsp;
+                            
+                            
+                            memset(vp + 2 + orig_argc, 0, (argc - orig_argc) * sizeof(jsval));
+                        }
+
+                        
+
+
+                        vp[0] = rval;
+                        vp[1] = OBJECT_TO_JSVAL(obj);
+                        if (argc > 0) {
+                            
+
+
+
+
+                            vp[2 + argc - 1] = vp[3]; 
+                        }
+                        regs.sp = vp + 2 + argc;
+
+                        
+                        jsval* sp = vp + 2;
+                        for (i = 0; i < jsint(argc); i++) {
+                            id = INT_TO_JSID(i);
+                            if (!OBJ_GET_PROPERTY(cx, aobj, id, sp)) {
+                                
+
+
+
+
+
+                                goto error;
+                            }
+                            sp++;
+                        }
+                        
+                        goto do_call_with_specified_vp_and_argc;
+                    }
+                } else
+                    argc = 0;
+            }
+                 
+            vp[0] = rval;
+            vp[1] = OBJECT_TO_JSVAL(obj);
+            regs.sp = vp + 2 + argc;
+
+            goto do_call_with_specified_vp_and_argc;
+          }
+          
+          BEGIN_CASE(JSOP_CALL)
+          BEGIN_CASE(JSOP_EVAL)
+          do_call:
+            argc = GET_ARGC(regs.pc);
+            vp = regs.sp - (argc + 2);
+            
+          do_call_with_specified_vp_and_argc:
             lval = *vp;
             if (VALUE_IS_FUNCTION(cx, lval)) {
                 obj = JSVAL_TO_OBJECT(lval);
