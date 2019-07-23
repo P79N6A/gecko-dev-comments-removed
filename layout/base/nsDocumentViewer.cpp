@@ -364,7 +364,14 @@ private:
                         PRBool aDoCreation,
                         PRBool aInPrintPreview,
                         PRBool aNeedMakeCX = PR_TRUE);
-  nsresult InitPresentationStuff(PRBool aDoInitialReflow);
+  
+
+
+
+
+
+
+  nsresult InitPresentationStuff(PRBool aDoInitialReflow, PRBool aReenableRefresh);
 
   nsresult GetPopupNode(nsIDOMNode** aNode);
   nsresult GetPopupLinkNode(nsIDOMNode** aNode);
@@ -659,7 +666,7 @@ DocumentViewerImpl::Init(nsIWidget* aParentWidget,
 }
 
 nsresult
-DocumentViewerImpl::InitPresentationStuff(PRBool aDoInitialReflow)
+DocumentViewerImpl::InitPresentationStuff(PRBool aDoInitialReflow, PRBool aReenableRefresh)
 {
   
   nsStyleSet *styleSet;
@@ -721,15 +728,15 @@ DocumentViewerImpl::InitPresentationStuff(PRBool aDoInitialReflow)
     nsCOMPtr<nsIPresShell> shellGrip = mPresShell;
     
     mPresShell->InitialReflow(width, height);
-
-    
-    if (mEnableRendering && mViewManager) {
-      mViewManager->EnableRefresh(NS_VMREFRESH_IMMEDIATE);
-    }
   } else {
     
     
     mPresContext->SetVisibleArea(nsRect(0, 0, width, height));
+  }
+
+  
+  if (aReenableRefresh && mEnableRendering && mViewManager) {
+    mViewManager->EnableRefresh(NS_VMREFRESH_IMMEDIATE);
   }
 
   
@@ -753,7 +760,7 @@ DocumentViewerImpl::InitPresentationStuff(PRBool aDoInitialReflow)
     return rv;
 
   
-  nsCOMPtr<nsIDOMFocusListener> mOldFocusListener = mFocusListener;
+  nsCOMPtr<nsIDOMFocusListener> oldFocusListener = mFocusListener;
 
   
   
@@ -772,8 +779,8 @@ DocumentViewerImpl::InitPresentationStuff(PRBool aDoInitialReflow)
     rv = mDocument->AddEventListenerByIID(mFocusListener,
                                           NS_GET_IID(nsIDOMFocusListener));
     NS_ASSERTION(NS_SUCCEEDED(rv), "failed to register focus listener");
-    if (mOldFocusListener) {
-      rv = mDocument->RemoveEventListenerByIID(mOldFocusListener,
+    if (oldFocusListener) {
+      rv = mDocument->RemoveEventListenerByIID(oldFocusListener,
                                                NS_GET_IID(nsIDOMFocusListener));
       NS_ASSERTION(NS_SUCCEEDED(rv), "failed to remove focus listener");
     }
@@ -906,7 +913,7 @@ DocumentViewerImpl::InitInternal(nsIWidget* aParentWidget,
     
     
 
-    rv = InitPresentationStuff(!makeCX);
+    rv = InitPresentationStuff(!makeCX, !makeCX);
   }
 
   return rv;
@@ -1646,31 +1653,7 @@ DocumentViewerImpl::SetDOMDocument(nsIDOMDocument *aDocument)
       mPresContext->SetLinkHandler(linkHandler);
     }
 
-    
-
-    nsStyleSet *styleSet;
-    rv = CreateStyleSet(mDocument, &styleSet);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    rv = newDoc->CreateShell(mPresContext, mViewManager, styleSet,
-                             getter_AddRefs(mPresShell));
-    if (NS_FAILED(rv)) {
-      delete styleSet;
-      return rv;
-    }
-
-    
-    styleSet->EndUpdate();
-
-    
-    mPresShell->BeginObservingDocument();
-
-    
-    if (mDocument) {
-      rv = mDocument->AddEventListenerByIID(mFocusListener,
-                                            NS_GET_IID(nsIDOMFocusListener));
-      NS_ASSERTION(NS_SUCCEEDED(rv), "failed to register focus listener");
-    }
+    rv = InitPresentationStuff(PR_FALSE, PR_TRUE);
   }
 
   return rv;
@@ -1934,7 +1917,7 @@ DocumentViewerImpl::Show(void)
     if (mPresContext) {
       Hide();
 
-      rv = InitPresentationStuff(PR_TRUE);
+      rv = InitPresentationStuff(PR_TRUE, PR_TRUE);
     }
 
     
