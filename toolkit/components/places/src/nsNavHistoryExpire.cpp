@@ -259,6 +259,26 @@ nsNavHistoryExpire::ClearHistory()
   if (NS_FAILED(rv))
     NS_WARNING("ExpireAnnotationsParanoid failed.");
 
+  
+  
+  
+  rv = connection->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
+    "UPDATE moz_places SET frecency = -1"));
+  if (NS_FAILED(rv))
+    NS_WARNING("failed to recent frecency");
+
+  
+  
+  
+  
+  rv = mHistory->FixInvalidFrecenciesForExcludedPlaces();
+  if (NS_FAILED(rv))
+    NS_WARNING("failed to fix invalid frecencies");
+
+  
+  
+  
+
   ENUMERATE_WEAKARRAY(mHistory->mObservers, nsINavHistoryObserver,
                       OnClearHistory())
 
@@ -506,21 +526,54 @@ nsNavHistoryExpire::EraseVisits(mozIStorageConnection* aConnection,
     const nsTArray<nsNavHistoryExpireRecord>& aRecords)
 {
   
+  
+  
   nsCString deletedVisitIds;
+  nsCString placeIds;
+  nsTArray<PRInt64> deletedPlaceIdsArray, deletedVisitIdsArray;
   for (PRUint32 i = 0; i < aRecords.Length(); i ++) {
     
-    if (! deletedVisitIds.IsEmpty())
-      deletedVisitIds.AppendLiteral(",");  
-    deletedVisitIds.AppendInt(aRecords[i].visitID);
+    if (deletedVisitIdsArray.IndexOf(aRecords[i].visitID) == -1) {
+      if (!deletedVisitIds.IsEmpty())
+        deletedVisitIds.AppendLiteral(",");  
+      deletedVisitIds.AppendInt(aRecords[i].visitID);
+    }
+
+    
+    if (deletedPlaceIdsArray.IndexOf(aRecords[i].placeID) == -1) {
+      if (!placeIds.IsEmpty())
+        placeIds.AppendLiteral(",");
+      placeIds.AppendInt(aRecords[i].placeID);
+    }
   }
 
   if (deletedVisitIds.IsEmpty())
     return NS_OK;
 
-  return aConnection->ExecuteSimpleSQL(
+  nsresult rv = aConnection->ExecuteSimpleSQL(
     NS_LITERAL_CSTRING("DELETE FROM moz_historyvisits WHERE id IN (") +
     deletedVisitIds +
     NS_LITERAL_CSTRING(")"));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  if (placeIds.IsEmpty())
+    return NS_OK;
+
+  
+  
+  
+  rv = aConnection->ExecuteSimpleSQL(
+    NS_LITERAL_CSTRING("UPDATE moz_places SET "
+      "frecency = -1 WHERE id IN (") +
+    placeIds +
+    NS_LITERAL_CSTRING(")"));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  
+  
+
+  return NS_OK;
 }
 
 
@@ -548,7 +601,7 @@ nsNavHistoryExpire::EraseHistory(mozIStorageConnection* aConnection,
     
     if (deletedPlaceIdsArray.IndexOf(aRecords[i].placeID) == -1) {
       
-      if (! deletedPlaceIds.IsEmpty())
+      if (!deletedPlaceIds.IsEmpty())
         deletedPlaceIds.AppendLiteral(",");
       deletedPlaceIdsArray.AppendElement(aRecords[i].placeID);
       deletedPlaceIds.AppendInt(aRecords[i].placeID);
@@ -583,12 +636,12 @@ nsNavHistoryExpire::EraseFavicons(mozIStorageConnection* aConnection,
   nsTArray<PRInt64> deletedFaviconIdsArray;  
   for (PRUint32 i = 0; i < aRecords.Length(); i ++) {
     
-    if (! aRecords[i].erased || aRecords[i].faviconID == 0)
+    if (!aRecords[i].erased || aRecords[i].faviconID == 0)
       continue;
     
     if (deletedFaviconIdsArray.IndexOf(aRecords[i].faviconID) == -1) {
       
-      if (! deletedFaviconIds.IsEmpty())
+      if (!deletedFaviconIds.IsEmpty())
         deletedFaviconIds.AppendLiteral(",");
       deletedFaviconIdsArray.AppendElement(aRecords[i].faviconID);
       deletedFaviconIds.AppendInt(aRecords[i].faviconID);
@@ -893,7 +946,7 @@ nsNavHistoryExpire::ComputeNextExpirationTime(
 
   PRBool hasMore;
   rv = statement->ExecuteStep(&hasMore);
-  if (NS_FAILED(rv) || ! hasMore)
+  if (NS_FAILED(rv) || !hasMore)
     return; 
             
 
@@ -907,7 +960,7 @@ nsNavHistoryExpire::ComputeNextExpirationTime(
 nsresult
 nsNavHistoryExpire::StartTimer(PRUint32 aMilleseconds)
 {
-  if (! mTimer)
+  if (!mTimer)
     mTimer = do_CreateInstance("@mozilla.org/timer;1");
   NS_ENSURE_STATE(mTimer); 
   nsresult rv = mTimer->InitWithFuncCallback(TimerCallback, this,

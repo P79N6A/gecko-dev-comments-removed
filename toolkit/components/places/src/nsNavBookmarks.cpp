@@ -50,6 +50,7 @@
 #include "nsAutoLock.h"
 #include "nsIUUIDGenerator.h"
 #include "prprf.h"
+#include "nsILivemarkService.h"
 
 const PRInt32 nsNavBookmarks::kFindBookmarksIndex_ID = 0;
 const PRInt32 nsNavBookmarks::kFindBookmarksIndex_Type = 1;
@@ -796,8 +797,6 @@ nsNavBookmarks::AdjustIndices(PRInt64 aFolder,
 {
   NS_ASSERTION(aStartIndex <= aEndIndex, "start index must be <= end index");
 
-  mozIStorageConnection *dbConn = DBConn();
-
   nsCAutoString buffer;
   buffer.AssignLiteral("UPDATE moz_bookmarks SET position = position + ");
   buffer.AppendInt(aDelta);
@@ -910,6 +909,43 @@ nsNavBookmarks::InsertBookmark(PRInt64 aFolder, nsIURI *aItem, PRInt32 aIndex,
   NS_ENSURE_SUCCESS(rv, rv);
   *aNewBookmarkId = rowId;
 
+  
+  
+  
+  
+  
+  
+  
+  
+
+  nsCAutoString url;
+  rv = aItem->GetSpec(url);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  PRBool isBookmark = !IsQueryURI(url);
+
+  if (isBookmark) {
+    
+    
+    
+    PRBool parentIsLivemark;
+    nsCOMPtr<nsILivemarkService> lms = 
+      do_GetService(NS_LIVEMARKSERVICE_CONTRACTID, &rv);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    rv = lms->IsLivemark(aFolder, &parentIsLivemark);
+    NS_ENSURE_SUCCESS(rv, rv);
+ 
+    isBookmark = !parentIsLivemark;
+  }
+  
+  
+  
+  
+  rv = History()->UpdateFrecency(childID, isBookmark);
+  NS_ENSURE_SUCCESS(rv, rv);
+
   rv = SetItemLastModified(aFolder, PR_Now());
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -1003,6 +1039,17 @@ nsNavBookmarks::RemoveItem(PRInt64 aItemId)
 
   rv = UpdateBookmarkHashOnRemove(placeId);
   NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  
+  
+  
+  
+  
+  if (itemType == TYPE_BOOKMARK) {
+    rv = History()->UpdateFrecency(placeId, PR_FALSE );
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
 
   ENUMERATE_WEAKARRAY(mObservers, nsINavBookmarkObserver,
                       OnItemRemoved(aItemId, folderId, childIndex))
@@ -2143,6 +2190,19 @@ nsNavBookmarks::ChangeBookmarkURI(PRInt64 aBookmarkId, nsIURI *aNewURI)
 
   rv = transaction.Commit();
   NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  
+  rv = History()->UpdateFrecency(placeId, PR_TRUE );
+  NS_ENSURE_SUCCESS(rv, rv);
+
+#if 0
+  
+  
+  
+  rv = History()->UpdateFrecency(oldPlaceId,  PR_FALSE );
+  NS_ENSURE_SUCCESS(rv, rv);
+#endif
 
   nsCAutoString spec;
   rv = aNewURI->GetSpec(spec);
