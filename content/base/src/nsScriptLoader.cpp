@@ -893,7 +893,7 @@ nsScriptLoader::ShouldExecuteScript(nsIDocument* aDocument,
 
   
   
-  PRBool equal;
-  rv = docPrincipal->Equals(channelPrincipal, &equal);
-  return NS_SUCCEEDED(rv) && equal;
+  PRBool subsumes;
+  rv = channelPrincipal->Subsumes(docPrincipal, &subsumes);
+  return NS_SUCCEEDED(rv) && subsumes;
 }
