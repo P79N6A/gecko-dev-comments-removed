@@ -99,7 +99,10 @@ JS_ClearAllWatchPoints(JSContext *cx);
 
 
 extern void
-js_TraceWatchPoints(JSTracer *trc);
+js_TraceWatchPoints(JSTracer *trc, JSObject *obj);
+
+extern void
+js_SweepWatchPoints(JSContext *cx);
 
 extern JSScopeProperty *
 js_FindWatchPoint(JSRuntime *rt, JSScope *scope, jsid id);
