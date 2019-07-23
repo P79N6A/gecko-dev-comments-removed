@@ -183,7 +183,8 @@ nsStackLayout::AddOffset(nsBoxLayoutState& aState, nsIBox* aChild, nsSize& aSize
   
   
   
-  if (aChild->GetStateBits() & NS_STATE_STACK_NOT_POSITIONED)
+  if (aChild->IsBoxFrame() &&
+      (aChild->GetStateBits() & NS_STATE_STACK_NOT_POSITIONED))
     return PR_FALSE;
   
   PRBool offsetSpecified = PR_FALSE;
@@ -227,7 +228,7 @@ nsStackLayout::AddOffset(nsBoxLayoutState& aState, nsIBox* aChild, nsSize& aSize
 
   aSize += offset;
 
-  if (!offsetSpecified) {
+  if (!offsetSpecified && aChild->IsBoxFrame()) {
     
     
     aChild->AddStateBits(NS_STATE_STACK_NOT_POSITIONED);
