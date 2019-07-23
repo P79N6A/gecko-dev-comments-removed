@@ -42,8 +42,10 @@
 
 #include "nsIRenderingContext.h"
 #include "nsStyleConsts.h"
+#include "gfxBlur.h"
 #include "gfxContext.h"
 #include "gfxImageSurface.h"
+
 struct nsPoint;
 class nsStyleContext;
 class nsPresContext;
@@ -324,22 +326,9 @@ public:
   gfxContext* GetContext();
 
 protected:
-  void BoxBlurHorizontal(unsigned char* aInput,
-                         unsigned char* aOutput,
-                         PRUint32 aLeftLobe,
-                         PRUint32 aRightLobe);
-  void BoxBlurVertical(unsigned char* aInput,
-                       unsigned char* aOutput,
-                       PRUint32 aTopLobe,
-                       PRUint32 aBottomLobe);
-
+  gfxAlphaBoxBlur blur;
   nsRefPtr<gfxContext> mContext;
-  nsRefPtr<gfxImageSurface> mImageSurface;
   gfxContext* mDestinationCtx;
-
-  
-  gfxRect mRect;
-  PRInt32 mBlurRadius;
   
 };
 
