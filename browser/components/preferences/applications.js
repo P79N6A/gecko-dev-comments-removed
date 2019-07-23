@@ -699,10 +699,15 @@ var gApplicationsPane = {
   
   _handledTypes: {},
 
-  _brandBundle  : null,
-  _prefsBundle  : null,
-  _list         : null,
-  _filter       : null,
+
+  
+  
+
+  
+  _brandShortName : null,
+  _prefsBundle    : null,
+  _list           : null,
+  _filter         : null,
 
   
   
@@ -728,7 +733,8 @@ var gApplicationsPane = {
 
   init: function() {
     
-    this._brandBundle = document.getElementById("bundleBrand");
+    this._brandShortName =
+      document.getElementById("bundleBrand").getString("brandShortName");
     this._prefsBundle = document.getElementById("bundlePreferences");
     this._list = document.getElementById("handlersView");
     this._filter = document.getElementById("filter");
@@ -992,7 +998,8 @@ var gApplicationsPane = {
     
     
     if (aHandlerInfo.alwaysAskBeforeHandling)
-      return this._prefsBundle.getString("alwaysAskAboutFeed");
+      return this._prefsBundle.getFormattedString("previewInApp",
+                                                  [this._brandShortName]);
 
     switch (aHandlerInfo.preferredAction) {
       case Ci.nsIHandlerInfo.saveToDisk:
@@ -1004,7 +1011,8 @@ var gApplicationsPane = {
       case Ci.nsIHandlerInfo.handleInternally:
         
         if (aHandlerInfo.type == TYPE_MAYBE_FEED)
-          return this._prefsBundle.getString("liveBookmarks");
+          return this._prefsBundle.getFormattedString("liveBookmarksInApp",
+                                                      [this._brandShortName]);
 
         
         
@@ -1023,10 +1031,9 @@ var gApplicationsPane = {
         return aHandlerInfo.defaultDescription;
 
       case kActionUsePlugin:
-        let brandShortName = this._brandBundle.getString("brandShortName");
         return this._prefsBundle.getFormattedString("pluginName",
                                                     [aHandlerInfo.plugin.name,
-                                                     brandShortName]);
+                                                     this._brandShortName]);
     }
   },
 
@@ -1074,15 +1081,18 @@ var gApplicationsPane = {
     if (handlerInfo.type == TYPE_MAYBE_FEED) {
       let menuItem = document.createElementNS(kXULNS, "menuitem");
       menuItem.setAttribute("alwaysAsk", "true");
-      menuItem.setAttribute("label",
-                            this._prefsBundle.getString("alwaysAskAboutFeed"));
+      let label = this._prefsBundle.getFormattedString("previewInApp",
+                                                       [this._brandShortName]);
+      menuItem.setAttribute("label", label);
       menuPopup.appendChild(menuItem);
       if (handlerInfo.alwaysAskBeforeHandling)
         menu.selectedItem = menuItem;
 
       menuItem = document.createElementNS(kXULNS, "menuitem");
       menuItem.setAttribute("action", Ci.nsIHandlerInfo.handleInternally);
-      menuItem.setAttribute("label", this._prefsBundle.getString("liveBookmarks"));
+      label = this._prefsBundle.getFormattedString("liveBookmarksInApp",
+                                                   [this._brandShortName]);
+      menuItem.setAttribute("label", label);
       menuItem.setAttribute("image", "chrome://browser/skin/page-livemarks.png");
       menuPopup.appendChild(menuItem);
       if (handlerInfo.preferredAction == Ci.nsIHandlerInfo.handleInternally)
@@ -1142,10 +1152,9 @@ var gApplicationsPane = {
     if (handlerInfo.plugin) {
       let menuItem = document.createElementNS(kXULNS, "menuitem");
       menuItem.setAttribute("action", kActionUsePlugin);
-      let brandShortName = this._brandBundle.getString("brandShortName");
       let label = this._prefsBundle.getFormattedString("pluginName",
                                                        [handlerInfo.plugin.name,
-                                                        brandShortName]);
+                                                        this._brandShortName]);
       menuItem.setAttribute("label", label);
       menuPopup.appendChild(menuItem);
       if (handlerInfo.preferredAction == kActionUsePlugin)
