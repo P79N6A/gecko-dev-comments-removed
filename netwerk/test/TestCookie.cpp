@@ -642,19 +642,47 @@ main(PRInt32 argc, char *argv[])
       GetACookie(cookieService, "http://multi.path.tests/one/two/three/four/five/six/", nsnull, getter_Copies(cookie));
       rv[0] = CheckResult(cookie.get(), MUST_EQUAL, "test7=path; test6=path; test3=path; test1=path; test5=path; test4=path; test2=path; test8=path");
 
+      allTestsPassed = PrintResult(rv, 1) && allTestsPassed;
+
 
       
       printf("*** Beginning httponly tests...\n");
+
+      
+      SetACookieNoHttp(cookieService, "http://httponly.test/", "test=httponly; httponly");
+      GetACookie(cookieService, "http://httponly.test/", nsnull, getter_Copies(cookie));
+      rv[0] = CheckResult(cookie.get(), MUST_BE_NULL);
       
       SetACookie(cookieService, "http://httponly.test/", nsnull, "test=httponly; httponly", nsnull);
       GetACookie(cookieService, "http://httponly.test/", nsnull, getter_Copies(cookie));
-      rv[0] = CheckResult(cookie.get(), MUST_EQUAL, "test=httponly");
+      rv[1] = CheckResult(cookie.get(), MUST_EQUAL, "test=httponly");
       
-      SetACookieNoHttp(cookieService, "http://httponly.test/", "test=httponly; httponly");
       GetACookieNoHttp(cookieService, "http://httponly.test/", getter_Copies(cookie));
-      rv[1] = CheckResult(cookie.get(), MUST_NOT_EQUAL, "test=httponly");
+      rv[2] = CheckResult(cookie.get(), MUST_BE_NULL);
+      
+      SetACookie(cookieService, "http://httponly.test/", nsnull, "test=httponly; httponly", nsnull);
+      SetACookieNoHttp(cookieService, "http://httponly.test/", "test=not-httponly");
+      GetACookie(cookieService, "http://httponly.test/", nsnull, getter_Copies(cookie));
+      rv[3] = CheckResult(cookie.get(), MUST_EQUAL, "test=httponly");
+      
+      GetACookieNoHttp(cookieService, "http://httponly.test/", getter_Copies(cookie));
+      rv[4] = CheckResult(cookie.get(), MUST_BE_NULL);
+      
+      SetACookie(cookieService, "http://httponly.test/", nsnull, "test=httponly; httponly", nsnull);
+      SetACookieNoHttp(cookieService, "http://httponly.test/", "test=httponly; max-age=-1");
+      GetACookie(cookieService, "http://httponly.test/", nsnull, getter_Copies(cookie));
+      rv[5] = CheckResult(cookie.get(), MUST_EQUAL, "test=httponly");
+      
+      SetACookie(cookieService, "http://httponly.test/", nsnull, "test=httponly; httponly; max-age=-1", nsnull);
+      GetACookie(cookieService, "http://httponly.test/", nsnull, getter_Copies(cookie));
+      rv[6] = CheckResult(cookie.get(), MUST_BE_NULL);
+      
+      SetACookie(cookieService, "http://httponly.test/", nsnull, "test=httponly; httponly", nsnull);
+      SetACookie(cookieService, "http://httponly.test/", nsnull, "test=not-httponly", nsnull);
+      GetACookieNoHttp(cookieService, "http://httponly.test/", getter_Copies(cookie));
+      rv[7] = CheckResult(cookie.get(), MUST_EQUAL, "test=not-httponly");
 
-      allTestsPassed = PrintResult(rv, 2) && allTestsPassed;
+      allTestsPassed = PrintResult(rv, 8) && allTestsPassed;
 
 
       
