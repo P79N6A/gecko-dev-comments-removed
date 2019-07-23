@@ -73,7 +73,7 @@
 #include "nsIPermissionManager.h"
 #include "nsTArray.h"
 
-#if defined(XP_WIN)
+#if defined(XP_WIN) || defined(MOZ_ENABLE_LIBCONIC)
 #include "nsNativeConnectionHelper.h"
 #endif
 
@@ -986,8 +986,7 @@ nsIOService::TrackNetworkLinkStatusForOffline()
         
         
         if (autodialEnabled) {
-#if defined(XP_WIN)
-            
+#if defined(XP_WIN) || defined(MOZ_ENABLE_LIBCONIC)
             
             
             
@@ -998,7 +997,7 @@ nsIOService::TrackNetworkLinkStatusForOffline()
 #endif
         }
     }
-  
+
     PRBool isUp;
     nsresult rv = mNetworkLinkService->GetIsLinkUp(&isUp);
     NS_ENSURE_SUCCESS(rv, rv);

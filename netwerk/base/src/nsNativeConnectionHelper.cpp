@@ -37,11 +37,15 @@
 
 
 #include "nsNativeConnectionHelper.h"
-#ifdef WINCE
+
+#if defined(MOZ_ENABLE_LIBCONIC)
+#include "nsAutodialMaemo.h"
+#elif defined(WINCE)
 #include "nsAutodialWinCE.h"
 #else
 #include "nsAutodialWin.h"
 #endif
+
 #include "nsIOService.h"
 
 
@@ -51,15 +55,20 @@
 PRBool
 nsNativeConnectionHelper::OnConnectionFailed(const PRUnichar* hostName)
 {
+  
+  
+  
+  
+#if !defined(MOZ_ENABLE_LIBCONIC) && !defined(WINCE_WINDOWS_MOBILE)
     if (gIOService->IsLinkUp())
         return PR_FALSE;
+#endif
 
     nsAutodial autodial;
-
-    if (autodial.ShouldDialOnNetworkError()) 
+    if (autodial.ShouldDialOnNetworkError())
         return NS_SUCCEEDED(autodial.DialDefault(hostName));
-    else
-        return PR_FALSE;
+
+    return PR_FALSE;
 }
 
 PRBool
