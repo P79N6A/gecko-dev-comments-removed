@@ -783,6 +783,8 @@ nsOggDecodeStateMachine::FrameData* nsOggDecodeStateMachine::NextFrame()
   if (needSilence) {
     
     size_t count = mAudioChannels * mAudioRate * mCallbackPeriod;
+    
+    count = mAudioChannels * PRInt32(NS_ceil(mAudioRate*mCallbackPeriod));
     float* data = frame->mAudioData.AppendElements(count);
     if (data) {
       memset(data, 0, sizeof(float)*count);
@@ -1042,10 +1044,12 @@ void nsOggDecodeStateMachine::PausePlayback()
     StopPlayback();
     return;
   }
-
   mAudioStream->Pause();
   mPlaying = PR_FALSE;
   mPauseStartTime = TimeStamp::Now();
+  if (mAudioStream->GetPosition() < 0) {
+    mLastFrameTime = mDecodedFrames.ResetTimes(mCallbackPeriod);
+  }
 }
 
 void nsOggDecodeStateMachine::ResumePlayback()
@@ -1497,22 +1501,37 @@ nsresult nsOggDecodeStateMachine::Run()
         if (mState == DECODER_STATE_SHUTDOWN)
           continue;
 
+        
+        float seekTarget = seekTime - mCallbackPeriod / 2.0;
         FrameData* frame = nsnull;
         OggPlayErrorCode r;
-        float seekTarget = seekTime - mCallbackPeriod / 2.0;
+        mLastFrameTime = 0;
+        
+        
+        
+        float audioTime = 0;
+        nsTArray<float> audioData;
         do {
           do {
             mon.Exit();
             r = DecodeFrame();
             mon.Enter();
           } while (mState != DECODER_STATE_SHUTDOWN && r == E_OGGPLAY_TIMEOUT);
+
           if (mState == DECODER_STATE_SHUTDOWN)
             break;
 
-          mLastFrameTime = 0;
+          FrameData* nextFrame = NextFrame();
+          if (!nextFrame)
+            break;
+
           delete frame;
-          frame = NextFrame();
-        } while (frame && frame->mDecodedFrameTime < seekTarget);
+          frame = nextFrame;
+
+          audioData.AppendElements(frame->mAudioData);
+          audioTime += frame->mAudioData.Length() /
+                       (float)mAudioRate / (float)mAudioChannels;
+        } while (frame->mDecodedFrameTime < seekTarget);
 
         if (mState == DECODER_STATE_SHUTDOWN) {
           delete frame;
@@ -1521,6 +1540,21 @@ nsresult nsOggDecodeStateMachine::Run()
 
         NS_ASSERTION(frame != nsnull, "No frame after seek!");
         if (frame) {
+          if (audioTime > frame->mTime) {
+            
+            
+            audioTime -= frame->mTime;
+            
+            size_t numExtraSamples = mAudioChannels *
+                                     PRInt32(NS_ceil(mAudioRate*audioTime));
+            float* data = audioData.Elements() + audioData.Length() - numExtraSamples;
+            float* dst = frame->mAudioData.InsertElementsAt(0, numExtraSamples);
+            memcpy(dst, data, numExtraSamples * sizeof(float));
+          }
+        
+          mLastFrameTime = 0;
+          frame->mTime = 0;
+          frame->mState = OGGPLAY_STREAM_JUST_SEEKED;
           mDecodedFrames.Push(frame);
           UpdatePlaybackPosition(frame->mDecodedFrameTime);
           PlayVideo(frame);
