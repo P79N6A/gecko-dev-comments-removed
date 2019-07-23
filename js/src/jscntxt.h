@@ -111,6 +111,12 @@ typedef Queue<uint16> SlotList;
 #define FRAGMENT_TABLE_SIZE 512
 struct VMFragment;
 
+#define MONITOR_N_GLOBAL_STATES 4
+struct GlobalState {
+    uint32                  globalShape;
+    CLS(SlotList)           globalSlots;
+};
+
 
 
 
@@ -127,12 +133,12 @@ typedef struct JSTraceMonitor {
     CLS(nanojit::LirBuffer) lirbuf;
     CLS(nanojit::Fragmento) fragmento;
     CLS(TraceRecorder)      recorder;
-    uint32                  globalShape;
-    CLS(SlotList)           globalSlots;
     jsval                   *reservedDoublePool;
     jsval                   *reservedDoublePoolPtr;
 
+    struct GlobalState globalStates[MONITOR_N_GLOBAL_STATES];
     struct VMFragment* vmfragments[FRAGMENT_TABLE_SIZE];
+    JSBool needFlush;
 
     
 

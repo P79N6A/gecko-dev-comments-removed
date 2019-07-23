@@ -3097,9 +3097,8 @@ js_TraceTraceMonitor(JSTracer *trc, JSTraceMonitor *tm)
     if (IS_GC_MARKING_TRACER(trc)) {
         tm->reservedDoublePoolPtr = tm->reservedDoublePool;
 
-        
+        tm->needFlush = JS_TRUE;
 
-        tm->globalShape = -1; 
         
         for (JSObject *obj = tm->reservedObjects; obj; obj = JSVAL_TO_OBJECT(obj->fslots[0])) {
             uint8 *flagp = GetGCThingFlags(obj);
