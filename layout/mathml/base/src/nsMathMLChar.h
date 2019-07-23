@@ -37,6 +37,7 @@
 
 
 
+
 #ifndef nsMathMLChar_h___
 #define nsMathMLChar_h___
 
@@ -213,32 +214,55 @@ private:
   nsStyleContext*    mStyleContext;
   nsGlyphTable*      mGlyphTable;
   nsGlyphCode        mGlyph;
+  
+  
+  nsString           mFamily;
 
   
+  PRBool
+  TryVariants(nsPresContext*       aPresContext,
+              nsIRenderingContext& aRenderingContext,
+              nsGlyphTable*        aGlyphTable,
+              nscoord              aTargetSize,
+              PRUint32             aStretchHint,
+              const nsAString&     aFamilies);
+
+  PRBool
+  TryParts(nsPresContext*       aPresContext,
+           nsIRenderingContext& aRenderingContext,
+           nsGlyphTable*        aGlyphTable,
+           nscoord              aTargetSize,
+           PRUint32             aStretchHint,
+           const nsAString&     aFamilies);
+
+  static PRBool
+  StretchResolverCallback (const nsAString& aFamily, void *aData);
+
+  static PRBool
+  StretchEnumCallback(const nsString& aFamily, PRBool aGeneric, void *aData);
+
   nsresult
-  ComposeChildren(nsPresContext*      aPresContext,
+  ComposeChildren(nsPresContext*       aPresContext,
                   nsIRenderingContext& aRenderingContext,
                   nsGlyphTable*        aGlyphTable,
-                  nsBoundingMetrics&   aContainerSize,
+                  nscoord              aTargetSize,
                   nsBoundingMetrics&   aCompositeSize,
                   PRUint32             aStretchHint);
 
-  static nsresult
-  PaintVertically(nsPresContext*      aPresContext,
+  nsresult
+  PaintVertically(nsPresContext*       aPresContext,
                   nsIRenderingContext& aRenderingContext,
                   nsFont&              aFont,
                   nsStyleContext*      aStyleContext,
                   nsGlyphTable*        aGlyphTable,
-                  nsMathMLChar*        aChar,
                   nsRect&              aRect);
 
-  static nsresult
-  PaintHorizontally(nsPresContext*      aPresContext,
+  nsresult
+  PaintHorizontally(nsPresContext*       aPresContext,
                     nsIRenderingContext& aRenderingContext,
                     nsFont&              aFont,
                     nsStyleContext*      aStyleContext,
                     nsGlyphTable*        aGlyphTable,
-                    nsMathMLChar*        aChar,
                     nsRect&              aRect);
 };
 
