@@ -8366,7 +8366,7 @@ TraceRecorder::tableswitch()
 
     
     LIns* v_ins = f2i(get(&v));
-    if (v_ins->isconst() || v_ins->isconstq())
+    if (v_ins->isconst())
         return ARECORD_CONTINUE;
 
     jsbytecode* pc = cx->fp->regs->pc;
@@ -8428,7 +8428,7 @@ TraceRecorder::switchop()
     LIns* v_ins = get(&v);
 
     
-    if (v_ins->isconst() || v_ins->isconstq())
+    if (v_ins->isImmAny())
         return RECORD_CONTINUE;
     if (isNumber(v)) {
         jsdouble d = asNumber(v);
