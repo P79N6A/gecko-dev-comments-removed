@@ -193,6 +193,14 @@
 #ifdef MOZ_XUL
 #include "nsMenuFrame.h"
 #include "nsTreeBodyFrame.h"
+#include "nsIBoxObject.h"
+#include "nsITreeBoxObject.h"
+#include "nsMenuPopupFrame.h"
+#include "nsITreeColumns.h"
+#include "nsIDOMXULMultSelectCntrlEl.h"
+#include "nsIDOMXULSelectCntrlItemEl.h"
+#include "nsIDOMXULMenuListElement.h"
+
 #endif
 #include "nsPlaceholderFrame.h"
 
@@ -1186,6 +1194,32 @@ private:
                                  nsIFrame*      aTargetFrame,
                                  nsGUIEvent*    aEvent,
                                  nsEventStatus* aEventStatus);
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  PRBool AdjustContextMenuKeyEvent(nsMouseEvent* aEvent);
+
+  
+  PRBool PrepareToUseCaretPosition(nsIWidget* aEventWidget, nsPoint& aTargetPt);
+
+  
+  
+  void GetCurrentItemAndPositionForElement(nsIDOMElement *aCurrentEl,
+                                           nsIContent **aTargetToUse,
+                                           nsPoint& aTargetPt);
 
   void FireResizeEvent();
   nsRevocableEventPtr<nsRunnableMethod<PresShell> > mResizeEvent;
@@ -5854,6 +5888,12 @@ PresShell::HandleEventInternal(nsEvent* aEvent, nsIView *aView,
       }
     }
 
+    if (aEvent->message == NS_CONTEXTMENU &&
+        static_cast<nsMouseEvent*>(aEvent)->context == nsMouseEvent::eContextMenuKey) {
+      if (!AdjustContextMenuKeyEvent(static_cast<nsMouseEvent*>(aEvent)))
+        return NS_OK;
+    }
+
     nsAutoHandlingUserInputStatePusher userInpStatePusher(isHandlingUserInput);
 
     nsAutoPopupStatePusher popupStatePusher(nsDOMEvent::GetEventPopupControlState(aEvent));
@@ -5927,6 +5967,336 @@ PresShell::HandleDOMEventWithTarget(nsIContent* aTargetContent, nsEvent* aEvent,
 
   PopCurrentEventInfo();
   return NS_OK;
+}
+
+PRBool
+PresShell::AdjustContextMenuKeyEvent(nsMouseEvent* aEvent)
+{
+#ifdef MOZ_XUL
+  
+  
+  
+  nsXULPopupManager* pm = nsXULPopupManager::GetInstance();
+  if (pm) {
+    nsIFrame* popupFrame = pm->GetTopPopup(ePopupTypeMenu);
+    if (popupFrame) {
+#ifdef XP_MACOSX
+      
+      
+      return PR_FALSE;
+#else
+      nsIFrame* itemFrame = 
+        (static_cast<nsMenuPopupFrame *>(popupFrame))->GetCurrentMenuItem();
+      if (!itemFrame)
+        itemFrame = popupFrame;
+
+      nsCOMPtr<nsIWidget> widget = popupFrame->GetWindow();
+      aEvent->widget = widget;
+      nsRect widgetRect(0, 0, 1, 1);
+      widget->WidgetToScreen(widgetRect, widgetRect);
+      aEvent->refPoint = itemFrame->GetScreenRect().BottomLeft() - widgetRect.TopLeft();
+
+      mCurrentEventContent = itemFrame->GetContent();
+      mCurrentEventFrame = itemFrame;
+
+      return PR_TRUE;
+#endif
+    }
+  }
+#endif
+
+  
+  
+  
+  
+  
+  mViewManager->GetWidget(getter_AddRefs(aEvent->widget));
+  aEvent->refPoint.x = 0;
+  aEvent->refPoint.y = 0;
+
+  
+  nsPoint caretPoint;
+  
+  
+  if (PrepareToUseCaretPosition(aEvent->widget, caretPoint)) {
+    
+    aEvent->refPoint = caretPoint;
+    return PR_TRUE;
+  }
+
+  
+  
+  
+  nsIDocument *doc = GetDocument();
+  if (doc) {
+    nsPIDOMWindow* privWindow = doc->GetWindow();
+    if (privWindow) {
+      nsIFocusController *focusController =
+        privWindow->GetRootFocusController();
+      if (focusController) {
+        nsCOMPtr<nsIDOMElement> currentFocus;
+        focusController->GetFocusedElement(getter_AddRefs(currentFocus));
+        
+        if (currentFocus) {
+          nsCOMPtr<nsIContent> currentPointElement;
+          GetCurrentItemAndPositionForElement(currentFocus,
+                                              getter_AddRefs(currentPointElement),
+                                              aEvent->refPoint);
+          if (currentPointElement) {
+            mCurrentEventContent = currentPointElement;
+            mCurrentEventFrame = nsnull;
+            GetCurrentEventFrame();
+          }
+        }
+      }
+    }
+  }
+
+  return PR_TRUE;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+PRBool
+PresShell::PrepareToUseCaretPosition(nsIWidget* aEventWidget, nsIntPoint& aTargetPt)
+{
+  nsresult rv;
+
+  
+  nsRefPtr<nsCaret> caret;
+  rv = GetCaret(getter_AddRefs(caret));
+  NS_ENSURE_SUCCESS(rv, PR_FALSE);
+  NS_ENSURE_TRUE(caret, PR_FALSE);
+
+  PRBool caretVisible = PR_FALSE;
+  rv = caret->GetCaretVisible(&caretVisible);
+  if (NS_FAILED(rv) || ! caretVisible)
+    return PR_FALSE;
+
+  
+  
+  nsISelection* domSelection = caret->GetCaretDOMSelection();
+  NS_ENSURE_TRUE(domSelection, PR_FALSE);
+
+  
+  
+  
+  nsIFrame* frame = nsnull; 
+  nsCOMPtr<nsIDOMNode> node;
+  rv = domSelection->GetFocusNode(getter_AddRefs(node));
+  NS_ENSURE_SUCCESS(rv, PR_FALSE);
+  NS_ENSURE_TRUE(node, PR_FALSE);
+  nsCOMPtr<nsIContent> content(do_QueryInterface(node));
+  if (content) {
+    nsIContent* nonNative = content->FindFirstNonNativeAnonymous();
+    content = nonNative;
+  }
+
+  if (content) {
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    rv = ScrollContentIntoView(content, NS_PRESSHELL_SCROLL_IF_NOT_VISIBLE,
+                                        NS_PRESSHELL_SCROLL_IF_NOT_VISIBLE);
+    NS_ENSURE_SUCCESS(rv, PR_FALSE);
+    frame = GetPrimaryFrameFor(content);
+    NS_WARN_IF_FALSE(frame, "No frame for focused content?");
+  }
+
+  
+  
+  
+  
+  
+  
+  
+  nsCOMPtr<nsISelectionController> selCon;
+  if (frame)
+    frame->GetSelectionController(GetPresContext(), getter_AddRefs(selCon));
+  else
+    selCon = static_cast<nsISelectionController *>(this);
+  if (selCon) {
+    rv = selCon->ScrollSelectionIntoView(nsISelectionController::SELECTION_NORMAL,
+                   nsISelectionController::SELECTION_FOCUS_REGION, PR_TRUE);
+    NS_ENSURE_SUCCESS(rv, PR_FALSE);
+  }
+
+  
+  
+  PRBool isCollapsed;
+  nsIView* view;
+  nsRect caretCoords;
+  rv = caret->GetCaretCoordinates(nsCaret::eRenderingViewCoordinates,
+                                  domSelection, &caretCoords, &isCollapsed,
+                                  &view);
+  NS_ENSURE_SUCCESS(rv, PR_FALSE);
+
+  
+  
+  nsIView* widgetView = nsIView::GetViewFor(aEventWidget);
+  NS_ENSURE_TRUE(widgetView, PR_FALSE);
+  nsPoint viewToWidget;
+  widgetView->GetNearestWidget(&viewToWidget);
+  nsPoint viewDelta = view->GetOffsetTo(widgetView) + viewToWidget;
+
+  
+  nsPresContext* presContext = GetPresContext();
+  aTargetPt.x = presContext->AppUnitsToDevPixels(viewDelta.x + caretCoords.x + caretCoords.width);
+  aTargetPt.y = presContext->AppUnitsToDevPixels(viewDelta.y + caretCoords.y + caretCoords.height);
+
+  return PR_TRUE;
+}
+
+void
+PresShell::GetCurrentItemAndPositionForElement(nsIDOMElement *aCurrentEl,
+                                               nsIContent** aTargetToUse,
+                                               nsIntPoint& aTargetPt)
+{
+  nsCOMPtr<nsIContent> focusedContent(do_QueryInterface(aCurrentEl));
+  ScrollContentIntoView(focusedContent, NS_PRESSHELL_SCROLL_ANYWHERE,
+                                        NS_PRESSHELL_SCROLL_ANYWHERE);
+
+  PRBool istree = PR_FALSE, checkLineHeight = PR_TRUE;
+  PRInt32 extraPixelsY = 0, extraTreeY = 0;
+
+#ifdef MOZ_XUL
+  
+  
+  
+  
+  nsCOMPtr<nsIDOMXULSelectControlItemElement> item;
+  nsCOMPtr<nsIDOMXULMultiSelectControlElement> multiSelect =
+    do_QueryInterface(aCurrentEl);
+  if (multiSelect) {
+    checkLineHeight = PR_FALSE;
+    
+    PRInt32 currentIndex;
+    multiSelect->GetCurrentIndex(&currentIndex);
+    if (currentIndex >= 0) {
+      nsCOMPtr<nsIDOMXULElement> xulElement(do_QueryInterface(aCurrentEl));
+      if (xulElement) {
+        nsCOMPtr<nsIBoxObject> box;
+        xulElement->GetBoxObject(getter_AddRefs(box));
+        nsCOMPtr<nsITreeBoxObject> treeBox(do_QueryInterface(box));
+        
+        
+        
+        
+        
+        if (treeBox) {
+          treeBox->EnsureRowIsVisible(currentIndex);
+          PRInt32 firstVisibleRow, rowHeight;
+          treeBox->GetFirstVisibleRow(&firstVisibleRow);
+          treeBox->GetRowHeight(&rowHeight);
+
+          extraPixelsY = (currentIndex - firstVisibleRow + 1) * rowHeight;
+          istree = PR_TRUE;
+
+          nsCOMPtr<nsITreeColumns> cols;
+          treeBox->GetColumns(getter_AddRefs(cols));
+          if (cols) {
+            nsCOMPtr<nsITreeColumn> col;
+            cols->GetFirstColumn(getter_AddRefs(col));
+            if (col) {
+              nsCOMPtr<nsIDOMElement> colElement;
+              col->GetElement(getter_AddRefs(colElement));
+              nsCOMPtr<nsIContent> colContent(do_QueryInterface(colElement));
+              if (colContent) {
+                nsIFrame* frame = GetPrimaryFrameFor(colContent);
+                if (frame) {
+                  extraTreeY = frame->GetSize().height;
+                }
+              }
+            }
+          }
+        }
+        else {
+          multiSelect->GetCurrentItem(getter_AddRefs(item));
+        }
+      }
+    }
+  }
+  else {
+    
+    nsCOMPtr<nsIDOMXULMenuListElement> menulist = do_QueryInterface(aCurrentEl);
+    if (!menulist) {
+      checkLineHeight = PR_FALSE;
+      nsCOMPtr<nsIDOMXULSelectControlElement> select =
+        do_QueryInterface(aCurrentEl);
+      if (select)
+        select->GetSelectedItem(getter_AddRefs(item));
+    }
+  }
+
+  if (item)
+    focusedContent = do_QueryInterface(item);
+#endif
+
+  nsIFrame *frame = GetPrimaryFrameFor(focusedContent);
+  if (frame) {
+    nsPoint frameOrigin(0, 0);
+
+    
+    nsIView *view = frame->GetClosestView(&frameOrigin);
+    NS_ASSERTION(view, "No view for frame");
+
+    nsIView *rootView = nsnull;
+    mViewManager->GetRootView(rootView);
+    NS_ASSERTION(rootView, "No root view in pres shell");
+
+    
+    frameOrigin += view->GetOffsetTo(rootView);
+
+    
+    
+    
+    
+    
+    
+    
+    
+    nscoord extra = 0;
+    if (!istree) {
+      extra = frame->GetSize().height;
+      if (checkLineHeight) {
+        nsIScrollableView *scrollView =
+          nsLayoutUtils::GetNearestScrollingView(view, nsLayoutUtils::eEither);
+        if (scrollView) {
+          nscoord scrollViewLineHeight;
+          scrollView->GetLineHeight(&scrollViewLineHeight);
+          if (extra > scrollViewLineHeight) {
+            extra = scrollViewLineHeight; 
+          }
+        }
+      }
+    }
+
+    nsPresContext* presContext = GetPresContext();
+    aTargetPt.x = presContext->AppUnitsToDevPixels(frameOrigin.x);
+    aTargetPt.y = presContext->AppUnitsToDevPixels(
+                    frameOrigin.y + extra + extraTreeY) + extraPixelsY;
+  }
+
+  NS_IF_ADDREF(*aTargetToUse = focusedContent);
 }
 
 NS_IMETHODIMP
