@@ -1,4 +1,43 @@
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -37,10 +76,13 @@ DHWImportHooker &getMallocHooker()
 
 void * __cdecl dhw_malloc( size_t size )
 {
+    tm_thread *t = tm_get_thread();
+    ++t->suppress_tracing;
     PRUint32 start = PR_IntervalNow();
     void* result = DHW_ORIGINAL(MALLOC_, getMallocHooker())(size);
     PRUint32 end = PR_IntervalNow();
-    MallocCallback(result, size, start, end);
+    --t->suppress_tracing;
+    MallocCallback(result, size, start, end, t);
     return result;    
 }
 
@@ -54,10 +96,13 @@ DHWImportHooker &getCallocHooker()
 
 void * __cdecl dhw_calloc( size_t count, size_t size )
 {
+    tm_thread *t = tm_get_thread();
+    ++t->suppress_tracing;
     PRUint32 start = PR_IntervalNow();
     void* result = DHW_ORIGINAL(CALLOC_, getCallocHooker())(count,size);
     PRUint32 end = PR_IntervalNow();
-    CallocCallback(result, count, size, start, end);
+    --t->suppress_tracing;
+    CallocCallback(result, count, size, start, end, t);
     return result;    
 }
 
@@ -70,10 +115,13 @@ DHWImportHooker &getFreeHooker()
 
 void __cdecl dhw_free( void* p )
 {
+    tm_thread *t = tm_get_thread();
+    ++t->suppress_tracing;
     PRUint32 start = PR_IntervalNow();
     DHW_ORIGINAL(FREE_, getFreeHooker())(p);
     PRUint32 end = PR_IntervalNow();
-    FreeCallback(p, start, end);
+    --t->suppress_tracing;
+    FreeCallback(p, start, end, t);
 }
 
 
@@ -86,10 +134,13 @@ DHWImportHooker &getReallocHooker()
 
 void * __cdecl dhw_realloc(void * pin, size_t size)
 {
+    tm_thread *t = tm_get_thread();
+    ++t->suppress_tracing;
     PRUint32 start = PR_IntervalNow();
     void* pout = DHW_ORIGINAL(REALLOC_, getReallocHooker())(pin, size);
     PRUint32 end = PR_IntervalNow();
-    ReallocCallback(pin, pout, size, start, end);
+    --t->suppress_tracing;
+    ReallocCallback(pin, pout, size, start, end, t);
     return pout;
 }
 
@@ -103,10 +154,13 @@ DHWImportHooker &getNewHooker()
 
 void * __cdecl dhw_new(size_t size)
 {
+    tm_thread *t = tm_get_thread();
+    ++t->suppress_tracing;
     PRUint32 start = PR_IntervalNow();
     void* result = DHW_ORIGINAL(NEW_, getNewHooker())(size);
     PRUint32 end = PR_IntervalNow();
-    MallocCallback(result, size, start, end);
+    --t->suppress_tracing;
+    MallocCallback(result, size, start, end, t);
     return result;
 }
 
@@ -120,10 +174,13 @@ DHWImportHooker &getDeleteHooker()
 
 void __cdecl dhw_delete(void* p)
 {
+    tm_thread *t = tm_get_thread();
+    ++t->suppress_tracing;
     PRUint32 start = PR_IntervalNow();
     DHW_ORIGINAL(DELETE_, getDeleteHooker())(p);
     PRUint32 end = PR_IntervalNow();
-    FreeCallback(p, start, end);
+    --t->suppress_tracing;
+    FreeCallback(p, start, end, t);
 }
 
 
@@ -136,10 +193,13 @@ DHWImportHooker &getVecNewHooker()
 
 void * __cdecl dhw_vec_new(size_t size)
 {
+    tm_thread *t = tm_get_thread();
+    ++t->suppress_tracing; 
     PRUint32 start = PR_IntervalNow();
     void* result = DHW_ORIGINAL(VEC_NEW_, getVecNewHooker())(size);
     PRUint32 end = PR_IntervalNow();
-    MallocCallback(result, size, start, end);
+    --t->suppress_tracing;
+    MallocCallback(result, size, start, end, t);
     return result;
 }
 
@@ -153,10 +213,13 @@ DHWImportHooker &getVecDeleteHooker()
 
 void __cdecl dhw_vec_delete(void* p)
 {
+    tm_thread *t = tm_get_thread();
+    ++t->suppress_tracing;
     PRUint32 start = PR_IntervalNow();
     DHW_ORIGINAL(VEC_DELETE_, getVecDeleteHooker())(p);
     PRUint32 end = PR_IntervalNow();
-    FreeCallback(p, start, end);
+    --t->suppress_tracing;
+    FreeCallback(p, start, end, t);
 }
 
 
