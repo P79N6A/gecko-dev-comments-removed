@@ -831,13 +831,49 @@ gfxContext::RoundedRectangle(const gfxRect& rect,
     
     
     
-
     
     
     
     
     
-    const gfxFloat alpha = 0.54858377035486361;
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    const gfxFloat alpha = 0.55191497064665766025;
 
     typedef struct { gfxFloat a, b; } twoFloats;
 
