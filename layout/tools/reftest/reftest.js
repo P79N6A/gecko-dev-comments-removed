@@ -121,6 +121,9 @@ const EXPECTED_DEATH = 3;
 var HTTP_SERVER_PORT = 4444;
 const HTTP_SERVER_PORTS_TO_TRY = 50;
 
+
+var gNoCanvasCache = false;
+
 var gRecycledCanvases = new Array();
 
 function AllocateCanvas()
@@ -133,12 +136,15 @@ function AllocateCanvas()
     var canvas = document.createElementNS(XHTML_NS, "canvas");
     canvas.setAttribute("width", windowElem.getAttribute("width"));
     canvas.setAttribute("height", windowElem.getAttribute("height"));
+
     return canvas;
 }
 
 function ReleaseCanvas(canvas)
 {
-    gRecycledCanvases.push(canvas);
+    
+    if (!gNoCanvasCache || gRecycledCanvases.length < 2)
+        gRecycledCanvases.push(canvas);
 }
 
 function OnRefTestLoad()
@@ -207,7 +213,12 @@ function StartTests()
 {
     try {
         
-        ReadTopManifest(window.arguments[0]);
+        args = window.arguments[0].wrappedJSObject;
+
+        if ("nocache" in args && args["nocache"])
+            gNoCanvasCache = true;
+
+        ReadTopManifest(args.uri);
         BuildUseCounts();
         gTotalTests = gURLs.length;
 
@@ -790,7 +801,8 @@ function UpdateCanvasCache(url, canvas)
     var spec = url.spec;
 
     --gURIUseCounts[spec];
-    if (gURIUseCounts[spec] == 0) {
+
+    if (gNoCanvasCache || gURIUseCounts[spec] == 0) {
         ReleaseCanvas(canvas);
         delete gURICanvases[spec];
     } else if (gURIUseCounts[spec] > 0) {
