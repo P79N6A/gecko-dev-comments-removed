@@ -1428,6 +1428,8 @@ struct JSFunctionSpec {
 
 
 
+
+
     uint32          extra;
 #endif
 };
