@@ -80,7 +80,7 @@
 #define MAX_MISMATCH 5
 
 
-#define MAX_OUTERLINE 3
+#define MAX_OUTERLINE 0
 
 
 #define MAX_NATIVE_STACK_SLOTS 1024
@@ -517,7 +517,8 @@ public:
                 vp = &fp->argv[-1];                                           \
                 { code; }                                                     \
                 SET_VPNAME("argv");                                           \
-                vp = &fp->argv[0]; vpstop = &fp->argv[fp->fun->nargs];        \
+                unsigned nargs = JS_MAX(fp->fun->nargs, fp->argc);            \
+                vp = &fp->argv[0]; vpstop = &fp->argv[nargs];                 \
                 while (vp < vpstop) { code; ++vp; INC_VPNUM(); }              \
             }                                                                 \
             SET_VPNAME("vars");                                               \
@@ -571,8 +572,8 @@ public:
 
 
 
-unsigned
-js_NativeStackSlots(JSContext *cx, unsigned callDepth)
+static unsigned
+nativeStackSlots(JSContext *cx, unsigned callDepth)
 {
     JSStackFrame* fp = cx->fp;
     unsigned slots = 0;
@@ -587,7 +588,8 @@ js_NativeStackSlots(JSContext *cx, unsigned callDepth)
             slots += fp->script->nfixed;
         if (callDepth-- == 0) {
             if (fp->callee) {
-                slots += 2 + fp->fun->nargs;
+                unsigned nargs = JS_MAX(fp->fun->nargs, fp->argc);
+                slots += 2 + nargs;
             }
 #if defined _DEBUG
             unsigned int m = 0;
@@ -602,7 +604,7 @@ js_NativeStackSlots(JSContext *cx, unsigned callDepth)
         if (missing > 0)
             slots += missing;
     }
-    JS_NOT_REACHED("js_NativeStackSlots");
+    JS_NOT_REACHED("nativeStackSlots");
 }
 
 
@@ -626,7 +628,7 @@ TypeMap::captureGlobalTypes(JSContext* cx, SlotList& slots)
 void
 TypeMap::captureStackTypes(JSContext* cx, unsigned callDepth)
 {
-    setLength(js_NativeStackSlots(cx, callDepth));
+    setLength(nativeStackSlots(cx, callDepth));
     uint8* map = data();
     uint8* m = map;
     FORALL_SLOTS_IN_PENDING_FRAMES(cx, callDepth,
@@ -815,9 +817,10 @@ done:
         fp = *fsp;
         if (fp->callee) {
             if (fsp == fstack) {
-                if (size_t(p - &fp->argv[-2]) < 2 + fp->fun->nargs)
+                unsigned nargs = JS_MAX(fp->fun->nargs, fp->argc);
+                if (size_t(p - &fp->argv[-2]) < 2 + nargs)
                     RETURN(offset + size_t(p - &fp->argv[-2]) * sizeof(double));
-                offset += (2 + fp->fun->nargs) * sizeof(double);
+                offset += (2 + nargs) * sizeof(double);
             }
             if (size_t(p - &fp->slots[0]) < fp->script->nfixed)
                 RETURN(offset + size_t(p - &fp->slots[0]) * sizeof(double));
@@ -1279,6 +1282,16 @@ js_IsLoopExit(JSContext* cx, JSScript* script, jsbytecode* pc)
     return false;
 }
 
+
+bool
+js_isBreak(JSContext* cx, JSScript* script, jsbytecode* pc)
+{
+    jssrcnote* sn;
+    return (((*pc == JSOP_GOTO) || (*pc == JSOP_GOTOX)) && 
+            ((sn = js_GetSrcNote(cx->fp->script, pc)) != NULL) &&
+            SN_TYPE(sn) == SRC_BREAK);
+}
+
 struct FrameInfo {
     JSObject*       callee;     
     jsbytecode*     callpc;     
@@ -1349,7 +1362,7 @@ TraceRecorder::snapshot(ExitType exitType)
     if (exitType == BRANCH_EXIT && js_IsLoopExit(cx, fp->script, fp->regs->pc))
         exitType = LOOP_EXIT;
     
-    unsigned stackSlots = js_NativeStackSlots(cx, callDepth);
+    unsigned stackSlots = nativeStackSlots(cx, callDepth);
     
 
     trackNativeStackUse(stackSlots + 1);
@@ -1363,7 +1376,16 @@ TraceRecorder::snapshot(ExitType exitType)
     exit.numGlobalSlots = ngslots;
     exit.numStackSlots = stackSlots;
     exit.exitType = exitType;
-    exit.ip_adj = fp->regs->pc - (jsbytecode*)fragment->root->ip;
+    
+
+
+    jsbytecode* pc = fp->regs->pc;
+    JS_ASSERT(!(((*pc == JSOP_GOTO) || (*pc == JSOP_GOTOX)) && (exitType != LOOP_EXIT)));
+    if (*pc == JSOP_GOTO) 
+        pc += GET_JUMP_OFFSET(pc);
+    else if (*pc == JSOP_GOTOX)
+        pc += GET_JUMPX_OFFSET(pc);
+    exit.ip_adj = pc - (jsbytecode*)fragment->root->ip;
     exit.sp_adj = (stackSlots * sizeof(double)) - treeInfo->nativeStackBase;
     exit.rp_adj = exit.calldepth * sizeof(FrameInfo);
     uint8* m = exit.typeMap = (uint8 *)data->payload();
@@ -1627,8 +1649,8 @@ nanojit::LirNameMap::formatGuard(LIns *i, char *out)
         lirNames[i->opcode()],
         i->oprnd1()->isCond() ? formatRef(i->oprnd1()) : "",
         labels->format((void *)ip),
-        (long int)x->sp_adj,
-        (long int)x->rp_adj
+        x->sp_adj,
+        x->rp_adj
         );
 }
 #endif
@@ -1833,7 +1855,7 @@ js_RecordTree(JSContext* cx, JSTraceMonitor* tm, Fragment* f)
 
     
     unsigned entryNativeStackSlots = ti->stackTypeMap.length();
-    JS_ASSERT(entryNativeStackSlots == js_NativeStackSlots(cx, 0));
+    JS_ASSERT(entryNativeStackSlots == nativeStackSlots(cx, 0));
     ti->nativeStackBase = (entryNativeStackSlots -
             (cx->fp->regs->sp - StackBase(cx->fp))) * sizeof(double);
     ti->maxNativeStackSlots = entryNativeStackSlots;
@@ -2019,6 +2041,9 @@ js_ExecuteTree(JSContext* cx, Fragment** treep, uintN& inlineCallCount,
     state.eor = callstack + MAX_CALL_STACK_ENTRIES;
     state.gp = global;
     state.cx = cx;
+#ifdef DEBUG
+    state.nestedExit = NULL;
+#endif    
     union { NIns *code; GuardRecord* (FASTCALL *func)(InterpState*, Fragment*); } u;
     u.code = f->code();
 
@@ -2089,9 +2114,10 @@ js_ExecuteTree(JSContext* cx, Fragment** treep, uintN& inlineCallCount,
 
 #if defined(DEBUG) && defined(NANOJIT_IA32)
     if (verbose_debug) {
-        printf("leaving trace at %s:%u@%u, exitType=%d, sp=%d, ip=%p, cycles=%llu\n",
+        printf("leaving trace at %s:%u@%u, lr=%p, nested=%p, exitType=%d, sp=%d, ip=%p, cycles=%llu\n",
                fp->script->filename, js_PCToLineNumber(cx, fp->script, fp->regs->pc),
                fp->regs->pc - fp->script->code,
+               lr, state.nestedExit,
                lr->exit->exitType,
                fp->regs->sp - StackBase(fp), lr->jmp,
                (rdtsc() - start));
@@ -2184,7 +2210,7 @@ js_LoopEdge(JSContext* cx, jsbytecode* oldpc, uintN& inlineCallCount)
         if (innermostNestedGuard)
             return js_AttemptToExtendTree(cx, innermostNestedGuard, innermostNestedGuard->from->root, lr);
         return false;
-    default:        
+    default:
         
         return false;
     }
@@ -2193,22 +2219,28 @@ js_LoopEdge(JSContext* cx, jsbytecode* oldpc, uintN& inlineCallCount)
 void
 js_AbortRecording(JSContext* cx, jsbytecode* abortpc, const char* reason)
 {
-    AUDIT(recorderAborted);
-    if (cx->fp) {
-        debug_only_v(if (!abortpc) abortpc = cx->fp->regs->pc;
-                     printf("Abort recording (line %d, pc %d): %s.\n",
-                            js_PCToLineNumber(cx, cx->fp->script, abortpc),
-                            abortpc - cx->fp->script->code, reason);)
-    }
-    JS_ASSERT(JS_TRACE_MONITOR(cx).recorder != NULL);
-    Fragment* f = JS_TRACE_MONITOR(cx).recorder->getFragment();
+    JSTraceMonitor* tm = &JS_TRACE_MONITOR(cx);
+    JS_ASSERT(tm->recorder != NULL);
+    Fragment* f = tm->recorder->getFragment();
     JS_ASSERT(!f->vmprivate);
-    f->blacklist();
-    js_DeleteRecorder(cx);
-    if (f->root == f) {
+    if (js_isBreak(cx, cx->fp->script, cx->fp->regs->pc)) {
         
-        js_TrashTree(cx, f);
+        tm->recorder->endLoop(tm->fragmento);
+    } else {
+        
+        AUDIT(recorderAborted);
+        if (cx->fp) {
+            debug_only_v(if (!abortpc) abortpc = cx->fp->regs->pc;
+                         printf("Abort recording (line %d, pc %d): %s.\n",
+                                js_PCToLineNumber(cx, cx->fp->script, abortpc),
+                                abortpc - cx->fp->script->code, reason);)
+        }
+        f->blacklist();
     }
+    js_DeleteRecorder(cx);
+    
+    if (!f->code() && (f->root == f)) 
+        js_TrashTree(cx, f);
 }
 
 #if defined NANOJIT_IA32
@@ -2644,32 +2676,6 @@ TraceRecorder::cmp(LOpcode op, bool negate)
           default:
             JS_ASSERT(op == LIR_feq);
             cond = (lnum == rnum) ^ negate;
-            break;
-        }
-    } else if (JSVAL_IS_BOOLEAN(l) && JSVAL_IS_BOOLEAN(r))  {
-        x = lir->ins2(op, lir->ins1(LIR_i2f, get(&l)), lir->ins1(LIR_i2f, get(&r)));
-        if (negate)
-            x = lir->ins_eq0(x);
-
-        
-        
-        
-        switch (op) {
-          case LIR_flt:
-            cond = l < r;
-            break;
-          case LIR_fgt:
-            cond = l > r;
-            break;
-          case LIR_fle:
-            cond = l <= r;
-            break;
-          case LIR_fge:
-            cond = l >= r;
-            break;
-          default:
-            JS_ASSERT(op == LIR_feq);
-            cond = (l == r) ^ negate;
             break;
         }
     } else {
@@ -3148,7 +3154,7 @@ TraceRecorder::clearFrameSlotsFromCache()
     jsval* vpstop;
     if (fp->callee) {
         vp = &fp->argv[-2];
-        vpstop = &fp->argv[fp->fun->nargs];
+        vpstop = &fp->argv[JS_MAX(fp->fun->nargs,fp->argc)];
         while (vp < vpstop)
             nativeFrameTracker.set(vp++, (LIns*)0);
     }
@@ -3247,7 +3253,8 @@ TraceRecorder::record_JSOP_RETURN()
 bool
 TraceRecorder::record_JSOP_GOTO()
 {
-    return true;
+    
+    return (!js_isBreak(cx, cx->fp->script, cx->fp->regs->pc));
 }
 
 bool
@@ -4076,7 +4083,8 @@ TraceRecorder::interpretedFunctionCall(jsval& fval, JSFunction* fun, uintN argc)
     FrameInfo fi = {
         JSVAL_TO_OBJECT(fval),
         fp->regs->pc,
-        { { fp->regs->sp - fp->slots, argc } }
+        fp->regs->sp - fp->slots,
+        argc
     };
 
     unsigned callDepth = getCallDepth();
@@ -4127,9 +4135,6 @@ js_math_random(JSContext* cx, uintN argc, jsval* vp);
 JSBool
 js_math_floor(JSContext* cx, uintN argc, jsval* vp);
 
-JSBool
-js_math_ceil(JSContext* cx, uintN argc, jsval* vp);
-
 bool
 TraceRecorder::record_JSOP_CALL()
 {
@@ -4174,7 +4179,6 @@ TraceRecorder::record_JSOP_CALL()
         { js_math_pow,                 F_Math_pow,             "",   "dd",    INFALLIBLE,  NULL },
         { js_math_sqrt,                F_Math_sqrt,            "",    "d",    INFALLIBLE,  NULL },
         { js_math_floor,               F_Math_floor,           "",    "d",    INFALLIBLE,  NULL },
-        { js_math_ceil,                F_Math_ceil,            "",    "d",    INFALLIBLE,  NULL },
         { js_math_random,              F_Math_random,          "R",    "",    INFALLIBLE,  NULL },
         { js_num_parseInt,             F_ParseInt,             "C",   "s",    INFALLIBLE,  NULL },
         { js_num_parseFloat,           F_ParseFloat,           "C",   "s",    INFALLIBLE,  NULL },
@@ -5157,7 +5161,8 @@ TraceRecorder::record_JSOP_DEFLOCALFUN()
 bool
 TraceRecorder::record_JSOP_GOTOX()
 {
-    return false;
+    
+    return record_JSOP_GOTO();
 }
 
 bool
