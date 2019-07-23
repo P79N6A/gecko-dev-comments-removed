@@ -144,6 +144,7 @@ protected:
     virtual ~nsWebBrowser();
     NS_IMETHOD InternalDestroy();
 
+    
     NS_IMETHOD SetDocShell(nsIDocShell* aDocShell);
     NS_IMETHOD EnsureDocShellTreeOwner();
     NS_IMETHOD GetPrimaryContentWindow(nsIDOMWindowInternal **aDomWindow);

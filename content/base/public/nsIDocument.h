@@ -129,6 +129,11 @@ public:
       mCompatMode(eCompatibility_FullStandards),
       mIsInitialDocumentInWindow(PR_FALSE),
       mMayStartLayout(PR_TRUE),
+      
+      
+      
+      
+      mAllowDNSPrefetch(PR_TRUE),
       mPartID(0)
   {
     mParentPtrBits |= PARENT_BIT_INDOCUMENT;
@@ -1146,7 +1151,9 @@ public:
 
   virtual void UnsuppressEventHandlingAndFireEvents(PRBool aFireEvents) = 0;
 
-  PRUint32 EventHandlingSuppressed() { return mEventsSuppressed; }
+  PRUint32 EventHandlingSuppressed() const { return mEventsSuppressed; }
+
+  PRBool IsDNSPrefetchAllowed() const { return mAllowDNSPrefetch; }
 protected:
   ~nsIDocument()
   {
@@ -1228,6 +1235,10 @@ protected:
 
   
   PRPackedBool mIsShowing;
+
+  
+  
+  PRPackedBool mAllowDNSPrefetch;
   
   
   

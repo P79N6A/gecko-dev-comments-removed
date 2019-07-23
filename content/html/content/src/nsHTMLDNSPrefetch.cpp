@@ -58,7 +58,7 @@
 #include "nsIObserverService.h"
 
 static NS_DEFINE_CID(kDNSServiceCID, NS_DNSSERVICE_CID);
-static PRBool sDisablePrefetchHTTPSPref;
+PRBool sDisablePrefetchHTTPSPref;
 static PRBool sInitialized = PR_FALSE;
 static nsIDNSService *sDNSService = nsnull;
 static nsHTMLDNSPrefetch::nsDeferrals *sPrefetches = nsnull;
@@ -118,35 +118,10 @@ nsHTMLDNSPrefetch::Shutdown()
 }
 
 PRBool
-nsHTMLDNSPrefetch::IsSecureBaseContext (nsIDocument *aDocument)
-{
-  nsIURI *docURI = aDocument->GetDocumentURI();
-  nsCAutoString scheme;
-  docURI->GetScheme(scheme);
-  return scheme.EqualsLiteral("https");
-}
-
-PRBool
 nsHTMLDNSPrefetch::IsAllowed (nsIDocument *aDocument)
 {
-  if (IsSecureBaseContext(aDocument) && sDisablePrefetchHTTPSPref)
-    return PR_FALSE;
-    
   
-  
-  
-
-  nsAutoString control;
-  aDocument->GetHeaderData(nsGkAtoms::headerDNSPrefetchControl, control);
-  
-  if (!control.IsEmpty() && !control.LowerCaseEqualsLiteral("on"))
-    return PR_FALSE;
-
-  
-  if (!aDocument->GetWindow())
-    return PR_FALSE;
-
-  return PR_TRUE;
+  return aDocument->IsDNSPrefetchAllowed() && aDocument->GetWindow();
 }
 
 nsresult
