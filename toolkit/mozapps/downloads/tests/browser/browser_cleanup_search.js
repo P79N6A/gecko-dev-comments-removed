@@ -115,7 +115,7 @@ function test()
         ok(downloadView.itemCount == 1, "Search found the item to delete");
 
         
-        $("menuitem_clearList").doCommand();
+        $("cmd_clearList").doCommand();
 
         
         testPhase++;

@@ -353,6 +353,28 @@ function copySourceLocation(aDownload)
 }
 
 
+
+
+function clearDownloadList() {
+  
+  if (gSearchTerms == "") {
+    gDownloadManager.cleanUp();
+    return;
+  }
+
+  
+  
+  let item;
+  while ((item = gDownloadsView.lastChild) && !item.inProgress)
+    removeDownload(item);
+
+  
+  gSearchBox.value = "";
+  gSearchBox.doCommand();
+  gDownloadsView.focus();
+}
+
+
 var gLastComputedMean = -1;
 var gLastActiveDownloads = 0;
 function onUpdateProgress()
@@ -499,8 +521,6 @@ var gContextMenus = [
     , "menuitem_copyLocation"
     , "menuseparator"
     , "menuitem_selectAll"
-    , "menuseparator"
-    , "menuitem_clearList"
   ],
   
   [
@@ -513,7 +533,6 @@ var gContextMenus = [
     , "menuitem_selectAll"
     , "menuseparator"
     , "menuitem_removeFromList"
-    , "menuitem_clearList"
   ],
   
   [
@@ -525,7 +544,6 @@ var gContextMenus = [
     , "menuitem_selectAll"
     , "menuseparator"
     , "menuitem_removeFromList"
-    , "menuitem_clearList"
   ],
   
   [
@@ -537,7 +555,6 @@ var gContextMenus = [
     , "menuitem_selectAll"
     , "menuseparator"
     , "menuitem_removeFromList"
-    , "menuitem_clearList"
   ],
   
   [
@@ -550,8 +567,6 @@ var gContextMenus = [
     , "menuitem_copyLocation"
     , "menuseparator"
     , "menuitem_selectAll"
-    , "menuseparator"
-    , "menuitem_clearList"
   ],
   
   [
@@ -563,8 +578,6 @@ var gContextMenus = [
     , "menuitem_copyLocation"
     , "menuseparator"
     , "menuitem_selectAll"
-    , "menuseparator"
-    , "menuitem_clearList"
   ],
   
   [
@@ -574,7 +587,6 @@ var gContextMenus = [
     , "menuitem_selectAll"
     , "menuseparator"
     , "menuitem_removeFromList"
-    , "menuitem_clearList"
   ],
   
   [
@@ -584,8 +596,6 @@ var gContextMenus = [
     , "menuitem_copyLocation"
     , "menuseparator"
     , "menuitem_selectAll"
-    , "menuseparator"
-    , "menuitem_clearList"
   ],
   
   [
@@ -595,7 +605,6 @@ var gContextMenus = [
     , "menuitem_selectAll"
     , "menuseparator"
     , "menuitem_removeFromList"
-    , "menuitem_clearList"
   ],
   
   [
@@ -605,7 +614,6 @@ var gContextMenus = [
     , "menuitem_selectAll"
     , "menuseparator"
     , "menuitem_removeFromList"
-    , "menuitem_clearList"
   ]
 ];
 
@@ -677,12 +685,6 @@ var gDownloadDNDObserver =
 var gDownloadViewController = {
   isCommandEnabled: function(aCommand, aItem)
   {
-    
-    switch (aCommand) {
-      case "cmd_clearList":
-        return gDownloadManager.canCleanUp;
-    }
-
     let dl = aItem;
     let download = null; 
 
@@ -757,30 +759,6 @@ var gDownloadViewController = {
     cmd_copyLocation: function(aSelectedItem) {
       copySourceLocation(aSelectedItem);
     },
-    cmd_clearList: function() {
-      
-      if (gPerformAllCallback === null)
-        gPerformAllCallback = function() {};
-      else if (gPerformAllCallback)
-        return;
-
-      
-      if (gSearchTerms == "") {
-        gDownloadManager.cleanUp();
-      }
-      else {
-        
-        
-        let item;
-        while ((item = gDownloadsView.lastChild) && !item.inProgress)
-          removeDownload(item);
-
-        
-        gSearchBox.value = "";
-        gSearchBox.doCommand();
-        gDownloadsView.focus();
-      }
-    }
   }
 };
 
