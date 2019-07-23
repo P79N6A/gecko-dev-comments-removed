@@ -275,22 +275,22 @@ extern const char XPC_XPCONNECT_CONTRACTID[];
 
 typedef PRMonitor XPCLock;
 
-static inline void xpc_Wait(XPCLock* lock)
+static inline void xpc_Wait(XPCLock* lock) 
     {
         NS_ASSERTION(lock, "xpc_Wait called with null lock!");
 #ifdef DEBUG
-        PRStatus result =
+        PRStatus result = 
 #endif
         PR_Wait(lock, PR_INTERVAL_NO_TIMEOUT);
         NS_ASSERTION(PR_SUCCESS == result, "bad result from PR_Wait!");
     }
 
-static inline void xpc_NotifyAll(XPCLock* lock)
+static inline void xpc_NotifyAll(XPCLock* lock) 
     {
         NS_ASSERTION(lock, "xpc_NotifyAll called with null lock!");
 #ifdef DEBUG
-        PRStatus result =
-#endif
+        PRStatus result = 
+#endif    
         PR_NotifyAll(lock);
         NS_ASSERTION(PR_SUCCESS == result, "bad result from PR_NotifyAll!");
     }
@@ -510,7 +510,7 @@ public:
     NS_IMETHOD Unroot(void *p);
     NS_IMETHOD Traverse(void *p,
                         nsCycleCollectionTraversalCallback &cb);
-
+    
     
     virtual nsresult BeginCycleCollection(nsCycleCollectionTraversalCallback &cb);
     virtual nsresult FinishCycleCollection();
@@ -738,10 +738,6 @@ public:
 
     ~XPCJSRuntime();
 
-    PRIntervalTime GetWatchdogLimit(JSContext *cx);
-    PRBool SetWatchdogLimit(JSContext *cx, PRIntervalTime limit);
-    void WakeupWatchdog(JSContext *cx);
-
 #ifdef XPC_CHECK_WRAPPERS_AT_SHUTDOWN
    void DEBUG_AddWrappedNative(nsIXPConnectWrappedNative* wrapper)
         {XPCAutoLock lock(GetMapLock());
@@ -762,9 +758,6 @@ public:
 private:
     XPCJSRuntime(); 
     XPCJSRuntime(nsXPConnect* aXPConnect);
-
-    PRBool ShutdownWatchdog();
-    static void WatchdogMain(void *args);
 
 private:
     static const char* mStrings[IDX_TOTAL_COUNT];
@@ -793,15 +786,6 @@ private:
     XPCRootSetElem *mObjectHolderRoots;
     JSDHashTable mJSHolders;
     JSDHashTable mClearedGlobalObjects;
-
-    
-
-
-    PRLock *mWatchdogLock;
-    PRCondVar *mWatchdogWakeup;
-    PRBool mWatchdogRunning;
-    PRThread *mWatchdogThread;
-    PRIntervalTime mCurrentInterval;
 };
 
 
@@ -824,26 +808,26 @@ public:
     JSContext* GetJSContext() const {return mJSContext;}
 
     enum LangType {LANG_UNKNOWN, LANG_JS, LANG_NATIVE};
-
+    
     LangType GetCallingLangType() const
         {
             return mCallingLangType;
         }
     LangType SetCallingLangType(LangType lt)
         {
-            LangType tmp = mCallingLangType;
-            mCallingLangType = lt;
+            LangType tmp = mCallingLangType; 
+            mCallingLangType = lt; 
             return tmp;
         }
-    JSBool CallerTypeIsJavaScript() const
+    JSBool CallerTypeIsJavaScript() const 
         {
             return LANG_JS == mCallingLangType;
         }
-    JSBool CallerTypeIsNative() const
+    JSBool CallerTypeIsNative() const 
         {
             return LANG_NATIVE == mCallingLangType;
         }
-    JSBool CallerTypeIsKnown() const
+    JSBool CallerTypeIsKnown() const 
         {
             return LANG_UNKNOWN != mCallingLangType;
         }
@@ -917,7 +901,6 @@ private:
     nsresult mPendingResult;
     nsIXPCSecurityManager* mSecurityManager;
     nsIException* mException;
-    PRIntervalTime mWatchdogLimit;
     LangType mCallingLangType;
     PRUint16 mSecurityManagerFlags;
 
@@ -1261,7 +1244,7 @@ public:
     {return mScriptObjectPrincipal ?
          mScriptObjectPrincipal->GetPrincipal() : nsnull;}
 #endif
-
+    
     JSObject*
     GetPrototypeJSFunction() const {return mPrototypeJSFunction;}
 
@@ -1994,7 +1977,7 @@ public:
 
     
     void Mark() const
-        {mSet->Mark();
+        {mSet->Mark(); 
          if(mScriptableInfo) mScriptableInfo->Mark();}
 
 #ifdef DEBUG
@@ -2516,9 +2499,9 @@ public:
                                             JSObject* aJSObj,
                                             nsISimpleEnumerator** aEnumerate);
 
-    static nsresult GetNamedPropertyAsVariant(XPCCallContext& ccx,
+    static nsresult GetNamedPropertyAsVariant(XPCCallContext& ccx, 
                                               JSObject* aJSObj,
-                                              jsval aName,
+                                              jsval aName, 
                                               nsIVariant** aResult);
 
     virtual ~nsXPCWrappedJSClass();
@@ -2754,7 +2737,7 @@ public:
 
 
 
-
+    
     static JSBool NativeData2JS(XPCCallContext& ccx, jsval* d, const void* s,
                                 const nsXPTType& type, const nsID* iid,
                                 JSObject* scope, nsresult* pErr);
@@ -2788,7 +2771,7 @@ public:
 
     static JSBool GetNativeInterfaceFromJSObject(XPCCallContext& ccx,
                                                  void** dest, JSObject* src,
-                                                 const nsID* iid,
+                                                 const nsID* iid, 
                                                  nsresult* pErr);
     static JSBool JSObject2NativeInterface(XPCCallContext& ccx,
                                            void** dest, JSObject* src,
@@ -2809,7 +2792,7 @@ public:
 
 
 
-
+    
     static JSBool NativeArray2JS(XPCCallContext& ccx,
                                  jsval* d, const void** s,
                                  const nsXPTType& type, const nsID* iid,
@@ -2859,6 +2842,7 @@ public:
 
 private:
     XPCConvert(); 
+
 };
 
 
@@ -2896,7 +2880,7 @@ public:
     static void ThrowBadResult(nsresult rv, nsresult result, XPCCallContext& ccx);
     static void ThrowBadParam(nsresult rv, uintN paramNum, XPCCallContext& ccx);
 #ifdef XPC_IDISPATCH_SUPPORT
-    static void ThrowCOMError(JSContext* cx, unsigned long COMErrorCode,
+    static void ThrowCOMError(JSContext* cx, unsigned long COMErrorCode, 
                               nsresult rv = NS_ERROR_XPC_COM_ERROR,
                               const EXCEPINFO * exception = nsnull);
 #endif
@@ -3611,7 +3595,7 @@ private:
     JSContext *mCX;
     jsrefcount mDepth;
 };
-
+        
 
 
 
@@ -3707,7 +3691,7 @@ public:
     ~AutoResolveName()
         {
 #ifdef DEBUG
-            jsval old =
+            jsval old = 
 #endif
             mTLS->SetResolveName(mOld);
             NS_ASSERTION(old == mCheck, "Bad Nesting!");
@@ -3736,7 +3720,7 @@ private:
     XPCMarkableJSVal(); 
     jsval  mVal;
     jsval* mValPtr;
-};
+}; 
 
 
 
@@ -3752,15 +3736,15 @@ public:
         : mNext(nsnull), mTLS(ccx.GetThreadData()) {Link();}
 
     virtual ~AutoMarkingPtr() {Unlink();}
-
-    void Link()
+    
+    void Link() 
         {if(!mTLS) return;
-         AutoMarkingPtr** list = mTLS->GetAutoRootsAdr();
+         AutoMarkingPtr** list = mTLS->GetAutoRootsAdr(); 
          mNext = *list; *list = this;}
 
-    void Unlink()
+    void Unlink() 
         {if(!mTLS) return;
-         AutoMarkingPtr** cur = mTLS->GetAutoRootsAdr();
+         AutoMarkingPtr** cur = mTLS->GetAutoRootsAdr(); 
          while(*cur != this) {
             NS_ASSERTION(*cur, "This object not in list!");
             cur = &(*cur)->mNext;
@@ -3770,7 +3754,7 @@ public:
         }
 
     AutoMarkingPtr* GetNext() {return mNext;}
-
+    
     virtual void TraceJS(JSTracer* trc) = 0;
     virtual void MarkAfterJSFinalize() = 0;
 
@@ -3819,7 +3803,7 @@ DEFINE_AUTO_MARKING_PTR_TYPE(AutoMarkingWrappedNativePtr, XPCWrappedNative)
 DEFINE_AUTO_MARKING_PTR_TYPE(AutoMarkingWrappedNativeTearOffPtr, XPCWrappedNativeTearOff)
 DEFINE_AUTO_MARKING_PTR_TYPE(AutoMarkingWrappedNativeProtoPtr, XPCWrappedNativeProto)
 DEFINE_AUTO_MARKING_PTR_TYPE(AutoMarkingJSVal, XPCMarkableJSVal)
-
+                                    
 #define DEFINE_AUTO_MARKING_ARRAY_PTR_TYPE(class_, type_)                    \
 class class_ : public AutoMarkingPtr                                         \
 {                                                                            \
@@ -3874,7 +3858,7 @@ protected:                                                                   \
 
 DEFINE_AUTO_MARKING_ARRAY_PTR_TYPE(AutoMarkingNativeInterfacePtrArrayPtr,
                                    XPCNativeInterface)
-
+    
 
 
 
@@ -3938,8 +3922,8 @@ public:
 
 
 
-
-    static JSBool VariantDataToJS(XPCCallContext& ccx,
+    
+    static JSBool VariantDataToJS(XPCCallContext& ccx, 
                                   nsIVariant* variant,
                                   JSObject* scope, nsresult* pErr,
                                   jsval* pJSVal);
