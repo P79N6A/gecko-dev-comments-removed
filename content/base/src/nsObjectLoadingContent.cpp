@@ -373,6 +373,13 @@ nsObjectLoadingContent::OnStartRequest(nsIRequest *aRequest, nsISupports *aConte
         notifier.Notify();
       }
 
+      
+      
+      nsLoadFlags flags = 0;
+      chan->GetLoadFlags(&flags);
+      flags |= nsIChannel::LOAD_DOCUMENT_URI;
+      chan->SetLoadFlags(flags);
+
       nsCOMPtr<nsIDocShell> docShell;
       rv = mFrameLoader->GetDocShell(getter_AddRefs(docShell));
       NS_ENSURE_SUCCESS(rv, rv);
