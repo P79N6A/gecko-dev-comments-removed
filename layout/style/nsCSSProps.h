@@ -82,13 +82,6 @@
 
 
 
-
-
-#define CSS_PROPERTY_REPORT_OTHER_NAME            (1<<7)
-
-
-
-
 enum nsStyleAnimType {
   
   
@@ -158,11 +151,6 @@ public:
   
   static const nsAFlatCString& GetStringValue(nsCSSProperty aProperty);
   static const nsAFlatCString& GetStringValue(nsCSSFontDesc aFontDesc);
-
-  
-  
-  
-  static nsCSSProperty OtherNameFor(nsCSSProperty aProperty);
 
   
   
