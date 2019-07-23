@@ -501,6 +501,12 @@ public:
 
 
   static nsBlockFrame* FindNearestBlockAncestor(nsIFrame* aFrame);
+
+  
+
+
+
+  static nsBlockFrame* GetAsBlock(nsIFrame* aFrame);
   
   
 
