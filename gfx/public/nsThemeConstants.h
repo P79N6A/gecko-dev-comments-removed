@@ -100,12 +100,6 @@
 #define NS_THEME_TAB_PANEL                                 62
 
 
-#define NS_THEME_TAB_LEFT_EDGE                             63
-
-
-#define NS_THEME_TAB_RIGHT_EDGE                            64
-
-
 #define NS_THEME_TAB_PANELS                                65
 
 

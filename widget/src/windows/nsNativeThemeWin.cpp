@@ -272,8 +272,6 @@ nsNativeThemeWin::GetTheme(PRUint8 aWidgetType)
     case NS_THEME_PROGRESSBAR_CHUNK_VERTICAL:
       return nsUXThemeData::GetTheme(eUXProgress);
     case NS_THEME_TAB:
-    case NS_THEME_TAB_LEFT_EDGE:
-    case NS_THEME_TAB_RIGHT_EDGE:
     case NS_THEME_TAB_PANEL:
     case NS_THEME_TAB_PANELS:
       return nsUXThemeData::GetTheme(eUXTab);
@@ -695,9 +693,7 @@ nsNativeThemeWin::GetThemePartAndState(nsIFrame* aFrame, PRUint8 aWidgetType,
       aState = TS_NORMAL;
       return NS_OK;
     }
-    case NS_THEME_TAB:
-    case NS_THEME_TAB_LEFT_EDGE:
-    case NS_THEME_TAB_RIGHT_EDGE: {
+    case NS_THEME_TAB: {
       aPart = TABP_TAB;
       if (!aFrame) {
         aState = TS_NORMAL;
@@ -976,21 +972,26 @@ RENDER_AGAIN:
 
   
   
-  if (aWidgetType == NS_THEME_TAB_LEFT_EDGE || aWidgetType == NS_THEME_TAB_RIGHT_EDGE) {
-    
-    
-    
-    PRInt32 edgeSize = 2;
-    
-    
-    
-    
-    if (aWidgetType == NS_THEME_TAB_LEFT_EDGE)
+  if (aWidgetType == NS_THEME_TAB) {
+    PRBool isLeft = IsLeftToSelectedTab(aFrame);
+    PRBool isRight = !isLeft && IsRightToSelectedTab(aFrame);
+
+    if (isLeft || isRight) {
       
-      widgetRect.right += edgeSize;
-    else
       
-      widgetRect.left -= edgeSize;
+      
+      PRInt32 edgeSize = 2;
+    
+      
+      
+      
+      if (isLeft)
+        
+        widgetRect.right += edgeSize;
+      else
+        
+        widgetRect.left -= edgeSize;
+    }
   }
 
   
@@ -1223,12 +1224,14 @@ nsNativeThemeWin::GetWidgetBorder(nsIDeviceContext* aContext,
   aResult->right = outerRect.right - contentRect.right;
 
   
-  if (aWidgetType == NS_THEME_TAB_LEFT_EDGE)
-    
-    aResult->right = 0;
-  else if (aWidgetType == NS_THEME_TAB_RIGHT_EDGE)
-    
-    aResult->left = 0;
+  if (aWidgetType == NS_THEME_TAB) {
+    if (IsLeftToSelectedTab(aFrame))
+      
+      aResult->right = 0;
+    else if (IsRightToSelectedTab(aFrame))
+      
+      aResult->left = 0;
+  }
 
   if (aFrame && (aWidgetType == NS_THEME_TEXTFIELD || aWidgetType == NS_THEME_TEXTFIELD_MULTILINE)) {
     nsIContent* content = aFrame->GetContent();
@@ -1703,8 +1706,6 @@ nsNativeThemeWin::ClassicThemeSupportsWidget(nsPresContext* aPresContext,
     case NS_THEME_PROGRESSBAR_CHUNK:
     case NS_THEME_PROGRESSBAR_CHUNK_VERTICAL:
     case NS_THEME_TAB:
-    case NS_THEME_TAB_LEFT_EDGE:
-    case NS_THEME_TAB_RIGHT_EDGE:
     case NS_THEME_TAB_PANEL:
     case NS_THEME_TAB_PANELS:
     case NS_THEME_MENUITEM:
@@ -1739,8 +1740,6 @@ nsNativeThemeWin::ClassicGetWidgetBorder(nsIDeviceContext* aContext,
     case NS_THEME_DROPDOWN:
     case NS_THEME_DROPDOWN_TEXTFIELD:
     case NS_THEME_TAB:
-    case NS_THEME_TAB_LEFT_EDGE:
-    case NS_THEME_TAB_RIGHT_EDGE:
     case NS_THEME_TEXTFIELD:
     case NS_THEME_TEXTFIELD_MULTILINE:
       (*aResult).top = (*aResult).left = (*aResult).bottom = (*aResult).right = 2;
@@ -1871,8 +1870,6 @@ nsNativeThemeWin::ClassicGetMinimumWidgetSize(nsIRenderingContext* aContext, nsI
     case NS_THEME_PROGRESSBAR:
     case NS_THEME_PROGRESSBAR_VERTICAL:
     case NS_THEME_TAB:
-    case NS_THEME_TAB_LEFT_EDGE:
-    case NS_THEME_TAB_RIGHT_EDGE:
     case NS_THEME_TAB_PANEL:
     case NS_THEME_TAB_PANELS:
       
@@ -2074,8 +2071,6 @@ nsresult nsNativeThemeWin::ClassicGetThemePartAndState(nsIFrame* aFrame, PRUint8
     case NS_THEME_PROGRESSBAR:
     case NS_THEME_PROGRESSBAR_VERTICAL:
     case NS_THEME_TAB:
-    case NS_THEME_TAB_LEFT_EDGE:
-    case NS_THEME_TAB_RIGHT_EDGE:
     case NS_THEME_TAB_PANEL:
     case NS_THEME_TAB_PANELS:
     case NS_THEME_MENUBAR:
@@ -2555,14 +2550,12 @@ RENDER_AGAIN:
 
       break;
     
-    case NS_THEME_TAB:
-    case NS_THEME_TAB_LEFT_EDGE:
-    case NS_THEME_TAB_RIGHT_EDGE: {
+    case NS_THEME_TAB: {
       DrawTab(hdc, widgetRect,
         IsBottomTab(aFrame) ? BF_BOTTOM : BF_TOP, 
         IsSelectedTab(aFrame),
-        aWidgetType != NS_THEME_TAB_RIGHT_EDGE,
-        aWidgetType != NS_THEME_TAB_LEFT_EDGE);      
+        !IsRightToSelectedTab(aFrame),
+        !IsLeftToSelectedTab(aFrame));
 
       break;
     }
@@ -2703,8 +2696,6 @@ nsNativeThemeWin::GetWidgetNativeDrawingFlags(PRUint8 aWidgetType)
     case NS_THEME_PROGRESSBAR_CHUNK:
     case NS_THEME_PROGRESSBAR_CHUNK_VERTICAL:
     case NS_THEME_TAB:
-    case NS_THEME_TAB_LEFT_EDGE:
-    case NS_THEME_TAB_RIGHT_EDGE:
     case NS_THEME_TAB_PANEL:
     case NS_THEME_TAB_PANELS:
     case NS_THEME_MENUBAR:
