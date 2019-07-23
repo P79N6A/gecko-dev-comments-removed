@@ -222,10 +222,6 @@ public:
 
 
 
-
-
-
-
   
   nsContentList(nsINode* aRootNode,
                 nsContentListMatchFunc aFunc,
@@ -295,9 +291,7 @@ protected:
 
 
 
-  void NS_FASTCALL PopulateWith(nsIContent *aContent,
-                                PRUint32 & aElementsToAppend);
-
+  void PopulateWith(nsIContent *aContent, PRUint32 & aElementsToAppend);
   
 
 
