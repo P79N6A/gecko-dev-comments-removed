@@ -1562,7 +1562,7 @@ function BrowserOpenTab()
 {
   gBrowser.loadOneTab("about:blank", null, null, null, false, false);
   if (gURLBar)
-    setTimeout(function() { gURLBar.focus(); }, 0);
+    gURLBar.focus();
 }
 
 
