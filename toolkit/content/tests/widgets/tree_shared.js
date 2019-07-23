@@ -23,6 +23,13 @@ function testtag_tree(treeid, treerowinfoid, seltype, columnstype, testid)
 {
   netscape.security.PrivilegeManager.enablePrivilege("UniversalXPConnect");
 
+  
+  
+  function preventDefault(event) {
+    event.preventDefault();
+  }
+  document.addEventListener("keypress", preventDefault, false);
+
   var multiple = (seltype == "multiple");
   var editable = false;
 
@@ -92,6 +99,10 @@ function testtag_tree(treeid, treerowinfoid, seltype, columnstype, testid)
 
   
   testtag_tree_TreeView_rows_sort(tree, testid, rowInfo);
+
+  testtag_tree_mousescroll(tree);
+
+  document.removeEventListener("keypress", preventDefault, false);
 
   SimpleTest.finish();
 }
@@ -1050,8 +1061,30 @@ function testtag_tree_column_reorder()
   checkColumns(tree, reference, "drag to itself");
   is(document.treecolDragging, null, "drag to itself completed");
 
+  
   SimpleTest.finish();
+}
 
+function testtag_tree_mousescroll(aTree)
+{
+  function helper(aStart, aDelta)
+  {
+    aTree.treeBoxObject.scrollToRow(aStart);
+    synthesizeMouseScroll(aTree.body, 1, 1,
+                         {type:"DOMMouseScroll", axis:"vertical", delta:aDelta});
+    is(aTree.treeBoxObject.getFirstVisibleRow(), aStart + aDelta, "mouse-scroll vertical starting " + aStart + " delta " + aDelta);
+
+    aTree.treeBoxObject.scrollToRow(aStart);
+    
+    synthesizeMouseScroll(aTree.body, 1, 1,
+                          {type:"DOMMouseScroll", axis:"horizontal", delta:aDelta});  
+    is(aTree.treeBoxObject.getFirstVisibleRow(), aStart, "mouse-scroll horizontal starting " + aStart + " delta " + aDelta);
+  }
+  
+  helper(2, -1);
+  helper(2, 1);
+  helper(2, -2);
+  helper(2, 2);
 }
 
 function synthesizeColumnDrag(aTree, aMouseDownColumnNumber, aMouseUpColumnNumber, aAfter)
