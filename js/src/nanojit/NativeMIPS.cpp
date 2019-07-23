@@ -389,10 +389,11 @@ namespace nanojit
         }
     }
 
-    void Assembler::asm_regarg(ArgSize sz, LInsp p, Register r)
+    void Assembler::asm_regarg(ArgType ty, LInsp p, Register r)
     {
         NanoAssert(isKnownReg(r));
-        if (sz & ARGSIZE_MASK_INT) {
+        if (ty == ARGTYPE_I || ty == ARGTYPE_U)
+        {
             
             if (p->isconst())
                 asm_li(r, p->imm32());
@@ -1515,18 +1516,18 @@ namespace nanojit
 
 
     void 
-    Assembler::asm_arg(ArgSize sz, LInsp arg, Register& r, Register& fr, int& stkd)
+    Assembler::asm_arg(ArgType ty, LInsp arg, Register& r, Register& fr, int& stkd)
     {
         
         NanoAssert((stkd & 3) == 0);
 
-        if (sz == ARGSIZE_F) {
+        if (ty == ARGTYPE_F) {
             
             asm_arg_64(arg, r, fr, stkd);
-        }
-        else if (sz & ARGSIZE_MASK_INT) {
+        } else {
+            NanoAssert(ty == ARGTYPE_I || ty == ARGTYPE_U);
             if (stkd < 16) {
-                asm_regarg(sz, arg, r);
+                asm_regarg(ty, arg, r);
                 fr = nextreg(fr);
                 r = nextreg(r);
             }
@@ -1536,11 +1537,6 @@ namespace nanojit
             
             fr = r;
             stkd += 4;
-        }
-        else {
-            NanoAssert(sz == ARGSIZE_Q);
-            
-            NanoAssert(false);
         }
     }
 
@@ -1570,10 +1566,10 @@ namespace nanojit
 
         evictScratchRegs();
 
-        const CallInfo* call = ins->callInfo();
-        ArgSize sizes[MAXARGS];
-        uint32_t argc = call->get_sizes(sizes);
-        bool indirect = call->isIndirect();
+        const CallInfo* ci = ins->callInfo();
+        ArgType argTypes[MAXARGS];
+        uint32_t argc = ci->getArgTypes(argTypes);
+        bool indirect = ci->isIndirect();
 
         
 
@@ -1584,11 +1580,11 @@ namespace nanojit
         if (!indirect)
             
             
-            asm_li(T9, call->_address);
+            asm_li(T9, ci->_address);
         else
             
             
-            asm_regarg(ARGSIZE_P, ins->arg(--argc), T9);
+            asm_regarg(ARGTYPE_P, ins->arg(--argc), T9);
 
         
         Register    r = A0, fr = FA0;
@@ -1599,7 +1595,7 @@ namespace nanojit
         
         
         while(argc--)
-            asm_arg(sizes[argc], ins->arg(argc), r, fr, stkd);
+            asm_arg(argTypes[argc], ins->arg(argc), r, fr, stkd);
 
         if (stkd > max_out_args)
             max_out_args = stkd;
