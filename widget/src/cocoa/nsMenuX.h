@@ -39,19 +39,19 @@
 #ifndef nsMenuX_h_
 #define nsMenuX_h_
 
-#import <Cocoa/Cocoa.h>
-#import <Carbon/Carbon.h>
-
-#include "nsMenuBaseX.h"
-#include "nsMenuBarX.h"
 #include "nsCOMPtr.h"
-#include "nsChangeObserver.h"
 #include "nsAutoPtr.h"
+#include "nsIMenu.h"
+#include "nsChangeObserver.h"
+#include "nsMenuBarX.h"
 
+#import <Carbon/Carbon.h>
+#import <Cocoa/Cocoa.h>
+
+
+class nsIMenuBar;
 class nsMenuX;
 class nsMenuItemIconX;
-class nsMenuItemX;
-class nsIWidget;
 
 
 
@@ -66,71 +66,99 @@ class nsIWidget;
 @end
 
 
-
-
-class nsMenuX : public nsMenuObjectX,
+class nsMenuX : public nsIMenu,
                 public nsChangeObserver
 {
 public:
-  nsMenuX();
-  virtual ~nsMenuX();
+    nsMenuX();
+    virtual ~nsMenuX();
 
-  
-  
-  
-  static PRInt32 sIndexingMenuLevel;
+    
+    
+    
+    static PRInt32 sIndexingMenuLevel;
 
-  NS_DECL_CHANGEOBSERVER
+    NS_DECL_ISUPPORTS
+    NS_DECL_CHANGEOBSERVER
 
-  
-  void*             NativeData()     {return (void*)mMacMenu;}
-  nsMenuObjectTypeX MenuObjectType() {return eSubmenuObjectType;}
+    id GetNativeMenuItem();
 
-  
-  nsresult       Create(nsMenuObjectX* aParent, const nsAString &aLabel,
-                        nsMenuBarX* aMenuBar, nsIContent* aNode);
-  PRUint32       GetItemCount();
-  nsMenuObjectX* GetItemAt(PRUint32 aPos);
-  nsresult       GetVisibleItemCount(PRUint32 &aCount);
-  nsMenuObjectX* GetVisibleItemAt(PRUint32 aPos);
-  nsEventStatus  MenuOpened(const nsMenuEvent& aMenuEvent);
-  void           MenuClosed(const nsMenuEvent& aMenuEvent);
-  void           SetRebuild(PRBool aMenuEvent);
-  NSMenuItem*    NativeMenuItem();
+    
+    NS_IMETHOD Create(nsISupports * aParent, const nsAString &aLabel, const nsAString &aAccessKey, 
+                      nsMenuBarX* aMenuBar, nsIContent* aNode);
+    NS_IMETHOD GetParent(nsISupports *&aParent);
+    NS_IMETHOD GetLabel(nsString &aText);
+    NS_IMETHOD SetLabel(const nsAString &aText);
+    NS_IMETHOD GetAccessKey(nsString &aText);
+    NS_IMETHOD SetAccessKey(const nsAString &aText);
+    NS_IMETHOD AddItem(nsISupports* aText);
+    NS_IMETHOD GetItemCount(PRUint32 &aCount);
+    NS_IMETHOD GetItemAt(const PRUint32 aPos, nsISupports *& aMenuItem);
+    NS_IMETHOD GetVisibleItemCount(PRUint32 &aCount);
+    NS_IMETHOD GetVisibleItemAt(const PRUint32 aPos, nsISupports *& aMenuItem);
+    NS_IMETHOD InsertItemAt(const PRUint32 aPos, nsISupports * aMenuItem);
+    NS_IMETHOD RemoveItem(const PRUint32 aPos);
+    NS_IMETHOD RemoveAll();
+    NS_IMETHOD GetNativeData(void** aData);
+    NS_IMETHOD SetNativeData(void* aData);
+    NS_IMETHOD GetMenuContent(nsIContent ** aMenuNode);
+    NS_IMETHOD SetEnabled(PRBool aIsEnabled);
+    NS_IMETHOD GetEnabled(PRBool* aIsEnabled);
+
+    NS_IMETHOD ChangeNativeEnabledStatusForMenuItem(nsIMenuItem* aMenuItem, PRBool aEnabled);
+    NS_IMETHOD GetMenuRefAndItemIndexForMenuItem(nsISupports* aMenuItem,
+                                                 void**       aMenuRef,
+                                                 PRUint16*    aMenuItemIndex);
+    NS_IMETHOD SetupIcon();
+    nsEventStatus MenuSelected(const nsMenuEvent & aMenuEvent); 
+    void MenuDeselected(const nsMenuEvent & aMenuEvent); 
+    void MenuConstruct(const nsMenuEvent & aMenuEvent, nsIWidget * aParentWindow, void * aMenuNode);
+    void MenuDestruct(const nsMenuEvent & aMenuEvent);
+    void SetRebuild(PRBool aMenuEvent);
 
 protected:
-  void           MenuConstruct(nsIWidget* aParentWindow, void* aMenuNode);
-  nsresult       RemoveAll();
-  nsresult       SetEnabled(PRBool aIsEnabled);
-  nsresult       GetEnabled(PRBool* aIsEnabled);
-  nsresult       SetupIcon();
-  nsresult       CountVisibleBefore(PRUint32* outVisibleBefore);
-  void           GetMenuPopupContent(nsIContent** aResult);
-  PRBool         OnOpen();
-  PRBool         OnOpened();
-  PRBool         OnClose();
-  PRBool         OnClosed();
-  nsresult       AddMenuItem(nsMenuItemX* aMenuItem);
-  nsresult       AddMenu(nsMenuX* aMenu);
-  void           LoadMenuItem(nsIContent* inMenuItemContent);  
-  void           LoadSubMenu(nsIContent* inMenuContent);
-  GeckoNSMenu*   CreateMenuWithGeckoString(nsString& menuTitle);
+    
+    
+    nsresult CountVisibleBefore(PRUint32* outVisibleBefore);
 
-  nsTArray< nsAutoPtr<nsMenuObjectX> > mMenuObjectsArray;
-  nsString                  mLabel;
-  PRUint32                  mVisibleItemsCount; 
-  nsMenuObjectX*            mParent; 
-  nsMenuBarX*               mMenuBar; 
-  nsRefPtr<nsMenuItemIconX> mIcon;
-  GeckoNSMenu*              mMacMenu; 
-  MenuDelegate*             mMenuDelegate; 
-  NSMenuItem*               mNativeMenuItem; 
-  PRPackedBool              mIsEnabled;
-  PRPackedBool              mDestroyHandlerCalled;
-  PRPackedBool              mNeedsRebuild;
-  PRPackedBool              mConstructed;
-  PRPackedBool              mVisible;
-  PRPackedBool              mXBLAttached;
+    
+    void GetMenuPopupContent(nsIContent** aResult);
+    
+    
+    PRBool OnDestroy();
+    PRBool OnCreate();
+    PRBool OnDestroyed();
+    PRBool OnCreated();
+
+    nsresult AddMenuItem(nsIMenuItem * aMenuItem);
+    nsresult AddMenu(nsIMenu * aMenu);
+
+    void LoadMenuItem(nsIContent* inMenuItemContent);  
+    void LoadSubMenu(nsIContent* inMenuContent);
+
+    GeckoNSMenu* CreateMenuWithGeckoString(nsString& menuTitle);
+
+protected:
+    nsString                    mLabel;
+    nsCOMArray<nsISupports>     mMenuItemsArray;
+    PRUint32                    mVisibleItemsCount;     
+
+    nsISupports*                mParent;                
+    nsMenuBarX*                 mMenuBar;               
+    nsCOMPtr<nsIContent>        mMenuContent;           
+    nsRefPtr<nsMenuItemIconX>   mIcon;
+
+    
+    PRInt16                     mMacMenuID;
+    GeckoNSMenu*                mMacMenu;               
+    MenuDelegate*               mMenuDelegate;          
+    NSMenuItem*                 mNativeMenuItem;        
+    PRPackedBool                mIsEnabled;
+    PRPackedBool                mDestroyHandlerCalled;
+    PRPackedBool                mNeedsRebuild;
+    PRPackedBool                mConstructed;
+    PRPackedBool                mVisible;               
+    PRPackedBool                mXBLAttached;
 };
 
 #endif 
