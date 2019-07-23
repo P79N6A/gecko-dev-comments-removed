@@ -182,19 +182,22 @@ js_NewNumberInRootedValue(JSContext *cx, jsdouble d, jsval *vp);
 extern JSString * JS_FASTCALL
 js_NumberToString(JSContext *cx, jsdouble d);
 
-
-
-
-
-char *
-js_IntToCString(jsint i, char *buf, size_t bufSize);
+extern JSString * JS_FASTCALL
+js_NumberToStringWithBase(JSContext *cx, jsdouble d, jsint base);
 
 
 
 
 
 char *
-js_NumberToCString(JSContext *cx, jsdouble d, char *buf, size_t bufSize);
+js_IntToCString(jsint i, jsint base, char *buf, size_t bufSize);
+
+
+
+
+
+char *
+js_NumberToCString(JSContext *cx, jsdouble d, jsint base, char *buf, size_t bufSize);
 
 
 
