@@ -42,11 +42,6 @@ do_import_script("netwerk/test/httpserver/httpd.js");
 DEBUG = true;
 
 
-const BinaryInputStream = CC("@mozilla.org/binaryinputstream;1",
-                             "nsIBinaryInputStream",
-                             "setInputStream");
-
-
 
 
 
