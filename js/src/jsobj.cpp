@@ -3594,6 +3594,15 @@ PurgeProtoChain(JSContext *cx, JSObject *obj, jsid id)
             PCMETER(JS_PROPERTY_CACHE(cx).pcpurges++);
             SCOPE_MAKE_UNIQUE_SHAPE(cx, scope);
             JS_UNLOCK_SCOPE(cx, scope);
+
+            if (!STOBJ_GET_PARENT(scope->object)) {
+                
+
+
+
+
+                js_LeaveTrace(cx);
+            }
             return JS_TRUE;
         }
         obj = LOCKED_OBJ_GET_PROTO(scope->object);
@@ -3606,13 +3615,6 @@ void
 js_PurgeScopeChainHelper(JSContext *cx, JSObject *obj, jsid id)
 {
     JS_ASSERT(OBJ_IS_DELEGATE(cx, obj));
-
-    
-
-
-
-
-    js_LeaveTrace(cx);
 
     PurgeProtoChain(cx, OBJ_GET_PROTO(cx, obj), id);
     while ((obj = OBJ_GET_PARENT(cx, obj)) != NULL) {
