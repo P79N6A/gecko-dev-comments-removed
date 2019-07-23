@@ -1594,7 +1594,13 @@ JSScope::removeProperty(JSContext *cx, jsid id)
         if (table) {
             *spp = NULL;
 #ifdef DEBUG
-            for (JSScopeProperty *aprop = lastProp; aprop; aprop = aprop->parent)
+            
+
+
+
+
+            JSScopeProperty *aprop = lastProp;
+            for (unsigned n = 50; aprop && n != 0; aprop = aprop->parent, --n)
                 JS_ASSERT_IF(aprop != sprop, hasProperty(aprop));
 #endif
         }
