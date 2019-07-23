@@ -268,6 +268,12 @@ EnsureLegalActivity(JSContext *cx, JSObject *obj,
   }
 
   JSScript *script = JS_GetFrameScript(cx, fp);
+  if (!script) {
+    
+    
+    return JS_TRUE;
+  }
+
   uint32 fileFlags = JS_GetScriptFilenameFlags(script);
   if (fileFlags == JSFILENAME_NULL || (fileFlags & JSFILENAME_SYSTEM)) {
     
