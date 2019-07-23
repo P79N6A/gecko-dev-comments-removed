@@ -291,13 +291,9 @@ struct FrameInfo {
     JSObject*       block;      
     jsbytecode*     pc;         
     jsbytecode*     imacpc;     
-    union {
-        struct {
-            uint16  spdist;     
-            uint16  argc;       
-        } s;
-        uint32      word;       
-    };
+    uint16          spdist;     
+    uint16          argc;       
+
     
 
 
