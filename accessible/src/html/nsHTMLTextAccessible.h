@@ -127,6 +127,7 @@ public:
   
   NS_IMETHOD FireToolkitEvent(PRUint32 aEvent, nsIAccessible *aTarget,
                               void *aData);
+  NS_IMETHOD GetContentText(nsAString& aText);
 
 protected:
   

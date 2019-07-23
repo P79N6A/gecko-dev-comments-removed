@@ -337,25 +337,17 @@ nsIFrame* nsHyperTextAccessible::GetPosAndText(PRInt32& aStartOffset, PRInt32& a
       continue;
     }
     if (IsText(accessible)) {
-      
-      PRInt32 substringEndOffset = frame->GetContent()->TextLength();
+      nsCOMPtr<nsPIAccessible> pAcc(do_QueryInterface(accessible));
       nsAutoString newText;
-      if (!substringEndOffset) {
-        
-        
-        
-        
-        accessible->GetName(newText);
-        substringEndOffset = newText.Length();
-      }
+      pAcc->GetContentText(newText);
+
+      PRInt32 substringEndOffset = newText.Length();
       if (startOffset < substringEndOffset) {
         
         
         
         
-        if (newText.IsEmpty()) { 
-          frame->GetContent()->AppendTextTo(newText);
-        }
+
         if (startOffset > 0 || endOffset < substringEndOffset) {
           
           
