@@ -380,6 +380,7 @@ Process(JSContext *cx, JSObject *obj, char *filename, JSBool forceTTY)
     jsval result;
     JSString *str;
     char *buffer;
+    size_t size;
     int lineno;
     int startline;
     FILE *file;
@@ -439,8 +440,9 @@ Process(JSContext *cx, JSObject *obj, char *filename, JSBool forceTTY)
     lineno = 1;
     hitEOF = JS_FALSE;
     buffer = NULL;
+    size = 0;           
     do {
-        size_t len = 0, size = 0; 
+        size_t len = 0; 
 
         
 
