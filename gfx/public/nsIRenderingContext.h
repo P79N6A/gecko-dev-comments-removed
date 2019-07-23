@@ -754,42 +754,6 @@ public:
 
   virtual void* GetNativeGraphicData(GraphicDataType aType) = 0;
 
-  
-
-
-
-
-
-
-
-
-
-
-
-
-  NS_IMETHOD GetBackbuffer(const nsRect &aRequestedSize, const nsRect &aMaxSize, PRBool aForBlending, nsIDrawingSurface* &aBackbuffer) = 0;
-
-  
-
-
-
-  NS_IMETHOD ReleaseBackbuffer(void) = 0;
-
-  
-
-
-
-  NS_IMETHOD DestroyCachedBackbuffer(void) = 0;
-
-  
-
-
-
-
-
-  NS_IMETHOD UseBackbuffer(PRBool* aUseBackbuffer) = 0;
-
-
 #ifdef MOZ_MATHML
   
 

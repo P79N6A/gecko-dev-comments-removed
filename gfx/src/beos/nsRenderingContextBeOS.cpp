@@ -1604,20 +1604,3 @@ nsRenderingContextBeOS::GetBoundingMetrics(const PRUnichar* aString, PRUint32 aL
 	return r;
 }
 #endif 
-
-#ifdef NOBBCACHE
-
-
-NS_IMETHODIMP nsRenderingContextBeOS::GetBackbuffer(const nsRect &aRequestedSize,
-                                                   const nsRect &aMaxSize,
-                                                   PRBool aForBlending,
-                                                   nsIDrawingSurface* &aBackbuffer)
-{
-  return AllocateBackbuffer(aRequestedSize, aMaxSize, aBackbuffer, PR_FALSE, 0);
-}
- 
-NS_IMETHODIMP nsRenderingContextBeOS::ReleaseBackbuffer(void)
-{
-	return DestroyCachedBackbuffer();
-}
-#endif

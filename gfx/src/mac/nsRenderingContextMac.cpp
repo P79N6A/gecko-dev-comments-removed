@@ -1516,24 +1516,6 @@ nsRenderingContextMac::DrawTile(imgIContainer *aImage,
 
 #pragma mark -
 
-
-NS_IMETHODIMP
-nsRenderingContextMac::ReleaseBackbuffer(void)
-{
-  SelectOffScreenDrawingSurface(nsnull);
-  return NS_OK;
-}
-
-
-
-NS_IMETHODIMP 
-nsRenderingContextMac::UseBackbuffer(PRBool* aUseBackbuffer)
-{
-  *aUseBackbuffer = PR_FALSE;
-  return NS_OK;
-}
-
-
 PRBool
 nsRenderingContextMac::OnTigerOrLater()
 {

@@ -64,9 +64,7 @@
 #include "nsCOMArray.h"
 #include "nsThreadUtils.h"
 
-#ifdef MOZ_CAIRO_GFX
 #include "gfxContext.h"
-#endif
 
 static NS_DEFINE_IID(kBlenderCID, NS_BLENDER_CID);
 static NS_DEFINE_IID(kRegionCID, NS_REGION_CID);
@@ -176,7 +174,6 @@ nsViewManager::nsViewManager()
   
   
   mDefaultBackgroundColor = NS_RGBA(0, 0, 0, 0);
-  mAllowDoubleBuffering = PR_TRUE; 
   mHasPendingUpdates = PR_FALSE;
   mRecursiveRefreshPending = PR_FALSE;
   mUpdateBatchFlags = 0;
@@ -225,14 +222,6 @@ nsViewManager::~nsViewManager()
     
     
     
-
-    if (gCleanupContext) {
-
-      gCleanupContext->DestroyCachedBackbuffer();
-    } else {
-      NS_ASSERTION(PR_FALSE, "Cleanup of drawing surfaces + offscreen buffer failed");
-    }
-
     NS_IF_RELEASE(gCleanupContext);
   }
 
@@ -502,25 +491,6 @@ void nsViewManager::Refresh(nsView *aView, nsIRenderingContext *aContext,
   }  
   SetPainting(PR_TRUE);
 
-  
-  aUpdateFlags |= NS_VMREFRESH_DOUBLE_BUFFER;
-
-  if (!DoDoubleBuffering())
-    aUpdateFlags &= ~NS_VMREFRESH_DOUBLE_BUFFER;
-
-  
-  if (aContext) {
-    PRBool contextWantsBackBuffer = PR_TRUE;
-    aContext->UseBackbuffer(&contextWantsBackBuffer);
-    if (!contextWantsBackBuffer)
-      aUpdateFlags &= ~NS_VMREFRESH_DOUBLE_BUFFER;
-  }
-  
-  if (PR_FALSE == mAllowDoubleBuffering) {
-    
-    aUpdateFlags &= ~NS_VMREFRESH_DOUBLE_BUFFER;
-  }
-
   nsCOMPtr<nsIRenderingContext> localcx;
   nsIDrawingSurface*    ds = nsnull;
 
@@ -555,7 +525,6 @@ void nsViewManager::Refresh(nsView *aView, nsIRenderingContext *aContext,
   nsRect damageRect = damageRegion.GetBounds();
   PRInt32 p2a = mContext->AppUnitsPerDevPixel();
 
-#ifdef MOZ_CAIRO_GFX
   nsRefPtr<gfxContext> ctx =
     (gfxContext*) localcx->GetNativeGraphicData(nsIRenderingContext::NATIVE_THEBES_CONTEXT);
 
@@ -571,95 +540,6 @@ void nsViewManager::Refresh(nsView *aView, nsIRenderingContext *aContext,
   RenderViews(aView, *localcx, damageRegion, ds);
 
   ctx->Restore();
-#else
-  
-  
-  nsRect widgetDamageRectInPixels = damageRect;
-  widgetDamageRectInPixels.MoveBy(-viewRect.x, -viewRect.y);
-  widgetDamageRectInPixels.ScaleRoundOut(t2p);
-
-  
-  
-  
-  
-  
-  
-  if (aUpdateFlags & NS_VMREFRESH_DOUBLE_BUFFER)
-  {
-    nsRect maxWidgetSize;
-    GetMaxWidgetBounds(maxWidgetSize);
-
-    nsRect r(0, 0, widgetDamageRectInPixels.width, widgetDamageRectInPixels.height);
-    if (NS_FAILED(localcx->GetBackbuffer(r, maxWidgetSize, PR_FALSE, ds))) {
-      
-      aUpdateFlags &= ~NS_VMREFRESH_DOUBLE_BUFFER;
-    }
-  }
-
-  nsIRenderingContext::PushedTranslation trans;
-  nsPoint delta(0,0);
-
-  
-  PRBool usingDoubleBuffer = (aUpdateFlags & NS_VMREFRESH_DOUBLE_BUFFER) && ds;
-  if (usingDoubleBuffer) {
-    
-    
-
-    localcx->PushTranslation(&trans);
-
-    
-    
-    
-    
-    
-    
-    
-    
-    localcx->SetTranslation(-widgetDamageRectInPixels.x, -widgetDamageRectInPixels.y);
-    
-    
-    
-    
-    
-    
-    aRegion->Offset(-widgetDamageRectInPixels.x, -widgetDamageRectInPixels.y);
-  }
-  
-  
-  localcx->Translate(viewRect.x, viewRect.y);
-
-  
-  
-  
-  
-  localcx->SetClipRegion(*aRegion, nsClipCombine_kReplace);
-  localcx->SetClipRect(damageRect, nsClipCombine_kIntersect);
-
-  nsRegion opaqueRegion;
-  AddCoveringWidgetsToOpaqueRegion(opaqueRegion, mContext, aView);
-  damageRegion.Sub(damageRegion, opaqueRegion);
-
-  RenderViews(aView, *localcx, damageRegion, ds);
-
-  
-  localcx->Translate(-viewRect.x, -viewRect.y);
-  if (usingDoubleBuffer) {
-    
-
-    
-    aRegion->Offset(widgetDamageRectInPixels.x, widgetDamageRectInPixels.y);
-    
-    localcx->PopTranslation(&trans);
-    
-    damageRect.MoveBy(-viewRect.x, -viewRect.y);
-    
-    localcx->SetClipRegion(*aRegion, nsClipCombine_kReplace);
-    localcx->SetClipRect(damageRect, nsClipCombine_kIntersect);
-    
-    localcx->CopyOffScreenBits(ds, 0, 0, widgetDamageRectInPixels, NS_COPYBITS_USE_SOURCE_CLIP_REGION);
-    localcx->ReleaseBackbuffer();
-  }
-#endif
 
   SetPainting(PR_FALSE);
 
@@ -778,25 +658,6 @@ void nsViewManager::AddCoveringWidgetsToOpaqueRegion(nsRegion &aRgn, nsIDeviceCo
 void nsViewManager::RenderViews(nsView *aView, nsIRenderingContext& aRC,
                                 const nsRegion& aRegion, nsIDrawingSurface* aRCSurface)
 {
-#ifndef MOZ_CAIRO_GFX
-  BlendingBuffers* buffers = nsnull;
-  nsIWidget* widget = aView->GetWidget();
-  PRBool translucentWindow = PR_FALSE;
-  if (widget) {
-    widget->GetWindowTranslucency(translucentWindow);
-    if (translucentWindow) {
-      NS_WARNING("Transparent window enabled");
-      NS_ASSERTION(aRCSurface, "Cannot support transparent windows with doublebuffering disabled");
-
-      
-      buffers = CreateBlendingBuffers(&aRC, PR_TRUE, aRCSurface, translucentWindow, aRegion.GetBounds());
-      NS_ASSERTION(buffers, "Failed to create rendering buffers");
-      if (!buffers)
-        return;
-    }
-  }
-#endif
-
   if (mObserver) {
     nsView* displayRoot = GetDisplayRootFor(aView);
     nsPoint offsetToRoot = aView->GetOffsetTo(displayRoot); 
@@ -807,29 +668,7 @@ void nsViewManager::RenderViews(nsView *aView, nsIRenderingContext& aRC,
     aRC.Translate(-offsetToRoot.x, -offsetToRoot.y);
     mObserver->Paint(displayRoot, &aRC, damageRegion);
     aRC.PopState();
-#ifndef MOZ_CAIRO_GFX
-    if (translucentWindow)
-      mObserver->Paint(displayRoot, buffers->mWhiteCX, aRegion);
-#endif
   }
-
-#ifndef MOZ_CAIRO_GFX
-  if (translucentWindow) {
-    
-    nsRect r = aRegion.GetBounds();
-    r *= (1.0f / mContext->AppUnitsPerDevPixel());
-    nsRect bufferRect(0, 0, r.width, r.height);
-    PRUint8* alphas = nsnull;
-    nsresult rv = mBlender->GetAlphas(bufferRect, buffers->mBlack,
-                                      buffers->mWhite, &alphas);
-    
-    if (NS_SUCCEEDED(rv)) {
-      widget->UpdateTranslucentWindowAlpha(r, alphas);
-    }
-    delete[] alphas;
-    delete buffers;
-  }
-#endif
 }
 
 static nsresult NewOffscreenContext(nsIDeviceContext* deviceContext, nsIDrawingSurface* surface,
@@ -1338,12 +1177,10 @@ NS_IMETHODIMP nsViewManager::DispatchEvent(nsGUIEvent *aEvent, nsEventStatus *aS
               vm->UpdateView(vm->mRootView, NS_VMREFRESH_NO_SYNC);
               didResize = PR_TRUE;
 
-#ifdef MOZ_CAIRO_GFX
               
               
               
               *aStatus = nsEventStatus_eIgnore;
-#endif
             }
           }
 
@@ -1444,9 +1281,6 @@ NS_IMETHODIMP nsViewManager::DispatchEvent(nsGUIEvent *aEvent, nsEventStatus *aS
       
       
       *aStatus = nsEventStatus_eConsumeDoDefault;
-      if (gCleanupContext) {
-        gCleanupContext->DestroyCachedBackbuffer();
-      }
       break;
 
     case NS_SYSCOLORCHANGED:
@@ -2539,14 +2373,6 @@ NS_IMETHODIMP nsViewManager::GetRectVisibility(nsIView *aView,
   else
     *aRectVisibility = nsRectVisibility_kVisible;
 
-  return NS_OK;
-}
-
-
-NS_IMETHODIMP
-nsViewManager::AllowDoubleBuffering(PRBool aDoubleBuffer)
-{
-  mAllowDoubleBuffering = aDoubleBuffer;
   return NS_OK;
 }
 

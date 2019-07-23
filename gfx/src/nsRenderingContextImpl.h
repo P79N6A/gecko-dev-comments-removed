@@ -91,11 +91,6 @@ public:
 
 
   NS_IMETHOD SetPenMode(nsPenMode aPenMode) { return NS_ERROR_FAILURE;}
-
-  NS_IMETHOD GetBackbuffer(const nsRect &aRequestedSize, const nsRect &aMaxSize, PRBool aForBlending, nsIDrawingSurface* &aBackbuffer); 
-  NS_IMETHOD ReleaseBackbuffer(void);
-  NS_IMETHOD DestroyCachedBackbuffer(void);
-  NS_IMETHOD UseBackbuffer(PRBool* aUseBackbuffer);
   
   NS_IMETHOD PushTranslation(PushedTranslation* aState);
   NS_IMETHOD PopTranslation(PushedTranslation* aState);
@@ -317,24 +312,12 @@ protected:
 
   void GetDrawingSurfaceSize(const nsRect& aMaxBackbufferSize, const nsRect& aRequestedSize, nsRect& aSurfaceSize);
 
-  
-
-
-
-
-
-
-
-
-  nsresult AllocateBackbuffer(const nsRect &aRequestedSize, const nsRect &aMaxSize, nsIDrawingSurface* &aBackbuffer, PRBool aCacheBackbuffer, PRUint32 aSurfFlags);
-
 public:
 
 protected:
   nsPenMode   mPenMode;
 private:
   static nsIDrawingSurface*  gBackbuffer;         
-  static nsRect            gBackbufferBounds;   
     
   static nsSize            gLargestRequestedSize;
 

@@ -543,15 +543,6 @@ nsObjectFrame::CreateWidget(nscoord aWidth,
 
   
   
-#ifdef XP_MACOSX
-  PRBool doubleBuffer =
-    nsContentUtils::GetBoolPref("plugin.enable_double_buffer");
-  
-  viewMan->AllowDoubleBuffering(doubleBuffer);
-#endif
-  
-  
-  
   
   
   nsIView* parentWithView;

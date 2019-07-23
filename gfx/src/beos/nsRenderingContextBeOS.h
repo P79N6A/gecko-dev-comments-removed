@@ -194,12 +194,6 @@ public:
                                 PRInt32*           aFontID = nsnull);
 #endif 
 
-#ifdef NOBBCACHE
-	NS_IMETHOD GetBackbuffer(const nsRect &aRequestedSize, const nsRect &aMaxSize,
-                           PRBool aForBlending, nsIDrawingSurface* &aBackbuffer);
-	NS_IMETHOD ReleaseBackbuffer(void);
-#endif
-
   
   
   

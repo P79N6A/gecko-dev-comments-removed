@@ -45,8 +45,6 @@
 #include <stdlib.h>
 
 
-nsIDrawingSurface* nsRenderingContextImpl::gBackbuffer = nsnull;
-nsRect nsRenderingContextImpl::gBackbufferBounds = nsRect(0, 0, 0, 0);
 nsSize nsRenderingContextImpl::gLargestRequestedSize = nsSize(0, 0);
 
 
@@ -70,83 +68,6 @@ nsRenderingContextImpl :: ~nsRenderingContextImpl()
 {
 
 
-}
-
-
-NS_IMETHODIMP nsRenderingContextImpl::GetBackbuffer(const nsRect &aRequestedSize, const nsRect &aMaxSize, PRBool aForBlending, nsIDrawingSurface* &aBackbuffer)
-{
-  
-  
-  
-  
-  return AllocateBackbuffer(aRequestedSize, aMaxSize, aBackbuffer, PR_TRUE, 0);
-}
-
-nsresult nsRenderingContextImpl::AllocateBackbuffer(const nsRect &aRequestedSize, const nsRect &aMaxSize, nsIDrawingSurface* &aBackbuffer, PRBool aCacheBackbuffer, PRUint32 aSurfFlags)
-{
-  nsRect newBounds;
-  nsresult rv = NS_OK;
-
-   if (! aCacheBackbuffer) {
-    newBounds = aRequestedSize;
-  } else {
-    GetDrawingSurfaceSize(aMaxSize, aRequestedSize, newBounds);
-  }
-
-  if ((nsnull == gBackbuffer)
-      || (gBackbufferBounds.width != newBounds.width)
-      || (gBackbufferBounds.height != newBounds.height))
-    {
-      if (gBackbuffer) {
-        
-        DestroyDrawingSurface(gBackbuffer);
-        gBackbuffer = nsnull;
-      }
-
-      rv = CreateDrawingSurface(newBounds, aSurfFlags, gBackbuffer);
-      
-      if (NS_SUCCEEDED(rv)) {
-        gBackbufferBounds = newBounds;
-        SelectOffScreenDrawingSurface(gBackbuffer);
-      } else {
-        gBackbufferBounds.SetRect(0,0,0,0);
-        gBackbuffer = nsnull;
-      }
-    } else {
-      SelectOffScreenDrawingSurface(gBackbuffer);
-
-      nsCOMPtr<nsIDeviceContext>  dx;
-      GetDeviceContext(*getter_AddRefs(dx));
-      nsRect bounds = aRequestedSize;
-      bounds *= dx->AppUnitsPerDevPixel();
-
-      SetClipRect(bounds, nsClipCombine_kReplace);
-    }
-
-  aBackbuffer = gBackbuffer;
-  return rv;
-}
-
-NS_IMETHODIMP nsRenderingContextImpl::ReleaseBackbuffer(void)
-{
-  
-  
-  return NS_OK;
-}
-
-NS_IMETHODIMP nsRenderingContextImpl::DestroyCachedBackbuffer(void)
-{
-  if (gBackbuffer) {
-    DestroyDrawingSurface(gBackbuffer);
-    gBackbuffer = nsnull;
-  }
-  return NS_OK;
-}
-
-NS_IMETHODIMP nsRenderingContextImpl::UseBackbuffer(PRBool* aUseBackbuffer)
-{
-  *aUseBackbuffer = PR_TRUE;
-  return NS_OK;
 }
 
 NS_IMETHODIMP nsRenderingContextImpl::PushTranslation(PushedTranslation* aState)

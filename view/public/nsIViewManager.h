@@ -440,17 +440,6 @@ public:
   
   
   NS_IMETHOD ForceUpdate() = 0;
-  
-  
-
-
-
-
-
-
-
-
-  NS_IMETHOD AllowDoubleBuffering(PRBool aDoubleBuffer)=0;
 
   
 
