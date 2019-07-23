@@ -48,6 +48,7 @@ class nsITransferable;
 class nsACString;
 class nsAString;
 class nsIDOMNode;
+class nsIPresShell;
 
 class nsCopySupport
 {
@@ -68,14 +69,49 @@ class nsCopySupport
 
     
     
-    static nsresult GetClipboardEventTarget(nsISelection *aSel,
-                                            nsIDOMNode **aEventTarget);
-
-    
-    
     static nsresult GetTransferableForSelection(nsISelection * aSelection,
                                                 nsIDocument * aDocument,
                                                 nsITransferable ** aTransferable);
+
+    
+
+
+
+
+
+    static nsIContent* GetSelectionForCopy(nsIDocument* aDocument,
+                                           nsISelection** aSelection);
+
+    
+
+
+
+    static PRBool CanCopy(nsIDocument* aDocument);
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    static PRBool FireClipboardEvent(PRInt32 aType,
+                                     nsIPresShell* aPresShell,
+                                     nsISelection* aSelection);
 };
 
 #endif

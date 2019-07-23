@@ -127,8 +127,8 @@ typedef struct CapturingContentInfo {
 } CapturingContentInfo;
 
 #define NS_IPRESSHELL_IID     \
-  { 0xe5e070ce, 0xbc17, 0x4b5f, \
-    { 0xb2, 0x21, 0xbf, 0xc3, 0xe1, 0x68, 0xbe, 0x9b } }
+{ 0x0e170e5f, 0xf6d4, 0x44c5, \
+  { 0xbc, 0x2c, 0x44, 0x94, 0x20, 0x7e, 0xcc, 0x30 } }
 
 
 #define NS_PRESSHELL_SCROLL_TOP      0
@@ -581,23 +581,7 @@ public:
   
 
 
-  NS_IMETHOD DoCopy() = 0;
-
-  
-
-
-
-  NS_IMETHOD GetSelectionForCopy(nsISelection** outSelection) = 0;
-
-  
-
-
   NS_IMETHOD GetLinkLocation(nsIDOMNode* aNode, nsAString& aLocation) = 0;
-
-  
-
-
-  NS_IMETHOD DoGetContents(const nsACString& aMimeType, PRUint32 aFlags, PRBool aSelectionOnly, nsAString& outValue) = 0;
 
   
 

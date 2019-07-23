@@ -50,18 +50,26 @@
 #include "nsISupportsPrimitives.h"
 #include "nsIDOMRange.h"
 #include "imgIContainer.h"
+#include "nsIPresShell.h"
+#include "nsFocusManager.h"
+#include "nsEventDispatcher.h"
 
 #include "nsIDocShell.h"
 #include "nsIContentViewerEdit.h"
 #include "nsIClipboardDragDropHooks.h"
 #include "nsIClipboardDragDropHookList.h"
+#include "nsIClipboardHelper.h"
+#include "nsISelectionController.h"
 
+#include "nsPIDOMWindow.h"
 #include "nsIDocument.h"
 #include "nsIDOMNode.h"
 #include "nsIDOMElement.h"
 #include "nsIDOMDocument.h"
 #include "nsIHTMLDocument.h"
 #include "nsGkAtoms.h"
+#include "nsGUIEvent.h"
+#include "nsIFrame.h"
 
 
 #include "nsIImageLoadingContent.h"
@@ -582,26 +590,128 @@ static nsresult AppendDOMNode(nsITransferable *aTransferable,
   return AppendString(aTransferable, context, kHTMLContext);
 }
 
-
-
-nsresult nsCopySupport::GetClipboardEventTarget(nsISelection *aSel,
-                                                nsIDOMNode **aEventTarget)
+nsIContent*
+nsCopySupport::GetSelectionForCopy(nsIDocument* aDocument, nsISelection** aSelection)
 {
-  NS_ENSURE_ARG(aSel);
-  NS_ENSURE_ARG_POINTER(aEventTarget);
-  *aEventTarget = nsnull;
+  *aSelection = nsnull;
 
-  nsCOMPtr<nsIDOMRange> range;
-  nsresult rv = aSel->GetRangeAt(0, getter_AddRefs(range));
-  if (rv == NS_ERROR_INVALID_ARG) 
-    return NS_ERROR_FAILURE;
-  NS_ENSURE_SUCCESS(rv, rv);
+  nsIPresShell* presShell = aDocument->GetPrimaryShell();
+  if (!presShell)
+    return nsnull;
 
-  if (!range)
-    return NS_ERROR_FAILURE;
+  
+  nsCOMPtr<nsPIDOMWindow> focusedWindow;
+  nsIContent* content =
+    nsFocusManager::GetFocusedDescendant(aDocument->GetWindow(), PR_FALSE,
+                                         getter_AddRefs(focusedWindow));
+  if (content) {
+    nsIFrame* frame = content->GetPrimaryFrame();
+    if (frame) {
+      nsCOMPtr<nsISelectionController> selCon;
+      frame->GetSelectionController(presShell->GetPresContext(), getter_AddRefs(selCon));
+      if (selCon) {
+        selCon->GetSelection(nsISelectionController::SELECTION_NORMAL, aSelection);
+        return content;
+      }
+    }
+  }
 
-  rv = range->GetStartContainer(aEventTarget);
-  NS_ENSURE_SUCCESS(rv, rv);
+  
+  NS_IF_ADDREF(*aSelection = presShell->GetCurrentSelection(nsISelectionController::SELECTION_NORMAL));
+  return nsnull;
+}
 
-  return (*aEventTarget) ? NS_OK : NS_ERROR_FAILURE;
+PRBool
+nsCopySupport::CanCopy(nsIDocument* aDocument)
+{
+  if (!aDocument)
+    return PR_FALSE;
+
+  nsCOMPtr<nsISelection> sel;
+  GetSelectionForCopy(aDocument, getter_AddRefs(sel));
+
+  PRBool isCollapsed;
+  sel->GetIsCollapsed(&isCollapsed);
+  return !isCollapsed;
+}
+
+PRBool
+nsCopySupport::FireClipboardEvent(PRInt32 aType, nsIPresShell* aPresShell, nsISelection* aSelection)
+{
+  NS_ASSERTION(aType == NS_CUT || aType == NS_COPY || aType == NS_PASTE,
+               "Invalid clipboard event type");
+
+  nsCOMPtr<nsIPresShell> presShell = aPresShell;
+  if (!presShell)
+    return PR_FALSE;
+
+  nsCOMPtr<nsIDocument> doc = presShell->GetDocument();
+  if (!doc)
+    return PR_FALSE;
+
+  nsCOMPtr<nsPIDOMWindow> piWindow = doc->GetWindow();
+  if (!piWindow)
+    return PR_FALSE;
+
+  
+  nsCOMPtr<nsIContent> content;
+  nsCOMPtr<nsISelection> sel = aSelection;
+  if (!sel)
+    content = GetSelectionForCopy(doc, getter_AddRefs(sel));
+
+  
+  if (sel) {
+    
+    if (aType == NS_CUT || aType == NS_COPY) {
+      PRBool isCollapsed;
+      sel->GetIsCollapsed(&isCollapsed);
+      if (isCollapsed)
+        return PR_FALSE;
+    }
+
+    nsCOMPtr<nsIDOMRange> range;
+    nsresult rv = sel->GetRangeAt(0, getter_AddRefs(range));
+    if (NS_SUCCEEDED(rv) && range) {
+      nsCOMPtr<nsIDOMNode> startContainer;
+      range->GetStartContainer(getter_AddRefs(startContainer));
+      if (startContainer)
+        content = do_QueryInterface(startContainer);
+    }
+  }
+
+  
+  if (!content) {
+    content = doc->GetRootContent();
+    if (!content)
+      return PR_FALSE;
+  }
+
+  
+  if (!nsContentUtils::IsSafeToRunScript())
+    return PR_FALSE;
+
+  
+  nsEventStatus status = nsEventStatus_eIgnore;
+  nsEvent evt(PR_TRUE, aType);
+  nsEventDispatcher::Dispatch(content, presShell->GetPresContext(), &evt, nsnull,
+                              &status);
+  
+  if (status == nsEventStatus_eConsumeNoDefault)
+    return PR_FALSE;
+
+  
+  
+  
+  if (aType == NS_PASTE)
+    return PR_TRUE;
+
+  
+  if (NS_FAILED(nsCopySupport::HTMLCopy(sel, doc, nsIClipboard::kGlobalClipboard)))
+    return PR_FALSE;
+
+  
+  
+  piWindow->UpdateCommands(NS_LITERAL_STRING("clipboard"));
+
+  return PR_TRUE;
 }
