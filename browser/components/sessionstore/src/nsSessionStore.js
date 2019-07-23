@@ -2113,14 +2113,6 @@ SessionStoreService.prototype = {
     Array.filter(tab.attributes, function(aAttr) {
       return (_this.xulAttributes.indexOf(aAttr.name) > -1);
     }).forEach(tab.removeAttribute, tab);
-    if (tabData.xultab) {
-      
-      tabData.xultab.split(" ").forEach(function(aAttr) {
-        if (/^([^\s=]+)=(.*)/.test(aAttr)) {
-          tab.setAttribute(RegExp.$1, decodeURI(RegExp.$2));
-        }
-      });
-    }
     for (let name in tabData.attributes)
       tab.setAttribute(name, tabData.attributes[name]);
     
@@ -2149,7 +2141,6 @@ SessionStoreService.prototype = {
       
       
       browser.__SS_restore_data = tabData.entries[activeIndex] || {};
-      browser.__SS_restore_text = tabData.text || "";
       browser.__SS_restore_pageStyle = tabData.pageStyle || "";
       browser.__SS_restore_tab = tab;
       browser.__SS_restore = this.restoreDocument_proxy;
@@ -2222,14 +2213,8 @@ SessionStoreService.prototype = {
       shEntry.setScrollPosition(scrollPos[0], scrollPos[1]);
     }
 
-    var postdata;
-    if (aEntry.postdata_b64) {  
-      postdata = atob(aEntry.postdata_b64);
-    } else if (aEntry.postdata) { 
-      postdata = aEntry.postdata;
-    }
-
-    if (postdata) {
+    if (aEntry.postdata_b64) {
+      var postdata = atob(aEntry.postdata_b64);
       var stream = Cc["@mozilla.org/io/string-input-stream;1"].
                    createInstance(Ci.nsIStringInputStream);
       stream.setData(postdata, postdata.length);
@@ -2258,7 +2243,7 @@ SessionStoreService.prototype = {
       }
     }
 
-    if (aEntry.owner_b64) {  
+    if (aEntry.owner_b64) {
       var ownerInput = Cc["@mozilla.org/io/string-input-stream;1"].
                        createInstance(Ci.nsIStringInputStream);
       var binaryData = atob(aEntry.owner_b64);
@@ -2269,11 +2254,8 @@ SessionStoreService.prototype = {
       try { 
         shEntry.owner = binaryStream.readObject(true);
       } catch (ex) { debug(ex); }
-    } else if (aEntry.ownerURI) { 
-      var uriObj = IOSvc.newURI(aEntry.ownerURI, null, null);
-      shEntry.owner = SecuritySvc.getCodebasePrincipal(uriObj);
     }
-    
+
     if (aEntry.children && shEntry instanceof Ci.nsISHContainer) {
       for (var i = 0; i < aEntry.children.length; i++) {
         
@@ -2320,25 +2302,6 @@ SessionStoreService.prototype = {
     function hasExpectedURL(aDocument, aURL)
       !aURL || aURL.replace(/#.*/, "") == aDocument.location.href.replace(/#.*/, "");
     
-    
-    var textArray = this.__SS_restore_text ? this.__SS_restore_text.split(" ") : [];
-    function restoreTextData(aContent, aPrefix, aURL) {
-      textArray.forEach(function(aEntry) {
-        if (/^((?:\d+\|)*)(#?)([^\s=]+)=(.*)$/.test(aEntry) &&
-            RegExp.$1 == aPrefix && hasExpectedURL(aContent.document, aURL)) {
-          var document = aContent.document;
-          var node = RegExp.$2 ? document.getElementById(RegExp.$3) : document.getElementsByName(RegExp.$3)[0] || null;
-          if (node && "value" in node && node.type != "file") {
-            node.value = decodeURI(RegExp.$4);
-            
-            var event = document.createEvent("UIEvents");
-            event.initUIEvent("input", true, true, aContent, 0);
-            node.dispatchEvent(event);
-          }
-        }
-      });
-    }
-    
     function restoreFormData(aDocument, aData, aURL) {
       for (let key in aData) {
         if (!hasExpectedURL(aDocument, aURL))
@@ -2382,8 +2345,6 @@ SessionStoreService.prototype = {
     function restoreTextDataAndScrolling(aContent, aData, aPrefix) {
       if (aData.formdata)
         restoreFormData(aContent.document, aData.formdata, aData.url);
-      else
-        restoreTextData(aContent, aPrefix, aData.url);
       if (aData.innerHTML) {
         window.setTimeout(function() {
           if (aContent.document.designMode == "on" &&
@@ -2426,7 +2387,6 @@ SessionStoreService.prototype = {
     
     this.removeEventListener("load", this.__SS_restore, true);
     delete this.__SS_restore_data;
-    delete this.__SS_restore_text;
     delete this.__SS_restore_pageStyle;
     delete this.__SS_restore_tab;
     delete this.__SS_restore;
@@ -2528,21 +2488,6 @@ SessionStoreService.prototype = {
 
 
   restoreCookies: function sss_restoreCookies(aCookies) {
-    if (aCookies.count && aCookies.domain1) {
-      
-      var converted = [];
-      for (var i = 1; i <= aCookies.count; i++) {
-        
-        var parsed = aCookies["value" + i].match(/^([^=;]+)=([^;]*);(?:domain=[^;]+;)?(?:path=([^;]*);)?(secure;)?(httponly;)?/);
-        if (parsed && /^https?:\/\/([^\/]+)/.test(aCookies["domain" + i]))
-          converted.push({
-            host: RegExp.$1, path: parsed[3], name: parsed[1], value: parsed[2],
-            secure: parsed[4], httponly: parsed[5]
-          });
-      }
-      aCookies = converted;
-    }
-
     
     var MAX_EXPIRY = Math.pow(2, 62);
     for (i = 0; i < aCookies.length; i++) {
