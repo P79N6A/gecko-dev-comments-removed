@@ -37,12 +37,13 @@
 
 
 #include "mozilla/PluginPRLibrary.h"
-#include <malloc.h>
 
 
 
 
 #if defined(XP_WIN) && defined(_M_IX86)
+#include <malloc.h>
+
 
 
 static int gNotOptimized;
@@ -136,8 +137,6 @@ nsresult
 PluginPRLibrary::NP_GetValue(void *future, NPPVariable aVariable,
 			     void *aValue, NPError* error)
 {
-  CALLING_CONVENTION_HACK
-
   if (mNP_GetValue) {
     *error = mNP_GetValue(future, aVariable, aValue);
   } else {
@@ -179,8 +178,6 @@ PluginPRLibrary::NPP_New(NPMIMEType pluginType, NPP instance,
 			 char* argv[], NPSavedData* saved,
 			 NPError* error)
 {
-  CALLING_CONVENTION_HACK
-
   if (!mNPP_New)
     return NS_ERROR_FAILURE;
   *error = mNPP_New(pluginType, instance, mode, argc, argn, argv, saved);
