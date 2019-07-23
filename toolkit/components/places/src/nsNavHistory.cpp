@@ -69,6 +69,7 @@
 #include "prsystem.h"
 #include "prtime.h"
 #include "prprf.h"
+#include "nsEscape.h"
 
 #include "mozIStorageService.h"
 #include "mozIStorageConnection.h"
@@ -2035,7 +2036,8 @@ nsNavHistory::ExecuteQueries(nsINavHistoryQuery** aQueries, PRUint32 aQueryCount
 
 
 nsresult
-nsNavHistory::GetQueryResults(const nsCOMArray<nsNavHistoryQuery>& aQueries,
+nsNavHistory::GetQueryResults(nsNavHistoryQueryResultNode *aResultNode,
+                              const nsCOMArray<nsNavHistoryQuery>& aQueries,
                               nsNavHistoryQueryOptions *aOptions,
                               nsCOMArray<nsNavHistoryResultNode>* aResults)
 {
@@ -2254,13 +2256,13 @@ nsNavHistory::GetQueryResults(const nsCOMArray<nsNavHistoryQuery>& aQueries,
         
         nsCOMArray<nsNavHistoryResultNode> filteredResults;
         FilterResultSet(toplevel, &filteredResults, aQueries[0]->SearchTerms());
-        rv = RecursiveGroup(filteredResults, groupings, groupCount,
+        rv = RecursiveGroup(aResultNode, filteredResults, groupings, groupCount,
                             aResults);
         NS_ENSURE_SUCCESS(rv, rv);
       }
     } else {
       
-      rv = RecursiveGroup(toplevel, groupings, groupCount, aResults);
+      rv = RecursiveGroup(aResultNode, toplevel, groupings, groupCount, aResults);
       NS_ENSURE_SUCCESS(rv, rv);
     }
   }
@@ -3571,7 +3573,8 @@ nsNavHistory::ResultsAsList(mozIStorageStatement* statement,
 
 
 nsresult
-nsNavHistory::RecursiveGroup(const nsCOMArray<nsNavHistoryResultNode>& aSource,
+nsNavHistory::RecursiveGroup(nsNavHistoryQueryResultNode *aResultNode,
+                             const nsCOMArray<nsNavHistoryResultNode>& aSource,
                              const PRUint16* aGroupingMode, PRUint32 aGroupCount,
                              nsCOMArray<nsNavHistoryResultNode>* aDest)
 {
@@ -3582,13 +3585,13 @@ nsNavHistory::RecursiveGroup(const nsCOMArray<nsNavHistoryResultNode>& aSource,
   nsresult rv;
   switch (aGroupingMode[0]) {
     case nsINavHistoryQueryOptions::GROUP_BY_DAY:
-      rv = GroupByDay(aSource, aDest);
+      rv = GroupByDay(aResultNode, aSource, aDest);
       break;
     case nsINavHistoryQueryOptions::GROUP_BY_HOST:
-      rv = GroupByHost(aSource, aDest, PR_FALSE);
+      rv = GroupByHost(aResultNode, aSource, aDest, PR_FALSE);
       break;
     case nsINavHistoryQueryOptions::GROUP_BY_DOMAIN:
-      rv = GroupByHost(aSource, aDest, PR_TRUE);
+      rv = GroupByHost(aResultNode, aSource, aDest, PR_TRUE);
       break;
     case nsINavHistoryQueryOptions::GROUP_BY_FOLDER:
       
@@ -3609,7 +3612,7 @@ nsNavHistory::RecursiveGroup(const nsCOMArray<nsNavHistoryResultNode>& aSource,
         nsNavHistoryContainerResultNode* container = curNode->GetAsContainer();
         nsCOMArray<nsNavHistoryResultNode> temp(container->mChildren);
         container->mChildren.Clear();
-        rv = RecursiveGroup(temp, &aGroupingMode[1], aGroupCount - 1,
+        rv = RecursiveGroup(aResultNode, temp, &aGroupingMode[1], aGroupCount - 1,
                             &container->mChildren);
         NS_ENSURE_SUCCESS(rv, rv);
       }
@@ -3631,13 +3634,45 @@ GetAgeInDays(PRTime aNormalizedNow, PRTime aDate)
   return ((aNormalizedNow - dateMidnight) / USECS_PER_DAY);
 }
 
+const PRInt64 UNDEFINED_AGE_IN_DAYS = -1;
+
+
+
+
+nsresult
+CreatePlacesPersistURN(nsNavHistoryQueryResultNode *aResultNode, 
+                      PRInt64 aAgeInDays, const nsCString& aTitle, nsCString& aURN)
+{
+  nsCAutoString uri;
+  nsresult rv = aResultNode->GetUri(uri);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  aURN.Assign(NS_LITERAL_CSTRING("urn:places-persist:"));
+  aURN.Append(uri);
+
+  aURN.Append(NS_LITERAL_CSTRING(","));
+  if (aAgeInDays != UNDEFINED_AGE_IN_DAYS)
+    aURN.AppendInt(aAgeInDays);
+
+  aURN.Append(NS_LITERAL_CSTRING(","));
+  if (!aTitle.IsEmpty()) {
+    nsCAutoString escapedTitle;
+    PRBool success = NS_Escape(aTitle, escapedTitle, url_XAlphas);
+    NS_ENSURE_TRUE(success, NS_ERROR_OUT_OF_MEMORY);
+    aURN.Append(escapedTitle);
+  }
+
+  return NS_OK;
+}
+
 
 
 
 
 
 nsresult
-nsNavHistory::GroupByDay(const nsCOMArray<nsNavHistoryResultNode>& aSource,
+nsNavHistory::GroupByDay(nsNavHistoryQueryResultNode *aResultNode,
+                         const nsCOMArray<nsNavHistoryResultNode>& aSource,
                          nsCOMArray<nsNavHistoryResultNode>* aDest)
 {
   
@@ -3681,8 +3716,12 @@ nsNavHistory::GroupByDay(const nsCOMArray<nsNavHistoryResultNode>& aSource,
     curDateName = dateNames[ageInDays];
 
     if (!dates[ageInDays]) {
+      nsCAutoString urn;
+      nsresult rv = CreatePlacesPersistURN(aResultNode, ageInDays, EmptyCString(), urn);
+      NS_ENSURE_SUCCESS(rv, rv);
+
       
-      dates[ageInDays] = new nsNavHistoryContainerResultNode(EmptyCString(), 
+      dates[ageInDays] = new nsNavHistoryContainerResultNode(urn, 
           curDateName,
           EmptyCString(),
           nsNavHistoryResultNode::RESULT_TYPE_DAY,
@@ -3719,7 +3758,8 @@ nsNavHistory::GroupByDay(const nsCOMArray<nsNavHistoryResultNode>& aSource,
 
 
 nsresult
-nsNavHistory::GroupByHost(const nsCOMArray<nsNavHistoryResultNode>& aSource,
+nsNavHistory::GroupByHost(nsNavHistoryQueryResultNode *aResultNode,
+                          const nsCOMArray<nsNavHistoryResultNode>& aSource,
                           nsCOMArray<nsNavHistoryResultNode>* aDest,
                           PRBool aIsDomain)
 {
@@ -3758,7 +3798,11 @@ nsNavHistory::GroupByHost(const nsCOMArray<nsNavHistoryResultNode>& aSource,
       nsCAutoString title;
       TitleForDomain(curHostName, title);
 
-      curTopGroup = new nsNavHistoryContainerResultNode(EmptyCString(), title,
+      nsCAutoString urn;
+      nsresult rv = CreatePlacesPersistURN(aResultNode, UNDEFINED_AGE_IN_DAYS, title, urn);
+      NS_ENSURE_SUCCESS(rv, rv);
+
+      curTopGroup = new nsNavHistoryContainerResultNode(urn, title,
           EmptyCString(), nsNavHistoryResultNode::RESULT_TYPE_HOST, PR_TRUE,
           EmptyCString());
       if (! curTopGroup)
@@ -3766,7 +3810,8 @@ nsNavHistory::GroupByHost(const nsCOMArray<nsNavHistoryResultNode>& aSource,
 
       if (! hosts.Put(curHostName, curTopGroup))
         return NS_ERROR_OUT_OF_MEMORY;
-      nsresult rv = aDest->AppendObject(curTopGroup);
+   
+      rv = aDest->AppendObject(curTopGroup);
       NS_ENSURE_SUCCESS(rv, rv);
     }
     if (! curTopGroup->mChildren.AppendObject(aSource[i]))
