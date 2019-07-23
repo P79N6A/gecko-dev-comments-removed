@@ -2188,7 +2188,10 @@ nsEventStateManager::DoScrollText(nsPresContext* aPresContext,
           }
         } else {
           
-          passToParent = PR_TRUE;
+          if (!passToParent) {
+            passToParent = PR_TRUE;
+            nsMouseWheelTransaction::EndTransaction();
+          }
         }
       }
     }
