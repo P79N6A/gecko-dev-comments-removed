@@ -206,6 +206,7 @@ XBLResolve(JSContext *cx, JSObject *obj, jsval id, uintN flags,
   
   PRBool didInstall;
   nsresult rv = field->InstallField(context, origObj,
+                                    content->NodePrincipal(),
                                     protoBinding->DocURI(),
                                     &didInstall);
   if (NS_FAILED(rv)) {
