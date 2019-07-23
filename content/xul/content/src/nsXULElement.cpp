@@ -3206,6 +3206,9 @@ nsXULPrototypeScript::Compile(const PRUnichar* aText,
                                 
                                 
                                 
+                                
+                                
+                                
                                 aDocument->NodePrincipal(),
                                 urlspec.get(),
                                 aLineNo,

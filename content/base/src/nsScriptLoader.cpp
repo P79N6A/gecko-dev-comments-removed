@@ -74,48 +74,6 @@
 
 
 
-
-
-
-
-static already_AddRefed<nsIPrincipal>
-MaybeDowngradeToCodebase(nsIPrincipal *aMaybeCertPrincipal,
-                         nsIPrincipal *aNewPrincipal)
-{
-  NS_PRECONDITION(aMaybeCertPrincipal, "Null old principal!");
-  NS_PRECONDITION(aNewPrincipal, "Null new principal!");
-
-  nsIPrincipal *principal = aMaybeCertPrincipal;
-
-  PRBool hasCert;
-  aMaybeCertPrincipal->GetHasCertificate(&hasCert);
-  if (hasCert) {
-    PRBool equal;
-    aMaybeCertPrincipal->Equals(aNewPrincipal, &equal);
-    if (!equal) {
-      nsCOMPtr<nsIURI> uri, domain;
-      aMaybeCertPrincipal->GetURI(getter_AddRefs(uri));
-      aMaybeCertPrincipal->GetDomain(getter_AddRefs(domain));
-
-      nsContentUtils::GetSecurityManager()->GetCodebasePrincipal(uri,
-                                                                 &principal);
-      if (principal && domain) {
-        principal->SetDomain(domain);
-      }
-
-      return principal;
-    }
-  }
-
-  NS_ADDREF(principal);
-
-  return principal;
-}
-
-
-
-
-
 class nsScriptLoadRequest : public nsISupports {
 public:
   nsScriptLoadRequest(nsIScriptElement* aElement,
@@ -895,18 +853,8 @@ nsScriptLoader::PrepareLoadedRequest(nsScriptLoadRequest* aRequest,
     
     
     
-    if (channel) {
-      nsCOMPtr<nsIPrincipal> channelPrincipal;
-      nsContentUtils::GetSecurityManager()->
-        GetChannelPrincipal(channel, getter_AddRefs(channelPrincipal));
-      if (channelPrincipal) {
-        nsCOMPtr<nsIPrincipal> newPrincipal =
-          MaybeDowngradeToCodebase(mDocument->NodePrincipal(),
-                                   channelPrincipal);
-
-        mDocument->SetPrincipal(newPrincipal);
-      }
-    }
+    rv = DowngradePrincipalIfNeeded(mDocument, channel);
+    NS_ENSURE_SUCCESS(rv, rv);
   }
 
   
@@ -918,6 +866,53 @@ nsScriptLoader::PrepareLoadedRequest(nsScriptLoadRequest* aRequest,
 
   
   aRequest->mLoading = PR_FALSE;
+
+  return NS_OK;
+}
+
+
+nsresult
+nsScriptLoader::DowngradePrincipalIfNeeded(nsIDocument* aDocument,
+                                           nsIChannel* aChannel)
+{
+  if (!aChannel) {
+    return NS_ERROR_UNEXPECTED;
+  }
+
+  nsCOMPtr<nsIPrincipal> channelPrincipal;
+  nsresult rv = nsContentUtils::GetSecurityManager()->
+    GetChannelPrincipal(aChannel, getter_AddRefs(channelPrincipal));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  NS_ASSERTION(channelPrincipal, "Gotta have a principal here!");
+
+  
+  
+  
+
+  PRBool hasCert;
+  nsIPrincipal* docPrincipal = aDocument->NodePrincipal();
+  docPrincipal->GetHasCertificate(&hasCert);
+  if (hasCert) {
+    PRBool equal;
+    docPrincipal->Equals(channelPrincipal, &equal);
+    if (!equal) {
+      nsCOMPtr<nsIURI> uri, domain;
+      docPrincipal->GetURI(getter_AddRefs(uri));
+      docPrincipal->GetDomain(getter_AddRefs(domain));
+
+      nsCOMPtr<nsIPrincipal> newPrincipal;
+      rv = nsContentUtils::GetSecurityManager()->
+        GetCodebasePrincipal(uri, getter_AddRefs(newPrincipal));
+      NS_ENSURE_SUCCESS(rv, rv);
+
+      NS_ASSERTION(newPrincipal, "Gotta have a new principal");
+      if (domain) {
+        newPrincipal->SetDomain(domain);
+      }
+      aDocument->SetPrincipal(newPrincipal);
+    }
+  }
 
   return NS_OK;
 }

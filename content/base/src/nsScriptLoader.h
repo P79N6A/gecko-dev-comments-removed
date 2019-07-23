@@ -180,6 +180,13 @@ public:
 
   void ProcessPendingRequests();
 
+  
+
+
+
+  static nsresult DowngradePrincipalIfNeeded(nsIDocument* aDocument,
+                                             nsIChannel* aChannel);
+
 protected:
   
 
