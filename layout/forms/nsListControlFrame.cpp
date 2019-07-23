@@ -2479,13 +2479,16 @@ nsListControlFrame::DropDownToggleKey(nsIDOMEvent* aKeyEvent)
   
   if (IsInDropDownMode() && !nsComboboxControlFrame::ToolkitHasNativePopup()) {
     aKeyEvent->PreventDefault();
-    nsIFrame* comboFrame;
-    CallQueryInterface(mComboboxFrame, &comboFrame);
-    nsWeakFrame weakFrame(comboFrame);
-    mComboboxFrame->ShowDropDown(!mComboboxFrame->IsDroppedDown());
-    if (!weakFrame.IsAlive())
-      return;
-    mComboboxFrame->RedisplaySelectedText();
+    if (!mComboboxFrame->IsDroppedDown()) {
+      mComboboxFrame->ShowDropDown(PR_TRUE);
+    } else {
+      nsWeakFrame weakFrame(this);
+      
+      ComboboxFinish(mEndSelectionIndex);
+      if (weakFrame.IsAlive()) {
+        FireOnChange();
+      }
+    }
   }
 }
 
