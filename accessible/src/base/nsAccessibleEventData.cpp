@@ -40,6 +40,10 @@
 #include "nsIAccessibilityService.h"
 #include "nsIAccessNode.h"
 #include "nsIServiceManager.h"
+#ifdef MOZ_XUL
+#include "nsIDOMXULMultSelectCntrlEl.h"
+#include "nsXULTreeAccessible.h"
+#endif
 
 NS_IMPL_ISUPPORTS1(nsAccEvent, nsIAccessibleEvent)
 
@@ -125,6 +129,37 @@ nsAccEvent::GetAccessibleByNode()
 
   nsIAccessible *accessible = nsnull;
   accService->GetAccessibleFor(mDOMNode, &accessible);
+#ifdef MOZ_XUL
+  
+  
+  
+  
+  nsAutoString localName;
+  mDOMNode->GetLocalName(localName);
+  if (localName.EqualsLiteral("tree")) {
+    nsCOMPtr<nsIDOMXULMultiSelectControlElement> multiSelect =
+      do_QueryInterface(mDOMNode);
+    if (multiSelect) {
+      PRInt32 treeIndex = -1;
+      multiSelect->GetCurrentIndex(&treeIndex);
+      if (treeIndex >= 0) {
+        nsCOMPtr<nsIAccessibleTreeCache> treeCache(do_QueryInterface(accessible));
+        NS_IF_RELEASE(accessible);
+        nsCOMPtr<nsIAccessible> treeItemAccessible;
+        if (!treeCache ||
+            NS_FAILED(treeCache->GetCachedTreeitemAccessible(
+                      treeIndex,
+                      nsnull,
+                      getter_AddRefs(treeItemAccessible))) ||
+                      !treeItemAccessible) {
+          return nsnull;
+        }
+        NS_IF_ADDREF(accessible = treeItemAccessible);
+      }
+    }
+  }
+#endif
+
   return accessible;
 }
 
