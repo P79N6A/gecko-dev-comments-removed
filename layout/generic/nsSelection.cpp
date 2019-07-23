@@ -1076,6 +1076,24 @@ nsFrameSelection::MoveCaret(PRUint32          aKeycode,
                             PRBool            aContinueSelection,
                             nsSelectionAmount aAmount)
 {
+  PRBool visualMovement =
+      (aKeycode == nsIDOMKeyEvent::DOM_VK_BACK_SPACE ||
+       aKeycode == nsIDOMKeyEvent::DOM_VK_DELETE ||
+       aKeycode == nsIDOMKeyEvent::DOM_VK_HOME ||
+       aKeycode == nsIDOMKeyEvent::DOM_VK_END) ?
+      PR_FALSE : 
+      mCaretMovementStyle == 1 ||
+        (mCaretMovementStyle == 2 && !aContinueSelection);
+
+  return MoveCaret(aKeycode, aContinueSelection, aAmount, visualMovement);
+}
+
+nsresult
+nsFrameSelection::MoveCaret(PRUint32          aKeycode,
+                            PRBool            aContinueSelection,
+                            nsSelectionAmount aAmount,
+                            PRBool            aVisualMovement)
+{
   NS_ENSURE_STATE(mShell);
   
   
@@ -1148,17 +1166,10 @@ nsFrameSelection::MoveCaret(PRUint32          aKeycode,
     }
   }
 
-  PRBool visualMovement = 
-    (aKeycode == nsIDOMKeyEvent::DOM_VK_BACK_SPACE || 
-     aKeycode == nsIDOMKeyEvent::DOM_VK_DELETE ||
-     aKeycode == nsIDOMKeyEvent::DOM_VK_HOME || 
-     aKeycode == nsIDOMKeyEvent::DOM_VK_END) ?
-    PR_FALSE : 
-    mCaretMovementStyle == 1 || (mCaretMovementStyle == 2 && !aContinueSelection);
-
   nsIFrame *frame;
   PRInt32 offsetused = 0;
-  result = sel->GetPrimaryFrameForFocusNode(&frame, &offsetused, visualMovement);
+  result = sel->GetPrimaryFrameForFocusNode(&frame, &offsetused,
+                                            aVisualMovement);
 
   if (NS_FAILED(result) || !frame)
     return result?result:NS_ERROR_FAILURE;
@@ -1167,7 +1178,7 @@ nsFrameSelection::MoveCaret(PRUint32          aKeycode,
   
   
   pos.SetData(aAmount, eDirPrevious, offsetused, desiredX, 
-              PR_TRUE, mLimiter != nsnull, PR_TRUE, visualMovement);
+              PR_TRUE, mLimiter != nsnull, PR_TRUE, aVisualMovement);
 
   nsBidiLevel baseLevel = nsBidiPresUtils::GetFrameBaseLevel(frame);
   
@@ -5663,6 +5674,123 @@ nsTypedSelection::DeleteFromDocument()
   if (!mFrameSelection)
     return NS_OK;
   return mFrameSelection->DeleteFromDocument();
+}
+
+NS_IMETHODIMP
+nsTypedSelection::Modify(const nsAString& aAlter, const nsAString& aDirection,
+                         const nsAString& aGranularity)
+{
+  
+  if (!mFrameSelection || !GetAnchorFocusRange() || !GetFocusNode()) {
+    return NS_OK;
+  }
+
+  if (!aAlter.LowerCaseEqualsLiteral("move") &&
+      !aAlter.LowerCaseEqualsLiteral("extend")) {
+    return NS_ERROR_INVALID_ARG;
+  }
+
+  if (!aDirection.LowerCaseEqualsLiteral("forward") &&
+      !aDirection.LowerCaseEqualsLiteral("backward") &&
+      !aDirection.LowerCaseEqualsLiteral("left") &&
+      !aDirection.LowerCaseEqualsLiteral("right")) {
+    return NS_ERROR_INVALID_ARG;
+  }
+
+  
+  PRBool visual  = aDirection.LowerCaseEqualsLiteral("left") ||
+                   aDirection.LowerCaseEqualsLiteral("right") ||
+                   aGranularity.LowerCaseEqualsLiteral("line");
+
+  PRBool forward = aDirection.LowerCaseEqualsLiteral("forward") ||
+                   aDirection.LowerCaseEqualsLiteral("right");
+
+  PRBool extend  = aAlter.LowerCaseEqualsLiteral("extend");
+
+  
+  nsSelectionAmount amount;
+  PRUint32 keycode;
+  if (aGranularity.LowerCaseEqualsLiteral("character")) {
+    amount = eSelectCharacter;
+    keycode = forward ? (PRUint32) nsIDOMKeyEvent::DOM_VK_RIGHT :
+                        (PRUint32) nsIDOMKeyEvent::DOM_VK_LEFT;
+  }
+  else if (aGranularity.LowerCaseEqualsLiteral("word")) {
+    amount = eSelectWord;
+    keycode = forward ? (PRUint32) nsIDOMKeyEvent::DOM_VK_RIGHT :
+                        (PRUint32) nsIDOMKeyEvent::DOM_VK_LEFT;
+  }
+  else if (aGranularity.LowerCaseEqualsLiteral("line")) {
+    amount = eSelectLine;
+    keycode = forward ? (PRUint32) nsIDOMKeyEvent::DOM_VK_DOWN :
+                        (PRUint32) nsIDOMKeyEvent::DOM_VK_UP;
+  }
+  else if (aGranularity.LowerCaseEqualsLiteral("lineboundary")) {
+    amount = eSelectLine;
+    keycode = forward ? (PRUint32) nsIDOMKeyEvent::DOM_VK_END :
+                        (PRUint32) nsIDOMKeyEvent::DOM_VK_HOME;
+  }
+  else if (aGranularity.LowerCaseEqualsLiteral("sentence") ||
+           aGranularity.LowerCaseEqualsLiteral("sentenceboundary") ||
+           aGranularity.LowerCaseEqualsLiteral("paragraph") ||
+           aGranularity.LowerCaseEqualsLiteral("paragraphboundary") ||
+           aGranularity.LowerCaseEqualsLiteral("documentboundary")) {
+    return NS_ERROR_NOT_IMPLEMENTED;
+  }
+  else {
+    return NS_ERROR_INVALID_ARG;
+  }
+
+  
+  
+  
+  nsresult rv = NS_OK;
+  if (!extend) {
+    nsINode* focusNode = GetFocusNode();
+    
+    NS_ENSURE_TRUE(focusNode, NS_ERROR_UNEXPECTED);
+    PRInt32 focusOffset = GetFocusOffset();
+    Collapse(focusNode, focusOffset);
+  }
+
+  
+  
+  nsIFrame *frame;
+  PRInt32 offset;
+  rv = GetPrimaryFrameForFocusNode(&frame, &offset, visual);
+  if (NS_SUCCEEDED(rv) && frame) {
+    nsBidiLevel baseLevel = nsBidiPresUtils::GetFrameBaseLevel(frame);
+
+    if (baseLevel & 1) {
+      if (!visual && keycode == nsIDOMKeyEvent::DOM_VK_RIGHT) {
+        keycode = nsIDOMKeyEvent::DOM_VK_LEFT;
+      }
+      else if (!visual && keycode == nsIDOMKeyEvent::DOM_VK_LEFT) {
+        keycode = nsIDOMKeyEvent::DOM_VK_RIGHT;
+      }
+      else if (visual && keycode == nsIDOMKeyEvent::DOM_VK_HOME) {
+        keycode = nsIDOMKeyEvent::DOM_VK_END;
+      }
+      else if (visual && keycode == nsIDOMKeyEvent::DOM_VK_END) {
+        keycode = nsIDOMKeyEvent::DOM_VK_HOME;
+      }
+    }
+  }
+
+  
+  
+  
+  
+  rv = mFrameSelection->MoveCaret(keycode, extend, amount, visual);
+
+  if (aGranularity.LowerCaseEqualsLiteral("line") && NS_FAILED(rv)) {
+    nsCOMPtr<nsISelectionController> shell =
+      do_QueryInterface(mFrameSelection->GetShell());
+    if (!shell)
+      return NS_OK;
+    shell->CompleteMove(forward, extend);
+  }
+  return NS_OK;
 }
 
 
