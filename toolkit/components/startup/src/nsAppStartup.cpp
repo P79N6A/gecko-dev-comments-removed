@@ -190,6 +190,11 @@ nsAppStartup::Quit(PRUint32 aMode)
   if (mShuttingDown)
     return NS_OK;
 
+  nsCOMPtr<nsIObserverService> obsService
+    (do_GetService("@mozilla.org/observer-service;1"));
+  if (obsService)
+    obsService->NotifyObservers(nsnull, "quit-application-granted", nsnull);
+
   
 
 
@@ -264,8 +269,6 @@ nsAppStartup::Quit(PRUint32 aMode)
 
     
     
-    nsCOMPtr<nsIObserverService> obsService
-      (do_GetService("@mozilla.org/observer-service;1"));
     if (obsService) {
       NS_NAMED_LITERAL_STRING(shutdownStr, "shutdown");
       NS_NAMED_LITERAL_STRING(restartStr, "restart");

@@ -1655,9 +1655,6 @@ var gFinishedPage = {
     if (cancelQuit.data)
       return;
     
-    
-    os.notifyObservers(null, "quit-application-granted", null);
-
     var appStartup = 
         Components.classes["@mozilla.org/toolkit/app-startup;1"].
         getService(Components.interfaces.nsIAppStartup);

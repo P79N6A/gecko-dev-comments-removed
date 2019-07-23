@@ -212,9 +212,6 @@ function restartApp() {
   if (cancelQuit.data)
     return;
 
-  
-  os.notifyObservers(null, "quit-application-granted", null);
-
   Components.classes["@mozilla.org/toolkit/app-startup;1"].getService(nsIAppStartup)
             .quit(nsIAppStartup.eRestart | nsIAppStartup.eAttemptQuit);
 }
