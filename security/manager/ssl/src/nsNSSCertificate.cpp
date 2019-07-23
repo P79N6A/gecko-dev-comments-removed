@@ -1505,8 +1505,27 @@ char* nsNSSCertificate::defaultServerNickname(CERTCertificate* cert)
   char* servername = nsnull;
   
   servername = CERT_GetCommonName(&cert->subject);
-  if (servername == NULL) {
-    return nsnull;
+  if (!servername) {
+    
+    
+    servername = CERT_GetOrgUnitName(&cert->subject);
+    if (!servername) {
+      servername = CERT_GetOrgName(&cert->subject);
+      if (!servername) {
+        servername = CERT_GetLocalityName(&cert->subject);
+        if (!servername) {
+          servername = CERT_GetStateName(&cert->subject);
+          if (!servername) {
+            servername = CERT_GetCountryName(&cert->subject);
+            if (!servername) {
+              
+              
+              return nsnull;
+            }
+          }
+        }
+      }
+    }
   }
    
   count = 1;
@@ -1523,7 +1542,7 @@ char* nsNSSCertificate::defaultServerNickname(CERTCertificate* cert)
 
     conflict = SEC_CertNicknameConflict(nickname, &cert->derSubject,
                                         cert->dbhandle);
-    if (conflict == PR_SUCCESS) {
+    if (!conflict) {
       break;
     }
     PR_Free(nickname);
