@@ -115,13 +115,14 @@ public:
   }
 #endif
 
-  virtual nsIFrame* HitTest(nsDisplayListBuilder* aBuilder, nsPoint aPt);
+  virtual nsIFrame* HitTest(nsDisplayListBuilder* aBuilder, nsPoint aPt,
+                            HitTestState* aState);
   NS_DISPLAY_DECL_NAME("XULTreeColSplitterTarget")
 };
 
 nsIFrame* 
 nsDisplayXULTreeColSplitterTarget::HitTest(nsDisplayListBuilder* aBuilder,
-                                           nsPoint aPt)
+                                           nsPoint aPt, HitTestState* aState)
 {
   nsPoint pt = aPt - aBuilder->ToReferenceFrame(mFrame);
   

@@ -367,6 +367,14 @@ public:
     TYPE_WRAPLIST
   };
 
+  struct HitTestState {
+    ~HitTestState() {
+      NS_ASSERTION(mItemBuffer.Length() == 0,
+                   "mItemBuffer should have been cleared");
+    }
+    nsAutoTArray<nsDisplayItem*, 100> mItemBuffer;
+  };
+
   
 
 
@@ -380,7 +388,10 @@ public:
 
 
 
-  virtual nsIFrame* HitTest(nsDisplayListBuilder* aBuilder, nsPoint aPt) { return nsnull; }
+
+
+  virtual nsIFrame* HitTest(nsDisplayListBuilder* aBuilder, nsPoint aPt,
+                            HitTestState* aState) { return nsnull; }
   
 
 
@@ -657,8 +668,9 @@ public:
 
 
 
-  nsIFrame* HitTest(nsDisplayListBuilder* aBuilder, nsPoint aPt) const;
-  
+  nsIFrame* HitTest(nsDisplayListBuilder* aBuilder, nsPoint aPt,
+                    nsDisplayItem::HitTestState* aState) const;
+
 private:
   
   
@@ -974,7 +986,8 @@ public:
   }
 #endif
 
-  virtual nsIFrame* HitTest(nsDisplayListBuilder* aBuilder, nsPoint aPt) { return mFrame; }
+  virtual nsIFrame* HitTest(nsDisplayListBuilder* aBuilder, nsPoint aPt,
+                            HitTestState* aState) { return mFrame; }
   virtual PRBool IsOpaque(nsDisplayListBuilder* aBuilder);
   virtual PRBool IsVaryingRelativeToFrame(nsDisplayListBuilder* aBuilder,
                                           nsIFrame* aAncestorFrame);
@@ -1024,7 +1037,8 @@ public:
   }
 #endif
 
-  virtual nsIFrame* HitTest(nsDisplayListBuilder* aBuilder, nsPoint aPt) { return mFrame; }
+  virtual nsIFrame* HitTest(nsDisplayListBuilder* aBuilder, nsPoint aPt,
+                            HitTestState* aState) { return mFrame; }
   NS_DISPLAY_DECL_NAME("EventReceiver")
 };
 
@@ -1054,7 +1068,8 @@ public:
   nsDisplayWrapList(nsIFrame* aFrame, nsDisplayItem* aItem);
   virtual ~nsDisplayWrapList();
   virtual Type GetType() { return TYPE_WRAPLIST; }
-  virtual nsIFrame* HitTest(nsDisplayListBuilder* aBuilder, nsPoint aPt);
+  virtual nsIFrame* HitTest(nsDisplayListBuilder* aBuilder, nsPoint aPt,
+                            HitTestState* aState);
   virtual nsRect GetBounds(nsDisplayListBuilder* aBuilder);
   virtual PRBool IsOpaque(nsDisplayListBuilder* aBuilder);
   virtual PRBool IsUniform(nsDisplayListBuilder* aBuilder);
