@@ -118,16 +118,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
 import xpidl
 import header
 import os, re
@@ -591,7 +581,7 @@ resultConvTemplates = {
 def isVariantType(t):
     return isSpecificInterfaceType(t, 'nsIVariant')
 
-def writeResultConv(f, type, paramNum, jsvalPtr, jsvalRef):
+def writeResultConv(f, type, jsvalPtr, jsvalRef):
     """ Emit code to convert the C++ variable `result` to a jsval.
 
     The emitted code contains a return statement; it returns JS_TRUE on
@@ -609,15 +599,14 @@ def writeResultConv(f, type, paramNum, jsvalPtr, jsvalRef):
         
     elif isInterfaceType(type):
         if isVariantType(type):
-            f.write("    return xpc_qsVariantToJsval(ccx, result, %d, %s);\n"
-                    % (paramNum, jsvalPtr))
+            f.write("    return xpc_qsVariantToJsval(lccx, result, %s);\n"
+                    % jsvalPtr)
             return
         else:
-            f.write("    AutoMarkingNativeInterfacePtr resultiface(ccx, "
-                    "%s_Interface(ccx));\n" % type.name)
-            f.write("    return xpc_qsXPCOMObjectToJsval(ccx, result, "
-                    "xpc_qsGetWrapperCache(result), resultiface, %s);\n"
-                    % jsvalPtr)
+            f.write("    return xpc_qsXPCOMObjectToJsval(lccx, result, "
+                    "xpc_qsGetWrapperCache(result), &NS_GET_IID(%s), "
+                    "&interfaces[k_%s], %s);\n"
+                    % (type.name, type.name, jsvalPtr))
             return
 
     warn("Unable to convert result of type %s" % type.name)
@@ -678,16 +667,18 @@ def writeQuickStub(f, customMethodCalls, member, stubName, isSetter=False):
                 "        return JS_FALSE;\n")
 
     
-    haveCcx = isMethod and (isInterfaceType(member.realtype)
-                            or anyParamRequiresCcx(member))
+    haveCcx = isMethod and anyParamRequiresCcx(member)
     if haveCcx:
-            f.write("    XPCCallContext ccx(JS_CALLER, cx, obj, "
-                    "JSVAL_TO_OBJECT(JS_CALLEE(cx, vp)));\n")
-    else:
-        
-        
-        if isAttr and isInterfaceType(member.realtype):
-            f.write("    XPCCallContext ccx(JS_CALLER, cx, obj);\n")
+        f.write("    XPCCallContext ccx(JS_CALLER, cx, obj, "
+                "JSVAL_TO_OBJECT(JS_CALLEE(cx, vp)));\n")
+        if isInterfaceType(member.realtype):
+            f.write("    XPCLazyCallContext lccx(ccx);\n")
+    elif isInterfaceType(member.realtype):
+        if isMethod:
+            f.write("    JSObject *callee = "
+                    "JSVAL_TO_OBJECT(JS_CALLEE(cx, vp));\n")
+        elif isGetter:
+            f.write("    JSObject *callee = nsnull;\n")
 
     
     if customMethodCall is None or not 'thisType' in customMethodCall:
@@ -697,7 +688,7 @@ def writeQuickStub(f, customMethodCalls, member, stubName, isSetter=False):
     f.write("    xpc_qsSelfRef selfref;\n")
     
     
-    if isMethod and haveCcx:
+    if haveCcx:
         
         
         f.write("    if (!xpc_qsUnwrapThisFromCcx(ccx, &self, &selfref.ptr, "
@@ -712,8 +703,13 @@ def writeQuickStub(f, customMethodCalls, member, stubName, isSetter=False):
         else:
             pthisval = '&vp[1]' 
 
-        f.write("    if (!xpc_qsUnwrapThis(cx, obj, &self, &selfref.ptr, "
-                "%s))\n" % pthisval)
+        if not isSetter and isInterfaceType(member.realtype):
+            f.write("    XPCLazyCallContext lccx(JS_CALLER, cx, obj);\n")
+            f.write("    if (!xpc_qsUnwrapThis(cx, obj, callee, &self, "
+                    "&selfref.ptr, %s, &lccx))\n" % pthisval)
+        else:
+            f.write("    if (!xpc_qsUnwrapThis(cx, obj, nsnull, &self, "
+                    "&selfref.ptr, %s, nsnull))\n" % pthisval)
         f.write("        return JS_FALSE;\n")
 
     if isMethod:
@@ -807,10 +803,8 @@ def writeQuickStub(f, customMethodCalls, member, stubName, isSetter=False):
         f.write("#endif\n")
 
     
-    if isMethod:
-        writeResultConv(f, member.realtype, len(member.params) + 1, 'vp', '*vp')
-    elif isGetter:
-        writeResultConv(f, member.realtype, None, 'vp', '*vp')
+    if isMethod or isGetter:
+        writeResultConv(f, member.realtype, 'vp', '*vp')
     else:
         f.write("    return JS_TRUE;\n")
 
@@ -990,7 +984,7 @@ traceableResultConvTemplates = {
         "    return rval;\n",
     }
 
-def writeTraceableResultConv(f, type, paramNum):
+def writeTraceableResultConv(f, type):
     typeName = getBuiltinOrNativeTypeName(type)
     if typeName is not None:
         template = traceableResultConvTemplates.get(typeName)
@@ -1002,14 +996,13 @@ def writeTraceableResultConv(f, type, paramNum):
         
     elif isInterfaceType(type):
         if isVariantType(type):
-            f.write("    JSBool ok = xpc_qsVariantToJsval(ccx, result, %d, "
-                    "&vp.array[0]);\n" % paramNum)
+            f.write("    JSBool ok = xpc_qsVariantToJsval(lccx, result, "
+                    "&vp.array[0]);\n")
         else:
-            f.write("    AutoMarkingNativeInterfacePtr resultiface(ccx, "
-                    "%s_Interface(ccx));\n" % type.name)
-            f.write("    JSBool ok = xpc_qsXPCOMObjectToJsval(ccx, result, "
-                    "xpc_qsGetWrapperCache(result), resultiface, &vp.array[0]);"
-                    "\n")
+            f.write("    JSBool ok = xpc_qsXPCOMObjectToJsval(lccx, result, "
+                    "xpc_qsGetWrapperCache(result), &NS_GET_IID(%s), "
+                    "&interfaces[k_%s], &vp.array[0]);"
+                    "\n" % (type.name, type.name))
         f.write("    if (!ok) {\n");
         writeFailure(f, getTraceInfoDefaultReturn(type), 2)
         f.write("    return vp.array[0];\n")
@@ -1027,14 +1020,14 @@ def writeTraceableQuickStub(f, customMethodCalls, member, stubName):
         'params': ["CONTEXT", "THIS"]
         }
 
-    haveCcx = isInterfaceType(member.realtype) or anyParamRequiresCcx(member)
+    haveCcx = (member.kind == 'method') and anyParamRequiresCcx(member)
 
     customMethodCall = customMethodCalls.get(stubName, None)
 
     
     f.write("static %sFASTCALL\n" % getTraceType(member.type))
     f.write("%s(JSContext *cx, JSObject *obj" % (stubName + "_tn"))
-    if haveCcx:
+    if haveCcx or isInterfaceType(member.realtype):
         f.write(", JSObject *callee")
         traceInfo["params"].append("CALLEE")
     for i, param in enumerate(member.params):
@@ -1047,6 +1040,8 @@ def writeTraceableQuickStub(f, customMethodCalls, member, stubName):
     
     if haveCcx:
         f.write("    XPCCallContext ccx(JS_CALLER, cx, obj, callee);\n")
+        if isInterfaceType(member.realtype):
+            f.write("    XPCLazyCallContext lccx(ccx);\n")
 
     
     if customMethodCall is None or not 'thisType' in customMethodCall:
@@ -1058,9 +1053,13 @@ def writeTraceableQuickStub(f, customMethodCalls, member, stubName):
     if haveCcx:
         f.write("    if (!xpc_qsUnwrapThisFromCcx(ccx, &self, &selfref.ptr, "
                 "&vp.array[0])) {\n")
+    elif (member.kind == 'method') and isInterfaceType(member.realtype):
+        f.write("    XPCLazyCallContext lccx(JS_CALLER, cx, obj);\n")
+        f.write("    if (!xpc_qsUnwrapThis(cx, obj, callee, &self, &selfref.ptr, "
+                "&vp.array[0], &lccx)) {\n")
     else:
-        f.write("    if (!xpc_qsUnwrapThis(cx, obj, &self, &selfref.ptr, "
-                "&vp.array[0])) {\n")
+        f.write("    if (!xpc_qsUnwrapThis(cx, obj, nsnull, &self, &selfref.ptr, "
+                "&vp.array[0], nsnull)) {\n")
     writeFailure(f, getTraceInfoDefaultReturn(member.type), 2)
 
     argNames = []
@@ -1122,7 +1121,7 @@ def writeTraceableQuickStub(f, customMethodCalls, member, stubName):
         f.write("#endif\n")
 
     
-    writeTraceableResultConv(f, member.realtype, len(member.params) + 1)
+    writeTraceableResultConv(f, member.realtype)
 
     
     f.write("}\n\n")
@@ -1228,8 +1227,7 @@ def writeResultXPCInterfacesArray(f, conf, resulttypes):
     f.write("}\n\n")
     i = 0
     for type in resulttypes:
-        f.write("XPC_QS_DEFINE_XPCNATIVEINTERFACE_GETTER(%s, interfaces[%d])\n"
-                % (type, i))
+        f.write("static const PRUint32 k_%s = %d;\n" % (type, i))
         i += 1
     if count > 0:
         f.write("\n\n")
