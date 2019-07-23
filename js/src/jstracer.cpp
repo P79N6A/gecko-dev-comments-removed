@@ -2239,15 +2239,27 @@ js_GetUpvarStackOnTrace(JSContext* cx, uint32 upvarLevel, int32 slot, uint32 cal
     return js_GetUpvarOnTrace<UpvarStackTraits>(cx, upvarLevel, slot, callDepth, result);
 }
 
+
+
+
+
+
+
+
+
 template<typename T>
 uint32 JS_INLINE
-js_GetFromClosure(JSContext* cx, JSObject* inner, uint32 scopeIndex, uint32 slot, uint32 callDepth, 
+js_GetFromClosure(JSContext* cx, JSObject* callee, uint32 scopeIndex, uint32 slot, uint32 callDepth, 
                   double* result)
 {
-    JSObject* call = OBJ_GET_PARENT(cx, inner);
-    for (uint32 i = 0; i < scopeIndex; ++i) {
+    JS_ASSERT(scopeIndex >= 1);
+    JS_ASSERT(OBJ_GET_CLASS(cx, callee) == &js_FunctionClass);
+    JSObject* call = callee;
+
+    for (uint32 i = 0; i < scopeIndex; ++i)
         call = OBJ_GET_PARENT(cx, call);
-    }
+
+    JS_ASSERT(OBJ_GET_CLASS(cx, call) == &js_CallClass);
 
     InterpState* state = cx->interpState;
     FrameInfo** fip = state->rp + callDepth;
@@ -2293,10 +2305,10 @@ private:
 };
 
 uint32 JS_FASTCALL
-js_GetClosureArg(JSContext* cx, JSObject* inner, uint32 scopeIndex, uint32 slot, uint32 callDepth, 
+js_GetClosureArg(JSContext* cx, JSObject* callee, uint32 scopeIndex, uint32 slot, uint32 callDepth, 
                  double* result)
 {
-    return js_GetFromClosure<ArgClosureTraits>(cx, inner, scopeIndex, slot, callDepth, result);
+    return js_GetFromClosure<ArgClosureTraits>(cx, callee, scopeIndex, slot, callDepth, result);
 }
 
 struct VarClosureTraits
@@ -2308,10 +2320,10 @@ private:
 };
 
 uint32 JS_FASTCALL
-js_GetClosureVar(JSContext* cx, JSObject* inner, uint32 scopeIndex, uint32 slot, uint32 callDepth, 
+js_GetClosureVar(JSContext* cx, JSObject* callee, uint32 scopeIndex, uint32 slot, uint32 callDepth, 
                  double* result)
 {
-    return js_GetFromClosure<VarClosureTraits>(cx, inner, scopeIndex, slot, callDepth, result);
+    return js_GetFromClosure<VarClosureTraits>(cx, callee, scopeIndex, slot, callDepth, result);
 }
 
 
@@ -6535,7 +6547,6 @@ TraceRecorder::scopeChainProp(JSObject* obj, jsval*& vp, LIns*& ins, bool& track
     JSAtom* atom = atoms[GET_INDEX(cx->fp->regs->pc)];
     JSObject* obj2;
     JSProperty* prop;
-    JSObject* origobj = obj;
     if (!js_FindProperty(cx, ATOM_TO_JSID(atom), &obj, &obj2, &prop))
         ABORT_TRACE_ERROR("error in js_FindProperty");
     if (!prop)
@@ -6601,11 +6612,12 @@ TraceRecorder::scopeChainProp(JSObject* obj, jsval*& vp, LIns*& ins, bool& track
             } else {
                 
                 jsint scopeIndex = 0;
-                JSObject* objd = origobj;
-                while (objd != obj) {
-                    objd = OBJ_GET_PARENT(cx, objd);
+                JSObject* tmp = JSVAL_TO_OBJECT(cx->fp->argv[-2]);
+                while (tmp != obj) {
+                    tmp = OBJ_GET_PARENT(cx, tmp);
                     scopeIndex++;
                 }
+                JS_ASSERT(scopeIndex >= 1);
 
                 LIns* callee_ins = get(&cx->fp->argv[-2]);
                 LIns* outp = lir->insAlloc(sizeof(double));
