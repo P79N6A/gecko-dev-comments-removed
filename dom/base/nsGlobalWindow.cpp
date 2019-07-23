@@ -6836,15 +6836,12 @@ nsGlobalWindow::SetReadyForFocus()
 {
   FORWARD_TO_INNER_VOID(SetReadyForFocus, ());
 
-  
-  if (!mNeedsFocus)
-    return;
-
+  PRBool oldNeedsFocus = mNeedsFocus;
   mNeedsFocus = PR_FALSE;
 
   nsIFocusManager* fm = nsFocusManager::GetFocusManager();
   if (fm)
-    fm->WindowShown(this);
+    fm->WindowShown(this, oldNeedsFocus);
 }
 
 void
