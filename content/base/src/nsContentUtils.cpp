@@ -148,6 +148,7 @@ static NS_DEFINE_CID(kXTFServiceCID, NS_XTFSERVICE_CID);
 #include "nsIPrivateDOMEvent.h"
 #include "nsXULPopupManager.h"
 #include "nsIPermissionManager.h"
+#include "nsIScriptObjectPrincipal.h"
 
 #ifdef IBMBIDI
 #include "nsIBidiKeyboard.h"
@@ -892,6 +893,31 @@ nsContentUtils::CheckSameOrigin(nsIDOMNode *aTrustedNode,
 
 
 PRBool
+nsContentUtils::CanCallerAccess(nsIPrincipal* aSubjectPrincipal,
+                                nsIPrincipal* aPrincipal)
+{
+  PRBool subsumes;
+  nsresult rv = aSubjectPrincipal->Subsumes(aPrincipal, &subsumes);
+  NS_ENSURE_SUCCESS(rv, PR_FALSE);
+
+  if (subsumes) {
+    return PR_TRUE;
+  }
+
+  
+  
+  
+  PRBool isSystem;
+  rv = sSecurityManager->IsSystemPrincipal(aPrincipal, &isSystem);
+  isSystem = NS_FAILED(rv) || isSystem;
+  const char* capability =
+    NS_FAILED(rv) || isSystem ? "UniversalXPConnect" : "UniversalBrowserRead";
+
+  return IsCallerTrustedForCapability(capability);
+}
+
+
+PRBool
 nsContentUtils::CanCallerAccess(nsIDOMNode *aNode)
 {
   
@@ -909,26 +935,31 @@ nsContentUtils::CanCallerAccess(nsIDOMNode *aNode)
   nsCOMPtr<nsINode> node = do_QueryInterface(aNode);
   NS_ENSURE_TRUE(node, PR_FALSE);
 
-  nsIPrincipal* nodePrincipal = node->NodePrincipal();
+  return CanCallerAccess(subjectPrincipal, node->NodePrincipal());
+}
 
-  PRBool subsumes;
-  nsresult rv = subjectPrincipal->Subsumes(nodePrincipal, &subsumes);
-  NS_ENSURE_SUCCESS(rv, PR_FALSE);
 
-  if (subsumes) {
+PRBool
+nsContentUtils::CanCallerAccess(nsPIDOMWindow* aWindow)
+{
+  
+  
+  
+  nsCOMPtr<nsIPrincipal> subjectPrincipal;
+  sSecurityManager->GetSubjectPrincipal(getter_AddRefs(subjectPrincipal));
+
+  if (!subjectPrincipal) {
+    
+
     return PR_TRUE;
   }
 
-  
-  
-  
-  PRBool isSystem;
-  rv = sSecurityManager->IsSystemPrincipal(nodePrincipal, &isSystem);
-  isSystem = NS_FAILED(rv) || isSystem;
-  const char* capability =
-    NS_FAILED(rv) || isSystem ? "UniversalXPConnect" : "UniversalBrowserRead";
+  nsCOMPtr<nsIScriptObjectPrincipal> scriptObject =
+    do_QueryInterface(aWindow->IsOuterWindow() ?
+                      aWindow->GetCurrentInnerWindow() : aWindow);
+  NS_ENSURE_TRUE(scriptObject, PR_FALSE);
 
-  return IsCallerTrustedForCapability(capability);
+  return CanCallerAccess(subjectPrincipal, scriptObject->GetPrincipal());
 }
 
 

@@ -96,6 +96,7 @@ class nsVoidArray;
 struct JSRuntime;
 class nsICaseConversion;
 class nsIWidget;
+class nsPIDOMWindow;
 #ifdef MOZ_XTF
 class nsIXTFService;
 #endif
@@ -370,6 +371,10 @@ public:
 
   
   static PRBool CanCallerAccess(nsIDOMNode *aNode);
+
+  
+  
+  static PRBool CanCallerAccess(nsPIDOMWindow* aWindow);
 
   
 
@@ -1187,6 +1192,9 @@ private:
   static nsresult HoldScriptObject(PRUint32 aLangID, void* aObject);
   PR_STATIC_CALLBACK(void) DropScriptObject(PRUint32 aLangID, void *aObject,
                                             void *aClosure);
+
+  static PRBool CanCallerAccess(nsIPrincipal* aSubjectPrincipal,
+                                nsIPrincipal* aPrincipal);
 
   static nsIDOMScriptObjectFactory *sDOMScriptObjectFactory;
 
