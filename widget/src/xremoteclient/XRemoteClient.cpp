@@ -88,6 +88,9 @@
 
 static PRLogModuleInfo *sRemoteLm = NULL;
 
+static int (*sOldHandler)(Display *, XErrorEvent *);
+static PRBool sGotBadWindow;
+
 XRemoteClient::XRemoteClient()
 {
   mDisplay = 0;
@@ -183,40 +186,10 @@ XRemoteClient::SendCommand (const char *aProgram, const char *aUsername,
 {
   PR_LOG(sRemoteLm, PR_LOG_DEBUG, ("XRemoteClient::SendCommand"));
 
-  *aWindowFound = PR_FALSE;
-
-  Window w = FindBestWindow(aProgram, aUsername, aProfile, PR_FALSE);
-
-  nsresult rv = NS_OK;
-
-  if (w) {
-    
-    *aWindowFound = PR_TRUE;
-
-    
-    XSelectInput(mDisplay, w,
-                 (PropertyChangeMask|StructureNotifyMask));
-        
-    PRBool destroyed = PR_FALSE;
-
-    
-    rv = GetLock(w, &destroyed);
-
-    if (NS_SUCCEEDED(rv)) {
-      
-      rv = DoSendCommand(w, aCommand, aDesktopStartupID, aResponse, &destroyed);
-
-      
-      
-      if (!destroyed)
-          FreeLock(w); 
-
-    }
-  }
-
-  PR_LOG(sRemoteLm, PR_LOG_DEBUG, ("SendCommand returning 0x%x\n", rv));
-
-  return rv;
+  return SendCommandInternal(aProgram, aUsername, aProfile,
+                             aCommand, 0, nsnull,
+                             aDesktopStartupID,
+                             aResponse, aWindowFound);
 }
 
 nsresult
@@ -228,9 +201,39 @@ XRemoteClient::SendCommandLine (const char *aProgram, const char *aUsername,
 {
   PR_LOG(sRemoteLm, PR_LOG_DEBUG, ("XRemoteClient::SendCommandLine"));
 
-  *aWindowFound = PR_FALSE;
+  return SendCommandInternal(aProgram, aUsername, aProfile,
+                             nsnull, argc, argv,
+                             aDesktopStartupID,
+                             aResponse, aWindowFound);
+}
 
-  Window w = FindBestWindow(aProgram, aUsername, aProfile, PR_TRUE);
+static int
+HandleBadWindow(Display *display, XErrorEvent *event)
+{
+  if (event->error_code == BadWindow) {
+    sGotBadWindow = PR_TRUE;
+    return 0; 
+  }
+  else {
+    return (*sOldHandler)(display, event);
+  }
+}
+
+nsresult
+XRemoteClient::SendCommandInternal(const char *aProgram, const char *aUsername,
+                                   const char *aProfile, const char *aCommand,
+                                   PRInt32 argc, char **argv,
+                                   const char* aDesktopStartupID,
+                                   char **aResponse, PRBool *aWindowFound)
+{
+  *aWindowFound = PR_FALSE;
+  PRBool isCommandLine = !aCommand;
+
+  
+  
+  sOldHandler = XSetErrorHandler(HandleBadWindow);
+
+  Window w = FindBestWindow(aProgram, aUsername, aProfile, isCommandLine);
 
   nsresult rv = NS_OK;
 
@@ -239,9 +242,14 @@ XRemoteClient::SendCommandLine (const char *aProgram, const char *aUsername,
     *aWindowFound = PR_TRUE;
 
     
+    
+    
+    sGotBadWindow = PR_FALSE;
+
+    
     XSelectInput(mDisplay, w,
                  (PropertyChangeMask|StructureNotifyMask));
-        
+
     PRBool destroyed = PR_FALSE;
 
     
@@ -249,7 +257,14 @@ XRemoteClient::SendCommandLine (const char *aProgram, const char *aUsername,
 
     if (NS_SUCCEEDED(rv)) {
       
-      rv = DoSendCommandLine(w, argc, argv, aDesktopStartupID, aResponse, &destroyed);
+      if (isCommandLine) {
+        rv = DoSendCommandLine(w, argc, argv, aDesktopStartupID, aResponse,
+                               &destroyed);
+      }
+      else {
+        rv = DoSendCommand(w, aCommand, aDesktopStartupID, aResponse,
+                           &destroyed);
+      }
 
       
       
@@ -259,7 +274,9 @@ XRemoteClient::SendCommandLine (const char *aProgram, const char *aUsername,
     }
   }
 
-  PR_LOG(sRemoteLm, PR_LOG_DEBUG, ("SendCommandLine returning 0x%x\n", rv));
+  XSetErrorHandler(sOldHandler);
+
+  PR_LOG(sRemoteLm, PR_LOG_DEBUG, ("SendCommandInternal returning 0x%x\n", rv));
 
   return rv;
 }
@@ -338,6 +355,8 @@ XRemoteClient::GetLock(Window aWindow, PRBool *aDestroyed)
   PRBool waited = PR_FALSE;
   *aDestroyed = PR_FALSE;
 
+  nsresult rv = NS_OK;
+
   if (!mLockData) {
     
     char pidstr[32];
@@ -377,7 +396,16 @@ XRemoteClient::GetLock(Window aWindow, PRBool *aDestroyed)
 				 &actual_type, &actual_format,
 				 &nitems, &bytes_after,
 				 &data);
-    if (result != Success || actual_type == None) {
+
+    
+    
+    
+    
+    if (sGotBadWindow) {
+      *aDestroyed = PR_TRUE;
+      rv = NS_ERROR_FAILURE;
+    }
+    else if (result != Success || actual_type == None) {
       
       XChangeProperty (mDisplay, aWindow, mMozLockAtom, XA_STRING, 8,
 		       PropModeReplace,
@@ -387,9 +415,9 @@ XRemoteClient::GetLock(Window aWindow, PRBool *aDestroyed)
     }
 
     XUngrabServer(mDisplay);
-    XSync(mDisplay, False);
+    XFlush(mDisplay); 
 
-    if (!locked) {
+    if (!locked && !NS_FAILED(rv)) {
       
 
 
@@ -420,17 +448,16 @@ XRemoteClient::GetLock(Window aWindow, PRBool *aDestroyed)
 	
 	if (select_retval == 0) {
 	  PR_LOG(sRemoteLm, PR_LOG_DEBUG, ("timed out waiting for window\n"));
-	  return NS_ERROR_FAILURE;
+          rv = NS_ERROR_FAILURE;
+          break;
 	}
 	PR_LOG(sRemoteLm, PR_LOG_DEBUG, ("xevent...\n"));
 	XNextEvent (mDisplay, &event);
 	if (event.xany.type == DestroyNotify &&
 	    event.xdestroywindow.window == aWindow) {
-	  PR_LOG(sRemoteLm, PR_LOG_DEBUG,
-		 ("window 0x%x unexpectedly destroyed.\n",
-		  (unsigned int) aWindow));
 	  *aDestroyed = PR_TRUE;
-	  return NS_ERROR_FAILURE;
+          rv = NS_ERROR_FAILURE;
+          break;
 	}
 	else if (event.xany.type == PropertyNotify &&
 		 event.xproperty.state == PropertyDelete &&
@@ -447,13 +474,17 @@ XRemoteClient::GetLock(Window aWindow, PRBool *aDestroyed)
     }
     if (data)
       XFree(data);
-  } while (!locked);
+  } while (!locked && !NS_FAILED(rv));
 
-  if (waited) {
+  if (waited && locked) {
     PR_LOG(sRemoteLm, PR_LOG_DEBUG, ("obtained lock.\n"));
+  } else if (*aDestroyed) {
+    PR_LOG(sRemoteLm, PR_LOG_DEBUG,
+           ("window 0x%x unexpectedly destroyed.\n",
+            (unsigned int) aWindow));
   }
 
-  return NS_OK;
+  return rv;
 }
 
 Window

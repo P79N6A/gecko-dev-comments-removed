@@ -34,6 +34,7 @@
 
 
 
+
 #include <X11/X.h>
 #include <X11/Xlib.h>
 
@@ -67,6 +68,11 @@ private:
                                    const char *aUsername,
                                    const char *aProfile,
                                    PRBool aSupportsCommandLine);
+  nsresult     SendCommandInternal(const char *aProgram, const char *aUsername,
+                                   const char *aProfile, const char *aCommand,
+                                   PRInt32 argc, char **argv,
+                                   const char* aDesktopStartupID,
+                                   char **aResponse, PRBool *aWindowFound);
   nsresult       DoSendCommand    (Window aWindow,
                                    const char *aCommand,
                                    const char* aDesktopStartupID,
