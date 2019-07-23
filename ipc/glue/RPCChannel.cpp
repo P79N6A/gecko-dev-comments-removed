@@ -36,6 +36,7 @@
 
 
 
+
 #include "mozilla/ipc/RPCChannel.h"
 #include "mozilla/ipc/GeckoThread.h"
 
@@ -55,59 +56,20 @@ namespace ipc {
 
 
 bool
-RPCChannel::Open(Transport* aTransport, MessageLoop* aIOLoop)
-{
-    NS_PRECONDITION(!mTransport, "Open() called > once");
-    NS_PRECONDITION(aTransport, "need transport layer");
-
-    
-
-    mTransport = aTransport;
-    mTransport->set_listener(this);
-
-    
-    bool needOpen = true;
-    if(!aIOLoop) {
-        needOpen = false;
-        aIOLoop = BrowserProcessSubThread
-                  ::GetMessageLoop(BrowserProcessSubThread::IO);
-    }
-
-    mIOLoop = aIOLoop;
-    mWorkerLoop = MessageLoop::current();
-
-    NS_ASSERTION(mIOLoop, "need an IO loop");
-    NS_ASSERTION(mWorkerLoop, "need a worker loop");
-
-    if (needOpen) {
-        mIOLoop->PostTask(FROM_HERE, 
-                          NewRunnableMethod(this,
-                                            &RPCChannel::OnChannelOpened));
-    }
-
-    return true;
-}
-
-void
-RPCChannel::Close()
-{
-    
-
-    mChannelState = ChannelClosed;
-}
-
-bool
 RPCChannel::Call(Message* msg, Message* reply)
 {
-    NS_PRECONDITION(MSG_ROUTING_NONE != msg->routing_id(), "need a route");
+    NS_PRECONDITION(msg->is_rpc(), "can only Call() RPC messages here");
 
     mMutex.Lock();
 
+    mChannelState = ChannelWaiting;
+
     mPending.push(*msg);
-    mIOLoop->PostTask(FROM_HERE, NewRunnableMethod(this,
-                                                   &RPCChannel::SendCall,
-                                                   msg));
+    AsyncChannel::Send(msg);
+
     while (1) {
+        
+        
         
         
         
@@ -116,22 +78,39 @@ RPCChannel::Call(Message* msg, Message* reply)
         Message recvd = mPending.top();
         mPending.pop();
 
-        if (recvd.is_reply()) {
+        if (!recvd.is_rpc()) {
+            SyncChannel::OnDispatchMessage(recvd);
             
-            
+        }
+        
+        else if (recvd.is_reply()) {
             NS_ASSERTION(0 < mPending.size(), "invalid RPC stack");
+
+            const Message& pending = mPending.top();
+            if (recvd.type() != (pending.type()+1)) {
+                
+                NS_ASSERTION(0, "somebody's misbehavin'");
+            }
+
+            
+            
             mPending.pop();
             *reply = recvd;
+
+            if (!WaitingForReply()) {
+                mChannelState = ChannelIdle;
+            }
 
             mMutex.Unlock();
             return true;
         }
+        
         else {
             mMutex.Unlock();
 
             
-            if (!ProcessIncomingCall(recvd))
-                return false;
+            OnDispatchMessage(recvd);
+            
 
             mMutex.Lock();
         }
@@ -142,18 +121,21 @@ RPCChannel::Call(Message* msg, Message* reply)
     return true;
 }
 
-bool
-RPCChannel::ProcessIncomingCall(Message call)
+void
+RPCChannel::OnDispatchMessage(const Message& call)
 {
-   Message* reply;
+    if (!call.is_rpc()) {
+        return SyncChannel::OnDispatchMessage(call);
+    }
 
-    switch (mListener->OnCallReceived(call, reply)) {
+    Message* reply;
+    switch (static_cast<Listener*>(mListener)->OnCallReceived(call, reply)) {
     case Listener::MsgProcessed:
         mIOLoop->PostTask(FROM_HERE,
                           NewRunnableMethod(this,
-                                            &RPCChannel::SendReply,
+                                            &RPCChannel::OnSendReply,
                                             reply));
-        return true;
+        return;
 
     case Listener::MsgNotKnown:
     case Listener::MsgNotAllowed:
@@ -161,20 +143,12 @@ RPCChannel::ProcessIncomingCall(Message call)
     case Listener::MsgRouteError:
     case Listener::MsgValueError:
         
-        return false;
+        return;
 
     default:
         NOTREACHED();
-        return false;
+        return;
     }
-}
-
-void
-RPCChannel::OnIncomingCall(Message msg)
-{
-    NS_ASSERTION(0 == mPending.size(),
-                 "woke up the worker thread when it had outstanding work!");
-    ProcessIncomingCall(msg);
 }
 
 
@@ -184,12 +158,14 @@ RPCChannel::OnIncomingCall(Message msg)
 
 void
 RPCChannel::OnMessageReceived(const Message& msg)
-{MutexAutoLock lock(mMutex);
+{
+    MutexAutoLock lock(mMutex);
+
     if (0 == mPending.size()) {
         
         mWorkerLoop->PostTask(FROM_HERE,
                               NewRunnableMethod(this,
-                                                &RPCChannel::OnIncomingCall,
+                                                &RPCChannel::OnDispatchMessage,
                                                 msg));
     }
     else {
@@ -197,38 +173,6 @@ RPCChannel::OnMessageReceived(const Message& msg)
         mPending.push(msg);
         mCvar.Notify();
     }
-}
-
-void
-RPCChannel::OnChannelConnected(int32 peer_pid)
-{
-    mChannelState = ChannelConnected;
-}
-
-void
-RPCChannel::OnChannelError()
-{
-    
-    mChannelState = ChannelError;
-}
-
-void
-RPCChannel::OnChannelOpened()
-{
-    mChannelState = ChannelOpening;
-    mTransport->Connect();
-}
-
-void
-RPCChannel::SendCall(Message* aCall)
-{
-    mTransport->Send(aCall);
-}
-
-void
-RPCChannel::SendReply(Message* aReply)
-{
-    mTransport->Send(aReply);
 }
 
 
