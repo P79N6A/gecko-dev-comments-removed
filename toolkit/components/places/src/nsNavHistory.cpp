@@ -7228,16 +7228,27 @@ nsNavHistory::UpdateFrecency(PRInt64 aPlaceId, PRBool aIsBookmarked)
   rv = mDBGetPlaceVisitStats->GetInt32(2, &oldFrecency);
   NS_ENSURE_SUCCESS(rv, rv);
 
+  rv = UpdateFrecencyInternal(aPlaceId, typed, hidden, oldFrecency,
+                              aIsBookmarked);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  return NS_OK;
+}
+
+nsresult
+nsNavHistory::UpdateFrecencyInternal(PRInt64 aPlaceId, PRInt32 aTyped,
+  PRInt32 aHidden, PRInt32 aOldFrecency, PRBool aIsBookmarked)
+{
   PRInt32 visitCountForFrecency = 0;
 
   
   
   
-  rv = CalculateFullVisitCount(aPlaceId, &visitCountForFrecency);
+  nsresult rv = CalculateFullVisitCount(aPlaceId, &visitCountForFrecency);
   NS_ENSURE_SUCCESS(rv, rv);
 
   PRInt32 newFrecency = 0;
-  rv = CalculateFrecencyInternal(aPlaceId, typed, visitCountForFrecency,
+  rv = CalculateFrecencyInternal(aPlaceId, aTyped, visitCountForFrecency,
                                  aIsBookmarked, &newFrecency);
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -7248,7 +7259,7 @@ nsNavHistory::UpdateFrecency(PRInt64 aPlaceId, PRBool aIsBookmarked)
   
   
   
-  if (newFrecency == oldFrecency || oldFrecency && newFrecency < 0)
+  if (newFrecency == aOldFrecency || aOldFrecency && newFrecency < 0)
     return NS_OK;
 
   mozStorageStatementScoper updateScoper(mDBUpdateFrecencyAndHidden);
@@ -7263,7 +7274,7 @@ nsNavHistory::UpdateFrecency(PRInt64 aPlaceId, PRBool aIsBookmarked)
   
   
   rv = mDBUpdateFrecencyAndHidden->BindInt32Parameter(2, 
-         newFrecency ? 0  : hidden);
+         newFrecency ? 0  : aHidden);
   NS_ENSURE_SUCCESS(rv, rv);
 
   rv = mDBUpdateFrecencyAndHidden->Execute();
@@ -7487,38 +7498,11 @@ nsNavHistory::FixInvalidFrecencies()
     nsCAutoString url;
     invalidFrecencies->GetUTF8String(4, url);
 
-    PRInt32 newFrecency = 0;
-    PRInt32 visitCountForFrecency = 0;
+    PRBool isBook = PR_FALSE;
+    if (!IsQueryURI(url))
+      isBook = nsNavBookmarks::GetBookmarksService()-> IsRealBookmark(placeId);
 
-    
-    
-    rv = CalculateFullVisitCount(placeId, &visitCountForFrecency);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    rv = CalculateFrecency(placeId, typed, visitCountForFrecency, 
-                           url, &newFrecency);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    
-    if (newFrecency == oldFrecency)
-      continue;
-
-    mozStorageStatementScoper updateScoper(mDBUpdateFrecencyAndHidden);
-    rv = mDBUpdateFrecencyAndHidden->BindInt64Parameter(0, placeId);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    rv = mDBUpdateFrecencyAndHidden->BindInt32Parameter(1, newFrecency);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    
-    
-    
-    
-    rv = mDBUpdateFrecencyAndHidden->BindInt32Parameter(2, 
-           newFrecency ? 0  : hidden);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    rv = mDBUpdateFrecencyAndHidden->Execute();
+    rv = UpdateFrecencyInternal(placeId, typed, hidden, oldFrecency, isBook);
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
