@@ -59,6 +59,7 @@
 #include "nsWidgetAtoms.h"
 #include <malloc.h>
 #include "nsWindow.h"
+#include "nsIComboboxControlFrame.h"
 
 #include "gfxPlatform.h"
 #include "gfxContext.h"
@@ -98,9 +99,16 @@
 #define BP_CHECKBOX  3
 
 
+
 #define TFP_TEXTFIELD 1
 #define TFP_EDITBORDER_NOSCROLL 6
 #define TFS_READONLY  6
+
+
+#define TFS_EDITBORDER_NORMAL 1
+#define TFS_EDITBORDER_HOVER 2
+#define TFS_EDITBORDER_FOCUSED 3
+#define TFS_EDITBORDER_DISABLED 4
 
 
 #define TREEVIEW_BODY 1
@@ -696,7 +704,6 @@ nsNativeThemeWin::GetThemePartAndState(nsIFrame* aFrame, PRUint8 aWidgetType,
     }
     case NS_THEME_TEXTFIELD:
     case NS_THEME_TEXTFIELD_MULTILINE: {
-      aPart = TFP_TEXTFIELD;
       if (mIsVistaOrLater) {
         
 
@@ -707,25 +714,43 @@ nsNativeThemeWin::GetThemePartAndState(nsIFrame* aFrame, PRUint8 aWidgetType,
 
 
         aPart = TFP_EDITBORDER_NOSCROLL;
+
+        if (!aFrame) {
+          aState = TFS_EDITBORDER_NORMAL;
+        } else if (IsDisabled(aFrame)) {
+          aState = TFS_EDITBORDER_DISABLED;
+        } else if (IsReadOnly(aFrame)) {
+          
+          aState = TFS_EDITBORDER_NORMAL;
+        } else {
+          PRInt32 eventState = GetContentState(aFrame, aWidgetType);
+          nsIContent* content = aFrame->GetContent();
+
+          
+
+
+          if (content && content->IsNodeOfType(nsINode::eXUL) && IsFocused(aFrame))
+            aState = TFS_EDITBORDER_FOCUSED;
+          else if (eventState & NS_EVENT_STATE_ACTIVE || eventState & NS_EVENT_STATE_FOCUS)
+            aState = TFS_EDITBORDER_FOCUSED;
+          else if (eventState & NS_EVENT_STATE_HOVER)
+            aState = TFS_EDITBORDER_HOVER;
+          else
+            aState = TFS_EDITBORDER_NORMAL;
+        }
+      } else {
+        aPart = TFP_TEXTFIELD;
+        
+        if (!aFrame)
+          aState = TS_NORMAL;
+        else if (IsDisabled(aFrame))
+          aState = TS_DISABLED;
+        else if (IsReadOnly(aFrame))
+          aState = TFS_READONLY;
+        else
+          aState = StandardGetState(aFrame, aWidgetType, PR_TRUE);
       }
 
-      if (!aFrame) {
-        aState = TS_NORMAL;
-        return NS_OK;
-      }
-
-      if (IsDisabled(aFrame)) {
-        aState = TS_DISABLED;
-        return NS_OK;
-      }
-
-      if (IsReadOnly(aFrame)) {
-        aState = TFS_READONLY;
-        return NS_OK;
-      }
-
-      aState = StandardGetState(aFrame, aWidgetType, PR_TRUE);
-      
       return NS_OK;
     }
     case NS_THEME_TOOLTIP: {
@@ -1006,7 +1031,12 @@ nsNativeThemeWin::GetThemePartAndState(nsIFrame* aFrame, PRUint8 aWidgetType,
     }
     case NS_THEME_DROPDOWN: {
       nsIContent* content = aFrame->GetContent();
-      if (content && content->IsNodeOfType(nsINode::eHTML))
+      PRBool isHTML = content && content->IsNodeOfType(nsINode::eHTML);
+
+      
+
+
+      if (isHTML)
         aPart = CBP_DROPBORDER;
       else
         aPart = CBP_DROPFRAME;
@@ -1014,46 +1044,52 @@ nsNativeThemeWin::GetThemePartAndState(nsIFrame* aFrame, PRUint8 aWidgetType,
       PRBool isOpen = CheckBooleanAttr(aFrame, nsWidgetAtoms::open);
       if (isOpen) {
         aState = TS_ACTIVE;
-        return NS_OK;
+      } else {
+        PRInt32 eventState = GetContentState(aFrame, aWidgetType);
+        if (isHTML && eventState & NS_EVENT_STATE_FOCUS)
+          aState = TS_ACTIVE;
+        else if (eventState & NS_EVENT_STATE_HOVER && eventState & NS_EVENT_STATE_ACTIVE)
+          aState = TS_ACTIVE;
+        else if (eventState & NS_EVENT_STATE_HOVER)
+          aState = TS_HOVER;
+        else
+          aState = TS_NORMAL;
       }
-
-      PRInt32 eventState = GetContentState(aFrame, aWidgetType);
-      if (eventState & NS_EVENT_STATE_HOVER && eventState & NS_EVENT_STATE_ACTIVE)
-        aState = TS_ACTIVE;
-      else if (eventState & NS_EVENT_STATE_HOVER)
-        aState = TS_HOVER;
-      else 
-        aState = TS_NORMAL;
 
       return NS_OK;
     }
     case NS_THEME_DROPDOWN_BUTTON: {
       PRBool isHTML = IsHTMLContent(aFrame);
+      nsIFrame* origFrame = aFrame;
       nsIFrame* parentFrame = aFrame->GetParent();
       if ((parentFrame && parentFrame->GetType() == nsWidgetAtoms::menuFrame) || isHTML)
         
         aFrame = parentFrame;
 
-      if (mIsVistaOrLater) {
-        
+      aPart = mIsVistaOrLater ? CBP_DROPMARKER_VISTA : CBP_DROPMARKER;
 
-
-
-
-        aPart = CBP_DROPMARKER_VISTA;
-        if (IsDisabled(aFrame))
-          aState = TS_DISABLED;
-        else if (isHTML)
-          aState = StandardGetState(aFrame, aWidgetType, PR_FALSE);
-        else
-          aState = TS_NORMAL;
-      } else {
-        aPart = CBP_DROPMARKER;
-        if (IsDisabled(aFrame))
-          aState = TS_DISABLED;
-        else
-          aState = StandardGetState(aFrame, aWidgetType, PR_FALSE);
+      if (IsDisabled(aFrame)) {
+        aState = TS_DISABLED;
+        return NS_OK;
       }
+
+      if (mIsVistaOrLater && isHTML) {
+        nsIComboboxControlFrame* ccf = nsnull;
+        CallQueryInterface(aFrame, &ccf);
+        if (ccf && ccf->IsDroppedDown()) {
+          
+
+
+
+
+
+
+          aState = TS_HOVER;
+          return NS_OK;
+        }
+      }
+
+      aState = StandardGetState(aFrame, aWidgetType, PR_FALSE);
 
       return NS_OK;
     }
@@ -1766,6 +1802,16 @@ nsNativeThemeWin::WidgetStateChanged(nsIFrame* aFrame, PRUint8 aWidgetType,
 
   
   
+  if (mIsVistaOrLater &&
+      (aWidgetType == NS_THEME_DROPDOWN || aWidgetType == NS_THEME_DROPDOWN_BUTTON) &&
+      IsHTMLContent(aFrame))
+  {
+    *aShouldRepaint = PR_TRUE;
+    return NS_OK;
+  }
+
+  
+  
   
   if (!aAttribute) {
     
@@ -1780,7 +1826,8 @@ nsNativeThemeWin::WidgetStateChanged(nsIFrame* aFrame, PRUint8 aWidgetType,
         aAttribute == nsWidgetAtoms::selected ||
         aAttribute == nsWidgetAtoms::readonly ||
         aAttribute == nsWidgetAtoms::open ||
-        aAttribute == nsWidgetAtoms::mozmenuactive)
+        aAttribute == nsWidgetAtoms::mozmenuactive ||
+        aAttribute == nsWidgetAtoms::focused)
       *aShouldRepaint = PR_TRUE;
   }
 
