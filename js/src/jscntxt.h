@@ -735,13 +735,13 @@ JS_STATIC_ASSERT(sizeof(JSTempValueUnion) == sizeof(void *));
 
 struct JSContext {
     
-    JSCList             links;
-
-    
 
 
 
     int32               operationCount;
+
+    
+    JSCList             link;
 
 #if JS_HAS_XML_SUPPORT
     
@@ -1046,6 +1046,13 @@ js_DestroyContext(JSContext *cx, JSDestroyContextMode mode);
 
 extern JSBool
 js_ValidContextPointer(JSRuntime *rt, JSContext *cx);
+
+static JS_INLINE JSContext *
+js_ContextFromLinkField(JSCList *link)
+{
+    JS_ASSERT(link);
+    return (JSContext *) ((uint8 *) link - offsetof(JSContext, link));
+}
 
 
 
