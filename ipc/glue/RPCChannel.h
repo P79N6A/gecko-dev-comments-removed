@@ -40,6 +40,7 @@
 #define ipc_glue_RPCChannel_h 1
 
 
+#include <queue>
 #include <stack>
 
 #include "mozilla/ipc/SyncChannel.h"
@@ -81,24 +82,28 @@ public:
     
     virtual void OnMessageReceived(const Message& msg);
 
+protected:
+    
+    
+    
+    void OnDelegate(const Message& msg);
+
 private:
     void OnIncall(const Message& msg);
     void ProcessIncall(const Message& call, size_t stackDepth);
 
+    
     size_t StackDepth() {
         mMutex.AssertCurrentThreadOwns();
-        NS_ABORT_IF_FALSE(
-            mPending.empty()
-            || (mPending.top().is_rpc() && !mPending.top().is_reply()),
-            "StackDepth() called from an inconsistent state");
-
-        return mPending.size();
+        return mStack.size();
     }
 
     
     
     
     
+    std::stack<Message> mStack;
+
     
     
     
@@ -111,7 +116,39 @@ private:
     
     
     
-    std::stack<Message> mPending;
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    std::queue<Message> mPending;
 
     
     

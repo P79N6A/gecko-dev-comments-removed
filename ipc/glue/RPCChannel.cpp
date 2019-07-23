@@ -65,10 +65,10 @@ RPCChannel::Call(Message* msg, Message* reply)
     NS_PRECONDITION(msg->is_rpc(),
                     "can only Call() RPC messages here");
 
-    mMutex.Lock();
+    MutexAutoLock lock(mMutex);
 
     msg->set_rpc_remote_stack_depth(mRemoteStackDepth);
-    mPending.push(*msg);
+    mStack.push(*msg);
 
     
     
@@ -77,18 +77,27 @@ RPCChannel::Call(Message* msg, Message* reply)
     while (1) {
         
         
-        
-        
-        
-        mCvar.Wait();
+        while (mPending.empty()) {
+            mCvar.Wait();
+        }
 
-        Message recvd = mPending.top();
+        Message recvd = mPending.front();
         mPending.pop();
+
+        
+        if (!recvd.is_sync() && !recvd.is_rpc()) {
+            MutexAutoUnlock unlock(mMutex);
+
+            AsyncChannel::OnDispatchMessage(recvd);
+            continue;
+        }
 
         
         
         
         if (recvd.is_sync()) {
+            NS_ABORT_IF_FALSE(mPending.empty(),
+                              "other side is malfunctioning");
             MutexAutoUnlock unlock(mMutex);
 
             SyncChannel::OnDispatchMessage(recvd);
@@ -100,32 +109,85 @@ RPCChannel::Call(Message* msg, Message* reply)
 
         
         if (recvd.is_reply()) {
-            NS_ABORT_IF_FALSE(0 < mPending.size(), "invalid RPC stack");
+            NS_ABORT_IF_FALSE(0 < mStack.size(), "invalid RPC stack");
 
-            const Message& pending = mPending.top();
+            const Message& outcall = mStack.top();
 
-            if (recvd.type() != (pending.type()+1) && !recvd.is_reply_error()) {
+            if (recvd.type() != (outcall.type()+1) && !recvd.is_reply_error()) {
                 
                 NS_ABORT_IF_FALSE(0, "somebody's misbehavin'");
             }
 
             
             
-            mPending.pop();
+            mStack.pop();
 
             bool isError = recvd.is_reply_error();
             if (!isError) {
                 *reply = recvd;
             }
 
-            mMutex.Unlock();
+            if (0 == StackDepth()) {
+                
+                
+                
+                
+                bool seenBlocker = false;
+
+                
+                while (!mPending.empty()) {
+                    Message m = mPending.front();
+                    mPending.pop();
+
+                    if (m.is_sync()) {
+                        NS_ABORT_IF_FALSE(!seenBlocker,
+                                          "other side is malfunctioning");
+                        seenBlocker = true;
+
+                        MessageLoop::current()->PostTask(
+                            FROM_HERE,
+                            NewRunnableMethod(this,
+                                              &RPCChannel::OnDelegate, m));
+                    }
+                    else if (m.is_rpc()) {
+                        NS_ABORT_IF_FALSE(!seenBlocker,
+                                          "other side is malfunctioning");
+                        seenBlocker = true;
+
+                        MessageLoop::current()->PostTask(
+                            FROM_HERE,
+                            NewRunnableMethod(this,
+                                              &RPCChannel::OnIncall,
+                                              m));
+                    }
+                    else {
+                        MessageLoop::current()->PostTask(
+                            FROM_HERE,
+                            NewRunnableMethod(this,
+                                              &RPCChannel::OnDelegate, m));
+                    }
+                }
+            }
+            else {
+                
+                
+                
+                if (mPending.size() > 0) {
+                    NS_RUNTIMEABORT("other side should have been blocked");
+                }
+            }
+
+            
             return !isError;
         }
-        
-        else {
-            
-            size_t stackDepth = StackDepth();
 
+        
+        NS_ABORT_IF_FALSE(mPending.empty(),
+                          "other side is malfunctioning");
+
+        
+        size_t stackDepth = StackDepth();
+        {
             MutexAutoUnlock unlock(mMutex);
             
             ProcessIncall(recvd, stackDepth);
@@ -134,6 +196,16 @@ RPCChannel::Call(Message* msg, Message* reply)
     }
 
     return true;
+}
+
+void
+RPCChannel::OnDelegate(const Message& msg)
+{
+    if (msg.is_sync())
+        return SyncChannel::OnDispatchMessage(msg);
+    else if (!msg.is_rpc())
+        return AsyncChannel::OnDispatchMessage(msg);
+    NS_RUNTIMEABORT("fatal logic error");
 }
 
 void
@@ -246,12 +318,12 @@ RPCChannel::OnMessageReceived(const Message& msg)
 
         
         
-        
-        if (!msg.is_sync() && !msg.is_rpc()) {
-            
-            return AsyncChannel::OnMessageReceived(msg);
-        }
 
+        
+        
+        
+        
+        
         
         
         
@@ -262,6 +334,14 @@ RPCChannel::OnMessageReceived(const Message& msg)
             
             mRecvd = msg;
             mCvar.Notify();
+            return;
+        }
+
+        
+        
+        if (AwaitingSyncReply()
+            && !msg.is_sync() && !msg.is_rpc()) {
+            mPending.push(msg);
             return;
         }
 
