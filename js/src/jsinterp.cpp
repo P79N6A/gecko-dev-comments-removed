@@ -4763,44 +4763,39 @@ js_Interpret(JSContext *cx)
 
 
 
-            if (apply && argc >= 2 && !JSVAL_IS_PRIMITIVE(vp[3])) {
+            jsuint applylen = 0;
+            if (apply && argc >= 2 &&
+                !JSVAL_IS_VOID(vp[3]) && !JSVAL_IS_NULL(vp[3])) {
                 
 
 
 
-                JSBool arraylike = JS_FALSE;
-                jsuint length = 0;
+
+                if (!JSVAL_IS_OBJECT(vp[3]))
+                    goto do_call;
+
+                JSBool arraylike;
                 JSObject* aobj = JSVAL_TO_OBJECT(vp[3]);
-                if (js_IsArrayLike(cx, aobj, &arraylike, &length)) {
-                    length = (uintN)JS_MIN(length, ARRAY_INIT_LIMIT - 1);
-                    jsval* newsp = vp + 2 + length;
-                    JS_ASSERT(newsp >= vp + 2);
-                    JSArena *a = cx->stackPool.current;
-                    if (jsuword(newsp) > a->limit)
-                        goto do_call; 
-                }
-            }
-            
-            obj = JS_THIS_OBJECT(cx, vp);
-            if (!obj || !OBJ_DEFAULT_VALUE(cx, obj, JSTYPE_FUNCTION, &vp[1]))
-                goto error;
-            rval = vp[1];
+                if (!js_IsArrayLike(cx, aobj, &arraylike, &applylen))
+                    goto error;
+                if (!arraylike || applylen > ARGC_LIMIT)
+                    goto do_call;
 
-            if (!VALUE_IS_FUNCTION(cx, rval)) {
-                str = JS_ValueToString(cx, rval);
-                if (str) {
-                    const char *bytes = js_GetStringBytes(cx, str);
+                JSArena *a = cx->stackPool.current;
+                JS_ASSERT(jsuword(vp + 2) <= a->limit);
 
-                    if (bytes) {
-                        JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL,
-                                             JSMSG_INCOMPATIBLE_PROTO,
-                                             js_Function_str, 
-                                             apply ? js_apply_str : js_call_str,
-                                             bytes);
-                    }
-                }
-                goto error;
+                
+
+
+
+
+                if (a->limit - jsuword(vp + 2) < (applylen + 1) * sizeof(jsval))
+                    goto do_call;
             }
+
+            if (!VALUE_IS_FUNCTION(cx, vp[1]))
+                goto do_call;
+            vp[0] = vp[1];
 
             if (argc == 0) {
                 
@@ -4815,105 +4810,49 @@ js_Interpret(JSContext *cx)
                 else if (!js_ValueToObject(cx, vp[2], &obj))
                     goto error;
             }
+            vp[1] = OBJECT_TO_JSVAL(obj);
 
             if (!apply) {
-                
-                if (argc > 0) {
+                if (argc != 0) {
                     --argc;
                     memmove(vp + 2, vp + 3, argc * sizeof *vp);
                 }
-                
-                
-
-
-
+            } else if (applylen == 0) {
+                argc = 0;
             } else {
-                if (argc >= 2) { 
-                    JSObject *aobj = NULL;
-                    
-                    
+                
 
 
 
-                    if (JSVAL_IS_NULL(vp[3]) || JSVAL_IS_VOID(vp[3])) {
-                        argc = 0;
-                    } else {
+                jsval* newsp = vp + 2 + applylen + 1;
+                if (newsp > regs.sp) {
+                    JSArena *a = cx->stackPool.current;
+                    JS_ASSERT(jsuword(newsp) <= a->limit); 
+                    if ((jsuword) newsp > a->avail)
+                        a->avail = (jsuword) newsp;
+                    memset(vp + 2 + argc, 0, (applylen - argc) * sizeof(jsval));
+                }
+
+                JSObject *aobj = JSVAL_TO_OBJECT(vp[3]);
+                newsp[-1] = vp[3];
+                regs.sp = newsp;
+
+                
+                for (i = 0; i < jsint(applylen); i++) {
+                    id = INT_TO_JSID(i);
+                    if (!OBJ_GET_PROPERTY(cx, aobj, id, &vp[2 + i])) {
                         
 
 
-                        JSBool arraylike = JS_FALSE;
-                        jsuint length = 0;
-                        if (!JSVAL_IS_PRIMITIVE(vp[3])) {
-                            aobj = JSVAL_TO_OBJECT(vp[3]);
-                            if (!js_IsArrayLike(cx, aobj, &arraylike, &length)) 
-                                goto error;
-                        }
-                        if (!arraylike) {
-                            JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL,
-                                                     JSMSG_BAD_APPLY_ARGS, 
-                                                     apply ? js_apply_str : js_call_str);
-                            goto error;
-                        }
-
-                        jsuint orig_argc = argc;
-                        argc = (uintN)JS_MIN(length, ARRAY_INIT_LIMIT - 1);
-                            
-                        
-
-
-                        if (argc > orig_argc) {
-                            jsval* newsp = vp + 2 + argc;
-                            JS_ASSERT(newsp > regs.sp);
-                            JSArena *a = cx->stackPool.current;
-                            JS_ASSERT(jsuword(newsp) <= a->limit); 
-                            if ((jsuword) newsp > a->avail)
-                                a->avail = (jsuword) newsp;
-                            
-                            
-                            memset(vp + 2 + orig_argc, 0, (argc - orig_argc) * sizeof(jsval));
-                        }
-
-                        
-
-
-                        vp[0] = rval;
-                        vp[1] = OBJECT_TO_JSVAL(obj);
-                        if (argc > 0) {
-                            
 
 
 
-
-                            vp[2 + argc - 1] = vp[3]; 
-                        }
-                        regs.sp = vp + 2 + argc;
-
-                        
-                        jsval* sp = vp + 2;
-                        for (i = 0; i < jsint(argc); i++) {
-                            id = INT_TO_JSID(i);
-                            if (!OBJ_GET_PROPERTY(cx, aobj, id, sp)) {
-                                
-
-
-
-
-
-                                goto error;
-                            }
-                            sp++;
-                        }
-                        
-                        goto do_call_with_specified_vp_and_argc;
+                        goto error;
                     }
-                } else
-                    argc = 0;
+                }
+                argc = applylen;
             }
-                 
-            vp[0] = rval;
-            vp[1] = OBJECT_TO_JSVAL(obj);
             regs.sp = vp + 2 + argc;
-
             goto do_call_with_specified_vp_and_argc;
           }
           
