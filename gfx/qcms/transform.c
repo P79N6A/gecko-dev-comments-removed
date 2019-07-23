@@ -668,6 +668,12 @@ static void qcms_transform_data_gray_out_lut(qcms_transform *transform, unsigned
 	}
 }
 
+
+
+
+
+
+
 static void qcms_transform_data_graya_out_lut(qcms_transform *transform, unsigned char *src, unsigned char *dest, size_t length)
 {
 	int i;
