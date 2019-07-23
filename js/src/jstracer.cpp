@@ -178,6 +178,14 @@ static inline jsdouble asNumber(jsval v)
     return (jsdouble)JSVAL_TO_INT(v);
 }
 
+static inline bool isInt32(jsval v)
+{
+    if (!isNumber(v))
+        return false;
+    jsdouble d = asNumber(v);
+    return d == (jsint)d;
+}
+
 static LIns* demote(LirWriter *out, LInsp i)
 {
     if (i->isCall())
@@ -314,13 +322,13 @@ public:
     
 
     void
-    buildTypeMap(JSStackFrame* fp, JSFrameRegs& regs, uint8_t* m)
+    buildExitMap(JSStackFrame* fp, JSFrameRegs& regs, uint8* m)
     {
 #ifdef DEBUG
         printf("side exit type map: ");
 #endif        
         if (fp != recorder.getEntryFrame())
-            buildTypeMap(fp->down, *fp->down->regs, m);
+            buildExitMap(fp->down, *fp->down->regs, m);
         for (unsigned n = 0; n < fp->argc; ++n)
             *m++ = getStoreType(fp->argv[n]);
         for (unsigned n = 0; n < fp->nvars; ++n)
@@ -334,7 +342,7 @@ public:
 
     virtual LInsp insGuard(LOpcode v, LIns *c, SideExit *x) {
         VMSideExitInfo* i = (VMSideExitInfo*)x->vmprivate;
-        buildTypeMap(recorder.getFp(), recorder.getRegs(), i->typeMap);
+        buildExitMap(recorder.getFp(), recorder.getRegs(), i->typeMap);
         return out->insGuard(v, c, x);
     }
 };
@@ -364,21 +372,26 @@ TraceRecorder::TraceRecorder(JSContext* cx, Fragmento* fragmento, Fragment* _fra
     lir = exit_filter = new (&gc) ExitFilter(lir, *this);
     lir = func_filter = new (&gc) FuncFilter(lir);
     lir->ins0(LIR_trace);
-    
-    unsigned entryNativeFrameSlots = nativeFrameSlots(entryFrame, entryRegs);
-    LIns* data = lir_buf_writer->skip(sizeof(VMFragmentInfo) + 
-            entryNativeFrameSlots * sizeof(char));
-    fragmentInfo = (VMFragmentInfo*)data->payload();
-    fragmentInfo->entryNativeFrameSlots = entryNativeFrameSlots;
-    fragmentInfo->maxNativeFrameSlots = entryNativeFrameSlots;
-    uint8_t* m = fragmentInfo->typeMap;
-    for (unsigned n = 0; n < entryFrame->argc; ++n)
-        *m++ = getCoercedType(entryFrame->argv[n]);
-    for (unsigned n = 0; n < entryFrame->nvars; ++n)
-        *m++ = getCoercedType(entryFrame->vars[n]);
-    for (jsval* sp = entryFrame->spbase; sp < entryRegs.sp; ++sp)
-        *m++ = getCoercedType(*sp);
-    fragmentInfo->nativeStackBase = nativeFrameOffset(&cx->fp->spbase[0]);
+    if (fragment->vmprivate == NULL) {
+        
+        unsigned entryNativeFrameSlots = nativeFrameSlots(entryFrame, entryRegs);
+        LIns* data = lir_buf_writer->skip(sizeof(VMFragmentInfo) + 
+                entryNativeFrameSlots * sizeof(char));
+        fragmentInfo = (VMFragmentInfo*)data->payload();
+        fragmentInfo->entryNativeFrameSlots = entryNativeFrameSlots;
+        fragmentInfo->maxNativeFrameSlots = entryNativeFrameSlots;
+        
+        uint8* m = fragmentInfo->typeMap;
+        for (unsigned n = 0; n < entryFrame->argc; ++n)
+            *m++ = getCoercedType(entryFrame->argv[n]);
+        for (unsigned n = 0; n < entryFrame->nvars; ++n)
+            *m++ = getCoercedType(entryFrame->vars[n]);
+        for (jsval* sp = entryFrame->spbase; sp < entryRegs.sp; ++sp)
+            *m++ = getCoercedType(*sp);
+        fragmentInfo->nativeStackBase = nativeFrameOffset(&cx->fp->spbase[0]);
+    } else {
+        JS_ASSERT(0);
+    }
     fragment->vmprivate = fragmentInfo;
     fragment->param0 = lir->insImm8(LIR_param, Assembler::argRegs[0], 0);
     fragment->param1 = lir->insImm8(LIR_param, Assembler::argRegs[1], 0);
@@ -398,6 +411,8 @@ TraceRecorder::TraceRecorder(JSContext* cx, Fragmento* fragmento, Fragment* _fra
         import(&fp->vars[n], "var", n);
     for (n = 0; n < unsigned(fp->regs->sp - fp->spbase); ++n)
         import(&fp->spbase[n], "stack", n);
+    
+    recompileFlag = false;
 }
 
 TraceRecorder::~TraceRecorder()
@@ -576,7 +591,7 @@ box_jsval(JSContext* cx, jsval* vp, int t, double* slot)
 
 
 static bool
-unbox(JSStackFrame* fp, JSFrameRegs& regs, uint8_t* m, double* native)
+unbox(JSStackFrame* fp, JSFrameRegs& regs, uint8* m, double* native)
 {
     jsval* vp;
     for (vp = fp->argv; vp < fp->argv + fp->argc; ++vp)
@@ -594,7 +609,7 @@ unbox(JSStackFrame* fp, JSFrameRegs& regs, uint8_t* m, double* native)
 
 
 static bool
-box(JSContext* cx, JSStackFrame* fp, JSFrameRegs& regs, uint8_t* m, double* native)
+box(JSContext* cx, JSStackFrame* fp, JSFrameRegs& regs, uint8* m, double* native)
 {
     jsval* vp;
     for (vp = fp->argv; vp < fp->argv + fp->argc; ++vp)
@@ -691,25 +706,66 @@ TraceRecorder::guard(bool expected, LIns* cond)
 }
 
 bool
-TraceRecorder::checkType(jsval& v, int type)
+TraceRecorder::checkType(jsval& v, uint8& t)
 {
-    
-    JS_ASSERT(type != JSVAL_INT);
-    if (type == JSVAL_DOUBLE && isNumber(v)) {
+    if (isNumber(v)) {
         
 
+
         LIns* i = get(&v);
-        if (i->isop(LIR_i2f)) {
+        if (TYPEMAP_GET_TYPE(t) == JSVAL_DOUBLE) {
+            if (isInt32(v)) { 
+                
+
+
+
+
+                if (i->isop(LIR_i2f) || 
+                        (i->isop(LIR_fadd) && i->oprnd2()->isconstq() && 
+                                fabs(i->oprnd2()->constvalf()) == 1.0)) {
+#ifdef DEBUG
+                    printf("demoting type of an entry slot #%d, triggering re-compilation\n",
+                            nativeFrameOffset(&v));
+#endif                    
+                    TYPEMAP_SET_FLAG(t, TYPEMAP_FLAG_DEMOTE);
+                    recompileFlag = true;
+                    return true; 
+                }
+            }
+            return true; 
+        } 
+        
+
+
+
+
+        JS_ASSERT(TYPEMAP_GET_TYPE(t) == JSVAL_INT);
+        if (!i->isop(LIR_i2f)) {
+#ifdef DEBUG            
+            printf("demoting type of a slot #%d failed, locking it and re-compiling\n",
+                    nativeFrameOffset(&v));
+#endif
+            TYPEMAP_SET_FLAG(t, TYPEMAP_FLAG_DONT_DEMOTE);
+            recompileFlag = true;
+            return true; 
+
             
         }
+        JS_ASSERT(isInt32(v));
+        
+
+
+        set(&v, i->oprnd1());
         return true;
     }
-    return JSVAL_TAG(v) == (jsuint)type;
+    
+    return JSVAL_TAG(v) == TYPEMAP_GET_TYPE(t);
 }
 
 
+
 bool
-TraceRecorder::verifyTypeStability(JSStackFrame* fp, JSFrameRegs& regs, uint8_t* m)
+TraceRecorder::verifyTypeStability(JSStackFrame* fp, JSFrameRegs& regs, uint8* m)
 {
     if (fp != entryFrame)
         verifyTypeStability(fp->down, *fp->down->regs, m);
@@ -722,7 +778,7 @@ TraceRecorder::verifyTypeStability(JSStackFrame* fp, JSFrameRegs& regs, uint8_t*
     for (jsval* sp = fp->spbase; sp < regs.sp; ++sp, ++m)
         if (!checkType(*sp, *m))
             return false;
-    return true;
+    return !recompileFlag;
 }
 
 void
