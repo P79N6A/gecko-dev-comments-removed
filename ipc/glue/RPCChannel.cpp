@@ -238,11 +238,7 @@ RPCChannel::ProcessIncall(const Message& call, size_t stackDepth)
 
     switch (rv) {
     case MsgProcessed:
-        mIOLoop->PostTask(FROM_HERE,
-                          NewRunnableMethod(this,
-                                            &RPCChannel::OnSendReply,
-                                            reply));
-        return;
+        break;
 
     case MsgNotKnown:
     case MsgNotAllowed:
@@ -254,17 +250,19 @@ RPCChannel::ProcessIncall(const Message& call, size_t stackDepth)
         reply->set_rpc();
         reply->set_reply();
         reply->set_reply_error();
-        mIOLoop->PostTask(FROM_HERE,
-                          NewRunnableMethod(this,
-                                            &RPCChannel::OnSendReply,
-                                            reply));
         
-        return;
+        break;
 
     default:
         NOTREACHED();
         return;
     }
+
+    mIOLoop->PostTask(FROM_HERE,
+                      NewRunnableMethod(this,
+                                        &RPCChannel::OnSendReply,
+                                        reply));
+
 }
 
 
@@ -286,7 +284,7 @@ RPCChannel::OnMessageReceived(const Message& msg)
         
         
         if (!msg.is_rpc()) {
-            
+            MutexAutoUnlock unlock(mMutex);
             return SyncChannel::OnMessageReceived(msg);
         }
 
