@@ -361,8 +361,8 @@ nsXULPopupManager::SetTriggerEvent(nsIDOMEvent* aEvent, nsIContent* aPopup)
               mouseEvent->GetClientY(&mCachedMousePoint.y);
 
               
-              mCachedMousePoint.x = presContext->AppUnitsToDevPixels(nsPresContext::CSSPixelsToAppUnits(mCachedMousePoint.x));
-              mCachedMousePoint.y = presContext->AppUnitsToDevPixels(nsPresContext::CSSPixelsToAppUnits(mCachedMousePoint.y));
+              mCachedMousePoint.x = presContext->CSSPixelsToDevPixels(mCachedMousePoint.x);
+              mCachedMousePoint.y = presContext->CSSPixelsToDevPixels(mCachedMousePoint.y);
             }
             else if (rootFrame) {
               nsPoint pnt =
