@@ -301,6 +301,9 @@ nsFindContentIterator::Reset()
   range->SetStart(mStartNode, mStartOffset);
   range->SetEnd(mEndNode, mEndOffset);
   mOuterIterator->Init(range);
+  
+  if (mOuterIterator->IsDone())
+    return;
 
   if (!mFindBackward) {
     if (mStartOuterNode != mStartNode) {
