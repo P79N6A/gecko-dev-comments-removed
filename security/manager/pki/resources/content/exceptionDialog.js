@@ -84,32 +84,6 @@ function initExceptionDialog() {
 }
 
 
-function findRecentBadCert(uri) {
-  try {
-    var recentCertsSvc = Components.classes["@mozilla.org/security/recentbadcerts;1"]
-                         .getService(Components.interfaces.nsIRecentBadCertsService);
-    if (!recentCertsSvc)
-      return false;
-
-    var hostWithPort = uri.host + ":" + uri.port;
-    gSSLStatus = recentCertsSvc.getRecentBadCert(hostWithPort);
-    if (!gSSLStatus)
-      return false;
-
-    gCert = gSSLStatus.QueryInterface(Components.interfaces.nsISSLStatus).serverCert;
-    if (!gCert)
-      return false;
-
-    gBroken = true;
-  }
-  catch (e) {
-    return false;
-  }
-  updateCertStatus();  
-  return true;
-}
-
-
 
 
 
@@ -121,13 +95,8 @@ function checkCert() {
   gBroken = false;
   updateCertStatus();
 
-  var uri = getURI();
-
-  
-  if (findRecentBadCert(uri) == true)
-    return;
-
   var req = new XMLHttpRequest();
+  var uri = getURI();
   try {
     if(uri) {
       req.open('GET', uri.prePath, false);

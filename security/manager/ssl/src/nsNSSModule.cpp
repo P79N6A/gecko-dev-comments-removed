@@ -39,7 +39,6 @@
 
 
 
-
 #include "nsIModule.h"
 #include "nsIGenericFactory.h"
 
@@ -75,7 +74,6 @@
 #include "nsDataSignatureVerifier.h"
 #include "nsCertOverrideService.h"
 #include "nsRandomGenerator.h"
-#include "nsRecentBadCerts.h"
 
 
 
@@ -198,7 +196,6 @@ NS_NSS_GENERIC_FACTORY_CONSTRUCTOR(PR_FALSE, nsKeyObjectFactory)
 NS_NSS_GENERIC_FACTORY_CONSTRUCTOR(PR_FALSE, nsDataSignatureVerifier)
 NS_NSS_GENERIC_FACTORY_CONSTRUCTOR_INIT(PR_FALSE, nsCertOverrideService, Init)
 NS_NSS_GENERIC_FACTORY_CONSTRUCTOR(PR_FALSE, nsRandomGenerator)
-NS_NSS_GENERIC_FACTORY_CONSTRUCTOR_INIT(PR_FALSE, nsRecentBadCertsService, Init)
 
 static NS_METHOD RegisterPSMContentListeners(
                       nsIComponentManager *aCompMgr,
@@ -475,13 +472,6 @@ static const nsModuleComponentInfo components[] =
     NS_RANDOMGENERATOR_CID,
     NS_RANDOMGENERATOR_CONTRACTID,
     nsRandomGeneratorConstructor
-  },
-
-  {
-    "PSM Recent Bad Certs Service",
-    NS_RECENTBADCERTS_CID,
-    NS_RECENTBADCERTS_CONTRACTID,
-    nsRecentBadCertsServiceConstructor
   }
 };
 
