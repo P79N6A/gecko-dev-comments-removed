@@ -50,9 +50,6 @@ var dh = Cc["@mozilla.org/browser/download-history;1"].
          getService(Ci.nsIDownloadHistory);
 
 do_check_true(dh instanceof Ci.nsINavHistoryService);
-var pb = Cc["@mozilla.org/privatebrowsing;1"].
-         getService(Ci.nsIPrivateBrowsingService);
-
 
 const NS_LINK_VISITED_EVENT_TOPIC = "link-visited";
 const DISABLE_HISTORY_PREF = "browser.history_expire_days";
@@ -94,6 +91,15 @@ function test_dh() {
 }
 
 function test_dh_privateBrowsing() {
+  var pb = null;
+  try {
+    
+     pb = Cc["@mozilla.org/privatebrowsing;1"].
+          getService(Ci.nsIPrivateBrowsingService);
+  } catch (ex) {
+    
+    return;
+  }
   prefs.setBoolPref(PB_KEEP_SESSION_PREF, true);
   pb.privateBrowsingEnabled = true;
 
