@@ -78,9 +78,6 @@ function test() {
 
   let continueTest = function() {
     
-    testBrowser.removeEventListener("load", continueTest, true);
-
-    
     
     FullZoom.enlarge();
     zoomLevel = ZoomManager.zoom;
@@ -97,7 +94,12 @@ function test() {
   
   
   
-  let continueListener = function() { window.setTimeout(continueTest, 0) };
+  let continueListener = function() {
+    window.setTimeout(continueTest, 0);
+    
+    
+    testBrowser.removeEventListener("load", continueListener, true);
+  };
   testBrowser.addEventListener("load", continueListener, true);
 
   
