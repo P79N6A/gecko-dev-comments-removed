@@ -35,7 +35,7 @@
 
 
 
-#include "nsDOMFileRequest.h"
+#include "nsDOMFileReader.h"
 
 #include "nsContentCID.h"
 #include "nsContentUtils.h"
@@ -89,9 +89,9 @@
 
 #define NS_PROGRESS_EVENT_INTERVAL 50
 
-NS_IMPL_CYCLE_COLLECTION_CLASS(nsDOMFileRequest)
+NS_IMPL_CYCLE_COLLECTION_CLASS(nsDOMFileReader)
 
-NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(nsDOMFileRequest,
+NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(nsDOMFileReader,
                                                   nsXHREventTarget)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(mOnLoadEndListener)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(mFile)
@@ -100,7 +100,7 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(nsDOMFileRequest,
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(mChannel)
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
-NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(nsDOMFileRequest,
+NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(nsDOMFileReader,
                                                 nsXHREventTarget)
   NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mOnLoadEndListener)
   NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mFile)
@@ -109,32 +109,32 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(nsDOMFileRequest,
   NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mChannel)
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
-NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(nsDOMFileRequest)
-  NS_INTERFACE_MAP_ENTRY(nsIDOMFileRequest)
+NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(nsDOMFileReader)
+  NS_INTERFACE_MAP_ENTRY(nsIDOMFileReader)
   NS_INTERFACE_MAP_ENTRY(nsIStreamListener)
   NS_INTERFACE_MAP_ENTRY(nsIInterfaceRequestor)
   NS_INTERFACE_MAP_ENTRY(nsISupportsWeakReference)
   NS_INTERFACE_MAP_ENTRY(nsIJSNativeInitializer)
   NS_INTERFACE_MAP_ENTRY(nsITimerCallback)
   NS_INTERFACE_MAP_ENTRY(nsICharsetDetectionObserver)
-  NS_INTERFACE_MAP_ENTRY_CONTENT_CLASSINFO(FileRequest)
+  NS_INTERFACE_MAP_ENTRY_CONTENT_CLASSINFO(FileReader)
 NS_INTERFACE_MAP_END_INHERITING(nsXHREventTarget)
 
-NS_IMPL_ADDREF_INHERITED(nsDOMFileRequest, nsXHREventTarget)
-NS_IMPL_RELEASE_INHERITED(nsDOMFileRequest, nsXHREventTarget)
+NS_IMPL_ADDREF_INHERITED(nsDOMFileReader, nsXHREventTarget)
+NS_IMPL_RELEASE_INHERITED(nsDOMFileReader, nsXHREventTarget)
 
 static const PRUint32 FILE_AS_BINARY   = 1;
 static const PRUint32 FILE_AS_TEXT     = 2;
 static const PRUint32 FILE_AS_DATAURL  = 3;
 
 NS_IMETHODIMP
-nsDOMFileRequest::GetOnloadend(nsIDOMEventListener** aOnloadend)
+nsDOMFileReader::GetOnloadend(nsIDOMEventListener** aOnloadend)
 {
   return GetInnerEventListener(mOnLoadEndListener, aOnloadend);
 }
 
 NS_IMETHODIMP
-nsDOMFileRequest::SetOnloadend(nsIDOMEventListener* aOnloadend)
+nsDOMFileReader::SetOnloadend(nsIDOMEventListener* aOnloadend)
 {
   return RemoveAddEventListener(NS_LITERAL_STRING(LOADEND_STR),
                                 mOnLoadEndListener, aOnloadend);
@@ -143,7 +143,7 @@ nsDOMFileRequest::SetOnloadend(nsIDOMEventListener* aOnloadend)
 
 
 NS_IMETHODIMP
-nsDOMFileRequest::Notify(const char *aCharset, nsDetectionConfident aConf)
+nsDOMFileReader::Notify(const char *aCharset, nsDetectionConfident aConf)
 {
   CopyASCIItoUTF16(aCharset, mCharset);
   return NS_OK;
@@ -151,10 +151,10 @@ nsDOMFileRequest::Notify(const char *aCharset, nsDetectionConfident aConf)
 
 
 
-nsDOMFileRequest::nsDOMFileRequest()
+nsDOMFileReader::nsDOMFileReader()
   : mFileData(nsnull), mReadCount(0),
     mDataLen(0), mDataFormat(0),
-    mReadyState(nsIDOMFileRequest::INITIAL),
+    mReadyState(nsIDOMFileReader::INITIAL),
     mProgressEventWasDelayed(PR_FALSE),
     mTimerIsActive(PR_FALSE),
     mReadTotal(0), mReadTransferred(0),
@@ -163,7 +163,7 @@ nsDOMFileRequest::nsDOMFileRequest()
   nsLayoutStatics::AddRef();
 }
 
-nsDOMFileRequest::~nsDOMFileRequest()
+nsDOMFileReader::~nsDOMFileReader()
 {
   if (mListenerManager) 
     mListenerManager->Disconnect();
@@ -172,7 +172,7 @@ nsDOMFileRequest::~nsDOMFileRequest()
 }
 
 nsresult
-nsDOMFileRequest::Init()
+nsDOMFileReader::Init()
 {
   
   
@@ -211,8 +211,8 @@ nsDOMFileRequest::Init()
 }
 
 NS_IMETHODIMP
-nsDOMFileRequest::Initialize(nsISupports* aOwner, JSContext* cx, JSObject* obj,
-                             PRUint32 argc, jsval *argv)
+nsDOMFileReader::Initialize(nsISupports* aOwner, JSContext* cx, JSObject* obj,
+                            PRUint32 argc, jsval *argv)
 {
   mOwner = do_QueryInterface(aOwner);
   if (!mOwner) {
@@ -236,7 +236,7 @@ nsDOMFileRequest::Initialize(nsISupports* aOwner, JSContext* cx, JSObject* obj,
 
 
 NS_IMETHODIMP
-nsDOMFileRequest::GetInterface(const nsIID & aIID, void **aResult)
+nsDOMFileReader::GetInterface(const nsIID & aIID, void **aResult)
 {
   return QueryInterface(aIID, aResult);
 }
@@ -244,49 +244,49 @@ nsDOMFileRequest::GetInterface(const nsIID & aIID, void **aResult)
 
 
 NS_IMETHODIMP
-nsDOMFileRequest::GetReadyState(PRUint16 *aReadyState)
+nsDOMFileReader::GetReadyState(PRUint16 *aReadyState)
 {
   *aReadyState = mReadyState;
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsDOMFileRequest::GetResponse(nsAString& aResponse)
+nsDOMFileReader::GetResult(nsAString& aResult)
 {
-  aResponse = mResponse;
+  aResult = mResult;
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsDOMFileRequest::GetError(nsIDOMFileError** aError)
+nsDOMFileReader::GetError(nsIDOMFileError** aError)
 {
   NS_IF_ADDREF(*aError = mError);
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsDOMFileRequest::ReadAsBinaryString(nsIDOMFile* aFile)
+nsDOMFileReader::ReadAsBinaryString(nsIDOMFile* aFile)
 {
   return ReadFileContent(aFile, EmptyString(), FILE_AS_BINARY);
 }
 
 NS_IMETHODIMP
-nsDOMFileRequest::ReadAsText(nsIDOMFile* aFile,
-                             const nsAString &aCharset)
+nsDOMFileReader::ReadAsText(nsIDOMFile* aFile,
+                            const nsAString &aCharset)
 {
   return ReadFileContent(aFile, aCharset, FILE_AS_TEXT);
 }
 
 NS_IMETHODIMP
-nsDOMFileRequest::ReadAsDataURL(nsIDOMFile* aFile)
+nsDOMFileReader::ReadAsDataURL(nsIDOMFile* aFile)
 {
   return ReadFileContent(aFile, EmptyString(), FILE_AS_DATAURL);
 }
 
 NS_IMETHODIMP
-nsDOMFileRequest::Abort()
+nsDOMFileReader::Abort()
 {
-  if (mReadyState != nsIDOMFileRequest::LOADING)
+  if (mReadyState != nsIDOMFileReader::LOADING)
     return NS_OK;
 
   
@@ -299,8 +299,8 @@ nsDOMFileRequest::Abort()
   mDataLen = 0;
 
   
-  SetDOMStringToNull(mResponse);
-  mReadyState = nsIDOMFileRequest::DONE;
+  SetDOMStringToNull(mResult);
+  mReadyState = nsIDOMFileReader::DONE;
   mError = new nsDOMFileError(nsIDOMFileError::ABORT_ERR);
     
   
@@ -319,14 +319,14 @@ nsDOMFileRequest::Abort()
   DispatchProgressEvent(NS_LITERAL_STRING(ABORT_STR));
   DispatchProgressEvent(NS_LITERAL_STRING(LOADEND_STR));
 
-  mReadyState = nsIDOMFileRequest::INITIAL;
+  mReadyState = nsIDOMFileReader::INITIAL;
 
   return NS_OK;
 }
 
 
 NS_IMETHODIMP
-nsDOMFileRequest::Notify(nsITimer* aTimer)
+nsDOMFileReader::Notify(nsITimer* aTimer)
 {
   mTimerIsActive = PR_FALSE;
   if (mProgressEventWasDelayed) {
@@ -338,7 +338,7 @@ nsDOMFileRequest::Notify(nsITimer* aTimer)
 }
 
 void
-nsDOMFileRequest::StartProgressEventTimer()
+nsDOMFileReader::StartProgressEventTimer()
 {
   if (!mProgressNotifier) {
     mProgressNotifier = do_CreateInstance(NS_TIMER_CONTRACTID);
@@ -355,17 +355,17 @@ nsDOMFileRequest::StartProgressEventTimer()
 
 
 NS_IMETHODIMP
-nsDOMFileRequest::OnStartRequest(nsIRequest *request, nsISupports *ctxt)
+nsDOMFileReader::OnStartRequest(nsIRequest *request, nsISupports *ctxt)
 {
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsDOMFileRequest::OnDataAvailable(nsIRequest *aRequest,
-                                  nsISupports *aContext,
-                                  nsIInputStream *aInputStream,
-                                  PRUint32 aOffset,
-                                  PRUint32 aCount)
+nsDOMFileReader::OnDataAvailable(nsIRequest *aRequest,
+                                 nsISupports *aContext,
+                                 nsIInputStream *aInputStream,
+                                 PRUint32 aOffset,
+                                 PRUint32 aCount)
 {
   
   mFileData = (char *)PR_Realloc(mFileData, aOffset + aCount);
@@ -377,11 +377,11 @@ nsDOMFileRequest::OnDataAvailable(nsIRequest *aRequest,
 
   
   if (mDataFormat == FILE_AS_BINARY) {
-    PRUint32 oldLen = mResponse.Length();
+    PRUint32 oldLen = mResult.Length();
     PRUint32 newLen = oldLen + aCount;
     PRUnichar *buf; 
 
-    if (mResponse.GetMutableData(&buf, newLen) != newLen) {
+    if (mResult.GetMutableData(&buf, newLen) != newLen) {
       return NS_ERROR_OUT_OF_MEMORY;
     }
 
@@ -409,9 +409,9 @@ nsDOMFileRequest::OnDataAvailable(nsIRequest *aRequest,
 }
 
 NS_IMETHODIMP
-nsDOMFileRequest::OnStopRequest(nsIRequest *aRequest,
-                                nsISupports *aContext,
-                                nsresult aStatus)
+nsDOMFileReader::OnStopRequest(nsIRequest *aRequest,
+                               nsISupports *aContext,
+                               nsresult aStatus)
 {
   
   
@@ -426,7 +426,7 @@ nsDOMFileRequest::OnStopRequest(nsIRequest *aRequest,
   }
 
   
-  mReadyState = nsIDOMFileRequest::DONE;
+  mReadyState = nsIDOMFileReader::DONE;
 
   
   if (NS_FAILED(aStatus)) {
@@ -439,10 +439,10 @@ nsDOMFileRequest::OnStopRequest(nsIRequest *aRequest,
     case FILE_AS_BINARY:
       break; 
     case FILE_AS_TEXT:
-      rv = GetAsText(mCharset, mFileData, mDataLen, mResponse);
+      rv = GetAsText(mCharset, mFileData, mDataLen, mResult);
       break;
     case FILE_AS_DATAURL:
-      rv = GetAsDataURL(mFile, mFileData, mDataLen, mResponse);
+      rv = GetAsDataURL(mFile, mFileData, mDataLen, mResult);
       break;
     default:
      return NS_ERROR_FAILURE;
@@ -458,9 +458,9 @@ nsDOMFileRequest::OnStopRequest(nsIRequest *aRequest,
 
 
 nsresult
-nsDOMFileRequest::ReadFileContent(nsIDOMFile* aFile,
-                                  const nsAString &aCharset,
-                                  PRUint32 aDataFormat)
+nsDOMFileReader::ReadFileContent(nsIDOMFile* aFile,
+                                 const nsAString &aCharset,
+                                 PRUint32 aDataFormat)
 { 
   NS_ENSURE_TRUE(aFile, NS_ERROR_NULL_POINTER);
 
@@ -491,14 +491,14 @@ nsDOMFileRequest::ReadFileContent(nsIDOMFile* aFile,
   NS_ENSURE_SUCCESS(rv, rv);
 
   
-  mReadyState = nsIDOMFileRequest::LOADING;
+  mReadyState = nsIDOMFileReader::LOADING;
   DispatchProgressEvent(NS_LITERAL_STRING(LOADSTART_STR));
  
   return NS_OK;
 }
 
 void
-nsDOMFileRequest::DispatchError(nsresult rv)
+nsDOMFileReader::DispatchError(nsresult rv)
 {
   
   switch (rv) {
@@ -519,7 +519,7 @@ nsDOMFileRequest::DispatchError(nsresult rv)
 }
 
 void
-nsDOMFileRequest::DispatchProgressEvent(const nsAString& aType)
+nsDOMFileReader::DispatchProgressEvent(const nsAString& aType)
 {
   nsCOMPtr<nsIDOMEvent> event;
   nsresult rv = nsEventDispatcher::CreateEvent(nsnull, nsnull,
@@ -547,10 +547,10 @@ nsDOMFileRequest::DispatchProgressEvent(const nsAString& aType)
 }
 
 nsresult
-nsDOMFileRequest::GetAsText(const nsAString &aCharset,
-                            const char *aFileData,
-                            PRUint32 aDataLen,
-                            nsAString& aResult)
+nsDOMFileReader::GetAsText(const nsAString &aCharset,
+                           const char *aFileData,
+                           PRUint32 aDataLen,
+                           nsAString& aResult)
 {
   nsresult rv;
   nsCAutoString charsetGuess;
@@ -574,10 +574,10 @@ nsDOMFileRequest::GetAsText(const nsAString &aCharset,
 }
 
 nsresult
-nsDOMFileRequest::GetAsDataURL(nsIFile *aFile,
-                               const char *aFileData,
-                               PRUint32 aDataLen,
-                               nsAString& aResult)
+nsDOMFileReader::GetAsDataURL(nsIFile *aFile,
+                              const char *aFileData,
+                              PRUint32 aDataLen,
+                              nsAString& aResult)
 {
   aResult.AssignLiteral("data:");
 
@@ -621,10 +621,10 @@ nsDOMFileRequest::GetAsDataURL(nsIFile *aFile,
 }
 
 nsresult
-nsDOMFileRequest::ConvertStream(const char *aFileData,
-                                PRUint32 aDataLen,
-                                const char *aCharset,
-                                nsAString &aResult)
+nsDOMFileReader::ConvertStream(const char *aFileData,
+                               PRUint32 aDataLen,
+                               const char *aCharset,
+                               nsAString &aResult)
 {
   nsresult rv;
   nsCOMPtr<nsICharsetConverterManager> charsetConverter = 
@@ -650,9 +650,9 @@ nsDOMFileRequest::ConvertStream(const char *aFileData,
 }
 
 nsresult
-nsDOMFileRequest::GuessCharset(const char *aFileData,
-                               PRUint32 aDataLen,
-                               nsACString &aCharset)
+nsDOMFileReader::GuessCharset(const char *aFileData,
+                              PRUint32 aDataLen,
+                              nsACString &aCharset)
 {
   
   nsCOMPtr<nsICharsetDetector> detector
