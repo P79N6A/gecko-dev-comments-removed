@@ -592,10 +592,11 @@ PlacesTreeView.prototype = {
         
         
         
-        var lastRowCount =
-          this._countVisibleRowsForItem(aParent.getChild(aNewIndex - 1));
-        newViewIndex =
-          aParent.getChild(aNewIndex - 1).viewIndex + lastRowCount;
+        var prevChild = aParent.getChild(aNewIndex - 1);
+        newViewIndex = prevChild.viewIndex + this._countVisibleRowsForItem(prevChild);
+        
+        if (prevChild.parent == aItem.parent && prevChild.viewIndex > aItem.viewIndex) 
+          newViewIndex--;
       }
     }
 
