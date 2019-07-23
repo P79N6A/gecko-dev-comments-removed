@@ -48,6 +48,10 @@
 #include <stddef.h>             
 #include <stdlib.h>             
 
+#if defined(XP_WIN) || (defined(XP_OS2) && defined(__declspec))
+#  define MOZALLOC_EXPORT __declspec(dllexport)
+#endif
+
 
 #define MOZALLOC_DONT_DEFINE_MACRO_WRAPPERS
 #include "mozilla/mozalloc.h"

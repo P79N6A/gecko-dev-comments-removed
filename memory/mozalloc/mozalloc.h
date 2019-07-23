@@ -54,8 +54,11 @@
 
 
 
-#if defined(XP_WIN) || (defined(XP_OS2) && defined(__declspec))
-#  define MOZALLOC_EXPORT __declspec(dllexport)
+#if defined(MOZALLOC_EXPORT)
+
+
+#elif defined(XP_WIN) || (defined(XP_OS2) && defined(__declspec))
+#  define MOZALLOC_EXPORT __declspec(dllimport)
 #elif defined(HAVE_VISIBILITY_ATTRIBUTE)
 
 
