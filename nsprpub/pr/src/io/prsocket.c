@@ -460,11 +460,6 @@ PRIntervalTime timeout)
 
 
 
-
-
-
-
-
 #if !defined(SOLARIS) && !defined(IRIX) && !defined(WINNT)
 	_PR_MD_MAKE_NONBLOCK(fd2);
 #endif
