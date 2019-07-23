@@ -3908,6 +3908,9 @@ nsCanvasRenderingContext2D::PutImageData()
     gfxContextPathAutoSaveRestore pathSR(mThebes);
     gfxContextAutoSaveRestore autoSR(mThebes);
 
+    
+    mThebes->ResetClip();
+
     mThebes->IdentityMatrix();
     mThebes->Translate(gfxPoint(x, y));
     mThebes->NewPath();
