@@ -60,6 +60,8 @@
 
 
 
+
+
 const Cc = Components.classes;
 const Ci = Components.interfaces;
 const Cr = Components.results;
@@ -82,9 +84,9 @@ var dialog = {
 
   initialize: function initialize()
   {
-    this._handlerInfo = window.arguments[6].QueryInterface(Ci.nsIHandlerInfo);
-    this._URI         = window.arguments[7].QueryInterface(Ci.nsIURI);
-    this._windowCtxt  = window.arguments[8];
+    this._handlerInfo = window.arguments[7].QueryInterface(Ci.nsIHandlerInfo);
+    this._URI         = window.arguments[8].QueryInterface(Ci.nsIURI);
+    this._windowCtxt  = window.arguments[9];
     if (this._windowCtxt)
       this._windowCtxt.QueryInterface(Ci.nsIInterfaceRequestor);
     this._itemChoose  = document.getElementById("item-choose");
@@ -108,7 +110,8 @@ var dialog = {
     description.text.textContent = window.arguments[2];
     options.value                = window.arguments[3];
     checkbox.desc.label          = window.arguments[4];
-    checkbox.text.textContent    = window.arguments[5];
+    checkbox.desc.accessKey      = window.arguments[5];
+    checkbox.text.textContent    = window.arguments[6];
 
     
     if (!checkbox.desc.label)
