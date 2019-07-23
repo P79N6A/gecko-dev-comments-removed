@@ -2223,6 +2223,12 @@ gfxTextRun::SortGlyphRuns()
         
         if (i == 0 || runs[i].mFont != runs[i - 1].mFont) {
             mGlyphRuns.AppendElement(runs[i]);
+            
+            
+            NS_ASSERTION(i == 0 ||
+                         runs[i].mCharacterOffset !=
+                         runs[i - 1].mCharacterOffset,
+                         "Two fonts for the same run, glyph indices may not match the font");
         }
     }
 }
