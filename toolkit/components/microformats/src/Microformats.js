@@ -409,6 +409,7 @@ var Microformats = {
           }
         }
       }
+     
       if (Microformats.matchClass(propnode, "value")) {
         return Microformats.parser.textGetter(parentnode, parentnode);
       } else {
@@ -469,23 +470,19 @@ var Microformats = {
 
 
 
-
-
     HTMLGetter: function(propnode, parentnode) {
-      return {
-        toString: function () {
-          return Microformats.parser.defaultGetter(propnode, parentnode, "text");
-        },
-        toHTML: function () {
-          return Microformats.parser.defaultGetter(propnode, parentnode, "HTML"); 
-        },
-        replace: function (a, b) {
-          return this.toString().replace(a,b);
-        },
-        match: function (a) {
-          return this.toString().match(a);
-        }
-      };
+      
+      
+      
+      function mfHTML(value) {
+        this.valueOf = function() {return value.valueOf();}
+        this.toString = function() {return value.toString();}
+      }
+      mfHTML.prototype = new String;
+      mfHTML.prototype.toHTML = function() {
+        return Microformats.parser.defaultGetter(propnode, parentnode, "HTML");
+      }
+      return new mfHTML(Microformats.parser.defaultGetter(propnode, parentnode, "text"));
     },
     
 
@@ -595,7 +592,7 @@ var Microformats = {
       object.resolvedNode = node; 
       object.semanticType = microformat;
       if (validate) {
-        Microformats.parser.validate(object.node, microformat);
+        Microformats.parser.validate(node, microformat);
       }
     },
     getMicroformatPropertyGenerator: function getMicroformatPropertyGenerator(node, name, property, microformat)
@@ -1584,9 +1581,6 @@ function tag(node, validate) {
   }
 }
 tag.prototype.toString = function() {
-
-
-
   return this.tag;
 }
 
