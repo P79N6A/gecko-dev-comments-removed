@@ -1198,7 +1198,6 @@ var PlacesUIUtils = {
       
       for (var i = 0; i < items.length; i++) {
         var queryName = as.getItemAnnotation(items[i], ORGANIZER_QUERY_ANNO);
-        Components.utils.reportError(items[i] + " " + queryName);
         this.leftPaneQueries[queryName] = items[i];
         
         
