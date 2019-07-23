@@ -600,13 +600,21 @@ var HistoryMenu = {
     document.getElementById("endHistorySeparator").hidden =
       resultNode.childCount == 0;
 
-    if (!wasOpen)
-      resultNode.containerOpen = false;
-
     
     
     this.toggleRecentlyClosedTabs();
     this.toggleRecentlyClosedWindows();
+  },
+
+  
+
+
+
+
+  onPopupHidden: function PHM_onPopupHidden(aMenuPopup) {
+    var resultNode = aMenuPopup.getResultNode();
+    if (resultNode.containerOpen)
+      resultNode.containerOpen = false;
   }
 };
 

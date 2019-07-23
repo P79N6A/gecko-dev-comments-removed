@@ -155,6 +155,7 @@ public:
   void RemoveHistoryObserver(nsNavHistoryQueryResultNode* aNode);
   void RemoveBookmarkFolderObserver(nsNavHistoryFolderResultNode* aNode, PRInt64 aFolder);
   void RemoveAllBookmarksObserver(nsNavHistoryQueryResultNode* aNode);
+  void StopObserving();
 
   
   nsINavHistoryResultViewer* GetView() const
@@ -176,6 +177,10 @@ public:
   
   
   PRUint16 mSortingMode;
+  
+  
+  
+  PRBool mNeedsToApplySortingMode;
 
   
   nsCString mSortingAnnotation;

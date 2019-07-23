@@ -808,6 +808,8 @@ PlacesTreeView.prototype = {
     
     
     if (this._result != val) {
+      if (this._result)
+        this._result.root.containerOpen = false;
       this._result = val;
       this._finishInit();
     }

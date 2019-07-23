@@ -499,7 +499,8 @@ nsNavHistoryContainerResultNode::CloseContainer(PRBool aUpdateView)
 
   
   for (PRInt32 i = 0; i < mChildren.Count(); i ++) {
-    if (mChildren[i]->IsContainer() && mChildren[i]->GetAsContainer()->mExpanded)
+    if (mChildren[i]->IsContainer() &&
+        mChildren[i]->GetAsContainer()->mExpanded)
       mChildren[i]->GetAsContainer()->CloseContainer(PR_FALSE);
   }
 
@@ -508,17 +509,25 @@ nsNavHistoryContainerResultNode::CloseContainer(PRBool aUpdateView)
   nsresult rv;
   if (IsDynamicContainer()) {
     
-    nsCOMPtr<nsIDynamicContainer> svc = do_GetService(mDynamicContainerType.get(), &rv);
+    nsCOMPtr<nsIDynamicContainer> svc =
+      do_GetService(mDynamicContainerType.get(), &rv);
     if (NS_SUCCEEDED(rv))
       svc->OnContainerNodeClosed(this);
   }
 
+  nsNavHistoryResult* result = GetResult();
   if (aUpdateView) {
-    nsNavHistoryResult* result = GetResult();
     NS_ENSURE_TRUE(result, NS_ERROR_FAILURE);
     if (result->GetView())
       result->GetView()->ContainerClosed(this);
   }
+
+  
+  
+  
+  if (result->mRootNode == this)
+    result->StopObserving();
+
   return NS_OK;
 }
 
@@ -2376,10 +2385,15 @@ nsNavHistoryQueryResultNode::FillChildren()
 
   PRUint16 sortType = GetSortType();
 
-  
-  
-  if (mOptions->QueryType() != nsINavHistoryQueryOptions::QUERY_TYPE_HISTORY ||
-      sortType != nsINavHistoryQueryOptions::SORT_BY_NONE) {
+  if (mResult->mNeedsToApplySortingMode) {
+    
+    
+    mResult->SetSortingMode(mResult->mSortingMode);
+  }
+  else if (mOptions->QueryType() != nsINavHistoryQueryOptions::QUERY_TYPE_HISTORY ||
+           sortType != nsINavHistoryQueryOptions::SORT_BY_NONE) {
+    
+    
     
     
     SortComparator comparator = GetSortingComparator(GetSortType());
@@ -3260,13 +3274,20 @@ nsNavHistoryFolderResultNode::FillChildren()
   
   FillStats();
 
-  
-  
-  SortComparator comparator = GetSortingComparator(GetSortType());
-  if (comparator) {
-    nsCAutoString sortingAnnotation;
-    GetSortingAnnotation(sortingAnnotation);
-    RecursiveSort(sortingAnnotation.get(), comparator);
+  if (mResult->mNeedsToApplySortingMode) {
+    
+    
+    mResult->SetSortingMode(mResult->mSortingMode);
+  }
+  else {
+    
+    
+    SortComparator comparator = GetSortingComparator(GetSortType());
+    if (comparator) {
+      nsCAutoString sortingAnnotation;
+      GetSortingAnnotation(sortingAnnotation);
+      RecursiveSort(sortingAnnotation.get(), comparator);
+    }
   }
 
   
@@ -3863,7 +3884,8 @@ nsNavHistoryResult::nsNavHistoryResult(nsNavHistoryContainerResultNode* aRoot) :
   mIsHistoryObserver(PR_FALSE),
   mIsBookmarkFolderObserver(PR_FALSE),
   mIsAllBookmarksObserver(PR_FALSE),
-  mBatchInProgress(PR_FALSE)
+  mBatchInProgress(PR_FALSE),
+  mNeedsToApplySortingMode(PR_FALSE)
 {
   mRootNode->mResult = this;
 }
@@ -3874,6 +3896,33 @@ nsNavHistoryResult::~nsNavHistoryResult()
   mBookmarkFolderObservers.Enumerate(&RemoveBookmarkFolderObserversCallback, nsnull);
 }
 
+void
+nsNavHistoryResult::StopObserving()
+{
+  if (mIsBookmarkFolderObserver || mIsAllBookmarksObserver) {
+    nsNavBookmarks* bookmarks = nsNavBookmarks::GetBookmarksService();
+    if (bookmarks) {
+      bookmarks->RemoveObserver(this);
+      mIsBookmarkFolderObserver = PR_FALSE;
+      mIsAllBookmarksObserver = PR_FALSE;
+    }
+  }
+  if (mIsHistoryObserver) {
+    nsNavHistory* history = nsNavHistory::GetHistoryService();
+    if (history) {
+      history->RemoveObserver(this);
+      mIsHistoryObserver = PR_FALSE;
+    }
+  }
+
+  
+  
+  
+  if (mRootNode->IsQuery())
+    mRootNode->GetAsQuery()->ClearChildren(PR_TRUE);
+  else if (mRootNode->IsFolder())
+    mRootNode->GetAsFolder()->ClearChildren(PR_TRUE);
+}
 
 
 
@@ -4116,6 +4165,12 @@ nsNavHistoryResult::SetSortingMode(PRUint16 aSortingMode)
   NS_ASSERTION(mOptions, "Options should always be present for a root query");
 
   mSortingMode = aSortingMode;
+
+  if (!mRootNode->mExpanded) {
+    
+    mNeedsToApplySortingMode = PR_TRUE;
+    return NS_OK;
+  }
 
   
   nsNavHistoryContainerResultNode::SortComparator comparator =
