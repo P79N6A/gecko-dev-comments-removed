@@ -86,7 +86,6 @@ typedef struct JSUpvarArray {
     uint32          length;     
 } JSUpvarArray;
 
-#define FREE_UPVAR_COOKIE               0xffffffff
 #define MAKE_UPVAR_COOKIE(skip,slot)    ((skip) << 16 | (slot))
 #define UPVAR_FRAME_SKIP(cookie)        ((uint32)(cookie) >> 16)
 #define UPVAR_FRAME_SLOT(cookie)        ((uint16)(cookie))
@@ -119,7 +118,7 @@ struct JSScript {
     const char      *filename;  
     uint32          lineno;     
     uint16          nslots;     
-    uint16          staticLevel;
+    uint16          staticDepth;
     JSPrincipals    *principals;
     union {
         JSObject    *object;    

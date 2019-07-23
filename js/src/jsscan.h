@@ -137,10 +137,6 @@ typedef enum JSTokenType {
     TOK_SEQ = 82,                       
 
     TOK_FORHEAD = 83,                   
-    TOK_ARGSBODY = 84,                  
-    TOK_UPVARS = 85,                    
-
-
     TOK_RESERVED,                       
     TOK_LIMIT                           
 } JSTokenType;
@@ -194,45 +190,11 @@ js_AppendJSString(JSStringBuffer *sb, JSString *str);
 struct JSTokenPtr {
     uint16              index;          
     uint16              lineno;         
-
-    bool operator <(const JSTokenPtr& bptr) {
-        return lineno < bptr.lineno ||
-               (lineno == bptr.lineno && index < bptr.index);
-    }
-
-    bool operator <=(const JSTokenPtr& bptr) {
-        return lineno < bptr.lineno ||
-               (lineno == bptr.lineno && index <= bptr.index);
-    }
-
-    bool operator >(const JSTokenPtr& bptr) {
-        return !(*this <= bptr);
-    }
-
-    bool operator >=(const JSTokenPtr& bptr) {
-        return !(*this < bptr);
-    }
 };
 
 struct JSTokenPos {
     JSTokenPtr          begin;          
     JSTokenPtr          end;            
-
-    bool operator <(const JSTokenPos& bpos) {
-        return begin < bpos.begin;
-    }
-
-    bool operator <=(const JSTokenPos& bpos) {
-        return begin <= bpos.begin;
-    }
-
-    bool operator >(const JSTokenPos& bpos) {
-        return !(*this <= bpos);
-    }
-
-    bool operator >=(const JSTokenPos& bpos) {
-        return !(*this < bpos);
-    }
 };
 
 struct JSToken {
@@ -335,9 +297,6 @@ struct JSTokenStream {
 
 
 #define TSF_KEYWORD_IS_NAME 0x4000
-
-
-#define TSF_DESTRUCTURING   0x8000
 
 
 #define LINE_SEPARATOR  0x2028

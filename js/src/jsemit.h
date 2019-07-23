@@ -46,7 +46,6 @@
 #include "jstypes.h"
 #include "jsatom.h"
 #include "jsopcode.h"
-#include "jsparse.h"
 #include "jsscript.h"
 #include "jsprvtd.h"
 #include "jspubtd.h"
@@ -124,14 +123,13 @@ typedef struct JSStmtInfo JSStmtInfo;
 struct JSStmtInfo {
     uint16          type;           
     uint16          flags;          
-    uint32          blockid;        
     ptrdiff_t       update;         
     ptrdiff_t       breaks;         
     ptrdiff_t       continues;      
     union {
         JSAtom      *label;         
         JSObject    *blockObj;      
-    };
+    } u;
     JSStmtInfo      *down;          
     JSStmtInfo      *downScope;     
 };
@@ -152,20 +150,15 @@ struct JSStmtInfo {
 #define GOSUBS(stmt)     ((stmt).breaks)
 #define GUARDJUMP(stmt)  ((stmt).continues)
 
+#define AT_TOP_LEVEL(tc)                                                      \
+    (!(tc)->topStmt || ((tc)->topStmt->flags & SIF_BODY_BLOCK))
+
 #define SET_STATEMENT_TOP(stmt, top)                                          \
     ((stmt)->update = (top), (stmt)->breaks = (stmt)->continues = (-1))
-
-#ifdef JS_SCOPE_DEPTH_METER
-# define JS_SCOPE_DEPTH_METERING(code) ((void) (code))
-#else
-# define JS_SCOPE_DEPTH_METERING(code) ((void) 0)
-#endif
 
 struct JSTreeContext {              
     uint16          flags;          
     uint16          ngvars;         
-    uint32          bodyid;         
-    uint32          blockidGen;     
     JSStmtInfo      *topStmt;       
     JSStmtInfo      *topScopeStmt;  
     JSObject        *blockChain;    
@@ -174,59 +167,36 @@ struct JSTreeContext {
     JSParseNode     *blockNode;     
 
     JSAtomList      decls;          
-    JSCompiler      *compiler;      
+    JSParseContext  *parseContext;
 
     union {
+
         JSFunction  *fun;           
 
         JSObject    *scopeChain;    
-    };
-
-    JSAtomList      lexdeps;        
-    JSAtomList      upvars;         
-    JSTreeContext   *parent;        
-    uintN           staticLevel;    
-
-    JSFunctionBox   *funbox;        
-
-
-    JSFunctionBox   *functionList;
+    } u;
 
 #ifdef JS_SCOPE_DEPTH_METER
     uint16          scopeDepth;     
     uint16          maxScopeDepth;  
 #endif
-
-    JSTreeContext(JSCompiler *jsc)
-      : flags(0), ngvars(0), bodyid(0), blockidGen(0),
-        topStmt(NULL), topScopeStmt(NULL), blockChain(NULL), blockNode(NULL),
-        compiler(jsc), scopeChain(NULL), parent(NULL), staticLevel(0),
-        funbox(NULL), functionList(NULL)
-    {
-        JS_SCOPE_DEPTH_METERING(scopeDepth = maxScopeDepth = 0);
-    }
-
-    
-
-
-
-
-    ~JSTreeContext() {
-        JS_SCOPE_DEPTH_METERING(maxScopeDepth == (uintN) -1 ||
-                                JS_BASIC_STATS_ACCUM(&compiler
-                                                       ->context
-                                                       ->runtime
-                                                       ->lexicalScopeDepthStats,
-                                                     maxScopeDepth));
-    }
-
-    uintN blockid() { return topStmt ? topStmt->blockid : bodyid; }
-
-    bool atTopLevel() { return !topStmt || (topStmt->flags & SIF_BODY_BLOCK); }
-
-    
-    bool inStatement(JSStmtType type);
 };
+
+#define TCF_IN_FUNCTION        0x01 /* parsing inside function body */
+#define TCF_RETURN_EXPR        0x02 /* function has 'return expr;' */
+#define TCF_RETURN_VOID        0x04 /* function has 'return;' */
+#define TCF_IN_FOR_INIT        0x08 /* parsing init expr of for; exclude 'in' */
+#define TCF_NO_SCRIPT_RVAL     0x10 /* API caller does not want result value
+                                       from global script */
+#define TCF_FUN_USES_NONLOCALS 0x20 /* function refers to non-local names */
+#define TCF_FUN_HEAVYWEIGHT    0x40 /* function needs Call object per call */
+#define TCF_FUN_IS_GENERATOR   0x80 /* parsed yield statement in function */
+#define TCF_HAS_FUNCTION_STMT 0x100 /* block contains a function statement */
+#define TCF_GENEXP_LAMBDA     0x200 /* flag lambda from generator expression */
+#define TCF_COMPILE_N_GO      0x400 /* compiler-and-go mode of script, can
+                                       optimize name references based on scope
+                                       chain */
+#define TCF_HAS_SHARPS        0x800 /* source contains sharp defs or uses */
 
 
 
@@ -236,48 +206,45 @@ struct JSTreeContext {
 
 
 
-
-
-#define TCF_COMPILING           0x01 /* JSTreeContext is JSCodeGenerator */
-#define TCF_IN_FUNCTION         0x02 /* parsing inside function body */
-#define TCF_RETURN_EXPR         0x04 /* function has 'return expr;' */
-#define TCF_RETURN_VOID         0x08 /* function has 'return;' */
-#define TCF_IN_FOR_INIT         0x10 /* parsing init expr of for; exclude 'in' */
-#define TCF_FUN_SETS_OUTER_NAME 0x20 /* function set outer name (lexical or free) */
-#define TCF_FUN_PARAM_ARGUMENTS 0x40 /* function has parameter named arguments */
-#define TCF_FUN_USES_ARGUMENTS  0x80 /* function uses arguments except as a
-                                        parameter name */
-#define TCF_FUN_HEAVYWEIGHT    0x100 /* function needs Call object per call */
-#define TCF_FUN_IS_GENERATOR   0x200 /* parsed yield statement in function */
-#define TCF_FUN_IS_FUNARG      0x400 /* function escapes as an argument, return
-                                        value, or via the heap */
-#define TCF_HAS_FUNCTION_STMT  0x800 /* block contains a function statement */
-#define TCF_GENEXP_LAMBDA     0x1000 /* flag lambda from generator expression */
-#define TCF_COMPILE_N_GO      0x2000 /* compiler-and-go mode of script, can
-                                        optimize name references based on scope
-                                        chain */
-#define TCF_NO_SCRIPT_RVAL    0x4000 /* API caller does not want result value
-                                        from global script */
-#define TCF_HAS_SHARPS        0x8000 /* source contains sharp defs or uses */
-
-
-
-
-#define TCF_FUN_FLAGS           (TCF_FUN_SETS_OUTER_NAME |                    \
-                                 TCF_FUN_USES_ARGUMENTS  |                    \
-                                 TCF_FUN_PARAM_ARGUMENTS |                    \
-                                 TCF_FUN_HEAVYWEIGHT     |                    \
-                                 TCF_FUN_IS_GENERATOR    |                    \
-                                 TCF_FUN_IS_FUNARG       |                    \
+#define TCF_FUN_FLAGS           (TCF_FUN_IS_GENERATOR   |                     \
+                                 TCF_FUN_HEAVYWEIGHT    |                     \
+                                 TCF_FUN_USES_NONLOCALS |                     \
                                  TCF_HAS_SHARPS)
 
 
 
 
 
-#define TCF_STATIC_LEVEL_MASK   0xffff0000
-#define TCF_GET_STATIC_LEVEL(f) ((uint32)(f) >> 16)
-#define TCF_PUT_STATIC_LEVEL(d) ((uint16)(d) << 16)
+#define TCF_STATIC_DEPTH_MASK   0xffff0000
+#define TCF_GET_STATIC_DEPTH(f) ((uint32)(f) >> 16)
+#define TCF_PUT_STATIC_DEPTH(d) ((uint16)(d) << 16)
+
+#ifdef JS_SCOPE_DEPTH_METER
+# define JS_SCOPE_DEPTH_METERING(code) ((void) (code))
+#else
+# define JS_SCOPE_DEPTH_METERING(code) ((void) 0)
+#endif
+
+#define TREE_CONTEXT_INIT(tc, pc)                                             \
+    ((tc)->flags = (tc)->ngvars = 0,                                          \
+     (tc)->topStmt = (tc)->topScopeStmt = NULL,                               \
+     (tc)->blockChain = NULL,                                                 \
+     ATOM_LIST_INIT(&(tc)->decls),                                            \
+     (tc)->blockNode = NULL,                                                  \
+     (tc)->parseContext = (pc),                                               \
+     (tc)->u.scopeChain = NULL,                                               \
+     JS_SCOPE_DEPTH_METERING((tc)->scopeDepth = (tc)->maxScopeDepth = 0))
+
+
+
+
+
+
+#define TREE_CONTEXT_FINISH(cx, tc)                                           \
+    JS_SCOPE_DEPTH_METERING(                                                  \
+        (tc)->maxScopeDepth == (uintN) -1 ||                                  \
+        JS_BASIC_STATS_ACCUM(&(cx)->runtime->lexicalScopeDepthStats,          \
+                             (tc)->maxScopeDepth))
 
 
 
@@ -347,18 +314,17 @@ struct JSTryNode {
     JSTryNode       *prev;
 };
 
-struct JSCGObjectList {
+typedef struct JSEmittedObjectList {
     uint32              length;     
-    JSObjectBox         *lastbox;   
+    JSParsedObjectBox   *lastPob;   
+} JSEmittedObjectList;
 
-    JSCGObjectList() : length(0), lastbox(NULL) {}
+extern void
+FinishParsedObjects(JSEmittedObjectList *emittedList, JSObjectArray *objectMap);
 
-    uintN index(JSObjectBox *objbox);
-    void finish(JSObjectArray *array);
-};
+struct JSCodeGenerator {
+    JSTreeContext   treeContext;    
 
-struct JSCodeGenerator : public JSTreeContext
-{
     JSArenaPool     *codePool;      
     JSArenaPool     *notePool;      
     void            *codeMark;      
@@ -397,33 +363,17 @@ struct JSCodeGenerator : public JSTreeContext
     uintN           emitLevel;      
     JSAtomList      constList;      
 
-    JSCGObjectList  objectList;     
-    JSCGObjectList  regexpList;     
+    JSEmittedObjectList objectList; 
+    JSEmittedObjectList regexpList; 
 
 
+    uintN           staticDepth;    
     JSAtomList      upvarList;      
     JSUpvarArray    upvarMap;       
-
-    
-
-
-
-
-    JSCodeGenerator(JSCompiler *jsc,
-                    JSArenaPool *codePool, JSArenaPool *notePool,
-                    uintN lineno);
-
-    
-
-
-
-
-
-
-    ~JSCodeGenerator();
+    JSCodeGenerator *parent;        
 };
 
-#define CG_TS(cg)               TS((cg)->compiler)
+#define CG_TS(cg)               TS((cg)->treeContext.parseContext)
 
 #define CG_BASE(cg)             ((cg)->current->base)
 #define CG_LIMIT(cg)            ((cg)->current->limit)
@@ -445,6 +395,25 @@ struct JSCodeGenerator : public JSTreeContext
 
 #define CG_SWITCH_TO_MAIN(cg)   ((cg)->current = &(cg)->main)
 #define CG_SWITCH_TO_PROLOG(cg) ((cg)->current = &(cg)->prolog)
+
+
+
+
+
+extern JS_FRIEND_API(void)
+js_InitCodeGenerator(JSContext *cx, JSCodeGenerator *cg, JSParseContext *pc,
+                     JSArenaPool *codePool, JSArenaPool *notePool,
+                     uintN lineno);
+
+
+
+
+
+
+
+
+extern JS_FRIEND_API(void)
+js_FinishCodeGenerator(JSContext *cx, JSCodeGenerator *cg);
 
 
 
@@ -494,6 +463,13 @@ js_EmitN(JSContext *cx, JSCodeGenerator *cg, JSOp op, size_t extra);
 extern JSBool
 js_SetJumpOffset(JSContext *cx, JSCodeGenerator *cg, jsbytecode *pc,
                  ptrdiff_t off);
+
+
+extern JSBool
+js_InStatement(JSTreeContext *tc, JSStmtType type);
+
+
+#define js_InWithStatement(tc)      js_InStatement(tc, STMT_WITH)
 
 
 

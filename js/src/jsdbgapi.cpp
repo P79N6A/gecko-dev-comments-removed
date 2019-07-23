@@ -1256,11 +1256,11 @@ JS_EvaluateUCInStackFrame(JSContext *cx, JSStackFrame *fp,
 
 
 
-    script = JSCompiler::compileScript(cx, scobj, fp, JS_StackFramePrincipals(cx, fp),
-                                       TCF_COMPILE_N_GO |
-                                       TCF_PUT_STATIC_LEVEL(JS_DISPLAY_SIZE),
-                                       chars, length, NULL,
-                                       filename, lineno);
+    script = js_CompileScript(cx, scobj, fp, JS_StackFramePrincipals(cx, fp),
+                              TCF_COMPILE_N_GO |
+                              TCF_PUT_STATIC_DEPTH(JS_DISPLAY_SIZE),
+                              chars, length, NULL,
+                              filename, lineno);
     if (!script)
         return JS_FALSE;
 

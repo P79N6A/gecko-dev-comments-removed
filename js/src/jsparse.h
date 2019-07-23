@@ -46,7 +46,6 @@
 #include "jsversion.h"
 #include "jsprvtd.h"
 #include "jspubtd.h"
-#include "jsatom.h"
 #include "jsscan.h"
 
 JS_BEGIN_EXTERN_C
@@ -253,60 +252,34 @@ JS_BEGIN_EXTERN_C
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 typedef enum JSParseNodeArity {
-    PN_NULLARY,                         
-    PN_UNARY,                           
-    PN_BINARY,                          
-    PN_TERNARY,                         
-    PN_FUNC,                            
-    PN_LIST,                            
-    PN_NAME,                            
-    PN_NAMESET                          
+    PN_FUNC     = -3,
+    PN_LIST     = -2,
+    PN_TERNARY  =  3,
+    PN_BINARY   =  2,
+    PN_UNARY    =  1,
+    PN_NAME     = -1,
+    PN_NULLARY  =  0
 } JSParseNodeArity;
 
-struct JSDefinition;
-
 struct JSParseNode {
-    uint32              pn_type:16,     
-                        pn_op:8,        
-                        pn_arity:6,     
-                        pn_used:1,      
-                        pn_defn:1;      
-
-#define PN_OP(pn)    ((JSOp)(pn)->pn_op)
-#define PN_TYPE(pn)  ((JSTokenType)(pn)->pn_type)
-
-    JSTokenPos          pn_pos;         
-    int32               pn_offset;      
-    JSParseNode         *pn_next;       
-    JSParseNode         *pn_link;       
+    uint16              pn_type;
+    uint8               pn_op;
+    int8                pn_arity;
+    JSTokenPos          pn_pos;
+    ptrdiff_t           pn_offset;      
     union {
+        struct {                        
+            JSParsedObjectBox *funpob;  
+            JSParseNode *body;          
+            uint16      flags;          
+            uint32      index;          
+        } func;
         struct {                        
             JSParseNode *head;          
             JSParseNode **tail;         
             uint32      count;          
-            uint32      xflags:12,      
-                        blockid:20;     
+            uint32      extra;          
         } list;
         struct {                        
             JSParseNode *kid1;          
@@ -325,44 +298,36 @@ struct JSParseNode {
             JSBool      hidden;         
         } unary;
         struct {                        
-            union {
-                JSAtom        *atom;    
-                JSFunctionBox *funbox;  
-                JSObjectBox   *objbox;  
-            };
-            union {
-                JSParseNode  *expr;     
-
-                JSDefinition *lexdef;   
-            };
-            uint32      cookie;         
-
-
-            uint32      dflags:12,      
-                        blockid:20;     
-
+            JSAtom      *atom;          
+            JSParseNode *expr;          
+            jsint       slot;           
+            JSBool      isconst;        
         } name;
         struct {                        
-            JSAtomSet   names;          
-            JSParseNode *tree;          
-        } nameset;
-        struct {                        
+            JSParsedObjectBox *pob;     
+            JSParseNode *expr;          
+            jsint       slot;           
+        } lexical;
+        struct {
             JSAtom      *atom;          
             JSAtom      *atom2;         
         } apair;
+        struct {                        
+            JSParsedObjectBox *pob;
+        } object;
         jsdouble        dval;           
     } pn_u;
+    JSParseNode         *pn_next;       
+};
 
-#define pn_funbox       pn_u.name.funbox
-#define pn_body         pn_u.name.expr
-#define pn_cookie       pn_u.name.cookie
-#define pn_dflags       pn_u.name.dflags
-#define pn_blockid      pn_u.name.blockid
-#define pn_index        pn_u.name.blockid /* reuse as object table index */
+#define pn_funpob       pn_u.func.funpob
+#define pn_body         pn_u.func.body
+#define pn_flags        pn_u.func.flags
+#define pn_index        pn_u.func.index
 #define pn_head         pn_u.list.head
 #define pn_tail         pn_u.list.tail
 #define pn_count        pn_u.list.count
-#define pn_xflags       pn_u.list.xflags
+#define pn_extra        pn_u.list.extra
 #define pn_kid1         pn_u.ternary.kid1
 #define pn_kid2         pn_u.ternary.kid2
 #define pn_kid3         pn_u.ternary.kid3
@@ -374,48 +339,12 @@ struct JSParseNode {
 #define pn_num          pn_u.unary.num
 #define pn_hidden       pn_u.unary.hidden
 #define pn_atom         pn_u.name.atom
-#define pn_objbox       pn_u.name.objbox
 #define pn_expr         pn_u.name.expr
-#define pn_lexdef       pn_u.name.lexdef
-#define pn_names        pn_u.nameset.names
-#define pn_tree         pn_u.nameset.tree
+#define pn_slot         pn_u.name.slot
+#define pn_const        pn_u.name.isconst
 #define pn_dval         pn_u.dval
 #define pn_atom2        pn_u.apair.atom2
-
-    
-
-
-
-
-
-    JSParseNode  *expr() const {
-        JS_ASSERT(!pn_used);
-        JS_ASSERT(pn_arity == PN_NAME || pn_arity == PN_FUNC);
-        return pn_expr;
-    }
-
-    JSDefinition *lexdef() const {
-        JS_ASSERT(pn_used);
-        JS_ASSERT(pn_arity == PN_NAME);
-        return pn_lexdef;
-    }
-
-    JSParseNode  *maybeExpr()   { return pn_used ? NULL : expr(); }
-    JSDefinition *maybeLexDef() { return pn_used ? lexdef() : NULL; }
-
-
-#define PND_LET         0x01            /* let (block-scoped) binding */
-#define PND_CONST       0x02            /* const binding (orthogonal to let) */
-#define PND_INITIALIZED 0x04            /* initialized declaration */
-#define PND_ASSIGNED    0x08            /* set if ever LHS of assignment */
-#define PND_TOPLEVEL    0x10            /* function at top of body or prog */
-#define PND_BLOCKCHILD  0x20            /* use or def is direct block child */
-#define PND_FORWARD     0x40            /* forward referenced definition */
-#define PND_PLACEHOLDER 0x80            /* placeholder definition for lexdep */
-#define PND_FUNARG     0x100            /* downward or upward funarg usage */
-#define PND_BOUND      0x200            /* bound to a stack or global slot */
-#define PND_GVAR       0x400            /* gvar binding, can't close over
-                                           because it could be deleted */
+#define pn_pob          pn_u.object.pob
 
 
 #define PNX_STRCAT      0x01            /* TOK_PLUS list has string term */
@@ -429,434 +358,150 @@ struct JSParseNode {
 #define PNX_NEEDBRACES  0x80            /* braces necessary due to closure */
 #define PNX_FUNCDEFS   0x100            /* contains top-level function
                                            statements */
-#define PNX_DESTRUCT   0x200            /* destructuring special cases:
-                                           1. shorthand syntax used, at present
-                                              object destructuring ({x,y}) only;
-                                           2. the first child of function body
-                                              is code evaluating destructuring
-                                              arguments */
+#define PNX_SHORTHAND  0x200            /* shorthand syntax used, at present
+                                           object destructuring ({x,y}) only */
+#define PNX_DESTRARGS  0x400            /* the first child is node defining
+                                           destructuring arguments */
 
-    uintN frameLevel() const {
-        JS_ASSERT(pn_arity == PN_FUNC || pn_arity == PN_NAME);
-        return UPVAR_FRAME_SKIP(pn_cookie);
-    }
 
-    uintN frameSlot() const {
-        JS_ASSERT(pn_arity == PN_FUNC || pn_arity == PN_NAME);
-        return UPVAR_FRAME_SLOT(pn_cookie);
-    }
 
-    bool test(uintN flag) const {
-        JS_ASSERT(pn_arity == PN_FUNC || pn_arity == PN_NAME);
-        return !!(pn_dflags & flag);
-    }
 
-    bool isLet() const          { return test(PND_LET); }
-    bool isConst() const        { return test(PND_CONST); }
-    bool isInitialized() const  { return test(PND_INITIALIZED); }
-    bool isTopLevel() const     { return test(PND_TOPLEVEL); }
-    bool isBlockChild() const   { return test(PND_BLOCKCHILD); }
-    bool isForward() const      { return test(PND_FORWARD); }
-    bool isPlaceholder() const  { return test(PND_PLACEHOLDER); }
 
-    
-    bool isAssigned() const;
-    bool isFunArg() const;
+#define PN_MOVE_NODE(pn, pn2)                                                 \
+    JS_BEGIN_MACRO                                                            \
+        (pn)->pn_type = (pn2)->pn_type;                                       \
+        (pn)->pn_op = (pn2)->pn_op;                                           \
+        (pn)->pn_arity = (pn2)->pn_arity;                                     \
+        (pn)->pn_u = (pn2)->pn_u;                                             \
+        PN_CLEAR_NODE(pn2);                                                   \
+    JS_END_MACRO
 
-    void become(JSParseNode *pn2);
-    void clear();
+#define PN_CLEAR_NODE(pn)                                                     \
+    JS_BEGIN_MACRO                                                            \
+        (pn)->pn_type = TOK_EOF;                                              \
+        (pn)->pn_op = JSOP_NOP;                                               \
+        (pn)->pn_arity = PN_NULLARY;                                          \
+    JS_END_MACRO
 
-    
-    bool isLiteral() const {
-        return PN_TYPE(this) == TOK_NUMBER ||
-               PN_TYPE(this) == TOK_STRING ||
-               (PN_TYPE(this) == TOK_PRIMARY && PN_OP(this) != JSOP_THIS);
-    }
 
-    
+#define PN_IS_CONSTANT(pn)                                                    \
+    ((pn)->pn_type == TOK_NUMBER ||                                           \
+     (pn)->pn_type == TOK_STRING ||                                           \
+     ((pn)->pn_type == TOK_PRIMARY && (pn)->pn_op != JSOP_THIS))
 
+#define PN_OP(pn)    ((JSOp)(pn)->pn_op)
+#define PN_TYPE(pn)  ((JSTokenType)(pn)->pn_type)
 
 
-    JSParseNode *last() const {
-        JS_ASSERT(pn_arity == PN_LIST);
-        JS_ASSERT(pn_count != 0);
-        return (JSParseNode *)((char *)pn_tail - offsetof(JSParseNode, pn_next));
-    }
 
-    void makeEmpty() {
-        JS_ASSERT(pn_arity == PN_LIST);
-        pn_head = NULL;
-        pn_tail = &pn_head;
-        pn_count = 0;
-        pn_xflags = 0;
-        pn_blockid = 0;
-    }
 
-    void initList(JSParseNode *pn) {
-        JS_ASSERT(pn_arity == PN_LIST);
-        pn_head = pn;
-        pn_tail = &pn->pn_next;
-        pn_count = 1;
-        pn_xflags = 0;
-        pn_blockid = 0;
-    }
 
-    void append(JSParseNode *pn) {
-        JS_ASSERT(pn_arity == PN_LIST);
-        *pn_tail = pn;
-        pn_tail = &pn->pn_next;
-        pn_count++;
-    }
-};
+#define PN_LAST(list) \
+    ((JSParseNode *)((char *)(list)->pn_tail - offsetof(JSParseNode, pn_next)))
 
+#define PN_INIT_LIST(list)                                                    \
+    JS_BEGIN_MACRO                                                            \
+        (list)->pn_head = NULL;                                               \
+        (list)->pn_tail = &(list)->pn_head;                                   \
+        (list)->pn_count = (list)->pn_extra = 0;                              \
+    JS_END_MACRO
 
+#define PN_INIT_LIST_1(list, pn)                                              \
+    JS_BEGIN_MACRO                                                            \
+        (list)->pn_head = (pn);                                               \
+        (list)->pn_tail = &(pn)->pn_next;                                     \
+        (list)->pn_count = 1;                                                 \
+        (list)->pn_extra = 0;                                                 \
+    JS_END_MACRO
 
+#define PN_APPEND(list, pn)                                                   \
+    JS_BEGIN_MACRO                                                            \
+        *(list)->pn_tail = (pn);                                              \
+        (list)->pn_tail = &(pn)->pn_next;                                     \
+        (list)->pn_count++;                                                   \
+    JS_END_MACRO
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#define dn_uses         pn_link
-
-struct JSDefinition : public JSParseNode
-{
-    
-
-
-
-
-
-
-
-    JSDefinition *resolve() {
-        JSParseNode *pn = this;
-        while (!pn->pn_defn) {
-            if (pn->pn_type == TOK_ASSIGN) {
-                pn = pn->pn_left;
-                continue;
-            }
-            pn = pn->lexdef();
-        }
-        return (JSDefinition *) pn;
-    }
-
-    bool test(uintN flag) const {
-        JS_ASSERT(pn_defn);
-        if (pn_dflags & flag)
-            return true;
-#ifdef DEBUG
-        for (JSParseNode *pn = dn_uses; pn; pn = pn->pn_link) {
-            JS_ASSERT(!pn->pn_defn);
-            JS_ASSERT(!(pn->pn_dflags & flag));
-        }
-#endif
-        return false;
-    }
-
-    bool isAssigned() const {
-        return test(PND_ASSIGNED);
-    }
-
-    bool isFunArg() const {
-        return test(PND_FUNARG);
-    }
-
-    bool isFreeVar() const {
-        JS_ASSERT(pn_defn);
-        return pn_cookie == FREE_UPVAR_COOKIE || test(PND_GVAR);
-    }
-
-    
-#ifdef CONST
-# undef CONST
-#endif
-    enum Kind { VAR, CONST, LET, FUNCTION, ARG, UNKNOWN };
-
-    bool isBindingForm() { return int(kind()) <= int(LET); }
-
-    static const char *kindString(Kind kind);
-
-    Kind kind() {
-        if (PN_TYPE(this) == TOK_FUNCTION)
-            return FUNCTION;
-        JS_ASSERT(PN_TYPE(this) == TOK_NAME);
-        if (PN_OP(this) == JSOP_NOP)
-            return UNKNOWN;
-        if (PN_OP(this) == JSOP_GETARG)
-            return ARG;
-        if (isConst())
-            return CONST;
-        if (isLet())
-            return LET;
-        return VAR;
-    }
-};
-
-
-
-
-
-inline bool
-JSParseNode::isAssigned() const
-{
-#ifdef DEBUG
-    if (pn_defn)
-        return ((JSDefinition *)this)->isAssigned();
-#endif
-    return test(PND_ASSIGNED);
-}
-
-inline bool
-JSParseNode::isFunArg() const
-{
-#ifdef DEBUG
-    if (pn_defn)
-        return ((JSDefinition *)this)->isFunArg();
-#endif
-    return test(PND_FUNARG);
-}
-
-struct JSObjectBox {
-    JSObjectBox         *traceLink;
-    JSObjectBox         *emitLink;
+struct JSParsedObjectBox {
+    JSParsedObjectBox   *traceLink;
+    JSParsedObjectBox   *emitLink;
     JSObject            *object;
 };
 
-struct JSFunctionBox : public JSObjectBox
-{
-    JSParseNode         *node;
-    JSFunctionBox       *siblings;
-    JSFunctionBox       *kids;
-    JSFunctionBox       *parent;
-    uint16              level;
-    uint16              tcflags;
-};
-
-struct JSFunctionBoxQueue {
-    JSFunctionBox       **vector;
-    size_t              head, tail, length;
-
-    JSFunctionBoxQueue(uint32 count)
-      : vector(new JSFunctionBox*[count]), head(0), tail(0), length(count) { }
-
-    ~JSFunctionBoxQueue() { delete[] vector; }
-
-    void push(JSFunctionBox *funbox) {
-        if (head == length)
-            head = 0;
-        vector[head++] = funbox;
-    }
-
-    JSFunctionBox *pull() {
-        if (tail == head)
-            return NULL;
-        if (tail == length)
-            tail = 0;
-        JS_ASSERT(tail != head);
-        return vector[tail++];
-    }
-};
-
-#define NUM_TEMP_FREELISTS      6U      /* 32 to 2048 byte size classes (32 bit) */
-
-struct JSCompiler {
-    JSContext           *context;
-    JSAtomListElement   *aleFreeList;
-    void                *tempFreeList[NUM_TEMP_FREELISTS];
+struct JSParseContext {
     JSTokenStream       tokenStream;
     void                *tempPoolMark;  
     JSPrincipals        *principals;    
     JSStackFrame        *callerFrame;   
+
     JSParseNode         *nodeList;      
-    uint32              functionCount;  
-    JSObjectBox         *traceListHead; 
+
+    JSParsedObjectBox   *traceListHead; 
+
     JSTempValueRooter   tempRoot;       
-
-    JSCompiler(JSContext *cx, JSPrincipals *prin = NULL, JSStackFrame *cfp = NULL)
-      : context(cx), aleFreeList(NULL), principals(NULL), callerFrame(cfp),
-        nodeList(NULL), functionCount(0), traceListHead(NULL)
-    {
-        memset(tempFreeList, 0, sizeof tempFreeList);
-        setPrincipals(prin);
-        JS_ASSERT_IF(cfp, cfp->script);
-    }
-
-    ~JSCompiler();
-
-    
-
-
-
-
-
-    bool init(const jschar *base, size_t length,
-              FILE *fp, const char *filename, uintN lineno);
-
-    void setPrincipals(JSPrincipals *prin);
-
-    
-
-
-    JSParseNode *parse(JSObject *chain);
-
-#if JS_HAS_XML_SUPPORT
-    JSParseNode *parseXMLText(JSObject *chain, bool allowList);
-#endif
-
-    
-
-
-    JSObjectBox *newObjectBox(JSObject *obj);
-
-    JSFunctionBox *newFunctionBox(JSObject *obj, JSParseNode *fn, JSTreeContext *tc);
-
-    
-
-
-
-    JSFunction *newFunction(JSTreeContext *tc, JSAtom *atom, uintN lambda);
-
-    
-
-
-
-
-    void analyzeFunctions(JSFunctionBox *funbox, uint16& tcflags);
-    void markFunArgs(JSFunctionBox *funbox, uintN tcflags);
-    void setFunctionKinds(JSFunctionBox *funbox, uint16& tcflags);
-
-    void trace(JSTracer *trc);
-
-    static bool
-    compileFunctionBody(JSContext *cx, JSFunction *fun, JSPrincipals *principals,
-                        const jschar *chars, size_t length,
-                        const char *filename, uintN lineno);
-
-    static JSScript *
-    compileScript(JSContext *cx, JSObject *scopeChain, JSStackFrame *callerFrame,
-                  JSPrincipals *principals, uint32 tcflags,
-                  const jschar *chars, size_t length,
-                  FILE *file, const char *filename, uintN lineno,
-                  JSString *source = NULL);
 };
 
 
 
 
-#define TS(jsc) (&(jsc)->tokenStream)
+#define TS(pc) (&(pc)->tokenStream)
+
+
+
+
+extern JSParseNode *
+js_ParseScript(JSContext *cx, JSObject *chain, JSParseContext *pc);
+
+extern JSScript *
+js_CompileScript(JSContext *cx, JSObject *scopeChain, JSStackFrame *callerFrame,
+                 JSPrincipals *principals, uint32 tcflags,
+                 const jschar *chars, size_t length,
+                 FILE *file, const char *filename, uintN lineno,
+                 JSString *source = NULL);
+
+extern JSBool
+js_CompileFunctionBody(JSContext *cx, JSFunction *fun, JSPrincipals *principals,
+                       const jschar *chars, size_t length,
+                       const char *filename, uintN lineno);
 
 extern JSBool
 js_FoldConstants(JSContext *cx, JSParseNode *pn, JSTreeContext *tc,
                  bool inCond = false);
+
+#if JS_HAS_XML_SUPPORT
+JS_FRIEND_API(JSParseNode *)
+js_ParseXMLText(JSContext *cx, JSObject *chain, JSParseContext *pc,
+                JSBool allowList);
+#endif
+
+
+
+
+
+
+
+
+
+extern JSBool
+js_InitParseContext(JSContext *cx, JSParseContext *pc, JSPrincipals *principals,
+                    JSStackFrame *callerFrame,
+                    const jschar *base, size_t length, FILE *fp,
+                    const char *filename, uintN lineno);
+
+extern void
+js_FinishParseContext(JSContext *cx, JSParseContext *pc);
+
+extern void
+js_InitCompilePrincipals(JSContext *cx, JSParseContext *pc,
+                         JSPrincipals *principals);
+
+
+
+
+extern JSParsedObjectBox *
+js_NewParsedObjectBox(JSContext *cx, JSParseContext *pc, JSObject *obj);
+
+extern void
+js_TraceParseContext(JSTracer *trc, JSParseContext *pc);
 
 JS_END_EXTERN_C
 
