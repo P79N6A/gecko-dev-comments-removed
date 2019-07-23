@@ -44,6 +44,7 @@
 
 
 
+
 #include <stdio.h>
 #include "nsXULAppAPI.h"
 #include "nsServiceManagerUtils.h"
@@ -103,6 +104,10 @@
 #endif
 
 #include "nsIJSContextStack.h"
+
+#ifdef MOZ_CRASHREPORTER
+#include "nsICrashReporter.h"
+#endif
 
 class XPCShellDirProvider : public nsIDirectoryServiceProvider2
 {
@@ -1615,7 +1620,7 @@ main(int argc, char **argv, char **envp)
         nsCOMPtr<nsIServiceManager> servMan;
         rv = NS_InitXPCOM2(getter_AddRefs(servMan), appDir, &dirprovider);
         if (NS_FAILED(rv)) {
-            printf("NS_InitXPCOM failed!\n");
+            printf("NS_InitXPCOM2 failed!\n");
             return 1;
         }
         {
@@ -1768,6 +1773,14 @@ main(int argc, char **argv, char **envp)
         JS_GC(cx);
         JS_DestroyContext(cx);
     } 
+
+#ifdef MOZ_CRASHREPORTER
+    
+    
+    nsCOMPtr<nsICrashReporter> crashReporter =
+        do_GetService("@mozilla.org/toolkit/crash-reporter;1");
+#endif
+
     
     rv = NS_ShutdownXPCOM( NULL );
     NS_ASSERTION(NS_SUCCEEDED(rv), "NS_ShutdownXPCOM failed");
@@ -1782,6 +1795,14 @@ main(int argc, char **argv, char **envp)
     appDir = nsnull;
     appFile = nsnull;
     dirprovider.ClearGREDir();
+
+#ifdef MOZ_CRASHREPORTER
+    
+    if (crashReporter) {
+        crashReporter->SetEnabled(PR_FALSE);
+        crashReporter = null;
+    }
+#endif
 
     NS_LogTerm();
 
