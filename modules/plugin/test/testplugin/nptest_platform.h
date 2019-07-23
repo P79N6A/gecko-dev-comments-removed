@@ -113,4 +113,11 @@ int32_t pluginGetClipRegionRectCount(InstanceData* instanceData);
 int32_t pluginGetClipRegionRectEdge(InstanceData* instanceData, 
     int32_t rectIndex, RectEdge edge);
 
+
+
+
+
+
+void pluginDoInternalConsistencyCheck(InstanceData* instanceData, string& error);
+
 #endif 
