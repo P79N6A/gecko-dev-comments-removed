@@ -1797,7 +1797,13 @@ nsBlockFrame::ReflowDirtyLines(nsBlockReflowState& aState)
       
       rv = ReflowLine(aState, line, &keepGoing);
       NS_ENSURE_SUCCESS(rv, rv);
-      
+
+      if (aState.mReflowState.mDiscoveredClearance &&
+          *aState.mReflowState.mDiscoveredClearance) {
+        line->MarkDirty();
+        return NS_OK;
+      }
+
       if (line->HasFloats()) {
         reflowedFloat = PR_TRUE;
       }
@@ -2732,6 +2738,7 @@ nsBlockFrame::ReflowBlockFrame(nsBlockReflowState& aState,
       }
       
       
+      return NS_OK;
     }
   }
   if (treatWithClearance) {
