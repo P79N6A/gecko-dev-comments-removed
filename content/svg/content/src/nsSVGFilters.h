@@ -48,6 +48,15 @@ class nsSVGFilterResource;
 class nsSVGString;
 class nsSVGFilterInstance;
 
+struct nsSVGStringInfo {
+  nsSVGStringInfo(const nsSVGString* aString,
+                  nsSVGElement *aElement) :
+    mString(aString), mElement(aElement) {}
+
+  const nsSVGString* mString;
+  nsSVGElement* mElement;
+};
+
 typedef nsSVGStylableElement nsSVGFEBase;
 
 #define NS_SVG_FE_CID \
@@ -137,10 +146,10 @@ public:
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_NSIDOMSVGFILTERPRIMITIVESTANDARDATTRIBUTES
 
-  virtual nsSVGString* GetResultImageName() = 0;
+  virtual nsSVGString& GetResultImageName() = 0;
   
   
-  virtual void GetSourceImageNames(nsTArray<nsSVGString*>* aSources);
+  virtual void GetSourceImageNames(nsTArray<nsSVGStringInfo>& aSources);
   
   
   
