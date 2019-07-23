@@ -155,10 +155,6 @@
 #define PREF_FRECENCY_DEFAULT_VISIT_BONUS       "places.frecency.defaultVisitBonus"
 #define PREF_FRECENCY_UNVISITED_BOOKMARK_BONUS  "places.frecency.unvisitedBookmarkBonus"
 #define PREF_FRECENCY_UNVISITED_TYPED_BONUS     "places.frecency.unvisitedTypedBonus"
-#define PREF_BROWSER_IMPORT_BOOKMARKS           "browser.places.importBookmarksHTML"
-#define PREF_BROWSER_IMPORT_DEFAULTS            "browser.places.importDefaults"
-#define PREF_BROWSER_SMARTBOOKMARKSVERSION      "browser.places.smartBookmarksVersion"
-#define PREF_BROWSER_LEFTPANEFOLDERID           "browser.places.leftPaneFolderId"
 
 
 
@@ -286,6 +282,23 @@ protected:
   nsNavHistory& mNavHistory;
 };
 
+class PlacesInitCompleteEvent : public nsRunnable {
+  public:
+  NS_IMETHOD Run() {
+    nsresult rv;
+    nsCOMPtr<nsIObserverService> observerService =
+      do_GetService("@mozilla.org/observer-service;1", &rv);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    rv = observerService->NotifyObservers(nsnull,
+                                          PLACES_INIT_COMPLETE_EVENT_TOPIC,
+                                          nsnull);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    return NS_OK;
+  }
+};
+
 
 
 const PRInt32 nsNavHistory::kGetInfoIndex_PageID = 0;
@@ -372,7 +385,8 @@ nsNavHistory::nsNavHistory() : mBatchLevel(0),
                                mExpireSites(0),
                                mNumVisitsForFrecency(10),
                                mTagsFolder(-1),
-                               mInPrivateBrowsing(PRIVATEBROWSING_NOTINITED)
+                               mInPrivateBrowsing(PRIVATEBROWSING_NOTINITED),
+                               mDatabaseStatus(DATABASE_STATUS_OK)
 {
 #ifdef LAZY_ADD
   mLazyTimerSet = PR_TRUE;
@@ -425,6 +439,13 @@ nsNavHistory::Init()
     NS_ENSURE_SUCCESS(rv, rv);
     rv = InitDB(&migrationType);
   }
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  
+  
+  nsCOMPtr<PlacesInitCompleteEvent> completeEvent = new PlacesInitCompleteEvent();
+  rv = NS_DispatchToMainThread(completeEvent);
   NS_ENSURE_SUCCESS(rv, rv);
 
 #ifdef MOZ_XUL
@@ -549,9 +570,8 @@ nsNavHistory::InitDBFile(PRBool aForceInit)
   NS_ENSURE_SUCCESS(rv, rv);
   rv = mDBFile->Append(DB_FILENAME);
   NS_ENSURE_SUCCESS(rv, rv);
+
   
-  
-  PRBool dbExists;
   if (aForceInit) {
     
     nsCOMPtr<nsIFile> backup;
@@ -566,21 +586,29 @@ nsNavHistory::InitDBFile(PRBool aForceInit)
     
     rv = mDBFile->Remove(PR_FALSE);
     NS_ENSURE_SUCCESS(rv, rv);
-    dbExists = PR_FALSE;
+
+    
+    
+    mDatabaseStatus = DATABASE_STATUS_CORRUPT;
   }
   else {
     
+    PRBool dbExists = PR_TRUE;
     rv = mDBFile->Exists(&dbExists);
     NS_ENSURE_SUCCESS(rv, rv);
+    
+    if (!dbExists)
+      mDatabaseStatus = DATABASE_STATUS_CREATE;
   }
-  
+
   
   mDBService = do_GetService(MOZ_STORAGE_SERVICE_CONTRACTID, &rv);
   NS_ENSURE_SUCCESS(rv, rv);
   rv = mDBService->OpenUnsharedDatabase(mDBFile, getter_AddRefs(mDBConn));
   if (rv == NS_ERROR_FILE_CORRUPTED) {
-    dbExists = PR_FALSE;
-  
+    
+    mDatabaseStatus = DATABASE_STATUS_CORRUPT;
+
     
     nsCOMPtr<nsIFile> backup;
     rv = mDBService->BackupDatabaseFile(mDBFile, DB_CORRUPT_FILENAME, profDir,
@@ -599,30 +627,9 @@ nsNavHistory::InitDBFile(PRBool aForceInit)
     rv = mDBService->OpenUnsharedDatabase(mDBFile, getter_AddRefs(mDBConn));
   }
   NS_ENSURE_SUCCESS(rv, rv);
-  
-  
-  if (!dbExists) {
-    nsCOMPtr<nsIPrefBranch> prefs(do_GetService("@mozilla.org/preferences-service;1"));
-    if (prefs) {
-      rv = prefs->SetBoolPref(PREF_BROWSER_IMPORT_BOOKMARKS, PR_TRUE);
-      NS_ENSURE_SUCCESS(rv, rv);
-
-      rv = prefs->SetBoolPref(PREF_BROWSER_IMPORT_DEFAULTS, PR_TRUE);
-      NS_ENSURE_SUCCESS(rv, rv);  
-
-      
-      rv = prefs->SetIntPref(PREF_BROWSER_SMARTBOOKMARKSVERSION, 0);
-      NS_ENSURE_SUCCESS(rv, rv);  
-      
-      
-      rv = prefs->SetIntPref(PREF_BROWSER_LEFTPANEFOLDERID, -1);
-      NS_ENSURE_SUCCESS(rv, rv); 
-    }
-  }
 
   return NS_OK;
 }
-
 
 
 
@@ -897,6 +904,13 @@ nsNavHistory::InitializeIdleTimer()
                                         idleTimerTimeout,
                                         nsITimer::TYPE_REPEATING_SLACK);
   NS_ENSURE_SUCCESS(rv, rv);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsNavHistory::GetDatabaseStatus(PRUint16 *aDatabaseStatus)
+{
+  *aDatabaseStatus = mDatabaseStatus;
   return NS_OK;
 }
 
@@ -1333,11 +1347,11 @@ nsNavHistory::ForceMigrateBookmarksDB(mozIStorageConnection* aDBConn)
   NS_ENSURE_SUCCESS(rv, rv);
 
   
-  nsCOMPtr<nsIPrefBranch> prefs(do_GetService("@mozilla.org/preferences-service;1"));
-  if (prefs) {
-    prefs->SetBoolPref(PREF_BROWSER_IMPORT_BOOKMARKS, PR_TRUE);
-  }
-  return rv;
+  
+  
+  mDatabaseStatus = DATABASE_STATUS_CREATE;
+
+  return NS_OK;
 }
 
 

@@ -91,6 +91,9 @@ function uri_in_db(aURI) {
 
 function run_test() {
   
+  do_check_eq(histsvc.databaseStatus, histsvc.DATABASE_STATUS_CREATE);
+
+  
   var testURI = uri("http://mozilla.com");
   add_visit(testURI);
 
