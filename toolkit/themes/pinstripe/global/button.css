@@ -50,6 +50,8 @@ button {
   
 
   margin: 6px;
+  min-width: 70px;
+  min-height: 22px;
   color: ButtonText;
 }
 
