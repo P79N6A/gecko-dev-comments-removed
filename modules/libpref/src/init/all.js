@@ -1935,6 +1935,10 @@ pref("layout.css.dpi", -1);
 
 pref("font.alias-list", "sans,sans-serif,serif,monospace");
 
+pref("font.mathfont-family", "STIXNonUnicode, STIXSize1, STIXGeneral, DejaVu Sans");
+
+
+
 
 
 
@@ -1951,12 +1955,13 @@ pref("font.name.sans-serif.he", "Helv");
 pref("font.name.monospace.he", "Courier");
 
 pref("font.name.serif.ja", "Times New Roman WT J");
-pref("font.name-list.serif.ja", "Times New Roman WT J, Times New Roman MT 30, Tms Rmn");
+pref("font.name-list.serif.ja", "Times New Roman WT J, Times New Roman WT, Times New Roman MT 30, Tms Rmn");
 pref("font.name.sans-serif.ja", "Helv");
-pref("font.name.monospace.ja", "Courier");
+pref("font.name.monospace.ja", "Kochi Gothic");
+pref("font.name-list.monospace.ja", "Kochi Gothic, Kochi Mincho, Courier New, Courier");
 
 pref("font.name.serif.ko", "Times New Roman WT K");
-pref("font.name-list.serif.ko", "Times New Roman WT K, Times New Roman MT 30, Tms Rmn");
+pref("font.name-list.serif.ko", "Times New Roman WT K, Times New Roman WT, Times New Roman MT 30, Tms Rmn");
 pref("font.name.sans-serif.ko", "Helv");
 pref("font.name.monospace.ko", "Courier");
 
@@ -1973,48 +1978,52 @@ pref("font.name.sans-serif.x-baltic", "Helv");
 pref("font.name.monospace.x-baltic", "Courier");
 
 pref("font.name.serif.x-central-euro", "Tms Rmn");
-pref("font.name.sans-serif.x-central-euro", "Tms Rmn");
+pref("font.name.sans-serif.x-central-euro", "Helv");
 pref("font.name.monospace.x-central-euro", "Courier");
 
 pref("font.name.serif.x-cyrillic", "Tms Rmn");
-pref("font.name.sans-serif.x-cyrillic", "Tms Rmn");
+pref("font.name.sans-serif.x-cyrillic", "Helv");
 pref("font.name.monospace.x-cyrillic", "Courier");
 
 
+
+
+
+
 pref("font.name.serif.x-unicode", "Times New Roman MT 30");
-pref("font.name-list.serif.x-unicode", "Times New Roman MT 30, Times New Roman WT J, Times New Roman WT SC, Times New Roman WT TC, Times New Roman WT K, Tms Rmn");
-pref("font.name.sans-serif.x-unicode", "Times New Roman MT 30");
-pref("font.name-list.sans-serif.x-unicode", "Times New Roman MT 30, Times New Roman WT J, Times New Roman WT SC, Times New Roman WT TC, Times New Roman WT K, Helv");
-pref("font.name.monospace.x-unicode", "Times New Roman MT 30");
-pref("font.name-list.monospace.x-unicode", "Times New Roman MT 30, Times New Roman WT J, Times New Roman WT SC, Times New Roman WT TC, Times New Roman WT K, Courier");
+pref("font.name-list.serif.x-unicode", "Deja Vu Serif, FreeSerif, Times New Roman WT, Times New Roman MT 30, Gentium, Doulos SIL, TITUS Cyberbit Basic, Bitstream Cyberbit, Charis SIL, Georgia, Tms Rmn");
+pref("font.name.sans-serif.x-unicode", "Lucida Sans Unicode");
+pref("font.name-list.sans-serif.x-unicode", "Deja Vu Sans, FreeSans, Arial Unicode, Lucida Sans Unicode, Code2002, Code2001, Code2000, Arial, Helv");
+pref("font.name.monospace.x-unicode", "Deja Vu Sans Mono");
+pref("font.name-list.monospace.x-unicode", "Deja Vu Sans Mono, FreeMono, Andale Mono, Monotype Sans Duospace WT J, Courier New, Courier");
 pref("font.name.fantasy.x-unicode", "Times New Roman MT 30");
-pref("font.name-list.fantasy.x-unicode", "Times New Roman MT 30, Times New Roman WT J, Times New Roman WT SC, Times New Roman WT TC, Times New Roman WT K, Helv");
+pref("font.name-list.fantasy.x-unicode", "Deja Vu Serif, FreeSerif, Junicode, Times New Roman WT, Times New Roman MT 30, Doulos SIL, TITUS Cyberbit Basic, Bitstream Cyberbit, Charis SIL, Arial Unicode, Lucida Sans Unicode, Code2002, Code2001, Code2000");
 pref("font.name.cursive.x-unicode", "Times New Roman MT 30");
-pref("font.name-list.cursive.x-unicode", "Times New Roman MT 30, Times New Roman WT J, Times New Roman WT SC, Times New Roman WT TC, Times New Roman WT K, Helv");
+pref("font.name-list.cursive.x-unicode", "Deja Vu Serif, FreeSerif, Times New Roman WT, Times New Roman MT 30, Doulos SIL, TITUS Cyberbit Basic, Bitstream Cyberbit, Charis SIL, Arial Unicode, Lucida Sans Unicode, Code2002, Code2001, Code2000");
 
 pref("font.name.serif.x-western", "Tms Rmn");
 pref("font.name.sans-serif.x-western", "Helv");
 pref("font.name.monospace.x-western", "Courier");
 
 pref("font.name.serif.zh-CN", "Times New Roman WT SC");
-pref("font.name-list.serif.zh_CN", "Times New Roman WT SC, Times New Roman MT 30, Tms Rmn");
+pref("font.name-list.serif.zh_CN", "Times New Roman WT SC, Times New Roman MT 30, Times New Roman WT, Tms Rmn");
 pref("font.name.sans-serif.zh-CN", "Helv");
 pref("font.name.monospace.zh-CN", "Courier");
 
 pref("font.name.serif.zh-TW", "Times New Roman WT TC");
-pref("font.name-list.serif.zh-TW", "Times New Roman WT TC, Times New Roman MT 30, Tms Rmn");
+pref("font.name-list.serif.zh-TW", "Times New Roman WT TC, Times New Roman MT 30, Times New Roman WT, Tms Rmn");
 pref("font.name.sans-serif.zh-TW", "Helv");
 pref("font.name.monospace.zh-TW", "Courier");
 
 
 pref("font.name.serif.zh-HK", "Times New Roman WT TC");
-pref("font.name-list.serif.zh-HK", "Times New Roman WT TC, Times New Roman MT 30, Tms Rmn");
+pref("font.name-list.serif.zh-HK", "Times New Roman WT TC, Times New Roman MT 30, Times New Roman WT, Tms Rmn");
 pref("font.name.sans-serif.zh-HK", "Helv");
 pref("font.name.monospace.zh-HK", "Courier");
 
 pref("font.default", "serif");
 
-pref("font.default.ar", "sans-serif");
+pref("font.default.ar", "serif");
 pref("font.size.variable.ar", 16);
 pref("font.size.fixed.ar", 13);
 
@@ -2022,15 +2031,15 @@ pref("font.default.el", "serif");
 pref("font.size.variable.el", 16);
 pref("font.size.fixed.el", 13);
 
-pref("font.default.he", "sans-serif");
+pref("font.default.he", "serif");
 pref("font.size.variable.he", 16);
 pref("font.size.fixed.he", 13);
 
-pref("font.default.ja", "sans-serif");
+pref("font.default.ja", "serif");
 pref("font.size.variable.ja", 16);
 pref("font.size.fixed.ja", 16);
 
-pref("font.default.ko", "sans-serif");
+pref("font.default.ko", "serif");
 pref("font.size.variable.ko", 16);
 pref("font.size.fixed.ko", 16);
 
@@ -2070,15 +2079,15 @@ pref("font.default.x-western", "serif");
 pref("font.size.variable.x-western", 16);
 pref("font.size.fixed.x-western", 13);
 
-pref("font.default.zh-CN", "sans-serif");
+pref("font.default.zh-CN", "serif");
 pref("font.size.variable.zh-CN", 16);
 pref("font.size.fixed.zh-CN", 16);
 
-pref("font.default.zh-TW", "sans-serif");
+pref("font.default.zh-TW", "serif");
 pref("font.size.variable.zh-TW", 16);
 pref("font.size.fixed.zh-TW", 16);
 
-pref("font.default.zh-HK", "sans-serif");
+pref("font.default.zh-HK", "serif");
 pref("font.size.variable.zh-HK", 16);
 pref("font.size.fixed.zh-HK", 16);
 
