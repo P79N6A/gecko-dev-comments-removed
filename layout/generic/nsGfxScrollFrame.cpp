@@ -1316,11 +1316,8 @@ nsGfxScrollFrameInner::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
     
     
     
-    
-    
-    nsRect newDirty = GetScrolledRect(GetScrollPortSize()) +
-        aBuilder->ToReferenceFrame(mScrolledFrame);
-    return mOuter->BuildDisplayListForChild(aBuilder, mScrolledFrame, newDirty, aLists);
+    return mOuter->BuildDisplayListForChild(aBuilder, mScrolledFrame,
+                                            aDirtyRect, aLists);
   }
 
   

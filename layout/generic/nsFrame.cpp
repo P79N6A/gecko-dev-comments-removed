@@ -1466,8 +1466,6 @@ nsIFrame::BuildDisplayListForChild(nsDisplayListBuilder*   aBuilder,
       dirty.Empty();
     }
     pseudoStackingContext = PR_TRUE;
-  } else {
-    dirty.IntersectRect(dirty, aChild->GetOverflowRect());
   }
 
   if (aBuilder->GetPaintAllFrames()) {
@@ -1480,8 +1478,17 @@ nsIFrame::BuildDisplayListForChild(nsDisplayListBuilder*   aBuilder,
     
     
     
-    if (dirty.IsEmpty() && aChild != aBuilder->GetIgnoreScrollFrame())
-      return NS_OK;
+    
+    if (aChild != aBuilder->GetIgnoreScrollFrame()) {
+      nsRect childDirty;
+      if (!childDirty.IntersectRect(dirty, aChild->GetOverflowRect()))
+        return NS_OK;
+      
+      
+      
+      
+      
+    }
 
     
     
