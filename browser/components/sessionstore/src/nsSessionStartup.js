@@ -281,9 +281,8 @@ SessionStartup.prototype = {
       }
       else { 
         
-        var brandStringBundle = this._getStringBundle("chrome://branding/locale/brand.properties");
-        var brandShortName = brandStringBundle.GetStringFromName("brandShortName");
-
+        const brandShortName = this._getStringBundle("chrome://branding/locale/brand.properties")
+                                   .GetStringFromName("brandShortName");
         
         var ssStringBundle = this._getStringBundle("chrome://browser/locale/sessionstore.properties");
         var restoreTitle = ssStringBundle.formatStringFromName("restoredTitle", [brandShortName], 1);
@@ -293,12 +292,10 @@ SessionStartup.prototype = {
 
         var promptService = Cc["@mozilla.org/embedcomp/prompt-service;1"].
                             getService(Ci.nsIPromptService);
-
         
         var flags = promptService.BUTTON_TITLE_IS_STRING * promptService.BUTTON_POS_0 +
                     promptService.BUTTON_TITLE_IS_STRING * promptService.BUTTON_POS_1 +
                     promptService.BUTTON_POS_0_DEFAULT;
-        
         var buttonChoice = promptService.confirmEx(null, restoreTitle, restoreText, 
                                           flags, okTitle, cancelTitle, null, 
                                           null, {});
@@ -315,11 +312,8 @@ SessionStartup.prototype = {
 
 
   _getStringBundle: function sss_getStringBundle(aURI) {
-    var bundleService = Cc["@mozilla.org/intl/stringbundle;1"].
-                        getService(Ci.nsIStringBundleService);
-    var appLocale = Cc["@mozilla.org/intl/nslocaleservice;1"].
-                    getService(Ci.nsILocaleService).getApplicationLocale();
-    return bundleService.createBundle(aURI, appLocale);
+    return Cc["@mozilla.org/intl/stringbundle;1"].
+           getService(Ci.nsIStringBundleService).createBundle(aURI);
   },
 
 

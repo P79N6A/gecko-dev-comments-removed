@@ -2057,19 +2057,6 @@ SessionStoreService.prototype = {
 
 
 
-  _getStringBundle: function sss_getStringBundle(aURI) {
-     var bundleService = Cc["@mozilla.org/intl/stringbundle;1"].
-                         getService(Ci.nsIStringBundleService);
-     var appLocale = Cc["@mozilla.org/intl/nslocaleservice;1"].
-                     getService(Ci.nsILocaleService).getApplicationLocale();
-     return bundleService.createBundle(aURI, appLocale);
-  },
-
-  
-
-
-
-
   _getURIFromString: function sss_getURIFromString(aString) {
     var ioService = Cc["@mozilla.org/network/io-service;1"].
                     getService(Ci.nsIIOService);
