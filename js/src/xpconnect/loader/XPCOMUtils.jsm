@@ -101,8 +101,10 @@
 
 
 
+
 var EXPORTED_SYMBOLS = [ "XPCOMUtils" ];
 
+const Cc = Components.classes;
 const Ci = Components.interfaces;
 const Cr = Components.results;
 
@@ -225,6 +227,47 @@ var XPCOMUtils = {
         return true;
       }
     };
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+  defineLazyGetter: function XPCU_defineLazyGetter(aObject, aName, aLambda)
+  {
+    aObject.__defineGetter__(aName, function() {
+      delete aObject[aName];
+      return aObject[aName] = aLambda();
+    });
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  defineLazyServiceGetter: function XPCU_defineLazyServiceGetter(aObject, aName,
+                                                                 aContract,
+                                                                 aInterfaceName)
+  {
+    this.defineLazyGetter(aObject, aName, function XPCU_serviceLambda() {
+      return Cc[aContract].getService(Ci[aInterfaceName]);
+    });
   },
 
   
