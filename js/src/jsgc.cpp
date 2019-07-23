@@ -3109,23 +3109,23 @@ js_TraceContext(JSTracer *trc, JSContext *acx)
     js_TraceRegExpStatics(trc, acx);
 }
 
-#ifdef JS_TRACER
 void
-js_PurgeTraceMonitor(JSContext *cx, JSTraceMonitor *tm)
+js_TraceTraceMonitor(JSTracer *trc, JSTraceMonitor *tm)
 {
-    tm->reservedDoublePoolPtr = tm->reservedDoublePool;
+    if (IS_GC_MARKING_TRACER(trc)) {
+        tm->reservedDoublePoolPtr = tm->reservedDoublePool;
 
-    tm->needFlush = JS_TRUE;
+        tm->needFlush = JS_TRUE;
 
-    
-    for (JSObject *obj = tm->reservedObjects; obj; obj = JSVAL_TO_OBJECT(obj->fslots[0])) {
-        uint8 *flagp = GetGCThingFlags(obj);
-        JS_ASSERT((*flagp & GCF_TYPEMASK) == GCX_OBJECT);
-        JS_ASSERT(*flagp != GCF_FINAL);
-        *flagp |= GCF_MARK;
+        
+        for (JSObject *obj = tm->reservedObjects; obj; obj = JSVAL_TO_OBJECT(obj->fslots[0])) {
+            uint8 *flagp = GetGCThingFlags(obj);
+            JS_ASSERT((*flagp & GCF_TYPEMASK) == GCX_OBJECT);
+            JS_ASSERT(*flagp != GCF_FINAL);
+            *flagp |= GCF_MARK;
+        }
     }
 }
-#endif
 
 JS_REQUIRES_STACK void
 js_TraceRuntime(JSTracer *trc, JSBool allAtoms)
@@ -3152,6 +3152,17 @@ js_TraceRuntime(JSTracer *trc, JSBool allAtoms)
         if (rt->builtinFunctions[i])
             JS_CALL_OBJECT_TRACER(trc, rt->builtinFunctions[i], "builtin function");
     }
+
+#ifdef JS_THREADSAFE
+    
+   while ((acx = js_ContextIterator(rt, JS_FALSE, &iter)) != NULL) {
+       if (!acx->thread)
+           continue;
+       js_TraceTraceMonitor(trc, &acx->thread->traceMonitor);
+   }
+#else
+   js_TraceTraceMonitor(trc, &rt->traceMonitor);
+#endif
 #endif
 }
 
@@ -3230,18 +3241,15 @@ ProcessSetSlotRequest(JSContext *cx, JSSetSlotRequest *ssr)
     STOBJ_SET_DELEGATE(pobj);
 }
 
-void
-js_DestroyScriptsToGC(JSContext *cx, JSThreadData *data)
+static void
+DestroyScriptsToGC(JSContext *cx, JSScript **listp)
 {
-    JSScript **listp, *script;
+    JSScript *script;
 
-    for (size_t i = 0; i != JS_ARRAY_LENGTH(data->scriptsToGC); ++i) {
-        listp = &data->scriptsToGC[i];
-        while ((script = *listp) != NULL) {
-            *listp = script->u.nextToGC;
-            script->u.nextToGC = NULL;
-            js_DestroyScript(cx, script);
-        }
+    while ((script = *listp) != NULL) {
+        *listp = script->u.nextToGC;
+        script->u.nextToGC = NULL;
+        js_DestroyScript(cx, script);
     }
 }
 
@@ -3273,14 +3281,7 @@ js_GC(JSContext *cx, JSGCInvocationKind gckind)
 
     JS_ASSERT_IF(gckind == GC_LAST_DITCH, !JS_ON_TRACE(cx));
     rt = cx->runtime;
-
 #ifdef JS_THREADSAFE
-    
-
-
-
-    JS_ASSERT(CURRENT_THREAD_IS_ME(cx->thread));
-
     
     JS_ASSERT(!JS_IS_RUNTIME_LOCKED(rt));
 #endif
@@ -3358,8 +3359,9 @@ js_GC(JSContext *cx, JSGCInvocationKind gckind)
 
 
 
+
     requestDebit = 0;
-    {
+    if (cx->thread) {
         JSCList *head, *link;
 
         
@@ -3373,6 +3375,17 @@ js_GC(JSContext *cx, JSGCInvocationKind gckind)
             if (acx->requestDepth)
                 requestDebit++;
         }
+    } else {
+        
+
+
+
+
+
+
+        JS_ASSERT(cx->requestDepth == 0);
+        if (cx->requestDepth)
+            requestDebit = 1;
     }
     if (requestDebit) {
         JS_ASSERT(requestDebit <= rt->requestCount);
@@ -3482,10 +3495,43 @@ js_GC(JSContext *cx, JSGCInvocationKind gckind)
   }
 #endif
 
+    
+    js_FlushPropertyCache(cx);
 #ifdef JS_TRACER
-    js_PurgeJITOracle();
+    js_FlushJITOracle(cx);
 #endif
-    js_PurgeThreads(cx);
+
+    
+    for (i = 0; i < JS_ARRAY_LENGTH(JS_SCRIPTS_TO_GC(cx)); i++)
+        DestroyScriptsToGC(cx, &JS_SCRIPTS_TO_GC(cx)[i]);
+
+#ifdef JS_THREADSAFE
+    
+
+
+
+
+
+
+
+
+
+    iter = NULL;
+    while ((acx = js_ContextIterator(rt, JS_FALSE, &iter)) != NULL) {
+        if (!acx->thread || acx->thread == cx->thread)
+            continue;
+        GSN_CACHE_CLEAR(&acx->thread->gsnCache);
+        js_FlushPropertyCache(acx);
+#ifdef JS_TRACER
+        js_FlushJITOracle(acx);
+#endif
+        for (i = 0; i < JS_ARRAY_LENGTH(acx->thread->scriptsToGC); i++)
+            DestroyScriptsToGC(cx, &acx->thread->scriptsToGC[i]);
+    }
+#else
+    
+    GSN_CACHE_CLEAR(&rt->gsnCache);
+#endif
 
   restart:
     rt->gcNumber++;

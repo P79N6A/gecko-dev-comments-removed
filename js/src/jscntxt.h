@@ -72,20 +72,25 @@ typedef struct JSGSNCache {
     uint32          hits;
     uint32          misses;
     uint32          fills;
-    uint32          purges;
+    uint32          clears;
 # define GSN_CACHE_METER(cache,cnt) (++(cache)->cnt)
 #else
 # define GSN_CACHE_METER(cache,cnt)
 #endif
 } JSGSNCache;
 
-#define js_FinishGSNCache(cache) js_PurgeGSNCache(cache)
+#define GSN_CACHE_CLEAR(cache)                                                \
+    JS_BEGIN_MACRO                                                            \
+        (cache)->code = NULL;                                                 \
+        if ((cache)->table.ops) {                                             \
+            JS_DHashTableFinish(&(cache)->table);                             \
+            (cache)->table.ops = NULL;                                        \
+        }                                                                     \
+        GSN_CACHE_METER(cache, clears);                                       \
+    JS_END_MACRO
 
-extern void
-js_PurgeGSNCache(JSGSNCache *cache);
 
-
-#define JS_PURGE_GSN_CACHE(cx)      js_PurgeGSNCache(&JS_GSN_CACHE(cx))
+#define JS_CLEAR_GSN_CACHE(cx)      GSN_CACHE_CLEAR(&JS_GSN_CACHE(cx))
 #define JS_METER_GSN_CACHE(cx,cnt)  GSN_CACHE_METER(&JS_GSN_CACHE(cx), cnt)
 
 typedef struct InterpState InterpState;
@@ -120,7 +125,7 @@ struct GlobalState {
 
 
 
-struct JSTraceMonitor {
+typedef struct JSTraceMonitor {
     
 
 
@@ -171,7 +176,7 @@ struct JSTraceMonitor {
 
     
     CLS(TraceRecorder)      abortStack;
-};
+} JSTraceMonitor;
 
 typedef struct InterpStruct InterpStruct;
 
@@ -201,30 +206,10 @@ typedef struct JSEvalCacheMeter {
 } JSEvalCacheMeter;
 
 # undef ID
+# define DECLARE_EVAL_CACHE_METER   JSEvalCacheMeter evalCacheMeter;
+#else
+# define DECLARE_EVAL_CACHE_METER
 #endif
-
-struct JSThreadData {
-    
-
-
-
-    JSGSNCache          gsnCache;
-
-    
-    JSPropertyCache     propertyCache;
-
-#ifdef JS_TRACER
-    
-    JSTraceMonitor      traceMonitor;
-#endif
-
-    
-    JSScript            *scriptsToGC[JS_EVAL_CACHE_SIZE];
-
-#ifdef JS_EVAL_CACHE_METERING
-    JSEvalCacheMeter    evalCacheMeter;
-#endif
-};
 
 #ifdef JS_THREADSAFE
 
@@ -245,26 +230,41 @@ struct JSThread {
 
     uint32              gcMallocBytes;
 
-    JSThreadData        data;
+    
+
+
+
+
+
+
+    JSGSNCache          gsnCache;
+
+    
+    JSPropertyCache     propertyCache;
+
+#ifdef JS_TRACER
+    
+    JSTraceMonitor      traceMonitor;
+#endif
+
+    
+    JSScript            *scriptsToGC[JS_EVAL_CACHE_SIZE];
+
+    DECLARE_EVAL_CACHE_METER
 };
 
-#define JS_THREAD_DATA(cx)      (&(cx)->thread->data)
-
-
-
-
-
-
-extern JSBool
-js_InitContextThread(JSContext *cx);
-
-
-
+#define JS_CACHE_LOCUS(cx)      ((cx)->thread)
 
 extern void
-js_ClearContextThread(JSContext *cx);
+js_ThreadDestructorCB(void *ptr);
 
-#endif 
+extern void
+js_InitContextThread(JSContext *cx, JSThread *thread);
+
+extern JSThread *
+js_GetCurrentThread(JSRuntime *rt);
+
+#endif
 
 typedef enum JSDestroyContextMode {
     JSDCM_NO_GC,
@@ -474,8 +474,6 @@ struct JSRuntime {
 
 
     PRLock              *debuggerLock;
-
-    JSDHashTable        threads;
 #endif 
     uint32              debuggerMutations;
 
@@ -525,9 +523,26 @@ struct JSRuntime {
     JSNativeEnumerator  *nativeEnumerators;
 
 #ifndef JS_THREADSAFE
-    JSThreadData        threadData;
+    
 
-#define JS_THREAD_DATA(cx)      (&(cx)->runtime->threadData)
+
+
+
+
+    JSGSNCache          gsnCache;
+
+    
+    JSPropertyCache     propertyCache;
+
+    
+    JSTraceMonitor      traceMonitor;
+
+    
+    JSScript            *scriptsToGC[JS_EVAL_CACHE_SIZE];
+
+    DECLARE_EVAL_CACHE_METER
+
+#define JS_CACHE_LOCUS(cx)      ((cx)->runtime)
 #endif
 
     
@@ -637,13 +652,13 @@ struct JSRuntime {
 };
 
 
-#define JS_GSN_CACHE(cx)        (JS_THREAD_DATA(cx)->gsnCache)
-#define JS_PROPERTY_CACHE(cx)   (JS_THREAD_DATA(cx)->propertyCache)
-#define JS_TRACE_MONITOR(cx)    (JS_THREAD_DATA(cx)->traceMonitor)
-#define JS_SCRIPTS_TO_GC(cx)    (JS_THREAD_DATA(cx)->scriptsToGC)
+#define JS_GSN_CACHE(cx)        (JS_CACHE_LOCUS(cx)->gsnCache)
+#define JS_PROPERTY_CACHE(cx)   (JS_CACHE_LOCUS(cx)->propertyCache)
+#define JS_TRACE_MONITOR(cx)    (JS_CACHE_LOCUS(cx)->traceMonitor)
+#define JS_SCRIPTS_TO_GC(cx)    (JS_CACHE_LOCUS(cx)->scriptsToGC)
 
 #ifdef JS_EVAL_CACHE_METERING
-# define EVAL_CACHE_METER(x)    (JS_THREAD_DATA(cx)->evalCacheMeter.x++)
+# define EVAL_CACHE_METER(x)    (JS_CACHE_LOCUS(cx)->evalCacheMeter.x++)
 #else
 # define EVAL_CACHE_METER(x)    ((void) 0)
 #endif
@@ -1123,14 +1138,22 @@ class JSAutoResolveFlags
 #define JS_HAS_XML_OPTION(cx)           ((cx)->version & JSVERSION_HAS_XML || \
                                          JSVERSION_NUMBER(cx) >= JSVERSION_1_6)
 
+
+
+
+
+
 extern JSBool
-js_InitThreads(JSRuntime *rt);
+js_InitThreadPrivateIndex(void (*ptr)(void *));
 
-extern void
-js_FinishThreads(JSRuntime *rt);
 
-extern void
-js_PurgeThreads(JSContext *cx);
+
+
+
+
+
+extern JSBool
+js_CleanupThreadPrivateData();
 
 
 
