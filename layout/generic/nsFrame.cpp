@@ -532,9 +532,11 @@ NS_IMETHODIMP nsFrame::DidSetStyleContext()
  nsMargin
 nsIFrame::GetUsedMargin() const
 {
-  NS_ASSERTION(!NS_SUBTREE_DIRTY(this) ||
+  NS_ASSERTION(nsLayoutUtils::sDisableGetUsedXAssertions ||
+               !NS_SUBTREE_DIRTY(this) ||
                (GetStateBits() & NS_FRAME_IN_REFLOW),
-               "cannot call on a dirty frame not currently being reflowed");
+               "cannot call GetUsedMargin on a dirty frame not currently "
+               "being reflowed");
 
   nsMargin margin(0, 0, 0, 0);
   if (!GetStyleMargin()->GetMargin(margin)) {
@@ -551,9 +553,11 @@ nsIFrame::GetUsedMargin() const
  nsMargin
 nsIFrame::GetUsedBorder() const
 {
-  NS_ASSERTION(!NS_SUBTREE_DIRTY(this) ||
+  NS_ASSERTION(nsLayoutUtils::sDisableGetUsedXAssertions ||
+               !NS_SUBTREE_DIRTY(this) ||
                (GetStateBits() & NS_FRAME_IN_REFLOW),
-               "cannot call on a dirty frame not currently being reflowed");
+               "cannot call GetUsedBorder on a dirty frame not currently "
+               "being reflowed");
 
   
   nsIFrame *mutable_this = const_cast<nsIFrame*>(this);
@@ -578,9 +582,11 @@ nsIFrame::GetUsedBorder() const
  nsMargin
 nsIFrame::GetUsedPadding() const
 {
-  NS_ASSERTION(!NS_SUBTREE_DIRTY(this) ||
+  NS_ASSERTION(nsLayoutUtils::sDisableGetUsedXAssertions ||
+               !NS_SUBTREE_DIRTY(this) ||
                (GetStateBits() & NS_FRAME_IN_REFLOW),
-               "cannot call on a dirty frame not currently being reflowed");
+               "cannot call GetUsedPadding on a dirty frame not currently "
+               "being reflowed");
 
   nsMargin padding(0, 0, 0, 0);
 

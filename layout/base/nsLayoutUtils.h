@@ -753,6 +753,33 @@ public:
   static PRUint32 GetTextRunFlagsForStyle(nsStyleContext* aStyleContext,
                                           const nsStyleText* aStyleText,
                                           const nsStyleFont* aStyleFont);
+
+  
+
+
+
+#ifdef DEBUG
+  static PRBool sDisableGetUsedXAssertions;
+#endif
+};
+
+class nsAutoDisableGetUsedXAssertions
+{
+#ifdef DEBUG
+public:
+  nsAutoDisableGetUsedXAssertions()
+    : mOldValue(nsLayoutUtils::sDisableGetUsedXAssertions)
+  {
+    nsLayoutUtils::sDisableGetUsedXAssertions = PR_TRUE;
+  }
+  ~nsAutoDisableGetUsedXAssertions()
+  {
+    nsLayoutUtils::sDisableGetUsedXAssertions = mOldValue;
+  }
+
+private:
+  PRBool mOldValue;
+#endif  
 };
 
 #endif 
