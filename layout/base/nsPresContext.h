@@ -700,6 +700,9 @@ public:
                               mType == eContext_PageLayout ||
                               mType == eContext_PrintPreview); }
 
+  
+  PRBool IsChrome();
+
   const nsTArray<nsIFrame*>& GetActivePopups() {
     NS_ASSERTION(this == RootPresContext(), "Only on root prescontext");
     return mActivePopups;
