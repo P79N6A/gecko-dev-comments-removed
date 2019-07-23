@@ -2612,16 +2612,7 @@ SessionStoreService.prototype = {
   _toJSONString: function sss_toJSONString(aJSObject) {
     
     
-    let jsonString = JSON.stringify(aJSObject);
-    
-    if (/[\u2028\u2029]/.test(jsonString)) {
-      
-      
-      jsonString = jsonString.replace(/[\u2028\u2029]/g,
-                                      function($0) "\\u" + $0.charCodeAt(0).toString(16));
-    }
-    
-    return jsonString;
+    return JSON.stringify(aJSObject);
   },
 
   _notifyIfAllWindowsRestored: function sss_notifyIfAllWindowsRestored() {
