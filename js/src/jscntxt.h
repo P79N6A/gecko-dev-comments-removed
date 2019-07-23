@@ -966,6 +966,15 @@ js_ReportOutOfMemory(JSContext *cx);
 
 
 
+extern void
+js_ReportOutOfScriptQuota(JSContext *cx);
+
+extern void
+js_ReportOverRecursed(JSContext *cx);
+
+
+
+
 
 extern JS_FRIEND_API(void)
 js_ReportErrorAgain(JSContext *cx, const char *message, JSErrorReport *report);
