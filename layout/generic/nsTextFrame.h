@@ -58,6 +58,10 @@
 class nsTextPaintStyle;
 class PropertyProvider;
 
+
+
+#define TEXT_HAS_NONCOLLAPSED_CHARACTERS 0x02000000
+
 class nsTextFrame : public nsFrame {
 public:
   friend class nsContinuingTextFrame;
@@ -188,6 +192,14 @@ public:
 
 
   PRBool IsAtEndOfLine() const;
+  
+  
+
+
+
+  PRBool HasNoncollapsedCharacters() const {
+    return (GetStateBits() & TEXT_HAS_NONCOLLAPSED_CHARACTERS) != 0;
+  }
   
 #ifdef ACCESSIBILITY
   NS_IMETHOD GetAccessible(nsIAccessible** aAccessible);
