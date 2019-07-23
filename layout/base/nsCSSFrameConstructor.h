@@ -1409,9 +1409,11 @@ private:
                         PRBool                   aBuildCombobox,
                         nsFrameItems&            aFrameItems);
 
-  nsresult MaybeRecreateFramesForContent(nsIContent*      aContent);
+  nsresult MaybeRecreateFramesForContent(nsIContent* aContent);
 
-  nsresult RecreateFramesForContent(nsIContent*      aContent);
+  
+  
+  nsresult RecreateFramesForContent(nsIContent* aContent, PRBool aAsyncInsert);
 
   
   

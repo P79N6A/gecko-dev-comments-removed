@@ -5541,7 +5541,7 @@ IsRootBoxFrame(nsIFrame *aFrame)
 nsresult
 nsCSSFrameConstructor::ReconstructDocElementHierarchy()
 {
-  return RecreateFramesForContent(mPresShell->GetDocument()->GetRootContent());
+  return RecreateFramesForContent(mPresShell->GetDocument()->GetRootContent(), PR_FALSE);
 }
 
 nsIFrame*
@@ -6242,7 +6242,7 @@ nsCSSFrameConstructor::ContentAppended(nsIContent*     aContainer,
       if (IsSpecialFramesetChild(aContainer->GetChildAt(i))) {
         
         LAYOUT_PHASE_TEMP_EXIT();
-        nsresult rv = RecreateFramesForContent(parentFrame->GetContent());
+        nsresult rv = RecreateFramesForContent(parentFrame->GetContent(), PR_FALSE);
         LAYOUT_PHASE_TEMP_REENTER();
         return rv;
       }
@@ -6257,7 +6257,7 @@ nsCSSFrameConstructor::ContentAppended(nsIContent*     aContainer,
 #ifdef MOZ_MATHML
   if (parentFrame->IsFrameOfType(nsIFrame::eMathML)) {
     LAYOUT_PHASE_TEMP_EXIT();
-    nsresult rv = RecreateFramesForContent(parentFrame->GetContent());
+    nsresult rv = RecreateFramesForContent(parentFrame->GetContent(), PR_FALSE);
     LAYOUT_PHASE_TEMP_REENTER();
     return rv;
   }
@@ -6588,7 +6588,7 @@ nsCSSFrameConstructor::ContentInserted(nsIContent*            aContainer,
       IsSpecialFramesetChild(aChild)) {
     
     LAYOUT_PHASE_TEMP_EXIT();
-    nsresult rv = RecreateFramesForContent(parentFrame->GetContent());
+    nsresult rv = RecreateFramesForContent(parentFrame->GetContent(), PR_FALSE);
     LAYOUT_PHASE_TEMP_REENTER();
     return rv;
   }
@@ -6602,7 +6602,7 @@ nsCSSFrameConstructor::ContentInserted(nsIContent*            aContainer,
     
     
     LAYOUT_PHASE_TEMP_EXIT();
-    nsresult rv = RecreateFramesForContent(parentFrame->GetContent());
+    nsresult rv = RecreateFramesForContent(parentFrame->GetContent(), PR_FALSE);
     LAYOUT_PHASE_TEMP_REENTER();
     return rv;
   }
@@ -6615,7 +6615,7 @@ nsCSSFrameConstructor::ContentInserted(nsIContent*            aContainer,
 #ifdef MOZ_MATHML
   if (parentFrame->IsFrameOfType(nsIFrame::eMathML)) {
     LAYOUT_PHASE_TEMP_EXIT();
-    nsresult rv = RecreateFramesForContent(parentFrame->GetContent());
+    nsresult rv = RecreateFramesForContent(parentFrame->GetContent(), PR_FALSE);
     LAYOUT_PHASE_TEMP_REENTER();
     return rv;
   }
@@ -7175,7 +7175,7 @@ nsCSSFrameConstructor::ContentRemoved(nsIContent* aContainer,
       
       *aDidReconstruct = PR_TRUE;
       LAYOUT_PHASE_TEMP_EXIT();
-      nsresult rv = RecreateFramesForContent(parentFrame->GetContent());
+      nsresult rv = RecreateFramesForContent(parentFrame->GetContent(), PR_FALSE);
       LAYOUT_PHASE_TEMP_REENTER();
       return rv;
     }
@@ -7189,7 +7189,7 @@ nsCSSFrameConstructor::ContentRemoved(nsIContent* aContainer,
     if (possibleMathMLAncestor->IsFrameOfType(nsIFrame::eMathML)) {
       *aDidReconstruct = PR_TRUE;
       LAYOUT_PHASE_TEMP_EXIT();
-      nsresult rv = RecreateFramesForContent(possibleMathMLAncestor->GetContent());
+      nsresult rv = RecreateFramesForContent(possibleMathMLAncestor->GetContent(), PR_FALSE);
       LAYOUT_PHASE_TEMP_REENTER();
       return rv;
     }
@@ -7206,7 +7206,7 @@ nsCSSFrameConstructor::ContentRemoved(nsIContent* aContainer,
         !AnyKidsNeedBlockParent(childFrame->GetNextSibling())) {
       *aDidReconstruct = PR_TRUE;
       LAYOUT_PHASE_TEMP_EXIT();
-      nsresult rv = RecreateFramesForContent(grandparentFrame->GetContent());
+      nsresult rv = RecreateFramesForContent(grandparentFrame->GetContent(), PR_TRUE);
       LAYOUT_PHASE_TEMP_REENTER();
       return rv;
     }
@@ -7619,7 +7619,7 @@ nsCSSFrameConstructor::CharacterDataChanged(nsIContent* aContent,
                  "Bit should never be set on generated content");
 #endif
     LAYOUT_PHASE_TEMP_EXIT();
-    nsresult rv = RecreateFramesForContent(aContent);
+    nsresult rv = RecreateFramesForContent(aContent, PR_FALSE);
     LAYOUT_PHASE_TEMP_REENTER();
     return rv;
   }
@@ -7738,7 +7738,7 @@ nsCSSFrameConstructor::ProcessRestyledFrames(nsStyleChangeList& aChangeList)
     }
 
     if (hint & nsChangeHint_ReconstructFrame) {
-      RecreateFramesForContent(content);
+      RecreateFramesForContent(content, PR_FALSE);
     } else {
       NS_ASSERTION(frame, "This shouldn't happen");
 #ifdef MOZ_SVG
@@ -7817,7 +7817,7 @@ nsCSSFrameConstructor::RestyleElement(nsIContent     *aContent,
                "frame/content mismatch");
 
   if (aMinHint & nsChangeHint_ReconstructFrame) {
-    RecreateFramesForContent(aContent);
+    RecreateFramesForContent(aContent, PR_FALSE);
   } else if (aPrimaryFrame) {
     nsStyleChangeList changeList;
     mPresShell->FrameManager()->
@@ -8862,7 +8862,7 @@ nsCSSFrameConstructor::MaybeRecreateFramesForContent(nsIContent* aContent)
 
     frameManager->ChangeUndisplayedContent(aContent, newContext);
     if (newContext->GetStyleDisplay()->mDisplay != NS_STYLE_DISPLAY_NONE) {
-      result = RecreateFramesForContent(aContent);
+      result = RecreateFramesForContent(aContent, PR_FALSE);
     }
   }
   return result;
@@ -8920,7 +8920,7 @@ nsCSSFrameConstructor::MaybeRecreateContainerForFrameRemoval(nsIFrame* aFrame,
       aFrame->GetParent()->GetType() == nsGkAtoms::fieldSetFrame) {
     
     
-    *aResult = RecreateFramesForContent(aFrame->GetParent()->GetContent());
+    *aResult = RecreateFramesForContent(aFrame->GetParent()->GetContent(), PR_FALSE);
     return PR_TRUE;
   }
 
@@ -8942,7 +8942,7 @@ nsCSSFrameConstructor::MaybeRecreateContainerForFrameRemoval(nsIFrame* aFrame,
          parent->GetFirstChild(nsGkAtoms::captionList) == inFlowFrame)) {
       
       
-      *aResult = RecreateFramesForContent(parent->GetContent());
+      *aResult = RecreateFramesForContent(parent->GetContent(), PR_TRUE);
       return PR_TRUE;
     }
   }
@@ -8966,7 +8966,7 @@ nsCSSFrameConstructor::MaybeRecreateContainerForFrameRemoval(nsIFrame* aFrame,
 #endif
     
     
-    *aResult = RecreateFramesForContent(parent->GetContent());
+    *aResult = RecreateFramesForContent(parent->GetContent(), PR_TRUE);
     return PR_TRUE;
   }
 
@@ -9006,7 +9006,8 @@ nsCSSFrameConstructor::MaybeRecreateContainerForFrameRemoval(nsIFrame* aFrame,
 }
  
 nsresult
-nsCSSFrameConstructor::RecreateFramesForContent(nsIContent* aContent)
+nsCSSFrameConstructor::RecreateFramesForContent(nsIContent* aContent,
+                                                PRBool aAsyncInsert)
 {
   
   
@@ -9039,7 +9040,7 @@ nsCSSFrameConstructor::RecreateFramesForContent(nsIContent* aContent)
   if (frame) {
     nsIFrame* nonGeneratedAncestor = nsLayoutUtils::GetNonGeneratedAncestor(frame);
     if (nonGeneratedAncestor->GetContent() != aContent) {
-      return RecreateFramesForContent(nonGeneratedAncestor->GetContent());
+      return RecreateFramesForContent(nonGeneratedAncestor->GetContent(), aAsyncInsert);
     }
   }
 
@@ -9073,8 +9074,12 @@ nsCSSFrameConstructor::RecreateFramesForContent(nsIContent* aContent)
       
       
       
-      rv = ContentInserted(container, aContent,
-                           indexInContainer, mTempFrameTreeState);
+      if (aAsyncInsert) {
+        PostRestyleEvent(aContent, nsReStyleHint(0), nsChangeHint_ReconstructFrame);
+      } else {
+        rv = ContentInserted(container, aContent,
+                             indexInContainer, mTempFrameTreeState);
+      }
     }
   }
 
@@ -10917,7 +10922,7 @@ nsCSSFrameConstructor::WipeContainingBlock(nsFrameConstructorState& aState,
   if (aFrame->IsBoxFrame() &&
       !(aFrame->GetStateBits() & NS_STATE_BOX_WRAPS_KIDS_IN_BLOCK) &&
       aItems.AnyItemsNeedBlockParent()) {
-    RecreateFramesForContent(aFrame->GetContent());
+    RecreateFramesForContent(aFrame->GetContent(), PR_TRUE);
     return PR_TRUE;
   }
 
@@ -11086,7 +11091,7 @@ nsCSSFrameConstructor::WipeContainingBlock(nsFrameConstructorState& aState,
     if (!aItems.AllWantParentType(parentType)) {
       
       
-      RecreateFramesForContent(aFrame->GetContent());
+      RecreateFramesForContent(aFrame->GetContent(), PR_TRUE);
       return PR_TRUE;
     }
   }
@@ -11190,7 +11195,7 @@ nsCSSFrameConstructor::WipeContainingBlock(nsFrameConstructorState& aState,
            static_cast<void*>(blockContent));
   }
 #endif
-  RecreateFramesForContent(blockContent);
+  RecreateFramesForContent(blockContent, PR_TRUE);
   return PR_TRUE;
 }
 
@@ -11240,12 +11245,12 @@ nsCSSFrameConstructor::ReframeContainingBlock(nsIFrame* aFrame)
         printf("  ==> blockContent=%p\n", static_cast<void*>(blockContent));
       }
 #endif
-      return RecreateFramesForContent(blockContent);
+      return RecreateFramesForContent(blockContent, PR_TRUE);
     }
   }
 
   
-  return RecreateFramesForContent(mPresShell->GetDocument()->GetRootContent());
+  return RecreateFramesForContent(mPresShell->GetDocument()->GetRootContent(), PR_TRUE);
 }
 
 void
@@ -11582,7 +11587,12 @@ nsCSSFrameConstructor::ProcessPendingRestyles()
 
   PRUint32 count = mPendingRestyles.Count();
 
-  if (count) {
+  
+  
+  BeginUpdate();
+
+  
+  while (count) {
     
     nsAutoTArray<RestyleEnumerateData, RESTYLE_ARRAY_STACKSIZE> restyleArr;
     RestyleEnumerateData* restylesToProcess = restyleArr.AppendElements(count);
@@ -11601,10 +11611,6 @@ nsCSSFrameConstructor::ProcessPendingRestyles()
     
     mPendingRestyles.Clear();
 
-    
-    
-    BeginUpdate();
-
     for (RestyleEnumerateData* currentRestyle = restylesToProcess;
          currentRestyle != lastRestyle;
          ++currentRestyle) {
@@ -11613,12 +11619,14 @@ nsCSSFrameConstructor::ProcessPendingRestyles()
                         currentRestyle->mChangeHint);
     }
 
-    EndUpdate();
+    count = mPendingRestyles.Count();
+  }
+
+  EndUpdate();
 
 #ifdef DEBUG
-    mPresShell->VerifyStyleTree();
+  mPresShell->VerifyStyleTree();
 #endif
-  }
 
   if (mRebuildAllStyleData) {
     
