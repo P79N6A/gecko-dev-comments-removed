@@ -45,13 +45,11 @@
 
 
 
-
-
-
-
-
-
-
+#include <stdlib.h>
+#include <string.h>
+#if defined(__cplusplus)
+#  include <new>
+#endif
 
 
 #if defined(MOZALLOC_EXPORT)

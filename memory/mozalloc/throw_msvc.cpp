@@ -38,18 +38,26 @@
 
 
 
+#include <exception>
+
 #if defined(XP_WIN) || (defined(XP_OS2) && defined(__declspec))
 #  define MOZALLOC_EXPORT __declspec(dllexport)
 #endif
 
 #include "mozilla/mozalloc_abort.h"
-#include "mozilla/mozalloc_oom.h"
+
+namespace std {
+
+
+
+
+
+__declspec(dllexport) void mozilla_Throw(const exception& e);
 
 void
-mozalloc_handle_oom()
+mozilla_Throw(const exception& e)
 {
-    
-    
-    
-    mozalloc_abort("out of memory");
+    mozalloc_abort(e.what());
 }
+
+}  

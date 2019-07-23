@@ -47,11 +47,20 @@
 
 
 
+#ifndef mozilla_Throw_h
+#  include "mozilla/throw_msvc.h"
+#endif
+
+
+
+
+
+#include <${NEW_HEADER_PATH}>
+
+
+
 
 #if !defined(XPCOM_GLUE) && !defined(NS_NO_XPCOM) && !defined(MOZ_NO_MOZALLOC)
-#  include <new>              
-#  include <stdlib.h>         
-#  include <string.h>
 #  include "mozilla/mozalloc.h"
 #else
 #  error "STL code can only be used with infallible ::operator new()"

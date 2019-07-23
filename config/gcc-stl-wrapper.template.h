@@ -46,12 +46,22 @@
 #endif
 
 
+#pragma GCC system_header
+
+
+
+
+
+
+
+
+
+#include_next <new>
+
+
 
 
 #if !defined(XPCOM_GLUE) && !defined(NS_NO_XPCOM) && !defined(MOZ_NO_MOZALLOC)
-#  include <new>              
-#  include <stdlib.h>         
-#  include <string.h>
 #  include "mozilla/mozalloc.h"
 #else
 #  error "STL code can only be used with infallible ::operator new()"
@@ -78,8 +88,8 @@
 
 
 
-#ifndef mozilla_functexcept_h
-#  include "mozilla/functexcept.h"
+#ifndef mozilla_throw_gcc_h
+#  include "mozilla/throw_gcc.h"
 #endif
 
 #endif
