@@ -66,6 +66,23 @@ NS_INTERFACE_MAP_BEGIN(nsScrollbarFrame)
   NS_INTERFACE_MAP_ENTRY(nsIScrollbarFrame)
 NS_INTERFACE_MAP_END_INHERITING(nsBoxFrame)
 
+
+NS_IMETHODIMP
+nsScrollbarFrame::Init(nsIContent* aContent,
+                       nsIFrame*   aParent,
+                       nsIFrame*   aPrevInFlow)
+{
+  nsresult  rv = nsBoxFrame::Init(aContent, aParent, aPrevInFlow);
+
+  
+  
+  
+  
+  mState |= NS_FRAME_REFLOW_ROOT;
+
+  return rv;
+}
+
 NS_IMETHODIMP
 nsScrollbarFrame::Reflow(nsPresContext*          aPresContext,
                          nsHTMLReflowMetrics&     aDesiredSize,
