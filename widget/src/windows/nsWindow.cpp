@@ -596,14 +596,9 @@ nsWindow::StandardWindowCreate(nsIWidget *aParent,
   
   
   
-  PRUnichar buffer[kMaxClassNameLength];
-  ::GetClassNameW(parent, (LPWSTR)buffer, kMaxClassNameLength);
-  nsDependentString parentClass(buffer);
-  if (parentClass.Equals(kClassNameContent) ||
-      parentClass.Equals(kClassNameDialog))
-    ::CreateWindowW(L"SCROLLBAR", L"FAKETRACKPOINTSCROLLBAR", 
-                    WS_CHILD | WS_VISIBLE, 0,0,0,0, mWnd, NULL,
-                    nsToolkit::mDllInstance, NULL);
+  ::CreateWindowW(L"SCROLLBAR", L"FAKETRACKPOINTSCROLLBAR", 
+                  WS_CHILD | WS_VISIBLE, 0,0,0,0, mWnd, NULL,
+                  nsToolkit::mDllInstance, NULL);
 
   
 
