@@ -593,15 +593,11 @@ nsIFrame* nsHTMLSelectOptionAccessible::GetBoundsFrame()
 NS_IMETHODIMP
 nsHTMLSelectOptionAccessible::GetState(PRUint32 *aState, PRUint32 *aExtraState)
 {
-  *aState = 0;
-  if (aExtraState) {
-    *aExtraState = 0;
-  }
-  if (!mDOMNode) {
-    if (aExtraState) {
-      *aExtraState = nsIAccessibleStates::EXT_STATE_DEFUNCT;
-    }
-    return NS_OK;
+  
+  
+  nsresult rv = nsAccessible::GetState(aState, aExtraState);
+  if (NS_FAILED(rv)) {
+    return rv;
   }
 
   PRUint32 selectState;
@@ -632,6 +628,9 @@ nsHTMLSelectOptionAccessible::GetState(PRUint32 *aState, PRUint32 *aExtraState)
     *aState |= nsIAccessibleStates::STATE_OFFSCREEN;
   }
   else {
+    
+    
+    *aState &= ~nsIAccessibleStates::STATE_OFFSCREEN;
     
     nsCOMPtr<nsIAccessible> listAccessible = GetParent();
     if (listAccessible) {
