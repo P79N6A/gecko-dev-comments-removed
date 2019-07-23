@@ -228,9 +228,6 @@ nsWindow *nsWindow::mLastDragMotionWindow = NULL;
 PRBool nsWindow::sIsDraggingOutOf = PR_FALSE;
 
 
-nsWindow *nsWindow::sLastMouseEnterWindow = nsnull;
-
-
 
 guint32   nsWindow::mLastButtonPressTime = 0;
 
@@ -421,10 +418,6 @@ nsWindow::Destroy(void)
 {
     if (mIsDestroyed || !mCreated)
         return NS_OK;
-
-    if (this == sLastMouseEnterWindow) {
-        sLastMouseEnterWindow = nsnull;
-    }
 
     LOG(("nsWindow::Destroy [%p]\n", (void *)this));
     mIsDestroyed = PR_TRUE;
@@ -1896,14 +1889,6 @@ nsWindow::OnEnterNotifyEvent(GtkWidget *aWidget, GdkEventCrossing *aEvent)
     if (aEvent->subwindow != NULL)
         return;
 
-    
-    
-    if (aEvent->x < 0 || aEvent->y < 0 ||
-        aEvent->x >= mBounds.width || aEvent->y >= mBounds.height) {
-        return;
-    }
-    sLastMouseEnterWindow = this;
-
     nsMouseEvent event(PR_TRUE, NS_MOUSE_ENTER, this, nsMouseEvent::eReal);
 
     event.refPoint.x = nscoord(aEvent->x);
@@ -1923,16 +1908,6 @@ nsWindow::OnLeaveNotifyEvent(GtkWidget *aWidget, GdkEventCrossing *aEvent)
     
     if (aEvent->subwindow != NULL)
         return;
-
-    
-    
-    
-    if (this != sLastMouseEnterWindow ||
-        (aEvent->x >= 0 && aEvent->y >= 0 &&
-         aEvent->x < mBounds.width && aEvent->y < mBounds.height)) {
-        return;
-    }
-    sLastMouseEnterWindow = nsnull;
 
     nsMouseEvent event(PR_TRUE, NS_MOUSE_EXIT, this, nsMouseEvent::eReal);
 

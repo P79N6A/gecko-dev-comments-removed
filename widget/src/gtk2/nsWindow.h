@@ -426,9 +426,6 @@ private:
     
     static PRBool DragInProgress(void);
 
-    
-    static nsWindow  *sLastMouseEnterWindow;
-
     void         ResetDragMotionTimer     (GtkWidget      *aWidget,
                                            GdkDragContext *aDragContext,
                                            gint           aX,
