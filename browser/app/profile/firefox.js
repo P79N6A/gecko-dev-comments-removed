@@ -601,42 +601,6 @@ pref("browser.places.migratePostDataAnnotations", true);
 
 
 
-pref("places.frecency.numVisits", 10);
-
-
-
-
-pref("places.frecency.updateIdleTime", 60000);
-
-
-pref("places.frecency.firstBucketCutoff", 4);
-pref("places.frecency.secondBucketCutoff", 14);
-pref("places.frecency.thirdBucketCutoff", 31);
-pref("places.frecency.fourthBucketCutoff", 90);
-
-
-pref("places.frecency.firstBucketWeight", 100);
-pref("places.frecency.secondBucketWeight", 70);
-pref("places.frecency.thirdBucketWeight", 50);
-pref("places.frecency.fourthBucketWeight", 30);
-pref("places.frecency.defaultBucketWeight", 10);
-
-
-pref("places.frecency.embedVisitBonus", 0);
-pref("places.frecency.linkVisitBonus", 120);
-pref("places.frecency.typedVisitBonus", 200);
-pref("places.frecency.bookmarkVisitBonus", 140);
-pref("places.frecency.downloadVisitBonus", 0);
-pref("places.frecency.permRedirectVisitBonus", 0);
-pref("places.frecency.tempRedirectVisitBonus", 0);
-pref("places.frecency.defaultVisitBonus", 0);
-
-
-pref("places.frecency.unvisitedBookmarkBonus", 140);
-pref("places.frecency.unvisitedTypedBonus", 200);
-
-
-
 
 
 pref("browser.ssl_override_behavior", 1);
