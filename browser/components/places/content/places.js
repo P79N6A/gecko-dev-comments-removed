@@ -708,13 +708,12 @@ var PlacesOrganizer = {
   saveSearch: function PO_saveSearch() {
     
     
-    var queries = PlacesQueryBuilder.queries;
     var options = this.getCurrentOptions();
 
-#ifndef PLACES_QUERY_BUILDER
-    var query = PlacesUtils.history.getNewQuery();
-    query.searchTerms = PlacesSearchBox.value;
-    queries.push(query);
+#ifdef PLACES_QUERY_BUILDER
+    var queries = PlacesQueryBuilder.queries;
+#else
+    var queries = this.getCurrentQueries();
 #endif
 
     var placeSpec = PlacesUtils.history.queriesToQueryString(queries,
