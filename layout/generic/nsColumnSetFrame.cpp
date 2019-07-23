@@ -438,7 +438,7 @@ nsColumnSetFrame::ReflowChildren(nsHTMLReflowMetrics&     aDesiredSize,
 #endif
     }
   }
-  int columnCount = 0;
+  int columnCount = 0; 
   PRBool reflowNext = PR_FALSE;
 
   while (child) {
@@ -549,7 +549,8 @@ nsColumnSetFrame::ReflowChildren(nsHTMLReflowMetrics&     aDesiredSize,
       NS_ASSERTION(!kidNextInFlow, "next in flow should have been deleted");
       break;
     } else {
-      ++columnCount;
+      if (NS_FRAME_IS_NOT_COMPLETE(aStatus)) 
+        ++columnCount;
       
       
       
