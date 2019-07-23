@@ -1683,7 +1683,7 @@ private:
 };
 
 static void
-DoStopPlugin(nsPluginInstanceOwner *aInstanceOwner, PRBool aIsDelayedAlready)
+DoStopPlugin(nsPluginInstanceOwner *aInstanceOwner, PRBool aDelayedStop)
 {
   nsCOMPtr<nsIPluginInstance> inst;
   aInstanceOwner->GetInstance(*getter_AddRefs(inst));
@@ -1720,7 +1720,7 @@ DoStopPlugin(nsPluginInstanceOwner *aInstanceOwner, PRBool aIsDelayedAlready)
         else 
           inst->SetWindow(nsnull);
 
-        if (!aIsDelayedAlready) {
+        if (aDelayedStop) {
           nsCOMPtr<nsIRunnable> evt = new nsStopPluginRunnable(aInstanceOwner);
           NS_DispatchToCurrentThread(evt);
 
@@ -1737,7 +1737,7 @@ DoStopPlugin(nsPluginInstanceOwner *aInstanceOwner, PRBool aIsDelayedAlready)
       else 
         inst->SetWindow(nsnull);
 
-      if (!aIsDelayedAlready) {
+      if (aDelayedStop) {
         nsCOMPtr<nsIRunnable> evt = new nsStopPluginRunnable(aInstanceOwner);
         NS_DispatchToCurrentThread(evt);
 
@@ -1763,7 +1763,7 @@ DoStopPlugin(nsPluginInstanceOwner *aInstanceOwner, PRBool aIsDelayedAlready)
 NS_IMETHODIMP
 nsStopPluginRunnable::Run()
 {
-  DoStopPlugin(mInstanceOwner, PR_TRUE);
+  DoStopPlugin(mInstanceOwner, PR_FALSE);
 
   return NS_OK;
 }
@@ -1813,21 +1813,7 @@ nsObjectFrame::StopPluginInternal(PRBool aDelayedStop)
   
   owner->PrepareToStop(aDelayedStop);
 
-#ifdef XP_WIN
-  
-  
-  
-  if (aDelayedStop) {
-    
-    
-    
-    nsCOMPtr<nsIRunnable> evt = new nsStopPluginRunnable(owner);
-    NS_DispatchToCurrentThread(evt);
-  } else
-#endif
-  {
-    DoStopPlugin(owner, PR_FALSE);
-  }
+  DoStopPlugin(owner, aDelayedStop);
 
   
   owner->SetOwner(nsnull);
