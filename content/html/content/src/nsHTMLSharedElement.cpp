@@ -47,7 +47,6 @@
 #include "nsPresContext.h"
 #include "nsRuleData.h"
 #include "nsMappedAttributes.h"
-#include "nsStyleContext.h"
 
 
 extern nsAttrValue::EnumTable kListTypeTable[];
@@ -239,77 +238,84 @@ SpacerMapAttributesIntoRule(const nsMappedAttributes* aAttributes,
   nsGenericHTMLElement::MapImageMarginAttributeInto(aAttributes, aData);
   nsGenericHTMLElement::MapImageSizeAttributesInto(aAttributes, aData);
 
-  if (aData->mSIDs & NS_STYLE_INHERIT_BIT(Position)) {
-    const nsStyleDisplay* display = aData->mStyleContext->GetStyleDisplay();
-
-    PRBool typeIsBlock = (display->mDisplay == NS_STYLE_DISPLAY_BLOCK);
-
-    if (typeIsBlock) {
-      
-      if (aData->mPositionData->mWidth.GetUnit() == eCSSUnit_Null) {
-        const nsAttrValue* value = aAttributes->GetAttr(nsGkAtoms::width);
-        if (value && value->Type() == nsAttrValue::eInteger) {
-          aData->mPositionData->
-            mWidth.SetFloatValue((float)value->GetIntegerValue(),
-                                 eCSSUnit_Pixel);
-        } else if (value && value->Type() == nsAttrValue::ePercent) {
-          aData->mPositionData->
-            mWidth.SetPercentValue(value->GetPercentValue());
-        }
-      }
-
-      
-      if (aData->mPositionData->mHeight.GetUnit() == eCSSUnit_Null) {
-        const nsAttrValue* value = aAttributes->GetAttr(nsGkAtoms::height);
-        if (value && value->Type() == nsAttrValue::eInteger) {
-          aData->mPositionData->
-            mHeight.SetFloatValue((float)value->GetIntegerValue(),
-                                  eCSSUnit_Pixel);
-        } else if (value && value->Type() == nsAttrValue::ePercent) {
-          aData->mPositionData->
-            mHeight.SetPercentValue(value->GetPercentValue());
-        }
-      }
-    } else {
-      
-      if (aData->mPositionData->mWidth.GetUnit() == eCSSUnit_Null) {
-        const nsAttrValue* value = aAttributes->GetAttr(nsGkAtoms::size);
-        if (value && value->Type() == nsAttrValue::eInteger)
-          aData->mPositionData->
-            mWidth.SetFloatValue((float)value->GetIntegerValue(),
-                                 eCSSUnit_Pixel);
-      }
-    }
-  }
-  if (aData->mSIDs & NS_STYLE_INHERIT_BIT(Display)) {
-    const nsAttrValue* value = aAttributes->GetAttr(nsGkAtoms::align);
-    if (value && value->Type() == nsAttrValue::eEnum) {
-      PRInt32 align = value->GetEnumValue();
-      if (aData->mDisplayData->mFloat.GetUnit() == eCSSUnit_Null) {
-        if (align == NS_STYLE_TEXT_ALIGN_LEFT)
-          aData->mDisplayData->mFloat.SetIntValue(NS_STYLE_FLOAT_LEFT,
-                                                  eCSSUnit_Enumerated);
-        else if (align == NS_STYLE_TEXT_ALIGN_RIGHT)
-          aData->mDisplayData->mFloat.SetIntValue(NS_STYLE_FLOAT_RIGHT,
-                                                  eCSSUnit_Enumerated);
+  if (aData->mSIDs & (NS_STYLE_INHERIT_BIT(Position) |
+                      NS_STYLE_INHERIT_BIT(Display))) {
+    PRBool typeIsBlock = PR_FALSE;
+    const nsAttrValue* value = aAttributes->GetAttr(nsGkAtoms::type);
+    if (value && value->Type() == nsAttrValue::eString) {
+      const nsString& tmp(value->GetStringValue());
+      if (tmp.LowerCaseEqualsLiteral("line") ||
+          tmp.LowerCaseEqualsLiteral("vert") ||
+          tmp.LowerCaseEqualsLiteral("vertical") ||
+          tmp.LowerCaseEqualsLiteral("block")) {
+        
+        
+        typeIsBlock = PR_TRUE;
       }
     }
 
-    if (aData->mDisplayData->mDisplay.GetUnit() == eCSSUnit_Null) {
-      const nsAttrValue* value = aAttributes->GetAttr(nsGkAtoms::type);
-      if (value && value->Type() == nsAttrValue::eString) {
-        nsAutoString tmp(value->GetStringValue());
-        if (tmp.LowerCaseEqualsLiteral("line") ||
-            tmp.LowerCaseEqualsLiteral("vert") ||
-            tmp.LowerCaseEqualsLiteral("vertical") ||
-            tmp.LowerCaseEqualsLiteral("block")) {
-          
-          
+    if (aData->mSIDs & NS_STYLE_INHERIT_BIT(Position)) {
+      if (typeIsBlock) {
+        
+        if (aData->mPositionData->mWidth.GetUnit() == eCSSUnit_Null) {
+          const nsAttrValue* value = aAttributes->GetAttr(nsGkAtoms::width);
+          if (value && value->Type() == nsAttrValue::eInteger) {
+            aData->mPositionData->
+              mWidth.SetFloatValue((float)value->GetIntegerValue(),
+                                   eCSSUnit_Pixel);
+          } else if (value && value->Type() == nsAttrValue::ePercent) {
+            aData->mPositionData->
+              mWidth.SetPercentValue(value->GetPercentValue());
+          }
+        }
+
+        
+        if (aData->mPositionData->mHeight.GetUnit() == eCSSUnit_Null) {
+          const nsAttrValue* value = aAttributes->GetAttr(nsGkAtoms::height);
+          if (value && value->Type() == nsAttrValue::eInteger) {
+            aData->mPositionData->
+              mHeight.SetFloatValue((float)value->GetIntegerValue(),
+                                    eCSSUnit_Pixel);
+          } else if (value && value->Type() == nsAttrValue::ePercent) {
+            aData->mPositionData->
+              mHeight.SetPercentValue(value->GetPercentValue());
+          }
+        }
+      } else {
+        
+        if (aData->mPositionData->mWidth.GetUnit() == eCSSUnit_Null) {
+          const nsAttrValue* value = aAttributes->GetAttr(nsGkAtoms::size);
+          if (value && value->Type() == nsAttrValue::eInteger)
+            aData->mPositionData->
+              mWidth.SetFloatValue((float)value->GetIntegerValue(),
+                                   eCSSUnit_Pixel);
+        }
+      }
+    }
+
+    if (aData->mSIDs & NS_STYLE_INHERIT_BIT(Display)) {
+      const nsAttrValue* value = aAttributes->GetAttr(nsGkAtoms::align);
+      if (value && value->Type() == nsAttrValue::eEnum) {
+        PRInt32 align = value->GetEnumValue();
+        if (aData->mDisplayData->mFloat.GetUnit() == eCSSUnit_Null) {
+          if (align == NS_STYLE_TEXT_ALIGN_LEFT)
+            aData->mDisplayData->mFloat.SetIntValue(NS_STYLE_FLOAT_LEFT,
+                                                    eCSSUnit_Enumerated);
+          else if (align == NS_STYLE_TEXT_ALIGN_RIGHT)
+            aData->mDisplayData->mFloat.SetIntValue(NS_STYLE_FLOAT_RIGHT,
+                                                    eCSSUnit_Enumerated);
+        }
+      }
+
+      if (typeIsBlock) {
+        if (aData->mDisplayData->mDisplay.GetUnit() == eCSSUnit_Null) {
           aData->mDisplayData->mDisplay.SetIntValue(NS_STYLE_DISPLAY_BLOCK,
                                                     eCSSUnit_Enumerated);
         }
       }
     }
+    
+    
   }
 
   nsGenericHTMLElement::MapCommonAttributesInto(aAttributes, aData);
