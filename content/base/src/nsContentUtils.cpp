@@ -2712,6 +2712,13 @@ nsCxPusher::Push(nsPIDOMEventTarget *aCurrentTarget)
   nsCOMPtr<nsIScriptContext> scx;
   nsresult rv = aCurrentTarget->GetContextForEventHandlers(getter_AddRefs(scx));
   NS_ENSURE_SUCCESS(rv, PR_FALSE);
+
+  if (!scx) {
+    
+    
+    return PR_TRUE;
+  }
+
   JSContext* cx = nsnull;
 
   if (scx) {
