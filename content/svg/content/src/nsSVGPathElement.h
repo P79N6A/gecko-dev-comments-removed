@@ -95,8 +95,10 @@ public:
   NS_IMETHOD_(PRBool) IsAttributeMapped(const nsIAtom* name) const;
 
   
-  NS_IMETHOD DidModifySVGObservable (nsISVGValue* observable,
+  NS_IMETHOD WillModifySVGObservable(nsISVGValue* observable,
                                      nsISVGValue::modificationType aModType);
+  NS_IMETHOD DidModifySVGObservable(nsISVGValue* observable,
+                                    nsISVGValue::modificationType aModType);
 
   
   virtual PRBool AttributeDefinesGeometry(const nsIAtom *aName);
