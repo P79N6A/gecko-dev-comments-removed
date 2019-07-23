@@ -97,6 +97,7 @@ typedef struct JSGSNCache {
 namespace nanojit {
     class Fragment;
     class Fragmento;
+    class LirBuffer;
 }
 class TraceRecorder;
 extern "C++" { template<typename T> class Queue; }
@@ -132,6 +133,7 @@ typedef struct JSTraceMonitor {
     
 
 
+    CLS(nanojit::LirBuffer) reLirBuf;
     CLS(nanojit::Fragmento) reFragmento;
 
     
