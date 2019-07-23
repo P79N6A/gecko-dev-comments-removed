@@ -93,7 +93,8 @@ StatementParams::SetProperty(nsIXPConnectWrappedNative *aWrapper,
   }
   else if (JSVAL_IS_STRING(aId)) {
     JSString *str = JSVAL_TO_STRING(aId);
-    NS_ConvertUTF16toUTF8 name(::JS_GetStringChars(str),
+    NS_ConvertUTF16toUTF8 name(reinterpret_cast<const PRUnichar *>
+                                   (::JS_GetStringChars(str)),
                                ::JS_GetStringLength(str));
 
     
@@ -210,7 +211,8 @@ StatementParams::NewResolve(nsIXPConnectWrappedNative *aWrapper,
 
     
     
-    NS_ConvertUTF16toUTF8 name(nameChars, nameLength);
+    NS_ConvertUTF16toUTF8 name(reinterpret_cast<const PRUnichar *>(nameChars),
+                               nameLength);
     nsresult rv = mStatement->GetParameterIndex(name, &idx);
     if (NS_FAILED(rv)) {
       *_objp = NULL;
