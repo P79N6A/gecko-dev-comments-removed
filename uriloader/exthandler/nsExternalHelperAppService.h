@@ -351,13 +351,6 @@ protected:
 
 
   nsCOMArray<nsILocalFile> mTemporaryFilesList;
-
-  
-
-
-  virtual NS_HIDDEN_(nsresult) LoadUriInternal(nsIURI * aURL) = 0;
-  NS_HIDDEN_(PRBool) isExternalLoadOK(nsIURI* aURI, nsIPrompt* aPrompt);
-  NS_HIDDEN_(PRBool) promptForScheme(nsIURI* aURI, nsIPrompt* aPrompt, PRBool *aRemember);
 };
 
 

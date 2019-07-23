@@ -364,6 +364,9 @@ nsMIMEInfoBase::LaunchWithURI(nsIURI* aURI)
     return LaunchWithIProcess(executable, docToLoad);
   }
   else if (mPreferredAction == useSystemDefault) {
+    if (mClass == eProtocolInfo)
+      return LoadUriInternal(aURI);
+
     rv = GetLocalFileFromURI(aURI, getter_AddRefs(docToLoad));
     NS_ENSURE_SUCCESS(rv, rv);
 

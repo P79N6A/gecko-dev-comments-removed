@@ -157,42 +157,6 @@ nsresult nsOSHelperAppService::OSProtocolHandlerExists(const char * aProtocolSch
   return NS_OK;
 }
 
-
-
-
-nsresult nsOSHelperAppService::LoadUriInternal(nsIURI * aURL)
-{
-  nsresult rv = NS_OK;
-
-  
-  
-  
-
-  
-  
-
-  if (aURL)
-  {
-    
-    nsCAutoString urlSpec;
-    aURL->GetAsciiSpec(urlSpec);
-
-    
-    
-    
-    const PRUint32 maxSafeURL(2048);
-    if (urlSpec.Length() > maxSafeURL)
-      return NS_ERROR_FAILURE;
-
-    LONG r = (LONG) ::ShellExecute(NULL, "open", urlSpec.get(), NULL, NULL, 
-                                   SW_SHOWNORMAL);
-    if (r < 32) 
-      rv = NS_ERROR_FAILURE;
-  }
-
-  return rv;
-}
-
 NS_IMETHODIMP nsOSHelperAppService::GetApplicationDescription(const nsACString& aScheme, nsAString& _retval)
 {
   nsCOMPtr<nsIWindowsRegKey> regKey = 

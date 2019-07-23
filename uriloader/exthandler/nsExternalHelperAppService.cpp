@@ -77,6 +77,7 @@
 #include "nsIRefreshURI.h" 
 #include "nsIDocumentLoader.h" 
 #include "nsIHelperAppLauncherDialog.h"
+#include "nsIContentDispatchChooser.h"
 #include "nsNetUtil.h"
 #include "nsIIOService.h"
 #include "nsNetCID.h"
@@ -999,12 +1000,12 @@ nsresult nsExternalHelperAppService::FillProtoInfoForSchemeFromDS(
 #endif
 }
 
-#ifdef MOZ_RDF
 nsresult nsExternalHelperAppService::FillHandlerInfoForTypeFromDS(
   nsIRDFResource *aTypeNodeResource, const nsCAutoString &aType, 
   nsIRDFService *rdf, const char *aTypeNodePrefix,
   nsIHandlerInfo * aHandlerInfo)
 {
+#ifdef MOZ_RDF
 
   
   
@@ -1039,8 +1040,10 @@ nsresult nsExternalHelperAppService::FillHandlerInfoForTypeFromDS(
   }
 
   return rv;
-}
+#else
+  return NS_ERROR_NOT_AVAILABLE;
 #endif 
+}
 
 nsresult nsExternalHelperAppService::FillMIMEInfoForExtensionFromDS(
   const nsACString& aFileExtension, nsIMIMEInfo * aMIMEInfo)
@@ -1191,67 +1194,25 @@ NS_IMETHODIMP nsExternalHelperAppService::LoadUrl(nsIURI * aURL)
 
 
 
-
-
-class nsExternalLoadRequest : public nsRunnable {
-  public:
-    nsExternalLoadRequest(nsIURI *uri, nsIPrompt *prompt)
-      : mURI(uri), mPrompt(prompt) {}
-
-    NS_IMETHOD Run() {
-      if (gExtProtSvc && gExtProtSvc->isExternalLoadOK(mURI, mPrompt))
-        gExtProtSvc->LoadUriInternal(mURI);
-      return NS_OK;
-    }
-
-  private:
-    nsCOMPtr<nsIURI>    mURI;
-    nsCOMPtr<nsIPrompt> mPrompt;
-};
-
-NS_IMETHODIMP nsExternalHelperAppService::LoadURI(nsIURI * aURL, nsIPrompt * aPrompt)
-{
-  nsCAutoString spec;
-  aURL->GetSpec(spec);
-
-  if (spec.Find("%00") != -1)
-    return NS_ERROR_MALFORMED_URI;
-
-  spec.ReplaceSubstring("\"", "%22");
-  spec.ReplaceSubstring("`", "%60");
-
-  nsCOMPtr<nsIIOService> ios(do_GetIOService());
-  nsCOMPtr<nsIURI> uri;
-  nsresult rv = ios->NewURI(spec, nsnull, nsnull, getter_AddRefs(uri));
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  nsCOMPtr<nsIRunnable> event = new nsExternalLoadRequest(uri, aPrompt);
-  return NS_DispatchToCurrentThread(event);
-}
-
-
-
-
 static const char kExternalProtocolPrefPrefix[]  = "network.protocol-handler.external.";
 static const char kExternalProtocolDefaultPref[] = "network.protocol-handler.external-default";
 static const char kExternalWarningPrefPrefix[]   = "network.protocol-handler.warn-external.";
 static const char kExternalWarningDefaultPref[]  = "network.protocol-handler.warn-external-default";
 
-
-PRBool nsExternalHelperAppService::isExternalLoadOK(nsIURI* aURL, nsIPrompt* aPrompt)
+NS_IMETHODIMP 
+nsExternalHelperAppService::LoadURI(nsIURI *aURI,
+                                    nsIInterfaceRequestor *aWindowContext)
 {
-  if (!aURL)
-    return PR_FALSE;
+  NS_ENSURE_ARG_POINTER(aURI);
 
   nsCAutoString scheme;
-  aURL->GetScheme(scheme);
+  (void)aURI->GetScheme(scheme);
   if (scheme.IsEmpty())
-    return PR_FALSE; 
+    return NS_OK; 
 
   nsCOMPtr<nsIPrefBranch> prefs(do_GetService(NS_PREFSERVICE_CONTRACTID));
   if (!prefs)
-    return PR_FALSE; 
-
+    return NS_OK; 
 
   
   nsCAutoString externalPref(kExternalProtocolPrefPrefix);
@@ -1264,8 +1225,7 @@ PRBool nsExternalHelperAppService::isExternalLoadOK(nsIURI* aURL, nsIPrompt* aPr
     rv = prefs->GetBoolPref(kExternalProtocolDefaultPref, &allowLoad);
   }
   if (NS_FAILED(rv) || !allowLoad)
-    return PR_FALSE; 
-
+    return NS_OK; 
 
   
   nsCAutoString warningPref(kExternalWarningPrefPrefix);
@@ -1275,154 +1235,32 @@ PRBool nsExternalHelperAppService::isExternalLoadOK(nsIURI* aURL, nsIPrompt* aPr
   if (NS_FAILED(rv))
   {
     
-    rv = prefs->GetBoolPref(kExternalWarningDefaultPref, &warn);
+    prefs->GetBoolPref(kExternalWarningDefaultPref, &warn);
   }
+ 
+  nsCOMPtr<nsIHandlerInfo> handler;
+  rv = GetProtocolHandlerInfo(scheme, getter_AddRefs(handler));
+  NS_ENSURE_SUCCESS(rv, rv);
 
-
-  if (NS_FAILED(rv) || warn)
-  {
-    
-    
-    PRBool remember = PR_FALSE;
-    allowLoad = promptForScheme(aURL, aPrompt, &remember);
-
-    if (remember)
-    {
-      if (allowLoad)
-        
-        prefs->SetBoolPref(warningPref.get(), PR_FALSE);
-      else
-        
-        prefs->SetBoolPref(externalPref.get(), PR_FALSE);
-    }
-  }
-
-  return allowLoad;
-}
-
-PRBool nsExternalHelperAppService::promptForScheme(nsIURI* aURI,
-                                                   nsIPrompt* aPrompt,
-                                                   PRBool *aRemember)
-{
-  
-  nsCOMPtr<nsIPrompt> prompt(aPrompt);
-  if (!prompt)
-  {
-    nsCOMPtr<nsIWindowWatcher> wwatch(do_GetService(NS_WINDOWWATCHER_CONTRACTID));
-    if (wwatch)
-      wwatch->GetNewPrompter(0, getter_AddRefs(prompt));
-  }
-  if (!prompt) {
-    NS_ERROR("No prompt to warn user about external load, denying");
-    return PR_FALSE; 
-  }
-
-  
-  nsCOMPtr<nsIStringBundleService> sbSvc(do_GetService(NS_STRINGBUNDLE_CONTRACTID));
-  if (!sbSvc) {
-    NS_ERROR("Couldn't load StringBundleService");
-    return PR_FALSE;
-  }
-
-  nsCOMPtr<nsIStringBundle> appstrings;
-  nsresult rv = sbSvc->CreateBundle("chrome://global/locale/appstrings.properties",
-                                    getter_AddRefs(appstrings));
-  if (NS_FAILED(rv) || !appstrings) {
-    NS_ERROR("Failed to create appstrings.properties bundle");
-    return PR_FALSE;
-  }
-
-  nsCAutoString spec;
-  aURI->GetSpec(spec);
-  NS_ConvertUTF8toUTF16 uri(spec);
-
-  
-  const PRUint32 maxWidth = 75;
-  const PRUint32 maxLines = 12; 
-  const PRUint32 maxLength = maxWidth * maxLines;
+  nsHandlerInfoAction preferredAction;
+  handler->GetPreferredAction(&preferredAction);
+  PRBool alwaysAsk = PR_TRUE;
+  handler->GetAlwaysAskBeforeHandling(&alwaysAsk);
 
   
   
   
-  if (uri.Length() > maxWidth) {
-    PRUint32 charIdx = maxWidth;
-    PRUint32 lineIdx = 1;
-    
-    PRInt32 numCharsToCrop = uri.Length() - maxLength;
-
-    while (charIdx < uri.Length()) {
-      
-      if (NS_IS_LOW_SURROGATE(uri[charIdx]))
-        --charIdx;
-
-      if (numCharsToCrop > 0 && lineIdx == maxLines / 2) {
-        NS_NAMED_LITERAL_STRING(ellipsis, "\n...\n");
-
-        
-        if (NS_IS_HIGH_SURROGATE(uri[charIdx + numCharsToCrop - 1]))
-          ++numCharsToCrop;
-
-        uri.Replace(charIdx, numCharsToCrop, ellipsis);
-        charIdx += ellipsis.Length();
-      }
-      else {
-        
-        uri.Insert(PRUnichar(0x200B), charIdx);
-        charIdx += 1;
-      }
+  if (!warn ||
+      !alwaysAsk && (preferredAction == nsIHandlerInfo::useHelperApp ||
+                     preferredAction == nsIHandlerInfo::useSystemDefault))
+    return handler->LaunchWithURI(aURI);
   
-      charIdx += maxWidth;
-      ++lineIdx;
-    }
-  }
-
-  nsCAutoString asciischeme;
-  aURI->GetScheme(asciischeme);
-  NS_ConvertUTF8toUTF16 scheme(asciischeme);
-
-  nsXPIDLString desc;
-  GetApplicationDescription(asciischeme, desc);
-
-  nsXPIDLString title;
-  appstrings->GetStringFromName(NS_LITERAL_STRING("externalProtocolTitle").get(),
-                                getter_Copies(title));
-  nsXPIDLString checkMsg;
-  appstrings->GetStringFromName(NS_LITERAL_STRING("externalProtocolChkMsg").get(),
-                                getter_Copies(checkMsg));
-  nsXPIDLString launchBtn;
-  appstrings->GetStringFromName(NS_LITERAL_STRING("externalProtocolLaunchBtn").get(),
-                                getter_Copies(launchBtn));
-
-  if (desc.IsEmpty())
-    appstrings->GetStringFromName(NS_LITERAL_STRING("externalProtocolUnknown").get(),
-                                  getter_Copies(desc));
-
-  nsXPIDLString message;
-  const PRUnichar* msgArgs[] = { scheme.get(), uri.get(), desc.get() };
-  appstrings->FormatStringFromName(NS_LITERAL_STRING("externalProtocolPrompt").get(),
-                                   msgArgs,
-                                   NS_ARRAY_LENGTH(msgArgs),
-                                   getter_Copies(message));
-
-  if (scheme.IsEmpty() || uri.IsEmpty() || title.IsEmpty() ||
-      checkMsg.IsEmpty() || launchBtn.IsEmpty() || message.IsEmpty() ||
-      desc.IsEmpty())
-    return PR_FALSE;
-
+  nsCOMPtr<nsIContentDispatchChooser> chooser =
+    do_CreateInstance("@mozilla.org/content-dispatch-chooser;1", &rv);
+  NS_ENSURE_SUCCESS(rv, rv);
   
-  PRInt32 choice = 1; 
-  rv = prompt->ConfirmEx(title.get(), message.get(),
-                         nsIPrompt::BUTTON_DELAY_ENABLE +
-                         nsIPrompt::BUTTON_POS_1_DEFAULT +
-                         (nsIPrompt::BUTTON_TITLE_IS_STRING * nsIPrompt::BUTTON_POS_0) +
-                         (nsIPrompt::BUTTON_TITLE_CANCEL * nsIPrompt::BUTTON_POS_1),
-                         launchBtn.get(), 0, 0, checkMsg.get(),
-                         aRemember, &choice);
-
-  if (NS_SUCCEEDED(rv) && choice == 0)
-    return PR_TRUE;
-
-  return PR_FALSE;
+  return chooser->Ask(handler, aWindowContext, aURI,
+                      nsIContentDispatchChooser::REASON_CANNOT_HANDLE);
 }
 
 NS_IMETHODIMP nsExternalHelperAppService::GetApplicationDescription(const nsACString& aScheme, nsAString& _retval)

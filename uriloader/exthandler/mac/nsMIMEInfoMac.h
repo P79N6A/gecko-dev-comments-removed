@@ -47,9 +47,10 @@ class nsMIMEInfoMac : public nsMIMEInfoImpl {
       nsMIMEInfoImpl(aType, aClass) {}
 
     NS_IMETHOD LaunchWithURI(nsIURI* aURI);
-
-#ifdef DEBUG
+    NS_IMETHOD GetHasDefaultHandler(PRBool *_retval);
   protected:
+    virtual NS_HIDDEN_(nsresult) LoadUriInternal(nsIURI *aURI);
+#ifdef DEBUG
     virtual NS_HIDDEN_(nsresult) LaunchDefaultWithFile(nsIFile* aFile) {
       NS_NOTREACHED("do not call this method, use LaunchWithFile");
       return NS_ERROR_UNEXPECTED;

@@ -137,6 +137,13 @@ class nsMIMEInfoBase : public nsIMIMEInfo {
 
 
 
+    virtual NS_HIDDEN_(nsresult) LoadUriInternal(nsIURI *aURI) = 0;
+
+    
+
+
+
+
 
 
 
@@ -201,6 +208,7 @@ class nsMIMEInfoImpl : public nsMIMEInfoBase {
 
 
     void SetDefaultApplication(nsIFile* aApp) { if (!mDefaultApplication) mDefaultApplication = aApp; }
+
   protected:
     
     
@@ -209,6 +217,11 @@ class nsMIMEInfoImpl : public nsMIMEInfoBase {
 
     virtual NS_HIDDEN_(nsresult) LaunchDefaultWithFile(nsIFile* aFile);
 
+    
+
+
+
+    virtual NS_HIDDEN_(nsresult) LoadUriInternal(nsIURI *aURI) = 0;
 
     nsCOMPtr<nsIFile>      mDefaultApplication; 
 };

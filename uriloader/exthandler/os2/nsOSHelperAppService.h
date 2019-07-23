@@ -64,7 +64,6 @@ public:
                                                   PRBool     *aFound);
 
   
-  nsresult LoadUriInternal(nsIURI * aURL);
   NS_IMETHODIMP GetApplicationDescription(const nsACString& aScheme, nsAString& _retval);
 
   nsresult OSProtocolHandlerExists(const char * aProtocolScheme, PRBool * aHandlerExists);

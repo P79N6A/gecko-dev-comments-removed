@@ -1,0 +1,13 @@
+#description-image:not([src]) {
+  height: 32px;
+  width: 32px;
+}
+
+richlistitem {
+  min-height: 36px; 
+}
+
+richlistbox {
+  
+  min-height: 110px; 
+}

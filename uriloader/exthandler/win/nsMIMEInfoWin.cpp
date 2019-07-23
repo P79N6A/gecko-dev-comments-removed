@@ -44,6 +44,7 @@
 #include "nsIVariant.h"
 #include "nsMIMEInfoWin.h"
 #include "nsNetUtil.h"
+#include <shellapi.h>
 
 NS_IMPL_ISUPPORTS_INHERITED1(nsMIMEInfoWin, nsMIMEInfoBase, nsIPropertyBag)
 
@@ -130,5 +131,41 @@ nsMIMEInfoWin::GetProperty(const nsAString& aName, nsIVariant* *_retval)
   }
 
   return NS_OK;
+}
+
+
+
+nsresult
+nsMIMEInfoWin::LoadUriInternal(nsIURI * aURL)
+{
+  nsresult rv = NS_OK;
+
+  
+  
+  
+
+  
+  
+
+  if (aURL)
+  {
+    
+    nsCAutoString urlSpec;
+    aURL->GetAsciiSpec(urlSpec);
+
+    
+    
+    
+    const PRUint32 maxSafeURL(2048);
+    if (urlSpec.Length() > maxSafeURL)
+      return NS_ERROR_FAILURE;
+
+    LONG r = (LONG) ::ShellExecute(NULL, "open", urlSpec.get(), NULL, NULL, 
+                                   SW_SHOWNORMAL);
+    if (r < 32) 
+      rv = NS_ERROR_FAILURE;
+  }
+
+  return rv;
 }
 
