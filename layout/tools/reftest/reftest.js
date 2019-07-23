@@ -59,6 +59,9 @@ const NS_XREAPPINFO_CONTRACTID =
 
 const LOAD_FAILURE_TIMEOUT = 10000; 
 
+
+const BLANK_URL_FOR_CLEARING = "data:text/html,%3C%21%2D%2DCLEAR%2D%2D%3E";
+
 var gBrowser;
 var gCanvas1, gCanvas2;
 
@@ -542,7 +545,8 @@ function OnDocumentLoad(event)
         
         return;
         
-    if (gClearingForAssertionCheck) {
+    if (gClearingForAssertionCheck &&
+        gBrowser.contentDocument.location.href == BLANK_URL_FOR_CLEARING) {
         DoAssertionCheck();
         return;
     }
@@ -906,7 +910,7 @@ function FinishTestItem()
     
     
     gClearingForAssertionCheck = true;
-    gBrowser.loadURI("about:blank");
+    gBrowser.loadURI(BLANK_URL_FOR_CLEARING);
 }
 
 function DoAssertionCheck()
