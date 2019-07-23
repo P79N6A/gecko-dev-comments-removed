@@ -343,7 +343,7 @@ cairo_font_face_t *gfxOS2Font::CairoFontFace()
         
         
         FcPatternAddString(fcPattern, FC_FAMILY,
-                           (FcChar8 *)NS_LossyConvertUTF16toASCII(GetName()).get());
+                           (FcChar8 *)NS_ConvertUTF16toUTF8(GetName()).get());
 
         
         
