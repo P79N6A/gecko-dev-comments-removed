@@ -253,11 +253,13 @@ public:
 
 
 
+  static nsMediaStream* Create(nsMediaDecoder* aDecoder, nsIChannel* aChannel);
+
+  
 
 
-  static nsresult Open(nsMediaDecoder* aDecoder, nsIURI* aURI,
-                       nsIChannel* aChannel, nsMediaStream** aStream,
-                       nsIStreamListener** aListener);
+
+  virtual nsresult Open(nsIStreamListener** aStreamListener) = 0;
 
 protected:
   nsMediaStream(nsMediaDecoder* aDecoder, nsIChannel* aChannel, nsIURI* aURI) :
@@ -268,14 +270,6 @@ protected:
   {
     MOZ_COUNT_CTOR(nsMediaStream);
   }
-
-  
-
-
-
-
-
-  virtual nsresult Open(nsIStreamListener** aStreamListener) = 0;
 
   
   

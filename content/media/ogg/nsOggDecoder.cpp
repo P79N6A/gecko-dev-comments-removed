@@ -1973,12 +1973,11 @@ nsresult nsOggDecoder::Load(nsIChannel* aChannel,
 
   *aStreamListener = nsnull;
 
-  
-  
-  
-  nsCOMPtr<nsIURI> uri;
-  nsresult rv = NS_GetFinalChannelURI(aChannel, getter_AddRefs(uri));
-  NS_ENSURE_SUCCESS(rv, rv);
+  nsAutoPtr<nsMediaStream> stream;
+  stream = nsMediaStream::Create(this, aChannel);
+  if (!stream) {
+    return NS_ERROR_OUT_OF_MEMORY;
+  }
 
   {
     
@@ -1986,17 +1985,14 @@ nsresult nsOggDecoder::Load(nsIChannel* aChannel,
     
     nsAutoMonitor mon(mMonitor);
 
-    nsAutoPtr<nsMediaStream> stream;
-    nsresult rv = nsMediaStream::Open(this, uri, aChannel,
-                                      getter_Transfers(stream),
-                                      aStreamListener);
-    if (NS_FAILED(rv)) {
+    nsresult rv = stream->Open(aStreamListener);
+    if (NS_FAILED(rv))
       return rv;
-    }
+
     mReader->Init(stream.forget());
   }
 
-  rv = NS_NewThread(getter_AddRefs(mDecodeThread));
+  nsresult rv = NS_NewThread(getter_AddRefs(mDecodeThread));
   NS_ENSURE_SUCCESS(rv, rv);
 
   mDecodeStateMachine = new nsOggDecodeStateMachine(this);
