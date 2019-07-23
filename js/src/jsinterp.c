@@ -1083,7 +1083,7 @@ js_Invoke(JSContext *cx, uintN argc, jsval *vp, uintN flags)
     JSNative native;
     JSFunction *fun;
     JSScript *script;
-    uintN nslots, nvars, i;
+    uintN nslots, nvars, i, skip;
     uint32 rootedArgsFlag;
     JSInterpreterHook hook;
     void *hookData;
@@ -1247,9 +1247,15 @@ have_fun:
         cx->rval2set = JS_FALSE;
 #endif
         
-        i = rootedArgsFlag ? 2 + argc : 0;
-        JS_PUSH_TEMP_ROOT(cx, 2 + argc + nslots - i, argv - 2 + i, &tvr);
+        skip = rootedArgsFlag ? 2 + argc : 0;
+        JS_PUSH_TEMP_ROOT(cx, 2 + argc + nslots - skip, argv - 2 + skip, &tvr);
         ok = ((JSFastNative) native)(cx, argc, argv - 2);
+
+        
+
+
+
+        *vp = argv[-2];
         JS_POP_TEMP_ROOT(cx, &tvr);
 
         JS_RUNTIME_METER(cx->runtime, nativeCalls);
@@ -1336,12 +1342,11 @@ have_fun:
 #endif
 
         
-        if (cx->fp) {
-            frame.varobj = cx->fp->varobj;
-            frame.scopeChain = cx->fp->scopeChain;
-        } else {
-            frame.varobj = NULL;
-            frame.scopeChain = NULL;
+        JS_ASSERT(!frame.varobj);
+        JS_ASSERT(!frame.scopeChain);
+        if (frame.down) {
+            frame.varobj = frame.down->varobj;
+            frame.scopeChain = frame.down->scopeChain;
         }
 
         
