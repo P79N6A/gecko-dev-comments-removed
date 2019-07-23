@@ -53,7 +53,6 @@ var gEditItemOverlay = {
   _hiddenRows: [],
   _observersAdded: false,
   _staticFoldersListBuilt: false,
-  _initialized: false,
 
   get itemId() {
     return this._itemId;
@@ -61,6 +60,11 @@ var gEditItemOverlay = {
 
   get multiEdit() {
     return this._multiEdit;
+  },
+
+  get panel() {
+    delete this.panel;
+    return this.panel = document.getElementById("editBookmarkPanelContent");
   },
 
   
@@ -126,7 +130,10 @@ var gEditItemOverlay = {
   initPanel: function EIO_initPanel(aFor, aInfo) {
     
     
-    if (this._initialized)
+    
+    
+    
+    if (this.panel.hasAttribute("initialized"))
       this.uninitPanel(false);
 
     var aItemIdList;
@@ -224,7 +231,7 @@ var gEditItemOverlay = {
 
       
       this._rebuildTagsSelectorList();
-      this._initialized = true;
+      this.panel.setAttribute("initialized", "true");
     }
 
     
@@ -519,6 +526,9 @@ var gEditItemOverlay = {
   },
 
   uninitPanel: function EIO_uninitPanel(aHideCollapsibleElements) {
+    if (!this.panel.hasAttribute("initialized"))
+      return;
+
     if (aHideCollapsibleElements) {
       
       var folderTreeRow = this._element("folderTreeRow");
@@ -548,7 +558,7 @@ var gEditItemOverlay = {
     this._allTags = [];
     this._itemIds = [];
     this._multiEdit = false;
-    this._initialized = false;
+    this.panel.removeAttribute("initialized");
   },
 
   onTagsFieldBlur: function EIO_onTagsFieldBlur() {
