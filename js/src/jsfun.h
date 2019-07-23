@@ -89,17 +89,57 @@ struct JSFunction {
     JSAtom          *atom;        
 };
 
-#define JSFUN_TRACEABLE      0x2000 /* can trace across calls to this native
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define JSFUN_EXPR_CLOSURE  0x1000  /* expression closure: function(x) x*x */
+#define JSFUN_TRACEABLE     0x2000  /* can trace across calls to this native
                                        function; use FUN_TRCINFO if set,
                                        FUN_CLASP if unset */
-#define JSFUN_EXPR_CLOSURE   0x4000 
-#define JSFUN_INTERPRETED    0x8000 /* use u.i if set, u.n if unset */
-
-#define JSFUN_SCRIPT_OR_FAST_NATIVE (JSFUN_INTERPRETED | JSFUN_FAST_NATIVE)
+#define JSFUN_INTERPRETED   0x4000  
+#define JSFUN_FLAT_CLOSURE  0x8000  /* flag (aka "display") closure */
+#define JSFUN_NULL_CLOSURE  0xc000  /* null closure entrains no scope chain */
+#define JSFUN_KINDMASK      0xc000  /* encode interp vs. native and closure
+                                       optimization level -- see above */
 
 #define FUN_OBJECT(fun)      (&(fun)->object)
-#define FUN_INTERPRETED(fun) ((fun)->flags & JSFUN_INTERPRETED)
-#define FUN_SLOW_NATIVE(fun) (!((fun)->flags & JSFUN_SCRIPT_OR_FAST_NATIVE))
+#define FUN_KIND(fun)        ((fun)->flags & JSFUN_KINDMASK)
+#define FUN_SET_KIND(fun,k)  ((fun)->flags = ((fun)->flags & ~JSFUN_KINDMASK) | (k))
+#define FUN_INTERPRETED(fun) (FUN_KIND(fun) >= JSFUN_INTERPRETED)
+#define FUN_FLAT_CLOSURE(fun)(FUN_KIND(fun) == JSFUN_FLAT_CLOSURE)
+#define FUN_NULL_CLOSURE(fun)(FUN_KIND(fun) == JSFUN_NULL_CLOSURE)
+#define FUN_SLOW_NATIVE(fun) (!FUN_INTERPRETED(fun) && !((fun)->flags & JSFUN_FAST_NATIVE))
 #define FUN_SCRIPT(fun)      (FUN_INTERPRETED(fun) ? (fun)->u.i.script : NULL)
 #define FUN_NATIVE(fun)      (FUN_SLOW_NATIVE(fun) ? (fun)->u.n.native : NULL)
 #define FUN_FAST_NATIVE(fun) (((fun)->flags & JSFUN_FAST_NATIVE)              \
@@ -169,11 +209,11 @@ js_TraceFunction(JSTracer *trc, JSFunction *fun);
 extern void
 js_FinalizeFunction(JSContext *cx, JSFunction *fun);
 
-extern JSObject *
+extern JS_REQUIRES_STACK JSObject *
 js_CloneFunctionObject(JSContext *cx, JSFunction *fun, JSObject *parent);
 
-extern JSBool
-js_LinkFunctionObject(JSContext *cx, JSFunction *fun, JSObject *object);
+extern JS_REQUIRES_STACK JSObject *
+js_NewFlatClosure(JSContext *cx, JSFunction *fun);
 
 extern JSFunction *
 js_DefineFunction(JSContext *cx, JSObject *obj, JSAtom *atom, JSNative native,

@@ -57,7 +57,11 @@ function test()
 
 
 
-  ({ set x x () { for(x in function(){}){}}  })
+try {
+    eval("({ set x x () { for(x in function(){}){}}  })");
+} catch (e)
+{
+}
 
 
 

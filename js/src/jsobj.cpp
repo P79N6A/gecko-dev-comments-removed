@@ -1375,7 +1375,7 @@ obj_eval(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
     tcflags = TCF_COMPILE_N_GO;
     if (caller) {
-        tcflags |= TCF_PUT_STATIC_DEPTH(caller->script->staticDepth + 1);
+        tcflags |= TCF_PUT_STATIC_LEVEL(caller->script->staticLevel + 1);
         principals = JS_EvalFramePrincipals(cx, fp, caller);
         file = js_ComputeFilename(cx, caller, principals, &line);
     } else {
@@ -1454,9 +1454,9 @@ obj_eval(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
     }
 
     if (!script) {
-        script = js_CompileScript(cx, scopeobj, caller, principals, tcflags,
-                                  JSSTRING_CHARS(str), JSSTRING_LENGTH(str),
-                                  NULL, file, line, str);
+        script = JSCompiler::compileScript(cx, scopeobj, caller, principals, tcflags,
+                                           JSSTRING_CHARS(str), JSSTRING_LENGTH(str),
+                                           NULL, file, line, str);
         if (!script) {
             ok = JS_FALSE;
             goto out;
