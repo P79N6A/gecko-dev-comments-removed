@@ -623,6 +623,14 @@ function OnDocumentLoad(event)
 
             
             contentRootElement.removeEventListener("DOMAttrModified", AttrModifiedListener, false);
+            
+            
+            
+            
+            setTimeout(AttrModifiedListenerContinuation, 0);
+        }
+
+        function AttrModifiedListenerContinuation() {
             if (doPrintMode())
                 setupPrintMode();
             FlushRendering();
