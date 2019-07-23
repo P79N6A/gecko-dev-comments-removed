@@ -723,7 +723,7 @@ STDMETHODIMP nsDataObj::EnumFormatEtc(DWORD dwDir, LPENUMFORMATETC *ppEnum)
   } 
 
   if (NULL == *ppEnum)
-    return ResultFromScode(E_FAIL);
+    return E_FAIL;
 
   (*ppEnum)->Reset();
   
@@ -843,7 +843,7 @@ nsDataObj :: GetDib ( const nsACString& inFlavor, FORMATETC &, STGMEDIUM & aSTG 
   } 
   else  
     NS_WARNING ( "Definitely not an image on clipboard" );
-	return ResultFromScode(result);
+	return result;
 }
 
 
@@ -1222,10 +1222,10 @@ HRESULT nsDataObj::GetText(const nsACString & aDataFlavor, FORMATETC& aFE, STGME
   nsCOMPtr<nsISupports> genericDataWrapper;
   mTransferable->GetTransferData(flavorStr, getter_AddRefs(genericDataWrapper), &len);
   if ( !len )
-    return ResultFromScode(E_FAIL);
+    return E_FAIL;
   nsPrimitiveHelpers::CreateDataFromPrimitive ( flavorStr, genericDataWrapper, &data, len );
   if ( !data )
-    return ResultFromScode(E_FAIL);
+    return E_FAIL;
 
   HGLOBAL     hGlobalMemory = NULL;
 
@@ -1258,7 +1258,7 @@ HRESULT nsDataObj::GetText(const nsACString & aDataFlavor, FORMATETC& aFE, STGME
     }
     else {
       NS_WARNING ( "Oh no, couldn't convert unicode to plain text" );
-      return ResultFromScode(S_OK);
+      return S_OK;
     }
   }
   else if ( aFE.cfFormat == nsClipboard::CF_HTML ) {
@@ -1276,7 +1276,7 @@ HRESULT nsDataObj::GetText(const nsACString & aDataFlavor, FORMATETC& aFE, STGME
     }
     else {
       NS_WARNING ( "Oh no, couldn't convert to HTML" );
-      return ResultFromScode(S_OK);
+      return S_OK;
     }
   }
   else {
@@ -1299,7 +1299,7 @@ HRESULT nsDataObj::GetText(const nsACString & aDataFlavor, FORMATETC& aFE, STGME
   
   nsMemory::Free(data);
 
-  return ResultFromScode(S_OK);
+  return S_OK;
 }
 
 

@@ -48,15 +48,6 @@
 #include "nsWindow.h"
 #include "nsClipboard.h"
 
-#if (_MSC_VER == 1100)
-#define INITGUID
-#include "objbase.h"
-DEFINE_OLEGUID(IID_IDropTarget, 0x00000122L, 0, 0);
-DEFINE_OLEGUID(IID_IUnknown, 0x00000000L, 0, 0);
-#endif
-
-#define DRAG_DEBUG 0
-
 
 static NS_DEFINE_IID(kCDragServiceCID,  NS_DRAGSERVICE_CID);
 
@@ -65,12 +56,6 @@ static NS_DEFINE_IID(kIDragServiceIID, NS_IDRAGSERVICE_IID);
 
 
 static POINTL gDragLastPoint;
-
-
-
-
-
-
 
 
 
@@ -91,10 +76,6 @@ nsNativeDragTarget::nsNativeDragTarget(nsIWidget * aWnd)
                    IID_IDropTargetHelper, (LPVOID*)&mDropTargetHelper);
 }
 
-
-
-
-
 nsNativeDragTarget::~nsNativeDragTarget()
 {
   NS_RELEASE(mDragService);
@@ -104,8 +85,6 @@ nsNativeDragTarget::~nsNativeDragTarget()
     mDropTargetHelper = nsnull;
   }
 }
-
-
 
 
 STDMETHODIMP
@@ -118,13 +97,11 @@ nsNativeDragTarget::QueryInterface(REFIID riid, void** ppv)
 
   if (NULL!=*ppv) {
     ((LPUNKNOWN)*ppv)->AddRef();
-    return NOERROR;
+    return S_OK;
   }
 
-  return ResultFromScode(E_NOINTERFACE);
+  return E_NOINTERFACE;
 }
-
-
 
 STDMETHODIMP_(ULONG)
 nsNativeDragTarget::AddRef(void)
@@ -133,7 +110,6 @@ nsNativeDragTarget::AddRef(void)
   NS_LOG_ADDREF(this, m_cRef, "nsNativeDragTarget", sizeof(*this));
   return m_cRef;
 }
-
 
 STDMETHODIMP_(ULONG) nsNativeDragTarget::Release(void)
 {
@@ -145,8 +121,6 @@ STDMETHODIMP_(ULONG) nsNativeDragTarget::Release(void)
   delete this;
   return 0;
 }
-
-
 
 void
 nsNativeDragTarget::GetGeckoDragAction(LPDATAOBJECT pData, DWORD grfKeyState,
@@ -183,15 +157,12 @@ nsNativeDragTarget::GetGeckoDragAction(LPDATAOBJECT pData, DWORD grfKeyState,
   }
 }
 
-
 inline
 PRBool
 IsKeyDown(char key)
 {
   return GetKeyState(key) < 0;
 }
-
-
 
 void
 nsNativeDragTarget::DispatchDragDropEvent(PRUint32 aEventType, POINTL aPT)
@@ -222,7 +193,6 @@ nsNativeDragTarget::DispatchDragDropEvent(PRUint32 aEventType, POINTL aPT)
 
   mWindow->DispatchEvent(&event, status);
 }
-
 
 void
 nsNativeDragTarget::ProcessDrag(LPDATAOBJECT pData,
@@ -260,21 +230,14 @@ nsNativeDragTarget::ProcessDrag(LPDATAOBJECT pData,
 }
 
 
-
-
-
-
-
 STDMETHODIMP
 nsNativeDragTarget::DragEnter(LPDATAOBJECT pIDataSource,
                               DWORD        grfKeyState,
                               POINTL       ptl,
                               DWORD*       pdwEffect)
 {
-  if (DRAG_DEBUG) printf("DragEnter hwnd:%x\n", mHWnd);
-
-	if (!mDragService) {
-		return ResultFromScode(E_FAIL);
+  if (!mDragService) {
+    return E_FAIL;
   }
 
   
@@ -324,16 +287,13 @@ nsNativeDragTarget::DragEnter(LPDATAOBJECT pIDataSource,
   return S_OK;
 }
 
-
-
 STDMETHODIMP
 nsNativeDragTarget::DragOver(DWORD   grfKeyState,
                              POINTL  ptl,
                              LPDWORD pdwEffect)
 {
-  if (DRAG_DEBUG) printf("DragOver %d x %d\n", ptl.x, ptl.y);
-	if (!mDragService) {
-		return ResultFromScode(E_FAIL);
+  if (!mDragService) {
+    return E_FAIL;
   }
 
   
@@ -356,15 +316,11 @@ nsNativeDragTarget::DragOver(DWORD   grfKeyState,
   return S_OK;
 }
 
-
-
 STDMETHODIMP
 nsNativeDragTarget::DragLeave()
 {
-  if (DRAG_DEBUG) printf("DragLeave\n");
-
-	if (!mDragService) {
-		return ResultFromScode(E_FAIL);
+  if (!mDragService) {
+    return E_FAIL;
   }
 
   
@@ -401,16 +357,14 @@ nsNativeDragTarget::DragLeave()
   return S_OK;
 }
 
-
-
 STDMETHODIMP
 nsNativeDragTarget::Drop(LPDATAOBJECT pData,
                          DWORD        grfKeyState,
                          POINTL       aPT,
                          LPDWORD      pdwEffect)
 {
-	if (!mDragService) {
-		return ResultFromScode(E_FAIL);
+  if (!mDragService) {
+    return E_FAIL;
   }
 
   

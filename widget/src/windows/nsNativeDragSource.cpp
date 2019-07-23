@@ -65,12 +65,11 @@ nsNativeDragSource::QueryInterface(REFIID riid, void** ppv)
 
   if (NULL!=*ppv) {
     ((LPUNKNOWN)*ppv)->AddRef();
-    return NOERROR;
+    return S_OK;
   }
 
-  return ResultFromScode(E_NOINTERFACE);
+  return E_NOINTERFACE;
 }
-
 
 STDMETHODIMP_(ULONG)
 nsNativeDragSource::AddRef(void)
@@ -95,37 +94,20 @@ nsNativeDragSource::Release(void)
 STDMETHODIMP
 nsNativeDragSource::QueryContinueDrag(BOOL fEsc, DWORD grfKeyState)
 {
-#ifdef DEBUG
-  
-#endif
   if (fEsc) {
-#ifdef DEBUG
-    
-#endif
     mUserCancelled = PR_TRUE;
-    return ResultFromScode(DRAGDROP_S_CANCEL);
+    return DRAGDROP_S_CANCEL;
   }
 
-  if (!(grfKeyState & MK_LBUTTON) || (grfKeyState & MK_RBUTTON)) {
-#ifdef DEBUG
-    
-#endif
-    return ResultFromScode(DRAGDROP_S_DROP);
-  }
+  if (!(grfKeyState & MK_LBUTTON) || (grfKeyState & MK_RBUTTON))
+    return DRAGDROP_S_DROP;
 
-#ifdef DEBUG
-  
-#endif
-	return NOERROR;
+  return S_OK;
 }
 
 STDMETHODIMP
 nsNativeDragSource::GiveFeedback(DWORD dwEffect)
 {
-#ifdef DEBUG
-  
-#endif
-  
   
   if (mDataTransfer) {
     nsAutoString cursor;
@@ -143,5 +125,5 @@ nsNativeDragSource::GiveFeedback(DWORD dwEffect)
   }
   
   
-	return ResultFromScode(DRAGDROP_S_USEDEFAULTCURSORS);
+  return DRAGDROP_S_USEDEFAULTCURSORS;
 }
