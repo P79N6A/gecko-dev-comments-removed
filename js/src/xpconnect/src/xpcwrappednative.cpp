@@ -2410,11 +2410,15 @@ XPCWrappedNative::CallMethod(XPCCallContext& ccx,
           NS_ASSERTION(i < argc || paramInfo.IsOptional(),
                        "Expected either enough arguments or an optional argument");
           jsval arg = i < argc ? argv[i] : JSVAL_NULL;
-          if(JSVAL_IS_PRIMITIVE(arg) ||
-             !JS_GetPropertyById(ccx, JSVAL_TO_OBJECT(arg),
-                                 rt->GetStringID(XPCJSRuntime::IDX_VALUE),
-                                 &src))
+          if((JSVAL_IS_PRIMITIVE(arg) ||
+              !JS_GetPropertyById(ccx, JSVAL_TO_OBJECT(arg),
+                                  rt->GetStringID(XPCJSRuntime::IDX_VALUE),
+                                  &src))
+             && i < argc)
           {
+              
+              
+              
               ThrowBadParam(NS_ERROR_XPC_NEED_OUT_OBJECT, i, ccx);
               goto done;
           }
@@ -2591,10 +2595,14 @@ XPCWrappedNative::CallMethod(XPCCallContext& ccx,
                   NS_ASSERTION(i < argc || paramInfo.IsOptional(),
                                "Expected either enough arguments or an optional argument");
                   jsval arg = i < argc ? argv[i] : JSVAL_NULL;
-                  if(JSVAL_IS_PRIMITIVE(arg) ||
-                     !JS_GetPropertyById(ccx, JSVAL_TO_OBJECT(arg),
-                         rt->GetStringID(XPCJSRuntime::IDX_VALUE), &src))
+                  if((JSVAL_IS_PRIMITIVE(arg) ||
+                      !JS_GetPropertyById(ccx, JSVAL_TO_OBJECT(arg),
+                          rt->GetStringID(XPCJSRuntime::IDX_VALUE), &src))
+                     && i < argc)
                   {
+                      
+                      
+                      
                       ThrowBadParam(NS_ERROR_XPC_NEED_OUT_OBJECT, i, ccx);
                       goto done;
                   }
