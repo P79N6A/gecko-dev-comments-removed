@@ -49,7 +49,7 @@ function run_test() {
   testFile.remove(false);
   do_check_false(testFile.exists());
 
-  startAUS();
+  standardInit();
 
   
   dump("Testing: nsIApplicationUpdateService:canCheckForUpdates\n");

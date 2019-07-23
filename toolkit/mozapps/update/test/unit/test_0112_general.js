@@ -165,7 +165,7 @@ function run_test() {
 
   updatesDir.create(AUS_Ci.nsIFile.DIRECTORY_TYPE, PERMS_DIRECTORY);
   var mar = do_get_file("data/aus-0111_general.mar");
-  mar.copyTo(updatesDir, "update.mar");
+  mar.copyTo(updatesDir, FILE_UPDATE_ARCHIVE);
 
   
   var exitValue = runUpdate(updatesDir, updater);
@@ -175,7 +175,7 @@ function run_test() {
 
   dump("Testing: update.status should be set to STATE_FAILED\n");
   testFile = updatesDir.clone();
-  testFile.append("update.status");
+  testFile.append(FILE_UPDATE_STATUS);
   
   
   do_check_eq(readFile(testFile).split(": ")[0], STATE_FAILED);
