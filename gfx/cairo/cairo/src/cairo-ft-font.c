@@ -66,10 +66,6 @@
 
 
 
-#define MAX_FONT_SIZE 1000
-
-
-
 
 
 
@@ -598,6 +594,7 @@ _compute_transform (cairo_ft_font_transform_t *sf,
 		    cairo_matrix_t      *scale)
 {
     cairo_status_t status;
+    double x_scale, y_scale;
     cairo_matrix_t normalized = *scale;
 
     
@@ -607,23 +604,30 @@ _compute_transform (cairo_ft_font_transform_t *sf,
 
 
 
-    status = _cairo_matrix_compute_scale_factors (&normalized,
-						  &sf->x_scale, &sf->y_scale,
+    status = _cairo_matrix_compute_scale_factors (scale,
+						  &x_scale, &y_scale,
 						   1);
     if (status)
 	return status;
 
-    if (sf->x_scale != 0 && sf->y_scale != 0) {
-	cairo_matrix_scale (&normalized, 1.0 / sf->x_scale, 1.0 / sf->y_scale);
+    
 
-	_cairo_matrix_get_affine (&normalized,
-				  &sf->shape[0][0], &sf->shape[0][1],
-				  &sf->shape[1][0], &sf->shape[1][1],
-				  NULL, NULL);
-    } else {
-	sf->shape[0][0] = sf->shape[1][1] = 1.0;
-	sf->shape[0][1] = sf->shape[1][0] = 0.0;
-    }
+
+
+    if (x_scale < 1.0)
+      x_scale = 1.0;
+    if (y_scale < 1.0)
+      y_scale = 1.0;
+
+    sf->x_scale = x_scale;
+    sf->y_scale = y_scale;
+
+    cairo_matrix_scale (&normalized, 1.0 / x_scale, 1.0 / y_scale);
+
+    _cairo_matrix_get_affine (&normalized,
+			      &sf->shape[0][0], &sf->shape[0][1],
+			      &sf->shape[1][0], &sf->shape[1][1],
+			      NULL, NULL);
 
     return CAIRO_STATUS_SUCCESS;
 }
@@ -678,18 +682,9 @@ _cairo_ft_unscaled_font_set_scale (cairo_ft_unscaled_font_t *unscaled,
     FT_Set_Transform(unscaled->face, &mat, NULL);
 
     if ((unscaled->face->face_flags & FT_FACE_FLAG_SCALABLE) != 0) {
-        double x_scale = sf.x_scale;
-        double y_scale = sf.y_scale;
-        if (x_scale > MAX_FONT_SIZE) {
-            x_scale = MAX_FONT_SIZE;
-        }
-        if (y_scale > MAX_FONT_SIZE) {
-            y_scale = MAX_FONT_SIZE;
-        }
-
 	error = FT_Set_Char_Size (unscaled->face,
-				  x_scale * 64.0,
-				  y_scale * 64.0,
+				  sf.x_scale * 64.0 + .5,
+				  sf.y_scale * 64.0 + .5,
 				  0, 0);
 	if (error)
 	    return _cairo_error (CAIRO_STATUS_NO_MEMORY);

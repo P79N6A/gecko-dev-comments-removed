@@ -721,3 +721,108 @@ _cairo_path_fixed_interpret_flat (cairo_path_fixed_t			*path,
 					_cpf_close_path,
 					&flattener);
 }
+
+cairo_bool_t
+_cairo_path_fixed_is_empty (cairo_path_fixed_t *path)
+{
+    if (path->buf_head.base.num_ops == 0)
+	return TRUE;
+
+    return FALSE;
+}
+
+
+
+
+cairo_bool_t
+_cairo_path_fixed_is_box (cairo_path_fixed_t *path,
+			  cairo_box_t *box)
+{
+    cairo_path_buf_t *buf = &path->buf_head.base;
+
+    
+    if (buf->next != NULL)
+	return FALSE;
+
+    
+    if (buf->num_ops != 5 && buf->num_ops != 6)
+	return FALSE;
+
+    
+    if (buf->op[0] != CAIRO_PATH_OP_MOVE_TO ||
+	buf->op[1] != CAIRO_PATH_OP_LINE_TO ||
+	buf->op[2] != CAIRO_PATH_OP_LINE_TO ||
+	buf->op[3] != CAIRO_PATH_OP_LINE_TO)
+    {
+	return FALSE;
+    }
+
+    
+
+
+    if (buf->op[4] == CAIRO_PATH_OP_LINE_TO) {
+	if (buf->points[4].x != buf->points[0].x ||
+	    buf->points[4].y != buf->points[0].y)
+	    return FALSE;
+    } else if (buf->op[4] != CAIRO_PATH_OP_CLOSE_PATH) {
+	return FALSE;
+    }
+
+    if (buf->num_ops == 6) {
+	
+	if (buf->op[5] != CAIRO_PATH_OP_MOVE_TO &&
+	    buf->op[5] != CAIRO_PATH_OP_CLOSE_PATH)
+	    return FALSE;
+    }
+
+    
+    if (buf->points[0].y == buf->points[1].y &&
+	buf->points[1].x == buf->points[2].x &&
+	buf->points[2].y == buf->points[3].y &&
+	buf->points[3].x == buf->points[0].x)
+    {
+	if (box) {
+	    box->p1 = buf->points[0];
+	    box->p2 = buf->points[2];
+	}
+	return TRUE;
+    }
+
+    if (buf->points[0].x == buf->points[1].x &&
+	buf->points[1].y == buf->points[2].y &&
+	buf->points[2].x == buf->points[3].x &&
+	buf->points[3].y == buf->points[0].y)
+    {
+	if (box) {
+	    box->p1 = buf->points[0];
+	    box->p2 = buf->points[2];
+	}
+	return TRUE;
+    }
+
+    return FALSE;
+}
+
+
+
+
+
+
+
+
+
+
+cairo_bool_t
+_cairo_path_fixed_is_rectangle (cairo_path_fixed_t *path,
+				cairo_box_t        *box)
+{
+    cairo_path_buf_t *buf = &path->buf_head.base;
+
+    if (!_cairo_path_fixed_is_box (path, box))
+	return FALSE;
+
+    if (buf->points[0].y == buf->points[1].y)
+	return TRUE;
+
+    return FALSE;
+}

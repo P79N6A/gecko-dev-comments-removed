@@ -1049,7 +1049,7 @@ cairo_scaled_font_glyph_extents (cairo_scaled_font_t   *scaled_font,
 	}
 
 	
-	if (scaled_glyph->metrics.width == 0 && scaled_glyph->metrics.height == 0)
+	if (scaled_glyph->metrics.width == 0 || scaled_glyph->metrics.height == 0)
 	    continue;
 
 	left = scaled_glyph->metrics.x_bearing + glyphs[i].x;

@@ -77,11 +77,12 @@ _cairo_quartz_create_cgimage (cairo_format_t format,
 	case CAIRO_FORMAT_RGB24:
 	    if (colorSpace == NULL)
 		colorSpace = CGColorSpaceCreateDeviceRGB();
-	    bitinfo = kCGImageAlphaPremultipliedFirst | kCGBitmapByteOrder32Host;
+	    bitinfo = kCGImageAlphaNoneSkipFirst | kCGBitmapByteOrder32Host;
 	    bitsPerComponent = 8;
 	    bitsPerPixel = 32;
 	    break;
 
+	
 	case CAIRO_FORMAT_A8:
 	    if (colorSpace == NULL)
 		colorSpace = CGColorSpaceCreateDeviceGray();
@@ -90,6 +91,7 @@ _cairo_quartz_create_cgimage (cairo_format_t format,
 	    bitsPerPixel = 8;
 	    break;
 
+	case CAIRO_FORMAT_A1:
 	default:
 	    return NULL;
     }
@@ -280,9 +282,6 @@ static const cairo_surface_backend_t cairo_quartz_image_surface_backend = {
 
 
 
-
-
-
 cairo_surface_t *
 cairo_quartz_image_surface_create (cairo_surface_t *surface)
 {
@@ -325,7 +324,9 @@ cairo_quartz_image_surface_create (cairo_surface_t *surface)
     memset (qisurf, 0, sizeof(cairo_quartz_image_surface_t));
 
     
-    
+
+
+
     cairo_surface_reference (surface);
 
     image = _cairo_quartz_create_cgimage (format,

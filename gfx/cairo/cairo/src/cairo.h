@@ -1515,6 +1515,7 @@ cairo_surface_status (cairo_surface_t *surface);
 
 
 
+
 typedef enum _cairo_surface_type {
     CAIRO_SURFACE_TYPE_IMAGE,
     CAIRO_SURFACE_TYPE_PDF,
