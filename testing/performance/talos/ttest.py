@@ -190,6 +190,15 @@ def runTest(browser_config, test_config):
         if match.group(1) != '':
           utils.noisy(match.group(1))
 
+      
+      
+      if (total_time % 60 == 0): 
+        if ffprocess.ProcessesWithNameExist("crashreporter") or not ffprocess.ProcessesWithNameExist("firefox"):
+          ffprocess.TerminateAllProcesses("firefox")
+          ffprocess.TerminateAllProcesses("crashreporter")
+          print "FAIL: browser crash"
+          break
+
     if total_time > timeout:
       print "FAIL: timeout from test"
 
