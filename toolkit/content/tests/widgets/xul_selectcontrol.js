@@ -140,8 +140,6 @@ function test_nsIDOMXULSelectControlElement(element, childtag, testprefix)
   
   
   var isnotradio = (element.localName != "radiogroup");
-  
-  isnotradio = false;
   if (isnotradio)
     test_nsIDOMXULSelectControlElement_States(element, testid + "removeItemAt 2", 3, fourthitem, 1, fourthvalue);
 
