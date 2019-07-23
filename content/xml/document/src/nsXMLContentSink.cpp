@@ -98,12 +98,11 @@
 #include "nsIHTMLDocument.h"
 #include "nsEventDispatcher.h"
 #include "mozAutoDocUpdate.h"
+#include "nsMimeTypes.h"
 
 #ifdef MOZ_SVG
 #include "nsGUIEvent.h"
 #endif
-
-#define kXSLType "text/xsl"
 
 
 
@@ -745,9 +744,9 @@ nsXMLContentSink::ProcessStyleLink(nsIContent* aElement,
     return NS_OK; 
 
   NS_ConvertUTF16toUTF8 type(aType);
-  if (type.EqualsIgnoreCase(kXSLType) ||
-      type.EqualsIgnoreCase(kXMLTextContentType) ||
-      type.EqualsIgnoreCase(kXMLApplicationContentType)) {
+  if (type.EqualsIgnoreCase(TEXT_XSL) ||
+      type.EqualsIgnoreCase(TEXT_XML) ||
+      type.EqualsIgnoreCase(APPLICATION_XML)) {
     if (aAlternate) {
       
       return NS_OK;
