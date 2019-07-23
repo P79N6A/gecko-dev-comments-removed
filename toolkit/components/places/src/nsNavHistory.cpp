@@ -1148,6 +1148,7 @@ nsNavHistory::InitStatements()
   
   
   
+  
   rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
       "SELECT h.id "
       "FROM moz_places_temp h "
