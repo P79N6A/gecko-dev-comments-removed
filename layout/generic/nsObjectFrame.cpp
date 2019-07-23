@@ -122,6 +122,8 @@
 #include "nsPIPluginHost.h"
 #include "nsIPluginDocument.h"
 
+#include "nsThreadUtils.h"
+
 #ifdef MOZ_CAIRO_GFX
 #include "gfxContext.h"
 #endif
@@ -341,6 +343,8 @@ public:
 
   nsresult Destroy();  
 
+  void PrepareToStop(PRBool aDelayedStop);
+
   
   nsEventStatus ProcessEvent(const nsGUIEvent & anEvent);
   
@@ -379,6 +383,11 @@ public:
   void GUItoMacEvent(const nsGUIEvent& anEvent, EventRecord* origEvent, EventRecord& aMacEvent);
 #endif
 
+  void SetOwner(nsObjectFrame *aOwner)
+  {
+    mOwner = aOwner;
+  }
+
 private:
   void FixUpURLS(const nsString &name, nsAString &value);
 
@@ -393,6 +402,10 @@ private:
   nsCOMPtr<nsIPluginHost>     mPluginHost;
   PRPackedBool                mContentFocused;
   PRPackedBool                mWidgetVisible;    
+
+  
+  
+  PRPackedBool                mDestroyWidget;
   PRUint16          mNumCachedAttrs;
   PRUint16          mNumCachedParams;
   char              **mCachedAttrParamNames;
@@ -516,7 +529,7 @@ nsObjectFrame::Destroy()
 
   
   
-  StopPlugin();
+  StopPluginInternal(PR_TRUE);
   
   nsObjectFrameSuper::Destroy();
 }
@@ -1368,7 +1381,7 @@ nsresult
 nsObjectFrame::PrepareInstanceOwner()
 {
   
-  StopPlugin();
+  StopPluginInternal(PR_FALSE);
 
   NS_ASSERTION(!mInstanceOwner, "Must not have an instance owner here");
 
@@ -1440,47 +1453,49 @@ nsObjectFrame::TryNotifyContentObjectWrapper()
   }
 }
 
-void
-nsObjectFrame::StopPlugin()
+class nsStopPluginRunnable : public nsRunnable
 {
-  if (mInstanceOwner != nsnull) {
-    nsCOMPtr<nsIPluginInstance> inst;
-    mInstanceOwner->GetInstance(*getter_AddRefs(inst));
-    if (inst) {
-      nsPluginWindow *win;
-      mInstanceOwner->GetWindow(win);
-      nsPluginNativeWindow *window = (nsPluginNativeWindow *)win;
-      nsCOMPtr<nsIPluginInstance> nullinst;
+public:
+  nsStopPluginRunnable(nsPluginInstanceOwner *aInstanceOwner)
+    : mInstanceOwner(aInstanceOwner)
+  {
+  }
 
-      PRBool doCache = PR_TRUE;
-      PRBool doCallSetWindowAfterDestroy = PR_FALSE;
+  NS_IMETHOD Run();
 
+private:  
+  nsRefPtr<nsPluginInstanceOwner> mInstanceOwner;
+};
+
+static void
+DoStopPlugin(nsPluginInstanceOwner *aInstanceOwner)
+{
+  nsCOMPtr<nsIPluginInstance> inst;
+  aInstanceOwner->GetInstance(*getter_AddRefs(inst));
+  if (inst) {
+    nsPluginWindow *win;
+    aInstanceOwner->GetWindow(win);
+    nsPluginNativeWindow *window = (nsPluginNativeWindow *)win;
+    nsCOMPtr<nsIPluginInstance> nullinst;
+
+    PRBool doCache = PR_TRUE;
+    PRBool doCallSetWindowAfterDestroy = PR_FALSE;
+
+    
+    inst->GetValue(nsPluginInstanceVariable_DoCacheBool, (void *)&doCache);
+    if (!doCache) {
       
-      inst->GetValue(nsPluginInstanceVariable_DoCacheBool, 
-                     (void *) &doCache);
-      if (!doCache) {
-        
-        
-        inst->GetValue(nsPluginInstanceVariable_CallSetWindowAfterDestroyBool, 
-                       (void *) &doCallSetWindowAfterDestroy);
-        if (doCallSetWindowAfterDestroy) {
-          inst->Stop();
-          inst->Destroy();
-          
-          if (window) 
-            window->CallSetWindow(nullinst);
-          else 
-            inst->SetWindow(nsnull);
-        }
-        else {
-          if (window) 
-            window->CallSetWindow(nullinst);
-          else 
-            inst->SetWindow(nsnull);
+      
+      inst->GetValue(nsPluginInstanceVariable_CallSetWindowAfterDestroyBool, 
+                     (void *)&doCallSetWindowAfterDestroy);
+      if (doCallSetWindowAfterDestroy) {
+        inst->Stop();
+        inst->Destroy();
 
-          inst->Stop();
-          inst->Destroy();
-        }
+        if (window) 
+          window->CallSetWindow(nullinst);
+        else 
+          inst->SetWindow(nsnull);
       }
       else {
         if (window) 
@@ -1489,21 +1504,82 @@ nsObjectFrame::StopPlugin()
           inst->SetWindow(nsnull);
 
         inst->Stop();
+        inst->Destroy();
       }
+    }
+    else {
+      if (window) 
+        window->CallSetWindow(nullinst);
+      else 
+        inst->SetWindow(nsnull);
 
-      nsCOMPtr<nsIPluginHost> pluginHost = do_GetService(kCPluginManagerCID);
-      if (pluginHost)
-        pluginHost->StopPluginInstance(inst);
-
-      
-      
-      if (window)
-        window->SetPluginWidget(nsnull);
+      inst->Stop();
     }
 
-    mInstanceOwner->Destroy();
-    NS_RELEASE(mInstanceOwner);
+    nsCOMPtr<nsIPluginHost> pluginHost = do_GetService(kCPluginManagerCID);
+    if (pluginHost)
+      pluginHost->StopPluginInstance(inst);
+
+    
+    
+    if (window)
+      window->SetPluginWidget(nsnull);
   }
+
+  aInstanceOwner->Destroy();
+}
+
+NS_IMETHODIMP
+nsStopPluginRunnable::Run()
+{
+  DoStopPlugin(mInstanceOwner);
+
+  return NS_OK;
+}
+
+void
+nsObjectFrame::StopPlugin()
+{
+  StopPluginInternal(PR_FALSE);
+}
+
+void
+nsObjectFrame::StopPluginInternal(PRBool aDelayedStop)
+{
+  if (mInstanceOwner == nsnull) {
+    return;
+  }
+
+  mInstanceOwner->PrepareToStop(aDelayedStop);
+
+#ifdef XP_WIN
+  
+  
+  
+  if (aDelayedStop) {
+    
+    
+    nsCOMPtr<nsIRunnable> evt = new nsStopPluginRunnable(mInstanceOwner);
+    NS_DispatchToCurrentThread(evt);
+
+    
+    
+    
+    
+    nsIView *view = GetView();
+    if (view) {
+      view->DisownWidget();
+    }
+  } else
+#endif
+  {
+    DoStopPlugin(mInstanceOwner);
+  }
+
+  
+  mInstanceOwner->SetOwner(nsnull);
+
+  NS_RELEASE(mInstanceOwner);
 }
 
 void
@@ -1655,6 +1731,7 @@ nsPluginInstanceOwner::nsPluginInstanceOwner()
   mNumCachedParams = 0;
   mCachedAttrParamNames = nsnull;
   mCachedAttrParamValues = nsnull;
+  mDestroyWidget = PR_FALSE;
 }
 
 nsPluginInstanceOwner::~nsPluginInstanceOwner()
@@ -3423,6 +3500,43 @@ nsPluginInstanceOwner::Destroy()
     target->RemoveEventListener(NS_LITERAL_STRING("draggesture"), listener, PR_TRUE);
   }
 
+  if (mDestroyWidget && mWidget) {
+    mWidget->Destroy();
+  }
+
+  return NS_OK;
+}
+
+
+
+
+void
+nsPluginInstanceOwner::PrepareToStop(PRBool aDelayedStop)
+{
+  if (!mWidget) {
+    return;
+  }
+
+#ifdef XP_WIN
+  if (aDelayedStop) {
+    
+    
+    
+
+    
+    
+    mWidget->Show(PR_FALSE);
+    mWidget->Enable(PR_FALSE);
+
+    
+    
+    
+    mWidget->SetParent(nsnull);
+
+    mDestroyWidget = PR_TRUE;
+  }
+#endif
+
   
   nsIFrame* parentWithView = mOwner->GetAncestorWithView();
   nsIView* curView = parentWithView ? parentWithView->GetView() : nsnull;
@@ -3433,10 +3547,6 @@ nsPluginInstanceOwner::Destroy()
     
     curView = curView->GetParent();
   }
-
-  mOwner = nsnull; 
-
-  return NS_OK;
 }
 
 

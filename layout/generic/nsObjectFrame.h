@@ -113,6 +113,13 @@ public:
   virtual void TryNotifyContentObjectWrapper();
   virtual void StopPlugin();
 
+  
+
+
+
+
+
+  void StopPluginInternal(PRBool aDelayedStop);
 
   
   NS_IMETHOD GetCursor(const nsPoint& aPoint, nsIFrame::Cursor& aCursor) 
