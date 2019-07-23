@@ -52,4 +52,8 @@ testOutput = 0;
 for (var i = 0; i < nx; i++)
     testOutput += a[3*(i*nx+i)+1];
 a = null;
-print(testOutput == 6.394884621840902e-14)
+
+
+acceptableDelta = 4e-15
+
+assertEq((testOutput - 6.394884621840902e-14) < acceptableDelta, true);

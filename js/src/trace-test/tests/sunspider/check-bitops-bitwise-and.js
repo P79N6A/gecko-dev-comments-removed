@@ -26,4 +26,4 @@
 bitwiseAndValue = 4294967296;
 for (var i = 0; i < 60; i++)
     bitwiseAndValue = bitwiseAndValue & i;
-print(bitwiseAndValue == 0)
+assertEq(bitwiseAndValue, 0)
