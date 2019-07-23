@@ -46,8 +46,8 @@ struct nsSize;
 
 
 #define NS_ISCROLLABLEVIEW_IID    \
-{ 0x1fcd151c, 0x5e26, 0x4c9d, \
-{ 0xa5, 0x2c, 0x87, 0x43, 0x7d, 0x7b, 0x1c, 0xe8 } }
+{ 0x00bba69f, 0xbbef, 0x4725, \
+{ 0x8b, 0xee, 0xec, 0xfe, 0x82, 0xf7, 0xbd, 0xb0 } }
 
 
 
@@ -144,7 +144,9 @@ public:
 
 
 
-  NS_IMETHOD ScrollByLines(PRInt32 aNumLinesX, PRInt32 aNumLinexY) = 0;
+
+  NS_IMETHOD ScrollByLines(PRInt32 aNumLinesX, PRInt32 aNumLinexY,
+                           PRUint32 aUpdateFlags = 0) = 0;
 
   
 
@@ -162,7 +164,9 @@ public:
 
 
 
-  NS_IMETHOD ScrollByPages(PRInt32 aNumPagesX, PRInt32 aNumPagesY) = 0;
+
+  NS_IMETHOD ScrollByPages(PRInt32 aNumPagesX, PRInt32 aNumPagesY,
+                           PRUint32 aUpdateFlags = 0) = 0;
 
   
 
@@ -170,7 +174,8 @@ public:
 
 
 
-  NS_IMETHOD ScrollByWhole(PRBool aTop) = 0;
+
+  NS_IMETHOD ScrollByWhole(PRBool aTop, PRUint32 aUpdateFlags = 0) = 0;
 
   
 
@@ -180,7 +185,9 @@ public:
 
 
 
-  NS_IMETHOD ScrollByPixels(PRInt32 aNumPixelsX, PRInt32 aNumPixelsY) = 0;
+
+  NS_IMETHOD ScrollByPixels(PRInt32 aNumPixelsX, PRInt32 aNumPixelsY,
+                            PRUint32 aUpdateFlags = 0) = 0;
 
   
 
