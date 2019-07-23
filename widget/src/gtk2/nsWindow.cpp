@@ -6707,7 +6707,8 @@ IM_commit_cb(GtkIMContext *aContext,
     
     nsRefPtr<nsWindow> window = gFocusWindow ? gFocusWindow : gIMEFocusWindow;
 
-    if (!window || IM_get_input_context(window) != aContext)
+    if (!window || IM_get_input_context(window) != aContext &&
+        !(window->mIMEData && window->mIMEData->mEnabled == nsIWidget::IME_STATUS_PASSWORD)) 
         return;
 
     
