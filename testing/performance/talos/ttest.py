@@ -202,12 +202,10 @@ def runTest(browser_config, test_config):
       
       
       if busted:
-        ffprocess.TerminateAllProcesses("firefox")
-        ffprocess.TerminateAllProcesses("crashreporter")
         print "FAIL: browser crash"
         break
       if (total_time % 60 == 0): 
-        if ffprocess.ProcessesWithNameExist("crashreporter") or not ffprocess.ProcessesWithNameExist("firefox"):
+        if ffprocess.ProcessesWithNameExist("crashreporter", "talkback", "dwwin") or not ffprocess.ProcessesWithNameExist("firefox"):
           busted = True
 
     if total_time >= timeout:
@@ -218,8 +216,17 @@ def runTest(browser_config, test_config):
 
     utils.debug("Completed test with: " + browser_results)
     
-    ffprocess.Sleep()
-    ffprocess.TerminateAllProcesses("firefox")
+    ffprocess.TerminateAllProcesses("firefox", "crashreporter", "dwwin", "talkback")
+    
+    if ffprocess.ProcessesWithNameExist("crashreporter", "firefox", "dwwin", "talkback"): 
+      
+      
+      
+      time.sleep(10)
+      if ffprocess.ProcessesWithNameExist("crashreporter", "firefox", "dwwin", "talkback"): 
+        print "FAIL: couldn't remove existing firefox processes for clean up"
+        sys.exit(0)
+   
     all_browser_results.append(browser_results)
     all_counter_results.append(counter_results)
     
