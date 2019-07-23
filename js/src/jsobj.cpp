@@ -3338,6 +3338,13 @@ PurgeScopeChain(JSContext *cx, JSObject *obj, jsid id)
     if (!OBJ_IS_DELEGATE(cx, obj))
         return;
 
+    
+
+
+
+
+    js_LeaveTrace(cx);
+
     PurgeProtoChain(cx, OBJ_GET_PROTO(cx, obj), id);
     while ((obj = OBJ_GET_PARENT(cx, obj)) != NULL) {
         if (PurgeProtoChain(cx, obj, id))
