@@ -5249,23 +5249,41 @@ nsContentUtils::WrapNative(JSContext *cx, JSObject *scope, nsISupports *native,
   NS_ENSURE_TRUE(sXPConnect && sThreadJSContextStack, NS_ERROR_UNEXPECTED);
 
   
-  nsLayoutStaticsRef layoutStaticsRef;
+  
+  
+  
+  
+  
+  PRBool isMainThread = NS_IsMainThread();
+
+  if (isMainThread) {
+    nsLayoutStatics::AddRef();
+  }
+  else {
+    sXPConnect->AddRef();
+  }
 
   JSContext *topJSContext;
   nsresult rv = sThreadJSContextStack->Peek(&topJSContext);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  PRBool push = topJSContext != cx;
-  if (push) {
-    rv = sThreadJSContextStack->Push(cx);
-    NS_ENSURE_SUCCESS(rv, rv);
+  if (NS_SUCCEEDED(rv)) {
+    PRBool push = topJSContext != cx;
+    if (push) {
+      rv = sThreadJSContextStack->Push(cx);
+    }
+    if (NS_SUCCEEDED(rv)) {
+      rv = sXPConnect->WrapNativeToJSVal(cx, scope, native, aIID,
+                                         aAllowWrapping, vp, aHolder);
+      if (push) {
+        sThreadJSContextStack->Pop(nsnull);
+      }
+    }
   }
 
-  rv = sXPConnect->WrapNativeToJSVal(cx, scope, native, aIID, aAllowWrapping,
-                                     vp, aHolder);
-
-  if (push) {
-    sThreadJSContextStack->Pop(nsnull);
+  if (isMainThread) {
+    nsLayoutStatics::Release();
+  }
+  else {
+    sXPConnect->Release();
   }
 
   return rv;
