@@ -161,6 +161,16 @@ nsAppStartup::DestroyHiddenWindow()
   return appShellService->DestroyHiddenWindow();
 }
 
+PRInt32
+nsAppStartup::RealQuitStoppers()
+{
+#ifdef XP_MACOSX
+  
+  return mConsiderQuitStopper - (mAttemptingQuit ? 0 : 1);
+#else
+  return mConsiderQuitStopper;
+#endif
+}
 
 NS_IMETHODIMP
 nsAppStartup::Run(void)
@@ -368,8 +378,23 @@ nsAppStartup::CloseAllWindows()
 
     nsCOMPtr<nsIDOMWindowInternal> window = do_QueryInterface(isupports);
     NS_ASSERTION(window, "not an nsIDOMWindowInternal");
-    if (window)
+    if (window) {
+#ifdef XP_MACOSX
+      PRInt32 quitStoppers = RealQuitStoppers();
+#endif
       window->Close();
+#ifdef XP_MACOSX
+      if (!mAttemptingQuit) {
+        PRInt32 currentQuitStoppers = RealQuitStoppers();
+        
+        
+        
+        
+        if (currentQuitStoppers <= quitStoppers)
+          AttemptingQuit(PR_TRUE);
+      }
+#endif
+    }
   }
 }
 
