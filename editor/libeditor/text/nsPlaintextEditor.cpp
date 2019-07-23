@@ -637,6 +637,63 @@ nsPlaintextEditor::GetTextSelectionOffsets(nsISelection *aSelection,
   return NS_OK;
 }
 
+nsresult
+nsPlaintextEditor::ExtendSelectionForDelete(nsISelection *aSelection,
+                                            nsIEditor::EDirection *aAction)
+{
+  nsresult result;
+
+  PRBool bCollapsed;
+  result = aSelection->GetIsCollapsed(&bCollapsed);
+  if (NS_FAILED(result)) return result;
+
+  if (*aAction == eNextWord || *aAction == ePreviousWord
+      || (*aAction == eNext && bCollapsed)
+      || *aAction == eToBeginningOfLine || *aAction == eToEndOfLine)
+  {
+    nsCOMPtr<nsISelectionController> selCont (do_QueryReferent(mSelConWeak));
+    if (!selCont)
+      return NS_ERROR_NO_INTERFACE;
+
+    switch (*aAction)
+    {
+      case eNextWord:
+        result = selCont->WordExtendForDelete(PR_TRUE);
+        
+        
+        *aAction = eNone;
+        break;
+      case ePreviousWord:
+        result = selCont->WordExtendForDelete(PR_FALSE);
+        *aAction = eNone;
+        break;
+      case eNext:
+        result = selCont->CharacterExtendForDelete();
+        *aAction = eNone;
+        break;
+      case ePrevious:
+        
+
+
+        result = NS_OK;
+        break;
+      case eToBeginningOfLine:
+        selCont->IntraLineMove(PR_TRUE, PR_FALSE);          
+        result = selCont->IntraLineMove(PR_FALSE, PR_TRUE); 
+        *aAction = eNone;
+        break;
+      case eToEndOfLine:
+        result = selCont->IntraLineMove(PR_TRUE, PR_TRUE);
+        *aAction = eNext;
+        break;
+      default:       
+        result = NS_OK;
+        break;
+    }
+  }
+  return result;
+}
+
 NS_IMETHODIMP nsPlaintextEditor::DeleteSelection(nsIEditor::EDirection aAction)
 {
   if (!mRules) { return NS_ERROR_NOT_INITIALIZED; }
@@ -673,45 +730,6 @@ NS_IMETHODIMP nsPlaintextEditor::DeleteSelection(nsIEditor::EDirection aAction)
     { 
       aAction = eNone;
     }
-
-  
-  
-  
-  
-  if (aAction == eNextWord || aAction == ePreviousWord
-      || aAction == eToBeginningOfLine || aAction == eToEndOfLine)
-  {
-    nsCOMPtr<nsISelectionController> selCont (do_QueryReferent(mSelConWeak));
-    if (!selCont)
-      return NS_ERROR_NO_INTERFACE;
-
-    switch (aAction)
-    {
-        case eNextWord:
-          result = selCont->WordExtendForDelete(PR_TRUE);
-          
-          
-          aAction = eNone;
-          break;
-        case ePreviousWord:
-          result = selCont->WordExtendForDelete(PR_FALSE);
-          aAction = eNone;
-          break;
-        case eToBeginningOfLine:
-          selCont->IntraLineMove(PR_TRUE, PR_FALSE);          
-          result = selCont->IntraLineMove(PR_FALSE, PR_TRUE); 
-          aAction = eNone;
-          break;
-        case eToEndOfLine:
-          result = selCont->IntraLineMove(PR_TRUE, PR_TRUE);
-          aAction = eNext;
-          break;
-        default:       
-          result = NS_OK;
-          break;
-    }
-    NS_ENSURE_SUCCESS(result, result);
-  }
 
   nsTextRulesInfo ruleInfo(nsTextEditRules::kDeleteSelection);
   ruleInfo.collapsedAction = aAction;

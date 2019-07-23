@@ -420,6 +420,12 @@ public:
   
 
 
+  
+  nsresult CharacterExtendForDelete();
+
+  
+
+
 
 
   

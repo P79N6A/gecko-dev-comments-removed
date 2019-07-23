@@ -164,6 +164,14 @@ public:
                         PRInt32 aDestOffset,
                         PRBool aDoDeleteSelection);
 
+  
+
+
+
+
+  nsresult ExtendSelectionForDelete(nsISelection* aSelection,
+                                    nsIEditor::EDirection *aAction);
+
 protected:
 
   NS_IMETHOD  InitRules();
