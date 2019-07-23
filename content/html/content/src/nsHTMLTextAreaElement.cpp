@@ -799,6 +799,9 @@ nsHTMLTextAreaElement::Reset()
   
   nsIFormControlFrame* formControlFrame = GetFormControlFrame(PR_FALSE);
   if (formControlFrame) {
+    
+    
+    SetValue(EmptyString());
     nsAutoString resetVal;
     GetDefaultValue(resetVal);
     rv = SetValue(resetVal);
