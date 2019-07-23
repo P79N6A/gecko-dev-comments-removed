@@ -72,8 +72,6 @@
 #include "nsAnnotationService.h"
 #include "nsCycleCollectionParticipant.h"
 
-#define ICONURI_QUERY "chrome://browser/skin/places/query.png"
-
 
 
 
@@ -1954,9 +1952,6 @@ nsNavHistoryQueryResultNode::nsNavHistoryQueryResultNode(
   mContentsValid(PR_FALSE),
   mBatchInProgress(PR_FALSE)
 {
-  
-  if (mFaviconURI.IsEmpty())
-    mFaviconURI.AppendLiteral(ICONURI_QUERY);
 }
 
 nsNavHistoryQueryResultNode::nsNavHistoryQueryResultNode(
@@ -1976,26 +1971,6 @@ nsNavHistoryQueryResultNode::nsNavHistoryQueryResultNode(
   NS_ASSERTION(history, "History service missing");
   mLiveUpdate = history->GetUpdateRequirements(mQueries, mOptions,
                                                &mHasSearchTerms);
-
-  
-  if (mFaviconURI.IsEmpty()) {
-    mFaviconURI.AppendLiteral(ICONURI_QUERY);
-
-    
-    nsFaviconService* faviconService = nsFaviconService::GetFaviconService();
-    if (! faviconService)
-      return;
-    nsresult rv = VerifyQueriesSerialized();
-    if (NS_FAILED(rv)) return;
-
-    nsCOMPtr<nsIURI> queryURI;
-    rv = NS_NewURI(getter_AddRefs(queryURI), mURI);
-    if (NS_FAILED(rv)) return;
-    nsCOMPtr<nsIURI> favicon;
-    rv = faviconService->GetFaviconForPage(queryURI, getter_AddRefs(favicon));
-    if (NS_FAILED(rv)) return;
-    favicon->GetSpec(mFaviconURI);
-  }
 }
 
 
@@ -2761,35 +2736,6 @@ nsNavHistoryFolderResultNode::nsNavHistoryFolderResultNode(
   mContentsValid(PR_FALSE)
 {
   mItemId = aFolderId;
-
-  
-  
-  
-  
-  
-  
-  nsNavBookmarks* bookmarks = nsNavBookmarks::GetBookmarksService();
-  if (! bookmarks)
-    return;
-
-  
-  
-  
-  nsCOMPtr<nsIURI> folderURI;
-  nsresult rv = bookmarks->GetFolderURI(aFolderId, getter_AddRefs(folderURI));
-  if (NS_FAILED(rv))
-    return;
-
-  nsFaviconService* faviconService = nsFaviconService::GetFaviconService();
-  if (! faviconService)
-    return;
-  nsCOMPtr<nsIURI> favicon;
-  rv = faviconService->GetFaviconForPage(folderURI, getter_AddRefs(favicon));
-  if (NS_FAILED(rv))
-    return; 
-
-  
-  favicon->GetSpec(mFaviconURI);
 }
 
 
@@ -3944,12 +3890,9 @@ nsNavHistoryResult::OnItemChanged(PRInt64 aItemId,
   nsresult rv = bookmarkService->GetItemType(aItemId, &itemType);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  if (itemType == nsINavBookmarksService::TYPE_FOLDER) {
-    
-    ENUMERATE_BOOKMARK_FOLDER_OBSERVERS(aItemId,
-        OnItemChanged(aItemId, aProperty, aIsAnnotationProperty, aValue));
-    return NS_OK;
-  }
+  
+  
+  
 
   
   PRInt64 folderId;

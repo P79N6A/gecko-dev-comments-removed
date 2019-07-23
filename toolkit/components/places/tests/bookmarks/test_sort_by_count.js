@@ -51,7 +51,7 @@ try {
 } 
 
 
-var testRoot = bmsvc.bookmarksRoot;
+var testRoot = bmsvc.bookmarksMenuFolder;
 
 
 function run_test() {

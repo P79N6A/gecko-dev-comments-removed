@@ -160,18 +160,6 @@ PlacesController.prototype = {
         
         if (PlacesUtils.nodeIsLivemarkContainer(selectedNode))
           return true;
-
-#ifdef EXTENDED_LIVEBOOKMARKS_UI
-        
-        if (selectedNode.uri.indexOf("livemark%2F") != -1)
-          return true;
-
-        
-        
-        if (PlacesUtils.nodeIsURI() &&
-            PlacesUtils.nodeIsLivemarkItem(selectedNode))
-          return true;
-#endif
       }
       return false;
     case "placesCmd_sortBy:name":
@@ -181,15 +169,6 @@ PlacesController.prototype = {
              !PlacesUtils.nodeIsReadOnly(selectedNode) &&
              this._view.getResult().sortingMode ==
                  Ci.nsINavHistoryQueryOptions.SORT_BY_NONE;
-    case "placesCmd_setAsBookmarksToolbarFolder":
-      if (this._view.hasSingleSelection) {
-        var selectedNode = this._view.selectedNode;
-        if (PlacesUtils.nodeIsFolder(selectedNode) &&
-            selectedNode.itemId != PlacesUtils.toolbarFolderId) {
-          return true;
-        }
-      }
-      return false;
     default:
       return false;
     }
@@ -266,16 +245,13 @@ PlacesController.prototype = {
       this.moveSelectedBookmarks();
       break;
     case "placesCmd_reload":
-      this.reloadSelectedLivemarks();
+      this.reloadSelectedLivemark();
       break;
     case "placesCmd_reloadMicrosummary":
       this.reloadSelectedMicrosummary();
       break;
     case "placesCmd_sortBy:name":
       this.sortFolderByName();
-      break;
-    case "placesCmd_setAsBookmarksToolbarFolder":
-      this.setBookmarksToolbarFolder();
       break;
     }
   },
@@ -421,7 +397,6 @@ PlacesController.prototype = {
 
 
 
-
   _buildSelectionMetadata: function PC__buildSelectionMetadata() {
     var metadata = [];
     var nodes = [];
@@ -448,7 +423,6 @@ PlacesController.prototype = {
           break;
         case Ci.nsINavHistoryResultNode.RESULT_TYPE_FOLDER:
           nodeData["folder"] = true;
-          uri = PlacesUtils.bookmarks.getFolderURI(node.itemId);
           break;
         case Ci.nsINavHistoryResultNode.RESULT_TYPE_HOST:
           nodeData["host"] = true;
@@ -489,29 +463,15 @@ PlacesController.prototype = {
         var names = PlacesUtils.annotations.getPageAnnotationNames(uri, {});
         for (var j = 0; j < names.length; ++j)
           nodeData[names[j]] = true;
+      }
 
-        
-        if ("bookmark" in nodeData || "folder" in nodeData) {
-          names = PlacesUtils.annotations
-                             .getItemAnnotationNames(node.itemId, {});
-          for (j = 0; j < names.length; ++j)
-            nodeData[names[j]] = true;
-        }
+      
+      if (node.itemId != -1) {
+        names = PlacesUtils.annotations
+                           .getItemAnnotationNames(node.itemId, {});
+        for (j = 0; j < names.length; ++j)
+          nodeData[names[j]] = true;
       }
-#ifdef EXTENDED_LIVEBOOKMARKS_UI
-      else if (nodeType == Ci.nsINavHistoryResultNode.RESULT_TYPE_QUERY) {
-        
-        
-        
-        
-        
-        
-        
-        uri = PlacesUtils._uri(nodes[i].uri);
-        if (uri.spec == ORGANIZER_SUBSCRIPTIONS_QUERY)
-          nodeData["allLivemarks"] = true;
-      }
-#endif
       metadata.push(nodeData);
     }
 
@@ -718,30 +678,11 @@ PlacesController.prototype = {
   
 
 
-
-
-
-  reloadSelectedLivemarks: function PC_reloadSelectedLivemarks() {
-    var selectedNode = this._view.selectedNode;
+  reloadSelectedLivemark: function PC_reloadSelectedLivemark() {
     if (this._view.hasSingleSelection) {
-#ifdef EXTENDED_LIVEBOOKMARKS_UI
-      if (selectedNode.uri.indexOf("livemark%2F") != -1) {
-        PlacesUtils.livemarks.reloadAllLivemarks();
-        return;
-      }
-#endif
-      var folder = null;
-      if (PlacesUtils.nodeIsLivemarkContainer(selectedNode)) {
-        folder = selectedNode;
-      }
-#ifdef EXTENDED_LIVEBOOKMARKS_UI
-      else if (PlacesUtils.nodeIsURI()) {
-        if (PlacesUtils.nodeIsLivemarkItem(selectedNode))
-          folder = selectedNode.parent;
-      }
-#endif
-      if (folder)
-        PlacesUtils.livemarks.reloadLivemarkFolder(folder.itemId);
+      var selectedNode = this._view.selectedNode;
+      if (PlacesUtils.nodeIsLivemarkContainer(selectedNode))
+        PlacesUtils.livemarks.reloadLivemarkFolder(selectedNode.itemId);
     }
   },
 
@@ -882,19 +823,6 @@ PlacesController.prototype = {
                                                selectedNode.bookmarkIndex);
     PlacesUtils.ptm.commitTransaction(txn);
   },
-
-  
-
-
-  setBookmarksToolbarFolder: function PC_setBookmarksToolbarFolder() {
-    if (!this._view.hasSingleSelection)
-      return;
-
-    var selectedNode = this._view.selectedNode;
-    var txn = PlacesUtils.ptm.setBookmarksToolbar(selectedNode.itemId);
-    PlacesUtils.ptm.commitTransaction(txn);
-  },
-
 
   
 
@@ -1687,7 +1615,6 @@ function goUpdatePlacesCommands() {
   updatePlacesCommand("placesCmd_new:separator");
   updatePlacesCommand("placesCmd_show:info");
   updatePlacesCommand("placesCmd_moveBookmarks");
-  updatePlacesCommand("placesCmd_setAsBookmarksToolbarFolder");
   updatePlacesCommand("placesCmd_reload");
   updatePlacesCommand("placesCmd_reloadMicrosummary");
   updatePlacesCommand("placesCmd_sortBy:name");

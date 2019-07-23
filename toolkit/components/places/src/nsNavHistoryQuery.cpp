@@ -167,7 +167,6 @@ static void SetOptionsKeyUint32(const nsCString& aValue,
 #define QUERYKEY_FORCE_ORIGINAL_TITLE "originalTitle"
 #define QUERYKEY_INCLUDE_HIDDEN "includeHidden"
 #define QUERYKEY_SHOW_SESSIONS "showSessions"
-#define QUERYKEY_RESOLVE_NULL_BOOKMARK_TITLES "resolveNullBookmarkTitles"
 #define QUERYKEY_APPLY_OPTIONS_TO_CONTAINERS "applyOptionsToContainers"
 #define QUERYKEY_MAX_RESULTS "maxResults"
 #define QUERYKEY_QUERY_TYPE "queryType"
@@ -413,7 +412,7 @@ nsNavHistory::QueriesToQueryString(nsINavHistoryQuery **aQueries,
     for (PRUint32 i = 0; i < folderCount; ++i) {
       AppendAmpersandIfNonempty(queryString);
       queryString += NS_LITERAL_CSTRING(QUERYKEY_FOLDER "=");
-      AppendInt64(queryString, folders[0]);
+      AppendInt64(queryString, folders[i]);
     }
     nsMemory::Free(folders);
   }
@@ -500,12 +499,6 @@ nsNavHistory::QueriesToQueryString(nsINavHistoryQuery **aQueries,
   if (options->ShowSessions()) {
     AppendAmpersandIfNonempty(queryString);
     queryString += NS_LITERAL_CSTRING(QUERYKEY_SHOW_SESSIONS "=1");
-  }
-
-  
-  if (options->ResolveNullBookmarkTitles()) {
-    AppendAmpersandIfNonempty(queryString);
-    queryString += NS_LITERAL_CSTRING(QUERYKEY_RESOLVE_NULL_BOOKMARK_TITLES "=1");
   }
 
   
@@ -761,11 +754,6 @@ nsNavHistory::TokensToQueries(const nsTArray<QueryKeyValuePair>& aTokens,
     } else if (kvp.key.EqualsLiteral(QUERYKEY_SHOW_SESSIONS)) {
       SetOptionsKeyBool(kvp.value, aOptions,
                         &nsINavHistoryQueryOptions::SetShowSessions);
-
-    
-    } else if (kvp.key.EqualsLiteral(QUERYKEY_RESOLVE_NULL_BOOKMARK_TITLES)) {
-      SetOptionsKeyBool(kvp.value, aOptions,
-                        &nsINavHistoryQueryOptions::SetResolveNullBookmarkTitles);
     
     } else if (kvp.key.EqualsLiteral(QUERYKEY_APPLY_OPTIONS_TO_CONTAINERS)) {
       SetOptionsKeyBool(kvp.value, aOptions,
@@ -1301,20 +1289,6 @@ nsNavHistoryQueryOptions::SetShowSessions(PRBool aShowSessions)
 
 
 NS_IMETHODIMP
-nsNavHistoryQueryOptions::GetResolveNullBookmarkTitles(PRBool* aResolveNullBookmarkTitles)
-{
-  *aResolveNullBookmarkTitles = mResolveNullBookmarkTitles;
-  return NS_OK;
-}
-NS_IMETHODIMP
-nsNavHistoryQueryOptions::SetResolveNullBookmarkTitles(PRBool aResolveNullBookmarkTitles)
-{
-  mResolveNullBookmarkTitles = aResolveNullBookmarkTitles;
-  return NS_OK;
-}
-
-
-NS_IMETHODIMP
 nsNavHistoryQueryOptions::GetApplyOptionsToContainers(PRBool* aApplyOptionsToContainers)
 {
   *aApplyOptionsToContainers = mApplyOptionsToContainers;
@@ -1389,7 +1363,6 @@ nsNavHistoryQueryOptions::Clone(nsNavHistoryQueryOptions **aResult)
   result->mExcludeItems = mExcludeItems;
   result->mExcludeQueries = mExcludeQueries;
   result->mShowSessions = mShowSessions;
-  result->mResolveNullBookmarkTitles = mResolveNullBookmarkTitles;
   result->mApplyOptionsToContainers = mApplyOptionsToContainers;
   result->mExpandQueries = mExpandQueries;
   result->mMaxResults = mMaxResults;

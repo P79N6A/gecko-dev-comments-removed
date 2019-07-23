@@ -53,6 +53,7 @@ const DESCRIPTION_ANNO = "bookmarkProperties/description";
 const POST_DATA_ANNO = "URIProperties/POSTData";
 const LMANNO_FEEDURI = "livemark/feedURI";
 const LMANNO_SITEURI = "livemark/siteURI";
+const ORGANIZER_QUERY_ANNO = "PlacesOrganizer/OrganizerQuery";
 
 #ifdef XP_MACOSX
 
@@ -1425,35 +1426,28 @@ var PlacesUtils = {
 
   
   get placesRootId() {
-    if (!("_placesRootId" in this))
-      this._placesRootId = this.bookmarks.placesRoot;
-
-    return this._placesRootId;
+    delete this.placesRootId;
+    return this.placesRootId = this.bookmarks.placesRoot;
   },
 
-  get bookmarksRootId() {
-    if (!("_bookmarksRootId" in this))
-      this._bookmarksRootId = this.bookmarks.bookmarksRoot;
-
-    return this._bookmarksRootId;
+  get bookmarksMenuFolderId() {
+    delete this.bookmarksMenuFolderId;
+    return this.bookmarksMenuFolderId = this.bookmarks.bookmarksMenuFolder;
   },
 
   get toolbarFolderId() {
-    return this.bookmarks.toolbarFolder;
+    delete this.toolbarFolderId;
+    return this.toolbarFolderId = this.bookmarks.toolbarFolder;
   },
 
-  get tagRootId() {
-    if (!("_tagRootId" in this))
-      this._tagRootId = this.bookmarks.tagRoot;
-
-    return this._tagRootId;
+  get tagsFolderId() {
+    delete this.tagsFolderId;
+    return this.tagsFolderId = this.bookmarks.tagsFolder;
   },
 
-  get unfiledRootId() {
-    if (!("_unfiledRootId" in this))
-      this._unfiledRootId = this.bookmarks.unfiledRoot;
-
-    return this._unfiledRootId;
+  get unfiledBookmarksFolderId() {
+    delete this.unfiledBookmarksFolderId;
+    return this.unfiledBookmarksFolderId = this.bookmarks.unfiledBookmarksFolder;
   },
 
   
@@ -1507,11 +1501,11 @@ var PlacesUtils = {
     for each (var bk in bmkIds) {
       
       var parent = this.bookmarks.getFolderIdForItem(bk);
-      if (parent == this.unfiledRootId)
+      if (parent == this.unfiledBookmarksFolderId)
         return bk;
 
       var grandparent = this.bookmarks.getFolderIdForItem(parent);
-      if (grandparent != this.tagRootId &&
+      if (grandparent != this.tagsFolderId &&
           !this.annotations.itemHasAnnotation(parent, LMANNO_FEEDURI))
         return bk;
     }
@@ -1681,9 +1675,15 @@ var PlacesUtils = {
       else if (this.containerTypes.indexOf(type) != -1) {
         element = document.createElement("menu");
         element.setAttribute("container", "true");
-        
-        if (iconURISpec == "chrome://browser/skin/places/livemarkItem.png")
+
+        if (aNode.type == Ci.nsINavHistoryResultNode.RESULT_TYPE_QUERY)
+          element.setAttribute("query", "true");
+        if (this.nodeIsLivemarkContainer(aNode))
           element.setAttribute("livemark", "true");
+        else if (this.bookmarks
+                     .getFolderIdForItem(aNode.itemId) == this.tagsFolderId) {
+            element.setAttribute("tagContainer", "true");
+        }
 
         var popup = document.createElement("menupopup");
         popup._resultNode = asContainer(aNode);
@@ -1707,6 +1707,89 @@ var PlacesUtils = {
     element.node.viewIndex = 0;
 
     return element;
+  },
+
+  
+  get leftPaneFolderId() {
+    var prefs = Cc["@mozilla.org/preferences-service;1"].
+                getService(Ci.nsIPrefBranch2);
+    var leftPaneRoot = -1;
+    var allBookmarksId;
+    try {
+      leftPaneRoot = prefs.getIntPref("browser.places.leftPaneFolderId");
+      
+      delete this.leftPaneFolderId;
+      return this.leftPaneFolderId = leftPaneRoot;
+    }
+    catch (ex) { }
+
+    var self = this;
+    const EXPIRE_NEVER = this.annotations.EXPIRE_NEVER;
+    var callback = {
+      runBatched: function(aUserData) {
+        
+        leftPaneRoot = self.bookmarks.createFolder(self.placesRootId, "", -1);
+
+        
+        let uri = IO.newURI("place:sort=4&");
+        let title = self.getString("OrganizerQueryHistory");
+        let itemId = self.bookmarks.insertBookmark(leftPaneRoot, uri, -1, title);
+        self.annotations.setItemAnnotation(itemId, ORGANIZER_QUERY_ANNO,
+                                           "History", 0, EXPIRE_NEVER);
+
+        
+
+        
+        uri = IO.newURI("place:folder=" + self.tagsFolderId);
+        itemId = self.bookmarks.insertBookmark(leftPaneRoot, uri, -1, null);
+        self.annotations.setItemAnnotation(itemId, ORGANIZER_QUERY_ANNO,
+                                           "Tags", 0, EXPIRE_NEVER);
+
+        
+        title = self.getString("OrganizerQueryAllBookmarks");
+        itemId = self.bookmarks.createFolder(leftPaneRoot, title, -1);
+        allBookmarksId = itemId;
+        self.annotations.setItemAnnotation(itemId, ORGANIZER_QUERY_ANNO,
+                                           "AllBookmarks", 0, EXPIRE_NEVER);
+
+        
+        uri = IO.newURI("place:folder=" + self.toolbarFolderId);
+        itemId = self.bookmarks.insertBookmark(allBookmarksId, uri, -1, null);
+        self.annotations.setItemAnnotation(itemId, ORGANIZER_QUERY_ANNO,
+                                           "BookmarksToolbar", 0, EXPIRE_NEVER);
+
+        
+        uri = IO.newURI("place:folder=" + self.bookmarksMenuFolderId);
+        itemId = self.bookmarks.insertBookmark(allBookmarksId, uri, -1, null);
+        self.annotations.setItemAnnotation(itemId, ORGANIZER_QUERY_ANNO,
+                                           "BookmarksMenu", 0, EXPIRE_NEVER);
+
+        
+        uri = IO.newURI("place:folder=" + self.unfiledBookmarksFolderId);
+        itemId = self.bookmarks.insertBookmark(allBookmarksId, uri, -1, null);
+        self.annotations.setItemAnnotation(itemId, ORGANIZER_QUERY_ANNO,
+                                           "UnfiledBookmarks", 0,
+                                           EXPIRE_NEVER);
+
+        
+        self.bookmarks.setFolderReadonly(leftPaneRoot, true);
+      }
+    };
+    this.bookmarks.runInBatchMode(callback, null);
+    prefs.setIntPref("browser.places.leftPaneFolderId", leftPaneRoot);
+    prefs.setIntPref("browser.places.allBookmarksFolderId", allBookmarksId);
+    delete this.leftPaneFolderId;
+    return this.leftPaneFolderId = leftPaneRoot;
+  },
+
+  get allBookmarksFolderId() {
+    
+    this.leftPaneFolderId;
+    delete this.allBookmarksFolderId;
+    return this.allBookmarksFolderId =
+      Cc["@mozilla.org/preferences-service;1"].
+      getService(Ci.nsIPrefBranch2).
+      getIntPref("browser.places.allBookmarksFolderId");
   }
 };
 

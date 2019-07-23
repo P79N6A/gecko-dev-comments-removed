@@ -421,7 +421,6 @@ protected:
 
   nsresult SetFaviconForURI(nsIURI* aPageURI, nsIURI* aFaviconURI,
                             const nsCString& aData);
-  nsresult SetFaviconForFolder(PRInt64 aFolder, const nsACString& aFavicon);
 
   PRInt64 ConvertImportedIdToInternalId(const nsCString& aId);
   PRTime ConvertImportedDateToInternalDate(const nsACString& aDate);
@@ -465,7 +464,7 @@ BookmarkContentSink::Init(PRBool aAllowRootChanges,
   
   PRInt64 menuRoot;
   if (aFolder == 0) {
-    rv = mBookmarksService->GetBookmarksRoot(&menuRoot);
+    rv = mBookmarksService->GetBookmarksMenuFolder(&menuRoot);
     NS_ENSURE_SUCCESS(rv, rv);
     mFolderSpecified = false;
   }
@@ -1105,10 +1104,9 @@ BookmarkContentSink::HandleSeparator(const nsIParserNode& aNode)
   printf("--------\n");
 #endif
 
-  PRInt64 itemId;
   mBookmarksService->InsertSeparator(frame.mContainerID,
                                      mBookmarksService->DEFAULT_INDEX,
-                                     &itemId);
+                                     &frame.mPreviousId);
   
   nsAutoString name;
   PRInt32 attrCount = aNode.GetAttributeCount();
@@ -1120,7 +1118,7 @@ BookmarkContentSink::HandleSeparator(const nsIParserNode& aNode)
   name.Trim(kWhitespace);
 
   if (!name.IsEmpty())
-    mBookmarksService->SetItemTitle(itemId, name);
+    mBookmarksService->SetItemTitle(frame.mPreviousId, name);
 
   
   
@@ -1142,7 +1140,8 @@ BookmarkContentSink::NewFrame()
   PRInt64 ourID = 0;
   nsString containerName;
   BookmarkImportFrame::ContainerType containerType;
-  CurFrame().ConsumeHeading(&containerName, &containerType);
+  BookmarkImportFrame& frame = CurFrame();
+  frame.ConsumeHeading(&containerName, &containerType);
 
   PRBool updateFolder = PR_FALSE;
   
@@ -1163,32 +1162,32 @@ BookmarkContentSink::NewFrame()
       break;
     case BookmarkImportFrame::Container_Menu:
       
-      rv = mBookmarksService->GetBookmarksRoot(&ourID);
+      rv = mBookmarksService->GetBookmarksMenuFolder(&ourID);
       NS_ENSURE_SUCCESS(rv, rv);
-      if (mAllowRootChanges) {
+      if (mAllowRootChanges)
         updateFolder = PR_TRUE;
-        rv = SetFaviconForFolder(ourID, NS_LITERAL_CSTRING(BOOKMARKS_MENU_ICON_URI));
-        NS_ENSURE_SUCCESS(rv, rv);
-      }
       break;
     case BookmarkImportFrame::Container_Toolbar:
       
-      PRInt64 toolbarFolder;
-      rv = mBookmarksService->GetToolbarFolder(&toolbarFolder);
+      rv = mBookmarksService->GetToolbarFolder(&ourID);
       NS_ENSURE_SUCCESS(rv, rv);
-      if (!toolbarFolder) {
-        
-        rv = mBookmarksService->CreateFolder(CurFrame().mContainerID,
-                                             containerName,
-                                             mBookmarksService->DEFAULT_INDEX, &ourID);
+      
+      
+      
+      
+      
+      
+      
+      if (frame.mPreviousId > 0) {
+        PRUint16 itemType;
+        rv = mBookmarksService->GetItemType(frame.mPreviousId, &itemType);
         NS_ENSURE_SUCCESS(rv, rv);
-        
-        rv = mBookmarksService->SetToolbarFolder(ourID);
-        NS_ENSURE_SUCCESS(rv, rv);
-      }
-      else {
-        ourID = toolbarFolder;
-      }
+        if (itemType == nsINavBookmarksService::TYPE_SEPARATOR) {
+          
+          rv = mBookmarksService->RemoveItem(frame.mPreviousId);
+          NS_ENSURE_SUCCESS(rv, rv);
+        }
+      }      
       break;
     default:
       NS_NOTREACHED("Unknown container type");
@@ -1212,7 +1211,6 @@ BookmarkContentSink::NewFrame()
   printf("\n");
 #endif
 
-  BookmarkImportFrame& frame = CurFrame();
   if (frame.mPreviousDateAdded > 0) {
     nsresult rv = mBookmarksService->SetItemDateAdded(ourID, frame.mPreviousDateAdded);
     NS_ASSERTION(NS_SUCCEEDED(rv), "SetItemDateAdded failed");
@@ -1349,34 +1347,6 @@ BookmarkContentSink::SetFaviconForURI(nsIURI* aPageURI, nsIURI* aIconURI,
   NS_ENSURE_SUCCESS(rv, rv);
   rv = faviconService->SetFaviconUrlForPage(aPageURI, faviconURI);
   return NS_OK; 
-}
-
-
-
-
-
-
-
-
-
-nsresult
-BookmarkContentSink::SetFaviconForFolder(PRInt64 aFolder,
-                                         const nsACString& aFavicon)
-{
-  nsresult rv;
-  nsCOMPtr<nsIFaviconService> faviconService(do_GetService(NS_FAVICONSERVICE_CONTRACTID, &rv));
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  nsCOMPtr<nsIURI> folderURI;
-  rv = mBookmarksService->GetFolderURI(aFolder,
-                                                getter_AddRefs(folderURI));
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  nsCOMPtr<nsIURI> faviconURI;
-  rv = NS_NewURI(getter_AddRefs(faviconURI), aFavicon);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  return faviconService->SetFaviconUrlForPage(folderURI, faviconURI);
 }
 
 
@@ -1694,8 +1664,8 @@ nsPlacesImportExportService::WriteContainerHeader(nsINavHistoryResultNode* aFold
   rv = mBookmarksService->GetPlacesRoot(&placesRoot);
   NS_ENSURE_SUCCESS(rv,rv);
 
-  PRInt64 bookmarksRoot;
-  rv = mBookmarksService->GetBookmarksRoot(&bookmarksRoot);
+  PRInt64 bookmarksMenuFolder;
+  rv = mBookmarksService->GetBookmarksMenuFolder(&bookmarksMenuFolder);
   NS_ENSURE_SUCCESS(rv,rv);
 
   PRInt64 toolbarFolder;
@@ -1706,23 +1676,13 @@ nsPlacesImportExportService::WriteContainerHeader(nsINavHistoryResultNode* aFold
   if (folderId == placesRoot) {
     rv = aOutput->Write(kPlacesRootAttribute, sizeof(kPlacesRootAttribute)-1, &dummy);
     NS_ENSURE_SUCCESS(rv, rv);
-  } else if (folderId == bookmarksRoot) {
+  } else if (folderId == bookmarksMenuFolder) {
     rv = aOutput->Write(kBookmarksRootAttribute, sizeof(kBookmarksRootAttribute)-1, &dummy);
     NS_ENSURE_SUCCESS(rv, rv);
   } else if (folderId == toolbarFolder) {
     rv = aOutput->Write(kToolbarFolderAttribute, sizeof(kToolbarFolderAttribute)-1, &dummy);
     NS_ENSURE_SUCCESS(rv, rv);
   }
- 
-  
-  nsCOMPtr<nsIURI> folderURI;
-  rv = mBookmarksService->GetFolderURI(folderId, getter_AddRefs(folderURI));
-  NS_ENSURE_SUCCESS(rv, rv);
-  nsCAutoString folderSpec;
-  rv = folderURI->GetSpec(folderSpec);
-  NS_ENSURE_SUCCESS(rv, rv);
-  rv = WriteFaviconAttribute(folderSpec, aOutput);
-  NS_ENSURE_SUCCESS(rv, rv);
 
   
   rv = aOutput->Write(kCloseAngle, sizeof(kCloseAngle)-1, &dummy);
@@ -2176,18 +2136,6 @@ nsPlacesImportExportService::WriteContainerContents(nsINavHistoryResultNode* aFo
   rv = folderNode->SetContainerOpen(PR_TRUE);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  PRInt64 placesRoot;
-  rv = mBookmarksService->GetPlacesRoot(&placesRoot);
-  NS_ENSURE_SUCCESS(rv,rv);
-
-  PRInt64 bookmarksRoot;
-  rv = mBookmarksService->GetBookmarksRoot(&bookmarksRoot);
-  NS_ENSURE_SUCCESS(rv,rv);
-
-  PRInt64 toolbarFolder;
-  rv = mBookmarksService->GetToolbarFolder(&toolbarFolder);
-  NS_ENSURE_SUCCESS(rv,rv);
-
   PRUint32 childCount = 0;
   folderNode->GetChildCount(&childCount);
   for (PRUint32 i = 0; i < childCount; ++i) {
@@ -2202,14 +2150,6 @@ nsPlacesImportExportService::WriteContainerContents(nsINavHistoryResultNode* aFo
       PRInt64 childFolderId;
       rv = child->GetItemId(&childFolderId);
       NS_ENSURE_SUCCESS(rv, rv);
-      if (folderId == placesRoot && (childFolderId == toolbarFolder ||
-                                    childFolderId == bookmarksRoot)) {
-        
-        
-        
-        
-        continue;
-      }
 
       
       PRBool isLivemark;
@@ -2310,11 +2250,11 @@ nsPlacesImportExportService::RunBatched(nsISupports* aUserData)
 {
   nsresult rv;
   if (mIsImportDefaults) {
-    PRInt64 bookmarksRoot;
-    rv = mBookmarksService->GetBookmarksRoot(&bookmarksRoot);
+    PRInt64 bookmarksMenuFolder;
+    rv = mBookmarksService->GetBookmarksMenuFolder(&bookmarksMenuFolder);
     NS_ENSURE_SUCCESS(rv,rv);
 
-    rv = mBookmarksService->RemoveFolderChildren(bookmarksRoot);
+    rv = mBookmarksService->RemoveFolderChildren(bookmarksMenuFolder);
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
@@ -2395,8 +2335,12 @@ nsPlacesImportExportService::ExportHTMLToFile(nsILocalFile* aBookmarksFile)
   NS_ENSURE_SUCCESS(rv, rv);
 
   
-  PRInt64 bookmarksRoot;
-  rv = mBookmarksService->GetBookmarksRoot(&bookmarksRoot);
+  PRInt64 bookmarksMenuFolder;
+  rv = mBookmarksService->GetBookmarksMenuFolder(&bookmarksMenuFolder);
+  NS_ENSURE_SUCCESS(rv,rv);
+
+  PRInt64 toolbarFolder;
+  rv = mBookmarksService->GetToolbarFolder(&toolbarFolder);
   NS_ENSURE_SUCCESS(rv,rv);
 
   
@@ -2415,7 +2359,7 @@ nsPlacesImportExportService::ExportHTMLToFile(nsILocalFile* aBookmarksFile)
   NS_ENSURE_SUCCESS(rv, rv);
 
   
-  rv = query->SetFolders(&bookmarksRoot, 1);
+  rv = query->SetFolders(&bookmarksMenuFolder, 1);
   NS_ENSURE_SUCCESS(rv, rv);
 
   
@@ -2430,16 +2374,6 @@ nsPlacesImportExportService::ExportHTMLToFile(nsILocalFile* aBookmarksFile)
 
   
   rv = strm->Write(kRootIntro, sizeof(kRootIntro)-1, &dummy); 
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  
-  nsCOMPtr<nsIURI> folderURI;
-  rv = mBookmarksService->GetFolderURI(bookmarksRoot, getter_AddRefs(folderURI));
-  NS_ENSURE_SUCCESS(rv, rv);
-  nsCAutoString folderSpec;
-  rv = folderURI->GetSpec(folderSpec);
-  NS_ENSURE_SUCCESS(rv, rv);
-  rv = WriteFaviconAttribute(folderSpec, strm);
   NS_ENSURE_SUCCESS(rv, rv);
 
   
@@ -2460,6 +2394,21 @@ nsPlacesImportExportService::ExportHTMLToFile(nsILocalFile* aBookmarksFile)
 
   
   rv = WriteContainerContents(rootNode, EmptyCString(), strm);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  
+  rv = query->SetFolders(&toolbarFolder, 1);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  rv = mHistoryService->ExecuteQuery(query, options, getter_AddRefs(result));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  rv = result->GetRoot(getter_AddRefs(rootNode));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  rv = WriteContainer(rootNode, nsDependentCString(kIndent), strm);
   NS_ENSURE_SUCCESS(rv, rv);
 
   

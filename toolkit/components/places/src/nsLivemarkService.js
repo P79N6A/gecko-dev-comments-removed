@@ -312,10 +312,6 @@ LivemarkService.prototype = {
     
     this._ans.setItemAnnotation(livemarkID, LMANNO_FEEDURI, feedURI.spec, 0,
                                 this._ans.EXPIRE_NEVER);
-    
-    var faviconService = Cc[FAV_CONTRACTID].getService(Ci.nsIFaviconService);
-    var livemarkURI = bms.getFolderURI(livemarkID);
-    faviconService.setFaviconUrlForPage(livemarkURI, this._iconURI);
 
     if (siteURI) {
       

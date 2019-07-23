@@ -105,19 +105,19 @@ var observer = {
 bmsvc.addObserver(observer, false);
 
 
-var root = bmsvc.bookmarksRoot;
+var root = bmsvc.bookmarksMenuFolder;
 
 
-var bmStartIndex = 1;
+var bmStartIndex = 0;
 
 
 function run_test() {
   
   do_check_true(bmsvc.placesRoot > 0);
-  do_check_true(bmsvc.bookmarksRoot > 0);
-  do_check_true(bmsvc.tagRoot > 0);
+  do_check_true(bmsvc.bookmarksMenuFolder > 0);
+  do_check_true(bmsvc.tagsFolder > 0);
   do_check_true(bmsvc.toolbarFolder > 0);
-  do_check_true(bmsvc.unfiledRoot > 0);
+  do_check_true(bmsvc.unfiledBookmarksFolder > 0);
 
   
   try {
@@ -132,9 +132,11 @@ function run_test() {
   } catch(ex) {}
 
   
-  do_check_eq(bmsvc.getFolderIdForItem(bmsvc.bookmarksRoot), bmsvc.placesRoot);
-  do_check_eq(bmsvc.getFolderIdForItem(bmsvc.tagRoot), bmsvc.placesRoot);
-  
+  do_check_eq(bmsvc.getFolderIdForItem(bmsvc.bookmarksMenuFolder), bmsvc.placesRoot);
+  do_check_eq(bmsvc.getFolderIdForItem(bmsvc.tagsFolder), bmsvc.placesRoot);
+  do_check_eq(bmsvc.getFolderIdForItem(bmsvc.toolbarFolder), bmsvc.placesRoot);
+  do_check_eq(bmsvc.getFolderIdForItem(bmsvc.unfiledBookmarksFolder), bmsvc.placesRoot);
+
   
   
   var testRoot = bmsvc.createFolder(root, "places bookmarks xpcshell tests", bmsvc.DEFAULT_INDEX);
@@ -540,15 +542,6 @@ function run_test() {
   do_check_eq(1, bmIndex);
 
   
-  var oldToolbarFolder = bmsvc.toolbarFolder;
-  var newToolbarFolderId = bmsvc.createFolder(testRoot, "new toolbar folder", -1);
-  bmsvc.toolbarFolder = newToolbarFolderId;
-  do_check_eq(bmsvc.toolbarFolder, newToolbarFolderId);
-  do_check_eq(observer._itemChangedId, newToolbarFolderId);
-  do_check_eq(observer._itemChangedProperty, "became_toolbar_folder");
-  do_check_eq(observer._itemChangedValue, "");
-
-  
   
   
   
@@ -556,7 +549,7 @@ function run_test() {
                                      bmsvc.DEFAULT_INDEX, "");
   do_check_eq(observer._itemAddedId, newId13);
   do_check_eq(observer._itemAddedParent, testRoot);
-  do_check_eq(observer._itemAddedIndex, 12);
+  do_check_eq(observer._itemAddedIndex, 11);
 
   
   bmsvc.setItemTitle(newId13, "ZZZXXXYYY");
