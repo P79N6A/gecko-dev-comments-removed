@@ -5111,6 +5111,10 @@ nsGlobalWindow::GetFrameElement(nsIDOMElement** aFrameElement)
   return NS_OK;
 }
 
+
+
+
+
 void
 ConvertDialogOptions(const nsAString& aOptions, nsAString& aResult)
 {
@@ -5239,11 +5243,14 @@ nsGlobalWindow::ShowModalDialog(const nsAString& aURI, nsIVariant *aArgs,
 
   nsCOMPtr<nsIDOMWindow> dlgWin;
   nsAutoString options(NS_LITERAL_STRING("modal=1,status=1"));
-  nsAutoString dialogOptions(aOptions);
 
-  ConvertDialogOptions(dialogOptions, options);
+  ConvertDialogOptions(aOptions, options);
 
   options.AppendLiteral(",scrollbars=1,centerscreen=1,resizable=0");
+
+  
+  
+  EnsureReflowFlushAndPaint();
 
   nsresult rv = OpenInternal(aURI, EmptyString(), options,
                              PR_FALSE,          
@@ -5253,7 +5260,7 @@ nsGlobalWindow::ShowModalDialog(const nsAString& aURI, nsIVariant *aArgs,
                              GetPrincipal(),    
                              nsnull,            
                              getter_AddRefs(dlgWin));
-  if (NS_FAILED(rv))
+  if (NS_FAILED(rv) || !dlgWin)
     return NS_OK;
 
   nsCOMPtr<nsPIDOMWindow> win(do_QueryInterface(dlgWin));

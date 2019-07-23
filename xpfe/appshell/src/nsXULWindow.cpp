@@ -1798,18 +1798,6 @@ NS_IMETHODIMP nsXULWindow::CreateNewContentWindow(PRInt32 aChromeFlags,
                                    (static_cast<nsIXULWindow*>
                                                (newWindow));
 
-  nsCOMPtr<nsIDocShell> newDocShell;
-  xulWin->GetDocShell(getter_AddRefs(newDocShell));
-
-  
-  
-  nsCOMPtr<nsPIDOMWindow> domWin(do_GetInterface(newDocShell));
-
-  if (domWin && (aChromeFlags & nsIWebBrowserChrome::CHROME_MODAL) &&
-      !(aChromeFlags & nsIWebBrowserChrome::CHROME_OPENAS_CHROME)) {
-    domWin->SetModalContentWindow(PR_TRUE);
-  }
-
   xulWin->LockUntilChromeLoad();
 
   

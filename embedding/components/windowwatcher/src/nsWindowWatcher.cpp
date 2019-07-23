@@ -549,18 +549,15 @@ nsWindowWatcher::OpenWindowJSInternal(nsIDOMWindow *aParent,
   
   
   
-  if (!aCalledFromJS && argv &&
-      WinHasOption(features.get(), "modal", 0, nsnull)) {
-    windowIsModalContentDialog = PR_TRUE;
-  }
-
-  
-  
-  
   
   chromeFlags = CalculateChromeFlags(features.get(), featuresSpecified,
                                      aDialog, uriToLoadIsChrome,
                                      !aParent || chromeParent);
+
+  if ((chromeFlags & nsIWebBrowserChrome::CHROME_MODAL) &&
+      !(chromeFlags & nsIWebBrowserChrome::CHROME_OPENAS_CHROME)) {
+    windowIsModalContentDialog = PR_TRUE;
+  }
 
   SizeSpec sizeSpec;
   CalcSizeSpec(features.get(), sizeSpec);
@@ -673,8 +670,9 @@ nsWindowWatcher::OpenWindowJSInternal(nsIDOMWindow *aParent,
 
         PRBool cancel = PR_FALSE;
         rv = windowCreator2->CreateChromeWindow2(parentChrome, chromeFlags,
-                               contextFlags, uriToLoad, &cancel,
-                               getter_AddRefs(newChrome));
+                                                 contextFlags, uriToLoad,
+                                                 &cancel,
+                                                 getter_AddRefs(newChrome));
         if (NS_SUCCEEDED(rv) && cancel) {
           newChrome = 0; 
           rv = NS_ERROR_ABORT;
@@ -682,7 +680,7 @@ nsWindowWatcher::OpenWindowJSInternal(nsIDOMWindow *aParent,
       }
       else
         rv = mWindowCreator->CreateChromeWindow(parentChrome, chromeFlags,
-                               getter_AddRefs(newChrome));
+                                                getter_AddRefs(newChrome));
       if (newChrome) {
         
 
@@ -912,9 +910,37 @@ nsWindowWatcher::OpenWindowJSInternal(nsIDOMWindow *aParent,
     nsCOMPtr<nsIDocShellTreeOwner> newTreeOwner;
     newDocShellItem->GetTreeOwner(getter_AddRefs(newTreeOwner));
     nsCOMPtr<nsIWebBrowserChrome> newChrome(do_GetInterface(newTreeOwner));
-    if (newChrome)
-      newChrome->ShowAsModal();
-    NS_ASSERTION(newChrome, "show modal window failed: no available chrome");
+
+    
+    
+    NS_ENSURE_TRUE(newChrome, NS_ERROR_NOT_AVAILABLE);
+
+    nsCOMPtr<nsPIDOMWindow> modalContentWindow;
+
+    
+    
+    
+    
+
+    if (windowIsModalContentDialog) {
+      modalContentWindow = do_QueryInterface(*_retval);
+    }
+
+    nsAutoWindowStateHelper windowStateHelper(modalContentWindow);
+
+    if (!windowStateHelper.DefaultEnabled()) {
+      
+      NS_RELEASE(*_retval);
+
+      return NS_OK;
+    }
+
+    
+    
+    
+    nsAutoPopupStatePusher popupStatePusher(modalContentWindow, openAbused);
+
+    newChrome->ShowAsModal();
   }
 
   return NS_OK;
