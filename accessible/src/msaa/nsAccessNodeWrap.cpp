@@ -37,7 +37,6 @@
 
 
 #include "nsAccessNodeWrap.h"
-#include <tchar.h> 
 #include "ISimpleDOMNode_i.c"
 #include "nsAccessibilityAtoms.h"
 #include "nsIAccessibilityService.h"
@@ -71,6 +70,10 @@ PRBool nsAccessNodeWrap::gIsEnumVariantSupportDisabled = 0;
 PRBool nsAccessNodeWrap::gIsIA2Disabled = PR_FALSE;
 
 nsIAccessibleTextChangeEvent *nsAccessNodeWrap::gTextEvent = nsnull;
+
+
+
+#define CTRLTAB_DISALLOW_FOR_SCREEN_READERS_PREF "browser.ctrlTab.disallowForScreenReaders"
 
 
 
@@ -662,7 +665,7 @@ GetHRESULT(nsresult aResult)
 
 PRBool nsAccessNodeWrap::IsOnlyMsaaCompatibleJawsPresent()
 {
-  HMODULE jhookhandle = ::GetModuleHandleW(NS_LITERAL_STRING("jhook").get());
+  HMODULE jhookhandle = ::GetModuleHandleW(L"jhook");
   if (!jhookhandle)
     return PR_FALSE;  
 
@@ -691,9 +694,44 @@ PRBool nsAccessNodeWrap::IsOnlyMsaaCompatibleJawsPresent()
           || (dwLeftMost == 8 && dwSecondRight < 2173));
 }
 
+void nsAccessNodeWrap::TurnOffNewTabSwitchingForJawsAndWE()
+{
+  HMODULE srHandle = ::GetModuleHandleW(L"jhook");
+  if (!srHandle) {
+    
+    srHandle = ::GetModuleHandleW(L"gwm32inc");
+    if (!srHandle) {
+      
+      return;
+    }
+  }
+
+  
+  
+  
+  nsCOMPtr<nsIPrefBranch> prefs (do_GetService(NS_PREFSERVICE_CONTRACTID));
+  if (prefs) {
+    PRBool hasDisallowNewCtrlTabPref = PR_FALSE;
+    nsresult rv = prefs->PrefHasUserValue(CTRLTAB_DISALLOW_FOR_SCREEN_READERS_PREF,
+             &hasDisallowNewCtrlTabPref);
+    if (NS_SUCCEEDED(rv) && hasDisallowNewCtrlTabPref) {
+      
+      
+      
+      
+      return;
+    }
+    
+    
+    prefs->SetBoolPref(CTRLTAB_DISALLOW_FOR_SCREEN_READERS_PREF, PR_TRUE);
+  }
+}
+
 void nsAccessNodeWrap::DoATSpecificProcessing()
 {
   if (IsOnlyMsaaCompatibleJawsPresent())
     
     gIsIA2Disabled  = PR_TRUE;
+
+  TurnOffNewTabSwitchingForJawsAndWE();
 }
