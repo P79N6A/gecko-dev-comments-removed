@@ -131,6 +131,7 @@ public:
   nsIAtom*          mContentTag;    
   nsIAtom*          mContentID;     
   PRPackedBool      mIsHTMLContent; 
+  PRPackedBool      mIsHTML;        
   PRPackedBool      mHasAttributes; 
   nsCompatibility   mCompatMode;    
   PRInt32           mNameSpaceID;   
