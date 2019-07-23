@@ -503,7 +503,12 @@ public:
 
 
     void UpdateSurfaceClip();
+
     
+
+
+    gfxRect GetClipExtents();
+
     
 
 
