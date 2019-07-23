@@ -6208,10 +6208,13 @@ nsCSSFrameConstructor::ContentAppended(nsIContent*     aContainer,
   
   
   
+  LAYOUT_PHASE_TEMP_EXIT();
   if (WipeContainingBlock(state, containingBlock, parentFrame, items,
                           !parentAfterFrame, nsnull)) {
+    LAYOUT_PHASE_TEMP_REENTER();
     return NS_OK;
   }
+  LAYOUT_PHASE_TEMP_REENTER();
 
   nsFrameItems frameItems;
   ConstructFramesFromItemList(state, items, parentFrame, frameItems);
@@ -6621,10 +6624,13 @@ nsCSSFrameConstructor::ContentInserted(nsIContent*            aContainer,
   
   
   
+  LAYOUT_PHASE_TEMP_EXIT();
   if (WipeContainingBlock(state, containingBlock, parentFrame, items,
-                          isAppend && !appendAfterFrame, prevSibling))
+                          isAppend && !appendAfterFrame, prevSibling)) {
+    LAYOUT_PHASE_TEMP_REENTER();
     return NS_OK;
-
+  }
+  LAYOUT_PHASE_TEMP_REENTER();
 
   
   
