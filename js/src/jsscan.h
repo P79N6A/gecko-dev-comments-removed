@@ -50,14 +50,14 @@
 #include "jspubtd.h"
 #include "jsvector.h"
 
-JS_BEGIN_EXTERN_C
-
 #define JS_KEYWORD(keyword, type, op, version) \
     extern const char js_##keyword##_str[];
 #include "jskeyword.tbl"
 #undef JS_KEYWORD
 
-typedef enum JSTokenType {
+namespace js {
+
+enum TokenKind {
     TOK_ERROR = -1,                     
     TOK_EOF = 0,                        
     TOK_EOL = 1,                        
@@ -144,87 +144,91 @@ typedef enum JSTokenType {
 
     TOK_RESERVED,                       
     TOK_LIMIT                           
-} JSTokenType;
+};
 
-#define IS_PRIMARY_TOKEN(tt) \
-    ((uintN)((tt) - TOK_NAME) <= (uintN)(TOK_PRIMARY - TOK_NAME))
+static inline bool TokenKindIsXML(TokenKind tt)
+{
+    return tt == TOK_AT || tt == TOK_DBLCOLON || tt == TOK_ANYNAME;
+}
 
-#define TOKEN_TYPE_IS_XML(tt) \
-    ((tt) == TOK_AT || (tt) == TOK_DBLCOLON || (tt) == TOK_ANYNAME)
+static inline bool TreeTypeIsXML(TokenKind tt)
+{
+    return tt == TOK_XMLCOMMENT || tt == TOK_XMLCDATA || tt == TOK_XMLPI ||
+           tt == TOK_XMLELEM || tt == TOK_XMLLIST;
+}
 
-#define TREE_TYPE_IS_XML(tt)                                                  \
-    ((tt) == TOK_XMLCOMMENT || (tt) == TOK_XMLCDATA || (tt) == TOK_XMLPI ||   \
-     (tt) == TOK_XMLELEM || (tt) == TOK_XMLLIST)
-
+static inline bool TokenKindIsDecl(TokenKind tt)
+{
 #if JS_HAS_BLOCK_SCOPE
-# define TOKEN_TYPE_IS_DECL(tt) ((tt) == TOK_VAR || (tt) == TOK_LET)
+    return tt == TOK_VAR || tt == TOK_LET;
 #else
-# define TOKEN_TYPE_IS_DECL(tt) ((tt) == TOK_VAR)
+    return tt == TOK_VAR;
 #endif
+}
 
-struct JSTokenPtr {
+struct TokenPtr {
     uint32              index;          
     uint32              lineno;         
 
-    bool operator==(const JSTokenPtr& bptr) {
+    bool operator==(const TokenPtr& bptr) {
         return index == bptr.index && lineno == bptr.lineno;
     }
 
-    bool operator!=(const JSTokenPtr& bptr) {
+    bool operator!=(const TokenPtr& bptr) {
         return index != bptr.index || lineno != bptr.lineno;
     }
 
-    bool operator <(const JSTokenPtr& bptr) {
+    bool operator <(const TokenPtr& bptr) {
         return lineno < bptr.lineno ||
                (lineno == bptr.lineno && index < bptr.index);
     }
 
-    bool operator <=(const JSTokenPtr& bptr) {
+    bool operator <=(const TokenPtr& bptr) {
         return lineno < bptr.lineno ||
                (lineno == bptr.lineno && index <= bptr.index);
     }
 
-    bool operator >(const JSTokenPtr& bptr) {
+    bool operator >(const TokenPtr& bptr) {
         return !(*this <= bptr);
     }
 
-    bool operator >=(const JSTokenPtr& bptr) {
+    bool operator >=(const TokenPtr& bptr) {
         return !(*this < bptr);
     }
 };
 
-struct JSTokenPos {
-    JSTokenPtr          begin;          
-    JSTokenPtr          end;            
+struct TokenPos {
+    TokenPtr          begin;          
+    TokenPtr          end;            
 
-    bool operator==(const JSTokenPos& bpos) {
+    bool operator==(const TokenPos& bpos) {
         return begin == bpos.begin && end == bpos.end;
     }
 
-    bool operator!=(const JSTokenPos& bpos) {
+    bool operator!=(const TokenPos& bpos) {
         return begin != bpos.begin || end != bpos.end;
     }
 
-    bool operator <(const JSTokenPos& bpos) {
+    bool operator <(const TokenPos& bpos) {
         return begin < bpos.begin;
     }
 
-    bool operator <=(const JSTokenPos& bpos) {
+    bool operator <=(const TokenPos& bpos) {
         return begin <= bpos.begin;
     }
 
-    bool operator >(const JSTokenPos& bpos) {
+    bool operator >(const TokenPos& bpos) {
         return !(*this <= bpos);
     }
 
-    bool operator >=(const JSTokenPos& bpos) {
+    bool operator >=(const TokenPos& bpos) {
         return !(*this < bpos);
     }
 };
 
-struct JSToken {
-    JSTokenType         type;           
-    JSTokenPos          pos;            
+struct Token {
+    TokenKind           type;           
+    TokenPos            pos;            
     jschar              *ptr;           
     union {
         struct {                        
@@ -241,19 +245,7 @@ struct JSToken {
     } u;
 };
 
-#define t_op            u.s.op
-#define t_reflags       u.reflags
-#define t_atom          u.s.atom
-#define t_atom2         u.p.atom2
-#define t_dval          u.dval
-
-#define JS_LINE_LIMIT   256             /* logical line buffer size limit --
-                                           physical line length is unlimited */
-#define NTOKENS         4               /* 1 current + 2 lookahead, rounded */
-#define NTOKENS_MASK    (NTOKENS-1)     /* to power of 2 to avoid divmod by 3 */
-
-
-enum JSTokenStreamFlags
+enum TokenStreamFlags
 {
     TSF_ERROR = 0x01,           
     TSF_EOF = 0x02,             
@@ -298,8 +290,20 @@ enum JSTokenStreamFlags
     TSF_STRICT_MODE_CODE = 0x8000
 };
 
-class JSTokenStream
+#define t_op            u.s.op
+#define t_reflags       u.reflags
+#define t_atom          u.s.atom
+#define t_atom2         u.p.atom2
+#define t_dval          u.dval
+
+const size_t LINE_LIMIT = 256;  
+
+
+class TokenStream
 {
+    static const size_t ntokens = 4;                
+
+    static const uintN ntokensMask = ntokens - 1;
   public:
     
 
@@ -311,7 +315,7 @@ class JSTokenStream
 
 
 
-    JSTokenStream(JSContext *);
+    TokenStream(JSContext *);
 
     
 
@@ -319,14 +323,14 @@ class JSTokenStream
 
     bool init(const jschar *base, size_t length, FILE *fp, const char *filename, uintN lineno);
     void close();
-    ~JSTokenStream() {}
+    ~TokenStream() {}
 
     
     JSContext *getContext() const { return cx; }
-    bool onCurrentLine(const JSTokenPos &pos) const { return lineno == pos.end.lineno; }
-    const JSToken &currentToken() const { return tokens[cursor]; }
-    const JSToken &getTokenAt(size_t index) const {
-        JS_ASSERT(index < NTOKENS);
+    bool onCurrentLine(const TokenPos &pos) const { return lineno == pos.end.lineno; }
+    const Token &currentToken() const { return tokens[cursor]; }
+    const Token &getTokenAt(size_t index) const {
+        JS_ASSERT(index < ntokens);
         return tokens[index];
     }
     const JSCharBuffer &getTokenbuf() const { return tokenbuf; }
@@ -334,16 +338,16 @@ class JSTokenStream
     uintN getLineno() const { return lineno; }
 
     
-    JSToken *mutableCurrentToken() { return &tokens[cursor]; }
+    Token *mutableCurrentToken() { return &tokens[cursor]; }
     bool reportCompileErrorNumberVA(JSParseNode *pn, uintN flags, uintN errorNumber, va_list ap);
 
-    JSTokenType getToken() {
+    TokenKind getToken() {
         
         while (lookahead != 0) {
             JS_ASSERT(!(flags & TSF_XMLTEXTMODE));
             lookahead--;
-            cursor = (cursor + 1) & NTOKENS_MASK;
-            JSTokenType tt = currentToken().type;
+            cursor = (cursor + 1) & ntokensMask;
+            TokenKind tt = currentToken().type;
             if (tt != TOK_EOL || (flags & TSF_NEWLINES))
                 return tt;
         }
@@ -355,36 +359,36 @@ class JSTokenStream
         return getTokenInternal();
     }
 
-    JSToken *getMutableTokenAt(size_t index) {
-        JS_ASSERT(index < NTOKENS);
+    Token *getMutableTokenAt(size_t index) {
+        JS_ASSERT(index < ntokens);
         return &tokens[index];
     }
 
     void ungetToken() {
-        JS_ASSERT(lookahead < NTOKENS_MASK);
+        JS_ASSERT(lookahead < ntokensMask);
         lookahead++;
-        cursor = (cursor - 1) & NTOKENS_MASK;
+        cursor = (cursor - 1) & ntokensMask;
     }
 
-    JSTokenType peekToken() {
+    TokenKind peekToken() {
         if (lookahead != 0) {
-            return tokens[(cursor + lookahead) & NTOKENS_MASK].type;
+            return tokens[(cursor + lookahead) & ntokensMask].type;
         }
-        JSTokenType tt = getToken();
+        TokenKind tt = getToken();
         ungetToken();
         return tt;
     }
 
-    JSTokenType peekTokenSameLine() {
+    TokenKind peekTokenSameLine() {
         if (!onCurrentLine(currentToken().pos))
             return TOK_EOL;
         flags |= TSF_NEWLINES;
-        JSTokenType tt = peekToken();
+        TokenKind tt = peekToken();
         flags &= ~TSF_NEWLINES;
         return tt;
     }
 
-    JSBool matchToken(JSTokenType tt) {
+    JSBool matchToken(TokenKind tt) {
         if (getToken() == tt)
             return JS_TRUE;
         ungetToken();
@@ -392,16 +396,16 @@ class JSTokenStream
     }
 
   private:
-    typedef struct JSTokenBuf {
+    typedef struct TokenBuf {
         jschar              *base;      
         jschar              *limit;     
         jschar              *ptr;       
-    } JSTokenBuf;
+    } TokenBuf;
 
-    JSTokenType getTokenInternal();     
+    TokenKind getTokenInternal();     
     int32 getChar();
     void ungetChar(int32 c);
-    JSToken *newToken(ptrdiff_t adjust);
+    Token *newToken(ptrdiff_t adjust);
     int32 getUnicodeEscape();
     JSBool peekChars(intN n, jschar *cp);
     JSBool getXMLEntity();
@@ -426,7 +430,7 @@ class JSTokenStream
     }
 
     JSContext           * const cx;
-    JSToken             tokens[NTOKENS];
+    Token               tokens[ntokens];
     uintN               cursor;         
     uintN               lookahead;      
 
@@ -438,9 +442,9 @@ class JSTokenStream
   private:
     uint32              linelen;        
     uint32              linepos;        
-    JSTokenBuf          linebuf;        
+    TokenBuf            linebuf;        
 
-    JSTokenBuf          userbuf;        
+    TokenBuf            userbuf;        
     const char          *filename;      
     FILE                *file;          
     JSSourceHandler     listener;       
@@ -451,12 +455,14 @@ class JSTokenStream
     JSCharBuffer        tokenbuf;       
 };
 
+} 
+
 
 #define LINE_SEPARATOR  0x2028
 #define PARA_SEPARATOR  0x2029
 
 extern void
-js_CloseTokenStream(JSContext *cx, JSTokenStream *ts);
+js_CloseTokenStream(JSContext *cx, js::TokenStream *ts);
 
 extern JS_FRIEND_API(int)
 js_fgets(char *buf, int size, FILE *file);
@@ -465,7 +471,7 @@ js_fgets(char *buf, int size, FILE *file);
 
 
 
-extern JSTokenType
+extern js::TokenKind
 js_CheckKeyword(const jschar *chars, size_t length);
 
 
@@ -485,50 +491,52 @@ js_IsIdentifier(JSString *str);
 
 
 
-
-bool
-js_ReportCompileErrorNumber(JSContext *cx, JSTokenStream *ts, JSParseNode *pn,
-                            uintN flags, uintN errorNumber, ...);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-bool
-js_ReportStrictModeError(JSContext *cx, JSTokenStream *ts, JSTreeContext *tc,
-                         JSParseNode *pn, uintN errorNumber, ...);
-
-
-
-
-
 #define JSREPORT_UC 0x100
 
+namespace js {
 
 
 
-static inline JSTokenType
-js_PeekToken(JSContext *cx, JSTokenStream *ts)
+
+
+
+bool
+ReportCompileErrorNumber(JSContext *cx, TokenStream *ts, JSParseNode *pn, uintN flags,
+                         uintN errorNumber, ...);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+bool
+ReportStrictModeError(JSContext *cx, TokenStream *ts, JSTreeContext *tc, JSParseNode *pn,
+                      uintN errorNumber, ...);
+
+
+
+
+static inline TokenKind
+PeekToken(JSContext *cx, TokenStream *ts)
 {
     JS_ASSERT(cx == ts->getContext());
     return ts->peekToken();
 }
 
-static inline JSTokenType
-js_PeekTokenSameLine(JSContext *cx, JSTokenStream *ts)
+static inline TokenKind
+PeekTokenSameLine(JSContext *cx, TokenStream *ts)
 {
     JS_ASSERT(cx == ts->getContext());
     return ts->peekTokenSameLine();
@@ -537,8 +545,8 @@ js_PeekTokenSameLine(JSContext *cx, JSTokenStream *ts)
 
 
 
-static inline JSTokenType
-js_GetToken(JSContext *cx, JSTokenStream *ts)
+static inline TokenKind
+GetToken(JSContext *cx, TokenStream *ts)
 {
     JS_ASSERT(cx == ts->getContext());
     return ts->getToken();
@@ -548,7 +556,7 @@ js_GetToken(JSContext *cx, JSTokenStream *ts)
 
 
 static inline void
-js_UngetToken(JSTokenStream *ts)
+UngetToken(TokenStream *ts)
 {
     ts->ungetToken();
 }
@@ -557,12 +565,12 @@ js_UngetToken(JSTokenStream *ts)
 
 
 static inline JSBool
-js_MatchToken(JSContext *cx, JSTokenStream *ts, JSTokenType tt)
+MatchToken(JSContext *cx, TokenStream *ts, TokenKind tt)
 {
     JS_ASSERT(cx == ts->getContext());
     return ts->matchToken(tt);
 }
 
-JS_END_EXTERN_C
+} 
 
 #endif 
