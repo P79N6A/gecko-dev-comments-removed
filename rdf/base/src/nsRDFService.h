@@ -109,6 +109,4 @@ public:
     nsresult GetDataSource(const char *aURI, PRBool aBlock, nsIRDFDataSource **aDataSource );
 };
 
-static RDFServiceImpl* gRDFService; 
-
 #endif 
