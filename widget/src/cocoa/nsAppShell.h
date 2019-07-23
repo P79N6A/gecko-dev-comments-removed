@@ -137,6 +137,8 @@ protected:
 
   PRInt32            mRecursionDepth;
   PRInt32            mNativeEventCallbackDepth;
+  
+  PRInt32            mNativeEventScheduledDepth;
 };
 
 #endif 
