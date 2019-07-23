@@ -99,7 +99,7 @@ inline void *operator new[](size_t, void *p) {
   return p;
 }
 
-
+#ifndef IN_SHUNT
 
 
 
@@ -121,7 +121,7 @@ inline void operator delete[](void* ptr) throw() {
 }
 
 #endif  
-
+#endif
 
 extern "C" {
 #endif
