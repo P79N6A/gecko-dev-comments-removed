@@ -11,7 +11,13 @@ var gLastEvent = "";
 
 function test() {
   
+  ok(Application.extensions, "Check for the 'Extensions' object");
+
+  
   ok(!Application.extensions.has(testdata.dummyid), "Check non-existant extension for existance");
+
+  
+  return;
 
   
   ok(Application.extensions.has(testdata.inspectorid), "Check extension for existance");
@@ -23,7 +29,7 @@ function test() {
   ok(inspector.version, "Check 'Extension.version' for known extension");
   ok(inspector.firstRun, "Check 'Extension.firstRun' for known extension");
   ok(inspector.enabled, "Check 'Extension.enabled' for known extension");
-  
+
   
   is(Application.extensions.all.length, 1, "Check a find for all extensions");
   
@@ -40,10 +46,10 @@ function test() {
   inspector.events.addListener("enable", onGenericEvent);
   inspector.events.addListener("uninstall", onGenericEvent);
   inspector.events.addListener("cancel", onGenericEvent);
-  
+
   var extmgr = Components.classes["@mozilla.org/extensions/manager;1"]
                          .getService(Components.interfaces.nsIExtensionManager);
-                         
+
   extmgr.disableItem(testdata.inspectorid);
   is(gLastEvent, "disable", "Checking that disable event is fired");
 
@@ -68,9 +74,9 @@ function test() {
   
   var itemValue = inspector.prefs.getValue(testdata.missing, "default");
   is(itemValue, "default", "Check 'Extension.prefs.getValue' for non-existing item");
-  
+
   is(inspector.prefs.get(testdata.missing), null, "Check 'Extension.prefs.get' for non-existing item");
-  
+
   
   inspector.prefs.setValue(testdata.dummy, "dummy");
   itemValue = inspector.prefs.getValue(testdata.dummy, "default");
@@ -80,7 +86,7 @@ function test() {
   inspector.prefs.setValue(testdata.dummy, "smarty");
   itemValue = inspector.prefs.getValue(testdata.dummy, "default");
   is(itemValue, "smarty", "Check 'Extension.prefs.getValue' for overwritten item");
-  
+
   
   inspector.prefs.get(testdata.dummy).value = "dummy2";
   itemValue = inspector.prefs.get(testdata.dummy).value;
@@ -90,7 +96,7 @@ function test() {
   inspector.prefs.get(testdata.dummy).reset();
   var itemValue = inspector.prefs.getValue(testdata.dummy, "default");
   is(itemValue, "default", "Check 'Extension.prefs.getValue' for reset pref");
-  
+
   
   ok(!inspector.prefs.has(testdata.dummy), "Check non-existant property for existance");
 
@@ -115,6 +121,6 @@ function onPrefChange(evt) {
 
 function onPrefChange2(evt) {
   is(evt.data, testdata.dummy, "Check 'Extension.prefs.set' fired a change event for a single preference");
-  
+
   finish();
 }
