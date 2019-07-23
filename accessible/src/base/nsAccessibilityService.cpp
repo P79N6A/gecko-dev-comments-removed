@@ -1408,29 +1408,7 @@ nsAccessibilityService::GetAccessible(nsIDOMNode *aNode,
     
     
     
-
-    
-    nsIImageFrame *imageFrame = do_QueryFrame(weakFrame.GetFrame());
-    nsCOMPtr<nsIDOMHTMLAreaElement> areaElmt = do_QueryInterface(content);
-    if (imageFrame && areaElmt) {
-      
-      
-      nsCOMPtr<nsIAccessible> imageAcc;
-      CreateHTMLImageAccessible(weakFrame.GetFrame(), getter_AddRefs(imageAcc));
-      if (imageAcc) {
-        
-        PRInt32 childCount;
-        imageAcc->GetChildCount(&childCount);
-        
-        nsAccessNode* cachedAreaAcc = GetCachedAccessNode(aNode, aWeakShell);
-        if (cachedAreaAcc) {
-          newAcc = nsAccUtils::QueryObject<nsAccessible>(cachedAreaAcc);
-          return newAcc.forget();
-        }
-      }
-    }
-
-    return nsnull;
+    return GetAreaAccessible(weakFrame.GetFrame(), aNode, aWeakShell);
   }
 
   
@@ -1767,6 +1745,52 @@ nsAccessibilityService::GetRelevantContentNodeFor(nsIDOMNode *aNode,
 
   NS_ADDREF(*aRelevantNode = aNode);
   return NS_OK;
+}
+
+already_AddRefed<nsAccessible>
+nsAccessibilityService::GetAreaAccessible(nsIFrame *aImageFrame,
+                                          nsIDOMNode *aAreaNode,
+                                          nsIWeakReference *aWeakShell)
+{
+  
+  nsIImageFrame *imageFrame = do_QueryFrame(aImageFrame);
+  if (!imageFrame)
+    return nsnull;
+
+  nsCOMPtr<nsIDOMHTMLAreaElement> areaElmt = do_QueryInterface(aAreaNode);
+  if (!areaElmt)
+    return nsnull;
+
+  
+  
+  nsRefPtr<nsAccessible> imageAcc;
+
+  nsCOMPtr<nsIDOMNode> imageNode(do_QueryInterface(aImageFrame->GetContent()));
+  nsAccessNode *cachedImgAcc = GetCachedAccessNode(imageNode, aWeakShell);
+  if (cachedImgAcc)
+    imageAcc = nsAccUtils::QueryObject<nsAccessible>(cachedImgAcc);
+
+  if (!imageAcc) {
+    nsCOMPtr<nsIAccessible> imageAccessible;
+    CreateHTMLImageAccessible(aImageFrame,
+                              getter_AddRefs(imageAccessible));
+
+    imageAcc = nsAccUtils::QueryObject<nsAccessible>(imageAccessible);
+    if (!InitAccessible(imageAcc, nsnull))
+      return nsnull;
+  }
+
+  
+  
+  imageAcc->EnsureChildren();
+
+  nsAccessNode *cachedAreaAcc = GetCachedAccessNode(aAreaNode, aWeakShell);
+  if (!cachedAreaAcc)
+    return nsnull;
+
+  nsRefPtr<nsAccessible> areaAcc =
+    nsAccUtils::QueryObject<nsAccessible>(cachedAreaAcc);
+  return areaAcc.forget();
 }
 
 already_AddRefed<nsAccessible>

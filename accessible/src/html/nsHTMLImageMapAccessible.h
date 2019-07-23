@@ -57,9 +57,6 @@ public:
   
   NS_DECL_ISUPPORTS_INHERITED
 
-  NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(nsHTMLImageMapAccessible,
-                                           nsAccessible)
-
   
   NS_IMETHOD GetAnchorCount(PRInt32 *aAnchorCount);
   NS_IMETHOD GetURI(PRInt32 aIndex, nsIURI **aURI);
@@ -69,32 +66,13 @@ public:
   virtual nsresult GetRoleInternal(PRUint32 *aRole);
 
 protected:
-  
-  virtual nsresult Shutdown();
 
   
   virtual void CacheChildren();
 
-  
-  
-
-
-  already_AddRefed<nsIDOMHTMLCollection> GetAreaCollection();
-
-  
-
-
-  already_AddRefed<nsAccessible>
-    GetAreaAccessible(nsIDOMHTMLCollection* aAreaNodes, PRInt32 aAreaNum);
-
 private:
   
   nsCOMPtr<nsIDOMHTMLMapElement> mMapElement;
-
-  
-  
-  
-  nsAccessibleHashtable mAreaAccCache;
 };
 
 
@@ -105,8 +83,7 @@ class nsHTMLAreaAccessible : public nsHTMLLinkAccessible
 {
 
 public:
-  nsHTMLAreaAccessible(nsIDOMNode *domNode, nsIAccessible *accParent,
-                       nsIWeakReference* aShell);
+  nsHTMLAreaAccessible(nsIDOMNode *aNode, nsIWeakReference *aShell);
 
   
   NS_IMETHOD GetDescription(nsAString& aDescription);

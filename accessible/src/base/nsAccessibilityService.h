@@ -152,6 +152,13 @@ private:
   
 
 
+  already_AddRefed<nsAccessible>
+    GetAreaAccessible(nsIFrame *aImageFrame, nsIDOMNode *aAreaNode,
+                      nsIWeakReference *aWeakShell);
+
+  
+
+
 
   already_AddRefed<nsAccessible>
     CreateAccessibleByType(nsIDOMNode *aNode, nsIWeakReference *aWeakShell);

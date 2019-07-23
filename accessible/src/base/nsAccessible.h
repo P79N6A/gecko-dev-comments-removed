@@ -234,6 +234,11 @@ public:
   
 
 
+  PRBool EnsureChildren();
+
+  
+
+
 
 
   virtual void InvalidateChildren();
@@ -316,11 +321,6 @@ protected:
 
 
   virtual void CacheChildren();
-
-  
-
-
-  PRBool EnsureChildren();
 
   
 
