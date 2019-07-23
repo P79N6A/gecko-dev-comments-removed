@@ -149,6 +149,9 @@
 #ifndef RDW_NOINTERNALPAINT
 #define RDW_NOINTERNALPAINT     0
 #endif
+#ifndef ERROR
+#define ERROR 0
+#endif
 #endif 
 
 
@@ -164,34 +167,6 @@ typedef enum
     TRI_FALSE = 0,
     TRI_TRUE = 1
 } TriStateBool;
-
-
-typedef enum {
-  
-  RENDER_GDI = 0,
-  
-  RENDER_IMAGE_STRETCH32,
-  
-  RENDER_IMAGE_STRETCH24,
-  
-  RENDER_DDRAW,
-  
-  RENDER_IMAGE_DDRAW16,
-  
-  RENDER_MODE_MAX
-} WinRenderMode;
-
-
-
-
-
-#if defined(WINCE_WINDOWS_MOBILE)
-#define DEFAULT_RENDER_MODE               RENDER_IMAGE_DDRAW16
-#elif defined(WINCE)
-#define DEFAULT_RENDER_MODE               RENDER_DDRAW
-#else
-#define DEFAULT_RENDER_MODE               RENDER_GDI
-#endif
 
 
 

@@ -55,13 +55,22 @@ static PRBool gDisableOptimize = PR_FALSE;
 #include "gfxDDrawSurface.h"
 #endif
 
-#ifdef XP_WIN
+#if defined(XP_WIN) || defined(WINCE)
+#include "gfxWindowsPlatform.h"
+#endif
+
+#if defined(XP_WIN) && !defined(WINCE)
+
+
+#define USE_WIN_SURFACE 1
+
 static PRUint32 gTotalDDBs = 0;
 static PRUint32 gTotalDDBSize = 0;
 
 #define kMaxDDBSize (64*1024*1024)
 
 #define kMaxSingleDDBSize (4*1024*1024)
+
 #endif
 
 NS_IMPL_ISUPPORTS1(nsThebesImage, nsIImage)
@@ -86,7 +95,7 @@ nsThebesImage::nsThebesImage()
         hasCheckedOptimize = PR_TRUE;
     }
 
-#ifdef XP_WIN
+#ifdef USE_WIN_SURFACE
     mIsDDBSurface = PR_FALSE;
 #endif
 }
@@ -134,14 +143,8 @@ nsThebesImage::Init(PRInt32 aWidth, PRInt32 aHeight, PRInt32 aDepth, nsMaskRequi
     
     
     
-#ifdef XP_WIN
+#ifdef USE_WIN_SURFACE
     if (!mNeverUseDeviceSurface && !ShouldUseImageSurfaces()) {
-#if defined(WINCE) && defined(CAIRO_HAS_DDRAW_SURFACE)
-        
-        
-        
-        mWinSurface = nsnull;
-#else
         mWinSurface = new gfxWindowsSurface(gfxIntSize(mWidth, mHeight), format);
         if (mWinSurface && mWinSurface->CairoStatus() == 0) {
             
@@ -149,7 +152,6 @@ nsThebesImage::Init(PRInt32 aWidth, PRInt32 aHeight, PRInt32 aDepth, nsMaskRequi
         } else {
             mWinSurface = nsnull;
         }
-#endif
     }
 #endif
 
@@ -179,7 +181,7 @@ nsThebesImage::Init(PRInt32 aWidth, PRInt32 aHeight, PRInt32 aDepth, nsMaskRequi
 
 nsThebesImage::~nsThebesImage()
 {
-#ifdef XP_WIN
+#ifdef USE_WIN_SURFACE
     if (mIsDDBSurface) {
         gTotalDDBs--;
         gTotalDDBSize -= mWidth*mHeight*4;
@@ -316,7 +318,7 @@ nsThebesImage::Optimize(nsIDeviceContext* aContext)
 
                 mImageSurface = nsnull;
                 mOptSurface = nsnull;
-#ifdef XP_WIN
+#ifdef USE_WIN_SURFACE
                 mWinSurface = nsnull;
 #endif
 #ifdef XP_MACOSX
@@ -336,7 +338,7 @@ nsThebesImage::Optimize(nsIDeviceContext* aContext)
 
     mOptSurface = nsnull;
 
-#ifdef XP_WIN
+#ifdef USE_WIN_SURFACE
     
     
     
@@ -389,7 +391,7 @@ nsThebesImage::Optimize(nsIDeviceContext* aContext)
 
     if (mOptSurface) {
         mImageSurface = nsnull;
-#ifdef XP_WIN
+#ifdef USE_WIN_SURFACE
         mWinSurface = nsnull;
 #endif
 #ifdef XP_MACOSX
@@ -437,7 +439,7 @@ nsThebesImage::LockImagePixels(PRBool aMaskPixels)
             context.SetSource(mOptSurface);
         context.Paint();
 
-#ifdef XP_WIN
+#ifdef USE_WIN_SURFACE
         mWinSurface = nsnull;
 #endif
 #ifdef XP_MACOSX
@@ -814,14 +816,11 @@ nsThebesImage::ShouldUseImageSurfaces()
 #if defined(WINCE)
     
     
-#if defined(WINCE) && defined(CAIRO_HAS_DDRAW_SURFACE)
-    return PR_FALSE;
-#else
-    
-    return PR_TRUE;
-#endif
+    gfxWindowsPlatform::RenderMode rmode = gfxWindowsPlatform::GetPlatform()->GetRenderMode();
+    return rmode != gfxWindowsPlatform::RENDER_DDRAW &&
+        rmode != gfxWindowsPlatform::RENDER_DDRAW_GL;
 
-#elif defined(XP_WIN)
+#elif defined(USE_WIN_SURFACE)
     static const DWORD kGDIObjectsHighWaterMark = 7000;
 
     
