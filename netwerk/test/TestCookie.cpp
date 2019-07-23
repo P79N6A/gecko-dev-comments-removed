@@ -559,7 +559,27 @@ main(PRInt32 argc, char *argv[])
       GetACookie(cookieService, "http://192.168.54.33/", "http://192.168.54.33/", getter_Copies(cookie));
       rv[13] = CheckResult(cookie.get(), MUST_BE_NULL);
 
-      allTestsPassed = PrintResult(rv, 14) && allTestsPassed;
+      
+      SetACookie(cookieService, "http://co.uk/", "http://co.uk/", "test=foreign; domain=.co.uk", nsnull);
+      GetACookie(cookieService, "http://co.uk/", "http://co.uk/", getter_Copies(cookie));
+      
+      rv[14] = CheckResult(cookie.get(), MUST_BE_NULL);
+      SetACookie(cookieService, "http://co.uk/", "http://co.uk/", "test=foreign", nsnull);
+      GetACookie(cookieService, "http://co.uk/", "http://co.uk/", getter_Copies(cookie));
+      
+      rv[15] = CheckResult(cookie.get(), MUST_EQUAL, "test=foreign");
+      GetACookie(cookieService, "http://oblivious.co.uk/", nsnull, getter_Copies(cookie));
+      rv[16] = CheckResult(cookie.get(), MUST_BE_NULL);
+      
+      SetACookie(cookieService, "http://co.uk/", "http://co.uk/", "test=foreign; max-age=0", nsnull);
+      GetACookie(cookieService, "http://co.uk/", "http://co.uk/", getter_Copies(cookie));
+      rv[17] = CheckResult(cookie.get(), MUST_BE_NULL);
+      SetACookie(cookieService, "http://co.uk/", "http://evil.co.uk/", "test=foreign", nsnull);
+      GetACookie(cookieService, "http://co.uk/", "http://co.uk/", getter_Copies(cookie));
+      
+      rv[18] = CheckResult(cookie.get(), MUST_BE_NULL);
+
+      allTestsPassed = PrintResult(rv, 19) && allTestsPassed;
 
 
       
