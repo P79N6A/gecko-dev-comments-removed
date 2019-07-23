@@ -42,6 +42,7 @@
 
 class nsIDOMWindow;
 class nsIPrintSettings;
+class nsIWebBrowserPrint;
 
 
 
@@ -77,7 +78,10 @@ public:
 
 
 
-  NS_IMETHOD Show(nsIDOMWindow *aParent, nsIPrintSettings *aSettings) = 0;
+
+
+  NS_IMETHOD Show(nsIDOMWindow *aParent, nsIPrintSettings *aSettings,
+                  nsIWebBrowserPrint *aWebBrowserPrint) = 0;
 
   
 
