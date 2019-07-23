@@ -57,6 +57,19 @@ Types = (
     'uintptr_t',
 
     
+    'PRBool',
+    'PRPackedBool'
+    'PRInt8',
+    'PRUint8',
+    'PRInt16',
+    'PRUint16',
+    'PRInt32',
+    'PRUint32',
+    'PRInt64',
+    'PRUint64',
+    'PRSize',
+
+    
     'nsresult',
     'nsString',
     'nsCString',
