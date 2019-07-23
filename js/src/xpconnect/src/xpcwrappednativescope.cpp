@@ -277,8 +277,8 @@ WrappedNativeJSGCThingMarker(JSDHashTable *table, JSDHashEntryHdr *hdr,
         
         
         
-        if (JS_IsGCMarkingTracer(trc))
-            nsCycleCollector_suspectCurrent(wrapper);
+        
+        
     }
     return JS_DHASH_NEXT;
 }
