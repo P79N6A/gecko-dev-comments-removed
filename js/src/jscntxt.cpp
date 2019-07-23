@@ -45,7 +45,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include "jstypes.h"
-#include "jsstdint.h"
 #include "jsarena.h" 
 #include "jsutil.h" 
 #include "jsclist.h"
@@ -539,7 +538,14 @@ js_DestroyContext(JSContext *cx, JSDestroyContextMode mode)
     JSBool last;
 
 #ifdef JS_THREADSAFE
-    JS_ASSERT(CURRENT_THREAD_IS_ME(cx->thread));
+    
+
+
+
+
+    JS_ASSERT(cx->thread && CURRENT_THREAD_IS_ME(cx->thread));
+    if (!cx->thread)
+        JS_SetContextThread(cx);
 #endif
     rt = cx->runtime;
 
