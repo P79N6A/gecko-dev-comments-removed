@@ -36,8 +36,9 @@
 
 
 
-#ifndef __NSAUTOJSOBJECTHOLDER_H__
-#define __NSAUTOJSOBJECTHOLDER_H__
+
+#ifndef __NSAUTOJSVALHOLDER_H__
+#define __NSAUTOJSVALHOLDER_H__
 
 #include "jsapi.h"
 
@@ -46,45 +47,23 @@
 
 
 
-
-class nsAutoJSObjectHolder
+class nsAutoJSValHolder
 {
 public:
-  
 
-
-  nsAutoJSObjectHolder()
-  : mRt(NULL), mObj(NULL), mHeld(PR_FALSE) { }
-
-  
-
-
-
-  nsAutoJSObjectHolder(JSContext* aCx, JSBool* aRv = NULL,
-                       JSObject* aObj = NULL)
-  : mRt(NULL), mObj(aObj), mHeld(JS_FALSE) {
-    JSBool rv = Hold(aCx);
-    if (aRv) {
-      *aRv = rv;
-    }
+  nsAutoJSValHolder()
+    : mRt(NULL)
+    , mVal(JSVAL_NULL)
+    , mGCThing(NULL)
+    , mHeld(JS_FALSE)
+  {
+    
   }
 
   
 
 
-  nsAutoJSObjectHolder(JSRuntime* aRt, JSBool* aRv = NULL,
-                       JSObject* aObj = NULL)
-  : mRt(aRt), mObj(aObj), mHeld(JS_FALSE) {
-    JSBool rv = Hold(aRt);
-    if (aRv) {
-      *aRv = rv;
-    }
-  }
-
-  
-
-
-  ~nsAutoJSObjectHolder() {
+  virtual ~nsAutoJSValHolder() {
     Release();
   }
 
@@ -98,11 +77,14 @@ public:
   
 
 
+
   JSBool Hold(JSRuntime* aRt) {
     if (!mHeld) {
-      mHeld = JS_AddNamedRootRT(aRt, &mObj, "nsAutoRootedJSObject");
-      if (mHeld) {
+      if (JS_AddNamedRootRT(aRt, &mGCThing, "nsAutoJSValHolder")) {
         mRt = aRt;
+        mHeld = JS_TRUE;
+      } else {
+        Release(); 
       }
     }
     return mHeld;
@@ -111,15 +93,22 @@ public:
   
 
 
-  void Release() {
+
+  jsval Release() {
     NS_ASSERTION(!mHeld || mRt, "Bad!");
+
+    jsval oldval = mVal;
+
     if (mHeld) {
-      mHeld = !JS_RemoveRootRT(mRt, &mObj);
-      if (!mHeld) {
-        mRt = NULL;
-      }
-      mObj = NULL;
+      JS_RemoveRootRT(mRt, &mGCThing); 
+      mHeld = JS_FALSE;
     }
+
+    mVal = JSVAL_NULL;
+    mGCThing = NULL;
+    mRt = NULL;
+
+    return oldval;
   }
 
   
@@ -132,32 +121,43 @@ public:
   
 
 
-  JSObject* get() const {
-    return mObj;
-  }
-
-  
-
-
   operator JSObject*() const {
-    return get();
+    return JSVAL_IS_OBJECT(mVal)
+         ? JSVAL_TO_OBJECT(mVal)
+         : JSVAL_NULL;
   }
 
   
 
 
-  JSObject* operator=(JSObject* aOther) {
+  operator jsval() const { return mVal; }
+
+  nsAutoJSValHolder &operator=(JSObject* aOther) {
 #ifdef DEBUG
     if (aOther) {
       NS_ASSERTION(mHeld, "Not rooted!");
     }
 #endif
-    return mObj = aOther;
+    return *this = OBJECT_TO_JSVAL(aOther);
+  }
+
+  nsAutoJSValHolder &operator=(jsval aOther) {
+#ifdef DEBUG
+    if (aOther) {
+      NS_ASSERTION(mHeld, "Not rooted!");
+    }
+#endif
+    mVal = aOther;
+    mGCThing = JSVAL_IS_GCTHING(aOther)
+             ? JSVAL_TO_GCTHING(aOther)
+             : NULL;
+    return *this;
   }
 
 private:
   JSRuntime* mRt;
-  JSObject* mObj;
+  jsval mVal;
+  void* mGCThing;
   JSBool mHeld;
 };
 
