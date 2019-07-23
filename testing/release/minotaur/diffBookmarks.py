@@ -33,9 +33,16 @@
 
 
 from optparse import OptionParser
+import difflib
 from checkBookmarks import bookmarkParser
 from logAppender import LogAppender, stderrCatcher
 import sys
+
+DIFFBKMK_DBG = False
+
+def debug(s):
+  if DIFFBKMK_DBG:
+    print s
 
 
 def main(left, right, log):
@@ -45,11 +52,11 @@ def main(left, right, log):
   sys.stderr = stderrCatcher(lw)
 
   
-  leftParser = bookmarkParser()
+  leftParser = bookmarkParser(isDebug=DIFFBKMK_DBG)
   leftParser.parseFile(left)
 
   
-  rightParser = bookmarkParser()
+  rightParser = bookmarkParser(isDebug=DIFFBKMK_DBG)
   rightParser.parseFile(right)
 
   
@@ -57,16 +64,28 @@ def main(left, right, log):
   leftList = leftParser.getList()
   rightList = rightParser.getList()
 
-  if len(leftList) <> len(rightList):
-    lw.writeLog("Bookmarks lists are not the same length!")
-    raise SystemExit("Bookmark lists not same length, test fails")
+  
+  if len(leftList) == 0:
+    lw.writeLog("**** BOOKMARKS REFERENCE FILE IS MISSING ****")
+    raise SystemExit("**** BOOKMARKS REFERENCE FILE IS MISSING ****")
+  elif len(rightList) == 0:
+    lw.writeLog("**** BOOKMARKS DATA FOR BUILD UNDER TEST IS MISSING ****")
+    raise SystemExit("**** BOOKMARKS DATA FOR BUILD UNDER TEST IS MISSING ****")
 
-  for lentry, rentry in zip(leftList, rightList):
-    if lentry <> rentry:
-      lw.writeLog("Error found entries that do not match")
-      lw.writeLog("Left side: " + lentry[0] + lentry[1])
-      lw.writeLog("Right side: " + rentry[0] + rentry[1])
-      raise SystemExit("Bookmark entries do not match, test fails")
+  leftlines = []
+  for lentry in leftList:
+    leftlines.append(lentry[0] + lentry[1] + lentry[2] + lentry[3] + lentry[4] + "\n")
+
+  rightlines = []
+  for rentry in rightList:
+    rightlines.append(rentry[0] + rentry[1] + rentry[2] + rentry[3] + rentry[4] + "\n")
+  
+  
+  
+  
+  
+  diff = difflib.unified_diff(leftlines, rightlines)
+  lw.writelines(diff)
 
 if __name__ == "__main__":
   parser = OptionParser()
@@ -77,7 +96,13 @@ if __name__ == "__main__":
   parser.add_option("-f", "--LogFile", dest="log",
                     help="The file where the log output should go",
                     metavar="LOGFILE")
+  parser.add_option("-d", "--Debug", dest="isDebug", default=False,
+                    help="Turn on debug output by specifying -d true")
+
   (options, args) = parser.parse_args()
+
+  if options.isDebug:
+    DIFFBKMK_DBG = True
 
   
   main(options.left, options.right, options.log)
