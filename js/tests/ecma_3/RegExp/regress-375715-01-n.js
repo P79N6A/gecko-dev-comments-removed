@@ -1,0 +1,63 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+var gTestfile = 'regress-375715-01.js';
+
+var BUGNUMBER = 375715;
+var summary = 'Assertion failure: (c2 <= cs->length) && (c1 <= c2)';
+var actual = '';
+var expect = '';
+
+
+test();
+
+
+function test()
+{
+  enterFunc ('test');
+  printBugNumber(BUGNUMBER);
+  printStatus (summary);
+ 
+  
+  
+  
+
+  /[\Wb-G]/.exec("");
+  reportCompare(expect, actual, summary + ' /[\Wb-G]/.exec("")');
+
+  exitFunc ('test');
+}
