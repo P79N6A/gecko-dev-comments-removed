@@ -210,11 +210,8 @@ HelperApps.prototype = {
     if (types) {
       types = types.QueryInterface(Components.interfaces.nsIRDFLiteral);
       types = types.Value.split(", ");
-      
-      
-      
-      
-      mimeSvc = Components.classes["@mozilla.org/uriloader/external-helper-app-service;1"].getService(Components.interfaces.nsIMIMEService);
+
+      mimeSvc = Components.classes["@mozilla.org/mime;1"].getService(Components.interfaces.nsIMIMEService);
       return mimeSvc.getFromTypeAndExtension(types[0], null);
     }
     

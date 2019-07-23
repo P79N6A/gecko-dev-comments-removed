@@ -183,9 +183,7 @@ function downloadCompleted(aDownload)
     
     try {
       
-      const kExternalHelperAppServContractID =
-        "@mozilla.org/uriloader/external-helper-app-service;1";
-      var mimeService = Cc[kExternalHelperAppServContractID].
+      var mimeService = Cc["@mozilla.org/mime;1"].
                         getService(Ci.nsIMIMEService);
       var contentType = mimeService.getTypeFromFile(aDownload.targetFile);
 
