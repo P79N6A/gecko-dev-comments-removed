@@ -92,6 +92,8 @@ let gStr = {
   stateCanceled: "stateCanceled",
   stateBlocked: "stateBlocked",
   stateDirty: "stateDirty",
+  yesterday: "yesterday",
+  monthDate: "monthDate",
 
   units: ["bytes", "kilobyte", "megabyte", "gigabyte"],
 
@@ -139,6 +141,7 @@ function createDownloadItem(aID, aFile, aTarget, aURI, aState, aProgress,
   dl.setAttribute("maxBytes", aMaxBytes);
   dl.setAttribute("lastSeconds", Infinity);
 
+  updateTime(dl);
   updateStatus(dl);
 
   try {
@@ -174,6 +177,9 @@ function downloadCompleted(aDownload)
     dl.setAttribute("endTime", Date.now());
     dl.setAttribute("currBytes", aDownload.amountTransferred);
     dl.setAttribute("maxBytes", aDownload.size);
+
+    
+    updateTime(dl);
 
     
     
@@ -904,6 +910,50 @@ function updateStatus(aItem, aDownload) {
   }
 
   aItem.setAttribute("status", status);
+}
+
+
+
+
+
+
+
+function updateTime(aItem)
+{
+  
+  if (aItem.inProgress)
+    return;
+
+  
+  let now = new Date();
+  let today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+  
+  let end = new Date(parseInt(aItem.getAttribute("endTime")));
+
+  
+  let dateTime;
+  if (end >= today) {
+    
+    let dts = Cc["@mozilla.org/intl/scriptabledateformat;1"].
+              getService(Ci.nsIScriptableDateFormat);
+    dateTime = dts.FormatTime("", dts.timeFormatNoSeconds,
+                              end.getHours(), end.getMinutes(), 0);
+  } else if (today - end < (24 * 60 * 60 * 1000)) {
+    
+    dateTime = gStr.yesterday;
+  } else if (today - end < (6 * 24 * 60 * 60 * 1000)) {
+    
+    dateTime = end.toLocaleFormat("%A");
+  } else {
+    
+    let month = end.toLocaleFormat("%B");
+    let date = end.toLocaleFormat("%d");
+    dateTime = replaceInsert(gStr.monthDate, 1, month);
+    dateTime = replaceInsert(dateTime, 2, date);
+  }
+
+  aItem.setAttribute("dateTime", dateTime);
 }
 
 
