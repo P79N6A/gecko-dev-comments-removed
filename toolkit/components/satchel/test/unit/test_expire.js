@@ -79,8 +79,6 @@ function run_test()
           getService(Ci.nsIPrefBranch);
 
   
-  do_check_false(prefs.prefHasUserValue("browser.history_expire_days"));
-  do_check_false(prefs.prefHasUserValue("browser.history_expire_days_min"));
   do_check_false(prefs.prefHasUserValue("browser.formfill.expire_days"));
 
 
@@ -145,13 +143,7 @@ function run_test()
   testnum++;
 
   
-  
-  
-  if ("nsIMsgFolder" in Ci)
-    prefs.setIntPref("browser.formfill.expire_days", 30);
-  
-  prefs.setIntPref("browser.history_expire_days", 30);
-  prefs.setIntPref("browser.history_expire_days_min", 30);
+  prefs.setIntPref("browser.formfill.expire_days", 30);
   do_check_true(fh.entryExists("179DaysOld", "foo"));
   do_check_true(fh.entryExists("bar", "31days"));
   do_check_true(fh.entryExists("bar", "29days"));
@@ -164,17 +156,6 @@ function run_test()
   do_check_true(fh.entryExists("bar", "29days"));
   do_check_eq(505, countAllEntries());
 
-  
-  testnum++;
-
-  
-  
-  prefs.setIntPref("browser.history_expire_days", 20);
-  do_check_eq(505, countAllEntries());
-
-  triggerExpiration();
-
-  do_check_eq(505, countAllEntries());
 
   
   testnum++;
@@ -182,8 +163,6 @@ function run_test()
   
   
   prefs.setIntPref("browser.formfill.expire_days", 10);
-  prefs.setIntPref("browser.history_expire_days", 1);
-  prefs.setIntPref("browser.history_expire_days_min", 1);
 
   do_check_true(fh.entryExists("bar", "29days"));
   do_check_true(fh.entryExists("9DaysOld", "foo"));
@@ -204,37 +183,11 @@ function run_test()
   dbFile = dbFile.clone();
   do_check_true(dbFile.fileSize < 6000);
 
-  
-  testnum++;
-
-  if (prefs.prefHasUserValue("browser.formfill.expire_days"))
-    prefs.clearUserPref("browser.formfill.expire_days");
-
-  
-  
-  if ("nsIMsgFolder" in Ci)
-    prefs.setIntPref("browser.formfill.expire_days", 0);
-  prefs.setIntPref("browser.history_expire_days", 0);
-  prefs.setIntPref("browser.history_expire_days_min", 30);
-
-  do_check_true(fh.entryExists("9DaysOld", "foo"));
-  do_check_eq(3, countAllEntries());
-
-  triggerExpiration();
-
-  do_check_false(fh.entryExists("9DaysOld", "foo"));
-  do_check_true(fh.entryExists("name-B", "value-B"));
-  do_check_false(fh.entryExists("name-C", "value-C"));
-  do_check_eq(1, countAllEntries());
 
   } catch (e) {
       throw "FAILED in test #" + testnum + " -- " + e;
   } finally {
       
-      if (prefs.prefHasUserValue("browser.history_expire_days"))
-        prefs.clearUserPref("browser.history_expire_days");
-      if (prefs.prefHasUserValue("browser.history_expire_days_min"))
-        prefs.clearUserPref("browser.history_expire_days_min");
       if (prefs.prefHasUserValue("browser.formfill.expire_days"))
         prefs.clearUserPref("browser.formfill.expire_days");
   }
