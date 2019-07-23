@@ -39,6 +39,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include <plstr.h>
 
 #include "ParseFTPList.h"
 
@@ -783,7 +784,7 @@ int ParseFTPList(const char *line, struct list_state *state,
         state->parsed_one = 1;
         state->lstyle = lstyle;
 
-        p = &(line[linelen_sans_wsp]); 
+        p = &(line[linelen]); 
         result->fe_cinfs = 1;
         result->fe_fname = tokens[3];
         result->fe_fnlen = p - tokens[3];
@@ -812,7 +813,7 @@ int ParseFTPList(const char *line, struct list_state *state,
                 result->fe_type = 'l';
                 result->fe_fnlen = p - result->fe_fname;
                 result->fe_lname = p + 4;
-                result->fe_lnlen = &(line[linelen_sans_wsp]) 
+                result->fe_lnlen = &(line[linelen]) 
                                    - result->fe_lname;
                 break;
               }
@@ -827,8 +828,13 @@ int ParseFTPList(const char *line, struct list_state *state,
           result->fe_time.tm_month--;
           result->fe_time.tm_mday = atoi(tokens[0]+3);
           result->fe_time.tm_year = atoi(tokens[0]+6);
+          
+
+
           if (result->fe_time.tm_year < 80)
-            result->fe_time.tm_year += 100;
+            result->fe_time.tm_year += 2000;
+          else if (result->fe_time.tm_year < 100)
+            result->fe_time.tm_year += 1900;
         }
 
         result->fe_time.tm_hour = atoi(tokens[1]+0);
@@ -1157,23 +1163,42 @@ int ParseFTPList(const char *line, struct list_state *state,
         } 
         
         result->fe_fname = tokens[tokmarker+4];
-        result->fe_fnlen = (&(line[linelen_sans_wsp]))
+        result->fe_fnlen = (&(line[linelen]))
                            - (result->fe_fname);
 
         if (result->fe_type == 'l' && result->fe_fnlen > 4)
         {
-          p = result->fe_fname + 1;
-          for (pos = 1; pos < (result->fe_fnlen - 4); pos++)
+          
+
+          PRUint32 fe_size = atoi(result->fe_size);
+
+          if (result->fe_fnlen > (fe_size + 4) &&
+              PL_strncmp(result->fe_fname + result->fe_fnlen - fe_size - 4 , " -> ", 4) == 0)
           {
-            if (*p == ' ' && p[1] == '-' && p[2] == '>' && p[3] == ' ')
+            result->fe_lname = result->fe_fname + (result->fe_fnlen - fe_size);
+            result->fe_lnlen = (&(line[linelen])) - (result->fe_lname);
+            result->fe_fnlen -= fe_size + 4;
+          }
+          else
+          {
+            
+
+
+
+
+            p = result->fe_fname + (result->fe_fnlen - 5);
+            for (pos = (result->fe_fnlen - 5); pos > 0; pos--)
             {
-              result->fe_lname = p + 4;
-              result->fe_lnlen = (&(line[linelen_sans_wsp]))
-                               - (result->fe_lname);
-              result->fe_fnlen = pos;
-              break;
+              if (PL_strncmp(p, " -> ", 4) == 0)
+              {
+                result->fe_lname = p + 4;
+                result->fe_lnlen = (&(line[linelen]))
+                                 - (result->fe_lname);
+                result->fe_fnlen = pos;
+                break;
+              }
+              p--;
             }
-            p++;
           }
         }
 

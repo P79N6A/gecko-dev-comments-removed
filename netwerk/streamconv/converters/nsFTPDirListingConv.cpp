@@ -319,10 +319,12 @@ nsFTPDirListingConv::DigestBufferLines(char *aBuffer, nsCString &aString) {
         aString.AppendLiteral("201: ");
         
 
-
-        const char* offset = strstr(result.fe_fname, " -> ");
-        if (offset) {
-            result.fe_fnlen = offset - result.fe_fname;
+        
+	if (state.lstyle != 'U' && state.lstyle != 'W') {
+            const char* offset = strstr(result.fe_fname, " -> ");
+            if (offset) {
+                result.fe_fnlen = offset - result.fe_fname;
+            }
         }
 
         nsCAutoString buf;
