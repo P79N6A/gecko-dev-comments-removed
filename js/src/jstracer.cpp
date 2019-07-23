@@ -2650,7 +2650,6 @@ js_DeleteRecorder(JSContext* cx)
 
 
 
-
 static inline bool
 js_CheckGlobalObjectShape(JSContext* cx, JSTraceMonitor* tm, JSObject* globalObj)
 {
@@ -2659,7 +2658,6 @@ js_CheckGlobalObjectShape(JSContext* cx, JSTraceMonitor* tm, JSObject* globalObj
         AUDIT(globalShapeMismatchAtEntry);
         debug_only_v(printf("Global shape mismatch (%u vs. %u), flushing cache.\n",
                             OBJ_SHAPE(globalObj), tm->globalShape);)
-        js_FlushJITCache(cx);
         return false;
     }
     return true;
@@ -2893,11 +2891,8 @@ js_RecordTree(JSContext* cx, JSTraceMonitor* tm, Fragment* f, Fragment* outer, u
     }
 
     
-    uint32 globalShape = OBJ_SHAPE(JS_GetGlobalForObject(cx, cx->fp->scopeChain));
-    if (tm->globalShape != globalShape) {
-        AUDIT(globalShapeMismatchAtEntry);
-        debug_only_v(printf("Global shape mismatch (%u vs. %u) in RecordTree, flushing cache.\n",
-                          globalShape, tm->globalShape);)
+    JSObject* globalObj = JS_GetGlobalForObject(cx, cx->fp->scopeChain);
+    if (!js_CheckGlobalObjectShape(cx, tm, globalObj)) {
         js_FlushJITCache(cx);
         return false;
     }
@@ -3670,7 +3665,8 @@ js_MonitorLoopEdge(JSContext* cx, uintN& inlineCallCount)
     
     
     JSObject* globalObj = JS_GetGlobalForObject(cx, cx->fp->scopeChain);
-    js_CheckGlobalObjectShape(cx, tm, globalObj);
+    if (!js_CheckGlobalObjectShape(cx, tm, globalObj))
+        js_FlushJITCache(cx);
     
     jsbytecode* pc = cx->fp->regs->pc;
     Fragmento* fragmento = tm->fragmento;
