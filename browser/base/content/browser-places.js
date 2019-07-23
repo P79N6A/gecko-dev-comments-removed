@@ -100,7 +100,7 @@ var StarUI = {
       case "popuphidden":
         if (aEvent.originalTarget == this.panel) {
           if (!this._element("editBookmarkPanelContent").hidden)
-            gEditItemOverlay.uninitPanel(true);
+            this.quitEditMode();
           this._restoreCommandsState();
           this._itemId = -1;
           this._uri = null;
@@ -113,13 +113,19 @@ var StarUI = {
       case "keypress":
         if (aEvent.keyCode == KeyEvent.DOM_VK_ESCAPE) {
           
-          if (!this._element("editBookmarkPanelContent").hidden)
-            this.cancelButtonOnCommand();
-          else 
+          
+          if (!this._element("editBookmarkPanelContent").hidden) {
+            var elt = aEvent.target;
+            if (elt.localName != "tree" ||
+                (elt.localName == "tree" && !elt.hasAttribute("editing")))
+              this.cancelButtonOnCommand();
+          }
+        }
+        else if (aEvent.keyCode == KeyEvent.DOM_VK_RETURN) {
+          
+          if (aEvent.target.localName != "tree")
             this.panel.hidePopup();
         }
-        else if (aEvent.keyCode == KeyEvent.DOM_VK_RETURN)
-          this.panel.hidePopup(); 
         break;
     }
   },
@@ -242,10 +248,6 @@ var StarUI = {
                                 [brandShortName]);
 
     
-    this._element("editBookmarkPanelContent").hidden = true;
-    this._element("editBookmarkPanelBottomButtons").hidden = true;
-
-    
     
     this._element("editBookmarkPanelEditButton").hidden = false;
     this._element("editBookmarkPanelRemoveButton").hidden = false;
@@ -265,14 +267,23 @@ var StarUI = {
       this.panel.focus();
   },
 
+  quitEditMode: function SU_quitEditMode() {
+    this._element("editBookmarkPanelContent").hidden = true;
+    this._element("editBookmarkPanelBottomButtons").hidden = true;
+    gEditItemOverlay.uninitPanel(true);
+  },
+
   editButtonCommand: function SU_editButtonCommand() {
     this.showEditBookmarkPopup();
   },
 
   cancelButtonOnCommand: function SU_cancelButtonOnCommand() {
+    
+    
+    
+    this.panel.hidePopup();
     this.endBatch();
     PlacesUIUtils.ptm.undoTransaction();
-    this.panel.hidePopup();
   },
 
   removeBookmarkButtonCommand: function SU_removeBookmarkButtonCommand() {
@@ -290,10 +301,12 @@ var StarUI = {
       
       this._element("editBookmarkPanelTitle").value =
         bundle.getString("editBookmarkPanel.bookmarkedRemovedTitle");
+
+      
+      this.quitEditMode();
+
       
       
-      this._element("editBookmarkPanelContent").hidden = true;
-      this._element("editBookmarkPanelBottomButtons").hidden = true;
       this._element("editBookmarkPanelUndoRemoveButton").hidden = false;
       this._element("editBookmarkPanelRemoveButton").hidden = true;
       this._element("editBookmarkPanelStarIcon").setAttribute("unstarred", "true");
