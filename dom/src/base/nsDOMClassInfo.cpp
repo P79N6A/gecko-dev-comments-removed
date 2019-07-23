@@ -6543,6 +6543,19 @@ nsEventReceiverSH::AddEventListenerHelper(JSContext *cx, JSObject *obj,
     return JS_FALSE;
   }
 
+  nsCOMPtr<nsIXPConnectWrappedNative> wrapper;
+  nsresult rv =
+    sXPConnect->GetWrappedNativeOfJSObject(cx, obj, getter_AddRefs(wrapper));
+  if (NS_FAILED(rv)) {
+    nsDOMClassInfo::ThrowJSException(cx, rv);
+
+    return JS_FALSE;
+  }
+
+  
+  
+  wrapper->GetJSObject(&obj);
+
   
   if (NS_FAILED(sSecMan->CheckPropertyAccess(cx, obj,
                                              JS_GET_CLASS(cx, obj)->name,
@@ -6555,15 +6568,6 @@ nsEventReceiverSH::AddEventListenerHelper(JSContext *cx, JSObject *obj,
     
     
     
-
-    return JS_FALSE;
-  }
-
-  nsCOMPtr<nsIXPConnectWrappedNative> wrapper;
-  nsresult rv =
-    sXPConnect->GetWrappedNativeOfJSObject(cx, obj, getter_AddRefs(wrapper));
-  if (NS_FAILED(rv)) {
-    nsDOMClassInfo::ThrowJSException(cx, rv);
 
     return JS_FALSE;
   }
