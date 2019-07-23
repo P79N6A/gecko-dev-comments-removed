@@ -2775,6 +2775,12 @@ XRE_main(int argc, char* argv[], const nsXREAppData* aAppData)
 #endif
 
 #if defined(MOZ_WIDGET_GTK2)
+#ifdef MOZ_MEMORY
+    
+    
+    
+    g_slice_set_config(G_SLICE_CONFIG_ALWAYS_MALLOC, 1);
+#endif
     g_thread_init(NULL);
     
     
