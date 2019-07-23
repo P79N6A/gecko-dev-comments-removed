@@ -181,6 +181,10 @@ nsWindowsSystemProxySettings::PatternMatch(const nsACString& aHost,
         if (tokenEnd == tokenStart) {
             star = PR_TRUE;
             tokenStart++;
+            
+            
+            if (override.FindChar('.', tokenStart) == tokenStart)
+                tokenStart++;
         } else {
             if (tokenEnd == -1)
                 tokenEnd = overrideLength;
@@ -229,10 +233,6 @@ nsWindowsSystemProxySettings::GetProxyForURI(nsIURI* aURI, nsACString& aResult)
 
     nsCAutoString host;
     rv = aURI->GetHost(host);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    PRInt32 port;
-    rv = aURI->GetPort(&port);
     NS_ENSURE_SUCCESS(rv, rv);
 
     if (MatchOverride(host)) {
