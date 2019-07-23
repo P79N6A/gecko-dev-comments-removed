@@ -53,6 +53,7 @@
 #include "nsCSSDataBlock.h"
 #include "nsCSSDeclaration.h"
 #include "prlog.h"
+#include <math.h>
 
 
 
@@ -93,6 +94,15 @@ GetCommonUnit(nsStyleUnit aFirstUnit,
 
 
 
+#define MAX_PACKED_COLOR_COMPONENT 255
+
+inline PRUint8 ClampColor(PRUint32 aColor)
+{
+  if (aColor >= MAX_PACKED_COLOR_COMPONENT)
+    return MAX_PACKED_COLOR_COMPONENT;
+  return aColor;
+}
+
 PRBool
 nsStyleAnimation::Add(nsStyleCoord& aDest, const nsStyleCoord& aValueToAdd,
                       PRUint32 aCount)
@@ -113,6 +123,35 @@ nsStyleAnimation::Add(nsStyleCoord& aDest, const nsStyleCoord& aValueToAdd,
       float valueToAddPct = aValueToAdd.GetPercentValue();
       destPct += aCount * valueToAddPct;
       aDest.SetPercentValue(destPct);
+      break;
+    }
+    case eStyleUnit_Color: {
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      nscolor destColor = aDest.GetColorValue();
+      nscolor colorToAdd = aValueToAdd.GetColorValue();
+      if (aCount > MAX_PACKED_COLOR_COMPONENT) {
+        
+        
+        
+        aCount = MAX_PACKED_COLOR_COMPONENT;
+      }
+      PRUint8 resultR =
+        ClampColor(NS_GET_R(destColor) + aCount * NS_GET_R(colorToAdd));
+      PRUint8 resultG =
+        ClampColor(NS_GET_G(destColor) + aCount * NS_GET_G(colorToAdd));
+      PRUint8 resultB =
+        ClampColor(NS_GET_B(destColor) + aCount * NS_GET_B(colorToAdd));
+      PRUint8 resultA =
+        ClampColor(NS_GET_A(destColor) + aCount * NS_GET_A(colorToAdd));
+      aDest.SetColorValue(NS_RGBA(resultR, resultG, resultB, resultA));
       break;
     }
     case eStyleUnit_Null:
@@ -147,6 +186,43 @@ nsStyleAnimation::ComputeDistance(const nsStyleCoord& aStartValue,
       float startPct = aStartValue.GetPercentValue();
       float endPct = aEndValue.GetPercentValue();
       aDistance = fabs(double(endPct - startPct));
+      break;
+    }
+    case eStyleUnit_Color: {
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      nscolor startColor = aStartValue.GetColorValue();
+      nscolor endColor = aEndValue.GetColorValue();
+
+      
+      
+      #define GET_COMPONENT(component_, color_) \
+        (NS_GET_##component_(color_) * (1.0 / 255.0))
+
+      double startA = GET_COMPONENT(A, startColor);
+      double startR = GET_COMPONENT(R, startColor) * startA;
+      double startG = GET_COMPONENT(G, startColor) * startA;
+      double startB = GET_COMPONENT(B, startColor) * startA;
+      double endA = GET_COMPONENT(A, endColor);
+      double endR = GET_COMPONENT(R, endColor) * endA;
+      double endG = GET_COMPONENT(G, endColor) * endA;
+      double endB = GET_COMPONENT(B, endColor) * endA;
+
+      #undef GET_COMPONENT
+
+      double diffA = startA - endA;
+      double diffR = startR - endR;
+      double diffG = startG - endG;
+      double diffB = startB - endB;
+      aDistance = sqrt(diffA * diffA + diffR * diffR +
+                       diffG * diffG + diffB * diffB);
       break;
     }
     case eStyleUnit_Null:
@@ -191,6 +267,40 @@ nsStyleAnimation::Interpolate(const nsStyleCoord& aStartValue,
       float endPct = aEndValue.GetPercentValue();
       float resultPct = startPct + aPortion * (endPct - startPct);
       aResultValue.SetPercentValue(resultPct);
+      break;
+    }
+    case eStyleUnit_Color: {
+      double inv = 1.0 - aPortion;
+      nscolor startColor = aStartValue.GetColorValue();
+      nscolor endColor = aEndValue.GetColorValue();
+      
+      
+      
+      
+
+      
+      
+      double startA = NS_GET_A(startColor) * (1.0 / 255.0);
+      double startR = NS_GET_R(startColor) * startA;
+      double startG = NS_GET_G(startColor) * startA;
+      double startB = NS_GET_B(startColor) * startA;
+      double endA = NS_GET_A(endColor) * (1.0 / 255.0);
+      double endR = NS_GET_R(endColor) * endA;
+      double endG = NS_GET_G(endColor) * endA;
+      double endB = NS_GET_B(endColor) * endA;
+      double resAf = (startA * inv + endA * aPortion);
+      nscolor resultColor;
+      if (resAf == 0.0) {
+        resultColor = NS_RGBA(0, 0, 0, 0);
+      } else {
+        double factor = 1.0 / resAf;
+        PRUint8 resA = NSToIntRound(resAf * 255.0);
+        PRUint8 resR = NSToIntRound((startR * inv + endR * aPortion) * factor);
+        PRUint8 resG = NSToIntRound((startG * inv + endG * aPortion) * factor);
+        PRUint8 resB = NSToIntRound((startB * inv + endB * aPortion) * factor);
+        resultColor = NS_RGBA(resR, resG, resB, resA);
+      }
+      aResultValue.SetColorValue(resultColor);
       break;
     }
     case eStyleUnit_Null:
@@ -344,6 +454,10 @@ nsStyleAnimation::ExtractComputedValue(nsCSSProperty aProperty,
       aComputedValue.SetCoordValue(*static_cast<const nscoord*>(
         StyleDataAtOffset(styleStruct, ssOffset)));
       return PR_TRUE;
+    case eStyleAnimType_Color:
+      aComputedValue.SetColorValue(*static_cast<const nscolor*>(
+        StyleDataAtOffset(styleStruct, ssOffset)));
+      return PR_TRUE;
     case eStyleAnimType_None:
       NS_NOTREACHED("shouldn't use on non-animatable properties");
   }
@@ -402,6 +516,10 @@ nsStyleAnimation::StoreComputedValue(nsCSSProperty aProperty,
           font->mFont.size = font->mSize;
         }
       }
+      return PR_TRUE;
+    case eStyleAnimType_Color:
+      *static_cast<nscolor*>(StyleDataAtOffset(aStyleStruct, ssOffset)) =
+        aComputedValue.GetColorValue();
       return PR_TRUE;
     case eStyleAnimType_None:
       NS_NOTREACHED("shouldn't use on non-animatable properties");
