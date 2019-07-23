@@ -9166,8 +9166,8 @@ TraceRecorder::test_property_cache(JSObject* obj, LIns* obj_ins, JSObject*& obj2
     CHECK_STATUS_A(guardNativePropertyOp(aobj, map_ins));
 
     JSAtom* atom;
-    JSPropCacheEntry* entry;
-    PROPERTY_CACHE_TEST(cx, pc, aobj, obj2, entry, atom);
+    PropertyCacheEntry* entry;
+    JS_PROPERTY_CACHE(cx).test(cx, pc, aobj, obj2, entry, atom);
     if (atom) {
         
         jsid id = ATOM_TO_JSID(atom);
@@ -9208,8 +9208,8 @@ TraceRecorder::test_property_cache(JSObject* obj, LIns* obj_ins, JSObject*& obj2
                     obj2->dropProperty(cx, prop);
                     RETURN_STOP_A("property found on non-native object");
                 }
-                entry = js_FillPropertyCache(cx, aobj, 0, protoIndex, obj2,
-                                             (JSScopeProperty*) prop);
+                entry = JS_PROPERTY_CACHE(cx).fill(cx, aobj, 0, protoIndex, obj2,
+                                                   (JSScopeProperty*) prop);
                 JS_ASSERT(entry);
                 if (entry == JS_NO_PROP_CACHE_FILL)
                     entry = NULL;
@@ -9249,12 +9249,12 @@ TraceRecorder::guardPropertyCacheHit(LIns* obj_ins,
                                      LIns* map_ins,
                                      JSObject* aobj,
                                      JSObject* obj2,
-                                     JSPropCacheEntry* entry,
+                                     PropertyCacheEntry* entry,
                                      jsuword& pcval)
 {
     VMSideExit* exit = snapshot(BRANCH_EXIT);
 
-    uint32 vshape = PCVCAP_SHAPE(entry->vcap);
+    uint32 vshape = entry->vshape();
 
     
     
@@ -9290,13 +9290,13 @@ TraceRecorder::guardPropertyCacheHit(LIns* obj_ins,
 
     
     
-    if (PCVCAP_TAG(entry->vcap) >= 1) {
+    if (entry->vcapTag() >= 1) {
         JS_ASSERT(OBJ_SHAPE(obj2) == vshape);
         if (obj2 == globalObj)
             RETURN_STOP("hitting the global object via a prototype chain");
 
         LIns* obj2_ins;
-        if (PCVCAP_TAG(entry->vcap) == 1) {
+        if (entry->vcapTag() == 1) {
             
             obj2_ins = addName(stobj_get_proto(obj_ins), "proto");
             guard(false, lir->ins_peq0(obj2_ins), exit);
@@ -11251,12 +11251,12 @@ JS_DEFINE_CALLINFO_4(static, BOOL_FAIL, MethodWriteBarrier, CONTEXT, OBJECT, SCO
                      0, ACC_STORE_ANY)
 
 JS_REQUIRES_STACK RecordingStatus
-TraceRecorder::setProp(jsval &l, JSPropCacheEntry* entry, JSScopeProperty* sprop,
+TraceRecorder::setProp(jsval &l, PropertyCacheEntry* entry, JSScopeProperty* sprop,
                        jsval &v, LIns*& v_ins)
 {
     if (entry == JS_NO_PROP_CACHE_FILL)
         RETURN_STOP("can't trace uncacheable property set");
-    JS_ASSERT_IF(PCVCAP_TAG(entry->vcap) >= 1, !sprop->hasSlot());
+    JS_ASSERT_IF(entry->vcapTag() >= 1, !sprop->hasSlot());
     if (!sprop->hasDefaultSetter() && sprop->slot != SPROP_INVALID_SLOT)
         RETURN_STOP("can't trace set of property with setter and slot");
     if (sprop->hasSetterValue())
@@ -11273,7 +11273,7 @@ TraceRecorder::setProp(jsval &l, JSPropCacheEntry* entry, JSScopeProperty* sprop
     LIns* obj_ins = get(&l);
     JSScope* scope = OBJ_SCOPE(obj);
 
-    JS_ASSERT_IF(entry->vcap == PCVCAP_MAKE(entry->kshape, 0, 0), scope->hasProperty(sprop));
+    JS_ASSERT_IF(entry->directHit(), scope->hasProperty(sprop));
 
     
     v_ins = get(&v);
@@ -11282,9 +11282,9 @@ TraceRecorder::setProp(jsval &l, JSPropCacheEntry* entry, JSScopeProperty* sprop
 
     
     JSObject* obj2 = obj;
-    for (jsuword i = PCVCAP_TAG(entry->vcap) >> PCVCAP_PROTOBITS; i; i--)
+    for (jsuword i = entry->scopeIndex(); i; i--)
         obj2 = obj2->getParent();
-    for (jsuword j = PCVCAP_TAG(entry->vcap) & PCVCAP_PROTOMASK; j; j--)
+    for (jsuword j = entry->protoIndex(); j; j--)
         obj2 = obj2->getProto();
     scope = OBJ_SCOPE(obj2);
     JS_ASSERT_IF(entry->adding(), obj2 == obj);
@@ -11457,7 +11457,7 @@ TraceRecorder::setCallProp(JSObject *callobj, LIns *callobj_ins, JSScopeProperty
 }
 
 JS_REQUIRES_STACK AbortableRecordingStatus
-TraceRecorder::record_SetPropHit(JSPropCacheEntry* entry, JSScopeProperty* sprop)
+TraceRecorder::record_SetPropHit(PropertyCacheEntry* entry, JSScopeProperty* sprop)
 {
     jsval& r = stackval(-1);
     jsval& l = stackval(-2);

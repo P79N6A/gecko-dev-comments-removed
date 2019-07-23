@@ -900,7 +900,7 @@ js_IsCacheableNonGlobalScope(JSObject *obj)
 
 
 
-extern JSPropCacheEntry *
+extern js::PropertyCacheEntry *
 js_FindPropertyHelper(JSContext *cx, jsid id, JSBool cacheResult,
                       JSObject **objp, JSObject **pobjp, JSProperty **propp);
 

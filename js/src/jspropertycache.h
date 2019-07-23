@@ -35,6 +35,9 @@
 
 
 
+
+
+
 #ifndef jspropertycache_h___
 #define jspropertycache_h___
 
@@ -42,30 +45,13 @@
 #include "jsprvtd.h"
 #include "jstypes.h"
 
-JS_BEGIN_EXTERN_C
+namespace js {
 
 
 
 
 
 
-
-enum {
-    PROPERTY_CACHE_LOG2 = 12,
-    PROPERTY_CACHE_SIZE = JS_BIT(PROPERTY_CACHE_LOG2),
-    PROPERTY_CACHE_MASK = JS_BITMASK(PROPERTY_CACHE_LOG2)
-};
-
-
-
-
-
-
-inline jsuword
-PROPERTY_CACHE_HASH(jsbytecode *pc, jsuword kshape)
-{
-    return ((((jsuword(pc) >> PROPERTY_CACHE_LOG2) ^ jsuword(pc)) + kshape) & PROPERTY_CACHE_MASK);
-}
 
 
 enum {
@@ -83,60 +69,57 @@ enum {
 
 const uint32 SHAPE_OVERFLOW_BIT = JS_BIT(32 - PCVCAP_TAGBITS);
 
-inline jsuword
-PCVCAP_TAG(jsuword t)
-{
-    return t & PCVCAP_TAGMASK;
-}
-
-inline jsuword
-PCVCAP_MAKE(uint32 t, unsigned int s, unsigned int p)
-{
-    JS_ASSERT(t < SHAPE_OVERFLOW_BIT);
-    JS_ASSERT(s <= PCVCAP_SCOPEMASK);
-    JS_ASSERT(p <= PCVCAP_PROTOMASK);
-    return (t << PCVCAP_TAGBITS) | (s << PCVCAP_PROTOBITS) | p;
-}
-
-inline uint32
-PCVCAP_SHAPE(jsuword t)
-{
-    return t >> PCVCAP_TAGBITS;
-}
-
-struct JSPropCacheEntry
+struct PropertyCacheEntry
 {
     jsbytecode          *kpc;           
     jsuword             kshape;         
     jsuword             vcap;           
     jsuword             vword;          
 
-    bool adding() const {
-        return PCVCAP_TAG(vcap) == 0 && kshape != PCVCAP_SHAPE(vcap);
-    }
+    bool adding() const { return vcapTag() == 0 && kshape != vshape(); }
+    bool directHit() const { return vcapTag() == 0 && kshape == vshape(); }
 
-    bool directHit() const {
-        return PCVCAP_TAG(vcap) == 0 && kshape == PCVCAP_SHAPE(vcap);
-    }
+    jsuword vcapTag() const { return vcap & PCVCAP_TAGMASK; }
+    uint32 vshape() const { return uint32(vcap >> PCVCAP_TAGBITS); }
+    jsuword scopeIndex() const { return (vcap >> PCVCAP_PROTOBITS) & PCVCAP_SCOPEMASK; }
+    jsuword protoIndex() const { return vcap & PCVCAP_PROTOMASK; }
 
-    static inline bool matchShape(JSContext *cx, JSObject *obj, uint32 shape);
+    void assign(jsbytecode *kpc, jsuword kshape, jsuword vshape,
+                uintN scopeIndex, uintN protoIndex, jsuword vword) {
+        JS_ASSERT(kshape < SHAPE_OVERFLOW_BIT);
+        JS_ASSERT(vshape < SHAPE_OVERFLOW_BIT);
+        JS_ASSERT(scopeIndex <= PCVCAP_SCOPEMASK);
+        JS_ASSERT(protoIndex <= PCVCAP_PROTOMASK);
+
+        this->kpc = kpc;
+        this->kshape = kshape;
+        this->vcap = (vshape << PCVCAP_TAGBITS) | (scopeIndex << PCVCAP_PROTOBITS) | protoIndex;
+        this->vword = vword;
+    }
 };
 
 
 
 
 
-#define JS_NO_PROP_CACHE_FILL ((JSPropCacheEntry *) NULL + 1)
+#define JS_NO_PROP_CACHE_FILL ((js::PropertyCacheEntry *) NULL + 1)
 
 #if defined DEBUG_brendan || defined DEBUG_brendaneich
 #define JS_PROPERTY_CACHE_METERING 1
 #endif
 
-typedef struct JSPropertyCache {
-    JSPropCacheEntry    table[PROPERTY_CACHE_SIZE];
+struct PropertyCache
+{
+    enum {
+        SIZE_LOG2 = 12,
+        SIZE = JS_BIT(SIZE_LOG2),
+        MASK = JS_BITMASK(SIZE_LOG2)
+    };
+
+    PropertyCacheEntry  table[SIZE];
     JSBool              empty;
 #ifdef JS_PROPERTY_CACHE_METERING
-    JSPropCacheEntry    *pctestentry;   
+    PropertyCacheEntry  *pctestentry;   
     uint32              fills;          
     uint32              nofills;        
     uint32              rofills;        
@@ -169,7 +152,48 @@ typedef struct JSPropertyCache {
 #else
 # define PCMETER(x)     ((void)0)
 #endif
-} JSPropertyCache;
+
+    
+
+
+
+
+    static inline jsuword
+    hash(jsbytecode *pc, jsuword kshape)
+    {
+        return ((((jsuword(pc) >> SIZE_LOG2) ^ jsuword(pc)) + kshape) & MASK);
+    }
+
+    static inline bool matchShape(JSContext *cx, JSObject *obj, uint32 shape);
+
+    JS_ALWAYS_INLINE JS_REQUIRES_STACK void test(JSContext *cx, jsbytecode *pc,
+                                                 JSObject *&obj, JSObject *&pobj,
+                                                 PropertyCacheEntry *&entry, JSAtom *&atom);
+
+    JS_REQUIRES_STACK JSAtom *fullTest(JSContext *cx, jsbytecode *pc, JSObject **objp,
+                                       JSObject **pobjp, PropertyCacheEntry *entry);
+
+    
+
+
+
+
+
+
+
+    JS_REQUIRES_STACK PropertyCacheEntry *fill(JSContext *cx, JSObject *obj, uintN scopeIndex,
+                                               uintN protoIndex, JSObject *pobj,
+                                               JSScopeProperty *sprop, JSBool adding = false);
+
+    void purge(JSContext *cx);
+    void purgeForScript(JSScript *script);
+
+#ifdef DEBUG
+    void assertEmpty();
+#else
+    inline void assertEmpty() {}
+#endif
+};
 
 
 
@@ -206,33 +230,6 @@ inline bool PCVAL_IS_SPROP(jsuword v) { return PCVAL_TAG(v) == PCVAL_SPROP; }
 inline JSScopeProperty *PCVAL_TO_SPROP(jsuword v) { JS_ASSERT(PCVAL_IS_SPROP(v)); return (JSScopeProperty *) PCVAL_CLRTAG(v); }
 inline jsuword SPROP_TO_PCVAL(JSScopeProperty *sprop) { return PCVAL_SETTAG(jsuword(sprop), PCVAL_SPROP); }
 
-
-
-
-
-
-
-
-
-extern JS_REQUIRES_STACK JSPropCacheEntry *
-js_FillPropertyCache(JSContext *cx, JSObject *obj,
-                     uintN scopeIndex, uintN protoIndex, JSObject *pobj,
-                     JSScopeProperty *sprop, JSBool adding = false);
-
-extern JS_REQUIRES_STACK JSAtom *
-js_FullTestPropertyCache(JSContext *cx, jsbytecode *pc,
-                         JSObject **objp, JSObject **pobjp,
-                         JSPropCacheEntry *entry);
-
-
-#define js_FinishPropertyCache(cache) ((void) 0)
-
-extern void
-js_PurgePropertyCache(JSContext *cx, JSPropertyCache *cache);
-
-extern void
-js_PurgePropertyCacheForScript(JSContext *cx, JSScript *script);
-
-JS_END_EXTERN_C
+} 
 
 #endif 
