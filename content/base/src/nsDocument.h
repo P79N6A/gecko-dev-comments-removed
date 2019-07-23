@@ -776,11 +776,13 @@ protected:
   
   PRPackedBool mHasHadScriptHandlingObject:1;
 
+  PRPackedBool mHasWarnedAboutBoxObjects:1;
+
   PRUint8 mXMLDeclarationBits;
 
   PRUint8 mDefaultElementType;
 
-  nsInterfaceHashtable<nsISupportsHashKey, nsPIBoxObject> *mBoxObjectTable;
+  nsInterfaceHashtable<nsVoidPtrHashKey, nsPIBoxObject> *mBoxObjectTable;
   nsInterfaceHashtable<nsVoidPtrHashKey, nsISupports> *mContentWrapperHash;
 
   

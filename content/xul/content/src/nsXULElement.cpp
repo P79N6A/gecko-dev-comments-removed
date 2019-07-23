@@ -1830,9 +1830,7 @@ nsXULElement::GetBoxObject(nsIBoxObject** aResult)
   *aResult = nsnull;
 
   
-  nsIDocument* doc = HasFlag(NODE_FORCE_XBL_BINDINGS) ?
-    GetOwnerDoc() : GetCurrentDoc();
-  nsCOMPtr<nsIDOMNSDocument> nsDoc(do_QueryInterface(doc));
+  nsCOMPtr<nsIDOMNSDocument> nsDoc = do_QueryInterface(GetOwnerDoc());
 
   return nsDoc ? nsDoc->GetBoxObjectFor(this, aResult) : NS_ERROR_FAILURE;
 }
