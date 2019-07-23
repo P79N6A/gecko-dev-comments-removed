@@ -74,6 +74,9 @@ static DllBlockInfo sWindowsDllBlocklist[] = {
 
   
   {"avgrsstx.dll", MAKE_VERSION(8,5,0,401)},
+  
+  
+  {"calc.dll", MAKE_VERSION(1,0,0,1)},
 
   
   { "mozdllblockingtest.dll", ALL_VERSIONS },
