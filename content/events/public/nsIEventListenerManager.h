@@ -52,8 +52,8 @@ class nsIAtom;
 
 
 #define NS_IEVENTLISTENERMANAGER_IID \
-{ 0x06177dc7, 0x4ad9, 0x493c, \
-  { 0x9c, 0x04, 0x28, 0xf0, 0xf7, 0x39, 0xa0, 0xfe } }
+{ 0x6ee5eeeb, 0x1bf3, 0x4865, \
+  { 0xa9, 0x52, 0x3b, 0x3e, 0x97, 0x9b, 0x4a, 0xb3 } }
 
 
 class nsIEventListenerManager : public nsISupports {
@@ -183,6 +183,11 @@ public:
 
 
   virtual PRUint32 MutationListenerBits() = 0;
+
+  
+
+
+  virtual PRBool HasListenersFor(const nsAString& aEventName) = 0;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsIEventListenerManager,
