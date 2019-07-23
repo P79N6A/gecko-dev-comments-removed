@@ -827,7 +827,7 @@ typedef struct JSGCRootHashEntry {
 #if JS_BYTES_PER_WORD == 4   
 #define GC_MAXBYTES_LIMIT    (2 << 30)
 #else  
-#define GC_MAXBYTES_LIMIT    (2 << 40)
+#define GC_MAXBYTES_LIMIT    (2LL << 40)
 #endif
 
 JSBool
