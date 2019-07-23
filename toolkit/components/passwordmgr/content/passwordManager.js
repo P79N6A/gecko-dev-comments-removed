@@ -97,7 +97,11 @@ var signonsTreeView = {
 
 function LoadSignons() {
   
-  signons = passwordmanager.getAllLogins({});
+  try {
+    signons = passwordmanager.getAllLogins({});
+  } catch (e) {
+    signons = [];
+  }
   signonsTreeView.rowCount = signons.length;
 
   
@@ -204,8 +208,13 @@ function FinalizeSignonDeletions(syncNeeded) {
   }
   
   
-  if (syncNeeded)
-    signons = passwordmanager.getAllLogins({});
+  if (syncNeeded) {
+    try {
+      signons = passwordmanager.getAllLogins({});
+    } catch (e) {
+      signons = [];
+    }
+  }
   deletedSignons.length = 0;
 }
 
