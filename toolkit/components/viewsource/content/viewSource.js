@@ -22,6 +22,7 @@
 # Contributor(s):
 #   Doron Rosenberg (doronr@naboonline.com)
 #   Neil Rashbrook (neil@parkwaycc.co.uk)
+#   DÃ£o Gottwald (dao@design-noir.de)
 #
 # Alternatively, the contents of this file may be used under the terms of
 # either the GNU General Public License Version 2 or later (the "GPL"), or
@@ -39,16 +40,36 @@
 
 const Cc = Components.classes;
 const Ci = Components.interfaces;
-const Cr = Components.results;
-const pageLoaderIface = Components.interfaces.nsIWebPageDescriptor;
-const nsISelectionPrivate = Components.interfaces.nsISelectionPrivate;
-const nsISelectionController = Components.interfaces.nsISelectionController;
-var gBrowser = null;
-var gViewSourceBundle = null;
 var gPrefs = null;
 
 var gLastLineFound = '';
 var gGoToLine = 0;
+
+[
+  ["gBrowser",          "content"],
+  ["gViewSourceBundle", "viewSourceBundle"]
+].forEach(function ([name, id]) {
+  window.__defineGetter__(name, function () {
+    var element = document.getElementById(id);
+    if (!element)
+      return null;
+    delete window[name];
+    return window[name] = element;
+  });
+});
+
+
+function getBrowser() {
+  return gBrowser;
+}
+
+__defineGetter__("gPageLoader", function () {
+  var webnav = getWebNavigation();
+  if (!webnav)
+    return null;
+  delete this.gPageLoader;
+  return this.gPageLoader = webnav.QueryInterface(Ci.nsIWebPageDescriptor);
+});
 
 try {
   var prefService = Components.classes["@mozilla.org/preferences-service;1"]
@@ -68,45 +89,12 @@ var gSelectionListener = {
   }
 }
 
-var gViewSourceProgressListener = {
-
-  QueryInterface: function (aIID) {
-    if (aIID.equals(Ci.nsIWebProgressListener) ||
-        aIID.equals(Ci.nsISupportsWeakReference))
-      return this;
-    throw Cr.NS_NOINTERFACE;
-  },
-
-  onStateChange: function (aWebProgress, aRequest, aStateFlags, aStatus) {
-  },
-
-  onProgressChange: function (aWebProgress, aRequest,
-                              aCurSelfProgress, aMaxSelfProgress,
-                              aCurTotalProgress, aMaxTotalProgress) {
-  },
-
-  onLocationChange: function (aWebProgress, aRequest, aLocationURI) {
-    UpdateBackForwardCommands(getBrowser().webNavigation);
-  },
-
-  onStatusChange: function (aWebProgress, aRequest, aStatus, aMessage) {
-  },
-
-  onSecurityChange: function (aWebProgress, aRequest, aState) {
-  }
-
-}
-
 function onLoadViewSource() 
 {
   viewSource(window.arguments[0]);
   document.commandDispatcher.focusedWindow = content;
       
-  if (isHistoryEnabled()) {
-    
-    getBrowser().addProgressListener(gViewSourceProgressListener, 
-        Components.interfaces.nsIWebProgress.NOTIFY_ALL);
-  } else {
+  if (!isHistoryEnabled()) {
     
     var viewSourceNavigation = document.getElementById("viewSourceNavigation");
     viewSourceNavigation.setAttribute("disabled", "true");
@@ -114,64 +102,39 @@ function onLoadViewSource()
   }
 }
 
-function onUnloadViewSource() 
-{
-  
-  if (isHistoryEnabled()) {
-    getBrowser().removeProgressListener(gViewSourceProgressListener);
-  }
-}
-
 function isHistoryEnabled() {
-  return !getBrowser().hasAttribute("disablehistory");
+  return !gBrowser.hasAttribute("disablehistory");
 }
 
-function getBrowser()
-{
-  if (!gBrowser)
-    gBrowser = document.getElementById("content");
-  return gBrowser;
-}
-
-function getSelectionController()
-{
-  return getBrowser().docShell
-    .QueryInterface(Components.interfaces.nsIInterfaceRequestor)
-    .getInterface(Components.interfaces.nsISelectionDisplay)
-    .QueryInterface(nsISelectionController);
-
-}
-
-function getViewSourceBundle()
-{
-  if (!gViewSourceBundle)
-    gViewSourceBundle = document.getElementById("viewSourceBundle");
-  return gViewSourceBundle;
+function getSelectionController() {
+  return gBrowser.docShell
+                 .QueryInterface(Ci.nsIInterfaceRequestor)
+                 .getInterface(Ci.nsISelectionDisplay)
+                 .QueryInterface(Ci.nsISelectionController);
 }
 
 function viewSource(url)
 {
   if (!url)
-    return false; 
+    return; 
     
   var viewSrcUrl = "view-source:" + url;
 
-  getBrowser().addEventListener("unload", onUnloadContent, true);
-  getBrowser().addEventListener("load", onLoadContent, true);
+  gBrowser.addEventListener("pagehide", onUnloadContent, true);
+  gBrowser.addEventListener("pageshow", onLoadContent, true);
 
   var loadFromURL = true;
+
   
   
   
   
   
   
-  
-  
+
   if ("arguments" in window) {
     var arg;
-    
-    
+
     
     var charset;
     if (window.arguments.length >= 2) {
@@ -196,23 +159,20 @@ function viewSource(url)
 
       try {
         if (arg === true) {
-          var docCharset = getBrowser().docShell.QueryInterface
-                             (Components.interfaces.nsIDocCharset);
+          var docCharset = gBrowser.docShell.QueryInterface(Ci.nsIDocCharset);
           docCharset.charset = charset;
         }
       } catch (ex) {
         
       }
     }
-    
-    
+
     
     if (window.arguments.length >= 4) {
       arg = window.arguments[3];
       gGoToLine = parseInt(arg);
     }
-    
-    
+
     
     
     if (window.arguments.length >= 3) {
@@ -220,14 +180,10 @@ function viewSource(url)
 
       try {
         if (typeof(arg) == "object" && arg != null) {
-          var PageLoader = getBrowser().webNavigation.QueryInterface(pageLoaderIface);
-
           
           
           
-          
-          
-          PageLoader.loadPage(arg, pageLoaderIface.DISPLAY_AS_SOURCE);
+          gPageLoader.loadPage(arg, gPageLoader.DISPLAY_AS_SOURCE);
 
           
           loadFromURL = false;
@@ -239,9 +195,9 @@ function viewSource(url)
           shEntry.setTitle(viewSrcUrl);
           shEntry.loadType = Ci.nsIDocShellLoadInfo.loadHistory;
           shEntry.cacheKey = shEntrySource.cacheKey;
-          getBrowser().webNavigation.sessionHistory
-                      .QueryInterface(Ci.nsISHistoryInternal)
-                      .addEntry(shEntry, true);
+          gBrowser.sessionHistory
+                  .QueryInterface(Ci.nsISHistoryInternal)
+                  .addEntry(shEntry, true);
         }
       } catch(ex) {
         
@@ -252,23 +208,23 @@ function viewSource(url)
 
   if (loadFromURL) {
     
-    
-    
-    var loadFlags = Components.interfaces.nsIWebNavigation.LOAD_FLAGS_NONE;
-    getBrowser().webNavigation.loadURI(viewSrcUrl, loadFlags, null, null, null);
+    var loadFlags = Ci.nsIWebNavigation.LOAD_FLAGS_NONE;
+    getWebNavigation().loadURI(viewSrcUrl, loadFlags, null, null, null);
   }
 
+  
   
   if (gPrefs) {
     try {
       var wraplonglinesPrefValue = gPrefs.getBoolPref("view_source.wrap_long_lines");
 
       if (wraplonglinesPrefValue)
-        document.getElementById('menu_wrapLongLines').setAttribute("checked", "true");
+        document.getElementById("menu_wrapLongLines").setAttribute("checked", "true");
     } catch (ex) {
     }
     try {
-      document.getElementById("menu_highlightSyntax").setAttribute("checked", gPrefs.getBoolPref("view_source.syntax_highlight"));
+      document.getElementById("menu_highlightSyntax").setAttribute("checked",
+        gPrefs.getBoolPref("view_source.syntax_highlight"));
     } catch (ex) {
     }
   } else {
@@ -277,14 +233,10 @@ function viewSource(url)
 
   window.addEventListener("AppCommand", HandleAppCommandEvent, true);
   window.content.focus();
-
-  return true;
 }
 
 function onLoadContent()
 {
-  
-  
   
   if (gGoToLine > 0) {
     goToLine(gGoToLine);
@@ -294,15 +246,16 @@ function onLoadContent()
 
   
   window.content.getSelection()
-   .QueryInterface(nsISelectionPrivate)
+   .QueryInterface(Ci.nsISelectionPrivate)
    .addSelectionListener(gSelectionListener);
   gSelectionListener.attached = true;
+
+  if (isHistoryEnabled())
+    UpdateBackForwardCommands();
 }
 
 function onUnloadContent()
 {
-  
-  
   
   
   document.getElementById('cmd_goToLine').setAttribute('disabled', 'true');
@@ -311,7 +264,7 @@ function onUnloadContent()
   
   
   if (gSelectionListener.attached) {
-    window.content.getSelection().QueryInterface(nsISelectionPrivate)
+    window.content.getSelection().QueryInterface(Ci.nsISelectionPrivate)
           .removeSelectionListener(gSelectionListener);
     gSelectionListener.attached = false;
   }
@@ -337,8 +290,8 @@ function ViewSourceClose()
 
 function ViewSourceReload()
 {
-  const webNavigation = getBrowser().webNavigation;
-  webNavigation.reload(webNavigation.LOAD_FLAGS_BYPASS_PROXY | webNavigation.LOAD_FLAGS_BYPASS_CACHE);
+  gBrowser.reloadWithFlags(Ci.nsIWebNavigation.LOAD_FLAGS_BYPASS_PROXY |
+                           Ci.nsIWebNavigation.LOAD_FLAGS_BYPASS_CACHE);
 }
 
 
@@ -365,10 +318,10 @@ function onExitPP()
   toolbox.hidden = false;
 }
 
-function getPPBrowser()
-{
-  return document.getElementById("content");
+function getPPBrowser() {
+  return gBrowser;
 }
+
 
 function getNavToolbox()
 {
@@ -386,41 +339,40 @@ function getWebNavigation()
 
 function ViewSourceGoToLine()
 {
-  var promptService = Components.classes["@mozilla.org/embedcomp/prompt-service;1"]
-        .getService(Components.interfaces.nsIPromptService);
-  var viewSourceBundle = getViewSourceBundle();
+  var promptService = Cc["@mozilla.org/embedcomp/prompt-service;1"]
+                        .getService(Ci.nsIPromptService);
 
   var input = {value:gLastLineFound};
   for (;;) {
     var ok = promptService.prompt(
         window,
-        viewSourceBundle.getString("goToLineTitle"),
-        viewSourceBundle.getString("goToLineText"),
+        gViewSourceBundle.getString("goToLineTitle"),
+        gViewSourceBundle.getString("goToLineText"),
         input,
         null,
         {value:0});
 
-    if (!ok) return;
+    if (!ok)
+      return;
 
     var line = parseInt(input.value, 10);
- 
+
     if (!(line > 0)) {
       promptService.alert(window,
-          viewSourceBundle.getString("invalidInputTitle"),
-          viewSourceBundle.getString("invalidInputText"));
-  
+                          gViewSourceBundle.getString("invalidInputTitle"),
+                          gViewSourceBundle.getString("invalidInputText"));
+
       continue;
     }
 
     var found = goToLine(line);
 
-    if (found) {
+    if (found)
       break;
-    }
 
     promptService.alert(window,
-        viewSourceBundle.getString("outOfRangeTitle"),
-        viewSourceBundle.getString("outOfRangeText"));
+                        gViewSourceBundle.getString("outOfRangeTitle"),
+                        gViewSourceBundle.getString("outOfRangeText"));
   }
 }
 
@@ -432,8 +384,7 @@ function goToLine(line)
   
   
   
-  
-  
+
   var pre;
   for (var lbound = 0, ubound = viewsource.childNodes.length; ; ) {
     var middle = (lbound + ubound) >> 1;
@@ -466,7 +417,7 @@ function goToLine(line)
   
   
 
-  selection.QueryInterface(nsISelectionPrivate)
+  selection.QueryInterface(Ci.nsISelectionPrivate)
     .interlinePosition = true;
 
   selection.addRange(result.range);
@@ -491,19 +442,19 @@ function goToLine(line)
   }
 
   var selCon = getSelectionController();
-  selCon.setDisplaySelection(nsISelectionController.SELECTION_ON);
+  selCon.setDisplaySelection(Ci.nsISelectionController.SELECTION_ON);
   selCon.setCaretVisibilityDuringSelection(true);
 
   
   selCon.scrollSelectionIntoView(
-    nsISelectionController.SELECTION_NORMAL,
-    nsISelectionController.SELECTION_FOCUS_REGION,
+    Ci.nsISelectionController.SELECTION_NORMAL,
+    Ci.nsISelectionController.SELECTION_FOCUS_REGION,
     true);
 
   gLastLineFound = line;
 
   document.getElementById("statusbar-line-col").label =
-    getViewSourceBundle().getFormattedString("statusBarLineCol", [line, 1]);
+    gViewSourceBundle.getFormattedString("statusBarLineCol", [line, 1]);
 
   return true;
 }
@@ -525,21 +476,19 @@ function updateStatusBar()
   }
 
   var selCon = getSelectionController();
-  selCon.setDisplaySelection(nsISelectionController.SELECTION_ON);
+  selCon.setDisplaySelection(Ci.nsISelectionController.SELECTION_ON);
   selCon.setCaretVisibilityDuringSelection(true);
 
-  var interlinePosition = selection
-      .QueryInterface(nsISelectionPrivate).interlinePosition;
+  var interlinePosition = selection.QueryInterface(Ci.nsISelectionPrivate)
+                                   .interlinePosition;
 
   var result = {};
   findLocation(null, -1, 
       selection.focusNode, selection.focusOffset, interlinePosition, result);
 
-  statusBarField.label = getViewSourceBundle()
-      .getFormattedString("statusBarLineCol", [result.line, result.col]);
+  statusBarField.label = gViewSourceBundle.getFormattedString(
+                           "statusBarLineCol", [result.line, result.col]);
 }
-
-
 
 
 
@@ -552,8 +501,6 @@ function findLocation(pre, line, node, offset, interlinePosition, result)
 {
   if (node && !pre) {
     
-    
-    
     for (pre = node;
          pre.nodeName != "PRE";
          pre = pre.parentNode);
@@ -562,18 +509,12 @@ function findLocation(pre, line, node, offset, interlinePosition, result)
   
   
   
-  
-  
   var curLine = parseInt(pre.id.substring(4));
 
-  
-  
   
   var treewalker = window.content.document
       .createTreeWalker(pre, NodeFilter.SHOW_TEXT, null, false);
 
-  
-  
   
   var firstCol = 1;
 
@@ -583,13 +524,9 @@ function findLocation(pre, line, node, offset, interlinePosition, result)
        textNode = treewalker.nextNode()) {
 
     
-    
-    
     var lineArray = textNode.data.split(/\n/);
     var lastLineInNode = curLine + lineArray.length - 1;
 
-    
-    
     
     if (node ? (textNode != node) : (lastLineInNode < line)) {
       if (lineArray.length > 1) {
@@ -600,8 +537,6 @@ function findLocation(pre, line, node, offset, interlinePosition, result)
       continue;
     }
 
-    
-    
     
     
     for (var i = 0, curPos = 0;
@@ -617,13 +552,11 @@ function findLocation(pre, line, node, offset, interlinePosition, result)
           
           
           
-          
-          
+
           if (i > 0 && offset == curPos && !interlinePosition) {
             result.line = curLine - 1;
             var prevPos = curPos - lineArray[i - 1].length;
             result.col = (i == 1 ? firstCol : 1) + offset - prevPos;
-
           } else {
             result.line = curLine;
             result.col = (i == 0 ? firstCol : 1) + offset - curPos;
@@ -638,8 +571,6 @@ function findLocation(pre, line, node, offset, interlinePosition, result)
           result.range = document.createRange();
           result.range.setStart(textNode, curPos);
 
-          
-          
           
           
           
@@ -670,7 +601,7 @@ function wrapLongLines()
   
   
   
-  if (gPrefs){
+  if (gPrefs) {
     try {
       if (myWrap.className == '') {
         gPrefs.setBoolPref("view_source.wrap_long_lines", false);
@@ -691,23 +622,20 @@ function highlightSyntax()
   var highlightSyntax = (highlightSyntaxMenu.getAttribute("checked") == "true");
   gPrefs.setBoolPref("view_source.syntax_highlight", highlightSyntax);
 
-  var PageLoader = getBrowser().webNavigation.QueryInterface(pageLoaderIface);
-  PageLoader.loadPage(PageLoader.currentDescriptor, pageLoaderIface.DISPLAY_NORMAL);
+  gPageLoader.loadPage(gPageLoader.currentDescriptor, gPageLoader.DISPLAY_NORMAL);
 }
 
 
 
 function BrowserSetForcedCharacterSet(aCharset)
 {
-  var docCharset = getBrowser().docShell.QueryInterface(Ci.nsIDocCharset);
+  var docCharset = gBrowser.docShell.QueryInterface(Ci.nsIDocCharset);
   docCharset.charset = aCharset;
   if (isHistoryEnabled()) {
-    var PageLoader = getBrowser().webNavigation.QueryInterface(pageLoaderIface);
-    PageLoader.loadPage(PageLoader.currentDescriptor,
-                        pageLoaderIface.DISPLAY_NORMAL);
+    gPageLoader.loadPage(gPageLoader.currentDescriptor,
+                         gPageLoader.DISPLAY_NORMAL);
   } else {
-    getBrowser().webNavigation
-                .reload(Ci.nsIWebNavigation.LOAD_FLAGS_CHARSET_CHANGE);
+    gBrowser.reloadWithFlags(Ci.nsIWebNavigation.LOAD_FLAGS_CHARSET_CHANGE);
   }
 }
 
@@ -718,24 +646,21 @@ function BrowserSetForcedCharacterSet(aCharset)
 
 function BrowserSetForcedDetector(doReload)
 {
-  getBrowser().documentCharsetInfo.forcedDetector = true; 
+  gBrowser.documentCharsetInfo.forcedDetector = true; 
   if (doReload)
   {
     if (isHistoryEnabled()) {
-      var PageLoader = getBrowser().webNavigation
-                                   .QueryInterface(pageLoaderIface);
-      PageLoader.loadPage(PageLoader.currentDescriptor,
-                          pageLoaderIface.DISPLAY_NORMAL);
+      gPageLoader.loadPage(gPageLoader.currentDescriptor,
+                           gPageLoader.DISPLAY_NORMAL);
     } else {
-      getBrowser().webNavigation
-                  .reload(Ci.nsIWebNavigation.LOAD_FLAGS_CHARSET_CHANGE);
+      gBrowser.reloadWithFlags(Ci.nsIWebNavigation.LOAD_FLAGS_CHARSET_CHANGE);
     }
   }
 }
 
 function BrowserForward(aEvent) {
   try {
-    getBrowser().goForward();
+    gBrowser.goForward();
   }
   catch(ex) {
   }
@@ -743,30 +668,23 @@ function BrowserForward(aEvent) {
 
 function BrowserBack(aEvent) {
   try {
-    getBrowser().goBack();
+    gBrowser.goBack();
   }
   catch(ex) {
   }
 }
 
-function UpdateBackForwardCommands(aWebNavigation) {
+function UpdateBackForwardCommands() {
   var backBroadcaster = document.getElementById("Browser:Back");
   var forwardBroadcaster = document.getElementById("Browser:Forward");
 
-  var backDisabled = backBroadcaster.hasAttribute("disabled");
-  var forwardDisabled = forwardBroadcaster.hasAttribute("disabled");
+  if (getWebNavigation().canGoBack)
+    backBroadcaster.removeAttribute("disabled");
+  else
+    backBroadcaster.setAttribute("disabled", "true");
 
-  if (backDisabled == aWebNavigation.canGoBack) {
-    if (backDisabled)
-      backBroadcaster.removeAttribute("disabled");
-    else
-      backBroadcaster.setAttribute("disabled", true);
-  }
-
-  if (forwardDisabled == aWebNavigation.canGoForward) {
-    if (forwardDisabled)
-      forwardBroadcaster.removeAttribute("disabled");
-    else
-      forwardBroadcaster.setAttribute("disabled", true);
-  }
+  if (getWebNavigation().canGoForward)
+    forwardBroadcaster.removeAttribute("disabled");
+  else
+    forwardBroadcaster.setAttribute("disabled", "true");
 }
