@@ -165,7 +165,9 @@ public:
     NPN_NewStream(NPMIMEType aMIMEType, const char* aWindow,
                   NPStream** aStream);
 
-    void
+    
+    
+    bool
     InternalInvalidateRect(NPRect* aInvalidRect);
 
 private:
