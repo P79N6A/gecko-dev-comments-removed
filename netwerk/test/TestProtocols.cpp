@@ -88,6 +88,8 @@
 
 #include "nsInt64.h"
 
+namespace TestProtocols {
+
 #if defined(PR_LOGGING)
 
 
@@ -780,6 +782,10 @@ nsresult LoadURLFromConsole()
         StartLoadingURL(buffer);
     return NS_OK;
 }
+
+} 
+
+using namespace TestProtocols;
 
 int
 main(int argc, char* argv[])
