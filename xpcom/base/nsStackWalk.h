@@ -79,7 +79,7 @@ typedef struct {
 
 
     char library[256];
-    unsigned long loffset;
+    PRUptrdiff loffset;
     
 
 
@@ -92,7 +92,7 @@ typedef struct {
 
 
     char function[256];
-    unsigned long foffset;
+    PRUptrdiff foffset;
 } nsCodeAddressDetails;
 
 
