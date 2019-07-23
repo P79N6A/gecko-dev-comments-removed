@@ -1003,6 +1003,11 @@ LoginManager.prototype = {
             return [false, foundLogins];
 
         
+        
+        if (!usernameField && passwordField.value)
+            return [false, foundLogins];
+
+        
         if (foundLogins == null) {
             var formOrigin = 
                 this._getPasswordOrigin(form.ownerDocument.documentURI);
