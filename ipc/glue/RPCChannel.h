@@ -68,6 +68,16 @@ public:
                                          Message*& aReply) = 0;
         virtual Result OnCallReceived(const Message& aMessage,
                                       Message*& aReply) = 0;
+
+        virtual void OnEnteredCxxStack()
+        {
+            NS_RUNTIMEABORT("default impl shouldn't be invoked");
+        }
+
+        virtual void OnExitedCxxStack()
+        {
+            NS_RUNTIMEABORT("default impl shouldn't be invoked");
+        }   
     };
 
     
@@ -166,14 +176,12 @@ protected:
     
     void EnteredCxxStack()
     {
-        
-        printf("[%s] +++ CXX STACK\n", mChild ? "child" : "parent");
+        static_cast<RPCListener*>(mListener)->OnEnteredCxxStack();
     }
 
     void ExitedCxxStack()
     {
-        
-        printf("[%s] --- CXX STACK\n", mChild ? "child" : "parent");
+        static_cast<RPCListener*>(mListener)->OnExitedCxxStack();
     }
 
     class NS_STACK_CLASS CxxStackFrame
