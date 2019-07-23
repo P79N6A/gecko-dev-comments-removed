@@ -251,4 +251,12 @@ struct JSTempValueRooter {
 
 
 
+
+
+#ifdef JS_C_STRINGS_ARE_UTF8
+# define js_CStringsAreUTF8 JS_TRUE
+#else
+extern JSBool js_CStringsAreUTF8;
+#endif
+
 #endif 

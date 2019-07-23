@@ -2248,10 +2248,16 @@ JS_MakeStringImmutable(JSContext *cx, JSString *str);
 
 
 
-
 JS_PUBLIC_API(JSBool)
 JS_CStringsAreUTF8(void);
 
+
+
+
+
+
+JS_PUBLIC_API(void)
+JS_SetCStringsAreUTF8();
 
 
 
@@ -2281,6 +2287,13 @@ JS_EncodeCharacters(JSContext *cx, const jschar *src, size_t srclen, char *dst,
 JS_PUBLIC_API(JSBool)
 JS_DecodeBytes(JSContext *cx, const char *src, size_t srclen, jschar *dst,
                size_t *dstlenp);
+
+
+
+
+
+JS_PUBLIC_API(char *)
+JS_EncodeString(JSContext *cx, JSString *str);
 
 
 
