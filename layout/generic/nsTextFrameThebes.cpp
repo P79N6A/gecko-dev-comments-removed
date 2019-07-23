@@ -140,9 +140,15 @@
 
 #define TEXT_TRIMMED_TRAILING_WHITESPACE 0x01000000
 
+
+
+
+
+#define TEXT_RUN_LAYOUT_DEPENDENT  0x02000000
+
 #define TEXT_REFLOW_FLAGS    \
   (TEXT_FIRST_LETTER|TEXT_START_OF_LINE|TEXT_END_OF_LINE|TEXT_HYPHEN_BREAK| \
-   TEXT_TRIMMED_TRAILING_WHITESPACE)
+   TEXT_TRIMMED_TRAILING_WHITESPACE|TEXT_RUN_LAYOUT_DEPENDENT)
 
 
 
@@ -508,6 +514,8 @@ public:
   
   void ClearTextRun();
   
+
+
 
 
 
@@ -975,6 +983,16 @@ TextContainsLineBreakerWhiteSpace(const void* aText, PRUint32 aLength,
   }
 }
 
+static PRBool
+CanTextRunCrossFrameBoundary(nsIFrame* aFrame)
+{
+  
+  
+  
+  return aFrame->CanContinueTextRun() ||
+    aFrame->GetType() == nsGkAtoms::placeholderFrame;
+}
+
 BuildTextRunsScanner::FindBoundaryResult
 BuildTextRunsScanner::FindBoundaries(nsIFrame* aFrame, FindBoundaryState* aState)
 {
@@ -1014,7 +1032,7 @@ BuildTextRunsScanner::FindBoundaries(nsIFrame* aFrame, FindBoundaryState* aState
     return FB_CONTINUE; 
   }
 
-  PRBool continueTextRun = aFrame->CanContinueTextRun();
+  PRBool continueTextRun = CanTextRunCrossFrameBoundary(aFrame);
   PRBool descendInto = PR_TRUE;
   if (!continueTextRun) {
     
@@ -1355,7 +1373,7 @@ void BuildTextRunsScanner::ScanFrame(nsIFrame* aFrame)
     return;
   }
 
-  PRBool continueTextRun = aFrame->CanContinueTextRun();
+  PRBool continueTextRun = CanTextRunCrossFrameBoundary(aFrame);
   PRBool descendInto = PR_TRUE;
   if (!continueTextRun) {
     FlushFrames(PR_TRUE);
@@ -4909,8 +4927,7 @@ nsTextFrame::AddInlineMinWidthForFlow(nsIRenderingContext *aRenderingContext,
       
       
       
-      preformattedNewline = !collapseWhitespace &&
-        frag->CharAt(iter.ConvertSkippedToOriginal(i)) == '\n';
+      preformattedNewline = !collapseWhitespace && mTextRun->GetChar(i) == '\n';
       if (!mTextRun->CanBreakLineBefore(i) && !preformattedNewline) {
         
         continue;
@@ -5020,21 +5037,20 @@ nsTextFrame::AddInlinePrefWidthForFlow(nsIRenderingContext *aRenderingContext,
     }
   } else {
     
-    PRInt32 end = mContentOffset + GetInFlowContentLength();
-    PRUint32 startRun = start;
     aData->trailingWhitespace = 0;
-    while (iter.GetOriginalOffset() < end) {
-      if (provider.GetFragment()->CharAt(iter.GetOriginalOffset()) == '\n') {
-        PRUint32 endRun = iter.GetSkippedOffset();
-        aData->currentLine +=
-          NSToCoordCeil(mTextRun->GetAdvanceWidth(startRun, endRun - startRun, &provider));
+    PRUint32 i;
+    PRUint32 startRun = start;
+    for (i = start; i <= flowEndInTextRun; ++i) {
+      if (i < flowEndInTextRun && mTextRun->GetChar(i) != '\n')
+        continue;
+        
+      aData->currentLine +=
+        NSToCoordCeil(mTextRun->GetAdvanceWidth(startRun, i - startRun, &provider));
+      if (i < flowEndInTextRun) {
         aData->ForceBreak(aRenderingContext);
-        startRun = endRun;
+        startRun = i;
       }
-      iter.AdvanceOriginal(1);
     }
-    aData->currentLine +=
-      NSToCoordCeil(mTextRun->GetAdvanceWidth(startRun, iter.GetSkippedOffset() - startRun, &provider));
   }
 
   
@@ -5183,7 +5199,10 @@ nsTextFrame::Reflow(nsPresContext*           aPresContext,
   PRBool layoutDependentTextRun =
     lineLayout.GetFirstLetterStyleOK() || lineLayout.GetInFirstLine();
   if (layoutDependentTextRun) {
-    
+    AddStateBits(TEXT_RUN_LAYOUT_DEPENDENT);
+  }
+  if (layoutDependentTextRun ||
+      (prevInFlow && (prevInFlow->GetStateBits() & TEXT_RUN_LAYOUT_DEPENDENT))) {
     ClearTextRun();
   }
 
