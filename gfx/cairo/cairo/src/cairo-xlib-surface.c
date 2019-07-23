@@ -168,7 +168,7 @@ _cairo_xlib_surface_create_similar_with_format (void	       *abstract_src,
 	return NULL;
     }
 
-    pix = XCreatePixmap (dpy, RootWindowOfScreen (src->screen),
+    pix = XCreatePixmap (dpy, src->drawable,
 			 width <= 0 ? 1 : width, height <= 0 ? 1 : height,
 			 depth);
 
@@ -246,7 +246,7 @@ _cairo_xlib_surface_create_similar (void	       *abstract_src,
     
 
 
-    pix = XCreatePixmap (src->dpy, RootWindowOfScreen (src->screen),
+    pix = XCreatePixmap (src->dpy, src->drawable,
 			 width <= 0 ? 1 : width, height <= 0 ? 1 : height,
 			 xrender_format->depth);
 
@@ -2160,6 +2160,35 @@ cairo_xlib_surface_create_with_xrender_format (Display		    *dpy,
 						NULL, format, width, height, 0);
 }
 slim_hidden_def (cairo_xlib_surface_create_with_xrender_format);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+XRenderPictFormat *
+cairo_xlib_surface_get_xrender_format (cairo_surface_t *surface)
+{
+    cairo_xlib_surface_t *xlib_surface = (cairo_xlib_surface_t *) surface;
+
+    
+    if (! _cairo_surface_is_xlib (surface)) {
+	_cairo_error_throw (CAIRO_STATUS_SURFACE_TYPE_MISMATCH);
+	return NULL;
+    }
+
+    return xlib_surface->xrender_format;
+}
 #endif
 
 

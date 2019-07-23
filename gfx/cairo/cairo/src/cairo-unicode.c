@@ -39,7 +39,6 @@
 
 
 
-
 #include "cairoint.h"
 
 #define UTF8_COMPUTE(Char, Mask, Len)					      \

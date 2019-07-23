@@ -544,15 +544,18 @@ _cairo_scaled_font_reset_cache (cairo_scaled_font_t *scaled_font)
 					       MAX_GLYPHS_CACHED_PER_FONT);
 }
 
-void
+cairo_status_t
 _cairo_scaled_font_set_metrics (cairo_scaled_font_t	    *scaled_font,
 				cairo_font_extents_t	    *fs_metrics)
 {
+    cairo_status_t status;
     double  font_scale_x, font_scale_y;
 
-    _cairo_matrix_compute_scale_factors (&scaled_font->font_matrix,
-					 &font_scale_x, &font_scale_y,
-					  1);
+    status = _cairo_matrix_compute_scale_factors (&scaled_font->font_matrix,
+						  &font_scale_x, &font_scale_y,
+						   1);
+    if (status)
+	return status;
 
     
 
@@ -564,6 +567,8 @@ _cairo_scaled_font_set_metrics (cairo_scaled_font_t	    *scaled_font,
     scaled_font->extents.height = fs_metrics->height * font_scale_y;
     scaled_font->extents.max_x_advance = fs_metrics->max_x_advance * font_scale_x;
     scaled_font->extents.max_y_advance = fs_metrics->max_y_advance * font_scale_y;
+
+    return CAIRO_STATUS_SUCCESS;
 }
 
 void
@@ -1270,7 +1275,8 @@ _cairo_scaled_font_show_glyphs (cairo_scaled_font_t    *scaled_font,
 	
 
 	if (glyph_surface->format != mask_format &&
-	    _cairo_format_width (mask_format) < _cairo_format_width (glyph_surface->format) )
+	    _cairo_format_bits_per_pixel (mask_format) <
+	    _cairo_format_bits_per_pixel (glyph_surface->format) )
 	{
 	    cairo_surface_t *new_mask;
 	    cairo_surface_pattern_t mask_pattern;

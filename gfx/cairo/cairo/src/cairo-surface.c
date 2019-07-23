@@ -86,6 +86,7 @@ static DEFINE_NIL_SURFACE(CAIRO_STATUS_FILE_NOT_FOUND, _cairo_surface_nil_file_n
 static DEFINE_NIL_SURFACE(CAIRO_STATUS_TEMP_FILE_ERROR, _cairo_surface_nil_temp_file_error);
 static DEFINE_NIL_SURFACE(CAIRO_STATUS_READ_ERROR, _cairo_surface_nil_read_error);
 static DEFINE_NIL_SURFACE(CAIRO_STATUS_WRITE_ERROR, _cairo_surface_nil_write_error);
+static DEFINE_NIL_SURFACE(CAIRO_STATUS_INVALID_STRIDE, _cairo_surface_nil_invalid_stride);
 
 static cairo_status_t
 _cairo_surface_copy_pattern_for_destination (const cairo_pattern_t *pattern,
@@ -1658,23 +1659,25 @@ _cairo_surface_composite_trapezoids (cairo_operator_t		op,
 
 
 
-cairo_status_t
+void
 cairo_surface_copy_page (cairo_surface_t *surface)
 {
     assert (! surface->is_snapshot);
 
     if (surface->status)
-	return surface->status;
+	return;
 
-    if (surface->finished)
-	return _cairo_surface_set_error (surface,CAIRO_STATUS_SURFACE_FINISHED);
+    if (surface->finished) {
+	_cairo_surface_set_error (surface,CAIRO_STATUS_SURFACE_FINISHED);
+	return;
+    }
 
     
     if (surface->backend->copy_page == NULL)
-	return CAIRO_STATUS_SUCCESS;
+	return;
 
-    return _cairo_surface_set_error (surface,
-	                             surface->backend->copy_page (surface));
+    _cairo_surface_set_error (surface,
+			      surface->backend->copy_page (surface));
 }
 slim_hidden_def (cairo_surface_copy_page);
 
@@ -1687,24 +1690,25 @@ slim_hidden_def (cairo_surface_copy_page);
 
 
 
-
-cairo_status_t
+void
 cairo_surface_show_page (cairo_surface_t *surface)
 {
     assert (! surface->is_snapshot);
 
     if (surface->status)
-	return surface->status;
+	return;
 
-    if (surface->finished)
-	return _cairo_surface_set_error (surface,CAIRO_STATUS_SURFACE_FINISHED);
+    if (surface->finished) {
+	_cairo_surface_set_error (surface,CAIRO_STATUS_SURFACE_FINISHED);
+	return;
+    }
 
     
     if (surface->backend->show_page == NULL)
-	return CAIRO_STATUS_SUCCESS;
+	return;
 
-    return _cairo_surface_set_error (surface,
-	                             surface->backend->show_page (surface));
+    _cairo_surface_set_error (surface,
+			      surface->backend->show_page (surface));
 }
 slim_hidden_def (cairo_surface_show_page);
 
@@ -2427,6 +2431,8 @@ _cairo_surface_create_in_error (cairo_status_t status)
 	return (cairo_surface_t *) &_cairo_surface_nil_file_not_found;
     case CAIRO_STATUS_TEMP_FILE_ERROR:
 	return (cairo_surface_t *) &_cairo_surface_nil_temp_file_error;
+    case CAIRO_STATUS_INVALID_STRIDE:
+	return (cairo_surface_t *) &_cairo_surface_nil_invalid_stride;
     default:
 	_cairo_error_throw (CAIRO_STATUS_NO_MEMORY);
 	return (cairo_surface_t *) &_cairo_surface_nil;

@@ -211,6 +211,7 @@ typedef struct _cairo_user_data_key {
 
 
 
+
 typedef enum _cairo_status {
     CAIRO_STATUS_SUCCESS = 0,
     CAIRO_STATUS_NO_MEMORY,
@@ -235,7 +236,8 @@ typedef enum _cairo_status {
     CAIRO_STATUS_INVALID_DSC_COMMENT,
     CAIRO_STATUS_INVALID_INDEX,
     CAIRO_STATUS_CLIP_NOT_REPRESENTABLE,
-    CAIRO_STATUS_TEMP_FILE_ERROR
+    CAIRO_STATUS_TEMP_FILE_ERROR,
+    CAIRO_STATUS_INVALID_STRIDE
     
 } cairo_status_t;
 
@@ -339,6 +341,48 @@ cairo_pop_group (cairo_t *cr);
 
 cairo_public void
 cairo_pop_group_to_source (cairo_t *cr);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1232,6 +1276,9 @@ cairo_get_tolerance (cairo_t *cr);
 cairo_public cairo_antialias_t
 cairo_get_antialias (cairo_t *cr);
 
+cairo_public cairo_bool_t
+cairo_has_current_point (cairo_t *cr);
+
 cairo_public void
 cairo_get_current_point (cairo_t *cr, double *x, double *y);
 
@@ -1546,10 +1593,10 @@ cairo_surface_set_fallback_resolution (cairo_surface_t	*surface,
 				       double		 x_pixels_per_inch,
 				       double		 y_pixels_per_inch);
 
-cairo_public cairo_status_t
+cairo_public void
 cairo_surface_copy_page (cairo_surface_t *surface);
 
-cairo_public cairo_status_t
+cairo_public void
 cairo_surface_show_page (cairo_surface_t *surface);
 
 
@@ -1596,6 +1643,10 @@ cairo_public cairo_surface_t *
 cairo_image_surface_create (cairo_format_t	format,
 			    int			width,
 			    int			height);
+
+cairo_public int
+cairo_format_stride_for_width (cairo_format_t	format,
+			       int		width);
 
 cairo_public cairo_surface_t *
 cairo_image_surface_create_for_data (unsigned char	       *data,
@@ -1759,6 +1810,24 @@ cairo_pattern_set_extend (cairo_pattern_t *pattern, cairo_extend_t extend);
 
 cairo_public cairo_extend_t
 cairo_pattern_get_extend (cairo_pattern_t *pattern);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 typedef enum _cairo_filter {
     CAIRO_FILTER_FAST,

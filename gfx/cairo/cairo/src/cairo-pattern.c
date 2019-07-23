@@ -1051,6 +1051,17 @@ cairo_pattern_get_matrix (cairo_pattern_t *pattern, cairo_matrix_t *matrix)
 
 
 
+
+
+
+
+
+
+
+
+
+
+
 void
 cairo_pattern_set_filter (cairo_pattern_t *pattern, cairo_filter_t filter)
 {

@@ -105,6 +105,10 @@ _cairo_win32_tmpfile (void);
 #define M_SQRT2 1.41421356237309504880
 #endif
 
+#ifndef M_SQRT1_2
+#define M_SQRT1_2 0.707106781186547524400844362104849039
+#endif
+
 #undef  ARRAY_LENGTH
 #define ARRAY_LENGTH(__array) ((int) (sizeof (__array) / sizeof (__array[0])))
 
@@ -185,6 +189,12 @@ _cairo_box_round_to_rectangle (cairo_box_t *box, cairo_rectangle_int_t *rectangl
 
 cairo_private void
 _cairo_rectangle_intersect (cairo_rectangle_int_t *dest, cairo_rectangle_int_t *src);
+
+cairo_private cairo_bool_t
+_cairo_box_intersects_line_segment (cairo_box_t *box, cairo_line_t *line);
+
+cairo_private cairo_bool_t
+_cairo_box_contains_point (cairo_box_t *box, cairo_point_t *point);
 
 
 
@@ -1402,7 +1412,7 @@ _cairo_scaled_font_init (cairo_scaled_font_t               *scaled_font,
 			 const cairo_font_options_t	   *options,
 			 const cairo_scaled_font_backend_t *backend);
 
-cairo_private void
+cairo_private cairo_status_t
 _cairo_scaled_font_set_metrics (cairo_scaled_font_t	    *scaled_font,
 				cairo_font_extents_t	    *fs_metrics);
 
@@ -1482,6 +1492,11 @@ _cairo_stroke_style_init_copy (cairo_stroke_style_t *style,
 
 cairo_private void
 _cairo_stroke_style_fini (cairo_stroke_style_t *style);
+
+cairo_private void
+_cairo_stroke_style_max_distance_from_path (const cairo_stroke_style_t *style,
+                                            const cairo_matrix_t *ctm,
+                                            double *dx, double *dy);
 
 
 
@@ -1802,8 +1817,8 @@ _cairo_surface_has_device_transform (cairo_surface_t *surface);
 						      CAIRO_CONTENT_COLOR_ALPHA))\
 				       == 0))
 
-cairo_private cairo_format_t
-_cairo_format_width (cairo_format_t format);
+cairo_private int
+_cairo_format_bits_per_pixel (cairo_format_t format);
 
 cairo_private cairo_format_t
 _cairo_format_from_content (cairo_content_t content);
@@ -1818,7 +1833,7 @@ _cairo_image_surface_create_for_pixman_image (pixman_image_t		*pixman_image,
 cairo_private pixman_format_code_t
 _pixman_format_from_masks (cairo_format_masks_t *masks);
 
-void
+cairo_private void
 _pixman_format_to_masks (pixman_format_code_t	 pixman_format,
 			 uint32_t		*bpp,
 			 uint32_t		*red,
@@ -1974,7 +1989,7 @@ _cairo_matrix_is_invertible (const cairo_matrix_t *matrix);
 cairo_private void
 _cairo_matrix_compute_determinant (const cairo_matrix_t *matrix, double *det);
 
-cairo_private void
+cairo_private cairo_status_t
 _cairo_matrix_compute_scale_factors (const cairo_matrix_t *matrix,
 				     double *sx, double *sy, int x_major);
 
@@ -2002,6 +2017,10 @@ _cairo_traps_init (cairo_traps_t *traps);
 cairo_private void
 _cairo_traps_limit (cairo_traps_t	*traps,
 		    cairo_box_t		*limits);
+
+cairo_private cairo_bool_t
+_cairo_traps_get_limit (cairo_traps_t *traps,
+                        cairo_box_t   *limits);
 
 cairo_private cairo_status_t
 _cairo_traps_init_box (cairo_traps_t *traps,

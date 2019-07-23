@@ -395,6 +395,56 @@ _cairo_image_surface_create_with_content (cairo_content_t	content,
 }
 
 
+#define STRIDE_ALIGNMENT (sizeof (uint32_t))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int
+cairo_format_stride_for_width (cairo_format_t	format,
+			       int		width)
+{
+    int bpp = _cairo_format_bits_per_pixel (format);
+
+    return ((bpp*width+7)/8 + STRIDE_ALIGNMENT-1) & ~(STRIDE_ALIGNMENT-1);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -433,11 +483,11 @@ cairo_image_surface_create_for_data (unsigned char     *data,
 {
     pixman_format_code_t pixman_format;
 
-    
-
-
-    if (! CAIRO_FORMAT_VALID (format) || stride % sizeof (uint32_t) != 0)
+    if (! CAIRO_FORMAT_VALID (format))
 	return _cairo_surface_create_in_error (_cairo_error(CAIRO_STATUS_INVALID_FORMAT));
+
+    if ((stride & (STRIDE_ALIGNMENT-1)) != 0)
+	return _cairo_surface_create_in_error (_cairo_error (CAIRO_STATUS_INVALID_STRIDE));
 
     pixman_format = _cairo_format_to_pixman_format_code (format);
 
@@ -615,14 +665,14 @@ _cairo_content_from_format (cairo_format_t format)
     return CAIRO_CONTENT_COLOR_ALPHA;
 }
 
-cairo_private cairo_format_t
-_cairo_format_width (cairo_format_t format)
+int
+_cairo_format_bits_per_pixel (cairo_format_t format)
 {
     switch (format) {
     case CAIRO_FORMAT_ARGB32:
 	return 32;
     case CAIRO_FORMAT_RGB24:
-	return 24;
+	return 32;
     case CAIRO_FORMAT_A8:
 	return 8;
     case CAIRO_FORMAT_A1:

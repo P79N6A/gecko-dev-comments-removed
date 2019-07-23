@@ -1736,16 +1736,16 @@ _gradient_pattern_supported (cairo_ps_surface_t    *surface,
     surface->ps_level_used = CAIRO_PS_LEVEL_3;
     extend = cairo_pattern_get_extend (pattern);
 
-    if (extend == CAIRO_EXTEND_REPEAT ||
-        extend == CAIRO_EXTEND_REFLECT) {
-        return FALSE;
-    }
-
     
 
     if (pattern->type == CAIRO_PATTERN_TYPE_RADIAL) {
         double x1, y1, x2, y2, r1, r2, d;
         cairo_radial_pattern_t *radial = (cairo_radial_pattern_t *) pattern;
+
+	if (extend == CAIRO_EXTEND_REPEAT ||
+	    extend == CAIRO_EXTEND_REFLECT) {
+	    return FALSE;
+	}
 
         x1 = _cairo_fixed_to_double (radial->c1.x);
         y1 = _cairo_fixed_to_double (radial->c1.y);
@@ -2095,7 +2095,7 @@ _cairo_ps_surface_emit_image (cairo_ps_surface_t    *surface,
     }
 
     rgb_size = 3 * image->width * image->height;
-    rgb = malloc (rgb_size);
+    rgb = _cairo_malloc_abc (image->width, image->height, 3);
     if (rgb == NULL) {
 	status = _cairo_error (CAIRO_STATUS_NO_MEMORY);
 	goto bail1;
@@ -2103,7 +2103,7 @@ _cairo_ps_surface_emit_image (cairo_ps_surface_t    *surface,
 
     if (use_mask) {
 	mask_size = ((image->width+7) / 8) * image->height;
-	mask = malloc (mask_size);
+	mask = _cairo_malloc_ab ((image->width+7) / 8, image->height);
 	if (mask == NULL) {
 	    status = _cairo_error (CAIRO_STATUS_NO_MEMORY);
 	    goto bail2;
@@ -2337,12 +2337,15 @@ _cairo_ps_surface_emit_meta_surface (cairo_ps_surface_t  *surface,
     surface->height = meta_extents.height;
     _cairo_output_stream_printf (surface->stream,
 				 "/CairoPattern {\n"
-				 "gsave\n");
+				 "  gsave\n"
+				 "  0 0 %f %f rectclip\n",
+				 surface->width,
+				 surface->height);
 
     if (cairo_surface_get_content (meta_surface) == CAIRO_CONTENT_COLOR) {
 	surface->content = CAIRO_CONTENT_COLOR;
 	_cairo_output_stream_printf (surface->stream,
-				     "0 G 0 0 %f %f rectfill\n",
+				     "  0 G 0 0 %f %f rectfill\n",
 				     surface->width,
 				     surface->height);
     }
@@ -2354,7 +2357,7 @@ _cairo_ps_surface_emit_meta_surface (cairo_ps_surface_t  *surface,
 	return status;
 
     _cairo_output_stream_printf (surface->stream,
-				 "grestore\n"
+				 "  grestore\n"
 				 "} bind def\n");
     surface->content = old_content;
     surface->width = old_width;
@@ -2479,9 +2482,12 @@ _cairo_ps_surface_emit_surface_pattern (cairo_ps_surface_t      *surface,
 	break;
     }
     case CAIRO_EXTEND_REPEAT:
-    case CAIRO_EXTEND_REFLECT:
 	xstep = pattern_width;
 	ystep = pattern_height;
+	break;
+    case CAIRO_EXTEND_REFLECT:
+	xstep = pattern_width*2;
+	ystep = pattern_height*2;
 	break;
 	
 
@@ -2496,14 +2502,33 @@ _cairo_ps_surface_emit_surface_pattern (cairo_ps_surface_t      *surface,
 				 "   /PaintType 1\n"
 				 "   /TilingType 1\n");
     _cairo_output_stream_printf (surface->stream,
-				 "   /BBox [0 0 %d %d]\n",
-				 pattern_width, pattern_height);
-    _cairo_output_stream_printf (surface->stream,
 				 "   /XStep %f /YStep %f\n",
 				 xstep, ystep);
+
+    if (pattern->base.extend == CAIRO_EXTEND_REFLECT) {
+	_cairo_output_stream_printf (surface->stream,
+				     "   /BBox [0 0 %d %d]\n"
+				     "   /PaintProc {\n"
+				     "      CairoPattern\n"
+				     "      [-1 0 0  1 %d 0] concat CairoPattern\n"
+				     "      [ 1 0 0 -1 0 %d] concat CairoPattern\n"
+				     "      [-1 0 0  1 %d 0] concat CairoPattern\n"
+				     "      CairoPattern\n"
+				     "   } bind\n",
+				     pattern_width*2, pattern_height*2,
+				     pattern_width*2,
+				     pattern_height*2,
+				     pattern_width*2);
+    } else {
+	_cairo_output_stream_printf (surface->stream,
+				     "   /BBox [0 0 %d %d]\n"
+				     "   /PaintProc { CairoPattern } bind\n",
+				     pattern_width, pattern_height);
+    }
+
     _cairo_output_stream_printf (surface->stream,
-				 "   /PaintProc { CairoPattern } bind\n"
 				 ">>\n");
+
     _cairo_output_stream_printf (surface->stream,
 				 "[ %f %f %f %f %f %f ]\n",
 				 inverse.xx, inverse.yx,
@@ -2517,7 +2542,7 @@ _cairo_ps_surface_emit_surface_pattern (cairo_ps_surface_t      *surface,
 
 typedef struct _cairo_ps_color_stop {
     double offset;
-    double color[3];
+    double color[4];
 } cairo_ps_color_stop_t;
 
 static void
@@ -2526,12 +2551,12 @@ _cairo_ps_surface_emit_linear_colorgradient (cairo_ps_surface_t     *surface,
 					     cairo_ps_color_stop_t  *stop2)
 {
     _cairo_output_stream_printf (surface->stream,
-				 "<< /FunctionType 2\n"
-				 "   /Domain [ 0 1 ]\n"
-				 "   /C0 [ %f %f %f ]\n"
-				 "   /C1 [ %f %f %f ]\n"
-				 "   /N 1\n"
-				 ">>\n",
+				 "   << /FunctionType 2\n"
+				 "      /Domain [ 0 1 ]\n"
+				 "      /C0 [ %f %f %f ]\n"
+				 "      /C1 [ %f %f %f ]\n"
+				 "      /N 1\n"
+				 "   >>\n",
 				 stop1->color[0],
 				 stop1->color[1],
 				 stop1->color[2],
@@ -2548,25 +2573,35 @@ _cairo_ps_surface_emit_stitched_colorgradient (cairo_ps_surface_t    *surface,
     unsigned int i;
 
     _cairo_output_stream_printf (surface->stream,
-				 "      << /FunctionType 3\n"
-				 "         /Domain [ 0 1 ]\n"
-				 "         /Functions [\n");
+				 "<< /FunctionType 3\n"
+				 "   /Domain [ 0 1 ]\n"
+				 "   /Functions [\n");
     for (i = 0; i < n_stops - 1; i++)
 	_cairo_ps_surface_emit_linear_colorgradient (surface, &stops[i], &stops[i+1]);
 
-    _cairo_output_stream_printf (surface->stream, "         ]\n");
+    _cairo_output_stream_printf (surface->stream, "   ]\n");
 
-    _cairo_output_stream_printf (surface->stream, "         /Bounds [ ");
+    _cairo_output_stream_printf (surface->stream, "   /Bounds [ ");
     for (i = 1; i < n_stops-1; i++)
 	_cairo_output_stream_printf (surface->stream, "%f ", stops[i].offset);
     _cairo_output_stream_printf (surface->stream, "]\n");
 
-    _cairo_output_stream_printf (surface->stream, "         /Encode [ ");
-    for (i = 1; i < n_stops; i++)
-	_cairo_output_stream_printf (surface->stream, "0 1 ");
-    _cairo_output_stream_printf (surface->stream,  "]\n");
+    _cairo_output_stream_printf (surface->stream, "   /Encode [ 1 1 %d { pop 0 1 } for ]\n",
+				 n_stops - 1);
 
-    _cairo_output_stream_printf (surface->stream, "      >>\n");
+    _cairo_output_stream_printf (surface->stream, ">>\n");
+}
+
+static void
+calc_gradient_color (cairo_ps_color_stop_t *new_stop,
+		     cairo_ps_color_stop_t *stop1,
+		     cairo_ps_color_stop_t *stop2)
+{
+    int i;
+    double offset = stop1->offset / (stop1->offset + 1.0 - stop2->offset);
+
+    for (i = 0; i < 4; i++)
+	new_stop->color[i] = stop1->color[i] + offset*(stop2->color[i] - stop1->color[i]);
 }
 
 #define COLOR_STOP_EPSILON 1e-6
@@ -2586,33 +2621,58 @@ _cairo_ps_surface_emit_pattern_stops (cairo_ps_surface_t       *surface,
     n_stops = pattern->n_stops;
 
     for (i = 0; i < n_stops; i++) {
-	double red, green, blue;
+	cairo_gradient_stop_t *stop = &pattern->stops[i];
 
-	_cairo_ps_surface_flatten_transparency (surface,
-						&pattern->stops[i].color,
+	stops[i].color[0] = stop->color.red;
+	stops[i].color[1] = stop->color.green;
+	stops[i].color[2] = stop->color.blue;
+	stops[i].color[3] = stop->color.alpha;
+	stops[i].offset = _cairo_fixed_to_double (pattern->stops[i].x);
+    }
+
+    if (pattern->base.extend == CAIRO_EXTEND_REPEAT ||
+	pattern->base.extend == CAIRO_EXTEND_REFLECT) {
+	if (stops[0].offset > COLOR_STOP_EPSILON) {
+	    if (pattern->base.extend == CAIRO_EXTEND_REFLECT)
+		memcpy (allstops, stops, sizeof (cairo_ps_color_stop_t));
+	    else
+		calc_gradient_color (&allstops[0], &stops[0], &stops[n_stops-1]);
+	    stops = allstops;
+	    n_stops++;
+	}
+	stops[0].offset = 0.0;
+
+	if (stops[n_stops-1].offset < 1.0 - COLOR_STOP_EPSILON) {
+	    if (pattern->base.extend == CAIRO_EXTEND_REFLECT) {
+		memcpy (&stops[n_stops],
+			&stops[n_stops - 1],
+			sizeof (cairo_ps_color_stop_t));
+	    } else {
+		calc_gradient_color (&stops[n_stops], &stops[0], &stops[n_stops-1]);
+	    }
+	    n_stops++;
+	}
+	stops[n_stops-1].offset = 1.0;
+    }
+
+    for (i = 0; i < n_stops; i++) {
+	double red, green, blue;
+	cairo_color_t color;
+
+	_cairo_color_init_rgba (&color,
+				stops[i].color[0],
+				stops[i].color[1],
+				stops[i].color[2],
+				stops[i].color[3]);
+	_cairo_ps_surface_flatten_transparency (surface, &color,
 						&red, &green, &blue);
 	stops[i].color[0] = red;
 	stops[i].color[1] = green;
 	stops[i].color[2] = blue;
-	stops[i].offset = _cairo_fixed_to_double (pattern->stops[i].x);
     }
 
-    
-    if (stops[0].offset > COLOR_STOP_EPSILON) {
-	memcpy (allstops, stops, sizeof (cairo_ps_color_stop_t));
-	stops = allstops;
-	n_stops++;
-    }
-    stops[0].offset = 0.0;
-
-    if (stops[n_stops-1].offset < 1.0 - COLOR_STOP_EPSILON) {
-	memcpy (&stops[n_stops],
-		&stops[n_stops - 1],
-		sizeof (cairo_ps_color_stop_t));
-	n_stops++;
-    }
-    stops[n_stops-1].offset = 1.0;
-
+    _cairo_output_stream_printf (surface->stream,
+				 "/CairoFunction\n");
     if (n_stops == 2) {
 	
 	_cairo_ps_surface_emit_linear_colorgradient (surface, &stops[0], &stops[1]);
@@ -2621,8 +2681,43 @@ _cairo_ps_surface_emit_pattern_stops (cairo_ps_surface_t       *surface,
 
 	_cairo_ps_surface_emit_stitched_colorgradient (surface, n_stops,stops);
     }
+    _cairo_output_stream_printf (surface->stream,
+				 "def\n");
 
     free (allstops);
+
+    return CAIRO_STATUS_SUCCESS;
+}
+
+static cairo_status_t
+_cairo_ps_surface_emit_repeating_function (cairo_ps_surface_t       *surface,
+					   cairo_gradient_pattern_t *pattern,
+					   int                       begin,
+					   int                       end)
+{
+    _cairo_output_stream_printf (surface->stream,
+				 "/CairoFunction\n"
+				 "<< /FunctionType 3\n"
+				 "   /Domain [ %d %d ]\n"
+				 "   /Functions [ %d {CairoFunction} repeat ]\n"
+				 "   /Bounds [ %d 1 %d {} for ]\n",
+				 begin,
+                                 end,
+				 end - begin,
+				 begin + 1,
+				 end - 1);
+
+    if (pattern->base.extend == CAIRO_EXTEND_REFLECT) {
+	_cairo_output_stream_printf (surface->stream, "   /Encode [ %d 1 %d { 2 mod 0 eq {0 1} {1 0} ifelse } for ]\n",
+				     begin,
+				     end - 1);
+    } else {
+	_cairo_output_stream_printf (surface->stream, "   /Encode [ %d 1 %d { pop 0 1 } for ]\n",
+				     begin,
+				     end - 1);
+    }
+
+    _cairo_output_stream_printf (surface->stream, ">> def\n");
 
     return CAIRO_STATUS_SUCCESS;
 }
@@ -2632,23 +2727,97 @@ _cairo_ps_surface_emit_linear_pattern (cairo_ps_surface_t     *surface,
 				       cairo_linear_pattern_t *pattern)
 {
     double x1, y1, x2, y2;
+    double _x1, _y1, _x2, _y2;
+    cairo_matrix_t pat_to_ps;
     cairo_extend_t extend;
     cairo_status_t status;
-    cairo_matrix_t inverse = pattern->base.base.matrix;
+    cairo_gradient_pattern_t *gradient = &pattern->base;
+    double first_stop, last_stop;
+    int repeat_begin = 0, repeat_end = 1;
 
     if (pattern->base.n_stops == 0)
         return CAIRO_INT_STATUS_NOTHING_TO_DO;
 
     extend = cairo_pattern_get_extend (&pattern->base.base);
 
-    status = cairo_matrix_invert (&inverse);
-    if (status)
-	return status;
+    pat_to_ps = pattern->base.base.matrix;
+    status = cairo_matrix_invert (&pat_to_ps);
+    
+    assert (status == CAIRO_STATUS_SUCCESS);
+
+    first_stop = _cairo_fixed_to_double (gradient->stops[0].x);
+    last_stop = _cairo_fixed_to_double (gradient->stops[gradient->n_stops - 1].x);
+
+    if (pattern->base.base.extend == CAIRO_EXTEND_REPEAT ||
+	pattern->base.base.extend == CAIRO_EXTEND_REFLECT) {
+	double dx, dy;
+	int x_rep = 0, y_rep = 0;
+
+	x1 = _cairo_fixed_to_double (pattern->p1.x);
+	y1 = _cairo_fixed_to_double (pattern->p1.y);
+	cairo_matrix_transform_point (&pat_to_ps, &x1, &y1);
+
+	x2 = _cairo_fixed_to_double (pattern->p2.x);
+	y2 = _cairo_fixed_to_double (pattern->p2.y);
+	cairo_matrix_transform_point (&pat_to_ps, &x2, &y2);
+
+	dx = fabs (x2 - x1);
+	dy = fabs (y2 - y1);
+	if (dx > 1e-6)
+	    x_rep = (int) ceil (surface->width/dx);
+	if (dy > 1e-6)
+	    y_rep = (int) ceil (surface->height/dy);
+
+	repeat_end = MAX (x_rep, y_rep);
+	repeat_begin = -repeat_end;
+	first_stop = repeat_begin;
+	last_stop = repeat_end;
+    }
+
+    
+
+
+
 
     x1 = _cairo_fixed_to_double (pattern->p1.x);
     y1 = _cairo_fixed_to_double (pattern->p1.y);
     x2 = _cairo_fixed_to_double (pattern->p2.x);
     y2 = _cairo_fixed_to_double (pattern->p2.y);
+
+    _x1 = x1 + (x2 - x1)*first_stop;
+    _y1 = y1 + (y2 - y1)*first_stop;
+    _x2 = x1 + (x2 - x1)*last_stop;
+    _y2 = y1 + (y2 - y1)*last_stop;
+
+    x1 = _x1;
+    x2 = _x2;
+    y1 = _y1;
+    y2 = _y2;
+
+    
+
+
+    if ((pattern->base.base.extend == CAIRO_EXTEND_NONE ||
+	 pattern->base.base.extend == CAIRO_EXTEND_PAD) &&
+	gradient->n_stops == 2) {
+	first_stop = 0.0;
+	last_stop = 1.0;
+    }
+
+    status = _cairo_ps_surface_emit_pattern_stops (surface,
+						   &pattern->base);
+    if (status)
+	return status;
+
+    if (pattern->base.base.extend == CAIRO_EXTEND_REPEAT ||
+	pattern->base.base.extend == CAIRO_EXTEND_REFLECT) {
+	status = _cairo_ps_surface_emit_repeating_function (surface,
+							    &pattern->base,
+							    repeat_begin,
+							    repeat_end);
+	if (status)
+	    return status;
+    }
 
     _cairo_output_stream_printf (surface->stream,
 				 "<< /PatternType 2\n"
@@ -2656,12 +2825,10 @@ _cairo_ps_surface_emit_linear_pattern (cairo_ps_surface_t     *surface,
 				 "   << /ShadingType 2\n"
 				 "      /ColorSpace /DeviceRGB\n"
 				 "      /Coords [ %f %f %f %f ]\n"
-				 "      /Function\n",
-				 x1, y1, x2, y2);
-
-    status = _cairo_ps_surface_emit_pattern_stops (surface, &pattern->base);
-    if (status)
-	return status;
+                                 "      /Domain [ %f %f ]\r\n"
+				 "      /Function CairoFunction\n",
+				 x1, y1, x2, y2,
+				 first_stop, last_stop);
 
     if (extend == CAIRO_EXTEND_PAD) {
 	_cairo_output_stream_printf (surface->stream,
@@ -2676,9 +2843,9 @@ _cairo_ps_surface_emit_linear_pattern (cairo_ps_surface_t     *surface,
 				 ">>\n");
     _cairo_output_stream_printf (surface->stream,
 				 "[ %f %f %f %f %f %f ]\n",
-				 inverse.xx, inverse.yx,
-				 inverse.xy, inverse.yy,
-				 inverse.x0, inverse.y0);
+                                 pat_to_ps.xx, pat_to_ps.yx,
+                                 pat_to_ps.xy, pat_to_ps.yy,
+                                 pat_to_ps.x0, pat_to_ps.y0);
     _cairo_output_stream_printf (surface->stream,
 				 "makepattern setpattern\n");
 
@@ -3089,7 +3256,7 @@ _cairo_ps_surface_stroke (void			*abstract_surface,
 
     
     _cairo_output_stream_printf (stream, "%f setmiterlimit\n",
-				 style->miter_limit);
+				 style->miter_limit < 1.0 ? 1.0 : style->miter_limit);
     _cairo_output_stream_printf (stream,
 				 "stroke\n");
     _cairo_output_stream_printf (stream,

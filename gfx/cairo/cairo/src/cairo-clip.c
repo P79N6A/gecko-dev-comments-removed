@@ -451,11 +451,41 @@ _cairo_clip_intersect_mask (cairo_clip_t      *clip,
 
     _cairo_pattern_init_solid (&pattern.solid, CAIRO_COLOR_WHITE,
 			       CAIRO_CONTENT_COLOR);
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     surface = _cairo_surface_create_similar_solid (target,
 						   CAIRO_CONTENT_ALPHA,
 						   surface_rect.width,
 						   surface_rect.height,
-						   CAIRO_COLOR_WHITE,
+						   CAIRO_COLOR_TRANSPARENT,
 						   &pattern.base);
     if (surface->status) {
 	_cairo_pattern_fini (&pattern.base);
@@ -466,7 +496,7 @@ _cairo_clip_intersect_mask (cairo_clip_t      *clip,
 
     _cairo_traps_translate (traps, -surface_rect.x, -surface_rect.y);
 
-    status = _cairo_surface_composite_trapezoids (CAIRO_OPERATOR_IN,
+    status = _cairo_surface_composite_trapezoids (CAIRO_OPERATOR_ADD,
 						  &pattern.base,
 						  surface,
 						  antialias,

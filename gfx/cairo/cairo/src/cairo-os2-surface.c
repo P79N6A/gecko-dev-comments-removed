@@ -86,6 +86,16 @@ DisableFPUException (void)
     _control87 (usCW, MCW_EM | 0x80);
 }
 
+
+
+
+
+
+
+
+
+
+
 cairo_public void
 cairo_os2_init (void)
 {
@@ -101,6 +111,16 @@ cairo_os2_init (void)
 
     CAIRO_MUTEX_INITIALIZE ();
 }
+
+
+
+
+
+
+
+
+
+
 
 cairo_public void
 cairo_os2_fini (void)
@@ -716,6 +736,26 @@ _cairo_os2_surface_get_extents (void                    *abstract_surface,
     return CAIRO_STATUS_SUCCESS;
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 cairo_surface_t *
 cairo_os2_surface_create (HPS hps_client_window,
                           int width,
@@ -813,6 +853,31 @@ cairo_os2_surface_create (HPS hps_client_window,
 
     return (cairo_surface_t *)local_os2_surface;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 int
 cairo_os2_surface_set_size (cairo_surface_t *surface,
@@ -921,6 +986,31 @@ cairo_os2_surface_set_size (cairo_surface_t *surface,
     return CAIRO_STATUS_SUCCESS;
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 void
 cairo_os2_surface_refresh_window (cairo_surface_t *surface,
                                   HPS              hps_begin_paint,
@@ -1018,6 +1108,28 @@ _cairo_os2_surface_finish (void *abstract_surface)
     return CAIRO_STATUS_SUCCESS;
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 void
 cairo_os2_surface_set_hwnd (cairo_surface_t *surface,
                             HWND             hwnd_client_window)
@@ -1044,6 +1156,25 @@ cairo_os2_surface_set_hwnd (cairo_surface_t *surface,
     DosReleaseMutexSem (local_os2_surface->hmtx_use_private_fields);
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 void
 cairo_os2_surface_set_manual_window_refresh (cairo_surface_t *surface,
                                              cairo_bool_t     manual_refresh)
@@ -1060,6 +1191,14 @@ cairo_os2_surface_set_manual_window_refresh (cairo_surface_t *surface,
 
     local_os2_surface->blit_as_changes = !manual_refresh;
 }
+
+
+
+
+
+
+
+
 
 cairo_bool_t
 cairo_os2_surface_get_manual_window_refresh (cairo_surface_t *surface)
