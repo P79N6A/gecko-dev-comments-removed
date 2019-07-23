@@ -39,6 +39,7 @@
 <html>
 
 
+<script language="JavaScript" type="text/javascript" src="../page_load_test/quit.js"></script>
 
 <body onload="
     var now = (new Date()).getTime();  
@@ -48,6 +49,7 @@
     if (window.dump) {
       dump('__start_report' + startupTime + '__end_report\n\n');
     }
+    goQuitApplication();
     window.close();
 ">
 </body>
