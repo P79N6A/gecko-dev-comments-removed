@@ -1314,6 +1314,7 @@ struct nsStyleDisplay {
   PRPackedBool mBreakAfter;     
   PRUint8 mOverflowX;           
   PRUint8 mOverflowY;           
+  PRUint8 mResize;              
   PRUint8   mClipFlags;         
   PRPackedBool mTransformPresent;  
   nsStyleTransformMatrix mTransform; 

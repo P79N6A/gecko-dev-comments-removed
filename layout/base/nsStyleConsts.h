@@ -594,6 +594,12 @@
 #define NS_STYLE_POINTER_EVENTS_AUTO            9
 
 
+#define NS_STYLE_RESIZE_NONE                    0
+#define NS_STYLE_RESIZE_BOTH                    1
+#define NS_STYLE_RESIZE_HORIZONTAL              2
+#define NS_STYLE_RESIZE_VERTICAL                3
+
+
 #define NS_STYLE_TEXT_ALIGN_DEFAULT               0
 #define NS_STYLE_TEXT_ALIGN_LEFT                  1
 #define NS_STYLE_TEXT_ALIGN_RIGHT                 2
