@@ -1026,7 +1026,7 @@ public:
 
 
 
-    JS_REQUIRES_STACK nanojit::LIns* createGuardRecord(VMSideExit* exit);
+    JS_REQUIRES_STACK nanojit::GuardRecord* createGuardRecord(VMSideExit* exit);
 
     nanojit::Fragment* getFragment() const { return fragment; }
     TreeInfo* getTreeInfo() const { return treeInfo; }

@@ -100,8 +100,18 @@ inline void* operator new(size_t size, nanojit::Allocator &a) {
 }
 
 
+inline void* operator new(size_t size, nanojit::Allocator *a) {
+    return a->alloc(size);
+}
+
+
 inline void* operator new[](size_t size, nanojit::Allocator& a) {
     return a.alloc(size);
+}
+
+
+inline void* operator new[](size_t size, nanojit::Allocator* a) {
+    return a->alloc(size);
 }
 
 #endif 
