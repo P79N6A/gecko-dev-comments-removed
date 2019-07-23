@@ -65,6 +65,13 @@ toolbarpaletteitem[place="palette"] > toolbaritem > hbox[type="places"] {
   font-weight: bold;
 }
 
+%ifdef MOZ_WIDGET_GTK2
+
+.bookmark-item > .menu-iconic-left {
+  visibility: inherit;
+}
+%endif
+
 #editBMPanel_tagsSelector {
   
   width: auto;
