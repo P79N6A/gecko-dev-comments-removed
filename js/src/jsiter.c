@@ -670,23 +670,29 @@ generator_finalize(JSContext *cx, JSObject *obj)
     }
 }
 
+void
+js_TraceGenerator(JSTracer *trc, JSGenerator *gen)
+{
+    
+
+
+
+
+    JS_ASSERT(!JSVAL_IS_PRIMITIVE(gen->frame.argv[-2]));
+    JS_CALL_OBJECT_TRACER(trc, JSVAL_TO_OBJECT(gen->frame.argv[-2]),
+                          "generator");
+    js_TraceStackFrame(trc, &gen->frame);
+}
+
+
 static void
 generator_trace(JSTracer *trc, JSObject *obj)
 {
     JSGenerator *gen;
 
     gen = (JSGenerator *) JS_GetPrivate(trc->context, obj);
-    if (gen) {
-        
-
-
-
-
-        JS_ASSERT(!JSVAL_IS_PRIMITIVE(gen->frame.argv[-2]));
-        JS_CALL_OBJECT_TRACER(trc, JSVAL_TO_OBJECT(gen->frame.argv[-2]),
-                              "generator");
-        js_TraceStackFrame(trc, &gen->frame);
-    }
+    if (gen)
+        js_TraceGenerator(trc, gen);
 }
 
 JSClass js_GeneratorClass = {
@@ -732,8 +738,6 @@ js_NewGenerator(JSContext *cx, JSStackFrame *fp)
           JS_malloc(cx, sizeof(JSGenerator) + (nslots - 1) * sizeof(jsval));
     if (!gen)
         goto bad;
-
-    gen->obj = obj;
 
     
     gen->frame.callobj = fp->callobj;
