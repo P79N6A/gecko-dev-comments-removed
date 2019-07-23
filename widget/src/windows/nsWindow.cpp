@@ -166,11 +166,11 @@
 #include <mmsystem.h> 
 #include <zmouse.h>
 #include <pbt.h>
-#include <Richedit.h>
+#include <richedit.h>
 #endif 
 
 #if defined(ACCESSIBILITY)
-#include "OLEIDL.H"
+#include "oleidl.h"
 #include <winuser.h>
 #if !defined(WINABLEAPI)
 #include <winable.h>
