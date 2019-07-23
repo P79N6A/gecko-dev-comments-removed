@@ -217,6 +217,25 @@ NS_IMETHODIMP nsPNGDecoder::Init(imgILoad *aLoad)
   png_set_progressive_read_fn(mPNG, static_cast<png_voidp>(this),
                               info_callback, row_callback, end_callback);
 
+
+  
+
+
+  mImageLoad->GetImage(getter_AddRefs(mImage));
+  if (!mImage) {
+    mImage = do_CreateInstance("@mozilla.org/image/container;1");
+    if (!mImage)
+      return NS_ERROR_OUT_OF_MEMORY;
+      
+    mImageLoad->SetImage(mImage);
+    if (NS_FAILED(mImage->SetDiscardable("image/png"))) {
+      PR_LOG(gPNGDecoderAccountingLog, PR_LOG_DEBUG,
+             ("PNGDecoderAccounting: info_callback(): failed to set image container %p as discardable",
+              mImage.get()));
+      return NS_ERROR_FAILURE;
+    }
+  }
+
   return NS_OK;
 }
 
@@ -553,37 +572,14 @@ info_callback(png_structp png_ptr, png_infop info_ptr)
   
 
 
-  decoder->mImageLoad->GetImage(getter_AddRefs(decoder->mImage));
-  if (decoder->mImage) {
-    PRInt32 container_width, container_height;
-
-    decoder->mImage->GetWidth(&container_width);
-    decoder->mImage->GetHeight(&container_height);
-
-    if (container_width != width || container_height != height)
-      decoder->mImage = nsnull;
-  }
-
-  if (!decoder->mImage) {
-    decoder->mImage = do_CreateInstance("@mozilla.org/image/container;1");
-    if (!decoder->mImage)
-      longjmp(decoder->mPNG->jmpbuf, 5); 
-
-    decoder->mImageLoad->SetImage(decoder->mImage);
-
-    decoder->mImage->Init(width, height, decoder->mObserver);
-
+  PRInt32 containerWidth, containerHeight;
+  decoder->mImage->GetWidth(&containerWidth);
+  decoder->mImage->GetHeight(&containerHeight);
+  if (containerWidth == 0 && containerHeight == 0) {
     
-    if (NS_FAILED(decoder->mImage->SetDiscardable("image/png"))) {
-      PR_LOG(gPNGDecoderAccountingLog, PR_LOG_DEBUG,
-             ("PNGDecoderAccounting: info_callback(): failed to set image container %p as discardable",
-              decoder->mImage.get()));
-      longjmp(decoder->mPNG->jmpbuf, 5); 
-    }
-
-    PR_LOG(gPNGDecoderAccountingLog, PR_LOG_DEBUG,
-           ("PNGDecoderAccounting: info_callback(): set image container %p as discardable",
-            decoder->mImage.get()));
+    decoder->mImage->Init(width, height, decoder->mObserver);
+  } else if (containerWidth != width || containerHeight != height) {
+    longjmp(decoder->mPNG->jmpbuf, 5); 
   }
 
   if (decoder->mObserver)
