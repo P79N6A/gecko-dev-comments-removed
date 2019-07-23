@@ -2892,7 +2892,8 @@ nsXULDocument::ResumeWalk()
     
     
     nsresult rv;
-    nsCOMPtr<nsIURI> overlayURI = mCurrentPrototype->GetURI();
+    nsCOMPtr<nsIURI> overlayURI =
+        mCurrentPrototype ? mCurrentPrototype->GetURI() : nsnull;
 
     while (1) {
         
