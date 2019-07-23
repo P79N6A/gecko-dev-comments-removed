@@ -40,6 +40,7 @@
 #include "xpcprivate.h"
 #include "jsdbgapi.h"
 #include "jsscript.h" 
+#include "XPCWrapper.h"
 
 JS_STATIC_DLL_CALLBACK(JSBool)
 XPC_SJOW_AddProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp);
@@ -186,7 +187,8 @@ FindObjectPrincipals(JSContext *cx, JSObject *obj)
 JSExtendedClass sXPC_SJOW_JSClass = {
   
   { "XPCSafeJSObjectWrapper",
-    JSCLASS_NEW_RESOLVE | JSCLASS_IS_EXTENDED | JSCLASS_HAS_RESERVED_SLOTS(5),
+    JSCLASS_NEW_RESOLVE | JSCLASS_IS_EXTENDED |
+    JSCLASS_HAS_RESERVED_SLOTS(XPCWrapper::sNumSlots + 3),
     XPC_SJOW_AddProperty, XPC_SJOW_DelProperty,
     XPC_SJOW_GetProperty, XPC_SJOW_SetProperty,
     XPC_SJOW_Enumerate,   (JSResolveOp)XPC_SJOW_NewResolve,
@@ -495,21 +497,7 @@ XPC_SJOW_AddProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
     return JS_FALSE;
   }
 
-  if (JSVAL_IS_STRING(id)) {
-    JSString *str = JSVAL_TO_STRING(id);
-    jschar *chars = ::JS_GetStringChars(str);
-    size_t length = ::JS_GetStringLength(str);
-
-    return ::JS_DefineUCProperty(cx, unsafeObj, chars, length, *vp, nsnull,
-                                 nsnull, JSPROP_ENUMERATE);
-  }
-
-  if (!JSVAL_IS_INT(id)) {
-    return ThrowException(NS_ERROR_NOT_IMPLEMENTED, cx);
-  }
-
-  return ::JS_DefineElement(cx, unsafeObj, JSVAL_TO_INT(id), *vp, nsnull,
-                            nsnull, JSPROP_ENUMERATE);
+  return XPCWrapper::AddProperty(cx, unsafeObj, id, vp);
 }
 
 JS_STATIC_DLL_CALLBACK(JSBool)
@@ -526,19 +514,7 @@ XPC_SJOW_DelProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
     return JS_FALSE;
   }
 
-  if (JSVAL_IS_STRING(id)) {
-    JSString *str = JSVAL_TO_STRING(id);
-    jschar *chars = ::JS_GetStringChars(str);
-    size_t length = ::JS_GetStringLength(str);
-
-    return ::JS_DeleteUCProperty2(cx, unsafeObj, chars, length, vp);
-  }
-
-  if (!JSVAL_IS_INT(id)) {
-    return ThrowException(NS_ERROR_NOT_IMPLEMENTED, cx);
-  }
-
-  return ::JS_DeleteElement2(cx, unsafeObj, JSVAL_TO_INT(id), vp);
+  return XPCWrapper::DelProperty(cx, unsafeObj, id, vp);
 }
 
 
@@ -649,32 +625,7 @@ XPC_SJOW_Enumerate(JSContext *cx, JSObject *obj)
   
   
 
-  JSIdArray *ida = JS_Enumerate(cx, unsafeObj);
-  if (!ida) {
-    return JS_FALSE;
-  }
-
-  JSBool ok = JS_TRUE;
-
-  for (jsint i = 0, n = ida->length; i < n; i++) {
-    JSObject *pobj;
-    JSProperty *prop;
-
-    
-    
-    ok = OBJ_LOOKUP_PROPERTY(cx, obj, ida->vector[i], &pobj, &prop);
-    if (!ok) {
-      break;
-    }
-
-    if (prop) {
-      OBJ_DROP_PROPERTY(cx, pobj, prop);
-    }
-  }
-
-  JS_DestroyIdArray(cx, ida);
-
-  return ok;
+  return XPCWrapper::Enumerate(cx, obj, unsafeObj);
 }
 
 JS_STATIC_DLL_CALLBACK(JSBool)
@@ -702,58 +653,7 @@ XPC_SJOW_NewResolve(JSContext *cx, JSObject *obj, jsval id, uintN flags,
     return JS_FALSE;
   }
 
-  jschar *chars = nsnull;
-  size_t length;
-  JSBool hasProp, ok;
-
-  if (JSVAL_IS_STRING(id)) {
-    JSString *str = JSVAL_TO_STRING(id);
-
-    chars = ::JS_GetStringChars(str);
-    length = ::JS_GetStringLength(str);
-
-    ok = ::JS_HasUCProperty(cx, unsafeObj, chars, length, &hasProp);
-  } else if (JSVAL_IS_INT(id)) {
-    ok = ::JS_HasElement(cx, unsafeObj, JSVAL_TO_INT(id), &hasProp);
-  } else {
-    
-    
-
-    return ThrowException(NS_ERROR_INVALID_ARG, cx);
-  }
-
-  if (!ok || !hasProp) {
-    
-    
-    
-    
-    
-
-    return ok;
-  }
-
-  jsval oldSlotVal;
-  if (!::JS_GetReservedSlot(cx, obj, XPC_SJOW_SLOT_IS_RESOLVING,
-                            &oldSlotVal) ||
-      !::JS_SetReservedSlot(cx, obj, XPC_SJOW_SLOT_IS_RESOLVING,
-                            BOOLEAN_TO_JSVAL(JS_TRUE))) {
-    return JS_FALSE;
-  }
-
-  if (chars) {
-    ok = ::JS_DefineUCProperty(cx, obj, chars, length, JSVAL_VOID,
-                               nsnull, nsnull, JSPROP_ENUMERATE);
-  } else {
-    ok = ::JS_DefineElement(cx, obj, JSVAL_TO_INT(id), JSVAL_VOID,
-                            nsnull, nsnull, JSPROP_ENUMERATE);
-  }
-
-  if (ok && (ok = ::JS_SetReservedSlot(cx, obj, XPC_SJOW_SLOT_IS_RESOLVING,
-                                       oldSlotVal))) {
-    *objp = obj;
-  }
-
-  return ok;
+  return XPCWrapper::NewResolve(cx, obj, unsafeObj, id, flags, objp);
 }
 
 JS_STATIC_DLL_CALLBACK(JSBool)
