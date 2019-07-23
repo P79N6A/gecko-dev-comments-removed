@@ -601,11 +601,6 @@ nsDOMEvent::InitEvent(const nsAString& aEventTypeArg, PRBool aCanBubbleArg, PRBo
   mEvent->target = nsnull;
   mEvent->originalTarget = nsnull;
 
-  
-  
-  
-  mEvent->flags &= ~NS_EVENT_FLAG_STOP_DISPATCH_IMMEDIATELY;
-
   return NS_OK;
 }
 

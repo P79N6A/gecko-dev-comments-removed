@@ -376,11 +376,6 @@ nsEventDispatcher::Dispatch(nsISupports* aTarget,
   NS_ASSERTION(aEvent, "Trying to dispatch without nsEvent!");
   NS_ENSURE_TRUE(!NS_IS_EVENT_IN_DISPATCH(aEvent),
                  NS_ERROR_ILLEGAL_VALUE);
-  
-  
-  NS_ENSURE_TRUE(!(aDOMEvent &&
-                   (aEvent->flags & NS_EVENT_FLAG_STOP_DISPATCH_IMMEDIATELY)),
-                 NS_ERROR_ILLEGAL_VALUE);
 
 #ifdef DEBUG
   if (aDOMEvent) {
@@ -532,7 +527,7 @@ nsEventDispatcher::DispatchDOMEvent(nsISupports* aTarget,
 
       nsevent->GetIsTrusted(&trusted);
 
-      if (!trusted) {
+      if (!trusted || (innerEvent->flags & NS_EVENT_DISPATCHED)) {
         
         privEvt->SetTrusted(nsContentUtils::IsCallerTrustedForWrite());
       }
