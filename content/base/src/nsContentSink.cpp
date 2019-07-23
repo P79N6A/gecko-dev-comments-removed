@@ -1266,9 +1266,7 @@ nsContentSink::StartLayout(PRBool aIgnorePendingSheets)
     
     
 
-    PRBool didInitialReflow = PR_FALSE;
-    shell->GetDidInitialReflow(&didInitialReflow);
-    if (didInitialReflow) {
+    if (shell->DidInitialReflow()) {
       
       
       

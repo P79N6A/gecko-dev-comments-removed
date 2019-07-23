@@ -272,9 +272,7 @@ public:
   
 
 
-
-
-  NS_IMETHOD GetDidInitialReflow(PRBool *aDidInitialReflow) = 0;
+  PRBool DidInitialReflow() const { return mDidInitialReflow; }
 
   
 
