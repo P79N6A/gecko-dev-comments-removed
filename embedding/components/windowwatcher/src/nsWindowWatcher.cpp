@@ -1865,12 +1865,21 @@ nsWindowWatcher::SizeOpenedDocShellItem(nsIDocShellTreeItem *aDocShellItem,
   nsCOMPtr<nsIBaseWindow> treeOwnerAsWin(do_QueryInterface(treeOwner));
   if (!treeOwnerAsWin) 
     return;
-
+    
+  float devPixelsPerCSSPixel = 1.0;
   nsCOMPtr<nsIWidget> mainWidget;
   treeOwnerAsWin->GetMainWidget(getter_AddRefs(mainWidget));
-  nsCOMPtr<nsIDeviceContext> ctx = mainWidget->GetDeviceContext();
-
-  float DevPixelsPerCSSPixel = float(ctx->AppUnitsPerCSSPixel()) / ctx->AppUnitsPerDevPixel();
+  if (!mainWidget) {
+    
+    
+    nsCOMPtr<nsIBaseWindow> shellWindow(do_QueryInterface(aDocShellItem));
+    if (shellWindow)
+      shellWindow->GetParentWidget(getter_AddRefs(mainWidget));
+  }
+  if (mainWidget) {
+    nsCOMPtr<nsIDeviceContext> ctx = mainWidget->GetDeviceContext();
+    devPixelsPerCSSPixel = float(ctx->AppUnitsPerCSSPixel()) / ctx->AppUnitsPerDevPixel();
+  }
 
   
 
@@ -1892,17 +1901,17 @@ nsWindowWatcher::SizeOpenedDocShellItem(nsIDocShellTreeItem *aDocShellItem,
 
   
   if (aSizeSpec.mLeftSpecified) {
-    left = aSizeSpec.mLeft * DevPixelsPerCSSPixel;
+    left = NSToIntRound(aSizeSpec.mLeft * devPixelsPerCSSPixel);
   }
 
   if (aSizeSpec.mTopSpecified) {
-    top = aSizeSpec.mTop * DevPixelsPerCSSPixel;
+    top = NSToIntRound(aSizeSpec.mTop * devPixelsPerCSSPixel);
   }
 
   
   if (aSizeSpec.mOuterWidthSpecified) {
     if (!aSizeSpec.mUseDefaultWidth) {
-      width = aSizeSpec.mOuterWidth * DevPixelsPerCSSPixel;
+      width = NSToIntRound(aSizeSpec.mOuterWidth * devPixelsPerCSSPixel);
     } 
   }
   else if (aSizeSpec.mInnerWidthSpecified) {
@@ -1910,14 +1919,14 @@ nsWindowWatcher::SizeOpenedDocShellItem(nsIDocShellTreeItem *aDocShellItem,
     if (aSizeSpec.mUseDefaultWidth) {
       width = width - chromeWidth;
     } else {
-      width = aSizeSpec.mInnerWidth * DevPixelsPerCSSPixel;
+      width = NSToIntRound(aSizeSpec.mInnerWidth * devPixelsPerCSSPixel);
     }
   }
 
   
   if (aSizeSpec.mOuterHeightSpecified) {
     if (!aSizeSpec.mUseDefaultHeight) {
-      height = aSizeSpec.mOuterHeight * DevPixelsPerCSSPixel;
+      height = NSToIntRound(aSizeSpec.mOuterHeight * devPixelsPerCSSPixel);
     } 
   }
   else if (aSizeSpec.mInnerHeightSpecified) {
@@ -1925,7 +1934,7 @@ nsWindowWatcher::SizeOpenedDocShellItem(nsIDocShellTreeItem *aDocShellItem,
     if (aSizeSpec.mUseDefaultHeight) {
       height = height - chromeHeight;
     } else {
-      height = aSizeSpec.mInnerHeight * DevPixelsPerCSSPixel;
+      height = NSToIntRound(aSizeSpec.mInnerHeight * devPixelsPerCSSPixel);
     }
   }
 
