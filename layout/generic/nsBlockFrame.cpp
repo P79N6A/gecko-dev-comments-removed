@@ -6924,12 +6924,8 @@ nsBlockFrame::IsVisualFormControl(nsPresContext* aPresContext)
   
   
   
-  if (!aPresContext->IsVisualMode()) {
-    return PR_FALSE;
-  }
 
-  PRUint32 options = aPresContext->GetBidi();
-  if (IBMBIDI_CONTROLSTEXTMODE_LOGICAL != GET_BIDI_OPTION_CONTROLSTEXTMODE(options)) {
+  if (!aPresContext->IsVisualMode()) {
     return PR_FALSE;
   }
 

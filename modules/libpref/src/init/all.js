@@ -1072,13 +1072,6 @@ pref("bidi.texttype", 1);
 
 
 
-pref("bidi.controlstextmode", 1);
-
-
-
-
-
-
 
 
 

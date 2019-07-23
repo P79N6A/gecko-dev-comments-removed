@@ -103,9 +103,7 @@ protected:
 
 
 
-
-  nsFormSubmission(const nsACString& aCharset,
-                   PRInt32 aBidiOptions);
+  nsFormSubmission(const nsACString& aCharset);
 
   
 
@@ -117,20 +115,9 @@ protected:
   nsresult EncodeVal(const nsAString& aStr, nsACString& aResult);
 
   
-
-
-
-
-
-
-  nsresult UnicodeToNewBytes(const nsAString& aStr, nsACString& aOut);
-
-  
   nsCString mCharset;
   
   nsCOMPtr<nsISaveAsCharset> mEncoder;
-  
-  PRInt32 mBidiOptions;
 };
 
 

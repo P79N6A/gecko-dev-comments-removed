@@ -71,7 +71,6 @@
 #include "nsIStringBundle.h"
 #include "nsCExternalHandlerService.h"
 #include "nsIFileStreams.h"
-#include "nsBidiUtils.h"
 
 static void
 SendJSWarning(nsIDocument* aDocument,
@@ -98,12 +97,10 @@ public:
 
 
 
-
   nsFSURLEncoded(const nsACString& aCharset,
-                 PRInt32 aBidiOptions,
                  PRInt32 aMethod,
                  nsIDocument* aDocument)
-    : nsFormSubmission(aCharset, aBidiOptions),
+    : nsFormSubmission(aCharset),
       mMethod(aMethod),
       mDocument(aDocument),
       mWarnedFileControl(PR_FALSE)
@@ -392,9 +389,7 @@ public:
   
 
 
-
-  nsFSMultipartFormData(const nsACString& aCharset,
-                        PRInt32 aBidiOptions);
+  nsFSMultipartFormData(const nsACString& aCharset);
  
   virtual nsresult AddNameValuePair(const nsAString& aName,
                                     const nsAString& aValue);
@@ -435,9 +430,8 @@ private:
   nsCString mBoundary;
 };
 
-nsFSMultipartFormData::nsFSMultipartFormData(const nsACString& aCharset,
-                                             PRInt32 aBidiOptions)
-    : nsFormSubmission(aCharset, aBidiOptions)
+nsFSMultipartFormData::nsFSMultipartFormData(const nsACString& aCharset)
+    : nsFormSubmission(aCharset)
 {
   mPostDataStream =
     do_CreateInstance("@mozilla.org/io/multiplex-input-stream;1");
@@ -620,9 +614,8 @@ nsFSMultipartFormData::AddPostDataStream()
 class nsFSTextPlain : public nsFormSubmission
 {
 public:
-  nsFSTextPlain(const nsACString& aCharset,
-                PRInt32 aBidiOptions)
-    : nsFormSubmission(aCharset, aBidiOptions)
+  nsFSTextPlain(const nsACString& aCharset)
+    : nsFormSubmission(aCharset)
   {
   }
 
@@ -717,10 +710,8 @@ nsFSTextPlain::GetEncodedSubmission(nsIURI* aURI,
 
 
 
-nsFormSubmission::nsFormSubmission(const nsACString& aCharset,
-                                   PRInt32 aBidiOptions)
-  : mCharset(aCharset),
-    mBidiOptions(aBidiOptions)
+nsFormSubmission::nsFormSubmission(const nsACString& aCharset)
+  : mCharset(aCharset)
 {
   MOZ_COUNT_CTOR(nsFormSubmission);
 
@@ -758,73 +749,14 @@ nsFormSubmission::~nsFormSubmission()
 
 
 nsresult
-nsFormSubmission::UnicodeToNewBytes(const nsAString& aStr,
-                                    nsACString& aOut)
-{
-  PRUint8 ctrlsModAtSubmit = GET_BIDI_OPTION_CONTROLSTEXTMODE(mBidiOptions);
-  PRUint8 textDirAtSubmit = GET_BIDI_OPTION_DIRECTION(mBidiOptions);
-  
-  nsAutoString newBuffer;
-  
-  if (ctrlsModAtSubmit == IBMBIDI_CONTROLSTEXTMODE_VISUAL
-     && mCharset.Equals(NS_LITERAL_CSTRING("windows-1256"),
-                        nsCaseInsensitiveCStringComparator())) {
-    Conv_06_FE_WithReverse(nsString(aStr),
-                           newBuffer,
-                           textDirAtSubmit);
-  }
-  else if (ctrlsModAtSubmit == IBMBIDI_CONTROLSTEXTMODE_LOGICAL
-          && mCharset.Equals(NS_LITERAL_CSTRING("IBM864"),
-                             nsCaseInsensitiveCStringComparator())) {
-    
-    
-    Conv_FE_06(nsString(aStr), newBuffer);
-    if (textDirAtSubmit == 2) { 
-    
-      PRInt32 len = newBuffer.Length();
-      PRUint32 z = 0;
-      nsAutoString temp;
-      temp.SetLength(len);
-      while (--len >= 0)
-        temp.SetCharAt(newBuffer.CharAt(len), z++);
-      newBuffer = temp;
-    }
-  }
-  else if (ctrlsModAtSubmit == IBMBIDI_CONTROLSTEXTMODE_VISUAL
-          && mCharset.Equals(NS_LITERAL_CSTRING("IBM864"),
-                             nsCaseInsensitiveCStringComparator())
-                  && textDirAtSubmit == IBMBIDI_TEXTDIRECTION_RTL) {
-
-    Conv_FE_06(nsString(aStr), newBuffer);
-    
-    PRInt32 len = newBuffer.Length();
-    PRUint32 z = 0;
-    nsAutoString temp;
-    temp.SetLength(len);
-    while (--len >= 0)
-      temp.SetCharAt(newBuffer.CharAt(len), z++);
-    newBuffer = temp;
-  }
-  else {
-    newBuffer = aStr;
-  }
-
-  nsXPIDLCString res;
-  if (!newBuffer.IsEmpty()) {
-    aOut.Truncate();
-    nsresult rv = mEncoder->Convert(newBuffer.get(), getter_Copies(res));
-    NS_ENSURE_SUCCESS(rv, rv);
-  }
-
-  aOut = res;
-  return NS_OK;
-}
-
-nsresult
 nsFormSubmission::EncodeVal(const nsAString& aStr, nsACString& aOut)
 {
-  if (mEncoder)
-    return UnicodeToNewBytes(aStr, aOut);
+  if (mEncoder) {
+    aOut.Truncate();
+    return aStr.IsEmpty() ? NS_OK :
+           mEncoder->Convert(PromiseFlatString(aStr).get(),
+                             getter_Copies(aOut));
+  }
 
   
   CopyUTF16toUTF8(aStr, aOut);
@@ -835,7 +767,6 @@ nsFormSubmission::EncodeVal(const nsAString& aStr, nsACString& aOut)
 
 static void
 GetSubmitCharset(nsGenericHTMLElement* aForm,
-                 PRUint8 aCtrlsModAtSubmit,
                  nsACString& oCharset)
 {
   oCharset.AssignLiteral("UTF-8"); 
@@ -877,27 +808,6 @@ GetSubmitCharset(nsGenericHTMLElement* aForm,
   if (doc) {
     oCharset = doc->GetDocumentCharacterSet();
   }
-
-  if (aCtrlsModAtSubmit==IBMBIDI_CONTROLSTEXTMODE_VISUAL
-     && oCharset.Equals(NS_LITERAL_CSTRING("windows-1256"),
-                        nsCaseInsensitiveCStringComparator())) {
-    oCharset.AssignLiteral("IBM864");
-  }
-  else if (aCtrlsModAtSubmit==IBMBIDI_CONTROLSTEXTMODE_LOGICAL
-          && oCharset.Equals(NS_LITERAL_CSTRING("IBM864"),
-                             nsCaseInsensitiveCStringComparator())) {
-    oCharset.AssignLiteral("IBM864i");
-  }
-  else if (aCtrlsModAtSubmit==IBMBIDI_CONTROLSTEXTMODE_VISUAL
-          && oCharset.Equals(NS_LITERAL_CSTRING("ISO-8859-6"),
-                             nsCaseInsensitiveCStringComparator())) {
-    oCharset.AssignLiteral("IBM864");
-  }
-  else if (aCtrlsModAtSubmit==IBMBIDI_CONTROLSTEXTMODE_VISUAL
-          && oCharset.Equals(NS_LITERAL_CSTRING("UTF-8"),
-                             nsCaseInsensitiveCStringComparator())) {
-    oCharset.AssignLiteral("IBM864");
-  }
 }
 
 static void
@@ -919,11 +829,6 @@ GetSubmissionFromForm(nsGenericHTMLElement* aForm,
   NS_ASSERTION(doc, "Should have doc if we're building submission!");
 
   
-  PRUint8 ctrlsModAtSubmit = 0;
-  PRUint32 bidiOptions = doc->GetBidiOptions();
-  ctrlsModAtSubmit = GET_BIDI_OPTION_CONTROLSTEXTMODE(bidiOptions);
-
-  
   PRInt32 enctype = NS_FORM_ENCTYPE_URLENCODED;
   GetEnumAttr(aForm, nsGkAtoms::enctype, &enctype);
 
@@ -933,15 +838,15 @@ GetSubmissionFromForm(nsGenericHTMLElement* aForm,
 
   
   nsCAutoString charset;
-  GetSubmitCharset(aForm, ctrlsModAtSubmit, charset);
+  GetSubmitCharset(aForm, charset);
 
   
   if (method == NS_FORM_METHOD_POST &&
       enctype == NS_FORM_ENCTYPE_MULTIPART) {
-    *aFormSubmission = new nsFSMultipartFormData(charset, bidiOptions);
+    *aFormSubmission = new nsFSMultipartFormData(charset);
   } else if (method == NS_FORM_METHOD_POST &&
              enctype == NS_FORM_ENCTYPE_TEXTPLAIN) {
-    *aFormSubmission = new nsFSTextPlain(charset, bidiOptions);
+    *aFormSubmission = new nsFSTextPlain(charset);
   } else {
     if (enctype == NS_FORM_ENCTYPE_MULTIPART ||
         enctype == NS_FORM_ENCTYPE_TEXTPLAIN) {
@@ -951,8 +856,8 @@ GetSubmissionFromForm(nsGenericHTMLElement* aForm,
       SendJSWarning(aForm->GetOwnerDoc(), "ForgotPostWarning",
                     &enctypeStrPtr, 1);
     }
-    *aFormSubmission = new nsFSURLEncoded(charset, bidiOptions,
-                                          method, aForm->GetOwnerDoc());
+    *aFormSubmission = new nsFSURLEncoded(charset, method,
+                                          aForm->GetOwnerDoc());
   }
   NS_ENSURE_TRUE(*aFormSubmission, NS_ERROR_OUT_OF_MEMORY);
 
