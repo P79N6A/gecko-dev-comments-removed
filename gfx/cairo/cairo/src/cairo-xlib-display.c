@@ -302,6 +302,9 @@ _cairo_xlib_display_get (Display *dpy)
 	    display->buggy_repeat = TRUE;
     }
 
+    
+    display->buggy_repeat = TRUE;
+
     display->next = _cairo_xlib_display_list;
     _cairo_xlib_display_list = display;
 
