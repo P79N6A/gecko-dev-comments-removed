@@ -820,3 +820,6 @@ pref("browser.privatebrowsing.dont_prompt_on_enter", false);
 
 
 pref("browser.bookmarks.editDialog.firstEditField", "namePicker");
+
+
+pref("geo.wifi.uri", "https://www.google.com/loc/json");
