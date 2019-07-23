@@ -59,23 +59,8 @@ class nsZPlaceholderView;
 
 
 
-#define NS_VIEW_FLAG_CONTAINS_PLACEHOLDER 0x0100
-
-
 
 #define NS_VIEW_FLAG_DONT_CHECK_CHILDREN  0x0200
-
-
-
-
-#define NS_VIEW_FLAG_CLIP_CHILDREN_TO_BOUNDS      0x0800
-
-
-
-#define NS_VIEW_FLAG_CLIP_PLACEHOLDERS_TO_BOUNDS  0x1000
-
-
-#define NS_VIEW_FLAG_HAS_POSITIONED_WIDGET 0x2000
 
 class nsView : public nsIView
 {
@@ -222,11 +207,13 @@ public:
     return mViewToWidgetOffset;
   }
 
+  nsRect CalcWidgetBounds(nsWindowType aType);
+
 protected:
   
   
   void DoResetWidgetBounds(PRBool aMoveOnly, PRBool aInvalidateChangedSize);
-  
+
   nsZPlaceholderView* mZParent;
 
   
