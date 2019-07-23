@@ -654,6 +654,32 @@ struct OS2Table {
     AutoSwap_PRUint16    usMaxContext;
 };
 
+
+
+struct KernTableVersion0 {
+    AutoSwap_PRUint16    version; 
+    AutoSwap_PRUint16    nTables;
+};
+
+struct KernTableSubtableHeaderVersion0 {
+    AutoSwap_PRUint16    version;
+    AutoSwap_PRUint16    length;
+    AutoSwap_PRUint16    coverage;
+};
+
+
+
+struct KernTableVersion1 {
+    AutoSwap_PRUint32    version; 
+    AutoSwap_PRUint32    nTables;
+};
+
+struct KernTableSubtableHeaderVersion1 {
+    AutoSwap_PRUint32    length;
+    AutoSwap_PRUint16    coverage;
+    AutoSwap_PRUint16    tupleIndex;
+};
+
 static PRBool
 IsValidSFNTVersion(PRUint32 version)
 {
@@ -673,6 +699,44 @@ CopySwapUTF16(const PRUint16 *aInBuf, PRUint16 *aOutBuf, PRUint32 aLen)
         aOutBuf++;
         aInBuf++;
     }
+}
+
+static PRBool
+ValidateKernTable(const PRUint8 *aKernTable, PRUint32 aKernLength)
+{
+    
+    const KernTableVersion0 *kernTable0 = reinterpret_cast<const KernTableVersion0*>(aKernTable);
+    if (aKernLength < sizeof(KernTableVersion0)) {
+        return PR_FALSE;
+    }
+    if (PRUint16(kernTable0->version) == 0) {
+        if (aKernLength < sizeof(KernTableVersion0) +
+                            PRUint16(kernTable0->nTables) * sizeof(KernTableSubtableHeaderVersion0)) {
+            return PR_FALSE;
+        }
+        
+        
+        
+        return PR_TRUE;
+    }
+
+    const KernTableVersion1 *kernTable1 = reinterpret_cast<const KernTableVersion1*>(aKernTable);
+    if (aKernLength < sizeof(KernTableVersion1)) {
+        return PR_FALSE;
+    }
+    if (kernTable1->version == 0x00010000) {
+        if (aKernLength < sizeof(KernTableVersion1) +
+                            kernTable1->nTables * sizeof(KernTableSubtableHeaderVersion1)) {
+            return PR_FALSE;
+        }
+        
+        
+        
+        return PR_TRUE;
+    }
+
+    
+    return PR_FALSE;
 }
 
 PRBool
@@ -702,8 +766,8 @@ gfxFontUtils::ValidateSFNTHeaders(const PRUint8 *aFontData,
 
     
     PRBool foundHead = PR_FALSE, foundOS2 = PR_FALSE, foundName = PR_FALSE;
-    PRBool foundGlyphs = PR_FALSE, foundCFF = PR_FALSE;
-    PRUint32 headOffset, headLen, nameOffset, nameLen;
+    PRBool foundGlyphs = PR_FALSE, foundCFF = PR_FALSE, foundKern = PR_FALSE;
+    PRUint32 headOffset, headLen, nameOffset, nameLen, kernOffset, kernLen;
     PRUint32 i, numTables;
 
     numTables = sfntHeader->numTables;
@@ -747,6 +811,12 @@ gfxFontUtils::ValidateSFNTHeaders(const PRUint8 *aFontData,
                 NS_WARNING("invalid font (head table length)");
                 return PR_FALSE;
             }
+            break;
+
+        case TRUETYPE_TAG('k','e','r','n'):
+            foundKern = PR_TRUE;
+            kernOffset = dirEntry->offset;
+            kernLen = dirEntry->length;
             break;
 
         case TRUETYPE_TAG('n','a','m','e'):
@@ -836,6 +906,14 @@ gfxFontUtils::ValidateSFNTHeaders(const PRUint8 *aFontData,
 
         if (nameStringsBase + PRUint64(nameoff) + PRUint64(namelen) > dataLength) {
             NS_WARNING("invalid font (name table strings)");
+            return PR_FALSE;
+        }
+    }
+
+    
+    if (foundKern) {
+        if (!ValidateKernTable(aFontData + kernOffset, kernLen)) {
+            NS_WARNING("invalid font (kern table)");
             return PR_FALSE;
         }
     }
