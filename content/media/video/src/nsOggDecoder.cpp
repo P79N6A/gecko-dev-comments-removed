@@ -1103,6 +1103,10 @@ void nsOggDecodeStateMachine::Decode()
 void nsOggDecodeStateMachine::Seek(float aTime)
 {
   nsAutoMonitor mon(mDecoder->GetMonitor());
+  
+  
+  NS_ASSERTION(mState != DECODER_STATE_SEEKING,
+               "We shouldn't already be seeking");
   mSeekTime = aTime;
   LOG(PR_LOG_DEBUG, ("Changed state to SEEKING (to %f)", aTime));
   mState = DECODER_STATE_SEEKING;
@@ -1330,17 +1334,23 @@ nsresult nsOggDecodeStateMachine::Run()
           UpdatePlaybackPosition(frame->mDecodedFrameTime);
           PlayVideo(frame);
         }
+
+        
+        
+        
+        LOG(PR_LOG_DEBUG, ("Changed state from SEEKING (to %f) to DECODING", seekTime));
+        
+        
+        
+        NS_ASSERTION(seekTime == mSeekTime, "No-one should have changed mSeekTime");
+        mState = DECODER_STATE_DECODING;
+        mon.NotifyAll();
+
         mon.Exit();
         nsCOMPtr<nsIRunnable> stopEvent = 
           NS_NEW_RUNNABLE_METHOD(nsOggDecoder, mDecoder, SeekingStopped);
         NS_DispatchToMainThread(stopEvent, NS_DISPATCH_SYNC);        
         mon.Enter();
-
-        if (mState == DECODER_STATE_SEEKING && mSeekTime == seekTime) {
-          LOG(PR_LOG_DEBUG, ("Changed state from SEEKING (to %f) to DECODING", seekTime));
-          mState = DECODER_STATE_DECODING;
-          mon.NotifyAll();
-        }
       }
       break;
 
