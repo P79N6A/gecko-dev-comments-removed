@@ -286,6 +286,7 @@ public:
   void SetConsumeRollupEvent(PRUint32 aConsumeMode);
 
   nsIScrollableView* GetScrollableView(nsIFrame* aStart);
+  nsIScrollableFrame* GetScrollFrame(nsIFrame* aStart);
 
   
   void SetPreferredBounds(nsBoxLayoutState& aState, const nsRect& aRect);

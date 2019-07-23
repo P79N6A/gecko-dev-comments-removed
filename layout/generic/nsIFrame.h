@@ -108,10 +108,6 @@ struct CharacterDataChangeInfo;
 
 typedef class nsIFrame nsIBox;
 
-#define NS_IFRAME_IID \
-  { 0x8bee3c3f, 0x0b4a, 0x4453, \
-    { 0xa6, 0x77, 0xf3, 0xd2, 0x56, 0xd1, 0x0e, 0xdc } }
-
 
 
 
@@ -632,6 +628,15 @@ public:
 
 
   virtual nsIFrame* GetContentInsertionFrame() { return this; }
+
+  
+
+
+
+
+
+
+  virtual nsIScrollableFrame* GetScrollTargetFrame() { return nsnull; }
 
   
 

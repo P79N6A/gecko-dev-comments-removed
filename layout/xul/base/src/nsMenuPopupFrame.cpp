@@ -1252,6 +1252,35 @@ nsIScrollableView* nsMenuPopupFrame::GetScrollableView(nsIFrame* aStart)
   return nsnull;
 }
 
+
+
+nsIScrollableFrame* nsMenuPopupFrame::GetScrollFrame(nsIFrame* aStart)
+{
+  if (!aStart)
+    return nsnull;  
+
+  
+  nsIFrame* currFrame = aStart;
+  do {
+    nsIScrollableFrame* sf = do_QueryFrame(currFrame);
+    if (sf)
+      return sf;
+    currFrame = currFrame->GetNextSibling();
+  } while (currFrame);
+
+  
+  currFrame = aStart;
+  do {
+    nsIFrame* childFrame = currFrame->GetFirstChild(nsnull);
+    nsIScrollableFrame* sf = GetScrollFrame(childFrame);
+    if (sf)
+      return sf;
+    currFrame = currFrame->GetNextSibling();
+  } while (currFrame);
+
+  return nsnull;
+}
+
 void nsMenuPopupFrame::EnsureMenuItemIsVisible(nsMenuFrame* aMenuItem)
 {
   if (aMenuItem) {
