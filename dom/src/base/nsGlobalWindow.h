@@ -401,6 +401,11 @@ public:
     return  mCreatingInnerWindow;
   }
 
+  PRBool IsChromeWindow() const
+  {
+    return mIsChrome;
+  }
+
   nsresult Observe(nsISupports* aSubject, const char* aTopic,
                    const PRUnichar* aData);
 
@@ -643,7 +648,10 @@ protected:
   
   
   PRPackedBool                  mCreatingInnerWindow : 1;
+
   
+  PRPackedBool                  mIsChrome : 1;
+
   nsCOMPtr<nsIScriptContext>    mContext;
   nsCOMPtr<nsIDOMWindowInternal> mOpener;
   nsCOMPtr<nsIControllers>      mControllers;
@@ -721,6 +729,7 @@ public:
   nsGlobalChromeWindow(nsGlobalWindow *aOuterWindow)
     : nsGlobalWindow(aOuterWindow)
   {
+    mIsChrome = PR_TRUE;
   }
 
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED_NO_UNLINK(nsGlobalChromeWindow,
