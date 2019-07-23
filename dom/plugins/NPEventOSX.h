@@ -70,11 +70,25 @@ struct ParamTraits<mozilla::plugins::NPRemoteEvent>
         paramCopy.event = aParam.event;
 
         switch (paramCopy.event.type) {
+            case NPCocoaEventMouseDown:
+            case NPCocoaEventMouseUp:
+            case NPCocoaEventMouseMoved:
+            case NPCocoaEventMouseEntered:
+            case NPCocoaEventMouseExited:
+            case NPCocoaEventMouseDragged:
+            case NPCocoaEventFocusChanged:
+            case NPCocoaEventWindowFocusChanged:
+            case NPCocoaEventScrollWheel:
+                
+                break;
             case NPCocoaEventDrawRect:
                 
                 paramCopy.event.data.draw.context = NULL;
                 break;
-
+            case NPCocoaEventKeyDown:
+            case NPCocoaEventKeyUp:
+            case NPCocoaEventFlagsChanged:
+            case NPCocoaEventTextInput:
             default:
                 
                 return; 
