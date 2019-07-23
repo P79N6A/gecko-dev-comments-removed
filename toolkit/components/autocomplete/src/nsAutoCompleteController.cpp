@@ -558,6 +558,9 @@ nsAutoCompleteController::HandleDelete(PRBool *_retval)
   --mRowCount;
 
   
+  *_retval = PR_TRUE;
+
+  
   popup->SetSelectedIndex(-1);
 
   
@@ -579,9 +582,6 @@ nsAutoCompleteController::HandleDelete(PRBool *_retval)
       nsAutoString value;
       if (NS_SUCCEEDED(GetResultValueAt(index, PR_TRUE, value))) {
         CompleteValue(value);
-      
-        
-        *_retval = PR_TRUE;
       }
     }
 
