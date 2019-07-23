@@ -254,6 +254,22 @@ void NullXFORM(_LPcmsTRANSFORM p,
        output = (LPBYTE) out;
        n = Size;                    
 
+       
+       
+       if (p -> InputFormat == p -> OutputFormat) {
+
+              
+              if (in != out) {
+
+                     
+                     
+                     memmove(out, in, 
+                             Size * T_BYTES(p -> InputFormat) * T_CHANNELS(p -> InputFormat));
+              }
+
+              return;
+       }
+
        for (i=0; i < n; i++)
        {
        accum = p -> FromInput(p, wIn, accum);
@@ -1523,6 +1539,12 @@ _LPcmsTRANSFORM PickTransformRoutine(_LPcmsTRANSFORM p,
                        (p -> ExitColorSpace == icSigRgbData)  &&
                        !(p -> dwOriginalFlags & cmsFLAGS_BLACKPOINTCOMPENSATION)) {
 
+                          
+                          
+                          if (p -> InputProfile == p -> OutputProfile) {
+                                 p -> xform = NullXFORM;
+                                 return p;
+                          }
 
                           
                           if (p -> dwOriginalFlags & cmsFLAGS_FLOATSHAPER)

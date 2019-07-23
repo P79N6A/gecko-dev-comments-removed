@@ -60,6 +60,8 @@
 #include "nsIPref.h"
 #include "nsServiceManagerUtils.h"
 
+#include "nsWeakReference.h"
+
 #ifdef MOZ_ENABLE_GLITZ
 #include <stdlib.h>
 #endif
@@ -70,6 +72,7 @@
 #include "plstr.h"
 #include "nsIPrefService.h"
 #include "nsIPrefBranch.h"
+#include "nsIPrefBranch2.h"
 
 gfxPlatform *gPlatform = nsnull;
 int gGlitzState = -1;
@@ -82,10 +85,43 @@ static cmsHTRANSFORM gCMSRGBTransform = nsnull;
 static cmsHTRANSFORM gCMSInverseRGBTransform = nsnull;
 static cmsHTRANSFORM gCMSRGBATransform = nsnull;
 
+static PRBool gCMSInitialized = PR_FALSE;
+static eCMSMode gCMSMode = eCMSMode_Off;
+static int gCMSIntent = -2;
+
 static const char *CMPrefName = "gfx.color_management.mode";
 static const char *CMPrefNameOld = "gfx.color_management.enabled";
 static const char *CMIntentPrefName = "gfx.color_management.rendering_intent";
+static const char *CMProfilePrefName = "gfx.color_management.display_profile";
+static const char *CMForceSRGBPrefName = "gfx.color_management.force_srgb";
+
+static void ShutdownCMS();
 static void MigratePrefs();
+
+
+
+class SRGBOverrideObserver : public nsIObserver,
+                             public nsSupportsWeakReference
+{
+public:
+    NS_DECL_ISUPPORTS
+    NS_DECL_NSIOBSERVER
+};
+
+NS_IMPL_ISUPPORTS2(SRGBOverrideObserver, nsIObserver, nsISupportsWeakReference)
+
+NS_IMETHODIMP
+SRGBOverrideObserver::Observe(nsISupports *aSubject,
+                              const char *aTopic,
+                              const PRUnichar *someData)
+{
+    NS_ASSERTION(NS_strcmp(someData,
+                   NS_LITERAL_STRING("gfx.color_mangement.force_srgb").get()),
+                 "Restarting CMS on wrong pref!");
+    ShutdownCMS();
+    return NS_OK;
+}
+
 
 
 
@@ -185,6 +221,12 @@ gfxPlatform::Init()
     
     MigratePrefs();
 
+    
+    gPlatform->overrideObserver = new SRGBOverrideObserver();
+    nsCOMPtr<nsIPrefBranch2> prefs = do_GetService(NS_PREFSERVICE_CONTRACTID);
+    if (prefs)
+        prefs->AddObserver(CMForceSRGBPrefName, gPlatform->overrideObserver, PR_TRUE);
+
     return NS_OK;
 }
 
@@ -201,30 +243,12 @@ gfxPlatform::Shutdown()
 #endif
 
     
-    if (gCMSRGBTransform) {
-        cmsDeleteTransform(gCMSRGBTransform);
-        gCMSRGBTransform = nsnull;
-    }
-    if (gCMSInverseRGBTransform) {
-        cmsDeleteTransform(gCMSInverseRGBTransform);
-        gCMSInverseRGBTransform = nsnull;
-    }
-    if (gCMSRGBATransform) {
-        cmsDeleteTransform(gCMSRGBATransform);
-        gCMSRGBATransform = nsnull;
-    }
-    if (gCMSOutputProfile) {
-        cmsCloseProfile(gCMSOutputProfile);
+    ShutdownCMS();
 
-        
-        if (gCMSsRGBProfile == gCMSOutputProfile)
-            gCMSsRGBProfile = nsnull;
-        gCMSOutputProfile = nsnull;
-    }
-    if (gCMSsRGBProfile) {
-        cmsCloseProfile(gCMSsRGBProfile);
-        gCMSsRGBProfile = nsnull;
-    }
+    
+    nsCOMPtr<nsIPrefBranch2> prefs = do_GetService(NS_PREFSERVICE_CONTRACTID);
+    if (prefs)
+        prefs->RemoveObserver(CMForceSRGBPrefName, gPlatform->overrideObserver);
     
     delete gPlatform;
     gPlatform = nsnull;
@@ -465,22 +489,19 @@ gfxPlatform::AppendPrefLang(eFontPrefLang aPrefLangs[], PRUint32& aLen, eFontPre
 eCMSMode
 gfxPlatform::GetCMSMode()
 {
-    static eCMSMode sMode = eCMSMode_Off;
-    static PRBool initialized = PR_FALSE;
-
-    if (initialized == PR_FALSE) {
-        initialized = PR_TRUE;
+    if (gCMSInitialized == PR_FALSE) {
+        gCMSInitialized = PR_TRUE;
         nsCOMPtr<nsIPrefBranch> prefs = do_GetService(NS_PREFSERVICE_CONTRACTID);
         if (prefs) {
             PRInt32 mode;
             nsresult rv =
                 prefs->GetIntPref(CMPrefName, &mode);
             if (NS_SUCCEEDED(rv) && (mode >= 0) && (mode < eCMSMode_AllCount)) {
-                sMode = static_cast<eCMSMode>(mode);
+                gCMSMode = static_cast<eCMSMode>(mode);
             }
         }
     }
-    return sMode;
+    return gCMSMode;
 }
 
 
@@ -491,10 +512,7 @@ gfxPlatform::GetCMSMode()
 PRBool
 gfxPlatform::GetRenderingIntent()
 {
-    
-    static int sIntent = -2;
-
-    if (sIntent == -2) {
+    if (gCMSIntent == -2) {
 
         
         nsCOMPtr<nsIPrefBranch> prefs = do_GetService(NS_PREFSERVICE_CONTRACTID);
@@ -505,19 +523,19 @@ gfxPlatform::GetRenderingIntent()
               
                 
                 if ((pIntent >= INTENT_MIN) && (pIntent <= INTENT_MAX))
-                    sIntent = pIntent;
+                    gCMSIntent = pIntent;
 
                 
                 else
-                    sIntent = -1;
+                    gCMSIntent = -1;
             }
         }
 
         
-        if (sIntent == -2) 
-            sIntent = INTENT_DEFAULT;
+        if (gCMSIntent == -2) 
+            gCMSIntent = INTENT_DEFAULT;
     }
-    return sIntent;
+    return gCMSIntent;
 }
 
 
@@ -540,18 +558,31 @@ gfxPlatform::GetCMSOutputProfile()
 
         nsCOMPtr<nsIPrefBranch> prefs = do_GetService(NS_PREFSERVICE_CONTRACTID);
         if (prefs) {
-            nsXPIDLCString fname;
-            nsresult rv =
-                prefs->GetCharPref("gfx.color_management.display_profile",
-                                   getter_Copies(fname));
-            if (NS_SUCCEEDED(rv) && !fname.IsEmpty()) {
-                gCMSOutputProfile = cmsOpenProfileFromFile(fname, "r");
-#ifdef DEBUG_tor
-                if (gCMSOutputProfile)
-                    fprintf(stderr,
-                            "ICM profile read from %s successfully\n",
-                            fname.get());
-#endif
+
+            nsresult rv;
+
+            
+
+            PRBool hasSRGBOverride, doSRGBOverride;
+            rv = prefs->PrefHasUserValue(CMForceSRGBPrefName, &hasSRGBOverride);
+            if (NS_SUCCEEDED(rv) && hasSRGBOverride) {
+                rv = prefs->GetBoolPref(CMForceSRGBPrefName, &doSRGBOverride);
+                if (NS_SUCCEEDED(rv) && doSRGBOverride)
+                    gCMSOutputProfile = GetCMSsRGBProfile();
+            }
+
+            if (!gCMSOutputProfile) {
+
+                nsXPIDLCString fname;
+                rv = prefs->GetCharPref(CMProfilePrefName,
+                                        getter_Copies(fname));
+                if (NS_SUCCEEDED(rv) && !fname.IsEmpty()) {
+                    gCMSOutputProfile = cmsOpenProfileFromFile(fname, "r");
+                    if (gCMSOutputProfile)
+                        fprintf(stderr,
+                                "ICM profile read from %s successfully\n",
+                                fname.get());
+                }
             }
         }
 
@@ -642,6 +673,41 @@ gfxPlatform::GetCMSRGBATransform()
     }
 
     return gCMSRGBATransform;
+}
+
+
+static void ShutdownCMS()
+{
+
+    if (gCMSRGBTransform) {
+        cmsDeleteTransform(gCMSRGBTransform);
+        gCMSRGBTransform = nsnull;
+    }
+    if (gCMSInverseRGBTransform) {
+        cmsDeleteTransform(gCMSInverseRGBTransform);
+        gCMSInverseRGBTransform = nsnull;
+    }
+    if (gCMSRGBATransform) {
+        cmsDeleteTransform(gCMSRGBATransform);
+        gCMSRGBATransform = nsnull;
+    }
+    if (gCMSOutputProfile) {
+        cmsCloseProfile(gCMSOutputProfile);
+
+        
+        if (gCMSsRGBProfile == gCMSOutputProfile)
+            gCMSsRGBProfile = nsnull;
+        gCMSOutputProfile = nsnull;
+    }
+    if (gCMSsRGBProfile) {
+        cmsCloseProfile(gCMSsRGBProfile);
+        gCMSsRGBProfile = nsnull;
+    }
+
+    
+    gCMSIntent = -2;
+    gCMSMode = eCMSMode_Off;
+    gCMSInitialized = PR_FALSE;
 }
 
 static void MigratePrefs()
