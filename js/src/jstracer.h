@@ -62,6 +62,8 @@ class Queue : public avmplus::GCObject {
     unsigned _max;
 
     void ensure(unsigned size) {
+        if (!_max)
+            _max = 16;
         while (_max < size)
             _max <<= 1;
         _data = (T*)realloc(_data, _max * sizeof(T));
@@ -73,7 +75,10 @@ public:
     Queue(unsigned max = 16) {
         this->_max = max;
         this->_len = 0;
-        this->_data = (T*)malloc(max * sizeof(T));
+        if (max)
+            this->_data = (T*)malloc(max * sizeof(T));
+        else
+            this->_data = NULL;
     }
 
     ~Queue() {
@@ -116,7 +121,12 @@ public:
     }
 
     const T & get(unsigned i) const {
+        JS_ASSERT(i < length());
         return _data[i];
+    }
+
+    const T & operator [](unsigned i) const {
+        return get(i);
     }
 
     unsigned length() const {
