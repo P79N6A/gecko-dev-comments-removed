@@ -214,6 +214,35 @@ static void DumpPrintObjectsTreeLayout(nsPrintObject * aPO,nsIDeviceContext * aD
 #define DUMP_DOC_TREELAYOUT
 #endif
 
+class nsScriptSuppressor
+{
+public:
+  nsScriptSuppressor(nsPrintEngine* aPrintEngine)
+  : mPrintEngine(aPrintEngine), mSuppressed(PR_FALSE) {}
+
+  ~nsScriptSuppressor() { Unsuppress(); }
+
+  void Suppress()
+  {
+    if (mPrintEngine) {
+      mSuppressed = PR_TRUE;
+      mPrintEngine->TurnScriptingOn(PR_FALSE);
+    }
+  }
+  
+  void Unsuppress()
+  {
+    if (mPrintEngine && mSuppressed) {
+      mPrintEngine->TurnScriptingOn(PR_TRUE);
+    }
+    mSuppressed = PR_FALSE;
+  }
+
+  void Disconnect() { mPrintEngine = nsnull; }
+protected:
+  nsRefPtr<nsPrintEngine> mPrintEngine;
+  PRBool                  mSuppressed;
+};
 
 
 static NS_DEFINE_CID(kViewManagerCID,       NS_VIEW_MANAGER_CID);
@@ -554,11 +583,13 @@ nsPrintEngine::DoCommonPrint(PRBool                  aIsPrintPreview,
     (do_CreateInstance("@mozilla.org/gfx/devicecontextspec;1", &rv));
   NS_ENSURE_SUCCESS(rv, rv);
 
+  nsScriptSuppressor scriptSuppressor(this);
   if (!aIsPrintPreview) {
 #ifdef NS_DEBUG
     mPrt->mDebugFilePtr = mDebugFile;
 #endif
 
+    scriptSuppressor.Suppress();
     PRBool printSilently;
     mPrt->mPrintSettings->GetPrintSilent(&printSilently);
 
@@ -709,6 +740,9 @@ nsPrintEngine::DoCommonPrint(PRBool                  aIsPrintPreview,
       NS_ENSURE_SUCCESS(rv, rv);
     }
   }
+
+  
+  scriptSuppressor.Disconnect();
 
   return NS_OK;
 }
@@ -2742,6 +2776,7 @@ nsPrintEngine::DonePrintingPages(nsPrintObject* aPO, nsresult aResult)
     FirePrintCompletionEvent();
   }
 
+  TurnScriptingOn(PR_TRUE);
   SetIsPrinting(PR_FALSE);
 
   
@@ -3022,6 +3057,13 @@ nsPrintEngine::FindSmallestSTF()
 void
 nsPrintEngine::TurnScriptingOn(PRBool aDoTurnOn)
 {
+  if (mIsDoingPrinting && aDoTurnOn && mDocViewerPrint &&
+      mDocViewerPrint->GetIsPrintPreview()) {
+    
+    
+    return;
+  }
+
   nsPrintData* prt = mPrt;
 #ifdef NS_PRINT_PREVIEW
   if (!prt) {
@@ -3040,30 +3082,44 @@ nsPrintEngine::TurnScriptingOn(PRBool aDoTurnOn)
     NS_ASSERTION(po, "nsPrintObject can't be null!");
 
     nsIDocument* doc = po->mDocument;
-    
+    if (!doc) {
+      continue;
+    }
+
     
     nsIScriptGlobalObject *scriptGlobalObj = doc->GetScriptGlobalObject();
 
     if (scriptGlobalObj) {
+      nsCOMPtr<nsPIDOMWindow> window = do_QueryInterface(scriptGlobalObj);
+      NS_ASSERTION(window, "Can't get nsPIDOMWindow");
       nsIScriptContext *scx = scriptGlobalObj->GetContext();
-      NS_ASSERTION(scx, "Can't get nsIScriptContext");
+      NS_WARN_IF_FALSE(scx, "Can't get nsIScriptContext");
+      nsresult propThere = NS_PROPTABLE_PROP_NOT_THERE;
+      doc->GetProperty(nsGkAtoms::scriptEnabledBeforePrintOrPreview,
+                       &propThere);
       if (aDoTurnOn) {
-        doc->DeleteProperty(nsGkAtoms::scriptEnabledBeforePrintPreview);
+        if (propThere != NS_PROPTABLE_PROP_NOT_THERE) {
+          doc->DeleteProperty(nsGkAtoms::scriptEnabledBeforePrintOrPreview);
+          if (scx) {
+            scx->SetScriptsEnabled(PR_TRUE, PR_FALSE);
+          }
+          window->ResumeTimeouts(PR_FALSE);
+        }
       } else {
         
         
         
-        nsresult propThere;
-        doc->GetProperty(nsGkAtoms::scriptEnabledBeforePrintPreview,
-                         &propThere);
         if (propThere == NS_PROPTABLE_PROP_NOT_THERE) {
           
           
-          doc->SetProperty(nsGkAtoms::scriptEnabledBeforePrintPreview,
+          doc->SetProperty(nsGkAtoms::scriptEnabledBeforePrintOrPreview,
                            NS_INT32_TO_PTR(doc->IsScriptEnabled()));
+          if (scx) {
+            scx->SetScriptsEnabled(PR_FALSE, PR_FALSE);
+          }
+          window->SuspendTimeouts(1, PR_FALSE);
         }
       }
-      scx->SetScriptsEnabled(aDoTurnOn, PR_TRUE);
     }
   }
 }
