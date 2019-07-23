@@ -1780,6 +1780,7 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(nsDocument)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMARRAY(mStyleSheets)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMARRAY(mCatalogSheets)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMARRAY(mVisitednessChangedURIs)
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMARRAY(mPreloadingImages)
 
 #ifdef MOZ_SMIL
   
@@ -1823,6 +1824,8 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(nsDocument)
   NS_IMPL_CYCLE_COLLECTION_UNLINK_USERDATA
 
   tmp->mParentDocument = nsnull;
+
+  NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMARRAY(mPreloadingImages)
 
   
   
@@ -3863,6 +3866,9 @@ nsDocument::DispatchContentLoadedEvents()
   
   
   
+  
+  mPreloadingImages.Clear();
+    
   
   
   
@@ -7485,6 +7491,34 @@ FireOrClearDelayedEvents(nsTArray<nsCOMPtr<nsIDocument> >& aDocuments,
   }
 }
 
+void
+nsDocument::MaybePreLoadImage(nsIURI* uri)
+{
+  
+  
+  
+  if (nsContentUtils::IsImageInCache(uri)) {
+    return;
+  }
+
+  
+  nsCOMPtr<imgIRequest> request;
+  nsresult rv =
+    nsContentUtils::LoadImage(uri,
+                              this,
+                              NodePrincipal(),
+                              mDocumentURI, 
+                              nsnull,       
+                              nsIRequest::LOAD_NORMAL,
+                              getter_AddRefs(request));
+
+  
+  
+  
+  if (NS_SUCCEEDED(rv)) {
+    mPreloadingImages.AppendObject(request);
+  }
+}
 class nsDelayedEventDispatcher : public nsRunnable
 {
 public:

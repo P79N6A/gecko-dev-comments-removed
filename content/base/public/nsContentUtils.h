@@ -81,6 +81,7 @@ class nsIURI;
 class imgIDecoderObserver;
 class imgIRequest;
 class imgILoader;
+class imgICache;
 class nsIPrefBranch;
 class nsIImage;
 class nsIImageLoadingContent;
@@ -646,6 +647,11 @@ public:
                             imgIDecoderObserver* aObserver,
                             PRInt32 aLoadFlags,
                             imgIRequest** aRequest);
+
+  
+
+
+  static PRBool IsImageInCache(nsIURI* aURI);
 
   
 
@@ -1504,6 +1510,7 @@ private:
   static nsIPref *sPref;
 
   static imgILoader* sImgLoader;
+  static imgICache* sImgCache;
 
   static nsIConsoleService* sConsoleService;
 
