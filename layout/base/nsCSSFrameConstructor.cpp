@@ -4979,6 +4979,7 @@ const nsCSSFrameConstructor::FrameConstructionData*
 nsCSSFrameConstructor::FindHTMLData(nsIContent* aContent,
                                     nsIAtom* aTag,
                                     PRInt32 aNameSpaceID,
+                                    nsIFrame* aParentFrame,
                                     nsStyleContext* aStyleContext)
 {
   
@@ -4986,6 +4987,24 @@ nsCSSFrameConstructor::FindHTMLData(nsIContent* aContent,
   
   if (!aContent->IsNodeOfType(nsINode::eHTML) &&
       aNameSpaceID != kNameSpaceID_XHTML) {
+    return nsnull;
+  }
+
+  NS_ASSERTION(!aParentFrame ||
+               aParentFrame->GetStyleContext()->GetPseudoType() !=
+                 nsCSSAnonBoxes::fieldsetContent ||
+               aParentFrame->GetParent()->GetType() == nsGkAtoms::fieldSetFrame,
+               "Unexpected parent for fieldset content anon box");
+  if (aTag == nsGkAtoms::legend &&
+      (!aParentFrame ||
+       (aParentFrame->GetType() != nsGkAtoms::fieldSetFrame &&
+        aParentFrame->GetStyleContext()->GetPseudoType() !=
+          nsCSSAnonBoxes::fieldsetContent))) {
+    
+    
+    
+    
+    
     return nsnull;
   }
 
@@ -6720,7 +6739,8 @@ nsCSSFrameConstructor::ConstructFrameInternal( nsFrameConstructorState& aState,
   if (isText) {
     data = FindTextData(aParentFrame);
   } else {
-    data = FindHTMLData(aContent, aTag, aNameSpaceID, styleContext);
+    data = FindHTMLData(aContent, aTag, aNameSpaceID, aParentFrame,
+                        styleContext);
     if (!data) {
       data = FindXULTagData(aContent, aTag, aNameSpaceID, styleContext);
     }
