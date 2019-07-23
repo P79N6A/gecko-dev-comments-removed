@@ -55,16 +55,14 @@
 #include "nsHTMLMediaElement.h"
 #include "nsIDocument.h"
 
-class nsDefaultStreamStrategy : public nsStreamStrategy
+class nsDefaultStreamStrategy : public nsMediaStream
 {
 public:
   nsDefaultStreamStrategy(nsMediaDecoder* aDecoder, nsIChannel* aChannel, nsIURI* aURI) :
-    nsStreamStrategy(aDecoder, aChannel, aURI),
+    nsMediaStream(aDecoder, aChannel, aURI),
     mPosition(0)
   {
   }
-  
-  
   
   virtual nsresult Open(nsIStreamListener** aStreamListener);
   virtual nsresult Close();
@@ -209,15 +207,13 @@ void nsDefaultStreamStrategy::Resume()
   mChannel->Resume();
 }
 
-class nsFileStreamStrategy : public nsStreamStrategy
+class nsFileStreamStrategy : public nsMediaStream
 {
 public:
   nsFileStreamStrategy(nsMediaDecoder* aDecoder, nsIChannel* aChannel, nsIURI* aURI) :
-    nsStreamStrategy(aDecoder, aChannel, aURI)
+    nsMediaStream(aDecoder, aChannel, aURI)
   {
   }
-  
-  
   
   virtual nsresult Open(nsIStreamListener** aStreamListener);
   virtual nsresult Close();
@@ -418,18 +414,16 @@ void nsFileStreamStrategy::Resume()
   mChannel->Resume();
 }
 
-class nsHttpStreamStrategy : public nsStreamStrategy
+class nsHttpStreamStrategy : public nsMediaStream
 {
 public:
   nsHttpStreamStrategy(nsMediaDecoder* aDecoder, nsIChannel* aChannel, nsIURI* aURI) :
-    nsStreamStrategy(aDecoder, aChannel, aURI),
+    nsMediaStream(aDecoder, aChannel, aURI),
     mPosition(0),
     mAtEOF(PR_FALSE),
     mCancelled(PR_FALSE)
   {
   }
-  
-  
   
   virtual nsresult Open(nsIStreamListener** aListener);
   virtual nsresult Close();
@@ -796,20 +790,10 @@ void nsHttpStreamStrategy::Resume()
   mChannel->Resume();
 }
 
-nsMediaStream::nsMediaStream()
-{
-  NS_ASSERTION(NS_IsMainThread(), 
-	       "nsMediaStream created on non-main thread");
-  MOZ_COUNT_CTOR(nsMediaStream);
-}
-
-nsMediaStream::~nsMediaStream()
-{
-  MOZ_COUNT_DTOR(nsMediaStream);
-}
-
-nsresult nsMediaStream::Open(nsMediaDecoder* aDecoder, nsIURI* aURI,
-                             nsIChannel* aChannel, nsIStreamListener** aListener)
+nsresult
+nsMediaStream::Open(nsMediaDecoder* aDecoder, nsIURI* aURI,
+                    nsIChannel* aChannel, nsMediaStream** aStream,
+                    nsIStreamListener** aListener)
 {
   NS_ASSERTION(NS_IsMainThread(), 
 	       "nsMediaStream::Open called on non-main thread");
@@ -827,84 +811,21 @@ nsresult nsMediaStream::Open(nsMediaDecoder* aDecoder, nsIURI* aURI,
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
-  nsCOMPtr<nsIFileChannel> fc = do_QueryInterface(channel);
+  nsMediaStream* stream;
   nsCOMPtr<nsIHttpChannel> hc = do_QueryInterface(channel);
-  if (hc) 
-    mStreamStrategy = new nsHttpStreamStrategy(aDecoder, channel, aURI);
-  else if (fc) 
-    mStreamStrategy = new nsFileStreamStrategy(aDecoder, channel, aURI);
-  else
-    mStreamStrategy = new nsDefaultStreamStrategy(aDecoder, channel, aURI);
-
-  return mStreamStrategy->Open(aListener);
-}
-
-nsresult nsMediaStream::Close()
-{
-  NS_ASSERTION(NS_IsMainThread(), 
-	       "nsMediaStream::Close called on non-main thread");
-
-  return mStreamStrategy->Close();
-}
-
-nsresult nsMediaStream::Read(char* aBuffer, PRUint32 aCount, PRUint32* aBytes)
-{
-  nsresult rv = mStreamStrategy->Read(aBuffer, aCount, aBytes);
-  if (NS_SUCCEEDED(rv)) {
-    mStreamStrategy->Decoder()->NotifyBytesConsumed(*aBytes);
+  if (hc) {
+    stream = new nsHttpStreamStrategy(aDecoder, channel, aURI);
+  } else {
+    nsCOMPtr<nsIFileChannel> fc = do_QueryInterface(channel);
+    if (fc) {
+      stream = new nsFileStreamStrategy(aDecoder, channel, aURI);
+    } else {
+      stream = new nsDefaultStreamStrategy(aDecoder, channel, aURI);
+    }
   }
-  return rv;
-}
+  if (!stream)
+    return NS_ERROR_OUT_OF_MEMORY;
 
-nsresult nsMediaStream::Seek(PRInt32 aWhence, PRInt64 aOffset) 
-{
-  return mStreamStrategy->Seek(aWhence, aOffset);
-}
-
-PRInt64 nsMediaStream::Tell()
-{
-  return mStreamStrategy->Tell();
-}
-
-void nsMediaStream::Cancel()
-{
-  NS_ASSERTION(NS_IsMainThread(), 
-	       "nsMediaStream::Cancel called on non-main thread");
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  mStreamStrategy->Cancel();
-}
-
-nsIPrincipal* nsMediaStream::GetCurrentPrincipal()
-{
-  return mStreamStrategy->GetCurrentPrincipal();
-}
-
-void nsMediaStream::Suspend()
-{
-  mStreamStrategy->Suspend();
-}
-
-void nsMediaStream::Resume()
-{
-  mStreamStrategy->Resume();
+  *aStream = stream;
+  return stream->Open(aListener);
 }

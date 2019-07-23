@@ -55,27 +55,104 @@ class nsMediaDecoder;
 
 
 
-class nsStreamStrategy 
+
+
+
+
+
+
+
+
+
+
+
+
+
+class nsMediaStream 
 {
 public:
- nsStreamStrategy(nsMediaDecoder* aDecoder, nsIChannel* aChannel, nsIURI* aURI) :
+  virtual ~nsMediaStream()
+  {
+    PR_DestroyLock(mLock);
+    MOZ_COUNT_DTOR(nsMediaStream);
+  }
+
+  
+  
+  virtual nsresult Close() = 0;
+  
+  
+  
+  
+  
+  
+  virtual nsresult Read(char* aBuffer, PRUint32 aCount, PRUint32* aBytes) = 0;
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  virtual nsresult Seek(PRInt32 aWhence, PRInt64 aOffset) = 0;
+  
+  
+  virtual PRInt64  Tell() = 0;
+  
+  
+  virtual void     Cancel() { }
+  
+  virtual nsIPrincipal* GetCurrentPrincipal() = 0;
+  
+  
+  virtual void     Suspend() = 0;
+  
+  
+  virtual void     Resume() = 0;
+
+  nsMediaDecoder* Decoder() { return mDecoder; }
+
+  
+
+
+
+
+
+
+  static nsresult Open(nsMediaDecoder* aDecoder, nsIURI* aURI,
+                       nsIChannel* aChannel, nsMediaStream** aStream,
+                       nsIStreamListener** aListener);
+
+protected:
+  nsMediaStream(nsMediaDecoder* aDecoder, nsIChannel* aChannel, nsIURI* aURI) :
     mDecoder(aDecoder),
     mChannel(aChannel),
     mURI(aURI),
     mLock(nsnull)  
   {
-    MOZ_COUNT_CTOR(nsStreamStrategy);
+    MOZ_COUNT_CTOR(nsMediaStream);
     mLock = PR_NewLock();
   }
-
-  virtual ~nsStreamStrategy()
-  {
-    PR_DestroyLock(mLock);
-    MOZ_COUNT_DTOR(nsStreamStrategy);
-  }
-
-  
-  
 
   
 
@@ -84,18 +161,7 @@ public:
 
 
   virtual nsresult Open(nsIStreamListener** aStreamListener) = 0;
-  virtual nsresult Close() = 0;
-  virtual nsresult Read(char* aBuffer, PRUint32 aCount, PRUint32* aBytes) = 0;
-  virtual nsresult Seek(PRInt32 aWhence, PRInt64 aOffset) = 0;
-  virtual PRInt64  Tell() = 0;
-  virtual void     Cancel() { }
-  virtual nsIPrincipal* GetCurrentPrincipal() = 0;
-  virtual void     Suspend() = 0;
-  virtual void     Resume() = 0;
 
-  nsMediaDecoder* Decoder() { return mDecoder; }
-
-protected:
   
   
   
@@ -114,84 +180,6 @@ protected:
   
   
   PRLock* mLock;
-};
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-class nsMediaStream
-{
- public:
-  nsMediaStream();
-  ~nsMediaStream();
-
-  
-
-
-
-
-
-
-  nsresult Open(nsMediaDecoder* aDecoder, nsIURI* aURI,
-                nsIChannel* aChannel, nsIStreamListener** aListener);
-
-  
-  
-  nsresult Close();
-
-  
-  
-  
-  
-  
-  
-  nsresult Read(char* aBuffer, PRUint32 aCount, PRUint32* aBytes);
-
-  
-  
-  
-  
-  
-  
-  
-  nsresult Seek(PRInt32 aWhence, PRInt64 aOffset);
-
-  
-  
-  PRInt64 Tell();
-
-  
-  
-  void Cancel();
-
-  
-  nsIPrincipal* GetCurrentPrincipal();
-
-  
-  
-  void Suspend();
-
-  
-  
-  void Resume();
-
- private:
-  
-  
-  
-  
-  nsAutoPtr<nsStreamStrategy> mStreamStrategy;
 };
 
 #endif
