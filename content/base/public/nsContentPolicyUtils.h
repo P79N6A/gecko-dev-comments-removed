@@ -193,10 +193,9 @@ NS_CP_ContentTypeName(PRUint32 contentType)
       }                                                                       \
       nsresult rv = originPrincipal->GetURI(getter_AddRefs(requestOrigin));   \
       NS_ENSURE_SUCCESS(rv, rv);                                              \
-  } else {                                                                    \
-    requestOrigin = originURI;                                                \
   }                                                                           \
   PR_END_MACRO
+
 
 
 
@@ -209,7 +208,6 @@ NS_CP_ContentTypeName(PRUint32 contentType)
 inline nsresult
 NS_CheckContentLoadPolicy(PRUint32          contentType,
                           nsIURI           *contentLocation,
-                          nsIURI           *originURI,
                           nsIPrincipal     *originPrincipal,
                           nsISupports      *context,
                           const nsACString &mimeType,
@@ -233,10 +231,10 @@ NS_CheckContentLoadPolicy(PRUint32          contentType,
 
 
 
+
 inline nsresult
 NS_CheckContentProcessPolicy(PRUint32          contentType,
                              nsIURI           *contentLocation,
-                             nsIURI           *originURI,
                              nsIPrincipal     *originPrincipal,
                              nsISupports      *context,
                              const nsACString &mimeType,
