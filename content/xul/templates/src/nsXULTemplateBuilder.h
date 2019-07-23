@@ -53,6 +53,7 @@
 #include "nsIRDFObserver.h"
 #include "nsIRDFService.h"
 #include "nsIXULTemplateBuilder.h"
+#include "nsIDOMEventListener.h"
 
 #include "nsFixedSizeAllocator.h"
 #include "nsVoidArray.h"
@@ -77,6 +78,7 @@ class nsIRDFCompositeDataSource;
 
 
 class nsXULTemplateBuilder : public nsIXULTemplateBuilder,
+                             public nsIDOMEventListener,
                              public nsStubDocumentObserver
 {
 public:
@@ -98,7 +100,9 @@ public:
 
     
     NS_DECL_NSIXULTEMPLATEBUILDER
-   
+
+    NS_DECL_NSIDOMEVENTLISTENER
+
     
     virtual void AttributeChanged(nsIDocument *aDocument, nsIContent* aContent,
                                   PRInt32 aNameSpaceID, nsIAtom* aAttribute,
@@ -274,8 +278,30 @@ public:
                    const nsAString& aVariable,
                    void* aClosure);
 
+    
+
+
+
+
+
+
+
+
     nsresult
-    LoadDataSources(nsIDocument* aDoc);
+    LoadDataSources(nsIDocument* aDoc, PRBool* shouldDelayBuilding);
+
+    
+
+
+
+
+
+
+    nsresult
+    LoadDataSourceUrls(nsIDocument* aDocument,
+                       const nsAString& aDataSources,
+                       PRBool aIsRDFQuery,
+                       PRBool* aShouldDelayBuilding);
 
     nsresult
     InitHTMLTemplateRoot();
@@ -330,6 +356,7 @@ public:
                                nsIRDFResource** aResource);
 
 protected:
+    nsCOMPtr<nsISupports> mDataSource;
     nsCOMPtr<nsIRDFDataSource> mDB;
     nsCOMPtr<nsIRDFCompositeDataSource> mCompDB;
 

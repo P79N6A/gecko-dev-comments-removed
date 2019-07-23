@@ -68,10 +68,8 @@ nsTemplateMatch::RuleMatched(nsTemplateQuerySet* aQuerySet,
 
     nsCOMPtr<nsIDOMNode> rulenode;
     aRule->GetRuleNode(getter_AddRefs(rulenode));
-    if (rulenode) {
-        nsCOMPtr<nsIDOMNode> querynode = do_QueryInterface(aQuerySet->mQueryNode);
-        return aResult->RuleMatched(querynode, rulenode);
-    }
+    if (rulenode)
+        return aResult->RuleMatched(aQuerySet->mCompiledQuery, rulenode);
 
     return NS_OK;
 }

@@ -62,6 +62,8 @@
 #include "nsIDOMElement.h"
 #include "nsIDOMNode.h"
 #include "nsIDOMDocument.h"
+#include "nsIDOMXMLDocument.h"
+#include "nsIPrivateDOMImplementation.h"
 #include "nsIDOMXULElement.h"
 #include "nsIDocument.h"
 #include "nsBindingManager.h"
@@ -99,6 +101,7 @@
 #include "nsNetUtil.h"
 #include "nsXULTemplateBuilder.h"
 #include "nsXULTemplateQueryProcessorRDF.h"
+#include "nsXULTemplateQueryProcessorXML.h"
 
 
 
@@ -128,10 +131,7 @@ PRLogModuleInfo* gXULTemplateLog;
 
 
 nsXULTemplateBuilder::nsXULTemplateBuilder(void)
-    : mDB(nsnull),
-      mCompDB(nsnull),
-      mRoot(nsnull),
-      mQueriesCompiled(PR_FALSE),
+    : mQueriesCompiled(PR_FALSE),
       mFlags(0),
       mTop(nsnull)
 {
@@ -246,10 +246,12 @@ TraverseMatchList(nsISupports* aKey, nsTemplateMatch* aMatch, void* aContext)
 
 NS_IMPL_CYCLE_COLLECTION_CLASS(nsXULTemplateBuilder)
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(nsXULTemplateBuilder)
+    NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mDataSource)
     NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mDB)
     NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mCompDB)
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(nsXULTemplateBuilder)
+    NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(mDataSource)
     NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(mDB)
     NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(mCompDB)
     NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(mRoot)
@@ -300,7 +302,7 @@ nsXULTemplateBuilder::GetRoot(nsIDOMElement** aResult)
 NS_IMETHODIMP
 nsXULTemplateBuilder::GetDatabase(nsIRDFCompositeDataSource** aResult)
 {
-    NS_IF_ADDREF(*aResult = mCompDB.get());
+    NS_IF_ADDREF(*aResult = mCompDB);
     return NS_OK;
 }
 
@@ -364,6 +366,9 @@ nsXULTemplateBuilder::Refresh()
 {
     nsresult rv;
 
+    if (!mCompDB)
+        return NS_ERROR_FAILURE;
+
     nsCOMPtr<nsISimpleEnumerator> dslist;
     rv = mCompDB->GetDataSources(getter_AddRefs(dslist));
     NS_ENSURE_SUCCESS(rv, rv);
@@ -396,34 +401,12 @@ nsXULTemplateBuilder::Init(nsIContent* aElement)
     if (! doc)
         return NS_ERROR_UNEXPECTED;
 
-    nsresult rv = LoadDataSources(doc);
+    PRBool shouldDelay;
+    nsresult rv = LoadDataSources(doc, &shouldDelay);
 
     if (NS_SUCCEEDED(rv)) {
         
         doc->AddObserver(this);
-    }
-
-    
-    
-
-    
-
-    nsAutoString type;
-    mRoot->GetAttr(kNameSpaceID_None, nsGkAtoms::querytype, type);
-
-    if (type.IsEmpty() || type.EqualsLiteral("rdf")) {
-        mQueryProcessor = new nsXULTemplateQueryProcessorRDF();
-        if (! mQueryProcessor)
-            return NS_ERROR_OUT_OF_MEMORY;
-    }
-    else {
-        nsCAutoString cid(NS_QUERY_PROCESSOR_CONTRACTID_PREFIX);
-        AppendUTF16toUTF8(type, cid);
-        mQueryProcessor = do_CreateInstance(cid.get(), &rv);
-        if (!mQueryProcessor) {
-            
-            return rv;
-        }
     }
 
     return rv;
@@ -1066,8 +1049,10 @@ nsXULTemplateBuilder::AttributeChanged(nsIDocument* aDocument,
         
         
         else if (aAttribute == nsGkAtoms::datasources) {
-            LoadDataSources(aDocument);
-            Rebuild();
+            PRBool shouldDelay;
+            LoadDataSources(aDocument, &shouldDelay);
+            if (!shouldDelay)
+                Rebuild();
         }
     }
 }
@@ -1118,6 +1103,7 @@ nsXULTemplateBuilder::NodeWillBeDestroyed(const nsINode* aNode)
     if (mQueryProcessor)
         mQueryProcessor->Done();
 
+    mDataSource = nsnull;
     mDB = nsnull;
     mCompDB = nsnull;
     mRoot = nsnull;
@@ -1134,57 +1120,144 @@ nsXULTemplateBuilder::NodeWillBeDestroyed(const nsINode* aNode)
 
 
 nsresult
-nsXULTemplateBuilder::LoadDataSources(nsIDocument* doc)
+nsXULTemplateBuilder::LoadDataSources(nsIDocument* aDocument,
+                                      PRBool* aShouldDelayBuilding)
 {
     NS_PRECONDITION(mRoot != nsnull, "not initialized");
 
     nsresult rv;
+    PRBool isRDFQuery = PR_FALSE;
+  
+    
+    mDB = nsnull;
+    mCompDB = nsnull;
+    mDataSource = nsnull;
 
-    if (mDB) {
+    *aShouldDelayBuilding = PR_TRUE;
+
+    nsAutoString datasources;
+    mRoot->GetAttr(kNameSpaceID_None, nsGkAtoms::datasources, datasources);
+
+    nsAutoString querytype;
+    mRoot->GetAttr(kNameSpaceID_None, nsGkAtoms::querytype, querytype);
+
+    
+    
+    PRBool shouldLoadUrls = PR_TRUE;
+    if (datasources.CharAt(0) == '#') {
+        shouldLoadUrls = PR_FALSE;
+
+        if (querytype.IsEmpty()) {
+            querytype.AssignLiteral("xml");
+        }
+
+        nsCOMPtr<nsIDOMDocument> domdoc = do_QueryInterface(aDocument);
+
+        nsCOMPtr<nsIDOMElement> dsnode;
+        domdoc->GetElementById(Substring(datasources, 1),
+                               getter_AddRefs(dsnode));
+        if (dsnode) {
+            mDataSource = dsnode;
+            *aShouldDelayBuilding = PR_FALSE;
+        }
+    }
+  
+    
+    
+  
+    
+    if (querytype.IsEmpty())
+        querytype.AssignLiteral("rdf");
+
+    if (querytype.EqualsLiteral("rdf")) {
+        isRDFQuery = PR_TRUE;
+        mQueryProcessor = new nsXULTemplateQueryProcessorRDF();
+        NS_ENSURE_TRUE(mQueryProcessor, NS_ERROR_OUT_OF_MEMORY);
+    }
+    else if (querytype.EqualsLiteral("xml")) {
+        mQueryProcessor = new nsXULTemplateQueryProcessorXML();
+        NS_ENSURE_TRUE(mQueryProcessor, NS_ERROR_OUT_OF_MEMORY);
+    }
+    else {
+        shouldLoadUrls = PR_FALSE;
+
+        nsCAutoString cid(NS_QUERY_PROCESSOR_CONTRACTID_PREFIX);
+        AppendUTF16toUTF8(querytype, cid);
+        mQueryProcessor = do_CreateInstance(cid.get(), &rv);
         
-        mDB = nsnull;
+        NS_ENSURE_TRUE(mQueryProcessor, rv);
+    }
+
+    if (shouldLoadUrls) {
+        rv = LoadDataSourceUrls(aDocument, datasources,
+                                isRDFQuery, aShouldDelayBuilding);
+        NS_ENSURE_SUCCESS(rv, rv);
     }
 
     
-    mCompDB = do_CreateInstance(NS_RDF_DATASOURCE_CONTRACTID_PREFIX "composite-datasource");
+    
+    nsCOMPtr<nsIXULDocument> xuldoc = do_QueryInterface(aDocument);
+    if (xuldoc)
+        xuldoc->SetTemplateBuilderFor(mRoot, this);
 
-    if (! mCompDB) {
-        NS_ERROR("unable to construct new composite data source");
-        return NS_ERROR_UNEXPECTED;
+    if (!mRoot->IsNodeOfType(nsINode::eXUL)) {
+        
+        
+        InitHTMLTemplateRoot();
     }
-
+  
+    return NS_OK;
+}
+  
+nsresult
+nsXULTemplateBuilder::LoadDataSourceUrls(nsIDocument* aDocument,
+                                         const nsAString& aDataSources,
+                                         PRBool aIsRDFQuery,
+                                         PRBool* aShouldDelayBuilding)
+{
     
-    if (mRoot->AttrValueIs(kNameSpaceID_None, nsGkAtoms::coalesceduplicatearcs,
-                           nsGkAtoms::_false, eCaseMatters))
-        mCompDB->SetCoalesceDuplicateArcs(PR_FALSE);
- 
-    if (mRoot->AttrValueIs(kNameSpaceID_None, nsGkAtoms::allownegativeassertions,
-                           nsGkAtoms::_false, eCaseMatters))
-        mCompDB->SetAllowNegativeAssertions(PR_FALSE);
-
-    
-    nsIPrincipal *docPrincipal = doc->NodePrincipal();
+    nsIPrincipal *docPrincipal = aDocument->NodePrincipal();
 
     NS_ASSERTION(docPrincipal == mRoot->NodePrincipal(),
                  "Principal mismatch?  Which one to use?");
 
     PRBool isTrusted = PR_FALSE;
-    rv = IsSystemPrincipal(docPrincipal, &isTrusted);
-    if (NS_FAILED(rv))
-        return rv;
+    nsresult rv = IsSystemPrincipal(docPrincipal, &isTrusted);
+    NS_ENSURE_SUCCESS(rv, rv);
 
+    nsCOMPtr<nsIRDFDataSource> localstore;
     if (isTrusted) {
-        
-        
-        
-        
-        nsCOMPtr<nsIRDFDataSource> localstore;
         rv = gRDFService->GetDataSource("rdf:local-store", getter_AddRefs(localstore));
-        if (NS_SUCCEEDED(rv)) {
+        NS_ENSURE_SUCCESS(rv, rv);
+    }
+
+    if (aIsRDFQuery) {
+        
+        mCompDB = do_CreateInstance(NS_RDF_DATASOURCE_CONTRACTID_PREFIX "composite-datasource");
+        if (! mCompDB) {
+            NS_ERROR("unable to construct new composite data source");
+            return NS_ERROR_UNEXPECTED;
+        }
+
+        
+        if (mRoot->AttrValueIs(kNameSpaceID_None,
+                               nsGkAtoms::coalesceduplicatearcs,
+                               nsGkAtoms::_false, eCaseMatters))
+            mCompDB->SetCoalesceDuplicateArcs(PR_FALSE);
+
+        if (mRoot->AttrValueIs(kNameSpaceID_None,
+                               nsGkAtoms::allownegativeassertions,
+                               nsGkAtoms::_false, eCaseMatters))
+            mCompDB->SetAllowNegativeAssertions(PR_FALSE);
+
+        if (localstore) {
+            
+            
+            
+            
             rv = mCompDB->AddDataSource(localstore);
             NS_ASSERTION(NS_SUCCEEDED(rv), "unable to add local store to db");
-            if (NS_FAILED(rv))
-                return rv;
+            NS_ENSURE_SUCCESS(rv, rv);
         }
     }
 
@@ -1193,14 +1266,11 @@ nsXULTemplateBuilder::LoadDataSources(nsIDocument* doc)
     
     
     
-    nsIURI *docurl = doc->GetDocumentURI();
-
-    nsAutoString datasources;
-    mRoot->GetAttr(kNameSpaceID_None, nsGkAtoms::datasources, datasources);
-
+    nsIURI *docurl = aDocument->GetDocumentURI();
+  
+    nsAutoString datasources(aDataSources);
     PRUint32 first = 0;
-
-    while(1) {
+    while (1) {
         while (first < datasources.Length() && nsCRT::IsAsciiSpace(datasources.CharAt(first)))
             ++first;
 
@@ -1223,6 +1293,7 @@ nsXULTemplateBuilder::LoadDataSources(nsIDocument* doc)
         
         NS_MakeAbsoluteURI(uriStr, uriStr, docurl);
 
+        nsCOMPtr<nsIPrincipal> principal;
         if (!isTrusted) {
             
             
@@ -1231,17 +1302,14 @@ nsXULTemplateBuilder::LoadDataSources(nsIDocument* doc)
             if (NS_FAILED(rv) || !uri)
                 continue; 
 
-            nsCOMPtr<nsIPrincipal> principal;
             rv = gScriptSecurityManager->GetCodebasePrincipal(uri, getter_AddRefs(principal));
             NS_ASSERTION(NS_SUCCEEDED(rv), "unable to get codebase principal");
-            if (NS_FAILED(rv))
-                return rv;
+            NS_ENSURE_SUCCESS(rv, rv);
 
             PRBool same;
             rv = docPrincipal->Equals(principal, &same);
             NS_ASSERTION(NS_SUCCEEDED(rv), "unable to test same origin");
-            if (NS_FAILED(rv))
-                return rv;
+            NS_ENSURE_SUCCESS(rv, rv);
 
             if (! same)
                 continue;
@@ -1251,62 +1319,88 @@ nsXULTemplateBuilder::LoadDataSources(nsIDocument* doc)
             
         }
 
-        nsCOMPtr<nsIRDFDataSource> ds;
-        nsCAutoString uristrC;
-        uristrC.AssignWithConversion(uriStr);
+        if (aIsRDFQuery) {
+            nsCOMPtr<nsIRDFDataSource> ds;
+            nsCAutoString uristrC;
+            uristrC.AssignWithConversion(uriStr);
 
-        rv = gRDFService->GetDataSource(uristrC.get(), getter_AddRefs(ds));
+            rv = gRDFService->GetDataSource(uristrC.get(), getter_AddRefs(ds));
 
-        if (NS_FAILED(rv)) {
-            
-            
-            
-#ifdef DEBUG
-            nsCAutoString msg;
-            msg.Append("unable to load datasource '");
-            msg.AppendWithConversion(uriStr);
-            msg.Append('\'');
-            NS_WARNING(msg.get());
-#endif
-            continue;
+            if (NS_FAILED(rv)) {
+                
+                
+                
+  #ifdef DEBUG
+                nsCAutoString msg;
+                msg.Append("unable to load datasource '");
+                msg.AppendWithConversion(uriStr);
+                msg.Append('\'');
+                NS_WARNING(msg.get());
+  #endif
+                continue;
+            }
+
+            mCompDB->AddDataSource(ds);
         }
+        else {
+            nsAutoString emptyStr;
+            nsCOMPtr<nsIDOMDocument> domDocument;
+            rv = nsContentUtils::CreateDocument(emptyStr, emptyStr, nsnull,
+                                                docurl, aDocument->GetBaseURI(),
+                                                docPrincipal,
+                                                getter_AddRefs(domDocument));
+            NS_ENSURE_SUCCESS(rv, rv);
 
-        mCompDB->AddDataSource(ds);
-    }
+            nsCOMPtr<nsIDOMEventTarget> target = do_QueryInterface(domDocument);
+            target->AddEventListener(NS_LITERAL_STRING("load"), this, PR_FALSE);
+  
+            nsCOMPtr<nsIDOMXMLDocument> xmldoc = do_QueryInterface(domDocument);
 
-    
-    nsAutoString infer;
-    mRoot->GetAttr(kNameSpaceID_None, nsGkAtoms::infer, infer);
-    if (!infer.IsEmpty()) {
-        nsCString inferContractID(NS_RDF_INFER_DATASOURCE_CONTRACTID_PREFIX);
-        AppendUTF16toUTF8(infer, inferContractID);
-        nsCOMPtr<nsIRDFInferDataSource> inferDB = do_CreateInstance(inferContractID.get());
-
-        if (inferDB) {
-            inferDB->SetBaseDataSource(mCompDB);
-            mDB = do_QueryInterface(inferDB);
-        } else {
-            NS_WARNING("failed to construct inference engine specified on template");
+            PRBool ok;
+            xmldoc->Load(uriStr, &ok);
+            if (ok) {
+                mDataSource = domDocument;
+                *aShouldDelayBuilding = PR_TRUE;
+            }
+  
+            
+            break;
         }
     }
-
-    if (!mDB)
-        mDB = mCompDB;
-
-    nsCOMPtr<nsIXULDocument> xuldoc = do_QueryInterface(doc);
-    if (xuldoc)
-        xuldoc->SetTemplateBuilderFor(mRoot, this);
-
-    
-    
-    nsXULElement *xulcontent = nsXULElement::FromContent(mRoot);
-    if (! xulcontent) {
+  
+    if (aIsRDFQuery) {
         
-        
-        InitHTMLTemplateRoot();
+        nsAutoString infer;
+        mRoot->GetAttr(kNameSpaceID_None, nsGkAtoms::infer, infer);
+        if (!infer.IsEmpty()) {
+            nsCString inferCID(NS_RDF_INFER_DATASOURCE_CONTRACTID_PREFIX);
+            AppendUTF16toUTF8(infer, inferCID);
+            nsCOMPtr<nsIRDFInferDataSource> inferDB =
+                do_CreateInstance(inferCID.get());
+
+            if (inferDB) {
+                inferDB->SetBaseDataSource(mCompDB);
+                mDB = do_QueryInterface(inferDB);
+            } else {
+                NS_WARNING("failed to construct inference engine specified on template");
+            }
+        }
+  
+        if (!mDB)
+            mDB = mCompDB;
+        mDataSource = mDB;
+    }
+    else {
+        mDB = localstore;
     }
 
     return NS_OK;
+}
+
+NS_IMETHODIMP
+nsXULTemplateBuilder::HandleEvent(nsIDOMEvent* aEvent)
+{
+    return Rebuild();
 }
 
 nsresult
@@ -1348,7 +1442,7 @@ nsXULTemplateBuilder::InitHTMLTemplateRoot()
     rv = wrapper->GetJSObject(&jselement);
     NS_ENSURE_SUCCESS(rv, rv);
 
-    {
+    if (mDB) {
         
         rv = xpc->WrapNative(jscontext, scope, mDB,
                              NS_GET_IID(nsIRDFCompositeDataSource),
@@ -1687,7 +1781,8 @@ nsXULTemplateBuilder::CompileQueries()
         mFlags |= eDontRecurse;
 
     nsCOMPtr<nsIDOMNode> rootnode = do_QueryInterface(mRoot);
-    nsresult rv = mQueryProcessor->InitializeForBuilding(mDB, this, rootnode);
+    nsresult rv =
+        mQueryProcessor->InitializeForBuilding(mDataSource, this, rootnode);
     if (NS_FAILED(rv))
         return rv;
 
@@ -1989,14 +2084,15 @@ nsXULTemplateBuilder::CompileExtendedQuery(nsIContent* aRuleElement,
                                       nsGkAtoms::conditions,
                                       getter_AddRefs(conditions));
 
-    if (conditions) {
-        rv = CompileConditions(rule, conditions);
-
-        
-        if (NS_FAILED(rv)) {
-            delete rule;
-            return rv;
-        }
+    
+    if (!conditions)
+        conditions = aRuleElement;
+  
+    rv = CompileConditions(rule, conditions);
+    
+    if (NS_FAILED(rv)) {
+        delete rule;
+        return rv;
     }
 
     rv = aQuerySet->AddRule(rule);
@@ -2014,11 +2110,12 @@ nsXULTemplateBuilder::CompileExtendedQuery(nsIContent* aRuleElement,
                                       nsGkAtoms::bindings,
                                       getter_AddRefs(bindings));
 
-    if (bindings) {
-        rv = CompileBindings(rule, bindings);
-        if (NS_FAILED(rv))
-            return rv;
-    }
+    
+    if (!bindings)
+        bindings = aRuleElement;
+
+    rv = CompileBindings(rule, bindings);
+    NS_ENSURE_SUCCESS(rv, rv);
 
     return NS_OK;
 }

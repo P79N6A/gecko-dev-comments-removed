@@ -1374,7 +1374,8 @@ nsXULTreeBuilder::RebuildAll()
     mRoot->GetAttr(kNameSpaceID_None, nsGkAtoms::ref, ref);
 
     if (! ref.IsEmpty()) {
-        rv = mQueryProcessor->TranslateRef(mDB, ref, getter_AddRefs(mRootResult));
+        rv = mQueryProcessor->TranslateRef(mDataSource, ref,
+                                           getter_AddRefs(mRootResult));
         if (NS_FAILED(rv))
             return rv;
 
@@ -1577,7 +1578,7 @@ nsXULTreeBuilder::OpenSubtreeForQuerySet(nsTreeRows::Subtree* aSubtree,
     PRInt32 count = *aDelta;
     
     nsCOMPtr<nsISimpleEnumerator> results;
-    nsresult rv = mQueryProcessor->GenerateResults(mDB, aResult,
+    nsresult rv = mQueryProcessor->GenerateResults(mDataSource, aResult,
                                                    aQuerySet->mCompiledQuery,
                                                    getter_AddRefs(results));
     if (NS_FAILED(rv))
@@ -1812,7 +1813,9 @@ nsXULTreeBuilder::Compare(const void* aLeft, const void* aRight, void* aClosure)
 PRInt32
 nsXULTreeBuilder::CompareResults(nsIXULTemplateResult* aLeft, nsIXULTemplateResult* aRight)
 {
-    if (mSortDirection == eDirection_Natural) {
+    
+    
+    if (mSortDirection == eDirection_Natural && mDB) {
         
         
         
