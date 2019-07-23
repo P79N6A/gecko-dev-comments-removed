@@ -142,7 +142,7 @@ function do_import_script(topsrcdirRelativePath) {
   load(scriptPath);
 }
 
-function do_get_file(path) {
+function do_get_file(path, allowInexistent) {
   var comps = path.split("/");
   try {
     
@@ -168,7 +168,12 @@ function do_get_file(path) {
       lf.append(comps[i]);
   }
 
-  do_check_true(lf.exists());
+  if (!allowInexistent) {
+    if (!lf.exists()) {
+      print(lf.path + " doesn't exist\n");
+    }
+    do_check_true(lf.exists());
+  }
 
   return lf;
 }
