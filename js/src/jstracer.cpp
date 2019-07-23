@@ -6742,17 +6742,25 @@ TraceRecorder::getThis(LIns*& this_ins)
     }
     this_ins = get(&thisv);
 
+    if (guardClass(JSVAL_TO_OBJECT(thisv), this_ins, &js_WithClass, snapshot(MISMATCH_EXIT)))
+        ABORT_TRACE("can't trace getThis on With object");
+
     
 
 
 
+    JS_ASSERT(JSVAL_IS_OBJECT(thisv));
+    JSObject* obj = js_GetWrappedObject(cx, JSVAL_TO_OBJECT(thisv));
+    OBJ_TO_INNER_OBJECT(cx, obj);
+    if (!obj)
+        return JSRS_ERROR;
 
-
-
-    JS_ASSERT(original == thisv);
-
-    if (guardClass(JSVAL_TO_OBJECT(thisv), this_ins, &js_WithClass, snapshot(MISMATCH_EXIT)))
-        ABORT_TRACE("can't trace getThis on With object");
+    JS_ASSERT(original == thisv || original == OBJECT_TO_JSVAL(obj));
+    this_ins = lir->ins_choose(lir->ins2(LIR_eq,
+                                         this_ins,
+                                         INS_CONSTPTR(obj)),
+                               INS_CONSTPTR(JSVAL_TO_OBJECT(thisv)),
+                               this_ins);
 
     return JSRS_CONTINUE;
 }
