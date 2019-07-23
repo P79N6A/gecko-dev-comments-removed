@@ -202,9 +202,8 @@ Assembler::asm_call(LInsp ins)
             FMDRR(rr,R0,R1);
         } else {
             NanoAssert(d);
-            
-            STMIA(Scratch, 1<<R0 | 1<<R1);
-            arm_ADDi(Scratch, FP, d);
+            STR(R0, FP, d+0);
+            STR(R1, FP, d+4);
         }
     }
 #endif
@@ -635,13 +634,14 @@ Assembler::asm_mmq(Register rd, int dd, Register rs, int ds)
     
     
     
+
     
     Register t = registerAlloc(GpRegs & ~(rmask(rd)|rmask(rs)));
     _allocator.addFree(t);
-    
-    STR(t, rd, dd+4);
-    LDR(t, rs, ds+4);
+
+    STR(Scratch, rd, dd+4);
     STR(t, rd, dd);
+    LDR(Scratch, rs, ds+4);
     LDR(t, rs, ds);
 }
 
