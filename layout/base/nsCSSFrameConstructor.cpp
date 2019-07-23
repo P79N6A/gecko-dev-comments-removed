@@ -6674,7 +6674,16 @@ nsCSSFrameConstructor::ContentInserted(nsIContent*            aContainer,
       
       
       if (parentFrame->GetType() == nsGkAtoms::letterFrame) {
-        parentFrame = parentFrame->GetParent();
+        
+        
+        if (parentFrame->GetStateBits() & NS_FRAME_OUT_OF_FLOW) {
+          nsPlaceholderFrame* placeholderFrame =
+            state.mFrameManager->GetPlaceholderFrameFor(parentFrame);
+          NS_ASSERTION(placeholderFrame, "No placeholder for out-of-flow?");
+          parentFrame = placeholderFrame->GetParent();
+        } else {
+          parentFrame = parentFrame->GetParent();
+        }
       }
 
       
