@@ -131,6 +131,13 @@ pref("browser.chrome.image_icons.max_size", 1024);
 
 pref("browser.triple_click_selects_paragraph", true);
 
+#ifdef MOZ_OGG
+pref("media.ogg.enabled", true);
+#endif
+#ifdef MOZ_WAVE
+pref("media.wave.enabled", true);
+#endif
+
 
 
 pref("gfx.color_management.mode", 2);
