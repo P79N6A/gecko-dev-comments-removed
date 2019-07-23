@@ -2880,7 +2880,7 @@ pref("html5.offmainthread", true);
 
 
 
-pref("html5.flushtimer.initialdelay", 200);
+pref("html5.flushtimer.initialdelay", 120);
 
 
 pref("html5.flushtimer.subsequentdelay", 120);
