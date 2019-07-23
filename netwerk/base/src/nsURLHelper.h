@@ -207,6 +207,21 @@ NS_HIDDEN_(void) net_ParseContentType(const nsACString &aHeaderStr,
 
 
 
+
+
+
+
+
+NS_HIDDEN_(void) net_ParseContentType(const nsACString &aHeaderStr,
+                                      nsACString       &aContentType,
+                                      nsACString       &aContentCharset,
+                                      PRBool           *aHadCharset,
+                                      PRInt32          *aCharsetStart,
+                                      PRInt32          *aCharsetEnd);
+
+
+
+
 #define NET_MAX_ADDRESS (((char*)0)-1)
 
 inline char *net_FindCharInSet(const char *str, const char *set)

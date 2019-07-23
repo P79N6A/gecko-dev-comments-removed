@@ -1966,15 +1966,36 @@ nsXMLHttpRequest::Send(nsIVariant *aBody)
 
       
       if (!charset.IsEmpty()) {
-        nsCAutoString actualType, dummy;
-        rv = NS_ParseContentType(contentType, actualType, dummy);
+        nsCAutoString specifiedCharset;
+        PRBool haveCharset;
+        PRInt32 charsetStart, charsetEnd;
+        rv = NS_ExtractCharsetFromContentType(contentType, specifiedCharset,
+                                              &haveCharset, &charsetStart,
+                                              &charsetEnd);
         if (NS_FAILED(rv)) {
-          actualType.AssignLiteral("application/xml");
+          contentType.AssignLiteral("application/xml");
+          specifiedCharset.Truncate();
+          haveCharset = PR_FALSE;
         }
 
-        contentType.Assign(actualType);
-        contentType.AppendLiteral(";charset=");
-        contentType.Append(charset);
+        if (!haveCharset) {
+          charsetStart = charsetEnd = contentType.Length();
+        } 
+
+        
+        
+        
+        
+        
+        
+        
+        if (!specifiedCharset.Equals(charset,
+                                     nsCaseInsensitiveCStringComparator())) {
+          nsCAutoString newCharset("; charset=");
+          newCharset.Append(charset);
+          contentType.Replace(charsetStart, charsetEnd - charsetStart,
+                              newCharset);
+        }
       }
 
       rv = uploadChannel->SetUploadStream(postDataStream, contentType, -1);
