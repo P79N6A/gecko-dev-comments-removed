@@ -1476,12 +1476,25 @@ public:
 
   
   PRBool Push(nsPIDOMEventTarget *aCurrentTarget);
+  
+  
   PRBool Push(JSContext *cx);
+  
+  PRBool PushNull();
+
+  
   void Pop();
 
 private:
+  
+  PRBool DoPush(JSContext* cx);
+
   nsCOMPtr<nsIScriptContext> mScx;
   PRBool mScriptIsRunning;
+  PRBool mPushedSomething;
+#ifdef DEBUG
+  JSContext* mPushedContext;
+#endif
 };
 
 class nsAutoGCRoot {

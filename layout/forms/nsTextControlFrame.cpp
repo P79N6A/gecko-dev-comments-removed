@@ -1386,6 +1386,11 @@ nsTextControlFrame::CalcIntrinsicSize(nsIRenderingContext* aRenderingContext,
 void
 nsTextControlFrame::DelayedEditorInit()
 {
+  
+  
+  nsCxPusher pusher;
+  pusher.PushNull();
+
   InitEditor();
   
   if (IsFocusedContent(PresContext(), GetContent())) {
@@ -2569,17 +2574,12 @@ nsTextControlFrame::GetValue(nsAString& aValue, PRBool aIgnoreWrap) const
     
     
     
-    nsCOMPtr<nsIJSContextStack> stack =
-      do_GetService("@mozilla.org/js/xpc/ContextStack;1");
-    PRBool pushed = stack && NS_SUCCEEDED(stack->Push(nsnull));
+    { 
+      nsCxPusher pusher;
+      pusher.PushNull();
       
-    rv = mEditor->OutputToString(NS_LITERAL_STRING("text/plain"), flags,
-                                 aValue);
-
-    if (pushed) {
-      JSContext* cx;
-      stack->Pop(&cx);
-      NS_ASSERTION(!cx, "Unexpected JSContext popped!");
+      rv = mEditor->OutputToString(NS_LITERAL_STRING("text/plain"), flags,
+                                   aValue);
     }
   }
   else
@@ -2647,77 +2647,69 @@ nsTextControlFrame::SetValue(const nsAString& aValue)
       NS_ENSURE_SUCCESS(rv, rv);
       NS_ENSURE_STATE(domDoc);
 
+      PRBool outerTransaction;
       
       
       
-      nsCOMPtr<nsIJSContextStack> stack =
-        do_GetService("@mozilla.org/js/xpc/ContextStack;1");
-      PRBool pushed = stack && NS_SUCCEEDED(stack->Push(nsnull));
+      { 
+        nsCxPusher pusher;
+        pusher.PushNull();
 
-      nsCOMPtr<nsISelection> domSel;
-      nsCOMPtr<nsISelectionPrivate> selPriv;
-      mSelCon->GetSelection(nsISelectionController::SELECTION_NORMAL, getter_AddRefs(domSel));
-      if (domSel)
-      {
-        selPriv = do_QueryInterface(domSel);
-        if (selPriv)
-          selPriv->StartBatchChanges();
-      }
-
-      nsCOMPtr<nsISelectionController> kungFuDeathGrip = mSelCon;
-      mSelCon->SelectAll();
-      nsCOMPtr<nsIPlaintextEditor> plaintextEditor = do_QueryInterface(editor);
-      if (!plaintextEditor || !weakFrame.IsAlive()) {
-        NS_WARNING("Somehow not a plaintext editor?");
-        if (pushed) {
-          JSContext* cx;
-          stack->Pop(&cx);
-          NS_ASSERTION(!cx, "Unexpected JSContext popped!");
+        nsCOMPtr<nsISelection> domSel;
+        nsCOMPtr<nsISelectionPrivate> selPriv;
+        mSelCon->GetSelection(nsISelectionController::SELECTION_NORMAL,
+                              getter_AddRefs(domSel));
+        if (domSel)
+        {
+          selPriv = do_QueryInterface(domSel);
+          if (selPriv)
+            selPriv->StartBatchChanges();
         }
-        return NS_ERROR_FAILURE;
-      }
 
-      
-      
-      
+        nsCOMPtr<nsISelectionController> kungFuDeathGrip = mSelCon;
+        mSelCon->SelectAll();
+        nsCOMPtr<nsIPlaintextEditor> plaintextEditor = do_QueryInterface(editor);
+        if (!plaintextEditor || !weakFrame.IsAlive()) {
+          NS_WARNING("Somehow not a plaintext editor?");
+          return NS_ERROR_FAILURE;
+        }
 
-      
-      
-      
-      PRBool outerTransaction = mNotifyOnInput;
-      if (outerTransaction)
-        mNotifyOnInput = PR_FALSE;
+        
+        
+        
 
-      
-      
-      PRUint32 flags, savedFlags;
-      editor->GetFlags(&savedFlags);
-      flags = savedFlags;
-      flags &= ~(nsIPlaintextEditor::eEditorDisabledMask);
-      flags &= ~(nsIPlaintextEditor::eEditorReadonlyMask);
-      editor->SetFlags(flags);
+        
+        
+        
+        outerTransaction = mNotifyOnInput;
+        if (outerTransaction)
+          mNotifyOnInput = PR_FALSE;
 
-      
-      PRInt32 savedMaxLength;
-      plaintextEditor->GetMaxTextLength(&savedMaxLength);
-      plaintextEditor->SetMaxTextLength(-1);
+        
+        
+        PRUint32 flags, savedFlags;
+        editor->GetFlags(&savedFlags);
+        flags = savedFlags;
+        flags &= ~(nsIPlaintextEditor::eEditorDisabledMask);
+        flags &= ~(nsIPlaintextEditor::eEditorReadonlyMask);
+        editor->SetFlags(flags);
 
-      if (currentValue.Length() < 1)
-        editor->DeleteSelection(nsIEditor::eNone);
-      else {
-        if (plaintextEditor)
-          plaintextEditor->InsertText(currentValue);
-      }
+        
+        PRInt32 savedMaxLength;
+        plaintextEditor->GetMaxTextLength(&savedMaxLength);
+        plaintextEditor->SetMaxTextLength(-1);
 
-      plaintextEditor->SetMaxTextLength(savedMaxLength);
-      editor->SetFlags(savedFlags);
-      if (selPriv)
-        selPriv->EndBatchChanges();
+        if (currentValue.Length() < 1)
+          editor->DeleteSelection(nsIEditor::eNone);
+        else {
+          if (plaintextEditor)
+            plaintextEditor->InsertText(currentValue);
+        }
 
-      if (pushed) {
-        JSContext* cx;
-        stack->Pop(&cx);
-        NS_ASSERTION(!cx, "Unexpected JSContext popped!");
+        plaintextEditor->SetMaxTextLength(savedMaxLength);
+        editor->SetFlags(savedFlags);
+        if (selPriv)
+          selPriv->EndBatchChanges();
       }
 
       NS_ENSURE_STATE(weakFrame.IsAlive());

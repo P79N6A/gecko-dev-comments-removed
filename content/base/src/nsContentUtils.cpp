@@ -2656,7 +2656,8 @@ nsContentUtils::GetEventArgNames(PRInt32 aNameSpaceID,
 }
 
 nsCxPusher::nsCxPusher()
-    : mScriptIsRunning(PR_FALSE)
+    : mScriptIsRunning(PR_FALSE),
+      mPushedSomething(PR_FALSE)
 {
 }
 
@@ -2701,7 +2702,7 @@ IsContextOnStack(nsIJSContextStack *aStack, JSContext *aContext)
 PRBool
 nsCxPusher::Push(nsPIDOMEventTarget *aCurrentTarget)
 {
-  if (mScx) {
+  if (mPushedSomething) {
     NS_ERROR("Whaaa! No double pushing with nsCxPusher::Push()!");
 
     return PR_FALSE;
@@ -2729,39 +2730,68 @@ nsCxPusher::Push(nsPIDOMEventTarget *aCurrentTarget)
 PRBool
 nsCxPusher::Push(JSContext *cx)
 {
-  if (mScx) {
+  if (mPushedSomething) {
     NS_ERROR("Whaaa! No double pushing with nsCxPusher::Push()!");
 
     return PR_FALSE;
   }
 
-  if (cx) {
-    mScx = GetScriptContextFromJSContext(cx);
-    if (!mScx) {
-      
-      return PR_TRUE;
-    }
-
-    nsIThreadJSContextStack* stack = nsContentUtils::ThreadJSContextStack();
-    if (stack) {
-      if (IsContextOnStack(stack, cx)) {
-        
-        
-        mScriptIsRunning = PR_TRUE;
-      }
-
-      stack->Push(cx);
-    }
+  if (!cx) {
+    return PR_FALSE;
   }
+
+  
+  
+  
+  mScx = GetScriptContextFromJSContext(cx);
+  if (!mScx) {
+    
+    return PR_TRUE;
+  }
+
+  return DoPush(cx);
+}
+
+PRBool
+nsCxPusher::DoPush(JSContext* cx)
+{
+  nsIThreadJSContextStack* stack = nsContentUtils::ThreadJSContextStack();
+  if (!stack) {
+    return PR_TRUE;
+  }
+
+  if (cx && IsContextOnStack(stack, cx)) {
+    
+    
+    mScriptIsRunning = PR_TRUE;
+  }
+
+  if (NS_FAILED(stack->Push(cx))) {
+    mScriptIsRunning = PR_FALSE;
+    mScx = nsnull;
+    return PR_FALSE;
+  }
+
+  mPushedSomething = PR_TRUE;
+#ifdef DEBUG
+  mPushedContext = cx;
+#endif
   return PR_TRUE;
+}
+
+PRBool
+nsCxPusher::PushNull()
+{
+  return DoPush(nsnull);
 }
 
 void
 nsCxPusher::Pop()
 {
   nsIThreadJSContextStack* stack = nsContentUtils::ThreadJSContextStack();
-  if (!mScx || !stack) {
+  if (!mPushedSomething || !stack) {
     mScx = nsnull;
+    mPushedSomething = PR_FALSE;
 
     NS_ASSERTION(!mScriptIsRunning, "Huh, this can't be happening, "
                  "mScriptIsRunning can't be set here!");
@@ -2772,7 +2802,9 @@ nsCxPusher::Pop()
   JSContext *unused;
   stack->Pop(&unused);
 
-  if (!mScriptIsRunning) {
+  NS_ASSERTION(unused == mPushedContext, "Unexpected context popped");
+
+  if (!mScriptIsRunning && mScx) {
     
     
 
@@ -2781,6 +2813,7 @@ nsCxPusher::Pop()
 
   mScx = nsnull;
   mScriptIsRunning = PR_FALSE;
+  mPushedSomething = PR_FALSE;
 }
 
 static const char gPropertiesFiles[nsContentUtils::PropertiesFile_COUNT][56] = {
