@@ -265,6 +265,22 @@ BrowserGlue.prototype = {
     
     this._migrateUI();
 
+    var ioService = Cc["@mozilla.org/network/io-service;1"].
+                    getService(Ci.nsIIOService2);
+
+    
+    
+    
+    if (!ioService.manageOfflineStatus) {
+      
+      try {
+        ioService.offline = this._prefs.getBoolPref("browser.offline");
+      }
+      catch (e) {
+        ioService.offline = false;
+      }
+    }
+
     this._observerService.notifyObservers(null, "browser-ui-startup-complete", "");
   },
 

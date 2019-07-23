@@ -5296,20 +5296,6 @@ var BrowserOffline = {
     var ioService = Components.classes["@mozilla.org/network/io-service;1"].
       getService(Components.interfaces.nsIIOService2);
 
-    
-    
-    
-    
-    if (!ioService.manageOfflineStatus) {
-      
-      var isOffline = false;
-      try {
-        isOffline = gPrefService.getBoolPref("browser.offline");
-      }
-      catch (e) { }
-      ioService.offline = isOffline;
-    }
-    
     this._updateOfflineUI(ioService.offline);
   },
 
