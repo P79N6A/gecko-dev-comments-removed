@@ -1095,11 +1095,11 @@ Assembler::asm_prep_fcall(Reservation*, LInsp)
 }
 
 NIns*
-Assembler::asm_branch(bool branchOnFalse, LInsp cond, NIns* targ, bool far)
+Assembler::asm_branch(bool branchOnFalse, LInsp cond, NIns* targ, bool )
 {
     
     
-    (void)far;
+    
 
     NIns* at = 0;
     LOpcode condop = cond->opcode();
