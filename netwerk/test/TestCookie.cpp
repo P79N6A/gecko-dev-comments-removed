@@ -56,7 +56,6 @@ static NS_DEFINE_CID(kPrefServiceCID,   NS_PREFSERVICE_CID);
 
 
 static const char kCookiesPermissions[] = "network.cookie.cookieBehavior";
-static const char kCookiesDisabledForMailNews[] = "network.cookie.disableCookieForMailNews";
 static const char kCookiesLifetimeEnabled[] = "network.cookie.lifetime.enabled";
 static const char kCookiesLifetimeDays[] = "network.cookie.lifetime.days";
 static const char kCookiesLifetimeCurrentSession[] = "network.cookie.lifetime.behavior";
@@ -206,7 +205,6 @@ InitPrefs(nsIPrefBranch *aPrefBranch)
     
     
     aPrefBranch->SetIntPref(kCookiesPermissions, 0); 
-    aPrefBranch->SetBoolPref(kCookiesDisabledForMailNews, PR_TRUE);
     aPrefBranch->SetBoolPref(kCookiesLifetimeEnabled, PR_TRUE);
     aPrefBranch->SetIntPref(kCookiesLifetimeCurrentSession, 0);
     aPrefBranch->SetIntPref(kCookiesLifetimeDays, 1);

@@ -52,8 +52,6 @@
 #include "nsIPrefService.h"
 #include "nsIPrefBranch.h"
 #include "nsIPrefBranch2.h"
-#include "nsIDocShell.h"
-#include "nsIWebNavigation.h"
 #include "nsIChannel.h"
 #include "nsIHttpChannelInternal.h"
 #include "nsIDOMWindow.h"
@@ -83,9 +81,6 @@ static const PRBool kDefaultPolicy = PR_TRUE;
 static const char kCookiesLifetimePolicy[] = "network.cookie.lifetimePolicy";
 static const char kCookiesLifetimeDays[] = "network.cookie.lifetime.days";
 static const char kCookiesAlwaysAcceptSession[] = "network.cookie.alwaysAcceptSessionCookies";
-#ifdef MOZ_MAIL_NEWS
-static const char kCookiesDisabledForMailNews[] = "network.cookie.disableCookieForMailNews";
-#endif
 
 static const char kCookiesPrefsMigrated[] = "network.cookie.prefsMigrated";
 
@@ -130,9 +125,6 @@ nsCookiePermission::Init()
     prefBranch->AddObserver(kCookiesLifetimePolicy, this, PR_FALSE);
     prefBranch->AddObserver(kCookiesLifetimeDays, this, PR_FALSE);
     prefBranch->AddObserver(kCookiesAlwaysAcceptSession, this, PR_FALSE);
-#ifdef MOZ_MAIL_NEWS
-    prefBranch->AddObserver(kCookiesDisabledForMailNews, this, PR_FALSE);
-#endif
     PrefChanged(prefBranch, nsnull);
 
     
@@ -186,12 +178,6 @@ nsCookiePermission::PrefChanged(nsIPrefBranch *aPrefBranch,
   if (PREF_CHANGED(kCookiesAlwaysAcceptSession) &&
       NS_SUCCEEDED(aPrefBranch->GetBoolPref(kCookiesAlwaysAcceptSession, &val)))
     mCookiesAlwaysAcceptSession = val;
-
-#ifdef MOZ_MAIL_NEWS
-  if (PREF_CHANGED(kCookiesDisabledForMailNews) &&
-      NS_SUCCEEDED(aPrefBranch->GetBoolPref(kCookiesDisabledForMailNews, &val)))
-    mCookiesDisabledForMailNews = val;
-#endif
 }
 
 NS_IMETHODIMP
@@ -213,26 +199,10 @@ nsCookiePermission::CanAccess(nsIURI         *aURI,
 {
 #ifdef MOZ_MAIL_NEWS
   
-  if (mCookiesDisabledForMailNews) {
-    
-    
-    
-    
-    PRBool isMail = PR_FALSE;
-    if (aChannel) {
-      nsCOMPtr<nsILoadContext> ctx;
-      NS_QueryNotificationCallbacks(aChannel, ctx);
-      if (ctx) {
-        PRBool temp;
-        isMail =
-          NS_FAILED(ctx->IsAppOfType(nsIDocShell::APP_TYPE_MAIL, &temp)) ||
-          temp;
-      }
-    }
-    if (isMail || IsFromMailNews(aURI)) {
-      *aResult = ACCESS_DENY;
-      return NS_OK;
-    }
+  
+  if (IsFromMailNews(aURI)) {
+    *aResult = ACCESS_DENY;
+    return NS_OK;
   }
 #endif 
   
