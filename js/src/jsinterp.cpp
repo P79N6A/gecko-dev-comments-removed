@@ -663,11 +663,9 @@ js_FreeStack(JSContext *cx, void *mark)
 JSObject *
 js_GetScopeChain(JSContext *cx, JSStackFrame *fp)
 {
-    JSObject *obj, *cursor, *clonedChild, *parent;
-    JSTempValueRooter tvr;
+    JSObject *sharedBlock = fp->blockChain;
 
-    obj = fp->blockChain;
-    if (!obj) {
+    if (!sharedBlock) {
         
 
 
@@ -680,15 +678,59 @@ js_GetScopeChain(JSContext *cx, JSStackFrame *fp)
     }
 
     
+    js_LeaveTrace(cx);
+
+    
 
 
 
 
+
+
+    JSObject *limitBlock, *limitClone;
     if (fp->fun && !fp->callobj) {
         JS_ASSERT(OBJ_GET_CLASS(cx, fp->scopeChain) != &js_BlockClass ||
                   OBJ_GET_PRIVATE(cx, fp->scopeChain) != fp);
         if (!js_GetCallObject(cx, fp))
             return NULL;
+
+         
+        limitBlock = limitClone = NULL;
+    } else {
+        
+
+
+
+
+
+        limitClone = fp->scopeChain;
+        while (OBJ_GET_CLASS(cx, limitClone) == &js_WithClass)
+            limitClone = OBJ_GET_PARENT(cx, limitClone);
+        JS_ASSERT(limitClone);
+
+        
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        limitBlock = OBJ_GET_PROTO(cx, limitClone);
+
+        
+        if (limitBlock == sharedBlock)
+            return fp->scopeChain;
     }
 
     
@@ -699,50 +741,51 @@ js_GetScopeChain(JSContext *cx, JSStackFrame *fp)
 
 
 
-    cursor = obj;
-    clonedChild = NULL;
+    JSObject *innermostNewChild
+        = js_CloneBlockObject(cx, sharedBlock, fp->scopeChain, fp);
+    if (!innermostNewChild)
+        return NULL;
+    JSAutoTempValueRooter tvr(cx, innermostNewChild);
+
+    
+
+
+
+    JSObject *newChild = innermostNewChild;
     for (;;) {
-        parent = OBJ_GET_PARENT(cx, cursor);
+        JS_ASSERT(OBJ_GET_PROTO(cx, newChild) == sharedBlock);
+        sharedBlock = OBJ_GET_PARENT(cx, sharedBlock);
+
+        
+        if (sharedBlock == limitBlock || !sharedBlock)
+            break;
+
+        
+        JSObject *clone
+            = js_CloneBlockObject(cx, sharedBlock, fp->scopeChain, fp);
+        if (!clone)
+            return NULL;
 
         
 
 
 
-
-        cursor = js_CloneBlockObject(cx, cursor, fp->scopeChain, fp);
-        if (!cursor) {
-            if (clonedChild)
-                JS_POP_TEMP_ROOT(cx, &tvr);
-            return NULL;
-        }
-        if (!clonedChild) {
-            
-
-
-
-            obj = cursor;
-            if (!parent)
-                break;
-            JS_PUSH_TEMP_ROOT_OBJECT(cx, obj, &tvr);
-        } else {
-            
-
-
-
-            STOBJ_SET_PARENT(clonedChild, cursor);
-            if (!parent) {
-                JS_ASSERT(tvr.u.value == OBJECT_TO_JSVAL(obj));
-                JS_POP_TEMP_ROOT(cx, &tvr);
-                break;
-            }
-        }
-        clonedChild = cursor;
-        cursor = parent;
+        STOBJ_SET_PARENT(newChild, clone);
+        newChild = clone;
     }
-    fp->flags |= JSFRAME_POP_BLOCKS;
-    fp->scopeChain = obj;
-    fp->blockChain = NULL;
-    return obj;
+
+    
+
+
+
+    JS_ASSERT_IF(limitBlock && 
+                 OBJ_GET_CLASS(cx, limitBlock) == &js_BlockClass && 
+                 OBJ_GET_PRIVATE(cx, limitClone) == fp,
+                 sharedBlock);
+
+    
+    fp->scopeChain = innermostNewChild;
+    return fp->scopeChain;
 }
 
 JSBool
@@ -6702,6 +6745,9 @@ js_Interpret(JSContext *cx)
                 regs.sp++;
             }
 
+#ifdef DEBUG
+            JS_ASSERT(fp->blockChain == OBJ_GET_PARENT(cx, obj));
+
             
 
 
@@ -6710,42 +6756,46 @@ js_Interpret(JSContext *cx)
 
 
 
-
-            if (fp->flags & JSFRAME_POP_BLOCKS) {
-                JS_ASSERT(!fp->blockChain);
-                obj = js_CloneBlockObject(cx, obj, fp->scopeChain, fp);
-                if (!obj)
-                    goto error;
-                fp->scopeChain = obj;
-            } else {
-                JS_ASSERT(!fp->blockChain ||
-                          OBJ_GET_PARENT(cx, obj) == fp->blockChain);
-                fp->blockChain = obj;
+            obj2 = fp->scopeChain;
+            while ((clasp = OBJ_GET_CLASS(cx, obj2)) == &js_WithClass)
+                obj2 = OBJ_GET_PARENT(cx, obj2);
+            if (clasp == &js_BlockClass &&
+                OBJ_GET_PRIVATE(cx, obj2) == fp) {
+                JSObject *youngestProto = OBJ_GET_PROTO(cx, obj2);
+                JS_ASSERT(!OBJ_IS_CLONED_BLOCK(youngestProto));
+                parent = obj;
+                while ((parent = OBJ_GET_PARENT(cx, parent)) != youngestProto)
+                    JS_ASSERT(parent);
             }
+#endif
+
+            fp->blockChain = obj;
           END_CASE(JSOP_ENTERBLOCK)
 
           BEGIN_CASE(JSOP_LEAVEBLOCKEXPR)
           BEGIN_CASE(JSOP_LEAVEBLOCK)
           {
 #ifdef DEBUG
-             uintN blockDepth = OBJ_BLOCK_DEPTH(cx,
-                                                fp->blockChain
-                                                ? fp->blockChain
-                                                : fp->scopeChain);
-
-             JS_ASSERT(blockDepth <= StackDepth(script));
+            JS_ASSERT(OBJ_GET_CLASS(cx, fp->blockChain) == &js_BlockClass);
+            uintN blockDepth = OBJ_BLOCK_DEPTH(cx, fp->blockChain);
+             
+            JS_ASSERT(blockDepth <= StackDepth(script));
 #endif
-            if (fp->blockChain) {
-                JS_ASSERT(OBJ_GET_CLASS(cx, fp->blockChain) == &js_BlockClass);
-                fp->blockChain = OBJ_GET_PARENT(cx, fp->blockChain);
-            } else {
-                
+            
 
 
 
+
+
+            obj = fp->scopeChain;
+            if (OBJ_GET_PROTO(cx, obj) == fp->blockChain) {
+                JS_ASSERT (OBJ_GET_CLASS(cx, obj) == &js_BlockClass);
                 if (!js_PutBlockObject(cx, JS_TRUE))
                     goto error;
             }
+
+            
+            fp->blockChain = OBJ_GET_PARENT(cx, fp->blockChain);
 
             
 
