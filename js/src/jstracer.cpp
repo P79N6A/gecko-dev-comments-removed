@@ -8523,6 +8523,27 @@ TraceRecorder::clearFrameSlotsFromCache()
         nativeFrameTracker.set(vp++, (LIns*)0);
 }
 
+
+
+
+
+
+JS_REQUIRES_STACK void
+TraceRecorder::putArguments()
+{
+    if (cx->fp->argsobj && cx->fp->argc) {
+        LIns* argsobj_ins = get(&cx->fp->argsobj);
+        LIns* args_ins = lir->insAlloc(sizeof(jsval) * cx->fp->argc);
+        for (uintN i = 0; i < cx->fp->argc; ++i) {
+            LIns* arg_ins = get(&cx->fp->argv[i]);
+            box_jsval(cx->fp->argv[i], arg_ins);
+            lir->insStorei(arg_ins, args_ins, i * sizeof(jsval));
+        }
+        LIns* args[] = { args_ins, argsobj_ins, cx_ins };
+        lir->insCall(&js_PutArguments_ci, args);
+    }
+}
+
 JS_REQUIRES_STACK JSRecordingStatus
 TraceRecorder::record_EnterFrame()
 {
@@ -8630,22 +8651,7 @@ TraceRecorder::record_JSOP_RETURN()
         return JSRS_STOP;
     }
 
-    
-
-
-
-
-    if (cx->fp->argsobj) {
-        LIns* argsobj_ins = get(&cx->fp->argsobj);
-        LIns* args_ins = cx->fp->argc ? lir->insAlloc(sizeof(jsval) * cx->fp->argc) : INS_NULL();
-        for (uintN i = 0; i < cx->fp->argc; ++i) {
-            LIns* arg_ins = get(&cx->fp->argv[i]);
-            box_jsval(cx->fp->argv[i], arg_ins);
-            lir->insStorei(arg_ins, args_ins, i * sizeof(jsval));
-        }
-        LIns* args[] = { args_ins, argsobj_ins, cx_ins };
-        lir->insCall(&js_PutArguments_ci, args);
-    }
+    putArguments();
 
     
     jsval& rval = stackval(-1);
@@ -12504,6 +12510,8 @@ TraceRecorder::record_JSOP_STOP()
         atoms = fp->script->atomMap.vector;
         return JSRS_CONTINUE;
     }
+
+    putArguments();
 
     
 
