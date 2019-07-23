@@ -167,6 +167,8 @@ struct JSStackFrame {
 
     
     JSObject *varobj(JSContext *cx);
+
+    inline JSObject *getThisObject(JSContext *cx);
 };
 
 #ifdef __cplusplus
@@ -273,21 +275,6 @@ extern const uint16 js_PrimitiveTestFlags[];
     (JS_ASSERT(!JSVAL_IS_VOID(thisv)),                                        \
      JSFUN_THISP_TEST(JSFUN_THISP_FLAGS((fun)->flags),                        \
                       js_PrimitiveTestFlags[JSVAL_TAG(thisv) - 1]))
-
-#ifdef __cplusplus 
-static JS_INLINE JSObject *
-js_ComputeThisForFrame(JSContext *cx, JSStackFrame *fp)
-{
-    if (fp->flags & JSFRAME_COMPUTED_THIS)
-        return JSVAL_TO_OBJECT(fp->thisv);  
-    JSObject* obj = js_ComputeThis(cx, fp->argv);
-    if (!obj)
-        return NULL;
-    fp->thisv = OBJECT_TO_JSVAL(obj);
-    fp->flags |= JSFRAME_COMPUTED_THIS;
-    return obj;
-}
-#endif
 
 
 
@@ -471,5 +458,18 @@ js_MeterSlotOpcode(JSOp op, uint32 slot);
 #endif 
 
 JS_END_EXTERN_C
+
+inline JSObject *
+JSStackFrame::getThisObject(JSContext *cx)
+{
+    if (flags & JSFRAME_COMPUTED_THIS)
+        return JSVAL_TO_OBJECT(thisv);  
+    JSObject* obj = js_ComputeThis(cx, argv);
+    if (!obj)
+        return NULL;
+    thisv = OBJECT_TO_JSVAL(obj);
+    flags |= JSFRAME_COMPUTED_THIS;
+    return obj;
+}
 
 #endif 

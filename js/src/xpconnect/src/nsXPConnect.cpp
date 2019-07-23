@@ -1583,9 +1583,9 @@ MoveableWrapperFinder(JSDHashTable *table, JSDHashEntryHdr *hdr,
 
 
 NS_IMETHODIMP
-nsXPConnect::ReparentScopeAwareWrappers(JSContext *aJSContext,
-                                        JSObject *aOldScope,
-                                        JSObject *aNewScope)
+nsXPConnect::MoveWrappers(JSContext *aJSContext,
+                          JSObject *aOldScope,
+                          JSObject *aNewScope)
 {
     XPCCallContext ccx(NATIVE_CALLER, aJSContext);
     if(!ccx.IsValid())
@@ -1653,24 +1653,29 @@ nsXPConnect::ReparentScopeAwareWrappers(JSContext *aJSContext,
         if(NS_FAILED(rv))
             return rv;
 
-        if(newParent != aOldScope)
+        if(newParent == aOldScope)
         {
             
             
-            
-
-            XPCWrappedNativeScope *betterScope =
-                XPCWrappedNativeScope::FindInJSObjectScope(ccx, newParent);
-            if(betterScope == oldScope)
-                continue;
-
-            NS_ASSERTION(betterScope == newScope, "Weird scope returned");
-        }
-        else
-        {
             
             continue;
         }
+
+        
+        
+        
+
+        XPCWrappedNativeScope *betterScope =
+            XPCWrappedNativeScope::FindInJSObjectScope(ccx, newParent);
+        if(betterScope == oldScope)
+        {
+            
+            
+            
+            newParent = nsnull;
+        }
+        else
+            NS_ASSERTION(betterScope == newScope, "Weird scope returned");
 
         
         
