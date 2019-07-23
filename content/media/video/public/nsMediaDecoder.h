@@ -128,6 +128,9 @@ class nsMediaDecoder : public nsIObserver
   virtual void ResourceLoaded() = 0;
 
   
+  virtual void NetworkError() = 0;
+
+  
   
   virtual PRBool IsSeeking() const = 0;
 
