@@ -64,7 +64,11 @@ using mozilla::TimeDuration;
 struct ElementPropertyTransition
 {
   nsCSSProperty mProperty;
-  nsStyleAnimation::Value mStartValue, mEndValue;
+  
+  
+  
+  
+  nsStyleAnimation::Value mStartValue, mEndValue, mCurrentValue;
   TimeStamp mStartTime; 
 
   
@@ -227,12 +231,11 @@ ElementTransitionsStyleRule::MapRuleInfoInto(nsRuleData* aRuleData)
 
       double valuePortion =
         pt.mTimingFunction.GetSplineValue(timePortion);
-      nsStyleAnimation::Value value;
 #ifdef DEBUG
       PRBool ok =
 #endif
         nsStyleAnimation::Interpolate(pt.mStartValue, pt.mEndValue,
-                                      valuePortion, value);
+                                      valuePortion, pt.mCurrentValue);
       NS_ABORT_IF_FALSE(ok, "could not interpolate values");
 
       void *prop =
@@ -241,7 +244,7 @@ ElementTransitionsStyleRule::MapRuleInfoInto(nsRuleData* aRuleData)
       ok =
 #endif
         nsStyleAnimation::UncomputeValue(pt.mProperty, aRuleData->mPresContext,
-                                         value, prop);
+                                         pt.mCurrentValue, prop);
       NS_ABORT_IF_FALSE(ok, "could not store computed value");
     }
   }

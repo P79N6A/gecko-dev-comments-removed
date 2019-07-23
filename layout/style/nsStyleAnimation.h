@@ -52,6 +52,7 @@ class nsCSSDeclaration;
 class nsIContent;
 class nsPresContext;
 class nsStyleContext;
+struct nsCSSValueList;
 
 
 
@@ -182,6 +183,9 @@ public:
 
 
 
+
+
+
   static PRBool UncomputeValue(nsCSSProperty aProperty,
                                nsPresContext* aPresContext,
                                const Value& aComputedValue,
@@ -215,7 +219,8 @@ public:
     eUnit_Coord,
     eUnit_Percent,
     eUnit_Float,
-    eUnit_Color
+    eUnit_Color,
+    eUnit_Shadow  
   };
 
   class Value {
@@ -225,6 +230,7 @@ public:
       nscoord mCoord;
       float mFloat;
       nscolor mColor;
+      nsCSSValueList* mCSSValueList;
     } mValue;
   public:
     Unit GetUnit() const {
@@ -254,6 +260,10 @@ public:
       NS_ASSERTION(mUnit == eUnit_Color, "unit mismatch");
       return mValue.mColor;
     }
+    nsCSSValueList* GetCSSValueListValue() const {
+      NS_ASSERTION(IsCSSValueListUnit(mUnit), "unit mismatch");
+      return mValue.mCSSValueList;
+    }
 
     explicit Value(Unit aUnit = eUnit_Null) : mUnit(aUnit) {
       NS_ASSERTION(aUnit == eUnit_Null || aUnit == eUnit_Normal ||
@@ -279,6 +289,8 @@ public:
     void SetPercentValue(float aPercent);
     void SetFloatValue(float aFloat);
     void SetColorValue(nscolor aColor);
+    void SetCSSValueListValue(nsCSSValueList *aValue, Unit aUnit,
+                              PRBool aTakeOwnership);
 
     Value& operator=(const Value& aOther);
 
@@ -288,6 +300,10 @@ public:
 
   private:
     void FreeValue();
+
+    static PRBool IsCSSValueListUnit(Unit aUnit) {
+      return aUnit == eUnit_Shadow;
+    }
   };
 };
 
