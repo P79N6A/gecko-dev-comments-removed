@@ -2762,6 +2762,21 @@ nsHttpChannel::ProcessRedirection(PRUint32 redirectType)
                            getter_AddRefs(newURI));
     if (NS_FAILED(rv)) return rv;
 
+    if (mApplicationCache) {
+        
+        
+        
+        if (!NS_SecurityCompareURIs(mURI, newURI, PR_FALSE)) {
+            PRBool fallingBack;
+            rv = ProcessFallback(&fallingBack);
+            if (NS_SUCCEEDED(rv) && fallingBack) {
+                
+                
+                return NS_OK;
+            }
+        }
+    }
+
     
     
     PRBool redirectingBackToSameURI = PR_FALSE;
