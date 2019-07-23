@@ -657,6 +657,22 @@ class nsTArray : public nsTArray_base {
     
     
     
+    template<class Item>
+    elem_type *MoveElementsFrom(nsTArray<Item>& array) {
+      NS_PRECONDITION(&array != this, "argument must be different array");
+      index_type len = Length();
+      index_type otherLen = array.Length();
+      if (!EnsureCapacity(len + otherLen, sizeof(elem_type)))
+        return nsnull;
+      memcpy(Elements() + len, array.Elements(), otherLen * sizeof(elem_type));
+      IncrementLength(otherLen);      
+      array.ShiftData(0, otherLen, 0, sizeof(elem_type));
+      return Elements() + len;
+    }
+
+    
+    
+    
     void RemoveElementsAt(index_type start, size_type count) {
       NS_ASSERTION(count == 0 || start < Length(), "Invalid start index");
       NS_ASSERTION(start + count <= Length(), "Invalid length");
