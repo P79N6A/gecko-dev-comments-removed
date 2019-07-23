@@ -215,6 +215,15 @@ public:
   nsMargin GetDesiredScrollbarSizes(nsBoxLayoutState* aState);
   PRBool IsLTR() const;
   PRBool IsScrollbarOnRight() const;
+  
+  
+  
+  void AdjustScrollbarRectForResizer(nsIFrame* aFrame, nsPresContext* aPresContext,
+                                     nsRect& aRect, PRBool aHasResizer, PRBool aVertical);
+  
+  PRBool HasResizer() {
+      return mScrollCornerContent && mScrollCornerContent->Tag() == nsGkAtoms::resizer;
+  }
   void LayoutScrollbars(nsBoxLayoutState& aState,
                         const nsRect& aContentArea,
                         const nsRect& aOldScrollArea);
