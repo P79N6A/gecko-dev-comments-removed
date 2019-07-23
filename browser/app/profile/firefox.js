@@ -217,7 +217,7 @@ pref("browser.urlbar.matchOnWordBoundary", true);
 pref("browser.urlbar.filter.javascript", true);
 
 
-pref("browser.urlbar.maxRichResults", 25);
+pref("browser.urlbar.maxRichResults", 12);
 
 
 
