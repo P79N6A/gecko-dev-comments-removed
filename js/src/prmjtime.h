@@ -78,7 +78,7 @@ extern JSInt64
 PRMJ_Now(void);
 
 
-#if defined(JS_THREADSAFE) && defined(HAVE_GETSYSTEMTIMEASFILETIME)
+#if defined(JS_THREADSAFE) && (defined(HAVE_GETSYSTEMTIMEASFILETIME) || defined(HAVE_SYSTEMTIMETOFILETIME))
 extern void
 PRMJ_NowShutdown(void);
 #else
