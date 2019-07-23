@@ -73,6 +73,11 @@ public:
     nsMenuX();
     virtual ~nsMenuX();
 
+    
+    
+    
+    static PRInt32 sIndexingMenuLevel;
+
     NS_DECL_ISUPPORTS
     NS_DECL_CHANGEOBSERVER
 
