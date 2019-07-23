@@ -1094,27 +1094,19 @@ void nsDisplayTransform::Paint(nsDisplayListBuilder *aBuilder,
 
 
 
-
-
-
-
-
+  gfxMatrix newTransformMatrix =
+    GetResultingTransformMatrix(mFrame, aBuilder->ToReferenceFrame(mFrame),
+                                 mFrame->PresContext()->AppUnitsPerDevPixel(),
+                                nsnull);
+  if (newTransformMatrix.IsSingular())
+    return;
 
   
   gfxContext* gfx = aCtx->ThebesContext();
   gfxContextAutoSaveRestore autoRestorer(gfx);
 
   
-  float factor = mFrame->PresContext()->AppUnitsPerDevPixel();
 
-  
-
-
-
-
-  gfxMatrix newTransformMatrix =
-    GetResultingTransformMatrix(mFrame, aBuilder->ToReferenceFrame(mFrame),
-                                factor, nsnull);
 
   newTransformMatrix.Multiply(gfx->CurrentMatrix());
 
