@@ -43,6 +43,7 @@
 
 
 #include <stddef.h>
+#include "jsconfig.h"
 #include "jstypes.h"
 #include "jshash.h" 
 #include "jsapi.h"
@@ -155,9 +156,23 @@ struct JSAtomMap {
 };
 
 struct JSAtomState {
-    JSRuntime           *runtime;       
     JSHashTable         *table;         
-    jsatomid            liveAtoms;      
+
+    uint32              tablegen;       
+
+#ifdef JS_THREADSAFE
+    JSThinLock          lock;
+#endif
+
+    
+
+
+
+
+
+
+
+
 
     
     JSAtom              *emptyAtom;
@@ -177,11 +192,9 @@ struct JSAtomState {
     JSAtom              *calleeAtom;
     JSAtom              *callerAtom;
     JSAtom              *classPrototypeAtom;
-    JSAtom              *closeAtom;
     JSAtom              *constructorAtom;
     JSAtom              *countAtom;
     JSAtom              *eachAtom;
-    JSAtom              *etagoAtom;
     JSAtom              *evalAtom;
     JSAtom              *fileNameAtom;
     JSAtom              *getAtom;
@@ -193,27 +206,39 @@ struct JSAtomState {
     JSAtom              *lineNumberAtom;
     JSAtom              *messageAtom;
     JSAtom              *nameAtom;
-    JSAtom              *namespaceAtom;
     JSAtom              *nextAtom;
     JSAtom              *noSuchMethodAtom;
     JSAtom              *parentAtom;
     JSAtom              *protoAtom;
-    JSAtom              *ptagcAtom;
-    JSAtom              *qualifierAtom;
     JSAtom              *setAtom;
     JSAtom              *setterAtom;
-    JSAtom              *spaceAtom;
     JSAtom              *stackAtom;
-    JSAtom              *stagoAtom;
-    JSAtom              *starAtom;
-    JSAtom              *starQualifierAtom;
-    JSAtom              *tagcAtom;
     JSAtom              *toLocaleStringAtom;
     JSAtom              *toSourceAtom;
     JSAtom              *toStringAtom;
     JSAtom              *valueOfAtom;
     JSAtom              *void0Atom;
+
+#if JS_HAS_XML_SUPPORT
+    JSAtom              *etagoAtom;
+    JSAtom              *namespaceAtom;
+    JSAtom              *ptagcAtom;
+    JSAtom              *qualifierAtom;
+    JSAtom              *spaceAtom;
+    JSAtom              *stagoAtom;
+    JSAtom              *starAtom;
+    JSAtom              *starQualifierAtom;
+    JSAtom              *tagcAtom;
     JSAtom              *xmlAtom;
+#endif
+
+#ifdef NARCISSUS
+    JSAtom              *callAtom;
+    JSAtom              *constructAtom;
+    JSAtom              *hasInstanceAtom;
+    JSAtom              *ExecutionContextAtom;
+    JSAtom              *currentAtom;
+#endif
 
     
     struct {
@@ -243,19 +268,15 @@ struct JSAtomState {
         JSAtom          *unwatchAtom;
         JSAtom          *watchAtom;
     } lazy;
-
-#ifdef JS_THREADSAFE
-    JSThinLock          lock;
-    volatile uint32     tablegen;
-#endif
-#ifdef NARCISSUS
-    JSAtom              *callAtom;
-    JSAtom              *constructAtom;
-    JSAtom              *hasInstanceAtom;
-    JSAtom              *ExecutionContextAtom;
-    JSAtom              *currentAtom;
-#endif
 };
+
+#define ATOM_OFFSET_START       offsetof(JSAtomState, emptyAtom)
+#define LAZY_ATOM_OFFSET_START  offsetof(JSAtomState, lazy)
+#define ATOM_OFFSET_LIMIT       (sizeof(JSAtomState))
+
+
+JS_STATIC_ASSERT(ATOM_OFFSET_START % sizeof(JSAtom *) == 0);
+JS_STATIC_ASSERT(ATOM_OFFSET_LIMIT % sizeof(JSAtom *) == 0);
 
 #define ATOM_OFFSET(name)       offsetof(JSAtomState, name##Atom)
 #define OFFSET_TO_ATOM(rt,off)  (*(JSAtom **)((char*)&(rt)->atomState + (off)))
@@ -264,10 +285,21 @@ struct JSAtomState {
 #define CLASS_ATOM(cx,name) \
     ((cx)->runtime->atomState.classAtoms[JSProto_##name])
 
+extern const char *const js_common_atom_names[];
 
-extern const char   *js_type_strs[];
-extern const char   *js_boolean_strs[];
-extern const char   *js_proto_strs[];
+
+
+
+
+
+#define JS_TYPE_STR(type)    (js_common_atom_names[1 + (type)])
+#define JS_BOOLEAN_STR(type) (js_common_atom_names[1 + JSTYPE_LIMIT + (type)])
+
+JS_STATIC_ASSERT(1 * sizeof(JSAtom *) ==
+                 offsetof(JSAtomState, typeAtoms) - ATOM_OFFSET_START);
+JS_STATIC_ASSERT((1 + JSTYPE_LIMIT) * sizeof(JSAtom *) ==
+                 offsetof(JSAtomState, booleanAtoms) - ATOM_OFFSET_START);
+
 
 #define JS_PROTO(name,code,init) extern const char js_##name##_str[];
 #include "jsproto.tbl"
@@ -315,6 +347,7 @@ extern const char   js_tagc_str[];
 extern const char   js_toSource_str[];
 extern const char   js_toString_str[];
 extern const char   js_toLocaleString_str[];
+extern const char   js_undefined_str[];
 extern const char   js_valueOf_str[];
 extern const char   js_xml_str[];
 
@@ -330,30 +363,16 @@ extern const char   js_current_str[];
 
 
 
+
 extern JSBool
-js_InitAtomState(JSContext *cx, JSAtomState *state);
-
-
-
-
-extern void
-js_FreeAtomState(JSContext *cx, JSAtomState *state);
-
-
-
-
-
-
-
-
-
+js_InitAtomState(JSRuntime *rt);
 
 
 
 
 
 extern void
-js_FinishAtomState(JSAtomState *state);
+js_FinishAtomState(JSRuntime *rt);
 
 
 
@@ -366,13 +385,13 @@ extern void
 js_TraceLockedAtoms(JSTracer *trc, JSBool allAtoms);
 
 extern void
-js_SweepAtomState(JSAtomState *state);
+js_SweepAtomState(JSContext *cx);
 
 extern JSBool
-js_InitPinnedAtoms(JSContext *cx, JSAtomState *state);
+js_InitCommonAtoms(JSContext *cx);
 
 extern void
-js_UnpinPinnedAtoms(JSAtomState *state);
+js_FinishCommonAtoms(JSContext *cx);
 
 
 
@@ -413,17 +432,18 @@ js_AtomizePrimitiveValue(JSContext *cx, jsval v);
 extern JSAtom *
 js_ValueToStringAtom(JSContext *cx, jsval v);
 
+#ifdef DEBUG
+
+extern JS_FRIEND_API(void)
+js_DumpAtoms(JSContext *cx, FILE *fp);
+
+#endif
+
 
 
 
 extern JSAtomListElement *
 js_IndexAtom(JSContext *cx, JSAtom *atom, JSAtomList *al);
-
-
-
-
-extern JS_FRIEND_API(JSAtom *)
-js_GetAtom(JSContext *cx, JSAtomMap *map, jsatomid i);
 
 
 

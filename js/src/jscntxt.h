@@ -225,9 +225,6 @@ struct JSRuntime {
     void                *gcExtraRootsData;
 
     
-    JSAtomState         atomState;
-
-    
     JSBool              rngInitialized;
     int64               rngMultiplier;
     int64               rngAddend;
@@ -385,6 +382,9 @@ struct JSRuntime {
 
 #define JS_GSN_CACHE(cx) ((cx)->runtime->gsnCache)
 #endif
+
+    
+    JSAtomState         atomState;
 
 #ifdef DEBUG
     
