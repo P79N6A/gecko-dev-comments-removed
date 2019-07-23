@@ -36,12 +36,17 @@
 
 
 
+
 #include <limits.h>
 #include <string.h>
 #include <stdio.h>
 #include "readstrings.h"
 #include "errors.h"
-#include "prtypes.h"
+
+
+typedef int        PRBool;
+#define PR_TRUE    1
+#define PR_FALSE   0
 
 #ifdef XP_WIN
 # define NS_tfopen _wfopen
@@ -112,8 +117,41 @@ NS_strtok(const char *delims, char **str)
 }
 
 
+
+
+
+static int
+find_key(const char *keyList, char* key)
+{
+  if (!keyList)
+    return -1;
+
+  int index = 0;
+  const char *p = keyList;
+  while (*p)
+  {
+    if (strcmp(key, p) == 0)
+      return index;
+
+    p += strlen(p) + 1;
+    index++;
+  }
+
+  
+  return -1;
+}
+
+
+
+
+
+
+
+
+
+
 int
-ReadStrings(const NS_tchar *path, StringTable *results)
+ReadStrings(const NS_tchar *path, const char *keyList, int numStrings, char results[][MAX_TEXT_LEN])
 {
   AutoFILE fp = NS_tfopen(path, OPEN_MODE);
 
@@ -144,8 +182,8 @@ ReadStrings(const NS_tchar *path, StringTable *results)
 
   char *buffer = fileContents;
   PRBool inStringsSection = PR_FALSE;
-  const unsigned None = 0, Title = 1, Info = 2, All = 3;
-  unsigned read = None;
+
+  unsigned read = 0;
 
   while (char *token = NS_strtok(kNL, &buffer)) {
     if (token[0] == '#' || token[0] == ';') 
@@ -185,17 +223,33 @@ ReadStrings(const NS_tchar *path, StringTable *results)
     if (!e)
       continue;
 
-    if (strcmp(key, "Title") == 0) {
-      strncpy(results->title, token, MAX_TEXT_LEN - 1);
-      results->title[MAX_TEXT_LEN - 1] = 0;
-      read |= Title;
-    }
-    else if (strcmp(key, "Info") == 0) {
-      strncpy(results->info, token, MAX_TEXT_LEN - 1);
-      results->info[MAX_TEXT_LEN - 1] = 0;
-      read |= Info;
+    int keyIndex = find_key(keyList, key);
+    if (keyIndex >= 0 && keyIndex < numStrings)
+    {
+      strncpy(results[keyIndex], token, MAX_TEXT_LEN - 1);
+      results[keyIndex][MAX_TEXT_LEN - 1] = 0;
+      read++;
     }
   }
 
-  return (read == All) ? OK : PARSE_ERROR;
+  return (read == numStrings) ? OK : PARSE_ERROR;
+}
+
+
+
+int
+ReadStrings(const NS_tchar *path, StringTable *results)
+{
+  const int kNumStrings = 2;
+  const char *kUpdaterKeys = "Title\0Info\0";
+  char updater_strings[kNumStrings][MAX_TEXT_LEN];
+
+  int result = ReadStrings(path, kUpdaterKeys, kNumStrings, updater_strings);
+
+  strncpy(results->title, updater_strings[0], MAX_TEXT_LEN - 1);
+  results->title[MAX_TEXT_LEN - 1] = 0;
+  strncpy(results->info, updater_strings[1], MAX_TEXT_LEN - 1);
+  results->info[MAX_TEXT_LEN - 1] = 0;
+
+  return result;
 }

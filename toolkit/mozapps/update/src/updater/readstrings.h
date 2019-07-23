@@ -36,6 +36,7 @@
 
 
 
+
 #ifndef READSTRINGS_H__
 #define READSTRINGS_H__
 
@@ -57,5 +58,10 @@ struct StringTable {
 
 
 int ReadStrings(const NS_tchar *path, StringTable *results);
+
+
+
+
+int ReadStrings(const NS_tchar *path, const char *keyList, int numStrings, char results[][MAX_TEXT_LEN]);
 
 #endif  
