@@ -2068,8 +2068,8 @@ nsXULContentBuilder::RebuildAll()
 
     
     
-
-
+    if (xulcontent)
+        xulcontent->ClearLazyState(nsXULElement::eChildrenMustBeRebuilt);
 
     nsresult rv = CompileQueries();
     if (NS_FAILED(rv))
