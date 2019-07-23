@@ -1893,7 +1893,7 @@ nsPrintEngine::ReflowPrintObject(nsPrintObject * aPO)
     
     
     if (!frame) {
-      aPO->mDontPrint = PR_TRUE;
+      SetPrintPO(aPO, PR_FALSE);
       return NS_OK;
     }
 
