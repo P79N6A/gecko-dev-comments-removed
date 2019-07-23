@@ -629,6 +629,98 @@ protected:
         nsDocShell *mDocShell;
     };
 
+    
+    nsInterfaceHashtable<nsCStringHashKey, nsIDOMStorageObsolete> mStorages;
+    nsIntRect                  mBounds; 
+    nsString                   mName;
+    nsString                   mTitle;
+    
+
+
+
+    nsCString                  mContentTypeHint;
+    nsIntPoint                 mDefaultScrollbarPref; 
+
+    nsCOMPtr<nsISupportsArray> mRefreshURIList;
+    nsCOMPtr<nsISupportsArray> mSavedRefreshURIList;
+    nsRefPtr<nsDSURIContentListener> mContentListener;
+    nsCOMPtr<nsIContentViewer> mContentViewer;
+    nsCOMPtr<nsIDocumentCharsetInfo> mDocumentCharsetInfo;
+    nsCOMPtr<nsIWidget>        mParentWidget;
+    nsCOMPtr<nsIPrefBranch>    mPrefs;
+
+    
+    nsCOMPtr<nsIURI>           mCurrentURI;
+    nsCOMPtr<nsIURI>           mReferrerURI;
+    nsCOMPtr<nsIScriptGlobalObject> mScriptGlobal;
+    nsCOMPtr<nsISHistory>      mSessionHistory;
+    nsCOMPtr<nsIGlobalHistory2> mGlobalHistory;
+    nsCOMPtr<nsIWebBrowserFind> mFind;
+    nsCOMPtr<nsICommandManager> mCommandManager;
+    
+    
+    nsCOMPtr<nsISHEntry>       mOSHE;
+    
+    
+    nsCOMPtr<nsISHEntry>       mLSHE;
+
+    
+    
+    
+    nsRevocableEventPtr<RestorePresentationEvent> mRestorePresentationEvent;
+
+    
+    nsAutoPtr<nsDocShellEditorData> mEditorData;
+
+    
+    nsCOMPtr<nsIClipboardDragDropHookList> mTransferableHookData;
+
+    
+    nsCOMPtr<nsISecureBrowserUI> mSecurityUI;
+
+    
+    nsRefPtr<nsClassifierCallback> mClassifier;
+
+    
+    
+    
+    
+    
+    nsCOMPtr<nsIURI>           mLoadingURI;
+
+    
+    
+    
+
+    nsIDocShellTreeOwner *     mTreeOwner; 
+    nsPIDOMEventTarget *       mChromeEventHandler; 
+
+    eCharsetReloadState        mCharsetReloadState;
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    PRUint32                   mChildOffset;
+    PRUint32                   mBusyFlags;
+    PRUint32                   mAppType;
+    PRUint32                   mLoadType;
+
+    PRInt32                    mMarginWidth;
+    PRInt32                    mMarginHeight;
+    PRInt32                    mItemType;
+
+    
+    
+    PRInt32                    mPreviousTransIndex;
+    PRInt32                    mLoadedTransIndex;
+
     PRPackedBool               mAllowSubframes;
     PRPackedBool               mAllowPlugins;
     PRPackedBool               mAllowJavascript;
@@ -653,7 +745,7 @@ protected:
     
     
     
-    PRPackedBool               mEODForCurrentDocument; 
+    PRPackedBool               mEODForCurrentDocument;
     PRPackedBool               mURIResultedInDocument;
 
     PRPackedBool               mIsBeingDestroyed;
@@ -667,104 +759,8 @@ protected:
     
     
     PRPackedBool               mSavingOldViewer;
-
-    PRUint32                   mAppType;
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    PRUint32                   mChildOffset;
-
-    PRUint32                   mBusyFlags;
-
-    PRInt32                    mMarginWidth;
-    PRInt32                    mMarginHeight;
-    PRInt32                    mItemType;
-
-    PRUint32                   mLoadType;
-
-    nsString                   mName;
-    nsString                   mTitle;
-    
-
-
-
-    nsCString                  mContentTypeHint;
-    nsCOMPtr<nsISupportsArray> mRefreshURIList;
-    nsCOMPtr<nsISupportsArray> mSavedRefreshURIList;
-    nsRefPtr<nsDSURIContentListener> mContentListener;
-    nsIntRect                  mBounds; 
-    nsCOMPtr<nsIContentViewer> mContentViewer;
-    nsCOMPtr<nsIDocumentCharsetInfo> mDocumentCharsetInfo;
-    nsCOMPtr<nsIWidget>        mParentWidget;
-    nsCOMPtr<nsIPrefBranch>    mPrefs;
-
-    
-    nsCOMPtr<nsIURI>           mCurrentURI;
-    nsCOMPtr<nsIURI>           mReferrerURI;
-    nsCOMPtr<nsIScriptGlobalObject> mScriptGlobal;
-    nsCOMPtr<nsISHistory>      mSessionHistory;
-    nsCOMPtr<nsIGlobalHistory2> mGlobalHistory;
-    nsCOMPtr<nsIWebBrowserFind> mFind;
-    nsIntPoint                 mDefaultScrollbarPref; 
-    
-    
-    nsCOMPtr<nsISHEntry>       mOSHE; 
-    
-    
-    nsCOMPtr<nsISHEntry>       mLSHE;
-
-    
-    
-    
-    nsRevocableEventPtr<RestorePresentationEvent> mRestorePresentationEvent;
-
-    
-    nsInterfaceHashtable<nsCStringHashKey, nsIDOMStorageObsolete> mStorages;
-
-    
-    
-    PRInt32                    mPreviousTransIndex;
-    PRInt32                    mLoadedTransIndex;
-
-    
-    nsAutoPtr<nsDocShellEditorData> mEditorData;
-
-    
-    nsCOMPtr<nsIClipboardDragDropHookList>  mTransferableHookData;
-
-    
-    nsCOMPtr<nsISecureBrowserUI> mSecurityUI;
-
-    
-    nsRefPtr<nsClassifierCallback> mClassifier;
-
-    
-    
-    
-    
-    
-    nsCOMPtr<nsIURI> mLoadingURI;
-
-    
-    
-    
-
-    nsIDocShellTreeOwner *     mTreeOwner; 
-    nsPIDOMEventTarget *       mChromeEventHandler; 
-
-    eCharsetReloadState mCharsetReloadState;
-    nsCOMPtr<nsICommandManager> mCommandManager;
-
 #ifdef DEBUG
-    PRBool mInEnsureScriptEnv;
+    PRPackedBool               mInEnsureScriptEnv;
 #endif
 
     static nsIURIFixup *sURIFixup;
