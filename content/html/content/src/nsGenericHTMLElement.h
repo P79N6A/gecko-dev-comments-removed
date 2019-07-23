@@ -724,6 +724,28 @@ protected:
 
 
 
+  NS_HIDDEN_(nsresult) GetFloatAttr(nsIAtom* aAttr, float aDefault, float* aValue);
+
+  
+
+
+
+
+
+
+
+  NS_HIDDEN_(nsresult) SetFloatAttr(nsIAtom* aAttr, float aValue);
+
+  
+
+
+
+
+
+
+
+
+
 
   NS_HIDDEN_(nsresult) GetURIAttr(nsIAtom* aAttr, nsIAtom* aBaseAttr, nsAString& aResult);
 
@@ -1048,6 +1070,26 @@ NS_NewHTML##_elementName##Element(nsINodeInfo *aNodeInfo, PRBool aFromParser)\
 
 
 
+#define NS_IMPL_FLOAT_ATTR(_class, _method, _atom)                    \
+  NS_IMPL_FLOAT_ATTR_DEFAULT_VALUE(_class, _method, _atom, 0.0)
+
+#define NS_IMPL_FLOAT_ATTR_DEFAULT_VALUE(_class, _method, _atom, _default)  \
+  NS_IMETHODIMP                                                             \
+  _class::Get##_method(float* aValue)                                   \
+  {                                                                         \
+    return GetFloatAttr(nsGkAtoms::_atom, _default, aValue);                \
+  }                                                                         \
+  NS_IMETHODIMP                                                             \
+  _class::Set##_method(float aValue)                                    \
+  {                                                                         \
+    return SetFloatAttr(nsGkAtoms::_atom, aValue);                          \
+  }
+
+
+
+
+
+
 
 
 #define NS_IMPL_URI_ATTR(_class, _method, _atom)                    \
@@ -1168,6 +1210,9 @@ NS_DECLARE_NS_NEW_HTML_ELEMENT(SharedObject)
 
 NS_DECLARE_NS_NEW_HTML_ELEMENT(Anchor)
 NS_DECLARE_NS_NEW_HTML_ELEMENT(Area)
+#if defined(MOZ_MEDIA)
+NS_DECLARE_NS_NEW_HTML_ELEMENT(Audio)
+#endif
 NS_DECLARE_NS_NEW_HTML_ELEMENT(BR)
 NS_DECLARE_NS_NEW_HTML_ELEMENT(Body)
 NS_DECLARE_NS_NEW_HTML_ELEMENT(Button)
@@ -1199,6 +1244,9 @@ NS_DECLARE_NS_NEW_HTML_ELEMENT(Paragraph)
 NS_DECLARE_NS_NEW_HTML_ELEMENT(Pre)
 NS_DECLARE_NS_NEW_HTML_ELEMENT(Script)
 NS_DECLARE_NS_NEW_HTML_ELEMENT(Select)
+#if defined(MOZ_MEDIA)
+NS_DECLARE_NS_NEW_HTML_ELEMENT(Source)
+#endif
 NS_DECLARE_NS_NEW_HTML_ELEMENT(Span)
 NS_DECLARE_NS_NEW_HTML_ELEMENT(Style)
 NS_DECLARE_NS_NEW_HTML_ELEMENT(TableCaption)
@@ -1213,5 +1261,8 @@ NS_DECLARE_NS_NEW_HTML_ELEMENT(Tfoot)
 NS_DECLARE_NS_NEW_HTML_ELEMENT(Thead)
 NS_DECLARE_NS_NEW_HTML_ELEMENT(Title)
 NS_DECLARE_NS_NEW_HTML_ELEMENT(Unknown)
+#if defined(MOZ_MEDIA)
+NS_DECLARE_NS_NEW_HTML_ELEMENT(Video)
+#endif
 
 #endif 

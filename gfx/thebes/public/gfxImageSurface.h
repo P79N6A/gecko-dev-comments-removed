@@ -59,6 +59,15 @@ public:
 
 
 
+    gfxImageSurface(unsigned char *aData, const gfxIntSize& aSize,
+                    long aStride, gfxImageFormat aFormat);
+
+    
+
+
+
+
+
 
     gfxImageSurface(const gfxIntSize& size, gfxImageFormat format);
     gfxImageSurface(cairo_surface_t *csurf);

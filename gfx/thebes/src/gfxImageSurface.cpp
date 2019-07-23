@@ -41,6 +41,32 @@
 
 #include "cairo.h"
 
+gfxImageSurface::gfxImageSurface(unsigned char *aData, const gfxIntSize& aSize,
+                                 long aStride, gfxImageFormat aFormat)
+  : mSize(aSize)
+  , mOwnsData(PR_FALSE)
+  , mData(aData)
+  , mFormat(aFormat)
+  , mStride(aStride)
+{
+    if (!CheckSurfaceSize(aSize))
+        return;
+
+    cairo_surface_t *surface =
+        cairo_image_surface_create_for_data((unsigned char*)mData,
+                                            (cairo_format_t)mFormat,
+                                            mSize.width,
+                                            mSize.height,
+                                            mStride);
+
+    
+    
+    
+    
+    
+    Init(surface);
+}
+
 gfxImageSurface::gfxImageSurface(const gfxIntSize& size, gfxImageFormat format) :
     mSize(size), mOwnsData(PR_FALSE), mFormat(format)
 {

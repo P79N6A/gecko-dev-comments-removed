@@ -77,6 +77,9 @@ DECL_TAG_LIST(gAreaParent,{eHTMLTag_map})
 DECL_TAG_LIST(gParamParents,{eHTMLTag_applet COMMA eHTMLTag_object})
 DECL_TAG_LIST(gTRParents,{eHTMLTag_tbody COMMA eHTMLTag_tfoot COMMA eHTMLTag_thead COMMA eHTMLTag_table})
 DECL_TAG_LIST(gTREndParents,{eHTMLTag_tbody COMMA eHTMLTag_tfoot COMMA eHTMLTag_thead COMMA eHTMLTag_table COMMA eHTMLTag_applet})
+#ifdef MOZ_MEDIA
+DECL_TAG_LIST(gSourceParents,{eHTMLTag_video COMMA eHTMLTag_audio})
+#endif
 
 
 
@@ -121,7 +124,10 @@ DECL_TAG_LIST(gTableElemKids,{eHTMLTag_form COMMA eHTMLTag_noscript COMMA eHTMLT
 DECL_TAG_LIST(gTRKids,{eHTMLTag_td COMMA eHTMLTag_th COMMA eHTMLTag_form COMMA eHTMLTag_script})
 DECL_TAG_LIST(gTBodyKids,{eHTMLTag_tr COMMA eHTMLTag_form}) 
 DECL_TAG_LIST(gULKids,{eHTMLTag_li COMMA eHTMLTag_p})
-
+#ifdef MOZ_MEDIA
+DECL_TAG_LIST(gVideoKids,{eHTMLTag_source})
+DECL_TAG_LIST(gAudioKids,{eHTMLTag_source})
+#endif
 
 
 
@@ -160,7 +166,6 @@ DECL_TAG_LIST(gTDCloseTags,{eHTMLTag_td COMMA eHTMLTag_th})
 DECL_TAG_LIST(gDTCloseTags,{eHTMLTag_p COMMA eHTMLTag_dd COMMA eHTMLTag_dt})
 DECL_TAG_LIST(gULCloseTags,{eHTMLTag_li})
 DECL_TAG_LIST(gULAutoClose,{eHTMLTag_p COMMA eHTMLTag_ul}) 
-
 
 DECL_TAG_LIST(gExcludableParents,{eHTMLTag_pre}) 
 DECL_TAG_LIST(gCaptionExcludableParents,{eHTMLTag_td}) 
@@ -254,6 +259,18 @@ const nsHTMLElement gHTMLElements[] = {
            &gAreaParent,0,eHTMLTag_unknown,
                         0
   },
+#if defined(MOZ_MEDIA)
+  {
+                                 eHTMLTag_audio,
+              eHTMLTag_unknown,eHTMLTag_unknown,
+              &gRootTags,&gRootTags,
+     0, 0, 0,0,
+              kSpecial, (kFlowEntity|kSelf), kNone,
+           0,kDefaultPropRange,
+           0,&gAudioKids,eHTMLTag_unknown,
+                        0
+  },
+#endif
   {
                                  eHTMLTag_b,
               eHTMLTag_unknown,eHTMLTag_unknown,
@@ -1035,6 +1052,18 @@ const nsHTMLElement gHTMLElements[] = {
            0,0,eHTMLTag_unknown,
                         0
   },
+#if defined(MOZ_MEDIA)
+  {
+                                 eHTMLTag_source,
+              eHTMLTag_video,eHTMLTag_unknown,
+              &gSourceParents,&gSourceParents,
+     &gPAutoClose, 0, 0,0,
+              kNone, kNone, kNone,
+           kNonContainer,kNoPropRange,
+           &gSourceParents,0,eHTMLTag_unknown,
+                        0
+  },
+#endif
   {
     
                                  eHTMLTag_spacer,
@@ -1244,6 +1273,18 @@ const nsHTMLElement gHTMLElements[] = {
            0,0,eHTMLTag_unknown,
                         0
   },
+#if defined(MOZ_MEDIA)
+  {
+                                 eHTMLTag_video,
+              eHTMLTag_unknown,eHTMLTag_unknown,
+              &gRootTags,&gRootTags,
+     0, 0, 0,0,
+              kSpecial, (kFlowEntity|kSelf), kNone,
+           0,kDefaultPropRange,
+           0,&gVideoKids,eHTMLTag_unknown,
+                        0
+  },
+#endif
   {
                                  eHTMLTag_wbr,
               eHTMLTag_unknown,eHTMLTag_unknown,
