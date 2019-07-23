@@ -4258,16 +4258,6 @@ nsCSSFrameConstructor::FinishBuildingScrollFrame(nsIFrame* aScrollFrame,
 {
   nsFrameList scrolled(aScrolledFrame, aScrolledFrame);
   aScrollFrame->AppendFrames(nsnull, scrolled);
-
-  
-  
-  
-  nsHTMLContainerFrame::CreateViewForFrame(aScrolledFrame, PR_TRUE);
-
-  
-  nsIView* view = aScrolledFrame->GetView();
-  if (!view)
-    return;
 }
 
 

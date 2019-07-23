@@ -1590,13 +1590,6 @@ public:
 
 
 
-  virtual nsIView* GetParentViewForChildFrame(nsIFrame* aFrame) const;
-
-  
-
-
-
-
   nsIView* GetClosestView(nsPoint* aOffset = nsnull) const;
 
   

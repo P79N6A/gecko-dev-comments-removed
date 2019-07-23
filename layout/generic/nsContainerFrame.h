@@ -150,9 +150,6 @@ public:
                                       PRUint32         aFlags = 0);
 
   
-  static PRBool FrameNeedsView(nsIFrame* aFrame);
-  
-  
   void DoInlineIntrinsicWidth(nsIRenderingContext *aRenderingContext,
                               InlineIntrinsicWidthData *aData,
                               nsLayoutUtils::IntrinsicWidthType aType);

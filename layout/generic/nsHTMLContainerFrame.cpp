@@ -58,7 +58,6 @@
 #include "nsIView.h"
 #include "nsIViewManager.h"
 #include "nsIDOMEvent.h"
-#include "nsIScrollableView.h"
 #include "nsWidgetsCID.h"
 #include "nsCOMPtr.h"
 #include "nsIDeviceContext.h"
@@ -756,12 +755,12 @@ nsHTMLContainerFrame::CreateViewForFrame(nsIFrame* aFrame,
   }
 
   
-  if (!(aForce || FrameNeedsView(aFrame))) {
+  if (!aForce && !aFrame->NeedsView()) {
     
     return NS_OK;
   }
 
-  nsIView* parentView = aFrame->GetParent()->GetParentViewForChildFrame(aFrame);
+  nsIView* parentView = aFrame->GetParent()->GetClosestView();
   NS_ASSERTION(parentView, "no parent with view");
 
   nsIViewManager* viewManager = parentView->GetViewManager();
@@ -774,18 +773,11 @@ nsHTMLContainerFrame::CreateViewForFrame(nsIFrame* aFrame,
 
   SyncFrameViewProperties(aFrame->PresContext(), aFrame, nsnull, view);
 
+  nsIView* insertBefore = nsLayoutUtils::FindSiblingViewFor(parentView, aFrame);
   
   
-  nsIScrollableView*  scrollingView = parentView->ToScrollableView();
-  if (scrollingView) {
-    scrollingView->SetScrolledView(view);
-  } else {
-    nsIView* insertBefore = nsLayoutUtils::FindSiblingViewFor(parentView, aFrame);
-    
-    
-    
-    viewManager->InsertChild(parentView, view, insertBefore, insertBefore != nsnull);
-  }
+  
+  viewManager->InsertChild(parentView, view, insertBefore, insertBefore != nsnull);
 
   
   

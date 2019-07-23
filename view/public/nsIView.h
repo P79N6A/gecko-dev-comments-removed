@@ -47,7 +47,6 @@
 #include "nsWidgetInitData.h"
 
 class nsIViewManager;
-class nsIScrollableView;
 class nsViewManager;
 class nsView;
 class nsWeakView;
@@ -86,11 +85,6 @@ enum nsViewVisibility {
 
 #define NS_VIEW_FLAG_TOPMOST              0x0010
 
-
-
-
-#define NS_VIEW_FLAG_INVALIDATE_ON_SCROLL  0x0020
-
 struct nsViewZIndex {
   PRBool mIsAuto;
   PRInt32 mZIndex;
@@ -119,12 +113,6 @@ class nsIView
 {
 public:
   NS_DECLARE_STATIC_IID_ACCESSOR(NS_IVIEW_IID)
-
-  
-
-
-
-  virtual nsIScrollableView* ToScrollableView() { return nsnull; }
 
   
 
@@ -327,22 +315,6 @@ public:
 
 
   void DetachWidgetEventHandler(nsIWidget* aWidget);
-
-  
-
-
-
-  void SetInvalidateFrameOnScroll()
-  {
-    mVFlags |= NS_VIEW_FLAG_INVALIDATE_ON_SCROLL;
-  }
-
-  
-
-
-
-
-  PRBool NeedsInvalidateFrameOnScroll() const;
 
 #ifdef DEBUG
   

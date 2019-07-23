@@ -3424,12 +3424,6 @@ nsIFrame* nsIFrame::GetTailContinuation()
   return frame;
 }
 
-nsIView*
-nsIFrame::GetParentViewForChildFrame(nsIFrame* aFrame) const
-{
-  return GetClosestView();
-}
-
 
 nsIView*
 nsIFrame::GetView() const
