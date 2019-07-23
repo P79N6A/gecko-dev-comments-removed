@@ -263,12 +263,14 @@ function BookmarkThisTab()
 
 
 function initBookmarksToolbar() {
+  var place = PlacesUtils.getQueryStringForFolder(PlacesUtils.bookmarks.toolbarFolder);
   var bt = document.getElementById("bookmarksBarContent");
-  if (!bt)
-    return;
+  if (bt)
+    bt.place = place;
 
-  bt.place =
-    PlacesUtils.getQueryStringForFolder(PlacesUtils.bookmarks.toolbarFolder);
+  document.getElementById("bookmarksToolbarFolderPopup").place = place;
+  document.getElementById("bookmarksToolbarFolderMenu").label =
+    PlacesUtils.bookmarks.getItemTitle(PlacesUtils.bookmarks.toolbarFolder);
 }
 
 const gSessionHistoryObserver = {
