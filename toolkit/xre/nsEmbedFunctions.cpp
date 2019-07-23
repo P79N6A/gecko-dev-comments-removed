@@ -188,6 +188,7 @@ XRE_InitEmbedding(nsILocalFile *aLibXULDirectory,
   
   
   
+  
 
   nsCOMPtr<nsIObserver> startupNotifier
     (do_CreateInstance(NS_APPSTARTUPNOTIFIER_CONTRACTID));
