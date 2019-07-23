@@ -275,17 +275,8 @@ public:
   
 
 
-  virtual NS_HIDDEN_(already_AddRefed<nsIFontMetrics>)
-   GetMetricsForExternal(const nsFont& aFont);
   NS_HIDDEN_(already_AddRefed<nsIFontMetrics>)
-    GetMetricsForInternal(const nsFont& aFont);
-#ifdef _IMPL_NS_LAYOUT
-  already_AddRefed<nsIFontMetrics> GetMetricsFor(const nsFont& aFont)
-  { return GetMetricsForInternal(aFont); }
-#else
-  already_AddRefed<nsIFontMetrics> GetMetricsFor(const nsFont& aFont)
-  { return GetMetricsForExternal(aFont); }
-#endif
+  GetMetricsFor(const nsFont& aFont);
 
   
 
@@ -304,15 +295,7 @@ public:
 
 
 
-  virtual NS_HIDDEN_(const nsFont*) GetDefaultFontExternal(PRUint8 aFontID) const;
-  NS_HIDDEN_(const nsFont*) GetDefaultFontInternal(PRUint8 aFontID) const;
-#ifdef _IMPL_NS_LAYOUT
-  const nsFont* GetDefaultFont(PRUint8 aFontID) const
-  { return GetDefaultFontInternal(aFontID); }
-#else
-  const nsFont* GetDefaultFont(PRUint8 aFontID) const
-  { return GetDefaultFontExternal(aFontID); }
-#endif
+  NS_HIDDEN_(const nsFont*) GetDefaultFont(PRUint8 aFontID) const;
 
   
   
@@ -539,9 +522,6 @@ public:
   { return NSAppUnitsToFloatPixels(aAppUnits,
                                    nsIDeviceContext::AppUnitsPerCSSPixel()); }
 
-  static gfxFloat AppUnitsToGfxCSSPixels(nscoord aAppUnits)
-  { return nsIDeviceContext::AppUnitsToGfxCSSPixels(aAppUnits); }
-
   nscoord DevPixelsToAppUnits(PRInt32 aPixels) const
   { return NSIntPixelsToAppUnits(aPixels,
                                  mDeviceContext->AppUnitsPerDevPixel()); }
@@ -574,32 +554,12 @@ public:
                     TwipsToAppUnits(marginInTwips.right),
                     TwipsToAppUnits(marginInTwips.bottom)); }
 
-  PRInt32 AppUnitsToTwips(nscoord aTwips) const
-  { return NS_INCHES_TO_TWIPS((float)aTwips /
-                              mDeviceContext->AppUnitsPerInch()); }
-
   nscoord PointsToAppUnits(float aPoints) const
   { return NSToCoordRound(aPoints * mDeviceContext->AppUnitsPerInch() /
                           POINTS_PER_INCH_FLOAT); }
-  float AppUnitsToPoints(nscoord aAppUnits) const
-  { return (float)aAppUnits / mDeviceContext->AppUnitsPerInch() *
-      POINTS_PER_INCH_FLOAT; }
 
   nscoord RoundAppUnitsToNearestDevPixels(nscoord aAppUnits) const
   { return DevPixelsToAppUnits(AppUnitsToDevPixels(aAppUnits)); }
-
-  
-
-
-
-
-
-
-
-  nsLanguageSpecificTransformType LanguageSpecificTransformType() const
-  {
-    return mLanguageSpecificTransformType;
-  }
 
   struct ScrollbarStyles {
     
@@ -854,7 +814,6 @@ protected:
   
   gfxUserFontSet* mUserFontSet;
   
-  nsLanguageSpecificTransformType mLanguageSpecificTransformType;
   PRInt32               mFontScaler;
   nscoord               mMinimumFontSize;
 
