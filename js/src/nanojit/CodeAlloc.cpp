@@ -244,7 +244,7 @@ namespace nanojit
 #if defined NANOJIT_ARM && defined UNDER_CE
     
     
-    void CodeAlloc::flushICache(CodeList*) {
+    void CodeAlloc::flushICache(CodeList* &) {
         FlushInstructionCache(GetCurrentProcess(), NULL, NULL);
     }
 #else
