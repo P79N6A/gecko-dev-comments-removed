@@ -6294,8 +6294,8 @@ NS_IMETHODIMP
 nsWindowSH::OuterObject(nsIXPConnectWrappedNative *wrapper, JSContext * cx,
                         JSObject * obj, JSObject * *_retval)
 {
-  nsGlobalWindow *win =
-    nsGlobalWindow::FromWrapper(wrapper)->GetOuterWindowInternal();
+  nsGlobalWindow *origWin = nsGlobalWindow::FromWrapper(wrapper);
+  nsGlobalWindow *win = origWin->GetOuterWindowInternal();
 
   if (!win) {
     
@@ -6311,22 +6311,37 @@ nsWindowSH::OuterObject(nsIXPConnectWrappedNative *wrapper, JSContext * cx,
 
   
 
+  
+  
   nsresult rv;
   if (win->IsChromeWindow()) {
     
-    *_retval = win->GetGlobalJSObject();
+    JSObject *outerObj = win->GetGlobalJSObject();
+    if (!outerObj) {
+      NS_ASSERTION(origWin->IsOuterWindow(), "What window is this?");
+      *_retval = obj;
+    } else {
+      *_retval = outerObj;
+    }
+
     rv = NS_OK;
   } else {
     JSObject *winObj = win->GetGlobalJSObject();
-    JSObject *scope = JS_GetScopeChain(cx);
-    if (!scope) {
-      *_retval = nsnull;
-      return NS_ERROR_FAILURE;
+    if (!winObj) {
+      NS_ASSERTION(origWin->IsOuterWindow(), "What window is this?");
+      *_retval = obj;
+      rv = NS_OK;
+    } else {
+      JSObject *scope = JS_GetScopeChain(cx);
+      if (!scope) {
+        *_retval = nsnull;
+        return NS_ERROR_FAILURE;
+      }
+      scope = ::JS_GetGlobalForObject(cx, scope);
+      jsval v;
+      rv = sXPConnect->GetXOWForObject(cx, scope, winObj, &v);
+      *_retval = NS_SUCCEEDED(rv) ? JSVAL_TO_OBJECT(v) : nsnull;
     }
-    scope = ::JS_GetGlobalForObject(cx, scope);
-    jsval v;
-    rv = sXPConnect->GetXOWForObject(cx, scope, winObj, &v);
-    *_retval = NS_SUCCEEDED(rv) ? JSVAL_TO_OBJECT(v) : nsnull;
   }
 
   return rv;
@@ -7655,7 +7670,7 @@ nsDocumentSH::PostCreate(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
   nsIDOMDocument* currentDoc = win->GetExtantDocument();
 
   if (SameCOMIdentity(doc, currentDoc)) {
-    jsval winVal, docVal;
+    jsval winVal;
 
     nsCOMPtr<nsIXPConnectJSObjectHolder> holder;
     rv = WrapNative(cx, obj, win, NS_GET_IID(nsIDOMWindow), &winVal,
