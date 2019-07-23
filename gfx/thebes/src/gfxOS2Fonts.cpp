@@ -113,15 +113,18 @@ const gfxFont::Metrics& gfxOS2Font::GetMetrics()
         
         gid = FT_Get_Char_Index(face, ' ');
         
-        FT_Load_Glyph(face, gid, FT_LOAD_NO_SCALE);
         
-        mMetrics->spaceWidth = face->glyph->advance.x * xScale;
+        
+        FT_Load_Glyph(face, gid, FT_LOAD_DEFAULT);
+        
+        mMetrics->spaceWidth = face->glyph->advance.x >> 6;
         
         mSpaceGlyph = gid;
 
         
         gid = FT_Get_Char_Index(face, 'x'); 
         if (gid) {
+            
             FT_Load_Glyph(face, gid, FT_LOAD_NO_SCALE);
             mMetrics->xHeight = face->glyph->metrics.height * yScale;
             mMetrics->aveCharWidth = face->glyph->metrics.width * xScale;
