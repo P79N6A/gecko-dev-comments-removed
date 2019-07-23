@@ -175,8 +175,6 @@ nsWindow::nsWindow()
 {
     mDrawingarea         = nsnull;
     mIsVisible           = PR_FALSE;
-    mRetryPointerGrab    = PR_FALSE;
-    mRetryKeyboardGrab   = PR_FALSE;
     mActivatePending     = PR_FALSE;
     mWindowType          = eWindowType_child;
     mSizeState           = nsSizeMode_Normal;
@@ -690,7 +688,7 @@ nsWindow::Invalidate(PRBool aIsSynchronous)
     if (!mDrawingarea)
         return NS_OK;
 
-    if (aIsSynchronous)
+    if (aIsSynchronous && !mDrawingarea->paintingActive())
         mDrawingarea->repaint();
     else
         mDrawingarea->update();
@@ -734,7 +732,7 @@ nsWindow::InvalidateRegion(const nsIRegion* aRegion,
 
 
 
-        if (aIsSynchronous)
+        if (aIsSynchronous && !mDrawingarea->paintingActive())
             mDrawingarea->repaint(*region);
         else
             mDrawingarea->update(*region);
@@ -923,8 +921,6 @@ nsWindow::WidgetToScreen(const nsRect& aOldRect, nsRect& aNewRect)
     aNewRect.width = aOldRect.width;
     aNewRect.height = aOldRect.height;
 
-    LOG(("WidgetToScreen %d %d -> %d %d\n", aOldRect.x, aOldRect.y, aNewRect.x, aNewRect.y));
-
     return NS_OK;
 }
 
@@ -940,8 +936,6 @@ nsWindow::ScreenToWidget(const nsRect& aOldRect, nsRect& aNewRect)
     aNewRect.y = origin.y();
     aNewRect.width = aOldRect.width;
     aNewRect.height = aOldRect.height;
-
-    LOG(("ScreenToWidget %d %d -> %d %d\n", aOldRect.x, aOldRect.y, aNewRect.x, aNewRect.y));
 
     return NS_OK;
 }
@@ -990,14 +984,10 @@ nsWindow::CaptureMouse(PRBool aCapture)
     if (!mDrawingarea)
         return NS_OK;
 
-
-
-
-
-
-
-
-
+    if (aCapture)
+        mDrawingarea->grabMouse();
+    else
+        mDrawingarea->releaseMouse();
 
     return NS_OK;
 }
@@ -1078,7 +1068,7 @@ nsWindow::OnExposeEvent(QPaintEvent *aEvent)
 
     QVector<QRect>  rects = aEvent->region().rects();
 
-    LOGDRAW(("sending expose event [%p] %p 0x%lx (rects follow):\n",
+    LOGDRAW(("[%p] sending expose event %p 0x%lx (rects follow):\n",
              (void *)this, (void *)aEvent, 0));
 
     for (int i = 0; i < rects.size(); ++i) {
@@ -1088,7 +1078,12 @@ nsWindow::OnExposeEvent(QPaintEvent *aEvent)
     }
 
 #ifndef QT_XLIB_SURFACE
-    QPainter painter(mDrawingarea);
+    QPainter painter;
+
+    if (!painter.begin(mDrawingarea)) {
+        fprintf (stderr, "*********** Failed to begin painting!\n");
+        return nsEventStatus_eConsumeNoDefault;
+    }
 
     nsRefPtr<gfxQPainterSurface> targetSurface = new gfxQPainterSurface(&painter);
     nsRefPtr<gfxContext> ctx = new gfxContext(targetSurface);
@@ -1100,47 +1095,11 @@ nsWindow::OnExposeEvent(QPaintEvent *aEvent)
 
     rc->Init(GetDeviceContext(), ctx);
 
-    PRBool translucent;
-    GetHasTransparentBackground(translucent);
     nsIntRect boundsRect;
 
     updateRegion->GetBoundingBox(&boundsRect.x, &boundsRect.y,
                                  &boundsRect.width, &boundsRect.height);
 
-    
-    ctx->Save();
-    ctx->NewPath();
-    if (translucent) {
-        
-        
-        
-        
-        ctx->Rectangle(gfxRect(boundsRect.x, boundsRect.y,
-                               boundsRect.width, boundsRect.height));
-    } else {
-        for (int i = 0; i < rects.size(); ++i) {
-           QRect r = rects.at(i);
-           ctx->Rectangle(gfxRect(r.x(), r.y(), r.width(), r.height()));
-        }
-    }
-    ctx->Clip();
-
-    
-    if (translucent) {
-        ctx->PushGroup(gfxASurface::CONTENT_COLOR_ALPHA);
-    } else if (gDoubleBuffering) {
-        ctx->PushGroup(gfxASurface::CONTENT_COLOR);
-    }
-
-#if 0
-    
-    
-    
-#ifdef DEBUG
-    if (WANT_PAINT_FLASHING && aEvent->window)
-        gdk_window_flash(aEvent->window, 1, 100, aEvent->region);
-#endif
-#endif
 #else 
     nsCOMPtr<nsIRenderingContext> rc = getter_AddRefs(GetRenderingContext());
     if (NS_UNLIKELY(!rc)) {
@@ -1158,7 +1117,7 @@ nsWindow::OnExposeEvent(QPaintEvent *aEvent)
 
     
     nsRefPtr<gfxContext> ctx = rc->ThebesContext();
-    ctx->Save();
+
     ctx->NewPath();
     if (translucent) {
         
@@ -1223,17 +1182,17 @@ nsWindow::OnExposeEvent(QPaintEvent *aEvent)
     event.renderingContext = rc;
 
     nsEventStatus status = DispatchEvent(&event);
+    
 
     
     
     if (NS_UNLIKELY(mIsDestroyed))
         return status;
 
-    if (status == nsEventStatus_eIgnore) {
-        ctx->Restore();
+    if (status == nsEventStatus_eIgnore)
         return status;
-    }
 
+#ifdef QT_XLIB_SURFACE
     if (translucent) {
         nsRefPtr<gfxPattern> pattern = ctx->PopGroup();
         ctx->SetOperator(gfxContext::OPERATOR_SOURCE);
@@ -1258,18 +1217,17 @@ nsWindow::OnExposeEvent(QPaintEvent *aEvent)
                                                  img->Data(), img->Stride());
         }
     } else if (gDoubleBuffering) {
-#ifndef QT_XLIB_SURFACE
-        ctx->PopGroupToSource();
-        ctx->Paint();
-#else
         if (bufferPixmapSurface) {
             ctx->SetSource(bufferPixmapSurface);
             ctx->Paint();
         }
-#endif
     }
+#endif
 
-    ctx->Restore();
+    LOGDRAW(("[%p] draw done\n", this));
+
+    ctx = nsnull;
+    targetSurface = nsnull;
 
     
     return status;
@@ -1408,7 +1366,11 @@ nsWindow::OnMotionNotifyEvent(QMouseEvent *aEvent)
     event.isMeta          = aEvent->modifiers() & Qt::MetaModifier;
     event.clickCount      = 0;
 
-    return DispatchEvent(&event);
+    nsEventStatus status = DispatchEvent(&event);
+
+    
+
+    return status;
 }
 
 void
@@ -1445,6 +1407,8 @@ nsWindow::OnButtonPressEvent(QMouseEvent *aEvent)
     event.button = domButton;
     InitButtonEvent(event, aEvent, 1);
 
+    LOG(("%s [%p] button: %d\n", __PRETTY_FUNCTION__, (void*)this, domButton));
+
     nsEventStatus status = DispatchEvent(&event);
 
     
@@ -1455,6 +1419,8 @@ nsWindow::OnButtonPressEvent(QMouseEvent *aEvent)
         InitButtonEvent(contextMenuEvent, aEvent, 1);
         DispatchEvent(&contextMenuEvent, status);
     }
+
+    
 
     return status;
 }
@@ -1477,11 +1443,17 @@ nsWindow::OnButtonReleaseEvent(QMouseEvent *aEvent)
         break;
     }
 
+    LOG(("%s [%p] button: %d\n", __PRETTY_FUNCTION__, (void*)this, domButton));
+
     nsMouseEvent event(PR_TRUE, NS_MOUSE_BUTTON_UP, this, nsMouseEvent::eReal);
     event.button = domButton;
     InitButtonEvent(event, aEvent, 1);
 
-    return DispatchEvent(&event);
+    nsEventStatus status = DispatchEvent(&event);
+
+    
+
+    return status;
 }
 
 nsEventStatus
@@ -1959,10 +1931,8 @@ nsWindow::NativeResize(PRInt32 aWidth, PRInt32 aHeight, PRBool  aRepaint)
 
     mDrawingarea->resize( aWidth, aHeight);
 
-    if (aRepaint) {
-        if (mDrawingarea->isVisible())
-            mDrawingarea->repaint();
-    }
+    if (aRepaint)
+        mDrawingarea->update();
 }
 
 void
@@ -2001,10 +1971,8 @@ nsWindow::NativeResize(PRInt32 aX, PRInt32 aY,
 
     mDrawingarea->setGeometry(pos.x(), pos.y(), aWidth, aHeight);
 
-    if (aRepaint) {
-        if (mDrawingarea->isVisible())
-            mDrawingarea->repaint();
-    }
+    if (aRepaint)
+        mDrawingarea->update();
 }
 
 void
@@ -2033,15 +2001,6 @@ nsWindow::NativeShow (PRBool  aAction)
         return;
     }
     mDrawingarea->setShown(aAction);
-}
-
-void
-nsWindow::EnsureGrabs(void)
-{
-    if (mRetryPointerGrab)
-        GrabPointer();
-    if (mRetryKeyboardGrab)
-        GrabKeyboard();
 }
 
 NS_IMETHODIMP
@@ -2244,66 +2203,6 @@ nsWindow::UpdateTranslucentWindowAlphaInternal(const nsRect& aRect,
         ApplyTransparencyBitmap();
     }
     return NS_OK;
-}
-
-void
-nsWindow::GrabPointer(void)
-{
-    LOG(("GrabPointer %d\n", mRetryPointerGrab));
-
-    mRetryPointerGrab = PR_FALSE;
-
-    
-    
-    
-    PRBool visibility = PR_TRUE;
-    IsVisible(visibility);
-    if (!visibility) {
-        LOG(("GrabPointer: window not visible\n"));
-        mRetryPointerGrab = PR_TRUE;
-        return;
-    }
-
-    if (!mDrawingarea)
-        return;
-
-    mDrawingarea->grabMouse();
-}
-
-void
-nsWindow::GrabKeyboard(void)
-{
-    LOG(("GrabKeyboard %d\n", mRetryKeyboardGrab));
-
-    mRetryKeyboardGrab = PR_FALSE;
-
-    
-    
-    
-    PRBool visibility = PR_TRUE;
-    IsVisible(visibility);
-    if (!visibility) {
-        LOG(("GrabKeyboard: window not visible\n"));
-        mRetryKeyboardGrab = PR_TRUE;
-        return;
-    }
-
-    if (!mDrawingarea)
-        return;
-
-    mDrawingarea->grabKeyboard();
-}
-
-void
-nsWindow::ReleaseGrabs(void)
-{
-    LOG(("ReleaseGrabs\n"));
-
-    mRetryPointerGrab = PR_FALSE;
-    mRetryKeyboardGrab = PR_FALSE;
-
-
-
 }
 
 void
@@ -2734,12 +2633,11 @@ nsWindow::createQWidget(QWidget *parent, nsWidgetInitData *aInitData)
  
     mMozQWidget->setAttribute(Qt::WA_StaticContents);
     mMozQWidget->setAttribute(Qt::WA_OpaquePaintEvent); 
-  
-    
-    
     mMozQWidget->setAttribute(Qt::WA_NoSystemBackground);
-    mMozQWidget->setAttribute(Qt::WA_PaintOnScreen);
   
+    if (!gDoubleBuffering)
+        mMozQWidget->setAttribute(Qt::WA_PaintOnScreen);
+
     return mDrawingarea;
 }
 
