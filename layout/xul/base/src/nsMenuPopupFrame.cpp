@@ -824,8 +824,9 @@ nsMenuPopupFrame::FlipOrResize(nscoord& aScreenPoint, nscoord aSize,
         aScreenPoint = aAnchorEnd + aMarginEnd;
         
         
-        if (aScreenPoint + aSize > aScreenEnd)
+        if (aScreenPoint + aSize > aScreenEnd) {
           popupSize = aScreenEnd - aScreenPoint;
+        }
       }
     }
     else {
@@ -839,7 +840,12 @@ nsMenuPopupFrame::FlipOrResize(nscoord& aScreenPoint, nscoord aSize,
       
       
       if (aScreenEnd - aAnchorEnd >= aAnchorBegin - aScreenBegin) {
-        popupSize = aScreenEnd - aScreenPoint;
+        if (mIsContextMenu) {
+          aScreenPoint = aScreenEnd - aSize;
+        }
+        else {
+          popupSize = aScreenEnd - aScreenPoint;
+        }
       }
       else {
         
@@ -849,7 +855,9 @@ nsMenuPopupFrame::FlipOrResize(nscoord& aScreenPoint, nscoord aSize,
         
         if (aScreenPoint < aScreenBegin) {
           aScreenPoint = aScreenBegin;
-          popupSize = aAnchorBegin - aScreenPoint - aMarginBegin - aOffsetForContextMenu;
+          if (!mIsContextMenu) {
+            popupSize = aAnchorBegin - aScreenPoint - aMarginBegin;
+          }
         }
       }
     }
@@ -993,7 +1001,7 @@ nsMenuPopupFrame::SetPopupPosition(nsIFrame* aAnchorFrame)
                       nsPresContext::CSSPixelsToAppUnits(mScreenXPos) / factor);
     screenPoint.y = presContext->DevPixelsToAppUnits(
                       nsPresContext::CSSPixelsToAppUnits(mScreenYPos) / factor);
-    anchorRect = nsRect(screenPoint, nsSize());
+    anchorRect = nsRect(screenPoint, nsSize(0, 0));
 
     
     screenPoint.MoveBy(margin.left + offsetForContextMenu,
