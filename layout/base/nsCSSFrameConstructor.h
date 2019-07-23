@@ -271,10 +271,6 @@ public:
   nsIFrame* GetRootElementStyleFrame() { return mRootElementStyleFrame; }
   nsIFrame* GetPageSequenceFrame() { return mPageSequenceFrame; }
 
-  
-  nsIFrame* GetDocElementContainingBlock()
-    { return mDocElementContainingBlock; }
-
 private:
 
   nsresult ReconstructDocElementHierarchyInternal();
