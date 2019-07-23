@@ -705,7 +705,9 @@ PluginInstanceParent::NPP_HandleEvent(void* event)
         
         
         XSync(GetXDisplay(), False);
-        break;
+
+        return CallPaint(npremoteevent, &handled) ? handled : 0;
+
     case ButtonPress:
         
         
@@ -720,8 +722,6 @@ PluginInstanceParent::NPP_HandleEvent(void* event)
         
         XSync(dpy, False);
         break;
-
-        return CallPaint(npremoteevent, &handled) ? handled : 0;
     }
 #endif
 
