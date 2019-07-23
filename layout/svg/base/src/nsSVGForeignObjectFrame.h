@@ -131,7 +131,7 @@ public:
   virtual PRBool GetMatrixPropagation();
   virtual gfxRect GetBBoxContribution(const gfxMatrix &aToBBoxUserspace);
   NS_IMETHOD_(PRBool) IsDisplayContainer() { return PR_TRUE; }
-  NS_IMETHOD_(PRBool) HasValidCoveredRect() { return PR_FALSE; }
+  NS_IMETHOD_(PRBool) HasValidCoveredRect() { return PR_TRUE; }
 
   
   
@@ -160,10 +160,12 @@ protected:
   PRBool IsDisabled() const { return mRect.width <= 0 || mRect.height <= 0; }
 
   nsCOMPtr<nsIDOMSVGMatrix> mCanvasTM;
+
   
   nsRegion mSameDocDirtyRegion;
+
   
-  nsRegion mCrossDocDirtyRegion;
+  nsRegion mSubDocDirtyRegion;
 
   PRPackedBool mInReflow;
 };

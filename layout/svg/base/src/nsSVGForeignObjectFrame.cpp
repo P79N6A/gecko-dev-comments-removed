@@ -173,7 +173,7 @@ nsSVGForeignObjectFrame::InvalidateInternal(const nsRect& aDamageRect,
     return;
 
   nsRegion* region = (aFlags & INVALIDATE_CROSS_DOC)
-    ? &mCrossDocDirtyRegion : &mSameDocDirtyRegion;
+    ? &mSubDocDirtyRegion : &mSameDocDirtyRegion;
   region->Or(*region, aDamageRect + nsPoint(aX, aY));
   FlushDirtyRegion();
 }
@@ -364,8 +364,6 @@ nsSVGForeignObjectFrame::UpdateCoveredRegion()
   if (w < 0.0f) w = 0.0f;
   if (h < 0.0f) h = 0.0f;
 
-  
-  
   mRect = GetTransformedRegion(x, y, w, h, ctm, PresContext());
 
   return NS_OK;
@@ -451,9 +449,9 @@ nsSVGForeignObjectFrame::NotifyRedrawUnsuspended()
 {
   if (!(GetStateBits() & NS_STATE_SVG_NONDISPLAY_CHILD)) {
     if (GetStateBits() & NS_STATE_SVG_DIRTY) {
-      UpdateGraphic();
+      UpdateGraphic(); 
     } else {
-      FlushDirtyRegion();
+      FlushDirtyRegion(); 
     }
   }
   return NS_OK;
@@ -566,8 +564,9 @@ void nsSVGForeignObjectFrame::UpdateGraphic()
   nsSVGUtils::UpdateGraphic(this);
 
   
+  
   mSameDocDirtyRegion.SetEmpty();
-  mCrossDocDirtyRegion.SetEmpty();
+  mSubDocDirtyRegion.SetEmpty();
 }
 
 void
@@ -686,6 +685,12 @@ nsSVGForeignObjectFrame::InvalidateDirtyRect(nsSVGOuterSVGFrame* aOuter,
 
   
   
+  rect.IntersectRect(rect, mRect);
+  if (rect.IsEmpty())
+    return;
+
+  
+  
   rect.UnionRect(rect, mRect);
 
   rect = nsSVGUtils::FindFilterInvalidation(this, rect);
@@ -695,7 +700,7 @@ nsSVGForeignObjectFrame::InvalidateDirtyRect(nsSVGOuterSVGFrame* aOuter,
 void
 nsSVGForeignObjectFrame::FlushDirtyRegion()
 {
-  if ((mSameDocDirtyRegion.IsEmpty() && mCrossDocDirtyRegion.IsEmpty()) ||
+  if ((mSameDocDirtyRegion.IsEmpty() && mSubDocDirtyRegion.IsEmpty()) ||
       mInReflow)
     return;
 
@@ -709,8 +714,8 @@ nsSVGForeignObjectFrame::FlushDirtyRegion()
     return;
 
   InvalidateDirtyRect(outerSVGFrame, mSameDocDirtyRegion.GetBounds(), 0);
-  InvalidateDirtyRect(outerSVGFrame, mCrossDocDirtyRegion.GetBounds(), INVALIDATE_CROSS_DOC);
+  InvalidateDirtyRect(outerSVGFrame, mSubDocDirtyRegion.GetBounds(), INVALIDATE_CROSS_DOC);
 
   mSameDocDirtyRegion.SetEmpty();
-  mCrossDocDirtyRegion.SetEmpty();
+  mSubDocDirtyRegion.SetEmpty();
 }

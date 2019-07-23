@@ -87,8 +87,6 @@ nsSVGPathGeometryFrame::DidSetStyleContext(nsStyleContext* aOldStyleContext)
 {
   nsSVGPathGeometryFrameBase::DidSetStyleContext(aOldStyleContext);
 
-  nsSVGUtils::InvalidateCoveredRegion(this);
-
   
   
   
@@ -198,6 +196,10 @@ nsSVGPathGeometryFrame::GetFrameForPoint(const nsPoint &aPoint)
 NS_IMETHODIMP_(nsRect)
 nsSVGPathGeometryFrame::GetCoveredRegion()
 {
+  
+  
+  
+
   if (static_cast<nsSVGPathGeometryElement*>(mContent)->IsMarkable()) {
     MarkerProperties properties = GetMarkerProperties(this);
 

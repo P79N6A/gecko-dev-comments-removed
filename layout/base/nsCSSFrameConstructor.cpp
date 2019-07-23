@@ -7255,6 +7255,16 @@ DoApplyRenderingChangeToTree(nsIFrame* aFrame,
           nsSVGOuterSVGFrame *outerSVGFrame = nsSVGUtils::GetOuterSVGFrame(aFrame);
           if (outerSVGFrame) {
             
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
             outerSVGFrame->UpdateAndInvalidateCoveredRegion(aFrame);
           }
         }
