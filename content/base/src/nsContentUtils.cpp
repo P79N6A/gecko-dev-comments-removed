@@ -4033,6 +4033,21 @@ HasASCIIDigit(const nsTArray<nsShortcutCandidate>& aCandidates)
   return PR_FALSE;
 }
 
+static PRBool
+CharsCaseInsensitiveEqual(PRUint32 aChar1, PRUint32 aChar2)
+{
+  return aChar1 == aChar2 ||
+         (IS_IN_BMP(aChar1) && IS_IN_BMP(aChar2) &&
+          ToLowerCase(PRUnichar(aChar1)) == ToLowerCase(PRUnichar(aChar2)));
+}
+
+static PRBool
+IsCaseChangeableChar(PRUint32 aChar)
+{
+  return IS_IN_BMP(aChar) &&
+         ToLowerCase(PRUnichar(aChar)) != ToUpperCase(PRUnichar(aChar));
+}
+
 
 void
 nsContentUtils::GetAccelKeyCandidates(nsIDOMEvent* aDOMEvent,
@@ -4104,13 +4119,18 @@ nsContentUtils::GetAccelKeyCandidates(nsIDOMEvent* aDOMEvent,
 
         
         
+
         
         
         PRUint32 unshiftCh =
           nativeKeyEvent->alternativeCharCodes[i].mUnshiftedCharCode;
-        if (ch == unshiftCh ||
-            (IS_IN_BMP(ch) && IS_IN_BMP(unshiftCh) &&
-             ToLowerCase(PRUnichar(ch)) == ToLowerCase(PRUnichar(unshiftCh))))
+        if (CharsCaseInsensitiveEqual(ch, unshiftCh))
+          continue;
+
+        
+        
+        
+        if (IsCaseChangeableChar(ch))
           continue;
 
         
