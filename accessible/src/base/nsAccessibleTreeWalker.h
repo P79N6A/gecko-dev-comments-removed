@@ -60,6 +60,7 @@ struct WalkState {
   nsCOMPtr<nsIDOMNodeList> siblingList;
   nsIContent *parentContent; 
   WalkState *prevState;
+  
   nsWeakFrame frame;       
   PRInt32 siblingIndex;    
   PRBool isHidden;         

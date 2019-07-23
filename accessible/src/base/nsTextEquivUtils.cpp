@@ -149,7 +149,7 @@ nsTextEquivUtils::AppendTextEquivFromContent(nsIAccessible *aInitiatorAcc,
   
   
   
-  nsIFrame *frame = shell->GetPrimaryFrameFor(aContent);
+  nsIFrame *frame = aContent->GetPrimaryFrame();
   PRBool isVisible = frame && frame->GetStyleVisibility()->IsVisible();
 
   nsresult rv;
@@ -181,12 +181,10 @@ nsTextEquivUtils::AppendTextEquivFromTextContent(nsIContent *aContent,
     nsCOMPtr<nsIDOMNode> DOMNode(do_QueryInterface(aContent));
     
     PRBool isHTMLBlock = PR_FALSE;
-    nsCOMPtr<nsIPresShell> shell = nsCoreUtils::GetPresShellFor(DOMNode);
-    NS_ENSURE_STATE(shell);
     
     nsIContent *parentContent = aContent->GetParent();
     if (parentContent) {
-      nsIFrame *frame = shell->GetPrimaryFrameFor(parentContent);
+      nsIFrame *frame = parentContent->GetPrimaryFrame();
       if (frame) {
         
         
@@ -203,7 +201,7 @@ nsTextEquivUtils::AppendTextEquivFromTextContent(nsIContent *aContent,
     }
     
     if (aContent->TextLength() > 0) {
-      nsIFrame *frame = shell->GetPrimaryFrameFor(aContent);
+      nsIFrame *frame = aContent->GetPrimaryFrame();
       if (frame) {
         nsresult rv = frame->GetRenderedText(aString);
         NS_ENSURE_SUCCESS(rv, rv);
