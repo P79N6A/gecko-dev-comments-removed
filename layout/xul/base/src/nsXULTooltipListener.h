@@ -60,9 +60,6 @@ class nsXULTooltipListener : public nsIDOMMouseListener,
 {
 public:
 
-  nsXULTooltipListener();
-  virtual ~nsXULTooltipListener();
-
   
   NS_DECL_ISUPPORTS
 
@@ -96,11 +93,19 @@ public:
   
   NS_IMETHOD HandleEvent(nsIDOMEvent* aEvent);
 
-  nsresult Init(nsIContent* aSourceNode);
   nsresult AddTooltipSupport(nsIContent* aNode);
   nsresult RemoveTooltipSupport(nsIContent* aNode);
+  static nsXULTooltipListener* GetInstance() {
+    if (!mInstance)
+      NS_IF_ADDREF(mInstance = new nsXULTooltipListener());
+    return mInstance;
+  }
+  static void ReleaseInstance() { NS_IF_RELEASE(mInstance); }
 
 protected:
+
+  nsXULTooltipListener();
+  ~nsXULTooltipListener();
 
   
   static int sTooltipPrefChanged (const char* aPref, void* aData);
@@ -125,10 +130,11 @@ protected:
   
   nsresult GetTooltipFor(nsIContent* aTarget, nsIContent** aTooltip);
 
+  static nsXULTooltipListener* mInstance;
   static int ToolbarTipsPrefChanged(const char *aPref, void *aClosure);
 
-  nsIContent* mSourceNode;
-  nsCOMPtr<nsIContent> mTargetNode;
+  nsCOMPtr<nsIContent> mSourceNode;
+  nsCOMPtr<nsIDOMNode> mTargetNode;
   nsCOMPtr<nsIContent> mCurrentTooltip;
 
   
