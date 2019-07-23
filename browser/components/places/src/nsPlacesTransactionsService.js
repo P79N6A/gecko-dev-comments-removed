@@ -579,10 +579,25 @@ placesEditBookmarkURITransactions.prototype = {
   doTransaction: function PEBUT_doTransaction() {
     this._oldURI = PlacesUtils.bookmarks.getBookmarkURI(this._id);
     PlacesUtils.bookmarks.changeBookmarkURI(this._id, this._newURI);
+    
+    this._tags = PlacesUtils.tagging.getTagsForURI(this._oldURI, {});
+    if (this._tags.length != 0) {
+      
+      if (PlacesUtils.getBookmarksForURI(this._oldURI, {}).length == 0)
+        PlacesUtils.tagging.untagURI(this._oldURI, this._tags);
+      PlacesUtils.tagging.tagURI(this._newURI, this._tags);
+    }
   },
 
   undoTransaction: function PEBUT_undoTransaction() {
     PlacesUtils.bookmarks.changeBookmarkURI(this._id, this._oldURI);
+    
+    if (this._tags.length != 0) {
+      
+      if (PlacesUtils.getBookmarksForURI(this._newURI, {}).length == 0)
+        PlacesUtils.tagging.untagURI(this._newURI, this._tags);
+      PlacesUtils.tagging.tagURI(this._oldURI, this._tags);
+    }
   }
 };
 
