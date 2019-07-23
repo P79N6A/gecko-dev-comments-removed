@@ -277,7 +277,7 @@ _win32_scaled_font_create (LOGFONTW                   *logfont,
 
 
 
-    if (options == NULL || options->antialias == CAIRO_ANTIALIAS_DEFAULT)
+    if (options->antialias == CAIRO_ANTIALIAS_DEFAULT)
 	f->quality = _get_system_quality ();
     else {
 	switch (options->antialias) {
@@ -304,7 +304,7 @@ _win32_scaled_font_create (LOGFONTW                   *logfont,
 
     if (f->quality == logfont->lfQuality ||
         (logfont->lfQuality == DEFAULT_QUALITY &&
-         (options == NULL || options->antialias == CAIRO_ANTIALIAS_DEFAULT))) {
+         options->antialias == CAIRO_ANTIALIAS_DEFAULT)) {
         
 
 

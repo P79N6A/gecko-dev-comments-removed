@@ -115,6 +115,14 @@ _cairo_win32_tmpfile (void);
 
 
 
+
+
+#define CAIRO_STATUS_LAST_STATUS CAIRO_STATUS_INVALID_STRIDE
+
+
+
+
+
 #ifndef CAIRO_STACK_BUFFER_SIZE
 #define CAIRO_STACK_BUFFER_SIZE (512 * sizeof (int))
 #endif
@@ -1234,8 +1242,13 @@ cairo_private cairo_status_t
 _cairo_scaled_font_set_error (cairo_scaled_font_t *scaled_font,
 			      cairo_status_t status);
 
+cairo_private cairo_scaled_font_t *
+_cairo_scaled_font_create_in_error (cairo_status_t status);
+
+cairo_private void
+_cairo_scaled_font_reset_static_data (void);
+
 extern const cairo_private cairo_font_face_t _cairo_font_face_nil;
-extern const cairo_private cairo_scaled_font_t _cairo_scaled_font_nil;
 
 cairo_private void
 _cairo_font_face_init (cairo_font_face_t               *font_face,
