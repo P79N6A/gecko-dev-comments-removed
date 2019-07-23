@@ -1010,7 +1010,12 @@ nsresult nsGIFDecoder2::GifWrite(const PRUint8 *buf, PRUint32 len)
       PRUint32 depth = mGIFStruct.global_colormap_depth;
       if (q[8] & 0x80)
         depth = (q[8]&0x07) + 1;
-      BeginImageFrame(depth);
+      
+      PRUint32 realDepth = depth;
+      while (mGIFStruct.tpixel >= (1 << realDepth) && (realDepth < 8)) {
+        realDepth++;
+      } 
+      BeginImageFrame(realDepth);
       
       
       if (!mImageFrame) {
@@ -1058,6 +1063,10 @@ nsresult nsGIFDecoder2::GifWrite(const PRUint8 *buf, PRUint32 len)
           mColormap = mGIFStruct.local_colormap;
         }
         const PRUint32 size = 3 << depth;
+        
+        if (realDepth > depth) {
+          memset(mColormap + size, 0, (3<<realDepth) - size);
+        }
         if (len < size) {
           
           GETN(size, gif_image_colormap);
