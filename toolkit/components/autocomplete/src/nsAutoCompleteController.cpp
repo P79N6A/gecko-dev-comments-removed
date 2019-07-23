@@ -1344,6 +1344,17 @@ nsAutoCompleteController::CompleteDefaultIndex(PRInt32 aSearchIndex)
   if (mDefaultIndexCompleted || mEnterAfterSearch || mBackspaced || mRowCount == 0 || mSearchString.Length() == 0)
     return NS_OK;
 
+  PRInt32 selectionStart;
+  mInput->GetSelectionStart(&selectionStart);
+  PRInt32 selectionEnd;
+  mInput->GetSelectionEnd(&selectionEnd);
+
+  
+  
+  if (selectionEnd != selectionStart ||
+      selectionEnd != (PRInt32)mSearchString.Length())
+    return NS_OK;
+
   PRBool shouldComplete;
   mInput->GetCompleteDefaultIndex(&shouldComplete);
   if (!shouldComplete)
