@@ -651,17 +651,22 @@ nsCSSSelector::AppendToStringWithoutCombinatorsOrNegations
     while (list != nsnull) {
       aString.Append(PRUnichar('['));
       
-      if (list->mNameSpace > 0) {
+      if (list->mNameSpace == kNameSpaceID_Unknown) {
+        aString.Append(PRUnichar('*'));
+        aString.Append(PRUnichar('|'));
+      } else if (list->mNameSpace != kNameSpaceID_None) {
         if (aSheet) {
           nsXMLNameSpaceMap *sheetNS = aSheet->GetNameSpaceMap();
-          
           nsIAtom *prefixAtom = sheetNS->FindPrefix(list->mNameSpace);
-          if (prefixAtom) { 
-            nsAutoString prefix;
-            prefixAtom->ToString(prefix);
-            aString.Append(prefix);
-            aString.Append(PRUnichar('|'));
-          }
+          
+          
+          NS_ASSERTION(prefixAtom,
+                       "How did we end up with a namespace if the prefix "
+                       "is unknown?");
+          nsAutoString prefix;
+          prefixAtom->ToString(prefix);
+          aString.Append(prefix);
+          aString.Append(PRUnichar('|'));
         }
       }
       
