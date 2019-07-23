@@ -535,7 +535,13 @@ namespace nanojit
     }
 	
 	bool LIns::isQuad() const {
-		return ((u.code & LIR64) != 0 || u.code == LIR_callh);
+		#ifdef AVMPLUS_64BIT
+			
+			return (u.code & LIR64) != 0 || u.code == LIR_callh;
+		#else
+			
+			return (u.code & LIR64) != 0;
+		#endif
 	}
     
 	bool LIns::isconstval(int32_t val) const
