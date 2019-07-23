@@ -1456,23 +1456,7 @@ nsNavBookmarks::MoveItem(PRInt64 aItemId, PRInt64 aNewParent, PRInt32 aIndex)
   }
 
   
-  nsCAutoString buffer;
-  buffer.AssignLiteral("UPDATE moz_bookmarks SET ");
-  if (aNewParent != oldParent) {
-    buffer.AppendLiteral(" parent = ");
-    buffer.AppendInt(aNewParent);
-  }
-  if (newIndex != oldIndex) {
-    if (aNewParent != oldParent)
-      buffer.AppendLiteral(", ");
-    buffer.AppendLiteral(" position = ");
-    buffer.AppendInt(newIndex);
-  }
-  buffer.AppendLiteral(" WHERE id = ");
-  buffer.AppendInt(aItemId);
-  rv = dbConn->ExecuteSimpleSQL(buffer);
-  NS_ENSURE_SUCCESS(rv, rv);
-
+  
   
   if (oldParent == aNewParent) {
     
@@ -1491,6 +1475,24 @@ nsNavBookmarks::MoveItem(PRInt64 aItemId, PRInt64 aNewParent, PRInt32 aIndex)
     
     rv = AdjustIndices(aNewParent, newIndex + 1, PR_INT32_MAX, 1);
   }
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  nsCAutoString buffer;
+  buffer.AssignLiteral("UPDATE moz_bookmarks SET ");
+  if (aNewParent != oldParent) {
+    buffer.AppendLiteral(" parent = ");
+    buffer.AppendInt(aNewParent);
+  }
+  if (newIndex != oldIndex) {
+    if (aNewParent != oldParent)
+      buffer.AppendLiteral(", ");
+    buffer.AppendLiteral(" position = ");
+    buffer.AppendInt(newIndex);
+  }
+  buffer.AppendLiteral(" WHERE id = ");
+  buffer.AppendInt(aItemId);
+  rv = dbConn->ExecuteSimpleSQL(buffer);
   NS_ENSURE_SUCCESS(rv, rv);
 
   rv = transaction.Commit();
