@@ -2430,6 +2430,14 @@ function testLogicalNotNaN() {
 testLogicalNotNaN.expected = "true,true,true,true,true";
 test(testLogicalNotNaN);
 
+function testStringToInt32() {
+    var s = "";
+    for (let j = 0; j < 5; ++j) s += ("1e+81" ^  3);
+    return s;
+}
+testStringToInt32.expected = "33333";
+test(testStringToInt32);
+
 
 function testGlobalProtoAccess() {
     return "ok";
