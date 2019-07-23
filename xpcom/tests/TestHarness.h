@@ -53,6 +53,8 @@
 #include <stdlib.h>
 #include <stdarg.h>
 
+static PRBool gFailCount;
+
 
 
 
@@ -69,6 +71,7 @@ void fail(const char* msg, ...)
   va_end(ap);
 
   putchar('\n');
+  ++gFailCount;
 }
 
 
