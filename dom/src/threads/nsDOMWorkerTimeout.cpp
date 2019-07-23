@@ -256,6 +256,7 @@ nsDOMWorkerTimeout::Init(JSContext* aCx, PRUint32 aArgc, jsval* aArgv,
   else {
     
     
+    interval = 0;
     aIsInterval = PR_FALSE;
   }
 
