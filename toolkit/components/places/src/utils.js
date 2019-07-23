@@ -999,8 +999,14 @@ var PlacesUtils = {
 
 
 
+
+
+
+
+
+
   restoreBookmarksFromJSONFile:
-  function PU_restoreBookmarksFromJSONFile(aFile) {
+  function PU_restoreBookmarksFromJSONFile(aFile, aExcludeItems) {
     
     var stream = Cc["@mozilla.org/network/file-input-stream;1"].
                  createInstance(Ci.nsIFileInputStream);
@@ -1020,7 +1026,7 @@ var PlacesUtils = {
     if (jsonStr.length == 0)
       return; 
 
-    this.restoreBookmarksFromJSONString(jsonStr, true);
+    this.restoreBookmarksFromJSONString(jsonStr, true, aExcludeItems);
   },
 
   
@@ -1031,8 +1037,11 @@ var PlacesUtils = {
 
 
 
+
+
+
   restoreBookmarksFromJSONString:
-  function PU_restoreBookmarksFromJSONString(aString, aReplace) {
+  function PU_restoreBookmarksFromJSONString(aString, aReplace, aExcludeItems) {
     
     var nodes = this.unwrapNodes(aString, this.TYPE_X_MOZ_PLACE_CONTAINER);
 
@@ -1050,57 +1059,81 @@ var PlacesUtils = {
       _utils: this,
       nodes: nodes[0].children,
       runBatched: function restore_runBatched() {
+        if (aReplace) {
+          var excludeItems = aExcludeItems || [];
+          
+          
+          
+          var query = this._utils.history.getNewQuery();
+          query.setFolders([this._utils.placesRootId], 1);
+          var options = this._utils.history.getNewQueryOptions();
+          options.expandQueries = false;
+          var root = this._utils.history.executeQuery(query, options).root;
+          root.containerOpen = true;
+          var childIds = [];
+          for (var i = 0; i < root.childCount; i++) {
+            var childId = root.getChild(i).itemId;
+            if (excludeItems.indexOf(childId) == -1)
+              childIds.push(childId);
+          }
+          root.containerOpen = false;
+
+          for (var i = 0; i < childIds.length; i++) {
+            var rootItemId = childIds[i];
+            if (rootItemId == this._utils.tagsFolderId) {
+              
+              var tags = this._utils.tagging.allTags;
+              var uris = [];
+              for (let i in tags) {
+                var tagURIs = this._utils.tagging.getURIsForTag(tags[i]);
+                for (let j in tagURIs)
+                  this._utils.tagging.untagURI(tagURIs[j], [tags[i]]);
+              }
+            }
+            else if ([this._utils.toolbarFolderId,
+                      this._utils.unfiledBookmarksFolderId,
+                      this._utils.bookmarksMenuFolderId].indexOf(rootItemId) != -1)
+              this._utils.bookmarks.removeFolderChildren(rootItemId);
+            else
+              this._utils.bookmarks.removeItem(rootItemId);
+          }
+        }
+
         var searchIds = [];
         var folderIdMap = [];
 
         this.nodes.forEach(function(node) {
-          var root = node.root;
-          
-          
-          if (!root)
-            return;
-
           if (!node.children || node.children.length == 0)
             return; 
 
-          var container = this.placesRootId; 
-          switch (root) {
-            case "bookmarksMenuFolder":
-              container = this.bookmarksMenuFolderId;
-              break;
-            case "tagsFolder":
-              container = this.tagsFolderId;
-              break;
-            case "unfiledBookmarksFolder":
-              container = this.unfiledBookmarksFolderId;
-              break;
-            case "toolbarFolder":
-              container = this.toolbarFolderId;
-              break;
-          }
-
-          if (aReplace) {
-            if (container != this.tagsFolderId)
-              this.bookmarks.removeFolderChildren(container);
-            else {
-              
-              var tags = this.tagging.allTags;
-              var uris = [];
-              tags.forEach(function(aTag) {
-                var tagURIs = this.tagging.getURIsForTag(aTag);
-                for (let i in tagURIs)
-                  this.tagging.untagURI(tagURIs[i], [aTag]);
-              }, this);
+          if (node.root) {
+            var container = this.placesRootId; 
+            switch (node.root) {
+              case "bookmarksMenuFolder":
+                container = this.bookmarksMenuFolderId;
+                break;
+              case "tagsFolder":
+                container = this.tagsFolderId;
+                break;
+              case "unfiledBookmarksFolder":
+                container = this.unfiledBookmarksFolderId;
+                break;
+              case "toolbarFolder":
+                container = this.toolbarFolderId;
+                break;
             }
+ 
+            
+            node.children.forEach(function(child) {
+              var index = child.index;
+              var [folders, searches] = this.importJSONNode(child, container, index);
+              folderIdMap = folderIdMap.concat(folders);
+              searchIds = searchIds.concat(searches);
+            }, this);
           }
+          else
+            this.importJSONNode(node, this.placesRootId, node.index);
 
-          
-          node.children.forEach(function(child) {
-            var index = child.index;
-            var [folders, searches] = this.importJSONNode(child, container, index);
-            folderIdMap = folderIdMap.concat(folders);
-            searchIds = searchIds.concat(searches);
-          }, this);
         }, this._utils);
 
         
@@ -1113,7 +1146,7 @@ var PlacesUtils = {
         }, this._utils);
       }
     };
-    
+
     this.bookmarks.runInBatchMode(batch, null);
   },
 
@@ -1261,8 +1294,12 @@ var PlacesUtils = {
 
 
 
+
+
   serializeNodeAsJSONToOutputStream:
-  function PU_serializeNodeAsJSONToOutputStream(aNode, aStream, aIsUICommand, aResolveShortcuts) {
+  function PU_serializeNodeAsJSONToOutputStream(aNode, aStream, aIsUICommand,
+                                                aResolveShortcuts,
+                                                aExcludeItems) {
     var self = this;
     
     function addGenericProperties(aPlacesNode, aJSNode) {
@@ -1390,6 +1427,9 @@ var PlacesUtils = {
           aSourceNode.containerOpen = true;
         var cc = aSourceNode.childCount;
         for (var i = 0; i < cc; ++i) {
+          var childNode = aSourceNode.getChild(i);
+          if (aExcludeItems && aExcludeItems.indexOf(childNode.itemId) != -1)
+            continue;
           if (i != 0)
             aStream.write(",", 1);
           serializeNodeToJSONStream(aSourceNode.getChild(i), i);
@@ -1439,7 +1479,7 @@ var PlacesUtils = {
   
 
 
-  backupBookmarksToFile: function PU_backupBookmarksToFile(aFile) {
+  backupBookmarksToFile: function PU_backupBookmarksToFile(aFile, aExcludeItems) {
     if (aFile.exists() && !aFile.isWritable())
       return; 
 
@@ -1469,7 +1509,8 @@ var PlacesUtils = {
     var result = this.history.executeQuery(query, options);
     result.root.containerOpen = true;
     
-    this.serializeNodeAsJSONToOutputStream(result.root, streamProxy);
+    this.serializeNodeAsJSONToOutputStream(result.root, streamProxy,
+                                           false, false, aExcludeItems);
     result.root.containerOpen = false;
 
     
