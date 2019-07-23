@@ -267,6 +267,7 @@ PRInt32 GetWindowsVersion()
 
   if (!didCheck)
   {
+    didCheck = PR_TRUE;
     OSVERSIONINFOEX osInfo;
     osInfo.dwOSVersionInfoSize = sizeof(OSVERSIONINFOEX);
     
