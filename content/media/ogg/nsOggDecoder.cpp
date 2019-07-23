@@ -228,7 +228,7 @@ public:
       return mCount == 0;
     }
 
-    PRInt32 GetCount() const
+    PRUint32 GetCount() const
     {
       return mCount;
     }
@@ -238,27 +238,27 @@ public:
       return mCount == OGGPLAY_BUFFER_SIZE;
     }
 
-    float ResetTimes(float aPeriod)
+    PRUint32 ResetTimes(float aPeriod)
     {
-      float time = 0.0;
+      PRUint32 frames = 0;
       if (mCount > 0) {
-        PRInt32 current = mHead;
+        PRUint32 current = mHead;
         do {
-          mQueue[current]->mTime = time;
-          time += aPeriod;
+          mQueue[current]->mTime = frames * aPeriod;
+          frames += 1;
           current = (current + 1) % OGGPLAY_BUFFER_SIZE;
         } while (current != mTail);
       }
-      return time;
+      return frames;
     }
 
   private:
     FrameData* mQueue[OGGPLAY_BUFFER_SIZE];
-    PRInt32 mHead;
-    PRInt32 mTail;
+    PRUint32 mHead;
+    PRUint32 mTail;
     
     
-    PRInt32 mCount;
+    PRUint32 mCount;
   };
 
   
@@ -493,7 +493,7 @@ private:
 
   
   
-  float mCallbackPeriod;
+  double mCallbackPeriod;
 
   
   
@@ -517,8 +517,7 @@ private:
 
   
   
-  
-  float mLastFrameTime;
+  PRUint64 mLastFrame;
 
   
   
@@ -702,7 +701,7 @@ nsOggDecodeStateMachine::nsOggDecodeStateMachine(nsOggDecoder* aDecoder) :
   mAudioTrack(-1),
   mBufferingStart(),
   mBufferingEndOffset(0),
-  mLastFrameTime(0),
+  mLastFrame(0),
   mLastFramePosition(-1),
   mState(DECODER_STATE_DECODING_METADATA),
   mSeekTime(0.0),
@@ -760,9 +759,9 @@ nsOggDecodeStateMachine::FrameData* nsOggDecodeStateMachine::NextFrame()
     return nsnull;
   }
 
-  frame->mTime = mLastFrameTime;
+  frame->mTime = mCallbackPeriod * mLastFrame;
   frame->mEndStreamPosition = mDecoder->mDecoderPosition;
-  mLastFrameTime += mCallbackPeriod;
+  mLastFrame += 1;
 
   if (mLastFramePosition >= 0) {
     NS_ASSERTION(frame->mEndStreamPosition >= mLastFramePosition,
@@ -777,7 +776,7 @@ nsOggDecodeStateMachine::FrameData* nsOggDecodeStateMachine::NextFrame()
         base + TimeDuration::FromMilliseconds(NS_round(frame->mTime*1000)));
     mDecoder->mPlaybackStatistics.AddBytes(frame->mEndStreamPosition - mLastFramePosition);
     mDecoder->mPlaybackStatistics.Stop(
-        base + TimeDuration::FromMilliseconds(NS_round(mLastFrameTime*1000)));
+        base + TimeDuration::FromMilliseconds(NS_round(mCallbackPeriod*mLastFrame*1000)));
     mDecoder->UpdatePlaybackRate();
   }
   mLastFramePosition = frame->mEndStreamPosition;
@@ -1073,7 +1072,7 @@ void nsOggDecodeStateMachine::StartPlayback()
 void nsOggDecodeStateMachine::StopPlayback()
 {
   
-  mLastFrameTime = mDecodedFrames.ResetTimes(mCallbackPeriod);
+  mLastFrame = mDecodedFrames.ResetTimes(mCallbackPeriod);
   StopAudio();
   mPlaying = PR_FALSE;
   mPauseStartTime = TimeStamp::Now();
@@ -1089,7 +1088,7 @@ void nsOggDecodeStateMachine::PausePlayback()
   mPlaying = PR_FALSE;
   mPauseStartTime = TimeStamp::Now();
   if (mAudioStream->GetPosition() < 0) {
-    mLastFrameTime = mDecodedFrames.ResetTimes(mCallbackPeriod);
+    mLastFrame = mDecodedFrames.ResetTimes(mCallbackPeriod);
   }
 }
 
@@ -1320,7 +1319,8 @@ void nsOggDecodeStateMachine::DecodeToFrame(nsAutoMonitor& aMonitor,
   float target = aTime - mCallbackPeriod / 2.0;
   FrameData* frame = nsnull;
   OggPlayErrorCode r;
-  mLastFrameTime = 0;
+  mLastFrame = 0;
+
   
   
   
@@ -1370,7 +1370,7 @@ void nsOggDecodeStateMachine::DecodeToFrame(nsAutoMonitor& aMonitor,
       memcpy(dst, data, numExtraSamples * sizeof(float));
     }
 
-    mLastFrameTime = 0;
+    mLastFrame = 0;
     frame->mTime = 0;
     frame->mState = OGGPLAY_STREAM_JUST_SEEKED;
     mDecodedFrames.Push(frame);
@@ -1437,7 +1437,7 @@ nsresult nsOggDecodeStateMachine::Run()
         if (mState == DECODER_STATE_SHUTDOWN)
           continue;
 
-        mLastFrameTime = 0;
+        mLastFrame = 0;
         FrameData* frame = NextFrame();
         if (frame) {
           mDecodedFrames.Push(frame);
