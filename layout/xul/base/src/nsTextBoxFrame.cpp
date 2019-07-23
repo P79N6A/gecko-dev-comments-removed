@@ -993,7 +993,9 @@ nsRect
 nsTextBoxFrame::CalcTextRect(nsIRenderingContext &aRenderingContext, const nsPoint &aTextOrigin)
 {
     nsRect textRect(aTextOrigin, GetSize());
-    textRect.Deflate(GetUsedBorderAndPadding());
+    nsMargin borderPadding;
+    GetBorderAndPadding(borderPadding);
+    textRect.Deflate(borderPadding);
     
     nsPresContext* presContext = PresContext();
     LayoutTitle(presContext, aRenderingContext, textRect);
