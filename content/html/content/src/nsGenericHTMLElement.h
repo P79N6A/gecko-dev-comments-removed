@@ -530,7 +530,10 @@ public:
 
 
 
+
+
   static nsresult GetLayoutHistoryAndKey(nsGenericHTMLElement* aContent,
+                                         PRBool aRead,
                                          nsILayoutHistoryState** aState,
                                          nsACString& aKey);
   
