@@ -86,7 +86,8 @@ NS_IMPL_ISUPPORTS7(imgRequest,
 
 imgRequest::imgRequest() : 
   mImageStatus(imgIRequest::STATUS_NONE), mState(0), mCacheId(0), 
-  mValidator(nsnull), mImageSniffers("image-sniffing-services"), 
+  mValidator(nsnull), mImageSniffers("image-sniffing-services"),
+  mDeferredLocks(0), mDecodeRequested(PR_FALSE),
   mIsMultiPartChannel(PR_FALSE), mLoading(PR_FALSE),
   mHadLastPart(PR_FALSE), mGotData(PR_FALSE), mIsInCache(PR_FALSE)
 {
@@ -489,6 +490,52 @@ imgRequest::GetImage(imgIContainer **aImage)
 
   *aImage = mImage;
   NS_IF_ADDREF(*aImage);
+  return NS_OK;
+}
+
+nsresult
+imgRequest::LockImage()
+{
+  
+  if (mImage) {
+    NS_ABORT_IF_FALSE(mDeferredLocks == 0, "Have image, but deferred locks?");
+    return mImage->LockImage();
+  }
+
+  
+  mDeferredLocks++;
+
+  return NS_OK;
+}
+
+nsresult
+imgRequest::UnlockImage()
+{
+  
+  if (mImage) {
+    NS_ABORT_IF_FALSE(mDeferredLocks == 0, "Have image, but deferred locks?");
+    return mImage->UnlockImage();
+  }
+
+  
+  
+  NS_ABORT_IF_FALSE(mDeferredLocks > 0, "lock/unlock calls must be matched!");
+  mDeferredLocks--;
+
+  return NS_OK;
+}
+
+nsresult
+imgRequest::RequestDecode()
+{
+  
+  if (mImage) {
+    return mImage->RequestDecode();
+  }
+
+  
+  mDecodeRequested = PR_TRUE;
+
   return NS_OK;
 }
 
@@ -1031,6 +1078,15 @@ NS_IMETHODIMP imgRequest::OnDataAvailable(nsIRequest *aRequest, nsISupports *ctx
 
       this->Cancel(rv);
       return NS_BINDING_ABORTED;
+    }
+
+    
+    if (mDecodeRequested) {
+      mImage->RequestDecode();
+    }
+    while (mDeferredLocks) {
+      mImage->LockImage();
+      mDeferredLocks--;
     }
   }
 

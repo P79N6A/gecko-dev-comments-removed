@@ -113,6 +113,12 @@ public:
 
   nsresult GetImage(imgIContainer **aImage);
 
+  
+  
+  nsresult LockImage();
+  nsresult UnlockImage();
+  nsresult RequestDecode();
+
 private:
   friend class imgCacheEntry;
   friend class imgRequestProxy;
@@ -206,6 +212,11 @@ private:
 
   imgCacheValidator *mValidator;
   nsCategoryCache<nsIContentSniffer> mImageSniffers;
+
+  
+  
+  PRUint32 mDeferredLocks;
+  PRPackedBool mDecodeRequested : 1;
 
   PRPackedBool mIsMultiPartChannel : 1;
   PRPackedBool mLoading : 1;
