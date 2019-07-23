@@ -5539,6 +5539,7 @@ ExecuteTree(JSContext* cx, Fragment* f, uintN& inlineCallCount,
 
     cx->interpState = state->prev;
 
+    JS_ASSERT(!cx->bailExit);
     JS_ASSERT(lr->exitType != LOOP_EXIT || !lr->calldepth);
     tm->tracecx = NULL;
     LeaveTree(*state, lr);
@@ -9091,7 +9092,9 @@ TraceRecorder::emitNativePropertyOp(JSScope* scope, JSScopeProperty* sprop, LIns
     LIns* ok_ins = lir->insCall(ci, args);
 
     
-    lir->insStorei(INS_CONSTPTR(NULL), cx_ins, offsetof(JSContext, nativeVp));
+    LIns* null_ins = INS_CONSTPTR(NULL);
+    lir->insStorei(null_ins, cx_ins, offsetof(JSContext, nativeVp));
+    lir->insStorei(null_ins, cx_ins, offsetof(JSContext, bailExit));
 
     
     
