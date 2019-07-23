@@ -66,7 +66,6 @@ struct JSAtom {
     JSHashEntry         entry;          
 
     uint32              flags;          
-    jsatomid            number;         
 };
 
 #define ATOM_KEY(atom)            ((jsval)(atom)->entry.key)
@@ -78,6 +77,18 @@ struct JSAtom {
 #define ATOM_TO_STRING(atom)      JSVAL_TO_STRING(ATOM_KEY(atom))
 #define ATOM_IS_BOOLEAN(atom)     JSVAL_IS_BOOLEAN(ATOM_KEY(atom))
 #define ATOM_TO_BOOLEAN(atom)     JSVAL_TO_BOOLEAN(ATOM_KEY(atom))
+
+JS_STATIC_ASSERT(sizeof(JSHashNumber) == 4);
+JS_STATIC_ASSERT(sizeof(JSAtom *) == JS_BYTES_PER_WORD);
+
+#if JS_BYTES_PER_WORD == 4
+# define ATOM_HASH(atom)          ((JSHashNumber)(atom) >> 2)
+#elif JS_BYTES_PER_WORD == 8
+# define ATOM_HASH(atom)          (((JSHashNumber)(atom) >> 3) ^              \
+                                   (JSHashNumber)((jsuword)(atom) >> 32))
+#else
+# error "Unsupported configuration"
+#endif
 
 
 
@@ -119,7 +130,8 @@ struct JSAtomList {
 #define ATOM_LIST_LOOKUP(_ale,_hep,_al,_atom)                                 \
     JS_BEGIN_MACRO                                                            \
         if ((_al)->table) {                                                   \
-            _hep = JS_HashTableRawLookup((_al)->table, _atom->number, _atom); \
+            _hep = JS_HashTableRawLookup((_al)->table, ATOM_HASH(_atom),      \
+                                         _atom);                              \
             _ale = *_hep ? (JSAtomListElement *) *_hep : NULL;                \
         } else {                                                              \
             JSHashEntry **_alep = &(_al)->list;                               \
@@ -145,7 +157,6 @@ struct JSAtomMap {
 struct JSAtomState {
     JSRuntime           *runtime;       
     JSHashTable         *table;         
-    jsatomid            number;         
     jsatomid            liveAtoms;      
 
     
@@ -369,21 +380,7 @@ js_UnpinPinnedAtoms(JSAtomState *state);
 
 
 extern JSAtom *
-js_AtomizeBoolean(JSContext *cx, JSBool b, uintN flags);
-
-
-
-
-
-extern JSAtom *
-js_AtomizeInt(JSContext *cx, jsint i, uintN flags);
-
-
-
-
-
-extern JSAtom *
-js_AtomizeDouble(JSContext *cx, jsdouble d, uintN flags);
+js_AtomizeDouble(JSContext *cx, jsdouble d);
 
 
 
@@ -409,7 +406,7 @@ js_GetExistingStringAtom(JSContext *cx, const jschar *chars, size_t length);
 
 
 extern JSAtom *
-js_AtomizePrimitiveValue(JSContext *cx, jsval value, uintN flags);
+js_AtomizePrimitiveValue(JSContext *cx, jsval v);
 
 
 
