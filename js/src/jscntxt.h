@@ -214,7 +214,7 @@ struct JSTraceMonitor {
 
 
 
-    TraceNativeStorage      storage;
+    TraceNativeStorage      *storage;
 
     
 
