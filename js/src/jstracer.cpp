@@ -3466,14 +3466,22 @@ FlushNativeStackFrame(JSContext* cx, unsigned callDepth, const JSTraceType* mp, 
                 JS_ASSERT(HAS_FUNCTION_CLASS(fp->calleeObject()));
                 JS_ASSERT(GET_FUNCTION_PRIVATE(cx, fp->callee()) == fp->fun);
 
-                if (fp->fun->flags & JSFUN_HEAVYWEIGHT) {
+                if (FUN_INTERPRETED(fp->fun) && 
+                    (fp->fun->flags & JSFUN_HEAVYWEIGHT)) {
                     
                     
                     if (!fp->callobj)
                         fp->callobj = fp->scopeChain;
                     if (!fp->varobj)
                         fp->varobj = fp->scopeChain;
-                    fp->scopeChain->setPrivate(fp);
+
+                    
+                    
+                    
+                    
+                    
+                    if (!fp->scopeChain->getPrivate())
+                        fp->scopeChain->setPrivate(fp);
                 }
                 fp->thisv = fp->argv[-1];
                 if (fp->flags & JSFRAME_CONSTRUCTING) 
