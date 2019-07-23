@@ -124,7 +124,7 @@
 #include "nsITimelineService.h"
 #include "nsGfxCIID.h"
 #include "nsStyleSheetService.h"
-#include "ImageErrors.h"
+#include "nsURILoader.h"
 
 #include "nsIPrompt.h"
 #include "imgIContainer.h" 
@@ -975,7 +975,7 @@ DocumentViewerImpl::LoadComplete(nsresult aStatus)
   
   
   if(window &&
-     (NS_SUCCEEDED(aStatus) || aStatus == NS_IMAGELIB_ERROR_LOAD_ABORTED)) {
+     (NS_SUCCEEDED(aStatus) || aStatus == NS_ERROR_PARSED_DATA_CACHED)) {
     if (mDocument)
       mDocument->SetReadyStateInternal(nsIDocument::READYSTATE_COMPLETE);
     nsEventStatus status = nsEventStatus_eIgnore;

@@ -59,7 +59,7 @@
 #include "imgRequest.h"
 #include "imgRequestProxy.h"
 
-#include "ImageErrors.h"
+#include "nsURILoader.h"
 #include "ImageLogging.h"
 
 #include "nsIComponentRegistrar.h"
@@ -1210,7 +1210,7 @@ NS_IMETHODIMP imgLoader::LoadImageWithChannel(nsIChannel *channel, imgIDecoderOb
   if (request) {
     
 
-    channel->Cancel(NS_IMAGELIB_ERROR_LOAD_ABORTED); 
+    channel->Cancel(NS_ERROR_PARSED_DATA_CACHED); 
 
     *listener = nsnull; 
   } else {

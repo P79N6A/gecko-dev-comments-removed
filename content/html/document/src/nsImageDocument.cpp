@@ -68,7 +68,7 @@
 #include "nsIDOMElement.h"
 #include "nsIDOMNSHTMLElement.h"
 #include "nsContentErrors.h"
-#include "ImageErrors.h"
+#include "nsURILoader.h"
 #include "nsIDocShell.h"
 #include "nsIContentViewer.h"
 #include "nsIMarkupDocumentViewer.h"
@@ -237,7 +237,7 @@ ImageListener::OnStopRequest(nsIRequest* request, nsISupports *ctxt,
 
   
   
-  if (status == NS_IMAGELIB_ERROR_LOAD_ABORTED) {
+  if (status == NS_ERROR_PARSED_DATA_CACHED) {
     status = NS_OK;
   }
 
