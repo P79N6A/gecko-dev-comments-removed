@@ -3653,7 +3653,11 @@ nsCSSFrameConstructor::FindHTMLData(nsIContent* aContent,
       (!aParentFrame ||
        (aParentFrame->GetType() != nsGkAtoms::fieldSetFrame &&
         aParentFrame->GetStyleContext()->GetPseudoType() !=
-          nsCSSAnonBoxes::fieldsetContent))) {
+          nsCSSAnonBoxes::fieldsetContent) ||
+       aStyleContext->GetStyleDisplay()->IsFloating() ||
+       aStyleContext->GetStyleDisplay()->IsAbsolutelyPositioned())) {
+    
+    
     
     
     
