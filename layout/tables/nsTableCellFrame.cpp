@@ -755,6 +755,10 @@ NS_METHOD nsTableCellFrame::Reflow(nsPresContext*          aPresContext,
   DO_GLOBAL_REFLOW_COUNT("nsTableCellFrame");
   DISPLAY_REFLOW(aPresContext, this, aReflowState, aDesiredSize, aStatus);
 
+  if (aReflowState.mFlags.mSpecialHeightReflow) {
+    GetFirstInFlow()->AddStateBits(NS_TABLE_CELL_HAD_SPECIAL_REFLOW);
+  }
+
   
   nscoord availHeight = aReflowState.availableHeight;
 
@@ -818,7 +822,11 @@ NS_METHOD nsTableCellFrame::Reflow(nsPresContext*          aPresContext,
   
   
   kidReflowState.mPercentHeightObserver = this;
-  if (aReflowState.mFlags.mSpecialHeightReflow) {
+  if (aReflowState.mFlags.mSpecialHeightReflow ||
+      (GetFirstInFlow()->GetStateBits() & NS_TABLE_CELL_HAD_SPECIAL_REFLOW)) {
+    
+    
+    
     kidReflowState.mFlags.mVResize = PR_TRUE;
   }
 

@@ -1864,7 +1864,12 @@ NS_METHOD nsTableFrame::Reflow(nsPresContext*          aPresContext,
   PRBool haveDesiredHeight = PR_FALSE;
   PRBool reflowedChildren  = PR_FALSE;
 
-  if (aReflowState.mComputedHeight != NS_UNCONSTRAINEDSIZE) {
+  if (aReflowState.mComputedHeight != NS_UNCONSTRAINEDSIZE ||
+      
+      
+      
+      
+      aReflowState.mFlags.mVResize) {
     
     
     

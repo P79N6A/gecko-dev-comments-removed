@@ -52,6 +52,7 @@
 #include "nsLineBox.h"
 #include "nsImageFrame.h"
 #include "nsTableFrame.h"
+#include "nsTableCellFrame.h"
 #include "nsIServiceManager.h"
 #include "nsIPercentHeightObserver.h"
 #include "nsContentUtils.h"
@@ -364,8 +365,14 @@ nsHTMLReflowState::InitResizeFlags(nsPresContext* aPresContext)
 
   
   
-  if (mFlags.mSpecialHeightReflow && IS_TABLE_CELL(frame->GetType()) &&
+  if (IS_TABLE_CELL(frame->GetType()) &&
+      (mFlags.mSpecialHeightReflow ||
+       (frame->GetFirstInFlow()->GetStateBits() &
+         NS_TABLE_CELL_HAD_SPECIAL_REFLOW)) &&
       (frame->GetStateBits() & NS_FRAME_CONTAINS_RELATIVE_HEIGHT)) {
+    
+    
+    
     mFlags.mVResize = PR_TRUE;
   } else if (mCBReflowState && !frame->IsContainingBlock()) {
     
@@ -374,7 +381,6 @@ nsHTMLReflowState::InitResizeFlags(nsPresContext* aPresContext)
   } else if (mComputedHeight == NS_AUTOHEIGHT) {
     if (eCompatibility_NavQuirks == aPresContext->CompatibilityMode() &&
         mCBReflowState) {
-      
       mFlags.mVResize = mCBReflowState->mFlags.mVResize;
     } else {
       mFlags.mVResize = mFlags.mHResize || NS_SUBTREE_DIRTY(frame); 
@@ -385,6 +391,25 @@ nsHTMLReflowState::InitResizeFlags(nsPresContext* aPresContext)
                         mComputedHeight + mComputedBorderPadding.TopBottom();
   }
 
+  const PRBool dependsOnCBHeight =
+    mStylePosition->mHeight.GetUnit() == eStyleUnit_Percent ||
+    mStylePosition->mMinHeight.GetUnit() == eStyleUnit_Percent ||
+    mStylePosition->mMaxHeight.GetUnit() == eStyleUnit_Percent ||
+    mStylePosition->mOffset.GetTopUnit() == eStyleUnit_Percent ||
+    mStylePosition->mOffset.GetBottomUnit() == eStyleUnit_Percent ||
+    frame->IsBoxFrame();
+
+  
+  
+  
+  
+  if (!mFlags.mVResize && mCBReflowState &&
+      IS_TABLE_CELL(mCBReflowState->frame->GetType()) &&
+      dependsOnCBHeight)
+    mFlags.mVResize = PR_TRUE;
+
+  
+
   
   
   
@@ -392,13 +417,7 @@ nsHTMLReflowState::InitResizeFlags(nsPresContext* aPresContext)
   
   
   
-  if ((mStylePosition->mHeight.GetUnit() == eStyleUnit_Percent ||
-       mStylePosition->mMinHeight.GetUnit() == eStyleUnit_Percent ||
-       mStylePosition->mMaxHeight.GetUnit() == eStyleUnit_Percent ||
-       mStylePosition->mOffset.GetTopUnit() == eStyleUnit_Percent ||
-       mStylePosition->mOffset.GetBottomUnit() == eStyleUnit_Percent ||
-       frame->IsBoxFrame()) &&
-      mCBReflowState) {
+  if (dependsOnCBHeight && mCBReflowState) {
     const nsHTMLReflowState *rs = this;
     PRBool hitCBReflowState = PR_FALSE;
     do {
