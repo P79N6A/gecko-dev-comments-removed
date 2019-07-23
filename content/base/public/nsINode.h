@@ -805,6 +805,7 @@ public:
 
 
 
+
   nsIContent* GetSelectionRootContent(nsIPresShell* aPresShell);
 
   virtual nsINodeList* GetChildNodesList();

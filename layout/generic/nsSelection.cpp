@@ -852,52 +852,6 @@ nsFrameSelection::SetDesiredX(nscoord aX)
 }
 
 nsresult
-nsFrameSelection::GetRootForContentSubtree(nsIContent  *aContent,
-                                           nsIContent **aParent)
-{
-  
-  
-  
-  
-  
-  
-  
-  
-  
-
-  if (!aContent || !aParent)
-    return NS_ERROR_NULL_POINTER;
-
-  *aParent = 0;
-
-  nsIContent* child = aContent;
-
-  while (child)
-  {
-    nsIContent* parent = child->GetParent();
-
-    if (!parent)
-      break;
-
-    PRUint32 childCount = parent->GetChildCount();
-
-    if (childCount < 1)
-      break;
-
-    PRInt32 childIndex = parent->IndexOf(child);
-
-    if (childIndex < 0 || ((PRUint32)childIndex) >= childCount)
-      break;
-
-    child = parent;
-  }
-
-  NS_IF_ADDREF(*aParent = child);
-
-  return NS_OK;
-}
-
-nsresult
 nsFrameSelection::ConstrainFrameAndPointToAnchorSubtree(nsIFrame  *aFrame,
                                                         nsPoint&   aPoint,
                                                         nsIFrame **aRetFrame,
@@ -956,11 +910,8 @@ nsFrameSelection::ConstrainFrameAndPointToAnchorSubtree(nsIFrame  *aFrame,
   
   
 
-  nsCOMPtr<nsIContent> anchorRoot;
-  result = GetRootForContentSubtree(anchorContent, getter_AddRefs(anchorRoot));
-
-  if (NS_FAILED(result))
-    return result;
+  NS_ENSURE_STATE(mShell);
+  nsIContent* anchorRoot = anchorContent->GetSelectionRootContent(mShell);
 
   
   
@@ -970,18 +921,44 @@ nsFrameSelection::ConstrainFrameAndPointToAnchorSubtree(nsIFrame  *aFrame,
 
   if (content)
   {
-    nsCOMPtr<nsIContent> contentRoot;
-
-    result = GetRootForContentSubtree(content, getter_AddRefs(contentRoot));
+    nsIContent* contentRoot = content->GetSelectionRootContent(mShell);
 
     if (anchorRoot == contentRoot)
     {
       
       
+      nsIContent* capturedContent = nsIPresShell::GetCapturingContent();
+      if (capturedContent != content)
+      {
+        return NS_OK;
+      }
+
       
       
-      *aRetFrame = aFrame;
-      return NS_OK;
+      
+      nsIFrame* rootFrame = mShell->FrameManager()->GetRootFrame();
+      nsPoint ptInRoot = aPoint + aFrame->GetOffsetTo(rootFrame);
+      nsIFrame* cursorFrame =
+        nsLayoutUtils::GetFrameForPoint(rootFrame, ptInRoot);
+
+      
+      
+      if (cursorFrame && cursorFrame->PresContext()->PresShell() == mShell)
+      {
+        nsIContent* cursorContent = cursorFrame->GetContent();
+        NS_ENSURE_TRUE(cursorContent, NS_ERROR_FAILURE);
+        nsIContent* cursorContentRoot =
+          cursorContent->GetSelectionRootContent(mShell);
+        if (cursorContentRoot == anchorRoot)
+        {
+          *aRetFrame = cursorFrame;
+          aRetPoint = aPoint + aFrame->GetOffsetTo(cursorFrame);
+          return NS_OK;
+        }
+      }
+      
+      
+      
     }
   }
 
@@ -990,9 +967,7 @@ nsFrameSelection::ConstrainFrameAndPointToAnchorSubtree(nsIFrame  *aFrame,
   
   
   
-  
 
-  NS_ENSURE_STATE(mShell);
   *aRetFrame = mShell->GetPrimaryFrameFor(anchorRoot);
 
   if (!*aRetFrame)

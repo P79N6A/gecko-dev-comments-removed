@@ -372,6 +372,20 @@ static nsIEditor* GetHTMLEditor(nsPresContext* aPresContext)
   return editor;
 }
 
+static nsIContent* GetRootForContentSubtree(nsIContent* aContent)
+{
+  NS_ENSURE_TRUE(aContent, nsnull);
+  nsIContent* stop = aContent->GetBindingParent();
+  while (aContent) {
+    nsIContent* parent = aContent->GetParent();
+    if (parent == stop) {
+      break;
+    }
+    aContent = parent;
+  }
+  return aContent;
+}
+
 nsIContent*
 nsINode::GetSelectionRootContent(nsIPresShell* aPresShell)
 {
@@ -397,8 +411,13 @@ nsINode::GetSelectionRootContent(nsIPresShell* aPresShell)
     if (editor) {
       
       nsIDocument* doc = GetCurrentDoc();
-      if (!doc || doc->HasFlag(NODE_IS_EDITABLE) || !HasFlag(NODE_IS_EDITABLE))
-        return GetEditorRootContent(editor);
+      if (!doc || doc->HasFlag(NODE_IS_EDITABLE) ||
+          !HasFlag(NODE_IS_EDITABLE)) {
+        nsIContent* editorRoot = GetEditorRootContent(editor);
+        return nsContentUtils::IsInSameAnonymousTree(this, editorRoot) ?
+                 editorRoot :
+                 GetRootForContentSubtree(static_cast<nsIContent*>(this));
+      }
       
       
       
@@ -413,14 +432,21 @@ nsINode::GetSelectionRootContent(nsIPresShell* aPresShell)
 
   nsCOMPtr<nsFrameSelection> fs = aPresShell->FrameSelection();
   nsIContent* content = fs->GetLimiter();
-  if (content)
-    return content;
-  content = fs->GetAncestorLimiter();
-  if (content)
-    return content;
-  nsIDocument* doc = aPresShell->GetDocument();
-  NS_ENSURE_TRUE(doc, nsnull);
-  return doc->GetRootContent();
+  if (!content) {
+    content = fs->GetAncestorLimiter();
+    if (!content) {
+      nsIDocument* doc = aPresShell->GetDocument();
+      NS_ENSURE_TRUE(doc, nsnull);
+      content = doc->GetRootContent();
+      if (!content)
+        return nsnull;
+    }
+  }
+
+  
+  
+  return nsContentUtils::IsInSameAnonymousTree(this, content) ?
+           content : GetRootForContentSubtree(static_cast<nsIContent*>(this));
 }
 
 nsINodeList*
