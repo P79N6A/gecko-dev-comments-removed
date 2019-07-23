@@ -1418,70 +1418,74 @@ NS_IMETHODIMP nsAccessibilityService::GetAccessible(nsIDOMNode *aNode,
                                         nsIAccessibleRole::ROLE_EQUATION);
     }
   } else if (!newAcc) {  
-    PRBool tryTagNameOrFrame = PR_TRUE;
-
-    if (!content->IsFocusable()) {
+    nsIAtom *frameType = frame->GetType();
+    if (!roleMapEntry &&
+        (frameType == nsAccessibilityAtoms::tableCaptionFrame ||
+         frameType == nsAccessibilityAtoms::tableCellFrame ||
+         frameType == nsAccessibilityAtoms::tableRowGroupFrame ||
+         frameType == nsAccessibilityAtoms::tableRowFrame)) {
       
       
-      if (frame->GetType() == nsAccessibilityAtoms::tableCaptionFrame ||
-          frame->GetType() == nsAccessibilityAtoms::tableCellFrame ||
-          frame->GetType() == nsAccessibilityAtoms::tableRowGroupFrame ||
-          frame->GetType() == nsAccessibilityAtoms::tableRowFrame) {
-
-        nsIContent *tableContent = content;
-        while ((tableContent = tableContent->GetParent()) != nsnull) {
-          nsIFrame *tableFrame = aPresShell->GetPrimaryFrameFor(tableContent);
-          if (tableFrame &&
-              tableFrame->GetType() == nsAccessibilityAtoms::tableOuterFrame) {
-
-            nsCOMPtr<nsIDOMNode> tableNode(do_QueryInterface(tableContent));
-            if (tableNode) {
-              nsRoleMapEntry *tableRoleMapEntry =
-                nsAccUtils::GetRoleMapEntry(tableNode);
-              if (tableRoleMapEntry &&
-                  tableRoleMapEntry != &nsARIAMap::gLandmarkRoleMap)
-                tryTagNameOrFrame = PR_FALSE;
-            }
-            break;
+      
+      nsIContent *tableContent = content;
+      while ((tableContent = tableContent->GetParent()) != nsnull) {
+        nsIFrame *tableFrame = aPresShell->GetPrimaryFrameFor(tableContent);
+        if (!tableFrame)
+          continue;
+        if (tableFrame->GetType() == nsAccessibilityAtoms::tableOuterFrame) {
+          nsCOMPtr<nsIDOMNode> tableNode(do_QueryInterface(tableContent));
+          nsCOMPtr<nsIAccessible> tableAccessible;
+          GetAccessibleInShell(tableNode, aPresShell, getter_AddRefs(tableAccessible));
+          if (!tableAccessible && !content->IsFocusable()) {
+#ifdef DEBUG
+            nsRoleMapEntry *tableRoleMapEntry = nsAccUtils::GetRoleMapEntry(tableNode);
+            NS_ASSERTION(roleMapEntry && !nsCRT::strcmp(roleMapEntry->roleString, "presentation"),
+                         "No accessible for parent table and it didn't have role of presentation");
+#endif
+            
+            
+            return NS_OK;
           }
-
-          if (tableContent->Tag() == nsAccessibilityAtoms::table) {
-            tryTagNameOrFrame = PR_FALSE;
-            break;
+          if (nsAccessible::Role(tableAccessible) != nsIAccessibleRole::ROLE_TABLE) {
+            NS_ASSERTION(!roleMapEntry, "Should not be changing ARIA role, just overriding impl class role");
+            roleMapEntry = &nsARIAMap::gLandmarkRoleMap; 
           }
+          break;
         }
-
-        if (!tableContent)
-          tryTagNameOrFrame = PR_FALSE;
+        else if (tableFrame->GetType() == nsAccessibilityAtoms::tableCellFrame) {
+          
+          
+          NS_ASSERTION(!roleMapEntry, "Should not be changing ARIA role, just overriding impl class role");
+          roleMapEntry = &nsARIAMap::gLandmarkRoleMap; 
+          break;
+        }
       }
     }
 
-    if (tryTagNameOrFrame) {
-      
-      
-      
-      
-      
-      rv = CreateHTMLAccessibleByMarkup(frame, aWeakShell, aNode,
-                                        getter_AddRefs(newAcc));
-      NS_ENSURE_SUCCESS(rv, rv);
+    
+    
+    
+    
+    
+    rv = CreateHTMLAccessibleByMarkup(frame, aWeakShell, aNode,
+                                      getter_AddRefs(newAcc));
+    NS_ENSURE_SUCCESS(rv, rv);
 
-      if (!newAcc) {
+    if (!newAcc) {
+      
+      
+      
+      
+      
+      
+      if (frame->GetType() == nsAccessibilityAtoms::tableCaptionFrame &&
+         frame->GetRect().IsEmpty()) {
         
         
-        
-        
-        
-        
-        if (frame->GetType() == nsAccessibilityAtoms::tableCaptionFrame &&
-           frame->GetRect().IsEmpty()) {
-          
-          
-          *aIsHidden = PR_TRUE;
-          return NS_OK;
-        }
-        frame->GetAccessible(getter_AddRefs(newAcc)); 
+        *aIsHidden = PR_TRUE;
+        return NS_OK;
       }
+      frame->GetAccessible(getter_AddRefs(newAcc)); 
     }
   }
 

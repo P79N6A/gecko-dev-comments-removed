@@ -1986,9 +1986,10 @@ NS_IMETHODIMP nsAccessible::GetFinalRole(PRUint32 *aRole)
       }
     }
 
-    if (*aRole != nsIAccessibleRole::ROLE_NOTHING) {
-      return NS_OK;
-    }
+    
+    
+    
+    return NS_OK;
   }
   return mDOMNode ? GetRole(aRole) : NS_ERROR_FAILURE;  
 }
