@@ -1936,7 +1936,9 @@ nsJSContext::CallEventHandler(nsISupports* aTarget, void *aScope, void *aHandler
       
       
 
-      nsContentUtils::NotifyXPCIfExceptionPending(mContext);
+      if (JS_IsExceptionPending(mContext)) {
+        JS_ReportPendingException(mContext);
+      }
 
       
       rval = JSVAL_VOID;
