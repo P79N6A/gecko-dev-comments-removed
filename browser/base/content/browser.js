@@ -1505,13 +1505,20 @@ function loadOneOrMoreURIs(aURIString)
   }
 }
 
-function openLocation()
+function focusAndSelectUrlBar()
 {
   if (gURLBar && isElementVisible(gURLBar) && !gURLBar.readOnly) {
     gURLBar.focus();
     gURLBar.select();
-    return;
+    return true;
   }
+  return false;
+}
+
+function openLocation()
+{
+  if (focusAndSelectUrlBar())
+    return;
 #ifdef XP_MACOSX
   if (window.location.href != getBrowserURL()) {
     var win = getTopWin();
@@ -5869,16 +5876,23 @@ IdentityHandler.prototype = {
     this._identityPopupContentSupp.textContent = supplemental;
     this._identityPopupContentVerif.textContent = verifier;
   },
-  
+
+  hideIdentityPopup : function() {
+    this._identityPopup.hidePopup();
+  },
+
   
 
 
-  handleIdentityClick : function(event) {
+  handleIdentityButtonEvent : function(event) {
+  
     event.stopPropagation();
-
-    if (event.button != 0)
+ 
+    if ((event.type == "click" && event.button != 0) ||
+        (event.type == "keypress" && event.charCode != KeyEvent.DOM_VK_SPACE &&
+         event.keyCode != KeyEvent.DOM_VK_RETURN))
       return; 
-        
+
     
     
     this._identityPopup.hidden = false;

@@ -64,3 +64,11 @@ nsXULAlertAccessible::GetState(PRUint32 *aState, PRUint32 *aExtraState)
   return NS_OK;
 }
 
+NS_IMETHODIMP
+nsXULAlertAccessible::GetName(nsAString& aName)
+{
+  
+  
+  aName.Truncate();
+  return NS_OK;
+}

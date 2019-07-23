@@ -597,6 +597,9 @@ nsresult nsRootAccessible::HandleEventWithTarget(nsIDOMEvent* aEvent,
   aEvent->GetType(eventType);
   nsAutoString localName;
   aTargetNode->GetLocalName(localName);
+#ifdef MOZ_XUL
+  PRBool isTree = localName.EqualsLiteral("tree");
+#endif
 #ifdef DEBUG_A11Y
   
   if (eventType.EqualsLiteral("AlertActive")) {
@@ -642,14 +645,38 @@ nsresult nsRootAccessible::HandleEventWithTarget(nsIDOMEvent* aEvent,
     return NS_OK;
   }
 
+#ifdef MOZ_XUL
   if (eventType.EqualsLiteral("TreeViewChanged")) { 
-    if (!localName.EqualsLiteral("tree"))
+    if (!isTree)
       return NS_OK;
 
     nsCOMPtr<nsIContent> treeContent = do_QueryInterface(aTargetNode);
     nsAccEvent::PrepareForEvent(aTargetNode, PR_TRUE);
     return accService->InvalidateSubtreeFor(eventShell, treeContent,
                                             nsIAccessibleEvent::EVENT_ASYNCH_SIGNIFICANT_CHANGE);
+  }
+#endif
+
+  if (eventType.EqualsLiteral("popuphiding")) {
+    
+    
+    
+    
+    
+    
+    if (!gLastFocusedNode) {
+      return NS_OK;
+    }
+    if (gLastFocusedNode != aTargetNode) {
+      
+      nsCOMPtr<nsIDOMNode> parentOfFocus;
+      gLastFocusedNode->GetParentNode(getter_AddRefs(parentOfFocus));
+      if (parentOfFocus != aTargetNode) {
+        return NS_OK;  
+      }
+    }
+    
+    FireCurrentFocusEvent();
   }
 
   nsCOMPtr<nsIAccessible> accessible;
@@ -659,8 +686,9 @@ nsresult nsRootAccessible::HandleEventWithTarget(nsIDOMEvent* aEvent,
   if (!privAcc)
     return NS_OK;
 
+#ifdef MOZ_XUL
   if (eventType.EqualsLiteral("TreeRowCountChanged")) {
-    if (!localName.EqualsLiteral("tree"))
+    if (!isTree)
       return NS_OK;
 
     nsCOMPtr<nsIDOMDataContainerEvent> dataEvent(do_QueryInterface(aEvent));
@@ -685,6 +713,7 @@ nsresult nsRootAccessible::HandleEventWithTarget(nsIDOMEvent* aEvent,
 
     return treeAccCache->InvalidateCache(index, count);
   }
+#endif
 
   if (eventType.EqualsLiteral("RadioStateChange")) {
     PRUint32 state = State(accessible);
@@ -723,7 +752,7 @@ nsresult nsRootAccessible::HandleEventWithTarget(nsIDOMEvent* aEvent,
   nsCOMPtr<nsIAccessible> treeItemAccessible;
 #ifdef MOZ_XUL
   
-  if (localName.EqualsLiteral("tree")) {
+  if (isTree) {
     nsCOMPtr<nsIDOMXULMultiSelectControlElement> multiSelect =
       do_QueryInterface(aTargetNode);
     if (multiSelect) {
@@ -847,28 +876,6 @@ nsresult nsRootAccessible::HandleEventWithTarget(nsIDOMEvent* aEvent,
       nsAccUtils::FireAccEvent(event, accessible);
     }
   }
-
-  else if (eventType.EqualsLiteral("popuphiding")) {
-    
-    
-    
-    
-    
-    
-    if (!gLastFocusedNode) {
-      return NS_OK;
-    }
-    if (gLastFocusedNode != aTargetNode) {
-      
-      nsCOMPtr<nsIDOMNode> parentOfFocus;
-      gLastFocusedNode->GetParentNode(getter_AddRefs(parentOfFocus));
-      if (parentOfFocus != aTargetNode) {
-        return NS_OK;  
-      }
-    }
-    
-    FireCurrentFocusEvent();
-  }
   else if (eventType.EqualsLiteral("DOMMenuInactive")) {
     if (Role(accessible) == nsIAccessibleRole::ROLE_MENUPOPUP) {
       nsAccUtils::FireAccEvent(nsIAccessibleEvent::EVENT_MENUPOPUP_END,
@@ -877,6 +884,11 @@ nsresult nsRootAccessible::HandleEventWithTarget(nsIDOMEvent* aEvent,
   }
   else if (eventType.EqualsLiteral("DOMMenuItemActive")) {
     if (!treeItemAccessible) {
+#ifdef MOZ_XUL
+      if (isTree) {
+        return NS_OK; 
+      }
+#endif
       nsCOMPtr<nsPIAccessNode> menuAccessNode = do_QueryInterface(accessible);
       NS_ENSURE_TRUE(menuAccessNode, NS_ERROR_FAILURE);
       nsIFrame* menuFrame = menuAccessNode->GetFrame();

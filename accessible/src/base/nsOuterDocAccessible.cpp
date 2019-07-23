@@ -74,7 +74,7 @@ NS_IMETHODIMP nsOuterDocAccessible::GetName(nsAString& aName)
 
 NS_IMETHODIMP nsOuterDocAccessible::GetRole(PRUint32 *aRole)
 {
-  *aRole = nsIAccessibleRole::ROLE_CLIENT;
+  *aRole = nsIAccessibleRole::ROLE_INTERNAL_FRAME;
   return NS_OK;
 }
 
