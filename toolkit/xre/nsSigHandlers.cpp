@@ -211,6 +211,12 @@ my_glib_log_func(const gchar *log_domain, GLogLevelFlags log_level,
 
 static void fpehandler(int signum, siginfo_t *si, void *context)
 {
+  
+  
+  if (si->si_code == FPE_INTDIV || si->si_code == FPE_INTOVF) {
+    NS_DebugBreak(NS_DEBUG_ABORT, "Divide by zero", nsnull, __FILE__, __LINE__);
+  }
+
 #ifdef XP_MACOSX
   ucontext_t *uc = (ucontext_t *)context;
 
