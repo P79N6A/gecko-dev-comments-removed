@@ -47,6 +47,15 @@
 class nsDirEnumerator;
 
 
+#if defined(HAVE_STAT64) && defined(HAVE_LSTAT64) && (MAC_OS_X_VERSION_MIN_REQUIRED > MAC_OS_X_VERSION_10_4)
+#define STAT stat64
+#define LSTAT lstat64
+#else
+#define STAT stat
+#define LSTAT lstat
+#endif
+
+
 
 
 
@@ -92,8 +101,6 @@ protected:
                         const nsAString& newName,
                         PRBool followLinks);
 
-  static PRInt64  HFSPlustoNSPRTime(const UTCDateTime& utcTime);
-  static void     NSPRtoHFSPlusTime(PRInt64 nsprTime, UTCDateTime& utcTime);
   static nsresult CFStringReftoUTF8(CFStringRef aInStrRef, nsACString& aOutStr);
 
 protected:
