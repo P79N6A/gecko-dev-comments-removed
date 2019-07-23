@@ -1227,8 +1227,18 @@ PostLayoutCallback(ATSULineRef aLine, gfxTextRun *aRun,
         while (glyphCount < numGlyphs) {
             ATSLayoutRecord *glyph = &glyphRecords[glyphIndex + direction*glyphCount];
             PRUint32 glyphOffset = glyph->originalOffset;
+            PRUint32 nextIndex = isRTL ? glyphIndex - 1 : glyphIndex + 1;
+            PRUint32 nextOffset;
+            if (nextIndex >= 0 && nextIndex < numGlyphs) {
+                ATSLayoutRecord *nextGlyph = &glyphRecords[nextIndex + direction*glyphCount];
+                nextOffset = nextGlyph->originalOffset;
+            }
+            else
+                nextOffset = glyphOffset;
             allFlags |= glyph->flags;
-            if (glyphOffset <= lastOffset) {
+            if (glyphOffset <= lastOffset || nextOffset <= lastOffset) {
+                
+                
                 
                 
                 
