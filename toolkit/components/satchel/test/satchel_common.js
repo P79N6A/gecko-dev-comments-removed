@@ -35,6 +35,36 @@
 
 
  
+
+
+
+
+
+function $_(formNum, name) {
+  var form = document.getElementById("form" + formNum);
+  if (!form) {
+    ok(false, "$_ couldn't find requested form " + formNum);
+    return null;
+  }
+
+  var element = form.elements.namedItem(name);
+  if (!element) {
+    ok(false, "$_ couldn't find requested element " + name);
+    return null;
+  }
+
+  
+  
+  
+
+  if (element.hasAttribute("name") && element.getAttribute("name") != name) {
+    ok(false, "$_ got confused.");
+    return null;
+  }
+
+  return element;
+}
+
 function cleanUpFormHist() {
   netscape.security.PrivilegeManager.enablePrivilege("UniversalXPConnect");
   var formhist = Components.classes["@mozilla.org/satchel/form-history;1"].

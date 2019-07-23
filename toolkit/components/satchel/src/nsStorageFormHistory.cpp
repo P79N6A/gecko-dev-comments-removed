@@ -507,6 +507,13 @@ nsFormHistory::Notify(nsIDOMHTMLFormElement* formElt, nsIDOMWindowInternal* aWin
         nsAutoString value;
         inputElt->GetValue(value);
         if (!value.IsEmpty()) {
+          
+          
+          nsAutoString defaultValue;
+          inputElt->GetDefaultValue(defaultValue);
+          if (value.Equals(defaultValue))
+            continue;
+
           nsAutoString name;
           inputElt->GetName(name);
           if (name.IsEmpty())
