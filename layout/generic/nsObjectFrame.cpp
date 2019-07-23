@@ -725,7 +725,14 @@ nsObjectFrame::CreateWidget(nscoord aWidth,
     rpc->RegisterPluginForGeometryUpdates(this);
     rpc->UpdatePluginGeometry(this);
 
-    mWidget->Show(PR_TRUE);
+    
+    
+    
+    
+    
+    if (parentWidget == GetWindow()) {
+      mWidget->Show(PR_TRUE);
+    }
   }
 
   if (mWidget) {

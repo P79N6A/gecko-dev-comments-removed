@@ -79,6 +79,7 @@
 #endif
 #include "nsDisplayList.h"
 #include "nsBidiUtils.h"
+#include "nsFrameManager.h"
 
 
 
@@ -1815,8 +1816,15 @@ nsGfxScrollFrameInner::ViewPositionDidChange(nsIScrollableView* aScrollable,
   nsPoint childOffset = mScrolledFrame->GetView()->GetOffsetTo(mOuter->GetView());
   mScrolledFrame->SetPosition(childOffset);
 
-  mOuter->PresContext()->RootPresContext()->
-    GetPluginGeometryUpdates(mOuter, aConfigurations);
+  nsRootPresContext* rootPresContext = mOuter->PresContext()->RootPresContext();
+  
+  
+  
+  
+  if (mOuter->GetWindow() ==
+      rootPresContext->FrameManager()->GetRootFrame()->GetWindow()) {
+    rootPresContext->GetPluginGeometryUpdates(mOuter, aConfigurations);
+  }
 }
 
 
