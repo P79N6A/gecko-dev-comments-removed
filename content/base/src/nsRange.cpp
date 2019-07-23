@@ -1153,16 +1153,8 @@ RemoveNode(nsIDOMNode* aNode)
 
 
 
-
-
-
-
-
-
 static nsresult SplitDataNode(nsIDOMCharacterData* aStartNode,
                               PRUint32 aStartIndex,
-                              PRUint32 aEndIndex,
-                              nsIDOMCharacterData** aMiddleNode,
                               nsIDOMCharacterData** aEndNode,
                               PRBool aCloneAfterOriginal = PR_TRUE)
 {
@@ -1170,21 +1162,12 @@ static nsresult SplitDataNode(nsIDOMCharacterData* aStartNode,
   nsCOMPtr<nsINode> node = do_QueryInterface(aStartNode);
   NS_ENSURE_STATE(node && node->IsNodeOfType(nsINode::eDATA_NODE));
   nsGenericDOMDataNode* dataNode = static_cast<nsGenericDOMDataNode*>(node.get());
-  
-  if (aEndNode && aEndIndex > aStartIndex) {
-    nsCOMPtr<nsIContent> newData;
-    rv = dataNode->SplitData(aEndIndex, getter_AddRefs(newData),
-                             aCloneAfterOriginal);
-    NS_ENSURE_SUCCESS(rv, rv);
-    rv = CallQueryInterface(newData, aEndNode);
-    NS_ENSURE_SUCCESS(rv, rv);
-  }
 
   nsCOMPtr<nsIContent> newData;
   rv = dataNode->SplitData(aStartIndex, getter_AddRefs(newData),
                            aCloneAfterOriginal);
   NS_ENSURE_SUCCESS(rv, rv);
-  return CallQueryInterface(newData, aMiddleNode);
+  return CallQueryInterface(newData, aEndNode);
 }
 
 nsresult PrependChild(nsIDOMNode* aParent, nsIDOMNode* aChild)
@@ -1294,13 +1277,20 @@ nsresult nsRange::CutContents(nsIDOMDocumentFragment** aFragment)
 
           if (endOffset > startOffset)
           {
-            nsCOMPtr<nsIDOMCharacterData> cutNode;
-            nsCOMPtr<nsIDOMCharacterData> endNode;
-            rv = SplitDataNode(charData, startOffset, endOffset,
-                               getter_AddRefs(cutNode),
-                               getter_AddRefs(endNode));
+            if (retval) {
+              nsAutoString cutValue;
+              rv = charData->SubstringData(startOffset, endOffset - startOffset,
+                                           cutValue);
+              NS_ENSURE_SUCCESS(rv, rv);
+              nsCOMPtr<nsIDOMNode> clone;
+              rv = charData->CloneNode(PR_FALSE, getter_AddRefs(clone));
+              NS_ENSURE_SUCCESS(rv, rv);
+              clone->SetNodeValue(cutValue);
+              nodeToResult = clone;
+            }
+
+            rv = charData->DeleteData(startOffset, endOffset - startOffset);
             NS_ENSURE_SUCCESS(rv, rv);
-            nodeToResult = cutNode;
           }
 
           handled = PR_TRUE;
@@ -1315,8 +1305,7 @@ nsresult nsRange::CutContents(nsIDOMDocumentFragment** aFragment)
           if (dataLength >= (PRUint32)startOffset)
           {
             nsCOMPtr<nsIDOMCharacterData> cutNode;
-            rv = SplitDataNode(charData, startOffset, dataLength,
-                               getter_AddRefs(cutNode), nsnull);
+            rv = SplitDataNode(charData, startOffset, getter_AddRefs(cutNode));
             NS_ENSURE_SUCCESS(rv, rv);
             nodeToResult = cutNode;
           }
@@ -1334,8 +1323,8 @@ nsresult nsRange::CutContents(nsIDOMDocumentFragment** aFragment)
           
 
 
-          rv = SplitDataNode(charData, endOffset, endOffset,
-                             getter_AddRefs(cutNode), nsnull, PR_FALSE);
+          rv = SplitDataNode(charData, endOffset, getter_AddRefs(cutNode),
+                             PR_FALSE);
           NS_ENSURE_SUCCESS(rv, rv);
           nodeToResult = cutNode;
         }
