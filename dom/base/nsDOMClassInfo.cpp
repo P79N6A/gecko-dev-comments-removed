@@ -6625,6 +6625,17 @@ nsWindowSH::NewResolve(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
       
       *objp = obj;
 
+      if (ObjectIsNativeWrapper(cx, obj)) {
+        
+        
+
+        *_retval = JS_DefineProperty(cx, obj, "document", v, NULL, NULL,
+                                     JSPROP_READONLY | JSPROP_ENUMERATE);
+        if (!*_retval) {
+          return NS_ERROR_UNEXPECTED;
+        }
+      }
+
       return NS_OK;
     }
 
