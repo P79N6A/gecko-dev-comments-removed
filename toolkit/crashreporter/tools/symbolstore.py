@@ -180,6 +180,16 @@ class SVNFileInfo(VCSFileInfo):
     repo = None
     svndata = {}
 
+    
+    
+    
+    
+    
+    
+    
+    
+    rootRegex = re.compile(r'^\S+?:/+(?:[^\s/]*@)?(\S+)$')
+
     def __init__(self, file):
         """ We only want to run subversion's info tool once so pull all the data
             here. """
@@ -187,15 +197,15 @@ class SVNFileInfo(VCSFileInfo):
         VCSFileInfo.__init__(self, file)
 
         if os.path.isfile(file):
-            _regex = re.compile(r'^(.+):\s(.+)$')
-
             command = os.popen("svn info %s" % file, "r")
             for line in command:
-                match = _regex.match(line.strip())
-                if match:
-                    key = match.group(1)
-                    if key in ["Repository Root", "Revision", "URL"]:
-                        self.svndata[key] = match.group(2)
+                
+                if line.strip() == '':
+                    continue
+                
+                key, value = line.split(':', 1)
+                if key in ["Repository Root", "Revision", "URL"]:
+                    self.svndata[key] = value.strip()
 
             exitStatus = command.close()
             if exitStatus:
@@ -204,7 +214,7 @@ class SVNFileInfo(VCSFileInfo):
     def GetRoot(self):
         key = "Repository Root"
         if key in self.svndata:
-            match = re.match(r'^\w+:\/+(\S+)', self.svndata[key])
+            match = self.rootRegex.match(self.svndata[key])
             if match:
                 return match.group(1)
         print >> sys.stderr, "Failed to get SVN Root for %s" % self.file
