@@ -37,6 +37,8 @@
 
 
 
+#include "jscntxt.h"
+
 #include "nsDOMThreadService.h"
 
 
@@ -60,7 +62,6 @@
 #include "nsPIDOMWindow.h"
 
 
-#include "jscntxt.h"
 #include "nsAutoLock.h"
 #include "nsAutoPtr.h"
 #include "nsContentUtils.h"
