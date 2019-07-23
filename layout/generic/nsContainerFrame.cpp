@@ -660,13 +660,19 @@ nsContainerFrame::DoInlineIntrinsicWidth(nsIRenderingContext *aRenderingContext,
   
   
   
-  aData->currentLine +=
-    GetCoord(stylePadding->mPadding.Get(startSide), 0) +
-    styleBorder->GetBorderWidth(startSide) +
-    GetCoord(styleMargin->mMargin.Get(startSide), 0);
+  
+  
+  
+  if (!GetPrevContinuation()) {
+    aData->currentLine +=
+      GetCoord(stylePadding->mPadding.Get(startSide), 0) +
+      styleBorder->GetBorderWidth(startSide) +
+      GetCoord(styleMargin->mMargin.Get(startSide), 0);
+  }
 
   const nsLineList_iterator* savedLine = aData->line;
 
+  nsContainerFrame *lastInFlow;
   for (nsContainerFrame *nif = this; nif;
        nif = (nsContainerFrame*) nif->GetNextInFlow()) {
     for (nsIFrame *kid = nif->mFrames.FirstChild(); kid;
@@ -682,6 +688,7 @@ nsContainerFrame::DoInlineIntrinsicWidth(nsIRenderingContext *aRenderingContext,
     
     
     aData->line = nsnull;
+    lastInFlow = nif;
   }
   
   aData->line = savedLine;
@@ -690,10 +697,15 @@ nsContainerFrame::DoInlineIntrinsicWidth(nsIRenderingContext *aRenderingContext,
   
   
   
-  aData->currentLine +=
-    GetCoord(stylePadding->mPadding.Get(endSide), 0) +
-    styleBorder->GetBorderWidth(endSide) +
-    GetCoord(styleMargin->mMargin.Get(endSide), 0);
+  
+  
+  
+  if (!lastInFlow->GetNextContinuation()) {
+    aData->currentLine +=
+      GetCoord(stylePadding->mPadding.Get(endSide), 0) +
+      styleBorder->GetBorderWidth(endSide) +
+      GetCoord(styleMargin->mMargin.Get(endSide), 0);
+  }
 }
 
  nsSize
