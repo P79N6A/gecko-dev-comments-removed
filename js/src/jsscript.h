@@ -102,6 +102,8 @@ struct JSScript {
 
     uint8           loopHeaders;    
 
+    uint32          loopBase;   
+
     jsbytecode      *main;      
     JSAtomMap       atomMap;    
     const char      *filename;  

@@ -2760,7 +2760,7 @@ JS_INTERPRET(JSContext *cx)
                             JS_END_MACRO
 
 # define BEGIN_CASE(OP)     L_##OP:                                           \
-                                trace_stop(cx, #OP);
+                                trace_stop(#OP);
 # define TRACE_CASE(OP)     L_##OP:
 # define END_CASE(OP)       DO_NEXT_OP(OP##_LENGTH);
 # define END_VARLEN_CASE    DO_NEXT_OP(len);
@@ -2780,7 +2780,7 @@ JS_INTERPRET(JSContext *cx)
                             JS_END_MACRO
 
 # define BEGIN_CASE(OP)     case OP:                                          \
-                                trace_stop(cx, #OP);
+                                trace_stop(#OP);
 # define TRACE_CASE(OP)     case OP:
 # define END_CASE(OP)       END_CASE_LEN(OP##_LENGTH)
 # define END_CASE_LEN(n)    END_CASE_LENX(n)
@@ -3024,7 +3024,7 @@ JS_INTERPRET(JSContext *cx)
 
           BEGIN_CASE(JSOP_HEADER)
           {
-            slot = GET_UINT24(regs.pc);
+            slot = script->loopBase + GET_UINT8(regs.pc);
             JS_ASSERT(slot < rt->loopTableSlotGen);
 
             JSTraceMonitor *tm = &JS_TRACE_MONITOR(cx);
@@ -3046,7 +3046,6 @@ JS_INTERPRET(JSContext *cx)
 
 
 
-                    trace_start(cx, regs.pc);
                     obj = js_NewObject(cx, &js_ObjectClass, NULL, NULL, 0);
                     if (!obj)
                         goto error;
@@ -6969,7 +6968,7 @@ JS_INTERPRET(JSContext *cx)
 
 #define DEFINE_HANDLER(handler)                                               \
         handler:                                                              \
-            trace_stop(cx, #handler);
+            trace_stop(#handler);
     
   DEFINE_HANDLER(error)
     JS_ASSERT((size_t)(regs.pc - script->code) < script->length);

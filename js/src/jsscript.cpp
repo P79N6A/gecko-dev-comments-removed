@@ -421,7 +421,7 @@ js_XDRScript(JSXDRState *xdr, JSScript **scriptp, JSBool *hasMagic)
     JSBool ok;
     jsbytecode *code;
     uint32 length, lineno, depth, magic;
-    uint32 natoms, nsrcnotes, ntrynotes, nobjects, nregexps, i;
+    uint32 natoms, nsrcnotes, ntrynotes, nobjects, nregexps, nloops, i;
     uint32 prologLength, version;
     JSTempValueRooter tvr;
     JSPrincipals *principals;
@@ -431,7 +431,7 @@ js_XDRScript(JSXDRState *xdr, JSScript **scriptp, JSBool *hasMagic)
 
     cx = xdr->cx;
     script = *scriptp;
-    nsrcnotes = ntrynotes = natoms = nobjects = nregexps = 0;
+    nsrcnotes = ntrynotes = natoms = nobjects = nregexps = nloops = 0;
     filenameWasSaved = JS_FALSE;
     notes = NULL;
 
@@ -474,6 +474,7 @@ js_XDRScript(JSXDRState *xdr, JSScript **scriptp, JSBool *hasMagic)
             nregexps = JS_SCRIPT_REGEXPS(script)->length;
         if (script->trynotesOffset != 0)
             ntrynotes = JS_SCRIPT_TRYNOTES(script)->length;
+        nloops = script->loopHeaders;
     }
 
     if (!JS_XDRUint32(xdr, &length))
@@ -487,6 +488,7 @@ js_XDRScript(JSXDRState *xdr, JSScript **scriptp, JSBool *hasMagic)
 
 
 
+
     if (!JS_XDRUint32(xdr, &natoms))
         return JS_FALSE;
     if (!JS_XDRUint32(xdr, &nsrcnotes))
@@ -497,10 +499,12 @@ js_XDRScript(JSXDRState *xdr, JSScript **scriptp, JSBool *hasMagic)
         return JS_FALSE;
     if (!JS_XDRUint32(xdr, &nregexps))
         return JS_FALSE;
+    if (!JS_XDRUint32(xdr, &nloops))
+        return JS_FALSE;
 
     if (xdr->mode == JSXDR_DECODE) {
         script = js_NewScript(cx, length, nsrcnotes, ntrynotes, natoms,
-                              nobjects, nregexps);
+                              nobjects, nregexps, nloops);
         if (!script)
             return JS_FALSE;
 
@@ -537,15 +541,10 @@ js_XDRScript(JSXDRState *xdr, JSScript **scriptp, JSBool *hasMagic)
 
     if (script->loopHeaders) {
         
-        jsbytecode *pc = code;
-        jsbytecode *end = pc + length;
-        while (pc < end) {
-            if ((JSOp)*pc == JSOP_HEADER) {
-                uint32 slot = js_AllocateLoopTableSlot(cx->runtime);
-                SET_UINT24(pc, slot);
-            }
-            pc += js_OpLength(pc);
-        }
+        ok = js_AllocateLoopTableSlots(cx, script->loopHeaders,
+                                       &script->loopBase);
+        if (!ok)
+            goto error;
     }
 
     if (!JS_XDRBytes(xdr, (char *)notes, nsrcnotes * sizeof(jssrcnote)) ||
@@ -1342,7 +1341,7 @@ JS_STATIC_ASSERT(sizeof(JSScript) + 2 * sizeof(JSObjectArray) < JS_BIT(8));
 
 JSScript *
 js_NewScript(JSContext *cx, uint32 length, uint32 nsrcnotes, uint32 ntrynotes,
-             uint32 natoms, uint32 nobjects, uint32 nregexps)
+             uint32 natoms, uint32 nobjects, uint32 nregexps, uint32 nloops)
 {
     size_t size, vectorSize;
     JSScript *script;
@@ -1415,6 +1414,7 @@ js_NewScript(JSContext *cx, uint32 length, uint32 nsrcnotes, uint32 ntrynotes,
 #endif
         cursor += vectorSize;
     }
+    script->loopHeaders = (uint8) JS_MIN(nloops, 255);
 
     script->code = script->main = (jsbytecode *)cursor;
     JS_ASSERT(cursor +
@@ -1446,7 +1446,8 @@ js_NewScriptFromCG(JSContext *cx, JSCodeGenerator *cg)
     CG_COUNT_FINAL_SRCNOTES(cg, nsrcnotes);
     script = js_NewScript(cx, prologLength + mainLength,
                           nsrcnotes, cg->ntrynotes, cg->atomList.count,
-                          cg->objectList.length, cg->regexpList.length);
+                          cg->objectList.length, cg->regexpList.length,
+                          cg->loopHeaders);
     if (!script)
         return NULL;
 
@@ -1576,13 +1577,7 @@ js_DestroyScript(JSContext *cx, JSScript *script)
 
     if (script->loopHeaders) {
         
-        jsbytecode *pc = script->code;
-        jsbytecode *end = pc + script->length;
-        while (pc < end) {
-            if ((JSOp)*pc == JSOP_HEADER)
-                js_FreeLoopTableSlot(cx->runtime, GET_UINT24(pc));
-            pc += js_OpLength(pc);
-        }
+        js_FreeLoopTableSlots(cx, script->loopBase, script->loopHeaders);
     }
 
     JS_free(cx, script);
