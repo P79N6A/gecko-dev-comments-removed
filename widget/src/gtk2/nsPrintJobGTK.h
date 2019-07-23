@@ -45,7 +45,6 @@
 #include "nsILocalFile.h"
 #include "nsIPrintJobGTK.h"
 #include "nsString.h"
-#include "nsTempfilePS.h"
 #include "nsDeviceContextSpecG.h"
 
 
@@ -55,108 +54,55 @@ class nsPrintJobPreviewGTK : public nsIPrintJobGTK {
         
 
 
-        nsresult StartSubmission(FILE **aHandle)
+        virtual nsresult Submit()
             { return NS_ERROR_GFX_PRINTING_NOT_IMPLEMENTED; }
-
-        nsresult FinishSubmission()
-            { return NS_ERROR_GFX_PRINTING_NOT_IMPLEMENTED; }
-
-        nsresult SetNumCopies(int aNumCopies)
-            { return NS_ERROR_NOT_IMPLEMENTED; }
 
     protected:
-        
-        nsresult Init(nsDeviceContextSpecGTK *);
+        virtual nsresult Init(nsDeviceContextSpecGTK *);
+        nsresult InitSpoolFile(PRUint32 aPermissions);
 };
 
 
 
-class nsPrintJobFileGTK : public nsIPrintJobGTK {
+class nsPrintJobFileGTK : public nsPrintJobPreviewGTK {
     public:
-        nsPrintJobFileGTK();
-        ~nsPrintJobFileGTK();
-
-        
-        nsresult StartSubmission(FILE **aHandle);
-        nsresult FinishSubmission();
-
-        nsresult SetNumCopies(int aNumCopies)
-            { return NS_ERROR_NOT_IMPLEMENTED; }
+        virtual nsresult Submit();
 
     protected:
-        
-        nsresult Init(nsDeviceContextSpecGTK *);
-
-        
-
-
-
-        void SetDestHandle(FILE *aHandle) { mDestHandle = aHandle; }
-
-        
-
-
-
-        FILE *GetDestHandle() { return mDestHandle; }
-
-        
-
-
-
-
-
-        void SetDestination(const char *aDest) { mDestination = aDest; }
-
-        
-
-
-
-        nsCString& GetDestination() { return mDestination; }
-
-
-    private:
-        FILE *mDestHandle;                  
-        nsCString mDestination;
+        virtual nsresult Init(nsDeviceContextSpecGTK *);
+        nsCOMPtr<nsILocalFile> mDestFile;
 };
 
 
-
-
-
-class nsPrintJobPipeGTK : public nsPrintJobFileGTK {
+class nsPrintJobPipeGTK : public nsPrintJobPreviewGTK {
     public:
-        
-        ~nsPrintJobPipeGTK();
-        nsresult StartSubmission(FILE **aHandle);
-        nsresult FinishSubmission();
+        virtual nsresult Submit();
 
     protected:
-        nsresult Init(nsDeviceContextSpecGTK *);
+        virtual nsresult Init(nsDeviceContextSpecGTK *);
 
     private:
+        nsCString mCommand;
         nsCString mPrinterName;
 };
 
 
 
-
-
-
-class nsPrintJobCUPS : public nsPrintJobFileGTK {
+class nsPrintJobCUPS : public nsIPrintJobGTK {
     public:
-        nsresult StartSubmission(FILE **aHandle);
-        nsresult FinishSubmission();
-        nsresult SetNumCopies(int aNumCopies);
-        void SetJobTitle(const PRUnichar *aTitle);
+        virtual nsresult Submit();
+        virtual nsresult SetNumCopies(int aNumCopies);
+        virtual void SetJobTitle(const PRUnichar *aTitle);
 
     protected:
-        nsresult Init(nsDeviceContextSpecGTK *);
+        virtual nsresult Init(nsDeviceContextSpecGTK *);
 
     private:
         nsCUPSShim mCups;
         nsCString mPrinterName;
         nsCString mNumCopies;
         nsCString mJobTitle;        
+        nsCString mSpoolName;
 };
 
 #endif 

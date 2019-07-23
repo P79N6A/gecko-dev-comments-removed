@@ -39,9 +39,10 @@
 #ifndef nsIPrintJobGTK_h__
 #define nsIPrintJobGTK_h__
 
-#include <stdio.h>
+#include "nsCOMPtr.h"
 
 class nsDeviceContextSpecGTK;
+class nsILocalFile;
 
 
 
@@ -56,9 +57,6 @@ class nsDeviceContextSpecGTK;
 class nsIPrintJobGTK
 {
 public:
-    
-
-
     virtual ~nsIPrintJobGTK();
 
     
@@ -77,7 +75,8 @@ public:
 
 
 
-    virtual nsresult SetNumCopies(int aNumCopies) = 0;
+    virtual nsresult SetNumCopies(int aNumCopies)
+            { return NS_ERROR_NOT_IMPLEMENTED; }
 
     
 
@@ -104,7 +103,7 @@ public:
 
 
 
-    virtual nsresult StartSubmission(FILE **aHandle) = 0;
+    nsresult GetSpoolFile(nsILocalFile **aFile); 
 
     
 
@@ -118,7 +117,10 @@ public:
 
 
 
-    virtual nsresult FinishSubmission() = 0;
+
+
+
+    virtual nsresult Submit() = 0;
 
 protected:
     
@@ -128,7 +130,12 @@ protected:
 
 
 
+
+
     virtual nsresult Init(nsDeviceContextSpecGTK *aContext) = 0;
+    
+    
+    nsCOMPtr<nsILocalFile> mSpoolFile;
 };
 
 

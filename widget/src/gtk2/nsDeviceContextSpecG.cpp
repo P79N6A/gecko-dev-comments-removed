@@ -67,6 +67,7 @@
 #endif 
 
 #include "nsPrintJobFactoryGTK.h"
+#include "nsIPrintJobGTK.h"
 
 #include "nsIFileStreams.h"
 #include "nsILocalFile.h"
@@ -411,8 +412,12 @@ NS_IMETHODIMP nsDeviceContextSpecGTK::GetSurfaceForPrinter(gfxASurface **aSurfac
 
   printf("\"%s\", %d, %d\n", path, width, height);
 
-  nsCOMPtr<nsILocalFile> file = do_CreateInstance("@mozilla.org/file/local;1");
-  nsresult rv = file->InitWithPath(NS_ConvertUTF8toUTF16(path));
+  nsresult rv = nsPrintJobFactoryGTK::CreatePrintJob(this, mPrintJob);
+  if (NS_FAILED(rv))
+    return rv;
+
+  nsCOMPtr<nsILocalFile> file;
+  rv = mPrintJob->GetSpoolFile(getter_AddRefs(file));
   if (NS_FAILED(rv))
     return rv;
 
@@ -421,7 +426,6 @@ NS_IMETHODIMP nsDeviceContextSpecGTK::GetSurfaceForPrinter(gfxASurface **aSurfac
   if (NS_FAILED(rv))
     return rv;
 
-  nsPrintJobFactoryGTK::CreatePrintJob((this), mPrintJob);
 #ifdef USE_PDF
   gfxPDFSurface *surface = new gfxPDFSurface(stream, gfxSize(w, h));
 #else
@@ -434,17 +438,6 @@ NS_IMETHODIMP nsDeviceContextSpecGTK::GetSurfaceForPrinter(gfxASurface **aSurfac
 
   return NS_OK;
 }
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -700,24 +693,10 @@ NS_IMETHODIMP nsDeviceContextSpecGTK::BeginDocument(PRUnichar * aTitle, PRUnicha
 {
   return NS_OK;
 }
-#include <errno.h>
+
 NS_IMETHODIMP nsDeviceContextSpecGTK::EndDocument()
 {
-  if (mToPrinter) {
-    const char *path;
-    GetPath(&path);
-    FILE *src = fopen(path, "r");
-    FILE *dst;
-    mPrintJob->StartSubmission(&dst);
-    while(!feof(src)) {
-      char data[255] = {0};
-      size_t s = fread(data, 1, sizeof(data), src);
-      fwrite(data, 1, s, dst);
-    }
-    fclose(src);
-    mPrintJob->FinishSubmission();
-  }
-  return NS_OK;
+  return mPrintJob->Submit();
 }
 
 
