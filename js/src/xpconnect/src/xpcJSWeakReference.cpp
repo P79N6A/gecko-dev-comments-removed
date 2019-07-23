@@ -97,52 +97,29 @@ NS_IMETHODIMP
 xpcJSWeakReference::Get()
 {
     nsresult rv;
-
+    
     nsXPConnect* xpc = nsXPConnect::GetXPConnect();
-    if (!xpc)
-        return NS_ERROR_UNEXPECTED;
-
+    if (!xpc) return NS_ERROR_UNEXPECTED;
+    
     nsAXPCNativeCallContext* cc = nsnull;
     rv = xpc->GetCurrentNativeCallContext(&cc);
     NS_ENSURE_SUCCESS(rv, rv);
 
-    JSContext *cx;
-    cc->GetJSContext(&cx);
-    if (!cx)
-        return NS_ERROR_UNEXPECTED;
-
     jsval *retval = nsnull;
     cc->GetRetValPtr(&retval);
-    if (!retval)
-        return NS_ERROR_UNEXPECTED;
+    if (!retval) return NS_ERROR_UNEXPECTED;
     *retval = JSVAL_NULL;
-
+    
     nsCOMPtr<nsIXPConnectWrappedJS> wrappedObj;
-
+    
     if (mWrappedJSObject &&
         NS_SUCCEEDED(mWrappedJSObject->QueryReferent(NS_GET_IID(nsIXPConnectWrappedJS), getter_AddRefs(wrappedObj))) &&
         wrappedObj) {
         JSObject *obj;
         wrappedObj->GetJSObject(&obj);
         if (obj)
-        {
-            
-            
-            
-            
-            
-            
-            
-
-            if (obj->map->ops->thisObject &&
-                !(obj = obj->map->ops->thisObject(cx, obj)))
-            {
-                return NS_ERROR_FAILURE;
-            }
-
             *retval = OBJECT_TO_JSVAL(obj);
-        }
     }
-
+    
     return NS_OK;
 }
