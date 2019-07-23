@@ -58,6 +58,7 @@
 #include "nsIScriptGlobalObject.h"
 #include "nsIDOMEvent.h"
 #include "nsTArray.h"
+#include "nsTextFragment.h"
 
 struct nsNativeKeyEvent; 
 
@@ -98,6 +99,7 @@ class nsIPref;
 class nsVoidArray;
 struct JSRuntime;
 class nsICaseConversion;
+class nsIUGenCategory;
 class nsIWidget;
 class nsPIDOMWindow;
 #ifdef MOZ_XTF
@@ -366,8 +368,14 @@ public:
   
 
 
+  static PRBool IsPunctuationMark(PRUint32 aChar);
+  static PRBool IsPunctuationMarkAt(const nsTextFragment* aFrag, PRUint32 aOffset);
+ 
+  
 
-  static PRBool IsPunctuationMark(PRUnichar aChar);
+
+  static PRBool IsAlphanumeric(PRUint32 aChar);
+  static PRBool IsAlphanumericAt(const nsTextFragment* aFrag, PRUint32 aOffset);
 
   
 
@@ -575,6 +583,11 @@ public:
   static nsICaseConversion* GetCaseConv()
   {
     return sCaseConv;
+  }
+
+  static nsIUGenCategory* GetGenCat()
+  {
+    return sGenCat;
   }
 
   
@@ -1352,6 +1365,7 @@ private:
   static nsILineBreaker* sLineBreaker;
   static nsIWordBreaker* sWordBreaker;
   static nsICaseConversion* sCaseConv;
+  static nsIUGenCategory* sGenCat;
 
   
   static nsVoidArray* sPtrsToPtrsToRelease;

@@ -4993,6 +4993,28 @@ nsTextFrame::GetOffsets(PRInt32 &start, PRInt32 &end) const
   return NS_OK;
 }
 
+static PRInt32
+FindEndOfPunctuationRun(const nsTextFragment* aFrag,
+                        gfxTextRun* aTextRun,
+                        gfxSkipCharsIterator* aIter,
+                        PRInt32 aOffset,
+                        PRInt32 aStart,
+                        PRInt32 aEnd)
+{
+  PRInt32 i;
+
+  for (i = aStart; i < aEnd - aOffset; ++i) {
+    if (nsContentUtils::IsPunctuationMarkAt(aFrag, aOffset + i)) {
+      aIter->SetOriginalOffset(aOffset + i);
+      FindClusterEnd(aTextRun, aEnd, aIter);
+      i = aIter->GetOriginalOffset() - aOffset;
+    } else {
+      break;
+    }
+  }
+  return i;
+}
+
 
 
 
@@ -5012,28 +5034,36 @@ FindFirstLetterRange(const nsTextFragment* aFrag,
                      PRInt32 aOffset, const gfxSkipCharsIterator& aIter,
                      PRInt32* aLength)
 {
-  
   PRInt32 i;
   PRInt32 length = *aLength;
-  for (i = 0; i < length; ++i) {
-    if (!IsTrimmableSpace(aFrag, aOffset + i) &&
-        !nsContentUtils::IsPunctuationMark(aFrag->CharAt(aOffset + i)))
-      break;
-  }
+  PRInt32 endOffset = aOffset + length;
+  gfxSkipCharsIterator iter(aIter);
 
+  
+  i = FindEndOfPunctuationRun(aFrag, aTextRun, &iter, aOffset, 
+                              GetTrimmableWhitespaceCount(aFrag, aOffset, length, 1),
+                              endOffset);
   if (i == length)
     return PR_FALSE;
 
   
-  gfxSkipCharsIterator iter(aIter);
-  PRInt32 nextClusterStart;
-  for (nextClusterStart = i + 1; nextClusterStart < length; ++nextClusterStart) {
-    iter.SetOriginalOffset(aOffset + nextClusterStart);
-    if (iter.IsOriginalCharSkipped() ||
-        aTextRun->IsClusterStart(iter.GetSkippedOffset()))
-      break;
+  
+  if (!nsContentUtils::IsAlphanumericAt(aFrag, aOffset + i)) {
+    *aLength = 0;
+    return PR_TRUE;
   }
-  *aLength = nextClusterStart;
+
+  
+  iter.SetOriginalOffset(aOffset + i);
+  FindClusterEnd(aTextRun, endOffset, &iter);
+  i = iter.GetOriginalOffset() - aOffset;
+  if (i + 1 == length)
+    return PR_TRUE;
+
+  
+  i = FindEndOfPunctuationRun(aFrag, aTextRun, &iter, aOffset, i + 1, endOffset);
+  if (i < length)
+    *aLength = i;
   return PR_TRUE;
 }
 
@@ -5521,8 +5551,10 @@ nsTextFrame::Reflow(nsPresContext*           aPresContext,
   
   PRBool completedFirstLetter = PR_FALSE;
   if (lineLayout.GetFirstLetterStyleOK()) {
-    AddStateBits(TEXT_FIRST_LETTER);
     completedFirstLetter = FindFirstLetterRange(frag, mTextRun, offset, iter, &length);
+    if (length) {
+      AddStateBits(TEXT_FIRST_LETTER);
+    }
   }
 
   
