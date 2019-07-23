@@ -1619,11 +1619,20 @@ js_DestroyScript(JSContext *cx, JSScript *script)
 
 
 
+
+
+
+
+
+
+
+
+
 #ifdef CHECK_SCRIPT_OWNER
     JS_ASSERT_IF(cx->runtime->gcRunning, !script->owner);
 #endif
 
-    if (!cx->runtime->gcRunning) {
+    if (!cx->runtime->gcRegenShapes) {
         JSStackFrame *fp = js_GetTopStackFrame(cx);
 
         if (!(fp && (fp->flags & JSFRAME_EVAL))) {
@@ -1632,7 +1641,8 @@ js_DestroyScript(JSContext *cx, JSScript *script)
 #endif
             js_PurgePropertyCacheForScript(cx, script);
 #ifdef JS_TRACER
-            js_PurgeScriptFragments(cx, script);
+            if (!cx->runtime->gcRunning)
+                js_PurgeScriptFragments(cx, script);
 #endif
         }
     }
