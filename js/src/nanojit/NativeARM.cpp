@@ -1415,11 +1415,13 @@ Assembler::asm_ld(LInsp ins)
     
     if (op == LIR_ldcs) {
         LDRH(rr, d, ra);
+        return;
     }
 
     
     if (op == LIR_ldcb) {
         LDRB(rr, d, ra);
+        return;
     }
 
     NanoAssertMsg(0, "Unsupported instruction in asm_ld");
