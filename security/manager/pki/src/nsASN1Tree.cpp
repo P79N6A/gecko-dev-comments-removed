@@ -170,10 +170,12 @@ nsNSSASN1Tree::LoadASN1Structure(nsIASN1Object *asn1Object)
   if (redraw) {
     
     PRInt32 newRows = CountVisibleNodes(mTopNode);
+    mTree->BeginUpdateBatch();
     
     mTree->RowCountChanged(0, rowsToDelete);
     
     mTree->RowCountChanged(0, newRows);
+    mTree->EndUpdateBatch();
   }
 
   return NS_OK;
