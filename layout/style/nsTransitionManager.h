@@ -52,15 +52,18 @@ class nsCSSPropertySet;
 struct nsTransition;
 struct ElementTransitions;
 
-
-
-
-
 class nsTransitionManager : public nsIStyleRuleProcessor,
                             public nsARefreshObserver {
 public:
   nsTransitionManager(nsPresContext *aPresContext);
   ~nsTransitionManager();
+
+  
+
+
+  void Disconnect() {
+    mPresContext = nsnull;
+  }
 
   
 
@@ -82,7 +85,7 @@ public:
                         nsStyleContext *aNewStyleContext);
 
   
-  NS_DECL_ISUPPORTS_INHERITED
+  NS_DECL_ISUPPORTS
 
   
   NS_IMETHOD RulesMatching(ElementRuleProcessorData* aData);
@@ -120,7 +123,7 @@ private:
 			      nsCSSPseudoElements::Type aPseudoType);
 
   PRCList mElementTransitions;
-  nsPresContext *mPresContext;
+  nsPresContext *mPresContext; 
 };
 
 #endif 
