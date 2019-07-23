@@ -37,6 +37,8 @@
 
 #include "nscore.h"
 
+class nsIAtom;
+
 
 
 
@@ -112,4 +114,4 @@ const PRUint8   kRangeTertiaryTable  = 145;
 
 
 PRUint32 FindCharUnicodeRange(PRUnichar ch);
-const char* LangGroupFromUnicodeRange(PRUint8 unicodeRange);
+nsIAtom* LangGroupFromUnicodeRange(PRUint8 unicodeRange);

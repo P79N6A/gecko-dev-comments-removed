@@ -60,6 +60,7 @@
 #include "gfxFT2Utils.h"
 #include "gfxFontconfigUtils.h"
 #include "gfxUserFontSet.h"
+#include "gfxAtoms.h"
 
 #include <freetype/tttables.h>
 
@@ -97,6 +98,7 @@ int moz_pango_units_from_double(double d) {
 }
 
 static PangoLanguage *GuessPangoLanguage(const nsACString& aLangGroup);
+static PangoLanguage *GuessPangoLanguage(nsIAtom *aLangGroup);
 
 static cairo_scaled_font_t *CreateScaledFont(FcPattern *aPattern);
 
@@ -1905,7 +1907,7 @@ gfxPangoFontGroup::Copy(const gfxFontStyle *aStyle)
 
 void
 gfxPangoFontGroup::GetFcFamilies(nsTArray<nsString> *aFcFamilyList,
-                                 const nsACString& aLanguage)
+                                 nsIAtom *aLanguage)
 {
     FamilyCallbackData data(aFcFamilyList, mUserFontSet);
     
@@ -1962,24 +1964,19 @@ gfxPangoFontGroup::MakeFontSet(PangoLanguage *aLang, gfxFloat aSizeAdjustFactor,
 {
     const char *lang = pango_language_to_string(aLang);
 
-    const char *langGroup = nsnull;
+    nsIAtom *langGroup = nsnull;
     if (aLang != mPangoLanguage) {
         
         if (!gLangService) {
             CallGetService(NS_LANGUAGEATOMSERVICE_CONTRACTID, &gLangService);
         }
         if (gLangService) {
-            nsIAtom *atom =
-                gLangService->LookupLanguage(NS_ConvertUTF8toUTF16(lang));
-            if (atom) {
-                atom->GetUTF8String(&langGroup);
-            }
+            langGroup = gLangService->LookupLanguage(NS_ConvertUTF8toUTF16(lang));
         }
     }
 
     nsAutoTArray<nsString, 20> fcFamilyList;
-    GetFcFamilies(&fcFamilyList,
-                  langGroup ? nsDependentCString(langGroup) : mStyle.language);
+    GetFcFamilies(&fcFamilyList, langGroup ? langGroup : mStyle.language);
 
     
 
@@ -2208,7 +2205,7 @@ gfxFcFont::GetOrMakeFont(FcPattern *aPattern)
         
         
         
-        NS_NAMED_LITERAL_CSTRING(language, "en"); 
+        nsIAtom *language = gfxAtoms::en; 
         
         gfxFontStyle fontStyle(style, weight, NS_FONT_STRETCH_NORMAL,
                                size, language, 0.0,
@@ -3115,6 +3112,17 @@ GuessPangoLanguage(const nsACString& aLangGroup)
         return NULL;
 
     return pango_language_from_string(lang.get());
+}
+
+PangoLanguage *
+GuessPangoLanguage(nsIAtom *aLangGroup)
+{
+    if (!aLangGroup)
+        return NULL;
+
+    nsCAutoString lg;
+    aLangGroup->ToUTF8String(lg);
+    return GuessPangoLanguage(lg);
 }
 
 #ifdef MOZ_WIDGET_GTK2

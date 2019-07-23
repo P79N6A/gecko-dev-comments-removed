@@ -63,6 +63,7 @@ class gfxProxyFontEntry;
 class gfxPlatformFontList;
 class gfxTextRun;
 class nsIURI;
+class nsIAtom;
 
 
 
@@ -158,7 +159,7 @@ public:
 
 
 
-    virtual nsresult GetFontList(const nsACString& aLangGroup,
+    virtual nsresult GetFontList(nsIAtom *aLangGroup,
                                  const nsACString& aGenericFamily,
                                  nsTArray<nsString>& aListOfFonts);
 
@@ -232,7 +233,7 @@ public:
     
     virtual PRBool IsFontFormatSupported(nsIURI *aFontURI, PRUint32 aFormatFlags) { return PR_FALSE; }
 
-    void GetPrefFonts(const char *aLanguage, nsString& array, PRBool aAppendUnicode = PR_TRUE);
+    void GetPrefFonts(nsIAtom *aLanguage, nsString& array, PRBool aAppendUnicode = PR_TRUE);
 
     
     void GetLangPrefs(eFontPrefLang aPrefLangs[], PRUint32 &aLen, eFontPrefLang aCharLang, eFontPrefLang aPageLang);
@@ -250,6 +251,9 @@ public:
 
     
     static eFontPrefLang GetFontPrefLangFor(const char* aLang);
+
+    
+    static eFontPrefLang GetFontPrefLangFor(nsIAtom *aLang);
 
     
     static const char* GetPrefLangName(eFontPrefLang aLang);

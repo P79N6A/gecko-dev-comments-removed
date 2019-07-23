@@ -150,7 +150,7 @@ protected:
 #endif
 
     void GetFcFamilies(nsTArray<nsString> *aFcFamilyList,
-                       const nsACString& aLanguage);
+                       nsIAtom *aLanguage);
 
     
     
