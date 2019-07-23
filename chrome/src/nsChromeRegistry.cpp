@@ -1039,17 +1039,11 @@ nsresult nsChromeRegistry::RefreshWindow(nsIDOMWindowInternal* aWindow,
   
   
   for (i = 0; i < count; i++) {
-    nsCOMPtr<nsIStyleSheet> sheet = oldSheets[i];
-    nsCOMPtr<nsIURI> uri;
-    rv = sheet->GetSheetURI(getter_AddRefs(uri));
-    if (NS_FAILED(rv)) return rv;
+    nsCOMPtr<nsICSSStyleSheet> sheet = do_QueryInterface(oldSheets[i]);
+    nsIURI* uri = sheet ? sheet->GetOriginalURI() : nsnull;
 
-    if (IsChromeURI(uri)) {
+    if (uri && IsChromeURI(uri)) {
       
-#ifdef DEBUG
-      nsCOMPtr<nsICSSStyleSheet> oldCSSSheet = do_QueryInterface(sheet);
-      NS_ASSERTION(oldCSSSheet, "Don't know how to reload a non-CSS sheet");
-#endif
       nsCOMPtr<nsICSSStyleSheet> newSheet;
       
       
