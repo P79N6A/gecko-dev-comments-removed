@@ -599,7 +599,7 @@ nsListControlFrame::Reflow(nsPresContext*           aPresContext,
   PRInt32 length = GetNumberOfOptions();  
 
   nscoord oldHeightOfARow = HeightOfARow();
-  
+
   if (!(GetStateBits() & NS_FRAME_FIRST_REFLOW) && autoHeight) {
     
     
@@ -615,8 +615,27 @@ nsListControlFrame::Reflow(nsPresContext*           aPresContext,
   if (!mMightNeedSecondPass) {
     NS_ASSERTION(!autoHeight || HeightOfARow() == oldHeightOfARow,
                  "How did our height of a row change if nothing was dirty?");
+    NS_ASSERTION(!autoHeight ||
+                 !(GetStateBits() & NS_FRAME_FIRST_REFLOW),
+                 "How do we not need a second pass during initial reflow at "
+                 "auto height?");
     NS_ASSERTION(!IsScrollbarUpdateSuppressed(),
                  "Shouldn't be suppressing if we don't need a second pass!");
+    if (!autoHeight) {
+      
+      
+      
+      
+      
+      nscoord rowHeight = CalcHeightOfARow();
+      if (rowHeight == 0) {
+        
+        mNumDisplayRows = 1;
+      } else {
+        mNumDisplayRows = NS_MAX(1, state.ComputedHeight() / rowHeight);
+      }
+    }
+
     return rv;
   }
 
