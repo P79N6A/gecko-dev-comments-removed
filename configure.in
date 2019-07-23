@@ -4065,7 +4065,7 @@ MOZ_BRANDING_DIRECTORY=
 MOZ_CALENDAR=
 MOZ_DBGRINFO_MODULES=
 MOZ_ENABLE_CANVAS=1
-MOZ_EXTENSIONS_ALL=" wallet help p3p venkman inspector irc typeaheadfind gnomevfs sroaming datetime finger cview layout-debug tasks sql xforms schema-validation reporter"
+MOZ_EXTENSIONS_ALL=" wallet xml-rpc help p3p venkman inspector irc typeaheadfind gnomevfs sroaming datetime finger cview layout-debug tasks sql xforms schema-validation reporter"
 MOZ_FEEDS=1
 MOZ_IMG_DECODERS_DEFAULT="png gif jpeg bmp xbm icon"
 MOZ_IMG_ENCODERS_DEFAULT="png jpeg"
@@ -4119,6 +4119,8 @@ MOZ_URL_CLASSIFIER=
 MOZ_USE_NATIVE_UCONV=
 MOZ_V1_STRING_ABI=1
 MOZ_VIEW_SOURCE=1
+MOZ_WEBSERVICES=1
+MOZ_XMLEXTRAS=1
 MOZ_XPFE_COMPONENTS=1
 MOZ_XPINSTALL=1
 MOZ_XSLT_STANDALONE=
@@ -4324,9 +4326,9 @@ suite)
   MOZ_PROFILESHARING=
   MOZ_APP_VERSION=$SEAMONKEY_VERSION
   if test "$MOZ_XUL_APP"; then
-    MOZ_EXTENSIONS_DEFAULT=" wallet p3p venkman inspector irc typeaheadfind gnomevfs sroaming reporter"
+    MOZ_EXTENSIONS_DEFAULT=" wallet xml-rpc p3p venkman inspector irc typeaheadfind gnomevfs sroaming reporter"
   else
-    MOZ_EXTENSIONS_DEFAULT=" wallet help p3p venkman inspector irc typeaheadfind gnomevfs sroaming reporter"
+    MOZ_EXTENSIONS_DEFAULT=" wallet xml-rpc help p3p venkman inspector irc typeaheadfind gnomevfs sroaming reporter"
   fi
   AC_DEFINE(MOZ_SUITE)
   ;;
@@ -4343,7 +4345,7 @@ browser)
   MOZ_SAFE_BROWSING=1
   MOZ_APP_VERSION=$FIREFOX_VERSION
   MOZ_NO_XPCOM_OBSOLETE=1
-  MOZ_EXTENSIONS_DEFAULT=" inspector gnomevfs reporter"
+  MOZ_EXTENSIONS_DEFAULT=" xml-rpc inspector gnomevfs reporter"
   AC_DEFINE(MOZ_PHOENIX)
   # MOZ_APP_DISPLAYNAME will be set by branding/configure.sh
   ;;
@@ -4429,7 +4431,7 @@ xulrunner)
   if test "$MOZ_STORAGE"; then
     MOZ_PLACES=1
   fi
-  MOZ_EXTENSIONS_DEFAULT=" gnomevfs"
+  MOZ_EXTENSIONS_DEFAULT=" xml-rpc gnomevfs"
   MOZ_NO_XPCOM_OBSOLETE=1
   AC_DEFINE(MOZ_XULRUNNER)
 
@@ -4450,6 +4452,7 @@ camino)
   MOZ_EXTENSIONS_DEFAULT=" typeaheadfind"
 # MOZ_XUL_APP=1
   MOZ_PREF_EXTENSIONS=
+  MOZ_WEBSERVICES=
   AC_DEFINE(MOZ_MACBROWSER)
   ;;
 
@@ -4612,16 +4615,6 @@ cairo-os2)
     TK_LIBS='$(MOZ_CAIRO_LIBS)'
     ;;
 
-cairo-xlib)
-    MOZ_WIDGET_TOOLKIT=xlib
-    MOZ_GFX_TOOLKIT=cairo
-    MOZ_ENABLE_CAIRO_GFX=1
-	MOZ_ENABLE_XLIB=1
-	TK_CFLAGS='$(MOZ_XLIB_CFLAGS) $(MOZ_CAIRO_FLAGS)'
-	TK_LIBS='$(MOZ_XLIB_LDFLAGS) $(MOZ_CAIRO_LIBS)'
-	AC_DEFINE(MOZ_WIDGET_XLIB)
-    ;;
-
 cairo-mac|cairo-cocoa)
     if test "$MOZ_WIDGET_TOOLKIT" = "cairo-cocoa"; then
         MOZ_WIDGET_TOOLKIT=cocoa
@@ -4648,25 +4641,9 @@ if test "$MOZ_ENABLE_XREMOTE"; then
 fi
 
 if test "$COMPILE_ENVIRONMENT"; then
-if test "$MOZ_ENABLE_GTK"
-then
-    AM_PATH_GTK($GTK_VERSION,,
-    AC_MSG_ERROR(Test for GTK failed.))
-
-    MOZ_GTK_LDFLAGS=$GTK_LIBS
-    MOZ_GTK_CFLAGS=$GTK_CFLAGS
-fi
-
 if test "$MOZ_ENABLE_GTK2"
 then
     PKG_CHECK_MODULES(MOZ_GTK2, gtk+-2.0 >= 1.3.7 gdk-x11-2.0 glib-2.0 gobject-2.0)
-fi
-
-if test "$MOZ_ENABLE_XLIB"
-then
-    MOZ_XLIB_CFLAGS="$X_CFLAGS"
-    MOZ_XLIB_LDFLAGS="$XLDFLAGS"
-    MOZ_XLIB_LDFLAGS="$MOZ_XLIB_LDFLAGS $XEXT_LIBS $X11_LIBS"
 fi
 
 if test "$MOZ_ENABLE_QT"
@@ -4780,8 +4757,6 @@ AC_SUBST(GTK_CONFIG)
 AC_SUBST(TK_CFLAGS)
 AC_SUBST(TK_LIBS)
 
-AC_SUBST(MOZ_ENABLE_GTK)
-AC_SUBST(MOZ_ENABLE_XLIB)
 AC_SUBST(MOZ_ENABLE_GTK2)
 AC_SUBST(MOZ_ENABLE_QT)
 AC_SUBST(MOZ_ENABLE_PHOTON)
@@ -4789,12 +4764,8 @@ AC_SUBST(MOZ_ENABLE_COCOA)
 AC_SUBST(MOZ_ENABLE_CAIRO_GFX)
 AC_SUBST(MOZ_ENABLE_GLITZ)
 AC_SUBST(MOZ_ENABLE_XREMOTE)
-AC_SUBST(MOZ_GTK_CFLAGS)
-AC_SUBST(MOZ_GTK_LDFLAGS)
 AC_SUBST(MOZ_GTK2_CFLAGS)
 AC_SUBST(MOZ_GTK2_LIBS)
-AC_SUBST(MOZ_XLIB_CFLAGS)
-AC_SUBST(MOZ_XLIB_LDFLAGS)
 AC_SUBST(MOZ_QT_CFLAGS)
 AC_SUBST(MOZ_QT_LDFLAGS)
 
@@ -4806,9 +4777,7 @@ then
     AC_DEFINE(MOZ_CAIRO_GFX)
 fi
 
-if test "$MOZ_ENABLE_GTK" \
-|| test "$MOZ_ENABLE_QT" \
-|| test "$MOZ_ENABLE_XLIB" \
+if test "$MOZ_ENABLE_QT" \
 || test "$MOZ_ENABLE_GTK2"
 then
     AC_DEFINE(MOZ_X11)
@@ -5234,9 +5203,8 @@ dnl = those converters are not built on other platforms/toolkits.
 dnl = (see bug 180851)
 dnl ========================================================
 
-if (test "$MOZ_ENABLE_GTK"  || test "$MOZ_ENABLE_GTK2") \
+if test "$MOZ_ENABLE_GTK2" \
 && test "$MOZ_ENABLE_COREXFONTS" \
-|| test "$MOZ_ENABLE_XLIB" \
 || test "$MOZ_ENABLE_XPRINT" 
 then
     AC_DEFINE(MOZ_EXTRA_X11CONVERTERS)
@@ -5496,6 +5464,22 @@ MOZ_ARG_DISABLE_BOOL(inspector-apis,
     MOZ_NO_INSPECTOR_APIS= )
 
 dnl ========================================================
+dnl XMLExtras
+dnl ========================================================
+MOZ_ARG_DISABLE_BOOL(xmlextras,
+[  --disable-xmlextras Disable XMLExtras such as XPointer support ],
+    MOZ_XMLEXTRAS=,
+    MOZ_XMLEXTRAS=1 )
+
+dnl ========================================================
+dnl Webservices
+dnl ========================================================
+MOZ_ARG_DISABLE_BOOL(webservices,
+[  --disable-webservices Disable Webservices/SOAP support ],
+    MOZ_WEBSERVICES=,
+    MOZ_WEBSERVICES=1 )
+
+dnl ========================================================
 dnl Pref extensions (autoconfig and system-pref)
 dnl ========================================================
 MOZ_ARG_DISABLE_BOOL(pref-extensions,
@@ -5671,9 +5655,19 @@ if test `echo "$MOZ_EXTENSIONS" | grep -c auth` -ne 0; then
     MOZ_EXTENSIONS=`echo $MOZ_EXTENSIONS | sed -e 's|auth||g'`
 fi
 
+if test `echo "$MOZ_EXTENSIONS" | grep -c xmlextras` -ne 0; then
+    AC_MSG_WARN([xmlextras is no longer an extension, use --disable-xmlextras to disable.])
+    MOZ_EXTENSIONS=`echo $MOZ_EXTENSIONS | sed -e 's|xmlextras||g'`
+fi
+
 if test `echo "$MOZ_EXTENSIONS" | grep -c 'cookie\|permissions'` -ne 0; then
     AC_MSG_WARN([cookie and permissions are no longer extensions, use --disable-permissions to disable.])
     MOZ_EXTENSIONS=`echo $MOZ_EXTENSIONS | sed -e 's|cookie||g; s|permissions||g'`
+fi
+
+if test `echo "$MOZ_EXTENSIONS" | grep -c webservices` -ne 0; then
+    AC_MSG_WARN([webservices is no longer an extension, use --disable-webservices to disable.])
+    MOZ_EXTENSIONS=`echo $MOZ_EXTENSIONS | sed -e 's|webservices||g'`
 fi
 
 if test `echo "$MOZ_EXTENSIONS" | grep -c pref` -ne 0; then
@@ -7010,9 +7004,6 @@ then
     if test "$MOZ_ENABLE_GTK2"; then
         PKG_CHECK_MODULES(LIBIDL, libIDL-2.0 >= 0.8.0 glib-2.0 gobject-2.0, _LIBIDL_FOUND=1,_LIBIDL_FOUND=)
     fi
-    if test "$MOZ_ENABLE_GTK"; then
-        AM_PATH_LIBIDL($LIBIDL_VERSION,_LIBIDL_FOUND=1)
-    fi
     dnl if no gtk/libIDL1 or gtk2/libIDL2 combination was found, fall back
     dnl to either libIDL1 or libIDL2.
     if test -z "$_LIBIDL_FOUND"; then
@@ -7583,7 +7574,9 @@ AC_SUBST(MOZ_AUTH_EXTENSION)
 AC_SUBST(MOZ_MATHML)
 AC_SUBST(MOZ_PERMISSIONS)
 AC_SUBST(MOZ_XTF)
+AC_SUBST(MOZ_XMLEXTRAS)
 AC_SUBST(MOZ_NO_INSPECTOR_APIS)
+AC_SUBST(MOZ_WEBSERVICES)
 AC_SUBST(MOZ_PREF_EXTENSIONS)
 AC_SUBST(MOZ_SVG)
 AC_SUBST(MOZ_SVG_FOREIGNOBJECT)
