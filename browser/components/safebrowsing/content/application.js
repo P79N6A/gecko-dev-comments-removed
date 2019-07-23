@@ -84,6 +84,7 @@ function PROT_Application() {
   
   this.PROT_Controller = PROT_Controller;
   this.PROT_PhishingWarden = PROT_PhishingWarden;
+  this.PROT_MalwareWarden = PROT_MalwareWarden;
 
   
   gDataProvider = new PROT_DataProvider();
