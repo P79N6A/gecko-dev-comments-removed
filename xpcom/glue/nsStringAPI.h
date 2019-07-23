@@ -42,6 +42,7 @@
 
 
 
+
 #ifdef MOZILLA_INTERNAL_API
 #error nsStringAPI.h is only usable from non-MOZILLA_INTERNAL_API code!
 #endif
@@ -295,6 +296,46 @@ public:
   { return Find(aStr, 0, aIgnoreCase); }
 
   NS_HIDDEN_(PRInt32) Find(const char *aStr, PRUint32 aOffset, PRBool aIgnoreCase = PR_FALSE) const;
+
+  
+
+
+
+
+
+  NS_HIDDEN_(PRInt32) RFind(const self_type& aStr,
+                            ComparatorFunc c = DefaultComparator) const
+  { return RFind(aStr, -1, c); }
+
+  
+
+
+
+
+
+
+
+  NS_HIDDEN_(PRInt32) RFind(const self_type& aStr, PRInt32 aOffset,
+                            ComparatorFunc c = DefaultComparator) const;
+
+  
+
+
+
+
+
+  NS_HIDDEN_(PRInt32) RFind(const char *aStr, PRBool aIgnoreCase = PR_FALSE) const
+  { return RFind(aStr, -1, aIgnoreCase); }
+
+  
+
+
+
+
+
+
+
+  NS_HIDDEN_(PRInt32) RFind(const char *aStr, PRInt32 aOffset, PRBool aIgnoreCase) const;
 
   
 
@@ -580,6 +621,47 @@ public:
 
   NS_HIDDEN_(PRInt32) Find(const char_type *aStr, PRUint32 aLen,
                            ComparatorFunc c = DefaultComparator) const;
+
+  
+
+
+
+
+
+  NS_HIDDEN_(PRInt32) RFind(const self_type& aStr,
+                            ComparatorFunc c = DefaultComparator) const
+  { return RFind(aStr, -1, c); }
+
+  
+
+
+
+
+
+
+
+  NS_HIDDEN_(PRInt32) RFind(const self_type& aStr, PRInt32 aOffset,
+                            ComparatorFunc c = DefaultComparator) const;
+
+  
+
+
+
+
+
+  NS_HIDDEN_(PRInt32) RFind(const char_type *aStr,
+                            ComparatorFunc c = DefaultComparator) const;
+
+  
+
+
+
+
+
+
+
+  NS_HIDDEN_(PRInt32) RFind(const char_type *aStr, PRInt32 aLen,
+                            ComparatorFunc c = DefaultComparator) const;
 
   
 
