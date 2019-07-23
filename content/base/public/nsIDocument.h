@@ -97,8 +97,8 @@ class nsFrameLoader;
 
 
 #define NS_IDOCUMENT_IID      \
-{ 0xaa79d9ba, 0x73a3, 0x42af, \
-  { 0xad, 0xb0, 0x3a, 0x57, 0xe1, 0x8d, 0xa8, 0xa2 } }
+{ 0x680f5dac, 0x8863, 0x4c80, \
+  { 0xbb, 0xe4, 0x21, 0x35, 0xbd, 0x8f, 0x83, 0x9a } }
 
 
 #define NS_STYLESHEET_FROM_CATALOG                (1 << 0)
@@ -789,7 +789,13 @@ public:
 
   virtual void Destroy() = 0;
 
-  virtual void SaveState() = 0;
+  
+
+
+
+
+
+  virtual void RemovedFromDocShell() = 0;
   
   
 

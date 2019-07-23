@@ -2553,7 +2553,10 @@ nsDocument::GetScriptGlobalObject() const
    
    
 
-   if (mIsGoingAway) {
+   
+   
+   
+   if (mRemovedFromDocShell) {
      nsCOMPtr<nsIInterfaceRequestor> requestor =
        do_QueryReferent(mDocumentContainer);
      if (requestor) {
@@ -5580,7 +5583,7 @@ nsDocument::Destroy()
 
   mIsGoingAway = PR_TRUE;
 
-  SaveState();
+  RemovedFromDocShell();
 
   PRUint32 i, count = mChildren.ChildCount();
   for (i = 0; i < count; ++i) {
@@ -5600,12 +5603,12 @@ nsDocument::Destroy()
 }
 
 void
-nsDocument::SaveState()
+nsDocument::RemovedFromDocShell()
 {
-  if (mSavedState)
+  if (mRemovedFromDocShell)
     return;
 
-  mSavedState = PR_TRUE;
+  mRemovedFromDocShell = PR_TRUE;
 
   PRUint32 i, count = mChildren.ChildCount();
   for (i = 0; i < count; ++i) {
