@@ -218,12 +218,20 @@ YearFromTime(jsdouble t)
 
 
 
-static jsdouble firstDayOfMonth[2][12] = {
-    {0.0, 31.0, 59.0, 90.0, 120.0, 151.0, 181.0, 212.0, 243.0, 273.0, 304.0, 334.0},
-    {0.0, 31.0, 60.0, 91.0, 121.0, 152.0, 182.0, 213.0, 244.0, 274.0, 305.0, 335.0}
+static jsdouble firstDayOfMonth[2][13] = {
+    {0.0, 31.0, 59.0, 90.0, 120.0, 151.0, 181.0, 212.0, 243.0, 273.0, 304.0, 334.0, 365.0},
+    {0.0, 31.0, 60.0, 91.0, 121.0, 152.0, 182.0, 213.0, 244.0, 274.0, 305.0, 335.0, 366.0}
 };
 
-#define DayFromMonth(m, leap) firstDayOfMonth[leap][(intN)m];
+#define DayFromMonth(m, leap) firstDayOfMonth[leap][(intN)m]
+
+static intN
+DaysInMonth(jsint year, jsint month)
+{
+    JSBool leap = (DaysInYear(year) == 366);
+    intN result = DayFromMonth(month, leap) - DayFromMonth(month-1, leap);
+    return result;
+}
 
 static intN
 MonthFromTime(jsdouble t)
@@ -626,6 +634,258 @@ date_UTC(JSContext *cx, uintN argc, jsval *vp)
     return js_NewNumberInRootedValue(cx, msec_time, vp);
 }
 
+
+
+
+
+
+
+
+static JSBool
+digits(size_t *result, const jschar *s, size_t *i, size_t limit)
+{
+    size_t init = *i;
+    *result = 0;
+    while (*i < limit && 
+           ('0' <= s[*i] && s[*i] <= '9')) {
+        *result *= 10;
+        *result += (s[*i] - '0');
+        ++(*i);
+    }
+    return (*i != init);
+}
+
+
+
+
+
+
+
+
+
+static JSBool
+fractional(jsdouble *result, const jschar *s, size_t *i, size_t limit)
+{
+    jsdouble factor = 0.1;
+    size_t init = *i;
+    *result = 0.0;
+    while (*i < limit && 
+           ('0' <= s[*i] && s[*i] <= '9')) {
+        *result += (s[*i] - '0') * factor;
+        factor *= 0.1;
+        ++(*i);
+    }
+    return (*i != init);
+}
+
+
+
+
+
+
+
+
+static JSBool
+ndigits(size_t n, size_t *result, const jschar *s, size_t* i, size_t limit)
+{
+    size_t init = *i;
+
+    if (digits(result, s, i, JS_MIN(limit, init+n)))
+        return ((*i - init) == n);
+    
+    *i = init;
+    return JS_FALSE;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+static JSBool
+date_parseISOString(JSString *str, jsdouble *result)
+{
+    jsdouble msec;
+
+    const jschar *s;
+    size_t limit;
+    size_t i = 0;
+    int tzMul = 1;
+    int dateMul = 1;
+    size_t year = 1970;
+    size_t month = 1;
+    size_t day = 1;
+    size_t hour = 0;
+    size_t min = 0;
+    size_t sec = 0;
+    jsdouble frac = 0;
+    bool isLocalTime = JS_FALSE;
+    size_t tzHour = 0;
+    size_t tzMin = 0;
+
+#define PEEK(ch) (i < limit && s[i] == ch)
+
+#define NEED(ch)                                                     \
+    JS_BEGIN_MACRO                                                   \
+        if (i >= limit || s[i] != ch) { goto syntax; } else { ++i; } \
+    JS_END_MACRO 
+
+#define DONE_DATE_UNLESS(ch)                                            \
+    JS_BEGIN_MACRO                                                      \
+        if (i >= limit || s[i] != ch) { goto done_date; } else { ++i; } \
+    JS_END_MACRO 
+
+#define DONE_UNLESS(ch)                                            \
+    JS_BEGIN_MACRO                                                 \
+        if (i >= limit || s[i] != ch) { goto done; } else { ++i; } \
+    JS_END_MACRO 
+
+#define NEED_NDIGITS(n, field)                                      \
+    JS_BEGIN_MACRO                                                  \
+        if (!ndigits(n, &field, s, &i, limit)) { goto syntax; }     \
+    JS_END_MACRO 
+
+    str->getCharsAndLength(s, limit);
+
+    if (PEEK('+') || PEEK('-')) {
+        if (PEEK('-'))
+            dateMul = -1;
+        ++i;
+        NEED_NDIGITS(6, year);
+    } else if (!PEEK('T')) {
+        NEED_NDIGITS(4, year);
+    }
+    DONE_DATE_UNLESS('-');
+    NEED_NDIGITS(2, month);
+    DONE_DATE_UNLESS('-');
+    NEED_NDIGITS(2, day);
+
+ done_date:
+    DONE_UNLESS('T');
+    NEED_NDIGITS(2, hour);
+    NEED(':');
+    NEED_NDIGITS(2, min);
+
+    if (PEEK(':')) {
+        ++i;
+        NEED_NDIGITS(2, sec);
+        if (PEEK('.')) {
+            ++i;
+            if (!fractional(&frac, s, &i, limit))
+                goto syntax;
+        }
+    }
+
+    if (PEEK('Z')) {
+        ++i;
+    } else if (PEEK('+') || PEEK('-')) {
+        if (PEEK('-'))
+            tzMul = -1;
+        ++i;
+        NEED_NDIGITS(2, tzHour);
+        NEED(':');
+        NEED_NDIGITS(2, tzMin);
+    } else {
+        isLocalTime = JS_TRUE;
+    }
+
+ done:
+    if (year > 275943 
+        || (month == 0 || month > 12)
+        || (day == 0 || day > DaysInMonth(year,month))
+        || hour > 24 
+        || ((hour == 24) && (min > 0 || sec > 0))
+        || min > 59 
+        || sec > 59
+        || tzHour > 23
+        || tzMin > 59) 
+        goto syntax;
+
+    if (i != limit)
+        goto syntax;
+
+    month -= 1; 
+
+    msec = date_msecFromDate(dateMul * (jsdouble)year, month, day,
+                             hour, min, sec,
+                             frac * 1000.0);;
+
+    if (isLocalTime) {
+        msec = UTC(msec);
+    } else {
+        msec -= ((tzMul) * ((tzHour * msPerHour) 
+                            + (tzMin * msPerMinute)));
+    }
+
+    if (msec < -8.64e15 || msec > 8.64e15)
+        goto syntax;
+
+    *result = msec;
+
+    return JS_TRUE;
+
+ syntax:
+    
+    *result = 0;
+    return JS_FALSE;
+
+#undef PEEK
+#undef NEED
+#undef DONE_UNLESS
+#undef NEED_NDIGITS
+}
+
 static JSBool
 date_parseString(JSString *str, jsdouble *result)
 {
@@ -647,6 +907,9 @@ date_parseString(JSString *str, jsdouble *result)
     JSBool seenplusminus = JS_FALSE;
     int temp;
     JSBool seenmonthname = JS_FALSE;
+
+    if (date_parseISOString(str, result))
+        return JS_TRUE;
 
     str->getCharsAndLength(s, limit);
     if (limit == 0)
@@ -876,16 +1139,15 @@ date_parseString(JSString *str, jsdouble *result)
         min = 0;
     if (hour < 0)
         hour = 0;
-    if (tzoffset == -1) { 
-        jsdouble msec_time;
-        msec_time = date_msecFromDate(year, mon, mday, hour, min, sec, 0);
-
-        *result = UTC(msec_time);
-        return JS_TRUE;
-    }
 
     msec = date_msecFromDate(year, mon, mday, hour, min, sec, 0);
-    msec += tzoffset * msPerMinute;
+
+    if (tzoffset == -1) { 
+        msec = UTC(msec);
+    } else {
+        msec += tzoffset * msPerMinute;
+    }
+
     *result = msec;
     return JS_TRUE;
 
