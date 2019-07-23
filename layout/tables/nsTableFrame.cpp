@@ -1537,14 +1537,12 @@ nsTableFrame::SetColumnDimensions(nscoord         aHeight,
 
 
 
-static void
-ProcessRowInserted(nsTableFrame&   aTableFrame,
-                   PRBool          aInvalidate,
-                   nscoord         aNewHeight)
+void
+nsTableFrame::ProcessRowInserted(nscoord aNewHeight)
 {
-  aTableFrame.SetRowInserted(PR_FALSE); 
+  SetRowInserted(PR_FALSE); 
   nsTableFrame::RowGroupArray rowGroups;
-  aTableFrame.OrderRowGroups(rowGroups);
+  OrderRowGroups(rowGroups);
   
   for (PRUint32 rgX = 0; rgX < rowGroups.Length(); rgX++) {
     nsTableRowGroupFrame* rgFrame = rowGroups[rgX];
@@ -1556,15 +1554,13 @@ ProcessRowInserted(nsTableFrame&   aTableFrame,
         nsTableRowFrame* rowFrame = (nsTableRowFrame*)childFrame;
         if (rowFrame->IsFirstInserted()) {
           rowFrame->SetFirstInserted(PR_FALSE);
-          if (aInvalidate) {
-            
-            nscoord damageY = rgFrame->GetPosition().y + rowFrame->GetPosition().y;
-            nsRect damageRect(0, damageY,
-                              aTableFrame.GetSize().width, aNewHeight - damageY);
+          
+          nscoord damageY = rgFrame->GetPosition().y + rowFrame->GetPosition().y;
+          nsRect damageRect(0, damageY, GetSize().width, aNewHeight - damageY);
 
-            aTableFrame.Invalidate(damageRect);
-            aTableFrame.SetRowInserted(PR_FALSE);
-          }
+          Invalidate(damageRect);
+          
+          SetRowInserted(PR_FALSE);
           return; 
         }
       }
@@ -1933,7 +1929,7 @@ NS_METHOD nsTableFrame::Reflow(nsPresContext*          aPresContext,
     CalcDesiredHeight(aReflowState, aDesiredSize); 
   }
   if (IsRowInserted()) {
-    ProcessRowInserted(*this, PR_TRUE, aDesiredSize.height);
+    ProcessRowInserted(aDesiredSize.height);
   }
 
   nsMargin borderPadding = GetChildAreaOffset(&aReflowState);
@@ -1953,18 +1949,7 @@ NS_METHOD nsTableFrame::Reflow(nsPresContext*          aPresContext,
   }
   aDesiredSize.mOverflowArea.UnionRect(aDesiredSize.mOverflowArea, tableRect);
   
-  
-  
-  if (reflowedChildren) {
-    nsRect damage(0, 0, PR_MAX(mRect.width, aDesiredSize.width),
-                  PR_MAX(mRect.height, aDesiredSize.height));
-    damage.UnionRect(damage, aDesiredSize.mOverflowArea);
-    nsRect* oldOverflowArea = GetOverflowAreaProperty();
-    if (oldOverflowArea) {
-      damage.UnionRect(damage, *oldOverflowArea);
-    }
-    Invalidate(damage);
-  } else {
+  if (!reflowedChildren) {
     
      nsRect* oldOverflowArea = GetOverflowAreaProperty();
      if (oldOverflowArea) {

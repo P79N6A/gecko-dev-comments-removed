@@ -538,6 +538,11 @@ protected:
       mTableLayoutStrategy;
   }
 
+private:
+  
+
+  void ProcessRowInserted(nscoord aNewHeight);
+
   
 
 public:
