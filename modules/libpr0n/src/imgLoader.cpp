@@ -1215,7 +1215,7 @@ NS_IMETHODIMP imgLoader::LoadImage(nsIURI *aURI,
 
   
   
-  if (aLoadFlags & nsIRequest::LOAD_BYPASS_CACHE) {
+  if (requestFlags & nsIRequest::LOAD_BYPASS_CACHE) {
     RemoveFromCache(aURI);
   } else {
     
