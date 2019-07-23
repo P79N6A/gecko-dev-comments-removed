@@ -90,9 +90,8 @@ doubleVariantToIdentifier(NPVariant variant)
 
 
 PRUint32
-parseHexColor(char* color)
+parseHexColor(const char* color, int len)
 {
-  int len = strlen(color);
   PRUint8 bgra[4] = { 0, 0, 0, 0xFF };
   int i = 0;
 
