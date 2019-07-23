@@ -244,9 +244,21 @@ void nsMediaDecoder::Paint(gfxContext* aContext, const gfxRect& aRect)
 
   
   pat->SetMatrix(gfxMatrix().Scale(mRGBWidth/aRect.Width(), mRGBHeight/aRect.Height()));
+
   
   
-  pat->SetExtend(gfxPattern::EXTEND_PAD);
+  gfxPattern::GraphicsExtend extend = gfxPattern::EXTEND_PAD;
+
+  
+  
+  nsRefPtr<gfxASurface> target = aContext->CurrentSurface();
+  gfxASurface::gfxSurfaceType type = target->GetType();
+  if (type == gfxASurface::SurfaceTypeXlib ||
+      type == gfxASurface::SurfaceTypeXcb) {
+    extend = gfxPattern::EXTEND_NONE;
+  }
+
+  pat->SetExtend(extend);
 
   
   aContext->NewPath();
