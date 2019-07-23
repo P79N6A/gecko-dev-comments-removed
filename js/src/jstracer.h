@@ -298,6 +298,7 @@ struct FrameInfo {
         } s;
         uint32      word;       
     };
+    uint32          caller_argc;   
 };
 
 struct UnstableExit
