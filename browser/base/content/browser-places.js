@@ -123,7 +123,10 @@ var StarUI = {
         }
         else if (aEvent.keyCode == KeyEvent.DOM_VK_RETURN) {
           
-          if (aEvent.target.localName != "tree")
+          
+          if (aEvent.target.localName != "tree" &&
+              (aEvent.target.id != "editBMPanel_tagsField" ||
+               !aEvent.target.popupOpen))
             this.panel.hidePopup();
         }
         break;

@@ -83,6 +83,7 @@ TaggingService.prototype = {
       query.setFolders([this._bms.tagsFolder], 1);
       this.__tagsResult = this._history.executeQuery(query, options);
       this.__tagsResult.root.containerOpen = true;
+      this.__tagsResult.viewer = this;
 
       
       var observerSvc = Cc[OBSS_CONTRACTID].getService(Ci.nsIObserverService);
@@ -280,31 +281,273 @@ TaggingService.prototype = {
   },
 
   
+  _allTags: null,
   get allTags() {
-    var tags = [];
-    var root = this._tagsResult.root;
-    var cc = root.childCount;
-    for (var j=0; j < cc; j++) {
-      var child = root.getChild(j);
-      tags.push(child.title);
-    }
+    if (!this._allTags) {
+      this._allTags = [];
+      var root = this._tagsResult.root;
+      var cc = root.childCount;
+      for (var j=0; j < cc; j++) {
+        var child = root.getChild(j);
+        this._allTags.push(child.title);
+      }
 
-    
-    tags.sort();
-    return tags;
+      
+      this.allTags.sort();
+    }
+    return this._allTags;
   },
 
   
-  observe: function TS_observe(subject, topic, data) {
-    if (topic == "xpcom-shutdown") {
+  observe: function TS_observe(aSubject, aTopic, aData) {
+    if (aTopic == "xpcom-shutdown") {
       this.__tagsResult.root.containerOpen = false;
+      this.__tagsResult.viewer = null;
       this.__tagsResult = null;
       var observerSvc = Cc[OBSS_CONTRACTID].getService(Ci.nsIObserverService);
       observerSvc.removeObserver(this, "xpcom-shutdown");
     }
+  },
+
+  
+  
+  itemInserted: function() this._allTags = null,
+  itemRemoved: function() this._allTags = null,
+  itemMoved: function() {},
+  itemChanged: function() {},
+  itemReplaced: function() {},
+  containerOpened: function() {},
+  containerClosed: function() {},
+  invalidateContainer: function() this._allTags = null,
+  invalidateAll: function() this._allTags = null,
+  sortingChanged: function() {},
+  result: null
+};
+
+
+function TagAutoCompleteResult(searchString, searchResult,
+                               defaultIndex, errorDescription,
+                               results, comments) {
+  this._searchString = searchString;
+  this._searchResult = searchResult;
+  this._defaultIndex = defaultIndex;
+  this._errorDescription = errorDescription;
+  this._results = results;
+  this._comments = comments;
+}
+
+TagAutoCompleteResult.prototype = {
+  
+  
+
+
+  get searchString() {
+    return this._searchString;
+  },
+
+  
+
+
+
+
+
+
+  get searchResult() {
+    return this._searchResult;
+  },
+
+  
+
+
+  get defaultIndex() {
+    return this._defaultIndex;
+  },
+
+  
+
+
+  get errorDescription() {
+    return this._errorDescription;
+  },
+
+  
+
+
+  get matchCount() {
+    return this._results.length;
+  },
+
+  
+
+
+  getValueAt: function PTACR_getValueAt(index) {
+    return this._results[index];
+  },
+
+  
+
+
+  getCommentAt: function PTACR_getCommentAt(index) {
+    return this._comments[index];
+  },
+
+  
+
+
+  getStyleAt: function PTACR_getStyleAt(index) {
+    if (!this._comments[index])
+      return null;  
+
+    if (index == 0)
+      return "suggestfirst";  
+
+    return "suggesthint";   
+  },
+
+  
+
+
+  getImageAt: function PTACR_getImageAt(index) {
+    return null;
+  },
+
+  
+
+
+
+
+  removeValueAt: function PTACR_removeValueAt(index, removeFromDb) {
+    this._results.splice(index, 1);
+    this._comments.splice(index, 1);
+  },
+
+  QueryInterface: function(aIID) {
+    if (!aIID.equals(Ci.nsIAutoCompleteResult) && !aIID.equals(Ci.nsISupports))
+        throw Components.results.NS_ERROR_NO_INTERFACE;
+    return this;
   }
 };
 
+
+function TagAutoCompleteSearch() {
+}
+
+TagAutoCompleteSearch.prototype = {
+  _stopped : false, 
+
+  get tagging() {
+    let svc = Cc["@mozilla.org/browser/tagging-service;1"].
+              getService(Ci.nsITaggingService);
+    this.__defineGetter__("tagging", function() svc);
+    return this.tagging;
+  },
+
+  
+
+
+
+
+
+
+
+
+  startSearch: function PTACS_startSearch(searchString, searchParam, result, listener) {
+    var searchResults = this.tagging.allTags;
+    var results = [];
+    var comments = [];
+    this._stopped = false;
+
+    
+    var index = Math.max(searchString.lastIndexOf(","), 
+      searchString.lastIndexOf(";"));
+    var before = ''; 
+    if (index != -1) {  
+      before = searchString.slice(0, index+1);
+      searchString = searchString.slice(index+1);
+      
+      var m = searchString.match(/\s+/);
+      if (m) {
+         before += m[0];
+         searchString = searchString.slice(m[0].length);
+      }
+    }
+
+    if (!searchString.length) {
+      var newResult = new TagAutoCompleteResult(searchString,
+        Ci.nsIAutoCompleteResult.RESULT_NOMATCH, 0, "", results, comments);
+      listener.onSearchResult(self, newResult);
+      return;
+    }
+    
+    var self = this;
+    
+    function doSearch() {
+      var i = 0;
+      while (i < searchResults.length) {
+        if (self._stopped)
+          yield false;
+        
+        var pattern = new RegExp("(^" + searchResults[i] + "$|" + searchResults[i] + "(,|;))");
+        if (searchResults[i].indexOf(searchString) == 0 &&
+            !pattern.test(before)) {
+          results.push(before + searchResults[i]);
+          comments.push(searchResults[i]);
+        }
+    
+        ++i;
+        
+        if ((i % 100) == 0) {
+          var newResult = new TagAutoCompleteResult(searchString,
+            Ci.nsIAutoCompleteResult.RESULT_SUCCESS_ONGOING, 0, "", results, comments);
+          listener.onSearchResult(self, newResult);
+          yield true;
+        } 
+      }
+
+      var newResult = new TagAutoCompleteResult(searchString,
+        Ci.nsIAutoCompleteResult.RESULT_SUCCESS, 0, "", results, comments);
+      listener.onSearchResult(self, newResult);
+      yield false;
+    }
+    
+    
+    var gen = doSearch();
+    function driveGenerator() {
+      if (gen.next()) { 
+        var timer = Cc["@mozilla.org/timer;1"]
+          .createInstance(Components.interfaces.nsITimer);
+        self._callback = driveGenerator;
+        timer.initWithCallback(self, 0, timer.TYPE_ONE_SHOT);
+      }
+      else {
+        gen.close();	
+      }
+    }
+    driveGenerator();
+  },
+
+  notify: function PTACS_notify(timer) {
+    if (this._callback) 
+      this._callback();
+  },
+
+  
+
+
+  stopSearch: function PTACS_stopSearch() {
+    this._stopped = true;
+  },
+
+  
+  QueryInterface: XPCOMUtils.generateQI([Ci.nsIAutoCompleteSearch,
+                                         Ci.nsITimerCallback]), 
+
+  classDescription: "Places Tag AutoComplete",
+  contractID: "@mozilla.org/autocomplete/search;1?name=places-tag-autocomplete",
+  classID: Components.ID("{1dcc23b0-d4cb-11dc-9ad6-479d56d89593}")
+};
+
+var component = [TaggingService, TagAutoCompleteSearch];
 function NSGetModule(compMgr, fileSpec) {
-  return XPCOMUtils.generateModule([TaggingService]);
+  return XPCOMUtils.generateModule(component);
 }

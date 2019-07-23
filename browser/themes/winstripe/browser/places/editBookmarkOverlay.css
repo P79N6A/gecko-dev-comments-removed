@@ -115,6 +115,15 @@
 
 
 
+
+
+#editBMPanel_tagsField #treecolAutoCompleteValue {
+  visibility: collapse;
+}
+
+
+
+
 #editBMPanel_folderMenuList[selectedIndex="0"],
 #editBMPanel_toolbarFolderItem {
   list-style-image: url("chrome://browser/skin/places/bookmarksToolbar.png") !important;
