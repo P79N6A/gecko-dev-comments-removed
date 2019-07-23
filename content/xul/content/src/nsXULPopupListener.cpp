@@ -467,12 +467,15 @@ nsXULPopupListener::LaunchPopup(nsIDOMEvent* aEvent, nsIContent* aTargetContent)
 
   
   
+  
+  
   mPopupContent = popup;
-  if (mPopupContent->HasAttr(kNameSpaceID_None, nsGkAtoms::position) ||
-      mPopupContent->HasAttr(kNameSpaceID_None, nsGkAtoms::popupanchor) ||
-      mPopupContent->HasAttr(kNameSpaceID_None, nsGkAtoms::popupalign)) {
+  if (!mIsContext &&
+      (mPopupContent->HasAttr(kNameSpaceID_None, nsGkAtoms::position) ||
+       (mPopupContent->HasAttr(kNameSpaceID_None, nsGkAtoms::popupanchor) &&
+        mPopupContent->HasAttr(kNameSpaceID_None, nsGkAtoms::popupalign)))) {
     pm->ShowPopup(mPopupContent, content, EmptyString(), 0, 0,
-                  mIsContext, PR_TRUE, PR_FALSE);
+                  PR_FALSE, PR_TRUE, PR_FALSE);
   }
   else {
     PRInt32 xPos = 0, yPos = 0;
