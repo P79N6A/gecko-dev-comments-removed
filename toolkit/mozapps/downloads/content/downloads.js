@@ -157,9 +157,7 @@ function downloadCompleted(aDownload)
         next = next.nextSibling;
 
       
-      let fixup = dl.nextSibling;
       gDownloadsView.insertBefore(dl, next);
-      stripeifyList(fixup);
     } else {
       removeFromView(dl);
     }
@@ -1083,9 +1081,6 @@ function removeFromView(aDownload)
   gDownloadsView.selectedIndex = Math.min(index, gDownloadsView.itemCount - 1);
 
   
-  stripeifyList(gDownloadsView.selectedItem);
-
-  
   updateClearListButton();
 }
 
@@ -1202,7 +1197,6 @@ function stepListBuilder(aNumItems) {
     if (item && (isActive || downloadMatchesSearch(item))) {
       
       gDownloadsView.appendChild(item);
-      stripeifyList(item);
     
       
       
@@ -1255,7 +1249,6 @@ function prependList(aDownload)
   if (item) {
     
     gDownloadsView.insertBefore(item, gDownloadsView.firstChild);
-    stripeifyList(item);
     
     
     
@@ -1289,27 +1282,6 @@ function downloadMatchesSearch(aItem)
       return false;
 
   return true;
-}
-
-
-
-
-
-
-
-
-function stripeifyList(aItem)
-{
-  let alt = "alternate";
-  
-  let flipFrom = function(aOther) aOther && aOther.hasAttribute(alt) ?
-    aItem.removeAttribute(alt) : aItem.setAttribute(alt, "true");
-
-  
-  while (aItem) {
-    flipFrom(aItem.previousSibling);
-    aItem = aItem.nextSibling;
-  }
 }
 
 
