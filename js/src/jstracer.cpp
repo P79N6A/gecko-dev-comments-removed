@@ -7018,6 +7018,30 @@ TraceRecorder::record_SetPropHit(JSPropCacheEntry* entry, JSScopeProperty* sprop
             ABORT_TRACE("lazy import of global slot failed");
 
         LIns* r_ins = get(&r);
+
+        
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        if (VALUE_IS_FUNCTION(cx, r)) {
+            guard(true,
+                  lir->ins2(LIR_eq, r_ins, INS_CONSTPTR(JSVAL_TO_OBJECT(r))),
+                  MISMATCH_EXIT);
+        }
+
         set(&STOBJ_GET_SLOT(obj, slot), r_ins);
 
         JS_ASSERT(*pc != JSOP_INITPROP);
