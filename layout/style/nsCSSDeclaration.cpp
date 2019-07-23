@@ -972,8 +972,8 @@ nsCSSDeclaration::GetValue(nsCSSProperty aProperty,
         
         
         
-        if (stretch != nsCSSValue(eCSSUnit_Normal) ||
-            sizeAdjust != nsCSSValue(eCSSUnit_None)) {
+        if (stretch.GetUnit() != eCSSUnit_Normal ||
+            sizeAdjust.GetUnit() != eCSSUnit_None) {
           return NS_OK;
         }
 
