@@ -5722,7 +5722,6 @@ js_EmitTree(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
 
 
 
-
             useful = JS_FALSE;
             if (!CheckSideEffects(cx, cg, pn2, &useful))
                 return JS_FALSE;
@@ -5743,8 +5742,6 @@ js_EmitTree(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
                 if (!js_SetSrcNoteOffset(cx, cg, (uintN)noteIndex, 0, tmp-off))
                     return JS_FALSE;
             }
-            if (js_Emit1(cx, cg, JSOP_GROUP) < 0)
-                return JS_FALSE;
         }
         break;
 
@@ -6165,8 +6162,6 @@ js_EmitTree(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
         if (!js_EmitTree(cx, cg, pn->pn_kid))
             return JS_FALSE;
         cg->treeContext.flags |= oldflags & TCF_IN_FOR_INIT;
-        if (js_Emit1(cx, cg, JSOP_GROUP) < 0)
-            return JS_FALSE;
         break;
       }
 

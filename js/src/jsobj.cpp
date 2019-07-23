@@ -3327,9 +3327,6 @@ Detecting(JSContext *cx, jsbytecode *pc)
             }
             return JS_FALSE;
 
-          case JSOP_GROUP:
-            break;
-
           default:
             
 
