@@ -578,14 +578,13 @@ nsNPAPIPlugin::CreatePlugin(const char* aFilePath, PRLibrary* aLibrary,
 
 nsresult
 nsNPAPIPlugin::CreateInstance(nsISupports *aOuter, const nsIID &aIID,
-                           void **aResult)
+                              void **aResult)
 {
   if (!aResult)
     return NS_ERROR_NULL_POINTER;
 
   *aResult = NULL;
 
-  
   nsRefPtr<nsNPAPIPluginInstance> inst =
     new nsNPAPIPluginInstance(&fCallbacks, fLibrary);
 
