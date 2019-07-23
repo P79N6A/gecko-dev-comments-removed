@@ -138,19 +138,16 @@ XPC_PP_Finalize(JSContext *cx, JSObject *obj)
 
 
 
-
-
-JS_STATIC_DLL_CALLBACK(uint32)
-XPC_PP_Mark(JSContext *cx, JSObject *obj, void *arg)
+JS_STATIC_DLL_CALLBACK(void)
+XPC_PP_Trace(JSTracer *trc, JSObject *obj)
 {
-    XPCDispParamPropJSClass* paramProp = GetParamProp(cx, obj);
+    XPCDispParamPropJSClass* paramProp = GetParamProp(trc->context, obj);
     if(paramProp)
     {
         XPCWrappedNative* wrapper = paramProp->GetWrapper();
         if(wrapper && wrapper->IsValid())
-            xpc_MarkForValidWrapper(cx, wrapper, arg);
+            xpc_TraceForValidWrapper(trc, wrapper);
     }
-    return 0;
 }
 
 
@@ -159,7 +156,7 @@ XPC_PP_Mark(JSContext *cx, JSObject *obj, void *arg)
 
 static JSClass ParamPropClass = {
     "XPCDispParamPropJSCass",   
-    JSCLASS_HAS_PRIVATE,        
+    JSCLASS_HAS_PRIVATE | JSCLASS_MARK_IS_TRACE, 
 
     
     JS_PropertyStub,            
@@ -178,7 +175,7 @@ static JSClass ParamPropClass = {
     nsnull,                     
     nsnull,                     
     nsnull,                     
-    XPC_PP_Mark,                
+    JS_CLASS_TRACE(XPC_PP_Trace), 
     nsnull                      
 };
 

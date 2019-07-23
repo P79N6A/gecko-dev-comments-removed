@@ -292,11 +292,13 @@ public:
 
 
     XPCDispIDArray(XPCCallContext& ccx, JSIdArray* array);
+
     
 
 
 
     PRUint32 Length() const;
+
     
 
 
@@ -308,20 +310,17 @@ public:
     
 
 
-    void Mark();
+    void TraceJS(JSTracer* trc);
+
     
 
 
     void Unmark();
+
     
 
 
     JSBool IsMarked() const;
-
-    
-
-
-    inline void MarkBeforeJSFinalize(JSContext*);
 private:
     JSBool mMarked;
     nsVoidArray mIDArray;

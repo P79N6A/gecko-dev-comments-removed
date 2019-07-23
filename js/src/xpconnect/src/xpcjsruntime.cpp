@@ -250,6 +250,31 @@ ContextCallback(JSContext *cx, uintN operation)
 }
 
 
+void XPCJSRuntime::TraceJS(JSTracer *trc, XPCJSRuntime* self)
+{
+    
+    
+    if(!self->GetXPConnect()->IsShuttingDown())
+    {
+        PRLock* threadLock = XPCPerThreadData::GetLock();
+        if(threadLock)
+        { 
+            nsAutoLock lock(threadLock);
+
+            XPCPerThreadData* iterp = nsnull;
+            XPCPerThreadData* thread;
+
+            while(nsnull != (thread =
+                             XPCPerThreadData::IterateThreads(&iterp)))
+            {
+                
+                thread->TraceJS(trc);
+            }
+        }
+    }
+}
+
+
 JSBool XPCJSRuntime::GCCallback(JSContext *cx, JSGCStatus status)
 {
     nsVoidArray* dyingWrappedJSArray;
@@ -278,30 +303,7 @@ JSBool XPCJSRuntime::GCCallback(JSContext *cx, JSGCStatus status)
                     self->mThreadRunningGC = PR_GetCurrentThread();
                 }
 
-                
-                
-                if(!self->GetXPConnect()->IsShuttingDown())
-                {
-                    PRLock* threadLock = XPCPerThreadData::GetLock();
-                    if(threadLock)
-                    { 
-                        nsAutoLock lock(threadLock);
-
-                        XPCPerThreadData* iterp = nsnull;
-                        XPCPerThreadData* thread;
-
-                        while(nsnull != (thread =
-                                     XPCPerThreadData::IterateThreads(&iterp)))
-                        {
-                            
-                            
-                            
-                            
-                            
-                            thread->MarkAutoRootsBeforeJSFinalize(cx);
-                        }
-                    }
-                }
+                TraceJS(JS_GetGCMarkingTracer(cx), self);
 
                 dyingWrappedJSArray = &self->mWrappedJSToReleaseArray;
                 {
