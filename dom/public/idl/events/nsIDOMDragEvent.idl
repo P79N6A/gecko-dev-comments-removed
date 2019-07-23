@@ -1,4 +1,4 @@
-/* -*- Mode: IDL; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
 /* ***** BEGIN LICENSE BLOCK *****
  * Version: MPL 1.1/GPL 2.0/LGPL 2.1
  *
@@ -14,13 +14,12 @@
  *
  * The Original Code is mozilla.org code.
  *
- * The Initial Developer of the Original Code is
- * Netscape Communications Corporation.
- * Portions created by the Initial Developer are Copyright (C) 2000
+ * The Initial Developer of the Original Code is the Mozilla Corporation.
+ * Portions created by the Initial Developer are Copyright (C) 2008
  * the Initial Developer. All Rights Reserved.
  *
  * Contributor(s):
- *   Johnny Stenback <jst@netscape.com> (original author)
+ *   Neil Deakin <enndeakin@gmail.com>
  *
  * Alternatively, the contents of this file may be used under the terms of
  * either of the GNU General Public License Version 2 or later (the "GPL"),
@@ -37,30 +36,28 @@
  * ***** END LICENSE BLOCK ***** */
 
 #include "domstubs.idl"
+#include "nsIDOMMouseEvent.idl"
 
-[scriptable, uuid(7F142F9A-FBA7-4949-93D6-CF08A974AC51)]
-interface nsIDOMNSHTMLElement : nsISupports
+interface nsIDOMAbstractView;
+interface nsIDOMDataTransfer;
+
+[scriptable, uuid(18FEEFD7-A461-4865-BCF1-4DC8A2F30584)]
+interface nsIDOMDragEvent : nsIDOMMouseEvent
 {
-  readonly attribute long             offsetTop;
-  readonly attribute long             offsetLeft;
-  readonly attribute long             offsetWidth;
-  readonly attribute long             offsetHeight;
-  readonly attribute nsIDOMElement    offsetParent;
-           attribute DOMString        innerHTML;
+  readonly attribute nsIDOMDataTransfer dataTransfer;
 
-           attribute long             tabIndex;
+  void initDragEvent(in DOMString typeArg,
+                     in boolean canBubbleArg,
+                     in boolean cancelableArg,
+                     in nsIDOMAbstractView aView,
+                     in PRInt32 aDetail,
+                     in nsIDOMDataTransfer aDataTransfer);
 
-           attribute DOMString        contentEditable;
-
-           // for WHAT-WG drag and drop
-           attribute boolean          draggable;
-
-  void blur();
-  void focus();
-
-  // |top| is optional in JS, scriptability of this method is done in
-  // nsHTMLElementSH
-  void scrollIntoView(in boolean top);
-
-           attribute boolean         spellcheck;
+  void initDragEventNS(in DOMString namespaceURIArg,
+                       in DOMString typeArg,
+                       in boolean canBubbleArg,
+                       in boolean cancelableArg,
+                       in nsIDOMAbstractView aView,
+                       in PRInt32 aDetail,
+                       in nsIDOMDataTransfer aDataTransfer);
 };

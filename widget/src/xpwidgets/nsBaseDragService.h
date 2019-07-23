@@ -45,6 +45,7 @@
 #include "nsIDOMDocument.h"
 #include "nsCOMPtr.h"
 #include "nsIRenderingContext.h"
+#include "nsIDOMDataTransfer.h"
 
 #include "gfxImageSurface.h"
 
@@ -131,6 +132,7 @@ protected:
   nsCOMPtr<nsIDOMNode> mSourceNode;
   nsCOMPtr<nsIDOMDocument> mSourceDocument;       
                                                   
+  nsCOMPtr<nsIDOMDataTransfer> mDataTransfer;
 
   
   nsCOMPtr<nsIDOMNode> mImage;
