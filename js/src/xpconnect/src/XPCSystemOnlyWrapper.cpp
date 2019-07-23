@@ -346,7 +346,7 @@ XPC_SOW_RewrapValue(JSContext *cx, JSObject *wrapperObj, jsval *vp)
     if (native == XPC_SOW_FunctionWrapper) {
       
       
-      if (wrapperObj->getProto() == STOBJ_GET_PARENT(obj)) {
+      if (wrapperObj->getProto() == obj->getParent()) {
         return JS_TRUE;
       }
 
@@ -365,7 +365,7 @@ XPC_SOW_RewrapValue(JSContext *cx, JSObject *wrapperObj, jsval *vp)
     
     
     
-    if (STOBJ_GET_PARENT(wrapperObj) == STOBJ_GET_PARENT(obj)) {
+    if (wrapperObj->getParent() == obj->getParent()) {
       
       return JS_TRUE;
     }
@@ -379,7 +379,7 @@ XPC_SOW_RewrapValue(JSContext *cx, JSObject *wrapperObj, jsval *vp)
     v = *vp = OBJECT_TO_JSVAL(obj);
   }
 
-  return WrapObject(cx, STOBJ_GET_PARENT(wrapperObj), v, vp);
+  return WrapObject(cx, wrapperObj->getParent(), v, vp);
 }
 
 static JSBool

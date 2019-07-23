@@ -141,7 +141,7 @@ IteratorNext(JSContext *cx, uintN argc, jsval *vp)
     *vp = STRING_TO_JSVAL(str);
   } else {
     
-    if (!JS_GetPropertyById(cx, STOBJ_GET_PARENT(obj), id, &v)) {
+    if (!JS_GetPropertyById(cx, obj->getParent(), id, &v)) {
       return JS_FALSE;
     }
 
