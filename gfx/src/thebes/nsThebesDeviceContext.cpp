@@ -267,7 +267,7 @@ nsresult nsFontCache::Compact()
         NS_RELEASE(fm); 
         
         
-        if (mFontMetrics.IndexOf(oldfm) >= 0) {
+        if (mFontMetrics.IndexOf(oldfm) != mFontMetrics.NoIndex) { 
             
             NS_ADDREF(oldfm);
         }
