@@ -38,8 +38,6 @@
 #ifndef NS_SMILKEYSPLINE_H_
 #define NS_SMILKEYSPLINE_H_
 
-#include "prtypes.h"
-
 
 
 
@@ -60,20 +58,33 @@ public:
 
 
 
+
   double GetSplineValue(double aX) const;
 
 private:
   void
   CalcSampleValues();
 
+  
+
+
   static double
   CalcBezier(double aT, double aA1, double aA2);
+
+  
+
 
   static double
   GetSlope(double aT, double aA1, double aA2);
 
   double
   GetTForX(double aX) const;
+
+  double
+  NewtonRaphsonIterate(double aX, double aGuessT) const;
+
+  double
+  BinarySubdivide(double aX, double aA, double aB) const;
 
   static double
   A(double aA1, double aA2)

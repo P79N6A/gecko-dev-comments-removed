@@ -246,6 +246,10 @@ nsSMILAnimationFunction::ComposeResult(const nsISMILAttr& aSMILAttr,
     return;
 
   
+  if (mErrorFlags != 0)
+    return;
+
+  
   
   
   if (mIsActive) {

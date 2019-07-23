@@ -36,9 +36,13 @@
 
 
 #include "nsSMILKeySpline.h"
+#include "prtypes.h"
 #include <math.h>
 
-#define NEWTON_ITERATIONS   4
+#define NEWTON_ITERATIONS          4
+#define NEWTON_MIN_SLOPE           0.02
+#define SUBDIVISION_PRECISION      0.0000001
+#define SUBDIVISION_MAX_ITERATIONS 10
 
 const double nsSMILKeySpline::kSampleStepSize =
                                         1.0 / double(kSplineTableSize - 1);
@@ -68,7 +72,7 @@ nsSMILKeySpline::GetSplineValue(double aX) const
 void
 nsSMILKeySpline::CalcSampleValues()
 {
-  for (int i = 0; i < kSplineTableSize; ++i) {
+  for (PRUint32 i = 0; i < kSplineTableSize; ++i) {
     mSampleValues[i] = CalcBezier(double(i) * kSampleStepSize, mX1, mX2);
   }
 }
@@ -87,35 +91,78 @@ nsSMILKeySpline::GetSlope(double aT,
                           double aA1,
                           double aA2)
 {
-  double denom = (3.0 * A(aA1, aA2)*aT*aT + 2.0 * B(aA1, aA2) * aT + C(aA1));
-  return (denom == 0.0) ? 0.0 : 1.0 / denom;
+  return 3.0 * A(aA1, aA2)*aT*aT + 2.0 * B(aA1, aA2) * aT + C(aA1);
 }
 
 double
 nsSMILKeySpline::GetTForX(double aX) const
 {
-  int i;
+  
+  double intervalStart = 0.0;
+  const double* currentSample = &mSampleValues[1];
+  const double* const lastSample = &mSampleValues[kSplineTableSize - 1];
+  for (; currentSample != lastSample && *currentSample <= aX;
+        ++currentSample) {
+    intervalStart += kSampleStepSize;
+  }
+  --currentSample; 
+
+  
+  double dist = (aX - *currentSample) /
+                (*(currentSample+1) - *currentSample);
+  double guessForT = intervalStart + dist * kSampleStepSize;
 
   
   
   
-  
-  
-  
-  for (i = 0; i < kSplineTableSize - 2 && mSampleValues[i] < aX; ++i);
-  double currentT =
-    double(i) * kSampleStepSize + (aX - mSampleValues[i]) * kSampleStepSize;
+  double initialSlope = GetSlope(guessForT, mX1, mX2);
+  if (initialSlope >= NEWTON_MIN_SLOPE) {
+    return NewtonRaphsonIterate(aX, guessForT);
+  } else if (initialSlope == 0.0) {
+    return guessForT;
+  } else {
+    return BinarySubdivide(aX, intervalStart, intervalStart + kSampleStepSize);
+  }
+}
 
+double
+nsSMILKeySpline::NewtonRaphsonIterate(double aX, double aGuessT) const
+{
   
-  for (i = 0; i < NEWTON_ITERATIONS; ++i) {
-    double currentX = CalcBezier(currentT, mX1, mX2);
-    double currentSlope = GetSlope(currentT, mX1, mX2);
+  for (PRUint32 i = 0; i < NEWTON_ITERATIONS; ++i) {
+    
+    
+    double currentX = CalcBezier(aGuessT, mX1, mX2) - aX;
+    double currentSlope = GetSlope(aGuessT, mX1, mX2);
 
     if (currentSlope == 0.0)
-      return currentT;
+      return aGuessT;
 
-    currentT -= (currentX - aX) * currentSlope;
+    aGuessT -= currentX / currentSlope;
   }
+
+  return aGuessT;
+}
+
+double
+nsSMILKeySpline::BinarySubdivide(double aX, double aA, double aB) const
+{
+  double currentX;
+  double currentT;
+  PRUint32 i = 0;
+
+  do
+  {
+    currentT = aA + (aB - aA) / 2.0;
+    currentX = CalcBezier(currentT, mX1, mX2) - aX;
+
+    if (currentX > 0.0) {
+      aB = currentT;
+    } else {
+      aA = currentT;
+    }
+  } while (fabs(currentX) > SUBDIVISION_PRECISION
+           && ++i < SUBDIVISION_MAX_ITERATIONS);
 
   return currentT;
 }
