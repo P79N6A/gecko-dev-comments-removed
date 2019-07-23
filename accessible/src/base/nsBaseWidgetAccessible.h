@@ -79,7 +79,8 @@ public:
 
 
 
-class nsLinkableAccessible : public nsHyperTextAccessibleWrap
+
+class nsLinkableAccessible : public nsAccessibleWrap
 {
 public:
   enum { eAction_Jump = 0 };

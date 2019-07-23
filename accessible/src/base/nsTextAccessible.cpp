@@ -53,12 +53,6 @@ nsLinkableAccessible(aDOMNode, aShell)
 
 
 
-NS_IMPL_ISUPPORTS_INHERITED2(nsTextAccessible, nsAccessNode,
-                             nsAccessible, nsIAccessible)
-
-
-
-
 nsresult
 nsTextAccessible::GetRoleInternal(PRUint32 *aRole)
 {
