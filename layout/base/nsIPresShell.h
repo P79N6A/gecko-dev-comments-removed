@@ -104,8 +104,8 @@ typedef PRUint32 nsFrameState;
 
 
 #define NS_IPRESSHELL_IID \
-{ 0x5c103bc2, 0x788e, 0x4bbe, \
-  { 0xb8, 0x2e, 0x63, 0x5b, 0xea, 0x34, 0xe7, 0x8f } }
+  { 0x23439d06, 0x4642, 0x4c4e, \
+    { 0xb6, 0x0b, 0xd8, 0x4a, 0xd9, 0xbd, 0x88, 0x97 } }
 
 
 #define NS_PRESSHELL_SCROLL_TOP      0
@@ -727,8 +727,15 @@ public:
 
 
 
-  NS_IMETHOD RenderDocument(const nsRect& aRect, PRBool aUntrusted,
-                            PRBool aIgnoreViewportScrolling,
+
+
+
+  enum {
+    RENDER_IS_UNTRUSTED = 0x01,
+    RENDER_IGNORE_VIEWPORT_SCROLLING = 0x02,
+    RENDER_CARET = 0x04
+  };
+  NS_IMETHOD RenderDocument(const nsRect& aRect, PRUint32 aFlags,
                             nscolor aBackgroundColor,
                             gfxContext* aRenderedContext) = 0;
 
