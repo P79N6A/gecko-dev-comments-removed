@@ -47,6 +47,7 @@
 #include "nsILoadGroup.h"
 #include "nsISupportsPriority.h"
 #include "nsCOMPtr.h"
+#include "nsAutoPtr.h"
 
 #include "imgRequest.h"
 
@@ -105,7 +106,13 @@ protected:
 private:
   friend class imgCacheValidator;
 
-  imgRequest *mOwner;
+  
+  
+  
+  
+  
+  
+  nsRefPtr<imgRequest> mOwner;
 
   imgIDecoderObserver* mListener;  
   nsCOMPtr<nsILoadGroup> mLoadGroup;

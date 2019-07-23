@@ -124,23 +124,19 @@ nsresult imgRequest::Init(nsIURI *aURI,
   return NS_OK;
 }
 
-nsresult imgRequest::AddProxy(imgRequestProxy *proxy, PRBool aNotify)
+nsresult imgRequest::AddProxy(imgRequestProxy *proxy)
 {
+  NS_PRECONDITION(proxy, "null imgRequestProxy passed in");
   LOG_SCOPE_WITH_PARAM(gImgLog, "imgRequest::AddProxy", "proxy", proxy);
 
-  mObservers.AppendElement(static_cast<void*>(proxy));
-
-  if (aNotify)
-    NotifyProxyListener(proxy);
-
-  return NS_OK;
+  return mObservers.AppendObserver(proxy) ? NS_OK : NS_ERROR_OUT_OF_MEMORY;
 }
 
 nsresult imgRequest::RemoveProxy(imgRequestProxy *proxy, nsresult aStatus, PRBool aNotify)
 {
   LOG_SCOPE_WITH_PARAM(gImgLog, "imgRequest::RemoveProxy", "proxy", proxy);
 
-  mObservers.RemoveElement(static_cast<void*>(proxy));
+  mObservers.RemoveObserver(proxy);
 
   
 
@@ -167,7 +163,7 @@ nsresult imgRequest::RemoveProxy(imgRequestProxy *proxy, nsresult aStatus, PRBoo
     mImage->StopAnimation();
   }
 
-  if (mObservers.Count() == 0) {
+  if (mObservers.IsEmpty()) {
     
 
 
@@ -323,8 +319,9 @@ void imgRequest::RemoveFromCache()
 
 PRBool imgRequest::HaveProxyWithObserver(imgRequestProxy* aProxyToIgnore) const
 {
-  for (PRInt32 i = 0; i < mObservers.Count(); ++i) {
-    imgRequestProxy *proxy = static_cast<imgRequestProxy*>(mObservers[i]);
+  nsTObserverArray<imgRequestProxy>::ForwardIterator iter(mObservers);
+  imgRequestProxy* proxy;
+  while ((proxy = iter.GetNext())) {
     if (proxy == aProxyToIgnore) {
       continue;
     }
@@ -355,7 +352,7 @@ void imgRequest::AdjustPriority(imgRequestProxy *proxy, PRInt32 delta)
   
   
   
-  if (mObservers[0] != proxy)
+  if (mObservers.SafeObserverAt(0) != proxy)
     return;
 
   nsCOMPtr<nsISupportsPriority> p = do_QueryInterface(mRequest);
@@ -401,15 +398,10 @@ NS_IMETHODIMP imgRequest::FrameChanged(imgIContainer *container,
 {
   LOG_SCOPE(gImgLog, "imgRequest::FrameChanged");
 
-  PRInt32 count = mObservers.Count();
-  for (PRInt32 i = 0; i < count; i++) {
-    imgRequestProxy *proxy = static_cast<imgRequestProxy*>(mObservers[i]);
-    if (proxy) proxy->FrameChanged(container, newframe, dirtyRect);
-
-    
-    
-    NS_ASSERTION(count == mObservers.Count(),
-                 "The observer list changed while being iterated over!");
+  nsTObserverArray<imgRequestProxy>::ForwardIterator iter(mObservers);
+  imgRequestProxy* proxy;
+  while ((proxy = iter.GetNext())) {
+    proxy->FrameChanged(container, newframe, dirtyRect);
   }
 
   return NS_OK;
@@ -424,15 +416,10 @@ NS_IMETHODIMP imgRequest::OnStartDecode(imgIRequest *request)
 
   mState |= onStartDecode;
 
-  PRInt32 count = mObservers.Count();
-  for (PRInt32 i = 0; i < count; i++) {
-    imgRequestProxy *proxy = static_cast<imgRequestProxy*>(mObservers[i]);
-    if (proxy) proxy->OnStartDecode();
-
-    
-    
-    NS_ASSERTION(count == mObservers.Count(), 
-                 "The observer list changed while being iterated over!");
+  nsTObserverArray<imgRequestProxy>::ForwardIterator iter(mObservers);
+  imgRequestProxy* proxy;
+  while ((proxy = iter.GetNext())) {
+    proxy->OnStartDecode();
   }
 
   
@@ -464,16 +451,10 @@ NS_IMETHODIMP imgRequest::OnStartContainer(imgIRequest *request, imgIContainer *
 
   mImageStatus |= imgIRequest::STATUS_SIZE_AVAILABLE;
 
-  PRInt32 count = mObservers.Count();
-  for (PRInt32 i = 0; i < count; i++) {
-    imgRequestProxy *proxy = static_cast<imgRequestProxy*>(mObservers[i]);
-    if (proxy) proxy->OnStartContainer(image);
-
-    
-    
-    NS_ASSERTION(count == mObservers.Count(), 
-                 "The observer list changed while being iterated over!");
-
+  nsTObserverArray<imgRequestProxy>::ForwardIterator iter(mObservers);
+  imgRequestProxy* proxy;
+  while ((proxy = iter.GetNext())) {
+    proxy->OnStartContainer(image);
   }
 
   return NS_OK;
@@ -485,15 +466,10 @@ NS_IMETHODIMP imgRequest::OnStartFrame(imgIRequest *request,
 {
   LOG_SCOPE(gImgLog, "imgRequest::OnStartFrame");
 
-  PRInt32 count = mObservers.Count();
-  for (PRInt32 i = 0; i < count; i++) {
-    imgRequestProxy *proxy = static_cast<imgRequestProxy*>(mObservers[i]);
-    if (proxy) proxy->OnStartFrame(frame);
-
-    
-    
-    NS_ASSERTION(count == mObservers.Count(), 
-                 "The observer list changed while being iterated over!");
+  nsTObserverArray<imgRequestProxy>::ForwardIterator iter(mObservers);
+  imgRequestProxy* proxy;
+  while ((proxy = iter.GetNext())) {
+    proxy->OnStartFrame(frame);
   }
 
   return NS_OK;
@@ -506,15 +482,10 @@ NS_IMETHODIMP imgRequest::OnDataAvailable(imgIRequest *request,
 {
   LOG_SCOPE(gImgLog, "imgRequest::OnDataAvailable");
 
-  PRInt32 count = mObservers.Count();
-  for (PRInt32 i = 0; i < count; i++) {
-    imgRequestProxy *proxy = static_cast<imgRequestProxy*>(mObservers[i]);
-    if (proxy) proxy->OnDataAvailable(frame, rect);
-
-    
-    
-    NS_ASSERTION(count == mObservers.Count(), 
-                 "The observer list changed while being iterated over!");
+  nsTObserverArray<imgRequestProxy>::ForwardIterator iter(mObservers);
+  imgRequestProxy* proxy;
+  while ((proxy = iter.GetNext())) {
+    proxy->OnDataAvailable(frame, rect);
   }
 
   return NS_OK;
@@ -541,15 +512,10 @@ NS_IMETHODIMP imgRequest::OnStopFrame(imgIRequest *request,
     mCacheEntry->SetDataSize(cacheSize + imageSize);
   }
 
-  PRInt32 count = mObservers.Count();
-  for (PRInt32 i = 0; i < count; i++) {
-    imgRequestProxy *proxy = static_cast<imgRequestProxy*>(mObservers[i]);
-    if (proxy) proxy->OnStopFrame(frame);
-
-    
-    
-    NS_ASSERTION(count == mObservers.Count(), 
-                 "The observer list changed while being iterated over!");
+  nsTObserverArray<imgRequestProxy>::ForwardIterator iter(mObservers);
+  imgRequestProxy* proxy;
+  while ((proxy = iter.GetNext())) {
+    proxy->OnStopFrame(frame);
   }
 
   return NS_OK;
@@ -563,15 +529,10 @@ NS_IMETHODIMP imgRequest::OnStopContainer(imgIRequest *request,
 
   mState |= onStopContainer;
 
-  PRInt32 count = mObservers.Count();
-  for (PRInt32 i = 0; i < count; i++) {
-    imgRequestProxy *proxy = static_cast<imgRequestProxy*>(mObservers[i]);
-    if (proxy) proxy->OnStopContainer(image);
-
-    
-    
-    NS_ASSERTION(count == mObservers.Count(), 
-                 "The observer list changed while being iterated over!");
+  nsTObserverArray<imgRequestProxy>::ForwardIterator iter(mObservers);
+  imgRequestProxy* proxy;
+  while ((proxy = iter.GetNext())) {
+    proxy->OnStopContainer(image);
   }
 
   return NS_OK;
@@ -592,15 +553,10 @@ NS_IMETHODIMP imgRequest::OnStopDecode(imgIRequest *aRequest,
     mImageStatus |= imgIRequest::STATUS_ERROR;
   }
 
-  PRInt32 count = mObservers.Count();
-  for (PRInt32 i = 0; i < count; i++) {
-    imgRequestProxy *proxy = static_cast<imgRequestProxy*>(mObservers[i]);
-    if (proxy) proxy->OnStopDecode(GetResultFromImageStatus(mImageStatus), aStatusArg);
-
-    
-    
-    NS_ASSERTION(count == mObservers.Count(), 
-                 "The observer list changed while being iterated over!");
+  nsTObserverArray<imgRequestProxy>::ForwardIterator iter(mObservers);
+  imgRequestProxy* proxy;
+  while ((proxy = iter.GetNext())) {
+    proxy->OnStopDecode(GetResultFromImageStatus(mImageStatus), aStatusArg);
   }
 
   return NS_OK;
@@ -637,15 +593,10 @@ NS_IMETHODIMP imgRequest::OnStartRequest(nsIRequest *aRequest, nsISupports *ctxt
   mLoading = PR_TRUE;
 
   
-  PRInt32 count = mObservers.Count();
-  for (PRInt32 i = 0; i < count; i++) {
-    imgRequestProxy *proxy = static_cast<imgRequestProxy*>(mObservers[i]);
-    if (proxy) proxy->OnStartRequest(aRequest, ctxt);
-
-    
-    
-    NS_ASSERTION(count == mObservers.Count(), 
-                 "The observer list changed while being iterated over!");
+  nsTObserverArray<imgRequestProxy>::ForwardIterator iter(mObservers);
+  imgRequestProxy* proxy;
+  while ((proxy = iter.GetNext())) {
+    proxy->OnStartRequest(aRequest, ctxt);
   }
 
   nsCOMPtr<nsIChannel> chan(do_QueryInterface(aRequest));
@@ -703,7 +654,7 @@ NS_IMETHODIMP imgRequest::OnStartRequest(nsIRequest *aRequest, nsISupports *ctxt
 
 
   
-  if (mObservers.Count() == 0) {
+  if (mObservers.IsEmpty()) {
     this->Cancel(NS_IMAGELIB_ERROR_FAILURE);
   }
 
@@ -762,13 +713,13 @@ NS_IMETHODIMP imgRequest::OnStopRequest(nsIRequest *aRequest, nsISupports *ctxt,
   }
 
   
-  PRInt32 count = mObservers.Count();
-  for (PRInt32 i = count-1; i>=0; i--) {
-    imgRequestProxy *proxy = static_cast<imgRequestProxy*>(mObservers[i]);
+  nsTObserverArray<imgRequestProxy>::ForwardIterator iter(mObservers);
+  imgRequestProxy* proxy;
+  while ((proxy = iter.GetNext())) {
     
 
 
-    if (proxy) proxy->OnStopRequest(aRequest, ctxt, status, mHadLastPart);
+    proxy->OnStopRequest(aRequest, ctxt, status, mHadLastPart);
   }
 
   return NS_OK;

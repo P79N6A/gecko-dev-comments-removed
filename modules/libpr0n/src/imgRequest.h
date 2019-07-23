@@ -56,7 +56,7 @@
 #include "nsCategoryCache.h"
 #include "nsCOMPtr.h"
 #include "nsString.h"
-#include "nsVoidArray.h"
+#include "nsTObserverArray.h"
 #include "nsWeakReference.h"
 
 class imgCacheValidator;
@@ -90,8 +90,7 @@ public:
                 void *aLoadId);
 
   
-  
-  nsresult AddProxy   (imgRequestProxy *proxy, PRBool aNotify);
+  nsresult AddProxy(imgRequestProxy *proxy);
 
   
   nsresult RemoveProxy(imgRequestProxy *proxy, nsresult aStatus, PRBool aNotify);
@@ -156,7 +155,7 @@ private:
   nsCOMPtr<imgIDecoder> mDecoder;
   nsCOMPtr<nsIProperties> mProperties;
 
-  nsAutoVoidArray mObservers;
+  nsTObserverArray<imgRequestProxy> mObservers;
 
   PRPackedBool mLoading;
   PRPackedBool mProcessing;

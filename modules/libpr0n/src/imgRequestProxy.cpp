@@ -92,8 +92,6 @@ imgRequestProxy::~imgRequestProxy()
 
       mOwner->RemoveProxy(this, NS_OK, PR_FALSE);
     }
-
-    NS_RELEASE(mOwner);
   }
 }
 
@@ -101,6 +99,7 @@ imgRequestProxy::~imgRequestProxy()
 
 nsresult imgRequestProxy::Init(imgRequest *request, nsILoadGroup *aLoadGroup, imgIDecoderObserver *aObserver)
 {
+  NS_PRECONDITION(!mOwner && !mListener, "imgRequestProxy is already initialized");
   NS_PRECONDITION(request, "no request");
   if (!request)
     return NS_ERROR_NULL_POINTER;
@@ -108,13 +107,11 @@ nsresult imgRequestProxy::Init(imgRequest *request, nsILoadGroup *aLoadGroup, im
   LOG_SCOPE_WITH_PARAM(gImgLog, "imgRequestProxy::Init", "request", request);
 
   mOwner = request;
-  NS_ADDREF(mOwner);
-
   mListener = aObserver;
-
   mLoadGroup = aLoadGroup;
 
-  request->AddProxy(this, PR_FALSE); 
+  
+  request->AddProxy(this);
 
   return NS_OK;
 }
@@ -127,12 +124,10 @@ nsresult imgRequestProxy::ChangeOwner(imgRequest *aNewOwner)
   
   
   mOwner->RemoveProxy(this, NS_IMAGELIB_CHANGING_OWNER, PR_FALSE);
-  NS_RELEASE(mOwner);
 
   mOwner = aNewOwner;
-  NS_ADDREF(mOwner);
 
-  mOwner->AddProxy(this, PR_FALSE);
+  mOwner->AddProxy(this);
 
   return NS_OK;
 }
