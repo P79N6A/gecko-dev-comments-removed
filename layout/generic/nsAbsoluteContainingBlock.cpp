@@ -423,8 +423,8 @@ nsAbsoluteContainingBlock::ReflowAbsoluteFrame(nsIFrame*                aDelegat
 
   if (oldRect.TopLeft() != rect.TopLeft() || 
       (aDelegatingFrame->GetStateBits() & NS_FRAME_FIRST_REFLOW) ||
-      ((aKidFrame->GetStyleDisplay()->mClipFlags & NS_STYLE_CLIP_RECT) && 
-       (kidDesiredSize.mOverflowArea != oldOverflowRect))) {
+      (kidDesiredSize.mOverflowArea + rect.TopLeft() != oldOverflowRect &&
+        (kidDesiredSize.mOverflowArea + rect.TopLeft() != rect || oldRect != oldOverflowRect))) {
     
     
     

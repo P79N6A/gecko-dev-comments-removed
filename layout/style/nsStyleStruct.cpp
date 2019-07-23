@@ -1169,11 +1169,6 @@ nsChangeHint nsStyleDisplay::CalcDifference(const nsStyleDisplay& aOther) const
 
   if (mClipFlags != aOther.mClipFlags || mClip != aOther.mClip) {
     NS_UpdateHint(hint, nsChangeHint_ReflowFrame);
-    
-    
-    
-    if (mClipFlags == NS_STYLE_CLIP_AUTO)
-      NS_UpdateHint(hint, nsChangeHint_RepaintFrame);
   }
   
   
