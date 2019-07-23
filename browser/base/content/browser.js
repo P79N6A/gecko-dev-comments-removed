@@ -58,6 +58,12 @@
 #
 # ***** END LICENSE BLOCK *****
 
+let Ci = Components.interfaces;
+let Cu = Components.utils;
+Cu.import("resource://gre/modules/XPCOMUtils.jsm");
+Cu.import("resource://gre/modules/DownloadUtils.jsm");
+Cu.import("resource://gre/modules/PluralForm.jsm");
+
 const kXULNS =
     "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul";
 
@@ -99,6 +105,7 @@ var gBrowser = null;
 var gNavToolbox = null;
 var gSidebarCommand = "";
 var gInPrintPreviewMode = false;
+let gDownloadManager = null;
 
 
 var gContextMenu = null;
@@ -1066,8 +1073,14 @@ function delayedStartup()
   
   
   
-  setTimeout(function() Cc["@mozilla.org/download-manager;1"].
-                        getService(Ci.nsIDownloadManager), 10000);
+  setTimeout(function() {
+    gDownloadManager = Cc["@mozilla.org/download-manager;1"].
+                       getService(Ci.nsIDownloadManager);
+
+    
+    gDownloadManager.addListener(DownloadMonitorPanel);
+    DownloadMonitorPanel.init();
+  }, 10000);
 
 #ifndef XP_MACOSX
   updateEditUIVisibility();
@@ -6011,3 +6024,110 @@ function getIdentityHandler() {
     gIdentityHandler = new IdentityHandler();
   return gIdentityHandler;    
 }
+
+let DownloadMonitorPanel = {
+  
+  
+
+  _panel: null,
+  _activeStr: null,
+  _pausedStr: null,
+  _lastTime: Infinity,
+
+  
+  
+
+  
+
+
+  init: function DMP_init() {
+    
+    this._panel = document.getElementById("download-monitor");
+
+    
+    let (bundle = document.getElementById("bundle_browser")) {
+      this._activeStr = bundle.getString("activeDownloads");
+      this._pausedStr = bundle.getString("pausedDownloads");
+    }
+
+    this.updateStatus();
+  },
+
+  
+
+
+  updateStatus: function DMP_updateStatus() {
+    let numActive = gDownloadManager.activeDownloadCount;
+
+    
+    if (numActive == 0) {
+      this._panel.hidden = true;
+      this._lastTime = Infinity;
+
+      return;
+    }
+  
+    
+    let numPaused = 0;
+    let maxTime = -Infinity;
+    let dls = gDownloadManager.activeDownloads;
+    while (dls.hasMoreElements()) {
+      let dl = dls.getNext().QueryInterface(Ci.nsIDownload);
+      if (dl.state == gDownloadManager.DOWNLOAD_DOWNLOADING) {
+        
+        if (dl.speed > 0 && dl.size > 0)
+          maxTime = Math.max(maxTime, (dl.size - dl.amountTransferred) / dl.speed);
+        else
+          maxTime = -1;
+      }
+      else if (dl.state == gDownloadManager.DOWNLOAD_PAUSED)
+        numPaused++;
+    }
+
+    
+    let timeLeft;
+    [timeLeft, this._lastSec] = DownloadUtils.getTimeLeft(maxTime, this._lastSec);
+
+    
+    let numDls = numActive - numPaused;
+    let status = this._activeStr;
+
+    
+    if (numDls == 0) {
+      numDls = numPaused;
+      status = this._pausedStr;
+    }
+
+    
+    
+    status = PluralForm.get(numDls, status);
+    status = status.replace("#1", numDls);
+    status = status.replace("#2", timeLeft);
+
+    
+    this._panel.label = status;
+    this._panel.hidden = false;
+  },
+
+  
+  
+
+  
+
+
+  onProgressChange: function() {
+    this.updateStatus();
+  },
+
+  
+
+
+  onDownloadStateChange: function() {
+    this.updateStatus();
+  },
+
+  
+  
+
+  QueryInterface: XPCOMUtils.generateQI([Ci.nsIDownloadProgressListener]),
+};
