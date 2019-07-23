@@ -433,6 +433,8 @@ nsNavHistory::Init()
   
   
   
+  
+  
   {
     nsCOMPtr<mozIStorageStatement> selectSession;
     rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
@@ -644,7 +646,7 @@ nsNavHistory::InitDBFile(PRBool aForceInit)
 
 
 
-#define PLACES_SCHEMA_VERSION 7
+#define PLACES_SCHEMA_VERSION 8
 
 nsresult
 nsNavHistory::InitDB(PRInt16 *aMadeChanges)
@@ -733,6 +735,12 @@ nsNavHistory::InitDB(PRInt16 *aMadeChanges)
       
       if (DBSchemaVersion < 7) {
         rv = MigrateV7Up(mDBConn);
+        NS_ENSURE_SUCCESS(rv, rv);
+      }
+
+      
+      if (DBSchemaVersion < 8) {
+        rv = MigrateV8Up(mDBConn);
         NS_ENSURE_SUCCESS(rv, rv);
       }
 
@@ -848,12 +856,6 @@ nsNavHistory::InitDB(PRInt16 *aMadeChanges)
 
     rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
         "CREATE INDEX moz_historyvisits_dateindex ON moz_historyvisits (visit_date)"));
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    
-    rv = mDBConn->ExecuteSimpleSQL(CREATE_VISIT_COUNT_INSERT_TRIGGER);
-    NS_ENSURE_SUCCESS(rv, rv);
-    rv = mDBConn->ExecuteSimpleSQL(CREATE_VISIT_COUNT_DELETE_TRIGGER);
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
@@ -1065,62 +1067,124 @@ nsNavHistory::InitStatements()
   nsresult rv;
 
   
+  
+  
+  
   rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
-      "SELECT h.id, h.url, h.title, h.rev_host, h.visit_count "
-      "FROM moz_places h "
-      "WHERE h.url = ?1"),
+    "SELECT id, url, title, rev_host, visit_count "
+    "FROM moz_places_temp "
+    "WHERE url = ?1 "
+    "UNION ALL "
+    "SELECT id, url, title, rev_host, visit_count "
+    "FROM moz_places "
+    "WHERE url = ?1 "
+    "LIMIT 1"),
     getter_AddRefs(mDBGetURLPageInfo));
   NS_ENSURE_SUCCESS(rv, rv);
 
   
+  
+  
+  
   rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
-      "SELECT h.id, h.url, h.title, h.rev_host, h.visit_count "
-      "FROM moz_places h WHERE h.id = ?1"),
+      "SELECT id, url, title, rev_host, visit_count "
+      "FROM moz_places_temp "
+      "WHERE id = ?1 "
+      "UNION ALL "
+      "SELECT id, url, title, rev_host, visit_count "
+      "FROM moz_places "
+      "WHERE id = ?1 "
+      "LIMIT 1"),
     getter_AddRefs(mDBGetIdPageInfo));
   NS_ENSURE_SUCCESS(rv, rv);
 
   
+  
+  
+  
   rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
-      "SELECT v.id, v.session "
-      "FROM moz_places h JOIN moz_historyvisits v ON h.id = v.place_id "
-      "WHERE h.url = ?1 "
-      "ORDER BY v.visit_date DESC "
+      "SELECT * FROM ( "
+        "SELECT v.id, v.session "
+        "FROM moz_historyvisits_temp v "
+        "WHERE v.place_id = IFNULL((SELECT id FROM moz_places_temp WHERE url = ?1), "
+                                  "(SELECT id FROM moz_places WHERE url = ?1)) "
+        "ORDER BY v.visit_date DESC LIMIT 1 "
+      ") "
+      "UNION ALL "
+      "SELECT * FROM ( "
+        "SELECT v.id, v.session "
+        "FROM moz_historyvisits v "
+        "WHERE v.place_id = IFNULL((SELECT id FROM moz_places_temp WHERE url = ?1), "
+                                  "(SELECT id FROM moz_places WHERE url = ?1)) "
+        "ORDER BY v.visit_date DESC LIMIT 1 "
+      ") "
       "LIMIT 1"),
     getter_AddRefs(mDBRecentVisitOfURL));
   NS_ENSURE_SUCCESS(rv, rv);
 
   
+  
+  
+  
   rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
-      "SELECT id "
-      "FROM moz_historyvisits "
+      "SELECT id FROM moz_historyvisits_temp "
       "WHERE place_id = ?1 "
-      "AND visit_date = ?2 "
-      "AND session = ?3 "
+        "AND visit_date = ?2 "
+        "AND session = ?3 "
+      "UNION ALL "
+      "SELECT id FROM moz_historyvisits "
+      "WHERE place_id = ?1 "
+        "AND visit_date = ?2 "
+        "AND session = ?3 "
       "LIMIT 1"),
     getter_AddRefs(mDBRecentVisitOfPlace));
   NS_ENSURE_SUCCESS(rv, rv);
 
   
   rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
-      "INSERT INTO moz_historyvisits "
-      "(from_visit, place_id, visit_date, visit_type, session) "
+      "INSERT INTO moz_historyvisits_view "
+        "(from_visit, place_id, visit_date, visit_type, session) "
       "VALUES (?1, ?2, ?3, ?4, ?5)"),
     getter_AddRefs(mDBInsertVisit));
   NS_ENSURE_SUCCESS(rv, rv);
 
   
+  
+  
+  
   rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
       "SELECT id, visit_count, typed, hidden "
+      "FROM moz_places_temp "
+      "WHERE url = ?1 "
+      "UNION ALL "
+      "SELECT id, visit_count, typed, hidden "
       "FROM moz_places "
-      "WHERE url = ?1"),
+      "WHERE url = ?1 "
+      "LIMIT 1"),
     getter_AddRefs(mDBGetPageVisitStats));
   NS_ENSURE_SUCCESS(rv, rv);
 
   
+  
+  
+  
   rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
-      "SELECT h.id FROM moz_places h WHERE h.url = ?1 " 
-      "AND EXISTS "
-      "(SELECT id FROM moz_historyvisits WHERE place_id = h.id LIMIT 1)"),
+      "SELECT h.id "
+      "FROM moz_places_temp h "
+      "WHERE url = ?1 " 
+        "AND ( "
+          "EXISTS(SELECT id FROM moz_historyvisits_temp WHERE place_id = h.id LIMIT 1) "
+          "OR EXISTS(SELECT id FROM moz_historyvisits WHERE place_id = h.id LIMIT 1) "
+        ") "
+      "UNION ALL "
+      "SELECT h.id "
+      "FROM moz_places h "
+      "WHERE url = ?1 "
+      "AND ( "
+        "EXISTS(SELECT id FROM moz_historyvisits_temp WHERE place_id = h.id LIMIT 1) "
+        "OR EXISTS(SELECT id FROM moz_historyvisits WHERE place_id = h.id LIMIT 1) "
+      ") "
+      "LIMIT 1"), 
     getter_AddRefs(mDBIsPageVisited));
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -1128,7 +1192,7 @@ nsNavHistory::InitStatements()
   
   
   rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
-      "UPDATE moz_places "
+      "UPDATE moz_places_view "
       "SET hidden = ?2, typed = ?3 "
       "WHERE id = ?1"),
     getter_AddRefs(mDBUpdatePageVisitStats));
@@ -1136,46 +1200,87 @@ nsNavHistory::InitStatements()
 
   
   rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
-      "INSERT OR REPLACE INTO moz_places "
-      "(url, title, rev_host, hidden, typed, frecency) "
+      "INSERT OR REPLACE INTO moz_places_view "
+        "(url, title, rev_host, hidden, typed, frecency) "
       "VALUES (?1, ?2, ?3, ?4, ?5, ?6)"),
     getter_AddRefs(mDBAddNewPage));
   NS_ENSURE_SUCCESS(rv, rv);
 
   
+  
+  
+  
   rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
       "SELECT h.id, h.url, h.title, h.rev_host, h.visit_count, "
-        SQL_STR_FRAGMENT_MAX_VISIT_DATE( "h.id" )
-        ", f.url, null, null "
-      "FROM moz_places h "
-      "JOIN moz_historyvisits v ON h.id = v.place_id "
-      "LEFT OUTER JOIN moz_favicons f ON h.favicon_id = f.id "
-      "WHERE v.id = ?1"),
+          SQL_STR_FRAGMENT_MAX_VISIT_DATE( "h.id" )
+          ", f.url, null, null "
+        "FROM moz_places_temp h "
+        "LEFT JOIN moz_historyvisits_temp v_t ON h.id = v_t.place_id "
+        "LEFT JOIN moz_historyvisits v ON h.id = v.place_id "
+        "LEFT JOIN moz_favicons f ON h.favicon_id = f.id "
+        "WHERE v.id = ?1 OR v_t.id = ?1 "
+      "UNION ALL "
+      "SELECT h.id, h.url, h.title, h.rev_host, h.visit_count, "
+          SQL_STR_FRAGMENT_MAX_VISIT_DATE( "h.id" )
+          ", f.url, null, null "
+        "FROM moz_places h "
+        "LEFT JOIN moz_historyvisits_temp v_t ON h.id = v_t.place_id "
+        "LEFT JOIN moz_historyvisits v ON h.id = v.place_id "
+        "LEFT JOIN moz_favicons f ON h.favicon_id = f.id "
+        "WHERE v.id = ?1 OR v_t.id = ?1 "
+      "LIMIT 1"),
     getter_AddRefs(mDBVisitToURLResult));
   NS_ENSURE_SUCCESS(rv, rv);
 
   
+  
+  
+  
   rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
       "SELECT h.id, h.url, h.title, h.rev_host, h.visit_count, "
-             "v.visit_date, f.url, v.session, null "
-      "FROM moz_places h "
-      "JOIN moz_historyvisits v ON h.id = v.place_id "
-      "LEFT OUTER JOIN moz_favicons f ON h.favicon_id = f.id "
-      "WHERE v.id = ?1"),
+          "v.visit_date, f.url, v.session, null "
+        "FROM moz_places_temp h "
+        "LEFT JOIN moz_historyvisits_temp v_t ON h.id = v_t.place_id "
+        "LEFT JOIN moz_historyvisits v ON h.id = v.place_id "
+        "LEFT JOIN moz_favicons f ON h.favicon_id = f.id "
+        "WHERE v.id = ?1 OR v_t.id = ?1 "
+      "UNION ALL "
+      "SELECT h.id, h.url, h.title, h.rev_host, h.visit_count, "
+          "v.visit_date, f.url, v.session, null "
+        "FROM moz_places h "
+        "LEFT JOIN moz_historyvisits_temp v_t ON h.id = v_t.place_id "
+        "LEFT JOIN moz_historyvisits v ON h.id = v.place_id "
+        "LEFT JOIN moz_favicons f ON h.favicon_id = f.id "
+        "WHERE v.id = ?1 OR v_t.id = ?1 "
+      "LIMIT 1"),
     getter_AddRefs(mDBVisitToVisitResult));
   NS_ENSURE_SUCCESS(rv, rv);
 
+  
+  
+  
   
   rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
       "SELECT h.id, h.url, h.title, h.rev_host, h.visit_count, "
         SQL_STR_FRAGMENT_MAX_VISIT_DATE( "h.id" )
         ", f.url, null, null "
-      "FROM moz_places h "
+      "FROM moz_places_temp h "
       "LEFT OUTER JOIN moz_favicons f ON h.favicon_id = f.id "
-      "WHERE h.url = ?1"),
+      "WHERE h.url = ?1 "
+      "UNION ALL "
+      "SELECT h.id, h.url, h.title, h.rev_host, h.visit_count, "
+        SQL_STR_FRAGMENT_MAX_VISIT_DATE( "h.id" )
+        ", f.url, null, null "
+      "FROM moz_places_temp h "
+      "LEFT OUTER JOIN moz_favicons f ON h.favicon_id = f.id "
+      "WHERE h.url = ?1 "
+      "LIMIT 1"),
     getter_AddRefs(mDBUrlToUrlResult));
   NS_ENSURE_SUCCESS(rv, rv);
 
+  
+  
+  
   
   rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
       "SELECT b.fk, h.url, COALESCE(b.title, h.title), "
@@ -1183,29 +1288,41 @@ nsNavHistory::InitStatements()
         SQL_STR_FRAGMENT_MAX_VISIT_DATE( "b.fk" )
         ", f.url, null, b.id, b.dateAdded, b.lastModified "
       "FROM moz_bookmarks b "
+      "JOIN moz_places_temp h ON b.fk = h.id "
+      "LEFT OUTER JOIN moz_favicons f ON h.favicon_id = f.id "
+      "WHERE b.id = ?1 "
+      "UNION ALL "
+      "SELECT b.fk, h.url, COALESCE(b.title, h.title), "
+        "h.rev_host, h.visit_count, "
+        SQL_STR_FRAGMENT_MAX_VISIT_DATE( "b.fk" )
+        ", f.url, null, b.id, b.dateAdded, b.lastModified "
+      "FROM moz_bookmarks b "
       "JOIN moz_places h ON b.fk = h.id "
       "LEFT OUTER JOIN moz_favicons f ON h.favicon_id = f.id "
-      "WHERE b.id = ?1"),
+      "WHERE b.id = ?1 "
+      "LIMIT 1"),
     getter_AddRefs(mDBBookmarkToUrlResult));
   NS_ENSURE_SUCCESS(rv, rv);
 
   
   rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
       "SELECT GROUP_CONCAT(t.title, ' ') "
-      "FROM moz_places h "
-      "JOIN moz_bookmarks b ON b.type = ") +
-        nsPrintfCString("%d", nsINavBookmarksService::TYPE_BOOKMARK) +
-        NS_LITERAL_CSTRING(" AND b.fk = h.id "
-      "JOIN moz_bookmarks t ON t.parent = ?1 AND t.id = b.parent "
-      "WHERE h.url = ?2"),
+      "FROM moz_bookmarks b "
+      "JOIN moz_bookmarks t ON t.id = b.parent "
+      "WHERE b.fk = IFNULL((SELECT id FROM moz_places_temp WHERE url = ?2), "
+                          "(SELECT id FROM moz_places WHERE url = ?2)) "
+        "AND b.type = ") +
+          nsPrintfCString("%d", nsINavBookmarksService::TYPE_BOOKMARK) +
+        NS_LITERAL_CSTRING(" AND t.parent = ?1 "),
     getter_AddRefs(mDBGetTags));
   NS_ENSURE_SUCCESS(rv, rv);
 
   
   rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
-    "SELECT annos.item_id, annos.content FROM moz_anno_attributes attrs " 
-    "JOIN moz_items_annos annos ON attrs.id = annos.anno_attribute_id "
-    "WHERE attrs.name = ?1"), 
+    "SELECT a.item_id, a.content "
+    "FROM moz_anno_attributes n "
+    "JOIN moz_items_annos a ON n.id = a.anno_attribute_id "
+    "WHERE n.name = ?1"), 
     getter_AddRefs(mFoldersWithAnnotationQuery));
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -1218,15 +1335,28 @@ nsNavHistory::InitStatements()
   
   
   
+
   rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
-    "SELECT IFNULL(r.visit_date, v.visit_date) date, IFNULL(r.visit_type, v.visit_type) "
-    "FROM moz_historyvisits v "
-    "LEFT OUTER JOIN moz_historyvisits r "
-      "ON r.id = v.from_visit AND v.visit_type IN ") +
-      nsPrintfCString("(%d,%d) ", TRANSITION_REDIRECT_PERMANENT,
-      TRANSITION_REDIRECT_TEMPORARY) + NS_LITERAL_CSTRING(
-    "WHERE v.place_id = ?1 ORDER BY date DESC LIMIT ") +
-     nsPrintfCString("%d", mNumVisitsForFrecency),
+      "SELECT COALESCE(r_t.visit_date, r.visit_date, v.visit_date) date, "
+        "COALESCE(r_t.visit_type, r.visit_type, v.visit_type) "
+      "FROM ( "
+        "SELECT visit_date, visit_type, from_visit FROM moz_historyvisits_temp "
+        "WHERE place_id = ?1 "
+        "UNION ALL "
+        "SELECT visit_date, visit_type, from_visit FROM moz_historyvisits "
+        "WHERE id NOT IN (SELECT id FROM moz_historyvisits_temp) "
+        "AND place_id = ?1 "
+      ") AS v "
+      "LEFT JOIN moz_historyvisits r ON r.id = v.from_visit "
+        "AND v.visit_type IN ") +
+          nsPrintfCString("(%d,%d) ", TRANSITION_REDIRECT_PERMANENT,
+            TRANSITION_REDIRECT_TEMPORARY) + NS_LITERAL_CSTRING(
+      "LEFT JOIN moz_historyvisits_temp r_t ON r_t.id = v.from_visit "
+        "AND v.visit_type IN ") +
+          nsPrintfCString("(%d,%d) ", TRANSITION_REDIRECT_PERMANENT,
+            TRANSITION_REDIRECT_TEMPORARY) + NS_LITERAL_CSTRING(
+      "ORDER BY date DESC LIMIT ") +
+        nsPrintfCString("%d", mNumVisitsForFrecency),
     getter_AddRefs(mDBVisitsForFrecency));
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -1249,51 +1379,80 @@ nsNavHistory::InitStatements()
   
   
   
+  
+  
+  
   rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
-    "SELECT * FROM "
-      "(SELECT id, visit_count, hidden, typed, frecency, url "
-      "FROM moz_places WHERE frecency < 0 "
-      "ORDER BY frecency ASC LIMIT ROUND(?1 / 2)) "
-    "UNION "
-    "SELECT * FROM "
-      "(SELECT id, visit_count, hidden, typed, frecency, url "
-      "FROM moz_places WHERE frecency < 0 "
-      "ORDER BY RANDOM() LIMIT ROUND(?1 / 2))"),
+      "SELECT * FROM ( "
+        "SELECT id, visit_count, hidden, typed, frecency, url "
+        "FROM ( "
+          "SELECT * FROM moz_places_temp "
+          "WHERE frecency < 0 "
+          "UNION ALL "
+          "SELECT * FROM ( "
+            "SELECT * FROM moz_places "
+            "WHERE +id NOT IN (SELECT id FROM moz_places_temp) "
+            "AND frecency < 0 "
+            "ORDER BY frecency ASC LIMIT ROUND(?1 / 2) "
+          ") "
+        ") ORDER BY frecency ASC LIMIT ROUND(?1 / 2)) "
+      "UNION "
+      "SELECT * FROM ( "
+        "SELECT id, visit_count, hidden, typed, frecency, url "
+        "FROM moz_places "
+        "WHERE frecency < 0 "
+        "AND ROWID >= ABS(RANDOM() % (SELECT MAX(ROWID) FROM moz_places)) "
+        "LIMIT ROUND(?1 / 2))"),
     getter_AddRefs(mDBInvalidFrecencies));
   NS_ENSURE_SUCCESS(rv, rv);
 
   
   
+  
+  
+  
+  
   rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
     "SELECT id, visit_count, hidden, typed, frecency, url "
      "FROM moz_places "
-     "ORDER BY RANDOM() LIMIT ?1"),
+     "WHERE ROWID >= ABS(RANDOM() % (SELECT MAX(ROWID) FROM moz_places)) "
+     "LIMIT ?1"),
     getter_AddRefs(mDBOldFrecencies));
   NS_ENSURE_SUCCESS(rv, rv);
 
   
   rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
-      "UPDATE moz_places SET frecency = ?2, hidden = ?3 WHERE id = ?1"),
+      "UPDATE moz_places_view SET frecency = ?2, hidden = ?3 WHERE id = ?1"),
     getter_AddRefs(mDBUpdateFrecencyAndHidden));
   NS_ENSURE_SUCCESS(rv, rv);
 
   
+  
+  
+  
   rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
-      "SELECT typed, hidden, frecency FROM moz_places WHERE id = ?1"),
+      "SELECT typed, hidden, frecency "
+      "FROM moz_places_temp WHERE id = ?1 "
+      "UNION ALL "
+      "SELECT typed, hidden, frecency "
+      "FROM moz_places WHERE id = ?1 "
+      "LIMIT 1"),
     getter_AddRefs(mDBGetPlaceVisitStats));
   NS_ENSURE_SUCCESS(rv, rv);
 
   rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
-      "SELECT b.parent FROM moz_places h JOIN moz_bookmarks b "
-      " on b.fk = h.id WHERE b.type = 1 and h.id = ?1"),
+      "SELECT b.parent FROM moz_bookmarks b "
+      "WHERE b.type = 1 AND b.fk = ?1"),
     getter_AddRefs(mDBGetBookmarkParentsForPlace));
   NS_ENSURE_SUCCESS(rv, rv);
 
   
   
-  rv = mDBConn->CreateStatement(
-    NS_LITERAL_CSTRING("SELECT COUNT(*) FROM moz_historyvisits " 
-      "WHERE place_id = ?1"),
+  rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
+      "SELECT "
+        "(SELECT COUNT(*) FROM moz_historyvisits WHERE place_id = ?1) + "
+        "(SELECT COUNT(*) FROM moz_historyvisits_temp WHERE place_id = ?1 "
+            "AND id NOT IN (SELECT id FROM moz_historyvisits))"),
     getter_AddRefs(mDBFullVisitCount));
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -1312,13 +1471,17 @@ nsresult
 nsNavHistory::ForceMigrateBookmarksDB(mozIStorageConnection* aDBConn) 
 {
   
-  nsresult rv = aDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING("DROP TABLE IF EXISTS moz_bookmarks"));
+  nsresult rv = aDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
+      "DROP TABLE IF EXISTS moz_bookmarks"));
   NS_ENSURE_SUCCESS(rv, rv);
-  rv = aDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING("DROP TABLE IF EXISTS moz_bookmarks_folders"));
+  rv = aDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
+      "DROP TABLE IF EXISTS moz_bookmarks_folders"));
   NS_ENSURE_SUCCESS(rv, rv);
-  rv = aDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING("DROP TABLE IF EXISTS moz_bookmarks_roots"));
+  rv = aDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
+      "DROP TABLE IF EXISTS moz_bookmarks_roots"));
   NS_ENSURE_SUCCESS(rv, rv);
-  rv = aDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING("DROP TABLE IF EXISTS moz_keywords"));
+  rv = aDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
+      "DROP TABLE IF EXISTS moz_keywords"));
   NS_ENSURE_SUCCESS(rv, rv);
 
   
@@ -1340,17 +1503,19 @@ nsNavHistory::MigrateV3Up(mozIStorageConnection* aDBConn)
   
   
   nsCOMPtr<mozIStorageStatement> statement;
-  nsresult rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING("SELECT type from moz_annos"),
-                                         getter_AddRefs(statement));
+  nsresult rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
+      "SELECT type from moz_annos"),
+    getter_AddRefs(statement));
   if (NS_SUCCEEDED(rv))
     return NS_OK;
 
   
   rv = aDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
-    "ALTER TABLE moz_annos ADD type INTEGER DEFAULT 0"));
+      "ALTER TABLE moz_annos ADD type INTEGER DEFAULT 0"));
   if (NS_FAILED(rv)) {
     
-    rv = aDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING("DROP TABLE IF EXISTS moz_annos"));
+    rv = aDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
+        "DROP TABLE IF EXISTS moz_annos"));
     NS_ENSURE_SUCCESS(rv, rv);
     rv = nsAnnotationService::InitTables(mDBConn);
     NS_ENSURE_SUCCESS(rv, rv);
@@ -1369,30 +1534,30 @@ nsNavHistory::MigrateV6Up(mozIStorageConnection* aDBConn)
   
   nsCOMPtr<mozIStorageStatement> statement;
   nsresult rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
-    "SELECT a.dateAdded, a.lastModified FROM moz_annos a"), 
+      "SELECT a.dateAdded, a.lastModified FROM moz_annos a"), 
     getter_AddRefs(statement));
   if (NS_FAILED(rv)) {
     
     rv = aDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
-      "ALTER TABLE moz_annos ADD dateAdded INTEGER DEFAULT 0"));
+        "ALTER TABLE moz_annos ADD dateAdded INTEGER DEFAULT 0"));
     NS_ENSURE_SUCCESS(rv, rv);
     rv = aDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
-      "ALTER TABLE moz_annos ADD lastModified INTEGER DEFAULT 0"));
+        "ALTER TABLE moz_annos ADD lastModified INTEGER DEFAULT 0"));
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
   
   
   rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
-    "SELECT b.dateAdded, b.lastModified FROM moz_items_annos b"), 
+      "SELECT b.dateAdded, b.lastModified FROM moz_items_annos b"), 
     getter_AddRefs(statement));
   if (NS_FAILED(rv)) {
     
     rv = aDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
-      "ALTER TABLE moz_items_annos ADD dateAdded INTEGER DEFAULT 0"));
+        "ALTER TABLE moz_items_annos ADD dateAdded INTEGER DEFAULT 0"));
     NS_ENSURE_SUCCESS(rv, rv);
     rv = aDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
-      "ALTER TABLE moz_items_annos ADD lastModified INTEGER DEFAULT 0"));
+        "ALTER TABLE moz_items_annos ADD lastModified INTEGER DEFAULT 0"));
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
@@ -1400,11 +1565,11 @@ nsNavHistory::MigrateV6Up(mozIStorageConnection* aDBConn)
   
   
   
-  rv = aDBConn->ExecuteSimpleSQL(
-    NS_LITERAL_CSTRING("DROP INDEX IF EXISTS moz_favicons_url"));
+  rv = aDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
+      "DROP INDEX IF EXISTS moz_favicons_url"));
   NS_ENSURE_SUCCESS(rv, rv);
-  rv = aDBConn->ExecuteSimpleSQL(
-    NS_LITERAL_CSTRING("DROP INDEX IF EXISTS moz_anno_attributes_nameindex"));
+  rv = aDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
+      "DROP INDEX IF EXISTS moz_anno_attributes_nameindex"));
   NS_ENSURE_SUCCESS(rv, rv);
 
   return transaction.Commit();
@@ -1419,11 +1584,11 @@ nsNavHistory::MigrateV7Up(mozIStorageConnection* aDBConn)
   
   nsCOMPtr<mozIStorageStatement> triggerDetection;
   nsresult rv = aDBConn->CreateStatement(NS_LITERAL_CSTRING(
-    "SELECT name "
-    "FROM sqlite_master "
-    "WHERE type = 'trigger' "
-    "AND name = ?"
-  ), getter_AddRefs(triggerDetection));
+      "SELECT name "
+      "FROM sqlite_master "
+      "WHERE type = 'trigger' "
+      "AND name = ?"),
+    getter_AddRefs(triggerDetection));
   NS_ENSURE_SUCCESS(rv, rv);
 
   
@@ -1444,18 +1609,19 @@ nsNavHistory::MigrateV7Up(mozIStorageConnection* aDBConn)
   if (!triggerExists) {
     
     rv = aDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
-      "UPDATE moz_places SET visit_count = "
-        "(SELECT count(*) FROM moz_historyvisits "
-         "WHERE place_id = moz_places.id "
-         "AND visit_type NOT IN (0, 4, 7))") 
-    );
+        "UPDATE moz_places SET visit_count = "
+          "(SELECT count(*) FROM moz_historyvisits "
+           "WHERE place_id = moz_places.id "
+            "AND visit_type NOT IN ") +
+              nsPrintfCString("(0,%d,%d) ",
+                              nsINavHistoryService::TRANSITION_EMBED,
+                              nsINavHistoryService::TRANSITION_DOWNLOAD) +
+          NS_LITERAL_CSTRING(")"));
     NS_ENSURE_SUCCESS(rv, rv);
 
     
-    rv = aDBConn->ExecuteSimpleSQL(CREATE_VISIT_COUNT_INSERT_TRIGGER);
-    NS_ENSURE_SUCCESS(rv, rv);
-    rv = aDBConn->ExecuteSimpleSQL(CREATE_VISIT_COUNT_DELETE_TRIGGER);
-    NS_ENSURE_SUCCESS(rv, rv);
+    
+    
   }
 
   
@@ -1473,15 +1639,14 @@ nsNavHistory::MigrateV7Up(mozIStorageConnection* aDBConn)
   if (!triggerExists) {
     
     rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
-      "DELETE FROM moz_keywords "
-      "WHERE id IN ("
-        "SELECT k.id "
-        "FROM moz_keywords k "
-        "LEFT OUTER JOIN moz_bookmarks b "
-        "ON b.keyword_id = k.id "
-        "WHERE b.id IS NULL"
-      ")")
-    );
+        "DELETE FROM moz_keywords "
+        "WHERE id IN ("
+          "SELECT k.id "
+          "FROM moz_keywords k "
+          "LEFT OUTER JOIN moz_bookmarks b "
+          "ON b.keyword_id = k.id "
+          "WHERE b.id IS NULL"
+        ")"));
     NS_ENSURE_SUCCESS(rv, rv);
 
     
@@ -1489,6 +1654,22 @@ nsNavHistory::MigrateV7Up(mozIStorageConnection* aDBConn)
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
+  return transaction.Commit();
+}
+
+nsresult
+nsNavHistory::MigrateV8Up(mozIStorageConnection *aDBConn)
+{
+  mozStorageTransaction transaction(aDBConn, PR_FALSE);
+
+  nsresult rv = aDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
+      "DROP TRIGGER moz_historyvisits_afterinsert_v1_trigger"));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  rv = aDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
+      "DROP TRIGGER moz_historyvisits_afterdelete_v1_trigger"));
+  NS_ENSURE_SUCCESS(rv, rv);
+  
   return transaction.Commit();
 }
 
@@ -1541,7 +1722,8 @@ nsNavHistory::EnsureCurrentSchema(mozIStorageConnection* aDBConn, PRBool* aDidMi
   
   nsCOMPtr<mozIStorageStatement> statement;
   rv = aDBConn->CreateStatement(NS_LITERAL_CSTRING(
-    "SELECT frecency FROM moz_places"), getter_AddRefs(statement));
+      "SELECT frecency FROM moz_places"),
+    getter_AddRefs(statement));
 
   if (NS_FAILED(rv)) {
     *aDidMigrate = PR_TRUE;
@@ -1552,14 +1734,14 @@ nsNavHistory::EnsureCurrentSchema(mozIStorageConnection* aDBConn, PRBool* aDidMi
     
     
     rv = aDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
-      "ALTER TABLE moz_places ADD frecency INTEGER DEFAULT -1 NOT NULL"));
+        "ALTER TABLE moz_places ADD frecency INTEGER DEFAULT -1 NOT NULL"));
     NS_ENSURE_SUCCESS(rv, rv);
 
     
     
     rv = aDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
-      "CREATE INDEX IF NOT EXISTS "
-      "moz_places_frecencyindex ON moz_places (frecency)"));
+        "CREATE INDEX IF NOT EXISTS moz_places_frecencyindex "
+          "ON moz_places (frecency)"));
     NS_ENSURE_SUCCESS(rv, rv);
 
     
@@ -1585,29 +1767,30 @@ nsNavHistory::CleanUpOnQuit()
   
   nsCOMPtr<mozIStorageStatement> statement2;
   nsresult rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
-    "SELECT user_title FROM moz_places"), getter_AddRefs(statement2));
+      "SELECT user_title FROM moz_places"),
+    getter_AddRefs(statement2));
   if (NS_SUCCEEDED(rv)) {
     mozStorageTransaction transaction(mDBConn, PR_FALSE);
     
     
     
-    rv = mDBConn->ExecuteSimpleSQL(
-        NS_LITERAL_CSTRING("DROP INDEX IF EXISTS moz_places_urlindex"));
+    rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
+        "DROP INDEX IF EXISTS moz_places_urlindex"));
     NS_ENSURE_SUCCESS(rv, rv);
-    rv = mDBConn->ExecuteSimpleSQL(
-        NS_LITERAL_CSTRING("DROP INDEX IF EXISTS moz_places_titleindex"));
+    rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
+        "DROP INDEX IF EXISTS moz_places_titleindex"));
     NS_ENSURE_SUCCESS(rv, rv);
-    rv = mDBConn->ExecuteSimpleSQL(
-        NS_LITERAL_CSTRING("DROP INDEX IF EXISTS moz_places_faviconindex"));
+    rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
+        "DROP INDEX IF EXISTS moz_places_faviconindex"));
     NS_ENSURE_SUCCESS(rv, rv);
-    rv = mDBConn->ExecuteSimpleSQL(
-        NS_LITERAL_CSTRING("DROP INDEX IF EXISTS moz_places_hostindex"));
+    rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
+        "DROP INDEX IF EXISTS moz_places_hostindex"));
     NS_ENSURE_SUCCESS(rv, rv);
-    rv = mDBConn->ExecuteSimpleSQL(
-        NS_LITERAL_CSTRING("DROP INDEX IF EXISTS moz_places_visitcount"));
+    rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
+        "DROP INDEX IF EXISTS moz_places_visitcount"));
     NS_ENSURE_SUCCESS(rv, rv);
-    rv = mDBConn->ExecuteSimpleSQL(
-        NS_LITERAL_CSTRING("DROP INDEX IF EXISTS moz_places_frecencyindex"));
+    rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
+        "DROP INDEX IF EXISTS moz_places_frecencyindex"));
     NS_ENSURE_SUCCESS(rv, rv);
 
     
@@ -1615,90 +1798,95 @@ nsNavHistory::CleanUpOnQuit()
     NS_ENSURE_SUCCESS(rv, rv);
 
     
-    rv = mDBConn->ExecuteSimpleSQL(
-      NS_LITERAL_CSTRING("ALTER TABLE moz_places RENAME TO moz_places_backup"));
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    
-    rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING("CREATE TABLE moz_places ("
-        "id INTEGER PRIMARY KEY, "
-        "url LONGVARCHAR, "
-        "title LONGVARCHAR, "
-        "rev_host LONGVARCHAR, "
-        "visit_count INTEGER DEFAULT 0, "
-        "hidden INTEGER DEFAULT 0 NOT NULL, "
-        "typed INTEGER DEFAULT 0 NOT NULL, "
-        "favicon_id INTEGER, "
-        "frecency INTEGER DEFAULT -1 NOT NULL)"));
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    
-    
-    
-    rv = mDBConn->ExecuteSimpleSQL(
-        NS_LITERAL_CSTRING("CREATE UNIQUE INDEX moz_places_url_uniqueindex ON moz_places (url)"));
-    NS_ENSURE_SUCCESS(rv, rv);
-    rv = mDBConn->ExecuteSimpleSQL(
-        NS_LITERAL_CSTRING("CREATE INDEX moz_places_faviconindex ON moz_places (favicon_id)"));
-    NS_ENSURE_SUCCESS(rv, rv);
-    rv = mDBConn->ExecuteSimpleSQL(
-        NS_LITERAL_CSTRING("CREATE INDEX moz_places_hostindex ON moz_places (rev_host)"));
-    NS_ENSURE_SUCCESS(rv, rv);
-    rv = mDBConn->ExecuteSimpleSQL(
-        NS_LITERAL_CSTRING("CREATE INDEX moz_places_visitcount ON moz_places (visit_count)"));
-    NS_ENSURE_SUCCESS(rv, rv);
-    rv = mDBConn->ExecuteSimpleSQL(
-        NS_LITERAL_CSTRING("CREATE INDEX moz_places_frecencyindex ON moz_places (frecency)"));
+    rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
+        "ALTER TABLE moz_places RENAME TO moz_places_backup"));
     NS_ENSURE_SUCCESS(rv, rv);
 
     
     rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
-      "INSERT INTO moz_places "
-      "SELECT id, url, title, rev_host, visit_count, hidden, typed, favicon_id, frecency "
-      "FROM moz_places_backup"));
+        "CREATE TABLE moz_places ("
+          "id INTEGER PRIMARY KEY, "
+          "url LONGVARCHAR, "
+          "title LONGVARCHAR, "
+          "rev_host LONGVARCHAR, "
+          "visit_count INTEGER DEFAULT 0, "
+          "hidden INTEGER DEFAULT 0 NOT NULL, "
+          "typed INTEGER DEFAULT 0 NOT NULL, "
+          "favicon_id INTEGER, "
+          "frecency INTEGER DEFAULT -1 NOT NULL)"));
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    
+    
+    
+    rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
+        "CREATE UNIQUE INDEX moz_places_url_uniqueindex ON moz_places (url)"));
+    NS_ENSURE_SUCCESS(rv, rv);
+    rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
+        "CREATE INDEX moz_places_faviconindex ON moz_places (favicon_id)"));
+    NS_ENSURE_SUCCESS(rv, rv);
+    rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
+        "CREATE INDEX moz_places_hostindex ON moz_places (rev_host)"));
+    NS_ENSURE_SUCCESS(rv, rv);
+    rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
+        "CREATE INDEX moz_places_visitcount ON moz_places (visit_count)"));
+    NS_ENSURE_SUCCESS(rv, rv);
+    rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
+        "CREATE INDEX moz_places_frecencyindex ON moz_places (frecency)"));
     NS_ENSURE_SUCCESS(rv, rv);
 
     
     rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
-      "DROP TABLE moz_places_backup"));
+        "INSERT INTO moz_places "
+        "SELECT id, url, title, rev_host, visit_count, hidden, typed, "
+          "favicon_id, frecency "
+        "FROM moz_places_backup"));
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    
+    rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
+        "DROP TABLE moz_places_backup"));
     NS_ENSURE_SUCCESS(rv, rv);
     transaction.Commit();
   }
 
   
   mozStorageTransaction idxTransaction(mDBConn, PR_FALSE);
-  rv = mDBConn->ExecuteSimpleSQL(
-    NS_LITERAL_CSTRING("DROP INDEX IF EXISTS moz_places_titleindex"));
-  rv = mDBConn->ExecuteSimpleSQL(
-    NS_LITERAL_CSTRING("DROP INDEX IF EXISTS moz_annos_item_idindex"));
+  rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
+      "DROP INDEX IF EXISTS moz_places_titleindex"));
+  rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
+      "DROP INDEX IF EXISTS moz_annos_item_idindex"));
   idxTransaction.Commit();
 
   
   PRBool oldIndexExists = PR_FALSE;
-  rv = mDBConn->IndexExists(NS_LITERAL_CSTRING("moz_annos_attributesindex"), &oldIndexExists);
+  rv = mDBConn->IndexExists(NS_LITERAL_CSTRING("moz_annos_attributesindex"),
+                            &oldIndexExists);
   NS_ENSURE_SUCCESS(rv, rv);
   if (oldIndexExists) {
     
     mozStorageTransaction annoIndexTransaction(mDBConn, PR_FALSE);
 
     
-    rv = mDBConn->ExecuteSimpleSQL(
-        NS_LITERAL_CSTRING("DROP INDEX moz_annos_attributesindex"));
+    rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
+        "DROP INDEX moz_annos_attributesindex"));
     NS_ENSURE_SUCCESS(rv, rv);
 
     
-    rv = mDBConn->ExecuteSimpleSQL(
-      NS_LITERAL_CSTRING("CREATE UNIQUE INDEX moz_annos_placeattributeindex ON moz_annos (place_id, anno_attribute_id)"));
+    rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
+        "CREATE UNIQUE INDEX moz_annos_placeattributeindex "
+          "ON moz_annos (place_id, anno_attribute_id)"));
     NS_ENSURE_SUCCESS(rv, rv);
 
     
-    rv = mDBConn->ExecuteSimpleSQL(
-        NS_LITERAL_CSTRING("DROP INDEX IF EXISTS moz_items_annos_attributesindex"));
+    rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
+        "DROP INDEX IF EXISTS moz_items_annos_attributesindex"));
     NS_ENSURE_SUCCESS(rv, rv);
 
     
-    rv = mDBConn->ExecuteSimpleSQL(
-      NS_LITERAL_CSTRING("CREATE UNIQUE INDEX moz_items_annos_itemattributeindex ON moz_items_annos (item_id, anno_attribute_id)"));
+    rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
+      "CREATE UNIQUE INDEX moz_items_annos_itemattributeindex "
+        "ON moz_items_annos (item_id, anno_attribute_id)"));
     NS_ENSURE_SUCCESS(rv, rv);
 
     rv = annoIndexTransaction.Commit();
@@ -1884,6 +2072,7 @@ nsNavHistory::InternalAddVisit(PRInt64 aPageID, PRInt64 aReferringVisit,
 
     *visitID = mDBRecentVisitOfPlace->AsInt64(0);
   }
+
   return NS_OK;
 }
 
@@ -2415,9 +2604,11 @@ nsNavHistory::GetHasHistoryEntries(PRBool* aHasEntries)
   NS_ASSERTION(NS_IsMainThread(), "This can only be called on the main thread");
 
   nsCOMPtr<mozIStorageStatement> dbSelectStatement;
-  nsresult rv = mDBConn->CreateStatement(
-      NS_LITERAL_CSTRING("SELECT id FROM moz_historyvisits LIMIT 1"),
-      getter_AddRefs(dbSelectStatement));
+  nsresult rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
+      "SELECT 1 "
+      "WHERE EXISTS (SELECT id FROM moz_historyvisits_temp LIMIT 1) "
+        "OR EXISTS (SELECT id FROM moz_historyvisits LIMIT 1)"),
+    getter_AddRefs(dbSelectStatement));
   NS_ENSURE_SUCCESS(rv, rv);
   return dbSelectStatement->ExecuteStep(aHasEntries);
 }
@@ -2430,18 +2621,25 @@ nsNavHistory::FixInvalidFrecenciesForExcludedPlaces()
   
   nsCOMPtr<mozIStorageStatement> dbUpdateStatement;
   nsresult rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
-    "UPDATE moz_places "
-    "SET frecency = 0 WHERE id IN ("
-      "SELECT h.id FROM moz_places h "
-      "LEFT OUTER JOIN moz_bookmarks b ON h.id = b.fk "
-      "WHERE frecency < 0 AND "
+      "UPDATE moz_places_view "
+      "SET frecency = 0 WHERE id IN ("
+        "SELECT h.id FROM moz_places h "
+        "WHERE h.url >= 'place:' AND h.url < 'place;' "
+        "UNION "
+        "SELECT h.id FROM moz_places_temp h "
+        "WHERE  h.url >= 'place:' AND h.url < 'place;' "
+        "UNION "
         
-        "(b.parent IN ("
-            "SELECT annos.item_id FROM moz_anno_attributes attrs "
-            "JOIN moz_items_annos annos ON attrs.id = annos.anno_attribute_id "
-            "WHERE attrs.name = ?1) "
-          "AND visit_count = 0) "
-        "OR SUBSTR(h.url,0,6) = 'place:')"),
+        "SELECT b.fk FROM moz_bookmarks b "
+        "JOIN moz_items_annos a ON a.item_id = b.id "
+        "JOIN moz_anno_attributes n ON n.id = a.anno_attribute_id "
+        "WHERE n.name = ?1 "
+        "AND fk IN( "
+          "SELECT id FROM moz_places WHERE visit_count = 0 AND frecency < 0 "
+          "UNION ALL "
+          "SELECT id FROM moz_places_temp WHERE visit_count = 0 AND frecency < 0 "
+        ") "
+      ")"),
     getter_AddRefs(dbUpdateStatement));
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -3053,19 +3251,160 @@ PlacesSQLQueryBuilder::SelectAsURI()
   switch (mQueryType)
   {
     case nsINavHistoryQueryOptions::QUERY_TYPE_HISTORY:
-      mQueryString = NS_LITERAL_CSTRING(
-        "SELECT h.id, h.url, h.title, h.rev_host, h.visit_count, "
-          "MAX(visit_date), f.url, null, null "
-        "FROM moz_places h "
-             "LEFT OUTER JOIN moz_historyvisits v ON h.id = v.place_id "
-             "LEFT OUTER JOIN moz_favicons f ON h.favicon_id = f.id ");
-
-      if (!mIncludeHidden)
-        mQueryString += NS_LITERAL_CSTRING(
-          " WHERE h.hidden <> 1 AND v.visit_type NOT IN (0,4)"
-            " {ADDITIONAL_CONDITIONS} ");
-
-      mGroupBy = NS_LITERAL_CSTRING(" GROUP BY h.id");
+      if (!mIncludeHidden) {
+        mQueryString = NS_LITERAL_CSTRING(
+          "SELECT id, url, title, rev_host, visit_count, MAX(visit_date), "
+            "favicon_url, session, empty "
+          "FROM ( "
+            "SELECT id, url, title, rev_host, visit_count, visit_date, "
+              "favicon_url, session, empty "
+            "FROM ("
+              "SELECT h.id AS id, h.url AS url, h.title AS title, "
+                "h.rev_host AS rev_host, h.visit_count AS visit_count, "
+                "MAX(v.visit_date) AS visit_date, f.url AS favicon_url, "
+                "v.session AS session, null AS empty "
+              "FROM moz_places h "
+              "JOIN moz_historyvisits v ON h.id = v.place_id "
+              "LEFT JOIN moz_favicons f ON h.favicon_id = f.id "
+              "WHERE h.hidden <> 1 AND v.visit_type NOT IN ") +
+                nsPrintfCString("(0,%d,%d) ",
+                                nsINavHistoryService::TRANSITION_EMBED,
+                                nsINavHistoryService::TRANSITION_DOWNLOAD) +
+                NS_LITERAL_CSTRING("AND h.visit_count > 0 "
+                "{ADDITIONAL_CONDITIONS} "
+              "GROUP BY h.id "
+            ") "
+            "UNION ALL "
+            "SELECT id, url, title, rev_host, visit_count, visit_date, "
+              "favicon_url, session, empty "
+            "FROM ( "
+              "SELECT h.id AS id, h.url AS url, h.title AS title, "
+                "h.rev_host AS rev_host, h.visit_count AS visit_count, "
+                "MAX(v.visit_date) AS visit_date, f.url AS favicon_url, "
+                "v.session AS session, null AS empty "
+              "FROM moz_places_temp h "
+              "JOIN moz_historyvisits v ON h.id = v.place_id "
+              "LEFT JOIN moz_favicons f ON h.favicon_id = f.id "
+              "WHERE h.hidden <> 1 AND v.visit_type NOT IN ") +
+                nsPrintfCString("(0,%d,%d) ",
+                                nsINavHistoryService::TRANSITION_EMBED,
+                                nsINavHistoryService::TRANSITION_DOWNLOAD) +
+                NS_LITERAL_CSTRING("AND h.visit_count > 0 "
+                "AND h.id NOT IN (SELECT id FROM moz_places_temp) "
+                "{ADDITIONAL_CONDITIONS} "
+              "GROUP BY h.id "
+            ") "
+            "UNION ALL "
+            "SELECT id, url, title, rev_host, visit_count, visit_date, "
+              "favicon_url, session, empty "
+            "FROM ( "
+              "SELECT h.id AS id, h.url AS url, h.title AS title, "
+                "h.rev_host AS rev_host, h.visit_count AS visit_count, "
+                "MAX(v.visit_date) AS visit_date, f.url AS favicon_url, "
+                "v.session AS session, null AS empty "
+              "FROM moz_places h "
+              "JOIN moz_historyvisits_temp v ON h.id = v.place_id "
+              "LEFT JOIN moz_favicons f ON h.favicon_id = f.id "
+              "WHERE h.hidden <> 1 AND v.visit_type NOT IN ") +
+                nsPrintfCString("(0,%d,%d) ",
+                                nsINavHistoryService::TRANSITION_EMBED,
+                                nsINavHistoryService::TRANSITION_DOWNLOAD) +
+                NS_LITERAL_CSTRING("AND h.visit_count > 0 "
+                "AND h.id NOT IN (SELECT id FROM moz_places_temp) "
+                "{ADDITIONAL_CONDITIONS} "
+              "GROUP BY h.id "
+            ") "
+            "UNION ALL "
+            "SELECT id, url, title, rev_host, visit_count, visit_date, "
+              "favicon_url, session, empty "
+            "FROM ( "
+              "SELECT h.id AS id, h.url AS url, h.title AS title, "
+                "h.rev_host AS rev_host, h.visit_count AS visit_count, "
+                "MAX(v.visit_date) AS visit_date, f.url AS favicon_url, "
+                "v.session AS session, null AS empty "
+              "FROM moz_places_temp h "
+              "JOIN moz_historyvisits_temp v ON h.id = v.place_id "
+              "LEFT JOIN moz_favicons f ON h.favicon_id = f.id "
+              "WHERE h.hidden <> 1 AND v.visit_type NOT IN ") +
+                nsPrintfCString("(0,%d,%d) ",
+                                nsINavHistoryService::TRANSITION_EMBED,
+                                nsINavHistoryService::TRANSITION_DOWNLOAD) +
+                NS_LITERAL_CSTRING("AND h.visit_count > 0 "
+                "{ADDITIONAL_CONDITIONS} "
+              "GROUP BY h.id "
+            ") "
+          ") "
+          "GROUP BY id ");
+      }
+      else {
+        mQueryString = NS_LITERAL_CSTRING(
+          "SELECT id, url, title, rev_host, visit_count, MAX(visit_date), "
+            "favicon_url, session, empty "
+          "FROM ( "
+            "SELECT id, url, title, rev_host, visit_count, visit_date, "
+              "favicon_url, session, empty "
+            "FROM ("
+              "SELECT h.id AS id, h.url AS url, h.title AS title, "
+                "h.rev_host AS rev_host, h.visit_count AS visit_count, "
+                "MAX(v.visit_date) AS visit_date, f.url AS favicon_url, "
+                "v.session AS session, null AS empty "
+              "FROM moz_places h "
+              "JOIN moz_historyvisits v ON h.id = v.place_id "
+              "LEFT JOIN moz_favicons f ON h.favicon_id = f.id "
+              
+              "WHERE 1=1 "
+                "{ADDITIONAL_CONDITIONS} "
+              "GROUP BY h.id "
+            ") "
+            "UNION ALL "
+            "SELECT id, url, title, rev_host, visit_count, visit_date, "
+              "favicon_url, session, empty "
+            "FROM ( "
+              "SELECT h.id AS id, h.url AS url, h.title AS title, "
+                "h.rev_host AS rev_host, h.visit_count AS visit_count, "
+                "MAX(v.visit_date) AS visit_date, f.url AS favicon_url, "
+                "v.session AS session, null AS empty "
+              "FROM moz_places_temp h "
+              "JOIN moz_historyvisits v ON h.id = v.place_id "
+              "LEFT JOIN moz_favicons f ON h.favicon_id = f.id "
+              "WHERE h.id NOT IN (SELECT id FROM moz_places_temp) "
+                "{ADDITIONAL_CONDITIONS} "
+              "GROUP BY h.id "
+            ") "
+            "UNION ALL "
+            "SELECT id, url, title, rev_host, visit_count, visit_date, "
+              "favicon_url, session, empty "
+            "FROM ( "
+              "SELECT h.id AS id, h.url AS url, h.title AS title, "
+                "h.rev_host AS rev_host, h.visit_count AS visit_count, "
+                "MAX(v.visit_date) AS visit_date, f.url AS favicon_url, "
+                "v.session AS session, null AS empty "
+              "FROM moz_places h "
+              "JOIN moz_historyvisits_temp v ON h.id = v.place_id "
+              "LEFT JOIN moz_favicons f ON h.favicon_id = f.id "
+              "WHERE h.id NOT IN (SELECT id FROM moz_places_temp) "
+                "{ADDITIONAL_CONDITIONS} "
+              "GROUP BY h.id "
+            ") "
+            "UNION ALL "
+            "SELECT id, url, title, rev_host, visit_count, visit_date, "
+              "favicon_url, session, empty "
+            "FROM ( "
+              "SELECT h.id AS id, h.url AS url, h.title AS title, "
+                "h.rev_host AS rev_host, h.visit_count AS visit_count, "
+                "MAX(v.visit_date) AS visit_date, f.url AS favicon_url, "
+                "v.session AS session, null AS empty "
+              "FROM moz_places_temp h "
+              "JOIN moz_historyvisits_temp v ON h.id = v.place_id "
+              "LEFT JOIN moz_favicons f ON h.favicon_id = f.id "
+              
+              "WHERE 1=1 "
+                "{ADDITIONAL_CONDITIONS} "
+              "GROUP BY h.id "
+            ") "
+          ") "
+          "GROUP BY id ");    
+      }
       break;
 
     case nsINavHistoryQueryOptions::QUERY_TYPE_BOOKMARKS:
@@ -3089,16 +3428,36 @@ PlacesSQLQueryBuilder::SelectAsURI()
             SQL_STR_FRAGMENT_MAX_VISIT_DATE( "b2.fk" )
             ", f.url, null, b2.id, b2.dateAdded, b2.lastModified "
           "FROM moz_bookmarks b2 "
-            "JOIN moz_places h ON b2.fk = h.id AND b2.type = 1 "
-            "LEFT OUTER JOIN moz_favicons f ON h.favicon_id = f.id "
-            "WHERE b2.id IN ("
-              "SELECT b1.id FROM moz_bookmarks b1 "
-              "WHERE b1.fk IN "
-                "(SELECT b.fk FROM moz_bookmarks b WHERE b.type = 1 {ADDITIONAL_CONDITIONS}) "
-              "AND NOT EXISTS "
-                "(SELECT id FROM moz_bookmarks WHERE id = b1.parent AND parent = ") +
+          "JOIN moz_places_temp h ON b2.fk = h.id AND b2.type = 1 "
+          "LEFT OUTER JOIN moz_favicons f ON h.favicon_id = f.id "
+          "WHERE b2.id IN ( "
+            "SELECT b1.id FROM moz_bookmarks b1 "
+            "WHERE b1.fk IN "
+              "(SELECT b.fk FROM moz_bookmarks b WHERE b.type = 1 {ADDITIONAL_CONDITIONS}) "
+            "AND NOT EXISTS ( "
+              "SELECT id FROM moz_bookmarks WHERE id = b1.parent AND parent = ") +
                 nsPrintfCString("%lld", history->GetTagsFolder()) +
-              NS_LITERAL_CSTRING(")) ORDER BY b2.fk DESC, b2.lastModified DESC");
+              NS_LITERAL_CSTRING(") "
+          ") "
+          "UNION ALL "
+          "SELECT b2.fk, h.url, COALESCE(b2.title, h.title), h.rev_host, "
+            "h.visit_count, "
+            SQL_STR_FRAGMENT_MAX_VISIT_DATE( "b2.fk" )
+            ", f.url, null, b2.id, b2.dateAdded, b2.lastModified "
+          "FROM moz_bookmarks b2 "
+          "JOIN moz_places h ON b2.fk = h.id AND b2.type = 1 "
+          "LEFT OUTER JOIN moz_favicons f ON h.favicon_id = f.id "
+          "WHERE b2.id IN ( "
+            "SELECT b1.id FROM moz_bookmarks b1 "
+            "WHERE h.id NOT IN (SELECT id FROM moz_places_temp) "
+            "AND b1.fk IN "
+              "(SELECT b.fk FROM moz_bookmarks b WHERE b.type = 1 {ADDITIONAL_CONDITIONS}) "
+            "AND NOT EXISTS ( "
+              "SELECT id FROM moz_bookmarks WHERE id = b1.parent AND parent = ") +
+                nsPrintfCString("%lld", history->GetTagsFolder()) +
+              NS_LITERAL_CSTRING(") "
+          ") "          
+          "ORDER BY b2.fk DESC, b2.lastModified DESC");
       }
       else {
         mQueryString = NS_LITERAL_CSTRING(
@@ -3107,12 +3466,29 @@ PlacesSQLQueryBuilder::SelectAsURI()
             SQL_STR_FRAGMENT_MAX_VISIT_DATE( "b.fk" )
             ", f.url, null, b.id, b.dateAdded, b.lastModified "
           "FROM moz_bookmarks b "
-          "JOIN moz_places h ON b.fk = h.id AND b.type = 1 "
+          "JOIN moz_places_temp h ON b.fk = h.id AND b.type = 1 "
           "LEFT OUTER JOIN moz_favicons f ON h.favicon_id = f.id "
           "WHERE NOT EXISTS "
-            "(SELECT id FROM moz_bookmarks WHERE id = b.parent AND parent = ") +
-            nsPrintfCString("%lld", history->GetTagsFolder()) +
-            NS_LITERAL_CSTRING(") {ADDITIONAL_CONDITIONS}");
+            "(SELECT id FROM moz_bookmarks "
+              "WHERE id = b.parent AND parent = ") +
+                nsPrintfCString("%lld", history->GetTagsFolder()) +
+            NS_LITERAL_CSTRING(") "
+            "{ADDITIONAL_CONDITIONS}"
+          "UNION ALL "
+          "SELECT b.fk, h.url, COALESCE(b.title, h.title), h.rev_host, "
+            "h.visit_count,"
+            SQL_STR_FRAGMENT_MAX_VISIT_DATE( "b.fk" )
+            ", f.url, null, b.id, b.dateAdded, b.lastModified "
+          "FROM moz_bookmarks b "
+          "JOIN moz_places h ON b.fk = h.id AND b.type = 1 "
+          "LEFT OUTER JOIN moz_favicons f ON h.favicon_id = f.id "
+          "WHERE h.id NOT IN (SELECT id FROM moz_places_temp) "
+            "AND NOT EXISTS "
+              "(SELECT id FROM moz_bookmarks "
+                "WHERE id = b.parent AND parent = ") +
+                  nsPrintfCString("%lld", history->GetTagsFolder()) +
+              NS_LITERAL_CSTRING(") "
+            "{ADDITIONAL_CONDITIONS}");
       }
       break;
 
@@ -3125,17 +3501,94 @@ PlacesSQLQueryBuilder::SelectAsURI()
 nsresult
 PlacesSQLQueryBuilder::SelectAsVisit()
 {
-  mQueryString = NS_LITERAL_CSTRING(
-    "SELECT h.id, h.url, h.title, h.rev_host, h.visit_count, "
-      "v.visit_date, f.url, v.session, null "
-    "FROM moz_places h "
-         "LEFT OUTER JOIN moz_historyvisits v ON h.id = v.place_id "
-         "LEFT OUTER JOIN moz_favicons f ON h.favicon_id = f.id ");
-
-  if (!mIncludeHidden)
-    mQueryString += NS_LITERAL_CSTRING(
-      " WHERE h.hidden <> 1 AND v.visit_type NOT IN (0,4)"
-        " {ADDITIONAL_CONDITIONS} ");
+  if (!mIncludeHidden) {
+    mQueryString = NS_LITERAL_CSTRING(
+      "SELECT h.id, h.url, h.title, h.rev_host, h.visit_count, "
+        "v.visit_date, f.url, v.session, null "
+      "FROM moz_places h "
+      "JOIN moz_historyvisits v ON h.id = v.place_id "
+      "LEFT JOIN moz_favicons f ON h.favicon_id = f.id "
+      "WHERE h.visit_count > 0 "
+        "AND h.hidden <> 1 AND v.visit_type NOT IN ") +
+          nsPrintfCString("(0,%d,%d) ",
+                          nsINavHistoryService::TRANSITION_EMBED,
+                          nsINavHistoryService::TRANSITION_DOWNLOAD) +
+        NS_LITERAL_CSTRING("AND h.id NOT IN (SELECT id FROM moz_places_temp) "
+        "{ADDITIONAL_CONDITIONS} "
+      "UNION ALL "
+      "SELECT h.id, h.url, h.title, h.rev_host, h.visit_count, "
+        "v.visit_date, f.url, v.session, null "
+      "FROM moz_places_temp h "
+      "JOIN moz_historyvisits v ON h.id = v.place_id "
+      "LEFT JOIN moz_favicons f ON h.favicon_id = f.id "
+      "WHERE h.visit_count > 0 "
+        "AND h.hidden <> 1 AND v.visit_type NOT IN ") +
+          nsPrintfCString("(0,%d,%d) ",
+                          nsINavHistoryService::TRANSITION_EMBED,
+                          nsINavHistoryService::TRANSITION_DOWNLOAD) +
+        NS_LITERAL_CSTRING("{ADDITIONAL_CONDITIONS} "
+      "UNION ALL "
+      "SELECT h.id, h.url, h.title, h.rev_host, h.visit_count, "
+        "v.visit_date, f.url, v.session, null "
+      "FROM moz_places h "
+      "JOIN moz_historyvisits_temp v ON h.id = v.place_id "
+      "LEFT JOIN moz_favicons f ON h.favicon_id = f.id "
+      "WHERE h.visit_count > 0 "
+        "AND h.id NOT IN (SELECT id FROM moz_places_temp) "
+        "AND h.hidden <> 1 AND v.visit_type NOT IN ") +
+          nsPrintfCString("(0,%d,%d) ", 
+                          nsINavHistoryService::TRANSITION_EMBED,
+                          nsINavHistoryService::TRANSITION_DOWNLOAD) +
+        NS_LITERAL_CSTRING("{ADDITIONAL_CONDITIONS} "
+      "UNION ALL "
+      "SELECT h.id, h.url, h.title, h.rev_host, h.visit_count, "
+        "v.visit_date, f.url, v.session, null "
+      "FROM moz_places_temp h "
+      "JOIN moz_historyvisits_temp v ON h.id = v.place_id "
+      "LEFT JOIN moz_favicons f ON h.favicon_id = f.id "
+      "WHERE h.visit_count > 0 "
+        "AND h.hidden <> 1 AND v.visit_type NOT IN ") +
+          nsPrintfCString("(0,%d,%d) ",
+                          nsINavHistoryService::TRANSITION_EMBED,
+                          nsINavHistoryService::TRANSITION_DOWNLOAD) +
+        NS_LITERAL_CSTRING("{ADDITIONAL_CONDITIONS} ");
+  }
+  else {
+    mQueryString = NS_LITERAL_CSTRING(
+      "SELECT h.id, h.url, h.title, h.rev_host, h.visit_count, "
+        "v.visit_date, f.url, v.session, null "
+      "FROM moz_places h "
+      "JOIN moz_historyvisits v ON h.id = v.place_id "
+      "LEFT JOIN moz_favicons f ON h.favicon_id = f.id "
+      "WHERE h.id NOT IN (SELECT id FROM moz_places_temp) "
+        "{ADDITIONAL_CONDITIONS} "
+      "UNION ALL "
+      "SELECT h.id, h.url, h.title, h.rev_host, h.visit_count, "
+        "v.visit_date, f.url, v.session, null "
+      "FROM moz_places_temp h "
+      "JOIN moz_historyvisits v ON h.id = v.place_id "
+      "LEFT JOIN moz_favicons f ON h.favicon_id = f.id "
+      
+      "WHERE 1=1 "
+        "{ADDITIONAL_CONDITIONS} "
+      "UNION ALL "
+      "SELECT h.id, h.url, h.title, h.rev_host, h.visit_count, "
+        "v.visit_date, f.url, v.session, null "
+      "FROM moz_places h "
+      "JOIN moz_historyvisits_temp v ON h.id = v.place_id "
+      "LEFT JOIN moz_favicons f ON h.favicon_id = f.id "
+      "WHERE h.id NOT IN (SELECT id FROM moz_places_temp) "
+        "{ADDITIONAL_CONDITIONS} "
+      "UNION ALL "
+      "SELECT h.id, h.url, h.title, h.rev_host, h.visit_count, "
+        "v.visit_date, f.url, v.session, null "
+      "FROM moz_places_temp h "
+      "JOIN moz_historyvisits_temp v ON h.id = v.place_id "
+      "LEFT JOIN moz_favicons f ON h.favicon_id = f.id "
+      
+      "WHERE 1=1 "
+      "{ADDITIONAL_CONDITIONS} ");
+  }
 
   return NS_OK;
 }
@@ -3202,18 +3655,32 @@ PlacesSQLQueryBuilder::SelectAsDay()
 
     nsPrintfCString dayRange(1024,
       "SELECT * "
-      "FROM (SELECT %d dayOrder, "
-                  "'%d' dayRange, "
-                  "%s dayTitle, " 
-                  "%llu beginTime, "
-                  "%llu endTime "
-      "FROM  moz_historyvisits "
-      "WHERE visit_date >= %llu AND visit_date < %llu "
-      "  AND visit_type NOT IN (0,4) "
+      "FROM ( "
+        "SELECT %d dayOrder, "
+               "'%d' dayRange, "
+               "%s dayTitle, " 
+               "%llu beginTime, "
+               "%llu endTime "
+        "WHERE EXISTS ( "
+          "SELECT id FROM moz_historyvisits_temp "
+          "WHERE visit_date >= %llu "
+            "AND visit_date < %llu "
+            "AND visit_type NOT IN (0, 4) "
+          "LIMIT 1 "
+        ") "
+        "OR EXISTS ( "
+          "SELECT * FROM moz_historyvisits "
+          "WHERE visit_date >= %llu "
+            "AND visit_date < %llu "
+            "AND visit_type NOT IN (0, 4) "
+          "LIMIT 1 "
+        ") "
       "LIMIT 1) TUNION%d UNION ", 
       i, i, dateParam.get(), 
       midnight.Get(fromDayAgo),
       midnight.Get(toDayAgo), 
+      midnight.Get(fromDayAgo),
+      midnight.Get(toDayAgo),
       midnight.Get(fromDayAgo),
       midnight.Get(toDayAgo),
       i);
@@ -3229,20 +3696,31 @@ PlacesSQLQueryBuilder::SelectAsDay()
 
   mQueryString.Append(nsPrintfCString(1024,
     "SELECT * "
-    "FROM (SELECT %d dayOrder, "
-                 "'%d+' dayRange, "
-                 "%s dayTitle, " 
-                 "1 beginTime, "
-                 "%llu endTime "
-          "FROM  moz_historyvisits "
-          "WHERE visit_date < %llu "
-          "  AND visit_type NOT IN (0,4) "
-          "LIMIT 1) TUNIONLAST "
+    "FROM ("
+      "SELECT %d dayOrder, "
+            "'%d+' dayRange, "
+            "%s dayTitle, " 
+            "1 beginTime, "
+            "%llu endTime "
+      "WHERE EXISTS ( "
+        "SELECT id FROM moz_historyvisits_temp "
+        "WHERE visit_date < %llu "
+          "AND visit_type NOT IN (0, 4) "
+        "LIMIT 1 "
+      ") "
+      "OR EXISTS ( "
+        "SELECT id FROM moz_historyvisits "
+        "WHERE visit_date < %llu "
+          "AND visit_type NOT IN (0, 4) "
+        "LIMIT 1 "
+      ") "
+      "LIMIT 1) TUNIONLAST "
     ") TOUTER " 
     "ORDER BY dayOrder ASC",
     MAX_HISTORY_DAYS+1,
     MAX_HISTORY_DAYS+1,
     dateParam.get(),
+    midnight.Get(-MAX_HISTORY_DAYS),
     midnight.Get(-MAX_HISTORY_DAYS),
     midnight.Get(-MAX_HISTORY_DAYS)
     ));
@@ -3263,26 +3741,43 @@ PlacesSQLQueryBuilder::SelectAsSite()
 
   
   if (mConditions.IsEmpty()) {
-
     mQueryString = nsPrintfCString(2048,
       "SELECT DISTINCT null, "
              "'place:type=%ld&sort=%ld&domain=&domainIsHost=true', "
              ":localhost, :localhost, null, null, null, null, null "
-      "WHERE EXISTS(SELECT '*' "
-                   "FROM moz_places "
-                   "WHERE hidden <> 1 AND rev_host = '.' "
-                     "AND visit_count > 0 "
-                     "AND url BETWEEN 'file://' AND 'file:/~') "
+      "WHERE EXISTS ( "
+        "SELECT id FROM moz_places_temp "
+        "WHERE hidden <> 1 "
+          "AND rev_host = '.' "
+          "AND visit_count > 0 "
+          "AND url BETWEEN 'file://' AND 'file:/~' "
+        "UNION ALL "
+        "SELECT id FROM moz_places "
+        "WHERE id NOT IN (SELECT id FROM moz_places_temp) "
+          "AND hidden <> 1 "
+          "AND rev_host = '.' "
+          "AND visit_count > 0 "
+          "AND url BETWEEN 'file://' AND 'file:/~' "
+      ") "
       "UNION ALL "
       "SELECT DISTINCT null, "
              "'place:type=%ld&sort=%ld&domain='||host||'&domainIsHost=true', "
              "host, host, null, null, null, null, null "
-      "FROM (SELECT get_unreversed_host(rev_host) host "
-            "FROM (SELECT DISTINCT rev_host "
-                  "FROM moz_places "
-                  "WHERE hidden <> 1 AND rev_host <> '.' "
-                    "AND visit_count > 0 ) inner0 "
-            "ORDER BY 1 ASC) inner1",
+      "FROM ( "
+        "SELECT get_unreversed_host(rev_host) host "
+        "FROM ( "
+          "SELECT DISTINCT rev_host FROM moz_places_temp "
+          "WHERE hidden <> 1 "
+            "AND rev_host <> '.' "
+            "AND visit_count > 0 "
+          "UNION ALL "
+          "SELECT DISTINCT rev_host FROM moz_places "
+          "WHERE id NOT IN (SELECT id FROM moz_places_temp) "
+            "AND hidden <> 1 "
+            "AND rev_host <> '.' "
+            "AND visit_count > 0 "
+        ") "
+      "ORDER BY 1 ASC)",
       nsINavHistoryQueryOptions::RESULTS_AS_URI,
       nsINavHistoryQueryOptions::SORT_BY_TITLE_ASCENDING,
       nsINavHistoryQueryOptions::RESULTS_AS_URI,
@@ -3295,27 +3790,74 @@ PlacesSQLQueryBuilder::SelectAsSite()
              "'place:type=%ld&sort=%ld&domain=&domainIsHost=true"
                "&beginTime='||:begin_time||'&endTime='||:end_time, "
              ":localhost, :localhost, null, null, null, null, null "
-      "WHERE EXISTS(SELECT '*' "
-                   "FROM moz_places h  "
-                        "JOIN moz_historyvisits v ON h.id = v.place_id "
-                   "WHERE h.hidden <> 1 AND h.rev_host = '.' "
-                     "AND h.visit_count > 0 "
-                     "AND h.url BETWEEN 'file://' AND 'file:/~' "
-                     "AND v.visit_type NOT IN (0,4) {ADDITIONAL_CONDITIONS} ) "
+      "WHERE EXISTS( "
+        "SELECT h.id "
+        "FROM moz_places h "
+        "JOIN moz_historyvisits v ON v.place_id = h.id "
+        "WHERE h.hidden <> 1 AND h.rev_host = '.' "
+          "AND h.visit_count > 0 "
+          "AND h.url BETWEEN 'file://' AND 'file:/~' "
+          "{ADDITIONAL_CONDITIONS} "
+        "UNION "
+        "SELECT h.id "
+        "FROM moz_places_temp h "
+        "JOIN moz_historyvisits v ON v.place_id = h.id "
+        "WHERE h.hidden <> 1 AND h.rev_host = '.' "
+          "AND h.visit_count > 0 "
+          "AND h.url BETWEEN 'file://' AND 'file:/~' "
+          "{ADDITIONAL_CONDITIONS} "
+        "UNION "
+        "SELECT h.id "
+        "FROM moz_places h "
+        "JOIN moz_historyvisits_temp v ON v.place_id = h.id "
+        "WHERE h.hidden <> 1 AND h.rev_host = '.' "
+          "AND h.visit_count > 0 "
+          "AND h.url BETWEEN 'file://' AND 'file:/~' "
+          "{ADDITIONAL_CONDITIONS} "
+        "UNION "
+        "SELECT h.id "
+        "FROM moz_places_temp h "
+        "JOIN moz_historyvisits_temp v ON v.place_id = h.id "
+        "WHERE h.hidden <> 1 AND h.rev_host = '.' "
+          "AND h.visit_count > 0 "
+          "AND h.url BETWEEN 'file://' AND 'file:/~' "
+          "{ADDITIONAL_CONDITIONS} "        
+      ") "
       "UNION ALL "
       "SELECT DISTINCT null, "
              "'place:type=%ld&sort=%ld&domain='||host||'&domainIsHost=true"
                "&beginTime='||:begin_time||'&endTime='||:end_time, "
              "host, host, null, null, null, null, null "
-      "FROM (SELECT get_unreversed_host(rev_host) host "
-            "FROM (SELECT DISTINCT rev_host "
-                  "FROM moz_places h "
-                       "JOIN moz_historyvisits v ON h.id = v.place_id "
-                  "WHERE h.hidden <> 1 AND h.rev_host <> '.' "
-                    "AND h.visit_count > 0 "
-                    "AND v.visit_type NOT IN (0,4) "
-                    "{ADDITIONAL_CONDITIONS} ) inner0 "
-            "ORDER BY 1 ASC) inner1",
+      "FROM ( "
+        "SELECT DISTINCT get_unreversed_host(rev_host) AS host "
+        "FROM moz_places h "
+        "JOIN moz_historyvisits v ON v.place_id = h.id "
+        "WHERE h.hidden <> 1 AND h.rev_host <> '.' "
+          "AND h.visit_count > 0 "
+          "{ADDITIONAL_CONDITIONS} "
+        "UNION "
+        "SELECT DISTINCT get_unreversed_host(rev_host) AS host "
+        "FROM moz_places_temp h "
+        "JOIN moz_historyvisits v ON v.place_id = h.id "
+        "WHERE h.hidden <> 1 AND h.rev_host <> '.' "
+          "AND h.visit_count > 0 "
+          "{ADDITIONAL_CONDITIONS} "
+        "UNION "
+        "SELECT DISTINCT get_unreversed_host(rev_host) AS host "
+        "FROM moz_places h "
+        "JOIN moz_historyvisits_temp v ON v.place_id = h.id "
+        "WHERE h.hidden <> 1 AND h.rev_host <> '.' "
+          "AND h.visit_count > 0 "
+          "{ADDITIONAL_CONDITIONS} "
+        "UNION "
+        "SELECT DISTINCT get_unreversed_host(rev_host) AS host "
+        "FROM moz_places_temp h "
+        "JOIN moz_historyvisits_temp v ON v.place_id = h.id "        
+        "WHERE h.hidden <> 1 AND h.rev_host <> '.' "
+          "AND h.visit_count > 0 "
+          "{ADDITIONAL_CONDITIONS} "        
+        "ORDER BY 1 ASC "
+      ")",
       nsINavHistoryQueryOptions::RESULTS_AS_URI,
       nsINavHistoryQueryOptions::SORT_BY_TITLE_ASCENDING,
       nsINavHistoryQueryOptions::RESULTS_AS_URI,
@@ -3502,21 +4044,44 @@ nsNavHistory::ConstructQueryString(
   if (IsHistoryMenuQuery(aQueries, aOptions, 
         nsINavHistoryQueryOptions::SORT_BY_DATE_DESCENDING)) {
 
+    nsCString sqlFragment = NS_LITERAL_CSTRING(
+      "SELECT * FROM ( "
+        "SELECT DISTINCT place_id "
+        "FROM moz_historyvisits "
+        "WHERE visit_type NOT IN (0,4) "
+          "AND NOT EXISTS (SELECT id FROM moz_places h WHERE h.id = place_id AND hidden = 1) "
+          "AND NOT EXISTS (SELECT id FROM moz_places_temp h WHERE h.id = place_id AND hidden = 1) "
+        "ORDER by visit_date DESC LIMIT ") +
+        nsPrintfCString("%d ", aOptions->MaxResults()) +
+      NS_LITERAL_CSTRING(") "
+      "UNION ALL "
+      "SELECT * FROM ( "
+        "SELECT DISTINCT place_id "
+        "FROM moz_historyvisits_temp "
+        "WHERE visit_type NOT IN (0,4) "
+        "AND NOT EXISTS (SELECT id FROM moz_places h WHERE h.id = place_id AND hidden = 1) "
+        "AND NOT EXISTS (SELECT id FROM moz_places_temp h WHERE h.id = place_id AND hidden = 1) "
+        "ORDER by visit_date DESC LIMIT ") +
+        nsPrintfCString("%d ", aOptions->MaxResults()) +
+      NS_LITERAL_CSTRING(")");
+
     queryString = NS_LITERAL_CSTRING(
       "SELECT h.id, h.url, h.title, h.rev_host, h.visit_count, "
-        SQL_STR_FRAGMENT_MAX_VISIT_DATE( "h.id" )
-        ", f.url, null, null "
-      "FROM moz_places h "
-      "LEFT OUTER JOIN moz_favicons f ON h.favicon_id = f.id "
-      "WHERE h.id IN ( "
-        "SELECT DISTINCT p.id "
-        "FROM moz_places p "
-        "JOIN moz_historyvisits v ON v.place_id = p.id "
-        "WHERE p.hidden <> 1 AND v.visit_type NOT IN (0,4) "
-        "ORDER BY v.visit_date DESC "
+          SQL_STR_FRAGMENT_MAX_VISIT_DATE( "h.id" )
+          ", f.url, null, null "
+        "FROM moz_places_temp h "
+        "LEFT OUTER JOIN moz_favicons f ON h.favicon_id = f.id "
+        "WHERE h.id IN ( ") + sqlFragment + NS_LITERAL_CSTRING(") "
+      "UNION "
+      "SELECT h.id, h.url, h.title, h.rev_host, h.visit_count, "
+          SQL_STR_FRAGMENT_MAX_VISIT_DATE( "h.id" )
+          ", f.url, null, null "
+        "FROM moz_places h "
+        "LEFT OUTER JOIN moz_favicons f ON h.favicon_id = f.id "
+        "WHERE h.id IN ( ") + sqlFragment + NS_LITERAL_CSTRING(") "
+        "ORDER BY 6 DESC " 
         "LIMIT ");
     queryString.AppendInt(aOptions->MaxResults());
-    queryString += NS_LITERAL_CSTRING(") ORDER BY 6 DESC"); 
     return NS_OK;
   }
 
@@ -3525,17 +4090,30 @@ nsNavHistory::ConstructQueryString(
   if (IsHistoryMenuQuery(aQueries, aOptions, 
         nsINavHistoryQueryOptions::SORT_BY_VISITCOUNT_DESCENDING)) {
     queryString = NS_LITERAL_CSTRING(
-      "SELECT h.id, h.url, h.title, h.rev_host, h.visit_count, "
-        SQL_STR_FRAGMENT_MAX_VISIT_DATE( "h.id" )
-        ", f.url, null, null "
-      "FROM moz_places h "
-      "LEFT OUTER JOIN moz_favicons f ON h.favicon_id = f.id "
-      "WHERE h.id IN ("
-        "SELECT p.id FROM moz_places p "
-        "WHERE p.hidden <> 1 AND visit_count > 0 "
-        "ORDER BY p.visit_count DESC LIMIT ");
+      "SELECT * FROM ( "
+        "SELECT h.id, h.url, h.title, h.rev_host, h.visit_count, "
+          SQL_STR_FRAGMENT_MAX_VISIT_DATE( "h.id" )
+          ", f.url, null, null "
+        "FROM moz_places_temp h "
+        "LEFT OUTER JOIN moz_favicons f ON h.favicon_id = f.id "
+        "WHERE h.hidden <> 1 AND visit_count > 0 "
+        "ORDER BY h.visit_count DESC LIMIT ") +
+        nsPrintfCString("%d ", aOptions->MaxResults()) +
+      NS_LITERAL_CSTRING(") "
+      "UNION "
+      "SELECT * FROM ( "
+        "SELECT h.id, h.url, h.title, h.rev_host, h.visit_count, "
+          SQL_STR_FRAGMENT_MAX_VISIT_DATE( "h.id" )
+          ", f.url, null, null "
+        "FROM moz_places h "
+        "LEFT OUTER JOIN moz_favicons f ON h.favicon_id = f.id "
+        "WHERE h.hidden <> 1 AND visit_count > 0 "
+        "ORDER BY h.visit_count DESC LIMIT ") +
+        nsPrintfCString("%d ", aOptions->MaxResults()) +
+      NS_LITERAL_CSTRING(") "
+      "ORDER BY 5 DESC LIMIT "); 
     queryString.AppendInt(aOptions->MaxResults());
-    queryString += NS_LITERAL_CSTRING(") ORDER BY h.visit_count DESC");
+
     return NS_OK;
   }  
 
@@ -3620,7 +4198,7 @@ nsNavHistory::GetQueryResults(nsNavHistoryQueryResultNode *aResultNode,
                                      paramsPresent, addParams);
   NS_ENSURE_SUCCESS(rv,rv);
 
-#ifdef DEBUG_thunder
+#ifdef DEBUG_FRECENCY
   printf("Constructed the query: %s\n", PromiseFlatCString(queryString).get());
 #endif
 
@@ -3772,13 +4350,38 @@ nsNavHistory::GetLastPageVisited(nsACString & aLastPageVisited)
   NS_ASSERTION(NS_IsMainThread(), "This can only be called on the main thread");
 
   nsCOMPtr<mozIStorageStatement> statement;
+  
+  
+  
   nsresult rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
-      "SELECT h.url "
-      "FROM moz_places h LEFT OUTER JOIN moz_historyvisits v ON h.id = v.place_id "
-      "WHERE v.visit_date IN "
-      "(SELECT MAX(visit_date) "
-       "FROM moz_historyvisits v2 LEFT JOIN moz_places h2 ON v2.place_id = h2.id "
-        "WHERE h2.hidden != 1)"),
+      "SELECT * FROM ( "
+        "SELECT url, visit_date FROM moz_historyvisits_temp v "
+        "JOIN moz_places_temp h ON v.place_id = h.id "
+        "WHERE h.hidden <> 1 "
+        "ORDER BY visit_date DESC LIMIT 1 "
+      ") "
+      "UNION ALL "
+      "SELECT * FROM ( "
+        "SELECT url, visit_date FROM moz_historyvisits_temp v "
+        "JOIN moz_places h ON v.place_id = h.id "
+        "WHERE h.hidden <> 1 "
+        "ORDER BY visit_date DESC LIMIT 1 "
+      ") "
+      "UNION ALL "
+      "SELECT * FROM ( "
+        "SELECT url, visit_date FROM moz_historyvisits v "
+        "JOIN moz_places h ON v.place_id = h.id "
+        "WHERE h.hidden <> 1 "
+        "ORDER BY visit_date DESC LIMIT 1 "
+      ") "
+      "UNION ALL "
+      "SELECT * FROM ( "
+        "SELECT url, visit_date FROM moz_historyvisits v "
+        "JOIN moz_places_temp h ON v.place_id = h.id "
+        "WHERE h.hidden <> 1 "
+        "ORDER BY visit_date DESC LIMIT 1 "
+      ") "
+      "ORDER BY 2 DESC LIMIT 1"), 
     getter_AddRefs(statement));
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -3836,19 +4439,31 @@ nsNavHistory::RemovePagesInternal(const nsCString& aPlaceIdsQueryString)
   
   
   nsresult rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
-      "UPDATE moz_places "
+      "UPDATE moz_places_view "
       "SET frecency = -MAX(visit_count, 1) "
-      "WHERE id IN(") +
-        aPlaceIdsQueryString +
-        NS_LITERAL_CSTRING(") AND ("
-          "EXISTS (SELECT b.id FROM moz_bookmarks b WHERE b.fk = moz_places.id) "
-          "OR EXISTS "
-            "(SELECT a.id FROM moz_annos a WHERE a.place_id = moz_places.id))"));
+      "WHERE id IN ( "
+        "SELECT h.id " 
+        "FROM moz_places_temp h "
+        "WHERE h.id IN ( ") + aPlaceIdsQueryString + NS_LITERAL_CSTRING(") "
+          "AND ( "
+            "EXISTS (SELECT b.id FROM moz_bookmarks b WHERE b.fk =h.id) "
+            "OR EXISTS (SELECT a.id FROM moz_annos a WHERE a.place_id = h.id) "
+          ") "
+        "UNION ALL "
+        "SELECT h.id " 
+        "FROM moz_places h "
+        "WHERE h.id IN ( ") + aPlaceIdsQueryString + NS_LITERAL_CSTRING(") "
+          "AND h.id NOT IN (SELECT id FROM moz_places_temp) "
+          "AND ( "
+            "EXISTS (SELECT b.id FROM moz_bookmarks b WHERE b.fk =h.id) "
+            "OR EXISTS (SELECT a.id FROM moz_annos a WHERE a.place_id = h.id) "
+          ") "        
+      ")"));
   NS_ENSURE_SUCCESS(rv, rv);
 
   
   rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
-      "DELETE FROM moz_historyvisits WHERE place_id IN (") +
+      "DELETE FROM moz_historyvisits_view WHERE place_id IN (") +
         aPlaceIdsQueryString +
         NS_LITERAL_CSTRING(")"));
   NS_ENSURE_SUCCESS(rv, rv);
@@ -3862,12 +4477,20 @@ nsNavHistory::RemovePagesInternal(const nsCString& aPlaceIdsQueryString)
   
   
   rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
-      "DELETE FROM moz_places WHERE id IN ("
-        "SELECT h.id FROM moz_places h WHERE h.id IN (") +
-        aPlaceIdsQueryString +
-        NS_LITERAL_CSTRING(") AND "
-        "NOT EXISTS (SELECT b.id FROM moz_bookmarks b WHERE b.fk = h.id LIMIT 1) "
-        "AND SUBSTR(h.url,0,6) <> 'place:')"));
+      "DELETE FROM moz_places_view WHERE id IN ("
+        "SELECT h.id FROM moz_places_temp h "
+        "WHERE h.id IN ( ") + aPlaceIdsQueryString + NS_LITERAL_CSTRING(") "
+          "AND SUBSTR(h.url, 0, 6) <> 'place:' "
+          "AND NOT EXISTS "
+            "(SELECT b.id FROM moz_bookmarks b WHERE b.fk = h.id LIMIT 1) "
+        "UNION ALL "
+        "SELECT h.id FROM moz_places h "
+        "WHERE h.id NOT IN (SELECT id FROM moz_places_temp) "
+          "AND h.id IN ( ") + aPlaceIdsQueryString + NS_LITERAL_CSTRING(") "
+          "AND SUBSTR(h.url, 0, 6) <> 'place:' "
+          "AND NOT EXISTS "
+            "(SELECT b.id FROM moz_bookmarks b WHERE b.fk = h.id LIMIT 1) "
+    ")"));
   NS_ENSURE_SUCCESS(rv, rv);
 
   
@@ -3991,16 +4614,21 @@ nsNavHistory::RemovePagesFromHost(const nsACString& aHost, PRBool aEntireDomain)
   
   nsCAutoString conditionString;
   if (aEntireDomain)
-    conditionString.AssignLiteral("h.rev_host >= ?1 AND h.rev_host < ?2 ");
+    conditionString.AssignLiteral("rev_host >= ?1 AND rev_host < ?2 ");
   else
-    conditionString.AssignLiteral("h.rev_host = ?1 ");
+    conditionString.AssignLiteral("rev_host = ?1 ");
 
   nsCOMPtr<mozIStorageStatement> statement;
 
   
   rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
-      "SELECT h.id FROM moz_places h WHERE ") +
-      conditionString, getter_AddRefs(statement));
+      "SELECT id FROM moz_places_temp "
+      "WHERE ") + conditionString + NS_LITERAL_CSTRING(
+      "UNION ALL "
+      "SELECT id FROM moz_places "
+      "WHERE id NOT IN (SELECT id FROM moz_places_temp) "
+        "AND ") + conditionString,
+    getter_AddRefs(statement));
   NS_ENSURE_SUCCESS(rv, rv);
   rv = statement->BindStringParameter(0, revHostDot);
   NS_ENSURE_SUCCESS(rv, rv);
@@ -4051,9 +4679,21 @@ nsNavHistory::RemovePagesByTimeframe(PRTime aBeginTime, PRTime aEndTime)
   
   nsCOMPtr<mozIStorageStatement> selectByTime;
   rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
+      "SELECT h.id FROM moz_places_temp h WHERE "
+        "EXISTS "
+          "(SELECT id FROM moz_historyvisits v WHERE v.place_id = h.id "
+            "AND v.visit_date >= ?1 AND v.visit_date <= ?2 LIMIT 1)"
+        "OR EXISTS "
+          "(SELECT id FROM moz_historyvisits_temp v WHERE v.place_id = h.id "
+            "AND v.visit_date >= ?1 AND v.visit_date <= ?2 LIMIT 1) "
+      "UNION "
       "SELECT h.id FROM moz_places h WHERE "
-      "EXISTS (SELECT id FROM moz_historyvisits v WHERE v.place_id = h.id "
-      " AND v.visit_date >= ?1 AND v.visit_date <= ?2 LIMIT 1)"),
+        "EXISTS "
+          "(SELECT id FROM moz_historyvisits v WHERE v.place_id = h.id "
+            "AND v.visit_date >= ?1 AND v.visit_date <= ?2 LIMIT 1)"
+        "OR EXISTS "
+          "(SELECT id FROM moz_historyvisits_temp v WHERE v.place_id = h.id "
+            "AND v.visit_date >= ?1 AND v.visit_date <= ?2 LIMIT 1)"),
     getter_AddRefs(selectByTime));
   NS_ENSURE_SUCCESS(rv, rv);
   rv = selectByTime->BindInt64Parameter(0, aBeginTime);
@@ -5084,8 +5724,8 @@ nsNavHistory::QueryToSelectClause(nsNavHistoryQuery* aQuery,
       "EXISTS "
         "(SELECT h.id "
          "FROM moz_annos anno "
-              "JOIN moz_anno_attributes annoname "
-                "ON anno.anno_attribute_id = annoname.id "
+         "JOIN moz_anno_attributes annoname "
+           "ON anno.anno_attribute_id = annoname.id "
          "WHERE anno.place_id = h.id "
            "AND annoname.name = ").Param(":anno").Str(")");
     
@@ -5967,9 +6607,9 @@ nsNavHistory::SetPageTitleInternal(nsIURI* aURI, const nsAString& aTitle)
 
   nsCOMPtr<mozIStorageStatement> dbModStatement;
   title = aTitle;
-  rv = mDBConn->CreateStatement(
-      NS_LITERAL_CSTRING("UPDATE moz_places SET title = ?1 WHERE url = ?2"),
-      getter_AddRefs(dbModStatement));
+  rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
+      "UPDATE moz_places_view SET title = ?1 WHERE url = ?2"),
+    getter_AddRefs(dbModStatement));
   NS_ENSURE_SUCCESS(rv, rv);
 
   
@@ -6037,57 +6677,58 @@ nsNavHistory::RemoveDuplicateURIs()
   
   
   nsCOMPtr<mozIStorageStatement> selectStatement;
-  nsresult rv = mDBConn->CreateStatement(
-      NS_LITERAL_CSTRING("SELECT "
-        "(SELECT h.id FROM moz_places h WHERE h.url=url ORDER BY h.visit_count DESC LIMIT 1), "
+  nsresult rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
+      "SELECT "
+        "(SELECT h.id FROM moz_places_view h WHERE h.url = url "
+         "ORDER BY h.visit_count DESC LIMIT 1), "
         "url, SUM(visit_count) "
-        "FROM moz_places "
-        "GROUP BY url HAVING( COUNT(url) > 1)"),
-      getter_AddRefs(selectStatement));
+      "FROM moz_places_view "
+      "GROUP BY url HAVING( COUNT(url) > 1)"),
+    getter_AddRefs(selectStatement));
   NS_ENSURE_SUCCESS(rv, rv);
 
   
   nsCOMPtr<mozIStorageStatement> updateStatement;
-  rv = mDBConn->CreateStatement(
-      NS_LITERAL_CSTRING(
-        "UPDATE moz_historyvisits "
-        "SET place_id = ?1 "
-        "WHERE place_id IN (SELECT id FROM moz_places WHERE id <> ?1 AND url = ?2)"),
-      getter_AddRefs(updateStatement));
+  rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
+      "UPDATE moz_historyvisits_view "
+      "SET place_id = ?1 "
+      "WHERE place_id IN "
+        "(SELECT id FROM moz_places_view WHERE id <> ?1 AND url = ?2)"),
+    getter_AddRefs(updateStatement));
   NS_ENSURE_SUCCESS(rv, rv);
 
   
   nsCOMPtr<mozIStorageStatement> bookmarkStatement;
-  rv = mDBConn->CreateStatement(
-      NS_LITERAL_CSTRING(
-        "UPDATE moz_bookmarks "
-        "SET fk = ?1 "
-        "WHERE fk IN (SELECT id FROM moz_places WHERE id <> ?1 AND url = ?2)"),
-      getter_AddRefs(bookmarkStatement));
+  rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
+      "UPDATE moz_bookmarks "
+      "SET fk = ?1 "
+      "WHERE fk IN "
+        "(SELECT id FROM moz_places_view WHERE id <> ?1 AND url = ?2)"),
+    getter_AddRefs(bookmarkStatement));
   NS_ENSURE_SUCCESS(rv, rv);
 
   
   nsCOMPtr<mozIStorageStatement> annoStatement;
-  rv = mDBConn->CreateStatement(
-      NS_LITERAL_CSTRING(
-        "UPDATE moz_annos "
-        "SET place_id = ?1 "
-        "WHERE place_id IN (SELECT id FROM moz_places WHERE id <> ?1 AND url = ?2)"),
-      getter_AddRefs(annoStatement));
+  rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
+      "UPDATE moz_annos "
+      "SET place_id = ?1 "
+      "WHERE place_id IN "
+        "(SELECT id FROM moz_places_view WHERE id <> ?1 AND url = ?2)"),
+    getter_AddRefs(annoStatement));
   NS_ENSURE_SUCCESS(rv, rv);
   
   
   nsCOMPtr<mozIStorageStatement> deleteStatement;
-  rv = mDBConn->CreateStatement(
-      NS_LITERAL_CSTRING("DELETE FROM moz_places WHERE url = ?1 AND id <> ?2"),
-      getter_AddRefs(deleteStatement));
+  rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
+      "DELETE FROM moz_places_view WHERE url = ?1 AND id <> ?2"),
+    getter_AddRefs(deleteStatement));
   NS_ENSURE_SUCCESS(rv, rv);
 
   
   nsCOMPtr<mozIStorageStatement> countStatement;
-  rv = mDBConn->CreateStatement(
-      NS_LITERAL_CSTRING("UPDATE moz_places SET visit_count = ?1 WHERE id = ?2"),
-      getter_AddRefs(countStatement));
+  rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
+      "UPDATE moz_places_view SET visit_count = ?1 WHERE id = ?2"),
+    getter_AddRefs(countStatement));
   NS_ENSURE_SUCCESS(rv, rv);
 
   
