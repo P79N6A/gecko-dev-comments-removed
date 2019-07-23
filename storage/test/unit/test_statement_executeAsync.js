@@ -152,7 +152,7 @@ function test_get_data()
   var stmt = getOpenedDatabase().createStatement(
     "SELECT string, number, nuller, blober, id FROM test WHERE id = ?"
   );
-  stmt.bindInt32Parameter(0, 1);
+  stmt.bindInt32Parameter(0, INTEGER);
 
   stmt.executeAsync({
     resultObtained: false,
@@ -955,6 +955,52 @@ function test_not_right_owning_statement()
   run_next_test();
 }
 
+function test_multiple_results()
+{
+  
+  let stmt = createStatement("SELECT COUNT(1) FROM test");
+  try {
+    do_check_true(stmt.executeStep());
+    var expectedResults = stmt.getInt32(0);
+  }
+  finally {
+    stmt.finalize();
+  }
+
+  
+  do_check_true(expectedResults > 1);
+
+  
+  stmt = createStatement("SELECT * FROM test");
+  stmt.executeAsync({
+    _results: 0,
+    handleResult: function(aResultSet)
+    {
+      while (aResultSet.getNextRow())
+        this._results++;
+    },
+    handleError: function(aError)
+    {
+      print("Error code " + aError.result + " with message '" +
+            aError.message + "' returned.");
+      do_throw("Unexpected call to handleError!");
+    },
+    handleCompletion: function(aReason)
+    {
+      print("handleCompletion(" + aReason +
+            ") for test_multiple_results");
+      do_check_eq(Ci.mozIStorageStatementCallback.REASON_FINISHED, aReason);
+
+      
+      do_check_eq(this._results, expectedResults);
+
+      
+      run_next_test();
+    }
+  });
+  stmt.finalize();
+}
+
 
 
 
@@ -983,6 +1029,7 @@ var tests =
   test_no_binding_params_from_locked_array,
   test_not_right_owning_array,
   test_not_right_owning_statement,
+  test_multiple_results,
 ];
 let index = 0;
 
