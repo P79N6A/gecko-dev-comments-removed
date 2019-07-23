@@ -377,14 +377,7 @@ nsJAR::GetCertificatePrincipal(const char* aFilename, nsIPrincipal** aPrincipal)
   *aPrincipal = nsnull;
 
   
-  nsresult rv;
-  nsCOMPtr<nsISignatureVerifier> verifier = 
-           do_GetService(SIGNATURE_VERIFIER_CONTRACTID, &rv);
-  if (NS_FAILED(rv)) 
-    return NS_OK;
-
-  
-  rv = ParseManifest(verifier);
+  nsresult rv = ParseManifest();
   if (NS_FAILED(rv)) return rv;
   if (mGlobalStatus == JAR_NO_MANIFEST)
     return NS_OK;
@@ -525,7 +518,7 @@ nsJAR::ReadLine(const char** src)
 #define JAR_SF_HEADER (const char*)"Signature-Version: 1.0"
 
 nsresult
-nsJAR::ParseManifest(nsISignatureVerifier* verifier)
+nsJAR::ParseManifest()
 {
   
   if (mParsedManifest)
@@ -606,6 +599,16 @@ nsJAR::ParseManifest(nsISignatureVerifier* verifier)
     rv = LoadEntry(tempFilename.get(), getter_Copies(sigBuffer), &sigLen);
   }
   if (NS_FAILED(rv))
+  {
+    mGlobalStatus = JAR_NO_MANIFEST;
+    mParsedManifest = PR_TRUE;
+    return NS_OK;
+  }
+
+  
+  nsCOMPtr<nsISignatureVerifier> verifier = 
+           do_GetService(SIGNATURE_VERIFIER_CONTRACTID, &rv);
+  if (NS_FAILED(rv)) 
   {
     mGlobalStatus = JAR_NO_MANIFEST;
     mParsedManifest = PR_TRUE;
