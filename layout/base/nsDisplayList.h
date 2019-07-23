@@ -284,7 +284,8 @@ public:
 
 
 
-  void MarkFramesForDisplayList(nsIFrame* aDirtyFrame, nsIFrame* aFrames,
+  void MarkFramesForDisplayList(nsIFrame* aDirtyFrame,
+                                const nsFrameList& aFrames,
                                 const nsRect& aDirtyRect);
   
   
