@@ -201,6 +201,7 @@ do_check_eq(container.height, 32);
 testnum++;
 testdesc = "test encoding a scaled PNG";
 
+if (!isWindows) {
 
 istream = imgTools.encodeScaledImage(container, "image/png", 16, 16);
 
@@ -214,12 +215,14 @@ referenceBytes = streamToArray(istream);
 
 
 compareArrays(encodedBytes, referenceBytes);
+}
 
 
 
 testnum++;
 testdesc = "test encoding an unscaled PNG";
 
+if (!isWindows) {
 
 istream = imgTools.encodeImage(container, "image/png");
 encodedBytes = streamToArray(istream);
@@ -233,6 +236,7 @@ referenceBytes = streamToArray(istream);
 
 
 compareArrays(encodedBytes, referenceBytes);
+}
 
 
 
