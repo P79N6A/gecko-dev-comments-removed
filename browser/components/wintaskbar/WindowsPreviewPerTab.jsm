@@ -473,7 +473,11 @@ TabWindow.prototype = {
   },
 
   updateTabOrdering: function () {
-    for (let i = 0; i < this.previews.length; i++) {
+    
+    
+    
+    
+    for (let i = this.previews.length - 1; i >= 0; i--) {
       let p = this.previews[i];
       let next = i == this.previews.length - 1 ? null : this.previews[i+1];
       p.move(next);
