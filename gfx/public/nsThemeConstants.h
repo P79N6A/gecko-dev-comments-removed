@@ -154,10 +154,6 @@
 #define NS_THEME_SCROLLBAR_THUMB_VERTICAL                  89
 
 
-#define NS_THEME_SCROLLBAR_GRIPPER_HORIZONTAL              90
-#define NS_THEME_SCROLLBAR_GRIPPER_VERTICAL                91
-
-
 #define NS_THEME_TEXTFIELD                                 95
 
 
