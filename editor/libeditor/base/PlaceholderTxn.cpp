@@ -133,8 +133,8 @@ NS_IMETHODIMP PlaceholderTxn::Merge(nsITransaction *aTransaction, PRBool *aDidMe
   
   if (mAbsorb)
   { 
-    IMETextTxn*  otherTxn = nsnull;
-    if (NS_SUCCEEDED(aTransaction->QueryInterface(IMETextTxn::GetCID(),(void**)&otherTxn)) && otherTxn)
+    nsRefPtr<IMETextTxn> otherTxn;
+    if (NS_SUCCEEDED(aTransaction->QueryInterface(IMETextTxn::GetCID(), getter_AddRefs(otherTxn))) && otherTxn)
     {
       
       
@@ -157,7 +157,6 @@ NS_IMETHODIMP PlaceholderTxn::Merge(nsITransaction *aTransaction, PRBool *aDidMe
           AppendChild(editTxn);
         }
       }
-      NS_IF_RELEASE(otherTxn);
     }
     else if (!plcTxn)  
     {                  

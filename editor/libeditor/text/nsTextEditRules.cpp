@@ -62,6 +62,7 @@
 #include "nsUnicharUtils.h"
 #include "nsILookAndFeel.h"
 #include "nsWidgetsCID.h"
+#include "DeleteTextTxn.h"
 
 
 #include "nsIPresShell.h"
@@ -1225,17 +1226,16 @@ nsTextEditRules::ReplaceNewlines(nsIDOMRange *aRange)
       if (offset == -1) break; 
       
       
-      EditTxn *txn;
+      nsRefPtr<DeleteTextTxn> txn;
       
       
       
-      res = mEditor->CreateTxnForDeleteText(textNode, offset, 1, (DeleteTextTxn**)&txn);
+      res = mEditor->CreateTxnForDeleteText(textNode, offset, 1,
+                                            getter_AddRefs(txn));
       if (NS_FAILED(res))  return res; 
       if (!txn)  return NS_ERROR_OUT_OF_MEMORY;
       res = mEditor->DoTransaction(txn); 
       if (NS_FAILED(res))  return res; 
-      
-      NS_IF_RELEASE(txn);
       
       
       res = mEditor->CreateBR(textNode, offset, address_of(brNode));
