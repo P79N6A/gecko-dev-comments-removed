@@ -285,7 +285,6 @@ js_InitJITStatsClass(JSContext *cx, JSObject *glob)
 #define INS_ATOM(atom)        INS_CONSTSTR(ATOM_TO_STRING(atom))
 #define INS_NULL()            INS_CONSTPTR(NULL)
 #define INS_VOID()            INS_CONST(JSVAL_TO_SPECIAL(JSVAL_VOID))
-#define INS_DSLOTSNULL(ins)   lir->ins2(LIR_pult, (ins), INS_CONSTPTR((jsval*) DSLOTS_NULL_LIMIT))
 
 static avmplus::AvmCore s_core = avmplus::AvmCore();
 static avmplus::AvmCore* core = &s_core;
@@ -2311,7 +2310,8 @@ TraceRecorder::TraceRecorder(JSContext* cx, VMSideExit* _anchor, Fragment* _frag
       mark(*JS_TRACE_MONITOR(cx).traceAlloc),
       whichTreesToTrash(&tempAlloc),
       cfgMerges(&tempAlloc),
-      monitorReason(reason)
+      monitorReason(reason),
+      tempTypeMap(&tempAlloc)
 {
     JS_ASSERT(!_fragment->vmprivate && ti && cx->fp->regs->pc == (jsbytecode*)_fragment->ip);
     
@@ -4011,9 +4011,11 @@ TraceRecorder::snapshot(ExitType exitType)
     
     unsigned ngslots = treeInfo->globalSlots->length();
     unsigned typemap_size = (stackSlots + ngslots) * sizeof(JSTraceType);
-    void *mark = JS_ARENA_MARK(&cx->tempPool);
-    JSTraceType* typemap;
-    JS_ARENA_ALLOCATE_CAST(typemap, JSTraceType*, &cx->tempPool, typemap_size);
+
+    
+    JSTraceType* typemap = NULL;
+    if (tempTypeMap.resize(typemap_size))
+        typemap = tempTypeMap.begin(); 
 
     
 
@@ -4074,7 +4076,6 @@ TraceRecorder::snapshot(ExitType exitType)
 #if defined JS_JIT_SPEW
                 TreevisLogExit(cx, e);
 #endif
-                JS_ARENA_RELEASE(&cx->tempPool, mark);
                 return e;
             }
         }
@@ -4108,8 +4109,6 @@ TraceRecorder::snapshot(ExitType exitType)
 #if defined JS_JIT_SPEW
     TreevisLogExit(cx, exit);
 #endif
-
-    JS_ARENA_RELEASE(&cx->tempPool, mark);
     return exit;
 }
 
@@ -12553,7 +12552,7 @@ TraceRecorder::denseArrayElement(jsval& oval, jsval& ival, jsval*& vp, LIns*& v_
                                    NULL);
 
         
-        LIns* br3 = lir->insBranch(LIR_jt, INS_DSLOTSNULL(dslots_ins), NULL);
+        LIns* br3 = lir->insBranch(LIR_jt, lir->ins_peq0(dslots_ins), NULL);
 
         
         LIns* br4 = lir->insBranch(LIR_jf,
@@ -12595,7 +12594,7 @@ TraceRecorder::denseArrayElement(jsval& oval, jsval& ival, jsval*& vp, LIns*& v_
 
     
     guard(false,
-          INS_DSLOTSNULL(dslots_ins),
+          lir->ins_peq0(dslots_ins),
           exit);
 
     
