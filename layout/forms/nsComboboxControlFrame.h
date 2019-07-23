@@ -224,6 +224,9 @@ protected:
   nsresult ReflowDropdown(nsPresContext*          aPresContext, 
                           const nsHTMLReflowState& aReflowState);
 
+  
+  nscoord GetIntrinsicWidth(nsIRenderingContext* aRenderingContext,
+                            nsLayoutUtils::IntrinsicWidthType aType);
 protected:
   class RedisplayTextEvent;
   friend class RedisplayTextEvent;
