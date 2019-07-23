@@ -51,6 +51,9 @@
 #include "nsThreadUtils.h"
 #include "nsWaveDecoder.h"
 
+using mozilla::TimeDuration;
+using mozilla::TimeStamp;
+
 
 #define BUFFERING_TIMEOUT 3
 
@@ -114,7 +117,7 @@ class nsWaveStateMachine : public nsRunnable
 {
 public:
   nsWaveStateMachine(nsWaveDecoder* aDecoder,
-                     PRUint32 aBufferWaitTime, float aInitialVolume);
+                     TimeDuration aBufferWaitTime, float aInitialVolume);
   ~nsWaveStateMachine();
 
   void SetStream(nsMediaStream* aStream) { mStream = aStream; }
@@ -258,11 +261,11 @@ private:
   nsAutoPtr<nsAudioStream> mAudioStream;
 
   
-  PRUint32 mBufferingWait;
+  TimeDuration mBufferingWait;
 
   
   
-  PRIntervalTime mBufferingStart;
+  TimeStamp mBufferingStart;
 
   
   
@@ -334,11 +337,12 @@ private:
 };
 
 nsWaveStateMachine::nsWaveStateMachine(nsWaveDecoder* aDecoder,
-                                       PRUint32 aBufferWaitTime, float aInitialVolume)
+                                       TimeDuration aBufferWaitTime,
+                                       float aInitialVolume)
   : mDecoder(aDecoder),
     mStream(nsnull),
     mBufferingWait(aBufferWaitTime),
-    mBufferingStart(0),
+    mBufferingStart(),
     mBufferingEndOffset(0),
     mSampleRate(0),
     mChannels(0),
@@ -512,15 +516,15 @@ nsWaveStateMachine::Run()
       break;
 
     case STATE_BUFFERING: {
-      PRIntervalTime now = PR_IntervalNow();
-      if ((PR_IntervalToMilliseconds(now - mBufferingStart) < mBufferingWait) &&
+      TimeStamp now = TimeStamp::Now();
+      if (now - mBufferingStart < mBufferingWait &&
           mStream->GetCachedDataEnd(mPlaybackPosition) < mBufferingEndOffset &&
           !mStream->IsDataCachedToEndOfStream(mPlaybackPosition) &&
           !mStream->IsSuspendedByCache()) {
         LOG(PR_LOG_DEBUG,
-            ("In buffering: buffering data until %d bytes available or %d milliseconds\n",
+            ("In buffering: buffering data until %d bytes available or %f seconds\n",
              PRUint32(mBufferingEndOffset - mStream->GetCachedDataEnd(mPlaybackPosition)),
-             mBufferingWait - (PR_IntervalToMilliseconds(now - mBufferingStart))));
+             (mBufferingWait - (now - mBufferingStart)).ToSeconds()));
         monitor.Wait(PR_MillisecondsToInterval(1000));
       } else {
         ChangeState(mNextState);
@@ -541,13 +545,12 @@ nsWaveStateMachine::Run()
         }
       }
 
-      PRUint32 startTime = PR_IntervalToMilliseconds(PR_IntervalNow());
-      startTime -= AUDIO_BUFFER_LENGTH;
-      PRIntervalTime lastWakeup = PR_MillisecondsToInterval(startTime);
+      TimeStamp now = TimeStamp::Now();
+      TimeStamp lastWakeup = now -
+          TimeDuration::FromMilliseconds(AUDIO_BUFFER_LENGTH);
 
       do {
-        PRIntervalTime now = PR_IntervalNow();
-        PRInt32 sleepTime = PR_IntervalToMilliseconds(now - lastWakeup);
+        TimeDuration sleepTime = now - lastWakeup;
         lastWakeup = now;
 
         
@@ -556,12 +559,13 @@ nsWaveStateMachine::Run()
         
         
         
-        PRInt32 targetTime = AUDIO_BUFFER_LENGTH;
+        TimeDuration targetTime =
+          TimeDuration::FromMilliseconds(AUDIO_BUFFER_LENGTH);
         if (sleepTime < targetTime) {
           targetTime = sleepTime;
         }
 
-        PRInt64 len = TimeToBytes(float(targetTime) / 1000.0f);
+        PRInt64 len = TimeToBytes(targetTime.ToSeconds());
 
         PRInt64 leftToPlay =
           GetDataLength() - (mPlaybackPosition - mWavePCMOffset);
@@ -578,9 +582,9 @@ nsWaveStateMachine::Run()
         
         if (mState != STATE_ENDED && available < len &&
             !mStream->IsSuspendedByCache()) {
-            mBufferingStart = PR_IntervalNow();
+            mBufferingStart = now;
             mBufferingEndOffset = mPlaybackPosition +
-              TimeToBytes(float(mBufferingWait) / 1000.0f);
+              TimeToBytes(mBufferingWait.ToSeconds());
             mNextState = mState;
             ChangeState(STATE_BUFFERING);
 
@@ -633,6 +637,7 @@ nsWaveStateMachine::Run()
 
         if (mState == STATE_PLAYING) {
           monitor.Wait(PR_MillisecondsToInterval(AUDIO_BUFFER_WAKEUP));
+          now = TimeStamp::Now();
         }
       } while (mState == STATE_PLAYING);
       break;
@@ -1295,8 +1300,8 @@ nsWaveDecoder::Load(nsIURI* aURI, nsIChannel* aChannel, nsIStreamListener** aStr
   RegisterShutdownObserver();
 
   mPlaybackStateMachine = new nsWaveStateMachine(this,
-                                                 BUFFERING_TIMEOUT * 1000,
-                                                 mInitialVolume);
+    TimeDuration::FromMilliseconds(BUFFERING_TIMEOUT),
+    mInitialVolume);
   NS_ENSURE_TRUE(mPlaybackStateMachine, NS_ERROR_OUT_OF_MEMORY);
 
   

@@ -45,7 +45,7 @@
 #include "gfxContext.h"
 #include "gfxRect.h"
 #include "nsITimer.h"
-#include "prinrval.h"
+#include "nsTimeStamp.h"
 
 #ifdef PR_LOGGING
 extern PRLogModuleInfo* gVideoDecoderLog;
@@ -61,7 +61,10 @@ class nsHTMLMediaElement;
 
 class nsMediaDecoder : public nsIObserver
 {
- public:
+public:
+  typedef mozilla::TimeStamp TimeStamp;
+  typedef mozilla::TimeDuration TimeDuration;
+
   nsMediaDecoder();
   virtual ~nsMediaDecoder();
 
@@ -265,14 +268,14 @@ protected:
 
   
   
-  PRIntervalTime mProgressTime;
+  TimeStamp mProgressTime;
 
   
   
   
   
   
-  PRIntervalTime mDataTime;
+  TimeStamp mDataTime;
 
   
   
