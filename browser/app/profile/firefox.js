@@ -234,6 +234,7 @@ pref("browser.search.suggest.enabled", true);
 pref("browser.history.grouping", "day");
 pref("browser.history.showSessions", false);
 pref("browser.sessionhistory.max_entries", 50);
+pref("browser.history_expire_days", 180);
 
 
 
