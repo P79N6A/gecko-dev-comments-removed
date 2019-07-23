@@ -6845,26 +6845,31 @@ nsElementSH::PostCreate(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
   nsPresContext *pctx = shell->GetPresContext();
   NS_ENSURE_TRUE(pctx, NS_ERROR_UNEXPECTED);
 
-  nsRefPtr<nsStyleContext> sc = pctx->StyleSet()->ResolveStyleFor(content,
-                                                                  nsnull);
-  NS_ENSURE_TRUE(sc, NS_ERROR_FAILURE);
-
-  nsIURI *bindingURL = sc->GetStyleDisplay()->mBinding;
-  if (!bindingURL) {
-    
-    return NS_OK;
-  }
-
   
-  PRBool dummy;
-
-  nsCOMPtr<nsIXBLService> xblService(do_GetService("@mozilla.org/xbl;1"));
-  NS_ENSURE_TRUE(xblService, NS_ERROR_NOT_AVAILABLE);
-
+  
   nsRefPtr<nsXBLBinding> binding;
-  xblService->LoadBindings(content, bindingURL, PR_FALSE,
-                           getter_AddRefs(binding), &dummy);
+  {
+    
+    nsRefPtr<nsStyleContext> sc = pctx->StyleSet()->ResolveStyleFor(content,
+                                                                    nsnull);
+    NS_ENSURE_TRUE(sc, NS_ERROR_FAILURE);
 
+    nsIURI *bindingURL = sc->GetStyleDisplay()->mBinding;
+    if (!bindingURL) {
+      
+      return NS_OK;
+    }
+
+    
+    PRBool dummy;
+
+    nsCOMPtr<nsIXBLService> xblService(do_GetService("@mozilla.org/xbl;1"));
+    NS_ENSURE_TRUE(xblService, NS_ERROR_NOT_AVAILABLE);
+
+    xblService->LoadBindings(content, bindingURL, PR_FALSE,
+                             getter_AddRefs(binding), &dummy);
+  }
+  
   if (binding) {
     binding->ExecuteAttachedHandler();
   }
