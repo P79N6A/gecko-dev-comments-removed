@@ -2089,6 +2089,7 @@ BEGIN_CASE(JSOP_APPLY)
             
             if (inlineCallCount >= JS_MAX_INLINE_CALL_COUNT) {
                 js_ReportOverRecursed(cx);
+                script = fp->script;
                 goto error;
             }
 
