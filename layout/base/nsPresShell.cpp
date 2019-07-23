@@ -108,7 +108,6 @@
 #include "nsIDOMHTMLDocument.h"
 #include "nsIXPointer.h"
 #include "nsIDOMXMLDocument.h"
-#include "nsIScrollableView.h"
 #include "nsIParser.h"
 #include "nsParserCIID.h"
 #include "nsFrameSelection.h"
@@ -3896,24 +3895,20 @@ PresShell::ScrollToAnchor()
 
 
 
-
 static void
-UnionRectForClosestScrolledView(nsIFrame* aFrame,
-                                PRIntn aVPercent,
-                                nsRect& aRect,
-                                PRBool& aHaveRect,
-                                nsIView*& aClosestScrolledView)
+AccumulateFrameBounds(nsIFrame* aContainerFrame,
+                      nsIFrame* aFrame,
+                      PRBool aUseWholeLineHeightForInlines,
+                      nsRect& aRect,
+                      PRBool& aHaveRect)
 {
-  nsRect  frameBounds = aFrame->GetRect();
-  nsPoint offset;
-  nsIView* closestView;
-  aFrame->GetOffsetFromView(offset, &closestView);
-  frameBounds.MoveTo(offset);
+  nsRect frameBounds = aFrame->GetRect() +
+    aFrame->GetParent()->GetOffsetTo(aContainerFrame);
 
   
   
   
-  if (frameBounds.height == 0 || aVPercent != NS_PRESSHELL_SCROLL_ANYWHERE) {
+  if (frameBounds.height == 0 || aUseWholeLineHeightForInlines) {
     nsIAtom* frameType = NULL;
     nsIFrame *prevFrame = aFrame;
     nsIFrame *f = aFrame;
@@ -3939,16 +3934,10 @@ UnionRectForClosestScrolledView(nsIFrame* aFrame,
 
           if (NS_SUCCEEDED(lines->GetLine(index, &trash1, &trash2,
                                           lineBounds, &trash3))) {
-            nsPoint blockOffset;
-            nsIView* blockView;
-            f->GetOffsetFromView(blockOffset, &blockView);
-
-            if (blockView == closestView) {
-              
-              nscoord newoffset = lineBounds.y + blockOffset.y;
-
-              if (newoffset < frameBounds.y)
-                frameBounds.y = newoffset;
+            lineBounds += f->GetOffsetTo(aContainerFrame);
+            if (lineBounds.y < frameBounds.y) {
+              frameBounds.height = frameBounds.YMost() - lineBounds.y;
+              frameBounds.y = lineBounds.y;
             }
           }
         }
@@ -3956,34 +3945,14 @@ UnionRectForClosestScrolledView(nsIFrame* aFrame,
     }
   }
 
-  NS_ASSERTION(closestView && !closestView->ToScrollableView(),
-               "What happened to the scrolled view?  "
-               "The frame should not be directly in the scrolling view!");
-  
-  
-  
-  
-  while (closestView) {
-    nsIView* parent = closestView->GetParent();
-    if (parent && parent->ToScrollableView())
-      break;
-    frameBounds += closestView->GetPosition();
-    closestView = parent;
-  }
-
-  if (!aClosestScrolledView)
-    aClosestScrolledView = closestView;
-
-  if (aClosestScrolledView == closestView) {
-    if (aHaveRect) {
-      
-      
-      
-      aRect.UnionRectIncludeEmpty(aRect, frameBounds);
-    } else {
-      aHaveRect = PR_TRUE;
-      aRect = frameBounds;
-    }
+  if (aHaveRect) {
+    
+    
+    
+    aRect.UnionRectIncludeEmpty(aRect, frameBounds);
+  } else {
+    aHaveRect = PR_TRUE;
+    aRect = frameBounds;
   }
 }
 
@@ -3992,102 +3961,93 @@ UnionRectForClosestScrolledView(nsIFrame* aFrame,
 
 
 
-static void ScrollViewToShowRect(nsIScrollableView* aScrollingView,
-                                 nsRect &           aRect,
-                                 PRIntn             aVPercent,
-                                 PRIntn             aHPercent)
+
+static void ScrollToShowRect(nsIScrollableFrame* aScrollFrame,
+                             const nsRect&       aRect,
+                             PRIntn              aVPercent,
+                             PRIntn              aHPercent)
 {
-  
-  
-  nsRect visibleRect = aScrollingView->View()->GetBounds(); 
-  aScrollingView->GetScrollPosition(visibleRect.x, visibleRect.y);
-
-  
-  nscoord scrollOffsetX = visibleRect.x;
-  nscoord scrollOffsetY = visibleRect.y;
-
-  nscoord lineHeight;
-  aScrollingView->GetLineHeight(&lineHeight);
+  nsPoint scrollPt = aScrollFrame->GetScrollPosition();
+  nsRect visibleRect(scrollPt, aScrollFrame->GetScrollPortRect().Size());
+  nsSize lineSize = aScrollFrame->GetLineScrollAmount();
   
   
   if (NS_PRESSHELL_SCROLL_ANYWHERE == aVPercent ||
       (NS_PRESSHELL_SCROLL_IF_NOT_VISIBLE == aVPercent &&
-       aRect.height < lineHeight)) {
+       aRect.height < lineSize.height)) {
     
     
     if (aRect.y < visibleRect.y) {
       
-      scrollOffsetY = aRect.y;
+      scrollPt.y = aRect.y;
     } else if (aRect.YMost() > visibleRect.YMost()) {
       
       
-      scrollOffsetY += aRect.YMost() - visibleRect.YMost();
-      if (scrollOffsetY > aRect.y) {
-        scrollOffsetY = aRect.y;
+      scrollPt.y += aRect.YMost() - visibleRect.YMost();
+      if (scrollPt.y > aRect.y) {
+        scrollPt.y = aRect.y;
       }
     }
   } else if (NS_PRESSHELL_SCROLL_IF_NOT_VISIBLE == aVPercent) {
     
-    if (aRect.YMost() - lineHeight < visibleRect.y) {
+    if (aRect.YMost() - lineSize.height < visibleRect.y) {
       
-      scrollOffsetY = aRect.y;
-    }  else if (aRect.y + lineHeight > visibleRect.YMost()) {
+      scrollPt.y = aRect.y;
+    }  else if (aRect.y + lineSize.height > visibleRect.YMost()) {
       
       
-      scrollOffsetY += aRect.YMost() - visibleRect.YMost();
-      if (scrollOffsetY > aRect.y) {
-        scrollOffsetY = aRect.y;
+      scrollPt.y += aRect.YMost() - visibleRect.YMost();
+      if (scrollPt.y > aRect.y) {
+        scrollPt.y = aRect.y;
       }
     }
   } else {
     
     nscoord frameAlignY =
       NSToCoordRound(aRect.y + aRect.height * (aVPercent / 100.0f));
-    scrollOffsetY =
+    scrollPt.y =
       NSToCoordRound(frameAlignY - visibleRect.height * (aVPercent / 100.0f));
   }
 
   
   if (NS_PRESSHELL_SCROLL_ANYWHERE == aHPercent ||
       (NS_PRESSHELL_SCROLL_IF_NOT_VISIBLE == aHPercent &&
-       aRect.width < lineHeight)) {
+       aRect.width < lineSize.width)) {
     
     
     if (aRect.x < visibleRect.x) {
       
-      scrollOffsetX = aRect.x;
+      scrollPt.x = aRect.x;
     } else if (aRect.XMost() > visibleRect.XMost()) {
       
       
-      scrollOffsetX += aRect.XMost() - visibleRect.XMost();
-      if (scrollOffsetX > aRect.x) {
-        scrollOffsetX = aRect.x;
+      scrollPt.x += aRect.XMost() - visibleRect.XMost();
+      if (scrollPt.x > aRect.x) {
+        scrollPt.x = aRect.x;
       }
     }
   } else if (NS_PRESSHELL_SCROLL_IF_NOT_VISIBLE == aHPercent) {
     
-    
-    
-    if (aRect.XMost() - lineHeight < visibleRect.x) {
+    if (aRect.XMost() - lineSize.width < visibleRect.x) {
       
-      scrollOffsetX = aRect.x;
-    }  else if (aRect.x + lineHeight > visibleRect.XMost()) {
+      scrollPt.x = aRect.x;
+    }  else if (aRect.x + lineSize.width > visibleRect.XMost()) {
       
       
-      scrollOffsetX += aRect.XMost() - visibleRect.XMost();
-      if (scrollOffsetX > aRect.x) {
-        scrollOffsetX = aRect.x;
+      scrollPt.x += aRect.XMost() - visibleRect.XMost();
+      if (scrollPt.x > aRect.x) {
+        scrollPt.x = aRect.x;
       }
     }
   } else {
     
     nscoord frameAlignX =
       NSToCoordRound(aRect.x + (aRect.width) * (aHPercent / 100.0f));
-    scrollOffsetX =
+    scrollPt.x =
       NSToCoordRound(frameAlignX - visibleRect.width * (aHPercent / 100.0f));
   }
 
-  aScrollingView->ScrollTo(scrollOffsetX, scrollOffsetY, 0);
+  aScrollFrame->ScrollTo(scrollPt, nsIScrollableFrame::INSTANT);
 }
 
 NS_IMETHODIMP
@@ -4139,35 +4099,44 @@ PresShell::DoScrollContentIntoView(nsIContent* aContent,
     return;
   }
 
-  
-  
-  
-  
-  
-  
-  
-  nsIView *closestView = nsnull;
-  nsRect frameBounds;
-  PRBool haveRect = PR_FALSE;
-  do {
-    UnionRectForClosestScrolledView(frame, aVPercent, frameBounds, haveRect,
-                                    closestView);
-  } while ((frame = frame->GetNextContinuation()));
+  nsIFrame* container =
+    nsLayoutUtils::GetClosestFrameOfType(frame, nsGkAtoms::scrollFrame);
+  if (!container) {
+    
+    return;
+  }
 
   
   
   
-  nsIScrollableView* scrollingView = nsnull;
-  while (closestView) {
-    nsIView* parent = closestView->GetParent();
-    if (parent) {
-      scrollingView = parent->ToScrollableView();
-      if (scrollingView) {
-        ScrollViewToShowRect(scrollingView, frameBounds, aVPercent, aHPercent);
-      }
+  
+  
+  
+  
+  
+  
+  
+  nsRect frameBounds;
+  PRBool haveRect = PR_FALSE;
+  PRBool useWholeLineHeightForInlines = aVPercent != NS_PRESSHELL_SCROLL_ANYWHERE;
+  do {
+    AccumulateFrameBounds(container, frame, useWholeLineHeightForInlines,
+                          frameBounds, haveRect);
+  } while ((frame = frame->GetNextContinuation()));
+
+  
+  
+  while (container) {
+    nsIScrollableFrame* sf = do_QueryFrame(container);
+    if (sf) {
+      nsPoint oldPosition = sf->GetScrollPosition();
+      ScrollToShowRect(sf, frameBounds - sf->GetScrolledFrame()->GetPosition(),
+                       aVPercent, aHPercent);
+      nsPoint newPosition = sf->GetScrollPosition();
+      frameBounds += newPosition - oldPosition;
     }
-    frameBounds += closestView->GetPosition();
-    closestView = parent;
+    frameBounds += container->GetPosition();
+    container = container->GetParent();
   }
 }
 
