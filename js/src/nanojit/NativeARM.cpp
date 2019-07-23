@@ -185,7 +185,7 @@ Assembler::encOp2Imm(uint32_t literal, uint32_t * enc)
     uint32_t    leading_zeroes;
 
     
-    uint32_t    rot;
+    int32_t    rot;
     uint32_t    imm8;
 
     
@@ -933,7 +933,7 @@ Assembler::nRegisterResetAll(RegAlloc& a)
     a.free =
         rmask(R0) | rmask(R1) | rmask(R2) | rmask(R3) | rmask(R4) |
         rmask(R5) | rmask(R6) | rmask(R7) | rmask(R8) | rmask(R9) |
-        rmask(R10);
+        rmask(R10) | rmask(LR);
     if (ARM_VFP)
         a.free |= FpRegs;
 
@@ -941,78 +941,43 @@ Assembler::nRegisterResetAll(RegAlloc& a)
 }
 
 void
-Assembler::nPatchBranch(NIns* at, NIns* target)
+Assembler::nPatchBranch(NIns* branch, NIns* target)
 {
     
-    
 
-    NIns* was = 0;
-
-    
-    
-    
-    debug_only(
-        if (at[0] == (NIns)( COND_AL | (0x51<<20) | (PC<<16) | (PC<<12) | (4) )) {
-            
-            
-            
-            was = (NIns*) at[1];
-        } else if ((at[0] && 0xff000000) == (NIns)( COND_AL | (0xA<<24))) {
-            
-            
-            
-            was = (NIns*) (((intptr_t)at + 8) + (intptr_t)((at[0] & 0xffffff) << 2));
-        } else {
-            
-            
-            
-            
-            
-            
-            
-            
-            was = (NIns*)-1;    
-        }
-    );
+    int32_t offset = PC_OFFSET_FROM(target, branch);
 
     
-    NanoAssert((uint32_t)(at[0] & 0xf0000000) == COND_AL);
 
     
     
-    
-    
-    
-    
-    
-    
-    
-
-    intptr_t offs = PC_OFFSET_FROM(target, at);
-    if (isS24(offs>>2)) {
+    if (isS24(offset>>2)) {
         
-        
-        at[0] = (NIns)( COND_AL | (0xA<<24) | ((offs >> 2) & 0xffffff) );
-        
-        at[1] = BKPT_insn;
+        NIns cond = *branch & 0xF0000000;
+        *branch = (NIns)( cond | (0xA<<24) | ((offset>>2) & 0xFFFFFF) );
     } else {
         
         
-        at[0] = (NIns)( COND_AL | (0x51<<20) | (PC<<16) | (PC<<12) | (4) );
-        
-        at[1] = (NIns)(target);
-    }
-    VALGRIND_DISCARD_TRANSLATIONS(at, 2*sizeof(NIns));
+        NanoAssert((*branch & 0x0F7FF000) == 0x051FF000);
 
+        NIns *addr = branch+2;
+        int offset = (*branch & 0xFFF) / sizeof(NIns);
+
+        if (*branch & (1<<23)) {
+            addr += offset;
+        } else {
+            addr -= offset;
+        }
+
+        *addr = (NIns) target;
+    }
+
+    VALGRIND_DISCARD_TRANSLATIONS(branch, 2*sizeof(NIns));
 #if defined(UNDER_CE)
     
     FlushInstructionCache(GetCurrentProcess(), NULL, NULL);
 #elif defined(AVMPLUS_LINUX)
-    __clear_cache((char*)at, (char*)(at+3));
-#endif
-
-#ifdef AVMPLUS_PORTING_API
-    NanoJIT_PortAPI_FlushInstructionCache(at, at+3);
+    __clear_cache((char*)branch, (char*)(branch+3));
 #endif
 }
 
@@ -1267,21 +1232,24 @@ Assembler::asm_quad(LInsp ins)
 {
     
 
-    Reservation *   res = getresv(ins);
-    int             d = disp(res);
-    Register        rr = res->reg;
+    Reservation *res = getresv(ins);
+    int d = disp(res);
+    Register rr = res->reg;
 
     freeRsrcOf(ins, false);
 
     if (ARM_VFP && rr != UnknownReg)
     {
-        if (d)
-            FSTD(rr, FP, d);
+        asm_spill(rr, d, false, true);
 
         underrunProtect(4*4);
         asm_quad_nochk(rr, ins->imm64_0(), ins->imm64_1());
     } else {
         NanoAssert(d);
+        
+        
+        
+
         STR(IP, FP, d+4);
         asm_ld_imm(IP, ins->imm64_1());
         STR(IP, FP, d);
@@ -1357,7 +1325,7 @@ Assembler::asm_mmq(Register rd, int dd, Register rs, int ds)
     
     
     
-    RegisterMask    free = _allocator.free & GpRegs;
+    RegisterMask    free = _allocator.free & AllowableFlagRegs;
 
     if (free) {
         
@@ -1720,11 +1688,6 @@ Assembler::B_cond_chk(ConditionCode _c, NIns* _t, bool _chk)
     
 
     
-    
-    
-    NanoAssert((_t != 0) || (_c == AL));
-
-    
     if (_chk && isS24(offs>>2) && (_t != 0)) {
         underrunProtect(4);
         
@@ -1757,11 +1720,13 @@ Assembler::B_cond_chk(ConditionCode _c, NIns* _t, bool _chk)
     if (isS24(offs>>2) && (_t != 0)) {
         
         *(--_nIns) = (NIns)( ((_c)<<28) | (0xA<<24) | (((offs)>>2) & 0xFFFFFF) );
+        asm_output("b%s %p", _c == AL ? "" : condNames[_c], (void*)(_t));
     } else if (_c == AL) {
         if(_chk) underrunProtect(8);
         *(--_nIns) = (NIns)(_t);
         *(--_nIns) = (NIns)( COND_AL | (0x51<<20) | (PC<<16) | (PC<<12) | 0x4 );
-    } else if (PC_OFFSET_FROM(_nSlot, _nIns-1) > -0x1000 ) {
+        asm_output("b%s %p", _c == AL ? "" : condNames[_c], (void*)(_t));
+    } else if (PC_OFFSET_FROM(_nSlot, _nIns-1) > -0x1000) {
         if(_chk) underrunProtect(8);
         *(_nSlot++) = (NIns)(_t);
         offs = PC_OFFSET_FROM(_nSlot-1,_nIns-1);
@@ -1779,9 +1744,8 @@ Assembler::B_cond_chk(ConditionCode _c, NIns* _t, bool _chk)
         *(--_nIns) = (NIns)( COND_AL | (0xA<<24) | 0x0 );
         
         *(--_nIns) = (NIns)( ((_c)<<28) | (0x51<<20) | (PC<<16) | (PC<<12) | 0x0 );
+        asm_output("b%s %p", _c == AL ? "" : condNames[_c], (void*)(_t));
     }
-
-    asm_output("b%s %p", condNames[_c], (void*)(_t));
 }
 
 
@@ -1868,9 +1832,12 @@ Assembler::asm_fcmp(LInsp ins)
 
     NanoAssert(op >= LIR_feq && op <= LIR_fge);
 
+    Reservation *rA, *rB;
+    findRegFor2(FpRegs, lhs, rA, rhs, rB);
+    Register ra = rA->reg;
+    Register rb = rB->reg;
+
     int e_bit = (op != LIR_feq);
-    Register ra = findRegFor(lhs, FpRegs);
-    Register rb = findRegFor(rhs, FpRegs);
 
     
     FMSTAT();
@@ -1881,7 +1848,6 @@ Register
 Assembler::asm_prep_fcall(Reservation*, LInsp)
 {
     
-
 
 
 
@@ -2019,6 +1985,7 @@ Assembler::asm_cmpi(Register r, int32_t imm)
         if (imm > -256) {
             ALUi(AL, cmn, 1, 0, r, -imm);
         } else {
+            underrunProtect(4 + LD32_size);
             CMP(r, IP);
             asm_ld_imm(IP, imm);
         }
@@ -2026,6 +1993,7 @@ Assembler::asm_cmpi(Register r, int32_t imm)
         if (imm < 256) {
             ALUi(AL, cmp, 1, 0, r, imm);
         } else {
+            underrunProtect(4 + LD32_size);
             CMP(r, IP);
             asm_ld_imm(IP, imm);
         }

@@ -189,6 +189,8 @@ namespace nanojit
     _nIns -= 4;     \
     *((int32_t*)_nIns) = (int32_t)(i)
 
+
+
 #define MODRMs(r,d,b,l,i) \
         NanoAssert(unsigned(i)<8 && unsigned(b)<8 && unsigned(r)<8); \
         if ((d) == 0 && (b) != EBP) { \
