@@ -1561,6 +1561,17 @@ nsXMLHttpRequest::GetResponseHeader(const nsACString& header,
   _retval.Truncate();
 
   
+  PRBool chrome = PR_FALSE; 
+  IsCapabilityEnabled("UniversalXPConnect", &chrome);
+  if (!chrome &&
+       (header.LowerCaseEqualsASCII("set-cookie") ||
+        header.LowerCaseEqualsASCII("set-cookie2"))) {
+    NS_WARNING("blocked access to response header");
+    _retval.SetIsVoid(PR_TRUE);
+    return NS_OK;
+  }
+
+  
   if (mState & XML_HTTP_REQUEST_USE_XSITE_AC) {
     
     
@@ -3343,10 +3354,19 @@ NS_IMPL_ISUPPORTS1(nsXMLHttpRequest::nsHeaderVisitor, nsIHttpHeaderVisitor)
 NS_IMETHODIMP nsXMLHttpRequest::
 nsHeaderVisitor::VisitHeader(const nsACString &header, const nsACString &value)
 {
-    mHeaders.Append(header);
-    mHeaders.Append(": ");
-    mHeaders.Append(value);
-    mHeaders.Append('\n');
+    
+    PRBool chrome = PR_FALSE; 
+    IsCapabilityEnabled("UniversalXPConnect", &chrome);
+    if (!chrome &&
+         (header.LowerCaseEqualsASCII("set-cookie") ||
+          header.LowerCaseEqualsASCII("set-cookie2"))) {
+        NS_WARNING("blocked access to response header");
+    } else {
+        mHeaders.Append(header);
+        mHeaders.Append(": ");
+        mHeaders.Append(value);
+        mHeaders.Append('\n');
+    }
     return NS_OK;
 }
 
