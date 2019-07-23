@@ -88,6 +88,7 @@ public:
   nsTextFragment()
     : m1b(nsnull), mAllBits(0)
   {
+    NS_ASSERTION(sizeof(FragmentBits) == 4, "Bad field packing!");
   }
 
   ~nsTextFragment();
@@ -191,9 +192,14 @@ public:
   void SetBidiFlag();
 
   struct FragmentBits {
-    PRBool mInHeap : 1;
-    PRBool mIs2b : 1;
-    PRBool mIsBidi : 1;
+    
+    
+    
+    
+    
+    PRUint32 mInHeap : 1;
+    PRUint32 mIs2b : 1;
+    PRUint32 mIsBidi : 1;
     PRUint32 mLength : 29;
   };
 
