@@ -362,7 +362,10 @@ function run_test() {
     var cc = rootNode.childCount;
     for (var i=0; i < cc; ++i) {
       var node = rootNode.getChild(i);
-      do_check_true(node.bookmarkId > 0);
+      if (node.type == node.RESULT_TYPE_FOLDER)
+        do_check_eq(node.bookmarkId, -1);
+      else
+        do_check_true(node.bookmarkId > 0);
     }
     testRoot.containerOpen = false;
   }
@@ -463,65 +466,3 @@ function run_test() {
     do_throw("bookmarks query: " + ex);
   }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
