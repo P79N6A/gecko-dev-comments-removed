@@ -564,6 +564,13 @@ nsXBLService::LoadBindings(nsIContent* aContent, nsIURI* aURL,
   newBinding->GenerateAnonymousContent();
 
   
+  newBinding->InstallEventHandlers();
+
+  
+  rv = newBinding->InstallImplementation();
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
   *aResolveStyle = newBinding->HasStyleSheets();
   
   newBinding.swap(*aBinding);

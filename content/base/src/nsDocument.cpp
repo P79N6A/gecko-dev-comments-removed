@@ -2701,15 +2701,15 @@ nsDocument::BeginUpdate(nsUpdateType aUpdateType)
   }
   
   ++mUpdateNestLevel;
-  if (mScriptLoader) {
-    mScriptLoader->AddExecuteBlocker();
-  }
   NS_DOCUMENT_NOTIFY_OBSERVERS(BeginUpdate, (this, aUpdateType));
+
+  nsContentUtils::AddScriptBlocker();
 }
 
 void
 nsDocument::EndUpdate(nsUpdateType aUpdateType)
 {
+  nsContentUtils::RemoveScriptBlocker();
   NS_DOCUMENT_NOTIFY_OBSERVERS(EndUpdate, (this, aUpdateType));
 
   --mUpdateNestLevel;
@@ -2717,10 +2717,6 @@ nsDocument::EndUpdate(nsUpdateType aUpdateType)
     
     
     mBindingManager->EndOutermostUpdate();
-  }
-
-  if (mScriptLoader) {
-    mScriptLoader->RemoveExecuteBlocker();
   }
 
   if (mUpdateNestLevel == 0) {

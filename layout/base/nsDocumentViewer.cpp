@@ -1048,6 +1048,9 @@ DocumentViewerImpl::PermitUnload(PRBool *aPermitUnload)
     return NS_OK;
   }
 
+  NS_ASSERTION(nsContentUtils::IsSafeToRunScript(),
+               "This is unsafe unless we're inside a mutation event");
+
   
   
   nsEventStatus status = nsEventStatus_eIgnore;

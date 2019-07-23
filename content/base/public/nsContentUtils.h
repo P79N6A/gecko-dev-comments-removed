@@ -90,6 +90,7 @@ class nsIWordBreaker;
 class nsIJSRuntimeService;
 class nsIEventListenerManager;
 class nsIScriptContext;
+class nsIRunnable;
 template<class E> class nsCOMArray;
 class nsIPref;
 class nsVoidArray;
@@ -1177,6 +1178,45 @@ public:
 
   static PRBool OfflineAppAllowed(nsIURI *aURI);
 
+  
+
+
+
+
+  static void AddScriptBlocker();
+
+  
+
+
+
+
+
+
+  static void RemoveScriptBlocker();
+
+  
+
+
+
+
+
+
+
+
+
+
+  static PRBool AddScriptRunner(nsIRunnable* aRunnable);
+
+  
+
+
+
+
+
+  static PRBool IsSafeToRunScript() {
+    return sScriptBlockerCount == 0;
+  }
+
 private:
 
   static PRBool InitializeEventTable();
@@ -1249,6 +1289,9 @@ private:
 #endif
 
   static PRBool sInitialized;
+  static PRUint32 sScriptBlockerCount;
+  static nsCOMArray<nsIRunnable>* sBlockedScriptRunners;
+  static PRUint32 sRunnersCountAtFirstBlocker;
 };
 
 #define NS_HOLD_JS_OBJECTS(obj, clazz)                                         \
@@ -1267,6 +1310,7 @@ public:
 
   
   PRBool Push(nsISupports *aCurrentTarget);
+  PRBool Push(JSContext *cx);
   void Pop();
 
 private:
@@ -1315,6 +1359,16 @@ private:
 
   void* mPtr;
   nsresult mResult;
+};
+
+class nsAutoScriptBlocker {
+public:
+  nsAutoScriptBlocker() {
+    nsContentUtils::AddScriptBlocker();
+  }
+  ~nsAutoScriptBlocker() {
+    nsContentUtils::RemoveScriptBlocker();
+  }
 };
 
 #define NS_AUTO_GCROOT_PASTE2(tok,line) tok##line

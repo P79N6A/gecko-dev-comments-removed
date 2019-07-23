@@ -159,8 +159,7 @@ NS_IMPL_THREADSAFE_ISUPPORTS0(nsScriptLoadRequest)
 nsScriptLoader::nsScriptLoader(nsIDocument *aDocument)
   : mDocument(aDocument),
     mBlockerCount(0),
-    mEnabled(PR_TRUE),
-    mHadPendingScripts(PR_FALSE)
+    mEnabled(PR_TRUE)
 {
 }
 
@@ -491,7 +490,8 @@ nsScriptLoader::ProcessScriptElement(nsIScriptElement *aElement)
 
     
     
-    if (mPendingRequests.Count() == 0 && ReadyToExecuteScripts()) {
+    if (mPendingRequests.Count() == 0 && ReadyToExecuteScripts() &&
+        nsContentUtils::IsSafeToRunScript()) {
       return ProcessRequest(request);
     }
   }
@@ -501,13 +501,21 @@ nsScriptLoader::ProcessScriptElement(nsIScriptElement *aElement)
                  NS_ERROR_OUT_OF_MEMORY);
 
   
+  
+  if (mPendingRequests.Count() == 1 && !request->mLoading &&
+      ReadyToExecuteScripts()) {
+    nsContentUtils::AddScriptRunner(new nsRunnableMethod<nsScriptLoader>(this,
+      &nsScriptLoader::ProcessPendingRequests));
+  }
+
+  
   return NS_ERROR_HTMLPARSER_BLOCK;
 }
 
 nsresult
 nsScriptLoader::ProcessRequest(nsScriptLoadRequest* aRequest)
 {
-  NS_ASSERTION(ReadyToExecuteScripts(),
+  NS_ASSERTION(ReadyToExecuteScripts() && nsContentUtils::IsSafeToRunScript(),
                "Caller forgot to check ReadyToExecuteScripts()");
 
   NS_ENSURE_ARG(aRequest);
