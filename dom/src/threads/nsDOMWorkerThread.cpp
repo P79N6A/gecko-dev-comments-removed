@@ -54,9 +54,11 @@
 #include "nsContentUtils.h"
 #include "nsJSUtils.h"
 #include "nsJSEnvironment.h"
+#include "nsThreadUtils.h"
 
 
 #include "nsDOMWorkerPool.h"
+#include "nsDOMWorkerScriptLoader.h"
 #include "nsDOMThreadService.h"
 #include "nsDOMWorkerTimeout.h"
 
@@ -92,6 +94,9 @@ public:
 
   
   static JSBool KillTimeout(JSContext* aCx, JSObject* aObj, uintN aArgc,
+                            jsval* aArgv, jsval* aRval);
+
+  static JSBool LoadScripts(JSContext* aCx, JSObject* aObj, uintN aArgc,
                             jsval* aArgv, jsval* aRval);
 
 private:
@@ -159,7 +164,11 @@ nsDOMWorkerFunctions::PostMessage(JSContext* aCx,
   else {
     rv = pool->PostMessageInternal(EmptyString(), worker);
   }
-  NS_ENSURE_SUCCESS(rv, JS_FALSE);
+
+  if (NS_FAILED(rv)) {
+    JS_ReportError(aCx, "Failed to post message!");
+    return JS_FALSE;
+  }
 
   return JS_TRUE;
 }
@@ -184,10 +193,16 @@ nsDOMWorkerFunctions::MakeTimeout(JSContext* aCx,
 
   nsAutoPtr<nsDOMWorkerTimeout>
     timeout(new nsDOMWorkerTimeout(worker, id));
-  NS_ENSURE_TRUE(timeout, JS_FALSE);
+  if (!timeout) {
+    JS_ReportOutOfMemory(aCx);
+    return JS_FALSE;
+  }
 
   nsresult rv = timeout->Init(aCx, aArgc, aArgv, aIsInterval);
-  NS_ENSURE_SUCCESS(rv, JS_FALSE);
+  if (NS_FAILED(rv)) {
+    JS_ReportError(aCx, "Failed to initialize timeout!");
+    return JS_FALSE;
+  }
 
   timeout.forget();
 
@@ -226,6 +241,67 @@ nsDOMWorkerFunctions::KillTimeout(JSContext* aCx,
   return JS_TRUE;
 }
 
+JSBool JS_DLL_CALLBACK
+nsDOMWorkerFunctions::LoadScripts(JSContext* aCx,
+                                  JSObject* ,
+                                  uintN aArgc,
+                                  jsval* aArgv,
+                                  jsval* )
+{
+  nsDOMWorkerThread* worker =
+    static_cast<nsDOMWorkerThread*>(JS_GetContextPrivate(aCx));
+  NS_ASSERTION(worker, "This should be set by the DOM thread service!");
+
+  if (worker->IsCanceled()) {
+    return JS_FALSE;
+  }
+
+  if (!aArgc) {
+    JS_ReportError(aCx, "Function must have at least one argument!");
+    return JS_FALSE;
+  }
+
+  nsAutoTArray<nsString, 5> urls;
+
+  if (!urls.SetCapacity((PRUint32)aArgc)) {
+    JS_ReportOutOfMemory(aCx);
+    return JS_FALSE;
+  }
+
+  for (uintN index = 0; index < aArgc; index++) {
+    jsval val = aArgv[index];
+
+    if (!JSVAL_IS_STRING(val)) {
+      JS_ReportError(aCx, "Argument %d must be a string", index);
+      return JS_FALSE;
+    }
+
+    JSString* str = JS_ValueToString(aCx, val);
+    if (!str) {
+      JS_ReportError(aCx, "Couldn't convert argument %d to a string", index);
+      return JS_FALSE;
+    }
+
+    nsString* newURL = urls.AppendElement();
+    NS_ASSERTION(newURL, "Shouldn't fail if SetCapacity succeeded above!");
+
+    newURL->Assign(nsDependentJSString(str));
+  }
+
+  nsRefPtr<nsDOMWorkerScriptLoader> loader = new nsDOMWorkerScriptLoader();
+  if (!loader) {
+    JS_ReportOutOfMemory(aCx);
+    return JS_FALSE;
+  }
+
+  nsresult rv = loader->LoadScripts(worker, aCx, urls);
+  if (NS_FAILED(rv)) {
+    return JS_FALSE;
+  }
+
+  return JS_TRUE;
+}
+
 JSFunctionSpec gDOMWorkerFunctions[] = {
   { "dump",                  nsDOMWorkerFunctions::Dump,              1, 0, 0 },
   { "debug",                 nsDOMWorkerFunctions::DebugDump,         1, 0, 0 },
@@ -234,6 +310,7 @@ JSFunctionSpec gDOMWorkerFunctions[] = {
   { "clearTimeout",          nsDOMWorkerFunctions::KillTimeout,       1, 0, 0 },
   { "setInterval",           nsDOMWorkerFunctions::SetInterval,       1, 0, 0 },
   { "clearInterval",         nsDOMWorkerFunctions::KillTimeout,       1, 0, 0 },
+  { "loadScripts",           nsDOMWorkerFunctions::LoadScripts,       1, 0, 0 },
 #ifdef MOZ_SHARK
   { "startShark",            js_StartShark,                           0, 0, 0 },
   { "stopShark",             js_StopShark,                            0, 0, 0 },
@@ -306,17 +383,24 @@ nsDOMWorkerThreadContext::GetThisThread(nsIDOMWorkerThread** aThisThread)
 }
 
 nsDOMWorkerThread::nsDOMWorkerThread(nsDOMWorkerPool* aPool,
-                                     const nsAString& aSource)
+                                     const nsAString& aSource,
+                                     PRBool aSourceIsURL)
 : mPool(aPool),
-  mSource(aSource),
-  mGlobal(nsnull),
   mCompiled(PR_FALSE),
   mCallbackCount(0),
   mNextTimeoutId(0),
   mLock(nsnull)
 {
   NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
-  NS_ASSERTION(!aSource.IsEmpty(), "Empty source string!");
+
+  if (aSourceIsURL) {
+    mSourceURL.Assign(aSource);
+    NS_ASSERTION(!mSourceURL.IsEmpty(), "Empty source url!");
+  }
+  else {
+    mSource.Assign(aSource);
+    NS_ASSERTION(!mSource.IsEmpty(), "Empty source string!");
+  }
 
   PR_INIT_CLIST(&mTimeouts);
 }
@@ -331,17 +415,6 @@ nsDOMWorkerThread::~nsDOMWorkerThread()
   }
 
   ClearTimeouts();
-
-  
-  if (mGlobal) {
-    JSRuntime* rt;
-    if (NS_SUCCEEDED(nsDOMThreadService::JSRuntimeService()->GetRuntime(&rt))) {
-      JS_RemoveRootRT(rt, &mGlobal);
-    }
-    else {
-      NS_ERROR("This shouldn't fail!");
-    }
-  }
 
   if (mLock) {
     nsAutoLock::DestroyLock(mLock);
@@ -362,13 +435,20 @@ nsDOMWorkerThread::Init()
 
   NS_ASSERTION(!mGlobal, "Already got a global?!");
 
+  JSRuntime* rt;
+  nsresult rv = nsDOMThreadService::JSRuntimeService()->GetRuntime(&rt);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  PRBool success = mGlobal.Hold(rt);
+  NS_ENSURE_TRUE(success, NS_ERROR_FAILURE);
+
   
   
   
   nsCOMPtr<nsIRunnable> runnable(new nsRunnable());
   NS_ENSURE_TRUE(runnable, NS_ERROR_OUT_OF_MEMORY);
 
-  nsresult rv = nsDOMThreadService::get()->Dispatch(this, runnable);
+  rv = nsDOMThreadService::get()->Dispatch(this, runnable);
   NS_ENSURE_SUCCESS(rv, rv);
 
   return NS_OK;
@@ -445,14 +525,10 @@ nsDOMWorkerThread::HandleMessage(const nsAString& aMessage,
   jsval rval;
   PRBool success = JS_CallFunctionValue(cx, mGlobal, OBJECT_TO_JSVAL(listener),
                                         2, argv, &rval);
-  if (!success) {
+  if (!success && JS_IsExceptionPending(cx)) {
     
     JS_ReportPendingException(cx);
   }
-
-  
-  
-  NS_ASSERTION(!JS_IsExceptionPending(cx), "Huh?!");
 
   return NS_OK;
 }
@@ -471,6 +547,9 @@ void
 nsDOMWorkerThread::Cancel()
 {
   nsDOMWorkerBase::Cancel();
+
+  
+  CancelScriptLoaders();
 
   
   
@@ -499,7 +578,9 @@ PRBool
 nsDOMWorkerThread::SetGlobalForContext(JSContext* aCx)
 {
   PRBool success = CompileGlobalObject(aCx);
-  NS_ENSURE_TRUE(success, PR_FALSE);
+  if (!success) {
+    return PR_FALSE;
+  }
 
   JS_SetGlobalObject(aCx, mGlobal);
   return PR_TRUE;
@@ -563,32 +644,38 @@ nsDOMWorkerThread::CompileGlobalObject(JSContext* aCx)
                               JSPROP_ENUMERATE);
   NS_ENSURE_TRUE(success, PR_FALSE);
 
-  JSScript* script = JS_CompileUCScript(aCx, global,
-                                        reinterpret_cast<const jschar*>
-                                            (mSource.BeginReading()),
-                                        mSource.Length(), nsnull, 1);
-  NS_ENSURE_TRUE(script, PR_FALSE);
-
-  JSRuntime* rt;
-  rv = nsDOMThreadService::JSRuntimeService()->GetRuntime(&rt);
-  NS_ENSURE_SUCCESS(rv, PR_FALSE);
-
-  mGlobal = global;
-  success = JS_AddNamedRootRT(rt, &mGlobal, "nsDOMWorkerThread Global Object");
-  if (!success) {
-    NS_WARNING("Failed to root global object for worker thread!");
-    mGlobal = nsnull;
-    return PR_FALSE;
-  }
+  jsval val;
 
   
-  jsval val;
-  success = JS_ExecuteScript(aCx, global, script, &val);
-  if (!success) {
-    NS_WARNING("Failed to evaluate script for worker thread!");
-    JS_RemoveRootRT(rt, &mGlobal);
-    mGlobal = nsnull;
-    return PR_FALSE;
+  mGlobal = global;
+
+  if (mSource.IsEmpty()) {
+    NS_ASSERTION(!mSourceURL.IsEmpty(), "Must have a url here!");
+
+    nsRefPtr<nsDOMWorkerScriptLoader> loader = new nsDOMWorkerScriptLoader();
+    NS_ASSERTION(loader, "Out of memory!");
+    if (!loader) {
+      mGlobal = NULL;
+      return PR_FALSE;
+    }
+
+    rv = loader->LoadScript(this, aCx, mSourceURL);
+    JS_ReportPendingException(aCx);
+    if (NS_FAILED(rv)) {
+      mGlobal = NULL;
+      return PR_FALSE;
+    }
+  }
+  else {
+    NS_ASSERTION(!mSource.IsEmpty(), "No source text!");
+
+    
+    success = JS_EvaluateUCScript(aCx, global, mSource.get(), mSource.Length(),
+                                  "DOMWorker inline script", 1, &val);
+    if (!success) {
+      mGlobal = NULL;
+      return PR_FALSE;
+    }
   }
 
   
@@ -742,6 +829,26 @@ nsDOMWorkerThread::ResumeTimeouts()
   PRUint32 count = timeouts.Length();
   for (PRUint32 i = 0; i < count; i++) {
     timeouts[i]->Resume(now);
+  }
+}
+
+void
+nsDOMWorkerThread::CancelScriptLoaders()
+{
+  nsAutoTArray<nsDOMWorkerScriptLoader*, 20> loaders;
+
+  
+  {
+    nsAutoLock lock(mLock);
+    loaders.AppendElements(mScriptLoaders);
+
+    
+    
+  }
+
+  PRUint32 loaderCount = loaders.Length();
+  for (PRUint32 index = 0; index < loaderCount; index++) {
+    loaders[index]->Cancel();
   }
 }
 
