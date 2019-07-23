@@ -9453,6 +9453,29 @@ TraceRecorder::setProp(jsval &l, JSPropCacheEntry* entry, JSScopeProperty* sprop
     JS_ASSERT_IF(entry->vcap == PCVCAP_MAKE(entry->kshape, 0, 0), scope->has(sprop));
 
     
+    if (OBJ_GET_CLASS(cx, obj) == &js_CallClass) {
+        const CallInfo* ci = NULL;
+        if (sprop->setter == SetCallArg)
+            ci = &js_SetCallArg_ci;
+        else if (sprop->setter == SetCallVar)
+            ci = &js_SetCallVar_ci;
+        else
+            ABORT_TRACE("can't trace special CallClass setter");
+
+        LIns* v_ins = get(&v);
+        box_jsval(v, v_ins);
+        LIns* args[] = {
+            v_ins,
+            INS_CONST(SPROP_USERID(sprop)),
+            obj_ins,
+            cx_ins
+        };
+        LIns* call_ins = lir->insCall(ci, args);
+        guard(false, addName(lir->ins_eq0(call_ins), "guard(set upvar)"), STATUS_EXIT);
+        return JSRS_CONTINUE;
+    }
+
+    
 
 
 
@@ -11067,8 +11090,14 @@ TraceRecorder::record_JSOP_BINDNAME()
         }
     }
 
-    if (obj != globalObj)
-        ABORT_TRACE("JSOP_BINDNAME must return global object on trace");
+    
+
+
+
+
+
+    if (obj != globalObj && OBJ_GET_CLASS(cx, obj) != &js_CallClass)
+        ABORT_TRACE("Can only trace JSOP_BINDNAME with global or call object");
 
     
     
@@ -11076,7 +11105,7 @@ TraceRecorder::record_JSOP_BINDNAME()
     
     
     
-    stack(0, INS_CONSTPTR(globalObj));
+    stack(0, INS_CONSTPTR(obj));
     return JSRS_CONTINUE;
 }
 
@@ -11091,6 +11120,8 @@ TraceRecorder::record_JSOP_SETNAME()
 
 
     JSObject* obj = JSVAL_TO_OBJECT(l);
+    if (OBJ_GET_CLASS(cx, obj) == &js_CallClass)
+        return JSRS_CONTINUE;
     if (obj != cx->fp->scopeChain || obj != globalObj)
         ABORT_TRACE("JSOP_SETNAME left operand is not the global object");
 

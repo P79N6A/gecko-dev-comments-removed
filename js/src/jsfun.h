@@ -280,7 +280,25 @@ extern JSBool
 js_GetCallArg(JSContext *cx, JSObject *obj, jsid id, jsval *vp);
 
 extern JSBool
-js_GetCallVar(JSContext *cx, JSObject *obj, jsval id, jsval *vp);
+js_GetCallVar(JSContext *cx, JSObject *obj, jsid id, jsval *vp);
+
+extern JSBool
+SetCallArg(JSContext *cx, JSObject *obj, jsid id, jsval *vp);
+
+extern JSBool
+SetCallVar(JSContext *cx, JSObject *obj, jsid id, jsval *vp);
+
+
+
+
+
+
+
+extern JSBool JS_FASTCALL
+js_SetCallArg(JSContext *cx, JSObject *obj, jsid id, jsval v);
+
+extern JSBool JS_FASTCALL
+js_SetCallVar(JSContext *cx, JSObject *obj, jsid id, jsval v);
 
 
 
