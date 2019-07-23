@@ -126,13 +126,6 @@ class PostMessageEvent;
 class nsDOMOfflineResourceList;
 class nsGeolocation;
 
-
-enum OpenAllowValue {
-  allowNot = 0,     
-  allowNoAbuse,     
-  allowWhitelisted  
-};
-
 extern nsresult
 NS_CreateJSTimeoutHandler(nsGlobalWindow *aWindow,
                           PRBool *aIsInterval,
@@ -572,8 +565,8 @@ protected:
   nsresult BuildURIfromBase(const char *aURL,
                             nsIURI **aBuiltURI,
                             PRBool *aFreeSecurityPass, JSContext **aCXused);
-  PopupControlState CheckForAbusePoint();
-  OpenAllowValue CheckOpenAllow(PopupControlState aAbuseLevel);
+  PRBool PopupWhitelisted();
+  PopupControlState RevisePopupAbuseLevel(PopupControlState);
   void     FireAbuseEvents(PRBool aBlocked, PRBool aWindow,
                            const nsAString &aPopupURL,
                            const nsAString &aPopupWindowName,
