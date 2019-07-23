@@ -35,6 +35,7 @@
 
 
 
+
 #ifndef CAIRO_SURFACE_FALLBACK_PRIVATE_H
 #define CAIRO_SURFACE_FALLBACK_PRIVATE_H
 
@@ -115,5 +116,14 @@ _cairo_surface_fallback_composite_trapezoids (cairo_operator_t		op,
 					      unsigned int		height,
 					      cairo_trapezoid_t	       *traps,
 					      int			num_traps);
+
+cairo_private cairo_status_t
+_cairo_surface_fallback_clone_similar (cairo_surface_t  *surface,
+				       cairo_surface_t  *src,
+				       int               src_x,
+				       int               src_y,
+				       int               width,
+				       int               height,
+				       cairo_surface_t **clone_out);
 
 #endif
