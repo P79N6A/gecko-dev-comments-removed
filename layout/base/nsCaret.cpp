@@ -1005,6 +1005,8 @@ PRBool nsCaret::IsMenuPopupHidingCaret()
   if (!node)
     return PR_TRUE; 
   nsCOMPtr<nsIContent> caretContent = do_QueryInterface(node);
+  if (!caretContent)
+    return PR_TRUE; 
 
   
   
