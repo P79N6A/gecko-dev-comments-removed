@@ -113,6 +113,7 @@ protected:
   ULONG            m_cRef;      
   HWND             mHWnd;
   PRBool           mCanMove;
+  PRBool           mMovePreferred;
 
   
   nsIWidget      * mWindow;
