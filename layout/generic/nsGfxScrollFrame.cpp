@@ -1742,7 +1742,7 @@ nsGfxScrollFrameInner::Destroy()
 }
 
 NS_IMETHODIMP
-nsGfxScrollFrameInner::ScrollPositionWillChange(nsIScrollableView* aScrollable, nscoord aX, nscoord aY)
+nsGfxScrollFrameInner::ScrollPositionWillChange(nscoord aX, nscoord aY)
 {
    
    return NS_OK;
@@ -1767,8 +1767,7 @@ nsGfxScrollFrameInner::InternalScrollPositionDidChange(nscoord aX, nscoord aY)
 }
 
 void
-nsGfxScrollFrameInner::ViewPositionDidChange(nsIScrollableView* aScrollable,
-                                             nsTArray<nsIWidget::Configuration>* aConfigurations)
+nsGfxScrollFrameInner::ViewPositionDidChange(nsTArray<nsIWidget::Configuration>* aConfigurations)
 {
   
   nsPoint childOffset = mScrolledFrame->GetView()->GetOffsetTo(mOuter->GetView());
@@ -1789,7 +1788,7 @@ nsGfxScrollFrameInner::ViewPositionDidChange(nsIScrollableView* aScrollable,
 
 
 NS_IMETHODIMP
-nsGfxScrollFrameInner::ScrollPositionDidChange(nsIScrollableView* aScrollable, nscoord aX, nscoord aY)
+nsGfxScrollFrameInner::ScrollPositionDidChange(nscoord aX, nscoord aY)
 {
   NS_ASSERTION(!mViewInitiatedScroll, "Cannot reenter ScrollPositionDidChange");
 
