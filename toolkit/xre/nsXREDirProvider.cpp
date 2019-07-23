@@ -813,6 +813,8 @@ nsXREDirProvider::DoStartup()
     
     (void)NS_CreateServicesFromCategory("profile-after-change", nsnull,
                                         "profile-after-change");
+
+    obsSvc->NotifyObservers(nsnull, "profile-initial-state", nsnull);
   }
   return NS_OK;
 }
