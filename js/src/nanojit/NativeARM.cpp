@@ -54,6 +54,13 @@
 extern "C" void __clear_cache(char *BEG, char *END);
 #endif
 
+
+#ifdef UNDER_CE
+#undef NJ_ARM_EABI
+#else
+#define NJ_ARM_EABI
+#endif
+
 #ifdef FEATURE_NANOJIT
 
 namespace nanojit
@@ -188,6 +195,149 @@ Assembler::genEpilogue()
 
 
 
+
+
+
+
+
+
+void
+Assembler::asm_arg(ArgSize sz, LInsp p, Register r)
+{
+    
+    
+    NanoAssert(0);
+}
+
+
+
+
+
+
+
+
+
+
+void
+Assembler::asm_arg(ArgSize sz, LInsp arg, Register& r, int& stkd)
+{
+    if (sz == ARGSIZE_F) {
+#ifdef NJ_ARM_EABI
+        NanoAssert(r == UnknownReg || r == R0 || r == R2);
+
+        
+        
+        if (r == UnknownReg && (stkd&7) != 0) {
+            SUBi(SP, SP, 4);
+            stkd += 4;
+        }
+#endif
+
+        Reservation* argRes = getresv(arg);
+
+        
+        if (arg->isop(LIR_qjoin)) {
+            asm_arg(ARGSIZE_LO, arg->oprnd1(), r, stkd);
+            asm_arg(ARGSIZE_LO, arg->oprnd2(), r, stkd);
+        } else if (!argRes || argRes->reg == UnknownReg || !AvmCore::config.vfp) {
+            
+            
+            if (arg->isop(LIR_quad)) {
+                const int32_t* p = (const int32_t*) (arg-2);
+
+                
+                for (int k = 0; k < 2; k++) {
+                    if (r != UnknownReg) {
+                        asm_ld_imm(r, *p++);
+                        r = nextreg(r);
+                        if (r == R4)
+                            r = UnknownReg;
+                    } else {
+                        STR_preindex(IP, SP, -4);
+                        asm_ld_imm(IP, *p++);
+                        stkd += 4;
+                    }
+                }
+            } else {
+                int d = findMemFor(arg);
+
+                for (int k = 0; k < 2; k++) {
+                    if (r != UnknownReg) {
+                        LDR(r, FP, d + k*4);
+                        r = nextreg(r);
+                        if (r == R4)
+                            r = UnknownReg;
+                    } else {
+                        STR_preindex(IP, SP, -4);
+                        LDR(IP, FP, d + k*4);
+                        stkd += 4;
+                    }
+                }
+            }
+        } else {
+            
+            Register sr = argRes->reg;
+            if (r != UnknownReg && r < R3) {
+                FMRRD(r, nextreg(r), sr);
+
+                
+                if (r == R0)
+                    r = R2;
+                else
+                    r = UnknownReg;
+            } else if (r == R3) {
+                
+                STR_preindex(IP, SP, -4);
+                FMRDL(IP, sr);
+                FMRDH(r, sr);
+                stkd += 4;
+
+                r = UnknownReg;
+            } else {
+                FSTD(sr, SP, 0);
+                SUB(SP, SP, 8);
+                stkd += 8;
+                r = UnknownReg;
+            }
+        }
+    } else if (sz == ARGSIZE_LO) {
+        if (r != UnknownReg) {
+            if (arg->isconst()) {
+                asm_ld_imm(r, arg->constval());
+            } else {
+                Reservation* argRes = getresv(arg);
+                if (argRes) {
+                    if (argRes->reg == UnknownReg) {
+                        
+                        int d = findMemFor(arg);
+                        if (arg->isop(LIR_alloc)) {
+                            asm_add_imm(r, FP, d);
+                        } else {
+                            LDR(r, FP, d);
+                        }
+                    } else {
+                        MOV(r, argRes->reg);
+                    }
+                } else {
+                    findSpecificRegFor(arg, r);
+                }
+            }
+
+            if (r < R3)
+                r = nextreg(r);
+            else
+                r = UnknownReg;
+        } else {
+            int d = findMemFor(arg);
+            STR_preindex(IP, SP, -4);
+            LDR(IP, FP, d);
+            stkd += 4;
+        }
+    } else {
+        NanoAssert(0);
+    }
+}
+
 void
 Assembler::asm_call(LInsp ins)
 {
@@ -202,29 +352,13 @@ Assembler::asm_call(LInsp ins)
 
     atypes >>= 2;
 
-    bool arg0IsInt32FollowedByFloat = false;
-#ifndef UNDER_CE
     
     
     
-    
-    while ((atypes & 3) != ARGSIZE_NONE) {
-        if (((atypes >> 2) & 3) == ARGSIZE_LO &&
-            ((atypes >> 0) & 3) == ARGSIZE_F &&
-            ((atypes >> 4) & 3) == ARGSIZE_NONE)
-        {
-            arg0IsInt32FollowedByFloat = true;
-            break;
-        }
-        atypes >>= 2;
-    }
-#endif
 
     if (AvmCore::config.vfp && rsize == ARGSIZE_F) {
         NanoAssert(ins->opcode() == LIR_fcall);
         NanoAssert(callRes);
-
-        
 
         Register rr = callRes->reg;
         int d = disp(callRes);
@@ -240,50 +374,37 @@ Assembler::asm_call(LInsp ins)
         }
     }
 
+    
     BL((NIns*)(call->_address));
 
-    ArgSize sizes[10];
+    ArgSize sizes[MAXARGS];
     uint32_t argc = call->get_sizes(sizes);
+
+    Register r = R0;
+    int stkd = 0;
+
+    
+    
+    
+    
+
     for(uint32_t i = 0; i < argc; i++) {
         uint32_t j = argc - i - 1;
         ArgSize sz = sizes[j];
         LInsp arg = ins->arg(j);
-        
 
-        Register r = (i + roffset) < 4 ? argRegs[i+roffset] : UnknownReg;
+        NanoAssert(r < R4 || r == UnknownReg);
+
+#ifdef NJ_ARM_EABI
         if (sz == ARGSIZE_F) {
-            Register rlo = UnknownReg;
-            Register rhi = UnknownReg;
-
-#ifdef UNDER_CE
-            if (r >= R0 && r <= R2) {
-                rlo = r;
-                rhi = nextreg(r);
-                roffset++;
-            } else if (r == R3) {
-                rlo = r;
-                rhi = UnknownReg;
-            }
-#else
-            if (r == R0 || r == R2) {
-                rlo = r;
-                rhi = nextreg(r);
-                roffset++;
-            } else if (r == R1) {
-                rlo = R2;
-                rhi = nextreg(r);
-                roffset += 2;
-            }
+            if (r == R1)
+                r = R2;
+            else if (r == R3)
+                r = UnknownReg;
+        }
 #endif
 
-            asm_arm_farg(arg, rlo, rhi);
-        } else {
-            asm_arg(sz, arg, r);
-        }
-
-        
-        if (i == 0 && arg0IsInt32FollowedByFloat)
-            roffset = 1;
+        asm_arg(sz, arg, r, stkd);
     }
 }
 
@@ -1610,132 +1731,6 @@ Assembler::asm_int(LInsp ins)
         EOR(rr,rr,rr);
     else
         LDi(rr, val);
-}
-
-void
-Assembler::asm_pusharg(LInsp arg)
-{
-    Reservation* argRes = getresv(arg);
-    bool quad = arg->isQuad();
-
-    if (argRes && argRes->reg != UnknownReg) {
-        if (!quad) {
-            STR_preindex(argRes->reg, SP, -4);
-        } else {
-            FSTD(argRes->reg, SP, 0);
-            SUBi(SP, SP, 8);
-        }
-    } else {
-        int d = findMemFor(arg);
-
-        if (!quad) {
-            STR_preindex(IP, SP, -4);
-            LDR(IP, FP, d);
-        } else {
-            STR_preindex(IP, SP, -4);
-            LDR(IP, FP, d+4);
-            STR_preindex(IP, SP, -4);
-            LDR(IP, FP, d);
-        }
-    }
-}
-
-void
-Assembler::asm_arg(ArgSize sz, LInsp p, Register r)
-{
-    
-    
-    NanoAssert(sz == ARGSIZE_LO);
-
-    if (r != UnknownReg) {
-        
-        if (p->isconst()) {
-            LDi(r, p->constval());
-        } else {
-            Reservation* rA = getresv(p);
-            if (rA) {
-                if (rA->reg == UnknownReg) {
-                    
-                    int d = findMemFor(p);
-                    if (p->isop(LIR_alloc)) {
-                        asm_add_imm(r, FP, d);
-                    } else {
-                        LDR(r, FP, d);
-                    }
-                } else {
-                    
-                    MOV(r, rA->reg);
-                }
-            } else {
-                
-                
-                findSpecificRegFor(p, r);
-            }
-        }
-    } else {
-        asm_pusharg(p);
-    }
-}
-
-void
-Assembler::asm_arm_farg(LInsp arg, Register rlo, Register rhi)
-{
-    if (AvmCore::config.vfp) {
-        Register sr = findRegFor(arg, FpRegs);
-
-        if (rlo != UnknownReg && rhi != UnknownReg) {
-            NanoAssert(sr != UnknownReg);
-            FMRRD(rlo, rhi, sr);
-        } else if (rlo != UnknownReg && rhi == UnknownReg) {
-            NanoAssert(sr != UnknownReg);
-            STR_preindex(IP, SP, -4);
-            FMRDL(IP, sr);
-            FMRDH(rhi, sr);
-        } else {
-            asm_pusharg(arg);
-        }
-
-        return;
-    }
-
-    NanoAssert(arg->opcode() == LIR_qjoin || arg->opcode() == LIR_quad);
-
-    if (rlo != UnknownReg && rhi != UnknownReg) {
-        if (arg->opcode() == LIR_qjoin) {
-            LIns* lo = arg->oprnd1();
-            LIns* hi = arg->oprnd2();
-
-            findSpecificRegFor(lo, rlo);
-            findSpecificRegFor(hi, rhi);
-        } else {
-            
-            const int32_t* p = (const int32_t*) (arg-2);
-
-            asm_ld_imm(rhi, p[1]);
-            asm_ld_imm(rlo, p[0]);
-        }
-    } else if (rlo != UnknownReg && rhi == UnknownReg) {
-        if (arg->opcode() == LIR_qjoin) {
-            LIns* lo = arg->oprnd1();
-            LIns* hi = arg->oprnd2();
-
-            int d = findMemFor(hi);
-
-            findSpecificRegFor(lo, rlo);
-
-            STR_preindex(IP, SP, -4);
-            LDR(IP, FP, d);
-        } else {
-            
-            const int32_t* p = (const int32_t*) (arg-2);
-
-            STR_preindex(IP, SP, -4);
-            asm_ld_imm(IP, p[1]);
-            asm_ld_imm(rlo, p[0]);
-        }
-    } else {
-        asm_pusharg(arg);
-    }
 }
 
 }
