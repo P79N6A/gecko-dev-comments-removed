@@ -1685,7 +1685,7 @@ PRInt32 nsHyperTextAccessible::GetCaretLineNumber()
   NS_ENSURE_TRUE(caretFrame, -1);
 
   PRInt32 lineNumber = 1;
-  nsCOMPtr<nsILineIterator> lineIterForCaret;
+  nsAutoLineIterator lineIterForCaret;
   nsCOMPtr<nsIContent> hyperTextContent = do_QueryInterface(mDOMNode);
   while (caretFrame) {
     if (hyperTextContent == caretFrame->GetContent()) {
@@ -1698,11 +1698,10 @@ PRInt32 nsHyperTextAccessible::GetCaretLineNumber()
     
     nsIFrame *sibling = parentFrame->GetFirstChild(nsnull);
     while (sibling && sibling != caretFrame) {
-      nsCOMPtr<nsILineIterator> lineIterForSibling = do_QueryInterface(sibling);
+      nsAutoLineIterator lineIterForSibling = sibling->GetLineIterator();
       if (lineIterForSibling) {
-        PRInt32 addLines;
         
-        lineIterForSibling->GetNumLines(&addLines);
+        PRInt32 addLines = lineIterForSibling->GetNumLines();
         lineNumber += addLines;
       }
       sibling = sibling->GetNextSibling();
@@ -1710,11 +1709,10 @@ PRInt32 nsHyperTextAccessible::GetCaretLineNumber()
 
     
     if (!lineIterForCaret) {   
-      lineIterForCaret = do_QueryInterface(parentFrame);
+      lineIterForCaret = parentFrame->GetLineIterator();
       if (lineIterForCaret) {
         
-        PRInt32 addLines;
-        lineIterForCaret->FindLineContaining(caretFrame, &addLines);
+        PRInt32 addLines = lineIterForCaret->FindLineContaining(caretFrame);
         lineNumber += addLines;
       }
     }
