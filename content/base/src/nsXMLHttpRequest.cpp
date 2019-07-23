@@ -1421,7 +1421,18 @@ nsXMLHttpRequest::OnStartRequest(nsIRequest *request, nsISupports *ctxt)
   nsCOMPtr<nsIChannel> channel(do_QueryInterface(request));
   NS_ENSURE_TRUE(channel, NS_ERROR_UNEXPECTED);
 
-  channel->SetOwner(mPrincipal);
+  nsCOMPtr<nsIPrincipal> documentPrincipal = mPrincipal;
+  if (IsSystemPrincipal(documentPrincipal)) {
+    
+    
+    
+    
+    nsresult rv;
+    documentPrincipal = do_CreateInstance("@mozilla.org/nullprincipal;1", &rv);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
+
+  channel->SetOwner(documentPrincipal);
 
   mReadRequest = request;
   mContext = ctxt;
@@ -1431,12 +1442,19 @@ nsXMLHttpRequest::OnStartRequest(nsIRequest *request, nsISupports *ctxt)
   nsIURI* uri = GetBaseURI();
 
   
+  
+  
+  
   const nsAString& emptyStr = EmptyString();
   nsCOMPtr<nsIScriptGlobalObject> global = do_QueryInterface(mOwner);
   nsresult rv = nsContentUtils::CreateDocument(emptyStr, emptyStr, nsnull, uri,
                                                uri, mPrincipal, global,
                                                getter_AddRefs(mDocument));
   NS_ENSURE_SUCCESS(rv, rv);
+  nsCOMPtr<nsIDocument> doc = do_QueryInterface(mDocument);
+  if (doc) {
+    doc->SetPrincipal(documentPrincipal);
+  }
 
   
   mResponseBody.Truncate();

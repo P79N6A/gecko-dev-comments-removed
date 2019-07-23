@@ -1378,9 +1378,14 @@ nsScriptSecurityManager::CheckLoadURIWithPrincipal(nsIPrincipal* aPrincipal,
     rv = sourceBaseURI->GetScheme(sourceScheme);
     if (NS_FAILED(rv)) return rv;
 
-    if (targetScheme.Equals(sourceScheme,
-                            nsCaseInsensitiveCStringComparator()) &&
-        !sourceScheme.LowerCaseEqualsLiteral(NS_NULLPRINCIPAL_SCHEME))
+    if (sourceScheme.LowerCaseEqualsLiteral(NS_NULLPRINCIPAL_SCHEME)) {
+        
+        if (sourceURI == aTargetURI) {
+            return NS_OK;
+        }
+    }
+    else if (targetScheme.Equals(sourceScheme,
+                                 nsCaseInsensitiveCStringComparator()))
     {
         
         
