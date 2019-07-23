@@ -126,135 +126,8 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#if !defined(nsOggDecoder_h_)
-#define nsOggDecoder_h_
+#if !defined(nsBuiltinDecoder_h_)
+#define nsBuiltinDecoder_h_
 
 #include "nsMediaDecoder.h"
 
@@ -271,19 +144,70 @@
 #include "gfxRect.h"
 #include "nsMediaStream.h"
 #include "nsMediaDecoder.h"
+#include "nsHTMLMediaElement.h"
 #include "mozilla/Monitor.h"
 
-using mozilla::Monitor;
-
 class nsAudioStream;
-class nsOggPlayStateMachine;
-class nsOggReader;
 
-class nsOggDecoder : public nsMediaDecoder
+static inline PRBool IsCurrentThread(nsIThread* aThread) {
+  return NS_GetCurrentThread() == aThread;
+}
+
+
+
+class nsDecoderStateMachine : public nsRunnable
 {
-  friend class nsOggReader;
-  friend class nsOggPlayStateMachine;
+public:
+  
+  
+  virtual nsresult Init() = 0;
 
+  
+  
+  virtual void SetVolume(float aVolume) = 0;
+
+  virtual void Shutdown() = 0;
+
+  
+  
+  virtual PRInt64 GetDuration() = 0;
+
+  
+  
+  
+  virtual void SetDuration(PRInt64 aDuration) = 0;
+
+  
+  
+  virtual PRBool OnDecodeThread() = 0;
+
+  virtual nsHTMLMediaElement::NextFrameStatus GetNextFrameStatus() = 0;
+
+  
+  
+  
+  virtual void Decode() = 0;
+
+  
+  virtual void Seek(float aTime) = 0;
+
+  
+  
+  
+  virtual float GetCurrentTime() = 0;
+
+  
+  
+  
+  virtual void ClearPositionChangeFlag() = 0;
+
+  
+  
+  virtual void SetSeekable(PRBool aSeekable) = 0;
+};
+
+class nsBuiltinDecoder : public nsMediaDecoder
+{
   
   NS_DECL_ISUPPORTS
 
@@ -302,11 +226,9 @@ class nsOggDecoder : public nsMediaDecoder
     PLAY_STATE_SHUTDOWN
   };
 
-  nsOggDecoder();
-  ~nsOggDecoder();
+  nsBuiltinDecoder();
+  ~nsBuiltinDecoder();
   
-  virtual nsMediaDecoder* Clone() { return new nsOggDecoder(); }
-
   virtual PRBool Init(nsHTMLMediaElement* aElement);
 
   
@@ -317,6 +239,8 @@ class nsOggDecoder : public nsMediaDecoder
 
   virtual nsresult Load(nsMediaStream* aStream,
                         nsIStreamListener** aListener);
+
+  virtual nsDecoderStateMachine* CreateStateMachine() = 0;
 
   
   
@@ -391,14 +315,21 @@ class nsOggDecoder : public nsMediaDecoder
   
   void DurationChanged();
 
-protected:
+  PRBool OnStateMachineThread() {
+    return IsCurrentThread(mStateMachineThread);
+  }
+
+  PRBool OnDecodeThread() {
+    return mDecoderStateMachine->OnDecodeThread();
+  }
 
   
   
-  Monitor& GetMonitor() { 
+  mozilla::Monitor& GetMonitor() { 
     return mMonitor; 
   }
 
+ public:
   
   
   PlayState GetState() {
@@ -474,7 +405,7 @@ protected:
   
   PRInt64 GetDownloadPosition();
 
-private:
+public:
   
   void DecodeError();
 
@@ -535,7 +466,7 @@ private:
   
   
   
-  nsCOMPtr<nsOggPlayStateMachine> mDecodeStateMachine;
+  nsCOMPtr<nsDecoderStateMachine> mDecoderStateMachine;
 
   
   nsAutoPtr<nsMediaStream> mStream;
@@ -543,7 +474,7 @@ private:
   
   
   
-  Monitor mMonitor;
+  mozilla::Monitor mMonitor;
 
   
   

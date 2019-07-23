@@ -228,6 +228,12 @@ public:
   
   ImageContainer* GetImageContainer() { return mImageContainer; }
 
+  
+  
+  void SetVideoData(const gfxIntSize& aSize,
+                    float aAspectRatio,
+                    Image* aImage);
+
 protected:
 
   
@@ -235,12 +241,6 @@ protected:
 
   
   nsresult StopProgress();
-
-  
-  
-  void SetVideoData(const gfxIntSize& aSize,
-                    float aAspectRatio,
-                    Image* aImage);
 
 protected:
   

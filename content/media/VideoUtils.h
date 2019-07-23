@@ -36,8 +36,10 @@
 
 
 
-#ifndef nsOggHacks_h
-#define nsOggHacks_h
+#ifndef VideoUtils_h
+#define VideoUtils_h
+
+#include "mozilla/Monitor.h"
 
 
 

@@ -36,26 +36,159 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #if !defined(nsOggPlayStateMachine_h__)
 #define nsOggPlayStateMachine_h__
 
 #include "prmem.h"
 #include "nsThreadUtils.h"
 #include "nsOggReader.h"
-#include "nsOggDecoder.h"
+#include "nsBuiltinDecoder.h"
 #include "nsHTMLMediaElement.h"
 #include "mozilla/Monitor.h"
 
 using mozilla::TimeDuration;
 using mozilla::TimeStamp;
 
-class nsOggDecoder;
-
-
-
-static inline PRBool IsThread(nsIThread* aThread) {
-  return NS_GetCurrentThread() == aThread;
-}
 
 
 
@@ -73,8 +206,7 @@ static inline PRBool IsThread(nsIThread* aThread) {
 
 
 
-
-class nsOggPlayStateMachine : public nsRunnable
+class nsOggPlayStateMachine : public nsDecoderStateMachine
 {
 public:
   
@@ -87,21 +219,25 @@ public:
     DECODER_STATE_SHUTDOWN
   };
 
-  nsOggPlayStateMachine(nsOggDecoder* aDecoder);
+  nsOggPlayStateMachine(nsBuiltinDecoder* aDecoder);
   ~nsOggPlayStateMachine();
 
   
-  
-  nsresult Init();
+  virtual nsresult Init();
+  virtual void SetVolume(float aVolume);
+  virtual void Shutdown();
+  virtual PRInt64 GetDuration();
+  virtual void SetDuration(PRInt64 aDuration);
+  virtual PRBool OnDecodeThread() {
+    return IsCurrentThread(mDecodeThread);
+  }
 
-  
-  
-  
-  void Shutdown();
-  void Decode();
-
-  
-  void Seek(float aTime);
+  virtual nsHTMLMediaElement::NextFrameStatus GetNextFrameStatus();
+  virtual void Decode();
+  virtual void Seek(float aTime);
+  virtual float GetCurrentTime();
+  virtual void ClearPositionChangeFlag();
+  virtual void SetSeekable(PRBool aSeekable);
 
   
   
@@ -120,33 +256,6 @@ public:
     mDecoder->GetMonitor().AssertCurrentThreadIn();
     return mInfo.mHasVideo;
   }
-
-  
-  
-  
-  float GetCurrentTime();
-
-  
-  
-  PRInt64 GetDuration();
-
-  
-  
-  
-  void SetDuration(PRInt64 aDuration);
-
-  
-  
-  void SetSeekable(PRBool aSeekable);
-
-  
-  
-  void SetVolume(float aVolume);
-
-  
-  
-  
-  void ClearPositionChangeFlag();
 
   
   PRBool HaveNextFrameData() const {
@@ -172,16 +281,12 @@ public:
 
   
   
-  PRBool OnStateMachineThread() {
-    return IsThread(mDecoder->mStateMachineThread);
-  }
-
-  PRBool OnDecodeThread() {
-    return IsThread(mDecodeThread);
-  }
-
   PRBool OnAudioThread() {
-    return IsThread(mAudioThread);
+    return IsCurrentThread(mAudioThread);
+  }
+
+  PRBool OnStateMachineThread() {
+    return mDecoder->OnStateMachineThread();
   }
 
   
@@ -190,7 +295,7 @@ public:
   
   
   
-  nsOggDecoder* mDecoder;
+  nsBuiltinDecoder* mDecoder;
 
   
   
@@ -198,8 +303,6 @@ public:
   
   
   void UpdatePlaybackPosition(PRInt64 aTime);
-
-  nsHTMLMediaElement::NextFrameStatus GetNextFrameStatus();
 
   
   

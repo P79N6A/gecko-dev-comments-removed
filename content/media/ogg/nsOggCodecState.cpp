@@ -41,7 +41,7 @@
 #include "nsOggDecoder.h"
 #include <string.h>
 #include "nsTraceRefcnt.h"
-#include "nsOggHacks.h"
+#include "VideoUtils.h"
 
 
 
