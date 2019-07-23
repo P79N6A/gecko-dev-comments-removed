@@ -881,6 +881,21 @@ protected:
 
 
 
+#define ADDED_TO_FORM (1 << NODE_TYPE_SPECIFIC_BITS_OFFSET)
+
+
+
+
+#define MAYBE_ORPHAN_FORM_ELEMENT (1 << (NODE_TYPE_SPECIFIC_BITS_OFFSET+1))
+
+
+
+
+
+
+
+
+
 
 
 class nsGenericHTMLFrameElement : public nsGenericHTMLElement,

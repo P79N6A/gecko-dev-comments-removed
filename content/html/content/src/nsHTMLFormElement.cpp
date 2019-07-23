@@ -711,12 +711,90 @@ nsHTMLFormElement::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
   return rv;
 }
 
+static void
+MarkOrphans(const nsTArray<nsIFormControl*> aArray)
+{
+  PRUint32 length = aArray.Length();
+  for (PRUint32 i = 0; i < length; ++i) {
+    nsCOMPtr<nsINode> node = do_QueryInterface(aArray[i]);
+    NS_ASSERTION(node, "Form control must be nsINode");
+    node->SetFlags(MAYBE_ORPHAN_FORM_ELEMENT);
+  }
+}
+
+static void
+CollectOrphans(nsINode* aRemovalRoot, nsTArray<nsIFormControl*> aArray
+#ifdef DEBUG
+               , nsIDOMHTMLFormElement* aThisForm
+#endif
+               )
+{
+  
+  PRUint32 length = aArray.Length();
+  for (PRUint32 i = length; i > 0; --i) {
+    nsIFormControl* control = aArray[i-1];
+    nsCOMPtr<nsINode> node = do_QueryInterface(control);
+    NS_ASSERTION(node, "Form control must be nsINode");
+
+    
+    
+    
+    
+    
+#ifdef DEBUG
+    PRBool removed = PR_FALSE;
+#endif
+    if (node->HasFlag(MAYBE_ORPHAN_FORM_ELEMENT)) {
+      node->UnsetFlags(MAYBE_ORPHAN_FORM_ELEMENT);
+      if (!nsContentUtils::ContentIsDescendantOf(node, aRemovalRoot)) {
+        control->SetForm(nsnull, PR_TRUE, PR_TRUE);
+#ifdef DEBUG
+        removed = PR_TRUE;
+#endif
+      }
+    }
+
+#ifdef DEBUG
+    if (!removed) {
+      nsCOMPtr<nsIDOMHTMLFormElement> form;
+      control->GetForm(getter_AddRefs(form));
+      NS_ASSERTION(form == aThisForm, "How did that happen?");
+    }
+#endif 
+  }
+}
+
 void
 nsHTMLFormElement::UnbindFromTree(PRBool aDeep, PRBool aNullParent)
 {
   nsCOMPtr<nsIHTMLDocument> oldDocument = do_QueryInterface(GetCurrentDoc());
 
+  
+  MarkOrphans(mControls->mElements);
+  MarkOrphans(mControls->mNotInElements);
+
   nsGenericHTMLElement::UnbindFromTree(aDeep, aNullParent);
+
+  nsINode* ancestor = this;
+  nsINode* cur;
+  do {
+    cur = ancestor->GetNodeParent();
+    if (!cur) {
+      break;
+    }
+    ancestor = cur;
+  } while (1);
+  
+  CollectOrphans(ancestor, mControls->mElements
+#ifdef DEBUG
+                 , this
+#endif                 
+                 );
+  CollectOrphans(ancestor, mControls->mNotInElements
+#ifdef DEBUG
+                 , this
+#endif                 
+                 );
 
   if (oldDocument) {
     oldDocument->RemovedForm();
