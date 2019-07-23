@@ -88,6 +88,7 @@ public:
 
   
   virtual PRBool ReflowFinished();
+  virtual void ReflowCallbackCanceled();
 
   
   NS_IMETHOD DoLayout(nsBoxLayoutState& aBoxLayoutState);

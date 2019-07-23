@@ -38,7 +38,10 @@
 #ifndef nsIReflowCallback_h___
 #define nsIReflowCallback_h___
 
-class nsIPresShell;
+
+
+
+
 
 
 
@@ -52,6 +55,12 @@ public:
 
 
   virtual PRBool ReflowFinished() = 0;
+  
+
+
+
+
+  virtual void ReflowCallbackCanceled() = 0;
 };
 
 #endif 

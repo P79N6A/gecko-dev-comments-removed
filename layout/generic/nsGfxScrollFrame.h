@@ -96,6 +96,7 @@ public:
 
   
   virtual PRBool ReflowFinished();
+  virtual void ReflowCallbackCanceled();
 
   
 
