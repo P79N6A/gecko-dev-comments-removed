@@ -167,7 +167,7 @@ struct NS_GFX nsRect {
   nsRect& ScaleRoundIn(float aScale);
   
   
-  nsRect& ScaleRoundPreservingCenters(float aScale);
+  nsRect& ScaleRoundPreservingCentersInverse(float aScale);
 
   
   nsPoint TopLeft() const { return nsPoint(x, y); }
