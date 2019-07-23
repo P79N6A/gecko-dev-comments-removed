@@ -259,6 +259,7 @@ JS_BEGIN_EXTERN_C
 
 
 
+
 typedef enum JSParseNodeArity {
     PN_FUNC     = -3,
     PN_LIST     = -2,
@@ -279,7 +280,8 @@ struct JSParseNode {
         struct {                        
             JSParsedObjectBox *funpob;  
             JSParseNode *body;          
-            uint32      flags;          
+            uint16      flags;          
+            uint16      sclen;          
         } func;
         struct {                        
             JSParseNode *head;          
@@ -328,6 +330,7 @@ struct JSParseNode {
 #define pn_funpob       pn_u.func.funpob
 #define pn_body         pn_u.func.body
 #define pn_flags        pn_u.func.flags
+#define pn_sclen        pn_u.func.sclen
 #define pn_head         pn_u.list.head
 #define pn_tail         pn_u.list.tail
 #define pn_count        pn_u.list.count

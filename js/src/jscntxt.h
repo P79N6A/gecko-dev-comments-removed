@@ -383,7 +383,7 @@ struct JSRuntime {
     
     JSAtomState         atomState;
 
-#ifdef DEBUG
+#if defined DEBUG || defined JS_DUMP_PROPTREE_STATS
     
     jsrefcount          inlineCalls;
     jsrefcount          nativeCalls;
@@ -398,8 +398,8 @@ struct JSRuntime {
     jsrefcount          liveScopes;
     jsrefcount          sharedScopes;
     jsrefcount          totalScopes;
-    jsrefcount          badUndependStrings;
     jsrefcount          liveScopeProps;
+    jsrefcount          liveScopePropsPreSweep;
     jsrefcount          totalScopeProps;
     jsrefcount          livePropTreeNodes;
     jsrefcount          duplicatePropTreeNodes;
@@ -412,10 +412,27 @@ struct JSRuntime {
     jsrefcount          totalStrings;
     jsrefcount          liveDependentStrings;
     jsrefcount          totalDependentStrings;
+    jsrefcount          badUndependStrings;
     double              lengthSum;
     double              lengthSquaredSum;
     double              strdepLengthSum;
     double              strdepLengthSquaredSum;
+#endif 
+
+#ifdef JS_SCOPE_DEPTH_METER
+    
+
+
+
+    JSBasicStats        protoLookupDepthStats;
+    JSBasicStats        scopeSearchDepthStats;
+
+    
+
+
+
+    JSBasicStats        hostenvScopeDepthStats;
+    JSBasicStats        lexicalScopeDepthStats;
 #endif
 };
 
