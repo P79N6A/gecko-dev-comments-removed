@@ -278,7 +278,10 @@ PlacesController.prototype = {
     var nodes = this._view.getSelectionNodes();
     var root = this._view.getResultNode();
 
+    var bmFolderId = PlacesUtils.bookmarksMenuFolderId;
+    var ubFolderId = PlacesUtils.unfiledBookmarksFolderId;
     var btFolderId = PlacesUtils.toolbarFolderId;
+    
     for (var i = 0; i < nodes.length; ++i) {
       
       if (nodes[i] == root)
@@ -286,7 +289,10 @@ PlacesController.prototype = {
 
       
       if (!aIsMoveCommand &&
-          PlacesUtils.nodeIsFolder(nodes[i]) && nodes[i].itemId == btFolderId)
+          PlacesUtils.nodeIsFolder(nodes[i]) && 
+          (nodes[i].itemId == btFolderId || 
+            nodes[i].itemId == ubFolderId ||
+            nodes[i].itemId == bmFolderId))
         return false;
 
       
