@@ -63,6 +63,13 @@ class nsHtml5StreamParser;
 
 typedef nsIContent* nsIContentPtr;
 
+enum eHtml5FlushState {
+  eNotFlushing = 0,  
+  eInFlush = 1,      
+  eInDocUpdate = 2,  
+  eNotifying = 3     
+};
+
 class nsHtml5TreeOpExecutor : public nsContentSink,
                               public nsIContentSink,
                               public nsAHtml5TreeOpSink
@@ -105,23 +112,11 @@ class nsHtml5TreeOpExecutor : public nsContentSink,
 
     PRBool                        mStarted;
 
-    
-
-
-    nsCOMPtr<nsIContent>          mScriptElement;
-    
     nsHtml5TreeOpStage            mStage;
 
-    PRBool                        mFlushing;
-    
-    PRBool                        mInDocumentUpdate;
+    eHtml5FlushState              mFlushState;
 
-    
-
-
-    PRBool                        mCallDidBuildModel;
-    
-    nsCString                     mCharsetSwitch;
+    PRBool                        mFragmentMode;
 
   public:
   
@@ -220,25 +215,33 @@ class nsHtml5TreeOpExecutor : public nsContentSink,
       mStreamParser = aStreamParser;
     }
     
-    inline void SetScriptElement(nsIContent* aScript) {
-      mScriptElement = aScript;
-    }
-    
     void InitializeDocWriteParserState(nsAHtml5TreeBuilderState* aState, PRInt32 aLine);
 
     PRBool IsScriptEnabled();
 
+    void EnableFragmentMode() {
+      mFragmentMode = PR_TRUE;
+    }
+    
+    PRBool IsFragmentMode() {
+      return mFragmentMode;
+    }
+
     inline void BeginDocUpdate() {
-      NS_PRECONDITION(!mInDocumentUpdate, "Tried to double-open update.");
+      NS_PRECONDITION(mFlushState == eInFlush, "Tried to double-open update.");
       NS_PRECONDITION(mParser, "Started update without parser.");
-      mInDocumentUpdate = PR_TRUE;
+      mFlushState = eInDocUpdate;
       mDocument->BeginUpdate(UPDATE_CONTENT_MODEL);
     }
 
     inline void EndDocUpdate() {
-      if (mInDocumentUpdate) {
-        mInDocumentUpdate = PR_FALSE;
+      if (mFlushState >= eInDocUpdate) {
+        FlushPendingAppendNotifications();
+        if (NS_UNLIKELY(!mParser)) {
+          return;
+        }
         mDocument->EndUpdate(UPDATE_CONTENT_MODEL);
+        mFlushState = eInFlush;
       }
     }
 
@@ -268,9 +271,23 @@ class nsHtml5TreeOpExecutor : public nsContentSink,
     }
 
     void FlushPendingAppendNotifications() {
+      if (NS_UNLIKELY(mFlushState == eNotifying)) {
+        
+        
+        return;
+      }
+      NS_PRECONDITION(mFlushState == eInDocUpdate, "Notifications flushed outside update");
+      mFlushState = eNotifying;
       const nsHtml5PendingNotification* start = mPendingNotifications.Elements();
       const nsHtml5PendingNotification* end = start + mPendingNotifications.Length();
       for (nsHtml5PendingNotification* iter = (nsHtml5PendingNotification*)start; iter < end; ++iter) {
+        if (NS_UNLIKELY(!mParser)) {
+          
+          
+          
+          
+          break;
+        }
         iter->Fire();
       }
       mPendingNotifications.Clear();
@@ -280,6 +297,7 @@ class nsHtml5TreeOpExecutor : public nsContentSink,
       }
 #endif
       mElementsSeenInThisAppendBatch.Clear();
+      mFlushState = eInDocUpdate;
     }
     
     inline PRBool HaveNotified(nsIContent* aElement) {
@@ -321,14 +339,6 @@ class nsHtml5TreeOpExecutor : public nsContentSink,
 
     void NeedsCharsetSwitchTo(const char* aEncoding);
     
-    void PerformCharsetSwitch();
-    
-#ifdef DEBUG
-    PRBool HasScriptElement() {
-      return !!mScriptElement;
-    }
-#endif
-
     PRBool IsComplete() {
       return !mParser;
     }
@@ -338,19 +348,10 @@ class nsHtml5TreeOpExecutor : public nsContentSink,
     }
     
     PRBool IsFlushing() {
-      return mFlushing;
+      return mFlushState >= eInFlush;
     }
     
-    void RunScript();
-    
-    void MaybePreventExecution() {
-      if (mScriptElement) {
-        nsCOMPtr<nsIScriptElement> script = do_QueryInterface(mScriptElement);
-        NS_ASSERTION(script, "mScriptElement didn't QI to nsIScriptElement!");
-        script->PreventExecution();
-        mScriptElement = nsnull;
-      }    
-    }
+    void RunScript(nsIContent* aScriptElement);
     
     void Reset();
     

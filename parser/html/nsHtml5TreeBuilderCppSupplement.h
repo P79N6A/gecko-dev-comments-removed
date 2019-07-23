@@ -541,6 +541,14 @@ nsHtml5TreeBuilder::elementPopped(PRInt32 aNamespace, nsIAtom* aName, nsIContent
   }
   if (aName == nsHtml5Atoms::input ||
       aName == nsHtml5Atoms::button) {
+    if (!formPointer) {
+      
+      
+      
+      nsHtml5TreeOperation* treeOp = mOpQueue.AppendElement();
+      NS_ASSERTION(treeOp, "Tree op allocation failed.");
+      treeOp->Init(eTreeOpFlushPendingAppendNotifications);
+    }
     nsHtml5TreeOperation* treeOp = mOpQueue.AppendElement();
     NS_ASSERTION(treeOp, "Tree op allocation failed.");
     treeOp->Init(eTreeOpDoneCreatingElement, aElement);

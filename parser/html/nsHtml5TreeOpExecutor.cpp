@@ -75,7 +75,6 @@ NS_IMPL_RELEASE_INHERITED(nsHtml5TreeOpExecutor, nsContentSink)
 
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(nsHtml5TreeOpExecutor, nsContentSink)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(mFlushTimer)
-  NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(mScriptElement)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMARRAY(mOwnedElements)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMARRAY(mOwnedNonElements)
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
@@ -85,7 +84,6 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(nsHtml5TreeOpExecutor, nsContent
     tmp->mFlushTimer->Cancel();
   }
   NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mFlushTimer)
-  NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mScriptElement)
   NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMARRAY(mOwnedElements)
   NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMARRAY(mOwnedNonElements)
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
@@ -123,8 +121,17 @@ nsHtml5TreeOpExecutor::WillParse()
 NS_IMETHODIMP
 nsHtml5TreeOpExecutor::DidBuildModel(PRBool aTerminated)
 {
-  NS_PRECONDITION(mStarted && mParser, 
-                  "Bad life cycle.");
+  NS_PRECONDITION(mStarted, "Bad life cycle.");
+
+  
+  EndDocUpdate();
+  
+  
+  
+  if (!mParser) {
+    return NS_OK;
+  }
+  
   
   DidBuildModelImpl(aTerminated);
   mDocument->ScriptLoader()->RemoveObserver(this);
@@ -279,11 +286,11 @@ nsHtml5TreeOpExecutor::Flush()
     mFlushTimer->Cancel();
     return;
   }
-  if (mFlushing) {
+  if (mFlushState != eNotFlushing) {
     return;
   }
   
-  mFlushing = PR_TRUE;
+  mFlushState = eInFlush;
 
   nsRefPtr<nsHtml5TreeOpExecutor> kungFuDeathGrip(this); 
   nsCOMPtr<nsIParser> parserKungFuDeathGrip(mParser);
@@ -291,6 +298,8 @@ nsHtml5TreeOpExecutor::Flush()
   if (mReadingFromStage) {
     mStage.RetrieveOperations(mOpQueue);
   }
+  
+  nsIContent* scriptElement = nsnull;
   
   BeginDocUpdate();
 
@@ -308,13 +317,8 @@ nsHtml5TreeOpExecutor::Flush()
       
       break;
     }
-    iter->Perform(this);
-  }
-
-  if (NS_LIKELY(mParser)) {
-    FlushPendingAppendNotifications();
-  } else {
-    mPendingNotifications.Clear();
+    NS_ASSERTION(mFlushState == eInDocUpdate, "Tried to perform tree op outside update batch.");
+    iter->Perform(this, &scriptElement);
   }
 
 #ifdef DEBUG_hsivonen
@@ -338,36 +342,16 @@ nsHtml5TreeOpExecutor::Flush()
 
   EndDocUpdate();
 
-  mFlushing = PR_FALSE;
+  mFlushState = eNotFlushing;
 
   if (!mParser) {
     return;
   }
 
   ScheduleTimer();
-
-  if (!mCharsetSwitch.IsEmpty()) {
-    NS_ASSERTION(!mScriptElement, "Had a charset switch and a script");
-    NS_ASSERTION(!mCallDidBuildModel, "Had a charset switch and DidBuildModel call");
-    PerformCharsetSwitch();
-    mCharsetSwitch.Truncate();
-    if (mParser) {
-      
-      return (static_cast<nsHtml5Parser*> (mParser.get()))->ContinueAfterFailedCharsetSwitch();      
-    }
-  } else if (mCallDidBuildModel) {
-    mCallDidBuildModel = PR_FALSE;
-    
-    #ifdef DEBUG
-    nsCOMPtr<nsIScriptElement> sele = do_QueryInterface(mScriptElement);
-    if (sele) {
-      NS_ASSERTION(sele->IsMalformed(), "Script wasn't marked as malformed.");
-    }
-    #endif
-    mScriptElement = nsnull;
-    DidBuildModel(PR_FALSE);
-  } else if (mScriptElement) {
-    RunScript();
+  
+  if (scriptElement) {
+    RunScript(scriptElement); 
   }
 }
 
@@ -459,13 +443,20 @@ nsHtml5TreeOpExecutor::DocumentMode(nsHtml5DocumentMode m)
 
 
 
+
+
+
+
+
 void
-nsHtml5TreeOpExecutor::RunScript()
+nsHtml5TreeOpExecutor::RunScript(nsIContent* aScriptElement)
 {
   mReadingFromStage = PR_FALSE;
-  NS_ASSERTION(mScriptElement, "No script to run");
+  NS_ASSERTION(aScriptElement, "No script to run");
+  NS_ASSERTION(mFlushState == eNotFlushing, "Tried to run script when flushing.");
 
-  nsCOMPtr<nsIScriptElement> sele = do_QueryInterface(mScriptElement);
+  nsCOMPtr<nsIScriptElement> sele = do_QueryInterface(aScriptElement);
+
   if (!mParser) {
     NS_ASSERTION(sele->IsMalformed(), "Script wasn't marked as malformed.");
     
@@ -473,17 +464,24 @@ nsHtml5TreeOpExecutor::RunScript()
     
     return;
   }
+  
+  if (mFragmentMode) {
+    
+    
+    sele->PreventExecution();
+    return;
+  }
+
   sele->SetCreatorParser(mParser);
   
   nsCOMPtr<nsIHTMLDocument> htmlDocument = do_QueryInterface(mDocument);
   NS_ASSERTION(htmlDocument, "Document didn't QI into HTML document.");
   htmlDocument->ScriptLoading(sele);
-   
   
   
   
-  nsresult rv = mScriptElement->DoneAddingChildren(PR_TRUE);
-  mScriptElement = nsnull;
+  
+  nsresult rv = aScriptElement->DoneAddingChildren(PR_TRUE);
   
   
   if (rv == NS_ERROR_HTMLPARSER_BLOCK) {
@@ -516,19 +514,19 @@ nsHtml5TreeOpExecutor::Start()
 {
   NS_PRECONDITION(!mStarted, "Tried to start when already started.");
   mStarted = PR_TRUE;
-  mScriptElement = nsnull;
   ScheduleTimer();
 }
 
 void
 nsHtml5TreeOpExecutor::NeedsCharsetSwitchTo(const char* aEncoding)
 {
-  mCharsetSwitch.Assign(aEncoding);
-}
+  EndDocUpdate();
 
-void
-nsHtml5TreeOpExecutor::PerformCharsetSwitch()
-{
+  if(NS_UNLIKELY(!mParser)) {
+    
+    return;
+  }
+  
   nsresult rv = NS_OK;
   nsCOMPtr<nsIWebShellServices> wss = do_QueryInterface(mDocShell);
   if (!wss) {
@@ -540,12 +538,21 @@ nsHtml5TreeOpExecutor::PerformCharsetSwitch()
     
   } else if (NS_FAILED(rv = wss->StopDocumentLoad())) {
     rv = wss->SetRendering(PR_TRUE); 
-  } else if (NS_FAILED(rv = wss->ReloadDocument(mCharsetSwitch.get(), kCharsetFromMetaTag))) {
+  } else if (NS_FAILED(rv = wss->ReloadDocument(aEncoding, kCharsetFromMetaTag))) {
     rv = wss->SetRendering(PR_TRUE); 
   }
   
   
 #endif
+
+  if (!mParser) {
+    
+    return;
+  }
+
+  (static_cast<nsHtml5Parser*> (mParser.get()))->ContinueAfterFailedCharsetSwitch();
+
+  BeginDocUpdate();
 }
 
 nsHtml5Tokenizer*
@@ -560,11 +567,8 @@ nsHtml5TreeOpExecutor::Reset() {
   mReadingFromStage = PR_FALSE;
   mOpQueue.Clear();
   mStarted = PR_FALSE;
-  mScriptElement = nsnull;
-  mCallDidBuildModel = PR_FALSE;
-  mCharsetSwitch.Truncate();
-  mInDocumentUpdate = PR_FALSE;
-  mFlushing = PR_FALSE;
+  mFlushState = eNotFlushing;
+  mFragmentMode = PR_FALSE;
 }
 
 void
@@ -576,7 +580,7 @@ nsHtml5TreeOpExecutor::MaybeFlush(nsTArray<nsHtml5TreeOperation>& aOpQueue)
 void
 nsHtml5TreeOpExecutor::ForcedFlush(nsTArray<nsHtml5TreeOperation>& aOpQueue)
 {
-  NS_PRECONDITION(!mFlushing, "mOpQueue modified during tree op execution.");
+  NS_PRECONDITION(mFlushState == eNotFlushing, "mOpQueue modified during tree op execution.");
   if (mOpQueue.IsEmpty()) {
     mOpQueue.SwapElements(aOpQueue);
     return;
@@ -588,12 +592,6 @@ void
 nsHtml5TreeOpExecutor::InitializeDocWriteParserState(nsAHtml5TreeBuilderState* aState, PRInt32 aLine)
 {
   static_cast<nsHtml5Parser*> (mParser.get())->InitializeDocWriteParserState(aState, aLine);
-}
-
-void
-nsHtml5TreeOpExecutor::StreamEnded()
-{
-  mCallDidBuildModel = PR_TRUE;
 }
 
 PRUint32 nsHtml5TreeOpExecutor::sTreeOpQueueMaxLength = NS_HTML5_TREE_OP_EXECUTOR_DEFAULT_QUEUE_LENGTH;

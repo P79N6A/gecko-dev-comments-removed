@@ -1957,6 +1957,9 @@ nsContentUtils::GenerateStateKey(nsIContent* aContent,
 
   if (htmlDocument) {
     
+    
+    
+    
     aContent->GetCurrentDoc()->FlushPendingNotifications(Flush_Content);
 
     nsContentList *htmlForms = htmlDocument->GetForms();
