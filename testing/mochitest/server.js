@@ -157,8 +157,13 @@ function runServer()
                    .createInstance(Ci.nsIFileOutputStream);
   var serverAlive = Cc["@mozilla.org/file/local;1"]
                       .createInstance(Ci.nsILocalFile);
-  serverAlive.initWithFile(serverBasePath);
-  serverAlive.append("mochitesttestingprofile");
+
+  if (typeof(_PROFILE_PATH) == "undefined") {
+    serverAlive.initWithFile(serverBasePath);
+    serverAlive.append("mochitesttestingprofile");
+  } else {
+    serverAlive.initWithPath(_PROFILE_PATH);
+  }
 
   
   
