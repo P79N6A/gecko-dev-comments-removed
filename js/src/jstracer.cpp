@@ -7860,7 +7860,7 @@ TraceRecorder::record_JSOP_STOP()
         
         
         
-        atoms = cx->fp->script->atomMap.vector;
+        atoms = fp->script->atomMap.vector;
         return true;
     }
 
