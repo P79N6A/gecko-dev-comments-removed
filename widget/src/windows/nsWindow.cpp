@@ -3473,6 +3473,8 @@ PRBool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
                                 LRESULT *aRetValue)
 {
   
+  if (mWindowHook.Notify(mWnd, msg, wParam, lParam, aRetValue))
+    return PR_TRUE;
   
   PRBool eatMessage;
   if (nsIMM32Handler::ProcessMessage(this, msg, wParam, lParam, aRetValue,
