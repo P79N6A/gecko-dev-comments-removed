@@ -412,6 +412,12 @@ public:
   
 
 
+  
+  nsresult CharacterExtendForDelete();
+  
+  
+
+
 
 
   
