@@ -439,11 +439,11 @@ nsXULPopupManager::ShowPopupCallback(nsIContent* aPopup,
   
   
   
-  if (ismenu) {
-    if (aPopup->AttrValueIs(kNameSpaceID_None, nsGkAtoms::ignorekeys,
-                             nsGkAtoms::_true, eCaseMatters))
-      item->SetIgnoreKeys(PR_TRUE);
+  if (aPopup->AttrValueIs(kNameSpaceID_None, nsGkAtoms::ignorekeys,
+                           nsGkAtoms::_true, eCaseMatters))
+    item->SetIgnoreKeys(PR_TRUE);
 
+  if (ismenu) {
     
     nsIFrame* parent = aPopupFrame->GetParent();
     if (parent && parent->GetType() == nsGkAtoms::menuFrame) {
@@ -1648,7 +1648,8 @@ nsXULPopupManager::IsValidMenuItem(nsPresContext* aPresContext,
 nsresult
 nsXULPopupManager::KeyUp(nsIDOMEvent* aKeyEvent)
 {
-  if (mCurrentMenu) {
+  nsMenuChainItem* item = GetTopVisibleMenu();
+  if (item && item->PopupType() == ePopupTypeMenu) {
     aKeyEvent->StopPropagation();
     aKeyEvent->PreventDefault();
   }
@@ -1660,7 +1661,8 @@ nsresult
 nsXULPopupManager::KeyDown(nsIDOMEvent* aKeyEvent)
 {
   
-  if (!mCurrentMenu)
+  nsMenuChainItem* item = GetTopVisibleMenu();
+  if (!item || item->PopupType() != ePopupTypeMenu)
     return NS_OK;
 
   PRInt32 menuAccessKey = -1;
@@ -1724,6 +1726,17 @@ nsXULPopupManager::KeyPress(nsIDOMEvent* aKeyEvent)
   PRUint32 theChar;
   keyEvent->GetKeyCode(&theChar);
 
+  
+  nsMenuChainItem* item = GetTopVisibleMenu();
+  if (item && item->PopupType() != ePopupTypeMenu) {
+    if (theChar == NS_VK_ESCAPE) {
+      HidePopup(item->Content(), PR_FALSE, PR_FALSE, PR_FALSE);
+      aKeyEvent->StopPropagation();
+      aKeyEvent->PreventDefault();
+    }
+    return NS_OK;
+  }
+
   if (theChar == NS_VK_LEFT ||
       theChar == NS_VK_RIGHT ||
       theChar == NS_VK_UP ||
@@ -1737,7 +1750,6 @@ nsXULPopupManager::KeyPress(nsIDOMEvent* aKeyEvent)
     
     
     
-    nsMenuChainItem* item = GetTopVisibleMenu();
     if (item)
       HidePopup(item->Content(), PR_FALSE, PR_FALSE, PR_FALSE);
     else if (mActiveMenuBar)
