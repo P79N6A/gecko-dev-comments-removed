@@ -215,7 +215,7 @@ nsSystemFontsGTK2::GetSystemFontInfo(GtkWidget *aWidget, nsString *aFontName,
     
     aFontStyle->stretch = NS_FONT_STRETCH_NORMAL;
 
-    float size = float(pango_font_description_get_size(desc) / PANGO_SCALE);
+    float size = float(pango_font_description_get_size(desc)) / PANGO_SCALE;
 
     
 
