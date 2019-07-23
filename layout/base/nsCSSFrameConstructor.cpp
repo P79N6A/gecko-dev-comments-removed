@@ -5731,8 +5731,16 @@ AdjustAppendParentForAfterContent(nsPresContext* aPresContext,
     
     nsIFrame* trailingInline = GetSpecialSibling(aParentFrame);
     if (trailingInline) {
-      aParentFrame = trailingInline->GetLastContinuation();
+      aParentFrame = trailingInline;
     }
+
+    
+    
+    
+    
+    
+    
+    aParentFrame = aParentFrame->GetLastContinuation();
   }
 
   return aParentFrame;
