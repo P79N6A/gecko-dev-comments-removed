@@ -423,27 +423,13 @@ public:
     return mLastEventloopNestingLevel; 
   }
 
+  static PRUint32 GetEventloopNestingLevel();
+      
   void ConsiderNewEventloopNestingLevel() {
-    nsCOMPtr<nsIAppShell> appShell = do_GetService(kAppShellCID);
-    if (appShell) {
-      PRUint32 currentLevel = 0;
-      appShell->GetEventloopNestingLevel(&currentLevel);
-#ifdef XP_MACOSX
-      
-      
-      currentLevel++;
-#else
-      
-      
-      
-      
-      if (!currentLevel) {
-        currentLevel++;
-      }
-#endif
-      if (currentLevel < mLastEventloopNestingLevel) {
-        mLastEventloopNestingLevel = currentLevel;
-      }
+    PRUint32 currentLevel = GetEventloopNestingLevel();
+
+    if (currentLevel < mLastEventloopNestingLevel) {
+      mLastEventloopNestingLevel = currentLevel;
     }
   }
 
@@ -3351,6 +3337,32 @@ void nsPluginInstanceOwner::EndCGPaint()
 
 #endif
 
+
+PRUint32
+nsPluginInstanceOwner::GetEventloopNestingLevel()
+{
+  nsCOMPtr<nsIAppShell> appShell = do_GetService(kAppShellCID);
+  PRUint32 currentLevel = 0;
+  if (appShell) {
+    appShell->GetEventloopNestingLevel(&currentLevel);
+#ifdef XP_MACOSX
+    
+    
+    currentLevel++;
+#endif
+  }
+
+  
+  
+  
+  
+  if (!currentLevel) {
+    currentLevel++;
+  }
+
+  return currentLevel;
+}
+
 nsresult nsPluginInstanceOwner::ScrollPositionWillChange(nsIScrollableView* aScrollable, nscoord aX, nscoord aY)
 {
 #ifdef XP_MACOSX
@@ -4442,11 +4454,7 @@ nsresult nsPluginInstanceOwner::Init(nsPresContext* aPresContext,
                                      nsObjectFrame* aFrame,
                                      nsIContent*    aContent)
 {
-  mLastEventloopNestingLevel = 0;
-  nsCOMPtr<nsIAppShell> appShell = do_GetService(kAppShellCID);
-  if (appShell) {
-    appShell->GetEventloopNestingLevel(&mLastEventloopNestingLevel);
-  }
+  mLastEventloopNestingLevel = GetEventloopNestingLevel();
 
   PR_LOG(nsObjectFrameLM, PR_LOG_DEBUG,
          ("nsPluginInstanceOwner::Init() called on %p for frame %p\n", this,
