@@ -7055,9 +7055,9 @@ nsTypedSelection::GetSelectionRegionRectAndScrollableView(SelectionRegion aRegio
 
   
   
-  PRInt32 pad = clipRect.width >> 2;
+  PRInt32 pad = clipRect.width / 4;
 
-  if (pad <= 0)
+  if (pad == 0)
     pad = 3; 
 
   if (aRect->x >= clipRect.XMost()) {
