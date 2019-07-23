@@ -262,10 +262,12 @@ TaggingService.prototype = {
           tags.push(this._tags[j].name);
       }
     }
+
+    
+    tags.sort();
     return tags;
   }
 };
-
 
 var gModule = {
   registerSelf: function(componentManager, fileSpec, location, type) {

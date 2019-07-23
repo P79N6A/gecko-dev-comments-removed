@@ -398,12 +398,6 @@ function run_test() {
   do_check_eq("http://keywordtest.com/", u.spec);
 
   
-  var newId8 = bmsvc.insertBookmark(testRoot, uri("http://foo8.com/"),
-                                    bmsvc.DEFAULT_INDEX, "");
-  var b = bmsvc.getBookmarkIdsForURI(uri("http://foo8.com/"), {});
-  do_check_eq(b[0], newId8);
-
-  
   
   var tmpFolder = bmsvc.createFolder(testRoot, "removeFolderChildren", bmsvc.DEFAULT_INDEX);
   bmsvc.insertBookmark(tmpFolder, uri("http://foo9.com/"), bmsvc.DEFAULT_INDEX,
@@ -549,7 +543,7 @@ function run_test() {
                                      bmsvc.DEFAULT_INDEX, "");
   do_check_eq(observer._itemAddedId, newId13);
   do_check_eq(observer._itemAddedParent, testRoot);
-  do_check_eq(observer._itemAddedIndex, 13);
+  do_check_eq(observer._itemAddedIndex, 12);
 
   
   bmsvc.setItemTitle(newId13, "ZZZXXXYYY");
