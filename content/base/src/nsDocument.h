@@ -651,7 +651,8 @@ public:
   
 
 
-  static nsresult GetElementsByClassNameHelper(nsIContent* aContent,
+
+  static nsresult GetElementsByClassNameHelper(nsINode* aRootNode,
                                                const nsAString& aClasses,
                                                nsIDOMNodeList** aReturn);
 protected:
