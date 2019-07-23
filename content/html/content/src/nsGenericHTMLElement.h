@@ -142,7 +142,7 @@ public:
   nsresult GetOffsetParent(nsIDOMElement** aOffsetParent);
   virtual nsresult GetInnerHTML(nsAString& aInnerHTML);
   virtual nsresult SetInnerHTML(const nsAString& aInnerHTML);
-  nsresult ScrollIntoView(PRBool aTop);
+  nsresult ScrollIntoView(PRBool aTop, PRUint8 optional_argc);
   
   
   
