@@ -68,10 +68,19 @@ tests.push({
   exec: function() {
     
     do_check_true(bs.getIdForItemAt(bs.toolbarFolder, 0) > 0);
+
     
     ps.setBoolPref(PREF_AUTO_EXPORT_HTML, true);
+
     
-    os.notifyObservers(null, TOPIC_QUIT_APPLICATION_GRANTED, null);
+    try {
+      bg.QueryInterface(Ci.nsIObserver).observe(null,
+                                                TOPIC_QUIT_APPLICATION_GRANTED,
+                                                null);
+    }
+    catch(ex) {
+      
+    }
 
     
     check_bookmarks_html();
@@ -94,15 +103,25 @@ tests.push({
   exec: function() {
     
     do_check_true(bs.getIdForItemAt(bs.toolbarFolder, 0) > 0);
+
     
     ps.setBoolPref(PREF_AUTO_EXPORT_HTML, true);
+
     
     let profileBookmarksHTMLFile = create_bookmarks_html("bookmarks.glue.html");
     
     let lastMod = profileBookmarksHTMLFile.lastModifiedTime;
     let fileSize = profileBookmarksHTMLFile.fileSize;
+
     
-    os.notifyObservers(null, TOPIC_QUIT_APPLICATION_GRANTED, null);
+    try {
+      bg.QueryInterface(Ci.nsIObserver).observe(null,
+                                                TOPIC_QUIT_APPLICATION_GRANTED,
+                                                null);
+    }
+    catch(ex) {
+      
+    }
 
     
     let profileBookmarksHTMLFile = check_bookmarks_html();
@@ -126,13 +145,22 @@ tests.push({
   exec: function() {
     
     do_check_true(bs.getIdForItemAt(bs.toolbarFolder, 0) > 0);
+
     
     let profileBookmarksJSONFile = create_JSON_backup("bookmarks.glue.json");
     
     let lastMod = profileBookmarksJSONFile.lastModifiedTime;
     let fileSize = profileBookmarksJSONFile.fileSize;
+
     
-    os.notifyObservers(null, TOPIC_QUIT_APPLICATION_GRANTED, null);
+    try {
+      bg.QueryInterface(Ci.nsIObserver).observe(null,
+                                                TOPIC_QUIT_APPLICATION_GRANTED,
+                                                null);
+    }
+    catch(ex) {
+      
+    }
 
     
     do_check_true(profileBookmarksJSONFile.exists());
@@ -163,6 +191,8 @@ function next_test() {
 }
 
 function run_test() {
+  do_test_pending();
+
   
   remove_all_bookmarks();
 
@@ -173,6 +203,5 @@ function run_test() {
                     bs.DEFAULT_INDEX, "bookmark-on-toolbar");
 
   
-  do_test_pending();
   next_test();
 }

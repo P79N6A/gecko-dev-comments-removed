@@ -44,8 +44,6 @@
 
 const PREF_SMART_BOOKMARKS_VERSION = "browser.places.smartBookmarksVersion";
 
-const TOPIC_PLACES_INIT_COMPLETE = "places-init-complete";
-
 function run_test() {
   
   
@@ -79,13 +77,8 @@ function run_test() {
                     bs.DEFAULT_INDEX, "migrated");
 
   
-  Cc["@mozilla.org/browser/browserglue;1"].getService(Ci.nsIBrowserGlue);
-
-  
-  
-  let os = Cc["@mozilla.org/observer-service;1"].
-           getService(Ci.nsIObserverService);
-  os.notifyObservers(null, TOPIC_PLACES_INIT_COMPLETE, null);
+  let bg = Cc["@mozilla.org/browser/browserglue;1"].
+           getService(Ci.nsIBrowserGlue);
 
   
   
@@ -104,6 +97,8 @@ function continue_test() {
   
   do_check_eq(bs.getIdForItemAt(bs.bookmarksMenuFolder, 1), -1);
   do_check_eq(bs.getIdForItemAt(bs.toolbarFolder, 0), -1);
+
+  remove_bookmarks_html();
 
   do_test_finished();
 }

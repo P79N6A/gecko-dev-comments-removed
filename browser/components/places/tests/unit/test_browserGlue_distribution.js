@@ -47,22 +47,12 @@ const PREF_BMPROCESSED = "distribution.516444.bookmarksProcessed";
 const PREF_DISTRIBUTION_ID = "distribution.id";
 
 const TOPIC_FINAL_UI_STARTUP = "final-ui-startup";
+const TOPIC_PLACES_INIT_COMPLETE = "places-init-complete";
 const TOPIC_CUSTOMIZATION_COMPLETE = "distribution-customization-complete";
 
-let os = Cc["@mozilla.org/observer-service;1"].
-         getService(Ci.nsIObserverService);
-
-let observer = {
-  observe: function(aSubject, aTopic, aData) {
-    if (aTopic == TOPIC_CUSTOMIZATION_COMPLETE) {
-      os.removeObserver(this, TOPIC_CUSTOMIZATION_COMPLETE);
-      do_timeout(0, continue_test);
-    }
-  }
-}
-os.addObserver(observer, TOPIC_CUSTOMIZATION_COMPLETE, false);
-
 function run_test() {
+  do_test_pending();
+
   
   let distroDir = dirSvc.get("XCurProcD", Ci.nsIFile);
   distroDir.append("distribution");
@@ -82,8 +72,9 @@ function run_test() {
   let ps = Cc["@mozilla.org/preferences-service;1"].
            getService(Ci.nsIPrefBranch);
   ps.setIntPref(PREF_SMART_BOOKMARKS_VERSION, -1);
-
   
+  ps.setIntPref("browser.migration.version", 1);
+
   
   let hs = Cc["@mozilla.org/browser/nav-history-service;1"].
            getService(Ci.nsINavHistoryService);
@@ -92,14 +83,30 @@ function run_test() {
   do_check_eq(hs.databaseStatus, hs.DATABASE_STATUS_CREATE);
 
   
-  Cc["@mozilla.org/browser/browserglue;1"].getService(Ci.nsIBrowserGlue);
+  let bg = Cc["@mozilla.org/browser/browserglue;1"].
+           getService(Ci.nsIBrowserGlue);
 
-  os.notifyObservers(null, TOPIC_FINAL_UI_STARTUP, null);
-  
-  
+  let os = Cc["@mozilla.org/observer-service;1"].
+           getService(Ci.nsIObserverService);
+  let observer = {
+    observe: function(aSubject, aTopic, aData) {
+      os.removeObserver(this, TOPIC_PLACES_INIT_COMPLETE);
 
-  do_test_pending();
-  
+      
+      bg.QueryInterface(Ci.nsIObserver).observe(null,
+                                                TOPIC_FINAL_UI_STARTUP,
+                                                null);
+      
+      let observer = {
+        observe: function(aSubject, aTopic, aData) {
+          os.removeObserver(this, TOPIC_CUSTOMIZATION_COMPLETE);
+          continue_test();
+        }
+      }
+      os.addObserver(observer, TOPIC_CUSTOMIZATION_COMPLETE, false);
+    }
+  }
+  os.addObserver(observer, TOPIC_PLACES_INIT_COMPLETE, false);
 }
 
 function continue_test() {
