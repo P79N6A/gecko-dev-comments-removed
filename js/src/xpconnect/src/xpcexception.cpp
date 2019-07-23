@@ -42,6 +42,7 @@
 
 
 #include "xpcprivate.h"
+#include "nsNetError.h"
 
 
 
