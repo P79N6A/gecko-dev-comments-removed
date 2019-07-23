@@ -103,10 +103,10 @@ TestShutdownChild::RecvStart()
         if (!PTestShutdownSubsubChild::Send__delete__(c2s2))
             fail("problem sending dtor");
 
-        if (!PTestShutdownSubChild::Send__delete__(c1))
-            fail("problem sending dtor");
-        if (!PTestShutdownSubChild::Send__delete__(c2))
-            fail("problem sending dtor");
+        if (!c1->CallStackFrame())
+            fail("problem creating dummy stack frame");
+        if (!c2->CallStackFrame())
+            fail("problem creating dummy stack frame");
     }
 
     
@@ -142,10 +142,10 @@ TestShutdownChild::RecvStart()
             fail("problem sending ctor");
 
         
-        if (!PTestShutdownSubChild::Send__delete__(c1))
-            fail("problem sending dtor");
-        if (!PTestShutdownSubChild::Send__delete__(c2))
-            fail("problem sending dtor");
+        if (!c1->CallStackFrame())
+            fail("problem creating dummy stack frame");
+        if (!c2->CallStackFrame())
+            fail("problem creating dummy stack frame");
     }
 
     
@@ -195,6 +195,17 @@ void
 TestShutdownChild::ActorDestroy(ActorDestroyReason why)
 {
     fail("hey wait ... we should have crashed!");
+}
+
+bool
+TestShutdownSubChild::AnswerStackFrame()
+{
+    if (!PTestShutdownSubChild::Send__delete__(this))
+        fail("problem sending dtor");
+
+    
+
+    return true;
 }
 
 void
