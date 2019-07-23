@@ -217,7 +217,7 @@ nsSprocketLayout::Layout(nsIBox* aBox, nsBoxLayoutState& aState)
   aState.PushStackMemory();
 
   
-  nsSize originalSize = aBox->GetSize();
+  const nsSize originalSize = aBox->GetSize();
 
   
   nsRect clientRect;
@@ -246,7 +246,7 @@ nsSprocketLayout::Layout(nsIBox* aBox, nsBoxLayoutState& aState)
   nscoord min = 0;
   nscoord max = 0;
   PRInt32 flexes = 0;
-  PopulateBoxSizes(aBox, aState, boxSizes, computedBoxSizes, min, max, flexes);
+  PopulateBoxSizes(aBox, aState, boxSizes, min, max, flexes);
   
   
   
@@ -409,17 +409,15 @@ nsSprocketLayout::Layout(nsIBox* aBox, nsBoxLayoutState& aState)
       
       
       
-      if (childRect.width > clientRect.width || childRect.height > clientRect.height) {
-        if (childRect.width > clientRect.width)
-          clientRect.width = childRect.width;
+      if (childRect.width > clientRect.width)
+        clientRect.width = childRect.width;
 
-        if (childRect.height > clientRect.height)
-          clientRect.height = childRect.height;
-      }
+      if (childRect.height > clientRect.height)
+        clientRect.height = childRect.height;
     
       
       
-      ComputeChildsNextPosition(aBox, child, 
+      ComputeChildsNextPosition(aBox,
                                 x, 
                                 y, 
                                 nextX, 
@@ -489,8 +487,6 @@ nsSprocketLayout::Layout(nsIBox* aBox, nsBoxLayoutState& aState)
       child->SetBounds(aState, childRect);
       sizeChanged = (childRect.width != oldRect.width || childRect.height != oldRect.height);
 
-      PRBool possibleRedraw = PR_FALSE;
-
       if (sizeChanged) {
         
         
@@ -509,12 +505,12 @@ nsSprocketLayout::Layout(nsIBox* aBox, nsBoxLayoutState& aState)
         child->SetBounds(aState, childRect);
 
         
-        possibleRedraw = PR_TRUE;
+        needsRedraw = PR_TRUE;
       }
 
       
       if (oldRect.x != childRect.x || oldRect.y != childRect.y)
-          possibleRedraw = PR_TRUE;
+          needsRedraw = PR_TRUE;
 
       
       
@@ -554,13 +550,11 @@ nsSprocketLayout::Layout(nsIBox* aBox, nsBoxLayoutState& aState)
 
         
         
-        if (clientRect.width > originalClientRect.width || clientRect.height > originalClientRect.height) {
-          if (clientRect.width > originalClientRect.width)
-            originalClientRect.width = clientRect.width;
+        if (clientRect.width > originalClientRect.width)
+          originalClientRect.width = clientRect.width;
 
-          if (clientRect.height > originalClientRect.height)
-            originalClientRect.height = clientRect.height;
-        }
+        if (clientRect.height > originalClientRect.height)
+          originalClientRect.height = clientRect.height;
 
         if (!(frameState & NS_STATE_IS_DIRECTION_NORMAL)) {
           
@@ -576,7 +570,7 @@ nsSprocketLayout::Layout(nsIBox* aBox, nsBoxLayoutState& aState)
         }
 
         
-        ComputeChildsNextPosition(aBox, child, 
+        ComputeChildsNextPosition(aBox,
                                   x, 
                                   y, 
                                   nextX, 
@@ -610,10 +604,6 @@ nsSprocketLayout::Layout(nsIBox* aBox, nsBoxLayoutState& aState)
       x = nextX;
       y = nextY;
      
-      
-      if (possibleRedraw)
-        needsRedraw = PR_TRUE;
-
       
       childComputedBoxSize = childComputedBoxSize->next;
       childBoxSize = childBoxSize->next;
@@ -698,7 +688,7 @@ nsSprocketLayout::Layout(nsIBox* aBox, nsBoxLayoutState& aState)
 }
 
 void
-nsSprocketLayout::PopulateBoxSizes(nsIBox* aBox, nsBoxLayoutState& aState, nsBoxSize*& aBoxSizes, nsComputedBoxSize*& aComputedBoxSizes, nscoord& aMinSize, nscoord& aMaxSize, PRInt32& aFlexes)
+nsSprocketLayout::PopulateBoxSizes(nsIBox* aBox, nsBoxLayoutState& aState, nsBoxSize*& aBoxSizes, nscoord& aMinSize, nscoord& aMaxSize, PRInt32& aFlexes)
 {
   
   nscoord biggestPrefWidth = 0;
@@ -944,7 +934,6 @@ nsSprocketLayout::PopulateBoxSizes(nsIBox* aBox, nsBoxLayoutState& aState, nsBox
 
 void
 nsSprocketLayout::ComputeChildsNextPosition(nsIBox* aBox, 
-                                      nsIBox* aChild, 
                                       nscoord& aCurX, 
                                       nscoord& aCurY, 
                                       nscoord& aNextX, 
@@ -1611,69 +1600,7 @@ nsSprocketLayout::GetDefaultFlex(PRInt32& aFlex)
     return PR_TRUE;
 }
 
-void
-nsBoxSize::Add(const nsSize& minSize, 
-               const nsSize& prefSize,
-               const nsSize& maxSize,
-               nscoord aAscent,
-               nscoord aFlex,
-               PRBool aIsHorizontal)
-{
-  nscoord pref2;
-  nscoord min2;
-  nscoord max2;
-
-  if (aIsHorizontal) {
-    pref2 = prefSize.width;
-    min2  = minSize.width;
-    max2  = maxSize.width;
-  } else {
-    pref2 = prefSize.height;
-    min2  = minSize.height;
-    max2  = maxSize.height;
-  }
-
-  if (min2 > min)
-    min = min2;
-
-  if (pref2 > pref)
-    pref = pref2;
-
-  if (max2 < max)
-    max = max2;
-
-  flex = aFlex;
-
-  if (!aIsHorizontal) {
-    if (aAscent > ascent)
-      ascent = aAscent;
-    }
-}
-
-void
-nsBoxSize::Add(const nsMargin& aMargin, PRBool aIsHorizontal)
-{
-  if (aIsHorizontal) {
-    left  += aMargin.left;
-    right += aMargin.right;
-    pref -= (aMargin.left + aMargin.right);
-  } else {
-    left  += aMargin.top;
-    right += aMargin.bottom;
-    pref -= (aMargin.top + aMargin.bottom);
-  }
-
-  if (pref < min)
-     min = pref;
-}
-
 nsComputedBoxSize::nsComputedBoxSize()
-{
-  Clear();
-}
-
-void
-nsComputedBoxSize::Clear()
 {
   resized = PR_FALSE;
   valid = PR_FALSE;
@@ -1682,12 +1609,6 @@ nsComputedBoxSize::Clear()
 }
 
 nsBoxSize::nsBoxSize()
-{
-  Clear();
-}
-
-void
-nsBoxSize::Clear()
 {
   pref = 0;
   min = 0;
