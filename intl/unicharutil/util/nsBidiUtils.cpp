@@ -499,6 +499,7 @@ nsresult HandleNumbers(PRUnichar* aBuffer, PRUint32 aSize, PRUint32 aNumFlag)
   
   
   
+  
 
   switch (aNumFlag) {
     case IBMBIDI_NUMERAL_HINDI:
@@ -509,13 +510,18 @@ nsresult HandleNumbers(PRUnichar* aBuffer, PRUint32 aSize, PRUint32 aNumFlag)
       for (i=0;i<aSize;i++)
         aBuffer[i] = NUM_TO_ARABIC(aBuffer[i]);
       break;
-    default : 
+    case IBMBIDI_NUMERAL_REGULAR:
+    case IBMBIDI_NUMERAL_HINDICONTEXT:
+        
+        
       for (i=1;i<aSize;i++) {
         if (IS_ARABIC_CHAR(aBuffer[i-1])) 
           aBuffer[i] = NUM_TO_HINDI(aBuffer[i]);
         else 
           aBuffer[i] = NUM_TO_ARABIC(aBuffer[i]);
       }
+    case IBMBIDI_NUMERAL_NOMINAL:
+    default:
       break;
   }
   return NS_OK;
