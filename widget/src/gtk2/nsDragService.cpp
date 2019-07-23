@@ -378,12 +378,15 @@ nsDragService::GetData(nsITransferable * aTransferable,
 
     if (isList) {
         PR_LOG(sDragLm, PR_LOG_DEBUG, ("it's a list..."));
-        nsCOMPtr<nsISupports> genericWrapper;
         
-        flavorList->GetElementAt(0, getter_AddRefs(genericWrapper));
-        nsCOMPtr<nsISupportsCString> currentFlavor;
-        currentFlavor = do_QueryInterface(genericWrapper);
-        if (currentFlavor) {
+        for (i = 0; i < cnt; ++i) {
+            nsCOMPtr<nsISupports> genericWrapper;
+            flavorList->GetElementAt(i, getter_AddRefs(genericWrapper));
+            nsCOMPtr<nsISupportsCString> currentFlavor;
+            currentFlavor = do_QueryInterface(genericWrapper);
+            if (!currentFlavor)
+                continue;
+
             nsXPIDLCString flavorStr;
             currentFlavor->ToString(getter_Copies(flavorStr));
             PR_LOG(sDragLm,
@@ -394,30 +397,31 @@ nsDragService::GetData(nsITransferable * aTransferable,
             mSourceDataItems->GetElementAt(aItemIndex,
                                            getter_AddRefs(genericItem));
             nsCOMPtr<nsITransferable> item(do_QueryInterface(genericItem));
-            if (item) {
-                nsCOMPtr<nsISupports> data;
-                PRUint32 tmpDataLen = 0;
-                PR_LOG(sDragLm, PR_LOG_DEBUG,
-                       ("trying to get transfer data for %s\n",
-                       (const char *)flavorStr));
-                rv = item->GetTransferData(flavorStr,
-                                           getter_AddRefs(data),
-                                           &tmpDataLen);
-                if (NS_FAILED(rv)) {
-                    PR_LOG(sDragLm, PR_LOG_DEBUG, ("failed.\n"));
-                    return NS_ERROR_FAILURE;
-                }
-                PR_LOG(sDragLm, PR_LOG_DEBUG, ("succeeded.\n"));
-                rv = aTransferable->SetTransferData(flavorStr,data,tmpDataLen);
-                if (NS_FAILED(rv)) {
-                    PR_LOG(sDragLm,
-                           PR_LOG_DEBUG,
-                           ("fail to set transfer data into transferable!\n"));
-                    return NS_ERROR_FAILURE;
-                }
-                
-                return NS_OK;
+            if (!item)
+                continue;
+
+            nsCOMPtr<nsISupports> data;
+            PRUint32 tmpDataLen = 0;
+            PR_LOG(sDragLm, PR_LOG_DEBUG,
+                   ("trying to get transfer data for %s\n",
+                   (const char *)flavorStr));
+            rv = item->GetTransferData(flavorStr,
+                                       getter_AddRefs(data),
+                                       &tmpDataLen);
+            if (NS_FAILED(rv)) {
+                PR_LOG(sDragLm, PR_LOG_DEBUG, ("failed.\n"));
+                continue;
             }
+            PR_LOG(sDragLm, PR_LOG_DEBUG, ("succeeded.\n"));
+            rv = aTransferable->SetTransferData(flavorStr,data,tmpDataLen);
+            if (NS_FAILED(rv)) {
+                PR_LOG(sDragLm,
+                       PR_LOG_DEBUG,
+                       ("fail to set transfer data into transferable!\n"));
+                continue;
+            }
+            
+            return NS_OK;
         }
         
         return NS_ERROR_FAILURE;
