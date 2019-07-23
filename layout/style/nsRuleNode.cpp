@@ -2788,21 +2788,17 @@ nsRuleNode::SetFont(nsPresContext* aPresContext, nsStyleContext* aContext,
 
   
   SetDiscrete(aFontData.mStyle, aFont->mFont.style, aCanStoreInRuleTree,
-              SETDSC_ENUMERATED | SETDSC_NORMAL | SETDSC_SYSTEM_FONT,
+              SETDSC_ENUMERATED | SETDSC_SYSTEM_FONT,
               aParentFont->mFont.style,
               defaultVariableFont->style,
-              0, 0,
-              NS_STYLE_FONT_STYLE_NORMAL,
-              systemFont.style);
+              0, 0, 0, systemFont.style);
 
   
   SetDiscrete(aFontData.mVariant, aFont->mFont.variant, aCanStoreInRuleTree,
-              SETDSC_ENUMERATED | SETDSC_NORMAL | SETDSC_SYSTEM_FONT,
+              SETDSC_ENUMERATED | SETDSC_SYSTEM_FONT,
               aParentFont->mFont.variant,
               defaultVariableFont->variant,
-              0, 0,
-              NS_STYLE_FONT_VARIANT_NORMAL,
-              systemFont.variant);
+              0, 0, 0, systemFont.variant);
 
   
   
@@ -3948,19 +3944,13 @@ nsRuleNode::ComputeDisplayData(void* aStartStruct,
 
   
   SetDiscrete(displayData.mOverflowX, display->mOverflowX, canStoreInRuleTree,
-              SETDSC_ENUMERATED | SETDSC_AUTO,
-              parentDisplay->mOverflowX,
-              NS_STYLE_OVERFLOW_VISIBLE,
-              NS_STYLE_OVERFLOW_AUTO,
-              0, 0, 0);
+              SETDSC_ENUMERATED, parentDisplay->mOverflowX,
+              NS_STYLE_OVERFLOW_VISIBLE, 0, 0, 0, 0);
 
   
   SetDiscrete(displayData.mOverflowY, display->mOverflowY, canStoreInRuleTree,
-              SETDSC_ENUMERATED | SETDSC_AUTO,
-              parentDisplay->mOverflowY,
-              NS_STYLE_OVERFLOW_VISIBLE,
-              NS_STYLE_OVERFLOW_AUTO,
-              0, 0, 0);
+              SETDSC_ENUMERATED, parentDisplay->mOverflowY,
+              NS_STYLE_OVERFLOW_VISIBLE, 0, 0, 0, 0);
 
   
   
