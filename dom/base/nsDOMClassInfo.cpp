@@ -446,8 +446,6 @@
 #include "nsIDOMDataTransfer.h"
 
 
-#include "nsIDOMLoadStatus.h"
-
 #include "nsIDOMGeoGeolocation.h"
 #include "nsIDOMGeoPosition.h"
 #include "nsIDOMGeoPositionCoords.h"
@@ -1140,8 +1138,6 @@ static nsDOMClassInfoData sClassInfoData[] = {
                            DOM_DEFAULT_SCRIPTABLE_FLAGS)
   NS_DEFINE_CLASSINFO_DATA(SVGTransformList, nsDOMGenericSH,
                            DOM_DEFAULT_SCRIPTABLE_FLAGS)
-  NS_DEFINE_CLASSINFO_DATA(SVGUnitTypes, nsDOMGenericSH,
-                           DOM_DEFAULT_SCRIPTABLE_FLAGS)
   NS_DEFINE_CLASSINFO_DATA(SVGZoomEvent, nsDOMGenericSH,
                            DOM_DEFAULT_SCRIPTABLE_FLAGS)
 #endif 
@@ -1208,12 +1204,6 @@ static nsDOMClassInfoData sClassInfoData[] = {
   NS_DEFINE_CLASSINFO_DATA(StorageEvent, nsDOMGenericSH,
                            DOM_DEFAULT_SCRIPTABLE_FLAGS)
 
-  
-  
-  
-  NS_DEFINE_CLASSINFO_DATA(WindowRoot, nsEventReceiverSH,
-                           DOM_DEFAULT_SCRIPTABLE_FLAGS)
-
   NS_DEFINE_CLASSINFO_DATA(DOMParser, nsDOMGenericSH,
                            DOM_DEFAULT_SCRIPTABLE_FLAGS)
   NS_DEFINE_CLASSINFO_DATA(XMLSerializer, nsDOMGenericSH,
@@ -1241,9 +1231,6 @@ static nsDOMClassInfoData sClassInfoData[] = {
                            DOM_DEFAULT_SCRIPTABLE_FLAGS)
   NS_DEFINE_CLASSINFO_DATA(OfflineResourceList, nsOfflineResourceListSH,
                            ARRAY_SCRIPTABLE_FLAGS)
-
-  NS_DEFINE_CLASSINFO_DATA(LoadStatus, nsDOMGenericSH,
-                           DOM_DEFAULT_SCRIPTABLE_FLAGS)
 
   NS_DEFINE_CLASSINFO_DATA(FileList, nsFileListSH,
                            ARRAY_SCRIPTABLE_FLAGS)
@@ -3458,10 +3445,6 @@ nsDOMClassInfo::Init()
     DOM_CLASSINFO_MAP_ENTRY(nsIDOMSVGTransformList)
   DOM_CLASSINFO_MAP_END
 
-  DOM_CLASSINFO_MAP_BEGIN(SVGUnitTypes, nsIDOMSVGUnitTypes)
-    DOM_CLASSINFO_MAP_ENTRY(nsIDOMSVGUnitTypes)
-  DOM_CLASSINFO_MAP_END
-
   DOM_CLASSINFO_MAP_BEGIN(SVGZoomEvent, nsIDOMSVGZoomEvent)
     DOM_CLASSINFO_MAP_ENTRY(nsIDOMSVGZoomEvent)
     DOM_CLASSINFO_UI_EVENT_MAP_ENTRIES
@@ -3538,11 +3521,6 @@ nsDOMClassInfo::Init()
     DOM_CLASSINFO_MAP_ENTRY(nsIDOMStorageEvent)
   DOM_CLASSINFO_MAP_END
 
-  
-  
-  DOM_CLASSINFO_MAP_BEGIN_NO_CLASS_IF(WindowRoot, nsISupports)
-  DOM_CLASSINFO_MAP_END
-
   DOM_CLASSINFO_MAP_BEGIN_NO_CLASS_IF(DOMParser, nsIDOMParser)
     DOM_CLASSINFO_MAP_ENTRY(nsIDOMParser)
     DOM_CLASSINFO_MAP_ENTRY(nsIDOMParserJS)
@@ -3588,10 +3566,6 @@ nsDOMClassInfo::Init()
     DOM_CLASSINFO_MAP_ENTRY(nsIDOMOfflineResourceList)
     DOM_CLASSINFO_MAP_ENTRY(nsIDOMNSEventTarget)
     DOM_CLASSINFO_MAP_ENTRY(nsIDOMEventTarget)
-  DOM_CLASSINFO_MAP_END
-
-  DOM_CLASSINFO_MAP_BEGIN(LoadStatus, nsIDOMLoadStatus)
-    DOM_CLASSINFO_MAP_ENTRY(nsIDOMLoadStatus)
   DOM_CLASSINFO_MAP_END
 
   DOM_CLASSINFO_MAP_BEGIN(ClientRect, nsIDOMClientRect)
