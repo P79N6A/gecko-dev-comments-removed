@@ -352,9 +352,6 @@ var BookmarkPropertiesPanel = {
     if (!this._element("tagsRow").collapsed) {
       this._element("tagsSelectorRow")
           .addEventListener("DOMAttrModified", this, false);
-      
-      
-      document.addEventListener("keypress", this, true);
     }
     if (!this._element("folderRow").collapsed) {
       this._element("folderTreeRow")
@@ -373,29 +370,43 @@ var BookmarkPropertiesPanel = {
           .addEventListener("input", this, false);
     }
 
+    
+    
+    document.addEventListener("keypress", this, true);
+
     window.sizeToContent();
   },
 
   
   _elementsHeight: [],
   handleEvent: function BPP_handleEvent(aEvent) {
+    var target = aEvent.target;
     switch (aEvent.type) {
       case "keypress":
-        if (aEvent.keyCode == KeyEvent.DOM_VK_RETURN &&
-            aEvent.target.localName != "tree" &&
-            aEvent.target.className != "expander-up" &&
-            aEvent.target.className != "expander-down" &&
-            !aEvent.target.popupOpen) {
+        function canAcceptDialog(aElement) {
           
           
-          document.documentElement.acceptDialog();
+          
+          
+          
+          
+          return aElement.localName != "tree" &&
+                 aElement.className != "expander-up" &&
+                 aElement.className != "expander-down" &&
+                 !aElement.popupOpen &&
+                 !aElement.open &&
+                 !(aElement.localName == "textbox" &&
+                   aElement.getAttribute("multiline") == "true");
         }
+        if (aEvent.keyCode == KeyEvent.DOM_VK_RETURN &&
+            canAcceptDialog(target))
+          document.documentElement.acceptDialog();
         break;
 
       case "input":
-        if (aEvent.target.id == "editBMPanel_locationField" ||
-            aEvent.target.id == "editBMPanel_feedLocationField" ||
-            aEvent.target.id == "editBMPanel_siteLocationField") {
+        if (target.id == "editBMPanel_locationField" ||
+            target.id == "editBMPanel_feedLocationField" ||
+            target.id == "editBMPanel_siteLocationField") {
           
           document.documentElement
                   .getButton("accept").disabled = !this._inputIsValid();
@@ -405,17 +416,16 @@ var BookmarkPropertiesPanel = {
       case "DOMAttrModified":
         
         
-        if ((aEvent.target.id == "editBMPanel_tagsSelectorRow" ||
-             aEvent.target.id == "editBMPanel_folderTreeRow") &&
+        if ((target.id == "editBMPanel_tagsSelectorRow" ||
+             target.id == "editBMPanel_folderTreeRow") &&
             aEvent.attrName == "collapsed" &&
-            aEvent.target == aEvent.originalTarget) {
-          var element = aEvent.target;
-          var id = element.id;
+            target == aEvent.originalTarget) {
+          var id = target.id;
           var newHeight = window.outerHeight;
           if (aEvent.newValue) 
             newHeight -= this._elementsHeight[id];
           else {
-            this._elementsHeight[id] = element.boxObject.height;
+            this._elementsHeight[id] = target.boxObject.height;
             newHeight += this._elementsHeight[id];
           }
 
