@@ -70,7 +70,6 @@ public:
   void UnregisterCurrentThread(nsThread *thread);
 
   
-  
   nsThread *GetCurrentThread();
 
   
