@@ -1606,7 +1606,7 @@ var PlacesControllerDragHelper = {
     else
       types = view.childDropTypes;    
     for (var i = 0; i < types.length; ++i) {
-      if (session.isDataFlavorSupported(types[i]));
+      if (session.isDataFlavorSupported(types[i]))
         xferable.addDataFlavor(types[i]);
     }
     return xferable;
