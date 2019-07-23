@@ -225,6 +225,38 @@ static void SetStringKey(const wchar_t* key,
   }
 }
 
+static string FormatLastError()
+{
+  DWORD err = GetLastError();
+  LPWSTR s;
+  string message = "Crash report submision failed: ";
+  
+  HANDLE hInetModule = GetModuleHandle(L"WinInet.dll");
+  if(FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER |
+                   FORMAT_MESSAGE_FROM_SYSTEM |
+                   FORMAT_MESSAGE_FROM_HMODULE,
+                   hInetModule,
+                   err,
+                   0,
+                   (LPWSTR)&s,
+                   0,
+                   NULL) != 0) {
+    message += WideToUTF8(s, NULL);
+    LocalFree(s);
+    
+    string::size_type n = message.find_last_not_of("\r\n");
+    if (n < message.size() - 1) {
+      message.erase(n+1);
+    }
+  }
+  else {
+    char buf[64];
+    sprintf(buf, "Unknown error, error code: 0x%08x", err);
+    message += buf;
+  }
+  return message;
+}
+
 
 static void GetRelativeRect(HWND hwnd, HWND hwndParent, RECT* r)
 {
@@ -292,6 +324,7 @@ static DWORD WINAPI SendThreadProc(LPVOID param)
 
   if (td->sendURL.empty()) {
     finishedOk = false;
+    LogMessage("No server URL, not sending report");
   } else {
     google_breakpad::CrashReportSender sender(L"");
     finishedOk = (sender.SendCrashReport(td->sendURL,
@@ -299,6 +332,15 @@ static DWORD WINAPI SendThreadProc(LPVOID param)
                                          td->dumpFile,
                                          &td->serverResponse)
                   == google_breakpad::RESULT_SUCCEEDED);
+    if (finishedOk) {
+      LogMessage("Crash report submitted successfully");
+    }
+    else {
+      
+      
+      
+      LogMessage(FormatLastError());
+    }
   }
 
   PostMessage(td->hDlg, WM_UPLOADCOMPLETE, finishedOk ? 1 : 0, 0);
@@ -839,7 +881,7 @@ ifstream* UIOpenRead(const string& filename)
   return file;
 }
 
-ofstream* UIOpenWrite(const string& filename)
+ofstream* UIOpenWrite(const string& filename, bool append) 
 {
   
 
@@ -849,9 +891,11 @@ ofstream* UIOpenWrite(const string& filename)
   
 #if _MSC_VER >= 1400  
   ofstream* file = new ofstream();
-  file->open(UTF8ToWide(filename).c_str(), ios::out);
+  file->open(UTF8ToWide(filename).c_str(), append ? ios::out | ios::app
+                                                  : ios::out);
 #else  
-  ofstream* file = new ofstream(_wfopen(UTF8ToWide(filename).c_str(), L"w"));
+  ofstream* file = new ofstream(_wfopen(UTF8ToWide(filename).c_str(),
+                                        append ? L"a" : L"w"));
 #endif  
 
   return file;
