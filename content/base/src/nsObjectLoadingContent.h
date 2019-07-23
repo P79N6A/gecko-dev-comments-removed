@@ -52,6 +52,7 @@
 #include "nsIChannelEventSink.h"
 #include "nsIObjectLoadingContent.h"
 #include "nsIRunnable.h"
+#include "nsIChannelClassifier.h"
 
 struct nsAsyncInstantiateEvent;
 class  AutoNotifier;
@@ -308,6 +309,13 @@ class nsObjectLoadingContent : public nsImageLoadingContent
 
 
 
+    nsresult CheckClassifier(nsIChannel *aChannel);
+
+    
+
+
+
+
     static PRBool ShouldShowDefaultPlugin(nsIContent* aContent,
                                           const nsCString& aContentType);
 
@@ -378,6 +386,11 @@ class nsObjectLoadingContent : public nsImageLoadingContent
 
     
     nsCOMPtr<nsIURI>            mURI;
+
+    
+
+
+    nsCOMPtr<nsIChannelClassifier> mClassifier;
 
     
 

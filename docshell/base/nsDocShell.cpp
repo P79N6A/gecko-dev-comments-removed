@@ -4958,12 +4958,7 @@ nsDocShell::OnRedirectStateChange(nsIChannel* aOldChannel,
     
     
     if (mClassifier) {
-        mClassifier->SetChannel(aNewChannel);
-
-        
-        
-        
-        NS_DispatchToCurrentThread(mClassifier);
+        mClassifier->OnRedirect(aOldChannel, aNewChannel);
     }
 
     nsCOMPtr<nsIGlobalHistory3> history3(do_QueryInterface(mGlobalHistory));
@@ -7503,8 +7498,7 @@ nsDocShell::CheckClassifier(nsIChannel *aChannel)
     nsRefPtr<nsClassifierCallback> classifier = new nsClassifierCallback();
     if (!classifier) return NS_ERROR_OUT_OF_MEMORY;
 
-    classifier->SetChannel(aChannel);
-    nsresult rv = classifier->Run();
+    nsresult rv = classifier->Start(aChannel);
     if (rv == NS_ERROR_FACTORY_NOT_REGISTERED ||
         rv == NS_ERROR_NOT_AVAILABLE) {
         
@@ -9326,9 +9320,10 @@ nsDocShell::IsOKToLoadURI(nsIURI* aURI)
 
 
 
-NS_IMPL_THREADSAFE_ISUPPORTS2(nsClassifierCallback,
-                              nsIURIClassifierCallback,
-                              nsIRunnable)
+NS_IMPL_ISUPPORTS3(nsClassifierCallback,
+                   nsIChannelClassifier,
+                   nsIURIClassifierCallback,
+                   nsIRunnable)
 
 NS_IMETHODIMP
 nsClassifierCallback::Run()
@@ -9497,7 +9492,27 @@ nsClassifierCallback::OnClassifyComplete(nsresult aErrorCode)
     return NS_OK;
 }
 
-void
+NS_IMETHODIMP
+nsClassifierCallback::Start(nsIChannel *aChannel)
+{
+    mChannel = aChannel;
+    return Run();
+}
+
+NS_IMETHODIMP
+nsClassifierCallback::OnRedirect(nsIChannel *aOldChannel,
+                                nsIChannel *aNewChannel)
+{
+    mChannel = aNewChannel;
+
+    
+    
+    NS_DispatchToCurrentThread(this);
+
+    return NS_OK;
+}
+
+NS_IMETHODIMP
 nsClassifierCallback::Cancel()
 {
     if (mSuspendedChannel) {
@@ -9513,4 +9528,6 @@ nsClassifierCallback::Cancel()
     if (mChannel) {
         mChannel = nsnull;
     }
+
+    return NS_OK;
 }
