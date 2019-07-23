@@ -57,7 +57,9 @@ gfxSharedImageSurface::~gfxSharedImageSurface()
     
     if (mDisp) {
         XSync(mDisp, False);
-        XShmDetach(mDisp, &mShmInfo);
+        if (mShmInfo.shmaddr)
+            XShmDetach(mDisp, &mShmInfo);
+        mShmInfo.shmaddr = nsnull;
     }
 
     if (mData)
