@@ -1056,7 +1056,9 @@ _forceredraw(NPP aNPP)
 {
     PLUGIN_LOG_DEBUG_FUNCTION;
     ENSURE_PLUGIN_THREAD_VOID();
-    NS_WARNING("Not yet implemented!");
+
+    
+    
 }
 
 const char* NP_CALLBACK
