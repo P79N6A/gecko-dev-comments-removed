@@ -624,6 +624,12 @@ JS_TypeOfValue(JSContext *cx, jsval v)
         type = JSTYPE_OBJECT;           
         obj = JSVAL_TO_OBJECT(v);
         if (obj) {
+            JSObject *wrapped;
+
+            wrapped = js_GetWrappedObject(cx, obj);
+            if (wrapped)
+                obj = wrapped;
+
             ops = obj->map->ops;
 #if JS_HAS_XML_SUPPORT
             if (ops == &js_XMLObjectOps.base) {
