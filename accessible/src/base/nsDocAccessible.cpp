@@ -161,6 +161,9 @@ NS_IMETHODIMP nsDocAccessible::GetName(nsAString& aName)
   if (aName.IsEmpty()) {
     rv = GetTitle(aName);   
   }
+  if (aName.IsEmpty()) {   
+    rv = GetURL(aName);
+  }
 
   return rv;
 }
