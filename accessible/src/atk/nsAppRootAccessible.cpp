@@ -441,6 +441,8 @@ mai_util_get_root(void)
         
         if (gail_get_root)
             return gail_get_root();
+
+        return nsnull;
     }
 
     nsRefPtr<nsApplicationAccessibleWrap> root =
