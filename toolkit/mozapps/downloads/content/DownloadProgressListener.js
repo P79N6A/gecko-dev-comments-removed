@@ -62,32 +62,25 @@ DownloadProgressListener.prototype = {
 
   onDownloadStateChange: function dlPL_onDownloadStateChange(aState, aDownload)
   {
-    var dl = getDownload(aDownload.id);
-    switch (aDownload.state) {
+    let state = aDownload.state;
+    switch (state) {
       case Ci.nsIDownloadManager.DOWNLOAD_QUEUED:
-        
-        gDownloadsActiveTitle.hidden = false;
-      case Ci.nsIDownloadManager.DOWNLOAD_DOWNLOADING:
-        
-        
-        if (!dl)
-          dl = this._createDownloadItem(aDownload);
-        gDownloadsView.insertBefore(dl, gDownloadsActiveTitle.nextSibling);
+        buildActiveDownloadsList();
         break;
       case Ci.nsIDownloadManager.DOWNLOAD_FAILED:
       case Ci.nsIDownloadManager.DOWNLOAD_CANCELED:
       case Ci.nsIDownloadManager.DOWNLOAD_BLOCKED:
-        downloadCompleted(aDownload);
-        break;
       case Ci.nsIDownloadManager.DOWNLOAD_FINISHED:
         downloadCompleted(aDownload);
-        autoRemoveAndClose(aDownload);
+        if (state == Ci.nsIDownloadManager.DOWNLOAD_FINISHED)
+          autoRemoveAndClose(aDownload);
         break;
     }
 
     
     try {
-      dl.setAttribute("state", aDownload.state);
+      let dl = getDownload(aDownload.id);
+      dl.setAttribute("state", state);
       updateStatus(dl);
       gDownloadViewController.onCommandUpdate();
     } catch (e) { }
@@ -98,14 +91,6 @@ DownloadProgressListener.prototype = {
                              aMaxTotalProgress, aDownload)
   {
     var download = getDownload(aDownload.id);
-    if (!download) {
-      
-      download = this._createDownloadItem(aDownload);
-      gDownloadsView.insertBefore(download, gDownloadsActiveTitle.nextSibling);
-    }
-
-    
-    gDownloadsActiveTitle.hidden = false;
 
     
     if (aDownload.percentComplete == -1) {
@@ -147,25 +132,5 @@ DownloadProgressListener.prototype = {
 
   onSecurityChange: function(aWebProgress, aRequest, aState, aDownload)
   {
-  },
-
-  
-  
-
-  _createDownloadItem: function(aDownload)
-  {
-    let uri = Cc["@mozilla.org/network/util;1"].
-              getService(Ci.nsIIOService).newFileURI(aDownload.targetFile);
-    let referrer = aDownload.referrer;
-    return createDownloadItem(aDownload.id,
-                              uri.spec,
-                              aDownload.displayName,
-                              aDownload.source.spec,
-                              aDownload.state,
-                              aDownload.percentComplete,
-                              Math.round(aDownload.startTime / 1000),
-                              referrer ? referrer.spec : null,
-                              aDownload.amountTransferred,
-                              aDownload.size);
   }
 };
