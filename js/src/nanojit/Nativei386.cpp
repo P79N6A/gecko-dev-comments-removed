@@ -147,27 +147,34 @@ namespace nanojit
         Fragment *frag = exit->target;
         GuardRecord *lr = 0;
 		bool destKnown = (frag && frag->fragEntry);
-		if (destKnown && !trees)
-		{
-			
-			JMP(frag->fragEntry);
-            lr = 0;
-		}
-		else
-		{
-			
+		
+		
+		if (guard->isop(LIR_xtbl)) {
 			lr = guard->record();
-#if defined NANOJIT_AMD64
-            
-            underrunProtect(14);
-            _nIns -= 8;
-            *(intptr_t *)_nIns = intptr_t(_epilogue);
-            lr->jmp = _nIns;
-            JMPm_nochk(0);
-#else
-            JMP_long(_epilogue);
-            lr->jmp = _nIns;
-#endif
+			Register r = EBX;
+			SwitchInfo* si = guard->record()->exit->switchInfo;
+			emitJumpTable(si, _epilogue);
+			JMP_indirect(r);
+			LEAmi4(r, si->table, r);
+		} else {
+			
+			if (destKnown && !trees) {
+				JMP(frag->fragEntry);
+				lr = 0;
+			} else {  
+				lr = guard->record();
+	#if defined NANOJIT_AMD64
+				
+				underrunProtect(14);
+				_nIns -= 8;
+				*(intptr_t *)_nIns = intptr_t(_epilogue);
+				lr->jmp = _nIns;
+				JMPm_nochk(0);
+	#else
+				JMP_long(_epilogue);
+				lr->jmp = _nIns;
+	#endif
+			}
 		}
 		
         MR(SP,FP);
@@ -885,6 +892,13 @@ namespace nanojit
 		asm_cmp(cond);
 		return at;
 	}
+
+	void Assembler::asm_switch(LIns* ins, NIns* exit)
+	{
+		LIns* diff = ins->oprnd1();
+		findSpecificRegFor(diff, EBX);
+		JMP(exit);
+   	}
 
 	void Assembler::asm_cmp(LIns *cond)
 	{

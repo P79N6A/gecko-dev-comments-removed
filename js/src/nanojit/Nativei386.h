@@ -101,7 +101,7 @@ namespace nanojit
         
 	const int NJ_ALIGN_STACK = 16;
 
-	const int32_t LARGEST_UNDERRUN_PROT = 32;  
+	const int32_t LARGEST_UNDERRUN_PROT = 3200;  
 	
 	typedef uint8_t NIns;
 
@@ -377,6 +377,9 @@ namespace nanojit
 #define MR(d,s)		do { count_mov(); ALU(0x8b,d,s);				asm_output("mov %s,%s",gpn(d),gpn(s)); } while(0)
 #define LEA(r,d,b)	do { count_alu(); ALUm(0x8d, r,d,b);			asm_output("lea %s,%d(%s)",gpn(r),d,gpn(b)); } while(0)
 
+
+#define LEAmi4(r,d,i) do { count_alu(); IMM32(d); *(--_nIns) = (2<<6)|(i<<3)|5; *(--_nIns) = (0<<6)|(r<<3)|4; *(--_nIns) = 0x8d;                    asm_output("lea %s, %p(%s*4)", gpn(r), d, gpn(i)); } while(0)
+
 #define SETE(r)		do { count_alu(); ALU2(0x0f94,(r),(r));			asm_output("sete %s",gpn(r)); } while(0)
 #define SETNP(r)	do { count_alu(); ALU2(0x0f9B,(r),(r));			asm_output("setnp %s",gpn(r)); } while(0)
 #define SETL(r)		do { count_alu(); ALU2(0x0f9C,(r),(r));			asm_output("setl %s",gpn(r)); } while(0)
@@ -572,6 +575,12 @@ namespace nanojit
  		IMM32((o)); \
  		*(--_nIns) = JMP32; \
 		asm_output("jmp %p",(next+(o))); } while(0)
+
+#define JMP_indirect(r) do { \
+        underrunProtect(2);  \
+        MODRMm(4, 0, r);     \
+        *(--_nIns) = 0xff;   \
+        asm_output("jmp *(%s)", gpn(r)); } while (0)
 
 #define JE(t, isfar)	   JCC(0x04, t, isfar, "je")
 #define JNE(t, isfar)	   JCC(0x05, t, isfar, "jne")

@@ -139,8 +139,21 @@ namespace nanojit
 		
 	};
 
+	
+
+
+	struct SwitchInfo
+	{
+		NIns**      table;       
+		uint32_t    count;       
+		
+		
+		
+		uint32_t    index;
+	};
+
     inline bool isGuard(LOpcode op) {
-        return op == LIR_x || op == LIR_xf || op == LIR_xt || op == LIR_loop || op == LIR_xbarrier;
+        return op == LIR_x || op == LIR_xf || op == LIR_xt || op == LIR_loop || op == LIR_xbarrier || op == LIR_xtbl;
     }
 
     inline bool isCall(LOpcode op) {
