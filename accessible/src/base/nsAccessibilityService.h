@@ -49,6 +49,7 @@
 #include "nsIWebProgressListener.h"
 #include "nsWeakReference.h"
 
+class nsAccessNode;
 class nsIFrame;
 class nsIWeakReference;
 class nsIDOMNode;
@@ -118,8 +119,8 @@ public:
 
 
 
-  already_AddRefed<nsIAccessNode> GetCachedAccessNode(nsIDOMNode *aNode,
-                                                      nsIWeakReference *aShell);
+  nsAccessNode* GetCachedAccessNode(nsIDOMNode *aNode,
+                                    nsIWeakReference *aShell);
 
 private:
   

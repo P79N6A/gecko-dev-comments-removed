@@ -160,7 +160,7 @@ public:
 
 
 
-  already_AddRefed<nsIAccessNode> GetCachedAccessNode(void *aUniqueID);
+  nsAccessNode* GetCachedAccessNode(void *aUniqueID);
 
   
 
@@ -168,7 +168,7 @@ public:
 
 
 
-  void CacheAccessNode(void *aUniqueID, nsIAccessNode *aAccessNode);
+  void CacheAccessNode(void *aUniqueID, nsAccessNode *aAccessNode);
 
   
 

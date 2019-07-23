@@ -938,7 +938,7 @@ nsAccessibilityService::CreateHTMLCaptionAccessible(nsIFrame *aFrame, nsIAccessi
   return NS_OK;
 }
 
-already_AddRefed<nsIAccessNode>
+nsAccessNode*
 nsAccessibilityService::GetCachedAccessNode(nsIDOMNode *aNode, 
                                             nsIWeakReference *aWeakShell)
 {
@@ -1284,8 +1284,7 @@ nsAccessibilityService::GetAccessible(nsIDOMNode *aNode,
 #endif
 
   
-  nsCOMPtr<nsIAccessNode> cachedAccessNode =
-    GetCachedAccessNode(aNode, aWeakShell);
+  nsAccessNode* cachedAccessNode = GetCachedAccessNode(aNode, aWeakShell);
   if (cachedAccessNode) {
     
     
@@ -1370,8 +1369,7 @@ nsAccessibilityService::GetAccessible(nsIDOMNode *aNode,
             PRInt32 childCount;
             imageAcc->GetChildCount(&childCount);
             
-            nsCOMPtr<nsIAccessNode> cachedAreaAcc =
-              GetCachedAccessNode(aNode, aWeakShell);
+            nsAccessNode* cachedAreaAcc = GetCachedAccessNode(aNode, aWeakShell);
             if (cachedAreaAcc)
               CallQueryInterface(cachedAreaAcc, aAccessible);
           }
