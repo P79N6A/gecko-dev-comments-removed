@@ -262,7 +262,6 @@ typedef struct JSGCStats {
 #endif
     uint32  maxlevel;   
     uint32  poke;       
-    uint32  nopoke;     
     uint32  afree;      
     uint32  stackseg;   
     uint32  segslots;   
