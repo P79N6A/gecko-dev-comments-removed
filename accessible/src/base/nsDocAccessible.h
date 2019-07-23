@@ -257,7 +257,15 @@ protected:
                                  PRBool aIsInserting,
                                  PRBool aIsAsynch);
 
-    
+  
+
+
+  enum EEventFiringType {
+    eNormalEvent,
+    eDelayedEvent
+  };
+
+  
 
 
 
@@ -267,8 +275,13 @@ protected:
 
 
 
-    nsresult FireShowHideEvents(nsIDOMNode *aDOMNode, PRBool aAvoidOnThisNode, PRUint32 aEventType,
-                                PRBool aDelay, PRBool aForceIsFromUserInput);
+
+
+  nsresult FireShowHideEvents(nsIDOMNode *aDOMNode, PRBool aAvoidOnThisNode,
+                              PRUint32 aEventType,
+                              EEventFiringType aDelayedOrNormal,
+                              PRBool aIsAsyncChange,
+                              PRBool aForceIsFromUserInput);
 
     
 

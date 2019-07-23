@@ -298,12 +298,9 @@ static const char kRoleNames[][20] = {
 
 static const char kEventTypeNames[][40] = {
   "unknown",                                 
-  "DOM node create",                         
-  "DOM node destroy",                        
-  "DOM node significant change",             
-  "async show",                              
-  "async hide",                              
-  "async significant change",                
+  "show",                                    
+  "hide",                                    
+  "reorder",                                 
   "active decendent change",                 
   "focus",                                   
   "state change",                            
@@ -388,8 +385,7 @@ static const char kEventTypeNames[][40] = {
   "hypertext links count changed",           
   "object attribute changed",                
   "page changed",                            
-  "internal load",                           
-  "reorder"                                  
+  "internal load"                            
 };
 
 

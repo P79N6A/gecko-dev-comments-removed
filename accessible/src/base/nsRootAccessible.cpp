@@ -1093,7 +1093,7 @@ nsRootAccessible::HandlePopupShownEvent(nsIAccessible *aAccessible)
     
     
     
-    return nsAccUtils::FireAccEvent(nsIAccessibleEvent::EVENT_ASYNCH_SHOW,
+    return nsAccUtils::FireAccEvent(nsIAccessibleEvent::EVENT_SHOW,
                                     aAccessible);
   }
 

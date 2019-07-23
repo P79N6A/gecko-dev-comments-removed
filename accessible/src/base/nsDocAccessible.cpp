@@ -935,7 +935,8 @@ nsDocAccessible::FireDocLoadEvents(PRUint32 aEventType)
     if (sameTypeRoot != treeItem) {
       
       
-      InvalidateCacheSubtree(nsnull, nsIAccessibleEvent::EVENT_DOM_SIGNIFICANT_CHANGE);
+      InvalidateCacheSubtree(nsnull,
+                             nsIAccessibilityService::NODE_SIGNIFICANT_CHANGE);
     }
     
     if (gLastFocusedNode) {
@@ -1183,7 +1184,8 @@ nsDocAccessible::AttributeChangedImpl(nsIContent* aContent, PRInt32 aNameSpaceID
     
     
     
-    InvalidateCacheSubtree(aContent, nsIAccessibleEvent::EVENT_DOM_SIGNIFICANT_CHANGE);
+    InvalidateCacheSubtree(aContent,
+                           nsIAccessibilityService::NODE_SIGNIFICANT_CHANGE);
     return;
   }
   
@@ -1356,7 +1358,8 @@ nsDocAccessible::ARIAAttributeChanged(nsIContent* aContent, nsIAtom* aAttribute)
     
     
     
-    InvalidateCacheSubtree(aContent, nsIAccessibleEvent::EVENT_DOM_SIGNIFICANT_CHANGE);
+    InvalidateCacheSubtree(aContent,
+                           nsIAccessibilityService::NODE_SIGNIFICANT_CHANGE);
     return;
   }
 
@@ -1386,7 +1389,7 @@ void nsDocAccessible::ContentAppended(nsIDocument *aDocument,
     
     
     
-    InvalidateCacheSubtree(child, nsIAccessibleEvent::EVENT_DOM_CREATE);
+    InvalidateCacheSubtree(child, nsIAccessibilityService::NODE_APPEND);
   }
 }
 
@@ -1425,13 +1428,14 @@ nsDocAccessible::ContentInserted(nsIDocument *aDocument, nsIContent* aContainer,
   
   
   
-  InvalidateCacheSubtree(aChild, nsIAccessibleEvent::EVENT_DOM_CREATE);
+  InvalidateCacheSubtree(aChild, nsIAccessibilityService::NODE_APPEND);
 }
 
 void
 nsDocAccessible::ContentRemoved(nsIDocument *aDocument, nsIContent* aContainer,
                                 nsIContent* aChild, PRInt32 aIndexInContainer)
 {
+  
   
   
   
@@ -1697,9 +1701,10 @@ nsDocAccessible::FlushPendingEvents()
     PRUint32 eventType = nsAccEvent::EventType(accessibleEvent);
     PRBool isFromUserInput = nsAccEvent::IsFromUserInput(accessibleEvent);
 
-    if (domNode == gLastFocusedNode &&
-        (eventType == nsIAccessibleEvent::EVENT_ASYNCH_HIDE || 
-        eventType == nsIAccessibleEvent::EVENT_ASYNCH_SHOW)) {
+    PRBool isAsync = nsAccEvent::IsAsyncEvent(accessibleEvent);
+    if (domNode == gLastFocusedNode && isAsync &&
+        (eventType == nsIAccessibleEvent::EVENT_SHOW ||
+         eventType == nsIAccessibleEvent::EVENT_HIDE)) {
       
       
       
@@ -1714,15 +1719,15 @@ nsDocAccessible::FlushPendingEvents()
         if (newFrameType == gLastFocusedFrameType) {
           
           
-          FireShowHideEvents(domNode, PR_TRUE, eventType, PR_FALSE, isFromUserInput); 
+          FireShowHideEvents(domNode, PR_TRUE, eventType, eNormalEvent,
+                             isAsync, isFromUserInput); 
           continue;
         }
         gLastFocusedFrameType = newFrameType;
       }
     }
 
-    if (eventType == nsIAccessibleEvent::EVENT_DOM_CREATE || 
-        eventType == nsIAccessibleEvent::EVENT_ASYNCH_SHOW) {
+    if (eventType == nsIAccessibleEvent::EVENT_SHOW) {
 
       nsCOMPtr<nsIAccessible> containerAccessible;
       if (accessible)
@@ -1735,7 +1740,7 @@ nsDocAccessible::FlushPendingEvents()
           containerAccessible = this;
       }
 
-      if (eventType == nsIAccessibleEvent::EVENT_ASYNCH_SHOW) {
+      if (isAsync) {
         
         nsRefPtr<nsAccessible> containerAcc =
           nsAccUtils::QueryAccessible(containerAccessible);
@@ -1766,7 +1771,8 @@ nsDocAccessible::FlushPendingEvents()
       }
 
       
-      FireShowHideEvents(domNode, PR_FALSE, eventType, PR_FALSE, isFromUserInput); 
+      FireShowHideEvents(domNode, PR_FALSE, eventType, eNormalEvent, isAsync,
+                         isFromUserInput); 
       continue;
     }
 
@@ -1827,8 +1833,8 @@ nsDocAccessible::FlushPendingEvents()
         nsAccEvent::PrepareForEvent(accessibleEvent);
         FireAccessibleEvent(accessibleEvent);
         
-        if (eventType == nsIAccessibleEvent::EVENT_ASYNCH_HIDE ||
-            eventType == nsIAccessibleEvent::EVENT_DOM_DESTROY) {
+        if (eventType == nsIAccessibleEvent::EVENT_HIDE) {
+          
           
           nsCOMPtr<nsIDOMNode> hidingNode;
           accessibleEvent->GetDOMNode(getter_AddRefs(hidingNode));
@@ -1979,27 +1985,27 @@ void nsDocAccessible::RefreshNodes(nsIDOMNode *aStartNode)
 
 void
 nsDocAccessible::InvalidateCacheSubtree(nsIContent *aChild,
-                                        PRUint32 aChangeEventType)
+                                        PRUint32 aChangeType)
 {
-  PRBool isHiding = 
-    aChangeEventType == nsIAccessibleEvent::EVENT_ASYNCH_HIDE ||
-    aChangeEventType == nsIAccessibleEvent::EVENT_DOM_DESTROY;
+  PRBool isHiding =
+    aChangeType == nsIAccessibilityService::FRAME_HIDE ||
+    aChangeType == nsIAccessibilityService::NODE_REMOVE;
 
-  PRBool isShowing = 
-    aChangeEventType == nsIAccessibleEvent::EVENT_ASYNCH_SHOW ||
-    aChangeEventType == nsIAccessibleEvent::EVENT_DOM_CREATE;
+  PRBool isShowing =
+    aChangeType == nsIAccessibilityService::FRAME_SHOW ||
+    aChangeType == nsIAccessibilityService::NODE_APPEND;
 
-  PRBool isChanging = 
-    aChangeEventType == nsIAccessibleEvent::EVENT_DOM_SIGNIFICANT_CHANGE ||
-    aChangeEventType == nsIAccessibleEvent::EVENT_ASYNCH_SIGNIFICANT_CHANGE;
+  PRBool isChanging =
+    aChangeType == nsIAccessibilityService::NODE_SIGNIFICANT_CHANGE ||
+    aChangeType == nsIAccessibilityService::FRAME_SIGNIFICANT_CHANGE;
 
   NS_ASSERTION(isChanging || isHiding || isShowing,
                "Incorrect aChangeEventType passed in");
 
-  PRBool isAsynch = 
-    aChangeEventType == nsIAccessibleEvent::EVENT_ASYNCH_HIDE ||
-    aChangeEventType == nsIAccessibleEvent::EVENT_ASYNCH_SHOW ||
-    aChangeEventType == nsIAccessibleEvent::EVENT_ASYNCH_SIGNIFICANT_CHANGE;
+  PRBool isAsynch =
+    aChangeType == nsIAccessibilityService::FRAME_HIDE ||
+    aChangeType == nsIAccessibilityService::FRAME_SHOW ||
+    aChangeType == nsIAccessibilityService::FRAME_SIGNIFICANT_CHANGE;
 
   
   
@@ -2059,24 +2065,18 @@ nsDocAccessible::InvalidateCacheSubtree(nsIContent *aChild,
   nsAutoString localName;
   childNode->GetLocalName(localName);
   const char *hasAccessible = childAccessible ? " (acc)" : "";
-  if (aChangeEventType == nsIAccessibleEvent::EVENT_ASYNCH_HIDE) {
+  if (aChangeType == nsIAccessibilityService::FRAME_HIDE)
     printf("[Hide %s %s]\n", NS_ConvertUTF16toUTF8(localName).get(), hasAccessible);
-  }
-  else if (aChangeEventType == nsIAccessibleEvent::EVENT_ASYNCH_SHOW) {
+  else if (aChangeType == nsIAccessibilityService::FRAME_SHOW)
     printf("[Show %s %s]\n", NS_ConvertUTF16toUTF8(localName).get(), hasAccessible);
-  }
-  else if (aChangeEventType == nsIAccessibleEvent::EVENT_ASYNCH_SIGNIFICANT_CHANGE) {
+  else if (aChangeType == nsIAccessibilityService::FRAME_SIGNIFICANT_CHANGE)
     printf("[Layout change %s %s]\n", NS_ConvertUTF16toUTF8(localName).get(), hasAccessible);
-  }
-  else if (aChangeEventType == nsIAccessibleEvent::EVENT_DOM_CREATE) {
+  else if (aChangeType == nsIAccessibleEvent::NODE_APPEND)
     printf("[Create %s %s]\n", NS_ConvertUTF16toUTF8(localName).get(), hasAccessible);
-  }
-  else if (aChangeEventType == nsIAccessibleEvent::EVENT_DOM_DESTROY) {
+  else if (aChangeType == nsIAccessibilityService::NODE_REMOVE)
     printf("[Destroy  %s %s]\n", NS_ConvertUTF16toUTF8(localName).get(), hasAccessible);
-  }
-  else if (aChangeEventType == nsIAccessibleEvent::EVENT_DOM_SIGNIFICANT_CHANGE) {
+  else if (aChangeEventType == nsIAccessibilityService::NODE_SIGNIFICANT_CHANGE)
     printf("[Type change %s %s]\n", NS_ConvertUTF16toUTF8(localName).get(), hasAccessible);
-  }
 #endif
 
   nsCOMPtr<nsIAccessible> containerAccessible;
@@ -2105,12 +2105,12 @@ nsDocAccessible::InvalidateCacheSubtree(nsIContent *aChild,
       }
     }
 
-    PRUint32 removalEventType = isAsynch ? nsIAccessibleEvent::EVENT_ASYNCH_HIDE :
-                                           nsIAccessibleEvent::EVENT_DOM_DESTROY;
-
     
     
-    nsresult rv = FireShowHideEvents(childNode, PR_FALSE, removalEventType, PR_TRUE, PR_FALSE);
+    
+    nsresult rv = FireShowHideEvents(childNode, PR_FALSE,
+                                     nsIAccessibleEvent::EVENT_HIDE,
+                                     eDelayedEvent, isAsynch, PR_FALSE);
     NS_ENSURE_SUCCESS(rv,);
 
     if (childNode != mDOMNode) { 
@@ -2145,14 +2145,15 @@ nsDocAccessible::InvalidateCacheSubtree(nsIContent *aChild,
         containerAcc->InvalidateChildren();
 
     }
+
+    
+
     
     
     
     
-    
-    PRUint32 additionEvent = isAsynch ? nsIAccessibleEvent::EVENT_ASYNCH_SHOW :
-                                        nsIAccessibleEvent::EVENT_DOM_CREATE;
-    FireDelayedAccessibleEvent(additionEvent, childNode,
+
+    FireDelayedAccessibleEvent(nsIAccessibleEvent::EVENT_SHOW, childNode,
                                nsAccEvent::eCoalesceFromSameSubtree,
                                isAsynch);
 
@@ -2251,15 +2252,18 @@ nsDocAccessible::GetAccessibleInParentChain(nsIDOMNode *aNode,
 }
 
 nsresult
-nsDocAccessible::FireShowHideEvents(nsIDOMNode *aDOMNode, PRBool aAvoidOnThisNode, PRUint32 aEventType,
-                                    PRBool aDelay, PRBool aForceIsFromUserInput)
+nsDocAccessible::FireShowHideEvents(nsIDOMNode *aDOMNode,
+                                    PRBool aAvoidOnThisNode,
+                                    PRUint32 aEventType,
+                                    EEventFiringType aDelayedOrNormal,
+                                    PRBool aIsAsyncChange,
+                                    PRBool aForceIsFromUserInput)
 {
   NS_ENSURE_ARG(aDOMNode);
 
   nsCOMPtr<nsIAccessible> accessible;
   if (!aAvoidOnThisNode) {
-    if (aEventType == nsIAccessibleEvent::EVENT_ASYNCH_HIDE ||
-        aEventType == nsIAccessibleEvent::EVENT_DOM_DESTROY) {
+    if (aEventType == nsIAccessibleEvent::EVENT_HIDE) {
       
       nsCOMPtr<nsIAccessNode> accessNode;
       GetCachedAccessNode(aDOMNode, getter_AddRefs(accessNode));
@@ -2274,19 +2278,18 @@ nsDocAccessible::FireShowHideEvents(nsIDOMNode *aDOMNode, PRBool aAvoidOnThisNod
   if (accessible) {
     
     
-    PRBool isAsynch = aEventType == nsIAccessibleEvent::EVENT_ASYNCH_HIDE ||
-                      aEventType == nsIAccessibleEvent::EVENT_ASYNCH_SHOW;
-
     nsCOMPtr<nsIAccessibleEvent> event =
-      new nsAccEvent(aEventType, accessible, isAsynch,
+      new nsAccEvent(aEventType, accessible, aIsAsyncChange,
                      nsAccEvent::eCoalesceFromSameSubtree);
     NS_ENSURE_TRUE(event, NS_ERROR_OUT_OF_MEMORY);
+
     if (aForceIsFromUserInput) {
       nsAccEvent::PrepareForEvent(event, aForceIsFromUserInput);
     }
-    if (aDelay) {
+
+    if (aDelayedOrNormal == eDelayedEvent)
       return FireDelayedAccessibleEvent(event);
-    }
+
     return FireAccessibleEvent(event);
   }
 
@@ -2297,7 +2300,8 @@ nsDocAccessible::FireShowHideEvents(nsIDOMNode *aDOMNode, PRBool aAvoidOnThisNod
   for (PRUint32 index = 0; index < count; index++) {
     nsCOMPtr<nsIDOMNode> childNode = do_QueryInterface(node->GetChildAt(index));
     nsresult rv = FireShowHideEvents(childNode, PR_FALSE, aEventType,
-                                     aDelay, aForceIsFromUserInput);
+                                     aDelayedOrNormal, aIsAsyncChange,
+                                     aForceIsFromUserInput);
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
