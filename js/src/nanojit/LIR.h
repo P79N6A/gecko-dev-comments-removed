@@ -260,6 +260,17 @@ namespace nanojit
     
     
     
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
 
     
     
@@ -269,9 +280,11 @@ namespace nanojit
     
     
     
+    
     static const AccSet ACC_READONLY = 1 << 0;      
     static const AccSet ACC_STACK    = 1 << 1;      
-    static const AccSet ACC_OTHER    = 1 << 2;      
+    static const AccSet ACC_RSTACK   = 1 << 2;      
+    static const AccSet ACC_OTHER    = 1 << 3;      
 
     
     
@@ -283,11 +296,10 @@ namespace nanojit
     
     
     static const AccSet ACC_NONE         = 0x0;
-    static const AccSet ACC_ALL_WRITABLE = ACC_STACK | ACC_OTHER;
-    static const AccSet ACC_ALL          = ACC_READONLY | ACC_ALL_WRITABLE;
+    static const AccSet ACC_ALL_STORABLE = ACC_STACK | ACC_RSTACK | ACC_OTHER;
+    static const AccSet ACC_ALL          = ACC_READONLY | ACC_ALL_STORABLE;
     static const AccSet ACC_LOAD_ANY     = ACC_ALL;            
-    static const AccSet ACC_STORE_ANY    = ACC_ALL_WRITABLE;   
-
+    static const AccSet ACC_STORE_ANY    = ACC_ALL_STORABLE;   
 
     struct CallInfo
     {
@@ -1488,17 +1500,6 @@ namespace nanojit
 
         
         LIns* insStorei(LIns* value, LIns* base, int32_t d, AccSet accSet);
-
-        
-        LIns* insLoad(LOpcode op, LIns* base, int32_t d) {
-            return insLoad(op, base, d, ACC_LOAD_ANY);
-        }
-        LIns* insStore(LOpcode op, LIns* value, LIns* base, int32_t d) {
-            return insStore(op, value, base, d, ACC_STORE_ANY);
-        }
-        LIns* insStorei(LIns* value, LIns* base, int32_t d) {
-            return insStorei(value, base, d, ACC_STORE_ANY);
-        }
     };
 
 
@@ -1598,7 +1599,6 @@ namespace nanojit
         void formatImmq(RefBuf* buf, uint64_t c);
         void formatGuard(InsBuf* buf, LInsp ins);
         void formatGuardXov(InsBuf* buf, LInsp ins);
-        char* formatAccSet(RefBuf* buf, LInsp ins, bool isLoad);
 
     public:
         LInsPrinter(Allocator& alloc)
@@ -1611,6 +1611,7 @@ namespace nanojit
         char *formatAddr(RefBuf* buf, void* p);
         char *formatRef(RefBuf* buf, LInsp ref);
         char *formatIns(InsBuf* buf, LInsp ins);
+        char *formatAccSet(RefBuf* buf, AccSet accSet);
 
         AddrNameMap* addrNameMap;
         LirNameMap* lirNameMap;
@@ -1739,23 +1740,35 @@ namespace nanojit
         
         
         
-        LInsImm   = 0,
-        LInsImmq  = 1,  
-        LInsImmf  = 2,
-        LIns1     = 3,
-        LIns2     = 4,
-        LIns3     = 5,
-        LInsLoad  = 6,
-        LInsCall  = 7,
+        LInsImm  = 0,
+        LInsImmq = 1,   
+        LInsImmf = 2,
+        LIns1    = 3,
+        LIns2    = 4,
+        LIns3    = 5,
+        LInsCall = 6,
+
+        
+        
+        
+        
+        
+        
+        
+        
+        LInsLoadReadOnly = 7,
+        LInsLoadStack    = 8,
+        LInsLoadRStack   = 9,
+        LInsLoadOther    = 10,
+        LInsLoadMultiple = 11,
 
         LInsFirst = 0,
-        LInsLast = 7,
+        LInsLast = 11,
         
-        LInsInvalid = 8
+        LInsInvalid = 12
     };
     #define nextKind(kind)  LInsHashKind(kind+1)
 
-    
     class LInsHashSet
     {
         
@@ -1772,14 +1785,15 @@ namespace nanojit
         uint32_t m_used[LInsLast + 1];
         typedef uint32_t (LInsHashSet::*find_t)(LInsp);
         find_t m_find[LInsLast + 1];
+
         Allocator& alloc;
 
         static uint32_t hashImm(int32_t);
         static uint32_t hashImmq(uint64_t);     
-        static uint32_t hash1(LOpcode v, LInsp);
-        static uint32_t hash2(LOpcode v, LInsp, LInsp);
-        static uint32_t hash3(LOpcode v, LInsp, LInsp, LInsp);
-        static uint32_t hashLoad(LOpcode v, LInsp, int32_t);
+        static uint32_t hash1(LOpcode op, LInsp);
+        static uint32_t hash2(LOpcode op, LInsp, LInsp);
+        static uint32_t hash3(LOpcode op, LInsp, LInsp, LInsp);
+        static uint32_t hashLoad(LOpcode op, LInsp, int32_t, AccSet);
         static uint32_t hashCall(const CallInfo *call, uint32_t argc, LInsp args[]);
 
         
@@ -1792,8 +1806,12 @@ namespace nanojit
         uint32_t find1(LInsp ins);
         uint32_t find2(LInsp ins);
         uint32_t find3(LInsp ins);
-        uint32_t findLoad(LInsp ins);
         uint32_t findCall(LInsp ins);
+        uint32_t findLoadReadOnly(LInsp ins);
+        uint32_t findLoadStack(LInsp ins);
+        uint32_t findLoadRStack(LInsp ins);
+        uint32_t findLoadOther(LInsp ins);
+        uint32_t findLoadMultiple(LInsp ins);
 
         void grow(LInsHashKind kind);
 
@@ -1810,19 +1828,22 @@ namespace nanojit
         LInsp find1(LOpcode v, LInsp a, uint32_t &k);
         LInsp find2(LOpcode v, LInsp a, LInsp b, uint32_t &k);
         LInsp find3(LOpcode v, LInsp a, LInsp b, LInsp c, uint32_t &k);
-        LInsp findLoad(LOpcode v, LInsp a, int32_t b, uint32_t &k);
+        LInsp findLoad(LOpcode v, LInsp a, int32_t b, AccSet accSet, LInsHashKind kind,
+                       uint32_t &k);
         LInsp findCall(const CallInfo *call, uint32_t argc, LInsp args[], uint32_t &k);
 
         
-        LInsp add(LInsHashKind kind, LInsp ins, uint32_t k);
+        void add(LInsHashKind kind, LInsp ins, uint32_t k);
 
-        void clear();
+        void clear();               
+        void clear(LInsHashKind);   
     };
 
     class CseFilter: public LirWriter
     {
     private:
         LInsHashSet* exprs;
+        AccSet       storesSinceLastLoad;   
 
     public:
         CseFilter(LirWriter *out, Allocator&);
@@ -1836,7 +1857,8 @@ namespace nanojit
         LIns* ins1(LOpcode v, LInsp);
         LIns* ins2(LOpcode v, LInsp, LInsp);
         LIns* ins3(LOpcode v, LInsp, LInsp, LInsp);
-        LIns* insLoad(LOpcode op, LInsp cond, int32_t d, AccSet accSet);
+        LIns* insLoad(LOpcode op, LInsp base, int32_t d, AccSet accSet);
+        LIns* insStore(LOpcode op, LInsp value, LInsp base, int32_t d, AccSet accSet);
         LIns* insCall(const CallInfo *call, LInsp args[]);
         LIns* insGuard(LOpcode op, LInsp cond, GuardRecord *gr);
         LIns* insGuardXov(LOpcode op, LInsp a, LInsp b, GuardRecord *gr);
@@ -1975,37 +1997,6 @@ namespace nanojit
         LInsp read();
     };
 
-    
-    class LoadFilter: public LirWriter
-    {
-    public:
-        LInsp sp, rp;
-        LInsHashSet* exprs;
-
-        void clear(LInsp p);
-
-    public:
-        LoadFilter(LirWriter *out, Allocator& alloc)
-            : LirWriter(out), sp(NULL), rp(NULL)
-        {
-            uint32_t kInitialCaps[LInsLast + 1];
-            kInitialCaps[LInsImm]   = 1;
-            kInitialCaps[LInsImmq]  = 1;
-            kInitialCaps[LInsImmf]  = 1;
-            kInitialCaps[LIns1]     = 1;
-            kInitialCaps[LIns2]     = 1;
-            kInitialCaps[LIns3]     = 1;
-            kInitialCaps[LInsLoad]  = 64;
-            kInitialCaps[LInsCall]  = 1;
-            exprs = new (alloc) LInsHashSet(alloc, kInitialCaps);
-        }
-
-        LInsp ins0(LOpcode);
-        LInsp insLoad(LOpcode op, LInsp base, int32_t disp, AccSet accSet);
-        LInsp insStore(LOpcode op, LInsp value, LInsp base, int32_t disp, AccSet accSet);
-        LInsp insCall(const CallInfo *call, LInsp args[]);
-    };
-
     struct SoftFloatOps
     {
         const CallInfo* opmap[LIR_sentinel];
@@ -2049,19 +2040,26 @@ namespace nanojit
     class ValidateWriter : public LirWriter
     {
     private:
-        const char* _whereInPipeline;
+        LInsPrinter* printer;
+        const char* whereInPipeline;
 
         const char* type2string(LTy type);
         void typeCheckArgs(LOpcode op, int nArgs, LTy formals[], LIns* args[]);
         void errorStructureShouldBe(LOpcode op, const char* argDesc, int argN, LIns* arg,
                                     const char* shouldBeDesc);
-        void errorAccSetShould(const char* what, AccSet accSet, const char* shouldDesc);
+        void errorAccSet(const char* what, AccSet accSet, const char* shouldDesc);
         void checkLInsHasOpcode(LOpcode op, int argN, LIns* ins, LOpcode op2);
         void checkLInsIsACondOrConst(LOpcode op, int argN, LIns* ins);
         void checkLInsIsNull(LOpcode op, int argN, LIns* ins);
+        void checkAccSet(LOpcode op, LInsp base, AccSet accSet, AccSet maxAccSet);
+
+        LInsp sp, rp;
 
     public:
-        ValidateWriter(LirWriter* out, const char* stageName);
+        ValidateWriter(LirWriter* out, LInsPrinter* printer, const char* where);
+        void setSp(LInsp ins) { sp = ins; }
+        void setRp(LInsp ins) { rp = ins; }
+
         LIns* insLoad(LOpcode op, LIns* base, int32_t d, AccSet accSet);
         LIns* insStore(LOpcode op, LIns* value, LIns* base, int32_t d, AccSet accSet);
         LIns* ins0(LOpcode v);
