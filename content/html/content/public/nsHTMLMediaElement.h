@@ -311,6 +311,14 @@ protected:
 
   void ChangeDelayLoadStatus(PRBool aDelay);
 
+  
+
+
+
+  nsresult OnChannelRedirect(nsIChannel *aChannel,
+                             nsIChannel *aNewChannel,
+                             PRUint32 aFlags);
+
   nsRefPtr<nsMediaDecoder> mDecoder;
 
   
