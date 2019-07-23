@@ -91,7 +91,7 @@ JSExtendedClass sXPC_XOW_JSClass = {
   
   { "XPCCrossOriginWrapper",
     JSCLASS_NEW_RESOLVE | JSCLASS_IS_EXTENDED |
-    JSCLASS_HAS_RESERVED_SLOTS(XPCWrapper::sNumSlots),
+    JSCLASS_HAS_RESERVED_SLOTS(XPCWrapper::sNumSlots + 1),
     XPC_XOW_AddProperty, XPC_XOW_DelProperty,
     XPC_XOW_GetProperty, XPC_XOW_SetProperty,
     XPC_XOW_Enumerate,   (JSResolveOp)XPC_XOW_NewResolve,
@@ -104,6 +104,17 @@ JSExtendedClass sXPC_XOW_JSClass = {
   
   XPC_XOW_Equality
 };
+
+
+
+
+
+
+
+
+
+
+static const int XPC_XOW_ScopeSlot = XPCWrapper::sNumSlots;
 
 JS_STATIC_DLL_CALLBACK(JSBool)
 XPC_XOW_toString(JSContext *cx, JSObject *obj, uintN argc, jsval *argv,
@@ -432,7 +443,9 @@ XPC_XOW_WrapObject(JSContext *cx, JSObject *parent, jsval *vp)
 
   if (!JS_SetReservedSlot(cx, outerObj, XPCWrapper::sWrappedObjSlot, *vp) ||
       !JS_SetReservedSlot(cx, outerObj, XPCWrapper::sResolvingSlot,
-                          BOOLEAN_TO_JSVAL(JS_FALSE))) {
+                          BOOLEAN_TO_JSVAL(JS_FALSE)) ||
+      !JS_SetReservedSlot(cx, outerObj, XPC_XOW_ScopeSlot,
+                          PRIVATE_TO_JSVAL(parentScope))) {
     return JS_FALSE;
   }
 
@@ -713,19 +726,22 @@ XPC_XOW_Finalize(JSContext *cx, JSObject *obj)
   }
 
   
-  XPCCallContext ccx(NATIVE_CALLER);
-  if (!ccx.IsValid()) {
+  jsval scopeVal;
+  if (!JS_GetReservedSlot(cx, obj, XPC_XOW_ScopeSlot, &scopeVal)) {
     return;
   }
 
   
   
-  XPCWrappedNativeScope *scope =
-    XPCWrappedNativeScope::FindInJSObjectScope(ccx, obj, JS_TRUE);
-
-  if (scope) {
-    scope->GetWrapperMap()->Remove(wrappedObj);
+  
+  XPCWrappedNativeScope *scope = reinterpret_cast<XPCWrappedNativeScope *>
+                                                 (JSVAL_TO_PRIVATE(scopeVal));
+  if (XPCWrappedNativeScope::IsDyingScope(scope)) {
+    return;
   }
+
+  
+  scope->GetWrapperMap()->Remove(wrappedObj);
 }
 
 JS_STATIC_DLL_CALLBACK(JSBool)
