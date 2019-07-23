@@ -101,56 +101,59 @@ struct JSString {
 
 
 
-#define JSSTRFLAG_BITS              2
-#define JSSTRFLAG_SHIFT(flg)        ((size_t)(flg) << JSSTRING_LENGTH_BITS)
-#define JSSTRFLAG_MASK              JSSTRFLAG_SHIFT(JS_BITMASK(JSSTRFLAG_BITS))
-#define JSSTRFLAG_DEPENDENT         JSSTRFLAG_SHIFT(1)
-#define JSSTRFLAG_PREFIX            JSSTRFLAG_SHIFT(2)
-#define JSSTRFLAG_MUTABLE           JSSTRFLAG_SHIFT(2)
+#define JSSTRFLAG_DEPENDENT         JSSTRING_BIT(JS_BITS_PER_WORD - 1)
+#define JSSTRFLAG_PREFIX            JSSTRING_BIT(JS_BITS_PER_WORD - 2)
+#define JSSTRFLAG_MUTABLE           JSSTRFLAG_PREFIX
+
+#define JSSTRING_LENGTH_BITS        (JS_BITS_PER_WORD - 2)
+#define JSSTRING_LENGTH_MASK        JSSTRING_BITMASK(JSSTRING_LENGTH_BITS)
 
 
 #define JSSTRING_BIT(n)             ((size_t)1 << (n))
 #define JSSTRING_BITMASK(n)         (JSSTRING_BIT(n) - 1)
 #define JSSTRING_HAS_FLAG(str,flg)  ((str)->length & (flg))
 #define JSSTRING_IS_DEPENDENT(str)  JSSTRING_HAS_FLAG(str, JSSTRFLAG_DEPENDENT)
-#define JSSTRING_IS_MUTABLE(str)    (((str)->length & JSSTRFLAG_MASK) ==      \
+#define JSSTRING_IS_FLAT(str)       (!JSSTRING_IS_DEPENDENT(str))
+#define JSSTRING_IS_MUTABLE(str)    (((str)->length & (JSSTRFLAG_DEPENDENT |  \
+                                                       JSSTRFLAG_MUTABLE)) == \
                                      JSSTRFLAG_MUTABLE)
 
 #define JSSTRING_CHARS(str)         (JSSTRING_IS_DEPENDENT(str)               \
                                      ? JSSTRDEP_CHARS(str)                    \
-                                     : (str)->u.chars)
+                                     : JSFLATSTR_CHARS(str))
 #define JSSTRING_LENGTH(str)        (JSSTRING_IS_DEPENDENT(str)               \
                                      ? JSSTRDEP_LENGTH(str)                   \
-                                     : ((str)->length &  ~JSSTRFLAG_MUTABLE))
+                                     : JSFLATSTR_LENGTH(str))
 
 #define JSSTRING_CHARS_AND_LENGTH(str, chars_, length_)                       \
     ((void)(JSSTRING_IS_DEPENDENT(str)                                        \
             ? ((length_) = JSSTRDEP_LENGTH(str),                              \
                (chars_) = JSSTRDEP_CHARS(str))                                \
-            : ((length_) = (str)->length & ~JSSTRFLAG_MUTABLE,                \
-               (chars_) = (str)->u.chars)))
+            : ((length_) = JSFLATSTR_LENGTH(str),                             \
+               (chars_) = JSFLATSTR_CHARS(str))))
 
 #define JSSTRING_CHARS_AND_END(str, chars_, end)                              \
     ((void)((end) = JSSTRING_IS_DEPENDENT(str)                                \
                   ? JSSTRDEP_LENGTH(str) + ((chars_) = JSSTRDEP_CHARS(str))   \
-                  : ((str)->length & ~JSSTRFLAG_MUTABLE) +                    \
-                    ((chars_) = (str)->u.chars)))
+                  : JSFLATSTR_LENGTH(str) + ((chars_) = JSFLATSTR_CHARS(str))))
 
-#define JSSTRING_LENGTH_BITS        (sizeof(size_t) * JS_BITS_PER_BYTE        \
-                                     - JSSTRFLAG_BITS)
-#define JSSTRING_LENGTH_MASK        JSSTRING_BITMASK(JSSTRING_LENGTH_BITS)
 
-#define JSSTRING_INIT(str, chars_, length_)                                   \
-    ((void)(JS_ASSERT(((length_) & JSSTRFLAG_MASK) == 0),                     \
+#define JSFLATSTR_INIT(str, chars_, length_)                                  \
+    ((void)(JS_ASSERT(((length_) & ~JSSTRING_LENGTH_MASK) == 0),              \
             (str)->length = (length_), (str)->u.chars = (chars_)))
 
+#define JSFLATSTR_LENGTH(str)                                                 \
+    (JS_ASSERT(JSSTRING_IS_FLAT(str)), (str)->length & JSSTRING_LENGTH_MASK)
 
-#define JSSTRING_SET_MUTABLE(str)                                             \
-    ((void)(JS_ASSERT(!JSSTRING_IS_DEPENDENT(str)),                           \
+#define JSFLATSTR_CHARS(str)                                                  \
+    (JS_ASSERT(JSSTRING_IS_FLAT(str)), (str)->u.chars)
+
+#define JSFLATSTR_SET_MUTABLE(str)                                            \
+    ((void)(JS_ASSERT(JSSTRING_IS_FLAT(str)),                                 \
             (str)->length |= JSSTRFLAG_MUTABLE))
 
-#define JSSTRING_CLEAR_MUTABLE(str)                                           \
-    ((void)(JS_ASSERT(!JSSTRING_IS_DEPENDENT(str)),                           \
+#define JSFLATSTR_CLEAR_MUTABLE(str)                                          \
+    ((void)(JS_ASSERT(JSSTRING_IS_FLAT(str)),                                 \
             (str)->length &= ~JSSTRFLAG_MUTABLE))
 
 
@@ -188,7 +191,7 @@ struct JSString {
 #define JSSTRDEP_CHARS(str)                                                   \
     (JSSTRING_IS_DEPENDENT(JSSTRDEP_BASE(str))                                \
      ? js_GetDependentStringChars(str)                                        \
-     : JSSTRDEP_BASE(str)->u.chars + JSSTRDEP_START(str))
+     : JSFLATSTR_CHARS(JSSTRDEP_BASE(str)) + JSSTRDEP_START(str))
 
 extern size_t
 js_MinimizeDependentStrings(JSString *str, int level, JSString **basep);

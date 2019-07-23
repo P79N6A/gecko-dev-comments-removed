@@ -85,7 +85,7 @@ JS_STATIC_ASSERT(sizeof(JSAtom *) == JS_BYTES_PER_WORD);
 
 
 
-extern JS_FRIEND_API(const char *)
+extern const char *
 js_AtomToPrintableString(JSContext *cx, JSAtom *atom);
 
 struct JSAtomListElement {
@@ -396,10 +396,10 @@ js_AtomizeDouble(JSContext *cx, jsdouble d);
 extern JSAtom *
 js_AtomizeString(JSContext *cx, JSString *str, uintN flags);
 
-extern JS_FRIEND_API(JSAtom *)
+extern JSAtom *
 js_Atomize(JSContext *cx, const char *bytes, size_t length, uintN flags);
 
-extern JS_FRIEND_API(JSAtom *)
+extern JSAtom *
 js_AtomizeChars(JSContext *cx, const jschar *chars, size_t length, uintN flags);
 
 
@@ -439,7 +439,7 @@ js_IndexAtom(JSContext *cx, JSAtom *atom, JSAtomList *al);
 
 
 
-extern JS_FRIEND_API(void)
+extern void
 js_InitAtomMap(JSContext *cx, JSAtomMap *map, JSAtomList *al);
 
 JS_END_EXTERN_C
