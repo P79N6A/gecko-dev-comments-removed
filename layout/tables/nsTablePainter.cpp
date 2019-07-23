@@ -197,15 +197,7 @@ inline PRBool
 TableBackgroundPainter::TableBackgroundData::ShouldSetBCBorder()
 {
   
-  if (!mBackground) {
-    return PR_FALSE;
-  }
-
-  NS_FOR_VISIBLE_BACKGROUND_LAYERS_BACK_TO_FRONT(i, mBackground) {
-    if (mBackground->mLayers[i].mImage.mRequest)
-      return PR_TRUE;
-  }
-  return PR_FALSE;
+  return mBackground && !(mBackground->mBackgroundFlags & NS_STYLE_BG_IMAGE_NONE);
 }
 
 nsresult

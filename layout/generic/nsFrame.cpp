@@ -518,69 +518,19 @@ nsFrame::GetOffsets(PRInt32 &aStart, PRInt32 &aEnd) const
   return NS_OK;
 }
 
-static PRBool
-EqualImages(imgIRequest *aOldImage, imgIRequest *aNewImage)
-{
-  if (aOldImage == aNewImage)
-    return PR_TRUE;
-
-  if (!aOldImage || !aNewImage)
-    return PR_FALSE;
-
-  nsCOMPtr<nsIURI> oldURI, newURI;
-  aOldImage->GetURI(getter_AddRefs(oldURI));
-  aNewImage->GetURI(getter_AddRefs(newURI));
-  PRBool equal;
-  return NS_SUCCEEDED(oldURI->Equals(newURI, &equal)) && equal;
-}
-
 
  void
 nsFrame::DidSetStyleContext(nsStyleContext* aOldStyleContext)
 {
-  if (aOldStyleContext) {
-    
-    
-    
-    
-    
-    
-    
-    
-    const nsStyleBackground *oldBG = aOldStyleContext->GetStyleBackground();
-    const nsStyleBackground *newBG = GetStyleBackground();
-    NS_FOR_VISIBLE_BACKGROUND_LAYERS_BACK_TO_FRONT(i, oldBG) {
-      imgIRequest *oldImage = oldBG->mLayers[i].mImage.mRequest;
-      imgIRequest *newImage =
-        (i < newBG->mImageCount) ? newBG->mLayers[i].mImage.mRequest : nsnull;
-      if (oldImage && !EqualImages(oldImage, newImage)) {
-        
-        PresContext()->SetImageLoaders(this,
-          nsPresContext::BACKGROUND_IMAGE, nsnull);
-        break;
-      }
-    }
-  }
-
-  imgIRequest *oldBorderImage = aOldStyleContext
-    ? aOldStyleContext->GetStyleBorder()->GetBorderImage()
-    : nsnull;
   
   
   
   
   
   
-  
-  
-  
-  
-  
-  
-  
-  if (!EqualImages(oldBorderImage, GetStyleBorder()->GetBorderImage())) {
-    
-    PresContext()->SetupBorderImageLoaders(this, GetStyleBorder());
+  imgIRequest *borderImage = GetStyleBorder()->GetBorderImage();
+  if (borderImage) {
+    PresContext()->LoadBorderImage(borderImage, this);
   }
 }
 
@@ -4029,14 +3979,11 @@ nsIFrame::CheckInvalidateSizeChange(const nsRect& aOldRect,
 
   
   
-  const nsStyleBackground *bg = GetStyleBackground();
-  NS_FOR_VISIBLE_BACKGROUND_LAYERS_BACK_TO_FRONT(i, bg) {
-    const nsStyleBackground::Layer &layer = bg->mLayers[i];
-    if (layer.mImage.mRequest &&
-        (layer.mPosition.mXIsPercent || layer.mPosition.mYIsPercent)) {
-      Invalidate(nsRect(0, 0, aOldRect.width, aOldRect.height));
-      return;
-    }
+  const nsStyleBackground* background = GetStyleBackground();
+  if (background->mBackgroundFlags &
+      (NS_STYLE_BG_X_POSITION_PERCENT | NS_STYLE_BG_Y_POSITION_PERCENT)) {
+    Invalidate(nsRect(0, 0, aOldRect.width, aOldRect.height));
+    return;
   }
 }
 

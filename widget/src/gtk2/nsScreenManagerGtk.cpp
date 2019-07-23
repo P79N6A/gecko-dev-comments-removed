@@ -197,11 +197,11 @@ nsScreenManagerGtk :: Init()
     if (_XnrmIsActive && _XnrmQueryScreens &&
         _XnrmIsActive(GDK_DISPLAY())) {
       screenInfo = _XnrmQueryScreens(GDK_DISPLAY(), &numScreens);
-
-      
-      mXineramaIsActive = numScreens > 0;
     }
   }
+
+  
+  mXineramaIsActive = numScreens > 0;
 
   
   

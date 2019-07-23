@@ -60,7 +60,7 @@
 #include "nsPropertyTable.h"
 #include "nsGkAtoms.h"
 #include "nsIDocument.h"
-#include "nsRefPtrHashtable.h"
+#include "nsInterfaceHashtable.h"
 #include "nsCycleCollectionParticipant.h"
 #include "nsChangeHint.h"
 
@@ -93,7 +93,6 @@ class nsILookAndFeel;
 class nsICSSPseudoComparator;
 class nsIAtom;
 struct nsStyleBackground;
-struct nsStyleBorder;
 class nsIRunnable;
 class gfxUserFontSet;
 class nsUserFontSet;
@@ -379,43 +378,38 @@ public:
   PRBool GetFocusRingOnAnything() const { return mFocusRingOnAnything; }
   PRUint8 GetFocusRingStyle() const { return mFocusRingStyle; }
 
-  
-
-
-
-  enum ImageLoadType {
-    BACKGROUND_IMAGE,
-    BORDER_IMAGE,
-    IMAGE_LOAD_TYPE_COUNT
-  };
 
   
 
 
 
 
-
-  NS_HIDDEN_(void) SetImageLoaders(nsIFrame* aTargetFrame,
-                                   ImageLoadType aType,
-                                   nsImageLoader* aImageLoaders);
-
+  NS_HIDDEN_(imgIRequest*) LoadImage(imgIRequest* aImage,
+                                     nsIFrame* aTargetFrame);
   
 
 
 
 
-  NS_HIDDEN_(void) SetupBackgroundImageLoaders(nsIFrame* aFrame,
-                                               const nsStyleBackground*
-                                                 aStyleBackground);
+  NS_HIDDEN_(imgIRequest*) LoadBorderImage(imgIRequest* aImage,
+                                           nsIFrame* aTargetFrame);
 
-  
+private:
+  typedef nsInterfaceHashtable<nsVoidPtrHashKey, nsImageLoader> ImageLoaderTable;
 
+  NS_HIDDEN_(imgIRequest*) DoLoadImage(ImageLoaderTable& aTable,
+                                       imgIRequest* aImage,
+                                       nsIFrame* aTargetFrame,
+                                       PRBool aReflowOnLoad);
 
+  NS_HIDDEN_(void) DoStopImageFor(ImageLoaderTable& aTable,
+                                  nsIFrame* aTargetFrame);
+public:
 
-
-  NS_HIDDEN_(void) SetupBorderImageLoaders(nsIFrame* aFrame,
-                                           const nsStyleBorder* aStyleBorder);
-
+  NS_HIDDEN_(void) StopBackgroundImageFor(nsIFrame* aTargetFrame)
+  { DoStopImageFor(mImageLoaders, aTargetFrame); }
+  NS_HIDDEN_(void) StopBorderImageFor(nsIFrame* aTargetFrame)
+  { DoStopImageFor(mBorderImageLoaders, aTargetFrame); }
   
 
 
@@ -853,9 +847,8 @@ protected:
   nsILinkHandler*       mLinkHandler;   
   nsIAtom*              mLangGroup;     
 
-  nsRefPtrHashtable<nsVoidPtrHashKey, nsImageLoader>
-                        mImageLoaders[IMAGE_LOAD_TYPE_COUNT];
-
+  ImageLoaderTable      mImageLoaders;
+  ImageLoaderTable      mBorderImageLoaders;
   nsWeakPtr             mContainer;
 
   float                 mTextZoom;      

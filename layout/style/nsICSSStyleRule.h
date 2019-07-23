@@ -173,12 +173,10 @@ private:
   void AddPseudoClassInternal(nsPseudoClassList *aPseudoClass);
   nsCSSSelector* Clone(PRBool aDeepNext, PRBool aDeepNegations) const;
 
-  void AppendToStringWithoutCombinators(nsAString& aString,
-                                        nsICSSStyleSheet* aSheet) const;
-  void AppendToStringWithoutCombinatorsOrNegations(nsAString& aString,
-                                                   nsICSSStyleSheet* aSheet,
-                                                   PRBool aIsNegated)
-                                                        const;
+  void AppendNegationToString(nsAString& aString);
+  void ToStringInternal(nsAString& aString, nsICSSStyleSheet* aSheet,
+                        PRBool aIsPseudoElem,
+                        PRBool aIsNegated) const;
   
   
   
