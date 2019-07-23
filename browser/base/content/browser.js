@@ -1313,7 +1313,6 @@ AutoHideTabbarPrefListener.prototype =
       catch (e) {
       }
       gBrowser.setStripVisibilityTo(aVisible);
-      gPrefService.setBoolPref("browser.tabs.forceHide", false);
     }
   }
 }
@@ -1636,8 +1635,7 @@ function BrowserOpenFileWindow()
   }
 }
 
-function BrowserCloseTabOrWindow()
-{
+function BrowserCloseTabOrWindow() {
 #ifdef XP_MACOSX
   
   if (window.location.href != getBrowserURL()) {
@@ -1646,23 +1644,8 @@ function BrowserCloseTabOrWindow()
   }
 #endif
 
-  if (gBrowser.tabContainer.childNodes.length > 1) {
-    gBrowser.removeCurrentTab(); 
-    return;
-  }
-
-#ifndef XP_MACOSX
-  if (gBrowser.localName == "tabbrowser" && window.toolbar.visible &&
-      !gPrefService.getBoolPref("browser.tabs.autoHide")) {
-    
-    gBrowser.removeCurrentTab();
-    if (gURLBar)
-      setTimeout(function() { gURLBar.focus(); }, 0);
-    return;
-  }
-#endif
-
-  closeWindow(true);
+  
+  gBrowser.removeCurrentTab();
 }
 
 function BrowserTryToCloseWindow()
