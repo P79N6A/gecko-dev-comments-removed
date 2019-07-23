@@ -69,6 +69,7 @@ PluginModuleParent::PluginModuleParent(const char* aFilePath)
     : mSubprocess(new PluginProcessParent(aFilePath))
     , mShutdown(false)
     , mNPNIface(NULL)
+    , mPlugin(NULL)
 {
     NS_ASSERTION(mSubprocess, "Out of memory!");
 
@@ -97,9 +98,16 @@ PluginModuleParent::ActorDestroy(ActorDestroyReason why)
 {
     switch (why) {
     case AbnormalShutdown:
+        mShutdown = true;
         
         
-        
+        if (mPlugin) {
+            nsCOMPtr<nsIRunnable> r =
+                new nsRunnableMethod<nsNPAPIPlugin>(
+                    mPlugin, &nsNPAPIPlugin::PluginCrashed);
+            NS_DispatchToMainThread(r);
+        }
+        break;
 
     case NormalShutdown:
         mShutdown = true;
