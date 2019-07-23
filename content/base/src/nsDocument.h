@@ -256,7 +256,11 @@ public:
 
 
   nsIContent* GetIdContent(PRBool* aIsNotInDocument = nsnull);
+  void AppendAllIdContent(nsCOMArray<nsIContent>* aElements);
   PRBool AddIdContent(nsIContent* aContent);
+  
+
+
   PRBool RemoveIdContent(nsIContent* aContent);
   void FlagIDNotInDocument();
 
@@ -888,7 +892,9 @@ protected:
     
     return (mIdMissCount & 0x40) != 0;
   }
-
+  void SetIdTableLive() {
+    mIdMissCount = 0x40;
+  }
   PRBool IdTableShouldBecomeLive() {
     NS_ASSERTION(!IdTableIsLive(),
                  "Shouldn't be called if table is already live!");
