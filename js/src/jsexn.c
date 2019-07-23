@@ -1070,10 +1070,10 @@ js_InitExceptionClasses(JSContext *cx, JSObject *obj)
             break;
 
         
-        fun->clasp = &js_ErrorClass;
+        NATIVE_FUN_SET_CLASS(fun, &js_ErrorClass);
 
         
-        funobj = &fun->object;
+        funobj = &fun->base.object;
 
         
         if (!js_SetClassPrototype(cx, funobj, protos[i],

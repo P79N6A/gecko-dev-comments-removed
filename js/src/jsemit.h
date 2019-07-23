@@ -175,7 +175,7 @@ struct JSTreeContext {
 
     JSAtomList      decls;          
     JSParseContext  *parseContext;
-    JSScriptedFunction *fun;        
+    JSFunction      *funobj;        
 
 };
 
@@ -216,7 +216,7 @@ struct JSTreeContext {
      ATOM_LIST_INIT(&(tc)->decls),                                            \
      (tc)->blockNode = NULL,                                                  \
      (tc)->parseContext = (pc),                                               \
-     (tc)->fun = NULL)
+     (tc)->funobj = NULL)
 
 #define TREE_CONTEXT_FINISH(tc)                                               \
     ((void)0)

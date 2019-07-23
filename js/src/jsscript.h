@@ -228,7 +228,7 @@ js_NewScriptFromCG(JSContext *cx, JSCodeGenerator *cg);
 
 
 extern void
-js_CallNewScriptHook(JSContext *cx, JSScript *script, JSScriptedFunction *fun);
+js_CallNewScriptHook(JSContext *cx, JSScript *script, JSFunction *fun);
 
 extern void
 js_CallDestroyScriptHook(JSContext *cx, JSScript *script);
