@@ -111,6 +111,12 @@ var PlacesUtils = {
                           getService(Ci.nsINavHistoryService);
   },
 
+  get globalHistory() {
+    delete this.globalHistory;
+    return this.globalHistory = Cc["@mozilla.org/browser/global-history;2"].
+                                getService(Ci.nsIBrowserHistory);
+  },
+
   
 
 
@@ -1249,6 +1255,29 @@ var PlacesUtils = {
 
 
 
+  markPageAsTyped: function PU_markPageAsTyped(aURL) {
+    this.globalHistory.markPageAsTyped(this.createFixedURI(aURL));
+  },
+
+  
+
+
+
+
+
+
+  markPageAsFollowedBookmark: function PU_markPageAsFollowedBookmark(aURL) {
+    this.history.markPageAsFollowedBookmark(this.createFixedURI(aURL));
+  },
+
+  
+
+
+
+
+
+
+
   checkURLSecurity: function PU_checkURLSecurity(aURINode) {
     if (!this.nodeIsBookmark(aURINode)) {
       var uri = IO.newURI(aURINode.uri);
@@ -1552,7 +1581,7 @@ var PlacesUtils = {
       for (let i = 0; i < contents.childCount; ++i) {
         let child = contents.getChild(i);
         if (this.nodeIsURI(child))
-          urls.push(child.uri);
+          urls.push({uri: child.uri, isBookmark: this.nodeIsBookmark(child)});
       }
     }
     else {
@@ -1568,7 +1597,7 @@ var PlacesUtils = {
         for (let i = 0; i < aNode.childCount; ++i) {
           let child = aNode.getChild(i);
           if (this.nodeIsURI(child))
-            urls.push(child.uri);
+            urls.push({uri: child.uri, isBookmark: this.nodeIsBookmark(child)});
         }
         if (!wasOpen)
           aNode.containerOpen = false;
@@ -1625,19 +1654,32 @@ var PlacesUtils = {
     return reallyOpen;
   },
 
-  _openTabset: function PU__openTabset(aURLs, aEvent) {
+  
+
+
+  _openTabset: function PU__openTabset(aItemsToOpen, aEvent) {
+    var urls = [];
+    for each (var item in aItemsToOpen) {
+      if (item.isBookmark)
+        this.markPageAsFollowedBookmark(item.uri);
+      else
+        this.markPageAsTyped(item.uri);
+
+      urls.push(item.uri);
+    }
+
     var browserWindow = getTopWin();
     var where = browserWindow ?
                 whereToOpenLink(aEvent, false, true) : "window";
     if (where == "window") {
       window.openDialog(getBrowserURL(), "_blank",
-                        "chrome,all,dialog=no", aURLs.join("|"));
+                        "chrome,all,dialog=no", urls.join("|"));
       return;
     }
 
     var loadInBackground = where == "tabshifted" ? true : false;
     var replaceCurrentTab = where == "tab" ? false : true;
-    browserWindow.getBrowser().loadTabs(aURLs, loadInBackground,
+    browserWindow.getBrowser().loadTabs(urls, loadInBackground,
                                         replaceCurrentTab);
   },
 
@@ -1645,14 +1687,16 @@ var PlacesUtils = {
     var urlsToOpen = this.getURLsForContainerNode(aNode);
     if (!this._confirmOpenInTabs(urlsToOpen.length))
       return;
+
     this._openTabset(urlsToOpen, aEvent);
   },
 
   openURINodesInTabs: function PU_openURINodesInTabs(aNodes, aEvent) {
     var urlsToOpen = [];
     for (var i=0; i < aNodes.length; i++) {
+      
       if (this.nodeIsURI(aNodes[i]))
-        urlsToOpen.push(aNodes[i].uri);
+        urlsToOpen.push({uri: aNodes[i].uri, isBookmark: this.nodeIsBookmark(aNodes[i])});
     }
     this._openTabset(urlsToOpen, aEvent);
   },

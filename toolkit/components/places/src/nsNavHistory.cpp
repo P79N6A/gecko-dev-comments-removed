@@ -1762,6 +1762,12 @@ nsNavHistory::GetHasHistoryEntries(PRBool* aHasEntries)
 
 
 
+
+
+
+
+
+
 NS_IMETHODIMP
 nsNavHistory::MarkPageAsFollowedBookmark(nsIURI* aURI)
 {
@@ -1780,7 +1786,7 @@ nsNavHistory::MarkPageAsFollowedBookmark(nsIURI* aURI)
   if (mRecentBookmark.Count() > RECENT_EVENT_QUEUE_MAX_LENGTH)
     ExpireNonrecentEvents(&mRecentBookmark);
 
-  mRecentTyped.Put(uriString, GetNow());
+  mRecentBookmark.Put(uriString, GetNow());
   return NS_OK;
 }
 
@@ -3026,10 +3032,6 @@ nsNavHistory::HidePage(nsIURI *aURI)
 
 
 }
-
-
-
-
 
 
 

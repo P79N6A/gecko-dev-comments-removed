@@ -638,9 +638,16 @@ PlacesController.prototype = {
   openSelectedNodeIn: function PC_openSelectedNodeIn(aWhere) {
     var node = this._view.selectedURINode;
     if (node && PlacesUtils.checkURLSecurity(node)) {
-       
-       
-      if (aWhere == "current" && PlacesUtils.nodeIsBookmark(node)) {
+      var isBookmark = PlacesUtils.nodeIsBookmark(node);
+
+      if (isBookmark)
+        PlacesUtils.markPageAsFollowedBookmark(node.uri);
+      else
+        PlacesUtils.markPageAsTyped(node.uri);
+
+      
+      
+      if (aWhere == "current" && isBookmark) {
         if (PlacesUtils.annotations
                        .itemHasAnnotation(node.itemId, LOAD_IN_SIDEBAR_ANNO)) {
           var w = getTopWin();
