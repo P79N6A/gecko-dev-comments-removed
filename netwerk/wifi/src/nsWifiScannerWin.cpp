@@ -112,7 +112,7 @@ int PerformQuery(HANDLE &ndis_handle,
   NDISUIO_QUERY_OID *query = (NDISUIO_QUERY_OID*)(buffer);
   query->ptcDeviceName = const_cast<PTCHAR>(device_name);
   query->Oid = OID_802_11_BSSID_LIST;
-  
+
   if (!DeviceIoControl(ndis_handle,
                        IOCTL_NDISUIO_QUERY_OID_VALUE,
                        query,
@@ -135,27 +135,27 @@ void GetNetworkInterfaces(GETADAPTERSINFO pGetAdaptersInfo, nsStringArray& inter
   ULONG buffer_size = 0;
   
   
-  if (pGetAdaptersInfo(NULL, &buffer_size) != ERROR_BUFFER_OVERFLOW)      
+  if (pGetAdaptersInfo(NULL, &buffer_size) != ERROR_BUFFER_OVERFLOW)
     return;
-  
+
   
   IP_ADAPTER_INFO *adapter_info = (IP_ADAPTER_INFO*)malloc(buffer_size);
   if (adapter_info == NULL){
     free (adapter_info);
     return;
   }
-  
+
   if (pGetAdaptersInfo(adapter_info, &buffer_size) != ERROR_SUCCESS){
     free (adapter_info);
     return;
   }
+
   
-  
-  while (adapter_info) {      
+  while (adapter_info) {
     
     nsString adapterName;
     
-    adapterName.AppendWithConversion(adapter_info->AdapterName);      
+    adapterName.AppendWithConversion(adapter_info->AdapterName);
     interfaces.AppendString(adapterName);
     adapter_info = adapter_info->Next;
   }
@@ -173,13 +173,13 @@ nsresult SetupWince(HANDLE& ndis_handle, GETADAPTERSINFO& pGetAdaptersInfo){
 			   FILE_ATTRIBUTE_READONLY, NULL);
   if (INVALID_HANDLE_VALUE == ndis_handle)
     return NS_ERROR_FAILURE;
-  
+
   HINSTANCE hIpDLL = LoadLibraryW(L"Iphlpapi.dll");
   if (!hIpDLL)
     return NS_ERROR_NOT_AVAILABLE;
-  
+
   pGetAdaptersInfo = (GETADAPTERSINFO) GetProcAddress(hIpDLL, "GetAdaptersInfo");
-  
+
   if (!pGetAdaptersInfo)
     return NS_ERROR_FAILURE;
 
@@ -193,7 +193,7 @@ int PerformQuery(HANDLE adapter_handle,
                  DWORD *bytes_out) {
 
   DWORD oid = OID_802_11_BSSID_LIST;
-  
+
   if (!DeviceIoControl(adapter_handle,
                        IOCTL_NDIS_QUERY_GLOBAL_STATS,
                        &oid,
@@ -245,10 +245,10 @@ bool DefineDosDeviceIfNotExists(const PRUnichar* device_name, bool* dosDeviceDef
 
   WCHAR target[kStringLength];
 
-  if (QueryDosDeviceW(device_name, target, kStringLength) > 0 && target_path.Equals(target)) {     
+  if (QueryDosDeviceW(device_name, target, kStringLength) > 0 && target_path.Equals(target)) {
     
     return true;
-  } 
+  }
 
   DWORD error = GetLastError();
   if (error != ERROR_FILE_NOT_FOUND) {
@@ -264,7 +264,7 @@ bool DefineDosDeviceIfNotExists(const PRUnichar* device_name, bool* dosDeviceDef
   
   return QueryDosDeviceW(device_name, target, kStringLength) > 0 &&
     target_path.Equals(target);
-} 
+}
 
 void GetNetworkInterfaces(nsStringArray& interfaces)
 {
@@ -276,13 +276,13 @@ void GetNetworkInterfaces(nsStringArray& interfaces)
                     &network_cards_key) != ERROR_SUCCESS)
     {
       return;
-    }   
-  
+    }
+
   for (int i = 0; ; ++i) {
     WCHAR name[kStringLength];
     DWORD name_size = kStringLength;
     FILETIME time;
-    
+
     if (RegEnumKeyExW(network_cards_key,
                       i,
                       name,
@@ -290,11 +290,11 @@ void GetNetworkInterfaces(nsStringArray& interfaces)
                       NULL,
                       NULL,
                       NULL,
-                      &time) != ERROR_SUCCESS) 
+                      &time) != ERROR_SUCCESS)
       {
         break;
-      }     
-    
+      }
+
     HKEY hardware_key = NULL;
     if (RegOpenKeyExW(network_cards_key,
                       name,
@@ -304,20 +304,20 @@ void GetNetworkInterfaces(nsStringArray& interfaces)
       {
         break;
       }
-    
+
     PRUnichar service_name[kStringLength];
     DWORD service_name_size = kStringLength;
     DWORD type = 0;
-    
+
     if (RegQueryValueExW(hardware_key,
                          L"ServiceName",
                          NULL,
                          &type,
                          (LPBYTE)service_name,
                          &service_name_size) == ERROR_SUCCESS) {
- 
+
       interfaces.AppendString(nsString(service_name));  
-    } 
+    }
     RegCloseKey(hardware_key);
   }
   RegCloseKey(network_cards_key);
@@ -355,7 +355,7 @@ nsWifiMonitor::DoScan()
 
     nsCOMArray<nsWifiAccessPoint> lastAccessPoints;
     nsCOMArray<nsWifiAccessPoint> accessPoints;
-    
+
     do {
       accessPoints.Clear();
 
@@ -365,19 +365,19 @@ nsWifiMonitor::DoScan()
 #else
       GetNetworkInterfaces(interfaces);
 #endif
-      
+
       for (int i = 0; i < interfaces.Count(); i++) {
         nsString *s = interfaces.StringAt(i);
         const PRUnichar *service_name = s->get();
-        
-#ifndef WINCE        
+
+#ifndef WINCE
         bool dosDeviceDefined = false;
         if (!DefineDosDeviceIfNotExists(service_name, &dosDeviceDefined))
           continue;
 
         
         
-        
+
         HANDLE adapter_handle = GetFileHandle(service_name);
         if (adapter_handle == INVALID_HANDLE_VALUE)
           continue;
@@ -386,7 +386,7 @@ nsWifiMonitor::DoScan()
 #endif
 
         
-        
+
         BYTE *buffer = (BYTE*)malloc(oid_buffer_size_);
         if (buffer == NULL) {
 #ifdef WINCE
@@ -397,34 +397,34 @@ nsWifiMonitor::DoScan()
 
         DWORD bytes_out;
         int result;
-        
-        while (true) {     
+
+        while (true) {
 
           NS_ASSERTION(buffer && oid_buffer_size_ > 0, "buffer must not be null, and the size must be larger than 0");
 
-          bytes_out = 0; 
+          bytes_out = 0;
 #ifdef WINCE
           result = PerformQuery(ndis_handle, service_name, buffer, oid_buffer_size_, data, &bytes_out);
 #else
           result = PerformQuery(adapter_handle, buffer, oid_buffer_size_, &bytes_out);
 #endif
-          
+
           if (result == ERROR_GEN_FAILURE ||  
               result == ERROR_INVALID_USER_BUFFER || 
               result == ERROR_INSUFFICIENT_BUFFER ||
               result == ERROR_MORE_DATA ||
               result == NDIS_STATUS_INVALID_LENGTH ||
               result == NDIS_STATUS_BUFFER_TOO_SHORT) {
+
             
             
-            
-            
-            if (bytes_out > static_cast<DWORD>(oid_buffer_size_)) { 
+
+            if (bytes_out > static_cast<DWORD>(oid_buffer_size_)) {
               oid_buffer_size_ = bytes_out;
             } else {
               oid_buffer_size_ *= 2;
-            } 
-            
+            }
+
             if (!ResizeBuffer(oid_buffer_size_, &buffer)) {
               oid_buffer_size_ = kInitialBufferSize;  
               continue;
@@ -434,63 +434,61 @@ nsWifiMonitor::DoScan()
             break;
           }
         }
-          
+
         if (result == ERROR_SUCCESS) {
 #ifdef WINCE
           NDIS_802_11_BSSID_LIST* bssid_list = (NDIS_802_11_BSSID_LIST*)data;
 #else
           NDIS_802_11_BSSID_LIST* bssid_list = (NDIS_802_11_BSSID_LIST*)buffer;
 #endif
-          
+
           
           const uint8 *iterator = (const uint8*)&bssid_list->Bssid[0];
           const uint8 *end_of_buffer = (const uint8*)buffer + oid_buffer_size_;
           for (int i = 0; i < static_cast<int>(bssid_list->NumberOfItems); ++i) {
-            
+
             const NDIS_WLAN_BSSID *bss_id = (const NDIS_WLAN_BSSID*)iterator;
-            
+
             
             if (bss_id->Length < sizeof(NDIS_WLAN_BSSID) ||
                 iterator + bss_id->Length > end_of_buffer) {
               break;
             }
-            
+
             nsWifiAccessPoint* ap = new nsWifiAccessPoint();
             if (!ap)
               continue;
-            
+
             ap->setMac(bss_id->MacAddress);
             ap->setSignal(bss_id->Rssi);
             ap->setSSID((char*) bss_id->Ssid.Ssid, bss_id->Ssid.SsidLength);
-            
+
             accessPoints.AppendObject(ap);
-            
+
             
             iterator += bss_id->Length;
           }
 
-          free(buffer); 
+          free(buffer);
 
           
 #ifndef WINCE
           CloseHandle(adapter_handle);
 #endif
         }
-        
+
 #ifndef WINCE
         if (dosDeviceDefined)
           UndefineDosDevice(service_name);
 #endif
       }
-     
- 
-    
+
     PRBool accessPointsChanged = !AccessPointsEqual(accessPoints, lastAccessPoints);
     nsCOMArray<nsIWifiListener> currentListeners;
-    
+
     {
       nsAutoMonitor mon(mMonitor);
-      
+
       for (PRUint32 i = 0; i < mListeners.Length(); i++) {
         if (!mListeners[i].mHasSentData || accessPointsChanged) {
           mListeners[i].mHasSentData = PR_TRUE;
@@ -498,9 +496,9 @@ nsWifiMonitor::DoScan()
         }
       }
     }
-    
+
     ReplaceArray(lastAccessPoints, accessPoints);
-    
+
     if (currentListeners.Count() > 0) {
 
       PRUint32 resultCount = lastAccessPoints.Count();
@@ -514,11 +512,11 @@ nsWifiMonitor::DoScan()
 
       for (PRUint32 i = 0; i < resultCount; i++)
         result[i] = lastAccessPoints[i];
-      
+
       for (PRInt32 i = 0; i < currentListeners.Count(); i++) {
-          
+
         LOG(("About to send data to the wifi listeners\n"));
-        
+
         nsCOMPtr<nsIWifiListener> proxy;
         nsCOMPtr<nsIProxyObjectManager> proxyObjMgr = do_GetService("@mozilla.org/xpcomproxy;1");
         proxyObjMgr->GetProxyForObject(NS_PROXY_TO_MAIN_THREAD,
@@ -538,10 +536,10 @@ nsWifiMonitor::DoScan()
 
       nsMemory::Free(result);
     }
-    
+
     
     LOG(("waiting on monitor\n"));
-    
+
     nsAutoMonitor mon(mMonitor);
     mon.Wait(PR_SecondsToInterval(60));
   }
@@ -559,28 +557,28 @@ nsWifiMonitor::DoScan()
     HINSTANCE wlan_library = LoadLibrary("Wlanapi.dll");
     if (!wlan_library)
       return NS_ERROR_NOT_AVAILABLE;
-    
+
     WlanOpenHandleFunction WlanOpenHandle = (WlanOpenHandleFunction) GetProcAddress(wlan_library, "WlanOpenHandle");
     WlanEnumInterfacesFunction WlanEnumInterfaces = (WlanEnumInterfacesFunction) GetProcAddress(wlan_library, "WlanEnumInterfaces");
     WlanGetNetworkBssListFunction WlanGetNetworkBssList = (WlanGetNetworkBssListFunction) GetProcAddress(wlan_library, "WlanGetNetworkBssList");
     WlanFreeMemoryFunction WlanFreeMemory = (WlanFreeMemoryFunction) GetProcAddress(wlan_library, "WlanFreeMemory");
     WlanCloseHandleFunction WlanCloseHandle = (WlanCloseHandleFunction) GetProcAddress(wlan_library, "WlanCloseHandle");
-    
+
     if (!WlanOpenHandle ||
         !WlanEnumInterfaces ||
         !WlanGetNetworkBssList ||
         !WlanFreeMemory ||
         !WlanCloseHandle)
       return NS_ERROR_FAILURE;
+
     
-    
-    
+
     nsCOMArray<nsWifiAccessPoint> lastAccessPoints;
     nsCOMArray<nsWifiAccessPoint> accessPoints;
-    
+
     do {
       accessPoints.Clear();
-      
+
       
       DWORD negotiated_version;
       HANDLE wlan_handle = NULL;
@@ -594,11 +592,11 @@ nsWifiMonitor::DoScan()
                             &wlan_handle) != ERROR_SUCCESS) {
         return NS_ERROR_NOT_AVAILABLE;
       }
-      
+
       
       if (!wlan_handle)
         return NS_ERROR_FAILURE;
-      
+
       
       WLAN_INTERFACE_INFO_LIST *interface_list = NULL;
       if ((*WlanEnumInterfaces)(wlan_handle, NULL, &interface_list) != ERROR_SUCCESS) {
@@ -606,10 +604,10 @@ nsWifiMonitor::DoScan()
         (*WlanCloseHandle)(wlan_handle, NULL);
         return NS_ERROR_FAILURE;
       }
-      
+
       
       for (int i = 0; i < static_cast<int>(interface_list->dwNumberOfItems); ++i) {
-        
+
         WLAN_BSS_LIST *bss_list;
         HRESULT rv = (*WlanGetNetworkBssList)(wlan_handle,
                                               &interface_list->InterfaceInfo[i].InterfaceGuid,
@@ -621,38 +619,38 @@ nsWifiMonitor::DoScan()
         if (rv != ERROR_SUCCESS) {
           continue;
         }
-        
+
         for (int j = 0; j < static_cast<int>(bss_list->dwNumberOfItems); ++j) {
-          
+
           nsWifiAccessPoint* ap = new nsWifiAccessPoint();
           if (!ap)
             continue;
-          
+
           const WLAN_BSS_ENTRY bss_entry = bss_list->wlanBssEntries[j];
-          
+
           ap->setMac(bss_entry.dot11Bssid);
           ap->setSignal(bss_entry.lRssi);
           ap->setSSID((char*) bss_entry.dot11Ssid.ucSSID,
                       bss_entry.dot11Ssid.uSSIDLength);
-          
+
           accessPoints.AppendObject(ap);
         }
         (*WlanFreeMemory)(bss_list);
       }
-      
+
       
       (*WlanFreeMemory)(interface_list);
-      
+
       
       (*WlanCloseHandle)(wlan_handle, NULL);
-      
-      
+
+
       PRBool accessPointsChanged = !AccessPointsEqual(accessPoints, lastAccessPoints);
       nsCOMArray<nsIWifiListener> currentListeners;
-      
+
       {
         nsAutoMonitor mon(mMonitor);
-      
+
         for (PRUint32 i = 0; i < mListeners.Length(); i++) {
           if (!mListeners[i].mHasSentData || accessPointsChanged) {
             mListeners[i].mHasSentData = PR_TRUE;
@@ -660,22 +658,22 @@ nsWifiMonitor::DoScan()
           }
         }
       }
-      
+
       ReplaceArray(lastAccessPoints, accessPoints);
-      
+
       if (currentListeners.Count() > 0) {
         PRUint32 resultCount = lastAccessPoints.Count();
         nsIWifiAccessPoint** result = static_cast<nsIWifiAccessPoint**> (nsMemory::Alloc(sizeof(nsIWifiAccessPoint*) * resultCount));
         if (!result)
           return NS_ERROR_OUT_OF_MEMORY;
-      
+
         for (PRUint32 i = 0; i < resultCount; i++)
           result[i] = lastAccessPoints[i];
-        
+
         for (PRInt32 i = 0; i < currentListeners.Count(); i++) {
-          
+
           LOG(("About to send data to the wifi listeners\n"));
-          
+
           nsCOMPtr<nsIWifiListener> proxy;
           nsCOMPtr<nsIProxyObjectManager> proxyObjMgr = do_GetService("@mozilla.org/xpcomproxy;1");
           proxyObjMgr->GetProxyForObject(NS_PROXY_TO_MAIN_THREAD,
@@ -692,13 +690,13 @@ nsWifiMonitor::DoScan()
             LOG( ("... sent %d\n", rv));
           }
         }
-        
+
         nsMemory::Free(result);
       }
-      
+
       
       LOG(("waiting on monitor\n"));
-      
+
       nsAutoMonitor mon(mMonitor);
       mon.Wait(PR_SecondsToInterval(60));
     }
