@@ -145,6 +145,7 @@ private:
 
     DOMBaseVal(nsSVGLength2* aVal, nsSVGElement *aSVGElement)
       : mVal(aVal), mSVGElement(aSVGElement) {}
+    virtual ~DOMBaseVal();
     
     nsSVGLength2* mVal; 
     nsRefPtr<nsSVGElement> mSVGElement;
@@ -194,6 +195,7 @@ private:
 
     DOMAnimVal(nsSVGLength2* aVal, nsSVGElement *aSVGElement)
       : mVal(aVal), mSVGElement(aSVGElement) {}
+    virtual ~DOMAnimVal();
     
     nsSVGLength2* mVal; 
     nsRefPtr<nsSVGElement> mSVGElement;
@@ -255,6 +257,7 @@ private:
 
     DOMAnimatedLength(nsSVGLength2* aVal, nsSVGElement *aSVGElement)
       : mVal(aVal), mSVGElement(aSVGElement) {}
+    virtual ~DOMAnimatedLength();
     
     nsSVGLength2* mVal; 
     nsRefPtr<nsSVGElement> mSVGElement;
