@@ -3085,7 +3085,7 @@ NS_IMETHODIMP nsAccessible::GetObject(PRInt32 aIndex,
 NS_IMETHODIMP nsAccessible::IsValid(PRBool *aIsValid)
 {
   PRUint32 state = State(this);
-  *aIsValid = (state & nsIAccessibleStates::STATE_INVALID) != 0;
+  *aIsValid = (0 == (state & nsIAccessibleStates::STATE_INVALID));
   
   
   
