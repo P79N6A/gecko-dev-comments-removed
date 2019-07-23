@@ -49,6 +49,16 @@
 
 
 
+__attribute__((__unused__)) static void   _void_consume        (void *p, ...)   { }
+__attribute__((__unused__)) static void * _voidp_consume       (void *p, ...)   { return (void *)0; }
+__attribute__((__unused__)) static int    _int_consume         (void *p, ...)   { return 0; }
+__attribute__((__unused__)) static void   _void_consume_free   (Display *p, XID n) { }
+
+
+
+
+
+
 
 #ifndef FilterConvolution
 #define FilterConvolution		    "convolution"
@@ -63,6 +73,57 @@
 #endif
 
 
+#ifndef PictOptBlendMinimum
+
+
+
+#define PictOpBlendMinimum			    0x30
+#define PictOpMultiply				    0x30
+#define PictOpScreen				    0x31
+#define PictOpOverlay				    0x32
+#define PictOpDarken				    0x33
+#define PictOpLighten				    0x34
+#define PictOpColorDodge			    0x35
+#define PictOpColorBurn				    0x36
+#define PictOpHardLight				    0x37
+#define PictOpSoftLight				    0x38
+#define PictOpDifference			    0x39
+#define PictOpExclusion				    0x3a
+#define PictOpHSLHue				    0x3b
+#define PictOpHSLSaturation			    0x3c
+#define PictOpHSLColor				    0x3d
+#define PictOpHSLLuminosity			    0x3e
+#define PictOpBlendMaximum			    0x3e
+#endif
+
+
+
+#if RENDER_MAJOR == 0 && RENDER_MINOR < 10
+#define XRenderCreateLinearGradient			_int_consume
+#define XRenderCreateRadialGradient			_int_consume
+#define XRenderCreateConicalGradient			_int_consume
+typedef struct _XCircle {
+    XFixed x;
+    XFixed y;
+    XFixed radius;
+} XCircle;
+typedef struct _XLinearGradient {
+    XPointFixed p1;
+    XPointFixed p2;
+} XLinearGradient;
+
+typedef struct _XRadialGradient {
+    XCircle inner;
+    XCircle outer;
+} XRadialGradient;
+
+typedef struct _XConicalGradient {
+    XPointFixed center;
+    XFixed angle; 
+} XConicalGradient;
+#endif
+
+
 #else 
 
 
@@ -70,14 +131,6 @@
 
 
 
-
-
-
-
-__attribute__((__unused__)) static void   _void_consume        (void *p, ...)   { }
-__attribute__((__unused__)) static void * _voidp_consume       (void *p, ...)   { return (void *)0; }
-__attribute__((__unused__)) static int    _int_consume         (void *p, ...)   { return 0; }
-__attribute__((__unused__)) static void   _void_consume_free   (Display *p, XID n) { }
 
 #define XRenderQueryExtension				_int_consume
 #define XRenderQueryVersion				_int_consume
@@ -220,6 +273,27 @@ typedef unsigned long	PictFormat;
 #define PictOpConjointAtopReverse		    0x2a
 #define PictOpConjointXor			    0x2b
 #define PictOpConjointMaximum			    0x2b
+
+
+
+
+#define PictOpBlendMinimum			    0x30
+#define PictOpMultiply				    0x30
+#define PictOpScreen				    0x31
+#define PictOpOverlay				    0x32
+#define PictOpDarken				    0x33
+#define PictOpLighten				    0x34
+#define PictOpColorDodge			    0x35
+#define PictOpColorBurn				    0x36
+#define PictOpHardLight				    0x37
+#define PictOpSoftLight				    0x38
+#define PictOpDifference			    0x39
+#define PictOpExclusion				    0x3a
+#define PictOpHSLHue				    0x3b
+#define PictOpHSLSaturation			    0x3c
+#define PictOpHSLColor				    0x3d
+#define PictOpHSLLuminosity			    0x3e
+#define PictOpBlendMaximum			    0x3e
 
 #define PolyEdgeSharp			    0
 #define PolyEdgeSmooth			    1
