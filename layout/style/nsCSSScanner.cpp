@@ -1076,7 +1076,6 @@ nsCSSScanner::ParseNumber(PRInt32 c, nsCSSToken& aToken)
 {
   NS_PRECONDITION(c == '.' || c == '+' || c == '-' || IsDigit(c),
                   "Why did we get called?");
-  PRBool gotDot = (c == '.');
   aToken.mHasSign = (c == '+' || c == '-');
 
   
@@ -1094,74 +1093,73 @@ nsCSSScanner::ParseNumber(PRInt32 c, nsCSSToken& aToken)
   
   
   
-  float divisor = 1;
-  
-  
-  
   
   PRInt32 exponent = 0;
   
   PRInt32 expSign = 1;
-  
-  if (gotDot) {
-    divisor = 10;
-  } else if (!aToken.mHasSign) {
-    
-    intPart += CHAR_TO_DIGIT(c);
+
+  if (aToken.mHasSign) {
+    NS_ASSERTION(c != '.', "How did that happen?");
+    c = Read();
   }
 
-  
-  PRBool gotE = PR_FALSE;
-  for (;;) {
-    c = Read();
-    if (c < 0) break;
+  PRBool gotDot = (c == '.');
 
+  if (!gotDot) {
     
-    
-    if (NS_UNLIKELY(gotE)) {
-      if (!IsDigit(c)) {
-        break;
-      }
-      exponent = 10*exponent + CHAR_TO_DIGIT(c);
-    }
-#ifdef MOZ_SVG
-    else if (NS_UNLIKELY(IsSVGMode() && (c == 'e' || c == 'E'))) {
-      PRInt32 nextChar = Peek();
-      PRInt32 expSignChar = 0;
-      if (nextChar == '-' || nextChar == '+') {
-        expSignChar = Read();
-        nextChar = Peek();
-      }
-      if (IsDigit(nextChar)) {
-        gotE = PR_TRUE;
-        if (expSignChar == '-') {
-          expSign = -1;
-        }
-      } else {
-        if (expSignChar) {
-          Pushback(expSignChar);
-        }
-        break;
-      }
-    }
-#endif
-    else if (gotDot) {
+    NS_ASSERTION(IsDigit(c), "Why did we get called?");
+    do {
+      intPart = 10*intPart + CHAR_TO_DIGIT(c);
+      c = Read();
       
-      if (!IsDigit(c)) {
-        break;
-      }
+    } while (IsDigit(c));
+
+    gotDot = (c == '.') && IsDigit(Peek());
+  }
+
+  if (gotDot) {
+    
+    c = Read();
+    NS_ASSERTION(IsDigit(c), "How did we get here?");
+    
+    float divisor = 10;
+    do {
       fracPart += CHAR_TO_DIGIT(c) / divisor;
       divisor *= 10;
-    } else if (c == '.' && IsDigit(Peek())) {
-      gotDot = PR_TRUE;
-      divisor = 10;
-    } else if (IsDigit(c)) {
-      intPart = 10*intPart + CHAR_TO_DIGIT(c);
-    } else {
+      c = Read();
       
-      break;
+    } while (IsDigit(c));
+  }
+
+  PRBool gotE = PR_FALSE;
+#ifdef MOZ_SVG
+  if (IsSVGMode() && (c == 'e' || c == 'E')) {
+    PRInt32 nextChar = Peek();
+    PRInt32 expSignChar = 0;
+    if (nextChar == '-' || nextChar == '+') {
+      expSignChar = Read();
+      nextChar = Peek();
+    }
+    if (IsDigit(nextChar)) {
+      gotE = PR_TRUE;
+      if (expSignChar == '-') {
+        expSign = -1;
+      }
+
+      c = Read();
+      NS_ASSERTION(IsDigit(c), "Peek() must have lied");
+      do {
+        exponent = 10*exponent + CHAR_TO_DIGIT(c);
+        c = Read();
+        
+      } while (IsDigit(c));
+    } else {
+      if (expSignChar) {
+        Pushback(expSignChar);
+      }
     }
   }
+#endif
 
   nsCSSTokenType type = eCSSToken_Number;
 
