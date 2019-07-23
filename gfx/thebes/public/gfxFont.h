@@ -272,7 +272,10 @@ public:
     }
 
     
-    gfxRect GetTightGlyphExtentsAppUnits(gfxFont *aFont, gfxContext *aContext, PRUint32 aGlyphID);
+    
+    
+    PRBool GetTightGlyphExtentsAppUnits(gfxFont *aFont, gfxContext *aContext,
+            PRUint32 aGlyphID, gfxRect *aExtents);
 
     void SetContainedGlyphWidthAppUnits(PRUint32 aGlyphID, PRUint16 aWidth) {
         mContainedGlyphWidths.Set(aGlyphID, aWidth);
@@ -482,6 +485,8 @@ public:
                       gfxContext *aContext, PRBool aDrawToPath, gfxPoint *aBaselineOrigin,
                       Spacing *aSpacing);
     
+
+
 
 
 
@@ -1203,6 +1208,12 @@ public:
     void SetMissingGlyph(PRUint32 aCharIndex, PRUint32 aUnicodeChar);
     void SetSpaceGlyph(gfxFont *aFont, gfxContext *aContext, PRUint32 aCharIndex);
     
+    
+
+
+
+
+
     void FetchGlyphExtents(gfxContext *aRefContext);
 
     
@@ -1403,9 +1414,11 @@ public:
 
 
 
+
     virtual gfxTextRun *MakeTextRun(const PRUnichar *aString, PRUint32 aLength,
                                     const Parameters *aParams, PRUint32 aFlags) = 0;
     
+
 
 
 
