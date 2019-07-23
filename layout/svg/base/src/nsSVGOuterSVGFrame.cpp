@@ -156,10 +156,13 @@ NS_NewSVGOuterSVGFrame(nsIPresShell* aPresShell, nsIContent* aContent, nsStyleCo
 }
 
 nsSVGOuterSVGFrame::nsSVGOuterSVGFrame(nsStyleContext* aContext)
-    : nsSVGOuterSVGFrameBase(aContext),
-      mRedrawSuspendCount(0),
-      mFullZoom(0),
-      mViewportInitialized(PR_FALSE)
+    : nsSVGOuterSVGFrameBase(aContext)
+    ,  mRedrawSuspendCount(0)
+    , mFullZoom(0)
+    , mViewportInitialized(PR_FALSE)
+#ifdef XP_MACOSX
+    , mEnableBitmapFallback(PR_FALSE)
+#endif
 {
 }
 
@@ -580,10 +583,12 @@ nsSVGOuterSVGFrame::Paint(nsIRenderingContext& aRenderingContext,
 
   nsSVGRenderState ctx(&aRenderingContext);
 
-  
-  
 #ifdef XP_MACOSX
-  ctx.GetGfxContext()->PushGroup(gfxASurface::CONTENT_COLOR_ALPHA);
+  if (mEnableBitmapFallback) {
+    
+    
+    ctx.GetGfxContext()->PushGroup(gfxASurface::CONTENT_COLOR_ALPHA);
+  }
 #endif
 
   
@@ -592,10 +597,31 @@ nsSVGOuterSVGFrame::Paint(nsIRenderingContext& aRenderingContext,
     nsSVGUtils::PaintChildWithEffects(&ctx, &dirtyRect, kid);
   }
 
-
 #ifdef XP_MACOSX
-  ctx.GetGfxContext()->PopGroupToSource();
-  ctx.GetGfxContext()->Paint();
+  if (mEnableBitmapFallback) {
+    
+    ctx.GetGfxContext()->PopGroupToSource();
+    ctx.GetGfxContext()->Paint();
+  }
+  
+  if (ctx.GetGfxContext()->HasError() && !mEnableBitmapFallback) {
+    mEnableBitmapFallback = PR_TRUE;
+    
+    
+    
+    
+    
+    
+    
+    nsIFrame* frame = this;
+    while (PR_TRUE) {
+      nsIFrame* next = nsLayoutUtils::GetCrossDocParentFrame(frame);
+      if (!next)
+        break;
+      frame = next;
+    }
+    frame->Invalidate(nsRect(nsPoint(0, 0), frame->GetSize()));
+  }
 #endif
 
 #if defined(DEBUG) && defined(SVG_DEBUG_PAINT_TIMING)

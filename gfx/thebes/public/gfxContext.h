@@ -100,6 +100,11 @@ public:
     
 
 
+    PRBool HasError();
+
+    
+
+
     
     void Save();
     void Restore();
