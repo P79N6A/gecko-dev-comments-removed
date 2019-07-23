@@ -7341,6 +7341,10 @@ let gPrivateBrowsingUI = {
       }
     }
 
+    if (gURLBar) {
+      gURLBar.editor.transactionManager.clear();
+    }
+
     document.getElementById("menu_import").removeAttribute("disabled");
 
     
