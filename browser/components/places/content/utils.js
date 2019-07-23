@@ -1503,10 +1503,12 @@ var PlacesUtils = {
     for each (var bk in bmkIds) {
       
       var folder = this.bookmarks.getFolderIdForItem(bk);
-      if (folder == this.placesRootId ||
-        this.bookmarks.getFolderIdForItem(folder) != this.tagRootId) {
+      if (folder == this.placesRootId)
         return bk;
-      }
+      var parent = this.bookmarks.getFolderIdForItem(folder)
+      if (parent != this.tagRootId &&
+          !this.annotations.itemHasAnnotation(parent, "livemark/feedURI"))
+        return bk;
     }
     return -1;
   }

@@ -115,11 +115,13 @@ var PlacesCommandHook = {
 
 
 
+
+
+
   
-  bookmarkPage: function PCH_bookmarkPage(aBrowser, aShowEditUI,
+  bookmarkPage: function PCH_bookmarkPage(aBrowser, aParent, aShowEditUI,
                                           aAnchorElement, aPosition) {
     var uri = aBrowser.currentURI;
-
     var itemId = PlacesUtils.getMostRecentBookmarkForURI(uri);
     if (itemId == -1) {
       
@@ -138,8 +140,9 @@ var PlacesCommandHook = {
       }
       catch (e) { }
 
+      var parent = aParent != undefined ? aParent : PlacesUtils.placesRootId;
       var descAnno = { name: DESCRIPTION_ANNO, value: description };
-      var txn = PlacesUtils.ptm.createItem(uri, PlacesUtils.placesRootId, -1,
+      var txn = PlacesUtils.ptm.createItem(uri, parent, -1,
                                            title, null, [descAnno]);
       PlacesUtils.ptm.commitTransaction(txn);
       if (aShowEditUI)
@@ -153,17 +156,18 @@ var PlacesCommandHook = {
   
 
 
-  bookmarkCurrentPage: function PCH_bookmarkCurrentPage(aShowEditUI) {
+  bookmarkCurrentPage: function PCH_bookmarkCurrentPage(aShowEditUI, aParent) {
     
     
-    var starIcon = document.getElementById("star-icon");
+    var starIcon = document.getElementById("star-button");
     if (starIcon && isElementVisible(starIcon)) {
-      this.bookmarkPage(getBrowser().selectedBrowser, aShowEditUI, starIcon,
-                        "after_end");
+      var dockTo = document.getElementById("go-button-bottom");
+      this.bookmarkPage(getBrowser().selectedBrowser, aParent, aShowEditUI,
+                        dockTo, "after_start");
     }
     else {
-      this.bookmarkPage(getBrowser().selectedBrowser, aShowEditUI, getBrowser(),
-                        "overlap");
+      this.bookmarkPage(getBrowser().selectedBrowser, aParent, aShowEditUI,
+                        getBrowser(), "overlap");
     }
   },
 
@@ -174,12 +178,14 @@ var PlacesCommandHook = {
 
 
 
-  bookmarkLink: function PCH_bookmarkLink(url, title) {
-    var linkURI = IO.newURI(url)
+
+
+
+  bookmarkLink: function PCH_bookmarkLink(aParent, aURL, aTitle) {
+    var linkURI = IO.newURI(aURL)
     var itemId = PlacesUtils.getMostRecentBookmarkForURI(linkURI);
     if (itemId == -1) {
-      var txn = PlacesUtils.ptm.createItem(linkURI, PlacesUtils.placesRootId, -1,
-                                           title);
+      var txn = PlacesUtils.ptm.createItem(linkURI, aParent, -1, aTitle);
       PlacesUtils.ptm.commitTransaction(txn);
       itemId = PlacesUtils.getMostRecentBookmarkForURI(linkURI);
     }
@@ -728,12 +734,12 @@ var PlacesStarButton = {
   _batching: false,
 
   updateState: function PSB_updateState() {
-    var starIcon = document.getElementById("star-icon");
+    var starIcon = document.getElementById("star-button");
     if (!starIcon)
       return;
 
     var uri = getBrowser().currentURI;
-    this._starred = uri && PlacesUtils.bookmarks.isBookmarked(uri);
+    this._starred = uri && (PlacesUtils.getMostRecentBookmarkForURI(uri) != -1);
     if (this._starred)
       starIcon.setAttribute("starred", "true");
     else
