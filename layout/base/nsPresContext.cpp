@@ -253,9 +253,6 @@ nsPresContext::nsPresContext(nsIDocument* aDocument, nsPresContextType aType)
 
 nsPresContext::~nsPresContext()
 {
-  for (PRUint32 i = 0; i < IMAGE_LOAD_TYPE_COUNT; ++i)
-    mImageLoaders[i].Enumerate(destroy_loads, nsnull);
-
   NS_PRECONDITION(!mShell, "Presshell forgot to clear our mShell pointer");
   SetShell(nsnull);
 
@@ -373,11 +370,6 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(nsPresContext)
 
   
   
-
-  for (PRUint32 i = 0; i < IMAGE_LOAD_TYPE_COUNT; ++i) {
-    tmp->mImageLoaders[i].Enumerate(destroy_loads, nsnull);
-    tmp->mImageLoaders[i].Clear();
-  }
 
   
   
@@ -992,6 +984,15 @@ nsPresContext::SetShell(nsIPresShell* aShell)
         UpdateCharSet(doc->GetDocumentCharacterSet());
       }
     }
+  } else {
+    
+    
+    
+    
+    for (PRUint32 i = 0; i < IMAGE_LOAD_TYPE_COUNT; ++i) {
+      mImageLoaders[i].Enumerate(destroy_loads, nsnull);
+      mImageLoaders[i].Clear();
+    }
   }
 }
 
@@ -1278,6 +1279,9 @@ nsPresContext::SetImageLoaders(nsIFrame* aTargetFrame,
                                ImageLoadType aType,
                                nsImageLoader* aImageLoaders)
 {
+  NS_ASSERTION(mShell || !aImageLoaders,
+               "Shouldn't add new image loader after the shell is gone");
+
   nsRefPtr<nsImageLoader> oldLoaders;
   mImageLoaders[aType].Get(aTargetFrame, getter_AddRefs(oldLoaders));
 

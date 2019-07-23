@@ -451,10 +451,6 @@ nsFrame::DestroyFrom(nsIFrame* aDestructRoot)
     shell->ClearFrameRefs(this);
   }
 
-  
-  
-  presContext->StopImagesFor(this);
-
   if (view) {
     
     view->SetClientData(nsnull);
