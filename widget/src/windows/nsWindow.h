@@ -64,6 +64,20 @@ class imgIContainer;
 struct nsAlternativeCharCode;
 struct nsFakeCharMessage;
 
+struct nsModifierKeyState {
+  PRBool mIsShiftDown;
+  PRBool mIsControlDown;
+  PRBool mIsAltDown;
+
+  nsModifierKeyState();
+  nsModifierKeyState(PRBool aIsShiftDown, PRBool aIsControlDown,
+                     PRBool aIsAltDown) :
+    mIsShiftDown(aIsShiftDown), mIsControlDown(aIsControlDown),
+    mIsAltDown(aIsAltDown)
+  {
+  }
+};
+
 #ifdef ACCESSIBILITY
 #include "OLEACC.H"
 #include "nsIAccessible.h"
@@ -77,8 +91,6 @@ struct nsFakeCharMessage;
 #ifndef WINCE
 #define NS_ENABLE_TSF
 #endif 
-
-#define IME_MAX_CHAR_POS       64
 
 #define NSRGB_2_COLOREF(color) \
             RGB(NS_GET_R(color),NS_GET_G(color),NS_GET_B(color))
@@ -234,10 +246,6 @@ public:
   NS_IMETHOD OnIMESelectionChange(void);
 #endif 
 
-  PRBool IMEMouseHandling(PRInt32 aAction, LPARAM lParam);
-  PRBool IMECompositionHitTest(POINT * ptPos);
-  PRBool HandleMouseActionOfIME(PRInt32 aAction, POINT* ptPos);
-
   
   virtual BOOL            CallMethod(MethodInfo *info);
 
@@ -254,6 +262,12 @@ public:
   virtual PRBool          DispatchAccessibleEvent(PRUint32 aEventType, nsIAccessible** aAccessible, nsIntPoint* aPoint = nsnull);
   already_AddRefed<nsIAccessible> GetRootAccessible();
 #endif
+  virtual PRBool          DispatchKeyEvent(PRUint32 aEventType, WORD aCharCode,
+                            const nsTArray<nsAlternativeCharCode>* aAlternativeChars,
+                            UINT aVirtualCharCode, const MSG *aMsg,
+                            const nsModifierKeyState &aModKeyState,
+                            PRUint32 aFlags = 0);
+
   virtual PRBool          AutoErase();
   nsIntPoint*             GetLastPoint() { return &mLastPoint; }
 
@@ -263,6 +277,14 @@ public:
 
   void                    SuppressBlurEvents(PRBool aSuppress);
   PRBool                  BlurEventsSuppressed();
+
+  PRBool                  GetIMEEnabled() { return mIMEEnabled; }
+  PRBool                  PluginHasFocus()
+  {
+    return mIMEEnabled == nsIWidget::IME_STATUS_PLUGIN;
+  }
+
+  static nsWindow*        GetNSWindowPtr(HWND aWnd);
 
 protected:
 
@@ -282,12 +304,12 @@ protected:
 
   static PRBool           EventIsInsideWindow(UINT Msg, nsWindow* aWindow);
 
-  static nsWindow*        GetNSWindowPtr(HWND aWnd);
   static BOOL             SetNSWindowPtr(HWND aWnd, nsWindow * ptr);
   nsWindow*               GetParentWindow(PRBool aIncludeOwner);
 
   void                    DispatchPendingEvents();
-  virtual PRBool          ProcessMessage(UINT msg, WPARAM wParam, LPARAM lParam, LRESULT *aRetValue);
+  virtual PRBool          ProcessMessage(UINT msg, WPARAM &wParam,
+                                         LPARAM &lParam, LRESULT *aRetValue);
   virtual PRBool          ProcessGestureMessage(WPARAM wParam, LPARAM lParam);
 
   
@@ -322,13 +344,20 @@ protected:
   void                    SetupModKeyState();
   void                    RemoveMessageAndDispatchPluginEvent(UINT aFirstMsg, UINT aLastMsg);
 
-  LRESULT                 OnChar(const MSG &aMsg, PRBool *aEventDispatched,
+  LRESULT                 OnChar(const MSG &aMsg,
+                                 nsModifierKeyState &aModKeyState,
+                                 PRBool *aEventDispatched,
                                  PRUint32 aFlags = 0);
-  LRESULT                 OnKeyDown(const MSG &aMsg, PRBool *aEventDispatched,
+  LRESULT                 OnKeyDown(const MSG &aMsg,
+                                    nsModifierKeyState &aModKeyState,
+                                    PRBool *aEventDispatched,
                                     nsFakeCharMessage* aFakeCharMessage);
-  LRESULT                 OnKeyUp(const MSG &aMsg, PRBool *aEventDispatched);
+  LRESULT                 OnKeyUp(const MSG &aMsg,
+                                  nsModifierKeyState &aModKeyState,
+                                  PRBool *aEventDispatched);
 
   LRESULT                 OnCharRaw(UINT charCode, UINT aScanCode,
+                                    nsModifierKeyState &aModKeyState,
                                     PRUint32 aFlags = 0,
                                     const MSG *aMsg = nsnull,
                                     PRBool *aEventDispatched = nsnull);
@@ -337,48 +366,6 @@ protected:
 
 
   BOOL                    OnInputLangChange(HKL aHKL);
-  BOOL                    OnIMEChar(wchar_t uniChar, LPARAM aKeyState);
-  BOOL                    OnIMEComposition(LPARAM  aGCS);
-  BOOL                    OnIMECompositionFull();
-  BOOL                    OnIMEEndComposition();
-  BOOL                    OnIMENotify(WPARAM  aIMN, LPARAM aData);
-  BOOL                    OnIMERequest(WPARAM  aIMR, LPARAM aData, LRESULT *oResult);
-  BOOL                    OnIMESelect(BOOL  aSelected, WORD aLangID);
-  BOOL                    OnIMESetContext(BOOL aActive, LPARAM& aISC);
-  BOOL                    OnIMEStartComposition();
-  BOOL                    OnIMEReconvert(LPARAM aData, LRESULT *oResult);
-  BOOL                    OnIMEQueryCharPosition(LPARAM aData, LRESULT *oResult);
-
-  void                    GetCompositionString(HIMC aHIMC, DWORD aIndex);
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  void                    ResolveIMECaretPos(nsIWidget* aReferenceWidget,
-                                             nsIntRect& aCursorRect,
-                                             nsIWidget* aNewOriginWidget,
-                                             nsIntRect& aOutRect);
-
-  PRBool                  ConvertToANSIString(const nsAFlatString& aStr,
-                                              UINT aCodePage,
-                                              nsACString& aANSIStr);
-
-  virtual PRBool          DispatchKeyEvent(PRUint32 aEventType, WORD aCharCode,
-                            const nsTArray<nsAlternativeCharCode>* aAlternativeChars,
-                            UINT aVirtualCharCode, const MSG *aMsg,
-                            PRUint32 aFlags = 0);
 
   PRBool                  DispatchPluginEvent(const MSG &aMsg);
 
@@ -397,14 +384,6 @@ protected:
   void RelayMouseEvent(UINT aMsg, WPARAM wParam, LPARAM lParam);
 
   void GetNonClientBounds(nsIntRect &aRect);
-  void HandleTextEvent(HIMC hIMEContext, PRBool aCheckAttr = PR_TRUE);
-  void HandleStartComposition(HIMC hIMEContext);
-  void HandleEndComposition();
-  void GetTextRangeList(PRUint32* textRangeListLengthResult, nsTextRangeArray* textRangeListResult);
-  PRBool GetCharacterRectOfSelectedTextAt(PRInt32 aOffset,
-                                          nsIntRect &aCharRect);
-  PRBool GetCaretRect(nsIntRect &aCaretRect);
-  PRBool SetIMERelatedWindowsPos(HIMC aIMEContext);
 
   void ConstrainZLevel(HWND *aAfter);
 
@@ -418,11 +397,6 @@ protected:
                                             PRUint32 aModifierFlags,
                                             const nsAString& aCharacters,
                                             const nsAString& aUnmodifiedCharacters);
-
-  PRBool PluginHasFocus()
-  {
-    return mIMEEnabled == nsIWidget::IME_STATUS_PLUGIN;
-  }
 
   MSG InitMSG(UINT aMessage, WPARAM wParam, LPARAM lParam)
   {
@@ -448,26 +422,6 @@ protected:
   
   static PRUint32   sInstanceCount;
 
-  
-  
-  static PRBool     sIMEIsComposing;
-  static PRBool     sIMEIsStatusChanged;
-
-  static nsString*  sIMECompUnicode;
-  static PRUint8*   sIMEAttributeArray;
-  static PRInt32    sIMEAttributeArrayLength;
-  static PRInt32    sIMEAttributeArraySize;
-  static PRUint32*  sIMECompClauseArray;
-  static PRInt32    sIMECompClauseArrayLength;
-  static PRInt32    sIMECompClauseArraySize;
-  static long       sIMECursorPosition;
-  static PRBool     sIMENativeCaretIsCreated;
-
-  
-  
-  
-  static RECT*      sIMECompCharPos;
-
   static TriStateBool sCanQuit;
 
   nsIntSize     mLastSize;
@@ -490,9 +444,6 @@ protected:
 #endif
   PRPackedBool  mIsTopWidgetWindow;
   PRPackedBool  mHas3DBorder;
-  PRPackedBool  mIsShiftDown;
-  PRPackedBool  mIsControlDown;
-  PRPackedBool  mIsAltDown;
   PRPackedBool  mIsDestroying;
   PRPackedBool  mIsVisible;
   PRPackedBool  mIsInMouseCapture;
@@ -547,7 +498,6 @@ protected:
   static BOOL   sIsOleInitialized; 
 
   HDWP mDeferredPositioner;
-  static UINT   uWM_MSIME_MOUSE;     
 
   
   static UINT   uWM_HEAP_DUMP;       
