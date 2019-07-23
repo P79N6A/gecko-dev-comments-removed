@@ -174,7 +174,7 @@ public:
 
   virtual void InvalidateInternal(const nsRect& aDamageRect,
                                   nscoord aX, nscoord aY, nsIFrame* aForChild,
-                                  PRBool aImmediate);
+                                  PRUint32 aFlags);
 
   
   

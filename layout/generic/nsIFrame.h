@@ -107,8 +107,8 @@ typedef class nsIFrame nsIBox;
 
 
 #define NS_IFRAME_IID \
-{ 0xbc99463c, 0x5ff7, 0x4ff3, \
-  { 0xb2, 0xc8, 0xb4, 0x17, 0x26, 0x46, 0xf7, 0x93 } }
+  { 0x626a1563, 0x1bae, 0x4a6e, \
+    { 0x8d, 0x2c, 0x2d, 0xc2, 0xc1, 0x30, 0x48, 0xdd } }
 
 
 
@@ -1655,6 +1655,9 @@ public:
   
 
 
+  void InvalidateWithFlags(const nsRect& aDamageRect, PRUint32 aFlags);
+
+  
 
 
 
@@ -1664,8 +1667,8 @@ public:
 
 
 
-
-  void Invalidate(const nsRect& aDamageRect, PRBool aImmediate = PR_FALSE);
+  void Invalidate(const nsRect& aDamageRect)
+  { return InvalidateWithFlags(aDamageRect, 0); }
 
   
 
@@ -1684,10 +1687,17 @@ public:
 
 
 
-  
+
+
+
+  enum {
+  	INVALIDATE_IMMEDIATE = 0x1,
+  	INVALIDATE_CROSS_DOC = 0x2,
+  	INVALIDATE_NOTIFY_ONLY = 0x4
+  };
   virtual void InvalidateInternal(const nsRect& aDamageRect,
                                   nscoord aOffsetX, nscoord aOffsetY,
-                                  nsIFrame* aForChild, PRBool aImmediate);
+                                  nsIFrame* aForChild, PRUint32 aFlags);
 
   
 
@@ -1701,7 +1711,7 @@ public:
 
 
   void InvalidateInternalAfterResize(const nsRect& aDamageRect, nscoord aX,
-                                     nscoord aY, PRBool aImmediate);
+                                     nscoord aY, PRUint32 aFlags);
 
   
 
@@ -2221,9 +2231,7 @@ protected:
 
 
 
-  void InvalidateRoot(const nsRect& aDamageRect,
-                      nscoord aOffsetX, nscoord aOffsetY,
-                      PRBool aImmediate);
+  void InvalidateRoot(const nsRect& aDamageRect, PRUint32 aFlags);
 
   
 

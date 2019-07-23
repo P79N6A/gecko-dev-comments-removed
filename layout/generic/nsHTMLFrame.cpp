@@ -370,7 +370,7 @@ CanvasFrame::RemoveFrame(nsIAtom*        aListName,
     
     
     
-    Invalidate(aOldFrame->GetOverflowRect() + aOldFrame->GetPosition(), PR_FALSE);
+    Invalidate(aOldFrame->GetOverflowRect() + aOldFrame->GetPosition());
 
     
     mFrames.DestroyFrame(aOldFrame);

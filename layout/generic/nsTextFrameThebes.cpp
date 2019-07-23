@@ -2756,7 +2756,7 @@ NS_IMETHODIMP nsBlinkTimer::Notify(nsITimer *timer)
     
     
     nsRect bounds(nsPoint(0, 0), frameData->mFrame->GetSize());
-    frameData->mFrame->Invalidate(bounds, PR_FALSE);
+    frameData->mFrame->Invalidate(bounds);
   }
   return NS_OK;
 }
@@ -4700,7 +4700,7 @@ nsTextFrame::SetSelected(nsPresContext* aPresContext,
                                                    NS_FRAME_IS_DIRTY);
     }
     
-    Invalidate(GetOverflowRect(), PR_FALSE);
+    InvalidateOverflowRect();
   }
   if (aSpread == eSpreadDown)
   {

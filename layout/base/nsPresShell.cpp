@@ -4312,7 +4312,7 @@ PresShell::UnsuppressAndInvalidate()
   if (rootFrame) {
     
     nsRect rect(nsPoint(0, 0), rootFrame->GetSize());
-    rootFrame->Invalidate(rect, PR_FALSE);
+    rootFrame->Invalidate(rect);
   }
 
   

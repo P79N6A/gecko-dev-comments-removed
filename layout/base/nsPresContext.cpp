@@ -82,6 +82,7 @@
 #include "nsCSSRuleProcessor.h"
 #include "nsStyleChangeList.h"
 #include "nsRuleNode.h"
+#include "nsEventDispatcher.h"
 
 #ifdef IBMBIDI
 #include "nsBidiPresUtils.h"
@@ -1568,4 +1569,55 @@ nsPresContext::HasAuthorSpecifiedRules(nsIFrame *aFrame, PRUint32 ruleTypeMask) 
 {
   return nsRuleNode::
     HasAuthorSpecifiedRules(aFrame->GetStyleContext(), ruleTypeMask);
+}
+
+void
+nsPresContext::FireDOMPaintEvent()
+{
+  nsCOMPtr<nsIDocShell> docShell(do_QueryReferent(mContainer));
+  if (!docShell)
+    return;
+  nsCOMPtr<nsPIDOMWindow> ourWindow = do_GetInterface(docShell);
+  nsISupports* eventTarget = ourWindow;
+  if (mSameDocDirtyRegion.IsEmpty() && !IsChrome()) {
+    
+    
+    
+    
+    eventTarget = ourWindow->GetChromeEventHandler();
+  }
+  
+  
+
+  nsNotifyPaintEvent event(PR_TRUE, NS_AFTERPAINT, mSameDocDirtyRegion,
+                           mCrossDocDirtyRegion);
+  
+  
+  
+  mSameDocDirtyRegion.SetEmpty();
+  mCrossDocDirtyRegion.SetEmpty();
+  
+  
+  
+  event.target = do_QueryInterface(ourWindow);
+  nsEventDispatcher::Dispatch(eventTarget, this, &event);
+}
+
+void
+nsPresContext::NotifyInvalidation(const nsRect& aRect, PRBool aIsCrossDoc)
+{
+  if (aRect.IsEmpty())
+    return;
+
+  if (mSameDocDirtyRegion.IsEmpty() && mCrossDocDirtyRegion.IsEmpty()) {
+    
+    nsCOMPtr<nsIRunnable> ev =
+      new nsRunnableMethod<nsPresContext>(this,
+                                          &nsPresContext::FireDOMPaintEvent);
+    NS_DispatchToCurrentThread(ev);
+  }
+
+  nsRegion* r = aIsCrossDoc ? &mCrossDocDirtyRegion : &mSameDocDirtyRegion;
+  r->Or(*r, aRect);
+  r->SimplifyOutward(10);
 }

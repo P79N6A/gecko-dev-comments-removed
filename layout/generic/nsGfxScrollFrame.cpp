@@ -227,19 +227,30 @@ nsHTMLScrollFrame::GetType() const
 void
 nsHTMLScrollFrame::InvalidateInternal(const nsRect& aDamageRect,
                                       nscoord aX, nscoord aY, nsIFrame* aForChild,
-                                      PRBool aImmediate)
+                                      PRUint32 aFlags)
 {
-  if (aForChild == mInner.mScrolledFrame) {
+  if (aForChild == mInner.mScrolledFrame && !(aFlags & INVALIDATE_NOTIFY_ONLY)) {
     
+    nsRect damage = aDamageRect + nsPoint(aX, aY);
     nsRect r;
-    if (r.IntersectRect(aDamageRect + nsPoint(aX, aY),
-                        mInner.mScrollableView->View()->GetBounds())) {
-      nsHTMLContainerFrame::InvalidateInternal(r, 0, 0, aForChild, aImmediate);
+    if (r.IntersectRect(damage, mInner.mScrollableView->View()->GetBounds())) {
+      nsHTMLContainerFrame::InvalidateInternal(r, 0, 0, aForChild, aFlags);
+    }
+    if (mInner.mIsRoot && r != damage) {
+      
+      
+      
+      
+      
+      
+      
+      PresContext()->NotifyInvalidation(damage,
+          (aFlags & INVALIDATE_CROSS_DOC) != 0);
     }
     return;
   }
   
-  nsHTMLContainerFrame::InvalidateInternal(aDamageRect, aX, aY, aForChild, aImmediate);
+  nsHTMLContainerFrame::InvalidateInternal(aDamageRect, aX, aY, aForChild, aFlags);
 }
 
 
@@ -1097,19 +1108,19 @@ nsXULScrollFrame::GetType() const
 void
 nsXULScrollFrame::InvalidateInternal(const nsRect& aDamageRect,
                                      nscoord aX, nscoord aY, nsIFrame* aForChild,
-                                     PRBool aImmediate)
+                                     PRUint32 aFlags)
 {
   if (aForChild == mInner.mScrolledFrame) {
     
     nsRect r;
     if (r.IntersectRect(aDamageRect + nsPoint(aX, aY),
                         mInner.mScrollableView->View()->GetBounds())) {
-      nsBoxFrame::InvalidateInternal(r, 0, 0, aForChild, aImmediate);
+      nsBoxFrame::InvalidateInternal(r, 0, 0, aForChild, aFlags);
     }
     return;
   }
   
-  nsBoxFrame::InvalidateInternal(aDamageRect, aX, aY, aForChild, aImmediate);
+  nsBoxFrame::InvalidateInternal(aDamageRect, aX, aY, aForChild, aFlags);
 }
 
 nscoord
@@ -1819,9 +1830,12 @@ nsGfxScrollFrameInner::ScrollPositionDidChange(nsIScrollableView* aScrollable, n
   mViewInitiatedScroll = PR_TRUE;
   InternalScrollPositionDidChange(aX, aY);
   mViewInitiatedScroll = PR_FALSE;
-  
+
   PostScrollEvent();
+
   
+  mOuter->InvalidateWithFlags(nsRect(nsPoint(0, 0), mOuter->GetSize()),
+                              nsIFrame::INVALIDATE_NOTIFY_ONLY);
   return NS_OK;
 }
 

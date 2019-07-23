@@ -42,6 +42,7 @@
 
 #include "nsPoint.h"
 #include "nsRect.h"
+#include "nsRegion.h"
 #include "nsEvent.h"
 #include "nsStringGlue.h"
 #include "nsCOMPtr.h"
@@ -101,6 +102,7 @@ class nsHashKey;
 #define NS_MEDIA_EVENT                    34
 #endif 
 #define NS_DRAG_EVENT                     35
+#define NS_NOTIFYPAINT_EVENT              36
 
 
 
@@ -375,6 +377,10 @@ class nsHashKey;
 #define NS_MEDIA_ABORT         (NS_MEDIA_EVENT_START+20)
 #define NS_MEDIA_ERROR         (NS_MEDIA_EVENT_START+21)
 #endif 
+
+
+#define NS_NOTIFYPAINT_START    3400
+#define NS_AFTERPAINT           (NS_NOTIFYPAINT_START)
 
 
 
@@ -1066,6 +1072,23 @@ public:
   }
 
   PRInt32 detail;
+};
+
+
+
+
+class nsNotifyPaintEvent : public nsEvent
+{
+public:
+  nsNotifyPaintEvent(PRBool isTrusted, PRUint32 msg,
+                     const nsRegion& aSameDocRegion, const nsRegion& aCrossDocRegion)
+    : nsEvent(isTrusted, msg, NS_NOTIFYPAINT_EVENT),
+      sameDocRegion(aSameDocRegion), crossDocRegion(aCrossDocRegion)
+  {
+  }
+
+  nsRegion sameDocRegion;
+  nsRegion crossDocRegion;
 };
 
 

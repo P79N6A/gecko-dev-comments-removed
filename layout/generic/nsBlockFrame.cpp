@@ -484,7 +484,7 @@ nsBlockFrame::GetType() const
 void
 nsBlockFrame::InvalidateInternal(const nsRect& aDamageRect,
                                  nscoord aX, nscoord aY, nsIFrame* aForChild,
-                                 PRBool aImmediate)
+                                 PRUint32 aFlags)
 {
   
   
@@ -495,12 +495,12 @@ nsBlockFrame::InvalidateInternal(const nsRect& aDamageRect,
     
     nsRect r;
     if (r.IntersectRect(aDamageRect, absPosClipRect - nsPoint(aX, aY))) {
-      nsBlockFrameSuper::InvalidateInternal(r, aX, aY, this, aImmediate);
+      nsBlockFrameSuper::InvalidateInternal(r, aX, aY, this, aFlags);
     }
     return;
   }
 
-  nsBlockFrameSuper::InvalidateInternal(aDamageRect, aX, aY, this, aImmediate);
+  nsBlockFrameSuper::InvalidateInternal(aDamageRect, aX, aY, this, aFlags);
 }
 
 nscoord

@@ -552,7 +552,7 @@ nsImageFrame::OnDataAvailable(imgIRequest *aRequest,
   
   if (HandleIconLoads(aRequest, PR_FALSE)) {
     
-    Invalidate(r, PR_FALSE);
+    Invalidate(r);
     return NS_OK;
   }
 
@@ -580,7 +580,7 @@ nsImageFrame::OnDataAvailable(imgIRequest *aRequest,
          r.x, r.y, r.width, r.height);
 #endif
 
-  Invalidate(r, PR_FALSE);
+  Invalidate(r);
   
   return NS_OK;
 }
@@ -633,7 +633,7 @@ nsImageFrame::OnStopDecode(imgIRequest *aRequest,
         nsSize s = GetSize();
         nsRect r(0, 0, s.width, s.height);
         
-        Invalidate(r, PR_FALSE);
+        Invalidate(r);
       }
     }
   }
@@ -658,7 +658,7 @@ nsImageFrame::FrameChanged(imgIContainer *aContainer,
   nsRect r = SourceRectToDest(*aDirtyRect);
 
   
-  Invalidate(r, PR_FALSE);
+  Invalidate(r);
   return NS_OK;
 }
 
@@ -849,7 +849,7 @@ nsImageFrame::Reflow(nsPresContext*          aPresContext,
   
   
   if (mRect.width != aMetrics.width || mRect.height != aMetrics.height) {
-    Invalidate(nsRect(0, 0, mRect.width, mRect.height), PR_FALSE);
+    Invalidate(nsRect(0, 0, mRect.width, mRect.height));
   }
 
   NS_FRAME_TRACE(NS_FRAME_TRACE_CALLS,

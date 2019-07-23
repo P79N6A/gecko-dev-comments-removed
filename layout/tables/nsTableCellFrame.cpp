@@ -517,7 +517,7 @@ nsTableCellFrame::SetSelected(nsPresContext* aPresContext,
     aPresContext->PresShell()->FrameSelection();
   if (frameSelection->GetTableCellSelection()) {
     
-    Invalidate(GetOverflowRect(), PR_FALSE);
+    InvalidateOverflowRect();
   }
   return NS_OK;
 }
@@ -933,7 +933,7 @@ NS_METHOD nsTableCellFrame::Reflow(nsPresContext*          aPresContext,
 
   
   if (GetStateBits() & NS_FRAME_IS_DIRTY) {
-    Invalidate(GetOverflowRect(), PR_FALSE);
+    InvalidateOverflowRect();
   }
 
 #ifdef NS_DEBUG

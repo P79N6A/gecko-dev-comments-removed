@@ -592,13 +592,22 @@ nsSVGOuterSVGFrame::Paint(nsIRenderingContext& aRenderingContext,
     
     
     nsIFrame* frame = this;
+    nsPresContext* presContext = PresContext();
+    PRUint32 flags = 0;
     while (PR_TRUE) {
       nsIFrame* next = nsLayoutUtils::GetCrossDocParentFrame(frame);
       if (!next)
         break;
+      if (frame->GetParent() != next) {
+        
+        
+        
+        
+        flags |= INVALIDATE_CROSS_DOC;
+      }
       frame = next;
     }
-    frame->Invalidate(nsRect(nsPoint(0, 0), frame->GetSize()));
+    frame->InvalidateWithFlags(nsRect(nsPoint(0, 0), frame->GetSize()), flags);
   }
 #endif
 
