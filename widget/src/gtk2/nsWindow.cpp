@@ -6726,7 +6726,7 @@ IM_preedit_changed_cb(GtkIMContext *aContext,
 
     
     nsRefPtr<nsWindow> window = gFocusWindow ? gFocusWindow : gIMEFocusWindow;
-    if (!window)
+    if (!window || IM_get_input_context(window) != aContext)
         return;
 
     
@@ -6789,7 +6789,7 @@ IM_commit_cb(GtkIMContext *aContext,
     
     nsRefPtr<nsWindow> window = gFocusWindow ? gFocusWindow : gIMEFocusWindow;
 
-    if (!window)
+    if (!window || IM_get_input_context(window) != aContext)
         return;
 
     
