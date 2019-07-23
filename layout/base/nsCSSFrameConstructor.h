@@ -282,6 +282,7 @@ public:
   PRBool IsDestroyingFrameTree() { return mIsDestroyingFrameTree; }
 
 private:
+  struct FrameConstructionItem;
 
   nsresult ReconstructDocElementHierarchyInternal();
 
@@ -320,6 +321,11 @@ private:
                           nsIContent*              aContent,
                           nsIFrame*                aParentFrame,
                           nsFrameItems&            aFrameItems);
+
+  void AddFrameConstructionItem(nsFrameConstructorState& aState,
+                                nsIContent*              aContent,
+                                nsIFrame*                aParentFrame,
+                                nsTArray<FrameConstructionItem>& aItems);
 
   nsresult ConstructDocElementFrame(nsFrameConstructorState& aState,
                                     nsIContent*              aDocElement,
@@ -375,12 +381,12 @@ private:
                                                       nsStyleContext* aStyleContext,
                                                       PRUint32        aContentIndex);
 
-  void CreateGeneratedContentFrame(nsFrameConstructorState& aState,
-                                   nsIFrame*                aFrame,
-                                   nsIContent*              aContent,
-                                   nsStyleContext*          aStyleContext,
-                                   nsIAtom*                 aPseudoElement,
-                                   nsFrameItems&            aFrameItems);
+  void CreateGeneratedContentItem(nsFrameConstructorState& aState,
+                                  nsIFrame*                aFrame,
+                                  nsIContent*              aContent,
+                                  nsStyleContext*          aStyleContext,
+                                  nsIAtom*                 aPseudoElement,
+                                  nsTArray<FrameConstructionItem>& aItems);
 
   
   
@@ -723,6 +729,42 @@ private:
 
 
 
+  struct FrameConstructionItem {
+    FrameConstructionItem() :
+      mIsGeneratedContent(PR_FALSE) {}
+    ~FrameConstructionItem() {
+      if (mIsGeneratedContent) {
+        mContent->UnbindFromTree();
+        NS_RELEASE(mContent);
+      }
+    }
+
+    
+    const FrameConstructionData* mFCData;
+    
+    nsIContent* mContent;
+    
+    nsIAtom* mTag;
+    
+    PRInt32 mNameSpaceID;
+    
+    nsRefPtr<nsStyleContext> mStyleContext;
+    
+    PRPackedBool mAllowPageBreaks;
+    
+    PRPackedBool mIsText;
+    
+    
+    PRPackedBool mIsGeneratedContent;
+
+  private:
+    FrameConstructionItem(const FrameConstructionItem& aOther); 
+  };
+
+  
+
+
+
 
 
 
@@ -749,7 +791,7 @@ private:
                              nsIFrame* &                  aParentFrame,
                              const FrameConstructionData* aFCData,
                              PRInt32                      aNameSpaceID,
-                             const nsStyleDisplay*        aDisplay,
+                             nsStyleContext*              aStyleContext,
                              nsFrameItems* &              aFrameItems,
                              nsFrameConstructorSaveState& aSaveState,
                              PRBool&                      aSuppressFrame,
@@ -872,20 +914,36 @@ private:
                                   nsFrameItems& aFrameItems,
                                   PRBool aHasPseudoParent);
 
-  nsresult ConstructFrameInternal(nsFrameConstructorState& aState,
-                                  nsIContent*              aContent,
-                                  nsIFrame*                aParentFrame,
-                                  nsIAtom*                 aTag,
-                                  PRInt32                  aNameSpaceID,
-                                  nsStyleContext*          aStyleContext,
-                                  nsFrameItems&            aFrameItems,
-                                  PRBool                   aAllowXBLBase,
-                                  PRBool                   aAllowPageBreaks);
+  
+  
+#define ITEM_ALLOW_XBL_BASE 0x1
+  
+
+#define ITEM_ALLOW_PAGE_BREAK 0x2
+  
+#define ITEM_IS_GENERATED_CONTENT 0x4
+  void AddFrameConstructionItemInternal(nsFrameConstructorState& aState,
+                                        nsIContent*              aContent,
+                                        nsIFrame*                aParentFrame,
+                                        nsIAtom*                 aTag,
+                                        PRInt32                  aNameSpaceID,
+                                        nsStyleContext*          aStyleContext,
+                                        PRUint32                 aFlags,
+                                        nsTArray<FrameConstructionItem>& aItems);
+
+  nsresult ConstructFramesFromItem(nsFrameConstructorState& aState,
+                                   FrameConstructionItem& aItem,
+                                   nsIFrame* aParentFrame,
+                                   nsFrameItems& aFrameItems);
 
   nsresult CreateAnonymousFrames(nsFrameConstructorState& aState,
                                  nsIContent*              aParent,
                                  nsIFrame*                aParentFrame,
                                  nsFrameItems&            aChildItems);
+
+  nsresult GetAnonymousContent(nsIContent* aParent,
+                               nsIFrame* aParentFrame,
+                               nsTArray<nsIContent*>& aAnonContent);
 
 
 #ifdef MOZ_MATHML
@@ -1027,9 +1085,9 @@ private:
                            nsIContent*              aContent,
                            nsStyleContext*          aStyleContext,
                            nsIFrame*                aFrame,
-                           PRBool                   aCanHaveGeneratedContent,
+                           const PRBool             aCanHaveGeneratedContent,
                            nsFrameItems&            aFrameItems,
-                           PRBool                   aAllowBlockStyles);
+                           const PRBool             aAllowBlockStyles);
 
   nsIFrame* GetFrameFor(nsIContent* aContent);
 
