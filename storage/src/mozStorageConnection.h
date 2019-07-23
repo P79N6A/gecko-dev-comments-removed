@@ -36,12 +36,15 @@
 
 
 
+
 #ifndef _MOZSTORAGECONNECTION_H_
 #define _MOZSTORAGECONNECTION_H_
 
 #include "nsCOMPtr.h"
 
 #include "nsString.h"
+#include "nsDataHashtable.h"
+#include "mozIStorageProgressHandler.h"
 #include "mozIStorageConnection.h"
 
 #include "nsIMutableArray.h"
@@ -70,13 +73,31 @@ private:
     ~mozStorageConnection();
 
 protected:
+    struct FindFuncEnumArgs {
+        nsISupports *mTarget;
+        PRBool       mFound;
+    };
+
     void HandleSqliteError(const char *aSqlStatement);
+    static PLDHashOperator s_FindFuncEnum(const nsACString &aKey,
+                                          nsISupports* aData, void* userArg);
+    static PLDHashOperator s_ReleaseFuncEnum(const nsACString &aKey,
+                                             nsISupports* aData, void* userArg);
+    PRBool FindFunctionByInstance(nsISupports *aInstance);
+
+    static int s_ProgressHelper(void *arg);
+    
+    
+    
+    int ProgressHandler();
 
     sqlite3 *mDBConn;
     nsCOMPtr<nsIFile> mDatabaseFile;
     PRBool mTransactionInProgress;
 
-    nsCOMPtr<nsIMutableArray> mFunctions;
+    nsDataHashtable<nsCStringHashKey, nsISupports*> mFunctions;
+
+    nsCOMPtr<mozIStorageProgressHandler> mProgressHandler;
 
     
     
