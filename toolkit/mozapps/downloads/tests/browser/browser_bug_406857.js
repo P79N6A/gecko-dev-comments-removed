@@ -34,6 +34,11 @@
 
 
 
+
+
+
+
+
 function test()
 {
   let dm = Cc["@mozilla.org/download-manager;1"].
@@ -80,7 +85,8 @@ function test()
           ok(aDownload.referrer.spec == referrer, "Got referrer on finish");
 
           dm.removeListener(listener);
-          file.remove(false);
+          obs.removeObserver(testObs, DLMGR_UI_DONE);
+          try { file.remove(false); } catch(e) {  }
           finish();
           break;
       }
@@ -94,29 +100,22 @@ function test()
   let win = wm.getMostRecentWindow("Download:Manager");
   if (win) win.close();
 
-  
-  let ww = Cc["@mozilla.org/embedcomp/window-watcher;1"].
-           getService(Ci.nsIWindowWatcher);
-  ww.registerNotification({
+  let obs = Cc["@mozilla.org/observer-service;1"].
+            getService(Ci.nsIObserverService);
+  const DLMGR_UI_DONE = "download-manager-ui-done";
+
+  let testObs = {
     observe: function(aSubject, aTopic, aData) {
-      ww.unregisterNotification(this);
-      aSubject.QueryInterface(Ci.nsIDOMEventTarget).
-      addEventListener("DOMContentLoaded", doTest, false);
+      if (aTopic != DLMGR_UI_DONE)
+        return;
+
+      
+      let win = aSubject.QueryInterface(Ci.nsIDOMWindow);
+      EventUtils.synthesizeKey("VK_ENTER", {}, win);
     }
-  });
+  };
+  obs.addObserver(testObs, DLMGR_UI_DONE, false);
 
-  
-  let doTest = function() setTimeout(function() {
-    win = wm.getMostRecentWindow("Download:Manager");
-
-    
-    if (win.document.getElementById("downloadView").selectedIndex)
-      return doTest();
-
-    
-    EventUtils.synthesizeKey("VK_ENTER", {}, win);
-  }, 0);
- 
   
   Cc["@mozilla.org/download-manager-ui;1"].
   getService(Ci.nsIDownloadManagerUI).show();
