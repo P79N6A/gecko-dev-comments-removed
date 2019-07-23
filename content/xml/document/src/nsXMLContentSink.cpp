@@ -996,6 +996,15 @@ nsXMLContentSink::HandleStartElement(const PRUnichar *aName,
   
   
   
+  
+  nsCOMPtr<nsIContent> parent = GetCurrentContent();
+  
+  result = PushContent(content);
+  NS_ENSURE_SUCCESS(result, result);
+
+  
+  
+  
   if (aIndex != -1 && NS_SUCCEEDED(result)) {
     nsCOMPtr<nsIAtom> IDAttr = do_GetAtom(aAtts[aIndex]);
 
@@ -1015,14 +1024,10 @@ nsXMLContentSink::HandleStartElement(const PRUnichar *aName,
   if (NS_OK == result) {
     
     if (!SetDocElement(nameSpaceID, localName, content) && appendContent) {
-      nsCOMPtr<nsIContent> parent = GetCurrentContent();
       NS_ENSURE_TRUE(parent, NS_ERROR_UNEXPECTED);
 
       parent->AppendChildTo(content, PR_FALSE);
     }
-
-    result = PushContent(content);
-    NS_ENSURE_SUCCESS(result, result);
   }
 
   
