@@ -44,10 +44,23 @@
 #include <windows.h>
 #endif
 
+
+
+
+
+#if defined(__APPLE__)
+typedef unsigned long GLenum;
+typedef unsigned long GLbitfield;
+typedef unsigned long GLuint;
+typedef long GLint;
+typedef long GLsizei;
+#else
+typedef unsigned int GLenum;
+typedef unsigned int GLbitfield;
 typedef unsigned int GLuint;
 typedef int GLint;
-typedef float GLfloat;
-typedef char GLchar;
+typedef int GLsizei;
+#endif
 
 #define BUFFER_OFFSET(i) ((char *)NULL + (i))
 
