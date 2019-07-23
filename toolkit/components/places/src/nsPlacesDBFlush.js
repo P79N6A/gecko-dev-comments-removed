@@ -193,7 +193,7 @@ nsPlacesDBFlush.prototype = {
           
           
           this._self._finalizeInternalStatements();
-          this._self._db.asyncClose();
+          this._self._db.close();
         }
       }, Ci.nsIThread.DISPATCH_NORMAL);
     }
