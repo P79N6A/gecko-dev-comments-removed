@@ -600,6 +600,9 @@ pref("browser.safebrowsing.warning.infoURL", "http://%LOCALE%.www.mozilla.com/%L
 
 
 pref("urlclassifier.alternate_error_page", "blocked");
+
+
+pref("urlclassifier.gethashnoise", 4);
 #endif
 
 

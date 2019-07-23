@@ -40,6 +40,11 @@ if (!profileDir) {
 
 var iosvc = Cc["@mozilla.org/network/io-service;1"].getService(Ci.nsIIOService);
 
+
+var prefBranch = Cc["@mozilla.org/preferences-service;1"].
+                 getService(Ci.nsIPrefBranch);
+prefBranch.setIntPref("urlclassifier.gethashnoise", 0);
+
 function cleanUp() {
   try {
     

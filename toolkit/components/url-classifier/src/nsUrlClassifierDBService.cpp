@@ -139,6 +139,9 @@ static const PRLogModuleInfo *gUrlClassifierDbServiceLog = nsnull;
 #define CHECK_PHISHING_PREF     "browser.safebrowsing.enabled"
 #define CHECK_PHISHING_DEFAULT  PR_FALSE
 
+#define GETHASH_NOISE_PREF      "urlclassifier.gethashnoise"
+#define GETHASH_NOISE_DEFAULT   4
+
 class nsUrlClassifierDBServiceWorker;
 
 
@@ -224,7 +227,7 @@ class nsUrlClassifierEntry
 {
 public:
   nsUrlClassifierEntry()
-    : mId(0)
+    : mId(-1)
     , mHavePartial(PR_FALSE)
     , mHaveComplete(PR_FALSE)
     , mTableId(0)
@@ -272,7 +275,7 @@ public:
             (mHaveComplete && mCompleteHash < entry.mCompleteHash));
   }
 
-  PRUint32 mId;
+  PRInt64 mId;
 
   nsUrlClassifierDomainHash mKey;
 
@@ -317,7 +320,7 @@ nsUrlClassifierEntry::SubMatch(const nsUrlClassifierEntry &subEntry)
 void
 nsUrlClassifierEntry::Clear()
 {
-  mId = 0;
+  mId = -1;
   mHavePartial = PR_FALSE;
   mHaveComplete = PR_FALSE;
 }
@@ -329,7 +332,7 @@ nsUrlClassifierEntry::Clear()
 class nsUrlClassifierLookupResult
 {
 public:
-  nsUrlClassifierLookupResult() : mConfirmed(PR_FALSE) {}
+  nsUrlClassifierLookupResult() : mConfirmed(PR_FALSE), mNoise(PR_FALSE) {}
   ~nsUrlClassifierLookupResult() {}
 
   PRBool operator==(const nsUrlClassifierLookupResult &result) const {
@@ -355,6 +358,10 @@ public:
   
   
   PRPackedBool mConfirmed;
+
+  
+  
+  PRPackedBool mNoise;
 
   
   nsCString mTableName;
@@ -397,7 +404,7 @@ public:
                        nsTArray<nsUrlClassifierEntry>& entry);
 
   
-  nsresult ReadEntry(PRUint32 id, nsUrlClassifierEntry& entry, PRBool *exists);
+  nsresult ReadEntry(PRInt64 id, nsUrlClassifierEntry& entry, PRBool *exists);
 
   
   nsresult DeleteEntry(nsUrlClassifierEntry& entry);
@@ -412,6 +419,17 @@ public:
   
   nsresult Expire(PRUint32 tableId,
                   PRUint32 chunkNum);
+
+  
+  
+  nsresult ReadNoiseEntries(PRInt64 rowID,
+                            PRUint32 numRequested,
+                            PRBool before,
+                            nsTArray<nsUrlClassifierEntry> &entries);
+
+  
+  
+  nsresult RandomNumber(PRInt64 *randomNum);
 
   
   mozIStorageStatement *LookupStatement() { return mLookupStatement; }
@@ -431,6 +449,13 @@ protected:
   nsCOMPtr<mozIStorageStatement> mUpdateStatement;
   nsCOMPtr<mozIStorageStatement> mDeleteStatement;
   nsCOMPtr<mozIStorageStatement> mExpireStatement;
+
+  nsCOMPtr<mozIStorageStatement> mPartialEntriesStatement;
+  nsCOMPtr<mozIStorageStatement> mPartialEntriesAfterStatement;
+  nsCOMPtr<mozIStorageStatement> mLastPartialEntriesStatement;
+  nsCOMPtr<mozIStorageStatement> mPartialEntriesBeforeStatement;
+
+  nsCOMPtr<mozIStorageStatement> mRandomStatement;
 };
 
 nsresult
@@ -475,6 +500,40 @@ nsUrlClassifierStore::Init(nsUrlClassifierDBServiceWorker *worker,
     (NS_LITERAL_CSTRING("DELETE FROM ") + entriesName +
      NS_LITERAL_CSTRING(" WHERE table_id=?1 AND chunk_id=?2"),
      getter_AddRefs(mExpireStatement));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  rv = mConnection->CreateStatement
+    (NS_LITERAL_CSTRING("SELECT * FROM ") + entriesName +
+     NS_LITERAL_CSTRING(" WHERE complete_data ISNULL"
+                        " LIMIT ?1"),
+     getter_AddRefs(mPartialEntriesStatement));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  rv = mConnection->CreateStatement
+    (NS_LITERAL_CSTRING("SELECT * FROM ") + entriesName +
+     NS_LITERAL_CSTRING(" WHERE id > ?1 AND complete_data ISNULL"
+                        " LIMIT ?2"),
+     getter_AddRefs(mPartialEntriesAfterStatement));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  rv = mConnection->CreateStatement
+    (NS_LITERAL_CSTRING("SELECT * FROM ") + entriesName +
+     NS_LITERAL_CSTRING(" WHERE complete_data ISNULL"
+                        " ORDER BY id DESC LIMIT ?1"),
+     getter_AddRefs(mLastPartialEntriesStatement));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  rv = mConnection->CreateStatement
+    (NS_LITERAL_CSTRING("SELECT * FROM ") + entriesName +
+     NS_LITERAL_CSTRING(" WHERE id < ?1 AND complete_data ISNULL"
+                        " ORDER BY id DESC LIMIT ?2"),
+     getter_AddRefs(mPartialEntriesBeforeStatement));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  rv = mConnection->CreateStatement
+    (NS_LITERAL_CSTRING("SELECT abs(random())"),
+     getter_AddRefs(mRandomStatement));
+  NS_ENSURE_SUCCESS(rv, rv);
 
   return NS_OK;
 }
@@ -492,6 +551,11 @@ nsUrlClassifierStore::Close()
   mDeleteStatement = nsnull;
   mExpireStatement = nsnull;
 
+  mPartialEntriesStatement = nsnull;
+  mPartialEntriesAfterStatement = nsnull;
+  mPartialEntriesBeforeStatement = nsnull;
+  mLastPartialEntriesStatement = nsnull;
+
   mConnection = nsnull;
 }
 
@@ -500,7 +564,7 @@ PRBool
 nsUrlClassifierStore::ReadStatement(mozIStorageStatement* statement,
                                     nsUrlClassifierEntry& entry)
 {
-  entry.mId = statement->AsInt32(0);
+  entry.mId = statement->AsInt64(0);
 
   PRUint32 size;
   const PRUint8* blob = statement->AsSharedBlob(1, &size);
@@ -546,10 +610,10 @@ nsUrlClassifierStore::BindStatement(const nsUrlClassifierEntry &entry,
 {
   nsresult rv;
 
-  if (entry.mId == 0)
+  if (entry.mId == -1)
     rv = statement->BindNullParameter(0);
   else
-    rv = statement->BindInt32Parameter(0, entry.mId);
+    rv = statement->BindInt64Parameter(0, entry.mId);
   NS_ENSURE_SUCCESS(rv, rv);
 
   rv = statement->BindBlobParameter(1, entry.mKey.buf, DOMAIN_LENGTH);
@@ -645,7 +709,7 @@ nsUrlClassifierStore::ReadEntries(const nsUrlClassifierDomainHash& hash,
 }
 
 nsresult
-nsUrlClassifierStore::ReadEntry(PRUint32 id,
+nsUrlClassifierStore::ReadEntry(PRInt64 id,
                                 nsUrlClassifierEntry& entry,
                                 PRBool *exists)
 {
@@ -653,9 +717,7 @@ nsUrlClassifierStore::ReadEntry(PRUint32 id,
 
   mozStorageStatementScoper scoper(mLookupWithIDStatement);
 
-  nsresult rv = mLookupWithIDStatement->BindInt32Parameter(0, id);
-  NS_ENSURE_SUCCESS(rv, rv);
-  rv = mLookupWithIDStatement->BindInt32Parameter(0, id);
+  nsresult rv = mLookupWithIDStatement->BindInt64Parameter(0, id);
   NS_ENSURE_SUCCESS(rv, rv);
 
   rv = mLookupWithIDStatement->ExecuteStep(exists);
@@ -665,6 +727,63 @@ nsUrlClassifierStore::ReadEntry(PRUint32 id,
     if (ReadStatement(mLookupWithIDStatement, entry))
       return NS_ERROR_FAILURE;
   }
+
+  return NS_OK;
+}
+
+nsresult
+nsUrlClassifierStore::ReadNoiseEntries(PRInt64 rowID,
+                                       PRUint32 numRequested,
+                                       PRBool before,
+                                       nsTArray<nsUrlClassifierEntry> &entries)
+{
+  if (numRequested == 0) {
+    return NS_OK;
+  }
+
+  mozIStorageStatement *statement =
+    before ? mPartialEntriesBeforeStatement : mPartialEntriesAfterStatement;
+  mozStorageStatementScoper scoper(statement);
+
+  nsresult rv = statement->BindInt64Parameter(0, rowID);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  statement->BindInt32Parameter(1, numRequested);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  PRUint32 length = entries.Length();
+  rv = ReadEntries(statement, entries);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  PRUint32 numRead = entries.Length() - length;
+
+  if (numRead >= numRequested)
+    return NS_OK;
+
+  
+  
+
+  mozIStorageStatement *wraparoundStatement =
+    before ? mPartialEntriesStatement : mLastPartialEntriesStatement;
+  mozStorageStatementScoper wraparoundScoper(wraparoundStatement);
+
+  rv = wraparoundStatement->BindInt32Parameter(0, numRequested - numRead);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  return ReadEntries(wraparoundStatement, entries);
+}
+
+nsresult
+nsUrlClassifierStore::RandomNumber(PRInt64 *randomNum)
+{
+  mozStorageStatementScoper randScoper(mRandomStatement);
+  PRBool exists;
+  nsresult rv = mRandomStatement->ExecuteStep(&exists);
+  NS_ENSURE_SUCCESS(rv, rv);
+  if (!exists)
+    return NS_ERROR_NOT_AVAILABLE;
+
+  *randomNum = mRandomStatement->AsInt64(0);
 
   return NS_OK;
 }
@@ -831,7 +950,7 @@ public:
   NS_DECL_NSIURLCLASSIFIERDBSERVICEWORKER
 
   
-  nsresult Init();
+  nsresult Init(PRInt32 gethashNoise);
 
   
   nsresult QueueLookup(const nsACString& lookupKey,
@@ -966,6 +1085,11 @@ private:
   
   nsresult DoLookup(const nsACString& spec, nsIUrlClassifierLookupCallback* c);
 
+  
+  nsresult AddNoise(PRInt64 nearID,
+                    PRInt32 count,
+                    nsTArray<nsUrlClassifierLookupResult>& results);
+
   nsCOMPtr<nsIFile> mDBFile;
 
   nsCOMPtr<nsICryptoHash> mCryptoHash;
@@ -1030,6 +1154,8 @@ private:
   PRBool mHaveCachedSubChunks;
   nsTArray<PRUint32> mCachedSubChunks;
 
+  
+  PRInt32 mGethashNoise;
 
   
   
@@ -1063,6 +1189,7 @@ nsUrlClassifierDBServiceWorker::nsUrlClassifierDBServiceWorker()
   , mCachedListsTable(PR_UINT32_MAX)
   , mHaveCachedAddChunks(PR_FALSE)
   , mHaveCachedSubChunks(PR_FALSE)
+  , mGethashNoise(0)
   , mPendingLookupLock(nsnull)
 {
 }
@@ -1077,8 +1204,10 @@ nsUrlClassifierDBServiceWorker::~nsUrlClassifierDBServiceWorker()
 }
 
 nsresult
-nsUrlClassifierDBServiceWorker::Init()
+nsUrlClassifierDBServiceWorker::Init(PRInt32 gethashNoise)
 {
+  mGethashNoise = gethashNoise;
+
   
 
   
@@ -1379,6 +1508,14 @@ nsUrlClassifierDBServiceWorker::DoLookup(const nsACString& spec,
   }
 #endif
 
+  for (PRUint32 i = 0; i < results->Length(); i++) {
+    if (!results->ElementAt(i).mConfirmed) {
+      
+      AddNoise(results->ElementAt(i).mEntry.mId, mGethashNoise, *results);
+      break;
+    }
+  }
+
   
   c->LookupComplete(results.forget());
 
@@ -1401,6 +1538,45 @@ nsUrlClassifierDBServiceWorker::HandlePendingLookups()
 
   return NS_OK;
 }
+
+nsresult
+nsUrlClassifierDBServiceWorker::AddNoise(PRInt64 nearID,
+                                         PRInt32 count,
+                                         nsTArray<nsUrlClassifierLookupResult>& results)
+{
+  if (count < 1) {
+    return NS_OK;
+  }
+
+  PRInt64 randomNum;
+  nsresult rv = mMainStore.RandomNumber(&randomNum);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  PRInt32 numBefore = randomNum % count;
+
+  nsTArray<nsUrlClassifierEntry> noiseEntries;
+  rv = mMainStore.ReadNoiseEntries(nearID, numBefore, PR_TRUE, noiseEntries);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  rv = mMainStore.ReadNoiseEntries(nearID, count - numBefore, PR_FALSE, noiseEntries);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  for (PRUint32 i = 0; i < noiseEntries.Length(); i++) {
+    nsUrlClassifierLookupResult *result = results.AppendElement();
+    if (!result)
+      return NS_ERROR_OUT_OF_MEMORY;
+
+    result->mEntry = noiseEntries[i];
+    result->mConfirmed = PR_FALSE;
+    result->mNoise = PR_TRUE;
+
+    
+    GetTableName(noiseEntries[i].mTableId, result->mTableName);
+  }
+
+  return NS_OK;
+}
+
 
 
 NS_IMETHODIMP
@@ -1564,16 +1740,16 @@ nsUrlClassifierDBServiceWorker::InflateChunk(nsACString& chunk)
 nsresult
 nsUrlClassifierStore::DeleteEntry(nsUrlClassifierEntry& entry)
 {
-  if (entry.mId == 0) {
+  if (entry.mId == -1) {
     return NS_OK;
   }
 
   mozStorageStatementScoper scoper(mDeleteStatement);
-  mDeleteStatement->BindInt32Parameter(0, entry.mId);
+  mDeleteStatement->BindInt64Parameter(0, entry.mId);
   nsresult rv = mDeleteStatement->Execute();
   NS_ENSURE_SUCCESS(rv, rv);
 
-  entry.mId = 0;
+  entry.mId = -1;
 
   return NS_OK;
 }
@@ -1581,17 +1757,27 @@ nsUrlClassifierStore::DeleteEntry(nsUrlClassifierEntry& entry)
 nsresult
 nsUrlClassifierStore::WriteEntry(nsUrlClassifierEntry& entry)
 {
-  mozStorageStatementScoper scoper(mInsertStatement);
-
-  PRBool newEntry = (entry.mId == 0);
-
-  nsresult rv = BindStatement(entry, mInsertStatement);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  rv = mInsertStatement->Execute();
-  NS_ENSURE_SUCCESS(rv, rv);
+  PRBool newEntry = (entry.mId == -1);
 
   if (newEntry) {
+    
+    
+    
+    nsresult rv;
+    for (PRUint32 i = 0; i < 10; i++) {
+      mozStorageStatementScoper scoper(mInsertStatement);
+
+      rv = BindStatement(entry, mInsertStatement);
+      NS_ENSURE_SUCCESS(rv, rv);
+
+      rv = mInsertStatement->Execute();
+      if (NS_SUCCEEDED(rv)) {
+        break;
+      }
+    }
+
+    NS_ENSURE_SUCCESS(rv, rv);
+
     PRInt64 rowId;
     rv = mConnection->GetLastInsertRowID(&rowId);
     NS_ENSURE_SUCCESS(rv, rv);
@@ -1611,7 +1797,7 @@ nsUrlClassifierStore::UpdateEntry(nsUrlClassifierEntry& entry)
 {
   mozStorageStatementScoper scoper(mUpdateStatement);
 
-  NS_ENSURE_ARG(entry.mId != 0);
+  NS_ENSURE_ARG(entry.mId != -1);
 
   nsresult rv = BindStatement(entry, mUpdateStatement);
   NS_ENSURE_SUCCESS(rv, rv);
@@ -2901,6 +3087,7 @@ nsUrlClassifierLookupCallback::LookupComplete(nsTArray<nsUrlClassifierLookupResu
   }
 
   mResults = results;
+  mResults->Sort();
 
   
   
@@ -3012,7 +3199,8 @@ nsUrlClassifierLookupCallback::HandleResults()
     nsUrlClassifierLookupResult& result = mResults->ElementAt(i);
     
     
-    if (!result.mConfirmed)
+    
+    if (!result.mConfirmed || result.mNoise)
       continue;
 
     if (tables.Length() > 0) {
@@ -3155,6 +3343,7 @@ nsUrlClassifierDBService::Init()
   
   nsCOMPtr<nsIPrefBranch2> prefs = do_GetService(NS_PREFSERVICE_CONTRACTID);
 
+  PRInt32 gethashNoise = 0;
   if (prefs) {
     PRBool tmpbool;
     rv = prefs->GetBoolPref(CHECK_MALWARE_PREF, &tmpbool);
@@ -3166,6 +3355,10 @@ nsUrlClassifierDBService::Init()
     mCheckPhishing = NS_SUCCEEDED(rv) ? tmpbool : CHECK_PHISHING_DEFAULT;
 
     prefs->AddObserver(CHECK_PHISHING_PREF, this, PR_FALSE);
+
+    if (NS_FAILED(prefs->GetIntPref(GETHASH_NOISE_PREF, &gethashNoise))) {
+      gethashNoise = GETHASH_NOISE_DEFAULT;
+    }
   }
 
   
@@ -3177,7 +3370,7 @@ nsUrlClassifierDBService::Init()
   if (!mWorker)
     return NS_ERROR_OUT_OF_MEMORY;
 
-  rv = mWorker->Init();
+  rv = mWorker->Init(gethashNoise);
   if (NS_FAILED(rv)) {
     mWorker = nsnull;
     return rv;
