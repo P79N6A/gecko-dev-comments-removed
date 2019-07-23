@@ -745,11 +745,13 @@ function OnDocumentLoad(event)
         }
 
         function FinishWaitingForTestEnd() {
+dump("DEBUGGING BUG 523934: in FinishWaitingForTestEnd\n");
             gBrowser.removeEventListener("MozAfterPaint", AfterPaintListener, false);
             setTimeout(DocumentLoaded, 0);
         }
 
         function AttrModifiedListener() {
+dump("DEBUGGING BUG 523934: in AttrModifiedListener\n");
             if (shouldWait())
                 return;
 
@@ -760,9 +762,11 @@ function OnDocumentLoad(event)
             
             
             setTimeout(AttrModifiedListenerContinuation, 0);
+dump("DEBUGGING BUG 523934: AttrModifiedListener: set timeout\n");
         }
 
         function AttrModifiedListenerContinuation() {
+dump("DEBUGGING BUG 523934: in AttrModifiedListenerContinuation\n");
             if (doPrintMode())
                 setupPrintMode();
             FlushRendering();
@@ -771,9 +775,11 @@ function OnDocumentLoad(event)
                 
                 
                 stopAfterPaintReceived = true;
+dump("DEBUGGING BUG 523934: AttrModifiedListenerContinuation: pending paint\n");
             } else {
                 
                 FinishWaitingForTestEnd();
+dump("DEBUGGING BUG 523934: AttrModifiedListenerContinuation: done waiting\n");
             }
         }
 
