@@ -680,8 +680,6 @@ struct JSSetSlotRequest {
     JSSetSlotRequest    *next;          
 };
 
-#define JS_PROTO_CACHE_METERING
-
 
 struct JSClassProtoCache {
     void purge() { memset(entries, 0, sizeof(entries)); }
