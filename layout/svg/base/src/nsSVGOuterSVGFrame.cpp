@@ -102,10 +102,8 @@ nsSVGMutationObserver::AttributeChanged(nsIDocument *aDocument,
     }
 
     
-    nsISVGTextContentMetrics* metrics = do_QueryFrame(frame);
-    if (metrics) {
-      nsSVGTextContainerFrame *containerFrame =
-        static_cast<nsSVGTextContainerFrame *>(frame);
+    nsSVGTextContainerFrame *containerFrame = do_QueryFrame(frame);
+    if (containerFrame) {
       containerFrame->NotifyGlyphMetricsChange();
       continue;
     }
