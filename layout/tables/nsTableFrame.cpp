@@ -1328,7 +1328,10 @@ nsTableFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   
   
   
-  if (AnyTablePartHasBorderOrBackground(this)) {
+  
+  
+  if (aBuilder->IsForEventDelivery() ||
+      AnyTablePartHasBorderOrBackground(this)) {
     item = new (aBuilder) nsDisplayTableBorderBackground(this);
     nsresult rv = aLists.BorderBackground()->AppendNewToTop(item);
     NS_ENSURE_SUCCESS(rv, rv);
