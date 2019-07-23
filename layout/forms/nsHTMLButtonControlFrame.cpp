@@ -180,7 +180,8 @@ nsHTMLButtonControlFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   set.Content()->AppendToTop(&onTop);
 
   
-  if (IsInput()) {
+  
+  if (IsInput() || GetStyleDisplay()->mOverflowX != NS_STYLE_OVERFLOW_VISIBLE) {
     nsMargin border = GetStyleBorder()->GetActualBorder();
     nsRect rect(aBuilder->ToReferenceFrame(this), GetSize());
     rect.Deflate(border);
