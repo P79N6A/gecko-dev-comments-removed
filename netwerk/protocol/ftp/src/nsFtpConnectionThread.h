@@ -266,6 +266,8 @@ private:
     FTP_ACTION          mAction;        
     PRPackedBool        mAnonymous;     
     PRPackedBool        mRetryPass;     
+    PRPackedBool        mStorReplyReceived; 
+                                            
     nsresult            mInternalError; 
 
         

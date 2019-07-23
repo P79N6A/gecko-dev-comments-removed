@@ -94,6 +94,7 @@ nsFtpState::nsFtpState()
     , mAction(GET)
     , mAnonymous(PR_TRUE)
     , mRetryPass(PR_FALSE)
+    , mStorReplyReceived(PR_FALSE)
     , mInternalError(NS_OK)
     , mPort(21)
     , mAddressChecked(PR_FALSE)
@@ -1228,6 +1229,12 @@ nsFtpState::R_stor() {
     if (mResponseCode/100 == 2) {
         
         mNextState = FTP_COMPLETE;
+        mStorReplyReceived = PR_TRUE;
+
+        
+        if (!mUploadRequest && !IsClosed())
+            Close();
+
         return FTP_COMPLETE;
     }
 
@@ -1236,6 +1243,7 @@ nsFtpState::R_stor() {
         return FTP_READ_BUF;
     }
 
+   mStorReplyReceived = PR_TRUE;
    return FTP_ERROR;
 }
 
@@ -1962,6 +1970,7 @@ nsFtpState::OnCacheEntryAvailable(nsICacheEntryDescriptor *entry,
 NS_IMETHODIMP
 nsFtpState::OnStartRequest(nsIRequest *request, nsISupports *context)
 {
+    mStorReplyReceived = PR_FALSE;
     return NS_OK;
 }
 
@@ -1970,6 +1979,11 @@ nsFtpState::OnStopRequest(nsIRequest *request, nsISupports *context,
                           nsresult status)
 {
     mUploadRequest = nsnull;
+
+    
+    
+    if (!mStorReplyReceived)
+      return NS_OK;
 
     
     Close();
