@@ -41,6 +41,7 @@
 
 
 
+
 const Cc = Components.classes;
 const Ci = Components.interfaces;
 const Cr = Components.results;
@@ -520,6 +521,11 @@ LivemarkLoadListener.prototype = {
     
     this._ans.removeItemAnnotation(this._livemark.folderId, LMANNO_LOADFAILED);
     var feed = result.doc.QueryInterface(Ci.nsIFeed);
+    if (feed.link) {
+      var oldSiteURI = lmService.getSiteURI(this._livemark.folderId);
+      if (!oldSiteURI || !feed.link.equals(oldSiteURI))
+        lmService.setSiteURI(this._livemark.folderId, feed.link);
+    }
     
     
     for (var i = 0; i < feed.items.length; ++i) {
