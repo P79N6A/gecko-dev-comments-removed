@@ -43,6 +43,7 @@
 
 
 
+
 const Cc = Components.classes;
 const Ci = Components.interfaces;
 const Cr = Components.results;
@@ -84,6 +85,12 @@ const NS_BINDING_ABORTED = 0x804b0002;
 
 
 var gExpiration = 3600000;
+
+
+var gLimitCount = 1;
+
+
+var gDelayTime  = 3;
 
 
 const ERROR_EXPIRATION = 600000;
@@ -141,6 +148,18 @@ function LivemarkService() {
   }
   catch (ex) { }
 
+  try {
+    gLimitCount = prefs.getIntPref("browser.bookmarks.livemark_refresh_limit_count");
+    if ( gLimitCount < 1 ) gLimitCount = 1;
+  }
+  catch (ex) { }
+
+  try {
+    gDelayTime = prefs.getIntPref("browser.bookmarks.livemark_refresh_delay_time");
+    if ( gDelayTime < 1 ) gDelayTime = 1;
+  }
+  catch (ex) { }
+
   
   this._livemarks = [];
 
@@ -191,10 +210,6 @@ LivemarkService.prototype = {
     
     
     this._checkAllLivemarks();
-    
-    var refresh_time = Math.min(Math.floor(gExpiration / 4), MAX_REFRESH_TIME);
-    this._updateTimer = new G_Alarm(BindToObject(this._checkAllLivemarks, this),
-                                    refresh_time, true );
   },
 
   _pushLivemark: function LS__pushLivemark(aFolderId, aFeedURI) {
@@ -227,10 +242,30 @@ LivemarkService.prototype = {
     }
   },
 
+  
+  
+  _nextUpdateStartIndex : 0,
   _checkAllLivemarks: function LS__checkAllLivemarks() {
-    
-    for (var i = 0; i < this._livemarks.length; ++i) {
-      this._updateLivemarkChildren(i, false);
+    var startNo = this._nextUpdateStartIndex;
+    var count = 0;
+    for (var i = startNo; (i < this._livemarks.length) && (count < gLimitCount); ++i ) {
+      
+      try {
+        if (this._updateLivemarkChildren(i, false)) count++;
+      }
+      catch (ex) { }
+      this._nextUpdateStartIndex = i+1;
+    }
+    if ( this._nextUpdateStartIndex >= this._livemarks.length ) {
+      
+      this._nextUpdateStartIndex = 0;
+      var refresh_time = Math.min(Math.floor(gExpiration / 4), MAX_REFRESH_TIME);
+      this._updateTimer = new G_Alarm(BindToObject(this._checkAllLivemarks, this),
+                                      refresh_time);
+    } else {
+      
+      this._updateTimer = new G_Alarm(BindToObject(this._checkAllLivemarks, this),
+                                      gDelayTime*1000);
     }
   },
 
