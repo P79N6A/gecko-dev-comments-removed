@@ -112,9 +112,8 @@ NS_IMPL_ADDREF(nsContentAreaDragDrop)
 NS_IMPL_RELEASE(nsContentAreaDragDrop)
 
 NS_INTERFACE_MAP_BEGIN(nsContentAreaDragDrop)
-    NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, nsIDOMDragListener)
-    NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsIDOMEventListener, nsIDOMDragListener)
-    NS_INTERFACE_MAP_ENTRY(nsIDOMDragListener)
+    NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, nsIDOMEventListener)
+    NS_INTERFACE_MAP_ENTRY(nsIDOMEventListener)
     NS_INTERFACE_MAP_ENTRY(nsIDragDropHandler)
 NS_INTERFACE_MAP_END
 
@@ -180,7 +179,7 @@ private:
 
 
 nsContentAreaDragDrop::nsContentAreaDragDrop()
-  : mListenerInstalled(PR_FALSE), mNavigator(nsnull)
+  : mNavigator(nsnull)
 {
 } 
 
@@ -200,9 +199,7 @@ nsContentAreaDragDrop::HookupTo(nsIDOMEventTarget *inAttachPoint,
                                 nsIWebNavigation* inNavigator)
 {
   NS_ASSERTION(inAttachPoint, "Can't hookup Drag Listeners to NULL receiver");
-  mEventTarget = do_QueryInterface(inAttachPoint);
-  NS_ASSERTION(mEventTarget,
-               "Target doesn't implement nsPIDOMEventTarget as needed");
+  mEventTarget = inAttachPoint;
   mNavigator = inNavigator;
 
   return AddDragListener();
@@ -224,17 +221,16 @@ nsContentAreaDragDrop::Detach()
 nsresult
 nsContentAreaDragDrop::AddDragListener()
 {
-  nsresult rv = NS_ERROR_FAILURE;
-
   if (mEventTarget) {
-    nsIDOMDragListener *pListener = static_cast<nsIDOMDragListener *>(this);
-    rv = mEventTarget->AddEventListenerByIID(pListener,
-                                             NS_GET_IID(nsIDOMDragListener));
-    if (NS_SUCCEEDED(rv))
-      mListenerInstalled = PR_TRUE;
+    nsresult rv = mEventTarget->AddEventListener(NS_LITERAL_STRING("dragover"),
+                                                 this, PR_FALSE);
+    NS_ENSURE_SUCCESS(rv, rv);
+    rv = mEventTarget->AddEventListener(NS_LITERAL_STRING("drop"), this,
+                                        PR_FALSE);
+    NS_ENSURE_SUCCESS(rv, rv);
   }
 
-  return rv;
+  return NS_OK;
 }
 
 
@@ -246,33 +242,17 @@ nsContentAreaDragDrop::AddDragListener()
 nsresult
 nsContentAreaDragDrop::RemoveDragListener()
 {
-  nsresult rv = NS_ERROR_FAILURE;
-
   if (mEventTarget) {
-    nsIDOMDragListener *pListener = static_cast<nsIDOMDragListener *>(this);
-    rv =
-      mEventTarget->RemoveEventListenerByIID(pListener,
-                                             NS_GET_IID(nsIDOMDragListener));
-    if (NS_SUCCEEDED(rv))
-      mListenerInstalled = PR_FALSE;
+    nsresult rv =
+      mEventTarget->RemoveEventListener(NS_LITERAL_STRING("dragover"), this,
+                                        PR_FALSE);
+    NS_ENSURE_SUCCESS(rv, rv);
+    rv = mEventTarget->RemoveEventListener(NS_LITERAL_STRING("drop"), this,
+                                           PR_FALSE);
+    NS_ENSURE_SUCCESS(rv, rv);
     mEventTarget = nsnull;
   }
 
-  return rv;
-}
-
-
-
-
-
-
-
-
-
-NS_IMETHODIMP
-nsContentAreaDragDrop::DragEnter(nsIDOMEvent* aMouseEvent)
-{
-  
   return NS_OK;
 }
 
@@ -287,8 +267,8 @@ nsContentAreaDragDrop::DragEnter(nsIDOMEvent* aMouseEvent)
 
 
 
-NS_IMETHODIMP
-nsContentAreaDragDrop::DragOver(nsIDOMEvent* inEvent)
+nsresult
+nsContentAreaDragDrop::DragOver(nsIDOMDragEvent* inEvent)
 {
   
   PRBool preventDefault = PR_TRUE;
@@ -359,36 +339,6 @@ nsContentAreaDragDrop::DragOver(nsIDOMEvent* inEvent)
 
 
 
-NS_IMETHODIMP
-nsContentAreaDragDrop::DragExit(nsIDOMEvent* aMouseEvent)
-{
-  
-  return NS_OK;
-}
-
-
-NS_IMETHODIMP
-nsContentAreaDragDrop::Drag(nsIDOMEvent* aMouseEvent)
-{
-  
-  return NS_OK;
-}
-
-
-NS_IMETHODIMP
-nsContentAreaDragDrop::DragEnd(nsIDOMEvent* aMouseEvent)
-{
-  
-  return NS_OK;
-}
-
-
-
-
-
-
-
-
 
 void
 nsContentAreaDragDrop::ExtractURLFromData(const nsACString & inFlavor,
@@ -446,8 +396,8 @@ nsContentAreaDragDrop::ExtractURLFromData(const nsACString & inFlavor,
 
 
 
-NS_IMETHODIMP
-nsContentAreaDragDrop::DragDrop(nsIDOMEvent* inMouseEvent)
+nsresult
+nsContentAreaDragDrop::Drop(nsIDOMDragEvent* inDragEvent)
 {
   
   
@@ -457,7 +407,7 @@ nsContentAreaDragDrop::DragDrop(nsIDOMEvent* inMouseEvent)
 
   
   PRBool preventDefault = PR_TRUE;
-  nsCOMPtr<nsIDOMNSUIEvent> nsuiEvent(do_QueryInterface(inMouseEvent));
+  nsCOMPtr<nsIDOMNSUIEvent> nsuiEvent(do_QueryInterface(inDragEvent));
   if (nsuiEvent) {
     nsuiEvent->GetPreventDefault(&preventDefault);
   }
@@ -522,7 +472,7 @@ nsContentAreaDragDrop::DragDrop(nsIDOMEvent* inMouseEvent)
         if (NS_FAILED(rv)) {
           
           
-          inMouseEvent->StopPropagation();
+          inDragEvent->StopPropagation();
 
           return rv;
         }
@@ -600,14 +550,6 @@ nsContentAreaDragDrop::GetEventDocument(nsIDOMEvent* inEvent,
 }
 
 
-
-
-NS_IMETHODIMP
-nsContentAreaDragDrop::DragGesture(nsIDOMEvent* inMouseEvent)
-{
-  return NS_OK;
-}
-
 nsresult
 nsContentAreaDragDrop::GetDragData(nsIDOMWindow* aWindow,
                                    nsIContent* aTarget,
@@ -631,8 +573,18 @@ nsContentAreaDragDrop::GetDragData(nsIDOMWindow* aWindow,
 NS_IMETHODIMP
 nsContentAreaDragDrop::HandleEvent(nsIDOMEvent *event)
 {
-  return NS_OK;
+  
+  nsCOMPtr<nsIDOMDragEvent> dragEvent = do_QueryInterface(event);
+  if (dragEvent) {
+    nsAutoString eventType;
+    event->GetType(eventType);
+    if (eventType.EqualsLiteral("dragover"))
+      return DragOver(dragEvent);
+    if (eventType.EqualsLiteral("drop"))
+      return Drop(dragEvent);
+  }
 
+  return NS_OK;
 }
 
 #if 0

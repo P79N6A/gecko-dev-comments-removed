@@ -40,12 +40,10 @@
 
 #include "nsCOMPtr.h"
 
-
 #include "nsIDOMEvent.h"
 #include "nsIDOMKeyListener.h"
 #include "nsIDOMMouseListener.h"
 #include "nsIDOMTextListener.h"
-#include "nsIDOMDragListener.h"
 #include "nsIDOMCompositionListener.h"
 #include "nsIDOMFocusListener.h"
 
@@ -55,6 +53,8 @@
 #include "nsIPresShell.h"
 #include "nsWeakPtr.h"
 #include "nsIWeakReferenceUtils.h"
+
+class nsIDOMDragEvent;
 
 
 
@@ -193,7 +193,7 @@ protected:
 
 
 
-class nsTextEditorDragListener : public nsIDOMDragListener 
+class nsTextEditorDragListener : public nsIDOMEventListener 
 {
 public:
   
@@ -214,23 +214,18 @@ public:
 
   NS_DECL_ISUPPORTS
 
-
   NS_IMETHOD HandleEvent(nsIDOMEvent* aEvent);
-  NS_IMETHOD DragEnter(nsIDOMEvent* aDragEvent);
-  NS_IMETHOD DragOver(nsIDOMEvent* aDragEvent);
-  NS_IMETHOD DragExit(nsIDOMEvent* aDragEvent);
-  NS_IMETHOD DragDrop(nsIDOMEvent* aDragEvent);
-  NS_IMETHOD DragGesture(nsIDOMEvent* aDragEvent);
-  NS_IMETHOD Drag(nsIDOMEvent* aDragEvent);
-  NS_IMETHOD DragEnd(nsIDOMEvent* aDragEvent);
-
 
 protected:
 
-  PRBool     CanDrop(nsIDOMEvent* aEvent);
-  
-protected:
+  PRBool   CanDrop(nsIDOMDragEvent* aEvent);
+  nsresult DragEnter(nsIDOMDragEvent* aDragEvent);
+  nsresult DragOver(nsIDOMDragEvent* aDragEvent);
+  nsresult DragLeave(nsIDOMDragEvent* aDragEvent);
+  nsresult Drop(nsIDOMDragEvent* aDragEvent);
+  nsresult DragStart(nsIDOMDragEvent* aDragEvent);
 
+protected:
   nsIEditor* mEditor;
   nsWeakPtr  mPresShell;
   
