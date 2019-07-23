@@ -41,17 +41,54 @@
 #include "base/string_util.h"
 #include "chrome/common/chrome_switches.h"
 
+#include "mozilla/ipc/GeckoThread.h"
+
+using mozilla::MonitorAutoEnter;
 using mozilla::ipc::GeckoChildProcessHost;
+
+template<>
+struct RunnableMethodTraits<GeckoChildProcessHost>
+{
+    static void RetainCallee(GeckoChildProcessHost* obj) { }
+    static void ReleaseCallee(GeckoChildProcessHost* obj) { }
+};
 
 GeckoChildProcessHost::GeckoChildProcessHost(GeckoChildProcessType aProcessType)
   : ChildProcessHost(RENDER_PROCESS), 
-    mProcessType(aProcessType)
+    mProcessType(aProcessType),
+    mMonitor("mozilla.ipc.GeckChildProcessHost.mMonitor"),
+    mLaunched(false)
 {
 }
 
 bool
-GeckoChildProcessHost::Launch(std::vector<std::wstring> aExtraOpts)
+GeckoChildProcessHost::SyncLaunch(std::vector<std::wstring> aExtraOpts)
 {
+  MessageLoop* loop = MessageLoop::current();
+  MessageLoop* ioLoop = 
+    BrowserProcessSubThread::GetMessageLoop(BrowserProcessSubThread::IO);
+  NS_ASSERTION(loop != ioLoop, "sync launch from the IO thread NYI");
+
+  ioLoop->PostTask(FROM_HERE,
+                   NewRunnableMethod(this,
+                                     &GeckoChildProcessHost::AsyncLaunch,
+                                     aExtraOpts));
+
+  
+  
+  MonitorAutoEnter mon(mMonitor);
+  while (!mLaunched) {
+    mon.Wait();
+  }
+
+  return true;
+}
+
+bool
+GeckoChildProcessHost::AsyncLaunch(std::vector<std::wstring> aExtraOpts)
+{
+  
+
   if (!CreateChannel()) {
     return false;
   }
@@ -95,30 +132,24 @@ GeckoChildProcessHost::Launch(std::vector<std::wstring> aExtraOpts)
   }
   SetHandle(process);
 
-  
-  
-  
-  
-  MessageLoop* loop = MessageLoop::current();
-  bool old_state = loop->NestableTasksAllowed();
-  loop->SetNestableTasksAllowed(true);
-  
-  loop->Run();
-  loop->SetNestableTasksAllowed(old_state);
-
   return true;
 }
 
 void
 GeckoChildProcessHost::OnChannelConnected(int32 peer_pid)
 {
-    MessageLoop::current()->Quit();
+  MonitorAutoEnter mon(mMonitor);
+  mLaunched = true;
+  mon.Notify();
 }
+
+
+
+
 void
 GeckoChildProcessHost::OnMessageReceived(const IPC::Message& aMsg)
 {
 }
-
 void
 GeckoChildProcessHost::OnChannelError()
 {
