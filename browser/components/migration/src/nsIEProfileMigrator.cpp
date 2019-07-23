@@ -79,8 +79,8 @@
 #include "nsIGlobalHistory.h"
 #include "nsIRDFRemoteDataSource.h"
 #include "nsIURI.h"
-#include "nsIPasswordManager.h"
-#include "nsIPasswordManagerInternal.h"
+#include "nsILoginManager.h"
+#include "nsILoginInfo.h"
 #include "nsIFormHistory.h"
 #include "nsIRDFService.h"
 #include "nsIRDFContainer.h"
@@ -817,7 +817,7 @@ nsIEProfileMigrator::MigrateSiteAuthSignons(IPStore* aPStore)
 
   NS_ENSURE_ARG_POINTER(aPStore);
 
-  nsCOMPtr<nsIPasswordManager> pwmgr(do_GetService("@mozilla.org/passwordmanager;1"));
+  nsCOMPtr<nsILoginManager> pwmgr(do_GetService("@mozilla.org/login-manager;1"));
   if (!pwmgr)
     return NS_OK;
 
@@ -843,22 +843,31 @@ nsIEProfileMigrator::MigrateSiteAuthSignons(IPStore* aPStore)
             break;
           }
 
-        nsAutoString realm(itemName);
-        if (Substring(realm, 0, 6).EqualsLiteral("DPAPI:")) 
+        nsAutoString host(itemName), realm;
+        if (Substring(host, 0, 6).EqualsLiteral("DPAPI:")) 
           password = NULL; 
 
         if (password) {
           int idx;
-          idx = realm.FindChar('/');
+          idx = host.FindChar('/');
           if (idx) {
-            realm.Replace(idx, 1, NS_LITERAL_STRING(" ("));
-            realm.Append(')');
+            realm.Assign(Substring(host, idx));
+            host.Assign(Substring(host, 0, idx));
           }
           
           
-          pwmgr->AddUser(NS_ConvertUTF16toUTF8(realm),
-                         NS_ConvertASCIItoUTF16((char *)data),
-                         NS_ConvertASCIItoUTF16((char *)password));
+          nsresult rv;
+
+          ncCOMPtr<nsILoginInfo> aLogin (do_CreateInstance(NS_LOGININFO_CONTRACTID, &rv));
+          NS_ENSURE_SUCCESS(rv, rv);
+
+          
+          
+          
+
+          
+
+          
         }
         ::CoTaskMemFree(data);
       }
@@ -1000,7 +1009,7 @@ nsIEProfileMigrator::ResolveAndMigrateSignons(IPStore* aPStore, nsVoidArray* aSi
 void
 nsIEProfileMigrator::EnumerateUsernames(const nsAString& aKey, PRUnichar* aData, unsigned long aCount, nsVoidArray* aSignonsFound)
 {
-  nsCOMPtr<nsIPasswordManagerInternal> pwmgr(do_GetService("@mozilla.org/passwordmanager;1"));
+  nsCOMPtr<nsILoginManager> pwmgr(do_GetService("@mozilla.org/login-manager;1"));
   if (!pwmgr)
     return;
 
@@ -1018,7 +1027,15 @@ nsIEProfileMigrator::EnumerateUsernames(const nsAString& aKey, PRUnichar* aData,
         
         nsDependentString usernameStr(sd->user), passStr(sd->pass);
         nsDependentCString realm(sd->realm);
-        pwmgr->AddUserFull(realm, usernameStr, passStr, aKey, EmptyString());
+
+        nsresult rv;
+
+        nsCOMPtr<nsILoginInfo> aLogin (do_CreateInstance(NS_LOGININFO_CONTRACTID, &rv));
+        NS_ENSURE_SUCCESS(rv, rv);
+
+        aLogin->Init(realm, EmptyString(), nsnull, usernameStr, passStr, aKey, EmptyString());
+
+        pwmgr->AddLogin(aLogin);
       }
     }
 

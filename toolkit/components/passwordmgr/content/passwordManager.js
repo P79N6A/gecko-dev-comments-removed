@@ -58,9 +58,10 @@ var signonsTreeView = {
   getCellText : function(row,column) {
     var rv="";
     if (column.id=="siteCol") {
-      rv = signons[row].host;
+      rv = signons[row].hostname;
+      if (signons[row].httpRealm) { rv += " (" + signons[row].httpRealm + ")"; }
     } else if (column.id=="userCol") {
-      rv = signons[row].user;
+      rv = signons[row].username;
     } else if (column.id=="passwordCol") {
       rv = signons[row].password;
     }
@@ -75,64 +76,15 @@ var signonsTreeView = {
   getCellProperties : function(row,column,prop) {}
  };
 
-function Signon(number, host, user, rawuser, password) {
-  this.number = number;
-  this.host = host;
-  this.user = user;
-  this.rawuser = rawuser;
-  this.password = password;
-}
 
 function LoadSignons() {
   
-  var enumerator = passwordmanager.enumerator;
-  var count = 0;
-
-  while (enumerator.hasMoreElements()) {
-    var nextPassword;
-    try {
-      nextPassword = enumerator.getNext();
-    } catch(e) {
-      
-      window.close();
-      return false;
-    }
-    nextPassword = nextPassword.QueryInterface(Components.interfaces.nsIPassword);
-    var host = nextPassword.host;
-    var user;
-    var password;
-    
-    try {
-      user = nextPassword.user;
-      password = nextPassword.password;
-    } catch (e) {
-      
-      dump("could not decrypt user/password for host " + host + "\n");
-      continue;
-    }
-    var rawuser = user;
-
-    
-    if (user == "") {
-      var ioService = Components.classes["@mozilla.org/network/io-service;1"]
-                    .getService(Components.interfaces.nsIIOService);
-      try {
-        user = ioService.newURI(host, null, null).username;
-        if (user == "") {
-          user = "<>";
-        }
-      } catch(e) {
-        user = "<>";
-      }
-    }
-
-    signons[count] = new Signon(count++, host, user, rawuser, password);
-  }
+  signons = passwordmanager.getAllLogins({});
   signonsTreeView.rowCount = signons.length;
 
   
   signonsTree.treeBoxObject.view = signonsTreeView;
-  SignonColumnSort('host');
+  SignonColumnSort('hostname');
 
   
   var element = document.getElementById("removeAllSignons");
@@ -226,7 +178,7 @@ function ConfirmShowPasswords() {
 
 function FinalizeSignonDeletions() {
   for (var s=0; s<deletedSignons.length; s++) {
-    passwordmanager.removeUser(deletedSignons[s].host, deletedSignons[s].rawuser);
+    passwordmanager.removeLogin(deletedSignons[s]);
   }
   deletedSignons.length = 0;
 }

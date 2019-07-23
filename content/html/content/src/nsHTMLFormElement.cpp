@@ -1261,9 +1261,10 @@ nsHTMLFormElement::AddElement(nsIFormControl* aChild,
   if (!gPasswordManagerInitialized && type == NS_FORM_INPUT_PASSWORD) {
     
     gPasswordManagerInitialized = PR_TRUE;
-    NS_CreateServicesFromCategory(NS_PASSWORDMANAGER_CATEGORY,
-                                  nsnull,
-                                  NS_PASSWORDMANAGER_CATEGORY);
+    
+    
+    
+    
   }
  
   

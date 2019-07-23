@@ -60,7 +60,8 @@ var showingPasswords = false;
 
 function Startup() {
   
-  passwordmanager = Components.classes["@mozilla.org/passwordmanager;1"].getService(Components.interfaces.nsIPasswordManager);
+  passwordmanager = Components.classes["@mozilla.org/login-manager;1"]
+                        .getService(Components.interfaces.nsILoginManager);
 
   
   kObserverService = Components.classes["@mozilla.org/observer-service;1"].getService(Components.interfaces.nsIObserverService);
@@ -83,13 +84,13 @@ var signonReloadDisplay = {
     if (topic == "signonChanged") {
       if (state == "signons") {
         signons.length = 0;
-        if (lastSignonSortColumn == "host") {
+        if (lastSignonSortColumn == "hostname") {
           lastSignonSortAscending = !lastSignonSortAscending; 
         }
         LoadSignons();
       } else if (state == "rejects") {
         rejects.length = 0;
-        if (lastRejectSortColumn == "host") {
+        if (lastRejectSortColumn == "hostname") {
           lastRejectSortAscending = !lastRejectSortAscending; 
         }
         LoadRejects();
@@ -254,8 +255,14 @@ function SortTree(tree, view, table, column, lastSortColumn, lastSortAscending, 
 
 function CompareLowerCase(first, second) {
 
-  var firstLower  = first.toLowerCase();
-  var secondLower = second.toLowerCase();
+  
+  if (first.hostname) {
+    firstLower  = first.hostname.toLowerCase();
+    secondLower = second.hostname.toLowerCase();
+  } else {
+    firstLower  = first.toLowerCase();
+    secondLower = second.toLowerCase();
+  }
 
   if (firstLower < secondLower) {
     return -1;

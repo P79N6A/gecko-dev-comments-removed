@@ -360,6 +360,9 @@ nsFormHistory::Notify(nsIDOMHTMLFormElement* formElt, nsIDOMWindowInternal* aWin
       if (!type.LowerCaseEqualsLiteral("text"))
         continue;
 
+      
+      
+
       nsAutoString autocomplete;
       inputElt->GetAttribute(kAutoComplete, autocomplete);
       if (!autocomplete.LowerCaseEqualsLiteral("off")) {

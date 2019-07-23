@@ -5,7 +5,7 @@
 # The contents of this file are subject to the Mozilla Public License Version
 # 1.1 (the "License"); you may not use this file except in compliance with
 # the License. You may obtain a copy of the License at
-# http://www.mozilla.org/MPL/
+# http:
 #
 # Software distributed under the License is distributed on an "AS IS" basis,
 # WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
@@ -39,7 +39,7 @@
 
 function Sanitizer() {}
 Sanitizer.prototype = {
-  // warning to the caller: this one may raise an exception (e.g. bug #265028)
+  
   clearItem: function (aItemName)
   {
     if (this.items[aItemName].canClear)
@@ -57,12 +57,12 @@ Sanitizer.prototype = {
     return aPreferenceName.substr(this._prefDomain.length);
   },
   
-  /**
-   * Deletes privacy sensitive data in a batch, according to user preferences
-   *
-   * @returns  null if everything's fine;  an object in the form
-   *           { itemName: error, ... } on (partial) failure
-   */
+  
+
+
+
+
+
   sanitize: function ()
   {
     var psvc = Components.classes["@mozilla.org/preferences-service;1"]
@@ -72,11 +72,11 @@ Sanitizer.prototype = {
     for (var itemName in this.items) {
       var item = this.items[itemName];
       if ("clear" in item && item.canClear && branch.getBoolPref(itemName)) {
-        // Some of these clear() may raise exceptions (see bug #265028)
-        // to sanitize as much as possible, we catch and store them, 
-        // rather than fail fast.
-        // Callers should check returned errors and give user feedback
-        // about items that could not be sanitized
+        
+        
+        
+        
+        
         try {
           item.clear();
         } catch(er) {
@@ -140,8 +140,8 @@ Sanitizer.prototype = {
       
       get canClear()
       {
-        // bug 347231: Always allow clearing history due to dependencies on
-        // the browser:purge-session-history notification. (like error console)
+        
+        
         return true;
       }
     },
@@ -149,7 +149,7 @@ Sanitizer.prototype = {
     formdata: {
       clear: function ()
       {
-        //Clear undo history of all searchBars
+        
         var windowManager = Components.classes['@mozilla.org/appshell/window-mediator;1'].getService();
         var windowManagerInterface = windowManager.QueryInterface(Components.interfaces.nsIWindowMediator);
         var windows = windowManagerInterface.getEnumerator("navigator:browser");
@@ -194,36 +194,29 @@ Sanitizer.prototype = {
     passwords: {
       clear: function ()
       {
-        var pwmgr = Components.classes["@mozilla.org/passwordmanager;1"]
-                              .getService(Components.interfaces.nsIPasswordManager);
-        var e = pwmgr.enumerator;
-        var passwds = [];
-        while (e.hasMoreElements()) {
-          var passwd = e.getNext().QueryInterface(Components.interfaces.nsIPassword);
-          passwds.push(passwd);
-        }
-        
-        for (var i = 0; i < passwds.length; ++i)
-          pwmgr.removeUser(passwds[i].host, passwds[i].user);
+        var pwmgr = Components.classes["@mozilla.org/login-manager;1"]
+                              .getService(Components.interfaces.nsILoginManager);
+        pwmgr.removeAllLogins();
       },
       
       get canClear()
       {
-        var pwmgr = Components.classes["@mozilla.org/passwordmanager;1"]
-                              .getService(Components.interfaces.nsIPasswordManager);
-        return pwmgr.enumerator.hasMoreElements();
+        var pwmgr = Components.classes["@mozilla.org/login-manager;1"]
+                              .getService(Components.interfaces.nsILoginManager);
+        var logins = pwmgr.getAllLogins({});
+        return (logins.length > 0);
       }
     },
     
     sessions: {
       clear: function ()
       {
-        // clear all auth tokens
+        
         var sdr = Components.classes["@mozilla.org/security/sdr;1"]
                             .getService(Components.interfaces.nsISecretDecoderRing);
         sdr.logoutAndTeardown();
 
-        // clear plain HTTP auth sessions
+        
         var authMgr = Components.classes['@mozilla.org/network/http-auth-manager;1']
                                 .getService(Components.interfaces.nsIHttpAuthManager);
         authMgr.clearAll();
@@ -239,7 +232,7 @@ Sanitizer.prototype = {
 
 
 
-// "Static" members
+
 Sanitizer.prefDomain          = "privacy.sanitize.";
 Sanitizer.prefPrompt          = "promptOnSanitize";
 Sanitizer.prefShutdown        = "sanitizeOnShutdown";
@@ -254,30 +247,30 @@ Sanitizer.__defineGetter__("prefs", function()
                          .getBranch(Sanitizer.prefDomain);
 });
 
-// Shows sanitization UI
+
 Sanitizer.showUI = function(aParentWindow) 
 {
   var ww = Components.classes["@mozilla.org/embedcomp/window-watcher;1"]
                      .getService(Components.interfaces.nsIWindowWatcher);
 #ifdef XP_MACOSX
-  ww.openWindow(null, // make this an app-modal window on Mac
+  ww.openWindow(null, 
 #else
   ww.openWindow(aParentWindow,
 #endif
-                "chrome://browser/content/sanitize.xul",
+                "chrome:
                 "Sanitize",
                 "chrome,titlebar,centerscreen,modal",
                 null);
 };
 
-/** 
- * Deletes privacy sensitive data in a batch, optionally showing the 
- * sanitize UI, according to user preferences
- *
- * @returns  null if everything's fine (no error or displayed UI,  which
- *           should handle errors);  
- *           an object in the form { itemName: error, ... } on (partial) failure
- */
+
+
+
+
+
+
+
+
 Sanitizer.sanitize = function(aParentWindow) 
 {
   if (Sanitizer.prefs.getBoolPref(Sanitizer.prefPrompt)) {
@@ -289,24 +282,24 @@ Sanitizer.sanitize = function(aParentWindow)
 
 Sanitizer.onStartup = function() 
 {
-  // we check for unclean exit with pending sanitization
+  
   Sanitizer._checkAndSanitize();
 };
 
 Sanitizer.onShutdown = function() 
 {
-  // we check if sanitization is needed and perform it
+  
   Sanitizer._checkAndSanitize();
 };
 
-// this is called on startup and shutdown, to perform pending sanitizations
+
 Sanitizer._checkAndSanitize = function() 
 {
   const prefs = Sanitizer.prefs;
   if (prefs.getBoolPref(Sanitizer.prefShutdown) && 
       !prefs.prefHasUserValue(Sanitizer.prefDidShutdown)) {
-    // this is a shutdown or a startup after an unclean exit
-    Sanitizer.sanitize(null) || // sanitize() returns null on full success
+    
+    Sanitizer.sanitize(null) || 
       prefs.setBoolPref(Sanitizer.prefDidShutdown, true);
   }
 };
