@@ -139,6 +139,15 @@ public:
   NS_DECL_NSIAUTOCOMPLETESIMPLERESULTLISTENER
 #endif
 
+
+  
+
+
+  static nsNavHistory *GetSingleton();
+
+  
+
+
   nsresult Init();
 
   
@@ -148,15 +157,13 @@ public:
 
   static nsNavHistory* GetHistoryService()
   {
-    if (! gHistoryService) {
-      nsresult rv;
-      nsCOMPtr<nsINavHistoryService> serv(do_GetService("@mozilla.org/browser/nav-history-service;1", &rv));
-      NS_ENSURE_SUCCESS(rv, nsnull);
+    if (gHistoryService)
+      return gHistoryService;
 
-      
-      
-      NS_ASSERTION(gHistoryService, "History service creation failed");
-    }
+    nsCOMPtr<nsINavHistoryService> serv =
+      do_GetService("@mozilla.org/browser/nav-history-service;1");
+    NS_ENSURE_TRUE(serv, nsnull);
+
     return gHistoryService;
   }
 
