@@ -121,8 +121,17 @@ public:
 
 
 
-  static PRBool IsAncestorOf(nsIDOMNode *aPossibleAncestorNode,
-                             nsIDOMNode *aPossibleDescendantNode);
+   static PRBool IsAncestorOf(nsIDOMNode *aPossibleAncestorNode,
+                              nsIDOMNode *aPossibleDescendantNode);
+
+   
+
+
+
+
+
+   static already_AddRefed<nsIAccessible>
+     GetAncestorWithRole(nsIAccessible *aDescendant, PRUint32 aRole);
 };
 
 #endif
