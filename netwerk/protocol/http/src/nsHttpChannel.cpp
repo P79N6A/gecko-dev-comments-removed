@@ -1804,6 +1804,27 @@ nsHttpChannel::ReadFromCache()
     }
 
     
+    if (mCacheForOfflineUse) {
+        PRBool shouldUpdateOffline;
+        rv = ShouldUpdateOfflineCacheEntry(&shouldUpdateOffline);
+        if (NS_FAILED(rv)) return rv;
+
+        if (shouldUpdateOffline) {
+            LOG(("writing to the offline cache"));
+            rv = InitOfflineCacheEntry();
+            if (NS_FAILED(rv)) return rv;
+
+            if (mOfflineCacheEntry) {
+                rv = InstallOfflineCacheListener();
+                if (NS_FAILED(rv)) return rv;
+            }
+        } else {
+            LOG(("offline cache is up to date, not updating"));
+            CloseOfflineCacheEntry();
+        }
+    }
+
+    
     nsCOMPtr<nsIInputStream> stream;
     rv = mCacheEntry->OpenInputStream(0, getter_AddRefs(stream));
     if (NS_FAILED(rv)) return rv;
