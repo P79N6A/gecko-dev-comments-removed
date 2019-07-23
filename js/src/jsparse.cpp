@@ -503,8 +503,7 @@ extern JSScript *
 js_CompileScript(JSContext *cx, JSObject *scopeChain, JSStackFrame *callerFrame,
                  JSPrincipals *principals, uint32 tcflags,
                  const jschar *chars, size_t length,
-                 FILE *file, const char *filename, uintN lineno,
-                 JSString *source)
+                 FILE *file, const char *filename, uintN lineno)
 {
     JSParseContext pc;
     JSArenaPool codePool, notePool;
@@ -544,36 +543,16 @@ js_CompileScript(JSContext *cx, JSObject *scopeChain, JSStackFrame *callerFrame,
     cg.treeContext.u.scopeChain = scopeChain;
     cg.staticDepth = TCF_GET_STATIC_DEPTH(tcflags);
 
-    
-
-
-
-    JSParsedObjectBox *funpob = NULL;
-
-    if (tcflags & TCF_COMPILE_N_GO) {
-        if (source) {
-            
-
-
-
-            JSAtom *atom = js_AtomizeString(cx, source, 0);
-            if (!atom || !js_IndexAtom(cx, atom, &cg.atomList))
-                return NULL;
-        }
-
-        if (callerFrame && callerFrame->fun) {
-            
+    if ((tcflags & TCF_COMPILE_N_GO) && callerFrame && callerFrame->fun) {
+        
 
 
 
 
-            funpob = js_NewParsedObjectBox(cx, &pc, FUN_OBJECT(callerFrame->fun));
-            if (!funpob)
-                return NULL;
-            funpob->emitLink = cg.objectList.lastPob;
-            cg.objectList.lastPob = funpob;
-            cg.objectList.length++;
-        }
+        JSParsedObjectBox *pob = js_NewParsedObjectBox(cx, &pc, FUN_OBJECT(callerFrame->fun));
+        pob->emitLink = cg.objectList.lastPob;
+        cg.objectList.lastPob = pob;
+        cg.objectList.length++;
     }
 
     
@@ -668,8 +647,6 @@ js_CompileScript(JSContext *cx, JSObject *scopeChain, JSStackFrame *callerFrame,
     JS_DumpArenaStats(stdout);
 #endif
     script = js_NewScriptFromCG(cx, &cg);
-    if (script && funpob)
-        script->flags |= JSSF_SAVED_CALLER_FUN;
 
 #ifdef JS_SCOPE_DEPTH_METER
     if (script) {
