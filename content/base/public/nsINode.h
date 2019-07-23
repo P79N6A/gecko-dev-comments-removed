@@ -308,26 +308,24 @@ public:
     
     eATTRIBUTE           = 1 << 2,
     
-    eELEMENT             = 1 << 3,
+    eTEXT                = 1 << 3,
     
-    eTEXT                = 1 << 4,
+    ePROCESSING_INSTRUCTION = 1 << 4,
     
-    ePROCESSING_INSTRUCTION = 1 << 5,
+    eCOMMENT             = 1 << 5,
     
-    eCOMMENT             = 1 << 6,
+    eHTML_FORM_CONTROL   = 1 << 6,
     
-    eHTML_FORM_CONTROL   = 1 << 7,
+    eSVG                 = 1 << 7,
     
-    eSVG                 = 1 << 8,
-    
-    eDOCUMENT_FRAGMENT   = 1 << 9,
+    eDOCUMENT_FRAGMENT   = 1 << 8,
     
 
-    eDATA_NODE           = 1 << 10,
+    eDATA_NODE           = 1 << 19,
     
-    eMEDIA               = 1 << 11,
+    eMEDIA               = 1 << 10,
     
-    eANIMATION           = 1 << 12
+    eANIMATION           = 1 << 11
   };
 
   

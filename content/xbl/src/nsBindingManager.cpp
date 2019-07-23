@@ -1277,11 +1277,11 @@ nsBindingManager::WalkRules(nsIStyleRuleProcessor::EnumFunc aFunc,
 {
   *aCutOffInheritance = PR_FALSE;
   
-  NS_ASSERTION(aData->mContent, "How did that happen?");
+  NS_ASSERTION(aData->mElement, "How did that happen?");
 
   
   
-  nsIContent *content = aData->mContent;
+  nsIContent *content = aData->mElement;
   
   do {
     nsXBLBinding *binding = GetBinding(content);
@@ -1290,7 +1290,7 @@ nsBindingManager::WalkRules(nsIStyleRuleProcessor::EnumFunc aFunc,
       binding->WalkRules(aFunc, aData);
       
       
-      if (content != aData->mContent) {
+      if (content != aData->mElement) {
         if (!binding->InheritsStyle()) {
           
           break;
