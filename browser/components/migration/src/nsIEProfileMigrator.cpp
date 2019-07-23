@@ -858,16 +858,18 @@ nsIEProfileMigrator::MigrateSiteAuthSignons(IPStore* aPStore)
           
           nsresult rv;
 
-          nsCOMPtr<nsILoginInfo> aLogin (do_CreateInstance(NS_LOGININFO_CONTRACTID, &rv));
+          nsCOMPtr<nsILoginInfo> aLogin (do_CreateInstance(
+                                           NS_LOGININFO_CONTRACTID, &rv));
           NS_ENSURE_SUCCESS(rv, rv);
 
           
           
-          
+          aLogin->SetHostname(host);
+          aLogin->SetHttpRealm(realm);
+          aLogin->SetUsername(NS_ConvertUTF8toUTF16((char *)data));
+          aLogin->SetPassword(NS_ConvertUTF8toUTF16((char *)password));
 
-          
-
-          
+          pwmgr->AddLogin(aLogin);
         }
         ::CoTaskMemFree(data);
       }
