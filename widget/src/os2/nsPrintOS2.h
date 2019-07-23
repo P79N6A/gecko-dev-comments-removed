@@ -54,15 +54,15 @@
 
 
 
-NS_GFX_(BOOL) PrnInitialize(HMODULE hmodResources);
-NS_GFX_(BOOL) PrnTerminate(void);
+BOOL PrnInitialize(HMODULE hmodResources);
+BOOL PrnTerminate(void);
 
 
-class NS_GFX PRTQUEUE;
+class PRTQUEUE;
 
 #define MAX_PRINT_QUEUES  (128)
 
-class NS_GFX PRINTDLG
+class PRINTDLG
 {
 public:
    PRINTDLG();
@@ -84,17 +84,15 @@ private:
 
 
 
-NS_GFX_(BOOL) PrnClosePrinter( PRTQUEUE *pPrintQueue);
+BOOL PrnClosePrinter( PRTQUEUE *pPrintQueue);
 
 
-NS_GFX_(HDC) PrnOpenDC( PRTQUEUE *pPrintQueue, PSZ pszApplicationName, int copies, int destination, char *file);
+HDC PrnOpenDC( PRTQUEUE *pPrintQueue, PSZ pszApplicationName, int copies, int destination, char *file);
 
 
-NS_GFX_(BOOL) PrnQueryHardcopyCaps( HDC hdc, PHCINFO pHCInfo);
+BOOL PrnQueryHardcopyCaps( HDC hdc, PHCINFO pHCInfo);
 
 
-NS_GFX_(BOOL) PrnAbortJob( HDC hdc);
-
-
+BOOL PrnAbortJob( HDC hdc);
 
 #endif
