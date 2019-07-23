@@ -86,6 +86,8 @@ let gStr = {
   doneStatus: "doneStatus",
   doneSize: "doneSize",
   doneSizeUnknown: "doneSizeUnknown",
+  doneScheme: "doneScheme",
+  doneFileScheme: "doneFileScheme",
   stateFailed: "stateFailed",
   stateCanceled: "stateCanceled",
   stateBlocked: "stateBlocked",
@@ -857,21 +859,33 @@ function updateStatus(aItem, aDownload) {
         
         let uri = ioService.newURI(getReferrerOrSource(aItem), null, null);
 
+        
+        if (uri instanceof Ci.nsINestedURI)
+          uri = uri.innermostURI
+
         try {
           
           displayHost = eTLDService.getBaseDomain(uri);
         } catch (e) {
-          
-          displayHost = uri.host;
+          try {
+            
+            displayHost = uri.host;
+          } catch (e) {
+            displayHost = "";
+          }
         }
 
         
-        if (displayHost.length == 0)
-          displayHost = uri.spec;
-
-        
-        else if (uri.port != -1)
+        if (uri.scheme == "file") {
+          
+          displayHost = gStr.doneFileScheme;
+        } else if (displayHost.length == 0) {
+          
+          displayHost = replaceInsert(gStr.doneScheme, 1, uri.scheme);
+        } else if (uri.port != -1) {
+          
           displayHost += ":" + uri.port;
+        }
 
         
         status = replaceInsert(status, 2, displayHost);
