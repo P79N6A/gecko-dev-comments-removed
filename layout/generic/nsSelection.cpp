@@ -1222,6 +1222,20 @@ nsFrameSelection::MoveCaret(PRUint32          aKeycode,
                             PRBool            aContinueSelection,
                             nsSelectionAmount aAmount)
 {
+  {
+    
+    
+    nsRefPtr<nsFrameSelection> kungFuDeathGrip(this);
+
+    
+    
+    mShell->FlushPendingNotifications(Flush_Layout);
+
+    if (!mShell) {
+      return NS_OK;
+    }
+  }
+    
   nsPresContext *context = mShell->GetPresContext();
   if (!context)
     return NS_ERROR_FAILURE;
