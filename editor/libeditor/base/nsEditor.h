@@ -312,9 +312,6 @@ protected:
   NS_IMETHOD SelectEntireDocument(nsISelection *aSelection);
 
   
-  NS_IMETHOD GetWrapWidth(PRInt32* aWrapCol);
-
-  
 
 
 
