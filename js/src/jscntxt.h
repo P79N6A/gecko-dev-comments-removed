@@ -1173,9 +1173,42 @@ namespace js {
 class AutoGCRooter;
 }
 
+struct JSRegExpStatics {
+    JSString    *input;         
+    JSBool      multiline;      
+    JSSubString lastMatch;      
+    JSSubString lastParen;      
+    JSSubString leftContext;    
+    JSSubString rightContext;   
+    js::Vector<JSSubString> parens; 
+
+    JSRegExpStatics(JSContext *cx) : parens(cx) {}
+
+    bool copy(const JSRegExpStatics& other) {
+        input = other.input;
+        multiline = other.multiline;
+        lastMatch = other.lastMatch;
+        lastParen = other.lastParen;
+        leftContext = other.leftContext;
+        rightContext = other.rightContext;
+        if (!parens.resize(other.parens.length()))
+            return false;
+        memcpy(parens.begin(), other.parens.begin(), sizeof(JSSubString) * parens.length());
+        return true;
+    }
+
+    void clear() {
+        input = NULL;
+        multiline = false;
+        lastMatch = lastParen = leftContext = rightContext = js_EmptySubString;
+        parens.clear();
+    }
+};
+
 struct JSContext
 {
-    explicit JSContext(JSRuntime *rt) : runtime(rt), busyArrays(this) {}
+    explicit JSContext(JSRuntime *rt) :
+      runtime(rt), regExpStatics(this), busyArrays(this) {}
 
     
 

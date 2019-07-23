@@ -1719,13 +1719,13 @@ InterpretDollar(JSContext *cx, jschar *dp, jschar *ep, ReplaceData &rdata,
     if (JS7_ISDEC(dc)) {
         
         num = JS7_UNDEC(dc);
-        if (num > res->parenCount)
+        if (num > res->parens.length())
             return NULL;
 
         cp = dp + 2;
         if (cp < ep && (dc = *cp, JS7_ISDEC(dc))) {
             tmp = 10 * num + JS7_UNDEC(dc);
-            if (tmp <= res->parenCount) {
+            if (tmp <= res->parens.length()) {
                 cp++;
                 num = tmp;
             }
@@ -1736,7 +1736,7 @@ InterpretDollar(JSContext *cx, jschar *dp, jschar *ep, ReplaceData &rdata,
         
         num--;
         *skip = cp - dp;
-        return REGEXP_PAREN_SUBSTRING(res, num);
+        return (num < res->parens.length()) ? &res->parens[num] : &js_EmptySubString;
     }
 
     *skip = 2;
@@ -1780,8 +1780,6 @@ FindReplaceLength(JSContext *cx, ReplaceData &rdata, size_t *sizep)
 
     lambda = rdata.lambda;
     if (lambda) {
-        uintN i, m, n;
-
         LeaveTrace(cx);
 
         
@@ -1802,18 +1800,6 @@ FindReplaceLength(JSContext *cx, ReplaceData &rdata, size_t *sizep)
         }
         jsval* invokevp = rdata.invokevp;
 
-        MUST_FLOW_THROUGH("lambda_out");
-        bool ok = false;
-        bool freeMoreParens = false;
-
-        
-
-
-
-
-
-        JSRegExpStatics save = cx->regExpStatics;
-
         
         jsval *sp = invokevp;
         *sp++ = OBJECT_TO_JSVAL(lambda);
@@ -1821,27 +1807,13 @@ FindReplaceLength(JSContext *cx, ReplaceData &rdata, size_t *sizep)
 
         
         if (!PushRegExpSubstr(cx, cx->regExpStatics.lastMatch, sp))
-            goto lambda_out;
+            return false;
 
-        i = 0;
-        m = cx->regExpStatics.parenCount;
-        n = JS_MIN(m, 9);
-        for (uintN j = 0; i < n; i++, j++) {
-            if (!PushRegExpSubstr(cx, cx->regExpStatics.parens[j], sp))
-                goto lambda_out;
+        uintN i = 0;
+        for (uintN n = cx->regExpStatics.parens.length(); i < n; i++) {
+            if (!PushRegExpSubstr(cx, cx->regExpStatics.parens[i], sp))
+                return false;
         }
-        for (uintN j = 0; i < m; i++, j++) {
-            if (!PushRegExpSubstr(cx, cx->regExpStatics.moreParens[j], sp))
-                goto lambda_out;
-        }
-
-        
-
-
-
-
-        cx->regExpStatics.moreParens = NULL;
-        freeMoreParens = true;
 
         
         for (; i < p; i++)
@@ -1852,7 +1824,7 @@ FindReplaceLength(JSContext *cx, ReplaceData &rdata, size_t *sizep)
         *sp++ = STRING_TO_JSVAL(rdata.str);
 
         if (!js_Invoke(cx, argc, invokevp, 0))
-            goto lambda_out;
+            return false;
 
         
 
@@ -1861,18 +1833,12 @@ FindReplaceLength(JSContext *cx, ReplaceData &rdata, size_t *sizep)
 
         repstr = js_ValueToString(cx, *invokevp);
         if (!repstr)
-            goto lambda_out;
+            return false;
 
         rdata.repstr = repstr;
         *sizep = repstr->length();
 
-        ok = true;
-
-      lambda_out:
-        if (freeMoreParens)
-            cx->free(cx->regExpStatics.moreParens);
-        cx->regExpStatics = save;
-        return ok;
+        return true;
     }
 
     repstr = rdata.repstr;
@@ -2212,10 +2178,11 @@ str_split(JSContext *cx, uintN argc, jsval *vp)
 
 
         if (re && sep->chars) {
-            for (uintN num = 0; num < cx->regExpStatics.parenCount; num++) {
+            JSRegExpStatics *res = &cx->regExpStatics;
+            for (uintN num = 0; num < res->parens.length(); num++) {
                 if (limited && len >= limit)
                     break;
-                JSSubString *parsub = REGEXP_PAREN_SUBSTRING(&cx->regExpStatics, num);
+                JSSubString *parsub = &res->parens[num];
                 sub = js_NewStringCopyN(cx, parsub->chars, parsub->length);
                 if (!sub || !splits.push(sub))
                     return false;
