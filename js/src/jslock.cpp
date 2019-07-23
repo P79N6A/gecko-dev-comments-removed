@@ -99,6 +99,21 @@ js_CompareAndSwap(jsword *w, jsword ov, jsword nv)
     }
 }
 
+#elif defined(XP_MACOSX) || defined(DARWIN)
+
+#include <libkern/OSAtomic.h>
+
+static JS_INLINE int
+js_CompareAndSwap(jsword *w, jsword ov, jsword nv)
+{
+    
+#if JS_BYTES_PER_WORD == 8 && JS_BYTES_PER_LONG != 8
+    return OSAtomicCompareAndSwap64Barrier(ov, nv, (int64_t*) w);
+#else
+    return OSAtomicCompareAndSwap32Barrier(ov, nv, (int32_t*) w);
+#endif
+}
+
 #elif defined(__GNUC__) && defined(__i386__)
 
 

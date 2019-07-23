@@ -86,11 +86,7 @@
 
 
 
-#ifdef DEBUG_brendan
-#define METERING        1
-#endif
-
-#ifdef METERING
+#ifdef XML_METERING
 static struct {
     jsrefcount  qname;
     jsrefcount  qnameobj;
