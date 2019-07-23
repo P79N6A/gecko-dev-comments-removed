@@ -384,8 +384,9 @@ function run_test() {
   lolType = handlerSvc.getTypeFromExtension("lolcat");
   do_check_eq(lolType, "application/lolcat");
 
-  var handlerInfo = mimeSvc.getFromTypeAndExtension("text/plain", null);
-  do_check_eq(handlerInfo.preferredAction, Ci.nsIHandlerInfo.useSystemDefault);
-  do_check_eq(handlerInfo.defaultDescription, "sed");
+  
+  
+  
+  
 
 }
