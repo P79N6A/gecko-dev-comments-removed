@@ -52,7 +52,9 @@ bool WriteMinidump(const char* filename, pid_t crashing_process,
 
 
 
-bool WriteMinidump(const char* filename, pid_t process);
+
+bool WriteMinidump(const char* filename, pid_t process,
+                   pid_t process_blamed_thread);
 
 }  
 

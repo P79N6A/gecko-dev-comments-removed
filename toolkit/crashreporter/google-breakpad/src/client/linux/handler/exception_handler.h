@@ -168,7 +168,11 @@ class ExceptionHandler {
   
   
   
+  
+  
+  
   static bool WriteMinidumpForChild(pid_t child,
+                                    pid_t child_blamed_thread,
                                     const std::string &dump_path,
                                     MinidumpCallback callback,
                                     void *callback_context);

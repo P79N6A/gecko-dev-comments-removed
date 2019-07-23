@@ -399,8 +399,19 @@ static uintptr_t StackPointer(const ucontext* uc) {
 
 namespace google_breakpad {
 
+
+
+
+
+
+
+
+
+
+
 class MinidumpWriter {
  public:
+  
   MinidumpWriter(const char* filename,
                  pid_t crashing_pid,
                  const ExceptionHandler::CrashContext* context)
@@ -414,27 +425,26 @@ class MinidumpWriter {
         float_state_(NULL),
 #endif
         crashing_tid_(context->tid),
-        crashing_tid_info_(NULL),
+        crashing_tid_pc_(0),
         dumper_(crashing_pid) {
   }
 
+  
   MinidumpWriter(const char* filename,
                  pid_t pid,
-                 ThreadInfo* info,
-                 const siginfo_t* siginfo)
+                 pid_t blame_thread)
       : filename_(filename),
-        siginfo_(siginfo),
+        siginfo_(NULL),         
         ucontext_(NULL),
         float_state_(NULL),
-        crashing_tid_(info->tid),
-        crashing_tid_info_(info),
+        crashing_tid_(blame_thread),
+        crashing_tid_pc_(0),    
         dumper_(pid) {
   }
 
   bool Init() {
     return dumper_.Init() && minidump_writer_.Open(filename_) &&
-           dumper_.ThreadsAttach(CrashingThreadAttached() ?
-                                 crashing_tid_ : 0);
+           dumper_.ThreadsAttach();
   }
 
   ~MinidumpWriter() {
@@ -442,8 +452,8 @@ class MinidumpWriter {
     dumper_.ThreadsDetach();
   }
 
-  bool CrashingThreadAttached() const {
-    return crashing_tid_info_ != NULL;
+  bool HaveCrashedThread() const {
+    return ucontext_ != NULL;
   }
 
   bool Dump() {
@@ -476,7 +486,7 @@ class MinidumpWriter {
       return false;
     dir.CopyIndex(dir_index++, &dirent);
 
-    if (siginfo_) {
+    if (siginfo_ || crashing_tid_pc_) {
       if (!WriteExceptionStream(&dirent))
         return false;
       dir.CopyIndex(dir_index++, &dirent);
@@ -549,10 +559,11 @@ class MinidumpWriter {
       
       
       
-      if ((pid_t)thread.thread_id == crashing_tid_) {
+      if (HaveCrashedThread() &&
+          (pid_t)thread.thread_id == crashing_tid_) {
         const void* stack;
         size_t stack_len;
-        if (!dumper_.GetStackInfo(&stack, &stack_len, GetStackPointer()))
+        if (!dumper_.GetStackInfo(&stack, &stack_len, StackPointer(ucontext_)))
           return false;
         UntypedMDRVA memory(&minidump_writer_);
         if (!memory.Allocate(stack_len))
@@ -566,12 +577,7 @@ class MinidumpWriter {
         if (!cpu.Allocate())
           return false;
         my_memset(cpu.get(), 0, sizeof(RawContextCPU));
-        if (crashing_tid_info_)
-          
-          
-          CPUFillFromThreadInfo(cpu.get(), *crashing_tid_info_);
-        else
-          CPUFillFromUContext(cpu.get(), ucontext_, float_state_);
+        CPUFillFromUContext(cpu.get(), ucontext_, float_state_);
         thread.thread_context = cpu.location();
         crashing_thread_context_ = cpu.location();
       } else {
@@ -595,6 +601,15 @@ class MinidumpWriter {
         my_memset(cpu.get(), 0, sizeof(RawContextCPU));
         CPUFillFromThreadInfo(cpu.get(), info);
         thread.thread_context = cpu.location();
+
+        if ((pid_t)thread.thread_id == crashing_tid_) {
+          assert(!HaveCrashedThread());
+          
+          
+          
+          crashing_tid_pc_ = InstructionPointer(info);
+          crashing_thread_context_ = cpu.location();
+        }
       }
 
       list.CopyIndexAfterObject(i, &thread, sizeof(thread));
@@ -655,7 +670,6 @@ class MinidumpWriter {
       }
       filename_ptr++;
       const size_t filename_len = mapping.name + filepath_len - filename_ptr;
-
       uint8_t cv_buf[MDCVInfoPDB70_minsize + NAME_MAX];
       uint8_t* cv_ptr = cv_buf;
       UntypedMDRVA cv(&minidump_writer_);
@@ -697,10 +711,13 @@ class MinidumpWriter {
     dirent->stream_type = MD_EXCEPTION_STREAM;
     dirent->location = exc.location();
 
+    int signo = HaveCrashedThread() ? siginfo_->si_signo : SIGSTOP;
+    uintptr_t crash_addr = HaveCrashedThread() ?
+                           uintptr_t(siginfo_->si_addr) : crashing_tid_pc_;
+
     exc.get()->thread_id = crashing_tid_;
-    exc.get()->exception_record.exception_code = siginfo_->si_signo;
-    exc.get()->exception_record.exception_address =
-        (uintptr_t) siginfo_->si_addr;
+    exc.get()->exception_record.exception_code = signo;
+    exc.get()->exception_record.exception_address = crash_addr;
     exc.get()->thread_context = crashing_thread_context_;
 
     return true;
@@ -722,11 +739,6 @@ class MinidumpWriter {
   }
 
  private:
-  uintptr_t GetStackPointer() {
-    return crashing_tid_info_ ? StackPointer(*crashing_tid_info_) :
-      StackPointer(ucontext_);
-  }
-
   void NullifyDirectoryEntry(MDRawDirectory* dirent) {
     dirent->stream_type = 0;
     dirent->location.data_size = 0;
@@ -947,12 +959,14 @@ popline:
 
   const char* const filename_;  
   const siginfo_t* const siginfo_;  
-  
   const struct ucontext* const ucontext_;  
   const struct _libc_fpstate* const float_state_;  
   const pid_t crashing_tid_;  
-  
-  ThreadInfo* crashing_tid_info_;
+  uintptr_t crashing_tid_pc_; 
+                              
+                              
+                              
+                              
   LinuxDumper dumper_;
   MinidumpFileWriter minidump_writer_;
   MDLocationDescriptor crashing_thread_context_;
@@ -970,34 +984,9 @@ bool WriteMinidump(const char* filename, pid_t crashing_process,
   return writer.Dump();
 }
 
-bool WriteMinidump(const char* filename, pid_t process) {
-  
-  
-  
-  
-  
-  
-  
-
-  if (!AttachThread(process))
-    return false;
-
-  
-  
-  struct AutoDetach {
-    AutoDetach(pid_t proc) : proc_(proc) { }
-    ~AutoDetach() { DetachThread(proc_); }
-    pid_t proc_;
-  } detach(process);
-
-  ThreadInfo info;
-  my_memset(&info, 0, sizeof(info));
-
-  info.tid = process;
-  if (!GetThreadRegisters(&info))
-      return false;
-
-  MinidumpWriter writer(filename, process, &info, NULL);
+bool WriteMinidump(const char* filename, pid_t process,
+                   pid_t process_blamed_thread) {
+  MinidumpWriter writer(filename, process, process_blamed_thread);
   if (!writer.Init())
     return false;
   return writer.Dump();

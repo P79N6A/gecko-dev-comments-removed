@@ -192,7 +192,11 @@ class ExceptionHandler {
 
   
   
+  
+  
+  
   static bool WriteMinidumpForChild(HANDLE child,
+                                    DWORD child_blamed_thread,
                                     const wstring &dump_path,
                                     MinidumpCallback callback,
                                     void *callback_context);
