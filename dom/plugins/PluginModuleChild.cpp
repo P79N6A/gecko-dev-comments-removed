@@ -560,11 +560,18 @@ _geturlnotify(NPP aNPP,
     AssertPluginThread();
 
     nsCString url = NullableString(aRelativeURL);
+    StreamNotifyChild* sn = new StreamNotifyChild(url);
+
     NPError err;
     InstCast(aNPP)->CallPStreamNotifyConstructor(
-        new StreamNotifyChild(url, aNotifyData),
-        url, NullableString(aTarget), false, nsCString(), false, &err);
-    
+        sn, url, NullableString(aTarget), false, nsCString(), false, &err);
+
+    if (NPERR_NO_ERROR == err) {
+        
+        
+        sn->SetValid(aNotifyData);
+    }
+
     return err;
 }
 
@@ -615,22 +622,23 @@ _posturlnotify(NPP aNPP,
     _MOZ_LOG(__FUNCTION__);
     AssertPluginThread();
 
+    if (!aBuffer)
+        return NPERR_INVALID_PARAM;
+
     nsCString url = NullableString(aRelativeURL);
+    StreamNotifyChild* sn = new StreamNotifyChild(url);
+
     NPError err;
-
-    
-
-    
-    
-    nsAutoPtr<char> bufferCopy(new char[aLength+1]);
-    memcpy(bufferCopy, aBuffer, aLength);
-    bufferCopy[aLength] = 0;
-
     InstCast(aNPP)->CallPStreamNotifyConstructor(
-        new StreamNotifyChild(url, aNotifyData),
-        url, NullableString(aTarget), true,
-        nsDependentCString(bufferCopy, aLength), aIsFile, &err);
-    
+        sn, url, NullableString(aTarget), true,
+        nsCString(aBuffer, aLength), aIsFile, &err);
+
+    if (NPERR_NO_ERROR == err) {
+        
+        
+        sn->SetValid(aNotifyData);
+    }
+
     return err;
 }
 

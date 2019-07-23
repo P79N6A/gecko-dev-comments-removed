@@ -142,7 +142,6 @@ BrowserStreamChild::NPN_RequestRead(NPByteRange* aRangeList)
 
   NPError result;
   CallNPN_RequestRead(ranges, &result);
-  
   return result;
 }
 
