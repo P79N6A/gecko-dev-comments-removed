@@ -204,8 +204,6 @@ pref("browser.urlbar.autoFill", false);
 pref("browser.urlbar.matchOnlyTyped", false);
 
 
-pref("browser.urlbar.richResults", true);
-
 pref("browser.urlbar.maxRichResults", 25);
 
 pref("browser.download.useDownloadDir", true);
