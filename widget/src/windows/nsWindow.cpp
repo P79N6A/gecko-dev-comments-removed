@@ -196,6 +196,9 @@
 
 
 #include "nsITimer.h"
+#ifdef WINCE_WINDOWS_MOBILE
+#include "nsGfxCIID.h"
+#endif
 
 
 
@@ -405,6 +408,9 @@ PRBool          gDisableNativeTheme               = PR_FALSE;
 static PRBool   gWindowsVisible                   = PR_FALSE;
 
 static NS_DEFINE_CID(kCClipboardCID, NS_CLIPBOARD_CID);
+#ifdef WINCE_WINDOWS_MOBILE
+static NS_DEFINE_CID(kRegionCID, NS_REGION_CID);
+#endif
 
 
 static nsScrollPrefObserver* gScrollPrefObserver  = nsnull;
@@ -472,6 +478,11 @@ nsWindow::nsWindow() : nsBaseWidget()
 
   
   mScrollSeriesCounter = 0;
+
+#ifdef WINCE_WINDOWS_MOBILE
+  mInvalidatedRegion = do_CreateInstance(kRegionCID);
+  mInvalidatedRegion->Init();
+#endif
 
   
   if (!sInstanceCount) {
@@ -2101,6 +2112,13 @@ NS_METHOD nsWindow::Validate()
   return NS_OK;
 }
 
+#ifdef WINCE_WINDOWS_MOBILE
+static inline void AddRECTToRegion(const RECT& aRect, nsIRegion* aRegion)
+{
+  aRegion->Union(aRect.left, aRect.top, aRect.right - aRect.left, aRect.bottom - aRect.top);
+}
+#endif
+
 
 NS_METHOD nsWindow::Invalidate(PRBool aIsSynchronous)
 {
@@ -2114,7 +2132,12 @@ NS_METHOD nsWindow::Invalidate(PRBool aIsSynchronous)
                          nsCAutoString("noname"),
                          (PRInt32) mWnd);
 #endif 
-
+#ifdef WINCE_WINDOWS_MOBILE
+    
+    RECT r;
+    GetClientRect(mWnd, &r);
+    AddRECTToRegion(r, mInvalidatedRegion);
+#endif
     VERIFY(::InvalidateRect(mWnd, NULL, FALSE));
 
     if (aIsSynchronous) {
@@ -2145,6 +2168,10 @@ NS_METHOD nsWindow::Invalidate(const nsIntRect & aRect, PRBool aIsSynchronous)
     rect.right  = aRect.x + aRect.width;
     rect.bottom = aRect.y + aRect.height;
 
+#ifdef WINCE_WINDOWS_MOBILE
+    
+    AddRECTToRegion(rect, mInvalidatedRegion);
+#endif
     VERIFY(::InvalidateRect(mWnd, &rect, FALSE));
 
     if (aIsSynchronous) {
