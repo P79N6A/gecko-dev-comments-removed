@@ -1,0 +1,66 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+richlistitem {
+  -moz-binding: url("chrome://browser/content/preferences/handlers.xml#handler");
+}
+
+richlistitem[selected="true"] {
+  -moz-binding: url("chrome://browser/content/preferences/handlers.xml#handler-selected");
+}
+
+
+
+
+
+
+
+
+.actionsMenu {
+  margin-left: 0;
+}
+
+
+
+
+
+
+.actionsMenu > menupopup > menuitem > .menu-iconic-left {
+  display: -moz-box;
+  min-width: 16px;
+  -moz-padding-start: 2px;
+  -moz-padding-end: 2px;
+}

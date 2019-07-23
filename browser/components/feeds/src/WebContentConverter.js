@@ -113,6 +113,28 @@ ServiceInfo.prototype = {
   
 
 
+  get name() {
+    return this._name;
+  },
+  
+  
+
+
+  equals: function SI_equals(aHandlerApp) {
+    if (!aHandlerApp)
+      throw Cr.NS_ERROR_NULL_POINTER;
+
+    if (aHandlerApp instanceof Ci.nsIWebContentHandlerInfo &&
+        aHandlerApp.contentType == this.contentType &&
+        aHandlerApp.uri == this.uri)
+      return true;
+
+    return false;
+  },
+
+  
+
+
   get contentType() {
     return this._contentType;
   },
@@ -127,23 +149,8 @@ ServiceInfo.prototype = {
   
 
 
-  get name() {
-    return this._name;
-  },
-  
-  
-
-
   getHandlerURI: function SI_getHandlerURI(uri) {
     return this._uri.replace(/%s/gi, encodeURIComponent(uri));
-  },
-  
-  
-
-
-  equals: function SI_equals(other) {
-    return this.contentType == other.contentType &&
-           this.uri == other.uri;
   },
   
   QueryInterface: function SI_QueryInterface(iid) {

@@ -58,7 +58,7 @@ var gContentPane = {
   
 
 
-  
+
   updateButtons: function (aButtonID, aPreferenceID)
   {
     var button = document.getElementById(aButtonID);
@@ -262,18 +262,6 @@ var gContentPane = {
   {
     document.documentElement.openSubDialog("chrome://browser/content/preferences/colors.xul",
                                            "", null);  
-  },
-
-  
-
-  
-
-
-  configureFileTypes: function ()
-  {
-    document.documentElement.openWindow("Preferences:DownloadActions",
-                                        "chrome://browser/content/preferences/downloadactions.xul",
-                                        "", null);
   }
 
 };
