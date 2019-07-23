@@ -86,7 +86,7 @@
 
 #include "gfxColor.h"
 #include "gfxPlatform.h"
-#include "qcms.h"
+#include "lcms.h"
 
 
 
@@ -681,9 +681,9 @@ static void ConvertColormap(PRUint32 *aColormap, PRUint32 aColors)
 {
   
   if (gfxPlatform::GetCMSMode() == eCMSMode_All) {
-    qcms_transform *transform = gfxPlatform::GetCMSRGBTransform();
+    cmsHTRANSFORM transform = gfxPlatform::GetCMSRGBTransform();
     if (transform)
-      qcms_transform_data(transform, aColormap, aColormap, aColors);
+      cmsDoTransform(transform, aColormap, aColormap, aColors);
   }
   
   

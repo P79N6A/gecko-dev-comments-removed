@@ -142,7 +142,7 @@ protected:
     static gfxFontconfigUtils *sFontconfigUtils;
 
 private:
-    virtual qcms_profile *GetPlatformCMSOutputProfile();
+    virtual cmsHPROFILE GetPlatformCMSOutputProfile();
 };
 
 #endif 
