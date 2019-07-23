@@ -2787,7 +2787,7 @@ nsTextControlFrame::SetValue(const nsAString& aValue)
       
       
 
-      scrollableView->ScrollTo(0, 0, NS_VMREFRESH_NO_SYNC);
+      scrollableView->ScrollTo(0, 0, 0);
     }
   }
   else

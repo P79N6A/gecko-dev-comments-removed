@@ -102,7 +102,7 @@ public:
 
 
 
-  virtual void ScrollTo(nsPoint aScrollPosition, PRUint32 aFlags = NS_VMREFRESH_NO_SYNC)=0;
+  virtual void ScrollTo(nsPoint aScrollPosition, PRUint32 aFlags = 0)=0;
 
   virtual nsIScrollableView* GetScrollableView() = 0;
 
