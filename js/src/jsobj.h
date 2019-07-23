@@ -163,7 +163,22 @@ struct JSObjectOps {
     JSHasInstanceOp     hasInstance;
     JSTraceOp           trace;
     JSFinalizeOp        clear;
+
+    bool inline isNative() const;
 };
+
+extern JS_FRIEND_DATA(JSObjectOps) js_ObjectOps;
+extern JS_FRIEND_DATA(JSObjectOps) js_WithObjectOps;
+
+
+
+
+
+inline bool
+JSObjectOps::isNative() const
+{
+    return JS_LIKELY(this == &js_ObjectOps) || !objectMap;
+}
 
 struct JSObjectMap {
     const JSObjectOps * const   ops;    
@@ -229,6 +244,8 @@ struct JSObject {
     jsuword     classword;                  
     jsval       fslots[JS_INITIAL_NSLOTS];  
     jsval       *dslots;                    
+
+    bool isNative() const { return map->ops->isNative(); }
 
     JSClass *getClass() const {
         return (JSClass *) (classword & ~JSSLOT_CLASS_MASK_BITS);
@@ -415,6 +432,8 @@ struct JSObject {
 };
 
 
+#define OBJ_IS_NATIVE(obj)              ((obj)->isNative())
+
 #define STOBJ_GET_PROTO(obj)            ((obj)->getProto())
 #define STOBJ_SET_PROTO(obj,proto)      ((obj)->setProto(proto))
 #define STOBJ_CLEAR_PROTO(obj)          ((obj)->clearProto())
@@ -482,7 +501,7 @@ STOBJ_GET_CLASS(const JSObject* obj)
 }
 
 #define OBJ_CHECK_SLOT(obj,slot)                                              \
-    (JS_ASSERT(OBJ_IS_NATIVE(obj)), JS_ASSERT(slot < OBJ_SCOPE(obj)->freeslot))
+    (JS_ASSERT(obj->isNative()), JS_ASSERT(slot < OBJ_SCOPE(obj)->freeslot))
 
 #define LOCKED_OBJ_GET_SLOT(obj,slot)                                         \
     (OBJ_CHECK_SLOT(obj, slot), STOBJ_GET_SLOT(obj, slot))
@@ -538,15 +557,6 @@ STOBJ_GET_CLASS(const JSObject* obj)
 
 #define OBJ_GET_CLASS(cx,obj)           STOBJ_GET_CLASS(obj)
 
-
-
-
-
-#define OPS_IS_NATIVE(ops)                                                    \
-    JS_LIKELY((ops) == &js_ObjectOps || !(ops)->objectMap)
-
-#define OBJ_IS_NATIVE(obj)  OPS_IS_NATIVE((obj)->map->ops)
-
 #ifdef __cplusplus
 inline void
 OBJ_TO_INNER_OBJECT(JSContext *cx, JSObject *&obj)
@@ -575,8 +585,6 @@ OBJ_TO_OUTER_OBJECT(JSContext *cx, JSObject *&obj)
 }
 #endif
 
-extern JS_FRIEND_DATA(JSObjectOps) js_ObjectOps;
-extern JS_FRIEND_DATA(JSObjectOps) js_WithObjectOps;
 extern JSClass  js_ObjectClass;
 extern JSClass  js_WithClass;
 extern JSClass  js_BlockClass;
