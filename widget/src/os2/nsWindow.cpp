@@ -65,7 +65,7 @@
 #include "nsIPrefService.h"
 
 
-#include "nsplugindefs.h"
+#include "npapi.h"
 
 #include "nsITimer.h"
 #include "nsIServiceManager.h"

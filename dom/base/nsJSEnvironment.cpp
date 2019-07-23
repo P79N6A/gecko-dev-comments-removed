@@ -2534,13 +2534,7 @@ nsJSContext::InitContext(nsIScriptGlobalObject *aGlobalObject)
 
     
     
-    
-    
-    
-    
-    
-    
-    rv = xpc->InitClasses(mContext, global);
+    rv = xpc->InitClassesForOuterObject(mContext, global);
     NS_ENSURE_SUCCESS(rv, rv);
 
     nsCOMPtr<nsIClassInfo> ci(do_QueryInterface(aGlobalObject));

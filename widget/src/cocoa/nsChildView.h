@@ -451,7 +451,8 @@ protected:
   PRPackedBool          mPluginDrawing;
   PRPackedBool          mPluginIsCG; 
 
-  nsPluginPort          mPluginPort;
+  NP_CGContext          mPluginCGContext;
+  NP_Port               mPluginQDPort;
   nsIPluginInstanceOwner* mPluginInstanceOwner; 
 
   static PRUint32 sLastInputEventCount;
