@@ -728,7 +728,7 @@ nsXBLService::GetBinding(nsIContent* aBoundElement, nsIURI* aURI,
                          PRBool* aIsReady, nsXBLBinding** aResult)
 {
   
-  nsTArray<nsIURI*> uris(6);
+  nsAutoTArray<nsIURI*, 6> uris;
   return GetBinding(aBoundElement, aURI, aPeekOnly, aOriginPrincipal, aIsReady,
                     aResult, uris);
 }
