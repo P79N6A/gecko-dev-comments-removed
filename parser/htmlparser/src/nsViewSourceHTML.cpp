@@ -76,6 +76,7 @@
 #include "nsUnicharUtils.h"
 #include "nsPrintfCString.h"
 #include "nsNetUtil.h"
+#include "nsHTMLEntities.h"
 
 #include "nsIServiceManager.h"
 
@@ -1000,8 +1001,10 @@ PRBool CViewSourceHTML::IsUrlAttribute(const nsAString& tagName,
   
   
   if (isHref && tagName.LowerCaseEqualsLiteral("base")) {
-    const nsSubstring& baseSpec = TrimTokenValue(attrValue);
-    SetBaseURI(baseSpec);
+    const nsAString& baseSpec = TrimTokenValue(attrValue);
+    nsAutoString expandedBaseSpec;
+    ExpandEntities(baseSpec, expandedBaseSpec);
+    SetBaseURI(expandedBaseSpec);
   }
 
   return isHref || isSrc;
@@ -1081,7 +1084,10 @@ nsresult CViewSourceHTML::CreateViewSourceURL(const nsAString& linkUrl,
   NS_ENSURE_SUCCESS(rv, rv);
 
   
-  rv = NS_NewURI(getter_AddRefs(hrefURI), linkUrl, charset.get(), baseURI);
+  
+  nsAutoString expandedLinkUrl;
+  ExpandEntities(linkUrl, expandedLinkUrl);
+  rv = NS_NewURI(getter_AddRefs(hrefURI), expandedLinkUrl, charset.get(), baseURI);
   NS_ENSURE_SUCCESS(rv, rv);
 
   
@@ -1230,3 +1236,188 @@ nsresult CViewSourceHTML::SetBaseURI(const nsAString& baseSpec) {
   mBaseURI = baseURI;
   return NS_OK;
 }
+
+void CViewSourceHTML::ExpandEntities(const nsAString& textIn, nsString& textOut)
+{  
+  nsAString::const_iterator iter, end;
+  textIn.BeginReading(iter);
+  textIn.EndReading(end);
+
+  
+  
+  
+  
+  
+  
+  
+  
+  while (iter != end) {
+    
+    for (; iter != end; ++iter) {
+      PRUnichar ch = *iter;
+      if (ch == kAmpersand) {
+        break;
+      }
+      textOut.Append(ch);
+    }
+
+    
+    
+    
+    
+    CopyPossibleEntity(iter, end, textOut);
+  }
+}
+
+static PRBool InRange(PRUnichar ch, unsigned char chLow, unsigned char chHigh)
+{
+  return (chLow <= ch) && (ch <= chHigh);
+}
+
+static PRBool IsDigit(PRUnichar ch)
+{ 
+  return InRange(ch, '0', '9');
+}
+
+static PRBool IsHexDigit(PRUnichar ch)
+{
+  return IsDigit(ch) || InRange(ch, 'A', 'F') || InRange(ch, 'a', 'f');
+}
+
+static PRBool IsAlphaNum(PRUnichar ch)
+{
+  return InRange(ch, 'A', 'Z') || InRange(ch, 'a', 'z') || IsDigit(ch);
+}
+
+static PRBool IsAmpersand(PRUnichar ch)
+{
+  return ch == kAmpersand;
+}
+
+static PRBool IsHashsign(PRUnichar ch)
+{
+  return ch == kHashsign;
+}
+
+static PRBool IsXx(PRUnichar ch)
+{
+  return (ch == 'X') || (ch == 'x');
+}
+
+static PRBool IsSemicolon(PRUnichar ch)
+{
+  return ch == kSemicolon;
+}
+
+static PRBool ConsumeChar(nsAString::const_iterator& start,
+                          const nsAString::const_iterator &end,
+                          PRBool (*testFun)(PRUnichar ch))
+{
+  if (start == end) {
+    return PR_FALSE;
+  }
+  if (!testFun(*start)) {
+    return PR_FALSE;
+  }
+  ++start;
+  return PR_TRUE;
+}
+
+void CViewSourceHTML::CopyPossibleEntity(nsAString::const_iterator& iter,
+                                         const nsAString::const_iterator& end,
+                                         nsAString& textBuffer)
+{
+  
+  
+  
+
+  
+  const nsAString::const_iterator start(iter);
+  
+  
+  if (!ConsumeChar(iter, end, IsAmpersand)) {
+    return;
+  }
+
+  
+  nsAString::const_iterator startBody, endBody;
+  enum {TYPE_ID, TYPE_DECIMAL, TYPE_HEXADECIMAL} entityType;
+  if (ConsumeChar(iter, end, IsHashsign)) {
+    if (ConsumeChar(iter, end, IsXx)) {
+      startBody = iter;
+      entityType = TYPE_HEXADECIMAL;
+      while (ConsumeChar(iter, end, IsHexDigit)) {
+        
+      }
+    } else {
+      startBody = iter;
+      entityType = TYPE_DECIMAL;
+      while (ConsumeChar(iter, end, IsDigit)) {
+        
+      }
+    }
+  } else {
+    startBody = iter;
+    entityType = TYPE_ID;
+    
+    
+    
+    while (ConsumeChar(iter, end, IsAlphaNum)) {
+      
+    }
+  }
+
+  
+  endBody = iter;
+  
+  
+  PRBool properlyTerminated = ConsumeChar(iter, end, IsSemicolon);
+
+  
+  
+  if (startBody == endBody) {
+    textBuffer.Append(Substring(start, iter));
+    return;
+  }
+
+  
+  
+  nsAutoString entityBody(Substring(startBody, endBody));
+
+  
+  PRInt32 entityCode = -1;
+  switch (entityType) {
+  case TYPE_ID:
+    entityCode = nsHTMLEntities::EntityToUnicode(entityBody);
+    break;
+  case TYPE_DECIMAL:
+    entityCode = ToUnicode(entityBody, 10, -1);
+    break;
+  case TYPE_HEXADECIMAL:
+    entityCode = ToUnicode(entityBody, 16, -1);
+    break;
+  default:
+    NS_NOTREACHED("Unknown entity type!");
+    break;
+  }
+
+  
+  
+  if (properlyTerminated || ((0 <= entityCode) && (entityCode < 256))) {
+    textBuffer.Append((PRUnichar) entityCode);
+  } else {
+    
+    textBuffer.Append(Substring(start, iter));
+  }
+}
+
+PRInt32 CViewSourceHTML::ToUnicode(const nsString &strNum, PRInt32 radix, PRInt32 fallback)
+{
+  PRInt32 result;
+  PRInt32 code = strNum.ToInteger(&result, radix);
+  if (result == NS_OK) {
+    return code;
+  }
+  return fallback;
+}
+
