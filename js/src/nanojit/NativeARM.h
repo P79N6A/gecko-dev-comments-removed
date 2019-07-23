@@ -537,11 +537,19 @@ typedef enum {
 
 
 
-#define LD8Z(_d,_off,_b) do {                                           \
-        NanoAssert((d)>=0&&(d)<=31);                                    \
+#define LDRB(_d,_off,_b) do {                                           \
+        NanoAssert((_off)>=0&&(_off)<=31);                              \
         underrunProtect(4);                                             \
-        *(--_nIns) = (NIns)( COND_AL | (0x5D<<20) | ((_b)<<16) | ((_d)<<12) |  ((_off)&0xfff)  ); \
+        *(--_nIns) = (NIns)( COND_AL | (0x5D<<20) | ((_b)<<16) | ((_d)<<12) | ((_off)&0xfff)  ); \
         asm_output3("ldrb %s,%d(%s)", gpn(_d),(_off),gpn(_b));          \
+    } while(0)
+
+
+#define LDRH(_d,_off,_b) do {                  \
+        NanoAssert((_off)>=0&&(_off)<=31);      \
+        underrunProtect(4);                     \
+        *(--_nIns) = (NIns)( COND_AL | (0x1D<<20) | ((_b)<<16) | ((_d)<<12) | ((0xB)<<4) | (((_off)&0xf0)<<4) | ((_off)&0xf) ); \
+        asm_output3("ldrsh %s,%d(%s)", gpn(_d),(_off),gpn(_b));         \
     } while(0)
 
 #define STR(_d,_n,_off) do {                                            \

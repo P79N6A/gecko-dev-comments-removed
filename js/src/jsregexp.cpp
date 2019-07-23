@@ -66,12 +66,6 @@
 #include "jsscope.h"
 #include "jsstr.h"
 
-#ifdef NANOJIT_ARM
-
-
-#undef JS_TRACER
-#endif
-
 #ifdef JS_TRACER
 #include "jstracer.h"
 using namespace avmplus;
