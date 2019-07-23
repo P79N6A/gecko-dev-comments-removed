@@ -132,6 +132,12 @@ PrivateBrowsingService.prototype = {
       }
       else {
         
+        let consoleService = Cc["@mozilla.org/consoleservice;1"].
+                             getService(Ci.nsIConsoleService);
+        consoleService.logStringMessage(null); 
+        consoleService.reset();
+
+        
         if (this._saveSession && this._savedBrowserState) {
           if (!this._quitting) 
             ss.setBrowserState(this._savedBrowserState);
