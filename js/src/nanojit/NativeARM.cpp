@@ -655,13 +655,7 @@ Assembler::asm_store32(LIns *value, int dr, LIns *base)
         ra = rA->reg;
         rb = rB->reg;
     }
-
-    if (!isS12(dr)) {
-        STR(ra, IP, 0);
-        asm_add_imm(IP, rb, dr);
-    } else {
-        STR(ra, rb, dr);
-    }
+    STR(ra, rb, dr);
 }
 
 void
@@ -1123,15 +1117,13 @@ Assembler::BranchWithLink(NIns* addr)
     
     
     if (isS24(offs>>2)) {
-        
-        
-        intptr_t offs2 = (offs>>2) & 0xffffff;
 
         if (((intptr_t)addr & 1) == 0) {
             
 
             
-            *(--_nIns) = (NIns)( (COND_AL) | (0xB<<24) | (offs2) );
+            NanoAssert( ((offs>>2) & ~0xffffff) == 0);
+            *(--_nIns) = (NIns)( (COND_AL) | (0xB<<24) | (offs>>2) );
             asm_output("bl %p", (void*)addr);
         } else {
             
@@ -1140,7 +1132,8 @@ Assembler::BranchWithLink(NIns* addr)
             uint32_t    H = (offs & 0x2) << 23;
 
             
-            *(--_nIns) = (NIns)( (0xF << 28) | (0x5<<25) | (H) | (offs2) );
+            NanoAssert( ((offs>>2) & ~0xffffff) == 0);
+            *(--_nIns) = (NIns)( (0xF << 28) | (0x5<<25) | (H) | (offs>>2) );
             asm_output("blx %p", (void*)addr);
         }
     } else {
@@ -1869,14 +1862,10 @@ Assembler::asm_cmov(LInsp ins)
 {
     NanoAssert(ins->opcode() == LIR_cmov);
     LIns* condval = ins->oprnd1();
+    LIns* iftrue  = ins->oprnd2();
+    LIns* iffalse = ins->oprnd3();
+
     NanoAssert(condval->isCmp());
-
-    LIns* values = ins->oprnd2();
-
-    NanoAssert(values->opcode() == LIR_2);
-    LIns* iftrue = values->oprnd1();
-    LIns* iffalse = values->oprnd2();
-
     NanoAssert(!iftrue->isQuad() && !iffalse->isQuad());
 
     const Register rr = prepResultReg(ins, GpRegs);
