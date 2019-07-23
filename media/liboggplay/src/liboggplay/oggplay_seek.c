@@ -72,10 +72,7 @@ oggplay_seek(OggPlay *me, ogg_int64_t milliseconds) {
     }
   }
 
-  oggplay_seek_cleanup(me, milliseconds);
-
-  return E_OGGPLAY_OK;
-
+  return oggplay_seek_cleanup(me, milliseconds);
 }
 
 OggPlayErrorCode
@@ -123,13 +120,10 @@ oggplay_seek_to_keyframe(OggPlay *me,
     return E_OGGPLAY_CANT_SEEK;
   }
 
-  oggplay_seek_cleanup(me, time);
-
-  return E_OGGPLAY_OK;
-
+  return oggplay_seek_cleanup(me, time);
 }
 
-void
+OggPlayErrorCode
 oggplay_seek_cleanup(OggPlay* me, ogg_int64_t milliseconds)
 {
 
@@ -138,8 +132,8 @@ oggplay_seek_cleanup(OggPlay* me, ogg_int64_t milliseconds)
   OggPlayDataHeader  ** end_of_list_p;
   int                   i;
 
-  if (me  == NULL)
-    return;
+  if (me == NULL)
+    return E_OGGPLAY_BAD_OGGPLAY;
 
   
 
@@ -150,13 +144,13 @@ oggplay_seek_cleanup(OggPlay* me, ogg_int64_t milliseconds)
   trash = oggplay_calloc(1, sizeof(OggPlaySeekTrash));
 
   if (trash == NULL)
-    return;
+    return E_OGGPLAY_OUT_OF_MEMORY;
 
   
 
 
   if (me->buffer != NULL) {
-
+  
     trash->old_buffer = (OggPlayBuffer *)me->buffer;
 
     
@@ -165,11 +159,11 @@ oggplay_seek_cleanup(OggPlay* me, ogg_int64_t milliseconds)
 
     me->buffer = oggplay_buffer_new_buffer(me->buffer->buffer_size);
 
-    if (me->buffer == NULL) {
-      return;
+    if (me->buffer == NULL)
+    {
+      return E_OGGPLAY_OUT_OF_MEMORY;
     }
   }
-  
   
 
 
@@ -219,6 +213,22 @@ oggplay_seek_cleanup(OggPlay* me, ogg_int64_t milliseconds)
   }
 
   *p = trash;
+
+  if (milliseconds == 0) {
+    for (i = 0; i < me->num_tracks; i++) {
+      OggPlayDecode *track = me->decode_data[i];
+      FishSound *sound_handle;
+      OggPlayAudioDecode *audio_decode;
+      if (track->content_type != OGGZ_CONTENT_VORBIS) {
+        continue;
+      }
+      audio_decode = (OggPlayAudioDecode*)track;
+      sound_handle = audio_decode->sound_handle;
+      fish_sound_reset(sound_handle);
+    }
+  }
+  
+  return E_OGGPLAY_OK;
 }
 
 void

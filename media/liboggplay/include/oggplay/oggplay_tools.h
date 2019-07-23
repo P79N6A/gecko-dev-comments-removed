@@ -37,6 +37,7 @@
 
 
 
+
 #ifndef __OGGPLAY_TOOLS_H__
 #define __OGGPLAY_TOOLS_H__
 
@@ -55,21 +56,22 @@ extern "C" {
 
 
 typedef struct _OggPlayYUVChannels {
-    unsigned char * ptry;
-    unsigned char * ptru;
-    unsigned char * ptrv;
-    int             y_width;
-    int             y_height;
-    int             uv_width;
-    int             uv_height;
+    unsigned char * ptry;       
+    unsigned char * ptru;       
+    unsigned char * ptrv;       
+    int             y_width;    
+    int             y_height;   
+    int             uv_width;   
+    int             uv_height;  
 } OggPlayYUVChannels;
 
 
 typedef struct _OggPlayRGBChannels {
-    unsigned char * ptro;
-    int             rgb_width;
-    int             rgb_height;
+    unsigned char * ptro;         
+    int             rgb_width;    
+    int             rgb_height;   
 } OggPlayRGBChannels;
+
 
 void 
 oggplay_yuv2rgba(const OggPlayYUVChannels *yuv, OggPlayRGBChannels * rgb);
