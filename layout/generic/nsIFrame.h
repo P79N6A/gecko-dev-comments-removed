@@ -1613,9 +1613,15 @@ public:
 
 
 
+
+
+
   void Invalidate(const nsRect& aDamageRect, PRBool aImmediate = PR_FALSE);
 
   
+
+
+
 
 
 
