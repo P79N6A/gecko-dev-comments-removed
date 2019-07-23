@@ -300,7 +300,7 @@ js_Stringify(JSContext *cx, jsval *vp, JSObject *replacer,
         if (memberWritten) {
             output = jschar(',');
             ok = callback(&output, 1, data);
-            if (!ok)
+        if (!ok)
                 break;
         }
         memberWritten = JS_TRUE;
@@ -308,10 +308,8 @@ js_Stringify(JSContext *cx, jsval *vp, JSObject *replacer,
         JSType type = JS_TypeOfValue(cx, outputValue);
 
         
-        if (type == JSTYPE_FUNCTION || type == JSTYPE_XML) {
-            ok = JS_FALSE;
+        if (type == JSTYPE_FUNCTION || type == JSTYPE_XML)
             break;
-        }
 
         
         JSString *s;
