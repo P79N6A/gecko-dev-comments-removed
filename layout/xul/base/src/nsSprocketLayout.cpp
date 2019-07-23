@@ -1104,6 +1104,8 @@ nsSprocketLayout::ChildResized(nsIBox* aBox,
                aChildBoxSize->min = childActualWidth;
                if (aChildBoxSize->pref < childActualWidth)
                   aChildBoxSize->pref = childActualWidth;
+               if (aChildBoxSize->max < childActualWidth)
+                  aChildBoxSize->max = childActualWidth;
 
               
               if (aFlexes > 0) {
