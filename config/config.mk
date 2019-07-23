@@ -351,6 +351,11 @@ DSO_PIC_CFLAGS=
 endif
 endif
 
+# This comes from configure
+ifdef MOZ_PROFILE_GUIDED_OPTIMIZE_DISABLE
+NO_PROFILE_GUIDED_OPTIMIZE = 1
+endif
+
 # Enable profile-based feedback
 ifndef NO_PROFILE_GUIDED_OPTIMIZE
 ifdef MOZ_PROFILE_GENERATE
@@ -512,16 +517,6 @@ INCLUDES	= $(LOCAL_INCLUDES) $(REQ_INCLUDES) $(REQ_INCLUDES_SDK) -I$(PUBLIC) $(O
 
 ifndef MOZILLA_INTERNAL_API
 INCLUDES	+= -I$(LIBXUL_DIST)/sdk/include
-endif
-
-# The entire tree should be subject to static analysis using the XPCOM
-# script. Additional scripts may be added by specific subdirectories.
-
-DEHYDRA_SCRIPTS = $(topsrcdir)/xpcom/static-checking.js
-
-ifdef DEHYDRA_PATH
-DEHYDRA_FLAGS = -fplugin=$(DEHYDRA_PATH) $(foreach script,$(DEHYDRA_SCRIPTS),-fplugin-arg=$(script))
-OS_CXXFLAGS += $(DEHYDRA_FLAGS)
 endif
 
 CFLAGS		= $(OS_CFLAGS)
