@@ -152,7 +152,7 @@ static const char kRoleNames[][20] = {
   "caret",               
   "alert",               
   "window",              
-  "client",              
+  "internal frame",      
   "menupopup",           
   "menuitem",            
   "tooltip",             

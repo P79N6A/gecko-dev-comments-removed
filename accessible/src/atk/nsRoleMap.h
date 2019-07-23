@@ -56,7 +56,7 @@ static const PRUint32 atkRoleMap[] = {
     ATK_ROLE_UNKNOWN,             
     ATK_ROLE_ALERT,               
     ATK_ROLE_WINDOW,              
-    ATK_ROLE_PANEL,               
+    ATK_ROLE_INTERNAL_FRAME,      
     ATK_ROLE_MENU,                
     ATK_ROLE_MENU_ITEM,           
     ATK_ROLE_TOOL_TIP,            
