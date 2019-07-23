@@ -79,9 +79,6 @@ public:
     NS_ENSURE_STATE(stmt);
 
     
-    mozStorageStatementScoper scoper(stmt);
-
-    
     nsresult rv = URIBinder::Bind(stmt, 0, aURI);
     NS_ENSURE_SUCCESS(rv, rv);
 
