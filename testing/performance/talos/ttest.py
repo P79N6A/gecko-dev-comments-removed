@@ -130,7 +130,10 @@ def runTest(browser_config, test_config):
   for i in range(test_config['cycles']):
     
     browser_results = ""
-    timeout = 28800 
+    if 'timeout' in test_config:
+      timeout = test_config['timeout']
+    else:
+      timeout = 28800 
     total_time = 0
     output = ''
     url = test_config['url']
