@@ -85,18 +85,22 @@ enum eFontPrefLang {
     eFontPrefLang_Gurmukhi    = 22,
     eFontPrefLang_Khmer       = 23,
     eFontPrefLang_Malayalam   = 24,
+    eFontPrefLang_Oriya       = 25,
+    eFontPrefLang_Telugu      = 26,
+    eFontPrefLang_Kannada     = 27,
+    eFontPrefLang_Sinhala     = 28,
 
-    eFontPrefLang_LangCount   = 25, 
+    eFontPrefLang_LangCount   = 29, 
 
-    eFontPrefLang_Others      = 25, 
-    eFontPrefLang_UserDefined = 26,
+    eFontPrefLang_Others      = 29, 
+    eFontPrefLang_UserDefined = 30,
 
-    eFontPrefLang_CJKSet      = 27, 
-    eFontPrefLang_AllCount    = 28
+    eFontPrefLang_CJKSet      = 31, 
+    eFontPrefLang_AllCount    = 32
 };
 
 
-const PRUint32 kMaxLenPrefLangList = 30;
+const PRUint32 kMaxLenPrefLangList = 32;
 
 class THEBES_API gfxPlatform {
 public:
