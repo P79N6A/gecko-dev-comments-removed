@@ -84,11 +84,6 @@ nsProxyAutoConfig.prototype = {
 
         
         Components.utils.evalInSandbox(pacText, this._sandBox);
-
-        
-        
-        
-        this._sandBox = new XPCSafeJSObjectWrapper(this._sandBox);
     },
 
     getProxyForURI: function(testURI, testHost) {
@@ -106,7 +101,6 @@ nsProxyAutoConfig.prototype = {
 }
 
 function proxyAlert(msg) {
-    msg = XPCSafeJSObjectWrapper(msg);
     try {
         
         var cns = Components.classes["@mozilla.org/consoleservice;1"]
@@ -128,7 +122,6 @@ function myIpAddress() {
 
 
 function dnsResolve(host) {
-    host = XPCSafeJSObjectWrapper(host);
     try {
         return dns.resolve(host, 0).getNextAddrAsString();
     } catch (e) {
