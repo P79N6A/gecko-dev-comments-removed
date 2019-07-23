@@ -53,7 +53,7 @@ function test() {
   
 
   const kBaseUrl =
-        "http://mochi.test:8888/browser/toolkit/content/tests/browser/data/";
+        "http://localhost:8888/browser/toolkit/content/tests/browser/data/";
 
   function FramePostData_TestGenerator() {
     
