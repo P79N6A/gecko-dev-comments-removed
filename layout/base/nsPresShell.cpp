@@ -2651,6 +2651,10 @@ PresShell::ResizeReflow(nscoord aWidth, nscoord aHeight)
     nsIViewManager::UpdateViewBatch batch(mViewManager);
 
     
+    
+    mDocument->FlushPendingNotifications(Flush_ContentAndNotify);
+
+    
     {
       nsAutoScriptBlocker scriptBlocker;
       mFrameConstructor->ProcessPendingRestyles();
@@ -5019,6 +5023,12 @@ PresShell::ContentRemoved(nsIDocument *aDocument,
 nsresult
 PresShell::ReconstructFrames(void)
 {
+  nsCOMPtr<nsIPresShell> kungFuDeathGrip(this);
+
+  
+  
+  mDocument->FlushPendingNotifications(Flush_ContentAndNotify);
+
   nsAutoCauseReflowNotifier crNotifier(this);
   mFrameConstructor->BeginUpdate();
   nsresult rv = mFrameConstructor->ReconstructDocElementHierarchy();
@@ -7544,23 +7554,29 @@ PresShell::Observe(nsISupports* aSubject,
       NS_ASSERTION(mViewManager, "View manager must exist");
       nsIViewManager::UpdateViewBatch batch(mViewManager);
 
-      WalkFramesThroughPlaceholders(mPresContext, rootFrame,
-                                    &ReResolveMenusAndTrees, nsnull);
+      nsWeakFrame weakRoot(rootFrame);
+      
+      
+      mDocument->FlushPendingNotifications(Flush_ContentAndNotify);
 
-      
-      
-      nsStyleChangeList changeList;
-      WalkFramesThroughPlaceholders(mPresContext, rootFrame,
-                                    ReframeImageBoxes, &changeList);
-      
-      
-      {
-        nsAutoScriptBlocker scriptBlocker;
-        ++mChangeNestCount;
-        mFrameConstructor->ProcessRestyledFrames(changeList);
-        --mChangeNestCount;
+      if (weakRoot.IsAlive()) {
+        WalkFramesThroughPlaceholders(mPresContext, rootFrame,
+                                      &ReResolveMenusAndTrees, nsnull);
+
+        
+        
+        nsStyleChangeList changeList;
+        WalkFramesThroughPlaceholders(mPresContext, rootFrame,
+                                      ReframeImageBoxes, &changeList);
+        
+        
+        {
+          nsAutoScriptBlocker scriptBlocker;
+          ++mChangeNestCount;
+          mFrameConstructor->ProcessRestyledFrames(changeList);
+          --mChangeNestCount;
+        }
       }
-
       batch.EndUpdateViewBatch(NS_VMREFRESH_NO_SYNC);
 #ifdef ACCESSIBILITY
       InvalidateAccessibleSubtree(nsnull);

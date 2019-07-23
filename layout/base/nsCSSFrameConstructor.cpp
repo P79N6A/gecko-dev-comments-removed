@@ -11057,14 +11057,18 @@ nsCSSFrameConstructor::RebuildAllStyleData(nsChangeHint aExtraHint)
   if (!mPresShell || !mPresShell->GetRootFrame())
     return;
 
-  nsAutoScriptBlocker scriptBlocker;
-
   
   nsIViewManager::UpdateViewBatch batch(mPresShell->GetViewManager());
 
   
   
   nsCOMPtr<nsIPresShell> kungFuDeathGrip(mPresShell);
+
+  
+  
+  mPresShell->GetDocument()->FlushPendingNotifications(Flush_ContentAndNotify);
+
+  nsAutoScriptBlocker scriptBlocker;
 
   
   
