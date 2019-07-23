@@ -110,13 +110,6 @@ private:
   mutable nsCOMPtr<nsIURI> mCachedURI;
 
   bool mRegistered;
-
-  
-
-
-
-  nsIContent *Content();
-  nsIContent *mContent;
 };
 
 } 
