@@ -110,8 +110,8 @@ nsIsIndexFrame::Destroy()
 
 
 
-NS_IMETHODIMP
-nsIsIndexFrame::UpdatePromptLabel()
+nsresult
+nsIsIndexFrame::UpdatePromptLabel(PRBool aNotify)
 {
   if (!mTextContent) return NS_ERROR_UNEXPECTED;
 
@@ -133,7 +133,7 @@ nsIsIndexFrame::UpdatePromptLabel()
                                          "IsIndexPrompt", prompt);
   }
 
-  mTextContent->SetText(prompt, PR_TRUE);
+  mTextContent->SetText(prompt, aNotify);
 
   return NS_OK;
 }
@@ -203,7 +203,7 @@ nsIsIndexFrame::CreateAnonymousContent(nsTArray<nsIContent*>& aElements)
     return NS_ERROR_OUT_OF_MEMORY;
 
   
-  UpdatePromptLabel();
+  UpdatePromptLabel(PR_FALSE);
   if (!aElements.AppendElement(mTextContent))
     return NS_ERROR_OUT_OF_MEMORY;
 
@@ -283,7 +283,7 @@ nsIsIndexFrame::AttributeChanged(PRInt32         aNameSpaceID,
 {
   nsresult rv = NS_OK;
   if (nsGkAtoms::prompt == aAttribute) {
-    rv = UpdatePromptLabel();
+    rv = UpdatePromptLabel(PR_TRUE);
   } else {
     rv = nsAreaFrame::AttributeChanged(aNameSpaceID, aAttribute, aModType);
   }
