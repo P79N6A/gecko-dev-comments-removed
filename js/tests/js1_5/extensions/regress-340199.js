@@ -74,6 +74,9 @@ else
   catch(ex)
   {
   }
+
+  
+  delete Object.prototype.__iterator__;
 }
  
 reportCompare(expect, actual, summary);
