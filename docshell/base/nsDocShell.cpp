@@ -3849,7 +3849,18 @@ nsDocShell::Destroy()
         mScriptGlobal = nsnull;
     }
 
-    mSessionHistory = nsnull;
+    if (mSessionHistory) {
+        
+        
+        
+        nsCOMPtr<nsISHistoryInternal> shPrivate =
+            do_QueryInterface(mSessionHistory);
+        if (shPrivate) {
+            shPrivate->EvictAllContentViewers();
+        }
+        mSessionHistory = nsnull;
+    }
+
     SetTreeOwner(nsnull);
 
     
