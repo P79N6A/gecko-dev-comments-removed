@@ -1000,12 +1000,12 @@ nsresult nsExternalHelperAppService::FillProtoInfoForSchemeFromDS(
 #endif
 }
 
+#ifdef MOZ_RDF
 nsresult nsExternalHelperAppService::FillHandlerInfoForTypeFromDS(
   nsIRDFResource *aTypeNodeResource, const nsCAutoString &aType, 
   nsIRDFService *rdf, const char *aTypeNodePrefix,
   nsIHandlerInfo * aHandlerInfo)
 {
-#ifdef MOZ_RDF
 
   
   
@@ -1040,10 +1040,8 @@ nsresult nsExternalHelperAppService::FillHandlerInfoForTypeFromDS(
   }
 
   return rv;
-#else
-  return NS_ERROR_NOT_AVAILABLE;
-#endif 
 }
+#endif 
 
 nsresult nsExternalHelperAppService::FillMIMEInfoForExtensionFromDS(
   const nsACString& aFileExtension, nsIMIMEInfo * aMIMEInfo)
