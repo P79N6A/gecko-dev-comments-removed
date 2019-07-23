@@ -35,11 +35,22 @@
 
 
 
+
 #ifndef nsDocShellCID_h__
 #define nsDocShellCID_h__
 
 #define NS_GLOBALHISTORY2_CONTRACTID \
     "@mozilla.org/browser/global-history;2"
+
+
+
+
+
+
+
+
+#define NS_DOWNLOADHISTORY_CONTRACTID \
+    "@mozilla.org/browser/download-history;1"
 
 
 

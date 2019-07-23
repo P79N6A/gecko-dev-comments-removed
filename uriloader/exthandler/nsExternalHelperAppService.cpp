@@ -109,8 +109,8 @@
 #include "nsIPrefService.h"
 #include "nsIWindowWatcher.h"
 
-#include "nsIGlobalHistory.h" 
-#include "nsIGlobalHistory2.h" 
+#include "nsIDownloadHistory.h" 
+#include "nsDocShellCID.h"
 
 #include "nsIDOMWindow.h"
 #include "nsIDOMWindowInternal.h"
@@ -1498,23 +1498,12 @@ NS_IMETHODIMP nsExternalAppHandler::OnStartRequest(nsIRequest *request, nsISuppo
   }
 
   
-  nsCOMPtr<nsIGlobalHistory> history(do_GetService(NS_GLOBALHISTORY_CONTRACTID));
-  nsCAutoString spec;
-  mSourceUrl->GetSpec(spec);
-  if (history && !spec.IsEmpty())
-  {
-    PRBool visited;
-    rv = history->IsVisited(spec.get(), &visited);
-    if (NS_FAILED(rv))
-        return rv;
-    history->AddPage(spec.get());
-    if (!visited) {
-      nsCOMPtr<nsIObserverService> obsService =
-          do_GetService("@mozilla.org/observer-service;1");
-      if (obsService) {
-        obsService->NotifyObservers(mSourceUrl, NS_LINK_VISITED_EVENT_TOPIC, nsnull);
-      }
-    }
+  nsCOMPtr<nsIDownloadHistory> dh(do_GetService(NS_DOWNLOADHISTORY_CONTRACTID));
+  if (dh) {
+    nsCOMPtr<nsIURI> referrer;
+    if (aChannel)
+      NS_GetReferrerFromChannel(aChannel, getter_AddRefs(referrer));
+    dh->AddDownload(mSourceUrl, referrer, mTimeDownloadStarted);
   }
 
   return NS_OK;

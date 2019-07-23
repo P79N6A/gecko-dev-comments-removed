@@ -92,6 +92,7 @@
 #include "nsServiceManagerUtils.h"
 #include "nsINestedURI.h"
 #include "nsIMutable.h"
+#include "nsIPropertyBag2.h"
 
 
 inline const nsGetServiceByContractIDWithError
@@ -696,6 +697,45 @@ NS_GetURLSpecFromFile(nsIFile      *file,
     rv = NS_GetFileProtocolHandler(getter_AddRefs(fileHandler), ioService);
     if (NS_SUCCEEDED(rv))
         rv = fileHandler->GetURLSpecFromFile(file, url);
+    return rv;
+}
+
+
+
+
+
+
+
+
+inline nsresult
+NS_GetReferrerFromChannel(nsIChannel *channel,
+                          nsIURI **referrer)
+{
+    nsresult rv = NS_ERROR_NOT_AVAILABLE;
+    *referrer = nsnull;
+
+    nsCOMPtr<nsIPropertyBag2> props(do_QueryInterface(channel));
+    if (props) {
+      
+      
+      
+      rv = props->GetPropertyAsInterface(NS_LITERAL_STRING("docshell.internalReferrer"),
+                                         NS_GET_IID(nsIURI),
+                                         reinterpret_cast<void **>(referrer));
+      if (NS_FAILED(rv))
+        *referrer = nsnull;
+    }
+
+    
+    
+    if (!(*referrer)) {
+      nsCOMPtr<nsIHttpChannel> chan(do_QueryInterface(channel));
+      if (chan) {
+        rv = chan->GetReferrer(referrer);
+        if (NS_FAILED(rv))
+          *referrer = nsnull;
+      }
+    }
     return rv;
 }
 

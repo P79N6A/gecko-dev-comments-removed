@@ -8509,16 +8509,9 @@ nsDocShell::AddToGlobalHistory(nsIURI * aURI, PRBool aRedirect,
     if (NS_FAILED(rv))
         return rv;
 
-    
-    
-    
     nsCOMPtr<nsIURI> referrer;
-    nsCOMPtr<nsIPropertyBag2> props(do_QueryInterface(aChannel));
-    if (props) {
-        props->GetPropertyAsInterface(NS_LITERAL_STRING("docshell.internalReferrer"),
-                                      NS_GET_IID(nsIURI),
-                                      getter_AddRefs(referrer));
-    }
+    if (aChannel)
+        NS_GetReferrerFromChannel(aChannel, getter_AddRefs(referrer));
 
     rv = mGlobalHistory->AddURI(aURI, aRedirect, !IsFrame(), referrer);
     if (NS_FAILED(rv))

@@ -66,6 +66,9 @@
 #include "nsGlobalHistoryAdapter.h"
 #include "nsGlobalHistory2Adapter.h"
 
+
+#include "nsDownloadHistory.h"
+
 static PRBool gInitialized = PR_FALSE;
 
 
@@ -118,6 +121,9 @@ NS_GENERIC_FACTORY_CONSTRUCTOR(nsInternetConfigService)
 NS_GENERIC_FACTORY_CONSTRUCTOR(nsSHEntry)
 NS_GENERIC_FACTORY_CONSTRUCTOR(nsSHTransaction)
 NS_GENERIC_FACTORY_CONSTRUCTOR(nsSHistory)
+
+
+NS_GENERIC_FACTORY_CONSTRUCTOR(nsDownloadHistory)
 
 
 
@@ -240,7 +246,11 @@ static const nsModuleComponentInfo gDocShellModuleInfo[] = {
       nsGlobalHistoryAdapter::RegisterSelf },
     { "nsGlobalHistory2Adapter", NS_GLOBALHISTORY2ADAPTER_CID,
       nsnull, nsGlobalHistory2Adapter::Create,
-      nsGlobalHistory2Adapter::RegisterSelf }
+      nsGlobalHistory2Adapter::RegisterSelf },
+    
+    
+    { "nsDownloadHistory", NS_DOWNLOADHISTORY_CID,
+      NS_DOWNLOADHISTORY_CONTRACTID, nsDownloadHistoryConstructor }
 };
 
 
