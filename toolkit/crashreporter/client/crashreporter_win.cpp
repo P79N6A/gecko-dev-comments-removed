@@ -1168,6 +1168,7 @@ static BOOL CALLBACK CrashReporterDialogProc(HWND hwndDlg, UINT message,
     
     
     if (ChildWindowFromPoint(hwndDlg, p) == hwndEmail &&
+        IsWindowEnabled(GetDlgItem(hwndDlg, IDC_RESTARTBUTTON)) &&
         !IsWindowEnabled(hwndEmail) &&
         IsDlgButtonChecked(hwndDlg, IDC_SUBMITREPORTCHECK) != 0) {
       CheckDlgButton(hwndDlg, IDC_EMAILMECHECK, BST_CHECKED);
