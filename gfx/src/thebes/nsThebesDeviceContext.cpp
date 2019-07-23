@@ -238,8 +238,7 @@ nsThebesDeviceContext::SetDPI()
         
         
         mAppUnitsPerDevNotScaledPixel = PR_MAX(1, AppUnitsPerCSSPixel() /
-                                        PR_MAX(1, (dpi + 48) / 96));
-
+                                        PR_MAX(1, dpi / 96));
     } else {
         
 
