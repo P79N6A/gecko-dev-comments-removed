@@ -932,8 +932,9 @@ GetStr(SprintStack *ss, uintN i)
 
 
 
-#define JSOP_GETPROP2   256
-#define JSOP_GETELEM2   257
+#define JSOP_GETPROP2   JSOP_LIMIT
+#define JSOP_GETELEM2   JSOP_LIMIT + 1
+JS_STATIC_ASSERT(JSOP_GETELEM2 <= 255);
 
 static void
 AddParenSlop(SprintStack *ss)
