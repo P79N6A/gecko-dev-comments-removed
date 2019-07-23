@@ -370,9 +370,7 @@ nsHttpServer.prototype =
 
   onSocketAccepted: function(socket, trans)
   {
-    dumpn("*** onSocketAccepted(socket=" + socket + ", trans=" + trans + ") " +
-          "on thread " + gThreadManager.currentThread +
-          " (main is " + gThreadManager.mainThread + ")");
+    dumpn("*** onSocketAccepted(socket=" + socket + ", trans=" + trans + ")");
 
     dumpn(">>> new connection on " + trans.host + ":" + trans.port);
 
@@ -943,6 +941,12 @@ Connection.prototype =
   },
 
   
+
+
+
+
+
+
   end: function()
   {
     this.server._endConnection(this);
@@ -1056,7 +1060,28 @@ RequestReader.prototype =
     if (!data)
       return;
 
-    data.appendBytes(readBytes(input, input.available()));
+    try
+    {
+      data.appendBytes(readBytes(input, input.available()));
+    }
+    catch (e)
+    {
+      if (e.result !== Cr.NS_ERROR_BASE_STREAM_CLOSED)
+      {
+        dumpn("*** WARNING: unexpected error when reading from socket; will " +
+              "be treated as if the input stream had been closed");
+      }
+
+      
+      
+      
+      
+      
+      dumpn("*** onInputStreamReady called on a closed input, destroying " +
+            "connection");
+      this._connection.destroy();
+      return;
+    }
 
     switch (this._state)
     {
@@ -2630,6 +2655,7 @@ ServerHandler.prototype =
     }
     catch (e)
     {
+      dumpn("*** error in handleError: " + e);
       connection.close();
       connection.server.stop();
     }
