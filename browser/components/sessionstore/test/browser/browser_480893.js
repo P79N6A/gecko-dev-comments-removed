@@ -59,7 +59,7 @@ function test() {
 
       
       
-      let homepage = "http://mochi.test:8888/";
+      let homepage = "http://localhost:8888/";
       gPrefService.setCharPref("browser.startup.homepage", homepage);
       gPrefService.setIntPref("browser.startup.page", 1);
       gBrowser.loadURI("about:sessionrestore");

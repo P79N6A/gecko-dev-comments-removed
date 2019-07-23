@@ -47,20 +47,20 @@ function test() {
 
     addTab("http:
     gBrowser.selectedTab = tabs[0];
-    addTab("http://mochi.test:8888/#1");
-    addTab("http://mochi.test:8888/#2",gBrowser.currentURI);
-    addTab("http://mochi.test:8888/#3",gBrowser.currentURI);
+    addTab("http://localhost:8888/#1");
+    addTab("http://localhost:8888/#2",gBrowser.currentURI);
+    addTab("http://localhost:8888/#3",gBrowser.currentURI);
     gBrowser.selectedTab = tabs[tabs.length - 1];
     gBrowser.selectedTab = tabs[0];
-    addTab("http://mochi.test:8888/#4",gBrowser.currentURI);
+    addTab("http://localhost:8888/#4",gBrowser.currentURI);
     gBrowser.selectedTab = tabs[3];
-    addTab("http://mochi.test:8888/#5",gBrowser.currentURI);
+    addTab("http://localhost:8888/#5",gBrowser.currentURI);
     gBrowser.removeTab(tabs.pop());
     addTab("about:blank",gBrowser.currentURI);
     gBrowser.moveTabTo(gBrowser.selectedTab, 1);
-    addTab("http://mochi.test:8888/#6",gBrowser.currentURI);
+    addTab("http://localhost:8888/#6",gBrowser.currentURI);
     addTab();
-    addTab("http://mochi.test:8888/#7");
+    addTab("http://localhost:8888/#7");
 
     return tabs;
   }
