@@ -470,44 +470,72 @@ nsresult nsIconChannel::MakeInputStream(nsIInputStream** _retval, PRBool nonBloc
     {
       
       HDC hDC = CreateCompatibleDC(NULL); 
-      BITMAPINFO maskInfo = {{sizeof(BITMAPINFOHEADER)}};
-      if (GetDIBits(hDC, iconInfo.hbmMask, 0, 0, NULL, &maskInfo, DIB_RGB_COLORS) &&
+      BITMAPINFO maskInfo  = {{sizeof(BITMAPINFOHEADER)}};
+      BITMAPINFO colorInfo = {{sizeof(BITMAPINFOHEADER)}};
+      if (GetDIBits(hDC, iconInfo.hbmMask,  0, 0, NULL, &maskInfo,  DIB_RGB_COLORS) &&
+          GetDIBits(hDC, iconInfo.hbmColor, 0, 0, NULL, &colorInfo, DIB_RGB_COLORS) &&
+          maskInfo.bmiHeader.biHeight == colorInfo.bmiHeader.biHeight &&
+          maskInfo.bmiHeader.biWidth  == colorInfo.bmiHeader.biWidth  &&
+          colorInfo.bmiHeader.biBitCount > 8 &&
+          colorInfo.bmiHeader.biSizeImage > 0 &&
           maskInfo.bmiHeader.biSizeImage > 0) {
-        PRUint32 colorSize = maskInfo.bmiHeader.biWidth * maskInfo.bmiHeader.biHeight * 4;
-        PRUint32 iconSize = sizeof(ICONFILEHEADER) + sizeof(ICONENTRY) + sizeof(BITMAPINFOHEADER) + colorSize + maskInfo.bmiHeader.biSizeImage;
+
+        PRUint32 iconSize = sizeof(ICONFILEHEADER) +
+                            sizeof(ICONENTRY) +
+                            sizeof(BITMAPINFOHEADER) +
+                            colorInfo.bmiHeader.biSizeImage +
+                            maskInfo.bmiHeader.biSizeImage;
+
         char *buffer = new char[iconSize];
         if (!buffer)
           rv = NS_ERROR_OUT_OF_MEMORY;
         else {
-          
-          ICONFILEHEADER *iconHeader = (ICONFILEHEADER *)buffer;
-          iconHeader->ifhReserved = 0;
-          iconHeader->ifhType = 1;
-          iconHeader->ifhCount = 1;
-          
-          ICONENTRY *iconEntry = (ICONENTRY *)(buffer + sizeof(ICONFILEHEADER));
-          iconEntry->ieWidth = maskInfo.bmiHeader.biWidth;
-          iconEntry->ieHeight = maskInfo.bmiHeader.biHeight;
-          iconEntry->ieColors = 0;
-          iconEntry->ieReserved = 0;
-          iconEntry->iePlanes = 1;
-          iconEntry->ieBitCount = 32;
-          iconEntry->ieSizeImage = sizeof(BITMAPINFOHEADER) + colorSize + maskInfo.bmiHeader.biSizeImage;
-          iconEntry->ieFileOffset = sizeof(ICONFILEHEADER) + sizeof(ICONENTRY);
-          
-          LPBITMAPINFO lpBitmapInfo = (LPBITMAPINFO)(buffer + sizeof(ICONFILEHEADER) + sizeof(ICONENTRY));
-          memcpy(lpBitmapInfo, &maskInfo.bmiHeader, sizeof(BITMAPINFOHEADER));
-          if (GetDIBits(hDC, iconInfo.hbmMask, 0, maskInfo.bmiHeader.biHeight, buffer + sizeof(ICONFILEHEADER) + sizeof(ICONENTRY) + sizeof(BITMAPINFOHEADER) + colorSize, lpBitmapInfo, DIB_RGB_COLORS)) {
-            PRUint32 maskSize = lpBitmapInfo->bmiHeader.biSizeImage;
-            lpBitmapInfo->bmiHeader.biBitCount = 32;
-            lpBitmapInfo->bmiHeader.biSizeImage = colorSize;
-            lpBitmapInfo->bmiHeader.biClrUsed = 0;
-            lpBitmapInfo->bmiHeader.biClrImportant = 0;
-            if (GetDIBits(hDC, iconInfo.hbmColor, 0, maskInfo.bmiHeader.biHeight, buffer + sizeof(ICONFILEHEADER) + sizeof(ICONENTRY) + sizeof(BITMAPINFOHEADER), lpBitmapInfo, DIB_RGB_COLORS)) {
-              
-              lpBitmapInfo->bmiHeader.biHeight *= 2;
-              lpBitmapInfo->bmiHeader.biSizeImage += maskSize;
+          char *whereTo = buffer;
+          int howMuch;
 
+          
+          ICONFILEHEADER iconHeader;
+          iconHeader.ifhReserved = 0;
+          iconHeader.ifhType = 1;
+          iconHeader.ifhCount = 1;
+          howMuch = sizeof(ICONFILEHEADER);
+          memcpy(whereTo, &iconHeader, howMuch);
+          whereTo += howMuch;
+
+          
+          ICONENTRY iconEntry;
+          iconEntry.ieWidth = colorInfo.bmiHeader.biWidth;
+          iconEntry.ieHeight = colorInfo.bmiHeader.biHeight;
+          iconEntry.ieColors = 0;
+          iconEntry.ieReserved = 0;
+          iconEntry.iePlanes = 1;
+          iconEntry.ieBitCount = colorInfo.bmiHeader.biBitCount;
+          iconEntry.ieSizeImage = sizeof(BITMAPINFOHEADER) +
+                                  colorInfo.bmiHeader.biSizeImage +
+                                  maskInfo.bmiHeader.biSizeImage;
+          iconEntry.ieFileOffset = sizeof(ICONFILEHEADER) + sizeof(ICONENTRY);
+          howMuch = sizeof(ICONENTRY);
+          memcpy(whereTo, &iconEntry, howMuch);
+          whereTo += howMuch;
+
+          
+          
+          colorInfo.bmiHeader.biHeight *= 2;
+          colorInfo.bmiHeader.biSizeImage += maskInfo.bmiHeader.biSizeImage;
+          howMuch = sizeof(BITMAPINFOHEADER);
+          memcpy(whereTo, &colorInfo.bmiHeader, howMuch);
+          whereTo += howMuch;
+          colorInfo.bmiHeader.biHeight /= 2;
+          colorInfo.bmiHeader.biSizeImage -= maskInfo.bmiHeader.biSizeImage;
+
+          
+          if (GetDIBits(hDC, iconInfo.hbmColor, 0,
+                        colorInfo.bmiHeader.biHeight, whereTo,
+                        &colorInfo, DIB_RGB_COLORS)) {
+            whereTo += colorInfo.bmiHeader.biSizeImage;
+            if (GetDIBits(hDC, iconInfo.hbmMask, 0,
+                          maskInfo.bmiHeader.biHeight, whereTo,
+                          &maskInfo, DIB_RGB_COLORS)) {
               
               nsCOMPtr<nsIInputStream> inStream;
               nsCOMPtr<nsIOutputStream> outStream;
@@ -534,6 +562,9 @@ nsresult nsIconChannel::MakeInputStream(nsIInputStream** _retval, PRBool nonBloc
     DestroyIcon(hIcon);
   } 
 
+  
+  if (!*_retval && NS_SUCCEEDED(rv))
+    rv = NS_ERROR_NOT_AVAILABLE;
 #endif
   return rv;
 }
