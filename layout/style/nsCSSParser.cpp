@@ -3264,6 +3264,11 @@ CSSParserImpl::ParseNegatedSimpleSelector(PRInt32&       aDataMask,
     return eSelectorParsingStatus_Error;
   }
 
+  if (mToken.IsSymbol(')')) {
+    REPORT_UNEXPECTED_TOKEN(PENegationBadArg);
+    return eSelectorParsingStatus_Error;
+  }
+
   
   
   
