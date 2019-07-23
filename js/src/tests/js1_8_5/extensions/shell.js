@@ -4,7 +4,12 @@
 
 
 
-gTestsuite = 'js1_8_5_extensions';
+gTestsubsuite = 'extensions';
+
+
+
+
+var workerDir = '';
 
 
 
