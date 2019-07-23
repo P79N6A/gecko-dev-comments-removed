@@ -2359,37 +2359,10 @@ gfxASurface*
 nsWindow::GetThebesSurface()
 {
     
-    
-    
-    
-    mThebesSurface = nsnull;
 
-    if (!mThebesSurface) {
-#ifdef QT_XLIB_SURFACE
-        qint32 x_offset = 0, y_offset = 0;
-        qint32 width = mDrawingArea->width(), height = mDrawingArea->height();
 
-        
-        width = PR_MIN(32767, width);
-        height = PR_MIN(32767, height);
-
-        mThebesSurface = new gfxXlibSurface
-            (mDrawingArea->x11Info().display(),
-             (Drawable)mDrawingArea->handle(),
-             static_cast<Visual*>(mDrawingArea->x11Info().visual()),
-             gfxIntSize(width, height));
-        
-        
-        if (mThebesSurface && mThebesSurface->CairoStatus() != 0)
-            mThebesSurface = nsnull;
-
-        if (mThebesSurface) {
-            mThebesSurface->SetDeviceOffset(gfxPoint(-x_offset, -y_offset));
-        }
-#else
-        mThebesSurface = new gfxQPainterSurface(gfxIntSize(5,5), gfxASurface::CONTENT_COLOR_ALPHA);
-#endif
-    }
+    if (!mThebesSurface)
+        mThebesSurface = new gfxQPainterSurface(gfxIntSize(5,5), gfxASurface::CONTENT_COLOR);
 
     return mThebesSurface;
 }
