@@ -120,9 +120,18 @@ nsresult nsCaretAccessible::SetControlSelectionListener(nsIDOMNode *aCurrentNode
   
   
   
+
   nsCOMPtr<nsISelectionController> controller =
     GetSelectionControllerForNode(mCurrentControl);
-  NS_ENSURE_TRUE(controller, NS_ERROR_FAILURE);
+#ifdef DEBUG
+  PRUint16 nodeType;
+  nsresult result = aCurrentNode->GetNodeType(&nodeType);
+  NS_ASSERTION(NS_SUCCEEDED(result) &&
+               (controller || nodeType == nsIDOMNode::DOCUMENT_NODE),
+               "No selection controller for non document node!");
+#endif
+  if (!controller)
+    return NS_OK;
 
   
   nsCOMPtr<nsISelection> normalSel;
