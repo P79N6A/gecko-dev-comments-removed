@@ -531,6 +531,7 @@ nsSafeFileOutputStream::Close()
 NS_IMETHODIMP
 nsSafeFileOutputStream::Finish()
 {
+    Flush();
     nsresult rv = nsFileOutputStream::Close();
 
     
