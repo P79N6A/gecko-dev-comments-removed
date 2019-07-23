@@ -462,6 +462,11 @@ public:
   
 
 
+  PRBool IsPopupOpen(nsIContent* aPopup);
+
+  
+
+
   PRBool IsPopupOpenForMenuParent(nsIMenuParent* aMenuParent);
 
   

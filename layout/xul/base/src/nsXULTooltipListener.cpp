@@ -389,12 +389,13 @@ nsresult
 nsXULTooltipListener::ShowTooltip()
 {
   
-  GetTooltipFor(mSourceNode, getter_AddRefs(mCurrentTooltip));
-  if (!mCurrentTooltip || mSourceNode == mCurrentTooltip)
+  nsCOMPtr<nsIContent> tooltipNode;
+  GetTooltipFor(mSourceNode, getter_AddRefs(tooltipNode));
+  if (!tooltipNode || mSourceNode == tooltipNode)
     return NS_ERROR_FAILURE; 
 
   
-  nsCOMPtr<nsIDOMXULDocument> xulDoc(do_QueryInterface(mCurrentTooltip->GetDocument()));
+  nsCOMPtr<nsIDOMXULDocument> xulDoc(do_QueryInterface(tooltipNode->GetDocument()));
   if (xulDoc) {
     
     
@@ -407,8 +408,11 @@ nsXULTooltipListener::ShowTooltip()
 #endif
 
       xulDoc->SetTooltipNode(mTargetNode);
+      mCurrentTooltip = tooltipNode;
       LaunchTooltip();
       mTargetNode = nsnull;
+      if (!mCurrentTooltip)
+        return NS_OK;
 
       
       
@@ -506,8 +510,12 @@ nsXULTooltipListener::LaunchTooltip()
 #endif
 
   nsXULPopupManager* pm = nsXULPopupManager::GetInstance();
-  if (pm)
+  if (pm) {
     pm->ShowPopupAtScreen(mCurrentTooltip, mMouseClientX, mMouseClientY, PR_FALSE);
+    
+    if (!pm->IsPopupOpen(mCurrentTooltip))
+      mCurrentTooltip = nsnull;
+  }
 }
 
 nsresult
