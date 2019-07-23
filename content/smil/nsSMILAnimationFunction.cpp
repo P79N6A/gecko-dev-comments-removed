@@ -767,31 +767,6 @@ nsSMILAnimationFunction::GetValues(const nsISMILAttr& aSMILAttr,
   return NS_OK;
 }
 
-inline PRBool
-nsSMILAnimationFunction::IsToAnimation() const
-{
-  return !HasAttr(nsGkAtoms::values) &&
-         HasAttr(nsGkAtoms::to) &&
-         !HasAttr(nsGkAtoms::from);
-}
-
-inline PRBool
-nsSMILAnimationFunction::IsAdditive() const
-{
-  
-
-
-
-
-
-
-
-  PRBool isByAnimation = (!HasAttr(nsGkAtoms::values)
-                       &&  HasAttr(nsGkAtoms::by)
-                       && !HasAttr(nsGkAtoms::from));
-  return !IsToAnimation() && (GetAdditive() || isByAnimation);
-}
-
 
 
 
