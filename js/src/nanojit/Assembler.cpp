@@ -1958,10 +1958,17 @@ namespace nanojit
 
 
 
+
+
+
+
     void Assembler::intersectRegisterState(RegAlloc& saved)
     {
+        Register regsTodo[LastReg + 1];
+        LIns* insTodo[LastReg + 1];
+        int nTodo = 0;
+
         
-        RegisterMask skip = 0;
         verbose_only(bool shouldMention=false; )
         
         
@@ -1974,18 +1981,18 @@ namespace nanojit
         
         
         
-        for (int ri=LastReg; ri >= FirstReg && ri <= LastReg; ri = int(prevreg(Register(ri))))
+        for (int ri = LastReg; ri >= FirstReg && ri <= LastReg; ri = int(prevreg(Register(ri))))
         {
             Register const r = Register(ri);
-            LIns * curins = _allocator.getActive(r);
-            LIns * savedins = saved.getActive(r);
-            if (curins == savedins)
+            LIns* curins = _allocator.getActive(r);
+            LIns* savedins = saved.getActive(r);
+            if (curins != savedins)
             {
-                
-                skip |= rmask(r);
-            }
-            else
-            {
+                if (savedins) {
+                    regsTodo[nTodo] = r;
+                    insTodo[nTodo] = savedins;
+                    nTodo++;
+                }
                 if (curins) {
                     
                     verbose_only( shouldMention=true; )
@@ -2001,11 +2008,13 @@ namespace nanojit
                 #endif
             }
         }
-        assignSaved(saved, skip);
+        
+        for (int i = 0; i < nTodo; i++) {
+            findSpecificRegFor(insTodo[i], regsTodo[i]);
+        }
         verbose_only(
             if (shouldMention)
-                verbose_outputf("## merging registers (intersect) "
-                                "with existing edge");
+                verbose_outputf("## merging registers (intersect) with existing edge");
         )
     }
 
@@ -2016,22 +2025,29 @@ namespace nanojit
 
 
 
+
+
+
+
     void Assembler::unionRegisterState(RegAlloc& saved)
     {
+        Register regsTodo[LastReg + 1];
+        LIns* insTodo[LastReg + 1];
+        int nTodo = 0;
+
         
         verbose_only(bool shouldMention=false; )
-        RegisterMask skip = 0;
-        for (Register r=FirstReg; r <= LastReg; r = nextreg(r))
+        for (Register r = FirstReg; r <= LastReg; r = nextreg(r))
         {
-            LIns * curins = _allocator.getActive(r);
-            LIns * savedins = saved.getActive(r);
-            if (curins == savedins)
+            LIns* curins = _allocator.getActive(r);
+            LIns* savedins = saved.getActive(r);
+            if (curins != savedins)
             {
-                
-                skip |= rmask(r);
-            }
-            else
-            {
+                if (savedins) {
+                    regsTodo[nTodo] = r;
+                    insTodo[nTodo] = savedins;
+                    nTodo++;
+                }
                 if (curins && savedins) {
                     
                     verbose_only( shouldMention=true; )
@@ -2044,29 +2060,24 @@ namespace nanojit
                     if (savedins) {
                         FSTP(r);
                     }
-                    else {
+                    else if (curins) {
                         
                         
-                        evictIfActive(r);
+                        evict(curins);
                     }
                     verbose_only( shouldMention=true; )
                 }
                 #endif
             }
         }
-        assignSaved(saved, skip);
-        verbose_only( if (shouldMention) verbose_outputf("                                              merging registers (union) with existing edge");  )
-    }
-
-    void Assembler::assignSaved(RegAlloc &saved, RegisterMask skip)
-    {
         
-        for (Register r=FirstReg; r <= LastReg; r = nextreg(r))
-        {
-            LIns *ins = saved.getActive(r);
-            if (ins && !(skip & rmask(r)))
-                findSpecificRegFor(ins, r);
+        for (int i = 0; i < nTodo; i++) {
+            findSpecificRegFor(insTodo[i], regsTodo[i]);
         }
+        verbose_only(
+            if (shouldMention)
+                verbose_outputf("## merging registers (union) with existing edge");
+        )
     }
 
     
