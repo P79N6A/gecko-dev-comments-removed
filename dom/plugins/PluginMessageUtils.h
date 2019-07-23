@@ -53,6 +53,9 @@
 #include "nsThreadUtils.h"
 #include "prlog.h"
 #include "nsHashKeys.h"
+#ifdef MOZ_CRASHREPORTER
+#  include "nsExceptionHandler.h"
+#endif
 
 namespace mozilla {
 
@@ -126,6 +129,13 @@ typedef XID NativeWindowHandle;
 typedef intptr_t NativeWindowHandle; 
 #else
 #error Need NativeWindowHandle for this platform
+#endif
+
+#ifdef MOZ_CRASHREPORTER
+typedef CrashReporter::ThreadId NativeThreadId;
+#else
+
+typedef int32 NativeThreadId;
 #endif
 
 

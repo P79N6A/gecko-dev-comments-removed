@@ -103,7 +103,7 @@ protected:
     }
 
     
-    virtual bool AnswerNP_Initialize(NPError* rv);
+    virtual bool AnswerNP_Initialize(NativeThreadId* tid, NPError* rv);
 
     virtual PPluginIdentifierChild*
     AllocPPluginIdentifier(const nsCString& aString,
