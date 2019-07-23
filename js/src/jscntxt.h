@@ -89,10 +89,9 @@ js_PurgeGSNCache(JSGSNCache *cache);
 #define JS_PURGE_GSN_CACHE(cx)      js_PurgeGSNCache(&JS_GSN_CACHE(cx))
 #define JS_METER_GSN_CACHE(cx,cnt)  GSN_CACHE_METER(&JS_GSN_CACHE(cx), cnt)
 
-typedef struct InterpState InterpState;
-typedef struct VMSideExit VMSideExit;
 
-namespace nanojit {
+namespace nanojit
+{
     class Assembler;
     class CodeAlloc;
     class Fragment;
@@ -100,30 +99,93 @@ namespace nanojit {
 #ifdef DEBUG
     class LabelMap;
 #endif
-    extern "C++" {
-        template<typename K> struct DefaultHash;
-        template<typename K, typename V, typename H> class HashMap;
-        template<typename T> class Seq;
-    }
+    template<typename K> struct DefaultHash;
+    template<typename K, typename V, typename H> class HashMap;
+    template<typename T> class Seq;
 }
+
+
+static const size_t MONITOR_N_GLOBAL_STATES = 4;
+static const size_t FRAGMENT_TABLE_SIZE = 512;
+static const size_t MAX_NATIVE_STACK_SLOTS = 4096;
+static const size_t MAX_CALL_STACK_ENTRIES = 500;
+static const size_t MAX_GLOBAL_SLOTS = 4096;
+static const size_t GLOBAL_SLOTS_BUFFER_SIZE = MAX_GLOBAL_SLOTS + 1;
+
+
+class TreeInfo;
+class VMAllocator;
+class TraceRecorder;
+class FrameInfoCache;
+struct REHashFn;
+struct REHashKey;
+struct FrameInfo;
+struct VMSideExit;
+struct VMFragment;
+struct InterpState;
+template<typename T> class Queue;
+typedef Queue<uint16> SlotList;
+typedef nanojit::HashMap<REHashKey, nanojit::Fragment*, REHashFn> REHashMap;
+
 #if defined(JS_JIT_SPEW) || defined(DEBUG)
 struct FragPI;
 typedef nanojit::HashMap<uint32, FragPI, nanojit::DefaultHash<uint32> > FragStatsMap;
 #endif
-class TraceRecorder;
-class VMAllocator;
-extern "C++" { template<typename T> class Queue; }
-typedef Queue<uint16> SlotList;
 
-#define FRAGMENT_TABLE_SIZE 512
-struct VMFragment;
 
-struct REHashKey;
-struct REHashFn;
-class FrameInfoCache;
-typedef nanojit::HashMap<REHashKey, nanojit::Fragment*, REHashFn> REHashMap;
+struct InterpState
+{
+    double*        sp;                  
+    FrameInfo**    rp;                  
+    JSContext*     cx;                  
+    double*        eos;                 
+    void*          eor;                 
+    void*          sor;                 
+    VMSideExit*    lastTreeExitGuard;   
+    VMSideExit*    lastTreeCallGuard;   
+                                        
+    void*          rpAtLastTreeCall;    
+    VMSideExit*    outermostTreeExitGuard; 
+    TreeInfo*      outermostTree;       
+    double*        stackBase;           
+    FrameInfo**    callstackBase;       
+    uintN*         inlineCallCountp;    
+    VMSideExit**   innermostNestedGuardp;
+    VMSideExit*    innermost;
+    uint64         startTime;
+    InterpState*   prev;
 
-#define MONITOR_N_GLOBAL_STATES 4
+    
+    
+    
+    uint32         builtinStatus;
+
+    
+    double*        deepBailSp;
+
+
+    
+    uintN          nativeVpLen;
+    jsval*         nativeVp;
+};
+
+
+
+
+
+
+
+struct TraceNativeStorage
+{
+    double stack_global_buf[MAX_NATIVE_STACK_SLOTS + GLOBAL_SLOTS_BUFFER_SIZE];
+    FrameInfo *callstack_buf[MAX_CALL_STACK_ENTRIES];
+
+    double *stack() { return stack_global_buf; }
+    double *global() { return stack_global_buf + MAX_NATIVE_STACK_SLOTS; }
+    FrameInfo **callstack() { return callstack_buf; } 
+};
+
+
 struct GlobalState {
     JSObject*               globalObj;
     uint32                  globalShape;
@@ -147,6 +209,13 @@ struct JSTraceMonitor {
 
 
     JSContext               *tracecx;
+
+    
+
+
+
+
+    TraceNativeStorage      storage;
 
     
 

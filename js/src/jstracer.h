@@ -689,52 +689,10 @@ public:
     UnstableExit* removeUnstableExit(VMSideExit* exit);
 };
 
-#if defined(JS_JIT_SPEW) && (defined(NANOJIT_IA32) || defined(NANOJIT_X64))
-# define EXECUTE_TREE_TIMER
-#endif
-
 typedef enum JSBuiltinStatus {
     JSBUILTIN_BAILED = 1,
     JSBUILTIN_ERROR = 2
 } JSBuiltinStatus;
-
-struct InterpState
-{
-    double*        sp;                  
-    FrameInfo**    rp;                  
-    JSContext*     cx;                  
-    double*        eos;                 
-    void*          eor;                 
-    void*          sor;                 
-    VMSideExit*    lastTreeExitGuard;   
-    VMSideExit*    lastTreeCallGuard;   
-                                        
-    void*          rpAtLastTreeCall;    
-    VMSideExit*    outermostTreeExitGuard; 
-    TreeInfo*      outermostTree;       
-    double*        stackBase;           
-    FrameInfo**    callstackBase;       
-    uintN*         inlineCallCountp;    
-    VMSideExit**   innermostNestedGuardp;
-    VMSideExit*    innermost;
-#ifdef EXECUTE_TREE_TIMER
-    uint64         startTime;
-#endif
-    InterpState*   prev;
-
-    
-    
-    
-    uint32         builtinStatus;
-
-    
-    double*        deepBailSp;
-
-
-    
-    uintN          nativeVpLen;
-    jsval*         nativeVp;
-};
 
 
 
