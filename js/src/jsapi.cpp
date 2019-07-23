@@ -4840,36 +4840,6 @@ JS_ExecuteScript(JSContext *cx, JSObject *obj, JSScript *script, jsval *rval)
     return ok;
 }
 
-JS_PUBLIC_API(JSBool)
-JS_ExecuteScriptPart(JSContext *cx, JSObject *obj, JSScript *script,
-                     JSExecPart part, jsval *rval)
-{
-    JSScript tmp;
-    JSBool ok;
-
-    
-    tmp = *script;
-    if (part == JSEXEC_PROLOG) {
-        tmp.length = tmp.main - tmp.code;
-    } else {
-        tmp.length -= tmp.main - tmp.code;
-        tmp.code = tmp.main;
-    }
-
-    
-    const JSDebugHooks *hooks = cx->debugHooks;
-    if (hooks->newScriptHook) {
-        hooks->newScriptHook(cx, tmp.filename, tmp.lineno, &tmp, NULL,
-                             hooks->newScriptHookData);
-    }
-
-    
-    ok = JS_ExecuteScript(cx, obj, &tmp, rval);
-    if (hooks->destroyScriptHook)
-        hooks->destroyScriptHook(cx, &tmp, hooks->destroyScriptHookData);
-    return ok;
-}
-
 
 JS_PUBLIC_API(JSBool)
 JS_EvaluateScript(JSContext *cx, JSObject *obj,
