@@ -320,9 +320,7 @@ function initBookmarksToolbar() {
 function initPlacesDefaultQueries() {
   var createdDefaultQueries = false;
   try {
-    var prefBranch = Cc["@mozilla.org/preferences-service;1"].
-                     getService(Ci.nsIPrefBranch);
-    createdDefaultQueries = prefBranch.getBoolPref("browser.places.createdDefaultQueries");
+    createdDefaultQueries = gPrefService.getBoolPref("browser.places.createdDefaultQueries");
   } catch(ex) {}
 
   if (createdDefaultQueries)
@@ -418,10 +416,12 @@ function initPlacesDefaultQueries() {
   }
   
   try {
-    bmsvc.runInBatchMode(callback, null)
-  }
-  finally {
-    prefBranch.setBoolPref("browser.places.createdDefaultQueries", true);
+    bmsvc.runInBatchMode(callback, null);
+  } finally {
+    
+    
+    gPrefService.setBoolPref("browser.places.createdDefaultQueries", true);
+    gPrefService.savePrefFile(null);
   }
 }
 
