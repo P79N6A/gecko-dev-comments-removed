@@ -848,9 +848,8 @@ PlacesController.prototype = {
 
 
   sortFolderByName: function PC_sortFolderByName() {
-    var selectedNode = this._view.selectedNode;
-    var txn = PlacesUtils.ptm.sortFolderByName(selectedNode.itemId,
-                                               selectedNode.bookmarkIndex);
+    var itemId = PlacesUtils.getConcreteItemId(this._view.selectedNode);
+    var txn = PlacesUtils.ptm.sortFolderByName(itemId);
     PlacesUtils.ptm.doTransaction(txn);
   },
 
