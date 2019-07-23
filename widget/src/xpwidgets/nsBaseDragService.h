@@ -146,6 +146,8 @@ protected:
   
   PRInt32 mScreenX;
   PRInt32 mScreenY;
+
+  PRUint32 mSuppressLevel;
 };
 
 #endif 
