@@ -502,7 +502,7 @@ nsRDFConMemberTestNode::CanPropagate(nsIRDFResource* aSource,
         do_GetService("@mozilla.org/rdf/container-utils;1");
 
     if (! rdfc)
-        return NS_ERROR_FAILURE;
+        return PR_FALSE;
 
     
     rv = rdfc->IsOrdinalProperty(aProperty, &canpropagate);
