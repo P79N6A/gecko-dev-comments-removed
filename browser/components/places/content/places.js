@@ -37,6 +37,7 @@
 
 
 
+
 var PlacesOrganizer = {
   _places: null,
   _content: null,
@@ -797,7 +798,7 @@ var PlacesSearchBox = {
     this.searchFilter.emptyText =
       title ?
       PlacesUtils.getFormattedString("searchCurrentDefault", [title]) :
-      PlacesUtils.getString("searchByDefault");
+      PlacesUtils.getString("searchBookmarks");
   },
 
   
