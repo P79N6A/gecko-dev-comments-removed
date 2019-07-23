@@ -4027,41 +4027,44 @@ LeaveTree(InterpState& state, VMSideExit* lr)
     int32_t bs = cx->builtinStatus;
     cx->builtinStatus = 0;
     bool bailed = innermost->exitType == STATUS_EXIT && (bs & JSBUILTIN_BAILED);
-    if (bailed)
+    if (bailed) {
+        
+
+
+
+
+
+
+        if (!(bs & JSBUILTIN_ERROR)) {
+            
+
+
+
+
+
+
+
+
+            JS_ASSERT(*cx->fp->regs->pc == JSOP_CALL || *cx->fp->regs->pc == JSOP_APPLY);
+            uintN argc = GET_ARGC(cx->fp->regs->pc);
+            cx->fp->regs->pc += JSOP_CALL_LENGTH;
+            cx->fp->regs->sp -= argc + 1;
+            JS_ASSERT_IF(!cx->fp->imacpc,
+                         cx->fp->slots + cx->fp->script->nfixed +
+                         js_ReconstructStackDepth(cx, cx->fp->script, cx->fp->regs->pc) ==
+                         cx->fp->regs->sp);
+
+            
+
+
+
+            uint8* typeMap = getStackTypeMap(innermost);
+            NativeToValue(cx,
+                          cx->fp->regs->sp[-1],
+                          typeMap[innermost->numStackSlots - 1],
+                          (jsdouble *) state.sp + innermost->sp_adj / sizeof(jsdouble) - 1);
+        }
         JS_TRACE_MONITOR(cx).prohibitRecording = false;
-    if (bailed && !(bs & JSBUILTIN_ERROR)) {
-        
-
-
-
-
-
-
-
-
-
-
-
-
-
-        JS_ASSERT(*cx->fp->regs->pc == JSOP_CALL || *cx->fp->regs->pc == JSOP_APPLY);
-        uintN argc = GET_ARGC(cx->fp->regs->pc);
-        cx->fp->regs->pc += JSOP_CALL_LENGTH;
-        cx->fp->regs->sp -= argc + 1;
-        JS_ASSERT_IF(!cx->fp->imacpc,
-                     cx->fp->slots + cx->fp->script->nfixed +
-                     js_ReconstructStackDepth(cx, cx->fp->script, cx->fp->regs->pc) ==
-                     cx->fp->regs->sp);
-
-        
-
-
-
-        uint8* typeMap = getStackTypeMap(innermost);
-        NativeToValue(cx,
-                      cx->fp->regs->sp[-1],
-                      typeMap[innermost->numStackSlots - 1],
-                      (jsdouble *) state.sp + innermost->sp_adj / sizeof(jsdouble) - 1);
         return;
     }
 
