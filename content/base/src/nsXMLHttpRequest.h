@@ -234,6 +234,11 @@ public:
   NS_FORWARD_NSIDOMEVENTTARGET(nsXHREventTarget::)
   NS_FORWARD_NSIDOMNSEVENTTARGET(nsXHREventTarget::)
   NS_DECL_NSIXMLHTTPREQUESTUPLOAD
+
+  PRBool HasListeners()
+  {
+    return mListenerManager && mListenerManager->HasListeners();
+  }
 };
 
 class nsXMLHttpRequest : public nsXHREventTarget,
@@ -299,20 +304,20 @@ public:
   
   
   
-  static void DispatchProgressEvent(nsPIDOMEventTarget* aTarget,
-                                    const nsAString& aType,
-                                    
-                                    
-                                    PRBool aUseLSEventWrapper,
-                                    PRBool aLengthComputable,
-                                    
-                                    PRUint64 aLoaded, PRUint64 aTotal,
-                                    
-                                    PRUint64 aPosition, PRUint64 aTotalSize);
-  static void DispatchProgressEvent(nsPIDOMEventTarget* aTarget,
-                                    const nsAString& aType,
-                                    PRBool aLengthComputable,
-                                    PRUint64 aLoaded, PRUint64 aTotal)
+  void DispatchProgressEvent(nsPIDOMEventTarget* aTarget,
+                             const nsAString& aType,
+                             
+                             
+                             PRBool aUseLSEventWrapper,
+                             PRBool aLengthComputable,
+                             
+                             PRUint64 aLoaded, PRUint64 aTotal,
+                             
+                             PRUint64 aPosition, PRUint64 aTotalSize);
+  void DispatchProgressEvent(nsPIDOMEventTarget* aTarget,
+                             const nsAString& aType,
+                             PRBool aLengthComputable,
+                             PRUint64 aLoaded, PRUint64 aTotal)
   {
     DispatchProgressEvent(aTarget, aType, PR_FALSE,
                           aLengthComputable, aLoaded, aTotal,
@@ -350,6 +355,8 @@ public:
       sAccessControlCache = nsnull;
     }
   }
+
+  PRBool AllowUploadProgress();
 
   static nsAccessControlLRUCache* sAccessControlCache;
 
