@@ -931,7 +931,6 @@ SinkContext::CloseContainer(const nsHTMLTag aTag, PRBool aMalformed)
 
   nsGenericHTMLElement* content = mStack[mStackPos].mContent;
 
-  content->Compact();
 
   
   

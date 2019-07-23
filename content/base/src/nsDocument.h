@@ -536,6 +536,7 @@ public:
   {
     return NS_ERROR_NOT_IMPLEMENTED;
   }
+  virtual nsDOMNodeAllocator* GetAllocator() { return nsnull; }
 
   
   NS_IMETHOD WalkRadioGroup(const nsAString& aName,
@@ -658,6 +659,7 @@ public:
                                                const nsAString& aClasses,
                                                nsIDOMNodeList** aReturn);
 protected:
+  virtual nsINode::nsSlots* CreateSlots();
 
   
 
