@@ -496,6 +496,14 @@ private:
                  "Still in a pending state when calling Complete!");
 
     
+    
+    
+    for (PRUint32 i = 0; i < mStatements.Length(); i++) {
+      (void)sqlite3_finalize(mStatements[i]);
+      mStatements[i] = NULL;
+    }
+
+    
     if (mTransactionManager) {
       if (mState == COMPLETED) {
         nsresult rv = mTransactionManager->Commit();
@@ -510,12 +518,6 @@ private:
       }
       delete mTransactionManager;
       mTransactionManager = nsnull;
-    }
-
-    
-    for (PRUint32 i = 0; i < mStatements.Length(); i++) {
-      (void)sqlite3_finalize(mStatements[i]);
-      mStatements[i] = NULL;
     }
 
     
