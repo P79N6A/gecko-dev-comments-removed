@@ -149,11 +149,12 @@ Assembler::genEpilogue()
 {
     BX(LR); 
 
+    RegisterMask savingMask = rmask(FP) | rmask(LR);
+    POP_mask(savingMask); 
+
     
     MR(R0,R2); 
 
-    RegisterMask savingMask = rmask(FP) | rmask(LR);
-    POP_mask(savingMask); 
     return _nIns;
 }
 
@@ -1224,7 +1225,7 @@ Assembler::asm_loop(LInsp ins, NInsList& loopJumps)
 #ifdef NJ_VERBOSE
     
     if (_frago->core()->config.show_stats)
-		LDi(argRegs[1], int((Fragment*)_thisfrag));
+        LDi(argRegs[1], int((Fragment*)_thisfrag));
 #endif
 
     assignSavedParams();
