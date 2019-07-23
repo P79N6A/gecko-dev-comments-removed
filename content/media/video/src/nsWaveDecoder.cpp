@@ -154,8 +154,6 @@ public:
 
   
   void NotifyBytesConsumed(PRInt64 aBytes);
-  
-  void NotifyDownloadEnded(nsresult aStatus);
 
   
   nsHTMLMediaElement::NextFrameStatus GetNextFrameStatus();
