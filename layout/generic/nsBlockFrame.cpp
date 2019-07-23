@@ -4006,6 +4006,8 @@ nsBlockFrame::PlaceLine(nsBlockReflowState& aState,
   } 
 #endif 
 
+  
+  
   nsRect combinedArea;
   aLineLayout.RelativePositionFrames(combinedArea);  
   aLine->SetCombinedArea(combinedArea);

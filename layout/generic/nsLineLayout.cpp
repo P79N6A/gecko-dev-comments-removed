@@ -2612,8 +2612,10 @@ nsLineLayout::RelativePositionFrames(PerSpanData* psd, nsRect& aCombinedArea)
     
     
     
-    nsRect adjustedBounds(0, 0, psd->mFrame->mBounds.width,
-                          psd->mFrame->mBounds.height);
+    
+    
+    
+    nsRect adjustedBounds(nsPoint(0, 0), psd->mFrame->mFrame->GetSize());
     combinedAreaResult.UnionRect(psd->mFrame->mCombinedArea, adjustedBounds);
   }
   else {
@@ -2630,16 +2632,16 @@ nsLineLayout::RelativePositionFrames(PerSpanData* psd, nsRect& aCombinedArea)
   }
 
   for (PerFrameData* pfd = psd->mFirstFrame; pfd; pfd = pfd->mNext) {
-    nsPoint origin = nsPoint(pfd->mBounds.x, pfd->mBounds.y);
     nsIFrame* frame = pfd->mFrame;
+    nsPoint origin = frame->GetPosition();
 
     
     if (pfd->GetFlag(PFD_RELATIVEPOS)) {
       
       
       nsPoint change(pfd->mOffsets.left, pfd->mOffsets.top);
-      frame->SetPosition(frame->GetPosition() + change);
       origin += change;
+      frame->SetPosition(origin);
     }
 
     
