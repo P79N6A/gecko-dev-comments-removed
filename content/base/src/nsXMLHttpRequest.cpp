@@ -999,7 +999,9 @@ nsXMLHttpRequest::OpenRequest(const nsACString& method,
   NS_ENSURE_ARG(!url.IsEmpty());
 
   
-  if (method.LowerCaseEqualsASCII("trace")) {
+  
+  if (method.LowerCaseEqualsASCII("trace") ||
+      method.LowerCaseEqualsASCII("track")) {
     return NS_ERROR_INVALID_ARG;
   }
 
