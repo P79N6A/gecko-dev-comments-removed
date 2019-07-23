@@ -179,7 +179,7 @@ nsMemoryImpl::FlushMemory(const PRUnichar* aReason, PRBool aImmediate)
     }
     else {
         
-        if (PR_IntervalToMicroseconds(now - sLastFlushTime) > 100) {
+        if (PR_IntervalToMicroseconds(now - sLastFlushTime) > 1000) {
             sFlushEvent.mReason = aReason;
             rv = NS_DispatchToMainThread(&sFlushEvent, NS_DISPATCH_NORMAL);
         }
