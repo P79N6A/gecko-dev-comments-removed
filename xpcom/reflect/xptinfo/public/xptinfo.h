@@ -94,7 +94,7 @@ public:
         }
 
     PRBool IsArray() const
-        {return TagPart() == T_ARRAY;}
+        {return (PRBool) TagPart() == T_ARRAY;}
 
     
     

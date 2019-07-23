@@ -103,7 +103,7 @@ public:
 
 
 
-  PRBool IsInitialized() const { return !!this->mTable.entrySize; }
+  PRBool IsInitialized() const { return this->mTable.entrySize; }
 
   
 
