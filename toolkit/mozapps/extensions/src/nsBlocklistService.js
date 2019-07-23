@@ -184,6 +184,28 @@ function newURI(spec) {
 
 
 
+function matchesOSABI(blocklistElement) {
+  if (blocklistElement.hasAttribute("os")) {
+    var choices = blocklistElement.getAttribute("os").split(",");
+    if (choices.length > 0 && choices.indexOf(gApp.OS) < 0)
+      return false;
+  }
+  
+  if (blocklistElement.hasAttribute("xpcomabi")) {
+    choices = blocklistElement.getAttribute("xpcomabi").split(",");
+    if (choices.length > 0 && choices.indexOf(gApp.XPCOMABI) < 0)
+      return false;
+  }
+  
+  return true;
+}
+
+
+
+
+
+
+
 
 function Blocklist() {
   gApp = Cc["@mozilla.org/xre/app-info;1"].getService(Ci.nsIXULAppInfo);
@@ -498,6 +520,9 @@ Blocklist.prototype = {
   },
 
   _handleEmItemNode: function(blocklistElement, result) {
+    if (!matchesOSABI(blocklistElement))
+      return;
+
     var versionNodes = blocklistElement.childNodes;
     var id = blocklistElement.getAttribute("id");
     result[id] = [];
@@ -516,6 +541,9 @@ Blocklist.prototype = {
   },
 
   _handlePluginItemNode: function(blocklistElement, result) {
+    if (!matchesOSABI(blocklistElement))
+      return;
+
     var matchNodes = blocklistElement.childNodes;
     var matchList;
     for (var x = 0; x < matchNodes.length; ++x) {
