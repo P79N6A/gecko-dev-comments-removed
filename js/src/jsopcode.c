@@ -1844,6 +1844,22 @@ Decompile(SprintStack *ss, jsbytecode *pc, intN nb, JSOp nextop)
                             op = JSOP_CALL;
                             break;
 #endif
+                          case JSOP_GETTHISPROP:
+                            
+
+
+
+
+
+
+
+
+
+
+
+
+
+                            break;
                           case JSOP_GETARGPROP:
                             op = JSOP_GETARG;
                             break;
@@ -1854,12 +1870,6 @@ Decompile(SprintStack *ss, jsbytecode *pc, intN nb, JSOp nextop)
                             op = JSOP_GETLOCAL;
                             break;
                           default:
-                            
-
-
-
-
-
                             LOCAL_ASSERT(0);
                         }
                     }
