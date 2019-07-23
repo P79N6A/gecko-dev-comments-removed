@@ -784,6 +784,9 @@ pref("browser.zoom.full", true);
 pref("browser.zoom.siteSpecific", true);
 
 
+pref("browser.zoom.updateBackgroundTabs", true);
+
+
 pref("editor.singleLine.pasteNewlines", 2);
 
 

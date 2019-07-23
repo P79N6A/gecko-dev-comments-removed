@@ -87,6 +87,9 @@ var FullZoom = {
   _siteSpecificPref: undefined,
 
   
+  updateBackgroundTabs: undefined,
+
+  
   _inPrivateBrowsing: false,
 
   get siteSpecific FullZoom_get_siteSpecific() {
@@ -131,18 +134,20 @@ var FullZoom = {
                               getService(Ci.nsIPrivateBrowsingService).
                               privateBrowsingEnabled;
 
-    
-    
     this._siteSpecificPref =
       this._prefBranch.getBoolPref("browser.zoom.siteSpecific");
-    this._prefBranch.addObserver("browser.zoom.siteSpecific", this, true);
+    this.updateBackgroundTabs = 
+      this._prefBranch.getBoolPref("browser.zoom.updateBackgroundTabs");
+    
+    
+    this._prefBranch.addObserver("browser.zoom.", this, true);
   },
 
   destroy: function FullZoom_destroy() {
     let os = Cc["@mozilla.org/observer-service;1"].
              getService(Ci.nsIObserverService);
     os.removeObserver(this, "private-browsing");
-    this._prefBranch.removeObserver("browser.zoom.siteSpecific", this);
+    this._prefBranch.removeObserver("browser.zoom.", this);
     this._cps.removeObserver(this.name, this);
     window.removeEventListener("DOMMouseScroll", this, false);
     delete this._cps;
@@ -209,6 +214,10 @@ var FullZoom = {
           case "browser.zoom.siteSpecific":
             this._siteSpecificPref =
               this._prefBranch.getBoolPref("browser.zoom.siteSpecific");
+            break;
+          case "browser.zoom.updateBackgroundTabs":
+            this.updateBackgroundTabs =
+              this._prefBranch.getBoolPref("browser.zoom.updateBackgroundTabs");
             break;
         }
         break;
