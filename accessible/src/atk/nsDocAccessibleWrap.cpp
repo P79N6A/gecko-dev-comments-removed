@@ -45,6 +45,7 @@
 #include "nsRootAccessible.h"
 #include "nsDocAccessibleWrap.h"
 #include "nsAccessibleEventData.h"
+#include "nsIAccessibleValue.h"
 
 #include <atk/atk.h>
 #include <glib.h>
@@ -150,7 +151,12 @@ NS_IMETHODIMP nsDocAccessibleWrap::FireToolkitEvent(PRUint32 aEvent,
       
     case nsIAccessibleEvent::EVENT_VALUE_CHANGE :
       {
-        g_object_notify( (GObject*)atkObj, "accessible-value" );
+        nsCOMPtr<nsIAccessibleValue> value(do_QueryInterface(aAccessible));
+        if (value) {    
+          
+          
+          g_object_notify( (GObject*)atkObj, "accessible-value" );
+        }
       }
       break;
         
