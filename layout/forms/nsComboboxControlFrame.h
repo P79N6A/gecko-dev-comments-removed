@@ -253,7 +253,7 @@ protected:
 
 
 
-  PRBool ShowList(nsPresContext* aPresContext, PRBool aShowList);
+  PRBool ShowList(PRBool aShowList);
   void CheckFireOnChange();
   void FireValueChangeEvent();
   nsresult RedisplayText(PRInt32 aIndex);
