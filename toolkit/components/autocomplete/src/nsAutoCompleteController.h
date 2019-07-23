@@ -79,7 +79,7 @@ protected:
   nsresult ProcessResult(PRInt32 aSearchIndex, nsIAutoCompleteResult *aResult);
   nsresult PostSearchCleanup();
 
-  nsresult EnterMatch();
+  nsresult EnterMatch(PRBool aIsPopupSelection);
   nsresult RevertTextValue();
 
   nsresult CompleteDefaultIndex(PRInt32 aSearchIndex);
@@ -103,7 +103,10 @@ protected:
   nsCOMPtr<nsITreeBoxObject> mTree;
 
   nsString mSearchString;
-  PRPackedBool mEnterAfterSearch;
+  
+  
+  
+  PRInt8 mEnterAfterSearch;
   PRPackedBool mDefaultIndexCompleted;
   PRPackedBool mBackspaced;
   PRPackedBool mPopupClosedByCompositionStart;
