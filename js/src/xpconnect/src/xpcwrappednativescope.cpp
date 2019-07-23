@@ -780,11 +780,7 @@ void DEBUG_CheckForComponentsInScope(JSContext* cx, JSObject* obj,
     
     
     
-#ifdef I_FOOLISHLY_WANT_TO_IGNORE_THIS_LIKE_THE_OTHER_CRAP_WE_PRINTF
-    NS_WARNING("XPConnect is being called on a scope without a 'Components' property!");
-#else
     NS_ERROR("XPConnect is being called on a scope without a 'Components' property!");
-#endif
 }
 #else
 #define DEBUG_CheckForComponentsInScope(ccx, obj, OKIfNotInitialized, runtime) \
