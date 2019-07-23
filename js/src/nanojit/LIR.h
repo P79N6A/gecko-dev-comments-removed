@@ -1946,57 +1946,63 @@ namespace nanojit
         LIns* insLoad(LOpcode op, LInsp base, int32_t off, AccSet accSet);
     };
 
-    enum LInsHashKind {
-        
-        
-        
-        LInsImmI  = 0,
-        LInsImmQ = 1,   
-        LInsImmD = 2,
-        LIns1    = 3,
-        LIns2    = 4,
-        LIns3    = 5,
-        LInsCall = 6,
-
-        
-        
-        
-        
-        
-        
-        
-        
-        LInsLoadReadOnly = 7,
-        LInsLoadStack    = 8,
-        LInsLoadRStack   = 9,
-        LInsLoadOther    = 10,
-        LInsLoadMultiple = 11,
-
-        LInsFirst = 0,
-        LInsLast = 11,
-        
-        LInsInvalid = 12
-    };
-    #define nextKind(kind)  LInsHashKind(kind+1)
-
-    class LInsHashSet
+    class CseFilter: public LirWriter
     {
-        
-        
-        
-        static const uint32_t kInitialCap[LInsLast + 1];
+        enum LInsHashKind {
+            
+            
+            LInsImmI = 0,
+            LInsImmQ = 1,   
+            LInsImmD = 2,
+            LIns1    = 3,
+            LIns2    = 4,
+            LIns3    = 5,
+            LInsCall = 6,
+
+            
+            
+            
+            
+            
+            
+            
+            
+            LInsLoadReadOnly = 7,
+            LInsLoadStack    = 8,
+            LInsLoadRStack   = 9,
+            LInsLoadOther    = 10,
+            LInsLoadMultiple = 11,
+
+            LInsFirst = 0,
+            LInsLast = 11,
+            
+            LInsInvalid = 12
+        };
+        #define nextKind(kind)  LInsHashKind(kind+1)
 
         
         
         
         
-        LInsp *m_list[LInsLast + 1];
-        uint32_t m_cap[LInsLast + 1];
-        uint32_t m_used[LInsLast + 1];
-        typedef uint32_t (LInsHashSet::*find_t)(LInsp);
-        find_t m_find[LInsLast + 1];
+        
+        
+        
+        
+        
+        LInsp*      m_list[LInsLast + 1];
+        uint32_t    m_cap[LInsLast + 1];
+        uint32_t    m_used[LInsLast + 1];
+        typedef uint32_t (CseFilter::*find_t)(LInsp);
+        find_t      m_find[LInsLast + 1];
+
+        AccSet      storesSinceLastLoad;    
 
         Allocator& alloc;
+
+        static uint32_t hash8(uint32_t hash, const uint8_t data);
+        static uint32_t hash32(uint32_t hash, const uint32_t data);
+        static uint32_t hashptr(uint32_t hash, const void* data);
+        static uint32_t hashfinish(uint32_t hash);
 
         static uint32_t hashImmI(int32_t);
         static uint32_t hashImmQorD(uint64_t);     
@@ -2006,6 +2012,20 @@ namespace nanojit
         static uint32_t hashLoad(LOpcode op, LInsp, int32_t, AccSet);
         static uint32_t hashCall(const CallInfo *call, uint32_t argc, LInsp args[]);
 
+        
+        LInsp findImmI(int32_t a, uint32_t &k);
+#ifdef NANOJIT_64BIT
+        LInsp findImmQ(uint64_t a, uint32_t &k);
+#endif
+        LInsp findImmD(uint64_t d, uint32_t &k);
+        LInsp find1(LOpcode v, LInsp a, uint32_t &k);
+        LInsp find2(LOpcode v, LInsp a, LInsp b, uint32_t &k);
+        LInsp find3(LOpcode v, LInsp a, LInsp b, LInsp c, uint32_t &k);
+        LInsp findLoad(LOpcode v, LInsp a, int32_t b, AccSet accSet, LInsHashKind kind,
+                       uint32_t &k);
+        LInsp findCall(const CallInfo *call, uint32_t argc, LInsp args[], uint32_t &k);
+
+        
         
         
         uint32_t findImmI(LInsp ins);
@@ -2025,35 +2045,11 @@ namespace nanojit
 
         void grow(LInsHashKind kind);
 
-    public:
-        
-        LInsHashSet(Allocator&, uint32_t kInitialCaps[]);
-
-        
-        LInsp findImmI(int32_t a, uint32_t &k);
-#ifdef NANOJIT_64BIT
-        LInsp findImmQ(uint64_t a, uint32_t &k);
-#endif
-        LInsp findImmD(uint64_t d, uint32_t &k);
-        LInsp find1(LOpcode v, LInsp a, uint32_t &k);
-        LInsp find2(LOpcode v, LInsp a, LInsp b, uint32_t &k);
-        LInsp find3(LOpcode v, LInsp a, LInsp b, LInsp c, uint32_t &k);
-        LInsp findLoad(LOpcode v, LInsp a, int32_t b, AccSet accSet, LInsHashKind kind,
-                       uint32_t &k);
-        LInsp findCall(const CallInfo *call, uint32_t argc, LInsp args[], uint32_t &k);
-
         
         void add(LInsHashKind kind, LInsp ins, uint32_t k);
 
         void clear();               
         void clear(LInsHashKind);   
-    };
-
-    class CseFilter: public LirWriter
-    {
-    private:
-        LInsHashSet* exprs;
-        AccSet       storesSinceLastLoad;   
 
     public:
         CseFilter(LirWriter *out, Allocator&);
