@@ -1,13 +1,12 @@
 
 
 
-Cc["@mozilla.org/moz/jssubscript-loader;1"].getService(Components.interfaces.mozIJSSubScriptLoader)
+Cc["@mozilla.org/moz/jssubscript-loader;1"].getService(Ci.mozIJSSubScriptLoader)
                                            .loadSubScript("chrome://browser/content/sanitize.js");
 
 function test() {
 
-  var pwmgr = Components.classes["@mozilla.org/login-manager;1"]
-             .getService(Components.interfaces.nsILoginManager);
+  var pwmgr = Cc["@mozilla.org/login-manager;1"].getService(Ci.nsILoginManager);
 
   
   pwmgr.setLoginSavingEnabled("http://example.com", false);
@@ -20,9 +19,7 @@ function test() {
   let s = new Sanitizer();
   s.ignoreTimespan = false;
   s.prefDomain = "privacy.cpd.";
-  var itemPrefs = Cc["@mozilla.org/preferences-service;1"]
-                  .getService(Components.interfaces.nsIPrefService)
-                  .getBranch(s.prefDomain);
+  var itemPrefs = gPrefService.getBranch(s.prefDomain);
   itemPrefs.setBoolPref("history", false);
   itemPrefs.setBoolPref("downloads", false);
   itemPrefs.setBoolPref("cache", false);
