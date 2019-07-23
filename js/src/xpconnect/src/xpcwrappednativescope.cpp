@@ -271,15 +271,8 @@ WrappedNativeJSGCThingTracer(JSDHashTable *table, JSDHashEntryHdr *hdr,
         JSTracer* trc = (JSTracer *)arg;
         JS_CALL_OBJECT_TRACER(trc, wrapper->GetFlatJSObject(),
                               "XPCWrappedNative::mFlatJSObject");
-
-        
-        
-        
-        
-        
-        
-        
     }
+
     return JS_DHASH_NEXT;
 }
 
@@ -295,6 +288,35 @@ XPCWrappedNativeScope::TraceJS(JSTracer* trc, XPCJSRuntime* rt)
     for(XPCWrappedNativeScope* cur = gScopes; cur; cur = cur->mNext)
     {
         cur->mWrappedNativeMap->Enumerate(WrappedNativeJSGCThingTracer, trc);
+    }
+}
+
+JS_STATIC_DLL_CALLBACK(JSDHashOperator)
+WrappedNativeSuspecter(JSDHashTable *table, JSDHashEntryHdr *hdr,
+                       uint32 number, void *arg)
+{
+    XPCWrappedNative* wrapper = ((Native2WrappedNativeMap::Entry*)hdr)->value;
+    XPCWrappedNativeProto* proto = wrapper->GetProto();
+    if(proto && proto->ClassIsMainThreadOnly()) 
+    {
+        NS_ASSERTION(NS_IsMainThread(), 
+                     "Suspecting wrapped natives from non-main thread");
+        nsCycleCollector_suspectCurrent(wrapper);
+    }
+
+    return JS_DHASH_NEXT;
+}
+
+
+void
+XPCWrappedNativeScope::SuspectAllWrappers(XPCJSRuntime* rt)
+{
+    XPCAutoLock lock(rt->GetMapLock());
+
+    
+    for(XPCWrappedNativeScope* cur = gScopes; cur; cur = cur->mNext)
+    {
+        cur->mWrappedNativeMap->Enumerate(WrappedNativeSuspecter, nsnull);
     }
 }
 
