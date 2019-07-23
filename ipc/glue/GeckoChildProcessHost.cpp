@@ -34,6 +34,7 @@
 
 
 
+
 #include "GeckoChildProcessHost.h"
 
 #include "base/command_line.h"
@@ -61,10 +62,17 @@ GeckoChildProcessHost::GeckoChildProcessHost(GeckoProcessType aProcessType,
     mProcessType(aProcessType),
     mMonitor("mozilla.ipc.GeckChildProcessHost.mMonitor"),
     mLaunched(false),
+    mChannelInitialized(false),
     mDelegate(aDelegate),
     mChildProcessHandle(0)
 {
     MOZ_COUNT_CTOR(GeckoChildProcessHost);
+    
+    MessageLoop* ioLoop = 
+      BrowserProcessSubThread::GetMessageLoop(BrowserProcessSubThread::IO);
+    ioLoop->PostTask(FROM_HERE,
+                     NewRunnableMethod(this,
+                                       &GeckoChildProcessHost::InitializeChannel));
 }
 
 GeckoChildProcessHost::~GeckoChildProcessHost()
@@ -81,7 +89,7 @@ GeckoChildProcessHost::SyncLaunch(std::vector<std::string> aExtraOpts)
 
   ioLoop->PostTask(FROM_HERE,
                    NewRunnableMethod(this,
-                                     &GeckoChildProcessHost::AsyncLaunch,
+                                     &GeckoChildProcessHost::PerformAsyncLaunch,
                                      aExtraOpts));
 
   
@@ -97,9 +105,41 @@ GeckoChildProcessHost::SyncLaunch(std::vector<std::string> aExtraOpts)
 bool
 GeckoChildProcessHost::AsyncLaunch(std::vector<std::string> aExtraOpts)
 {
+  MessageLoop* ioLoop = 
+    BrowserProcessSubThread::GetMessageLoop(BrowserProcessSubThread::IO);
+  ioLoop->PostTask(FROM_HERE,
+                   NewRunnableMethod(this,
+                                     &GeckoChildProcessHost::PerformAsyncLaunch,
+                                     aExtraOpts));
+
+  
+  
+  MonitorAutoEnter mon(mMonitor);
+  while (!mChannelInitialized) {
+    mon.Wait();
+  }
+
+  return true;
+}
+
+void
+GeckoChildProcessHost::InitializeChannel()
+{
+  CreateChannel();
+
+  MonitorAutoEnter mon(mMonitor);
+  mChannelInitialized = true;
+  mon.Notify();
+}
+
+bool
+GeckoChildProcessHost::PerformAsyncLaunch(std::vector<std::string> aExtraOpts)
+{
   
 
-  if (!CreateChannel()) {
+  
+  
+  if (!GetChannel()) {
     return false;
   }
 

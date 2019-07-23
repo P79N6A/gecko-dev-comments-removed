@@ -105,9 +105,8 @@ ContentProcessParent::ContentProcessParent()
     : mMonitor("ContentProcessParent::mMonitor")
 {
     NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
-    
     mSubprocess = new GeckoChildProcessHost(GeckoProcessType_Content, this);
-    mSubprocess->SyncLaunch();
+    mSubprocess->AsyncLaunch();
     Open(mSubprocess->GetChannel(), mSubprocess->GetChildProcessHandle());
 }
 
