@@ -88,6 +88,8 @@
 #include "nsIMultiPartChannel.h"
 #include "nsIScriptObjectPrincipal.h"
 #include "nsIStorageStream.h"
+#include "nsIPromptFactory.h"
+#include "nsIWindowWatcher.h"
 
 #define LOAD_STR "load"
 #define ERROR_STR "error"
@@ -2335,6 +2337,8 @@ nsXMLHttpRequest::OnStatus(nsIRequest *aRequest, nsISupports *aContext, nsresult
 NS_IMETHODIMP
 nsXMLHttpRequest::GetInterface(const nsIID & aIID, void **aResult)
 {
+  nsresult rv;
+
   
   
   
@@ -2354,7 +2358,7 @@ nsXMLHttpRequest::GetInterface(const nsIID & aIID, void **aResult)
   
   
   if (mNotificationCallbacks) {
-    nsresult rv = mNotificationCallbacks->GetInterface(aIID, aResult);
+    rv = mNotificationCallbacks->GetInterface(aIID, aResult);
     if (NS_SUCCEEDED(rv)) {
       NS_ASSERTION(*aResult, "Lying nsIInterfaceRequestor implementation!");
       return rv;
@@ -2362,7 +2366,6 @@ nsXMLHttpRequest::GetInterface(const nsIID & aIID, void **aResult)
   }
 
   if (mState & XML_HTTP_REQUEST_BACKGROUND) {
-    nsresult rv;
     nsCOMPtr<nsIInterfaceRequestor> badCertHandler(do_CreateInstance(NS_BADCERTHANDLER_CONTRACTID, &rv));
 
     
@@ -2372,6 +2375,24 @@ nsXMLHttpRequest::GetInterface(const nsIID & aIID, void **aResult)
       if (NS_SUCCEEDED(rv))
         return rv;
     }
+  }
+  else if (aIID.Equals(NS_GET_IID(nsIAuthPrompt)) ||
+           aIID.Equals(NS_GET_IID(nsIAuthPrompt2))) {
+    nsCOMPtr<nsIPromptFactory> wwatch =
+      do_GetService(NS_WINDOWWATCHER_CONTRACTID, &rv);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    
+    
+
+    nsCOMPtr<nsIDOMWindow> window;
+    if (mOwner) {
+      window = mOwner->GetOuterWindow();
+    }
+
+    return wwatch->GetPrompt(window, aIID,
+                             reinterpret_cast<void**>(aResult));
+
   }
 
   return QueryInterface(aIID, aResult);
