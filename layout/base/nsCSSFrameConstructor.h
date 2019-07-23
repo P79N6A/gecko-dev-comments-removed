@@ -463,7 +463,8 @@ private:
 
 
 
-  already_AddRefed<nsIContent> CreateGenConTextNode(const nsString& aString,  
+  already_AddRefed<nsIContent> CreateGenConTextNode(nsFrameConstructorState& aState,
+                                                    const nsString& aString,
                                                     nsCOMPtr<nsIDOMCharacterData>* aText,
                                                     nsGenConInitializer* aInitializer);
 
@@ -476,7 +477,8 @@ private:
 
 
 
-  already_AddRefed<nsIContent> CreateGeneratedContent(nsIContent*     aParentContent,
+  already_AddRefed<nsIContent> CreateGeneratedContent(nsFrameConstructorState& aState,
+                                                      nsIContent*     aParentContent,
                                                       nsStyleContext* aStyleContext,
                                                       PRUint32        aContentIndex);
 
