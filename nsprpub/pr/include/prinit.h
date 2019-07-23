@@ -63,7 +63,7 @@ PR_BEGIN_EXTERN_C
 
 
 
-#define PR_VERSION  "4.8.1 Beta 1"
+#define PR_VERSION  "4.8.1 Beta 2"
 #define PR_VMAJOR   4
 #define PR_VMINOR   8
 #define PR_VPATCH   1
