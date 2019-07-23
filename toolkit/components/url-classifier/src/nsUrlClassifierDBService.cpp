@@ -78,6 +78,9 @@
 #include "zlib.h"
 
 
+#include <sqlite3.h>
+
+
 
 
 
@@ -3056,6 +3059,11 @@ nsUrlClassifierDBServiceWorker::FinishUpdate()
   NS_ENSURE_STATE(!mInStream);
   NS_ENSURE_STATE(mUpdateObserver);
 
+  
+  
+  PRInt32 errcode = SQLITE_OK;
+  mConnection->GetLastError(&errcode);
+
   ApplyUpdate();
 
   if (NS_SUCCEEDED(mUpdateStatus)) {
@@ -3064,7 +3072,13 @@ nsUrlClassifierDBServiceWorker::FinishUpdate()
     mUpdateObserver->UpdateError(mUpdateStatus);
   }
 
-  if (!mResetRequested) {
+  
+  
+  
+  PRBool resetDB = (NS_SUCCEEDED(mUpdateStatus) && mResetRequested) ||
+                    errcode == SQLITE_CORRUPT;
+
+  if (!resetDB) {
     if (NS_SUCCEEDED(mUpdateStatus)) {
       PRInt64 now = (PR_Now() / PR_USEC_PER_SEC);
       for (PRUint32 i = 0; i < mUpdateTables.Length(); i++) {
@@ -3079,15 +3093,9 @@ nsUrlClassifierDBServiceWorker::FinishUpdate()
     }
   }
 
-  
-  PRBool resetRequested = mResetRequested;
-
   ResetUpdate();
 
-  
-  
-  
-  if (NS_SUCCEEDED(mUpdateStatus) && resetRequested) {
+  if (resetDB) {
     ResetDatabase();
   }
 
