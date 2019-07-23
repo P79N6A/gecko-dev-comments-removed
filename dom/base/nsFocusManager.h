@@ -231,11 +231,14 @@ protected:
 
 
 
+
+
   void SendFocusOrBlurEvent(PRUint32 aType,
                             nsIPresShell* aPresShell,
                             nsIDocument* aDocument,
                             nsISupports* aTarget,
-                            PRUint32 aFocusMethod);
+                            PRUint32 aFocusMethod,
+                            PRBool aWindowRaised);
 
   
 

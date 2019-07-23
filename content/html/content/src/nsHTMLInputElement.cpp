@@ -1781,11 +1781,14 @@ nsHTMLInputElement::PostHandleEvent(nsEventChainPostVisitor& aVisitor)
 
         case NS_FOCUS_CONTENT:
         {
+          
+          
+          
+          
           nsIFocusManager* fm = nsFocusManager::GetFocusManager();
           if (fm && (mType == NS_FORM_INPUT_TEXT || mType == NS_FORM_INPUT_PASSWORD) &&
+              !(static_cast<nsFocusEvent *>(aVisitor.mEvent))->fromRaise &&
               SelectTextFieldOnFocus()) {
-            
-            
             nsIDocument* document = GetCurrentDoc();
             if (document) {
               PRUint32 lastFocusMethod;
