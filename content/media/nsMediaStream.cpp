@@ -286,8 +286,18 @@ nsMediaChannelStream::OnStopRequest(nsIRequest* aRequest, nsresult aStatus)
     mChannelStatistics.Stop(TimeStamp::Now());
   }
 
-  if (NS_FAILED(aStatus) && aStatus != NS_ERROR_PARSED_DATA_CACHED &&
-      mReopenOnError) {
+  
+  
+  
+  
+  
+  
+  if (mReopenOnError &&
+      aStatus != NS_ERROR_PARSED_DATA_CACHED && aStatus != NS_BINDING_ABORTED &&
+      (mOffset == 0 || mCacheStream.IsSeekable())) {
+    
+    
+    
     nsresult rv = CacheClientSeek(mOffset, PR_FALSE);
     if (NS_SUCCEEDED(rv))
       return rv;
