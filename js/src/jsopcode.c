@@ -2684,7 +2684,10 @@ Decompile(SprintStack *ss, jsbytecode *pc, intN nb)
               case JSOP_YIELD:
                 op = JSOP_SETNAME;      
 
-                if (!ss->inGenExp || !(sn = js_GetSrcNote(jp->script, pc))) {
+#if JS_HAS_GENERATOR_EXPRS
+                if (!ss->inGenExp || !(sn = js_GetSrcNote(jp->script, pc)))
+#endif
+                {
                     rval = POP_STR();
                     todo = (*rval != '\0')
                            ? Sprint(&ss->sprinter,
@@ -2696,8 +2699,10 @@ Decompile(SprintStack *ss, jsbytecode *pc, intN nb)
                            : SprintCString(&ss->sprinter, js_yield_str);
                     break;
                 }
+#if JS_HAS_GENERATOR_EXPRS
                 LOCAL_ASSERT(SN_TYPE(sn) == SRC_HIDDEN);
                 
+#endif
 
               case JSOP_ARRAYPUSH:
               {
@@ -2737,6 +2742,7 @@ Decompile(SprintStack *ss, jsbytecode *pc, intN nb)
                     --pos;
                 }
 
+#if JS_HAS_GENERATOR_EXPRS
                 if (saveop == JSOP_YIELD) {
                     
 
@@ -2756,6 +2762,7 @@ Decompile(SprintStack *ss, jsbytecode *pc, intN nb)
                     ++ss->top;
                     return pc;
                 }
+#endif 
 
                 
 
@@ -3715,6 +3722,7 @@ Decompile(SprintStack *ss, jsbytecode *pc, intN nb)
               END_LITOPX_CASE
 
               case JSOP_ANONFUNOBJ:
+#if JS_HAS_GENERATOR_EXPRS
                 sn = js_GetSrcNote(jp->script, pc);
                 if (sn && SN_TYPE(sn) == SRC_GENEXP) {
                     JSScript *inner, *outer;
@@ -3758,7 +3766,6 @@ Decompile(SprintStack *ss, jsbytecode *pc, intN nb)
 
 
 
-                    pc2 = pc;
                     pc += len;
                     LOCAL_ASSERT(*pc == JSOP_NULL);
                     pc += JSOP_NULL_LENGTH;
@@ -3780,21 +3787,27 @@ Decompile(SprintStack *ss, jsbytecode *pc, intN nb)
 
 
 
+
+
+                    LOCAL_ASSERT(pc + len < endpc ||
+                                 endpc < outer->code + outer->length);
                     LOCAL_ASSERT(ss2.top == 1);
                     ss2.opcodes[0] = JSOP_POP;
-                    op = (JSOp) pc[len];
-                    op = (((js_CodeSpec[op].format & JOF_PARENHEAD) ||
-                           ((js_CodeSpec[op].format & JOF_INVOKE) &&
-                            GET_ARGC(pc + len) == 1) ||
-                           (((op == JSOP_IFEQ || op == JSOP_IFEQX) &&
-                            (sn2 = js_GetSrcNote(outer, pc + len)) &&
-                            SN_TYPE(sn2) != SRC_COND))) &&
-                          !(pc2 > outer->main &&
-                            pc2[-1] == JSOP_POP &&
-                            (sn2 = js_GetSrcNote(outer, pc2 - 1)) &&
-                            SN_TYPE(sn2) == SRC_PCDELTA))
-                         ? JSOP_POP
-                         : JSOP_SETNAME;
+                    if (pc + len == endpc &&
+                        ((JSOp) *endpc != JSOP_IFNE &&
+                         (JSOp) *endpc != JSOP_IFNEX)) {
+                        op = JSOP_SETNAME;
+                    } else {
+                        op = (JSOp) pc[len];
+                        op = ((js_CodeSpec[op].format & JOF_PARENHEAD) ||
+                              ((js_CodeSpec[op].format & JOF_INVOKE) &&
+                               GET_ARGC(pc + len) == 1) ||
+                              (((op == JSOP_IFEQ || op == JSOP_IFEQX) &&
+                               (sn2 = js_GetSrcNote(outer, pc + len)) &&
+                               SN_TYPE(sn2) != SRC_COND)))
+                             ? JSOP_POP
+                             : JSOP_SETNAME;
+                    }
 
                     
 
@@ -3810,6 +3823,7 @@ Decompile(SprintStack *ss, jsbytecode *pc, intN nb)
                     break;
                 }
                 
+#endif 
 
               case JSOP_OBJECT:
               case JSOP_REGEXP:
