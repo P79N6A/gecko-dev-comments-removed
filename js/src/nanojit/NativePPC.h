@@ -243,7 +243,6 @@ namespace nanojit
 
     static const RegisterMask GpRegs = 0xffffffff;
     static const RegisterMask FpRegs = 0xffffffff00000000LL;
-    static const bool CalleeRegsNeedExplicitSaving = true;
     
 #ifdef NANOJIT_64BIT
     
@@ -299,7 +298,7 @@ namespace nanojit
     typedef uint32_t NIns;
 
     
-    const size_t LARGEST_BRANCH_PATCH = 4 * sizeof(Nins);
+    const size_t LARGEST_BRANCH_PATCH = 4 * sizeof(NIns);
 
     inline Register nextreg(Register r) {
         return Register(r+1);

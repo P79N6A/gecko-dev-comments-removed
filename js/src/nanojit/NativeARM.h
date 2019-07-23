@@ -56,6 +56,22 @@
 
 namespace nanojit
 {
+#if defined VMCFG_DOUBLE_MSW_FIRST || defined _MSC_VER
+#  undef  NJ_ARM_EABI
+#else
+#  define NJ_ARM_EABI  1
+#endif
+
+
+#if !defined(ARM_ARCH)
+#  define ARM_ARCH  5
+#endif
+
+
+#if !defined(ARM_THUMB2)
+#  define ARM_THUMB2  0
+#endif
+
 
 #define NJ_VFP_MAX_REGISTERS            8
 #define NJ_MAX_REGISTERS                (11 + NJ_VFP_MAX_REGISTERS)
@@ -108,9 +124,9 @@ typedef enum {
     FirstFloatReg = D0,
     LastFloatReg = D6,
 
-    FirstReg = 0,
-    LastReg = 22,   
-    UnknownReg = 31,
+    FirstReg = R0,
+    LastReg = D6,
+    UnknownReg = 32,
 
     
     FpSingleScratch = 24
