@@ -1,4 +1,4 @@
-#include "TestRPCErrorCleanup.h"
+#include "TestCrashCleanup.h"
 
 #include "mozilla/CondVar.h"
 #include "mozilla/Mutex.h"
@@ -33,13 +33,13 @@ void DeleteSubprocess(Mutex* mutex, CondVar* cvar)
 
 void DeleteTheWorld()
 {
-    delete static_cast<TestRPCErrorCleanupParent*>(gParentActor);
+    delete static_cast<TestCrashCleanupParent*>(gParentActor);
     gParentActor = NULL;
 
     
     
-    Mutex mutex("TestRPCErrorCleanup.DeleteTheWorld.mutex");
-    CondVar cvar(mutex, "TestRPCErrorCleanup.DeleteTheWorld.cvar");
+    Mutex mutex("TestCrashCleanup.DeleteTheWorld.mutex");
+    CondVar cvar(mutex, "TestCrashCleanup.DeleteTheWorld.cvar");
 
     MutexAutoLock lock(mutex);
 
@@ -61,59 +61,31 @@ void Done()
 
 } 
 
-TestRPCErrorCleanupParent::TestRPCErrorCleanupParent()
+TestCrashCleanupParent::TestCrashCleanupParent() : mCleanedUp(false)
 {
-    MOZ_COUNT_CTOR(TestRPCErrorCleanupParent);
+    MOZ_COUNT_CTOR(TestCrashCleanupParent);
 }
 
-TestRPCErrorCleanupParent::~TestRPCErrorCleanupParent()
+TestCrashCleanupParent::~TestCrashCleanupParent()
 {
-    MOZ_COUNT_DTOR(TestRPCErrorCleanupParent);
+    MOZ_COUNT_DTOR(TestCrashCleanupParent);
+
+    if (!mCleanedUp)
+        fail("should have been ActorDestroy()d!");
 }
 
 void
-TestRPCErrorCleanupParent::Main()
+TestCrashCleanupParent::Main()
 {
     
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-
     MessageLoop::current()->PostTask(
         FROM_HERE, NewRunnableFunction(DeleteTheWorld));
 
-    
-    if (CallError())
+    if (CallDIEDIEDIE())
         fail("expected an error!");
 
-    
-    
     Close();
 
-    
-    
-    
-    
     MessageLoop::current()->PostTask(FROM_HERE, NewRunnableFunction(Done));
 }
 
@@ -121,18 +93,18 @@ TestRPCErrorCleanupParent::Main()
 
 
 
-TestRPCErrorCleanupChild::TestRPCErrorCleanupChild()
+TestCrashCleanupChild::TestCrashCleanupChild()
 {
-    MOZ_COUNT_CTOR(TestRPCErrorCleanupChild);
+    MOZ_COUNT_CTOR(TestCrashCleanupChild);
 }
 
-TestRPCErrorCleanupChild::~TestRPCErrorCleanupChild()
+TestCrashCleanupChild::~TestCrashCleanupChild()
 {
-    MOZ_COUNT_DTOR(TestRPCErrorCleanupChild);
+    MOZ_COUNT_DTOR(TestCrashCleanupChild);
 }
 
 bool
-TestRPCErrorCleanupChild::AnswerError()
+TestCrashCleanupChild::AnswerDIEDIEDIE()
 {
     _exit(0);
     NS_RUNTIMEABORT("unreached");
