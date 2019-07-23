@@ -173,6 +173,29 @@ public:
                                   PRBool*  aOriginates = nsnull, 
                                   PRInt32* aColSpan = nsnull) const;
 
+  
+
+
+
+
+
+
+
+
+  PRInt32 GetIndexByRowAndColumn(PRInt32 aRow, PRInt32 aColumn) const;
+
+  
+
+
+
+
+
+
+
+
+  void GetRowAndColumnByIndex(PRInt32 aIndex,
+                              PRInt32 *aRow, PRInt32 *aColumn) const;
+
   void AddColsAtEnd(PRUint32 aNumCols);
   void RemoveColsAtEnd();
 
@@ -300,6 +323,31 @@ public:
                                  PRInt32   aColIndex,
                                  CellData& aData,
                                  PRBool    aUseRowSpanIfOverlap) const;
+
+  
+
+
+
+
+
+
+
+
+  PRInt32 GetIndexByRowAndColumn(PRInt32 aColCount,
+                                 PRInt32 aRow, PRInt32 aColumn) const;
+
+  
+
+
+
+
+
+
+
+
+
+  void GetRowAndColumnByIndex(PRInt32 aColCount, PRInt32 aIndex,
+                              PRInt32 *aRow, PRInt32 *aColumn) const;
 
   
 

@@ -43,7 +43,7 @@ class nsIDOMElement;
 
 
 #define NS_ITABLELAYOUT_IID \
- { 0xa9222e6b, 0x437e, 0x11d3, { 0xb2, 0x27, 0x0, 0x40, 0x95, 0xe2, 0x7a, 0x10 }}
+ { 0xf8363dea, 0x11ad, 0x483a, { 0xba, 0xea, 0xf6, 0xf2, 0xc3, 0x58, 0x8d, 0xde }}
 
 
 
@@ -87,6 +87,31 @@ public:
 
 
   NS_IMETHOD GetTableSize(PRInt32& aRowCount, PRInt32& aColCount)=0;
+
+  
+
+
+
+
+
+
+
+
+
+  NS_IMETHOD GetIndexByRowAndColumn(PRInt32 aRow, PRInt32 aColumn,
+                                    PRInt32 *aIndex) = 0;
+
+  
+
+
+
+
+
+
+
+
+  NS_IMETHOD GetRowAndColumnByIndex(PRInt32 aIndex,
+                                    PRInt32 *aRow, PRInt32 *aColumn) = 0;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsITableLayout, NS_ITABLELAYOUT_IID)
