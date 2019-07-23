@@ -88,7 +88,7 @@ extern "C" {
 
 
 
-#define SQLITE_VERSION         "3.5.4"
+#define SQLITE_VERSION         "3.5.4.1"
 #define SQLITE_VERSION_NUMBER 3005004
 
 
