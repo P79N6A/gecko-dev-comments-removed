@@ -411,10 +411,7 @@ InstallTriggerGlobalInstallChrome(JSContext *cx, JSObject *obj, uintN argc, jsva
 
   
   if (argc >=1)
-  {
-      if (!JS_ValueToECMAUint32(cx, argv[0], &chromeType))
-          return JS_FALSE;
-  }
+      JS_ValueToECMAUint32(cx, argv[0], &chromeType);
 
   
   nsIScriptGlobalObject *globalObject = nsnull;
