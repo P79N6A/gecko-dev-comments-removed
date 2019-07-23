@@ -541,6 +541,8 @@ Assembler::asm_store64(LInsp value, int dr, LInsp base)
         if (value->isconstq()) {
             const int32_t* p = (const int32_t*) (value-2);
 
+            underrunProtect(LD32_size*2 + 8);
+
             
             STR(IP, rb, dr);
             LD32_nochk(IP, p[0]);
@@ -574,8 +576,7 @@ Assembler::asm_store64(LInsp value, int dr, LInsp base)
         if (value->isconstq()) {
             const int32_t* p = (const int32_t*) (value-2);
 
-            underrunProtect(12);
-
+            underrunProtect(4*4);
             asm_quad_nochk(rv, p);
         }
     } else {
@@ -626,34 +627,19 @@ Assembler::asm_quad(LInsp ins)
 
     freeRsrcOf(ins, false);
 
-    if (AvmCore::config.vfp) {
-        if (rr == UnknownReg) {
-            underrunProtect(LD32_size * 2 + 8);
+    if (AvmCore::config.vfp &&
+        rr != UnknownReg)
+    {
+        if (d)
+            FSTD(rr, FP, d);
 
-            
-            
-            
-
-            
-            STR(IP, FP, d);
-            LD32_nochk(IP, p[0]);
-            STR(IP, FP, d+4);
-            LD32_nochk(IP, p[1]);
-        } else {
-            if (d)
-                FSTD(rr, FP, d);
-
-            underrunProtect(16);
-            asm_quad_nochk(rr, p);
-        }
+        underrunProtect(4*4);
+        asm_quad_nochk(rr, p);
     } else {
-        if (d) {
-            underrunProtect(LD32_size * 2 + 8);
-            STR(IP, FP, d+4);
-            LD32_nochk(IP, p[1]);
-            STR(IP, FP, d);
-            LD32_nochk(IP, p[0]);
-        }
+        STR(IP, FP, d+4);
+        asm_ld_imm(IP, p[1]);
+        STR(IP, FP, d);
+        asm_ld_imm(IP, p[0]);
     }
 
     
@@ -762,6 +748,9 @@ Assembler::nativePageSetup()
         _nSlot = pageDataStart(_nIns); 
     }
 }
+
+
+
 
 void
 Assembler::underrunProtect(int bytes)
@@ -944,12 +933,17 @@ Assembler::B_cond_chk(ConditionCode _c, NIns* _t, bool _chk)
 {
     int32_t offs = PC_OFFSET_FROM(_t,_nIns-1);
     
+
+    
     if (isS24(offs>>2)) {
         if (_chk) underrunProtect(4);
+        
+        
         offs = PC_OFFSET_FROM(_t,_nIns-1);
     }
 
     if (isS24(offs>>2)) {
+        
         *(--_nIns) = (NIns)( ((_c)<<28) | (0xA<<24) | (((offs)>>2) & 0xFFFFFF) );
     } else if (_c == AL) {
         if(_chk) underrunProtect(8);
@@ -1004,7 +998,7 @@ Assembler::asm_add_imm(Register rd, Register rn, int32_t imm, int stat)
         
         NanoAssert(rn != IP);
         ALUr(AL, add, stat, rd, rn, IP);
-        LD32_nochk(IP, imm);
+        asm_ld_imm(IP, imm);
     }
 }
 
@@ -1027,7 +1021,7 @@ Assembler::asm_sub_imm(Register rd, Register rn, int32_t imm, int stat)
             
             NanoAssert(rn != IP);
             ALUr(AL, sub, stat, rd, rn, IP);
-            LD32_nochk(IP, imm);
+            asm_ld_imm(IP, imm);
         }
     } else {
         if (imm >= -510) {
@@ -1039,7 +1033,7 @@ Assembler::asm_sub_imm(Register rd, Register rn, int32_t imm, int stat)
             
             NanoAssert(rn != IP);
             ALUr(AL, add, stat, rd, rn, IP);
-            LD32_nochk(IP, -imm);
+            asm_ld_imm(IP, -imm);
         }
     }
 }
@@ -1283,17 +1277,15 @@ Assembler::asm_cmpi(Register r, int32_t imm)
         if (imm > -256) {
             ALUi(AL, cmn, 1, 0, r, -imm);
         } else {
-            underrunProtect(4 + LD32_size);
             CMP(r, IP);
-            LD32_nochk(IP, imm);
+            asm_ld_imm(IP, imm);
         }
     } else {
         if (imm < 256) {
             ALUi(AL, cmp, 1, 0, r, imm);
         } else {
-            underrunProtect(4 + LD32_size);
             CMP(r, IP);
-            LD32_nochk(IP, imm);
+            asm_ld_imm(IP, imm);
         }
     }
 }
@@ -1705,9 +1697,8 @@ Assembler::asm_arm_farg(LInsp arg, Register rlo, Register rhi)
             
             const int32_t* p = (const int32_t*) (arg-2);
 
-            underrunProtect(LD32_size * 2 + 8);
-            LD32_nochk(rhi, p[1]);
-            LD32_nochk(rlo, p[0]);
+            asm_ld_imm(rhi, p[1]);
+            asm_ld_imm(rlo, p[0]);
         }
     } else if (rlo != UnknownReg && rhi == UnknownReg) {
         if (arg->opcode() == LIR_qjoin) {
@@ -1724,10 +1715,9 @@ Assembler::asm_arm_farg(LInsp arg, Register rlo, Register rhi)
             
             const int32_t* p = (const int32_t*) (arg-2);
 
-            underrunProtect(LD32_size * 2 + 8);
             STR_preindex(IP, SP, -4);
-            LD32_nochk(IP, p[1]);
-            LD32_nochk(rlo, p[0]);
+            asm_ld_imm(IP, p[1]);
+            asm_ld_imm(rlo, p[0]);
         }
     } else {
         asm_pusharg(arg);
