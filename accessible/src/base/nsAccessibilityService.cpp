@@ -1337,9 +1337,13 @@ NS_IMETHODIMP nsAccessibilityService::GetAccessible(nsIDOMNode *aNode,
   if (accessNode) {
     
     
+    
+    
     newAcc = do_QueryInterface(accessNode);
-    NS_IF_ADDREF(*aAccessible = newAcc);
-    return NS_OK;
+    if (newAcc) {
+      NS_ADDREF(*aAccessible = newAcc);
+      return NS_OK;
+    }
   }
 
   nsCOMPtr<nsIContent> content(do_QueryInterface(aNode));
