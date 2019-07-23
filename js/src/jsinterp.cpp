@@ -859,7 +859,7 @@ js_GetPrimitiveThis(JSContext *cx, jsval *vp, JSClass *clasp, jsval *thisvp)
 }
 
 
-static JSObject *
+static inline JSObject *
 CallThisObjectHook(JSContext *cx, JSObject *obj, jsval *argv)
 {
     JSObject *thisp = obj->thisObject(cx);
