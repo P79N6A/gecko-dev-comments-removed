@@ -203,6 +203,8 @@ FontFamily::FamilyAddStylesProc(const ENUMLOGFONTEXW *lpelfe,
         }
     }
 
+    fe->mIsBadUnderlineFont = ff->mIsBadUnderlineFont;
+
     
     logFont.lfCharSet = DEFAULT_CHARSET;
     HFONT font = CreateFontIndirectW(&logFont);
