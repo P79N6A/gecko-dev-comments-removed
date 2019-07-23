@@ -941,36 +941,6 @@ Assembler::JMP_far(NIns* addr)
 }
 
 void
-Assembler::BL(NIns* addr)
-{
-    intptr_t offs = PC_OFFSET_FROM(addr,_nIns-1);
-
-    
-
-    
-    if (isS24(offs>>2)) {
-        underrunProtect(4);
-
-        
-        offs = PC_OFFSET_FROM(addr,_nIns-1);
-        *(--_nIns) = (NIns)( COND_AL | (0xB<<24) | ((offs>>2) & 0xFFFFFF) );
-
-        asm_output("bl %p", addr);
-    } else {
-        underrunProtect(12);
-
-        
-        *(--_nIns) = (NIns)((addr));
-        
-        *(--_nIns) = (NIns)( COND_AL | (0x51<<20) | (PC<<16) | (PC<<12) | (4));
-        
-        *(--_nIns) = (NIns)( COND_AL | OP_IMM | (1<<23) | (PC<<16) | (LR<<12) | (4) );
-
-        asm_output("bl %p (32-bit)", addr);
-    }
-}
-
-void
 Assembler::LD32_nochk(Register r, int32_t imm)
 {
     
