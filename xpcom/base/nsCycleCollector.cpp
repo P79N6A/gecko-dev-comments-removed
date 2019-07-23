@@ -392,11 +392,11 @@ public:
         {
         }
 
-        EdgePool::Iterator Mark() { return EdgePool::Iterator(mCurrent); }
+        Iterator Mark() { return Iterator(mCurrent); }
 
         void Add(PtrInfo* aEdge) {
             if (mCurrent == mBlockEnd) {
-                EdgePool::Block *b = new EdgePool::Block();
+                Block *b = new Block();
                 if (!b) {
                     
                     NS_NOTREACHED("out of memory, ignoring edges");
@@ -412,7 +412,7 @@ public:
     private:
         
         PtrInfoOrBlock *mCurrent, *mBlockEnd;
-        EdgePool::Block **mNextBlockPtr;
+        Block **mNextBlockPtr;
     };
 
 };
