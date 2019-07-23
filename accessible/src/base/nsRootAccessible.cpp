@@ -660,16 +660,9 @@ nsresult nsRootAccessible::HandleEventWithTarget(nsIDOMEvent* aEvent,
     
     
     
-    if (!gLastFocusedNode) {
-      return NS_OK;
-    }
-    if (gLastFocusedNode != aTargetNode) {
-      
-      nsCOMPtr<nsIDOMNode> parentOfFocus;
-      gLastFocusedNode->GetParentNode(getter_AddRefs(parentOfFocus));
-      if (parentOfFocus != aTargetNode) {
-        return NS_OK;  
-      }
+    if (!gLastFocusedNode ||
+        !nsAccUtils::IsAncestorOf(aTargetNode, gLastFocusedNode)) {
+      return NS_OK;  
     }
     
     FireCurrentFocusEvent();
