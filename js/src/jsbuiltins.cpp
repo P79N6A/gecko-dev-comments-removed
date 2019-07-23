@@ -102,10 +102,6 @@ js_imod(int32 a, int32 b)
 }
 JS_DEFINE_CALLINFO_2(extern, INT32, js_imod, INT32, INT32, 1, ACC_NONE)
 
-
-
-
-
 jsval FASTCALL
 js_BoxDouble(JSContext* cx, jsdouble d)
 {
@@ -115,7 +111,7 @@ js_BoxDouble(JSContext* cx, jsdouble d)
     JS_ASSERT(JS_ON_TRACE(cx));
     jsval v; 
     if (!js_NewDoubleInRootedValue(cx, d, &v))
-        return JSVAL_ERROR_COOKIE;
+        return JSVAL_NULL;
     return v;
 }
 JS_DEFINE_CALLINFO_2(extern, JSVAL, js_BoxDouble, CONTEXT, DOUBLE, 1, ACC_NONE)
@@ -129,7 +125,7 @@ js_BoxInt32(JSContext* cx, int32 i)
     jsval v; 
     jsdouble d = (jsdouble)i;
     if (!js_NewDoubleInRootedValue(cx, d, &v))
-        return JSVAL_ERROR_COOKIE;
+        return JSVAL_NULL;
     return v;
 }
 JS_DEFINE_CALLINFO_2(extern, JSVAL, js_BoxInt32, CONTEXT, INT32, 1, ACC_NONE)
