@@ -242,8 +242,7 @@ js_DoubleToInteger(jsdouble d);
 
 
 extern JSBool
-js_strtod(JSContext *cx, const jschar *s, const jschar *send,
-          const jschar **ep, jsdouble *dp);
+js_strtod(JSContext *cx, const jschar *s, const jschar **ep, jsdouble *dp);
 
 
 
@@ -255,8 +254,7 @@ js_strtod(JSContext *cx, const jschar *s, const jschar *send,
 
 
 extern JSBool
-js_strtointeger(JSContext *cx, const jschar *s, const jschar *send,
-                const jschar **ep, jsint radix, jsdouble *dp);
+js_strtointeger(JSContext *cx, const jschar *s, const jschar **ep, jsint radix, jsdouble *dp);
 
 JS_END_EXTERN_C
 
