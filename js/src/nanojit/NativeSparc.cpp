@@ -1062,6 +1062,20 @@ namespace nanojit
         if (!_nExitIns)  _nExitIns = pageAlloc(true);
     }
 
+    
+    
+    
+    void Assembler::resetInstructionPointer()
+    {
+        _nIns = _startingIns;
+    }
+
+    
+    void Assembler::recordStartingInstructionPointer()
+    {
+        _startingIns = _nIns;
+    }
+
     void
     Assembler::underrunProtect(int bytes)
     {
