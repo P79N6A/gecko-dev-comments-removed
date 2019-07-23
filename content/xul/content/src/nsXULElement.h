@@ -220,6 +220,14 @@ public:
         if (mRefCnt == 0)
             delete this;
     }
+    
+
+
+
+
+
+
+
     virtual void ReleaseSubtree() { Release(); }
 
     NS_DECL_CYCLE_COLLECTION_NATIVE_CLASS(nsXULPrototypeNode)
@@ -249,7 +257,8 @@ public:
         for (i = 0; i < mNumAttributes; i++)
             mAttributes[i].Finalize(mScriptTypeID);
         delete[] mAttributes;
-        delete[] mChildren;
+        NS_ASSERTION(!mChildren && mNumChildren == 0,
+                     "ReleaseSubtree not called");
     }
 
 #ifdef NS_BUILD_REFCNT_LOGGING
@@ -264,6 +273,9 @@ public:
           if (mChildren[i])
             mChildren[i]->ReleaseSubtree();
         }
+        mNumChildren = 0;
+        delete[] mChildren;
+        mChildren = nsnull;
       }
 
       nsXULPrototypeNode::ReleaseSubtree();
