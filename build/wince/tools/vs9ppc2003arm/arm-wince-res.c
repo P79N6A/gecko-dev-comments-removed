@@ -10,6 +10,7 @@ main(int argc, char **argv)
   int k = 0;
   int s = 0;
   args[i++] = RC_PATH;
+  
 
   argpath_conv(&argv[1], &args[i]);
 
