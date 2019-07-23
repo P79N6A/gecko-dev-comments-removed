@@ -358,6 +358,11 @@ protected:
   
 
 
+  nsresult ResolveBidi();
+
+  
+
+
 
 
 
