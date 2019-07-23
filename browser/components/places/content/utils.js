@@ -66,6 +66,19 @@ function asQuery(aNode)    { return QI_node(aNode, Ci.nsINavHistoryQueryResultNo
 
 var PlacesUtils = {
   
+  TYPE_X_MOZ_PLACE_CONTAINER: "text/x-moz-place-container",
+  
+  TYPE_X_MOZ_PLACE_SEPARATOR: "text/x-moz-place-separator",
+  
+  TYPE_X_MOZ_PLACE: "text/x-moz-place",
+  
+  TYPE_X_MOZ_URL: "text/x-moz-url",
+  
+  TYPE_HTML: "text/html",
+  
+  TYPE_UNICODE: "text/unicode",
+
+  
 
 
   _bookmarks: null,
@@ -383,9 +396,9 @@ var PlacesUtils = {
 
   wrapNode: function PU_wrapNode(aNode, aType, aOverrideURI) {
     switch (aType) {
-    case TYPE_X_MOZ_PLACE_CONTAINER:
-    case TYPE_X_MOZ_PLACE:
-    case TYPE_X_MOZ_PLACE_SEPARATOR:
+    case this.TYPE_X_MOZ_PLACE_CONTAINER:
+    case this.TYPE_X_MOZ_PLACE:
+    case this.TYPE_X_MOZ_PLACE_SEPARATOR:
       
       
       
@@ -411,9 +424,9 @@ var PlacesUtils = {
 
       wrapped += this.getIndexOfNode(aNode);
       return wrapped;
-    case TYPE_X_MOZ_URL:
+    case this.TYPE_X_MOZ_URL:
       return (aOverrideURI || aNode.uri) + NEWLINE + aNode.title;
-    case TYPE_HTML:
+    case this.TYPE_HTML:
       return "<A HREF=\"" + (aOverrideURI || aNode.uri) + "\">" +
              aNode.title + "</A>";
     }
@@ -527,9 +540,9 @@ var PlacesUtils = {
     for (var i = 0; i < parts.length; ++i) {
       var data = { };
       switch (type) {
-      case TYPE_X_MOZ_PLACE_CONTAINER:
-      case TYPE_X_MOZ_PLACE:
-      case TYPE_X_MOZ_PLACE_SEPARATOR:
+      case this.TYPE_X_MOZ_PLACE_CONTAINER:
+      case this.TYPE_X_MOZ_PLACE:
+      case this.TYPE_X_MOZ_PLACE_SEPARATOR:
         
         
         if (i > (parts.length - 4))
@@ -539,14 +552,14 @@ var PlacesUtils = {
                       parent: parseInt(parts[++i]),
                       index: parseInt(parts[++i]) });
         break;
-      case TYPE_X_MOZ_URL:
+      case this.TYPE_X_MOZ_URL:
         
         if (i > (parts.length - 2))
           break;
         nodes.push({  uri: this._uri(parts[i++]),
                       title: parts[i] });
         break;
-      case TYPE_UNICODE:
+      case this.TYPE_UNICODE:
         
         if (i > (parts.length - 1))
           break;
@@ -579,7 +592,7 @@ var PlacesUtils = {
   makeTransaction: function PU_makeTransaction(data, type, container,
                                                index, copy) {
     switch (type) {
-    case TYPE_X_MOZ_PLACE_CONTAINER:
+    case this.TYPE_X_MOZ_PLACE_CONTAINER:
       if (data.id > 0 && data.uri == null) {
         
         if (copy)
@@ -588,7 +601,7 @@ var PlacesUtils = {
                                                data.index, container,
                                                index);
       }
-    case TYPE_X_MOZ_PLACE:
+    case this.TYPE_X_MOZ_PLACE:
       if (data.id > 0) {
         if (copy)
           return this._getBookmarkItemCopyTransaction(data.id, container, index);
@@ -598,7 +611,7 @@ var PlacesUtils = {
                                              index);
       }
       return this._getURIItemCopyTransaction(data.uri, container, index);
-    case TYPE_X_MOZ_PLACE_SEPARATOR:
+    case this.TYPE_X_MOZ_PLACE_SEPARATOR:
       if (copy) {
         
         
@@ -611,8 +624,8 @@ var PlacesUtils = {
       var createTxn =
         new PlacesCreateSeparatorTransaction(container, index);
       return new PlacesAggregateTransaction("SeparatorMove", [removeTxn, createTxn]);
-    case TYPE_X_MOZ_URL:
-    case TYPE_UNICODE:
+    case this.TYPE_X_MOZ_URL:
+    case this.TYPE_UNICODE:
       
       var createTxn =
         new PlacesCreateItemTransaction(data.uri, container, index);
@@ -1029,3 +1042,8 @@ var PlacesUtils = {
     return "";
   }
 };
+
+PlacesUtils.GENERIC_VIEW_DROP_TYPES = [PlacesUtils.TYPE_X_MOZ_PLACE_CONTAINER,
+                                       PlacesUtils.TYPE_X_MOZ_PLACE_SEPARATOR,
+                                       PlacesUtils.TYPE_X_MOZ_PLACE,
+                                       PlacesUtils.TYPE_X_MOZ_URL];
