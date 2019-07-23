@@ -75,7 +75,7 @@ EmbedWindowCreator::CreateChromeWindow(nsIWebBrowserChrome *aParent,
         if (!qecko)
             return NS_ERROR_FAILURE;
         newEmbed = qecko;
-        emit newEmbed->newWindow(newEmbed, aChromeFlags);
+        emit newEmbed->newWindow(&newEmbed, aChromeFlags);
     }
 
     
