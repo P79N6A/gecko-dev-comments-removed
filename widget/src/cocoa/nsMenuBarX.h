@@ -155,8 +155,9 @@ protected:
 
     nsCOMArray<nsIMenu>     mMenusArray;          
     nsCOMPtr<nsIContent>    mMenuBarContent;      
-    nsCOMPtr<nsIContent>    mPrefItemContent;     
+    nsCOMPtr<nsIContent>    mAboutItemContent;    
                                                   
+    nsCOMPtr<nsIContent>    mPrefItemContent;     
     nsCOMPtr<nsIContent>    mQuitItemContent;     
     nsIWidget*              mParent;              
     PRBool                  mIsMenuBarAdded;
