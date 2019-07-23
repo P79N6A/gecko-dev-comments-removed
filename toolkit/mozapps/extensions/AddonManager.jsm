@@ -54,35 +54,14 @@ const PROVIDERS = [
   "resource://gre/modules/LightweightThemeManager.jsm"
 ];
 
+["LOG", "WARN", "ERROR"].forEach(function(aName) {
+  this.__defineGetter__(aName, function() {
+    Components.utils.import("resource://gre/modules/AddonLogging.jsm");
 
-
-
-
-
-
-function LOG(aStr) {
-  dump("*** addons.manager: " + aStr + "\n");
-}
-
-
-
-
-
-
-
-function WARN(aStr) {
-  LOG(aStr);
-}
-
-
-
-
-
-
-
-function ERROR(aStr) {
-  LOG(aStr);
-}
+    LogManager.getLogger("addons.manager", this);
+    return this[aName];
+  });
+}, this);
 
 
 

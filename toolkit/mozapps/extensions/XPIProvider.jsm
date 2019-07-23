@@ -132,35 +132,14 @@ const TYPES = {
 
 var gIDTest = /^(\{[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\}|[a-z0-9-\._]*\@[a-z0-9-\._]+)$/i;
 
+["LOG", "WARN", "ERROR"].forEach(function(aName) {
+  this.__defineGetter__(aName, function() {
+    Components.utils.import("resource://gre/modules/AddonLogging.jsm");
 
-
-
-
-
-
-function LOG(aStr) {
-  dump("*** addons.xpi: " + aStr + "\n");
-}
-
-
-
-
-
-
-
-function WARN(aStr) {
-  LOG(aStr);
-}
-
-
-
-
-
-
-
-function ERROR(aStr) {
-  LOG(aStr);
-}
+    LogManager.getLogger("addons.xpi", this);
+    return this[aName];
+  })
+}, this);
 
 
 
