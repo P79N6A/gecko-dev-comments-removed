@@ -113,7 +113,7 @@ union nsPluginPort;
   nscoord mHandScrollStartScrollX, mHandScrollStartScrollY;
   
   
-  NSEvent* mLastMenuForEventEvent;
+  NSEvent* mLastMouseDownEvent;
   
   
   NSMutableArray* mPendingDirtyRects;
