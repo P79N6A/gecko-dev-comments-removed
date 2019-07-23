@@ -107,7 +107,10 @@ struct JSScript {
     uintN           lineno;     
     uintN           nslots;     
     JSPrincipals    *principals;
-    JSObject        *object;    
+    union {
+        JSObject    *object;    
+        JSScript    *nextToGC;  
+    } u;
 #ifdef CHECK_SCRIPT_OWNER
     JSThread        *owner;     
 #endif
