@@ -1215,6 +1215,17 @@ pref("editor.positioning.offset",            0);
 pref("dom.max_chrome_script_run_time", 20);
 pref("dom.max_script_run_time", 10);
 
+
+
+
+
+#ifndef DEBUG
+pref("dom.ipc.plugins.timeoutSecs", 10);
+#else
+
+pref("dom.ipc.plugins.timeoutSecs", 0);
+#endif
+
 pref("svg.enabled", true);
 pref("svg.smil.enabled", true);
 
