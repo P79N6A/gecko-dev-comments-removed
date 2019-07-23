@@ -1743,10 +1743,6 @@ nsObjectFrame::StopPluginInternal(PRBool aDelayedStop)
   
   mWindowlessRect.Empty();
 
-  
-
-  nsIView *view = GetView();
-
 #ifdef XP_WIN
   if (aDelayedStop) {
     
@@ -1754,6 +1750,7 @@ nsObjectFrame::StopPluginInternal(PRBool aDelayedStop)
     
     
 
+    
     nsIView *view = GetView();
     if (view) {
       view->DisownWidget();
