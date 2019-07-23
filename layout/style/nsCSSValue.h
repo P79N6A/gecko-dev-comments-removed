@@ -139,10 +139,8 @@ enum nsCSSUnit {
   
   
   eCSSUnit_EM           = 800,    
-  eCSSUnit_EN           = 801,    
-  eCSSUnit_XHeight      = 802,    
-  eCSSUnit_CapHeight    = 803,    
-  eCSSUnit_Char         = 804,    
+  eCSSUnit_XHeight      = 801,    
+  eCSSUnit_Char         = 802,    
 
   
   eCSSUnit_Pixel        = 900,    
