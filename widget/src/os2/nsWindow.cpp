@@ -1125,9 +1125,6 @@ NS_METHOD nsWindow::Destroy()
       CaptureRollupEvents(nsnull, PR_FALSE, PR_TRUE);
     }
 
-    
-    mThebesSurface = nsnull;
-
     if (mWnd) {
       HWND hwndBeingDestroyed = mFrameWnd ? mFrameWnd : mWnd;
       DEBUGFOCUS(Destroy);
@@ -3165,16 +3162,7 @@ PRBool nsWindow::OnPaint()
                              (PRInt32)mWnd);
 #endif 
 
-        
-        
-        
-        
-        SWP swp;
-        WinQueryWindowPos(mWnd, &swp);
-        nsRefPtr<gfxASurface> targetSurface =
-          new gfxOS2Surface(hPS, gfxIntSize(swp.cx, swp.cy));
-        
-        nsRefPtr<gfxContext> thebesContext = new gfxContext(targetSurface);
+        nsRefPtr<gfxContext> thebesContext = new gfxContext(mThebesSurface);
 
         nsCOMPtr<nsIRenderingContext> context;
         nsresult rv = mContext->CreateRenderingContextInstance(*getter_AddRefs(context));
@@ -3190,7 +3178,15 @@ PRBool nsWindow::OnPaint()
         }
 
         event.renderingContext = context;
-        rc = DispatchWindowEvent(&event, eventStatus);
+        
+        
+        for (int i = 0; i < 10; i++) {
+          rc = DispatchWindowEvent(&event, eventStatus);
+          if (rc) {
+            
+            break;
+          }
+        }
         event.renderingContext = nsnull;
 
         if (rc) {
@@ -3200,7 +3196,9 @@ PRBool nsWindow::OnPaint()
           thebesContext->SetOperator(gfxContext::OPERATOR_SOURCE);
           thebesContext->Paint();
         }
+        NS_RELEASE(event.widget);
       } 
+      mThebesSurface->Refresh(&rcl, hPS);
     } 
 
     WinEndPaint(hPS);
@@ -3243,6 +3241,16 @@ PRBool nsWindow::OnResize(PRInt32 aX, PRInt32 aY)
 {
    mBounds.width = aX;
    mBounds.height = aY;
+
+   
+   if (!mThebesSurface) {
+     
+     
+     mThebesSurface = new gfxOS2Surface(mWnd);
+   }
+
+   mThebesSurface->Resize(gfxIntSize(aX, aY));
+
    return DispatchResizeEvent( aX, aY);
 }
 

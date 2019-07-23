@@ -48,19 +48,26 @@ class THEBES_API gfxOS2Surface : public gfxASurface {
 
 public:
     
-    gfxOS2Surface(HPS aPS, const gfxIntSize& aSize);
-    
     gfxOS2Surface(const gfxIntSize& aSize,
                   gfxASurface::gfxImageFormat aImageFormat);
     
     gfxOS2Surface(HWND aWnd);
     virtual ~gfxOS2Surface();
 
+    
+
+    
+    
+    
+    void Refresh(RECTL *aRect, HPS aPS);
+
+    
+    int Resize(const gfxIntSize& aSize);
+
     HPS GetPS() { return mPS; }
     gfxIntSize GetSize() { return mSize; }
 
 private:
-    PRBool mOwnsPS;
     PRBool mHasWnd; 
     HDC mDC; 
     HPS mPS; 
