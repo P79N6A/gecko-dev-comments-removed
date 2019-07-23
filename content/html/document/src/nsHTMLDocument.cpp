@@ -1695,34 +1695,8 @@ nsHTMLDocument::GetDomain(nsAString& aDomain)
 NS_IMETHODIMP
 nsHTMLDocument::SetDomain(const nsAString& aDomain)
 {
-  
-  
-  
   if (aDomain.IsEmpty())
     return NS_ERROR_DOM_BAD_DOCUMENT_DOMAIN;
-  nsAutoString current;
-  if (NS_FAILED(GetDomain(current)))
-    return NS_ERROR_FAILURE;
-  PRBool ok = current.Equals(aDomain);
-  if (current.Length() > aDomain.Length() &&
-      StringEndsWith(current, aDomain, nsCaseInsensitiveStringComparator()) &&
-      current.CharAt(current.Length() - aDomain.Length() - 1) == '.') {
-    
-    nsCOMPtr<nsIEffectiveTLDService> tldService =
-      do_GetService(NS_EFFECTIVETLDSERVICE_CONTRACTID);
-    if (!tldService)
-      return NS_ERROR_NOT_AVAILABLE;
-
-    
-    NS_ConvertUTF16toUTF8 str(aDomain);
-    nsCAutoString etld;
-    nsresult rv = tldService->GetBaseDomainFromHost(str, 0, etld);
-    ok = NS_SUCCEEDED(rv);
-  }
-  if (!ok) {
-    
-    return NS_ERROR_DOM_BAD_DOCUMENT_DOMAIN;
-  }
 
   
   nsCOMPtr<nsIURI> uri;
@@ -1745,6 +1719,36 @@ nsHTMLDocument::SetDomain(const nsAString& aDomain)
   nsCOMPtr<nsIURI> newURI;
   if (NS_FAILED(NS_NewURI(getter_AddRefs(newURI), newURIString)))
     return NS_ERROR_FAILURE;
+
+  
+  
+  
+  nsCAutoString current, domain;
+  if (NS_FAILED(uri->GetHost(current)))
+    current.Truncate();
+  if (NS_FAILED(newURI->GetHost(domain)))
+    domain.Truncate();
+
+  PRBool ok = current.Equals(domain);
+  if (current.Length() > domain.Length() &&
+      StringEndsWith(current, domain) &&
+      current.CharAt(current.Length() - domain.Length() - 1) == '.') {
+    
+    nsCOMPtr<nsIEffectiveTLDService> tldService =
+      do_GetService(NS_EFFECTIVETLDSERVICE_CONTRACTID);
+    if (!tldService)
+      return NS_ERROR_NOT_AVAILABLE;
+
+    
+    
+    
+    nsCAutoString baseDomain;
+    ok = NS_SUCCEEDED(tldService->GetBaseDomain(newURI, 0, baseDomain));
+  }
+  if (!ok) {
+    
+    return NS_ERROR_DOM_BAD_DOCUMENT_DOMAIN;
+  }
 
   return NodePrincipal()->SetDomain(newURI);
 }
