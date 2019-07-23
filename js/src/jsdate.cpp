@@ -57,7 +57,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include "jstypes.h"
-#include "jsstdint.h"
 #include "jsprf.h"
 #include "prmjtime.h"
 #include "jsutil.h" 
@@ -420,7 +419,7 @@ static jsdouble
 AdjustTime(jsdouble date)
 {
     jsdouble t = DaylightSavingTA(date) + LocalTZA;
-    t = (LocalTZA > 0) ? fmod(t, msPerDay) : -fmod(msPerDay - t, msPerDay);
+    t = (LocalTZA >= 0) ? fmod(t, msPerDay) : -fmod(msPerDay - t, msPerDay);
     return t;
 }
 
