@@ -142,13 +142,6 @@
 
 #define AUTOCOMPLETE_MAX_PER_TYPED 100
 
-
-
-
-
-
-#define AUTOCOMPLETE_MAX_TRUNCATION_VISIT 6
-
 PRInt32 ComputeAutoCompletePriority(const nsAString& aUrl, PRInt32 aVisitCount,
                                     PRBool aWasTyped, PRBool aIsBookmarked);
 nsresult NormalizeAutocompleteInput(const nsAString& aInput,
@@ -278,7 +271,7 @@ nsNavHistory::CreateAutoCompleteQuery()
   if (mAutoCompleteOnlyTyped) {
     sql = NS_LITERAL_CSTRING(
         "SELECT p.url, p.title, p.visit_count, p.typed, "
-          "(SELECT b.fk FROM moz_bookmarks b WHERE b.fk = p.id AND b.type = ?3) "
+          "(SELECT b.fk FROM moz_bookmarks b WHERE b.fk = p.id) "
         "FROM moz_places p "
         "WHERE p.url >= ?1 AND p.url < ?2 "
         "AND p.typed = 1 "
@@ -287,7 +280,7 @@ nsNavHistory::CreateAutoCompleteQuery()
   } else {
     sql = NS_LITERAL_CSTRING(
         "SELECT p.url, p.title, p.visit_count, p.typed, "
-          "(SELECT b.fk FROM moz_bookmarks b WHERE b.fk = p.id AND b.type = ?3) "
+          "(SELECT b.fk FROM moz_bookmarks b WHERE b.fk = p.id) "
         "FROM moz_places p "
         "WHERE p.url >= ?1 AND p.url < ?2 "
         "AND (p.hidden <> 1 OR p.typed = 1) "
@@ -297,8 +290,6 @@ nsNavHistory::CreateAutoCompleteQuery()
   sql.AppendInt(AUTOCOMPLETE_MAX_PER_PREFIX);
   nsresult rv = mDBConn->CreateStatement(sql,
       getter_AddRefs(mDBAutoCompleteQuery));
-  NS_ENSURE_SUCCESS(rv, rv);
-  rv = mDBAutoCompleteQuery->BindInt32Parameter(2, nsINavBookmarksService::TYPE_BOOKMARK);
   return rv;
 }
 
@@ -504,36 +495,10 @@ nsNavHistory::AutoCompleteFullHistorySearch(const nsAString& aSearchString,
   matches.Sort(comparator);
 
   
-  nsAutoString zerothEntry;
-  if (matches.Length() > 0 &&
-      matches[0].visitCount <= AUTOCOMPLETE_MAX_TRUNCATION_VISIT) {
+  for (i = 0; i < matches.Length(); i ++) {
     
     
-    
-    
-    nsCOMPtr<nsIURI> uri;
-    rv = NS_NewURI(getter_AddRefs(uri), NS_ConvertUTF16toUTF8(matches[0].url));
-    NS_ENSURE_SUCCESS(rv, rv);
-    uri->SetPath(NS_LITERAL_CSTRING("/"));
-
-    nsCAutoString spec;
-    uri->GetSpec(spec);
-    zerothEntry = NS_ConvertUTF8toUTF16(spec);
-
-    if (! zerothEntry.Equals(matches[0].url))
-      aResult->AppendMatch(zerothEntry, EmptyString());
-    rv = aResult->AppendMatch(matches[0].url, matches[0].title);
-    NS_ENSURE_SUCCESS(rv, rv);
-  } else if (matches.Length() > 0) {
-    
-    rv = aResult->AppendMatch(matches[0].url, matches[0].title);
-    NS_ENSURE_SUCCESS(rv, rv);
-  }
-  for (i = 1; i < matches.Length(); i ++) {
-    
-    
-    if (! matches[i].url.Equals(matches[i-1].url) &&
-        ! zerothEntry.Equals(matches[i].url)) {
+    if (!matches[i].url.Equals(matches[i-1].url)) {
       rv = aResult->AppendMatch(matches[i].url, matches[i].title);
       NS_ENSURE_SUCCESS(rv, rv);
     }
