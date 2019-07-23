@@ -586,6 +586,7 @@ public:
   
 
 
+
   virtual nsIFrame* GetContentInsertionFrame() { return this; }
 
   
