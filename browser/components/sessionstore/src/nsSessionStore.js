@@ -100,8 +100,6 @@ const CAPABILITIES = [
   "Subframes", "Plugins", "Javascript", "MetaRedirects", "Images"
 ];
 
-
-Cu.import("resource://gre/modules/JSON.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
 function debug(aMsg) {
@@ -487,19 +485,16 @@ SessionStoreService.prototype = {
         this._restoreCount = this._initialState.windows ? this._initialState.windows.length : 0;
         this.restoreWindow(aWindow, this._initialState, this._isCmdLineEmpty(aWindow));
         delete this._initialState;
-        
-        
-        this.saveState(true);
       }
       else {
         
         var observerService = Cc["@mozilla.org/observer-service;1"].
                               getService(Ci.nsIObserverService);
         observerService.notifyObservers(null, NOTIFY_WINDOWS_RESTORED, "");
-        
-        
-        this._lastSaveTime -= this._interval;
       }
+      
+      
+      this.saveState(true);
     }
     
     else if (!this._isWindowLoaded(aWindow)) {
@@ -585,13 +580,6 @@ SessionStoreService.prototype = {
     
     aWindow.__SS_dyingCache = winData;
     
-    
-    
-    var tabCount = aWindow.__SS_dyingCache.tabs.length;
-    for (var t = 0; t < tabCount; t++) {
-      delete aWindow.__SS_dyingCache.tabs[t]._tab;
-    }
-    
     delete aWindow.__SSi;
   },
 
@@ -665,10 +653,6 @@ SessionStoreService.prototype = {
     var tabState = this._collectTabData(aTab);
     this._updateTextAndScrollDataForTab(aWindow, aTab.linkedBrowser, tabState);
 
-    
-    
-    delete tabState._tab;
-    
     
     if (tabState.entries.length > 0) {
       let tabTitle = aTab.label;
@@ -818,10 +802,8 @@ SessionStoreService.prototype = {
     if (!tabState.entries || !aTab.ownerDocument || !aTab.ownerDocument.defaultView.__SSi)
       throw (Components.returnCode = Cr.NS_ERROR_INVALID_ARG);
     
-    tabState._tab = aTab;
-    
     var window = aTab.ownerDocument.defaultView;
-    this.restoreHistoryPrecursor(window, [tabState], 0, 0, 0);
+    this.restoreHistoryPrecursor(window, [aTab], [tabState], 0, 0, 0);
   },
 
   duplicateTab: function sss_duplicateTab(aWindow, aTab) {
@@ -834,8 +816,7 @@ SessionStoreService.prototype = {
     this._updateTextAndScrollDataForTab(sourceWindow, aTab.linkedBrowser, tabState, true);
     
     var newTab = aWindow.getBrowser().addTab();
-    tabState._tab = newTab;
-    this.restoreHistoryPrecursor(aWindow, [tabState], 0, 0, 0);
+    this.restoreHistoryPrecursor(aWindow, [newTab], [tabState], 0, 0, 0);
     
     return newTab;
   },
@@ -876,13 +857,13 @@ SessionStoreService.prototype = {
 
     
     let browser = aWindow.gBrowser;
-    let tab = closedTabState._tab = browser.addTab();
+    let tab = browser.addTab();
       
     
     browser.moveTabTo(tab, closedTab.pos);
 
     
-    this.restoreHistoryPrecursor(aWindow, [closedTabState], 1, 0, 0);
+    this.restoreHistoryPrecursor(aWindow, [tab], [closedTabState], 1, 0, 0);
 
     
     let content = browser.getBrowserForTab(tab).contentWindow;
@@ -985,7 +966,7 @@ SessionStoreService.prototype = {
     if (!browser || !browser.currentURI)
       
       return tabData;
-    else if (browser.parentNode.__SS_data && browser.parentNode.__SS_data._tab)
+    else if (browser.parentNode.__SS_data && browser.parentNode.__SS_data._tabStillLoading)
       
       return browser.parentNode.__SS_data;
     
@@ -1223,7 +1204,8 @@ SessionStoreService.prototype = {
     for (var i = 0; i < browsers.length; i++) {
       try {
         var tabData = this._windows[aWindow.__SSi].tabs[i];
-        if (browsers[i].parentNode.__SS_data && browsers[i].parentNode.__SS_data._tab)
+        if (browsers[i].parentNode.__SS_data &&
+            browsers[i].parentNode.__SS_data._tabStillLoading)
           continue; 
         this._updateTextAndScrollDataForTab(aWindow, browsers[i], tabData);
       }
@@ -1624,12 +1606,13 @@ SessionStoreService.prototype = {
     var tabbrowser = aWindow.getBrowser();
     var openTabCount = aOverwriteTabs ? tabbrowser.browsers.length : -1;
     var newTabCount = winData.tabs.length;
+    let tabs = [];
     
     for (var t = 0; t < newTabCount; t++) {
-      winData.tabs[t]._tab = t < openTabCount ? tabbrowser.mTabs[t] : tabbrowser.addTab();
+      tabs.push(t < openTabCount ? tabbrowser.mTabs[t] : tabbrowser.addTab());
       
       if (!aOverwriteTabs && root._firstTabs) {
-        tabbrowser.moveTabTo(winData.tabs[t]._tab, t);
+        tabbrowser.moveTabTo(tabs[t], t);
       }
     }
 
@@ -1656,8 +1639,8 @@ SessionStoreService.prototype = {
       this._windows[aWindow.__SSi]._closedTabs = winData._closedTabs;
     }
     
-    this.restoreHistoryPrecursor(aWindow, winData.tabs, (aOverwriteTabs ?
-      (parseInt(winData.selected) || 1) : 0), 0, 0);
+    this.restoreHistoryPrecursor(aWindow, tabs, winData.tabs,
+      (aOverwriteTabs ? (parseInt(winData.selected) || 1) : 0), 0, 0);
 
     this._notifyIfAllWindowsRestored();
   },
@@ -1675,21 +1658,24 @@ SessionStoreService.prototype = {
 
 
 
-  restoreHistoryPrecursor: function sss_restoreHistoryPrecursor(aWindow, aTabs, aSelectTab, aIx, aCount) {
+
+
+  restoreHistoryPrecursor:
+    function sss_restoreHistoryPrecursor(aWindow, aTabs, aTabData, aSelectTab, aIx, aCount) {
     var tabbrowser = aWindow.getBrowser();
     
     
     
     for (var t = aIx; t < aTabs.length; t++) {
       try {
-        if (!tabbrowser.getBrowserForTab(aTabs[t]._tab).webNavigation.sessionHistory) {
+        if (!tabbrowser.getBrowserForTab(aTabs[t]).webNavigation.sessionHistory) {
           throw new Error();
         }
       }
       catch (ex) { 
         if (aCount < 10) {
           var restoreHistoryFunc = function(self) {
-            self.restoreHistoryPrecursor(aWindow, aTabs, aSelectTab, aIx, aCount + 1);
+            self.restoreHistoryPrecursor(aWindow, aTabs, aTabData, aSelectTab, aIx, aCount + 1);
           }
           aWindow.setTimeout(restoreHistoryFunc, 100, this);
           return;
@@ -1699,10 +1685,11 @@ SessionStoreService.prototype = {
     
     
     for (t = 0; t < aTabs.length; t++) {
-      var tab = aTabs[t]._tab;
+      var tab = aTabs[t];
       var browser = tabbrowser.getBrowserForTab(tab);
       
-      if (!aTabs[t].entries || aTabs[t].entries.length == 0) {
+      aTabData[t]._tabStillLoading = true;
+      if (!aTabData[t].entries || aTabData[t].entries.length == 0) {
         
         
         browser.contentDocument.location = "about:blank";
@@ -1717,19 +1704,20 @@ SessionStoreService.prototype = {
       
       
       
-      let activeIndex = (aTabs[t].index || aTabs[t].entries.length) - 1;
-      let activePageData = aTabs[t].entries[activeIndex] || null;
+      let activeIndex = (aTabData[t].index || aTabData[t].entries.length) - 1;
+      let activePageData = aTabData[t].entries[activeIndex] || null;
       browser.userTypedValue = activePageData ? activePageData.url || null : null;
       
       
       
-      browser.parentNode.__SS_data = aTabs[t];
+      browser.parentNode.__SS_data = aTabData[t];
     }
     
     
     if (aSelectTab-- && aTabs[aSelectTab]) {
         aTabs.unshift(aTabs.splice(aSelectTab, 1)[0]);
-        tabbrowser.selectedTab = aTabs[0]._tab;
+        aTabData.unshift(aTabData.splice(aSelectTab, 1)[0]);
+        tabbrowser.selectedTab = aTabs[0];
     }
 
     if (!this._isWindowLoaded(aWindow)) {
@@ -1740,7 +1728,7 @@ SessionStoreService.prototype = {
     
     
     var idMap = { used: {} };
-    this.restoreHistory(aWindow, aTabs, idMap);
+    this.restoreHistory(aWindow, aTabs, aTabData, idMap);
   },
 
   
@@ -1752,18 +1740,21 @@ SessionStoreService.prototype = {
 
 
 
-  restoreHistory: function sss_restoreHistory(aWindow, aTabs, aIdMap) {
+
+
+  restoreHistory: function sss_restoreHistory(aWindow, aTabs, aTabData, aIdMap) {
     var _this = this;
-    while (aTabs.length > 0 && (!aTabs[0]._tab || !aTabs[0]._tab.parentNode)) {
+    while (aTabs.length > 0 && (!aTabData[0]._tabStillLoading || !aTabs[0].parentNode)) {
       aTabs.shift(); 
+      aTabData.shift();
     }
     if (aTabs.length == 0) {
       return; 
     }
     
-    var tabData = aTabs.shift();
+    var tab = aTabs.shift();
+    var tabData = aTabData.shift();
 
-    var tab = tabData._tab;
     var browser = aWindow.getBrowser().getBrowserForTab(tab);
     var history = browser.webNavigation.sessionHistory;
     
@@ -1834,7 +1825,7 @@ SessionStoreService.prototype = {
       browser.addEventListener("load", browser.__SS_restore, true);
     }
     
-    aWindow.setTimeout(function(){ _this.restoreHistory(aWindow, aTabs, aIdMap); }, 0);
+    aWindow.setTimeout(function(){ _this.restoreHistory(aWindow, aTabs, aTabData, aIdMap); }, 0);
   },
 
   
@@ -2227,7 +2218,8 @@ SessionStoreService.prototype = {
   _saveStateObject: function sss_saveStateObject(aStateObj) {
     var stateString = Cc["@mozilla.org/supports-string;1"].
                         createInstance(Ci.nsISupportsString);
-    stateString.data = aStateObj.toSource();
+    
+    stateString.data = "(" + this._toJSONString(aStateObj) + ")";
 
     var observerService = Cc["@mozilla.org/observer-service;1"].
                           getService(Ci.nsIObserverService);
@@ -2477,15 +2469,10 @@ SessionStoreService.prototype = {
 
 
 
-
   _toJSONString: function sss_toJSONString(aJSObject) {
-    let str = JSONModule.toString(aJSObject, ["_tab", "_hosts", "_formDataSaved"] );
     
     
-    if (!JSONModule.isMostlyHarmless(str))
-      throw new Error("JSON conversion failed unexpectedly!");
-    
-    return str;
+    return JSON.stringify(aJSObject);
   },
 
   _notifyIfAllWindowsRestored: function sss_notifyIfAllWindowsRestored() {
