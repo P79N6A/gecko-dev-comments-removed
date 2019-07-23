@@ -459,15 +459,16 @@ NS_IMETHODIMP
 nsSVGSVGElement::PauseAnimations()
 {
 #ifdef MOZ_SMIL
-  if (mTimedDocumentRoot) {
-    mTimedDocumentRoot->Pause(nsSMILTimeContainer::PAUSE_SCRIPT);
+  if (NS_SMILEnabled()) {
+    if (mTimedDocumentRoot) {
+      mTimedDocumentRoot->Pause(nsSMILTimeContainer::PAUSE_SCRIPT);
+    }
+    
+    return NS_OK;
   }
-  
-  return NS_OK;
-#else
+#endif 
   NS_NOTYETIMPLEMENTED("nsSVGSVGElement::PauseAnimations");
   return NS_ERROR_NOT_IMPLEMENTED;
-#endif
 }
 
 
@@ -475,15 +476,16 @@ NS_IMETHODIMP
 nsSVGSVGElement::UnpauseAnimations()
 {
 #ifdef MOZ_SMIL
-  if (mTimedDocumentRoot) {
-    mTimedDocumentRoot->Resume(nsSMILTimeContainer::PAUSE_SCRIPT);
+  if (NS_SMILEnabled()) {
+    if (mTimedDocumentRoot) {
+      mTimedDocumentRoot->Resume(nsSMILTimeContainer::PAUSE_SCRIPT);
+    }
+    
+    return NS_OK;
   }
-  
-  return NS_OK;
-#else
+#endif 
   NS_NOTYETIMPLEMENTED("nsSVGSVGElement::UnpauseAnimations");
   return NS_ERROR_NOT_IMPLEMENTED;
-#endif
 }
 
 
@@ -491,13 +493,14 @@ NS_IMETHODIMP
 nsSVGSVGElement::AnimationsPaused(PRBool *_retval)
 {
 #ifdef MOZ_SMIL
-  nsSMILTimeContainer* root = GetTimedDocumentRoot();
-  *_retval = root && root->IsPausedByType(nsSMILTimeContainer::PAUSE_SCRIPT);
-  return NS_OK;
-#else
+  if (NS_SMILEnabled()) {
+    nsSMILTimeContainer* root = GetTimedDocumentRoot();
+    *_retval = root && root->IsPausedByType(nsSMILTimeContainer::PAUSE_SCRIPT);
+    return NS_OK;
+  }
+#endif 
   NS_NOTYETIMPLEMENTED("nsSVGSVGElement::AnimationsPaused");
   return NS_ERROR_NOT_IMPLEMENTED;
-#endif
 }
 
 
@@ -505,18 +508,19 @@ NS_IMETHODIMP
 nsSVGSVGElement::GetCurrentTime(float *_retval)
 {
 #ifdef MOZ_SMIL
-  nsSMILTimeContainer* root = GetTimedDocumentRoot();
-  if (root) {
-    double fCurrentTimeMs = double(root->GetCurrentTime());
-    *_retval = (float)(fCurrentTimeMs / PR_MSEC_PER_SEC);
-  } else {
-    *_retval = 0.f;
+  if (NS_SMILEnabled()) {
+    nsSMILTimeContainer* root = GetTimedDocumentRoot();
+    if (root) {
+      double fCurrentTimeMs = double(root->GetCurrentTime());
+      *_retval = (float)(fCurrentTimeMs / PR_MSEC_PER_SEC);
+    } else {
+      *_retval = 0.f;
+    }
+    return NS_OK;
   }
-  return NS_OK;
-#else
+#endif 
   NS_NOTYETIMPLEMENTED("nsSVGSVGElement::GetCurrentTime");
   return NS_ERROR_NOT_IMPLEMENTED;
-#endif
 }
 
 
@@ -525,33 +529,34 @@ nsSVGSVGElement::SetCurrentTime(float seconds)
 {
   NS_ENSURE_FINITE(seconds, NS_ERROR_ILLEGAL_VALUE);
 #ifdef MOZ_SMIL
-  if (mTimedDocumentRoot) {
-    double fMilliseconds = double(seconds) * PR_MSEC_PER_SEC;
-    
-    
-    nsSMILTime lMilliseconds = PRInt64(NS_round(fMilliseconds));
-    mTimedDocumentRoot->SetCurrentTime(lMilliseconds);
-    
-    
-    
-    
-    
-    
-    
-    nsIDocument* doc = GetCurrentDoc();
-    if (doc) {
-      nsSMILAnimationController* smilController = doc->GetAnimationController();
-      if (smilController) {
-        smilController->Resample();
+  if (NS_SMILEnabled()) {
+    if (mTimedDocumentRoot) {
+      double fMilliseconds = double(seconds) * PR_MSEC_PER_SEC;
+      
+      
+      nsSMILTime lMilliseconds = PRInt64(NS_round(fMilliseconds));
+      mTimedDocumentRoot->SetCurrentTime(lMilliseconds);
+      
+      
+      
+      
+      
+      
+      
+      nsIDocument* doc = GetCurrentDoc();
+      if (doc) {
+        nsSMILAnimationController* smilController = doc->GetAnimationController();
+        if (smilController) {
+          smilController->Resample();
+        }
       }
-    }
-  } 
-    
-  return NS_OK;
-#else
+    } 
+      
+    return NS_OK;
+  }
+#endif 
   NS_NOTYETIMPLEMENTED("nsSVGSVGElement::SetCurrentTime");
   return NS_ERROR_NOT_IMPLEMENTED;
-#endif
 }
 
 
