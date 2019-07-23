@@ -386,6 +386,23 @@ struct JSParseNode {
 #define pn_dval         pn_u.dval
 #define pn_atom2        pn_u.apair.atom2
 
+protected:
+    void inline init(JSTokenType type, JSOp op, JSParseNodeArity arity) {
+        pn_type = type;
+        pn_op = op;
+        pn_arity = arity;
+        pn_parens = false;
+        JS_ASSERT(!pn_used);
+        JS_ASSERT(!pn_defn);
+        pn_next = pn_link = NULL;
+    }
+
+    static JSParseNode *create(JSParseNodeArity arity, JSTreeContext *tc);
+
+public:
+    static JSParseNode *newBinaryOrAppend(JSTokenType tt, JSOp op, JSParseNode *left,
+                                          JSParseNode *right, JSTreeContext *tc);
+
     
 
 
@@ -505,6 +522,7 @@ struct JSParseNode {
         JS_ASSERT(isDirectivePrologueMember());
         JSParseNode *kid = pn_kid;
         JSString *str = ATOM_TO_STRING(kid->pn_atom);
+
         
 
 
@@ -549,6 +567,64 @@ struct JSParseNode {
         pn_count++;
     }
 };
+
+namespace js {
+
+struct NullaryNode : public JSParseNode {
+    static inline NullaryNode *create(JSTreeContext *tc) {
+        return (NullaryNode *)JSParseNode::create(PN_NULLARY, tc);
+    }
+};
+
+struct UnaryNode : public JSParseNode {
+    static inline UnaryNode *create(JSTreeContext *tc) {
+        return (UnaryNode *)JSParseNode::create(PN_UNARY, tc);
+    }
+};
+
+struct BinaryNode : public JSParseNode {
+    static inline BinaryNode *create(JSTreeContext *tc) {
+        return (BinaryNode *)JSParseNode::create(PN_BINARY, tc);
+    }
+};
+
+struct TernaryNode : public JSParseNode {
+    static inline TernaryNode *create(JSTreeContext *tc) {
+        return (TernaryNode *)JSParseNode::create(PN_TERNARY, tc);
+    }
+};
+
+struct ListNode : public JSParseNode {
+    static inline ListNode *create(JSTreeContext *tc) {
+        return (ListNode *)JSParseNode::create(PN_LIST, tc);
+    }
+};
+
+struct FunctionNode : public JSParseNode {
+    static inline FunctionNode *create(JSTreeContext *tc) {
+        return (FunctionNode *)JSParseNode::create(PN_FUNC, tc);
+    }
+};
+
+struct NameNode : public JSParseNode {
+    static NameNode *create(JSAtom *atom, JSTreeContext *tc);
+
+    void inline initCommon(JSTreeContext *tc);
+};
+
+struct NameSetNode : public JSParseNode {
+    static inline NameSetNode *create(JSTreeContext *tc) {
+        return (NameSetNode *)JSParseNode::create(PN_NAMESET, tc);
+    }
+};
+
+struct LexicalScopeNode : public JSParseNode {
+    static inline LexicalScopeNode *create(JSTreeContext *tc) {
+        return (LexicalScopeNode *)JSParseNode::create(PN_NAME, tc);
+    }
+};
+
+} 
 
 
 
