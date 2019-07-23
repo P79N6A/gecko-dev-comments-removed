@@ -933,9 +933,6 @@ nsLineLayout::ReflowFrame(nsIFrame* aFrame,
       }
     }
   }
-  if (hasNoncollapsedContent) {
-    psd->mHasNonemptyContent = PR_TRUE;
-  }
 
   mSpaceManager->Translate(-tx, -ty);
 
@@ -1014,6 +1011,10 @@ nsLineLayout::ReflowFrame(nsIFrame* aFrame,
     if (CanPlaceFrame(pfd, reflowState, notSafeToBreak, continuingTextRun,
                       savedOptionalBreakContent != nsnull, metrics,
                       aReflowStatus, &optionalBreakAfterFits)) {
+      if (hasNoncollapsedContent) {
+        psd->mHasNonemptyContent = PR_TRUE;
+      }
+
       
       
       
