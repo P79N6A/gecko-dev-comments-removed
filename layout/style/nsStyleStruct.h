@@ -669,6 +669,80 @@ struct nsStyleTextReset {
   nsStyleCoord  mVerticalAlign;         
 };
 
+struct nsTextShadowItem {
+  nsStyleCoord mXOffset;  
+  nsStyleCoord mYOffset;  
+  nsStyleCoord mRadius;   
+  nscolor      mColor;
+  PRPackedBool mHasColor; 
+
+  nsTextShadowItem() : mHasColor(PR_FALSE) {
+    MOZ_COUNT_CTOR(nsTextShadowItem);
+  }
+  ~nsTextShadowItem() {
+    MOZ_COUNT_DTOR(nsTextShadowItem);
+  }
+
+  PRBool operator==(const nsTextShadowItem& aOther) {
+    return (mXOffset == aOther.mXOffset &&
+            mYOffset == aOther.mYOffset &&
+            mRadius == aOther.mRadius &&
+            mHasColor == aOther.mHasColor &&
+            (!mHasColor || mColor == aOther.mColor));
+  }
+  PRBool operator!=(const nsTextShadowItem& aOther) {
+    return !(*this == aOther);
+  }
+};
+
+class nsTextShadowArray {
+  public:
+    void* operator new(size_t aBaseSize, PRUint32 aArrayLen) {
+      
+      
+      
+      
+      
+      return ::operator new(aBaseSize +
+                            (aArrayLen - 1) * sizeof(nsTextShadowItem));
+    }
+
+    nsTextShadowArray(PRUint32 aArrayLen) :
+      mLength(aArrayLen), mRefCnt(0)
+    {
+      MOZ_COUNT_CTOR(nsTextShadowArray);
+      if (mLength > 1) {
+        
+        
+        new (mArray + 1) nsTextShadowItem[mLength - 1];
+      }
+    }
+    ~nsTextShadowArray() {
+      MOZ_COUNT_DTOR(nsTextShadowArray);
+      for (PRUint32 i = 1; i < mLength; ++i) {
+        mArray[i].~nsTextShadowItem();
+      }
+    }
+
+    nsrefcnt AddRef() { return ++mRefCnt; }
+    nsrefcnt Release();
+
+    PRUint32 Length() const { return mLength; }
+    nsTextShadowItem* ShadowAt(PRUint32 i) {
+      NS_ABORT_IF_FALSE(i < mLength, "Accessing too high an index in the text shadow array!");
+      return &mArray[i];
+    }
+    const nsTextShadowItem* ShadowAt(PRUint32 i) const {
+      NS_ABORT_IF_FALSE(i < mLength, "Accessing too high an index in the text shadow array!");
+      return &mArray[i];
+    }
+
+  private:
+    PRUint32 mLength;
+    PRUint32 mRefCnt;
+    nsTextShadowItem mArray[1]; 
+};
+
 struct nsStyleText {
   nsStyleText(void);
   nsStyleText(const nsStyleText& aOther);
@@ -695,6 +769,8 @@ struct nsStyleText {
   nsStyleCoord  mLineHeight;            
   nsStyleCoord  mTextIndent;            
   nsStyleCoord  mWordSpacing;           
+
+  nsRefPtr<nsTextShadowArray> mShadowArray; 
   
   PRBool WhiteSpaceIsSignificant() const {
     return mWhiteSpace == NS_STYLE_WHITESPACE_PRE ||

@@ -45,6 +45,8 @@
 
 
 
+
+
 #include "nsRuleNode.h"
 #include "nscore.h"
 #include "nsIServiceManager.h"
@@ -1143,7 +1145,9 @@ nsRuleNode::GetTextData(nsStyleContext* aContext)
   nsRuleData ruleData(NS_STYLE_INHERIT_BIT(Text), mPresContext, aContext);
   ruleData.mTextData = &textData;
 
-  return WalkRuleTree(eStyleStruct_Text, aContext, &ruleData, &textData);
+  const void* res = WalkRuleTree(eStyleStruct_Text, aContext, &ruleData, &textData);
+  textData.mTextShadow = nsnull; 
+  return res;
 }
 
 const void*
@@ -1153,9 +1157,7 @@ nsRuleNode::GetTextResetData(nsStyleContext* aContext)
   nsRuleData ruleData(NS_STYLE_INHERIT_BIT(TextReset), mPresContext, aContext);
   ruleData.mTextData = &textData;
 
-  const void* res = WalkRuleTree(eStyleStruct_TextReset, aContext, &ruleData, &textData);
-  textData.mTextShadow = nsnull; 
-  return res;
+  return WalkRuleTree(eStyleStruct_TextReset, aContext, &ruleData, &textData);
 }
 
 const void*
@@ -2627,6 +2629,55 @@ nsRuleNode::ComputeTextData(void* aStartStruct,
   SetCoord(textData.mLetterSpacing, text->mLetterSpacing, parentText->mLetterSpacing,
            SETCOORD_LH | SETCOORD_NORMAL | SETCOORD_INITIAL_NORMAL,
            aContext, mPresContext, inherited);
+
+  
+  nsCSSValueList* list = textData.mTextShadow;
+  if (list) {
+    text->mShadowArray = nsnull;
+
+    
+    
+    if (eCSSUnit_Inherit == list->mValue.GetUnit()) {
+      inherited = PR_TRUE;
+      text->mShadowArray = parentText->mShadowArray;
+    } else if (eCSSUnit_Array == list->mValue.GetUnit()) {
+      
+      PRUint32 arrayLength = 0;
+      for (nsCSSValueList *list2 = list; list2; list2 = list2->mNext)
+        ++arrayLength;
+
+      NS_ASSERTION(arrayLength > 0, "Non-null text-shadow list, yet we counted 0 items.");
+      text->mShadowArray = new(arrayLength) nsTextShadowArray(arrayLength);
+      if (text->mShadowArray) {
+        for (nsTextShadowItem* item = text->mShadowArray->ShadowAt(0);
+             list;
+             list = list->mNext, ++item) {
+          nsCSSValue::Array *arr = list->mValue.GetArrayValue();
+          
+          SetCoord(arr->Item(0), item->mXOffset, nsStyleCoord(),
+                   SETCOORD_LENGTH, aContext, mPresContext, inherited);
+          SetCoord(arr->Item(1), item->mYOffset, nsStyleCoord(),
+                   SETCOORD_LENGTH, aContext, mPresContext, inherited);
+
+          
+          
+          if (arr->Item(2).GetUnit() != eCSSUnit_Null) {
+            SetCoord(arr->Item(2), item->mRadius, nsStyleCoord(),
+                     SETCOORD_LENGTH, aContext, mPresContext, inherited);
+          } else {
+            item->mRadius.SetCoordValue(0);
+          }
+
+          if (arr->Item(3).GetUnit() != eCSSUnit_Null) {
+            item->mHasColor = PR_TRUE;
+            
+            SetColor(arr->Item(3), 0, mPresContext, aContext, item->mColor,
+                     inherited);
+          }
+        }
+      }
+    }
+  }
 
   
   if (eCSSUnit_Percent == textData.mLineHeight.GetUnit()) {
