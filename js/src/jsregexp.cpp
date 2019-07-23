@@ -3001,11 +3001,13 @@ class RegExpNativeCompiler {
 
         
         lir->insStorei(pos, state, offsetof(REGlobalData, stateStack));
+        lir->ins0(LIR_regfence);
         lir->ins1(LIR_ret, lir->insImm(1));
 
         
         if (anchorFail) {
             targetCurrentPoint(anchorFail);
+            lir->ins0(LIR_regfence);
             lir->ins1(LIR_ret, lir->insImm(0));
         }
 
@@ -3021,6 +3023,7 @@ class RegExpNativeCompiler {
             return false;
 
         
+        lir->ins0(LIR_regfence);
         lir->ins1(LIR_ret, lir->insImm(0));
         return !JS_TRACE_MONITOR(cx).reAllocator->outOfMemory();
     }
