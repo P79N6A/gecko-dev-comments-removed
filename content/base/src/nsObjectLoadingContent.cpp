@@ -602,6 +602,7 @@ nsObjectLoadingContent::EnsureInstantiation(nsIPluginInstance** aInstance)
     nsIDocument* doc = thisContent->GetCurrentDoc();
     if (!doc) {
       
+      mInstantiating = PR_FALSE;
       return NS_OK;
     }
 
