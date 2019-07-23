@@ -1186,13 +1186,8 @@ var gApplicationsPane = {
     
     
     
-    
-    
-    
     if ((handlerInfo.wrappedHandlerInfo instanceof Ci.nsIMIMEInfo) &&
-        handlerInfo.type != TYPE_MAYBE_FEED &&
-        !handlerInfo.handledOnlyByPlugin) {
-
+        handlerInfo.type != TYPE_MAYBE_FEED) {
       var saveMenuItem = document.createElementNS(kXULNS, "menuitem");
       saveMenuItem.setAttribute("action", Ci.nsIHandlerInfo.saveToDisk);
       saveMenuItem.setAttribute("label", this._prefsBundle.getString("saveFile"));
