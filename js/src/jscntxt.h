@@ -638,10 +638,7 @@ struct JSContext {
     JSCList             links;
 
     
-
-
-
-    int32               operationCount;
+    uint32              operationCounter;
 
 #if JS_HAS_XML_SUPPORT
     
@@ -736,16 +733,8 @@ struct JSContext {
 #endif
 
     
+    JSBranchCallback    branchCallback;
     JSErrorReporter     errorReporter;
-
-    
-
-
-
-
-    uint32              operationCallbackIsSet :    1;
-    uint32              operationLimit         :    31;
-    JSOperationCallback operationCallback;
 
     
     uintN               interpLevel;
@@ -853,6 +842,9 @@ class JSAutoTempValueRooter
                                                      JSVERSION_MASK))
 #define JS_HAS_XML_OPTION(cx)           ((cx)->version & JSVERSION_HAS_XML || \
                                          JSVERSION_NUMBER(cx) >= JSVERSION_1_6)
+
+#define JS_HAS_NATIVE_BRANCH_CALLBACK_OPTION(cx)                              \
+    JS_HAS_OPTION(cx, JSOPTION_NATIVE_BRANCH_CALLBACK)
 
 
 
@@ -1035,40 +1027,6 @@ extern JSErrorFormatString js_ErrorFormatString[JSErr_Limit];
 #endif
 
 
-
-
-
-
-
-
-
-
-#define JS_CHECK_OPERATION_LIMIT(cx, weight)                                  \
-    (JS_CHECK_OPERATION_WEIGHT(weight),                                       \
-     (((cx)->operationCount -= (weight)) > 0 || js_ResetOperationCount(cx)))
-
-
-
-
-
-
-
-#define JS_COUNT_OPERATION(cx, weight)                                        \
-    ((void)(JS_CHECK_OPERATION_WEIGHT(weight),                                \
-            (cx)->operationCount = ((cx)->operationCount > 0)                 \
-                                   ? (cx)->operationCount - (weight)          \
-                                   : 0))
-
-
-
-
-
-#define JS_CHECK_OPERATION_WEIGHT(weight)                                     \
-    (JS_ASSERT((uint32) (weight) > 0),                                        \
-     JS_ASSERT((uint32) (weight) < JS_BIT(30)))
-
-
-
 #define JSOW_JUMP                   1
 #define JSOW_ALLOCATION             100
 #define JSOW_LOOKUP_PROPERTY        5
@@ -1076,15 +1034,43 @@ extern JSErrorFormatString js_ErrorFormatString[JSErr_Limit];
 #define JSOW_SET_PROPERTY           20
 #define JSOW_NEW_PROPERTY           200
 #define JSOW_DELETE_PROPERTY        30
-#define JSOW_ENTER_SHARP            1000
-#define JSOW_SCRIPT_JUMP            1000
+
+#define JSOW_BRANCH_CALLBACK        JS_BIT(12)
+
+
+
+
+
+
+JS_STATIC_ASSERT((JSOW_BRANCH_CALLBACK & (JSOW_BRANCH_CALLBACK - 1)) == 0);
+
+
+
+
+
+#define JS_COUNT_OPERATION(cx, weight)                                        \
+    ((void)(JS_ASSERT((weight) > 0),                                          \
+            JS_ASSERT((weight) <= JSOW_BRANCH_CALLBACK),                      \
+            (cx)->operationCounter = (((cx)->operationCounter + (weight)) |   \
+                                      (~(JSOW_BRANCH_CALLBACK - 1) &          \
+                                       (cx)->operationCounter))))
+
+
+
+
+
+
+#define JS_CHECK_OPERATION_LIMIT(cx, weight)                                  \
+    (JS_COUNT_OPERATION(cx, weight),                                          \
+     ((cx)->operationCounter < JSOW_BRANCH_CALLBACK ||                        \
+     js_ResetOperationCounter(cx)))
 
 
 
 
 
 extern JSBool
-js_ResetOperationCount(JSContext *cx);
+js_ResetOperationCounter(JSContext *cx);
 
 JS_END_EXTERN_C
 

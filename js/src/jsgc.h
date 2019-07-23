@@ -269,7 +269,6 @@ typedef struct JSGCStats {
     uint32  alloc;      
     uint32  retry;      
     uint32  retryhalt;  
-
     uint32  fail;       
     uint32  finalfail;  
     uint32  lockborn;   

@@ -1254,7 +1254,6 @@ array_sort(JSContext *cx, uintN argc, jsval *vp)
 
 
 
-
             i = 0;
             do {
                 vec[i] = vec[2 * i + 1];
