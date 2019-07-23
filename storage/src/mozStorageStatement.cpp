@@ -87,7 +87,11 @@ protected:
 
 
 
-NS_IMPL_ISUPPORTS2(mozStorageStatement, mozIStorageStatement, mozIStorageValueArray)
+NS_IMPL_THREADSAFE_ISUPPORTS2(
+    mozStorageStatement
+,   mozIStorageStatement
+,   mozIStorageValueArray
+)
 
 mozStorageStatement::mozStorageStatement()
     : mDBConnection (nsnull), mDBStatement(nsnull), mColumnNames(nsnull), mExecuting(PR_FALSE)
