@@ -58,17 +58,26 @@ struct nsStyleChangeData {
 
 static const PRUint32 kStyleChangeBufferSize = 10;
 
+
+
 class nsStyleChangeList {
 public:
-  nsStyleChangeList(void);
-  ~nsStyleChangeList(void);
+  nsStyleChangeList();
+  ~nsStyleChangeList();
 
   PRInt32 Count(void) const {
     return mCount;
   }
 
+  
+
+
   nsresult ChangeAt(PRInt32 aIndex, nsIFrame*& aFrame, nsIContent*& aContent,
                     nsChangeHint& aHint) const;
+
+  
+
+
 
   nsresult ChangeAt(PRInt32 aIndex, const nsStyleChangeData** aChangeData) const;
 
@@ -84,6 +93,9 @@ protected:
   PRInt32             mArraySize;
   PRInt32             mCount;
   nsStyleChangeData   mBuffer[kStyleChangeBufferSize];
+
+private:
+  nsStyleChangeList(const nsStyleChangeList&); 
 };
 
 
