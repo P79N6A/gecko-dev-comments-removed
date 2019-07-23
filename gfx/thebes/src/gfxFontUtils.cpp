@@ -297,10 +297,11 @@ gfxFontUtils::ReadCMAPTableFormat4(PRUint8 *aBuf, PRUint32 aLength, gfxSparseBit
     NS_ENSURE_TRUE(tablelen > 16, NS_ERROR_GFX_CMAP_MALFORMED);
     
     
-#if defined(XP_WIN)
-    NS_ENSURE_TRUE(ReadShortAt(aBuf, OffsetLanguage) == 0, 
+    
+    
+    
+    NS_ENSURE_TRUE((ReadShortAt(aBuf, OffsetLanguage) & 0xfffe) == 0, 
                    NS_ERROR_GFX_CMAP_MALFORMED);
-#endif
 
     PRUint16 segCountX2 = ReadShortAt(aBuf, OffsetSegCountX2);
     NS_ENSURE_TRUE(tablelen >= 16 + (segCountX2 * 4), 
