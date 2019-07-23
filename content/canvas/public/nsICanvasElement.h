@@ -39,6 +39,7 @@
 #define nsICanvasElement_h___
 
 #include "nsISupports.h"
+#include "gfxPattern.h"
 
 class gfxContext;
 class nsIFrame;
@@ -46,7 +47,7 @@ struct gfxRect;
 
 
 #define NS_ICANVASELEMENT_IID \
-    { 0xc234660c, 0xbd06, 0x493e, { 0x85, 0x83, 0x93, 0x9a, 0x5a, 0x15, 0x8b, 0x37 } }
+    { 0xd31b3ccf, 0xdda3, 0x49a8, { 0xae, 0xf6, 0xb9, 0x5a, 0xf8, 0xe0, 0x91, 0x59 } }
 
 class nsIRenderingContext;
 
@@ -72,7 +73,7 @@ public:
 
 
 
-  NS_IMETHOD RenderContexts (gfxContext *ctx) = 0;
+  NS_IMETHOD RenderContexts (gfxContext *ctx, gfxPattern::GraphicsFilter aFilter) = 0;
 
   
 
