@@ -3449,19 +3449,11 @@ FireGCEnd(JSContext *cx, JSGCInvocationKind gckind)
 void
 js_GC(JSContext *cx, JSGCInvocationKind gckind)
 {
-    JSRuntime *rt;
+    JSRuntime *rt = cx->runtime;
 
     JS_ASSERT_IF(gckind == GC_LAST_DITCH, !JS_ON_TRACE(cx));
-    rt = cx->runtime;
-
 #ifdef JS_THREADSAFE
-    
-
-
-
     JS_ASSERT(CURRENT_THREAD_IS_ME(cx->thread));
-
-    
     JS_ASSERT(!JS_IS_RUNTIME_LOCKED(rt));
 #endif
 
@@ -3482,16 +3474,8 @@ js_GC(JSContext *cx, JSGCInvocationKind gckind)
     TIMESTAMP(gcTimer.enter);
 
   restart_at_beginning:
-    if (!FireGCBegin(cx, gckind)) {
-        
-
-
-
-
-        if (rt->gcLevel == 0 && (gckind & GC_LOCK_HELD))
-            JS_NOTIFY_GC_DONE(rt);
+    if (!FireGCBegin(cx, gckind))
         return;
-    }
 
     
     if (!(gckind & GC_LOCK_HELD))
@@ -3505,9 +3489,7 @@ js_GC(JSContext *cx, JSGCInvocationKind gckind)
     }
 
     if (gckind == GC_SET_SLOT_REQUEST) {
-        JSSetSlotRequest *ssr;
-
-        while ((ssr = rt->setSlotRequests) != NULL) {
+        while (JSSetSlotRequest *ssr = rt->setSlotRequests) {
             rt->setSlotRequests = ssr->next;
             AutoUnlockGC unlock(rt);
             ssr->next = NULL;
@@ -3521,24 +3503,33 @@ js_GC(JSContext *cx, JSGCInvocationKind gckind)
 
 
 
-        if (rt->gcLevel == 1 && !rt->gcPoke && !rt->gcIsNeeded)
-            goto done_running;
 
-        rt->gcLevel = 0;
-        rt->gcPoke = JS_FALSE;
-        rt->gcRunning = JS_FALSE;
+
+
+
+        if (rt->gcLevel > 1 || rt->gcPoke || rt->gcIsNeeded) {
+            rt->gcLevel = 0;
+            rt->gcPoke = JS_FALSE;
+            rt->gcRunning = JS_FALSE;
 #ifdef JS_THREADSAFE
-        rt->gcThread = NULL;
+            rt->gcThread = NULL;
 #endif
-        gckind = GC_LOCK_HELD;
-        goto restart_at_beginning;
+            gckind = GC_LOCK_HELD;
+            if (!FireGCBegin(cx, gckind)) {  
+                JS_NOTIFY_GC_DONE(rt);
+                return;
+            }
+            if (!BeginGCSession(cx, gckind))  
+                return;
+        }
     }
 
-    if (!JS_ON_TRACE(cx))
-        GCUntilDone(cx, gckind  GCTIMER_ARG);
-    rt->setGCLastBytes(rt->gcBytes);
+    if (gckind != GC_SET_SLOT_REQUEST) {
+        if (!JS_ON_TRACE(cx))
+            GCUntilDone(cx, gckind  GCTIMER_ARG);
+        rt->setGCLastBytes(rt->gcBytes);
+    }
 
-  done_running:
     EndGCSession(cx);
 
 #ifdef JS_THREADSAFE
