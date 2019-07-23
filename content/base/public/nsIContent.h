@@ -57,6 +57,7 @@ class nsAttrValue;
 class nsAttrName;
 class nsTextFragment;
 class nsIDocShell;
+class nsIFrame;
 #ifdef MOZ_SMIL
 class nsISMILAttr;
 class nsIDOMCSSStyleDeclaration;
@@ -86,7 +87,8 @@ public:
   
 
   nsIContent(nsINodeInfo *aNodeInfo)
-    : nsINode(aNodeInfo)
+    : nsINode(aNodeInfo),
+      mPrimaryFrame(nsnull)
   {
     NS_ASSERTION(aNodeInfo,
                  "No nsINodeInfo passed to nsIContent, PREPARE TO CRASH!!!");
@@ -870,6 +872,20 @@ public:
 
   virtual void SaveSubtreeState() = 0;
 
+  
+
+
+
+
+
+
+
+
+
+
+  nsIFrame* GetPrimaryFrame() const { return mPrimaryFrame; }
+  void SetPrimaryFrame(nsIFrame* aFrame) { mPrimaryFrame = aFrame; }
+
 #ifdef MOZ_SMIL
   
 
@@ -911,6 +927,11 @@ private:
 
 
   virtual const nsAttrValue* DoGetClasses() const = 0;
+
+  
+
+
+  nsIFrame* mPrimaryFrame;
 
 public:
 #ifdef DEBUG
