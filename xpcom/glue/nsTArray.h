@@ -690,6 +690,19 @@ class nsTArray : public nsTArray_base {
     
     
     
+    
+    PRBool EnsureLengthAtLeast(size_type minLen) {
+      size_type oldLen = Length();
+      if (minLen > oldLen) {
+        return InsertElementsAt(oldLen, minLen - oldLen) != nsnull;
+      }
+    }
+
+    
+    
+    
+    
+    
     elem_type *InsertElementsAt(index_type index, size_type count) {
       if (!nsTArray_base::InsertSlotsAt(index, count, sizeof(elem_type))) {
         return nsnull;

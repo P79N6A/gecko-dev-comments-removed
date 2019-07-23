@@ -196,8 +196,7 @@ nsCSSCompressedDataBlock::MapRuleInfoInto(nsRuleData *aRuleData) const
                     if (target->GetUnit() == eCSSUnit_Null) {
                         const nsCSSValue *val = ValueAtCursor(cursor);
                         NS_ASSERTION(val->GetUnit() != eCSSUnit_Null, "oops");
-                        if (iProp == eCSSProperty_background_image ||
-                            iProp == eCSSProperty_list_style_image) {
+                        if (iProp == eCSSProperty_list_style_image) {
                             if (val->GetUnit() == eCSSUnit_URL) {
                                 val->StartImageLoad(
                                     aRuleData->mPresContext->Document());
@@ -217,8 +216,6 @@ nsCSSCompressedDataBlock::MapRuleInfoInto(nsRuleData *aRuleData) const
                             aRuleData->mFontData->mFamilyFromHTML = PR_FALSE;
                         }
                         else if (iProp == eCSSProperty_color ||
-                                 iProp == eCSSProperty_background_color ||
-                                 iProp == eCSSProperty_background_image ||
                                  iProp == eCSSProperty_border_top_color ||
                                  iProp == eCSSProperty_border_right_color_value ||
                                  iProp == eCSSProperty_border_right_color_ltr_source ||
@@ -230,32 +227,8 @@ nsCSSCompressedDataBlock::MapRuleInfoInto(nsRuleData *aRuleData) const
                                  iProp == eCSSProperty__moz_column_rule_color ||
                                  iProp == eCSSProperty_outline_color) {
                             if (ShouldIgnoreColors(aRuleData)) {
-                                if (iProp == eCSSProperty_background_color) {
-                                    
-                                    
-                                    
-                                    
-                                    
-                                    
-                                    nsCSSUnit u = target->GetUnit();
-                                    nsDependentString buf;
-                                    
-                                    if ((u == eCSSUnit_Color &&
-                                         NS_GET_A(target->GetColorValue())
-                                         > 0) ||
-                                        (u == eCSSUnit_String &&
-                                         !nsGkAtoms::transparent->
-                                         Equals(target->GetStringValue(buf))) ||
-                                        (u == eCSSUnit_EnumColor)) {
-                                        target->SetColorValue(aRuleData->
-                                            mPresContext->
-                                            DefaultBackgroundColor());
-                                    }
-                                } else {
-                                    
-                                    
-                                    *target = nsCSSValue();
-                                }
+                                
+                                *target = nsCSSValue();
                             }
                         }
                     }
@@ -282,15 +255,50 @@ nsCSSCompressedDataBlock::MapRuleInfoInto(nsRuleData *aRuleData) const
                     NS_ASSERTION(val->mXValue.GetUnit() != eCSSUnit_Null ||
                                  val->mYValue.GetUnit() != eCSSUnit_Null, "oops");
                     nsCSSValuePair* target = static_cast<nsCSSValuePair*>(prop);
-                    if (target->mXValue.GetUnit() == eCSSUnit_Null)
+                    NS_ASSERTION((target->mXValue.GetUnit() == eCSSUnit_Null)
+                              == (target->mYValue.GetUnit() == eCSSUnit_Null),
+                                 "half a property?");
+                    if (target->mXValue.GetUnit() == eCSSUnit_Null) {
                         target->mXValue = val->mXValue;
-                    if (target->mYValue.GetUnit() == eCSSUnit_Null)
                         target->mYValue = val->mYValue;
+                        if (iProp == eCSSProperty_background_color &&
+                            ShouldIgnoreColors(aRuleData)) {
+                            
+                            
+                            
+                            
+                            
+                            
+                            nsCSSValue &colorVal = target->mXValue;
+                            nsCSSUnit u = colorVal.GetUnit();
+                            nsDependentString buf;
+                            
+                            if ((u == eCSSUnit_Color &&
+                                 NS_GET_A(colorVal.GetColorValue())
+                                 > 0) ||
+                                (u == eCSSUnit_String &&
+                                 !nsGkAtoms::transparent->
+                                 Equals(colorVal.GetStringValue(buf))) ||
+                                (u == eCSSUnit_EnumColor)) {
+                                colorVal.SetColorValue(aRuleData->
+                                    mPresContext->
+                                    DefaultBackgroundColor());
+                            }
+                            
+                            
+                            
+                            
+                            
+                            
+                            target->mYValue = target->mXValue;
+                        }
+                    }
                     cursor += CDBValuePairStorage_advance;
                 } break;
 
                 case eCSSType_ValueList:
-                    if (iProp == eCSSProperty_content) {
+                    if (iProp == eCSSProperty_background_image ||
+                        iProp == eCSSProperty_content) {
                         for (nsCSSValueList* l = ValueListAtCursor(cursor);
                              l; l = l->mNext)
                             if (l->mValue.GetUnit() == eCSSUnit_URL)
@@ -317,7 +325,8 @@ nsCSSCompressedDataBlock::MapRuleInfoInto(nsRuleData *aRuleData) const
                         NS_ASSERTION(val, "oops");
                         *target = val;
 
-                        if (iProp == eCSSProperty_border_top_colors ||
+                        if (iProp == eCSSProperty_background_image ||
+                            iProp == eCSSProperty_border_top_colors ||
                             iProp == eCSSProperty_border_right_colors ||
                             iProp == eCSSProperty_border_bottom_colors ||
                             iProp == eCSSProperty_border_left_colors) {
