@@ -567,8 +567,12 @@ gfxPangoFont::GetMetrics()
         mMetrics.maxDescent =
             pango_font_metrics_get_descent(pfm) / FLOAT_PANGO_SCALE;
 
+        
+        
         mMetrics.aveCharWidth =
-            pango_font_metrics_get_approximate_char_width(pfm) / FLOAT_PANGO_SCALE;
+            PR_MAX(pango_font_metrics_get_approximate_char_width(pfm),
+                   pango_font_metrics_get_approximate_digit_width(pfm))
+            / FLOAT_PANGO_SCALE;
 
         mMetrics.underlineOffset =
             pango_font_metrics_get_underline_position(pfm) / FLOAT_PANGO_SCALE;
@@ -584,8 +588,7 @@ gfxPangoFont::GetMetrics()
 
         
         
-        mMetrics.maxAdvance =
-            pango_font_metrics_get_approximate_char_width(pfm) / FLOAT_PANGO_SCALE;
+        mMetrics.maxAdvance = mMetrics.aveCharWidth;
     } else {
         mMetrics.maxAscent = 0.0;
         mMetrics.maxDescent = 0.0;
@@ -598,7 +601,7 @@ gfxPangoFont::GetMetrics()
     }
 
     
-    mMetrics.emHeight = mAdjustedSize ? mAdjustedSize : GetStyle()->size;
+    mMetrics.emHeight = mAdjustedSize;
 
     gfxFloat lineHeight = mMetrics.maxAscent + mMetrics.maxDescent;
     if (lineHeight > mMetrics.emHeight)
