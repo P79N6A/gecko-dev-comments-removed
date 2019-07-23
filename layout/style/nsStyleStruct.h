@@ -417,7 +417,7 @@ struct nsStyleBorder {
 #endif
   PRBool ImageBorderDiffers() const;
  
-  nsStyleSides  mBorderRadius;    
+  nsStyleCorners mBorderRadius;    
   nsStyleSides  mBorderImageSplit; 
   PRUint8       mFloatEdge;       
   PRUint8       mBorderImageHFill; 
@@ -617,8 +617,7 @@ struct nsStyleOutline {
   static nsChangeHint MaxDifference();
 #endif
  
-  nsStyleSides  mOutlineRadius;    
-                                   
+  nsStyleCorners  mOutlineRadius; 
 
   
   

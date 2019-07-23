@@ -825,7 +825,13 @@ public:
 
 
 
-  static PRBool HasNonZeroSide(const nsStyleSides& aSides);
+
+
+
+
+
+
+  static PRBool HasNonZeroCorner(const nsStyleCorners& aCorners);
 
   
 
