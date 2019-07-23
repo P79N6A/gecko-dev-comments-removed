@@ -418,4 +418,21 @@ XRE_API(nsresult,
 XRE_API(void,
         XRE_FreeAppData, (nsXREAppData *aAppData))
 
+
+XRE_API(nsresult,
+        XRE_InitChildProcess, (int aArgc,
+                               char* aArgv[],
+                               const char* aMainThreadClass=0))
+
+typedef void (*MainFunction)(void* aData);
+
+XRE_API(nsresult,
+        XRE_InitParentProcess, (int aArgc,
+                                char* aArgv[],
+                                MainFunction aMainFunction,
+                                void* aMainFunctionExtraData))
+
+XRE_API(nsresult,
+        XRE_LaunchChildProcess, ())
+
 #endif 
