@@ -145,3 +145,12 @@ except KeyboardInterrupt:
 	flushkill(pid, 9)
 	flushexit(exitInterrupt)
 
+
+try:
+    os.getpgid(pid)
+    
+    flushkill(pid, 9)
+    flushexit(exitOSError)
+except OSError:
+    
+    1
