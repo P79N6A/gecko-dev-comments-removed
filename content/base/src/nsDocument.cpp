@@ -153,7 +153,6 @@ static NS_DEFINE_CID(kDOMEventGroupCID, NS_DOMEVENTGROUP_CID);
 #include "nsIJSContextStack.h"
 #include "nsIXPConnect.h"
 #include "nsCycleCollector.h"
-#include "nsCCUncollectableMarker.h"
 
 #ifdef MOZ_LOGGING
 
@@ -1011,10 +1010,6 @@ LinkMapTraverser(nsUint32ToContentHashEntry* aEntry, void* userArg)
 }
 
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(nsDocument)
-  if (nsCCUncollectableMarker::InGeneration(tmp->GetMarkedCCGeneration())) {
-    return NS_OK;
-  }
-
   
   for (PRInt32 indx = PRInt32(tmp->mChildren.ChildCount()); indx > 0; --indx) {
     cb.NoteXPCOMChild(tmp->mChildren.ChildAt(indx - 1));
