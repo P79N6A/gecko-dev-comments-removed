@@ -1747,7 +1747,7 @@ namespace nanojit
                 
                 int d = findMemFor(rhs);
                 int pop = lhs->isUnusedOrHasUnknownReg();
-                findSpecificRegForUnallocated(lhs, FST0);
+                findSpecificRegFor(lhs, FST0);
                 
                 FCOM(pop, d, FP);
             }
@@ -1755,7 +1755,7 @@ namespace nanojit
             {
                 
                 int pop = lhs->isUnusedOrHasUnknownReg();
-                findSpecificRegForUnallocated(lhs, FST0);
+                findSpecificRegFor(lhs, FST0);
                 
                 if (pop)
                     FCOMPP();
