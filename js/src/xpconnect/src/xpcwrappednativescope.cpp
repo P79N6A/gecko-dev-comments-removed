@@ -737,19 +737,18 @@ GetScopeOfObject(JSObject* obj)
 
 
 #ifdef DEBUG
-void DEBUG_CheckForComponentsInScope(JSContext* cx, JSObject* obj,
-                                     JSBool OKIfNotInitialized,
-                                     XPCJSRuntime* runtime)
+void DEBUG_CheckForComponentsInScope(XPCCallContext& ccx, JSObject* obj,
+                                     JSBool OKIfNotInitialized)
 {
     if(OKIfNotInitialized)
         return;
 
-    if(!(JS_GetOptions(cx) & JSOPTION_PRIVATE_IS_NSISUPPORTS))
+    if(!(JS_GetOptions(ccx) & JSOPTION_PRIVATE_IS_NSISUPPORTS))
         return;
 
-    const char* name = runtime->GetStringName(XPCJSRuntime::IDX_COMPONENTS);
+    const char* name = ccx.GetRuntime()->GetStringName(XPCJSRuntime::IDX_COMPONENTS);
     jsval prop;
-    if(JS_LookupProperty(cx, obj, name, &prop) && !JSVAL_IS_PRIMITIVE(prop))
+    if(JS_LookupProperty(ccx, obj, name, &prop) && !JSVAL_IS_PRIMITIVE(prop))
         return;
 
     
@@ -765,15 +764,13 @@ void DEBUG_CheckForComponentsInScope(JSContext* cx, JSObject* obj,
 #endif
 }
 #else
-#define DEBUG_CheckForComponentsInScope(ccx, obj, OKIfNotInitialized, runtime) \
-    ((void)0)
+#define DEBUG_CheckForComponentsInScope(ccx, obj, OKIfNotInitialized) ((void)0)
 #endif
 
 
 XPCWrappedNativeScope*
-XPCWrappedNativeScope::FindInJSObjectScope(JSContext* cx, JSObject* obj,
-                                           JSBool OKIfNotInitialized,
-                                           XPCJSRuntime* runtime)
+XPCWrappedNativeScope::FindInJSObjectScope(XPCCallContext& ccx, JSObject* obj,
+                                           JSBool OKIfNotInitialized)
 {
     XPCWrappedNativeScope* scope;
 
@@ -789,19 +786,13 @@ XPCWrappedNativeScope::FindInJSObjectScope(JSContext* cx, JSObject* obj,
 
     
 
-    obj = JS_GetGlobalForObject(cx, obj);
-
-    if(!runtime)
-    {
-        runtime = nsXPConnect::GetRuntimeInstance();
-        NS_ASSERTION(runtime, "This should never be null!");
-    }
+    obj = JS_GetGlobalForObject(ccx, obj);
 
     
     
     XPCWrappedNativeScope* found = nsnull;
     {   
-        XPCAutoLock lock(runtime->GetMapLock());
+        XPCAutoLock lock(ccx.GetRuntime()->GetMapLock());
 
         DEBUG_TrackScopeTraversal();
 
@@ -817,7 +808,7 @@ XPCWrappedNativeScope::FindInJSObjectScope(JSContext* cx, JSObject* obj,
 
     if(found) {
         
-        DEBUG_CheckForComponentsInScope(cx, obj, OKIfNotInitialized, runtime);
+        DEBUG_CheckForComponentsInScope(ccx, obj, OKIfNotInitialized);
         return found;
     }
 
@@ -827,6 +818,7 @@ XPCWrappedNativeScope::FindInJSObjectScope(JSContext* cx, JSObject* obj,
     NS_ASSERTION(OKIfNotInitialized, "No scope has this global object!");
     return nsnull;
 }
+
 
 
 
