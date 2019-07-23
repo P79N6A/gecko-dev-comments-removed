@@ -186,7 +186,9 @@
 #else
                           key="key_stop"/>
 #endif
-                <menuitem label="&reloadCmd.label;" accesskey="&reloadCmd.accesskey;" command="Browser:Reload" key="key_reload"/>
+                <menuitem label="&reloadCmd.label;" accesskey="&reloadCmd.accesskey;" key="key_reload"
+                          command="Browser:ReloadOrDuplicate"
+                          onclick="checkForMiddleClick(this, event);"/>
                 <menuseparator/>
                 <menu id="viewFullZoomMenu" label="&fullZoom.label;" accesskey="&fullZoom.accesskey;" onpopupshowing="FullZoom.updateMenu();">
                   <menupopup>
@@ -221,7 +223,7 @@
                       onpopupshown="CreateMenu('more-menu');"
                       observes="isImage">
                     <template>
-                        <rule rdf:type="http://home.netscape.com/NC-rdf#BookmarkSeparator">
+                        <rule rdf:type="http:
                             <menupopup>
                             <menuseparator uri="..." />
                             </menupopup>
@@ -236,7 +238,7 @@
                     <menupopup>
                     <menu label="&charsetMenuAutodet.label;" accesskey="&charsetMenuAutodet.accesskey;" datasources="rdf:charset-menu" ref="NC:BrowserAutodetMenuRoot">
                         <template>
-                            <rule rdf:type="http://home.netscape.com/NC-rdf#CharsetDetector">
+                            <rule rdf:type="http:
                                 <menupopup>
                                 <menuitem type="radio" name="detectorGroup" checked="rdf:http://home.netscape.com/NC-rdf#Checked" uri="..." label="rdf:http://home.netscape.com/NC-rdf#Name"/>
                                 </menupopup>

@@ -258,8 +258,7 @@ function openUILinkIn( url, where, allowThirdPartyFixup, postData, referrerUrl )
 
 
 
-function checkForMiddleClick(node, event)
-{
+function checkForMiddleClick(node, event) {
   
   
   
@@ -271,8 +270,10 @@ function checkForMiddleClick(node, event)
 
 
 
-    var fn = new Function("event", node.getAttribute("oncommand"));
-    fn.call(node, event);
+    var target = node.hasAttribute("oncommand") ? node :
+                 node.ownerDocument.getElementById(node.getAttribute("command"));
+    var fn = new Function("event", target.getAttribute("oncommand"));
+    fn.call(target, event);
 
     
     

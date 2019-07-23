@@ -1187,9 +1187,9 @@ function BrowserShutdown()
 function nonBrowserWindowStartup()
 {
   
-  var disabledItems = ['Browser:SavePage', 'Browser:SendLink',
-                       'cmd_pageSetup', 'cmd_print', 'cmd_find', 'cmd_findAgain', 'viewToolbarsMenu',
-                       'cmd_toggleTaskbar', 'viewSidebarMenuMenu', 'Browser:Reload', 'Browser:ReloadSkipCache',
+  var disabledItems = ['Browser:SavePage',
+                       'Browser:SendLink', 'cmd_pageSetup', 'cmd_print', 'cmd_find', 'cmd_findAgain',
+                       'viewToolbarsMenu', 'cmd_toggleTaskbar', 'viewSidebarMenuMenu', 'Browser:Reload',
                        'viewFullZoomMenu', 'pageStyleMenu', 'charsetMenu', 'View:PageSource', 'View:FullScreen',
                        'viewHistorySidebar', 'Browser:AddBookmarkAs', 'View:PageInfo', 'Tasks:InspectPage'];
   var element;
@@ -1434,17 +1434,34 @@ function BrowserStop()
   }
 }
 
-function BrowserReload()
-{
-  const reloadFlags = nsIWebNavigation.LOAD_FLAGS_NONE;
-  return BrowserReloadWithFlags(reloadFlags);
+function BrowserReloadOrDuplicate(aEvent) {
+  var backgroundTabModifier = aEvent.button == 1 ||
+#ifdef XP_MACOSX
+    aEvent.metaKey;
+#else
+    aEvent.ctrlKey;
+#endif
+  if (aEvent.shiftKey && !backgroundTabModifier) {
+    BrowserReloadSkipCache();
+    return;
+  }
+
+  var where = whereToOpenLink(aEvent, false, true);
+  if (where == "current")
+    BrowserReload();
+  else
+    openUILinkIn(getWebNavigation().currentURI.spec, where);
 }
 
-function BrowserReloadSkipCache()
-{
+function BrowserReload() {
+  const reloadFlags = nsIWebNavigation.LOAD_FLAGS_NONE;
+  BrowserReloadWithFlags(reloadFlags);
+}
+
+function BrowserReloadSkipCache() {
   
   const reloadFlags = nsIWebNavigation.LOAD_FLAGS_BYPASS_PROXY | nsIWebNavigation.LOAD_FLAGS_BYPASS_CACHE;
-  return BrowserReloadWithFlags(reloadFlags);
+  BrowserReloadWithFlags(reloadFlags);
 }
 
 function BrowserHome()
@@ -2369,8 +2386,7 @@ function getWebNavigation()
   }
 }
 
-function BrowserReloadWithFlags(reloadFlags)
-{
+function BrowserReloadWithFlags(reloadFlags) {
   
 
 
@@ -3704,15 +3720,14 @@ nsBrowserStatusHandler.prototype =
 
   init : function()
   {
-    this.throbberElement        = document.getElementById("navigator-throbber");
-    this.statusMeter            = document.getElementById("statusbar-icon");
-    this.stopCommand            = document.getElementById("Browser:Stop");
-    this.reloadCommand          = document.getElementById("Browser:Reload");
-    this.reloadSkipCacheCommand = document.getElementById("Browser:ReloadSkipCache");
-    this.statusTextField        = document.getElementById("statusbar-display");
-    this.securityButton         = document.getElementById("security-button");
-    this.urlBar                 = document.getElementById("urlbar");
-    this.isImage                = document.getElementById("isImage");
+    this.throbberElement = document.getElementById("navigator-throbber");
+    this.statusMeter     = document.getElementById("statusbar-icon");
+    this.stopCommand     = document.getElementById("Browser:Stop");
+    this.reloadCommand   = document.getElementById("Browser:Reload");
+    this.statusTextField = document.getElementById("statusbar-display");
+    this.securityButton  = document.getElementById("security-button");
+    this.urlBar          = document.getElementById("urlbar");
+    this.isImage         = document.getElementById("isImage");
 
     
     
@@ -3724,16 +3739,15 @@ nsBrowserStatusHandler.prototype =
   destroy : function()
   {
     
-    this.throbberElement        = null;
-    this.statusMeter            = null;
-    this.stopCommand            = null;
-    this.reloadCommand          = null;
-    this.reloadSkipCacheCommand = null;
-    this.statusTextField        = null;
-    this.securityButton         = null;
-    this.urlBar                 = null;
-    this.statusText             = null;
-    this.lastURI                = null;
+    this.throbberElement = null;
+    this.statusMeter     = null;
+    this.stopCommand     = null;
+    this.reloadCommand   = null;
+    this.statusTextField = null;
+    this.securityButton  = null;
+    this.urlBar          = null;
+    this.statusText      = null;
+    this.lastURI         = null;
   },
 
   setJSStatus : function(status)
@@ -3978,10 +3992,8 @@ nsBrowserStatusHandler.prototype =
            location == "") {  
                               
         this.reloadCommand.setAttribute("disabled", "true");
-        this.reloadSkipCacheCommand.setAttribute("disabled", "true");
       } else {
         this.reloadCommand.removeAttribute("disabled");
-        this.reloadSkipCacheCommand.removeAttribute("disabled");
       }
 
       if (!gBrowser.mTabbedMode && aWebProgress.isLoadingDocument)
