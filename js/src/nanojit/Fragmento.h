@@ -102,6 +102,11 @@ namespace nanojit
 			
             Fragment*   getLoop(const void* ip);
             Fragment*   getAnchor(const void* ip);
+		    
+			
+			
+			
+    		void        clearFrag(const void* ip);
 			void        clearFrags();	
             Fragment*   getMerge(GuardRecord *lr, const void* ip);
             Fragment*   createBranch(SideExit *exit, const void* ip);
@@ -137,6 +142,7 @@ namespace nanojit
 			uint32_t cacheUsed() const { return (_stats.pages-_stats.freePages)<<NJ_LOG2_PAGE_SIZE; }
 			uint32_t cacheUsedMax() const { return (_stats.maxPageUse)<<NJ_LOG2_PAGE_SIZE; }
 		private:
+		    void        clearFragment(Fragment *f);
 			void		pagesGrow(int32_t count);
 			void		trackFree(int32_t delta);
 
