@@ -159,7 +159,7 @@ nsFrameLoader::LoadFrame()
   
   if (rv == NS_ERROR_MALFORMED_URI) {
     rv = NS_NewURI(getter_AddRefs(uri), NS_LITERAL_STRING("about:blank"),
-                   charset);
+                   charset, base_uri);
   }
 
   NS_ENSURE_SUCCESS(rv, rv);
