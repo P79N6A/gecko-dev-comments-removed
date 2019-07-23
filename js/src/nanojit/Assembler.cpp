@@ -96,12 +96,15 @@ namespace nanojit
 
 
     Assembler::Assembler(CodeAlloc& codeAlloc, Allocator& alloc, AvmCore* core, LogControl* logc)
-        : codeList(0)
+        : codeList(NULL)
         , alloc(alloc)
         , _codeAlloc(codeAlloc)
+        , _thisfrag(NULL)
         , _branchStateMap(alloc)
         , _patches(alloc)
         , _labels(alloc)
+        , _epilogue(NULL)
+        , _err(None)
         , config(core->config)
     {
         VMPI_memset(&_stats, 0, sizeof(_stats));
@@ -220,7 +223,7 @@ namespace nanojit
 
     void Assembler::resourceConsistencyCheck()
     {
-        if (error()) return;
+        NanoAssert(!error());
 
 #ifdef NANOJIT_IA32
         NanoAssert((_allocator.active[FST0] && _fpuStkDepth == -1) ||
@@ -266,7 +269,7 @@ namespace nanojit
     {
         
         RegAlloc *regs = &_allocator;
-        uint32_t managed = regs->managed;
+        RegisterMask managed = regs->managed;
         Register r = FirstReg;
         while(managed)
         {
@@ -390,6 +393,15 @@ namespace nanojit
             {
                 
                 
+                evict(r, ins);
+                r = registerAlloc(prefer);
+                ins->setReg(r);
+                _allocator.addActive(r, ins);
+            } else
+#elif defined(NANOJIT_PPC)
+            if (((rmask(r)&GpRegs) && !(allow&GpRegs)) ||
+                ((rmask(r)&FpRegs) && !(allow&FpRegs)))
+            {
                 evict(r, ins);
                 r = registerAlloc(prefer);
                 ins->setReg(r);
@@ -835,7 +847,6 @@ namespace nanojit
 #define countlir_label() _nvprof("lir-label",1)
 #define countlir_xcc() _nvprof("lir-xcc",1)
 #define countlir_x() _nvprof("lir-x",1)
-#define countlir_loop() _nvprof("lir-loop",1)
 #define countlir_call() _nvprof("lir-call",1)
 #else
 #define countlir_live()
@@ -861,7 +872,6 @@ namespace nanojit
 #define countlir_label()
 #define countlir_xcc()
 #define countlir_x()
-#define countlir_loop()
 #define countlir_call()
 #endif
 
@@ -1460,8 +1470,11 @@ namespace nanojit
 
     void Assembler::arFree(uint32_t idx)
     {
+        verbose_only( printActivationState(" >FP"); )
+
         AR &ar = _activation;
         LIns *i = ar.entry[idx];
+        NanoAssert(i != 0);
         do {
             ar.entry[idx] = 0;
             idx--;
@@ -1469,51 +1482,43 @@ namespace nanojit
     }
 
 #ifdef NJ_VERBOSE
-    void Assembler::printActivationState()
+    void Assembler::printActivationState(const char* what)
     {
-        bool verbose_activation = false;
-        if (!verbose_activation)
+        if (!(_logc->lcbits & LC_Activation))
             return;
 
-#ifdef NANOJIT_ARM
-        
-        verbose_only(
-            if (_logc->lcbits & LC_Assembly) {
-                char* s = &outline[0];
-                VMPI_memset(s, ' ', 51);  s[51] = '\0';
-                s += VMPI_strlen(s);
-                sprintf(s, " SP ");
-                s += VMPI_strlen(s);
-                for(uint32_t i=_activation.lowwatermark; i<_activation.tos;i++) {
-                    LInsp ins = _activation.entry[i];
-                    if (ins && ins !=_activation.entry[i+1]) {
-                        sprintf(s, "%d(%s) ", 4*i, _thisfrag->lirbuf->names->formatRef(ins));
-                        s += VMPI_strlen(s);
-                    }
-                }
-                output(&outline[0]);
-            }
-        )
-#else
-        verbose_only(
-            char* s = &outline[0];
-            if (_logc->lcbits & LC_Assembly) {
-                VMPI_memset(s, ' ', 51);  s[51] = '\0';
-                s += VMPI_strlen(s);
-                sprintf(s, " ebp ");
-                s += VMPI_strlen(s);
+        char* s = &outline[0];
+        VMPI_memset(s, ' ', 45);  s[45] = '\0';
+        s += VMPI_strlen(s);
+        VMPI_sprintf(s, "%s", what);
+        s += VMPI_strlen(s);
 
-                for(uint32_t i=_activation.lowwatermark; i<_activation.tos;i++) {
-                    LInsp ins = _activation.entry[i];
-                    if (ins) {
-                        sprintf(s, "%d(%s) ", -4*i,_thisfrag->lirbuf->names->formatRef(ins));
-                        s += VMPI_strlen(s);
+        int32_t max = _activation.tos < NJ_MAX_STACK_ENTRY ? _activation.tos : NJ_MAX_STACK_ENTRY;
+        for(int32_t i = _activation.lowwatermark; i < max; i++) {
+            LIns *ins = _activation.entry[i];
+            if (ins) {
+                const char* n = _thisfrag->lirbuf->names->formatRef(ins);
+                if (ins->isop(LIR_alloc)) {
+                    int32_t count = ins->size()>>2;
+                    VMPI_sprintf(s," %d-%d(%s)", 4*i, 4*(i+count-1), n);
+                    count += i-1;
+                    while (i < count) {
+                        NanoAssert(_activation.entry[i] == ins);
+                        i++;
                     }
                 }
-                output(&outline[0]);
+                else if (ins->isQuad()) {
+                    VMPI_sprintf(s," %d+(%s)", 4*i, n);
+                    NanoAssert(_activation.entry[i+1] == ins);
+                    i++;
+                }
+                else {
+                    VMPI_sprintf(s," %d(%s)", 4*i, n);
+                }
             }
-        )
-#endif
+            s += VMPI_strlen(s);
+        }
+        output(&outline[0]);
     }
 #endif
 
@@ -1533,6 +1538,7 @@ namespace nanojit
         int32_t start = ar.lowwatermark;
         int32_t i = 0;
         NanoAssert(start>0);
+        verbose_only( printActivationState(" <FP"); )
 
         if (size == 1) {
             
