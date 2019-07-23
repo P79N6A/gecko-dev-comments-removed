@@ -58,6 +58,10 @@ static const Accelerometer gAccelerometers[] = {
   {"/sys/class/i2c-adapter/i2c-3/3-001d/coord",
    NULL,
    eMaemoSensor},
+  
+  {"/sys/devices/platform/lis3lv02d/position",
+   "/sys/devices/platform/lis3lv02d/calibrate",
+   eHPdv7Sensor},
 };
 
 nsAccelerometerUnix::nsAccelerometerUnix() :
@@ -139,6 +143,42 @@ nsAccelerometerUnix::UpdateHandler(nsITimer *aTimer, void *aClosure)
       xf = ((float)x) / -1000.0;
       yf = ((float)y) / -1000.0;
       zf = ((float)z) / -1000.0;
+      break;
+    }
+    case eHPdv7Sensor:
+    {
+      int x, y, z, calibrate_x, calibrate_y, calibrate_z;
+      fflush(self->mCalibrateFile);
+      rewind(self->mCalibrateFile);
+
+      fflush(self->mPositionFile);
+      rewind(self->mPositionFile);
+
+      if (fscanf(self->mCalibrateFile, "(%d,%d,%d)", &calibrate_x, &calibrate_y, &calibrate_z) <= 0)
+        return;
+
+      if (fscanf(self->mPositionFile, "(%d,%d,%d)", &x, &y, &z) <= 0)
+        return;
+
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+
+      xf = ((float)(x - calibrate_x)) / 60.0;
+      yf = ((float)(y - calibrate_y)) / 60.0;
+      zf = ((float)(z)) / 60.0;
       break;
     }
 
