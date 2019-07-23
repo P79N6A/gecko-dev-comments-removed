@@ -78,20 +78,20 @@ PRBool nsRect::IntersectRect(const nsRect &aRect1, const nsRect &aRect2)
   
   temp = PR_MIN(xmost1, xmost2);
   if (temp <= x) {
-    Empty();
-    return PR_FALSE;
+    width = 0;
+  } else {
+    width = temp - x;
   }
-  width = temp - x;
 
   
   temp = PR_MIN(ymost1, ymost2);
   if (temp <= y) {
-    Empty();
-    return PR_FALSE;
+    height = 0;
+  } else {
+    height = temp - y;
   }
-  height = temp - y;
 
-  return PR_TRUE;
+  return !IsEmpty();
 }
 
 

@@ -1050,7 +1050,7 @@ nsMenuPopupFrame::SetPopupPosition(nsIFrame* aAnchorFrame)
 
   
   if (!anchorRect.IntersectRect(anchorRect, screenRect)) {
-    
+    anchorRect.width = anchorRect.height = 0;
     
     if (anchorRect.x < screenRect.x)
       anchorRect.x = screenRect.x;

@@ -2021,7 +2021,9 @@ nsCSSRendering::PaintGradient(nsPresContext* aPresContext,
   
   
   nsRect dirty;
-  dirty.IntersectRect(aDirtyRect, aFillArea);
+  if (!dirty.IntersectRect(aDirtyRect, aFillArea))
+    return;
+
   gfxRect areaToFill = RectToGfxRect(aFillArea, appUnitsPerPixel);
   gfxMatrix ctm = ctx->CurrentMatrix();
 
