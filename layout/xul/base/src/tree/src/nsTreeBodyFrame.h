@@ -216,7 +216,8 @@ protected:
   void PaintDropFeedback(const nsRect&        aDropFeedbackRect, 
                          nsPresContext*      aPresContext,
                          nsIRenderingContext& aRenderingContext,
-                         const nsRect&        aDirtyRect);
+                         const nsRect&        aDirtyRect,
+                         nsPoint              aPt);
 
   
   
