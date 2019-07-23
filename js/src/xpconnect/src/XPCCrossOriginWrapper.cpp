@@ -266,7 +266,8 @@ CanAccessWrapper(JSContext *cx, JSObject *wrappedObj)
     return NS_ERROR_NOT_INITIALIZED;
   }
 
-  nsIPrincipal *subjectPrin = ssm->GetCxSubjectPrincipal(cx);
+  JSStackFrame *fp = nsnull;
+  nsIPrincipal *subjectPrin = ssm->GetCxSubjectPrincipalAndFrame(cx, &fp);
 
   if (!subjectPrin) {
     ThrowException(NS_ERROR_FAILURE, cx);
@@ -283,6 +284,18 @@ CanAccessWrapper(JSContext *cx, JSObject *wrappedObj)
   
   if (isSystem) {
     return NS_OK;
+  }
+
+  
+  
+  if (fp) {
+    void *annotation = JS_GetFrameAnnotation(cx, fp);
+    rv = subjectPrin->IsCapabilityEnabled("UniversalXPConnect", annotation,
+                                          &isSystem);
+    NS_ENSURE_SUCCESS(rv, rv);
+    if (isSystem) {
+      return NS_OK;
+    }
   }
 
   nsCOMPtr<nsIPrincipal> objectPrin;
