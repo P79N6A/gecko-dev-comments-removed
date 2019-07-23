@@ -968,6 +968,10 @@ NS_IMETHODIMP nsNPAPIPluginInstance::Stop(void)
   }
 
   
+  for (PRUint32 i = mTimers.Length(); i > 0; i--)
+    UnscheduleTimer(mTimers[i - 1]->id);
+
+  
   
   if (PluginDestructionGuard::DelayDestroy(this)) {
     return NS_OK;
@@ -1609,7 +1613,8 @@ nsNPAPIPluginInstance::GetPluginAPIVersion()
   return fCallbacks->version;
 }
 
-nsresult nsNPAPIPluginInstance::PrivateModeStateChanged()
+nsresult
+nsNPAPIPluginInstance::PrivateModeStateChanged()
 {
   if (!mStarted)
     return NS_OK;
@@ -1632,6 +1637,92 @@ nsresult nsNPAPIPluginInstance::PrivateModeStateChanged()
     }
   }
   return NS_ERROR_FAILURE;
+}
+
+static void
+PluginTimerCallback(nsITimer *aTimer, void *aClosure)
+{
+  nsNPAPITimer* t = (nsNPAPITimer*)aClosure;
+  NPP npp = t->npp;
+  uint32_t id = t->id;
+
+  (*(t->callback))(npp, id);
+
+  
+  
+  nsNPAPIPluginInstance *inst = (nsNPAPIPluginInstance*)npp->ndata;
+  if (!inst || !inst->TimerWithID(id, NULL))
+    return;
+
+  
+  PRUint32 timerType;
+  t->timer->GetType(&timerType);
+  if (timerType == nsITimer::TYPE_ONE_SHOT)
+      inst->UnscheduleTimer(id);
+}
+
+nsNPAPITimer*
+nsNPAPIPluginInstance::TimerWithID(uint32_t id, PRUint32* index)
+{
+  PRUint32 len = mTimers.Length();
+  for (PRUint32 i = 0; i < len; i++) {
+    if (mTimers[i]->id == id) {
+      if (index)
+        *index = i;
+      return mTimers[i];
+    }
+  }
+  return nsnull;
+}
+
+uint32_t
+nsNPAPIPluginInstance::ScheduleTimer(uint32_t interval, NPBool repeat, void (*timerFunc)(NPP npp, uint32_t timerID))
+{
+  nsNPAPITimer *newTimer = new nsNPAPITimer();
+
+  newTimer->npp = &fNPP;
+
+  
+  uint32_t uniqueID = mTimers.Length();
+  while ((uniqueID == 0) || TimerWithID(uniqueID, NULL))
+    uniqueID++;
+  newTimer->id = uniqueID;
+
+  
+  nsresult rv;
+  nsCOMPtr<nsITimer> xpcomTimer = do_CreateInstance(NS_TIMER_CONTRACTID, &rv);
+  if (NS_FAILED(rv))
+    return 0;
+  const short timerType = (repeat ? (short)nsITimer::TYPE_REPEATING_SLACK : (short)nsITimer::TYPE_ONE_SHOT);
+  xpcomTimer->InitWithFuncCallback(PluginTimerCallback, newTimer, interval, timerType);
+  newTimer->timer = xpcomTimer;
+
+  
+  newTimer->callback = timerFunc;
+
+  
+  mTimers.AppendElement(newTimer);
+
+  return newTimer->id;
+}
+
+void
+nsNPAPIPluginInstance::UnscheduleTimer(uint32_t timerID)
+{
+  
+  PRUint32 index;
+  nsNPAPITimer* t = TimerWithID(timerID, &index);
+  if (!t)
+    return;
+
+  
+  t->timer->Cancel();
+
+  
+  mTimers.RemoveElementAt(index);
+
+  
+  delete t;
 }
 
 nsresult
