@@ -368,7 +368,6 @@ nsDataObj::nsDataObj(nsIURI * uri)
   m_enumFE->AddRef();
 
   if (uri) {
-
     
     
     uri->GetSpec(mSourceURL);
@@ -383,12 +382,11 @@ nsDataObj::nsDataObj(nsIURI * uri)
 nsDataObj::~nsDataObj()
 {
   NS_IF_RELEASE(mTransferable);
-  PRInt32 i;
-  for (i=0;i<mDataFlavors->Count();i++) {
-    nsCAutoString* df = reinterpret_cast<nsCAutoString *>(mDataFlavors->ElementAt(i));
+
+  for (PRInt32 i = 0; i < mDataFlavors->Count(); ++i) {
+    nsCString* df = reinterpret_cast<nsCString *>(mDataFlavors->ElementAt(i));
     delete df;
   }
-
   delete mDataFlavors;
 
   m_cRef = 0;
@@ -496,7 +494,7 @@ STDMETHODIMP nsDataObj::GetData(LPFORMATETC pFE, LPSTGMEDIUM pSTM)
   FORMATETC fe;
   m_enumFE->Reset();
   while (NOERROR == m_enumFE->Next(1, &fe, &count)) {
-    nsCAutoString * df = reinterpret_cast<nsCAutoString*>(mDataFlavors->SafeElementAt(dfInx));
+    nsCString * df = reinterpret_cast<nsCString*>(mDataFlavors->SafeElementAt(dfInx));
     if ( df ) {
       if (FormatsMatch(fe, *pFE)) {
         pSTM->pUnkForRelease = NULL;        
@@ -1450,16 +1448,16 @@ void nsDataObj::AddDataFlavor(const char* aDataFlavor, LPFORMATETC aFE)
   
   
 
-  
-  
 #ifndef WINCE
+  
+  
   if (aFE->cfFormat == CF_HDROP) {
     return;
   }  
   else 
 #endif
   {
-    mDataFlavors->AppendElement(new nsCAutoString(aDataFlavor));
+    mDataFlavors->AppendElement(new nsCString(aDataFlavor));
     m_enumFE->AddFE(aFE);
   }
 }
