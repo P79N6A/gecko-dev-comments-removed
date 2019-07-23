@@ -491,18 +491,20 @@ nsNavHistory::AutoCompleteFullHistorySearch(const nsAString& aSearchString,
   }
 
   
-  AutoCompleteResultComparator comparator(this);
-  matches.Sort(comparator);
+  if (matches.Length() > 0) {
+    
+    AutoCompleteResultComparator comparator(this);
+    matches.Sort(comparator);
 
-  
-  rv = aResult->AppendMatch(matches[0].url, matches[0].title);
-  NS_ENSURE_SUCCESS(rv, rv);
-  for (i = 1; i < matches.Length(); i ++) {
-    
-    
-    if (!matches[i].url.Equals(matches[i-1].url)) {
-      rv = aResult->AppendMatch(matches[i].url, matches[i].title);
-      NS_ENSURE_SUCCESS(rv, rv);
+    rv = aResult->AppendMatch(matches[0].url, matches[0].title);
+    NS_ENSURE_SUCCESS(rv, rv);
+    for (i = 1; i < matches.Length(); i ++) {
+      
+      
+      if (!matches[i].url.Equals(matches[i-1].url)) {
+        rv = aResult->AppendMatch(matches[i].url, matches[i].title);
+        NS_ENSURE_SUCCESS(rv, rv);
+      }
     }
   }
   return NS_OK;
