@@ -38,6 +38,7 @@
 
 
 
+
 #ifndef jsscript_h___
 #define jsscript_h___
 
@@ -51,18 +52,27 @@ JS_BEGIN_EXTERN_C
 
 
 
+typedef enum JSTryNoteKind {
+    JSTN_CATCH,
+    JSTN_FINALLY
+} JSTryNoteKind;
 
 
 
 
 struct JSTryNote {
-    ptrdiff_t    start;         
-    ptrdiff_t    length;        
-    ptrdiff_t    catchStart;    
+    uint8           kind;       
+    uint8           padding;    
+    uint16          stackDepth; 
+    uint32          start;      
+
+    uint32          length;     
 };
 
-#define JSTRYNOTE_GRAIN         sizeof(ptrdiff_t)
-#define JSTRYNOTE_ALIGNMASK     (JSTRYNOTE_GRAIN - 1)
+typedef struct JSTryNoteArray {
+    uint32          length;     
+    JSTryNote       notes[1];   
+} JSTryNoteArray;
 
 struct JSScript {
     jsbytecode   *code;         
@@ -74,7 +84,7 @@ struct JSScript {
     const char   *filename;     
     uintN        lineno;        
     uintN        depth;         
-    JSTryNote    *trynotes;     
+    JSTryNoteArray *trynotes;   
     JSPrincipals *principals;   
     JSObject     *object;       
 };
@@ -82,29 +92,13 @@ struct JSScript {
 
 #define SCRIPT_NOTES(script)    ((jssrcnote*)((script)->code+(script)->length))
 
-#define SCRIPT_FIND_CATCH_START(script, pc, catchpc)                          \
-    JS_BEGIN_MACRO                                                            \
-        JSTryNote *tn_ = (script)->trynotes;                                  \
-        jsbytecode *catchpc_ = NULL;                                          \
-        if (tn_) {                                                            \
-            ptrdiff_t off_ = PTRDIFF(pc, (script)->main, jsbytecode);         \
-            if (off_ >= 0) {                                                  \
-                while ((jsuword)(off_ - tn_->start) >= (jsuword)tn_->length)  \
-                    ++tn_;                                                    \
-                if (tn_->catchStart)                                          \
-                    catchpc_ = (script)->main + tn_->catchStart;              \
-            }                                                                 \
-        }                                                                     \
-        catchpc = catchpc_;                                                   \
-    JS_END_MACRO
 
 
 
 
 
-
-jsbytecode *
-js_FindFinallyHandler(JSScript *script, jsbytecode *pc);
+JSBool
+js_IsInsideTryWithFinally(JSScript *script, jsbytecode *pc);
 
 extern JS_FRIEND_DATA(JSClass) js_ScriptClass;
 

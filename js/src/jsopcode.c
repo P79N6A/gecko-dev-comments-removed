@@ -2139,7 +2139,6 @@ Decompile(SprintStack *ss, jsbytecode *pc, intN nb)
                 todo = -2;
                 break;
 
-              case JSOP_SETSP:
               case JSOP_POPN:
               {
                 uintN newtop, oldtop, i;
@@ -2150,10 +2149,8 @@ Decompile(SprintStack *ss, jsbytecode *pc, intN nb)
 
 
 
-                newtop = GET_UINT16(pc);
                 oldtop = ss->top;
-                if (op == JSOP_POPN)
-                    newtop = oldtop - newtop;
+                newtop = oldtop - GET_UINT16(pc);
                 LOCAL_ASSERT(newtop <= oldtop);
                 todo = -2;
 
@@ -2225,7 +2222,7 @@ Decompile(SprintStack *ss, jsbytecode *pc, intN nb)
                                     LOCAL_ASSERT(pc[len] == JSOP_LEAVEBLOCK);
                                     js_printf(jp, "\tlet (%s) {\n", rval);
                                     js_printf(jp, "\t}\n");
-                                    goto end_setsp;
+                                    goto end_popn;
                                 }
                                 todo = SprintCString(&ss->sprinter, rval);
                                 if (todo < 0 || !PushOff(ss, todo, JSOP_NOP))
@@ -2255,7 +2252,7 @@ Decompile(SprintStack *ss, jsbytecode *pc, intN nb)
 
                     if (todo == -2)
                         js_printf(jp, "\t%s;\n", rval);
-                  end_setsp:
+                  end_popn:
                     break;
                 }
 #endif
@@ -4954,10 +4951,6 @@ js_DecompileValueGenerator(JSContext *cx, intN spindex, jsval v,
         cs = &js_CodeSpec[op];
         oplen = cs->length;
 
-        if (op == JSOP_SETSP) {
-            pcdepth = GET_UINT16(pc);
-            continue;
-        }
         if (op == JSOP_POPN) {
             pcdepth -= GET_UINT16(pc);
             continue;
