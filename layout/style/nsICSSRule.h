@@ -55,16 +55,21 @@ class nsAString;
 class nsICSSRule : public nsIStyleRule {
 public:
   NS_DECLARE_STATIC_IID_ACCESSOR(NS_ICSS_RULE_IID)
+  
+  
+  
+  
+  
   enum {
     UNKNOWN_RULE = 0,
-    STYLE_RULE = 1,
-    IMPORT_RULE = 2,
-    MEDIA_RULE = 3,
-    FONT_FACE_RULE = 4,
-    PAGE_RULE = 5,
-    CHARSET_RULE = 6,
-    NAMESPACE_RULE = 7,
-    DOCUMENT_RULE = 8
+    CHARSET_RULE,
+    IMPORT_RULE,
+    NAMESPACE_RULE,
+    STYLE_RULE,
+    MEDIA_RULE,
+    FONT_FACE_RULE,
+    PAGE_RULE,
+    DOCUMENT_RULE
   };
 
   NS_IMETHOD GetType(PRInt32& aType) const = 0;

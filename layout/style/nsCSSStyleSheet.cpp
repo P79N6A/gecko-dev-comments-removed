@@ -818,12 +818,13 @@ nsCSSStyleSheet::RebuildChildList(nsICSSRule* aRule, void* aBuilder)
 {
   PRInt32 type;
   aRule->GetType(type);
-  if (type == nsICSSRule::CHARSET_RULE) {
+  if (type < nsICSSRule::IMPORT_RULE) {
+    
     return PR_TRUE;
   }
 
-  if (type == nsICSSRule::NAMESPACE_RULE || type == nsICSSRule::MEDIA_RULE ||
-      type == nsICSSRule::STYLE_RULE) {
+  if (type != nsICSSRule::IMPORT_RULE) {
+    
     return PR_FALSE;
   }
 
