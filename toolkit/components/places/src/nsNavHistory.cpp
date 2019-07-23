@@ -102,38 +102,34 @@ using namespace mozilla::places;
 #define RECENT_EVENT_QUEUE_MAX_LENGTH 128
 
 
-#define PREF_BRANCH_BASE                        "browser."
+#define PREF_PLACES_BRANCH_BASE                 "places."
 
-#define PREF_HISTORY_ENABLED                    "places.history.enabled"
+#define PREF_HISTORY_ENABLED                    "history.enabled"
 
-#define PREF_BROWSER_HISTORY_EXPIRE_DAYS_MIN    "history_expire_days_min"
-#define PREF_BROWSER_HISTORY_EXPIRE_DAYS_MAX    "history_expire_days"
-#define PREF_BROWSER_HISTORY_EXPIRE_SITES       "history_expire_sites"
+#define PREF_FRECENCY_NUM_VISITS                "frecency.numVisits"
+#define PREF_FRECENCY_FIRST_BUCKET_CUTOFF       "frecency.firstBucketCutoff"
+#define PREF_FRECENCY_SECOND_BUCKET_CUTOFF      "frecency.secondBucketCutoff"
+#define PREF_FRECENCY_THIRD_BUCKET_CUTOFF       "frecency.thirdBucketCutoff"
+#define PREF_FRECENCY_FOURTH_BUCKET_CUTOFF      "frecency.fourthBucketCutoff"
+#define PREF_FRECENCY_FIRST_BUCKET_WEIGHT       "frecency.firstBucketWeight"
+#define PREF_FRECENCY_SECOND_BUCKET_WEIGHT      "frecency.secondBucketWeight"
+#define PREF_FRECENCY_THIRD_BUCKET_WEIGHT       "frecency.thirdBucketWeight"
+#define PREF_FRECENCY_FOURTH_BUCKET_WEIGHT      "frecency.fourthBucketWeight"
+#define PREF_FRECENCY_DEFAULT_BUCKET_WEIGHT     "frecency.defaultBucketWeight"
+#define PREF_FRECENCY_EMBED_VISIT_BONUS         "frecency.embedVisitBonus"
+#define PREF_FRECENCY_LINK_VISIT_BONUS          "frecency.linkVisitBonus"
+#define PREF_FRECENCY_TYPED_VISIT_BONUS         "frecency.typedVisitBonus"
+#define PREF_FRECENCY_BOOKMARK_VISIT_BONUS      "frecency.bookmarkVisitBonus"
+#define PREF_FRECENCY_DOWNLOAD_VISIT_BONUS      "frecency.downloadVisitBonus"
+#define PREF_FRECENCY_PERM_REDIRECT_VISIT_BONUS "frecency.permRedirectVisitBonus"
+#define PREF_FRECENCY_TEMP_REDIRECT_VISIT_BONUS "frecency.tempRedirectVisitBonus"
+#define PREF_FRECENCY_DEFAULT_VISIT_BONUS       "frecency.defaultVisitBonus"
+#define PREF_FRECENCY_UNVISITED_BOOKMARK_BONUS  "frecency.unvisitedBookmarkBonus"
+#define PREF_FRECENCY_UNVISITED_TYPED_BONUS     "frecency.unvisitedTypedBonus"
 
-#define PREF_FRECENCY_NUM_VISITS                "places.frecency.numVisits"
-#define PREF_FRECENCY_FIRST_BUCKET_CUTOFF       "places.frecency.firstBucketCutoff"
-#define PREF_FRECENCY_SECOND_BUCKET_CUTOFF      "places.frecency.secondBucketCutoff"
-#define PREF_FRECENCY_THIRD_BUCKET_CUTOFF       "places.frecency.thirdBucketCutoff"
-#define PREF_FRECENCY_FOURTH_BUCKET_CUTOFF      "places.frecency.fourthBucketCutoff"
-#define PREF_FRECENCY_FIRST_BUCKET_WEIGHT       "places.frecency.firstBucketWeight"
-#define PREF_FRECENCY_SECOND_BUCKET_WEIGHT      "places.frecency.secondBucketWeight"
-#define PREF_FRECENCY_THIRD_BUCKET_WEIGHT       "places.frecency.thirdBucketWeight"
-#define PREF_FRECENCY_FOURTH_BUCKET_WEIGHT      "places.frecency.fourthBucketWeight"
-#define PREF_FRECENCY_DEFAULT_BUCKET_WEIGHT     "places.frecency.defaultBucketWeight"
-#define PREF_FRECENCY_EMBED_VISIT_BONUS         "places.frecency.embedVisitBonus"
-#define PREF_FRECENCY_LINK_VISIT_BONUS          "places.frecency.linkVisitBonus"
-#define PREF_FRECENCY_TYPED_VISIT_BONUS         "places.frecency.typedVisitBonus"
-#define PREF_FRECENCY_BOOKMARK_VISIT_BONUS      "places.frecency.bookmarkVisitBonus"
-#define PREF_FRECENCY_DOWNLOAD_VISIT_BONUS      "places.frecency.downloadVisitBonus"
-#define PREF_FRECENCY_PERM_REDIRECT_VISIT_BONUS "places.frecency.permRedirectVisitBonus"
-#define PREF_FRECENCY_TEMP_REDIRECT_VISIT_BONUS "places.frecency.tempRedirectVisitBonus"
-#define PREF_FRECENCY_DEFAULT_VISIT_BONUS       "places.frecency.defaultVisitBonus"
-#define PREF_FRECENCY_UNVISITED_BOOKMARK_BONUS  "places.frecency.unvisitedBookmarkBonus"
-#define PREF_FRECENCY_UNVISITED_TYPED_BONUS     "places.frecency.unvisitedTypedBonus"
+#define PREF_LAST_VACUUM                        "last_vacuum"
 
-#define PREF_LAST_VACUUM                        "places.last_vacuum"
-
-#define PREF_CACHE_TO_MEMORY_PERCENTAGE         "places.database.cache_to_memory_percentage"
+#define PREF_CACHE_TO_MEMORY_PERCENTAGE         "database.cache_to_memory_percentage"
 
 
 
@@ -188,9 +184,6 @@ static const PRInt64 USECS_PER_DAY = LL_INIT(20, 500654080);
 #define MAX_LAZY_TIMER_DEFERMENTS 2
 
 #endif 
-
-
-#define EXPIRATION_CAP_SITES 40000
 
 
 #define CHARSET_ANNO NS_LITERAL_CSTRING("URIProperties/characterSet")
@@ -398,9 +391,6 @@ nsNavHistory::nsNavHistory()
 , mCachedNow(0)
 , mExpireNowTimer(nsnull)
 , mLastSessionID(0)
-, mExpireDaysMin(0)
-, mExpireDaysMax(0)
-, mExpireSites(0)
 , mHistoryEnabled(PR_TRUE)
 , mNumVisitsForFrecency(10)
 , mTagsFolder(-1)
@@ -433,17 +423,15 @@ nsNavHistory::~nsNavHistory()
 nsresult
 nsNavHistory::Init()
 {
-  nsresult rv;
-
-  
   nsCOMPtr<nsIPrefService> prefService =
-    do_GetService(NS_PREFSERVICE_CONTRACTID, &rv);
+    do_GetService(NS_PREFSERVICE_CONTRACTID);
+  nsCOMPtr<nsIPrefBranch> placesBranch;
+  NS_ENSURE_TRUE(prefService, NS_ERROR_OUT_OF_MEMORY);
+  nsresult rv = prefService->GetBranch(PREF_PLACES_BRANCH_BASE,
+                                       getter_AddRefs(placesBranch));
   NS_ENSURE_SUCCESS(rv, rv);
-  rv = prefService->GetBranch(PREF_BRANCH_BASE, getter_AddRefs(mPrefBranch));
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  
-  LoadPrefs(PR_TRUE);
+  mPrefBranch = do_QueryInterface(placesBranch);
+  LoadPrefs();
 
   
   
@@ -472,10 +460,6 @@ nsNavHistory::Init()
 
   
   
-  mExpire = new nsNavHistoryExpire();
-
-  
-  
   
   nsRefPtr<PlacesEvent> completeEvent =
     new PlacesEvent(TOPIC_PLACES_INIT_COMPLETE);
@@ -495,17 +479,9 @@ nsNavHistory::Init()
 
 
 
-  nsCOMPtr<nsIPrefBranch2> pbi = do_QueryInterface(mPrefBranch);
-  if (pbi) {
-    pbi->AddObserver(PREF_BROWSER_HISTORY_EXPIRE_DAYS_MAX, this, PR_FALSE);
-    pbi->AddObserver(PREF_BROWSER_HISTORY_EXPIRE_DAYS_MIN, this, PR_FALSE);
-    pbi->AddObserver(PREF_BROWSER_HISTORY_EXPIRE_SITES, this, PR_FALSE);
-  }
-
-  nsCOMPtr<nsIPrefBranch2> prefs =
-    do_GetService("@mozilla.org/preferences-service;1");
-  if (prefs)
-    prefs->AddObserver(PREF_HISTORY_ENABLED, this, PR_FALSE);
+  
+  if (mPrefBranch)
+    mPrefBranch->AddObserver("", this, PR_FALSE);
 
   nsCOMPtr<nsIObserverService> obsSvc =
     do_GetService(NS_OBSERVERSERVICE_CONTRACTID);
@@ -706,12 +682,9 @@ nsNavHistory::InitDB()
   
   
   
-  nsCOMPtr<nsIPrefBranch> prefs =
-    do_GetService("@mozilla.org/preferences-service;1");
-  NS_WARN_IF_FALSE(prefs, "Unable to get the preferences service");
   PRInt32 cachePercentage;
-  if (!prefs || NS_FAILED(prefs->GetIntPref(PREF_CACHE_TO_MEMORY_PERCENTAGE,
-                                            &cachePercentage)))
+  if (NS_FAILED(mPrefBranch->GetIntPref(PREF_CACHE_TO_MEMORY_PERCENTAGE,
+                                        &cachePercentage)))
     cachePercentage = DATABASE_DEFAULT_CACHE_TO_MEMORY_PERCENTAGE;
   
   if (cachePercentage > 50)
@@ -2038,69 +2011,71 @@ PRBool nsNavHistory::IsURIStringVisited(const nsACString& aURIString)
 }
 
 
-nsresult
-nsNavHistory::LoadPrefs(PRBool aInitializing)
+void
+nsNavHistory::LoadPrefs()
 {
-  if (! mPrefBranch)
-    return NS_OK;
-
-  mPrefBranch->GetIntPref(PREF_BROWSER_HISTORY_EXPIRE_DAYS_MAX, &mExpireDaysMax);
-  mPrefBranch->GetIntPref(PREF_BROWSER_HISTORY_EXPIRE_DAYS_MIN, &mExpireDaysMin);
-  
-  
-  if (mExpireDaysMax && mExpireDaysMax < mExpireDaysMin)
-    mExpireDaysMax = mExpireDaysMin;
-  if (NS_FAILED(mPrefBranch->GetIntPref(PREF_BROWSER_HISTORY_EXPIRE_SITES,
-                                        &mExpireSites)))
-    mExpireSites = EXPIRATION_CAP_SITES;
+  if (!mPrefBranch)
+    return;
 
   
-  nsCOMPtr<nsIPrefBranch> prefs(do_GetService("@mozilla.org/preferences-service;1"));
-  if (prefs) {
-    prefs->GetBoolPref(PREF_HISTORY_ENABLED, &mHistoryEnabled);
-
-    prefs->GetIntPref(PREF_FRECENCY_NUM_VISITS, 
-      &mNumVisitsForFrecency);
-    prefs->GetIntPref(PREF_FRECENCY_FIRST_BUCKET_CUTOFF, 
-      &mFirstBucketCutoffInDays);
-    prefs->GetIntPref(PREF_FRECENCY_SECOND_BUCKET_CUTOFF,
-      &mSecondBucketCutoffInDays);
-    prefs->GetIntPref(PREF_FRECENCY_THIRD_BUCKET_CUTOFF, 
-      &mThirdBucketCutoffInDays);
-    prefs->GetIntPref(PREF_FRECENCY_FOURTH_BUCKET_CUTOFF, 
-      &mFourthBucketCutoffInDays);
-    prefs->GetIntPref(PREF_FRECENCY_EMBED_VISIT_BONUS, 
-      &mEmbedVisitBonus);
-    prefs->GetIntPref(PREF_FRECENCY_LINK_VISIT_BONUS, 
-      &mLinkVisitBonus);
-    prefs->GetIntPref(PREF_FRECENCY_TYPED_VISIT_BONUS, 
-      &mTypedVisitBonus);
-    prefs->GetIntPref(PREF_FRECENCY_BOOKMARK_VISIT_BONUS, 
-      &mBookmarkVisitBonus);
-    prefs->GetIntPref(PREF_FRECENCY_DOWNLOAD_VISIT_BONUS, 
-      &mDownloadVisitBonus);
-    prefs->GetIntPref(PREF_FRECENCY_PERM_REDIRECT_VISIT_BONUS, 
-      &mPermRedirectVisitBonus);
-    prefs->GetIntPref(PREF_FRECENCY_TEMP_REDIRECT_VISIT_BONUS, 
-      &mTempRedirectVisitBonus);
-    prefs->GetIntPref(PREF_FRECENCY_DEFAULT_VISIT_BONUS, 
-      &mDefaultVisitBonus);
-    prefs->GetIntPref(PREF_FRECENCY_UNVISITED_BOOKMARK_BONUS, 
-      &mUnvisitedBookmarkBonus);
-    prefs->GetIntPref(PREF_FRECENCY_UNVISITED_TYPED_BONUS,
-      &mUnvisitedTypedBonus);
-    prefs->GetIntPref(PREF_FRECENCY_FIRST_BUCKET_WEIGHT, 
-      &mFirstBucketWeight);
-    prefs->GetIntPref(PREF_FRECENCY_SECOND_BUCKET_WEIGHT, 
-      &mSecondBucketWeight);
-    prefs->GetIntPref(PREF_FRECENCY_THIRD_BUCKET_WEIGHT, 
-      &mThirdBucketWeight);
-    prefs->GetIntPref(PREF_FRECENCY_FOURTH_BUCKET_WEIGHT, 
-      &mFourthBucketWeight);
-    prefs->GetIntPref(PREF_FRECENCY_DEFAULT_BUCKET_WEIGHT, 
-      &mDefaultWeight);
+  
+  nsCOMPtr<nsIPrefBranch> prefSvc = do_GetService(NS_PREFSERVICE_CONTRACTID);
+  PRInt32 oldDaysPref = 0;
+  if (prefSvc &&
+      NS_SUCCEEDED(prefSvc->GetIntPref("browser.history_expire_days",
+                                       &oldDaysPref))) {
+    if (!oldDaysPref) {
+      
+      mPrefBranch->SetBoolPref(PREF_HISTORY_ENABLED, PR_FALSE);
+      mHistoryEnabled = PR_FALSE;
+    }
+    
+    prefSvc->ClearUserPref("browser.history_expire_days");
   }
-  return NS_OK;
+  else
+    mPrefBranch->GetBoolPref(PREF_HISTORY_ENABLED, &mHistoryEnabled);
+
+  
+  mPrefBranch->GetIntPref(PREF_FRECENCY_NUM_VISITS,
+    &mNumVisitsForFrecency);
+  mPrefBranch->GetIntPref(PREF_FRECENCY_FIRST_BUCKET_CUTOFF,
+    &mFirstBucketCutoffInDays);
+  mPrefBranch->GetIntPref(PREF_FRECENCY_SECOND_BUCKET_CUTOFF,
+    &mSecondBucketCutoffInDays);
+  mPrefBranch->GetIntPref(PREF_FRECENCY_THIRD_BUCKET_CUTOFF,
+    &mThirdBucketCutoffInDays);
+  mPrefBranch->GetIntPref(PREF_FRECENCY_FOURTH_BUCKET_CUTOFF,
+    &mFourthBucketCutoffInDays);
+  mPrefBranch->GetIntPref(PREF_FRECENCY_EMBED_VISIT_BONUS,
+    &mEmbedVisitBonus);
+  mPrefBranch->GetIntPref(PREF_FRECENCY_LINK_VISIT_BONUS,
+    &mLinkVisitBonus);
+  mPrefBranch->GetIntPref(PREF_FRECENCY_TYPED_VISIT_BONUS,
+    &mTypedVisitBonus);
+  mPrefBranch->GetIntPref(PREF_FRECENCY_BOOKMARK_VISIT_BONUS,
+    &mBookmarkVisitBonus);
+  mPrefBranch->GetIntPref(PREF_FRECENCY_DOWNLOAD_VISIT_BONUS,
+    &mDownloadVisitBonus);
+  mPrefBranch->GetIntPref(PREF_FRECENCY_PERM_REDIRECT_VISIT_BONUS,
+    &mPermRedirectVisitBonus);
+  mPrefBranch->GetIntPref(PREF_FRECENCY_TEMP_REDIRECT_VISIT_BONUS,
+    &mTempRedirectVisitBonus);
+  mPrefBranch->GetIntPref(PREF_FRECENCY_DEFAULT_VISIT_BONUS,
+    &mDefaultVisitBonus);
+  mPrefBranch->GetIntPref(PREF_FRECENCY_UNVISITED_BOOKMARK_BONUS,
+    &mUnvisitedBookmarkBonus);
+  mPrefBranch->GetIntPref(PREF_FRECENCY_UNVISITED_TYPED_BONUS,
+    &mUnvisitedTypedBonus);
+  mPrefBranch->GetIntPref(PREF_FRECENCY_FIRST_BUCKET_WEIGHT,
+    &mFirstBucketWeight);
+  mPrefBranch->GetIntPref(PREF_FRECENCY_SECOND_BUCKET_WEIGHT,
+    &mSecondBucketWeight);
+  mPrefBranch->GetIntPref(PREF_FRECENCY_THIRD_BUCKET_WEIGHT,
+    &mThirdBucketWeight);
+  mPrefBranch->GetIntPref(PREF_FRECENCY_FOURTH_BUCKET_WEIGHT,
+    &mFourthBucketWeight);
+  mPrefBranch->GetIntPref(PREF_FRECENCY_DEFAULT_BUCKET_WEIGHT,
+    &mDefaultWeight);
 }
 
 
@@ -4487,10 +4462,6 @@ nsNavHistory::CleanupPlacesOnVisitsDelete(const nsCString& aPlaceIdsQueryString)
 
   
   
-  (void)mExpire->OnDeleteVisits();
-
-  
-  
   
   
   nsresult rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
@@ -4869,18 +4840,52 @@ nsNavHistory::RemoveAllPages()
 {
   NS_ASSERTION(NS_IsMainThread(), "This can only be called on the main thread");
 
+  mozStorageTransaction transaction(mDBConn, PR_FALSE);
+
 #ifdef LAZY_ADD
   
   CommitLazyMessages();
 #endif
 
   
-  mExpire->ClearHistory();
+  
+  
+  
+  nsresult rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
+    "UPDATE moz_places_view SET frecency = -MAX(visit_count, 1) "
+    "WHERE id IN("
+      "SELECT h.id FROM moz_places_temp h "
+      "WHERE EXISTS (SELECT id FROM moz_bookmarks WHERE fk = h.id) "
+      "UNION ALL "
+      "SELECT h.id FROM moz_places h "
+      "WHERE EXISTS (SELECT id FROM moz_bookmarks WHERE fk = h.id) "
+    ")"));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
+      "DELETE FROM moz_historyvisits_view"));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  
+  
+  
+  rv = FixInvalidFrecenciesForExcludedPlaces();
+  if (NS_FAILED(rv))
+    NS_WARNING("failed to fix invalid frecencies");
+
+  rv = transaction.Commit();
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  ENUMERATE_OBSERVERS(mCanNotify, mCacheObservers, mObservers,
+                      nsINavHistoryObserver, OnClearHistory());
 
   
   nsCOMPtr<nsIFile> oldHistoryFile;
-  nsresult rv = NS_GetSpecialDirectory(NS_APP_HISTORY_50_FILE,
-                                       getter_AddRefs(oldHistoryFile));
+  rv = NS_GetSpecialDirectory(NS_APP_HISTORY_50_FILE,
+                              getter_AddRefs(oldHistoryFile));
   NS_ENSURE_SUCCESS(rv, rv);
 
   PRBool fileExists;
@@ -5546,23 +5551,14 @@ nsNavHistory::Observe(nsISupports *aSubject, const char *aTopic,
       }
     }
 
-    nsCOMPtr<nsIPrefService> prefService =
-      do_GetService(NS_PREFSERVICE_CONTRACTID);
-    if (prefService) {
-      prefService->SavePrefFile(nsnull);
-      nsCOMPtr<nsIPrefBranch2> prefs = do_QueryInterface(prefService);
-      prefs->RemoveObserver(PREF_HISTORY_ENABLED, this);
-    }
-
-    nsCOMPtr<nsIPrefBranch2> pbi = do_QueryInterface(mPrefBranch);
-    if (pbi) {
-      pbi->RemoveObserver(PREF_BROWSER_HISTORY_EXPIRE_DAYS_MAX, this);
-      pbi->RemoveObserver(PREF_BROWSER_HISTORY_EXPIRE_DAYS_MIN, this);
-      pbi->RemoveObserver(PREF_BROWSER_HISTORY_EXPIRE_SITES, this);
-    }
+    
+    if (mPrefBranch)
+      mPrefBranch->RemoveObserver("", this);
 
     
-    mExpire->OnQuit();
+    nsCOMPtr<nsIPrefService> prefService = do_QueryInterface(mPrefBranch);
+    if (prefService)
+      prefService->SavePrefFile(nsnull);
 
 #ifdef LAZY_ADD
     
@@ -5618,13 +5614,7 @@ nsNavHistory::Observe(nsISupports *aSubject, const char *aTopic,
   }
 #endif
   else if (strcmp(aTopic, TOPIC_PREF_CHANGED) == 0) {
-    PRInt32 oldDaysMin = mExpireDaysMin;
-    PRInt32 oldDaysMax = mExpireDaysMax;
-    PRInt32 oldVisits = mExpireSites;
-    LoadPrefs(PR_FALSE);
-    if (oldDaysMin != mExpireDaysMin || oldDaysMax != mExpireDaysMax ||
-        oldVisits != mExpireSites)
-      mExpire->OnExpirationChanged();
+    LoadPrefs();
   }
   else if (strcmp(aTopic, TOPIC_IDLE_DAILY) == 0) {
     
@@ -5689,10 +5679,8 @@ nsNavHistory::VacuumDatabase()
 
   PRInt32 lastVacuumPref;
   PRInt64 lastVacuumTime = 0;
-  nsCOMPtr<nsIPrefBranch> prefSvc =
-    do_GetService("@mozilla.org/preferences-service;1");
-  NS_ENSURE_TRUE(prefSvc, NS_ERROR_OUT_OF_MEMORY);
-  if (NS_SUCCEEDED(prefSvc->GetIntPref(PREF_LAST_VACUUM, &lastVacuumPref))) {
+  if (mPrefBranch &&
+      NS_SUCCEEDED(mPrefBranch->GetIntPref(PREF_LAST_VACUUM, &lastVacuumPref))) {
     
     lastVacuumTime = (PRInt64)lastVacuumPref * PR_USEC_PER_SEC;
   }
@@ -5775,13 +5763,15 @@ nsNavHistory::VacuumDatabase()
                                getter_AddRefs(ps));
     NS_ENSURE_SUCCESS(rv, rv);
 
-    rv = prefSvc->SetIntPref(PREF_LAST_VACUUM,
-                             (PRInt32)(PR_Now() / PR_USEC_PER_SEC));
-    NS_ENSURE_SUCCESS(rv, rv);
+    if (mPrefBranch) {
+      (void)mPrefBranch->SetIntPref(PREF_LAST_VACUUM,
+                                    (PRInt32)(PR_Now() / PR_USEC_PER_SEC));
+    }
   }
 
   return NS_OK;
 }
+
 
 nsresult
 nsNavHistory::DecayFrecency()

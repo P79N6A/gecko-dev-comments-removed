@@ -51,6 +51,7 @@
 #include "nsIDownloadHistory.h"
 
 #include "nsIPrefService.h"
+#include "nsIPrefBranch2.h"
 #include "nsIObserverService.h"
 #include "nsICollation.h"
 #include "nsIStringBundle.h"
@@ -64,7 +65,6 @@
 #include "nsINavBookmarksService.h"
 #include "nsIPrivateBrowsingService.h"
 
-#include "nsNavHistoryExpire.h"
 #include "nsNavHistoryResult.h"
 #include "nsNavHistoryQuery.h"
 
@@ -215,7 +215,7 @@ public:
 
   
   PRBool IsHistoryDisabled() {
-    return mExpireDaysMax == 0 || !mHistoryEnabled || InPrivateBrowsingMode();
+    return !mHistoryEnabled || InPrivateBrowsingMode();
   }
 
   
@@ -376,10 +376,8 @@ public:
 
 protected:
 
-  
-  
-  
-  nsCOMPtr<nsIPrefBranch> mPrefBranch; 
+  nsCOMPtr<nsIPrefBranch2> mPrefBranch; 
+
   nsDataHashtable<nsStringHashKey, int> gExpandedItems;
 
   
@@ -505,9 +503,7 @@ protected:
 
 
 
-
-
-  nsresult LoadPrefs(PRBool aInitializing);
+  void LoadPrefs();
 
   
 
@@ -522,10 +518,6 @@ protected:
 
 
   static void expireNowTimerCallback(nsITimer* aTimer, void* aClosure);
-
-  
-  friend class nsNavHistoryExpire;
-  nsNavHistoryExpire *mExpire;
 
 #ifdef LAZY_ADD
   
@@ -657,10 +649,6 @@ protected:
   nsresult AutoCompleteFeedback(PRInt32 aIndex,
                                 nsIAutoCompleteController *aController);
 #endif
-
-  PRInt32 mExpireDaysMin;
-  PRInt32 mExpireDaysMax;
-  PRInt32 mExpireSites;
 
   
   

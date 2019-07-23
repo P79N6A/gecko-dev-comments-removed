@@ -510,7 +510,7 @@ nsPlacesAutoComplete.prototype = {
       this._os.removeObserver(this, kXPComShutdown);
 
       
-      this._prefs.removeObserver("", this);
+      this._prefs.QueryInterface(Ci.nsIPrefBranch2).removeObserver("", this);
       delete this._prefs;
 
       

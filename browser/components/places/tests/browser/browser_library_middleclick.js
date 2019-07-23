@@ -42,7 +42,7 @@
 const Cc = Components.classes;
 const Ci = Components.interfaces;
 
-const DISABLE_HISTORY_PREF = "browser.history_expire_days";
+const ENABLE_HISTORY_PREF = "places.history.enabled";
 
 var gLibrary = null;
 var gTests = [];
@@ -262,7 +262,7 @@ function test() {
   gBrowser.addTabsProgressListener(gTabsListener);
 
   
-  gPrefService.setIntPref(DISABLE_HISTORY_PREF, 0);
+  gPrefService.setBoolPref(ENABLE_HISTORY_PREF, false);
 
   
   var ww = Cc["@mozilla.org/embedcomp/window-watcher;1"].
@@ -318,8 +318,9 @@ function runNextTest() {
     gBrowser.removeTabsProgressListener(gTabsListener);
 
     
-    if (gPrefService.prefHasUserValue(DISABLE_HISTORY_PREF))
-      gPrefService.clearUserPref(DISABLE_HISTORY_PREF);
+    try {
+      gPrefService.clearUserPref(ENABLE_HISTORY_PREF);
+    } catch(ex) {}
 
     finish();
   }
