@@ -853,6 +853,24 @@ public:
 
   virtual PRBool MutationEventBeingDispatched() = 0;
 
+  
+
+
+
+  void MarkUncollectableForCCGeneration(PRUint32 aGeneration)
+  {
+    mMarkedCCGeneration = aGeneration;
+  }
+
+  
+
+
+  PRUint32 GetMarkedCCGeneration()
+  {
+    return mMarkedCCGeneration;
+  }
+  
+
 protected:
   ~nsIDocument()
   {
@@ -925,6 +943,10 @@ protected:
   
   
   PRUint32 mPartID;
+  
+  
+  
+  PRUint32 mMarkedCCGeneration;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsIDocument, NS_IDOCUMENT_IID)
