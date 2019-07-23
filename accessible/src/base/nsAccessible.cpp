@@ -1049,6 +1049,11 @@ nsAccessible::GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState)
     *aState |= nsIAccessibleStates::STATE_FLOATING;
 
   
+  if (content->IsNodeOfType(nsINode::eXUL))
+    if (content->HasAttr(kNameSpaceID_None, nsAccessibilityAtoms::popup))
+      *aState |= nsIAccessibleStates::STATE_HASPOPUP;
+
+  
   if (nsCoreUtils::IsXLink(content))
     *aState |= nsIAccessibleStates::STATE_LINKED;
 
@@ -3221,6 +3226,11 @@ nsAccessible::GetActionRule(PRUint32 aStates)
   
   if (nsCoreUtils::IsXLink(content))
     return eJumpAction;
+
+  
+  if (content->IsNodeOfType(nsINode::eXUL))
+    if (content->HasAttr(kNameSpaceID_None, nsAccessibilityAtoms::popup))
+      return eClickAction;
 
   
   PRBool isOnclick = nsCoreUtils::HasListener(content,
