@@ -310,6 +310,7 @@ class nsHtml5Parser : public nsIParser,
     virtual nsresult ProcessBASETag(nsIContent* aContent);
     virtual void UpdateChildCounts();
     virtual nsresult FlushTags();
+    virtual void PostEvaluateScript(nsIScriptElement *aElement);
     using nsContentSink::Notify;
     
     
@@ -343,7 +344,7 @@ class nsHtml5Parser : public nsIParser,
     PRBool HasDecoder() {
       return !!mUnicodeDecoder;
     }
-    void ReadyToCallDidBuildModel() {
+    void ReadyToCallDidBuildModelHtml5() {
       ReadyToCallDidBuildModelImpl(mTerminated);
     }
   private:
@@ -397,6 +398,12 @@ class nsHtml5Parser : public nsIParser,
                       
     nsHtml5TreeBuilder*          mTreeBuilder; 
     nsHtml5Tokenizer*            mTokenizer; 
+#ifdef DEBUG
+    nsHtml5StateSnapshot*        mSnapshot;
+    static PRUint32              sUnsafeDocWrites;
+    static PRUint32              sTokenSafeDocWrites;
+    static PRUint32              sTreeSafeDocWrites;
+#endif
 };
 
 #endif 
