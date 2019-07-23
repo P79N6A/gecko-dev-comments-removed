@@ -236,6 +236,11 @@ struct JSTreeContext {
 
     int sharpSlotBase;
     bool ensureSharpSlots();
+
+    
+    
+    
+    bool skipSpansGenerator(unsigned skip);
 };
 
 #define TCF_COMPILING           0x01 /* JSTreeContext is JSCodeGenerator */
