@@ -224,7 +224,7 @@ nsBaseDragService::InvokeDragSession(nsIDOMNode *aDOMNode,
   
   aDOMNode->GetOwnerDocument(getter_AddRefs(mSourceDocument));
   mSourceNode = aDOMNode;
-  mEndDragPoint = nsPoint(0, 0);
+  mEndDragPoint = nsIntPoint(0, 0);
 
   
   

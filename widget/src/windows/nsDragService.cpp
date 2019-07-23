@@ -358,7 +358,7 @@ nsDragService::StartInvokingDragSession(IDataObject * aDataObj,
   
   POINT pos;
   GetCursorPos(&pos);
-  SetDragEndPoint(nsPoint(pos.x, pos.y));
+  SetDragEndPoint(nsIntPoint(pos.x, pos.y));
   EndDragSession(PR_TRUE);
 
   
