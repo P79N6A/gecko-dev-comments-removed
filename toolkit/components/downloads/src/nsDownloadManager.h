@@ -41,8 +41,6 @@
 
 
 
-
-
 #ifndef downloadmanager___h___
 #define downloadmanager___h___
 
@@ -402,19 +400,6 @@ protected:
 
 
   nsresult OpenWithApplication();
-
-  
-
-
-
-
-
-
-
-
-
-
-  NS_IMETHOD_(PRInt64) GetLastModifiedTime(nsIRequest *aRequest);
 
   nsDownloadManager *mDownloadManager;
   nsCOMPtr<nsIURI> mTarget;
