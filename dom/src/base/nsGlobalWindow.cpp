@@ -992,10 +992,10 @@ nsGlobalWindow::WouldReuseInnerWindow(nsIDocument *aNewDocument)
     return PR_TRUE;
   }
 
-  if (nsContentUtils::GetSecurityManager() &&
-      NS_SUCCEEDED(nsContentUtils::GetSecurityManager()->
-        CheckSameOriginPrincipal(mDoc->NodePrincipal(),
-                                 aNewDocument->NodePrincipal()))) {
+  PRBool equal;
+  if (NS_SUCCEEDED(mDoc->NodePrincipal()->Equals(aNewDocument->NodePrincipal(),
+                                                 &equal)) &&
+      equal) {
     
     return PR_TRUE;
   }
@@ -1329,10 +1329,10 @@ nsGlobalWindow::SetNewDocument(nsIDocument* aDocument,
   
   
   if (!reUseInnerWindow && mNavigator && oldPrincipal) {
-    rv = nsContentUtils::GetSecurityManager()->
-      CheckSameOriginPrincipal(oldPrincipal, aDocument->NodePrincipal());
+    PRBool equal;
+    rv = oldPrincipal->Equals(aDocument->NodePrincipal(), &equal);
 
-    if (NS_FAILED(rv)) {
+    if (NS_FAILED(rv) || !equal) {
       
       
       
@@ -6585,6 +6585,8 @@ nsGlobalWindow::SetTimeoutOrInterval(nsIScriptTimeoutHandler *aHandler,
 
   
   
+  
+  
   rv = ourPrincipal->Subsumes(subjectPrincipal, &subsumes);
   if (NS_FAILED(rv)) {
     timeout->Release();
@@ -6595,13 +6597,7 @@ nsGlobalWindow::SetTimeoutOrInterval(nsIScriptTimeoutHandler *aHandler,
   if (subsumes) {
     timeout->mPrincipal = subjectPrincipal;
   } else {
-    
-    
-
-    rv = nsContentUtils::GetSecurityManager()->
-      CheckSameOriginPrincipal(subjectPrincipal, ourPrincipal);
-    timeout->mPrincipal = NS_SUCCEEDED(rv) ? subjectPrincipal : ourPrincipal;
-    rv = NS_OK;
+    timeout->mPrincipal = ourPrincipal;
   }
 
   PRTime delta = (PRTime)realInterval * PR_USEC_PER_MSEC;
