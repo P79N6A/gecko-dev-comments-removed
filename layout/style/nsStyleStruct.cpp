@@ -452,54 +452,53 @@ nsStyleBorder::Destroy(nsPresContext* aContext) {
 
 nsChangeHint nsStyleBorder::CalcDifference(const nsStyleBorder& aOther) const
 {
-  
-  
-  if (mTwipsPerPixel == aOther.mTwipsPerPixel &&
-      GetActualBorder() == aOther.GetActualBorder() && 
-      mFloatEdge == aOther.mFloatEdge) {
-    
-    
-    
-    
-    
-    NS_FOR_CSS_SIDES(ix) {
-      if (mBorderStyle[ix] != aOther.mBorderStyle[ix] || 
-          mBorderColor[ix] != aOther.mBorderColor[ix]) {
-        return NS_STYLE_HINT_VISUAL;
-      }
-    }
+  nsChangeHint shadowDifference =
+    CalcShadowDifference(mBoxShadow, aOther.mBoxShadow);
 
-    if (mBorderRadius != aOther.mBorderRadius ||
-        !mBorderColors != !aOther.mBorderColors) {
+  
+  
+  if (mTwipsPerPixel != aOther.mTwipsPerPixel ||
+      GetActualBorder() != aOther.GetActualBorder() || 
+      mFloatEdge != aOther.mFloatEdge ||
+      (shadowDifference & nsChangeHint_ReflowFrame))
+    return NS_STYLE_HINT_REFLOW;
+
+  
+  
+  
+  
+  
+  NS_FOR_CSS_SIDES(ix) {
+    if (mBorderStyle[ix] != aOther.mBorderStyle[ix] || 
+        mBorderColor[ix] != aOther.mBorderColor[ix])
       return NS_STYLE_HINT_VISUAL;
-    }
-
-    if (IsBorderImageLoaded() || aOther.IsBorderImageLoaded()) {
-      if (mBorderImage != aOther.mBorderImage ||
-          mBorderImageHFill != aOther.mBorderImageHFill ||
-          mBorderImageVFill != aOther.mBorderImageVFill ||
-          mBorderImageSplit != aOther.mBorderImageSplit) {
-        return NS_STYLE_HINT_VISUAL;
-      }
-      
-      
-    }
-
-    
-    
-    if (mBorderColors) {
-      NS_FOR_CSS_SIDES(ix) {
-        if (!nsBorderColors::Equal(mBorderColors[ix],
-                                   aOther.mBorderColors[ix])) {
-          return NS_STYLE_HINT_VISUAL;
-        }
-      }
-    }
-
-    
-    return CalcShadowDifference(mBoxShadow, aOther.mBoxShadow);
   }
-  return NS_STYLE_HINT_REFLOW;
+
+  if (mBorderRadius != aOther.mBorderRadius ||
+      !mBorderColors != !aOther.mBorderColors)
+    return NS_STYLE_HINT_VISUAL;
+
+  if (IsBorderImageLoaded() || aOther.IsBorderImageLoaded()) {
+    if (mBorderImage != aOther.mBorderImage ||
+        mBorderImageHFill != aOther.mBorderImageHFill ||
+        mBorderImageVFill != aOther.mBorderImageVFill ||
+        mBorderImageSplit != aOther.mBorderImageSplit)
+      return NS_STYLE_HINT_VISUAL;
+    
+    
+  }
+
+  
+  
+  if (mBorderColors) {
+    NS_FOR_CSS_SIDES(ix) {
+      if (!nsBorderColors::Equal(mBorderColors[ix],
+                                 aOther.mBorderColors[ix]))
+        return NS_STYLE_HINT_VISUAL;
+    }
+  }
+
+  return shadowDifference;
 }
 
 #ifdef DEBUG
@@ -1749,6 +1748,8 @@ nsCSSShadowArray::Release()
   }
   return mRefCnt;
 }
+
+
 
 static nsChangeHint
 CalcShadowDifference(nsCSSShadowArray* lhs,
