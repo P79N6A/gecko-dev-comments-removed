@@ -1223,10 +1223,11 @@ js_AddScopeProperty(JSContext *cx, JSScope *scope, jsid id,
 
 
 
-                if (slot == SPROP_INVALID_SLOT &&
-                    !js_AllocSlot(cx, scope->object, &slot)) {
+
+                if (slot != SPROP_INVALID_SLOT)
+                    JS_ASSERT(overwriting);
+                else if (!js_AllocSlot(cx, scope->object, &slot))
                     goto fail_overwrite;
-                }
             }
         }
 
