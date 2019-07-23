@@ -1615,7 +1615,15 @@ nsNavHistory::MigrateV8Up(mozIStorageConnection *aDBConn)
   rv = aDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
       "DROP TRIGGER IF EXISTS moz_historyvisits_afterdelete_v1_trigger"));
   NS_ENSURE_SUCCESS(rv, rv);
+
   
+  rv = mDBConn->ExecuteSimpleSQL(
+    NS_LITERAL_CSTRING("DROP INDEX IF EXISTS moz_places_titleindex"));
+  NS_ENSURE_SUCCESS(rv, rv);
+  rv = mDBConn->ExecuteSimpleSQL(
+    NS_LITERAL_CSTRING("DROP INDEX IF EXISTS moz_annos_item_idindex"));
+  NS_ENSURE_SUCCESS(rv, rv);
+
   return transaction.Commit();
 }
 
@@ -1710,16 +1718,8 @@ nsresult
 nsNavHistory::CleanUpOnQuit()
 {
   
-  mozStorageTransaction idxTransaction(mDBConn, PR_FALSE);
-  nsresult rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
-      "DROP INDEX IF EXISTS moz_places_titleindex"));
-  rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
-      "DROP INDEX IF EXISTS moz_annos_item_idindex"));
-  idxTransaction.Commit();
-
-  
   PRBool oldIndexExists = PR_FALSE;
-  rv = mDBConn->IndexExists(NS_LITERAL_CSTRING("moz_annos_attributesindex"),
+  nsresult rv = mDBConn->IndexExists(NS_LITERAL_CSTRING("moz_annos_attributesindex"),
                             &oldIndexExists);
   NS_ENSURE_SUCCESS(rv, rv);
   if (oldIndexExists) {
