@@ -662,6 +662,8 @@ PluginInstanceChild::SizePluginWindow(int width,
                                       int height)
 {
     if (mPluginWindowHWND) {
+        mPluginSize.x = width;
+        mPluginSize.y = height;
         SetWindowPos(mPluginWindowHWND, NULL, 0, 0, width, height,
                      SWP_NOZORDER | SWP_NOREPOSITION);
     }
@@ -696,6 +698,27 @@ PluginInstanceChild::PluginWindowProc(HWND hWnd,
     }
 
     NS_ASSERTION(self->mPluginWindowHWND == hWnd, "Wrong window!");
+
+    
+    
+    
+    
+    
+    
+    if (message == WM_WINDOWPOSCHANGING) {
+      WINDOWPOS* pos = reinterpret_cast<WINDOWPOS*>(lParam);
+      if (pos && (!(pos->flags & SWP_NOMOVE) || !(pos->flags & SWP_NOSIZE))) {
+        pos->x = pos->y = 0;
+        pos->cx = self->mPluginSize.x;
+        pos->cy = self->mPluginSize.y;
+        LRESULT res = CallWindowProc(self->mPluginWndProc, hWnd, message, wParam,
+                                     lParam);
+        pos->x = pos->y = 0;
+        pos->cx = self->mPluginSize.x;
+        pos->cy = self->mPluginSize.y;
+        return res;
+      }
+    }
 
     
     if (message == WM_MOUSEACTIVATE)
