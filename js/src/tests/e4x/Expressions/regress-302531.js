@@ -5,36 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 gTestfile = 'regress-302531.js';
 
 var summary = "E4X QuoteString should deal with empty string";

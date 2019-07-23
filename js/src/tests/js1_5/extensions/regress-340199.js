@@ -5,36 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var gTestfile = 'regress-340199.js';
 
 var BUGNUMBER = 340199;

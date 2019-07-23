@@ -10,36 +10,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var gCheckInterval = 1000;
 var gCurrentTestId;
 var gReport;
