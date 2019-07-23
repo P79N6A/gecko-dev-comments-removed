@@ -70,11 +70,11 @@ pref("extensions.hideInstallButton", true);
 
 
 pref("extensions.getAddons.showPane", true);
-pref("extensions.getAddons.browseAddons", "https://addons.mozilla.org/%LOCALE%/%APP%");
+pref("extensions.getAddons.browseAddons", "https://%LOCALE%.add-ons.mozilla.com/%LOCALE%/%APP%");
 pref("extensions.getAddons.maxResults", 5);
-pref("extensions.getAddons.recommended.browseURL", "https://addons.mozilla.org/%LOCALE%/%APP%/recommended");
+pref("extensions.getAddons.recommended.browseURL", "https://%LOCALE%.add-ons.mozilla.com/%LOCALE%/%APP%/recommended");
 pref("extensions.getAddons.recommended.url", "https://services.addons.mozilla.org/%LOCALE%/%APP%/api/%API_VERSION%/list/featured/all/10/%OS%/%VERSION%");
-pref("extensions.getAddons.search.browseURL", "https://addons.mozilla.org/%LOCALE%/%APP%/search?q=%TERMS%");
+pref("extensions.getAddons.search.browseURL", "https://%LOCALE%.add-ons.mozilla.com/%LOCALE%/%APP%/search?q=%TERMS%");
 pref("extensions.getAddons.search.url", "https://services.addons.mozilla.org/%LOCALE%/%APP%/api/%API_VERSION%/search/%TERMS%/all/10/%OS%/%VERSION%");
 
 
@@ -87,15 +87,7 @@ pref("extensions.blocklist.url", "https://addons.mozilla.org/blocklist/3/%APP_ID
 pref("extensions.blocklist.detailsURL", "https://www.mozilla.com/%LOCALE%/blocklist/");
 
 
-pref("browser.dictionaries.download.url", "https://addons.mozilla.org/%LOCALE%/%APP%/dictionaries/");
-
-
-
-
-pref("app.update.timer", 600000);
-
-
-
+pref("browser.dictionaries.download.url", "https://%LOCALE%.add-ons.mozilla.com/%LOCALE%/firefox/%VERSION%/dictionaries/");
 
 
 
@@ -136,6 +128,9 @@ pref("app.update.url", "https://aus2.mozilla.org/update/3/%PRODUCT%/%VERSION%/%B
 pref("app.update.nagTimer.restart", 86400);
 
 
+
+pref("app.update.timer", 600000);
+
 pref("app.update.promptWaitTime", 43200);
 
 pref("app.update.idletime", 60);
@@ -160,23 +155,21 @@ pref("app.update.incompatible.mode", 0);
 
 
 
+
 pref("extensions.update.enabled", true);
-pref("extensions.update.url", "https://versioncheck.addons.mozilla.org/update/VersionCheck.php?reqVersion=%REQ_VERSION%&id=%ITEM_ID%&version=%ITEM_VERSION%&maxAppVersion=%ITEM_MAXAPPVERSION%&status=%ITEM_STATUS%&appID=%APP_ID%&appVersion=%APP_VERSION%&appOS=%APP_OS%&appABI=%APP_ABI%&locale=%APP_LOCALE%&currentAppVersion=%CURRENT_APP_VERSION%&updateType=%UPDATE_TYPE%");
+pref("extensions.update.url", "https://versioncheck.addons.mozilla.org/update/VersionCheck.php?reqVersion=%REQ_VERSION%&id=%ITEM_ID%&version=%ITEM_VERSION%&maxAppVersion=%ITEM_MAXAPPVERSION%&status=%ITEM_STATUS%&appID=%APP_ID%&appVersion=%APP_VERSION%&appOS=%APP_OS%&appABI=%APP_ABI%&locale=%APP_LOCALE%&currentAppVersion=%CURRENT_APP_VERSION%");
 pref("extensions.update.interval", 86400);  
                                             
 
-pref("extensions.getMoreThemesURL", "https://addons.mozilla.org/%LOCALE%/%APP%/getpersonas");
+pref("extensions.getMoreExtensionsURL", "https://%LOCALE%.add-ons.mozilla.com/%LOCALE%/%APP%/%VERSION%/extensions/");
+pref("extensions.getMoreThemesURL", "https://%LOCALE%.add-ons.mozilla.com/%LOCALE%/%APP%/%VERSION%/themes/");
+pref("extensions.getMorePluginsURL", "https://%LOCALE%.add-ons.mozilla.com/%LOCALE%/%APP%/%VERSION%/plugins/");
 pref("extensions.dss.enabled", false);          
 pref("extensions.dss.switchPending", false);    
                                                 
 
-pref("extensions.{972ce4c6-7e08-4474-a285-3208198ce6fd}.name", "chrome://browser/locale/browser.properties");
-pref("extensions.{972ce4c6-7e08-4474-a285-3208198ce6fd}.description", "chrome://browser/locale/browser.properties");
-
-pref("xpinstall.whitelist.add", "addons.mozilla.org");
-pref("xpinstall.whitelist.add.36", "getpersonas.com");
-
-pref("lightweightThemes.update.enabled", true);
+pref("xpinstall.whitelist.add", "update.mozilla.org");
+pref("xpinstall.whitelist.add.103", "addons.mozilla.org");
 
 pref("keyword.enabled", true);
 pref("keyword.URL", "chrome://browser-region/locale/region.properties");
@@ -232,6 +225,11 @@ pref("browser.urlbar.maxRichResults", 12);
 
 
 
+pref("browser.urlbar.search.chunkSize", 1000);
+pref("browser.urlbar.search.timeout", 100);
+
+
+
 pref("browser.urlbar.delay", 50);
 
 
@@ -262,7 +260,8 @@ pref("browser.download.useDownloadDir", true);
 
 #ifdef WINCE
 pref("browser.download.folderList", 2);
-pref("browser.download.dir", "\\Storage Card");
+
+pref("browser.download.dir", "\\Hard Disk");
 #else
 pref("browser.download.folderList", 1);
 #endif
@@ -279,7 +278,7 @@ pref("browser.download.manager.scanWhenDone", true);
 pref("browser.download.manager.resumeOnWakeDelay", 10000);
 
 
-pref("browser.search.searchEnginesURL",      "https://addons.mozilla.org/%LOCALE%/%APP%/search-engines/");
+pref("browser.search.searchEnginesURL",      "https://%LOCALE%.add-ons.mozilla.com/%LOCALE%/firefox/%VERSION%/search-engines/");
 
 
 pref("browser.search.defaultenginename",      "chrome://browser-region/locale/region.properties");
@@ -310,6 +309,8 @@ pref("browser.microsummary.updateGenerators", true);
 
 pref("browser.search.suggest.enabled", true);
 
+pref("browser.history.grouping", "day");
+pref("browser.history.showSessions", false);
 pref("browser.sessionhistory.max_entries", 50);
 pref("browser.history_expire_days", 180);
 pref("browser.history_expire_days_min", 90);
@@ -331,11 +332,11 @@ pref("browser.tabs.autoHide", false);
 pref("browser.tabs.autoHide", true);
 #endif
 pref("browser.tabs.closeWindowWithLastTab", true);
-pref("browser.tabs.insertRelatedAfterCurrent", true);
 pref("browser.tabs.warnOnClose", true);
 pref("browser.tabs.warnOnOpen", true);
 pref("browser.tabs.maxOpenBeforeWarn", 15);
 pref("browser.tabs.loadInBackground", true);
+pref("browser.tabs.loadFolderAndReplace", true);
 pref("browser.tabs.opentabfor.middleclick", true);
 pref("browser.tabs.loadDivertedInBackground", false);
 pref("browser.tabs.loadBookmarksInBackground", false);
@@ -357,9 +358,12 @@ pref("browser.tabs.closeButtons", 1);
 
 pref("browser.tabs.selectOwnerOnClose", true);
 
-pref("browser.allTabs.previews", false);
-pref("browser.ctrlTab.previews", false);
+pref("browser.ctrlTab.previews", true);
 pref("browser.ctrlTab.recentlyUsedLimit", 7);
+
+
+pref("browser.bookmarks.sort.direction", "descending");
+pref("browser.bookmarks.sort.resource", "rdf:http://home.netscape.com/NC-rdf#Name");
 
 
 
@@ -370,7 +374,7 @@ pref("browser.bookmarks.autoExportHTML",          false);
 
 
 
-pref("browser.bookmarks.max_backups",             10);
+pref("browser.bookmarks.max_backups",             5);
 
 
 pref("dom.disable_open_during_load",              true);
@@ -563,10 +567,6 @@ pref("pfs.datasource.url", "https://pfs.mozilla.org/plugins/PluginFinderService.
 
 
 pref("plugins.hide_infobar_for_missing_plugin", false);
-pref("plugins.hide_infobar_for_outdated_plugin", false);
-
-pref("plugins.update.url", "https://www.mozilla.com/%LOCALE%/plugincheck/");
-pref("plugins.update.notifyUser", false);
 
 #ifdef XP_WIN
 pref("browser.preferences.instantApply", false);
@@ -706,8 +706,8 @@ pref("browser.safebrowsing.provider.0.reportMalwareURL", "http://{moz:locale}.ma
 pref("browser.safebrowsing.provider.0.reportMalwareErrorURL", "http://{moz:locale}.malware-error.mozilla.com/?hl={moz:locale}");
 
 
-pref("browser.safebrowsing.warning.infoURL", "http://www.mozilla.com/%LOCALE%/%APP%/phishing-protection/");
-pref("browser.geolocation.warning.infoURL", "http://www.mozilla.com/%LOCALE%/%APP%/geolocation/");
+pref("browser.safebrowsing.warning.infoURL", "http://%LOCALE%.www.mozilla.com/%LOCALE%/firefox/phishing-protection/");
+pref("browser.geolocation.warning.infoURL", "http://%LOCALE%.www.mozilla.com/%LOCALE%/firefox/geolocation/");
 
 
 
@@ -752,11 +752,7 @@ pref("browser.rights.3.shown", false);
 pref("browser.rights.override", true);
 #endif
 
-#ifdef WINCE
-pref("browser.sessionstore.resume_from_crash", false);
-#else
 pref("browser.sessionstore.resume_from_crash", true);
-#endif
 pref("browser.sessionstore.resume_session_once", false);
 
 
@@ -863,7 +859,10 @@ pref("geo.wifi.uri", "https://www.google.com/loc/json");
 #ifdef WINCE
 
 
-pref("browser.urlbar.delay", 250);
+
+pref("browser.urlbar.search.chunkSize", 100);
+pref("browser.urlbar.search.timeout", 500);
+pref("browser.urlbar.delay", 1000);
 
 
 pref("browser.safebrowsing.enabled", false);
@@ -886,9 +885,6 @@ pref("content.sink.interactive_time", 750000);
 pref("content.sink.initial_perf_time", 500000); 
 pref("content.sink.enable_perf_mode", 0); 
 
-
-pref("browser.sessionstore.interval", 60000);
-
 #endif 
 
 
@@ -898,15 +894,5 @@ pref("toolbar.customization.usesheet", true);
 pref("toolbar.customization.usesheet", false);
 #endif
 
-#ifdef XP_WIN
-#ifndef WINCE
-pref("browser.taskbar.previews.enable", true);
-pref("browser.taskbar.previews.max", 20);
-pref("browser.taskbar.previews.cachetime", 20);
-pref("browser.taskbar.lists.enabled", true);
-pref("browser.taskbar.lists.frequent.enabled", true);
-pref("browser.taskbar.lists.recent.enabled", false);
-pref("browser.taskbar.lists.maxListItemCount", 7);
-pref("browser.taskbar.lists.tasks.enabled", true);
-#endif
-#endif
+pref("dom.ipc.plugins.enabled", false);
+pref("dom.ipc.tabs.enabled", false);
