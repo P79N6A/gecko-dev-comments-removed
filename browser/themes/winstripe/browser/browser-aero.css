@@ -13,7 +13,7 @@
 
 
 .ac-url-text:-moz-system-metric(windows-default-theme) {
-  color: #0055bb;
+  color: -moz-nativehyperlinktext;
 }
 
 
