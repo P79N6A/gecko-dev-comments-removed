@@ -1256,28 +1256,28 @@ nsLayoutUtils::ComputeRepaintRegionForCopy(nsIFrame* aRootFrame,
   
   
   
-  nsRect rect;
-  rect.UnionRect(aUpdateRect, aUpdateRect - aDelta);
   nsDisplayListBuilder builder(aRootFrame, PR_FALSE, PR_TRUE);
+  
   
   
   nsRegion visibleRegionOfMovingContent;
   builder.SetMovingFrame(aMovingFrame, aDelta, &visibleRegionOfMovingContent);
   nsDisplayList list;
 
-  builder.EnterPresShell(aRootFrame, rect);
+  builder.EnterPresShell(aRootFrame, aUpdateRect);
 
   nsresult rv =
-    aRootFrame->BuildDisplayListForStackingContext(&builder, rect, &list);
+    aRootFrame->BuildDisplayListForStackingContext(&builder, aUpdateRect, &list);
 
-  builder.LeavePresShell(aRootFrame, rect);
+  builder.LeavePresShell(aRootFrame, aUpdateRect);
   NS_ENSURE_SUCCESS(rv, rv);
 
 #ifdef DEBUG
   if (gDumpRepaintRegionForCopy) {
     fprintf(stderr,
             "Repaint region for copy --- before optimization (area %d,%d,%d,%d, frame %p):\n",
-            rect.x, rect.y, rect.width, rect.height, (void*)aMovingFrame);
+            aUpdateRect.x, aUpdateRect.y, aUpdateRect.width, aUpdateRect.height,
+            (void*)aMovingFrame);
     nsFrame::PrintDisplayList(&builder, list);
   }
 #endif
@@ -1285,7 +1285,6 @@ nsLayoutUtils::ComputeRepaintRegionForCopy(nsIFrame* aRootFrame,
   
   
   nsRegion visibleRegion(aUpdateRect);
-  visibleRegion.Or(visibleRegion, aUpdateRect - aDelta);
   list.OptimizeVisibility(&builder, &visibleRegion);
 
 #ifdef DEBUG
@@ -1294,6 +1293,17 @@ nsLayoutUtils::ComputeRepaintRegionForCopy(nsIFrame* aRootFrame,
     nsFrame::PrintDisplayList(&builder, list);
   }
 #endif
+
+  
+  
+  
+  
+  
+  
+  
+  nsRegion scrolledOutOfView;
+  scrolledOutOfView.Sub(aUpdateRect, aUpdateRect - aDelta);
+  visibleRegionOfMovingContent.Or(visibleRegionOfMovingContent, scrolledOutOfView);
 
   aRepaintRegion->SetEmpty();
   
@@ -1305,7 +1315,7 @@ nsLayoutUtils::ComputeRepaintRegionForCopy(nsIFrame* aRootFrame,
   
   
   
-  AddItemsToRegion(&builder, &list, aUpdateRect, rect, aDelta, aRepaintRegion);
+  AddItemsToRegion(&builder, &list, aUpdateRect, aUpdateRect, aDelta, aRepaintRegion);
   
   list.DeleteAll();
 
