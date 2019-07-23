@@ -3591,7 +3591,11 @@ nsContentUtils::CreateContextualFragment(nsIDOMNode* aContextNode,
   nsCOMPtr<nsIHTMLDocument> htmlDoc(do_QueryInterface(document));
   PRBool bHTML = htmlDoc && !bCaseSensitive;
 
-  if (bHTML && nsContentUtils::GetBoolPref("html5.enable", PR_TRUE)) {
+  nsCOMPtr<nsIContent> contextAsContent = do_QueryInterface(aContextNode);
+
+  if (bHTML && contextAsContent && nsContentUtils::GetBoolPref("html5.enable", PR_TRUE)) {
+    
+  
     
     
     nsCOMPtr<nsIParser> parser = document->GetFragmentParser();
@@ -3610,10 +3614,7 @@ nsContentUtils::CreateContextualFragment(nsIDOMNode* aContextNode,
     nsCOMPtr<nsIDOMDocumentFragment> frag;
     rv = NS_NewDocumentFragment(getter_AddRefs(frag), document->NodeInfoManager());
     NS_ENSURE_SUCCESS(rv, rv);
-    
-    nsCOMPtr<nsIContent> contextAsContent = do_QueryInterface(aContextNode);
-    NS_ASSERTION(contextAsContent, "Context node did not QI to nsIContent");
-    
+        
     parser->ParseFragment(aFragment, 
                           frag, 
                           contextAsContent->Tag(), 
