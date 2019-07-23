@@ -255,8 +255,6 @@ PlacesTreeView.prototype = {
     return this._rows[aRow] = parent.getChild(aRow - parentRow - 1);
   },
 
-  _rootNode: null,
-
   
 
 
@@ -284,9 +282,8 @@ PlacesTreeView.prototype = {
     
     let cc = aContainer.childCount;
     let newElements = new Array(cc);
-    this._rows =
-      this._rows.slice(0, aFirstChildRow).concat(newElements)
-          .concat(this._rows.slice(aFirstChildRow, this._rows.length));
+    this._rows = this._rows.splice(0, aFirstChildRow)
+                     .concat(newElements, this._rows);
 
     if (this._isPlainContainer(aContainer))
       return cc;
@@ -295,12 +292,12 @@ PlacesTreeView.prototype = {
     const trueLiteral = PlacesUIUtils.RDF.GetLiteral("true");
     let sortingMode = this._result.sortingMode;
 
-    let rowsInsertedCounter = 0;
+    let rowsInserted = 0;
     for (let i = 0; i < cc; i++) {
       let curChild = aContainer.getChild(i);
       let curChildType = curChild.type;
 
-      let row = aFirstChildRow + rowsInsertedCounter;
+      let row = aFirstChildRow + rowsInserted;
 
       
       if (curChildType == Ci.nsINavHistoryResultNode.RESULT_TYPE_SEPARATOR) {
@@ -314,7 +311,7 @@ PlacesTreeView.prototype = {
       }
 
       this._rows[row] = curChild;
-      rowsInsertedCounter++;
+      rowsInserted++;
 
       
       if (!this._flatList &&
@@ -327,12 +324,12 @@ PlacesTreeView.prototype = {
         if (isopen != curChild.containerOpen)
           aToOpen.push(curChild);
         else if (curChild.containerOpen && curChild.childCount > 0)
-          rowsAddedCounter += this._buildVisibleSection(curChild, aToOpen,
-                                                        row + 1);
+          rowsInserted += this._buildVisibleSection(curChild, aToOpen,
+                                                    row + 1);
       }
     }
 
-    return rowsInsertedCounter;
+    return rowsInserted;
   },
 
   
@@ -344,8 +341,8 @@ PlacesTreeView.prototype = {
     let node = this._rows[aNodeRow];
 
     
-    if (node === undefined ||
-        !(node instanceof Ci.nsINavHistoryContainerResultNode))
+    
+    if (!(node instanceof Ci.nsINavHistoryContainerResultNode))
       return 1;
 
     let outerLevel = node.indentLevel;
@@ -417,10 +414,14 @@ PlacesTreeView.prototype = {
       
       
       
-      if (parent.containerOpen)
-        return this._getRowForNode(aOldNode, true);
+      
+      let ancestors = PlacesUtils.nodeAncestors(aOldNode);
+      for (let ancestor in ancestors) {
+        if (!ancestor.containerOpen)
+          return -1;
+      }
 
-      return -1;
+      return this._getRowForNode(aOldNode, true);
     }
 
     
@@ -472,7 +473,7 @@ PlacesTreeView.prototype = {
 
     
     
-    if (aNodesInfo.length == 1 && selection.getRangeCount() == 0) {
+    if (aNodesInfo.length == 1 && selection.count == 0) {
       let row = Math.min(aNodesInfo[0].oldRow, this._rows.length - 1);
       selection.rangedSelect(row, row, true);
       if (aNodesInfo[0].wasVisible && scrollToRow == -1)
@@ -1105,7 +1106,7 @@ PlacesTreeView.prototype = {
   isContainer: function PTV_isContainer(aRow) {
     
     let node = this._rows[aRow];
-    if (!node)
+    if (node === undefined)
       return false;
 
     if (PlacesUtils.nodeIsContainer(node)) {
@@ -1568,6 +1569,7 @@ function PlacesTreeView(aFlatList, aOnOpenFlatContainer) {
   this._tree = null;
   this._result = null;
   this._selection = null;
+  this._rootNode = null;
   this._rows = [];
   this._flatList = aFlatList;
   this._openContainerCallback = aOnOpenFlatContainer;

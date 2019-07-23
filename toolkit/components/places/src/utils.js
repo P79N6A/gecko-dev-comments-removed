@@ -271,6 +271,19 @@ var PlacesUtils = {
 
 
 
+  nodeAncestors: function PU_nodeAncestors(aNode) {
+    let node = aNode.parent;
+    while (node) {
+      yield node;
+      node = node.parent;
+    }
+  },
+
+  
+
+
+
+
 
 
 
