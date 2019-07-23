@@ -998,21 +998,30 @@ function BrowserStartup() {
     
     
     if (openerSidebarBox && !openerSidebarBox.hidden) {
-      let sidebarBox = document.getElementById("sidebar-box");
-      let sidebarTitle = document.getElementById("sidebar-title");
-      sidebarTitle.setAttribute("value", window.opener.document.getElementById("sidebar-title").getAttribute("value"));
-      sidebarBox.setAttribute("width", openerSidebarBox.boxObject.width);
       let sidebarCmd = openerSidebarBox.getAttribute("sidebarcommand");
-      sidebarBox.setAttribute("sidebarcommand", sidebarCmd);
-      
-      
-      
-      sidebarBox.setAttribute("src", window.opener.document.getElementById("sidebar").getAttribute("src"));
-      mustLoadSidebar = true;
+      let sidebarCmdElem = document.getElementById(sidebarCmd);
 
-      sidebarBox.hidden = false;
-      document.getElementById("sidebar-splitter").hidden = false;
-      document.getElementById(sidebarCmd).setAttribute("checked", "true");
+      
+      if (sidebarCmdElem) {
+        let sidebarBox = document.getElementById("sidebar-box");
+        let sidebarTitle = document.getElementById("sidebar-title");
+
+        sidebarTitle.setAttribute(
+          "value", window.opener.document.getElementById("sidebar-title").getAttribute("value"));
+        sidebarBox.setAttribute("width", openerSidebarBox.boxObject.width);
+
+        sidebarBox.setAttribute("sidebarcommand", sidebarCmd);
+        
+        
+        
+        sidebarBox.setAttribute(
+          "src", window.opener.document.getElementById("sidebar").getAttribute("src"));
+        mustLoadSidebar = true;
+
+        sidebarBox.hidden = false;
+        document.getElementById("sidebar-splitter").hidden = false;
+        sidebarCmdElem.setAttribute("checked", "true");
+      }
     }
   }
   else {
