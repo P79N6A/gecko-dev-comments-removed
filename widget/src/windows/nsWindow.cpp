@@ -4648,14 +4648,15 @@ PRBool nsWindow::ProcessMessage(UINT msg, WPARAM wParam, LPARAM lParam, LRESULT 
 
 #if defined(WINCE_HAVE_SOFTKB)
       {
+        
+        
+        
       
-      
-      
-      
-      
-      HIMC hC = ImmGetContext(mWnd);
-      
-      ImmSetOpenStatus(hC, TRUE);
+        
+        HIMC hC = ImmGetContext(mWnd);
+        
+        ImmSetOpenStatus(hC, TRUE);
+        ImmReleaseContext(mWnd, hC);
       }
 #endif
       break;
@@ -4665,6 +4666,7 @@ PRBool nsWindow::ProcessMessage(UINT msg, WPARAM wParam, LPARAM lParam, LRESULT 
       {
         HIMC hC = ImmGetContext(mWnd);
         ImmSetOpenStatus(hC, FALSE);
+        ImmReleaseContext(mWnd, hC);
       }
 #endif
       WCHAR className[kMaxClassNameLength];
