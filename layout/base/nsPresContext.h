@@ -37,6 +37,7 @@
 
 
 
+
 #ifndef nsPresContext_h___
 #define nsPresContext_h___
 
@@ -208,6 +209,14 @@ public:
 
   void RebuildAllStyleData(nsChangeHint aExtraHint);
   void PostRebuildAllStyleDataEvent();
+
+  void MediaFeatureValuesChanged(PRBool aCallerWillRebuildStyleData);
+  void PostMediaFeatureValuesChangedEvent();
+  NS_HIDDEN_(void) HandleMediaFeatureValuesChangedEvent();
+  void FlushPendingMediaFeatureValuesChanged() {
+    if (mPendingMediaFeatureValuesChanged)
+      MediaFeatureValuesChanged(PR_FALSE);
+  }
 
   
 
@@ -421,7 +430,10 @@ public:
 
 
 
-  void SetVisibleArea(const nsRect& r) { mVisibleArea = r; }
+  void SetVisibleArea(const nsRect& r) {
+    mVisibleArea = r;
+    PostMediaFeatureValuesChangedEvent();
+  }
 
   
 
@@ -889,6 +901,7 @@ protected:
   unsigned              mPrefScrollbarSide : 2;
   unsigned              mPendingSysColorChanged : 1;
   unsigned              mPendingThemeChanged : 1;
+  unsigned              mPendingMediaFeatureValuesChanged : 1;
   unsigned              mPrefChangePendingNeedsReflow : 1;
   unsigned              mRenderedPositionVaryingContent : 1;
 

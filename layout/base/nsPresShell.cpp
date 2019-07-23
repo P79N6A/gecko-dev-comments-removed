@@ -4555,6 +4555,8 @@ PresShell::DoFlushPendingNotifications(mozFlushType aType,
     
     
     if (!mIsDestroying) {
+      mPresContext->FlushPendingMediaFeatureValuesChanged();
+
       mFrameConstructor->ProcessPendingRestyles();
     }
 

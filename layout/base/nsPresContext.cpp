@@ -37,6 +37,7 @@
 
 
 
+
 #include "nsCOMPtr.h"
 #include "nsPresContext.h"
 #include "nsIPresShell.h"
@@ -728,6 +729,7 @@ nsPresContext::PreferenceChanged(const char* aPrefName)
       nscoord height = NSToCoordRound(oldHeightDevPixels*AppUnitsPerDevPixel());
       vm->SetWindowDimensions(width, height);
 
+      MediaFeatureValuesChanged(PR_TRUE);
       RebuildAllStyleData(NS_STYLE_HINT_REFLOW);
     }
     return;
@@ -1163,6 +1165,7 @@ nsPresContext::SetFullZoom(float aZoom)
   mFullZoom = aZoom;
   GetViewManager()->SetWindowDimensions(NSToCoordRound(oldWidthDevPixels * AppUnitsPerDevPixel()),
                                         NSToCoordRound(oldHeightDevPixels * AppUnitsPerDevPixel()));
+  MediaFeatureValuesChanged(PR_TRUE);
   RebuildAllStyleData(NS_STYLE_HINT_REFLOW);
 
   mSupressResizeReflow = PR_FALSE;
@@ -1443,6 +1446,39 @@ nsPresContext::PostRebuildAllStyleDataEvent()
     return;
   }
   mShell->FrameConstructor()->PostRebuildAllStyleDataEvent();
+}
+
+void
+nsPresContext::MediaFeatureValuesChanged(PRBool aCallerWillRebuildStyleData)
+{
+  mPendingMediaFeatureValuesChanged = PR_FALSE;
+  if (mShell->StyleSet()->MediumFeaturesChanged(this) &&
+      !aCallerWillRebuildStyleData) {
+    RebuildAllStyleData(nsChangeHint(0));
+  }
+}
+
+void
+nsPresContext::PostMediaFeatureValuesChangedEvent()
+{
+  if (!mPendingMediaFeatureValuesChanged) {
+    nsCOMPtr<nsIRunnable> ev =
+      new nsRunnableMethod<nsPresContext>(this,
+                         &nsPresContext::HandleMediaFeatureValuesChangedEvent);
+    if (NS_SUCCEEDED(NS_DispatchToCurrentThread(ev))) {
+      mPendingMediaFeatureValuesChanged = PR_TRUE;
+    }
+  }
+}
+
+void
+nsPresContext::HandleMediaFeatureValuesChangedEvent()
+{
+  
+  
+  if (mPendingMediaFeatureValuesChanged && mShell) {
+    MediaFeatureValuesChanged(PR_FALSE);
+  }
 }
 
 void
