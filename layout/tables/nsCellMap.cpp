@@ -1474,7 +1474,9 @@ nsCellMap::AppendCell(nsTableCellMap&   aMap,
     CellData* data = GetDataAt(aRowIndex, startColIndex);
     if (!data) 
       break;
-    if (data->IsDead()) {
+    
+    
+    if (data->IsDead() && aCellFrame) {
       origData = data;
       break; 
     }
