@@ -179,6 +179,14 @@ function eventQueue(aEventType)
 
   
 
+
+
+  this.onFinish = function eventQueue_finish()
+  {
+  }
+
+  
+
   
 
 
@@ -231,6 +239,7 @@ function eventQueue(aEventType)
       gA11yEventApplicantsCount--;
       listenA11yEvents(false);
 
+      this.onFinish();
       SimpleTest.finish();
       return;
     }
@@ -326,10 +335,16 @@ function eventQueue(aEventType)
 
       for (var idx = 0; idx < this.mEventSeq.length; idx++) {
         var eventType = this.getEventType(idx);
-        if (typeof eventType == "string") 
-          document.addEventListener(eventType, this, this.getEventPhase(idx));
-        else 
+        if (typeof eventType == "string") {
+          
+          var target = this.getEventTarget(idx);
+          var phase = this.getEventPhase(idx);
+          target.ownerDocument.addEventListener(eventType, this, phase);
+
+        } else {
+          
           addA11yEventListener(eventType, this);
+        }
       }
     }
   }
@@ -339,10 +354,16 @@ function eventQueue(aEventType)
     if (this.mEventSeq) {
       for (var idx = 0; idx < this.mEventSeq.length; idx++) {
         var eventType = this.getEventType(idx);
-        if (typeof eventType == "string") 
-          document.removeEventListener(eventType, this, this.getEventPhase(idx));
-        else 
+        if (typeof eventType == "string") {
+          
+          var target = this.getEventTarget(idx);
+          var phase = this.getEventPhase(idx);
+          target.ownerDocument.removeEventListener(eventType, this, phase);
+
+        } else {
+          
           removeA11yEventListener(eventType, this);
+        }
       }
 
       this.mEventSeq = null;
