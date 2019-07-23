@@ -170,24 +170,6 @@ public:
   static void LoadStart();
   static void LoadEnd();
 
-  
-  
-  static void CC();
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  static void MaybeCC(PRBool aHigherProbability);
-
 protected:
   nsresult InitializeExternalClasses();
   nsresult InitializeLiveConnectClasses(JSObject *aGlobalObj);
