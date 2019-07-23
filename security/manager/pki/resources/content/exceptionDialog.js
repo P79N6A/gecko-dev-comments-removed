@@ -154,7 +154,9 @@ function checkCert() {
     
     
     
-    Components.utils.reportError(e);
+    Components.utils.reportError("Attempted to connect to a site with a bad certificate in the add exception dialog. " +
+                                 "This results in a (mostly harmless) exception being thrown. " +
+                                 "Logged for information purposes only: " + e);
   } finally {
     gChecking = false;
   }
