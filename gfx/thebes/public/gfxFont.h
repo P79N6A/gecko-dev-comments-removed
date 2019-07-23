@@ -454,7 +454,10 @@ public:
         --mRefCnt;
         NS_LOG_RELEASE(this, mRefCnt, "gfxFont");
         if (mRefCnt == 0) {
-            NotifyReleased();
+            
+            
+            gfxFontCache::GetCache()->NotifyReleased(this);
+            return 0;
         }
         return mRefCnt;
     }
@@ -464,21 +467,8 @@ public:
 protected:
     nsAutoRefCnt mRefCnt;
 
-    void NotifyReleased() {
-        gfxFontCache *cache = gfxFontCache::GetCache();
-        if (cache) {
-            
-            
-            cache->NotifyReleased(this);
-        } else {
-            
-            delete this;
-        }
-    }
-
-    gfxFont(gfxFontEntry *aFontEntry, const gfxFontStyle *aFontStyle);
-
 public:
+    gfxFont(gfxFontEntry *aFontEntry, const gfxFontStyle *aFontStyle);
     virtual ~gfxFont();
 
     const nsString& GetName() const { return mFontEntry->Name(); }
@@ -647,6 +637,7 @@ public:
 protected:
     nsRefPtr<gfxFontEntry> mFontEntry;
 
+    
     PRPackedBool               mIsValid;
     nsExpirationState          mExpirationState;
     gfxFontStyle               mStyle;
@@ -1489,10 +1480,9 @@ private:
 };
 
 class THEBES_API gfxFontGroup : public gfxTextRunFactory {
-protected:
+public:
     gfxFontGroup(const nsAString& aFamilies, const gfxFontStyle *aStyle);
 
-public:
     virtual ~gfxFontGroup() {
         mFonts.Clear();
     }
