@@ -1786,7 +1786,8 @@ nsNavHistory::LoadPrefs(PRBool aInitializing)
   mPrefBranch->GetIntPref(PREF_BROWSER_HISTORY_EXPIRE_DAYS_MAX, &mExpireDaysMax);
   mPrefBranch->GetIntPref(PREF_BROWSER_HISTORY_EXPIRE_DAYS_MIN, &mExpireDaysMin);
   
-  if (mExpireDaysMax < mExpireDaysMin)
+  
+  if (mExpireDaysMax && mExpireDaysMax < mExpireDaysMin)
     mExpireDaysMax = mExpireDaysMin;
   if (NS_FAILED(mPrefBranch->GetIntPref(PREF_BROWSER_HISTORY_EXPIRE_SITES,
                                         &mExpireSites)))

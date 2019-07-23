@@ -688,5 +688,101 @@ function checkExpireNeitherOver() {
     do_throw(ex);
   }
   dump("done incremental expiration test 4\n");
+  startExpireHistoryDisabled();
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function startExpireHistoryDisabled() {
+  dump("startExpireHistoryDisabled()\n");
+  
+  histsvc.removeAllPages();
+  observer.expiredURI = null;
+
+  
+  histsvc.addVisit(testURI, Date.now() * 1000, null, histsvc.TRANSITION_TYPED, false, 0);
+  annosvc.setPageAnnotation(testURI, testAnnoName, testAnnoVal, 0, annosvc.EXPIRE_WITH_HISTORY);
+
+  
+  prefs.setIntPref("browser.history_expire_days", 0);
+
+  
+  do_timeout(3600, "checkExpireHistoryDisabled();"); 
+}
+
+function checkExpireHistoryDisabled() {
+  dump("checkExpireHistoryDisabled()\n");
+  try {
+    do_check_eq(observer.expiredURI, testURI.spec);
+    do_check_eq(annosvc.getPageAnnotationNames(testURI, {}).length, 0);
+  } catch(ex) {
+    do_throw(ex);
+  }
+  dump("done incremental expiration test 5\n");
+  startExpireBadPrefs();
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function startExpireBadPrefs() {
+  dump("startExpireBadPrefs()\n");
+  
+  histsvc.removeAllPages();
+  observer.expiredURI = null;
+
+  
+  var age = (Date.now() - (86400 * 10 * 1000)) * 1000;
+  histsvc.addVisit(testURI, age, null, histsvc.TRANSITION_TYPED, false, 0);
+  annosvc.setPageAnnotation(testURI, testAnnoName, testAnnoVal, 0, annosvc.EXPIRE_WITH_HISTORY);
+
+  
+  prefs.setIntPref("browser.history_expire_days_min", 20);
+  
+  prefs.setIntPref("browser.history_expire_days", 1);
+
+  
+  do_timeout(3600, "checkExpireBadPrefs();"); 
+}
+
+function checkExpireBadPrefs() {
+  dump("checkExpireBadPrefs()\n");
+  try {
+    do_check_eq(observer.expiredURI, null);
+    do_check_eq(annosvc.getPageAnnotationNames(testURI, {}).length, 1);
+  } catch(ex) {
+    do_throw(ex);
+  }
+  dump("done incremental expiration test 6\n");
   do_test_finished();
 }
