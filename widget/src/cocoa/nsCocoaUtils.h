@@ -142,8 +142,7 @@ class nsCocoaUtils
 
 
 
-
-  static nsresult CreateCGImageFromImageContainer(imgIContainer *aImage, PRUint32 aWhichFrame, CGImageRef *aResult);
+  static nsresult CreateCGImageFromSurface(gfxImageSurface *aFrame, CGImageRef *aResult);
   
   
 
