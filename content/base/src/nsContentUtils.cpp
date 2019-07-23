@@ -190,6 +190,7 @@ static NS_DEFINE_CID(kXTFServiceCID, NS_XTFSERVICE_CID);
 #include "jsarray.h"
 #include "jsdate.h"
 #include "jsregexp.h"
+#include "jstypedarray.h"
 
 const char kLoadAsData[] = "loadAsData";
 
@@ -5653,6 +5654,29 @@ CloneSimpleValues(JSContext* cx,
   }
 
   
+  if (js_IsTypedArray(obj)) {
+    js::TypedArray* src = js::TypedArray::fromJSObject(obj);
+    JSObject* newTypedArray = js_CreateTypedArrayWithArray(cx, src->type, obj);
+    if (!newTypedArray) {
+      return NS_ERROR_FAILURE;
+    }
+    return SetPropertyOnValueOrObject(cx, OBJECT_TO_JSVAL(newTypedArray), rval,
+                                      robj, rid);
+  }
+
+  
+  if (js_IsArrayBuffer(obj)) {
+    js::ArrayBuffer* src = js::ArrayBuffer::fromJSObject(obj);
+    JSObject* newBuffer = js_CreateArrayBuffer(cx, src->byteLength);
+    if (!newBuffer) {
+      return NS_ERROR_FAILURE;
+    }
+    memcpy(js::ArrayBuffer::fromJSObject(newBuffer)->data, src->data,
+           src->byteLength);
+    return SetPropertyOnValueOrObject(cx, OBJECT_TO_JSVAL(newBuffer), rval,
+                                      robj, rid);
+  }
+
   
   
   
@@ -5776,22 +5800,28 @@ nsContentUtils::ReparentClonedObjectToScope(JSContext* cx,
 
     if (!data.ids && !data.index) {
       
-      JSClass* clasp = JS_GET_CLASS(cx, data.obj);
-      JSProtoKey protoKey = JSCLASS_CACHED_PROTO_KEY(clasp);
-      if (!protoKey) {
+      if (js_IsTypedArray(data.obj)) {
+        if (!js_ReparentTypedArrayToScope(cx, data.obj, scope)) {
+          return NS_ERROR_FAILURE;
+        }
+
         
-        
-        return NS_ERROR_FAILURE;
+        objectData.RemoveElementAt(objectData.Length() - 1);
+        continue;
       }
 
-      JSObject* proto;
-      if (!js_GetClassPrototype(cx, scope, protoKey, &proto) ||
-          !JS_SetPrototype(cx, data.obj, proto)) {
+      JSProtoKey key = JSCLASS_CACHED_PROTO_KEY(JS_GET_CLASS(cx, data.obj));
+      if (!key) {
+        
+        
         return NS_ERROR_FAILURE;
       }
 
       
-      if (!JS_SetParent(cx, data.obj, scope)) {
+      JSObject* proto;
+      if (!js_GetClassPrototype(cx, scope, key, &proto) ||
+          !JS_SetPrototype(cx, data.obj, proto) ||
+          !JS_SetParent(cx, data.obj, scope)) {
         return NS_ERROR_FAILURE;
       }
 
