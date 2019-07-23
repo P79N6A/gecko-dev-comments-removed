@@ -63,6 +63,9 @@
 static NS_DEFINE_CID(kCPluginManagerCID, NS_PLUGINMANAGER_CID); 
 
 #define NS_PLUGIN_WINDOW_PROPERTY_ASSOCIATION TEXT("MozillaPluginWindowPropertyAssociation")
+#define NS_PLUGIN_CUSTOM_MSG_ID TEXT("MozFlashUserRelay")
+#define WM_USER_FLASH WM_USER+1
+static UINT sWM_FLASHBOUNCEMSG = 0;
 
 typedef nsTWeakRef<class nsPluginNativeWindowWin> PluginWindowWeakRef;
 
@@ -162,12 +165,21 @@ public:
 static PRBool sInMessageDispatch = PR_FALSE;
 static UINT sLastMsg = 0;
 
-static PRBool ProcessFlashMessageDelayed(nsPluginNativeWindowWin * aWin, 
+static PRBool ProcessFlashMessageDelayed(nsPluginNativeWindowWin * aWin, nsIPluginInstance * aInst,
                                          HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
   NS_ENSURE_TRUE(aWin, NS_ERROR_NULL_POINTER);
+  NS_ENSURE_TRUE(aInst, NS_ERROR_NULL_POINTER);
 
-  if (msg != WM_USER+1)
+  if (msg == sWM_FLASHBOUNCEMSG) {
+    
+    NS_ASSERTION((sWM_FLASHBOUNCEMSG != 0), "RegisterWindowMessage failed in flash plugin WM_USER message handling!");
+    NS_TRY_SAFE_CALL_VOID(::CallWindowProc((WNDPROC)aWin->GetWindowProc(), hWnd, WM_USER_FLASH, wParam, lParam),
+                                           nsnull, aInst);
+    return TRUE;
+  }
+
+  if (msg != WM_USER_FLASH)
     return PR_FALSE; 
 
   
@@ -334,7 +346,7 @@ static LRESULT CALLBACK PluginWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM
   
   
   if (win->mPluginType == nsPluginType_Flash) {
-    if (ProcessFlashMessageDelayed(win, hWnd, msg, wParam, lParam))
+    if (ProcessFlashMessageDelayed(win, inst, hWnd, msg, wParam, lParam))
       return TRUE;
   }
 
@@ -401,6 +413,10 @@ nsPluginNativeWindowWin::nsPluginNativeWindowWin() : nsPluginNativeWindow()
   mPrevWinProc = NULL;
   mPluginWinProc = NULL;
   mPluginType = nsPluginType_Unknown;
+  
+  if (sWM_FLASHBOUNCEMSG == 0)
+    sWM_FLASHBOUNCEMSG = ::RegisterWindowMessage(NS_PLUGIN_CUSTOM_MSG_ID);
+
 }
 
 nsPluginNativeWindowWin::~nsPluginNativeWindowWin()
@@ -432,12 +448,23 @@ NS_IMETHODIMP PluginWindowEvent::Run()
 
   nsCOMPtr<nsIPluginInstance> inst;
   win->GetPluginInstance(inst);
-  NS_TRY_SAFE_CALL_VOID(::CallWindowProc(win->GetWindowProc(), 
-                        hWnd, 
-                        GetMsg(), 
-                        GetWParam(), 
-                        GetLParam()),
-                        nsnull, inst);
+
+  if (GetMsg() == WM_USER_FLASH) {
+    
+    
+    ::PostMessage(hWnd, sWM_FLASHBOUNCEMSG, GetWParam(), GetLParam());
+  }
+  else {
+    
+    
+    NS_TRY_SAFE_CALL_VOID(::CallWindowProc(win->GetWindowProc(), 
+                          hWnd, 
+                          GetMsg(), 
+                          GetWParam(), 
+                          GetLParam()),
+                          nsnull, inst);
+  }
+
   Clear();
   return NS_OK;
 }
