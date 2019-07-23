@@ -572,13 +572,15 @@ AreAllColorChannelsZero(const nsSVGFE::Image* aTarget)
 
 void
 nsSVGFEGaussianBlurElement::GaussianBlur(const Image *aSource,
-                                         const Image *aTarget,                                         const nsIntRect& aDataRect,
+                                         const Image *aTarget,                                         
+                                         const nsIntRect& aDataRect,
                                          PRUint32 aDX, PRUint32 aDY)
 {
   NS_ASSERTION(nsIntRect(0,0,aTarget->mImage->Width(),aTarget->mImage->Height()).Contains(aDataRect),
                "aDataRect out of bounds");
 
-  nsAutoArrayPtr<PRUint8> tmp(new PRUint8[aTarget->mImage->GetDataSize()]);  if (!tmp)
+  nsAutoArrayPtr<PRUint8> tmp(new PRUint8[aTarget->mImage->GetDataSize()]);
+  if (!tmp)
     return;
   memset(tmp, 0, aTarget->mImage->GetDataSize());
 
@@ -615,6 +617,57 @@ nsSVGFEGaussianBlurElement::GaussianBlur(const Image *aSource,
   }
 }
 
+static void
+InflateRectForBlurDXY(nsIntRect* aRect, PRUint32 aDX, PRUint32 aDY)
+{
+  aRect->Inflate(3*(aDX/2), 3*(aDY/2));
+}
+
+static void
+ClearRect(gfxImageSurface* aSurface, PRInt32 aX, PRInt32 aY,
+          PRInt32 aXMost, PRInt32 aYMost)
+{
+  NS_ASSERTION(aX <= aXMost && aY <= aYMost, "Invalid rectangle");
+  NS_ASSERTION(aX >= 0 && aY >= 0 && aXMost <= aSurface->Width() && aYMost <= aSurface->Height(),
+               "Rectangle out of bounds");
+
+  if (aX == aXMost || aY == aYMost)
+    return;
+  for (PRInt32 y = aY; y < aYMost; ++y) {
+    memset(aSurface->Data() + aSurface->Stride()*y + aX*4, 0, (aXMost - aX)*4);
+  }
+}
+
+
+
+
+static void
+ClipTarget(nsSVGFilterInstance* aInstance, const nsSVGFE::Image* aTarget,
+           const nsIntRect& aModifiedRect)
+{
+  nsIntPoint surfaceTopLeft = aInstance->GetSurfaceRect().TopLeft();
+
+  NS_ASSERTION(aInstance->GetSurfaceRect().Contains(aModifiedRect + surfaceTopLeft),
+               "Modified data area overflows the surface?");
+
+  nsIntRect clip = aModifiedRect;
+  nsSVGUtils::ClipToGfxRect(&clip,
+    aTarget->mFilterPrimitiveSubregion - gfxPoint(surfaceTopLeft.x, surfaceTopLeft.y));
+
+  ClearRect(aTarget->mImage, aModifiedRect.x, aModifiedRect.y, aModifiedRect.XMost(), clip.y);
+  ClearRect(aTarget->mImage, aModifiedRect.x, clip.y, clip.x, clip.YMost());
+  ClearRect(aTarget->mImage, clip.XMost(), clip.y, aModifiedRect.XMost(), clip.YMost());
+  ClearRect(aTarget->mImage, aModifiedRect.x, clip.YMost(), aModifiedRect.XMost(), aModifiedRect.YMost());
+}
+
+static void
+ClipComputationRectToSurface(nsSVGFilterInstance* aInstance,
+                             nsIntRect* aDataRect)
+{
+  aDataRect->IntersectRect(*aDataRect,
+          nsRect(nsPoint(0, 0), aInstance->GetSurfaceRect().Size()));
+}
+
 nsresult
 nsSVGFEGaussianBlurElement::Filter(nsSVGFilterInstance* aInstance,
                                    const nsTArray<const Image*>& aSources,
@@ -627,7 +680,12 @@ nsSVGFEGaussianBlurElement::Filter(nsSVGFilterInstance* aInstance,
     return NS_OK;
   if (NS_FAILED(rv))
     return rv;
-  GaussianBlur(aSources[0], aTarget, rect, dx, dy);
+
+  nsIntRect computationRect = rect;
+  InflateRectForBlurDXY(&computationRect, dx, dy);
+  ClipComputationRectToSurface(aInstance, &computationRect);
+  GaussianBlur(aSources[0], aTarget, computationRect, dx, dy);
+  ClipTarget(aInstance, aTarget, computationRect);
   return NS_OK;
 }
 
@@ -644,7 +702,7 @@ nsSVGFEGaussianBlurElement::InflateRectForBlur(nsRect* aRect,
   PRUint32 dX, dY;
   nsresult rv = GetDXY(&dX, &dY, aInstance);
   if (NS_SUCCEEDED(rv)) {
-    aRect->Inflate(3*(dX/2), 3*(dY/2));
+    InflateRectForBlurDXY(aRect, dX, dY);
   }
 }
 
@@ -2767,6 +2825,8 @@ nsSVGFETileElement::Filter(nsSVGFilterInstance *instance,
   
 
   const gfxRect& tileGfx = aSources[0]->mFilterPrimitiveSubregion;
+  
+  
   nsIntRect tile(PRInt32(tileGfx.X()), PRInt32(tileGfx.Y()),
                  PRInt32(tileGfx.Width()), PRInt32(tileGfx.Height()));
   if (tile.IsEmpty())
@@ -4538,7 +4598,8 @@ Convolve3x3(const PRUint8 *index, PRInt32 stride,
 }
 
 static void
-GenerateNormal(float *N, const PRUint8 *data, PRInt32 stride, nsRect rect,
+GenerateNormal(float *N, const PRUint8 *data, PRInt32 stride,
+               PRInt32 surfaceWidth, PRInt32 surfaceHeight,
                PRInt32 x, PRInt32 y, float surfaceScale)
 {
   
@@ -4575,14 +4636,14 @@ GenerateNormal(float *N, const PRUint8 *data, PRInt32 stride, nsRect rect,
   PRInt8 xflag, yflag;
   if (x == 0) {
     xflag = 0;
-  } else if (x == rect.width - 1) {
+  } else if (x == surfaceWidth - 1) {
     xflag = 2;
   } else {
     xflag = 1;
   }
   if (y == 0) {
     yflag = 0;
-  } else if (y == rect.height - 1) {
+  } else if (y == surfaceHeight - 1) {
     yflag = 2;
   } else {
     yflag = 1;
@@ -4681,13 +4742,16 @@ nsSVGFELightingElement::Filter(nsSVGFilterInstance *instance,
   PRInt32 stride = info.mSource->Stride();
   PRUint8 *sourceData = info.mSource->Data();
   PRUint8 *targetData = info.mTarget->Data();
-
+  PRInt32 surfaceWidth = info.mSource->Width();
+  PRInt32 surfaceHeight = info.mSource->Height();
+  
   for (PRInt32 y = dataRect.y; y < dataRect.YMost(); y++) {
     for (PRInt32 x = dataRect.x; x < dataRect.XMost(); x++) {
       PRInt32 index = y * stride + x * 4;
 
       float N[3];
-      GenerateNormal(N, sourceData, stride, rect, x, y, surfaceScale);
+      GenerateNormal(N, sourceData, stride, surfaceWidth, surfaceHeight,
+                     x, y, surfaceScale);
 
       if (pointLight || spotLight) {
         float Z =
@@ -5525,8 +5589,8 @@ nsSVGFEDisplacementMapElement::Filter(nsSVGFilterInstance *instance,
 
   NS_ASSERTION(instance->GetSurfaceRect().Size() == instance->GetFilterSpaceSize(),
                "Surface size optimization should have been disabled, see ComputeNeededSourceBBoxes");
-  PRInt32 width = instance->GetSurfaceRect().width;
-  PRInt32 height = instance->GetSurfaceRect().height;
+  PRInt32 width = instance->GetSurfaceWidth();
+  PRInt32 height = instance->GetSurfaceHeight();
 
   PRUint8* sourceData = aSources[0]->mImage->Data();
   PRUint8* displacementData = aSources[1]->mImage->Data();

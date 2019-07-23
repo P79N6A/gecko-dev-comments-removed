@@ -52,7 +52,8 @@ protected:
 
 public:    
   nsresult FilterPaint(nsSVGRenderState *aContext,
-                       nsISVGChildFrame *aTarget);
+                       nsISVGChildFrame *aTarget,
+                       const nsRect* aDirtyRect);
 
   
   

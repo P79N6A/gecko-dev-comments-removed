@@ -167,6 +167,7 @@ public:
   
   
   
+  
   virtual nsresult Filter(nsSVGFilterInstance* aInstance,
                           const nsTArray<const Image*>& aSources,
                           const Image* aTarget,
