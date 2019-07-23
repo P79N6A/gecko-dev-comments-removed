@@ -628,6 +628,8 @@ protected:
     return aList != &mTimeouts;
   }
 
+  static void NotifyDOMWindowDestroyed(nsGlobalWindow* aWindow);
+
   
   
   
@@ -728,6 +730,7 @@ protected:
 
 #ifdef DEBUG
   PRBool mSetOpenerWindowCalled;
+  PRUint32 mSerial;
 #endif
 
   nsCOMPtr<nsIDOMOfflineResourceList> mApplicationCache;

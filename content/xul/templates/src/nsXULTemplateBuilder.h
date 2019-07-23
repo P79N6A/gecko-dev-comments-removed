@@ -46,6 +46,7 @@
 #include "nsStubDocumentObserver.h"
 #include "nsIScriptSecurityManager.h"
 #include "nsIContent.h"
+#include "nsIObserver.h"
 #include "nsIRDFCompositeDataSource.h"
 #include "nsIRDFContainer.h"
 #include "nsIRDFContainerUtils.h"
@@ -71,12 +72,14 @@ extern PRLogModuleInfo* gXULTemplateLog;
 
 class nsIXULDocument;
 class nsIRDFCompositeDataSource;
+class nsIObserverService;
 
 
 
 
 
 class nsXULTemplateBuilder : public nsIXULTemplateBuilder,
+                             public nsIObserver,
                              public nsStubDocumentObserver
 {
 public:
@@ -98,6 +101,9 @@ public:
 
     
     NS_DECL_NSIXULTEMPLATEBUILDER
+
+    
+    NS_DECL_NSIOBSERVER
 
     
     NS_DECL_NSIMUTATIONOBSERVER_ATTRIBUTECHANGED
@@ -410,6 +416,7 @@ protected:
     static nsIRDFContainerUtils*     gRDFContainerUtils;
     static nsIScriptSecurityManager* gScriptSecurityManager;
     static nsIPrincipal*             gSystemPrincipal;
+    static nsIObserverService*       gObserverService;
 
     enum {
         eDontTestEmpty = (1 << 0),
@@ -488,6 +495,11 @@ protected:
     virtual void Traverse(nsCycleCollectionTraversalCallback &cb) const
     {
     }
+
+    
+
+
+    nsIDocument* mObservedDocument;
 };
 
 #endif 
