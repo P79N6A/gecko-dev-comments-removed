@@ -52,13 +52,13 @@
 #include "nsCompatibility.h"
 #include "nsTObserverArray.h"
 #include "nsNodeInfoManager.h"
+#include "nsIStreamListener.h"
+#include "nsIObserver.h"
 
 class nsIContent;
 class nsPresContext;
 class nsIPresShell;
 class nsIDocShell;
-class nsIStreamListener;
-class nsIStreamObserver;
 class nsStyleSet;
 class nsIStyleSheet;
 class nsIStyleRule;
@@ -77,7 +77,6 @@ class nsIChannel;
 class nsIPrincipal;
 class nsIDOMDocument;
 class nsIDOMDocumentType;
-class nsIObserver;
 class nsScriptLoader;
 class nsIContentSink;
 class nsIScriptEventManager;
@@ -97,8 +96,8 @@ class nsFrameLoader;
 
 
 #define NS_IDOCUMENT_IID      \
-  { 0xd5b1e3c5, 0x85dc, 0x403e, \
-    { 0xbb, 0x4a, 0x54, 0x66, 0xdc, 0xbe, 0x15, 0x69 } }
+{ 0x189ebc9e, 0x779b, 0x4c49, \
+ { 0x90, 0x8b, 0x9a, 0x80, 0x25, 0x9b, 0xaf, 0xa7 } }
 
 
 #define NS_STYLESHEET_FROM_CATALOG                (1 << 0)
@@ -1004,6 +1003,98 @@ public:
   virtual void TryCancelFrameLoaderInitialization(nsIDocShell* aShell) = 0;
   
   virtual PRBool FrameLoaderScheduledToBeFinalized(nsIDocShell* aShell) = 0;
+
+  
+
+
+
+  PRBool IsRootDisplayDocument() const
+  {
+    return !mParentDocument && !mDisplayDocument;
+  }
+
+  
+
+
+
+
+
+  nsIDocument* GetDisplayDocument() const
+  {
+    return mDisplayDocument;
+  }
+  
+  
+
+
+
+  void SetDisplayDocument(nsIDocument* aDisplayDocument)
+  {
+    NS_PRECONDITION(!GetPrimaryShell() &&
+                    !nsCOMPtr<nsISupports>(GetContainer()) &&
+                    !GetWindow() &&
+                    !GetScriptGlobalObject(),
+                    "Shouldn't set mDisplayDocument on documents that already "
+                    "have a presentation or a docshell or a window");
+    NS_PRECONDITION(aDisplayDocument != this, "Should be different document");
+    NS_PRECONDITION(!aDisplayDocument->GetDisplayDocument(),
+                    "Display documents should not nest");
+    mDisplayDocument = aDisplayDocument;
+  }
+
+  
+
+
+
+
+
+
+
+
+
+  class ExternalResourceLoad : public nsISupports
+  {
+  public:
+    virtual ~ExternalResourceLoad() {}
+
+    void AddObserver(nsIObserver* aObserver) {
+      NS_PRECONDITION(aObserver, "Must have observer");
+      mObservers.AppendElement(aObserver);
+    }
+
+    const nsTArray< nsCOMPtr<nsIObserver> > & Observers() {
+      return mObservers;
+    }
+  protected:
+    nsAutoTArray< nsCOMPtr<nsIObserver>, 8 > mObservers;    
+  };
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  virtual nsIDocument*
+    RequestExternalResource(nsIURI* aURI,
+                            nsINode* aRequestingNode,
+                            ExternalResourceLoad** aPendingLoad) = 0;
+
+  
+
+
+
+
+  virtual void EnumerateExternalResources(nsSubDocEnumFunc aCallback,
+                                          void* aData) = 0;
+  
 protected:
   ~nsIDocument()
   {
@@ -1099,6 +1190,11 @@ protected:
 
   nsCOMArray<nsINode> mSubtreeModifiedTargets;
   PRUint32            mSubtreeModifiedDepth;
+
+  
+  
+  
+  nsCOMPtr<nsIDocument> mDisplayDocument;
 
 private:
   
