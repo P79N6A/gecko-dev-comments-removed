@@ -1816,6 +1816,14 @@ testLoopWithUndefined2.expected = "true,true,false,true";
 test(testLoopWithUndefined2);
 
 
+function testBug462388() {
+    var c = 0, v; for each (let x in ["",v,v,v]) { for (c=0;c<4;++c) { } }
+    return true;
+}
+testBug462388.expected = true;
+test(testBug462388);
+
+
 
 
 
