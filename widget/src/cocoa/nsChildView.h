@@ -166,6 +166,8 @@ enum {
   
   
   BOOL mIsTransparent;
+  PRIntervalTime mLastShadowInvalidation;
+  BOOL mNeedsShadowInvalidation;
 
   
   
@@ -366,6 +368,7 @@ public:
   
   virtual nsTransparencyMode GetTransparencyMode();
   virtual void                SetTransparencyMode(nsTransparencyMode aMode);
+  NS_IMETHOD        SetWindowShadowStyle(PRInt32 aStyle);
   
   
   virtual PRBool    PointInWidget(Point aThePoint);

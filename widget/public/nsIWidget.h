@@ -95,13 +95,21 @@ typedef nsEventStatus (* EVENT_CALLBACK)(nsGUIEvent *event);
 
 
 #define NS_IWIDGET_IID \
-{ 0x0e64821f, 0x00a2, 0x4adc, \
-  { 0xac, 0x3b, 0x34, 0x39, 0xd6, 0x1f, 0x44, 0x91 } }
+{ 0x8c91457a, 0xef86, 0x4da1, \
+  { 0xb4, 0xf9, 0x36, 0x02, 0x2d, 0xcc, 0x6c, 0x7e } }
 
 
 
 
 typedef void* nsNativeWidget;
+
+
+
+
+
+
+#define NS_STYLE_WINDOW_SHADOW_NONE             0
+#define NS_STYLE_WINDOW_SHADOW_DEFAULT          1
 
 
 
@@ -710,6 +718,11 @@ class nsIWidget : public nsISupports {
 
 
     virtual nsTransparencyMode GetTransparencyMode() = 0;
+
+    
+
+
+    NS_IMETHOD SetWindowShadowStyle(PRInt32 aStyle) = 0;
 
     
 

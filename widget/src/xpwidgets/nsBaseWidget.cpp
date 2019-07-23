@@ -573,6 +573,17 @@ nsTransparencyMode nsBaseWidget::GetTransparencyMode() {
 
 
 
+
+NS_IMETHODIMP nsBaseWidget::SetWindowShadowStyle(PRInt32 aMode)
+{
+  return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+
+
+
+
+
 NS_IMETHODIMP nsBaseWidget::HideWindowChrome(PRBool aShouldHide)
 {
   return NS_ERROR_NOT_IMPLEMENTED;
