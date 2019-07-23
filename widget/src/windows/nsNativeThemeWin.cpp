@@ -73,6 +73,14 @@
 NS_IMPL_ISUPPORTS1(nsNativeThemeWin, nsITheme)
 
 #ifdef WINCE
+
+
+
+
+
+#define FrameRect moz_FrameRect
+#define GetViewportOrgEx moz_GetViewportOrgEx
+
 static int FrameRect(HDC inDC, CONST RECT *inRect, HBRUSH inBrush)
  {
    HBRUSH oldBrush = (HBRUSH)SelectObject(inDC, inBrush);
@@ -81,15 +89,9 @@ static int FrameRect(HDC inDC, CONST RECT *inRect, HBRUSH inBrush)
 
    
    
-   
-   
-   
-   
-   
-   
+
    
    MoveToEx(inDC, myRect.left, myRect.top, (LPPOINT) NULL);
-   
    
    LineTo(inDC, myRect.right, myRect.top);
    
@@ -97,10 +99,20 @@ static int FrameRect(HDC inDC, CONST RECT *inRect, HBRUSH inBrush)
    
    LineTo(inDC, myRect.left, myRect.bottom);
    
+   LineTo(inDC, myRect.left, myRect.top);
+
    SelectObject(inDC, oldBrush);
    return 1;
 }
 
+static BOOL
+GetViewportOrgEx(HDC hdc, LPPOINT lpPoint)
+{
+  SetViewportOrgEx(hdc, 0, 0, lpPoint);
+  if (lpPoint->x != 0 || lpPoint->y != 0)
+    SetViewportOrgEx(hdc, lpPoint->x, lpPoint->y, NULL);
+  return TRUE;
+}
 #endif
 
 static inline bool IsHTMLContent(nsIFrame *frame)
