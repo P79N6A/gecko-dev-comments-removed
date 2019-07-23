@@ -90,7 +90,7 @@ struct JSTitle {
         jsrefcount  count;              
         JSTitle     *link;              
     } u;
-#ifdef JS_DEBUG_SCOPE_LOCKS
+#ifdef JS_DEBUG_TITLE_LOCKS
     const char      *file[4];           
     unsigned int    line[4];            
 #endif
@@ -152,18 +152,8 @@ JS_BEGIN_EXTERN_C
 #define SET_OBJ_INFO(obj_, file_, line_)                                       \
     SET_SCOPE_INFO(OBJ_SCOPE(obj_), file_, line_)
 
-#define SET_SCOPE_INFO(scope_,file_,line_)                                     \
-    do {                                                                       \
-        JSTitle *title = &(scope_)->title;                                     \
-        jsrefcount count;                                                      \
-        if (title->ownercx)                                                    \
-            break;                                                             \
-        count = title->u.count;                                                \
-        JS_ASSERT((0 < count && count <= 4) ||                                 \
-                  SCOPE_IS_SEALED(scope_)));                                   \
-        title->file[count - 1] = (file_);                                      \
-        title->line[line - 1] = (line_);                                       \
-    } while (0)
+#define SET_SCOPE_INFO(scope_, file_, line_)                                   \
+    js_SetScopeInfo(scope_, file_, line_)
 
 #endif
 
@@ -225,6 +215,9 @@ extern void js_FinishSharingTitle(JSContext *cx, JSTitle *title);
 extern JSBool js_IsRuntimeLocked(JSRuntime *rt);
 extern JSBool js_IsObjLocked(JSContext *cx, JSObject *obj);
 extern JSBool js_IsTitleLocked(JSContext *cx, JSTitle *title);
+#ifdef JS_DEBUG_TITLE_LOCKS
+extern void js_SetScopeInfo(JSScope *scope, const char *file, int line);
+#endif
 
 #else
 
