@@ -73,7 +73,7 @@ const kDownloadProperties =
 
 
 
-let gStr = {
+let kStrings = {
   statusFormat: "statusFormat2",
   transferSameUnits: "transferSameUnits",
   transferDiffUnits: "transferDiffUnits",
@@ -91,18 +91,54 @@ let gStr = {
 };
 
 
-let (getStr = Cc["@mozilla.org/intl/stringbundle;1"].
-              getService(Ci.nsIStringBundleService).
-              createBundle(kDownloadProperties).
-              GetStringFromName) {
-  for (let [name, value] in Iterator(gStr)) {
-    try {
-      gStr[name] = typeof value == "string" ? getStr(value) : value.map(getStr);
-    } catch (e) {
-      log(["Couldn't get string '", name, "' from property '", value, "'"]);
-    }
-  }
-}
+let gStr = {
+  
+
+
+  _init: function()
+  {
+    
+    
+    for (let [name, value] in Iterator(kStrings))
+      let ([n, v] = [name, value])
+        gStr.__defineGetter__(n, function() gStr._getStr(n, v));
+  },
+
+  
+
+
+
+  get _getStr()
+  {
+    
+    delete gStr._getStr;
+
+    
+    let getStr = Cc["@mozilla.org/intl/stringbundle;1"].
+                 getService(Ci.nsIStringBundleService).
+                 createBundle(kDownloadProperties).
+                 GetStringFromName;
+
+    
+    return gStr._getStr = function(name, value) {
+      
+      delete gStr[name];
+
+      try {
+        
+        return gStr[name] = typeof value == "string" ?
+                            getStr(value) :
+                            value.map(getStr);
+      } catch (e) {
+        log(["Couldn't get string '", name, "' from property '", value, "'"]);
+        
+        
+      }
+    };
+  },
+};
+
+gStr._init();
 
 let DownloadUtils = {
   

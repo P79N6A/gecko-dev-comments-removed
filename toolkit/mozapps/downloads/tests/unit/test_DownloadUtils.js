@@ -1,0 +1,128 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+let Cu = Components.utils;
+Cu.import("resource://gre/modules/DownloadUtils.jsm");
+
+
+let gDash = DownloadUtils.getDownloadStatus(0)[0].match(/remaining (.) 0 bytes/)[1];
+
+let gVals = [0, 100, 2345, 55555, 982341, 23194134, 1482, 58, 9921949201, 13498132];
+
+function testStatus(aCurr, aMore, aRate, aTest)
+{
+  dump("Status Test: " + [aCurr, aMore, aRate, aTest] + "\n");
+  let curr = gVals[aCurr];
+  let max = curr + gVals[aMore];
+  let speed = gVals[aRate];
+
+  let [status, last] =
+    DownloadUtils.getDownloadStatus(curr, max, speed);
+
+  if (0) {
+    dump("testStatus(" + aCurr + ", " + aMore + ", " + aRate + ", [\"" +
+      status.replace(gDash, "--") + "\", " + last.toFixed(3) + "]);\n");
+  }
+
+  
+  do_check_eq(status, aTest[0].replace(/--/, gDash));
+
+  
+  if (last == Infinity)
+    do_check_eq(last, aTest[1]);
+  else
+    do_check_true(Math.abs(last - aTest[1]) < .1);
+}
+
+function testURI(aURI, aDisp, aHost)
+{
+  dump("URI Test: " + [aURI, aDisp, aHost] + "\n");
+
+  let [disp, host] = DownloadUtils.getURIHost(aURI);
+
+  
+  do_check_eq(disp, aDisp);
+  do_check_eq(host, aHost);
+}
+
+function run_test()
+{
+  if (0) {
+    
+    let r = function() Math.floor(Math.random() * 10);
+    for (let i = 0; i < 100; i++) {
+      testStatus(r(), r(), r());
+    }
+  }
+
+  testStatus(2, 1, 7, ["A few seconds remaining -- 2.3 of 2.4 KB (58.0 bytes/sec)", 1.724]);
+  testStatus(1, 2, 6, ["A few seconds remaining -- 100 bytes of 2.4 KB (1.4 KB/sec)", 1.582]);
+  testStatus(4, 3, 9, ["A few seconds remaining -- 959 KB of 1.0 MB (12.9 MB/sec)", 0.004]);
+  testStatus(2, 3, 8, ["A few seconds remaining -- 2.3 of 56.5 KB (9.2 GB/sec)", 0.000]);
+
+  testStatus(8, 4, 3, ["17 seconds remaining -- 9.2 of 9.2 GB (54.3 KB/sec)", 17.682]);
+  testStatus(1, 3, 2, ["23 seconds remaining -- 100 bytes of 54.4 KB (2.3 KB/sec)", 23.691]);
+  testStatus(9, 3, 2, ["23 seconds remaining -- 12.9 of 12.9 MB (2.3 KB/sec)", 23.691]);
+  testStatus(5, 6, 7, ["25 seconds remaining -- 22.1 of 22.1 MB (58.0 bytes/sec)", 25.552]);
+
+  testStatus(3, 9, 3, ["4 minutes remaining -- 54.3 KB of 12.9 MB (54.3 KB/sec)", 242.969]);
+  testStatus(2, 3, 1, ["9 minutes remaining -- 2.3 of 56.5 KB (100 bytes/sec)", 555.550]);
+  testStatus(4, 3, 7, ["15 minutes remaining -- 959 KB of 1.0 MB (58.0 bytes/sec)", 957.845]);
+  testStatus(5, 3, 7, ["15 minutes remaining -- 22.1 of 22.2 MB (58.0 bytes/sec)", 957.845]);
+
+  testStatus(1, 9, 2, ["1 hour, 35 minutes remaining -- 100 bytes of 12.9 MB (2.3 KB/sec)", 5756.133]);
+  testStatus(2, 9, 6, ["2 hours, 31 minutes remaining -- 2.3 KB of 12.9 MB (1.4 KB/sec)", 9108.051]);
+  testStatus(2, 4, 1, ["2 hours, 43 minutes remaining -- 2.3 of 962 KB (100 bytes/sec)", 9823.410]);
+  testStatus(6, 4, 7, ["4 hours, 42 minutes remaining -- 1.4 of 961 KB (58.0 bytes/sec)", 16936.914]);
+
+  testStatus(6, 9, 1, ["1 day, 13 hours remaining -- 1.4 KB of 12.9 MB (100 bytes/sec)", 134981.320]);
+  testStatus(3, 8, 3, ["2 days, 1 hour remaining -- 54.3 KB of 9.2 GB (54.3 KB/sec)", 178596.872]);
+  testStatus(1, 8, 6, ["77 days, 11 hours remaining -- 100 bytes of 9.2 GB (1.4 KB/sec)", 6694972.470]);
+  testStatus(6, 8, 7, ["1979 days, 22 hours remaining -- 1.4 KB of 9.2 GB (58.0 bytes/sec)", 171068089.672]);
+
+  testStatus(0, 0, 5, ["Unknown time remaining -- 0 of 0 bytes (22.1 MB/sec)", Infinity]);
+  testStatus(0, 6, 0, ["Unknown time remaining -- 0 bytes of 1.4 KB (0 bytes/sec)", Infinity]);
+  testStatus(6, 6, 0, ["Unknown time remaining -- 1.4 of 2.9 KB (0 bytes/sec)", Infinity]);
+  testStatus(8, 5, 0, ["Unknown time remaining -- 9.2 of 9.3 GB (0 bytes/sec)", Infinity]);
+
+  testURI("http://www.mozilla.org/", "mozilla.org", "www.mozilla.org");
+  testURI("http://www.city.mikasa.hokkaido.jp/", "city.mikasa.hokkaido.jp", "www.city.mikasa.hokkaido.jp");
+  testURI("data:text/html,Hello World", "data resource", "data resource");
+  testURI("jar:http://www.mozilla.com/file!/magic", "mozilla.com", "www.mozilla.com");
+  testURI("file:///C:/Cool/Stuff/", "local file", "local file");
+  testURI("moz-icon:file:///test.extension", "moz-icon resource", "moz-icon resource");
+  testURI("about:blank", "about resource", "about resource");
+}
