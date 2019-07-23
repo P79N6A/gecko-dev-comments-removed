@@ -520,6 +520,8 @@ nsXREDirProvider::LoadBundleDirectories()
   if (mExtensionsLoaded)
     return;
 
+  mExtensionsLoaded = PR_TRUE;
+
   
   if (mXULAppDir) {
     mExtensionDirectories.AppendObject(mXULAppDir);
