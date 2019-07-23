@@ -1254,7 +1254,7 @@ date_getTimezoneOffset(JSContext *cx, uintN argc, jsval *vp)
 
 
 
-    result = (localtime - utctime) / msPerMinute;
+    result = (utctime - localtime) / msPerMinute;
     return js_NewNumberInRootedValue(cx, result, vp);
 }
 
