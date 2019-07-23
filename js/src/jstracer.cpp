@@ -10237,7 +10237,11 @@ TraceRecorder::record_JSOP_OBJTOP()
 RecordingStatus
 TraceRecorder::getClassPrototype(JSObject* ctor, LIns*& proto_ins)
 {
+    
 #ifdef DEBUG
+    JSClass *clasp = FUN_CLASP(GET_FUNCTION_PRIVATE(cx, ctor));
+    JS_ASSERT(clasp);
+
     JSTraceMonitor &localtm = JS_TRACE_MONITOR(cx);
 #endif
 
@@ -10246,10 +10250,9 @@ TraceRecorder::getClassPrototype(JSObject* ctor, LIns*& proto_ins)
         RETURN_ERROR("error getting prototype from constructor");
 
     
+    
     JS_ASSERT(localtm.recorder);
 
-    if (JSVAL_TAG(pval) != JSVAL_OBJECT)
-        RETURN_STOP("got primitive prototype from constructor");
 #ifdef DEBUG
     JSBool ok, found;
     uintN attrs;
@@ -10258,7 +10261,14 @@ TraceRecorder::getClassPrototype(JSObject* ctor, LIns*& proto_ins)
     JS_ASSERT(found);
     JS_ASSERT((~attrs & (JSPROP_READONLY | JSPROP_PERMANENT)) == 0);
 #endif
-    proto_ins = INS_CONSTOBJ(JSVAL_TO_OBJECT(pval));
+
+    
+    
+    JS_ASSERT(!JSVAL_IS_PRIMITIVE(pval));
+    JSObject *proto = JSVAL_TO_OBJECT(pval);
+    JS_ASSERT_IF(clasp != &js_ArrayClass, OBJ_SCOPE(proto)->emptyScope->clasp == clasp);
+
+    proto_ins = INS_CONSTOBJ(proto);
     return RECORD_CONTINUE;
 }
 
@@ -10275,6 +10285,18 @@ TraceRecorder::getClassPrototype(JSProtoKey key, LIns*& proto_ins)
 
     
     JS_ASSERT(localtm.recorder);
+
+    
+    
+    
+    
+    if (key != JSProto_Array) {
+        if (!OBJ_IS_NATIVE(proto))
+            RETURN_STOP("non-native class prototype");
+        JSEmptyScope *emptyScope = OBJ_SCOPE(proto)->emptyScope;
+        if (!emptyScope || JSCLASS_CACHED_PROTO_KEY(emptyScope->clasp) != key)
+            RETURN_STOP("class prototype is not the standard one");
+    }
 
     proto_ins = INS_CONSTOBJ(proto);
     return RECORD_CONTINUE;

@@ -251,6 +251,13 @@ struct JSObject {
         dslots = NULL;
     }
 
+    
+
+
+
+    inline void initSharingEmptyScope(JSClass *clasp, JSObject *proto, JSObject *parent,
+                                      jsval privateSlotValue);
+
     JSBool lookupProperty(JSContext *cx, jsid id,
                           JSObject **objp, JSProperty **propp) {
         return map->ops->lookupProperty(cx, this, id, objp, propp);
@@ -627,9 +634,12 @@ js_NewObjectWithGivenProto(JSContext *cx, JSClass *clasp, JSObject *proto,
 
 
 
+
+
+
 extern JSObject*
-js_NewNativeObject(JSContext *cx, JSClass *clasp, JSObject *proto,
-                   jsval privateSlotValue);
+js_NewObjectWithClassProto(JSContext *cx, JSClass *clasp, JSObject *proto,
+                           jsval privateSlotValue);
 
 
 
@@ -985,36 +995,6 @@ js_ReportGetterOnlyAssignment(JSContext *cx);
 
 extern JS_FRIEND_API(JSBool)
 js_GetterOnlyPropertyStub(JSContext *cx, JSObject *obj, jsval id, jsval *vp);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-static inline bool
-js_ObjectIsSimilarToProto(JSContext *cx, JSObject *obj, const JSObjectOps *ops,
-                          JSClass *clasp, JSObject *proto)
-{
-    JS_ASSERT(proto == OBJ_GET_PROTO(cx, obj));
-
-    JSClass *protoclasp;
-    return (proto->map->ops == ops &&
-            ((protoclasp = OBJ_GET_CLASS(cx, proto)) == clasp ||
-             (!((protoclasp->flags ^ clasp->flags) &
-                (JSCLASS_HAS_PRIVATE |
-                 (JSCLASS_RESERVED_SLOTS_MASK << JSCLASS_RESERVED_SLOTS_SHIFT))) &&
-              protoclasp->reserveSlots == clasp->reserveSlots)));
-}
 
 #ifdef DEBUG
 JS_FRIEND_API(void) js_DumpChars(const jschar *s, size_t n);
