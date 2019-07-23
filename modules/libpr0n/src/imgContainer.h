@@ -229,48 +229,10 @@ private:
 
 
 
-
-
-
-
-  void BuildCompositeMask(gfxIImageFrame* aCompositingFrame,
-                          gfxIImageFrame* aOverlayFrame);
+  static void ClearFrame(gfxIImageFrame* aFrame);
   
-  
+  static void ClearFrame(gfxIImageFrame* aFrame, nsIntRect &aRect);
 
-
-
-
-
-
-  void SetMaskVisibility(gfxIImageFrame *aFrame, PRBool aVisible);
-  
-  void SetMaskVisibility(gfxIImageFrame *aFrame,
-                         PRInt32 aX, PRInt32 aY,
-                         PRInt32 aWidth, PRInt32 aHeight,
-                         PRBool aVisible);
-  
-  void SetMaskVisibility(gfxIImageFrame *aFrame,
-                         nsIntRect &aRect, PRBool aVisible) {
-    SetMaskVisibility(aFrame, aRect.x, aRect.y,
-                      aRect.width, aRect.height, aVisible);
-  }
-  
-  
-
-
-
-
-
-  static void BlackenFrame(gfxIImageFrame* aFrame);
-  
-  static void BlackenFrame(gfxIImageFrame* aFrame,
-                    PRInt32 aX, PRInt32 aY, PRInt32 aWidth, PRInt32 aHeight);
-  
-  static inline void BlackenFrame(gfxIImageFrame* aFrame, nsIntRect &aRect) {
-    BlackenFrame(aFrame, aRect.x, aRect.y, aRect.width, aRect.height);
-  }
-  
   
   static PRBool CopyFrameImage(gfxIImageFrame *aSrcFrame,
                                gfxIImageFrame *aDstFrame);
