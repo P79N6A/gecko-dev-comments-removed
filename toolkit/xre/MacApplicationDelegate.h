@@ -39,8 +39,8 @@
 
 
 
-#ifndef __MacApplicationDelegate_h__
-#define __MacApplicationDelegate_h__
+#ifndef MacApplicationDelegate_h_
+#define MacApplicationDelegate_h_
 
 void EnsureUseCocoaDockAPI(void);
 void SetupMacApplicationDelegate(void);
