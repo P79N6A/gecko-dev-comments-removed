@@ -486,13 +486,13 @@ function buildHelpMenu()
 
 function isElementVisible(aElement)
 {
-  
+  if (!aElement)
+    return false;
+
   
   
   var bo = aElement.boxObject;
-  return (bo.height != 0 && bo.width != 0 &&
-          document.defaultView
-                  .getComputedStyle(aElement, null).visibility == "visible");
+  return (bo.height > 0 && bo.width > 0);
 }
 
 function getBrowserFromContentWindow(aContentWindow)

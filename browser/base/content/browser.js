@@ -2728,47 +2728,36 @@ const DOMLinkHandler = {
 
 const BrowserSearch = {
   addEngine: function(engine, targetDoc) {
+    if (!this.searchBar)
+      return;
+    var browser = gBrowser.getBrowserForDocument(targetDoc);
     
-    var searchButton = document.getAnonymousElementByAttribute(this.getSearchBar(), "anonid",
-                                                               "searchbar-engine-button");
-    if (searchButton) {
-      var browser = gBrowser.getBrowserForDocument(targetDoc);
-      
-      var iconURL = null;
-      if (gBrowser.shouldLoadFavIcon(browser.currentURI))
-        iconURL = browser.currentURI.prePath + "/favicon.ico";
+    var iconURL = null;
+    if (gBrowser.shouldLoadFavIcon(browser.currentURI))
+      iconURL = browser.currentURI.prePath + "/favicon.ico";
 
-      var hidden = false;
-      
-      
-      
-      
-      var searchService = Cc["@mozilla.org/browser/search-service;1"].
-                          getService(Ci.nsIBrowserSearchService);
-      if (searchService.getEngineByName(engine.title))
-        hidden = true;
+    var hidden = false;
+    
+    
+    
+    
+    var searchService = Cc["@mozilla.org/browser/search-service;1"].
+                        getService(Ci.nsIBrowserSearchService);
+    if (searchService.getEngineByName(engine.title))
+      hidden = true;
 
-      var engines = [];
-      if (hidden) {
-        if (browser.hiddenEngines)
-          engines = browser.hiddenEngines;
-      }
-      else {
-        if (browser.engines)
-          engines = browser.engines;
-      }
+    var engines = (hidden ? browser.hiddenEngines : browser.engines) || [];
 
-      engines.push({ uri: engine.href,
-                     title: engine.title,
-                     icon: iconURL });
+    engines.push({ uri: engine.href,
+                   title: engine.title,
+                   icon: iconURL });
 
-      if (hidden)
-        browser.hiddenEngines = engines;
-      else {
-        browser.engines = engines;
-        if (browser == gBrowser || browser == gBrowser.mCurrentBrowser)
-          this.updateSearchButton();
-      }
+    if (hidden)
+      browser.hiddenEngines = engines;
+    else {
+      browser.engines = engines;
+      if (browser == gBrowser || browser == gBrowser.mCurrentBrowser)
+        this.updateSearchButton();
     }
   },
 
@@ -2778,18 +2767,14 @@ const BrowserSearch = {
 
 
   updateSearchButton: function() {
-    var searchButton = document.getAnonymousElementByAttribute(this.getSearchBar(),
-                                "anonid", "searchbar-engine-button");
-    if (!searchButton)
+    var searchBar = this.searchBar;
+    if (!searchBar)
       return;
     var engines = gBrowser.mCurrentBrowser.engines;
-    if (!engines || engines.length == 0) {
-      if (searchButton.hasAttribute("addengines"))
-        searchButton.removeAttribute("addengines");
-    }
-    else {
-      searchButton.setAttribute("addengines", "true");
-    }
+    if (engines && engines.length > 0)
+      searchBar.searchButton.setAttribute("addengines", "true");
+    else
+      searchBar.searchButton.removeAttribute("addengines");
   },
 
   
@@ -2821,8 +2806,8 @@ const BrowserSearch = {
       return;
     }
 #endif
-    var searchBar = this.getSearchBar();
-    if (searchBar) {
+    var searchBar = this.searchBar;
+    if (isElementVisible(searchBar)) {
       searchBar.select();
       searchBar.focus();
     } else {
@@ -2851,7 +2836,7 @@ const BrowserSearch = {
   
     
     
-    if (this.getSearchBar())
+    if (isElementVisible(this.searchBar))
       engine = ss.currentEngine;
     else
       engine = ss.defaultEngine;
@@ -2875,13 +2860,8 @@ const BrowserSearch = {
   
 
 
-
-  getSearchBar: function BrowserSearch_getSearchBar() {
-    var searchBar = document.getElementById("searchbar");
-    if (searchBar && isElementVisible(searchBar))
-      return searchBar;
-
-    return null;
+  get searchBar() {
+    return document.getElementById("searchbar");
   },
 
   loadAddEngines: function BrowserSearch_loadAddEngines() {
