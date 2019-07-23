@@ -628,7 +628,8 @@ NP_Initialize(NPNetscapeFuncs* nsTable, NPPluginFuncs* pluginFuncs)
         pluginFuncs->javaClass  = NULL;
 
         
-        
+
+
         pluginFuncs->getvalue   = (NPP_GetValueProcPtr)(NP_GetValue);
 
         err = NPP_Initialize();
