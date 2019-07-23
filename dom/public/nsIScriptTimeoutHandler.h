@@ -68,6 +68,8 @@ public:
   virtual const PRUnichar *GetHandlerText() = 0;
 
   
+  
+  
   virtual void GetLocation(const char **aFileName, PRUint32 *aLineNo) = 0;
 
   
