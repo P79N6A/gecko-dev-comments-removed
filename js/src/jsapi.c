@@ -4699,7 +4699,7 @@ JS_ExecuteScriptPart(JSContext *cx, JSObject *obj, JSScript *script,
                      JSExecPart part, jsval *rval)
 {
     JSScript tmp;
-    JSRuntime *rt;
+    JSDebugHooks *hooks;
     JSBool ok;
 
     
@@ -4712,16 +4712,16 @@ JS_ExecuteScriptPart(JSContext *cx, JSObject *obj, JSScript *script,
     }
 
     
-    rt = cx->runtime;
-    if (rt->newScriptHook) {
-        rt->newScriptHook(cx, tmp.filename, tmp.lineno, &tmp, NULL,
-                          rt->newScriptHookData);
+    hooks = cx->debugHooks;
+    if (hooks->newScriptHook) {
+        hooks->newScriptHook(cx, tmp.filename, tmp.lineno, &tmp, NULL,
+                             hooks->newScriptHookData);
     }
 
     
     ok = JS_ExecuteScript(cx, obj, &tmp, rval);
-    if (rt->destroyScriptHook)
-        rt->destroyScriptHook(cx, &tmp, rt->destroyScriptHookData);
+    if (hooks->destroyScriptHook)
+        hooks->destroyScriptHook(cx, &tmp, hooks->destroyScriptHookData);
     return ok;
 }
 
