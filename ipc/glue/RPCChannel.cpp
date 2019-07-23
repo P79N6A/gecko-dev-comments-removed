@@ -57,15 +57,14 @@ namespace ipc {
 bool
 RPCChannel::Call(Message* msg, Message* reply)
 {
-    NS_ASSERTION(ChannelIdle == mChannelState
-                 || ChannelWaiting == mChannelState,
+    NS_ABORT_IF_FALSE(!ProcessingSyncMessage(),
+                      "violation of sync handler invariant");
+    NS_ASSERTION(ChannelConnected == mChannelState,
                  "trying to Send() to a channel not yet open");
-
-    NS_PRECONDITION(msg->is_rpc(), "can only Call() RPC messages here");
+    NS_PRECONDITION(msg->is_rpc(),
+                    "can only Call() RPC messages here");
 
     mMutex.Lock();
-
-    mChannelState = ChannelWaiting;
 
     msg->set_rpc_remote_stack_depth(mRemoteStackDepth);
     mPending.push(*msg);
@@ -108,10 +107,6 @@ RPCChannel::Call(Message* msg, Message* reply)
                 *reply = recvd;
             }
 
-            if (!WaitingForReply()) {
-                mChannelState = ChannelIdle;
-            }
-
             mMutex.Unlock();
             return !isError;
         }
@@ -128,8 +123,6 @@ RPCChannel::Call(Message* msg, Message* reply)
             mMutex.Lock();
         }
     }
-
-    delete msg;
 
     return true;
 }
@@ -210,6 +203,15 @@ RPCChannel::OnMessageReceived(const Message& msg)
     if (0 == StackDepth()) {
         
 
+        
+        
+        
+        
+        
+        
+        
+        
+        
         
         
         

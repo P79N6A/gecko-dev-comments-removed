@@ -56,7 +56,6 @@ protected:
     typedef mozilla::CondVar CondVar;
     typedef mozilla::Mutex Mutex;
     typedef uint16 MessageId;
-    typedef std::queue<Message> MessageQueue;
 
 public:
     class  SyncListener : 
@@ -72,7 +71,9 @@ public:
     SyncChannel(SyncListener* aListener) :
         AsyncChannel(aListener),
         mMutex("mozilla.ipc.SyncChannel.mMutex"),
-        mCvar(mMutex, "mozilla.ipc.SyncChannel.mCvar")
+        mCvar(mMutex, "mozilla.ipc.SyncChannel.mCvar"),
+        mPendingReply(0),
+        mProcessingSyncMessage(false)
     {
     }
 
@@ -81,7 +82,6 @@ public:
         
     }
 
-    
     bool Send(Message* msg) {
         return AsyncChannel::Send(msg);
     }
@@ -94,9 +94,8 @@ public:
 
 protected:
     
-    virtual bool WaitingForReply() {
-        mMutex.AssertCurrentThreadOwns();
-        return mPendingReply != 0;
+    bool ProcessingSyncMessage() {
+        return mProcessingSyncMessage;
     }
 
     void OnDispatchMessage(const Message& aMsg);
@@ -104,9 +103,16 @@ protected:
     
     void OnSendReply(Message* msg);
 
+    
+    bool AwaitingSyncReply() {
+        mMutex.AssertCurrentThreadOwns();
+        return mPendingReply != 0;
+    }
+
     Mutex mMutex;
     CondVar mCvar;
     MessageId mPendingReply;
+    bool mProcessingSyncMessage;
     Message mRecvd;
 };
 

@@ -57,64 +57,49 @@ namespace ipc {
 bool
 SyncChannel::Send(Message* msg, Message* reply)
 {
-    NS_ASSERTION(ChannelIdle == mChannelState
-                 || ChannelWaiting == mChannelState,
+    NS_ABORT_IF_FALSE(!ProcessingSyncMessage(),
+                      "violation of sync handler invariant");
+    NS_ASSERTION(ChannelConnected == mChannelState,
                  "trying to Send() to a channel not yet open");
-
     NS_PRECONDITION(msg->is_sync(), "can only Send() sync messages here");
 
     MutexAutoLock lock(mMutex);
 
-    mChannelState = ChannelWaiting;
     mPendingReply = msg->type() + 1;
     AsyncChannel::Send(msg);
 
-    while (1) {
-        
-        
-        
-        
-        
-        
-        
-        
-        mCvar.Wait();
+    
+    mCvar.Wait();
 
-        if (mRecvd.is_reply() && mPendingReply == mRecvd.type()) {
-            
-            mPendingReply = 0;
-            *reply = mRecvd;
+    
+    
+    
+    
+    
 
-            if (!WaitingForReply()) {
-                mChannelState = ChannelIdle;
-            }
+    
+    NS_ABORT_IF_FALSE(mRecvd.is_reply() && mPendingReply == mRecvd.type(),
+                      "unexpected sync message");
 
-            return true;
-        }
-        else {
-            
-            NS_ASSERTION(!mRecvd.is_reply(), "can't process replies here");
-            
-            
-            mWorkerLoop->PostTask(
-                FROM_HERE,
-                NewRunnableMethod(this, &SyncChannel::OnDispatchMessage, mRecvd));
-        }
-    }
+    mPendingReply = 0;
+    *reply = mRecvd;
+
+    return true;
 }
 
 void
 SyncChannel::OnDispatchMessage(const Message& msg)
 {
-    NS_ASSERTION(!msg.is_reply(), "can't process replies here");
-    NS_ASSERTION(!msg.is_rpc(), "sync or async only here");
-
-    if (!msg.is_sync()) {
-        return AsyncChannel::OnDispatchMessage(msg);
-    }
+    NS_ABORT_IF_FALSE(msg.is_sync(), "only sync messages here");
 
     Message* reply;
-    switch (static_cast<SyncListener*>(mListener)->OnMessageReceived(msg, reply)) {
+
+    mProcessingSyncMessage = true;
+    Result rv =
+        static_cast<SyncListener*>(mListener)->OnMessageReceived(msg, reply);
+    mProcessingSyncMessage = false;
+
+    switch (rv) {
     case MsgProcessed:
         mIOLoop->PostTask(FROM_HERE,
                           NewRunnableMethod(this,
@@ -144,31 +129,23 @@ SyncChannel::OnDispatchMessage(const Message& msg)
 void
 SyncChannel::OnMessageReceived(const Message& msg)
 {
-    mMutex.Lock();
-
-    if (ChannelIdle == mChannelState) {
-        
-        if (msg.is_sync()) {
-            mWorkerLoop->PostTask(
-                FROM_HERE,
-                NewRunnableMethod(this, &SyncChannel::OnDispatchMessage, msg));
-        }
-        else {
-            mMutex.Unlock();
-            return AsyncChannel::OnMessageReceived(msg);
-        }
+    if (!msg.is_sync()) {
+        return AsyncChannel::OnMessageReceived(msg);
     }
-    else if (ChannelWaiting == mChannelState) {
+
+    MutexAutoLock lock(mMutex);
+
+    if (!AwaitingSyncReply()) {
+        
+        mWorkerLoop->PostTask(
+            FROM_HERE,
+            NewRunnableMethod(this, &SyncChannel::OnDispatchMessage, msg));
+    }
+    else {
         
         mRecvd = msg;
         mCvar.Notify();
     }
-    else {
-        
-        NOTREACHED();
-    }
-
-    mMutex.Unlock();
 }
 
 void

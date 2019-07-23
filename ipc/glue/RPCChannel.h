@@ -82,12 +82,6 @@ public:
     virtual void OnMessageReceived(const Message& msg);
 
 private:
-    
-    virtual bool WaitingForReply() {
-        mMutex.AssertCurrentThreadOwns();
-        return mPending.size() > 0 || SyncChannel::WaitingForReply();
-    }
-
     void OnIncall(const Message& msg);
     void ProcessIncall(const Message& call, size_t stackDepth);
 
