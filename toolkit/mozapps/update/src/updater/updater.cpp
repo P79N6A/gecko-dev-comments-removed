@@ -47,6 +47,7 @@
 
 
 
+
 #if defined(XP_WIN)
 # include <windows.h>
 # include <direct.h>
@@ -1101,7 +1102,7 @@ LaunchWinPostProcess(const WCHAR *appExe)
     L"\0"
   };
 
-  WinLaunchChild(exefullpath, argc, argv, 1);
+  WinLaunchChild(exefullpath, argc, argv, 0);
   free(argv);
 }
 #endif
@@ -1120,7 +1121,7 @@ LaunchCallbackApp(const NS_tchar *workingDir, int argc, NS_tchar **argv)
 #elif defined(XP_MACOSX)
   LaunchChild(argc, argv);
 #elif defined(XP_WIN)
-  WinLaunchChild(argv[0], argc, argv, -1);
+  WinLaunchChild(argv[0], argc, argv, 0);
 #else
 # warning "Need implementaton of LaunchCallbackApp"
 #endif
@@ -1212,6 +1213,91 @@ int NS_main(int argc, NS_tchar **argv)
 #endif
   }
 
+#ifdef XP_WIN
+  
+  
+
+  NS_tchar updateLockFilePath[MAXPATHLEN];
+  NS_tsnprintf(updateLockFilePath, MAXPATHLEN,
+               NS_T("%s/update_in_progress.lock"), argv[3]);
+
+  
+  
+  
+  if (!_waccess(updateLockFilePath, F_OK) &&
+      NS_tremove(updateLockFilePath) != 0) {
+    fprintf(stderr, "Update already in progress! Exiting\n");
+    return 1;
+  }
+
+  HANDLE updateLockFileHandle;
+  updateLockFileHandle = CreateFileW(updateLockFilePath,
+                                     GENERIC_READ | GENERIC_WRITE,
+                                     0,
+                                     NULL,
+                                     OPEN_ALWAYS,
+                                     FILE_FLAG_DELETE_ON_CLOSE,
+                                     NULL);
+
+  NS_tchar elevatedLockFilePath[MAXPATHLEN];
+  NS_tsnprintf(elevatedLockFilePath, MAXPATHLEN,
+               NS_T("%s/update_elevated.lock"), argv[1]);
+
+  if (updateLockFileHandle == INVALID_HANDLE_VALUE) {
+    if (!_waccess(elevatedLockFilePath, F_OK) &&
+        NS_tremove(elevatedLockFilePath) != 0) {
+      fprintf(stderr, "Update already elevated! Exiting\n");
+      return 1;
+    }
+
+    HANDLE elevatedFileHandle;
+    elevatedFileHandle = CreateFileW(elevatedLockFilePath,
+                                     GENERIC_READ | GENERIC_WRITE,
+                                     0,
+                                     NULL,
+                                     OPEN_ALWAYS,
+                                     FILE_FLAG_DELETE_ON_CLOSE,
+                                     NULL);
+
+    if (elevatedFileHandle == INVALID_HANDLE_VALUE) {
+      fprintf(stderr, "Unable to create elevated lock file! Exiting\n");
+      return 1;
+    }
+
+    PRUnichar *cmdLine = MakeCommandLine(argc - 1, argv + 1);
+    if (!cmdLine) {
+      CloseHandle(elevatedFileHandle);
+      return 1;
+    }
+
+    SHELLEXECUTEINFO sinfo;
+    memset(&sinfo, 0, sizeof(SHELLEXECUTEINFO));
+    sinfo.cbSize       = sizeof(SHELLEXECUTEINFO);
+    sinfo.fMask        = SEE_MASK_NOASYNC |
+                         SEE_MASK_FLAG_NO_UI |
+                         SEE_MASK_NOCLOSEPROCESS;
+    sinfo.hwnd         = NULL;
+    sinfo.lpFile       = argv[0];
+    sinfo.lpParameters = cmdLine;
+    sinfo.lpVerb       = L"runas";
+    sinfo.nShow        = SW_SHOWNORMAL;
+
+    BOOL result = ShellExecuteEx(&sinfo);
+    free(cmdLine);
+
+    if (result) {
+      WaitForSingleObject(sinfo.hProcess, INFINITE);
+      CloseHandle(sinfo.hProcess);
+    }
+
+    if (argc > 4)
+      LaunchCallbackApp(argv[3], argc - 4, argv + 4);
+
+    CloseHandle(elevatedFileHandle);
+    return 0;
+  }
+#endif
+
   gSourcePath = argv[1];
 
   LogInit();
@@ -1229,6 +1315,12 @@ int NS_main(int argc, NS_tchar **argv)
 #ifdef XP_WIN
   if (gSucceeded && argc > 4)
     LaunchWinPostProcess(argv[4]);
+  CloseHandle(updateLockFileHandle);
+  
+  
+  if (!_waccess(elevatedLockFilePath, F_OK) &&
+      NS_tremove(elevatedLockFilePath) != 0)
+    return 0;
 #endif
 
   
