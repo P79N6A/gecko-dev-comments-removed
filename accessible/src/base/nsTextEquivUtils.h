@@ -138,6 +138,11 @@ private:
   
 
 
+  static nsresult AppendFromValue(nsIAccessible *aAccessible,
+                                  nsAString *aString);
+  
+
+
   static nsresult AppendFromDOMChildren(nsIContent *aContent,
                                         nsAString *aString);
 
@@ -150,7 +155,9 @@ private:
   
 
 
-  static void AppendString(nsAString *aString, const nsAString& aTextEquivalent);
+
+  static PRBool AppendString(nsAString *aString,
+                             const nsAString& aTextEquivalent);
 
   
 
