@@ -53,6 +53,7 @@
 #include "nsThreadUtils.h"
 #include "nsPageContentFrame.h"
 #include "nsCSSPseudoElements.h"
+#include "nsRefreshDriver.h"
 
 class nsIDocument;
 struct nsFrameItems;
@@ -78,7 +79,7 @@ typedef void (nsLazyFrameConstructionCallback)
 class nsFrameConstructorState;
 class nsFrameConstructorSaveState;
 
-class nsCSSFrameConstructor
+class nsCSSFrameConstructor : public nsARefreshObserver
 {
 public:
   nsCSSFrameConstructor(nsIDocument *aDocument, nsIPresShell* aPresShell);
@@ -245,6 +246,9 @@ public:
   {
     PostRestyleEventCommon(aContent, aRestyleHint, aMinChangeHint, PR_TRUE);
   }
+
+  
+  virtual void WillRefresh(mozilla::TimeStamp aTime);
 private:
   
 
@@ -1677,21 +1681,6 @@ public:
     nsCOMPtr<nsIContent> mContent;
   };
 
-  class RestyleEvent;
-  friend class RestyleEvent;
-
-  class RestyleEvent : public nsRunnable {
-  public:
-    NS_DECL_NSIRUNNABLE
-    RestyleEvent(nsCSSFrameConstructor *aConstructor)
-      : mConstructor(aConstructor) {
-      NS_PRECONDITION(aConstructor, "Must have a constructor!");
-    }
-    void Revoke() { mConstructor = nsnull; }
-  private:
-    nsCSSFrameConstructor *mConstructor;
-  };
-
   friend class nsFrameConstructorState;
 
 private:
@@ -1744,10 +1733,12 @@ private:
   PRPackedBool        mRebuildAllStyleData : 1;
   
   PRPackedBool        mHasRootAbsPosContainingBlock : 1;
+  
+  PRPackedBool        mObservingRefreshDriver : 1;
+  
+  PRPackedBool        mInStyleRefresh : 1;
   PRUint32            mHoverGeneration;
   nsChangeHint        mRebuildAllExtraHint;
-
-  nsRevocableEventPtr<RestyleEvent> mRestyleEvent;
 
   nsCOMPtr<nsILayoutHistoryState> mTempFrameTreeState;
 

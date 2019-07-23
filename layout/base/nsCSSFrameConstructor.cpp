@@ -1381,6 +1381,8 @@ nsCSSFrameConstructor::nsCSSFrameConstructor(nsIDocument *aDocument,
   , mIsDestroyingFrameTree(PR_FALSE)
   , mRebuildAllStyleData(PR_FALSE)
   , mHasRootAbsPosContainingBlock(PR_FALSE)
+  , mObservingRefreshDriver(PR_FALSE)
+  , mInStyleRefresh(PR_FALSE)
   , mHoverGeneration(0)
   , mRebuildAllExtraHint(nsChangeHint(0))
 {
@@ -7810,7 +7812,11 @@ nsCSSFrameConstructor::WillDestroyFrameTree()
   mCounterManager.Clear();
 
   
-  mRestyleEvent.Revoke();
+  
+  
+  
+  mPresShell->GetPresContext()->RefreshDriver()->
+    RemoveRefreshObserver(this, Flush_Style);
 }
 
 
@@ -11143,6 +11149,9 @@ nsCSSFrameConstructor::ProcessPendingRestyles()
   
   ProcessPendingRestyleTable(mPendingRestyles);
 
+  NS_POSTCONDITION(mPendingRestyles.Count() == 0,
+                   "We should have processed mPendingRestyles to completion");
+
   
   
   
@@ -11156,7 +11165,17 @@ nsCSSFrameConstructor::ProcessPendingRestyles()
   ProcessPendingRestyleTable(mPendingAnimationRestyles);
   presContext->SetProcessingAnimationStyleChange(PR_FALSE);
 
+  mInStyleRefresh = PR_FALSE;
+
+  NS_POSTCONDITION(mPendingAnimationRestyles.Count() == 0,
+                   "We should have processed mPendingAnimationRestyles to "
+                   "completion");
+  NS_POSTCONDITION(mPendingRestyles.Count() == 0,
+                   "We should not have posted new non-animation restyles while "
+                   "processing animation restyles");
+
   if (mRebuildAllStyleData) {
+    
     
     
     RebuildAllStyleData(nsChangeHint(0));
@@ -11201,15 +11220,27 @@ nsCSSFrameConstructor::PostRestyleEventCommon(nsIContent* aContent,
 void
 nsCSSFrameConstructor::PostRestyleEventInternal()
 {
-  if (!mRestyleEvent.IsPending()) {
-    nsRefPtr<RestyleEvent> ev = new RestyleEvent(this);
-    if (NS_FAILED(NS_DispatchToCurrentThread(ev))) {
-      NS_WARNING("failed to dispatch restyle event");
-      
-    } else {
-      mRestyleEvent = ev;
-    }
+  
+  
+  
+  if (!mInStyleRefresh && !mObservingRefreshDriver) {
+    mObservingRefreshDriver = mPresShell->GetPresContext()->
+      RefreshDriver()->AddRefreshObserver(this, Flush_Style);
   }
+}
+
+void
+nsCSSFrameConstructor::WillRefresh(mozilla::TimeStamp aTime)
+{
+  NS_ASSERTION(mObservingRefreshDriver, "How did we get here?");
+  
+  
+  
+  
+  mPresShell->GetPresContext()->RefreshDriver()->
+    RemoveRefreshObserver(this, Flush_Style);
+  mObservingRefreshDriver = PR_FALSE;
+  mInStyleRefresh = PR_TRUE;
 }
 
 void
@@ -11223,18 +11254,6 @@ nsCSSFrameConstructor::PostRebuildAllStyleDataEvent(nsChangeHint aExtraHint)
   NS_UpdateHint(mRebuildAllExtraHint, aExtraHint);
   
   PostRestyleEventInternal();
-}
-
-NS_IMETHODIMP nsCSSFrameConstructor::RestyleEvent::Run()
-{
-  if (!mConstructor)
-    return NS_OK;  
-
-  
-  
-  mConstructor->mRestyleEvent.Forget();  
-  
-  return mConstructor->mPresShell->FlushPendingNotifications(Flush_Style);
 }
 
 NS_IMETHODIMP
