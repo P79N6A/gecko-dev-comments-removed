@@ -103,6 +103,26 @@ public:
   }
 };
 
+
+class nsMediaLoadEvent : public nsRunnable
+{
+public:
+  nsMediaLoadEvent(nsHTMLMediaElement *aMedia)
+    : mMedia(aMedia), mCurrentLoad(mMedia->GetCurrentMediaLoad()) {}
+  ~nsMediaLoadEvent() {}
+  
+  NS_IMETHOD Run() {
+    
+    if (mMedia && mMedia->GetCurrentMediaLoad() == mCurrentLoad)
+      mMedia->Load();
+    return NS_OK;
+  }
+
+private:
+  nsCOMPtr<nsHTMLMediaElement> mMedia;
+  nsRefPtr<nsMediaLoad> mCurrentLoad;
+};
+
 class nsHTMLMediaElement::nsMediaLoadListener : public nsIStreamListener
 {
   NS_DECL_ISUPPORTS
@@ -168,6 +188,8 @@ NS_IMETHODIMP nsHTMLMediaElement::nsMediaLoadListener::OnDataAvailable(nsIReques
   NS_ABORT_IF_FALSE(mNextListener, "Must have a listener");
   return mNextListener->OnDataAvailable(aRequest, aContext, aStream, aOffset, aCount);
 }
+
+NS_IMPL_ISUPPORTS0(nsMediaLoad)
 
 
 NS_IMPL_URI_ATTR(nsHTMLMediaElement, Src, src)
@@ -257,9 +279,21 @@ void nsHTMLMediaElement::NoSupportedMediaError()
   DispatchAsyncSimpleEvent(NS_LITERAL_STRING("emptied"));
 }
 
+void nsHTMLMediaElement::QueueLoadTask()
+{
+  nsCOMPtr<nsIRunnable> event = new nsMediaLoadEvent(this);
+  NS_DispatchToMainThread(event);
+}
+
 
 NS_IMETHODIMP nsHTMLMediaElement::Load()
 {
+  
+  
+  
+  
+  mCurrentLoad = new nsMediaLoad();
+
   if (AbortExistingLoads())
     return NS_OK;
 
@@ -271,7 +305,7 @@ NS_IMETHODIMP nsHTMLMediaElement::Load()
   nsresult rv = PickMediaElement(getter_AddRefs(uri));
   if (NS_FAILED(rv)) {
     NoSupportedMediaError();
-    return rv;
+    return NS_OK;
   }
 
   if (mChannel) {
@@ -291,7 +325,7 @@ NS_IMETHODIMP nsHTMLMediaElement::Load()
                                  nsContentUtils::GetSecurityManager());
   if (NS_FAILED(rv) || NS_CP_REJECTED(shouldLoad)) {
     NoSupportedMediaError();
-    return NS_ERROR_CONTENT_BLOCKED;
+    return NS_OK;
   }
 
   rv = NS_NewChannel(getter_AddRefs(mChannel),
@@ -302,7 +336,7 @@ NS_IMETHODIMP nsHTMLMediaElement::Load()
                      nsIRequest::LOAD_NORMAL);
   if (NS_FAILED(rv)) {
     NetworkError();
-    return rv;
+    return NS_OK;
   }
   
   
@@ -320,7 +354,7 @@ NS_IMETHODIMP nsHTMLMediaElement::Load()
     NS_ENSURE_TRUE(listener, NS_ERROR_OUT_OF_MEMORY);
     if (NS_FAILED(rv)) {
       NoSupportedMediaError();
-      return rv;
+      return NS_OK;
     }
   } else {
     rv = nsContentUtils::GetSecurityManager()->
@@ -329,7 +363,7 @@ NS_IMETHODIMP nsHTMLMediaElement::Load()
                                      nsIScriptSecurityManager::STANDARD);
     if (NS_FAILED(rv)) {
       NoSupportedMediaError();
-      return rv;
+      return NS_OK;
     }
     listener = loadListener;
   }
@@ -354,7 +388,7 @@ NS_IMETHODIMP nsHTMLMediaElement::Load()
     
     mChannel = nsnull;
     NetworkError();
-    return rv;
+    return NS_OK;
   }
 
   return NS_OK;
@@ -530,7 +564,8 @@ nsHTMLMediaElement::nsHTMLMediaElement(nsINodeInfo *aNodeInfo, PRBool aFromParse
     mMuted(PR_FALSE),
     mIsDoneAddingChildren(!aFromParser),
     mPlayingBeforeSeek(PR_FALSE),
-    mWaitingFired(PR_FALSE)
+    mWaitingFired(PR_FALSE),
+    mIsBindingToTree(PR_FALSE)
 {
 }
 
@@ -630,16 +665,18 @@ nsresult nsHTMLMediaElement::BindToTree(nsIDocument* aDocument, nsIContent* aPar
                                         nsIContent* aBindingParent,
                                         PRBool aCompileEventHandlers)
 {
+  mIsBindingToTree = PR_TRUE;
   nsresult rv = nsGenericHTMLElement::BindToTree(aDocument, 
                                                  aParent, 
                                                  aBindingParent, 
                                                  aCompileEventHandlers);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  if (mIsDoneAddingChildren &&
+  if (NS_SUCCEEDED(rv) &&
+      mIsDoneAddingChildren &&
       mNetworkState == nsIDOMHTMLMediaElement::NETWORK_EMPTY) {
-    Load();
+    QueueLoadTask();
   }
+
+  mIsBindingToTree = PR_FALSE;
 
   return rv;
 }
@@ -1229,7 +1266,7 @@ nsresult nsHTMLMediaElement::DoneAddingChildren(PRBool aHaveNotified)
     mIsDoneAddingChildren = PR_TRUE;
   
     if (mNetworkState == nsIDOMHTMLMediaElement::NETWORK_EMPTY) {
-      Load();
+      QueueLoadTask();
     }
   }
 
@@ -1308,5 +1345,27 @@ void nsHTMLMediaElement::Thaw()
 
   if (mDecoder) {
     mDecoder->Resume();
+  }
+}
+
+PRBool
+nsHTMLMediaElement::IsNodeOfType(PRUint32 aFlags) const
+{
+  return !(aFlags & ~(eCONTENT | eELEMENT | eHTML | eMEDIA));
+}
+
+void nsHTMLMediaElement::NotifyAddedSource()
+{
+  
+  
+  
+  
+  
+  PRBool shouldLoad = IsInDoc() &&
+                      !mIsBindingToTree &&
+                      mIsDoneAddingChildren &&
+                      mNetworkState == nsIDOMHTMLMediaElement::NETWORK_EMPTY;
+  if (shouldLoad) {
+    QueueLoadTask();
   }
 }

@@ -39,12 +39,24 @@
 #include "nsGenericHTMLElement.h"
 #include "nsMediaDecoder.h"
 #include "nsIChannel.h"
+#include "nsThreadUtils.h"
 
 
 
 
 typedef PRUint16 nsMediaNetworkState;
 typedef PRUint16 nsMediaReadyState;
+
+
+
+
+
+
+class nsMediaLoad : public nsISupports
+{
+public:
+  NS_DECL_ISUPPORTS;
+};
 
 class nsHTMLMediaElement : public nsGenericHTMLElement
 {
@@ -192,6 +204,29 @@ public:
 
   static void ShutdownMediaTypes();
 
+  
+
+
+
+  void NotifyAddedSource();
+
+  virtual PRBool IsNodeOfType(PRUint32 aFlags) const;
+
+  
+
+
+  void QueueLoadTask();
+
+  
+
+
+
+
+
+
+
+  nsMediaLoad* GetCurrentMediaLoad() { return mCurrentLoad; }
+
 protected:
   class nsMediaLoadListener;
 
@@ -234,6 +269,9 @@ protected:
 
   
   nsCOMPtr<nsIDOMHTMLMediaError> mError;
+
+  
+  nsRefPtr<nsMediaLoad> mCurrentLoad;
 
   
   
@@ -291,4 +329,7 @@ protected:
   
   
   PRPackedBool mWaitingFired;
+
+  
+  PRPackedBool mIsBindingToTree;
 };
