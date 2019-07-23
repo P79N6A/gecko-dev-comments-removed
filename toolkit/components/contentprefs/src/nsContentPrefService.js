@@ -83,6 +83,15 @@ ContentPrefService.prototype = {
     return this.__consoleSvc;
   },
 
+  
+  __prefSvc: null,
+  get _prefSvc ContentPrefService_get__prefSvc() {
+    if (!this.__prefSvc)
+      this.__prefSvc = Cc["@mozilla.org/preferences-service;1"].
+                       getService(Ci.nsIPrefBranch2);
+    return this.__prefSvc;
+  },
+
 
   
   
@@ -720,6 +729,21 @@ ContentPrefService.prototype = {
         }
       }
     }
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    if (!this._prefSvc.prefHasUserValue("toolkit.storage.synchronous"))
+      dbConnection.executeSimpleSQL("PRAGMA synchronous = OFF");
 
     this._dbConnection = dbConnection;
   },
