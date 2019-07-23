@@ -57,6 +57,7 @@
 #include "nsIPercentHeightObserver.h"
 #include "nsContentUtils.h"
 #include "nsLayoutUtils.h"
+#include "nsStyleStructInlines.h"
 #ifdef IBMBIDI
 #include "nsBidiUtils.h"
 #endif
@@ -307,6 +308,17 @@ nsHTMLReflowState::Init(nsPresContext* aPresContext,
   InitConstraints(aPresContext, aContainingBlockWidth, aContainingBlockHeight, aBorder, aPadding);
 
   InitResizeFlags(aPresContext);
+
+  
+  
+  
+  
+  
+  
+  imgIRequest *borderImage = mStyleBorder->GetBorderImage();
+  if (borderImage) {
+    aPresContext->LoadBorderImage(borderImage, frame);
+  }
 
   NS_ASSERTION((mFrameType == NS_CSS_FRAME_TYPE_INLINE &&
                 !frame->IsFrameOfType(nsIFrame::eReplaced)) ||
@@ -799,7 +811,7 @@ nsHTMLReflowState::CalculateHorizBorderPaddingMargin(
                        nscoord* aInsideBoxSizing,
                        nscoord* aOutsideBoxSizing)
 {
-  const nsMargin& border = mStyleBorder->GetBorder();
+  const nsMargin& border = mStyleBorder->GetActualBorder();
   nsMargin padding, margin;
 
   
@@ -1891,7 +1903,7 @@ nsCSSOffsetState::InitOffsets(nscoord aContainingBlockWidth,
     mComputedBorderPadding = *aBorder;
   }
   else {
-    mComputedBorderPadding = frame->GetStyleBorder()->GetBorder();
+    mComputedBorderPadding = frame->GetStyleBorder()->GetActualBorder();
   }
   mComputedBorderPadding += mComputedPadding;
 

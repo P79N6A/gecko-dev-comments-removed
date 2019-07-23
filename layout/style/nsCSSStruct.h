@@ -354,6 +354,7 @@ struct nsCSSMargin : public nsCSSStruct  {
   nsCSSValue  mOutlineOffset;
   nsCSSRect   mOutlineRadius; 
   nsCSSValue  mFloatEdge; 
+  nsCSSValue  mBorderImage;
   nsCSSValueList* mBoxShadow;
 private:
   nsCSSMargin(const nsCSSMargin& aOther); 

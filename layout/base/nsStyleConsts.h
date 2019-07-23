@@ -272,6 +272,11 @@
 #define NS_STYLE_BORDER_STYLE_RULES_MARKER      0x10  
 
 
+#define NS_STYLE_BORDER_IMAGE_STRETCH           0
+#define NS_STYLE_BORDER_IMAGE_REPEAT            1
+#define NS_STYLE_BORDER_IMAGE_ROUND             2
+
+
 #define NS_STYLE_CLEAR_NONE                     0
 #define NS_STYLE_CLEAR_LEFT                     1
 #define NS_STYLE_CLEAR_RIGHT                    2
