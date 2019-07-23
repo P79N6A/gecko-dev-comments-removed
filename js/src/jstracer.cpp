@@ -1036,11 +1036,11 @@ TraceRecorder::import(LIns* base, ptrdiff_t offset, jsval* p, uint8& t,
         ins = lir->ins1(LIR_i2f, ins);
     } else {
         JS_ASSERT(isNumber(*p) == (t == JSVAL_DOUBLE));
-		if (t == JSVAL_DOUBLE) {
-			ins = lir->insLoad(LIR_ldq, base, offset);
-		} else {
-	        ins = lir->insLoad(LIR_ldp, base, offset);
-		}
+        if (t == JSVAL_DOUBLE) {
+            ins = lir->insLoad(LIR_ldq, base, offset);
+        } else {
+            ins = lir->insLoad(LIR_ldp, base, offset);
+        }
     }
     tracker.set(p, ins);
 #ifdef DEBUG
@@ -1145,9 +1145,9 @@ TraceRecorder::writeBack(LIns* i, LIns* base, ptrdiff_t offset)
     
 
 
-    if (isPromoteInt(i))
-        i = ::demote(lir, i);
-    return lir->insStorei(i, base, offset);
+     if (isPromoteInt(i))
+         i = ::demote(lir, i);
+     return lir->insStorei(i, base, offset);
 }
 
 
@@ -1227,41 +1227,6 @@ struct FrameInfo {
     };
 };
 
-
-
-bool
-TraceRecorder::adjustCallerTypes(Fragment* f)
-{
-    JSTraceMonitor* tm = traceMonitor;
-    uint8* m = tm->globalTypeMap->data();
-    uint16* gslots = traceMonitor->globalSlots->data();
-    unsigned ngslots = traceMonitor->globalSlots->length();
-    FORALL_GLOBAL_SLOTS(cx, ngslots, gslots, 
-        LIns* i = get(vp);
-        bool isPromote = isPromoteInt(i);
-        if (isPromote && *m == JSVAL_DOUBLE) 
-            lir->insStorei(get(vp), gp_ins, nativeGlobalOffset(vp));
-        ++m;
-    );
-    m = ((TreeInfo*)f->vmprivate)->stackTypeMap.data();
-    FORALL_SLOTS_IN_PENDING_FRAMES(cx, callDepth,
-        LIns* i = get(vp);
-        bool isPromote = isPromoteInt(i);
-        if (isPromote && *m == JSVAL_DOUBLE) 
-            lir->insStorei(get(vp), lirbuf->sp, 
-                           -treeInfo->nativeStackBase + nativeStackOffset(vp));
-        ++m;
-    );
-    return true;
-}
-
-
-bool TraceRecorder::selectCallablePeerFragment(Fragment** first)
-{
-    
-    return (*first)->code();
-}
-
 SideExit*
 TraceRecorder::snapshot(ExitType exitType)
 {
@@ -1295,6 +1260,7 @@ TraceRecorder::snapshot(ExitType exitType)
         *m = isNumber(*vp)
                ? (isPromoteInt(i) ? JSVAL_INT : JSVAL_DOUBLE)
                : JSVAL_TAG(*vp);
+               if (*m == JSVAL_INT && JSVAL_TAG(*vp) == 2)
         JS_ASSERT((*m != JSVAL_INT) || isInt32(*vp));
         ++m;
     );
@@ -1457,7 +1423,7 @@ TraceRecorder::closeLoop(Fragmento* fragmento)
 
 
 void
-TraceRecorder::prepareTreeCall(Fragment* inner)
+TraceRecorder::emitTreeCallStackSetup(Fragment* inner)
 {
     TreeInfo* ti = (TreeInfo*)inner->vmprivate;
     inner_sp_ins = lirbuf->sp;
@@ -1468,7 +1434,7 @@ TraceRecorder::prepareTreeCall(Fragment* inner)
     if (callDepth > 0) {
         
 
-        ptrdiff_t sp_adj = nativeStackOffset(&cx->fp->argv[-1]) + sizeof(double);
+        ptrdiff_t sp_adj = nativeStackOffset(&cx->fp->argv[0]);
         
         ptrdiff_t rp_adj = callDepth * sizeof(FrameInfo);
         
@@ -1810,11 +1776,27 @@ js_ContinueRecording(JSContext* cx, TraceRecorder* r, jsbytecode* oldpc, uintN& 
     }
     
     Fragment* f = fragmento->getLoop(cx->fp->regs->pc);
-    if (nesting_enabled && 
-        f && 
-        r->selectCallablePeerFragment(&f) && 
-        r->adjustCallerTypes(f)) { 
-        r->prepareTreeCall(f);
+    if (nesting_enabled && f && f->code()) {
+        
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        r->emitTreeCallStackSetup(f);
         GuardRecord* lr = js_ExecuteTree(cx, &f, inlineCallCount);
         if (!lr) {
             js_AbortRecording(cx, oldpc, "Couldn't call inner tree");
@@ -2241,9 +2223,11 @@ TraceRecorder::ifop()
         guard((d == 0 || JSDOUBLE_IS_NaN(d)), lir->ins2(LIR_feq, get(&v), lir->insImmq(u.u64)), BRANCH_EXIT);
     } else if (JSVAL_IS_STRING(v)) {
         guard(JSSTRING_LENGTH(JSVAL_TO_STRING(v)) == 0,
-              lir->ins_eq0(lir->ins2(LIR_and,
-                                     lir->insLoadi(get(&v), offsetof(JSString, length)),
-                                     INS_CONST(JSSTRING_LENGTH_MASK))),
+              lir->ins_eq0(lir->ins2(LIR_piand,
+                                     lir->insLoad(LIR_ldp, 
+                                                  get(&v), 
+                                                  (int)offsetof(JSString, length)),
+                                     INS_CONSTPTR(JSSTRING_LENGTH_MASK))),
               BRANCH_EXIT);
     } else {
         JS_NOT_REACHED("ifop");
@@ -2464,7 +2448,6 @@ TraceRecorder::binary(LOpcode op)
     if ((op >= LIR_sub && op <= LIR_ush) ||  
         (op >= LIR_fsub && op <= LIR_fdiv)) { 
         LIns* args[] = { NULL, cx_ins };
-        JS_ASSERT(op != LIR_callh);
         if (JSVAL_IS_STRING(l)) {
             args[0] = a;
             a = lir->insCall(F_StringToNumber, args);
@@ -3188,16 +3171,11 @@ TraceRecorder::record_JSOP_ADD()
         LIns* args[] = { NULL, get(&l), cx_ins };
         if (JSVAL_IS_STRING(r)) {
             args[0] = get(&r);
-        } else {
+        } else if (JSVAL_IS_NUMBER(r)) {
             LIns* args2[] = { get(&r), cx_ins };
-            if (JSVAL_IS_NUMBER(r)) {
-                args[0] = lir->insCall(F_NumberToString, args2);
-            } else if (JSVAL_IS_OBJECT(r)) {
-                args[0] = lir->insCall(F_ObjectToString, args2);
-            } else {
-                ABORT_TRACE("untraceable right operand to string-JSOP_ADD");
-            }
-            guard(false, lir->ins_eq0(args[0]), OOM_EXIT);
+            args[0] = lir->insCall(F_NumberToString, args2);
+        } else {
+            ABORT_TRACE("untraceable right operand to string-JSOP_ADD");
         }
         LIns* concat = lir->insCall(F_ConcatStrings, args);
         guard(false, lir->ins_eq0(concat), OOM_EXIT);
@@ -5374,11 +5352,11 @@ TraceRecorder::record_JSOP_LENGTH()
         if (!JSVAL_IS_STRING(l))
             ABORT_TRACE("non-string primitives unsupported");
         LIns* str_ins = get(&l);
-        LIns* len_ins = lir->insLoadi(str_ins, offsetof(JSString, length));
+        LIns* len_ins = lir->insLoad(LIR_ldp, str_ins, (int)offsetof(JSString, length));
 
-        LIns* masked_len_ins = lir->ins2(LIR_and,
+        LIns* masked_len_ins = lir->ins2(LIR_qiand,
                                          len_ins,
-                                         INS_CONST(JSSTRING_LENGTH_MASK));
+                                         INS_CONSTPTR(JSSTRING_LENGTH_MASK));
 
         LIns *choose_len_ins =
             lir->ins_choose(lir->ins_eq0(lir->ins2(LIR_piand,
