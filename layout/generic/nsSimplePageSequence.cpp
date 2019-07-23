@@ -212,7 +212,7 @@ nsSimplePageSequenceFrame::Reflow(nsPresContext*          aPresContext,
     mPageData->mPrintSettings->GetEdgeInTwips(edgeTwips);
 
     
-    nscoord inchInTwips = NS_INCHES_TO_TWIPS(1.0);
+    nscoord inchInTwips = NS_INCHES_TO_TWIPS(3.0);
     edgeTwips.top = PR_MIN(PR_MAX(edgeTwips.top, 0), inchInTwips);
     edgeTwips.bottom = PR_MIN(PR_MAX(edgeTwips.bottom, 0), inchInTwips);
     edgeTwips.left = PR_MIN(PR_MAX(edgeTwips.left, 0), inchInTwips);
