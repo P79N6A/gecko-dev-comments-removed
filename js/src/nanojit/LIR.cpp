@@ -1050,56 +1050,50 @@ namespace nanojit
 
     using namespace avmplus;
 
-    StackFilter::StackFilter(LirFilter *in, Allocator& alloc, LInsp sp, LInsp rp)
-        : LirFilter(in), sp(sp), rp(rp), spStk(alloc), rpStk(alloc), spTop(0), rpTop(0)
+    StackFilter::StackFilter(LirFilter *in, Allocator& alloc, LInsp sp)
+        : LirFilter(in), sp(sp), stk(alloc), top(0)
     {}
 
-    bool StackFilter::ignoreStore(LInsp ins, int top, BitSet* stk)
-    {
-        bool ignore = false;
-        int d = ins->disp() >> 2;
-        if (d >= top) {
-            ignore = true;
-        } else {
-            d = top - d;
-            if (ins->oprnd1()->isN64()) {
-                
-                if (stk->get(d) && stk->get(d-1)) {
-                    ignore = true;
-                } else {
-                    stk->set(d);
-                    stk->set(d-1);
-                }
-            }
-            else {
-                
-                NanoAssert(ins->oprnd1()->isI32());
-                if (stk->get(d)) {
-                    ignore = true;
-                } else {
-                    stk->set(d);
-                }
-            }
-        }
-        return ignore;
-    }
-
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     LInsp StackFilter::read()
     {
-        for (;;)
-        {
-            LInsp i = in->read();
-            if (i->isStore())
-            {
-                LInsp base = i->oprnd2();
+        for (;;) {
+            LInsp ins = in->read();
 
+            if (ins->isStore()) {
+                LInsp base = ins->oprnd2();
                 if (base == sp) {
-                    if (ignoreStore(i, spTop, &spStk))
-                        continue;
+                    
+                    NanoAssert((ins->disp() & 0x7) == 0);
 
-                } else if (base == rp) {
-                    if (ignoreStore(i, rpTop, &rpStk))
+                    int d = ins->disp() >> 3;
+                    if (d >= top) {
                         continue;
+                    } else {
+                        d = top - d;
+                        if (stk.get(d)) {
+                            continue;
+                        } else {
+                            stk.set(d);
+                        }
+                    }
                 }
             }
             
@@ -1107,16 +1101,13 @@ namespace nanojit
 
 
 
-            else if (i->isGuard())
-            {
-                spStk.reset();
-                rpStk.reset();
-                getTops(i, spTop, rpTop);
-                spTop >>= 2;
-                rpTop >>= 2;
+            else if (ins->isGuard()) {
+                stk.reset();
+                top = getTop(ins);
+                top >>= 3;
             }
 
-            return i;
+            return ins;
         }
     }
 
