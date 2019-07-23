@@ -16,27 +16,29 @@
 
 #if defined(PNG_READ_SUPPORTED)
 
-#if defined(_WIN32_WCE)
+#ifdef PNG_FLOATING_POINT_SUPPORTED
+#  if defined(_WIN32_WCE)
 
-#  ifdef PNG_FLOATING_POINT_SUPPORTED
-__inline double strtod(const char *nptr, char **endptr)
+__inline double png_strtod(png_structp png_ptr, const char *nptr, char **endptr)
 {
    double result = 0;
    int len;
    wchar_t *str, *end;
 
    len = MultiByteToWideChar(CP_ACP, 0, nptr, -1, NULL, 0);
-   str = (wchar_t *)malloc(len * sizeof(wchar_t));
+   str = (wchar_t *)png_malloc(png_ptr, len * sizeof(wchar_t));
    if ( NULL != str )
    {
       MultiByteToWideChar(CP_ACP, 0, nptr, -1, str, len);
       result = wcstod(str, &end);
       len = WideCharToMultiByte(CP_ACP, 0, end, -1, NULL, 0, NULL, NULL);
       *endptr = (char *)nptr + (png_strlen(nptr) - len + 1);
-      free(str);
+      png_free(str);
    }
    return result;
 }
+#  else
+#    define png_strtod(p,a,b) strtod(a,b)
 #  endif
 #endif
 
@@ -90,6 +92,7 @@ png_get_uint_16(png_bytep buf)
 void 
 png_crc_read(png_structp png_ptr, png_bytep buf, png_size_t length)
 {
+   if(png_ptr == NULL) return;
    png_read_data(png_ptr, buf, length);
    png_calculate_crc(png_ptr, buf, length);
 }
@@ -1735,7 +1738,7 @@ png_handle_sCAL(png_structp png_ptr, png_infop info_ptr, png_uint_32 length)
    ep = buffer + 1;        
 
 #ifdef PNG_FLOATING_POINT_SUPPORTED
-   width = strtod(ep, &vp);
+   width = png_strtod(png_ptr, ep, &vp);
    if (*vp)
    {
        png_warning(png_ptr, "malformed width string in sCAL chunk");
@@ -1758,7 +1761,7 @@ png_handle_sCAL(png_structp png_ptr, png_infop info_ptr, png_uint_32 length)
    ep++;
 
 #ifdef PNG_FLOATING_POINT_SUPPORTED
-   height = strtod(ep, &vp);
+   height = png_strtod(png_ptr, ep, &vp);
    if (*vp)
    {
        png_warning(png_ptr, "malformed height string in sCAL chunk");
@@ -2411,7 +2414,7 @@ png_check_chunk_name(png_structp png_ptr, png_bytep chunk_name)
 
 
 
-#ifndef PNG_HAVE_ASSEMBLER_COMBINE_ROW
+#ifndef PNG_HAVE_MMX_COMBINE_ROW
 void 
 png_combine_row(png_structp png_ptr, png_bytep row, int mask)
 {
@@ -2615,7 +2618,7 @@ png_combine_row(png_structp png_ptr, png_bytep row, int mask)
 #endif 
 
 #ifdef PNG_READ_INTERLACING_SUPPORTED
-#ifndef PNG_HAVE_ASSEMBLER_READ_INTERLACE   
+#ifndef PNG_HAVE_MMX_READ_INTERLACE   
 
 
 
@@ -2844,7 +2847,7 @@ png_do_read_interlace(png_structp png_ptr)
 #endif 
 #endif 
 
-#ifndef PNG_HAVE_ASSEMBLER_READ_FILTER_ROW
+#ifndef PNG_HAVE_MMX_READ_FILTER_ROW
 void 
 png_read_filter_row(png_structp png_ptr, png_row_infop row_info, png_bytep row,
    png_bytep prev_row, int filter)
@@ -3271,7 +3274,7 @@ defined(PNG_USER_TRANSFORM_PTR_SUPPORTED)
    if ((png_uint_32)png_ptr->rowbytes + 1 > (png_uint_32)65536L)
       png_error(png_ptr, "This image requires a row greater than 64KB");
 #endif
-   if ((png_uint_32)png_ptr->rowbytes > PNG_SIZE_MAX - 1)
+   if ((png_uint_32)png_ptr->rowbytes > (png_uint_32)(PNG_SIZE_MAX - 1))
       png_error(png_ptr, "Row has too many bytes to allocate in memory.");
    png_ptr->prev_row = (png_bytep)png_malloc(png_ptr, (png_uint_32)(
       png_ptr->rowbytes + 1));

@@ -13,7 +13,7 @@
 #include "png.h"
 
 
-typedef version_1_2_12 Your_png_h_is_not_version_1_2_12;
+typedef version_1_2_16 Your_png_h_is_not_version_1_2_16;
 
 
 
@@ -100,6 +100,7 @@ const int FARDATA png_pass_dsp_mask[]
 void PNGAPI
 png_set_sig_bytes(png_structp png_ptr, int num_bytes)
 {
+   if(png_ptr == NULL) return;
    png_debug(1, "in png_set_sig_bytes\n");
    if (num_bytes > 8)
       png_error(png_ptr, "Too many bytes for PNG signature.");
@@ -156,13 +157,14 @@ voidpf
 png_zalloc(voidpf png_ptr, uInt items, uInt size)
 {
    png_voidp ptr;
-   png_structp p=png_ptr;
+   png_structp p=(png_structp)png_ptr;
    png_uint_32 save_flags=p->flags;
    png_uint_32 num_bytes;
 
+   if(png_ptr == NULL) return (NULL);
    if (items > PNG_UINT_32_MAX/size)
    {
-     png_warning (png_ptr, "Potential overflow in png_zalloc()");
+     png_warning (p, "Potential overflow in png_zalloc()");
      return (NULL);
    }
    num_bytes = (png_uint_32)items * size;
@@ -269,6 +271,7 @@ void PNGAPI
 png_destroy_info_struct(png_structp png_ptr, png_infopp info_ptr_ptr)
 {
    png_infop info_ptr = NULL;
+   if(png_ptr == NULL) return;
 
    png_debug(1, "in png_destroy_info_struct\n");
    if (info_ptr_ptr != NULL)
@@ -306,6 +309,8 @@ void PNGAPI
 png_info_init_3(png_infopp ptr_ptr, png_size_t png_info_struct_size)
 {
    png_infop info_ptr = *ptr_ptr;
+
+   if(info_ptr == NULL) return;
 
    png_debug(1, "in png_info_init_3\n");
 
@@ -614,6 +619,7 @@ png_info_destroy(png_structp png_ptr, png_infop info_ptr)
 png_voidp PNGAPI
 png_get_io_ptr(png_structp png_ptr)
 {
+   if(png_ptr == NULL) return (NULL);
    return (png_ptr->io_ptr);
 }
 
@@ -629,6 +635,7 @@ void PNGAPI
 png_init_io(png_structp png_ptr, png_FILE_p fp)
 {
    png_debug(1, "in png_init_io\n");
+   if(png_ptr == NULL) return;
    png_ptr->io_ptr = (png_voidp)fp;
 }
 #endif
@@ -644,6 +651,7 @@ png_convert_to_rfc1123(png_structp png_ptr, png_timep ptime)
         {"Jan", "Feb", "Mar", "Apr", "May", "Jun",
          "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
 
+   if(png_ptr == NULL) return (NULL);
    if (png_ptr->time_buffer == NULL)
    {
       png_ptr->time_buffer = (png_charp)png_malloc(png_ptr, (png_uint_32)(29*
@@ -696,8 +704,8 @@ png_charp PNGAPI
 png_get_copyright(png_structp png_ptr)
 {
    if (&png_ptr != NULL)  
-   return ((png_charp) "\n libpng version 1.2.12 - June 27, 2006\n\
-   Copyright (c) 1998-2006 Glenn Randers-Pehrson\n\
+   return ((png_charp) "\n libpng version 1.2.16 - January 31, 2007\n\
+   Copyright (c) 1998-2007 Glenn Randers-Pehrson\n\
    Copyright (c) 1996-1997 Andreas Dilger\n\
    Copyright (c) 1995-1996 Guy Eric Schalnat, Group 42, Inc.\n");
    return ((png_charp) "");
@@ -760,6 +768,7 @@ png_handle_as_unknown(png_structp png_ptr, png_bytep chunk_name)
 int PNGAPI
 png_reset_zstream(png_structp png_ptr)
 {
+   if (png_ptr == NULL) return Z_STREAM_ERROR;
    return (inflateReset(&png_ptr->zstream));
 }
 #endif 
@@ -773,14 +782,14 @@ png_access_version_number(void)
 }
 
 
-#if defined(PNG_READ_SUPPORTED)
+#if defined(PNG_READ_SUPPORTED) && defined(PNG_ASSEMBLER_CODE_SUPPORTED)
 #if !defined(PNG_1_0_X)
-#if defined(PNG_ASSEMBLER_CODE_SUPPORTED)
-    
+#if defined(PNG_MMX_CODE_SUPPORTED)
 
 void 
 png_init_mmx_flags (png_structp png_ptr)
 {
+    if(png_ptr == NULL) return;
     png_ptr->mmx_rowbytes_threshold = 0;
     png_ptr->mmx_bitdepth_threshold = 0;
 
@@ -825,7 +834,7 @@ png_init_mmx_flags (png_structp png_ptr)
 
 
 #if !defined(PNG_USE_PNGGCCRD) && \
-    !(defined(PNG_ASSEMBLER_CODE_SUPPORTED) && defined(PNG_USE_PNGVCRD))
+    !(defined(PNG_MMX_CODE_SUPPORTED) && defined(PNG_USE_PNGVCRD))
 int PNGAPI
 png_mmx_support(void)
 {

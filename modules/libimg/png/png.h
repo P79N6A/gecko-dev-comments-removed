@@ -319,6 +319,23 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef PNG_H
 #define PNG_H
 
@@ -329,9 +346,9 @@
 
 
 
-#define PNG_LIBPNG_VER_STRING "1.2.12"
+#define PNG_LIBPNG_VER_STRING "1.2.16"
 #define PNG_HEADER_VERSION_STRING \
-   " libpng version 1.2.12 - June 27, 2006 (header)\n"
+   " libpng version 1.2.16 - January 31, 2007 (header)\n"
 
 #define PNG_LIBPNG_VER_SONUM   0
 #define PNG_LIBPNG_VER_DLLNUM  13
@@ -339,7 +356,7 @@
 
 #define PNG_LIBPNG_VER_MAJOR   1
 #define PNG_LIBPNG_VER_MINOR   2
-#define PNG_LIBPNG_VER_RELEASE 12
+#define PNG_LIBPNG_VER_RELEASE 16
 
 
 
@@ -367,7 +384,7 @@
 
 
 
-#define PNG_LIBPNG_VER 10212 /* 1.2.12 */
+#define PNG_LIBPNG_VER 10216 /* 1.2.16 */
 
 #ifndef PNG_VERSION_INFO_ONLY
 
@@ -1353,10 +1370,14 @@ struct png_struct_def
 #endif
 
 
-#if !defined(PNG_1_0_X) && defined(PNG_ASSEMBLER_CODE_SUPPORTED)
+#if defined(PNG_ASSEMBLER_CODE_SUPPORTED)
+#  if !defined(PNG_1_0_X)
+#    if defined(PNG_MMX_CODE_SUPPORTED)
    png_byte     mmx_bitdepth_threshold;
    png_uint_32  mmx_rowbytes_threshold;
+#    endif
    png_uint_32  asm_flags;
+#  endif
 #endif
 
 
@@ -1424,7 +1445,7 @@ struct png_struct_def
 
 
 
-typedef png_structp version_1_2_12;
+typedef png_structp version_1_2_16;
 
 typedef png_struct FAR * FAR * png_structpp;
 
@@ -2598,6 +2619,7 @@ extern PNG_EXPORT(png_uint_32,png_permit_mng_features) PNGARG((png_structp
 
 
 #if defined(PNG_ASSEMBLER_CODE_SUPPORTED)
+#if defined(PNG_MMX_CODE_SUPPORTED)
 #define PNG_ASM_FLAG_MMX_SUPPORT_COMPILED  0x01  /* not user-settable */
 #define PNG_ASM_FLAG_MMX_SUPPORT_IN_CPU    0x02  /* not user-settable */
 #define PNG_ASM_FLAG_MMX_READ_COMBINE_ROW  0x04
@@ -2623,6 +2645,7 @@ extern PNG_EXPORT(png_uint_32,png_permit_mng_features) PNGARG((png_structp
 
 #define PNG_SELECT_READ   1
 #define PNG_SELECT_WRITE  2
+#endif 
 
 #if !defined(PNG_1_0_X)
 
@@ -2655,11 +2678,11 @@ extern PNG_EXPORT(void,png_set_mmx_thresholds)
    png_uint_32 mmx_rowbytes_threshold));
 
 #endif 
-#endif 
 
 #if !defined(PNG_1_0_X)
 
 extern PNG_EXPORT(int,png_mmx_support) PNGARG((void));
+#endif 
 
 
 
@@ -3605,8 +3628,10 @@ PNG_EXTERN void png_do_write_intrapixel PNGARG((png_row_infop row_info,
 #endif
 
 #if defined(PNG_ASSEMBLER_CODE_SUPPORTED)
+#if defined(PNG_MMX_CODE_SUPPORTED)
  
 PNG_EXTERN void png_init_mmx_flags PNGARG((png_structp png_ptr));
+#endif
 #endif
 
 #if defined(PNG_INCH_CONVERSIONS) && defined(PNG_FLOATING_POINT_SUPPORTED)

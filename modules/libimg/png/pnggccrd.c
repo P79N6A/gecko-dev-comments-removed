@@ -245,7 +245,7 @@
 #define PNG_INTERNAL
 #include "png.h"
 
-#if defined(PNG_USE_PNGGCCRD)
+#if defined(PNG_ASSEMBLER_CODE_SUPPORTED) && defined(PNG_USE_PNGGCCRD)
 
 int PNGAPI png_mmx_support(void);
 
@@ -255,7 +255,7 @@ static const int FARDATA png_pass_inc[7]   = {8, 8, 4, 4, 2, 2, 1};
 static const int FARDATA png_pass_width[7] = {8, 4, 4, 2, 2, 1, 1};
 #endif
 
-#if defined(PNG_ASSEMBLER_CODE_SUPPORTED)
+#if defined(PNG_MMX_CODE_SUPPORTED)
 
 
 #if defined(__DJGPP__) || defined(WIN32) || defined(__CYGWIN__) || \
@@ -389,7 +389,7 @@ static int _mmx_supported = 2;
 
 
 
-#if defined(PNG_HAVE_ASSEMBLER_COMBINE_ROW)
+#if defined(PNG_HAVE_MMX_COMBINE_ROW)
 
 #define BPP2  2
 #define BPP3  3 /* bytes per pixel (a.k.a. pixel_bytes) */
@@ -416,7 +416,7 @@ png_combine_row(png_structp png_ptr, png_bytep row, int mask)
 {
    png_debug(1, "in png_combine_row (pnggccrd.c)\n");
 
-#if defined(PNG_ASSEMBLER_CODE_SUPPORTED)
+#if defined(PNG_MMX_CODE_SUPPORTED)
    if (_mmx_supported == 2) {
 #if !defined(PNG_1_0_X)
        
@@ -607,7 +607,7 @@ png_combine_row(png_structp png_ptr, png_bytep row, int mask)
             png_bytep srcptr;
             png_bytep dstptr;
 
-#if defined(PNG_ASSEMBLER_CODE_SUPPORTED) && defined(PNG_THREAD_UNSAFE_OK)
+#if defined(PNG_MMX_CODE_SUPPORTED) && defined(PNG_THREAD_UNSAFE_OK)
 #if !defined(PNG_1_0_X)
             if ((png_ptr->asm_flags & PNG_ASM_FLAG_MMX_READ_COMBINE_ROW)
                  )
@@ -745,7 +745,7 @@ png_combine_row(png_structp png_ptr, png_bytep row, int mask)
             png_bytep srcptr;
             png_bytep dstptr;
 
-#if defined(PNG_ASSEMBLER_CODE_SUPPORTED) && defined(PNG_THREAD_UNSAFE_OK)
+#if defined(PNG_MMX_CODE_SUPPORTED) && defined(PNG_THREAD_UNSAFE_OK)
 #if !defined(PNG_1_0_X)
             if ((png_ptr->asm_flags & PNG_ASM_FLAG_MMX_READ_COMBINE_ROW)
                  )
@@ -898,7 +898,7 @@ png_combine_row(png_structp png_ptr, png_bytep row, int mask)
             png_bytep srcptr;
             png_bytep dstptr;
 
-#if defined(PNG_ASSEMBLER_CODE_SUPPORTED) && defined(PNG_THREAD_UNSAFE_OK)
+#if defined(PNG_MMX_CODE_SUPPORTED) && defined(PNG_THREAD_UNSAFE_OK)
 #if !defined(PNG_1_0_X)
             if ((png_ptr->asm_flags & PNG_ASM_FLAG_MMX_READ_COMBINE_ROW)
                  )
@@ -1066,7 +1066,7 @@ png_combine_row(png_structp png_ptr, png_bytep row, int mask)
             png_bytep srcptr;
             png_bytep dstptr;
 
-#if defined(PNG_ASSEMBLER_CODE_SUPPORTED) && defined(PNG_THREAD_UNSAFE_OK)
+#if defined(PNG_MMX_CODE_SUPPORTED) && defined(PNG_THREAD_UNSAFE_OK)
 #if !defined(PNG_1_0_X)
             if ((png_ptr->asm_flags & PNG_ASM_FLAG_MMX_READ_COMBINE_ROW)
                  )
@@ -1241,7 +1241,7 @@ png_combine_row(png_structp png_ptr, png_bytep row, int mask)
             png_bytep srcptr;
             png_bytep dstptr;
 
-#if defined(PNG_ASSEMBLER_CODE_SUPPORTED) && defined(PNG_THREAD_UNSAFE_OK)
+#if defined(PNG_MMX_CODE_SUPPORTED) && defined(PNG_THREAD_UNSAFE_OK)
 #if !defined(PNG_1_0_X)
             if ((png_ptr->asm_flags & PNG_ASM_FLAG_MMX_READ_COMBINE_ROW)
                  )
@@ -1492,7 +1492,7 @@ png_combine_row(png_structp png_ptr, png_bytep row, int mask)
 
 
 #if defined(PNG_READ_INTERLACING_SUPPORTED)
-#if defined(PNG_HAVE_ASSEMBLER_READ_INTERLACE)
+#if defined(PNG_HAVE_MMX_READ_INTERLACE)
 
 
 
@@ -1510,7 +1510,7 @@ png_do_read_interlace(png_structp png_ptr)
 
    png_debug(1, "in png_do_read_interlace (pnggccrd.c)\n");
 
-#if defined(PNG_ASSEMBLER_CODE_SUPPORTED)
+#if defined(PNG_MMX_CODE_SUPPORTED)
    if (_mmx_supported == 2) {
 #if !defined(PNG_1_0_X)
        
@@ -1723,7 +1723,7 @@ png_do_read_interlace(png_structp png_ptr)
 
             
 
-#if defined(PNG_ASSEMBLER_CODE_SUPPORTED)
+#if defined(PNG_MMX_CODE_SUPPORTED)
 #if !defined(PNG_1_0_X)
             if ((png_ptr->asm_flags & PNG_ASM_FLAG_MMX_READ_INTERLACE)
                  )
@@ -2758,8 +2758,8 @@ png_do_read_interlace(png_structp png_ptr)
 
 
 
-#if defined(PNG_HAVE_ASSEMBLER_READ_FILTER_ROW)
-#if defined(PNG_ASSEMBLER_CODE_SUPPORTED)
+#if defined(PNG_HAVE_MMX_READ_FILTER_ROW)
+#if defined(PNG_MMX_CODE_SUPPORTED)
 
 
 
@@ -5088,7 +5088,7 @@ png_read_filter_row(png_structp png_ptr, png_row_infop row_info, png_bytep
    char filnm[10];
 #endif
 
-#if defined(PNG_ASSEMBLER_CODE_SUPPORTED)
+#if defined(PNG_MMX_CODE_SUPPORTED)
 
 #define UseMMX_sub    1   // GRR:  converted 20000730
 #define UseMMX_up     1   // GRR:  converted 20000729
@@ -5111,7 +5111,7 @@ png_read_filter_row(png_structp png_ptr, png_row_infop row_info, png_bytep
       case 0: sprintf(filnm, "none");
          break;
       case 1: sprintf(filnm, "sub-%s",
-#if defined(PNG_ASSEMBLER_CODE_SUPPORTED) && defined(PNG_THREAD_UNSAFE_OK)
+#if defined(PNG_MMX_CODE_SUPPORTED) && defined(PNG_THREAD_UNSAFE_OK)
 #if !defined(PNG_1_0_X)
         (png_ptr->asm_flags & PNG_ASM_FLAG_MMX_READ_FILTER_SUB)? "MMX" :
 #endif
@@ -5119,7 +5119,7 @@ png_read_filter_row(png_structp png_ptr, png_row_infop row_info, png_bytep
 "x86");
          break;
       case 2: sprintf(filnm, "up-%s",
-#ifdef PNG_ASSEMBLER_CODE_SUPPORTED
+#ifdef PNG_MMX_CODE_SUPPORTED
 #if !defined(PNG_1_0_X)
         (png_ptr->asm_flags & PNG_ASM_FLAG_MMX_READ_FILTER_UP)? "MMX" :
 #endif
@@ -5127,7 +5127,7 @@ png_read_filter_row(png_structp png_ptr, png_row_infop row_info, png_bytep
  "x86");
          break;
       case 3: sprintf(filnm, "avg-%s",
-#if defined(PNG_ASSEMBLER_CODE_SUPPORTED) && defined(PNG_THREAD_UNSAFE_OK)
+#if defined(PNG_MMX_CODE_SUPPORTED) && defined(PNG_THREAD_UNSAFE_OK)
 #if !defined(PNG_1_0_X)
         (png_ptr->asm_flags & PNG_ASM_FLAG_MMX_READ_FILTER_AVG)? "MMX" :
 #endif
@@ -5135,7 +5135,7 @@ png_read_filter_row(png_structp png_ptr, png_row_infop row_info, png_bytep
  "x86");
          break;
       case 4: sprintf(filnm, "Paeth-%s",
-#if defined(PNG_ASSEMBLER_CODE_SUPPORTED) && defined(PNG_THREAD_UNSAFE_OK)
+#if defined(PNG_MMX_CODE_SUPPORTED) && defined(PNG_THREAD_UNSAFE_OK)
 #if !defined(PNG_1_0_X)
         (png_ptr->asm_flags & PNG_ASM_FLAG_MMX_READ_FILTER_PAETH)? "MMX":
 #endif
@@ -5158,7 +5158,7 @@ png_read_filter_row(png_structp png_ptr, png_row_infop row_info, png_bytep
          break;
 
       case PNG_FILTER_VALUE_SUB:
-#if defined(PNG_ASSEMBLER_CODE_SUPPORTED) && defined(PNG_THREAD_UNSAFE_OK)
+#if defined(PNG_MMX_CODE_SUPPORTED) && defined(PNG_THREAD_UNSAFE_OK)
 #if !defined(PNG_1_0_X)
          if ((png_ptr->asm_flags & PNG_ASM_FLAG_MMX_READ_FILTER_SUB) &&
              (row_info->pixel_depth >= png_ptr->mmx_bitdepth_threshold) &&
@@ -5187,7 +5187,7 @@ png_read_filter_row(png_structp png_ptr, png_row_infop row_info, png_bytep
          break;
 
       case PNG_FILTER_VALUE_UP:
-#if defined(PNG_ASSEMBLER_CODE_SUPPORTED)
+#if defined(PNG_MMX_CODE_SUPPORTED)
 #if !defined(PNG_1_0_X)
          if ((png_ptr->asm_flags & PNG_ASM_FLAG_MMX_READ_FILTER_UP) &&
              (row_info->pixel_depth >= png_ptr->mmx_bitdepth_threshold) &&
@@ -5215,7 +5215,7 @@ png_read_filter_row(png_structp png_ptr, png_row_infop row_info, png_bytep
          break;
 
       case PNG_FILTER_VALUE_AVG:
-#if defined(PNG_ASSEMBLER_CODE_SUPPORTED) && defined(PNG_THREAD_UNSAFE_OK)
+#if defined(PNG_MMX_CODE_SUPPORTED) && defined(PNG_THREAD_UNSAFE_OK)
 #if !defined(PNG_1_0_X)
          if ((png_ptr->asm_flags & PNG_ASM_FLAG_MMX_READ_FILTER_AVG) &&
              (row_info->pixel_depth >= png_ptr->mmx_bitdepth_threshold) &&
@@ -5253,7 +5253,7 @@ png_read_filter_row(png_structp png_ptr, png_row_infop row_info, png_bytep
          break;
 
       case PNG_FILTER_VALUE_PAETH:
-#if defined(PNG_ASSEMBLER_CODE_SUPPORTED) && defined(PNG_THREAD_UNSAFE_OK)
+#if defined(PNG_MMX_CODE_SUPPORTED) && defined(PNG_THREAD_UNSAFE_OK)
 #if !defined(PNG_1_0_X)
          if ((png_ptr->asm_flags & PNG_ASM_FLAG_MMX_READ_FILTER_PAETH) &&
              (row_info->pixel_depth >= png_ptr->mmx_bitdepth_threshold) &&

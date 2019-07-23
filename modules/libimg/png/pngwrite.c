@@ -469,7 +469,9 @@ png_create_write_struct_2(png_const_charp user_png_ver, png_voidp error_ptr,
 
 #if !defined(PNG_1_0_X)
 #ifdef PNG_ASSEMBLER_CODE_SUPPORTED
+#ifdef PNG_MMX_CODE_SUPPORTED
    png_init_mmx_flags(png_ptr);   
+#endif
 #endif
 #endif 
 
@@ -584,6 +586,7 @@ png_write_init_2(png_structp png_ptr, png_const_charp user_png_ver,
    png_size_t png_struct_size, png_size_t png_info_size)
 {
    
+   if(png_ptr == NULL) return;
 #if !defined(PNG_NO_STDIO) && !defined(_WIN32_WCE)
    if(png_sizeof(png_struct) > png_struct_size ||
       png_sizeof(png_info) > png_info_size)
@@ -678,7 +681,9 @@ png_write_init_3(png_structpp ptr_ptr, png_const_charp user_png_ver,
 
 #if !defined(PNG_1_0_X)
 #ifdef PNG_ASSEMBLER_CODE_SUPPORTED
+#ifdef PNG_MMX_CODE_SUPPORTED
    png_init_mmx_flags(png_ptr);   
+#endif
 #endif
 #endif 
 

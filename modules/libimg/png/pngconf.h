@@ -724,9 +724,20 @@
 
 
 
+
+
+
+
+
+
+
 #if defined(PNG_READ_SUPPORTED) && !defined(PNG_NO_ASSEMBLER_CODE)
 #  ifndef PNG_ASSEMBLER_CODE_SUPPORTED
 #    define PNG_ASSEMBLER_CODE_SUPPORTED
+#  endif
+#  if defined(XP_MACOSX) && !defined(PNG_NO_MMX_CODE)
+     
+#    define PNG_NO_MMX_CODE
 #  endif
 #  if !defined(PNG_MMX_CODE_SUPPORTED) && !defined(PNG_NO_MMX_CODE) && \
      defined(__MMX__)

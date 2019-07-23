@@ -56,7 +56,7 @@ png_create_read_struct_2(png_const_charp user_png_ver, png_voidp error_ptr,
       return (NULL);
 
 #if !defined(PNG_1_0_X)
-#ifdef PNG_ASSEMBLER_CODE_SUPPORTED
+#ifdef PNG_MMX_CODE_SUPPORTED
    png_init_mmx_flags(png_ptr);   
 #endif
 #endif 
@@ -188,6 +188,7 @@ png_read_init_2(png_structp png_ptr, png_const_charp user_png_ver,
    png_size_t png_struct_size, png_size_t png_info_size)
 {
    
+   if(png_ptr == NULL) return;
 #if !defined(PNG_NO_STDIO) && !defined(_WIN32_WCE)
    if(png_sizeof(png_struct) > png_struct_size ||
       png_sizeof(png_info) > png_info_size)
@@ -238,6 +239,8 @@ png_read_init_3(png_structpp ptr_ptr, png_const_charp user_png_ver,
    int i=0;
 
    png_structp png_ptr=*ptr_ptr;
+
+   if(png_ptr == NULL) return;
 
    do
    {
@@ -317,6 +320,7 @@ png_read_init_3(png_structpp ptr_ptr, png_const_charp user_png_ver,
 void PNGAPI
 png_read_info(png_structp png_ptr, png_infop info_ptr)
 {
+   if(png_ptr == NULL) return;
    png_debug(1, "in png_read_info\n");
    
    if (png_ptr->sig_bytes < 8)
@@ -623,6 +627,7 @@ void PNGAPI
 png_read_update_info(png_structp png_ptr, png_infop info_ptr)
 {
    png_debug(1, "in png_read_update_info\n");
+   if(png_ptr == NULL) return;
    if (!(png_ptr->flags & PNG_FLAG_ROW_INIT))
       png_read_start_row(png_ptr);
    else
@@ -641,6 +646,7 @@ void PNGAPI
 png_start_read_image(png_structp png_ptr)
 {
    png_debug(1, "in png_start_read_image\n");
+   if(png_ptr == NULL) return;
    if (!(png_ptr->flags & PNG_FLAG_ROW_INIT))
       png_read_start_row(png_ptr);
 }
@@ -660,6 +666,7 @@ png_read_row(png_structp png_ptr, png_bytep row, png_bytep dsp_row)
    const int png_pass_mask[7] = {0x80, 0x08, 0x88, 0x22, 0xaa, 0x55, 0xff};
 #endif
    int ret;
+   if(png_ptr == NULL) return;
    png_debug2(1, "in png_read_row (row %lu, pass %d)\n",
       png_ptr->row_number, png_ptr->pass);
    if (!(png_ptr->flags & PNG_FLAG_ROW_INIT))
@@ -948,6 +955,7 @@ png_read_rows(png_structp png_ptr, png_bytepp row,
    png_bytepp dp;
 
    png_debug(1, "in png_read_rows\n");
+   if(png_ptr == NULL) return;
    rp = row;
    dp = display_row;
    if (rp != NULL && dp != NULL)
@@ -996,6 +1004,7 @@ png_read_image(png_structp png_ptr, png_bytepp image)
    png_bytepp rp;
 
    png_debug(1, "in png_read_image\n");
+   if(png_ptr == NULL) return;
 
 #ifdef PNG_READ_INTERLACING_SUPPORTED
    pass = png_set_interlace_handling(png_ptr);
@@ -1034,6 +1043,7 @@ png_read_end(png_structp png_ptr, png_infop info_ptr)
    png_uint_32 length;
 
    png_debug(1, "in png_read_end\n");
+   if(png_ptr == NULL) return;
    png_crc_finish(png_ptr, 0); 
 
    do
@@ -1437,6 +1447,7 @@ png_read_destroy(png_structp png_ptr, png_infop info_ptr, png_infop end_info_ptr
 void PNGAPI
 png_set_read_status_fn(png_structp png_ptr, png_read_status_ptr read_row_fn)
 {
+   if(png_ptr == NULL) return;
    png_ptr->read_row_fn = read_row_fn;
 }
 
@@ -1450,6 +1461,7 @@ png_read_png(png_structp png_ptr, png_infop info_ptr,
 {
    int row;
 
+   if(png_ptr == NULL) return;
 #if defined(PNG_READ_INVERT_ALPHA_SUPPORTED)
    
 
