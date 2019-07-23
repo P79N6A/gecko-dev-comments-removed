@@ -244,7 +244,14 @@ const XHTMLre = RegExp(XHTMLNSre + "|" + XHTML2NSre, "");
 
 
 
+
 var onLoadRegistry = [ ];
+
+
+
+
+
+var onResetRegistry = [ ];
 
 
 
@@ -294,27 +301,12 @@ function onLoadPageInfo()
     gDocument = gWindow.document;
   }
 
-  var titleFormat = gWindow != gWindow.top ? "pageInfo.frame.title"
-                                           : "pageInfo.page.title";
-  document.title = gBundle.getFormattedString(titleFormat, [gDocument.location]);
-
-  document.getElementById("main-window").setAttribute("relatedUrl", gDocument.location);
-
-  
-  makeGeneralTab();
-
   
   var imageTree = document.getElementById("imagetree");
   imageTree.view = gImageView;
 
   
-  makeTabs(gDocument, gWindow);
-
-  initFeedTab();
-  onLoadPermission();
-
-  
-  onLoadRegistry.map(function(func) { func(); });
+  loadPageInfo();
 
   
   var initialTab = "general";
@@ -326,6 +318,55 @@ function onLoadPageInfo()
   radioGroup.selectedItem = initialTab;
   radioGroup.selectedItem.doCommand();
   radioGroup.focus();
+}
+
+function loadPageInfo()
+{
+  var titleFormat = gWindow != gWindow.top ? "pageInfo.frame.title"
+                                           : "pageInfo.page.title";
+  document.title = gBundle.getFormattedString(titleFormat, [gDocument.location]);
+
+  document.getElementById("main-window").setAttribute("relatedUrl", gDocument.location);
+
+  
+  makeGeneralTab();
+
+  
+  makeTabs(gDocument, gWindow);
+
+  initFeedTab();
+  onLoadPermission();
+
+  
+  onLoadRegistry.map(function(func) { func(); });
+}
+
+function resetPageInfo()
+{
+  
+  gMetaView.clear();
+
+  
+  var mediaTab = document.getElementById("mediaTab");
+  if (!mediaTab.hidden) {
+    var os = Components.classes["@mozilla.org/observer-service;1"]
+                       .getService(Components.interfaces.nsIObserverService);
+    os.removeObserver(imagePermissionObserver, "perm-changed");
+    mediaTab.hidden = true;
+  }
+  gImageView.clear();
+  gImageHash = {};
+
+  
+  var feedListbox = document.getElementById("feedListbox");
+  while (feedListbox.firstChild)
+    feedListbox.removeChild(feedListbox.firstChild);
+
+  
+  onResetRegistry.map(function(func) { func(); });
+
+  
+  loadPageInfo();
 }
 
 function onUnloadPageInfo()
@@ -410,10 +451,9 @@ function makeGeneralTab()
   var metaNodes = gDocument.getElementsByTagName("meta");
   var length = metaNodes.length;
 
-  if (!length) {
-    var metaGroup = document.getElementById("metaTags");
+  var metaGroup = document.getElementById("metaTags");
+  if (!length)
     metaGroup.collapsed = true;
-  }
   else {
     var metaTagsCaption = document.getElementById("metaTagsCaption");
     if (length == 1)
@@ -425,6 +465,8 @@ function makeGeneralTab()
 
     for (var i = 0; i < length; i++)
       gMetaView.addRow([metaNodes[i].name || metaNodes[i].httpEquiv, metaNodes[i].content]);
+
+    metaGroup.collapsed = false;
   }
 
   

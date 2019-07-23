@@ -162,9 +162,13 @@ function securityOnLoad() {
 
   var info = security._getSecurityInfo();
   if (!info) {
-    document.getElementById("securityTab").setAttribute("hidden", true);
+    document.getElementById("securityTab").hidden = true;
     document.getElementById("securityBox").collapsed = true;
     return;
+  }
+  else {
+    document.getElementById("securityTab").hidden = false;
+    document.getElementById("securityBox").collapsed = false;
   }
 
   
@@ -198,15 +202,15 @@ function securityOnLoad() {
   setText("general-security-identity", generalPageIdentityString);
 
   
+  var viewCert = document.getElementById("security-view-cert");
   if (info.cert) {
     var viewText = pageInfoBundle.getString("securityCertText");
     setText("security-view-text", viewText);
     security._cert = info.cert;
+    viewCert.collapsed = false;
   }
-  else {
-    var viewCert = document.getElementById("security-view-cert");
+  else
     viewCert.collapsed = true;
-  }
 
   
   var yesStr = pageInfoBundle.getString("yes");
