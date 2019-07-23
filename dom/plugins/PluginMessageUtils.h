@@ -92,7 +92,6 @@ struct NPRemoteWindow
 
 
 
-
 #define VARSTR(v_)  case v_: return #v_
 inline const char* const
 NPPVariableToString(NPPVariable aVar)

@@ -48,6 +48,19 @@
 
 #include "npapi.h"
 
+namespace mozilla {
+
+namespace plugins {
+
+struct NPRemoteEvent {
+    NPEvent event;
+};
+
+}
+
+}
+
+
 
 
 
@@ -68,9 +81,9 @@
 namespace IPC {
 
 template <>
-struct ParamTraits<NPEvent>     
+struct ParamTraits<mozilla::plugins::NPRemoteEvent>     
 {
-    typedef NPEvent paramType;
+    typedef mozilla::plugins::NPRemoteEvent paramType;
 
     static void Write(Message* aMsg, const paramType& aParam)
     {
@@ -86,7 +99,7 @@ struct ParamTraits<NPEvent>
         }
 
         memcpy(aResult, bytes, sizeof(paramType));
-        SetXDisplay(*aResult);
+        SetXDisplay(aResult->event);
         return true;
     }
 
