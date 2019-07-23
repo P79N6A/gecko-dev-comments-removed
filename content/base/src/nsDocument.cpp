@@ -5549,8 +5549,15 @@ nsDocument::FlushPendingNotifications(mozFlushType aType)
   
   
   
+  
+  
+  
+  
   if (mParentDocument && IsSafeToFlush()) {
-    mParentDocument->FlushPendingNotifications(aType);
+    mozFlushType parentType = aType;
+    if (aType == Flush_Style)
+      parentType = Flush_Layout;
+    mParentDocument->FlushPendingNotifications(parentType);
   }
 
   nsPresShellIterator iter(this);
