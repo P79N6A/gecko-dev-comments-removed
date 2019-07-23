@@ -109,6 +109,15 @@ radio[pane=paneAdvanced][selected="true"] {
 }
 
 
+#BrowserPreferences[animated="true"] #handlersView {
+  height: 25em;
+}
+
+#BrowserPreferences[animated="false"] #handlersView {
+  -moz-box-flex: 1;
+}
+
+
 filefield {
   margin: 2px 4px;
   -moz-appearance: textfield;
