@@ -3830,6 +3830,12 @@ xpc_ForcePropertyResolve(JSContext* cx, JSObject* obj, jsval idval);
 inline jsval
 GetRTStringByIndex(JSContext *cx, uintN index);
 
+
+
+inline JSObject*
+xpc_NewSystemInheritingJSObject(JSContext *cx, JSClass *clasp, JSObject *proto,
+                                JSObject *parent);
+
 nsISupports *
 XPC_GetIdentityObject(JSContext *cx, JSObject *obj);
 
