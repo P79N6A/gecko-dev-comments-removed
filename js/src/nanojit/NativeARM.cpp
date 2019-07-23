@@ -85,7 +85,7 @@ Assembler::genPrologue()
     uint32_t savingMask = rmask(FP) | rmask(LR);
     uint32_t savingCount = 2;
 
-    if (!_thisfrag->lirbuf->explicitSavedParams) {
+    if (!_thisfrag->lirbuf->explicitSavedRegs) {
         for (int i = 0; i < NumSavedRegs; ++i)
             savingMask |= rmask(savedRegs[i]);
         savingCount += NumSavedRegs;
@@ -117,7 +117,7 @@ Assembler::nFragExit(LInsp guard)
     GuardRecord *lr;
 
     if (frag && frag->fragEntry) {
-        JMP(frag->fragEntry);
+        JMP_far(frag->fragEntry);
         lr = 0;
     } else {
         
@@ -128,7 +128,7 @@ Assembler::nFragExit(LInsp guard)
         JMP_far(_epilogue);
 
         
-        lr->jmp = _nIns;
+        lr->jmpToTarget = _nIns;
     }
 
     
@@ -157,11 +157,13 @@ Assembler::genEpilogue()
 
     RegisterMask savingMask = rmask(FP) | rmask(LR);
 
-    if (!_thisfrag->lirbuf->explicitSavedParams)
+    if (!_thisfrag->lirbuf->explicitSavedRegs)
         for (int i = 0; i < NumSavedRegs; ++i)
             savingMask |= rmask(savedRegs[i]);
 
     POP_mask(savingMask); 
+
+    MR(SP,FP);
 
     
     MR(R0,R2); 
@@ -325,29 +327,48 @@ Assembler::nRegisterResetAll(RegAlloc& a)
     debug_only(a.managed = a.free);
 }
 
-void
-Assembler::nPatchBranch(NIns* branch, NIns* target)
+NIns*
+Assembler::nPatchBranch(NIns* at, NIns* target)
 {
     
-
-    
-    
     
 
-    int32_t offset = PC_OFFSET_FROM(target, branch);
+    NIns* was = 0;
 
-    
-
-    
-    
-    if (isS24(offset)) {
+    if (at[0] == (NIns)( COND_AL | (0x51<<20) | (PC<<16) | (PC<<12) | (4) )) {
         
-        *branch = (NIns)( COND_AL | (0xA<<24) | ((offset>>2) & 0xFFFFFF) );
+        was = (NIns*) at[1];
     } else {
         
-        *branch++ = (NIns)( COND_AL | (0x51<<20) | (PC<<16) | (PC<<12) | ( 0x004 ) );
-        *branch = (NIns)target;
+        
+        NanoAssert((at[0] & 0xff000000) == (COND_AL | (0xA<<24)));
+        was = (NIns*) (((intptr_t)at + 8) + (intptr_t)((at[0] & 0xffffff) << 2));
     }
+
+    
+    intptr_t offs = PC_OFFSET_FROM(target, at);
+    if (isS24(offs>>2)) {
+        
+        at[0] = (NIns)( COND_AL | (0xA<<24) | ((offs >> 2) & 0xffffff) );
+        
+        at[1] = BKPT_insn;
+    } else {
+        at[0] = (NIns)( COND_AL | (0x51<<20) | (PC<<16) | (PC<<12) | (4) );
+        at[1] = (NIns)(target);
+    }
+
+#if defined(UNDER_CE)
+    
+    FlushInstructionCache(GetCurrentProcess(), NULL, NULL);
+#elif defined(AVMPLUS_LINUX)
+    __clear_cache((char*)at, (char*)(at+3));
+#endif
+
+#ifdef AVMPLUS_PORTING_API
+    NanoJIT_PortAPI_FlushInstructionCache(at, at+3);
+#endif
+
+    return was;
 }
 
 RegisterMask
@@ -485,7 +506,7 @@ Assembler::asm_store64(LInsp value, int dr, LInsp base)
     
 
 #ifdef NJ_ARM_VFP
-    Reservation *valResv = getresv(value);
+    
     Register rb = findRegFor(base, GpRegs);
 
     if (value->isconstq()) {
@@ -715,35 +736,6 @@ Assembler::nativePageSetup()
     }
 }
 
-NIns*
-Assembler::asm_adjustBranch(NIns* at, NIns* target)
-{
-    
-    
-    
-    NanoAssert(at[0] == (NIns)( COND_AL | (0x59<<20) | (PC<<16) | (IP<<12) | (0) ));
-    NanoAssert(at[1] == (NIns)( COND_AL | (0x9<<21) | (0xFFF<<8) | (1<<4) | (IP) ));
-
-    NIns* was = (NIns*) at[2];
-
-    
-
-    at[2] = (NIns)target;
-
-#if defined(UNDER_CE)
-    
-    FlushInstructionCache(GetCurrentProcess(), NULL, NULL);
-#elif defined(AVMPLUS_LINUX)
-    __clear_cache((char*)at, (char*)(at+3));
-#endif
-
-#ifdef AVMPLUS_PORTING_API
-    NanoJIT_PortAPI_FlushInstructionCache(at, at+3);
-#endif
-
-    return was;
-}
-
 void
 Assembler::underrunProtect(int bytes)
 {
@@ -783,45 +775,25 @@ void
 Assembler::JMP_far(NIns* addr)
 {
     
-    underrunProtect(12);
+    
+    underrunProtect(8);
 
-    
-    
+    intptr_t offs = PC_OFFSET_FROM(addr,_nIns-2);
 
-    
-    *(--_nIns) = (NIns)((addr));
-    
-    *(--_nIns) = (NIns)( COND_AL | (0x9<<21) | (0xFFF<<8) | (1<<4) | (IP) );
-    
-    *(--_nIns) = (NIns)( COND_AL | (0x59<<20) | (PC<<16) | (IP<<12) | (0));
+    if (isS24(offs>>2)) {
+        BKPT_nochk();
+        *(--_nIns) = (NIns)( COND_AL | (0xA<<24) | ((offs>>2) & 0xFFFFFF) );
 
-    
+        asm_output1("b %p", addr);
+    } else {
+        
+        *(--_nIns) = (NIns)((addr));
+        
+        
+        *(--_nIns) = (NIns)( COND_AL | (0x51<<20) | (PC<<16) | (PC<<12) | (4));
 
-    asm_output1("b %p (32-bit)", addr);
-}
-
-void
-Assembler::BL_far(NIns* addr)
-{
-    
-    
-    underrunProtect(16);
-
-    
-    
-
-    
-    *(--_nIns) = (NIns)((addr));
-    
-    *(--_nIns) = (NIns)( COND_AL | (0x9<<21) | (0xFFF<<8) | (1<<4) | (IP) );
-    
-    *(--_nIns) = (NIns)( COND_AL | OP_IMM | (1<<23) | (PC<<16) | (LR<<12) | (4) );
-    
-    *(--_nIns) = (NIns)( COND_AL | (0x59<<20) | (PC<<16) | (IP<<12) | (4));
-
-    
-
-    asm_output1("bl %p (32-bit)", addr);
+        asm_output1("b %p (32-bit)", addr);
+    }
 }
 
 void
@@ -831,19 +803,26 @@ Assembler::BL(NIns* addr)
 
     
 
-    if (isS24(offs)) {
-        
-        
+    
+    if (isS24(offs>>2)) {
         underrunProtect(4);
-        offs = PC_OFFSET_FROM(addr,_nIns-1);
-    }
 
-    if (isS24(offs)) {
         
-        *(--_nIns) = (NIns)( COND_AL | (0xB<<24) | (((offs)>>2) & 0xFFFFFF) );
+        offs = PC_OFFSET_FROM(addr,_nIns-1);
+        *(--_nIns) = (NIns)( COND_AL | (0xB<<24) | ((offs>>2) & 0xFFFFFF) );
+
         asm_output1("bl %p", addr);
     } else {
-        BL_far(addr);
+        underrunProtect(12);
+
+        
+        *(--_nIns) = (NIns)((addr));
+        
+        *(--_nIns) = (NIns)( COND_AL | (0x51<<20) | (PC<<16) | (PC<<12) | (4));
+        
+        *(--_nIns) = (NIns)( COND_AL | OP_IMM | (1<<23) | (PC<<16) | (LR<<12) | (4) );
+
+        asm_output1("bl %p (32-bit)", addr);
     }
 }
 
@@ -890,12 +869,12 @@ Assembler::B_cond_chk(ConditionCode _c, NIns* _t, bool _chk)
 {
     int32_t offs = PC_OFFSET_FROM(_t,_nIns-1);
     
-    if (isS24(offs)) {
+    if (isS24(offs>>2)) {
         if (_chk) underrunProtect(4);
         offs = PC_OFFSET_FROM(_t,_nIns-1);
     }
 
-    if (isS24(offs)) {
+    if (isS24(offs>>2)) {
         *(--_nIns) = (NIns)( ((_c)<<28) | (0xA<<24) | (((offs)>>2) & 0xFFFFFF) );
     } else if (_c == AL) {
         if(_chk) underrunProtect(8);
@@ -1116,8 +1095,12 @@ Assembler::asm_prep_fcall(Reservation*, LInsp)
 }
 
 NIns*
-Assembler::asm_branch(bool branchOnFalse, LInsp cond, NIns* targ)
+Assembler::asm_branch(bool branchOnFalse, LInsp cond, NIns* targ, bool far)
 {
+    
+    
+    (void)far;
+
     NIns* at = 0;
     LOpcode condop = cond->opcode();
     NanoAssert(cond->isCond());
@@ -1227,23 +1210,25 @@ Assembler::asm_cmp(LIns *cond)
 void
 Assembler::asm_loop(LInsp ins, NInsList& loopJumps)
 {
-    (void)ins;
-    JMP_long_placeholder(); 
-    verbose_only( if (_verbose && _outputCache) { _outputCache->removeLast(); outputf("         jmp   SOT"); } );
+    GuardRecord* guard = ins->record();
+    SideExit* exit = guard->exit;
+
+    
+
+    
+    
+    asm_exit(ins);
+
+    
+    JMP_far(0);
 
     loopJumps.add(_nIns);
-
-#ifdef NJ_VERBOSE
-    
-    if (_frago->core()->config.show_stats)
-        LDi(argRegs[1], int((Fragment*)_thisfrag));
-#endif
-
-    assignSavedParams();
+    guard->jmpToStub = _nIns;
 
     
-    LInsp state = _thisfrag->lirbuf->state;
-    findSpecificRegFor(state, argRegs[state->imm8()]);
+    
+    if (exit->target != _thisfrag)
+        MR(SP,FP);
 }
 
 void
