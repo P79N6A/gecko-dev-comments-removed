@@ -34,45 +34,13 @@
 
 
 
-#include "nsIDOMHTMLDivElement.h"
+
+#include "nsHTMLDivElement.h"
 #include "nsIDOMEventTarget.h"
-#include "nsGenericHTMLElement.h"
 #include "nsGkAtoms.h"
 #include "nsStyleConsts.h"
 #include "nsPresContext.h"
 #include "nsMappedAttributes.h"
-
-class nsHTMLDivElement : public nsGenericHTMLElement,
-                         public nsIDOMHTMLDivElement
-{
-public:
-  nsHTMLDivElement(nsINodeInfo *aNodeInfo);
-  virtual ~nsHTMLDivElement();
-
-  
-  NS_DECL_ISUPPORTS_INHERITED
-
-  
-  NS_FORWARD_NSIDOMNODE(nsGenericHTMLElement::)
-
-  
-  NS_FORWARD_NSIDOMELEMENT(nsGenericHTMLElement::)
-
-  
-  NS_FORWARD_NSIDOMHTMLELEMENT(nsGenericHTMLElement::)
-
-  
-  NS_DECL_NSIDOMHTMLDIVELEMENT
-
-  virtual PRBool ParseAttribute(PRInt32 aNamespaceID,
-                                nsIAtom* aAttribute,
-                                const nsAString& aValue,
-                                nsAttrValue& aResult);
-  NS_IMETHOD_(PRBool) IsAttributeMapped(const nsIAtom* aAttribute) const;
-  virtual nsMapRuleToAttributesFunc GetAttributeMappingFunction() const;
-  virtual nsresult Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const;
-};
-
 
 NS_IMPL_NS_NEW_HTML_ELEMENT(Div)
 
@@ -89,13 +57,6 @@ nsHTMLDivElement::~nsHTMLDivElement()
 
 NS_IMPL_ADDREF_INHERITED(nsHTMLDivElement, nsGenericElement) 
 NS_IMPL_RELEASE_INHERITED(nsHTMLDivElement, nsGenericElement) 
-
-
-
-
-NS_HTML_CONTENT_INTERFACE_TABLE_HEAD(nsHTMLDivElement, nsGenericHTMLElement)
-  NS_INTERFACE_TABLE_INHERITED1(nsHTMLDivElement, nsIDOMHTMLDivElement)
-NS_HTML_CONTENT_INTERFACE_TABLE_TAIL_CLASSINFO(HTMLDivElement)
 
 NS_IMPL_ELEMENT_CLONE(nsHTMLDivElement)
 

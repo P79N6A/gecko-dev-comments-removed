@@ -48,6 +48,7 @@
 #include "nsIWritablePropertyBag.h"
 #include "nsIWritablePropertyBag2.h"
 #include "nsInterfaceHashtable.h"
+#include "nsIProperty.h"
 
 
 
@@ -85,5 +86,19 @@ protected:
 
 extern "C" NS_COM nsresult
 NS_NewHashPropertyBag(nsIWritablePropertyBag* *_retval);
+
+class nsSimpleProperty : public nsIProperty {
+public:
+    nsSimpleProperty(const nsAString& aName, nsIVariant* aValue)
+        : mName(aName), mValue(aValue)
+    {
+    }
+
+    NS_DECL_ISUPPORTS
+    NS_DECL_NSIPROPERTY
+protected:
+    nsString mName;
+    nsCOMPtr<nsIVariant> mValue;
+};
 
 #endif 
