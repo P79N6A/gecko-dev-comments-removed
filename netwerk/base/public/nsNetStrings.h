@@ -50,6 +50,7 @@ public:
   
   const nsLiteralString kContentLength;
   const nsLiteralString kContentDisposition;
+  const nsLiteralString kChannelPolicy;
 };
 
 extern NS_HIDDEN_(nsNetStrings*) gNetStrings;
