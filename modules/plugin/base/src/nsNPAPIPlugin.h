@@ -57,6 +57,7 @@
 #else
 #define NP_CALLBACK
 #endif
+
 #if defined(XP_WIN)
 #define NS_NPAPIPLUGIN_CALLBACK(_type, _name) _type (__stdcall * _name)
 #elif defined(XP_OS2)
