@@ -77,6 +77,8 @@ public:
   NS_DECL_NSIDRAGSERVICE
   NS_DECL_NSIDRAGSESSION
 
+  void SetDragEndPoint(nsPoint aEndDragPoint) { mEndDragPoint = aEndDragPoint; }
+
 protected:
 
   
@@ -153,6 +155,9 @@ protected:
   
   PRInt32 mScreenX;
   PRInt32 mScreenY;
+
+  
+  nsPoint mEndDragPoint;
 
   PRUint32 mSuppressLevel;
 };

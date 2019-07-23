@@ -356,6 +356,9 @@ nsDragService::StartInvokingDragSession(IDataObject * aDataObj,
   mUserCancelled = nativeDragSource->UserCancelled();
 
   
+  POINT pos;
+  GetCursorPos(&pos);
+  SetDragEndPoint(nsPoint(pos.x, pos.y));
   EndDragSession(PR_TRUE);
 
   
