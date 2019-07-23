@@ -118,9 +118,11 @@ class nsIMenu : public nsISupports {
 
 
 
+
     NS_IMETHOD AddItem(nsISupports* aItem) = 0;
 
    
+
 
 
 
@@ -130,9 +132,11 @@ class nsIMenu : public nsISupports {
 
 
 
+
     NS_IMETHOD GetItemCount(PRUint32 &aCount) = 0;
 
    
+
 
 
 

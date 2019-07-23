@@ -47,8 +47,8 @@
 
 
 #define NS_IMENUITEM_IID \
-{ 0x4E3931A7, 0xD7E5, 0x47FC, \
-  { 0x94, 0x89, 0x83, 0x92, 0x85, 0x36, 0xDA, 0x9D } }
+{ 0xF9A30AA5, 0xD526, 0x4C19, \
+  { 0x84, 0x18, 0xC2, 0x1B, 0xF6, 0xB3, 0x18, 0x37 } }
 
 class nsIMenu;
 class nsIWidget;
@@ -170,6 +170,12 @@ class nsIMenuItem : public nsISupports {
 
 
     NS_IMETHOD SetupIcon() = 0;
+
+    
+
+
+
+    NS_IMETHOD GetMenuItemContent(nsIContent ** aMenuItemContent) = 0;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsIMenuItem, NS_IMENUITEM_IID)
