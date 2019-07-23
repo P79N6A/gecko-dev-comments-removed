@@ -504,9 +504,11 @@ static JSContext *
 GetContextFromObject(JSObject *obj)
 {
     
-    nsAXPCNativeCallContext *cc = nsnull;
-    nsXPConnect::GetXPConnect()->GetCurrentNativeCallContext(&cc);
-    if(cc)
+    XPCJSContextStack* stack =
+        XPCPerThreadData::GetData(nsnull)->GetJSContextStack();
+    JSContext* topJSContext;
+
+    if(stack && NS_SUCCEEDED(stack->Peek(&topJSContext)) && topJSContext)
         return nsnull;
 
     
