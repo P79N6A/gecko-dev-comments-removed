@@ -3805,41 +3805,42 @@ nsresult nsPluginInstanceOwner::KeyUp(nsIDOMEvent* aKeyEvent)
 
 nsresult nsPluginInstanceOwner::KeyPress(nsIDOMEvent* aKeyEvent)
 {
-#ifdef MAC_CARBON_PLUGINS
-  
-  if (GetEventModel() != NPEventModelCarbon)
-    return aKeyEvent->PreventDefault();
+#ifdef XP_MACOSX
+#ifndef NP_NO_CARBON
+  if (GetEventModel() == NPEventModelCarbon) {
+    
+    
+    
+    nsCOMPtr<nsIPrivateDOMEvent> privateEvent(do_QueryInterface(aKeyEvent));
+    if (privateEvent) {
+      nsEvent *theEvent = privateEvent->GetInternalNSEvent();
+      const nsGUIEvent *guiEvent = (nsGUIEvent*)theEvent;
+      const EventRecord *ev = (EventRecord*)(guiEvent->pluginEvent); 
+      if (guiEvent &&
+          guiEvent->message == NS_KEY_PRESS &&
+          ev &&
+          ev->what == keyDown)
+        return aKeyEvent->PreventDefault(); 
+    }
 
-  
-  
-  
-  nsCOMPtr<nsIPrivateDOMEvent> privateEvent(do_QueryInterface(aKeyEvent));
-  if (privateEvent) {
-    nsEvent *theEvent = privateEvent->GetInternalNSEvent();
-    const nsGUIEvent *guiEvent = (nsGUIEvent*)theEvent;
-    const EventRecord *ev = (EventRecord*)(guiEvent->pluginEvent); 
-    if (guiEvent &&
-        guiEvent->message == NS_KEY_PRESS &&
-        ev &&
-        ev->what == keyDown)
+    
+    
+    
+    
+    static PRBool sInKeyDispatch = PR_FALSE;
+
+    if (sInKeyDispatch)
       return aKeyEvent->PreventDefault(); 
+
+    sInKeyDispatch = PR_TRUE;
+    nsresult rv =  DispatchKeyToPlugin(aKeyEvent);
+    sInKeyDispatch = PR_FALSE;
+    return rv;
   }
+#endif
 
-  
-  
-  
-  
-  static PRBool sInKeyDispatch = PR_FALSE;
-  
-  if (sInKeyDispatch)
-    return aKeyEvent->PreventDefault(); 
-
-  sInKeyDispatch = PR_TRUE;
-  nsresult rv =  DispatchKeyToPlugin(aKeyEvent);
-  sInKeyDispatch = PR_FALSE;
-  return rv;
+  return DispatchKeyToPlugin(aKeyEvent);
 #else
-
   if (SendNativeEvents())
     DispatchKeyToPlugin(aKeyEvent);
 
