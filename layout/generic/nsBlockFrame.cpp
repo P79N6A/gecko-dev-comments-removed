@@ -6130,7 +6130,7 @@ NS_IMETHODIMP nsBlockFrame::GetAccessible(nsIAccessible** aAccessible)
 
   nsPresContext *aPresContext = PresContext();
   if (!mBullet || !aPresContext) {
-    if (!mContent || !mContent->GetParent()) {
+    if (!mContent->GetParent()) {
       
       
       return NS_ERROR_FAILURE;
