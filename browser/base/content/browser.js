@@ -1225,6 +1225,7 @@ function BrowserShutdown()
 #ifdef XP_MACOSX
 
 
+
 function nonBrowserWindowStartup()
 {
   
@@ -1272,6 +1273,12 @@ function nonBrowserWindowDelayedStartup()
 
   
   gSanitizeListener = new SanitizeListener();
+}
+
+function nonBrowserWindowShutdown()
+{
+  if (gSanitizeListener)
+    gSanitizeListener.shutdown();
 }
 #endif
 
