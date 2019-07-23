@@ -212,6 +212,17 @@ public:
     mDisableCookieAccess = PR_TRUE;
   }
 
+  
+
+
+
+  PRBool EditingShouldBeOn()
+  {
+    return HasFlag(NODE_IS_EDITABLE) || mContentEditableCount > 0;
+  }
+
+  void EndUpdate(nsUpdateType aUpdateType);
+
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED_NO_UNLINK(nsHTMLDocument, nsDocument)
 
 protected:

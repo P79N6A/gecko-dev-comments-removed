@@ -792,6 +792,9 @@ protected:
 
   nsString mBaseTarget;
 
+  
+  PRUint32 mUpdateNestLevel;
+
 private:
   friend class nsUnblockOnloadEvent;
 
@@ -833,9 +836,6 @@ private:
 
   
   nsString mLastStyleSheetSet;
-
-  
-  PRUint32 mUpdateNestLevel;
 };
 
 
