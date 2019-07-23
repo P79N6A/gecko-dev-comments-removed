@@ -2296,8 +2296,12 @@ PropertyProvider::GetTabWidths(PRUint32 aStart, PRUint32 aLength)
     if (!mTabWidths->AppendElements(aStart + aLength - tabsEnd))
       return nsnull;
     
-    gfxFloat tabWidth = NS_round(8*mTextRun->GetAppUnitsPerDevUnit()*
-      GetFontMetrics(GetFontGroupForFrame(mLineContainer)).spaceWidth);
+    
+    
+    gfxFloat spaceWidthAppUnits =
+      NS_roundf(GetFontMetrics(GetFontGroupForFrame(mLineContainer)).spaceWidth*
+                mTextRun->GetAppUnitsPerDevUnit());
+    gfxFloat tabWidth = 8*spaceWidthAppUnits;
     for (PRUint32 i = tabsEnd; i < aStart + aLength; ++i) {
       Spacing spacing;
       GetSpacingInternal(i, 1, &spacing, PR_TRUE);
@@ -2318,11 +2322,8 @@ PropertyProvider::GetTabWidths(PRUint32 aStart, PRUint32 aLength)
         
         
         
-        static const double EPSILON = 0.000001;
-        double nextTab = NS_ceil(mOffsetFromBlockOriginForTabs/tabWidth)*tabWidth;
-        if (nextTab < mOffsetFromBlockOriginForTabs + EPSILON) {
-          nextTab += tabWidth;
-        }
+        double nextTab =
+          NS_ceil((mOffsetFromBlockOriginForTabs + 1)/tabWidth)*tabWidth;
         (*mTabWidths)[i - startOffset] = nextTab - mOffsetFromBlockOriginForTabs;
         mOffsetFromBlockOriginForTabs = nextTab;
       }
