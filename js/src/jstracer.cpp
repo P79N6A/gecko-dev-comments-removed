@@ -1376,8 +1376,22 @@ js_TrashTree(JSContext* cx, Fragment* f)
 {
     AUDIT(treesTrashed);
     debug_only(printf("Trashing tree info.\n");)
-    delete (TreeInfo*)f->vmprivate;
-    f->vmprivate = NULL;
+    TreeInfo* ti = (TreeInfo*)f->vmprivate;
+    if (ti) {
+        
+        f->vmprivate = NULL;
+        unsigned ntrees = ti->outerTrees.length();
+        Fragment** trees = ti->outerTrees.data();
+        
+        while (ntrees-- > 0) {
+            Fragment* outer = *trees++;
+            ti = (TreeInfo*)outer->vmprivate;
+            if (ti) 
+                js_TrashTree(cx, outer);
+        }
+        
+        delete ti;
+    }
     f->releaseCode(JS_TRACE_MONITOR(cx).fragmento);
 }
 
