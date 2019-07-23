@@ -97,8 +97,8 @@ protected:
   static nsresult CFStringReftoUTF8(CFStringRef aInStrRef, nsACString& aOutStr);
 
 protected:
-  CFURLRef mBaseRef;   
-  CFURLRef mTargetRef; 
+  CFURLRef mBaseURL;   
+  CFURLRef mTargetURL; 
 
   PRPackedBool mFollowLinks;
   PRPackedBool mFollowLinksDirty;
