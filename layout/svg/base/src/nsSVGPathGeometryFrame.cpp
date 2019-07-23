@@ -268,7 +268,7 @@ nsSVGPathGeometryFrame::UpdateCoveredRegion()
   
   
 
-  if (HasStroke(&context)) {
+  if (HasStroke()) {
     SetupCairoStrokeGeometry(&context);
     extent = nsSVGUtils::PathExtentsToMaxStrokeExtents(extent, this);
   } else if (GetStyleSVG()->mFill.mType == eStyleSVGPaintType_None) {

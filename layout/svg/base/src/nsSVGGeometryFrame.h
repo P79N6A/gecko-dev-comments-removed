@@ -84,7 +84,7 @@ public:
   
 
 
-  PRBool HasStroke(gfxContext *aContext);
+  PRBool HasStroke();
   
 
 
