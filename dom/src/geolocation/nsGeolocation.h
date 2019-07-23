@@ -94,7 +94,7 @@ class nsGeolocationRequest : public nsIGeolocationRequest, public nsITimerCallba
   nsCOMPtr<nsIDOMGeoPositionErrorCallback> mErrorCallback;
   nsCOMPtr<nsIDOMGeoPositionOptions> mOptions;
 
-  nsGeolocation* mLocator; 
+  nsRefPtr<nsGeolocation> mLocator;
 };
 
 
