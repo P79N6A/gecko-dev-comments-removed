@@ -258,6 +258,7 @@ nsGridRowLeafLayout::ComputeChildSizes(nsIBox* aBox,
   
   
   if (aBox) {
+     PRBool isHorizontal = aBox->IsHorizontal();
 
      
      aBox = aBox->GetParentBox();
@@ -273,7 +274,7 @@ nsGridRowLeafLayout::ComputeChildSizes(nsIBox* aBox,
           ourRect.Deflate(padding);
 
           nscoord diff;
-          if (aBox->IsHorizontal()) {
+          if (isHorizontal) {
             diff = scrollbarSizes.left + scrollbarSizes.right;
           } else {
             diff = scrollbarSizes.top + scrollbarSizes.bottom;
