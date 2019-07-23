@@ -909,58 +909,6 @@ nsCSSRendering::FindNonTransparentBackground(nsStyleContext* aContext,
 
 
 
-PRBool
-nsCSSRendering::IsCanvasFrame(nsIFrame *aFrame)
-{
-  nsIAtom* frameType = aFrame->GetType();
-  return frameType == nsGkAtoms::canvasFrame ||
-         frameType == nsGkAtoms::rootFrame ||
-         frameType == nsGkAtoms::pageFrame ||
-         frameType == nsGkAtoms::pageContentFrame ||
-         frameType == nsGkAtoms::viewportFrame;
-}
-
-nsIFrame*
-nsCSSRendering::FindRootFrame(nsIFrame *aForFrame)
-{
-  const nsStyleBackground* result = aForFrame->GetStyleBackground();
-
-  
-  if (result->IsTransparent()) {
-    nsIContent* content = aForFrame->GetContent();
-    
-    
-    
-    nsIDocument* document = content->GetOwnerDoc();
-    nsCOMPtr<nsIHTMLDocument> htmlDoc = do_QueryInterface(document);
-    if (htmlDoc) {
-      nsIContent* bodyContent = htmlDoc->GetBodyContentExternal();
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      if (bodyContent) {
-        nsIFrame *bodyFrame = aForFrame->PresContext()->GetPresShell()->
-          GetPrimaryFrameFor(bodyContent);
-        if (bodyFrame) {
-          return bodyFrame;
-        }
-      }
-    }
-  }
-
-  return aForFrame;
-}
-
-
-
-
-
 
 
 
