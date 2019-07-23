@@ -952,7 +952,7 @@ protected:
   nsIEventStateManager* mEventManager;  
   nsILookAndFeel*       mLookAndFeel;   
   nsRefPtr<nsRefreshDriver> mRefreshDriver;
-  nsTransitionManager*  mTransitionManager; 
+  nsRefPtr<nsTransitionManager> mTransitionManager;
   nsIAtom*              mMedium;        
                                         
 
