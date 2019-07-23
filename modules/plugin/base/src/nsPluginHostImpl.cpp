@@ -96,23 +96,12 @@
 #include "nsVersionComparator.h"
 #include "nsIPrivateBrowsingService.h"
 
-
-#ifdef None
-#undef None
-#endif
-
-#ifdef CursorShape
-#undef CursorShape /*X.h defines it as 0,
-                     qnamespace.h makes an enum type by that name
-                   */
-#endif
-
-
 #include "nsEnumeratorUtils.h"
 #include "nsXPCOM.h"
 #include "nsXPCOMCID.h"
 #include "nsICategoryManager.h"
 #include "nsISupportsPrimitives.h"
+
 
 #include "nsIStringBundle.h"
 #include "nsIWindowWatcher.h"
@@ -133,11 +122,6 @@
 #include "nsIInputStreamTee.h"
 #include "nsIInterfaceInfoManager.h"
 #include "xptinfo.h"
-
-#if defined(XP_WIN)
-#include "windows.h"
-#include "winbase.h"
-#endif
 
 #include "nsIMIMEService.h"
 #include "nsCExternalHandlerService.h"
@@ -177,12 +161,16 @@
 #include "nsContentPolicyUtils.h"
 #include "nsContentErrors.h"
 
+#if defined(XP_WIN)
+#include "windows.h"
+#include "winbase.h"
+#endif
+
 #if defined(XP_UNIX) && defined(MOZ_WIDGET_GTK2) & defined(MOZ_X11)
 #include <gdk/gdkx.h> 
 #endif
 
 #ifdef XP_MACOSX
-#include <Carbon/Carbon.h> 
 #include <mach-o/loader.h>
 #include <mach-o/fat.h>
 #endif
@@ -242,12 +230,6 @@ PRLogModuleInfo* nsPluginLogging::gPluginLog = nsnull;
 
 #define BRAND_PROPERTIES_URL "chrome://branding/locale/brand.properties"
 #define PLUGIN_PROPERTIES_URL "chrome://global/locale/downloadProgress.properties"
-#define PLUGIN_REGIONAL_URL "chrome://global-region/locale/region.properties"
-
-
-#define _MAXKEYVALUE_ 8196
-#define _NS_PREF_COMMON_PLUGIN_REG_KEY_ "browser.plugins.registry_plugins_folder_key_location"
-#define _NS_COMMON_PLUGIN_KEY_NAME_ "Plugins Folders"
 
 
 #define NS_PREF_MAX_NUM_CACHED_PLUGINS "browser.plugins.max_num_cached_plugins"
@@ -257,7 +239,7 @@ PRLogModuleInfo* nsPluginLogging::gPluginLog = nsnull;
 
 nsresult PostPluginUnloadEvent(PRLibrary * aLibrary);
 
-static nsActivePluginList *gActivePluginList;
+static nsPluginInstanceTagList *gActivePluginList;
 
 #ifdef CALL_SAFETY_ON
 PRBool gSkipPluginSafeCalls = PR_FALSE;
@@ -338,7 +320,7 @@ NS_IMETHODIMP nsPluginDocReframeEvent::Run() {
   return mDocs->Clear();
 }
 
-nsActivePlugin::nsActivePlugin(nsPluginTag* aPluginTag,
+nsPluginInstanceTag::nsPluginInstanceTag(nsPluginTag* aPluginTag,
                                nsIPluginInstance* aInstance,
                                const char * url,
                                PRBool aDefaultPlugin,
@@ -361,7 +343,7 @@ nsActivePlugin::nsActivePlugin(nsPluginTag* aPluginTag,
   mllStopTime = LL_ZERO;
 }
 
-nsActivePlugin::~nsActivePlugin()
+nsPluginInstanceTag::~nsPluginInstanceTag()
 {
   mPluginTag = nsnull;
   if (mInstance) {
@@ -388,7 +370,7 @@ nsActivePlugin::~nsActivePlugin()
   PL_strfree(mURL);
 }
 
-void nsActivePlugin::setStopped(PRBool stopped)
+void nsPluginInstanceTag::setStopped(PRBool stopped)
 {
   mStopped = stopped;
   if (mStopped) 
@@ -397,27 +379,27 @@ void nsActivePlugin::setStopped(PRBool stopped)
     mllStopTime = LL_ZERO;
 }
 
-nsActivePluginList::nsActivePluginList()
+nsPluginInstanceTagList::nsPluginInstanceTagList()
 {
   mFirst = nsnull;
   mLast = nsnull;
   mCount = 0;
 }
 
-nsActivePluginList::~nsActivePluginList()
+nsPluginInstanceTagList::~nsPluginInstanceTagList()
 {
-  if (mFirst == nsnull)
+  if (!mFirst)
     return;
-  shut();
+  shutdown();
 }
 
-void nsActivePluginList::shut()
+void nsPluginInstanceTagList::shutdown()
 {
   if (!mFirst)
     return;
 
-  for (nsActivePlugin * plugin = mFirst; plugin != nsnull;) {
-    nsActivePlugin * next = plugin->mNext;
+  for (nsPluginInstanceTag * plugin = mFirst; plugin != nsnull;) {
+    nsPluginInstanceTag * next = plugin->mNext;
     remove(plugin);
     plugin = next;
   }
@@ -425,7 +407,7 @@ void nsActivePluginList::shut()
   mLast = nsnull;
 }
 
-PRInt32 nsActivePluginList::add(nsActivePlugin * plugin)
+PRInt32 nsPluginInstanceTagList::add(nsPluginInstanceTag * plugin)
 {
   if (!mFirst) {
     mFirst = plugin;
@@ -441,7 +423,7 @@ PRInt32 nsActivePluginList::add(nsActivePlugin * plugin)
   return mCount;
 }
 
-PRBool nsActivePluginList::IsLastInstance(nsActivePlugin * plugin)
+PRBool nsPluginInstanceTagList::IsLastInstance(nsPluginInstanceTag * plugin)
 {
   if (!plugin)
     return PR_FALSE;
@@ -449,20 +431,20 @@ PRBool nsActivePluginList::IsLastInstance(nsActivePlugin * plugin)
   if (!plugin->mPluginTag)
     return PR_FALSE;
 
-  for (nsActivePlugin * p = mFirst; p != nsnull; p = p->mNext) {
+  for (nsPluginInstanceTag * p = mFirst; p != nsnull; p = p->mNext) {
     if ((p->mPluginTag == plugin->mPluginTag) && (p != plugin))
       return PR_FALSE;
   }
   return PR_TRUE;
 }
 
-PRBool nsActivePluginList::remove(nsActivePlugin * plugin)
+PRBool nsPluginInstanceTagList::remove(nsPluginInstanceTag * plugin)
 {
-  if (mFirst == nsnull)
+  if (!mFirst)
     return PR_FALSE;
 
-  nsActivePlugin * prev = nsnull;
-  for (nsActivePlugin * p = mFirst; p != nsnull; p = p->mNext) {
+  nsPluginInstanceTag * prev = nsnull;
+  for (nsPluginInstanceTag * p = mFirst; p != nsnull; p = p->mNext) {
     if (p == plugin) {
       PRBool lastInstance = IsLastInstance(p);
 
@@ -471,7 +453,7 @@ PRBool nsActivePluginList::remove(nsActivePlugin * plugin)
       else
         prev->mNext = p->mNext;
 
-      if ((prev != nsnull) && (prev->mNext == nsnull))
+      if (prev && !prev->mNext)
         mLast = prev;
 
       
@@ -504,15 +486,15 @@ PRBool nsActivePluginList::remove(nsActivePlugin * plugin)
 
 
 
-void nsActivePluginList::stopRunning(nsISupportsArray* aReloadDocs,
+void nsPluginInstanceTagList::stopRunning(nsISupportsArray* aReloadDocs,
                                      nsPluginTag* aPluginTag)
 {
-  if (mFirst == nsnull)
+  if (!mFirst)
     return;
 
   PRBool doCallSetWindowAfterDestroy = PR_FALSE;
 
-  for (nsActivePlugin * p = mFirst; p != nsnull; p = p->mNext) {
+  for (nsPluginInstanceTag * p = mFirst; p != nsnull; p = p->mNext) {
     if (!p->mStopped && p->mInstance &&
        (!aPluginTag || aPluginTag == p->mPluginTag)) {
       
@@ -550,14 +532,14 @@ void nsActivePluginList::stopRunning(nsISupportsArray* aReloadDocs,
   }
 }
 
-void nsActivePluginList::removeAllStopped()
+void nsPluginInstanceTagList::removeAllStopped()
 {
-  if (mFirst == nsnull)
+  if (!mFirst)
     return;
 
-  nsActivePlugin * next = nsnull;
+  nsPluginInstanceTag * next = nsnull;
 
-  for (nsActivePlugin * p = mFirst; p != nsnull;) {
+  for (nsPluginInstanceTag * p = mFirst; p != nsnull;) {
     next = p->mNext;
 
     if (p->mStopped)
@@ -568,9 +550,9 @@ void nsActivePluginList::removeAllStopped()
   return;
 }
 
-nsActivePlugin * nsActivePluginList::find(nsIPluginInstance* instance)
+nsPluginInstanceTag * nsPluginInstanceTagList::find(nsIPluginInstance* instance)
 {
-  for (nsActivePlugin * p = mFirst; p != nsnull; p = p->mNext) {
+  for (nsPluginInstanceTag * p = mFirst; p != nsnull; p = p->mNext) {
     if (p->mInstance == instance) {
 #ifdef NS_DEBUG
       PRBool doCache = PR_TRUE;
@@ -583,11 +565,11 @@ nsActivePlugin * nsActivePluginList::find(nsIPluginInstance* instance)
   return nsnull;
 }
 
-nsActivePlugin * nsActivePluginList::find(const char * mimetype)
+nsPluginInstanceTag * nsPluginInstanceTagList::find(const char * mimetype)
 {
   PRBool defaultplugin = (PL_strcmp(mimetype, "*") == 0);
 
-  for (nsActivePlugin * p = mFirst; p != nsnull; p = p->mNext) {
+  for (nsPluginInstanceTag * p = mFirst; p != nsnull; p = p->mNext) {
     
     
     if (defaultplugin && p->mDefaultPlugin)
@@ -615,9 +597,9 @@ nsActivePlugin * nsActivePluginList::find(const char * mimetype)
   return nsnull;
 }
 
-nsActivePlugin * nsActivePluginList::findStopped(const char * url)
+nsPluginInstanceTag * nsPluginInstanceTagList::findStopped(const char * url)
 {
-  for (nsActivePlugin * p = mFirst; p != nsnull; p = p->mNext) {
+  for (nsPluginInstanceTag * p = mFirst; p != nsnull; p = p->mNext) {
     if (!PL_strcmp(url, p->mURL) && p->mStopped) {
 #ifdef NS_DEBUG
       PRBool doCache = PR_TRUE;
@@ -630,21 +612,21 @@ nsActivePlugin * nsActivePluginList::findStopped(const char * url)
   return nsnull;
 }
 
-PRUint32 nsActivePluginList::getStoppedCount()
+PRUint32 nsPluginInstanceTagList::getStoppedCount()
 {
   PRUint32 stoppedCount = 0;
-  for (nsActivePlugin * p = mFirst; p != nsnull; p = p->mNext) {
+  for (nsPluginInstanceTag * p = mFirst; p != nsnull; p = p->mNext) {
     if (p->mStopped)
       stoppedCount++;
   }
   return stoppedCount;
 }
 
-nsActivePlugin * nsActivePluginList::findOldestStopped()
+nsPluginInstanceTag * nsPluginInstanceTagList::findOldestStopped()
 {
-  nsActivePlugin * res = nsnull;
+  nsPluginInstanceTag * res = nsnull;
   PRInt64 llTime = LL_MAXINT;
-  for (nsActivePlugin * p = mFirst; p != nsnull; p = p->mNext) {
+  for (nsPluginInstanceTag * p = mFirst; p != nsnull; p = p->mNext) {
     if (!p->mStopped)
       continue;
 
@@ -1289,13 +1271,8 @@ public:
   nsPluginByteRangeStreamListener(nsIWeakReference* aWeakPtr);
   virtual ~nsPluginByteRangeStreamListener();
 
-  
   NS_DECL_ISUPPORTS
-
-  
   NS_DECL_NSIREQUESTOBSERVER
-
-  
   NS_DECL_NSISTREAMLISTENER
 
 private:
@@ -1544,7 +1521,6 @@ public:
   virtual ~nsPluginCacheListener();
 
   NS_DECL_ISUPPORTS
-
   NS_DECL_NSIREQUESTOBSERVER
   NS_DECL_NSISTREAMLISTENER
 
@@ -1805,7 +1781,7 @@ nsPluginStreamListenerPeer::SetupPluginCacheFile(nsIChannel* channel)
   
   
   PRBool useExistingCacheFile = PR_FALSE;
-  nsActivePlugin *pActivePlugins = gActivePluginList->mFirst;
+  nsPluginInstanceTag *pActivePlugins = gActivePluginList->mFirst;
   while (pActivePlugins && pActivePlugins->mStreams && !useExistingCacheFile) {
     
     PRInt32 cnt;
@@ -2486,7 +2462,7 @@ nsPluginHostImpl::nsPluginHostImpl()
   mDefaultPluginDisabled = PR_FALSE;
   mJavaEnabled = PR_TRUE;
 
-  gActivePluginList = &mActivePluginList;
+  gActivePluginList = &mPluginInstanceTagList;
 
   
   
@@ -2582,7 +2558,7 @@ nsPluginHostImpl::GetInst()
 const char *
 nsPluginHostImpl::GetPluginName(nsIPluginInstance *aPluginInstance)
 {
-  nsActivePlugin *plugin =
+  nsPluginInstanceTag *plugin =
     gActivePluginList ? gActivePluginList->find(aPluginInstance) : nsnull;
 
   if (plugin && plugin->mPluginTag)
@@ -2628,7 +2604,7 @@ PRBool nsPluginHostImpl::IsRunningPlugin(nsPluginTag * plugin)
     return PR_FALSE;
 
   for (int i = 0; i < plugin->mVariants; i++) {
-    nsActivePlugin * p = mActivePluginList.find(plugin->mMimeTypeArray[i]);
+    nsPluginInstanceTag * p = mPluginInstanceTagList.find(plugin->mMimeTypeArray[i]);
     if (p && !p->mStopped)
       return PR_TRUE;
   }
@@ -2640,7 +2616,7 @@ nsresult nsPluginHostImpl::ReloadPlugins(PRBool reloadPages)
 {
   PLUGIN_LOG(PLUGIN_LOG_NORMAL,
   ("nsPluginHostImpl::ReloadPlugins Begin reloadPages=%d, active_instance_count=%d\n",
-  reloadPages, mActivePluginList.mCount));
+  reloadPages, mPluginInstanceTagList.mCount));
 
   nsresult rv = NS_OK;
 
@@ -2671,11 +2647,11 @@ nsresult nsPluginHostImpl::ReloadPlugins(PRBool reloadPages)
 
     
     
-    mActivePluginList.stopRunning(instsToReload, nsnull);
+    mPluginInstanceTagList.stopRunning(instsToReload, nsnull);
   }
 
   
-  mActivePluginList.removeAllStopped();
+  mPluginInstanceTagList.removeAllStopped();
 
   
   nsRefPtr<nsPluginTag> prev;
@@ -2725,7 +2701,7 @@ nsresult nsPluginHostImpl::ReloadPlugins(PRBool reloadPages)
 
   PLUGIN_LOG(PLUGIN_LOG_NORMAL,
   ("nsPluginHostImpl::ReloadPlugins End active_instance_count=%d\n",
-  mActivePluginList.mCount));
+  mPluginInstanceTagList.mCount));
 
   return rv;
 }
@@ -3081,11 +3057,6 @@ NS_IMETHODIMP nsPluginHostImpl::HasAllocatedMenuID(nsIEventHandler* handler, PRI
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 
-NS_IMETHODIMP nsPluginHostImpl::ProcessNextEvent(PRBool *bEventHandled)
-{
-  return NS_ERROR_NOT_IMPLEMENTED;
-}
-
 NS_IMETHODIMP nsPluginHostImpl::CreateInstance(nsISupports *aOuter,
                                                REFNSIID aIID,
                                                void **aResult)
@@ -3116,10 +3087,10 @@ NS_IMETHODIMP nsPluginHostImpl::Destroy(void)
 
   
   
-  mActivePluginList.stopRunning(nsnull, nsnull);
+  mPluginInstanceTagList.stopRunning(nsnull, nsnull);
 
   
-  mActivePluginList.shut();
+  mPluginInstanceTagList.shutdown();
 
   if (mPluginPath) {
     PR_Free(mPluginPath);
@@ -3517,7 +3488,7 @@ nsresult nsPluginHostImpl::FindStoppedPluginForURL(nsIURI* aURL,
 
   aURL->GetAsciiSpec(url);
 
-  nsActivePlugin * plugin = mActivePluginList.findStopped(url.get());
+  nsPluginInstanceTag * plugin = mPluginInstanceTagList.findStopped(url.get());
 
   if (plugin && plugin->mStopped) {
     nsIPluginInstance* instance = plugin->mInstance;
@@ -3572,12 +3543,12 @@ nsresult nsPluginHostImpl::AddInstanceToActiveList(nsCOMPtr<nsIPlugin> aPlugin,
     NS_ASSERTION(pluginTag, "Plugin tag not found");
   }
 
-  nsActivePlugin * plugin = new nsActivePlugin(pluginTag, aInstance, url.get(), aDefaultPlugin, peer);
+  nsPluginInstanceTag * plugin = new nsPluginInstanceTag(pluginTag, aInstance, url.get(), aDefaultPlugin, peer);
 
   if (!plugin)
     return NS_ERROR_OUT_OF_MEMORY;
 
-  mActivePluginList.add(plugin);
+  mPluginInstanceTagList.add(plugin);
   return NS_OK;
 }
 
@@ -4539,21 +4510,6 @@ NS_IMETHODIMP nsPluginHostImpl::GetPluginFactory(const char *aMimeType, nsIPlugi
       }
     }
 
-#if defined (XP_MACOSX)
-   
-
-
-
-    if (StringBeginsWith(pluginTag->mDescription,
-                         NS_LITERAL_CSTRING("Shockwave Flash 6.0"),
-                         nsCaseInsensitiveCStringComparator()) &&
-        pluginTag->mDescription.Length() > 21) {
-       int ver = atoi(pluginTag->mDescription.get() + 21);
-       if (ver && ver <= 50)
-         ::UseInputWindow(NULL, false);
-    }
-#endif
-
     if (plugin) {
       *aPlugin = plugin;
       plugin->AddRef();
@@ -5249,8 +5205,8 @@ nsPluginHostImpl::UpdatePluginInfo(nsPluginTag* aPluginTag)
 
   nsCOMPtr<nsISupportsArray> instsToReload;
   NS_NewISupportsArray(getter_AddRefs(instsToReload));
-  mActivePluginList.stopRunning(instsToReload, aPluginTag);
-  mActivePluginList.removeAllStopped();
+  mPluginInstanceTagList.stopRunning(instsToReload, aPluginTag);
+  mPluginInstanceTagList.removeAllStopped();
   
   PRUint32 c;
   if (instsToReload && NS_SUCCEEDED(instsToReload->Count(&c)) && c > 0) {
@@ -5876,7 +5832,7 @@ nsPluginHostImpl::StopPluginInstance(nsIPluginInstance* aInstance)
   PLUGIN_LOG(PLUGIN_LOG_NORMAL,
   ("nsPluginHostImpl::StopPluginInstance called instance=%p\n",aInstance));
 
-  nsActivePlugin * plugin = mActivePluginList.find(aInstance);
+  nsPluginInstanceTag * plugin = mPluginInstanceTagList.find(aInstance);
 
   if (plugin) {
     plugin->setStopped(PR_TRUE);  
@@ -5890,7 +5846,7 @@ nsPluginHostImpl::StopPluginInstance(nsIPluginInstance* aInstance)
       if (plugin->mPluginTag)
         library = plugin->mPluginTag->mLibrary;
 
-      mActivePluginList.remove(plugin);
+      mPluginInstanceTagList.remove(plugin);
     } else {
       
       
@@ -5903,10 +5859,10 @@ nsPluginHostImpl::StopPluginInstance(nsIPluginInstance* aInstance)
       if (NS_FAILED(rv))
         max_num = DEFAULT_NUMBER_OF_STOPPED_PLUGINS;
 
-      if (mActivePluginList.getStoppedCount() >= max_num) {
-        nsActivePlugin * oldest = mActivePluginList.findOldestStopped();
+      if (mPluginInstanceTagList.getStoppedCount() >= max_num) {
+        nsPluginInstanceTag * oldest = mPluginInstanceTagList.findOldestStopped();
         if (oldest != nsnull)
-          mActivePluginList.remove(oldest);
+          mPluginInstanceTagList.remove(oldest);
       }
     }
   }
@@ -5995,7 +5951,7 @@ nsresult nsPluginHostImpl::NewFullPagePluginStream(nsIStreamListener *&aStreamLi
   NS_ADDREF(listener);
 
   
-  nsActivePlugin * p = mActivePluginList.find(aInstance);
+  nsPluginInstanceTag * p = mPluginInstanceTagList.find(aInstance);
   if (p) {
     if (!p->mStreams && (NS_FAILED(rv = NS_NewISupportsArray(getter_AddRefs(p->mStreams)))))
       return rv;
@@ -6145,7 +6101,7 @@ NS_IMETHODIMP nsPluginHostImpl::Observe(nsISupports *aSubject,
   }
   if (!nsCRT::strcmp(NS_PRIVATE_BROWSING_SWITCH_TOPIC, aTopic)) {
     
-    for (nsActivePlugin* ap = mActivePluginList.mFirst; ap; ap = ap->mNext) {
+    for (nsPluginInstanceTag* ap = mPluginInstanceTagList.mFirst; ap; ap = ap->mNext) {
       nsPluginTag* pt = ap->mPluginTag;
       if (pt->HasFlag(NS_PLUGIN_FLAG_NPAPI)) {
         nsNPAPIPluginInstance* pi = static_cast<nsNPAPIPluginInstance*>(ap->mInstance);
@@ -6240,7 +6196,7 @@ nsPluginHostImpl::HandleBadPlugin(PRLibrary* aLibrary, nsIPluginInstance *aInsta
 
     
     nsCString pluginname;
-    nsActivePlugin * p = mActivePluginList.find(aInstance);
+    nsPluginInstanceTag * p = mPluginInstanceTagList.find(aInstance);
     if (p) {
       nsPluginTag * tag = p->mPluginTag;
       if (tag) {
@@ -6275,7 +6231,7 @@ nsPluginHostImpl::HandleBadPlugin(PRLibrary* aLibrary, nsIPluginInstance *aInsta
 NS_IMETHODIMP
 nsPluginHostImpl::SetIsScriptableInstance(nsIPluginInstance * aPluginInstance, PRBool aScriptable)
 {
-  nsActivePlugin * p = mActivePluginList.find(aPluginInstance);
+  nsPluginInstanceTag * p = mPluginInstanceTagList.find(aPluginInstance);
   if (p == nsnull)
     return NS_ERROR_FAILURE;
 
