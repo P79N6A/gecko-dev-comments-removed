@@ -41,6 +41,7 @@
 #include "nsINavBookmarksService.h"
 #include "nsBrowserCompsCID.h"
 #include "nsToolkitCompsCID.h"
+#include "nsIPlacesImportExportService.h"
 #else
 #include "nsIBookmarksService.h"
 #endif
@@ -284,11 +285,6 @@ ImportBookmarksHTML(nsIFile* aBookmarksFile,
   NS_ENSURE_SUCCESS(rv, rv);
 
   
-  nsCOMPtr<nsIURI> fileURI;
-  rv = NS_NewFileURI(getter_AddRefs(fileURI), aBookmarksFile);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  
   PRInt64 root;
   rv = bms->GetBookmarksRoot(&root);
   NS_ENSURE_SUCCESS(rv, rv);
@@ -298,7 +294,11 @@ ImportBookmarksHTML(nsIFile* aBookmarksFile,
   NS_ENSURE_SUCCESS(rv, rv);
 
   
-  rv = bms->ImportBookmarksHTMLToFolder(fileURI, folder);
+  nsCOMPtr<nsILocalFile> localFile(do_QueryInterface(aBookmarksFile));
+  NS_ENSURE_TRUE(localFile, NS_ERROR_FAILURE);
+  nsCOMPtr<nsIPlacesImportExportService> importer = do_GetService(NS_PLACESIMPORTEXPORTSERVICE_CONTRACTID, &rv);
+  NS_ENSURE_SUCCESS(rv, rv);
+  rv = importer->ImportHTMLFromFileToFolder(localFile, folder);
   return rv;
 #else
   nsCOMPtr<nsIRDFResource> folder;

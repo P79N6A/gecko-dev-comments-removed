@@ -41,6 +41,7 @@
 
 function BrowserGlue() {
   this._init();
+  this._profileStarted = false;
 }
 
 BrowserGlue.prototype = {
@@ -127,11 +128,23 @@ BrowserGlue.prototype = {
       ww.openWindow(null, "chrome://browser/content/safeMode.xul", 
                     "_blank", "chrome,centerscreen,modal,resizable=no", null);
     }
+
+    
+    this._initPlaces();
+
+    
+    this._profileStarted = true;
   },
 
   
   _onProfileShutdown: function() 
   {
+    
+    if (this._profileStarted) {
+      
+      this._shutdownPlaces();
+    }
+
     
     
     const appStartup = Components.classes['@mozilla.org/toolkit/app-startup;1']
@@ -157,6 +170,71 @@ BrowserGlue.prototype = {
     }
     return Sanitizer;
   },
+
+  
+
+
+
+  _initPlaces: function bg__initPlaces() {
+#ifdef MOZ_PLACES_BOOKMARKS
+    var importBookmarks = false;
+    try {
+      var prefService = Components.classes["@mozilla.org/preferences-service;1"]
+                                  .getService(Components.interfaces.nsIPrefBranch);
+      importBookmarks = prefService.getBoolPref("browser.places.importBookmarksHTML");
+    } catch(ex) {}
+
+    if (!importBookmarks)
+      return;
+
+    var dirService = Components.classes["@mozilla.org/file/directory_service;1"]
+                               .getService(Components.interfaces.nsIProperties);
+    var profDir = dirService.get("ProfD", Components.interfaces.nsILocalFile);
+
+    var bookmarksFile = profDir.clone(); 
+    bookmarksFile.append("bookmarks.html");
+
+    if (bookmarksFile.exists()) {
+      
+      try {
+        var importer = 
+          Components.classes["@mozilla.org/browser/places/import-export-service;1"]
+                    .getService(Components.interfaces.nsIPlacesImportExportService);
+        importer.importHTMLFromFile(bookmarksFile);
+      } catch(ex) {
+      } finally {
+        prefService.setBoolPref("browser.places.importBookmarksHTML", false);
+      }
+
+      
+      
+      var bookmarksBackup = profDir.clone();
+      bookmarksBackup.append("bookmarks.preplaces.html");
+      if (!bookmarksBackup.exists()) {
+        
+        try {
+          bookmarksFile.copyTo(profDir, "bookmarks.preplaces.html");
+        } catch(ex) {
+          dump("nsBrowserGlue::_initPlaces(): copy of bookmarks.html to bookmarks.preplaces.html failed: " + ex + "\n");
+        }
+      }
+    }
+#endif
+  },
+
+  
+
+
+
+  _shutdownPlaces: function bg__shutdownPlaces() {
+#ifdef MOZ_PLACES_BOOKMARKS
+    
+    var importer =
+      Components.classes["@mozilla.org/browser/places/import-export-service;1"]
+                .getService(Components.interfaces.nsIPlacesImportExportService);
+    importer.backupBookmarksFile();
+#endif
+  },
   
   
   
@@ -166,7 +244,6 @@ BrowserGlue.prototype = {
   {
     this.Sanitizer.sanitize(aParentWindow);
   }
-
 }
 
 

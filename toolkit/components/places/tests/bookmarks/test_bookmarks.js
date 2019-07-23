@@ -125,7 +125,7 @@ bmsvc.addObserver(observer, false);
 var root = bmsvc.bookmarksRoot;
 
 
-var bmStartIndex = 4;
+var bmStartIndex = 1;
 
 
 function run_test() {
