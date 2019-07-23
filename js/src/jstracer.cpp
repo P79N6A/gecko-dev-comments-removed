@@ -5844,7 +5844,13 @@ TraceRecorder::incElem(jsint incr, bool pre)
     jsval* vp;
     LIns* v_ins;
     LIns* addr_ins;
-    CHECK_STATUS(elem(l, r, vp, v_ins, addr_ins));
+
+    if (!JSVAL_IS_OBJECT(l) || !JSVAL_IS_INT(r) ||
+        !guardDenseArray(JSVAL_TO_OBJECT(l), get(&l))) {
+        return JSRS_STOP;
+    }
+
+    CHECK_STATUS(denseArrayElement(l, r, vp, v_ins, addr_ins));
     if (!addr_ins) 
         return JSRS_STOP;
     CHECK_STATUS(inc(*vp, v_ins, incr, pre));
@@ -8159,8 +8165,7 @@ TraceRecorder::record_JSOP_GETELEM()
         return call_imacro(call ? callelem_imacros.callprop : getelem_imacros.getprop);
     }
 
-    
-    if (JSVAL_TO_INT(idx) < 0 || !OBJ_IS_DENSE_ARRAY(cx, obj)) {
+    if (!guardDenseArray(obj, obj_ins, BRANCH_EXIT)) {
         CHECK_STATUS(guardNotGlobalObject(obj, obj_ins));
 
         return call_imacro(call ? callelem_imacros.callelem : getelem_imacros.getelem);
@@ -8169,7 +8174,7 @@ TraceRecorder::record_JSOP_GETELEM()
     
     jsval* vp;
     LIns* addr_ins;
-    CHECK_STATUS(elem(lval, idx, vp, v_ins, addr_ins));
+    CHECK_STATUS(denseArrayElement(lval, idx, vp, v_ins, addr_ins));
     set(&lval, v_ins);
     if (call)
         set(&idx, obj_ins);
@@ -8927,20 +8932,15 @@ TraceRecorder::prop(JSObject* obj, LIns* obj_ins, uint32& slot, LIns*& v_ins)
 }
 
 JS_REQUIRES_STACK JSRecordingStatus
-TraceRecorder::elem(jsval& oval, jsval& ival, jsval*& vp, LIns*& v_ins, LIns*& addr_ins)
+TraceRecorder::denseArrayElement(jsval& oval, jsval& ival, jsval*& vp, LIns*& v_ins,
+                                 LIns*& addr_ins)
 {
-    
-    if (JSVAL_IS_PRIMITIVE(oval) || !JSVAL_IS_INT(ival))
-        return JSRS_STOP;
+    JS_ASSERT(JSVAL_IS_OBJECT(oval) && JSVAL_IS_INT(ival));
 
     JSObject* obj = JSVAL_TO_OBJECT(oval);
     LIns* obj_ins = get(&oval);
     jsint idx = JSVAL_TO_INT(ival);
     LIns* idx_ins = makeNumberInt32(get(&ival));
-
-    
-    if (!guardDenseArray(obj, obj_ins))
-        return JSRS_STOP;
 
     VMSideExit* exit = snapshot(BRANCH_EXIT);
 
