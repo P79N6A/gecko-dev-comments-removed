@@ -88,7 +88,6 @@ GetZeroValueForUnit(nsStyleAnimation::Unit aUnit)
     case nsStyleAnimation::eUnit_Color:
       return &sZeroColor;
     default:
-      NS_NOTREACHED("Calling GetZeroValueForUnit with an unsupported unit");
       return nsnull;
   }
 }
@@ -187,8 +186,13 @@ nsSMILCSSValueType::Add(nsSMILValue& aDest, const nsSMILValue& aValueToAdd,
     NS_ABORT_IF_FALSE(destWrapper->mCSSValue.IsNull(),
                       "If property ID is unset, then the unit should be, too");
     
-    destWrapper->mCSSValue =
-      *GetZeroValueForUnit(valueToAddWrapper->mCSSValue.GetUnit());
+    const nsStyleAnimation::Value* zeroVal =
+      GetZeroValueForUnit(valueToAddWrapper->mCSSValue.GetUnit());
+    if (!zeroVal) {
+      
+      return NS_ERROR_FAILURE;
+    }
+    destWrapper->mCSSValue = *zeroVal;
     destWrapper->mPropID = valueToAddWrapper->mPropID;
     destWrapper->mPresContext = valueToAddWrapper->mPresContext;
   }
@@ -224,6 +228,10 @@ nsSMILCSSValueType::ComputeDistance(const nsSMILValue& aFrom,
     NS_ABORT_IF_FALSE(fromWrapper->mCSSValue.IsNull(),
                       "If property ID is unset, then the unit should be, too");
     fromCSSValue = GetZeroValueForUnit(toWrapper->mCSSValue.GetUnit());
+    if (!fromCSSValue) {
+      
+      return NS_ERROR_FAILURE;
+    }
   } else {
     fromCSSValue = &fromWrapper->mCSSValue;
   }
@@ -262,6 +270,10 @@ nsSMILCSSValueType::Interpolate(const nsSMILValue& aStartVal,
     NS_ABORT_IF_FALSE(startWrapper->mCSSValue.IsNull(),
                       "If property ID is unset, then the unit should be, too");
     startCSSValue = GetZeroValueForUnit(endWrapper->mCSSValue.GetUnit());
+    if (!startCSSValue) {
+      
+      return NS_ERROR_FAILURE;
+    }
   } else {
     startCSSValue = &startWrapper->mCSSValue;
   }
