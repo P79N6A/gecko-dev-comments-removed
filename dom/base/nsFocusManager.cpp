@@ -1017,7 +1017,7 @@ nsFocusManager::SetFocusInner(nsIContent* aNewContent, PRInt32 aFlags,
   
   
   
-  if (!newWindow || newWindow == mFocusedWindow && contentToFocus == mFocusedContent)
+  if (!newWindow || (newWindow == mFocusedWindow && contentToFocus == mFocusedContent))
     return;
 
   
@@ -2057,19 +2057,21 @@ nsFocusManager::GetSelectionLocation(nsIDocument* aDocument,
             nsRefPtr<nsCaret> caret;
             aPresShell->GetCaret(getter_AddRefs(caret));
             nsRect caretRect;
-            nsIView *caretView;
-            caret->GetCaretCoordinates(nsCaret::eClosestViewCoordinates, 
-                                       domSelection, &caretRect,
-                                       &isCollapsed, &caretView);
-            nsPoint framePt;
-            nsIView *frameClosestView = newCaretFrame->GetClosestView(&framePt);
-            if (caretView == frameClosestView && caretRect.y == framePt.y &&
-                caretRect.x == framePt.x) {
-              
-              startFrame = newCaretFrame;
-              startContent = newCaretContent;
-              if (endOfSelectionInStartNode) {
-                endContent = newCaretContent; 
+            nsIFrame *frame = caret->GetGeometry(domSelection, &caretRect);
+            if (frame) {
+              nsPoint caretWindowOffset;
+              nsIWidget *window = frame->GetWindowOffset(caretWindowOffset);
+              caretRect.MoveBy(caretWindowOffset);
+              nsPoint newCaretOffset;
+              nsIWidget *newCaretWindow = newCaretFrame->GetWindowOffset(newCaretOffset);
+              if (window == newCaretWindow && caretRect.y == newCaretOffset.y &&
+                  caretRect.x == newCaretOffset.x) {
+                
+                startFrame = newCaretFrame;
+                startContent = newCaretContent;
+                if (endOfSelectionInStartNode) {
+                  endContent = newCaretContent; 
+                }
               }
             }
           }

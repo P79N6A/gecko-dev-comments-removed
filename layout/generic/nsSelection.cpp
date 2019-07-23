@@ -795,17 +795,21 @@ nsFrameSelection::FetchDesiredX(nscoord &aDesiredX)
   if (!caret)
     return NS_ERROR_NULL_POINTER;
 
-  nsRect coord;
-  PRBool  collapsed;
   PRInt8 index = GetIndexFromSelectionType(nsISelectionController::SELECTION_NORMAL);
   result = caret->SetCaretDOMSelection(mDomSelections[index]);
   if (NS_FAILED(result))
     return result;
 
-  result = caret->GetCaretCoordinates(nsCaret::eClosestViewCoordinates, mDomSelections[index], &coord, &collapsed, nsnull);
-  if (NS_FAILED(result))
-    return result;
-   
+  nsRect coord;
+  nsIFrame* caretFrame = caret->GetGeometry(mDomSelections[index], &coord);
+  if (!caretFrame)
+    return NS_ERROR_FAILURE;
+  nsPoint viewOffset(0, 0);
+  nsIView* view = nsnull;
+  caretFrame->GetOffsetFromView(viewOffset, &view);
+  if (view)
+    coord.x += viewOffset.x;
+
   aDesiredX = coord.x;
   return NS_OK;
 }

@@ -1656,6 +1656,12 @@ public:
 
 
 
+  virtual nsIWidget* GetWindowOffset(nsPoint& aOffset) const;
+
+  
+
+
+
 
   virtual nsIAtom* GetType() const = 0;
 

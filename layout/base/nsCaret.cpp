@@ -59,8 +59,6 @@
 #include "nsIPresShell.h"
 #include "nsIRenderingContext.h"
 #include "nsIDeviceContext.h"
-#include "nsIView.h"
-#include "nsIViewManager.h"
 #include "nsPresContext.h"
 #include "nsILookAndFeel.h"
 #include "nsBlockFrame.h"
@@ -277,96 +275,6 @@ nsresult nsCaret::GetCaretVisible(PRBool *outMakeVisible)
 void nsCaret::SetCaretReadOnly(PRBool inMakeReadonly)
 {
   mReadOnly = inMakeReadonly;
-}
-
-
-
-nsresult nsCaret::GetCaretCoordinates(EViewCoordinates aRelativeToType,
-                                      nsISelection *aDOMSel,
-                                      nsRect *outCoordinates,
-                                      PRBool *outIsCollapsed,
-                                      nsIView **outView)
-{
-  if (!mPresShell)
-    return NS_ERROR_NOT_INITIALIZED;
-  if (!outCoordinates || !outIsCollapsed)
-    return NS_ERROR_NULL_POINTER;
-
-  nsCOMPtr<nsISelection> domSelection = aDOMSel;
-
-  if (outView)
-    *outView = nsnull;
-
-  
-  outCoordinates->x = -1;
-  outCoordinates->y = -1;
-  outCoordinates->width = -1;
-  outCoordinates->height = -1;
-  *outIsCollapsed = PR_FALSE;
-  
-  nsresult err = domSelection->GetIsCollapsed(outIsCollapsed);
-  if (NS_FAILED(err)) 
-    return err;
-    
-  nsCOMPtr<nsIDOMNode>  focusNode;
-  
-  err = domSelection->GetFocusNode(getter_AddRefs(focusNode));
-  if (NS_FAILED(err))
-    return err;
-  if (!focusNode)
-    return NS_ERROR_FAILURE;
-  
-  PRInt32 focusOffset;
-  err = domSelection->GetFocusOffset(&focusOffset);
-  if (NS_FAILED(err))
-    return err;
-    
-  nsCOMPtr<nsIContent> contentNode = do_QueryInterface(focusNode);
-  if (!contentNode)
-    return NS_ERROR_FAILURE;
-
-  
-  nsIFrame*       theFrame = nsnull;
-  PRInt32         theFrameOffset = 0;
-
-  nsCOMPtr<nsFrameSelection> frameSelection = GetFrameSelection();
-  if (!frameSelection)
-    return NS_ERROR_FAILURE;
-  PRUint8 bidiLevel = frameSelection->GetCaretBidiLevel();
-  
-  err = GetCaretFrameForNodeOffset(contentNode, focusOffset,
-                                   frameSelection->GetHint(), bidiLevel,
-                                   &theFrame, &theFrameOffset);
-  if (NS_FAILED(err) || !theFrame)
-    return err;
-  
-  nsPoint   viewOffset(0, 0);
-  nsIView   *drawingView;     
-
-  GetViewForRendering(theFrame, aRelativeToType, viewOffset, &drawingView, outView);
-  if (!drawingView)
-    return NS_ERROR_UNEXPECTED;
- 
-  nsPoint   framePos(0, 0);
-  err = theFrame->GetPointFromOffset(theFrameOffset, &framePos);
-  if (NS_FAILED(err))
-    return err;
-
-  
-  if (aRelativeToType == eClosestViewCoordinates)
-  {
-    theFrame->GetOffsetFromView(viewOffset, &drawingView);
-    if (outView)
-      *outView = drawingView;
-  }
-  
-  viewOffset += framePos;
-  outCoordinates->x = viewOffset.x;
-  outCoordinates->y = viewOffset.y;
-  outCoordinates->height = theFrame->GetContentRect().height;
-  outCoordinates->width = ComputeMetrics(theFrame, theFrameOffset, outCoordinates->height).mCaretWidth;
-  
-  return NS_OK;
 }
 
 nsIFrame* nsCaret::GetGeometry(nsISelection* aSelection, nsRect* aRect)
@@ -931,79 +839,6 @@ nsCaret::GetCaretFrameForNodeOffset(nsIContent*             aContentNode,
   *aReturnFrame = theFrame;
   *aReturnOffset = theFrameOffset;
   return NS_OK;
-}
-
-
-
-void nsCaret::GetViewForRendering(nsIFrame *caretFrame,
-                                  EViewCoordinates coordType,
-                                  nsPoint &viewOffset,
-                                  nsIView **outRenderingView,
-                                  nsIView **outRelativeView)
-{
-  if (!caretFrame || !outRenderingView)
-    return;
-
-  *outRenderingView = nsnull;
-  if (outRelativeView)
-    *outRelativeView = nsnull;
-  
-  NS_ASSERTION(caretFrame, "Should have a frame here");
- 
-  viewOffset.x = 0;
-  viewOffset.y = 0;
-  
-  nsPoint withinViewOffset(0, 0);
-  
-  nsIView* theView = nsnull;
-  caretFrame->GetOffsetFromView(withinViewOffset, &theView);
-  if (!theView)
-      return;
-
-  if (outRelativeView && coordType == eClosestViewCoordinates)
-    *outRelativeView = theView;
-
-  
-  nsIView* returnView = nsIView::GetViewFor(theView->GetNearestWidget(nsnull));
-  
-  
-  if (coordType == eRenderingViewCoordinates) {
-    if (returnView) {
-      
-      withinViewOffset += theView->GetOffsetTo(returnView);
-      
-      
-      
-      withinViewOffset += returnView->GetPosition() -
-                          returnView->GetBounds().TopLeft();
-      viewOffset = withinViewOffset;
-
-      if (outRelativeView)
-        *outRelativeView = returnView;
-    }
-  }
-  else {
-    
-    withinViewOffset += theView->GetOffsetTo(nsnull);
-    viewOffset = withinViewOffset;
-
-    
-    if (outRelativeView && coordType == eTopLevelWindowCoordinates) {
-      nsCOMPtr<nsIPresShell> presShell = do_QueryReferent(mPresShell);
-      if (presShell) {
-        nsRootPresContext* rootPC =
-          presShell->GetPresContext()->GetRootPresContext();
-        if (rootPC) {
-          nsIViewManager* vm = rootPC->PresShell()->GetViewManager();
-          if (vm) {
-            vm->GetRootView(*outRelativeView);
-          }
-        }
-      }
-    }
-  }
-
-  *outRenderingView = returnView;
 }
 
 nsresult nsCaret::CheckCaretDrawingState()

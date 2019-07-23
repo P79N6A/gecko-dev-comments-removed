@@ -50,7 +50,6 @@
 
 class nsIRenderingContext;
 class nsDisplayListBuilder;
-class nsIView;
 
 
 class nsCaret : public nsISelectionListener
@@ -103,24 +102,8 @@ class nsCaret : public nsISelectionListener
     {
       return mReadOnly;
     }
-    
-
-
-
-
-
-
-
-
-
-    virtual nsresult    GetCaretCoordinates(EViewCoordinates aRelativeToType,
-                                      nsISelection *inDOMSel,
-                                      nsRect* outCoordinates,
-                                      PRBool* outIsCollapsed,
-                                      nsIView **outView);
 
     
-
 
 
 
@@ -218,11 +201,6 @@ protected:
     void          StartBlinking();
     void          StopBlinking();
     
-    void          GetViewForRendering(nsIFrame *caretFrame,
-                                      EViewCoordinates coordType,
-                                      nsPoint &viewOffset,
-                                      nsIView **outRenderingView,
-                                      nsIView **outRelativeView);
     PRBool        DrawAtPositionWithHint(nsIDOMNode* aNode,
                                          PRInt32 aOffset,
                                          nsFrameSelection::HINT aFrameHint,

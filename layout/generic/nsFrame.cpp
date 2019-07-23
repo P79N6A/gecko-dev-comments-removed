@@ -3657,6 +3657,17 @@ nsIFrame::GetWindow() const
   return GetClosestView()->GetNearestWidget(nsnull);
 }
 
+nsIWidget*
+nsIFrame::GetWindowOffset(nsPoint& aOffset) const
+{
+  nsPoint offsetToView;
+  nsPoint offsetToWidget;
+  nsIWidget* widget =
+    GetClosestView(&offsetToView)->GetNearestWidget(&offsetToWidget);
+  aOffset = offsetToView + offsetToWidget;
+  return widget;
+}
+
 nsIAtom*
 nsFrame::GetType() const
 {

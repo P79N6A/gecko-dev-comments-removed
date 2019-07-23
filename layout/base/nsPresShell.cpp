@@ -6825,13 +6825,16 @@ PresShell::PrepareToUseCaretPosition(nsIWidget* aEventWidget, nsIntPoint& aTarge
 
   
   
-  PRBool isCollapsed;
-  nsIView* view;
   nsRect caretCoords;
-  rv = caret->GetCaretCoordinates(nsCaret::eRenderingViewCoordinates,
-                                  domSelection, &caretCoords, &isCollapsed,
-                                  &view);
-  NS_ENSURE_SUCCESS(rv, PR_FALSE);
+  nsIFrame* caretFrame = caret->GetGeometry(domSelection, &caretCoords);
+  if (!caretFrame)
+    return PR_FALSE;
+  nsPoint windowOffset;
+  nsIWidget* widget = caretFrame->GetWindowOffset(windowOffset);
+  if (!widget)
+    return PR_FALSE;
+  caretCoords.MoveBy(windowOffset);
+  nsIView* caretView = nsIView::GetViewFor(widget);
 
   
   
@@ -6839,7 +6842,7 @@ PresShell::PrepareToUseCaretPosition(nsIWidget* aEventWidget, nsIntPoint& aTarge
   NS_ENSURE_TRUE(widgetView, PR_FALSE);
   nsPoint viewToWidget;
   widgetView->GetNearestWidget(&viewToWidget);
-  nsPoint viewDelta = view->GetOffsetTo(widgetView) + viewToWidget;
+  nsPoint viewDelta = caretView->GetOffsetTo(widgetView) + viewToWidget;
 
   
   nsPresContext* presContext = GetPresContext();
