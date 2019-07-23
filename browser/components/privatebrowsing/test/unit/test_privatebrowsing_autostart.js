@@ -38,7 +38,31 @@
 
 
 function run_test() {
-  PRIVATEBROWSING_CONTRACT_ID = "@mozilla.org/privatebrowsing;1";
-  do_import_script("browser/components/privatebrowsing/test/unit/do_test_privatebrowsing_autostart.js");
-  do_test();
+  
+  var prefsService = Cc["@mozilla.org/preferences-service;1"].
+                     getService(Ci.nsIPrefBranch);
+  prefsService.setBoolPref("browser.privatebrowsing.autostart", true);
+  do_check_true(prefsService.getBoolPref("browser.privatebrowsing.autostart"));
+
+  var pb = Cc["@mozilla.org/privatebrowsing;1"].
+           getService(Ci.nsIPrivateBrowsingService).
+           QueryInterface(Ci.nsIObserver);
+
+  
+  do_check_false(pb.autoStarted);
+
+  
+  pb.observe(null, "profile-after-change", "");
+
+  
+  do_check_true(pb.privateBrowsingEnabled);
+
+  
+  do_check_true(pb.autoStarted);
+
+  
+  pb.privateBrowsingEnabled = false;
+
+  
+  do_check_false(pb.autoStarted);
 }
