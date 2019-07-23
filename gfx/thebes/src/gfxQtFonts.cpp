@@ -34,44 +34,144 @@
 
 
 
-#include "gfxPlatformQt.h"
+#include "gfxQtPlatform.h"
 #include "gfxTypes.h"
 #include "gfxQtFonts.h"
 #include "qrect.h"
 #include <locale.h>
-#include <QFont>
-#include <QFontMetrics>
-#include <QFontMetricsF>
+#include <qfontinfo.h>
 #include "cairo-ft.h"
 #include <freetype/tttables.h>
-#include "nsStyleConsts.h"
+#include "gfxFontUtils.h"
 
 
 
 
 
-static int
-FFRECountHyphens (const nsAString &aFFREName)
+FontEntry::FontEntry(const FontEntry& aFontEntry) :
+    mFaceName(aFontEntry.mFaceName),
+    mUnicodeFont(aFontEntry.mUnicodeFont),
+    mSymbolFont(aFontEntry.mSymbolFont),
+    mItalic(aFontEntry.mItalic),
+    mWeight(aFontEntry.mWeight),
+    mCharacterMap(aFontEntry.mCharacterMap)
 {
-    int h = 0;
-    PRInt32 hyphen = 0;
-    while ((hyphen = aFFREName.FindChar('-', hyphen)) >= 0) {
-        ++h;
-        ++hyphen;
-    }
-    return h;
+    if (aFontEntry.mFontFace)
+        mFontFace = cairo_font_face_reference(aFontEntry.mFontFace);
+    else
+        mFontFace = nsnull;
 }
 
-PRBool
-gfxQtFontGroup::FontCallback (const nsAString& fontName,
-                                 const nsACString& genericName,
-                                 void *closure)
+FontEntry::~FontEntry()
 {
-    nsStringArray *sa = static_cast<nsStringArray*>(closure);
+    if (mFontFace) {
+        cairo_font_face_destroy(mFontFace);
+        mFontFace = nsnull;
+    }
+}
+
+static void
+FTFontDestroyFunc(void *data)
+{
+    FT_Face face = (FT_Face)data;
+    FT_Done_Face(face);
+    printf("deleting face\n");
+}
+
+cairo_font_face_t *
+FontEntry::CairoFontFace()
+{
+    static cairo_user_data_key_t key;
+    if (!mFontFace) {
+        FT_Face face;
+        FT_New_Face(gfxQtPlatform::GetPlatform()->GetFTLibrary(), mFilename.get(), mFTFontIndex, &face);
+        mFontFace = cairo_ft_font_face_create_for_ft_face(face, 0);
+        cairo_font_face_set_user_data(mFontFace, &key, face, FTFontDestroyFunc);
+    }
+    return mFontFace;
+}
+
+FontEntry *
+FontFamily::FindFontEntry(const gfxFontStyle& aFontStyle)
+{
+    PRBool italic = (aFontStyle.style & (FONT_STYLE_ITALIC | FONT_STYLE_OBLIQUE)) != 0;
+
+    FontEntry *weightList[10] = { 0 };
+    for (PRUint32 j = 0; j < 2; j++) {
+        PRBool matchesSomething = PR_FALSE;
+        
+        for (PRUint32 i = 0; i < mFaces.Length(); i++) {
+            FontEntry *fe = mFaces[i];
+            const PRUint8 weight = (fe->mWeight / 100);
+            if (fe->mItalic == italic) {
+                weightList[weight] = fe;
+                matchesSomething = PR_TRUE;
+            }
+        }
+        if (matchesSomething)
+            break;
+        italic = !italic;
+    }
+
+    PRInt8 baseWeight, weightDistance;
+    aFontStyle.ComputeWeightAndOffset(&baseWeight, &weightDistance);
 
     
-    if (genericName.Length() && FFRECountHyphens(fontName) >= 3)
-        return PR_TRUE;
+    
+    if (baseWeight == 5 && weightDistance == 0) {
+        
+        if (weightList[5])
+            return weightList[5];
+
+        
+        baseWeight = 4;
+    }
+
+    PRInt8 matchBaseWeight = 0;
+    PRInt8 direction = (baseWeight > 5) ? 1 : -1;
+    for (PRInt8 i = baseWeight; ; i += direction) {
+        if (weightList[i]) {
+            matchBaseWeight = i;
+            break;
+        }
+
+        
+        
+        if (i == 1 || i == 9)
+            direction = -direction;
+    }
+
+    FontEntry *matchFE;
+    const PRInt8 absDistance = abs(weightDistance);
+    direction = (weightDistance >= 0) ? 1 : -1;
+    for (PRInt8 i = matchBaseWeight, k = 0; i < 10 && i > 0; i += direction) {
+        if (weightList[i]) {
+            matchFE = weightList[i];
+            k++;
+        }
+        if (k > absDistance)
+            break;
+    }
+
+    if (!matchFE)
+        matchFE = weightList[matchBaseWeight];
+
+    NS_ASSERTION(matchFE, "we should always be able to return something here");
+    return matchFE;
+}
+
+
+
+
+
+
+
+PRBool
+gfxQtFontGroup::FontCallback(const nsAString& fontName,
+                             const nsACString& genericName,
+                             void *closure)
+{
+    nsStringArray *sa = static_cast<nsStringArray*>(closure);
 
     if (sa->IndexOf(fontName) < 0) {
         sa->AppendString(fontName);
@@ -90,7 +190,13 @@ GetOrMakeFont(const nsAString& aName, const gfxFontStyle *aStyle)
 {
     nsRefPtr<gfxFont> font = gfxFontCache::GetCache()->Lookup(aName, aStyle);
     if (!font) {
-        font = new gfxQtFont(aName, aStyle);
+        FontEntry *fe = gfxQtPlatform::GetPlatform()->FindFontEntry(aName, *aStyle);
+        if (!fe) {
+            printf("Failed to find font entry for %s\n", NS_ConvertUTF16toUTF8(aName).get());
+            return nsnull;
+        }
+
+        font = new gfxQtFont(fe, aStyle);
         if (!font)
             return nsnull;
         gfxFontCache::GetCache()->AddNew(font);
@@ -101,35 +207,15 @@ GetOrMakeFont(const nsAString& aName, const gfxFontStyle *aStyle)
 }
 
 
-gfxQtFontGroup::gfxQtFontGroup (const nsAString& families,
-                                const gfxFontStyle *aStyle)
-        : gfxFontGroup(families, aStyle)
+gfxQtFontGroup::gfxQtFontGroup(const nsAString& families,
+                               const gfxFontStyle *aStyle)
+    : gfxFontGroup(families, aStyle)
 {
-    
-    
-    int pos = 0;
-    if ((pos = mFamilies.Find("WarpSans", PR_FALSE, 0, -1)) > -1) {
-        mFamilies.Replace(pos, 8, NS_LITERAL_STRING("Workplace Sans"));
-    }
-
     nsStringArray familyArray;
     ForEachFont(FontCallback, &familyArray);
 
-    
-    
-    
-    
-    nsString fontString;
-    gfxPlatform::GetPlatform()->GetPrefFonts("x-unicode", fontString, PR_FALSE);
-    ForEachFont(fontString, NS_LITERAL_CSTRING("x-unicode"), FontCallback, &familyArray);
-    gfxPlatform::GetPlatform()->GetPrefFonts("x-user-def", fontString, PR_FALSE);
-    ForEachFont(fontString, NS_LITERAL_CSTRING("x-user-def"), FontCallback, &familyArray);
-
-    
-    
-    
     if (familyArray.Count() == 0) {
-        familyArray.AppendString(NS_LITERAL_STRING("Helv"));
+        familyArray.AppendString(NS_LITERAL_STRING("DejaVu Sans"));
     }
 
     for (int i = 0; i < familyArray.Count(); i++) {
@@ -163,66 +249,47 @@ static PRInt32 AppendDirectionalIndicatorUTF8(PRBool aIsRTL, nsACString& aString
 }
 
 gfxTextRun *gfxQtFontGroup::MakeTextRun(const PRUnichar* aString, PRUint32 aLength,
-                                         const Parameters* aParams, PRUint32 aFlags)
+                                        const Parameters* aParams, PRUint32 aFlags)
 {
     gfxTextRun *textRun = gfxTextRun::Create(aParams, aString, aLength, this, aFlags);
     if (!textRun)
         return nsnull;
 
-    mEnableKerning = !(aFlags & gfxTextRunFactory::TEXT_OPTIMIZE_SPEED);
-
     textRun->RecordSurrogates(aString);
 
-    nsCAutoString utf8;
-    PRInt32 headerLen = AppendDirectionalIndicatorUTF8(textRun->IsRightToLeft(), utf8);
-    AppendUTF16toUTF8(Substring(aString, aString + aLength), utf8);
+    mString.Assign(nsDependentSubstring(aString, aString + aLength));
 
-    InitTextRun(textRun, (PRUint8 *)utf8.get(), utf8.Length(), headerLen);
+    InitTextRun(textRun);
 
     textRun->FetchGlyphExtents(aParams->mContext);
 
     return textRun;
 }
 
-gfxTextRun *gfxQtFontGroup::MakeTextRun(const PRUint8* aString, PRUint32 aLength,
-                                         const Parameters* aParams, PRUint32 aFlags)
+gfxTextRun *gfxQtFontGroup::MakeTextRun(const PRUint8 *aString, PRUint32 aLength,
+                                        const Parameters *aParams, PRUint32 aFlags)
 {
     NS_ASSERTION(aFlags & TEXT_IS_8BIT, "8bit should have been set");
     gfxTextRun *textRun = gfxTextRun::Create(aParams, aString, aLength, this, aFlags);
     if (!textRun)
         return nsnull;
 
-    mEnableKerning = !(aFlags & gfxTextRunFactory::TEXT_OPTIMIZE_SPEED);
-
     const char *chars = reinterpret_cast<const char *>(aString);
-    PRBool isRTL = textRun->IsRightToLeft();
-    if ((aFlags & TEXT_IS_ASCII) && !isRTL) {
-        
-        
-        InitTextRun(textRun, (PRUint8 *)chars, aLength, 0);
-    } else {
-        
-        
-        
-        NS_ConvertASCIItoUTF16 unicodeString(chars, aLength);
-        nsCAutoString utf8;
-        PRInt32 headerLen = AppendDirectionalIndicatorUTF8(isRTL, utf8);
-        AppendUTF16toUTF8(unicodeString, utf8);
-        InitTextRun(textRun, (PRUint8 *)utf8.get(), utf8.Length(), headerLen);
-    }
+
+    mString.Assign(NS_ConvertASCIItoUTF16(nsDependentCSubstring(chars, chars + aLength)));
+
+    InitTextRun(textRun);
 
     textRun->FetchGlyphExtents(aParams->mContext);
 
     return textRun;
 }
 
-void gfxQtFontGroup::InitTextRun(gfxTextRun *aTextRun, const PRUint8 *aUTF8Text,
-                                  PRUint32 aUTF8Length,
-                                  PRUint32 aUTF8HeaderLength)
+void gfxQtFontGroup::InitTextRun(gfxTextRun *aTextRun)
 {
-    CreateGlyphRunsFT(aTextRun, aUTF8Text + aUTF8HeaderLength,
-                      aUTF8Length - aUTF8HeaderLength);
+    CreateGlyphRunsFT(aTextRun);
 }
+
 
 
 
@@ -250,197 +317,405 @@ PRUint32 getUTF8CharAndNext(const PRUint8 *aString, PRUint8 *aLength)
     return aString[0];
 }
 
-void gfxQtFontGroup::CreateGlyphRunsFT(gfxTextRun *aTextRun, const PRUint8 *aUTF8,
-                                        PRUint32 aUTF8Length)
+
+
+
+
+
+
+
+PRBool
+HasCharacter(gfxQtFont *aFont, PRUint32 ch)
 {
+    if (aFont->GetFontEntry()->mCharacterMap.test(ch))
+        return PR_TRUE;
 
-    PRUint32 fontlistLast = FontListLength()-1;
-    gfxQtFont *font0 = GetFontAt(0);
-    const PRUint8 *p = aUTF8;
-    PRUint32 utf16Offset = 0;
-    gfxTextRun::CompressedGlyph g;
-    const PRUint32 appUnitsPerDevUnit = aTextRun->GetAppUnitsPerDevUnit();
+    
+    FT_Face face = cairo_ft_scaled_font_lock_face(aFont->CairoScaledFont());
+    FT_UInt gid = FT_Get_Char_Index(face, ch);
+    cairo_ft_scaled_font_unlock_face(aFont->CairoScaledFont());
 
-    aTextRun->AddGlyphRun(font0, 0);
+    if (gid != 0) {
+        aFont->GetFontEntry()->mCharacterMap.set(ch);
+        return PR_TRUE;
+    }
+    return PR_FALSE;
+}
+
+#if 0
+inline FontEntry *
+gfxQtFontGroup::WhichFontSupportsChar(const nsTArray<>& foo, PRUint32 ch)
+{
+    for (int i = 0; i < aGroup->FontListLength(); i++) {
+        nsRefPtr<gfxQtFont> font = aGroup->GetFontAt(i);
+        if (HasCharacter(font, ch))
+            return font;
+    }
+    return nsnull;
+}
+#endif
+
+inline gfxQtFont *
+gfxQtFontGroup::FindFontForChar(PRUint32 ch, PRUint32 prevCh, PRUint32 nextCh, gfxQtFont *aFont)
+{
+    gfxQtFont *selectedFont;
+
     
     
-    FT_Face face0 =  font0->GetQFont().freetypeFace();
-    while (p < aUTF8 + aUTF8Length) {
-        PRBool glyphFound = PR_FALSE;
+    if (gfxFontUtils::IsJoiner(ch) || gfxFontUtils::IsJoiner(prevCh) || gfxFontUtils::IsJoiner(nextCh)) {
+        if (aFont && HasCharacter(aFont, ch))
+            return aFont;
+    }
+
+    for (PRUint32 i = 0; i < FontListLength(); i++) {
+        nsRefPtr<gfxQtFont> font = GetFontAt(i);
+        if (HasCharacter(font, ch))
+            return font;
+    }
+    return nsnull;
+
+#if 0
+    
+    selectedFont = WhichFontSupportsChar(mGroup->GetFontList(), ch);
+
+
+    
+    if ((ch >= 0xE000  && ch <= 0xF8FF) || 
+        (ch >= 0xF0000 && ch <= 0x10FFFD))
+        return selectedFont;
+
+    
+    if (!selectedFont) {
+        nsAutoTArray<nsRefPtr<FontEntry>, 5> fonts;
+        this->GetPrefFonts(mGroup->GetStyle()->langGroup.get(), fonts);
+        selectedFont = WhichFontSupportsChar(fonts, ch);
+    }
+
+    
+    if (!selectedFont) {
         
-        PRUint8 chLen;
-        PRUint32 ch = getUTF8CharAndNext(p, &chLen);
-        p += chLen; 
+        if (ch <= 0xFFFF) {
+            PRUint32 unicodeRange = FindCharUnicodeRange(ch);
+            
+            
+            if (unicodeRange == kRangeSetCJK) {
+                if (PR_LOG_TEST(gFontLog, PR_LOG_DEBUG))
+                    PR_LOG(gFontLog, PR_LOG_DEBUG, (" - Trying to find fonts for: CJK"));
+
+                nsAutoTArray<nsRefPtr<FontEntry>, 15> fonts;
+                this->GetCJKPrefFonts(fonts);
+                selectedFont = WhichFontSupportsChar(fonts, ch);
+            } else {
+                const char *langGroup = LangGroupFromUnicodeRange(unicodeRange);
+                if (langGroup) {
+                    PR_LOG(gFontLog, PR_LOG_DEBUG, (" - Trying to find fonts for: %s", langGroup));
+
+                    nsAutoTArray<nsRefPtr<FontEntry>, 5> fonts;
+                    this->GetPrefFonts(langGroup, fonts);
+                    selectedFont = WhichFontSupportsChar(fonts, ch);
+                }
+            }
+        }
+    }
+
+    
+    if (!selectedFont && aFont && HasCharacter(aFont, ch))
+        selectedFont = aFont;
+
+    
+    if (!selectedFont) {
+        PR_LOG(gFontLog, PR_LOG_DEBUG, (" - Looking for best match"));
+        
+        nsRefPtr<gfxWindowsFont> refFont = mGroup->GetFontAt(0);
+        gfxWindowsPlatform *platform = gfxWindowsPlatform::GetPlatform();
+        selectedFont = platform->FindFontForChar(ch, refFont);
+    }
+
+    return selectedFont;
+#endif
+}
+
+PRUint32
+gfxQtFontGroup::ComputeRanges()
+{
+    const PRUnichar *str = mString.get();
+    PRUint32 len = mString.Length();
+
+    mRanges.Clear();
+
+    PRUint32 prevCh = 0;
+    for (PRUint32 i = 0; i < len; i++) {
+        const PRUint32 origI = i; 
+        PRUint32 ch = str[i];
+        if ((i+1 < len) && NS_IS_HIGH_SURROGATE(ch) && NS_IS_LOW_SURROGATE(str[i+1])) {
+            i++;
+            ch = SURROGATE_TO_UCS4(ch, str[i]);
+        }
+
+        PRUint32 nextCh = 0;
+        if (i+1 < len) {
+            nextCh = str[i+1];
+            if ((i+2 < len) && NS_IS_HIGH_SURROGATE(ch) && NS_IS_LOW_SURROGATE(str[i+2]))
+                nextCh = SURROGATE_TO_UCS4(nextCh, str[i+2]);
+        }
+        gfxQtFont *fe = FindFontForChar(ch,
+                                        prevCh,
+                                        nextCh,
+                                        (mRanges.Length() == 0) ? nsnull : mRanges[mRanges.Length() - 1].font);
+
+        prevCh = ch;
+
+        if (mRanges.Length() == 0) {
+            TextRange r(0,1);
+            r.font = fe;
+            mRanges.AppendElement(r);
+        } else {
+            TextRange& prevRange = mRanges[mRanges.Length() - 1];
+            if (prevRange.font != fe) {
+                
+                prevRange.end = origI;
+
+                TextRange r(origI, i+1);
+                r.font = fe;
+                mRanges.AppendElement(r);
+            }
+        }
+    }
+    mRanges[mRanges.Length()-1].end = len;
+
+    PRUint32 nranges = mRanges.Length();
+    return nranges;
+}
+
+void gfxQtFontGroup::CreateGlyphRunsFT(gfxTextRun *aTextRun)
+{
+#if 0
+    QString str(aUTF8, aUTF8Length);
+    QStackTextEngine engine(str, mQFont);
+    const Qt::LayoutDirection dir = aTextRun->IsRightToLeft() ? Qt::RightToLeft : Qt::LeftTRight;
+    engine.option.setTextDirection(dir);
+    engine.ignoreBidi = true;
+
+    
+    engine.itemize();
+
+
+    
+    
+    
+    QScriptLine line;
+    line.length = str.length();
+    engine.shapeLine(line);
+
+    int nItems = engine.layoutData->items.size();
+    QVarLengthArray<int> visualOrder(nItems);
+    QVarLengthArray<uchar> levels(nItems);
+    for (int i = 0; i < nItems; ++i)
+        levels[i] = engine.layoutData->items[i].analysis.bidiLevel;
+    QTextEngine::bidiReorder(nItems, levels.data(), visualOrder.data());
+
+    QFixed x = QFixed::fromReal(p.x());
+    QFixed ox = x;
+
+    for (int i = 0; i < nItems; ++i) {
+        int item = visualOrder[i];
+        const QScriptItem &si = engine.layoutData->items.at(item);
+        if (si.analysis.flags >= QScriptAnalysis::TabOrObject) {
+            x += si.width;
+            continue;
+        }
+        QFont f = engine.font(si);
+        
+
+
+
+
+
+
+
+
+
+
+
+        const PRUint8 *p = aUTF8;
+        PRUint32 utf16Offset = 0;
+        gfxTextRun::CompressedGlyph g;
+
+        aTextRun->AddGlyphRun(font, 0);
+        
+        
+        FT_Face face =  font->GetQFont().freetypeFace();
+        while (p < aUTF8 + aUTF8Length) {
+            
+            PRUint8 chLen;
+        }
+        if (advance >= 0 &&
+            gfxTextRun::CompressedGlyph::IsSimpleAdvance(advance) &&
+            gfxTextRun::CompressedGlyph::IsSimpleGlyphID(gid))
+            {
+                aTextRun->SetSimpleGlyph(utf16Offset,
+                                         g.SetSimpleGlyph(advance, gid));
+                glyphFound = PR_TRUE;
+            } else if (gid == 0) {
+            
+            if (i == fontlistLast) {
+                
+                
+                aTextRun->SetMissingGlyph(utf16Offset, ch);
+            }
+            glyphFound = PR_FALSE;
+        } else {
+            gfxTextRun::DetailedGlyph details;
+            details.mGlyphID = gid;
+            NS_ASSERTION(details.mGlyphID == gid, "Seriously weird glyph ID detected!");
+            details.mAdvance = advance;
+            details.mXOffset = 0;
+            details.mYOffset = 0;
+            g.SetComplex(aTextRun->IsClusterStart(utf16Offset), PR_TRUE, 1);
+            aTextRun->SetGlyphs(utf16Offset, g, &details);
+            glyphFound = PR_TRUE;
+        }
+
+        x += si.width;
+    }
+#endif
+
+    ComputeRanges();
+
+    const PRUnichar *strStart = mString.get();
+    for (PRUint32 i = 0; i < mRanges.Length(); ++i) {
+        const TextRange& range = mRanges[i];
+        const PRUnichar *rangeString = strStart + range.start;
+        PRUint32 rangeLength = range.Length();
+
+        gfxQtFont *font = range.font ? range.font.get() : GetFontAt(0);
+        AddRange(aTextRun, font, rangeString, rangeLength);
+    }
+    
+}
+
+void
+gfxQtFontGroup::AddRange(gfxTextRun *aTextRun, gfxQtFont *font, const PRUnichar *str, PRUint32 len)
+{
+    const PRUint32 appUnitsPerDevUnit = aTextRun->GetAppUnitsPerDevUnit();
+    
+    FT_Face face = cairo_ft_scaled_font_lock_face(font->CairoScaledFont());
+
+    gfxTextRun::CompressedGlyph g;
+
+    aTextRun->AddGlyphRun(font, 0);
+    for (PRUint32 i = 0; i < len; i++) {
+        PRUint32 ch = str[i];
 
         if (ch == 0) {
             
-            aTextRun->SetMissingGlyph(utf16Offset, 0);
+            aTextRun->SetMissingGlyph(i, 0);
+            continue;
+        }
+
+        NS_ASSERTION(!IsInvalidChar(ch), "Invalid char detected");
+        FT_UInt gid = FT_Get_Char_Index(face, ch); 
+        PRInt32 advance = 0;
+#if 0
+        if (gid == font->GetSpaceGlyph()) {
+            advance = (int)(font->GetMetrics().spaceWidth * appUnitsPerDevUnit);
+        } else 
+#endif
+        if (gid == 0) {
+            advance = -1; 
         } else {
             
             
-            
-            
-            for (PRUint32 i = 0; i <= fontlistLast; i++) {
-                gfxQtFont *font = font0;
-                FT_Face face = face0;
-                if (i > 0) {
-                    font = GetFontAt(i);
-                    face = font->GetQFont().freetypeFace();
-                }
-                
-                aTextRun->AddGlyphRun(font, utf16Offset);
+            PRUint32 chNext = 0;
+            FT_UInt gidNext = 0;
+            FT_Pos lsbDeltaNext = 0;
 
-                NS_ASSERTION(!IsInvalidChar(ch), "Invalid char detected");
-                FT_UInt gid = FT_Get_Char_Index(face, ch); 
-                PRInt32 advance = 0;
-                if (gid == font->GetSpaceGlyph()) {
-                    advance = (int)(font->GetMetrics().spaceWidth * appUnitsPerDevUnit);
-                } else if (gid == 0) {
-                    advance = -1; 
-                } else {
-                    
-                    
-                    PRUint32 chNext = 0;
-                    FT_UInt gidNext = 0;
-                    FT_Pos lsbDeltaNext = 0;
-                    if (mEnableKerning && FT_HAS_KERNING(face) && p < aUTF8 + aUTF8Length) {
-                        chNext = getUTF8CharAndNext(p, &chLen);
-                        if (chNext) {
-                            gidNext = FT_Get_Char_Index(face, chNext);
-                            if (gidNext && gidNext != font->GetSpaceGlyph()) {
-                                FT_Load_Glyph(face, gidNext, FT_LOAD_DEFAULT);
-                                lsbDeltaNext = face->glyph->lsb_delta;
-                            }
-                        }
+            if (FT_HAS_KERNING(face) && i + 1 < len) {
+                chNext = str[i+1];
+                if (chNext != 0) {
+                    gidNext = FT_Get_Char_Index(face, chNext);
+                    if (gidNext && gidNext != font->GetSpaceGlyph()) {
+                        FT_Load_Glyph(face, gidNext, FT_LOAD_DEFAULT);
+                        lsbDeltaNext = face->glyph->lsb_delta;
                     }
-
-                    
-                    FT_Load_Glyph(face, gid, FT_LOAD_DEFAULT); 
-                    advance = face->glyph->advance.x;
-
-                    
-                    if (chNext && gidNext) {
-                        FT_Vector kerning;
-                        FT_Get_Kerning(face, gid, gidNext, FT_KERNING_DEFAULT, &kerning);
-                        advance += kerning.x;
-                        if (face->glyph->rsb_delta - lsbDeltaNext >= 32) {
-                            advance -= 64;
-                        } else if (face->glyph->rsb_delta - lsbDeltaNext < -32) {
-                            advance += 64;
-                        }
-                    }
-
-                    
-                    advance = (advance >> 6) * appUnitsPerDevUnit;
-                }
-
-                if (advance >= 0 &&
-                    gfxTextRun::CompressedGlyph::IsSimpleAdvance(advance) &&
-                    gfxTextRun::CompressedGlyph::IsSimpleGlyphID(gid))
-                {
-                    aTextRun->SetSimpleGlyph(utf16Offset,
-                                             g.SetSimpleGlyph(advance, gid));
-                    glyphFound = PR_TRUE;
-                } else if (gid == 0) {
-                    
-                    if (i == fontlistLast) {
-                        
-                        
-                        aTextRun->SetMissingGlyph(utf16Offset, ch);
-                    }
-                    glyphFound = PR_FALSE;
-                } else {
-                    gfxTextRun::DetailedGlyph details;
-                    details.mGlyphID = gid;
-                    NS_ASSERTION(details.mGlyphID == gid, "Seriously weird glyph ID detected!");
-                    details.mAdvance = advance;
-                    details.mXOffset = 0;
-                    details.mYOffset = 0;
-                    g.SetComplex(aTextRun->IsClusterStart(utf16Offset), PR_TRUE, 1);
-                    aTextRun->SetGlyphs(utf16Offset, g, &details);
-                    glyphFound = PR_TRUE;
-                }
-
-                if (glyphFound) {
-                    break;
                 }
             }
-        } 
 
-        NS_ASSERTION(!IS_SURROGATE(ch), "Surrogates shouldn't appear in UTF8");
-        if (ch >= 0x10000) {
             
-            ++utf16Offset;
+            FT_Load_Glyph(face, gid, FT_LOAD_DEFAULT); 
+            advance = face->glyph->advance.x;
+
+            
+            if (chNext && gidNext) {
+                FT_Vector kerning; kerning.x = 0;
+                FT_Get_Kerning(face, gid, gidNext, FT_KERNING_DEFAULT, &kerning);
+                advance += kerning.x;
+                if (face->glyph->rsb_delta - lsbDeltaNext >= 32) {
+                    advance -= 64;
+                } else if (face->glyph->rsb_delta - lsbDeltaNext < -32) {
+                    advance += 64;
+                }
+            }
+
+            
+            advance = (advance >> 6) * appUnitsPerDevUnit;
+        }
+#ifdef DEBUG_thebes_2
+        printf(" gid=%d, advance=%d (%s)\n", gid, advance,
+               NS_LossyConvertUTF16toASCII(font->GetName()).get());
+#endif
+
+        if (advance >= 0 &&
+            gfxTextRun::CompressedGlyph::IsSimpleAdvance(advance) &&
+            gfxTextRun::CompressedGlyph::IsSimpleGlyphID(gid))
+        {
+            
+            aTextRun->SetSimpleGlyph(i, g.SetSimpleGlyph(advance, gid));
+        } else if (gid == 0) {
+            
+            
+            aTextRun->SetMissingGlyph(i, ch);
+        } else {
+            
+            gfxTextRun::DetailedGlyph details;
+            details.mGlyphID = gid;
+            NS_ASSERTION(details.mGlyphID == gid, "Seriously weird glyph ID detected!");
+            details.mAdvance = advance;
+            details.mXOffset = 0;
+            details.mYOffset = 0;
+            g.SetComplex(aTextRun->IsClusterStart(i), PR_TRUE, 1);
+            aTextRun->SetGlyphs(i, g, &details);
         }
 
-        ++utf16Offset;
+
     }
+
+    cairo_ft_scaled_font_unlock_face(font->CairoScaledFont());
 }
 
 
 
 
-gfxQtFont::gfxQtFont(const nsAString &aName,
+gfxQtFont::gfxQtFont(FontEntry *aFontEntry,
                      const gfxFontStyle *aFontStyle)
-        : gfxFont(aName, aFontStyle),
-        mQFont(nsnull),
-        mCairoFont(nsnull),
-        mFontFace(nsnull),
-        mHasSpaceGlyph(PR_FALSE),
-        mSpaceGlyph(0),
-        mHasMetrics(PR_FALSE),
-        mAdjustedSize(0)
+    : gfxFont(aFontEntry->GetName(), aFontStyle),
+    mScaledFont(nsnull),
+    mHasSpaceGlyph(PR_FALSE),
+    mSpaceGlyph(0),
+    mHasMetrics(PR_FALSE),
+    mAdjustedSize(0),
+    mFontEntry(aFontEntry)
 {
-    QFont::Style style = QFont::StyleNormal;
-    
-    switch (GetStyle()->style) {
-    case FONT_STYLE_ITALIC:
-        style = QFont::StyleItalic;
-        break;
-    case FONT_STYLE_OBLIQUE:
-        style = QFont::StyleOblique;
-        break;
-    case FONT_STYLE_NORMAL:
-    default:
-        style = QFont::StyleNormal;
-    }
-
-
-
-    PRInt16 weight = QFont::Normal;
-    switch (GetStyle()->weight) {
-    case NS_STYLE_FONT_WEIGHT_NORMAL:
-        weight = QFont::Normal;
-    case NS_STYLE_FONT_WEIGHT_BOLD:
-        weight = QFont::Bold;
-    case NS_STYLE_FONT_WEIGHT_BOLDER:
-        weight = QFont::DemiBold;
-    case NS_STYLE_FONT_WEIGHT_LIGHTER:
-        weight = QFont::Light;
-    default:
-        weight = QFont::Normal;
-    }
-    mQFont = new QFont();
-    mQFont->setFamily(QString(NS_ConvertUTF16toUTF8(mName).get()));
-    mQFont->setWeight(weight);
-    mQFont->setStyle(style);
-    mQFont->setPixelSize (mAdjustedSize ? mAdjustedSize : GetStyle()->size);
 }
 
 gfxQtFont::~gfxQtFont()
 {
-    if (mQFont) {
-        delete mQFont;
+    if (mScaledFont) {
+        cairo_scaled_font_destroy(mScaledFont);
+        mScaledFont = nsnull;
     }
-    if (mCairoFont) {
-        cairo_scaled_font_destroy(mCairoFont);
-    }
-    if (mFontFace) {
-        cairo_font_face_destroy(mFontFace);
-    }
-    mQFont = nsnull;
-    mCairoFont = nsnull;
-    mFontFace = nsnull;
+
+    printf("deleting gfxQtFont\n");
 }
 
 
@@ -457,11 +732,9 @@ gfxQtFont::GetMetrics()
     if (mHasMetrics)
         return mMetrics;
 
-
     mMetrics.emHeight = GetStyle()->size;
 
-    QFontMetrics fontMetrics( *mQFont );
-    FT_Face face = mQFont->freetypeFace();
+    FT_Face face = cairo_ft_scaled_font_lock_face(CairoScaledFont());
 
     if (!face) {
         
@@ -470,64 +743,78 @@ gfxQtFont::GetMetrics()
         return mMetrics;
     }
 
-    
-    mMetrics.spaceWidth = fontMetrics.width( QChar(' ') );
-    
-    mSpaceGlyph = GetSpaceGlyph();
+    mMetrics.emHeight = GetStyle()->size;
 
-    mMetrics.xHeight = fontMetrics.xHeight();
-    mMetrics.aveCharWidth = fontMetrics.averageCharWidth();
+    FT_UInt gid; 
+
+    const double emUnit = 1.0 * face->units_per_EM;
+    const double xScale = face->size->metrics.x_ppem / emUnit;
+    const double yScale = face->size->metrics.y_ppem / emUnit;
+
+    
+    gid = FT_Get_Char_Index(face, ' ');
+    if (gid) {
+        FT_Load_Glyph(face, gid, FT_LOAD_DEFAULT);
+        
+        mMetrics.spaceWidth = face->glyph->advance.x >> 6;
+        
+        mSpaceGlyph = gid;
+    } else {
+        NS_ASSERTION(0, "blah");
+    }
+            
+    
+    gid = FT_Get_Char_Index(face, 'x'); 
+    if (gid) {
+        
+        FT_Load_Glyph(face, gid, FT_LOAD_NO_SCALE);
+        mMetrics.xHeight = face->glyph->metrics.height * yScale;
+        mMetrics.aveCharWidth = face->glyph->metrics.width * xScale;
+    } else {
+        
+        
+        mMetrics.xHeight = mMetrics.emHeight * 0.5;
+        mMetrics.aveCharWidth = mMetrics.emHeight * 0.5;
+    }
 
     
     if (mAdjustedSize == 0 && GetStyle()->sizeAdjust != 0) {
         gfxFloat aspect = mMetrics.xHeight / GetStyle()->size;
         mAdjustedSize = GetStyle()->GetAdjustedSize(aspect);
         mMetrics.emHeight = mAdjustedSize;
-    } else 
-        mMetrics.emHeight = fontMetrics.height();
-
-    if (face) {
-        mMetrics.maxAdvance = face->size->metrics.max_advance / 64.0; 
-        float val;
-        TT_OS2 *os2 = (TT_OS2 *) FT_Get_Sfnt_Table(face, ft_sfnt_os2);
-        if (os2 && os2->ySuperscriptYOffset) {
-            val = CONVERT_DESIGN_UNITS_TO_PIXELS(os2->ySuperscriptYOffset,
-                                                 face->size->metrics.y_scale);
-            mMetrics.superscriptOffset = PR_MAX(1, val);
-        } else {
-            mMetrics.superscriptOffset = mMetrics.xHeight;
-        }
-
-        if (os2 && os2->ySubscriptYOffset) {
-            val = CONVERT_DESIGN_UNITS_TO_PIXELS(os2->ySubscriptYOffset,
-                                                 face->size->metrics.y_scale);
-            
-            val = (val < 0) ? -val : val;
-            mMetrics.subscriptOffset = PR_MAX(1, val);
-        } else {
-            mMetrics.subscriptOffset = mMetrics.xHeight;
-        }
-    } else {
-        mMetrics.superscriptOffset = mMetrics.xHeight;
-        mMetrics.subscriptOffset = mMetrics.xHeight;
     }
 
-    mMetrics.strikeoutOffset = fontMetrics.strikeOutPos();
-    mMetrics.strikeoutSize = fontMetrics.lineWidth();
-    mMetrics.aveCharWidth = fontMetrics.averageCharWidth();
+    
+    TT_OS2 *os2 = (TT_OS2 *)FT_Get_Sfnt_Table(face, ft_sfnt_os2);
+    if (os2 && os2->version != 0xFFFF) { 
+        
+        mMetrics.aveCharWidth = os2->xAvgCharWidth * xScale;
+
+        mMetrics.superscriptOffset = os2->ySuperscriptYOffset * yScale;
+        mMetrics.superscriptOffset = PR_MAX(1, mMetrics.superscriptOffset);
+        
+        mMetrics.subscriptOffset   = fabs(os2->ySubscriptYOffset * yScale);
+        mMetrics.subscriptOffset   = PR_MAX(1, fabs(mMetrics.subscriptOffset));
+        mMetrics.strikeoutOffset   = os2->yStrikeoutPosition * yScale;
+        mMetrics.strikeoutSize     = os2->yStrikeoutSize * yScale;
+    } else {
+        
+        mMetrics.superscriptOffset = mMetrics.emHeight * 0.5;
+        mMetrics.subscriptOffset   = mMetrics.emHeight * 0.2;
+        mMetrics.strikeoutOffset   = mMetrics.emHeight * 0.3;
+        mMetrics.strikeoutSize     = face->underline_thickness * yScale;
+    }
+    
+    mMetrics.underlineOffset = face->underline_position * yScale;
+    mMetrics.underlineSize   = face->underline_thickness * yScale;
 
     
-    mMetrics.underlineOffset = -fontMetrics.underlinePos();
-    mMetrics.underlineSize = fontMetrics.lineWidth();
-
-    
-    mMetrics.maxAscent       = fontMetrics.ascent();
-    mMetrics.maxDescent      = fontMetrics.descent();
-    mMetrics.emAscent        = mMetrics.maxAscent;
-    mMetrics.emDescent       = mMetrics.maxDescent;
-    mMetrics.maxHeight       = mMetrics.maxAscent + mMetrics.maxDescent;
-
-    mMetrics.maxAdvance = fontMetrics.maxWidth();
+    mMetrics.emAscent        = face->ascender * yScale;
+    mMetrics.emDescent       = -face->descender * yScale;
+    mMetrics.maxHeight       = face->height * yScale;
+    mMetrics.maxAscent       = face->bbox.yMax * yScale;
+    mMetrics.maxDescent      = -face->bbox.yMin * yScale;
+    mMetrics.maxAdvance      = face->max_advance_width * xScale;
     
     double lineHeight = mMetrics.maxAscent + mMetrics.maxDescent;
     if (lineHeight > mMetrics.emHeight) {
@@ -539,30 +826,30 @@ gfxQtFont::GetMetrics()
 
     SanitizeMetrics(&mMetrics, PR_FALSE);
 
-#ifdef DEBUG_thebes_1
-    printf("gfxOS2Font[%#x]::GetMetrics():\n"
-           "  %s (%s)\n"
-           "  emHeight=%f == %f=gfxFont::style.size == %f=adjSz\n"
-           "  maxHeight=%f  xHeight=%f\n"
-           "  aveCharWidth=%f==xWidth  spaceWidth=%f\n"
-           "  supOff=%f SubOff=%f   strOff=%f strSz=%f\n"
-           "  undOff=%f undSz=%f    intLead=%f extLead=%f\n"
-           "  emAsc=%f emDesc=%f maxH=%f\n"
-           "  maxAsc=%f maxDes=%f maxAdv=%f\n",
-           (unsigned)this,
-           NS_LossyConvertUTF16toASCII(mName).get(),
-           os2 && os2->version != 0xFFFF ? "has OS/2 table" : "no OS/2 table!",
-           mMetrics.emHeight, GetStyle()->size, mAdjustedSize,
-           mMetrics.maxHeight, mMetrics.xHeight,
-           mMetrics.aveCharWidth, mMetrics.spaceWidth,
-           mMetrics.superscriptOffset, mMetrics.subscriptOffset,
-           mMetrics.strikeoutOffset, mMetrics.strikeoutSize,
-           mMetrics.underlineOffset, mMetrics.underlineSize,
-           mMetrics.internalLeading, mMetrics.externalLeading,
-           mMetrics.emAscent, mMetrics.emDescent, mMetrics.maxHeight,
-           mMetrics.maxAscent, mMetrics.maxDescent, mMetrics.maxAdvance
-          );
-#endif
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    
+    cairo_ft_scaled_font_unlock_face(CairoScaledFont());
 
     mHasMetrics = PR_TRUE;
     return mMetrics;
@@ -575,7 +862,8 @@ gfxQtFont::GetUniqueName()
     return mName;
 }
 
-PRUint32 gfxQtFont::GetSpaceGlyph ()
+PRUint32
+gfxQtFont::GetSpaceGlyph()
 {
     NS_ASSERTION (GetStyle ()->size != 0,
     "forgot to short-circuit a text run with zero-sized font?");
@@ -583,166 +871,58 @@ PRUint32 gfxQtFont::GetSpaceGlyph ()
     if(!mHasSpaceGlyph)
     {
         FT_UInt gid = 0; 
-        FT_Face face = mQFont->freetypeFace();
+        FT_Face face = cairo_ft_scaled_font_lock_face(CairoScaledFont());
         gid = FT_Get_Char_Index(face, ' ');
         FT_Load_Glyph(face, gid, FT_LOAD_DEFAULT);
         mSpaceGlyph = gid;
         mHasSpaceGlyph = PR_TRUE;
+        cairo_ft_scaled_font_unlock_face(CairoScaledFont());
     }
     return mSpaceGlyph;
 }
 
-static const PRInt8 nFcWeight = 2; 
-static const int fcWeight[] = {
-    
-    
-    
-    
-    FC_WEIGHT_REGULAR, 
-    
-    
-    FC_WEIGHT_BOLD,
-    
-    
-};
-
-
-cairo_font_face_t *gfxQtFont::CairoFontFace(QFont *aFont)
+cairo_font_face_t *
+gfxQtFont::CairoFontFace()
 {
-#ifdef DEBUG_thebes_2
-    printf("gfxOS2Font[%#x]::CairoFontFace()\n", (unsigned)this);
-#endif
-    if (!mFontFace) {
-#ifdef DEBUG_thebes
-        printf("gfxOS2Font[%#x]::CairoFontFace(): create it for %s, %f\n",
-               (unsigned)this, NS_LossyConvertUTF16toASCII(mName).get(), GetStyle()->size);
-#endif
-        if (aFont) {
-            FT_Face ftFace = aFont->freetypeFace();
-            mFontFace = cairo_ft_font_face_create_for_ft_face( ftFace, 0 );
-            if (mFontFace)
-                return mFontFace;
-        }
-
-        FcPattern *fcPattern = FcPatternCreate();
-
-        
-        
-        FcPatternAddString(fcPattern, FC_FAMILY,
-                           (FcChar8 *)NS_LossyConvertUTF16toASCII(mName).get());
-
-
-        
-        
-        
-        
-        PRInt8 weight, offset;
-        GetStyle()->ComputeWeightAndOffset(&weight, &offset);
-        
-        
-        
-        PRInt16 fcW = 40 * weight - 80; 
-        
-        PRInt8 i = 0;
-        while (i < nFcWeight && fcWeight[i] < fcW) {
-            i++;
-        }
-        
-        i += offset;
-        if (i < 0) {
-            i = 0;
-        } else if (i >= nFcWeight) {
-            i = nFcWeight - 1;
-        }
-        fcW = fcWeight[i];
-
-        
-        FcPatternAddInteger(fcPattern, FC_WEIGHT, fcW);
-
-        PRUint8 fcProperty;
-        
-        switch (GetStyle()->style) {
-        case FONT_STYLE_ITALIC:
-            fcProperty = FC_SLANT_ITALIC;
-            break;
-        case FONT_STYLE_OBLIQUE:
-            fcProperty = FC_SLANT_OBLIQUE;
-            break;
-        case FONT_STYLE_NORMAL:
-        default:
-            fcProperty = FC_SLANT_ROMAN;
-        }
-        FcPatternAddInteger(fcPattern, FC_SLANT, fcProperty);
-
-        
-        FcPatternAddDouble(fcPattern, FC_PIXEL_SIZE,
-                           mAdjustedSize ? mAdjustedSize : GetStyle()->size);
-
-        
-        FcResult fcRes;
-        FcPattern *fcMatch = FcFontMatch(NULL, fcPattern, &fcRes);
-        FcPatternDestroy(fcPattern);
-        if (mName == NS_LITERAL_STRING("Workplace Sans") && fcW >= FC_WEIGHT_DEMIBOLD) {
-            
-            
-            FcPatternAddBool(fcMatch, FC_EMBOLDEN, FcTrue);
-        }
-        
-        mFontFace = cairo_ft_font_face_create_for_pattern(fcMatch);
-        FcPatternDestroy(fcMatch);
-    }
-
-    NS_ASSERTION(mFontFace, "Failed to make font face");
-    return mFontFace;
+    return mFontEntry->CairoFontFace();
 }
 
-cairo_scaled_font_t*
-gfxQtFont::CreateScaledFont(cairo_t *aCR, cairo_matrix_t *aCTM, QFont &aQFont)
+cairo_scaled_font_t *
+gfxQtFont::CairoScaledFont()
 {
-    double size = mAdjustedSize ? mAdjustedSize : GetStyle()->size;
-    cairo_matrix_t fontMatrix;
-    cairo_matrix_init_scale(&fontMatrix, size, size);
-    cairo_font_options_t *fontOptions = cairo_font_options_create();
+    if (!mScaledFont) {
+        cairo_matrix_t sizeMatrix;
+        cairo_matrix_t identityMatrix;
 
-    cairo_scaled_font_t* scaledFont = 
-                cairo_scaled_font_create( CairoFontFace(&aQFont),
+        
+        cairo_matrix_init_scale(&sizeMatrix, mStyle.size, mStyle.size);
+        cairo_matrix_init_identity(&identityMatrix);
 
-                                          &fontMatrix,
-                                          aCTM,
-                                          fontOptions);
+        cairo_font_options_t *fontOptions = cairo_font_options_create();
+        mScaledFont = cairo_scaled_font_create(CairoFontFace(), &sizeMatrix,
+                                               &identityMatrix, fontOptions);
+        cairo_font_options_destroy(fontOptions);
+    }
 
-    cairo_font_options_destroy(fontOptions);
+    NS_ASSERTION(mAdjustedSize == 0.0 ||
+                 cairo_scaled_font_status(mScaledFont) == CAIRO_STATUS_SUCCESS,
+                 "Failed to make scaled font");
 
-    return scaledFont;
+    return mScaledFont;
 }
 
 PRBool
 gfxQtFont::SetupCairoFont(gfxContext *aContext)
 {
-    cairo_t *cr = aContext->GetCairo();
-    cairo_matrix_t currentCTM;
-    cairo_get_matrix(cr, &currentCTM);
+    cairo_scaled_font_t *scaledFont = CairoScaledFont();
 
-    if (mCairoFont) {
-        
-        cairo_matrix_t fontCTM;
-        cairo_scaled_font_get_ctm(mCairoFont, &fontCTM);
-        if (fontCTM.xx != currentCTM.xx || fontCTM.yy != currentCTM.yy ||
-            fontCTM.xy != currentCTM.xy || fontCTM.yx != currentCTM.yx) {
-            
-            cairo_scaled_font_destroy(mCairoFont);
-            mCairoFont = nsnull;
-        }
-    }
-    if (!mCairoFont) {
-        mCairoFont = CreateScaledFont(cr, &currentCTM, *mQFont);
-        return PR_FALSE;
-    }
-    if (cairo_scaled_font_status(mCairoFont) != CAIRO_STATUS_SUCCESS) {
+    if (cairo_scaled_font_status(scaledFont) != CAIRO_STATUS_SUCCESS) {
         
         
         return PR_FALSE;
     }
-    cairo_set_scaled_font(cr, mCairoFont);
+    
+    
+    cairo_set_scaled_font(aContext->GetCairo(), scaledFont);
     return PR_TRUE;
 }
