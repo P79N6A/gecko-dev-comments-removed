@@ -6444,9 +6444,19 @@ NS_IMETHODIMP
 nsNodeSH::PreCreate(nsISupports *nativeObj, JSContext *cx, JSObject *globalObj,
                     JSObject **parentObj)
 {
-  nsCOMPtr<nsINode> node(do_QueryInterface(nativeObj));
-  NS_ENSURE_TRUE(node, NS_ERROR_UNEXPECTED);
+  nsINode *node = static_cast<nsINode*>(nativeObj);
   
+#ifdef DEBUG
+  {
+    nsCOMPtr<nsINode> node_qi(do_QueryInterface(nativeObj));
+
+    
+    
+    
+    NS_ASSERTION(node_qi == node, "Uh, fix QI!");
+  }
+#endif
+
   
   
   
@@ -6964,8 +6974,18 @@ nsElementSH::PostCreate(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
   nsresult rv = nsNodeSH::PostCreate(wrapper, cx, obj);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  nsCOMPtr<nsIContent> content(do_QueryWrappedNative(wrapper));
-  NS_ENSURE_TRUE(content, NS_ERROR_UNEXPECTED);
+  nsIContent *content = static_cast<nsIContent*>(wrapper->Native());
+
+#ifdef DEBUG
+  {
+    nsCOMPtr<nsIContent> content_qi(do_QueryWrappedNative(wrapper));
+
+    
+    
+    
+    NS_ASSERTION(content_qi == content, "Uh, fix QI!");
+  }
+#endif
 
   nsCOMPtr<nsIDocument> doc;
   if (content->HasFlag(NODE_FORCE_XBL_BINDINGS)) {

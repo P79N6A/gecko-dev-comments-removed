@@ -99,7 +99,11 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(nsDOMAttribute)
   NS_INTERFACE_MAP_ENTRY(nsPIDOMEventTarget)
   NS_INTERFACE_MAP_ENTRY_TEAROFF(nsISupportsWeakReference,
                                  new nsNodeSupportsWeakRefTearoff(this))
-  NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, nsIDOMAttr)
+  
+  
+  
+  
+  NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, nsIAttribute)
   NS_INTERFACE_MAP_ENTRY_CONTENT_CLASSINFO(Attr)
 NS_INTERFACE_MAP_END
 
