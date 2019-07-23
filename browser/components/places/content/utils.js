@@ -215,6 +215,17 @@ var PlacesUIUtils = {
       childTxns.push(this.ptm.editItemDateAdded(null, aData.dateAdded));
     if (aData.lastModified)
       childTxns.push(this.ptm.editItemLastModified(null, aData.lastModified));
+    if (aData.tags) {
+      var tags = aData.tags.split(", ");
+      
+      
+      var storedTags = PlacesUtils.tagging.getTagsForURI(itemURL, {});
+      tags = tags.filter(function (aTag) {
+        return (storedTags.indexOf(aTag) == -1);
+      }, this);
+      if (tags.length)
+        childTxns.push(this.ptm.tagURI(itemURL, tags));
+    }
 
     return this.ptm.createItem(itemURL, aContainer, aIndex, itemTitle, keyword,
                                annos, childTxns);

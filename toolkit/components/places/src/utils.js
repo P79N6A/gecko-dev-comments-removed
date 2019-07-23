@@ -426,7 +426,7 @@ var PlacesUtils = {
             this.value += aStr;
           }
         };
-        self.serializeNodeAsJSONToOutputStream(aNode, writer);
+        self.serializeNodeAsJSONToOutputStream(aNode, writer, true);
         return writer.value;
       case this.TYPE_X_MOZ_URL:
         function gatherDataUrl(bNode) {
@@ -1148,6 +1148,11 @@ var PlacesUtils = {
         id = this.bookmarks.insertBookmark(aContainer, this._uri(aData.uri), aIndex, aData.title);
         if (aData.keyword)
           this.bookmarks.setKeywordForBookmark(id, aData.keyword);
+        if (aData.tags) {
+          var tags = aData.tags.split(", ");
+          if (tags.length)
+            this.tagging.tagURI(this._uri(aData.uri), tags);
+        }
         break;
       case this.TYPE_X_MOZ_PLACE_SEPARATOR:
         id = this.bookmarks.insertSeparator(aContainer, aIndex);
@@ -1173,8 +1178,13 @@ var PlacesUtils = {
 
 
 
+
+
+
+
+
   serializeNodeAsJSONToOutputStream:
-  function PU_serializeNodeAsJSONToOutputStream(aNode, aStream) {
+  function PU_serializeNodeAsJSONToOutputStream(aNode, aStream, aIsUICommand) {
     var self = this;
     
     function addGenericProperties(aPlacesNode, aJSNode) {
@@ -1223,6 +1233,10 @@ var PlacesUtils = {
         if (keyword)
           aJSNode.keyword = keyword;
       }
+
+      var tags = aIsUICommand ? aPlacesNode.tags : null;
+      if (tags)
+        aJSNode.tags = tags;
     }
 
     function addSeparatorProperties(aPlacesNode, aJSNode) {
@@ -1320,7 +1334,7 @@ var PlacesUtils = {
   },
 
   
-  toJSONString: function PIO_toJSONString(aObj) {
+  toJSONString: function PU_toJSONString(aObj) {
     var JSON = Cc["@mozilla.org/dom/json;1"].createInstance(Ci.nsIJSON);
     return JSON.encode(aObj);
   },
@@ -1328,7 +1342,7 @@ var PlacesUtils = {
   
 
 
-  backupBookmarksToFile: function PIO_backupBookmarksToFile(aFile) {
+  backupBookmarksToFile: function PU_backupBookmarksToFile(aFile) {
     if (aFile.exists() && !aFile.isWritable())
       return; 
 
