@@ -407,6 +407,13 @@ public:
   const nsLineList::iterator* GetLine() const {
     return GetFlag(LL_GOTLINEBOX) ? &mLineBox : nsnull;
   }
+  
+  
+
+
+
+
+  nscoord GetCurrentFrameXDistanceFromBlock();
 
 protected:
   
@@ -601,6 +608,7 @@ protected:
                        const nsHTMLReflowState& aReflowState,
                        PRBool aNotSafeToBreak,
                        PRBool aFrameCanContinueTextRun,
+                       PRBool aCanRollBackBeforeFrame,
                        nsHTMLReflowMetrics& aMetrics,
                        nsReflowStatus& aStatus);
 

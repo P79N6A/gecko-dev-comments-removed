@@ -1038,7 +1038,8 @@ nsLineLayout::ReflowFrame(nsIFrame* aFrame,
     
     
     if (CanPlaceFrame(pfd, reflowState, notSafeToBreak, continuingTextRun,
-                      metrics, aReflowStatus)) {
+                      savedOptionalBreakContent != nsnull, metrics,
+                      aReflowStatus)) {
       
       
       
@@ -1141,6 +1142,17 @@ nsLineLayout::ApplyStartMargin(PerFrameData* pfd,
   }
 }
 
+nscoord
+nsLineLayout::GetCurrentFrameXDistanceFromBlock()
+{
+  PerSpanData* psd;
+  nscoord x = 0;
+  for (psd = mCurrentSpan; psd; psd = psd->mParent) {
+    x += psd->mX;
+  }
+  return x;
+}
+
 
 
 
@@ -1156,6 +1168,7 @@ nsLineLayout::CanPlaceFrame(PerFrameData* pfd,
                             const nsHTMLReflowState& aReflowState,
                             PRBool aNotSafeToBreak,
                             PRBool aFrameCanContinueTextRun,
+                            PRBool aCanRollBackBeforeFrame,
                             nsHTMLReflowMetrics& aMetrics,
                             nsReflowStatus& aStatus)
 {
@@ -1288,7 +1301,7 @@ nsLineLayout::CanPlaceFrame(PerFrameData* pfd,
 #ifdef NOISY_CAN_PLACE_FRAME
     printf("   ==> placing overflowing textrun, requesting backup\n");
 #endif
-    if (!mLastOptionalBreakContent) {
+    if (!aCanRollBackBeforeFrame) {
       
       return PR_TRUE;
     }
