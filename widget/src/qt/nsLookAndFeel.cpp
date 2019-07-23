@@ -221,7 +221,7 @@ nsresult nsLookAndFeel::NativeGetColor(const nsColorID aID,nscolor &aColor)
 
     case eColor_buttonshadow:
     case eColor_threedshadow:
-      aColor = QCOLOR_TO_NS_RGB(palette.color(QPalette::Normal, QPalette::Shadow));
+      aColor = QCOLOR_TO_NS_RGB(palette.color(QPalette::Normal, QPalette::Dark));
       break;
 
     case eColor_threeddarkshadow:
