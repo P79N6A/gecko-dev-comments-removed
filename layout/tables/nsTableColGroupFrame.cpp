@@ -450,23 +450,7 @@ nsTableColFrame * nsTableColGroupFrame::GetNextColumn(nsIFrame *aChildFrame)
 
 PRInt32 nsTableColGroupFrame::GetSpan()
 {
-  PRInt32 span = 1;
-  nsIContent* iContent = GetContent();
-  if (!iContent) return NS_OK;
-
-  
-  nsIDOMHTMLTableColElement* cgContent = nsnull;
-  nsresult rv = iContent->QueryInterface(NS_GET_IID(nsIDOMHTMLTableColElement), 
-                                         (void **)&cgContent);
-  if (cgContent && NS_SUCCEEDED(rv)) { 
-    cgContent->GetSpan(&span);
-    
-    if (span == -1) {
-      span = 1;
-    }
-    NS_RELEASE(cgContent);
-  }
-  return span;
+  return GetStyleTable()->mSpan;
 }
 
 void nsTableColGroupFrame::SetContinuousBCBorderWidth(PRUint8     aForSide,
