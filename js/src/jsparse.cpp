@@ -359,6 +359,24 @@ UnlinkFunctionBox(JSParseNode *pn, JSTreeContext *tc)
         JS_ASSERT(funbox->node == pn);
         funbox->node = NULL;
 
+        if (funbox->parent && PN_OP(pn) == JSOP_LAMBDA) {
+            
+
+
+
+
+            JS_ASSERT(!pn->pn_defn);
+            JS_ASSERT(!pn->pn_used);
+            JSParseNode **pnp = &funbox->parent->methods;
+            while (JSParseNode *method = *pnp) {
+                if (method == pn) {
+                    *pnp = method->pn_link;
+                    break;
+                }
+                pnp = &method->pn_link;
+            }
+        }
+
         JSFunctionBox **funboxp = &tc->functionList;
         while (*funboxp) {
             if (*funboxp == funbox) {
