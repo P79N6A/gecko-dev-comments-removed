@@ -167,6 +167,7 @@ AsyncChannel::Close()
             
             
             if (mListener) {
+                MutexAutoUnlock unlock(mMutex);
                 NotifyMaybeChannelError();
             }
             return;
@@ -185,7 +186,7 @@ AsyncChannel::Close()
         SynchronouslyClose();
     }
 
-    return NotifyChannelClosed();
+    NotifyChannelClosed();
 }
 
 void 
@@ -282,25 +283,40 @@ AsyncChannel::ProcessGoodbyeMessage()
 void
 AsyncChannel::NotifyChannelClosed()
 {
+    mMutex.AssertNotCurrentThreadOwns();
+
     if (ChannelClosed != mChannelState)
         NS_RUNTIMEABORT("channel should have been closed!");
 
     
     
     mListener->OnChannelClose();
+
     Clear();
 }
 
 void
 AsyncChannel::NotifyMaybeChannelError()
 {
+    mMutex.AssertNotCurrentThreadOwns();
+
+    
+    
+    
+    
+    {
+        MutexAutoLock lock(mMutex);
+        
+    }
+
     
     
     if (ChannelClosing == mChannelState) {
         
         
         mChannelState = ChannelClosed;
-        return NotifyChannelClosed();
+        NotifyChannelClosed();
+        return;
     }
 
     
