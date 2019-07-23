@@ -54,7 +54,7 @@
 
 
 
-#define DFB_RECTANGLES 0
+#define DFB_RECTANGLES 1
 
 
 

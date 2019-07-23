@@ -70,7 +70,6 @@ typedef struct _cairo_paginated_surface {
 
     cairo_surface_t *meta;
 
-    int page_num;
     cairo_bool_t page_is_blank;
 
 } cairo_paginated_surface_t;
@@ -123,7 +122,6 @@ _cairo_paginated_surface_create (cairo_surface_t				*target,
     if (cairo_surface_status (surface->meta))
 	goto FAIL_CLEANUP_SURFACE;
 
-    surface->page_num = 1;
     surface->page_is_blank = TRUE;
 
     return &surface->base;
@@ -157,22 +155,12 @@ static cairo_status_t
 _cairo_paginated_surface_finish (void *abstract_surface)
 {
     cairo_paginated_surface_t *surface = abstract_surface;
-    cairo_status_t status = CAIRO_STATUS_SUCCESS;
-
-    if (surface->page_is_blank == FALSE || surface->page_num == 1)
-	status = _cairo_paginated_surface_show_page (abstract_surface);
-
-    if (status == CAIRO_STATUS_SUCCESS)
-	cairo_surface_finish (surface->target);
-
-    if (status == CAIRO_STATUS_SUCCESS)
-	cairo_surface_finish (surface->meta);
-
-    cairo_surface_destroy (surface->target);
 
     cairo_surface_destroy (surface->meta);
 
-    return status;
+    cairo_surface_destroy (surface->target);
+
+    return CAIRO_STATUS_SUCCESS;
 }
 
 static cairo_surface_t *
@@ -300,8 +288,6 @@ _cairo_paginated_surface_copy_page (void *abstract_surface)
 
     _paint_page (surface);
 
-    surface->page_num++;
-
     
 
 
@@ -310,7 +296,9 @@ _cairo_paginated_surface_copy_page (void *abstract_surface)
 
 
 
-    return _cairo_surface_show_page (surface->target);
+    _cairo_surface_show_page (surface->target);
+
+    return CAIRO_STATUS_SUCCESS;
 }
 
 static cairo_int_status_t
@@ -334,7 +322,6 @@ _cairo_paginated_surface_show_page (void *abstract_surface)
     if (cairo_surface_status (surface->meta))
 	return cairo_surface_status (surface->meta);
 
-    surface->page_num++;
     surface->page_is_blank = TRUE;
 
     return CAIRO_STATUS_SUCCESS;
@@ -455,7 +442,6 @@ _cairo_paginated_surface_show_glyphs (void			*abstract_surface,
 				      cairo_scaled_font_t	*scaled_font)
 {
     cairo_paginated_surface_t *surface = abstract_surface;
-    cairo_int_status_t status;
 
     
     if (surface->page_is_blank && op == CAIRO_OPERATOR_CLEAR)
@@ -463,23 +449,9 @@ _cairo_paginated_surface_show_glyphs (void			*abstract_surface,
 
     surface->page_is_blank = FALSE;
 
-    
-
-
-
-
-
-
-
-
-
-    CAIRO_MUTEX_UNLOCK (scaled_font->mutex);
-    status = _cairo_surface_show_glyphs (surface->meta, op, source,
-					 glyphs, num_glyphs,
-					 scaled_font);
-    CAIRO_MUTEX_LOCK (scaled_font->mutex);
-
-    return status;
+    return _cairo_surface_show_glyphs (surface->meta, op, source,
+				       glyphs, num_glyphs,
+				       scaled_font);
 }
 
 static cairo_surface_t *

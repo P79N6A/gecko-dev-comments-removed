@@ -1,25 +1,25 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/*
+ * Copyright © 2000 SuSE, Inc.
+ *
+ * Permission to use, copy, modify, distribute, and sell this software and its
+ * documentation for any purpose is hereby granted without fee, provided that
+ * the above copyright notice appear in all copies and that both that
+ * copyright notice and this permission notice appear in supporting
+ * documentation, and that the name of SuSE not be used in advertising or
+ * publicity pertaining to distribution of the software without specific,
+ * written prior permission.  SuSE makes no representations about the
+ * suitability of this software for any purpose.  It is provided "as is"
+ * without express or implied warranty.
+ *
+ * SuSE DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE, INCLUDING ALL
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS, IN NO EVENT SHALL SuSE
+ * BE LIABLE FOR ANY SPECIAL, INDIRECT OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+ * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION
+ * OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
+ * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+ *
+ * Author:  Keith Packard, SuSE, Inc.
+ */
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
@@ -74,21 +74,21 @@ fbIn (CARD32 x, CARD8 y)
 
 #define genericCombine24(a,b,c,d) (((a)*(c)+(b)*(d)))
 
-
-
-
-
+/*
+ * This macro does src IN mask OVER dst when src and dst are 0888.
+ * If src has alpha, this will not work
+ */
 #define inOver0888(alpha, source, destval, dest) { \
 	CARD32 dstrb=destval&0xFF00FF; CARD32 dstag=(destval>>8)&0xFF00FF; \
 	CARD32 drb=((source&0xFF00FF)-dstrb)*alpha; CARD32 dag=(((source>>8)&0xFF00FF)-dstag)*alpha; \
 	dest =((((drb>>8) + dstrb) & 0x00FF00FF) | ((((dag>>8) + dstag) << 8) & 0xFF00FF00)); \
 	}
 
-
-
-
-
-
+/*
+ * This macro does src IN mask OVER dst when src and dst are 0565 and
+ * mask is a 5-bit alpha value.  Again, if src has alpha, this will not
+ * work.
+ */
 
 #define inOver0565(alpha, source, destval, dest) { \
 	CARD16 dstrb = destval & 0xf81f; CARD16 dstg  = destval & 0x7e0; \
@@ -127,11 +127,11 @@ fbIn (CARD32 x, CARD8 y)
 #	define readPackedDest(where) readPacked(where,wd,workingiDest,widst)
 #	define writePacked(what) workingoDest<<=8; workingoDest|=what; ww--; if(!ww) { ww=4; *wodst++=workingoDest; }
 #endif
-
-
-
-
-
+/*
+ * Naming convention:
+ *
+ *  opSRCxMASKxDST
+ */
 
 static void
 fbCompositeSolidMask_nx8x8888 (pixman_operator_t   op,
@@ -302,7 +302,7 @@ fbCompositeSolidMask_nx8x0888 (pixman_operator_t   op,
 
     while (height--)
 	{
-		
+		/* fixme: cleanup unused */
 		unsigned long wt,wd;
 		CARD32 workingiDest;
 		CARD32 *widst;
@@ -1002,7 +1002,7 @@ fbCompositeSolidMask_nx1xn (pixman_operator_t   op,
 	      0x0);
 }
 
-
+/* prototype to help with merging */
 static void
 fbCompositeSrcSrc_nxn  (pixman_operator_t	op,
 			PicturePtr pSrc,
@@ -1016,9 +1016,9 @@ fbCompositeSrcSrc_nxn  (pixman_operator_t	op,
 			INT16      yDst,
 			CARD16     width,
 			CARD16     height);
-
-
-
+/*
+ * Apply a constant alpha value in an over computation
+ */
 static void
 fbCompositeTrans_0565xnx0565(pixman_operator_t      op,
 			     PicturePtr pSrc,
@@ -1119,7 +1119,7 @@ fbCompositeTrans_0565xnx0565(pixman_operator_t      op,
 	}
 }
 
-
+/* macros for "i can't believe it's not fast" packed pixel handling */
 #define alphamaskCombine24(a,b) genericCombine24(a,b,maskAlpha,maskiAlpha)
 static void
 fbCompositeTrans_0888xnx0888(pixman_operator_t      op,
@@ -1148,15 +1148,15 @@ fbCompositeTrans_0888xnx0888(pixman_operator_t      op,
 
     if (!maskAlpha)
 	return;
-    
-
-
-
-
-
-
-
-
+    /*
+    if (maskAlpha == 0xff)
+    {
+	fbCompositeSrc_0888x0888 (op, pSrc, pMask, pDst,
+				  xSrc, ySrc, xMask, yMask, xDst, yDst,
+				  width, height);
+	return;
+    }
+    */
 
     fbComposeGetStart (pSrc, xSrc, ySrc, CARD8, srcStride, srcLine, 3);
     fbComposeGetStart (pDst, xDst, yDst, CARD8, dstStride, dstLine, 3);
@@ -1168,8 +1168,8 @@ fbCompositeTrans_0888xnx0888(pixman_operator_t      op,
 		CARD32 rs, rd, nd;
 		CARD8 *isrc;
 
-		
-		
+		/* are xSrc and xDst at the same alignment?  if not, we need to be complicated :)*/
+		/* if(0==0) */
 		if( (((xSrc*3)&3)!=((xDst*3)&3)) || ((srcStride&3)!=(dstStride&3)))
 		{
 			while (height--)
@@ -1182,13 +1182,13 @@ fbCompositeTrans_0888xnx0888(pixman_operator_t      op,
 
 				setupPackedReader(ws,wt,isrc,wsrc,workingSource);
 
-				
+				/* get to word aligned */
 				switch(~(long)dst&3)
 				{
 					case 1:
 						readPackedSource(rs);
-						
-						rd=*dst;  
+						/* *dst++=alphamaskCombine24(rs, *dst)>>8; */
+						rd=*dst;  /* make gcc happy.  hope it doens't cost us too much performance*/
 						*dst++=alphamaskCombine24(rs, rd)>>8;
 						w--; if(w==0) break;
 					case 2:
@@ -1205,9 +1205,9 @@ fbCompositeTrans_0888xnx0888(pixman_operator_t      op,
 				wdst=(CARD32 *)dst;
 				while (w>3)
 				{
-					
-
-
+					/* FIXME: write a special readPackedWord macro, which knows how to
+					 * halfword combine
+					 */
 
 #if IMAGE_BYTE_ORDER == LSBFirst
 					rd=*wdst;
@@ -1258,7 +1258,7 @@ fbCompositeTrans_0888xnx0888(pixman_operator_t      op,
 				src = srcLine;
 				srcLine += srcStride;
 				w = width*3;
-				
+				/* get to word aligned */
 				switch(~(long)src&3)
 				{
 					case 1:
@@ -1303,9 +1303,9 @@ fbCompositeTrans_0888xnx0888(pixman_operator_t      op,
 	}
 }
 
-
-
-
+/*
+ * Simple bitblt
+ */
 
 static void
 fbCompositeSrcSrc_nxn  (pixman_operator_t	op,
@@ -1353,25 +1353,25 @@ fbCompositeSrcSrc_nxn  (pixman_operator_t	op,
 	   upsidedown);
 }
 
+/*
+ * Solid fill
+void
+fbCompositeSolidSrc_nxn  (CARD8	op,
+			  PicturePtr pSrc,
+			  PicturePtr pMask,
+			  PicturePtr pDst,
+			  INT16      xSrc,
+			  INT16      ySrc,
+			  INT16      xMask,
+			  INT16      yMask,
+			  INT16      xDst,
+			  INT16      yDst,
+			  CARD16     width,
+			  CARD16     height)
+{
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+}
+ */
 
 # define mod(a,b)	((b) == 1 ? 0 : (a) >= 0 ? (a) % (b) : (b) - (-a) % (b))
 
@@ -1568,13 +1568,13 @@ pixman_composite (pixman_operator_t	op,
 		if (func != pixman_compositeGeneral)
 		    srcRepeat = FALSE;
 	    }
-	    else 
+	    else /* has mask and non-repeating source */
 	    {
 		if (pSrc->pDrawable == pMask->pDrawable &&
 		    xSrc == xMask && ySrc == yMask &&
 		    !pMask->componentAlpha)
 		{
-		    
+		    /* source == mask: non-premultiplied data */
 		    switch (pSrc->format_code) {
 		    case PICT_x8b8g8r8:
 			switch (pMask->format_code) {
@@ -1625,7 +1625,7 @@ pixman_composite (pixman_operator_t	op,
 		}
 		else
 		{
-		    
+		    /* non-repeating source, repeating mask => translucent window */
 		    if (maskRepeat &&
 			pMask->pDrawable->width == 1 &&
 			pMask->pDrawable->height == 1)
@@ -1648,7 +1648,7 @@ pixman_composite (pixman_operator_t	op,
 				pMask->format_code == PICT_a8 && fbHaveMMX())
 				func = fbCompositeSrc_x888x8x8888mmx;
 			    break;
-#if 0 
+#if 0 /* This case fails rendercheck for me */
 			case PICT_a8r8g8b8:
 			    if ((pDst->format == PICT_a8r8g8b8 ||
 				 pDst->format == PICT_x8r8g8b8) &&
@@ -1671,13 +1671,13 @@ pixman_composite (pixman_operator_t	op,
 		}
 	    }
 	}
-	else 
+	else /* no mask */
 	{
 	    if (srcRepeat &&
 		pSrc->pDrawable->width == 1 &&
 		pSrc->pDrawable->height == 1)
 	    {
-		
+		/* no mask and repeating source */
 		switch (pSrc->format_code) {
 		case PICT_a8r8g8b8:
 		    switch (pDst->format_code) {
@@ -1706,9 +1706,9 @@ pixman_composite (pixman_operator_t	op,
 	    }
 	    else
 	    {
-		
-
-
+		/*
+		 * Formats without alpha bits are just Copy with Over
+		 */
 		if (pSrc->format_code == pDst->format_code && !PICT_FORMAT_A(pSrc->format_code))
 		{
 #ifdef USE_MMX
@@ -1916,17 +1916,17 @@ pixman_composite (pixman_operator_t	op,
     case PIXMAN_OPERATOR_XOR:
     case PIXMAN_OPERATOR_SATURATE:
     default:
-	
+	/* For any operator not specifically handled above we default out to the general code. */
 	func = NULL;
     }
 
     if (!func) {
-        
+        /* no fast path, use the general code */
         pixman_compositeGeneral(op, pSrc, pMask, pDst, xSrc, ySrc, xMask, yMask, xDst, yDst, width, height);
         return;
     }
 
-    
+    /* if we are transforming, we handle repeats in IcFetch[a]_transform */
     if (srcTransform)
 	srcRepeat = 0;
     if (maskTransform)
@@ -2009,11 +2009,11 @@ pixman_composite (pixman_operator_t	op,
     pixman_region_destroy (region);
 }
 
-
-
-
-
-
+/* The CPU detection code needs to be in a file not compiled with
+ * "-mmmx -msse", as gcc would generate CMOV instructions otherwise
+ * that would lead to SIGILL instructions on old CPUs that don't have
+ * it.
+ */
 #if defined(USE_MMX) && !defined(__amd64__) && !defined(__x86_64__)
 
 enum CPUFeatures {
@@ -2035,14 +2035,14 @@ static unsigned int detectCPUFeatures(void) {
     vendor[12] = 0;
 
 #ifdef __GNUC__
-    
-    
-
-
-
-
-
-
+    /* see p. 118 of amd64 instruction set manual Vol3 */
+    /* We need to be careful about the handling of %ebx and
+     * %esp here. We can't declare either one as clobbered
+     * since they are special registers (%ebx is the "PIC
+     * register" holding an offset to global data, %esp the
+     * stack pointer), so we need to make sure they have their
+     * original values when we access the output operands.
+     */
     __asm__ ("pushf\n"
              "pop %%eax\n"
              "mov %%eax, %%ecx\n"
@@ -2114,7 +2114,7 @@ static unsigned int detectCPUFeatures(void) {
 
     features = 0;
     if (result) {
-        
+        /* result now contains the standard feature bits */
         if (result & (1 << 15))
             features |= CMOV;
         if (result & (1 << 23))
@@ -2123,10 +2123,8 @@ static unsigned int detectCPUFeatures(void) {
             features |= SSE;
         if (result & (1 << 26))
             features |= SSE2;
-        if ((features & MMX) && !(features & SSE) &&
-            (strcmp(vendor, "AuthenticAMD") == 0 ||
-             strcmp(vendor, "Geode by NSC") == 0)) {
-            
+        if ((result & MMX) && !(result & SSE) && (strcmp(vendor, "AuthenticAMD") == 0)) {
+            /* check for AMD MMX extensions */
 #ifdef __GNUC__
 
             unsigned int result;
@@ -2183,5 +2181,5 @@ fbHaveMMX (void)
 
     return mmx_present;
 }
-#endif 
-#endif 
+#endif /* USE_MMX && !amd64 */
+#endif /* RENDER */

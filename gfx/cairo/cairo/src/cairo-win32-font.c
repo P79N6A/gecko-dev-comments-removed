@@ -693,7 +693,7 @@ _cairo_win32_scaled_font_set_metrics (cairo_win32_scaled_font_t *scaled_font)
     if (!hdc)
 	return CAIRO_STATUS_NO_MEMORY;
 
-    if (scaled_font->preserve_axes || scaled_font->base.options.hint_metrics == CAIRO_HINT_METRICS_OFF) {
+    if (scaled_font->preserve_axes) {
 	
 
 
@@ -723,7 +723,7 @@ _cairo_win32_scaled_font_set_metrics (cairo_win32_scaled_font_t *scaled_font)
 	_cairo_win32_scaled_font_done_unscaled_font (&scaled_font->base);
 
 	extents.ascent = (double)metrics.tmAscent / scaled_font->em_square;
-	extents.descent = (double)metrics.tmDescent / scaled_font->em_square;
+	extents.descent = metrics.tmDescent * scaled_font->em_square;
 	extents.height = (double)(metrics.tmHeight + metrics.tmExternalLeading) / scaled_font->em_square;
 	extents.max_x_advance = (double)(metrics.tmMaxCharWidth) / scaled_font->em_square;
 	extents.max_y_advance = 0;
@@ -1282,20 +1282,6 @@ _cairo_win32_scaled_font_load_truetype_table (void	       *abstract_font,
 }
 
 static void
-_cairo_win32_scaled_font_map_glyphs_to_unicode (void *abstract_font,
-                                                      cairo_scaled_font_subset_t *font_subset)
-{
-    cairo_win32_scaled_font_t *scaled_font = abstract_font;
-    unsigned int i;
-
-    if (scaled_font->glyph_indexing)
-        return;
-
-    for (i = 0; i < font_subset->num_glyphs; i++)
-        font_subset->to_unicode[i] = font_subset->glyphs[i];
-}
-
-static void
 _cairo_win32_transform_FIXED_to_fixed (cairo_matrix_t *matrix,
                                        FIXED Fx, FIXED Fy,
                                        cairo_fixed_t *fx, cairo_fixed_t *fy)
@@ -1481,7 +1467,6 @@ const cairo_scaled_font_backend_t cairo_win32_scaled_font_backend = {
     NULL,			
     _cairo_win32_scaled_font_show_glyphs,
     _cairo_win32_scaled_font_load_truetype_table,
-    _cairo_win32_scaled_font_map_glyphs_to_unicode,
 };
 
 
@@ -1691,16 +1676,6 @@ cairo_win32_scaled_font_get_metrics_factor (cairo_scaled_font_t *scaled_font)
     return 1. / ((cairo_win32_scaled_font_t *)scaled_font)->logical_scale;
 }
 
-
-
-
-
-
-
-
-
-
-
 void
 cairo_win32_scaled_font_get_logical_to_device (cairo_scaled_font_t *scaled_font,
 					       cairo_matrix_t *logical_to_device)
@@ -1708,16 +1683,6 @@ cairo_win32_scaled_font_get_logical_to_device (cairo_scaled_font_t *scaled_font,
     cairo_win32_scaled_font_t *win_font = (cairo_win32_scaled_font_t *)scaled_font;
     *logical_to_device = win_font->logical_to_device;
 }
-
-
-
-
-
-
-
-
-
-
 
 void
 cairo_win32_scaled_font_get_device_to_logical (cairo_scaled_font_t *scaled_font,
