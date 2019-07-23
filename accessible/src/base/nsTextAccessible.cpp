@@ -50,7 +50,10 @@ nsLinkableAccessible(aDOMNode, aShell)
 { 
 }
 
-NS_IMPL_ISUPPORTS_INHERITED0(nsTextAccessible, nsLinkableAccessible)
+
+
+
+NS_IMPL_ISUPPORTS_INHERITED2(nsTextAccessible, nsAccessNode, nsIAccessible, nsPIAccessible)
 
 
 
