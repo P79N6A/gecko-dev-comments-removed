@@ -192,12 +192,17 @@ function _parseModifiers(aEvent)
 
 
 
-function synthesizeMouse(aTarget, aOffsetX, aOffsetY, aEvent)
+
+
+function synthesizeMouse(aTarget, aOffsetX, aOffsetY, aEvent, aWindow)
 {
   netscape.security.PrivilegeManager.enablePrivilege('UniversalXPConnect');
 
-  var utils = window.QueryInterface(Components.interfaces.nsIInterfaceRequestor).
-                     getInterface(Components.interfaces.nsIDOMWindowUtils);
+  if (!aWindow)
+    aWindow = window;
+
+  var utils = aWindow.QueryInterface(Components.interfaces.nsIInterfaceRequestor).
+                      getInterface(Components.interfaces.nsIDOMWindowUtils);
   if (utils) {
     var button = aEvent.button || 0;
     var clickCount = aEvent.clickCount || 1;
@@ -229,12 +234,17 @@ function synthesizeMouse(aTarget, aOffsetX, aOffsetY, aEvent)
 
 
 
-function synthesizeKey(aKey, aEvent)
+
+
+function synthesizeKey(aKey, aEvent, aWindow)
 {
   netscape.security.PrivilegeManager.enablePrivilege('UniversalXPConnect');
 
-  var utils = window.QueryInterface(Components.interfaces.nsIInterfaceRequestor).
-                     getInterface(Components.interfaces.nsIDOMWindowUtils);
+  if (!aWindow)
+    aWindow = window;
+
+  var utils = aWindow.QueryInterface(Components.interfaces.nsIInterfaceRequestor).
+                      getInterface(Components.interfaces.nsIDOMWindowUtils);
   if (utils) {
     var keyCode = 0, charCode = 0;
     if (aKey.indexOf("VK_") == 0)
@@ -313,11 +323,14 @@ function _checkExpectedEvent(aExpectedTarget, aExpectedEvent, aEventHandler, aTe
 
 
 
+
+
 function synthesizeMouseExpectEvent(aTarget, aOffsetX, aOffsetY, aEvent,
-                                    aExpectedTarget, aExpectedEvent, aTestName)
+                                    aExpectedTarget, aExpectedEvent, aTestName,
+                                    aWindow)
 {
   var eventHandler = _expectEvent(aExpectedTarget, aExpectedEvent, aTestName);
-  synthesizeMouse(aTarget, aOffsetX, aOffsetY, aEvent);
+  synthesizeMouse(aTarget, aOffsetX, aOffsetY, aEvent, aWindow);
   _checkExpectedEvent(aExpectedTarget, aExpectedEvent, eventHandler, aTestName);
 }
 
@@ -332,9 +345,12 @@ function synthesizeMouseExpectEvent(aTarget, aOffsetX, aOffsetY, aEvent,
 
 
 
-function synthesizeKeyExpectEvent(key, aEvent, aExpectedTarget, aExpectedEvent, aTestName)
+
+
+function synthesizeKeyExpectEvent(key, aEvent, aExpectedTarget, aExpectedEvent,
+                                  aTestName, aWindow)
 {
   var eventHandler = _expectEvent(aExpectedTarget, aExpectedEvent, aTestName);
-  synthesizeKey(key, aEvent);
+  synthesizeKey(key, aEvent, aWindow);
   _checkExpectedEvent(aExpectedTarget, aExpectedEvent, eventHandler, aTestName);
 }
