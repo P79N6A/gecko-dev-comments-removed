@@ -847,8 +847,15 @@ nsresult nsRootAccessible::HandleEventWithTarget(nsIDOMEvent* aEvent,
         NS_ENSURE_TRUE(containerAccessible, NS_ERROR_FAILURE);
         
         
-        if (State(containerAccessible) & nsIAccessibleStates::STATE_COLLAPSED)
-          return NS_OK;
+        
+        if (State(containerAccessible) & nsIAccessibleStates::STATE_COLLAPSED) {
+          nsCOMPtr<nsIAccessible> containerParent;
+          containerAccessible->GetParent(getter_AddRefs(containerParent));
+          NS_ENSURE_TRUE(containerParent, NS_ERROR_FAILURE);
+          if (Role(containerParent) != nsIAccessibleRole::ROLE_COMBOBOX) {
+            return NS_OK;
+          }
+        }
       }
     }
     nsAccEvent::PrepareForEvent(aTargetNode, PR_TRUE);  
