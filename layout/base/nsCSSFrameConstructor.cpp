@@ -5315,6 +5315,7 @@ nsCSSFrameConstructor::ConstructHTMLFrame(nsFrameConstructorState& aState,
 {
   
   
+  
   if (!aContent->IsNodeOfType(nsINode::eHTML) &&
       aNameSpaceID != kNameSpaceID_XHTML) {
     return NS_OK;
@@ -11153,9 +11154,20 @@ PRBool
 nsCSSFrameConstructor::ShouldHaveFirstLineStyle(nsIContent* aContent,
                                                 nsStyleContext* aStyleContext)
 {
-  return nsLayoutUtils::HasPseudoStyle(aContent, aStyleContext,
-                                       nsCSSPseudoElements::firstLine,
-                                       mPresShell->GetPresContext());
+  PRBool hasFirstLine =
+    nsLayoutUtils::HasPseudoStyle(aContent, aStyleContext,
+                                  nsCSSPseudoElements::firstLine,
+                                  mPresShell->GetPresContext());
+  if (hasFirstLine) {
+    
+    PRInt32 namespaceID;
+    nsIAtom* tag = mDocument->BindingManager()->ResolveTag(aContent,
+                                                           &namespaceID);
+    
+    hasFirstLine = tag != nsGkAtoms::fieldset ||
+      (namespaceID != kNameSpaceID_XHTML &&
+       !aContent->IsNodeOfType(nsINode::eHTML));
+  }
 }
 
 void
