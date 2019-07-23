@@ -2671,6 +2671,15 @@ nsHTMLEditRules::JoinBlocks(nsCOMPtr<nsIDOMNode> *aLeftBlock,
   }
   
   
+  if (nsHTMLEditUtils::IsList(*aLeftBlock) && nsHTMLEditUtils::IsListItem(*aRightBlock))
+  {
+    nsCOMPtr<nsIDOMNode> rightParent;
+    (*aRightBlock)->GetParentNode(getter_AddRefs(rightParent));
+    if (rightParent == *aLeftBlock)
+      return NS_OK;
+  }
+
+  
   
   PRBool bMergeLists = PR_FALSE;
   nsAutoString existingListStr;
@@ -2898,6 +2907,7 @@ nsHTMLEditRules::MoveContents(nsIDOMNode *aSource, nsIDOMNode *aDest, PRInt32 *a
 {
   if (!aSource || !aDest || !aOffset) return NS_ERROR_NULL_POINTER;
   if (aSource == aDest) return NS_ERROR_ILLEGAL_VALUE;
+  NS_ASSERTION(!mHTMLEditor->IsTextNode(aSource), "#text does not have contents");
   
   nsCOMPtr<nsIDOMNode> child;
   nsAutoString tag;
