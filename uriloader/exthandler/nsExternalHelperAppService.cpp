@@ -127,6 +127,15 @@
 
 #define BUFFERED_OUTPUT_SIZE (1024 * 32)
 
+
+#define NS_PREF_DOWNLOAD_DIR        "browser.download.dir"
+#define NS_PREF_DOWNLOAD_FOLDERLIST "browser.download.folderList"
+enum {
+  NS_FOLDER_VALUE_DESKTOP = 0
+, NS_FOLDER_VALUE_DOWNLOADS = 1
+, NS_FOLDER_VALUE_CUSTOM = 2
+};
+
 #ifdef PR_LOGGING
 PRLogModuleInfo* nsExternalHelperAppService::mLog = nsnull;
 #endif
@@ -377,6 +386,66 @@ static PRBool GetFilenameAndExtensionFromChannel(nsIChannel* aChannel,
 
 
   return handleExternally;
+}
+
+
+
+
+
+static nsresult GetDownloadDirectory(nsIFile **_directory)
+{
+  nsCOMPtr<nsIFile> dir;
+#ifdef XP_MACOSX
+  
+  nsCOMPtr<nsIPrefBranch> prefs =
+    do_GetService(NS_PREFSERVICE_CONTRACTID);
+  NS_ENSURE_TRUE(prefs, NS_ERROR_UNEXPECTED);
+
+  PRInt32 folderValue = -1;
+  (void) prefs->GetIntPref(NS_PREF_DOWNLOAD_FOLDERLIST, &folderValue);
+  switch (folderValue) {
+    case NS_FOLDER_VALUE_DESKTOP:
+      (void) NS_GetSpecialDirectory(NS_OS_DESKTOP_DIR, getter_AddRefs(dir));
+      break;
+    case NS_FOLDER_VALUE_CUSTOM:
+      {
+        (void) prefs->GetComplexValue(NS_PREF_DOWNLOAD_DIR,
+                                      NS_GET_IID(nsIFile),
+                                      getter_AddRefs(dir));
+        if (!dir) break;
+
+        
+        PRBool dirExists = PR_FALSE;
+        (void) dir->Exists(&dirExists);
+        if (dirExists) break;
+
+        nsresult rv = dir->Create(nsIFile::DIRECTORY_TYPE, 0755);
+        if (NS_FAILED(rv)) {
+          dir = nsnull;
+          break;
+        }
+      }
+      break;
+    case NS_FOLDER_VALUE_DOWNLOADS:
+      
+      break;
+  }
+
+  if (!dir) {
+    
+    nsresult rv = NS_GetSpecialDirectory(NS_OSX_DEFAULT_DOWNLOAD_DIR,
+                                         getter_AddRefs(dir));
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
+#else
+  
+  nsresult rv = NS_GetSpecialDirectory(NS_OS_TEMP_DIR, getter_AddRefs(dir));
+  NS_ENSURE_SUCCESS(rv, rv);
+#endif
+
+  NS_ASSERTION(dir, "Somehow we didn't get a download directory!");
+  dir.forget(_directory);
+  return NS_OK;
 }
 
 
@@ -1164,18 +1233,9 @@ void nsExternalAppHandler::EnsureSuggestedFileName()
 
 nsresult nsExternalAppHandler::SetUpTempFile(nsIChannel * aChannel)
 {
-  nsresult rv;
-
-#ifdef XP_MACOSX
- 
- 
- 
-  rv = NS_GetSpecialDirectory(NS_MAC_DEFAULT_DOWNLOAD_DIR,
-                              getter_AddRefs(mTempFile));
-#else
   
-  rv = NS_GetSpecialDirectory(NS_OS_TEMP_DIR, getter_AddRefs(mTempFile));
-#endif
+  
+  nsresult rv = GetDownloadDirectory(getter_AddRefs(mTempFile));
   NS_ENSURE_SUCCESS(rv, rv);
 
   
@@ -2172,17 +2232,9 @@ NS_IMETHODIMP nsExternalAppHandler::LaunchWithApplication(nsIFile * aApplication
   
   
   
-   
+
   nsCOMPtr<nsIFile> fileToUse;
-  
-  
-  
-  
-#ifdef XP_MACOSX
-  NS_GetSpecialDirectory(NS_MAC_DEFAULT_DOWNLOAD_DIR, getter_AddRefs(fileToUse));
-#else
-  NS_GetSpecialDirectory(NS_OS_TEMP_DIR, getter_AddRefs(fileToUse));
-#endif
+  (void) GetDownloadDirectory(getter_AddRefs(fileToUse));
 
   if (mSuggestedFileName.IsEmpty())
   {
