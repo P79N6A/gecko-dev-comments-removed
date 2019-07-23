@@ -785,50 +785,6 @@ int sqlite3_bind_parameter_index(sqlite3_stmt *pStmt, const char *zName){
 
 
 
-
-
-int sqlite3_bind_parameter_indexes(
-    sqlite3_stmt *pStmt,
-    const char *zName,
-    int **pIndexes
-){
-  Vdbe *p = (Vdbe*)pStmt;
-  int i, j, nVars, *indexes;
-  if( p==0 ){
-    return 0;
-  }
-  createVarMap(p);
-  if( !zName )
-    return 0;
-  
-  nVars = 0;
-  for(i=0; i<p->nVar; i++){
-    const char *z = p->azVar[i];
-    if( z && strcmp(z,zName)==0 ){
-      nVars++;
-    }
-  }
-  indexes = sqliteMalloc( sizeof(int) * nVars );
-  j = 0;
-  for(i=0; i<p->nVar; i++){
-    const char *z = p->azVar[i];
-    if( z && strcmp(z,zName)==0 )
-      indexes[j++] = i+1;
-  }
-  *pIndexes = indexes;
-  return nVars;
-}
-
-void sqlite3_free_parameter_indexes(int *pIndexes)
-{
-  sqliteFree( pIndexes );
-}
-
-
-
-
-
-
 int sqlite3_transfer_bindings(sqlite3_stmt *pFromStmt, sqlite3_stmt *pToStmt){
   Vdbe *pFrom = (Vdbe*)pFromStmt;
   Vdbe *pTo = (Vdbe*)pToStmt;

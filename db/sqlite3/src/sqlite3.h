@@ -1483,20 +1483,6 @@ int sqlite3_table_column_metadata(
 
 
 
-int sqlite3_bind_parameter_indexes(
-    sqlite3_stmt *pStmt,
-    const char *zName,
-    int **pIndexes
-);
-void sqlite3_free_parameter_indexes(int *pIndexes);
-
-
-
-
-
-
-
-
 
 
 
