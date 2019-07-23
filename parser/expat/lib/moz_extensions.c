@@ -70,14 +70,9 @@ int MOZ_XMLCheckQName(const char* ptr, const char* end, int ns_aware,
   do {
     switch (BYTE_TYPE(ptr)) {
     case BT_COLON:
-      if (nmstrt) {
-        
+       
 
-        return ns_aware ? MOZ_EXPAT_MALFORMED : MOZ_EXPAT_INVALID_CHARACTER;
-      }
-      if (ns_aware && (ptr + 2 == end || *colon)) {
-        
-
+      if (ns_aware && (nmstrt || *colon || ptr + 2 == end)) {
         return MOZ_EXPAT_MALFORMED;
       }
       *colon = ptr;
