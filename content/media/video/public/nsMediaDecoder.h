@@ -170,10 +170,6 @@ class nsMediaDecoder : public nsIObserver
   
   virtual void Shutdown();
 
-  
-  
-  nsHTMLMediaElement* GetMediaElement();
-
 protected:
 
   
