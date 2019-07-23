@@ -322,6 +322,20 @@ typedef struct theora_comment{
 
 
 
+
+
+
+
+
+#define TH_ENCCTL_SET_KEYFRAME_FREQUENCY_FORCE (4)
+
+
+
+
+
+
+
+
 #define TH_DECCTL_SET_GRANPOS (5)
 
 
@@ -345,39 +359,12 @@ typedef struct theora_comment{
 
 
 
-#define TH_ENCCTL_SET_HUFFMAN_CODES (0)
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
 
 
 #define TH_ENCCTL_SET_QUANT_PARAMS (2)
-
-
-
-
-
-
-
-
-
-
-
-
-#define TH_ENCCTL_SET_KEYFRAME_FREQUENCY_FORCE (4)
 
 
 
@@ -434,41 +421,6 @@ typedef struct theora_comment{
 
 
 #define TH_ENCCTL_SET_SPLEVEL (14)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#define TH_ENCCTL_SETUP_VBR (16)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#define TH_ENCCTL_SETUP_CQI (18)
 
 
 #define OC_FAULT       -1       /**< General failure */

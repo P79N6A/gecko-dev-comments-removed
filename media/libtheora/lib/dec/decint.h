@@ -20,7 +20,7 @@
 # define _decint_H (1)
 # include "theora/theoradec.h"
 # include "../internal.h"
-# include "bitwise.h"
+# include "bitpack.h"
 
 typedef struct th_setup_info oc_setup_info;
 typedef struct th_dec_ctx    oc_dec_ctx;
@@ -47,45 +47,45 @@ struct th_setup_info{
 
 struct th_dec_ctx{
   
-  oc_theora_state          state;
+  oc_theora_state      state;
   
 
 
 
-  int                      packet_state;
+  int                  packet_state;
   
-  oggpack_buffer           opb;
+  oggpack_buffer       opb;
   
-  oc_huff_node            *huff_tables[TH_NHUFFMAN_TABLES];
-  
-
-  int                      ti0[3][64];
+  oc_huff_node        *huff_tables[TH_NHUFFMAN_TABLES];
   
 
-
-
-  int                      ebi0[3][64];
+  int                  ti0[3][64];
   
 
-  int                      eob_runs[3][64];
+
+
+  int                  ebi0[3][64];
   
-  unsigned char          **dct_tokens;
+
+  int                  eob_runs[3][64];
   
-  ogg_uint16_t           **extra_bits;
+  unsigned char      **dct_tokens;
   
-  int                      pp_level;
+  ogg_uint16_t       **extra_bits;
   
-  int                      pp_dc_scale[64];
+  int                  pp_level;
   
-  int                      pp_sharp_mod[64];
+  int                  pp_dc_scale[64];
   
-  unsigned char           *dc_qis;
+  int                  pp_sharp_mod[64];
   
-  int                     *variances;
+  unsigned char       *dc_qis;
   
-  unsigned char           *pp_frame_data;
+  int                 *variances;
   
-  int                      pp_frame_has_chroma;
+  unsigned char       *pp_frame_data;
+  
+  int                  pp_frame_has_chroma;
   
   th_ycbcr_buffer      pp_frame_buf;
   

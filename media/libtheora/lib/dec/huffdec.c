@@ -31,6 +31,52 @@
 
 
 
+static int theorapackB_look(oggpack_buffer *_b,int _bits,long *_ret){
+  long ret;
+  long m;
+  long d;
+  m=32-_bits;
+  _bits+=_b->endbit;
+  d=_b->storage-_b->endbyte;
+  if(d<=4){
+    
+    if(d<=0){
+      *_ret=0L;
+      return -(_bits>d*8);
+    }
+    
+    if(d*8<_bits)_bits=d*8;
+  }
+  ret=_b->ptr[0]<<24+_b->endbit;
+  if(_bits>8){
+    ret|=_b->ptr[1]<<16+_b->endbit;
+    if(_bits>16){
+      ret|=_b->ptr[2]<<8+_b->endbit;
+      if(_bits>24){
+        ret|=_b->ptr[3]<<_b->endbit;
+        if(_bits>32)ret|=_b->ptr[4]>>8-_b->endbit;
+      }
+    }
+  }
+  *_ret=((ret&0xFFFFFFFF)>>(m>>1))>>(m+1>>1);
+  return 0;
+}
+
+
+static void theorapackB_adv(oggpack_buffer *_b,int _bits){
+  _bits+=_b->endbit;
+  _b->ptr+=_bits>>3;
+  _b->endbyte+=_bits>>3;
+  _b->endbit=_bits&7;
+}
+
+
+
+
+
+
+
+
 
 
 

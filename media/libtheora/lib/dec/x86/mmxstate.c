@@ -19,6 +19,7 @@
 
 #include "x86int.h"
 #include "../../internal.h"
+#include <stddef.h>
 
 #if defined(USE_ASM)
 
@@ -182,9 +183,9 @@ void oc_state_frag_copy_mmx(const oc_theora_state *_state,const int *_fragis,
   const int *fragi;
   const int *fragi_end;
   int        dst_framei;
-  long       dst_ystride;
+  ptrdiff_t  dst_ystride;
   int        src_framei;
-  long       src_ystride;
+  ptrdiff_t  src_ystride;
   dst_framei=_state->ref_frame_idx[_dst_frame];
   src_framei=_state->ref_frame_idx[_src_frame];
   dst_ystride=_state->ref_frame_bufs[dst_framei][_pli].stride;
@@ -194,7 +195,7 @@ void oc_state_frag_copy_mmx(const oc_theora_state *_state,const int *_fragis,
     oc_fragment   *frag;
     unsigned char *dst;
     unsigned char *src;
-    long           esi;
+    ptrdiff_t      s;
     frag=_state->frags+*fragi;
     dst=frag->buffer[dst_framei];
     src=frag->buffer[src_framei];
@@ -243,7 +244,7 @@ void oc_state_frag_copy_mmx(const oc_theora_state *_state,const int *_fragis,
       "movq %%mm2,(%[dst],%[dst_ystride],2)\n\t"
       
       "movq %%mm3,(%[dst],%[s])\n\t"
-      :[s]"=&S"(esi)
+      :[s]"=&r"(s)
       :[dst]"r"(dst),[src]"r"(src),[dst_ystride]"r"(dst_ystride),
        [src_ystride]"r"(src_ystride)
       :"memory"
@@ -255,7 +256,7 @@ void oc_state_frag_copy_mmx(const oc_theora_state *_state,const int *_fragis,
 
 static void loop_filter_v(unsigned char *_pix,int _ystride,
  const ogg_int16_t *_ll){
-  long esi;
+  ptrdiff_t s;
   _pix-=_ystride*2;
   __asm__ __volatile__(
     
@@ -427,8 +428,8 @@ static void loop_filter_v(unsigned char *_pix,int _ystride,
     
     "movq %%mm4,(%[pix],%[ystride])\n\t"
     "movq %%mm1,(%[pix],%[ystride],2)\n\t"
-    :[s]"=&S"(esi)
-    :[pix]"r"(_pix),[ystride]"r"((long)_ystride),[ll]"r"(_ll)
+    :[s]"=&r"(s)
+    :[pix]"r"(_pix),[ystride]"r"((ptrdiff_t)_ystride),[ll]"r"(_ll)
     :"memory"
   );
 }
@@ -437,10 +438,12 @@ static void loop_filter_v(unsigned char *_pix,int _ystride,
 
 
 
-static void loop_filter_h4(unsigned char *_pix,long _ystride,
+static void loop_filter_h4(unsigned char *_pix,ptrdiff_t _ystride,
  const ogg_int16_t *_ll){
-  long esi;
-  long edi;
+  ptrdiff_t s;
+  
+
+  ptrdiff_t d;
   __asm__ __volatile__(
     
     "movd (%[pix]),%%mm0\n\t"
@@ -558,18 +561,18 @@ static void loop_filter_h4(unsigned char *_pix,long _ystride,
     
     "punpcklbw %%mm4,%%mm5\n\t"
     
-    "movd %%mm5,%%edi\n\t"
-    "movw %%di,1(%[pix])\n\t"
+    "movd %%mm5,%[d]\n\t"
+    "movw %w[d],1(%[pix])\n\t"
     
     "psrlq $32,%%mm5\n\t"
-    "shrl $16,%%edi\n\t"
-    "movw %%di,1(%[pix],%[ystride])\n\t"
+    "shr $16,%[d]\n\t"
+    "movw %w[d],1(%[pix],%[ystride])\n\t"
     
-    "movd %%mm5,%%edi\n\t"
-    "movw %%di,1(%[pix],%[ystride],2)\n\t"
-    "shrl $16,%%edi\n\t"
-    "movw %%di,1(%[pix],%[s])\n\t"
-    :[s]"=&S"(esi),[d]"=&D"(edi),
+    "movd %%mm5,%[d]\n\t"
+    "movw %w[d],1(%[pix],%[ystride],2)\n\t"
+    "shr $16,%[d]\n\t"
+    "movw %w[d],1(%[pix],%[s])\n\t"
+    :[s]"=&r"(s),[d]"=&r"(d),
      [pix]"+r"(_pix),[ystride]"+r"(_ystride),[ll]"+r"(_ll)
     :
     :"memory"

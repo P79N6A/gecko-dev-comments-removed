@@ -28,26 +28,13 @@
 # include "dec/quant.h"
 
 
-#if defined(_MSC_VER) && _MSC_VER < 1400
-static const dframe = 0;
-static void TH_DEBUG(const char *fmt, ...) {}
-#elif defined(_TH_DEBUG_)
-#include <stdio.h>
-extern long dframe;
-extern FILE *debugout;
-#define TH_DEBUG(...) fprintf(debugout, __VA_ARGS__)
-#else
-#define TH_DEBUG(...)
-#endif
-
-
 # if defined(_MSC_VER)
 #  pragma warning(disable:4554) /* order of operations */
 #  pragma warning(disable:4799) /* disable missing EMMS warnings */
 # endif
 
 
-# define OC_VENDOR_STRING "Xiph.Org libTheora I 20071025 3 2 1"
+# define OC_VENDOR_STRING "Xiph.Org libTheora I 20081020 3 2 1"
 
 
 # define TH_VERSION_MAJOR (3)
@@ -225,9 +212,13 @@ typedef struct{
   
   unsigned        qi:6;
   
-  int             mbmode:8;
+
+
+  signed int      mbmode:8;
   
-  int             dc:16;
+
+
+  signed int      dc:16;
   
 
 
@@ -241,14 +232,6 @@ typedef struct{
   oc_border_info *border;
   
   oc_mv           mv;
-
-#ifdef _TH_DEBUG_
-  int quant[64];
-  int freq[64];
-  int time[64];
-  int recon[64];
-  int loop[64];
-#endif
 }oc_fragment;
 
 
@@ -299,77 +282,77 @@ typedef struct{
 
 struct oc_theora_state{
   
-  th_info           info;
+  th_info             info;
   
-  oc_base_opt_vtable    opt_vtable;
+  oc_base_opt_vtable  opt_vtable;
   
-  ogg_uint32_t          cpu_flags;
+  ogg_uint32_t        cpu_flags;
   
-  oc_fragment_plane     fplanes[3];
+  oc_fragment_plane   fplanes[3];
   
-  int                   nfrags;
+  int                 nfrags;
   
-  oc_fragment          *frags;
+  oc_fragment        *frags;
   
-  int                   nsbs;
+  int                 nsbs;
   
-  oc_sb                *sbs;
+  oc_sb              *sbs;
   
-  int                   nhmbs;
+  int                 nhmbs;
   
-  int                   nvmbs;
+  int                 nvmbs;
   
-  int                   nmbs;
-  
-
-
-  oc_mb                *mbs;
-  
-  int                  *coded_fragis;
-  
-  int                   ncoded_fragis[3];
+  int                 nmbs;
   
 
 
-  int                  *uncoded_fragis;
+  oc_mb              *mbs;
   
-  int                   nuncoded_fragis[3];
+  int                *coded_fragis;
   
-  int                  *coded_mbis;
-  
-  int                   ncoded_mbis;
+  int                 ncoded_fragis[3];
   
 
 
-  th_ycbcr_buffer   input;
+  int                *uncoded_fragis;
   
-  int                   nborders;
+  int                 nuncoded_fragis[3];
+  
+  int                *coded_mbis;
+  
+  int                 ncoded_mbis;
   
 
-  oc_border_info        borders[16];
+
+  th_ycbcr_buffer     input;
   
-  int                   ref_frame_idx[3];
+  int                 nborders;
   
-  th_ycbcr_buffer   ref_frame_bufs[3];
+
+  oc_border_info      borders[16];
   
-  unsigned char        *ref_frame_data;
+  int                 ref_frame_idx[3];
   
-  ogg_int64_t           keyframe_num;
+  th_ycbcr_buffer     ref_frame_bufs[3];
   
-  ogg_int64_t           curframe_num;
+  unsigned char      *ref_frame_data;
   
-  ogg_int64_t           granpos;
+  ogg_int64_t         keyframe_num;
   
-  int                   frame_type;
+  ogg_int64_t         curframe_num;
   
-  int                   qis[3];
+  ogg_int64_t         granpos;
   
-  int                   nqis;
+  int                 frame_type;
   
-  oc_quant_table       *dequant_tables[2][3];
-  oc_quant_tables       dequant_table_data[2][3];
+  int                 qis[3];
   
-  unsigned char         loop_filter_limits[64];
+  int                 nqis;
+  
+  oc_quant_table     *dequant_tables[2][3];
+  oc_quant_tables     dequant_table_data[2][3];
+  
+  unsigned char       loop_filter_limits[64];
 };
 
 

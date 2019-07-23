@@ -20,6 +20,7 @@
 
 #if !defined(_O_THEORA_THEORADEC_H_)
 # define _O_THEORA_THEORADEC_H_ (1)
+# include <stddef.h>
 # include <ogg/ogg.h>
 # include "codec.h"
 
@@ -212,6 +213,22 @@ typedef struct th_setup_info th_setup_info;
 
 extern int th_decode_headerin(th_info *_info,th_comment *_tc,
  th_setup_info **_setup,ogg_packet *_op);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

@@ -56,25 +56,25 @@
 #define PACKAGE_NAME "libtheora"
 
 
-#define PACKAGE_STRING "libtheora 1.0beta3"
+#define PACKAGE_STRING "libtheora 1.0"
 
 
 #define PACKAGE_TARNAME "libtheora"
 
 
-#define PACKAGE_VERSION "1.0beta3"
+#define PACKAGE_VERSION "1.0"
 
 
 #define STDC_HEADERS 1
 
 
+
+
+
+
+
+
  
 
 
-
-
-
- 
-
-
-#define VERSION "1.0beta3"
+#define VERSION "1.0"

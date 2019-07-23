@@ -178,7 +178,6 @@ static void idct8_3(ogg_int16_t *_y,const ogg_int16_t _x[8]){
 
 
 
-
 static void idct8_2(ogg_int16_t *_y,const ogg_int16_t _x[8]){
   ogg_int32_t t[8];
   ogg_int32_t r;
@@ -203,7 +202,6 @@ static void idct8_2(ogg_int16_t *_y,const ogg_int16_t _x[8]){
   _y[6<<3]=(ogg_int16_t)(t[0]-t[6]);
   _y[7<<3]=(ogg_int16_t)(t[0]-t[7]);
 }
-
 
 
 
