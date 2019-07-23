@@ -75,15 +75,14 @@ nsSVGGraphicElement::nsSVGGraphicElement(nsINodeInfo *aNodeInfo)
 
 NS_IMETHODIMP nsSVGGraphicElement::GetNearestViewportElement(nsIDOMSVGElement * *aNearestViewportElement)
 {
-  *aNearestViewportElement = nsSVGUtils::GetNearestViewportElement(this).get();
-  return NS_OK;
+  nsSVGUtils::GetNearestViewportElement(this, aNearestViewportElement);
+  return NS_OK; 
 }
 
 
 NS_IMETHODIMP nsSVGGraphicElement::GetFarthestViewportElement(nsIDOMSVGElement * *aFarthestViewportElement)
 {
-  *aFarthestViewportElement = nsSVGUtils::GetFarthestViewportElement(this).get();
-  return NS_OK;
+  return nsSVGUtils::GetFarthestViewportElement(this, aFarthestViewportElement);
 }
 
 
@@ -104,19 +103,40 @@ NS_IMETHODIMP nsSVGGraphicElement::GetBBox(nsIDOMSVGRect **_retval)
 }
 
 
+nsresult
+nsSVGGraphicElement::AppendTransform(nsIDOMSVGMatrix *aCTM,
+                                     nsIDOMSVGMatrix **_retval)
+{
+  if (!mTransforms) {
+    *_retval = aCTM;
+    NS_ADDREF(*_retval);
+    return NS_OK;
+  }
+
+  
+  nsCOMPtr<nsIDOMSVGTransformList> transforms;
+  mTransforms->GetAnimVal(getter_AddRefs(transforms));
+  NS_ENSURE_TRUE(transforms, NS_ERROR_FAILURE);
+  nsCOMPtr<nsIDOMSVGMatrix> matrix =
+    nsSVGTransformList::GetConsolidationMatrix(transforms);
+  if (!matrix) {
+    *_retval = aCTM;
+    NS_ADDREF(*_retval);
+    return NS_OK;
+  }
+  return aCTM->Multiply(matrix, _retval);  
+}
+
+
 NS_IMETHODIMP nsSVGGraphicElement::GetCTM(nsIDOMSVGMatrix * *aCTM)
 {
-  gfxMatrix m = nsSVGUtils::GetCTM(this, PR_FALSE);
-  *aCTM = m.IsSingular() ? nsnull : NS_NewSVGMatrix(m).get();
-  return NS_OK;
+  return nsSVGUtils::GetCTM(this, aCTM);
 }
 
 
 NS_IMETHODIMP nsSVGGraphicElement::GetScreenCTM(nsIDOMSVGMatrix * *aCTM)
 {
-  gfxMatrix m = nsSVGUtils::GetCTM(this, PR_TRUE);
-  *aCTM = m.IsSingular() ? nsnull : NS_NewSVGMatrix(m).get();
-  return NS_OK;
+  return nsSVGUtils::GetScreenCTM(this, aCTM);
 }
 
 

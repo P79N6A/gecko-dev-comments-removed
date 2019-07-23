@@ -54,7 +54,6 @@
 #include "gfxContext.h"
 #include "gfxPlatform.h"
 #include "gfxPattern.h"
-#include "gfxMatrix.h"
 
 
 
@@ -198,19 +197,16 @@ nsSVGPatternFrame::PaintPattern(gfxASurface** surface,
   
   nsSVGElement *callerContent;
   gfxRect callerBBox;
-  gfxMatrix callerCTM;
-  if (NS_FAILED(GetTargetGeometry(&callerCTM,
+  nsCOMPtr<nsIDOMSVGMatrix> callerCTM;
+  if (NS_FAILED(GetTargetGeometry(getter_AddRefs(callerCTM),
                                   &callerBBox,
                                   &callerContent, aSource)))
     return NS_ERROR_FAILURE;
 
   
   
-  gfxMatrix ctm = ConstructCTM(callerBBox, callerCTM);
-  if (ctm.IsSingular()) {
+  if (NS_FAILED(ConstructCTM(getter_AddRefs(mCTM), callerBBox, callerCTM)))
     return NS_ERROR_FAILURE;
-  }
-  mCTM = NS_NewSVGMatrix(ctm).get();
 
   
   
@@ -478,7 +474,7 @@ nsSVGPatternFrame::GetPatternWithAttr(nsIAtom *aAttrName, nsIContent *aDefault)
 
 gfxRect
 nsSVGPatternFrame::GetPatternRect(const gfxRect &aTargetBBox,
-                                  const gfxMatrix &aTargetCTM,
+                                  nsIDOMSVGMatrix *aTargetCTM,
                                   nsSVGElement *aTarget)
 {
   
@@ -516,42 +512,52 @@ GetLengthValue(const nsSVGLength2 *aLength)
   return aLength->GetAnimValue(static_cast<nsSVGSVGElement*>(nsnull));
 }
 
-gfxMatrix
-nsSVGPatternFrame::ConstructCTM(const gfxRect &callerBBox,
-                                const gfxMatrix &callerCTM)
+nsresult
+nsSVGPatternFrame::ConstructCTM(nsIDOMSVGMatrix **aCTM,
+                                const gfxRect &callerBBox,
+                                nsIDOMSVGMatrix *callerCTM)
 {
-  gfxMatrix tCTM;
+  nsCOMPtr<nsIDOMSVGMatrix> tCTM, tempTM;
 
   
-  if (GetPatternContentUnits() ==
-      nsIDOMSVGUnitTypes::SVG_UNIT_TYPE_OBJECTBOUNDINGBOX) {
-    tCTM.Scale(callerBBox.Width(), callerBBox.Height());
+  
+  PRUint16 type = GetPatternContentUnits();
+
+  if (type == nsIDOMSVGUnitTypes::SVG_UNIT_TYPE_OBJECTBOUNDINGBOX) {
+    NS_NewSVGMatrix(getter_AddRefs(tCTM), callerBBox.Width(), 0.0f, 0.0f,
+                    callerBBox.Height(), 0.0f, 0.0f);
   } else {
     float scale = nsSVGUtils::MaxExpansion(callerCTM);
-    tCTM.Scale(scale, scale);
+    NS_NewSVGMatrix(getter_AddRefs(tCTM), scale, 0, 0, scale, 0, 0);
   }
 
-  gfxMatrix viewBoxTM;
   const nsSVGViewBoxRect viewBox = GetViewBox().GetAnimValue();
 
   if (viewBox.height > 0.0f && viewBox.width > 0.0f) {
+
     float viewportWidth = GetLengthValue(GetWidth());
     float viewportHeight = GetLengthValue(GetHeight());
     float refX = GetLengthValue(GetX());
     float refY = GetLengthValue(GetY());
-    viewBoxTM = nsSVGUtils::GetViewBoxTransform(viewportWidth, viewportHeight,
-                                                viewBox.x + refX, viewBox.y + refY,
-                                                viewBox.width, viewBox.height,
-                                                GetPreserveAspectRatio(),
-                                                PR_TRUE);
+
+    tempTM = nsSVGUtils::GetViewBoxTransform(viewportWidth, viewportHeight,
+                                             viewBox.x + refX, viewBox.y + refY,
+                                             viewBox.width, viewBox.height,
+                                             GetPreserveAspectRatio(),
+                                             PR_TRUE);
+
+  } else {
+    
+    NS_NewSVGMatrix(getter_AddRefs(tempTM));
   }
-  return viewBoxTM * tCTM;
+  tCTM->Multiply(tempTM, aCTM);
+  return NS_OK;
 }
 
 gfxMatrix
 nsSVGPatternFrame::GetPatternMatrix(const gfxRect &bbox,
                                     const gfxRect &callerBBox,
-                                    const gfxMatrix &callerCTM)
+                                    nsIDOMSVGMatrix *callerCTM)
 {
   
   gfxMatrix patternTransform = GetPatternTransform();
@@ -574,11 +580,12 @@ nsSVGPatternFrame::GetPatternMatrix(const gfxRect &bbox,
 }
 
 nsresult
-nsSVGPatternFrame::GetTargetGeometry(gfxMatrix *aCTM,
+nsSVGPatternFrame::GetTargetGeometry(nsIDOMSVGMatrix **aCTM,
                                      gfxRect *aBBox,
                                      nsSVGElement **aTargetContent,
                                      nsSVGGeometryFrame *aTarget)
 {
+  *aCTM = nsnull;
   *aTargetContent = nsnull;
 
   
@@ -611,7 +618,7 @@ nsSVGPatternFrame::GetTargetGeometry(gfxMatrix *aCTM,
   }
 
   
-  *aCTM = aTarget->GetCanvasTM();
+  *aCTM = NS_NewSVGMatrix(aTarget->GetCanvasTM()).get();
 
   
   

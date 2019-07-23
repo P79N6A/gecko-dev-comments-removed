@@ -746,16 +746,15 @@ nsSVGSVGElement::GetPreserveAspectRatio(nsIDOMSVGAnimatedPreserveAspectRatio
 NS_IMETHODIMP
 nsSVGSVGElement::GetNearestViewportElement(nsIDOMSVGElement * *aNearestViewportElement)
 {
-  *aNearestViewportElement = nsSVGUtils::GetNearestViewportElement(this).get();
-  return NS_OK;
+  nsSVGUtils::GetNearestViewportElement(this, aNearestViewportElement);
+  return NS_OK; 
 }
 
 
 NS_IMETHODIMP
 nsSVGSVGElement::GetFarthestViewportElement(nsIDOMSVGElement * *aFarthestViewportElement)
 {
-  *aFarthestViewportElement = nsSVGUtils::GetFarthestViewportElement(this).get();
-  return NS_OK;
+  return nsSVGUtils::GetFarthestViewportElement(this, aFarthestViewportElement);
 }
 
 
@@ -776,22 +775,68 @@ nsSVGSVGElement::GetBBox(nsIDOMSVGRect **_retval)
   return NS_ERROR_NOT_IMPLEMENTED; 
 }
 
+nsresult
+nsSVGSVGElement::AppendTransform(nsIDOMSVGMatrix *aCTM,
+                                 nsIDOMSVGMatrix **_retval)
+{
+  nsresult rv;
+
+  
+
+  float s=1, x=0, y=0;
+  nsIContent *ancestor = nsSVGUtils::GetParentElement(this);
+  if (ancestor && ancestor->GetNameSpaceID() == kNameSpaceID_SVG &&
+                  ancestor->Tag() == nsGkAtoms::foreignObject) {
+    
+    
+  } else {
+    nsCOMPtr<nsIDOMSVGElement> nearestViewportElement;
+    rv = nsSVGUtils::GetNearestViewportElement(this, getter_AddRefs(nearestViewportElement));
+    if (NS_FAILED(rv)) return rv;
+
+    if (!nearestViewportElement) {
+      if (IsRoot()) {
+        
+        s = mCurrentScale;
+        x = mCurrentTranslate.GetX();
+        y = mCurrentTranslate.GetY();
+      } else {
+        
+        GetOffsetToAncestor(nsnull, x, y);
+      }
+    } else {
+      
+      GetAnimatedLengthValues(&x, &y, nsnull);
+    }
+  }
+
+  nsCOMPtr<nsIDOMSVGMatrix> local;
+  rv = NS_NewSVGMatrix(getter_AddRefs(local), s, 0, 0, s, x, y);
+  if (NS_FAILED(rv)) return rv;
+
+  
+
+  nsCOMPtr<nsIDOMSVGMatrix> viewbox;
+  rv = GetViewboxToViewportTransform(getter_AddRefs(viewbox));
+  if (NS_FAILED(rv)) return rv;
+  nsCOMPtr<nsIDOMSVGMatrix> tmp;
+  rv = local->Multiply(viewbox, getter_AddRefs(tmp)); 
+  if (NS_FAILED(rv)) return rv;
+  return aCTM->Multiply(tmp, _retval); 
+}
+
 
 NS_IMETHODIMP
 nsSVGSVGElement::GetCTM(nsIDOMSVGMatrix * *aCTM)
 {
-  gfxMatrix m = nsSVGUtils::GetCTM(this, PR_FALSE);
-  *aCTM = m.IsSingular() ? nsnull : NS_NewSVGMatrix(m).get();
-  return NS_OK;
+  return nsSVGUtils::GetCTM(this, aCTM);
 }
 
 
 NS_IMETHODIMP
 nsSVGSVGElement::GetScreenCTM(nsIDOMSVGMatrix **aCTM)
 {
-  gfxMatrix m = nsSVGUtils::GetCTM(this, PR_TRUE);
-  *aCTM = m.IsSingular() ? nsnull : NS_NewSVGMatrix(m).get();
-  return NS_OK;
+  return nsSVGUtils::GetScreenCTM(this, aCTM);
 }
 
 
@@ -982,36 +1027,43 @@ nsSVGSVGElement::IsEventName(nsIAtom* aName)
 
 
 
-gfxMatrix
-nsSVGSVGElement::GetViewBoxTransform()
+nsresult
+nsSVGSVGElement::GetViewboxToViewportTransform(nsIDOMSVGMatrix **_retval)
 {
+  *_retval = nsnull;
+
   float viewportWidth, viewportHeight;
-  if (nsSVGUtils::IsInnerSVG(this)) {
-    nsSVGSVGElement *ctx = GetCtx();
-    viewportWidth = mLengthAttributes[WIDTH].GetAnimValue(ctx);
-    viewportHeight = mLengthAttributes[HEIGHT].GetAnimValue(ctx);
-  } else {
+  nsSVGSVGElement *ctx = GetCtx();
+  if (!ctx) {
+    
     viewportWidth = mViewportWidth;
     viewportHeight = mViewportHeight;
-  }
-
-  nsSVGViewBoxRect viewBox;
-  if (mViewBox.IsValid()) {
-    viewBox = mViewBox.GetAnimValue();
   } else {
-    viewBox.x = viewBox.y = 0.0f;
-    viewBox.width  = viewportWidth;
-    viewBox.height = viewportHeight;
+    viewportWidth = mLengthAttributes[WIDTH].GetAnimValue(ctx);
+    viewportHeight = mLengthAttributes[HEIGHT].GetAnimValue(ctx);
   }
 
-  if (viewBox.width <= 0.0f || viewBox.height <= 0.0f) {
-    return gfxMatrix(0.0, 0.0, 0.0, 0.0, 0.0, 0.0); 
+  nsSVGViewBoxRect viewbox;
+  if (mViewBox.IsValid()) {
+    viewbox = mViewBox.GetAnimValue();
+  } else {
+    viewbox.x = viewbox.y = 0.0f;
+    viewbox.width  = viewportWidth;
+    viewbox.height = viewportHeight;
   }
 
-  return nsSVGUtils::GetViewBoxTransform(viewportWidth, viewportHeight,
-                                         viewBox.x, viewBox.y,
-                                         viewBox.width, viewBox.height,
-                                         mPreserveAspectRatio);
+  if (viewbox.width <= 0.0f || viewbox.height <= 0.0f) {
+    return NS_ERROR_FAILURE; 
+  }
+
+  nsCOMPtr<nsIDOMSVGMatrix> xform =
+    nsSVGUtils::GetViewBoxTransform(viewportWidth, viewportHeight,
+                                    viewbox.x, viewbox.y,
+                                    viewbox.width, viewbox.height,
+                                    mPreserveAspectRatio);
+  xform.swap(*_retval);
+
+  return NS_OK;
 }
 
 #ifdef MOZ_SMIL
@@ -1071,6 +1123,43 @@ nsSVGSVGElement::UnbindFromTree(PRBool aDeep, PRBool aNullParent)
 
 
 
+
+
+void nsSVGSVGElement::GetOffsetToAncestor(nsIContent* ancestor,
+                                          float &x, float &y)
+{
+  x = 0.0f;
+  y = 0.0f;
+
+  nsIDocument *document = GetCurrentDoc();
+  if (!document) return;
+
+  
+  
+  
+  document->FlushPendingNotifications(Flush_Layout);
+  
+  nsIPresShell *presShell = document->GetPrimaryShell();
+  if (!presShell) {
+    return;
+  }
+
+  nsPresContext *context = presShell->GetPresContext();
+  if (!context) {
+    return;
+  }
+
+  nsIFrame* frame = presShell->GetPrimaryFrameFor(this);
+  nsIFrame* ancestorFrame = ancestor ?
+                            presShell->GetPrimaryFrameFor(ancestor) :
+                            presShell->GetRootFrame();
+
+  if (frame && ancestorFrame) {
+    nsPoint point = frame->GetOffsetTo(ancestorFrame);
+    x = nsPresContext::AppUnitsToFloatCSSPixels(point.x);
+    y = nsPresContext::AppUnitsToFloatCSSPixels(point.y);
+  }
+}
 
 #ifdef MOZ_SMIL
 PRBool
@@ -1172,21 +1261,19 @@ nsSVGSVGElement::GetMMPerPx(PRUint8 aCtxType)
  gfxMatrix
 nsSVGSVGElement::PrependLocalTransformTo(const gfxMatrix &aMatrix)
 {
-  if (nsSVGUtils::IsInnerSVG(this)) {
-    float x, y;
-    GetAnimatedLengthValues(&x, &y, nsnull);
-    return GetViewBoxTransform() * gfxMatrix().Translate(gfxPoint(x, y)) * aMatrix;
-  }
+  NS_ASSERTION(GetCtx(), "Should not be called on outer-<svg>");
 
-  if (IsRoot()) {
-    gfxMatrix zoomPanTM;
-    zoomPanTM.Translate(gfxPoint(mCurrentTranslate.GetX(), mCurrentTranslate.GetY()));
-    zoomPanTM.Scale(mCurrentScale, mCurrentScale);
-    return GetViewBoxTransform() * zoomPanTM * aMatrix;
-  }
+  float x, y;
+  GetAnimatedLengthValues(&x, &y, nsnull);
+  gfxMatrix matrix = aMatrix;
+  matrix.PreMultiply(gfxMatrix().Translate(gfxPoint(x, y)));
 
-  
-  return GetViewBoxTransform() * aMatrix;
+  nsCOMPtr<nsIDOMSVGMatrix> viewBoxTM;
+  nsresult res = GetViewboxToViewportTransform(getter_AddRefs(viewBoxTM));
+  if (NS_FAILED(res)) {
+    return gfxMatrix(0.0, 0.0, 0.0, 0.0, 0.0, 0.0); 
+  }
+  return matrix.PreMultiply(nsSVGUtils::ConvertSVGMatrixToThebes(viewBoxTM));
 }
 
 void
