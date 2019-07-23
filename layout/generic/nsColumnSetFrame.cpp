@@ -457,7 +457,6 @@ nsColumnSetFrame::ReflowChildren(nsHTMLReflowMetrics&     aDesiredSize,
     
     
     PRBool skipResizeHeightShrink = shrinkingHeightOnly
-      && !(child->GetStateBits() & NS_FRAME_IS_DIRTY)
       && child->GetOverflowRect().YMost() <= aConfig.mColMaxHeight;
     if (!reflowNext && (skipIncremental || skipResizeHeightShrink)) {
       

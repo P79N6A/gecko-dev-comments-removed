@@ -1955,14 +1955,33 @@ nsBlockFrame::ReflowDirtyLines(nsBlockReflowState& aState)
   
   
   
+  PRBool skipPull = PR_FALSE;
   if (aState.mNextInFlow &&
       (aState.mReflowState.mFlags.mNextInFlowUntouched &&
        !lastLineMovedUp && 
        !(GetStateBits() & NS_FRAME_IS_DIRTY) &&
        !reflowedFloat)) {
-    NS_FRAME_SET_INCOMPLETE(aState.mReflowStatus);
+    
+    
+    
+    
+    
+    line_iterator lineIter = this->end_lines();
+    if (lineIter != this->begin_lines()) {
+      lineIter--; 
+      nsBlockInFlowLineIterator bifLineIter(this, lineIter, PR_FALSE);
+
+      
+      
+      if (!bifLineIter.Next() ||                
+          !bifLineIter.GetLine()->IsDirty()) {
+        NS_FRAME_SET_INCOMPLETE(aState.mReflowStatus);
+        skipPull=PR_TRUE;
+      }
+    }
   }
-  else if (aState.mNextInFlow) {
+  
+  if (!skipPull && aState.mNextInFlow) {
     
     
     while (keepGoing && (nsnull != aState.mNextInFlow)) {
