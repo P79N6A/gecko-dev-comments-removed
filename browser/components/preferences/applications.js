@@ -960,14 +960,6 @@ var gApplicationsPane = {
         continue;
 
       
-      
-      
-      
-      if (handlerInfo.alwaysAskBeforeHandling &&
-          handlerInfo.type != TYPE_MAYBE_FEED)
-        continue;
-
-      
       if (this._filter.value && !this._matchesFilter(handlerInfo))
         continue;
 
@@ -999,10 +991,13 @@ var gApplicationsPane = {
     
     
     
-    
-    if (aHandlerInfo.alwaysAskBeforeHandling)
-      return this._prefsBundle.getFormattedString("previewInApp",
-                                                  [this._brandShortName]);
+    if (aHandlerInfo.alwaysAskBeforeHandling) {
+      if (aHandlerInfo.type == TYPE_MAYBE_FEED)
+        return this._prefsBundle.getFormattedString("previewInApp",
+                                                    [this._brandShortName]);
+      else
+        return this._prefsBundle.getString("alwaysAsk");
+    }
 
     switch (aHandlerInfo.preferredAction) {
       case Ci.nsIHandlerInfo.saveToDisk:
@@ -1103,19 +1098,25 @@ var gApplicationsPane = {
     while (menuPopup.hasChildNodes())
       menuPopup.removeChild(menuPopup.lastChild);
 
-    
-    if (handlerInfo.type == TYPE_MAYBE_FEED) {
+    {
       var askMenuItem = document.createElementNS(kXULNS, "menuitem");
       askMenuItem.setAttribute("alwaysAsk", "true");
-      let label = this._prefsBundle.getFormattedString("previewInApp",
-                                                       [this._brandShortName]);
+      let label;
+      if (handlerInfo.type == TYPE_MAYBE_FEED)
+        label = this._prefsBundle.getFormattedString("previewInApp",
+                                                     [this._brandShortName]);
+      else
+        label = this._prefsBundle.getString("alwaysAsk");
       askMenuItem.setAttribute("label", label);
       menuPopup.appendChild(askMenuItem);
+    }
 
+    
+    if (handlerInfo.type == TYPE_MAYBE_FEED) {
       var internalMenuItem = document.createElementNS(kXULNS, "menuitem");
       internalMenuItem.setAttribute("action", Ci.nsIHandlerInfo.handleInternally);
-      label = this._prefsBundle.getFormattedString("liveBookmarksInApp",
-                                                   [this._brandShortName]);
+      let label = this._prefsBundle.getFormattedString("liveBookmarksInApp",
+                                                       [this._brandShortName]);
       internalMenuItem.setAttribute("label", label);
       internalMenuItem.setAttribute("image", ICON_URL_LIVEMARK);
       menuPopup.appendChild(internalMenuItem);
