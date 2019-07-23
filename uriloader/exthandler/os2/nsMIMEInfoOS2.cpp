@@ -40,6 +40,7 @@
 
 
 #include "nsMIMEInfoOS2.h"
+#include "nsOSHelperAppService.h"
 #include "nsExternalHelperAppService.h"
 #include "nsCExternalHandlerService.h"
 #include "nsReadableUtils.h"
@@ -151,18 +152,15 @@ NS_IMETHODIMP nsMIMEInfoOS2::LaunchWithURI(nsIURI* aURI,
   return process->Run(PR_FALSE, &strPath, 1, &pid);
 }
 
-nsresult nsMIMEInfoOS2::LoadUriInternal(nsIURI * aURL)
+nsresult nsMIMEInfoOS2::LoadUriInternal(nsIURI* aURL)
 {
-
-#warning nsMIMEInfoOS2::LoadUriInternal is dysfunctional!
-
-  nsCOMPtr<nsIPref> thePrefsService(do_GetService(NS_PREF_CONTRACTID));
+  nsresult rv;
+  nsCOMPtr<nsIPrefService> thePrefsService(do_GetService(NS_PREFSERVICE_CONTRACTID, &rv));
   if (!thePrefsService) {
     return NS_ERROR_FAILURE;
   }
 
   
-  nsresult rv;
   nsCOMPtr<nsIURI> uri = do_CreateInstance(NS_STANDARDURL_CONTRACTID, &rv);
   if (NS_FAILED(rv)) {
     return NS_ERROR_FAILURE;
@@ -177,20 +175,24 @@ nsresult nsMIMEInfoOS2::LoadUriInternal(nsIURI * aURL)
 
   nsCAutoString prefName;
   prefName = NS_LITERAL_CSTRING("applications.") + uProtocol;
+
+  nsCOMPtr<nsIPrefBranch> prefBranch;
+  rv = thePrefsService->GetBranch(prefName.get(), getter_AddRefs(prefBranch));
   nsXPIDLCString prefString;
+  if (NS_SUCCEEDED(rv)) {
+    rv = prefBranch->GetCharPref(prefName.get(), getter_Copies(prefString));
+  }
 
   nsCAutoString applicationName;
   nsCAutoString parameters;
 
-  rv = thePrefsService->CopyCharPref(prefName.get(), getter_Copies(prefString));
   if (NS_FAILED(rv) || prefString.IsEmpty()) {
     char szAppFromINI[CCHMAXPATH];
     char szParamsFromINI[MAXINIPARAMLENGTH];
     
-
-
-
-
+    rv = GetApplicationAndParametersFromINI(uProtocol,
+                                            szAppFromINI, sizeof(szAppFromINI),
+                                            szParamsFromINI, sizeof(szParamsFromINI));
     if (NS_SUCCEEDED(rv)) {
       applicationName = szAppFromINI;
       parameters = szParamsFromINI;
