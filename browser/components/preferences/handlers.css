@@ -47,20 +47,7 @@ richlistitem[selected="true"] {
 
 
 
-
-
-.actionsMenu {
-  margin-left: 0;
-}
-
-
-
-
-
-
 .actionsMenu > menupopup > menuitem > .menu-iconic-left {
   display: -moz-box;
   min-width: 16px;
-  -moz-padding-start: 2px;
-  -moz-padding-end: 2px;
 }

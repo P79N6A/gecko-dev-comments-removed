@@ -1,0 +1,76 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+.actionsMenu {
+  margin-top: -1px;
+  margin-bottom: -1px;
+  -moz-margin-start: -1px;
+  -moz-margin-end: 0;
+}
+
+.typeIcon,
+.actionIcon {
+  -moz-margin-start: 3px;
+  -moz-margin-end: 3px;
+}
+
+richlistitem label {
+  -moz-margin-start: 1px;
+  margin-top: 2px;
+}
+
+richlistitem {
+  min-height: 25px;
+}
+
+.actionsMenu .menulist-icon {
+  -moz-margin-end: 1px;
+}
+
+.actionsMenu > menupopup > menuitem > .menu-iconic-left {
+  -moz-padding-start: 0;
+  -moz-padding-end: 4px;
+}
+
+.actionsMenu > menupopup > menuitem {
+  -moz-padding-start: 3px;
+}
