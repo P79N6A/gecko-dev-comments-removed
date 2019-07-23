@@ -924,14 +924,6 @@ public:
 
   PRBool HasPendingInterrupt() { return mHasPendingInterrupt; }
 
-#ifdef MOZ_SMIL
-  
-
-
-
-  void SMILOverrideStyleChanged(nsIContent* aContent);
-#endif 
-
   
 
 

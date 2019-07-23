@@ -3008,8 +3008,7 @@ nsGenericElement::SetSMILOverrideStyleRule(nsICSSStyleRule* aStyleRule,
     if (doc) {
       nsCOMPtr<nsIPresShell> shell = doc->GetPrimaryShell();
       if (shell) {
-        nsPresContext* presContext = shell->GetPresContext();
-        presContext->SMILOverrideStyleChanged(this);
+        shell->RestyleForAnimation(this);
       }
     }
   }
