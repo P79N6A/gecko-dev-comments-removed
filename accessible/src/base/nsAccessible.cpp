@@ -71,7 +71,7 @@
 #include "nsIPresShell.h"
 #include "nsPresContext.h"
 #include "nsIFrame.h"
-#include "nsIViewManager.h"
+#include "nsIView.h"
 #include "nsIDocShellTreeItem.h"
 #include "nsIScrollableFrame.h"
 #include "nsFocusManager.h"
@@ -690,10 +690,6 @@ PRBool nsAccessible::IsVisible(PRBool *aIsOffscreen)
   if (!shell) 
     return PR_FALSE;
 
-  nsIViewManager* viewManager = shell->GetViewManager();
-  if (!viewManager)
-    return PR_FALSE;
-
   nsIFrame *frame = GetFrame();
   if (!frame) {
     return PR_FALSE;
@@ -705,45 +701,24 @@ PRBool nsAccessible::IsVisible(PRBool *aIsOffscreen)
       return PR_FALSE;
   }
 
-  nsPresContext *presContext = shell->GetPresContext();
-  if (!presContext)
-    return PR_FALSE;
-
   
   
   
-  
+  nsSize frameSize = frame->GetSize();
+  nsRectVisibility rectVisibility =
+    shell->GetRectVisibility(frame, nsRect(nsPoint(0,0), frameSize),
+                             nsPresContext::CSSPixelsToAppUnits(kMinPixels));
 
-  nsRect relFrameRect = frame->GetRect();
-  nsIView *containingView = frame->GetViewExternal();
-  if (containingView) {
-    
-    relFrameRect.x = relFrameRect.y = 0;
-  }
-  else {
-    nsPoint frameOffset;
-    frame->GetOffsetFromView(frameOffset, &containingView);
-    if (!containingView)
-      return PR_FALSE;  
-    relFrameRect.x = frameOffset.x;
-    relFrameRect.y = frameOffset.y;
-  }
+  if (frame->GetRect().IsEmpty()) {
+    PRBool isEmpty = PR_TRUE;
 
-  nsRectVisibility rectVisibility;
-  viewManager->GetRectVisibility(containingView, relFrameRect,
-                                 nsPresContext::CSSPixelsToAppUnits(kMinPixels),
-                                 &rectVisibility);
-
-  if (rectVisibility == nsRectVisibility_kZeroAreaRect) {
     nsIAtom *frameType = frame->GetType();
     if (frameType == nsAccessibilityAtoms::textFrame) {
       
       
       nsAutoString renderedText;
       frame->GetRenderedText (&renderedText, nsnull, nsnull, 0, 1);
-      if (!renderedText.IsEmpty()) {
-        rectVisibility = nsRectVisibility_kVisible;
-      }
+      isEmpty = renderedText.IsEmpty();
     }
     else if (frameType == nsAccessibilityAtoms::inlineFrame) {
       
@@ -751,25 +726,16 @@ PRBool nsAccessible::IsVisible(PRBool *aIsOffscreen)
       
       PRInt32 x, y, width, height;
       GetBounds(&x, &y, &width, &height);
-      if (width > 0 && height > 0) {
-        rectVisibility = nsRectVisibility_kVisible;    
-      }
+      isEmpty = width == 0 || height == 0;
+    }
+
+    if (isEmpty && !(frame->GetStateBits() & NS_FRAME_OUT_OF_FLOW)) {
+      
+      
+      return PR_FALSE;
     }
   }
 
-  if (rectVisibility == nsRectVisibility_kZeroAreaRect && frame && 
-      0 == (frame->GetStateBits() & NS_FRAME_OUT_OF_FLOW)) {
-    
-    
-    return PR_FALSE;
-  }
-  
-  
-  
-  
-  
-  
-  
   
   nsCOMPtr<nsIDOMDocument> domDoc;
   mDOMNode->GetOwnerDocument(getter_AddRefs(domDoc));
@@ -778,7 +744,7 @@ PRBool nsAccessible::IsVisible(PRBool *aIsOffscreen)
     return PR_FALSE;
   }
 
-  PRBool isVisible = CheckVisibilityInParentChain(doc, containingView);
+  PRBool isVisible = CheckVisibilityInParentChain(doc, frame->GetClosestView());
   if (isVisible && rectVisibility == nsRectVisibility_kVisible) {
     *aIsOffscreen = PR_FALSE;
   }

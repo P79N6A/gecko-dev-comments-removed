@@ -717,6 +717,9 @@ public:
   NS_IMETHOD ScrollContentIntoView(nsIContent* aContent,
                                    PRIntn      aVPercent,
                                    PRIntn      aHPercent);
+  virtual nsRectVisibility GetRectVisibility(nsIFrame *aFrame,
+                                             const nsRect &aRect, 
+                                             nscoord aMinTwips);
 
   NS_IMETHOD SetIgnoreFrameDestruction(PRBool aIgnore);
   NS_IMETHOD NotifyDestroyingFrame(nsIFrame* aFrame);
@@ -3844,16 +3847,12 @@ PresShell::GoToAnchor(const nsAString& aAnchorName, PRBool aScroll)
     if ((NS_LossyConvertUTF16toASCII(aAnchorName).LowerCaseEqualsLiteral("top")) &&
         (mPresContext->CompatibilityMode() == eCompatibility_NavQuirks)) {
       rv = NS_OK;
+      nsIScrollableFrame* sf = GetRootScrollFrameAsScrollable();
       
       
-      if (aScroll && mViewManager) {
+      if (aScroll && sf) {
         
-        nsIScrollableView* scrollingView;
-        mViewManager->GetRootScrollableView(&scrollingView);
-        if (scrollingView) {
-          
-          scrollingView->ScrollTo(0, 0, 0);
-        }
+        sf->ScrollTo(nsPoint(0, 0), nsIScrollableFrame::INSTANT);
       }
     }
   }
@@ -4170,6 +4169,44 @@ PresShell::DoScrollContentIntoView(nsIContent* aContent,
     frameBounds += closestView->GetPosition();
     closestView = parent;
   }
+}
+
+nsRectVisibility
+PresShell::GetRectVisibility(nsIFrame* aFrame,
+                             const nsRect &aRect, 
+                             nscoord aMinTwips)
+{
+  nsIFrame* rootFrame = FrameManager()->GetRootFrame();
+  NS_ASSERTION(rootFrame,
+               "How can someone have a frame for this presshell when there's no root?");
+  nsIScrollableFrame* sf = GetRootScrollFrameAsScrollable();
+  nsRect scrollPortRect;
+  if (sf) {
+    scrollPortRect = sf->GetScrollPortRect();
+    nsIFrame* f = do_QueryFrame(sf);
+    scrollPortRect += f->GetOffsetTo(rootFrame);
+  } else {
+    scrollPortRect = nsRect(nsPoint(0,0), rootFrame->GetSize());
+  }
+
+  nsRect r = aRect + aFrame->GetOffsetTo(rootFrame);
+  
+  
+  if (scrollPortRect.Contains(r))
+    return nsRectVisibility_kVisible;
+
+  nsRect insetRect = scrollPortRect;
+  insetRect.Deflate(aMinTwips, aMinTwips);
+  if (r.YMost() <= insetRect.y)
+    return nsRectVisibility_kAboveViewport;
+  if (r.y >= insetRect.YMost())
+    return nsRectVisibility_kBelowViewport;
+  if (r.XMost() <= insetRect.x)
+    return nsRectVisibility_kLeftOfViewport;
+  if (r.x >= insetRect.XMost())
+    return nsRectVisibility_kRightOfViewport;
+
+  return nsRectVisibility_kVisible;
 }
 
 

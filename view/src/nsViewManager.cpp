@@ -191,8 +191,6 @@ nsViewManager::~nsViewManager()
     NS_RELEASE(mRootViewManager);
   }
 
-  mRootScrollable = nsnull;
-
   NS_ASSERTION((mVMCount > 0), "underflow of viewmanagers");
   --mVMCount;
 
@@ -804,15 +802,7 @@ NS_IMETHODIMP nsViewManager::UpdateView(nsIView *aView, const nsRect &aRect, PRU
   nsView* view = static_cast<nsView*>(aView);
 
   nsRect damagedRect(aRect);
-
-   
-   
-   
-   
-   
-  nsRectVisibility rectVisibility;
-  GetRectVisibility(view, damagedRect, 0, &rectVisibility);
-  if (rectVisibility != nsRectVisibility_kVisible) {
+  if (damagedRect.IsEmpty()) {
     return NS_OK;
   }
 
@@ -1781,18 +1771,6 @@ NS_IMETHODIMP nsViewManager::EndUpdateViewBatch(PRUint32 aUpdateFlags)
   return result;
 }
 
-NS_IMETHODIMP nsViewManager::SetRootScrollableView(nsIScrollableView *aScrollable)
-{
-  mRootScrollable = aScrollable;
-  return NS_OK;
-}
-
-NS_IMETHODIMP nsViewManager::GetRootScrollableView(nsIScrollableView **aScrollable)
-{
-  *aScrollable = mRootScrollable;
-  return NS_OK;
-}
-
 NS_IMETHODIMP nsViewManager::GetRootWidget(nsIWidget **aWidget)
 {
   if (!mRootView) {
@@ -1844,128 +1822,6 @@ nsIntRect nsViewManager::ViewToWidget(nsView *aView, nsView* aWidgetView, const 
 
   
   return rect.ToOutsidePixels(mContext->AppUnitsPerDevPixel());
-}
-
-nsresult nsViewManager::GetVisibleRect(nsRect& aVisibleRect)
-{
-  nsresult rv = NS_OK;
-
-  
-  nsIScrollableView* scrollingView;
-  GetRootScrollableView(&scrollingView);
-
-  if (scrollingView) {   
-    
-    
-    nsScrollPortView* clipView = static_cast<nsScrollPortView*>(scrollingView);
-    clipView->GetDimensions(aVisibleRect);
-
-    scrollingView->GetScrollPosition(aVisibleRect.x, aVisibleRect.y);
-  } else {
-    rv = NS_ERROR_FAILURE;
-  }
-
-  return rv;
-}
-
-nsresult nsViewManager::GetAbsoluteRect(nsView *aView, const nsRect &aRect, 
-                                        nsRect& aAbsRect)
-{
-  nsIScrollableView* scrollingView = nsnull;
-  GetRootScrollableView(&scrollingView);
-  if (nsnull == scrollingView) { 
-    return NS_ERROR_FAILURE;
-  }
-
-  nsIView* scrolledIView = nsnull;
-  scrollingView->GetScrolledView(scrolledIView);
-  
-  nsView* scrolledView = static_cast<nsView*>(scrolledIView);
-
-  
-  
-  aAbsRect = aRect;
-  nsView *parentView = aView;
-  while ((parentView != nsnull) && (parentView != scrolledView)) {
-    parentView->ConvertToParentCoords(&aAbsRect.x, &aAbsRect.y);
-    parentView = parentView->GetParent();
-  }
-
-  if (parentView != scrolledView) {
-    return NS_ERROR_FAILURE;
-  }
-
-  return NS_OK;
-}
-
-
-NS_IMETHODIMP nsViewManager::GetRectVisibility(nsIView *aView, 
-                                               const nsRect &aRect,
-                                               nscoord aMinTwips,
-                                               nsRectVisibility *aRectVisibility)
-{
-  nsView* view = static_cast<nsView*>(aView);
-
-  
-  
-
-  *aRectVisibility = nsRectVisibility_kZeroAreaRect;
-  if (aRect.width == 0 || aRect.height == 0) {
-    return NS_OK;
-  }
-
-  
-  if (!view->IsEffectivelyVisible()) {
-    return NS_OK; 
-  }
-
-  
-  
-  if (view->GetFloating()) {
-    *aRectVisibility = nsRectVisibility_kVisible;
-    return NS_OK;
-  }
-
-  
-  nsRect visibleRect;
-  if (GetVisibleRect(visibleRect) == NS_ERROR_FAILURE) {
-    *aRectVisibility = nsRectVisibility_kVisible;
-    return NS_OK;
-  }
-
-  
-  
-  nsRect absRect;
-  if ((GetAbsoluteRect(view, aRect, absRect)) == NS_ERROR_FAILURE) {
-    *aRectVisibility = nsRectVisibility_kVisible;
-    return NS_OK;
-  }
- 
-  
-
-
-
-
-
-
-
-
-  if (absRect.y < visibleRect.y  && 
-      absRect.y + absRect.height < visibleRect.y + aMinTwips)
-    *aRectVisibility = nsRectVisibility_kAboveViewport;
-  else if (absRect.y + absRect.height > visibleRect.y + visibleRect.height &&
-           absRect.y > visibleRect.y + visibleRect.height - aMinTwips)
-    *aRectVisibility = nsRectVisibility_kBelowViewport;
-  else if (absRect.x < visibleRect.x && 
-           absRect.x + absRect.width < visibleRect.x + aMinTwips)
-    *aRectVisibility = nsRectVisibility_kLeftOfViewport;
-  else if (absRect.x + absRect.width > visibleRect.x  + visibleRect.width &&
-           absRect.x > visibleRect.x + visibleRect.width - aMinTwips)
-    *aRectVisibility = nsRectVisibility_kRightOfViewport;
-  else
-    *aRectVisibility = nsRectVisibility_kVisible;
-
-  return NS_OK;
 }
 
 NS_IMETHODIMP

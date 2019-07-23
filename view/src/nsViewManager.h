@@ -159,9 +159,6 @@ public:
   virtual nsIViewManager* BeginUpdateViewBatch(void);
   NS_IMETHOD  EndUpdateViewBatch(PRUint32 aUpdateFlags);
 
-  NS_IMETHOD  SetRootScrollableView(nsIScrollableView *aScrollable);
-  NS_IMETHOD  GetRootScrollableView(nsIScrollableView **aScrollable);
-
   NS_IMETHOD GetRootWidget(nsIWidget **aWidget);
   NS_IMETHOD ForceUpdate();
  
@@ -169,20 +166,6 @@ public:
   NS_IMETHOD GetLastUserEventTime(PRUint32& aTime);
   void ProcessInvalidateEvent();
   static PRUint32 gLastUserEventTime;
-
-  
-
-
-
-
-
-
-
-
-
-  NS_IMETHOD GetRectVisibility(nsIView *aView, const nsRect &aRect, 
-                               nscoord aMinTwips,
-                               nsRectVisibility *aRectVisibility);
 
   NS_IMETHOD SynthesizeMouseMove(PRBool aFromScroll);
   void ProcessSynthMouseMoveEvent(PRBool aFromScroll);
@@ -235,26 +218,6 @@ private:
 
 
   nsIntRect ViewToWidget(nsView *aView, nsView* aWidgetView, const nsRect &aRect) const;
-
-  
-
-
-
-
-
-
-
-
-
-  nsresult GetAbsoluteRect(nsView *aView, const nsRect &aRect, 
-                           nsRect& aAbsRect);
-  
-
-
-
-
-
-  nsresult GetVisibleRect(nsRect& aVisibleRect);
 
   void DoSetWindowDimensions(nscoord aWidth, nscoord aHeight)
   {
@@ -369,7 +332,6 @@ public:
 private:
   nsCOMPtr<nsIDeviceContext> mContext;
   nsIViewObserver   *mObserver;
-  nsIScrollableView *mRootScrollable;
   nsIntPoint        mMouseLocation; 
 
   
