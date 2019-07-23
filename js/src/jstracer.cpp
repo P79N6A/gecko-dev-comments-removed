@@ -586,9 +586,8 @@ js_NativeStackSlots(JSContext *cx, unsigned callDepth)
         if (fp->callee)
             slots += fp->script->nfixed;
         if (callDepth-- == 0) {
-            if (fp->callee) {
+            if (fp->callee)
                 slots += 2 + fp->fun->nargs;
-            }
 #if defined _DEBUG
             unsigned int m = 0;
             FORALL_SLOTS_IN_PENDING_FRAMES(cx, origCallDepth, m++);
@@ -815,7 +814,7 @@ done:
         fp = *fsp;
         if (fp->callee) {
             if (fsp == fstack) {
-                if (size_t(p - &fp->argv[-2]) < 2 + fp->fun->nargs)
+                if (size_t(p - &fp->argv[-2]) < size_t(2 + fp->fun->nargs))
                     RETURN(offset + size_t(p - &fp->argv[-2]) * sizeof(double));
                 offset += (2 + fp->fun->nargs) * sizeof(double);
             }
@@ -2071,10 +2070,10 @@ js_ExecuteTree(JSContext* cx, Fragment** treep, uintN& inlineCallCount,
     uint64 start = rdtsc();
 #endif
 
-    JS_ASSERT(!cx->gcDontBlock);
-    cx->gcDontBlock = JS_TRUE;
+    JS_ASSERT(!cx->runningJittedCode);
+    cx->runningJittedCode = JS_TRUE;
     GuardRecord* lr = u.func(&state, NULL);
-    cx->gcDontBlock = JS_FALSE;
+    cx->runningJittedCode = JS_FALSE;
 
     
 
@@ -2085,7 +2084,8 @@ js_ExecuteTree(JSContext* cx, Fragment** treep, uintN& inlineCallCount,
         do {
             if (innermostNestedGuardp)
                 *innermostNestedGuardp = lr;
-            debug_only_v(printf("processing tree call guard %p, calldepth=%d\n", lr, lr->calldepth);)
+            debug_only_v(printf("processing tree call guard %p, calldepth=%d\n",
+                                lr, lr->calldepth);)
             unsigned calldepth = lr->calldepth;
             if (calldepth > 0) {
                 
