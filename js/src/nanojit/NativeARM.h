@@ -468,6 +468,7 @@ enum {
         asm_output("mul %s,%s,%s",gpn(_d),gpn(_l),gpn(_r)); } while(0)
 
 
+
 #define RSBS(_d,_r) ALUi(AL, rsb, 1, _d, _r, 0)
 
 
@@ -512,7 +513,7 @@ enum {
 
 
 #define CMP(_l,_r)  ALUr(AL, cmp, 1, 0, _l, _r)
-
+#define CMN(_l,_r)  ALUr(AL, cmn, 1, 0, _l, _r)
 
 
 #define MOVis_chk(_d,_op2imm,_stat,_chk)    ALUi_chk(AL, mov, _stat, _d, 0, op2imm, _chk)
@@ -539,6 +540,9 @@ enum {
 
 #define LDR(_d,_b,_off)        asm_ldr_chk(_d,_b,_off,1)
 #define LDR_nochk(_d,_b,_off)  asm_ldr_chk(_d,_b,_off,0)
+
+
+#define LDi(_d,_imm) asm_ld_imm(_d,_imm)
 
 
 
@@ -571,7 +575,8 @@ enum {
 #define MOVTi_cond(_cond,_d,_imm)   MOVTi_cond_chk(_cond, _d, _imm, 1)
 
 
-#define MR(d,s) MOV(d,s)
+#define MR(d,s)                     MOV(d,s)
+#define ST(base,offset,reg)         STR(reg,base,offset)
 
 
 #define LDRB(_d,_n,_off) do {                                           \
@@ -626,11 +631,6 @@ enum {
         } while (0)
 
 
-#define NOP_nochk() do { \
-        *(--_nIns) = (NIns)( COND_AL | (0xD<<21) | ((R0)<<12) | (R0) ); \
-        asm_output("nop"); } while(0)
-
-
 #define PUSHr(_r)  do {                                                 \
         underrunProtect(4);                                             \
         NanoAssert(IsGpReg(_r));                                        \
@@ -682,41 +682,8 @@ enum {
 #define BCC(t)  B_cond(CC,t)
 #define BCS(t)  B_cond(CS,t)
 
-
-#define JMP(_t)                                 \
-    B_cond_chk(AL,_t,1)
-
-#define JMP_nochk(_t)                           \
-    B_cond_chk(AL,_t,0)
-
-#define JA(t)   B_cond(HI,t)
-#define JNA(t)  B_cond(LS,t)
-#define JB(t)   B_cond(CC,t)
-#define JNB(t)  B_cond(CS,t)
-#define JE(t)   B_cond(EQ,t)
-#define JNE(t)  B_cond(NE,t)
-#define JBE(t)  B_cond(LS,t)
-#define JNBE(t) B_cond(HI,t)
-#define JAE(t)  B_cond(CS,t)
-#define JNAE(t) B_cond(CC,t)
-#define JL(t)   B_cond(LT,t)
-#define JNL(t)  B_cond(GE,t)
-#define JLE(t)  B_cond(LE,t)
-#define JNLE(t) B_cond(GT,t)
-#define JGE(t)  B_cond(GE,t)
-#define JNGE(t) B_cond(LT,t)
-#define JG(t)   B_cond(GT,t)
-#define JNG(t)  B_cond(LE,t)
-#define JO(t)   B_cond(VS,t)
-#define JNO(t)  B_cond(VC,t)
-
-
-
-#define JP(t)   do {NanoAssert(0); B_cond(NE,t); asm_output("jp 0x%08x",t); } while(0)
-
-
-#define JNP(t)  do {NanoAssert(0); B_cond(EQ,t); asm_output("jnp 0x%08x",t); } while(0)
-
+#define JMP(t) B(t)
+#define JMP_nochk(t) B_nochk(t)
 
 
 
@@ -728,6 +695,18 @@ enum {
     asm_output("mov%s %s, #1", condNames[_cond], gpn(_r));              \
     asm_output("mov%s %s, #0", condNames[_opp], gpn(_r));               \
     } while (0)
+
+#define SETEQ(r)    SET(r,EQ)
+#define SETLT(r)    SET(r,LT)
+#define SETLE(r)    SET(r,LE)
+#define SETGT(r)    SET(r,GT)
+#define SETGE(r)    SET(r,GE)
+#define SETLO(r)    SET(r,LO)
+#define SETLS(r)    SET(r,LS)
+#define SETHI(r)    SET(r,HI)
+#define SETHS(r)    SET(r,HS)
+#define SETVS(r)    SET(r,VS)
+#define SETCS(r)    SET(r,CS)
 
 
 #define MOVSX(_d,_off,_b) do {                                          \
@@ -768,6 +747,7 @@ enum {
 
 #define STMIA(_b, _mask) do {                                           \
         underrunProtect(4);                                             \
+        NanoAssert(IsGpReg(_b));                                        \
         NanoAssert(((_mask)&rmask(_b))==0 && isU8(_mask));              \
         *(--_nIns) = (NIns)(COND_AL | (0x8A<<20) | ((_b)<<16) | (_mask)&0xFF); \
         asm_output("stmia %s!,{0x%x}", gpn(_b), _mask); \
@@ -775,6 +755,7 @@ enum {
 
 #define LDMIA(_b, _mask) do {                                           \
         underrunProtect(4);                                             \
+        NanoAssert(IsGpReg(_b));                                        \
         NanoAssert(((_mask)&rmask(_b))==0 && isU8(_mask));              \
         *(--_nIns) = (NIns)(COND_AL | (0x8B<<20) | ((_b)<<16) | (_mask)&0xFF); \
         asm_output("ldmia %s!,{0x%x}", gpn(_b), (_mask)); \
@@ -919,12 +900,13 @@ enum {
         asm_output("fmstat");                       \
     } while (0)
 
-#define FCMPD(_Dd,_Dm) do {                                             \
+#define FCMPD(_Dd,_Dm,_E) do {                                          \
         underrunProtect(4);                                             \
         NanoAssert(ARM_VFP);                                            \
         NanoAssert(IsFpReg(_Dd) && IsFpReg(_Dm));                       \
-        *(--_nIns) = (NIns)( COND_AL | (0xEB4<<16) | (FpRegNum(_Dd)<<12) | (0xB4<<4) | (FpRegNum(_Dm)) ); \
-        asm_output("fcmpd %s,%s", gpn(_Dd), gpn(_Dm));                 \
+        NanoAssert(((_E)==0) || ((_E)==1));                             \
+        *(--_nIns) = (NIns)( COND_AL | (0xEB4<<16) | (FpRegNum(_Dd)<<12) | (0xB<<8) | ((_E)<<7) | (0x4<<4) | (FpRegNum(_Dm)) ); \
+        asm_output("fcmp%sd %s,%s", (((_E)==1)?"e":""), gpn(_Dd), gpn(_Dm)); \
     } while (0)
 
 #define FCPYD(_Dd,_Dm) do {                                             \
