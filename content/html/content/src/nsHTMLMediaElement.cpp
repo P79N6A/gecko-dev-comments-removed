@@ -713,8 +713,10 @@ NS_IMETHODIMP nsHTMLMediaElement::SetMuted(PRBool aMuted)
 
 nsHTMLMediaElement::nsHTMLMediaElement(nsINodeInfo *aNodeInfo, PRBool aFromParser)
   : nsGenericHTMLElement(aNodeInfo),
+    mCurrentLoadID(0),
     mNetworkState(nsIDOMHTMLMediaElement::NETWORK_EMPTY),
     mReadyState(nsIDOMHTMLMediaElement::HAVE_NOTHING),
+    mLoadWaitStatus(NOT_WAITING),
     mVolume(1.0),
     mMediaSize(-1,-1),
     mBegun(PR_FALSE),
@@ -725,11 +727,11 @@ nsHTMLMediaElement::nsHTMLMediaElement(nsINodeInfo *aNodeInfo, PRBool aFromParse
     mMuted(PR_FALSE),
     mIsDoneAddingChildren(!aFromParser),
     mPlayingBeforeSeek(PR_FALSE),
+    mPausedBeforeFreeze(PR_FALSE),
     mWaitingFired(PR_FALSE),
     mIsBindingToTree(PR_FALSE),
-    mLoadWaitStatus(NOT_WAITING),
-    mIsLoadingFromSrcAttribute(PR_FALSE),
     mIsRunningLoadMethod(PR_FALSE),
+    mIsLoadingFromSrcAttribute(PR_FALSE),
     mDelayingLoadEvent(PR_FALSE),
     mIsRunningSelectResource(PR_FALSE)
 {
