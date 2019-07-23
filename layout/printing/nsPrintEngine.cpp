@@ -754,7 +754,13 @@ NS_IMETHODIMP
 nsPrintEngine::Print(nsIPrintSettings*       aPrintSettings,
                      nsIWebProgressListener* aWebProgressListener)
 {
-  nsCOMPtr<nsIDOMDocument> doc = do_QueryInterface(mDocument);
+  
+  
+  
+  nsCOMPtr<nsIDOMDocument> doc =
+    do_QueryInterface(mPrtPreview && mPrtPreview->mPrintObject ?
+                        mPrtPreview->mPrintObject->mDocument : mDocument);
+
   return CommonPrint(PR_FALSE, aPrintSettings, aWebProgressListener, doc);
 }
 
