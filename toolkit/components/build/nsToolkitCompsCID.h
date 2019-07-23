@@ -63,9 +63,6 @@
 #define NS_FORMHISTORY_CONTRACTID \
   "@mozilla.org/satchel/form-history;1"
 
-#define NS_FORMHISTORYIMPORTER_CONTRACTID \
-  "@mozilla.org/satchel/form-history-importer;1"
-
 #define NS_FORMFILLCONTROLLER_CONTRACTID \
   "@mozilla.org/satchel/form-fill-controller;1"
 
@@ -148,10 +145,6 @@
 
 #define NS_FORMHISTORY_CID \
 { 0xa2059c0e, 0x5a58, 0x4c55, { 0xab, 0x7c, 0x26, 0xf0, 0x55, 0x75, 0x46, 0xef } }
-
-
-#define NS_FORMHISTORYIMPORTER_CID \
-{ 0xdb340cc2, 0x7f50, 0x4ea3, { 0x84, 0x27, 0xf5, 0x29, 0xda, 0xf6, 0xdc, 0x87 } }
 
 
 #define NS_GLOBALHISTORY_CID \
