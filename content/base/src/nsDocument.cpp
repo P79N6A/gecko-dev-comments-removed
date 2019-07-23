@@ -5433,17 +5433,26 @@ nsDocument::Destroy()
   if (mIsGoingAway)
     return;
 
+  PRInt32 count = mChildren.ChildCount();
 
   mIsGoingAway = PR_TRUE;
-
-  PRUint32 i, count = mChildren.ChildCount();
-  for (i = 0; i < count; ++i) {
-    nsNodeUtils::DestroySubtree(mChildren.ChildAt(i));
+  DestroyLinkMap();
+  for (PRInt32 indx = 0; indx < count; ++indx) {
+    
+    
+    
+    
+    
+    
+    
+    
+    mChildren.ChildAt(indx)->UnbindFromTree();
   }
-
   mLayoutHistoryState = nsnull;
 
   nsContentList::OnDocumentDestroy(this);
+  delete mContentWrapperHash;
+  mContentWrapperHash = nsnull;
 }
 
 already_AddRefed<nsILayoutHistoryState>
