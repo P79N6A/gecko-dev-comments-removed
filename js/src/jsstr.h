@@ -508,14 +508,12 @@ js_ValueToSource(JSContext *cx, jsval v);
 extern uint32
 js_HashString(JSString *str);
 
-#ifdef __cplusplus
 
 
 
 
-extern bool JS_FASTCALL
+extern JSBool JS_FASTCALL
 js_EqualStrings(JSString *str1, JSString *str2);
-#endif
 
 
 
