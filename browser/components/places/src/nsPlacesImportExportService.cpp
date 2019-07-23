@@ -2537,6 +2537,8 @@ nsPlacesImportExportService::ArchiveBookmarksFile(PRInt32 numberOfBackups,
   PR_NormalizeTime(&nowInfo, PR_LocalTimeParameters);
 
   char timeString[128];
+
+  
   
   PR_FormatTime(timeString, 128, "bookmarks-%Y-%m-%d.html", &nowInfo);
 
