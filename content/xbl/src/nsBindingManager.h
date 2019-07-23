@@ -242,6 +242,9 @@ protected:
   
   void DoProcessAttachedQueue();
 
+  
+  void PostProcessAttachedQueueEvent();
+
 
 protected: 
   void RemoveInsertionParent(nsIContent* aParent);
