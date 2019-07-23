@@ -1843,38 +1843,38 @@ toolbarbutton.bookmark-item[dragover="true"][open="true"] {
   cursor: help;
   background-color: ThreeDFace;
 %ifdef MOZ_WIDGET_GTK2
-  
+  -moz-border-end: 1px solid ThreeDShadow;
 %else
   -moz-appearance: toolbox;
   outline: 1px solid ThreeDShadow;
 %endif
 }
 
-#identity-box.verifiedIdentity {
-%ifdef MOZ_WIDGET_GTK2
-  border-color: highlight;
-%else
-  outline-color: highlight;
-%endif
-}
 
-#identity-box:hover {
-%ifdef MOZ_WIDGET_GTK2
-  border-color: ThreeDDarkShadow;
-%else
-  outline-color: ThreeDDarkShadow;
-%endif
-}
 
-#identity-icon-label {
-  padding: 0 2px;
-  margin: 0;
-  cursor: inherit;
-}
 
-.unknownIdentity > #identity-icon-label {
-  display: none;
-}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 #identity-popup-icon {
