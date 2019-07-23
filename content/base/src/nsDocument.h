@@ -1049,23 +1049,6 @@ protected:
 
   
   
-  nsIContent* GetHtmlContent();
-  
-  
-  nsIContent* GetHtmlChildContent(nsIAtom* aTag);
-  
-  
-  nsIContent* GetBodyContent() {
-    return GetHtmlChildContent(nsGkAtoms::body);
-  }
-  
-  
-  nsIContent* GetHeadContent() {
-    return GetHtmlChildContent(nsGkAtoms::head);
-  }
-
-  
-  
   nsIContent* GetTitleContent(PRUint32 aNodeType);
   
   

@@ -56,6 +56,7 @@
 #include "nsNodeInfoManager.h"
 #include "nsIStreamListener.h"
 #include "nsIObserver.h"
+#include "nsGkAtoms.h"
 #include "nsAutoPtr.h"
 #ifdef MOZ_SMIL
 class nsSMILAnimationController;
@@ -105,8 +106,8 @@ class nsIBoxObject;
 
 
 #define NS_IDOCUMENT_IID      \
-{ 0x1539ada4, 0x753f, 0x48a9, \
-  { 0x83, 0x11, 0x71, 0xb9, 0xbd, 0xa6, 0x41, 0xc6 } }
+  { 0xb04d9176, 0xf087, 0x4d3c, \
+    { 0x87, 0x11, 0x13, 0x9d, 0x19, 0x95, 0x43, 0x55 } }
 
 
 #define NS_STYLESHEET_FROM_CATALOG                (1 << 0)
@@ -465,6 +466,23 @@ public:
   }
   virtual nsIContent *GetRootContentInternal() const = 0;
 
+  
+  
+  nsIContent* GetHtmlContent();
+  
+  
+  nsIContent* GetHtmlChildContent(nsIAtom* aTag);
+  
+  
+  nsIContent* GetBodyContent() {
+    return GetHtmlChildContent(nsGkAtoms::body);
+  }
+  
+  
+  nsIContent* GetHeadContent() {
+    return GetHtmlChildContent(nsGkAtoms::head);
+  }
+  
   
 
 
