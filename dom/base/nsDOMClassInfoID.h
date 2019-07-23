@@ -479,6 +479,8 @@ enum nsDOMClassInfoID {
 
   eDOMClassInfo_TransitionEvent_id,
 
+  eDOMClassInfo_FormData_id,
+
   
   eDOMClassInfoIDCount
 };

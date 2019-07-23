@@ -51,6 +51,7 @@ class nsIDOMHTMLElement;
 class nsIDocShell;
 class nsIRequest;
 class nsISaveAsCharset;
+class nsIMultiplexInputStream;
 
 
 
@@ -135,6 +136,66 @@ public:
 private:
   
   nsCOMPtr<nsISaveAsCharset> mEncoder;
+};
+
+
+
+
+
+class nsFSMultipartFormData : public nsEncodingFormSubmission
+{
+public:
+  
+
+
+  nsFSMultipartFormData(const nsACString& aCharset);
+  ~nsFSMultipartFormData();
+ 
+  virtual nsresult AddNameValuePair(const nsAString& aName,
+                                    const nsAString& aValue);
+  virtual nsresult AddNameFilePair(const nsAString& aName,
+                                   nsIFile* aFile);
+  virtual nsresult GetEncodedSubmission(nsIURI* aURI,
+                                        nsIInputStream** aPostDataStream);
+
+  void GetContentType(nsACString& aContentType)
+  {
+    aContentType =
+      NS_LITERAL_CSTRING("multipart/form-data; boundary=") + mBoundary;
+  }
+
+  nsIInputStream* GetSubmissionBody();
+
+protected:
+
+  
+
+
+  nsresult AddPostDataStream();
+
+private:
+  
+
+
+
+
+  nsCOMPtr<nsIMultiplexInputStream> mPostDataStream;
+
+  
+
+
+
+
+
+
+  nsCString mPostDataChunk;
+
+  
+
+
+
+
+  nsCString mBoundary;
 };
 
 

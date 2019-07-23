@@ -2299,6 +2299,12 @@ GetRequestBody(nsIVariant* aBody, nsIInputStream** aResult,
       
       return NS_NewLocalFileInputStream(aResult, internalFile);
     }
+
+    
+    nsCOMPtr<nsIXHRSendable> sendable = do_QueryInterface(supports);
+    if (sendable) {
+      return sendable->GetSendInfo(aResult, aContentType, aCharset);
+    }
   }
   else if (dataType == nsIDataType::VTYPE_VOID ||
            dataType == nsIDataType::VTYPE_EMPTY) {

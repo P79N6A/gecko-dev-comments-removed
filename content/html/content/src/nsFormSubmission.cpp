@@ -379,58 +379,6 @@ nsFSURLEncoded::URLEncode(const nsAString& aStr, nsCString& aEncoded)
 
 
 
-
-
-
-
-class nsFSMultipartFormData : public nsEncodingFormSubmission
-{
-public:
-  
-
-
-  nsFSMultipartFormData(const nsACString& aCharset);
-  ~nsFSMultipartFormData();
- 
-  virtual nsresult AddNameValuePair(const nsAString& aName,
-                                    const nsAString& aValue);
-  virtual nsresult AddNameFilePair(const nsAString& aName,
-                                   nsIFile* aFile);
-  virtual nsresult GetEncodedSubmission(nsIURI* aURI,
-                                        nsIInputStream** aPostDataStream);
-
-protected:
-
-  
-
-
-  nsresult AddPostDataStream();
-
-private:
-  
-
-
-
-
-  nsCOMPtr<nsIMultiplexInputStream> mPostDataStream;
-
-  
-
-
-
-
-
-
-  nsCString mPostDataChunk;
-
-  
-
-
-
-
-  nsCString mBoundary;
-};
-
 nsFSMultipartFormData::nsFSMultipartFormData(const nsACString& aCharset)
     : nsEncodingFormSubmission(aCharset)
 {
@@ -441,6 +389,24 @@ nsFSMultipartFormData::nsFSMultipartFormData(const nsACString& aCharset)
   mBoundary.AppendInt(rand());
   mBoundary.AppendInt(rand());
   mBoundary.AppendInt(rand());
+}
+
+nsFSMultipartFormData::~nsFSMultipartFormData()
+{
+  NS_ASSERTION(mPostDataChunk.IsEmpty(), "Left unsubmitted data");
+}
+
+nsIInputStream*
+nsFSMultipartFormData::GetSubmissionBody()
+{
+  
+  mPostDataChunk += NS_LITERAL_CSTRING("--") + mBoundary
+                  + NS_LITERAL_CSTRING("--" CRLF);
+
+  
+  AddPostDataStream();
+
+  return mPostDataStream;
 }
 
 nsresult
@@ -567,27 +533,17 @@ nsFSMultipartFormData::GetEncodedSubmission(nsIURI* aURI,
   nsresult rv;
 
   
-  mPostDataChunk += NS_LITERAL_CSTRING("--") + mBoundary
-                  + NS_LITERAL_CSTRING("--" CRLF);
-
-  
-  AddPostDataStream();
-
-  
   nsCOMPtr<nsIMIMEInputStream> mimeStream
     = do_CreateInstance("@mozilla.org/network/mime-input-stream;1", &rv);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  nsCAutoString boundaryHeaderValue(
-    NS_LITERAL_CSTRING("multipart/form-data; boundary=") + mBoundary);
-
-  mimeStream->AddHeader("Content-Type", boundaryHeaderValue.get());
+  nsCAutoString contentType;
+  GetContentType(contentType);
+  mimeStream->AddHeader("Content-Type", contentType.get());
   mimeStream->SetAddContentLength(PR_TRUE);
-  mimeStream->SetData(mPostDataStream);
+  mimeStream->SetData(GetSubmissionBody());
 
-  *aPostDataStream = mimeStream;
-
-  NS_ADDREF(*aPostDataStream);
+  *aPostDataStream = mimeStream.forget().get();
 
   return NS_OK;
 }
