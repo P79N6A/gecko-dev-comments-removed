@@ -25,9 +25,15 @@ function test()
     return 1;
 }
 
-test();
-test();
-test();
-actual = evalcx("test()", this);
+if (typeof evalcx == 'undefined')
+{
+    print('Skipping. This test requires evalcx.');
+    actual = expect;
+} else {
+    test();
+    test();
+    test();
+    actual = evalcx("test()", this);
+}
 
 reportCompare(expect, actual, summary);
