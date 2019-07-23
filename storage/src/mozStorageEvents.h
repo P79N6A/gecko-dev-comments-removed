@@ -42,7 +42,7 @@
 
 #include "nscore.h"
 #include "mozStorageBackground.h"
-class mozStorageStatement;
+struct sqlite3_stmt;
 class mozIStorageStatementCallback;
 class mozIStoragePendingStatement;
 
@@ -58,7 +58,7 @@ class mozIStoragePendingStatement;
 
 
 nsresult NS_executeAsync(
-  mozStorageStatement *aStatement,
+  sqlite3_stmt *aStatement,
   mozIStorageStatementCallback *aCallback,
   mozIStoragePendingStatement **_stmt
 );
