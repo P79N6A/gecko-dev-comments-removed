@@ -679,11 +679,23 @@ generator_trace(JSTracer *trc, JSObject *obj)
     JSGenerator *gen;
 
     gen = (JSGenerator *) JS_GetPrivate(trc->context, obj);
-    if (gen) {
-        
-        JS_ASSERT(!gen->frame.down);
-        js_TraceStackFrame(trc, &gen->frame);
-    }
+    if (!gen)
+        return;
+
+    
+
+
+
+
+    JS_ASSERT_IF(gen->state != JSGEN_RUNNING && gen->state != JSGEN_CLOSING,
+                 !gen->frame.down);
+
+    
+
+
+
+
+    js_TraceStackFrame(trc, &gen->frame);
 }
 
 JSClass js_GeneratorClass = {
