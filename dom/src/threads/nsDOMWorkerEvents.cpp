@@ -307,7 +307,7 @@ nsDOMWorkerMessageEvent::GetData(nsAString& aData)
                           (uint32)mData.Length());
 
   
-  ok = JS_FinishJSONParse(cx, parser) && ok;
+  ok = JS_FinishJSONParse(cx, parser, JSVAL_NULL) && ok;
   if (!ok) {
     mCachedJSVal = JSVAL_NULL;
     return NS_ERROR_UNEXPECTED;

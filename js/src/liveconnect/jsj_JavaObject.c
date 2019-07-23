@@ -57,6 +57,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "jsapi.h"
 #include "jsobj.h"
 #include "jsj_private.h"      
 #include "jsj_hash.h"         
