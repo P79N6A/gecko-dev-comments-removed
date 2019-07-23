@@ -3025,6 +3025,7 @@ nsDocument::SetScriptGlobalObject(nsIScriptGlobalObject *aScriptGlobalObject)
   mScriptGlobalObject = aScriptGlobalObject;
 
   if (aScriptGlobalObject) {
+    mScriptObject = nsnull;
     mHasHadScriptHandlingObject = PR_TRUE;
     
     mLayoutHistoryState = nsnull;
