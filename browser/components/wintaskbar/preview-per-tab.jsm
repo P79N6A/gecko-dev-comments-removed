@@ -84,11 +84,11 @@ Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/NetUtil.jsm");
 
 
-const TOGGLE_PREF_NAME = "aeropeek.enable";
+const TOGGLE_PREF_NAME = "browser.taskbar.previews.enable";
 
-const DISABLE_THRESHOLD_PREF_NAME = "aeropeek.maxpreviews";
+const DISABLE_THRESHOLD_PREF_NAME = "browser.taskbar.previews.max";
 
-const CACHE_EXPIRATION_TIME_PREF_NAME = "aeropeek.cachetime";
+const CACHE_EXPIRATION_TIME_PREF_NAME = "browser.taskbar.previews.cachetime";
 
 const WINTASKBAR_CONTRACTID = "@mozilla.org/windows-taskbar;1";
 
