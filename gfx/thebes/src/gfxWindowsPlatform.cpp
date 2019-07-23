@@ -211,9 +211,13 @@ gfxWindowsPlatform::FontGetCMapDataProc(nsStringHashKey::KeyType aKey,
         nsresult rv = ReadCMAP(hdc, aFontEntry);
 
         if (NS_FAILED(rv)) {
+            
+            
             if (aFontEntry->mIsType1)
-                aFontEntry->mSymbolFont = PR_TRUE;
-            aFontEntry->mUnicodeFont = PR_FALSE;
+                aFontEntry->mUnicodeFont = PR_TRUE;
+            else
+                aFontEntry->mUnicodeFont = PR_FALSE;
+
             
         }
 
