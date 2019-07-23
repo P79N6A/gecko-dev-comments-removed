@@ -5463,10 +5463,15 @@ GetCorrectedParent(nsPresContext* aPresContext, nsIFrame* aFrame,
   if (!parent) {
     *aSpecialParent = nsnull;
   } else {
-    *aSpecialParent =
-      nsFrame::CorrectStyleParentFrame(parent,
-                                       aFrame->GetStyleContext()->
-                                         GetPseudoType());
+    nsIAtom* pseudo = aFrame->GetStyleContext()->GetPseudoType();
+    
+    
+    
+    if (pseudo == nsCSSAnonBoxes::tableOuter) {
+      pseudo =
+        aFrame->GetFirstChild(nsnull)->GetStyleContext()->GetPseudoType();
+    }
+    *aSpecialParent = nsFrame::CorrectStyleParentFrame(parent, pseudo);
   }
 
   return NS_OK;
