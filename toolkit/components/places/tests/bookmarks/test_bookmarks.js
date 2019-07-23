@@ -398,19 +398,10 @@ function run_test() {
   do_check_eq("http://keywordtest.com/", u.spec);
 
   
-  
   var newId8 = bmsvc.insertBookmark(testRoot, uri("http://foo8.com/"),
                                     bmsvc.DEFAULT_INDEX, "");
-  var newId9 = bmsvc.insertBookmark(testRoot, uri("http://foo8.com/"),
-                                    bmsvc.DEFAULT_INDEX, "");  
   var b = bmsvc.getBookmarkIdsForURI(uri("http://foo8.com/"), {});
-  do_check_eq(b[0], newId9);
-  do_check_eq(b[1], newId8);
-  
-  bmsvc.setItemTitle(newId8, "");
-  b = bmsvc.getBookmarkIdsForURI(uri("http://foo8.com/"), {});
   do_check_eq(b[0], newId8);
-  do_check_eq(b[1], newId9);
 
   
   
@@ -558,7 +549,7 @@ function run_test() {
                                      bmsvc.DEFAULT_INDEX, "");
   do_check_eq(observer._itemAddedId, newId13);
   do_check_eq(observer._itemAddedParent, testRoot);
-  do_check_eq(observer._itemAddedIndex, 14);
+  do_check_eq(observer._itemAddedIndex, 13);
 
   
   bmsvc.setItemTitle(newId13, "ZZZXXXYYY");
