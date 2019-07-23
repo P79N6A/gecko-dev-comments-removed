@@ -913,15 +913,39 @@ LoginManager.prototype = {
             
             
             if (actionOrigin != previousActionOrigin) {
-                var logins =
+                var foundLogins =
                     this.findLogins({}, formOrigin, actionOrigin, null);
 
-                this.log("form[" + i + "]: got " + logins.length + " logins.");
+                this.log("form[" + i + "]: got " +
+                         foundLogins.length + " logins.");
 
                 previousActionOrigin = actionOrigin;
             } else {
                 this.log("form[" + i + "]: using logins from last form.");
             }
+
+
+            
+            
+            
+            
+            var maxUsernameLen = Number.MAX_VALUE;
+            var maxPasswordLen = Number.MAX_VALUE;
+
+            
+            if (usernameField && usernameField.maxLength >= 0)
+                maxUsernameLen = usernameField.maxLength;
+            if (passwordField.maxLength >= 0)
+                maxPasswordLen = passwordField.maxLength;
+
+            logins = foundLogins.filter(function (l) {
+                    var fit = (l.username.length <= maxUsernameLen &&
+                               l.password.length <= maxPasswordLen);
+                    if (!fit)
+                        this.log("Ignored " + l.username + " login: won't fit");
+
+                    return fit;
+                }, this);
 
 
             
@@ -943,13 +967,13 @@ LoginManager.prototype = {
                 if (usernameField && usernameField.value) {
                     var username = usernameField.value;
 
-                    var foundLogin;
+                    var matchingLogin;
                     var found = logins.some(function(l) {
-                                                foundLogin = l;
+                                                matchingLogin = l;
                                                 return (l.username == username);
                                             });
                     if (found)
-                        passwordField.value = foundLogin.password;
+                        passwordField.value = matchingLogin.password;
 
                 } else if (logins.length == 1) {
                     if (usernameField)
