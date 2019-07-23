@@ -66,6 +66,9 @@ try {
 
 
 function run_test() {
+  
+  return;
+
   var uri1 = uri("http://foo.bar/");
 
   
