@@ -1585,17 +1585,26 @@ var PlacesUtils = {
     
     
     var date = new Date().toLocaleFormat("%Y-%m-%d");
-    var backupFilename = this.getFormattedString("bookmarksArchiveFilename", [date]);
+    var backupFilename = "bookmarks-" + date + ".json";
 
     var backupFile = null;
     if (!aForceArchive) {
       var backupFileNames = [];
       var backupFilenamePrefix = backupFilename.substr(0, backupFilename.indexOf("-"));
+
+      
+      
+      var localizedFilename = this.getFormattedString("bookmarksArchiveFilename", [date]);
+      var localizedFilenamePrefix = localizedFilename.substr(0, localizedFilename.indexOf("-"));
+      var rx = new RegExp("^(bookmarks|" + localizedFilenamePrefix + ")-.+\.json");
+
       var entries = bookmarksBackupDir.directoryEntries;
       while (entries.hasMoreElements()) {
         var entry = entries.getNext().QueryInterface(Ci.nsIFile);
         var backupName = entry.leafName;
-        if (backupName.substr(0, backupFilenamePrefix.length) == backupFilenamePrefix) {
+        
+        
+        if (backupName.match(rx)) {
           if (backupName == backupFilename)
             backupFile = entry;
           backupFileNames.push(backupName);
