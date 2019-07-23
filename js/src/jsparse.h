@@ -296,9 +296,9 @@ struct JSParseNode {
                         pn_defn:1;      
 
 #define PN_OP(pn)    ((JSOp)(pn)->pn_op)
-#define PN_TYPE(pn)  ((JSTokenType)(pn)->pn_type)
+#define PN_TYPE(pn)  ((js::TokenKind)(pn)->pn_type)
 
-    JSTokenPos          pn_pos;         
+    js::TokenPos        pn_pos;         
     int32               pn_offset;      
     JSParseNode         *pn_next;       
     JSParseNode         *pn_link;       
@@ -385,6 +385,23 @@ struct JSParseNode {
 #define pn_tree         pn_u.nameset.tree
 #define pn_dval         pn_u.dval
 #define pn_atom2        pn_u.apair.atom2
+
+protected:
+    void inline init(js::TokenKind type, JSOp op, JSParseNodeArity arity) {
+        pn_type = type;
+        pn_op = op;
+        pn_arity = arity;
+        pn_parens = false;
+        JS_ASSERT(!pn_used);
+        JS_ASSERT(!pn_defn);
+        pn_next = pn_link = NULL;
+    }
+
+    static JSParseNode *create(JSParseNodeArity arity, JSTreeContext *tc);
+
+public:
+    static JSParseNode *newBinaryOrAppend(js::TokenKind tt, JSOp op, JSParseNode *left,
+                                          JSParseNode *right, JSTreeContext *tc);
 
     
 
@@ -476,9 +493,9 @@ struct JSParseNode {
 
     
     bool isLiteral() const {
-        return PN_TYPE(this) == TOK_NUMBER ||
-               PN_TYPE(this) == TOK_STRING ||
-               (PN_TYPE(this) == TOK_PRIMARY && PN_OP(this) != JSOP_THIS);
+        return PN_TYPE(this) == js::TOK_NUMBER ||
+               PN_TYPE(this) == js::TOK_STRING ||
+               (PN_TYPE(this) == js::TOK_PRIMARY && PN_OP(this) != JSOP_THIS);
     }
 
     
@@ -489,10 +506,10 @@ struct JSParseNode {
 
 
     bool isDirectivePrologueMember() const {
-        if (PN_TYPE(this) == TOK_SEMI) {
+        if (PN_TYPE(this) == js::TOK_SEMI) {
             JS_ASSERT(pn_arity == PN_UNARY);
             JSParseNode *kid = pn_kid;
-            return kid && PN_TYPE(kid) == TOK_STRING && !kid->pn_parens;
+            return kid && PN_TYPE(kid) == js::TOK_STRING && !kid->pn_parens;
         }
         return false;
     }
@@ -505,6 +522,7 @@ struct JSParseNode {
         JS_ASSERT(isDirectivePrologueMember());
         JSParseNode *kid = pn_kid;
         JSString *str = ATOM_TO_STRING(kid->pn_atom);
+
         
 
 
@@ -549,6 +567,64 @@ struct JSParseNode {
         pn_count++;
     }
 };
+
+namespace js {
+
+struct NullaryNode : public JSParseNode {
+    static inline NullaryNode *create(JSTreeContext *tc) {
+        return (NullaryNode *)JSParseNode::create(PN_NULLARY, tc);
+    }
+};
+
+struct UnaryNode : public JSParseNode {
+    static inline UnaryNode *create(JSTreeContext *tc) {
+        return (UnaryNode *)JSParseNode::create(PN_UNARY, tc);
+    }
+};
+
+struct BinaryNode : public JSParseNode {
+    static inline BinaryNode *create(JSTreeContext *tc) {
+        return (BinaryNode *)JSParseNode::create(PN_BINARY, tc);
+    }
+};
+
+struct TernaryNode : public JSParseNode {
+    static inline TernaryNode *create(JSTreeContext *tc) {
+        return (TernaryNode *)JSParseNode::create(PN_TERNARY, tc);
+    }
+};
+
+struct ListNode : public JSParseNode {
+    static inline ListNode *create(JSTreeContext *tc) {
+        return (ListNode *)JSParseNode::create(PN_LIST, tc);
+    }
+};
+
+struct FunctionNode : public JSParseNode {
+    static inline FunctionNode *create(JSTreeContext *tc) {
+        return (FunctionNode *)JSParseNode::create(PN_FUNC, tc);
+    }
+};
+
+struct NameNode : public JSParseNode {
+    static NameNode *create(JSAtom *atom, JSTreeContext *tc);
+
+    void inline initCommon(JSTreeContext *tc);
+};
+
+struct NameSetNode : public JSParseNode {
+    static inline NameSetNode *create(JSTreeContext *tc) {
+        return (NameSetNode *)JSParseNode::create(PN_NAMESET, tc);
+    }
+};
+
+struct LexicalScopeNode : public JSParseNode {
+    static inline LexicalScopeNode *create(JSTreeContext *tc) {
+        return (LexicalScopeNode *)JSParseNode::create(PN_NAME, tc);
+    }
+};
+
+} 
 
 
 
@@ -680,7 +756,7 @@ struct JSDefinition : public JSParseNode
     JSDefinition *resolve() {
         JSParseNode *pn = this;
         while (!pn->pn_defn) {
-            if (pn->pn_type == TOK_ASSIGN) {
+            if (pn->pn_type == js::TOK_ASSIGN) {
                 pn = pn->pn_left;
                 continue;
             }
@@ -705,9 +781,9 @@ struct JSDefinition : public JSParseNode
     static const char *kindString(Kind kind);
 
     Kind kind() {
-        if (PN_TYPE(this) == TOK_FUNCTION)
+        if (PN_TYPE(this) == js::TOK_FUNCTION)
             return FUNCTION;
-        JS_ASSERT(PN_TYPE(this) == TOK_NAME);
+        JS_ASSERT(PN_TYPE(this) == js::TOK_NAME);
         if (PN_OP(this) == JSOP_NOP)
             return UNKNOWN;
         if (PN_OP(this) == JSOP_GETARG)
@@ -832,24 +908,32 @@ struct JSFunctionBoxQueue {
 
 #define NUM_TEMP_FREELISTS      6U      /* 32 to 2048 byte size classes (32 bit) */
 
+class JSTreeContext;
+
+typedef struct BindData BindData;
+
 struct JSCompiler {
-    JSContext           *context;
+    JSContext           * const context;
     JSAtomListElement   *aleFreeList;
     void                *tempFreeList[NUM_TEMP_FREELISTS];
-    JSTokenStream       tokenStream;
+    js::TokenStream     tokenStream;
     void                *tempPoolMark;  
     JSPrincipals        *principals;    
-    JSStackFrame        *callerFrame;   
+    JSStackFrame *const callerFrame;    
+    JSObject     *const callerVarObj;   
     JSParseNode         *nodeList;      
     uint32              functionCount;  
     JSObjectBox         *traceListHead; 
+    JSTreeContext       *tc;            
     JSTempValueRooter   tempRoot;       
 
     JSCompiler(JSContext *cx, JSPrincipals *prin = NULL, JSStackFrame *cfp = NULL)
-      : context(cx), aleFreeList(NULL), tokenStream(cx), principals(NULL),
-        callerFrame(cfp), nodeList(NULL), functionCount(0), traceListHead(NULL)
+      : context(cx),
+        aleFreeList(NULL), tokenStream(cx), principals(NULL), callerFrame(cfp),
+        callerVarObj(cfp ? cfp->varobj(cx->containingCallStack(cfp)) : NULL),
+        nodeList(NULL), functionCount(0), traceListHead(NULL), tc(NULL)
     {
-        memset(tempFreeList, 0, sizeof tempFreeList);
+        js::PodArrayZero(tempFreeList);
         setPrincipals(prin);
         JS_ASSERT_IF(cfp, cfp->script);
     }
@@ -900,6 +984,71 @@ struct JSCompiler {
 
     void trace(JSTracer *trc);
 
+private:
+    
+
+
+
+
+
+
+
+    JSParseNode *functionStmt();
+    JSParseNode *functionExpr();
+    JSParseNode *statements();
+    JSParseNode *statement();
+    JSParseNode *variables(bool inLetHead);
+    JSParseNode *expr();
+    JSParseNode *assignExpr();
+    JSParseNode *condExpr();
+    JSParseNode *orExpr();
+    JSParseNode *andExpr();
+    JSParseNode *bitOrExpr();
+    JSParseNode *bitXorExpr();
+    JSParseNode *bitAndExpr();
+    JSParseNode *eqExpr();
+    JSParseNode *relExpr();
+    JSParseNode *shiftExpr();
+    JSParseNode *addExpr();
+    JSParseNode *mulExpr();
+    JSParseNode *unaryExpr();
+    JSParseNode *memberExpr(JSBool allowCallSyntax);
+    JSParseNode *primaryExpr(js::TokenKind tt, JSBool afterDot);
+    JSParseNode *parenExpr(JSParseNode *pn1, JSBool *genexp);
+
+    
+
+
+    bool recognizeDirectivePrologue(JSParseNode *pn);
+    JSParseNode *functionBody();
+    JSParseNode *functionDef(uintN lambda);
+    JSParseNode *condition();
+    JSParseNode *comprehensionTail(JSParseNode *kid, uintN blockid,
+                                   js::TokenKind type = js::TOK_SEMI, JSOp op = JSOP_NOP);
+    JSParseNode *generatorExpr(JSParseNode *pn, JSParseNode *kid);
+    JSBool argumentList(JSParseNode *listNode);
+    JSParseNode *bracketedExpr();
+    JSParseNode *letBlock(JSBool statement);
+    JSParseNode *returnOrYield(bool useAssignExpr);
+    JSParseNode *destructuringExpr(BindData *data, js::TokenKind tt);
+
+#if JS_HAS_XML_SUPPORT
+    JSParseNode *endBracketedExpr();
+
+    JSParseNode *propertySelector();
+    JSParseNode *qualifiedSuffix(JSParseNode *pn);
+    JSParseNode *qualifiedIdentifier();
+    JSParseNode *attributeIdentifier();
+    JSParseNode *xmlExpr(JSBool inTag);
+    JSParseNode *xmlAtomNode();
+    JSParseNode *xmlNameExpr();
+    JSParseNode *xmlTagContent(js::TokenKind tagtype, JSAtom **namep);
+    JSBool xmlElementContent(JSParseNode *pn);
+    JSParseNode *xmlElementOrList(JSBool allowList);
+    JSParseNode *xmlElementOrListRoot(JSBool allowList);
+#endif 
+
+public:
     static bool
     compileFunctionBody(JSContext *cx, JSFunction *fun, JSPrincipals *principals,
                         const jschar *chars, size_t length,
