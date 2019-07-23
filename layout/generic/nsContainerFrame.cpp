@@ -1099,7 +1099,11 @@ void
 nsContainerFrame::DeleteNextInFlowChild(nsPresContext* aPresContext,
                                         nsIFrame*      aNextInFlow)
 {
-  NS_PRECONDITION(aNextInFlow->GetPrevInFlow(), "bad prev-in-flow");
+#ifdef DEBUG
+  nsIFrame* prevInFlow = aNextInFlow->GetPrevInFlow();
+#endif
+
+  NS_PRECONDITION(prevInFlow, "bad prev-in-flow");
 
   
   
