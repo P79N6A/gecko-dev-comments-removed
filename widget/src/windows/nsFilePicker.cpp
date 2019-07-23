@@ -71,12 +71,6 @@ char nsFilePicker::mLastUsedDirectory[MAX_PATH+1] = { 0 };
 
 #define MAX_EXTENSION_LENGTH 10
 
-#ifndef BIF_USENEWUI
-
-
-#define BIF_USENEWUI 0x50
-#endif
-
 
 
 
