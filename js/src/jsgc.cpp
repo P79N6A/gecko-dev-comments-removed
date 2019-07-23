@@ -1022,8 +1022,8 @@ InitGCArenaLists(JSRuntime *rt)
         thingSize = GC_FREELIST_NBYTES(i);
         JS_ASSERT((size_t)(uint16)thingSize == thingSize);
         arenaList->last = NULL;
-        arenaList->lastCount = THINGS_PER_ARENA(thingSize);
-        arenaList->thingSize = (uint16)thingSize;
+        arenaList->lastCount = (uint16) THINGS_PER_ARENA(thingSize);
+        arenaList->thingSize = (uint16) thingSize;
         arenaList->freeList = NULL;
     }
     rt->gcDoubleArenaList.first = NULL;
@@ -2038,14 +2038,13 @@ RefillDoubleFreeList(JSContext *cx)
     return list;
 }
 
-jsdouble *
-js_NewDoubleGCThing(JSContext *cx)
+JSBool
+js_NewDoubleInRootedValue(JSContext *cx, jsdouble d, jsval *vp)
 {
-    JSGCDoubleCell *cell;
-    jsdouble *dp;
 #ifdef JS_GCMETER
     JSGCArenaStats *astats;
 #endif
+    JSGCDoubleCell *cell;
 
     
     METER(astats = &cx->runtime->gcStats.doubleArenaStats);
@@ -2055,29 +2054,32 @@ js_NewDoubleGCThing(JSContext *cx)
         cell = RefillDoubleFreeList(cx);
         if (!cell) {
             METER(astats->fail++);
-            return NULL;
+            return JS_FALSE;
         }
     } else {
         METER(astats->localalloc++);
     }
     cx->doubleFreeList = cell->link;
-    dp = &cell->number;
+    cell->number = d;
+    *vp = DOUBLE_TO_JSVAL(&cell->number);
+    return JS_TRUE;
+}
 
+jsdouble *
+js_NewWeaklyRootedDouble(JSContext *cx, jsdouble d)
+{
+    jsval v;
+    jsdouble *dp;
+
+    if (!js_NewDoubleInRootedValue(cx, d, &v))
+        return NULL;
+
+    JS_ASSERT(JSVAL_IS_DOUBLE(v));
+    dp = JSVAL_TO_DOUBLE(v);
     if (cx->localRootStack) {
-        
-
-
-
-
-
-
-        if (js_PushLocalRoot(cx, cx->localRootStack, DOUBLE_TO_JSVAL(dp)) < 0)
+        if (js_PushLocalRoot(cx, cx->localRootStack, v) < 0)
             return NULL;
     } else {
-        
-
-
-
         cx->weakRoots.newborn[GCX_DOUBLE] = dp;
     }
     return dp;
@@ -2874,17 +2876,7 @@ ProcessSetSlotRequest(JSContext *cx, JSSetSlotRequest *ssr)
     slot = ssr->slot;
 
     while (pobj) {
-        JSClass *clasp = STOBJ_GET_CLASS(pobj);
-        if (clasp->flags & JSCLASS_IS_EXTENDED) {
-            JSExtendedClass *xclasp = (JSExtendedClass *) clasp;
-            if (xclasp->wrappedObject) {
-                
-                JSObject *wrapped = xclasp->wrappedObject(cx, pobj);
-                if (wrapped)
-                    pobj = wrapped;
-            }
-        }
-
+        pobj = js_GetWrappedObject(cx, pobj);
         if (pobj == obj) {
             ssr->errnum = JSMSG_CYCLIC_VALUE;
             return;
@@ -3356,7 +3348,7 @@ js_GC(JSContext *cx, JSGCInvocationKind gckind)
 
                 freeList = arenaList->freeList;
                 if (a == arenaList->last)
-                    arenaList->lastCount = indexLimit;
+                    arenaList->lastCount = (uint16) indexLimit;
                 *ap = a->prev;
                 a->prev = emptyArenas;
                 emptyArenas = a;

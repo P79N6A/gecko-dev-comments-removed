@@ -3807,6 +3807,9 @@ main(int argc, char **argv, char **envp)
 #ifdef JSDEBUGGER_JAVA_UI
     JNIEnv *java_env;
 #endif
+#ifdef JSDEBUGGER_C_UI
+    JSBool jsdbc;
+#endif 
 
     CheckHelpMessages();
     setlocale(LC_ALL, "");
@@ -3887,7 +3890,7 @@ main(int argc, char **argv, char **envp)
 
 #endif 
 #ifdef JSDEBUGGER_C_UI
-    JSDB_InitDebugger(rt, _jsdc, 0);
+    jsdbc = JSDB_InitDebugger(rt, _jsdc, 0);
 #endif 
 #endif 
 
@@ -3925,8 +3928,13 @@ main(int argc, char **argv, char **envp)
     result = ProcessArgs(cx, glob, argv, argc);
 
 #ifdef JSDEBUGGER
-    if (_jsdc)
+    if (_jsdc) {
+#ifdef JSDEBUGGER_C_UI
+        if (jsdbc)
+            JSDB_TermDebugger(_jsdc);
+#endif 
         JSD_DebuggerOff(_jsdc);
+    }
 #endif  
 
 #ifdef JS_THREADSAFE

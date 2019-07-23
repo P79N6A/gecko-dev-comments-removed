@@ -5897,7 +5897,7 @@ FoldType(JSContext *cx, JSParseNode *pn, JSTokenType type)
           case TOK_NUMBER:
             if (pn->pn_type == TOK_STRING) {
                 jsdouble d;
-                if (!js_ValueToNumber(cx, ATOM_KEY(pn->pn_atom), &d))
+                if (!JS_ValueToNumber(cx, ATOM_KEY(pn->pn_atom), &d))
                     return JS_FALSE;
                 pn->pn_dval = d;
                 pn->pn_type = TOK_NUMBER;
@@ -6021,6 +6021,7 @@ FoldXMLConstants(JSContext *cx, JSParseNode *pn, JSTreeContext *tc)
     JSParseNode **pnp, *pn1, *pn2;
     JSString *accum, *str;
     uint32 i, j;
+    JSTempValueRooter tvr;
 
     JS_ASSERT(pn->pn_arity == PN_LIST);
     tt = PN_TYPE(pn);
@@ -6033,6 +6034,13 @@ FoldXMLConstants(JSContext *cx, JSParseNode *pn, JSTreeContext *tc)
         else if (tt == TOK_XMLSTAGO || tt == TOK_XMLPTAGC)
             accum = ATOM_TO_STRING(cx->runtime->atomState.stagoAtom);
     }
+
+    
+
+
+
+
+
 
     for (pn2 = pn1, i = j = 0; pn2; pn2 = pn2->pn_next, i++) {
         
@@ -6104,9 +6112,11 @@ FoldXMLConstants(JSContext *cx, JSParseNode *pn, JSTreeContext *tc)
         }
 
         if (accum) {
+            JS_PUSH_TEMP_ROOT_STRING(cx, accum, &tvr);
             str = ((tt == TOK_XMLSTAGO || tt == TOK_XMLPTAGC) && i != 0)
                   ? js_AddAttributePart(cx, i & 1, accum, str)
                   : js_ConcatStrings(cx, accum, str);
+            JS_POP_TEMP_ROOT(cx, &tvr);
             if (!str)
                 return JS_FALSE;
 #ifdef DEBUG_brendanXXX
