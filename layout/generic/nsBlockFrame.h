@@ -492,6 +492,7 @@ protected:
                    line_iterator       aLine,
                    nsFloatManager::SavedState* aFloatStateBeforeLine,
                    nsRect&             aFloatAvailableSpace, 
+                   nscoord&            aAvailableSpaceHeight, 
                    PRBool*             aKeepReflowGoing);
 
   
@@ -532,6 +533,7 @@ protected:
                                 nsLineLayout& aLineLayout,
                                 line_iterator aLine,
                                 nsFlowAreaRect& aFloatAvailableSpace,
+                                nscoord& aAvailableSpaceHeight,
                                 nsFloatManager::SavedState*
                                   aFloatStateBeforeLine,
                                 PRBool* aKeepReflowGoing,

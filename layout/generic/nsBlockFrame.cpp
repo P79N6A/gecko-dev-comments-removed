@@ -3348,68 +3348,73 @@ nsBlockFrame::ReflowInlineFrames(nsBlockReflowState& aState,
 #endif
   LineReflowStatus lineReflowStatus = LINE_REFLOW_REDO_NEXT_BAND;
   do {
-    PRBool allowPullUp = PR_TRUE;
-    nsIContent* forceBreakInContent = nsnull;
-    PRInt32 forceBreakOffset = -1;
-    gfxBreakPriority forceBreakPriority = eNoBreak;
+    nscoord availableSpaceHeight = 0;
     do {
-      nsFloatManager::SavedState floatManagerState;
-      aState.mReflowState.mFloatManager->PushState(&floatManagerState);
+      PRBool allowPullUp = PR_TRUE;
+      nsIContent* forceBreakInContent = nsnull;
+      PRInt32 forceBreakOffset = -1;
+      gfxBreakPriority forceBreakPriority = eNoBreak;
+      do {
+        nsFloatManager::SavedState floatManagerState;
+        aState.mReflowState.mFloatManager->PushState(&floatManagerState);
 
-      
-      
-      
-      
-      
-      
-      
-      nsLineLayout lineLayout(aState.mPresContext,
-                              aState.mReflowState.mFloatManager,
-                              &aState.mReflowState, &aLine);
-      lineLayout.Init(&aState, aState.mMinLineHeight, aState.mLineNumber);
-      if (forceBreakInContent) {
-        lineLayout.ForceBreakAtPosition(forceBreakInContent, forceBreakOffset);
-      }
-      rv = DoReflowInlineFrames(aState, lineLayout, aLine,
-                                floatAvailableSpace, &floatManagerState,
-                                aKeepReflowGoing, &lineReflowStatus,
-                                allowPullUp);
-      lineLayout.EndLineReflow();
+        
+        
+        
+        
+        
+        
+        
+        nsLineLayout lineLayout(aState.mPresContext,
+                                aState.mReflowState.mFloatManager,
+                                &aState.mReflowState, &aLine);
+        lineLayout.Init(&aState, aState.mMinLineHeight, aState.mLineNumber);
+        if (forceBreakInContent) {
+          lineLayout.ForceBreakAtPosition(forceBreakInContent, forceBreakOffset);
+        }
+        rv = DoReflowInlineFrames(aState, lineLayout, aLine,
+                                  floatAvailableSpace, availableSpaceHeight,
+                                  &floatManagerState, aKeepReflowGoing,
+                                  &lineReflowStatus, allowPullUp);
+        lineLayout.EndLineReflow();
 
-      if (LINE_REFLOW_REDO_NO_PULL == lineReflowStatus ||
-          LINE_REFLOW_REDO_MORE_FLOATS == lineReflowStatus ||
-          LINE_REFLOW_REDO_NEXT_BAND == lineReflowStatus) {
-        if (lineLayout.NeedsBackup()) {
-          NS_ASSERTION(!forceBreakInContent, "Backing up twice; this should never be necessary");
+        if (NS_FAILED(rv)) {
+          return rv;
+        }
+
+        if (LINE_REFLOW_REDO_NO_PULL == lineReflowStatus ||
+            LINE_REFLOW_REDO_MORE_FLOATS == lineReflowStatus ||
+            LINE_REFLOW_REDO_NEXT_BAND == lineReflowStatus) {
+          if (lineLayout.NeedsBackup()) {
+            NS_ASSERTION(!forceBreakInContent, "Backing up twice; this should never be necessary");
+            
+            
+            
+            forceBreakInContent = lineLayout.GetLastOptionalBreakPosition(&forceBreakOffset, &forceBreakPriority);
+          } else {
+            forceBreakInContent = nsnull;
+          }
           
+          aState.mReflowState.mFloatManager->PopState(&floatManagerState);
           
-          
-          forceBreakInContent = lineLayout.GetLastOptionalBreakPosition(&forceBreakOffset, &forceBreakPriority);
-        } else {
-          forceBreakInContent = nsnull;
+          aState.mCurrentLineFloats.DeleteAll();
+          aState.mBelowCurrentLineFloats.DeleteAll();
         }
         
-        aState.mReflowState.mFloatManager->PopState(&floatManagerState);
-        
-        aState.mCurrentLineFloats.DeleteAll();
-        aState.mBelowCurrentLineFloats.DeleteAll();
-      }
-      
-#ifdef DEBUG
-      spins++;
-      if (1000 == spins) {
-        ListTag(stdout);
-        printf(": yikes! spinning on a line over 1000 times!\n");
-        NS_ABORT();
-      }
-#endif
+  #ifdef DEBUG
+        spins++;
+        if (1000 == spins) {
+          ListTag(stdout);
+          printf(": yikes! spinning on a line over 1000 times!\n");
+          NS_ABORT();
+        }
+  #endif
 
-      
-      allowPullUp = PR_FALSE;
-    } while (NS_SUCCEEDED(rv) && LINE_REFLOW_REDO_NO_PULL == lineReflowStatus);
-  } while (NS_SUCCEEDED(rv) &&
-           (LINE_REFLOW_REDO_MORE_FLOATS == lineReflowStatus ||
-            LINE_REFLOW_REDO_NEXT_BAND == lineReflowStatus));
+        
+        allowPullUp = PR_FALSE;
+      } while (LINE_REFLOW_REDO_NO_PULL == lineReflowStatus);
+    } while (LINE_REFLOW_REDO_MORE_FLOATS == lineReflowStatus);
+  } while (LINE_REFLOW_REDO_NEXT_BAND == lineReflowStatus);
 
   return rv;
 }
@@ -3443,6 +3448,7 @@ nsBlockFrame::DoReflowInlineFrames(nsBlockReflowState& aState,
                                    nsLineLayout& aLineLayout,
                                    line_iterator aLine,
                                    nsFlowAreaRect& aFloatAvailableSpace,
+                                   nscoord& aAvailableSpaceHeight,
                                    nsFloatManager::SavedState*
                                      aFloatStateBeforeLine,
                                    PRBool* aKeepReflowGoing,
@@ -3655,7 +3661,8 @@ nsBlockFrame::DoReflowInlineFrames(nsBlockReflowState& aState,
     
     if (!NS_INLINE_IS_BREAK_BEFORE(aState.mReflowStatus)) {
       if (!PlaceLine(aState, aLineLayout, aLine, aFloatStateBeforeLine,
-                     aFloatAvailableSpace.mRect, aKeepReflowGoing)) {
+                     aFloatAvailableSpace.mRect, aAvailableSpaceHeight,
+                     aKeepReflowGoing)) {
         lineReflowStatus = LINE_REFLOW_REDO_MORE_FLOATS;
         
       }
@@ -4044,6 +4051,7 @@ nsBlockFrame::PlaceLine(nsBlockReflowState& aState,
                         line_iterator       aLine,
                         nsFloatManager::SavedState *aFloatStateBeforeLine,
                         nsRect&             aFloatAvailableSpace,
+                        nscoord&            aAvailableSpaceHeight,
                         PRBool*             aKeepReflowGoing)
 {
   
@@ -4078,9 +4086,12 @@ nsBlockFrame::PlaceLine(nsBlockReflowState& aState,
   
   
   nsRect oldFloatAvailableSpace(aFloatAvailableSpace);
+  
+  
+  aAvailableSpaceHeight = PR_MAX(aAvailableSpaceHeight, aLine->mBounds.height);
   aFloatAvailableSpace = 
     aState.GetFloatAvailableSpaceForHeight(aLine->mBounds.y,
-                                           aLine->mBounds.height,
+                                           aAvailableSpaceHeight,
                                            aFloatStateBeforeLine).mRect;
   NS_ASSERTION(aFloatAvailableSpace.y == oldFloatAvailableSpace.y, "yikes");
   
