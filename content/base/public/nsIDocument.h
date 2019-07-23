@@ -298,9 +298,9 @@ public:
 
 
 
-  void SetBidiEnabled(PRBool aBidiEnabled)
+  void SetBidiEnabled()
   {
-    mBidiEnabled = aBidiEnabled;
+    mBidiEnabled = PR_TRUE;
   }
   
   

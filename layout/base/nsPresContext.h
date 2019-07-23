@@ -613,7 +613,7 @@ public:
 
 
 
-  NS_HIDDEN_(void) SetBidiEnabled(PRBool aBidiEnabled) const;
+  NS_HIDDEN_(void) SetBidiEnabled() const;
 
   
 

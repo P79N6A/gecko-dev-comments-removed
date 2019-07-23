@@ -371,11 +371,8 @@ nsPageFrame::DrawHeaderFooter(nsIRenderingContext& aRenderingContext,
       return; 
     }
     
-    
-    
-    
     if (HasRTLChars(str)) {
-      PresContext()->SetBidiEnabled(PR_TRUE);
+      PresContext()->SetBidiEnabled();
     }
 
     
