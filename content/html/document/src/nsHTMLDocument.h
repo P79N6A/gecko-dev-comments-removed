@@ -362,12 +362,7 @@ protected:
 
   
   nsresult   GetMidasCommandManager(nsICommandManager** aCommandManager);
-  PRBool     ConvertToMidasInternalCommand(const nsAString & inCommandID,
-                                           const nsAString & inParam,
-                                           nsACString& outCommandID,
-                                           nsACString& outParam,
-                                           PRBool& isBoolean,
-                                           PRBool& boolValue);
+
   nsCOMPtr<nsICommandManager> mMidasCommandManager;
 
   nsresult TurnEditingOff();
