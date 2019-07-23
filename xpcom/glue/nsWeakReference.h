@@ -50,7 +50,7 @@ class nsWeakReference;
 
 
 #undef  IMETHOD_VISIBILITY
-#define IMETHOD_VISIBILITY
+#define IMETHOD_VISIBILITY NS_COM_GLUE
 
 class NS_COM_GLUE nsSupportsWeakReference : public nsISupportsWeakReference
   {
