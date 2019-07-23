@@ -126,8 +126,6 @@
 #include "nsIXPCToolsProfiler.h"
 #endif
 
-#include "nsIThreadInternal.h"
-
 #ifdef XPC_IDISPATCH_SUPPORT
 
 
@@ -428,7 +426,6 @@ const PRBool OBJ_IS_NOT_GLOBAL = PR_FALSE;
 struct JSObjectRefcounts;
 
 class nsXPConnect : public nsIXPConnect,
-                    public nsIThreadObserver,
                     public nsSupportsWeakReference,
                     public nsCycleCollectionLanguageRuntime,
                     public nsCycleCollectionParticipant
@@ -437,7 +434,6 @@ public:
     
     NS_DECL_ISUPPORTS
     NS_DECL_NSIXPCONNECT
-    NS_DECL_NSITHREADOBSERVER
 
     
 public:

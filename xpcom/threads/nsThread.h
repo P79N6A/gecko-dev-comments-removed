@@ -72,9 +72,6 @@ public:
   
   PRBool ShutdownRequired() { return mShutdownRequired; }
 
-  
-  static nsIThreadObserver* sGlobalObserver;
-
 private:
   friend class nsThreadShutdownEvent;
 
