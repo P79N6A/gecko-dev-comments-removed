@@ -276,7 +276,6 @@ class nsAccessibleWrap : public nsAccessible,
 
   virtual void GetXPAccessibleFor(const VARIANT& aVarChild, nsIAccessible **aXPAccessible);
   NS_IMETHOD GetNativeInterface(void **aOutAccessible);
-  NS_IMETHOD GetDescription(nsAString& aDescription);
 
   
   

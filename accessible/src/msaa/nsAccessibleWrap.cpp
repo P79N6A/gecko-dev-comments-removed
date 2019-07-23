@@ -302,88 +302,99 @@ STDMETHODIMP nsAccessibleWrap::get_accValue(
   return S_OK;
 }
 
-NS_IMETHODIMP nsAccessibleWrap::GetDescription(nsAString& aDescription)
+STDMETHODIMP
+nsAccessibleWrap::get_accDescription(VARIANT varChild,
+                                     BSTR __RPC_FAR *pszDescription)
 {
-  
+  *pszDescription = NULL;
+  nsCOMPtr<nsIAccessible> xpAccessible;
+  GetXPAccessibleFor(varChild, getter_AddRefs(xpAccessible));
+  if (!xpAccessible)
+    return E_FAIL;
+
   
   
   
 
-  aDescription.Truncate();
+  nsAutoString description;
 
   
-  
-  nsIContent *content = GetRoleContent(mDOMNode);
-  nsAutoString posInSet, setSize;
-  if (content->GetAttr(kNameSpaceID_WAIProperties, nsAccessibilityAtoms::posinset, posInSet) &&
-      content->GetAttr(kNameSpaceID_WAIProperties, nsAccessibilityAtoms::setsize, setSize)) {
-    PRInt32 errPosInSet, errSetSize;
-    PRInt32 intPosInSet = posInSet.ToInteger(&errPosInSet);
-    PRInt32 intSetSize = setSize.ToInteger(&errSetSize);
-    if (NS_SUCCEEDED(errPosInSet) && intPosInSet >=1 && NS_SUCCEEDED(errSetSize) && intSetSize >= 1) {
-      nsAutoString level;
-      if (content->GetAttr(kNameSpaceID_WAIProperties, nsAccessibilityAtoms::level,  level)) {
+  PRInt32 groupLevel;
+  PRInt32 similarItemsInGroup;
+  PRInt32 positionInGroup;
+
+  nsresult rv = xpAccessible->GroupPosition(&groupLevel, &similarItemsInGroup,
+                                            &positionInGroup);
+  if (NS_SUCCEEDED(rv)) {
+    if (positionInGroup != -1 && similarItemsInGroup != -1) {
+      if (groupLevel != -1) {
         
-        PRInt32 errLevel;
-        PRInt32 intLevel = level.ToInteger(&errLevel);
-        if (NS_SUCCEEDED(errLevel) && intLevel >= 1) {
-          
-          
-          
-          nsTextFormatter::ssprintf(aDescription,
-                                    NS_LITERAL_STRING("L%d, %d of %d").get(), intLevel, intPosInSet, intSetSize);
-        }
+        
+        
+        
+        nsTextFormatter::ssprintf(description,
+                                  NS_LITERAL_STRING("L%d, %d of %d").get(),
+                                  groupLevel, positionInGroup + 1,
+                                  similarItemsInGroup + 1);
+      } else { 
+        nsTextFormatter::ssprintf(description,
+                                  NS_LITERAL_STRING("%d of %d").get(),
+                                  positionInGroup + 1, similarItemsInGroup + 1);
       }
-      else { 
-        nsTextFormatter::ssprintf(aDescription,
-                                  NS_LITERAL_STRING("%d of %d").get(), intPosInSet, intSetSize);
-      }
-      return NS_OK;
+
+      *pszDescription = ::SysAllocString(description.get());
+      return S_OK;
     }
   }
 
   PRUint32 currentRole;
-  nsresult rv = GetFinalRole(&currentRole);
+  rv = xpAccessible->GetFinalRole(&currentRole);
   if (NS_FAILED(rv) ||
       (currentRole != nsIAccessibleRole::ROLE_LISTITEM &&
        currentRole != nsIAccessibleRole::ROLE_MENUITEM &&
        currentRole != nsIAccessibleRole::ROLE_RADIOBUTTON &&
        currentRole != nsIAccessibleRole::ROLE_PAGETAB &&
        currentRole != nsIAccessibleRole::ROLE_OUTLINEITEM)) {
-    nsAutoString description;
-    nsAccessible::GetDescription(description);
+    xpAccessible->GetDescription(description);
     if (!description.IsEmpty()) {
       
       
       
       
-      aDescription = NS_LITERAL_STRING("Description: ") + description;
+      description = NS_LITERAL_STRING("Description: ") + description;
     }
-    return NS_OK;
+
+    *pszDescription = ::SysAllocString(description.get());
+    return S_OK;
   }
 
-  nsCOMPtr<nsIAccessible> parent(GetParent());
-  if (!parent) {
-    return NS_ERROR_FAILURE;
-  }
+  
+  
+  
+  
 
-  PRInt32 indexInParent = 0, numSiblings = 0;
+  nsCOMPtr<nsIAccessible> parent;
+  xpAccessible->GetParent(getter_AddRefs(parent));
+  NS_ENSURE_TRUE(parent, NS_ERROR_FAILURE);
+
+  positionInGroup = 0;
+  similarItemsInGroup = 0;
 
   nsCOMPtr<nsIAccessible> sibling, nextSibling;
   parent->GetFirstChild(getter_AddRefs(sibling));
-  NS_ENSURE_TRUE(sibling, NS_ERROR_FAILURE);
+  if (!sibling)
+    return E_FAIL;
 
   PRBool foundCurrent = PR_FALSE;
   PRUint32 siblingRole;
   while (sibling) {
     sibling->GetFinalRole(&siblingRole);
     if (siblingRole == currentRole) {
-      ++ numSiblings;
+      ++ similarItemsInGroup;
       if (!foundCurrent) {
-        ++ indexInParent;
-        if (sibling == this) {
+        ++ positionInGroup;
+        if (sibling == this)
           foundCurrent = PR_TRUE;
-        }
       }
     }
     sibling->GetNextSibling(getter_AddRefs(nextSibling));
@@ -393,14 +404,14 @@ NS_IMETHODIMP nsAccessibleWrap::GetDescription(nsAString& aDescription)
   
   
   if (currentRole == nsIAccessibleRole::ROLE_OUTLINEITEM) {
-    PRUint32 level = 1;
+    groupLevel = 1;
     nsCOMPtr<nsIAccessible> nextParent;
     while (parent) {
       parent->GetFinalRole(&currentRole);
-      if (currentRole != nsIAccessibleRole::ROLE_GROUPING) {
+      if (currentRole != nsIAccessibleRole::ROLE_GROUPING)
         break;
-      }
-      ++level;
+
+      ++ groupLevel;
       parent->GetParent(getter_AddRefs(nextParent));
       parent.swap(nextParent);
     }
@@ -408,7 +419,7 @@ NS_IMETHODIMP nsAccessibleWrap::GetDescription(nsAString& aDescription)
     
     PRInt32 numChildren = 0;
     nsCOMPtr<nsIAccessible> groupSibling;
-    GetNextSibling(getter_AddRefs(groupSibling));
+    xpAccessible->GetNextSibling(getter_AddRefs(groupSibling));
     if (groupSibling) {
       groupSibling->GetFinalRole(&currentRole);
       if (currentRole == nsIAccessibleRole::ROLE_GROUPING) {
@@ -426,32 +437,16 @@ NS_IMETHODIMP nsAccessibleWrap::GetDescription(nsAString& aDescription)
     }
 
     
-    nsTextFormatter::ssprintf(aDescription,
+    nsTextFormatter::ssprintf(description,
                               NS_LITERAL_STRING("L%d, %d of %d with %d").get(),
-                              level, indexInParent, numSiblings, numChildren);
-  }
-  else {
-    nsTextFormatter::ssprintf(aDescription, NS_LITERAL_STRING("%d of %d").get(),
-                              indexInParent, numSiblings);
-  }
-  return NS_OK;
-}
-
-STDMETHODIMP nsAccessibleWrap::get_accDescription(
-       VARIANT varChild,
-       BSTR __RPC_FAR *pszDescription)
-{
-  *pszDescription = NULL;
-  nsCOMPtr<nsIAccessible> xpAccessible;
-  GetXPAccessibleFor(varChild, getter_AddRefs(xpAccessible));
-  if (xpAccessible) {
-     nsAutoString description;
-     if (NS_FAILED(xpAccessible->GetDescription(description)))
-       return S_FALSE;
-
-     *pszDescription = ::SysAllocString(description.get());
+                              groupLevel, positionInGroup,
+                              similarItemsInGroup, numChildren);
+  } else {
+    nsTextFormatter::ssprintf(description, NS_LITERAL_STRING("%d of %d").get(),
+                              positionInGroup, similarItemsInGroup);
   }
 
+ *pszDescription = ::SysAllocString(description.get());
   return S_OK;
 }
 
@@ -1149,11 +1144,24 @@ nsAccessibleWrap::scrollTo(boolean topLeft)
 }
 
 STDMETHODIMP
-nsAccessibleWrap::get_groupPosition(long *groupLevel,
-                                    long *similarItemsInGroup,
-                                    long *positionInGroup)
+nsAccessibleWrap::get_groupPosition(long *aGroupLevel,
+                                    long *aSimilarItemsInGroup,
+                                    long *aPositionInGroup)
 {
-  return E_NOTIMPL;
+  PRInt32 groupLevel = 0;
+  PRInt32 similarItemsInGroup = 0;
+  PRInt32 positionInGroup = 0;
+  nsresult rv = GroupPosition(&groupLevel, &similarItemsInGroup,
+                              &positionInGroup);
+
+  if (NS_SUCCEEDED(rv)) {
+   *aGroupLevel = groupLevel;
+   *aSimilarItemsInGroup = similarItemsInGroup;
+   *aPositionInGroup = positionInGroup;
+    return S_OK;
+  }
+
+  return E_FAIL;
 }
 
 STDMETHODIMP

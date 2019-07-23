@@ -91,7 +91,6 @@
 #include "nsIImageLoadingContent.h"
 #include "nsITimer.h"
 #include "nsIMutableArray.h"
-#include "nsIPersistentProperties2.h"
 #include "nsIDOMTreeWalker.h"
 #include "nsIDOMDocumentTraversal.h"
 #include "nsIDOMNodeFilter.h"
@@ -2119,6 +2118,46 @@ NS_IMETHODIMP nsAccessible::GetAttributes(nsIPersistentProperties **aAttributes)
   }
 
   attributes.swap(*aAttributes);
+
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsAccessible::GroupPosition(PRInt32 *aGroupLevel,
+                            PRInt32 *aSimilarItemsInGroup,
+                            PRInt32 *aPositionInGroup)
+{
+  
+  
+  
+  
+  
+  
+
+  NS_ENSURE_ARG_POINTER(aGroupLevel);
+  NS_ENSURE_ARG_POINTER(aSimilarItemsInGroup);
+  NS_ENSURE_ARG_POINTER(aPositionInGroup);
+
+  *aGroupLevel = 0;
+  *aSimilarItemsInGroup = 0;
+  *aPositionInGroup = 0;
+
+  nsCOMPtr<nsIPersistentProperties> attributes;
+  nsresult rv = GetAttributes(getter_AddRefs(attributes));
+  NS_ENSURE_SUCCESS(rv, rv);
+  NS_ENSURE_TRUE(attributes, NS_ERROR_FAILURE);
+
+  PRInt32 level, posInSet, setSize;
+  nsAccessibilityUtils::GetAccGroupAttrs(attributes,
+                                         &level, &posInSet, &setSize);
+
+  if (!posInSet && !setSize)
+    return NS_OK;
+
+  *aGroupLevel = level;
+
+  *aPositionInGroup = posInSet - 1;
+  *aSimilarItemsInGroup = setSize - 1;
 
   return NS_OK;
 }
