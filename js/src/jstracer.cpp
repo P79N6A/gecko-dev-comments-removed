@@ -3618,6 +3618,13 @@ js_AttemptToExtendTree(JSContext* cx, VMSideExit* anchor, VMSideExit* exitedFrom
         c->root = f;
     }
 
+    
+
+
+
+
+    c->ip = cx->fp->regs->pc;
+
     debug_only_v(printf("trying to attach another branch to the tree (hits = %d)\n", c->hits());)
 
     int32_t& hits = c->hits();
