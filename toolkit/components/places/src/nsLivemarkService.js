@@ -500,7 +500,8 @@ LivemarkLoadListener.prototype = {
 
     
     var secMan = Cc[SEC_CONTRACTID].getService(Ci.nsIScriptSecurityManager);
-      
+    var feedPrincipal = secMan.getCodebasePrincipal(this._livemark.feedURI);
+
     
     
     var lmService = Cc[LS_CONTRACTID].getService(Ci.nsILivemarkService);
@@ -534,8 +535,7 @@ LivemarkLoadListener.prototype = {
         continue;
 
       try {
-        secMan.checkLoadURIStr(this._livemark.feedURI.spec, href.spec,
-                               SEC_FLAGS);
+        secMan.checkLoadURIWithPrincipal(feedPrincipal, href, SEC_FLAGS);
       }
       catch(ex) {
         continue;
