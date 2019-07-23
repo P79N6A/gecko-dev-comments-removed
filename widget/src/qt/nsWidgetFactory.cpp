@@ -42,6 +42,9 @@
 #include "nsIGenericFactory.h"
 #include "nsIModule.h"
 
+#include "nsCOMPtr.h"
+#include "nsWidgetsCID.h"
+#include "nsAppShell.h"
 
 
 
@@ -69,6 +72,9 @@
 
 
 
+
+
+NS_GENERIC_FACTORY_CONSTRUCTOR(nsAppShell)
 
 
 
@@ -92,10 +98,10 @@
 
 static const nsModuleComponentInfo components[] =
 {
-
-
-
-
+    { "Qt AppShell",
+      NS_APPSHELL_CID,
+      "@mozilla.org/widget/appshell/qt;1",
+      nsAppShellConstructor }
 
 
 
