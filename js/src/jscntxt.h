@@ -643,10 +643,10 @@ struct JSContext {
 
 
     uint8               xmlSettingFlags;
-#else
     uint8               padding;
+#else
+    uint16              padding;
 #endif
-    uint8               gcDefaultFlags;
 
     
     uint16              version;
