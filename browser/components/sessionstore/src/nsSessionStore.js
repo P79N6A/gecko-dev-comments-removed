@@ -293,22 +293,27 @@ SessionStoreService.prototype = {
       this._uninit();
       break;
     case "browser:purge-session-history": 
+      let openWindows = {};
       this._forEachBrowserWindow(function(aWindow) {
         Array.forEach(aWindow.getBrowser().browsers, function(aBrowser) {
           delete aBrowser.parentNode.__SS_data;
         });
+        openWindows[aWindow.__SSi] = true;
       });
-      this._lastClosedWindows = null;
-      this._clearDisk();
       
       for (ix in this._windows) {
-        this._windows[ix]._closedTabs = [];
+        if (ix in openWindows)
+          this._windows[ix]._closedTabs = [];
+        else
+          delete this._windows[ix];
       }
+      this._lastClosedWindows = null;
+      this._clearDisk();
       
       var win = this._getMostRecentBrowserWindow();
       if (win)
         win.setTimeout(function() { _this.saveState(true); }, 0);
-      else
+      else if (this._loadState == STATE_RUNNING)
         this.saveState(true);
       break;
     case "nsPref:changed": 
