@@ -44,7 +44,7 @@
 #  define FFI_MMAP_EXEC_WRIT 1
 #  define HAVE_MNTENT 1
 # endif
-# if defined(X86_WIN32) || defined(X86_WIN64)
+# if defined(X86_WIN32) || defined(X86_WIN64) || defined(__OS2__)
 
 
 
@@ -193,7 +193,7 @@ static int dlmalloc_trim(size_t) MAYBE_UNUSED;
 static size_t dlmalloc_usable_size(void*) MAYBE_UNUSED;
 static void dlmalloc_stats(void) MAYBE_UNUSED;
 
-#if !(defined(X86_WIN32) || defined(X86_WIN64)) || defined (__CYGWIN__)
+#if !(defined(X86_WIN32) || defined(X86_WIN64) || defined(__OS2__)) || defined (__CYGWIN__)
 
 static void *dlmmap(void *, size_t, int, int, int, off_t);
 static int dlmunmap(void *, size_t);
@@ -207,7 +207,7 @@ static int dlmunmap(void *, size_t);
 #undef mmap
 #undef munmap
 
-#if !(defined(X86_WIN32) || defined(X86_WIN64)) || defined (__CYGWIN__)
+#if !(defined(X86_WIN32) || defined(X86_WIN64) || defined(__OS2__)) || defined (__CYGWIN__)
 
 
 static pthread_mutex_t open_temp_exec_file_mutex = PTHREAD_MUTEX_INITIALIZER;
