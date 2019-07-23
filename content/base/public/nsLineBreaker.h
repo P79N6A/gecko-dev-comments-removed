@@ -76,7 +76,6 @@ public:
 
 
 
-
 class nsLineBreaker {
 public:
   nsLineBreaker();
@@ -92,42 +91,30 @@ public:
   
   
   
-  
-  
-  
-  
-  
-  
-  
-  
   enum {
     
 
 
-
-    BREAK_WHITESPACE_END       = 0x01,
+    BREAK_ALLOW_INITIAL = 0x01,
     
 
 
-
-    BREAK_NONWHITESPACE_INSIDE = 0x02,
-    
-
-
-
-    BREAK_NONWHITESPACE_BEFORE = 0x04
+    BREAK_ALLOW_INSIDE = 0x02,
   };
 
   
 
 
 
+  nsresult AppendInvisibleWhitespace();
+
+  
+
+
 
   nsresult AppendText(nsIAtom* aLangGroup, const PRUnichar* aText, PRUint32 aLength,
                       PRUint32 aFlags, nsILineBreakSink* aSink);
   
-
-
 
 
   nsresult AppendText(nsIAtom* aLangGroup, const PRUint8* aText, PRUint32 aLength,
@@ -143,6 +130,9 @@ public:
   nsresult Reset() { return FlushCurrentWord(); }
 
 private:
+  
+  
+  
   struct TextItem {
     TextItem(nsILineBreakSink* aSink, PRUint32 aSinkOffset, PRUint32 aLength,
              PRUint32 aFlags)
@@ -168,8 +158,7 @@ private:
   PRPackedBool                mCurrentWordContainsCJK;
 
   
-  
-  PRPackedBool                mBreakBeforeNonWhitespace;
+  PRPackedBool                mAfterSpace;
 };
 
 #endif 
