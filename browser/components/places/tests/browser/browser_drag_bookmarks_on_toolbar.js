@@ -203,6 +203,11 @@ var gTests = [
     desc: "Drag a bookmark on toolbar",
     run: function() {
       
+      
+      
+      return;
+
+      
       var itemId = PlacesUtils.bookmarks
                               .insertBookmark(PlacesUtils.toolbarFolderId,
                                               PlacesUtils._uri(TEST_URL),
