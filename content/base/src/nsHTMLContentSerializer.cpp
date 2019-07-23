@@ -634,9 +634,9 @@ nsHTMLContentSerializer::AppendElementStart(nsIDOMElement *aElement,
 
   nsIAtom *name = content->Tag();
 
+  
+  
   if (name == nsGkAtoms::meta) {
-    
-    
     nsAutoString header;
     content->GetAttr(kNameSpaceID_None, nsGkAtoms::httpEquiv, header);
     if (header.LowerCaseEqualsLiteral("content-type")) {
@@ -739,16 +739,13 @@ nsHTMLContentSerializer::AppendElementStart(nsIDOMElement *aElement,
   }
 
   if (name == nsGkAtoms::head) {
-    
-    
     AppendToString(mLineBreak, aStr);
     AppendToString(NS_LITERAL_STRING("<meta http-equiv=\"content-type\""),
                    aStr);
-    AppendToString(NS_LITERAL_STRING(" content=\"text/html; "), aStr);
+    AppendToString(NS_LITERAL_STRING(" content=\"text/html; charset="), aStr);
     AppendToString(NS_ConvertASCIItoUTF16(mCharset), aStr);
     AppendToString(NS_LITERAL_STRING("\">"), aStr);
-    AppendToString(mLineBreak, aStr);
-  }  
+  }
 
   return NS_OK;
 }
@@ -766,6 +763,15 @@ nsHTMLContentSerializer::AppendElementEnd(nsIDOMElement *aElement,
                                          nsGkAtoms::mozdirty);
 
   nsIAtom *name = content->Tag();
+
+  
+  if (name == nsGkAtoms::meta) {
+    nsAutoString header;
+    content->GetAttr(kNameSpaceID_None, nsGkAtoms::httpEquiv, header);
+    if (header.LowerCaseEqualsLiteral("content-type")) {
+      return NS_OK;
+    }
+  }
 
   if (name == nsGkAtoms::script) {
     nsCOMPtr<nsIScriptElement> script = do_QueryInterface(aElement);
