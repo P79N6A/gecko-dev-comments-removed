@@ -839,11 +839,6 @@ DocumentViewerImpl::InitInternal(nsIWidget* aParentWidget,
                                  PRBool aInPrintPreview,
                                  PRBool aNeedMakeCX )
 {
-  
-  
-  
-  nsAutoScriptBlocker blockScripts;
-
   mParentWidget = aParentWidget; 
   mBounds = aBounds;
 
