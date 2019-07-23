@@ -640,6 +640,14 @@ public:
   
 
 
+
+  static void FireNodeInserted(nsIDocument* aDoc,
+                               nsINode* aParent,
+                               nsCOMArray<nsIContent>& aNodes);
+
+  
+
+
   static nsresult doQuerySelector(nsINode* aRoot, const nsAString& aSelector,
                                   nsIDOMElement **aReturn);
   static nsresult doQuerySelectorAll(nsINode* aRoot,
