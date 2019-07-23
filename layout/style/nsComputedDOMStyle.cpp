@@ -2424,7 +2424,9 @@ nsComputedDOMStyle::GetTextDecoration(nsIDOMCSSValue** aValue)
   } else {
     nsAutoString decorationString;
     
-    intValue &= ~NS_STYLE_TEXT_DECORATION_PREF_ANCHORS;
+    
+    intValue &= ~(NS_STYLE_TEXT_DECORATION_PREF_ANCHORS |
+                  NS_STYLE_TEXT_DECORATION_OVERRIDE_ALL);
     nsStyleUtil::AppendBitmaskCSSValue(eCSSProperty_text_decoration, intValue,
                                        NS_STYLE_TEXT_DECORATION_UNDERLINE,
                                        NS_STYLE_TEXT_DECORATION_BLINK,
