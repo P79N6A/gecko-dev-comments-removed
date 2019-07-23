@@ -635,6 +635,42 @@ private:
 };
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class gfxFontShaper {
+public:
+    gfxFontShaper(gfxFont *aFont)
+        : mFont(aFont) { }
+
+    virtual ~gfxFontShaper() { }
+
+    virtual void InitTextRun(gfxContext *aContext,
+                             gfxTextRun *aTextRun,
+                             const PRUnichar *aString,
+                             PRUint32 aRunStart,
+                             PRUint32 aRunLength) = 0;
+
+protected:
+    
+    gfxFont * mFont;
+};
+
+
 class THEBES_API gfxFont {
 public:
     nsrefcnt AddRef(void) {
@@ -680,7 +716,7 @@ protected:
 public:
     virtual ~gfxFont();
 
-    PRBool Valid() {
+    PRBool Valid() const {
         return mIsValid;
     }
 
@@ -714,7 +750,7 @@ public:
     const nsString& GetName() const { return mFontEntry->Name(); }
     const gfxFontStyle *GetStyle() const { return &mStyle; }
 
-    virtual nsString GetUniqueName() = 0;
+    virtual nsString GetUniqueName() { return GetName(); }
 
     
     struct Metrics {
@@ -873,11 +909,16 @@ public:
         return mFontEntry->HasCharacter(ch); 
     }
 
-    virtual void InitTextRun(gfxTextRun *aTextRun,
-                             const PRUnichar *aString,
-                             PRUint32 aRunStart,
-                             PRUint32 aRunLength) {
-        NS_NOTREACHED("oops, somebody didn't override InitTextRun");
+    void InitTextRun(gfxContext *aContext,
+                     gfxTextRun *aTextRun,
+                     const PRUnichar *aString,
+                     PRUint32 aRunStart,
+                     PRUint32 aRunLength) {
+        NS_ASSERTION(mShaper != nsnull, "no shaper?!");
+        if (!mShaper) {
+            return;
+        }
+        mShaper->InitTextRun(aContext, aTextRun, aString, aRunStart, aRunLength);
     }
 
 protected:
@@ -890,6 +931,8 @@ protected:
 
     
     PRUint32                   mSyntheticBoldOffset;  
+
+    nsAutoPtr<gfxFontShaper>   mShaper;
 
     
     
@@ -1866,7 +1909,8 @@ protected:
     
     void InitMetricsForBadFont(gfxFont* aBadFont);
 
-    void InitTextRun(gfxTextRun *aTextRun,
+    void InitTextRun(gfxContext *aContext,
+                     gfxTextRun *aTextRun,
                      const PRUnichar *aString,
                      PRUint32 aLength);
 

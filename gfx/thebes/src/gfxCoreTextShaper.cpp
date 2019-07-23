@@ -50,12 +50,11 @@
 #include "gfxContext.h"
 #include "gfxPlatform.h"
 #include "gfxPlatformMac.h"
-#include "gfxCoreTextFonts.h"
+#include "gfxCoreTextShaper.h"
+#include "gfxMacFont.h"
 
 #include "gfxFontTest.h"
 #include "gfxFontUtils.h"
-
-#include "cairo-quartz.h"
 
 #include "gfxQuartzSurface.h"
 #include "gfxMacPlatformFontList.h"
@@ -70,360 +69,45 @@
 static PRLogModuleInfo *gCoreTextTextRunLog = PR_NewLogModule("coreTextTextRun");
 #endif
 
-#define ROUND(x) (floor((x) + 0.5))
 
 
+CTFontDescriptorRef gfxCoreTextShaper::sDefaultFeaturesDescriptor = NULL;
+CTFontDescriptorRef gfxCoreTextShaper::sDisableLigaturesDescriptor = NULL;
 
-CTFontDescriptorRef gfxCoreTextFont::sDefaultFeaturesDescriptor = NULL;
-CTFontDescriptorRef gfxCoreTextFont::sDisableLigaturesDescriptor = NULL;
-
-#ifdef DEBUG_jonathan
-static void dumpFontDescCallback(const void *key, const void *value, void *context)
+gfxCoreTextShaper::gfxCoreTextShaper(gfxMacFont *aFont)
+    : gfxFontShaper(aFont)
 {
-    CFStringRef attribute = (CFStringRef)key;
-    CFTypeRef setting = (CFTypeRef)value;
-    fprintf(stderr, "attr: "); CFShow(attribute);
-    fprintf(stderr, "    = "); CFShow(setting);
-    fprintf(stderr, "\n");
+    
+    mCTFont = ::CTFontCreateWithPlatformFont(aFont->GetATSFontRef(),
+                                             aFont->GetAdjustedSize(),
+                                             NULL,
+                                             GetDefaultFeaturesDescriptor());
+
+    
+    mAttributesDict = ::CFDictionaryCreate(kCFAllocatorDefault,
+                                           (const void**) &kCTFontAttributeName,
+                                           (const void**) &mCTFont,
+                                           1, 
+                                           &kCFTypeDictionaryKeyCallBacks,
+                                           &kCFTypeDictionaryValueCallBacks);
 }
 
-static void
-dumpFontDescriptor(CTFontRef font)
+gfxCoreTextShaper::~gfxCoreTextShaper()
 {
-    CTFontDescriptorRef desc = CTFontCopyFontDescriptor(font);
-    CFDictionaryRef dict = CTFontDescriptorCopyAttributes(desc);
-    CFRelease(desc);
-    CFDictionaryApplyFunction(dict, &dumpFontDescCallback, 0);
-    CFRelease(dict);
-}
-#endif
-
-gfxCoreTextFont::gfxCoreTextFont(MacOSFontEntry *aFontEntry,
-                                 const gfxFontStyle *aFontStyle,
-                                 PRBool aNeedsBold)
-    : gfxFont(aFontEntry, aFontStyle),
-      mFontStyle(aFontStyle),
-      mCTFont(nsnull),
-      mAttributesDict(nsnull),
-      mHasMetrics(PR_FALSE),
-      mFontFace(nsnull),
-      mScaledFont(nsnull),
-      mAdjustedSize(0.0f)
-{
-    mATSFont = aFontEntry->GetFontRef();
-
-    
-    PRInt8 baseWeight, weightDistance;
-    mFontStyle->ComputeWeightAndOffset(&baseWeight, &weightDistance);
-    PRUint16 targetWeight = (baseWeight * 100) + (weightDistance * 100);
-
-    
-    
-    
-    
-    if (!aFontEntry->IsBold()
-        && ((weightDistance == 0 && targetWeight >= 600) || (weightDistance > 0 && aNeedsBold)))
-    {
-        mSyntheticBoldOffset = 1;  
-    }
-
-    
-    InitMetrics();
-    if (!mIsValid) {
-        return;
-    }
-
-    
-    mAttributesDict =
-        ::CFDictionaryCreate(kCFAllocatorDefault,
-                             (const void**) &kCTFontAttributeName,
-                             (const void**) &mCTFont,
-                             1, 
-                             &kCFTypeDictionaryKeyCallBacks,
-                             &kCFTypeDictionaryValueCallBacks);
-
-    
-    CGFontRef cgFont = ::CGFontCreateWithPlatformFont(&mATSFont);
-    mFontFace = cairo_quartz_font_face_create_for_cgfont(cgFont);
-    ::CGFontRelease(cgFont);
-
-    cairo_status_t cairoerr = cairo_font_face_status(mFontFace);
-    if (cairoerr != CAIRO_STATUS_SUCCESS) {
-        mIsValid = PR_FALSE;
-#ifdef DEBUG
-        char warnBuf[1024];
-        sprintf(warnBuf, "Failed to create Cairo font face: %s status: %d",
-                NS_ConvertUTF16toUTF8(GetName()).get(), cairoerr);
-        NS_WARNING(warnBuf);
-#endif
-        return;
-    }
-
-    cairo_matrix_t sizeMatrix, ctm;
-    cairo_matrix_init_identity(&ctm);
-    cairo_matrix_init_scale(&sizeMatrix, mAdjustedSize, mAdjustedSize);
-
-    
-    PRBool needsOblique =
-        (mFontEntry != NULL) &&
-        (!mFontEntry->IsItalic() && (mFontStyle->style & (FONT_STYLE_ITALIC | FONT_STYLE_OBLIQUE)));
-
-    if (needsOblique) {
-        double skewfactor = (needsOblique ? Fix2X(kATSItalicQDSkew) : 0);
-
-        cairo_matrix_t style;
-        cairo_matrix_init(&style,
-                          1,                
-                          0,                
-                          -1 * skewfactor,   
-                          1,                
-                          0,                
-                          0);               
-        cairo_matrix_multiply(&sizeMatrix, &sizeMatrix, &style);
-    }
-
-    cairo_font_options_t *fontOptions = cairo_font_options_create();
-    
-    
-
-    
-    if (mAdjustedSize <= (float) gfxPlatformMac::GetPlatform()->GetAntiAliasingThreshold()) {
-        cairo_font_options_set_antialias(fontOptions, CAIRO_ANTIALIAS_NONE);
-        
-    }
-
-    mScaledFont = cairo_scaled_font_create(mFontFace, &sizeMatrix, &ctm, fontOptions);
-    cairo_font_options_destroy(fontOptions);
-
-    cairoerr = cairo_scaled_font_status(mScaledFont);
-    if (cairoerr != CAIRO_STATUS_SUCCESS) {
-        mIsValid = PR_FALSE;
-#ifdef DEBUG
-        char warnBuf[1024];
-        sprintf(warnBuf, "Failed to create scaled font: %s status: %d",
-                NS_ConvertUTF16toUTF8(GetName()).get(), cairoerr);
-        NS_WARNING(warnBuf);
-#endif
-    }
-}
-
-static double
-RoundToNearestMultiple(double aValue, double aFraction)
-{
-  return floor(aValue/aFraction + 0.5)*aFraction;
-}
-
-PRBool
-gfxCoreTextFont::SetupCairoFont(gfxContext *aContext)
-{
-    cairo_scaled_font_t *scaledFont = CairoScaledFont();
-    if (cairo_scaled_font_status(scaledFont) != CAIRO_STATUS_SUCCESS) {
-        
-        
-        return PR_FALSE;
-    }
-    cairo_set_scaled_font(aContext->GetCairo(), scaledFont);
-    return PR_TRUE;
-}
-
-float
-gfxCoreTextFont::GetCharWidth(PRUnichar aUniChar, PRUint32 *aGlyphID)
-{
-    UniChar c = aUniChar;
-    CGGlyph glyph;
-    if (::CTFontGetGlyphsForCharacters(mCTFont, &c, &glyph, 1)) {
-        CGSize advance;
-        ::CTFontGetAdvancesForGlyphs(mCTFont,
-                                     kCTFontHorizontalOrientation,
-                                     &glyph,
-                                     &advance,
-                                     1);
-        if (aGlyphID != nsnull)
-            *aGlyphID = glyph;
-        return advance.width;
-    }
-
-    
-    if (aGlyphID != nsnull)
-        *aGlyphID = 0;
-    return 0;
-}
-
-float
-gfxCoreTextFont::GetCharHeight(PRUnichar aUniChar)
-{
-    UniChar c = aUniChar;
-    CGGlyph glyph;
-    if (::CTFontGetGlyphsForCharacters(mCTFont, &c, &glyph, 1)) {
-        CGRect boundingRect;
-        ::CTFontGetBoundingRectsForGlyphs(mCTFont,
-                                          kCTFontHorizontalOrientation,
-                                          &glyph,
-                                          &boundingRect,
-                                          1);
-        return boundingRect.size.height;
-    }
-
-    
-    return 0;
-}
-
-gfxCoreTextFont::~gfxCoreTextFont()
-{
-    if (mScaledFont)
-        cairo_scaled_font_destroy(mScaledFont);
-    if (mFontFace)
-        cairo_font_face_destroy(mFontFace);
-
-    if (mAttributesDict)
+    if (mAttributesDict) {
         ::CFRelease(mAttributesDict);
-    if (mCTFont)
+    }
+    if (mCTFont) {
         ::CFRelease(mCTFont);
-}
-
-MacOSFontEntry*
-gfxCoreTextFont::GetFontEntry()
-{
-    return static_cast<MacOSFontEntry*>(mFontEntry.get());
-}
-
-PRBool
-gfxCoreTextFont::TestCharacterMap(PRUint32 aCh)
-{
-    return mIsValid && GetFontEntry()->TestCharacterMap(aCh);
+    }
 }
 
 void
-gfxCoreTextFont::InitMetrics()
-{
-    if (mHasMetrics)
-        return;
-
-    gfxFloat size =
-        PR_MAX(((mAdjustedSize != 0.0f) ? mAdjustedSize : GetStyle()->size), 1.0f);
-
-    if (mCTFont != NULL) {
-        ::CFRelease(mCTFont);
-        mCTFont = NULL;
-    }
-
-    ATSFontMetrics atsMetrics;
-    OSStatus err;
-
-    err = ::ATSFontGetHorizontalMetrics(mATSFont, kATSOptionFlagsDefault,
-                                        &atsMetrics);
-    if (err != noErr) {
-        mIsValid = PR_FALSE;
-
-#ifdef DEBUG
-        char warnBuf[1024];
-        sprintf(warnBuf, "Bad font metrics for: %s err: %8.8x",
-                NS_ConvertUTF16toUTF8(GetName()).get(), PRUint32(err));
-        NS_WARNING(warnBuf);
-#endif
-        return;
-    }
-
-    
-    
-    if (atsMetrics.xHeight > 0) {
-        mMetrics.xHeight = atsMetrics.xHeight * size;
-    } else {
-        mCTFont = ::CTFontCreateWithPlatformFont(mATSFont, size, NULL, GetDefaultFeaturesDescriptor());
-        mMetrics.xHeight = ::CTFontGetXHeight(mCTFont);
-    }
-
-    if (mAdjustedSize == 0.0f) {
-        if (mMetrics.xHeight != 0.0f && GetStyle()->sizeAdjust != 0.0f) {
-            gfxFloat aspect = mMetrics.xHeight / size;
-            mAdjustedSize = GetStyle()->GetAdjustedSize(aspect);
-
-            
-            
-            InitMetrics();
-            return;
-        }
-        mAdjustedSize = size;
-    }
-
-    
-    if (mCTFont == NULL)
-        mCTFont = ::CTFontCreateWithPlatformFont(mATSFont, size, NULL, GetDefaultFeaturesDescriptor());
-
-    mMetrics.superscriptOffset = mMetrics.xHeight;
-    mMetrics.subscriptOffset = mMetrics.xHeight;
-    mMetrics.underlineSize = ::CTFontGetUnderlineThickness(mCTFont);
-    mMetrics.underlineOffset = ::CTFontGetUnderlinePosition(mCTFont);
-    mMetrics.strikeoutSize = mMetrics.underlineSize;
-    mMetrics.strikeoutOffset = mMetrics.xHeight / 2;
-
-    mMetrics.externalLeading = ::CTFontGetLeading(mCTFont);
-    mMetrics.emHeight = size;
-
-
-    
-    mMetrics.maxAscent =
-      NS_ceil(RoundToNearestMultiple(atsMetrics.ascent * size, 1/1024.0));
-    mMetrics.maxDescent =
-      NS_ceil(-RoundToNearestMultiple(atsMetrics.descent * size, 1/1024.0));
-
-    mMetrics.maxHeight = mMetrics.maxAscent + mMetrics.maxDescent;
-    if (mMetrics.maxHeight - mMetrics.emHeight > 0.0)
-        mMetrics.internalLeading = mMetrics.maxHeight - mMetrics.emHeight;
-    else
-        mMetrics.internalLeading = 0.0;
-
-    mMetrics.maxAdvance = atsMetrics.maxAdvanceWidth * size + mSyntheticBoldOffset;
-
-    mMetrics.emAscent = mMetrics.maxAscent * mMetrics.emHeight / mMetrics.maxHeight;
-    mMetrics.emDescent = mMetrics.emHeight - mMetrics.emAscent;
-
-    PRUint32 glyphID;
-    float xWidth = GetCharWidth('x', &glyphID);
-    if (atsMetrics.avgAdvanceWidth != 0.0)
-        mMetrics.aveCharWidth = PR_MIN(atsMetrics.avgAdvanceWidth * size, xWidth);
-    else if (glyphID != 0)
-        mMetrics.aveCharWidth = xWidth;
-    else
-        mMetrics.aveCharWidth = mMetrics.maxAdvance;
-    mMetrics.aveCharWidth += mSyntheticBoldOffset;
-
-    if (GetFontEntry()->IsFixedPitch()) {
-        
-        
-        
-        mMetrics.maxAdvance = mMetrics.aveCharWidth;
-    }
-
-    mMetrics.spaceWidth = GetCharWidth(' ', &glyphID);
-    mSpaceGlyph = glyphID;
-
-    mMetrics.zeroOrAveCharWidth = GetCharWidth('0', &glyphID);
-    if (glyphID == 0)
-        mMetrics.zeroOrAveCharWidth = mMetrics.aveCharWidth;
-
-    mHasMetrics = PR_TRUE;
-
-    SanitizeMetrics(&mMetrics, GetFontEntry()->mIsBadUnderlineFont);
-
-#if 0
-    fprintf (stderr, "Font: %p (%s) size: %f\n", this,
-             NS_ConvertUTF16toUTF8(GetName()).get(), mStyle.size);
-
-    fprintf (stderr, "    emHeight: %f emAscent: %f emDescent: %f\n", mMetrics.emHeight, mMetrics.emAscent, mMetrics.emDescent);
-    fprintf (stderr, "    maxAscent: %f maxDescent: %f maxAdvance: %f\n", mMetrics.maxAscent, mMetrics.maxDescent, mMetrics.maxAdvance);
-    fprintf (stderr, "    internalLeading: %f externalLeading: %f\n", mMetrics.internalLeading, mMetrics.externalLeading);
-    fprintf (stderr, "    spaceWidth: %f aveCharWidth: %f xHeight: %f\n", mMetrics.spaceWidth, mMetrics.aveCharWidth, mMetrics.xHeight);
-    fprintf (stderr, "    uOff: %f uSize: %f stOff: %f stSize: %f suOff: %f suSize: %f\n", mMetrics.underlineOffset, mMetrics.underlineSize,
-                              mMetrics.strikeoutOffset, mMetrics.strikeoutSize, mMetrics.superscriptOffset, mMetrics.subscriptOffset);
-#endif
-}
-
-void
-gfxCoreTextFont::InitTextRun(gfxTextRun *aTextRun,
-                             const PRUnichar *aString,
-                             PRUint32 aRunStart,
-                             PRUint32 aRunLength)
+gfxCoreTextShaper::InitTextRun(gfxContext *aContext,
+                               gfxTextRun *aTextRun,
+                               const PRUnichar *aString,
+                               PRUint32 aRunStart,
+                               PRUint32 aRunLength)
 {
     
     
@@ -483,9 +167,10 @@ gfxCoreTextFont::InitTextRun(gfxTextRun *aTextRun,
     if (disableLigatures) {
         
         
+        gfxMacFont *font = static_cast<gfxMacFont*>(mFont);
         CTFontRef ctFont =
-            gfxCoreTextFont::CreateCTFontWithDisabledLigatures(GetATSFont(),
-                                                               ::CTFontGetSize(GetCTFont()));
+            CreateCTFontWithDisabledLigatures(font->GetATSFontRef(),
+                                              ::CTFontGetSize(mCTFont));
 
         attrObj =
             ::CFDictionaryCreate(kCFAllocatorDefault,
@@ -497,7 +182,7 @@ gfxCoreTextFont::InitTextRun(gfxTextRun *aTextRun,
         
         ::CFRelease(ctFont);
     } else {
-        attrObj = GetAttributesDictionary();
+        attrObj = mAttributesDict;
         ::CFRetain(attrObj);
     }
 
@@ -532,11 +217,11 @@ gfxCoreTextFont::InitTextRun(gfxTextRun *aTextRun,
                             
 
 nsresult
-gfxCoreTextFont::SetGlyphsFromRun(gfxTextRun *aTextRun,
-                                  CTRunRef aCTRun,
-                                  PRInt32 aStringOffset, 
-                                  PRInt32 aRunStart,     
-                                  PRInt32 aRunLength)    
+gfxCoreTextShaper::SetGlyphsFromRun(gfxTextRun *aTextRun,
+                                    CTRunRef aCTRun,
+                                    PRInt32 aStringOffset, 
+                                    PRInt32 aRunStart,     
+                                    PRInt32 aRunLength)    
 {
     
     
@@ -548,8 +233,9 @@ gfxCoreTextFont::SetGlyphsFromRun(gfxTextRun *aTextRun,
     PRInt32 direction = isLTR ? 1 : -1;
 
     PRInt32 numGlyphs = ::CTRunGetGlyphCount(aCTRun);
-    if (numGlyphs == 0)
+    if (numGlyphs == 0) {
         return NS_OK;
+    }
 
     
     
@@ -565,8 +251,9 @@ gfxCoreTextFont::SetGlyphsFromRun(gfxTextRun *aTextRun,
     CFRange stringRange = ::CTRunGetStringRange(aCTRun);
     
     if (stringRange.location - aStringOffset + stringRange.length <= 0 ||
-        stringRange.location - aStringOffset >= aRunLength)
+        stringRange.location - aStringOffset >= aRunLength) {
         return NS_OK;
+    }
 
     
     nsAutoArrayPtr<CGGlyph> glyphsArray;
@@ -587,8 +274,9 @@ gfxCoreTextFont::SetGlyphsFromRun(gfxTextRun *aTextRun,
     glyphs = ::CTRunGetGlyphsPtr(aCTRun);
     if (!glyphs) {
         glyphsArray = new (std::nothrow) CGGlyph[numGlyphs];
-        if (!glyphsArray)
+        if (!glyphsArray) {
             return NS_ERROR_OUT_OF_MEMORY;
+        }
         ::CTRunGetGlyphs(aCTRun, ::CFRangeMake(0, 0), glyphsArray.get());
         glyphs = glyphsArray.get();
     }
@@ -596,8 +284,9 @@ gfxCoreTextFont::SetGlyphsFromRun(gfxTextRun *aTextRun,
     positions = ::CTRunGetPositionsPtr(aCTRun);
     if (!positions) {
         positionsArray = new (std::nothrow) CGPoint[numGlyphs];
-        if (!positionsArray)
+        if (!positionsArray) {
             return NS_ERROR_OUT_OF_MEMORY;
+        }
         ::CTRunGetPositions(aCTRun, ::CFRangeMake(0, 0), positionsArray.get());
         positions = positionsArray.get();
     }
@@ -607,8 +296,9 @@ gfxCoreTextFont::SetGlyphsFromRun(gfxTextRun *aTextRun,
     glyphToChar = ::CTRunGetStringIndicesPtr(aCTRun);
     if (!glyphToChar) {
         glyphToCharArray = new (std::nothrow) CFIndex[numGlyphs];
-        if (!glyphToCharArray)
+        if (!glyphToCharArray) {
             return NS_ERROR_OUT_OF_MEMORY;
+        }
         ::CTRunGetStringIndices(aCTRun, ::CFRangeMake(0, 0), glyphToCharArray.get());
         glyphToChar = glyphToCharArray.get();
     }
@@ -631,11 +321,13 @@ gfxCoreTextFont::SetGlyphsFromRun(gfxTextRun *aTextRun,
 
     static const PRInt32 NO_GLYPH = -1;
     nsAutoTArray<PRInt32,SMALL_GLYPH_RUN> charToGlyphArray;
-    if (!charToGlyphArray.SetLength(stringRange.length))
+    if (!charToGlyphArray.SetLength(stringRange.length)) {
         return NS_ERROR_OUT_OF_MEMORY;
+    }
     PRInt32 *charToGlyph = charToGlyphArray.Elements();
-    for (PRInt32 offset = 0; offset < stringRange.length; ++offset)
+    for (PRInt32 offset = 0; offset < stringRange.length; ++offset) {
         charToGlyph[offset] = NO_GLYPH;
+    }
     for (PRInt32 i = 0; i < numGlyphs; ++i) {
         PRInt32 loc = glyphToChar[i] - stringRange.location;
         if (loc >= 0 && loc < stringRange.length) {
@@ -742,13 +434,15 @@ gfxCoreTextFont::SetGlyphsFromRun(gfxTextRun *aTextRun,
         
         PRInt32 baseCharIndex, endCharIndex;
         if (isLTR) {
-            while (charEnd < stringRange.length && charToGlyph[charEnd] == NO_GLYPH)
+            while (charEnd < stringRange.length && charToGlyph[charEnd] == NO_GLYPH) {
                 charEnd++;
+            }
             baseCharIndex = charStart + stringRange.location - aStringOffset + aRunStart;
             endCharIndex = charEnd + stringRange.location - aStringOffset + aRunStart;
         } else {
-            while (charEnd >= 0 && charToGlyph[charEnd] == NO_GLYPH)
+            while (charEnd >= 0 && charToGlyph[charEnd] == NO_GLYPH) {
                 charEnd--;
+            }
             baseCharIndex = charEnd + stringRange.location - aStringOffset + aRunStart + 1;
             endCharIndex = charStart + stringRange.location - aStringOffset + aRunStart + 1;
         }
@@ -766,10 +460,11 @@ gfxCoreTextFont::SetGlyphsFromRun(gfxTextRun *aTextRun,
         
         
         double toNextGlyph;
-        if (glyphStart < numGlyphs-1)
+        if (glyphStart < numGlyphs-1) {
             toNextGlyph = positions[glyphStart+1].x - positions[glyphStart].x;
-        else
+        } else {
             toNextGlyph = positions[0].x + runWidth - positions[glyphStart].x;
+        }
         PRInt32 advance = PRInt32(toNextGlyph * appUnitsPerDevUnit);
 
         
@@ -792,12 +487,14 @@ gfxCoreTextFont::SetGlyphsFromRun(gfxTextRun *aTextRun,
                 details->mXOffset = 0;
                 details->mYOffset = -positions[glyphStart].y * appUnitsPerDevUnit;
                 details->mAdvance = advance;
-                if (++glyphStart >= glyphEnd)
+                if (++glyphStart >= glyphEnd) {
                    break;
-                if (glyphStart < numGlyphs-1)
+                }
+                if (glyphStart < numGlyphs-1) {
                     toNextGlyph = positions[glyphStart+1].x - positions[glyphStart].x;
-                else
+                } else {
                     toNextGlyph = positions[0].x + runWidth - positions[glyphStart].x;
+                }
                 advance = PRInt32(toNextGlyph * appUnitsPerDevUnit);
             }
 
@@ -827,10 +524,11 @@ gfxCoreTextFont::SetGlyphsFromRun(gfxTextRun *aTextRun,
 
 
 void
-gfxCoreTextFont::CreateDefaultFeaturesDescriptor()
+gfxCoreTextShaper::CreateDefaultFeaturesDescriptor()
 {
-    if (sDefaultFeaturesDescriptor != NULL)
+    if (sDefaultFeaturesDescriptor != NULL) {
         return;
+    }
 
     SInt16 val = kSmartSwashType;
     CFNumberRef swashesType =
@@ -899,7 +597,7 @@ gfxCoreTextFont::CreateDefaultFeaturesDescriptor()
 
 
 CTFontRef
-gfxCoreTextFont::CreateCTFontWithDisabledLigatures(ATSFontRef aFontRef, CGFloat aSize)
+gfxCoreTextShaper::CreateCTFontWithDisabledLigatures(ATSFontRef aFontRef, CGFloat aSize)
 {
     if (sDisableLigaturesDescriptor == NULL) {
         
@@ -953,7 +651,7 @@ gfxCoreTextFont::CreateCTFontWithDisabledLigatures(ATSFontRef aFontRef, CGFloat 
 }
 
 void
-gfxCoreTextFont::Shutdown() 
+gfxCoreTextShaper::Shutdown() 
 {
     if (sDisableLigaturesDescriptor != NULL) {
         ::CFRelease(sDisableLigaturesDescriptor);
