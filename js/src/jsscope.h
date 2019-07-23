@@ -984,7 +984,7 @@ JSScopeProperty::get(JSContext* cx, JSObject* obj, JSObject *pobj, jsval* vp)
 
 
 
-    if (STOBJ_GET_CLASS(obj) == &js_WithClass)
+    if (obj->getClass() == &js_WithClass)
         obj = obj->map->ops->thisObject(cx, obj);
     return getterOp()(cx, obj, SPROP_USERID(this), vp);
 }
@@ -1003,7 +1003,7 @@ JSScopeProperty::set(JSContext* cx, JSObject* obj, jsval* vp)
         return !!js_ReportGetterOnlyAssignment(cx);
 
     
-    if (STOBJ_GET_CLASS(obj) == &js_WithClass)
+    if (obj->getClass() == &js_WithClass)
         obj = obj->map->ops->thisObject(cx, obj);
     return setterOp()(cx, obj, SPROP_USERID(this), vp);
 }

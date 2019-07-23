@@ -44,6 +44,41 @@
 #include "jsobj.h"
 #include "jsscope.h"
 
+inline jsval
+JSObject::lockAndGetSlot(JSContext *cx, uintN slot) {
+#ifdef JS_THREADSAFE
+    
+
+
+
+
+
+
+
+
+    OBJ_CHECK_SLOT(this, slot);
+    return (OBJ_SCOPE(this)->title.ownercx == cx)
+           ? LOCKED_OBJ_GET_SLOT(this, slot)
+           : js_GetSlotThreadSafe(cx, this, slot);
+#else
+    return LOCKED_OBJ_GET_SLOT(this, slot);
+#endif
+}
+
+inline void
+JSObject::lockAndSetSlot(JSContext *cx, uintN slot, jsval value) {
+#ifdef JS_THREADSAFE
+    
+    OBJ_CHECK_SLOT(this, slot);
+    if (OBJ_SCOPE(this)->title.ownercx == cx)
+        LOCKED_OBJ_SET_SLOT(this, slot, value);
+    else
+        js_SetSlotThreadSafe(cx, this, slot, value);
+#else
+    LOCKED_OBJ_SET_SLOT(this, slot, value);
+#endif
+}
+
 inline void
 JSObject::initSharingEmptyScope(JSClass *clasp, JSObject *proto, JSObject *parent,
                                 jsval privateSlotValue)

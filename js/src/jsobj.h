@@ -284,6 +284,42 @@ struct JSObject {
         classword |= jsuword(2);
     }
 
+    uint32 numSlots(void) {
+        return dslots ? (uint32)dslots[-1] : (uint32)JS_INITIAL_NSLOTS;
+    }
+
+    jsval& getSlotRef(uintN slot) {
+        return (slot < JS_INITIAL_NSLOTS)
+               ? fslots[slot]
+               : (JS_ASSERT(slot < (uint32)dslots[-1]),
+                  dslots[slot - JS_INITIAL_NSLOTS]);
+    }
+
+    jsval getSlot(uintN slot) const {
+        return (slot < JS_INITIAL_NSLOTS)
+               ? fslots[slot]
+               : (JS_ASSERT(slot < (uint32)dslots[-1]),
+                  dslots[slot - JS_INITIAL_NSLOTS]);
+    }
+
+    void setSlot(uintN slot, jsval value) {
+        if (slot < JS_INITIAL_NSLOTS) {
+            fslots[slot] = value;
+        } else {
+            JS_ASSERT(slot < (uint32)dslots[-1]);
+            dslots[slot - JS_INITIAL_NSLOTS] = value;
+        }
+    }
+
+    
+
+
+
+
+
+    jsval lockAndGetSlot(JSContext *cx, uintN slot);
+    void lockAndSetSlot(JSContext *cx, uintN slot, jsval value);
+
     JSObject *getProto() const {
         return JSVAL_TO_OBJECT(fslots[JSSLOT_PROTO]);
     }
@@ -464,73 +500,15 @@ struct JSObject {
 #define MAX_DSLOTS_LENGTH   (JS_MAX(~uint32(0), ~size_t(0)) / sizeof(jsval) - 1)
 #define MAX_DSLOTS_LENGTH32 (~uint32(0) / sizeof(jsval) - 1)
 
-
-
-
-
-
-
-#define STOBJ_NSLOTS(obj)                                                     \
-    ((obj)->dslots ? (uint32)(obj)->dslots[-1] : (uint32)JS_INITIAL_NSLOTS)
-
-inline jsval&
-STOBJ_GET_SLOT(JSObject *obj, uintN slot)
-{
-    return (slot < JS_INITIAL_NSLOTS)
-           ? obj->fslots[slot]
-           : (JS_ASSERT(slot < (uint32)obj->dslots[-1]),
-              obj->dslots[slot - JS_INITIAL_NSLOTS]);
-}
-
-inline void
-STOBJ_SET_SLOT(JSObject *obj, uintN slot, jsval value)
-{
-    if (slot < JS_INITIAL_NSLOTS) {
-        obj->fslots[slot] = value;
-    } else {
-        JS_ASSERT(slot < (uint32)obj->dslots[-1]);
-        obj->dslots[slot - JS_INITIAL_NSLOTS] = value;
-    }
-}
-
-inline JSClass*
-STOBJ_GET_CLASS(const JSObject* obj)
-{
-    return obj->getClass();
-}
-
 #define OBJ_CHECK_SLOT(obj,slot)                                              \
     (JS_ASSERT(obj->isNative()), JS_ASSERT(slot < OBJ_SCOPE(obj)->freeslot))
 
 #define LOCKED_OBJ_GET_SLOT(obj,slot)                                         \
-    (OBJ_CHECK_SLOT(obj, slot), STOBJ_GET_SLOT(obj, slot))
+    (OBJ_CHECK_SLOT(obj, slot), obj->getSlot(slot))
 #define LOCKED_OBJ_SET_SLOT(obj,slot,value)                                   \
-    (OBJ_CHECK_SLOT(obj, slot), STOBJ_SET_SLOT(obj, slot, value))
+    (OBJ_CHECK_SLOT(obj, slot), obj->setSlot(slot, value))
 
 #ifdef JS_THREADSAFE
-
-
-#define OBJ_GET_SLOT(cx,obj,slot)                                             \
-    (OBJ_CHECK_SLOT(obj, slot),                                               \
-     (OBJ_SCOPE(obj)->title.ownercx == cx)                                    \
-     ? LOCKED_OBJ_GET_SLOT(obj, slot)                                         \
-     : js_GetSlotThreadSafe(cx, obj, slot))
-
-#define OBJ_SET_SLOT(cx,obj,slot,value)                                       \
-    JS_BEGIN_MACRO                                                            \
-        OBJ_CHECK_SLOT(obj, slot);                                            \
-        if (OBJ_SCOPE(obj)->title.ownercx == cx)                              \
-            LOCKED_OBJ_SET_SLOT(obj, slot, value);                            \
-        else                                                                  \
-            js_SetSlotThreadSafe(cx, obj, slot, value);                       \
-    JS_END_MACRO
-
-
-
-
-
-
-
 
 
 
@@ -543,18 +521,13 @@ STOBJ_GET_CLASS(const JSObject* obj)
 #define CX_THREAD_IS_RUNNING_GC(cx)                                           \
     THREAD_IS_RUNNING_GC((cx)->runtime, (cx)->thread)
 
-#else   
-
-#define OBJ_GET_SLOT(cx,obj,slot)       LOCKED_OBJ_GET_SLOT(obj,slot)
-#define OBJ_SET_SLOT(cx,obj,slot,value) LOCKED_OBJ_SET_SLOT(obj,slot,value)
-
 #endif 
 
 
 
 
 
-#define OBJ_GET_CLASS(cx,obj)           STOBJ_GET_CLASS(obj)
+#define OBJ_GET_CLASS(cx,obj)           (obj)->getClass()
 
 #ifdef __cplusplus
 inline void
@@ -617,9 +590,9 @@ js_DefineBlockVariable(JSContext *cx, JSObject *obj, jsid id, intN index);
 #define OBJ_BLOCK_COUNT(cx,obj)                                               \
     (OBJ_SCOPE(OBJ_IS_CLONED_BLOCK(obj) ? obj->getProto() : obj)->entryCount)
 #define OBJ_BLOCK_DEPTH(cx,obj)                                               \
-    JSVAL_TO_INT(STOBJ_GET_SLOT(obj, JSSLOT_BLOCK_DEPTH))
+    JSVAL_TO_INT(obj->getSlot(JSSLOT_BLOCK_DEPTH))
 #define OBJ_SET_BLOCK_DEPTH(cx,obj,depth)                                     \
-    STOBJ_SET_SLOT(obj, JSSLOT_BLOCK_DEPTH, INT_TO_JSVAL(depth))
+    obj->setSlot(JSSLOT_BLOCK_DEPTH, INT_TO_JSVAL(depth))
 
 
 
@@ -889,7 +862,7 @@ js_IsCacheableNonGlobalScope(JSObject *obj)
     extern JS_FRIEND_DATA(JSClass) js_DeclEnvClass;
     JS_ASSERT(obj->getParent());
 
-    JSClass *clasp = STOBJ_GET_CLASS(obj);
+    JSClass *clasp = obj->getClass();
     bool cacheable = (clasp == &js_CallClass ||
                       clasp == &js_BlockClass ||
                       clasp == &js_DeclEnvClass);

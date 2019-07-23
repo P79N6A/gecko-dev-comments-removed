@@ -146,15 +146,9 @@ namespace SystemOnlyWrapper {
 JSBool
 WrapObject(JSContext *cx, JSObject *parent, jsval v, jsval *vp);
 
-JSBool
-MakeSOW(JSContext *cx, JSObject *obj);
-
 
 JSBool
 AllowedToAct(JSContext *cx, jsval idval);
-
-JSBool
-CheckFilename(JSContext *cx, jsval idval, JSStackFrame *fp);
 
 }
 
@@ -176,9 +170,6 @@ namespace XPCWrapper {
 
 
 extern const PRUint32 FLAG_RESOLVING;
-
-
-extern const PRUint32 FLAG_SOW;
 
 
 
@@ -294,7 +285,7 @@ MaybePreserveWrapper(JSContext *cx, XPCWrappedNative *wn, uintN flags)
 inline JSBool
 IsSecurityWrapper(JSObject *wrapper)
 {
-  JSClass *clasp = STOBJ_GET_CLASS(wrapper);
+  JSClass *clasp = wrapper->getClass();
   return (clasp->flags & JSCLASS_IS_EXTENDED) &&
     ((JSExtendedClass*)clasp)->wrappedObject;
 }
@@ -318,7 +309,7 @@ Unwrap(JSContext *cx, JSObject *wrapper);
 inline JSObject *
 UnwrapGeneric(JSContext *cx, const JSExtendedClass *xclasp, JSObject *wrapper)
 {
-  if (STOBJ_GET_CLASS(wrapper) != &xclasp->base) {
+  if (wrapper->getClass() != &xclasp->base) {
     return nsnull;
   }
 
@@ -420,20 +411,6 @@ WrapFunction(JSContext *cx, JSObject *wrapperObj, JSObject *funobj, jsval *v,
 
 
 
-JSBool
-RewrapObject(JSContext *cx, JSObject *scope, JSObject *obj, WrapperType hint,
-             jsval *vp);
-
-JSObject *
-UnsafeUnwrapSecurityWrapper(JSContext *cx, JSObject *obj);
-
-JSBool
-CreateWrapperFromType(JSContext *cx, JSObject *scope, XPCWrappedNative *wn,
-                      WrapperType hint, jsval *vp);
-
-
-
-
 
 
 
@@ -441,14 +418,6 @@ JSObject *
 CreateIteratorObj(JSContext *cx, JSObject *tempWrapper,
                   JSObject *wrapperObj, JSObject *innerObj,
                   JSBool keysonly);
-
-
-
-
-
-JSObject *
-CreateSimpleIterator(JSContext *cx, JSObject *scope, JSBool keysonly,
-                     JSObject *propertyContainer);
 
 
 
@@ -475,13 +444,10 @@ Enumerate(JSContext *cx, JSObject *wrapperObj, JSObject *innerObj);
 
 
 
-
-
-
-
 JSBool
-NewResolve(JSContext *cx, JSObject *wrapperObj, JSBool preserveVal,
-           JSObject *innerObj, jsval id, uintN flags, JSObject **objp);
+NewResolve(JSContext *cx, JSObject *wrapperObj,
+           JSBool preserveVal, JSObject *innerObj,
+           jsval id, uintN flags, JSObject **objp);
 
 
 

@@ -106,7 +106,7 @@ js_GetMutableScope(JSContext *cx, JSObject *obj)
 
 
 
-    JS_ASSERT(STOBJ_GET_CLASS(obj) != &js_BlockClass);
+    JS_ASSERT(obj->getClass() != &js_BlockClass);
     newscope = JSScope::create(cx, scope->ops, obj->getClass(), obj, scope->shape);
     if (!newscope)
         return NULL;
@@ -116,8 +116,8 @@ js_GetMutableScope(JSContext *cx, JSObject *obj)
     JS_ASSERT(JS_IS_SCOPE_LOCKED(cx, newscope));
     obj->map = newscope;
 
-    JS_ASSERT(newscope->freeslot == JSSLOT_FREE(STOBJ_GET_CLASS(obj)));
-    clasp = STOBJ_GET_CLASS(obj);
+    JS_ASSERT(newscope->freeslot == JSSLOT_FREE(obj->getClass()));
+    clasp = obj->getClass();
     if (clasp->reserveSlots) {
         
 
@@ -126,8 +126,8 @@ js_GetMutableScope(JSContext *cx, JSObject *obj)
 
 
         freeslot = JSSLOT_FREE(clasp) + clasp->reserveSlots(cx, obj);
-        if (freeslot > STOBJ_NSLOTS(obj))
-            freeslot = STOBJ_NSLOTS(obj);
+        if (freeslot > obj->numSlots())
+            freeslot = obj->numSlots();
         if (newscope->freeslot < freeslot)
             newscope->freeslot = freeslot;
     }
