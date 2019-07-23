@@ -277,6 +277,9 @@ namespace nanojit
 
     
     void Assembler::regalloc_binary(LIns *ins, RegisterMask allow, Register &rr, Register &ra, Register &rb) {
+#ifdef _DEBUG
+        RegisterMask originalAllow = allow;
+#endif
         rb = UnknownReg;
         LIns *a = ins->oprnd1();
         LIns *b = ins->oprnd2();
@@ -289,12 +292,21 @@ namespace nanojit
         
         if (rA == 0 || (ra = rA->reg) == UnknownReg) {
             ra = findSpecificRegFor(a, rr);
-        } else {
+        } else if (!(allow & rmask(ra))) {
             
+            
+            
+            
+            NanoAssert(a->opcode() == LIR_quad || a->opcode() == LIR_ldq);
+            allow &= ~rmask(rr);
+            ra = findRegFor(a, allow);
         }
         if (a == b) {
             rb = ra;
         }
+        NanoAssert(originalAllow & rmask(rr));
+        NanoAssert(originalAllow & rmask(ra));
+        NanoAssert(originalAllow & rmask(rb));
     }
 
     void Assembler::asm_qbinop(LIns *ins) {
@@ -1007,7 +1019,14 @@ namespace nanojit
         Reservation *resv = getresv(value);
         Register r;
         if (!resv || (r = resv->reg) == UnknownReg) {
-            r = findRegFor(value, GpRegs & ~rmask(b));
+            RegisterMask allow;
+            LOpcode op = value->opcode();
+            if ((op >= LIR_fneg && op <= LIR_fmod) || op == LIR_fcall) {
+                allow = FpRegs;
+            } else {
+                allow = GpRegs;
+            }
+            r = findRegFor(value, allow & ~rmask(b));
         }
 
         if (IsGpReg(r)) {
@@ -1123,6 +1142,7 @@ namespace nanojit
             
             
         }
+        NanoAssert(allow & rmask(rr));
     }
 
     static const AVMPLUS_ALIGN16(int64_t) negateMask[] = {0x8000000000000000LL,0};
