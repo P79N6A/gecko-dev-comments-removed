@@ -2458,6 +2458,7 @@ nsLineLayout::HorizontalAlignFrames(nsRect& aLineBounds,
             
             
             aLineBounds.width += ApplyFrameJustification(psd, &state);
+            remainingWidth = availWidth - aLineBounds.width;
             break;
           }
         }
