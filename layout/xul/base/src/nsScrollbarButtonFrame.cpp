@@ -66,19 +66,6 @@ NS_NewScrollbarButtonFrame (nsIPresShell* aPresShell, nsStyleContext* aContext)
   return new (aPresShell) nsScrollbarButtonFrame(aPresShell, aContext);
 } 
 
-NS_IMETHODIMP 
-nsScrollbarButtonFrame::QueryInterface(REFNSIID aIID, void** aInstancePtr)      
-{           
-  NS_PRECONDITION(aInstancePtr, "null out param");
-
-  if (aIID.Equals(NS_GET_IID(nsITimerCallback))) {                                         
-    *aInstancePtr = static_cast<nsITimerCallback*>(this);
-    return NS_OK;                                                        
-  }   
-
-  return nsButtonBoxFrame::QueryInterface(aIID, aInstancePtr);                                     
-}
-
 NS_IMETHODIMP
 nsScrollbarButtonFrame::HandleEvent(nsPresContext* aPresContext, 
                                     nsGUIEvent* aEvent,
@@ -184,7 +171,7 @@ nsScrollbarButtonFrame::HandleButtonPress(nsPresContext* aPresContext,
     DoButtonAction(smoothScroll);
   }
   if (repeat)
-    nsRepeatService::GetInstance()->Start(this);
+    StartRepeat();
   return PR_TRUE;
 }
 
@@ -195,17 +182,15 @@ nsScrollbarButtonFrame::HandleRelease(nsPresContext* aPresContext,
 {
   
   mContent->UnsetAttr(kNameSpaceID_None, nsGkAtoms::active, PR_TRUE);
-  nsRepeatService::GetInstance()->Stop();
+  StopRepeat();
   return NS_OK;
 }
 
-
-NS_IMETHODIMP nsScrollbarButtonFrame::Notify(nsITimer *timer)
+void nsScrollbarButtonFrame::Notify()
 {
   
   
   DoButtonAction(PR_TRUE);
-  return NS_OK;
 }
 
 void
@@ -328,6 +313,6 @@ nsScrollbarButtonFrame::Destroy()
 {
   
   
-  nsRepeatService::GetInstance()->Stop();
+  StopRepeat();
   nsButtonBoxFrame::Destroy();
 }

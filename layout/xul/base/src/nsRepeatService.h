@@ -50,10 +50,18 @@ class nsRepeatService : public nsITimerCallback
 {
 public:
 
+  typedef void (* Callback)(void* aData);
+    
   NS_DECL_NSITIMERCALLBACK
 
-  void Start(nsITimerCallback* aCallback);
-  void Stop();
+  
+  
+  
+  void Start(Callback aCallback, void* aData);
+  
+  
+  
+  void Stop(Callback aCallback, void* aData);
 
   static nsRepeatService* GetInstance();
   static void Shutdown();
@@ -65,9 +73,9 @@ protected:
   nsRepeatService();
 
 private:
-  nsCOMPtr<nsITimerCallback> mCallback;
-  nsCOMPtr<nsITimer>         mRepeatTimer;
-  PRBool                     mFirstCall;
+  Callback           mCallback;
+  void*              mCallbackData;
+  nsCOMPtr<nsITimer> mRepeatTimer;
   static nsRepeatService* gInstance;
 
 }; 
