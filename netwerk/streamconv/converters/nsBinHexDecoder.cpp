@@ -199,23 +199,26 @@ nsresult nsBinHexDecoder::ProcessNextState(nsIRequest * aRequest, nsISupports * 
   {
     case BINHEX_STATE_START:
       mState = BINHEX_STATE_FNAME;
-      mCount = 1;
+      mCount = 0;
 
       
       
-      *(mName) = (c & 63);
+      mName.SetLength(c & 63);
+      if (mName.Length() != c & 63) {
+        
+        mState = BINHEX_STATE_DONE;
+      }
       break;
 
     case BINHEX_STATE_FNAME:
-      mName[mCount] = c;
+      mName.BeginWriting()[mCount] = c;
 
-      if (mCount++ > *(mName)) 
+      if (++mCount > mName.Length())
       {
         
         
-        
 
-        SetContentType(aRequest, &mName[1]);
+        DetectContentType(aRequest, mName);
         
         mNextListener->OnStartRequest(aRequest, aContext);
 
@@ -498,10 +501,10 @@ nsBinHexDecoder::OnStartRequest(nsIRequest* request, nsISupports *aCtxt)
 
 
 
-nsresult nsBinHexDecoder::SetContentType(nsIRequest* aRequest,
-                                         const char * fileName)
+nsresult nsBinHexDecoder::DetectContentType(nsIRequest* aRequest,
+                                            const nsAFlatCString &aFilename)
 {
-  if (!fileName || !*fileName) {
+  if (aFilename.IsEmpty()) {
     
     return NS_OK;
   }
@@ -516,7 +519,7 @@ nsresult nsBinHexDecoder::SetContentType(nsIRequest* aRequest,
   nsCAutoString contentType;
 
   
-  const char * fileExt = strrchr(fileName, '.');
+  const char * fileExt = strrchr(aFilename.get(), '.');
   if (!fileExt) {
     return NS_OK;
   }

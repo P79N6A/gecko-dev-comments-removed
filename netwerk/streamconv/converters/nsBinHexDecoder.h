@@ -114,7 +114,7 @@ protected:
   PRInt16  GetNextChar(PRUint32 numBytesInBuffer);
   nsresult ProcessNextChunk(nsIRequest * aRequest, nsISupports * aContext, PRUint32 numBytesInBuffer);
   nsresult ProcessNextState(nsIRequest * aRequest, nsISupports * aContext);
-  nsresult SetContentType(nsIRequest * aRequest, const char * fileName);
+  nsresult DetectContentType(nsIRequest * aRequest, const nsAFlatCString &aFilename);
 
 protected:
   nsCOMPtr<nsIStreamListener> mNextListener;
@@ -133,7 +133,7 @@ protected:
 
   
   binhex_header mHeader;
-  char      mName[64];   
+  nsCString mName;       
 
   
   
@@ -143,7 +143,7 @@ protected:
 
   unsigned char mRlebuf;  
 
-  PRInt32 mCount;         
+  PRUint32 mCount;        
   PRInt16 mMarker;        
 
   PRInt32 mPosInbuff;     
