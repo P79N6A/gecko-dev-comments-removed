@@ -353,7 +353,6 @@ struct InterpState
                                         
     void*          rpAtLastTreeCall;    
     TreeInfo*      outermostTree;       
-    JSObject*      globalObj;           
     double*        stackBase;           
     FrameInfo**    callstackBase;       
     uintN*         inlineCallCountp;    
@@ -398,7 +397,6 @@ class TraceRecorder : public avmplus::GCObject {
     nanojit::LIns*          cx_ins;
     nanojit::LIns*          eos_ins;
     nanojit::LIns*          eor_ins;
-    nanojit::LIns*          globalObj_ins;
     nanojit::LIns*          rval_ins;
     nanojit::LIns*          inner_sp_ins;
     nanojit::LIns*          invokevp_ins;
