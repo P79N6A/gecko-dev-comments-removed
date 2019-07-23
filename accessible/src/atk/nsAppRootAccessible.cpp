@@ -526,7 +526,7 @@ nsApplicationAccessibleWrap::~nsApplicationAccessibleWrap()
     nsAccessibleWrap::ShutdownAtkObject();
 }
 
-NS_IMETHODIMP
+nsresult
 nsApplicationAccessibleWrap::Init()
 {
     

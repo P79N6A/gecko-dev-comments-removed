@@ -88,8 +88,8 @@ class nsRootAccessible : public nsDocAccessibleWrap,
     NS_IMETHOD HandleEvent(nsIDOMEvent* aEvent);
 
     
-    NS_IMETHOD Init();
-    NS_IMETHOD Shutdown();
+    virtual nsresult Init();
+    virtual nsresult Shutdown();
 
     void ShutdownAll();
     

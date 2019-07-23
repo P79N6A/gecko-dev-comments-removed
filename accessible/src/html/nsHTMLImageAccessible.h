@@ -70,10 +70,10 @@ public:
   NS_IMETHOD GetAnchor(PRInt32 aIndex, nsIAccessible **aAccessible);
 
   
-  NS_IMETHOD Shutdown();
+  NS_DECL_NSIACCESSIBLEIMAGE
 
   
-  NS_DECL_NSIACCESSIBLEIMAGE
+  virtual nsresult Shutdown();
 
   
   virtual nsresult GetNameInternal(nsAString& aName);

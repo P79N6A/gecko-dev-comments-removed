@@ -67,7 +67,7 @@ public:
                                            nsAccessible)
 
   
-  NS_IMETHOD Init();
+  virtual nsresult Init();
 
   
   NS_IMETHOD GetName(nsAString & aName);

@@ -630,10 +630,11 @@ nsresult nsRootAccessible::HandleEventWithTarget(nsIDOMEvent* aEvent,
     
     nsCOMPtr<nsIDocument> doc(do_QueryInterface(aTargetNode));
     nsCOMPtr<nsIAccessibleDocument> accDoc = GetDocAccessibleFor(doc);
-    nsCOMPtr<nsPIAccessNode> privateAcc = do_QueryInterface(accDoc);
-    if (privateAcc) {
-      privateAcc->Shutdown();
+    if (accDoc) {
+      nsRefPtr<nsAccessNode> docAccNode = nsAccUtils::QueryAccessNode(accDoc);
+      docAccNode->Shutdown();
     }
+
     return NS_OK;
   }
 
@@ -863,10 +864,12 @@ nsresult nsRootAccessible::HandleEventWithTarget(nsIDOMEvent* aEvent,
         return NS_OK; 
       }
 #endif
-      nsCOMPtr<nsPIAccessNode> menuAccessNode = do_QueryInterface(accessible);
-      NS_ENSURE_TRUE(menuAccessNode, NS_ERROR_FAILURE);
+      nsRefPtr<nsAccessNode> menuAccessNode =
+        nsAccUtils::QueryAccessNode(accessible);
+  
       nsIFrame* menuFrame = menuAccessNode->GetFrame();
       NS_ENSURE_TRUE(menuFrame, NS_ERROR_FAILURE);
+
       nsIMenuFrame* imenuFrame;
       CallQueryInterface(menuFrame, &imenuFrame);
       if (imenuFrame)
@@ -971,7 +974,7 @@ void nsRootAccessible::FireFocusCallback(nsITimer *aTimer, void *aClosure)
   rootAccessible->FireCurrentFocusEvent();
 }
 
-NS_IMETHODIMP
+nsresult
 nsRootAccessible::Init()
 {
   nsresult rv = nsDocAccessibleWrap::Init();
@@ -984,7 +987,8 @@ nsRootAccessible::Init()
   return NS_OK;
 }
 
-NS_IMETHODIMP nsRootAccessible::Shutdown()
+nsresult
+nsRootAccessible::Shutdown()
 {
   
   if (!mWeakShell) {

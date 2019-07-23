@@ -184,9 +184,6 @@ public:
   virtual ~nsXULComboboxAccessible() {}
 
   
-  NS_IMETHOD Init();
-
-  
   NS_IMETHOD GetRole(PRUint32 *_retval);
   NS_IMETHOD GetState(PRUint32 *aState, PRUint32 *aExtraState);
   NS_IMETHOD GetValue(nsAString& _retval);
@@ -195,6 +192,9 @@ public:
   NS_IMETHOD DoAction(PRUint8 index);
   NS_IMETHOD GetNumActions(PRUint8 *aNumActions);
   NS_IMETHOD GetActionName(PRUint8 index, nsAString& aName);
+
+  
+  virtual nsresult Init();
 };
 
 #endif

@@ -97,11 +97,9 @@ class nsDocAccessible : public nsHyperTextAccessibleWrap,
     static void FlushEventsCallback(nsITimer *aTimer, void *aClosure);
 
     
-    NS_IMETHOD Shutdown();
-    NS_IMETHOD Init();
-
-    
-    NS_IMETHOD_(nsIFrame *) GetFrame(void);
+    virtual nsresult Init();
+    virtual nsresult Shutdown();
+    virtual nsIFrame* GetFrame();
 
     
     NS_IMETHOD GetAssociatedEditor(nsIEditor **aEditor);

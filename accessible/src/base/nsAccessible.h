@@ -121,7 +121,9 @@ public:
   NS_DECLARE_STATIC_IID_ACCESSOR(NS_ACCESSIBLE_IMPL_CID)
 
   
-  NS_IMETHOD Shutdown();
+  
+
+  virtual nsresult Shutdown();
 
   
   

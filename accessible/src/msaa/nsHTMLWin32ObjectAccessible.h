@@ -55,10 +55,14 @@ public:
   
   nsHTMLWin32ObjectOwnerAccessible(nsIDOMNode* aNode, nsIWeakReference* aShell, void* aHwnd);
   virtual ~nsHTMLWin32ObjectOwnerAccessible() {}
-  NS_IMETHOD Shutdown();
+
+  
   NS_IMETHOD GetFirstChild(nsIAccessible **aFirstChild);
   NS_IMETHOD GetLastChild(nsIAccessible **aLastChild);
   NS_IMETHOD GetChildCount(PRInt32 *aChildCount);  
+
+  
+  virtual nsresult Shutdown();
 
 protected:
   void* mHwnd;

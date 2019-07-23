@@ -94,8 +94,8 @@ public:
   NS_IMETHOD GetURI(PRInt32 i, nsIURI **aURI);
 
   
-  NS_IMETHOD Init();
-  NS_IMETHOD Shutdown();
+  virtual nsresult Init();
+  virtual nsresult Shutdown();
 
 protected:
   
