@@ -74,6 +74,7 @@ public:
     
     nsresult InsertConnection(nsIURI *aKey, nsFtpControlConnection *aConn);
     nsresult RemoveConnection(nsIURI *aKey, nsFtpControlConnection **aConn);
+    PRUint32 GetSessionId() { return mSessionId; }
 
 private:
     
@@ -97,11 +98,19 @@ private:
     };
 
     static void Timeout(nsITimer *aTimer, void *aClosure);
+    void ClearAllConnections();
 
     nsTArray<timerStruct*> mRootConnectionList;
 
     nsCOMPtr<nsICacheSession> mCacheSession;
     PRInt32 mIdleTimeout;
+
+    
+    
+    
+    
+    
+    PRUint32 mSessionId;
 };
 
 
