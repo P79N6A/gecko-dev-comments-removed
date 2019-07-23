@@ -73,11 +73,27 @@ LoginManagerStorage_legacy.prototype = {
         return this.__decoderRing;
     },
 
+    __profileDir: null,  
+    get _profileDir() {
+        if (!this.__profileDir) {
+            var dirService = Cc["@mozilla.org/file/directory_service;1"].
+                             getService(Ci.nsIProperties);
+            this.__profileDir = dirService.get("ProfD", Ci.nsIFile);
+        }
+        return this.__profileDir;
+    },
+
     _prefBranch : null,  
 
     _signonsFile : null,  
     _debug       : false, 
 
+    
+
+
+
+
+    _filenamePrefs : ["SignonFileName3", "SignonFileName2", "SignonFileName"],
 
     
 
@@ -310,9 +326,11 @@ LoginManagerStorage_legacy.prototype = {
 
 
     removeAllLogins : function () {
-        this._logins = {};
         
+        this._removeOldSignonsFiles();
 
+        
+        this._logins = {};
         this._writeFile();
     },
 
@@ -520,25 +538,15 @@ LoginManagerStorage_legacy.prototype = {
         var destFile = null, importFile = null;
 
         
-        var DIR_SERVICE = new Components.Constructor(
-                "@mozilla.org/file/directory_service;1", "nsIProperties");
-        var pathname = (new DIR_SERVICE()).get("ProfD", Ci.nsIFile).path;
-
         
         
-        
-        var prefs = ["SignonFileName3", "SignonFileName2", "SignonFileName"];
-        for (var i = 0; i < prefs.length; i++) {
-            var prefName = prefs[i];
-
-            var filename = this._prefBranch.getCharPref(prefName);
-
-            this.log("Checking file " + filename + " (" + prefName + ")");
-
-            var file = Cc["@mozilla.org/file/local;1"].
-                       createInstance(Ci.nsILocalFile);
-            file.initWithPath(pathname);
+        for (var i = 0; i < this._filenamePrefs.length; i++) {
+            var prefname = this._filenamePrefs[i];
+            var filename = this._prefBranch.getCharPref(prefname);
+            var file = this._profileDir.clone();
             file.append(filename);
+
+            this.log("Checking file " + filename + " (" + prefname + ")");
 
             
             if (!destFile)
@@ -552,6 +560,32 @@ LoginManagerStorage_legacy.prototype = {
 
         
         return [destFile, null];
+    },
+
+
+    
+
+
+
+
+    _removeOldSignonsFiles : function() {
+        
+        
+        for (var i = 1; i < this._filenamePrefs.length; i++) {
+            var prefname = this._filenamePrefs[i];
+            var filename = this._prefBranch.getCharPref(prefname);
+            var file = this._profileDir.clone();
+            file.append(filename);
+
+            if (file.exists()) {
+                this.log("Deleting old " + filename + " (" + prefname + ")");
+                try {
+                    file.remove(false);
+                } catch (e) {
+                    this.log("NOTICE: Couldn't delete " + filename + ": " + e);
+                }
+            }
+        }
     },
 
 
