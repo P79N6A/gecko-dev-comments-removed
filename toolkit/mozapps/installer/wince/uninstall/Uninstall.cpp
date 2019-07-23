@@ -43,15 +43,22 @@
 
 
 #include <windows.h>
+#include <aygshell.h>
+
 #include "nsSetupStrings.h"
+#include "resource.h"
+
+#define WM_DIALOGCREATED (WM_USER + 1)
 
 const WCHAR c_sStringsFile[] = L"setup.ini";
 nsSetupStrings Strings;
 
+WCHAR g_sInstallPath[MAX_PATH];
 WCHAR g_sUninstallPath[MAX_PATH];
+HWND g_hDlg = NULL;
 
 const DWORD c_nTempBufSize = MAX_PATH * 2;
-const WCHAR c_sRemoveParam[] = L"remove";
+const WCHAR c_sRemoveParam[] = L"[remove]";
 
 
 int nTotalRetries = 0;
@@ -59,14 +66,18 @@ const int c_nMaxTotalRetries = 10;
 const int c_nMaxOneFileRetries = 6;
 const int c_nRetryDelay = 500; 
 
+int g_nDirsDeleted = 0;
+const int c_nMaxDirs = 25; 
+
 enum {
   ErrOK = 0,
-  ErrCancel = 1,
+  ErrCancel = IDCANCEL,
   ErrNoStrings = -1,
   ErrInstallationNotFound = -2,
   ErrShutdownFailed = -3,
 };
 
+int g_nResult = ErrOK;
 
 
 BOOL GetModulePath(WCHAR *sPath);
@@ -77,6 +88,14 @@ BOOL DeleteDirectory(const WCHAR* sPathToDelete);
 BOOL DeleteRegistryKey();
 BOOL CopyAndLaunch();
 BOOL ShutdownFastStartService(const WCHAR *sInstallPath);
+
+BOOL CALLBACK DlgUninstall(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam);
+BOOL OnDialogInit(HWND hDlg);
+BOOL OnDialogCreated(HWND hDlg);
+int OnUninstall(HWND hDlg);
+void UpdateProgress();
+
+
 
 
 int WINAPI WinMain(HINSTANCE hInstance,
@@ -110,36 +129,11 @@ int WINAPI WinMain(HINSTANCE hInstance,
     return ErrNoStrings;
   }
 
-  WCHAR sInstallPath[MAX_PATH];
-  if (GetInstallPath(sInstallPath))
+  if (GetInstallPath(g_sInstallPath))
   {
-    if (!ShutdownFastStartService(sInstallPath))
-    {
-      
-
-      
-      
-      
-    }
-
-    WCHAR sMsg[c_nTempBufSize];
-    _snwprintf(sMsg, c_nTempBufSize, L"%s %s\n%s", Strings.GetString(StrID_FilesWillBeRemoved),
-      sInstallPath, Strings.GetString(StrID_AreYouSure));
-    if (MessageBoxW(hWnd, sMsg, Strings.GetString(StrID_UninstallCaption),
-                    MB_YESNO|MB_ICONWARNING) == IDNO)
-    {
-      return ErrCancel;
-    }
-
-    
-    DeleteDirectory(sInstallPath);
-    DeleteShortcut(hWnd);
-    DeleteRegistryKey();
-
-    
-    
-    MessageBoxW(hWnd, Strings.GetString(StrID_UninstalledSuccessfully),
-                Strings.GetString(StrID_UninstallCaption), MB_OK|MB_ICONINFORMATION);
+    int nDlgResult = DialogBox(hInstance, (LPCTSTR)IDD_MAIN, NULL, (DLGPROC)DlgUninstall);
+    if (nDlgResult != ErrOK)
+      g_nResult = nDlgResult;
   }
   else
   {
@@ -148,8 +142,131 @@ int WINAPI WinMain(HINSTANCE hInstance,
     return ErrInstallationNotFound;
   }
 
+  return g_nResult;
+}
+
+int Uninstall(HWND hWnd)
+{
+  
+  DeleteDirectory(g_sInstallPath);
+  DeleteShortcut(hWnd);
+  DeleteRegistryKey();
+
+  
+  
   return ErrOK;
 }
+
+
+
+
+BOOL CALLBACK DlgUninstall(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
+{
+  switch (message)
+  {
+    case WM_INITDIALOG:
+      return OnDialogInit(hDlg);
+
+    case WM_DIALOGCREATED:
+      return OnDialogCreated(hDlg);
+
+    case WM_COMMAND:
+      switch (LOWORD(wParam))
+      {
+        case IDOK:
+          EndDialog(hDlg, ErrOK);
+          return TRUE;
+
+        case IDCANCEL:
+          EndDialog(hDlg, ErrCancel);
+          return TRUE;
+
+        case IDC_BTN_UNINSTALL:
+          g_nResult = OnUninstall(hDlg);
+          return TRUE;
+      }
+      break;
+
+    case WM_CLOSE:
+      EndDialog(hDlg, ErrCancel);
+      return TRUE;
+  }
+  return FALSE;
+}
+
+BOOL OnDialogCreated(HWND)
+{
+  ShutdownFastStartService(g_sInstallPath);
+  
+  return TRUE;
+}
+
+BOOL OnDialogInit(HWND hDlg)
+{
+  g_hDlg = hDlg;
+  PostMessage(hDlg, WM_DIALOGCREATED, 0, 0);
+
+  SetWindowText(hDlg, Strings.GetString(StrID_UninstallCaption));
+
+  SHINITDLGINFO shidi;
+  shidi.dwMask = SHIDIM_FLAGS;
+  shidi.dwFlags = SHIDIF_SIPDOWN | SHIDIF_EMPTYMENU;
+  shidi.hDlg = hDlg;
+  SHInitDialog(&shidi);
+
+  
+  SHDoneButton(hDlg, SHDB_HIDE);
+
+  
+  WCHAR sMsg[c_nTempBufSize];
+  _snwprintf(sMsg, c_nTempBufSize, L"%s %s", Strings.GetString(StrID_FilesWillBeRemoved), g_sInstallPath);
+  SetWindowText(GetDlgItem(hDlg, IDC_STATIC_TEXT), sMsg);
+  SetWindowText(GetDlgItem(hDlg, IDC_QUESTION_TEXT), Strings.GetString(StrID_AreYouSure));
+  SetWindowText(GetDlgItem(hDlg, IDC_BTN_UNINSTALL), L"OK"); 
+  SetWindowText(GetDlgItem(hDlg, IDCANCEL), Strings.GetString(StrID_Cancel));
+  ShowWindow(GetDlgItem(hDlg, IDC_PROGRESS), SW_HIDE);
+  ShowWindow(GetDlgItem(hDlg, IDOK), SW_HIDE);
+
+  return TRUE; 
+}
+
+int OnUninstall(HWND hDlg)
+{
+  SetWindowText(GetDlgItem(hDlg, IDC_QUESTION_TEXT), L"");
+  ShowWindow(GetDlgItem(hDlg, IDC_BTN_UNINSTALL), SW_HIDE);
+  ShowWindow(GetDlgItem(hDlg, IDCANCEL), SW_HIDE);
+  ShowWindow(GetDlgItem(hDlg, IDC_PROGRESS), SW_SHOW);
+  SendMessage(GetDlgItem(hDlg, IDC_PROGRESS), PBM_SETRANGE, 0, (LPARAM) MAKELPARAM (0, c_nMaxDirs));
+  SendMessage(GetDlgItem(hDlg, IDC_PROGRESS), PBM_SETPOS, 0, 0);
+
+  UpdateWindow(hDlg); 
+  
+  int ret = Uninstall(hDlg);
+
+  if (ret == ErrOK)
+  {
+    SetWindowText(GetDlgItem(hDlg, IDC_STATIC_TEXT), Strings.GetString(StrID_UninstalledSuccessfully));
+  }
+  else
+  {
+    
+    SetWindowText(GetDlgItem(hDlg, IDC_STATIC_TEXT), L"There were errors during uninstallation.");
+  }
+
+  ShowWindow(GetDlgItem(hDlg, IDC_PROGRESS), SW_HIDE);
+  ShowWindow(GetDlgItem(hDlg, IDOK), SW_SHOW);
+
+  return ret;
+}
+
+void UpdateProgress()
+{
+  SendMessage(GetDlgItem(g_hDlg, IDC_PROGRESS), PBM_SETPOS, (WPARAM)g_nDirsDeleted, 0);
+}
+
+
+
+
 
 BOOL LoadStrings()
 {
@@ -252,6 +369,8 @@ BOOL DeleteDirectory(const WCHAR* sPathToDelete)
   
   if (SetFileAttributes(sPathToDelete, FILE_ATTRIBUTE_NORMAL))
   {
+    g_nDirsDeleted++;
+    UpdateProgress();
     
     if (!RemoveDirectory(sPathToDelete) && nTotalRetries < c_nMaxTotalRetries)
     {
