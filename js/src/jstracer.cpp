@@ -2442,13 +2442,8 @@ TraceRecorder::TraceRecorder(JSContext* cx, VMSideExit* anchor, VMFragment* frag
     import(treeInfo, lirbuf->sp, stackSlots, ngslots, callDepth, typeMap);
 
     
-
-
-
-    if (anchor && anchor->exitType == RECURSIVE_SLURP_FAIL_EXIT) {
-        slurpDownFrames((jsbytecode*)anchor->recursive_pc - JSOP_CALL_LENGTH);
+    if (anchor && anchor->exitType == RECURSIVE_SLURP_FAIL_EXIT)
         return;
-    }
 
     if (fragment == fragment->root) {
         
