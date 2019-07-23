@@ -160,7 +160,9 @@ __asm__ (
 
 
 
-
+	"andl  $0xfffffff0, %ecx\n\t"   
+	"subl  $8, %ecx\n\t"	        
+	
 	"movl  %ecx, %esp\n\t"          
 	"movl  0x14(%ebp), %edx\n\t"
 	"call  " SYMBOL_UNDERSCORE "invoke_copy_to_stack\n\t"
