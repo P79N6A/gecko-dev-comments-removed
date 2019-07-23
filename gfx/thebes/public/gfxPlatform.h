@@ -59,6 +59,11 @@ public:
     
 
 
+    static nsresult Init();
+
+    
+
+
     static void Shutdown();
 
     

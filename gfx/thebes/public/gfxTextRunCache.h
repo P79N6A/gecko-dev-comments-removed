@@ -56,6 +56,8 @@ public:
     }
 
     static nsresult Init();
+    
+    
     static void Shutdown();
 
     
@@ -76,7 +78,6 @@ protected:
     gfxTextRunCache();
 
     static gfxTextRunCache *mGlobalCache;
-    static PRInt32 mGlobalCacheRefCount;
 
     
 
