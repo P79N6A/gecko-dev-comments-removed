@@ -350,6 +350,11 @@ class nsOggDecoder : public nsMediaDecoder
   virtual void SetTotalBytes(PRInt64 aBytes);
 
   
+  
+  
+  virtual void SetDuration(PRInt64 aDuration);
+
+  
   virtual void SetSeekable(PRBool aSeekable);
 
   

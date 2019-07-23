@@ -288,6 +288,11 @@ public:
 
   
   
+  
+  void SetDuration(PRInt64 aDuration);
+
+  
+  
   void SetSeekable(PRBool aSeekable);
 
   
@@ -839,6 +844,12 @@ void nsOggDecodeStateMachine::SetContentLength(PRInt64 aLength)
   mContentLength = aLength;
 }
 
+void nsOggDecodeStateMachine::SetDuration(PRInt64 aDuration)
+{
+   
+  mDuration = aDuration;
+}
+
 void nsOggDecodeStateMachine::SetSeekable(PRBool aSeekable)
 {
    
@@ -1189,11 +1200,13 @@ void nsOggDecodeStateMachine::LoadOggHeaders()
     
     
     
+    
     {
       nsAutoMonitor mon(mDecoder->GetMonitor());
       if (mState != DECODER_STATE_SHUTDOWN &&
           mContentLength >= 0 && 
-          mSeekable) {
+          mSeekable &&
+          mDuration == -1) {
         mDecoder->StopProgressUpdates();
         
         
@@ -1913,6 +1926,15 @@ void nsOggDecoder::PlaybackPositionChanged()
 
   if (mElement && lastTime != mCurrentTime) {
     mElement->DispatchSimpleEvent(NS_LITERAL_STRING("timeupdate"));
+  }
+}
+
+void nsOggDecoder::SetDuration(PRInt64 aDuration)
+{
+  mDuration = aDuration;
+  if (mDecodeStateMachine) {
+    nsAutoMonitor mon(mMonitor);
+    mDecodeStateMachine->SetDuration(mDuration);
   }
 }
 

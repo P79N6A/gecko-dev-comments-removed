@@ -178,6 +178,11 @@ class nsMediaDecoder : public nsIObserver
   virtual void SetTotalBytes(PRInt64 aBytes) = 0;
 
   
+  
+  
+  virtual void SetDuration(PRInt64 aDuration) = 0;
+ 
+  
   virtual void SetSeekable(PRBool aSeekable) = 0;
 
   

@@ -110,6 +110,28 @@ nsresult nsChannelToPipeListener::OnStartRequest(nsIRequest* aRequest, nsISuppor
                           ranges);
     PRBool acceptsRanges = ranges.EqualsLiteral("bytes"); 
 
+    if (!mSeeking) {
+      
+      
+      
+      
+      
+      
+      nsCAutoString durationText;
+      PRInt32 ec = 0;
+      nsresult rv = hc->GetResponseHeader(NS_LITERAL_CSTRING("X-Content-Duration"), durationText);
+      if (NS_FAILED(rv)) {
+        rv = hc->GetResponseHeader(NS_LITERAL_CSTRING("X-AMZ-Meta-Content-Duration"), durationText);
+      }
+
+      if (NS_SUCCEEDED(rv)) {
+        float duration = durationText.ToFloat(&ec);
+        if (ec == NS_OK && duration >= 0) {
+          mDecoder->SetDuration(PRInt64(duration*1000));
+        }
+      }
+    }
+ 
     PRUint32 responseStatus = 0; 
     hc->GetResponseStatus(&responseStatus);
     if (mSeeking && responseStatus == HTTP_OK_CODE) {
