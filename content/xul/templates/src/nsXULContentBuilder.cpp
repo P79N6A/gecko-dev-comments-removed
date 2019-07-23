@@ -1308,6 +1308,7 @@ nsXULContentBuilder::IsOpen(nsIContent* aElement)
     
     nsIAtom *tag = aElement->Tag();
     if (tag == nsGkAtoms::menu ||
+        tag == nsGkAtoms::menulist ||
         tag == nsGkAtoms::menubutton ||
         tag == nsGkAtoms::toolbarbutton ||
         tag == nsGkAtoms::button ||
