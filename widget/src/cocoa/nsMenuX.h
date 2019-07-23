@@ -53,6 +53,7 @@
 
 class nsIMenuBar;
 class nsIMenuListener;
+class nsIDocShell;
 class nsMenuX;
 class nsMenuItemIconX;
 
@@ -155,7 +156,6 @@ protected:
 
     nsISupports*                mParent;                
     nsIChangeManager*           mManager;               
-    nsWeakPtr                   mDocShellWeakRef;       
     nsCOMPtr<nsIContent>        mMenuContent;           
     nsCOMPtr<nsIMenuListener>   mListener;              
     nsRefPtr<nsMenuItemIconX>   mIcon;
