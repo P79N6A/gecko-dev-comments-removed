@@ -132,12 +132,15 @@ function continue_test() {
   
   do_check_eq(ps.getCharPref(PREF_DISTRIBUTION_ID), "516444");
 
+  do_test_finished();
+}
+
+do_register_cleanup(function() {
+  
   
   let iniFile = dirSvc.get("XCurProcD", Ci.nsIFile);
   iniFile.append("distribution");
   iniFile.append("distribution.ini");
   iniFile.remove(false);
   do_check_false(iniFile.exists());
-
-  do_test_finished();
-}
+});
