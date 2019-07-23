@@ -880,15 +880,6 @@ nsDOMThreadService::Cleanup()
   
   NS_IF_RELEASE(gJSRuntimeService);
   NS_IF_RELEASE(gWorkerSecurityManager);
-
-  if (sStringFinalizerIndex != -1) {
-#ifdef DEBUG
-    int index =
-#endif
-    JS_RemoveExternalStringFinalizer(StringFinalizer);
-    NS_ASSERTION(index == sStringFinalizerIndex, "Bad index!");
-    sStringFinalizerIndex = -1;
-  }
 }
 
 nsresult
