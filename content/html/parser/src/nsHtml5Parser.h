@@ -224,20 +224,15 @@ class nsHtml5Parser : public nsIParser,
     
 
 
-
-
-
     NS_IMETHOD_(PRBool) IsParserEnabled();
 
     
 
 
-
-
-
     NS_IMETHOD_(PRBool) IsComplete();
 
     
+
 
 
 
@@ -255,12 +250,23 @@ class nsHtml5Parser : public nsIParser,
 
 
 
+
+
+
     NS_IMETHOD Parse(const nsAString& aSourceBuffer,
                      void* aKey,
                      const nsACString& aContentType,
                      PRBool aLastCall,
                      nsDTDMode aMode = eDTDMode_autodetect);
+
+    
+
+
     NS_IMETHOD_(void *) GetRootContextKey();
+
+    
+
+
     NS_IMETHOD        Terminate(void);
 
     
@@ -272,6 +278,16 @@ class nsHtml5Parser : public nsIParser,
                              PRBool aXMLMode,
                              const nsACString& aContentType,
                              nsDTDMode aMode = eDTDMode_autodetect);
+
+    
+
+
+
+
+
+
+
+
     NS_IMETHOD ParseFragment(const nsAString& aSourceBuffer,
                              nsISupports* aTargetNode,
                              nsIAtom* aContextLocalName,
@@ -281,15 +297,9 @@ class nsHtml5Parser : public nsIParser,
     
 
 
-
-
-
     NS_IMETHOD BuildModel(void);
 
     
-
-
-
 
 
     NS_IMETHOD_(nsDTDMode) GetParseMode(void);
@@ -297,10 +307,18 @@ class nsHtml5Parser : public nsIParser,
     
 
 
-
     NS_IMETHODIMP CancelParsingEvents();
+
+    
+
+
     virtual void Reset();
+    
+    
+
+
     virtual PRBool CanInterrupt();
+    
     
      
       
@@ -314,14 +332,26 @@ class nsHtml5Parser : public nsIParser,
     
 
 
-
     void HandleParserContinueEvent(class nsHtml5ParserContinueEvent *);
+
     
+    
+
+
     void internalEncodingDeclaration(nsString* aEncoding);
+
     
+    
+
+
     void documentMode(nsHtml5DocumentMode m);
+
     
+    
+
+
     NS_IMETHOD Notify(const char* aCharset, nsDetectionConfident aConf);
+
     
 
     
@@ -368,6 +398,7 @@ class nsHtml5Parser : public nsIParser,
 
 
     virtual nsISupports *GetTarget();
+    
     
   public:
     
@@ -446,15 +477,39 @@ class nsHtml5Parser : public nsIParser,
     
 
 
+    PRBool HasDecoder() {
+      return !!mUnicodeDecoder;
+    }
+
+    
+
+
     nsresult SniffStreamBytes(const PRUint8* aFromSegment,
                               PRUint32 aCount,
                               PRUint32* aWriteCount);
+
+    
+
+
     nsresult WriteStreamBytes(const PRUint8* aFromSegment,
                               PRUint32 aCount,
                               PRUint32* aWriteCount);
+
+    
+
+
     void Suspend();
+    
+    
+
+
     void SetScriptElement(nsIContent* aScript);
+
+    
+
+
     void UpdateStyleSheet(nsIContent* aElement);
+
     
     nsIDocument* GetDocument() {
       return mDocument;
@@ -465,55 +520,147 @@ class nsHtml5Parser : public nsIParser,
     nsIDocShell* GetDocShell() {
       return mDocShell;
     }
-    PRBool HasDecoder() {
-      return !!mUnicodeDecoder;
-    }
+
   private:
+    
+
+
     void ExecuteScript();
+
+    
+
+
     void MaybePostContinueEvent();
+
+    
+
+
     nsresult PerformCharsetSwitch();
 
     
 
 
     void ParseUntilSuspend();
-    void Cleanup();
+
   private:
     
-    PRBool                        mNeedsCharsetSwitch;
-    PRBool                        mLastWasCR;
-    PRBool                        mTerminated;
-    PRBool                        mLayoutStarted;
-    PRBool                        mFragmentMode;
-    PRBool                        mBlocked;
-    PRBool                        mSuspending;
-    eHtml5ParserLifecycle         mLifeCycle;
-    eStreamState                  mStreamListenerState;
     
+
+
+    PRBool                        mNeedsCharsetSwitch;
+
+    
+
+
+    PRBool                        mLastWasCR;
+
+    
+
+
+    PRBool                        mFragmentMode;
+
+    
+
+
+    PRBool                        mBlocked;
+
+    
+
+
+    PRBool                        mSuspending;
+
+    
+
+
+    eHtml5ParserLifecycle         mLifeCycle;
+
+    
+    
+
+
     nsCOMPtr<nsIContent>          mScriptElement;
+
+    
+
+
     PRBool                        mUninterruptibleDocWrite;
+
     
     void*                         mRootContextKey;
     nsCOMPtr<nsIRequest>          mRequest;
     nsCOMPtr<nsIRequestObserver>  mObserver;
     nsIRunnable*                  mContinueEvent;  
+
     
-    nsIContent*                   mDocElement; 
     
+
+
     PRInt32                       mCharsetSource;
-    nsCString                     mCharset;
-    nsCString                     mPendingCharset;
-    nsCOMPtr<nsIUnicodeDecoder>   mUnicodeDecoder;
-    nsAutoArrayPtr<PRUint8>       mSniffingBuffer;
-    PRUint32                      mSniffingLength; 
-    eBomState                     mBomState;
-    nsAutoPtr<nsHtml5MetaScanner> mMetaScanner;
+
     
+
+
+    nsCString                     mCharset;
+
+    
+
+
+    nsCString                     mPendingCharset;
+
+    
+
+
+    nsCOMPtr<nsIUnicodeDecoder>   mUnicodeDecoder;
+
+    
+
+
+    nsAutoArrayPtr<PRUint8>       mSniffingBuffer;
+
+    
+
+
+    PRUint32                      mSniffingLength;
+
+    
+
+
+    eBomState                     mBomState;
+
+    
+
+
+    nsAutoPtr<nsHtml5MetaScanner> mMetaScanner;
+
+    
+    
+
+
     nsHtml5UTF16Buffer*           mFirstBuffer; 
+
+    
+
+
     nsHtml5UTF16Buffer*           mLastBuffer; 
                       
+
+    
+
+
     nsAutoPtr<nsHtml5TreeBuilder> mTreeBuilder;
+
+    
+
+
     nsAutoPtr<nsHtml5Tokenizer>   mTokenizer;
+
+#ifdef DEBUG
+    
+
+
+    eStreamState                  mStreamListenerState;
+#endif
+
 #ifdef GATHER_DOCWRITE_STATISTICS
     nsHtml5StateSnapshot*         mSnapshot;
     static PRUint32               sUnsafeDocWrites;
