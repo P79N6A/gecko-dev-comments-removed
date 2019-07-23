@@ -57,13 +57,10 @@
 #include "nsGfxCIID.h"
 #include "nsIServiceManager.h"
 #include "nsGkAtoms.h"
-#include "nsISimpleEnumerator.h"
 #include "nsXPCOM.h"
 #include "nsISupportsPrimitives.h"
 
-
 static const char sPrintSettingsServiceContractID[] = "@mozilla.org/gfx/printsettings-service;1";
-static const char sPrintOptionsContractID[]         = "@mozilla.org/gfx/printsettings-service;1";
 
 
 #include "nsPrintPreviewListener.h"
@@ -468,9 +465,7 @@ nsPrintEngine::DoCommonPrint(PRBool                  aIsPrintPreview,
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
-  mPrt->mPrintOptions = do_GetService(sPrintOptionsContractID, &rv);
-  NS_ENSURE_SUCCESS(rv, rv);
-  rv = CheckForPrinters(mPrt->mPrintOptions, mPrt->mPrintSettings);
+  rv = CheckForPrinters(mPrt->mPrintSettings);
   NS_ENSURE_SUCCESS(rv, rv);
 
   mPrt->mPrintSettings->SetIsCancelled(PR_FALSE);
@@ -914,48 +909,32 @@ nsPrintEngine::GetCurrentPrintSettings(nsIPrintSettings * *aCurrentPrintSettings
 
 
 nsresult
-nsPrintEngine::CheckForPrinters(nsIPrintOptions*  aPrintOptions,
-                                nsIPrintSettings* aPrintSettings)
+nsPrintEngine::CheckForPrinters(nsIPrintSettings* aPrintSettings)
 {
-  NS_ENSURE_ARG_POINTER(aPrintOptions);
+#if defined(XP_MAC) || defined(XP_MACOSX)
+  
+  return NS_OK;
+#else
   NS_ENSURE_ARG_POINTER(aPrintSettings);
 
-  nsresult rv;
+  
+  nsXPIDLString printerName;
+  nsresult rv = aPrintSettings->GetPrinterName(getter_Copies(printerName));
+  if (NS_SUCCEEDED(rv) && !printerName.IsEmpty()) {
+    return NS_OK;
+  }
 
-  nsCOMPtr<nsISimpleEnumerator> simpEnum;
-  rv = aPrintOptions->AvailablePrinters(getter_AddRefs(simpEnum));
-  if (simpEnum) {
-    PRBool fndPrinter = PR_FALSE;
-    simpEnum->HasMoreElements(&fndPrinter);
-    if (fndPrinter) {
-      
-      
-      
-      nsCOMPtr<nsISupports> supps;
-      simpEnum->GetNext(getter_AddRefs(supps));
-      PRUnichar* defPrinterName;
-      aPrintSettings->GetPrinterName(&defPrinterName);
-      if (!defPrinterName || !*defPrinterName) {
-        if (defPrinterName) nsMemory::Free(defPrinterName);
-        nsCOMPtr<nsISupportsString> wStr = do_QueryInterface(supps);
-        if (wStr) {
-          wStr->ToString(&defPrinterName);
-          aPrintSettings->SetPrinterName(defPrinterName);
-          nsMemory::Free(defPrinterName);
-        }
-      } else {
-        nsMemory::Free(defPrinterName);
-      }
-      rv = NS_OK;
-    }
-  } else {
-    
-    
-#if defined(XP_MAC) || defined(XP_MACOSX)
-    rv = NS_OK;
-#endif
+  
+  nsCOMPtr<nsIPrintSettingsService> printSettingsService =
+    do_GetService(sPrintSettingsServiceContractID, &rv);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  rv = printSettingsService->GetDefaultPrinterName(getter_Copies(printerName));
+  if (NS_SUCCEEDED(rv) && !printerName.IsEmpty()) {
+    rv = aPrintSettings->SetPrinterName(printerName.get());
   }
   return rv;
+#endif
 }
 
 

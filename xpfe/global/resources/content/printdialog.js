@@ -43,7 +43,6 @@
 
 var dialog;
 var printService       = null;
-var printOptions       = null;
 var gOriginalNumCopies = 1;
 
 var paramBlock;
@@ -148,49 +147,46 @@ listElement.prototype =
     appendPrinterNames: 
       function (aDataObject) 
         { 
-          var list = document.getElementById("printerList"); 
-          var strDefaultPrinterName = "";
-          var printerName;
-
-          
-          while (aDataObject.hasMoreElements()) {
-            printerName = aDataObject.getNext();
-            printerName = printerName.QueryInterface(Components.interfaces.nsISupportsString);
-            var printerNameStr = printerName.toString();
-            if (strDefaultPrinterName == "")
-               strDefaultPrinterName = printerNameStr;
-
-            list.appendItem(printerNameStr, printerNameStr, getPrinterDescription(printerNameStr));
-          }
-          if (strDefaultPrinterName != "") {
-            this.listElement.removeAttribute("disabled");
-          } else {
+          if ((null == aDataObject) || !aDataObject.hasMore()) {
+            
             var stringBundle = srGetStrBundle("chrome://global/locale/printing.properties");
-            this.listElement.setAttribute("value", strDefaultPrinterName);
+            this.listElement.setAttribute("value", "");
             this.listElement.setAttribute("label", stringBundle.GetStringFromName("noprinter"));
 
-            
             this.listElement.setAttribute("disabled", "true");
             dialog.printerLabel.setAttribute("disabled","true");
             dialog.propertiesButton.setAttribute("disabled","true");
             dialog.fileCheck.setAttribute("disabled","true");
             dialog.printButton.setAttribute("disabled","true");
           }
-
-          return strDefaultPrinterName;
+          else {
+            
+            var list = document.getElementById("printerList"); 
+            do {
+              printerNameStr = aDataObject.getNext();
+              list.appendItem(printerNameStr, printerNameStr, getPrinterDescription(printerNameStr));
+            } while (aDataObject.hasMore());
+            this.listElement.removeAttribute("disabled");
+          }
         } 
   };
 
 
 function getPrinters()
 {
-  var printerEnumerator = printOptions.availablePrinters();
-
   var selectElement = new listElement(dialog.printerList);
   selectElement.clearList();
-  var strDefaultPrinterName = selectElement.appendPrinterNames(printerEnumerator);
 
-  selectElement.listElement.value = strDefaultPrinterName;
+  var printerEnumerator;
+  try {
+    printerEnumerator =
+        Components.classes["@mozilla.org/gfx/printerenumerator;1"]
+                  .getService(Components.interfaces.nsIPrinterEnumerator)
+                  .printerNameList;
+  } catch(e) { printerEnumerator = null; }
+
+  selectElement.appendPrinterNames(printerEnumerator);
+  selectElement.listElement.value = printService.defaultPrinterName;
 
   
   setPrinterDefaultsForSelectedPrinter();
@@ -265,7 +261,6 @@ function loadDialog()
       printService = printService.getService();
       if (printService) {
         printService = printService.QueryInterface(Components.interfaces.nsIPrintSettingsService);
-        printOptions = printService.QueryInterface(Components.interfaces.nsIPrintOptions);
       }
     }
   } catch(e) {}
