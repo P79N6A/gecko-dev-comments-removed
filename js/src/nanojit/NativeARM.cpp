@@ -972,8 +972,23 @@ Assembler::BL(NIns* addr)
 void
 Assembler::LD32_nochk(Register r, int32_t imm)
 {
-    if (imm == 0) {
-        EOR(r, r, r);
+    
+    
+    if (isU8(imm)) {
+        underrunProtect(4);
+
+        
+        *(--_nIns) = (NIns)( COND_AL | 0x3B<<20 | r<<12 | imm & 0xFF );
+        asm_output("mov %s,0x%x",gpn(r), imm);
+
+        return;
+    } else if (isU8(~imm)) {
+        underrunProtect(4);
+
+        
+        *(--_nIns) = (NIns)( COND_AL | 0x3E<<20 | r<<12 | ~imm & 0xFF );
+        asm_output("mvn %s,0x%x",gpn(r), ~imm);
+
         return;
     }
 
@@ -988,17 +1003,23 @@ Assembler::LD32_nochk(Register r, int32_t imm)
 
     
     
-
-    *(++_nSlot) = (int)imm;
-
+    
+    
+    
     
 
-    int offset = PC_OFFSET_FROM(_nSlot,_nIns-1);
-
+    int offset = PC_OFFSET_FROM(_nSlot+1, _nIns-1);
+    while (offset <= -4096) {
+        ++_nSlot;
+        offset += sizeof(_nSlot);
+    }
     NanoAssert(isS12(offset) && (offset < 0));
 
+    
+    *(++_nSlot) = imm;
     asm_output("  (%d(PC) = 0x%x)", offset, imm);
 
+    
     LDR_nochk(r,PC,offset);
 }
 
