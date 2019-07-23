@@ -276,7 +276,6 @@ nsTableFrame::Destroy()
 }
 
 
-
 void
 nsTableFrame::RePositionViews(nsIFrame* aFrame)
 {
@@ -2227,8 +2226,7 @@ nsTableFrame::GetCollapsedWidth(nsMargin aBorderPadding)
   return width;
 }
 
-
-    void
+ void
 nsTableFrame::DidSetStyleContext(nsStyleContext* aOldStyleContext)
 {
    if (!aOldStyleContext) 
@@ -4698,10 +4696,8 @@ public:
   NS_IMETHOD Run() {
     if (mFrame) {
       nsTableFrame* tableFrame = static_cast <nsTableFrame*>(mFrame.GetFrame());
-      if (tableFrame) {
-        if (tableFrame->NeedToCalcBCBorders()) {
-          tableFrame->CalcBCBorders();
-        }
+      if (tableFrame->NeedToCalcBCBorders()) {
+        tableFrame->CalcBCBorders();
       }
     }
     return NS_OK;
@@ -4715,6 +4711,32 @@ nsTableFrame::BCRecalcNeeded(nsStyleContext* aOldStyleContext,
                              nsStyleContext* aNewStyleContext)
 {
   
+  
+  
+
+  const nsStyleBorder* oldStyleData = static_cast<const nsStyleBorder*>
+                        (aOldStyleContext->PeekStyleData(eStyleStruct_Border));
+  if (!oldStyleData)
+    return PR_FALSE;
+
+  const nsStyleBorder* newStyleData = aNewStyleContext->GetStyleBorder();
+  nsChangeHint change = newStyleData->CalcDifference(*oldStyleData);
+  if (change == NS_STYLE_HINT_NONE)
+    return PR_FALSE;
+  if ((change & NS_STYLE_HINT_REFLOW) == NS_STYLE_HINT_REFLOW)
+    return PR_TRUE; 
+  if ((change & NS_STYLE_HINT_VISUAL) == NS_STYLE_HINT_VISUAL) {
+    NS_FOR_CSS_SIDES(side) {
+      if (newStyleData->GetBorderStyle(side) !=
+          oldStyleData->GetBorderStyle(side)) {
+        
+        
+        nsCOMPtr<nsIRunnable> evt = new nsDelayedCalcBCBorders(this);
+        NS_DispatchToCurrentThread(evt);
+        return PR_TRUE;
+      }
+    }
+  }
   return PR_FALSE;
 }
 
