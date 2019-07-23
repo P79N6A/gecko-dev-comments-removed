@@ -273,9 +273,18 @@ XPC_XOW_FunctionWrapper(JSContext *cx, JSObject *obj, uintN argc, jsval *argv,
 {
   JSObject *wrappedObj, *outerObj = obj;
 
-  obj = GetWrapper(cx, obj);
-  if (!obj || (wrappedObj = GetWrappedObject(cx, obj)) == nsnull) {
-    return ThrowException(NS_ERROR_ILLEGAL_VALUE, cx);
+  
+  
+  
+
+  wrappedObj = GetWrapper(cx, obj);
+  if (wrappedObj) {
+    wrappedObj = GetWrappedObject(cx, wrappedObj);
+    if (!wrappedObj) {
+      return ThrowException(NS_ERROR_ILLEGAL_VALUE, cx);
+    }
+  } else {
+    wrappedObj = obj;
   }
 
   JSObject *funObj = JSVAL_TO_OBJECT(argv[-2]);
