@@ -1012,8 +1012,8 @@ NS_IMETHODIMP imgLoader::LoadImage(nsIURI *aURI,
     
     
     imgCacheTable &cache = GetCache(aURI);
-
     nsCAutoString spec;
+
     aURI->GetSpec(spec);
 
     if (cache.Get(spec, getter_AddRefs(entry)) && entry) {
@@ -1061,7 +1061,7 @@ NS_IMETHODIMP imgLoader::LoadImage(nsIURI *aURI,
     newChannel->SetLoadGroup(loadGroup);
 
     void *cacheId = NS_GetCurrentThread();
-    request->Init(aURI, loadGroup, newChannel, entry, cacheId, aCX);
+    request->Init(aURI, loadGroup, entry, cacheId, aCX);
 
     
     ProxyListener *pl = new ProxyListener(static_cast<nsIStreamListener *>(request.get()));
@@ -1193,12 +1193,19 @@ NS_IMETHODIMP imgLoader::LoadImageWithChannel(nsIChannel *channel, imgIDecoderOb
 
     *listener = nsnull; 
   } else {
+
+    
+    
+    nsIThread *thread = NS_GetCurrentThread();
+
     NewRequestAndEntry(uri, getter_AddRefs(request), getter_AddRefs(entry));
 
     
+    
+    
     nsCOMPtr<nsIURI> originalURI;
     channel->GetOriginalURI(getter_AddRefs(originalURI));
-    request->Init(originalURI, channel, channel, entry, NS_GetCurrentThread(), aCX);
+    request->Init(originalURI, channel, entry, thread, aCX);
 
     ProxyListener *pl = new ProxyListener(static_cast<nsIStreamListener *>(request.get()));
     if (!pl)
@@ -1469,9 +1476,11 @@ NS_IMETHODIMP imgCacheValidator::OnStartRequest(nsIRequest *aRequest, nsISupport
       return NS_ERROR_OUT_OF_MEMORY;
 
   
+  
+  
   nsCOMPtr<nsIURI> originalURI;
   channel->GetOriginalURI(getter_AddRefs(originalURI));
-  request->Init(originalURI, channel, channel, entry, NS_GetCurrentThread(), mContext);
+  request->Init(originalURI, channel, entry, NS_GetCurrentThread(), mContext);
 
   ProxyListener *pl = new ProxyListener(static_cast<nsIStreamListener *>(request));
   if (!pl) {
