@@ -71,7 +71,7 @@ class   nsIContent;
 
 
 
-typedef nsEventStatus (*PR_CALLBACK EVENT_CALLBACK)(nsGUIEvent *event);
+typedef nsEventStatus (* EVENT_CALLBACK)(nsGUIEvent *event);
 
 
 

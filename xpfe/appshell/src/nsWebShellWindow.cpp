@@ -300,7 +300,7 @@ nsWebShellWindow::Toolbar()
 
 
 
-nsEventStatus PR_CALLBACK
+nsEventStatus
 nsWebShellWindow::HandleEvent(nsGUIEvent *aEvent)
 {
   nsEventStatus result = nsEventStatus_eIgnore;

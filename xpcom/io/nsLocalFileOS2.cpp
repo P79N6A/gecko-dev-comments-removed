@@ -133,7 +133,7 @@ myLL_L2II(PRInt64 result, PRInt32 *hi, PRInt32 *lo )
 }
 
 
-static unsigned char* PR_CALLBACK
+static unsigned char*
 _mbschr(const unsigned char* stringToSearch, int charToSearchFor)
 {
     const unsigned char* p = stringToSearch;
@@ -149,7 +149,7 @@ _mbschr(const unsigned char* stringToSearch, int charToSearchFor)
 }
 
 
-static unsigned char* PR_CALLBACK
+static unsigned char*
 _mbsstr(const unsigned char* stringToSearch, const unsigned char* subString)
 {
     const unsigned char* pStr = stringToSearch;
@@ -198,7 +198,7 @@ _mbsrchr(const unsigned char* stringToSearch, int charToSearchFor)
 }
 
 
-static nsresult PR_CALLBACK
+static nsresult
 CreateDirectoryA(PSZ path, PEAOP2 ppEABuf)
 {
     APIRET rc;

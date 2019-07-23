@@ -571,7 +571,7 @@ nsFormFillController::HandleEvent(nsIDOMEvent* aEvent)
 }
 
 
- PLDHashOperator PR_CALLBACK
+ PLDHashOperator
 nsFormFillController::RemoveForDOMDocumentEnumerator(nsISupports* aKey,
                                                   PRInt32& aEntry,
                                                   void* aUserData)

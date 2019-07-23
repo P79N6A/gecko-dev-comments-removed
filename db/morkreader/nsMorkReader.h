@@ -128,9 +128,9 @@ class NS_STACK_CLASS nsMorkReader
   
   
   typedef PLDHashOperator
-  (*PR_CALLBACK RowEnumerator)(const nsCSubstring &rowID, 
-                               const nsTArray<nsCString> *values,
-                               void *userData);
+  (* RowEnumerator)(const nsCSubstring &rowID,
+                    const nsTArray<nsCString> *values,
+                    void *userData);
 
   
   nsresult Init();

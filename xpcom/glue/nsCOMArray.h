@@ -220,7 +220,7 @@ class nsCOMArray : public nsCOMArray_base
     
     
     
-    typedef PRBool (* PR_CALLBACK nsCOMArrayEnumFunc)
+    typedef PRBool (* nsCOMArrayEnumFunc)
         (T* aElement, void *aData);
     
     
@@ -234,7 +234,7 @@ class nsCOMArray : public nsCOMArray_base
                                                   aData);
     }
     
-    typedef int (* PR_CALLBACK nsCOMArrayComparatorFunc)
+    typedef int (* nsCOMArrayComparatorFunc)
         (T* aElement1, T* aElement2, void* aData);
         
     void Sort(nsCOMArrayComparatorFunc aFunc, void* aData) {

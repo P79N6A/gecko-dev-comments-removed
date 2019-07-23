@@ -220,16 +220,16 @@ private:
   
   PRInt32 GetRandomUploadInterval();
 
-  static PLDHashOperator PR_CALLBACK
+  static PLDHashOperator
   PruneDisabledCollectors(const nsAString &key,
                           nsCOMPtr<nsIMetricsCollector> &value,
                           void *userData);
 
-  static PLDHashOperator PR_CALLBACK
+  static PLDHashOperator
   DetachCollector(const nsAString &key,
                   nsIMetricsCollector *value, void *userData);
 
-  static PLDHashOperator PR_CALLBACK
+  static PLDHashOperator
   NotifyNewLog(const nsAString &key,
                nsIMetricsCollector *value, void *userData);
 

@@ -48,7 +48,7 @@
 
 
 
-static nsEventStatus PR_CALLBACK HandleEvent(nsGUIEvent *aEvent);
+static nsEventStatus HandleEvent(nsGUIEvent *aEvent);
 
 
 
@@ -155,7 +155,7 @@ static ViewWrapper* GetWrapperFor(nsIWidget* aWidget)
 
 
 
-nsEventStatus PR_CALLBACK HandleEvent(nsGUIEvent *aEvent)
+nsEventStatus HandleEvent(nsGUIEvent *aEvent)
 { 
 
 

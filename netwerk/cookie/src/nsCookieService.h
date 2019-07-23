@@ -211,7 +211,7 @@ class nsCookieService : public nsICookieService
     static nsCookieService        *gCookieService;
 
     
-    friend PLDHashOperator PR_CALLBACK removeExpiredCallback(nsCookieEntry *aEntry, void *aArg);
+    friend PLDHashOperator removeExpiredCallback(nsCookieEntry *aEntry, void *aArg);
 };
 
 #endif 

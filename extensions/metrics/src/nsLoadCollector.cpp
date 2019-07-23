@@ -450,7 +450,7 @@ nsLoadCollector::OnAttach()
   return NS_OK;
 }
 
- PLDHashOperator PR_CALLBACK
+ PLDHashOperator
 nsLoadCollector::RemoveDocumentFromMap(const nsIDocument *document,
                                        DocumentEntry &entry, void *userData)
 {

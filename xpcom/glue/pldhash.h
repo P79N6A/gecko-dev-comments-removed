@@ -239,24 +239,24 @@ struct PLDHashTable {
 
 
 typedef void *
-(* PR_CALLBACK PLDHashAllocTable)(PLDHashTable *table, PRUint32 nbytes);
+(* PLDHashAllocTable)(PLDHashTable *table, PRUint32 nbytes);
 
 typedef void
-(* PR_CALLBACK PLDHashFreeTable) (PLDHashTable *table, void *ptr);
+(* PLDHashFreeTable) (PLDHashTable *table, void *ptr);
 
 
 
 
 
 typedef PLDHashNumber
-(* PR_CALLBACK PLDHashHashKey)   (PLDHashTable *table, const void *key);
+(* PLDHashHashKey)   (PLDHashTable *table, const void *key);
 
 
 
 
 
 typedef PRBool
-(* PR_CALLBACK PLDHashMatchEntry)(PLDHashTable *table,
+(* PLDHashMatchEntry)(PLDHashTable *table,
                                       const PLDHashEntryHdr *entry,
                                       const void *key);
 
@@ -267,9 +267,9 @@ typedef PRBool
 
 
 typedef void
-(* PR_CALLBACK PLDHashMoveEntry)(PLDHashTable *table,
-                                     const PLDHashEntryHdr *from,
-                                     PLDHashEntryHdr *to);
+(* PLDHashMoveEntry)(PLDHashTable *table,
+                     const PLDHashEntryHdr *from,
+                     PLDHashEntryHdr *to);
 
 
 
@@ -277,8 +277,8 @@ typedef void
 
 
 typedef void
-(* PR_CALLBACK PLDHashClearEntry)(PLDHashTable *table,
-                                      PLDHashEntryHdr *entry);
+(* PLDHashClearEntry)(PLDHashTable *table,
+                      PLDHashEntryHdr *entry);
 
 
 
@@ -286,7 +286,7 @@ typedef void
 
 
 typedef void
-(* PR_CALLBACK PLDHashFinalize)  (PLDHashTable *table);
+(* PLDHashFinalize)  (PLDHashTable *table);
 
 
 
@@ -296,9 +296,9 @@ typedef void
 
 
 typedef PRBool
-(* PR_CALLBACK PLDHashInitEntry)(PLDHashTable *table,
-                                     PLDHashEntryHdr *entry,
-                                     const void *key);
+(* PLDHashInitEntry)(PLDHashTable *table,
+                     PLDHashEntryHdr *entry,
+                     const void *key);
 
 
 
@@ -575,7 +575,7 @@ PL_DHashTableRawRemove(PLDHashTable *table, PLDHashEntryHdr *entry);
 
 
 typedef PLDHashOperator
-(* PR_CALLBACK PLDHashEnumerator)(PLDHashTable *table, PLDHashEntryHdr *hdr,
+(* PLDHashEnumerator)(PLDHashTable *table, PLDHashEntryHdr *hdr,
                                       PRUint32 number, void *arg);
 
 NS_COM_GLUE PRUint32

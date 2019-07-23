@@ -91,7 +91,7 @@ NewHeapAtom(const char *value) {
 }
 
 
-PR_STATIC_CALLBACK(PLDHashNumber)
+static PLDHashNumber
 StringHash(PLDHashTable *table, const void *key)
 {
     PLDHashNumber h = 0;
@@ -100,7 +100,7 @@ StringHash(PLDHashTable *table, const void *key)
     return h;
 }
 
-PR_STATIC_CALLBACK(PRBool)
+static PRBool
 StringCompare(PLDHashTable *table, const PLDHashEntryHdr *entry,
               const void *testKey)
 {

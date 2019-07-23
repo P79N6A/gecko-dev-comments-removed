@@ -155,7 +155,7 @@ NS_IMETHODIMP mozPersonalDictionary::Load()
 
 
 
-PR_STATIC_CALLBACK(PLDHashOperator)
+static PLDHashOperator
 AddHostToStringArray(nsUniCharEntry *aEntry, void *aArg)
 {
   static_cast<nsStringArray*>(aArg)->AppendString(nsDependentString(aEntry->GetKey()));

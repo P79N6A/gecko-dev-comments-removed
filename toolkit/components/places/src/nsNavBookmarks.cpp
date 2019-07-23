@@ -742,7 +742,7 @@ nsNavBookmarks::RecursiveAddBookmarkHash(PRInt64 aPlaceID,
 
 
 
-PR_STATIC_CALLBACK(PLDHashOperator)
+static PLDHashOperator
 RemoveBookmarkHashCallback(nsTrimInt64HashKey::KeyType aKey,
                            PRInt64& aPlaceId, void* aUserArg)
 {

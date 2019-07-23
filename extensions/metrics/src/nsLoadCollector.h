@@ -102,7 +102,7 @@ class nsLoadCollector : public nsIMetricsCollector,
   ~nsLoadCollector();
 
   
-  static PLDHashOperator PR_CALLBACK
+  static PLDHashOperator
   RemoveDocumentFromMap(const nsIDocument *document,
                         DocumentEntry &entry, void *userData);
 

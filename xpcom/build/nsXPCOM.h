@@ -98,9 +98,9 @@ DECL_CLASS(nsITraceRefcnt);
 
 
 
-typedef nsresult (PR_CALLBACK *nsGetModuleProc)(nsIComponentManager *aCompMgr,
-                                                nsIFile* location,
-                                                nsIModule** return_cobj);
+typedef nsresult (*nsGetModuleProc)(nsIComponentManager *aCompMgr,
+                                    nsIFile* location,
+                                    nsIModule** return_cobj);
 
 
 

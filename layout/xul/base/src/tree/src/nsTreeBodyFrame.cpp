@@ -114,7 +114,7 @@
 static NS_DEFINE_CID(kWidgetCID, NS_CHILD_CID);
 
 
-PR_STATIC_CALLBACK(PLDHashOperator)
+static PLDHashOperator
 CancelImageRequest(const nsAString& aKey,
                    nsTreeImageCacheEntry aEntry, void* aData)
 {

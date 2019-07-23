@@ -414,7 +414,7 @@ nsMetricsConfig::ClearEvents()
   mEventSet.Clear();
 }
 
- PLDHashOperator PR_CALLBACK
+ PLDHashOperator
 nsMetricsConfig::CopyKey(nsStringHashKey *entry, void *userData)
 {
   static_cast<nsTArray<nsString> *>(userData)->

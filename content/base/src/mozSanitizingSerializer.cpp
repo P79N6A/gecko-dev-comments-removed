@@ -107,7 +107,7 @@ mozSanitizingHTMLSerializer::~mozSanitizingHTMLSerializer()
 }
 
 
-PRBool PR_CALLBACK 
+PRBool
 mozSanitizingHTMLSerializer::ReleaseProperties(nsHashKey* key, void* data,
                                                void* closure)
 {

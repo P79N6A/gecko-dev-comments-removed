@@ -223,7 +223,7 @@ XULSortServiceImpl::GetTemplateItemsToSort(nsIContent* aContainer,
   return NS_OK;
 }
 
-int PR_CALLBACK
+int
 testSortCallback(const void *data1, const void *data2, void *privateData)
 {
   

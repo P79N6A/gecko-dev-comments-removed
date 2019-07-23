@@ -98,7 +98,7 @@ static const nsModuleComponentInfo components[] =
 };
 
 
-static void PR_CALLBACK nsJarShutdown(nsIModule *module)
+static void nsJarShutdown(nsIModule *module)
 {
     
     delete gZlibAllocator;

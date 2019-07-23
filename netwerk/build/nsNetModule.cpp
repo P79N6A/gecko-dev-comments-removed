@@ -598,7 +598,7 @@ CreateNewNSTXTToHTMLConvFactory(nsISupports *aOuter, REFNSIID aIID, void **aResu
 
 
 
-PR_STATIC_CALLBACK(nsresult) nsNetStartup(nsIModule *neckoModule)
+static nsresult nsNetStartup(nsIModule *neckoModule)
 {
     gNetStrings = new nsNetStrings();
     return gNetStrings ? NS_OK : NS_ERROR_OUT_OF_MEMORY;
@@ -606,7 +606,7 @@ PR_STATIC_CALLBACK(nsresult) nsNetStartup(nsIModule *neckoModule)
 
 
 
-static void PR_CALLBACK nsNetShutdown(nsIModule *neckoModule)
+static void nsNetShutdown(nsIModule *neckoModule)
 {
     
     nsStandardURL::ShutdownGlobalObjects();

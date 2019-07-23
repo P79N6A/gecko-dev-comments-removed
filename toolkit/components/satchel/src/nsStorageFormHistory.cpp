@@ -700,7 +700,7 @@ static void SwapBytes(PRUnichar* aBuffer)
 }
 
 
- PLDHashOperator PR_CALLBACK
+ PLDHashOperator
 nsFormHistoryImporter::AddToFormHistoryCB(const nsCSubstring &aRowID,
                                           const nsTArray<nsCString> *aValues,
                                           void *aData)

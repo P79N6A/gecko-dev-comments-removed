@@ -4969,7 +4969,7 @@ struct pluginFileinDirectory
 
 
 
-static int PR_CALLBACK ComparePluginFileInDirectory (const void *v1, const void *v2, void *)
+static int ComparePluginFileInDirectory (const void *v1, const void *v2, void *)
 {
   const pluginFileinDirectory* pfd1 = static_cast<const pluginFileinDirectory*>(v1);
   const pluginFileinDirectory* pfd2 = static_cast<const pluginFileinDirectory*>(v2);

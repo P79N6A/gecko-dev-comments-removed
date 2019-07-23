@@ -216,7 +216,7 @@ typedef unsigned int JDIMENSION;
 #include "prtypes.h"
 
 
-#define METHODDEF(type)		static type PR_CALLBACK
+#define METHODDEF(type)		static type
 
 #define LOCAL(type)		static type
 

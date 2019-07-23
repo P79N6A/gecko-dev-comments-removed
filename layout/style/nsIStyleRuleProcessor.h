@@ -238,7 +238,7 @@ public:
 
   
   
-  typedef PRBool (* PR_CALLBACK EnumFunc)(nsIStyleRuleProcessor*, void*);
+  typedef PRBool (* EnumFunc)(nsIStyleRuleProcessor*, void*);
 
   
 

@@ -85,7 +85,7 @@ public:
 private:
     virtual ~nsIOThreadPool();
 
-    PR_STATIC_CALLBACK(void) ThreadFunc(void *);
+    static void ThreadFunc(void *);
 
     
     PRLock    *mLock;

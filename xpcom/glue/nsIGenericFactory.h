@@ -260,7 +260,7 @@ struct nsModuleComponentInfo {
 
 
 
-typedef nsresult (PR_CALLBACK *nsModuleConstructorProc) (nsIModule *self);
+typedef nsresult (*nsModuleConstructorProc) (nsIModule *self);
 
 
 
@@ -270,7 +270,7 @@ typedef nsresult (PR_CALLBACK *nsModuleConstructorProc) (nsIModule *self);
 
 
 
-typedef void (PR_CALLBACK *nsModuleDestructorProc) (nsIModule *self);
+typedef void (*nsModuleDestructorProc) (nsIModule *self);
 
 
 

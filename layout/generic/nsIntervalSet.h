@@ -46,10 +46,10 @@
 #include "nsDebug.h"
 
 typedef void *
-(* PR_CALLBACK IntervalSetAlloc)(size_t aBytes, void *aClosure);
+(* IntervalSetAlloc)(size_t aBytes, void *aClosure);
 
 typedef void
-(* PR_CALLBACK IntervalSetFree) (size_t aBytes, void *aPtr, void *aClosure);
+(* IntervalSetFree) (size_t aBytes, void *aPtr, void *aClosure);
 
 
 

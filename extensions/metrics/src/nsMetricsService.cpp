@@ -204,7 +204,7 @@ nsMetricsService::nsMetricsService()
   sMetricsService = this;
 }
 
- PLDHashOperator PR_CALLBACK
+ PLDHashOperator
 nsMetricsService::DetachCollector(const nsAString &key,
                                   nsIMetricsCollector *value, void *userData)
 {
@@ -773,7 +773,7 @@ struct DisabledCollectorsClosure
   nsTArray< nsCOMPtr<nsIMetricsCollector> > disabledCollectors;
 };
 
- PLDHashOperator PR_CALLBACK
+ PLDHashOperator
 nsMetricsService::PruneDisabledCollectors(const nsAString &key,
                                           nsCOMPtr<nsIMetricsCollector> &value,
                                           void *userData)
@@ -797,7 +797,7 @@ nsMetricsService::PruneDisabledCollectors(const nsAString &key,
   return PL_DHASH_REMOVE;
 }
 
- PLDHashOperator PR_CALLBACK
+ PLDHashOperator
 nsMetricsService::NotifyNewLog(const nsAString &key,
                                nsIMetricsCollector *value, void *userData)
 {

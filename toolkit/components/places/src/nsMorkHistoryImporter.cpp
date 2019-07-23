@@ -94,7 +94,7 @@ SwapBytes(PRUnichar *buffer)
 }
 
 
-static PLDHashOperator PR_CALLBACK
+static PLDHashOperator
 AddToHistoryCB(const nsCSubstring &aRowID,
                const nsTArray<nsCString> *aValues,
                void *aData)

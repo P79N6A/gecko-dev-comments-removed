@@ -234,7 +234,7 @@ static tm_thread main_thread;
 
 
 #if 0
-PR_STATIC_CALLBACK(void)
+static void
 free_tm_thread(void *priv)
 {
     tm_thread *t = (tm_thread*) priv;
@@ -897,7 +897,7 @@ calltree(void **stack, size_t num_stack_entries, tm_thread *t)
 
 
 
-PR_STATIC_CALLBACK(void)
+static void
 stack_callback(void *pc, void *closure)
 {
     stack_buffer_info *info = (stack_buffer_info*) closure;

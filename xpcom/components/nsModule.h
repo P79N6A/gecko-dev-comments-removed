@@ -46,7 +46,7 @@
 
 #define NS_GET_MODULE_SYMBOL "NSGetModule"
 
-extern "C" NS_EXPORT nsresult PR_CALLBACK 
+extern "C" NS_EXPORT nsresult
 NSGetModule(nsIComponentManager *aCompMgr,
             nsIFile* location,
             nsIModule** return_cobj);

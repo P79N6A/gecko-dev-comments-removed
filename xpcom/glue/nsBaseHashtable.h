@@ -168,9 +168,9 @@ public:
 
 
   typedef PLDHashOperator
-    (*PR_CALLBACK EnumReadFunction)(KeyType      aKey,
-                                    UserDataType aData,
-                                    void*        userArg);
+    (* EnumReadFunction)(KeyType      aKey,
+                         UserDataType aData,
+                         void*        userArg);
 
   
 
@@ -200,9 +200,9 @@ public:
 
 
   typedef PLDHashOperator
-    (*PR_CALLBACK EnumFunction)(KeyType       aKey,
-                                DataType&     aData,
-                                void*         userArg);
+    (* EnumFunction)(KeyType       aKey,
+                     DataType&     aData,
+                     void*         userArg);
 
   
 

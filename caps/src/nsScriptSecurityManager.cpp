@@ -399,7 +399,7 @@ nsScriptSecurityManager::GetCxSubjectPrincipal(JSContext *cx)
 
 
 
-PR_STATIC_CALLBACK(PRBool)
+static PRBool
 DeleteCapability(nsHashKey *aKey, void *aData, void* closure)
 {
     NS_Free(aData);
@@ -449,7 +449,7 @@ struct DomainEntry
 #endif
 };
 
-PR_STATIC_CALLBACK(PRBool)
+static PRBool
 DeleteDomainEntry(nsHashKey *aKey, void *aData, void* closure)
 {
     DomainEntry *entry = (DomainEntry*) aData;
@@ -3899,7 +3899,7 @@ nsScriptSecurityManager::InitPrefs()
 
 
 
-PR_STATIC_CALLBACK(PLDHashOperator)
+static PLDHashOperator
 PrintPropertyPolicy(PLDHashTable *table, PLDHashEntryHdr *entry,
                     PRUint32 number, void *arg)
 {
@@ -3925,7 +3925,7 @@ PrintPropertyPolicy(PLDHashTable *table, PLDHashEntryHdr *entry,
     return PL_DHASH_NEXT;
 }
 
-PR_STATIC_CALLBACK(PLDHashOperator)
+static PLDHashOperator
 PrintClassPolicy(PLDHashTable *table, PLDHashEntryHdr *entry,
                  PRUint32 number, void *arg)
 {
@@ -3938,7 +3938,7 @@ PrintClassPolicy(PLDHashTable *table, PLDHashEntryHdr *entry,
 
 
 
-PR_STATIC_CALLBACK(PRBool)
+static PRBool
 PrintDomainPolicy(nsHashKey *aKey, void *aData, void* aClosure)
 {
     DomainEntry* de = (DomainEntry*)aData;
@@ -3949,7 +3949,7 @@ PrintDomainPolicy(nsHashKey *aKey, void *aData, void* aClosure)
     return PR_TRUE;
 }
 
-PR_STATIC_CALLBACK(PRBool)
+static PRBool
 PrintCapability(nsHashKey *aKey, void *aData, void* aClosure)
 {
     char* cap = (char*)aData;

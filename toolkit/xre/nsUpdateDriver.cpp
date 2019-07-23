@@ -175,7 +175,7 @@ GetXULRunnerStubPath(const char* argv0, nsILocalFile* *aResult)
 }
 #endif 
 
-PR_STATIC_CALLBACK(int)
+static int
 ScanDirComparator(nsIFile *a, nsIFile *b, void *unused)
 {
   

@@ -4546,7 +4546,7 @@ nsNavHistory::SetURIGeckoFlags(nsIURI* aURI, PRUint32 aFlags)
 
 
 
-PLDHashOperator PR_CALLBACK nsNavHistory::ExpireNonrecentRedirects(
+PLDHashOperator nsNavHistory::ExpireNonrecentRedirects(
     nsCStringHashKey::KeyType aKey, RedirectInfo& aData, void* aUserArg)
 {
   PRInt64* threshold = reinterpret_cast<PRInt64*>(aUserArg);
@@ -5475,7 +5475,7 @@ nsNavHistory::CheckIsRecentEvent(RecentEventHash* hashTable,
 
 
 
-PR_STATIC_CALLBACK(PLDHashOperator)
+static PLDHashOperator
 ExpireNonrecentEventsCallback(nsCStringHashKey::KeyType aKey,
                               PRInt64& aData,
                               void* userArg)

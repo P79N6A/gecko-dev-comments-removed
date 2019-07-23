@@ -100,7 +100,7 @@ public:
 
     NS_IMETHOD Create();
 
-    static nsEventStatus PR_CALLBACK HandleEvent(nsGUIEvent *aEvent);
+    static nsEventStatus HandleEvent(nsGUIEvent *aEvent);
 
     
 

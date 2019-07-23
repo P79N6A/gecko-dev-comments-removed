@@ -76,7 +76,7 @@ static PRBool gInitialized = PR_FALSE;
 
 
 
-PR_STATIC_CALLBACK(nsresult)
+static nsresult
 Initialize(nsIModule* aSelf)
 {
   NS_PRECONDITION(!gInitialized, "docshell module already initialized");
@@ -92,7 +92,7 @@ Initialize(nsIModule* aSelf)
   return rv;
 }
 
-PR_STATIC_CALLBACK(void)
+static void
 Shutdown(nsIModule* aSelf)
 {
   nsSHEntry::Shutdown();

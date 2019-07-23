@@ -376,7 +376,7 @@ nsScriptablePeer::ConvertVariants(VARIANT *aIn, nsIVariant **aOut)
         if (hlib)
         {
             nsIComponentManager *pManager = nsnull; 
-            typedef nsresult (PR_CALLBACK *Moz1XGetComponentManagerFunc)(nsIComponentManager* *result);
+            typedef nsresult (*Moz1XGetComponentManagerFunc)(nsIComponentManager* *result);
             Moz1XGetComponentManagerFunc compMgr = (Moz1XGetComponentManagerFunc)
                 ::GetProcAddress(hlib, "NS_GetComponentManager");
             if (compMgr)
