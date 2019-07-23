@@ -106,9 +106,6 @@ static const char tagChar[]  = "OIDISIBI";
 #define MAX_INNER_RECORD_BLACKLIST  -16
 
 
-#define INITIAL_BLACKLIST_LEVEL 5
-
-
 #define MAX_NATIVE_STACK_SLOTS 1024
 
 
@@ -397,68 +394,6 @@ globalSlotHash(JSContext* cx, unsigned slot)
     return int(h);
 }
 
-static inline size_t
-hitHash(const void* ip)
-{    
-    uintptr_t h = 5381;
-    hash_accum(h, uintptr_t(ip));
-    return size_t(h);
-}
-
-Oracle::Oracle()
-{
-    clear();
-}
-
-
-int32_t
-Oracle::getHits(const void* ip)
-{
-    size_t h = hitHash(ip);
-    uint32_t hc = hits[h];
-    uint32_t bl = blacklistLevels[h];
-
-    
-    if (bl > 30) 
-        bl = 30;
-    hc &= 0x7fffffff;
-    
-    return hc - (bl ? (1<<bl) : 0);
-}
-
-
-int32_t 
-Oracle::hit(const void* ip)
-{
-    size_t h = hitHash(ip);
-    if (hits[h] < 0xffffffff)
-        hits[h]++;
-    
-    return getHits(ip);
-}
-
-
-void 
-Oracle::resetHits(const void* ip)
-{
-    size_t h = hitHash(ip);
-    if (hits[h] > 0)
-        hits[h]--;
-    if (blacklistLevels[h] > 0)
-        blacklistLevels[h]--;
-}
-
-
-void 
-Oracle::blacklist(const void* ip)
-{
-    size_t h = hitHash(ip);
-    if (blacklistLevels[h] == 0)
-        blacklistLevels[h] = INITIAL_BLACKLIST_LEVEL;
-    else if (blacklistLevels[h] < 0xffffffff)
-        blacklistLevels[h]++;
-}
-
 
 
 JS_REQUIRES_STACK void
@@ -490,14 +425,7 @@ Oracle::isStackSlotUndemotable(JSContext* cx, unsigned slot) const
 
 
 void
-Oracle::clearHitCounts()
-{
-    memset(hits, 0, sizeof(hits));
-    memset(blacklistLevels, 0, sizeof(blacklistLevels));    
-}
-
-void
-Oracle::clearDemotability()
+Oracle::clear()
 {
     _stackDontDemote.reset();
     _globalDontDemote.reset();
@@ -1113,7 +1041,9 @@ TraceRecorder::TraceRecorder(JSContext* cx, VMSideExit* _anchor, Fragment* _frag
     this->lirbuf = _fragment->lirbuf;
     this->treeInfo = ti;
     this->callDepth = _anchor ? _anchor->calldepth : 0;
-    this->atoms = FrameAtomBase(cx, cx->fp);
+    this->atoms = cx->fp->imacpc
+                  ? COMMON_ATOMS_START(&cx->runtime->atomState)
+                  : cx->fp->script->atomMap.vector;
     this->deepAborted = false;
     this->trashSelf = false;
     this->global_dslots = this->globalObj->dslots;
@@ -1993,7 +1923,7 @@ TraceRecorder::snapshot(ExitType exitType)
     bool resumeAfter = (pendingTraceableNative &&
                         JSTN_ERRTYPE(pendingTraceableNative) == FAIL_JSVAL);
     if (resumeAfter) {
-        JS_ASSERT(*pc == JSOP_CALL || *pc == JSOP_APPLY);
+        JS_ASSERT(*pc == JSOP_CALL || *pc == JSOP_APPLY || *pc == JSOP_NEXTITER);
         pc += cs.length;
         regs->pc = pc;
         MUST_FLOW_THROUGH("restore_pc");
@@ -2022,8 +1952,9 @@ TraceRecorder::snapshot(ExitType exitType)
 
     
 
+
     if (resumeAfter) {
-        typemap[stackSlots - 1] = JSVAL_BOXED;
+        typemap[stackSlots + ((pc[-cs.length] == JSOP_NEXTITER) ? -2 : -1)] = JSVAL_BOXED;
 
         
         MUST_FLOW_LABEL(restore_pc);
@@ -3286,9 +3217,9 @@ js_AttemptToExtendTree(JSContext* cx, VMSideExit* anchor, VMSideExit* exitedFrom
         c->root = f;
     }
 
-    debug_only_v(printf("trying to attach another branch to the tree (hits = %d)\n", oracle.getHits(c->ip));)
+    debug_only_v(printf("trying to attach another branch to the tree (hits = %d)\n", c->hits());)
 
-    if (oracle.hit(c->ip) >= HOTEXIT) {
+    if (++c->hits() >= HOTEXIT) {
         
         c->lirbuf = f->lirbuf;
         unsigned stackSlots;
@@ -3420,10 +3351,10 @@ js_RecordLoopEdge(JSContext* cx, TraceRecorder* r, uintN& inlineCallCount)
             if (old == NULL)
                 old = tm->recorder->getFragment();
             js_AbortRecording(cx, "No compatible inner tree");
-            if (!f && oracle.hit(peer_root->ip) < MAX_INNER_RECORD_BLACKLIST)
+            if (!f && ++peer_root->hits() < MAX_INNER_RECORD_BLACKLIST)
                 return false;
             if (old->recordAttempts < MAX_MISMATCH)
-                oracle.resetHits(old->ip);
+                old->resetHits();
             f = empty ? empty : tm->fragmento->getAnchor(cx->fp->regs->pc);
             return js_RecordTree(cx, tm, f, old);
         }
@@ -3450,13 +3381,13 @@ js_RecordLoopEdge(JSContext* cx, TraceRecorder* r, uintN& inlineCallCount)
             
             old = fragmento->getLoop(tm->recorder->getFragment()->root->ip);
             js_AbortRecording(cx, "Inner tree is trying to stabilize, abort outer recording");
-            oracle.resetHits(old->ip);
+            old->resetHits();
             return js_AttemptToStabilizeTree(cx, lr, old);
         case BRANCH_EXIT:
             
             old = fragmento->getLoop(tm->recorder->getFragment()->root->ip);
             js_AbortRecording(cx, "Inner tree is trying to grow, abort outer recording");
-            oracle.resetHits(old->ip);
+            old->resetHits();
             return js_AttemptToExtendTree(cx, lr, NULL, old);
         default:
             debug_only_v(printf("exit_type=%d\n", lr->exitType);)
@@ -3936,13 +3867,6 @@ js_MonitorLoopEdge(JSContext* cx, uintN& inlineCallCount)
         js_FlushJITCache(cx);
     
     jsbytecode* pc = cx->fp->regs->pc;
-
-    if (oracle.getHits(pc) >= 0 && 
-        oracle.getHits(pc)+1 < HOTLOOP) {
-        oracle.hit(pc);
-        return false;
-    }
-
     Fragmento* fragmento = tm->fragmento;
     Fragment* f;
     f = fragmento->getLoop(pc);
@@ -3953,7 +3877,7 @@ js_MonitorLoopEdge(JSContext* cx, uintN& inlineCallCount)
 
     if (!f->code() && !f->peer) {
 monitor_loop:
-        if (oracle.hit(pc) >= HOTLOOP) {
+        if (++f->hits() >= HOTLOOP) {
             
 
             return js_RecordTree(cx, tm, f->first, NULL);
@@ -3965,7 +3889,7 @@ monitor_loop:
     debug_only_v(printf("Looking for compat peer %d@%d, from %p (ip: %p, hits=%d)\n",
                         js_FramePCToLineNumber(cx, cx->fp), 
                         FramePCOffset(cx->fp),
-                        f, f->ip, oracle.getHits(f->ip));)
+                        f, f->ip, f->hits());)
     Fragment* match = js_FindVMCompatiblePeer(cx, f);
     
     if (!match) 
@@ -4104,7 +4028,7 @@ js_BlacklistPC(Fragmento* frago, Fragment* frag)
 {
     if (frag->kind == LoopTrace)
         frag = frago->getLoop(frag->ip);
-    oracle.blacklist(frag->ip);
+    frag->blacklist();
 }
 
 JS_REQUIRES_STACK void
@@ -4312,7 +4236,6 @@ js_FlushJITCache(JSContext* cx)
         tm->globalShape = OBJ_SHAPE(JS_GetGlobalForObject(cx, cx->fp->scopeChain));
         tm->globalSlots->clear();
     }
-    oracle.clearHitCounts();
 }
 
 JS_FORCES_STACK JSStackFrame *
@@ -5726,7 +5649,7 @@ TraceRecorder::record_LeaveFrame()
 
     
     
-    atoms = FrameAtomBase(cx, cx->fp);
+    atoms = cx->fp->script->atomMap.vector;
     set(&stackval(-1), rval_ins, true);
     return true;
 }
@@ -7081,12 +7004,9 @@ TraceRecorder::prop(JSObject* obj, LIns* obj_ins, uint32& slot, LIns*& v_ins)
 
 
 
-
-    if (OBJ_SHAPE(obj) == OBJ_SHAPE(globalObj)) {
-        if (obj == globalObj)
-            ABORT_TRACE("prop op aliases global");
-        guard(false, lir->ins2(LIR_eq, obj_ins, globalObj_ins), MISMATCH_EXIT);
-    }
+    if (obj == globalObj)
+        ABORT_TRACE("prop op aliases global");
+    guard(false, lir->ins2(LIR_eq, obj_ins, globalObj_ins), MISMATCH_EXIT);
 
     
 
@@ -7533,40 +7453,114 @@ TraceRecorder::record_JSOP_IMACOP()
     return true;
 }
 
+static struct {
+    jsbytecode for_in[10];
+    jsbytecode for_each[10];
+} iter_imacros = {
+    {
+        JSOP_CALLPROP, 0, COMMON_ATOM_INDEX(iterator),
+        JSOP_INT8, JSITER_ENUMERATE,
+        JSOP_CALL, 0, 1,
+        JSOP_PUSH,
+        JSOP_STOP
+    },
+
+    {
+        JSOP_CALLPROP, 0, COMMON_ATOM_INDEX(iterator),
+        JSOP_INT8, JSITER_ENUMERATE | JSITER_FOREACH,
+        JSOP_CALL, 0, 1,
+        JSOP_PUSH,
+        JSOP_STOP
+    }
+};
+
+JS_STATIC_ASSERT(sizeof(iter_imacros) < IMACRO_PC_ADJ_LIMIT);
+
 JS_REQUIRES_STACK bool
 TraceRecorder::record_JSOP_ITER()
 {
     jsval& v = stackval(-1);
-    if (JSVAL_IS_PRIMITIVE(v))
-        ABORT_TRACE("for-in on a primitive value");
+    if (!JSVAL_IS_PRIMITIVE(v)) {
+        jsuint flags = cx->fp->regs->pc[1];
 
-    jsuint flags = cx->fp->regs->pc[1];
+        if (!hasIteratorMethod(JSVAL_TO_OBJECT(v))) {
+            LIns* args[] = { get(&v), INS_CONST(flags), cx_ins };
+            LIns* v_ins = lir->insCall(&js_FastValueToIterator_ci, args);
+            guard(false, lir->ins_eq0(v_ins), MISMATCH_EXIT);
+            set(&v, v_ins);
 
-    if (hasIteratorMethod(JSVAL_TO_OBJECT(v))) {
+            LIns* void_ins = INS_CONST(JSVAL_TO_BOOLEAN(JSVAL_VOID));
+            stack(0, void_ins);
+            return true;
+        }
+
         if (flags == JSITER_ENUMERATE)
             return call_imacro(iter_imacros.for_in);
         if (flags == (JSITER_ENUMERATE | JSITER_FOREACH))
             return call_imacro(iter_imacros.for_each);
-    } else {
-        if (flags == JSITER_ENUMERATE)
-            return call_imacro(iter_imacros.for_in_native);
-        if (flags == (JSITER_ENUMERATE | JSITER_FOREACH))
-            return call_imacro(iter_imacros.for_each_native);
+        ABORT_TRACE("unimplemented JSITER_* flags");
     }
-    ABORT_TRACE("unimplemented JSITER_* flags");
+
+    ABORT_TRACE("for-in on a primitive value");
 }
+
+static JSTraceableNative js_FastCallIteratorNext_tn = {
+    NULL,                               
+    &js_FastCallIteratorNext_ci,        
+    "C",                                
+    "o",                                
+    FAIL_JSVAL                          
+};
+
+static jsbytecode nextiter_imacro[] = {
+    JSOP_POP,
+    JSOP_DUP,
+    JSOP_CALLPROP, 0, COMMON_ATOM_INDEX(next),
+    JSOP_CALL, 0, 0,
+    JSOP_TRUE,
+    JSOP_STOP
+};
+
+JS_STATIC_ASSERT(sizeof(nextiter_imacro) < IMACRO_PC_ADJ_LIMIT);
 
 JS_REQUIRES_STACK bool
 TraceRecorder::record_JSOP_NEXTITER()
 {
     jsval& iterobj_val = stackval(-2);
-    if (JSVAL_IS_PRIMITIVE(iterobj_val))
-        ABORT_TRACE("for-in on a primitive value");
+    if (!JSVAL_IS_PRIMITIVE(iterobj_val)) {
+        LIns* iterobj_ins = get(&iterobj_val);
 
-    LIns* iterobj_ins = get(&iterobj_val);
-    if (guardClass(JSVAL_TO_OBJECT(iterobj_val), iterobj_ins, &js_IteratorClass, BRANCH_EXIT))
-        return call_imacro(nextiter_imacros.native_iter_next);
-    return call_imacro(nextiter_imacros.custom_iter_next);
+        if (guardClass(JSVAL_TO_OBJECT(iterobj_val), iterobj_ins, &js_IteratorClass, BRANCH_EXIT)) {
+            LIns* args[] = { iterobj_ins, cx_ins };
+            LIns* v_ins = lir->insCall(&js_FastCallIteratorNext_ci, args);
+            guard(false, lir->ins2(LIR_eq, v_ins, INS_CONST(JSVAL_ERROR_COOKIE)), OOM_EXIT);
+
+            LIns* flag_ins = lir->ins_eq0(lir->ins2(LIR_eq, v_ins, INS_CONST(JSVAL_HOLE)));
+            stack(-1, v_ins);
+            stack(0, flag_ins);
+
+            pendingTraceableNative = &js_FastCallIteratorNext_tn;
+            return true;
+        }
+
+        
+        return call_imacro(nextiter_imacro);
+    }
+
+    ABORT_TRACE("for-in on a primitive value");
+}
+
+JS_REQUIRES_STACK bool
+TraceRecorder::record_IteratorNextComplete()
+{
+    JS_ASSERT(*cx->fp->regs->pc == JSOP_NEXTITER);
+    JS_ASSERT(pendingTraceableNative == &js_FastCallIteratorNext_tn);
+
+    jsval& v = stackval(-2);
+    LIns* v_ins = get(&v);
+    unbox_jsval(v, v_ins);
+    set(&v, v_ins);
+    return true;
 }
 
 JS_REQUIRES_STACK bool
@@ -8595,86 +8589,6 @@ TraceRecorder::record_JSOP_CALLARG()
     return true;
 }
 
-
-
-static JSBool
-ObjectToIterator(JSContext *cx, uintN argc, jsval *vp)
-{
-    jsval *argv = JS_ARGV(cx, vp);
-    JS_ASSERT(JSVAL_IS_INT(argv[0]));
-    JS_SET_RVAL(cx, vp, JS_THIS(cx, vp));
-    return js_ValueToIterator(cx, JSVAL_TO_INT(argv[0]), &JS_RVAL(cx, vp));
-}
-
-static JSObject* FASTCALL
-ObjectToIterator_tn(JSContext* cx, JSObject *obj, int32 flags)
-{
-    jsval v = OBJECT_TO_JSVAL(obj);
-    if (!js_ValueToIterator(cx, flags, &v))
-        return NULL;
-    return JSVAL_TO_OBJECT(v);
-}
-
-static JSBool
-CallIteratorNext(JSContext *cx, uintN argc, jsval *vp)
-{
-    return js_CallIteratorNext(cx, JS_THIS_OBJECT(cx, vp), &JS_RVAL(cx, vp));
-}
-
-static jsval FASTCALL
-CallIteratorNext_tn(JSContext* cx, JSObject* iterobj)
-{
-    jsval v;
-    if (!js_CallIteratorNext(cx, iterobj, &v))
-        return JSVAL_ERROR_COOKIE;
-    return v;
-}
-
-JS_DEFINE_TRCINFO_1(ObjectToIterator,
-    (3, (static, OBJECT_FAIL_NULL, ObjectToIterator_tn, CONTEXT, THIS, INT32,   0, 0)))
-JS_DEFINE_TRCINFO_1(CallIteratorNext,
-    (2, (static, JSVAL_FAIL,       CallIteratorNext_tn, CONTEXT, THIS,          0, 0)))
-
-static const struct BuiltinFunctionInfo {
-    JSTraceableNative *tn;
-    int nargs;
-} builtinFunctionInfo[JSBUILTIN_LIMIT] = {
-    {ObjectToIterator_trcinfo,   1},
-    {CallIteratorNext_trcinfo,   0}
-};
-
-JSObject *
-js_GetBuiltinFunction(JSContext *cx, uintN index)
-{
-    JSRuntime *rt = cx->runtime;
-    JSObject *funobj = rt->builtinFunctions[index];
-    if (!funobj) {
-        
-        JSFunction *fun = js_NewFunction(cx,
-                                         NULL,
-                                         (JSNative) builtinFunctionInfo[index].tn,
-                                         builtinFunctionInfo[index].nargs,
-                                         JSFUN_FAST_NATIVE | JSFUN_TRACEABLE,
-                                         NULL,
-                                         NULL);
-        if (fun)
-            rt->builtinFunctions[index] = funobj = FUN_OBJECT(fun);
-    }
-    return funobj;
-}
-
-JS_REQUIRES_STACK bool
-TraceRecorder::record_JSOP_CALLBUILTIN()
-{
-    JSObject *obj = js_GetBuiltinFunction(cx, GET_INDEX(cx->fp->regs->pc));
-    if (!obj)
-        return false;
-
-    stack(0, get(&stackval(-1)));
-    stack(-1, INS_CONSTPTR(obj));
-    return true;
-}
-
 JS_REQUIRES_STACK bool
 TraceRecorder::record_JSOP_NULLTHIS()
 {
@@ -8833,7 +8747,7 @@ static void
 InitIMacroCode()
 {
     if (imacro_code[JSOP_NEXTITER]) {
-        JS_ASSERT(imacro_code[JSOP_NEXTITER] == (jsbytecode*)&nextiter_imacros - 1);
+        JS_ASSERT(imacro_code[JSOP_NEXTITER] == nextiter_imacro - 1);
         return;
     }
 
@@ -8844,7 +8758,7 @@ InitIMacroCode()
     imacro_code[JSOP_ADD] = (jsbytecode*)&add_imacros - 1;
 
     imacro_code[JSOP_ITER] = (jsbytecode*)&iter_imacros - 1;
-    imacro_code[JSOP_NEXTITER] = (jsbytecode*)&nextiter_imacros - 1;
+    imacro_code[JSOP_NEXTITER] = nextiter_imacro - 1;
     imacro_code[JSOP_APPLY] = (jsbytecode*)&apply_imacros - 1;
 
     imacro_code[JSOP_NEG] = (jsbytecode*)&unary_imacros - 1;
@@ -8870,3 +8784,4 @@ UNUSED(207)
 UNUSED(208)
 UNUSED(209)
 UNUSED(219)
+UNUSED(226)
