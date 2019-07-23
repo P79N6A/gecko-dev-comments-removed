@@ -51,7 +51,6 @@
 
 
 
-
 var EXPORTED_SYMBOLS = ["SpatialNavigation"];
 
 var SpatialNavigation = {
