@@ -667,6 +667,24 @@ nsFrameManager::ClearAllUndisplayedContentIn(nsIContent* aParentContent)
   if (mUndisplayedMap) {
     mUndisplayedMap->RemoveNodesFor(aParentContent);
   }
+
+  
+  
+  
+  
+  
+  nsINodeList* list =
+    aParentContent->GetOwnerDoc()->BindingManager()->GetXBLChildNodesFor(aParentContent);
+  if (list) {
+    PRUint32 length;
+    list->GetLength(&length);
+    for (PRUint32 i = 0; i < length; ++i) {
+      nsIContent* child = list->GetNodeAt(i);
+      if (child->GetParent() != aParentContent) {
+        ClearUndisplayedContentIn(child, child->GetParent());
+      }
+    }
+  }
 }
 
 void
