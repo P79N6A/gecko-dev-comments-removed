@@ -197,6 +197,27 @@ protected:
 
   PRInt32 GetRetentionBehavior();
 
+  
+
+
+
+
+
+
+
+  enum QuitBehavior {
+    QUIT_AND_RESUME = 0, 
+    QUIT_AND_PAUSE = 1, 
+    QUIT_AND_CANCEL = 2
+  };
+
+  
+
+
+
+
+  enum QuitBehavior GetQuitBehavior();
+
 private:
   nsCOMArray<nsIDownloadProgressListener> mListeners;
   nsCOMPtr<nsIStringBundle> mBundle;

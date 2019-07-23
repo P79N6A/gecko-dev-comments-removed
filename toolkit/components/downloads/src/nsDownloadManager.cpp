@@ -40,6 +40,7 @@
 
 
 
+
 #include "nsDownloadManager.h"
 #include "nsIWebProgress.h"
 #include "nsIRDFService.h"
@@ -92,6 +93,7 @@
 #define PREF_BDM_SHOWALERTONCOMPLETE "browser.download.manager.showAlertOnComplete"
 #define PREF_BDM_SHOWALERTINTERVAL "browser.download.manager.showAlertInterval"
 #define PREF_BDM_RETENTION "browser.download.manager.retention"
+#define PREF_BDM_QUITBEHAVIOR "browser.download.manager.quitBehavior"
 #define PREF_BDM_CLOSEWHENDONE "browser.download.manager.closeWhenDone"
 #define PREF_BDM_ADDTORECENTDOCS "browser.download.manager.addToRecentDocs"
 #define PREF_BH_DELETETEMPFILEONEXIT "browser.helperApps.deleteTempFileOnExit"
@@ -214,7 +216,7 @@ nsDownloadManager::RemoveAllDownloads()
     nsRefPtr<nsDownload> dl = mCurrentDownloads[0];
 
     nsresult result;
-    if (dl->IsPaused())
+    if (dl->IsPaused() && GetQuitBehavior() != QUIT_AND_CANCEL)
       result = mCurrentDownloads.RemoveObject(dl);
     else
       result = CancelDownload(dl->mID);
@@ -894,6 +896,28 @@ nsDownloadManager::GetRetentionBehavior()
   NS_ENSURE_SUCCESS(rv, 0);
 
   return val;
+}
+
+enum nsDownloadManager::QuitBehavior
+nsDownloadManager::GetQuitBehavior()
+{
+  
+  nsresult rv;
+  nsCOMPtr<nsIPrefBranch> pref = do_GetService(NS_PREFSERVICE_CONTRACTID, &rv);
+  NS_ENSURE_SUCCESS(rv, QUIT_AND_RESUME);
+
+  PRInt32 val;
+  rv = pref->GetIntPref(PREF_BDM_QUITBEHAVIOR, &val);
+  NS_ENSURE_SUCCESS(rv, QUIT_AND_RESUME);
+  
+  switch (val) {
+    case 1: 
+      return QUIT_AND_PAUSE;
+    case 2:
+      return QUIT_AND_CANCEL;
+    default:
+      return QUIT_AND_RESUME;
+  }
 }
 
 nsresult
@@ -1631,13 +1655,16 @@ nsDownloadManager::Observe(nsISupports *aSubject,
       return CancelDownload(id);
   } else if (strcmp(aTopic, "quit-application") == 0) {
     
-    (void)PauseAllDownloads(PR_TRUE);
+    
+    enum QuitBehavior behavior = GetQuitBehavior();
+    if (behavior != QUIT_AND_CANCEL)
+      (void)PauseAllDownloads(PRBool(behavior != QUIT_AND_PAUSE));
 
     
     (void)RemoveAllDownloads();
 
-    
-    
+   
+   
     if (GetRetentionBehavior() == 1)
       CleanUp();
   } else if (strcmp(aTopic, "quit-application-requested") == 0 &&
