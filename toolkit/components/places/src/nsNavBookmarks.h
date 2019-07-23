@@ -167,6 +167,7 @@ private:
   
   
   nsDataHashtable<nsTrimInt64HashKey, PRInt64> mBookmarksHash;
+  nsDataHashtable<nsTrimInt64HashKey, PRInt64>* GetBookmarksHash();
   nsresult FillBookmarksHash();
   nsresult RecursiveAddBookmarkHash(PRInt64 aBookmarkId, PRInt64 aCurrentSource,
                                     PRTime aMinTime);

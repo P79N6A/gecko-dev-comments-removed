@@ -116,9 +116,6 @@ nsNavBookmarks::Init()
   nsresult rv = InitStatements();
   NS_ENSURE_SUCCESS(rv, rv);
 
-  rv = FillBookmarksHash();
-  NS_ENSURE_SUCCESS(rv, rv);
-
   rv = InitRoots();
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -658,6 +655,18 @@ nsNavBookmarks::CreateRoot(mozIStorageStatement* aGetRootStatement,
 
 
 
+nsDataHashtable<nsTrimInt64HashKey, PRInt64>*
+nsNavBookmarks::GetBookmarksHash()
+{
+  if (!mBookmarksHash.IsInitialized()) {
+    nsresult rv = FillBookmarksHash();
+    NS_ABORT_IF_FALSE(NS_SUCCEEDED(rv), "FillBookmarksHash() failed!");
+  }
+
+  return &mBookmarksHash;
+}
+
+
 
 
 
@@ -772,12 +781,7 @@ nsNavBookmarks::FillBookmarksHash()
 nsresult
 nsNavBookmarks::AddBookmarkToHash(PRInt64 aPlaceId, PRTime aMinTime)
 {
-  
-  
-  
-  if (! mBookmarksHash.IsInitialized())
-    return NS_OK;
-  if (! mBookmarksHash.Put(aPlaceId, aPlaceId))
+  if (!GetBookmarksHash()->Put(aPlaceId, aPlaceId))
     return NS_ERROR_OUT_OF_MEMORY;
   return RecursiveAddBookmarkHash(aPlaceId, aPlaceId, aMinTime);
 }
@@ -827,10 +831,10 @@ nsNavBookmarks::RecursiveAddBookmarkHash(PRInt64 aPlaceID,
       
       
       PRInt64 alreadyExistingOne;
-      if (mBookmarksHash.Get(curID, &alreadyExistingOne))
+      if (GetBookmarksHash()->Get(curID, &alreadyExistingOne))
         continue;
 
-      if (! mBookmarksHash.Put(curID, aPlaceID))
+      if (!GetBookmarksHash()->Put(curID, aPlaceID))
         return NS_ERROR_OUT_OF_MEMORY;
 
       
@@ -879,8 +883,8 @@ nsNavBookmarks::UpdateBookmarkHashOnRemove(PRInt64 aPlaceId)
     return NS_OK; 
 
   
-  mBookmarksHash.Enumerate(RemoveBookmarkHashCallback,
-                           reinterpret_cast<void*>(&aPlaceId));
+  GetBookmarksHash()->Enumerate(RemoveBookmarkHashCallback,
+                                reinterpret_cast<void*>(&aPlaceId));
   return NS_OK;
 }
 
@@ -888,13 +892,10 @@ nsNavBookmarks::UpdateBookmarkHashOnRemove(PRInt64 aPlaceId)
 PRBool
 nsNavBookmarks::IsRealBookmark(PRInt64 aPlaceId)
 {
-  NS_ABORT_IF_FALSE(mBookmarksHash.IsInitialized(),
-                    "Bookmark hashtable has not been initialized!");
-
   
   
   PRInt64 bookmarkId;
-  PRBool isBookmark = mBookmarksHash.Get(aPlaceId, &bookmarkId);
+  PRBool isBookmark = GetBookmarksHash()->Get(aPlaceId, &bookmarkId);
   if (!isBookmark)
     return PR_FALSE;
 
@@ -2553,7 +2554,7 @@ nsNavBookmarks::IsBookmarked(nsIURI *aURI, PRBool *aBookmarked)
   }
 
   PRInt64 bookmarkedID;
-  PRBool foundOne = mBookmarksHash.Get(urlID, &bookmarkedID);
+  PRBool foundOne = GetBookmarksHash()->Get(urlID, &bookmarkedID);
 
   
   
@@ -2594,7 +2595,7 @@ nsNavBookmarks::GetBookmarkedURIFor(nsIURI* aURI, nsIURI** _retval)
   }
 
   PRInt64 bookmarkID;
-  if (mBookmarksHash.Get(urlID, &bookmarkID)) {
+  if (GetBookmarksHash()->Get(urlID, &bookmarkID)) {
     
     mozIStorageStatement* statement = history->DBGetIdPageInfo();
     NS_ENSURE_TRUE(statement, NS_ERROR_UNEXPECTED);
