@@ -28,6 +28,7 @@
 
 #include "pixman-xserver-compat.h"
 #include "fbpict.h"
+#include "fbmmx.h"
 
 #ifdef RENDER
 
@@ -4092,6 +4093,24 @@ fbCompositeRect (const FbComposeData *data, CARD32 *scanline_buffer)
 	CombineFuncC compose = composeFunctions.combineC[data->op];
 	if (!compose)
 	    return;
+
+	
+
+
+
+
+
+
+
+
+
+#ifdef USE_MMX
+	if (!fbHaveMMX())
+#endif
+	{
+	    srcClass = SourcePictClassUnknown;
+	    maskClass = SourcePictClassUnknown;
+	}
 
 	for (i = 0; i < data->height; ++i) {
 	    
