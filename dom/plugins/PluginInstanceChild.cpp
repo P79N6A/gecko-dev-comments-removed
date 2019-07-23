@@ -688,6 +688,14 @@ PluginInstanceChild::PluginWindowProc(HWND hWnd,
     if (message == WM_MOUSEACTIVATE)
         self->CallPluginGotFocus();
 
+    
+    
+    
+    if (message == WM_KILLFOCUS && 
+        ((InSendMessageEx(NULL) & (ISMEX_REPLIED|ISMEX_SEND)) == ISMEX_SEND)) {
+        ReplyMessage(0); 
+    }
+
     LRESULT res = CallWindowProc(self->mPluginWndProc, hWnd, message, wParam,
                                  lParam);
 
