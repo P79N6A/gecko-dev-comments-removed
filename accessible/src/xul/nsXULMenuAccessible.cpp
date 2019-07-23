@@ -318,15 +318,52 @@ nsXULMenuitemAccessible::GetState(PRUint32 *aState, PRUint32 *aExtraState)
   }
 
   
-  
-  
-  nsCOMPtr<nsIAccessible> parentAccessible(GetParent());
-  if (parentAccessible) {
+  if (Role(this) == nsIAccessibleRole::ROLE_COMBOBOX_LISTITEM) {
     
-    *aState &= ~nsIAccessibleStates::STATE_OFFSCREEN;
+    PRBool isSelected = PR_FALSE;
+    nsCOMPtr<nsIDOMXULSelectControlItemElement>
+      item(do_QueryInterface(mDOMNode));
+    NS_ENSURE_TRUE(item, NS_ERROR_FAILURE);
+    item->GetSelected(&isSelected);
+
     
-    *aState |= (State(parentAccessible) & nsIAccessibleStates::STATE_OFFSCREEN);
-  }
+    PRBool isCollapsed = PR_FALSE;
+    nsCOMPtr<nsIAccessible> parentAccessible(GetParent());
+    if (parentAccessible &&
+        State(parentAccessible) & nsIAccessibleStates::STATE_INVISIBLE) {
+      isCollapsed = PR_TRUE;
+    }
+    
+    
+    if (0 == (*aState & nsIAccessibleStates::STATE_UNAVAILABLE)) {
+      *aState |= (nsIAccessibleStates::STATE_FOCUSABLE |
+                  nsIAccessibleStates::STATE_SELECTABLE);
+    }
+
+    if (isSelected) {
+      *aState |= nsIAccessibleStates::STATE_SELECTED;
+      
+      
+      if (isCollapsed) {
+        
+        nsCOMPtr<nsIAccessible> grandParentAcc;
+        parentAccessible->GetParent(getter_AddRefs(grandParentAcc));
+        NS_ENSURE_TRUE(grandParentAcc, NS_ERROR_FAILURE);
+        NS_ASSERTION((Role(grandParentAcc) == nsIAccessibleRole::ROLE_COMBOBOX),
+                     "grandparent of combobox listitem is not combobox");
+        PRUint32 grandParentState, grandParentExtState;
+        grandParentAcc->GetFinalState(&grandParentState, &grandParentExtState);
+        *aState &= ~(nsIAccessibleStates::STATE_OFFSCREEN |
+                     nsIAccessibleStates::STATE_INVISIBLE);
+        *aState |= grandParentState & nsIAccessibleStates::STATE_OFFSCREEN |
+                   grandParentState & nsIAccessibleStates::STATE_INVISIBLE;
+        if (aExtraState) {
+          *aExtraState |=
+            grandParentExtState & nsIAccessibleStates::EXT_STATE_OPAQUE;
+        }
+      } 
+    } 
+  } 
 
   return NS_OK;
 }
@@ -509,7 +546,8 @@ nsXULMenuSeparatorAccessible::GetState(PRUint32 *aState, PRUint32 *aExtraState)
   nsresult rv = nsXULMenuitemAccessible::GetState(aState, aExtraState);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  *aState &= nsIAccessibleStates::STATE_OFFSCREEN;
+  *aState &= (nsIAccessibleStates::STATE_OFFSCREEN | 
+              nsIAccessibleStates::STATE_INVISIBLE);
 
   return NS_OK;
 }
@@ -554,11 +592,10 @@ nsXULMenupopupAccessible::nsXULMenupopupAccessible(nsIDOMNode* aDOMNode, nsIWeak
 NS_IMETHODIMP
 nsXULMenupopupAccessible::GetState(PRUint32 *aState, PRUint32 *aExtraState)
 {
-  
-  *aState = 0;
-  if (aExtraState)
-    *aExtraState = 0;
+  nsresult rv = nsAccessible::GetState(aState, aExtraState);
+  NS_ENSURE_SUCCESS(rv, rv);
 
+  
   PRBool isActive = PR_FALSE;
 
   nsCOMPtr<nsIDOMElement> element(do_QueryInterface(mDOMNode));
@@ -575,7 +612,8 @@ nsXULMenupopupAccessible::GetState(PRUint32 *aState, PRUint32 *aExtraState)
   }
 
   if (!isActive)
-    *aState |= nsIAccessibleStates::STATE_OFFSCREEN;
+    *aState |= (nsIAccessibleStates::STATE_OFFSCREEN |
+                nsIAccessibleStates::STATE_INVISIBLE);
 
   return NS_OK;
 }

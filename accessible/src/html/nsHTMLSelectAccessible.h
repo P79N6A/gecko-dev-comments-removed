@@ -175,8 +175,9 @@ private:
 
 
 
+
  
-  nsIContent* GetSelectState(PRUint32* aState);
+  nsIContent* GetSelectState(PRUint32* aState, PRUint32* aExtraState = nsnull);
 };
 
 

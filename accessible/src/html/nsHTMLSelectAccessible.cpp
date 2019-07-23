@@ -602,8 +602,9 @@ nsHTMLSelectOptionAccessible::GetState(PRUint32 *aState, PRUint32 *aExtraState)
     return rv;
   }
 
-  PRUint32 selectState;
-  nsCOMPtr<nsIContent> selectContent = GetSelectState(&selectState);
+  PRUint32 selectState, selectExtState;
+  nsCOMPtr<nsIContent> selectContent = GetSelectState(&selectState,
+                                                      &selectExtState);
   if (selectState & nsIAccessibleStates::STATE_INVISIBLE) {
     return NS_OK;
   }
@@ -612,22 +613,19 @@ nsHTMLSelectOptionAccessible::GetState(PRUint32 *aState, PRUint32 *aExtraState)
   NS_ENSURE_TRUE(selectNode, NS_ERROR_FAILURE);
 
   
-  nsCOMPtr<nsIDOMNode> focusedOptionNode;
-  GetFocusedOptionNode(selectNode, getter_AddRefs(focusedOptionNode));
-  if (focusedOptionNode == mDOMNode)
-    *aState |= nsIAccessibleStates::STATE_FOCUSED;
+  if (0 == (*aState & nsIAccessibleStates::STATE_UNAVAILABLE)) {
+    *aState |= (nsIAccessibleStates::STATE_FOCUSABLE |
+                nsIAccessibleStates::STATE_SELECTABLE);
+  }
 
   
+  PRBool isSelected = PR_FALSE;
   nsCOMPtr<nsIDOMHTMLOptionElement> option (do_QueryInterface(mDOMNode));
-  if (option && Role(this) != nsIAccessibleRole::ROLE_COMBOBOX_LISTITEM) {
-    *aState |= nsIAccessibleStates::STATE_SELECTABLE;
-    PRBool isSelected = PR_FALSE;
+  if (option) {
     option->GetSelected(&isSelected);
     if ( isSelected ) 
       *aState |= nsIAccessibleStates::STATE_SELECTED;
   }
-
-  *aState |= nsIAccessibleStates::STATE_FOCUSABLE;
 
   if (selectState & nsIAccessibleStates::STATE_OFFSCREEN) {
     *aState |= nsIAccessibleStates::STATE_OFFSCREEN;
@@ -635,13 +633,16 @@ nsHTMLSelectOptionAccessible::GetState(PRUint32 *aState, PRUint32 *aExtraState)
   else if (selectState & nsIAccessibleStates::STATE_COLLAPSED) {
     
     
-    if (focusedOptionNode != mDOMNode) {
+    if (!isSelected) {
       *aState |= nsIAccessibleStates::STATE_OFFSCREEN;
     }
     else {
       
       *aState &= ~nsIAccessibleStates::STATE_OFFSCREEN;
       *aState &= ~nsIAccessibleStates::STATE_INVISIBLE;
+       if (aExtraState) {
+         *aExtraState |= selectExtState & nsIAccessibleStates::EXT_STATE_OPAQUE;
+       }
     }
   }
   else {
@@ -831,7 +832,8 @@ void nsHTMLSelectOptionAccessible::SelectionChangedIfOption(nsIContent *aPossibl
   privateMultiSelect->FireToolkitEvent(eventType, optionAccessible, nsnull);
 }
 
-nsIContent* nsHTMLSelectOptionAccessible::GetSelectState(PRUint32* aState)
+nsIContent* nsHTMLSelectOptionAccessible::GetSelectState(PRUint32* aState,
+                                                         PRUint32* aExtraState)
 {
   nsCOMPtr<nsIContent> content(do_QueryInterface(mDOMNode));
   while (content && content->Tag() != nsAccessibilityAtoms::select) {
@@ -845,8 +847,7 @@ nsIContent* nsHTMLSelectOptionAccessible::GetSelectState(PRUint32* aState)
       nsCOMPtr<nsIAccessible> selAcc;
       accService->GetAccessibleFor(selectNode, getter_AddRefs(selAcc));
       if (selAcc) {
-        PRUint32 dummy;
-        selAcc->GetFinalState(aState, &dummy);
+        selAcc->GetFinalState(aState, aExtraState);
         return content;
       }
     }
