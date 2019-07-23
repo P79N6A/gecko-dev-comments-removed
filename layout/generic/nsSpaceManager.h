@@ -49,10 +49,10 @@
 #include "nsISupports.h"
 #include "nsCoord.h"
 #include "nsRect.h"
+#include "nsVoidArray.h"
 
 class nsIPresShell;
 class nsIFrame;
-class nsVoidArray;
 struct nsSize;
 struct nsHTMLReflowState;
 class nsPresContext;
@@ -69,16 +69,10 @@ class nsPresContext;
 
 
 struct nsBandTrapezoid {
-  enum State {Available, Occupied, OccupiedMultiple};
-
   nscoord   mTopY, mBottomY;            
   nscoord   mTopLeftX, mBottomLeftX;    
   nscoord   mTopRightX, mBottomRightX;  
-  State     mState;                     
-  union {
-    nsIFrame*          mFrame;  
-    const nsVoidArray* mFrames; 
-  };
+  const nsSmallVoidArray* mFrames; 
 
   
   nscoord GetHeight() const {return mBottomY - mTopY;}
@@ -90,9 +84,6 @@ struct nsBandTrapezoid {
   inline void operator=(const nsRect& aRect);
 
   
-  inline PRBool Equals(const nsBandTrapezoid& aTrap) const;
-
-  
   inline PRBool EqualGeometry(const nsBandTrapezoid& aTrap) const;
 
   nsBandTrapezoid()
@@ -102,7 +93,7 @@ struct nsBandTrapezoid {
       mBottomLeftX(0),
       mTopRightX(0),
       mBottomRightX(0),
-      mFrame(nsnull)
+      mFrames(nsnull)
   {
   }
 };
@@ -124,20 +115,6 @@ inline void nsBandTrapezoid::operator=(const nsRect& aRect)
   mTopRightX = mBottomRightX = aRect.XMost();
   mTopY = aRect.y;
   mBottomY = aRect.YMost();
-}
-
-inline PRBool nsBandTrapezoid::Equals(const nsBandTrapezoid& aTrap) const
-{
-  return (
-    mTopLeftX == aTrap.mTopLeftX &&
-    mBottomLeftX == aTrap.mBottomLeftX &&
-    mTopRightX == aTrap.mTopRightX &&
-    mBottomRightX == aTrap.mBottomRightX &&
-    mTopY == aTrap.mTopY &&
-    mBottomY == aTrap.mBottomY &&
-    mState == aTrap.mState &&
-    mFrame == aTrap.mFrame    
-  );
 }
 
 inline PRBool nsBandTrapezoid::EqualGeometry(const nsBandTrapezoid& aTrap) const
@@ -377,18 +354,14 @@ public:
   struct BandRect : PRCListStr {
     nscoord   mLeft, mTop;
     nscoord   mRight, mBottom;
-    PRInt32   mNumFrames;    
-    union {
-      nsIFrame*    mFrame;   
-      nsVoidArray* mFrames;  
-    };
+    nsSmallVoidArray mFrames;  
 
     BandRect(nscoord aLeft, nscoord aTop,
              nscoord aRight, nscoord aBottom,
-             nsIFrame*);
+             nsIFrame* aFrame);
     BandRect(nscoord aLeft, nscoord aTop,
              nscoord aRight, nscoord aBottom,
-             nsVoidArray*);
+             nsSmallVoidArray& frames);
     ~BandRect();
 
     
@@ -414,8 +387,15 @@ public:
 
     
     PRBool  IsOccupiedBy(const nsIFrame*) const;
-    void    AddFrame(const nsIFrame*);
-    void    RemoveFrame(const nsIFrame*);
+    void    AddFrame(const nsIFrame* aFrame) {
+      mFrames.AppendElement((void*)aFrame);
+    }
+    void    RemoveFrame(const nsIFrame* aFrame) {
+      mFrames.RemoveElement((void*)aFrame);
+    }
+    nsIFrame * FrameAt(PRInt32 index) {
+      return NS_STATIC_CAST(nsIFrame*, mFrames.FastElementAt(index));
+    }
     PRBool  HasSameFrameList(const BandRect* aBandRect) const;
     PRInt32 Length() const;
   };
