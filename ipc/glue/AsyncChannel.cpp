@@ -154,10 +154,13 @@ AsyncChannel::Open(Transport* aTransport, MessageLoop* aIOLoop)
 void
 AsyncChannel::Close()
 {
+    AssertWorkerThread();
+
     {
         MutexAutoLock lock(mMutex);
 
-        if (ChannelError == mChannelState) {
+        if (ChannelError == mChannelState ||
+            ChannelTimeout == mChannelState) {
             
             
             
@@ -179,21 +182,23 @@ AsyncChannel::Close()
         
         SendSpecialMessage(new GoodbyeMessage());
 
-        mChannelState = ChannelClosing;
-
-        
-        mIOLoop->PostTask(
-            FROM_HERE, NewRunnableMethod(this, &AsyncChannel::OnCloseChannel));
-
-        while (ChannelClosing == mChannelState)
-            mCvar.Wait();
-
-        
-        
-        mChannelState = ChannelClosed;
+        SynchronouslyClose();
     }
 
     return NotifyChannelClosed();
+}
+
+void 
+AsyncChannel::SynchronouslyClose()
+{
+    AssertWorkerThread();
+    mMutex.AssertCurrentThreadOwns();
+
+    mIOLoop->PostTask(
+        FROM_HERE, NewRunnableMethod(this, &AsyncChannel::OnCloseChannel));
+
+    while (ChannelClosed != mChannelState)
+        mCvar.Wait();
 }
 
 bool
@@ -369,6 +374,8 @@ AsyncChannel::ReportConnectionError(const char* channelName)
     case ChannelOpening:
         errorMsg = "Opening channel: not yet ready for send/recv";
         break;
+    case ChannelTimeout:
+        errorMsg = "Channel timeout: cannot send/recv";
     case ChannelError:
         errorMsg = "Channel error: cannot send/recv";
         break;

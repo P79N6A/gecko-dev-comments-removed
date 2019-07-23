@@ -54,11 +54,14 @@ struct RunnableMethodTraits<mozilla::ipc::SyncChannel>
 namespace mozilla {
 namespace ipc {
 
+const int32 SyncChannel::kNoTimeout = PR_INT32_MIN;
+
 SyncChannel::SyncChannel(SyncListener* aListener)
   : AsyncChannel(aListener),
     mPendingReply(0),
     mProcessingSyncMessage(false),
-    mNextSeqno(0)
+    mNextSeqno(0),
+    mTimeoutMs(kNoTimeout)
 {
   MOZ_COUNT_CTOR(SyncChannel);
 }
@@ -66,11 +69,20 @@ SyncChannel::SyncChannel(SyncListener* aListener)
 SyncChannel::~SyncChannel()
 {
     MOZ_COUNT_DTOR(SyncChannel);
-    
 }
 
 
 bool SyncChannel::sIsPumpingMessages = false;
+
+bool
+SyncChannel::EventOccurred()
+{
+    AssertWorkerThread();
+    mMutex.AssertCurrentThreadOwns();
+    NS_ABORT_IF_FALSE(AwaitingSyncReply(), "not in wait loop");
+
+    return (!Connected() || 0 != mRecvd.type());
+}
 
 bool
 SyncChannel::Send(Message* msg, Message* reply)
@@ -96,16 +108,18 @@ SyncChannel::Send(Message* msg, Message* reply)
         FROM_HERE,
         NewRunnableMethod(this, &SyncChannel::OnSend, msg));
 
-    
-    
-    
-    
-    
-    do {
+    while (1) {
+        bool maybeTimedOut = !SyncChannel::WaitForNotify();
+
+        if (EventOccurred())
+            break;
+
         
-        SyncChannel::WaitForNotify();
-    } while(Connected() &&
-            mPendingReply != mRecvd.type() && !mRecvd.is_reply_error());
+        NS_ABORT_IF_FALSE(maybeTimedOut,
+                          "neither received a reply nor detected a hang!");
+        if (!ShouldContinueFromTimeout())
+            return false;
+    }
 
     if (!Connected()) {
         ReportConnectionError("SyncChannel");
@@ -206,15 +220,64 @@ SyncChannel::OnChannelError()
 
 
 
+namespace {
+
+bool
+IsTimeoutExpired(PRIntervalTime aStart, PRIntervalTime aTimeout)
+{
+    return (aTimeout != PR_INTERVAL_NO_TIMEOUT) &&
+        (aTimeout <= (PR_IntervalNow() - aStart));
+}
+
+} 
+
+bool
+SyncChannel::ShouldContinueFromTimeout()
+{
+    AssertWorkerThread();
+    mMutex.AssertCurrentThreadOwns();
+
+    bool cont = true;
+
+    if (!cont) {
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        SynchronouslyClose();
+        mChannelState = ChannelTimeout;
+    }
+        
+    return cont;
+}
+
 
 
 
 #ifndef OS_WIN
 
-void
+bool
 SyncChannel::WaitForNotify()
 {
-    mCvar.Wait();
+    PRIntervalTime timeout = (kNoTimeout == mTimeoutMs) ?
+                             PR_INTERVAL_NO_TIMEOUT :
+                             PR_MillisecondsToInterval(mTimeoutMs);
+    
+    PRIntervalTime waitStart = PR_IntervalNow();
+
+    mCvar.Wait(timeout);
+
+    
+    
+    return !IsTimeoutExpired(waitStart, timeout);
 }
 
 void

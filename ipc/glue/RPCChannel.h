@@ -138,6 +138,8 @@ protected:
   private:
     
 
+    bool EventOccurred();
+
     void MaybeProcessDeferredIncall();
     void EnqueuePendingMessages();
 

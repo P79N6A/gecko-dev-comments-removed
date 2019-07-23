@@ -40,6 +40,10 @@
 #ifndef ipc_glue_SyncChannel_h
 #define ipc_glue_SyncChannel_h 1
 
+#include "base/basictypes.h"
+
+#include "prinrval.h"
+
 #include "mozilla/ipc/AsyncChannel.h"
 
 namespace mozilla {
@@ -52,6 +56,8 @@ protected:
     typedef uint16 MessageId;
 
 public:
+    static const int32 kNoTimeout;
+
     class  SyncListener : 
         public AsyncChannel::AsyncListener
     {
@@ -101,7 +107,23 @@ protected:
         return AsyncChannel::OnSpecialMessage(id, msg);
     }
 
-    void WaitForNotify();
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    bool WaitForNotify();
+
+    bool ShouldContinueFromTimeout();
 
     
     void OnSendReply(Message* msg);
@@ -126,6 +148,11 @@ protected:
     int32 mNextSeqno;
 
     static bool sIsPumpingMessages;
+
+private:
+    bool EventOccurred();
+
+    int32 mTimeoutMs;
 };
 
 
