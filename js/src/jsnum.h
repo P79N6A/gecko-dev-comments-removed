@@ -200,9 +200,8 @@ js_NumberToCString(JSContext *cx, jsdouble d, char *buf, size_t bufSize);
 
 
 
-extern JSBool
-js_ValueToNumber(JSContext *cx, jsval v, jsdouble *dp);
-
+extern jsdouble
+js_ValueToNumber(JSContext *cx, jsval* vp);
 
 
 
@@ -228,20 +227,15 @@ js_DoubleToECMAUint32(jsdouble d);
 
 
 
+extern int32
+js_ValueToInt32(JSContext *cx, jsval *vp);
 
 
 
 
 
-extern JSBool
-js_ValueToInt32(JSContext *cx, jsval v, int32 *ip);
-
-
-
-
-
-extern JSBool
-js_ValueToUint16(JSContext *cx, jsval v, uint16 *ip);
+extern uint16
+js_ValueToUint16(JSContext *cx, jsval *vp);
 
 
 
