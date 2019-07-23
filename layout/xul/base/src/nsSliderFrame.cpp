@@ -659,14 +659,8 @@ nsSliderFrame::CurrentPositionChanged(nsPresContext* aPresContext,
   thumbFrame->SetRect(newThumbRect);
 
   
-  
-  nsRect changeRect;
-  changeRect.UnionRect(thumbFrame->GetOverflowRect() + thumbRect.TopLeft(),
-                       thumbFrame->GetOverflowRect() + newThumbRect.TopLeft());
+  Invalidate(clientRect, aImmediateRedraw);
 
-  
-  Invalidate(changeRect, aImmediateRedraw);
-    
   if (mScrollbarListener)
     mScrollbarListener->PositionChanged(aPresContext, mCurPos, curpospx);
 
