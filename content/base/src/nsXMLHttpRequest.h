@@ -399,7 +399,7 @@ protected:
   nsCOMPtr<nsIChannel> mChannel;
   
   nsCOMPtr<nsIRequest> mReadRequest;
-  nsCOMPtr<nsIDOMDocument> mDocument;
+  nsCOMPtr<nsIDOMDocument> mResponseXML;
   nsCOMPtr<nsIChannel> mACGetChannel;
   nsTArray<nsCString> mACUnsafeHeaders;
 
