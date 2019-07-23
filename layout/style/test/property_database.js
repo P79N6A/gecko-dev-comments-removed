@@ -1603,7 +1603,7 @@ var gCSSProperties = {
 		type: CSS_TYPE_LONGHAND,
 		
 		initial_values: [ "start" ],
-		other_values: [ "center", "justify" ],
+		other_values: [ "center", "justify", "end" ],
 		invalid_values: []
 	},
 	"text-decoration": {

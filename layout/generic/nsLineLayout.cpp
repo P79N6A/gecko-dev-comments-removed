@@ -2462,6 +2462,15 @@ nsLineLayout::HorizontalAlignFrames(nsRect& aLineBounds,
         dx = remainingWidth;
         break;
 
+      case NS_STYLE_TEXT_ALIGN_END:
+        if (NS_STYLE_DIRECTION_LTR == psd->mDirection) {
+          
+          dx = remainingWidth;
+          break;
+        }
+        
+        
+
       case NS_STYLE_TEXT_ALIGN_LEFT:
       case NS_STYLE_TEXT_ALIGN_MOZ_LEFT:
         break;
