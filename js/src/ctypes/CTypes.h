@@ -39,14 +39,167 @@
 #ifndef CTYPES_H
 #define CTYPES_H
 
+#include "jscntxt.h"
 #include "jsapi.h"
-#include "nsString.h"
-#include "nsTArray.h"
 #include "prlink.h"
 #include "ffi.h"
 
-namespace mozilla {
+namespace js {
 namespace ctypes {
+
+
+
+
+
+template<class T>
+class OperatorDelete
+{
+public:
+  static void destroy(T* ptr) { delete ptr; }
+};
+
+template<class T>
+class OperatorArrayDelete
+{
+public:
+  static void destroy(T* ptr) { delete[] ptr; }
+};
+
+
+
+template<class T, class DeleteTraits = OperatorDelete<T> >
+class AutoPtr {
+private:
+  typedef AutoPtr<T, DeleteTraits> self_type;
+
+public:
+  
+  typedef AutoPtr<T, OperatorArrayDelete<T> > Array;
+
+  AutoPtr() : mPtr(NULL) { }
+  explicit AutoPtr(T* ptr) : mPtr(ptr) { }
+  ~AutoPtr() { DeleteTraits::destroy(mPtr); }
+
+  T*   operator->()         { return mPtr; }
+  bool operator!()          { return mPtr == NULL; }
+  T&   operator[](size_t i) { return *(mPtr + i); }
+  
+  
+  
+
+  T*   get()         { return mPtr; }
+  void set(T* other) { JS_ASSERT(mPtr == NULL); mPtr = other; }
+  T*   forget()      { T* result = mPtr; mPtr = NULL; return result; }
+
+  self_type& operator=(T* rhs) { mPtr = rhs; return *this; }
+
+private:
+  
+  template<class U> AutoPtr(AutoPtr<T, U>&);
+  template<class U> self_type& operator=(AutoPtr<T, U>& rhs);
+
+  T* mPtr;
+};
+
+
+template<class T, size_t N = 0>
+class Array : public Vector<T, N, SystemAllocPolicy>
+{
+};
+
+
+typedef Vector<jschar,  0, SystemAllocPolicy> String;
+typedef Vector<jschar, 64, SystemAllocPolicy> AutoString;
+
+
+template <class T, size_t N, class AP, size_t ArrayLength>
+void
+AppendString(Vector<T, N, AP> &v, const char (&array)[ArrayLength])
+{
+  
+  size_t alen = ArrayLength - 1;
+  size_t vlen = v.length();
+  if (!v.resize(vlen + alen))
+    return;
+
+  for (size_t i = 0; i < alen; ++i)
+    v[i + vlen] = array[i];
+}
+
+template <class T, size_t N, size_t M, class AP>
+void
+AppendString(Vector<T, N, AP> &v, Vector<T, M, AP> &w)
+{
+  v.append(w.begin(), w.length());
+}
+
+template <size_t N, class AP>
+void
+AppendString(Vector<jschar, N, AP> &v, JSString* str)
+{
+  JS_ASSERT(str);
+  const jschar* chars = JS_GetStringChars(str);
+  size_t length = JS_GetStringLength(str);
+  v.append(chars, length);
+}
+
+template <class T, size_t N, class AP, size_t ArrayLength>
+void
+PrependString(Vector<T, N, AP> &v, const char (&array)[ArrayLength])
+{
+  
+  size_t alen = ArrayLength - 1;
+  size_t vlen = v.length();
+  if (!v.resize(vlen + alen))
+    return;
+
+  
+  memmove(v.begin() + alen, v.begin(), vlen * sizeof(T));
+
+  
+  for (size_t i = 0; i < alen; ++i)
+    v[i] = array[i];
+}
+
+template <size_t N, class AP>
+void
+PrependString(Vector<jschar, N, AP> &v, JSString* str)
+{
+  JS_ASSERT(str);
+  size_t vlen = v.length();
+  size_t alen = JS_GetStringLength(str);
+  if (!v.resize(vlen + alen))
+    return;
+
+  
+  memmove(v.begin() + alen, v.begin(), vlen * sizeof(jschar));
+
+  
+  memcpy(v.begin(), JS_GetStringChars(str), alen * sizeof(jschar));
+}
+
+template <class T, size_t N, size_t M, class AP>
+bool
+StringsEqual(Vector<T, N, AP> &v, Vector<T, M, AP> &w)
+{
+  if (v.length() != w.length())
+    return false;
+
+  return memcmp(v.begin(), w.begin(), v.length() * sizeof(T)) == 0;
+}
+
+template <size_t N, class AP>
+bool
+StringsEqual(Vector<jschar, N, AP> &v, JSString* str)
+{
+  JS_ASSERT(str);
+  size_t length = JS_GetStringLength(str);
+  if (v.length() != length)
+    return false;
+
+  const jschar* chars = JS_GetStringChars(str);
+  return memcmp(v.begin(), chars, length * sizeof(jschar)) == 0;
+}
 
 
 
@@ -89,7 +242,14 @@ enum TypeCode {
 
 struct FieldInfo
 {
-  nsString  mName;
+  
+  FieldInfo() {}
+  FieldInfo(const FieldInfo& other)
+  {
+    JS_NOT_REACHED("shouldn't be copy constructing FieldInfo");
+  }
+
+  String    mName;
   JSObject* mType;
   size_t    mOffset;
 };
@@ -122,12 +282,12 @@ struct FunctionInfo
 
   
   
-  nsTArray<JSObject*> mArgTypes; 
+  Array<JSObject*> mArgTypes; 
 
   
   
   
-  nsTArray<ffi_type*> mFFITypes;
+  Array<ffi_type*> mFFITypes;
 
   
   
@@ -275,7 +435,7 @@ namespace ArrayType {
 }
 
 namespace StructType {
-  nsTArray<FieldInfo>* GetFieldInfo(JSContext* cx, JSObject* obj);
+  Array<FieldInfo>* GetFieldInfo(JSContext* cx, JSObject* obj);
   FieldInfo* LookupField(JSContext* cx, JSObject* obj, jsval idval);
 }
 
