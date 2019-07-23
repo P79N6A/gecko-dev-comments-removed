@@ -152,7 +152,9 @@ public:
 
   static nsresult requestActivateSSL(nsNSSSocketInfo *si);
   
-  static PRBool exitRequested();
+  
+  static void rememberPendingHTTPRequest(nsIRequest *aRequest);
+  static void cancelPendingHTTPRequest();
 };
 
 #endif 
