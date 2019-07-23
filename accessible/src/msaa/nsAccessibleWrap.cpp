@@ -55,6 +55,7 @@
 #include "nsINameSpaceManager.h"
 #include "nsINodeInfo.h"
 #include "nsIPrefService.h"
+#include "nsRootAccessible.h"
 #include "nsIServiceManager.h"
 #include "nsTextFormatter.h"
 #include "nsIView.h"
@@ -1493,55 +1494,59 @@ nsAccessibleWrap::FireAccessibleEvent(nsIAccessibleEvent *aEvent)
   if (!accessible)
     return NS_OK;
 
-  PRInt32 childID, worldID = OBJID_CLIENT;
   PRUint32 role = ROLE_SYSTEM_TEXT; 
 
   nsCOMPtr<nsIAccessNode> accessNode(do_QueryInterface(accessible));
   NS_ENSURE_STATE(accessNode);
 
-  HWND hWnd = 0;
-
-  if (NS_SUCCEEDED(accessible->GetRole(&role)) && role == ROLE_SYSTEM_CARET) {
-    childID = CHILDID_SELF;
-    worldID = OBJID_CARET;
-  } else {
-    childID = GetChildIDFor(accessible); 
-    if (!childID)
-      return NS_OK; 
-
+  if (eventType == nsIAccessibleEvent::EVENT_TEXT_CARET_MOVED) {
     
-    nsCOMPtr<nsIAccessible> newAccessible;
-    if (eventType == nsIAccessibleEvent::EVENT_HIDE) {
-      
-      
-      accessible->GetParent(getter_AddRefs(newAccessible));
-    } else {
-      newAccessible = accessible;
+    nsRefPtr<nsRootAccessible> rootAccessible = GetRootAccessible();
+    if (rootAccessible) {
+      nsCOMPtr<nsIAccessible> caretAccessible;
+      void* handle = nsnull;
+      rootAccessible->GetWindowHandle(&handle);
+      NotifyWinEvent(EVENT_OBJECT_LOCATIONCHANGE, (HWND)handle, OBJID_CARET, CHILDID_SELF);
     }
+  }
 
-    nsCOMPtr<nsPIAccessNode> privateAccessNode =
-      do_QueryInterface(newAccessible);
-    if (privateAccessNode) {
-      nsIFrame *frame = privateAccessNode->GetFrame();
-      if (frame) {
-        nsIWidget *window = frame->GetWindow();
-        PRBool isVisible;
-        window->IsVisible(isVisible);
-        if (isVisible) {
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          hWnd = (HWND)frame->GetWindow()->GetNativeData(NS_NATIVE_WINDOW);
-        }
++   PRInt32 childID = GetChildIDFor(accessible); 
++   if (!childID)
++     return NS_OK; 
++ 
++   
++   nsCOMPtr<nsIAccessible> newAccessible;
++   if (eventType == nsIAccessibleEvent::EVENT_HIDE) {
++     
++     
++     accessible->GetParent(getter_AddRefs(newAccessible));
++   } else {
++     newAccessible = accessible;
++   }
+  
+  HWND hWnd = 0;
+  nsCOMPtr<nsPIAccessNode> privateAccessNode =
+    do_QueryInterface(newAccessible);
+  if (privateAccessNode) {
+    nsIFrame *frame = privateAccessNode->GetFrame();
+    if (frame) {
+      nsIWidget *window = frame->GetWindow();
+      PRBool isVisible;
+      window->IsVisible(isVisible);
+      if (isVisible) {
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        hWnd = (HWND)frame->GetWindow()->GetNativeData(NS_NATIVE_WINDOW);
       }
     }
   }
@@ -1562,7 +1567,7 @@ nsAccessibleWrap::FireAccessibleEvent(nsIAccessibleEvent *aEvent)
   
 
   
-  NotifyWinEvent(winEvent, hWnd, worldID, childID);
+  NotifyWinEvent(winEvent, hWnd, OBJID_CLIENT, childID);
 
   return NS_OK;
 }

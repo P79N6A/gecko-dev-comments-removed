@@ -56,6 +56,18 @@ class nsRootAccessible;
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
 class nsCaretAccessible : public nsLeafAccessible, public nsIAccessibleCaret, public nsISelectionListener
 {
 public:
@@ -72,9 +84,8 @@ public:
   NS_IMETHOD GetPreviousSibling(nsIAccessible **_retval);
 
   
-  NS_IMETHOD AttachNewSelectionListener(nsIDOMNode *aFocusedNode);
-  NS_IMETHOD RemoveSelectionListener();
-
+  NS_DECL_NSIACCESSIBLECARET
+  
   
   NS_DECL_NSISELECTIONLISTENER
 
@@ -89,15 +100,22 @@ public:
   NS_IMETHOD Shutdown();
 
 private:
-  nsRect mCaretRect;
-  PRBool mVisible;
-  PRInt32 mLastCaretOffset;
+  
+  
+  
+  
+  nsCOMPtr<nsIDOMNode> mCurrentControl;  
+  nsCOMPtr<nsIWeakReference> mCurrentControlSelection;
+
+  
+  
+  
+  nsCOMPtr<nsIWeakReference> mLastUsedSelection; 
   nsCOMPtr<nsIDOMNode> mLastNodeWithCaret;
-  nsCOMPtr<nsIDOMNode> mSelectionControllerNode;
-  
-  
+  PRInt32 mLastCaretOffset;
+  already_AddRefed<nsICaret> GetLastCaret(nsRect *aRect, PRBool *aIsVisible);
+
   nsRootAccessible *mRootAccessible;
-  nsCOMPtr<nsIWeakReference> mDomSelectionWeak;
 };
 
 #endif
