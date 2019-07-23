@@ -485,12 +485,7 @@ struct JSRuntime {
     uint32              deflatedStringCacheBytes;
 #endif
 
-    
-
-
-
     JSString            *emptyString;
-    JSString            **unitStrings;
 
     
 
