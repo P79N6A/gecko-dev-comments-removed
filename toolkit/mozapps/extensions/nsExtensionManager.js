@@ -1,52 +1,52 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/*
-# ***** BEGIN LICENSE BLOCK *****
-# Version: MPL 1.1/GPL 2.0/LGPL 2.1
-#
-# The contents of this file are subject to the Mozilla Public License Version
-# 1.1 (the "License"); you may not use this file except in compliance with
-# the License. You may obtain a copy of the License at
-# http://www.mozilla.org/MPL/
-#
-# Software distributed under the License is distributed on an "AS IS" basis,
-# WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
-# for the specific language governing rights and limitations under the
-# License.
-#
-# The Original Code is the Extension Manager.
-#
-# The Initial Developer of the Original Code is Ben Goodger.
-# Portions created by the Initial Developer are Copyright (C) 2004
-# the Initial Developer. All Rights Reserved.
-#
-# Contributor(s):
-#  Ben Goodger <ben@mozilla.org> (Google Inc.)
-#  Benjamin Smedberg <benjamin@smedbergs.us>
-#  Jens Bannmann <jens.b@web.de>
-#  Robert Strong <robert.bugzilla@gmail.com>
-#  Dave Townsend <dtownsend@oxymoronical.com>
-#  Daniel Veditz <dveditz@mozilla.com>
-#  Alexander J. Vincent <ajvincent@gmail.com>
-#
-# Alternatively, the contents of this file may be used under the terms of
-# either the GNU General Public License Version 2 or later (the "GPL"), or
-# the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
-# in which case the provisions of the GPL or the LGPL are applicable instead
-# of those above. If you wish to allow use of your version of this file only
-# under the terms of either the GPL or the LGPL, and not to allow others to
-# use your version of this file under the terms of the MPL, indicate your
-# decision by deleting the provisions above and replace them with the notice
-# and other provisions required by the GPL or the LGPL. If you do not delete
-# the provisions above, a recipient may use your version of this file under
-# the terms of any one of the MPL, the GPL or the LGPL.
-#
-# ***** END LICENSE BLOCK *****
-*/
 
-//
-// TODO:
-// - better logging
-//
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 const Cc = Components.classes;
 const Ci = Components.interfaces;
@@ -147,17 +147,17 @@ const URI_EXTENSION_MANAGER           = "chrome://mozapps/content/extensions/ext
 const FEATURES_EXTENSION_MANAGER      = "chrome,menubar,extra-chrome,toolbar,dialog=no,resizable";
 const FEATURES_EXTENSION_UPDATES      = "chrome,centerscreen,extra-chrome,dialog,resizable,modal";
 
-/**
- * Constants that internal code can use to indicate the reason for an add-on
- * update check. external code uses other constants in nsIExtensionManager.idl.
- */
+
+
+
+
 const MAX_PUBLIC_UPDATE_WHEN          = 15;
 const UPDATE_WHEN_PERIODIC_UPDATE     = 16;
 const UPDATE_WHEN_ADDON_INSTALLED     = 17;
 
-/**
- * Bitmask of the different types of update check.
- */
+
+
+
 const UPDATE_TYPE_COMPATIBILITY       = 32;
 const UPDATE_TYPE_NEWVERSION          = 64;
 
@@ -197,24 +197,24 @@ var gDSNeedsFlush         = false;
 var gManifestNeedsFlush   = false;
 var gDefaultTheme         = "classic/1.0";
 
-/**
- * Valid GUIDs fit this pattern.
- */
+
+
+
 var gIDTest = /^(\{[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\}|[a-z0-9-\._]*\@[a-z0-9-\._]+)$/i;
 
 var gBranchVersion = /^([^\.]+\.[0-9]+[a-z]*).*/gi;
 
-// shared code for suppressing bad cert dialogs
+
 XPCOMUtils.defineLazyGetter(this, "gCertUtils", function() {
   let temp = { };
   Components.utils.import("resource://gre/modules/CertUtils.jsm", temp);
   return temp;
 });
 
-/**
- * Creates a Version Checker object.
- * @returns A handle to the global Version Checker service.
- */
+
+
+
+
 function getVersionChecker() {
   if (!gVersionChecker) {
     gVersionChecker = Cc["@mozilla.org/xpcom/version-comparator;1"].
@@ -224,12 +224,12 @@ function getVersionChecker() {
 }
 
 var BundleManager = {
-  /**
-  * Creates and returns a String Bundle at the specified URI
-  * @param   bundleURI
-  *          The URI of the bundle to load
-  * @returns A nsIStringBundle which was retrieved.
-  */
+  
+
+
+
+
+
   getBundle: function BundleManager_getBundle(bundleURI) {
     var sbs = Cc["@mozilla.org/intl/stringbundle;1"].
               getService(Ci.nsIStringBundleService);
@@ -238,9 +238,9 @@ var BundleManager = {
 
   _appName: "",
 
-  /**
-   * The Application's display name.
-   */
+  
+
+
   get appName() {
     if (!this._appName) {
       var brandBundle = this.getBundle(URI_BRAND_PROPERTIES)
@@ -250,10 +250,10 @@ var BundleManager = {
   }
 };
 
-///////////////////////////////////////////////////////////////////////////////
-//
-// Utility Functions
-//
+
+
+
+
 function EM_NS(property) {
   return PREFIX_NS_EM + property;
 }
@@ -274,18 +274,18 @@ function EM_D(integer) {
   return gRDF.GetDateLiteral(integer);
 }
 
-/**
- * Gets a preference value, handling the case where there is no default.
- * @param   func
- *          The name of the preference function to call, on nsIPrefBranch
- * @param   preference
- *          The name of the preference
- * @param   defaultValue
- *          The default value to return in the event the preference has
- *          no setting
- * @returns The value of the preference, or undefined if there was no
- *          user or default value.
- */
+
+
+
+
+
+
+
+
+
+
+
+
 function getPref(func, preference, defaultValue) {
   try {
     return gPref[func](preference);
@@ -295,14 +295,14 @@ function getPref(func, preference, defaultValue) {
   return defaultValue;
 }
 
-/**
- * Initializes a RDF Container at a URI in a datasource.
- * @param   datasource
- *          The datasource the container is in
- * @param   root
- *          The RDF Resource which is the root of the container.
- * @returns The nsIRDFContainer, initialized at the root.
- */
+
+
+
+
+
+
+
+
 function getContainer(datasource, root) {
   var ctr = Cc["@mozilla.org/rdf/container;1"].
             createInstance(Ci.nsIRDFContainer);
@@ -310,21 +310,21 @@ function getContainer(datasource, root) {
   return ctr;
 }
 
-/**
- * Gets a RDF Resource for item with the given ID
- * @param   id
- *          The GUID of the item to construct a RDF resource to the
- *          active item for
- * @returns The RDF Resource to the Active item.
- */
+
+
+
+
+
+
+
 function getResourceForID(id) {
   return gRDF.GetResource(PREFIX_ITEM_URI + id);
 }
 
-/**
- * Construct a nsIUpdateItem with the supplied metadata
- * ...
- */
+
+
+
+
 function makeItem(id, version, locationKey, minVersion, maxVersion, name,
                   updateURL, updateHash, iconURL, updateRDF, updateKey, type, 
                   targetAppID) {
@@ -335,14 +335,14 @@ function makeItem(id, version, locationKey, minVersion, maxVersion, name,
   return item;
 }
 
-/**
- * Gets the descriptor of a directory as a relative path to common base
- * directories (profile, user home, app install dir, etc).
- *
- * @param   itemLocation
- *          The nsILocalFile representing the item's directory.
- * @param   installLocation the nsIInstallLocation for this item
- */
+
+
+
+
+
+
+
+
 function getDescriptorFromFile(itemLocation, installLocation) {
   var baseDir = installLocation.location;
 
@@ -357,16 +357,16 @@ function getAbsoluteDescriptor(itemLocation) {
   return itemLocation.persistentDescriptor;
 }
 
-/**
- * Initializes a Local File object based on a descriptor
- * provided by "getDescriptorFromFile".
- *
- * @param   descriptor
- *          The descriptor that locates the directory
- * @param   installLocation
- *          The nsIInstallLocation object for this item.
- * @returns The nsILocalFile object representing the location of the item
- */
+
+
+
+
+
+
+
+
+
+
 function getFileFromDescriptor(descriptor, installLocation) {
   var location = Cc["@mozilla.org/file/local;1"].
                  createInstance(Ci.nsILocalFile);
@@ -385,12 +385,12 @@ function getFileFromDescriptor(descriptor, installLocation) {
   return location;
 }
 
-/**
- * Determines if a file is an item package - either a XPI or a JAR file.
- * @param   file
- *          The file to check
- * @returns true if the file is an item package, false otherwise.
- */
+
+
+
+
+
+
 function fileIsItemPackage(file) {
   var fileURL = getURIFromFile(file);
   if (fileURL instanceof Ci.nsIURL)
@@ -398,15 +398,15 @@ function fileIsItemPackage(file) {
   return extension == "xpi" || extension == "jar";
 }
 
-/**
- * Deletes a directory and its children. First it tries nsIFile::Remove(true).
- * If that fails it will fall back to recursing, setting the appropriate
- * permissions, and deleting the current entry. This is needed for when we have
- * rights to delete a directory but there are entries that have a read-only
- * attribute (e.g. a copy restore from a read-only CD, etc.)
- * @param   dir
- *          A nsIFile for the directory to be deleted
- */
+
+
+
+
+
+
+
+
+
 function removeDirRecursive(dir) {
   try {
     dir.remove(true);
@@ -431,12 +431,12 @@ function removeDirRecursive(dir) {
   dir.remove(true);
 }
 
-/**
- * Logs a string to the error console and the text console if logging is
- * enabled.
- * @param   string
- *          The log message.
- */
+
+
+
+
+
+
 function LOG(string) {
   if (gLoggingEnabled) {
     dump("*** EM_LOG *** " + string + "\n");
@@ -445,12 +445,12 @@ function LOG(string) {
   }
 }
 
-/**
- * Logs a warning to the error console and if logging is enabled to the text
- * console.
- * @param   string
- *          The warning message.
- */
+
+
+
+
+
+
 function WARN(string) {
   if (gLoggingEnabled)
     dump("*** EM_WARN *** " + string + "\n");
@@ -463,11 +463,11 @@ function WARN(string) {
   }
 }
 
-/**
- * Logs an error to the error console and to a permanent log file.
- * @param   string
- *          The error message.
- */  
+
+
+
+
+  
 function ERROR(string) {
   if (gLoggingEnabled)
     dump("*** EM_ERROR *** " + string + "\n");
@@ -483,7 +483,7 @@ function ERROR(string) {
     var logfile = FileUtils.getFile(KEY_PROFILEDIR, [FILE_EXTENSIONS_LOG]);
     var stream = Cc["@mozilla.org/network/file-output-stream;1"].
                  createInstance(Ci.nsIFileOutputStream);
-    stream.init(logfile, 0x02 | 0x08 | 0x10, 0666, 0); // write, create, append
+    stream.init(logfile, 0x02 | 0x08 | 0x10, 0666, 0); 
     var writer = Cc["@mozilla.org/intl/converter-output-stream;1"].
                  createInstance(Ci.nsIConverterOutputStream);
     writer.init(stream, "UTF-8", 0, 0x0000);
@@ -494,13 +494,13 @@ function ERROR(string) {
   catch (e) { }
 }
 
-/**
- * Randomize the specified file name. Used to force RDF to bypass the cache
- * when loading certain types of files.
- * @param   fileName
- *          A file name to randomize, e.g. install.rdf
- * @returns A randomized file name, e.g. install-xyz.rdf
- */
+
+
+
+
+
+
+
 function getRandomFileName(fileName) {
   var extensionDelimiter = fileName.lastIndexOf(".");
   var prefix = fileName.substr(0, extensionDelimiter);
@@ -515,14 +515,14 @@ function getRandomFileName(fileName) {
   return nameString + "." + suffix;
 }
 
-/**
- * Get the RDF URI prefix of a nsIUpdateItem type. This function should be used
- * ONLY to support Firefox 1.0 Update RDF files! Item URIs in the datasource
- * are NOT prefixed.
- * @param   type
- *          The nsIUpdateItem type to find a RDF URI prefix for
- * @returns The RDF URI prefix.
- */
+
+
+
+
+
+
+
+
 function getItemPrefix(type) {
   if (type & Ci.nsIUpdateItem.TYPE_EXTENSION)
     return PREFIX_EXTENSION;
@@ -531,24 +531,24 @@ function getItemPrefix(type) {
   return PREFIX_ITEM_URI;
 }
 
-/**
- * Trims a prefix from a string.
- * @param   string
- *          The source string
- * @param   prefix
- *          The prefix to remove.
- * @returns The suffix (string - prefix)
- */
+
+
+
+
+
+
+
+
 function stripPrefix(string, prefix) {
   return string.substr(prefix.length);
 }
 
-/**
- * Gets a File URL spec for a nsIFile
- * @param   file
- *          The file to get a file URL spec to
- * @returns The file URL spec to the file
- */
+
+
+
+
+
+
 function getURLSpecFromFile(file) {
   var ioServ = Cc["@mozilla.org/network/io-service;1"].
                getService(Ci.nsIIOService);
@@ -557,44 +557,44 @@ function getURLSpecFromFile(file) {
   return fph.getURLSpecFromFile(file);
 }
 
-/**
- * Constructs a URI to a spec.
- * @param   spec
- *          The spec to construct a URI to
- * @returns The nsIURI constructed.
- */
+
+
+
+
+
+
 function newURI(spec) {
   var ioServ = Cc["@mozilla.org/network/io-service;1"].
                getService(Ci.nsIIOService);
   return ioServ.newURI(spec, null, null);
 }
 
-/**
- * Constructs a File URI to a nsIFile
- * @param   file
- *          The file to construct a File URI to
- * @returns The file URI to the file
- */
+
+
+
+
+
+
 function getURIFromFile(file) {
   var ioServ = Cc["@mozilla.org/network/io-service;1"].
                getService(Ci.nsIIOService);
   return ioServ.newFileURI(file);
 }
 
-/**
- * @returns Whether or not we are currently running in safe mode.
- */
+
+
+
 function inSafeMode() {
   return gApp.inSafeMode;
 }
 
-/**
- * Extract the string value from a RDF Literal or Resource
- * @param   literalOrResource
- *          RDF String Literal or Resource
- * @returns String value of the literal or resource, or undefined if the object
- *          supplied is not a RDF string literal or resource.
- */
+
+
+
+
+
+
+
 function stringData(literalOrResource) {
   if (literalOrResource instanceof Ci.nsIRDFLiteral)
     return literalOrResource.Value;
@@ -603,27 +603,27 @@ function stringData(literalOrResource) {
   return undefined;
 }
 
-/**
- * Extract the integer value of a RDF Literal
- * @param   literal
- *          nsIRDFInt literal
- * @return  integer value of the literal
- */
+
+
+
+
+
+
 function intData(literal) {
   if (literal instanceof Ci.nsIRDFInt)
     return literal.Value;
   return undefined;
 }
 
-/**
- * Gets a property from an install manifest.
- * @param   installManifest
- *          An Install Manifest datasource to read from
- * @param   property
- *          The name of a proprety to read (sans EM_NS)
- * @returns The literal value of the property, or undefined if the property has
- *          no value.
- */
+
+
+
+
+
+
+
+
+
 function getManifestProperty(installManifest, property) {
   var target = installManifest.GetTarget(gInstallManifestRoot,
                                          gRDF.GetResource(EM_NS(property)), true);
@@ -631,14 +631,14 @@ function getManifestProperty(installManifest, property) {
   return val === undefined ? intData(target) : val;
 }
 
-/**
- * Given an Install Manifest Datasource, retrieves the type of item the manifest
- * describes.
- * @param   installManifest
- *          The Install Manifest Datasource.
- * @return  The nsIUpdateItem type of the item described by the manifest
- *          returns TYPE_EXTENSION if attempts to determine the type fail.
- */
+
+
+
+
+
+
+
+
 function getAddonTypeFromInstallManifest(installManifest) {
   var target = installManifest.GetTarget(gInstallManifestRoot,
                                          gRDF.GetResource(EM_NS("type")), true);
@@ -647,21 +647,21 @@ function getAddonTypeFromInstallManifest(installManifest) {
     return type === undefined ? intData(target) : parseInt(type);
   }
 
-  // Firefox 1.0 and earlier did not support addon-type annotation on the
-  // Install Manifest, so we fall back to a theme-only property to
-  // differentiate.
+  
+  
+  
   if (getManifestProperty(installManifest, "internalName") !== undefined)
     return Ci.nsIUpdateItem.TYPE_THEME;
 
-  // If no type is provided, default to "Extension"
+  
   return Ci.nsIUpdateItem.TYPE_EXTENSION;
 }
 
-/**
- * Shows a message about an incompatible Extension/Theme.
- * @param   installData
- *          An Install Data object from |getInstallData|
- */
+
+
+
+
+
 function showIncompatibleError(installData) {
   var extensionStrings = BundleManager.getBundle(URI_EXTENSIONS_PROPERTIES);
   var params = [extensionStrings.GetStringFromName("type-" + installData.type)];
@@ -676,15 +676,15 @@ function showIncompatibleError(installData) {
   ps.alert(null, title, message);
 }
 
-/**
- * Shows a message.
- * @param   titleKey
- *          String key of the title string in the Extensions localization file.
- * @param   messageKey
- *          String key of the message string in the Extensions localization file.
- * @param   messageParams
- *          Array of strings to be substituted into |messageKey|. Can be null.
- */
+
+
+
+
+
+
+
+
+
 function showMessage(titleKey, titleParams, messageKey, messageParams) {
   var extensionStrings = BundleManager.getBundle(URI_EXTENSIONS_PROPERTIES);
   if (titleParams && titleParams.length > 0) {
@@ -705,14 +705,14 @@ function showMessage(titleKey, titleParams, messageKey, messageParams) {
   ps.alert(null, title, message);
 }
 
-/**
- * Shows a dialog for a blocklisted item. For soft blocked items this will
- * return true if the item should still be installed
- * @param   item
- *          The nsIUpdateItem that is blocklisted
- * @param   softblocked
- *          True if this item is only soft blocked and may still be installed.
- */
+
+
+
+
+
+
+
+
 function showBlocklistMessage(item, softblocked) {
   var params = Cc["@mozilla.org/embedcomp/dialogparam;1"].
                createInstance(Ci.nsIDialogParamBlock);
@@ -732,12 +732,12 @@ function showBlocklistMessage(item, softblocked) {
   return params.GetInt(1) == 0 ? false : true;
 }
 
-/**
- * Gets a zip reader for the file specified.
- * @param   zipFile
- *          A ZIP archive to open with a nsIZipReader.
- * @return  A nsIZipReader for the file specified.
- */
+
+
+
+
+
+
 function getZipReaderForFile(zipFile) {
   try {
     var zipReader = Cc["@mozilla.org/libjar/zip-reader;1"].
@@ -751,25 +751,25 @@ function getZipReaderForFile(zipFile) {
   return zipReader;
 }
 
-/**
- * Verifies that a zip file's contents are all signed by the same principal.
- * Directory entries and anything in the META-INF directory are not checked.
- * @param   zip
- *          A nsIZipReader to check
- * @param   principal
- *          The nsIPrincipal to compare against
- * @return  true if all the contents were signed by the principal, false
- *          otherwise.
- */
+
+
+
+
+
+
+
+
+
+
 function verifyZipSigning(zip, principal) {
   var count = 0;
   var entries = zip.findEntries(null);
   while (entries.hasMore()) {
     var entry = entries.getNext();
-    // Nothing in META-INF is in the manifest.
+    
     if (entry.substr(0, 9) == "META-INF/")
       continue;
-    // Directory entries aren't in the manifest.
+    
     if (entry.substr(-1) == "/")
       continue;
     count++;
@@ -780,17 +780,17 @@ function verifyZipSigning(zip, principal) {
   return zip.manifestEntriesCount == count;
 }
 
-/**
- * Extract a RDF file from a ZIP archive to a random location in the system
- * temp directory.
- * @param   zipFile
- *          A ZIP archive to read from
- * @param   fileName
- *          The name of the file to read from the zip.
- * @param   suppressErrors
- *          Whether or not to report errors.
- * @return  The file created in the temp directory.
- */
+
+
+
+
+
+
+
+
+
+
+
 function extractRDFFileToTempDir(zipFile, fileName, suppressErrors) {
   var file = FileUtils.getFile(KEY_TEMPDIR, [getRandomFileName(fileName)]);
   try {
@@ -808,12 +808,12 @@ function extractRDFFileToTempDir(zipFile, fileName, suppressErrors) {
   return file;
 }
 
-/**
- * Gets an Install Manifest datasource from a file.
- * @param   file
- *          The nsIFile that contains the Install Manifest RDF
- * @returns The Install Manifest datasource
- */
+
+
+
+
+
+
 function getInstallManifest(file) {
   var uri = getURIFromFile(file);
   try {
@@ -867,27 +867,27 @@ function getInstallManifest(file) {
   return null;
 }
 
-/**
- * Selects the closest matching localized resource in the given RDF resource
- * @param   aDataSource The datasource to look in
- * @param   aResource   The root resource containing the localized sections
- * @returns The nsIRDFResource of the best em:localized section or null
- *          if no valid match was found
- */
+
+
+
+
+
+
+
 function findClosestLocalizedResource(aDataSource, aResource) {
   var localizedProp = EM_R("localized");
   var localeProp = EM_R("locale");
 
-  // Holds the best matching localized resource
+  
   var bestmatch = null;
-  // The number of locale parts it matched with
+  
   var bestmatchcount = 0;
-  // The number of locale parts in the match
+  
   var bestpartcount = 0;
 
   var locales = [gLocale.toLowerCase()];
-  /* If the current locale is English then it will find a match if there is
-     a valid match for en-US so no point searching that locale too. */
+  
+
   if (locales[0].substring(0, 3) != "en-")
     locales.push("en-us");
 
@@ -904,25 +904,25 @@ function findClosestLocalizedResource(aDataSource, aResource) {
 
         found = found.toLowerCase();
 
-        // Exact match is returned immediately
+        
         if (locale == found)
           return localized;
   
         var fparts = found.split("-");
-        /* If we have found a possible match and this one isn't any longer
-           then we dont need to check further. */
+        
+
         if (bestmatch && fparts.length < bestmatchcount)
           continue;
   
-        // Count the number of parts that match
+        
         var maxmatchcount = Math.min(fparts.length, lparts.length);
         var matchcount = 0;
         while (matchcount < maxmatchcount &&
                fparts[matchcount] == lparts[matchcount])
           matchcount++;
   
-        /* If we matched more than the last best match or matched the same and
-           this locale is less specific than the last best match. */
+        
+
         if (matchcount > bestmatchcount ||
            (matchcount == bestmatchcount && fparts.length < bestpartcount)) {
           bestmatch = localized;
@@ -931,17 +931,17 @@ function findClosestLocalizedResource(aDataSource, aResource) {
         }
       }
     }
-    // If we found a valid match for this locale return it
+    
     if (bestmatch)
       return bestmatch;
   }
   return null;
 }
     
-/**
- * An enumeration of items in a JS array.
- * @constructor
- */
+
+
+
+
 function ArrayEnumerator(aItems) {
   if (aItems) {
     for (var i = 0; i < aItems.length; ++i) {
@@ -966,12 +966,12 @@ ArrayEnumerator.prototype = {
   }
 };
 
-/**
- * An enumeration of files in a JS array.
- * @param   files
- *          The files to enumerate
- * @constructor
- */
+
+
+
+
+
+
 function FileEnumerator(files) {
   if (files) {
     for (var i = 0; i < files.length; ++i) {
@@ -987,38 +987,38 @@ function FileEnumerator(files) {
 FileEnumerator.prototype = {
   _index: 0,
 
-  /**
-   * Gets the next file in the sequence.
-   */
+  
+
+
   get nextFile() {
     if (this._index < this._contents.length)
       return this._contents[this._index++];
     return null;
   },
 
-  /**
-   * Stop enumerating. Nothing to do here.
-   */
+  
+
+
   close: function FileEnumerator_close() {
   }
 };
 
-/**
- * An object which identifies an Install Location for items, where the location
- * relationship is each item living in a directory named with its GUID under
- * the directory used when constructing this object.
- *
- * e.g. <location>\{GUID1}
- *      <location>\{GUID2}
- *      <location>\{GUID3}
- *      ...
- *
- * @param   name
- *          The string identifier of this Install Location.
- * @param   location
- *          The directory that contains the items.
- * @constructor
- */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 function DirectoryInstallLocation(name, location, restricted, priority, independent) {
   this._name = name;
   if (location.exists()) {
@@ -1050,19 +1050,19 @@ DirectoryInstallLocation.prototype = {
   _independent    : false,
   _canAccess      : null,
 
-  /**
-   * See nsIExtensionManager.idl
-   */
+  
+
+
   get name() {
     return this._name;
   },
 
-  /**
-   * Reads a directory linked to in a file.
-   * @param   file
-   *          The file containing the directory path
-   * @returns A nsILocalFile object representing the linked directory.
-   */
+  
+
+
+
+
+
   _readDirectoryFromFile: function DirInstallLocation__readDirectoryFromFile(file) {
     var fis = Cc["@mozilla.org/network/file-input-stream;1"].
               createInstance(Ci.nsIFileInputStream);
@@ -1086,9 +1086,9 @@ DirectoryInstallLocation.prototype = {
     return null;
   },
 
-  /**
-   * See nsIExtensionManager.idl
-   */
+  
+
+
   get itemLocations() {
     var locations = [];
     if (!this._location.exists())
@@ -1119,15 +1119,15 @@ DirectoryInstallLocation.prototype = {
     return new FileEnumerator(locations);
   },
 
-  /**
-   * Retrieves the GUID for an item at the specified location.
-   * @param   file
-   *          The location where an item might live.
-   * @returns The ID for an item that might live at the location specified.
-   *
-   * N.B. This function makes no promises about whether or not this path is
-   *      actually maintained by this Install Location.
-   */
+  
+
+
+
+
+
+
+
+
   getIDForLocation: function DirInstallLocation_getIDForLocation(file) {
     var section = file.leafName;
     var filePD = file.persistentDescriptor;
@@ -1139,23 +1139,23 @@ DirectoryInstallLocation.prototype = {
     return undefined;
   },
 
-  /**
-   * See nsIExtensionManager.idl
-   */
+  
+
+
   get location() {
     return this._location.clone();
   },
 
-  /**
-   * See nsIExtensionManager.idl
-   */
+  
+
+
   get restricted() {
     return this._restricted;
   },
 
-  /**
-   * See nsIExtensionManager.idl
-   */
+  
+
+
   get canAccess() {
     if (this._canAccess != null)
       return this._canAccess;
@@ -1179,16 +1179,16 @@ DirectoryInstallLocation.prototype = {
     return this._canAccess;
   },
 
-  /**
-   * See nsIExtensionManager.idl
-   */
+  
+
+
   get priority() {
     return this._priority;
   },
 
-  /**
-   * See nsIExtensionManager.idl
-   */
+  
+
+
   getItemLocation: function DirInstallLocation_getItemLocation(id) {
     var itemLocation = this.location;
     itemLocation.append(id);
@@ -1200,9 +1200,9 @@ DirectoryInstallLocation.prototype = {
     return itemLocation;
   },
 
-  /**
-   * See nsIExtensionManager.idl
-   */
+  
+
+
   itemIsManagedIndependently: function DirInstallLocation_itemIsManagedIndependently(id) {
     if (this._independent)
       return true;
@@ -1211,9 +1211,9 @@ DirectoryInstallLocation.prototype = {
     return itemLocation.exists() && !itemLocation.isDirectory();
   },
 
-  /**
-   * See nsIExtensionManager.idl
-   */
+  
+
+
   getItemFile: function DirInstallLocation_getItemFile(id, filePath) {
     var itemLocation = this.getItemLocation(id);
     var parts = filePath.split("/");
@@ -1222,20 +1222,20 @@ DirectoryInstallLocation.prototype = {
     return itemLocation;
   },
 
-  /**
-   * Stages the specified file for later.
-   * @param   file
-   *          The file to stage
-   * @param   id
-   *          The GUID of the item the file represents
-   */
+  
+
+
+
+
+
+
   stageFile: function DirInstallLocation_stageFile(file, id) {
     var stagedFile = this.location;
     stagedFile.append(DIR_STAGE);
     stagedFile.append(id);
     stagedFile.append(file.leafName);
 
-    // When an incompatible update is successful the file is already staged
+    
     if (stagedFile.equals(file))
       return stagedFile;
 
@@ -1244,20 +1244,20 @@ DirectoryInstallLocation.prototype = {
 
     file.copyTo(stagedFile.parent, stagedFile.leafName);
 
-    // If the file has incorrect permissions set, correct them now.
+    
     if (!stagedFile.isWritable())
       stagedFile.permissions = FileUtils.PERMS_FILE;
 
     return stagedFile;
   },
 
-  /**
-   * Returns the most recently staged package (e.g. the last XPI or JAR in a
-   * directory) for an item and removes items that do not qualify.
-   * @param   id
-   *          The ID of the staged package
-   * @returns an nsIFile if the package exists otherwise null.
-   */
+  
+
+
+
+
+
+
   getStageFile: function DirInstallLocation_getStageFile(id) {
     var stageFile = null;
     var stageDir = this.location;
@@ -1289,20 +1289,20 @@ DirectoryInstallLocation.prototype = {
     return stageFile;
   },
 
-  /**
-   * Removes a file from the stage. This cleans up the stage if there is nothing
-   * else left after the remove operation.
-   * @param   file
-   *          The file to remove.
-   */
+  
+
+
+
+
+
   removeFile: function DirInstallLocation_removeFile(file) {
     if (file.exists())
       file.remove(false);
     var parent = file.parent;
     var entries = parent.directoryEntries;
     try {
-      // XXXrstrong calling hasMoreElements on a nsIDirectoryEnumerator after
-      // it has been removed will cause a crash on Mac OS X - bug 292823
+      
+      
       while (parent && !parent.equals(this.location) &&
             !entries.hasMoreElements()) {
         parent.remove(false);
@@ -1325,24 +1325,24 @@ DirectoryInstallLocation.prototype = {
 
 const nsIWindowsRegKey = Ci.nsIWindowsRegKey;
 
-/**
- * An object that identifies the location of installed items based on entries
- * in the Windows registry.  For each application a subkey is defined that
- * contains a set of values, where the name of each value is a GUID and the
- * contents of the value is a filesystem path identifying a directory
- * containing an installed item.
- *
- * @param   name
- *          The string identifier of this Install Location.
- * @param   rootKey
- *          The root key (one of the ROOT_KEY_ values from nsIWindowsRegKey).
- * @param   restricted
- *          Indicates that the location may be restricted (e.g., this is
- *          usually true of a system level install location).
- * @param   priority
- *          The priority of this install location.
- * @constructor
- */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 function WinRegInstallLocation(name, rootKey, restricted, priority) {
   this._name = name;
   this._rootKey = rootKey;
@@ -1351,8 +1351,8 @@ function WinRegInstallLocation(name, rootKey, restricted, priority) {
   this._IDToDirMap = {};
   this._DirToIDMap = {};
 
-  // Reading the registry may throw an exception, and that's ok.  In error
-  // cases, we just leave ourselves in the empty state.
+  
+  
   try {
     var path = this._appKeyPath + "\\Extensions";
     var key = Cc["@mozilla.org/windows-registry-key;1"].
@@ -1369,35 +1369,35 @@ WinRegInstallLocation.prototype = {
   _rootKey    : null,
   _restricted : false,
   _priority   : 0,
-  _IDToDirMap : null,  // mapping from ID to directory object
-  _DirToIDMap : null,  // mapping from directory path to ID
+  _IDToDirMap : null,  
+  _DirToIDMap : null,  
 
-  /**
-   * Retrieves the path of this Application's data key in the registry.
-   */
+  
+
+
   get _appKeyPath() {
     var appVendor = gApp.vendor;
     var appName = gApp.name;
 
 #ifdef MOZ_THUNDERBIRD
-    // XXX Thunderbird doesn't specify a vendor string!!
+    
     if (appVendor == "")
       appVendor = "Mozilla";
 #endif
 
-    // XULRunner-based apps may intentionally not specify a vendor:
+    
     if (appVendor != "")
       appVendor += "\\";
 
     return "SOFTWARE\\" + appVendor + appName;
   },
 
-  /**
-   * Read the registry and build a mapping between GUID and directory for each
-   * installed item.
-   * @param   key
-   *          The key that contains the GUID->path pairs
-   */
+  
+
+
+
+
+
   _readAddons: function RegInstallLocation__readAddons(key) {
     var count = key.valueCount;
     for (var i = 0; i < count; ++i) {
@@ -1434,7 +1434,7 @@ WinRegInstallLocation.prototype = {
     return this._restricted;
   },
 
-  // you should never be able to write to this location
+  
   get canAccess() {
     return false;
   },
@@ -1472,26 +1472,26 @@ WinRegInstallLocation.prototype = {
 
 #endif
 
-/**
- * Safely attempt to install or uninstall a given item ID in an install
- * location. Using aggressive success-safety checks, this function will attempt
- * to move an existing location for an item aside and then allow installation
- * into the appropriate folder. If any operation fails the installation will
- * abort and roll back from the moved-aside old version.
- * @param   itemID
- *          The GUID of the item to perform the operation on.
- * @param   installLocation
- *          The Install Location where the item is installed.
- * @param   file
- *          An xpi file to install to the location or null to just uninstall
- */
+
+
+
+
+
+
+
+
+
+
+
+
+
 function safeInstallOperation(itemID, installLocation, file) {
   var movedFiles = [];
 
-  /**
-   * Reverts a deep move by moving backed up files back to their original
-   * location.
-   */
+  
+
+
+
   function rollbackMove()
   {
     for (var i = 0; i < movedFiles.length; ++i) {
@@ -1509,13 +1509,13 @@ function safeInstallOperation(itemID, installLocation, file) {
     }
   }
 
-  /**
-   * Moves a file to a new folder.
-   * @param   file
-   *          The file to move
-   * @param   destination
-   *          The target folder
-   */
+  
+
+
+
+
+
+
   function moveFile(file, destination) {
     try {
       var oldFile = file.clone();
@@ -1531,17 +1531,17 @@ function safeInstallOperation(itemID, installLocation, file) {
     }
   }
 
-  /**
-   * Moves a directory to a new location. If any part of the move fails,
-   * files already moved will be rolled back.
-   * @param   sourceDir
-   *          The directory to move
-   * @param   targetDir
-   *          The destination directory
-   * @param   currentDir
-   *          The current directory (a subdirectory of |sourceDir| or
-   *          |sourceDir| itself) we are moving files from.
-   */
+  
+
+
+
+
+
+
+
+
+
+
   function moveDirectory(sourceDir, targetDir, currentDir) {
     var entries = currentDir.directoryEntries.QueryInterface(Ci.nsIDirectoryEnumerator);
     while (true) {
@@ -1560,21 +1560,21 @@ function safeInstallOperation(itemID, installLocation, file) {
     entries.close();
   }
 
-  /**
-   * Removes the temporary backup directory where we stored files.
-   * @param   directory
-   *          The backup directory to remove
-   */
+  
+
+
+
+
   function cleanUpTrash(directory) {
     try {
-      // Us-generated. Safe.
+      
       if (directory && directory.exists())
         removeDirRecursive(directory);
     }
     catch (e) {
       ERROR("safeInstallOperation: failed to clean up the temporary backup of the " +
             "older version: " + itemLocationTrash.path);
-      // This is a non-fatal error. Annoying, but non-fatal.
+      
     }
   }
 
@@ -1585,9 +1585,9 @@ function safeInstallOperation(itemID, installLocation, file) {
       var itemLocationTrash = itemLocation.parent.clone();
       itemLocationTrash.append(trashDirName);
       if (itemLocationTrash.exists()) {
-        // We can remove recursively here since this is a folder we created, not
-        // one the user specified. If this fails, it'll throw, and the caller
-        // should stop installation.
+        
+        
+        
         try {
           removeDirRecursive(itemLocationTrash);
         }
@@ -1598,13 +1598,13 @@ function safeInstallOperation(itemID, installLocation, file) {
         }
       }
 
-      // Move the directory that contains the existing version of the item aside,
-      // into {GUID}-trash. This will throw if there's a failure and the install
-      // will abort.
+      
+      
+      
       moveDirectory(itemLocation, itemLocationTrash, itemLocation);
 
-      // Clean up the original location, if necessary. Again, this is a path we
-      // generated, so it is safe to recursively delete.
+      
+      
       try {
         removeDirRecursive(itemLocation);
       }
@@ -1621,7 +1621,7 @@ function safeInstallOperation(itemID, installLocation, file) {
   else if (installLocation.name == KEY_APP_PROFILE ||
            installLocation.name == KEY_APP_GLOBAL ||
            installLocation.name == KEY_APP_SYSTEM_USER) {
-    // Check for a pointer file and move it aside if it exists
+    
     var pointerFile = installLocation.location.clone();
     pointerFile.append(itemID);
     if (pointerFile.exists() && !pointerFile.isDirectory()) {
@@ -1629,9 +1629,9 @@ function safeInstallOperation(itemID, installLocation, file) {
       var itemLocationTrash = installLocation.location.clone();
       itemLocationTrash.append(trashFileName);
       if (itemLocationTrash.exists()) {
-        // We can remove recursively here since this is a folder we created, not
-        // one the user specified. If this fails, it'll throw, and the caller
-        // should stop installation.
+        
+        
+        
         try {
           removeDirRecursive(itemLocationTrash);
         }
@@ -1643,17 +1643,17 @@ function safeInstallOperation(itemID, installLocation, file) {
       }
       itemLocationTrash.create(Ci.nsILocalFile.DIRECTORY_TYPE,
                                FileUtils.PERMS_DIRECTORY);
-      // Move the pointer file to the trash.
+      
       moveFile(pointerFile, itemLocationTrash);
     }
   }
 
   if (file) {
-    // Extract the xpi's files into the new directory
+    
     try {
       var zipReader = getZipReaderForFile(file);
 
-      // create directories first
+      
       var entries = zipReader.findEntries("*/");
       while (entries.hasMore()) {
         var entryName = entries.getNext();
@@ -1682,11 +1682,11 @@ function safeInstallOperation(itemID, installLocation, file) {
       }
     }
     catch (e) {
-      // This means the install operation failed. Remove everything and roll back.
+      
       ERROR("safeInstallOperation: file extraction failed, " +
             "rolling back file moves and aborting installation.");
       try {
-        // Us-generated. Safe.
+        
         removeDirRecursive(itemLocation);
       }
       catch (e) {
@@ -1706,28 +1706,28 @@ function safeInstallOperation(itemID, installLocation, file) {
     }
   }
 
-  // Now, and only now - after everything else has succeeded (against all odds!)
-  // remove the {GUID}-trash directory where we stashed the old version of the
-  // item.
+  
+  
+  
   cleanUpTrash(itemLocationTrash);
 }
 
-/**
- * Manages the list of pending operations.
- */
+
+
+
 var PendingOperations = {
   _ops: { },
 
-  /**
-   * Adds an entry to the Pending Operations List
-   * @param   opType
-   *          The type of Operation to be performed
-   * @param   entry
-   *          A JS Object representing the item to be operated on:
-   *          "locationKey"   The name of the Install Location where the item
-   *                          is installed.
-   *          "id"            The GUID of the item.
-   */
+  
+
+
+
+
+
+
+
+
+
   addItem: function PendingOperations_addItem(opType, entry) {
     if (opType == OP_NONE)
       this.clearOpsForItem(entry.id);
@@ -1738,23 +1738,23 @@ var PendingOperations = {
     }
   },
 
-  /**
-   * Removes a Pending Operation from the list
-   * @param   opType
-   *          The type of Operation being removed
-   * @param   id
-   *          The GUID of the item to remove the entry for
-   */
+  
+
+
+
+
+
+
   clearItem: function PendingOperations_clearItem(opType, id) {
     if (opType in this._ops && id in this._ops[opType])
       delete this._ops[opType][id];
   },
 
-  /**
-   * Removes all Pending Operation for an item
-   * @param   id
-   *          The ID of the item to remove the entries for
-   */
+  
+
+
+
+
   clearOpsForItem: function PendingOperations_clearOpsForItem(id) {
     for (var opType in this._ops) {
       if (id in this._ops[opType])
@@ -1762,21 +1762,21 @@ var PendingOperations = {
     }
   },
 
-  /**
-   * Remove all Pending Operations of a certain type
-   * @param   opType
-   *          The type of Operation to remove all entries for
-   */
+  
+
+
+
+
   clearItems: function PendingOperations_clearItems(opType) {
     if (opType in this._ops)
       delete this._ops[opType];
   },
 
-  /**
-   * Get an array of operations of a certain type
-   * @param   opType
-   *          The type of Operation to return a list of
-   */
+  
+
+
+
+
   getOperations: function PendingOperations_getOperations(opType) {
     if (!(opType in this._ops))
       return [];
@@ -1786,9 +1786,9 @@ var PendingOperations = {
     return ops;
   },
 
-  /**
-   * The total number of Pending Operations, for all types.
-   */
+  
+
+
   get size() {
     var size = 0;
     for (var opType in this._ops) {
@@ -1799,15 +1799,15 @@ var PendingOperations = {
   }
 };
 
-/**
- * Manages registered Install Locations
- */
+
+
+
 var InstallLocations = {
   _locations: { },
 
-  /**
-   * A nsISimpleEnumerator of all available Install Locations.
-   */
+  
+
+
   get enumeration() {
     var installLocations = [];
     for (var key in this._locations)
@@ -1815,54 +1815,54 @@ var InstallLocations = {
     return new ArrayEnumerator(installLocations);
   },
 
-  /**
-   * Gets a named Install Location
-   * @param   name
-   *          The name of the Install Location to get
-   */
+  
+
+
+
+
   get: function InstallLocations_get(name) {
     return name in this._locations ? this._locations[name] : null;
   },
 
-  /**
-   * Registers an Install Location
-   * @param   installLocation
-   *          The Install Location to register
-   */
+  
+
+
+
+
   put: function InstallLocations_put(installLocation) {
     this._locations[installLocation.name] = installLocation;
   }
 };
 
-/**
- * Manages the Startup Cache. The Startup Cache is a representation
- * of the contents of extensions.cache, a list of all
- * items the Extension System knows about, whether or not they
- * are active or visible.
- */
+
+
+
+
+
+
 var StartupCache = {
-  /**
-   * Location Name -> GUID hash of entries from the Startup Cache file
-   * Each entry has the following properties:
-   *  "descriptor"    The location on disk of the item
-   *  "mtime"         The time the location was last modified
-   *  "op"            Any pending operations on this item.
-   *  "location"      The Install Location name where the item is installed.
-   */
+  
+
+
+
+
+
+
+
   entries: { },
 
-  /**
-   * Puts an entry into the Startup Cache
-   * @param   installLocation
-   *          The Install Location where the item is installed
-   * @param   id
-   *          The GUID of the item
-   * @param   op
-   *          The name of the operation to be performed
-   * @param   shouldCreate
-   *          Whether or not we should create a new entry for this item
-   *          in the cache if one does not already exist.
-   */
+  
+
+
+
+
+
+
+
+
+
+
+
   put: function StartupCache_put(installLocation, id, op, shouldCreate) {
     var itemLocation = installLocation.getItemLocation(id);
 
@@ -1878,26 +1878,26 @@ var StartupCache = {
     this._putRaw(installLocation.name, id, descriptor, mtime, op, shouldCreate);
   },
 
-  /**
-   * Private helper function for putting an entry into the Startup Cache
-   * without relying on the presence of its associated nsIInstallLocation
-   * instance.
-   *
-   * @param key
-   *        The install location name.
-   * @param id
-   *        The ID of the item.
-   * @param descriptor
-   *        Value returned from absoluteDescriptor.  May be null, in which
-   *        case the descriptor field is not updated.
-   * @param mtime
-   *        The last modified time of the item.  May be null, in which case the
-   *        descriptor field is not updated.
-   * @param op
-   *        The OP code to store with the entry.
-   * @param shouldCreate
-   *        Boolean value indicating whether to create or delete the entry.
-   */
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   _putRaw: function StartupCache__putRaw(key, id, descriptor, mtime, op, shouldCreate) {
     if (!(key in this.entries))
       this.entries[key] = { };
@@ -1920,25 +1920,25 @@ var StartupCache = {
       this.entries[key][id] = null;
   },
 
-  /**
-   * Clears an entry from the Startup Cache
-   * @param   installLocation
-   *          The Install Location where item is installed
-   * @param   id
-   *          The GUID of the item.
-   */
+  
+
+
+
+
+
+
   clearEntry: function StartupCache_clearEntry(installLocation, id) {
     var key = installLocation.name;
     if (key in this.entries && id in this.entries[key])
       this.entries[key][id] = null;
   },
 
-  /**
-   * Get all the startup cache entries for a particular ID.
-   * @param   id
-   *          The GUID of the item to locate.
-   * @returns An array of Startup Cache entries for the specified ID.
-   */
+  
+
+
+
+
+
   findEntries: function StartupCache_findEntries(id) {
     var entries = [];
     for (var key in this.entries) {
@@ -1948,18 +1948,18 @@ var StartupCache = {
     return entries;
   },
 
-  /**
-   * Read the Item-Change manifest file into a hash of properties.
-   * The Item-Change manifest currently holds a list of paths, with the last
-   * mtime for each path, and the GUID of the item at that path.
-   */
+  
+
+
+
+
   read: function StartupCache_read() {
     var itemChangeManifest = FileUtils.getFile(KEY_PROFILEDIR,
                                                [FILE_EXTENSIONS_STARTUP_CACHE]);
     if (!itemChangeManifest.exists()) {
-      // There is no change manifest for some reason, either we're in an initial
-      // state or something went wrong with one of the other files and the
-      // change manifest was removed. Return an empty dataset and rebuild.
+      
+      
+      
       gFirstRun = true;
       return;
     }
@@ -1972,18 +1972,18 @@ var StartupCache = {
       do {
         more = fis.readLine(line);
         if (line.value) {
-          // The Item-Change manifest is formatted like so:
-          //  (pd = descriptor)
-          // location-key\tguid-of-item\tpd-to-extension1\tmtime-of-pd\tpending-op
-          // location-key\tguid-of-item\tpd-to-extension2\tmtime-of-pd\tpending-op
-          // ...
-          // We hash on location-key first, because we don't want to have to
-          // spin up the main extensions datasource on every start to determine
-          // the Install Location for an item.
-          // We hash on guid second, because we want a way to quickly determine
-          // item GUID during a check loop that runs on every startup.
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
           var parts = line.value.split("\t");
-          // Silently drop any entries in unknown install locations
+          
           if (!InstallLocations.get(parts[0]))
             continue;
           var op = parts[4];
@@ -1997,9 +1997,9 @@ var StartupCache = {
     fis.close();
   },
 
-  /**
-   * Writes the Startup Cache to disk
-   */
+  
+
+
   write: function StartupCache_write() {
     var extensionsCacheFile = FileUtils.getFile(KEY_PROFILEDIR,
                                                 [FILE_EXTENSIONS_STARTUP_CACHE]);
@@ -2011,14 +2011,14 @@ var StartupCache = {
           try {
             var itemLocation = getFileFromDescriptor(entry.descriptor, InstallLocations.get(locationKey));
 
-            // Update our knowledge of this item's last-modified-time.
-            // XXXdarin: this may cause us to miss changes in some cases.
+            
+            
             var itemMTime = 0;
             if (itemLocation.exists() && itemLocation.isDirectory())
               itemMTime = Math.floor(itemLocation.lastModifiedTime / 1000);
 
-            // Each line in the startup cache manifest is in this form:
-            // location-key\tid-of-item\tpd-to-extension1\tmtime-of-pd\tpending-op
+            
+            
             var line = locationKey + "\t" + id + "\t" + entry.descriptor + "\t" +
                        itemMTime + "\t" + entry.op + "\r\n";
             fos.write(line, line.length);
@@ -2031,10 +2031,10 @@ var StartupCache = {
   }
 };
 
-/**
- * Installs, manages and tracks compatibility for Extensions and Themes
- * @constructor
- */
+
+
+
+
 function ExtensionManager() {
   gApp = Cc["@mozilla.org/xre/app-info;1"].
          getService(Ci.nsIXULAppInfo).QueryInterface(Ci.nsIXULRuntime);
@@ -2042,10 +2042,10 @@ function ExtensionManager() {
   try {
     gXPCOMABI = gApp.XPCOMABI;
   } catch (ex) {
-    // Provide a default for gXPCOMABI. It won't be compared to an
-    // item's metadata (i.e. install.rdf can't specify e.g. WINNT_unknownABI
-    // as targetPlatform), but it will be displayed in error messages and
-    // transmitted to update URLs.
+    
+    
+    
+    
     gXPCOMABI = UNKNOWN_XPCOM_ABI;
   }
   gPref = Cc["@mozilla.org/preferences-service;1"].
@@ -2069,7 +2069,7 @@ function ExtensionManager() {
          getService(Ci.nsIRDFService);
   gInstallManifestRoot = gRDF.GetResource(RDFURI_INSTALL_MANIFEST_ROOT);
 
-  // Register Global Install Location
+  
   var appGlobalExtensions = FileUtils.getDir(KEY_APPDIR, [DIR_EXTENSIONS],
                                              false);
   var priority = Ci.nsIInstallLocation.PRIORITY_APP_SYSTEM_GLOBAL;
@@ -2078,7 +2078,7 @@ function ExtensionManager() {
                                                     priority, false);
   InstallLocations.put(globalLocation);
 
-  // Register App-Profile Install Location
+  
   var appProfileExtensions = FileUtils.getDir(KEY_PROFILEDS, [DIR_EXTENSIONS],
                                               false);
   var priority = Ci.nsIInstallLocation.PRIORITY_APP_PROFILE;
@@ -2087,7 +2087,7 @@ function ExtensionManager() {
                                                      priority, false);
   InstallLocations.put(profileLocation);
 
-  // Register per-user Install Location
+  
   try {
     var appSystemUExtensions = FileUtils.getDir("XREUSysExt", [gApp.ID], false);
   }
@@ -2102,7 +2102,7 @@ function ExtensionManager() {
     InstallLocations.put(systemLocation);
   }
 
-  // Register App-System-Shared Install Location
+  
   try {
     var appSystemSExtensions = FileUtils.getDir("XRESysSExtPD", [gApp.ID], false);
   }
@@ -2116,7 +2116,7 @@ function ExtensionManager() {
     InstallLocations.put(systemLocation);
   }
 
-  // Register App-System-Local Install Location
+  
   try {
     var appSystemLExtensions = FileUtils.getDir("XRESysLExtPD", [gApp.ID], false);
   }
@@ -2131,14 +2131,14 @@ function ExtensionManager() {
   }
 
 #ifdef XP_WIN
-  // Register HKEY_LOCAL_MACHINE Install Location
+  
   InstallLocations.put(
       new WinRegInstallLocation("winreg-app-global",
                                 nsIWindowsRegKey.ROOT_KEY_LOCAL_MACHINE,
                                 true,
                                 Ci.nsIInstallLocation.PRIORITY_APP_SYSTEM_GLOBAL + 10));
 
-  // Register HKEY_CURRENT_USER Install Location
+  
   InstallLocations.put(
       new WinRegInstallLocation("winreg-app-user",
                                 nsIWindowsRegKey.ROOT_KEY_CURRENT_USER,
@@ -2146,7 +2146,7 @@ function ExtensionManager() {
                                 Ci.nsIInstallLocation.PRIORITY_APP_SYSTEM_USER + 10));
 #endif
 
-  // Register Additional Install Locations
+  
   var categoryManager = Cc["@mozilla.org/categorymanager;1"].
                         getService(Ci.nsICategoryManager);
   var locations = categoryManager.enumerateCategory(CATEGORY_INSTALL_LOCATIONS);
@@ -2159,9 +2159,9 @@ function ExtensionManager() {
 }
 
 ExtensionManager.prototype = {
-  /**
-   * See nsIObserver.idl
-   */
+  
+
+
   observe: function EM_observe(subject, topic, data) {
     switch (topic) {
     case "profile-after-change":
@@ -2196,7 +2196,7 @@ ExtensionManager.prototype = {
         gPref.setCharPref(PREF_DSS_SKIN_TO_SELECT, gDefaultTheme);
         gPref.setCharPref(PREF_LWTHEME_TO_SELECT, theme.id);
 
-        // Open the UI so the user can see that a restart is necessary
+        
         var wm = Cc["@mozilla.org/appshell/window-mediator;1"].
                  getService(Ci.nsIWindowMediator);
         var win = wm.getMostRecentWindow("Extension:Manager");
@@ -2218,8 +2218,8 @@ ExtensionManager.prototype = {
         return;
       }
       else {
-        // Cancel any pending theme change and allow the lightweight theme
-        // change to go ahead
+        
+        
         if (gPref.prefHasUserValue(PREF_DSS_SWITCHPENDING))
           gPref.clearUserPref(PREF_DSS_SWITCHPENDING);
         if (gPref.prefHasUserValue(PREF_DSS_SKIN_TO_SELECT))
@@ -2241,17 +2241,17 @@ ExtensionManager.prototype = {
     }
   },
 
-  /**
-   * Refresh the logging enabled global from preferences when the user changes
-   * the preference settting.
-   */
+  
+
+
+
   _loggingToggled: function EM__loggingToggled() {
     gLoggingEnabled = getPref("getBoolPref", PREF_EM_LOGGING_ENABLED, false);
   },
 
-  /**
-   * Retrieves the current locale
-   */
+  
+
+
   _updateLocale: function EM__updateLocale() {
     try {
       if (gPref.getBoolPref(PREF_MATCH_OS_LOCALE)) {
@@ -2266,24 +2266,24 @@ ExtensionManager.prototype = {
     gLocale = gPref.getCharPref(PREF_SELECTED_LOCALE);
   },
 
-  /**
-   * When a preference is toggled that affects whether an item is usable or not
-   * we must app-enable or app-disable the item based on the new settings.
-   */
+  
+
+
+
   _updateAppDisabledState: function EM__updateAppDisabledState() {
     gCheckCompatibility = getPref("getBoolPref", gCheckCompatibilityPref, true);
     gCheckUpdateSecurity = getPref("getBoolPref", PREF_EM_CHECK_UPDATE_SECURITY, true);
     var ds = this.datasource;
 
-    // Enumerate all items
+    
     var ctr = getContainer(ds, ds._itemRoot);
     var elements = ctr.GetElements();
     while (elements.hasMoreElements()) {
       var itemResource = elements.getNext().QueryInterface(Ci.nsIRDFResource);
 
-      // App disable or enable items as necessary
-      // _appEnableItem and _appDisableItem will do nothing if the item is already
-      // in the right state.
+      
+      
+      
       var id = stripPrefix(itemResource.Value, PREFIX_ITEM_URI);
       if (this._isUsableItem(id))
         this._appEnableItem(id);
@@ -2292,11 +2292,11 @@ ExtensionManager.prototype = {
     }
   },
 
-  /**
-   * Initialize the system after a profile has been selected.
-   */
+  
+
+
   _profileSelected: function EM__profileSelected() {
-    // Tell the Chrome Registry which Skin to select
+    
     try {
       if (gPref.getBoolPref(PREF_DSS_SWITCHPENDING)) {
         var toSelect = gPref.getCharPref(PREF_DSS_SKIN_TO_SELECT);
@@ -2304,8 +2304,8 @@ ExtensionManager.prototype = {
         gPref.clearUserPref(PREF_DSS_SWITCHPENDING);
         gPref.clearUserPref(PREF_DSS_SKIN_TO_SELECT);
 
-        // If we've changed to a non-default theme make sure there is no
-        // lightweight theme selected
+        
+        
         if (toSelect != gDefaultTheme) {
           if (gPref.prefHasUserValue(PREF_LWTHEME_TO_SELECT))
             gPref.clearUserPref(PREF_LWTHEME_TO_SELECT);
@@ -2333,7 +2333,7 @@ ExtensionManager.prototype = {
     gCheckUpdateSecurity = getPref("getBoolPref", PREF_EM_CHECK_UPDATE_SECURITY, true);
 
     if ("nsICrashReporter" in Ci && gApp instanceof Ci.nsICrashReporter) {
-      // Annotate the crash report with relevant add-on information.
+      
       try {
         gApp.annotateCrashReport("Add-ons", gPref.getCharPref(PREF_EM_ENABLED_ITEMS));
       } catch (e) { }
@@ -2351,9 +2351,9 @@ ExtensionManager.prototype = {
     this._updateLocale();
   },
 
-  /**
-   * Notify user that there are new addons updates
-   */
+  
+
+
   _showUpdatesWindow: function EM__showUpdatesWindow() {
     if (!getPref("getBoolPref", PREF_UPDATE_NOTIFYUSER, false))
       return;
@@ -2369,12 +2369,12 @@ ExtensionManager.prototype = {
     ww.openWindow(null, URI_EXTENSION_MANAGER, null, FEATURES_EXTENSION_UPDATES, param);
   },
 
-  /**
-   * Clean up on application shutdown to avoid leaks.
-   */
+  
+
+
   _shutdown: function EM__shutdown() {
     if (!gAllowFlush) {
-      // Something went wrong and there are potentially flushes pending.
+      
       ERROR("Reached _shutdown and without clearing any pending flushes");
       try {
         gAllowFlush = true;
@@ -2396,7 +2396,7 @@ ExtensionManager.prototype = {
     gOS.removeObserver(this, "lightweight-theme-preview-requested");
     gOS.removeObserver(this, "lightweight-theme-change-requested");
 
-    // Release strongly held services.
+    
     gOS = null;
     if (this._ds) {
       gRDF.UnregisterDataSource(this._ptr);
@@ -2417,13 +2417,13 @@ ExtensionManager.prototype = {
     gApp = null;
   },
 
-  /**
-   * Check for presence of critical Extension system files. If any is missing,
-   * delete the others and signal that the system needs to rebuild them all
-   * from scratch.
-   * @returns true if any critical file is missing and the system needs to
-   *          be rebuilt, false otherwise.
-   */
+  
+
+
+
+
+
+
   _ensureDatasetIntegrity: function EM__ensureDatasetIntegrity() {
     var profD = FileUtils.getDir(KEY_PROFILEDIR, [], false);
     var extensionsDS = profD.clone();
@@ -2440,36 +2440,36 @@ ExtensionManager.prototype = {
     if (dsExists && iniExists && cacheExists)
       return [false, !iniExists];
 
-    // If any of the files are missing, remove the .ini file
+    
     if (iniExists)
       extensionsINI.remove(false);
 
-    // If the extensions datasource is missing remove the .cache file if it exists
+    
     if (!dsExists && cacheExists)
       extensionsCache.remove(false);
 
     return [true, !iniExists];
   },
 
-  /**
-   * See nsIExtensionManager.idl
-   */
+  
+
+
   start: function EM_start() {
     var isDirty, forceAutoReg;
 
-    // Check for missing manifests - e.g. missing extensions.ini, missing
-    // extensions.cache, extensions.rdf etc. If any of these files
-    // is missing then we are in some kind of weird or initial state and need
-    // to force a regeneration.
+    
+    
+    
+    
     [isDirty, forceAutoReg] = this._ensureDatasetIntegrity();
 
-    // Block attempts to flush for the entire startup
+    
     gAllowFlush = false;
 
-    // Configure any items that are being installed, uninstalled or upgraded
-    // by being added, removed or modified by another process. We must do this
-    // on every startup since there is no way we can tell if this has happened
-    // or not!
+    
+    
+    
+    
     if (this._checkForFileChanges())
       isDirty = true;
 
@@ -2479,7 +2479,7 @@ ExtensionManager.prototype = {
       isDirty = true;
 
     var needsRestart = false;
-    // Extension Changes
+    
     if (isDirty) {
       needsRestart = this._finishOperations();
 
@@ -2489,7 +2489,7 @@ ExtensionManager.prototype = {
       }
     }
 
-    // Resume flushing and perform a flush for anything that was deferred
+    
     try {
       gAllowFlush = true;
       if (gManifestNeedsFlush) {
@@ -2508,11 +2508,11 @@ ExtensionManager.prototype = {
     return needsRestart;
   },
 
-  /**
-   * Notified when a timer fires
-   * @param   timer
-   *          The timer that fired
-   */
+  
+
+
+
+
   notify: function EM_notify(timer) {
     if (!getPref("getBoolPref", PREF_EM_UPDATE_ENABLED, true))
       return;
@@ -2528,22 +2528,22 @@ ExtensionManager.prototype = {
     LightweightThemeManager.updateCurrentTheme();
   },
 
-  /**
-   * Check to see if a file is a XPI/JAR file that the user dropped into this
-   * Install Location. (i.e. a XPI that is not a staged XPI from an install
-   * transaction that is currently in operation).
-   * @param   file
-   *          The XPI/JAR file to configure
-   * @param   location
-   *          The Install Location where this file was found.
-   * @returns A nsIUpdateItem representing the dropped XPI if this file was a
-   *          XPI/JAR that needs installation, null otherwise.
-   */
+  
+
+
+
+
+
+
+
+
+
+
   _getItemForDroppedFile: function EM__getItemForDroppedFile(file, location) {
     if (fileIsItemPackage(file)) {
-      // We know nothing about this item, it is not something we've
-      // staged in preparation for finalization, so assume it's something
-      // the user dropped in.
+      
+      
+      
       LOG("A Item Package appeared at: " + file.path + " that we know " +
           "nothing about, assuming it was dropped in by the user and " +
           "configuring for installation now. Location Key: " + location.name);
@@ -2562,8 +2562,8 @@ ExtensionManager.prototype = {
                       targetAppInfo ? targetAppInfo.minVersion : "",
                       targetAppInfo ? targetAppInfo.maxVersion : "",
                       getManifestProperty(installManifest, "name"),
-                      "", /* XPI Update URL */
-                      "", /* XPI Update Hash */
+                      "", 
+                      "", 
                       getManifestProperty(installManifest, "iconURL"),
                       getManifestProperty(installManifest, "updateURL"),
                       getManifestProperty(installManifest, "updateKey"),
@@ -2573,29 +2573,29 @@ ExtensionManager.prototype = {
     return null;
   },
 
-  /**
-   * Configure an item that was installed or upgraded by another process
-   * so that |_finishOperations| can properly complete processing and
-   * registration.
-   * As this is the only point at which we can reliably know the Install
-   * Location of this item, we use this as an opportunity to:
-   * 1. Check that this item is compatible with this Firefox version.
-   * 2. If it is, configure the item by using the supplied callback.
-   *    We do not do any special handling in the case that the item is
-   *    not compatible with this version other than to simply not register
-   *    it and log that fact - there is no "phone home" check for updates.
-   *    It may or may not make sense to do this, but for now we'll just
-   *    not register.
-   * @param   id
-   *          The GUID of the item to validate and configure.
-   * @param   location
-   *          The Install Location where this item is installed.
-   * @param   callback
-   *          The callback that configures the item for installation upon
-   *          successful validation.
-   */
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
    installItem: function EM_installItem(id, location, callback) {
-    // As this is the only pint at which we reliably know the installation
+    
     var installRDF = location.getItemFile(id, FILE_INSTALL_MANIFEST);
     if (installRDF.exists()) {
       LOG("Item Installed/Upgraded at Install Location: " + location.name +
@@ -2627,12 +2627,12 @@ ExtensionManager.prototype = {
         this.disableItem(id);
       }
       else {
-        /**
-         * Turns an error code into a message for logging
-         * @param   error
-         *          an Install Error code
-         * @returns A string message to be logged.
-         */
+        
+
+
+
+
+
         function translateErrorMessage(error) {
           switch (error) {
           case INSTALLERROR_INVALID_GUID:
@@ -2646,32 +2646,32 @@ ExtensionManager.prototype = {
         LOG("... failure, item is not compatible, error: " +
             translateErrorMessage(installData.error));
 
-        // Add the item to the Startup Cache anyway, so we don't re-detect it
-        // every time the app starts.
+        
+        
         StartupCache.put(location, id, OP_NONE, true);
       }
     }
   },
 
-  /**
-   * Check for changes to items that were made independently of the Extension
-   * Manager, e.g. items were added or removed from a Install Location or items
-   * in an Install Location changed.
-   */
+  
+
+
+
+
   _checkForFileChanges: function EM__checkForFileChanges() {
     var em = this;
 
-    /**
-     * Determines if an item can be used based on whether or not the install
-     * location of the "item" has an equal or higher priority than the install
-     * location where another version may live.
-     * @param   id
-     *          The GUID of the item being installed.
-     * @param   location
-     *          The location where an item is to be installed.
-     * @returns true if the item can be installed at that location, false
-     *          otherwise.
-     */
+    
+
+
+
+
+
+
+
+
+
+
     function canUse(id, location) {
       for (var locationKey in StartupCache.entries) {
         if (locationKey != location.name &&
@@ -2686,22 +2686,22 @@ ExtensionManager.prototype = {
       return true;
     }
 
-    /**
-      * Gets a Dialog Param Block loaded with a set of strings to initialize the
-      * XPInstall Confirmation Dialog.
-      * @param   strings
-      *          An array of strings
-      * @returns A nsIDialogParamBlock loaded with the strings and dialog state.
-      */
+    
+
+
+
+
+
+
     function getParamBlock(strings) {
       var dpb = Cc["@mozilla.org/embedcomp/dialogparam;1"].
                 createInstance(Ci.nsIDialogParamBlock);
-      // OK and Cancel Buttons
+      
       dpb.SetInt(0, 2);
-      // Number of Strings
+      
       dpb.SetInt(1, strings.length);
       dpb.SetNumberStrings(strings.length);
-      // Add Strings
+      
       for (var i = 0; i < strings.length; ++i)
         dpb.SetString(i, strings[i]);
 
@@ -2716,17 +2716,17 @@ ExtensionManager.prototype = {
       return dpb;
     }
 
-    /**
-     * Installs a set of files which were dropped into an install location by
-     * the user, only after user confirmation.
-     * @param   droppedInFiles
-     *          An array of JS objects with the following properties:
-     *          "file"      The nsILocalFile where the XPI lives
-     *          "location"  The Install Location where the XPI was found.
-     * @param   xpinstallStrings
-     *          An array of strings used to initialize the XPInstall Confirm
-     *          dialog.
-     */
+    
+
+
+
+
+
+
+
+
+
+
     function installDroppedInFiles(droppedInFiles, xpinstallStrings) {
       if (droppedInFiles.length == 0)
         return;
@@ -2741,17 +2741,17 @@ ExtensionManager.prototype = {
       ww.openWindow(null, URI_XPINSTALL_CONFIRM_DIALOG,
                     "", "chrome,centerscreen,modal,dialog,titlebar", ifptr);
       if (!dpb.GetInt(0)) {
-        // User said OK - install items
+        
         for (var i = 0; i < droppedInFiles.length; ++i) {
           em.installItemFromFile(droppedInFiles[i].file,
                                  droppedInFiles[i].location.name);
-          // We are responsible for cleaning up this file
+          
           droppedInFiles[i].file.remove(false);
         }
       }
       else {
         for (i = 0; i < droppedInFiles.length; ++i) {
-          // We are responsible for cleaning up this file
+          
           droppedInFiles[i].file.remove(false);
         }
       }
@@ -2762,19 +2762,19 @@ ExtensionManager.prototype = {
                                      false);
     StartupCache.read();
 
-    // Array of objects with 'location' and 'id' properties to maybe install.
+    
     var newItems = [];
 
     var droppedInFiles = [];
     var xpinstallStrings = [];
 
-    // Enumerate over the install locations from low to high priority.  The
-    // enumeration returned is pre-sorted.
+    
+    
     var installLocations = this.installLocations;
     while (installLocations.hasMoreElements()) {
       var location = installLocations.getNext().QueryInterface(Ci.nsIInstallLocation);
 
-      // Hash the set of items actually held by the Install Location.
+      
       var actualItems = { };
       var entries = location.itemLocations;
       while (true) {
@@ -2782,8 +2782,8 @@ ExtensionManager.prototype = {
         if (!entry)
           break;
 
-        // Is this location a valid item? It must be a directory, and contain
-        // an install.rdf manifest:
+        
+        
         if (entry.isDirectory()) {
           var installRDF = entry.clone();
           installRDF.append(FILE_INSTALL_MANIFEST);
@@ -2796,10 +2796,10 @@ ExtensionManager.prototype = {
           actualItems[id] = entry;
         }
         else {
-          // Check to see if this file is a XPI/JAR dropped into this dir
-          // by the user, installing it if necessary. We do this here rather
-          // than separately in |_finishOperations| because I don't want to
-          // walk these lists multiple times on every startup.
+          
+          
+          
+          
           var item = this._getItemForDroppedFile(entry, location);
           if (item) {
             var prettyName = "";
@@ -2816,7 +2816,7 @@ ExtensionManager.prototype = {
                     prettyName = principal.prettyName;
                 }
                 else {
-                  // The xpi isn't correctly signed, don't offer to install.
+                  
                   LOG("Ignoring " + entry.path + " as it is not correctly signed.");
                   zipReader.close();
                   entry.remove(true);
@@ -2838,15 +2838,15 @@ ExtensionManager.prototype = {
       }
 
       if (location.name in StartupCache.entries) {
-        // Look for items that have been uninstalled by removing their directory.
+        
         for (var id in StartupCache.entries[location.name]) {
           if (!StartupCache.entries[location.name] ||
               !StartupCache.entries[location.name][id])
             continue;
 
-          // Force _finishOperations to run if we have enabled or disabled items.
-          // XXXdarin this should be unnecessary now that we check
-          // PendingOperations.size in start()
+          
+          
+          
           if (StartupCache.entries[location.name][id].op == OP_NEEDS_ENABLE ||
               StartupCache.entries[location.name][id].op == OP_NEEDS_DISABLE)
             isDirty = true;
@@ -2855,28 +2855,28 @@ ExtensionManager.prototype = {
               StartupCache.entries[location.name][id].op != OP_NEEDS_UNINSTALL &&
               StartupCache.entries[location.name][id].op != OP_NEEDS_INSTALL &&
               StartupCache.entries[location.name][id].op != OP_NEEDS_UPGRADE) {
-            // We have an entry for this id in the Extensions database, for this
-            // install location, but it no longer exists in the Install Location.
-            // We can infer from this that the item has been removed, so uninstall
-            // it properly.
+            
+            
+            
+            
             if (canUse(id, location)) {
               LOG("Item Uninstalled via file removal from: " + StartupCache.entries[location.name][id].descriptor +
                   " Item ID: " + id + " Location Key: " + location.name + ", uninstalling item.");
 
-              // Load the Extensions Datasource and force this item into the visible
-              // items list if it is not already. This allows us to handle the case
-              // where there is an entry for an item in the Startup Cache but not
-              // in the extensions.rdf file - in that case the item will not be in
-              // the visible list and calls to |getInstallLocation| will mysteriously
-              // fail.
+              
+              
+              
+              
+              
+              
               this.datasource.updateVisibleList(id, location.name, false);
               this.uninstallItem(id);
               isDirty = true;
             }
           }
           else if (!ignoreMTimeChanges) {
-            // Look for items whose mtime has changed, and as such we can assume
-            // they have been "upgraded".
+            
+            
             var lf = { path: StartupCache.entries[location.name][id].descriptor };
             try {
                lf = getFileFromDescriptor(StartupCache.entries[location.name][id].descriptor, location);
@@ -2904,12 +2904,12 @@ ExtensionManager.prototype = {
                   "Item Path: " + lf.path + ", Location Key: " + location.name +
                   " Item ID: " + id);
               if (canUse(id, location)) {
-                // Load the Extensions Datasource and force this item into the visible
-                // items list if it is not already. This allows us to handle the case
-                // where there is an entry for an item in the Startup Cache but not
-                // in the extensions.rdf file - in that case the item will not be in
-                // the visible list and calls to |getInstallLocation| will mysteriously
-                // fail.
+                
+                
+                
+                
+                
+                
                 this.datasource.updateVisibleList(id, location.name, false);
                 this.uninstallItem(id);
               }
@@ -2918,22 +2918,22 @@ ExtensionManager.prototype = {
         }
       }
 
-      // Look for items that have been installed by appearing in the location.
+      
       for (var id in actualItems) {
         if (!(location.name in StartupCache.entries) ||
             !(id in StartupCache.entries[location.name]) ||
             !StartupCache.entries[location.name][id]) {
-          // Remember that we've seen this item
+          
           StartupCache.put(location, id, OP_NONE, true);
-          // Push it on the stack of items to maybe install later
+          
           newItems.push({location: location, id: id});
         }
       }
     }
 
-    // Process any newly discovered items.  We do this here instead of in the
-    // previous loop so that we can be sure that we have a fully populated
-    // StartupCache.
+    
+    
+    
     for (var i = 0; i < newItems.length; ++i) {
       var id = newItems[i].id;
       var location = newItems[i].location;
@@ -2945,8 +2945,8 @@ ExtensionManager.prototype = {
                            em._configureForthcomingItem(installManifest, id, location,
                                                         type);
                          });
-        // Disable add-ons on install when the InstallDisabled file exists.
-        // This is so Talkback will be disabled on a subset of installs.
+        
+        
         var installDisabled = location.getItemFile(id, "InstallDisabled");
         if (installDisabled.exists())
           em.disableItem(id);
@@ -2954,8 +2954,8 @@ ExtensionManager.prototype = {
       }
     }
 
-    // Ask the user if they want to install the dropped items, for security
-    // purposes.
+    
+    
     installDroppedInFiles(droppedInFiles, xpinstallStrings);
 
     return isDirty;
@@ -2974,11 +2974,11 @@ ExtensionManager.prototype = {
     newLocations.sort(function(a, b) { return b.priority - a.priority; });
     if (newLocations.length > 0) {
       for (var i = 0; i < newLocations.length; ++i) {
-        // Check to see that the item at the location exists
+        
         var installRDF = newLocations[i].getItemFile(id, FILE_INSTALL_MANIFEST);
         if (installRDF.exists()) {
-          // Update the visible item cache so that |_finalizeUpgrade| is properly
-          // called from |_finishOperations|
+          
+          
           var name = newLocations[i].name;
           ds.updateVisibleList(id, name, true);
           PendingOperations.addItem(OP_NEEDS_UPGRADE,
@@ -2988,8 +2988,8 @@ ExtensionManager.prototype = {
           break;
         }
         else {
-          // If no item exists at the location specified, remove this item
-          // from the visible items list and check again.
+          
+          
           StartupCache.clearEntry(newLocations[i], id);
           ds.updateVisibleList(id, null, true);
         }
@@ -2999,16 +2999,16 @@ ExtensionManager.prototype = {
       ds.updateVisibleList(id, null, true);
   },
 
-  /**
-   * Finish up pending operations - perform upgrades, installs, enables/disables,
-   * uninstalls etc.
-   * @returns true if actions were performed that require a restart, false
-   *          otherwise.
-   */
+  
+
+
+
+
+
   _finishOperations: function EM__finishOperations() {
     try {
-      // Stuff has changed, load the Extensions datasource in all its RDFey
-      // glory.
+      
+      
       var ds = this.datasource;
       var updatedTargetAppInfos = [];
 
@@ -3019,9 +3019,9 @@ ExtensionManager.prototype = {
       if (addons != "")
         newAddons = addons.split(",");
       do {
-        // Enable and disable during startup so items that are changed in the
-        // ui can be reset to a no-op.
-        // Look for extensions that need to be enabled.
+        
+        
+        
         var items = PendingOperations.getOperations(OP_NEEDS_ENABLE);
         for (var i = items.length - 1; i >= 0; --i) {
           var id = items[i].id;
@@ -3032,7 +3032,7 @@ ExtensionManager.prototype = {
         }
         PendingOperations.clearItems(OP_NEEDS_ENABLE);
 
-        // Look for extensions that need to be disabled.
+        
         items = PendingOperations.getOperations(OP_NEEDS_DISABLE);
         for (i = items.length - 1; i >= 0; --i) {
           id = items[i].id;
@@ -3043,14 +3043,14 @@ ExtensionManager.prototype = {
         }
         PendingOperations.clearItems(OP_NEEDS_DISABLE);
 
-        // Look for extensions that need to be upgraded. The process here is to
-        // uninstall the old version of the extension first, then install the
-        // new version in its place.
+        
+        
+        
         items = PendingOperations.getOperations(OP_NEEDS_UPGRADE);
         for (i = items.length - 1; i >= 0; --i) {
           id = items[i].id;
           var newLocation = InstallLocations.get(items[i].locationKey);
-          // check if there is updated app compatibility info
+          
           var newTargetAppInfo = ds.getUpdatedTargetAppInfo(id);
           if (newTargetAppInfo)
             updatedTargetAppInfos.push(newTargetAppInfo);
@@ -3059,12 +3059,12 @@ ExtensionManager.prototype = {
         }
         PendingOperations.clearItems(OP_NEEDS_UPGRADE);
 
-        // Install items
+        
         items = PendingOperations.getOperations(OP_NEEDS_INSTALL);
         for (i = items.length - 1; i >= 0; --i) {
           needsRestart = true;
           id = items[i].id;
-          // check if there is updated app compatibility info
+          
           newTargetAppInfo = ds.getUpdatedTargetAppInfo(id);
           if (newTargetAppInfo)
             updatedTargetAppInfos.push(newTargetAppInfo);
@@ -3074,9 +3074,9 @@ ExtensionManager.prototype = {
         }
         PendingOperations.clearItems(OP_NEEDS_INSTALL);
 
-        // Look for extensions that need to be removed. This MUST be done after
-        // the install operations since extensions to be installed may have to be
-        // uninstalled if there are errors during the installation process!
+        
+        
+        
         items = PendingOperations.getOperations(OP_NEEDS_UNINSTALL);
         for (i = items.length - 1; i >= 0; --i) {
           id = items[i].id;
@@ -3089,9 +3089,9 @@ ExtensionManager.prototype = {
         }
         PendingOperations.clearItems(OP_NEEDS_UNINSTALL);
 
-        // When there have been operations and all operations have completed.
+        
         if (PendingOperations.size == 0) {
-          // If there is updated app compatibility info update the datasource.
+          
           for (i = 0; i < updatedTargetAppInfos.length; ++i)
             ds.setTargetApplicationInfo(updatedTargetAppInfos[i].id,
                                         updatedTargetAppInfos[i].targetAppID,
@@ -3099,22 +3099,22 @@ ExtensionManager.prototype = {
                                         updatedTargetAppInfos[i].maxVersion,
                                         null);
 
-          // Enumerate all items
+          
           var ctr = getContainer(ds, ds._itemRoot);
           var elements = ctr.GetElements();
           while (elements.hasMoreElements()) {
             var itemResource = elements.getNext().QueryInterface(Ci.nsIRDFResource);
 
-            // Ensure appDisabled is in the correct state.
+            
             id = stripPrefix(itemResource.Value, PREFIX_ITEM_URI);
             if (this._isUsableItem(id))
               ds.setItemProperty(id, EM_R("appDisabled"), null);
             else
               ds.setItemProperty(id, EM_R("appDisabled"), EM_L("true"));
 
-            // userDisabled is set based on its value being OP_NEEDS_ENABLE or
-            // OP_NEEDS_DISABLE. This allows us to have an item to be enabled
-            // by the app and disabled by the user during a single restart.
+            
+            
+            
             var value = stringData(ds.GetTarget(itemResource, EM_R("userDisabled"), true));
             if (value == OP_NEEDS_ENABLE)
               ds.setItemProperty(id, EM_R("userDisabled"), null);
@@ -3125,13 +3125,13 @@ ExtensionManager.prototype = {
       }
       while (PendingOperations.size > 0);
 
-      // If no additional restart is required, it implies that there are
-      // no new components that need registering so we can inform the app
-      // not to do any extra startup checking next time round.
+      
+      
+      
       this._updateManifests(needsRestart);
 
-      // Remember the list of add-ons that were installed this time around
-      // unless this was a new profile.
+      
+      
       if (!gFirstRun && newAddons.length > 0)
         gPref.setCharPref(PREF_EM_NEW_ADDONS_LIST, newAddons.join(","));
     }
@@ -3142,31 +3142,31 @@ ExtensionManager.prototype = {
     return needsRestart;
   },
 
-  /**
-   * Checks to see if there are items that are incompatible with this version
-   * of the application, disables them to prevent incompatibility problems and
-   * invokes the Update Wizard to look for newer versions.
-   * @returns true if there were incompatible items installed and disabled, and
-   *          the application must now be restarted to reinitialize XPCOM,
-   *          false otherwise.
-   */
+  
+
+
+
+
+
+
+
   checkForMismatches: function EM_checkForMismatches() {
-    // Check to see if the version of the application that is being started
-    // now is the same one that was started last time.
+    
+    
     var currAppVersion = gApp.version;
     var lastAppVersion = getPref("getCharPref", PREF_EM_LAST_APP_VERSION, "");
     if (currAppVersion == lastAppVersion)
       return false;
-    // With a new profile lastAppVersion doesn't exist yet.
+    
     if (!lastAppVersion) {
       gPref.setCharPref(PREF_EM_LAST_APP_VERSION, currAppVersion);
       return false;
     }
 
-    // Block attempts to flush for the entire startup
+    
     gAllowFlush = false;
 
-    // Make the extensions datasource consistent if it isn't already.
+    
     var isDirty;
     [isDirty,] = this._ensureDatasetIntegrity();
 
@@ -3193,7 +3193,7 @@ ExtensionManager.prototype = {
     if (isDirty)
       this._finishOperations();
 
-    // During app upgrade cleanup invalid entries in the extensions datasource.
+    
     ds.beginUpdateBatch();
     var allResources = ds.GetAllResources();
     while (allResources.hasMoreElements()) {
@@ -3214,15 +3214,15 @@ ExtensionManager.prototype = {
       var id = stripPrefix(itemResource.Value, PREFIX_ITEM_URI);
       var location = this.getInstallLocation(id);
       if (!location) {
-        // Item was in an unknown install location
+        
         badItems.push(id);
         continue;
       }
 
       if (ds.getItemProperty(id, "appManaged") == "true") {
-        // Force an update of the metadata for appManaged extensions since the
-        // last modified time is not updated for directories on FAT / FAT32
-        // filesystems when software update applies a new version of the app.
+        
+        
+        
         if (location.name == KEY_APP_GLOBAL) {
           var installRDF = location.getItemFile(id, FILE_INSTALL_MANIFEST);
           if (installRDF.exists()) {
@@ -3241,8 +3241,8 @@ ExtensionManager.prototype = {
       };
 
       if (ds.getItemProperty(id, "providesUpdatesSecurely") == "false") {
-        /* It's possible the previous version did not understand updateKeys so
-         * check if we can import one for this addon from its manifest. */
+        
+
         installRDF = location.getItemFile(id, FILE_INSTALL_MANIFEST);
         if (installRDF.exists()) {
           metadataDS = getInstallManifest(installRDF);
@@ -3252,8 +3252,8 @@ ExtensionManager.prototype = {
         }
       }
 
-      // appDisabled is determined by an item being compatible, using secure
-      // updates, satisfying its dependencies, and not being blocklisted
+      
+      
       if (this._isUsableItem(id)) {
         if (ds.getItemProperty(id, "appDisabled"))
           properties.appDisabled = null;
@@ -3266,15 +3266,15 @@ ExtensionManager.prototype = {
       ds.setItemProperties(id, properties);
     }
 
-    // Must clean up outside of the loop. Modifying the container while
-    // iterating its contents is bad.
+    
+    
     for (var i = 0; i < badItems.length; i++) {
       id = badItems[i];
       LOG("Item " + id + " was installed in an unknown location, removing.");
       var disabled = ds.getItemProperty(id, "userDisabled") == "true";
-      // Clean up the datasource
+      
       ds.removeCorruptItem(id);
-      // Check for any unhidden items.
+      
       var entries = StartupCache.findEntries(id);
       if (entries.length > 0) {
         var newLocation = InstallLocations.get(entries[0].location);
@@ -3295,37 +3295,37 @@ ExtensionManager.prototype = {
       }
     }
 
-    // Update the manifests to reflect the items that were disabled / enabled.
+    
     this._updateManifests(true);
 
-    // Determine if we should check for compatibility updates when upgrading if
-    // we have add-ons that aren't managed by the application.
+    
+    
     if (!allAppManaged && !gFirstRun && disabledAddons.length > 0) {
-      // Should we show a UI or just pass the list via a pref?
+      
       if (getPref("getBoolPref", PREF_EM_SHOW_MISMATCH_UI, true)) {
         this._showMismatchWindow(inactiveItemIDs);
       }
       else {
-        // Remember the list of add-ons that were disabled this time around
+        
         gPref.setCharPref(PREF_EM_DISABLED_ADDONS_LIST, disabledAddons.join(","));
       }
     } else if (gPref.prefHasUserValue(PREF_EM_DISABLED_ADDONS_LIST)) {
-      // Clear the disabled addons list if necessary
+      
       gPref.clearUserPref(PREF_EM_DISABLED_ADDONS_LIST);
     }
 
-    // Finish any pending upgrades from the compatibility update to avoid an
-    // additional restart.
+    
+    
     if (PendingOperations.size != 0)
       this._finishOperations();
 
-    // Update the last app version so we don't do this again with this version.
+    
     gPref.setCharPref(PREF_EM_LAST_APP_VERSION, currAppVersion);
 
-    // Prevent extension update dialog from showing
+    
     gPref.setBoolPref(PREF_UPDATE_NOTIFYUSER, false);
 
-    // Re-enable flushing and flush anything that was deferred
+    
     try {
       gAllowFlush = true;
       if (gManifestNeedsFlush) {
@@ -3344,12 +3344,12 @@ ExtensionManager.prototype = {
     return true;
   },
 
-  /**
-   * Shows the "Compatibility Updates" UI
-   * @param   items
-   *          an array of item IDs that were not enabled in the previous version
-   *          of the application.
-   */
+  
+
+
+
+
+
   _showMismatchWindow: function EM__showMismatchWindow(items) {
     var wm = Cc["@mozilla.org/appshell/window-mediator;1"].
              getService(Ci.nsIWindowMediator);
@@ -3361,43 +3361,43 @@ ExtensionManager.prototype = {
                     createInstance(Ci.nsIWritableVariant);
       variant.setFromVariant(items);
       var features = "chrome,centerscreen,dialog,titlebar,modal";
-      // This *must* be modal so as not to break startup! This code is invoked before
-      // the main event loop is initiated (via checkForMismatches).
+      
+      
       var ww = Cc["@mozilla.org/embedcomp/window-watcher;1"].
                getService(Ci.nsIWindowWatcher);
       ww.openWindow(null, URI_EXTENSION_UPDATE_DIALOG, "", features, variant);
     }
   },
 
-  /**
-   * Write the Extensions List and the Startup Cache
-   * @param   needsRestart
-   *          true if the application needs to restart again, false otherwise.
-   */
+  
+
+
+
+
   _updateManifests: function EM__updateManifests(needsRestart) {
-    // During startup we block flushing until the startup operations are all
-    // complete to reduce file accesses that can trigger bug 431065
+    
+    
     if (gAllowFlush) {
-      // Write the Startup Cache (All Items, visible or not)
+      
       StartupCache.write();
-      // Write the Extensions Locations Manifest (Visible, enabled items)
+      
       this._updateExtensionsManifest();
     }
     else {
       gManifestNeedsFlush = true;
     }
 
-    // Notify nsAppRunner to update the compatibility manifest on next startup
+    
     this._extensionListChanged = needsRestart;
   },
 
-  /**
-   * Get a list of items that are currently "active" (turned on) of a specific
-   * type
-   * @param   type
-   *          The nsIUpdateItem type to return a list of items of
-   * @returns An array of active items of the specified type.
-   */
+  
+
+
+
+
+
+
   _getActiveItems: function EM__getActiveItems(type) {
     var allItems = this.getItemList(type);
     var activeItems = [];
@@ -3406,11 +3406,11 @@ ExtensionManager.prototype = {
       var item = allItems[i];
 
       var installLocation = this.getInstallLocation(item.id);
-      // An entry with an invalid install location is not active.
+      
       if (!installLocation)
         continue;
-      // An item entry is valid only if it is not disabled, not about to
-      // be disabled, and not about to be uninstalled.
+      
+      
       if (installLocation.name in StartupCache.entries &&
           item.id in StartupCache.entries[installLocation.name] &&
           StartupCache.entries[installLocation.name][item.id]) {
@@ -3419,7 +3419,7 @@ ExtensionManager.prototype = {
             op == OP_NEEDS_UNINSTALL || op == OP_NEEDS_DISABLE)
           continue;
       }
-      // Suppress items that have been disabled by the user or the app.
+      
       if (ds.getItemProperty(item.id, "isDisabled") != "true")
         activeItems.push({ id: item.id, version: item.version,
                            location: installLocation });
@@ -3428,17 +3428,17 @@ ExtensionManager.prototype = {
     return activeItems;
   },
 
-  /**
-   * Write the Extensions List
-   */
+  
+
+
   _updateExtensionsManifest: function EM__updateExtensionsManifest() {
-    // When an operation is performed that requires a component re-registration
-    // (extension enabled/disabled, installed, uninstalled), we must write the
-    // set of paths where extensions live so that the startup system can determine
-    // where additional components, preferences, chrome manifests etc live.
-    //
-    // To do this we obtain a list of active extensions and themes and write
-    // these to the extensions.ini file in the profile directory.
+    
+    
+    
+    
+    
+    
+    
     var validExtensions = this._getActiveItems(Ci.nsIUpdateItem.TYPE_ANY -
                                                Ci.nsIUpdateItem.TYPE_THEME);
     var validThemes     = this._getActiveItems(Ci.nsIUpdateItem.TYPE_THEME);
@@ -3472,23 +3472,23 @@ ExtensionManager.prototype = {
 
     FileUtils.closeSafeFileOutputStream(fos);
 
-    // Cache the enabled list for annotating the crash report subsequently
+    
     gPref.setCharPref(PREF_EM_ENABLED_ITEMS, enabledItems.join(","));
   },
 
-  /**
-   * Say whether or not the Extension List has changed (and thus whether or not
-   * the system will have to restart the next time it is started).
-   * @param   val
-   *          true if the Extension List has changed, false otherwise.
-   * @returns |val|
-   */
+  
+
+
+
+
+
+
   set _extensionListChanged(val) {
-    // When an extension has an operation perform on it (e.g. install, upgrade,
-    // disable, etc.) we are responsible for writing this information to 
-    // compatibility.ini, and nsAppRunner is responsible for checking this on 
-    // restart. At some point it may make sense to be able to cancel a 
-    // registration but for now we only create the file.
+    
+    
+    
+    
+    
     if (val) {
       let XRE = Cc["@mozilla.org/xre/app-info;1"].getService(Ci.nsIXULRuntime);
       XRE.invalidateCachesOnRestart();
@@ -3496,40 +3496,40 @@ ExtensionManager.prototype = {
     return val;
   },
 
-  /**
-   * Gathers data about an item specified by the supplied Install Manifest
-   * and determines whether or not it can be installed as-is. It makes this
-   * determination by validating the item's GUID, Version, and determining
-   * if it is compatible with this application.
-   * @param   installManifest
-   *          A nsIRDFDataSource representing the Install Manifest of the
-   *          item to be installed.
-   * @return  A JS Object with the following properties:
-   *          "id"       The GUID of the Item being installed.
-   *          "version"  The Version string of the Item being installed.
-   *          "name"     The Name of the Item being installed.
-   *          "type"     The nsIUpdateItem type of the Item being installed.
-   *          "targetApps" An array of TargetApplication Info Objects
-   *                     with "id", "minVersion" and "maxVersion" properties,
-   *                     representing applications targeted by this item.
-   *          "error"    The result code:
-   *                     INSTALLERROR_SUCCESS
-   *                       no error, item can be installed
-   *                     INSTALLERROR_INVALID_GUID
-   *                       error, GUID is not well-formed
-   *                     INSTALLERROR_INVALID_VERSION
-   *                       error, Version is not well-formed
-   *                     INSTALLERROR_INCOMPATIBLE_VERSION
-   *                       error, item is not compatible with this version
-   *                       of the application.
-   *                     INSTALLERROR_INCOMPATIBLE_PLATFORM
-   *                       error, item is not compatible with the operating
-   *                       system or ABI the application was built for.
-   *                     INSTALLERROR_INSECURE_UPDATE
-   *                       error, item has no secure method of providing updates
-   *                     INSTALLERROR_BLOCKLISTED
-   *                       error, item is blocklisted
-   */
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   _getInstallData: function EM__getInstallData(installManifest) {
     var installData = { id          : "",
                         version     : "",
@@ -3541,7 +3541,7 @@ ExtensionManager.prototype = {
                         updateKey   : "",
                         currentApp  : null };
 
-    // Fetch properties from the Install Manifest
+    
     installData.id       = getManifestProperty(installManifest, "id");
     installData.version  = getManifestProperty(installManifest, "version");
     installData.name     = getManifestProperty(installManifest, "name");
@@ -3549,14 +3549,14 @@ ExtensionManager.prototype = {
     installData.updateURL= getManifestProperty(installManifest, "updateURL");
     installData.updateKey= getManifestProperty(installManifest, "updateKey");
 
-    /**
-     * Reads a property off a Target Application resource
-     * @param   resource
-     *          The RDF Resource for a Target Application
-     * @param   property
-     *          The property (less EM_NS) to read
-     * @returns The string literal value of the property.
-     */
+    
+
+
+
+
+
+
+
     function readTAProperty(resource, property) {
       return stringData(installManifest.GetTarget(resource, EM_R(property), true));
     }
@@ -3582,15 +3582,15 @@ ExtensionManager.prototype = {
       }
     }
 
-    // If the item specifies one or more target platforms, make sure our OS/ABI
-    // combination is in the list - otherwise, refuse to install the item.
+    
+    
     var targetPlatforms = null;
     try {
       targetPlatforms = installManifest.GetTargets(gInstallManifestRoot,
                                                    EM_R("targetPlatform"),
                                                    true);
     } catch(e) {
-      // No targetPlatform nodes, continue.
+      
     }
     if (targetPlatforms != null && targetPlatforms.hasMoreElements()) {
       var foundMatchingOS = false;
@@ -3603,10 +3603,10 @@ ExtensionManager.prototype = {
         var abi = index != -1 ? targetPlatform.substr(index + 1) : null;
         if (os == gOSTarget) {
           foundMatchingOS = true;
-          // The presence of any ABI part after our OS means ABI is important.
+          
           if (abi != null) {
             requireABICompatibility = true;
-            // If we don't know our ABI, we can't be compatible
+            
             if (abi == gXPCOMABI && abi != UNKNOWN_XPCOM_ABI) {
               foundMatchingOSAndABI = true;
               break;
@@ -3620,13 +3620,13 @@ ExtensionManager.prototype = {
       }
     }
 
-    // Validate the Item ID
+    
     if (!gIDTest.test(installData.id)) {
       installData.error = INSTALLERROR_INVALID_GUID;
       return installData;
     }
     
-    // Check that the add-on provides a secure update method.
+    
     if (gCheckUpdateSecurity &&
         installData.updateURL &&
         installData.updateURL.substring(0, 6) != "https:" &&
@@ -3635,13 +3635,13 @@ ExtensionManager.prototype = {
       return installData;
     }
 
-    // Check that the item is compatible with the application.
+    
     if (!this.datasource.isCompatible(installManifest, gInstallManifestRoot, false)) {
       installData.error = INSTALLERROR_INCOMPATIBLE_VERSION;
       return installData;
     }
     
-    // Check if the item is blocklisted.
+    
     if (!gBlocklist)
       gBlocklist = Cc["@mozilla.org/extensions/blocklist;1"].
                    getService(Ci.nsIBlocklistService);
@@ -3654,77 +3654,77 @@ ExtensionManager.prototype = {
     return installData;
   },
 
-  /**
-   * Installs an item from a XPI/JAR file.
-   * This is the main entry point into the Install system from outside code
-   * (e.g. XPInstall).
-   * @param   aXPIFile
-   *          The file to install from.
-   * @param   aInstallLocationKey
-   *          The name of the Install Location where this item should be
-   *          installed.
-   */
+  
+
+
+
+
+
+
+
+
+
   installItemFromFile: function EM_installItemFromFile(xpiFile, installLocationKey) {
     this.installItemFromFileInternal(xpiFile, installLocationKey, null);
 
-    // If there are no compatibility checks running and no downloads in
-    // progress then the install operations are complete.
+    
+    
     if (this._compatibilityCheckCount == 0 && this._transactions.length == 0)
       this._callInstallListeners("onInstallsCompleted");
   },
 
-  /**
-   * Installs an item from a XPI/JAR file.
-   * @param   aXPIFile
-   *          The file to install from.
-   * @param   aInstallLocationKey
-   *          The name of the Install Location where this item should be
-   *          installed.
-   * @param   aInstallManifest
-   *          An updated Install Manifest from the Version Update check.
-   *          Can be null when invoked from callers other than the Version
-   *          Update check.
-   * @returns The install result code. If this is INSTALLERROR_PHONING_HOME
-   *          then a remote update check has been started to attempt to resolve
-   *          compatibility problems.
-   */
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   installItemFromFileInternal: function EM_installItemFromFileInternal(aXPIFile,
                                                                        aInstallLocationKey,
                                                                        aInstallManifest) {
     var em = this;
-    /**
-     * Gets the Install Location for an Item.
-     * @param   itemID
-     *          The GUID of the item to find an Install Location for.
-     * @return  An object implementing nsIInstallLocation which represents the
-     *          location where the specified item should be installed.
-     *          This can be:
-     *          1. an object that corresponds to the location key supplied to
-     *             |installItemFromFileInternal|,
-     *          2. the default install location (the App Profile Extensions Folder)
-     *             if no location key was supplied, or the location key supplied
-     *             was not in the set of registered locations
-     *          3. null, if the location selected by 1 or 2 above does not support
-     *             installs from XPI/JAR files, or that location is not writable
-     *             with the current access privileges.
-     */
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     function getInstallLocation(itemID) {
-      // Here I use "upgrade" to mean "install a different version of an item".
+      
       var installLocation = em.getInstallLocation(itemID);
       if (!installLocation) {
-        // This is not an "upgrade", since we don't have any location data for the
-        // extension ID specified - that is, it's not in our database.
+        
+        
 
-        // Caller supplied a key to a registered location, use that location
-        // for the installation
+        
+        
         installLocation = InstallLocations.get(aInstallLocationKey);
         if (installLocation) {
-          // If the specified location does not have a common metadata location
-          // (e.g. extensions have no common root, or other location specified
-          // by the location implementation) - e.g. for a Registry Key enumeration
-          // location - we cannot install or upgrade using a XPI file, probably
-          // because these application types will be handling upgrading themselves.
-          // Just bail.
+          
+          
+          
+          
+          
+          
           if (!installLocation.location) {
             LOG("Install Location \"" + installLocation.name + "\" does not support " +
                 "installation of items from XPI/JAR files. You must manage " +
@@ -3733,22 +3733,22 @@ ExtensionManager.prototype = {
           }
         }
         else {
-          // In the absence of a preferred install location, just default to
-          // the App-Profile
+          
+          
           installLocation = InstallLocations.get(KEY_APP_PROFILE);
         }
       }
       else {
-        // This is an "upgrade", but not through the Update System, because the
-        // Update code will not let an extension with an incompatible target
-        // app version range through to this point. This is an "upgrade" in the
-        // sense that the user found a different version of an installed extension
-        // and installed it through the web interface, so we have metadata.
+        
+        
+        
+        
+        
 
-        // If the location is different, return the preferred location rather than
-        // the location of the currently installed version, because we may be in
-        // the situation where an item is being installed into the global app
-        // dir when there's a version in the profile dir.
+        
+        
+        
+        
         if (installLocation.name != aInstallLocationKey)
           installLocation = InstallLocations.get(aInstallLocationKey);
       }
@@ -3760,38 +3760,38 @@ ExtensionManager.prototype = {
       return installLocation;
     }
 
-    /**
-     * Stages a XPI file in the default item location specified by other
-     * applications when they registered with XulRunner if the item's
-     * install manifest specified compatibility with them.
-     */
+    
+
+
+
+
     function stageXPIForOtherApps(xpiFile, installData) {
       for (var i = 0; i < installData.targetApps.length; ++i) {
         var targetApp = installData.targetApps[i];
         if (targetApp.id != gApp.ID && targetApp.id != TOOLKIT_ID) {
-        /* XXXben uncomment when this works!
-          var settingsThingy = Cc[].
-                               getService(Ci.nsIXULRunnerSettingsThingy);
-          try {
-            var appPrefix = "SOFTWARE\\Mozilla\\XULRunner\\Applications\\";
-            var branch = settingsThingy.getBranch(appPrefix + targetApp.id);
-            var path = branch.getProperty("ExtensionsLocation");
-            var destination = Cc["@mozilla.org/file/local;1"].
-                              createInstance(Ci.nsILocalFile);
-            destination.initWithPath(path);
-            xpiFile.copyTo(file, xpiFile.leafName);
-          }
-          catch (e) {
-          }
-         */
+        
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         }
       }
     }
 
-    /**
-     * Extracts and then starts the install for extensions / themes contained
-     * within a xpi.
-     */
+    
+
+
+
     function installMultiXPI(xpiFile, installData) {
       var fileURL = getURIFromFile(xpiFile).QueryInterface(Ci.nsIURL);
       if (fileURL.fileExtension.toLowerCase() != "xpi") {
@@ -3852,29 +3852,29 @@ ExtensionManager.prototype = {
       }
     }
 
-    /**
-     * An observer for the Extension Update System.
-     * @constructor
-     */
+    
+
+
+
     function IncompatibleObserver() {}
     IncompatibleObserver.prototype = {
       _xpi: null,
       _installManifest: null,
 
-      /**
-       * Ask the Extension Update System if there are any version updates for
-       * this item that will allow it to be compatible with this version of
-       * the Application.
-       * @param   item
-       *          An nsIUpdateItem representing the item being installed.
-       * @param   installManifest
-       *          The Install Manifest datasource for the item.
-       * @param   xpiFile
-       *          The staged source XPI file that contains the item. Cleaned
-       *          up by this process.
-       * @param   installRDF
-       *          The install.rdf file that was extracted from the xpi.
-       */
+      
+
+
+
+
+
+
+
+
+
+
+
+
+
       checkForUpdates: function IncObs_checkForUpdates(item, installManifest, xpiFile) {
         this._xpi             = xpiFile;
         this._installManifest = installManifest;
@@ -3887,23 +3887,23 @@ ExtensionManager.prototype = {
                                 this, UPDATE_WHEN_ADDON_INSTALLED);
       },
 
-      /**
-       * See nsIExtensionManager.idl
-       */
+      
+
+
       onUpdateStarted: function IncObs_onUpdateStarted() {
         LOG("Phone Home Listener: Update Started");
       },
 
-      /**
-       * See nsIExtensionManager.idl
-       */
+      
+
+
       onUpdateEnded: function IncObs_onUpdateEnded() {
         LOG("Phone Home Listener: Update Ended");
       },
 
-      /**
-       * See nsIExtensionManager.idl
-       */
+      
+
+
       onAddonUpdateStarted: function IncObs_onAddonUpdateStarted(addon) {
         if (!addon)
           throw Cr.NS_ERROR_INVALID_ARG;
@@ -3913,9 +3913,9 @@ ExtensionManager.prototype = {
                                                 addon.type, addon.version);
       },
 
-      /**
-       * See nsIExtensionManager.idl
-       */
+      
+
+
       onAddonUpdateEnded: function IncObs_onAddonUpdateEnded(addon, status) {
         if (!addon)
           throw Cr.NS_ERROR_INVALID_ARG;
@@ -3926,8 +3926,8 @@ ExtensionManager.prototype = {
 
         em._callInstallListeners("onCompatibilityCheckEnded", addon, status);
 
-        // Only compatibility updates (e.g. STATUS_VERSIONINFO) are currently
-        // supported
+        
+        
         if (status == Ci.nsIAddonUpdateCheckListener.STATUS_VERSIONINFO) {
           em.datasource.setTargetApplicationInfo(addon.id,
                                                  addon.targetAppID,
@@ -3935,15 +3935,15 @@ ExtensionManager.prototype = {
                                                  addon.maxAppVersion,
                                                  this._installManifest);
 
-          // Try and install again, but use the updated compatibility DB.
-          // This will send out an apropriate onInstallEnded notification for us.
+          
+          
           var status = em.installItemFromFileInternal(this._xpi,
                                                       aInstallLocationKey,
                                                       this._installManifest);
 
-          // The install may still have failed at this point due to the blocklist
+          
           if (status == INSTALLERROR_SUCCESS) {
-            // Add the updated compatibility info to the datasource if done
+            
             if (StartupCache.entries[aInstallLocationKey][addon.id].op == OP_NONE) {
               em.datasource.setTargetApplicationInfo(addon.id,
                                                      addon.targetAppID,
@@ -3951,9 +3951,9 @@ ExtensionManager.prototype = {
                                                      addon.maxAppVersion,
                                                      null);
             }
-            else { // needs a restart
-              // Add updatedMinVersion and updatedMaxVersion so it can be used
-              // to update the datasource during the installation or upgrade.
+            else { 
+              
+              
               em.datasource.setUpdatedTargetAppInfo(addon.id,
                                                     addon.targetAppID,
                                                     addon.minAppVersion,
@@ -3972,13 +3972,13 @@ ExtensionManager.prototype = {
 
           em._callInstallListeners("onInstallEnded", addon, INSTALLERROR_INCOMPATIBLE_VERSION);
 
-          // We are responsible for cleaning up this file!
+          
           InstallLocations.get(aInstallLocationKey).removeFile(this._xpi);
         }
 
         em._compatibilityCheckCount--;
-        // If there are no more compatibility checks running and no downloads in
-        // progress then the install operations are complete.
+        
+        
         if (em._compatibilityCheckCount == 0 && em._transactions.length == 0)
           em._callInstallListeners("onInstallsCompleted");
       },
@@ -3988,10 +3988,10 @@ ExtensionManager.prototype = {
 
     var shouldPhoneHomeIfNecessary = false;
     if (!aInstallManifest) {
-      // If we were not called with an Install Manifest, we were called from
-      // some other path than the Phone Home system, so we do want to phone
-      // home if the version is incompatible. As this is the first point in the
-      // install process we must notify observers here.
+      
+      
+      
+      
 
       var addon = makeItem(getURIFromFile(aXPIFile).spec, "",
                            aInstallLocationKey, "", "", "",
@@ -4019,15 +4019,15 @@ ExtensionManager.prototype = {
       installManifest = aInstallManifest;
 
     var installData = this._getInstallData(installManifest);
-    // Recreate the add-on item with the full detail from the install manifest
+    
     addon = makeItem(installData.id, installData.version,
                      aInstallLocationKey,
                      installData.currentApp ? installData.currentApp.minVersion : "",
                      installData.currentApp ? installData.currentApp.maxVersion : "",
                      installData.name,
                      getURIFromFile(aXPIFile).spec,
-                     "", /* XPI Update Hash */
-                     "", /* Icon URL */
+                     "", 
+                     "", 
                      installData.updateURL || "",
                      installData.updateKey || "",
                      installData.type,
@@ -4035,10 +4035,10 @@ ExtensionManager.prototype = {
 
     switch (installData.error) {
     case INSTALLERROR_INCOMPATIBLE_VERSION:
-      // Since the caller cleans up |aXPIFile|, and we're not yet sure whether or
-      // not we need it (we may need it if a remote version bump that makes it
-      // compatible is discovered by the call home) - so we must stage it for
-      // later ourselves.
+      
+      
+      
+      
       if (shouldPhoneHomeIfNecessary && installData.currentApp) {
         var installLocation = getInstallLocation(installData.id, aInstallLocationKey);
         if (!installLocation)
@@ -4046,13 +4046,13 @@ ExtensionManager.prototype = {
         var stagedFile = installLocation.stageFile(aXPIFile, installData.id);
         (new IncompatibleObserver(this)).checkForUpdates(addon, installManifest,
                                                          stagedFile);
-        // Return early to prevent deletion of the install manifest file.
+        
         return INSTALLERROR_PHONING_HOME;
       }
       else {
-        // XXXben Look up XULRunnerSettingsThingy to see if there is a registered
-        //        app that can handle this item, if so just stage and don't show
-        //        this error!
+        
+        
+        
         showIncompatibleError(installData);
         LOG("Add-on " + installData.id + " is incompatible with " +
             BundleManager.appName + " " + gApp.version + ", Toolkit " +
@@ -4063,41 +4063,41 @@ ExtensionManager.prototype = {
       if (!showBlocklistMessage(installData, true))
         break;
       installData.error = INSTALLERROR_SUCCESS;
-      // Fall through to continue the install
+      
     case INSTALLERROR_SUCCESS:
-      // Installation of multiple extensions / themes contained within a single xpi.
+      
       if (installData.type == Ci.nsIUpdateItem.TYPE_MULTI_XPI) {
         installMultiXPI(aXPIFile, installData);
         break;
       }
 
-      // Stage the extension's XPI so it can be extracted at the next restart.
+      
       var installLocation = getInstallLocation(installData.id, aInstallLocationKey);
       if (!installLocation) {
-        // No cleanup of any of the staged XPI files should be required here,
-        // because this should only ever fail on the first recurse through
-        // this function, BEFORE staging takes place... technically speaking
-        // a location could become readonly during the phone home process,
-        // but that's an edge case I don't care about.
+        
+        
+        
+        
+        
         this._callInstallListeners("onInstallEnded", addon, INSTALLERROR_RESTRICTED);
         return INSTALLERROR_RESTRICTED;
       }
 
-      // Stage a copy of the XPI/JAR file for our own evil purposes...
+      
       stagedFile = installLocation.stageFile(aXPIFile, installData.id);
 
       var restartRequired = this.installRequiresRestart(installData.id,
                                                         installData.type);
-      // Determine which configuration function to use based on whether or not
-      // there is data about this item in our datasource already - if there is
-      // we want to upgrade, otherwise we install fresh.
+      
+      
+      
       var ds = this.datasource;
       if (installData.id in ds.visibleItems && ds.visibleItems[installData.id]) {
-        // We enter this function if any data corresponding to an existing GUID
-        // is found, regardless of its Install Location. We need to check before
-        // "upgrading" an item that Install Location of the new item is of equal
-        // or higher priority than the old item, to make sure the datasource only
-        // ever tracks metadata for active items.
+        
+        
+        
+        
+        
         var oldInstallLocation = this.getInstallLocation(installData.id);
         if (oldInstallLocation.priority >= installLocation.priority) {
           this._upgradeItem(installManifest, installData.id, installLocation,
@@ -4170,25 +4170,25 @@ ExtensionManager.prototype = {
       break;
     }
 
-    // Check to see if this item supports other applications and in that case
-    // stage the the XPI file in the location specified by those applications.
+    
+    
     stageXPIForOtherApps(aXPIFile, installData);
 
-    // The install of this item is complete, notify observers
+    
     this._callInstallListeners("onInstallEnded", addon, installData.error);
     return installData.error;
   },
 
-  /**
-   * Whether or not this type's installation/uninstallation requires
-   * the application to be restarted.
-   * @param   id
-   *          The GUID of the item
-   * @param   type
-   *          The nsIUpdateItem type of the item
-   * @returns true if installation of an item of this type requires a
-   *          restart.
-   */
+  
+
+
+
+
+
+
+
+
+
   installRequiresRestart: function EM_installRequiresRestart(id, type) {
     switch (type) {
     case Ci.nsIUpdateItem.TYPE_THEME:
@@ -4204,20 +4204,20 @@ ExtensionManager.prototype = {
     return ((type & Ci.nsIUpdateItem.TYPE_ADDON) > 0);
   },
 
-  /**
-   * Perform initial configuration on an item that has just or will be
-   * installed. This inserts the item into the appropriate container in the
-   * datasource, so that the application UI shows the item even if it will
-   * not actually be installed until the next restart.
-   * @param   installManifest
-   *          The Install Manifest datasource that describes this item.
-   * @param   id
-   *          The GUID of this item.
-   * @param   installLocation
-   *          The Install Location where this item is installed.
-   * @param   type
-   *          The nsIUpdateItem type of this item.
-   */
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
   _configureForthcomingItem: function EM__configureForthcomingItem(installManifest,
                                                                    id,
                                                                    installLocation,
@@ -4246,32 +4246,32 @@ ExtensionManager.prototype = {
 
     this._setOp(id, OP_NEEDS_INSTALL);
 
-    // Insert it into the child list NOW rather than later because:
-    // - extensions installed using the command line need to be a member
-    //   of a container during the install phase for the code to be able
-    //   to identify profile vs. global
-    // - extensions installed through the UI should show some kind of
-    //   feedback to indicate their presence is forthcoming (i.e. they
-    //   will be available after a restart).
+    
+    
+    
+    
+    
+    
+    
     ds.insertItemIntoContainer(id);
 
     this._notifyAction(id, EM_ITEM_INSTALLED);
   },
 
-  /**
-   * Perform configuration on an item that has just or will be upgraded.
-   * @param   installManifest
-   *          The Install Manifest datasource that describes this item.
-   * @param   itemID
-   *          The GUID of this item.
-   * @param   installLocation
-   *          The Install Location where this item is installed.
-   * @param   type
-   *          The nsIUpdateItem type of this item.
-   */
+  
+
+
+
+
+
+
+
+
+
+
   _upgradeItem: function EM__upgradeItem(installManifest, id, installLocation, type) {
-    // Don't change any props that would need to be reset if the install fails.
-    // They will be reset as appropriate by the upgrade/install process.
+    
+    
     var ds = this.datasource;
     ds.updateVisibleList(id, installLocation.name, false);
     var props = { installLocation : EM_L(installLocation.name),
@@ -4288,14 +4288,14 @@ ExtensionManager.prototype = {
     this._notifyAction(id, EM_ITEM_UPGRADED);
   },
 
-  /**
-   * Completes an Extension's installation.
-   * @param   id
-   *          The GUID of the Extension to install.
-   * @param   file
-   *          The XPI/JAR file to install from. If this is null, we try to
-   *          determine the stage file location from the ID.
-   */
+  
+
+
+
+
+
+
+
   _finalizeInstall: function EM__finalizeInstall(id, file) {
     var ds = this.datasource;
     var type = ds.getItemProperty(id, "type");
@@ -4305,10 +4305,10 @@ ExtensionManager.prototype = {
     }
     var installLocation = this.getInstallLocation(id);
     if (!installLocation) {
-      // If the install location is null, that means we've reached the finalize
-      // state without the item ever having metadata added for it, which implies
-      // bogus data in the Startup Cache. Clear the entries and don't do anything
-      // else.
+      
+      
+      
+      
       var entries = StartupCache.findEntries(id);
       for (var i = 0; i < entries.length; ++i) {
         var location = InstallLocations.get(entries[i].location);
@@ -4322,8 +4322,8 @@ ExtensionManager.prototype = {
     if (!file && "stageFile" in installLocation)
       file = installLocation.getStageFile(id);
 
-    // If there is a staged file then we must extract it to the correct place,
-    // otherwise we are dealing with a dropped-in directory.
+    
+    
     if (file && file.exists())
       safeInstallOperation(id, installLocation, file);
 
@@ -4331,7 +4331,7 @@ ExtensionManager.prototype = {
     if (metadataFile && metadataFile.exists()) {
       var metadataDS = getInstallManifest(metadataFile);
       if (metadataDS) {
-        // Add metadata for the item to the extensions datasource
+        
         this.datasource.addItemMetadata(id, metadataDS, installLocation);
       }
     }
@@ -4340,25 +4340,25 @@ ExtensionManager.prototype = {
           metadataFile.path + " could not be loaded. Add-on is not usable.");
     }
 
-    // If the file was staged, we must clean it up ourselves, otherwise the
-    // EM caller is responsible for doing so (e.g. XPInstall)
+    
+    
     if (file)
       installLocation.removeFile(file);
 
-    // Clear the op flag from the Startup Cache and Pending Operations sets
+    
     StartupCache.put(installLocation, id, OP_NONE, true);
     PendingOperations.clearItem(OP_NEEDS_INSTALL, id);
   },
 
-  /**
-   * Removes an item's metadata in preparation for an upgrade-install.
-   * @param   id
-   *          The GUID of the item to uninstall.
-   * @param   installLocation
-   *          The nsIInstallLocation of the item
-   */
+  
+
+
+
+
+
+
   _finalizeUpgrade: function EM__finalizeUpgrade(id, installLocation) {
-    // Retrieve the item properties *BEFORE* we clean the resource!
+    
     var ds = this.datasource;
 
     var stagedFile = null;
@@ -4375,10 +4375,10 @@ ExtensionManager.prototype = {
         var type = getAddonTypeFromInstallManifest(installManifest);
         var userDisabled = ds.getItemProperty(id, "userDisabled") == "true";
 
-        // Clean the item resource
+        
         ds.removeItemMetadata(id);
-        // Now set up the properties on the item to mimic an item in its
-        // "initial state" for installation.
+        
+        
         this._configureForthcomingItem(installManifest, id, installLocation,
                                        type);
         if (userDisabled)
@@ -4387,38 +4387,38 @@ ExtensionManager.prototype = {
       if (stagedFile)
         installRDF.remove(false);
     }
-    // Clear the op flag from the Pending Operations set. Do NOT clear op flag in
-    // the startup cache since this may have been reset to OP_NEEDS_INSTALL by
-    // |_configureForthcomingItem|.
+    
+    
+    
     PendingOperations.clearItem(OP_NEEDS_UPGRADE, id);
   },
 
-  /**
-   * Completes an item's uninstallation.
-   * @param   id
-   *          The GUID of the item to uninstall.
-   */
+  
+
+
+
+
   _finalizeUninstall: function EM__finalizeUninstall(id) {
     var ds = this.datasource;
 
     var installLocation = this.getInstallLocation(id);
     if (!installLocation.itemIsManagedIndependently(id)) {
       try {
-        // Passing null for the file to install will just cause the directory
-        // removed.
+        
+        
         safeInstallOperation(id, installLocation, null);
       }
       catch (e) {
         ERROR("_finalizeUninstall: failed to remove directory for item: " + id +
               " at Install Location: " + installLocation.name + ", rolling back uninstall");
         var manifest = installLocation.getItemFile(id, "FILE_INSTALL_MANIFEST");
-        // If there is no manifest then either the rollback failed, or there was
-        // no manifest in the first place. Either way this item is now invalid
-        // and we shouldn't try to re-install it.
+        
+        
+        
         if (manifest && manifest.exists()) {
-          // Removal of the files failed, reset the uninstalled flag and rewrite
-          // the install manifests so this item's components are registered.
-          // Clear the op flag from the Startup Cache
+          
+          
+          
           StartupCache.put(installLocation, id, OP_NONE, true);
           var restartRequired = this.installRequiresRestart(id, ds.getItemProperty(id, "type"))
           this._updateManifests(restartRequired);
@@ -4429,45 +4429,45 @@ ExtensionManager.prototype = {
     else if (installLocation.name == KEY_APP_PROFILE ||
              installLocation.name == KEY_APP_GLOBAL ||
              installLocation.name == KEY_APP_SYSTEM_USER) {
-      // Check for a pointer file and remove it if it exists
+      
       var pointerFile = installLocation.location.clone();
       pointerFile.append(id);
       if (pointerFile.exists() && !pointerFile.isDirectory())
         pointerFile.remove(false);
     }
 
-    // Clean the item resource
+    
     ds.removeItemMetadata(id);
 
-    // Do this LAST since inferences are made about an item based on
-    // what container it's in.
+    
+    
     ds.removeItemFromContainer(id);
 
-    // Clear the op flag from the Startup Cache and the Pending Operations set.
+    
     StartupCache.clearEntry(installLocation, id);
     PendingOperations.clearItem(OP_NEEDS_UNINSTALL, id);
   },
 
-  /**
-   * Uninstalls an item. If the uninstallation cannot be performed immediately
-   * it is scheduled for the next restart.
-   * @param   id
-   *          The GUID of the item to uninstall.
-   */
+  
+
+
+
+
+
   uninstallItem: function EM_uninstallItem(id) {
     var ds = this.datasource;
     ds.updateDownloadState(PREFIX_ITEM_URI + id, null);
     if (!ds.isDownloadItem(id)) {
       var opType = ds.getItemProperty(id, "opType");
       var installLocation = this.getInstallLocation(id);
-      // Removes any staged xpis for this item.
+      
       if (opType == OP_NEEDS_UPGRADE || opType == OP_NEEDS_INSTALL) {
         var stageFile = installLocation.getStageFile(id);
         if (stageFile)
           installLocation.removeFile(stageFile);
       }
-      // Addons with an opType of OP_NEEDS_INSTALL only have a staged xpi file
-      // and are removed immediately since the uninstall can't be canceled.
+      
+      
       if (opType == OP_NEEDS_INSTALL) {
         ds.removeItemMetadata(id);
         ds.removeItemFromContainer(id);
@@ -4488,15 +4488,15 @@ ExtensionManager.prototype = {
       }
     }
     else {
-      // Bad download entry - uri is url, e.g. "http://www.foo.com/test.xpi"
-      // ... just remove it from the list.
+      
+      
       ds.removeCorruptDLItem(id);
     }
 
     this._notifyAction(id, EM_ITEM_UNINSTALLED);
   },
 
-  /* See nsIExtensionManager.idl */
+  
   cancelInstallItem: function EM_cancelInstallItem(id) {
     var ds = this.datasource;
     var opType = ds.getItemProperty(id, "opType");
@@ -4505,12 +4505,12 @@ ExtensionManager.prototype = {
 
     ds.updateDownloadState(PREFIX_ITEM_URI + id, null);
     var installLocation = this.getInstallLocation(id);
-    // Removes any staged xpis for this item.
+    
     var stageFile = installLocation.getStageFile(id);
     if (stageFile)
       installLocation.removeFile(stageFile);
-    // Addons with an opType of OP_NEEDS_INSTALL only have a staged xpi file
-    // and just need to be removed completely from the ds.
+    
+    
     if (opType == OP_NEEDS_INSTALL) {
       ds.removeItemMetadata(id);
       ds.removeItemFromContainer(id);
@@ -4520,7 +4520,7 @@ ExtensionManager.prototype = {
       this._notifyAction(id, EM_ITEM_CANCEL);
     }
     else {
-      // Clear upgrade information and reset any request to enable/disable.
+      
       ds.setItemProperty(id, EM_R("newVersion"), null);
       var appDisabled = ds.getItemProperty(id, "appDisabled");
       var userDisabled = ds.getItemProperty(id, "userDisabled");
@@ -4543,11 +4543,11 @@ ExtensionManager.prototype = {
     }
   },
 
-  /**
-   * Cancels a pending uninstall of an item
-   * @param   id
-   *          The ID of the item.
-   */
+  
+
+
+
+
   cancelUninstallItem: function EM_cancelUninstallItem(id) {
     var ds = this.datasource;
     var appDisabled = ds.getItemProperty(id, "appDisabled");
@@ -4570,13 +4570,13 @@ ExtensionManager.prototype = {
     }
   },
 
-  /**
-   * Sets the pending operation for a visible item.
-   * @param   id
-   *          The GUID of the item
-   * @param   op
-   *          The name of the operation to be performed
-   */
+  
+
+
+
+
+
+
   _setOp: function EM__setOp(id, op) {
     var location = this.getInstallLocation(id);
     StartupCache.put(location, id, op, true);
@@ -4593,28 +4593,28 @@ ExtensionManager.prototype = {
     this._updateManifests(restartRequired);
   },
 
-  /**
-   * Note on appDisabled and userDisabled property arcs.
-   * The appDisabled and userDisabled RDF property arcs are used to store
-   * the pending operation for app disabling and user disabling for an item as
-   * well as the user and app disabled status after the pending operation has
-   * been completed upon restart. When the appDisabled value changes the value
-   * of userDisabled is reset to prevent the state of widgets and status
-   * messages from being in an incorrect state.
-   */
+  
 
-  /**
-   * Enables an item for the application (e.g. the item satisfies all
-   * requirements like app compatibility for it to be enabled). The appDisabled
-   * property arc will be removed if the item will be app disabled on next
-   * restart to cancel the app disabled operation for the item otherwise the
-   * property value will be set to OP_NEEDS_ENABLE. The item's pending
-   * operations are then evaluated in order to set the operation to perform
-   * and notify the observers if the operation has been changed.
-   * See "Note on appDisabled and userDisabled property arcs" above.
-   * @param   id
-   *          The ID of the item to be enabled by the application.
-   */
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
   _appEnableItem: function EM__appEnableItem(id) {
     var ds = this.datasource;
     var appDisabled = ds.getItemProperty(id, "appDisabled");
@@ -4623,8 +4623,8 @@ ExtensionManager.prototype = {
 
     var opType = ds.getItemProperty(id, "opType");
     var userDisabled = ds.getItemProperty(id, "userDisabled");
-    // reset user disabled if it has a pending operation to prevent the ui
-    // state from getting confused as to an item's current state.
+    
+    
     if (userDisabled == OP_NEEDS_DISABLE)
       ds.setItemProperty(id, EM_R("userDisabled"), null);
     else if (userDisabled == OP_NEEDS_ENABLE)
@@ -4635,16 +4635,16 @@ ExtensionManager.prototype = {
     else if (appDisabled == "true")
       ds.setItemProperty(id, EM_R("appDisabled"), EM_L(OP_NEEDS_ENABLE));
 
-    // Don't set a new operation when there is a pending uninstall operation.
+    
     if (opType == OP_NEEDS_UNINSTALL) {
       this._updateDependentItemsForID(id);
       return;
     }
 
     var operation, action;
-    // if this item is already enabled or user disabled don't set a pending
-    // operation - instead immediately enable it and reset the operation type
-    // if needed.
+    
+    
+    
     if (appDisabled == OP_NEEDS_DISABLE || appDisabled == OP_NONE ||
         userDisabled == "true") {
       if (opType != OP_NONE) {
@@ -4669,18 +4669,18 @@ ExtensionManager.prototype = {
     }
   },
 
-  /**
-   * Disables an item for the application (e.g. the item doesn't satisfy all
-   * requirements like app compatibility for it to be enabled). The appDisabled
-   * property arc will be set to true if the item will be app enabled on next
-   * restart to cancel the app enabled operation for the item otherwise the
-   * property value will be set to OP_NEEDS_DISABLE. The item's pending
-   * operations are then evaluated in order to set the operation to perform
-   * and notify the observers if the operation has been changed.
-   * See "Note on appDisabled and userDisabled property arcs" above.
-   * @param   id
-   *          The ID of the item to be disabled by the application.
-   */
+  
+
+
+
+
+
+
+
+
+
+
+
   _appDisableItem: function EM__appDisableItem(id) {
     var ds = this.datasource;
     var appDisabled = ds.getItemProperty(id, "appDisabled");
@@ -4690,8 +4690,8 @@ ExtensionManager.prototype = {
     var opType = ds.getItemProperty(id, "opType");
     var userDisabled = ds.getItemProperty(id, "userDisabled");
 
-    // reset user disabled if it has a pending operation to prevent the ui
-    // state from getting confused as to an item's current state.
+    
+    
     if (userDisabled == OP_NEEDS_DISABLE)
       ds.setItemProperty(id, EM_R("userDisabled"), null);
     else if (userDisabled == OP_NEEDS_ENABLE)
@@ -4703,15 +4703,15 @@ ExtensionManager.prototype = {
     else if (appDisabled == OP_NONE)
       ds.setItemProperty(id, EM_R("appDisabled"), EM_L(OP_NEEDS_DISABLE));
 
-    // Don't set a new operation when there is a pending uninstall operation.
+    
     if (opType == OP_NEEDS_UNINSTALL) {
       this._updateDependentItemsForID(id);
       return;
     }
 
     var operation, action;
-    // if this item is already disabled don't set a pending operation - instead
-    // immediately disable it and reset the operation type if needed.
+    
+    
     if (appDisabled == OP_NEEDS_ENABLE || appDisabled == "true" ||
         userDisabled == OP_NEEDS_ENABLE || userDisabled == "true") {
       if (opType != OP_NONE) {
@@ -4736,13 +4736,13 @@ ExtensionManager.prototype = {
     }
   },
 
-  /**
-   * Sets an item to be enabled by the user. If the item is already enabled this
-   * clears the needs-enable operation for the next restart.
-   * See "Note on appDisabled and userDisabled property arcs" above.
-   * @param   id
-   *          The ID of the item to be enabled by the user.
-   */
+  
+
+
+
+
+
+
   enableItem: function EM_enableItem(id) {
     var ds = this.datasource;
     var opType = ds.getItemProperty(id, "opType");
@@ -4750,8 +4750,8 @@ ExtensionManager.prototype = {
     var userDisabled = ds.getItemProperty(id, "userDisabled");
 
     var operation, action;
-    // if this item is already enabled don't set a pending operation - instead
-    // immediately enable it and reset the operation type if needed.
+    
+    
     if (appDisabled == OP_NONE &&
         userDisabled == OP_NEEDS_DISABLE || userDisabled == OP_NONE) {
       if (userDisabled == OP_NEEDS_DISABLE)
@@ -4780,13 +4780,13 @@ ExtensionManager.prototype = {
     }
   },
 
-  /**
-   * Sets an item to be disabled by the user. If the item is already disabled
-   * this clears the needs-disable operation for the next restart.
-   * See "Note on appDisabled and userDisabled property arcs" above.
-   * @param   id
-   *          The ID of the item to be disabled by the user.
-   */
+  
+
+
+
+
+
+
   disableItem: function EM_disableItem(id) {
     var ds = this.datasource;
     var opType = ds.getItemProperty(id, "opType");
@@ -4794,8 +4794,8 @@ ExtensionManager.prototype = {
     var userDisabled = ds.getItemProperty(id, "userDisabled");
 
     var operation, action;
-    // if this item is already disabled don't set a pending operation - instead
-    // immediately disable it and reset the operation type if needed.
+    
+    
     if (userDisabled == OP_NEEDS_ENABLE || userDisabled == "true" ||
         appDisabled == OP_NEEDS_ENABLE) {
       if (userDisabled != "true")
@@ -4824,37 +4824,37 @@ ExtensionManager.prototype = {
     }
   },
 
-  /**
-   * Determines whether an item should be disabled by the application.
-   * @param   id
-   *          The ID of the item to check
-   */
+  
+
+
+
+
   _isUsableItem: function EM__isUsableItem(id) {
     var ds = this.datasource;
-    /* If the item is compatible and if it isn't blocklisted and has all
-     * dependencies satisfied then proceed to the security check */
+    
+
     if (ds.isCompatible(ds, getResourceForID(id), false) &&
         ds.getItemProperty(id, "blocklisted") == "false" &&
         ds.getItemProperty(id, "satisfiesDependencies") == "true") {
 
-      // appManaged items aren't updated so no need to check update security.
+      
       if (ds.getItemProperty(id, "appManaged") == "true")
         return true;
 
-      /* If we are not ignoring update security then check that the item has
-       * a secure update mechanism */
+      
+
       return (!gCheckUpdateSecurity ||
               ds.getItemProperty(id, "providesUpdatesSecurely") == "true");
     }
     return false;
   },
 
-  /**
-   * Sets an item's dependent items disabled state for the app based on whether
-   * its dependencies are met and the item is compatible.
-   * @param   id
-   *          The ID of the item whose dependent items will be checked
-   */
+  
+
+
+
+
+
   _updateDependentItemsForID: function EM__updateDependentItemsForID(id) {
     var ds = this.datasource;
     var dependentItems = this.getDependentItemListForID(id, true);
@@ -4868,23 +4868,23 @@ ExtensionManager.prototype = {
     }
   },
 
-  /**
-   * Notify observers of a change to an item that has been requested by the
-   * user.
-   */
+  
+
+
+
   _notifyAction: function EM__notifyAction(id, reason) {
     gOS.notifyObservers(this.datasource.getItemForID(id),
                         EM_ACTION_REQUESTED_TOPIC, reason);
   },
 
-  /**
-   * See nsIExtensionManager.idl
-   */
+  
+
+
   update: function EM_update(items, itemCount, updateCheckType, listener,
                              updateType, appVersion, platformVersion) {
 
-    // Callers through the API are only allowed to use update types declared
-    // in nsIExtensionManager.idl
+    
+    
     if (updateType > MAX_PUBLIC_UPDATE_WHEN)
       throw Cr.NS_ERROR_ILLEGAL_VALUE;
 
@@ -4902,9 +4902,9 @@ ExtensionManager.prototype = {
                             updateType, appVersion, platformVersion);
   },
 
-  /**
-   * See nsIExtensionManager.idl
-   */
+  
+
+
   updateAndGetNewBlocklistedItems: function EM_updateAndGetNewBlocklistedItems(itemCount) {
     if (!gBlocklist)
       gBlocklist = Cc["@mozilla.org/extensions/blocklist;1"].
@@ -4916,7 +4916,7 @@ ExtensionManager.prototype = {
     for (var i = 0; i < items.length; ++i) {
       var id = items[i].id;
 
-      // Get whether the add-on is currently disabled or set to be disabled.
+      
       var appDisabled = (ds.getItemProperty(id, "appDisabled") == "true" ||
                          ds.getItemProperty(id, "appDisabled") == OP_NEEDS_DISABLE);
       var userDisabled = (ds.getItemProperty(id, "userDisabled") == "true" ||
@@ -4924,20 +4924,20 @@ ExtensionManager.prototype = {
       var usable = this._isUsableItem(id);
       var state = gBlocklist.getAddonBlocklistState(items[i].id, items[i].version);
 
-      // We only return items that are now blocked or to be warned about and aren't
-      // already disabled for some reason.
+      
+      
       if (!appDisabled && !userDisabled && state != Ci.nsIBlocklistService.STATE_NOT_BLOCKED)
         list.push(items[i]);
 
-      // Update the appDisabled status based on the new blocked state
+      
       if (usable)
         this._appEnableItem(id);
       else
         this._appDisableItem(id);
 
-      // If the item was appDisabled and is now usable then it is something
-      // that is no longer hard blocked. If it is still to be warned about then
-      // just user disable it.
+      
+      
+      
       if (appDisabled && usable && !userDisabled &&
           state == Ci.nsIBlocklistService.STATE_SOFTBLOCKED)
         this.disableItem(id);
@@ -4951,58 +4951,58 @@ ExtensionManager.prototype = {
     return list;
   },
 
-  /**
-   * @returns An enumeration of all registered Install Locations.
-   */
+  
+
+
   get installLocations () {
     return InstallLocations.enumeration;
   },
 
-  /**
-   * Gets the Install Location where a visible Item is stored.
-   * @param   id
-   *          The GUID of the item to locate an Install Location for.
-   * @returns The Install Location object where the item is stored.
-   */
+  
+
+
+
+
+
   getInstallLocation: function EM_getInstallLocation(id) {
     var key = this.datasource.visibleItems[id];
     return key ? InstallLocations.get(this.datasource.visibleItems[id]) : null;
   },
 
-  /**
-   * Gets a nsIUpdateItem for the item with the specified id.
-   * @param   id
-   *          The GUID of the item to construct a nsIUpdateItem for.
-   * @returns The nsIUpdateItem representing the item.
-   */
+  
+
+
+
+
+
   getItemForID: function EM_getItemForID(id) {
     return this.datasource.getItemForID(id);
   },
 
-  /**
-   * Retrieves a list of installed nsIUpdateItems of items that are dependent
-   * on another item.
-   * @param   id
-   *          The ID of the item that other items depend on.
-   * @param   includeDisabled
-   *          Whether to include disabled items in the set returned.
-   * @param   countRef
-   *          The XPCJS reference to the number of items returned.
-   * @returns An array of installed nsIUpdateItems that depend on the item
-   *          specified by the id parameter.
-   */
+  
+
+
+
+
+
+
+
+
+
+
+
   getDependentItemListForID: function EM_getDependentItemListForID(id,
                                                                    includeDisabled,
                                                                    countRef) {
     return this.datasource.getDependentItemListForID(id, includeDisabled, countRef);
   },
 
-  /* See nsIExtensionManager.idl */
+  
   getItemList: function EM_getItemList(type, countRef) {
     return this.datasource.getItemList(type, countRef);
   },
 
-  /* See nsIExtensionManager.idl */
+  
   getIncompatibleItemList: function EM_getIncompatibleItemList(appVersion,
                                                                platformVersion,
                                                                type,
@@ -5016,28 +5016,28 @@ ExtensionManager.prototype = {
     return items;
   },
 
-  /////////////////////////////////////////////////////////////////////////////
-  // Downloads
+  
+  
   _transactions: [],
   _downloadCount: 0,
   _compatibilityCheckCount: 0,
 
-  /**
-   * Ask the user if they really want to quit the application, since this will
-   * cancel one or more Extension/Theme downloads.
-   * @param   subject
-   *          A nsISupportsPRBool which this function sets to false if the user
-   *          wishes to cancel all active downloads and quit the application,
-   *          false otherwise.
-   */
+  
+
+
+
+
+
+
+
   _confirmCancelDownloadsOnQuit: function EM__confirmCancelDownloadsOnQuit(subject) {
-    // If user has already dismissed quit request, then do nothing
+    
     if ((subject instanceof Ci.nsISupportsPRBool) && subject.data)
       return;
 
     if (this._downloadCount > 0) {
-      // The observers will be notified again after this so set the download
-      // count to 0 to prevent this dialog from being displayed again.
+      
+      
       this._downloadCount = 0;
       var result;
 #ifndef XP_MACOSX
@@ -5058,14 +5058,14 @@ ExtensionManager.prototype = {
     }
   },
 
-  /**
-   * Ask the user if they really want to go offline, since this will cancel
-   * one or more Extension/Theme downloads.
-   * @param   subject
-   *          A nsISupportsPRBool which this function sets to false if the user
-   *          wishes to cancel all active downloads and go offline, false
-   *          otherwise.
-   */
+  
+
+
+
+
+
+
+
   _confirmCancelDownloadsOnOffline: function EM__confirmCancelDownloadsOnOffline(subject) {
     if (this._downloadCount > 0) {
       result = this._confirmCancelDownloads(this._downloadCount,
@@ -5078,23 +5078,23 @@ ExtensionManager.prototype = {
     }
   },
 
-  /**
-   * Ask the user whether or not they wish to cancel the Extension/Theme
-   * downloads which are currently under way.
-   * @param   count
-   *          The number of active downloads.
-   * @param   title
-   *          The key of the title for the message box to be displayed
-   * @param   cancelMessageMultiple
-   *          The key of the message to be displayed in the message box
-   *          when there are > 1 active downloads.
-   * @param   cancelMessageSingle
-   *          The key of the message to be displayed in the message box
-   *          when there is just one active download.
-   * @param   dontCancelButton
-   *          The key of the label to be displayed on the "Don't Cancel
-   *          Downloads" button.
-   */
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   _confirmCancelDownloads: function EM__confirmCancelDownloads(count, title,
                                                                cancelMessageMultiple,
                                                                cancelMessageSingle,
@@ -5124,7 +5124,7 @@ ExtensionManager.prototype = {
     return rv == 1;
   },
 
-  /* See nsIExtensionManager.idl */
+  
   addDownloads: function EM_addDownloads(items, itemCount, manager) {
     if (itemCount == 0)
       throw Cr.NS_ERROR_ILLEGAL_VALUE;
@@ -5136,7 +5136,7 @@ ExtensionManager.prototype = {
     }
 
     var ds = this.datasource;
-    // Add observers only if they aren't already added for an active download
+    
     if (this._downloadCount == 0) {
       gOS.addObserver(this, "offline-requested", false);
       gOS.addObserver(this, "quit-application-requested", false);
@@ -5153,8 +5153,8 @@ ExtensionManager.prototype = {
       txn.addDownload(currItem);
       urls.push(currItem.xpiURL);
       hashes.push(currItem.xpiHash ? currItem.xpiHash : null);
-      // if this is an update remove the update metadata to prevent it from
-      // being updated during an install.
+      
+      
       if (!manager) {
         var id = currItem.id
         var props = {
@@ -5177,38 +5177,38 @@ ExtensionManager.prototype = {
     this._transactions.push(txn);
 
     if (manager) {
-      // XPIManager initiated -- let it know we're ready
+      
       manager.observe(txn, "xpinstall-progress", "open");
     }
     else {
-      // Initiate an install from chrome
+      
       var xpimgr = Cc["@mozilla.org/xpinstall/install-manager;1"].
                    createInstance(Ci.nsIXPInstallManager);
       xpimgr.initManagerWithHashes(urls, hashes, urls.length, txn);
     }
   },
 
-  /**
-   * Download Operation State has changed from one to another.
-   *
-   * The nsIXPIProgressDialog implementation in the download transaction object
-   * forwards notifications through these methods which we then pass on to any
-   * front end objects implementing nsIExtensionDownloadListener that
-   * are listening. We maintain the master state of download operations HERE,
-   * not in the front end, because if the user closes the extension or theme
-   * managers during the downloads we need to maintain state and not terminate
-   * the download/install process.
-   *
-   * @param   transaction
-   *          The ItemDownloadTransaction object receiving the download
-   *          notifications from XPInstall.
-   * @param   addon
-   *          An object representing nsIUpdateItem for the addon being updated
-   * @param   state
-   *          The state we are entering
-   * @param   value
-   *          ???
-   */
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   onStateChange: function EM_onStateChange(transaction, addon, state, value) {
     var ds = this.datasource;
     var id = addon.id != addon.xpiURL ? PREFIX_ITEM_URI + addon.id : addon.xpiURL;
@@ -5227,15 +5227,15 @@ ExtensionManager.prototype = {
       break;
     case nsIXPIProgressDialog.INSTALL_DONE:
       --this._downloadCount;
-      // From nsInstall.h
-      // SUCCESS        = 0
-      // USER_CANCELLED = -210
+      
+      
+      
       if (value != 0 && value != -210 && id != addon.xpiURL) {
         ds.updateDownloadState(id, "failure");
         ds.updateDownloadProgress(id, null);
       }
       transaction.removeDownload(addon.xpiURL);
-      // A successful install will be passing notifications via installItemFromFile
+      
       if (value != 0)
         this._callInstallListeners("onInstallEnded", addon, value);
       break;
@@ -5243,20 +5243,20 @@ ExtensionManager.prototype = {
       for (var i = 0; i < this._transactions.length; ++i) {
         if (this._transactions[i].id == transaction.id) {
           this._transactions.splice(i, 1);
-          // Remove the observers when all transactions have completed.
+          
           if (this._transactions.length == 0) {
             gOS.removeObserver(this, "offline-requested");
             gOS.removeObserver(this, "quit-application-requested");
 
-            // If there are no compatibility checks running then the install
-            // operations are complete.
+            
+            
             if (this._compatibilityCheckCount == 0)
               this._callInstallListeners("onInstallsCompleted");
           }
           break;
         }
       }
-      // Remove any remaining downloads from this transaction
+      
       transaction.removeAllDownloads();
       break;
     }
@@ -5302,18 +5302,18 @@ ExtensionManager.prototype = {
     }
   },
 
-  /**
-   * The Extensions RDF Datasource
-   */
+  
+
+
   _ds: null,
   _ptr: null,
 
-  /**
-   * Loads the Extensions Datasource. This should not be called unless:
-   * - a piece of Extensions UI is being shown, or
-   * - on startup and there has been a change to an Install Location
-   * ... it should NOT be called on every startup!
-   */
+  
+
+
+
+
+
   _ensureDS: function EM__ensureDS() {
     if (!this._ds) {
       this._ds = new ExtensionsDataSource(this);
@@ -5325,15 +5325,15 @@ ExtensionManager.prototype = {
     }
   },
 
-  /**
-   * See nsIExtensionManager.idl
-   */
+  
+
+
   get datasource() {
     this._ensureDS();
     return this._ds;
   },
 
-  // nsIClassInfo
+  
   flags: Ci.nsIClassInfo.SINGLETON,
   implementationLanguage: Ci.nsIProgrammingLanguage.JAVASCRIPT,
   getHelperForLanguage: function(language) null,
@@ -5367,23 +5367,23 @@ ExtensionManager.prototype = {
                                          Ci.nsIClassInfo])
 };
 
-/**
- * This object implements nsIXPIProgressDialog and represents a collection of
- * XPI/JAR download and install operations. There is one
- * ItemDownloadTransaction per back-end XPInstallManager object. We maintain
- * a collection of separate transaction objects because it's possible to have
- * multiple separate XPInstall download/install operations going on
- * simultaneously, each with its own XPInstallManager instance. For instance
- * you could start downloading two extensions and then download a theme. Each
- * of these operations would open the appropriate FE and have to be able to
- * track each operation independently.
- *
- * @constructor
- * @param   manager
- *          The extension manager creating this transaction
- * @param   id
- *          The integer identifier of this transaction
- */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 function ItemDownloadTransaction(manager, id) {
   this._manager = manager;
   this._downloads = [];
@@ -5394,28 +5394,28 @@ ItemDownloadTransaction.prototype = {
   _downloads  : [],
   id          : -1,
 
-  /**
-   * Add a download to this transaction
-   * @param   addon
-   *          An object implementing nsIUpdateItem for the item to be downloaded
-   */
+  
+
+
+
+
   addDownload: function ItemDownloadTransaction_addDownload(addon) {
     this._downloads.push({ addon: addon, waiting: true });
     this._manager.datasource.addDownload(addon);
   },
 
-  /**
-   * Removes a download from this transaction
-   * @param   url
-   *          The URL to remove
-   */
+  
+
+
+
+
   removeDownload: function ItemDownloadTransaction_removeDownload(url) {
     this._manager.datasource.removeDownload(url);
   },
 
-  /**
-   * Remove all downloads from this transaction
-   */
+  
+
+
   removeAllDownloads: function ItemDownloadTransaction_removeAllDownloads() {
     for (var i = 0; i < this._downloads.length; ++i) {
       var addon = this._downloads[i].addon;
@@ -5423,12 +5423,12 @@ ItemDownloadTransaction.prototype = {
     }
   },
 
-  /**
-   * Determine if this transaction is handling the download of a url.
-   * @param   url
-   *          The URL to look for
-   * @returns true if this transaction is downloading the supplied url.
-   */
+  
+
+
+
+
+
   containsURL: function ItemDownloadTransaction_containsURL(url) {
     for (var i = 0; i < this._downloads.length; ++i) {
       if (this._downloads[i].addon.xpiURL == url)
@@ -5437,17 +5437,17 @@ ItemDownloadTransaction.prototype = {
     return false;
   },
 
-  /**
-   * See nsIXPIProgressDialog.idl
-   */
+  
+
+
   onStateChange: function ItemDownloadTransaction_onStateChange(index, state, value) {
     this._manager.onStateChange(this, this._downloads[index].addon,
                                 state, value);
   },
 
-  /**
-   * See nsIXPIProgressDialog.idl
-   */
+  
+
+
   onProgress: function ItemDownloadTransaction_onProgress(index, value, maxValue) {
     this._manager.onProgress(this._downloads[index].addon, value, maxValue);
   },
@@ -5455,10 +5455,10 @@ ItemDownloadTransaction.prototype = {
   QueryInterface: XPCOMUtils.generateQI([Ci.nsIXPIProgressDialog])
 };
 
-/**
- * A listener object that watches the background update check and notifies the
- * user of any updates found.
- */
+
+
+
+
 function BackgroundUpdateCheckListener(datasource) {
   this._emDS = datasource;
 }
@@ -5466,7 +5466,7 @@ BackgroundUpdateCheckListener.prototype = {
   _updateCount: 0,
   _emDS: null,
 
-  // nsIObserver implementation
+  
   observe: function BackgroundUpdateListener_observe(aSubject, aTopic, aData) {
     if (aTopic != "alertclickcallback")
       return;
@@ -5477,7 +5477,7 @@ BackgroundUpdateCheckListener.prototype = {
     if (win) {
       win.focus();
       win.showView("updates");
-      // Don't show the update notification on next startup
+      
       gPref.setBoolPref(PREF_UPDATE_NOTIFYUSER, false);
     }
     else {
@@ -5493,7 +5493,7 @@ BackgroundUpdateCheckListener.prototype = {
     }
   },
   
-  // nsIAddonUpdateCheckListener implementation
+  
   onUpdateStarted: function BackgroundUpdateListener_onUpdateStarted() {
   },
 
@@ -5537,10 +5537,10 @@ BackgroundUpdateCheckListener.prototype = {
 };
 
 
-/**
- * A listener object to the update check process that routes notifications to
- * the right places and keeps the datasource up to date.
- */
+
+
+
+
 function AddonUpdateCheckListener(listener, datasource) {
   this._listener = listener;
   this._ds = datasource;
@@ -5574,10 +5574,10 @@ AddonUpdateCheckListener.prototype = {
   }
 };
 
-///////////////////////////////////////////////////////////////////////////////
-//
-// ExtensionItemUpdater
-//
+
+
+
+
 function ExtensionItemUpdater(aEM)
 {
   this._emDS = aEM._ds;
@@ -5594,34 +5594,34 @@ ExtensionItemUpdater.prototype = {
   _items              : [],
   _listener           : null,
 
-  /* ExtensionItemUpdater
-#
-#    When we check for updates to an item, there are two pieces of information
-#    that are returned - 1) info about the newest available version, if any,
-#    and 2) info about the currently installed version. The latter is provided
-#    primarily to inform the client of changes to the application compatibility
-#    metadata for the current item. Depending on the situation, either 2 or
-#    1&2 may be what is required.
-#
-#    Callers:
-#     1 - nsUpdateService.js, user event
-#         User clicked on the update icon to invoke an update check,
-#         user clicked on an Extension/Theme and clicked "Update". In this
-#         case we want to update compatibility metadata about the installed
-#         version, and look for newer versions to offer.
-#     2 - nsUpdateService.js, background event
-#         Timer fired, background update is being performed. In this case
-#         we also want to check for compatibility metadata and newer
-#         versions that will make the add-on compatible.
-#     3 - Mismatch
-#         User upgraded to a newer version of the app, update compatibility
-#         metadata and look for newer versions.
-#     4 - Install Phone Home
-#         User installed an item that was deemed incompatible based only
-#         on the information provided in the item's install.rdf manifest,
-#         we look ONLY for compatibility updates in this case to determine
-#         whether or not the item can be installed.
-  */
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   checkForUpdates: function ExtensionItemUpdater_checkForUpdates(aItems,
                                                                  aItemCount,
                                                                  aUpdateCheckType,
@@ -5648,14 +5648,14 @@ ExtensionItemUpdater.prototype = {
     this._responseCount = aItemCount;
 
     this._updateType = aUpdateType;
-    // All update check types look for compatibility currently
+    
     this._updateType |= UPDATE_TYPE_COMPATIBILITY;
-    // Only two types also look for new versions
+    
     if (aUpdateCheckType == Ci.nsIExtensionManager.UPDATE_NOTIFY_NEWVERSION ||
         aUpdateCheckType == Ci.nsIExtensionManager.UPDATE_CHECK_NEWVERSION)
       this._updateType |= UPDATE_TYPE_NEWVERSION;
 
-    // This is the number of extensions/themes/etc that we found updates for.
+    
     this._updateCount = 0;
 
     for (var i = 0; i < aItemCount; ++i) {
@@ -5669,15 +5669,15 @@ ExtensionItemUpdater.prototype = {
       this._listener.onUpdateEnded();
   },
 
-  /////////////////////////////////////////////////////////////////////////////
-  // ExtensionItemUpdater
+  
+  
   _applyVersionUpdates: function ExtensionItemUpdater__applyVersionUpdates(aLocalItem,
                                                                            aRemoteItem) {
     var targetAppInfo = this._emDS.getTargetApplicationInfo(aLocalItem.id, this._emDS);
-    // If targetAppInfo is null this is for a new install. If the local item's
-    // maxVersion does not equal the targetAppInfo maxVersion then this is for
-    // an upgrade. In both of these cases return true if the remotely specified
-    // maxVersion is greater than the local item's maxVersion.
+    
+    
+    
+    
     if (!targetAppInfo ||
         gVersionChecker.compare(aLocalItem.maxAppVersion, targetAppInfo.maxVersion) != 0) {
       if (gVersionChecker.compare(aLocalItem.maxAppVersion, aRemoteItem.maxAppVersion) < 0)
@@ -5687,16 +5687,16 @@ ExtensionItemUpdater.prototype = {
     }
 
     if (gVersionChecker.compare(targetAppInfo.maxVersion, aRemoteItem.maxAppVersion) < 0) {
-      // Remotely specified maxVersion is newer than the maxVersion
-      // for the installed Extension. Apply that change to the datasources.
+      
+      
       this._emDS.setTargetApplicationInfo(aLocalItem.id,
                                           aRemoteItem.targetAppID,
                                           aRemoteItem.minAppVersion,
                                           aRemoteItem.maxAppVersion,
                                           null);
 
-      // If we got here through |checkForMismatches|, this extension has
-      // already been disabled, re-enable it.
+      
+      
       var op = StartupCache.entries[aLocalItem.installLocationKey][aLocalItem.id].op;
       if (op == OP_NEEDS_DISABLE ||
           this._emDS.getItemProperty(aLocalItem.id, "appDisabled") == "true")
@@ -5712,18 +5712,18 @@ ExtensionItemUpdater.prototype = {
     return false;
   },
 
-  /**
-   * Checks whether a discovered update is valid for install
-   * @param   aLocalItem
-   *          The already installed nsIUpdateItem that the update is for
-   * @param   aRemoteItem
-   *          The nsIUpdateItem we are trying to update to
-   * @param   aUpdateCheckType
-   *          The type of update check being performed
-   *
-   * @returns true if the item is compatible and is not blocklisted.
-   *          false if the item is not compatible or is blocklisted.
-   */
+  
+
+
+
+
+
+
+
+
+
+
+
   _isValidUpdate: function _isValidUpdate(aLocalItem, aRemoteItem, aUpdateCheckType) {
     var appExtensionsVersion = (aRemoteItem.targetAppID != TOOLKIT_ID) ?
                                this._appVersion :
@@ -5731,21 +5731,21 @@ ExtensionItemUpdater.prototype = {
 
     var min = aRemoteItem.minAppVersion;
     var max = aRemoteItem.maxAppVersion;
-    // Check if the update will only run on a newer version of the application.
+    
     if (!min || gVersionChecker.compare(appExtensionsVersion, min) < 0)
       return false;
 
-    // Check if the update will only run on an older version of the application.
+    
     if (!max || gVersionChecker.compare(appExtensionsVersion, max) > 0)
       return false;
 
-    // Ignore the blocklist for compatibility only checks.
+    
     if (aUpdateCheckType != Ci.nsIExtensionManager.UPDATE_CHECK_COMPATIBILITY) {
       if (!gBlocklist)
         gBlocklist = Cc["@mozilla.org/extensions/blocklist;1"].
                      getService(Ci.nsIBlocklistService);
-      // Denies updates that are hard blocked, soft blocked items will be warned
-      // about during the install.
+      
+      
       if (gBlocklist.isAddonBlocklisted(aLocalItem.id, aRemoteItem.version,
                                         this._appVersion, this._platformVersion))
         return false;
@@ -5774,22 +5774,22 @@ ExtensionItemUpdater.prototype = {
   },
 };
 
-/**
- * Replaces %...% strings in an addon url (update and updateInfo) with
- * appropriate values.
- * @param   aItem
- *          The nsIUpdateItem representing the item
- * @param   aAppVersion
- *          The application version to check for updates for
- * @param   aUpdateType
- *          The type of the update (see nsIExtensionManager)
- * @param   aURI
- *          The uri to escape
- * @param   aDS
- *          The extensions datasource
- *
- * @returns the appropriately escaped uri.
- */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 function escapeAddonURI(aItem, aAppVersion, aUpdateType, aURI, aDS)
 {
   var itemStatus = "userEnabled";
@@ -5823,8 +5823,8 @@ function escapeAddonURI(aItem, aAppVersion, aUpdateType, aURI, aDS)
   if (aUpdateType)
     aURI = aURI.replace(/%UPDATE_TYPE%/g, aUpdateType);
 
-  // Replace custom parameters (names of custom parameters must have at
-  // least 3 characters to prevent lookups for something like %D0%C8)
+  
+  
   var catMan = null;
   aURI = aURI.replace(/%(\w{3,})%/g, function(match, param) {
     if (!catMan) {
@@ -5843,7 +5843,7 @@ function escapeAddonURI(aItem, aAppVersion, aUpdateType, aURI, aDS)
     }
   });
 
-  // escape() does not properly encode + symbols in any embedded FVF strings.
+  
   return aURI.replace(/\+/g, "%2B");
 }
 
@@ -5857,7 +5857,7 @@ RDFItemUpdater.prototype = {
   _item               : null,
 
   checkForUpdates: function RDFItemUpdater_checkForUpdates(aItem, aUpdateCheckType) {
-    // A preference setting can disable updating for this item
+    
     try {
       if (!gPref.getBoolPref(PREF_EM_ITEM_UPDATE_ENABLED.replace(/%UUID%/, aItem.id))) {
         var status = Ci.nsIAddonUpdateCheckListener.STATUS_DISABLED;
@@ -5867,7 +5867,7 @@ RDFItemUpdater.prototype = {
     }
     catch (e) { }
 
-    // Items managed by the app are not checked for updates.
+    
     var emDS = this._updater._emDS;
     if (emDS.getItemProperty(aItem.id, "appManaged") == "true") {
       var status = Ci.nsIAddonUpdateCheckListener.STATUS_APP_MANAGED;
@@ -5875,8 +5875,8 @@ RDFItemUpdater.prototype = {
       return;
     }
 
-    // Items that have a pending install, uninstall, or upgrade are not checked
-    // for updates.
+    
+    
     var opType = emDS.getItemProperty(aItem.id, "opType");
     if (opType) {
       var status = Ci.nsIAddonUpdateCheckListener.STATUS_PENDING_OP;
@@ -5885,15 +5885,15 @@ RDFItemUpdater.prototype = {
     }
 
     var installLocation = InstallLocations.get(emDS.getInstallLocationKey(aItem.id));
-    // Don't check items for updates that are managed independently
+    
     if (installLocation && installLocation.itemIsManagedIndependently(aItem.id)) {
       var status = Ci.nsIAddonUpdateCheckListener.STATUS_NOT_MANAGED;
       this._updater.checkForDone(aItem, status);
       return;
     }
 
-    // Don't check items for updates if the location can't be written to except
-    // when performing a version only update.
+    
+    
     if ((aUpdateCheckType == Ci.nsIExtensionManager.UPDATE_CHECK_NEWVERSION ||
          aUpdateCheckType == Ci.nsIExtensionManager.UPDATE_NOTIFY_NEWVERSION) &&
         (!installLocation || !installLocation.canAccess)) {
@@ -5905,8 +5905,8 @@ RDFItemUpdater.prototype = {
     this._updateCheckType = aUpdateCheckType;
     this._item = aItem;
 
-    // Look for a custom update URI: 1) supplied by a pref, 2) supplied by the
-    // install manifest, 3) the default configuration
+    
+    
     try {
       var dsURI = gPref.getComplexValue(PREF_EM_ITEM_UPDATE_URL.replace(/%UUID%/, aItem.id),
                                         Ci.nsIPrefLocalizedString).data;
@@ -5920,7 +5920,7 @@ RDFItemUpdater.prototype = {
     dsURI = escapeAddonURI(aItem, this._updater._appVersion,
                            this._updater._updateType, dsURI, emDS);
 
-    // Verify that the URI provided is valid
+    
     try {
       var uri = newURI(dsURI);
     }
@@ -5954,16 +5954,16 @@ RDFItemUpdater.prototype = {
       gCertUtils.checkCert(request.channel);
     }
     catch (e) {
-      // This may be overly restrictive in two cases: corporate installations
-      // with a corporate update server using an in-house CA cert (installed
-      // but not "built-in") and lone developers hosting their updates on a
-      // site with a self-signed cert (permanently accepted, otherwise the
-      // BadCertHandler would prevent getting this far). Update checks will
-      // fail in both these scenarios.
-      // How else can we protect the vast majority of updates served from AMO
-      // from the spoofing attack described in bug 340198 while allowing those
-      // other cases? A "hackme" pref? Domain-control certs are cheap, getting
-      // one should not be a barrier in either case.
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
       LOG("RDFItemUpdater::onXMLLoad: " + e);
       this._updater.checkForDone(aItem,
                                  Ci.nsIAddonUpdateCheckListener.STATUS_FAILURE);
@@ -5971,9 +5971,9 @@ RDFItemUpdater.prototype = {
     }
     var responseXML = request.responseXML;
 
-    // If the item does not have an update RDF and returns an error it is not
-    // treated as a failure since all items without an updateURL are checked
-    // for updates on AMO even if they are not hosted there.
+    
+    
+    
     if (!responseXML || responseXML.documentElement.namespaceURI == XMLURI_PARSE_ERROR ||
         (request.status != 200 && request.status != 0)) {
       this._updater.checkForDone(aItem, (aItem.updateRDF ? Ci.nsIAddonUpdateCheckListener.STATUS_FAILURE :
@@ -5993,21 +5993,21 @@ RDFItemUpdater.prototype = {
   onXMLError: function RDFItemUpdater_onXMLError(aEvent, aItem) {
     try {
       var request = aEvent.target;
-      // the following may throw (e.g. a local file or timeout)
+      
       var status = request.status;
     }
     catch (e) {
       request = aEvent.target.channel.QueryInterface(Ci.nsIRequest);
       status = request.status;
     }
-    // this can fail when a network connection is not present.
+    
     try {
       var statusText = request.statusText;
     }
     catch (e) {
       status = 0;
     }
-    // When status is 0 we don't have a valid channel.
+    
     if (status == 0)
       statusText = "nsIXMLHttpRequest channel unavailable";
 
@@ -6018,49 +6018,49 @@ RDFItemUpdater.prototype = {
   },
 
   onDatasourceLoaded: function RDFItemUpdater_onDatasourceLoaded(aDatasource, aLocalItem) {
-    /*
-#      The extension update RDF file looks something like this:
-#
-#       <RDF:Description about="urn:mozilla:extension:{GUID}">
-#         <em:updates>
-#           <RDF:Seq>
-#             <RDF:li resource="urn:mozilla:extension:{GUID}:4.9"/>
-#             <RDF:li resource="urn:mozilla:extension:{GUID}:5.0"/>
-#           </RDF:Seq>
-#         </em:updates>
-#         <!-- the version of the extension being offered -->
-#         <em:version>5.0</em:version>
-#         <em:updateLink>http://www.mysite.com/myext-50.xpi</em:updateLink>
-#       </RDF:Description>
-#
-#       <RDF:Description about="urn:mozilla:extension:{GUID}:4.9">
-#         <em:version>4.9</em:version>
-#         <em:targetApplication>
-#           <RDF:Description>
-#             <em:id>{ec8030f7-c20a-464f-9b0e-13a3a9e97384}</em:id>
-#             <em:minVersion>0.9</em:minVersion>
-#             <em:maxVersion>1.0</em:maxVersion>
-#             <em:updateLink>http://www.mysite.com/myext-49.xpi</em:updateLink>
-#           </RDF:Description>
-#         </em:targetApplication>
-#       </RDF:Description>
-#
-#      If we get here because the following happened:
-#      1) User was using Firefox 0.9 with ExtensionX 0.5 (minVersion 0.8,
-#         maxVersion 0.9 for Firefox)
-#      2) User upgraded Firefox to 1.0
-#      3) |checkForMismatches| deems ExtensionX 0.5 incompatible with this
-#         new version of Firefox on the basis of its maxVersion
-#      4) ** We reach this point **
-#
-#      If the version of ExtensionX (0.5) matches that provided by the
-#      server, then this is a cue that the author updated the rdf file
-#      or central repository to say "0.5 is ALSO compatible with Firefox 1.0,
-#      no changes are necessary." In this event, the local metadata for
-#      installed ExtensionX (0.5) is freshened with the new maxVersion,
-#      and we advance to the next item WITHOUT any download/install
-#      updates.
-    */
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     if (!aDatasource.GetAllResources().hasMoreElements()) {
       LOG("RDFItemUpdater:onDatasourceLoaded: Datasource empty.\r\n" +
           "If you are an Extension developer and were expecting there to be\r\n" +
@@ -6074,7 +6074,7 @@ RDFItemUpdater.prototype = {
           "    type (text/xml)");
     }      
 
-    // If we have an update key then the update manifest must be signed
+    
     if (aLocalItem.updateKey) {
       var extensionRes = gRDF.GetResource(getItemPrefix(aLocalItem.type) + aLocalItem.id);
       LOG(extensionRes.Value);
@@ -6114,19 +6114,19 @@ RDFItemUpdater.prototype = {
         return;
       }
     }
-    /* If there is no updateKey either the update was over SSL, or it is an old
-     * addon that we are allowing a grace update. */
+    
 
-    // Parse the response RDF
+
+    
     var newerItem, sameItem;
 
-    // Firefox 1.0PR+ update.rdf format
+    
     if (this._updateCheckType == Ci.nsIExtensionManager.UPDATE_CHECK_NEWVERSION ||
         this._updateCheckType == Ci.nsIExtensionManager.UPDATE_NOTIFY_NEWVERSION) {
-      // Look for newer versions of this item, we only do this in "normal"
-      // mode... see comment by ExtensionItemUpdater_checkForUpdates
-      // about how we do this in all cases but Install Phone Home - which
-      // only needs to do a version check.
+      
+      
+      
+      
       newerItem = this._parseV20UpdateInfo(aDatasource, aLocalItem,
                                            this._updateCheckType);
 
@@ -6137,16 +6137,16 @@ RDFItemUpdater.prototype = {
       }
     }
 
-    // Now look for updated version compatibility metadata for the currently
-    // installed version...
+    
+    
     sameItem = this._parseV20UpdateInfo(aDatasource, aLocalItem,
                                         Ci.nsIExtensionManager.UPDATE_CHECK_COMPATIBILITY);
 
     if (sameItem) {
-      // Install-time updates are not written to the DS because there is no
-      // entry yet, EM just uses the notifications to ascertain (by hand)
-      // whether or not there is a remote maxVersion tweak that makes the
-      // item being installed compatible.
+      
+      
+      
+      
       if (!this._updater._applyVersionUpdates(aLocalItem, sameItem))
         sameItem = null;
       else
@@ -6168,13 +6168,13 @@ RDFItemUpdater.prototype = {
       item = aLocalItem;
       status = Ci.nsIAddonUpdateCheckListener.STATUS_NO_UPDATE;
     }
-    // Only one call of this._updater.checkForDone is needed for RDF
-    // responses, since there is only one response per item.
+    
+    
     this._updater.checkForDone(item, status);
   },
 
-  // Get a compulsory property from a resource. Reports an error if the
-  // property was not present.
+  
+  
   _getPropertyFromResource: function RDFItemUpdater__getPropertyFromResource(aDataSource,
                                                                              aSourceResource,
                                                                              aProperty,
@@ -6187,25 +6187,25 @@ RDFItemUpdater.prototype = {
         throw Cr.NS_ERROR_FAILURE;
     }
     catch (e) {
-      // XXXben show console message "aProperty" not found on aSourceResource.
+      
       return null;
     }
     return rv;
   },
 
-  /**
-   * Parses the Firefox 1.0RC1+ update manifest format looking for new versions
-   * of updated compatibility information about the given add-on.
-   * @param   aDataSource
-   *          The update manifest's datasource
-   * @param   aLocalItem
-   *          The nsIUpdateItem representing the add-on being checked for updates.
-   * @param   aUpdateCheckType
-   *          The type of update check being performed. See the constants in
-   *          nsIExtensionManager
-   * @returns An nsIUpdateItem holding the update's information if a valid
-   *          update is found or null if not.
-   */
+  
+
+
+
+
+
+
+
+
+
+
+
+
   _parseV20UpdateInfo: function RDFItemUpdater__parseV20UpdateInfo(aDataSource,
                                                                    aLocalItem,
                                                                    aUpdateCheckType) {
@@ -6230,7 +6230,7 @@ RDFItemUpdater.prototype = {
       return null;
     }
 
-    // Track the newest update found
+    
     var updatedItem = null;
 
     var cu = Cc["@mozilla.org/rdf/container-utils;1"].
@@ -6240,16 +6240,16 @@ RDFItemUpdater.prototype = {
 
       var versions = ctr.GetElements();
       while (versions.hasMoreElements()) {
-        // There are two different methodologies for collecting version
-        // information depending on whether or not we've been invoked in
-        // "version updates only" mode or "version+newest" mode.
+        
+        
+        
         var version = versions.getNext().QueryInterface(Ci.nsIRDFResource);
         var foundItem = this._parseV20Update(aDataSource, version, aLocalItem,
                                              updatedItem ? updatedItem.version : aLocalItem.version,
                                              aUpdateCheckType);
         if (foundItem) {
-          // When not checking for new versions we can bail out on the first
-          // result.
+          
+          
           if (aUpdateCheckType)
             return foundItem;
           updatedItem = foundItem;
@@ -6259,24 +6259,24 @@ RDFItemUpdater.prototype = {
     return updatedItem;
   },
 
-  /**
-   * Parses a single version's update entry looking for the best matching
-   * targetApplication entry.
-   * @param   aDataSource
-   *          The update manifest's datasource
-   * @param   aUpdateResource
-   *          The nsIRDFResource of the update entry.
-   * @param   aLocalItem
-   *          The nsIUpdateItem representing the add-on being checked for updates.
-   * @param   aNewestVersionFound
-   *          When checking for new versions holds the newest version of this
-   *          add-on that we know about. Otherwise holds the current version.
-   * @param   aUpdateCheckType
-   *          The type of update check being performed. See the constants in
-   *          nsIExtensionManager
-   * @returns An nsIUpdateItem holding the update's information if a valid
-   *          update is found or null if not.
-   */
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   _parseV20Update: function RDFItemUpdater__parseV20Update(aDataSource,
                                                            aUpdateResource,
                                                            aLocalItem,
@@ -6284,9 +6284,9 @@ RDFItemUpdater.prototype = {
                                                            aUpdateCheckType) {
     var version = this._getPropertyFromResource(aDataSource, aUpdateResource,
                                                 "version", aLocalItem);
-    /* If we are looking for new versions then test whether this discovered
-     * version is greater than any previously found update. Otherwise check
-     * if this update is for the same version as we have installed. */
+    
+
+
     var result = gVersionChecker.compare(version, aNewestVersionFound);
     if ((aUpdateCheckType == Ci.nsIExtensionManager.UPDATE_CHECK_NEWVERSION ||
          aUpdateCheckType == Ci.nsIExtensionManager.UPDATE_NOTIFY_NEWVERSION) ? result <= 0 : result != 0)
@@ -6295,7 +6295,7 @@ RDFItemUpdater.prototype = {
     var taArc = gRDF.GetResource(EM_NS("targetApplication"));
     var targetApps = aDataSource.GetTargets(aUpdateResource, taArc, true);
     
-    // Track the best update we have found so far
+    
     var newestUpdateItem = null;
     while (targetApps.hasMoreElements()) {
       var targetApp = targetApps.getNext().QueryInterface(Ci.nsIRDFResource);
@@ -6307,14 +6307,14 @@ RDFItemUpdater.prototype = {
       var updateHash = this._getPropertyFromResource(aDataSource, targetApp, "updateHash", aLocalItem);
       if (aUpdateCheckType == Ci.nsIExtensionManager.UPDATE_CHECK_NEWVERSION ||
           aUpdateCheckType == Ci.nsIExtensionManager.UPDATE_NOTIFY_NEWVERSION) {
-        // New version information is useless without a link to get it from
+        
         if (!updateLink)
           continue;
 
-        /* If the update link is non-ssl and we do not have a hash or the hash
-         * is of an insecure nature then we must ignore this update. Bypass
-         * this if not checking update security. Currently we only consider
-         * the sha hashing algorithms as secure. */
+        
+
+
+
         if (gCheckUpdateSecurity && updateLink.substring(0, 6) != "https:" && 
             (!updateHash || updateHash.substring(0, 3) != "sha")) {
           WARN("RDFItemUpdater:_parseV20Update: Update for " + aLocalItem.id +
@@ -6332,9 +6332,9 @@ RDFItemUpdater.prototype = {
                                  aLocalItem.name,
                                  updateLink,
                                  updateHash,
-                                 "", /* Icon URL */
-                                 "", /* RDF Update URL */
-                                 "", /* Update Key */
+                                 "", 
+                                 "", 
+                                 "", 
                                  aLocalItem.type,
                                  appID);
 
@@ -6349,7 +6349,7 @@ RDFItemUpdater.prototype = {
                                               infourl);
         }
         if (appID == gApp.ID) {
-          // App takes precedence over toolkit.  If we found the app, bail out.
+          
           return updatedItem;
         }
         newestUpdateItem = updatedItem;
@@ -6359,14 +6359,14 @@ RDFItemUpdater.prototype = {
   }
 };
 
-/**
- * A serialisation method for RDF data that produces an identical string
- * provided that the RDF assertions match.
- * The serialisation is not complete, only assertions stemming from a given
- * resource are included, multiple references to the same resource are not
- * permitted, and the RDF prolog and epilog are not included.
- * RDF Blob and Date literals are not supported.
- */
+
+
+
+
+
+
+
+
 function RDFSerializer()
 {
   this.cUtils = Cc["@mozilla.org/rdf/container-utils;1"].
@@ -6375,15 +6375,15 @@ function RDFSerializer()
 }
 
 RDFSerializer.prototype = {
-  INDENT: "  ",      // The indent used for pretty-printing
-  resources: null,   // Array of the resources that have been found
+  INDENT: "  ",      
+  resources: null,   
   
-  /**
-   * Escapes characters from a string that should not appear in XML.
-   * @param string     The string to be escaped
-   * @returns a string with all characters invalid in XML character data
-   *          converted to entity references.
-   */
+  
+
+
+
+
+
   escapeEntities: function RDFSerializer_escapeEntities(string)
   {
     string = string.replace(/&/g, "&amp;");
@@ -6393,13 +6393,13 @@ RDFSerializer.prototype = {
     return string;
   },
   
-  /**
-   * Serializes all the elements of an RDF container.
-   * @param ds         The datasource holding the data
-   * @param container  The RDF container to output the child elements of
-   * @param indent     The current level of indent for pretty-printing
-   * @returns a string containing the serialized elements.
-   */
+  
+
+
+
+
+
+
   serializeContainerItems: function RDFSerializer_serializeContainerItems(ds, container, indent)
   {
     var result = "";
@@ -6413,15 +6413,15 @@ RDFSerializer.prototype = {
     return result;
   },
   
-  /**
-   * Serializes all em:* (see EM_NS) properties of an RDF resource except for
-   * the em:signature property. As this serialization is to be compared against
-   * the manifest signature it cannot contain the em:signature property itself.
-   * @param ds         The datasource holding the data
-   * @param resource   The RDF resource to output the properties of
-   * @param indent     The current level of indent for pretty-printing
-   * @returns a string containing the serialized properties.
-   */
+  
+
+
+
+
+
+
+
+
   serializeResourceProperties: function RDFSerializer_serializeResourceProperties(ds, resource, indent)
   {
     var result = "";
@@ -6460,21 +6460,21 @@ RDFSerializer.prototype = {
     return result;
   },
   
-  /**
-   * Recursively serializes an RDF resource and all resources it links to.
-   * This will only output EM_NS properties and will ignore any em:signature
-   * property.
-   * @param ds         The datasource holding the data
-   * @param resource   The RDF resource to serialize
-   * @param indent     The current level of indent for pretty-printing.
-   *                   Leave undefined for no indent
-   * @returns a string containing the serialized resource.
-   * @throws if the RDF data contains multiple references to the same resource.
-   */
+  
+
+
+
+
+
+
+
+
+
+
   serializeResource: function RDFSerializer_serializeResource(ds, resource, indent)
   {
     if (this.resources.indexOf(resource) != -1 ) {
-      // We cannot output multiple references to the same resource.
+      
       throw new Error("Cannot serialize multiple references to "+resource.Value);
     }
     if (indent === undefined)
@@ -6511,13 +6511,13 @@ RDFSerializer.prototype = {
   }
 }
 
-/**
- * A Datasource that holds Extensions.
- * - Implements nsIRDFDataSource to drive UI
- * - Uses a RDF/XML datasource for storage (this is undesirable)
- *
- * @constructor
- */
+
+
+
+
+
+
+
 function ExtensionsDataSource(em) {
   this._em = em;
 
@@ -6530,10 +6530,10 @@ ExtensionsDataSource.prototype = {
   _itemRoot     : null,
   _defaultTheme : null,
 
-  /**
-   * Called during application shutdown to clear any references held.
-   * The ExtensionsDataSource is unusable after calling this.
-   */
+  
+
+
+
   shutdown: function EMDS_shutdown() {
     this._inner = null;
     this._em = null;
@@ -6541,16 +6541,16 @@ ExtensionsDataSource.prototype = {
     this._defaultTheme = null;
   },
 
-  /**
-   * Determines if an item's dependencies are satisfied. An item's dependencies
-   * are satisifed when all items specified in the item's em:requires arc are
-   * installed, enabled, and the version is compatible based on the em:requires
-   * minVersion and maxVersion.
-   * @param   id
-   *          The ID of the item
-   * @returns true if the item's dependencies are satisfied.
-   *          false if the item's dependencies are not satisfied.
-   */
+  
+
+
+
+
+
+
+
+
+
   satisfiesDependencies: function EMDS_satisfiesDependencies(id) {
     var ds = this._inner;
     var itemResource = getResourceForID(id);
@@ -6593,33 +6593,33 @@ ExtensionsDataSource.prototype = {
     return true;
   },
 
-  /**
-   * Determine if an item is compatible
-   * @param   datasource
-   *          The datasource to inspect for compatibility - can be the main
-   *          datasource or an Install Manifest.
-   * @param   source
-   *          The RDF Resource of the item to inspect for compatibility.
-   * @param   alwaysCheckVersion
-   *          Set to true to only obey the compatibility information in the
-   *          datasource. When false the compatibility range may be ignored
-   *          if compatibility checking is disabled.
-   * @param   appVersion
-   *          The version of the application we are checking for compatibility
-   *          against. If this parameter is undefined, the version of the running
-   *          application is used.
-   * @param   platformVersion
-   *          The version of the toolkit to check compatibility against
-   * @returns true if the item is compatible with this version of the
-   *          application, false, otherwise.
-   */
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   isCompatible: function EMDS_isCompatible(datasource, source, alwaysCheckVersion,
                                            appVersion, platformVersion) {
-    // The Default Theme is always compatible.
+    
     if (source.EqualsNode(this._defaultTheme))
       return true;
 
-    // Items pending install have no target application info in the datasource
+    
     if (datasource === this &&
         this._getItemProperty(source, "opType") == OP_NEEDS_INSTALL)
       return true;
@@ -6646,7 +6646,7 @@ ExtensionsDataSource.prototype = {
           return true;
         rv = (versionChecker.compare(appVersion, minVersion) >= 0) &&
              (versionChecker.compare(appVersion, maxVersion) <= 0);
-        return rv; // App takes precedence over toolkit.
+        return rv; 
       }
 
       if (id == TOOLKIT_ID) {
@@ -6654,25 +6654,25 @@ ExtensionsDataSource.prototype = {
           return true;
         rv =  (versionChecker.compare(platformVersion, minVersion) >= 0) &&
               (versionChecker.compare(platformVersion, maxVersion) <= 0);
-        // Keep looping, in case the app id is later.
+        
       }
     }
     return rv;
   },
 
-  /**
-   * Gets a list of items that are incompatible with a specific application version.
-   * @param   appVersion
-   *          The Version of the application to check for incompatibility against.
-   * @param   platformVersion
-   *          The version of the toolkit to check compatibility against
-   * @param   desiredType
-   *          The nsIUpdateItem type of items to look for
-   * @param   includeDisabled
-   *          Whether or not disabled items should be included in the set returned
-   * @returns An array of nsIUpdateItems that are incompatible with the application
-   *          ID/Version supplied.
-   */
+  
+
+
+
+
+
+
+
+
+
+
+
+
   getIncompatibleItemList: function EMDS_getIncompatibleItemList(appVersion,
                                                                  platformVersion,
                                                                  desiredType,
@@ -6684,17 +6684,17 @@ ExtensionsDataSource.prototype = {
       var item = elements.getNext().QueryInterface(Ci.nsIRDFResource);
       var id = stripPrefix(item.Value, PREFIX_ITEM_URI);
       var type = this.getItemProperty(id, "type");
-      // Skip this item if we're not seeking disabled items
+      
       if (!includeDisabled && this.getItemProperty(id, "isDisabled") == "true")
         continue;
 
-      // If the id of this item matches one of the items potentially installed
-      // with and maintained by this application AND it is installed in the
-      // global install location (i.e. the place installed by the app installer)
-      // it is and can be managed by the update file - it's not an item that has
-      // been manually installed by the user into their profile dir, and as such
-      // it is always compatible with the next release of the application since
-      // we will continue to support it.
+      
+      
+      
+      
+      
+      
+      
       var locationKey = this.getItemProperty(id, "installLocation");
       var appManaged = this.getItemProperty(id, "appManaged") == "true";
       if (appManaged && locationKey == KEY_APP_GLOBAL)
@@ -6707,16 +6707,16 @@ ExtensionsDataSource.prototype = {
     return items;
   },
 
-  /**
-   * Gets a list of items of a specific type
-   * @param   desiredType
-   *          The nsIUpdateItem type of items to return
-   * @param   countRef
-   *          The XPCJS reference to the size of the returned array
-   * @returns An array of nsIUpdateItems, populated only with an item for |id|
-   *          if |id| is non-null, otherwise all items matching the specified
-   *          type.
-   */
+  
+
+
+
+
+
+
+
+
+
   getItemList: function EMDS_getItemList(desiredType, countRef) {
     var items = [];
     var ctr = getContainer(this, this._itemRoot);
@@ -6733,18 +6733,18 @@ ExtensionsDataSource.prototype = {
     return items;
   },
 
-  /**
-   * Retrieves a list of installed nsIUpdateItems of items that are dependent
-   * on another item.
-   * @param   id
-   *          The ID of the item that other items depend on.
-   * @param   includeDisabled
-   *          Whether to include disabled items in the set returned.
-   * @param   countRef
-   *          The XPCJS reference to the number of items returned.
-   * @returns An array of installed nsIUpdateItems that depend on the item
-   *          specified by the id parameter.
-   */
+  
+
+
+
+
+
+
+
+
+
+
+
   getDependentItemListForID: function EMDS_getDependentItemListForID(id,
                                                                      includeDisabled,
                                                                      countRef) {
@@ -6773,12 +6773,12 @@ ExtensionsDataSource.prototype = {
     return items;
   },
 
-  /**
-   * Constructs an nsIUpdateItem for the given item ID
-   * @param   id
-   *          The GUID of the item to construct a nsIUpdateItem for
-   * @returns The nsIUpdateItem for the id.
-   */
+  
+
+
+
+
+
   getItemForID: function EMDS_getItemForID(id) {
     if (!this.visibleItems[id])
       return null;
@@ -6804,29 +6804,29 @@ ExtensionsDataSource.prototype = {
                     targetAppInfo ? targetAppInfo.appID : gApp.ID);
   },
 
-  /**
-   * Gets the name of the Install Location where an item is installed.
-   * @param   id
-   *          The GUID of the item to locate an Install Location for
-   * @returns The string name of the Install Location where the item is
-   *          installed.
-   */
+  
+
+
+
+
+
+
   getInstallLocationKey: function EMDS_getInstallLocationKey(id) {
     return this.getItemProperty(id, "installLocation");
   },
 
-  /**
-   * Sets an RDF property on an item in a datasource. Does not create
-   * multiple assertions
-   * @param   datasource
-   *          The target datasource where the property should be set
-   * @param   source
-   *          The RDF Resource to set the property on
-   * @param   property
-   *          The RDF Resource of the property to set
-   * @param   newValue
-   *          The RDF Node containing the new property value
-   */
+  
+
+
+
+
+
+
+
+
+
+
+
   _setProperty: function EMDS__setProperty(datasource, source, property, newValue) {
     var oldValue = datasource.GetTarget(source, property, true);
     if (oldValue) {
@@ -6839,20 +6839,20 @@ ExtensionsDataSource.prototype = {
       datasource.Assert(source, property, newValue, true);
   },
 
-  /**
-   * Gets the updated target application info if it exists for an item from
-   * the Extensions datasource during an installation or upgrade.
-   * @param   id
-   *          The ID of the item to discover updated target application info for
-   * @returns A JS Object with the following properties:
-   *          "id"            The id of the item
-   *          "minVersion"    The updated minimum version of the target
-   *                          application that this item can run in
-   *          "maxVersion"    The updated maximum version of the target
-   *                          application that this item can run in
-   */
+  
+
+
+
+
+
+
+
+
+
+
+
   getUpdatedTargetAppInfo: function EMDS_getUpdatedTargetAppInfo(id) {
-    // The default theme is always compatible so there is never update info.
+    
     if (getResourceForID(id).EqualsNode(this._defaultTheme))
       return null;
 
@@ -6867,7 +6867,7 @@ ExtensionsDataSource.prototype = {
       if (targetApp instanceof Ci.nsIRDFResource) {
         try {
           var foundAppID = stringData(this._inner.GetTarget(targetApp, EM_R("id"), true));
-          // Different target application?
+          
           if (foundAppID != appID && foundAppID != TOOLKIT_ID)
             continue;
           var updatedMinVersion = this._inner.GetTarget(targetApp, EM_R("updatedMinVersion"), true);
@@ -6888,39 +6888,39 @@ ExtensionsDataSource.prototype = {
     return outData;
   },
 
-  /**
-   * Sets the updated target application info for an item in the Extensions
-   * datasource during an installation or upgrade.
-   * @param   id
-   *          The ID of the item to set updated target application info for
-   * @param   targetAppID
-   *          The target application ID used for checking compatibility for this item.
-   * @param   updatedMinVersion
-   *          The updated minimum version of the target application that this
-   *          item can run in
-   * @param   updatedMaxVersion
-   *          The updated maximum version of the target application that this
-   *          item can run in
-   *
-   * @note Add-ons can specify a targetApplication id of toolkit@mozilla.org in
-   *       their install manifest for compatibility with all apps using a
-   *       specific release of the toolkit.
-   */
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   setUpdatedTargetAppInfo: function EMDS_setUpdatedTargetAppInfo(id, targetAppID,
                                                                  updatedMinVersion,
                                                                  updatedMaxVersion) {
-    // The default theme is always compatible so it is never updated.
+    
     if (getResourceForID(id).EqualsNode(this._defaultTheme))
       return;
 
-    // Version/Dependency Info
+    
     var updatedMinVersionRes = EM_R("updatedMinVersion");
     var updatedMaxVersionRes = EM_R("updatedMaxVersion");
 
     var appID = gApp.ID;
     var r = getResourceForID(id);
     var targetApps = this._inner.GetTargets(r, EM_R("targetApplication"), true);
-    // add updatedMinVersion and updatedMaxVersion for an install else an upgrade
+    
     if (!targetApps.hasMoreElements()) {
       var idRes = EM_R("id");
       var targetRes = getResourceForID(id);
@@ -6936,7 +6936,7 @@ ExtensionsDataSource.prototype = {
         var targetApp = targetApps.getNext();
         if (targetApp instanceof Ci.nsIRDFResource) {
           var foundAppID = stringData(this._inner.GetTarget(targetApp, EM_R("id"), true));
-          // Different target application?
+          
           if (foundAppID != targetAppID)
             continue;
           this._inner.Assert(targetApp, updatedMinVersionRes, EM_L(updatedMinVersion), true);
@@ -6948,25 +6948,25 @@ ExtensionsDataSource.prototype = {
     this.Flush();
   },
 
-  /**
-   * Gets the target application info for an item from a datasource.
-   * @param   id
-   *          The GUID of the item to discover target application info for
-   * @param   datasource
-   *          The datasource to look up target application info in
-   * @returns A JS Object with the following properties:
-   *          "appID"         The target application ID used for checking
-   *                          compatibility for this item.
-   *          "minVersion"    The minimum version of the target application
-   *                          that this item can run in
-   *          "maxVersion"    The maximum version of the target application
-   *                          that this item can run in
-   *          or null, if no target application data exists for the specified
-   *          id in the supplied datasource.
-   */
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   getTargetApplicationInfo: function EMDS_getTargetApplicationInfo(id, datasource) {
     var appID = gApp.ID;
-    // The default theme is always compatible.
+    
     if (getResourceForID(id).EqualsNode(this._defaultTheme)) {
       var ver = gApp.version;
       return { appID: appID, minVersion: ver, maxVersion: ver };
@@ -6985,7 +6985,7 @@ ExtensionsDataSource.prototype = {
       if (targetApp instanceof Ci.nsIRDFResource) {
         try {
           var foundAppID = stringData(datasource.GetTarget(targetApp, EM_R("id"), true));
-          // Different target application?
+          
           if (foundAppID != appID && foundAppID != TOOLKIT_ID)
             continue;
 
@@ -7003,26 +7003,26 @@ ExtensionsDataSource.prototype = {
     return outData;
   },
 
-  /**
-   * Sets the target application info for an item in a datasource.
-   * @param   id
-   *          The GUID of the item to discover target application info for
-   * @param   targetAppID
-   *          The target application ID used for checking compatibility for this
-   *          item.
-   * @param   minVersion
-   *          The minimum version of the target application that this item can
-   *          run in
-   * @param   maxVersion
-   *          The maximum version of the target application that this item can
-   *          run in
-   * @param   datasource
-   *          The datasource to look up target application info in
-   *
-   * @note Add-ons can specify a targetApplication id of toolkit@mozilla.org in
-   *       their install manifest for compatibility with all apps using a
-   *       specific release of the toolkit.
-   */
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   setTargetApplicationInfo: function EMDS_setTargetApplicationInfo(id, targetAppID,
                                                                    minVersion,
                                                                    maxVersion,
@@ -7040,16 +7040,16 @@ ExtensionsDataSource.prototype = {
       var targetApp = targetApps.getNext();
       if (targetApp instanceof Ci.nsIRDFResource) {
         var foundAppID = stringData(targetDataSource.GetTarget(targetApp, EM_R("id"), true));
-        // Different target application?
+        
         if (foundAppID != targetAppID)
           continue;
 
         this._setProperty(targetDataSource, targetApp, EM_R("minVersion"), EM_L(minVersion));
         this._setProperty(targetDataSource, targetApp, EM_R("maxVersion"), EM_L(maxVersion));
 
-        // If we were setting these properties on the main datasource, flush
-        // it now. (Don't flush changes set on Install Manifests - they are
-        // fleeting).
+        
+        
+        
         if (!datasource)
           this.Flush();
 
@@ -7058,15 +7058,15 @@ ExtensionsDataSource.prototype = {
     }
   },
 
-  /**
-   * Gets a property of an item
-   * @param   id
-   *          The GUID of the item
-   * @param   property
-   *          The name of the property (excluding EM_NS)
-   * @returns The literal value of the property, or undefined if there is no
-   *          value.
-   */
+  
+
+
+
+
+
+
+
+
   getItemProperty: function EMDS_getItemProperty(id, property) {
     var item = getResourceForID(id);
     if (!item) {
@@ -7078,15 +7078,15 @@ ExtensionsDataSource.prototype = {
     return undefined;
   },
 
-  /**
-   * Gets a property of an item resource
-   * @param   itemResource
-   *          The RDF Resource of the item
-   * @param   property
-   *          The name of the property (excluding EM_NS)
-   * @returns The literal value of the property, or undefined if there is no
-   *          value.
-   */
+  
+
+
+
+
+
+
+
+
   _getItemProperty: function EMDS__getItemProperty(itemResource, property) {
     var target = this.GetTarget(itemResource, EM_R(property), true);
     var value = stringData(target);
@@ -7095,28 +7095,28 @@ ExtensionsDataSource.prototype = {
     return value === undefined ? "" : value;
   },
 
-  /**
-   * Sets a property on an item.
-   * @param   id
-   *          The GUID of the item
-   * @param   propertyArc
-   *          The RDF Resource of the property arc
-   * @param   propertyValue
-   *          A nsIRDFLiteral value of the property to be set
-   */
+  
+
+
+
+
+
+
+
+
   setItemProperty: function EMDS_setItemProperty(id, propertyArc, propertyValue) {
     var item = getResourceForID(id);
     this._setProperty(this._inner, item, propertyArc, propertyValue);
     this.Flush();
   },
 
-  /**
-   * Sets one or more properties for an item.
-   * @param   id
-   *          The ID of the item
-   * @param   properties
-   *          A JS object which maps properties to values.
-   */
+  
+
+
+
+
+
+
   setItemProperties: function EMDS_setItemProperties(id, properties) {
     var item = getResourceForID(id);
     for (var key in properties)
@@ -7124,28 +7124,28 @@ ExtensionsDataSource.prototype = {
     this.Flush();
   },
 
-  /**
-   * Inserts the RDF resource for an item into a container.
-   * @param   id
-   *          The GUID of the item
-   */
+  
+
+
+
+
   insertItemIntoContainer: function EMDS_insertItemIntoContainer(id) {
-    // Get the target container and resource
+    
     var ctr = getContainer(this._inner, this._itemRoot);
     var itemResource = getResourceForID(id);
-    // Don't bother adding the extension to the list if it's already there.
-    // (i.e. we're upgrading)
+    
+    
     var oldIndex = ctr.IndexOf(itemResource);
     if (oldIndex == -1)
       ctr.AppendElement(itemResource);
     this.Flush();
   },
 
-  /**
-   * Removes the RDF resource for an item from its container.
-   * @param   id
-   *          The GUID of the item
-   */
+  
+
+
+
+
   removeItemFromContainer: function EMDS_removeItemFromContainer(id) {
     var ctr = getContainer(this._inner, this._itemRoot);
     var itemResource = getResourceForID(id);
@@ -7153,24 +7153,24 @@ ExtensionsDataSource.prototype = {
     this.Flush();
   },
 
-  /**
-   * Removes a corrupt item entry from the extension list added due to buggy
-   * code in previous EM versions!
-   * @param   id
-   *          The GUID of the item
-   */
+  
+
+
+
+
+
   removeCorruptItem: function EMDS_removeCorruptItem(id) {
     this.removeItemMetadata(id);
     this.removeItemFromContainer(id);
     this.visibleItems[id] = null;
   },
 
-  /**
-   * Removes a corrupt download entry from the list
-   * @param   uri
-   *          The RDF URI of the item.
-   * @returns The RDF Resource of the removed entry
-   */
+  
+
+
+
+
+
   removeCorruptDLItem: function EMDS_removeCorruptDLItem(uri) {
     var itemResource = gRDF.GetResource(uri);
     var ctr = getContainer(this._inner, this._itemRoot);
@@ -7182,16 +7182,16 @@ ExtensionsDataSource.prototype = {
     return itemResource;
   },
 
-  /**
-   * Copies localized properties from an install manifest to the datasource
-   *
-   * @param   installManifest
-   *          The Install Manifest datasource we are copying from
-   * @param   source
-   *          The source resource of the localized properties
-   * @param   target
-   *          The target resource to store the localized properties
-   */
+  
+
+
+
+
+
+
+
+
+
   _addLocalizedMetadata: function EMDS__addLocalizedMetadata(installManifest,
                                                              sourceRes, targetRes)
   {
@@ -7200,11 +7200,11 @@ ExtensionsDataSource.prototype = {
     for (var i = 0; i < singleProps.length; ++i) {
       var property = EM_R(singleProps[i]);
       var literal = installManifest.GetTarget(sourceRes, property, true);
-      // If literal is null, _setProperty will remove any existing.
+      
       this._setProperty(this._inner, targetRes, property, literal);
     }
 
-    // Assert properties with multiple values
+    
     var manyProps = ["developer", "translator", "contributor"];
     for (var i = 0; i < manyProps.length; ++i) {
       var property = EM_R(manyProps[i]);
@@ -7223,27 +7223,27 @@ ExtensionsDataSource.prototype = {
 
   },
 
-  /**
-   * Copies metadata from an Install Manifest Datasource into the Extensions
-   * DataSource.
-   * @param   id
-   *          The GUID of the item
-   * @param   installManifest
-   *          The Install Manifest datasource we are copying from
-   * @param   installLocation
-   *          The Install Location of the item.
-   */
+  
+
+
+
+
+
+
+
+
+
   addItemMetadata: function EMDS_addItemMetadata(id, installManifest, installLocation) {
     var targetRes = getResourceForID(id);
-    // Remove any temporary assertions used for the install process
+    
     this._setProperty(this._inner, targetRes, EM_R("newVersion"), null);
-    // Copy the assertions over from the source datasource.
-    // Assert properties with single values
+    
+    
     var singleProps = ["version", "updateURL", "updateService", "optionsURL",
                        "aboutURL", "iconURL", "internalName", "updateKey"];
 
-    // Items installed into restricted Install Locations can also be locked
-    // (can't be removed or disabled)
+    
+    
     if (installLocation.restricted)
       singleProps = singleProps.concat(["locked"]);
     if (installLocation.name == KEY_APP_GLOBAL)
@@ -7251,20 +7251,20 @@ ExtensionsDataSource.prototype = {
     for (var i = 0; i < singleProps.length; ++i) {
       var property = EM_R(singleProps[i]);
       var literal = installManifest.GetTarget(gInstallManifestRoot, property, true);
-      // If literal is null, _setProperty will remove any existing.
+      
       this._setProperty(this._inner, targetRes, property, literal);
     }
 
     var localizedProp = EM_R("localized");
     var localeProp = EM_R("locale");
-    // Remove old localized properties
+    
     var oldValues = this._inner.GetTargets(targetRes, localizedProp, true);
     while (oldValues.hasMoreElements()) {
       var oldValue = oldValues.getNext().QueryInterface(Ci.nsIRDFNode);
       this._cleanResource(oldValue);
       this._inner.Unassert(targetRes, localizedProp, oldValue);
     }
-    // Add each localized property
+    
     var localizations = installManifest.GetTargets(gInstallManifestRoot, localizedProp, true);
     while (localizations.hasMoreElements()) {
       var localization = localizations.getNext().QueryInterface(Ci.nsIRDFResource);
@@ -7277,10 +7277,10 @@ ExtensionsDataSource.prototype = {
       this._addLocalizedMetadata(installManifest, localization, anon);
       this._inner.Assert(targetRes, localizedProp, anon, true);
     }
-    // Add the fallback properties
+    
     this._addLocalizedMetadata(installManifest, gInstallManifestRoot, targetRes);
 
-    // Version/Dependency Info
+    
     var versionProps = ["targetApplication", "requires"];
     var idRes = EM_R("id");
     var minVersionRes = EM_R("minVersion");
@@ -7309,11 +7309,11 @@ ExtensionsDataSource.prototype = {
     this.Flush();
   },
 
-  /**
-   * Strips an item entry of all assertions.
-   * @param   id
-   *          The GUID of the item
-   */
+  
+
+
+
+
   removeItemMetadata: function EMDS_removeItemMetadata(id) {
     var item = getResourceForID(id);
     var resources = ["targetApplication", "requires", "localized"];
@@ -7328,15 +7328,15 @@ ExtensionsDataSource.prototype = {
     this._cleanResource(item);
   },
 
-  /**
-   * Strips a resource of all outbound assertions. We use methods like this
-   * since the RDFXMLDatasource will write out all assertions, even if they
-   * are not connected through our root.
-   * @param   resource
-   *          The resource to clean.
-   */
+  
+
+
+
+
+
+
   _cleanResource: function EMDS__cleanResource(resource) {
-    // Remove outward arcs
+    
     var arcs = this._inner.ArcLabelsOut(resource);
     while (arcs.hasMoreElements()) {
       var arc = arcs.getNext().QueryInterface(Ci.nsIRDFResource);
@@ -7349,31 +7349,31 @@ ExtensionsDataSource.prototype = {
     }
   },
 
-  /**
-   * Notify views that this propery has changed (this is for properties that
-   * are implemented by this datasource rather than by the inner in-memory
-   * datasource and thus do not get free change handling).
-   * @param   id
-   *          The GUID of the item to update the property for.
-   * @param   property
-   *          The property (less EM_NS) to update.
-   */
+  
+
+
+
+
+
+
+
+
   updateProperty: function EMDS_updateProperty(id, property) {
     var item = getResourceForID(id);
     this._updateProperty(item, property);
   },
 
-  /**
-   * Notify views that this propery has changed (this is for properties that
-   * are implemented by this datasource rather than by the inner in-memory
-   * datasource and thus do not get free change handling). This allows updating
-   * properties for download items which don't have the em item prefix in there
-   ( resource value. In most instances updateProperty should be used.
-   * @param   item
-   *          The item to update the property for.
-   * @param   property
-   *          The property (less EM_NS) to update.
-   */
+  
+
+
+
+
+
+
+
+
+
+
   _updateProperty: function EMDS__updateProperty(item, property) {
     if (item) {
       var propertyResource = EM_R(property);
@@ -7389,27 +7389,27 @@ ExtensionsDataSource.prototype = {
     }
   },
 
-  /**
-   * Determines if an Item is an active download
-   * @param   id
-   *          The ID of the item. This will be a uri scheme without the
-   *          em item prefix so getProperty shouldn't be used.
-   * @returns true if the item is an active download, false otherwise.
-   */
+  
+
+
+
+
+
+
   isDownloadItem: function EMDS_isDownloadItem(id) {
     var downloadURL = stringData(this.GetTarget(gRDF.GetResource(id), EM_R("downloadURL"), true));
     return downloadURL && downloadURL != "";
   },
 
-  /**
-   * Adds an entry representing an active download to the appropriate container
-   * @param   addon
-   *          An object implementing nsIUpdateItem for the addon being
-   *          downloaded.
-   */
+  
+
+
+
+
+
   addDownload: function EMDS_addDownload(addon) {
-    // Updates have already been added to the datasource so we just update the
-    // download state.
+    
+    
     if (addon.id != addon.xpiURL) {
       this.updateDownloadState(PREFIX_ITEM_URI + addon.id, "waiting");
       return;
@@ -7429,18 +7429,18 @@ ExtensionsDataSource.prototype = {
     this.Flush();
   },
 
-  /**
-   * Adds an entry representing an item that is incompatible and is being
-   * checked for a compatibility update.
-   * @param   name
-   *          The display name of the item being checked
-   * @param   url
-   *          The URL string of the xpi file that has been staged.
-   * @param   type
-   *          The nsIUpdateItem type of the item
-   * @param   version
-   *          The version of the item
-   */
+  
+
+
+
+
+
+
+
+
+
+
+
   addIncompatibleUpdateItem: function EMDS_addIncompatibleUpdateItem(name, url, type, version) {
     var iconURL = (type == Ci.nsIUpdateItem.TYPE_THEME) ? URI_GENERIC_ICON_THEME :
                                                           URI_GENERIC_ICON_XPINSTALL;
@@ -7465,11 +7465,11 @@ ExtensionsDataSource.prototype = {
     this.Flush();
   },
 
-  /**
-   * Removes an active download from the appropriate container
-   * @param   url
-   *          The URL string of the active download to be removed
-   */
+  
+
+
+
+
   removeDownload: function EMDS_removeDownload(url) {
     var res = gRDF.GetResource(url);
     var ctr = getContainer(this._inner, this._itemRoot);
@@ -7480,21 +7480,21 @@ ExtensionsDataSource.prototype = {
     this.Flush();
   },
 
-  /**
-   * A hash of RDF resource values (e.g. Add-on IDs or XPI URLs) that represent
-   * installation progress for a single browser session.
-   */
+  
+
+
+
   _progressData: { },
 
-  /**
-   * Updates the install progress data for a given ID (e.g. Add-on IDs or
-   * XPI URLs).
-   * @param   id
-   *          The URL string of the active download to be removed
-   * @param   state
-   *          The current state in the installation process. If null the object
-   *          is deleted from _progressData.
-   */
+  
+
+
+
+
+
+
+
+
   updateDownloadState: function EMDS_updateDownloadState(id, state) {
     if (!state) {
       if (id in this._progressData)
@@ -7529,42 +7529,42 @@ ExtensionsDataSource.prototype = {
     this._updateProperty(item, "progress");
   },
 
-  /**
-   * A GUID->location-key hash of items that are visible to the application.
-   * These are items that show up in the Extension/Themes etc UI. If there is
-   * an instance of the same item installed in Install Locations of differing
-   * profiles, the item at the highest priority location will appear in this
-   * list.
-   */
+  
+
+
+
+
+
+
   visibleItems: { },
 
-  /**
-   * Walk the list of installed items and determine what the visible list is,
-   * based on which items are visible at the highest priority locations.
-   */
+  
+
+
+
   _buildVisibleItemList: function EMDS__buildVisibleItemList() {
     var ctr = getContainer(this, this._itemRoot);
     var items = ctr.GetElements();
     while (items.hasMoreElements()) {
       var item = items.getNext().QueryInterface(Ci.nsIRDFResource);
-      // Resource URIs adopt the format: location-key,item-id
+      
       var id = stripPrefix(item.Value, PREFIX_ITEM_URI);
       this.visibleItems[id] = this.getItemProperty(id, "installLocation");
     }
   },
 
-  /**
-   * Updates an item's location in the visible item list.
-   * @param   id
-   *          The GUID of the item to update
-   * @param   locationKey
-   *          The name of the Install Location where the item is installed.
-   * @param   forceReplace
-   *          true if the new location should be used, regardless of its
-   *          priority relationship to existing entries, false if the location
-   *          should only be updated if its priority is lower than the existing
-   *          value.
-   */
+  
+
+
+
+
+
+
+
+
+
+
+
   updateVisibleList: function EMDS_updateVisibleList(id, locationKey, forceReplace) {
     if (id in this.visibleItems && this.visibleItems[id]) {
       var oldLocation = InstallLocations.get(this.visibleItems[id]);
@@ -7576,9 +7576,9 @@ ExtensionsDataSource.prototype = {
       this.visibleItems[id] = locationKey;
   },
 
-  /**
-   * Load the Extensions Datasource from disk.
-   */
+  
+
+
   loadExtensions: function EMDS_loadExtensions() {
     var extensionsFile = FileUtils.getFile(KEY_PROFILEDIR, [FILE_EXTENSIONS]);
     try {
@@ -7598,23 +7598,23 @@ ExtensionsDataSource.prototype = {
     this._buildVisibleItemList();
   },
 
-  /**
-   * See nsIExtensionManager.idl
-   */
+  
+
+
   onUpdateStarted: function EMDS_onUpdateStarted() {
     LOG("Datasource: Update Started");
   },
 
-  /**
-   * See nsIExtensionManager.idl
-   */
+  
+
+
   onUpdateEnded: function EMDS_onUpdateEnded() {
     LOG("Datasource: Update Ended");
   },
 
-  /**
-   * See nsIExtensionManager.idl
-   */
+  
+
+
   onAddonUpdateStarted: function EMDS_onAddonUpdateStarted(addon) {
     if (!addon)
       throw Cr.NS_ERROR_INVALID_ARG;
@@ -7623,9 +7623,9 @@ ExtensionsDataSource.prototype = {
     this.updateProperty(addon.id, "availableUpdateURL");
   },
 
-  /**
-   * See nsIExtensionManager.idl
-   */
+  
+
+
   onAddonUpdateEnded: function EMDS_onAddonUpdateEnded(addon, status) {
     if (!addon)
       throw Cr.NS_ERROR_INVALID_ARG;
@@ -7647,8 +7647,8 @@ ExtensionsDataSource.prototype = {
     this.updateProperty(addon.id, "availableUpdateURL");
   },
 
-  /////////////////////////////////////////////////////////////////////////////
-  // nsIRDFDataSource
+  
+  
   get URI() {
     return "rdf:extensions";
   },
@@ -7661,15 +7661,15 @@ ExtensionsDataSource.prototype = {
     return this._inner.GetSources(property, target, truthValue);
   },
 
-  /**
-   * Gets an URL to an item's image file
-   * @param   item
-   *          The RDF Resource representing the item
-   * @param   fileName
-   *          The file to locate a URL for
-   * @returns An RDF Resource to the URL discovered, or the fallback
-   *          if the discovery failed.
-   */
+  
+
+
+
+
+
+
+
+
   _getImageURL: function EMDS__getImageURL(item, fileName) {
     var id = stripPrefix(item.Value, PREFIX_ITEM_URI);
     var installLocation = this._em.getInstallLocation(id);
@@ -7682,9 +7682,9 @@ ExtensionsDataSource.prototype = {
     return null;
   },
 
-  /**
-   * Get the em:iconURL property (icon url of the item)
-   */
+  
+
+
   _rdfGet_iconURL: function EMDS__rdfGet_iconURL(item, property) {
     var id = stripPrefix(item.Value, PREFIX_ITEM_URI);
 
@@ -7692,7 +7692,7 @@ ExtensionsDataSource.prototype = {
     if (!this.isDownloadItem(id) && !installLocation)
       return null;
 
-    // Try to pick an icon from the item's install folder
+    
     iconURL = this._getImageURL(item, "icon.png");
     if (iconURL)
       return iconURL;
@@ -7701,16 +7701,16 @@ ExtensionsDataSource.prototype = {
     if (type == Ci.nsIUpdateItem.TYPE_THEME)
       return gRDF.GetResource(URI_GENERIC_ICON_THEME);
 
-    // Only look for an iconURL if the item is not disabled and safe mode isn't
-    // active
+    
+    
     if (!inSafeMode() && this.getItemProperty(id, "isDisabled") != "true") {
       var iconURL = stringData(this._inner.GetTarget(item, property, true));
       if (iconURL) {
         try {
           var uri = newURI(iconURL);
           var scheme = uri.scheme;
-          // Only allow chrome URIs normally. When an item is being installed
-          // allow http(s) URIs.
+          
+          
           if (scheme == "chrome" || (scheme == "http" || scheme == "https") &&
               this._inner.hasArcOut(item, EM_R("downloadURL")))
             return null;
@@ -7723,9 +7723,9 @@ ExtensionsDataSource.prototype = {
     return gRDF.GetResource(URI_GENERIC_ICON_XPINSTALL);
   },
 
-  /**
-   * Get the em:previewImage property (preview image of the item)
-   */
+  
+
+
   _rdfGet_previewImage: function EMDS__rdfGet_previewImage(item, property) {
     var type = this.getItemProperty(stripPrefix(item.Value, PREFIX_ITEM_URI), "type");
     if (type == Ci.nsIUpdateItem.TYPE_THEME)
@@ -7733,10 +7733,10 @@ ExtensionsDataSource.prototype = {
     return null;
   },
 
-  /**
-   * If we're in safe mode, the item is disabled by the user or app, or the
-   * item is to not an extension then don't offer an options url.
-   */
+  
+
+
+
   _rdfGet_optionsURL: function EMDS__rdfGet_optionsURL(item, property) {
     var id = stripPrefix(item.Value, PREFIX_ITEM_URI);
     if (inSafeMode() || this.getItemProperty(id, "isDisabled") == "true" ||
@@ -7746,11 +7746,11 @@ ExtensionsDataSource.prototype = {
     return null;
   },
 
-  /**
-   * If we're in safe mode, the item is disabled by the user or app, the item
-   * is not an extension, or the item is to be upgraded force the generic about
-   * dialog for the item.
-   */
+  
+
+
+
+
   _rdfGet_aboutURL: function EMDS__rdfGet_aboutURL(item, property) {
     var id = stripPrefix(item.Value, PREFIX_ITEM_URI);
     if (inSafeMode() || this.getItemProperty(id, "isDisabled") == "true" ||
@@ -7770,18 +7770,18 @@ ExtensionsDataSource.prototype = {
     return null;
   },
 
-  /**
-   * Get the em:compatible property (whether or not this item is compatible)
-   */
+  
+
+
   _rdfGet_compatible: function EMDS__rdfGet_compatible(item, property) {
     var compatible = this.isCompatible(this, item, true);
     return compatible ? EM_L("true") : EM_L("false");
   },
 
-  /**
-   * Get the providesUpdatesSecurely property (whether or not this item has a
-   * secure update mechanism)
-   */
+  
+
+
+
   _rdfGet_providesUpdatesSecurely: function EMDS__rdfGet_providesUpdatesSecurely(item, property) {
     var id = stripPrefix(item.Value, PREFIX_ITEM_URI);
     if (this.getItemProperty(id, "updateKey") ||
@@ -7791,9 +7791,9 @@ ExtensionsDataSource.prototype = {
     return EM_L("false");
   },
 
-  /**
-   * Get the em:blocklisted property (whether or not this item is blocklisted)
-   */
+  
+
+
   _rdfGet_blocklisted: function EMDS__rdfGet_blocklisted(item, property) {
     var id = stripPrefix(item.Value, PREFIX_ITEM_URI);
     var version = this.getItemProperty(id, "version");
@@ -7806,10 +7806,10 @@ ExtensionsDataSource.prototype = {
     return EM_L("false");
   },
 
-  /**
-   * Get the em:blocklistedsoft property (whether or not this item is listed in the blocklist
-   * at a low severity)
-   */
+  
+
+
+
   _rdfGet_blocklistedsoft: function EMDS__rdfGet_blocklistedsoft(item, property) {
     var id = stripPrefix(item.Value, PREFIX_ITEM_URI);
     var version = this.getItemProperty(id, "version");
@@ -7822,9 +7822,9 @@ ExtensionsDataSource.prototype = {
     return EM_L("false");
   },
 
-  /**
-   * Get the em:state property (represents the current phase of an install).
-   */
+  
+
+
   _rdfGet_state: function EMDS__rdfGet_state(item, property) {
     var id = item.Value;
     if (id in this._progressData)
@@ -7832,11 +7832,11 @@ ExtensionsDataSource.prototype = {
     return null;
   },
 
-  /**
-   * Get the em:progress property from the _progressData js object. By storing
-   * progress which is updated repeastedly during a download we avoid
-   * repeastedly writing it to the rdf file.
-   */
+  
+
+
+
+
   _rdfGet_progress: function EMDS__rdfGet_progress(item, property) {
     var id = item.Value;
     if (id in this._progressData)
@@ -7844,10 +7844,10 @@ ExtensionsDataSource.prototype = {
     return null;
   },
 
-  /**
-   * Get the em:appManaged property. This prevents extensions from hiding
-   * extensions installed into locations other than the app-global location.
-   */
+  
+
+
+
   _rdfGet_appManaged: function EMDS__rdfGet_appManaged(item, property) {
     var id = stripPrefix(item.Value, PREFIX_ITEM_URI);
     var locationKey = this.getItemProperty(id, "installLocation");
@@ -7856,10 +7856,10 @@ ExtensionsDataSource.prototype = {
     return null;
   },
 
-  /**
-   * Get the em:locked property. This prevents extensions from locking
-   * extensions installed into locations other than restricted locations.
-   */
+  
+
+
+
   _rdfGet_locked: function EMDS__rdfGet_locked(item, property) {
     var id = stripPrefix(item.Value, PREFIX_ITEM_URI);
     var installLocation = InstallLocations.get(this.getInstallLocationKey(id));
@@ -7868,11 +7868,11 @@ ExtensionsDataSource.prototype = {
     return null;
   },
 
-  /**
-   * Get the em:satisfiesDependencies property - literal string "false" for
-   * dependencies not satisfied (e.g. dependency disabled, incorrect version,
-   * not installed etc.), and literal string "true" for dependencies satisfied.
-   */
+  
+
+
+
+
   _rdfGet_satisfiesDependencies: function EMDS__rdfGet_satisfiesDependencies(item, property) {
     var id = stripPrefix(item.Value, PREFIX_ITEM_URI);
     if (this.satisfiesDependencies(id))
@@ -7880,10 +7880,10 @@ ExtensionsDataSource.prototype = {
     return EM_L("false");
   },
 
-  /**
-   * Get the em:opType property (controls widget state for the EM UI)
-   * from the Startup Cache (e.g. extensions.cache)
-   */
+  
+
+
+
   _rdfGet_opType: function EMDS__rdfGet_opType(item, property) {
     var id = stripPrefix(item.Value, PREFIX_ITEM_URI);
     var key = this.getItemProperty(id, "installLocation");
@@ -7893,18 +7893,18 @@ ExtensionsDataSource.prototype = {
     return null;
   },
 
-  /**
-   * Gets a localizable property. Install Manifests are generally only in one
-   * language, however an item can customize by providing localized prefs in
-   * the form:
-   *
-   *    extensions.{GUID}.[name|description|creator|homepageURL]
-   *
-   * to specify localized text for each of these properties.
-   */
+  
+
+
+
+
+
+
+
+
   _getLocalizablePropertyValue: function EMDS__getLocalizablePropertyValue(item, property) {
-    // These are localizable properties that a language pack supplied by the
-    // Extension may override.
+    
+    
     var prefName = PREF_EM_EXTENSION_FORMAT.replace(/%UUID%/,
                     stripPrefix(item.Value, PREFIX_ITEM_URI)) +
                     stripPrefix(property.Value, PREFIX_NS_EM);
@@ -7925,30 +7925,30 @@ ExtensionsDataSource.prototype = {
     return null;
   },
 
-  /**
-   * Get the em:name property (name of the item)
-   */
+  
+
+
   _rdfGet_name: function EMDS__rdfGet_name(item, property) {
     return this._getLocalizablePropertyValue(item, property);
   },
 
-  /**
-   * Get the em:description property (description of the item)
-   */
+  
+
+
   _rdfGet_description: function EMDS__rdfGet_description(item, property) {
     return this._getLocalizablePropertyValue(item, property);
   },
 
-  /**
-   * Get the em:creator property (creator of the item)
-   */
+  
+
+
   _rdfGet_creator: function EMDS__rdfGet_creator(item, property) {
     return this._getLocalizablePropertyValue(item, property);
   },
 
-  /**
-   * Get the em:homepageURL property (homepage URL of the item)
-   */
+  
+
+
   _rdfGet_homepageURL: function EMDS__rdfGet_homepageURL(item, property) {
     return this._getLocalizablePropertyValue(item, property);
   },
@@ -7963,10 +7963,10 @@ ExtensionsDataSource.prototype = {
     return null;
   },
 
-  /**
-   * Get the em:isDisabled property. This will be true if the item has a
-   * appDisabled or a userDisabled property that is true or OP_NEEDS_ENABLE.
-   */
+  
+
+
+
   _rdfGet_isDisabled: function EMDS__rdfGet_isDisabled(item, property) {
     var id = stripPrefix(item.Value, PREFIX_ITEM_URI);
     if (this.getItemProperty(id, "userDisabled") == "true" ||
@@ -7983,10 +7983,10 @@ ExtensionsDataSource.prototype = {
     return EM_L(id);
   },
 
-  /**
-   * Get the em:updateable property - this specifies whether the item is
-   * allowed to be updated
-   */
+  
+
+
+
   _rdfGet_updateable: function EMDS__rdfGet_updateable(item, property) {
     var id = stripPrefix(item.Value, PREFIX_ITEM_URI);
     var opType = this.getItemProperty(id, "opType");
@@ -8003,9 +8003,9 @@ ExtensionsDataSource.prototype = {
     return EM_L("true");
   },
 
-  /**
-   * See nsIRDFDataSource.idl
-   */
+  
+
+
   GetTarget: function EMDS_GetTarget(source, property, truthValue) {
     if (!source)
       return null;
@@ -8018,21 +8018,21 @@ ExtensionsDataSource.prototype = {
     return target || this._inner.GetTarget(source, property, truthValue);
   },
 
-  /**
-   * Gets an enumeration of values of a localizable property. Install Manifests
-   * are generally only in one language, however an item can customize by
-   * providing localized prefs in the form:
-   *
-   *    extensions.{GUID}.[contributor].1
-   *    extensions.{GUID}.[contributor].2
-   *    extensions.{GUID}.[contributor].3
-   *    ...
-   *
-   * to specify localized text for each of these properties.
-   */
+  
+
+
+
+
+
+
+
+
+
+
+
   _getLocalizablePropertyValues: function EMDS__getLocalizablePropertyValues(item, property) {
-    // These are localizable properties that a language pack supplied by the
-    // Extension may override.
+    
+    
     var values = [];
     var prefName = PREF_EM_EXTENSION_FORMAT.replace(/%UUID%/,
                     stripPrefix(item.Value, PREFIX_ITEM_URI)) +
@@ -8070,30 +8070,30 @@ ExtensionsDataSource.prototype = {
     return null;
   },
 
-  /**
-   * Get the em:developer property (developers of the extension)
-   */
+  
+
+
   _rdfGets_developer: function EMDS__rdfGets_developer(item, property) {
     return this._getLocalizablePropertyValues(item, property);
   },
 
-  /**
-   * Get the em:translator property (translators of the extension)
-   */
+  
+
+
   _rdfGets_translator: function EMDS__rdfGets_translator(item, property) {
     return this._getLocalizablePropertyValues(item, property);
   },
 
-  /**
-   * Get the em:contributor property (contributors to the extension)
-   */
+  
+
+
   _rdfGets_contributor: function EMDS__rdfGets_contributor(item, property) {
     return this._getLocalizablePropertyValues(item, property);
   },
 
-  /**
-   * See nsIRDFDataSource.idl
-   */
+  
+
+
   GetTargets: function EMDS_GetTargets(source, property, truthValue) {
     if (!source)
       return null;
@@ -8104,8 +8104,8 @@ ExtensionsDataSource.prototype = {
     if (getter in this)
       ary = this[getter](source, property);
     else {
-      // The template builder calls GetTargets when single value properties
-      // are used in a triple.
+      
+      
       getter = "_rdfGet_" + propertyName;
       if (getter in this)
         ary = [ this[getter](source, property) ];
@@ -8199,9 +8199,9 @@ ExtensionsDataSource.prototype = {
     return this._inner.endUpdateBatch();
   },
 
-  /**
-   * See nsIRDFRemoteDataSource.idl
-   */
+  
+
+
   get loaded() {
     throw Cr.NS_ERROR_NOT_IMPLEMENTED;
   },
@@ -8213,8 +8213,8 @@ ExtensionsDataSource.prototype = {
   },
 
   Flush: function EMDS_Flush() {
-    // For some operations we block repeated flushing until all operations
-    // are complete to reduce file accesses that can trigger bug 431065
+    
+    
     if (!gAllowFlush) {
       gDSNeedsFlush = true;
       return;
@@ -8239,9 +8239,9 @@ ExtensionsDataSource.prototype = {
 
 function UpdateItem () {}
 UpdateItem.prototype = {
-  /**
-   * See nsIUpdateService.idl
-   */
+  
+
+
   init: function(id, version, installLocationKey, minAppVersion, maxAppVersion,
                  name, downloadURL, xpiHash, iconURL, updateURL, updateKey, type,
                  targetAppID) {
@@ -8260,9 +8260,9 @@ UpdateItem.prototype = {
     this._targetAppID         = targetAppID;
   },
 
-  /**
-   * See nsIUpdateService.idl
-   */
+  
+
+
   get id()                { return this._id;                },
   get version()           { return this._version;           },
   get installLocationKey(){ return this._installLocationKey;},
@@ -8277,9 +8277,9 @@ UpdateItem.prototype = {
   get type()              { return this._type;              },
   get targetAppID()       { return this._targetAppID;       },
 
-  /**
-   * See nsIUpdateService.idl
-   */
+  
+
+
   get objectSource() {
     return { id                 : this._id,
              version            : this._version,
@@ -8307,11 +8307,11 @@ function NSGetModule(compMgr, fileSpec)
   XPCOMUtils.generateModule([ExtensionManager, ExtensionsDataSource, UpdateItem]);
 
 #if 0
-/**
- * Logs a message and stack trace to the console.
- * @param   string
- *          The string to write to the console.
- */
+
+
+
+
+
 function STACK(string) {
   dump("*** " + string + "\n");
   stackTrace(arguments.callee.caller.arguments, -1);
