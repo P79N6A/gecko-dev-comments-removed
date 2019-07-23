@@ -105,6 +105,7 @@
 
 #define PREF_BRANCH_BASE                        "browser."
 #define PREF_BROWSER_HISTORY_EXPIRE_DAYS        "history_expire_days"
+#define PREF_BROWSER_HISTORY_EXPIRE_VISITS      "history_expire_visits"
 #define PREF_AUTOCOMPLETE_ONLY_TYPED            "urlbar.matchOnlyTyped"
 #define PREF_AUTOCOMPLETE_ENABLED               "urlbar.autocomplete.enabled"
 #define PREF_DB_CACHE_PERCENTAGE                "history_cache_percentage"
@@ -156,7 +157,15 @@
 
 
 
+
 #define VACUUM_IDLE_TIME_IN_MSECS (900000)
+
+
+
+#define EXPIRE_IDLE_TIME_IN_MSECS (300000)
+
+
+#define MAX_EXPIRE_RECORDS_ON_IDLE 200
 
 NS_IMPL_ADDREF(nsNavHistory)
 NS_IMPL_RELEASE(nsNavHistory)
@@ -256,6 +265,7 @@ nsNavHistory::nsNavHistory() : mNowValid(PR_FALSE),
                                mExpireNowTimer(nsnull),
                                mExpire(this),
                                mExpireDays(0),
+                               mExpireVisits(0),
                                mAutoCompleteOnlyTyped(PR_FALSE),
                                mBatchLevel(0),
                                mLock(nsnull),
@@ -398,6 +408,7 @@ nsNavHistory::Init()
   if (pbi) {
     pbi->AddObserver(PREF_AUTOCOMPLETE_ONLY_TYPED, this, PR_FALSE);
     pbi->AddObserver(PREF_BROWSER_HISTORY_EXPIRE_DAYS, this, PR_FALSE);
+    pbi->AddObserver(PREF_BROWSER_HISTORY_EXPIRE_VISITS, this, PR_FALSE);
   }
 
   observerService->AddObserver(this, gQuitApplicationMessage, PR_FALSE);
@@ -1369,6 +1380,7 @@ nsNavHistory::LoadPrefs()
     return NS_OK;
 
   mPrefBranch->GetIntPref(PREF_BROWSER_HISTORY_EXPIRE_DAYS, &mExpireDays);
+  mPrefBranch->GetIntPref(PREF_BROWSER_HISTORY_EXPIRE_VISITS, &mExpireVisits);
   PRBool oldCompleteOnlyTyped = mAutoCompleteOnlyTyped;
   mPrefBranch->GetBoolPref(PREF_AUTOCOMPLETE_ONLY_TYPED,
                            &mAutoCompleteOnlyTyped);
@@ -3410,6 +3422,15 @@ nsNavHistory::OnIdle()
 
   
   
+  
+  
+  if (idleTime > EXPIRE_IDLE_TIME_IN_MSECS) {
+    PRBool dummy;
+    (void)mExpire.ExpireItems(MAX_EXPIRE_RECORDS_ON_IDLE, &dummy);
+  }
+
+  
+  
   if (idleTime > VACUUM_IDLE_TIME_IN_MSECS) {
 #if 0
     
@@ -3474,8 +3495,9 @@ nsNavHistory::Observe(nsISupports *aSubject, const char *aTopic,
     observerService->RemoveObserver(this, gQuitApplicationMessage);
   } else if (nsCRT::strcmp(aTopic, "nsPref:changed") == 0) {
     PRInt32 oldDays = mExpireDays;
+    PRInt32 oldVisits = mExpireVisits;
     LoadPrefs();
-    if (oldDays != mExpireDays)
+    if (oldDays != mExpireDays || oldVisits != mExpireVisits)
       mExpire.OnExpirationChanged();
   }
 

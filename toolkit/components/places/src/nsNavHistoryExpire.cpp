@@ -69,6 +69,9 @@ struct nsNavHistoryExpireRecord {
 #define EXPIRATION_COUNT_PER_RUN 6
 
 
+#define EXPIRATION_COUNT_PER_RUN_LARGE 50
+
+
 
 
 
@@ -92,6 +95,10 @@ const PRTime EXPIRATION_POLICY_MONTHS = ((PRTime)180 * 86400 * PR_USEC_PER_SEC);
 
 
 const PRTime EMBEDDED_LINK_LIFETIME = ((PRTime)10 * 86400 * PR_USEC_PER_SEC);
+
+
+#define PREF_BRANCH_BASE                        "browser."
+#define PREF_BROWSER_HISTORY_EXPIRE_DAYS        "history_expire_days"
 
 
 
@@ -254,6 +261,8 @@ void
 nsNavHistoryExpire::OnExpirationChanged()
 {
   mNextExpirationTime = 0;
+  
+  (void)OnAddURI(PR_Now());
 }
 
 
@@ -399,38 +408,82 @@ nsNavHistoryExpireRecord::nsNavHistoryExpireRecord(
 
 
 
+
+
+
 nsresult
 nsNavHistoryExpire::FindVisits(PRTime aExpireThreshold, PRUint32 aNumToExpire,
                                mozIStorageConnection* aConnection,
                                nsTArray<nsNavHistoryExpireRecord>& aRecords)
 {
+  
   nsresult rv;
+  nsCOMPtr<nsIPrefService> prefService =
+    do_GetService(NS_PREFSERVICE_CONTRACTID, &rv);
+  NS_ENSURE_SUCCESS(rv, rv);
+  nsCOMPtr<nsIPrefBranch> defaultPrefBranch;
+  rv = prefService->GetDefaultBranch(PREF_BRANCH_BASE,
+    getter_AddRefs(defaultPrefBranch));
+  NS_ENSURE_SUCCESS(rv, rv);
+  PRInt32 defaultExpireDays;
+  rv = defaultPrefBranch->GetIntPref(PREF_BROWSER_HISTORY_EXPIRE_DAYS, &defaultExpireDays);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  nsCAutoString sqlBase;
+  sqlBase.AssignLiteral(
+    "SELECT v.id, v.place_id, v.visit_date, h.url, h.favicon_id, h.hidden, b.fk "
+    "FROM moz_historyvisits v LEFT JOIN moz_places h ON v.place_id = h.id "
+    "LEFT OUTER JOIN moz_bookmarks b on v.place_id = b.fk ");
 
   
   
-  nsCOMPtr<mozIStorageStatement> selectStatement;
-  nsCString sql;
-  sql.AssignLiteral("SELECT "
-      "v.id, v.place_id, v.visit_date, h.url, h.favicon_id, h.hidden, b.fk "
-      "FROM moz_historyvisits v LEFT JOIN moz_places h ON v.place_id = h.id "
-      "LEFT OUTER JOIN moz_bookmarks b on v.place_id = b.fk AND b.type = ?1 ");
-  if (aExpireThreshold != 0)
-    sql.AppendLiteral(" WHERE visit_date < ?2");
-  rv = aConnection->CreateStatement(sql, getter_AddRefs(selectStatement));
-  NS_ENSURE_SUCCESS(rv, rv);
-  rv = selectStatement->BindInt32Parameter(0, nsINavBookmarksService::TYPE_BOOKMARK);
-  NS_ENSURE_SUCCESS(rv, rv);
-  if (aExpireThreshold != 0) {
-    rv = selectStatement->BindInt64Parameter(1, aExpireThreshold);
+  if (defaultExpireDays == mHistory->mExpireDays || !aNumToExpire) {
+    
+    nsCOMPtr<mozIStorageStatement> visitsStatement;
+    nsCAutoString sqlVisits;
+    sqlVisits.Assign(sqlBase);
+    if (aNumToExpire) {
+      
+      
+      sqlVisits.AppendLiteral("ORDER BY v.visit_date DESC LIMIT ?1 OFFSET ?2 ");
+    }
+    rv = aConnection->CreateStatement(sqlVisits, getter_AddRefs(visitsStatement));
     NS_ENSURE_SUCCESS(rv, rv);
+
+    if (aNumToExpire) {
+      rv = visitsStatement->BindInt64Parameter(0, aNumToExpire);
+      NS_ENSURE_SUCCESS(rv, rv);
+      rv = visitsStatement->BindInt32Parameter(1, mHistory->mExpireVisits);
+      NS_ENSURE_SUCCESS(rv, rv);
+    }
+
+    PRBool hasMore = PR_FALSE;
+    while (NS_SUCCEEDED(visitsStatement->ExecuteStep(&hasMore)) && hasMore) {
+      nsNavHistoryExpireRecord record(visitsStatement);
+      aRecords.AppendElement(record);
+    }
   }
 
-  PRBool hasMore = PR_FALSE;
-  while (NS_SUCCEEDED(selectStatement->ExecuteStep(&hasMore)) && hasMore &&
-         (aNumToExpire == 0 || aRecords.Length() < aNumToExpire)) {
-    nsNavHistoryExpireRecord record(selectStatement);
-    aRecords.AppendElement(record);
+  if (aExpireThreshold && aRecords.Length() < aNumToExpire) {
+    nsCOMPtr<mozIStorageStatement> selectStatement;
+    nsCAutoString sqlDate;
+    sqlDate.Assign(sqlBase);
+    sqlDate.AppendLiteral("AND visit_date < ?1 LIMIT ?2");
+    rv = aConnection->CreateStatement(sqlDate, getter_AddRefs(selectStatement));
+    NS_ENSURE_SUCCESS(rv, rv);
+    rv = selectStatement->BindInt64Parameter(0, aExpireThreshold);
+    NS_ENSURE_SUCCESS(rv, rv);
+    rv = selectStatement->BindInt32Parameter(1, aNumToExpire - aRecords.Length());
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    PRBool hasMore = PR_FALSE;
+    while (NS_SUCCEEDED(selectStatement->ExecuteStep(&hasMore)) && hasMore) {
+      nsNavHistoryExpireRecord record(selectStatement);
+      aRecords.AppendElement(record);
+    }
   }
+
   return NS_OK;
 }
 
@@ -771,14 +824,8 @@ nsNavHistoryExpire::ExpireForDegenerateRuns()
     return PR_FALSE;
 
   
-  
-  if (mAddCount < 10 || mAddCount < mExpiredItems)
-    return PR_FALSE;
-
-  
-  
   PRBool keepGoing;
-  nsresult rv = ExpireItems(mAddCount - mExpiredItems, &keepGoing);
+  nsresult rv = ExpireItems(EXPIRATION_COUNT_PER_RUN_LARGE, &keepGoing);
   if (NS_FAILED(rv))
     NS_WARNING("ExpireItems failed.");
   return PR_TRUE;

@@ -251,6 +251,7 @@ pref("browser.history.grouping", "day");
 pref("browser.history.showSessions", false);
 pref("browser.sessionhistory.max_entries", 50);
 pref("browser.history_expire_days", 180);
+pref("browser.history_expire_visits", 20000);
 
 
 

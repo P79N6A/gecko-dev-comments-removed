@@ -600,6 +600,7 @@ protected:
   void DoneSearching();
 
   PRInt32 mExpireDays;
+  PRInt32 mExpireVisits;
 
   
   nsresult TokensToQueries(const nsTArray<QueryKeyValuePair>& aTokens,
