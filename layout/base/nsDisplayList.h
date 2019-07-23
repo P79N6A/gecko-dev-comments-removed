@@ -546,8 +546,7 @@ public:
 
 
 
-  virtual void Paint(nsDisplayListBuilder* aBuilder, nsIRenderingContext* aCtx,
-                     const nsRect& aDirtyRect) {}
+  virtual void Paint(nsDisplayListBuilder* aBuilder, nsIRenderingContext* aCtx) {}
 
   
 
@@ -559,8 +558,13 @@ public:
 
 
 
-  virtual PRBool OptimizeVisibility(nsDisplayListBuilder* aBuilder,
-                                    nsRegion* aVisibleRegion);
+
+
+
+
+
+  virtual PRBool ComputeVisibility(nsDisplayListBuilder* aBuilder,
+                                   nsRegion* aVisibleRegion) { return PR_TRUE; }
   
 
 
@@ -597,6 +601,12 @@ protected:
   }
   
   nsIFrame* mFrame;
+  
+  
+  
+  
+  
+  nsRect    mVisibleRect;
 };
 
 
@@ -619,7 +629,13 @@ public:
   
 
 
-  nsDisplayList() { mTop = &mSentinel; mSentinel.mAbove = nsnull; }
+  nsDisplayList() {
+    mTop = &mSentinel;
+    mSentinel.mAbove = nsnull;
+#ifdef DEBUG
+    mDidComputeVisibility = PR_FALSE;
+#endif
+  }
   ~nsDisplayList() {
     if (mSentinel.mAbove) {
       NS_WARNING("Nonempty list left over?");
@@ -769,7 +785,10 @@ public:
 
 
 
-  void OptimizeVisibility(nsDisplayListBuilder* aBuilder, nsRegion* aVisibleRegion);
+
+
+
+  void ComputeVisibility(nsDisplayListBuilder* aBuilder, nsRegion* aVisibleRegion);
   
 
 
@@ -777,8 +796,9 @@ public:
 
 
 
-  void Paint(nsDisplayListBuilder* aBuilder, nsIRenderingContext* aCtx,
-             const nsRect& aDirtyRect) const;
+
+
+  void Paint(nsDisplayListBuilder* aBuilder, nsIRenderingContext* aCtx) const;
   
 
 
@@ -803,6 +823,10 @@ private:
   
   nsDisplayItemLink  mSentinel;
   nsDisplayItemLink* mTop;
+
+#ifdef DEBUG
+  PRPackedBool mDidComputeVisibility;
+#endif
 };
 
 
@@ -951,9 +975,8 @@ public:
   }
 #endif
   
-  virtual void Paint(nsDisplayListBuilder* aBuilder, nsIRenderingContext* aCtx,
-     const nsRect& aDirtyRect) {
-    mPaint(mFrame, aCtx, aDirtyRect, aBuilder->ToReferenceFrame(mFrame));
+  virtual void Paint(nsDisplayListBuilder* aBuilder, nsIRenderingContext* aCtx) {
+    mPaint(mFrame, aCtx, mVisibleRect, aBuilder->ToReferenceFrame(mFrame));
   }
   NS_DISPLAY_DECL_NAME(mName)
 protected:
@@ -992,8 +1015,7 @@ public:
   }
 #endif
   
-  virtual void Paint(nsDisplayListBuilder* aBuilder, nsIRenderingContext* aCtx,
-     const nsRect& aDirtyRect) {
+  virtual void Paint(nsDisplayListBuilder* aBuilder, nsIRenderingContext* aCtx) {
     nsPoint pt = aBuilder->ToReferenceFrame(mFrame);
     nsIRenderingContext::AutoPushTranslation translate(aCtx, pt.x, pt.y);
     mFrame->PresContext()->PresShell()->PaintCount(mFrameName, aCtx,
@@ -1064,8 +1086,7 @@ public:
     
     return mCaret->GetCaretRect() + aBuilder->ToReferenceFrame(mFrame);
   }
-  virtual void Paint(nsDisplayListBuilder* aBuilder, nsIRenderingContext* aCtx,
-      const nsRect& aDirtyRect);
+  virtual void Paint(nsDisplayListBuilder* aBuilder, nsIRenderingContext* aCtx);
   NS_DISPLAY_DECL_NAME("Caret")
 protected:
   nsRefPtr<nsCaret> mCaret;
@@ -1086,9 +1107,8 @@ public:
 #endif
 
   virtual Type GetType() { return TYPE_BORDER; }
-  virtual void Paint(nsDisplayListBuilder* aBuilder, nsIRenderingContext* aCtx,
-     const nsRect& aDirtyRect);
-  virtual PRBool OptimizeVisibility(nsDisplayListBuilder* aBuilder, nsRegion* aVisibleRegion);
+  virtual void Paint(nsDisplayListBuilder* aBuilder, nsIRenderingContext* aCtx);
+  virtual PRBool ComputeVisibility(nsDisplayListBuilder* aBuilder, nsRegion* aVisibleRegion);
   NS_DISPLAY_DECL_NAME("Border")
 };
 
@@ -1123,8 +1143,7 @@ public:
 
   virtual PRBool IsUniform(nsDisplayListBuilder* aBuilder) { return PR_TRUE; }
 
-  virtual void Paint(nsDisplayListBuilder* aBuilder, nsIRenderingContext* aCtx,
-     const nsRect& aDirtyRect);
+  virtual void Paint(nsDisplayListBuilder* aBuilder, nsIRenderingContext* aCtx);
 
   NS_DISPLAY_DECL_NAME("SolidColor")
 private:
@@ -1153,8 +1172,7 @@ public:
   virtual PRBool IsVaryingRelativeToMovingFrame(nsDisplayListBuilder* aBuilder);
   virtual PRBool IsUniform(nsDisplayListBuilder* aBuilder);
   virtual nsRect GetBounds(nsDisplayListBuilder* aBuilder);
-  virtual void Paint(nsDisplayListBuilder* aBuilder, nsIRenderingContext* aCtx,
-     const nsRect& aDirtyRect);
+  virtual void Paint(nsDisplayListBuilder* aBuilder, nsIRenderingContext* aCtx);
   NS_DISPLAY_DECL_NAME("Background")
 private:
     
@@ -1175,10 +1193,9 @@ public:
   }
 #endif
 
-  virtual void Paint(nsDisplayListBuilder* aBuilder, nsIRenderingContext* aCtx,
-     const nsRect& aDirtyRect);
+  virtual void Paint(nsDisplayListBuilder* aBuilder, nsIRenderingContext* aCtx);
   virtual nsRect GetBounds(nsDisplayListBuilder* aBuilder);
-  virtual PRBool OptimizeVisibility(nsDisplayListBuilder* aBuilder, nsRegion* aVisibleRegion);
+  virtual PRBool ComputeVisibility(nsDisplayListBuilder* aBuilder, nsRegion* aVisibleRegion);
   NS_DISPLAY_DECL_NAME("BoxShadowOuter")
 };
 
@@ -1196,8 +1213,7 @@ public:
   }
 #endif
 
-  virtual void Paint(nsDisplayListBuilder* aBuilder, nsIRenderingContext* aCtx,
-     const nsRect& aDirtyRect);
+  virtual void Paint(nsDisplayListBuilder* aBuilder, nsIRenderingContext* aCtx);
   NS_DISPLAY_DECL_NAME("BoxShadowInner")
 };
 
@@ -1217,9 +1233,8 @@ public:
 
   virtual Type GetType() { return TYPE_OUTLINE; }
   virtual nsRect GetBounds(nsDisplayListBuilder* aBuilder);
-  virtual void Paint(nsDisplayListBuilder* aBuilder, nsIRenderingContext* aCtx,
-     const nsRect& aDirtyRect);
-  virtual PRBool OptimizeVisibility(nsDisplayListBuilder* aBuilder, nsRegion* aVisibleRegion);
+  virtual void Paint(nsDisplayListBuilder* aBuilder, nsIRenderingContext* aCtx);
+  virtual PRBool ComputeVisibility(nsDisplayListBuilder* aBuilder, nsRegion* aVisibleRegion);
   NS_DISPLAY_DECL_NAME("Outline")
 };
 
@@ -1274,10 +1289,9 @@ public:
   virtual PRBool IsOpaque(nsDisplayListBuilder* aBuilder);
   virtual PRBool IsUniform(nsDisplayListBuilder* aBuilder);
   virtual PRBool IsVaryingRelativeToMovingFrame(nsDisplayListBuilder* aBuilder);
-  virtual void Paint(nsDisplayListBuilder* aBuilder, nsIRenderingContext* aCtx,
-     const nsRect& aDirtyRect);
-  virtual PRBool OptimizeVisibility(nsDisplayListBuilder* aBuilder,
-                                    nsRegion* aVisibleRegion);
+  virtual void Paint(nsDisplayListBuilder* aBuilder, nsIRenderingContext* aCtx);
+  virtual PRBool ComputeVisibility(nsDisplayListBuilder* aBuilder,
+                                   nsRegion* aVisibleRegion);
   virtual PRBool TryMerge(nsDisplayListBuilder* aBuilder, nsDisplayItem* aItem) {
     NS_WARNING("This list should already have been flattened!!!");
     return PR_FALSE;
@@ -1343,10 +1357,9 @@ public:
   
   virtual Type GetType() { return TYPE_OPACITY; }
   virtual PRBool IsOpaque(nsDisplayListBuilder* aBuilder);
-  virtual void Paint(nsDisplayListBuilder* aBuilder, nsIRenderingContext* aCtx,
-     const nsRect& aDirtyRect);
-  virtual PRBool OptimizeVisibility(nsDisplayListBuilder* aBuilder,
-                                    nsRegion* aVisibleRegion);  
+  virtual void Paint(nsDisplayListBuilder* aBuilder, nsIRenderingContext* aCtx);
+  virtual PRBool ComputeVisibility(nsDisplayListBuilder* aBuilder,
+                                   nsRegion* aVisibleRegion);  
   virtual PRBool TryMerge(nsDisplayListBuilder* aBuilder, nsDisplayItem* aItem);
   NS_DISPLAY_DECL_NAME("Opacity")
 
@@ -1381,10 +1394,9 @@ public:
   
   virtual Type GetType() { return TYPE_CLIP; }
   virtual nsRect GetBounds(nsDisplayListBuilder* aBuilder);
-  virtual void Paint(nsDisplayListBuilder* aBuilder, nsIRenderingContext* aCtx,
-     const nsRect& aDirtyRect);
-  virtual PRBool OptimizeVisibility(nsDisplayListBuilder* aBuilder,
-                                    nsRegion* aVisibleRegion);
+  virtual void Paint(nsDisplayListBuilder* aBuilder, nsIRenderingContext* aCtx);
+  virtual PRBool ComputeVisibility(nsDisplayListBuilder* aBuilder,
+                                   nsRegion* aVisibleRegion);
   virtual PRBool TryMerge(nsDisplayListBuilder* aBuilder, nsDisplayItem* aItem);
   NS_DISPLAY_DECL_NAME("Clip")
   
@@ -1423,10 +1435,9 @@ public:
   virtual nsRect GetBounds(nsDisplayListBuilder* aBuilder) {
     return mBounds + aBuilder->ToReferenceFrame(mEffectsFrame);
   }
-  virtual void Paint(nsDisplayListBuilder* aBuilder, nsIRenderingContext* aCtx,
-     const nsRect& aDirtyRect);
-  virtual PRBool OptimizeVisibility(nsDisplayListBuilder* aBuilder,
-                                    nsRegion* aVisibleRegion);  
+  virtual void Paint(nsDisplayListBuilder* aBuilder, nsIRenderingContext* aCtx);
+  virtual PRBool ComputeVisibility(nsDisplayListBuilder* aBuilder,
+                                   nsRegion* aVisibleRegion);  
   virtual PRBool TryMerge(nsDisplayListBuilder* aBuilder, nsDisplayItem* aItem);
   NS_DISPLAY_DECL_NAME("SVGEffects")
 
@@ -1481,10 +1492,9 @@ public:
   virtual PRBool IsOpaque(nsDisplayListBuilder *aBuilder);
   virtual PRBool IsUniform(nsDisplayListBuilder *aBuilder);
   virtual void   Paint(nsDisplayListBuilder *aBuilder,
-                       nsIRenderingContext *aCtx,
-                       const nsRect &aDirtyRect);
-  virtual PRBool OptimizeVisibility(nsDisplayListBuilder *aBuilder,
-                                    nsRegion *aVisibleRegion);
+                       nsIRenderingContext *aCtx);
+  virtual PRBool ComputeVisibility(nsDisplayListBuilder *aBuilder,
+                                   nsRegion *aVisibleRegion);
   virtual PRBool TryMerge(nsDisplayListBuilder *aBuilder, nsDisplayItem *aItem);
 
   

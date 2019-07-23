@@ -796,15 +796,15 @@ public:
   }
 #endif
 
-  virtual void Paint(nsDisplayListBuilder* aBuilder, nsIRenderingContext* aCtx,
-     const nsRect& aDirtyRect);
+  virtual void Paint(nsDisplayListBuilder* aBuilder,
+                     nsIRenderingContext* aCtx);
   NS_DISPLAY_DECL_NAME("SelectionOverlay")
 private:
   PRInt16 mSelectionValue;
 };
 
 void nsDisplaySelectionOverlay::Paint(nsDisplayListBuilder* aBuilder,
-     nsIRenderingContext* aCtx, const nsRect& aDirtyRect)
+                                      nsIRenderingContext* aCtx)
 {
   nscolor color = NS_RGB(255, 255, 255);
   
@@ -829,9 +829,8 @@ void nsDisplaySelectionOverlay::Paint(nsDisplayListBuilder* aBuilder,
   gfxContext *ctx = aCtx->ThebesContext();
   ctx->SetColor(c);
 
-  nsRect rect(aBuilder->ToReferenceFrame(mFrame), mFrame->GetSize());
-  rect.IntersectRect(rect, aDirtyRect);
-  nsIntRect pxRect = rect.ToOutsidePixels(mFrame->PresContext()->AppUnitsPerDevPixel());
+  nsIntRect pxRect =
+    mVisibleRect.ToOutsidePixels(mFrame->PresContext()->AppUnitsPerDevPixel());
   ctx->NewPath();
   ctx->Rectangle(gfxRect(pxRect.x, pxRect.y, pxRect.width, pxRect.height), PR_TRUE);
   ctx->Fill();

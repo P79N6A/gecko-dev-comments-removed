@@ -3288,6 +3288,7 @@ nsContextBoxBlur::Init(const nsRect& aRect, nscoord aBlurRadius,
   }
 
   gfxRect dirtyRect = RectToGfxRect(aDirtyRect, aAppUnitsPerDevPixel);
+  dirtyRect.RoundOut();
 
   
   mContext = blur.Init(rect, gfxIntSize(blurRadius, blurRadius), &dirtyRect);
