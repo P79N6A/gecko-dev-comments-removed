@@ -2930,23 +2930,32 @@ js_TraceContext(JSTracer *trc, JSContext *acx)
 
 
 
-    fp = js_GetTopStackFrame(acx);
-    nextChain = acx->dormantFrameChain;
-    if (!fp)
-        goto next_chain;
 
-    
-    JS_ASSERT(!fp->dormantNext);
-    for (;;) {
-        do {
-            js_TraceStackFrame(trc, fp);
-        } while ((fp = fp->down) != NULL);
 
-      next_chain:
-        if (!nextChain)
-            break;
-        fp = nextChain;
-        nextChain = nextChain->dormantNext;
+
+
+#ifdef JS_THREADSAFE
+    if (acx->thread)
+#endif
+    {
+        fp = js_GetTopStackFrame(acx);
+        nextChain = acx->dormantFrameChain;
+        if (!fp)
+            goto next_chain;
+
+        
+        JS_ASSERT(!fp->dormantNext);
+        for (;;) {
+            do {
+                js_TraceStackFrame(trc, fp);
+            } while ((fp = fp->down) != NULL);
+
+          next_chain:
+            if (!nextChain)
+                break;
+            fp = nextChain;
+            nextChain = nextChain->dormantNext;
+        }
     }
 
     
