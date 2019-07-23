@@ -59,7 +59,7 @@ class nsJSScriptTimeoutHandler: public nsIScriptTimeoutHandler
 public:
   
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
-  NS_DECL_CYCLE_COLLECTION_CLASS(nsJSScriptTimeoutHandler)
+  NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(nsJSScriptTimeoutHandler)
 
   nsJSScriptTimeoutHandler();
   ~nsJSScriptTimeoutHandler();
@@ -118,8 +118,13 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(nsJSScriptTimeoutHandler)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(mContext)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(mArgv)
-  cb.NoteScriptChild(nsIProgrammingLanguage::JAVASCRIPT, tmp->mFunObj);
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE_SCRIPT_OBJECTS
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
+
+NS_IMPL_CYCLE_COLLECTION_TRACE_BEGIN(nsJSScriptTimeoutHandler)
+  NS_IMPL_CYCLE_COLLECTION_TRACE_JS_MEMBER_CALLBACK(mExpr)
+  NS_IMPL_CYCLE_COLLECTION_TRACE_JS_MEMBER_CALLBACK(mFunObj)
+NS_IMPL_CYCLE_COLLECTION_TRACE_END
 
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(nsJSScriptTimeoutHandler)
   NS_INTERFACE_MAP_ENTRY(nsIScriptTimeoutHandler)
@@ -146,49 +151,11 @@ void
 nsJSScriptTimeoutHandler::ReleaseJSObjects()
 {
   if (mExpr || mFunObj) {
-    nsCOMPtr<nsIScriptContext> scx = mContext;
-    JSRuntime *rt = nsnull;
-
-    if (scx) {
-      JSContext *cx;
-      cx = (JSContext *)scx->GetNativeContext();
-      rt = ::JS_GetRuntime(cx);
-      mContext = nsnull;
-    } else {
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-
-      nsCOMPtr<nsIJSRuntimeService> rtsvc =
-        do_GetService("@mozilla.org/js/xpc/RuntimeService;1");
-
-      if (rtsvc) {
-        rtsvc->GetRuntime(&rt);
-      }
-    }
-
-    if (!rt) {
-      
-
-      NS_ERROR("nsTimeout::Release() with no JSRuntime. eek!");
-
-      return;
-    }
-
     if (mExpr) {
-      ::JS_RemoveRootRT(rt, &mExpr);
+      NS_DROP_JS_OBJECTS(this, nsJSScriptTimeoutHandler);
       mExpr = nsnull;
     } else if (mFunObj) {
-      ::JS_RemoveRootRT(rt, &mFunObj);
+      NS_DROP_JS_OBJECTS(this, nsJSScriptTimeoutHandler);
       mFunObj = nsnull;
     } else {
       NS_WARNING("No func and no expr - roots may not have been removed");
@@ -280,9 +247,8 @@ nsJSScriptTimeoutHandler::Init(nsIScriptContext *aContext, PRBool *aIsInterval,
   }
 
   if (expr) {
-    if (!::JS_AddNamedRoot(cx, &mExpr, "timeout.mExpr")) {
-      return NS_ERROR_OUT_OF_MEMORY;
-    }
+    rv = NS_HOLD_JS_OBJECTS(this, nsJSScriptTimeoutHandler);
+    NS_ENSURE_SUCCESS(rv, rv);
 
     mExpr = expr;
 
@@ -292,9 +258,8 @@ nsJSScriptTimeoutHandler::Init(nsIScriptContext *aContext, PRBool *aIsInterval,
       mFileName.Assign(filename);
     }
   } else if (funobj) {
-    if (!::JS_AddNamedRoot(cx, &mFunObj, "timeout.mFunObj")) {
-      return NS_ERROR_OUT_OF_MEMORY;
-    }
+    rv = NS_HOLD_JS_OBJECTS(this, nsJSScriptTimeoutHandler);
+    NS_ENSURE_SUCCESS(rv, rv);
 
     mFunObj = funobj;
 

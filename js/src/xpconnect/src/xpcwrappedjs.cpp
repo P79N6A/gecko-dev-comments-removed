@@ -590,10 +590,6 @@ nsXPCWrappedJS::SystemIsBeingShutDown(JSRuntime* rt)
     mJSObj = nsnull;
 
     
-    
-    JS_RemoveRootRT(rt, &mJSObj);
-
-    
     if(mNext)
         mNext->SystemIsBeingShutDown(rt);
 }

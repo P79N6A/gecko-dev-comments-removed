@@ -534,10 +534,7 @@ void XPCMarkNotification(void *thing, uint8 flags, void *closure)
 {
     
     uint8 ty = flags & GCF_TYPEMASK;
-    if(ty != GCX_OBJECT &&
-       ty != GCX_NAMESPACE && 
-       ty != GCX_QNAME &&
-       ty != GCX_XML)
+    if(ty == GCX_FUNCTION)
         return;
 
     JSObjectRefcounts* jsr = static_cast<JSObjectRefcounts*>(closure);
@@ -697,13 +694,28 @@ static uint8 GCTypeToTraceKindMap[GCX_NTYPES] = {
     JSTRACE_OBJECT,     
     JSTRACE_STRING,     
     JSTRACE_DOUBLE,     
-    JSTRACE_STRING,     
     JSTRACE_FUNCTION,   
     JSTRACE_NAMESPACE,  
     JSTRACE_QNAME,      
-    JSTRACE_XML         
-    
+    JSTRACE_XML,        
+    (uint8)-1,         
+    JSTRACE_STRING,     
+    JSTRACE_STRING,     
+    JSTRACE_STRING,     
+    JSTRACE_STRING,     
+    JSTRACE_STRING,     
+    JSTRACE_STRING,     
+    JSTRACE_STRING,     
+    JSTRACE_STRING,     
 };
+
+
+uint8
+nsXPConnect::GetTraceKind(void *thing)
+{
+    uint8 type = *js_GetGCThingFlags(thing) & GCF_TYPEMASK;
+    return GCTypeToTraceKindMap[type];
+}
 
 NS_IMETHODIMP
 nsXPConnect::Traverse(void *p, nsCycleCollectionTraversalCallback &cb)
@@ -715,11 +727,6 @@ nsXPConnect::Traverse(void *p, nsCycleCollectionTraversalCallback &cb)
 
     PRUint32 refcount = mObjRefcounts->Get(p);
     NS_ASSERTION(refcount > 0, "JS object but unknown to the JS GC?");
-
-    uint8 ty = *js_GetGCThingFlags(p) & GCF_TYPEMASK;
-    if(ty != GCX_OBJECT && ty != GCX_NAMESPACE && ty != GCX_QNAME &&
-       ty != GCX_XML)
-        return NS_OK;
 
 #ifdef DEBUG_CC
     if(ty == GCX_OBJECT)
@@ -825,6 +832,11 @@ nsXPConnect::Traverse(void *p, nsCycleCollectionTraversalCallback &cb)
 #else
     cb.DescribeNode(refcount);
 #endif
+
+    uint8 ty = GetTraceKind(p);
+    if(ty != GCX_OBJECT && ty != GCX_NAMESPACE && ty != GCX_QNAME &&
+       ty != GCX_XML)
+        return NS_OK;
 
     ContextCallbackItem trc;
     trc.cb = &cb;
@@ -2095,6 +2107,18 @@ nsXPConnect::OnDispatchedEvent(nsIThreadInternal* aThread)
 {
     NS_NOTREACHED("Why tell us?");
     return NS_ERROR_UNEXPECTED;
+}
+
+NS_IMETHODIMP
+nsXPConnect::AddJSHolder(void* aHolder, nsScriptObjectTracer* aTracer)
+{
+    return mRuntime->AddJSHolder(aHolder, aTracer);
+}
+
+NS_IMETHODIMP
+nsXPConnect::RemoveJSHolder(void* aHolder)
+{
+    return mRuntime->RemoveJSHolder(aHolder);
 }
 
 #ifdef DEBUG
