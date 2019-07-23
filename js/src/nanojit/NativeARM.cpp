@@ -284,6 +284,7 @@ Assembler::asm_arg(ArgSize sz, LInsp arg, Register& r, int& stkd)
 
         
         if (arg->isop(LIR_qjoin)) {
+            NanoAssert(!AvmCore::config.vfp);
             asm_arg(ARGSIZE_LO, arg->oprnd1(), r, stkd);
             asm_arg(ARGSIZE_LO, arg->oprnd2(), r, stkd);
         } else if (!argRes || argRes->reg == UnknownReg || !AvmCore::config.vfp) {
@@ -1427,93 +1428,67 @@ Assembler::asm_branch(bool branchOnFalse, LInsp cond, NIns* targ, bool isfar)
     
     (void)isfar;
 
-    NIns* at = 0;
     LOpcode condop = cond->opcode();
     NanoAssert(cond->isCond());
 
-    if (condop >= LIR_feq && condop <= LIR_fge)
+    
+    
+    ConditionCode cc = AL;
+
+    
+    bool    fp_cond;
+
+    
+    switch (condop)
     {
-        ConditionCode cc = NV;
+        
+        
+        
+        case LIR_feq:   cc = EQ;    fp_cond = true;     break;
+        case LIR_flt:   cc = LO;    fp_cond = true;     break;
+        case LIR_fle:   cc = LS;    fp_cond = true;     break;
+        case LIR_fge:   cc = GE;    fp_cond = true;     break;
+        case LIR_fgt:   cc = GT;    fp_cond = true;     break;
 
-        if (branchOnFalse) {
-            switch (condop) {
-                case LIR_feq: cc = NE; break;
-                case LIR_flt: cc = PL; break;
-                case LIR_fgt: cc = LE; break;
-                case LIR_fle: cc = HI; break;
-                case LIR_fge: cc = LT; break;
-                default: NanoAssert(0); break;
-            }
-        } else {
-            switch (condop) {
-                case LIR_feq: cc = EQ; break;
-                case LIR_flt: cc = MI; break;
-                case LIR_fgt: cc = GT; break;
-                case LIR_fle: cc = LS; break;
-                case LIR_fge: cc = GE; break;
-                default: NanoAssert(0); break;
-            }
-        }
+        
+        case LIR_eq:    cc = EQ;    fp_cond = false;    break;
+        case LIR_ov:    cc = VS;    fp_cond = false;    break;
+        case LIR_cs:    cc = CS;    fp_cond = false;    break;
+        case LIR_lt:    cc = LT;    fp_cond = false;    break;
+        case LIR_le:    cc = LE;    fp_cond = false;    break;
+        case LIR_gt:    cc = GT;    fp_cond = false;    break;
+        case LIR_ge:    cc = GE;    fp_cond = false;    break;
+        case LIR_ult:   cc = LO;    fp_cond = false;    break;
+        case LIR_ule:   cc = LS;    fp_cond = false;    break;
+        case LIR_ugt:   cc = HI;    fp_cond = false;    break;
+        case LIR_uge:   cc = HS;    fp_cond = false;    break;
 
-        B_cond(cc, targ);
-        asm_output("b(%d) 0x%08x", cc, (unsigned int) targ);
-
-        NIns *at = _nIns;
-        asm_fcmp(cond);
-        return at;
+        
+        default:        cc = AL;    fp_cond = false;    break;
     }
 
     
-    if (branchOnFalse) {
-        if (condop == LIR_eq)
-            JNE(targ);
-        else if (condop == LIR_ov)
-            JNO(targ);
-        else if (condop == LIR_cs)
-            JNC(targ);
-        else if (condop == LIR_lt)
-            JNL(targ);
-        else if (condop == LIR_le)
-            JNLE(targ);
-        else if (condop == LIR_gt)
-            JNG(targ);
-        else if (condop == LIR_ge)
-            JNGE(targ);
-        else if (condop == LIR_ult)
-            JNB(targ);
-        else if (condop == LIR_ule)
-            JNBE(targ);
-        else if (condop == LIR_ugt)
-            JNA(targ);
-        else 
-            JNAE(targ);
-    } else 
-    {
-        if (condop == LIR_eq)
-            JE(targ);
-        else if (condop == LIR_ov)
-            JO(targ);
-        else if (condop == LIR_cs)
-            JC(targ);
-        else if (condop == LIR_lt)
-            JL(targ);
-        else if (condop == LIR_le)
-            JLE(targ);
-        else if (condop == LIR_gt)
-            JG(targ);
-        else if (condop == LIR_ge)
-            JGE(targ);
-        else if (condop == LIR_ult)
-            JB(targ);
-        else if (condop == LIR_ule)
-            JBE(targ);
-        else if (condop == LIR_ugt)
-            JA(targ);
-        else 
-            JAE(targ);
-    }
-    at = _nIns;
-    asm_cmp(cond);
+    if (branchOnFalse)
+        cc = OppositeCond(cc);
+
+    
+    NanoAssert((cc != AL) && (cc != NV));
+    
+    
+    NanoAssert(AvmCore::config.vfp || !fp_cond);
+
+    
+    B_cond(cc, targ);
+    
+    
+    
+    NIns *at = _nIns;
+
+    if (fp_cond)
+        asm_fcmp(cond);
+    else
+        asm_cmp(cond);
+
     return at;
 }
 
