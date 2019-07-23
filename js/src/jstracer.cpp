@@ -6456,11 +6456,6 @@ ScopeChainCheck(JSContext* cx, TreeFragment* f)
         return false;
     }
 
-    
-    JS_ASSERT(f->globalObj->numSlots() <= MAX_GLOBAL_SLOTS);
-    JS_ASSERT(f->nGlobalTypes() == f->globalSlots->length());
-    JS_ASSERT_IF(f->globalSlots->length() != 0,
-                 f->globalObj->shape() == f->globalShape);
     return true;
 }
 
@@ -6479,6 +6474,12 @@ ExecuteTree(JSContext* cx, TreeFragment* f, uintN& inlineCallCount,
 
     if (!ScopeChainCheck(cx, f))
         return NULL;
+
+    
+    JS_ASSERT(f->globalObj->numSlots() <= MAX_GLOBAL_SLOTS);
+    JS_ASSERT(f->nGlobalTypes() == f->globalSlots->length());
+    JS_ASSERT_IF(f->globalSlots->length() != 0,
+                 f->globalObj->shape() == f->globalShape);
 
     
     InterpState state(cx, tm, f, inlineCallCount, innermostNestedGuardp);
@@ -6949,6 +6950,13 @@ MonitorLoopEdge(JSContext* cx, uintN& inlineCallCount, RecordReason reason)
         if (++f->hits() < HOTLOOP) {
 #ifdef MOZ_TRACEVIS
             tvso.r = f->hits() < 1 ? R_BACKED_OFF : R_COLD;
+#endif
+            return false;
+        }
+
+        if (!ScopeChainCheck(cx, f)) {
+#ifdef MOZ_TRACEVIS
+            tvso.r = R_FAIL_SCOPE_CHAIN_CHECK;
 #endif
             return false;
         }
@@ -13710,13 +13718,10 @@ TraceRecorder::record_JSOP_BINDNAME()
             JS_ASSERT(obj);
         }
 
-        if (obj != globalObj) {
-            
-            
-            
-            JS_NOT_REACHED("BINDNAME in global code resolved to non-global object");
-            RETURN_STOP_A("BINDNAME in global code resolved to non-global object");
-        }
+        
+        
+        
+        JS_ASSERT(obj == globalObj);
 
         
 
