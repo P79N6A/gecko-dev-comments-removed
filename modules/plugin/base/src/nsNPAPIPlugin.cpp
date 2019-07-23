@@ -2065,9 +2065,17 @@ _getvalue(NPP npp, NPNVariable variable, void *result)
 
     return NPERR_GENERIC_ERROR;
   }
+#else
+  case NPNVDOMElement:
+    
+  case NPNVDOMWindow:
+    
 #endif 
-
-  case NPNVserviceManager: 
+  case NPNVserviceManager:
+    
+    
+    *(nsISupports**)result = nsnull;
+    
   default:
     return NPERR_GENERIC_ERROR;
   }
