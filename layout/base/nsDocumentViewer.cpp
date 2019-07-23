@@ -3657,16 +3657,16 @@ DocumentViewerImpl::PrintPreviewNavigate(PRInt16 aType, PRInt32 aPageNum)
     if (NS_SUCCEEDED(CallQueryInterface(seqFrame, &sqf))) {
       sqf->GetDeadSpaceValue(&deadSpaceGapTwips);
     }
-    nscoord deadSpaceGap = mPresContext->TwipsToAppUnits(deadSpaceGapTwips);
 
     
     
     
-    
-    
+    nscoord deadSpaceGap = 
+      seqFrame->PresContext()->TwipsToAppUnits(deadSpaceGapTwips);
+
     nscoord newYPosn = 
       nscoord(mPrintEngine->GetPrintPreviewScale() * 
-              float(fndPageFrame->GetPosition().y));
+              float(fndPageFrame->GetPosition().y - deadSpaceGap));
     scrollableView->ScrollTo(0, newYPosn, PR_TRUE);
   }
   return NS_OK;
