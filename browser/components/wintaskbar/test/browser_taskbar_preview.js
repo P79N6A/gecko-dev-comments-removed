@@ -1,12 +1,12 @@
 function test() {
-  waitForExplicitFinish();
-
   
   ok(("AeroPeek" in window) == isWin7OrHigher(), "AeroPeek initialized when it should be");
 
   
   if (!("AeroPeek" in window))
     return;
+
+  waitForExplicitFinish();
 
   gPrefService.setBoolPref("aeropeek.enable", true);
 
