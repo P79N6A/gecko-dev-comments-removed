@@ -44,7 +44,6 @@
 
 #include "nsCOMPtr.h" 
 #include "plhash.h"
-#include "prlog.h"
 #include "nsAutoPtr.h"
 
 class nsIAtom;
