@@ -381,6 +381,11 @@ public:
 
     JS_SetContextPrivate(cx, mWorker);
 
+    
+    
+    
+    JS_TriggerOperationCallback(cx);
+
     PRBool killWorkerWhenDone;
 
     
@@ -433,8 +438,6 @@ protected:
   }
 
   void RunQueue(JSContext* aCx, PRBool* aCloseRunnableSet) {
-    PRBool operationCallbackTriggered = PR_FALSE;
-
     while (1) {
       nsCOMPtr<nsIRunnable> runnable;
       {
@@ -469,15 +472,6 @@ protected:
         }
       }
 
-      if (!operationCallbackTriggered) {
-        
-        
-        JS_TriggerOperationCallback(aCx);
-
-        
-        operationCallbackTriggered = PR_TRUE;
-      }
-
       
       JS_ClearRegExpStatics(aCx);
 
@@ -506,6 +500,7 @@ JSBool
 DOMWorkerOperationCallback(JSContext* aCx)
 {
   nsDOMWorker* worker = (nsDOMWorker*)JS_GetContextPrivate(aCx);
+  NS_ASSERTION(worker, "This must never be null!");
 
   PRBool wasSuspended = PR_FALSE;
   PRBool extraThreadAllowed = PR_FALSE;
