@@ -1263,6 +1263,8 @@ nsComputedDOMStyle::GetFontWeight(nsIDOMCSSValue** aValue)
   const nsCSSKeyword enum_weight =
     nsCSSProps::ValueToKeywordEnum(font->mFont.weight,
                                    nsCSSProps::kFontWeightKTable);
+  
+  
   if (enum_weight != eCSSKeyword_UNKNOWN) {
     val->SetIdent(enum_weight);
   } else {
