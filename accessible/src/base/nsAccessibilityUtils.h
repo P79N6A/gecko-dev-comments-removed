@@ -157,6 +157,7 @@ public:
 
 
 
+
   static already_AddRefed<nsIDOMElement> GetDOMElementFor(nsIDOMNode *aNode);
 
   
