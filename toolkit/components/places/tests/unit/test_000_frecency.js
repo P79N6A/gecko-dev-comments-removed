@@ -241,8 +241,8 @@ AutoCompleteInput.prototype = {
 
 function run_test() {
   var controller = Components.classes["@mozilla.org/autocomplete/controller;1"].
-                   getService(Components.interfaces.nsIAutoCompleteController);  
-  
+                   getService(Components.interfaces.nsIAutoCompleteController);
+
   
   
   var input = new AutoCompleteInput(["history"]);
@@ -264,7 +264,7 @@ function run_test() {
 
   input.onSearchComplete = function() {
     do_check_eq(numSearchesStarted, 1);
-    do_check_eq(controller.searchStatus, 
+    do_check_eq(controller.searchStatus,
                 Ci.nsIAutoCompleteController.STATUS_COMPLETE_MATCH);
 
     
@@ -283,7 +283,8 @@ function run_test() {
         
         
         let getFrecency = function(aURL) aURL.match(/frecency:(-?\d+)$/)[1];
-        print("### searchURL: '"+searchURL+"', expectedURL: '"+expectedURL+"'");
+        print("### checking for same frecency between '" + searchURL +
+              "' and '" + expectURL + "'");
         do_check_eq(getFrecency(searchURL), getFrecency(expectURL));
       }
     }
