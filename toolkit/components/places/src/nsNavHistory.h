@@ -620,7 +620,11 @@ protected:
   PRInt32 mAutoCompleteSearchTimeout;
   nsCOMPtr<nsITimer> mAutoCompleteTimer;
 
+  
   nsString mCurrentSearchString;
+  nsStringArray mCurrentSearchTokens;
+  void GenerateSearchTokens();
+  void AddSearchToken(nsAutoString &aToken);
 
 #ifdef MOZ_XUL
   nsCOMPtr<nsIAutoCompleteObserver> mCurrentListener;

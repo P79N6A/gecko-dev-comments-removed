@@ -266,7 +266,9 @@ nsNavHistory::StartSearch(const nsAString & aSearchString,
   
 
   NS_ENSURE_ARG_POINTER(aListener);
-  mCurrentSearchString = aSearchString;
+
+  
+  ToLowerCase(aSearchString, mCurrentSearchString);
   
   mCurrentSearchString.Trim(" \r\n\t\b");
 
@@ -278,8 +280,12 @@ nsNavHistory::StartSearch(const nsAString & aSearchString,
 
   mCurrentChunkOffset = 0;
   mCurrentResultURLs.Clear();
+  mCurrentSearchTokens.Clear();
   mLivemarkFeedItemIds.Clear();
   mLivemarkFeedURIs.Clear();
+
+  
+  GenerateSearchTokens();
 
   
   
@@ -323,6 +329,37 @@ nsNavHistory::StopSearch()
   DoneSearching();
 
   return NS_OK;
+}
+
+void
+nsNavHistory::GenerateSearchTokens()
+{
+  
+  nsString::const_iterator strStart, strEnd;
+  mCurrentSearchString.BeginReading(strStart);
+  mCurrentSearchString.EndReading(strEnd);
+  nsString::const_iterator start = strStart, end = strEnd;
+  while (FindInReadable(NS_LITERAL_STRING(" "), start, end)) {
+    
+    nsAutoString currentMatch(Substring(strStart, start));
+    AddSearchToken(currentMatch);
+
+    
+    strStart = start = end;
+    end = strEnd;
+  }
+  
+  
+  nsAutoString lastMatch(Substring(strStart, strEnd));
+  AddSearchToken(lastMatch);
+} 
+
+inline void
+nsNavHistory::AddSearchToken(nsAutoString &aToken)
+{
+  aToken.Trim("\r\n\t\b");
+  if (!aToken.IsEmpty())
+    mCurrentSearchTokens.AppendString(aToken);
 }
 
 
@@ -405,30 +442,12 @@ nsNavHistory::AutoCompleteTagsSearch()
 
   PRInt64 tagsFolder = GetTagsFolder();
 
-  nsString::const_iterator strStart, strEnd;
-  mCurrentSearchString.BeginReading(strStart);
-  mCurrentSearchString.EndReading(strEnd);
-  nsString::const_iterator start = strStart, end = strEnd;
-
-  nsStringArray tagTokens;
-
-  
-  while (FindInReadable(NS_LITERAL_STRING(" "), start, end,
-                        nsDefaultStringComparator())) {
-    nsAutoString currentMatch(Substring(strStart, start));
-    currentMatch.Trim("\r\n\t\b");
-    if (!currentMatch.IsEmpty())
-      tagTokens.AppendString(currentMatch);
-    strStart = start = end;
-    end = strEnd;
-  }
-
   nsCOMPtr<mozIStorageStatement> tagAutoCompleteQuery;
 
   
   
   
-  if (!tagTokens.Count()) {
+  if (!mCurrentSearchTokens.Count()) {
     tagAutoCompleteQuery = mDBTagAutoCompleteQuery;
 
     rv = tagAutoCompleteQuery->BindInt64Parameter(0, tagsFolder);
@@ -438,12 +457,6 @@ nsNavHistory::AutoCompleteTagsSearch()
     NS_ENSURE_SUCCESS(rv, rv);
   }
   else {
-    
-    nsAutoString lastMatch(Substring(strStart, strEnd));
-    lastMatch.Trim("\r\n\t\b");
-    if (!lastMatch.IsEmpty())
-      tagTokens.AppendString(lastMatch);
-
     nsCString tagQuery = NS_LITERAL_CSTRING(
       "SELECT h.url, h.title, f.url, b.id, b.parent "
       "FROM moz_places h "
@@ -454,7 +467,7 @@ nsNavHistory::AutoCompleteTagsSearch()
       " (SELECT t.id FROM moz_bookmarks t WHERE t.parent = ?1 AND (");
 
     nsStringArray terms;
-    CreateTermsFromTokens(tagTokens, terms);
+    CreateTermsFromTokens(mCurrentSearchTokens, terms);
 
     for (PRUint32 i=0; i<terms.Count(); i++) {
       if (i)
