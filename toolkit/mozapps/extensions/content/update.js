@@ -38,6 +38,7 @@
 
 
 
+const nsIExtensionManager = Components.interfaces.nsIExtensionManager;
 const nsIUpdateItem = Components.interfaces.nsIUpdateItem;
 const nsIAUCL = Components.interfaces.nsIAddonUpdateCheckListener;
 
@@ -59,7 +60,7 @@ var gUpdateWizard = {
   init: function ()
   {
     var em = Components.classes["@mozilla.org/extensions/manager;1"]
-                        .getService(Components.interfaces.nsIExtensionManager);
+                        .getService(nsIExtensionManager);
     
     this.items = em.getItemList(nsIUpdateItem.TYPE_ADDON, { });
     var pref = 
@@ -184,10 +185,9 @@ var gVersionInfoPage = {
                                   "nextButtonText", true, 
                                   "cancelButtonText", false);
     var em = Components.classes["@mozilla.org/extensions/manager;1"]
-                       .getService(Components.interfaces.nsIExtensionManager);
+                       .getService(nsIExtensionManager);
     
-    
-    em.update([], 0, 2, this);
+    em.update([], 0, nsIExtensionManager.UPDATE_SYNC_COMPATIBILITY, this);
   },
 
   
@@ -198,7 +198,7 @@ var gVersionInfoPage = {
   
   onUpdateEnded: function() {
     var em = Components.classes["@mozilla.org/extensions/manager;1"]
-                       .getService(Components.interfaces.nsIExtensionManager);
+                       .getService(nsIExtensionManager);
     
     gUpdateWizard.items = em.getIncompatibleItemList(null, null,
                                                      nsIUpdateItem.TYPE_ADDON,
@@ -294,8 +294,9 @@ var gUpdatePage = {
     
     this._totalCount = gUpdateWizard.items.length;
     var em = Components.classes["@mozilla.org/extensions/manager;1"]
-                       .getService(Components.interfaces.nsIExtensionManager);
-    em.update(gUpdateWizard.items, this._totalCount, false, this);
+                       .getService(nsIExtensionManager);
+    em.update(gUpdateWizard.items, this._totalCount,
+              nsIExtensionManager.UPDATE_CHECK_NEWVERSION, this);
   },
 
   
