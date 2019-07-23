@@ -431,6 +431,17 @@ public:
               float aX, float aY);
 
 
+  
+
+
+
+
+
+
+  static gfxRect
+  GetClipRectForFrame(nsIFrame *aFrame,
+                      float aX, float aY, float aWidth, float aHeight);
+
   static void CompositeSurfaceMatrix(gfxContext *aContext,
                                      gfxASurface *aSurface,
                                      nsIDOMSVGMatrix *aCTM, float aOpacity);
@@ -440,8 +451,8 @@ public:
                                      nsIDOMSVGMatrix *aCTM, float aWidth, float aHeight, float aOpacity);
 
   static void SetClipRect(gfxContext *aContext,
-                          nsIDOMSVGMatrix *aCTM, float aX, float aY,
-                          float aWidth, float aHeight);
+                          nsIDOMSVGMatrix *aCTM,
+                          const gfxRect &aRect);
 
   
 
