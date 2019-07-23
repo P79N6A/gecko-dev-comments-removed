@@ -2405,9 +2405,7 @@ CSSParserImpl::ParseAttributeSelector(PRInt32&       aDataMask,
           
           
           
-          if (!mCaseSensitive &&
-              (nameSpaceID == kNameSpaceID_None ||
-               nameSpaceID == kNameSpaceID_XHTML)) {
+          if (!mCaseSensitive && nameSpaceID == kNameSpaceID_None) {
             static const char* caseInsensitiveHTMLAttribute[] = {
               
               "lang", 
