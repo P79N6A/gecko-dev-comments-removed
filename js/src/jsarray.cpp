@@ -1342,17 +1342,10 @@ js_MakeArraySlow(JSContext *cx, JSObject *obj)
 
 
 
-
-
-
-
     {
         JS_STATIC_ASSERT(JSSLOT_ARRAY_LENGTH == JSSLOT_PRIVATE);
         JS_ASSERT(js_SlowArrayClass.flags & JSCLASS_HAS_PRIVATE);
-        uint32 length = uint32(obj->fslots[JSSLOT_ARRAY_LENGTH]);
-        obj->fslots[JSSLOT_ARRAY_COUNT] = INT_FITS_IN_JSVAL(length)
-                                          ? INT_TO_JSVAL(length)
-                                          : JSVAL_VOID;
+        obj->fslots[JSSLOT_ARRAY_COUNT] = JSVAL_VOID;
     }
 
     
