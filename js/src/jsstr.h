@@ -626,6 +626,9 @@ extern JSBool
 js_StringReplaceHelper(JSContext *cx, uintN argc, JSObject *lambda,
                        JSString *repstr, jsval *vp);
 
+extern JSBool
+js_str_split(JSContext *cx, uintN argc, jsval *vp);
+
 
 
 

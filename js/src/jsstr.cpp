@@ -1829,8 +1829,8 @@ find_split(JSContext *cx, JSString *str, JSRegExp *re, jsint *ip,
     return k;
 }
 
-static JSBool
-str_split(JSContext *cx, uintN argc, jsval *vp)
+JSBool
+js_str_split(JSContext *cx, uintN argc, jsval *vp)
 {
     JSString *str, *sub;
     JSObject *arrayobj;
@@ -2269,7 +2269,7 @@ static JSFunctionSpec string_methods[] = {
     JS_FN("match",             js_str_match,          1,GENERIC_PRIMITIVE),
     JS_FN("search",            str_search,            1,GENERIC_PRIMITIVE),
     JS_FN("replace",           js_str_replace,        2,GENERIC_PRIMITIVE),
-    JS_FN("split",             str_split,             2,GENERIC_PRIMITIVE),
+    JS_FN("split",             js_str_split,          2,GENERIC_PRIMITIVE),
 #if JS_HAS_PERL_SUBSTR
     JS_FN("substr",            str_substr,            2,GENERIC_PRIMITIVE),
 #endif
