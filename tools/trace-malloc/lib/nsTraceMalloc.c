@@ -914,13 +914,18 @@ stack_callback(void *pc, void *closure)
 
 
 
+
+
+
+
 callsite *
-backtrace(tm_thread *t, int skip)
+backtrace(tm_thread *t, int skip, int *immediate_abort)
 {
     callsite *site;
     stack_buffer_info *info = &t->backtrace_buf;
     void ** new_stack_buffer;
     size_t new_stack_buffer_size;
+    nsresult rv;
 
     t->suppress_tracing++;
 
@@ -935,7 +940,12 @@ backtrace(tm_thread *t, int skip)
     
     
     info->entries = 0;
-    NS_StackWalk(stack_callback, skip, info);
+    rv = NS_StackWalk(stack_callback, skip, info);
+    *immediate_abort = rv == NS_ERROR_UNEXPECTED;
+    if (rv == NS_ERROR_UNEXPECTED || info->entries == 0) {
+        t->suppress_tracing--;
+        return NULL;
+    }
 
     
 
@@ -957,11 +967,6 @@ backtrace(tm_thread *t, int skip)
         NS_StackWalk(stack_callback, skip, info);
 
         PR_ASSERT(info->entries * 2 == new_stack_buffer_size); 
-    }
-
-    if (info->entries == 0) {
-        t->suppress_tracing--;
-        return NULL;
     }
 
     site = calltree(info->buffer, info->entries, t);
@@ -1707,8 +1712,9 @@ NS_TraceStack(int skip, FILE *ofp)
 {
     callsite *site;
     tm_thread *t = tm_get_thread();
+    int immediate_abort;
 
-    site = backtrace(t, skip + 1);
+    site = backtrace(t, skip + 1, &immediate_abort);
     while (site) {
         if (site->name || site->parent) {
             fprintf(ofp, "%s[%s +0x%X]\n",
@@ -1788,11 +1794,14 @@ MallocCallback(void *ptr, size_t size, PRUint32 start, PRUint32 end, tm_thread *
     callsite *site;
     PLHashEntry *he;
     allocation *alloc;
+    int immediate_abort;
 
     if (!tracing_enabled || t->suppress_tracing != 0)
         return;
 
-    site = backtrace(t, 2);
+    site = backtrace(t, 2, &immediate_abort);
+    if (immediate_abort)
+        return;
 
     TM_SUPPRESS_TRACING_AND_ENTER_LOCK(t);
     tmstats.malloc_calls++;
@@ -1822,11 +1831,14 @@ CallocCallback(void *ptr, size_t count, size_t size, PRUint32 start, PRUint32 en
     callsite *site;
     PLHashEntry *he;
     allocation *alloc;
+    int immediate_abort;
 
     if (!tracing_enabled || t->suppress_tracing != 0)
         return;
 
-    site = backtrace(t, 2);
+    site = backtrace(t, 2, &immediate_abort);
+    if (immediate_abort)
+        return;
 
     TM_SUPPRESS_TRACING_AND_ENTER_LOCK(t);
     tmstats.calloc_calls++;
@@ -1861,11 +1873,14 @@ ReallocCallback(void * oldptr, void *ptr, size_t size,
     PLHashEntry **hep, *he;
     allocation *alloc;
     FILE *trackfp = NULL;
+    int immediate_abort;
 
     if (!tracing_enabled || t->suppress_tracing != 0)
         return;
 
-    site = backtrace(t, 2);
+    site = backtrace(t, 2, &immediate_abort);
+    if (immediate_abort)
+        return;
 
     TM_SUPPRESS_TRACING_AND_ENTER_LOCK(t);
     tmstats.realloc_calls++;
@@ -1944,6 +1959,10 @@ FreeCallback(void * ptr, PRUint32 start, PRUint32 end, tm_thread *t)
     if (!tracing_enabled || t->suppress_tracing != 0)
         return;
 
+    
+    
+    
+    
     TM_SUPPRESS_TRACING_AND_ENTER_LOCK(t);
     tmstats.free_calls++;
     if (!ptr) {

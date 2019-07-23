@@ -1406,11 +1406,58 @@ NS_FormatCodeAddressDetails(void *aPC, const nsCodeAddressDetails *aDetails,
 extern void *__libc_stack_end; 
 #endif
 
+#ifdef XP_MACOSX
+struct AddressRange {
+  void* mStart;
+  void* mEnd;
+};
+
+static AddressRange gCriticalRange;
+
+static void FindFunctionAddresses(const char* aName, AddressRange* aRange)
+{
+  aRange->mStart = dlsym(RTLD_DEFAULT, aName);
+  if (!aRange->mStart)
+    return;
+  aRange->mEnd = aRange->mStart;
+  while (PR_TRUE) {
+    Dl_info info;
+    if (!dladdr(aRange->mEnd, &info))
+      break;
+    if (strcmp(info.dli_sname, aName))
+      break;
+    aRange->mEnd = (char*)aRange->mEnd + 1;
+  }
+}
+
+static void InitCriticalRanges()
+{
+  if (gCriticalRange.mStart)
+    return;
+  
+  
+  
+  
+  
+  FindFunctionAddresses("pthread_cond_wait$UNIX2003", &gCriticalRange);
+}
+
+static PRBool InCriticalRange(void* aPC)
+{
+  return gCriticalRange.mStart &&
+    gCriticalRange.mStart <= aPC && aPC < gCriticalRange.mEnd;
+}
+#else
+static void InitCriticalRanges() {}
+static PRBool InCriticalRange(void* aPC) { return PR_FALSE; }
+#endif
+
 EXPORT_XPCOM_API(nsresult)
 NS_StackWalk(NS_WalkStackCallback aCallback, PRUint32 aSkipFrames,
              void *aClosure)
 {
   
+  InitCriticalRanges();
 
   
   void **bp;
@@ -1443,6 +1490,10 @@ NS_StackWalk(NS_WalkStackCallback aCallback, PRUint32 aSkipFrames,
 #else 
     void *pc = *(bp+1);
 #endif
+    if (InCriticalRange(pc)) {
+      printf("Aborting stack trace, PC in critical range\n");
+      return NS_ERROR_UNEXPECTED;
+    }
     if (--skip < 0) {
       (*aCallback)(pc, aClosure);
     }
