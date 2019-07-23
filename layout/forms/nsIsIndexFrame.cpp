@@ -85,7 +85,7 @@ NS_NewIsIndexFrame(nsIPresShell* aPresShell, nsStyleContext* aContext)
 }
 
 nsIsIndexFrame::nsIsIndexFrame(nsStyleContext* aContext) :
-  nsAreaFrame(aContext)
+  nsBlockFrame(aContext)
 {
   SetFlags(NS_BLOCK_SPACE_MGR);
 }
@@ -105,7 +105,7 @@ nsIsIndexFrame::Destroy()
   nsContentUtils::DestroyAnonymousContent(&mTextContent);
   nsContentUtils::DestroyAnonymousContent(&mPreHr);
   nsContentUtils::DestroyAnonymousContent(&mPostHr);
-  nsAreaFrame::Destroy();
+  nsBlockFrame::Destroy();
 }
 
 
@@ -256,7 +256,7 @@ nsIsIndexFrame::QueryInterface(const nsIID& aIID, void** aInstancePtr)
     return NS_OK;
   }
 
-  return nsAreaFrame::QueryInterface(aIID, aInstancePtr);
+  return nsBlockFrame::QueryInterface(aIID, aInstancePtr);
 }
 
 nscoord
@@ -286,7 +286,7 @@ nsIsIndexFrame::AttributeChanged(PRInt32         aNameSpaceID,
   if (nsGkAtoms::prompt == aAttribute) {
     rv = UpdatePromptLabel(PR_TRUE);
   } else {
-    rv = nsAreaFrame::AttributeChanged(aNameSpaceID, aAttribute, aModType);
+    rv = nsBlockFrame::AttributeChanged(aNameSpaceID, aAttribute, aModType);
   }
   return rv;
 }

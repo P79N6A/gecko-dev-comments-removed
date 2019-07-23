@@ -37,30 +37,21 @@
 
 
 
-#ifndef nsAreaFrame_h___
-#define nsAreaFrame_h___
+#ifndef nsXULLabelFrame_h_
+#define nsXULLabelFrame_h_
 
 #include "nsBlockFrame.h"
-#include "nsAbsoluteContainingBlock.h"
 
-struct nsStyleDisplay;
-struct nsStylePosition;
+#ifndef MOZ_XUL
+#error "This file should not be included
+#endif
 
-
-
-
-
-
-
-
-class nsAreaFrame : public nsBlockFrame
+class nsXULLabelFrame : public nsBlockFrame
 {
 public:
-  friend nsIFrame* NS_NewAreaFrame(nsIPresShell* aPresShell, nsStyleContext *aContext, PRUint32 aFlags);
+  friend nsIFrame* NS_NewXULLabelFrame(nsIPresShell* aPresShell, nsStyleContext *aContext, PRUint32 aFlags);
   
   
-
-#ifdef MOZ_XUL
   NS_IMETHOD Init(nsIContent*      aContent,
                   nsIFrame*        aParent,
                   nsIFrame*        aPrevInFlow);
@@ -70,7 +61,6 @@ public:
   NS_IMETHOD AttributeChanged(PRInt32 aNameSpaceID,
                               nsIAtom* aAttribute,
                               PRInt32 aModType);
-#endif
 
   
 
@@ -84,11 +74,12 @@ public:
 #endif
 
 protected:
-  nsAreaFrame(nsStyleContext *aContext) : nsBlockFrame(aContext) {}
+  nsXULLabelFrame(nsStyleContext *aContext) : nsBlockFrame(aContext) {}
 
-#ifdef MOZ_XUL
   nsresult RegUnregAccessKey(PRBool aDoReg);
-#endif
 };
+
+nsIFrame*
+NS_NewXULLabelFrame(nsIPresShell* aPresShell, nsStyleContext* aContext, PRUint32 aFlags);
 
 #endif 

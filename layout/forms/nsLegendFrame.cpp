@@ -74,7 +74,7 @@ void
 nsLegendFrame::Destroy()
 {
   nsFormControlFrame::RegUnRegAccessKey(static_cast<nsIFrame*>(this), PR_FALSE);
-  nsAreaFrame::Destroy();
+  nsBlockFrame::Destroy();
 }
 
 
@@ -88,7 +88,7 @@ nsLegendFrame::QueryInterface(REFNSIID aIID, void** aInstancePtr)
     return NS_OK;
   }
 
-  return nsAreaFrame::QueryInterface(aIID, aInstancePtr);
+  return nsBlockFrame::QueryInterface(aIID, aInstancePtr);
 }
 
 NS_IMETHODIMP 
@@ -102,7 +102,7 @@ nsLegendFrame::Reflow(nsPresContext*          aPresContext,
   if (mState & NS_FRAME_FIRST_REFLOW) {
     nsFormControlFrame::RegUnRegAccessKey(static_cast<nsIFrame*>(this), PR_TRUE);
   }
-  return nsAreaFrame::Reflow(aPresContext, aDesiredSize, aReflowState, aStatus);
+  return nsBlockFrame::Reflow(aPresContext, aDesiredSize, aReflowState, aStatus);
 }
 
 

@@ -331,7 +331,9 @@ IsQuirkContainingBlockHeight(const nsHTMLReflowState* rs)
 {
   nsIAtom* frameType = rs->frame->GetType();
   if (nsGkAtoms::blockFrame == frameType ||
-      nsGkAtoms::areaFrame == frameType ||
+#ifdef MOZ_XUL
+      nsGkAtoms::XULLabelFrame == frameType ||
+#endif
       nsGkAtoms::scrollFrame == frameType) {
     
     
@@ -1434,7 +1436,9 @@ CalcQuirkContainingBlockHeight(const nsHTMLReflowState* aCBReflowState)
     
     
     if (nsGkAtoms::blockFrame == frameType ||
-        nsGkAtoms::areaFrame == frameType ||
+#ifdef MOZ_XUL
+        nsGkAtoms::XULLabelFrame == frameType ||
+#endif
         nsGkAtoms::scrollFrame == frameType) {
 
       secondAncestorRS = firstAncestorRS;

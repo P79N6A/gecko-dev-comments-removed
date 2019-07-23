@@ -88,7 +88,7 @@ NS_NewFileControlFrame(nsIPresShell* aPresShell, nsStyleContext* aContext)
 }
 
 nsFileControlFrame::nsFileControlFrame(nsStyleContext* aContext):
-  nsAreaFrame(aContext),
+  nsBlockFrame(aContext),
   mTextFrame(nsnull), 
   mCachedState(nsnull)
 {
@@ -107,7 +107,7 @@ nsFileControlFrame::Init(nsIContent* aContent,
                          nsIFrame*   aParent,
                          nsIFrame*   aPrevInFlow)
 {
-  nsresult rv = nsAreaFrame::Init(aContent, aParent, aPrevInFlow);
+  nsresult rv = nsBlockFrame::Init(aContent, aParent, aPrevInFlow);
   NS_ENSURE_SUCCESS(rv, rv);
 
   mMouseListener = new MouseListener(this);
@@ -143,7 +143,7 @@ nsFileControlFrame::Destroy()
   }
 
   mMouseListener->ForgetFrame();
-  nsAreaFrame::Destroy();
+  nsBlockFrame::Destroy();
 }
 
 nsresult
@@ -243,7 +243,7 @@ nsFileControlFrame::QueryInterface(const nsIID& aIID, void** aInstancePtr)
     return NS_OK;
   }
 
-  return nsAreaFrame::QueryInterface(aIID, aInstancePtr);
+  return nsBlockFrame::QueryInterface(aIID, aInstancePtr);
 }
 
 void 
@@ -421,7 +421,7 @@ NS_IMETHODIMP nsFileControlFrame::Reflow(nsPresContext*          aPresContext,
   }
 
   
-  return nsAreaFrame::Reflow(aPresContext, aDesiredSize, aReflowState,
+  return nsBlockFrame::Reflow(aPresContext, aDesiredSize, aReflowState,
                              aStatus);
 }
 
@@ -514,7 +514,7 @@ nsFileControlFrame::AttributeChanged(PRInt32         aNameSpaceID,
     }
   }
 
-  return nsAreaFrame::AttributeChanged(aNameSpaceID, aAttribute, aModType);
+  return nsBlockFrame::AttributeChanged(aNameSpaceID, aAttribute, aModType);
 }
 
 PRBool
@@ -578,7 +578,7 @@ nsFileControlFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   
   
   nsDisplayListCollection tempList;
-  nsresult rv = nsAreaFrame::BuildDisplayList(aBuilder, aDirtyRect, tempList);
+  nsresult rv = nsBlockFrame::BuildDisplayList(aBuilder, aDirtyRect, tempList);
   if (NS_FAILED(rv))
     return rv;
 

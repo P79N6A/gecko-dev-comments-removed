@@ -83,9 +83,6 @@ class nsTableColFrame;
 
 
 
-
-
-
 nsIFrame*
 NS_NewBlockFrame(nsIPresShell* aPresShell, nsStyleContext* aContext, PRUint32 aFlags = 0);
 
@@ -102,10 +99,6 @@ NS_NewAttributeContent(nsNodeInfoManager *aNodeInfoManager,
 
 nsIFrame*
 NS_NewSelectsAreaFrame(nsIPresShell* aPresShell, nsStyleContext* aContext, PRUint32 aFlags);
-
-
-nsIFrame*
-NS_NewAreaFrame(nsIPresShell* aPresShell, nsStyleContext* aContext, PRUint32 aFlags);
 
 
 inline nsIFrame*
