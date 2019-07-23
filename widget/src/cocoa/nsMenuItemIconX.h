@@ -83,10 +83,6 @@ public:
   
   nsresult LoadIcon(nsIURI* aIconURI);
 
-  
-  
-  PRBool ShouldLoadSync(nsIURI* aURI);
-
 protected:
   nsCOMPtr<nsIContent>  mContent;
   nsCOMPtr<imgIRequest> mIconRequest;
