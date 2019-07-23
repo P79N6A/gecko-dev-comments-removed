@@ -2813,3 +2813,5 @@ pref("geo.enabled", true);
 
 
 pref("html5.enable", false);
+
+pref("html5.offmainthread", true);
