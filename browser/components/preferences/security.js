@@ -244,20 +244,6 @@ var gSecurityPane = {
     document.documentElement.openWindow("Toolkit:PasswordManager",
                                         "chrome://passwordmgr/content/passwordManager.xul",
                                         "", null);
-  },
-
-
-  
-
-  
-
-
-
-
-  showWarningMessageSettings: function ()
-  {
-    document.documentElement.openSubDialog("chrome://browser/content/preferences/securityWarnings.xul",
-                                           "", null);
   }
 
 };
