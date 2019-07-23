@@ -110,12 +110,6 @@ public:
   NS_HIDDEN_(nsIFrame*) GetCanvasFrame();
 
   
-  
-  
-  NS_HIDDEN_(void)      RemoveAsPrimaryFrame(nsIContent* aContent,
-                                             nsIFrame* aPrimaryFrame);
-
-  
   NS_HIDDEN_(nsPlaceholderFrame*) GetPlaceholderFrameFor(nsIFrame* aFrame);
   NS_HIDDEN_(nsresult)
     RegisterPlaceholderFrame(nsPlaceholderFrame* aPlaceholderFrame);

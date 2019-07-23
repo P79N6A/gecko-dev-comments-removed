@@ -288,15 +288,6 @@ nsFrameManager::GetCanvasFrame()
 
 
 
-void
-nsFrameManager::RemoveAsPrimaryFrame(nsIContent* aContent,
-                                     nsIFrame* aPrimaryFrame)
-{
-  if (aContent->GetPrimaryFrame() == aPrimaryFrame) {
-    aContent->SetPrimaryFrame(nsnull);
-  }
-}
-
 
 nsPlaceholderFrame*
 nsFrameManager::GetPlaceholderFrameFor(nsIFrame*  aFrame)
@@ -564,14 +555,9 @@ nsFrameManager::RemoveFrame(nsIAtom*        aListName,
 void
 nsFrameManager::NotifyDestroyingFrame(nsIFrame* aFrame)
 {
-  
-  
   nsIContent* content = aFrame->GetContent();
-  if (!aFrame->GetPrevContinuation() && content) {
-    RemoveAsPrimaryFrame(content, aFrame);
-    if (content != aFrame->GetParent()->GetContent()) { 
-      ClearAllUndisplayedContentIn(content);
-    }
+  if (content && content->GetPrimaryFrame() == aFrame) {
+    ClearAllUndisplayedContentIn(content);
   }
 }
 
