@@ -130,10 +130,12 @@ js_GetCurrentThread(JSRuntime *rt)
 
     thread = (JSThread *)PR_GetThreadPrivate(threadTPIndex);
     if (!thread) {
-        thread = (JSThread *) calloc(1, sizeof(JSThread));
+        thread = (JSThread *) malloc(sizeof(JSThread));
         if (!thread)
             return NULL;
-
+#ifdef DEBUG
+        memset(thread, JS_FREE_PATTERN, sizeof(JSThread));
+#endif
         if (PR_FAILURE == PR_SetThreadPrivate(threadTPIndex, thread)) {
             free(thread);
             return NULL;
@@ -141,12 +143,11 @@ js_GetCurrentThread(JSRuntime *rt)
 
         JS_INIT_CLIST(&thread->contextList);
         thread->id = js_CurrentThreadId();
+        thread->gcMallocBytes = 0;
 
         
-#ifdef DEBUG
-        memset(thread->gcFreeLists, JS_FREE_PATTERN,
-               sizeof(thread->gcFreeLists));
-#endif
+
+
     }
     return thread;
 }
@@ -170,8 +171,11 @@ js_SetContextThread(JSContext *cx)
 
 
 
-    if (JS_CLIST_IS_EMPTY(&thread->contextList))
+    if (JS_CLIST_IS_EMPTY(&thread->contextList)) {
         memset(thread->gcFreeLists, 0, sizeof(thread->gcFreeLists));
+        memset(&thread->gsnCache, 0, sizeof(thread->gsnCache));
+        memset(&thread->propertyCache, 0, sizeof(thread->propertyCache));
+    }
 
     
     JS_ASSERT(!cx->thread || cx->thread == thread);
