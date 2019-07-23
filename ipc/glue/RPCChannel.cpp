@@ -43,6 +43,7 @@
 #include "nsDebug.h"
 
 using mozilla::MutexAutoLock;
+using mozilla::MutexAutoUnlock;
 
 template<>
 struct RunnableMethodTraits<mozilla::ipc::RPCChannel>
@@ -84,18 +85,36 @@ RPCChannel::Call(Message* msg, Message* reply)
         Message recvd = mPending.top();
         mPending.pop();
 
-        NS_ABORT_IF_FALSE(recvd.is_rpc(),
-                          "should have been delegated to SyncChannel");
+        
+        if (!recvd.is_sync() && !recvd.is_rpc()) {
+            MutexAutoUnlock unlock(mMutex);
+
+            AsyncChannel::OnDispatchMessage(recvd);
+            continue;
+        }
+
+        
+        
+        
+        if (recvd.is_sync()) {
+            MutexAutoUnlock unlock(mMutex);
+
+            SyncChannel::OnDispatchMessage(recvd);
+            continue;
+        }
+
+        
+        NS_ABORT_IF_FALSE(recvd.is_rpc(), "wtf???");
 
         
         if (recvd.is_reply()) {
-            NS_ASSERTION(0 < mPending.size(), "invalid RPC stack");
+            NS_ABORT_IF_FALSE(0 < mPending.size(), "invalid RPC stack");
 
             const Message& pending = mPending.top();
 
             if (recvd.type() != (pending.type()+1) && !recvd.is_reply_error()) {
                 
-                NS_ASSERTION(0, "somebody's misbehavin'");
+                NS_ABORT_IF_FALSE(0, "somebody's misbehavin'");
             }
 
             
@@ -114,13 +133,11 @@ RPCChannel::Call(Message* msg, Message* reply)
         else {
             
             size_t stackDepth = StackDepth();
-            mMutex.Unlock();
 
+            MutexAutoUnlock unlock(mMutex);
             
             ProcessIncall(recvd, stackDepth);
             
-
-            mMutex.Lock();
         }
     }
 
@@ -194,13 +211,21 @@ RPCChannel::ProcessIncall(const Message& call, size_t stackDepth)
 void
 RPCChannel::OnMessageReceived(const Message& msg)
 {
-    if (!msg.is_rpc()) {
-        return SyncChannel::OnMessageReceived(msg);
-    }
-
     MutexAutoLock lock(mMutex);
 
     if (0 == StackDepth()) {
+        
+        
+        
+        
+        
+        
+        
+        if (!msg.is_rpc()) {
+            
+            return SyncChannel::OnMessageReceived(msg);
+        }
+
         
 
         
@@ -222,6 +247,45 @@ RPCChannel::OnMessageReceived(const Message& msg)
                                                 &RPCChannel::OnIncall, msg));
     }
     else {
+        
+
+        
+        
+
+        
+        
+        
+        
+        if (AwaitingSyncReply()
+            && msg.is_sync()) {
+            
+            
+            mRecvd = msg;
+            mCvar.Notify();
+            return;
+        }
+
+        
+        
+        if (AwaitingSyncReply()
+            && !msg.is_sync() && !msg.is_rpc()) {
+            
+            return AsyncChannel::OnMessageReceived(msg);
+        }
+
+        
+        
+        
+        
+        if (AwaitingSyncReply() ) {
+            
+            NS_RUNTIMEABORT("the other side is malfunctioning");
+            return;             
+        }
+
+        
+        
+        
         
         mPending.push(msg);
         mCvar.Notify();
