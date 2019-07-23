@@ -281,11 +281,15 @@ function ServeFiles(manifestURL, directory, files)
     var secMan = CC[NS_SCRIPTSECURITYMANAGER_CONTRACTID]
                      .getService(CI.nsIScriptSecurityManager);
 
+    var testbase =
+        gIOService.newURI("http://localhost:" + HTTP_SERVER_PORT + path,
+                          null, null);
+
     function FileToURI(file)
     {
-        var testURI = gIOService.newURI("http://localhost:" + HTTP_SERVER_PORT +
-                                        path + file,
-                                        null, null);
+        
+        
+        var testURI = gIOService.newURI(file, null, testbase);
 
         
         secMan.checkLoadURI(manifestURL, testURI,
