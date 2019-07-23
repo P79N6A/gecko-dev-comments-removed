@@ -243,6 +243,9 @@ NS_IMETHODIMP
 nsSVGForeignObjectFrame::PaintSVG(nsSVGRenderState *aContext,
                                   nsRect *aDirtyRect)
 {
+  if (IsDisabled())
+    return NS_OK;
+
   nsIFrame* kid = GetFirstChild(nsnull);
   if (!kid)
     return NS_OK;
@@ -302,9 +305,13 @@ nsSVGForeignObjectFrame::TransformPointFromOuterPx(float aX, float aY, nsPoint* 
 NS_IMETHODIMP
 nsSVGForeignObjectFrame::GetFrameForPointSVG(float x, float y, nsIFrame** hit)
 {
+  *hit = nsnull;
+
+  if (IsDisabled())
+    return NS_OK;
+
   nsIFrame* kid = GetFirstChild(nsnull);
   if (!kid) {
-    *hit = nsnull;
     return NS_OK;
   }
   nsPoint pt;
@@ -344,6 +351,10 @@ nsSVGForeignObjectFrame::UpdateCoveredRegion()
   float x, y, w, h;
   NS_STATIC_CAST(nsSVGForeignObjectElement*, mContent)->
     GetAnimatedLengthValues(&x, &y, &w, &h, nsnull);
+
+  
+  if (w < 0.0f) w = 0.0f;
+  if (h < 0.0f) h = 0.0f;
 
   
   
@@ -425,6 +436,9 @@ nsSVGForeignObjectFrame::GetBBox(nsIDOMSVGRect **_retval)
   float x, y, w, h;
   NS_STATIC_CAST(nsSVGForeignObjectElement*, mContent)->
     GetAnimatedLengthValues(&x, &y, &w, &h, nsnull);
+
+  if (w < 0.0f) w = 0.0f;
+  if (h < 0.0f) h = 0.0f;
 
   return NS_NewSVGRect(_retval, x, y, w, h);
 }
@@ -545,6 +559,9 @@ nsSVGForeignObjectFrame::DoReflow()
 #ifdef DEBUG
   printf("**nsSVGForeignObjectFrame::DoReflow()\n");
 #endif
+
+  if (IsDisabled())
+    return;
 
   if (mParent->GetStateBits() & NS_STATE_SVG_NONDISPLAY_CHILD)
     return;

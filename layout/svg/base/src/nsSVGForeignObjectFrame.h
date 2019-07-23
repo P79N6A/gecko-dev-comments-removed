@@ -143,6 +143,9 @@ protected:
   nsresult TransformPointFromOuterPx(float aX, float aY, nsPoint* aOut);
   void FlushDirtyRegion();
 
+  
+  PRBool IsDisabled() const { return mRect.width <= 0 || mRect.height <= 0; }
+
   nsCOMPtr<nsIDOMSVGMatrix> mCanvasTM;
   nsCOMPtr<nsIDOMSVGMatrix> mOverrideCTM;
   nsRegion                  mDirtyRegion;
