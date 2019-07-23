@@ -1906,7 +1906,6 @@ DoStopPlugin(nsPluginInstanceOwner *aInstanceOwner, PRBool aDelayedStop)
         
         
         inst->Stop();
-        inst->Destroy();
 
         if (window) 
           window->CallSetWindow(nullinst);
@@ -1923,7 +1922,6 @@ DoStopPlugin(nsPluginInstanceOwner *aInstanceOwner, PRBool aDelayedStop)
           return;
 
         inst->Stop();
-        inst->Destroy();
       }
     }
     else {
