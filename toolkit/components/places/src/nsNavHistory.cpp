@@ -1065,6 +1065,14 @@ nsNavHistory::InitStatements()
   NS_ENSURE_SUCCESS(rv, rv);
 
   
+  rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
+      "SELECT h.id FROM moz_places h WHERE h.url = ?1 " 
+      "AND EXISTS "
+      "(SELECT id FROM moz_historyvisits WHERE place_id = h.id LIMIT 1)"),
+    getter_AddRefs(mDBIsPageVisited));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
   
   
   rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
@@ -1815,24 +1823,14 @@ PRBool nsNavHistory::IsURIStringVisited(const nsACString& aURIString)
 #endif
 
   
-  mozStorageStatementScoper scoper(mDBGetPageVisitStats);
-  nsresult rv = mDBGetPageVisitStats->BindUTF8StringParameter(0, aURIString);
+  mozStorageStatementScoper scoper(mDBIsPageVisited);
+  nsresult rv = mDBIsPageVisited->BindUTF8StringParameter(0, aURIString);
   NS_ENSURE_SUCCESS(rv, PR_FALSE);
 
   PRBool hasMore = PR_FALSE;
-  rv = mDBGetPageVisitStats->ExecuteStep(&hasMore);
+  rv = mDBIsPageVisited->ExecuteStep(&hasMore);
   NS_ENSURE_SUCCESS(rv, PR_FALSE);
-  if (!hasMore)
-    return PR_FALSE;
-
-  
-  
-  
-  PRInt32 visitCount;
-  rv = mDBGetPageVisitStats->GetInt32(1, &visitCount);
-  NS_ENSURE_SUCCESS(rv, PR_FALSE);
-
-  return visitCount > 0;
+  return hasMore;
 #endif
 }
 

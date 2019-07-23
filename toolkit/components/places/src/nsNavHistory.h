@@ -398,6 +398,7 @@ protected:
   nsCOMPtr<mozIStorageStatement> mDBRecentVisitOfURL; 
   nsCOMPtr<mozIStorageStatement> mDBInsertVisit; 
   nsCOMPtr<mozIStorageStatement> mDBGetPageVisitStats; 
+  nsCOMPtr<mozIStorageStatement> mDBIsPageVisited; 
   nsCOMPtr<mozIStorageStatement> mDBUpdatePageVisitStats; 
   nsCOMPtr<mozIStorageStatement> mDBAddNewPage; 
   nsCOMPtr<mozIStorageStatement> mDBGetTags; 
