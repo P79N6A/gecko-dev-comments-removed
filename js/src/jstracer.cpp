@@ -5282,7 +5282,8 @@ CheckGlobalObjectShape(JSContext* cx, JSTraceMonitor* tm, JSObject* globalObj,
     }
 
     if (STOBJ_NSLOTS(globalObj) > MAX_GLOBAL_SLOTS) {
-        ResetJIT(cx, FR_GLOBALS_FULL);
+        if (tm->recorder)
+            js_AbortRecording(cx, "too many slots in global object");
         return false;
     }
 
