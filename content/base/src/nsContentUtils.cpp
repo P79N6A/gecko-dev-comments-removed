@@ -1108,45 +1108,6 @@ nsContentUtils::InProlog(nsINode *aNode)
   return !root || doc->IndexOf(aNode) < doc->IndexOf(root);
 }
 
-
-nsresult
-nsContentUtils::doReparentContentWrapper(nsIContent *aNode,
-                                         JSContext *cx,
-                                         JSObject *aOldGlobal,
-                                         JSObject *aNewGlobal,
-                                         nsIDocument *aOldDocument,
-                                         nsIDocument *aNewDocument)
-{
-  nsCOMPtr<nsIXPConnectJSObjectHolder> old_wrapper;
-
-  nsresult rv;
-
-  rv = sXPConnect->ReparentWrappedNativeIfFound(cx, aOldGlobal, aNewGlobal,
-                                                aNode,
-                                                getter_AddRefs(old_wrapper));
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  
-  
-  
-  
-  
-
-  PRUint32 i, count = aNode->GetChildCount();
-
-  for (i = 0; i < count; i++) {
-    nsIContent *child = aNode->GetChildAt(i);
-    NS_ENSURE_TRUE(child, NS_ERROR_UNEXPECTED);
-
-    rv = doReparentContentWrapper(child, cx, 
-                                  aOldGlobal, aNewGlobal,
-                                  aOldDocument, aNewDocument);
-    NS_ENSURE_SUCCESS(rv, rv);
-  }
-
-  return rv;
-}
-
 static JSContext *
 GetContextFromDocument(nsIDocument *aDocument, JSObject** aGlobalObject)
 {
@@ -1169,33 +1130,6 @@ GetContextFromDocument(nsIDocument *aDocument, JSObject** aGlobalObject)
   }
 
   return (JSContext *)scx->GetNativeContext();
-}
-
-
-nsresult
-nsContentUtils::ReparentContentWrapper(nsIContent *aContent,
-                                       nsIContent *aNewParent,
-                                       nsIDocument *aNewDocument,
-                                       nsIDocument *aOldDocument)
-{
-  
-  
-  if (!aOldDocument || !aNewDocument || aNewDocument == aOldDocument) {
-    return NS_OK;
-  }
-
-  JSContext *cx;
-  JSObject *oldScope, *newScope;
-  nsresult rv = GetContextAndScopes(aOldDocument, aNewDocument, &cx, &oldScope,
-                                    &newScope);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  if (!cx) {
-    return NS_OK;
-  }
-
-  return doReparentContentWrapper(aContent, cx, oldScope, newScope, 
-                                  aOldDocument, aNewDocument);
 }
 
 
@@ -1246,7 +1180,7 @@ nsContentUtils::GetContextAndScopes(nsIDocument *aOldDocument,
 
         if (!cx) {
           
-          NS_WARNING("No context reachable in ReparentContentWrapper()!");
+          NS_WARNING("No context reachable in GetContextAndScopes()!");
 
           return NS_ERROR_NOT_AVAILABLE;
         }

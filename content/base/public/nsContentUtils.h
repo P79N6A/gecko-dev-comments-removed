@@ -151,17 +151,6 @@ public:
   static nsresult Init();
 
   
-  
-  
-  
-  
-  
-  static nsresult ReparentContentWrapper(nsIContent *aNode,
-                                         nsIContent *aNewParent,
-                                         nsIDocument *aNewDocument,
-                                         nsIDocument *aOldDocument);
-
-  
 
 
 
@@ -1523,13 +1512,6 @@ public:
 private:
 
   static PRBool InitializeEventTable();
-
-  static nsresult doReparentContentWrapper(nsIContent *aChild,
-                                           JSContext *cx,
-                                           JSObject *aOldGlobal,
-                                           JSObject *aNewGlobal,
-                                           nsIDocument *aOldDocument,
-                                           nsIDocument *aNewDocument);
 
   static nsresult EnsureStringBundle(PropertiesFile aFile);
 

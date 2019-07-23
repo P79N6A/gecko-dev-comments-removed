@@ -3921,11 +3921,10 @@ nsGenericElement::doReplaceOrInsertBefore(PRBool aReplace,
       }
     }
 
-    if (!newContent->IsXUL()) {
-      nsContentUtils::ReparentContentWrapper(newContent, aParent,
-                                             container->GetOwnerDoc(),
-                                             container->GetOwnerDoc());
-    }
+    
+    
+    
+    
 
     res = container->InsertChildAt(newContent, insPos, PR_TRUE);
     NS_ENSURE_SUCCESS(res, res);
