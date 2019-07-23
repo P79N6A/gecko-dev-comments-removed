@@ -94,18 +94,18 @@ def runTests(xpcshell, testdirs=[], xrePath=None, testPath=None,
     """Process the leak log."""
     
     if not os.path.exists(leakLogFile):
-      return
+      return None
 
     leaks = open(leakLogFile, "r")
     leakReport = leaks.read()
     leaks.close()
 
     
-    if not "0 TOTAL " in leakReport:
-      return
+    if "0 TOTAL " in leakReport:
+      
+      print leakReport.rstrip("\n")
 
-    
-    print leakReport.rstrip("\n")
+    return leakReport
 
   if xrePath is None:
     xrePath = os.path.dirname(xpcshell)
@@ -204,7 +204,18 @@ def runTests(xpcshell, testdirs=[], xrePath=None, testPath=None,
         success = False
       else:
         print "TEST-PASS | %s | all tests passed" % test
-      processLeakLog(leakLogFile)
+
+      leakReport = processLeakLog(leakLogFile)
+
+      try:
+        f = open(test + '.log', 'w')
+        f.write(stdout)
+        if leakReport:
+          f.write(leakReport)
+      finally:
+        if f:
+          f.close()
+
       
       
       if os.path.exists(leakLogFile):
