@@ -256,25 +256,6 @@ function SetClickAndHoldHandlers()
 }
 #endif
 
-function addBookmarkMenuitems()
-{
-  var tabbrowser = getBrowser();
-  var tabMenu = document.getAnonymousElementByAttribute(tabbrowser,"anonid","tabContextMenu");
-  var bookmarkAllTabsItem = document.createElement("menuitem");
-  bookmarkAllTabsItem.setAttribute("label", gNavigatorBundle.getString("bookmarkAllTabs_label"));
-  bookmarkAllTabsItem.setAttribute("accesskey", gNavigatorBundle.getString("bookmarkAllTabs_accesskey"));
-  bookmarkAllTabsItem.setAttribute("command", "Browser:BookmarkAllTabs");
-  var bookmarkCurTabItem = document.createElement("menuitem");
-  bookmarkCurTabItem.setAttribute("label", gNavigatorBundle.getString("bookmarkCurTab_label"));
-  bookmarkCurTabItem.setAttribute("accesskey", gNavigatorBundle.getString("bookmarkCurTab_accesskey"));
-  bookmarkCurTabItem.setAttribute("oncommand", "BookmarkThisTab();");
-  var menuseparator = document.createElement("menuseparator");
-  var insertPos = tabMenu.lastChild.previousSibling;
-  tabMenu.insertBefore(bookmarkAllTabsItem, insertPos);
-  tabMenu.insertBefore(bookmarkCurTabItem, bookmarkAllTabsItem);
-  tabMenu.insertBefore(menuseparator, bookmarkCurTabItem);
-}
-
 function BookmarkThisTab()
 {
   var tab = getBrowser().mContextTab;
@@ -980,9 +961,6 @@ function delayedStartup()
     sidebar.setAttribute("src", sidebarBox.getAttribute("src"));
   }
 
-  
-  addBookmarkMenuitems();
-
   initBookmarksToolbar();
   PlacesUtils.bookmarks.addObserver(gBookmarksObserver, false);
   PlacesStarButton.init();
@@ -1111,9 +1089,6 @@ function delayedStartup()
       dump("nsSessionStore could not be initialized: " + ex + "\n");
     }
   }
-
-  
-  AugmentTabs.init();
 
   
   gBookmarkAllTabsHandler = new BookmarkAllTabsHandler();
@@ -5326,59 +5301,6 @@ var FeedHandler = {
 
 #include browser-contentPrefSink.js
 #include browser-textZoom.js
-
-
-
-
-var AugmentTabs = {
-
-  tabContextMenu: null,
-  undoCloseTabMenu: null,
-
-  
-
-
-  init: function at_init() {
-    
-    var tabbrowser = getBrowser();
-    this.tabContextMenu = document.getAnonymousElementByAttribute(tabbrowser, "anonid", "tabContextMenu");
-
-    
-    this.tabContextMenu.addEventListener("popupshowing", this.onTabContextMenuLoad, false);
-
-    if (gPrefService.getBoolPref("browser.sessionstore.enabled"))
-      this._addUndoCloseTabContextMenu();
-  },
-
-  
-
-
-  _addUndoCloseTabContextMenu: function at_addUndoCloseTabContextMenu() {
-    
-    var menuLabel = gNavigatorBundle.getString("tabContext.undoCloseTab");
-    var menuAccessKey = gNavigatorBundle.getString("tabContext.undoCloseTabAccessKey");
-
-    
-    var undoCloseTabItem = document.createElement("menuitem");
-    undoCloseTabItem.setAttribute("id", "tabContextUndoCloseTab");
-    undoCloseTabItem.setAttribute("label", menuLabel);
-    undoCloseTabItem.setAttribute("accesskey", menuAccessKey);
-    undoCloseTabItem.setAttribute("command", "History:UndoCloseTab");
-
-    
-    var insertPos = this.tabContextMenu.lastChild.previousSibling;
-    this.undoCloseTabMenu = this.tabContextMenu.insertBefore(undoCloseTabItem, insertPos);
-  },
-
-  onTabContextMenuLoad: function at_onTabContextMenuLoad() {
-    if (AugmentTabs.undoCloseTabMenu) {
-      
-      var ss = Cc["@mozilla.org/browser/sessionstore;1"].
-               getService(Ci.nsISessionStore);
-      AugmentTabs.undoCloseTabMenu.hidden = !(ss.getClosedTabCount(window) > 0);
-    }
-  }
-};
 
 HistoryMenu.toggleRecentlyClosedTabs = function PHM_toggleRecentlyClosedTabs() {
   
