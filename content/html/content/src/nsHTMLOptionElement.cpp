@@ -60,7 +60,6 @@
 
 #include "nsIFormControlFrame.h"
 #include "nsIDocument.h"
-#include "nsIPresShell.h"
 #include "nsIFrame.h"
 #include "nsIDOMHTMLSelectElement.h"
 #include "nsNodeInfoManager.h"

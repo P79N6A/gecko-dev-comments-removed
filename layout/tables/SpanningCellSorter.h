@@ -40,8 +40,10 @@
 
 
 
-#include "nsIPresShell.h"
 #include "pldhash.h"
+#include "nsDebug.h"
+
+class nsIPresShell;
 
 
 

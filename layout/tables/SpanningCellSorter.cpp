@@ -42,6 +42,7 @@
 
 #include "SpanningCellSorter.h"
 #include "nsQuickSort.h"
+#include "nsIPresShell.h"
 
 
 
