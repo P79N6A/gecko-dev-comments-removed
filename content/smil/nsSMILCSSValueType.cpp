@@ -293,8 +293,12 @@ static nsPresContext*
 GetPresContextForElement(nsIContent* aElem)
 {
   nsIDocument* doc = aElem->GetCurrentDoc();
-  NS_ABORT_IF_FALSE(doc, "active animations should only be able to "
-                    "target elements that are in a document");
+  if (!doc) {
+    
+    
+    
+    return nsnull;
+  }
   nsIPresShell* shell = doc->GetPrimaryShell();
   return shell ? shell->GetPresContext() : nsnull;
 }
