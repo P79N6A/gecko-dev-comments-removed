@@ -346,7 +346,7 @@ public:
 #ifdef XP_WIN
   void Paint(const RECT& aDirty, HDC aDC);
 #elif defined(XP_MACOSX)
-  void Paint(const nsRect& aDirtyRect);  
+  void Paint();  
 #elif defined(MOZ_X11) || defined(MOZ_DFB)
   void Paint(gfxContext* aContext,
              const gfxRect& aFrameRect,
@@ -536,11 +536,6 @@ private:
   
 #ifdef XP_MACOSX
 
-#ifdef DO_DIRTY_INTERSECT
-  
-  static void ConvertRelativeToWindowAbsolute(nsIFrame* aFrame, nsPoint& aRel, nsPoint& aAbs, nsIWidget *&aContainerWidget);
-#endif
-
   enum { ePluginPaintIgnore, ePluginPaintEnable, ePluginPaintDisable };
 
 #endif 
@@ -585,8 +580,6 @@ NS_IMETHODIMP nsObjectFrame::GetPluginPort(HWND *aPort)
 
 
 static NS_DEFINE_CID(kWidgetCID, NS_CHILD_CID);
-
-
 
 NS_IMETHODIMP 
 nsObjectFrame::Init(nsIContent*      aContent,
@@ -1324,17 +1317,27 @@ nsObjectFrame::PaintPlugin(nsIRenderingContext& aRenderingContext,
 #if defined(XP_MACOSX)
   
   if (mInstanceOwner) {
-    
-    nsIRenderingContext::AutoPushTranslation
-      translate(&aRenderingContext, aFramePt.x, aFramePt.y);
-
     if (mInstanceOwner->GetDrawingModel() == NPDrawingModelCoreGraphics) {
-      PRInt32 p2a = PresContext()->AppUnitsPerDevPixel();
-      gfxRect nativeClipRect(aDirtyRect.x, aDirtyRect.y,
-                             aDirtyRect.width, aDirtyRect.height);
-      nativeClipRect.ScaleInverse(gfxFloat(p2a));
+      PRInt32 appUnitsPerDevPixel = PresContext()->AppUnitsPerDevPixel();
+      
+      
+      nsRect content = GetContentRect() - GetPosition() + aFramePt;
+      nsIntRect contentPixels = content.ToNearestPixels(appUnitsPerDevPixel);
+      nsIntRect dirtyPixels = aDirtyRect.ToOutsidePixels(appUnitsPerDevPixel);
+      nsIntRect clipPixels;
+      clipPixels.IntersectRect(contentPixels, dirtyPixels);
+      gfxRect nativeClipRect(clipPixels.x, clipPixels.y,
+                             clipPixels.width, clipPixels.height);
       gfxContext* ctx = aRenderingContext.ThebesContext();
-      gfxQuartzNativeDrawing nativeDrawing(ctx, nativeClipRect);
+
+      gfxContextAutoSaveRestore save(ctx);
+      ctx->NewPath();
+      ctx->Rectangle(nativeClipRect);
+      ctx->Clip();
+      gfxPoint offset(contentPixels.x, contentPixels.y);
+      ctx->Translate(offset);
+
+      gfxQuartzNativeDrawing nativeDrawing(ctx, nativeClipRect - offset);
 
       CGContextRef cgContext = nativeDrawing.BeginNativeDrawing();
       if (!cgContext) {
@@ -1381,12 +1384,16 @@ nsObjectFrame::PaintPlugin(nsIRenderingContext& aRenderingContext,
       }
 
       mInstanceOwner->BeginCGPaint();
-      mInstanceOwner->Paint(aDirtyRect);
+      mInstanceOwner->Paint();
       mInstanceOwner->EndCGPaint();
 
       nativeDrawing.EndNativeDrawing();
     } else {
-      mInstanceOwner->Paint(aDirtyRect);
+      
+      nsIRenderingContext::AutoPushTranslation
+        translate(&aRenderingContext, aFramePt.x, aFramePt.y);
+
+      mInstanceOwner->Paint();
     }
   }
 #elif defined(MOZ_X11) || defined(MOZ_DFB)
@@ -4274,23 +4281,11 @@ nsPluginInstanceOwner::PrepareToStop(PRBool aDelayedStop)
 
 
 #ifdef XP_MACOSX
-void nsPluginInstanceOwner::Paint(const nsRect& aDirtyRect)
+void nsPluginInstanceOwner::Paint()
 {
   if (!mInstance || !mOwner)
     return;
  
-#ifdef DO_DIRTY_INTERSECT   
-  nsPoint rel(aDirtyRect.x, aDirtyRect.y);
-  nsPoint abs(0,0);
-  nsCOMPtr<nsIWidget> containerWidget;
-
-  
-  ConvertRelativeToWindowAbsolute(mOwner, rel, abs, *getter_AddRefs(containerWidget));
-
-  
-  nsIntRect absDirtyRect = nsRect(abs, aDirtyRect.Size()).ToOutsidePixels(*mOwner->GetPresContext()->AppUnitsPerDevPixel());
-#endif
-
   nsCOMPtr<nsIPluginWidget> pluginWidget = do_QueryInterface(mWidget);
   if (pluginWidget && NS_SUCCEEDED(pluginWidget->StartDrawPlugin())) {
     WindowRef window = FixUpPluginWindow(ePluginPaintEnable);
@@ -4866,40 +4861,6 @@ void nsPluginInstanceOwner::SetPluginHost(nsIPluginHost* aHost)
 
   
 #ifdef XP_MACOSX
-
-#ifdef DO_DIRTY_INTERSECT
-
-
-static void ConvertRelativeToWindowAbsolute(nsIFrame*   aFrame,
-                                            nsPoint&    aRel, 
-                                            nsPoint&    aAbs,
-                                            nsIWidget*& aContainerWidget)
-{
-  
-  nsIView *view = aFrame->GetView();
-  if (!view) {
-    aAbs.x = 0;
-    aAbs.y = 0;
-    
-    aFrame->GetOffsetFromView(aAbs, &view);
-  } else {
-    
-    aAbs = aFrame->GetPosition();
-  }
-
-  NS_ASSERTION(view, "the object frame does not have a view");
-  if (view) {
-    
-    nsPoint viewOffset;
-    aContainerWidget = view->GetNearestWidget(&viewOffset);
-    NS_IF_ADDREF(aContainerWidget);
-    aAbs += viewOffset;
-  }
-
-  
-  aAbs += aRel;
-}
-#endif 
 
 WindowRef nsPluginInstanceOwner::FixUpPluginWindow(PRInt32 inPaintState)
 {
