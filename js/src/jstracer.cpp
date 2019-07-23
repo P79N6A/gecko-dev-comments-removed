@@ -287,10 +287,18 @@ enum jitstat_ids {
     STAT_IDS_TOTAL
 };
 
+static JSBool
+jitstats_getOnTrace(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
+{
+    *vp = BOOLEAN_TO_JSVAL(JS_ON_TRACE(cx));
+    return true;
+}
+
 static JSPropertySpec jitstats_props[] = {
 #define JITSTAT(x) { #x, STAT ## x ## ID, JSPROP_ENUMERATE | JSPROP_READONLY | JSPROP_PERMANENT },
 #include "jitstats.tbl"
 #undef JITSTAT
+    { "onTrace", 0, JSPROP_ENUMERATE | JSPROP_READONLY | JSPROP_PERMANENT, jitstats_getOnTrace, NULL },
     { 0 }
 };
 
@@ -12782,16 +12790,6 @@ JS_DEFINE_CALLINFO_4(static, OBJECT_FAIL, MethodReadBarrier, CONTEXT, OBJECT, SC
 JS_REQUIRES_STACK AbortableRecordingStatus
 TraceRecorder::prop(JSObject* obj, LIns* obj_ins, uint32 *slotp, LIns** v_insp, jsval *outp)
 {
-    
-
-
-
-
-
-
-    if (!obj->isDenseArray() && obj->map->ops->getProperty != js_GetProperty)
-        RETURN_STOP_A("non-dense-array, non-native JSObjectOps::getProperty");
-
     JS_ASSERT((slotp && v_insp && !outp) || (!slotp && !v_insp && outp));
 
     
