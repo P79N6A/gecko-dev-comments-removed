@@ -57,10 +57,6 @@
 #include "nsGlobalHistory.h"
 #endif
 
-#if defined(XP_WIN)
-#include "nsWindowsHooks.h"
-#endif 
-
 #endif 
 
 #if !defined(MOZ_MACBROWSER)
@@ -100,10 +96,6 @@ NS_GENERIC_FACTORY_CONSTRUCTOR(nsDownloadProxy)
 #if !defined(MOZ_PLACES)
 NS_GENERIC_FACTORY_CONSTRUCTOR_INIT(nsGlobalHistory, Init)
 #endif
-
-#if defined(XP_WIN)
-NS_GENERIC_FACTORY_CONSTRUCTOR(nsWindowsHooks)
-#endif 
 
 #endif 
 
@@ -175,11 +167,6 @@ static const nsModuleComponentInfo components[] = {
     { "Global History", NS_GLOBALHISTORY_CID, NS_GLOBALHISTORY_AUTOCOMPLETE_CONTRACTID,
       nsGlobalHistoryConstructor },
 #endif
-
-#ifdef XP_WIN
-    { NS_IWINDOWSHOOKS_CLASSNAME, NS_IWINDOWSHOOKS_CID,
-      NS_IWINDOWSHOOKS_CONTRACTID, nsWindowsHooksConstructor },
-#endif 
 
 #endif 
 
