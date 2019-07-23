@@ -1787,9 +1787,15 @@ static PRBool
 DoDelayedStop(nsPluginInstanceOwner *aInstanceOwner, PRBool aDelayedStop)
 {
   
-  if (aDelayedStop &&
-      !::MatchPluginName(aInstanceOwner, "QuickTime") &&
-      !::MatchPluginName(aInstanceOwner, "Flip4Mac")) {
+  
+  if (aDelayedStop
+#ifndef XP_WIN
+      && !::MatchPluginName(aInstanceOwner, "QuickTime")
+      && !::MatchPluginName(aInstanceOwner, "Flip4Mac")
+      && !::MatchPluginName(aInstanceOwner, "XStandard plugin")
+      && !::MatchPluginName(aInstanceOwner, "CMISS Zinc Plugin")
+#endif
+      ) {
     nsCOMPtr<nsIRunnable> evt = new nsStopPluginRunnable(aInstanceOwner);
     NS_DispatchToCurrentThread(evt);
     return PR_TRUE;
