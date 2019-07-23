@@ -116,10 +116,9 @@ var dialog = {
 
   populateList: function populateList()
   {
-    
-    var app = this._handlerInfo.preferredApplicationHandler;
-
-    if (app) {
+    var possibleHandlers = this._handlerInfo.possibleApplicationHandlers;
+    for (let i = possibleHandlers.length - 1; i >= 0; --i) {
+      let app = possibleHandlers.queryElementAt(i, Ci.nsIHandlerApp);
       let elm = document.createElement("richlistitem");
       elm.setAttribute("type", "handler");
       elm.setAttribute("name", app.name);
