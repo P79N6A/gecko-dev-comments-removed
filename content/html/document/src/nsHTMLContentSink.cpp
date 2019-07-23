@@ -1348,59 +1348,62 @@ SinkContext::FlushTags()
   PRBool oldBeganUpdate = mSink->mBeganUpdate;
 
   ++(mSink->mInNotification);
-  mozAutoDocUpdate updateBatch(mSink->mDocument, UPDATE_CONTENT_MODEL,
-                               PR_TRUE);
-  mSink->mBeganUpdate = PR_TRUE;
+  {
+    
+    mozAutoDocUpdate updateBatch(mSink->mDocument, UPDATE_CONTENT_MODEL,
+                                 PR_TRUE);
+    mSink->mBeganUpdate = PR_TRUE;
 
-  
-  FlushText();
+    
+    FlushText();
 
-  
-  
-  
+    
+    
+    
 
-  
-  
-  
-  PRInt32 stackPos = 0;
-  PRBool flushed = PR_FALSE;
-  PRUint32 childCount;
-  nsGenericHTMLElement* content;
+    
+    
+    
+    PRInt32 stackPos = 0;
+    PRBool flushed = PR_FALSE;
+    PRUint32 childCount;
+    nsGenericHTMLElement* content;
 
-  while (stackPos < mStackPos) {
-    content = mStack[stackPos].mContent;
-    childCount = content->GetChildCount();
+    while (stackPos < mStackPos) {
+      content = mStack[stackPos].mContent;
+      childCount = content->GetChildCount();
 
-    if (!flushed && (mStack[stackPos].mNumFlushed < childCount)) {
+      if (!flushed && (mStack[stackPos].mNumFlushed < childCount)) {
 #ifdef NS_DEBUG
-      {
-        
-        const char* tagStr;
-        mStack[stackPos].mContent->Tag()->GetUTF8String(&tagStr);
+        {
+          
+          const char* tagStr;
+          mStack[stackPos].mContent->Tag()->GetUTF8String(&tagStr);
 
-        SINK_TRACE(gSinkLogModuleInfo, SINK_TRACE_REFLOW,
-                   ("SinkContext::FlushTags: tag=%s from newindex=%d at "
-                    "stackPos=%d", tagStr,
-                    mStack[stackPos].mNumFlushed, stackPos));
-      }
+          SINK_TRACE(gSinkLogModuleInfo, SINK_TRACE_REFLOW,
+                     ("SinkContext::FlushTags: tag=%s from newindex=%d at "
+                      "stackPos=%d", tagStr,
+                      mStack[stackPos].mNumFlushed, stackPos));
+        }
 #endif
-      if ((mStack[stackPos].mInsertionPoint != -1) &&
-          (mStackPos > (stackPos + 1))) {
-        nsIContent* child = mStack[stackPos + 1].mContent;
-        mSink->NotifyInsert(content,
-                            child,
-                            mStack[stackPos].mInsertionPoint);
-      } else {
-        mSink->NotifyAppend(content, mStack[stackPos].mNumFlushed);
+        if ((mStack[stackPos].mInsertionPoint != -1) &&
+            (mStackPos > (stackPos + 1))) {
+          nsIContent* child = mStack[stackPos + 1].mContent;
+          mSink->NotifyInsert(content,
+                              child,
+                              mStack[stackPos].mInsertionPoint);
+        } else {
+          mSink->NotifyAppend(content, mStack[stackPos].mNumFlushed);
+        }
+
+        flushed = PR_TRUE;
       }
 
-      flushed = PR_TRUE;
+      mStack[stackPos].mNumFlushed = childCount;
+      stackPos++;
     }
-
-    mStack[stackPos].mNumFlushed = childCount;
-    stackPos++;
+    mNotifyLevel = mStackPos - 1;
   }
-  mNotifyLevel = mStackPos - 1;
   --(mSink->mInNotification);
 
   mSink->mBeganUpdate = oldBeganUpdate;

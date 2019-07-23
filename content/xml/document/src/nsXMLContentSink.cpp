@@ -1540,35 +1540,37 @@ nsXMLContentSink::FlushTags()
   PRBool oldBeganUpdate = mBeganUpdate;
 
   ++mInNotification;
-  mozAutoDocUpdate updateBatch(mDocument, UPDATE_CONTENT_MODEL, PR_TRUE);
-  mBeganUpdate = PR_TRUE;
+  {
+    
+    mozAutoDocUpdate updateBatch(mDocument, UPDATE_CONTENT_MODEL, PR_TRUE);
+    mBeganUpdate = PR_TRUE;
 
-  
-  FlushText();
+    
+    FlushText();
 
-  
-  
-  
+    
+    
+    
 
-  PRInt32 stackPos;
-  PRInt32 stackLen = mContentStack.Length();
-  PRBool flushed = PR_FALSE;
-  PRUint32 childCount;
-  nsIContent* content;
+    PRInt32 stackPos;
+    PRInt32 stackLen = mContentStack.Length();
+    PRBool flushed = PR_FALSE;
+    PRUint32 childCount;
+    nsIContent* content;
 
-  for (stackPos = 0; stackPos < stackLen; ++stackPos) {
-    content = mContentStack[stackPos].mContent;
-    childCount = content->GetChildCount();
+    for (stackPos = 0; stackPos < stackLen; ++stackPos) {
+      content = mContentStack[stackPos].mContent;
+      childCount = content->GetChildCount();
 
-    if (!flushed && (mContentStack[stackPos].mNumFlushed < childCount)) {
-      NotifyAppend(content, mContentStack[stackPos].mNumFlushed);
-      flushed = PR_TRUE;
+      if (!flushed && (mContentStack[stackPos].mNumFlushed < childCount)) {
+        NotifyAppend(content, mContentStack[stackPos].mNumFlushed);
+        flushed = PR_TRUE;
+      }
+
+      mContentStack[stackPos].mNumFlushed = childCount;
     }
-
-    mContentStack[stackPos].mNumFlushed = childCount;
+    mNotifyLevel = stackLen - 1;
   }
-  mNotifyLevel = stackLen - 1;
-
   --mInNotification;
 
   mBeganUpdate = oldBeganUpdate;
