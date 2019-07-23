@@ -288,6 +288,43 @@ IsSupportedPlugin(const nsCString& aMIMEType)
   return NS_SUCCEEDED(rv);
 }
 
+static void
+GetExtensionFromURI(nsIURI* uri, nsCString& ext)
+{
+  nsCOMPtr<nsIURL> url(do_QueryInterface(uri));
+  if (url) {
+    url->GetFileExtension(ext);
+  } else {
+    nsCString spec;
+    uri->GetSpec(spec);
+
+    PRInt32 offset = spec.RFindChar('.');
+    if (offset != kNotFound) {
+      ext = Substring(spec, offset + 1, spec.Length());
+    }
+  }
+}
+
+
+
+
+
+static PRBool
+IsPluginEnabledByExtension(nsIURI* uri, nsCString& mimeType)
+{
+  nsCAutoString ext;
+  GetExtensionFromURI(uri, ext);
+
+  nsCOMPtr<nsIPluginHost> host(do_GetService("@mozilla.org/plugin/host;1"));
+  const char* typeFromExt;
+  if (host &&
+      NS_SUCCEEDED(host->IsPluginEnabledForExtension(ext.get(), typeFromExt))) {
+    mimeType = typeFromExt;
+    return PR_TRUE;
+  }
+  return PR_FALSE;
+}
+
 nsObjectLoadingContent::nsObjectLoadingContent()
   : mPendingInstantiateEvent(nsnull)
   , mChannel(nsnull)
@@ -858,8 +895,20 @@ nsObjectLoadingContent::LoadObject(nsIURI* aURI,
   PRUint32 caps = GetCapabilities();
   LOG(("OBJLC [%p]: Capabilities: %04x\n", this, caps));
 
-  if ((caps & eOverrideServerType) && !aTypeHint.IsEmpty()) {
-    ObjectType newType = GetTypeOfContent(aTypeHint);
+  nsCAutoString overrideType;
+  if ((caps & eOverrideServerType) &&
+      (!aTypeHint.IsEmpty() ||
+       (aURI && IsPluginEnabledByExtension(aURI, overrideType)))) {
+    NS_ASSERTION(aTypeHint.IsEmpty() ^ overrideType.IsEmpty(),
+                 "Exactly one of aTypeHint and overrideType should be empty!");
+
+    ObjectType newType;
+    if (overrideType.IsEmpty()) {
+      newType = GetTypeOfContent(aTypeHint);
+    } else {
+      newType = eType_Plugin;
+    }
+
     if (newType != mType) {
       LOG(("OBJLC [%p]: (eOverrideServerType) Changing type from %u to %u\n", this, mType, newType));
 
@@ -1366,27 +1415,7 @@ nsObjectLoadingContent::Instantiate(const nsACString& aMIMEType, nsIURI* aURI)
 
   nsCString typeToUse(aMIMEType);
   if (typeToUse.IsEmpty() && aURI) {
-    nsCAutoString ext;
-    
-    nsCOMPtr<nsIURL> url(do_QueryInterface(aURI));
-    if (url) {
-      url->GetFileExtension(ext);
-    } else {
-      nsCString spec;
-      aURI->GetSpec(spec);
-
-      PRInt32 offset = spec.RFindChar('.');
-      if (offset != kNotFound) {
-        ext = Substring(spec, offset + 1, spec.Length());
-      }
-    }
-
-    nsCOMPtr<nsIPluginHost> host(do_GetService("@mozilla.org/plugin/host;1"));
-    const char* typeFromExt;
-    if (host &&
-        NS_SUCCEEDED(host->IsPluginEnabledForExtension(ext.get(), typeFromExt))) {
-      typeToUse = typeFromExt;
-    }
+    IsPluginEnabledByExtension(aURI, typeToUse);
   }
 
   nsCOMPtr<nsIURI> baseURI;
