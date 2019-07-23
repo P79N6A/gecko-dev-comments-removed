@@ -865,7 +865,7 @@ struct JSRuntime {
 #ifdef JS_TRACER
     
     bool debuggerInhibitsJIT() const {
-        return (globalDebugHooks.interruptHandler ||
+        return (globalDebugHooks.interruptHook ||
                 globalDebugHooks.callHook ||
                 globalDebugHooks.objectHook);
     }
