@@ -4540,23 +4540,6 @@ NS_IMETHODIMP
 nsWindowSH::PreCreate(nsISupports *nativeObj, JSContext *cx,
                       JSObject *globalObj, JSObject **parentObj)
 {
-#ifdef DEBUG
-  {
-    nsGlobalWindow *win = nsGlobalWindow::FromSupports(nativeObj);
-    if (win->IsChromeWindow()) {
-      nsCOMPtr<nsIPrincipal> principal;
-      nsresult rv =
-        sSecMan->GetObjectPrincipal(cx, globalObj, getter_AddRefs(principal));
-      if (NS_SUCCEEDED(rv)) {
-        PRBool isSystem;
-        rv = sSecMan->IsSystemPrincipal(principal, &isSystem);
-        NS_ASSERTION(NS_SUCCEEDED(rv) && isSystem,
-                     "Why are we wrapping a chrome window in a content scope?");
-      }
-    }
-  }
-#endif
-
   
   
   
