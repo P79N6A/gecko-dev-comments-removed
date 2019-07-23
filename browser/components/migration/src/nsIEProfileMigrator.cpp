@@ -826,12 +826,6 @@ nsIEProfileMigrator::RunBatched(nsISupports* aUserData)
 
 typedef HRESULT (WINAPI *PStoreCreateInstancePtr)(IPStore**, DWORD, DWORD, DWORD);
 
-struct SignonData {
-  PRUnichar* user;
-  PRUnichar* pass;
-  char*      realm;
-};
-
 
 
 
@@ -895,7 +889,7 @@ nsIEProfileMigrator::CopyPasswords(PRBool aReplace)
 {
   HRESULT hr;
   nsresult rv;
-  nsVoidArray signonsFound;
+  nsTArray<SignonData> signonsFound;
 
   HMODULE pstoreDLL = ::LoadLibraryW(L"pstorec.dll");
   if (!pstoreDLL) {
@@ -1002,7 +996,7 @@ nsIEProfileMigrator::MigrateSiteAuthSignons(IPStore* aPStore)
 }
 
 nsresult
-nsIEProfileMigrator::GetSignonsListFromPStore(IPStore* aPStore, nsVoidArray* aSignonsFound)
+nsIEProfileMigrator::GetSignonsListFromPStore(IPStore* aPStore, nsTArray<SignonData>* aSignonsFound)
 {
   HRESULT hr;
 
@@ -1038,13 +1032,12 @@ nsIEProfileMigrator::GetSignonsListFromPStore(IPStore* aPStore, nsVoidArray* aSi
               
               
               
-              SignonData* d = new SignonData;
+              SignonData* d = aSignonsFound->AppendElement();
               if (!d)
                 return NS_ERROR_OUT_OF_MEMORY;
               d->user = (PRUnichar*)username;
               d->pass = (PRUnichar*)pass;
               d->realm = realm; 
-              aSignonsFound->AppendElement(d);
             }
           }
         }
@@ -1085,7 +1078,7 @@ nsIEProfileMigrator::KeyIsURI(const nsAString& aKey, char** aRealm)
 }
 
 nsresult
-nsIEProfileMigrator::ResolveAndMigrateSignons(IPStore* aPStore, nsVoidArray* aSignonsFound)
+nsIEProfileMigrator::ResolveAndMigrateSignons(IPStore* aPStore, nsTArray<SignonData>* aSignonsFound)
 {
   HRESULT hr;
 
@@ -1120,19 +1113,19 @@ nsIEProfileMigrator::ResolveAndMigrateSignons(IPStore* aPStore, nsVoidArray* aSi
     
     
     
-    PRInt32 signonCount = aSignonsFound->Count();
-    for (PRInt32 i = 0; i < signonCount; ++i) {
-      SignonData* sd = (SignonData*)aSignonsFound->ElementAt(i);
-      ::CoTaskMemFree(sd->user);  
-      NS_Free(sd->realm);
-      delete sd;
+    PRUint32 signonCount = aSignonsFound->Length();
+    for (PRUint32 i = 0; i < signonCount; ++i) {
+      SignonData &sd = aSignonsFound->ElementAt(i);
+      ::CoTaskMemFree(sd.user);  
+      NS_Free(sd.realm);
     }
+    aSignonsFound->Clear();
   }
   return NS_OK;
 }
 
 void
-nsIEProfileMigrator::EnumerateUsernames(const nsAString& aKey, PRUnichar* aData, unsigned long aCount, nsVoidArray* aSignonsFound)
+nsIEProfileMigrator::EnumerateUsernames(const nsAString& aKey, PRUnichar* aData, unsigned long aCount, nsTArray<SignonData>* aSignonsFound)
 {
   nsCOMPtr<nsILoginManagerIEMigrationHelper> pwmgr(
     do_GetService("@mozilla.org/login-manager/storage/legacy;1"));
@@ -1140,19 +1133,19 @@ nsIEProfileMigrator::EnumerateUsernames(const nsAString& aKey, PRUnichar* aData,
     return;
 
   PRUnichar* cursor = aData;
-  PRInt32 offset = 0;
-  PRInt32 signonCount = aSignonsFound->Count();
+  PRUint32 offset = 0;
+  PRUint32 signonCount = aSignonsFound->Length();
 
   while (offset < aCount) {
     nsAutoString curr; curr = cursor;
 
     
-    for (PRInt32 i = 0; i < signonCount; ++i) {
-      SignonData* sd = (SignonData*)aSignonsFound->ElementAt(i);
-      if (curr.Equals(sd->user)) {
+    for (PRUint32 i = 0; i < signonCount; ++i) {
+      SignonData &sd = aSignonsFound->ElementAt(i);
+      if (curr.Equals(sd.user)) {
         
-        nsDependentString usernameStr(sd->user), passStr(sd->pass);
-        nsAutoString realm(NS_ConvertUTF8toUTF16(sd->realm));
+        nsDependentString usernameStr(sd.user), passStr(sd.pass);
+        nsAutoString realm(NS_ConvertUTF8toUTF16(sd.realm));
 
         nsresult rv;
 
