@@ -297,8 +297,15 @@ XPCWrappedNative::GetNewOrUsed(XPCCallContext& ccx,
 
     nsresult rv;
 
+#ifdef DEBUG
     NS_ASSERTION(!Scope->GetRuntime()->GetThreadRunningGC(), 
                  "XPCWrappedNative::GetNewOrUsed called during GC");
+    {
+        nsWrapperCache *cache2;
+        CallQueryInterface(Object, &cache2);
+        NS_ASSERTION(!cache == !cache2, "Caller should pass in the cache!");
+    }
+#endif
 
     nsCOMPtr<nsISupports> identity;
 #ifdef XPC_IDISPATCH_SUPPORT
@@ -568,6 +575,9 @@ XPCWrappedNative::GetNewOrUsed(XPCCallContext& ccx,
     }
     else if(wrapper)
     {
+        if(cache)
+            cache->SetWrapper(wrapper);
+
         
         
         XPCNativeScriptableInfo* si = wrapper->GetScriptableInfo();
@@ -598,6 +608,8 @@ XPCWrappedNative::GetNewOrUsed(XPCCallContext& ccx,
                 
                 
 
+                if(cache)
+                    cache->ClearWrapper();
                 wrapper->Release();
                 return rv;
             }
@@ -1138,6 +1150,11 @@ XPCWrappedNative::FlatJSObjectFinalized(JSContext *cx)
 
         mMaybeScope = nsnull;
     }
+
+    nsWrapperCache *cache = nsnull;
+    CallQueryInterface(mIdentity, &cache);
+    if(cache)
+        cache->ClearWrapper();
 
     
     mFlatJSObject = nsnull;
