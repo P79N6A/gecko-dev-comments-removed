@@ -5,6 +5,8 @@ if (Cc === undefined) {
 window.addEventListener("load", testOnLoad, false);
 
 function testOnLoad() {
+  window.removeEventListener("load", testOnLoad, false);
+
   
   var prefs = Cc["@mozilla.org/preferences-service;1"].
               getService(Ci.nsIPrefBranch);
