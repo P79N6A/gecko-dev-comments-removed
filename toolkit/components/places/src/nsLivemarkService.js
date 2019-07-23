@@ -199,7 +199,8 @@ LivemarkService.prototype = {
 
   _pushLivemark: function LS__pushLivemark(aFolderId, aFeedURI) {
     
-    return this._livemarks.push({folderId: aFolderId, feedURI: aFeedURI});
+    return this._livemarks.push({folderId: aFolderId, feedURI: aFeedURI,
+                                 loadingId: -1});
   },
 
   _getLivemarkIndex: function LS__getLivemarkIndex(aFolderId) {
