@@ -422,7 +422,7 @@ function checkForUpdates()
   
   
   if (um.activeUpdate && um.activeUpdate.state == "pending")
-    prompter.showUpdateDownloaded(um.activeUpdate);
+    prompter.showUpdateDownloaded(um.activeUpdate, false);
   else
     prompter.checkForUpdates();
 }
