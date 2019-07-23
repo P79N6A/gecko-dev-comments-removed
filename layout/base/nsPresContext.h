@@ -810,13 +810,26 @@ public:
                               mType == eContext_PrintPreview); }
 
   
-  PRBool IsChrome() const;
+  PRBool IsChrome()
+  {
+    return mIsChromeIsCached ? mIsChrome : IsChromeSlow();
+  }
+
+  virtual void InvalidateIsChromeCacheExternal();
+  void InvalidateIsChromeCacheInternal();
+#ifdef _IMPL_NS_LAYOUT
+  void InvalidateIsChromeCache()
+  { InvalidateIsChromeCacheInternal(); }
+#else
+  void InvalidateIsChromeCache()
+  { InvalidateIsChromeCacheExternal(); }
+#endif
 
   
-  virtual PRBool HasAuthorSpecifiedRules(nsIFrame *aFrame, PRUint32 ruleTypeMask) const;
+  virtual PRBool HasAuthorSpecifiedRules(nsIFrame *aFrame, PRUint32 ruleTypeMask);
 
   
-  PRBool UseDocumentColors() const {
+  PRBool UseDocumentColors() {
     return GetCachedBoolPref(kPresContext_UseDocumentColors) || IsChrome();
   }
 
@@ -980,6 +993,8 @@ protected:
   
   PRBool HasCachedStyleData();
 
+  PRBool IsChromeSlow();
+
   
   
   
@@ -1114,6 +1129,12 @@ protected:
 
   unsigned              mProcessingRestyles : 1;
   unsigned              mProcessingAnimationStyleChange : 1;
+
+  
+  
+  
+  unsigned              mIsChromeIsCached : 1;
+  unsigned              mIsChrome : 1;
 
 #ifdef DEBUG
   PRBool                mInitialized;
