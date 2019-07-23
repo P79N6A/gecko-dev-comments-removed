@@ -256,19 +256,8 @@ nsresult nsNPAPIPluginStreamListener::CleanUpStream(NPReason reason)
   if (mStreamCleanedUp)
     return NS_OK;
 
-  mStreamCleanedUp = PR_TRUE;
-
-  StopDataPump();
-
-  
-  
-  if (NP_SEEK == mStreamType)
-    NS_RELEASE_THIS();
-
   if (!mInst || !mInst->IsRunning())
     return rv;
-
-  mStreamInfo = NULL;
 
   PluginDestructionGuard guard(mInst);
 
@@ -296,7 +285,10 @@ nsresult nsNPAPIPluginStreamListener::CleanUpStream(NPReason reason)
       rv = NS_OK;
   }
 
-  mStreamStarted = PR_FALSE;
+  mStreamCleanedUp = PR_TRUE;
+  mStreamStarted   = PR_FALSE;
+
+  StopDataPump();
 
   
   CallURLNotify(reason);
@@ -393,12 +385,6 @@ nsNPAPIPluginStreamListener::OnStartBinding(nsIPluginStreamInfo* pluginInfo)
       break;
     case NP_SEEK:
       mStreamType = NP_SEEK; 
-      
-      
-      
-      
-      
-      NS_ADDREF_THIS();
       break;
     default:
       return NS_ERROR_FAILURE;
@@ -808,13 +794,19 @@ nsNPAPIPluginStreamListener::OnStopBinding(nsIPluginStreamInfo* pluginInfo,
   
   
   nsresult rv = NS_OK;
-  NPReason reason = NS_FAILED(status) ? NPRES_NETWORK_ERR : NPRES_DONE;
-  if (mStreamType != NP_SEEK ||
-      (NP_SEEK == mStreamType && NS_BINDING_ABORTED == status)) {
+  if (mStreamType != NP_SEEK) {
+    NPReason reason = NPRES_DONE;
+
+    if (NS_FAILED(status))
+      reason = NPRES_NETWORK_ERR;   
+
     rv = CleanUpStream(reason);
   }
 
-  return rv;
+  if (rv != NPERR_NO_ERROR)
+    return NS_ERROR_FAILURE;
+
+  return NS_OK;
 }
 
 NS_IMETHODIMP
@@ -1019,7 +1011,7 @@ NS_IMETHODIMP nsNPAPIPluginInstance::Stop()
 
   
   for (nsInstanceStream *is = mStreams; is != nsnull;) {
-    nsRefPtr<nsNPAPIPluginStreamListener> listener = is->mPluginStreamListener;
+    nsNPAPIPluginStreamListener * listener = is->mPluginStreamListener;
 
     nsInstanceStream *next = is->mNext;
     delete is;
