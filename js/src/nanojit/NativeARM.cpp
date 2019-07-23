@@ -824,6 +824,37 @@ Assembler::asm_stkarg(LInsp arg, int stkd)
 void
 Assembler::asm_call(LInsp ins)
 {
+    if (ARM_VFP && ins->isop(LIR_fcall)) {
+        
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    } else {
+        prepResultReg(ins, rmask(retRegs[0]));
+    }
+
+    
+    
+
+    evictScratchRegs();
+
     const CallInfo* call = ins->callInfo();
     ArgSize sizes[MAXARGS];
     uint32_t argc = call->get_sizes(sizes);
@@ -2065,33 +2096,6 @@ Assembler::asm_fcmp(LInsp ins)
     
     FMSTAT();
     FCMPD(ra, rb, e_bit);
-}
-
-Register
-Assembler::asm_prep_fcall(LInsp)
-{
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    return UnknownReg;
 }
 
 

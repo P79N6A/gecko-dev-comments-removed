@@ -1419,23 +1419,6 @@ namespace nanojit
                 case LIR_icall:
                 {
                     countlir_call();
-                    Register rr = UnknownReg;
-                    if (ARM_VFP && op == LIR_fcall)
-                    {
-                        
-                        rr = asm_prep_fcall(ins);
-                    }
-                    else
-                    {
-                        rr = retRegs[0];
-                        prepResultReg(ins, rmask(rr));
-                    }
-
-                    
-                    
-
-                    evictScratchRegs();
-
                     asm_call(ins);
                     break;
                 }
