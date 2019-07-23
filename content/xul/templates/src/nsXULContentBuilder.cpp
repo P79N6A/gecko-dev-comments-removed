@@ -2066,6 +2066,11 @@ nsXULContentBuilder::RebuildAll()
     if (mQueriesCompiled)
         Uninit(PR_FALSE);
 
+    
+    
+
+
+
     nsresult rv = CompileQueries();
     if (NS_FAILED(rv))
         return rv;
