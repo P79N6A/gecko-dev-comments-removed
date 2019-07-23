@@ -391,6 +391,11 @@ BrowserGlue.prototype = {
 
 
 
+
+
+
+
+
   _initPlaces: function bg__initPlaces() {
     
     
@@ -403,9 +408,22 @@ BrowserGlue.prototype = {
                      getService(Ci.nsIPrefBranch);
 
     var importBookmarks = false;
+    var restoreDefaultBookmarks = false;
     try {
-      importBookmarks = prefBranch.getBoolPref("browser.places.importBookmarksHTML");
+      restoreDefaultBookmarks = prefBranch.getBoolPref("browser.bookmarks.restore_default_bookmarks");
     } catch(ex) {}
+
+    if (restoreDefaultBookmarks) {
+      
+      this._archiveBookmarks();
+      
+      importBookmarks = true;
+    }
+    else {
+      try {
+        importBookmarks = prefBranch.getBoolPref("browser.places.importBookmarksHTML");
+      } catch(ex) {}
+    }
 
     if (!importBookmarks) {
       
@@ -417,7 +435,8 @@ BrowserGlue.prototype = {
       Cu.import("resource://gre/modules/utils.js");
       var bookmarksFile = PlacesUtils.getMostRecentBackup();
 
-      if (bookmarksFile && bookmarksFile.leafName.match("\.json$")) {
+      if (!restoreDefaultBookmarks &&
+          bookmarksFile && bookmarksFile.leafName.match("\.json$")) {
         
         PlacesUtils.restoreBookmarksFromJSONFile(bookmarksFile);
       }
@@ -429,7 +448,15 @@ BrowserGlue.prototype = {
 
         var dirService = Cc["@mozilla.org/file/directory_service;1"].
                          getService(Ci.nsIProperties);
-        var bookmarksFile = dirService.get("BMarks", Ci.nsILocalFile);
+
+        if (restoreDefaultBookmarks) {
+          
+          var bookmarksFileName = "bookmarks.html";
+          var bookmarksFile = dirService.get("profDef", Ci.nsILocalFile);
+          bookmarksFile.append(bookmarksFileName);
+        }
+        else
+          var bookmarksFile = dirService.get("BMarks", Ci.nsILocalFile);
 
         
         try {
@@ -438,6 +465,9 @@ BrowserGlue.prototype = {
           importer.importHTMLFromFile(bookmarksFile, true );
         } finally {
           prefBranch.setBoolPref("browser.places.importBookmarksHTML", false);
+          if (restoreDefaultBookmarks)
+            prefBranch.setBoolPref("browser.bookmarks.restore_default_bookmarks",
+                                   false);
         }
       }
     }
