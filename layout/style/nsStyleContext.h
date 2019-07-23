@@ -147,6 +147,16 @@ public:
 
   
   
+  PRBool IsStyleIfVisited() const
+    { return !!(mBits & NS_STYLE_IS_STYLE_IF_VISITED); }
+
+  
+  
+  void SetIsStyleIfVisited()
+    { mBits |= NS_STYLE_IS_STYLE_IF_VISITED; }
+
+  
+  
   
   
   
@@ -165,6 +175,11 @@ public:
   
   void SetStyleIfVisited(already_AddRefed<nsStyleContext> aStyleIfVisited)
   {
+    NS_ABORT_IF_FALSE(!IsStyleIfVisited(), "this context is not visited data");
+    NS_ABORT_IF_FALSE(aStyleIfVisited.get()->IsStyleIfVisited(),
+                      "other context is visited data");
+    NS_ABORT_IF_FALSE(!aStyleIfVisited.get()->GetStyleIfVisited(),
+                      "other context does not have visited data");
     NS_ASSERTION(!mStyleIfVisited, "should only be set once");
     mStyleIfVisited = aStyleIfVisited;
 
