@@ -372,6 +372,15 @@ protected:
   }
 
   
+  
+  
+  void StopProgressUpdates();
+
+  
+  
+  void StartProgressUpdates();
+
+  
 
 
 
@@ -512,6 +521,17 @@ private:
   
   
   PlayState mNextState;	
+
+  
+  
+  PRPackedBool mResourceLoaded;
+
+  
+  
+  
+  
+  
+  PRPackedBool mIgnoreProgressData;
 };
 
 #endif

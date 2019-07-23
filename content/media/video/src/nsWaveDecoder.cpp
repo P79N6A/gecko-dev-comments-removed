@@ -982,7 +982,8 @@ nsWaveDecoder::nsWaveDecoder()
     mEndedDuration(std::numeric_limits<float>::quiet_NaN()),
     mEnded(PR_FALSE),
     mNotifyOnShutdown(PR_FALSE),
-    mSeekable(PR_TRUE)
+    mSeekable(PR_TRUE),
+    mResourceLoaded(PR_FALSE)
 {
   MOZ_COUNT_CTOR(nsWaveDecoder);
 }
@@ -1130,6 +1131,10 @@ nsWaveDecoder::Load(nsIURI* aURI, nsIChannel* aChannel, nsIStreamListener** aStr
 {
   mStopping = PR_FALSE;
 
+  
+  mBytesDownloaded = 0;
+  mResourceLoaded = PR_FALSE;
+
   if (aStreamListener) {
     *aStreamListener = nsnull;
   }
@@ -1145,7 +1150,6 @@ nsWaveDecoder::Load(nsIURI* aURI, nsIChannel* aChannel, nsIStreamListener** aStr
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
-  StartProgress();
   RegisterShutdownObserver();
 
   mStream = new nsMediaStream();
@@ -1177,6 +1181,16 @@ nsWaveDecoder::MetadataLoaded()
     mElement->MetadataLoaded();
     mElement->FirstFrameLoaded();
   }
+
+  if (!mResourceLoaded) {
+    StartProgress();
+  }
+  else if (mElement)
+  {
+    
+    
+    mElement->DispatchAsyncProgressEvent(NS_LITERAL_STRING("progress"));
+  }
 }
 
 void
@@ -1198,13 +1212,28 @@ nsWaveDecoder::ResourceLoaded()
   if (mShuttingDown) {
     return;
   }
+
+  
+  
+  if (mContentLength >= 0) {
+    mBytesDownloaded = mContentLength;
+  }
+
+  mResourceLoaded = PR_TRUE;
+
   if (mElement) {
     mElement->ResourceLoaded();
   }
   if (mPlaybackStateMachine) {
     mPlaybackStateMachine->StreamEnded();
   }
+
   StopProgress();
+
+  
+  if (mElement) {
+    mElement->DispatchAsyncProgressEvent(NS_LITERAL_STRING("progress"));
+  }
 }
 
 void
