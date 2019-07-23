@@ -43,7 +43,7 @@
 #include "nsITimer.h"
 #include "prtime.h"
 #include "prinrval.h"
-#include "nsVoidArray.h"
+#include "nsTArray.h"
 #include "nsThreadUtils.h"
 #include "nsIScrollableView.h"
 #include "nsIRegion.h"
@@ -456,13 +456,12 @@ private:
   PRPackedBool      mInScroll;
 
   
-  static PRInt32           mVMCount;        
 
   
   static nsIRenderingContext* gCleanupContext;
 
   
-  static nsVoidArray       *gViewManagers;
+  static nsTArray<nsViewManager*> *gViewManagers;
 
   void PostInvalidateEvent();
 
