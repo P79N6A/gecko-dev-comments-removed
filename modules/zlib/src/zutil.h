@@ -239,6 +239,11 @@ extern const char * const z_errmsg[10];
 #endif
 
 
+#ifndef ZLIB_DEBUG
+#undef DEBUG
+#endif
+
+
 #ifdef DEBUG
 #  include <stdio.h>
    extern int z_verbose;
