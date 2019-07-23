@@ -65,7 +65,6 @@
 #include "nsCSSAnonBoxes.h"
 #include "nsCSSPseudoElements.h"
 #ifdef NS_DEBUG
-#include "nsISupportsArray.h"
 #include "nsIStyleRule.h"
 #endif
 #include "nsILayoutHistoryState.h"
@@ -760,27 +759,7 @@ DumpContext(nsIFrame* aFrame, nsStyleContext* aContext)
       fputs(NS_LossyConvertUTF16toASCII(buffer).get(), stdout);
       fputs(" ", stdout);
     }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    {
-      fputs("{}\n", stdout);
-    }
+    fputs("{}\n", stdout);
   }
 }
 
