@@ -58,14 +58,13 @@ protected:
   
   
 
-  
-  nsCOMPtr<nsIContent> mContent;
+  nsIContent* mContent;
   PRUint32 mIndex;
-  nsCOMPtr<nsINodeList> mNodes;
+  nsINodeList* mNodes;
 
 public:
   ChildIterator()
-    : mIndex(0) {}
+    : mContent(nsnull), mIndex(0), mNodes(nsnull) {}
 
   ChildIterator(const ChildIterator& aOther)
     : mContent(aOther.mContent),
