@@ -1358,8 +1358,15 @@ public:
 
 
     static PRBool IsInvalidChar(PRUnichar ch) {
-        return ch == '\t' || ch == '\r' || ch == '\n' || ch == '\f' ||
-           ch == 0x200B || ch == 0x2028 || ch == 0x2029;
+        if (ch >= 32) {
+            return ch == 0x0085 ||
+               ch == 0x200B || ch == 0x2028 || ch == 0x2029;
+        }
+        
+        
+        
+        return ch == 0x0B || ch == '\t' || ch == '\r' || ch == '\n' || ch == '\f' ||
+            (ch >= 0x1c && ch <= 0x1f);
     }
 
     
