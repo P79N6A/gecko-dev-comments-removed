@@ -48,7 +48,6 @@
 
 
 
-
 #ifndef __imgContainer_h__
 #define __imgContainer_h__
 
@@ -59,7 +58,6 @@
 #include "nsIProperties.h"
 #include "nsITimer.h"
 #include "nsWeakReference.h"
-#include "nsTArray.h"
 
 #define NS_IMGCONTAINER_CID \
 { /* 27f0682c-ff64-4dd2-ae7a-668e59f2fd38 */         \
@@ -194,8 +192,14 @@ private:
         timer->Cancel();
     }
   };
-
-  nsresult GetCurrentFrameNoRef(gfxIImageFrame** aFrame);
+  
+  inline gfxIImageFrame* inlinedGetCurrentFrame() {
+    if (!mAnim)
+      return mFrames.SafeObjectAt(0);
+    if (mAnim->lastCompositedFrameIndex == mAnim->currentAnimationFrameIndex)
+      return mAnim->compositingFrame;
+    return mFrames.SafeObjectAt(mAnim->currentAnimationFrameIndex);
+  }
   
   inline Anim* ensureAnimExists() {
     if (!mAnim)
@@ -279,14 +283,9 @@ private:
   nsIntSize                  mSize;
   
   
-  
-  
   nsCOMArray<gfxIImageFrame> mFrames;
-  int                        mNumFrames; 
   
   nsCOMPtr<nsIProperties>    mProperties;
-
-  
   
   imgContainer::Anim*        mAnim;
   
@@ -298,19 +297,6 @@ private:
   
   
   nsWeakPtr                  mObserver;
-
-  PRBool                     mDiscardable;
-  PRBool                     mDiscarded;
-  nsCString                  mDiscardableMimeType;
-
-  nsTArray<char>             mRestoreData;
-  PRBool                     mRestoreDataDone;
-  nsCOMPtr<nsITimer>         mDiscardTimer;
-
-  nsresult ResetDiscardTimer (void);
-  nsresult RestoreDiscardedData (void);
-  nsresult ReloadImages (void);
-  static void sDiscardTimerCallback (nsITimer *aTimer, void *aClosure);
 };
 
 #endif 
