@@ -221,7 +221,7 @@ const char* const kTxRomanNumbers[] =
 void txRomanCounter::appendNumber(PRInt32 aNumber, nsAString& aDest)
 {
     
-    if (aNumber >= 4000) {
+    if (PRUint32(aNumber) >= 4000) {
         txDecimalCounter().appendNumber(aNumber, aDest);
         return;
     }
