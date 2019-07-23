@@ -130,7 +130,7 @@ var PrintUtils = {
     
     
     try {
-      PPROMPTSVC.showProgress(this, webBrowserPrint, printSettings, this._obsPP, false,
+      PPROMPTSVC.showProgress(window, webBrowserPrint, printSettings, this._obsPP, false,
                               this._webProgressPP, ppParams, notifyOnOpen);
       if (ppParams.value) {
         var webNav = getWebNavigation();
