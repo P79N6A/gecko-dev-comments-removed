@@ -3837,8 +3837,10 @@ nsBlockFrame::ReflowInlineFrame(nsBlockReflowState& aState,
     
     
     
-    if (!(frameReflowStatus & NS_INLINE_BREAK_FIRST_LETTER_COMPLETE) && 
-        nsGkAtoms::placeholderFrame != frameType) {
+    
+    if ((!(frameReflowStatus & NS_INLINE_BREAK_FIRST_LETTER_COMPLETE) && 
+         nsGkAtoms::placeholderFrame != frameType) ||
+        *aLineReflowStatus == LINE_REFLOW_STOP) {
       
       *aLineReflowStatus = LINE_REFLOW_STOP;
       rv = SplitLine(aState, aLineLayout, aLine, aFrame->GetNextSibling(), aLineReflowStatus);
