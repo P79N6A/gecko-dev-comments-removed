@@ -225,7 +225,8 @@ nsXHTMLContentSerializer::EscapeURI(nsIContent* aContent, const nsAString& aURI,
   aEscapedURI.Truncate(0);
 
   
-  while ((end = uri.FindCharInSet("%#;/?:@&=+$,", start)) != -1) {
+  
+  while ((end = uri.FindCharInSet("%#;/?:@&=+$,[]", start)) != -1) {
     part = Substring(aURI, start, (end-start));
     if (textToSubURI && !IsASCII(part)) {
       rv = textToSubURI->ConvertAndEscape(mCharset.get(), part.get(), getter_Copies(escapedURI));
@@ -502,7 +503,7 @@ nsXHTMLContentSerializer::AfterElementStart(nsIContent * aContent,
     PRUint32 i, childCount = aContent->GetChildCount();
     for (i = 0; i < childCount; ++i) {
       nsIContent* child = aContent->GetChildAt(i);
-      if (child->IsNodeOfType(nsINode::eHTML) &&
+      if (child->IsHTML() &&
           child->Tag() == nsGkAtoms::meta &&
           child->HasAttr(kNameSpaceID_None, nsGkAtoms::content)) {
         nsAutoString header;

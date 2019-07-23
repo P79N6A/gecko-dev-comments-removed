@@ -356,7 +356,7 @@ ForEachPing(nsIContent *content, ForEachPingCallback callback, void *closure)
 
   
   
-  if (!content->IsNodeOfType(nsINode::eHTML))
+  if (!content->IsHTML())
     return;
   nsIAtom *nameAtom = content->Tag();
   if (!nameAtom->EqualsUTF8(NS_LITERAL_CSTRING("a")) &&

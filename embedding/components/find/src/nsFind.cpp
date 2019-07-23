@@ -789,7 +789,7 @@ nsFind::NextNode(nsIDOMRange* aSearchRange,
 
 PRBool nsFind::IsBlockNode(nsIContent* aContent)
 {
-  if (!aContent->IsNodeOfType(nsINode::eHTML)) {
+  if (!aContent->IsHTML()) {
     return PR_FALSE;
   }
 
@@ -854,7 +854,7 @@ PRBool nsFind::SkipNode(nsIContent* aContent)
   
   
   return (aContent->IsNodeOfType(nsINode::eCOMMENT) ||
-          (aContent->IsNodeOfType(nsINode::eHTML) &&
+          (aContent->IsHTML() &&
            (atom == sScriptAtom ||
             atom == sNoframesAtom ||
             atom == sSelectAtom)));
@@ -871,7 +871,7 @@ PRBool nsFind::SkipNode(nsIContent* aContent)
     atom = content->Tag();
 
     if (aContent->IsNodeOfType(nsINode::eCOMMENT) ||
-        (content->IsNodeOfType(nsINode::eHTML) &&
+        (content->IsHTML() &&
          (atom == sScriptAtom ||
           atom == sNoframesAtom ||
           atom == sSelectAtom)))

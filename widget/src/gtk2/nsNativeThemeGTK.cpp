@@ -120,12 +120,12 @@ nsNativeThemeGTK::RefreshWidgetWindow(nsIFrame* aFrame)
   vm->UpdateAllViews(NS_VMREFRESH_NO_SYNC);
 }
 
-static PRBool IsFrameContentNodeOfType(nsIFrame *aFrame, PRUint32 aFlags)
+static PRBool IsFrameContentNodeInNamespace(nsIFrame *aFrame, PRUint32 aNamespace)
 {
   nsIContent *content = aFrame ? aFrame->GetContent() : nsnull;
   if (!content)
     return false;
-  return content->IsNodeOfType(aFlags);
+  return content->IsInNamespace(aNamespace);
 }
 
 static PRBool IsWidgetTypeDisabled(PRUint8* aDisabledVector, PRUint8 aWidgetType) {
@@ -199,7 +199,7 @@ nsNativeThemeGTK::GetGtkWidgetAndState(PRUint8 aWidgetType, nsIFrame* aFrame,
                      aWidgetType == NS_THEME_RADIO_LABEL)) {
 
         nsIAtom* atom = nsnull;
-        if (IsFrameContentNodeOfType(aFrame, nsINode::eXUL)) {
+        if (IsFrameContentNodeInNamespace(aFrame, kNameSpaceID_XUL)) {
           if (aWidgetType == NS_THEME_CHECKBOX_LABEL ||
               aWidgetType == NS_THEME_RADIO_LABEL) {
             
@@ -247,7 +247,7 @@ nsNativeThemeGTK::GetGtkWidgetAndState(PRUint8 aWidgetType, nsIFrame* aFrame,
       aState->canDefault = FALSE; 
       aState->depressed = FALSE;
 
-      if (IsFrameContentNodeOfType(aFrame, nsINode::eXUL)) {
+      if (IsFrameContentNodeInNamespace(aFrame, kNameSpaceID_XUL)) {
         
         
         
@@ -496,7 +496,7 @@ nsNativeThemeGTK::GetGtkWidgetAndState(PRUint8 aWidgetType, nsIFrame* aFrame,
   case NS_THEME_DROPDOWN:
     aGtkWidgetType = MOZ_GTK_DROPDOWN;
     if (aWidgetFlags)
-        *aWidgetFlags = IsFrameContentNodeOfType(aFrame, nsINode::eHTML);
+        *aWidgetFlags = IsFrameContentNodeInNamespace(aFrame, kNameSpaceID_XHTML);
     break;
   case NS_THEME_DROPDOWN_TEXT:
     return PR_FALSE; 
@@ -871,7 +871,7 @@ nsNativeThemeGTK::GetWidgetBorder(nsIDeviceContext* aContext, nsIFrame* aFrame,
                                nsnull))
         moz_gtk_get_widget_border(gtkWidgetType, &aResult->left, &aResult->top,
                                   &aResult->right, &aResult->bottom, direction,
-                                  IsFrameContentNodeOfType(aFrame, nsINode::eHTML));
+                                  IsFrameContentNodeInNamespace(aFrame, kNameSpaceID_XHTML));
     }
   }
   return NS_OK;
@@ -1304,7 +1304,7 @@ nsNativeThemeGTK::ThemeSupportsWidget(nsPresContext* aPresContext,
   case NS_THEME_DROPDOWN_BUTTON:
     
     
-    return (!aFrame || IsFrameContentNodeOfType(aFrame, nsINode::eXUL)) &&
+    return (!aFrame || IsFrameContentNodeInNamespace(aFrame, kNameSpaceID_XUL)) &&
            !IsWidgetStyled(aPresContext, aFrame, aWidgetType);
 
   }

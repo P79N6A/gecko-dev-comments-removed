@@ -1302,7 +1302,7 @@ PRBool
 nsXULContentBuilder::IsOpen(nsIContent* aElement)
 {
     
-    if (!aElement->IsNodeOfType(nsINode::eXUL))
+    if (!aElement->IsXUL())
         return PR_TRUE;
 
     

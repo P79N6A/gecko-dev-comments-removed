@@ -1249,7 +1249,7 @@ nsXULTemplateBuilder::LoadDataSources(nsIDocument* aDocument,
     if (xuldoc)
         xuldoc->SetTemplateBuilderFor(mRoot, this);
 
-    if (!mRoot->IsNodeOfType(nsINode::eXUL)) {
+    if (!mRoot->IsXUL()) {
         
         
         InitHTMLTemplateRoot();

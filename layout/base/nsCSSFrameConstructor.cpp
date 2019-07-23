@@ -1798,7 +1798,7 @@ nsCSSFrameConstructor::CreateGeneratedContent(nsFrameConstructorState& aState,
         return content.forget();
       }
 
-      if (aParentContent->IsNodeOfType(nsINode::eHTML) &&
+      if (aParentContent->IsHTML() &&
           aParentContent->NodeInfo()->Equals(nsGkAtoms::input)) {
         if (aParentContent->HasAttr(kNameSpaceID_None, nsGkAtoms::value)) {
           nsCOMPtr<nsIContent> content;
@@ -2407,7 +2407,7 @@ nsCSSFrameConstructor::PropagateScrollToViewport()
   
   
   nsCOMPtr<nsIDOMHTMLDocument> htmlDoc(do_QueryInterface(mDocument));
-  if (!htmlDoc || !docElement->IsNodeOfType(nsINode::eHTML)) {
+  if (!htmlDoc || !docElement->IsHTML()) {
     return nsnull;
   }
   
@@ -2540,7 +2540,7 @@ nsCSSFrameConstructor::ConstructDocElementFrame(nsIContent*              aDocEle
 
   
 #ifdef MOZ_XUL
-  if (aDocElement->IsNodeOfType(nsINode::eXUL)) {
+  if (aDocElement->IsXUL()) {
     contentFrame = NS_NewDocElementBoxFrame(mPresShell, styleContext);
     if (NS_UNLIKELY(!contentFrame)) {
       return NS_ERROR_OUT_OF_MEMORY;
@@ -2799,7 +2799,7 @@ nsCSSFrameConstructor::SetUpDocElementContainingBlock(nsIContent* aDocElement)
         
   if (!isPaginated) {
 #ifdef MOZ_XUL
-    if (aDocElement->IsNodeOfType(nsINode::eXUL))
+    if (aDocElement->IsXUL())
     {
       
       rootFrame = NS_NewRootBoxFrame(mPresShell, viewportPseudoStyle);
@@ -2838,11 +2838,11 @@ nsCSSFrameConstructor::SetUpDocElementContainingBlock(nsIContent* aDocElement)
   
   
 
-  PRBool isHTML = aDocElement->IsNodeOfType(nsINode::eHTML);
+  PRBool isHTML = aDocElement->IsHTML();
   PRBool isXUL = PR_FALSE;
 
   if (!isHTML) {
-    isXUL = aDocElement->IsNodeOfType(nsINode::eXUL);
+    isXUL = aDocElement->IsXUL();
   }
 
   
@@ -3656,7 +3656,7 @@ nsCSSFrameConstructor::FindHTMLData(nsIContent* aContent,
   
   
   
-  if (!aContent->IsNodeOfType(nsINode::eHTML) &&
+  if (!aContent->IsHTML() &&
       aNameSpaceID != kNameSpaceID_XHTML) {
     return nsnull;
   }
@@ -4496,7 +4496,7 @@ nsCSSFrameConstructor::FindDisplayData(const nsStyleDisplay* aDisplay,
   
   PRBool propagatedScrollToViewport = PR_FALSE;
   if (aContent->NodeInfo()->Equals(nsGkAtoms::body) &&
-      aContent->IsNodeOfType(nsINode::eHTML)) {
+      aContent->IsHTML()) {
     propagatedScrollToViewport =
       PropagateScrollToViewport() == aContent;
   }
@@ -6064,7 +6064,7 @@ static PRBool
 IsSpecialFramesetChild(nsIContent* aContent)
 {
   
-  return aContent->IsNodeOfType(nsINode::eHTML) &&
+  return aContent->IsHTML() &&
     (aContent->Tag() == nsGkAtoms::frameset ||
      aContent->Tag() == nsGkAtoms::frame);
 }
@@ -6081,8 +6081,8 @@ MaybeGetListBoxBodyFrame(nsIContent* aContainer, nsIContent* aChild)
   if (!aContainer)
     return nsnull;
 
-  if (aContainer->IsNodeOfType(nsINode::eXUL) &&
-      aChild->IsNodeOfType(nsINode::eXUL) &&
+  if (aContainer->IsXUL() &&
+      aChild->IsXUL() &&
       aContainer->Tag() == nsGkAtoms::listbox &&
       aChild->Tag() == nsGkAtoms::listitem) {
     nsCOMPtr<nsIDOMXULElement> xulElement = do_QueryInterface(aContainer);
@@ -7556,7 +7556,7 @@ InvalidateCanvasIfNeeded(nsIPresShell* presShell, nsIContent* node)
 
     
     if (node->Tag() != nsGkAtoms::body ||
-        !node->IsNodeOfType(nsINode::eHTML)) {
+        !node->IsHTML()) {
       return;
     }
   }
@@ -8833,7 +8833,7 @@ nsCSSFrameConstructor::GetInsertionPoint(nsIFrame*     aParentFrame,
   
   if (aMultiple && !*aMultiple) {
     nsIContent* content = insertionElement ? insertionElement : container;
-    if (content->IsNodeOfType(nsINode::eHTML) &&
+    if (content->IsHTML() &&
         content->Tag() == nsGkAtoms::fieldset) {
       *aMultiple = PR_TRUE;
     }
@@ -9194,7 +9194,7 @@ nsCSSFrameConstructor::ShouldHaveFirstLineStyle(nsIContent* aContent,
     
     hasFirstLine = tag != nsGkAtoms::fieldset ||
       (namespaceID != kNameSpaceID_XHTML &&
-       !aContent->IsNodeOfType(nsINode::eHTML));
+       !aContent->IsHTML());
   }
 
   return hasFirstLine;
