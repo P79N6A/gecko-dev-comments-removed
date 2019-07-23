@@ -118,6 +118,6 @@ int32_t pluginGetClipRegionRectEdge(InstanceData* instanceData,
 
 
 
-void pluginDoInternalConsistencyCheck(InstanceData* instanceData, string& error);
+void pluginDoInternalConsistencyCheck(InstanceData* instanceData, std::string& error);
 
 #endif 
