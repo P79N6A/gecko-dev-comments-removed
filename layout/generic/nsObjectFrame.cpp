@@ -1594,6 +1594,10 @@ nsObjectFrame::StopPluginInternal(PRBool aDelayedStop)
   mInstanceOwner->SetOwner(nsnull);
 
   NS_RELEASE(mInstanceOwner);
+
+  
+  
+  mWindowlessRect.Empty();
 }
 
 void
