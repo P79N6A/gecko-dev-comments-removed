@@ -204,4 +204,97 @@ static JS_INLINE void js_free(void* p) {
 
 JS_END_EXTERN_C
 
+#ifdef __cplusplus
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifdef DEBUG
+class JSGuardObjectNotifier
+{
+private:
+    bool* mStatementDone;
+public:
+    JSGuardObjectNotifier() : mStatementDone(NULL) {}
+
+    ~JSGuardObjectNotifier() {
+        *mStatementDone = true;
+    }
+
+    void SetStatementDone(bool *aStatementDone) {
+        mStatementDone = aStatementDone;
+    }
+};
+
+class JSGuardObjectNotificationReceiver
+{
+private:
+    bool mStatementDone;
+public:
+    JSGuardObjectNotificationReceiver() : mStatementDone(false) {}
+
+    ~JSGuardObjectNotificationReceiver() {
+        
+        
+        
+        
+        JS_ASSERT(mStatementDone);
+    }
+
+    void Init(const JSGuardObjectNotifier &aNotifier) {
+       
+       
+       const_cast<JSGuardObjectNotifier&>(aNotifier).
+           SetStatementDone(&mStatementDone);
+    }
+};
+
+#define JS_DECL_USE_GUARD_OBJECT_NOTIFIER \
+    JSGuardObjectNotificationReceiver _mCheckNotUsedAsTemporary;
+#define JS_GUARD_OBJECT_NOTIFIER_PARAM \
+    , const JSGuardObjectNotifier& _notifier = JSGuardObjectNotifier()
+#define JS_GUARD_OBJECT_NOTIFIER_INIT \
+    JS_BEGIN_MACRO _mCheckNotUsedAsTemporary.Init(_notifier); JS_END_MACRO
+
+#else 
+
+#define JS_DECL_USE_GUARD_OBJECT_NOTIFIER
+#define JS_GUARD_OBJECT_NOTIFIER_PARAM
+#define JS_GUARD_OBJECT_NOTIFIER_INIT JS_BEGIN_MACRO JS_END_MACRO
+
+#endif 
+
+#endif 
+
 #endif 
