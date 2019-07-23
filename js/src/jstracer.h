@@ -919,13 +919,13 @@ class TraceRecorder
     
 
     
+    Oracle*                         oracle;
+
+    
     JSContext* const                cx;
 
     
     TraceMonitor* const             traceMonitor;
-
-    
-    Oracle*                         oracle;
 
     
     VMFragment* const               fragment;
