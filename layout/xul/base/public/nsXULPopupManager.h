@@ -338,7 +338,10 @@ public:
 
   
   
-  nsIFrame* GetFrameOfTypeForContent(nsIContent* aContent, nsIAtom* aFrameType);
+  
+  nsIFrame* GetFrameOfTypeForContent(nsIContent* aContent,
+                                     nsIAtom* aFrameType,
+                                     PRBool aShouldFlush);
 
   
   
