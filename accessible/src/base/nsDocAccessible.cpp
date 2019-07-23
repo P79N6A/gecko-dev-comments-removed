@@ -1770,18 +1770,6 @@ NS_IMETHODIMP nsDocAccessible::InvalidateCacheSubtree(nsIContent *aChild,
     }
   }
 
-  if (!isShowing) {
-    
-    
-    
-    if (childAccessible) {
-      nsCOMPtr<nsIAccessibleEvent> reorderEvent =
-        new nsAccEvent(nsIAccessibleEvent::EVENT_REORDER, containerAccessible, nsnull, PR_TRUE);
-      NS_ENSURE_TRUE(reorderEvent, NS_ERROR_OUT_OF_MEMORY);
-      FireDelayedAccessibleEvent(reorderEvent, eCoalesceFromSameSubtree, isAsynch);
-    }
-  }
-
   return NS_OK;
 }
 
