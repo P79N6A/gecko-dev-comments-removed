@@ -122,7 +122,7 @@ nsProgressMeterFrame::AttributeChanged(PRInt32 aNameSpaceID,
   }
 
   
-  if (nsGkAtoms::value == aAttribute) {
+  if (nsGkAtoms::value == aAttribute || nsGkAtoms::max == aAttribute) {
     nsIFrame* barChild = GetFirstChild(nsnull);
     if (!barChild) return NS_OK;
     nsIFrame* remainderChild = barChild->GetNextSibling();
