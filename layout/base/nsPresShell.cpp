@@ -4461,25 +4461,33 @@ PresShell::ClearMouseCapture(nsIView* aView)
       if (doc) {
         nsIPresShell *shell = doc->GetPrimaryShell();
         if (shell) {
+          
+          if (shell->FrameManager()->IsDestroyingFrames())
+            return;
+
           frame = shell->GetPrimaryFrameFor(gCaptureInfo.mContent);
         }
       }
 
       if (frame) {
         nsIView* view = frame->GetClosestView();
-        while (view) {
-          if (view == aView) {
-            NS_RELEASE(gCaptureInfo.mContent);
-            
-            
-            gCaptureInfo.mAllowed = PR_FALSE;
-            break;
-          }
-
-          view = view->GetParent();
-        }
         
-        return;
+        
+        if (view) {
+          do {
+            if (view == aView) {
+              NS_RELEASE(gCaptureInfo.mContent);
+              
+              
+              gCaptureInfo.mAllowed = PR_FALSE;
+              break;
+            }
+
+            view = view->GetParent();
+          } while (view);
+          
+          return;
+        }
       }
     }
 
