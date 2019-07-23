@@ -7347,8 +7347,7 @@ nsDocument::CloneDocHelper(nsDocument* clone) const
   clone->nsDocument::SetDocumentURI(nsIDocument::GetDocumentURI());
   
   clone->SetPrincipal(NodePrincipal());
-  rv = clone->SetBaseURI(nsIDocument::GetBaseURI());
-  NS_ENSURE_SUCCESS(rv, rv);
+  clone->mDocumentBaseURI = mDocumentBaseURI;
 
   
   PRBool hasHadScriptObject = PR_TRUE;
