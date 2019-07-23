@@ -44,6 +44,7 @@
 #include "nsCSSProps.h"
 #include "nsCSSKeywords.h"
 #include "nsStyleConsts.h"
+#include "nsIWidget.h"
 #include "nsThemeConstants.h"  
 
 #include "nsILookAndFeel.h" 

@@ -44,8 +44,9 @@
 #import <Cocoa/Cocoa.h>
 
 #include "nsRect.h"
-#include "nsIWidget.h"
 #include "nsObjCExceptions.h"
+
+class nsIWidget;
 
 
 

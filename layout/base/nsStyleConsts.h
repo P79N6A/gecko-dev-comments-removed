@@ -42,7 +42,6 @@
 #define nsStyleConsts_h___
 
 #include "nsFont.h"
-#include "nsIWidget.h"
 
 
 

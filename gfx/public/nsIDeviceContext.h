@@ -42,10 +42,10 @@
 #include "nsISupports.h"
 #include "nsCoord.h"
 #include "nsRect.h"
-#include "nsIWidget.h"
 #include "nsIRenderingContext.h"
 
 #include "gfxPoint.h"
+#include "nsNativeWidget.h"
 
 class nsIView;
 class nsIFontMetrics;

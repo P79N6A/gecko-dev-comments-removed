@@ -49,7 +49,6 @@
 #include "nsIURI.h"
 #include "nsIViewManager.h"
 #include "nsIWebNavigation.h"
-#include "nsIWidget.h"
 
 
 

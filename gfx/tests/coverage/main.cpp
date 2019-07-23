@@ -34,7 +34,6 @@
 
 
 
-#include "nsIWidget.h"
 
 extern nsresult CoverageTest(int * argc, char **argv);
 
