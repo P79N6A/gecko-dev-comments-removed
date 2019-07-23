@@ -191,6 +191,9 @@ protected:
     PRPackedBool  mCached;
 
 public:
+    
+    
+    PRPackedBool  mInPluginInitCall;
     PRLibrary* fLibrary;
     nsInstanceStream *mStreams;
 
