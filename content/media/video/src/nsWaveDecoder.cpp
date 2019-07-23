@@ -175,7 +175,7 @@ public:
   void NotifyBytesConsumed(PRInt64 aBytes);
 
   
-  PRBool HasPendingData();
+  nsHTMLMediaElement::NextFrameStatus GetNextFrameStatus();
 
 private:
   
@@ -492,11 +492,15 @@ nsWaveStateMachine::StreamEnded(PRBool aAtEnd)
   }
 }
 
-PRBool
-nsWaveStateMachine::HasPendingData()
+nsHTMLMediaElement::NextFrameStatus
+nsWaveStateMachine::GetNextFrameStatus()
 {
   nsAutoMonitor monitor(mMonitor);
-  return mPlaybackPosition < mDownloadPosition;
+  if (mPlaybackPosition < mDownloadPosition)
+    return nsHTMLMediaElement::NEXT_FRAME_AVAILABLE;
+  if (mState == STATE_BUFFERING)
+    return nsHTMLMediaElement::NEXT_FRAME_UNAVAILABLE_BUFFERING;
+  return nsHTMLMediaElement::NEXT_FRAME_UNAVAILABLE;
 }
 
 NS_IMETHODIMP
@@ -549,7 +553,7 @@ nsWaveStateMachine::Run()
       } else {
         ChangeState(mNextState);
         nsCOMPtr<nsIRunnable> event =
-          NS_NEW_RUNNABLE_METHOD(nsWaveDecoder, mDecoder, BufferingStopped);
+          NS_NEW_RUNNABLE_METHOD(nsWaveDecoder, mDecoder, UpdateReadyStateForData);
         NS_DispatchToMainThread(event, NS_DISPATCH_NORMAL);
       }
 
@@ -568,6 +572,11 @@ nsWaveStateMachine::Run()
           
           mBufferingBytes = TimeToBytes(float(mBufferingWait) / 1000.0);
           mBufferingStart = PR_IntervalNow();
+
+          nsCOMPtr<nsIRunnable> event =
+            NS_NEW_RUNNABLE_METHOD(nsWaveDecoder, mDecoder, UpdateReadyStateForData);
+          NS_DispatchToMainThread(event, NS_DISPATCH_NORMAL);
+
           ChangeState(STATE_BUFFERING);
         } else {
           
@@ -1489,15 +1498,13 @@ nsWaveDecoder::UpdateReadyStateForData()
   if (!mElement || mShuttingDown || !mPlaybackStateMachine)
     return;
 
-  PRBool haveDataToPlay =
-    mPlaybackStateMachine->HasPendingData() && mMetadataLoadedReported;
-  mElement->UpdateReadyStateForData(haveDataToPlay);
-}
-
-void
-nsWaveDecoder::BufferingStopped()
-{
-  UpdateReadyStateForData();
+  nsHTMLMediaElement::NextFrameStatus frameStatus =
+    mPlaybackStateMachine->GetNextFrameStatus();
+  if (frameStatus == nsHTMLMediaElement::NEXT_FRAME_AVAILABLE &&
+      !mMetadataLoadedReported) {
+    frameStatus = nsHTMLMediaElement::NEXT_FRAME_UNAVAILABLE;
+  }
+  mElement->UpdateReadyStateForData(frameStatus);
 }
 
 void

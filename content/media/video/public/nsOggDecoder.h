@@ -424,10 +424,6 @@ protected:
 
   
   
-  void BufferingStopped();
-
-  
-  
   void SeekingStopped();
 
   
@@ -439,15 +435,15 @@ protected:
   
   void PlaybackPositionChanged();
 
+  
+  
+  void UpdateReadyStateForData();
+
 private:
   
   
   void RegisterShutdownObserver();
   void UnregisterShutdownObserver();
-
-  
-  
-  void UpdateReadyStateForData();
 
   
 

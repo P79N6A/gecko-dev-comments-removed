@@ -134,7 +134,16 @@ public:
   
   
   
-  void UpdateReadyStateForData(PRBool aNextFrameAvailable);
+  enum NextFrameStatus {
+    
+    NEXT_FRAME_AVAILABLE,
+    
+    
+    NEXT_FRAME_UNAVAILABLE_BUFFERING,
+    
+    NEXT_FRAME_UNAVAILABLE
+  };
+  void UpdateReadyStateForData(NextFrameStatus aNextFrame);
 
   
   
@@ -272,4 +281,8 @@ protected:
   
   
   PRPackedBool mPausedBeforeFreeze;
+  
+  
+  
+  PRPackedBool mWaitingFired;
 };

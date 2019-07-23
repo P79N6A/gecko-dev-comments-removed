@@ -308,7 +308,15 @@ public:
   
   
   PRBool HaveNextFrameData() const {
-    return !mDecodedFrames.IsEmpty();
+    return !mDecodedFrames.IsEmpty() &&
+      (mState == DECODER_STATE_DECODING ||
+       mState == DECODER_STATE_COMPLETED);
+  }
+
+  
+  
+  PRBool IsBuffering() const {
+    return mState == nsOggDecodeStateMachine::DECODER_STATE_BUFFERING;
   }
 
 protected:
@@ -993,6 +1001,19 @@ nsresult nsOggDecodeStateMachine::Run()
             StopPlayback();
           }
 
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          nsCOMPtr<nsIRunnable> event = 
+            NS_NEW_RUNNABLE_METHOD(nsOggDecoder, mDecoder, UpdateReadyStateForData);
+          NS_DispatchToMainThread(event, NS_DISPATCH_NORMAL);
+
           mBufferingStart = PR_IntervalNow();
           double playbackRate = mDecoder->GetStatistics().mPlaybackRate;
           mBufferingBytes = BUFFERING_RATE(playbackRate) * BUFFERING_WAIT;
@@ -1096,7 +1117,7 @@ nsresult nsOggDecodeStateMachine::Run()
 
         if (mState != DECODER_STATE_BUFFERING) {
           nsCOMPtr<nsIRunnable> event = 
-            NS_NEW_RUNNABLE_METHOD(nsOggDecoder, mDecoder, BufferingStopped);
+            NS_NEW_RUNNABLE_METHOD(nsOggDecoder, mDecoder, UpdateReadyStateForData);
           NS_DispatchToMainThread(event, NS_DISPATCH_NORMAL);
           if (mDecoder->GetState() == nsOggDecoder::PLAY_STATE_PLAYING) {
             if (!mPlaying) {
@@ -1769,17 +1790,18 @@ void nsOggDecoder::UpdateReadyStateForData()
   if (!mElement || mShuttingDown || !mDecodeStateMachine)
     return;
 
-  PRBool haveNextFrame;
+  nsHTMLMediaElement::NextFrameStatus frameStatus;
   {
     nsAutoMonitor mon(mMonitor);
-    haveNextFrame = mDecodeStateMachine->HaveNextFrameData();
+    if (mDecodeStateMachine->HaveNextFrameData()) {
+      frameStatus = nsHTMLMediaElement::NEXT_FRAME_AVAILABLE;
+    } else if (mDecodeStateMachine->IsBuffering()) {
+      frameStatus = nsHTMLMediaElement::NEXT_FRAME_UNAVAILABLE_BUFFERING;
+    } else {
+      frameStatus = nsHTMLMediaElement::NEXT_FRAME_UNAVAILABLE;
+    }
   }
-  mElement->UpdateReadyStateForData(haveNextFrame);
-}
-
-void nsOggDecoder::BufferingStopped()
-{
-  UpdateReadyStateForData();
+  mElement->UpdateReadyStateForData(frameStatus);
 }
 
 void nsOggDecoder::SeekingStopped()

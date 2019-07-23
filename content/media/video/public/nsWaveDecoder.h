@@ -221,13 +221,10 @@ class nsWaveDecoder : public nsMediaDecoder
   
   virtual void Resume();
 
-private:
   
   void UpdateReadyStateForData();
 
-  
-  void BufferingStopped();
-
+private:
   
   void SeekingStarted();
 
