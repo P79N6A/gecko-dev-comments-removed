@@ -99,7 +99,7 @@
 
 
 #include "nsHTMLStyleSheet.h"
-#include "nsIHTMLCSSStyleSheet.h"
+#include "nsHTMLCSSStyleSheet.h"
 
 #include "nsStyleSet.h"
 #include "nsXMLEventsManager.h"
@@ -715,7 +715,7 @@ public:
 
 
 
-  virtual nsIHTMLCSSStyleSheet* GetInlineStyleSheet() const {
+  virtual nsHTMLCSSStyleSheet* GetInlineStyleSheet() const {
     return mStyleAttrStyleSheet;
   }
   
@@ -1204,7 +1204,7 @@ protected:
   
   nsCOMPtr<nsIChannel> mChannel;
   nsRefPtr<nsHTMLStyleSheet> mAttrStyleSheet;
-  nsCOMPtr<nsIHTMLCSSStyleSheet> mStyleAttrStyleSheet;
+  nsRefPtr<nsHTMLCSSStyleSheet> mStyleAttrStyleSheet;
   nsRefPtr<nsXMLEventsManager> mXMLEventsManager;
 
   nsCOMPtr<nsIScriptEventManager> mScriptEventManager;

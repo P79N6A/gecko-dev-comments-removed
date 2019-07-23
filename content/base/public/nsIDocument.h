@@ -90,7 +90,7 @@ class nsIContentSink;
 class nsIScriptEventManager;
 class nsICSSLoader;
 class nsHTMLStyleSheet;
-class nsIHTMLCSSStyleSheet;
+class nsHTMLCSSStyleSheet;
 class nsILayoutHistoryState;
 class nsIVariant;
 class nsIDOMUserDataHandler;
@@ -559,8 +559,8 @@ public:
 
 
 
-  virtual nsIHTMLCSSStyleSheet* GetInlineStyleSheet() const = 0;
-  
+  virtual nsHTMLCSSStyleSheet* GetInlineStyleSheet() const = 0;
+
   
 
 
