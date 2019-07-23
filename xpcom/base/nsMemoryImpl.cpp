@@ -113,16 +113,9 @@ NS_IMETHODIMP
 nsMemoryImpl::IsLowMemory(PRBool *result)
 {
 #if defined(WINCE)
-    *result = PR_FALSE;
-    
-    
-    
-    
-    
     MEMORYSTATUS stat;
     GlobalMemoryStatus(&stat);
     *result = (stat.dwMemoryLoad >= 90);
-
 #elif defined(XP_WIN)
     MEMORYSTATUSEX stat;
     stat.dwLength = sizeof stat;
