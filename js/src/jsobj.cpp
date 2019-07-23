@@ -2793,6 +2793,11 @@ js_XDRBlockObject(JSXDRState *xdr, JSObject **objp)
         }
     }
 
+    if (xdr->mode == JSXDR_DECODE) {
+        
+        OBJ_SCOPE(obj)->object = NULL;
+    }
+
     JS_POP_TEMP_ROOT(cx, &tvr);
     return ok;
 }
