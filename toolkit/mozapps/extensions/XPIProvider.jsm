@@ -3314,6 +3314,7 @@ AddonInstall.prototype = {
         uri = buildJarURI(this.file, FILE_INSTALL_MANIFEST);
         this.addon = loadManifestFromRDF(uri, bis);
         this.addon._sourceBundle = this.file;
+        this.addon._install = this;
       }
       finally {
         bis.close();
@@ -3598,10 +3599,15 @@ AddonInstall.prototype = {
           converter.init(stream, "UTF-8", 0, 0x0000);
 
           
-          let bundle = this.addon._sourceBundle;
+          let objs = {
+            sourceBundle: this.addon._sourceBundle,
+            install: this.addon._install
+          };
           delete this.addon._sourceBundle;
+          delete this.addon._install;
           converter.writeString(json.encode(this.addon));
-          this.addon._sourceBundle = bundle;
+          this.addon._sourceBundle = objs.sourceBundle;
+          this.addon._install = objs.install;
         }
         finally {
           converter.close();
@@ -4070,6 +4076,12 @@ function AddonWrapper(addon) {
   this.__defineSetter__("updateAutomatically", function(val) {
     
     addon.updateAutomatically = val;
+  });
+
+  this.__defineGetter__("install", function() {
+    if (!("_install" in addon) || !addon._install)
+      return null;
+    return addon._install.wrapper;
   });
 
   this.__defineGetter__("pendingUpgrade", function() {
