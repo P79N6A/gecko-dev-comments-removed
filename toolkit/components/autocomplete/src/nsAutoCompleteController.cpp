@@ -491,12 +491,19 @@ nsAutoCompleteController::HandleKeyNavigation(PRUint32 aKey, PRBool *_retval)
       ClearSearchTimer();
       ClosePopup();
     }
+
     
-    
-    
-    nsAutoString value;
-    mInput->GetTextValue(value);
-    mSearchString = value;
+    if (mInput) {
+      
+      
+      
+      nsAutoString value;
+
+      mInput->GetTextValue(value);
+      mSearchString = value;
+    }
+    else
+      NS_WARNING("unexpected, please comment in bug #409902");
   }
   
   return NS_OK;
@@ -1159,6 +1166,12 @@ nsAutoCompleteController::EnterMatch()
 nsresult
 nsAutoCompleteController::RevertTextValue()
 {
+  
+  
+  
+  if (!mInput)
+    return NS_OK;
+
   nsAutoString oldValue(mSearchString);
   
   PRBool cancel = PR_FALSE;
