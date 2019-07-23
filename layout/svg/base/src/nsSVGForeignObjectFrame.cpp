@@ -246,7 +246,22 @@ nsSVGForeignObjectFrame::PaintSVG(nsSVGRenderState *aContext,
   if (!kid)
     return NS_OK;
 
-  nsCOMPtr<nsIDOMSVGMatrix> tm = GetTMIncludingOffset();
+  
+  
+  
+  float cssPxPerDevPx =
+    PresContext()->AppUnitsToFloatCSSPixels(
+                                PresContext()->AppUnitsPerDevPixel());
+  nsCOMPtr<nsIDOMSVGMatrix> cssPxToDevPxMatrix;
+  NS_NewSVGMatrix(getter_AddRefs(cssPxToDevPxMatrix),
+                  cssPxPerDevPx, 0.0f,
+                  0.0f, cssPxPerDevPx);
+
+  nsCOMPtr<nsIDOMSVGMatrix> localTM = GetTMIncludingOffset();
+
+  
+  nsCOMPtr<nsIDOMSVGMatrix> tm;
+  cssPxToDevPxMatrix->Multiply(localTM, getter_AddRefs(tm));
 
   gfxMatrix matrix = nsSVGUtils::ConvertSVGMatrixToThebes(tm);
 
@@ -267,7 +282,7 @@ nsSVGForeignObjectFrame::PaintSVG(nsSVGRenderState *aContext,
       GetAnimatedLengthValues(&x, &y, &width, &height, nsnull);
 
     
-    nsSVGUtils::SetClipRect(gfx, tm, 0.0f, 0.0f, width, height);
+    nsSVGUtils::SetClipRect(gfx, localTM, 0.0f, 0.0f, width, height);
   }
 
   gfx->Multiply(matrix);
