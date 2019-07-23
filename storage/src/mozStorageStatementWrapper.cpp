@@ -475,14 +475,6 @@ mozStorageStatementWrapper::InnerObject(nsIXPConnectWrappedNative *wrapper,
 }
 
 
-NS_IMETHODIMP
-mozStorageStatementWrapper::PostCreatePrototype(JSContext * cx,
-                                                JSObject * proto)
-{
-    return NS_OK;
-}
-
-
 
 
 
@@ -745,13 +737,6 @@ mozStorageStatementRow::InnerObject(nsIXPConnectWrappedNative *wrapper,
                                     JSObject **_retval)
 {
     return NS_ERROR_NOT_IMPLEMENTED;
-}
-
-
-NS_IMETHODIMP
-mozStorageStatementRow::PostCreatePrototype(JSContext * cx, JSObject * proto)
-{
-    return NS_OK;
 }
 
 
@@ -1034,9 +1019,3 @@ mozStorageStatementParams::InnerObject(nsIXPConnectWrappedNative *wrapper,
     return NS_ERROR_NOT_IMPLEMENTED;
 }
 
-
-NS_IMETHODIMP
-mozStorageStatementParams::PostCreatePrototype(JSContext * cx, JSObject * proto)
-{
-    return NS_OK;
-}
