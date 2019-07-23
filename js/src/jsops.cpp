@@ -2844,8 +2844,17 @@ BEGIN_CASE(JSOP_DEFVAR)
     
     id = ATOM_TO_JSID(atom);
     prop = NULL;
-    if (!js_CheckRedeclaration(cx, obj, id, attrs, &obj2, &prop))
-        goto error;
+    if (op == JSOP_DEFVAR) {
+        
+
+
+
+        if (!obj->lookupProperty(cx, id, &obj2, &prop))
+            goto error;
+    } else {
+        if (!js_CheckRedeclaration(cx, obj, id, attrs, &obj2, &prop))
+            goto error;
+    }
 
     
     if (!prop) {
