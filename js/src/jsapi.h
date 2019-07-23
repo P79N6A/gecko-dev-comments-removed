@@ -1169,6 +1169,21 @@ JS_SetThreadStackLimit(JSContext *cx, jsuword limitAddr);
 
 
 
+
+
+
+extern JS_PUBLIC_API(void)
+JS_SetScriptStackQuota(JSContext *cx, size_t quota);
+
+#define JS_DEFAULT_SCRIPT_STACK_QUOTA   ((size_t) 0x2000000)
+
+
+
+
+
+
+
+
 struct JSClass {
     const char          *name;
     uint32              flags;

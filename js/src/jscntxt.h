@@ -693,6 +693,9 @@ struct JSContext {
     jsuword             stackLimit;
 
     
+    size_t              scriptStackQuota;
+
+    
     JSRuntime           *runtime;
 
     
