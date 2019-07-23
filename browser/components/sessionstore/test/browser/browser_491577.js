@@ -35,8 +35,21 @@
 
 
 
+function browserWindowsCount() {
+  let count = 0;
+  let e = Cc["@mozilla.org/appshell/window-mediator;1"]
+            .getService(Ci.nsIWindowMediator)
+            .getEnumerator("navigator:browser");
+  while (e.hasMoreElements()) {
+    if (!e.getNext().closed)
+      ++count;
+  }
+  return count;
+}
+
 function test() {
   
+  is(browserWindowsCount(), 1, "Only one browser window should be open initially");
   
   
   let ss = Cc["@mozilla.org/browser/sessionstore;1"].getService(Ci.nsISessionStore);
@@ -149,6 +162,7 @@ function test() {
 
     
     newWin.close();
+    is(browserWindowsCount(), 1, "Only one browser window should be open eventually");
     if (gPrefService.prefHasUserValue("browser.sessionstore.max_windows_undo"))
       gPrefService.clearUserPref("browser.sessionstore.max_windows_undo");
     finish();
