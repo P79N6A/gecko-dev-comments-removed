@@ -609,6 +609,15 @@ static const size_t MDCVInfoPDB70_minsize = offsetof(MDCVInfoPDB70,
 
 #define MD_CVINFOPDB70_SIGNATURE 0x53445352  /* cvSignature = 'SDSR' */
 
+typedef struct {
+  u_int32_t data1[2];
+  u_int32_t data2;
+  u_int32_t data3;
+  u_int32_t data4;
+  u_int32_t data5[3];
+  u_int8_t extra[2];
+} MDCVInfoELF;
+
 
 
 
@@ -990,6 +999,7 @@ typedef enum {
   MD_CPU_ARCHITECTURE_AMD64     =  9,  
   MD_CPU_ARCHITECTURE_X86_WIN64 = 10,
       
+  MD_CPU_ARCHITECTURE_SPARC     = 0x8001, 
   MD_CPU_ARCHITECTURE_UNKNOWN   = 0xffff  
 } MDCPUArchitecture;
 
@@ -1004,7 +1014,8 @@ typedef enum {
   
   MD_OS_UNIX          = 0x8000,  
   MD_OS_MAC_OS_X      = 0x8101,  
-  MD_OS_LINUX         = 0x8201   
+  MD_OS_LINUX         = 0x8201,  
+  MD_OS_SOLARIS       = 0x8202   
 } MDOSPlatform;
 
 
