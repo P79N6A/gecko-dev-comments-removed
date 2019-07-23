@@ -46,6 +46,7 @@ __all__ = [
   "processLeakLog",
   "getDebuggerInfo",
   "DEBUGGER_INFO",
+  "replaceBackSlashes",
   ]
 
 
@@ -323,3 +324,6 @@ def processLeakLog(leakLogFile, leakThreshold = 0):
         processType = m.group(1)
         processPID = m.group(2)
       processSingleLeakFile(thisFile, processPID, processType, leakThreshold)
+
+def replaceBackSlashes(input):
+  return input.replace('\\', '/')
