@@ -332,6 +332,7 @@ const PRInt32 nsNavHistory::kAutoCompleteBehaviorTyped = 1 << 5;
 static const char* gQuitApplicationMessage = "quit-application";
 static const char* gXpcomShutdown = "xpcom-shutdown";
 static const char* gAutoCompleteFeedback = "autocomplete-will-enter-text";
+static const char* gIdleDaily = "idle-daily";
 
 
 const char nsNavHistory::kAnnotationPreviousEncoding[] = "history/encoding";
@@ -523,6 +524,7 @@ nsNavHistory::Init()
   observerService->AddObserver(this, gQuitApplicationMessage, PR_FALSE);
   observerService->AddObserver(this, gXpcomShutdown, PR_FALSE);
   observerService->AddObserver(this, gAutoCompleteFeedback, PR_FALSE);
+  observerService->AddObserver(this, gIdleDaily, PR_FALSE);
   observerService->AddObserver(this, NS_PRIVATE_BROWSING_SWITCH_TOPIC, PR_FALSE);
   
   
@@ -910,9 +912,6 @@ nsNavHistory::InitializeIdleTimer()
   NS_ENSURE_SUCCESS(rv, rv);
 
   PRInt32 idleTimerTimeout = EXPIRE_IDLE_TIME_IN_MSECS;
-  if (mFrecencyUpdateIdleTime)
-    idleTimerTimeout = PR_MIN(idleTimerTimeout, mFrecencyUpdateIdleTime);
-
   rv = mIdleTimer->InitWithFuncCallback(IdleTimerCallback, this,
                                         idleTimerTimeout,
                                         nsITimer::TYPE_REPEATING_SLACK);
@@ -5206,12 +5205,6 @@ nsNavHistory::OnIdle()
   
   
   
-  if (mFrecencyUpdateIdleTime && idleTime > mFrecencyUpdateIdleTime)
-    (void)RecalculateFrecencies(mNumCalculateFrecencyOnIdle, PR_TRUE);
-
-  
-  
-  
   
   if (idleTime > EXPIRE_IDLE_TIME_IN_MSECS) {
     PRBool dummy;
@@ -5342,6 +5335,7 @@ nsNavHistory::Observe(nsISupports *aSubject, const char *aTopic,
       do_GetService("@mozilla.org/observer-service;1", &rv);
     NS_ENSURE_SUCCESS(rv, rv);
     observerService->RemoveObserver(this, NS_PRIVATE_BROWSING_SWITCH_TOPIC);
+    observerService->RemoveObserver(this, gIdleDaily);
     observerService->RemoveObserver(this, gAutoCompleteFeedback);
     observerService->RemoveObserver(this, gXpcomShutdown);
     observerService->RemoveObserver(this, gQuitApplicationMessage);
@@ -5388,6 +5382,11 @@ nsNavHistory::Observe(nsISupports *aSubject, const char *aTopic,
     if (oldDaysMin != mExpireDaysMin || oldDaysMax != mExpireDaysMax ||
         oldVisits != mExpireSites)
       mExpire.OnExpirationChanged();
+  }
+  else if (strcmp(aTopic, gIdleDaily) == 0) {
+    
+    if (mFrecencyUpdateIdleTime)
+      (void)RecalculateFrecencies(mNumCalculateFrecencyOnIdle, PR_TRUE);
   }
   else if (strcmp(aTopic, NS_PRIVATE_BROWSING_SWITCH_TOPIC) == 0) {
     if (NS_LITERAL_STRING(NS_PRIVATE_BROWSING_ENTER).Equals(aData)) {
