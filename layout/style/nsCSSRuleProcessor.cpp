@@ -1903,11 +1903,12 @@ static PRBool SelectorMatchesTree(RuleProcessorData& aPrevData,
       
       
       
-      if ((NS_IS_GREEDY_OPERATOR(selector->mOperator)) &&
-          (selector->mNext) &&
-          (selector->mNext->mOperator != selector->mOperator) &&
+      if (NS_IS_GREEDY_OPERATOR(selector->mOperator) &&
+          selector->mNext &&
+          selector->mNext->mOperator != selector->mOperator &&
           !(selector->mOperator == '~' &&
-            selector->mNext->mOperator == PRUnichar(0))) {
+            (selector->mNext->mOperator == PRUnichar(0) ||
+             selector->mNext->mOperator == PRUnichar('>')))) {
 
         
         
