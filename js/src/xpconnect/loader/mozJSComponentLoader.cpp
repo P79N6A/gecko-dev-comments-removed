@@ -1396,6 +1396,7 @@ mozJSComponentLoader::ImportInto(const nsACString & aLocation,
                                  JSObject * *_retval)
 {
     nsresult rv;
+    *_retval = nsnull;
 
     if (!mInitialized) {
         rv = ReallyInit();
@@ -1405,19 +1406,12 @@ mozJSComponentLoader::ImportInto(const nsACString & aLocation,
     nsCOMPtr<nsIIOService> ioService = do_GetIOService(&rv);
     NS_ENSURE_SUCCESS(rv, rv);
 
-    nsCAutoString scheme;
-    rv = ioService->ExtractScheme(aLocation, scheme);
-    if (NS_FAILED(rv) ||
-        !scheme.EqualsLiteral("resource")) {
-      *_retval = nsnull;
-      return NS_ERROR_INVALID_ARG;
-    }
-
     
     nsCOMPtr<nsIURI> resURI;
     rv = ioService->NewURI(aLocation, nsnull, nsnull, getter_AddRefs(resURI));
     nsCOMPtr<nsIFileURL> fileURL = do_QueryInterface(resURI, &rv);
-    NS_ENSURE_SUCCESS(rv, rv);
+    
+    NS_ENSURE_SUCCESS(rv, NS_ERROR_INVALID_ARG);
 
     
     nsCOMPtr<nsIFile> file;
