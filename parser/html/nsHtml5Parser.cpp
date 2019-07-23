@@ -59,6 +59,7 @@
 #include "nsHtml5UTF16Buffer.h"
 #include "nsHtml5TreeBuilder.h"
 #include "nsHtml5Parser.h"
+#include "nsHtml5AtomTable.h"
 
 
 
@@ -96,13 +97,11 @@ NS_IMPL_CYCLE_COLLECTION_CLASS(nsHtml5Parser)
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(nsHtml5Parser)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR_AMBIGUOUS(mExecutor, nsIContentSink)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR_AMBIGUOUS(mStreamParser, nsIStreamListener)
-  tmp->mTreeBuilder->DoTraverse(cb);
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(nsHtml5Parser)
   NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mExecutor)
   NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mStreamParser)
-  tmp->mTreeBuilder->DoUnlink();
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
 nsHtml5Parser::nsHtml5Parser()
@@ -111,8 +110,11 @@ nsHtml5Parser::nsHtml5Parser()
   , mExecutor(new nsHtml5TreeOpExecutor())
   , mTreeBuilder(new nsHtml5TreeBuilder(mExecutor))
   , mTokenizer(new nsHtml5Tokenizer(mTreeBuilder))
+  , mAtomTable(new nsHtml5AtomTable())
 {
   mExecutor->SetTreeBuilder(mTreeBuilder);
+  mAtomTable->Init(); 
+  mTokenizer->setInterner(mAtomTable);
   
 }
 
@@ -455,7 +457,10 @@ nsHtml5Parser::ParseFragment(const nsAString& aSourceBuffer,
   nsIURI* uri = doc->GetDocumentURI();
   NS_ENSURE_TRUE(uri, NS_ERROR_NOT_AVAILABLE);
 
-  Initialize(doc, uri, nsnull, nsnull);
+  nsCOMPtr<nsISupports> container = doc->GetContainer();
+  NS_ENSURE_TRUE(container, NS_ERROR_NOT_AVAILABLE);
+
+  Initialize(doc, uri, container, nsnull);
 
   
   mExecutor->SetBaseUriFromDocument();
@@ -463,7 +468,8 @@ nsHtml5Parser::ParseFragment(const nsAString& aSourceBuffer,
   mExecutor->SetParser(this);
   mExecutor->SetNodeInfoManager(target->GetOwnerDoc()->NodeInfoManager());
 
-  mTreeBuilder->setFragmentContext(aContextLocalName, aContextNamespace, target, aQuirks);
+  nsIContent* weakTarget = target;
+  mTreeBuilder->setFragmentContext(aContextLocalName, aContextNamespace, &weakTarget, aQuirks);
   mFragmentMode = PR_TRUE;
   
   NS_PRECONDITION(mExecutor->GetLifeCycle() == NOT_STARTED, "Tried to start parse without initializing the parser properly.");
@@ -489,6 +495,7 @@ nsHtml5Parser::ParseFragment(const nsAString& aSourceBuffer,
   mExecutor->Flush();
   mTokenizer->end();
   mExecutor->DropParserAndPerfHint();
+  mAtomTable->Clear();
   return NS_OK;
 }
 
@@ -518,6 +525,7 @@ nsHtml5Parser::Reset()
   mStreamParser = nsnull;
   mRootContextKey = nsnull;
   mContinueEvent = nsnull;  
+  mAtomTable->Clear(); 
   
   while (mFirstBuffer->next) {
     nsHtml5UTF16Buffer* oldBuf = mFirstBuffer;

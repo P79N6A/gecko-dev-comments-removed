@@ -53,6 +53,7 @@
 #include "nsITimer.h"
 #include "nsIScriptElement.h"
 #include "nsIParser.h"
+#include "nsCOMArray.h"
 
 class nsHtml5TreeBuilder;
 class nsHtml5Tokenizer;
@@ -112,6 +113,12 @@ class nsHtml5TreeOpExecutor : public nsIContentSink,
     nsTArray<nsIContentPtr>              mElementsSeenInThisAppendBatch;
     nsTArray<nsHtml5PendingNotification> mPendingNotifications;
     nsHtml5StreamParser*                 mStreamParser;
+    nsCOMArray<nsIContent>               mOwnedElements;
+    
+    
+    
+    
+    nsCOMArray<nsIContent>               mOwnedNonElements;
 
     
 
@@ -243,6 +250,10 @@ class nsHtml5TreeOpExecutor : public nsIContentSink,
 
 
     nsresult MaybePerformCharsetSwitch();
+
+    inline void SetScriptElement(nsIContent* aScript) {
+      mScriptElement = aScript;
+    }
 
     
 
@@ -376,19 +387,20 @@ class nsHtml5TreeOpExecutor : public nsIContentSink,
         mScriptElement = nsnull;
       }    
     }
-    
-    
-
-
-    void SetScriptElement(nsIContent* aScript) { 
-      mScriptElement = aScript;
-    }
-    
+        
     void SetTreeBuilder(nsHtml5TreeBuilder* aBuilder) {
       mTreeBuilder = aBuilder;
     }
     
     void Reset();
+    
+    inline void HoldElement(nsIContent* aContent) {
+      mOwnedElements.AppendObject(aContent);
+    }
+
+    inline void HoldNonElement(nsIContent* aContent) {
+      mOwnedNonElements.AppendObject(aContent);
+    }
 
   private:
 
