@@ -743,7 +743,8 @@ xpc_qsStringToJsval(JSContext *cx, const nsAString &str, jsval *rval)
 
 JSBool
 xpc_qsXPCOMObjectToJsval(XPCCallContext &ccx, nsISupports *p,
-                         XPCNativeInterface *iface, jsval *rval)
+                         nsWrapperCache *cache, XPCNativeInterface *iface,
+                         jsval *rval)
 {
     
     
@@ -761,7 +762,7 @@ xpc_qsXPCOMObjectToJsval(XPCCallContext &ccx, nsISupports *p,
     
     nsresult rv;
     if(!XPCConvert::NativeInterface2JSObject(ccx, rval, nsnull, p, nsnull,
-                                             iface, scope, PR_TRUE,
+                                             iface, cache, scope, PR_TRUE,
                                              OBJ_IS_NOT_GLOBAL, &rv))
     {
         
