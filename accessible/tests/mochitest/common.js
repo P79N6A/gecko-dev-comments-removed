@@ -49,14 +49,19 @@ var gAccRetrieval = null;
 
 
 
-function getAccessible(aElmOrID, aInterfaces, aElmObj)
+function getAccessible(aAccOrElmOrID, aInterfaces, aElmObj)
 {
   var elm = null;
 
-  if (aElmOrID instanceof nsIDOMNode) {
-    elm = aElmOrID;
+  if (aAccOrElmOrID instanceof nsIAccessible) {
+    aAccOrElmOrID.QueryInterface(nsIAccessNode);
+    elm = aAccOrElmOrID.DOMNode;
+
+  } else if (aAccOrElmOrID instanceof nsIDOMNode) {
+    elm = aAccOrElmOrID;
+
   } else {
-    var elm = document.getElementById(aElmOrID);
+    var elm = document.getElementById(aAccOrElmOrID);
     if (!elm) {
       ok(false, "Can't get DOM element for " + aID);
       return null;
@@ -66,15 +71,17 @@ function getAccessible(aElmOrID, aInterfaces, aElmObj)
   if (aElmObj && (typeof aElmObj == "object"))
     aElmObj.value = elm;
 
-  var acc = null;
-  try {
-    acc = gAccRetrieval.getAccessibleFor(elm);
-  } catch (e) {
-  }
-  
+  var acc = (aAccOrElmOrID instanceof nsIAccessible) ? aAccOrElmOrID : null;
   if (!acc) {
-    ok(false, "Can't get accessible for " + aID);
-    return null;
+    try {
+      acc = gAccRetrieval.getAccessibleFor(elm);
+    } catch (e) {
+    }
+    
+    if (!acc) {
+      ok(false, "Can't get accessible for " + aID);
+      return null;
+    }
   }
   
   if (!aInterfaces)
@@ -109,10 +116,91 @@ function getAccessible(aElmOrID, aInterfaces, aElmObj)
 
 
 
+
+
+
+
+
+
+function registerA11yEventListener(aEventType, aEventHandler)
+{
+  if (!gA11yEventListenersCount) {
+    gObserverService = Components.classes["@mozilla.org/observer-service;1"].
+      getService(nsIObserverService);
+
+    gObserverService.addObserver(gA11yEventObserver, "accessible-event",
+                                 false);
+  }
+
+  if (!(aEventType in gA11yEventListeners))
+    gA11yEventListeners[aEventType] = new Array();
+
+  gA11yEventListeners[aEventType].push(aEventHandler);
+  gA11yEventListenersCount++;
+}
+
+
+
+
+
+
+function unregisterA11yEventListener(aEventType, aEventHandler)
+{
+  var listenersArray = gA11yEventListeners[aEventType];
+  if (listenersArray) {
+    var index = listenersArray.indexOf(aEventHandler);
+    listenersArray.splice(index, 1);
+
+    if (!listenersArray.length) {
+      gA11yEventListeners[aEventType] = null;
+      delete gA11yEventListeners[aEventType];
+    }
+  }
+  
+  gA11yEventListenersCount--;
+  if (!gA11yEventListenersCount) {
+    gObserverService.removeObserver(gA11yEventObserver,
+                                    "accessible-event");
+  }
+}
+
+
+
+
+
+
+
+
+
 function initialize()
 {
   gAccRetrieval = Components.classes["@mozilla.org/accessibleRetrieval;1"].
-  getService(nsIAccessibleRetrieval);
+    getService(nsIAccessibleRetrieval);
 }
 
 addLoadEvent(initialize);
+
+
+
+
+var gObserverService = null;
+
+var gA11yEventListeners = {};
+var gA11yEventListenersCount = 0;
+
+var gA11yEventObserver =
+{
+  observe: function observe(aSubject, aTopic, aData)
+  {
+    if (aTopic != "accessible-event")
+      return;
+
+    var event = aSubject.QueryInterface(nsIAccessibleEvent);
+    var listenersArray = gA11yEventListeners[event.eventType];
+    if (!listenersArray)
+      return;
+
+    for (var index = 0; index < listenersArray.length; index++)
+      listenersArray[index].handleEvent(event);
+  }
+};
