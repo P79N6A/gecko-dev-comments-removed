@@ -786,6 +786,8 @@ js_NewGenerator(JSContext *cx, JSStackFrame *fp)
     gen->frame.flags = (fp->flags & ~JSFRAME_ROOTED_ARGV) | JSFRAME_GENERATOR;
     gen->frame.dormantNext = NULL;
     gen->frame.xmlNamespace = NULL;
+    
+    JS_ASSERT(!fp->blockChain);
     gen->frame.blockChain = NULL;
 
     
