@@ -1218,7 +1218,7 @@ nsNavHistory::InitStatements()
 
   
   rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
-      "INSERT OR REPLACE INTO moz_places_view "
+      "INSERT INTO moz_places_view "
         "(url, title, rev_host, hidden, typed, frecency) "
       "VALUES (?1, ?2, ?3, ?4, ?5, ?6)"),
     getter_AddRefs(mDBAddNewPage));
@@ -2675,8 +2675,8 @@ nsNavHistory::AddVisit(nsIURI* aURI, PRTime aTime, nsIURI* aReferringURI,
   NS_ENSURE_SUCCESS(rv, rv);
 
   PRInt64 pageID = 0;
-  PRBool hidden; 
-  PRBool typed;  
+  PRInt32 hidden;
+  PRInt32 typed;
   PRBool newItem = PR_FALSE; 
   if (alreadyVisited) {
     
@@ -2712,11 +2712,11 @@ nsNavHistory::AddVisit(nsIURI* aURI, PRTime aTime, nsIURI* aReferringURI,
     
     
     hidden = oldHiddenState;
-    if (hidden && (!aIsRedirect || aTransitionType == TRANSITION_TYPED) &&
+    if (hidden == 1 && (!aIsRedirect || aTransitionType == TRANSITION_TYPED) &&
         aTransitionType != TRANSITION_EMBED)
-      hidden = PR_FALSE; 
+      hidden = 0; 
 
-    typed = oldTypedState || (aTransitionType == TRANSITION_TYPED);
+    typed = (PRInt32)(oldTypedState == 1 || (aTransitionType == TRANSITION_TYPED));
 
     
     
@@ -2745,14 +2745,15 @@ nsNavHistory::AddVisit(nsIURI* aURI, PRTime aTime, nsIURI* aReferringURI,
 
     
     
-    hidden = (aTransitionType == TRANSITION_EMBED || aIsRedirect);
+    hidden = (PRInt32)(aTransitionType == TRANSITION_EMBED || aIsRedirect);
 
-    typed = (aTransitionType == TRANSITION_TYPED);
+    typed = (PRInt32)(aTransitionType == TRANSITION_TYPED);
 
     
     nsString voidString;
     voidString.SetIsVoid(PR_TRUE);
-    rv = InternalAddNewPage(aURI, voidString, hidden, typed, 1, PR_TRUE, &pageID);
+    rv = InternalAddNewPage(aURI, voidString, hidden == 1, typed == 1, 1,
+                            PR_TRUE, &pageID);
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
@@ -6572,13 +6573,12 @@ nsNavHistory::SetPageTitleInternal(nsIURI* aURI, const nsAString& aTitle)
 }
 
 nsresult
-nsNavHistory::AddPageWithVisit(nsIURI *aURI,
-                               const nsString &aTitle,
-                               PRBool aHidden,
-                               PRBool aTyped,
-                               PRInt32 aVisitCount,
-                               PRInt32 aLastVisitTransition,
-                               PRTime aLastVisitDate)
+nsNavHistory::AddPageWithVisits(nsIURI *aURI,
+                                const nsString &aTitle,
+                                PRInt32 aVisitCount,
+                                PRInt32 aTransitionType,
+                                PRTime aFirstVisitDate,
+                                PRTime aLastVisitDate)
 {
   PRBool canAdd = PR_FALSE;
   nsresult rv = CanAddURI(aURI, &canAdd);
@@ -6587,16 +6587,69 @@ nsNavHistory::AddPageWithVisit(nsIURI *aURI,
     return NS_OK;
   }
 
-  PRInt64 pageID;
   
-  rv = InternalAddNewPage(aURI, aTitle, aHidden, aTyped, aVisitCount, PR_FALSE, &pageID);
+  mozStorageStatementScoper scoper(mDBGetPageVisitStats);
+  rv = BindStatementURI(mDBGetPageVisitStats, 0, aURI);
+  NS_ENSURE_SUCCESS(rv, rv);
+  PRBool alreadyVisited = PR_FALSE;
+  rv = mDBGetPageVisitStats->ExecuteStep(&alreadyVisited);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  if (aLastVisitDate != -1) {
-    PRInt64 visitID;
-    rv = InternalAddVisit(pageID, 0, 0,
-                          aLastVisitDate, aLastVisitTransition, &visitID);
+  PRInt64 placeId = 0;
+  PRInt32 typed = 0;
+  PRInt32 hidden = 0;
+
+  if (alreadyVisited) {
+    
+    rv = mDBGetPageVisitStats->GetInt64(0, &placeId);
     NS_ENSURE_SUCCESS(rv, rv);
+    
+    rv = mDBGetPageVisitStats->GetInt32(2, &typed);
+    NS_ENSURE_SUCCESS(rv, rv);
+    rv = mDBGetPageVisitStats->GetInt32(3, &hidden);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    if (typed == 0 && aTransitionType == TRANSITION_TYPED) {
+      typed = 1;
+      
+      mozStorageStatementScoper updateScoper(mDBUpdatePageVisitStats);
+      rv = mDBUpdatePageVisitStats->BindInt64Parameter(0, placeId);
+      NS_ENSURE_SUCCESS(rv, rv);
+      rv = mDBUpdatePageVisitStats->BindInt32Parameter(1, hidden);
+      NS_ENSURE_SUCCESS(rv, rv);
+      rv = mDBUpdatePageVisitStats->BindInt32Parameter(2, typed);
+      NS_ENSURE_SUCCESS(rv, rv);
+
+      rv = mDBUpdatePageVisitStats->Execute();
+      NS_ENSURE_SUCCESS(rv, rv);
+    }
+  } else {
+    
+    rv = InternalAddNewPage(aURI, aTitle, hidden == 1,
+                            aTransitionType == TRANSITION_TYPED, 0,
+                            PR_FALSE, &placeId);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
+
+  NS_ASSERTION(placeId != 0, "Cannot add a visit to a not existant page");
+
+  if (aFirstVisitDate != -1) {
+    
+    PRInt64 visitId;
+    rv = InternalAddVisit(placeId, 0, 0,
+                          aFirstVisitDate, aTransitionType, &visitId);
+    aVisitCount--;
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
+
+  if (aLastVisitDate != -1) {
+   
+   for (PRInt64 i = 0; i < aVisitCount; i++) {
+      PRInt64 visitId;
+      rv = InternalAddVisit(placeId, 0, 0,
+                            aLastVisitDate - i, aTransitionType, &visitId);
+      NS_ENSURE_SUCCESS(rv, rv);
+    }
   }
 
   return NS_OK;

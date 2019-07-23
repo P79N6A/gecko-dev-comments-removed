@@ -39,13 +39,10 @@
 
 
 
-try {
-  var histsvc = Cc["@mozilla.org/browser/nav-history-service;1"].getService(Ci.nsINavHistoryService);
-  var gh = Cc["@mozilla.org/browser/global-history;2"].
-           getService(Ci.nsIGlobalHistory2);
-} catch(ex) {
-  do_throw("Could not get history service\n");
-} 
+var histsvc = Cc["@mozilla.org/browser/nav-history-service;1"].
+              getService(Ci.nsINavHistoryService);
+var gh = histsvc.QueryInterface(Ci.nsIGlobalHistory2);
+var bh = histsvc.QueryInterface(Ci.nsIBrowserHistory);
 
 
 
@@ -231,8 +228,6 @@ function run_test() {
   histFile.append("history.dat");
   do_check_true(histFile.exists());
 
-  var globalHistory = Components.classes["@mozilla.org/browser/global-history;2"]
-                                .getService(Components.interfaces.nsIBrowserHistory);
-  globalHistory.removeAllPages();
+  bh.removeAllPages();
   do_check_false(histFile.exists());
 }

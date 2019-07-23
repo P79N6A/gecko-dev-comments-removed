@@ -353,17 +353,12 @@ public:
   
   
   
-  
-  
-  
-  
-  
-  nsresult AddPageWithVisit(nsIURI *aURI,
-                            const nsString &aTitle,
-                            PRBool aHidden, PRBool aTyped,
-                            PRInt32 aVisitCount,
-                            PRInt32 aLastVisitTransition,
-                            PRTime aLastVisitDate);
+  nsresult AddPageWithVisits(nsIURI *aURI,
+                             const nsString &aTitle,
+                             PRInt32 aVisitCount,
+                             PRInt32 aTransitionType,
+                             PRTime aFirstVisitDate,
+                             PRTime aLastVisitDate);
 
   
   
