@@ -154,6 +154,15 @@ class nsDocAccessible : public nsHyperTextAccessibleWrap,
 
 
 
+
+    void AttributeChangedImpl(nsIContent* aContent, PRInt32 aNameSpaceID, nsIAtom* aAttribute);
+
+    
+
+
+
+
+
     void ARIAAttributeChanged(nsIContent* aContent, nsIAtom* aAttribute);
 
     
@@ -195,6 +204,7 @@ class nsDocAccessible : public nsHyperTextAccessibleWrap,
 protected:
     PRBool mIsAnchor;
     PRBool mIsAnchorJumped;
+    static PRUint32 gLastFocusedAccessiblesState;
 
 private:
     static void DocLoadCallback(nsITimer *aTimer, void *aClosure);

@@ -1630,11 +1630,10 @@ nsIContent* nsAccessible::GetHTMLLabelContent(nsIContent *aForNode)
       
       
       nsAutoString forId;
-      aForNode->GetAttr(kNameSpaceID_None, nsAccessibilityAtoms::id, forId);
-      
-      if (forId.IsEmpty()) {
+      if (!nsAccUtils::GetID(aForNode, forId)) {
         break;
       }
+      
       return FindDescendantPointingToID(&forId, walkUpContent,
                                         nsAccessibilityAtoms::_for);
     }
@@ -1701,10 +1700,8 @@ nsAccessible::FindNeighbourPointingToNode(nsIContent *aForNode,
                                           PRUint32 aAncestorLevelsToSearch)
 {
   nsCOMPtr<nsIContent> binding;
-
   nsAutoString controlID;
-  aForNode->GetAttr(kNameSpaceID_None, nsAccessibilityAtoms::id, controlID);
-  if (controlID.IsEmpty()) {
+  if (!nsAccUtils::GetID(aForNode, controlID)) {
     binding = aForNode->GetBindingParent();
     if (binding == aForNode)
       return nsnull;
@@ -2063,12 +2060,10 @@ nsAccessible::GetAttributes(nsIPersistentProperties **aAttributes)
   NS_ENSURE_SUCCESS(rv, rv);
 
   nsCOMPtr<nsIContent> content = GetRoleContent(mDOMNode);
-  if (content) {
-    nsAutoString id;
+  nsAutoString id;
+  if (content && nsAccUtils::GetID(content, id)) {
     nsAutoString oldValueUnused;
-    if (content->GetAttr(kNameSpaceID_None, nsAccessibilityAtoms::id, id)) {
-      attributes->SetStringProperty(NS_LITERAL_CSTRING("id"), id, oldValueUnused);    
-    }
+    attributes->SetStringProperty(NS_LITERAL_CSTRING("id"), id, oldValueUnused);
     
     
     nsAutoString xmlRole;

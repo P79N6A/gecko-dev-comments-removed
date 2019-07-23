@@ -77,6 +77,8 @@
 
 
 
+PRUint32 nsDocAccessible::gLastFocusedAccessiblesState = 0;
+
 
 
 
@@ -919,6 +921,23 @@ nsDocAccessible::AttributeChanged(nsIDocument *aDocument, nsIContent* aContent,
                                   PRInt32 aNameSpaceID, nsIAtom* aAttribute,
                                   PRInt32 aModType, PRUint32 aStateMask)
 {
+  AttributeChangedImpl(aContent, aNameSpaceID, aAttribute);
+
+  
+  nsCOMPtr<nsIDOMNode> targetNode = do_QueryInterface(aContent);
+  if (targetNode == gLastFocusedNode) {
+    nsCOMPtr<nsIAccessible> focusedAccessible;
+    GetAccService()->GetAccessibleFor(targetNode, getter_AddRefs(focusedAccessible));
+    if (focusedAccessible) {
+      gLastFocusedAccessiblesState = State(focusedAccessible);
+    }
+  }
+}
+
+
+void
+nsDocAccessible::AttributeChangedImpl(nsIContent* aContent, PRInt32 aNameSpaceID, nsIAtom* aAttribute)
+{
   
   
   
@@ -1087,21 +1106,33 @@ nsDocAccessible::ARIAAttributeChanged(nsIContent* aContent, nsIAtom* aAttribute)
     return;
   }
 
-  if (aAttribute == nsAccessibilityAtoms::checked) {
+  if (aAttribute == nsAccessibilityAtoms::checked ||
+      aAttribute == nsAccessibilityAtoms::pressed) {
+    const PRUint32 kState = (aAttribute == nsAccessibilityAtoms::checked) ?
+                            nsIAccessibleStates::STATE_CHECKED : 
+                            nsIAccessibleStates::STATE_PRESSED;
     nsCOMPtr<nsIAccessibleStateChangeEvent> event =
-      new nsAccStateChangeEvent(targetNode,
-                                nsIAccessibleStates::STATE_CHECKED,
-                                PR_FALSE);
+      new nsAccStateChangeEvent(targetNode, kState, PR_FALSE);
     FireDelayedAccessibleEvent(event);
-    return;
-  }
-
-  if (aAttribute == nsAccessibilityAtoms::pressed) {
-    nsCOMPtr<nsIAccessibleStateChangeEvent> event =
-      new nsAccStateChangeEvent(targetNode,
-                                nsIAccessibleStates::STATE_PRESSED,
-                                PR_FALSE);
-    FireDelayedAccessibleEvent(event);
+    if (targetNode == gLastFocusedNode) {
+      
+      
+      
+      
+      nsCOMPtr<nsIAccessible> accessible;
+      event->GetAccessible(getter_AddRefs(accessible));
+      if (accessible) {
+        PRBool wasMixed = (gLastFocusedAccessiblesState & nsIAccessibleStates::STATE_MIXED) != 0;
+        PRBool isMixed  = (State(accessible) & nsIAccessibleStates::STATE_MIXED) != 0;
+        if (wasMixed != isMixed) {
+          nsCOMPtr<nsIAccessibleStateChangeEvent> event =
+            new nsAccStateChangeEvent(targetNode,
+                                      nsIAccessibleStates::STATE_MIXED,
+                                      PR_FALSE, isMixed);
+          FireDelayedAccessibleEvent(event);
+        }
+      }
+    }
     return;
   }
 

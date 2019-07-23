@@ -866,18 +866,17 @@ nsresult nsHyperTextAccessible::GetTextHelper(EGetTextType aType, nsAccessibleTe
                                        amount, eDirNext, needsStart);
     NS_ENSURE_TRUE(endOffset >= 0, NS_ERROR_FAILURE);
     if (finalEndOffset == aOffset) {
+      if (aType == eGetAt && amount == eSelectWord) { 
+        
+        
+        
+        return GetTextHelper(eGetAfter, aBoundaryType, aOffset, aStartOffset, aEndOffset, aText);
+      }
       
       
       
       ++ finalEndOffset;
     }
-  }
-
-  
-  
-  
-  if (aType == eGetAt && amount == eSelectWord && aOffset == endOffset) { 
-    return GetTextHelper(eGetAfter, aBoundaryType, aOffset, aStartOffset, aEndOffset, aText);
   }
 
   *aStartOffset = finalStartOffset;

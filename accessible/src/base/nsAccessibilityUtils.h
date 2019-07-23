@@ -180,6 +180,14 @@ public:
 
   static already_AddRefed<nsIDocShellTreeItem>
     GetDocShellTreeItemFor(nsIDOMNode *aNode);
+
+  
+
+
+
+
+
+  static PRBool GetID(nsIContent *aContent, nsAString& aID);
 };
 
 #endif
