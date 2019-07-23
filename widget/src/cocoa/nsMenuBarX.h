@@ -82,6 +82,7 @@ namespace MenuHelpersX
 
 
 
+
 class nsMenuBarX : public nsIMenuBar,
                    public nsIMenuListener,
                    public nsIMutationObserver,
