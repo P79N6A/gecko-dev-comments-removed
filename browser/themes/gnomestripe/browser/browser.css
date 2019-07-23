@@ -57,6 +57,17 @@
 
 
 
+
+#navigator-toolbox {
+  margin-bottom: -1px;
+}
+
+.tabbrowser-strip {
+  margin-top: 1px;
+}
+
+
+
 #searchbar .searchbar-dropmarker menuseparator + menuitem { 
 -moz-padding-start: 4px; 
 }
