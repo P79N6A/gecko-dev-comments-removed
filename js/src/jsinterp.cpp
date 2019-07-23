@@ -4589,6 +4589,15 @@ js_Interpret(JSContext *cx)
                                                  rval);
                                 LOCKED_OBJ_SET_SLOT(obj, slot, rval);
                                 JS_UNLOCK_SCOPE(cx, scope);
+
+                                
+
+
+
+
+
+                                js_PurgeScopeChain(cx, obj, sprop->id);
+
                                 TRACE_2(SetPropHit, entry, sprop);
                                 break;
                             }

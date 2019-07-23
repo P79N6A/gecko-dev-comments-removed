@@ -564,6 +564,22 @@ js_CheckForStringIndex(jsid id, const jschar *cp, const jschar *end,
 
 
 
+
+
+extern void
+js_PurgeScopeChainHelper(JSContext *cx, JSObject *obj, jsid id);
+
+static JS_INLINE void
+js_PurgeScopeChain(JSContext *cx, JSObject *obj, jsid id)
+{
+    if (OBJ_IS_DELEGATE(cx, obj))
+        js_PurgeScopeChainHelper(cx, obj, id);
+}
+
+
+
+
+
 extern JSScopeProperty *
 js_AddNativeProperty(JSContext *cx, JSObject *obj, jsid id,
                      JSPropertyOp getter, JSPropertyOp setter, uint32 slot,
