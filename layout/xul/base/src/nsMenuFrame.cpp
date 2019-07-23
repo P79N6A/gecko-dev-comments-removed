@@ -393,6 +393,10 @@ nsMenuFrame::Destroy()
   mTimerMediator->ClearFrame();
 
   
+  
+  mContent->UnsetAttr(kNameSpaceID_None, nsGkAtoms::menuactive, PR_FALSE);
+
+  
   if (mMenuParent && mMenuParent->GetCurrentMenuItem() == this) {
     
     mMenuParent->CurrentMenuIsBeingDestroyed();
