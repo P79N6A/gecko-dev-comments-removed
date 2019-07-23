@@ -82,6 +82,7 @@ public:
   NS_IMETHOD KeyPress(nsIDOMEvent* aKeyEvent); 
 
   NS_DECL_QUERYFRAME
+  NS_DECL_FRAMEARENA_HELPERS
 
   
   NS_IMETHOD QueryInterface(const nsIID& aIID, void** aInstancePtr);

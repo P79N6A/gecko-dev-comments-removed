@@ -112,6 +112,22 @@
 
 
 
+
+
+
+
+#define NS_DECL_FRAMEARENA_HELPERS                                \
+  NS_MUST_OVERRIDE void* operator new(size_t, nsIPresShell*);     \
+  virtual NS_MUST_OVERRIDE size_t GetAllocatedSize();
+
+#define NS_IMPL_FRAMEARENA_HELPERS(class)                         \
+  void* class::operator new(size_t sz, nsIPresShell* aShell)      \
+  { return aShell->AllocateFrame(sz, nsQueryFrame::class##_id); } \
+  size_t class::GetAllocatedSize()                                \
+  { return sizeof(class); }
+
+
+
 struct nsBoxLayoutMetrics;
 
 
@@ -130,10 +146,6 @@ public:
 
   friend nsIFrame* NS_NewEmptyFrame(nsIPresShell* aShell,
                                     nsStyleContext* aContext);
-
-  
-  
-  void* operator new(size_t sz, nsIPresShell* aPresShell) CPP_THROW_NEW;
 
 private:
   
@@ -156,6 +168,7 @@ public:
 
   
   NS_DECL_QUERYFRAME
+  NS_DECL_FRAMEARENA_HELPERS
 
   
   NS_IMETHOD  Init(nsIContent*      aContent,

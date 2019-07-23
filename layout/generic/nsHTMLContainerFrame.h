@@ -69,6 +69,7 @@ class nsDisplayTextDecoration;
 
 class nsHTMLContainerFrame : public nsContainerFrame {
 public:
+  NS_DECL_FRAMEARENA_HELPERS
 
   
 

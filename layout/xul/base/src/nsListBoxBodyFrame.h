@@ -64,9 +64,9 @@ class nsListBoxBodyFrame : public nsBoxFrame,
   virtual ~nsListBoxBodyFrame();
 
 public:
-  NS_DECLARE_FRAME_ACCESSOR(nsListBoxBodyFrame)
-
+  NS_DECL_QUERYFRAME_TARGET(nsListBoxBodyFrame)
   NS_DECL_QUERYFRAME
+  NS_DECL_FRAMEARENA_HELPERS
 
   
   nsresult GetRowCount(PRInt32 *aResult);

@@ -96,6 +96,8 @@ NS_NewMathMLmactionFrame(nsIPresShell* aPresShell, nsStyleContext* aContext)
   return new (aPresShell) nsMathMLmactionFrame(aContext);
 }
 
+NS_IMPL_FRAMEARENA_HELPERS(nsMathMLmactionFrame)
+
 nsMathMLmactionFrame::~nsMathMLmactionFrame()
 {
   

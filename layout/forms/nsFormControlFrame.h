@@ -49,7 +49,6 @@
 class nsFormControlFrame : public nsLeafFrame,
                            public nsIFormControlFrame
 {
-
 public:
   
 
@@ -65,6 +64,7 @@ public:
   }
 
   NS_DECL_QUERYFRAME
+  NS_DECL_FRAMEARENA_HELPERS
 
   
 

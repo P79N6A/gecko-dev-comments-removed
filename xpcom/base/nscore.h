@@ -145,7 +145,8 @@
 
 
 
-#if defined(__i386__) && defined(__GNUC__) && (__GNUC__ >= 3) && !defined(XP_OS2)
+#if defined(__i386__) && defined(__GNUC__) && \
+    (__GNUC__ >= 3) && !defined(XP_OS2)
 #define NS_FASTCALL __attribute__ ((regparm (3), stdcall))
 #define NS_CONSTRUCTOR_FASTCALL __attribute__ ((regparm (3), stdcall))
 #elif defined(XP_WIN)
@@ -160,7 +161,8 @@
 
 
 
-#if defined(__i386__) && defined(__GNUC__) && (__GNUC__ >= 3) && !defined(XP_OS2)
+#if defined(__i386__) && defined(__GNUC__) && \
+    (__GNUC__ >= 3) && !defined(XP_OS2)
 #define NS_DEFCALL __attribute__ ((regparm (0), cdecl))
 #else
 #define NS_DEFCALL
@@ -401,6 +403,7 @@ typedef PRUint32 nsrefcnt;
 
 
 
+
 #ifndef HAVE_CPP_EXPLICIT
   #define explicit
 #endif
@@ -469,16 +472,29 @@ typedef PRUint32 nsrefcnt;
 
 
 
+
+
+
+
+
+
+
+
+
+
+
 #ifdef NS_STATIC_CHECKING
 #define NS_STACK_CLASS __attribute__((user("NS_stack")))
 #define NS_OKONHEAP    __attribute__((user("NS_okonheap")))
 #define NS_SUPPRESS_STACK_CHECK __attribute__((user("NS_suppress_stackcheck")))
 #define NS_FINAL_CLASS __attribute__((user("NS_final")))
+#define NS_MUST_OVERRIDE __attribute__((user("NS_must_override")))
 #else
 #define NS_STACK_CLASS
 #define NS_OKONHEAP
 #define NS_SUPPRESS_STACK_CHECK
 #define NS_FINAL_CLASS
+#define NS_MUST_OVERRIDE
 #endif
 
 

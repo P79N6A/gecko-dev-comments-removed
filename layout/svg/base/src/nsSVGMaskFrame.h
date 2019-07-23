@@ -56,6 +56,8 @@ protected:
     mInUse(PR_FALSE) {}
 
 public:
+  NS_DECL_FRAMEARENA_HELPERS
+
   
   already_AddRefed<gfxPattern> ComputeMaskAlpha(nsSVGRenderState *aContext,
                                                 nsIFrame* aParent,

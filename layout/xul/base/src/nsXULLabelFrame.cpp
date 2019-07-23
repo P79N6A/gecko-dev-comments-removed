@@ -53,6 +53,8 @@ NS_NewXULLabelFrame(nsIPresShell* aPresShell, nsStyleContext* aContext)
   return it;
 }
 
+NS_IMPL_FRAMEARENA_HELPERS(nsXULLabelFrame)
+
 
 
 nsresult

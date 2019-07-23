@@ -52,9 +52,9 @@ protected:
     nsSVGInnerSVGFrameBase(aContext) {}
   
 public:
-  NS_DECLARE_FRAME_ACCESSOR(nsSVGInnerSVGFrame)
-
+  NS_DECL_QUERYFRAME_TARGET(nsSVGInnerSVGFrame)
   NS_DECL_QUERYFRAME
+  NS_DECL_FRAMEARENA_HELPERS
 
   
   

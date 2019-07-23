@@ -48,6 +48,8 @@ class nsTableFrame;
 class nsTableCaptionFrame : public nsBlockFrame
 {
 public:
+  NS_DECL_FRAMEARENA_HELPERS
+
   
   virtual nsIAtom* GetType() const;
   friend nsIFrame* NS_NewTableCaptionFrame(nsIPresShell* aPresShell, nsStyleContext*  aContext);
@@ -86,8 +88,8 @@ protected:
 class nsTableOuterFrame : public nsHTMLContainerFrame, public nsITableLayout
 {
 public:
-
   NS_DECL_QUERYFRAME
+  NS_DECL_FRAMEARENA_HELPERS
 
   
 

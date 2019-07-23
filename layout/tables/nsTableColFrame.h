@@ -53,6 +53,7 @@ enum nsTableColType {
 
 class nsTableColFrame : public nsSplittableFrame {
 public:
+  NS_DECL_FRAMEARENA_HELPERS
 
   enum {eWIDTH_SOURCE_NONE          =0,   
         eWIDTH_SOURCE_CELL          =1,   

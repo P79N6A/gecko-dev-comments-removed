@@ -172,6 +172,8 @@ NS_NewComboboxControlFrame(nsIPresShell* aPresShell, nsStyleContext* aContext, P
   return it;
 }
 
+NS_IMPL_FRAMEARENA_HELPERS(nsComboboxControlFrame)
+
 
 
 
@@ -1052,6 +1054,8 @@ nsComboboxControlFrame::CreateAnonymousContent(nsTArray<nsIContent*>& aElements)
 
 class nsComboboxDisplayFrame : public nsBlockFrame {
 public:
+  NS_DECL_FRAMEARENA_HELPERS
+
   nsComboboxDisplayFrame (nsStyleContext* aContext,
                           nsComboboxControlFrame* aComboBox)
     : nsBlockFrame(aContext),
@@ -1080,6 +1084,8 @@ public:
 protected:
   nsComboboxControlFrame* mComboBox;
 };
+
+NS_IMPL_FRAMEARENA_HELPERS(nsComboboxDisplayFrame)
 
 nsIAtom*
 nsComboboxDisplayFrame::GetType() const

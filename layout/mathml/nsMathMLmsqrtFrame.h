@@ -69,6 +69,8 @@
 
 class nsMathMLmsqrtFrame : public nsMathMLmencloseFrame {
 public:
+  NS_DECL_FRAMEARENA_HELPERS
+
   friend nsIFrame* NS_NewMathMLmsqrtFrame(nsIPresShell*   aPresShell,
                                           nsStyleContext* aContext);
 

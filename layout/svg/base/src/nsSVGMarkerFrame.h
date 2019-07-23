@@ -60,6 +60,8 @@ protected:
     mInUse2(PR_FALSE) {}
 
 public:
+  NS_DECL_FRAMEARENA_HELPERS
+
   
 #ifdef DEBUG
   NS_IMETHOD Init(nsIContent*      aContent,

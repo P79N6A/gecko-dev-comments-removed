@@ -288,30 +288,6 @@ NS_NewEmptyFrame(nsIPresShell* aPresShell, nsStyleContext* aContext)
   return new (aPresShell) nsFrame(aContext);
 }
 
-
-
-void*
-nsFrame::operator new(size_t sz, nsIPresShell* aPresShell) CPP_THROW_NEW
-{
-  return aPresShell->AllocateFrame(sz, 0 );
-}
-
-
-
-void
-nsFrame::operator delete(void* aPtr, size_t sz)
-{
-  
-  
-
-  
-  
-  
-  size_t* szPtr = (size_t*)aPtr;
-  *szPtr = sz;
-}
-
-
 nsFrame::nsFrame(nsStyleContext* aContext)
 {
   MOZ_COUNT_CTOR(nsFrame);
@@ -330,9 +306,19 @@ nsFrame::~nsFrame()
     mStyleContext->Release();
 }
 
+NS_IMPL_FRAMEARENA_HELPERS(nsFrame)
+
+
+
+void
+nsFrame::operator delete(void *, size_t)
+{
+  NS_RUNTIMEABORT("nsFrame::operator delete should never be called");
+}
+
 NS_QUERYFRAME_HEAD(nsFrame)
   NS_QUERYFRAME_ENTRY(nsIFrame)
-NS_QUERYFRAME_TAIL
+NS_QUERYFRAME_TAIL_INHERITANCE_ROOT
 
 
 
@@ -472,12 +458,18 @@ nsFrame::Destroy()
 
   
   
-  delete this;
+  
+  
+  
+  
+  
+
+  size_t sz = GetAllocatedSize();
+  this->~nsFrame();
 
   
   
-  size_t* sz = (size_t*)this;
-  shell->FreeFrame(*sz, 0 , (void*)this);
+  shell->FreeFrame(sz, 0 , (void*)this);
 }
 
 NS_IMETHODIMP
