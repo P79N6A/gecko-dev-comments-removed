@@ -178,8 +178,6 @@ typedef struct _NPNetscapeFuncs {
 
 #ifdef XP_MACOSX
 
-typedef NPError (* NPP_MainEntryProcPtr)(NPNetscapeFuncs*, NPPluginFuncs*, NPP_ShutdownProcPtr*);
-
 
 
 
@@ -263,6 +261,7 @@ NP_EXPORT(char*)   NP_GetPluginVersion();
 NP_EXPORT(char*)   NP_GetMIMEDescription();
 #ifdef XP_MACOSX
 NP_EXPORT(NPError) NP_Initialize(NPNetscapeFuncs* bFuncs);
+NP_EXPORT(NPError) NP_GetEntryPoints(NPPluginFuncs* pFuncs);
 #else
 NP_EXPORT(NPError) NP_Initialize(NPNetscapeFuncs* bFuncs, NPPluginFuncs* pFuncs);
 #endif

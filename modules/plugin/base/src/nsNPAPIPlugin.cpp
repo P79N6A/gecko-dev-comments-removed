@@ -300,56 +300,20 @@ nsNPAPIPlugin::nsNPAPIPlugin(NPPluginFuncs* callbacks, PRLibrary* aLibrary,
   memset((void*) &np_callbacks, 0, sizeof(np_callbacks));
   np_callbacks.size = sizeof(np_callbacks);
 
-
-
-
-
-
-
-
-#ifndef __POWERPC__
   fShutdownEntry = (NP_PLUGINSHUTDOWN)PR_FindSymbol(aLibrary, "NP_Shutdown");
   NP_GETENTRYPOINTS pfnGetEntryPoints = (NP_GETENTRYPOINTS)PR_FindSymbol(aLibrary, "NP_GetEntryPoints");
   NP_PLUGININIT pfnInitialize = (NP_PLUGININIT)PR_FindSymbol(aLibrary, "NP_Initialize");
-  if (pfnGetEntryPoints && pfnInitialize && fShutdownEntry) {
-    
-    
-    if (pfnInitialize(&(nsNPAPIPlugin::CALLBACKS)) != NPERR_NO_ERROR)
-      return;
-    if (pfnGetEntryPoints(&np_callbacks) != NPERR_NO_ERROR)
-      return;
+  if (!pfnGetEntryPoints || !pfnInitialize || !fShutdownEntry) {
+    NS_WARNING("Not all necessary functions exposed by plugin, it will not load.");
+    return;
   }
-  else
-#endif
-  {
-    
-    NP_MAIN pfnMain = (NP_MAIN)PR_FindSymbol(aLibrary, "main");
-    if (!pfnMain)
-      return;
 
-    NPError error;
-    NPP_ShutdownProcPtr pfnMainShutdown;
-    NS_TRY_SAFE_CALL_RETURN(error,
-                            (*pfnMain)(&(nsNPAPIPlugin::CALLBACKS),
-                                       &np_callbacks,
-                                       &pfnMainShutdown),
-                            aLibrary,
-                            nsnull);
-    
-    NPP_PLUGIN_LOG(PLUGIN_LOG_BASIC,
-                   ("NPP MainEntryProc called: return=%d\n",error));
-    
-    if (error != NPERR_NO_ERROR)
-      return;
-    
-    fShutdownEntry = (NP_PLUGINSHUTDOWN)pfnMainShutdown;
-    
-    
-    
-    int cb_version = np_callbacks.version;
-    if ((cb_version >> 8) < NP_VERSION_MAJOR)
-      return;
-  }
+  
+  
+  if (pfnInitialize(&(nsNPAPIPlugin::CALLBACKS)) != NPERR_NO_ERROR)
+    return;
+  if (pfnGetEntryPoints(&np_callbacks) != NPERR_NO_ERROR)
+    return;
 
   fCallbacks.size = sizeof(fCallbacks);
   fCallbacks.version = np_callbacks.version;
