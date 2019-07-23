@@ -250,6 +250,15 @@ public:
 
 
 
+    eMetric_WindowsClassic,
+
+    
+
+
+
+
+
+
 
 
 
