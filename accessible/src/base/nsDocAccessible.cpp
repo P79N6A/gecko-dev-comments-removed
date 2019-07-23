@@ -257,12 +257,11 @@ nsDocAccessible::SetRoleMapEntry(nsRoleMapEntry* aRoleMapEntry)
 
   mRoleMapEntry = aRoleMapEntry;
 
-  
   nsIDocument *parentDoc = mDocument->GetParentDocument();
-  NS_ASSERTION(parentDoc, "No parent document during initialization!");
   if (!parentDoc)
-    return;
+    return; 
 
+  
   nsIContent *ownerContent = parentDoc->FindContentForSubDocument(mDocument);
   nsCOMPtr<nsIDOMNode> ownerNode(do_QueryInterface(ownerContent));
   if (ownerNode) {
