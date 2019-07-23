@@ -50,7 +50,7 @@
 #include "jsarray.h"
 #include "jsatom.h"
 #include "jscntxt.h"
-#include "jsversion.h"
+#include "jsconfig.h"
 #include "jsdbgapi.h"
 #include "jsfun.h"
 #include "jsgc.h"
@@ -65,7 +65,6 @@
 #include "jsscript.h"
 #include "jsstr.h"
 #include "jsexn.h"
-#include "jsstaticcheck.h"
 
 #if JS_HAS_GENERATORS
 # include "jsiter.h"
@@ -718,7 +717,7 @@ call_enumerate(JSContext *cx, JSObject *obj)
 
     mark = JS_ARENA_MARK(&cx->tempPool);
 
-    MUST_FLOW_THROUGH("out");
+    
     names = js_GetLocalNameArray(cx, fun, &cx->tempPool);
     if (!names) {
         ok = JS_FALSE;
@@ -792,7 +791,7 @@ CallPropertyOp(JSContext *cx, JSObject *obj, jsid id, jsval *vp,
             }
         }
         return JS_TRUE;
-    }
+  }
 
     JS_ASSERT((int16) JSVAL_TO_INT(id) == JSVAL_TO_INT(id));
     i = (uint16) JSVAL_TO_INT(id);
@@ -967,7 +966,6 @@ fun_getProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
     jsint slot;
     JSFunction *fun;
     JSStackFrame *fp;
-    JSSecurityCallbacks *callbacks;
 
     if (!JSVAL_IS_INT(id))
         return JS_TRUE;
@@ -1042,13 +1040,10 @@ fun_getProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
             *vp = OBJECT_TO_JSVAL(fp->down->callee);
         else
             *vp = JSVAL_NULL;
-        if (!JSVAL_IS_PRIMITIVE(*vp)) {
-            callbacks = JS_GetSecurityCallbacks(cx);
-            if (callbacks && callbacks->checkObjectAccess) {
-                id = ATOM_KEY(cx->runtime->atomState.callerAtom);
-                if (!callbacks->checkObjectAccess(cx, obj, id, JSACC_READ, vp))
-                    return JS_FALSE;
-            }
+        if (!JSVAL_IS_PRIMITIVE(*vp) && cx->runtime->checkObjectAccess) {
+            id = ATOM_KEY(cx->runtime->atomState.callerAtom);
+            if (!cx->runtime->checkObjectAccess(cx, obj, id, JSACC_READ, vp))
+                return JS_FALSE;
         }
         break;
 
@@ -2530,7 +2525,7 @@ typedef struct JSLocalNameEnumeratorArgs {
 #endif
 } JSLocalNameEnumeratorArgs;
 
-static JSDHashOperator
+JS_STATIC_DLL_CALLBACK(JSDHashOperator)
 get_local_names_enumerator(JSDHashTable *table, JSDHashEntryHdr *hdr,
                            uint32 number, void *arg)
 {
@@ -2610,7 +2605,7 @@ js_GetLocalNameArray(JSContext *cx, JSFunction *fun, JSArenaPool *pool)
     return names;
 }
 
-static JSDHashOperator
+JS_STATIC_DLL_CALLBACK(JSDHashOperator)
 trace_local_names_enumerator(JSDHashTable *table, JSDHashEntryHdr *hdr,
                              uint32 number, void *arg)
 {
