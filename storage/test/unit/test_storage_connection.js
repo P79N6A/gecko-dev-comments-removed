@@ -39,14 +39,25 @@
 
 const BACKUP_FILE_NAME = "test_storage.sqlite.backup";
 
-function test_connectionReady()
+function test_connectionReady_open()
 {
+  
   
   
   
 
   var msc = getOpenedDatabase();
   do_check_true(msc.connectionReady);
+}
+
+function test_connectionReady_closed()
+{
+  
+
+  var msc = getOpenedDatabase();
+  msc.close();
+  do_check_false(msc.connectionReady);
+  gDBConn = null; 
 }
 
 function test_databaseFile()
@@ -211,7 +222,8 @@ function test_backup_new_folder()
   parentDir.remove(true);
 }
 
-var tests = [test_connectionReady, test_databaseFile,
+var tests = [test_connectionReady_open, test_connectionReady_closed,
+             test_databaseFile,
              test_tableExists_not_created, test_indexExists_not_created,
              test_createTable_not_created, test_indexExists_created,
              test_createTable_already_created, test_lastInsertRowID,
