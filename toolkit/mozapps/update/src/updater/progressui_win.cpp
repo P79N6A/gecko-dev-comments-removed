@@ -47,6 +47,26 @@
 #define TIMER_ID 1
 #define TIMER_INTERVAL 100
 
+#define MAX_INFO_LENGTH 512
+
+#define RESIZE_WINDOW(hwnd, extrax, extray) \
+  { \
+    RECT windowSize; \
+    GetWindowRect(hwnd, &windowSize); \
+    SetWindowPos(hwnd, 0, 0, 0, windowSize.right - windowSize.left + extrax, \
+                 windowSize.bottom - windowSize.top + extray, \
+                 SWP_NOMOVE | SWP_NOZORDER); \
+  }
+
+#define MOVE_WINDOW(hwnd, dx, dy) \
+  { \
+    WINDOWPLACEMENT windowPos; \
+    windowPos.length = sizeof(windowPos); \
+    GetWindowPlacement(hwnd, &windowPos); \
+    SetWindowPos(hwnd, 0, windowPos.rcNormalPosition.left + dx, windowPos.rcNormalPosition.top + dy, 0, 0, \
+                 SWP_NOSIZE | SWP_NOZORDER); \
+  }
+
 static float sProgress;  
 static BOOL  sQuit = FALSE;
 static HFONT sSystemFont = 0;
@@ -70,6 +90,52 @@ UpdateDialog(HWND hDlg)
 {
   int pos = int(sProgress + 0.5f);
   SendDlgItemMessage(hDlg, IDC_PROGRESS, PBM_SETPOS, pos, 0L);
+}
+
+static void
+ResizeDialogToFit(HWND hDlg)
+{
+  char text[MAX_INFO_LENGTH];
+  RECT infoSize, textSize;
+  HFONT hInfoFont, hOldFont;
+
+  HWND hWndInfo = GetDlgItem(hDlg, IDC_INFO);
+  HWND hWndPro  = GetDlgItem(hDlg, IDC_PROGRESS);
+
+  
+  if (!GetWindowText(hWndInfo, text, sizeof(text)))
+    return;
+
+  
+  GetClientRect(hWndInfo, &infoSize);
+  HDC hDCInfo = GetDC(hWndInfo);
+  hInfoFont = (HFONT)SendMessage(hWndInfo, WM_GETFONT, 0, 0);
+  if (hInfoFont)
+    hOldFont = (HFONT)SelectObject(hDCInfo, hInfoFont);
+
+  
+  if (DrawText(hDCInfo, text, -1, &textSize,
+               DT_CALCRECT | DT_NOCLIP | DT_SINGLELINE)) {
+    SIZE extra;
+    extra.cx = (textSize.right - textSize.left) - (infoSize.right - infoSize.left);
+    extra.cy = (textSize.bottom - textSize.top) - (infoSize.bottom - infoSize.top);
+    if (extra.cx < 0)
+      extra.cx = 0;
+    if (extra.cy < 0)
+      extra.cy = 0;
+
+    if ((extra.cx > 0) || (extra.cy > 0)) {
+      RESIZE_WINDOW(hDlg, extra.cx, extra.cy);
+      RESIZE_WINDOW(hWndInfo, extra.cx, extra.cy);
+      RESIZE_WINDOW(hWndPro, extra.cx, 0);
+      MOVE_WINDOW(hWndPro, 0, extra.cy);
+    }
+  }
+
+  if (hOldFont)
+    SelectObject(hDCInfo, hOldFont);
+
+  ReleaseDC(hWndInfo, hDCInfo);
 }
 
 
@@ -109,7 +175,7 @@ CenterDialog(HWND hDlg)
 static void
 SetItemText(HWND hwnd, const char *key, const char *ini)
 {
-  char text[512];
+  char text[MAX_INFO_LENGTH];
   if (!GetPrivateProfileString("Strings", key, NULL, text, sizeof(text), ini))
     return;
   SetWindowText(hwnd, text);
@@ -146,6 +212,9 @@ InitDialog(HWND hDlg)
     SendMessage(hDlg, WM_SETICON, ICON_BIG, (LPARAM) hIcon);
 
   SendDlgItemMessage(hDlg, IDC_PROGRESS, PBM_SETRANGE, 0, MAKELPARAM(0, 100));
+
+  
+  ResizeDialogToFit(hDlg);
 
   CenterDialog(hDlg);  
 
