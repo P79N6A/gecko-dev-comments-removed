@@ -432,9 +432,7 @@ PluginInstanceChild::AnswerNPP_SetValue_NPNVprivateModeBool(const bool& value,
         return true;
     }
 
-    
-    
-    long v = value;
+    NPBool v = value;
     *result = mPluginIface->setvalue(GetNPP(), NPNVprivateModeBool, &v);
     return true;
 }
