@@ -959,6 +959,7 @@ nsDocAccessible::AttributeChanged(nsIDocument *aDocument, nsIContent* aContent,
     
     
     
+    
     nsCOMPtr<nsIAccessibleStateChangeEvent> enabledChangeEvent =
       new nsAccStateChangeEvent(targetNode,
                                 nsIAccessibleStates::EXT_STATE_ENABLED,
@@ -1270,6 +1271,11 @@ NS_IMETHODIMP nsDocAccessible::FlushPendingEvents()
         nsCOMPtr<nsIAccessibleText> accessibleText = do_QueryInterface(accessible);
         PRInt32 caretOffset;
         if (accessibleText && NS_SUCCEEDED(accessibleText->GetCaretOffset(&caretOffset))) {
+#ifdef DEBUG
+          PRUnichar chAtOffset;
+          accessibleText->GetCharacterAtOffset(caretOffset, &chAtOffset);
+          printf("\nCaret moved to %d with char %c", caretOffset, chAtOffset);
+#endif
           nsCOMPtr<nsIAccessibleCaretMoveEvent> caretMoveEvent =
             new nsAccCaretMoveEvent(accessible, caretOffset);
           NS_ENSURE_TRUE(caretMoveEvent, NS_ERROR_OUT_OF_MEMORY);
