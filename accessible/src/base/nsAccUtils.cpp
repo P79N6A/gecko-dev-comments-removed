@@ -281,20 +281,18 @@ nsAccUtils::SetLiveContainerAttributes(nsIPersistentProperties *aAttributes,
 
     
     if (live.IsEmpty()) {
+      nsCOMPtr<nsIDOMNode> node(do_QueryInterface(ancestor));
+      nsRoleMapEntry *role = GetRoleMapEntry(node);
       if (nsAccUtils::HasDefinedARIAToken(ancestor,
                                           nsAccessibilityAtoms::aria_live)) {
         ancestor->GetAttr(kNameSpaceID_None, nsAccessibilityAtoms::aria_live,
                           live);
+      } else if (role) {
+        GetLiveAttrValue(role->liveAttRule, live);
+      }
+      if (!live.IsEmpty()) {
         SetAccAttr(aAttributes, nsAccessibilityAtoms::containerLive, live);
-      } else {
-        nsCOMPtr<nsIDOMNode> node(do_QueryInterface(ancestor));
-        nsRoleMapEntry *role = GetRoleMapEntry(node);
         if (role) {
-          nsAutoString live;
-          GetLiveAttrValue(role->liveAttRule, live);
-          SetAccAttr(aAttributes, nsAccessibilityAtoms::containerLive, live);
-
-          
           nsAccUtils::SetAccAttr(aAttributes,
                                  nsAccessibilityAtoms::containerLiveRole,
                                  NS_ConvertASCIItoUTF16(role->roleString));
