@@ -299,6 +299,20 @@ PlacesTreeView.prototype = {
     var replaceCount = this._countVisibleRowsForItem(aContainer);
 
     
+    var nodesToSelect = [];
+    var selection = this.selection;
+    var rc = selection.getRangeCount();
+    for (var rangeIndex = 0; rangeIndex < rc; rangeIndex++) {
+      var min = { }, max = { };
+      selection.getRangeAt(rangeIndex, min, max);
+      if (min.value > startReplacement + replaceCount)
+        continue;
+
+      for (var nodeIndex = min.value; nodeIndex <= max.value; nodeIndex++)
+        nodesToSelect.push(this._visibleElements[nodeIndex]);
+    }
+
+    
     
     
     
@@ -313,22 +327,6 @@ PlacesTreeView.prototype = {
     var newElements = [];
     var toOpenElements = [];
     this._buildVisibleSection(aContainer, newElements, toOpenElements, startReplacement);
-
-    
-    var nodesToSelect = [];
-    var selection = this.selection;
-    var rc = selection.getRangeCount();
-    for (var rangeIndex = 0; rangeIndex < rc; rangeIndex++) {
-      var min = { }, max = { };
-      selection.getRangeAt(rangeIndex, min, max);
-      if (min.value > startReplacement + replaceCount)
-        continue;
-
-      for (var nodeIndex = min.value; nodeIndex <= max.value; nodeIndex++) {
-        if (newElements.indexOf(this._visibleElements[nodeIndex]) != -1)
-          nodesToSelect.push(this._visibleElements[nodeIndex]);
-      }
-    }
 
     
     this._visibleElements =
@@ -377,7 +375,29 @@ PlacesTreeView.prototype = {
     if (nodesToSelect.length > 0) {
       for each (var node in nodesToSelect) {
         var index = node.viewIndex;
-        selection.rangedSelect(index, index, true);
+
+        
+        
+        if (index == -1) { 
+          var itemId = node.itemId;
+          if (itemId != 1) { 
+            for (i=0; i < newElements.length && index == -1; i++) {
+              if (newElements[i].itemId == itemId)
+                index = newElements[i].viewIndex;
+            }
+          }
+          else { 
+            var uri = node.uri;
+            if (uri) {
+              for (i=0; i < newElements.length && index == -1; i++) {
+                if (newElements[i].uri == uri)
+                  index = newElements[i].viewIndex;
+              }
+            }
+          }
+        }
+        if (index != -1)
+          selection.rangedSelect(index, index, true);
       }
       selection.selectEventsSuppressed = false;
     }
