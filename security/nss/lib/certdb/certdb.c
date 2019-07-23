@@ -939,13 +939,13 @@ CERT_DecodeDERCertificate(SECItem *derSignedCert, PRBool copyDER,
     }
 
     
+    cert->isRoot = cert_IsRootCert(cert);
+
+    
     rv = cert_GetCertType(cert);
     if ( rv != SECSuccess ) {
 	goto loser;
     }
-
-    
-    cert->isRoot = cert_IsRootCert(cert);
 
     tmpname = CERT_NameToAscii(&cert->subject);
     if ( tmpname != NULL ) {

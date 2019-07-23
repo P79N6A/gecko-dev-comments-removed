@@ -741,6 +741,18 @@ int main(int argc, char **argv)
             goto cleanup;
     }
 
+    if (doForkTests)
+    {
+        
+
+
+
+        
+        crv = PKM_ForkCheck(CKR_OK, pFunctionList, PR_TRUE, &initArgs);
+        if (crv != CKR_OK)
+            goto cleanup;
+    }
+
     crv = PKM_ShowInfo(pFunctionList, slotID);
     if (crv == CKR_OK) {
         PKM_LogIt("PKM_ShowInfo succeeded\n");

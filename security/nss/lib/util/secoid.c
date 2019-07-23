@@ -1932,6 +1932,11 @@ SECOID_FindOIDTagDescription(SECOidTag tagnum)
 }
 
 
+static PRBool parentForkedAfterC_Initialize;
+
+#define SKIP_AFTER_FORK(x) if (!parentForkedAfterC_Initialize) x
+
+
 
 
 SECStatus
@@ -1951,7 +1956,7 @@ SECOID_Shutdown(void)
 
 
     if (dynOidLock) {
-	NSSRWLock_LockWrite(dynOidLock);
+	SKIP_AFTER_FORK(NSSRWLock_LockWrite(dynOidLock));
 	if (dynOidHash) {
 	    PL_HashTableDestroy(dynOidHash);
 	    dynOidHash = NULL;
@@ -1967,8 +1972,8 @@ SECOID_Shutdown(void)
 	dynOidEntriesAllocated = 0;
 	dynOidEntriesUsed = 0;
 
-	NSSRWLock_UnlockWrite(dynOidLock);
-	NSSRWLock_Destroy(dynOidLock);
+	SKIP_AFTER_FORK(NSSRWLock_UnlockWrite(dynOidLock));
+	SKIP_AFTER_FORK(NSSRWLock_Destroy(dynOidLock));
 	dynOidLock = NULL;
     } else {
     	
@@ -1985,3 +1990,10 @@ SECOID_Shutdown(void)
     }
     return SECSuccess;
 }
+
+void UTIL_SetForkState(PRBool forked)
+{
+    parentForkedAfterC_Initialize = forked;
+}
+
+

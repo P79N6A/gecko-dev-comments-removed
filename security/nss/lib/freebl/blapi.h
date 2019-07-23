@@ -53,6 +53,8 @@ SEC_BEGIN_PROTOS
 
 
 
+extern SECStatus BL_Init(void);
+
 
 
 
@@ -1192,6 +1194,8 @@ PRBool BLAPI_VerifySelf(const char *name);
 
 
 extern const SECHashObject * HASH_GetRawHashObject(HASH_HashType hashType);
+
+extern void BL_SetForkState(PRBool forked);
 
 SEC_END_PROTOS
 

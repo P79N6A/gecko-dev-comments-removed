@@ -166,7 +166,6 @@ extern "C" {
 
 
 struct PKIX_RevocationCheckerStruct {
-    PKIX_PL_Date *date;
     PKIX_List *leafMethodList;
     PKIX_List *chainMethodList;
     PKIX_UInt32 leafMethodListFlags;

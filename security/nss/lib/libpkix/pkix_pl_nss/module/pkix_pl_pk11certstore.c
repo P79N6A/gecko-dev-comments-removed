@@ -573,11 +573,13 @@ pkix_pl_Pk11CertStore_CheckRevByCrl(
         PKIX_PL_Cert *pkixCert,
         PKIX_PL_Cert *pkixIssuer,
         PKIX_PL_Date *date,
+        PKIX_Boolean delayCrlSigCheck,
         PKIX_UInt32  *pReasonCode,
         PKIX_RevocationStatus *pStatus,
         void *plContext)
 {
     CERTCRLEntryReasonCode revReason = crlEntryReasonUnspecified;
+    PKIX_RevocationStatus status = PKIX_RevStatus_NoInfo;
     PRTime time = 0;
     void *wincx = NULL;
     PRBool lockedwrite = PR_FALSE;
@@ -610,23 +612,29 @@ pkix_pl_Pk11CertStore_CheckRevByCrl(
         PKIX_ERROR(PKIX_CRLISSUECERTEXPIRED);
     }
 
-    rv = AcquireDPCache(issuer, &issuer->derSubject, NULL, time,
+    rv = AcquireDPCache(issuer, &issuer->derSubject, NULL,
+                        
+
+                        delayCrlSigCheck ? 0: time,
                         wincx, &dpcache, &lockedwrite);
-    
     if (rv == SECFailure) {
         PKIX_ERROR(PKIX_CERTCHECKCRLFAILED);
     }
-    if (!dpcache->ncrls) {
-        *pStatus = PKIX_RevStatus_NoInfo;
+    if ((delayCrlSigCheck && dpcache->invalid) ||
+        
+        !dpcache->ncrls) {
         goto cleanup;
     }
     
     rv = DPCache_Lookup(dpcache, &cert->serialNumber, &entry);
-    if (SECSuccess == rv && entry) {
+    if (rv == SECFailure) {
+        PKIX_ERROR(PKIX_CERTCHECKCRLFAILED);
+    }
+    if (entry) {
         
         if (entry->revocationDate.data && entry->revocationDate.len) {
             PRTime revocationDate = 0;
-
+            
             if (SECSuccess == DER_DecodeTimeChoice(&revocationDate,
                                                    &entry->revocationDate)) {
                 
@@ -645,20 +653,18 @@ pkix_pl_Pk11CertStore_CheckRevByCrl(
             rv = SECFailure;
         }
         if (SECFailure == rv) {
-            CERTCRLEntryReasonCode reasonCode = crlEntryReasonUnspecified;
             
-            
-            CERT_FindCRLEntryReasonExten(entry, &reasonCode);
-            *pReasonCode = (PKIX_UInt32)reasonCode;
-            *pStatus = PKIX_RevStatus_Revoked;
+            CERT_FindCRLEntryReasonExten(entry, &revReason);
+            status = PKIX_RevStatus_Revoked;
             PORT_SetError(SEC_ERROR_REVOKED_CERTIFICATE);
         }
     } else {
-        *pReasonCode = revReason;
-        *pStatus = PKIX_RevStatus_Success;
+        status = PKIX_RevStatus_Success;
     }
 
 cleanup:
+    *pStatus = status;
+    *pReasonCode = revReason;
     if (dpcache) {
         ReleaseDPCache(dpcache, lockedwrite);
     }
@@ -763,9 +769,6 @@ pkix_pl_Pk11CertStore_GetCert(
         
         pkixTempErrorReceived = PKIX_FALSE;
 
-        PKIX_CHECK(PKIX_List_SetImmutable(filtered, plContext),
-                PKIX_LISTSETIMMUTABLEFAILED);
-
         *pCertList = filtered;
         filtered = NULL;
 
@@ -854,9 +857,6 @@ pkix_pl_Pk11CertStore_GetCRL(
 
         
         pkixTempErrorReceived = PKIX_FALSE;
-
-        PKIX_CHECK(PKIX_List_SetImmutable(filtered, plContext),
-                PKIX_LISTSETIMMUTABLEFAILED);
 
         *pCrlList = filtered;
         filtered = NULL;

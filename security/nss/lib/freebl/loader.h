@@ -518,6 +518,10 @@ struct FREEBLVectorStr {
 
    
 
+ SECStatus (* p_BL_Init)(void);
+ void ( * p_BL_SetForkState)(PRBool);
+
+   
 };
 
 typedef struct FREEBLVectorStr FREEBLVector;

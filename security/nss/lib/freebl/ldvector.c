@@ -249,10 +249,14 @@ static const struct FREEBLVectorStr vector =
     SEED_CreateContext,
     SEED_DestroyContext,
     SEED_Encrypt,
-    SEED_Decrypt
+    SEED_Decrypt,
 
     
 
+    BL_Init,
+    BL_SetForkState
+
+    
 };
 
 const FREEBLVector * 

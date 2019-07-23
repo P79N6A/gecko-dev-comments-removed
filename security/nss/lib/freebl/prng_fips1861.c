@@ -53,6 +53,7 @@
 #include "sha256.h"
 #include "secrng.h"	
 #include "secmpi.h"
+#include "blapii.h"
 
 
 
@@ -188,7 +189,7 @@ freeRNGContext()
     SECStatus rv;
 
     
-    PZ_DestroyLock(globalrng->lock);
+    SKIP_AFTER_FORK(PZ_DestroyLock(globalrng->lock));
 
     
     rv = SHA256_HashBuf(inputhash, globalrng->XKEY, BSIZE);

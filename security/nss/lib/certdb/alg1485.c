@@ -362,9 +362,14 @@ loser:
 }
 
 
-CERTAVA *
-CERT_ParseRFC1485AVA(PRArenaPool *arena, char **pbp, char *endptr,
-		    PRBool singleAVA) 
+
+
+
+
+
+
+static CERTAVA *
+ParseRFC1485AVA(PRArenaPool *arena, char **pbp, char *endptr)
 {
     CERTAVA *a;
     const NameToKind *n2k;
@@ -374,6 +379,7 @@ CERT_ParseRFC1485AVA(PRArenaPool *arena, char **pbp, char *endptr,
     SECOidTag kind  = SEC_OID_UNKNOWN;
     SECStatus rv    = SECFailure;
     SECItem   derOid = { 0, NULL, 0 };
+    char      sep   = 0;
 
     char tagBuf[32];
     char valBuf[384];
@@ -384,17 +390,15 @@ CERT_ParseRFC1485AVA(PRArenaPool *arena, char **pbp, char *endptr,
 	goto loser;
     }
 
-    
     bp = *pbp;
     if (bp < endptr) {
-	if (singleAVA || (*bp != ',' && *bp != ';')) {
-	    *pbp = bp;
-	    goto loser;
-	}
-	
-	bp++;
+	sep = *bp++; 
     }
     *pbp = bp;
+    
+    if (sep && sep != ',' && sep != ';' && sep != '+') {
+	goto loser;
+    }
 
     
     if (!PL_strncasecmp("oid.", tagBuf, 4)) {
@@ -459,7 +463,7 @@ ParseRFC1485Name(char *buf, int len)
     CERTName *name;
     char *bp, *e;
     CERTAVA *ava;
-    CERTRDN *rdn;
+    CERTRDN *rdn = NULL;
 
     name = CERT_CreateName(NULL);
     if (name == NULL) {
@@ -469,12 +473,21 @@ ParseRFC1485Name(char *buf, int len)
     e = buf + len;
     bp = buf;
     while (bp < e) {
-	ava = CERT_ParseRFC1485AVA(name->arena, &bp, e, PR_FALSE);
-	if (ava == 0) goto loser;
-	rdn = CERT_CreateRDN(name->arena, ava, (CERTAVA *)0);
-	if (rdn == 0) goto loser;
-	rv = CERT_AddRDN(name, rdn);
-	if (rv) goto loser;
+	ava = ParseRFC1485AVA(name->arena, &bp, e);
+	if (ava == 0) 
+	    goto loser;
+	if (!rdn) {
+	    rdn = CERT_CreateRDN(name->arena, ava, (CERTAVA *)0);
+	    if (rdn == 0) 
+		goto loser;
+	    rv = CERT_AddRDN(name, rdn);
+	} else {
+	    rv = CERT_AddAVA(name->arena, rdn, ava);
+	}
+	if (rv) 
+	    goto loser;
+	if (bp[-1] != '+')
+	    rdn = NULL; 
 	skipSpace(&bp, e);
     }
 

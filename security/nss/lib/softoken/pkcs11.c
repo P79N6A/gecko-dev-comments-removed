@@ -68,6 +68,8 @@
 #include "sftkdb.h"
 #include "sftkpars.h"
 
+PRBool parentForkedAfterC_Initialize;
+
 #ifndef NO_FORK_CHECK
 
 #if defined(CHECK_FORK_PTHREAD) || defined(CHECK_FORK_MIXED)
@@ -484,7 +486,8 @@ static const struct mechanismList mechanisms[] = {
 };
 static const CK_ULONG mechanismCount = sizeof(mechanisms)/sizeof(mechanisms[0]);
 
-static PRBool nsc_init = PR_FALSE;
+
+PRBool nsc_init = PR_FALSE;
 
 #if defined(CHECK_FORK_PTHREAD) || defined(CHECK_FORK_MIXED)
 
@@ -1188,6 +1191,21 @@ validateSecretKey(SFTKSession *session, SFTKObject *object,
 	}
 	sftk_FormatDESKey((unsigned char*)attribute->attrib.pValue,
 						 attribute->attrib.ulValueLen);
+	sftk_FreeAttribute(attribute);
+	break;
+    case CKK_AES:
+	attribute = sftk_FindAttribute(object,CKA_VALUE);
+	
+	if (attribute == NULL) 
+	    return CKR_TEMPLATE_INCOMPLETE;
+	if (attribute->attrib.ulValueLen != 16 &&
+	    attribute->attrib.ulValueLen != 24 &&
+	    attribute->attrib.ulValueLen != 32) {
+	    sftk_FreeAttribute(attribute);
+	    return CKR_KEY_SIZE_RANGE;
+	}
+	crv = sftk_forceAttribute(object, CKA_VALUE_LEN, 
+			&attribute->attrib.ulValueLen, sizeof(CK_ULONG));
 	sftk_FreeAttribute(attribute);
 	break;
     default:
@@ -2224,12 +2242,12 @@ CK_RV sftk_CloseAllSessions(SFTKSlot *slot)
 
     
     handle = sftk_getKeyDB(slot);
-    PZ_Lock(slot->slotLock);
+    SKIP_AFTER_FORK(PZ_Lock(slot->slotLock));
     slot->isLoggedIn = PR_FALSE;
     if (handle) {
 	sftkdb_ClearPassword(handle);
     }
-    PZ_Unlock(slot->slotLock);
+    SKIP_AFTER_FORK(PZ_Unlock(slot->slotLock));
     if (handle) {
         sftk_freeDB(handle);
     }
@@ -2242,7 +2260,7 @@ CK_RV sftk_CloseAllSessions(SFTKSlot *slot)
     for (i=0; i < slot->sessHashSize; i++) {
 	PZLock *lock = SFTK_SESSION_LOCK(slot,i);
 	do {
-	    PZ_Lock(lock);
+	    SKIP_AFTER_FORK(PZ_Lock(lock));
 	    session = slot->head[i];
 	    
 	    
@@ -2252,15 +2270,15 @@ CK_RV sftk_CloseAllSessions(SFTKSlot *slot)
 		slot->head[i] = session->next;
 		if (session->next) session->next->prev = NULL;
 		session->next = session->prev = NULL;
-		PZ_Unlock(lock);
-		PZ_Lock(slot->slotLock);
+		SKIP_AFTER_FORK(PZ_Unlock(lock));
+		SKIP_AFTER_FORK(PZ_Lock(slot->slotLock));
 		--slot->sessionCount;
-		PZ_Unlock(slot->slotLock);
+		SKIP_AFTER_FORK(PZ_Unlock(slot->slotLock));
 		if (session->info.flags & CKF_RW_SESSION) {
 		    PR_AtomicDecrement(&slot->rwSessionCount);
 		}
 	    } else {
-		PZ_Unlock(lock);
+		SKIP_AFTER_FORK(PZ_Unlock(lock));
 	    }
 	    if (session) sftk_FreeSession(session);
 	} while (session != NULL);
@@ -2283,12 +2301,12 @@ sftk_DBShutdown(SFTKSlot *slot)
 {
     SFTKDBHandle *certHandle;
     SFTKDBHandle      *keyHandle;
-    PZ_Lock(slot->slotLock);
+    SKIP_AFTER_FORK(PZ_Lock(slot->slotLock));
     certHandle = slot->certDB;
     slot->certDB = NULL;
     keyHandle = slot->keyDB;
     slot->keyDB = NULL;
-    PZ_Unlock(slot->slotLock);
+    SKIP_AFTER_FORK(PZ_Unlock(slot->slotLock));
     if (certHandle) {
 	sftk_freeDB(certHandle);
     }
@@ -2355,12 +2373,12 @@ SFTK_DestroySlotData(SFTKSlot *slot)
 
     
 
-    PZ_DestroyLock(slot->slotLock);
+    SKIP_AFTER_FORK(PZ_DestroyLock(slot->slotLock));
     slot->slotLock = NULL;
     if (slot->sessionLock) {
 	for (i=0; i < slot->numSessionLocks; i++) {
 	    if (slot->sessionLock[i]) {
-		PZ_DestroyLock(slot->sessionLock[i]);
+		SKIP_AFTER_FORK(PZ_DestroyLock(slot->sessionLock[i]));
 		slot->sessionLock[i] = NULL;
 	    }
 	}
@@ -2368,11 +2386,11 @@ SFTK_DestroySlotData(SFTKSlot *slot)
 	slot->sessionLock = NULL;
     }
     if (slot->objectLock) {
-	PZ_DestroyLock(slot->objectLock);
+	SKIP_AFTER_FORK(PZ_DestroyLock(slot->objectLock));
 	slot->objectLock = NULL;
     }
     if (slot->pwCheckLock) {
-	PR_DestroyLock(slot->pwCheckLock);
+	SKIP_AFTER_FORK(PR_DestroyLock(slot->pwCheckLock));
 	slot->pwCheckLock = NULL;
     }
     PORT_Free(slot);
@@ -2514,6 +2532,11 @@ CK_RV nsc_CommonInitialize(CK_VOID_PTR pReserved, PRBool isFIPS)
 	crv = CKR_DEVICE_ERROR;
 	return crv;
     }
+    rv = BL_Init();             
+    if (rv != SECSuccess) {
+	crv = CKR_DEVICE_ERROR;
+	return crv;
+    }
     RNG_SystemInfoForRNG();
 
 
@@ -2523,7 +2546,7 @@ CK_RV nsc_CommonInitialize(CK_VOID_PTR pReserved, PRBool isFIPS)
 
 
 
-    
+   
     if (init_args && (!(init_args->flags & CKF_OS_LOCKING_OK))) {
         if (init_args->CreateMutex && init_args->DestroyMutex &&
             init_args->LockMutex && init_args->UnlockMutex) {
@@ -2562,9 +2585,11 @@ CK_RV nsc_CommonInitialize(CK_VOID_PTR pReserved, PRBool isFIPS)
 	    sftk_closePeer(isFIPS);
 	    if (sftk_audit_enabled) {
 		if (isFIPS && nsc_init) {
-		    sftk_LogAuditMessage(NSS_AUDIT_INFO, "enabled FIPS mode");
+		    sftk_LogAuditMessage(NSS_AUDIT_INFO, NSS_AUDIT_FIPS_STATE, 
+				"enabled FIPS mode");
 		} else {
-		    sftk_LogAuditMessage(NSS_AUDIT_INFO, "disabled FIPS mode");
+		    sftk_LogAuditMessage(NSS_AUDIT_INFO, NSS_AUDIT_FIPS_STATE, 
+				"disabled FIPS mode");
 		}
 	    }
 	}
@@ -2627,7 +2652,7 @@ CK_RV NSC_Initialize(CK_VOID_PTR pReserved)
 {
     CK_RV crv;
     
-    CHECK_FORK();
+    sftk_ForkReset(pReserved, &crv);
 
     if (nsc_init) {
 	return CKR_CRYPTOKI_ALREADY_INITIALIZED;
@@ -2642,6 +2667,10 @@ CK_RV NSC_Initialize(CK_VOID_PTR pReserved)
 
 CK_RV nsc_CommonFinalize (CK_VOID_PTR pReserved, PRBool isFIPS)
 {
+    
+    BL_SetForkState(parentForkedAfterC_Initialize);
+    UTIL_SetForkState(parentForkedAfterC_Initialize);
+
     nscFreeAllSlots(isFIPS ? NSC_FIPS_MODULE : NSC_NON_FIPS_MODULE);
 
     
@@ -2661,20 +2690,61 @@ CK_RV nsc_CommonFinalize (CK_VOID_PTR pReserved, PRBool isFIPS)
     
     BL_Cleanup();
     
+    
+
+    BL_SetForkState(PR_FALSE);
+    
+    
+
     BL_Unload();
+
     
     SECOID_Shutdown();
+
+    
+    UTIL_SetForkState(PR_FALSE);
+
     nsc_init = PR_FALSE;
 
-#ifdef SOLARIS
+#ifdef CHECK_FORK_MIXED
     if (!usePthread_atfork) {
         myPid = 0; 
 
+    } else {
+        forked = PR_FALSE; 
     }
-#elif defined(XP_UNIX) && !defined(LINUX)
+#elif defined(CHECK_FORK_GETPID)
     myPid = 0; 
+#elif defined (CHECK_FORK_PTHREAD)
+    forked = PR_FALSE; 
 #endif
     return CKR_OK;
+}
+
+
+
+PRBool sftk_ForkReset(CK_VOID_PTR pReserved, CK_RV* crv)
+{
+#ifndef NO_FORK_CHECK
+    if (PARENT_FORKED()) {
+        parentForkedAfterC_Initialize = PR_TRUE;
+        if (nsc_init) {
+            
+            *crv = nsc_CommonFinalize(pReserved, PR_FALSE);
+            PORT_Assert(CKR_OK == *crv);
+            nsc_init = (PRBool) !(*crv == CKR_OK);
+        }
+        if (nsf_init) {
+            
+            *crv = nsc_CommonFinalize(pReserved, PR_TRUE);
+            PORT_Assert(CKR_OK == *crv);
+            nsf_init = (PRBool) !(*crv == CKR_OK);
+        }
+        parentForkedAfterC_Initialize = PR_FALSE;
+        return PR_TRUE;
+    }
+#endif
+    return PR_FALSE;
 }
 
 
@@ -2683,10 +2753,13 @@ CK_RV NSC_Finalize (CK_VOID_PTR pReserved)
 {
     CK_RV crv;
 
-    CHECK_FORK();
+    
+    if (sftk_ForkReset(pReserved, &crv)) {
+        return crv;
+    }
 
     if (!nsc_init) {
-	return CKR_OK;
+        return CKR_OK;
     }
 
     crv = nsc_CommonFinalize (pReserved, PR_FALSE);
@@ -3347,7 +3420,12 @@ CK_RV NSC_CloseAllSessions (CK_SLOT_ID slotID)
 {
     SFTKSlot *slot;
 
-    CHECK_FORK();
+#ifndef NO_CHECK_FORK
+    
+    if (!parentForkedAfterC_Initialize) {
+        CHECK_FORK();
+    }
+#endif
 
     slot = sftk_SlotFromID(slotID, PR_FALSE);
     if (slot == NULL) return CKR_SLOT_ID_INVALID;
