@@ -92,12 +92,10 @@
 
 
 
-
-#if HAS_POSIX_MEMALIGN && MOZ_MEMORY_WINDOWS
-JS_BEGIN_EXTERN_C
-extern int
-posix_memalign(void **memptr, size_t alignment, size_t size);
-JS_END_EXTERN_C
+#ifdef MOZ_MEMORY
+extern "C" {
+#include "../../memory/jemalloc/jemalloc.h"
+}
 #endif
 
 
@@ -3039,8 +3037,16 @@ js_GC(JSContext *cx, JSGCInvocationKind gckind)
         ok = callback(cx, JSGC_BEGIN);
         if (gckind & GC_LOCK_HELD)
             JS_LOCK_GC(rt);
-        if (!ok && gckind != GC_LAST_CONTEXT)
+        if (!ok && gckind != GC_LAST_CONTEXT) {
+            
+
+
+
+
+            if (rt->gcLevel == 0 && (gckind & GC_LOCK_HELD))
+                JS_NOTIFY_GC_DONE(rt);
             return;
+        }
     }
 
     
@@ -3191,11 +3197,6 @@ js_GC(JSContext *cx, JSGCInvocationKind gckind)
 #endif
 
     
-
-
-
-
-    js_DisablePropertyCache(cx);
     js_FlushPropertyCache(cx);
 
 #ifdef JS_THREADSAFE
@@ -3217,7 +3218,6 @@ js_GC(JSContext *cx, JSGCInvocationKind gckind)
             continue;
         memset(acx->thread->gcFreeLists, 0, sizeof acx->thread->gcFreeLists);
         GSN_CACHE_CLEAR(&acx->thread->gsnCache);
-        js_DisablePropertyCache(acx);
         js_FlushPropertyCache(acx);
     }
 #else
@@ -3501,14 +3501,19 @@ js_GC(JSContext *cx, JSGCInvocationKind gckind)
         goto restart;
     }
 
-    if (!(rt->shapeGen & SHAPE_OVERFLOW_BIT)) {
-        js_EnablePropertyCache(cx);
+    if (rt->shapeGen & SHAPE_OVERFLOW_BIT) {
+        
+
+
+
+
+        js_DisablePropertyCache(cx);
 #ifdef JS_THREADSAFE
         iter = NULL;
         while ((acx = js_ContextIterator(rt, JS_FALSE, &iter)) != NULL) {
             if (!acx->thread || acx->thread == cx->thread)
                 continue;
-            js_EnablePropertyCache(acx);
+            js_DisablePropertyCache(acx);
         }
 #endif
     }
