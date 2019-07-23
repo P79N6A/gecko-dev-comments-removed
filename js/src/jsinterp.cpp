@@ -2196,9 +2196,9 @@ UnwindScope(JSContext *cx, JSStackFrame *fp, jsint stackDepth,
 
 
 #ifndef JS_OPMETER
-# define METER_OP_INIT(op)
-# define METER_OP_PAIR(op1,op2)
-# define METER_SLOT_OP(op,slot)
+# define METER_OP_INIT(op)      ((void)0)
+# define METER_OP_PAIR(op1,op2) ((void)0)
+# define METER_SLOT_OP(op,slot) ((void)0)
 #else
 
 # include <stdlib.h>
@@ -2264,12 +2264,12 @@ js_DumpOpMeters()
 
     graph = (Edge *) calloc(nedges, sizeof graph[0]);
     for (i = nedges = 0; i < JSOP_LIMIT; i++) {
-        from = js_CodeSpec[i].name;
+        from = js_CodeName[i];
         for (j = 0; j < JSOP_LIMIT; j++) {
             count = succeeds[i][j];
             if (count != 0 && SIGNIFICANT(count, total)) {
                 graph[nedges].from = from;
-                graph[nedges].to = js_CodeSpec[j].name;
+                graph[nedges].to = js_CodeName[j];
                 graph[nedges].count = count;
                 ++nedges;
             }
@@ -2315,7 +2315,7 @@ js_DumpOpMeters()
         for (j = 0; j < HIST_NSLOTS; j++) {
             if (slot_ops[i][j] != 0) {
                 
-                fprintf(fp, "%-8.8s", js_CodeSpec[i].name);
+                fprintf(fp, "%-8.8s", js_CodeName[i]);
                 for (j = 0; j < HIST_NSLOTS; j++)
                     fprintf(fp, " %7lu", (unsigned long)slot_ops[i][j]);
                 putc('\n', fp);
@@ -5932,7 +5932,20 @@ interrupt:
                     JS_ASSERT(PCVAL_IS_SPROP(entry->vword));
                     sprop = PCVAL_TO_SPROP(entry->vword);
                     JS_ASSERT(!(sprop->attrs & JSPROP_READONLY));
-                    JS_ASSERT(SPROP_HAS_STUB_SETTER(sprop));
+
+                    
+
+
+
+
+
+                    if (!SPROP_HAS_STUB_SETTER(sprop))
+                        goto do_initprop_miss;
+
+                    
+
+
+
                     JS_ASSERT(PCVCAP_MAKE(sprop->shape, 0, 0) == entry->vcap);
 
                     if (scope->object != obj) {
@@ -5943,9 +5956,17 @@ interrupt:
                         }
                     }
 
-                    JS_ASSERT(sprop->parent == scope->lastProp);
+                    
+
+
+
+
+                    if (sprop->parent != scope->lastProp)
+                        goto do_initprop_miss;
+
                     JS_ASSERT(!SCOPE_HAD_MIDDLE_DELETE(scope));
-                    JS_ASSERT(!scope->table || !SCOPE_HAS_PROPERTY(scope, sprop));
+                    JS_ASSERT(!scope->table ||
+                              !SCOPE_HAS_PROPERTY(scope, sprop));
 
                     slot = sprop->slot;
                     JS_ASSERT(slot == scope->map.freeslot);
@@ -5987,13 +6008,13 @@ interrupt:
                     break;
                 }
 
+              do_initprop_miss:
                 PCMETER(cache->inipcmisses++);
                 JS_UNLOCK_SCOPE(cx, scope);
 
                 
                 LOAD_ATOM(0);
                 id = ATOM_TO_JSID(atom);
-                i = -1;
                 SAVE_SP_AND_PC(fp);
 
                 
