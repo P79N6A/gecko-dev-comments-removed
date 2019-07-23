@@ -1523,10 +1523,7 @@ var gFinishedPage = {
 
 
   onExtra1: function() {
-    var updatePrompt = CoC["@mozilla.org/updates/update-prompt;1"].
-                       createInstance(CoI.nsIUpdatePrompt);
     
-    updatePrompt.showUpdateDownloaded(gUpdates.update, true);
     gUpdates.wiz.cancel();
   }
 };
