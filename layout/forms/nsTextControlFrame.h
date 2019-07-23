@@ -48,7 +48,6 @@
 #include "nsIFontMetrics.h"
 #include "nsWeakReference.h" 
 #include "nsIScrollableViewProvider.h"
-#include "nsIPhonetic.h"
 #include "nsContentUtils.h"
 #include "nsDisplayList.h"
 
@@ -66,8 +65,7 @@ class nsIAccessible;
 class nsTextControlFrame : public nsStackFrame,
                            public nsIAnonymousContentCreator,
                            public nsITextControlFrame,
-                           public nsIScrollableViewProvider,
-                           public nsIPhonetic
+                           public nsIScrollableViewProvider
 
 {
 public:
@@ -157,8 +155,7 @@ public:
   virtual nsFrameSelection* GetOwnedFrameSelection()
     { return mFrameSel; }
 
-  
-  NS_DECL_NSIPHONETIC
+  nsresult GetPhonetic(nsAString& aPhonetic);
 
 
 
