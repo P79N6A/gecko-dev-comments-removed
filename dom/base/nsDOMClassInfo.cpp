@@ -7561,7 +7561,8 @@ nsElementSH::PostCreate(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
 
   
   
-  nsRefPtr<nsXBLBinding> binding;
+  nsCOMPtr<nsIURI> uri;
+  nsCOMPtr<nsIPrincipal> principal;
   {
     
     nsRefPtr<nsStyleContext> sc = pctx->StyleSet()->ResolveStyleFor(content,
@@ -7574,16 +7575,19 @@ nsElementSH::PostCreate(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
       return NS_OK;
     }
 
-    
-    PRBool dummy;
-
-    nsCOMPtr<nsIXBLService> xblService(do_GetService("@mozilla.org/xbl;1"));
-    NS_ENSURE_TRUE(xblService, NS_ERROR_NOT_AVAILABLE);
-
-    xblService->LoadBindings(content, bindingURL->mURI,
-                             bindingURL->mOriginPrincipal, PR_FALSE,
-                             getter_AddRefs(binding), &dummy);
+    uri = bindingURL->mURI;
+    principal = bindingURL->mOriginPrincipal;
   }
+
+  
+  PRBool dummy;
+
+  nsCOMPtr<nsIXBLService> xblService(do_GetService("@mozilla.org/xbl;1"));
+  NS_ENSURE_TRUE(xblService, NS_ERROR_NOT_AVAILABLE);
+
+  nsRefPtr<nsXBLBinding> binding;
+  xblService->LoadBindings(content, uri, principal, PR_FALSE,
+                           getter_AddRefs(binding), &dummy);
   
   if (binding) {
     if (nsContentUtils::IsSafeToRunScript()) {
