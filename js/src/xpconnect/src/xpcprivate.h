@@ -3041,7 +3041,19 @@ class XPCPerThreadData
 {
 public:
     
-    static XPCPerThreadData* GetData();
+    static inline XPCPerThreadData* GetData(JSContext *cx)
+    {
+        if(cx)
+        {
+            NS_ASSERTION(cx->thread, "Uh, JS context w/o a thread?");
+
+            if(cx->thread == sMainJSThread)
+                return sMainThreadData;
+        }
+
+        return GetDataImpl(cx);
+    }
+
     static void CleanupAllThreads();
 
     ~XPCPerThreadData();
@@ -3143,8 +3155,12 @@ public:
         {mWrappedNativeThreadsafetyReportDepth = 0;}
 #endif
 
+    static void ShutDown()
+        {sMainJSThread = nsnull; sMainThreadData = nsnull;}
+
 private:
     XPCPerThreadData();
+    static XPCPerThreadData* GetDataImpl(JSContext *cx);
 
 private:
     XPCJSContextStack*   mJSContextStack;
@@ -3171,6 +3187,13 @@ private:
     static PRLock*           gLock;
     static XPCPerThreadData* gThreads;
     static PRUintn           gTLSIndex;
+
+    
+    static void *sMainJSThread;
+
+    
+    
+    static XPCPerThreadData *sMainThreadData;
 };
 
 
@@ -3199,8 +3222,8 @@ public:
     virtual ~nsXPCThreadJSContextStackImpl();
 
 private:
-    XPCJSContextStack* GetStackForCurrentThread()
-        {XPCPerThreadData* data = XPCPerThreadData::GetData();
+    XPCJSContextStack* GetStackForCurrentThread(JSContext *cx = nsnull)
+        {XPCPerThreadData* data = XPCPerThreadData::GetData(cx);
          return data ? data->GetJSContextStack() : nsnull;}
 
     static nsXPCThreadJSContextStackImpl* gXPCThreadJSContextStack;
