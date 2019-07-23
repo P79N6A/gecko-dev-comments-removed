@@ -51,7 +51,6 @@
 
 
 
-
 const kDataProviderIdPref = 'browser.safebrowsing.dataProvider';
 const kProviderBasePref = 'browser.safebrowsing.provider.';
 
@@ -104,7 +103,6 @@ PROT_DataProvider.prototype.loadDataProviderPrefs_ = function() {
   this.name_ = this.prefs_.getPref(basePref + "name", "");
 
   
-  this.lookupURL_ = this.getUrlPref_(basePref + "lookupURL");
   this.keyURL_ = this.getUrlPref_(basePref + "keyURL");
   this.reportURL_ = this.getUrlPref_(basePref + "reportURL");
   this.gethashURL_ = this.getUrlPref_(basePref + "gethashURL");
@@ -203,10 +201,6 @@ PROT_DataProvider.prototype.getName = function() {
 
 PROT_DataProvider.prototype.getUpdateURL = function() {
   return this.updateURL_;
-}
-
-PROT_DataProvider.prototype.getLookupURL = function() {
-  return this.lookupURL_;
 }
 
 PROT_DataProvider.prototype.getGethashURL = function() {
