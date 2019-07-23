@@ -904,6 +904,21 @@ PostLayoutOperationCallback(ATSULayoutOperationSelector iCurrentOperation,
     return noErr;
 }
 
+static void
+AddGlyphRun(gfxTextRun *aRun, gfxAtsuiFont *aFont, PRUint32 aOffset)
+{
+    aRun->AddGlyphRun(aFont, aOffset);
+    if (!aRun->IsClusterStart(aOffset)) {
+        
+        
+        
+        
+        NS_WARNING("Font mismatch inside cluster");
+        gfxTextRun::CompressedGlyph g;
+        aRun->SetCharacterGlyph(aOffset, g.SetMissing());
+    }
+}
+
 PRBool
 gfxAtsuiFontGroup::InitTextRun(gfxTextRun *aRun,
                                const PRUnichar *aString, PRUint32 aLength,
@@ -997,7 +1012,7 @@ gfxAtsuiFontGroup::InitTextRun(gfxTextRun *aRun,
         if (status == noErr) {
             
             
-            aRun->AddGlyphRun(atsuiFont, aSegmentStart + runStart - headerChars);
+            AddGlyphRun(aRun, atsuiFont, aSegmentStart + runStart - headerChars);
             break;
         } else if (status == kATSUFontsMatched) {
             
@@ -1013,14 +1028,14 @@ gfxAtsuiFontGroup::InitTextRun(gfxTextRun *aRun,
             ATSUSetAttributes (subStyle, 1, fontTags, fontArgSizes, fontArgs);
 
             if (changedOffset > runStart) {
-                aRun->AddGlyphRun(atsuiFont, aSegmentStart + runStart - headerChars);
+                AddGlyphRun(aRun, atsuiFont, aSegmentStart + runStart - headerChars);
             }
 
             ATSUSetRunStyle (layout, subStyle, changedOffset, changedLength);
 
             gfxAtsuiFont *font = FindFontFor(substituteFontID);
             if (font) {
-                aRun->AddGlyphRun(font, aSegmentStart + changedOffset - headerChars);
+                AddGlyphRun(aRun, font, aSegmentStart + changedOffset - headerChars);
             }
             
             stylesToDispose.AppendElement(subStyle);
@@ -1028,7 +1043,7 @@ gfxAtsuiFontGroup::InitTextRun(gfxTextRun *aRun,
             
             
             
-            aRun->AddGlyphRun(atsuiFont, aSegmentStart + runStart - headerChars);
+            AddGlyphRun(aRun, atsuiFont, aSegmentStart + runStart - headerChars);
             
             if (!closure.mUnmatchedChars) {
                 closure.mUnmatchedChars = new PRPackedBool[aLength];
