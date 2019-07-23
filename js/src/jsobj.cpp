@@ -363,6 +363,7 @@ MarkSharpObjects(JSContext *cx, JSObject *obj, JSIdArray **idap)
     JS_CHECK_RECURSION(cx, return NULL);
 
     map = &cx->sharpObjectMap;
+    JS_ASSERT(map->depth >= 1);
     table = map->table;
     hash = js_hash_object(obj);
     hep = JS_HashTableRawLookup(table, hash, obj);
@@ -376,15 +377,7 @@ MarkSharpObjects(JSContext *cx, JSObject *obj, JSIdArray **idap)
             return NULL;
         }
 
-        
-
-
-
-
-
-        ++map->depth;
         ida = JS_Enumerate(cx, obj);
-        --map->depth;
         if (!ida)
             return NULL;
 
@@ -480,7 +473,21 @@ js_EnterSharpObject(JSContext *cx, JSObject *obj, JSIdArray **idap,
     
     ida = NULL;
     if (map->depth == 0) {
+        
+
+
+
+
+
+
+
+
+
+
+
+        ++map->depth;
         he = MarkSharpObjects(cx, obj, &ida);
+        --map->depth;
         if (!he)
             goto bad;
         JS_ASSERT((JS_PTR_TO_UINT32(he->value) & SHARP_BIT) == 0);
