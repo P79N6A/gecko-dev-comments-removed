@@ -162,7 +162,7 @@ struct JSStmtInfo {
 #endif
 
 struct JSTreeContext {              
-    uint16          flags;          
+    uint32          flags;          
     uint16          ngvars;         
     uint32          bodyid;         
     uint32          blockidGen;     
@@ -238,11 +238,6 @@ struct JSTreeContext {
 
 
 #define TCF_RETURN_FLAGS        (TCF_RETURN_EXPR | TCF_RETURN_VOID)
-
-
-
-
-
 
 #define TCF_COMPILING           0x01 /* JSTreeContext is JSCodeGenerator */
 #define TCF_IN_FUNCTION         0x02 /* parsing inside function body */
