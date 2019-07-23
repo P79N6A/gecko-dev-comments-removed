@@ -304,6 +304,11 @@ public:
   
   
   
+  void HandleDecodeErrors(OggPlayErrorCode r);
+
+  
+  
+  
   
   
   FrameData* NextFrame();
@@ -653,6 +658,8 @@ public:
         r = oggplay_step_decoding(mPlayer);
         mon.Enter();
 
+        mDecodeStateMachine->HandleDecodeErrors(r);
+
         
         
         
@@ -716,7 +723,23 @@ nsOggDecodeStateMachine::~nsOggDecodeStateMachine()
 
 OggPlayErrorCode nsOggDecodeStateMachine::DecodeFrame()
 {
-  return oggplay_step_decoding(mPlayer);
+  OggPlayErrorCode r = oggplay_step_decoding(mPlayer);
+  return r;
+}
+
+void nsOggDecodeStateMachine::HandleDecodeErrors(OggPlayErrorCode aErrorCode)
+{
+  PR_ASSERT_CURRENT_THREAD_IN_MONITOR(mDecoder->GetMonitor());
+
+  if (aErrorCode != E_OGGPLAY_TIMEOUT &&
+      aErrorCode != E_OGGPLAY_OK &&
+      aErrorCode != E_OGGPLAY_USER_INTERRUPT &&
+      aErrorCode != E_OGGPLAY_CONTINUE) {
+    mState = DECODER_STATE_SHUTDOWN;
+    nsCOMPtr<nsIRunnable> event =
+      NS_NEW_RUNNABLE_METHOD(nsOggDecoder, mDecoder, NetworkError);
+    NS_DispatchToMainThread(event, NS_DISPATCH_NORMAL);
+  }
 }
 
 nsOggDecodeStateMachine::FrameData* nsOggDecodeStateMachine::NextFrame()
@@ -1327,6 +1350,8 @@ nsresult nsOggDecodeStateMachine::Run()
           mon.Enter();
         }
 
+        HandleDecodeErrors(r);
+
         if (mState == DECODER_STATE_SHUTDOWN)
           continue;
 
@@ -1522,6 +1547,8 @@ nsresult nsOggDecodeStateMachine::Run()
             r = DecodeFrame();
             mon.Enter();
           } while (mState != DECODER_STATE_SHUTDOWN && r == E_OGGPLAY_TIMEOUT);
+
+          HandleDecodeErrors(r);
 
           if (mState == DECODER_STATE_SHUTDOWN)
             break;
