@@ -160,7 +160,11 @@ public:
     
     eColor__moz_mac_alternateprimaryhighlight, 
     eColor__moz_mac_secondaryhighlight,        
-  
+
+    
+    eColor__moz_win_mediatext,                     
+    eColor__moz_win_communicationstext,            
+
     
     eColor_LAST_COLOR
   } nsColorID;
