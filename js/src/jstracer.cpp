@@ -1085,6 +1085,18 @@ TraceRecorder::lazilyImportGlobalSlot(unsigned slot)
 }
 
 
+LIns*
+TraceRecorder::writeBack(LIns* i, LIns* base, ptrdiff_t offset)
+{
+    
+
+
+     if (isPromoteInt(i))
+         i = ::demote(lir, i);
+     return lir->insStorei(i, base, offset);
+}
+
+
 void
 TraceRecorder::set(jsval* p, LIns* i, bool initializing)
 {
@@ -1093,19 +1105,12 @@ TraceRecorder::set(jsval* p, LIns* i, bool initializing)
     
 
 
-    if (isPromoteInt(i))
-        i = ::demote(lir, i);
-    
-
-
     LIns* x;
     if ((x = nativeFrameTracker.get(p)) == NULL) {
-        if (isGlobal(p)) {
-            x = lir->insStorei(i, gp_ins, nativeGlobalOffset(p));
-        } else {
-            ptrdiff_t offset = nativeStackOffset(p);
-            x = lir->insStorei(i, lirbuf->sp, -treeInfo->nativeStackBase + offset);
-        }
+        if (isGlobal(p)) 
+            x = writeBack(i, gp_ins, nativeGlobalOffset(p));
+        else
+            x = writeBack(i, lirbuf->sp, -treeInfo->nativeStackBase + nativeStackOffset(p));
         nativeFrameTracker.set(p, x);
     } else {
 #define ASSERT_VALID_CACHE_HIT(base, offset)                                  \
@@ -1116,11 +1121,11 @@ TraceRecorder::set(jsval* p, LIns* i, bool initializing)
 
         if (x->isop(LIR_st) || x->isop(LIR_stq)) {
             ASSERT_VALID_CACHE_HIT(x->oprnd2(), x->oprnd3()->constval());
-            lir->insStorei(i, x->oprnd2(), x->oprnd3()->constval());
+            writeBack(i, x->oprnd2(), x->oprnd3()->constval());
         } else {
             JS_ASSERT(x->isop(LIR_sti) || x->isop(LIR_stqi));
             ASSERT_VALID_CACHE_HIT(x->oprnd2(), x->immdisp());
-            lir->insStorei(i, x->oprnd2(), x->immdisp());
+            writeBack(i, x->oprnd2(), x->immdisp());
         }
     }
 #undef ASSERT_VALID_CACHE_HIT
