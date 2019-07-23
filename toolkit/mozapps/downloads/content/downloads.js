@@ -127,6 +127,9 @@ function downloadCompleted(aDownload)
     let dl = getDownload(aDownload.id);
 
     
+    dl.setAttribute("startTime", Math.round(aDownload.startTime / 1000));
+
+    
     
     if (!gSearching)
       gDownloadsView.insertBefore(dl, gDownloadsOtherTitle.nextSibling);
