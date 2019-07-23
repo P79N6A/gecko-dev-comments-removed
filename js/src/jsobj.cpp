@@ -1234,11 +1234,10 @@ obj_eval(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
         return JS_FALSE;
 
     
-    if (argc >= 2 &&
-        !JS_ReportErrorFlagsAndNumber(cx, JSREPORT_WARNING | JSREPORT_STRICT,
-                                      js_GetErrorMessage, NULL,
-                                      JSMSG_EVAL_ARITY)) {
-        return JS_FALSE;
+    if (argc >= 2) {
+        if (!js_ValueToObject(cx, argv[1], &scopeobj))
+            return JS_FALSE;
+        argv[1] = OBJECT_TO_JSVAL(scopeobj);
     }
 
     
@@ -1298,6 +1297,19 @@ obj_eval(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
                 ok = JS_FALSE;
                 goto out;
             }
+        }
+    } else {
+        ok = js_CheckPrincipalsAccess(cx, scopeobj,
+                                      JS_StackFramePrincipals(cx, caller),
+                                      cx->runtime->atomState.evalAtom);
+        if (!ok)
+            goto out;
+
+        scopeobj = js_NewWithObject(cx, scopeobj,
+                                    JS_GetGlobalForObject(cx, scopeobj), -1);
+        if (!scopeobj) {
+            ok = JS_FALSE;
+            goto out;
         }
     }
 
