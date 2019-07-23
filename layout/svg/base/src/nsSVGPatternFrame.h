@@ -99,7 +99,6 @@ public:
   virtual nsIAtom* GetType() const;
 
 #ifdef DEBUG
-  
   NS_IMETHOD GetFrameName(nsAString& aResult) const
   {
     return MakeFrameName(NS_LITERAL_STRING("SVGPattern"), aResult);

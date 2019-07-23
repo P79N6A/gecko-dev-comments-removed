@@ -45,9 +45,6 @@
 #include "nsRect.h"
 #include "nsString.h"
 #include "prlog.h"
-#ifdef NS_DEBUG
-#include "nsIFrameDebug.h"
-#endif
 
 #include "nsIPresShell.h"
 #include "nsFrameSelection.h"
@@ -70,7 +67,7 @@
 #ifdef NS_DEBUG
 #define NS_FRAME_LOG(_bit,_args)                                \
   PR_BEGIN_MACRO                                                \
-    if (NS_FRAME_LOG_TEST(nsIFrameDebug::GetLogModuleInfo(),_bit)) { \
+    if (NS_FRAME_LOG_TEST(nsFrame::GetLogModuleInfo(),_bit)) {  \
       PR_LogPrint _args;                                        \
     }                                                           \
   PR_END_MACRO
@@ -87,14 +84,14 @@
 
 #define NS_FRAME_TRACE_MSG(_bit,_args)                          \
   PR_BEGIN_MACRO                                                \
-    if (NS_FRAME_LOG_TEST(nsIFrameDebug::GetLogModuleInfo(),_bit)) { \
+    if (NS_FRAME_LOG_TEST(nsFrame::GetLogModuleInfo(),_bit)) {  \
       TraceMsg _args;                                           \
     }                                                           \
   PR_END_MACRO
 
 #define NS_FRAME_TRACE(_bit,_args)                              \
   PR_BEGIN_MACRO                                                \
-    if (NS_FRAME_LOG_TEST(nsIFrameDebug::GetLogModuleInfo(),_bit)) { \
+    if (NS_FRAME_LOG_TEST(nsFrame::GetLogModuleInfo(),_bit)) {  \
       TraceMsg _args;                                           \
     }                                                           \
   PR_END_MACRO
@@ -125,9 +122,6 @@ struct nsBoxLayoutMetrics;
 
 
 class nsFrame : public nsBox
-#ifdef NS_DEBUG
-  , public nsIFrameDebug
-#endif
 {
 public:
   
@@ -232,12 +226,6 @@ public:
   NS_IMETHOD  GetOffsetFromView(nsPoint& aOffset, nsIView** aView) const;
   virtual nsIAtom* GetType() const;
   virtual PRBool IsContainingBlock() const;
-#ifdef NS_DEBUG
-  NS_IMETHOD  List(FILE* out, PRInt32 aIndent) const;
-  NS_IMETHOD  GetFrameName(nsAString& aResult) const;
-  NS_IMETHOD_(nsFrameState) GetDebugStateBits() const;
-  NS_IMETHOD  DumpRegressionData(nsPresContext* aPresContext, FILE* out, PRInt32 aIndent);
-#endif
 
   NS_IMETHOD  GetSelected(PRBool *aSelected) const;
   NS_IMETHOD  IsSelectable(PRBool* aIsSelectable, PRUint8* aSelectStyle) const;
@@ -445,17 +433,14 @@ public:
   }
   
   void ListTag(FILE* out) const {
-    ListTag(out, (nsIFrame*)this);
+    ListTag(out, this);
   }
 
-  static void ListTag(FILE* out, nsIFrame* aFrame) {
+  static void ListTag(FILE* out, const nsIFrame* aFrame) {
     nsAutoString tmp;
-    nsIFrameDebug*  frameDebug = do_QueryFrame(aFrame);
-    if (frameDebug) {
-      frameDebug->GetFrameName(tmp);
-    }
+    aFrame->GetFrameName(tmp);
     fputs(NS_LossyConvertUTF16toASCII(tmp).get(), out);
-    fprintf(out, "@%p", static_cast<void*>(aFrame));
+    fprintf(out, "@%p", static_cast<const void*>(aFrame));
   }
 
   static void XMLQuote(nsString& aString);
@@ -631,6 +616,76 @@ private:
   NS_IMETHODIMP RefreshSizeCache(nsBoxLayoutState& aState);
 
   virtual nsILineIterator* GetLineIterator();
+
+#ifdef NS_DEBUG
+public:
+  
+
+  NS_IMETHOD  List(FILE* out, PRInt32 aIndent) const;
+  
+
+
+
+  static void RootFrameList(nsPresContext* aPresContext,
+                            FILE* out, PRInt32 aIndent);
+
+  static void DumpFrameTree(nsIFrame* aFrame);
+
+  
+
+
+
+  NS_IMETHOD  GetFrameName(nsAString& aResult) const;
+  
+
+
+
+  NS_IMETHOD_(nsFrameState)  GetDebugStateBits() const;
+  
+
+
+
+
+
+
+
+  NS_IMETHOD  DumpRegressionData(nsPresContext* aPresContext,
+                                 FILE* out, PRInt32 aIndent);
+
+  
+
+
+
+
+
+  static PRBool GetVerifyStyleTreeEnable();
+
+  
+
+
+  static void SetVerifyStyleTreeEnable(PRBool aEnabled);
+
+  
+
+
+
+
+
+
+  static PRLogModuleInfo* GetLogModuleInfo();
+
+  
+  static void ShowFrameBorders(PRBool aEnable);
+  static PRBool GetShowFrameBorders();
+
+  
+  static void ShowEventTargetFrameBorder(PRBool aEnable);
+  static PRBool GetShowEventTargetFrameBorder();
+
+  static void PrintDisplayList(nsDisplayListBuilder* aBuilder,
+                               const nsDisplayList& aList);
+
+#endif
 };
 
 
