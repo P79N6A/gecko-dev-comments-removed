@@ -1346,7 +1346,7 @@ nsNavHistory::LoadPrefs()
                            &mAutoCompleteOnlyTyped);
   if (oldCompleteOnlyTyped != mAutoCompleteOnlyTyped) {
     
-    nsresult rv = CreateAutoCompleteQuery();
+    nsresult rv = CreateAutoCompleteQueries();
     NS_ENSURE_SUCCESS(rv, rv);
   }
   return NS_OK;
