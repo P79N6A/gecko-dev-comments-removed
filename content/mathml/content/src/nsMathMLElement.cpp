@@ -47,7 +47,6 @@
 #include "nsStyleConsts.h"
 #include "nsIDocument.h"
 #include "nsIEventStateManager.h"
-#include "nsPresShellIterator.h"
 #include "nsIPresShell.h"
 #include "nsPresContext.h"
 #include "nsDOMClassInfoID.h"
@@ -90,12 +89,8 @@ nsMathMLElement::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
     
     
     
-    
-    
-    
-    nsPresShellIterator iter(aDocument);
-    nsCOMPtr<nsIPresShell> shell;
-    while ((shell = iter.GetNextShell()) != nsnull) {
+    nsCOMPtr<nsIPresShell> shell = aDocument->GetPrimaryShell();
+    if (shell) {
       shell->GetPresContext()->PostRebuildAllStyleDataEvent(nsChangeHint(0));
     }
   }

@@ -95,7 +95,6 @@
 #include "nsNodeUtils.h"
 #include "nsIDOMNode.h"
 #include "nsThreadUtils.h"
-#include "nsPresShellIterator.h"
 #include "nsPIDOMWindow.h"
 #include "mozAutoDocUpdate.h"
 #include "nsIWebNavigation.h"
@@ -1229,9 +1228,8 @@ nsContentSink::ScrollToRef()
   
   NS_ConvertUTF8toUTF16 ref(unescapedRef);
 
-  nsPresShellIterator iter(mDocument);
-  nsCOMPtr<nsIPresShell> shell;
-  while ((shell = iter.GetNextShell())) {
+  nsCOMPtr<nsIPresShell> shell = mDocument->GetPrimaryShell();
+  if (shell) {
     
     if (!ref.IsEmpty()) {
       
@@ -1309,24 +1307,13 @@ nsContentSink::StartLayout(PRBool aIgnorePendingSheets)
   mLastNotificationTime = PR_Now();
 
   mDocument->SetMayStartLayout(PR_TRUE);
-  nsPresShellIterator iter(mDocument);
-  nsCOMPtr<nsIPresShell> shell;
-  while ((shell = iter.GetNextShell())) {
-    
-    
-    
-    
-    
-
-    if (shell->DidInitialReflow()) {
-      
-      
-      
-      
-
-      continue;
-    }
-
+  nsCOMPtr<nsIPresShell> shell = mDocument->GetPrimaryShell();
+  
+  
+  
+  
+  
+  if (shell && !shell->DidInitialReflow()) {
     nsRect r = shell->GetPresContext()->GetVisibleArea();
     nsCOMPtr<nsIPresShell> shellGrip = shell;
     nsresult rv = shell->InitialReflow(r.width, r.height);

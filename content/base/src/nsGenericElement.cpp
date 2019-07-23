@@ -3007,9 +3007,8 @@ nsGenericElement::SetSMILOverrideStyleRule(nsICSSStyleRule* aStyleRule,
     
     
     if (doc) {
-      nsPresShellIterator iter(doc);
-      nsCOMPtr<nsIPresShell> shell;
-      while (shell = iter.GetNextShell()) {
+      nsCOMPtr<nsIPresShell> shell = doc->GetPrimaryShell();
+      if (shell) {
         nsPresContext* presContext = shell->GetPresContext();
         presContext->SMILOverrideStyleChanged(this);
       }

@@ -1814,7 +1814,8 @@ PresShell::Destroy()
   
   
   if (mDocument) {
-    mDocument->DeleteShell(this);
+    NS_ASSERTION(mDocument->GetPrimaryShell() == this, "Wrong shell?");
+    mDocument->DeleteShell();
   }
 
   
