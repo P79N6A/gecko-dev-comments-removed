@@ -157,9 +157,10 @@ nsInputStreamTee::TeeSegment(const char *buf, PRUint32 count)
     }
 
     nsresult rv;
-    PRUint32 bytesWritten = 0;
+    PRUint32 totalBytesWritten = 0;
     while (count) {
-        rv = mSink->Write(buf + bytesWritten, count, &bytesWritten);
+        PRUint32 bytesWritten = 0;
+        rv = mSink->Write(buf + totalBytesWritten, count, &bytesWritten);
         if (NS_FAILED(rv)) {
             
             
@@ -169,6 +170,7 @@ nsInputStreamTee::TeeSegment(const char *buf, PRUint32 count)
             mSink = 0;
             break;
         }
+        totalBytesWritten += bytesWritten;
         NS_ASSERTION(bytesWritten <= count, "wrote too much");
         count -= bytesWritten;
     }
