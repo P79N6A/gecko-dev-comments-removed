@@ -2585,8 +2585,9 @@ js_NewObject(JSContext *cx, JSClass *clasp, JSObject *proto, JSObject *parent)
 
 
 
+
     if (proto &&
-        (map = proto->map)->ops == ops &&
+        (map = proto->map)->ops->newObjectMap == ops->newObjectMap &&
         ((protoclasp = OBJ_GET_CLASS(cx, proto)) == clasp ||
          (!((protoclasp->flags ^ clasp->flags) &
             (JSCLASS_HAS_PRIVATE |
