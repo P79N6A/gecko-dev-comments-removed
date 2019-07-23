@@ -2154,14 +2154,16 @@ js_IsLoopEdge(jsbytecode* pc, jsbytecode* header)
 
 
 
-JS_REQUIRES_STACK bool
+
+
+
+JS_REQUIRES_STACK void
 TraceRecorder::adjustCallerTypes(Fragment* f)
 {
     uint16* gslots = treeInfo->globalSlots->data();
     unsigned ngslots = treeInfo->globalSlots->length();
     JS_ASSERT(ngslots == treeInfo->nGlobalTypes());
     TreeInfo* ti = (TreeInfo*)f->vmprivate;
-    bool ok = true;
     uint8* map = ti->globalTypeMap();
     uint8* m = map;
     FORALL_GLOBAL_SLOTS(cx, ngslots, gslots,
@@ -2169,11 +2171,7 @@ TraceRecorder::adjustCallerTypes(Fragment* f)
         bool isPromote = isPromoteInt(i);
         if (isPromote && *m == JSVAL_DOUBLE)
             lir->insStorei(get(vp), lirbuf->state, nativeGlobalOffset(vp));
-        else if (!isPromote && *m == JSVAL_INT) {
-            debug_only_v(printf("adjusting will fail, %s%d, slot %d\n", vpname, vpnum, m - map);)
-            oracle.markGlobalSlotUndemotable(cx, gslots[n]);
-            ok = false;
-        }
+        JS_ASSERT(!(!isPromote && *m == JSVAL_INT));
         ++m;
     );
     JS_ASSERT(unsigned(m - map) == ti->nGlobalTypes());
@@ -2187,19 +2185,12 @@ TraceRecorder::adjustCallerTypes(Fragment* f)
                            -treeInfo->nativeStackBase + nativeStackOffset(vp));
             
             oracle.markStackSlotUndemotable(cx, unsigned(m - map));
-        } else if (!isPromote && *m == JSVAL_INT) {
-            debug_only_v(printf("adjusting will fail, %s%d, slot %d\n", vpname, vpnum, m - map);)
-            ok = false;
-            oracle.markStackSlotUndemotable(cx, unsigned(m - map));
-        } else if (JSVAL_IS_INT(*vp) && *m == JSVAL_DOUBLE) {
-            
-            oracle.markStackSlotUndemotable(cx, unsigned(m - map));
         }
+        JS_ASSERT(!(!isPromote && *m == JSVAL_INT));
         ++m;
     );
     JS_ASSERT(unsigned(m - map) == ti->nStackTypes);
     JS_ASSERT(f == f->root);
-    return ok;
 }
 
 JS_REQUIRES_STACK uint8
@@ -3917,9 +3908,9 @@ js_RecordLoopEdge(JSContext* cx, TraceRecorder* r, uintN& inlineCallCount)
     VMFragment* root = (VMFragment*)r->getFragment()->root;
 
     
-    Fragment* f = getLoop(&JS_TRACE_MONITOR(cx), cx->fp->regs->pc,
-                          root->globalObj, root->globalShape);
-    if (!f) {
+    Fragment* first = getLoop(&JS_TRACE_MONITOR(cx), cx->fp->regs->pc,
+                              root->globalObj, root->globalShape);
+    if (!first) {
         
         AUDIT(returnToDifferentLoopHeader);
         JS_ASSERT(!cx->fp->imacpc);
@@ -3957,21 +3948,19 @@ js_RecordLoopEdge(JSContext* cx, TraceRecorder* r, uintN& inlineCallCount)
                         FramePCOffset(cx->fp));)
 
     
-    Fragment* empty;
-    bool success = false;
-
-    f = r->findNestedCompatiblePeer(f, &empty);
-    if (f && f->code())
-        success = r->adjustCallerTypes(f);
-
-    if (!success) {
+    Fragment* f = r->findNestedCompatiblePeer(first);
+    if (!f || !f->code()) {
         AUDIT(noCompatInnerTrees);
 
         jsbytecode* outer = (jsbytecode*)tm->recorder->getFragment()->root->ip;
         js_AbortRecording(cx, "No compatible inner tree");
 
-        f = empty;
-        if (!f) {
+        
+        for (f = first; f != NULL; f = f->peer) {
+            if (!f->code())
+                break;
+        }
+        if (!f || f->code()) {
             f = getAnchor(tm, cx->fp->regs->pc, globalObj, globalShape);
             if (!f) {
                 FlushJITCache(cx);
@@ -3981,6 +3970,7 @@ js_RecordLoopEdge(JSContext* cx, TraceRecorder* r, uintN& inlineCallCount)
         return js_RecordTree(cx, tm, f, outer, globalObj, globalShape, globalSlots);
     }
 
+    r->adjustCallerTypes(f);
     r->prepareTreeCall(f);
     VMSideExit* innermostNestedGuard = NULL;
     VMSideExit* lr = js_ExecuteTree(cx, f, inlineCallCount, &innermostNestedGuard);
@@ -4030,7 +4020,7 @@ js_IsEntryTypeCompatible(jsval* vp, uint8* m)
             !HAS_FUNCTION_CLASS(JSVAL_TO_OBJECT(*vp))) {
             return true;
         }
-        debug_only_v(printf("object != tag%u", tag);)
+        debug_only_v(printf("object != tag%u ", tag);)
         return false;
       case JSVAL_INT:
         jsint i;
@@ -4051,17 +4041,17 @@ js_IsEntryTypeCompatible(jsval* vp, uint8* m)
       case JSVAL_STRING:
         if (tag == JSVAL_STRING)
             return true;
-        debug_only_v(printf("string != tag%u", tag);)
+        debug_only_v(printf("string != tag%u ", tag);)
         return false;
       case JSVAL_TNULL:
         if (JSVAL_IS_NULL(*vp))
             return true;
-        debug_only_v(printf("null != tag%u", tag);)
+        debug_only_v(printf("null != tag%u ", tag);)
         return false;
       case JSVAL_BOOLEAN:
         if (tag == JSVAL_BOOLEAN)
             return true;
-        debug_only_v(printf("bool != tag%u", tag);)
+        debug_only_v(printf("bool != tag%u ", tag);)
         return false;
       default:
         JS_ASSERT(*m == JSVAL_TFUN);
@@ -4069,40 +4059,25 @@ js_IsEntryTypeCompatible(jsval* vp, uint8* m)
             HAS_FUNCTION_CLASS(JSVAL_TO_OBJECT(*vp))) {
             return true;
         }
-        debug_only_v(printf("fun != tag%u", tag);)
+        debug_only_v(printf("fun != tag%u ", tag);)
         return false;
     }
 }
 
 JS_REQUIRES_STACK Fragment*
-TraceRecorder::findNestedCompatiblePeer(Fragment* f, Fragment** empty)
+TraceRecorder::findNestedCompatiblePeer(Fragment* f)
 {
-    Fragment* demote;
     JSTraceMonitor* tm;
-    unsigned max_demotes;
-
-    if (empty)
-        *empty = NULL;
-    demote = NULL;
 
     tm = &JS_TRACE_MONITOR(cx);
     unsigned int ngslots = treeInfo->globalSlots->length();
     uint16* gslots = treeInfo->globalSlots->data();
 
-    
-
-
-    max_demotes = 0;
-
     TreeInfo* ti;
     for (; f != NULL; f = f->peer) {
-        if (!f->code()) {
-            if (empty)
-                *empty = f;
+        if (!f->code())
             continue;
-        }
 
-        unsigned demotes = 0;
         ti = (TreeInfo*)f->vmprivate;
 
         debug_only_v(printf("checking nested types %p: ", (void*)f);)
@@ -4110,41 +4085,51 @@ TraceRecorder::findNestedCompatiblePeer(Fragment* f, Fragment** empty)
         if (ngslots > ti->nGlobalTypes())
             specializeTreesToMissingGlobals(cx, ti);
 
-        uint8* m = ti->typeMap.data();
+        uint8* typemap = ti->typeMap.data();
 
-        FORALL_SLOTS(cx, ngslots, gslots, 0,
+        
+
+
+
+
+
+
+
+        bool ok = true;
+        uint8* m = typemap;
+        FORALL_SLOTS_IN_PENDING_FRAMES(cx, 0,
             debug_only_v(printf("%s%d=", vpname, vpnum);)
-            if (!js_IsEntryTypeCompatible(vp, m))
-                goto check_fail;
-            if (*m == JSVAL_STRING && *vp == JSVAL_VOID)
-                goto check_fail;
-            if (*m == JSVAL_INT && !isPromoteInt(get(vp)))
-                demotes++;
+            if (!js_IsEntryTypeCompatible(vp, m)) {
+                ok = false;
+            } else if (!isPromoteInt(get(vp)) && *m == JSVAL_INT) {
+                oracle.markStackSlotUndemotable(cx, unsigned(m - typemap));
+                ok = false;
+            } else if (JSVAL_IS_INT(*vp) && *m == JSVAL_DOUBLE) {
+                oracle.markStackSlotUndemotable(cx, unsigned(m - typemap));
+            }
+            m++;
+        );
+        FORALL_GLOBAL_SLOTS(cx, ngslots, gslots,
+            debug_only_v(printf("%s%d=", vpname, vpnum);)
+            if (!js_IsEntryTypeCompatible(vp, m)) {
+                ok = false;
+            } else if (!isPromoteInt(get(vp)) && *m == JSVAL_INT) {
+                oracle.markGlobalSlotUndemotable(cx, gslots[n]);
+                ok = false;
+            } else if (JSVAL_IS_INT(*vp) && *m == JSVAL_DOUBLE) {
+                oracle.markGlobalSlotUndemotable(cx, gslots[n]);
+            }
             m++;
         );
         JS_ASSERT(unsigned(m - ti->typeMap.data()) == ti->typeMap.length());
 
-        debug_only_v(printf(" (demotes %d)\n", demotes);)
+        debug_only_v(printf(" %s\n", ok ? "match" : "");)
 
-        if (demotes) {
-            if (demotes > max_demotes) {
-                demote = f;
-                max_demotes = demotes;
-            }
-            continue;
-        } else {
+        if (ok)
             return f;
-        }
-
-check_fail:
-        debug_only_v(printf("\n"));
-        continue;
     }
 
-    if (demote)
-        return demote;
-
-   return NULL;
+    return NULL;
 }
 
 
