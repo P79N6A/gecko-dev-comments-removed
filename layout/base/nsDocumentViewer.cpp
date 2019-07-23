@@ -393,6 +393,8 @@ private:
   nsresult GetClipboardEventTarget(nsIDOMNode **aEventTarget);
   nsresult FireClipboardEvent(PRUint32 msg, PRBool* aPreventDefault);
 
+  void DestroyPresShell();
+
 #ifdef NS_PRINTING
   
   
@@ -674,6 +676,9 @@ DocumentViewerImpl::Init(nsIWidget* aParentWidget,
 nsresult
 DocumentViewerImpl::InitPresentationStuff(PRBool aDoInitialReflow, PRBool aReenableRefresh)
 {
+  NS_ASSERTION(!mPresShell,
+               "Someone should have destroyed the presshell!");
+
   
   nsStyleSet *styleSet;
   nsresult rv = CreateStyleSet(mDocument, &styleSet);
@@ -747,14 +752,16 @@ DocumentViewerImpl::InitPresentationStuff(PRBool aDoInitialReflow, PRBool aReena
 
   
   
-  nsDocViewerSelectionListener *selectionListener =
-    new nsDocViewerSelectionListener();
-  NS_ENSURE_TRUE(selectionListener, NS_ERROR_OUT_OF_MEMORY);
+  if (!mSelectionListener) {
+    nsDocViewerSelectionListener *selectionListener =
+      new nsDocViewerSelectionListener();
+    NS_ENSURE_TRUE(selectionListener, NS_ERROR_OUT_OF_MEMORY);
 
-  selectionListener->Init(this);
+    selectionListener->Init(this);
 
-  
-  mSelectionListener = selectionListener;
+    
+    mSelectionListener = selectionListener;
+  }
 
   nsCOMPtr<nsISelection> selection;
   rv = GetDocumentSelection(getter_AddRefs(selection));
@@ -1515,19 +1522,7 @@ DocumentViewerImpl::Destroy()
   mDeviceContext = nsnull;
 
   if (mPresShell) {
-    
-    mPresShell->EndObservingDocument();
-
-    nsCOMPtr<nsISelection> selection;
-    GetDocumentSelection(getter_AddRefs(selection));
-
-    nsCOMPtr<nsISelectionPrivate> selPrivate(do_QueryInterface(selection));
-
-    if (selPrivate && mSelectionListener)
-      selPrivate->RemoveSelectionListener(mSelectionListener);
-
-    mPresShell->Destroy();
-    mPresShell = nsnull;
+    DestroyPresShell();
   }
 
   if (mPresContext) {
@@ -1640,10 +1635,7 @@ DocumentViewerImpl::SetDOMDocument(nsIDOMDocument *aDocument)
       linkHandler = mPresContext->GetLinkHandler();
     }
 
-    mPresShell->EndObservingDocument();
-    mPresShell->Destroy();
-
-    mPresShell = nsnull;
+    DestroyPresShell();
 
     
     
@@ -1954,30 +1946,18 @@ DocumentViewerImpl::Hide(void)
     return NS_OK;
   }
 
-  
-  mPresShell->EndObservingDocument();
-  nsCOMPtr<nsISelection> selection;
-
-  GetDocumentSelection(getter_AddRefs(selection));
-
-  nsCOMPtr<nsISelectionPrivate> selPrivate(do_QueryInterface(selection));
-
-  if (selPrivate && mSelectionListener) {
-    selPrivate->RemoveSelectionListener(mSelectionListener);
-  }
-
   nsCOMPtr<nsIDocShell> docShell(do_QueryReferent(mContainer));
   if (docShell) {
     nsCOMPtr<nsILayoutHistoryState> layoutState;
     mPresShell->CaptureHistoryState(getter_AddRefs(layoutState), PR_TRUE);
   }
 
-  mPresShell->Destroy();
+  DestroyPresShell();
+
   
   mPresContext->SetContainer(nsnull);
   mPresContext->SetLinkHandler(nsnull);                             
 
-  mPresShell     = nsnull;
   mPresContext   = nsnull;
   mViewManager   = nsnull;
   mWindow        = nsnull;
@@ -4166,14 +4146,7 @@ NS_IMETHODIMP DocumentViewerImpl::SetPageMode(PRBool aPageMode, nsIPrintSettings
   mWindow->GetBounds(bounds);
 
   if (mPresShell) {
-    
-    mPresShell->EndObservingDocument();
-    nsCOMPtr<nsISelection> selection;
-    nsresult rv = GetDocumentSelection(getter_AddRefs(selection));
-    nsCOMPtr<nsISelectionPrivate> selPrivate(do_QueryInterface(selection));
-    if (NS_SUCCEEDED(rv) && selPrivate && mSelectionListener)
-      selPrivate->RemoveSelectionListener(mSelectionListener);
-    mPresShell->Destroy();
+    DestroyPresShell();
   }
 
   if (mPresContext) {
@@ -4209,4 +4182,20 @@ DocumentViewerImpl::GetHistoryEntry(nsISHEntry **aHistoryEntry)
 {
   NS_IF_ADDREF(*aHistoryEntry = mSHEntry);
   return NS_OK;
+}
+
+void
+DocumentViewerImpl::DestroyPresShell()
+{
+  
+  mPresShell->EndObservingDocument();
+
+  nsCOMPtr<nsISelection> selection;
+  GetDocumentSelection(getter_AddRefs(selection));
+  nsCOMPtr<nsISelectionPrivate> selPrivate = do_QueryInterface(selection);
+  if (selPrivate && mSelectionListener)
+    selPrivate->RemoveSelectionListener(mSelectionListener);
+
+  mPresShell->Destroy();
+  mPresShell = nsnull;
 }
