@@ -211,8 +211,8 @@ nsDOMWorkerFunctions::LoadScripts(JSContext* aCx,
   }
 
   if (!aArgc) {
-    JS_ReportError(aCx, "Function must have at least one argument!");
-    return JS_FALSE;
+    
+    return JS_TRUE;
   }
 
   nsAutoTArray<nsString, 10> urls;

@@ -1,3 +1,6 @@
+
+importScripts();
+
 onmessage = function(event) {
   switch (event.data) {
     case 'start':
