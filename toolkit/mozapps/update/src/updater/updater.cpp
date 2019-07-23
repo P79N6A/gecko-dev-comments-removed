@@ -1097,24 +1097,14 @@ LaunchWinPostProcess(const WCHAR *appExe)
   NS_tremove(dlogFile);
   CopyFile(slogFile, dlogFile, FALSE);
 
-  STARTUPINFOW si = {sizeof(si), 0};
-  PROCESS_INFORMATION pi = {0};
-
-  BOOL ok = CreateProcessW(exefullpath,
-                           exearg,
-                           NULL,  
-                           NULL,  
-                           FALSE, 
-                           0,     
-                           NULL,  
-                           NULL,  
-                           &si,
-                           &pi);
-
-  if (ok) {
-    CloseHandle(pi.hProcess);
-    CloseHandle(pi.hThread);
-  }
+  static int    argc = 2;
+  static WCHAR* argv[3] = {
+    L"argv0ignoredbywinlaunchchild",
+    exearg,
+    L"\0"
+  };
+ 
+  WinLaunchChild(exefullpath, argc, argv, 0);
 }
 #endif
 
