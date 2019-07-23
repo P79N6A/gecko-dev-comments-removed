@@ -43,9 +43,6 @@
 #include "nsIIconURI.h"
 #include "nsCOMPtr.h"
 #include "nsStringGlue.h"
-struct nsStaticAtom;
-
-class nsIAtom;
 
 #define NS_MOZICONURI_CID                            \
 {                                                    \
@@ -62,8 +59,6 @@ public:
   NS_DECL_NSIURI
   NS_DECL_NSIMOZICONURI
 
-  static void InitAtoms();
-
   
   nsMozIconURI();
   virtual ~nsMozIconURI();
@@ -74,10 +69,8 @@ protected:
   nsCString mContentType; 
   nsCString mDummyFilePath; 
   nsCString mStockIcon;
-  nsCOMPtr<nsIAtom> mIconSize;
-  nsCOMPtr<nsIAtom> mIconState;
-
-  nsresult FormatSpec(nsACString &result);
+  PRInt32 mIconSize;     
+  PRInt32 mIconState;    
 };
 
 #endif 
