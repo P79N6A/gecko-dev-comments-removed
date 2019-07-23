@@ -161,8 +161,6 @@ protected:
 
     
 
-    bool ProcessGoodbyeMessage();
-
     void NotifyChannelClosed();
     void NotifyMaybeChannelError();
 
@@ -173,6 +171,11 @@ protected:
     void OnChannelOpened();
     void OnSend(Message* aMsg);
     void OnCloseChannel();
+
+    
+    
+    bool MaybeInterceptSpecialIOMessage(const Message& msg);
+    void ProcessGoodbyeMessage();
 
     Transport* mTransport;
     AsyncListener* mListener;
