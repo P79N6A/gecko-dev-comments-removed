@@ -42,6 +42,7 @@
 
 #include <stack>
 
+#include "base/basictypes.h"
 #include "base/message_loop.h"
 #include "chrome/common/ipc_channel.h"
 
@@ -73,17 +74,17 @@ public:
     {
     public:
         enum Result {
-            
             MsgProcessed,
-            
             MsgNotKnown,
-            
-            MsgNotAllowed
+            MsgNotAllowed,
+            MsgPayloadError,
+            MsgRouteError,
+            MsgValueError,
         };
 
         virtual ~Listener() { }
         virtual Result OnCallReceived(const Message& aMessage,
-                                      Message** aReply) = 0;
+                                      Message*& aReply) = 0;
     };
 
     

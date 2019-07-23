@@ -46,6 +46,9 @@
 
 
 enum IPCMessageStart {
+  
+  
+  
   NPAPI_ParentToChildMsgStart = 0,
   NPAPI_ChildToParentMsgStart,
   NPP_ParentToChildMsgStart,
