@@ -186,6 +186,7 @@ protected:
 
 
 
+
 class nsSVGRenderingObserverList {
 public:
   nsSVGRenderingObserverList() {
@@ -202,6 +203,11 @@ public:
   { mObservers.PutEntry(aObserver); }
   void Remove(nsSVGRenderingObserver* aObserver)
   { mObservers.RemoveEntry(aObserver); }
+
+  
+
+
+
   void InvalidateAll();
 
 private:
@@ -273,6 +279,17 @@ public:
 
   static void RemoveRenderingObserver(nsIFrame *aFrame, nsSVGRenderingObserver *aObserver);
   
+
+
+
+
+
+
+
+
+
+
+
 
 
 

@@ -46,6 +46,22 @@
 #include "nsCSSFrameConstructor.h"
 #include "nsFrameManager.h"
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 NS_IMPL_ISUPPORTS1(nsSVGRenderingObserver, nsIMutationObserver)
 
 #ifdef _MSC_VER
@@ -161,6 +177,19 @@ nsSVGRenderingObserver::AttributeChanged(nsIDocument *aDocument,
                                          nsIAtom *aAttribute,
                                          PRInt32 aModType)
 {
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
   DoUpdate();
 }
 
@@ -432,7 +461,10 @@ nsSVGRenderingObserverList::InvalidateAll()
     return;
 
   nsAutoTArray<nsSVGRenderingObserver*,10> observers;
+
+  
   mObservers.EnumerateEntries(GatherEnumerator, &observers);
+
   for (PRUint32 i = 0; i < observers.Length(); ++i) {
     observers[i]->InvalidateViaReferencedFrame();
   }
