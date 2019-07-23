@@ -70,6 +70,7 @@ const PRIVACY_ENCRYPTED = 1;
 const PRIVACY_FULL = 2;
 
 const NOTIFY_WINDOWS_RESTORED = "sessionstore-windows-restored";
+const NOTIFY_BROWSER_STATE_RESTORED = "sessionstore-browser-state-restored";
 
 
 const OBSERVING = [
@@ -151,7 +152,11 @@ SessionStoreService.prototype = {
   _resume_from_crash: true,
 
   
+  
   _restoreCount: 0,
+
+  
+  _browserSetState: false,
 
   
   _lastSaveTime: 0, 
@@ -885,9 +890,12 @@ SessionStoreService.prototype = {
     catch (ex) {  }
     if (!state || !state.windows)
       throw (Components.returnCode = Cr.NS_ERROR_INVALID_ARG);
-    
+
+    this._browserSetState = true;
+
     var window = this._getMostRecentBrowserWindow();
     if (!window) {
+      this._restoreCount = 1;
       this._openWindowWithState(state);
       return;
     }
@@ -901,6 +909,9 @@ SessionStoreService.prototype = {
 
     
     this._closedWindows = [];
+
+    
+    this._restoreCount = state.windows ? state.windows.length : 0;
 
     
     this.restoreWindow(window, state, true);
@@ -1808,13 +1819,13 @@ SessionStoreService.prototype = {
     try {
       var root = typeof aState == "string" ? this._safeEval(aState) : aState;
       if (!root.windows[0]) {
-        this._notifyIfAllWindowsRestored();
+        this._sendRestoreCompletedNotifications();
         return; 
       }
     }
     catch (ex) { 
       debug(ex);
-      this._notifyIfAllWindowsRestored();
+      this._sendRestoreCompletedNotifications();
       return;
     }
 
@@ -1901,7 +1912,7 @@ SessionStoreService.prototype = {
     
     tabstrip.smoothScroll = smoothScroll;
 
-    this._notifyIfAllWindowsRestored();
+    this._sendRestoreCompletedNotifications();
   },
 
   
@@ -2814,12 +2825,15 @@ SessionStoreService.prototype = {
     return jsonString;
   },
 
-  _notifyIfAllWindowsRestored: function sss_notifyIfAllWindowsRestored() {
+  _sendRestoreCompletedNotifications: function sss_sendRestoreCompletedNotifications() {
     if (this._restoreCount) {
       this._restoreCount--;
       if (this._restoreCount == 0) {
         
-        this._observerService.notifyObservers(null, NOTIFY_WINDOWS_RESTORED, "");
+        this._observerService.notifyObservers(null,
+          this._browserSetState ? NOTIFY_BROWSER_STATE_RESTORED : NOTIFY_WINDOWS_RESTORED,
+          "");
+        this._browserSetState = false;
       }
     }
   },
