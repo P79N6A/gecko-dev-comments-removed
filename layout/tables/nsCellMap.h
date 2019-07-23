@@ -330,6 +330,13 @@ public:
 
 
 
+  PRInt32 GetHighestIndex(PRInt32 aColCount);
+
+  
+
+
+
+
 
 
 

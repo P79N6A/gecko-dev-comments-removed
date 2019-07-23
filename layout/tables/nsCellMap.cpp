@@ -816,22 +816,22 @@ nsTableCellMap::GetIndexByRowAndColumn(PRInt32 aRow, PRInt32 aColumn) const
       
       
       
-      PRInt32 cellMapIdx = cellMap->GetIndexByRowAndColumn(colCount,
-                                                           rowCount - 1,
-                                                           colCount - 1);
-      if (cellMapIdx != -1) {
-        index += cellMapIdx  + 1;
-        rowIndex -= rowCount;
-      }
+      rowIndex -= rowCount;
+
+      PRInt32 cellMapIdx = cellMap->GetHighestIndex(colCount);
+      if (cellMapIdx != -1)
+        index += cellMapIdx + 1;
+
     } else {
       
       
       PRInt32 cellMapIdx = cellMap->GetIndexByRowAndColumn(colCount, rowIndex,
                                                            aColumn);
-      if (cellMapIdx != -1) {
-        index += cellMapIdx;
-        return index;  
-      }
+      if (cellMapIdx == -1)
+        return -1; 
+
+      index += cellMapIdx;
+      return index;  
     }
 
     cellMap = cellMap->GetNextSibling();
@@ -857,10 +857,12 @@ nsTableCellMap::GetRowAndColumnByIndex(PRInt32 aIndex,
     PRInt32 rowCount = cellMap->GetRowCount();
     
     
-    PRInt32 cellMapIdx = cellMap->GetIndexByRowAndColumn(colCount,
-                                                         rowCount - 1,
-                                                         colCount - 1);
-    if (cellMapIdx != -1) {
+    PRInt32 cellMapIdx = cellMap->GetHighestIndex(colCount);
+    if (cellMapIdx == -1) {
+      
+      
+      previousRows += rowCount;
+    } else {
       if (index > cellMapIdx) {
         
         
@@ -1239,25 +1241,61 @@ nsCellMap::GetCellFrame(PRInt32   aRowIndexIn,
 }
 
 PRInt32
-nsCellMap::GetIndexByRowAndColumn(PRInt32 aColCount,
-                                  PRInt32 aRow, PRInt32 aColumn) const
+nsCellMap::GetHighestIndex(PRInt32 aColCount)
 {
   PRInt32 index = -1;
-
-  if (PRUint32(aRow) >= mRows.Length())
-    return index;
-
-  PRInt32 lastColsIdx = aColCount - 1;
-  for (PRInt32 rowIdx = 0; rowIdx <= aRow; rowIdx++) {
+  PRInt32 rowCount = mRows.Length();
+  for (PRInt32 rowIdx = 0; rowIdx < rowCount; rowIdx++) {
     const CellDataArray& row = mRows[rowIdx];
-    PRInt32 colCount = (rowIdx == aRow) ? aColumn : lastColsIdx;
-
-    for (PRInt32 colIdx = 0; colIdx <= colCount; colIdx++) {
+    
+    for (PRInt32 colIdx = 0; colIdx < aColCount; colIdx++) {
       CellData* data = row.SafeElementAt(colIdx);
-      if (data && data->IsOrig())
+      
+      if (!data)
+        break;
+
+      if (data->IsOrig())
         index++;
     }
   }
+
+  return index;
+}
+
+PRInt32
+nsCellMap::GetIndexByRowAndColumn(PRInt32 aColCount,
+                                  PRInt32 aRow, PRInt32 aColumn) const
+{
+  if (PRUint32(aRow) >= mRows.Length())
+    return -1;
+
+  PRInt32 index = -1;
+  PRInt32 lastColsIdx = aColCount - 1;
+
+  
+  const CellDataArray& row = mRows[aRow];
+  CellData* data = row.SafeElementAt(aColumn);
+  PRInt32 origRow = data ? aRow - data->GetRowSpanOffset() : aRow;
+
+  
+  for (PRInt32 rowIdx = 0; rowIdx <= origRow; rowIdx++) {
+    const CellDataArray& row = mRows[rowIdx];
+    PRInt32 colCount = (rowIdx == origRow) ? aColumn : lastColsIdx;
+
+    for (PRInt32 colIdx = 0; colIdx <= colCount; colIdx++) {
+      data = row.SafeElementAt(colIdx);
+      
+      if (!data)
+        break;
+
+      if (data->IsOrig())
+        index++;
+    }
+  }
+
+  
+  if (!data)
+    return -1;
 
   return index;
 }
@@ -1277,7 +1315,12 @@ nsCellMap::GetRowAndColumnByIndex(PRInt32 aColCount, PRInt32 aIndex,
 
     for (PRInt32 colIdx = 0; colIdx < aColCount; colIdx++) {
       CellData* data = row.SafeElementAt(colIdx);
-      if (data && data->IsOrig())
+
+      
+      if (!data)
+        break;
+
+      if (data->IsOrig())
         index--;
 
       if (index < 0) {
