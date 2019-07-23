@@ -1785,18 +1785,23 @@ SessionStoreService.prototype = {
       }
     }
     
-    var content = aEvent.originalTarget.defaultView;
-    if (this.currentURI.spec == "about:config") {
+    
+    
+    if (!this.__SS_restore_data.url || this.currentURI.spec.replace(/#.*/, "") ==
+                                       this.__SS_restore_data.url.replace(/#.*/, "")) {
+      var content = aEvent.originalTarget.defaultView;
+      if (this.currentURI.spec == "about:config") {
+        
+        
+        content = content.wrappedJSObject;
+      }
+      restoreTextDataAndScrolling(content, this.__SS_restore_data, "");
       
       
-      content = content.wrappedJSObject;
+      var event = this.ownerDocument.createEvent("Events");
+      event.initEvent("SSTabRestored", true, false);
+      this.__SS_restore_tab.dispatchEvent(event);
     }
-    restoreTextDataAndScrolling(content, this.__SS_restore_data, "");
-    
-    
-    var event = this.ownerDocument.createEvent("Events");
-    event.initEvent("SSTabRestored", true, false);
-    this.__SS_restore_tab.dispatchEvent(event);
     
     this.removeEventListener("load", this.__SS_restore, true);
     delete this.__SS_restore_data;
