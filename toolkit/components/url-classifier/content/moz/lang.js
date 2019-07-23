@@ -52,31 +52,6 @@
 
 
 
-String.prototype.subs = function() {
-  var ret = this;
-
-  
-  
-  for (var i = 0; i < arguments.length; i++) {
-    ret = ret.replace(/\%s/, String(arguments[i]));
-  }
-
-  return ret;
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

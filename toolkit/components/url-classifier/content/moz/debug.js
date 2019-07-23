@@ -36,6 +36,8 @@
 #
 # ***** END LICENSE BLOCK *****
 
+#ifdef DEBUG
+
 
 
 
@@ -180,17 +182,6 @@ function G_Assert(who, condition, msg) {
 
 
 
-function G_AssertEqual(who, expected, actual, msg) {
-  if (G_GDEBUG) {
-    G_GetDebugZone(who).assert(
-        expected == actual,
-        msg + " Expected: {%s}, got: {%s}".subs(expected, actual));
-  }
-}
-
-
-
-
 
 
 
@@ -278,7 +269,7 @@ G_DebugZone.prototype.disableZone = function() {
 G_DebugZone.prototype.debug = function(msg) {
   if (G_GDEBUG) {
     if (this.zoneIsEnabled()) {
-      this.debugService_.dump("[%s] %s\n".subs(this.zone_, msg));
+      this.debugService_.dump("[" + this.zone_ + "] " + msg + "\n");
     }
   }
 }
@@ -290,7 +281,7 @@ G_DebugZone.prototype.debug = function(msg) {
 
 G_DebugZone.prototype.error = function(msg) {
   if (G_GDEBUG) {
-    this.debugService_.dump("[%s] %s\n".subs(this.zone_, msg));
+    this.debugService_.dump("[" + this.zone_ + "] " + msg + "\n");
     throw new Error(msg);
     debugger;
   }
@@ -332,12 +323,6 @@ function G_DebugService(opt_prefix) {
 
     this.loggifier = new G_Loggifier();
     this.settings_ = new G_DebugSettings();
-
-    
-    
-    Cc["@mozilla.org/consoleservice;1"]
-      .getService(Ci.nsIConsoleService)
-      .registerListener(this);
   }
 }
 
@@ -878,3 +863,15 @@ var G_debugService = new G_DebugService();
 if (G_GDEBUG) {
   G_debugService.enableAllZones();
 }
+
+#else
+
+
+
+
+function G_Debug(who, msg) { }
+function G_Assert(who, condition, msg) { }
+function G_Error(who, msg) { }
+var G_debugService = { __noSuchMethod__: function() { } };
+
+#endif
