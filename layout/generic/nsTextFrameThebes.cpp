@@ -1546,7 +1546,6 @@ BuildTextRunsScanner::BuildTextRunForFrames(void* aTextBuffer)
   const void* textPtr = aTextBuffer;
   PRBool anySmallcapsStyle = PR_FALSE;
   PRBool anyTextTransformStyle = PR_FALSE;
-  nsIContent* lastContent = nsnull;
   PRInt32 endOfLastContent = 0;
   PRUint32 textFlags = nsTextFrameUtils::TEXT_NO_BREAKS;
 
@@ -1667,7 +1666,6 @@ BuildTextRunsScanner::BuildTextRunForFrames(void* aTextBuffer)
     currentTransformedTextOffset =
       (static_cast<const PRUint8*>(aTextBuffer) - static_cast<const PRUint8*>(textPtr)) >> mDoubleByteText;
 
-    lastContent = content;
     endOfLastContent = contentEnd;
   }
 
@@ -1687,22 +1685,6 @@ BuildTextRunsScanner::BuildTextRunForFrames(void* aTextBuffer)
   }
 
   PRUint32 transformedLength = currentTransformedTextOffset;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
   
   nsTextFrame* firstFrame = mMappedFlows[0].mStartFrame;
@@ -1939,7 +1921,6 @@ BuildTextRunsScanner::SetupBreakSinksForTextRun(gfxTextRun* aTextRun,
 void
 BuildTextRunsScanner::AssignTextRun(gfxTextRun* aTextRun)
 {
-  nsIContent* lastContent = nsnull;
   PRUint32 i;
   for (i = 0; i < mMappedFlows.Length(); ++i) {
     MappedFlow* mappedFlow = &mMappedFlows[i];
@@ -1973,9 +1954,6 @@ BuildTextRunsScanner::AssignTextRun(gfxTextRun* aTextRun)
     
     
     startFrame->AddStateBits(TEXT_IN_TEXTRUN_USER_DATA);
-    
-    
-    lastContent = startFrame->GetContent();
   }
 }
 
