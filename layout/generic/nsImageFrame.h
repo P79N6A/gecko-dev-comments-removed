@@ -253,7 +253,7 @@ private:
   
 
 
-  void RecalculateTransform();
+  void RecalculateTransform(PRBool aInnerAreaChanged);
 
   
 

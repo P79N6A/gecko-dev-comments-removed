@@ -111,6 +111,16 @@ public:
 
 
   void AddScale(float ptX, float ptY) { m00 *= ptX; m11 *= ptY; }
+
+ 
+
+
+
+
+
+
+
+  void SetScale(float ptX, float ptY) { m00 = ptX; m11 = ptY; }
 };
 
 #endif
