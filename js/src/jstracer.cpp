@@ -2200,6 +2200,7 @@ js_RecordTree(JSContext* cx, JSTraceMonitor* tm, Fragment* f)
     
     uint32 globalShape = OBJ_SHAPE(JS_GetGlobalForObject(cx, cx->fp->scopeChain));
     if (tm->globalShape != globalShape) {
+        AUDIT(globalShapeMismatchAtEntry);
         debug_only_v(printf("Global shape mismatch (%u vs. %u) in RecordTree, flushing cache.\n",
                           globalShape, tm->globalShape);)
         js_FlushJITCache(cx);
@@ -2653,6 +2654,17 @@ js_MonitorLoopEdge(JSContext* cx, jsbytecode* oldpc, uintN& inlineCallCount)
         
     }
     JS_ASSERT(!tm->recorder);
+
+    
+
+
+    uint32 globalShape = OBJ_SHAPE(JS_GetGlobalForObject(cx, cx->fp->scopeChain));
+    if (tm->globalShape != globalShape) {
+        debug_only_v(printf("Global shape mismatch (%u vs. %u) in js_MonitorLoopEdge, flushing cache.\n",
+                            globalShape, tm->globalShape);)
+        js_FlushJITCache(cx);
+        
+    }
 
     
     jsbytecode* pc = cx->fp->regs->pc;
