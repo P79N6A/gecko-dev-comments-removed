@@ -44,7 +44,6 @@
 #include "nsTArray.h"
 #include "nsAutoPtr.h"
 #include "nsThreadUtils.h"
-#include "mozilla/Mutex.h"
 
 #include "mozIStoragePendingStatement.h"
 #include "mozIStorageStatementCallback.h"
@@ -108,8 +107,15 @@ public:
 
 private:
   AsyncExecuteStatements(sqlite3_stmt_array &aStatements,
-                         Connection *aConnection,
+                         mozIStorageConnection *aConnection,
                          mozIStorageStatementCallback *aCallback);
+
+  
+
+
+  nsresult initialize();
+
+  ~AsyncExecuteStatements();
 
   
 
@@ -126,17 +132,6 @@ private:
 
   bool executeAndProcessStatement(sqlite3_stmt *aStatement,
                                   bool aLastStatement);
-
-  
-
-
-
-
-
-
-
-
-  bool executeStatement(sqlite3_stmt *aStatement);
 
   
 
@@ -176,7 +171,7 @@ private:
   nsresult notifyResults();
 
   sqlite3_stmt_array mStatements;
-  nsRefPtr<Connection> mConnection;
+  mozIStorageConnection *mConnection;
   mozStorageTransaction *mTransactionManager;
   mozIStorageStatementCallback *mCallback;
   nsCOMPtr<nsIThread> mCallingThread;
@@ -211,7 +206,7 @@ private:
 
 
 
-  Mutex &mMutex;
+  PRLock *mLock;
 };
 
 } 

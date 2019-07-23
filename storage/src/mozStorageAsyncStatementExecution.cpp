@@ -37,6 +37,7 @@
 
 
 
+#include "nsAutoLock.h"
 #include "nsAutoPtr.h"
 #include "prtime.h"
 
@@ -182,10 +183,13 @@ AsyncExecuteStatements::execute(sqlite3_stmt_array &aStatements,
     new AsyncExecuteStatements(aStatements, aConnection, aCallback);
   NS_ENSURE_TRUE(event, NS_ERROR_OUT_OF_MEMORY);
 
+  nsresult rv = event->initialize();
+  NS_ENSURE_SUCCESS(rv, rv);
+
   
   nsCOMPtr<nsIEventTarget> target(aConnection->getAsyncExecutionTarget());
   NS_ENSURE_TRUE(target, NS_ERROR_NOT_AVAILABLE);
-  nsresult rv = target->Dispatch(event, NS_DISPATCH_NORMAL);
+  rv = target->Dispatch(event, NS_DISPATCH_NORMAL);
   NS_ENSURE_SUCCESS(rv, rv);
 
   
@@ -194,7 +198,7 @@ AsyncExecuteStatements::execute(sqlite3_stmt_array &aStatements,
 }
 
 AsyncExecuteStatements::AsyncExecuteStatements(sqlite3_stmt_array &aStatements,
-                                               Connection *aConnection,
+                                               mozIStorageConnection *aConnection,
                                                mozIStorageStatementCallback *aCallback)
 : mConnection(aConnection)
 , mTransactionManager(nsnull)
@@ -204,11 +208,23 @@ AsyncExecuteStatements::AsyncExecuteStatements(sqlite3_stmt_array &aStatements,
 , mIntervalStart(::PR_IntervalNow())
 , mState(PENDING)
 , mCancelRequested(PR_FALSE)
-, mMutex(aConnection->sharedAsyncExecutionMutex)
+, mLock(nsAutoLock::NewLock("AsyncExecuteStatements::mLock"))
 {
   (void)mStatements.SwapElements(aStatements);
   NS_ASSERTION(mStatements.Length(), "We weren't given any statements!");
+}
+
+AsyncExecuteStatements::~AsyncExecuteStatements()
+{
+  nsAutoLock::DestroyLock(mLock);
+}
+
+nsresult
+AsyncExecuteStatements::initialize()
+{
+  NS_ENSURE_TRUE(mLock, NS_ERROR_OUT_OF_MEMORY);
   NS_IF_ADDREF(mCallback);
+  return NS_OK;
 }
 
 bool
@@ -230,41 +246,72 @@ bool
 AsyncExecuteStatements::executeAndProcessStatement(sqlite3_stmt *aStatement,
                                                    bool aLastStatement)
 {
-  mMutex.AssertNotCurrentThreadOwns();
+  
+  
+  
+  nsAutoLock mutex(mLock);
 
-  
-  
-  
-  MutexAutoLock lockedScope(mMutex);
+  nsresult rv = NS_OK;
+  while (true) {
+    int rc = ::sqlite3_step(aStatement);
+    
+    if (rc == SQLITE_DONE)
+      break;
 
-  
-  bool hasResults = executeStatement(aStatement);
+    
+    if (rc != SQLITE_OK && rc != SQLITE_ROW) {
+      if (rc == SQLITE_BUSY) {
+        
+        nsAutoUnlock cancelationScope(mLock);
 
-  
-  if (mState == ERROR)
-    return false;
+        
+        (void)::PR_Sleep(PR_INTERVAL_NO_WAIT);
+        continue;
+      }
 
-  
-  if (mCancelRequested) {
-    mState = CANCELED;
-    return false;
+      
+      mState = ERROR;
+
+      
+      mutex.unlock();
+
+      
+      sqlite3 *db = ::sqlite3_db_handle(aStatement);
+      (void)notifyError(rc, ::sqlite3_errmsg(db));
+
+      
+      return false;
+    }
+
+    
+    
+    
+    
+    if (!mCallback)
+      break;
+
+    
+    if (mCancelRequested) {
+      mState = CANCELED;
+      return false;
+    }
+
+    
+    rv = buildAndNotifyResults(aStatement);
+    if (NS_FAILED(rv))
+      break;
   }
 
   
   
-  if (mCallback && hasResults && NS_FAILED(buildAndNotifyResults(aStatement))) {
-    
+  if (NS_FAILED(rv)) {
     mState = ERROR;
 
-    {
-      
-      MutexAutoUnlock unlockedScope(mMutex);
+    
+    mutex.unlock();
 
-      
-      (void)notifyError(mozIStorageError::ERROR,
-                        "An error occurred while notifying about results");
-    }
-
+    
+    (void)notifyError(mozIStorageError::ERROR, "");
     return false;
   }
 
@@ -282,58 +329,16 @@ AsyncExecuteStatements::executeAndProcessStatement(sqlite3_stmt *aStatement,
   return true;
 }
 
-bool
-AsyncExecuteStatements::executeStatement(sqlite3_stmt *aStatement)
-{
-  mMutex.AssertCurrentThreadOwns();
-
-  while (true) {
-    int rc = ::sqlite3_step(aStatement);
-    
-    if (rc == SQLITE_DONE)
-      return false;
-
-    
-    if (rc == SQLITE_ROW)
-      return true;
-
-    
-    if (rc == SQLITE_BUSY) {
-      
-      MutexAutoUnlock cancelationScope(mMutex);
-
-      
-      (void)::PR_Sleep(PR_INTERVAL_NO_WAIT);
-      continue;
-    }
-
-    
-    mState = ERROR;
-
-    {
-      
-      MutexAutoUnlock unlockedScope(mMutex);
-
-      
-      sqlite3 *db = ::sqlite3_db_handle(aStatement);
-      (void)notifyError(rc, ::sqlite3_errmsg(db));
-    }
-
-    
-    return false;
-  }
-}
-
 nsresult
 AsyncExecuteStatements::buildAndNotifyResults(sqlite3_stmt *aStatement)
 {
   NS_ASSERTION(mCallback, "Trying to dispatch results without a callback!");
-  mMutex.AssertCurrentThreadOwns();
+  PR_ASSERT_CURRENT_THREAD_OWNS_LOCK(mLock);
 
   
   
   
-  MutexAutoUnlock cancelationScope(mMutex);
+  nsAutoUnlock cancelationScope(mLock);
 
   
   if (!mResultSet)
@@ -370,7 +375,6 @@ AsyncExecuteStatements::buildAndNotifyResults(sqlite3_stmt *aStatement)
 nsresult
 AsyncExecuteStatements::notifyComplete()
 {
-  mMutex.AssertNotCurrentThreadOwns();
   NS_ASSERTION(mState != PENDING,
                "Still in a pending state when calling Complete!");
 
@@ -418,8 +422,6 @@ nsresult
 AsyncExecuteStatements::notifyError(PRInt32 aErrorCode,
                                     const char *aMessage)
 {
-  mMutex.AssertNotCurrentThreadOwns();
-
   if (!mCallback)
     return NS_OK;
 
@@ -436,7 +438,6 @@ AsyncExecuteStatements::notifyError(PRInt32 aErrorCode,
 nsresult
 AsyncExecuteStatements::notifyResults()
 {
-  mMutex.AssertNotCurrentThreadOwns();
   NS_ASSERTION(mCallback, "notifyResults called without a callback!");
 
   nsRefPtr<CallbackResultNotifier> notifier =
@@ -472,7 +473,7 @@ AsyncExecuteStatements::Cancel(PRBool *_successful)
   NS_ENSURE_FALSE(mCancelRequested, NS_ERROR_UNEXPECTED);
 
   {
-    MutexAutoLock lockedScope(mMutex);
+    nsAutoLock mutex(mLock);
 
     
     mCancelRequested = true;
@@ -497,15 +498,14 @@ NS_IMETHODIMP
 AsyncExecuteStatements::Run()
 {
   
-  bool cancelRequested;
   {
-    MutexAutoLock lockedScope(mMutex);
-    cancelRequested = mCancelRequested;
-    if (cancelRequested)
+    nsAutoLock mutex(mLock);
+    if (mCancelRequested) {
       mState = CANCELED;
+      mutex.unlock();
+      return notifyComplete();
+    }
   }
-  if (cancelRequested)
-    return notifyComplete();
 
   
   
