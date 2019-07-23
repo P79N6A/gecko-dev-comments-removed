@@ -46,8 +46,8 @@ struct nsSize;
 
 
 #define NS_ILOOKANDFEEL_IID \
-{ 0xee288a5f, 0xb98b, 0x4105, \
-    { 0xb4, 0xae, 0x88, 0x4f, 0x21, 0x58, 0x8a, 0x92 } }
+{ 0xc23ca876, 0x6ecf, 0x49c6, \
+    { 0xb2, 0xb4, 0x5b, 0xe5, 0x16, 0xb5, 0x0e, 0x28 } }
 
 class nsILookAndFeel: public nsISupports {
 public:
@@ -216,7 +216,6 @@ public:
     eMetric_SubmenuDelay,                                 
     eMetric_MenusCanOverlapOSBar,                         
     eMetric_SkipNavigatingDisabledMenuItem,               
-    eMetric_DragFullWindow,                               
     eMetric_DragThresholdX,                               
     eMetric_DragThresholdY,
     eMetric_UseAccessibilityTheme,                        

@@ -438,16 +438,6 @@ NS_IMETHODIMP nsLookAndFeel::GetMetric(const nsMetricID aID, PRInt32 & aMetric)
         
         aMetric = 1;
         break;
-    case eMetric_DragFullWindow:
-        
-        
-#ifndef WINCE
-        aMetric = GetSystemParam(SPI_GETDRAGFULLWINDOWS, 1);
-#else
-        aMetric = 1;
-#endif
-        break;
-
 #ifndef WINCE
     case eMetric_DragThresholdX:
         

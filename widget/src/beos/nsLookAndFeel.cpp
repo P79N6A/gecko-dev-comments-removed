@@ -387,9 +387,6 @@ NS_IMETHODIMP nsLookAndFeel::GetMetric(const nsMetricID aID, PRInt32 & aMetric)
     case eMetric_MenusCanOverlapOSBar: 
       aMetric = 0;
       break;
-    case eMetric_DragFullWindow:
-      aMetric = 0;
-      break;
     case eMetric_ScrollArrowStyle:
       {
         aMetric = eMetric_ScrollArrowStyleBothAtEachEnd; 

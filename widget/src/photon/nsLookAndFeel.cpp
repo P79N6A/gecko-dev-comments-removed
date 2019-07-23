@@ -348,9 +348,6 @@ NS_IMETHODIMP nsLookAndFeel::GetMetric(const nsMetricID aID, PRInt32 & aMetric)
 		
 		aMetric = 1;
 		break;
-	case eMetric_DragFullWindow:
-		aMetric = 1;
-		break;
   case eMetric_TreeOpenDelay:
     aMetric = 1000;
     break;
