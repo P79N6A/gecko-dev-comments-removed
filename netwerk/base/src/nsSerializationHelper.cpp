@@ -73,7 +73,21 @@ NS_DeserializeObject(const nsCSubstring& str, nsISupports** obj)
 {
   
   
-  PRUint32 size = (str.Length() * 3) / 4;
+  
+  
+  
+  
+  
+
+  PRUint32 size = str.Length();
+  if (size > 0 && str[size-1] == '=') {
+    if (size > 1 && str[size-2] == '=') {
+      size -= 2;
+    } else {
+      size -= 1;
+    }
+  }
+  size = (size * 3) / 4;
   char* buf = PL_Base64Decode(str.BeginReading(), str.Length(), nsnull);
   if (!buf)
     return NS_ERROR_OUT_OF_MEMORY;
