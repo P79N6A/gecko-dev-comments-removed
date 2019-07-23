@@ -1354,12 +1354,16 @@ XRE_GetBinaryPath(const char* argv0, nsILocalFile* *aResult)
   
 
 
+
+
 #if 0
   int r = readlink("/proc/self/exe", exePath, MAXPATHLEN);
 
-  
-  if (r > 0 && r < MAXPATHLEN && stat(exePath, &fileStat) == 0) {
-    rv = NS_OK;
+  if (r > 0 && r < MAXPATHLEN) {
+    exePath[r] = '\0';
+    if (stat(exePath, &fileStat) == 0) {
+      rv = NS_OK;
+    }
   }
 
 #endif
