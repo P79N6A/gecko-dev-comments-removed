@@ -672,7 +672,7 @@ nsTableCellFrame::HasVerticalAlignBaseline()
 PRBool 
 nsTableCellFrame::CellHasVisibleContent(nscoord       height,
                                         nsTableFrame* tableFrame,
-                                        nsIFrame* kidFrame)
+                                        nsIFrame*     kidFrame)
 {
   
   if (height > 0)
@@ -835,7 +835,7 @@ CalcUnpaginagedHeight(nsPresContext*       aPresContext,
   return computedHeight;
 }
 
-NS_METHOD nsTableCellFrame::Reflow(nsPresContext*          aPresContext,
+NS_METHOD nsTableCellFrame::Reflow(nsPresContext*           aPresContext,
                                    nsHTMLReflowMetrics&     aDesiredSize,
                                    const nsHTMLReflowState& aReflowState,
                                    nsReflowStatus&          aStatus)
