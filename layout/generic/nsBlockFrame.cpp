@@ -6599,28 +6599,11 @@ nsBlockFrame::ReflowBullet(nsBlockReflowState& aState,
   
   
   
-  
-  
-  
-  nscoord x;
-  aState.GetAvailableSpace(aLineTop, PR_FALSE);
-  if (rs.mStyleVisibility->mDirection == NS_STYLE_DIRECTION_LTR) {
-    
-    
-    
-    
-    
-    x = aState.mAvailSpaceRect.x
-        - reflowState.mComputedMargin.right - aMetrics.width;
-  } else {
-    
-    
-    
-    
-    x = PR_MIN(rs.ComputedWidth(), aState.mAvailSpaceRect.XMost())
-        + rs.mComputedBorderPadding.LeftRight()
-        + reflowState.mComputedMargin.left;
-  }
+  nscoord x = rs.mStyleVisibility->mDirection == NS_STYLE_DIRECTION_LTR ?
+    PR_MIN(aState.mOutsideBulletX, aState.mAvailSpaceRect.x)
+      - reflowState.mComputedMargin.right - aMetrics.width :
+    PR_MAX(aState.mOutsideBulletX, aState.mAvailSpaceRect.XMost())
+      + reflowState.mComputedMargin.left;
 
   
   

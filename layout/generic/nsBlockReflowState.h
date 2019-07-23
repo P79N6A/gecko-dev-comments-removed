@@ -185,6 +185,13 @@ public:
   
   nsReflowStatus mReflowStatus;
 
+  
+  
+  
+  
+  
+  nscoord mOutsideBulletX;
+
   nscoord mBottomEdge;
 
   

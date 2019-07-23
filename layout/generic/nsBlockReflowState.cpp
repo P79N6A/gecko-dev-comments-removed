@@ -141,6 +141,16 @@ nsBlockReflowState::nsBlockReflowState(const nsHTMLReflowState& aReflowState,
 
   mMinLineHeight = nsHTMLReflowState::CalcLineHeight(aReflowState.rendContext,
                                                      aReflowState.frame);
+
+  
+  GetAvailableSpace();
+  
+  
+  mOutsideBulletX =
+    mReflowState.mStyleVisibility->mDirection == NS_STYLE_DIRECTION_LTR ?
+      mAvailSpaceRect.x :
+      PR_MIN(mReflowState.ComputedWidth(), mAvailSpaceRect.XMost()) +
+        mReflowState.mComputedBorderPadding.LeftRight();
 }
 
 void
