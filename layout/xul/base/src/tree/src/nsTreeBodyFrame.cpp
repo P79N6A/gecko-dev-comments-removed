@@ -4119,7 +4119,7 @@ nsTreeBodyFrame::ScrollInternal(const ScrollParts& aParts, PRInt32 aRow)
   
   
   const nsStyleBackground* background = GetStyleBackground();
-  if (background->BottomLayer().mImage.GetType() != eBackgroundImage_Null ||
+  if (!background->BottomLayer().mImage.IsEmpty() ||
       background->mImageCount > 1 ||
       NS_GET_A(background->mBackgroundColor) < 255 ||
       PR_ABS(delta)*mRowHeight >= mRect.height) {
@@ -4178,7 +4178,7 @@ nsTreeBodyFrame::ScrollHorzInternal(const ScrollParts& aParts, PRInt32 aPosition
   
   
   const nsStyleBackground* background = GetStyleBackground();
-  if (background->BottomLayer().mImage.GetType() != eBackgroundImage_Null ||
+  if (!background->BottomLayer().mImage.IsEmpty() ||
       background->mImageCount > 1 ||
       NS_GET_A(background->mBackgroundColor) < 255 ||
       PR_ABS(delta) >= mRect.width) {

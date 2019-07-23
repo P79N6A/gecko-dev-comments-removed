@@ -59,7 +59,10 @@
 
 #define nsAString_h___
 #define nsString_h___
+#define nsStringFwd_h___
 #define nsReadableUtils_h___
+class nsACString;
+class nsAString;
 class nsAFlatString;
 class nsAFlatCString;
 class nsAdoptingString;

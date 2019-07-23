@@ -85,6 +85,52 @@
 
 
 
+
+
+
+
+class ImageRenderer {
+public:
+  ImageRenderer(nsIFrame* aForFrame, const nsStyleImage& aImage);
+  ~ImageRenderer();
+  
+
+
+
+
+  PRBool PrepareImage();
+  
+
+
+
+  nsSize ComputeSize(const nsSize& aDefault);
+  
+
+
+
+
+  void Draw(nsPresContext*       aPresContext,
+            nsIRenderingContext& aRenderingContext,
+            const nsRect&        aDest,
+            const nsRect&        aFill,
+            const nsPoint&       aAnchor,
+            const nsRect&        aDirty,
+            PRBool               aRepeat);
+
+private:
+  nsIFrame*                 mForFrame;
+  nsStyleImage              mImage;
+  nsStyleImageType          mType;
+  nsCOMPtr<imgIContainer>   mImageContainer;
+  nsRefPtr<nsStyleGradient> mGradientData;
+  PRBool                    mIsReady;
+  nsSize                    mSize;
+};
+
+
+
+
+
 struct InlineBackgroundData
 {
   InlineBackgroundData()
@@ -1396,23 +1442,6 @@ IsSolidBorder(const nsStyleBorder& aBorder)
   return PR_TRUE;
 }
 
-
-
-
-
-static PRBool
-HaveCompleteBackgroundImage(imgIRequest *aRequest)
-{
-  if (!aRequest)
-    return PR_FALSE;
-
-  PRUint32 status = imgIRequest::STATUS_ERROR;
-  aRequest->GetImageStatus(&status);
-
-  return (status & imgIRequest::STATUS_FRAME_COMPLETE) &&
-         (status & imgIRequest::STATUS_SIZE_AVAILABLE);
-}
-
 static inline void
 SetupDirtyRects(const nsRect& aBGClipArea, const nsRect& aCallerDirtyRect,
                 nscoord aAppUnitsPerPixel,
@@ -1502,8 +1531,7 @@ DetermineBackgroundColorInternal(nsPresContext* aPresContext,
                                  const nsStyleBackground& aBackground,
                                  nsIFrame* aFrame,
                                  PRBool& aDrawBackgroundImage,
-                                 PRBool& aDrawBackgroundColor,
-                                 nsCOMPtr<imgIRequest>& aBottomImage)
+                                 PRBool& aDrawBackgroundColor)
 {
   aDrawBackgroundImage = PR_TRUE;
   aDrawBackgroundColor = PR_TRUE;
@@ -1511,15 +1539,6 @@ DetermineBackgroundColorInternal(nsPresContext* aPresContext,
   if (aFrame->HonorPrintBackgroundSettings()) {
     aDrawBackgroundImage = aPresContext->GetBackgroundImageDraw();
     aDrawBackgroundColor = aPresContext->GetBackgroundColorDraw();
-  }
-
-  if (aBackground.BottomLayer().mImage.GetType() == eBackgroundImage_Image) {
-    aBottomImage = aBackground.BottomLayer().mImage.GetImageData();
-    if (!aDrawBackgroundImage || !HaveCompleteBackgroundImage(aBottomImage)) {
-      aBottomImage = nsnull;
-    }
-  } else {
-    aBottomImage = nsnull;
   }
 
   nscolor bgColor;
@@ -1549,13 +1568,11 @@ nsCSSRendering::DetermineBackgroundColor(nsPresContext* aPresContext,
 {
   PRBool drawBackgroundImage;
   PRBool drawBackgroundColor;
-  nsCOMPtr<imgIRequest> bottomImage;
   return DetermineBackgroundColorInternal(aPresContext,
                                           aBackground,
                                           aFrame,
                                           drawBackgroundImage,
-                                          drawBackgroundColor,
-                                          bottomImage);
+                                          drawBackgroundColor);
 }
 
 static gfxFloat
@@ -1677,14 +1694,11 @@ nsCSSRendering::PaintBackgroundWithSC(nsPresContext* aPresContext,
   PRBool drawBackgroundImage;
   PRBool drawBackgroundColor;
 
-  nsCOMPtr<imgIRequest> bottomImage;
-
   nscolor bgColor = DetermineBackgroundColorInternal(aPresContext,
                                                      aBackground,
                                                      aForFrame,
                                                      drawBackgroundImage,
-                                                     drawBackgroundColor,
-                                                     bottomImage);
+                                                     drawBackgroundColor);
 
   
   
@@ -1765,15 +1779,11 @@ nsCSSRendering::PaintBackgroundWithSC(nsPresContext* aPresContext,
   
   aPresContext->SetupBackgroundImageLoaders(aForFrame, &aBackground);
 
-  if (bottomImage &&
+  
+  if (drawBackgroundColor &&
       aBackground.BottomLayer().mRepeat == NS_STYLE_BG_REPEAT_XY &&
-      drawBackgroundColor) {
-    nsCOMPtr<imgIContainer> image;
-    bottomImage->GetImage(getter_AddRefs(image));
-    PRBool isOpaque;
-    if (NS_SUCCEEDED(image->GetCurrentFrameIsOpaque(&isOpaque)) && isOpaque)
-      drawBackgroundColor = PR_FALSE;
-  }
+      aBackground.BottomLayer().mImage.IsOpaque())
+    drawBackgroundColor = PR_FALSE;
 
   
   
@@ -1892,6 +1902,13 @@ PaintBackgroundLayer(nsPresContext* aPresContext,
 
 
 
+  ImageRenderer imageRenderer(aForFrame, aLayer.mImage);
+  if (!imageRenderer.PrepareImage()) {
+    
+    return;
+  }
+
+  
   
   nsRect bgPositioningArea(0, 0, 0, 0);
 
@@ -1946,30 +1963,8 @@ PaintBackgroundLayer(nsPresContext* aPresContext,
     }
   }
 
-  nsSize imageSize;
-  nsCOMPtr<imgIContainer> image;
-  if (aLayer.mImage.GetType() == eBackgroundImage_Image) {
-    
-    imgIRequest *req = aLayer.mImage.GetImageData();
-    if (!HaveCompleteBackgroundImage(req))
-      return;
-
-    req->GetImage(getter_AddRefs(image));
-    req = nsnull;
-
-    nsIntSize imageIntSize;
-    image->GetWidth(&imageIntSize.width);
-    image->GetHeight(&imageIntSize.height);
-
-    imageSize.width = nsPresContext::CSSPixelsToAppUnits(imageIntSize.width);
-    imageSize.height = nsPresContext::CSSPixelsToAppUnits(imageIntSize.height);
-  } else if (aLayer.mImage.GetType() == eBackgroundImage_Gradient) {
-    imageSize = bgPositioningArea.Size();
-  } else {
-    return;
-  }
-
-  if (imageSize.width == 0 || imageSize.height == 0)
+  nsSize imageSize = imageRenderer.ComputeSize(bgPositioningArea.Size());
+  if (imageSize.width <= 0 || imageSize.height <= 0)
     return;
 
   
@@ -2077,16 +2072,9 @@ PaintBackgroundLayer(nsPresContext* aPresContext,
   }
   fillArea.IntersectRect(fillArea, aBGClipRect);
 
-  if (aLayer.mImage.GetType() == eBackgroundImage_Image) {
-    nsLayoutUtils::DrawImage(&aRenderingContext, image,
-        nsLayoutUtils::GetGraphicsFilterForFrame(aForFrame),
-        destArea, fillArea, anchor + aBorderArea.TopLeft(), aDirtyRect);
-  } else {
-    nsCSSRendering::PaintGradient(aPresContext, aRenderingContext,
-                  aLayer.mImage.GetGradientData(),
-                  aDirtyRect, destArea, fillArea,
-                  (repeat != NS_STYLE_BG_REPEAT_OFF));
-  }
+  imageRenderer.Draw(aPresContext, aRenderingContext, destArea, fillArea,
+                     anchor + aBorderArea.TopLeft(), aDirtyRect,
+                     (repeat != NS_STYLE_BG_REPEAT_OFF));
 }
 
 static void
@@ -3073,6 +3061,145 @@ nsCSSRendering::GetTextDecorationRectInternal(const gfxPoint& aPt,
   }
   r.pos.y = baseline - NS_floor(offset + 0.5);
   return r;
+}
+
+
+
+
+ImageRenderer::ImageRenderer(nsIFrame* aForFrame,
+                                       const nsStyleImage& aImage)
+  : mForFrame(aForFrame)
+  , mImage(aImage)
+  , mType(aImage.GetType())
+  , mImageContainer(nsnull)
+  , mGradientData(nsnull)
+  , mIsReady(PR_FALSE)
+  , mSize(0, 0)
+{
+}
+
+ImageRenderer::~ImageRenderer()
+{
+}
+
+PRBool
+ImageRenderer::PrepareImage()
+{
+  if (mImage.IsEmpty() || !mImage.IsComplete()) {
+    
+    return PR_FALSE;
+  }
+
+  switch (mType) {
+    case eStyleImageType_Image:
+    {
+      nsCOMPtr<imgIContainer> srcImage;
+      mImage.GetImageData()->GetImage(getter_AddRefs(srcImage));
+      NS_ABORT_IF_FALSE(srcImage, "If srcImage is null, mImage.IsComplete() "
+                                  "should have returned false");
+
+      if (!mImage.GetCropRect()) {
+        mImageContainer.swap(srcImage);
+      } else {
+        nsIntRect actualCropRect;
+        PRBool isEntireImage;
+        PRBool success =
+          mImage.ComputeActualCropRect(actualCropRect, &isEntireImage);
+        NS_ASSERTION(success, "ComputeActualCropRect() should not fail here");
+        if (!success || actualCropRect.IsEmpty()) {
+          
+          return PR_FALSE;
+        }
+        if (isEntireImage) {
+          
+          mImageContainer.swap(srcImage);
+        } else {
+          nsCOMPtr<imgIContainer> subImage;
+          nsresult rv = srcImage->ExtractCurrentFrame(actualCropRect,
+                                                      getter_AddRefs(subImage));
+          if (NS_FAILED(rv)) {
+            NS_WARNING("The cropped image contains no pixels to draw; "
+                       "maybe the crop rect is outside the image frame rect");
+            return PR_FALSE;
+          }
+          mImageContainer.swap(subImage);
+        }
+      }
+      mIsReady = PR_TRUE;
+      break;
+    }
+    case eStyleImageType_Gradient:
+      mGradientData = mImage.GetGradientData();
+      mIsReady = PR_TRUE;
+      break;
+    case eStyleImageType_Null:
+    default:
+      break;
+  }
+
+  return mIsReady;
+}
+
+nsSize
+ImageRenderer::ComputeSize(const nsSize& aDefault)
+{
+  NS_ASSERTION(mIsReady, "Ensure PrepareImage() has returned true "
+                         "before calling me");
+
+  switch (mType) {
+    case eStyleImageType_Image:
+    {
+      nsIntSize imageIntSize;
+      mImageContainer->GetWidth(&imageIntSize.width);
+      mImageContainer->GetHeight(&imageIntSize.height);
+
+      mSize.width = nsPresContext::CSSPixelsToAppUnits(imageIntSize.width);
+      mSize.height = nsPresContext::CSSPixelsToAppUnits(imageIntSize.height);
+      break;
+    }
+    case eStyleImageType_Gradient:
+      mSize = aDefault;
+      break;
+    case eStyleImageType_Null:
+    default:
+      mSize.SizeTo(0, 0);
+      break;
+  }
+
+  return mSize;
+}
+
+void
+ImageRenderer::Draw(nsPresContext*       aPresContext,
+                         nsIRenderingContext& aRenderingContext,
+                         const nsRect&        aDest,
+                         const nsRect&        aFill,
+                         const nsPoint&       aAnchor,
+                         const nsRect&        aDirty,
+                         PRBool               aRepeat)
+{
+  if (!mIsReady) {
+    NS_NOTREACHED("Ensure PrepareImage() has returned true before calling me");
+    return;
+  }
+
+  if (aDest.IsEmpty() || aFill.IsEmpty())
+    return;
+
+  switch (mType) {
+    case eStyleImageType_Image:
+      nsLayoutUtils::DrawImage(&aRenderingContext, mImageContainer,
+          nsLayoutUtils::GetGraphicsFilterForFrame(mForFrame),
+          aDest, aFill, aAnchor, aDirty);
+      break;
+    case eStyleImageType_Gradient:
+      nsCSSRendering::PaintGradient(aPresContext, aRenderingContext,
+          mGradientData, aDirty, aDest, aFill, aRepeat);
+      break;
+    case eStyleImageType_Null:
+    default:
+      break;
+  }
 }
 
 

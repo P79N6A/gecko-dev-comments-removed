@@ -192,6 +192,106 @@ private:
   nsStyleGradient& operator=(const nsStyleGradient& aOther);
 };
 
+enum nsStyleImageType {
+  eStyleImageType_Null,
+  eStyleImageType_Image,
+  eStyleImageType_Gradient
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+struct nsStyleImage {
+  nsStyleImage();
+  ~nsStyleImage();
+  nsStyleImage(const nsStyleImage& aOther);
+  nsStyleImage& operator=(const nsStyleImage& aOther);
+
+  void SetNull();
+  void SetImageData(imgIRequest* aImage);
+  void SetGradientData(nsStyleGradient* aGradient);
+  void SetCropRect(nsStyleSides* aCropRect);
+
+  nsStyleImageType GetType() const {
+    return mType;
+  }
+  imgIRequest* GetImageData() const {
+    NS_ASSERTION(mType == eStyleImageType_Image, "Data is not an image!");
+    return mImage;
+  }
+  nsStyleGradient* GetGradientData() const {
+    NS_ASSERTION(mType == eStyleImageType_Gradient, "Data is not a gradient!");
+    return mGradient;
+  }
+  nsStyleSides* GetCropRect() const {
+    NS_ASSERTION(mType == eStyleImageType_Image,
+                 "Only image data can have a crop rect");
+    return mCropRect;
+  }
+
+  
+
+
+
+
+
+
+
+
+  PRBool ComputeActualCropRect(nsIntRect& aActualCropRect,
+                               PRBool* aIsEntireImage = nsnull) const;
+
+  
+
+
+
+  PRBool IsOpaque() const;
+  
+
+
+
+  PRBool IsComplete() const;
+  
+
+
+
+  PRBool IsEmpty() const {
+    
+    
+    
+    
+    
+    
+    
+    return mType == eStyleImageType_Null;
+  }
+
+  PRBool operator==(const nsStyleImage& aOther) const;
+  PRBool operator!=(const nsStyleImage& aOther) const {
+    return !(*this == aOther);
+  }
+
+private:
+  void DoCopy(const nsStyleImage& aOther);
+
+  nsStyleImageType mType;
+  union {
+    imgIRequest* mImage;
+    nsStyleGradient* mGradient;
+  };
+  
+  nsAutoPtr<nsStyleSides> mCropRect;
+};
+
 struct nsStyleColor {
   nsStyleColor(nsPresContext* aPresContext);
   nsStyleColor(const nsStyleColor& aOther);
@@ -215,12 +315,6 @@ struct nsStyleColor {
   
   
   nscolor mColor;                 
-};
-
-enum nsStyleBackgroundImageType {
-  eBackgroundImage_Null,
-  eBackgroundImage_Image,
-  eBackgroundImage_Gradient
 };
 
 struct nsStyleBackground {
@@ -304,46 +398,6 @@ struct nsStyleBackground {
     }
   };
 
-  struct Image;
-  friend struct Image;
-  struct Image {
-  public:
-    Image();
-    ~Image();
-    Image(const Image& aOther);
-    Image& operator=(const Image& aOther);
-
-    void SetImageData(imgIRequest* aImage);
-    void SetGradientData(nsStyleGradient* aGradient);
-    void SetNull();
-
-    nsStyleBackgroundImageType GetType() const {
-      return mType;
-    };
-    imgIRequest* GetImageData() const {
-      NS_ASSERTION(mType == eBackgroundImage_Image, "Data is not an image!");
-      return mImage;
-    };
-    nsStyleGradient* GetGradientData() const {
-      NS_ASSERTION(mType == eBackgroundImage_Gradient, "Data is not a gradient!");
-      return mGradient;
-    };
-
-    PRBool operator==(const Image& aOther) const;
-    PRBool operator!=(const Image& aOther) const {
-      return !(*this == aOther);
-    }
-
-  private:
-    void DoCopy(const Image& aOther);
-
-    nsStyleBackgroundImageType mType;
-    union {
-      imgIRequest* mImage;
-      nsStyleGradient* mGradient;
-    };
-  };
-
   struct Layer;
   friend struct Layer;
   struct Layer {
@@ -352,7 +406,7 @@ struct nsStyleBackground {
     PRUint8 mOrigin;                    
     PRUint8 mRepeat;                    
     Position mPosition;                 
-    Image mImage;                       
+    nsStyleImage mImage;                
     Size mSize;                         
 
     
