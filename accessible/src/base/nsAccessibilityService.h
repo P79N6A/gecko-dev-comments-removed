@@ -350,6 +350,7 @@ static const char kEventTypeNames[][40] = {
   "hypertext changed",                       
   "hypertext links count changed",           
   "object attribute changed",                
+  "page changed",                            
   "internal load",                           
   "reorder"                                  
 };
