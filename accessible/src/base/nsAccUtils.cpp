@@ -294,6 +294,11 @@ nsAccUtils::SetLiveContainerAttributes(nsIPersistentProperties *aAttributes,
           nsAutoString live;
           GetLiveAttrValue(role->liveAttRule, live);
           SetAccAttr(aAttributes, nsAccessibilityAtoms::containerLive, live);
+
+          
+          nsAccUtils::SetAccAttr(aAttributes,
+                                 nsAccessibilityAtoms::containerLiveRole,
+                                 NS_ConvertASCIItoUTF16(role->roleString));
         }
       }
     }
