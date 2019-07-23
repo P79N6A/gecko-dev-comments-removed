@@ -52,15 +52,18 @@
 
 
 
+static nsRefreshDriver*
+GetRefreshDriverForDoc(nsIDocument* aDoc)
+{
+  nsIPresShell* shell = aDoc->GetPrimaryShell();
+  if (!shell) {
+    return nsnull;
+  }
 
+  nsPresContext* context = shell->GetPresContext();
+  return context ? context->RefreshDriver() : nsnull;
+}
 
-
-
-
-
-
-
-const PRUint32 nsSMILAnimationController::kTimerInterval = 22;
 
 
 
@@ -75,11 +78,7 @@ nsSMILAnimationController::nsSMILAnimationController()
 
 nsSMILAnimationController::~nsSMILAnimationController()
 {
-  if (mTimer) {
-    mTimer->Cancel();
-    mTimer = nsnull;
-  }
-
+  StopSampling(GetRefreshDriverForDoc(mDocument));
   NS_ASSERTION(mAnimationElementTable.Count() == 0,
                "Animation controller shouldn't be tracking any animation"
                " elements when it dies");
@@ -105,9 +104,6 @@ nsSMILAnimationController::Init(nsIDocument* aDoc)
 {
   NS_ENSURE_ARG_POINTER(aDoc);
 
-  mTimer = do_CreateInstance("@mozilla.org/timer;1");
-  NS_ENSURE_TRUE(mTimer, NS_ERROR_OUT_OF_MEMORY);
-
   
   mDocument = aDoc;
 
@@ -125,7 +121,7 @@ nsSMILAnimationController::Pause(PRUint32 aType)
   nsSMILTimeContainer::Pause(aType);
 
   if (mPauseState) {
-    StopTimer();
+    StopSampling(GetRefreshDriverForDoc(mDocument));
   }
 }
 
@@ -137,7 +133,8 @@ nsSMILAnimationController::Resume(PRUint32 aType)
   nsSMILTimeContainer::Resume(aType);
 
   if (wasPaused && !mPauseState && mChildContainerTable.Count()) {
-    StartTimer();
+    Sample(); 
+    StartSampling(GetRefreshDriverForDoc(mDocument));
   }
 }
 
@@ -146,6 +143,20 @@ nsSMILAnimationController::GetParentTime() const
 {
   
   return PR_Now() / PR_USEC_PER_MSEC;
+}
+
+
+
+NS_IMPL_ADDREF(nsSMILAnimationController)
+NS_IMPL_RELEASE(nsSMILAnimationController)
+
+void
+nsSMILAnimationController::WillRefresh(mozilla::TimeStamp aTime)
+{
+  
+  
+  
+  Sample();
 }
 
 
@@ -214,42 +225,28 @@ nsSMILAnimationController::Unlink()
 
 
 
- void
-nsSMILAnimationController::Notify(nsITimer* timer, void* aClosure)
+void
+nsSMILAnimationController::StartSampling(nsRefreshDriver* aRefreshDriver)
 {
-  nsSMILAnimationController* controller = (nsSMILAnimationController*)aClosure;
-
-  NS_ASSERTION(controller->mTimer == timer,
-               "nsSMILAnimationController::Notify called with incorrect timer");
-
-  controller->Sample();
+  NS_ASSERTION(mPauseState == 0, "Starting sampling but controller is paused");
+  if (aRefreshDriver) {
+    NS_ABORT_IF_FALSE(aRefreshDriver == GetRefreshDriverForDoc(mDocument),
+                      "Starting sampling with wrong refresh driver");
+    aRefreshDriver->AddRefreshObserver(this, Flush_Style);
+  }
 }
 
-nsresult
-nsSMILAnimationController::StartTimer()
+void
+nsSMILAnimationController::StopSampling(nsRefreshDriver* aRefreshDriver)
 {
-  NS_ENSURE_TRUE(mTimer, NS_ERROR_FAILURE);
-  NS_ASSERTION(mPauseState == 0, "Starting timer but controller is paused");
-
-  
-  Sample();
-
-  
-  
-  
-  
-  return mTimer->InitWithFuncCallback(nsSMILAnimationController::Notify,
-                                      this,
-                                      kTimerInterval,
-                                      nsITimer::TYPE_REPEATING_SLACK);
-}
-
-nsresult
-nsSMILAnimationController::StopTimer()
-{
-  NS_ENSURE_TRUE(mTimer, NS_ERROR_FAILURE);
-
-  return mTimer->Cancel();
+  if (aRefreshDriver) {
+    
+    
+    NS_ABORT_IF_FALSE(!GetRefreshDriverForDoc(mDocument) ||
+                      aRefreshDriver == GetRefreshDriverForDoc(mDocument),
+                      "Stopping sampling with wrong refresh driver");
+    aRefreshDriver->RemoveRefreshObserver(this, Flush_Style);
+  }
 }
 
 
@@ -668,7 +665,8 @@ nsSMILAnimationController::AddChild(nsSMILTimeContainer& aChild)
   NS_ENSURE_TRUE(key,NS_ERROR_OUT_OF_MEMORY);
 
   if (!mPauseState && mChildContainerTable.Count() == 1) {
-    StartTimer();
+    Sample(); 
+    StartSampling(GetRefreshDriverForDoc(mDocument));
   }
 
   return NS_OK;
@@ -680,6 +678,6 @@ nsSMILAnimationController::RemoveChild(nsSMILTimeContainer& aChild)
   mChildContainerTable.RemoveEntry(&aChild);
 
   if (!mPauseState && mChildContainerTable.Count() == 0) {
-    StopTimer();
+    StopSampling(GetRefreshDriverForDoc(mDocument));
   }
 }
