@@ -256,7 +256,7 @@ static void ProcessMatrix(float aMain[4], nscoord aDelta[2],
 
 
   if (aData->Item(6).GetUnit() == eCSSUnit_Percent)
-    aY[1] = aData->Item(5).GetPercentValue();
+    aY[1] = aData->Item(6).GetPercentValue();
   else
     SetCoordToValue(aData->Item(6), aContext, aPresContext, aDelta[1]);
 }
