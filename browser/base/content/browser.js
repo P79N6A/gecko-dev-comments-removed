@@ -3205,6 +3205,8 @@ function OpenBrowserWindow()
   return win;
 }
 
+
+
 function BrowserCustomizeToolbar()
 {
   
@@ -3237,11 +3239,13 @@ function BrowserCustomizeToolbar()
   var sheetWidth = sheetFrame.style.width.match(/([0-9]+)px/)[1];
   document.getElementById("customizeToolbarSheetPopup")
           .openPopup(gNavToolbox, "after_start", (window.innerWidth - sheetWidth) / 2, 0);
+
+  return sheetFrame.contentWindow;
 #else
-  window.openDialog(customizeURL,
-                    "CustomizeToolbar",
-                    "chrome,titlebar,toolbar,resizable,dependent",
-                    gNavToolbox);
+  return window.openDialog(customizeURL,
+                           "CustomizeToolbar",
+                           "chrome,titlebar,toolbar,resizable,dependent",
+                           gNavToolbox);
 #endif
 }
 
