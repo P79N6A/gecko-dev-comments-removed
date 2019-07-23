@@ -150,6 +150,7 @@ protected:
    void       SetContentScrollbarVisibility(PRBool aVisible);
    PRBool     GetContentScrollbarVisibility();
    void       PersistentAttributesDirty(PRUint32 aDirtyFlags);
+   PRInt32    AppUnitsPerDevPixel();
 
    nsChromeTreeOwner*      mChromeTreeOwner;
    nsContentTreeOwner*     mContentTreeOwner;
@@ -177,6 +178,8 @@ protected:
    PRUint32                mPersistentAttributesDirty; 
    PRUint32                mPersistentAttributesMask;
    PRUint32                mChromeFlags;
+   PRUint32                mAppPerDev; 
+                                       
    nsString                mTitle;
 
    nsCOMArray<nsIWeakReference> mTargetableShells; 
