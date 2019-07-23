@@ -651,7 +651,11 @@ PluginScriptableObjectChild::~PluginScriptableObjectChild()
       }
     }
     else {
-      PluginModuleChild::sBrowserFuncs.releaseobject(mObject);
+      
+      
+
+      
+      PluginScriptableObjectChild::AnswerInvalidate();
     }
   }
   NS_ASSERTION(!PluginModuleChild::current()->
