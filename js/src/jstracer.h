@@ -495,7 +495,9 @@ class VMAllocator : public nanojit::Allocator
 {
 
 public:
-    VMAllocator() : mOutOfMemory(false), mSize(0)
+    
+    VMAllocator(size_t minChunk = 4088) :
+        nanojit::Allocator(minChunk), mOutOfMemory(false), mSize(0)
     {}
 
     size_t size() {
@@ -752,7 +754,6 @@ struct InterpState
 
     
     double*        deepBailSp;
-
 
     
     uintN          nativeVpLen;
