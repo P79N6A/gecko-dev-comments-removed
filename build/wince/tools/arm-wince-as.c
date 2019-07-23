@@ -8,6 +8,7 @@ main(int argc, char **argv)
   
   args[i++] = ASM_PATH;
   args[i++] = "-I\"" WCE_INC "\""; 
+  args[i++] = "-CPU ARM1136";  
 
   i += argpath_conv(&argv[1], &args[i]);
 
