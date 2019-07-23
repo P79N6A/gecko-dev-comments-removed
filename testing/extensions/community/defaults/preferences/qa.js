@@ -1,5 +1,43 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 pref("qa.extension.litmus.url", "http://litmus.mozilla.org/");
 pref("qa.extension.hermes.url", "http://litmus.mozilla.org/hermes/1/");
+pref("qa.extension.bugzilla.url", "http:/bugzilla.mozilla.org/");
 pref("qa.extension.isFirstTime", true);
 pref("qa.extension.minNotificationInterval", 5400000); 
 pref("qa.extension.lastNotificationTime", 0);
