@@ -1157,6 +1157,10 @@ nsresult nsExternalAppHandler::SetUpTempFile(nsIChannel * aChannel)
     AppendUTF8toUTF16(ext, saltedTempLeafName);
   }
 
+  
+  
+  saltedTempLeafName.Append(NS_LITERAL_STRING(".part"));
+
   mTempFile->Append(saltedTempLeafName); 
   mTempFile->CreateUnique(nsIFile::NORMAL_FILE_TYPE, 0600);
 
