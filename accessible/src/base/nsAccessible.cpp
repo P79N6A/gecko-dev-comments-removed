@@ -1941,7 +1941,6 @@ nsresult nsAccessible::GetXULName(nsAString& aLabel, PRBool aCanAggregateSubtree
 
   
   nsIContent *bindingParent = content->GetBindingParent();
-  
   nsIContent *parent = bindingParent? bindingParent->GetParent() :
                                       content->GetParent();
   while (parent) {
