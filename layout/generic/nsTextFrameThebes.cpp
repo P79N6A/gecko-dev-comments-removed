@@ -4936,10 +4936,11 @@ nsTextFrame::PeekOffsetWord(PRBool aForward, PRBool aWordSelectEatSpace, PRBool 
 
   if (!cIter.NextCluster())
     return PR_FALSE;
-  
+
   do {
     PRBool isPunctuation = cIter.IsPunctuation();
     PRBool isWhitespace = cIter.IsWhitespace();
+    PRBool isWordBreakBefore = cIter.HaveWordBreakBefore();
     if (aWordSelectEatSpace == isWhitespace && !aState->mSawBeforeType) {
       aState->SetSawBeforeType();
       aState->Update(isPunctuation, isWhitespace);
@@ -4947,9 +4948,21 @@ nsTextFrame::PeekOffsetWord(PRBool aForward, PRBool aWordSelectEatSpace, PRBool 
     }
     
     if (!aState->mAtStart) {
-      PRBool canBreak = isPunctuation != aState->mLastCharWasPunctuation
-        ? BreakWordBetweenPunctuation(aState, aForward, isPunctuation, isWhitespace, aIsKeyboardSelect)
-        : cIter.HaveWordBreakBefore() && aState->mSawBeforeType;
+      PRBool canBreak;
+      if (isPunctuation != aState->mLastCharWasPunctuation) {
+        canBreak = BreakWordBetweenPunctuation(aState, aForward,
+                     isPunctuation, isWhitespace, aIsKeyboardSelect);
+      } else if (!aState->mLastCharWasWhitespace &&
+                 !isWhitespace && !isPunctuation && isWordBreakBefore) {
+        
+        
+        
+        
+        
+        canBreak = PR_TRUE;
+      } else {
+        canBreak = isWordBreakBefore && aState->mSawBeforeType;
+      }
       if (canBreak) {
         *aOffset = cIter.GetBeforeOffset() - mContentOffset;
         return PR_TRUE;
