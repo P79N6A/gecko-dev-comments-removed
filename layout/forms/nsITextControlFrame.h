@@ -87,6 +87,13 @@ public:
   virtual nsFrameSelection* GetOwnedFrameSelection() = 0;
 
   virtual nsresult GetPhonetic(nsAString& aPhonetic) = 0;
+
+  
+
+
+
+
+  virtual nsresult EnsureEditorInitialized() = 0;
 };
 
 #endif
