@@ -44,6 +44,7 @@
 #define _SECPORT_H_
 
 #include "utilrename.h"
+#include "prlink.h"
 
 
 
@@ -239,6 +240,43 @@ sec_port_iso88591_utf8_conversion_function
 );
 
 extern int NSS_PutEnv(const char * envVarName, const char * envValue);
+
+extern int NSS_SecureMemcmp(const void *a, const void *b, size_t n);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+PRLibrary *
+PORT_LoadLibraryFromOrigin(const char* existingShLibName,
+                 PRFuncPtr staticShLibFunc,
+                 const char *newShLibName);
 
 SEC_END_PROTOS
 

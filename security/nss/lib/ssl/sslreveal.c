@@ -98,3 +98,41 @@ SSL_RevealURL(PRFileDesc * fd)
   return url;
 }
 
+
+
+
+
+
+SECStatus
+SSL_HandshakeNegotiatedExtension(PRFileDesc * socket, 
+                                 SSLExtensionType extId,
+                                 PRBool *pYes)
+{
+  
+  sslSocket * sslsocket = NULL;
+  SECStatus rv = SECFailure;
+
+  if (!pYes)
+    return rv;
+
+  sslsocket = ssl_FindSocket(socket);
+
+  
+  if (sslsocket && sslsocket->opt.useSecurity && sslsocket->firstHsDone) {
+    if (sslsocket->ssl3.initialized) { 
+      
+
+
+
+
+
+
+      ssl_GetSSL3HandshakeLock(sslsocket);
+      *pYes = ssl3_ExtensionNegotiated(sslsocket, extId);
+      ssl_ReleaseSSL3HandshakeLock(sslsocket);
+      rv = SECSuccess;
+    }
+  }
+
+  return rv;
+}

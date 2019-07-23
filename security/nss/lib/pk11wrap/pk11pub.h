@@ -574,6 +574,10 @@ SECKEYPrivateKey *PK11_UnwrapPrivKey(PK11SlotInfo *slot,
 SECStatus PK11_WrapPrivKey(PK11SlotInfo *slot, PK11SymKey *wrappingKey,
 			   SECKEYPrivateKey *privKey, CK_MECHANISM_TYPE wrapType,
 			   SECItem *param, SECItem *wrappedKey, void *wincx);
+
+
+
+
 SECItem* PK11_DEREncodePublicKey(SECKEYPublicKey *pubk);
 PK11SymKey* PK11_CopySymKeyForSigning(PK11SymKey *originalKey,
 	CK_MECHANISM_TYPE mech);
@@ -773,6 +777,11 @@ SECStatus PK11_DestroyGenericObject(PK11GenericObject *object);
 PK11GenericObject *PK11_CreateGenericObject(PK11SlotInfo *slot, 
 				   const CK_ATTRIBUTE *pTemplate, 
 				   int count, PRBool token);
+
+
+
+
+
 
 
 

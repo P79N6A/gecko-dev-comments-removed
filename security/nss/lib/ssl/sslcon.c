@@ -2731,7 +2731,8 @@ ssl2_HandleVerifyMessage(sslSocket *ss)
     DUMP_MSG(29, (ss, data, ss->gs.recordLen));
     if ((ss->gs.recordLen != 1 + SSL_CHALLENGE_BYTES) ||
 	(data[0] != SSL_MT_SERVER_VERIFY) ||
-	PORT_Memcmp(data+1, ss->sec.ci.clientChallenge, SSL_CHALLENGE_BYTES)) {
+	NSS_SecureMemcmp(data+1, ss->sec.ci.clientChallenge,
+	                 SSL_CHALLENGE_BYTES)) {
 	
 	PORT_SetError(SSL_ERROR_BAD_SERVER);
 	goto loser;
@@ -3006,6 +3007,7 @@ ssl2_BeginClientHandshake(sslSocket *ss)
     unsigned int      i;
     int               sendLen, sidLen = 0;
     SECStatus         rv;
+    TLSExtensionData  *xtnData;
 
     PORT_Assert( ss->opt.noLocks || ssl_Have1stHandshakeLock(ss) );
 
@@ -3150,7 +3152,8 @@ ssl2_BeginClientHandshake(sslSocket *ss)
     localCipherSpecs = ss->cipherSpecs;
     localCipherSize  = ss->sizeCipherSpecs;
 
-    sendLen = SSL_HL_CLIENT_HELLO_HBYTES + localCipherSize + sidLen +
+    
+    sendLen = SSL_HL_CLIENT_HELLO_HBYTES + localCipherSize + 3 + sidLen +
 	SSL_CHALLENGE_BYTES;
 
     
@@ -3175,8 +3178,9 @@ ssl2_BeginClientHandshake(sslSocket *ss)
     
     msg[1] = MSB(ss->clientHelloVersion);
     msg[2] = LSB(ss->clientHelloVersion);
-    msg[3] = MSB(localCipherSize);
-    msg[4] = LSB(localCipherSize);
+    
+    msg[3] = MSB(localCipherSize + 3);
+    msg[4] = LSB(localCipherSize + 3);
     msg[5] = MSB(sidLen);
     msg[6] = LSB(sidLen);
     msg[7] = MSB(SSL_CHALLENGE_BYTES);
@@ -3184,6 +3188,16 @@ ssl2_BeginClientHandshake(sslSocket *ss)
     cp += SSL_HL_CLIENT_HELLO_HBYTES;
     PORT_Memcpy(cp, localCipherSpecs, localCipherSize);
     cp += localCipherSize;
+    
+
+
+
+
+
+    cp[0] = 0x00;
+    cp[1] = 0x00;
+    cp[2] = 0xff;
+    cp += 3;
     if (sidLen) {
 	PORT_Memcpy(cp, sid->u.ssl2.sessionID, sidLen);
 	cp += sidLen;
@@ -3205,6 +3219,14 @@ ssl2_BeginClientHandshake(sslSocket *ss)
     if (rv < 0) {
 	goto loser;
     }
+
+    
+
+
+
+
+    xtnData = &ss->xtnData;
+    xtnData->advertised[xtnData->numAdvertised++] = ssl_renegotiation_info_xtn;
 
     
     ssl_GetRecvBufLock(ss);

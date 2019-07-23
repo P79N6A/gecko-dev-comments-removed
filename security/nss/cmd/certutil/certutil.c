@@ -257,6 +257,7 @@ CertReq(SECKEYPrivateKey *privk, SECKEYPublicKey *pubk, KeyType keyType,
     
     
     cr = CERT_CreateCertificateRequest(subject, spki, NULL);
+    SECKEY_DestroySubjectPublicKeyInfo(spki);
     if (!cr) {
 	SECU_PrintError(progName, "unable to make certificate request");
 	return SECFailure;

@@ -569,6 +569,42 @@ CERT_CheckOCSPStatus(CERTCertDBHandle *handle, CERTCertificate *cert,
 
 
 
+
+
+
+
+
+
+
+
+
+
+extern SECStatus
+CERT_CacheOCSPResponseFromSideChannel(CERTCertDBHandle *handle,
+				      CERTCertificate *cert,
+				      PRTime time,
+				      SECItem *encodedResponse,
+				      void *pwArg);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 extern SECStatus
 CERT_GetOCSPStatusForCertID(CERTCertDBHandle *handle, 
 			    CERTOCSPResponse *response,

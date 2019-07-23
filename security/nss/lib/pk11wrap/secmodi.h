@@ -58,7 +58,8 @@ void nss_DumpModuleLog(void);
 extern int secmod_PrivateModuleCount;
 
 extern void SECMOD_Init(void);
-SECStatus secmod_ModuleInit(SECMODModule *mod, PRBool* alreadyLoaded);
+SECStatus secmod_ModuleInit(SECMODModule *mod, SECMODModule **oldModule,
+			    PRBool* alreadyLoaded);
 
 
 extern SECStatus SECMOD_AddModuleToList(SECMODModule *newModule);
@@ -73,6 +74,7 @@ extern void SECMOD_ReleaseWriteLock(SECMODListLock *);
 
 
 extern SECMODModule *SECMOD_FindModuleByID(SECMODModuleID);
+extern SECMODModule *secmod_FindModuleByFuncPtr(void *funcPtr);
 
 
 extern SECMODModuleList *SECMOD_NewModuleListElement(void);
@@ -84,9 +86,37 @@ extern unsigned long SECMOD_InternaltoPubMechFlags(unsigned long internalFlags);
 extern unsigned long SECMOD_InternaltoPubCipherFlags(unsigned long internalFlags);
 
 
-SECStatus SECMOD_LoadPKCS11Module(SECMODModule *);
+SECStatus secmod_LoadPKCS11Module(SECMODModule *, SECMODModule **oldModule);
 SECStatus SECMOD_UnloadModule(SECMODModule *);
 void SECMOD_SetInternalModule(SECMODModule *);
+PRBool secmod_IsInternalKeySlot(SECMODModule *);
+
+
+typedef struct SECMODConfigListStr SECMODConfigList;
+
+SECMODConfigList *secmod_GetConfigList(PRBool isFIPS, char *spec, int *count);
+
+PRBool secmod_MatchConfigList(char *spec, 
+			      SECMODConfigList *conflist, int count);
+
+void secmod_FreeConfigList(SECMODConfigList *conflist, int count);
+
+
+
+
+
+char *secmod_ParseModuleSpecForTokens(PRBool convert,
+				      PRBool isFIPS,
+				      char *moduleSpec,
+				      char ***children, 
+				      CK_SLOT_ID **ids);
+void secmod_FreeChildren(char **children, CK_SLOT_ID *ids);
+char *secmod_MkAppendTokensList(PRArenaPool *arena, char *origModuleSpec, 
+				char *newModuleSpec, CK_SLOT_ID newID,
+				char **children, CK_SLOT_ID *ids);
+char *secmod_DoubleEscape(const char *string, char quote1, char quote2);
+
+
 
 void SECMOD_SlotDestroyModule(SECMODModule *module, PRBool fromSlot);
 CK_RV pk11_notify(CK_SESSION_HANDLE session, CK_NOTIFICATION event,

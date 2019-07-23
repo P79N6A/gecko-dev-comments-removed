@@ -2014,10 +2014,10 @@ SECKEY_EncodeDERSubjectPublicKeyInfo(SECKEYPublicKey *pubk)
     
     spkiDER = SEC_ASN1EncodeItem(NULL , NULL, spki,
 					CERT_SubjectPublicKeyInfoTemplate);
+
+    SECKEY_DestroySubjectPublicKeyInfo(spki);
+
 finish:
-    if (spki!=NULL) {
-	SECKEY_DestroySubjectPublicKeyInfo(spki);
-    }
     return spkiDER;
 }
 

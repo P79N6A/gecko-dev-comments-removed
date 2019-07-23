@@ -152,6 +152,10 @@ extern PK11SlotInfo *SECMOD_FindSlot(SECMODModule *module,const char *name);
 PRBool SECMOD_IsModulePresent( unsigned long int pubCipherEnableFlags );
 
 
+PRBool SECMOD_GetSkipFirstFlag(SECMODModule *mod);
+PRBool SECMOD_GetDefaultModDBFlag(SECMODModule *mod);
+
+
 
 extern unsigned long SECMOD_PubMechFlagstoInternal(unsigned long publicFlags);
 extern unsigned long SECMOD_PubCipherFlagstoInternal(unsigned long publicFlags);

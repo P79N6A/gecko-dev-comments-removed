@@ -114,7 +114,7 @@ extern SECStatus SGN_Begin(SGNContext *cx);
 
 
 
-extern SECStatus SGN_Update(SGNContext *cx, unsigned char *input,
+extern SECStatus SGN_Update(SGNContext *cx, const unsigned char *input,
 			   unsigned int inputLen);
 
 

@@ -1,0 +1,377 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#include "seccomon.h"
+#include "prio.h"
+#include "prprf.h"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifdef XP_UNIX
+#include <sys/stat.h>
+#include <sys/types.h>
+
+static int 
+testdir(char *dir)
+{
+   struct stat buf;
+   memset(&buf, 0, sizeof(buf));
+
+   if (stat(dir,&buf) < 0) {
+	return 0;
+   }
+
+   return S_ISDIR(buf.st_mode);
+}
+
+#define NSS_USER_PATH1 "/.pki"
+#define NSS_USER_PATH2 "/nssdb"
+static char *
+getUserDB(void)
+{
+   char *userdir = getenv("HOME");
+   char *nssdir = NULL;
+
+   if (userdir == NULL) {
+	return NULL;
+   }
+
+   nssdir = PORT_Alloc(strlen(userdir)
+		+sizeof(NSS_USER_PATH1)+sizeof(NSS_USER_PATH2));
+   if (nssdir == NULL) {
+	return NULL;
+   }
+   PORT_Strcpy(nssdir, userdir);
+   
+   if (!testdir(nssdir)) {
+	PORT_Free(nssdir);
+	return NULL;
+   }
+   PORT_Strcat(nssdir, NSS_USER_PATH1);
+   if (!testdir(nssdir) && mkdir(nssdir, 0760)) {
+	PORT_Free(nssdir);
+	return NULL;
+   }
+   PORT_Strcat(nssdir, NSS_USER_PATH2);
+   if (!testdir(nssdir) && mkdir(nssdir, 0760)) {
+	PORT_Free(nssdir);
+	return NULL;
+   }
+   return nssdir;
+}
+
+#define NSS_DEFAULT_SYSTEM "/etc/pki/nssdb"
+static char *
+getSystemDB(void) {
+   return PORT_Strdup(NSS_DEFAULT_SYSTEM);
+}
+
+#else
+#ifdef XP_WIN
+static char *
+getUserDB(void)
+{
+   
+
+   return NULL;
+}
+
+static char *
+getSystemDB(void)
+{
+   
+
+   return NULL;
+}
+
+#else
+#error "Need to write getUserDB and get SystemDB functions"
+#endif
+#endif
+
+static PRBool 
+getFIPSEnv(void)
+{
+    char *fipsEnv = getenv("NSS_FIPS");
+    if (!fipsEnv) {
+	return PR_FALSE;
+    }
+    if ((strcasecmp(fipsEnv,"fips") == 0) ||
+	(strcasecmp(fipsEnv,"true") == 0) ||
+	(strcasecmp(fipsEnv,"on") == 0) ||
+	(strcasecmp(fipsEnv,"1") == 0)) {
+	 return PR_TRUE;
+    }
+    return PR_FALSE;
+}
+#ifdef XP_LINUX
+
+static PRBool 
+getFIPSMode(void)
+{
+    FILE *f;
+    char d;
+    size_t size;
+
+    f = fopen("/proc/sys/crypto/fips_enabled", "r");
+    if (!f) {
+	
+
+	return getFIPSEnv();
+    }
+
+    size = fread(&d, 1, 1, f);
+    fclose(f);
+    if (size != 1)
+        return PR_FALSE;
+    if (d != '1')
+        return PR_FALSE;
+    return PR_TRUE;
+}
+
+#else
+static PRBool 
+getFIPSMode(void)
+{
+    return getFIPSEnv();
+}
+#endif
+
+
+#define NSS_DEFAULT_FLAGS "flags=readonly"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+static char **
+get_list(char *filename, char *stripped_parameters)
+{
+    char **module_list = PORT_ZNewArray(char *, 4);
+    char *userdb;
+    int next = 0;
+
+    
+    if (module_list == NULL) {
+	return NULL;
+    }
+
+    userdb  = getUserDB();
+    if (userdb != NULL) {
+	
+	module_list[next++] = PR_smprintf(
+	    "library= "
+	    "module=\"NSS User database\" "
+	    "parameters=\"configdir='sql:%s' %s\" "
+	    "NSS=\"flags=internal%s\"", 
+		userdb, stripped_parameters, getFIPSMode() ? ",FIPS" : "");
+
+	
+	
+	module_list[next++] = PR_smprintf(
+	    "library= "
+	    "module=\"NSS User database\" "
+	    "parameters=\"configdir='sql:%s' %s\" "
+	    "NSS=\"flags=internal,moduleDBOnly,defaultModDB,skipFirst\"", 
+		userdb, stripped_parameters);
+   }
+
+    
+    module_list[next++] = PR_smprintf(
+	"library= "
+	"module=\"NSS system database\" "
+	"parameters=\"configdir='sql:%s' tokenDescription='NSS system database' flags=readonly\" "
+	"NSS=\"flags=internal,critical\"",filename);
+
+    
+    module_list[next] = 0;
+
+    PORT_Free(userdb);
+
+    return module_list;
+}
+
+static char **
+release_list(char **arg)
+{
+    static char *success = "Success";
+    int next;
+
+    for (next = 0; arg[next]; next++) {
+	free(arg[next]);
+    }
+    PORT_Free(arg);
+    return &success;
+}
+
+
+#include "pk11pars.h"
+
+#define TARGET_SPEC_COPY(new, start, end)    \
+  if (end > start) {                         \
+        int _cnt = end - start;              \
+        PORT_Memcpy(new, start, _cnt);       \
+        new += _cnt;                         \
+  }
+
+
+
+
+
+
+
+
+
+
+
+
+static void
+overlapstrcpy(char *target, char *src)
+{
+    while (*src) {
+	*target++ = *src++;
+    }
+    *target = 0;
+}
+
+
+
+
+static SECStatus
+parse_paramters(char *parameters, char **filename, char **stripped)
+{
+    char *sourcePrev;
+    char *sourceCurr;
+    char *targetCurr;
+    char *newStripped;
+    *filename = NULL;
+    *stripped = NULL;
+
+    newStripped = PORT_Alloc(PORT_Strlen(parameters)+2);
+    targetCurr = newStripped;
+    sourcePrev = parameters;
+    sourceCurr = secmod_argStrip(parameters);
+    TARGET_SPEC_COPY(targetCurr, sourcePrev, sourceCurr);
+
+    while (*sourceCurr) {
+	int next;
+	sourcePrev = sourceCurr;
+	SECMOD_HANDLE_STRING_ARG(sourceCurr, *filename, "configdir=",
+		sourcePrev = sourceCurr; )
+	SECMOD_HANDLE_FINAL_ARG(sourceCurr);
+	TARGET_SPEC_COPY(targetCurr, sourcePrev, sourceCurr);
+    }
+    *targetCurr = 0;
+    if (*filename == NULL) {
+	PORT_Free(newStripped);
+	return SECFailure;
+    }
+    
+    if (strncmp("sql:", *filename, 4) == 0) {
+	overlapstrcpy(*filename, (*filename)+4);
+    } else if (strncmp("dbm:", *filename, 4) == 0) {
+	overlapstrcpy(*filename, (*filename)+4);
+    } else if (strncmp("extern:", *filename, 7) == 0) {
+	overlapstrcpy(*filename, (*filename)+7);
+    }
+    *stripped = newStripped;
+    return SECSuccess;
+}
+
+
+char **
+NSS_ReturnModuleSpecData(unsigned long function, char *parameters, void *args)
+{
+    char *filename = NULL;
+    char *stripped = NULL;
+    char **retString = NULL;
+    SECStatus rv;
+
+    rv = parse_paramters(parameters, &filename, &stripped);
+    if (rv != SECSuccess) {
+	
+	filename = getSystemDB();
+	if (!filename) {
+	    return NULL;
+	}
+	stripped = PORT_Strdup(NSS_DEFAULT_FLAGS);
+	if (!stripped) {
+	    free(filename);
+	    return NULL;
+	}
+    }
+    switch (function) {
+    case SECMOD_MODULE_DB_FUNCTION_FIND:
+	retString = get_list(filename, stripped);
+	break;
+    case SECMOD_MODULE_DB_FUNCTION_RELEASE:
+	retString = release_list((char **)args);
+	break;
+    
+    case SECMOD_MODULE_DB_FUNCTION_ADD:
+    case SECMOD_MODULE_DB_FUNCTION_DEL:
+	retString = NULL;
+	break;
+    default:
+	retString = NULL;
+	break;
+    }
+
+    PORT_Free(filename);
+    PORT_Free(stripped);
+    return retString;
+}

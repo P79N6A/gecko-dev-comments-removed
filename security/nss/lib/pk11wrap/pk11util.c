@@ -179,7 +179,10 @@ SECMOD_AddModuleToList(SECMODModule *newModule)
 SECStatus
 SECMOD_AddModuleToDBOnlyList(SECMODModule *newModule)
 {
-    if (defaultDBModule == NULL) {
+    if (defaultDBModule && SECMOD_GetDefaultModDBFlag(newModule)) {
+	SECMOD_DestroyModule(defaultDBModule);
+	defaultDBModule = SECMOD_ReferenceModule(newModule);
+    } else if (defaultDBModule == NULL) {
 	defaultDBModule = SECMOD_ReferenceModule(newModule);
     }
     return secmod_AddModuleToList(&modulesDB,newModule);
@@ -269,6 +272,34 @@ SECMOD_FindModuleByID(SECMODModuleID id)
     SECMOD_GetReadLock(moduleLock);
     for(mlp = modules; mlp != NULL; mlp = mlp->next) {
 	if (id == mlp->module->moduleID) {
+	    module = mlp->module;
+	    SECMOD_ReferenceModule(module);
+	    break;
+	}
+    }
+    SECMOD_ReleaseReadLock(moduleLock);
+    if (module == NULL) {
+	PORT_SetError(SEC_ERROR_NO_MODULE);
+    }
+    return module;
+}
+
+
+
+
+SECMODModule *
+secmod_FindModuleByFuncPtr(void *funcPtr) 
+{
+    SECMODModuleList *mlp;
+    SECMODModule *module = NULL;
+
+    SECMOD_GetReadLock(moduleLock);
+    for(mlp = modules; mlp != NULL; mlp = mlp->next) {
+	
+	if (!mlp->module) {
+	    continue;
+	}
+	if (funcPtr == mlp->module->functionList) {
 	    module = mlp->module;
 	    SECMOD_ReferenceModule(module);
 	    break;
@@ -505,7 +536,7 @@ SECMOD_AddModule(SECMODModule *newModule)
         
     }
 
-    rv = SECMOD_LoadPKCS11Module(newModule);
+    rv = secmod_LoadPKCS11Module(newModule, NULL);
     if (rv != SECSuccess) {
 	return rv;
     }
@@ -1199,7 +1230,7 @@ SECMOD_CancelWait(SECMODModule *mod)
 
 	if (CKR_OK == crv) {
             PRBool alreadyLoaded;
-	    secmod_ModuleInit(mod, &alreadyLoaded);
+	    secmod_ModuleInit(mod, NULL, &alreadyLoaded);
 	} else {
 	    
 
@@ -1273,58 +1304,6 @@ secmod_UserDBOp(PK11SlotInfo *slot, CK_OBJECT_CLASS objClass,
 	return SECFailure;
     }
     return SECMOD_UpdateSlotList(slot->module);
-}
-
-
-
-
-static char *
-nss_addEscape(const char *string, char quote)
-{
-    char *newString = 0;
-    int escapes = 0, size = 0;
-    const char *src;
-    char *dest;
-
-    for (src=string; *src ; src++) {
-        if ((*src == quote) || (*src == '\\')) escapes++;
-        size++;
-    }
-
-    newString = PORT_ZAlloc(escapes+size+1);
-    if (newString == NULL) {
-        return NULL;
-    }
-
-    for (src=string, dest=newString; *src; src++,dest++) {
-        if ((*src == '\\') || (*src == quote)) {
-            *dest++ = '\\';
-        }
-        *dest = *src;
-    }
-
-    return newString;
-}
-
-static char *
-nss_doubleEscape(const char *string)
-{
-    char *round1 = NULL;
-    char *retValue = NULL;
-    if (string == NULL) {
-        goto done;
-    }
-    round1 = nss_addEscape(string,'>');
-    if (round1) {
-        retValue = nss_addEscape(round1,']');
-        PORT_Free(round1);
-    }
-
-done:
-    if (retValue == NULL) {
-        retValue = PORT_Strdup("");
-    }
-    return retValue;
 }
 
 
@@ -1409,7 +1388,7 @@ SECMOD_OpenNewSlot(SECMODModule *mod, const char *moduleSpec)
     }
 
     
-    escSpec = nss_doubleEscape(moduleSpec);
+    escSpec = secmod_DoubleEscape(moduleSpec, '>', ']');
     if (escSpec == NULL) {
 	PK11_FreeSlot(slot);
 	return NULL;

@@ -122,12 +122,118 @@ PRBool pk11_getFinalizeModulesOption(void)
 
 
 
+
+
+
+
+
+
+
+
+
+static SECStatus
+secmod_handleReload(SECMODModule *oldModule, SECMODModule *newModule)
+{
+    PK11SlotInfo *slot;
+    char *modulespec;
+    char *newModuleSpec;
+    char **children;
+    CK_SLOT_ID *ids;
+    SECStatus rv;
+    SECMODConfigList *conflist;
+    int count = 0;
+
+    
+    modulespec = newModule->libraryParams;
+    newModuleSpec = secmod_ParseModuleSpecForTokens(PR_TRUE,
+				newModule->isFIPS, modulespec, &children, &ids);
+    if (!newModuleSpec) {
+	return SECFailure;
+    }
+
+    
+
+
+
+
+
+
+
+    if (oldModule->internal) {
+	conflist = secmod_GetConfigList(oldModule->isFIPS, 
+					oldModule->libraryParams, &count);
+    }
+
+
+    
+    if (conflist && secmod_MatchConfigList(newModuleSpec, conflist, count)) { 
+	rv = SECSuccess;
+	goto loser;
+    }
+    slot = SECMOD_OpenNewSlot(oldModule, newModuleSpec);
+    if (slot) {
+	int newID;
+	char **thisChild;
+	CK_SLOT_ID *thisID;
+	char *oldModuleSpec;
+
+	if (secmod_IsInternalKeySlot(newModule)) {
+	    pk11_SetInternalKeySlot(slot);
+	}
+	newID = slot->slotID;
+	PK11_FreeSlot(slot);
+	for (thisChild=children, thisID=ids; thisChild && *thisChild; 
+						thisChild++,thisID++) {
+	    if (conflist &&
+		       secmod_MatchConfigList(*thisChild, conflist, count)) {
+		*thisID = (CK_SLOT_ID) -1;
+		continue;
+	    }
+	    slot = SECMOD_OpenNewSlot(oldModule, *thisChild);
+	    if (slot) {
+		*thisID = slot->slotID;
+		PK11_FreeSlot(slot);
+	    } else {
+		*thisID = (CK_SLOT_ID) -1;
+	    }
+	}
+
+	
+
+
+	oldModuleSpec = secmod_MkAppendTokensList(oldModule->arena, 
+		oldModule->libraryParams, newModuleSpec, newID, 
+		children, ids);
+	if (oldModuleSpec) {
+	    oldModule->libraryParams = oldModuleSpec;
+	}
+	
+	rv = SECSuccess;
+    }
+
+loser:
+    secmod_FreeChildren(children, ids);
+    PORT_Free(newModuleSpec);
+    if (conflist) {
+	secmod_FreeConfigList(conflist, count);
+    }
+    return rv;
+}
+
+
+
+
 SECStatus
-secmod_ModuleInit(SECMODModule *mod, PRBool* alreadyLoaded)
+secmod_ModuleInit(SECMODModule *mod, SECMODModule **reload, 
+		  PRBool* alreadyLoaded)
 {
     CK_C_INITIALIZE_ARGS moduleArgs;
     CK_VOID_PTR pInitArgs;
     CK_RV crv;
+
+    if (reload) {
+	*reload = NULL;
+    }
 
     if (!mod || !alreadyLoaded) {
         PORT_SetError(SEC_ERROR_INVALID_ARGS);
@@ -144,10 +250,36 @@ secmod_ModuleInit(SECMODModule *mod, PRBool* alreadyLoaded)
 	pInitArgs = &moduleArgs;
     }
     crv = PK11_GETTAB(mod)->C_Initialize(pInitArgs);
-    if ((CKR_CRYPTOKI_ALREADY_INITIALIZED == crv) &&
-        (!enforceAlreadyInitializedError)) {
-        *alreadyLoaded = PR_TRUE;
-        return SECSuccess;
+    if (CKR_CRYPTOKI_ALREADY_INITIALIZED == crv) {
+	SECMODModule *oldModule = NULL;
+
+	
+
+	if (reload != NULL && mod->libraryParams) {
+	    oldModule = secmod_FindModuleByFuncPtr(mod->functionList);
+	}
+	
+
+	if (oldModule) {
+	    SECStatus rv;
+	    rv = secmod_handleReload(oldModule, mod);
+	    if (rv == SECSuccess) {
+		
+
+
+
+
+		mod->functionList = NULL;
+		*reload = oldModule;
+		return SECSuccess;
+	    }
+	    SECMOD_DestroyModule(oldModule);
+	}
+	
+	if (!enforceAlreadyInitializedError) {
+       	    *alreadyLoaded = PR_TRUE;
+            return SECSuccess;
+	}
     }
     if (crv != CKR_OK) {
 	if (pInitArgs == NULL ||
@@ -217,9 +349,9 @@ SECMOD_SetRootCerts(PK11SlotInfo *slot, SECMODModule *mod) {
     }
 }
 
-static const char* NameOfThisSharedLib =
+static const char* my_shlib_name =
     SHLIB_PREFIX"nss"SHLIB_VERSION"."SHLIB_SUFFIX;
-static const char* softoken_default_name =
+static const char* softoken_shlib_name =
     SHLIB_PREFIX"softokn"SOFTOKEN_SHLIB_VERSION"."SHLIB_SUFFIX;
 static const PRCallOnceType pristineCallOnce;
 static PRCallOnceType loadSoftokenOnce;
@@ -231,22 +363,16 @@ static PRInt32 softokenLoadCount;
 #include <stdio.h>
 #include "prsystem.h"
 
-#include "../freebl/genload.c"
-
 
 
 static PRStatus
 softoken_LoadDSO( void ) 
 {
   PRLibrary *  handle;
-  const char * name = softoken_default_name;
 
-  if (!name) {
-    PR_SetError(PR_LOAD_LIBRARY_ERROR, 0);
-    return PR_FAILURE;
-  }
-
-  handle = loader_LoadLibrary(name);
+  handle = PORT_LoadLibraryFromOrigin(my_shlib_name,
+                                      (PRFuncPtr) &softoken_LoadDSO,
+                                      softoken_shlib_name);
   if (handle) {
     softokenLib = handle;
     return PR_SUCCESS;
@@ -258,7 +384,7 @@ softoken_LoadDSO( void )
 
 
 SECStatus
-SECMOD_LoadPKCS11Module(SECMODModule *mod) {
+secmod_LoadPKCS11Module(SECMODModule *mod, SECMODModule **oldModule) {
     PRLibrary *library = NULL;
     CK_C_GetFunctionList entry = NULL;
     char * full_name;
@@ -271,7 +397,7 @@ SECMOD_LoadPKCS11Module(SECMODModule *mod) {
     if (mod->loaded) return SECSuccess;
 
     
-    if (mod->internal) {
+    if (mod->internal && (mod->dllName == NULL)) {
     
 
 
@@ -308,26 +434,14 @@ SECMOD_LoadPKCS11Module(SECMODModule *mod) {
 	    return SECFailure;
 	}
 
-#ifdef notdef
-	
-	full_name = PR_GetLibraryName(PR_GetLibraryPath(),mod->dllName);
-	if (full_name == NULL) {
-	    return SECFailure;
-	}
-#else
 	full_name = PORT_Strdup(mod->dllName);
-#endif
 
 	
 
 
 	library = PR_LoadLibrary(full_name);
 	mod->library = (void *)library;
-#ifdef notdef
-	PR_FreeLibraryName(full_name);
-#else
 	PORT_Free(full_name);
-#endif
 
 	if (library == NULL) {
 	    return SECFailure;
@@ -375,9 +489,16 @@ SECMOD_LoadPKCS11Module(SECMODModule *mod) {
     mod->isThreadSafe = PR_TRUE;
 
     
-    rv = secmod_ModuleInit(mod, &alreadyLoaded);
+    rv = secmod_ModuleInit(mod, oldModule, &alreadyLoaded);
     if (rv != SECSuccess) {
 	goto fail;
+    }
+
+    
+
+    if (mod->functionList == NULL) {
+	mod->loaded = PR_TRUE; 
+	return SECSuccess;
     }
 
     
@@ -460,7 +581,9 @@ SECMOD_UnloadModule(SECMODModule *mod) {
 	return SECFailure;
     }
     if (finalizeModules) {
-        if (!mod->moduleDBOnly) PK11_GETTAB(mod)->C_Finalize(NULL);
+        if (mod->functionList &&!mod->moduleDBOnly) {
+	    PK11_GETTAB(mod)->C_Finalize(NULL);
+	}
     }
     mod->moduleID = 0;
     mod->loaded = PR_FALSE;

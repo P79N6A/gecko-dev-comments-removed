@@ -1078,10 +1078,18 @@ extern CERTDistNames *CERT_GetSSLCACerts(CERTCertDBHandle *handle);
 extern void CERT_FreeDistNames(CERTDistNames *names);
 
 
+extern CERTDistNames *CERT_DupDistNames(CERTDistNames *orig);
+
+
 
 
 extern CERTDistNames *CERT_DistNamesFromNicknames
    (CERTCertDBHandle *handle, char **nicknames, int nnames);
+
+
+
+
+extern CERTDistNames *CERT_DistNamesFromCertList(CERTCertList *list);
 
 
 

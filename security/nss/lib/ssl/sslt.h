@@ -125,6 +125,11 @@ typedef enum {
     ssl_hmac_sha      = 4 	
 } SSLMACAlgorithm;
 
+typedef enum {
+    ssl_compression_null = 0,
+    ssl_compression_deflate = 1  
+} SSLCompressionMethod;
+
 typedef struct SSLChannelInfoStr {
     PRUint32             length;
     PRUint16             protocolVersion;
@@ -142,6 +147,12 @@ typedef struct SSLChannelInfoStr {
     PRUint32             expirationTime;	
     PRUint32             sessionIDLength;	
     PRUint8              sessionID    [32];
+
+    
+
+    
+    const char *         compressionMethodName;
+    SSLCompressionMethod compressionMethod;
 } SSLChannelInfo;
 
 typedef struct SSLCipherSuiteInfoStr {
@@ -177,5 +188,24 @@ typedef struct SSLCipherSuiteInfoStr {
     PRUintn              reservedBits :29;
 
 } SSLCipherSuiteInfo;
+
+typedef enum {
+    SSL_sni_host_name                    = 0,
+    SSL_sni_type_total
+} SSLSniNameType;
+
+
+
+typedef enum {
+    ssl_server_name_xtn              = 0,
+#ifdef NSS_ENABLE_ECC
+    ssl_elliptic_curves_xtn          = 10,
+    ssl_ec_point_formats_xtn         = 11,
+#endif
+    ssl_session_ticket_xtn           = 35,
+    ssl_renegotiation_info_xtn       = 0xff01	
+} SSLExtensionType;
+
+#define SSL_MAX_EXTENSIONS             5
 
 #endif 

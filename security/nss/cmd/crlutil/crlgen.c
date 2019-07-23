@@ -59,47 +59,6 @@
 
 
 
-
-
-
-
-
-PLHashNumber PR_CALLBACK
-SECITEM_Hash ( const void *key)
-{
-    const SECItem *item = (const SECItem *)key;
-    PLHashNumber rv = 0;
-
-    PRUint8 *data = (PRUint8 *)item->data;
-    PRUint32 i;
-    PRUint8 *rvc = (PRUint8 *)&rv;
-
-    for( i = 0; i < item->len; i++ ) {
-        rvc[ i % sizeof(rv) ] ^= *data;
-        data++;
-    }
-
-    return rv;
-}
-
-
-
-
-
-
-
-PRIntn PR_CALLBACK
-SECITEM_HashCompare ( const void *k1, const void *k2)
-{
-    const SECItem *i1 = (const SECItem *)k1;
-    const SECItem *i2 = (const SECItem *)k2;
-
-    return SECITEM_ItemsAreEqual(i1,i2);
-}
-
-
-
-
 static void
 destroyEntryData(CRLGENEntryData *data)
 {

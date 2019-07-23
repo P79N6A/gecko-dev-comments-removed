@@ -114,6 +114,14 @@ SSL_IMPORT PRFileDesc *SSL_ImportFD(PRFileDesc *model, PRFileDesc *fd);
 #define SSL_NO_LOCKS                   17 /* Don't use locks for protection */
 #define SSL_ENABLE_SESSION_TICKETS     18 /* Enable TLS SessionTicket       */
                                           
+#define SSL_ENABLE_DEFLATE             19 /* Enable TLS compression with    */
+                                          
+#define SSL_ENABLE_RENEGOTIATION       20 /* Values below (default: never)  */
+#define SSL_REQUIRE_SAFE_NEGOTIATION   21 /* Peer must send Signalling      */
+					  
+                                          
+					  
+                                          
 
 #ifdef SSL_DEPRECATED_FUNCTION 
 
@@ -160,6 +168,19 @@ SSL_IMPORT SECStatus SSL_CipherPolicyGet(PRInt32 cipher, PRInt32 *policy);
 #define SSL_REQUIRE_ALWAYS          ((PRBool)1)
 #define SSL_REQUIRE_FIRST_HANDSHAKE ((PRBool)2)
 #define SSL_REQUIRE_NO_ERROR        ((PRBool)3)
+
+
+
+#define SSL_RENEGOTIATE_NEVER        ((PRBool)0)
+
+
+#define SSL_RENEGOTIATE_UNRESTRICTED ((PRBool)1)
+
+
+#define SSL_RENEGOTIATE_REQUIRES_XTN ((PRBool)2) 
+
+
+#define SSL_RENEGOTIATE_CLIENT_ONLY  ((PRBool)3)
 
 
 
@@ -257,6 +278,61 @@ SSL_IMPORT SECStatus SSL_GetClientAuthDataHook(PRFileDesc *fd,
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+typedef PRInt32 (PR_CALLBACK *SSLSNISocketConfig)(PRFileDesc *fd,
+                                            const SECItem *srvNameArr,
+                                                  PRUint32 srvNameArrSize,
+                                                  void *arg);
+
+
+
+
+
+
+
+
+#define SSL_SNI_CURRENT_CONFIG_IS_USED           -1
+#define SSL_SNI_SEND_ALERT                       -2
+
+
+
+
+SSL_IMPORT SECStatus SSL_SNISocketConfigHook(PRFileDesc *fd, 
+                                             SSLSNISocketConfig f,
+                                             void *arg);
+
+
+
+
+
+
+SSL_IMPORT PRFileDesc *SSL_ReconfigFD(PRFileDesc *model, PRFileDesc *fd);
+
+
+
+
+
+
 SSL_IMPORT SECStatus SSL_SetPKCS11PinArg(PRFileDesc *fd, void *a);
 
 
@@ -289,6 +365,18 @@ SSL_IMPORT SECStatus SSL_ConfigServerSessionIDCache(int      maxCacheEntries,
 					            PRUint32 timeout,
 					            PRUint32 ssl3_timeout,
 				              const char *   directory);
+
+
+
+SSL_IMPORT SECStatus SSL_ConfigServerSessionIDCacheWithOpt(
+                                                           PRUint32 timeout,
+                                                       PRUint32 ssl3_timeout,
+                                                     const char *   directory,
+                                                          int maxCacheEntries,
+                                                      int maxCertCacheEntries,
+                                                    int maxSrvNameCacheEntries,
+                                                           PRBool enableMPCache);
+
 
 
 
@@ -372,6 +460,12 @@ SSL_IMPORT SECStatus SSL_SetURL(PRFileDesc *fd, const char *url);
 
 
 
+SSL_IMPORT SECStatus SSL_SetTrustAnchors(PRFileDesc *fd, CERTCertList *list);
+
+
+
+
+
 SSL_IMPORT int SSL_DataPending(PRFileDesc *fd);
 
 
@@ -398,7 +492,7 @@ SSL_IMPORT SECStatus SSL_ShutdownServerSessionIDCache(void);
 
 
 
-SSL_IMPORT SECStatus SSL_SetSockPeerID(PRFileDesc *fd, char *peerID);
+SSL_IMPORT SECStatus SSL_SetSockPeerID(PRFileDesc *fd, const char *peerID);
 
 
 
@@ -406,7 +500,6 @@ SSL_IMPORT SECStatus SSL_SetSockPeerID(PRFileDesc *fd, char *peerID);
 SSL_IMPORT CERTCertificate * SSL_RevealCert(PRFileDesc * socket);
 SSL_IMPORT void * SSL_RevealPinArg(PRFileDesc * socket);
 SSL_IMPORT char * SSL_RevealURL(PRFileDesc * socket);
-
 
 
 
@@ -471,6 +564,9 @@ SSL_IMPORT SECStatus SSL_GetCipherSuiteInfo(PRUint16 cipherSuite,
                                         SSLCipherSuiteInfo *info, PRUintn len);
 
 
+SSL_IMPORT SECItem *SSL_GetNegotiatedHostInfo(PRFileDesc *fd);
+
+
 
 
 
@@ -506,6 +602,14 @@ SSL_IMPORT SECStatus SSL_CanBypass(CERTCertificate *cert,
 				   PRUint32 protocolmask,
 				   PRUint16 *ciphers, int nciphers,
                                    PRBool *pcanbypass, void *pwArg);
+
+
+
+
+
+SSL_IMPORT SECStatus SSL_HandshakeNegotiatedExtension(PRFileDesc * socket,
+                                                      SSLExtensionType extId,
+                                                      PRBool *yes);
 
 SEC_END_PROTOS
 

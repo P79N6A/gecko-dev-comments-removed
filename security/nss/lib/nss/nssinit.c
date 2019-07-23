@@ -46,8 +46,6 @@
 #include "prmem.h"
 #include "cert.h"
 #include "key.h"
-#include "ssl.h"
-#include "sslproto.h"
 #include "secmod.h"
 #include "secoid.h"
 #include "nss.h"
@@ -132,6 +130,89 @@ nss_makeFlags(PRBool readOnly, PRBool noCertDB,
 
 
 
+char *
+nss_MkConfigString(const char *man, const char *libdesc, const char *tokdesc,
+	const char *ptokdesc, const char *slotdesc, const char *pslotdesc, 
+	const char *fslotdesc, const char *fpslotdesc, int minPwd)
+{
+    char *strings = NULL;
+    char *newStrings;
+
+    
+    strings = PR_smprintf("");
+    if (strings == NULL) return NULL;
+
+    if (man) {
+        newStrings = PR_smprintf("%s manufacturerID='%s'",strings,man);
+	PR_smprintf_free(strings);
+	strings = newStrings;
+    }
+    if (strings == NULL) return NULL;
+
+    if (libdesc) {
+        newStrings = PR_smprintf("%s libraryDescription='%s'",strings,libdesc);
+	PR_smprintf_free(strings);
+	strings = newStrings;
+    }
+    if (strings == NULL) return NULL;
+
+    if (tokdesc) {
+        newStrings = PR_smprintf("%s cryptoTokenDescription='%s'",strings,
+								tokdesc);
+	PR_smprintf_free(strings);
+	strings = newStrings;
+    }
+    if (strings == NULL) return NULL;
+
+    if (ptokdesc) {
+        newStrings = PR_smprintf("%s dbTokenDescription='%s'",strings,ptokdesc);
+	PR_smprintf_free(strings);
+	strings = newStrings;
+    }
+    if (strings == NULL) return NULL;
+
+    if (slotdesc) {
+        newStrings = PR_smprintf("%s cryptoSlotDescription='%s'",strings,
+								slotdesc);
+	PR_smprintf_free(strings);
+	strings = newStrings;
+    }
+    if (strings == NULL) return NULL;
+
+    if (pslotdesc) {
+        newStrings = PR_smprintf("%s dbSlotDescription='%s'",strings,pslotdesc);
+	PR_smprintf_free(strings);
+	strings = newStrings;
+    }
+    if (strings == NULL) return NULL;
+
+    if (fslotdesc) {
+        newStrings = PR_smprintf("%s FIPSSlotDescription='%s'",
+							strings,fslotdesc);
+	PR_smprintf_free(strings);
+	strings = newStrings;
+    }
+    if (strings == NULL) return NULL;
+
+    if (fpslotdesc) {
+        newStrings = PR_smprintf("%s FIPSTokenDescription='%s'",
+							strings,fpslotdesc);
+	PR_smprintf_free(strings);
+	strings = newStrings;
+    }
+    if (strings == NULL) return NULL;
+
+    newStrings = PR_smprintf("%s minPS=%d", strings, minPwd);
+    PR_smprintf_free(strings);
+    strings = newStrings;
+
+    return(strings);
+}
+
+
+
+
+
 static char * pk11_config_strings = NULL;
 static char * pk11_config_name = NULL;
 static PRBool pk11_password_required = PR_FALSE;
@@ -141,85 +222,25 @@ static PRBool pk11_password_required = PR_FALSE;
 
 
 void
-PK11_ConfigurePKCS11(const char *man, const char *libdes, const char *tokdes,
-	const char *ptokdes, const char *slotdes, const char *pslotdes, 
-	const char *fslotdes, const char *fpslotdes, int minPwd, int pwRequired)
+PK11_ConfigurePKCS11(const char *man, const char *libdesc, const char *tokdesc,
+	const char *ptokdesc, const char *slotdesc, const char *pslotdesc, 
+	const char *fslotdesc, const char *fpslotdesc, int minPwd, 
+	int pwRequired)
 {
-   char *strings = NULL;
-   char *newStrings;
+    char * strings;
 
-   
-   strings = PR_smprintf("");
-   if (strings == NULL) return;
-
-    if (man) {
-        newStrings = PR_smprintf("%s manufacturerID='%s'",strings,man);
-	PR_smprintf_free(strings);
-	strings = newStrings;
+    strings = nss_MkConfigString(man,libdesc,tokdesc,ptokdesc,slotdesc,
+	pslotdesc,fslotdesc,fpslotdesc,minPwd);
+    if (strings == NULL) {
+	return;
     }
-   if (strings == NULL) return;
 
-    if (libdes) {
-        newStrings = PR_smprintf("%s libraryDescription='%s'",strings,libdes);
-	PR_smprintf_free(strings);
-	strings = newStrings;
+    if (libdesc) {
 	if (pk11_config_name != NULL) {
 	    PORT_Free(pk11_config_name);
 	}
-	pk11_config_name = PORT_Strdup(libdes);
+	pk11_config_name = PORT_Strdup(libdesc);
     }
-   if (strings == NULL) return;
-
-    if (tokdes) {
-        newStrings = PR_smprintf("%s cryptoTokenDescription='%s'",strings,
-								tokdes);
-	PR_smprintf_free(strings);
-	strings = newStrings;
-    }
-   if (strings == NULL) return;
-
-    if (ptokdes) {
-        newStrings = PR_smprintf("%s dbTokenDescription='%s'",strings,ptokdes);
-	PR_smprintf_free(strings);
-	strings = newStrings;
-    }
-   if (strings == NULL) return;
-
-    if (slotdes) {
-        newStrings = PR_smprintf("%s cryptoSlotDescription='%s'",strings,
-								slotdes);
-	PR_smprintf_free(strings);
-	strings = newStrings;
-    }
-   if (strings == NULL) return;
-
-    if (pslotdes) {
-        newStrings = PR_smprintf("%s dbSlotDescription='%s'",strings,pslotdes);
-	PR_smprintf_free(strings);
-	strings = newStrings;
-    }
-   if (strings == NULL) return;
-
-    if (fslotdes) {
-        newStrings = PR_smprintf("%s FIPSSlotDescription='%s'",
-							strings,fslotdes);
-	PR_smprintf_free(strings);
-	strings = newStrings;
-    }
-   if (strings == NULL) return;
-
-    if (fpslotdes) {
-        newStrings = PR_smprintf("%s FIPSTokenDescription='%s'",
-							strings,fpslotdes);
-	PR_smprintf_free(strings);
-	strings = newStrings;
-    }
-   if (strings == NULL) return;
-
-    newStrings = PR_smprintf("%s minPS=%d", strings, minPwd);
-    PR_smprintf_free(strings);
-    strings = newStrings;
-   if (strings == NULL) return;
 
     if (pk11_config_strings != NULL) {
 	PR_smprintf_free(pk11_config_strings);
@@ -241,56 +262,6 @@ void PK11_UnconfigurePKCS11(void)
         pk11_config_name = NULL;
     }
 }
-
-static char *
-nss_addEscape(const char *string, char quote)
-{
-    char *newString = 0;
-    int escapes = 0, size = 0;
-    const char *src;
-    char *dest;
-
-    for (src=string; *src ; src++) {
-	if ((*src == quote) || (*src == '\\')) escapes++;
-	size++;
-    }
-
-    newString = PORT_ZAlloc(escapes+size+1); 
-    if (newString == NULL) {
-	return NULL;
-    }
-
-    for (src=string, dest=newString; *src; src++,dest++) {
-	if ((*src == '\\') || (*src == quote)) {
-	    *dest++ = '\\';
-	}
-	*dest = *src;
-    }
-
-    return newString;
-}
-
-static char *
-nss_doubleEscape(const char *string)
-{
-    char *round1 = NULL;
-    char *retValue = NULL;
-    if (string == NULL) {
-	goto done;
-    }
-    round1 = nss_addEscape(string,'\'');
-    if (round1) {
-	retValue = nss_addEscape(round1,'"');
-	PORT_Free(round1);
-    }
-
-done:
-    if (retValue == NULL) {
-	retValue = PORT_Strdup("");
-    }
-    return retValue;
-}
-
 
 
 
@@ -395,40 +366,19 @@ nss_FindExternalRoot(const char *dbpath, const char* secmodprefix)
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-static PRBool nss_IsInitted = PR_FALSE;
-static void* plContext = NULL;
-
-static SECStatus nss_InitShutdownList(void);
-
-#ifdef DEBUG
-static CERTCertificate dummyCert;
-#endif
-
 static SECStatus
-nss_Init(const char *configdir, const char *certPrefix, const char *keyPrefix,
-		 const char *secmodName, const char *updateDir, 
-		 const char *updCertPrefix, const char *updKeyPrefix,
-		 const char *updateID, const char *updateName,
-			PRBool readOnly, PRBool noCertDB, 
-			PRBool noModDB, PRBool forceOpen, PRBool noRootInit,
-			PRBool optimizeSpace, PRBool noSingleThreadedModules,
-			PRBool allowAlreadyInitializedModules,
-			PRBool dontFinalizeModules)
+nss_InitModules(const char *configdir, const char *certPrefix, 
+		const char *keyPrefix, const char *secmodName, 
+		const char *updateDir, const char *updCertPrefix, 
+		const char *updKeyPrefix, const char *updateID, 
+		const char *updateName, char *configName, char *configStrings,
+		PRBool pwRequired, PRBool readOnly, PRBool noCertDB,
+		PRBool noModDB, PRBool forceOpen, PRBool optimizeSpace,
+		PRBool isContextInit)
 {
+    SECStatus rv = SECFailure;
     char *moduleSpec = NULL;
     char *flags = NULL;
-    SECStatus rv = SECFailure;
     char *lconfigdir = NULL;
     char *lcertPrefix = NULL;
     char *lkeyPrefix = NULL;
@@ -438,88 +388,62 @@ nss_Init(const char *configdir, const char *certPrefix, const char *keyPrefix,
     char *lupdKeyPrefix = NULL;
     char *lupdateID = NULL;
     char *lupdateName = NULL;
-    PKIX_UInt32 actualMinorVersion = 0;
-    PKIX_Error *pkixError = NULL;;
-
-    if (nss_IsInitted) {
-	return SECSuccess;
-    }
-
-    
-    PORT_Assert(sizeof(dummyCert.options) == sizeof(void *));
-
-    if (SECSuccess != cert_InitLocks()) {
-        return SECFailure;
-    }
-
-    if (SECSuccess != InitCRLCache()) {
-        return SECFailure;
-    }
-    
-    if (SECSuccess != OCSP_InitGlobal()) {
-        return SECFailure;
-    }
 
     flags = nss_makeFlags(readOnly,noCertDB,noModDB,forceOpen,
-					pk11_password_required, optimizeSpace);
+					pwRequired, optimizeSpace);
     if (flags == NULL) return rv;
 
     
 
 
 
-    lconfigdir = nss_doubleEscape(configdir);
+    lconfigdir = secmod_DoubleEscape(configdir, '\'', '\"');
     if (lconfigdir == NULL) {
 	goto loser;
     }
-    lcertPrefix = nss_doubleEscape(certPrefix);
+    lcertPrefix = secmod_DoubleEscape(certPrefix, '\'', '\"');
     if (lcertPrefix == NULL) {
 	goto loser;
     }
-    lkeyPrefix = nss_doubleEscape(keyPrefix);
+    lkeyPrefix = secmod_DoubleEscape(keyPrefix, '\'', '\"');
     if (lkeyPrefix == NULL) {
 	goto loser;
     }
-    lsecmodName = nss_doubleEscape(secmodName);
+    lsecmodName = secmod_DoubleEscape(secmodName, '\'', '\"');
     if (lsecmodName == NULL) {
 	goto loser;
     }
-    lupdateDir = nss_doubleEscape(updateDir);
+    lupdateDir = secmod_DoubleEscape(updateDir, '\'', '\"');
     if (lupdateDir == NULL) {
 	goto loser;
     }
-    lupdCertPrefix = nss_doubleEscape(updCertPrefix);
+    lupdCertPrefix = secmod_DoubleEscape(updCertPrefix, '\'', '\"');
     if (lupdCertPrefix == NULL) {
 	goto loser;
     }
-    lupdKeyPrefix = nss_doubleEscape(updKeyPrefix);
+    lupdKeyPrefix = secmod_DoubleEscape(updKeyPrefix, '\'', '\"');
     if (lupdKeyPrefix == NULL) {
 	goto loser;
     }
-    lupdateID = nss_doubleEscape(updateID);
+    lupdateID = secmod_DoubleEscape(updateID, '\'', '\"');
     if (lupdateID == NULL) {
 	goto loser;
     }
-    lupdateName = nss_doubleEscape(updateName);
+    lupdateName = secmod_DoubleEscape(updateName, '\'', '\"');
     if (lupdateName == NULL) {
 	goto loser;
-    }
-    if (noSingleThreadedModules || allowAlreadyInitializedModules ||
-        dontFinalizeModules) {
-        pk11_setGlobalOptions(noSingleThreadedModules,
-                              allowAlreadyInitializedModules,
-                              dontFinalizeModules);
     }
 
     moduleSpec = PR_smprintf(
      "name=\"%s\" parameters=\"configdir='%s' certPrefix='%s' keyPrefix='%s' "
      "secmod='%s' flags=%s updatedir='%s' updateCertPrefix='%s' "
      "updateKeyPrefix='%s' updateid='%s' updateTokenDescription='%s' %s\" "
-     "NSS=\"flags=internal,moduleDB,moduleDBOnly,critical\"",
-		pk11_config_name ? pk11_config_name : NSS_DEFAULT_MOD_NAME,
+     "NSS=\"flags=internal,moduleDB,moduleDBOnly,critical%s\"",
+		configName ? configName : NSS_DEFAULT_MOD_NAME,
 		lconfigdir,lcertPrefix,lkeyPrefix,lsecmodName,flags,
 		lupdateDir, lupdCertPrefix, lupdKeyPrefix, lupdateID, 
-		lupdateName, pk11_config_strings ? pk11_config_strings : "");
+		lupdateName, configStrings ? configStrings : "",
+		isContextInit ? "" : ",defaultModDB,internalKeySlot");
 
 loser:
     PORT_Free(flags);
@@ -541,65 +465,262 @@ loser:
 	    SECMOD_DestroyModule(module);
 	}
     }
+    return rv;
+}
 
-    if (rv == SECSuccess) {
-	if (SECOID_Init() != SECSuccess) {
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+static PRBool          nssIsInitted = PR_FALSE;
+static NSSInitContext *nssInitContextList = NULL;
+static void*           plContext = NULL;
+
+struct NSSInitContextStr {
+    NSSInitContext *next;
+    PRUint32 magic;
+};
+
+#define NSS_INIT_MAGIC 0x1413A91C
+static SECStatus nss_InitShutdownList(void);
+
+#ifdef DEBUG
+static CERTCertificate dummyCert;
+#endif
+
+static SECStatus
+nss_Init(const char *configdir, const char *certPrefix, const char *keyPrefix,
+		 const char *secmodName, const char *updateDir, 
+		 const char *updCertPrefix, const char *updKeyPrefix,
+		 const char *updateID, const char *updateName,
+		 NSSInitContext ** initContextPtr,
+		 NSSInitParameters *initParams,
+		 PRBool readOnly, PRBool noCertDB, 
+		 PRBool noModDB, PRBool forceOpen, PRBool noRootInit,
+		 PRBool optimizeSpace, PRBool noSingleThreadedModules,
+		 PRBool allowAlreadyInitializedModules,
+		 PRBool dontFinalizeModules)
+{
+    SECStatus rv = SECFailure;
+    PKIX_UInt32 actualMinorVersion = 0;
+    PKIX_Error *pkixError = NULL;
+    PRBool isReallyInitted;
+    char *configStrings = NULL;
+    char *configName = NULL;
+    PRBool passwordRequired = PR_FALSE;
+
+    
+
+    if (!initContextPtr && nssIsInitted) {
+	return SECSuccess;
+    }
+
+    
+
+
+    isReallyInitted = NSS_IsInitialized();
+
+    if (!isReallyInitted) {
+	
+	PORT_Assert(sizeof(dummyCert.options) == sizeof(void *));
+
+	if (SECSuccess != cert_InitLocks()) {
+            return SECFailure;
+	}
+
+	if (SECSuccess != InitCRLCache()) {
+            return SECFailure;
+	}
+    
+	if (SECSuccess != OCSP_InitGlobal()) {
+            return SECFailure;
+	}
+    }
+
+    if (noSingleThreadedModules || allowAlreadyInitializedModules ||
+        dontFinalizeModules) {
+        pk11_setGlobalOptions(noSingleThreadedModules,
+                              allowAlreadyInitializedModules,
+                              dontFinalizeModules);
+    }
+
+    if (initContextPtr) {
+	*initContextPtr = PORT_ZNew(NSSInitContext);
+	if (*initContextPtr == NULL) {
 	    return SECFailure;
+	}
+	
+
+
+
+
+
+
+        if (initParams) {
+	    if (initParams->length < sizeof(NSSInitParameters)) {
+		PORT_SetError(SEC_ERROR_INVALID_ARGS);
+		return SECFailure;
+	    }
+	    configStrings = nss_MkConfigString(initParams->manufactureID,
+		initParams->libraryDescription,
+		initParams->cryptoTokenDescription,
+		initParams->dbTokenDescription,
+		initParams->cryptoSlotDescription,
+		initParams->dbSlotDescription,
+		initParams->FIPSSlotDescription,
+		initParams->FIPSTokenDescription,
+		initParams->minPWLen);
+	    if (configStrings == NULL) {
+		PORT_SetError(SEC_ERROR_NO_MEMORY);
+		return SECFailure;
+	    }
+	    configName = initParams->libraryDescription;
+	    passwordRequired = initParams->passwordRequired;
+	}
+    } else {
+	configStrings = pk11_config_strings;
+	configName = pk11_config_name;
+	passwordRequired = pk11_password_required;
+    }
+
+    
+    rv = nss_InitModules(configdir, certPrefix, keyPrefix, secmodName, 
+		updateDir, updCertPrefix, updKeyPrefix, updateID, 
+		updateName, configName, configStrings, passwordRequired,
+		readOnly, noCertDB, noModDB, forceOpen, optimizeSpace, 
+		(initContextPtr != NULL));
+
+    if (rv != SECSuccess) {
+	goto loser;
+    }
+
+
+    
+    if (!isReallyInitted) {
+	if (SECOID_Init() != SECSuccess) {
+	    goto loser;
 	}
 	if (STAN_LoadDefaultNSS3TrustDomain() != PR_SUCCESS) {
-	    return SECFailure;
+	    goto loser;
 	}
 	if (nss_InitShutdownList() != SECSuccess) {
-	    return SECFailure;
+	    goto loser;
 	}
 	CERT_SetDefaultCertDB((CERTCertDBHandle *)
 				STAN_GetDefaultTrustDomain());
 	if ((!noModDB) && (!noCertDB) && (!noRootInit)) {
 	    if (!SECMOD_HasRootCerts()) {
 		const char *dbpath = configdir;
+		
 		if (strncmp(dbpath, "sql:", 4) == 0) {
 		    dbpath += 4;
+		} else if(strncmp(dbpath, "dbm:", 4) == 0) {
+		    dbpath += 4;
+		} else if(strncmp(dbpath, "extern:", 7) == 0) {
+		    dbpath += 7;
+		} else if(strncmp(dbpath, "rdb:", 4) == 0) {
+		    
+
+		    dbpath = NULL;
 		}
-		nss_FindExternalRoot(dbpath, secmodName);
+		if (dbpath) {
+		    nss_FindExternalRoot(dbpath, secmodName);
+		}
 	    }
 	}
+
 	pk11sdr_Init();
 	cert_CreateSubjectKeyIDHashTable();
-	nss_IsInitted = PR_TRUE;
-    }
 
-    if (SECSuccess == rv) {
 	pkixError = PKIX_Initialize
 	    (PKIX_FALSE, PKIX_MAJOR_VERSION, PKIX_MINOR_VERSION,
 	    PKIX_MINOR_VERSION, &actualMinorVersion, &plContext);
 
 	if (pkixError != NULL) {
-	    rv = SECFailure;
+	    goto loser;
 	} else {
             char *ev = getenv("NSS_ENABLE_PKIX_VERIFY");
             if (ev && ev[0]) {
                 CERT_SetUsePKIXForValidation(PR_TRUE);
             }
         }
+
+
     }
 
-    return rv;
+    
+
+
+
+
+    if (!initContextPtr) {
+	nssIsInitted = PR_TRUE;
+    } else {
+	(*initContextPtr)->magic = NSS_INIT_MAGIC;
+	(*initContextPtr)->next = nssInitContextList;
+	nssInitContextList = (*initContextPtr);
+    }
+
+    return SECSuccess;
+
+loser:
+    if (initContextPtr && *initContextPtr) {
+	PORT_Free(*initContextPtr);
+	*initContextPtr = NULL;
+	if (configStrings) {
+	   PR_smprintf_free(configStrings);
+	}
+    }
+    return SECFailure;
 }
 
 
 SECStatus
 NSS_Init(const char *configdir)
 {
-    return nss_Init(configdir, "", "", SECMOD_DB, "", "", "", "", "",
-		PR_TRUE, PR_FALSE, PR_FALSE, PR_FALSE, PR_FALSE, 
+    return nss_Init(configdir, "", "", SECMOD_DB, "", "", "", "", "", NULL,
+		NULL, PR_TRUE, PR_FALSE, PR_FALSE, PR_FALSE, PR_FALSE, 
 		PR_TRUE, PR_FALSE, PR_FALSE, PR_FALSE);
 }
 
 SECStatus
 NSS_InitReadWrite(const char *configdir)
 {
-    return nss_Init(configdir, "", "", SECMOD_DB, "", "", "", "", "",
-		PR_FALSE, PR_FALSE, PR_FALSE, PR_FALSE, PR_FALSE, 
+    return nss_Init(configdir, "", "", SECMOD_DB, "", "", "", "", "", NULL,
+		NULL, PR_FALSE, PR_FALSE, PR_FALSE, PR_FALSE, PR_FALSE, 
 		PR_TRUE, PR_FALSE, PR_FALSE, PR_FALSE);
 }
 
@@ -656,7 +777,7 @@ NSS_Initialize(const char *configdir, const char *certPrefix,
 	const char *keyPrefix, const char *secmodName, PRUint32 flags)
 {
     return nss_Init(configdir, certPrefix, keyPrefix, secmodName,
-	"", "", "", "", "",
+	"", "", "", "", "", NULL, NULL,
 	((flags & NSS_INIT_READONLY) == NSS_INIT_READONLY),
 	((flags & NSS_INIT_NOCERTDB) == NSS_INIT_NOCERTDB),
 	((flags & NSS_INIT_NOMODDB) == NSS_INIT_NOMODDB),
@@ -668,6 +789,27 @@ NSS_Initialize(const char *configdir, const char *certPrefix,
         ((flags & NSS_INIT_NOPK11FINALIZE) == NSS_INIT_NOPK11FINALIZE));
 }
 
+NSSInitContext *
+NSS_InitContext(const char *configdir, const char *certPrefix, 
+	const char *keyPrefix, const char *secmodName, 
+	NSSInitParameters *initParams, PRUint32 flags)
+{
+    SECStatus rv;
+    NSSInitContext *context;
+
+    rv = nss_Init(configdir, certPrefix, keyPrefix, secmodName,
+	"", "", "", "", "", &context, initParams,
+	((flags & NSS_INIT_READONLY) == NSS_INIT_READONLY),
+	((flags & NSS_INIT_NOCERTDB) == NSS_INIT_NOCERTDB),
+	((flags & NSS_INIT_NOMODDB) == NSS_INIT_NOMODDB),
+	((flags & NSS_INIT_FORCEOPEN) == NSS_INIT_FORCEOPEN), PR_TRUE,
+	((flags & NSS_INIT_OPTIMIZESPACE) == NSS_INIT_OPTIMIZESPACE),
+        ((flags & NSS_INIT_PK11THREADSAFE) == NSS_INIT_PK11THREADSAFE),
+        ((flags & NSS_INIT_PK11RELOAD) == NSS_INIT_PK11RELOAD),
+        ((flags & NSS_INIT_NOPK11FINALIZE) == NSS_INIT_NOPK11FINALIZE));
+    return (rv == SECSuccess) ? context : NULL;
+}
+
 SECStatus
 NSS_InitWithMerge(const char *configdir, const char *certPrefix, 
 	const char *keyPrefix, const char *secmodName, 
@@ -676,7 +818,8 @@ NSS_InitWithMerge(const char *configdir, const char *certPrefix,
 	const char *updateName, PRUint32 flags)
 {
     return nss_Init(configdir, certPrefix, keyPrefix, secmodName,
-	updateDir, updCertPrefix, updKeyPrefix, updateID, updateName,
+	updateDir, updCertPrefix, updKeyPrefix, updateID, updateName, 
+	NULL, NULL,
 	((flags & NSS_INIT_READONLY) == NSS_INIT_READONLY),
 	((flags & NSS_INIT_NOCERTDB) == NSS_INIT_NOCERTDB),
 	((flags & NSS_INIT_NOMODDB) == NSS_INIT_NOMODDB),
@@ -694,7 +837,7 @@ NSS_InitWithMerge(const char *configdir, const char *certPrefix,
 SECStatus
 NSS_NoDB_Init(const char * configdir)
 {
-      return nss_Init("","","","", "", "", "", "", "",
+      return nss_Init("","","","", "", "", "", "", "", NULL, NULL,
 			PR_TRUE,PR_TRUE,PR_TRUE,PR_TRUE,PR_TRUE,PR_TRUE,
 			PR_FALSE,PR_FALSE,PR_FALSE);
 }
@@ -722,7 +865,7 @@ nss_GetShutdownEntry(NSS_ShutdownFunc sFunc, void *appData)
 {
     int count, i;
     count = nssShutdownList.peakFuncs;
-    
+
     for (i=0; i < count; i++) {
 	if ((nssShutdownList.funcs[i].func == sFunc) &&
 	    (nssShutdownList.funcs[i].appData == appData)){
@@ -740,8 +883,8 @@ NSS_RegisterShutdown(NSS_ShutdownFunc sFunc, void *appData)
 {
     int i;
 
-    if (!nss_IsInitted) {
-	PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
+    if (!NSS_IsInitialized()) {
+	PORT_SetError(SEC_ERROR_NOT_INITIALIZED);
 	return SECFailure;
     }
     if (sFunc == NULL) {
@@ -794,8 +937,8 @@ SECStatus
 NSS_UnregisterShutdown(NSS_ShutdownFunc sFunc, void *appData)
 {
     int i;
-    if (!nss_IsInitted) {
-	PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
+    if (!NSS_IsInitialized()) {
+	PORT_SetError(SEC_ERROR_NOT_INITIALIZED);
 	return SECFailure;
     }
 
@@ -821,6 +964,9 @@ NSS_UnregisterShutdown(NSS_ShutdownFunc sFunc, void *appData)
 static SECStatus
 nss_InitShutdownList(void)
 {
+    if (nssShutdownList.lock != NULL) {
+	return SECSuccess;
+    }
     nssShutdownList.lock = PZ_NewLock(nssILockOther);
     if (nssShutdownList.lock == NULL) {
 	return SECFailure;
@@ -869,16 +1015,12 @@ nss_ShutdownShutdownList(void)
 extern const NSSError NSS_ERROR_BUSY;
 
 SECStatus
-NSS_Shutdown(void)
+nss_Shutdown(void)
 {
     SECStatus shutdownRV = SECSuccess;
     SECStatus rv;
     PRStatus status;
-
-    if (!nss_IsInitted) {
-	PORT_SetError(SEC_ERROR_NOT_INITIALIZED);
-	return SECFailure;
-    }
+    NSSInitContext *temp;
 
     rv = nss_ShutdownShutdownList();
     if (rv != SECSuccess) {
@@ -891,6 +1033,7 @@ NSS_Shutdown(void)
     SECOID_Shutdown();
     status = STAN_Shutdown();
     cert_DestroySubjectKeyIDHashTable();
+    pk11_SetInternalKeySlot(NULL);
     rv = SECMOD_Shutdown();
     if (rv != SECSuccess) {
 	shutdownRV = SECFailure;
@@ -911,14 +1054,87 @@ NSS_Shutdown(void)
 	}
 	shutdownRV = SECFailure;
     }
-    nss_IsInitted = PR_FALSE;
+    nssIsInitted = PR_FALSE;
+    temp = nssInitContextList;
+    nssInitContextList = NULL;
+    
+
+    while (temp) {
+	NSSInitContext *next = temp->next;
+	temp->magic = 0;
+	PORT_Free(temp);
+	temp = next;
+    }
     return shutdownRV;
 }
+
+SECStatus
+NSS_Shutdown(void)
+{
+    if (!nssIsInitted) {
+	PORT_SetError(SEC_ERROR_NOT_INITIALIZED);
+	return SECFailure;
+    }
+
+    return nss_Shutdown();
+}
+
+
+
+
+PRBool
+nss_RemoveList(NSSInitContext *context) {
+    NSSInitContext *this = nssInitContextList;
+    NSSInitContext **last = &nssInitContextList;
+
+    while (this) {
+	if (this == context) {
+	    *last = this->next;
+	    this->magic = 0;
+	    PORT_Free(this);
+	    return PR_TRUE;
+	}
+	last = &this->next;
+	this=this->next;
+    }
+    return PR_FALSE;
+}
+
+
+
+
+
+
+
+
+
+SECStatus
+NSS_ShutdownContext(NSSInitContext *context)
+{
+   if (!context) {
+	if (!nssIsInitted) {
+	    PORT_SetError(SEC_ERROR_NOT_INITIALIZED);
+	    return SECFailure;
+	}
+	nssIsInitted = 0;
+    } else if (! nss_RemoveList(context)) {
+	
+	PORT_SetError(SEC_ERROR_NOT_INITIALIZED);
+	return SECFailure;
+    }
+    if ((nssIsInitted == 0) && (nssInitContextList == NULL)) {
+	return nss_Shutdown();
+    }
+    return SECSuccess;
+}
+	
+	
+
 
 PRBool
 NSS_IsInitialized(void)
 {
-    return nss_IsInitted;
+    return (nssIsInitted) || (nssInitContextList != NULL);
 }
 
 
@@ -937,7 +1153,7 @@ NSS_VersionCheck(const char *importedVersion)
 
 
 
-    int vmajor = 0, vminor = 0, vpatch = 0;
+    int vmajor = 0, vminor = 0, vpatch = 0, vbuild = 0;
     const char *ptr = importedVersion;
     volatile char c; 
 
@@ -959,6 +1175,13 @@ NSS_VersionCheck(const char *importedVersion)
                 vpatch = 10 * vpatch + *ptr - '0';
                 ptr++;
             }
+            if (*ptr == '.') {
+                ptr++;
+                while (isdigit(*ptr)) {
+                    vbuild = 10 * vbuild + *ptr - '0';
+                    ptr++;
+                }
+            }
         }
     }
 
@@ -969,6 +1192,10 @@ NSS_VersionCheck(const char *importedVersion)
         return PR_FALSE;
     }
     if (vmajor == NSS_VMAJOR && vminor == NSS_VMINOR && vpatch > NSS_VPATCH) {
+        return PR_FALSE;
+    }
+    if (vmajor == NSS_VMAJOR && vminor == NSS_VMINOR &&
+        vpatch == NSS_VPATCH && vbuild > NSS_VBUILD) {
         return PR_FALSE;
     }
     

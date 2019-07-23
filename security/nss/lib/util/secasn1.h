@@ -149,6 +149,12 @@ extern SECStatus SEC_ASN1Encode(const void *src, const SEC_ASN1Template *t,
 				SEC_ASN1WriteProc output_proc,
 				void *output_arg);
 
+
+
+
+
+
+
 extern SECItem * SEC_ASN1EncodeItem(PLArenaPool *pool, SECItem *dest,
 				    const void *src, const SEC_ASN1Template *t);
 

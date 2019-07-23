@@ -66,15 +66,90 @@
 
 
 
-#define NSS_VERSION  "3.12.4.5" _NSS_ECC_STRING _NSS_CUSTOMIZED
+#define NSS_VERSION  "3.12.6.0" _NSS_ECC_STRING _NSS_CUSTOMIZED " Beta"
 #define NSS_VMAJOR   3
 #define NSS_VMINOR   12
-#define NSS_VPATCH   4
-#define NSS_BETA     PR_FALSE
+#define NSS_VPATCH   6
+#define NSS_VBUILD   0
+#define NSS_BETA     PR_TRUE
 
 #ifndef RC_INVOKED
 
 #include "seccomon.h"
+
+typedef struct NSSInitParametersStr NSSInitParameters;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+struct NSSInitParametersStr {
+   unsigned int	  length;      
+
+   PRBool passwordRequired;
+   int    minPWLen;
+   char * manufactureID;           
+   char * libraryDescription;      
+   char * cryptoTokenDescription;
+   char * dbTokenDescription;
+   char * FIPSTokenDescription;
+   char * cryptoSlotDescription;
+   char * dbSlotDescription;
+   char * FIPSSlotDescription;
+};
+   
 
 SEC_BEGIN_PROTOS
 
@@ -194,9 +269,18 @@ extern SECStatus NSS_InitReadWrite(const char *configdir);
 #define SECMOD_DB "secmod.db"
 #endif
 
+typedef struct NSSInitContextStr NSSInitContext;
+
+
 extern SECStatus NSS_Initialize(const char *configdir, 
 	const char *certPrefix, const char *keyPrefix, 
 	const char *secmodName, PRUint32 flags);
+
+extern NSSInitContext *NSS_InitContext(const char *configdir, 
+	const char *certPrefix, const char *keyPrefix, 
+	const char *secmodName, NSSInitParameters *initParams, PRUint32 flags);
+
+extern SECStatus NSS_ShutdownContext(NSSInitContext *);
 
 
 
@@ -251,9 +335,9 @@ extern SECStatus NSS_Shutdown(void);
 
 
 
-void PK11_ConfigurePKCS11(const char *man, const char *libdes, 
-	const char *tokdes, const char *ptokdes, const char *slotdes, 
-	const char *pslotdes, const char *fslotdes, const char *fpslotdes,
+void PK11_ConfigurePKCS11(const char *man, const char *libdesc, 
+	const char *tokdesc, const char *ptokdesc, const char *slotdesc, 
+	const char *pslotdesc, const char *fslotdesc, const char *fpslotdesc,
         int minPwd, int pwRequired);
 
 
