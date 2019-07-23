@@ -115,6 +115,9 @@ nsTableCaptionFrame::GetParentStyleContextFrame(nsPresContext* aPresContext,
                                                 nsIFrame**      aProviderFrame,
                                                 PRBool*         aIsChild)
 {
+  NS_PRECONDITION(mContent->GetParent(),
+                  "How could we not have a parent here?");
+    
   
   
   nsIFrame* outerFrame = GetParent();
