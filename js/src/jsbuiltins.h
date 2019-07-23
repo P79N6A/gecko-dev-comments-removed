@@ -141,8 +141,6 @@ struct JSTraceableNative {
 
 
 
-
-
 #define _JS_CTYPE(ctype, size, pch, ach, flags)     (ctype, size, pch, ach, flags)
 #define _JS_CTYPE_CONTEXT          _JS_CTYPE(JSContext *,            _JS_PTR,"C", "", INFALLIBLE)
 #define _JS_CTYPE_RUNTIME          _JS_CTYPE(JSRuntime *,            _JS_PTR,"R", "", INFALLIBLE)
@@ -162,7 +160,6 @@ struct JSTraceableNative {
 #define _JS_CTYPE_STRING_FAIL      _JS_CTYPE(JSString *,             _JS_PTR, --, --, FAIL_NULL)
 #define _JS_CTYPE_OBJECT           _JS_CTYPE(JSObject *,             _JS_PTR, "","o", INFALLIBLE)
 #define _JS_CTYPE_OBJECT_FAIL_NULL _JS_CTYPE(JSObject *,             _JS_PTR, --, --, FAIL_NULL)
-#define _JS_CTYPE_OBJECT_FAIL_VOID _JS_CTYPE(JSObject *,             _JS_PTR, --, --, FAIL_VOID)
 #define _JS_CTYPE_REGEXP           _JS_CTYPE(JSObject *,             _JS_PTR, "","r", INFALLIBLE)
 #define _JS_CTYPE_SCOPEPROP        _JS_CTYPE(JSScopeProperty *,      _JS_PTR, --, --, INFALLIBLE)
 #define _JS_CTYPE_SIDEEXIT         _JS_CTYPE(SideExit *,             _JS_PTR, --, --, INFALLIBLE)
