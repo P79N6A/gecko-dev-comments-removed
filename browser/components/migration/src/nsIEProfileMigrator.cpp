@@ -1031,9 +1031,10 @@ nsIEProfileMigrator::EnumerateUsernames(const nsAString& aKey, PRUnichar* aData,
         nsresult rv;
 
         nsCOMPtr<nsILoginInfo> aLogin (do_CreateInstance(NS_LOGININFO_CONTRACTID, &rv));
-        NS_ENSURE_SUCCESS(rv, rv);
+        NS_ENSURE_SUCCESS(rv, );
 
-        aLogin->Init(realm, EmptyString(), nsnull, usernameStr, passStr, aKey, EmptyString());
+        
+        
 
         pwmgr->AddLogin(aLogin);
       }
