@@ -224,6 +224,29 @@ NSCoordSaturatingSubtract(nscoord a, nscoord b,
 
 
 
+inline PRBool
+NSCoordLessThan(nscoord a,nscoord b)
+{
+  NS_ASSERTION(a != nscoord_MAX, 
+               "This coordinate should be constrained");
+  return ((a < b) || (b == nscoord_MAX));
+}
+
+
+
+
+
+inline PRBool
+NSCoordGreaterThan(nscoord a,nscoord b)
+{
+  NS_ASSERTION(a != nscoord_MAX, 
+               "This coordinate should be constrained");
+  return ((a > b) && (b != nscoord_MAX));
+}
+
+
+
+
 
 
 inline PRInt32 NSCoordToInt(nscoord aCoord) {

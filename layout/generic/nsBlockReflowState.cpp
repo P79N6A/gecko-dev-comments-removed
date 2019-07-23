@@ -635,7 +635,7 @@ nsBlockReflowState::CanPlaceFloat(const nsSize& aFloatSize,
   
   
   
-  if (mAvailSpaceRect.height < aFloatSize.height) {
+  if (NSCoordGreaterThan(aFloatSize.height, mAvailSpaceRect.height)) {
     
     
     
