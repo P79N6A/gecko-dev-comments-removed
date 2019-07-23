@@ -282,7 +282,6 @@ function onLoadPageInfo()
   gStrings.notSet = gBundle.getString("notset");
   gStrings.mediaImg = gBundle.getString("mediaImg");
   gStrings.mediaBGImg = gBundle.getString("mediaBGImg");
-  gStrings.mediaApplet = gBundle.getString("mediaApplet");
   gStrings.mediaObject = gBundle.getString("mediaObject");
   gStrings.mediaEmbed = gBundle.getString("mediaEmbed");
   gStrings.mediaLink = gBundle.getString("mediaLink");
@@ -618,14 +617,6 @@ function grabAll(elem)
     if (elem.type.toLowerCase() == "image")
       addImage(elem.src, gStrings.mediaInput,
                (elem.hasAttribute("alt")) ? elem.alt : gStrings.notSet, elem, false);
-  }
-  else if (elem instanceof HTMLAppletElement) {
-    
-    
-    
-    
-    if (!navigator.javaEnabled())
-      addImage(elem.code || elem.object, gStrings.mediaApplet, "", elem, false);
   }
   else if (elem instanceof HTMLObjectElement)
     addImage(elem.data, gStrings.mediaObject, getValueText(elem), elem, false);
