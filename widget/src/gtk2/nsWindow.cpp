@@ -566,8 +566,7 @@ nsWindow::DispatchDeactivateEvent(void)
 
 
 nsresult
-nsWindow::DispatchEvent(nsGUIEvent *aEvent,
-                              nsEventStatus &aStatus)
+nsWindow::DispatchEvent(nsGUIEvent *aEvent, nsEventStatus &aStatus)
 {
 #ifdef DEBUG
     debug_DumpEvent(stdout, aEvent->widget, aEvent,
@@ -720,6 +719,11 @@ nsWindow::Destroy(void)
     if (mDragMotionTimerID) {
         g_source_remove(mDragMotionTimerID);
         mDragMotionTimerID = 0;
+    }
+
+    if (mDragLeaveTimer) {
+        mDragLeaveTimer->Cancel();
+        mDragLeaveTimer = nsnull;
     }
 
     if (mDrawingarea) {
@@ -3456,12 +3460,16 @@ nsWindow::OnDragLeaveEvent(GtkWidget *aWidget,
 {
     
 
-    LOG(("nsWindow::OnDragLeaveSignal(%p)\n", this));
+    LOG(("nsWindow::OnDragLeaveSignal(%p)\n", (void*)this));
 
     sIsDraggingOutOf = PR_TRUE;
 
     
     ResetDragMotionTimer(0, 0, 0, 0, 0);
+
+    if (mDragLeaveTimer) {
+        return;
+    }
 
     
     
@@ -3523,7 +3531,7 @@ nsWindow::OnDragDropEvent(GtkWidget *aWidget,
     
     if (mDragLeaveTimer) {
         mDragLeaveTimer->Cancel();
-        mDragLeaveTimer = 0;
+        mDragLeaveTimer = nsnull;
     }
 
     
@@ -3589,7 +3597,7 @@ nsWindow::OnDragDataReceivedEvent(GtkWidget *aWidget,
                                   guint aTime,
                                   gpointer aData)
 {
-    LOG(("nsWindow::OnDragDataReceived(%p)\n", this));
+    LOG(("nsWindow::OnDragDataReceived(%p)\n", (void*)this));
 
     
     nsCOMPtr<nsIDragService> dragService = do_GetService(kCDragServiceCID);
@@ -3602,7 +3610,7 @@ nsWindow::OnDragDataReceivedEvent(GtkWidget *aWidget,
 void
 nsWindow::OnDragLeave(void)
 {
-    LOG(("nsWindow::OnDragLeave(%p)\n", this));
+    LOG(("nsWindow::OnDragLeave(%p)\n", (void*)this));
 
     nsDragEvent event(PR_TRUE, NS_DRAGDROP_EXIT, this);
 
@@ -3635,7 +3643,7 @@ nsWindow::OnDragEnter(nscoord aX, nscoord aY)
 {
     
 
-    LOG(("nsWindow::OnDragEnter(%p)\n", this));
+    LOG(("nsWindow::OnDragEnter(%p)\n", (void*)this));
 
     nsCOMPtr<nsIDragService> dragService = do_GetService(kCDragServiceCID);
 
@@ -5821,7 +5829,7 @@ nsWindow::ResetDragMotionTimer(GtkWidget *aWidget,
 void
 nsWindow::FireDragMotionTimer(void)
 {
-    LOG(("nsWindow::FireDragMotionTimer(%p)\n", this));
+    LOG(("nsWindow::FireDragMotionTimer(%p)\n", (void*)this));
 
     OnDragMotionEvent(mDragMotionWidget, mDragMotionContext,
                       mDragMotionX, mDragMotionY, mDragMotionTime,
@@ -5831,9 +5839,9 @@ nsWindow::FireDragMotionTimer(void)
 void
 nsWindow::FireDragLeaveTimer(void)
 {
-    LOG(("nsWindow::FireDragLeaveTimer(%p)\n", this));
+    LOG(("nsWindow::FireDragLeaveTimer(%p)\n", (void*)this));
 
-    mDragLeaveTimer = 0;
+    mDragLeaveTimer = nsnull;
 
     
     if (mLastDragMotionWindow) {
@@ -6201,11 +6209,15 @@ static void workaround_gtk_im_display_closed(GtkWidget *aGtkWidget,
         
         static gpointer gtk_xim_context_class =
             g_type_class_ref(slaveType);
+        
+        gtk_xim_context_class = gtk_xim_context_class;
     }
     else if (strcmp(im_type_name, "GtkIMContextIIIM") == 0) {
         
         static gpointer gtk_iiim_context_class =
             g_type_class_ref(slaveType);
+        
+        gtk_iiim_context_class = gtk_iiim_context_class;
     }
 }
 
