@@ -94,8 +94,6 @@ public:
 
     SimpleErrorObserver(ostream& errStream);
 
-    virtual ~SimpleErrorObserver() {};
-
     
 
 

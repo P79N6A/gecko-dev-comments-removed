@@ -73,10 +73,6 @@ public:
   {
   }
   
-  virtual ~nsXPath1SchemeNSResolver()
-  {
-  }
-
   NS_DECL_ISUPPORTS
   NS_DECL_NSIDOMXPATHNSRESOLVER
 
@@ -128,14 +124,6 @@ nsXPath1SchemeNSResolver::LookupNamespaceURI(const nsAString &aPrefix,
   return NS_OK;
 }
 
-
-nsXPath1SchemeProcessor::nsXPath1SchemeProcessor()
-{
-}
-
-nsXPath1SchemeProcessor::~nsXPath1SchemeProcessor()
-{
-}
 
 NS_IMPL_ISUPPORTS1(nsXPath1SchemeProcessor, nsIXPointerSchemeProcessor)
 

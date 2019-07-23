@@ -45,7 +45,6 @@ class txHTMLOutput : public txXMLOutput
 {
 public:
     txHTMLOutput(txOutputFormat* aFormat, ostream* aOut);
-    ~txHTMLOutput();
 
     
 

@@ -246,10 +246,6 @@ txListIterator::txListIterator(txList* list) {
    atEndOfList  = MB_FALSE;
 } 
 
-txListIterator::~txListIterator() {
-  
-} 
-
 
 
 

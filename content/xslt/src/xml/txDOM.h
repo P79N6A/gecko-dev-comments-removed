@@ -103,8 +103,6 @@ class Node : public TxObject
         NOTATION_NODE
     };
 
-    virtual ~Node() {}
-
     
     virtual nsresult getNodeName(nsAString& aName) const = 0;
     virtual nsresult getNodeValue(nsAString& aValue) = 0;
@@ -247,9 +245,6 @@ public:
     txIDEntry(const void* aKey) : PLDHashStringEntry(aKey), mElement(nsnull)
     {
     }
-    ~txIDEntry()
-    {
-    }
     Element* mElement;
 };
 DECL_DHASH_WRAPPER(txIDMap, txIDEntry, nsAString&)
@@ -295,8 +290,6 @@ class Document : public NodeDefinition
 class Element : public NodeDefinition
 {
   public:
-    virtual ~Element();
-
     NamedNodeMap* getAttributes();
 
     nsresult appendAttributeNS(nsIAtom *aPrefix, nsIAtom *aLocalName,
@@ -341,9 +334,6 @@ class Element : public NodeDefinition
 class Attr : public NodeDefinition
 {
   public:
-    virtual ~Attr();
-
-    
     Node* appendChild(Node* newChild);
 
     
@@ -383,8 +373,6 @@ class Attr : public NodeDefinition
 class ProcessingInstruction : public NodeDefinition
 {
   public:
-    ~ProcessingInstruction();
-
     
     MBool getLocalName(nsIAtom** aLocalName);
 

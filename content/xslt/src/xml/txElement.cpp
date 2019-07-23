@@ -53,14 +53,6 @@ Element::Element(nsIAtom *aPrefix, nsIAtom *aLocalName, PRInt32 aNamespaceID,
 {
 }
 
-
-
-
-
-Element::~Element()
-{
-}
-
 Node* Element::appendChild(Node* newChild)
 {
   switch (newChild->getNodeType())

@@ -85,7 +85,7 @@ public:
     
 
 
-    virtual ~txMozillaXSLTProcessor();
+    ~txMozillaXSLTProcessor();
 
     
     NS_DECL_ISUPPORTS

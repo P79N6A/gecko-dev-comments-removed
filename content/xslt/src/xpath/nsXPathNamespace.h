@@ -54,9 +54,6 @@
 class nsXPathNamespace : public nsIDOMXPathNamespace
 {
 public:
-    nsXPathNamespace();
-    virtual ~nsXPathNamespace();
-
     
     NS_DECL_ISUPPORTS
 

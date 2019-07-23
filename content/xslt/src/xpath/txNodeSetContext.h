@@ -50,9 +50,6 @@ public:
         : mContextSet(aContextNodeSet), mPosition(0), mInner(aContext)
     {
     }
-    virtual ~txNodeSetContext()
-    {
-    }
 
     
     MBool hasNext()

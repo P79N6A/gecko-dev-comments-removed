@@ -60,7 +60,7 @@ public:
     
 
 
-    virtual ~txList();
+    ~txList();
 
     
 
@@ -142,11 +142,6 @@ public:
 
 
     txListIterator(txList* list);
-
-    
-
-
-    ~txListIterator();
 
     
 

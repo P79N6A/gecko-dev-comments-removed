@@ -61,13 +61,6 @@ ProcessingInstruction::ProcessingInstruction(nsIAtom *theTarget,
 
 
 
-ProcessingInstruction::~ProcessingInstruction()
-{
-}
-
-
-
-
 
 
 MBool ProcessingInstruction::getLocalName(nsIAtom** aLocalName)
