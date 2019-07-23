@@ -161,8 +161,6 @@ PlacesTreeView.prototype = {
 
 
 
-
-
   _buildVisibleList: function PTV__buildVisibleList() {
     if (this._result) {
       
@@ -170,11 +168,6 @@ PlacesTreeView.prototype = {
         this._visibleElements[i].viewIndex = -1;
       }
     }
-
-    var oldCount = this.rowCount;
-    this._visibleElements.splice(0);
-    if (this._tree)
-      this._tree.rowCountChanged(0, -oldCount);
 
     var rootNode = this._result.root;
     if (rootNode && this._tree) {
@@ -326,13 +319,29 @@ PlacesTreeView.prototype = {
       replaceCount-=1;
 
     
-    for (var i = 0; i < replaceCount; i ++)
+    for (var i = 0; i < replaceCount; i++)
       this._visibleElements[startReplacement + i].viewIndex = -1;
 
     
     var newElements = [];
     var toOpenElements = [];
     this._buildVisibleSection(aContainer, newElements, toOpenElements, startReplacement);
+
+    
+    var nodesToSelect = [];
+    var selection = this.selection;
+    var rc = selection.getRangeCount();
+    for (var rangeIndex = 0; rangeIndex < rc; rangeIndex++) {
+      var min = { }, max = { };
+      selection.getRangeAt(rangeIndex, min, max);
+      if (min.value > startReplacement + replaceCount)
+        continue;
+
+      for (var nodeIndex = min.value; nodeIndex <= max.value; nodeIndex++) {
+        if (newElements.indexOf(this._visibleElements[nodeIndex]) != -1)
+          nodesToSelect.push(this._visibleElements[nodeIndex]);
+      }
+    }
 
     
     this._visibleElements =
@@ -350,6 +359,9 @@ PlacesTreeView.prototype = {
     }
 
     
+    if (nodesToSelect.length > 0)
+      selection.selectEventsSuppressed = true;
+
     this._tree.beginUpdateBatch();
     if (replaceCount)
       this._tree.rowCountChanged(startReplacement, -replaceCount);
@@ -361,6 +373,15 @@ PlacesTreeView.prototype = {
     for (var i = 0; i < toOpenElements.length; i++) {
       var item = asContainer(toOpenElements[i]);
       item.containerOpen = !item.containerOpen;
+    }
+
+    
+    if (nodesToSelect.length > 0) {
+      for each (var node in nodesToSelect) {
+        var index = node.viewIndex;
+        selection.rangedSelect(index, index, true);
+      }
+      selection.selectEventsSuppressed = false;
     }
   },
 
@@ -387,7 +408,7 @@ PlacesTreeView.prototype = {
     aShowThisOne.value = aTop.time < aNext.time;
     return true;
   },
-  
+
   _convertPRTimeToString: function PTV__convertPRTimeToString(aTime) {
     var timeInMilliseconds = aTime / 1000; 
     var timeObj = new Date(timeInMilliseconds);
@@ -415,7 +436,7 @@ PlacesTreeView.prototype = {
       timeObj.getDate(), timeObj.getHours(),
       timeObj.getMinutes(), timeObj.getSeconds()));
   },
-  
+
   COLUMN_TYPE_UNKNOWN: 0,
   COLUMN_TYPE_TITLE: 1,
   COLUMN_TYPE_URI: 2,
@@ -726,12 +747,6 @@ PlacesTreeView.prototype = {
 
     
     this._buildVisibleList();
-
-    
-    this._tree.beginUpdateBatch();
-    this._tree.rowCountChanged(0, -oldRowCount);
-    this._tree.rowCountChanged(0, this._visibleElements.length);
-    this._tree.endUpdateBatch();
   },
 
   sortingChanged: function PTV__sortingChanged(aSortingMode) {
