@@ -94,7 +94,13 @@ public:
   PRBool HasStroke();
 
   
-  nsresult SetupCairoFill(gfxContext *aContext, void **aClosure);
+
+
+
+  PRBool SetupCairoFill(gfxContext *aContext, void **aClosure);
+  
+
+
   void CleanupCairoFill(gfxContext *aContext, void *aClosure);
 
   
@@ -104,7 +110,13 @@ public:
   void SetupCairoStrokeHitGeometry(gfxContext *aContext);
 
   
-  nsresult SetupCairoStroke(gfxContext *aContext, void **aClosure);
+
+
+
+  PRBool SetupCairoStroke(gfxContext *aContext, void **aClosure);
+  
+
+
   void CleanupCairoStroke(gfxContext *aContext, void *aClosure);
 
 protected:

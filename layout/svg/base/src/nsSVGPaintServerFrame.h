@@ -52,10 +52,17 @@ public:
   nsSVGPaintServerFrame(nsStyleContext* aContext) :
       nsSVGPaintServerFrameBase(aContext) {}
 
-  virtual nsresult SetupPaintServer(gfxContext *aContext,
-                                    nsSVGGeometryFrame *aSource,
-                                    float aOpacity,
-                                    void **aClosure) = 0;
+  
+
+
+
+  virtual PRBool SetupPaintServer(gfxContext *aContext,
+                                  nsSVGGeometryFrame *aSource,
+                                  float aOpacity,
+                                  void **aClosure) = 0;
+  
+
+
   virtual void CleanupPaintServer(gfxContext *aContext, void *aClosure) = 0;
 
   
