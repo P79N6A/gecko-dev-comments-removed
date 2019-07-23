@@ -634,17 +634,10 @@ nsXULElement::PerformAccesskey(PRBool aKeyCausesActivation,
     if (elm) {
         
         nsIAtom *tag = content->Tag();
-        if (tag == nsGkAtoms::textbox || tag == nsGkAtoms::menulist) {
-            
+        if (tag != nsGkAtoms::toolbarbutton)
             elm->Focus();
-        } else if (tag == nsGkAtoms::toolbarbutton) {
-            
+        if (aKeyCausesActivation && tag != nsGkAtoms::textbox && tag != nsGkAtoms::menulist)
             elm->Click();
-        } else {
-            
-            elm->Focus();
-            elm->Click();
-        }
     }
     else {
         content->PerformAccesskey(aKeyCausesActivation, aIsTrustedEvent);

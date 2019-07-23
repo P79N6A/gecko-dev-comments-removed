@@ -405,7 +405,7 @@ protected:
   PRPackedBool mTabbedThroughDocument;
 
   
-  nsSupportsHashtable *mAccessKeys;
+  nsCOMArray<nsIContent> mAccessKeys;
 
   nsCOMArray<nsIDocShell> mTabbingFromDocShells;
 
