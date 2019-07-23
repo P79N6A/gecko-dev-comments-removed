@@ -462,11 +462,10 @@ nsWindow::Destroy(void)
         gPluginFocusWindow->LoseNonXEmbedPluginFocus();
     }
 
-    
-    
-    
-    
-    mWindowGroup = nsnull;
+    if (mWindowGroup) {
+        g_object_unref(G_OBJECT(mWindowGroup));
+        mWindowGroup = nsnull;
+    }
 
     
     
@@ -2768,6 +2767,7 @@ nsWindow::NativeCreate(nsIWidget        *aParent,
 
     NS_ASSERTION(aInitData->mWindowType != eWindowType_popup ||
                  !aParent, "Popups should not be hooked into nsIWidget hierarchy");
+    NS_ASSERTION(!mWindowGroup, "already have window group (leaking it)");
 
     
     BaseCreate(baseParent, aRect, aHandleEventFunction, aContext,
@@ -2898,6 +2898,7 @@ nsWindow::NativeCreate(nsIWidget        *aParent,
                                                 GTK_WINDOW(mShell));
                     
                     mWindowGroup = parentnsWindow->mWindowGroup;
+                    g_object_ref(G_OBJECT(mWindowGroup));
                     LOG(("adding window %p to group %p\n",
                          (void *)mShell, (void *)mWindowGroup));
                 }
@@ -2916,6 +2917,7 @@ nsWindow::NativeCreate(nsIWidget        *aParent,
                     gtk_window_group_add_window(topLevelParent->group,
                                             GTK_WINDOW(mShell));
                     mWindowGroup = topLevelParent->group;
+                    g_object_ref(G_OBJECT(mWindowGroup));
                 }
             }
         }
