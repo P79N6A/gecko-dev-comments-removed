@@ -4981,7 +4981,8 @@ js_DecompileFunction(JSPrinter *jp)
 
 #if JS_HAS_DESTRUCTURING
         
-        if (js_GetOpcode(jp->sprinter.context, fun->u.i.script, pc) == JSOP_TRACE) {
+        JSOp op = js_GetOpcode(jp->sprinter.context, fun->u.i.script, pc);
+        if (op == JSOP_TRACE || op == JSOP_NOP) {
             JS_STATIC_ASSERT(JSOP_TRACE_LENGTH == JSOP_NOP_LENGTH);
             pc += JSOP_TRACE_LENGTH;
         }
