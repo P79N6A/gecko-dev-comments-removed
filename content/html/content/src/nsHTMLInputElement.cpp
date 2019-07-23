@@ -1997,23 +1997,25 @@ nsHTMLInputElement::ParseAttribute(PRInt32 aNamespaceID,
         newType = NS_FORM_INPUT_TEXT;
       }
 
-      
-      
-      
-      
-      
-      
-      if (newType == NS_FORM_INPUT_FILE) {
+      if (newType != mType) {
         
         
         
-        SetFileName(EmptyString());
-        SetValueInternal(EmptyString(), nsnull, PR_FALSE);
-      } else if (mType == NS_FORM_INPUT_FILE) {
-        SetFileName(EmptyString());
-      }
+        
+        
+        
+        if (newType == NS_FORM_INPUT_FILE) {
+          
+          
+          
+          SetFileName(EmptyString());
+          SetValueInternal(EmptyString(), nsnull, PR_FALSE);
+        } else if (mType == NS_FORM_INPUT_FILE) {
+          SetFileName(EmptyString());
+        }
 
-      mType = newType;
+        mType = newType;
+      }
 
       return success;
     }
