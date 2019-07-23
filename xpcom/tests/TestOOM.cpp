@@ -62,6 +62,7 @@ int main(int argc, char **argv)
   
   
   void *big_alloc = malloc(1024 * 1024 * 16);
+  (void)big_alloc; 
 
   const int highpower = 500000;
   
@@ -77,10 +78,10 @@ int main(int argc, char **argv)
     
     
     if (!buffers[i])
-      printf("Could not allocate a buffer of size %ld\n", s);
+      printf("Could not allocate a buffer of size %lu\n", (unsigned long)s);
     else
     {
-      for (int j=0; j<s; j++)
+      for (size_t j=0; j<s; j++)
         buffers[i][j] = 'a';
     }
    
@@ -89,10 +90,10 @@ int main(int argc, char **argv)
     PRIntervalTime cost = PR_IntervalNow() - start;
     
     
-    printf("Total Allocated: %ld. \tLow Memory now?  %s\t Took (%d)\n",
-           s*i,
-	   lowMem ? "Yes" : "No",
-	   PR_IntervalToMilliseconds(cost));
+    printf("Total Allocated: %lu. \tLow Memory now?  %s\t Took (%d)\n",
+           (unsigned long)s*i,
+           lowMem ? "Yes" : "No",
+           PR_IntervalToMilliseconds(cost));
   
     if (lowMem)
       break;
