@@ -47,13 +47,17 @@ nsLoginInfo.prototype = {
     classDescription  : "LoginInfo",
     contractID : "@mozilla.org/login-manager/loginInfo;1",
     classID : Components.ID("{0f2f347c-1e4f-40cc-8efd-792dea70a85e}"),
-    QueryInterface: XPCOMUtils.generateQI([Ci.nsILoginInfo]), 
+    QueryInterface: XPCOMUtils.generateQI([Ci.nsILoginInfo, Ci.nsILoginMetaInfo]), 
 
     
     
     get wrappedJSObject() {
         return this;
     },
+
+    
+    
+    
 
     hostname      : null,
     formSubmitURL : null,
@@ -105,7 +109,27 @@ nsLoginInfo.prototype = {
             return false;
 
         return true;
-    }
+    },
+
+    clone : function() {
+        let clone = Cc["@mozilla.org/login-manager/loginInfo;1"].
+                    createInstance(Ci.nsILoginInfo);
+        clone.init(this.hostname, this.formSubmitURL, this.httpRealm,
+                   this.username, this.password,
+                   this.usernameField, this.passwordField);
+
+        
+        clone.QueryInterface(Ci.nsILoginMetaInfo);
+        clone.guid = this.guid;
+
+        return clone;
+    },
+
+    
+    
+    
+
+    guid : null
 
 }; 
 

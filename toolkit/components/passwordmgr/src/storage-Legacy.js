@@ -311,6 +311,9 @@ LoginManagerStorage_legacy.prototype = {
 
 
     modifyLogin : function (oldLogin, newLogin) {
+        if (newLogin instanceof Ci.nsIPropertyBag)
+            throw "legacy modifyLogin with propertybag not implemented.";
+        newLogin.QueryInterface(Ci.nsILoginInfo);
         
         this._checkLoginValues(newLogin);
 
