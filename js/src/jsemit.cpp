@@ -4251,6 +4251,7 @@ js_EmitTree(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
 
       case TOK_FOR:
         beq = 0;                
+        jmp = -1;
         pn2 = pn->pn_left;
         js_PushStatement(&cg->treeContext, &stmtInfo, STMT_FOR_LOOP, top);
 
@@ -4498,7 +4499,24 @@ js_EmitTree(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
                 if (beq < 0)
                     return JS_FALSE;
             }
+
+            
+            if (!js_EmitTree(cx, cg, pn->pn_right))
+                return JS_FALSE;
+
+            
+            jmp = EmitJump(cx, cg, JSOP_GOTO, top - CG_OFFSET(cg));
+            if (jmp < 0)
+                return JS_FALSE;
+            if (beq > 0)
+                CHECK_AND_SET_JUMP_OFFSET_AT(cx, cg, beq);
+
+            
+            JS_ASSERT(noteIndex != -1);
+            if (!js_SetSrcNoteOffset(cx, cg, (uintN)noteIndex, 0, jmp - beq))
+                return JS_FALSE;
         } else {
+            
             op = JSOP_POP;
             pn3 = pn2->pn_kid1;
             if (!pn3) {
@@ -4535,33 +4553,19 @@ js_EmitTree(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
                 return JS_FALSE;
             }
 
-            top = CG_OFFSET(cg);
-            SET_STATEMENT_TOP(&stmtInfo, top);
-            if (!pn2->pn_kid2) {
+            if (pn2->pn_kid2) {
                 
-                if (!js_SetSrcNoteOffset(cx, cg, (uintN)noteIndex, 0, 0))
-                    return JS_FALSE;
-            } else {
-                if (!js_EmitTree(cx, cg, pn2->pn_kid2))
-                    return JS_FALSE;
-                if (!js_SetSrcNoteOffset(cx, cg, (uintN)noteIndex, 0,
-                                         CG_OFFSET(cg) - top)) {
-                    return JS_FALSE;
-                }
-                beq = EmitJump(cx, cg, JSOP_IFEQ, 0);
-                if (beq < 0)
+                jmp = EmitJump(cx, cg, JSOP_GOTO, 0);
+                if (jmp < 0)
                     return JS_FALSE;
             }
+            top = CG_OFFSET(cg);
+            SET_STATEMENT_TOP(&stmtInfo, top);
 
             
-            pn3 = pn2->pn_kid3;
-        }
+            if (!js_EmitTree(cx, cg, pn->pn_right))
+                return JS_FALSE;
 
-        
-        if (!js_EmitTree(cx, cg, pn->pn_right))
-            return JS_FALSE;
-
-        if (pn2->pn_type != TOK_IN) {
             
             JS_ASSERT(noteIndex != -1);
             if (!js_SetSrcNoteOffset(cx, cg, (uintN)noteIndex, 1,
@@ -4569,14 +4573,15 @@ js_EmitTree(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
                 return JS_FALSE;
             }
 
-            if (pn3) {
-                
-                stmt = &stmtInfo;
-                do {
-                    stmt->update = CG_OFFSET(cg);
-                } while ((stmt = stmt->down) != NULL &&
-                         stmt->type == STMT_LABEL);
+            
+            stmt = &stmtInfo;
+            do {
+                stmt->update = CG_OFFSET(cg);
+            } while ((stmt = stmt->down) != NULL && stmt->type == STMT_LABEL);
 
+            
+            pn3 = pn2->pn_kid3;
+            if (pn3) {
                 op = JSOP_POP;
 #if JS_HAS_DESTRUCTURING
                 if (pn3->pn_type == TOK_ASSIGN &&
@@ -4601,23 +4606,42 @@ js_EmitTree(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
             }
 
             
+            if (!js_SetSrcNoteOffset(cx, cg, (uintN)noteIndex, 0,
+                                     CG_OFFSET(cg) - top)) {
+                return JS_FALSE;
+            }
+
+            if (pn2->pn_kid2) {
+                
+                JS_ASSERT(jmp >= 0);
+                CHECK_AND_SET_JUMP_OFFSET_AT(cx, cg, jmp);
+
+                if (!js_EmitTree(cx, cg, pn2->pn_kid2))
+                    return JS_FALSE;
+            }
+
+            
             if (!js_SetSrcNoteOffset(cx, cg, (uintN)noteIndex, 2,
                                      CG_OFFSET(cg) - top)) {
                 return JS_FALSE;
             }
-        }
 
-        
-        jmp = EmitJump(cx, cg, JSOP_GOTO, top - CG_OFFSET(cg));
-        if (jmp < 0)
-            return JS_FALSE;
-        if (beq > 0)
-            CHECK_AND_SET_JUMP_OFFSET_AT(cx, cg, beq);
-        if (pn2->pn_type == TOK_IN) {
-            
-            JS_ASSERT(noteIndex != -1);
-            if (!js_SetSrcNoteOffset(cx, cg, (uintN)noteIndex, 0, jmp - beq))
-                return JS_FALSE;
+            if (pn2->pn_kid2) {
+                if (pn2->pn_kid2->pn_type == TOK_LP &&
+                    pn2->pn_kid2->pn_head->pn_type == TOK_FUNCTION &&
+                    (pn2->pn_kid2->pn_head->pn_flags & TCF_GENEXP_LAMBDA) &&
+                    js_NewSrcNote(cx, cg, SRC_GENEXP) < 0) {
+                    return JS_FALSE;
+                }
+                beq = EmitJump(cx, cg, JSOP_IFNE, top - CG_OFFSET(cg));
+                if (beq < 0)
+                    return JS_FALSE;
+            } else {
+                
+                jmp = EmitJump(cx, cg, JSOP_GOTO, top - CG_OFFSET(cg));
+                if (jmp < 0)
+                    return JS_FALSE;
+            }
         }
 
         

@@ -1985,31 +1985,42 @@ Decompile(SprintStack *ss, jsbytecode *pc, intN nb, JSOp nextop)
                     cond = js_GetSrcNoteOffset(sn, 0);
                     next = js_GetSrcNoteOffset(sn, 1);
                     tail = js_GetSrcNoteOffset(sn, 2);
-                    LOCAL_ASSERT(tail + GetJumpOffset(pc+tail, pc+tail) == 0);
+
+                    
+
+
+
+                    if (cond != tail) {
+                        LOCAL_ASSERT(*pc == JSOP_GOTO || *pc == JSOP_GOTOX);
+                        pc += (*pc == JSOP_GOTO)
+                              ? JSOP_GOTO_LENGTH
+                              : JSOP_GOTOX_LENGTH;
+                    }
+                    LOCAL_ASSERT(tail == -GetJumpOffset(pc+tail, pc+tail));
 
                     
                     js_printf(jp, "\tfor (%s;", rval);
 
-                    if (pc[cond] == JSOP_IFEQ || pc[cond] == JSOP_IFEQX) {
+                    if (cond != tail) {
                         
-                        DECOMPILE_CODE(pc, cond);
+                        DECOMPILE_CODE(pc + cond, tail - cond);
                         js_printf(jp, " %s", POP_STR());
                     }
 
                     
                     js_puts(jp, ";");
 
-                    if (pc[next] != JSOP_GOTO && pc[next] != JSOP_GOTOX) {
+                    if (next != cond) {
                         
-                        DECOMPILE_CODE(pc + next, tail - next - 1);
+                        DECOMPILE_CODE(pc + next,
+                                       cond - next - JSOP_POP_LENGTH);
                         js_printf(jp, " %s", POP_STR());
                     }
 
                     
                     js_printf(jp, ") {\n");
                     jp->indent += 4;
-                    oplen = (cond) ? js_CodeSpec[pc[cond]].length : 0;
-                    DECOMPILE_CODE(pc + cond + oplen, next - cond - oplen);
+                    DECOMPILE_CODE(pc, next);
                     jp->indent -= 4;
                     js_printf(jp, "\t}\n");
 
@@ -3844,22 +3855,27 @@ Decompile(SprintStack *ss, jsbytecode *pc, intN nb, JSOp nextop)
 
 
 
-                    LOCAL_ASSERT(pc + len < endpc ||
+
+                    pc2 = pc + len;
+                    LOCAL_ASSERT(pc2 < endpc ||
                                  endpc < outer->code + outer->length);
                     LOCAL_ASSERT(ss2.top == 1);
                     ss2.opcodes[0] = JSOP_POP;
-                    if (pc + len == endpc &&
-                        ((JSOp) *endpc != JSOP_IFNE &&
-                         (JSOp) *endpc != JSOP_IFNEX)) {
+                    if (pc2 == endpc &&
+                        (JSOp) *endpc != JSOP_IFNE &&
+                        (JSOp) *endpc != JSOP_IFNEX) {
                         op = JSOP_SETNAME;
                     } else {
-                        op = (JSOp) pc[len];
+                        op = (JSOp) *pc2;
                         op = ((js_CodeSpec[op].format & JOF_PARENHEAD) ||
+                              ((op == JSOP_IFNE || op == JSOP_IFNEX) &&
+                               (!(sn2 = js_GetSrcNote(outer, pc2)) ||
+                                SN_TYPE(sn2) != SRC_GENEXP)) ||
                               ((js_CodeSpec[op].format & JOF_INVOKE) &&
-                               GET_ARGC(pc + len) == 1) ||
-                              (((op == JSOP_IFEQ || op == JSOP_IFEQX) &&
-                               (sn2 = js_GetSrcNote(outer, pc + len)) &&
-                               SN_TYPE(sn2) != SRC_COND)))
+                               GET_ARGC(pc2) == 1) ||
+                              ((op == JSOP_IFEQ || op == JSOP_IFEQX) &&
+                               (sn2 = js_GetSrcNote(outer, pc2)) &&
+                               SN_TYPE(sn2) != SRC_COND))
                              ? JSOP_POP
                              : JSOP_SETNAME;
 
