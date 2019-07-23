@@ -124,6 +124,9 @@ public:
   
 
 
+
+
+
   nsresult GetAnonymousNodesFor(nsIContent* aContent, nsIDOMNodeList** aResult);
 
   
@@ -140,6 +143,11 @@ public:
 
 
   nsresult GetXBLChildNodesFor(nsIContent* aContent, nsIDOMNodeList** aResult);
+
+  
+
+
+  nsINodeList* GetXBLChildNodesFor(nsIContent* aContent);
 
   
 
@@ -212,12 +220,10 @@ protected:
   nsIXPConnectWrappedJS* GetWrappedJS(nsIContent* aContent);
   nsresult SetWrappedJS(nsIContent* aContent, nsIXPConnectWrappedJS* aResult);
 
-  nsresult GetXBLChildNodesInternal(nsIContent* aContent,
-                                    nsIDOMNodeList** aResult,
-                                    PRBool* aIsAnonymousContentList);
-  nsresult GetAnonymousNodesInternal(nsIContent* aContent,
-                                     nsIDOMNodeList** aResult,
-                                     PRBool* aIsAnonymousContentList);
+  nsINodeList* GetXBLChildNodesInternal(nsIContent* aContent,
+                                        PRBool* aIsAnonymousContentList);
+  nsINodeList* GetAnonymousNodesInternal(nsIContent* aContent,
+                                         PRBool* aIsAnonymousContentList);
 
   nsIContent* GetNestedInsertionPoint(nsIContent* aParent, nsIContent* aChild);
   nsIContent* GetNestedSingleInsertionPoint(nsIContent* aParent,
@@ -249,10 +255,8 @@ protected:
   
   
   
-  
   PLDHashTable mContentListTable;
 
-  
   
   
   

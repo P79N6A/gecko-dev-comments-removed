@@ -86,7 +86,8 @@ public:
   NS_DECL_NSIDOMNODELIST
 
   
-  virtual nsINode* GetNodeAt(PRUint32 aIndex);
+  virtual nsIContent* GetNodeAt(PRUint32 aIndex);
+  virtual PRInt32 IndexOf(nsIContent* aContent);
   
   NS_DECL_CYCLE_COLLECTION_CLASS_AMBIGUOUS(nsBaseContentList, nsINodeList)
 
@@ -242,7 +243,8 @@ public:
 
   
   virtual PRInt32 IndexOf(nsIContent *aContent, PRBool aDoFlush);
-  virtual nsINode* GetNodeAt(PRUint32 aIndex);
+  virtual nsIContent* GetNodeAt(PRUint32 aIndex);
+  virtual PRInt32 IndexOf(nsIContent* aContent);
 
   
   virtual nsISupports* GetNodeAt(PRUint32 aIndex, nsresult* aResult);
