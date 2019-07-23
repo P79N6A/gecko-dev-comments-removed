@@ -76,16 +76,13 @@ NS_IMETHODIMP nsAlertsService::ShowAlertNotification(const nsAString & aImageUrl
 {
   
   nsCOMPtr<nsIAlertsService> sysAlerts(do_GetService(NS_SYSTEMALERTSERVICE_CONTRACTID));
-  nsresult rv;
-  if (sysAlerts) {
-    rv = sysAlerts->ShowAlertNotification(aImageUrl, aAlertTitle, aAlertText, aAlertTextClickable,
-                                          aAlertCookie, aAlertListener, aAlertName);
-    if (NS_SUCCEEDED(rv))
-      return rv;
-  }
+  if (sysAlerts)
+    return sysAlerts->ShowAlertNotification(aImageUrl, aAlertTitle, aAlertText, aAlertTextClickable,
+                                            aAlertCookie, aAlertListener, aAlertName);
 
   nsCOMPtr<nsIWindowWatcher> wwatch(do_GetService(NS_WINDOWWATCHER_CONTRACTID));
   nsCOMPtr<nsIDOMWindow> newWindow;
+  nsresult rv;
 
   nsCOMPtr<nsISupportsArray> argsArray;
   rv = NS_NewISupportsArray(getter_AddRefs(argsArray));
