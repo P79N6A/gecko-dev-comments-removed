@@ -413,6 +413,7 @@ protected:
   nsCOMPtr<mozIStorageStatement> mDBVisitToURLResult; 
   mozIStorageStatement *GetDBVisitToVisitResult();
   nsCOMPtr<mozIStorageStatement> mDBVisitToVisitResult; 
+  mozIStorageStatement *GetDBBookmarkToUrlResult();
   nsCOMPtr<mozIStorageStatement> mDBBookmarkToUrlResult; 
 
   
