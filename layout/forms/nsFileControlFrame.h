@@ -93,6 +93,10 @@ public:
   
   virtual nsresult CreateAnonymousContent(nsTArray<nsIContent*>& aElements);
 
+#ifdef ACCESSIBILITY
+  NS_IMETHOD GetAccessible(nsIAccessible** aAccessible);
+#endif
+
 protected:
   class MouseListener;
   friend class MouseListener;

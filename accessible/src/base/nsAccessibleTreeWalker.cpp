@@ -230,6 +230,7 @@ void nsAccessibleTreeWalker::UpdateFrame(PRBool aTryFirstChild)
     return;
   }
   if (aTryFirstChild) {
+    nsIContent *containerContent = mState.frame->GetContent();
     mState.frame = mState.frame->GetFirstChild(nsnull);
 
 
@@ -253,6 +254,17 @@ void nsAccessibleTreeWalker::UpdateFrame(PRBool aTryFirstChild)
       mState.siblingIndex = eSiblingsWalkFrames;
     }
 #endif
+    
+    
+    
+    
+    if (containerContent->Tag() == nsAccessibilityAtoms::input &&
+        containerContent->AttrValueIs(kNameSpaceID_None, nsAccessibilityAtoms::type,
+                                      NS_LITERAL_STRING("file"), eIgnoreCase) &&
+        mState.frame && mState.siblingIndex < 0)  {
+      mState.domNode = do_QueryInterface(mState.frame->GetContent());
+      mState.siblingIndex = eSiblingsWalkFrames;
+    }
   }
   else {
     mState.frame = mState.frame->GetNextSibling();
