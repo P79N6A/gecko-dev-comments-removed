@@ -61,6 +61,18 @@
 #endif
 
 
+#if defined(__alpha__) && defined(__osf__)
+
+#undef PRIdLL
+#define PRIdLL "ld"
+#undef PRIuLL
+#define PRIuLL "lu"
+#define PRId64 "ld"
+#define PRIu64 "lu"
+#define PRIuPTR "lu"
+#endif
+
+
 #if defined(__hppa__) && defined(__hpux__) && !defined(PRIuPTR)
 #define PRIuPTR "lu"
 #endif

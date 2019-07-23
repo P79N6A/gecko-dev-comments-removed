@@ -6,6 +6,7 @@
 
 
 
+
 #include "ffitest.h"
 
 typedef struct cls_struct_align {

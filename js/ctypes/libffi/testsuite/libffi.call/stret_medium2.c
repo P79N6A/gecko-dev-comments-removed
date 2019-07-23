@@ -7,6 +7,7 @@
 
 
 
+
 #include "ffitest.h"
 
 typedef struct struct_72byte {
