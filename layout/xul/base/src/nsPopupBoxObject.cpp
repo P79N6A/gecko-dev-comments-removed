@@ -215,10 +215,10 @@ nsPopupBoxObject::EnableKeyboardNavigator(PRBool aEnableKeyboardNavigator)
 {
   
   if (aEnableKeyboardNavigator)
+    mContent->UnsetAttr(kNameSpaceID_None, nsGkAtoms::ignorekeys, PR_TRUE);
+  else
     mContent->SetAttr(kNameSpaceID_None, nsGkAtoms::ignorekeys,
                       NS_LITERAL_STRING("true"), PR_TRUE);
-  else
-    mContent->UnsetAttr(kNameSpaceID_None, nsGkAtoms::ignorekeys, PR_TRUE);
 
   return NS_OK;
 }
