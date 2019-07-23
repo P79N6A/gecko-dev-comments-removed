@@ -4164,8 +4164,6 @@ nsXULDocument::BroadcasterHookup::~BroadcasterHookup()
 #ifdef PR_LOGGING
     if (PR_LOG_TEST(gXULLog, PR_LOG_WARNING) && !mResolved) {
         
-        nsresult rv;
-
         nsIAtom *tag = mObservesElement->Tag();
 
         nsAutoString broadcasterID;
