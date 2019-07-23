@@ -858,10 +858,41 @@ nsJSObjWrapper::NP_RemoveProperty(NPObject *npobj, NPIdentifier identifier)
 
     ok = ::JS_DeleteUCProperty2(cx, npjsobj->mJSObj, ::JS_GetStringChars(str),
                                 ::JS_GetStringLength(str), &deleted);
+
+    if (ok && deleted) {
+      
+      
+
+      JSBool hasProp;
+      ok = ::JS_HasUCProperty(cx, npjsobj->mJSObj, ::JS_GetStringChars(str),
+                              ::JS_GetStringLength(str), &hasProp);
+
+      if (ok && hasProp) {
+        
+        
+
+        deleted = JSVAL_FALSE;
+      }
+    }
   } else {
     NS_ASSERTION(JSVAL_IS_INT(id), "id must be either string or int!\n");
 
     ok = ::JS_DeleteElement2(cx, npjsobj->mJSObj, JSVAL_TO_INT(id), &deleted);
+
+    if (ok && deleted) {
+      
+      
+
+      JSBool hasProp;
+      ok = ::JS_HasElement(cx, npjsobj->mJSObj, JSVAL_TO_INT(id), &hasProp);
+
+      if (ok && hasProp) {
+        
+        
+
+        deleted = JSVAL_FALSE;
+      }
+    }
   }
 
   
