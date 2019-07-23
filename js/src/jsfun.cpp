@@ -1805,10 +1805,10 @@ Function(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
     JSProperty *prop;
     JSScopeProperty *sprop;
     JSString *str, *arg;
-    void *mark;
-    JSTokenStream *ts;
+    JSParseContext pc;
     JSPrincipals *principals;
     jschar *collected_args, *cp;
+    void *mark;
     size_t arg_length, args_length, old_args_length;
     JSTokenType tt;
     JSBool ok;
@@ -1869,6 +1869,8 @@ Function(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
     n = argc ? argc - 1 : 0;
     if (n > 0) {
+        enum { OK, BAD, BAD_FORMAL } state;
+
         
 
 
@@ -1879,6 +1881,7 @@ Function(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
 
 
+        state = BAD_FORMAL;
         args_length = 0;
         for (i = 0; i < n; i++) {
             
@@ -1936,18 +1939,14 @@ Function(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
         }
 
         
-
-
-
-        ts = js_NewTokenStream(cx, collected_args, args_length, filename,
-                               lineno, principals);
-        if (!ts) {
+        if (!js_InitTokenStream(cx, &pc.tokenStream, collected_args,
+                                args_length, NULL, filename, lineno)) {
             JS_ARENA_RELEASE(&cx->tempPool, mark);
             return JS_FALSE;
         }
 
         
-        tt = js_GetToken(cx, ts);
+        tt = js_GetToken(cx, &pc.tokenStream);
         if (tt != TOK_EOF) {
             for (;;) {
                 
@@ -1955,16 +1954,16 @@ Function(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
 
                 if (tt != TOK_NAME)
-                    goto bad_formal;
+                    goto after_args;
 
                 
 
 
 
-                atom = CURRENT_TOKEN(ts).t_atom;
+                atom = CURRENT_TOKEN(&pc.tokenStream).t_atom;
                 if (!js_LookupHiddenProperty(cx, obj, ATOM_TO_JSID(atom),
                                              &obj2, &prop)) {
-                    goto bad_formal;
+                    goto after_args;
                 }
                 sprop = (JSScopeProperty *) prop;
                 dupflag = 0;
@@ -1981,7 +1980,7 @@ Function(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
                         JS_ASSERT(sprop->getter == js_GetArgument);
                         ok = name &&
-                             js_ReportCompileErrorNumber(cx, ts,
+                             js_ReportCompileErrorNumber(cx, &pc.tokenStream,
                                                          JSREPORT_TS |
                                                          JSREPORT_WARNING |
                                                          JSREPORT_STRICT,
@@ -1992,7 +1991,7 @@ Function(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
                     }
                     OBJ_DROP_PROPERTY(cx, obj2, prop);
                     if (!ok)
-                        goto bad_formal;
+                        goto after_args;
                     sprop = NULL;
                 }
                 if (!js_AddHiddenProperty(cx, fun->object, ATOM_TO_JSID(atom),
@@ -2001,12 +2000,13 @@ Function(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
                                           JSPROP_PERMANENT | JSPROP_SHARED,
                                           dupflag | SPROP_HAS_SHORTID,
                                           fun->nargs)) {
-                    goto bad_formal;
+                    goto after_args;
                 }
                 if (fun->nargs == JS_BITMASK(16)) {
                     JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL,
                                          JSMSG_TOO_MANY_FUN_ARGS);
-                    goto bad;
+                    state = BAD;
+                    goto after_args;
                 }
                 fun->nargs++;
 
@@ -2014,19 +2014,28 @@ Function(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
 
 
-                tt = js_GetToken(cx, ts);
+                tt = js_GetToken(cx, &pc.tokenStream);
                 if (tt == TOK_EOF)
                     break;
                 if (tt != TOK_COMMA)
-                    goto bad_formal;
-                tt = js_GetToken(cx, ts);
+                    goto after_args;
+                tt = js_GetToken(cx, &pc.tokenStream);
             }
         }
 
-        
-        ok = js_CloseTokenStream(cx, ts);
+        state = OK;
+      after_args:
+        if (state == BAD_FORMAL && !(pc.tokenStream.flags & TSF_ERROR)) {
+            
+
+
+
+            JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL,
+                                 JSMSG_BAD_FORMAL);
+        }
+        js_CloseTokenStream(cx, &pc.tokenStream);
         JS_ARENA_RELEASE(&cx->tempPool, mark);
-        if (!ok)
+        if (state != OK)
             return JS_FALSE;
     }
 
@@ -2039,34 +2048,14 @@ Function(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
         str = cx->runtime->emptyString;
     }
 
-    mark = JS_ARENA_MARK(&cx->tempPool);
-    ts = js_NewTokenStream(cx, JSSTRING_CHARS(str), JSSTRING_LENGTH(str),
-                           filename, lineno, principals);
-    if (!ts) {
-        ok = JS_FALSE;
-    } else {
-        ok = js_CompileFunctionBody(cx, ts, fun) &&
-             js_CloseTokenStream(cx, ts);
+    ok = js_InitParseContext(cx, &pc, JSSTRING_CHARS(str), JSSTRING_LENGTH(str),
+                             NULL, filename, lineno);
+    if (ok) {
+        js_InitCompilePrincipals(cx, &pc, principals);
+        ok = js_CompileFunctionBody(cx, &pc, fun);
+        js_FinishParseContext(cx, &pc);
     }
-    JS_ARENA_RELEASE(&cx->tempPool, mark);
     return ok;
-
-bad_formal:
-    
-
-
-
-    if (!(ts->flags & TSF_ERROR))
-        JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_BAD_FORMAL);
-
-bad:
-    
-
-
-
-    (void)js_CloseTokenStream(cx, ts);
-    JS_ARENA_RELEASE(&cx->tempPool, mark);
-    return JS_FALSE;
 }
 
 JSObject *

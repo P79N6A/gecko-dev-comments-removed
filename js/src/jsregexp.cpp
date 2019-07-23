@@ -68,6 +68,7 @@ typedef enum REOp {
 #define REOP_DEF(opcode, name) opcode,
 #include "jsreops.tbl"
 #undef REOP_DEF
+    REOP_LIMIT 
 } REOp;
 
 #define REOP_IS_SIMPLE(op)  ((op) <= REOP_NCLASS)

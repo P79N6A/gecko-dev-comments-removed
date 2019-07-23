@@ -63,6 +63,8 @@
 #include <winbase.h>
 #include <math.h>     
 #include <mmsystem.h> 
+#include <stdlib.h>   
+#include <crtdbg.h>   
 
 #ifdef JS_THREADSAFE
 #include <prinit.h>
@@ -556,12 +558,29 @@ PRMJ_DSTOffset(JSInt64 local_time)
     return(local_time);
 }
 
+#ifdef XP_WIN
+JS_STATIC_DLL_CALLBACK(void)
+PRMJ_InvalidParameterHandler(const wchar_t* expression,
+                             const wchar_t* function, 
+                             const wchar_t* file, 
+                             unsigned int line, 
+                             uintptr_t pReserved)
+{
+    
+}
+#endif
+
 
 size_t
 PRMJ_FormatTime(char *buf, int buflen, const char *fmt, PRMJTime *prtm)
 {
+    size_t result;
 #if defined(XP_UNIX) || defined(XP_WIN) || defined(XP_OS2) || defined(XP_BEOS)
     struct tm a;
+#ifdef XP_WIN
+   _invalid_parameter_handler oldHandler;
+   int oldReportMode;
+#endif
 
     
 
@@ -607,8 +626,20 @@ PRMJ_FormatTime(char *buf, int buflen, const char *fmt, PRMJTime *prtm)
     }
 #endif
 
-    return strftime(buf, buflen, fmt, &a);
+#ifdef XP_WIN
+   oldHandler = _set_invalid_parameter_handler(PRMJ_InvalidParameterHandler);
+   oldReportMode = _CrtSetReportMode(_CRT_ASSERT, 0);
 #endif
+
+    result = strftime(buf, buflen, fmt, &a);
+
+#ifdef XP_WIN
+    _set_invalid_parameter_handler(oldHandler);
+    _CrtSetReportMode(_CRT_ASSERT, oldReportMode);
+#endif
+
+#endif
+    return result;
 }
 
 
