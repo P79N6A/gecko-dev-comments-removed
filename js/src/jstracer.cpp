@@ -73,9 +73,6 @@
 #define HOTEXIT 0
 
 
-#define MAX_XJUMPS 5
-
-
 #define MAX_CALLDEPTH 5
 
 #ifdef DEBUG
@@ -1440,16 +1437,13 @@ js_ContinueRecording(JSContext* cx, TraceRecorder* r, jsbytecode* oldpc, uintN& 
         js_DeleteRecorder(cx);
         return false; 
     }
-    if (++r->backEdgeCount >= MAX_XJUMPS) {
-        AUDIT(returnToDifferentLoopHeader);
-        debug_only(printf("loop edge %d -> %d, header %d\n",
-                oldpc - cx->fp->script->code,
-                cx->fp->regs->pc - cx->fp->script->code,
-                (jsbytecode*)r->getFragment()->root->ip - cx->fp->script->code));
-        js_AbortRecording(cx, oldpc, "Loop edge does not return to header");
-        return false; 
-    }
-    return true; 
+    AUDIT(returnToDifferentLoopHeader);
+    debug_only(printf("loop edge %d -> %d, header %d\n",
+            oldpc - cx->fp->script->code,
+            cx->fp->regs->pc - cx->fp->script->code,
+            (jsbytecode*)r->getFragment()->root->ip - cx->fp->script->code));
+    js_AbortRecording(cx, oldpc, "Loop edge does not return to header");
+    return false; 
 }
 
 GuardRecord*
