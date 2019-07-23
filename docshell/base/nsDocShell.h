@@ -366,6 +366,12 @@ protected:
 
     
     
+    nsresult DispatchAsyncHashchange();
+
+    nsresult FireHashchange();
+
+    
+    
     
     
     
