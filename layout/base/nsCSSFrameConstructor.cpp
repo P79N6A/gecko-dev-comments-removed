@@ -4040,6 +4040,9 @@ nsCSSFrameConstructor::ConstructTableCellFrame(nsFrameConstructorState& aState,
     aNewCellOuterFrame = NS_NewMathMLmtdFrame(mPresShell, aStyleContext);
   else
 #endif
+    
+    
+    
     aNewCellOuterFrame = NS_NewTableCellFrame(mPresShell, aStyleContext,
                                               IsBorderCollapse(parentFrame));
 
@@ -10646,6 +10649,9 @@ nsCSSFrameConstructor::CreateContinuingFrame(nsPresContext* aPresContext,
     }
 
   } else if (IS_TABLE_CELL(frameType)) {
+    
+    
+    
     newFrame = NS_NewTableCellFrame(shell, styleContext, IsBorderCollapse(aParentFrame));
 
     if (newFrame) {
