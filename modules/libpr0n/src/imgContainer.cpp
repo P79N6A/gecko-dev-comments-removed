@@ -2216,6 +2216,15 @@ imgContainer::RequestDecode()
     return NS_OK;
 
   
+  if (mDecoder && !(mDecoderFlags & imgIDecoder::DECODER_FLAG_HEADERONLY))
+    return NS_OK;
+
+  
+  
+  
+  
+  
+  
   if (mInDecoder) {
     nsRefPtr<imgDecodeRequestor> requestor = new imgDecodeRequestor(this);
     if (!requestor)
