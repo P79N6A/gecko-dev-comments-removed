@@ -297,7 +297,11 @@ Sanitizer.showUI = function(aParentWindow)
 {
   var ww = Components.classes["@mozilla.org/embedcomp/window-watcher;1"]
                      .getService(Components.interfaces.nsIWindowWatcher);
+#ifdef XP_MACOSX
+  ww.openWindow(null, 
+#else
   ww.openWindow(aParentWindow,
+#endif
                 "chrome:
                 "Sanitize",
                 "chrome,titlebar,centerscreen,modal",
