@@ -55,6 +55,10 @@ var gEditItemOverlay = {
   _staticFoldersListBuilt: false,
   _initialized: false,
 
+  
+  
+  _firstEditedField: "",
+
   get itemId() {
     return this._itemId;
   },
@@ -548,18 +552,19 @@ var gEditItemOverlay = {
     this._allTags = [];
     this._itemIds = [];
     this._multiEdit = false;
+    this._firstEditedField = "";
     this._initialized = false;
   },
 
   onTagsFieldBlur: function EIO_onTagsFieldBlur() {
-    this._updateTags();
+    if (this._updateTags()) 
+      this._mayUpdateFirstEditField("tagsField");
   },
 
   _updateTags: function EIO__updateTags() {
     if (this._multiEdit)
-      this._updateMultipleTagsForItems();
-    else
-      this._updateSingleTagForItem();
+      return this._updateMultipleTagsForItems();
+    return this._updateSingleTagForItem();
   },
 
   _updateSingleTagForItem: function EIO__updateSingleTagForItem() {
@@ -591,8 +596,32 @@ var gEditItemOverlay = {
         
         var tags = PlacesUtils.tagging.getTagsForURI(this._uri, {}).join(", ");
         this._initTextField("tagsField", tags, false);
+        return true;
       }
     }
+    return false;
+  },
+
+   
+
+
+
+
+
+
+  _mayUpdateFirstEditField: function EIO__mayUpdateFirstEditField(aNewField) {
+    
+    
+    
+    if (this._multiEdit || this._firstEditedField)
+      return;
+
+    this._firstEditedField = aNewField;
+
+    
+    var prefs = Cc["@mozilla.org/preferences-service;1"].
+                getService(Ci.nsIPrefBranch);
+    prefs.setCharPref("browser.bookmarks.editDialog.firstEditField", aNewField);
   },
 
   _updateMultipleTagsForItems: function EIO__updateMultipleTagsForItems() {
@@ -636,8 +665,10 @@ var gEditItemOverlay = {
 
         
         this._initTextField("tagsField", tags, false);
+        return true;
       }
     }
+    return false;
   },
 
   onNamePickerInput: function EIO_onNamePickerInput() {
@@ -656,6 +687,7 @@ var gEditItemOverlay = {
     
     var newTitle = this._element("userEnteredName").label;
     if (this._getItemStaticTitle() != newTitle) {
+      this._mayUpdateFirstEditField("namePicker");
       if (PlacesUIUtils.microsummaries.hasMicrosummary(this._itemId)) {
         
         
