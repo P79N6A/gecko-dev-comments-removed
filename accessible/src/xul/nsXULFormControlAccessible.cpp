@@ -178,7 +178,7 @@ void nsXULButtonAccessible::CacheChildren()
     return;   
   }
   if (mAccChildCount == eChildCountUninitialized) {
-    mAccChildCount = 0;
+    mAccChildCount = 0;  
     SetFirstChild(nsnull);
     PRBool allowsAnonChildren = PR_FALSE;
     GetAllowsAnonChildAccessibles(&allowsAnonChildren);

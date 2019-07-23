@@ -458,6 +458,7 @@ void nsHTMLSelectListAccessible::CacheChildren()
     return;
   }
 
+  mAccChildCount = 0; 
   PRInt32 childCount = 0;
   nsCOMPtr<nsIAccessible> lastGoodAccessible =
     CacheOptSiblings(accService, selectContent, nsnull, &childCount);
@@ -1254,6 +1255,7 @@ void nsHTMLComboboxTextFieldAccessible::CacheChildren()
 
   
   if (mAccChildCount == eChildCountUninitialized) {
+    mAccChildCount = 0; 
     nsAccessibleTreeWalker walker(mWeakShell, mDOMNode, PR_TRUE);
     
     

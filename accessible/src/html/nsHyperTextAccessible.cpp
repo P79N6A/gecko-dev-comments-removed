@@ -198,6 +198,7 @@ void nsHyperTextAccessible::CacheChildren()
 
   
   if (mAccChildCount == eChildCountUninitialized) {
+    mAccChildCount = 0;  
     PRUint32 role;
     GetRole(&role);
     if (role != nsIAccessibleRole::ROLE_ENTRY && role != nsIAccessibleRole::ROLE_PASSWORD_TEXT) {
