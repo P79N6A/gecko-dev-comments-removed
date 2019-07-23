@@ -1,9 +1,46 @@
-#include "mozilla/test/TestProcessParent.h"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#include "TestProcessParent.h"
+
 using mozilla::ipc::GeckoChildProcessHost;
 
 namespace mozilla {
 namespace test {
-
 
 TestProcessParent::TestProcessParent() :
     GeckoChildProcessHost(GeckoProcessType_TestHarness)
@@ -13,7 +50,6 @@ TestProcessParent::TestProcessParent() :
 TestProcessParent::~TestProcessParent()
 {
 }
-
 
 } 
 } 

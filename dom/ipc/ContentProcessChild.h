@@ -1,10 +1,45 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef mozilla_dom_ContentProcessChild_h
 #define mozilla_dom_ContentProcessChild_h
 
-#include "mozilla/dom/ContentProcessProtocolChild.h"
+#include "mozilla/dom/PContentProcessProtocolChild.h"
 
 #include "nsTArray.h"
 #include "nsAutoPtr.h"
@@ -13,7 +48,7 @@ namespace mozilla {
 namespace dom {
 
 class ContentProcessChild
-    : public ContentProcessProtocolChild
+    : public PContentProcessProtocolChild
 {
 public:
     ContentProcessChild();
@@ -26,11 +61,11 @@ public:
         return sSingleton;
     }
 
-    virtual IFrameEmbeddingProtocolChild* IFrameEmbeddingConstructor(const MagicWindowHandle& hwnd);
-    virtual nsresult IFrameEmbeddingDestructor(IFrameEmbeddingProtocolChild*);
+    virtual PIFrameEmbeddingProtocolChild* PIFrameEmbeddingConstructor(const MagicWindowHandle& hwnd);
+    virtual nsresult PIFrameEmbeddingDestructor(PIFrameEmbeddingProtocolChild*);
 
-    virtual TestShellProtocolChild* TestShellConstructor();
-    virtual nsresult TestShellDestructor(TestShellProtocolChild*);
+    virtual PTestShellProtocolChild* PTestShellConstructor();
+    virtual nsresult PTestShellDestructor(PTestShellProtocolChild*);
 
     void Quit();
     virtual nsresult RecvQuit();
@@ -38,8 +73,8 @@ public:
 private:
     static ContentProcessChild* sSingleton;
 
-    nsTArray<nsAutoPtr<IFrameEmbeddingProtocolChild> > mIFrames;
-    nsTArray<nsAutoPtr<TestShellProtocolChild> > mTestShells;
+    nsTArray<nsAutoPtr<PIFrameEmbeddingProtocolChild> > mIFrames;
+    nsTArray<nsAutoPtr<PTestShellProtocolChild> > mTestShells;
 
     PRBool mQuit;
 

@@ -1,6 +1,43 @@
-#include "mozilla/test/TestThreadChild.h"
-using mozilla::test::TestThreadChild;
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#include "TestThreadChild.h"
+
+using mozilla::test::TestThreadChild;
 using mozilla::ipc::GeckoThread;
 
 TestThreadChild::TestThreadChild() :

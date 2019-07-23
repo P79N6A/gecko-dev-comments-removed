@@ -1,3 +1,41 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "ContentProcessParent.h"
 
 #include "mozilla/ipc/GeckoThread.h"
@@ -46,13 +84,13 @@ ContentProcessParent::GetSingleton()
 TabParent*
 ContentProcessParent::CreateTab(const MagicWindowHandle& hwnd)
 {
-  return static_cast<TabParent*>(SendIFrameEmbeddingConstructor(hwnd));
+  return static_cast<TabParent*>(SendPIFrameEmbeddingConstructor(hwnd));
 }
 
 TestShellParent*
 ContentProcessParent::CreateTestShell()
 {
-  return static_cast<TestShellParent*>(SendTestShellConstructor());
+  return static_cast<TestShellParent*>(SendPTestShellConstructor());
 }
 
 ContentProcessParent::ContentProcessParent()
@@ -102,27 +140,27 @@ ContentProcessParent::OnWaitableEventSignaled(base::WaitableEvent *event)
     mon.Notify();
 }
 
-IFrameEmbeddingProtocolParent*
-ContentProcessParent::IFrameEmbeddingConstructor(const MagicWindowHandle& parentWidget)
+PIFrameEmbeddingProtocolParent*
+ContentProcessParent::PIFrameEmbeddingConstructor(const MagicWindowHandle& parentWidget)
 {
     return new TabParent();
 }
 
 nsresult
-ContentProcessParent::IFrameEmbeddingDestructor(IFrameEmbeddingProtocolParent* frame)
+ContentProcessParent::PIFrameEmbeddingDestructor(PIFrameEmbeddingProtocolParent* frame)
 {
   delete frame;
   return NS_OK;
 }
 
-TestShellProtocolParent*
-ContentProcessParent::TestShellConstructor()
+PTestShellProtocolParent*
+ContentProcessParent::PTestShellConstructor()
 {
   return new TestShellParent();
 }
 
 nsresult
-ContentProcessParent::TestShellDestructor(TestShellProtocolParent* shell)
+ContentProcessParent::PTestShellDestructor(PTestShellProtocolParent* shell)
 {
   delete shell;
   return NS_OK;

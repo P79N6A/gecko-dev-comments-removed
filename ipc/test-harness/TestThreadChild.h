@@ -1,5 +1,42 @@
-#ifndef mozilla_test_TestThreadChild_h
-#define mozilla_test_TestThreadChild_h
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifndef ipc_test_harness_TestThreadChild_h
+#define ipc_test_harness_TestThreadChild_h 1
 
 #include "mozilla/ipc/GeckoThread.h"
 #include "mozilla/test/TestChild.h"

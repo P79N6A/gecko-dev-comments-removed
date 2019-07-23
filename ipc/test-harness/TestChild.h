@@ -1,11 +1,51 @@
-#include "mozilla/test/TestProtocolChild.h"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifndef ipc_test_harness_TestChild_h
+#define ipc_test_harness_TestChild_h 1
+
+#include "mozilla/test/PTestProtocolChild.h"
 
 namespace mozilla {
 namespace test {
 
 
 class TestChild :
-    public TestProtocolChild
+    public PTestProtocolChild
 {
 protected:
 
@@ -35,3 +75,5 @@ public:
 
 } 
 } 
+
+#endif 

@@ -1,6 +1,41 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "ContentProcessChild.h"
 #include "TabChild.h"
 
@@ -38,10 +73,10 @@ ContentProcessChild::Init(MessageLoop* aIOLoop, IPC::Channel* aChannel)
     return true;
 }
 
-IFrameEmbeddingProtocolChild*
-ContentProcessChild::IFrameEmbeddingConstructor(const MagicWindowHandle& hwnd)
+PIFrameEmbeddingProtocolChild*
+ContentProcessChild::PIFrameEmbeddingConstructor(const MagicWindowHandle& hwnd)
 {
-    IFrameEmbeddingProtocolChild* iframe = new TabChild(hwnd);
+    PIFrameEmbeddingProtocolChild* iframe = new TabChild(hwnd);
     if (iframe && mIFrames.AppendElement(iframe)) {
         return iframe;
     }
@@ -50,16 +85,16 @@ ContentProcessChild::IFrameEmbeddingConstructor(const MagicWindowHandle& hwnd)
 }
 
 nsresult
-ContentProcessChild::IFrameEmbeddingDestructor(IFrameEmbeddingProtocolChild* iframe)
+ContentProcessChild::PIFrameEmbeddingDestructor(PIFrameEmbeddingProtocolChild* iframe)
 {
     mIFrames.RemoveElement(iframe);
     return NS_OK;
 }
 
-TestShellProtocolChild*
-ContentProcessChild::TestShellConstructor()
+PTestShellProtocolChild*
+ContentProcessChild::PTestShellConstructor()
 {
-    TestShellProtocolChild* testshell = new TestShellChild();
+    PTestShellProtocolChild* testshell = new TestShellChild();
     if (testshell && mTestShells.AppendElement(testshell)) {
         return testshell;
     }
@@ -68,7 +103,7 @@ ContentProcessChild::TestShellConstructor()
 }
 
 nsresult
-ContentProcessChild::TestShellDestructor(TestShellProtocolChild* shell)
+ContentProcessChild::PTestShellDestructor(PTestShellProtocolChild* shell)
 {
     mTestShells.RemoveElement(shell);
     return NS_OK;

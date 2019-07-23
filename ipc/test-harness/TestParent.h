@@ -1,11 +1,51 @@
-#include "mozilla/test/TestProtocolParent.h"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifndef ipc_test_harness_TestParent_h
+#define ipc_test_harness_TestParent_h 1
+
+#include "mozilla/test/PTestProtocolParent.h"
 
 namespace mozilla {
 namespace test {
 
 
 class TestParent :
-    public TestProtocolParent
+    public PTestProtocolParent
 {
 protected:
 #if 1
@@ -36,3 +76,5 @@ public:
 
 } 
 } 
+
+#endif 

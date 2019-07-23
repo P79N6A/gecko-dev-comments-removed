@@ -1,9 +1,44 @@
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef mozilla_tabs_TabChild_h
 #define mozilla_tabs_TabChild_h
 
-#include "mozilla/dom/IFrameEmbeddingProtocolChild.h"
+#include "mozilla/dom/PIFrameEmbeddingProtocolChild.h"
 #include "nsIWebNavigation.h"
 #include "nsCOMPtr.h"
 
@@ -11,7 +46,7 @@ namespace mozilla {
 namespace dom {
 
 class TabChild
-    : public IFrameEmbeddingProtocolChild
+    : public PIFrameEmbeddingProtocolChild
 {
 public:
     TabChild(const MagicWindowHandle& parentWidget);

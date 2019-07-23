@@ -1,10 +1,45 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef mozilla_tabs_TabParent_h
 #define mozilla_tabs_TabParent_h
 
-#include "mozilla/dom/IFrameEmbeddingProtocolParent.h"
+#include "mozilla/dom/PIFrameEmbeddingProtocolParent.h"
 
 #include "mozilla/ipc/GeckoChildProcessHost.h"
 
@@ -14,7 +49,7 @@ namespace mozilla {
 namespace dom {
 
 class TabParent
-    : public IFrameEmbeddingProtocolParent
+    : public PIFrameEmbeddingProtocolParent
 {
 public:
     TabParent();
