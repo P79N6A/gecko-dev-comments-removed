@@ -1433,6 +1433,14 @@ obj_eval(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
     script = NULL;
 
     
+
+
+
+
+
+
+
+
     bucket = EvalCacheHash(cx, str);
     if (!indirectCall && caller->fun) {
         uintN count = 0;

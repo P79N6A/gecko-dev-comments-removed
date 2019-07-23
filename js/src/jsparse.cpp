@@ -835,6 +835,14 @@ JSCompiler::compileScript(JSContext *cx, JSObject *scopeChain, JSStackFrame *cal
         goto out;
 
     
+    if (callerFrame &&
+        callerFrame->script &&
+        callerFrame->script->strictModeCode) {
+        cg.flags |= TCF_STRICT_MODE_CODE;
+        jsc.tokenStream.flags |= TSF_STRICT_MODE_CODE;
+    }
+
+    
 
 
 
