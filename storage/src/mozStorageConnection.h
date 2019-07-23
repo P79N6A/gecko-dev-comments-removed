@@ -100,8 +100,21 @@ public:
 
   Mutex sharedAsyncExecutionMutex;
 
+  
+
+
+  nsresult internalClose();
+
 private:
   ~Connection();
+
+  
+
+
+
+
+
+  nsresult setClosedState();
 
   
 
@@ -142,7 +155,7 @@ private:
   
 
 
-  PRLock *mAsyncExecutionMutex;
+  Mutex mAsyncExecutionMutex;
 
   
 
@@ -156,7 +169,7 @@ private:
 
 
 
-  PRBool mAsyncExecutionThreadShuttingDown;
+  bool mAsyncExecutionThreadShuttingDown;
 
   PRLock *mTransactionMutex;
   PRBool mTransactionInProgress;
