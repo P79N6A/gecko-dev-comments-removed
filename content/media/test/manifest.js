@@ -71,6 +71,20 @@ var gAudioTests = [
   { name:"bogus.duh", type:"bogus/duh", duration:123 }
 ];
 
+
+
+
+var gDecodeErrorTests = [
+  
+  { name:"r11025_msadpcm_c1.wav", type:"audio/x-wav" },
+  { name:"dirac.ogg", type:"video/ogg" },
+  
+  { name:"bogus.wav", type:"audio/x-wav" },
+  { name:"bogus.ogv", type:"video/ogg" },
+
+  { name:"bogus.duh", type:"bogus/duh" }
+];
+
 function checkMetadata(msg, e, test) {
   if (test.width) {
     is(e.videoWidth, test.width, msg + " video width");

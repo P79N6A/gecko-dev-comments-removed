@@ -746,7 +746,7 @@ void nsOggDecodeStateMachine::HandleDecodeErrors(OggPlayErrorCode aErrorCode)
       aErrorCode != E_OGGPLAY_CONTINUE) {
     mState = DECODER_STATE_SHUTDOWN;
     nsCOMPtr<nsIRunnable> event =
-      NS_NEW_RUNNABLE_METHOD(nsOggDecoder, mDecoder, NetworkError);
+      NS_NEW_RUNNABLE_METHOD(nsOggDecoder, mDecoder, DecodeError);
     NS_DispatchToMainThread(event, NS_DISPATCH_NORMAL);
   }
 }
@@ -1785,6 +1785,12 @@ void nsOggDecodeStateMachine::LoadOggHeaders(nsChannelReader* aReader)
       }
     }
 
+    if (mVideoTrack == -1 && mAudioTrack == -1) {
+      nsAutoMonitor mon(mDecoder->GetMonitor());
+      HandleDecodeErrors(E_OGGPLAY_UNINITIALISED);
+      return;
+    }
+
     SetTracksActive();
 
     if (mVideoTrack == -1) {
@@ -2158,6 +2164,17 @@ void nsOggDecoder::NetworkError()
 
   if (mElement)
     mElement->NetworkError();
+
+  Shutdown();
+}
+
+void nsOggDecoder::DecodeError()
+{
+  if (mShuttingDown)
+    return;
+
+  if (mElement)
+    mElement->DecodeError();
 
   Shutdown();
 }

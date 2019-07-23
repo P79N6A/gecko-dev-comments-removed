@@ -473,6 +473,9 @@ private:
   void UnregisterShutdownObserver();
 
   
+  void DecodeError();
+
+  
 
 
 

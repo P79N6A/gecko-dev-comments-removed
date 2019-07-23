@@ -120,6 +120,10 @@ public:
 
   
   
+  void DecodeError();
+
+  
+  
   void PlaybackEnded();
 
   
@@ -313,7 +317,7 @@ protected:
 
 
 
-  void NoSupportedMediaError();
+  void NoSupportedMediaSourceError();
 
   
 

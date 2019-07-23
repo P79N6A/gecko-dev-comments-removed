@@ -245,7 +245,7 @@ private:
   void PlaybackEnded();
 
   
-  void MediaErrorDecode();
+  void DecodeError();
 
   void RegisterShutdownObserver();
   void UnregisterShutdownObserver();
