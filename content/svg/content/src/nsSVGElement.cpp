@@ -68,6 +68,7 @@
 #include "nsSVGLength2.h"
 #include "nsSVGNumber2.h"
 #include "nsSVGInteger.h"
+#include "nsSVGBoolean.h"
 #include "nsSVGEnum.h"
 #include "nsIDOMSVGUnitTypes.h"
 #include "nsIDOMSVGAngle.h"
@@ -128,6 +129,12 @@ nsSVGElement::Init()
 
   for (i = 0; i < integerInfo.mIntegerCount; i++) {
     integerInfo.mIntegers[i].Init(i, integerInfo.mIntegerInfo[i].mDefaultValue);
+  }
+
+  BooleanAttributesInfo booleanInfo = GetBooleanInfo();
+
+  for (i = 0; i < booleanInfo.mBooleanCount; i++) {
+    booleanInfo.mBooleans[i].Init(i, booleanInfo.mBooleanInfo[i].mDefaultValue);
   }
 
   EnumAttributesInfo enumInfo = GetEnumInfo();
@@ -278,6 +285,15 @@ nsSVGElement::ParseAttribute(PRInt32 aNamespaceID,
     }
 
     
+    BooleanAttributesInfo booleanInfo = GetBooleanInfo();
+    for (PRUint32 i = 0; i < booleanInfo.mBooleanCount && !foundMatch; i++) {
+      if (aAttribute == *booleanInfo.mBooleanInfo[i].mName) {
+        rv = booleanInfo.mBooleans[i].SetBaseValueString(aValue, this, PR_FALSE);
+        foundMatch = PR_TRUE;
+      }
+    }
+
+    
     EnumAttributesInfo enumInfo = GetEnumInfo();
     for (PRUint32 i = 0; i < enumInfo.mEnumCount && !foundMatch; i++) {
       if (aAttribute == *enumInfo.mEnumInfo[i].mName) {
@@ -351,6 +367,16 @@ nsSVGElement::UnsetAttr(PRInt32 aNamespaceID, nsIAtom* aName,
       }
 
       
+      BooleanAttributesInfo boolInfo = GetBooleanInfo();
+
+      for (i = 0; i < boolInfo.mBooleanCount; i++) {
+        if (aName == *boolInfo.mBooleanInfo[i].mName) {
+          boolInfo.mBooleans[i].Init(i, boolInfo.mBooleanInfo[i].mDefaultValue);
+          DidChangeBoolean(i, PR_FALSE);
+        }
+      }
+
+      
       EnumAttributesInfo enumInfo = GetEnumInfo();
 
       for (i = 0; i < enumInfo.mEnumCount; i++) {
@@ -367,9 +393,6 @@ nsSVGElement::UnsetAttr(PRInt32 aNamespaceID, nsIAtom* aName,
 #ifdef DEBUG_tor
         nsCOMPtr<nsIDOMSVGAnimatedAngle> a = do_QueryInterface(svg_value);
         NS_ASSERTION(!a, "must provide element processing for unset angle");
-
-        nsCOMPtr<nsIDOMSVGAnimatedBoolean> b = do_QueryInterface(svg_value);
-        NS_ASSERTION(!b, "must provide element processing for unset boolean");
 #endif
 
         nsCOMPtr<nsIDOMSVGAnimatedRect> r = do_QueryInterface(svg_value);
@@ -1038,6 +1061,32 @@ nsSVGElement::GetAnimatedIntegerValues(PRInt32 *aFirst, ...)
     n = va_arg(args, PRInt32*);
   }
   va_end(args);
+}
+
+nsSVGElement::BooleanAttributesInfo
+nsSVGElement::GetBooleanInfo()
+{
+  return BooleanAttributesInfo(nsnull, nsnull, 0);
+}
+
+void
+nsSVGElement::DidChangeBoolean(PRUint8 aAttrEnum, PRBool aDoSetAttr)
+{
+  if (!aDoSetAttr)
+    return;
+
+  BooleanAttributesInfo info = GetBooleanInfo();
+
+  NS_ASSERTION(info.mBooleanCount > 0,
+               "DidChangeInteger on element with no boolean attribs");
+
+  NS_ASSERTION(aAttrEnum < info.mBooleanCount, "aAttrEnum out of range");
+
+  nsAutoString newStr;
+  info.mBooleans[aAttrEnum].GetBaseValueString(newStr);
+
+  SetAttr(kNameSpaceID_None, *info.mBooleanInfo[aAttrEnum].mName,
+          newStr, PR_TRUE);
 }
 
 nsSVGElement::EnumAttributesInfo

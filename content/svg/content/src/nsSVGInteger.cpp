@@ -35,8 +35,6 @@
 
 
 #include "nsSVGInteger.h"
-#include "nsTextFormatter.h"
-#include "prdtoa.h"
 
 NS_IMPL_ADDREF(nsSVGInteger::DOMAnimatedInteger)
 NS_IMPL_RELEASE(nsSVGInteger::DOMAnimatedInteger)
