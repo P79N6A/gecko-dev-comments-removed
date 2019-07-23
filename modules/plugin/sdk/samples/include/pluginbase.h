@@ -35,8 +35,8 @@
 
 
 
-#ifndef __PLUGININSTANCEBASE_H__
-#define __PLUGININSTANCEBASE_H__
+#ifndef pluginbase_h_
+#define pluginbase_h_
 
 #include "npplat.h"
 
