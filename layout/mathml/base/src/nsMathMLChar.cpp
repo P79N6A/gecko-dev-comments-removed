@@ -1048,8 +1048,7 @@ static nscoord
 ComputeSizeFromParts(nsPresContext* aPresContext,
                      nsGlyphCode* aGlyphs,
                      nscoord*     aSizes,
-                     nscoord      aTargetSize,
-                     PRUint32     aHint)
+                     nscoord      aTargetSize)
 {
   enum {first, middle, last, glue};
   
@@ -1061,20 +1060,24 @@ ComputeSizeFromParts(nsPresContext* aPresContext,
   }
 
   
-  const float flex = 0.901f;
-  nscoord minSize = NSToCoordRound(flex * sum);
-
-  if (minSize > aTargetSize)
-    return minSize; 
+  nscoord oneDevPixel = aPresContext->AppUnitsPerDevPixel();
+  PRInt32 joins = aGlyphs[middle] == aGlyphs[glue] ? 1 : 2;
 
   
   
   const PRInt32 maxGlyphs = 1000;
+
   
   
-  nscoord maxSize = sum + maxGlyphs * aSizes[glue];
+  nscoord maxSize = sum - 2 * joins * oneDevPixel + maxGlyphs * aSizes[glue];
   if (maxSize < aTargetSize)
     return maxSize; 
+
+  
+  nscoord minSize = NSToCoordRound(NS_MATHML_DELIMITER_FACTOR * sum);
+
+  if (minSize > aTargetSize)
+    return minSize; 
 
   
   return aTargetSize;
@@ -1401,7 +1404,7 @@ nsMathMLChar::StretchEnumContext::TryParts(nsGlyphTable*    aGlyphTable,
   
   
   nscoord computedSize = ComputeSizeFromParts(mPresContext, chdata, sizedata,
-                                              mTargetSize, mStretchHint);
+                                              mTargetSize);
 
   nscoord currentSize =
     isVertical ? mBoundingMetrics.ascent + mBoundingMetrics.descent
@@ -2155,6 +2158,19 @@ public:
   }
 };
 
+static nsPoint
+SnapToDevPixels(const gfxContext* aThebesContext, PRInt32 aAppUnitsPerGfxUnit,
+                const nsPoint& aPt)
+{
+  gfxPoint pt(NSAppUnitsToFloatPixels(aPt.x, aAppUnitsPerGfxUnit),
+              NSAppUnitsToFloatPixels(aPt.y, aAppUnitsPerGfxUnit));
+  pt = aThebesContext->UserToDevice(pt);
+  pt.Round();
+  pt = aThebesContext->DeviceToUser(pt);
+  return nsPoint(NSFloatPixelsToAppUnits(pt.x, aAppUnitsPerGfxUnit),
+                 NSFloatPixelsToAppUnits(pt.y, aAppUnitsPerGfxUnit));
+}
+
 
 nsresult
 nsMathMLChar::PaintVertically(nsPresContext*      aPresContext,
@@ -2165,86 +2181,126 @@ nsMathMLChar::PaintVertically(nsPresContext*      aPresContext,
                               nsRect&              aRect)
 {
   nsresult rv = NS_OK;
-  nsRect clipRect;
-  nscoord dx, dy;
-
-  nscoord onePixel = nsPresContext::CSSPixelsToAppUnits(1); 
+  
+  
+  nscoord oneDevPixel = aPresContext->AppUnitsPerDevPixel();
 
   
-  PRInt32 i;
+  PRInt32 i = 0;
   nsGlyphCode ch, chdata[4];
   nsBoundingMetrics bmdata[4];
-  nscoord stride = 0, offset[3], start[3], end[3];
-  nscoord width = aRect.width;
-  nsGlyphCode glue = aGlyphTable->GlueOf(aPresContext, this);
-  for (i = 0; i < 4; i++) {
-    switch (i) {
-      case 0: ch = aGlyphTable->TopOf(aPresContext, this);    break;
-      case 1: ch = aGlyphTable->MiddleOf(aPresContext, this); break;
-      case 2: ch = aGlyphTable->BottomOf(aPresContext, this); break;
-      case 3: ch = glue;                                       break;
+  PRInt32 glue, bottom;
+  nsGlyphCode chGlue = aGlyphTable->GlueOf(aPresContext, this);
+  for (PRInt32 j = 0; j < 4; ++j) {
+    switch (j) {
+      case 0:
+        ch = aGlyphTable->TopOf(aPresContext, this);
+        break;
+      case 1:
+        ch = aGlyphTable->MiddleOf(aPresContext, this);
+        if (!ch.Exists())
+          continue; 
+        break;
+      case 2:
+        ch = aGlyphTable->BottomOf(aPresContext, this);
+        bottom = i;
+        break;
+      case 3:
+        ch = chGlue;
+        glue = i;
+        break;
     }
     
-    if (!ch.Exists()) ch = glue;
-    nsBoundingMetrics bm;
+    if (!ch.Exists()) ch = chGlue;
     
     if (ch.Exists()) {
       SetFontFamily(aRenderingContext, aFont, aGlyphTable, ch, mFamily);
-      rv = aRenderingContext.GetBoundingMetrics(&ch.code, 1, bm);
+      rv = aRenderingContext.GetBoundingMetrics(&ch.code, 1, bmdata[i]);
       if (NS_FAILED(rv)) {
         NS_WARNING("GetBoundingMetrics failed");
         return rv;
       }
-      if (width < bm.rightBearing) width =  bm.rightBearing;
     }
     chdata[i] = ch;
-    bmdata[i] = bm;
+    ++i;
   }
-  dx = aRect.x;
-  for (i = 0; i < 3; i++) {
+  nscoord dx = aRect.x;
+  nscoord offset[3], start[3], end[3];
+  nsRefPtr<gfxContext> ctx = aRenderingContext.ThebesContext();
+  for (i = 0; i <= bottom; ++i) {
     ch = chdata[i];
-    const nsBoundingMetrics &bm = bmdata[i];
+    const nsBoundingMetrics& bm = bmdata[i];
+    nscoord dy;
     if (0 == i) { 
       dy = aRect.y + bm.ascent;
     }
-    else if (1 == i) { 
-      dy = aRect.y + bm.ascent + (aRect.height - (bm.ascent + bm.descent))/2;
-    }
-    else { 
+    else if (bottom == i) { 
       dy = aRect.y + aRect.height - bm.descent;
     }
+    else { 
+      dy = aRect.y + bm.ascent + (aRect.height - (bm.ascent + bm.descent))/2;
+    }
+    
+    
+    
+    dy = SnapToDevPixels(ctx, oneDevPixel, nsPoint(dx, dy)).y;
     
     offset[i] = dy;
     
-    start[i] = dy - bm.ascent;
     
-    end[i] = dy + bm.descent; 
+    
+    start[i] = dy - bm.ascent + oneDevPixel; 
+    end[i] = dy + bm.descent - oneDevPixel; 
   }
 
   
+  for (i = 0; i < bottom; ++i) {
+    if (end[i] > start[i+1]) {
+      end[i] = (end[i] + start[i+1]) / 2;
+      start[i+1] = end[i];
+    }
+  }
+
+  nsRect unionRect = aRect;
+  unionRect.x += mBoundingMetrics.leftBearing;
+  unionRect.width =
+    mBoundingMetrics.rightBearing - mBoundingMetrics.leftBearing;
+  unionRect.Inflate(oneDevPixel, oneDevPixel);
+
   
-  for (i = 0; i < 3; i++) {
+  
+  for (i = 0; i <= bottom; ++i) {
     ch = chdata[i];
     
     if (ch.Exists()) {
 #ifdef SHOW_BORDERS
       
       aRenderingContext.SetColor(NS_RGB(0,0,0));
-      aRenderingContext.DrawRect(nsRect(dx,start[i],width+30*(i+1),end[i]-start[i]));
+      aRenderingContext.DrawRect(nsRect(dx,start[i],aRect.width+30*(i+1),end[i]-start[i]));
 #endif
-      dy = offset[i];
+      nscoord dy = offset[i];
       
-      if (0 == i) { 
-        clipRect.SetRect(dx, aRect.y, width, aRect.height);
-      }
-      else if (1 == i) { 
-        clipRect.SetRect(dx, end[0], width, start[2]-end[0]);
-      }
-      else { 
-        clipRect.SetRect(dx, start[2], width, end[2]-start[2]);
+      
+      nsRect clipRect = unionRect;
+      
+      
+      
+      nscoord height = bmdata[i].ascent + bmdata[i].descent;
+      if (ch == chGlue ||
+          height * (1.0 - NS_MATHML_DELIMITER_FACTOR) > oneDevPixel) {
+        if (0 == i) { 
+          clipRect.height = end[i] - clipRect.y;
+        }
+        else if (bottom == i) { 
+          clipRect.height -= start[i] - clipRect.y;
+          clipRect.y = start[i];
+        }
+        else { 
+          clipRect.y = start[i];
+          clipRect.height = end[i] - start[i];
+        }
       }
       if (!clipRect.IsEmpty()) {
-        clipRect.Inflate(onePixel, onePixel);
         AutoPushClipRect clip(aRenderingContext, clipRect);
         SetFontFamily(aRenderingContext, aFont, aGlyphTable, ch, mFamily);
         aRenderingContext.DrawString(&ch.code, 1, dx, dy);
@@ -2254,7 +2310,7 @@ nsMathMLChar::PaintVertically(nsPresContext*      aPresContext,
 
   
   
-  if (!glue.Exists()) { 
+  if (!chGlue.Exists()) { 
     
     
     
@@ -2262,11 +2318,8 @@ nsMathMLChar::PaintVertically(nsPresContext*      aPresContext,
     
     
     nscoord lbearing, rbearing;
-    PRInt32 first = 0, last = 2;
-    if (chdata[1].Exists()) { 
-      last = 1;
-    }
-    while (last <= 2) {
+    PRInt32 first = 0, last = 1;
+    while (last <= bottom) {
       if (chdata[last].Exists()) {
         lbearing = bmdata[last].leftBearing;
         rbearing = bmdata[last].rightBearing;
@@ -2286,74 +2339,63 @@ nsMathMLChar::PaintVertically(nsPresContext*      aPresContext,
         return NS_ERROR_UNEXPECTED;
       }
       
-      nsRect rule(aRect.x + lbearing, end[first] - onePixel,
-                  rbearing - lbearing, start[last] - end[first] + 2*onePixel);
+      nsRect rule(aRect.x + lbearing, end[first],
+                  rbearing - lbearing, start[last] - end[first]);
       if (!rule.IsEmpty())
         aRenderingContext.FillRect(rule);
       first = last;
       last++;
     }
   }
-  else if (bmdata[3].ascent + bmdata[3].descent > 0) {
+  else if (bmdata[glue].ascent + bmdata[glue].descent > 0) {
     
-    nscoord overlap;
-    nsCOMPtr<nsIFontMetrics> fm;
-    aRenderingContext.GetFontMetrics(*getter_AddRefs(fm));
-    nsMathMLFrame::GetRuleThickness(fm, overlap);
-    overlap = 2 * PR_MAX(overlap, onePixel);
+    nsBoundingMetrics& bm = bmdata[glue];
     
-    while (overlap > 0 && bmdata[3].ascent + bmdata[3].descent <= 2*overlap + onePixel)
-      overlap -= onePixel;
-
-    if (overlap > 0) {
+    if (bm.ascent + bm.descent >= 3 * oneDevPixel) {
       
       
-      
-      
-      
-      
-      
-      bmdata[3].ascent -= overlap;
-      bmdata[3].descent -= overlap;
+      bm.ascent -= oneDevPixel;
+      bm.descent -= oneDevPixel;
     }
-    nscoord edge = PR_MAX(overlap, onePixel);
-    SetFontFamily(aRenderingContext, aFont, aGlyphTable, glue, mFamily);
 
-    for (i = 0; i < 2; i++) {
-      PRInt32 count = 0;
-      dy = offset[i];
-      clipRect.SetRect(dx, end[i], width, start[i+1]-end[i]);
-      clipRect.Inflate(edge, edge);
-      nsBoundingMetrics bm = bmdata[i];
+    SetFontFamily(aRenderingContext, aFont, aGlyphTable, chGlue, mFamily);
+    nsRect clipRect = unionRect;
+
+    for (i = 0; i < bottom; ++i) {
+      
+      nscoord dy = PR_MAX(end[i], aRect.y);
+      nscoord fillEnd = PR_MIN(start[i+1], aRect.YMost());
 #ifdef SHOW_BORDERS
       
       aRenderingContext.SetColor(NS_RGB(255,0,0));
+      clipRect.y = dy;
+      clipRect.height = fillEnd - dy;
       aRenderingContext.DrawRect(clipRect);
       {
 #endif
-      AutoPushClipRect clip(aRenderingContext, clipRect);
-      while (dy + bm.descent < start[i+1]) {
-        if (count++ < 2) {
-          stride = bm.descent;
-          bm = bmdata[3]; 
-          stride += bm.ascent;
-        }
-        dy += stride;
-        aRenderingContext.DrawString(&glue.code, 1, dx, dy);
+      while (dy < fillEnd) {
+        clipRect.y = dy;
+        clipRect.height = PR_MIN(bm.ascent + bm.descent, fillEnd - dy);
+        AutoPushClipRect clip(aRenderingContext, clipRect);
+        dy += bm.ascent;
+        aRenderingContext.DrawString(&chGlue.code, 1, dx, dy);
+        dy += bm.descent;
       }
 #ifdef SHOW_BORDERS
       }
       
       nscoord height = bm.ascent + bm.descent;
       aRenderingContext.SetColor(NS_RGB(0,255,0));
-      aRenderingContext.DrawRect(nsRect(dx, dy-bm.ascent, width, height));
+      aRenderingContext.DrawRect(nsRect(dx, dy-bm.ascent, aRect.width, height));
 #endif
     }
   }
 #ifdef DEBUG
-  else { 
-    NS_ASSERTION(end[0] >= start[1] && end[1] >= start[2],
-                 "gap between parts with no glue");
+  else {
+    for (i = 0; i < bottom; ++i) {
+      NS_ASSERTION(end[i] >= start[i+1],
+                   "gap between parts with missing glue glyph");
+    }
   }
 #endif
   return NS_OK;
@@ -2369,63 +2411,92 @@ nsMathMLChar::PaintHorizontally(nsPresContext*      aPresContext,
                                 nsRect&              aRect)
 {
   nsresult rv = NS_OK;
-  nsRect clipRect;
-  nscoord dx, dy;
-
-  nscoord onePixel = nsPresContext::CSSPixelsToAppUnits(1);
+  
+  
+  nscoord oneDevPixel = aPresContext->AppUnitsPerDevPixel();
 
   
-  PRInt32 i;
+  PRInt32 i = 0;
   nsGlyphCode ch, chdata[4];
   nsBoundingMetrics bmdata[4];
-  nscoord stride = 0, offset[3], start[3], end[3];
-  dy = aRect.y + mBoundingMetrics.ascent;
-  nsGlyphCode glue = aGlyphTable->GlueOf(aPresContext, this);
-  for (i = 0; i < 4; i++) {
-    switch (i) {
-      case 0: ch = aGlyphTable->LeftOf(aPresContext, this);   break;
-      case 1: ch = aGlyphTable->MiddleOf(aPresContext, this); break;
-      case 2: ch = aGlyphTable->RightOf(aPresContext, this);  break;
-      case 3: ch = glue;                                       break;
+  PRInt32 glue, right;
+  nsGlyphCode chGlue = aGlyphTable->GlueOf(aPresContext, this);
+  for (PRInt32 j = 0; j < 4; ++j) {
+    switch (j) {
+      case 0:
+        ch = aGlyphTable->LeftOf(aPresContext, this);
+        break;
+      case 1:
+        ch = aGlyphTable->MiddleOf(aPresContext, this);
+        if (!ch.Exists())
+          continue; 
+        break;
+      case 2:
+        ch = aGlyphTable->RightOf(aPresContext, this);
+        right = i;
+        break;
+      case 3:
+        ch = chGlue;
+        glue = i;
+        break;
     }
     
-    if (!ch.Exists()) ch = glue;
-    nsBoundingMetrics bm;
+    if (!ch.Exists()) ch = chGlue;
     
     if (ch.Exists()) {
       SetFontFamily(aRenderingContext, aFont, aGlyphTable, ch, mFamily);
-      rv = aRenderingContext.GetBoundingMetrics(&ch.code, 1, bm);
+      rv = aRenderingContext.GetBoundingMetrics(&ch.code, 1, bmdata[i]);
       if (NS_FAILED(rv)) {
         NS_WARNING("GetBoundingMetrics failed");
         return rv;
       }
     }
     chdata[i] = ch;
-    bmdata[i] = bm;
+    ++i;
   }
-  for (i = 0; i < 3; i++) {
+  nscoord dy = aRect.y + mBoundingMetrics.ascent;
+  nscoord offset[3], start[3], end[3];
+  nsRefPtr<gfxContext> ctx = aRenderingContext.ThebesContext();
+  for (i = 0; i <= right; ++i) {
     ch = chdata[i];
-    nsBoundingMetrics &bm = bmdata[i];
+    const nsBoundingMetrics& bm = bmdata[i];
+    nscoord dx;
     if (0 == i) { 
       dx = aRect.x - bm.leftBearing;
     }
-    else if (1 == i) { 
-      dx = aRect.x + (aRect.width - bm.width)/2;
-    }
-    else { 
+    else if (right == i) { 
       dx = aRect.x + aRect.width - bm.rightBearing;
     }
+    else { 
+      dx = aRect.x + (aRect.width - bm.width)/2;
+    }
+    
+    
+    
+    dx = SnapToDevPixels(ctx, oneDevPixel, nsPoint(dx, dy)).x;
     
     offset[i] = dx;
     
-    start[i] = dx + bm.leftBearing;
     
-    end[i] = dx + bm.rightBearing; 
+    
+    start[i] = dx + bm.leftBearing + oneDevPixel; 
+    end[i] = dx + bm.rightBearing - oneDevPixel; 
   }
 
   
+  for (i = 0; i < right; ++i) {
+    if (end[i] > start[i+1]) {
+      end[i] = (end[i] + start[i+1]) / 2;
+      start[i+1] = end[i];
+    }
+  }
+
+  nsRect unionRect = aRect;
+  unionRect.Inflate(oneDevPixel, oneDevPixel);
+
   
-  for (i = 0; i < 3; i++) {
+  
+  for (i = 0; i <= right; ++i) {
     ch = chdata[i];
     
     if (ch.Exists()) {
@@ -2434,18 +2505,27 @@ nsMathMLChar::PaintHorizontally(nsPresContext*      aPresContext,
       aRenderingContext.DrawRect(nsRect(start[i], dy - bmdata[i].ascent,
                                  end[i] - start[i], bmdata[i].ascent + bmdata[i].descent));
 #endif
-      dx = offset[i];
-      if (0 == i) { 
-        clipRect.SetRect(dx, aRect.y, aRect.width, aRect.height);
-      }
-      else if (1 == i) { 
-        clipRect.SetRect(end[0], aRect.y, start[2]-end[0], aRect.height);
-      }
-      else { 
-        clipRect.SetRect(start[2], aRect.y, end[2]-start[2], aRect.height);
+      nscoord dx = offset[i];
+      nsRect clipRect = unionRect;
+      
+      
+      
+      nscoord width = bmdata[i].rightBearing - bmdata[i].leftBearing;
+      if (ch == chGlue ||
+          width * (1.0 - NS_MATHML_DELIMITER_FACTOR) > oneDevPixel) {
+        if (0 == i) { 
+          clipRect.width = end[i] - clipRect.x;
+        }
+        else if (right == i) { 
+          clipRect.width -= start[i] - clipRect.x;
+          clipRect.x = start[i];
+        }
+        else { 
+          clipRect.x = start[i];
+          clipRect.width = end[i] - start[i];
+        }
       }
       if (!clipRect.IsEmpty()) {
-        clipRect.Inflate(onePixel, onePixel);
         AutoPushClipRect clip(aRenderingContext, clipRect);
         SetFontFamily(aRenderingContext, aFont, aGlyphTable, ch, mFamily);
         aRenderingContext.DrawString(&ch.code, 1, dx, dy);
@@ -2455,18 +2535,15 @@ nsMathMLChar::PaintHorizontally(nsPresContext*      aPresContext,
 
   
   
-  if (!glue.Exists()) { 
+  if (!chGlue.Exists()) { 
     
     
     
     
     
     nscoord ascent, descent;
-    PRInt32 first = 0, last = 2;
-    if (chdata[1].Exists()) { 
-      last = 1;
-    }
-    while (last <= 2) {
+    PRInt32 first = 0, last = 1;
+    while (last <= right) {
       if (chdata[last].Exists()) {
         ascent = bmdata[last].ascent;
         descent = bmdata[last].descent;
@@ -2486,55 +2563,47 @@ nsMathMLChar::PaintHorizontally(nsPresContext*      aPresContext,
         return NS_ERROR_UNEXPECTED;
       }
       
-      nsRect rule(end[first] - onePixel, dy - ascent,
-                  start[last] - end[first] + 2*onePixel, ascent + descent);
+      nsRect rule(end[first], dy - ascent,
+                  start[last] - end[first], ascent + descent);
       if (!rule.IsEmpty())
         aRenderingContext.FillRect(rule);
       first = last;
       last++;
     }
   }
-  else if (bmdata[3].rightBearing - bmdata[3].leftBearing > 0) {
+  else if (bmdata[glue].rightBearing - bmdata[glue].leftBearing > 0) {
     
-    nscoord overlap;
-    nsCOMPtr<nsIFontMetrics> fm;
-    aRenderingContext.GetFontMetrics(*getter_AddRefs(fm));
-    nsMathMLFrame::GetRuleThickness(fm, overlap);
-    overlap = 2 * PR_MAX(overlap, onePixel);
+    nsBoundingMetrics& bm = bmdata[glue];
     
-    while (overlap > 0 && bmdata[3].rightBearing - bmdata[3].leftBearing <= 2*overlap + onePixel)
-      overlap -= onePixel;
-
-    if (overlap > 0) {
+    if (bm.rightBearing - bm.leftBearing >= 3 * oneDevPixel) {
       
       
-      bmdata[3].leftBearing += overlap;
-      bmdata[3].rightBearing -= overlap;
+      bm.leftBearing += oneDevPixel;
+      bm.rightBearing -= oneDevPixel;
     }
-    nscoord edge = PR_MAX(overlap, onePixel);
-    SetFontFamily(aRenderingContext, aFont, aGlyphTable, glue, mFamily);
 
-    for (i = 0; i < 2; i++) {
-      PRInt32 count = 0;
-      dx = offset[i];
-      clipRect.SetRect(end[i], aRect.y, start[i+1]-end[i], aRect.height);
-      clipRect.Inflate(edge, edge);
-      nsBoundingMetrics bm = bmdata[i];
+    SetFontFamily(aRenderingContext, aFont, aGlyphTable, chGlue, mFamily);
+    nsRect clipRect = unionRect;
+
+    for (i = 0; i < right; ++i) {
+      
+      nscoord dx = PR_MAX(end[i], aRect.x);
+      nscoord fillEnd = PR_MIN(start[i+1], aRect.XMost());
 #ifdef SHOW_BORDERS
       
       aRenderingContext.SetColor(NS_RGB(255,0,0));
+      clipRect.x = dx;
+      clipRect.width = fillEnd - dx;
       aRenderingContext.DrawRect(clipRect);
       {
 #endif
-      AutoPushClipRect clip(aRenderingContext, clipRect);
-      while (dx + bm.rightBearing < start[i+1]) {
-        if (count++ < 2) {
-          stride = bm.rightBearing;
-          bm = bmdata[3]; 
-          stride -= bm.leftBearing;
-        }
-        dx += stride;
-        aRenderingContext.DrawString(&glue.code, 1, dx, dy);
+      while (dx < fillEnd) {
+        clipRect.x = dx;
+        clipRect.width = PR_MIN(bm.rightBearing - bm.leftBearing, fillEnd - dx);
+        AutoPushClipRect clip(aRenderingContext, clipRect);
+        dx -= bm.leftBearing;
+        aRenderingContext.DrawString(&chGlue.code, 1, dx, dy);
+        dx += bm.rightBearing;
       }
 #ifdef SHOW_BORDERS
       }
@@ -2547,8 +2616,10 @@ nsMathMLChar::PaintHorizontally(nsPresContext*      aPresContext,
   }
 #ifdef DEBUG
   else { 
-    NS_ASSERTION(end[0] >= start[1] && end[1] >= start[2],
-                 "gap between parts with no glue");
+    for (i = 0; i < right; ++i) {
+      NS_ASSERTION(end[i] >= start[i+1],
+                   "gap between parts with missing glue glyph");
+    }
   }
 #endif
   return NS_OK;
