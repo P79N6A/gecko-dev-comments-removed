@@ -657,6 +657,7 @@ class StmtDecl(Node):
     def __init__(self, decl, init=None, initargs=None):
         assert not (init and initargs)
         assert not isinstance(init, str) 
+        assert not isinstance(init, list)
         assert not isinstance(decl, tuple)
         
         Node.__init__(self)

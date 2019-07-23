@@ -52,6 +52,7 @@
 
 namespace {
 enum {
+    SHMEM_DESTROYED_MESSAGE_TYPE = kuint16max - 5,
     UNBLOCK_CHILD_MESSAGE_TYPE = kuint16max - 4,
     BLOCK_CHILD_MESSAGE_TYPE   = kuint16max - 3,
     SHMEM_CREATED_MESSAGE_TYPE = kuint16max - 2,
@@ -93,6 +94,7 @@ public:
     virtual Shmem::SharedMemory* CreateSharedMemory(
         size_t, SharedMemory::SharedMemoryType, int32*) = 0;
     virtual Shmem::SharedMemory* LookupSharedMemory(int32) = 0;
+    virtual bool DestroySharedMemory(Shmem&) = 0;
 
     
     virtual ProcessHandle OtherProcess() const = 0;

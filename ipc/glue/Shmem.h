@@ -228,6 +228,15 @@ public:
   
   
   
+  IPC::Message*
+  UnshareFrom(IHadBetterBeIPDLCodeCallingThis_OtherwiseIAmADoodyhead,
+              base::ProcessHandle aProcess,
+              int32 routingId);
+
+  
+  
+  
+  
   static SharedMemory*
   OpenExisting(IHadBetterBeIPDLCodeCallingThis_OtherwiseIAmADoodyhead,
                const IPC::Message& aDescriptor,
