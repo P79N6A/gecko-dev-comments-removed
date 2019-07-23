@@ -398,11 +398,12 @@ private:
   
   
   
+  
+  
   nsresult AppendFrames(nsFrameConstructorState&       aState,
-                        nsIContent*                    aContainer,
                         nsIFrame*                      aParentFrame,
                         nsFrameItems&                  aFrameList,
-                        nsIFrame*                      aAfterFrame);
+                        nsIFrame*                      aPrevSibling);
 
   
   
@@ -1341,6 +1342,7 @@ private:
                                        nsIFrame* aParentFrame,
                                        nsFrameItems& aFrameItems);
 
+  
   
   
   

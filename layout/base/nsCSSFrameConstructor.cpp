@@ -5733,45 +5733,65 @@ AdjustAppendParentForAfterContent(nsPresContext* aPresContext,
 
 
 
+static nsIFrame*
+FindAppendPrevSibling(nsIFrame* aParentFrame, nsIFrame* aAfterFrame)
+{
+  nsFrameList childList(aParentFrame->GetFirstChild(nsnull));
+  if (aAfterFrame) {
+    NS_ASSERTION(aAfterFrame->GetParent() == aParentFrame, "Wrong parent");
+    return childList.GetPrevSiblingFor(aAfterFrame);
+  }
+
+  return childList.LastChild();
+}
+
+
+
+
+
+static nsIFrame*
+GetInsertNextSibling(nsIFrame* aParentFrame, nsIFrame* aPrevSibling)
+{
+  if (aPrevSibling) {
+    return aPrevSibling->GetNextSibling();
+  }
+
+  return aParentFrame->GetFirstChild(nsnull);
+}
+
+
+
+
+
+
 
 nsresult
 nsCSSFrameConstructor::AppendFrames(nsFrameConstructorState&       aState,
-                                    nsIContent*                    aContainer,
                                     nsIFrame*                      aParentFrame,
                                     nsFrameItems&                  aFrameList,
-                                    nsIFrame*                      aAfterFrame)
+                                    nsIFrame*                      aPrevSibling)
 {
-#ifdef DEBUG
-  nsIFrame* debugAfterFrame;
-  nsIFrame* debugNewParent =
-    ::AdjustAppendParentForAfterContent(aState.mPresContext, aContainer,
-                                        aParentFrame, &debugAfterFrame);
-  NS_ASSERTION(debugNewParent == aParentFrame, "Incorrect parent");
-  NS_ASSERTION(debugAfterFrame == aAfterFrame, "Incorrect after frame");
-#endif
+  NS_PRECONDITION(!IsFrameSpecial(aParentFrame) ||
+                  !GetSpecialSibling(aParentFrame) ||
+                  !GetSpecialSibling(aParentFrame)->GetFirstChild(nsnull),
+                  "aParentFrame has a special sibling with kids?");
+  NS_PRECONDITION(!aPrevSibling || aPrevSibling->GetParent() == aParentFrame,
+                  "Parent and prevsibling don't match");
 
-  nsFrameManager* frameManager = aState.mFrameManager;
-  if (aAfterFrame) {
-    NS_ASSERTION(!IsFrameSpecial(aParentFrame) ||
-                 IsInlineFrame(aParentFrame) ||
-                 !IsInlineOutside(aAfterFrame),
-                 "Shouldn't have inline :after content on the block in an "
-                 "{ib} split");
-    nsFrameList frames(aParentFrame->GetFirstChild(nsnull));
+  nsIFrame* nextSibling = ::GetInsertNextSibling(aParentFrame, aPrevSibling);
 
-    
-    return frameManager->InsertFrames(aParentFrame, nsnull,
-                                      frames.GetPrevSiblingFor(aAfterFrame),
-                                      aFrameList.childList);
-  }
+  NS_ASSERTION(nextSibling ||
+               !aParentFrame->GetNextContinuation() ||
+               !aParentFrame->GetNextContinuation()->GetFirstChild(nsnull),
+               "aParentFrame has later continuations with kids?");
 
-  if (IsFrameSpecial(aParentFrame) &&
+  
+  
+  
+  if (!nextSibling &&
+      IsFrameSpecial(aParentFrame) &&
       !IsInlineFrame(aParentFrame) &&
       IsInlineOutside(aFrameList.lastChild)) {
-    NS_ASSERTION(!aParentFrame->GetNextContinuation() ||
-                 !aParentFrame->GetNextContinuation()->GetFirstChild(nsnull),
-                 "Shouldn't happen");
-    
     
     nsIFrame* lastBlock = FindLastBlock(aFrameList.childList);
     nsIFrame* firstTrailingInline;
@@ -5804,8 +5824,9 @@ nsCSSFrameConstructor::AppendFrames(nsFrameConstructorState&       aState,
     return NS_OK;
   }
   
-  return frameManager->AppendFrames(aParentFrame, nsnull,
-                                    aFrameList.childList);
+  
+  return aState.mFrameManager->InsertFrames(aParentFrame, nsnull, aPrevSibling,
+                                            aFrameList.childList);
 }
 
 #define UNSET_DISPLAY 255
@@ -6161,6 +6182,7 @@ nsCSSFrameConstructor::ContentAppended(nsIContent*     aContainer,
   }
 
   
+  
   parentFrame = nsLayoutUtils::GetLastContinuationWithChild(parentFrame);
 
   nsIAtom* frameType = parentFrame->GetType();
@@ -6205,13 +6227,15 @@ nsCSSFrameConstructor::ContentAppended(nsIContent*     aContainer,
                               items);
   }
 
+  nsIFrame* prevSibling = ::FindAppendPrevSibling(parentFrame, parentAfterFrame);
+
   
   
   
   
   LAYOUT_PHASE_TEMP_EXIT();
   if (WipeContainingBlock(state, containingBlock, parentFrame, items,
-                          !parentAfterFrame, nsnull)) {
+                          PR_TRUE, prevSibling)) {
     LAYOUT_PHASE_TEMP_REENTER();
     return NS_OK;
   }
@@ -6254,26 +6278,21 @@ nsCSSFrameConstructor::ContentAppended(nsIContent*     aContainer,
   nsresult result = NS_OK;
 
   
-  if (NS_SUCCEEDED(result) &&
-      (frameItems.childList || captionItems.childList)) {
+  if (NS_SUCCEEDED(result)) {
     
-    if (nsGkAtoms::tableFrame == frameType) {
-      if (captionItems.childList) { 
-        nsIFrame* outerTable = parentFrame->GetParent();
-        if (outerTable) { 
-          state.mFrameManager->AppendFrames(outerTable,
-                                            nsGkAtoms::captionList,
-                                            captionItems.childList);
-        }
-      }
-      if (frameItems.childList) { 
-        AppendFrames(state, aContainer, parentFrame, frameItems,
-                     parentAfterFrame);
+    
+    if (captionItems.childList) { 
+      NS_ASSERTION(nsGkAtoms::tableFrame == frameType, "how did that happen?");
+      nsIFrame* outerTable = parentFrame->GetParent();
+      if (outerTable) {
+        state.mFrameManager->AppendFrames(outerTable,
+                                          nsGkAtoms::captionList,
+                                          captionItems.childList);
       }
     }
-    else {
-      AppendFrames(state, aContainer, parentFrame, frameItems,
-                   parentAfterFrame);
+
+    if (frameItems.childList) { 
+      AppendFrames(state, parentFrame, frameItems, prevSibling);
     }
   }
 
@@ -6489,7 +6508,6 @@ nsCSSFrameConstructor::ContentInserted(nsIContent*            aContainer,
   nsIFrame* prevSibling = FindPreviousSibling(first, iter);
 
   PRBool    isAppend = PR_FALSE;
-  nsIFrame* appendAfterFrame;  
 
   
   
@@ -6514,15 +6532,18 @@ nsCSSFrameConstructor::ContentInserted(nsIContent*            aContainer,
         parentFrame = GetLastSpecialSibling(parentFrame, PR_TRUE);
       }
       
+      
       parentFrame = nsLayoutUtils::GetLastContinuationWithChild(parentFrame);
       
       parentFrame = ::GetAdjustedParentFrame(parentFrame,
                                              parentFrame->GetType(),
                                              aChild);
+      nsIFrame* appendAfterFrame;
       parentFrame =
         ::AdjustAppendParentForAfterContent(mPresShell->GetPresContext(),
                                             container, parentFrame,
                                             &appendAfterFrame);
+      prevSibling = ::FindAppendPrevSibling(parentFrame, appendAfterFrame);
     }
   }
 
@@ -6618,18 +6639,6 @@ nsCSSFrameConstructor::ContentInserted(nsIContent*            aContainer,
       parentFrame = prevSibling->GetParent();
       
       
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      isAppend = PR_FALSE;
     }
   }
 
@@ -6642,7 +6651,7 @@ nsCSSFrameConstructor::ContentInserted(nsIContent*            aContainer,
   
   LAYOUT_PHASE_TEMP_EXIT();
   if (WipeContainingBlock(state, containingBlock, parentFrame, items,
-                          isAppend && !appendAfterFrame, prevSibling)) {
+                          isAppend, prevSibling)) {
     LAYOUT_PHASE_TEMP_REENTER();
     return NS_OK;
   }
@@ -6676,6 +6685,7 @@ nsCSSFrameConstructor::ContentInserted(nsIContent*            aContainer,
   
   
   
+  
   if (prevSibling && frameItems.childList &&
       frameItems.childList->GetParent() != prevSibling->GetParent()) {
 #ifdef DEBUG
@@ -6692,13 +6702,14 @@ nsCSSFrameConstructor::ContentInserted(nsIContent*            aContainer,
                   frame1->GetParent()->GetType() == nsGkAtoms::fieldSetFrame),
                  "Unexpected frame types");
 #endif
-    prevSibling = nsnull;
     isAppend = PR_TRUE;
+    nsIFrame* appendAfterFrame;
     parentFrame =
       ::AdjustAppendParentForAfterContent(mPresShell->GetPresContext(),
                                           container,
                                           frameItems.childList->GetParent(),
                                           &appendAfterFrame);
+    prevSibling = ::FindAppendPrevSibling(parentFrame, appendAfterFrame);
   }
 
   if (haveFirstLineStyle && parentFrame == containingBlock) {
@@ -6724,8 +6735,7 @@ nsCSSFrameConstructor::ContentInserted(nsIContent*            aContainer,
     NS_ASSERTION(!captionItems.childList, "leaking caption frames");
     
     if (isAppend) {
-      AppendFrames(state, container, parentFrame, frameItems,
-                   appendAfterFrame);
+      AppendFrames(state, parentFrame, frameItems, prevSibling);
     } else {
       state.mFrameManager->InsertFrames(parentFrame,
                                         nsnull, prevSibling, newFrame);
@@ -10853,41 +10863,43 @@ nsCSSFrameConstructor::WipeContainingBlock(nsFrameConstructorState& aState,
   } else {
     
     
-    if (aIsAppend) {
+    if (aPrevSibling || !aItems.IsStartInline()) {
       
-      
-      
+      nsIFrame* nextSibling = ::GetInsertNextSibling(aFrame, aPrevSibling);
+      if (nextSibling) {
+        
+        return PR_FALSE;
+      }
+
+      if (aIsAppend) {
+        
+        
+        
+
+        
+        
+        
+        
+        
+        
+        
+        nsIFrame* floatContainer = aFrame;
+        do {
+          floatContainer = GetFloatContainingBlock(
+            GetIBSplitSpecialPrevSiblingForAnonymousBlock(floatContainer));
+          if (!floatContainer) {
+            break;
+          }
+          if (!IsFrameSpecial(floatContainer)) {
+            return PR_FALSE;
+          }
+        } while (1);
+      }
 
       
       
       
-      
-      
-      
-      
-      nsIFrame* floatContainer = aFrame;
-      do {
-        floatContainer = GetFloatContainingBlock(
-          GetIBSplitSpecialPrevSiblingForAnonymousBlock(floatContainer));
-        if (!floatContainer) {
-          break;
-        }
-        if (!IsFrameSpecial(floatContainer)) {
-          return PR_FALSE;
-        }
-      } while (1);
-    }
-    
-    if (aPrevSibling && !aPrevSibling->GetNextSibling()) {
-      
-      
       if (!aItems.IsEndInline()) {
-        return PR_FALSE;
-      }
-    } else {
-      
-      
-      if (aPrevSibling || !aItems.IsStartInline()) {
         return PR_FALSE;
       }
     }
