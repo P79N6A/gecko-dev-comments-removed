@@ -4058,7 +4058,16 @@ TraceRecorder::snapshot(ExitType exitType)
 JS_REQUIRES_STACK GuardRecord*
 TraceRecorder::createGuardRecord(VMSideExit* exit)
 {
+#ifdef JS_JIT_SPEW
+    
+    
+    
+    
+    GuardRecord* gr = new (dataAlloc()) GuardRecord();
+#else
+    
     GuardRecord* gr = new (traceAlloc()) GuardRecord();
+#endif
 
     gr->exit = exit;
     exit->addGuard(gr);
