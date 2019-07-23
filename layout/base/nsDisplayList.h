@@ -133,7 +133,7 @@ public:
 
 
   nsDisplayListBuilder(nsIFrame* aReferenceFrame, PRBool aIsForEvents,
-                       PRBool aBuildCaret, nsIFrame* aMovingFrame = nsnull);
+                       PRBool aBuildCaret);
   ~nsDisplayListBuilder();
 
   
@@ -154,6 +154,17 @@ public:
 
 
   PRBool IsAtRootOfPseudoStackingContext() { return mIsAtRootOfPseudoStackingContext; }
+
+  
+
+
+
+
+  void SetMovingFrame(nsIFrame* aMovingFrame, const nsPoint& aMoveDelta) {
+    mMovingFrame = aMovingFrame;
+    mMoveDelta = aMoveDelta;
+  }
+
   
 
 
@@ -162,6 +173,11 @@ public:
 
 
   nsIFrame* GetRootMovingFrame() { return mMovingFrame; }
+  
+
+
+
+  const nsPoint& GetMoveDelta() { return mMoveDelta; }
   
 
 
@@ -305,6 +321,7 @@ private:
   nsIFrame*                      mReferenceFrame;
   nsIFrame*                      mMovingFrame;
   nsIFrame*                      mIgnoreScrollFrame;
+  nsPoint                        mMoveDelta; 
   PLArenaPool                    mPool;
   nsCOMPtr<nsISelection>         mBoundingSelection;
   nsAutoTArray<PresShellState,8> mPresShellStates;
@@ -429,8 +446,9 @@ public:
 
 
 
-  virtual PRBool IsVaryingRelativeToFrame(nsDisplayListBuilder* aBuilder,
-       nsIFrame* aFrame) { return PR_FALSE; }
+
+  virtual PRBool IsVaryingRelativeToMovingFrame(nsDisplayListBuilder* aBuilder)
+  { return PR_FALSE; }
   
 
 
@@ -996,8 +1014,7 @@ public:
   virtual nsIFrame* HitTest(nsDisplayListBuilder* aBuilder, nsPoint aPt,
                             HitTestState* aState) { return mFrame; }
   virtual PRBool IsOpaque(nsDisplayListBuilder* aBuilder);
-  virtual PRBool IsVaryingRelativeToFrame(nsDisplayListBuilder* aBuilder,
-                                          nsIFrame* aAncestorFrame);
+  virtual PRBool IsVaryingRelativeToMovingFrame(nsDisplayListBuilder* aBuilder);
   virtual PRBool IsUniform(nsDisplayListBuilder* aBuilder);
   virtual nsRect GetBounds(nsDisplayListBuilder* aBuilder);
   virtual void Paint(nsDisplayListBuilder* aBuilder, nsIRenderingContext* aCtx,
@@ -1080,8 +1097,7 @@ public:
   virtual nsRect GetBounds(nsDisplayListBuilder* aBuilder);
   virtual PRBool IsOpaque(nsDisplayListBuilder* aBuilder);
   virtual PRBool IsUniform(nsDisplayListBuilder* aBuilder);
-  virtual PRBool IsVaryingRelativeToFrame(nsDisplayListBuilder* aBuilder,
-                                          nsIFrame* aFrame);
+  virtual PRBool IsVaryingRelativeToMovingFrame(nsDisplayListBuilder* aBuilder);
   virtual void Paint(nsDisplayListBuilder* aBuilder, nsIRenderingContext* aCtx,
      const nsRect& aDirtyRect);
   virtual PRBool OptimizeVisibility(nsDisplayListBuilder* aBuilder,

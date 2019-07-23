@@ -436,6 +436,14 @@ public:
 
 
 
+
+
+
+
+
+
+
+
   static nsresult ComputeRepaintRegionForCopy(nsIFrame* aRootFrame,
                                               nsIFrame* aMovingFrame,
                                               nsPoint aDelta,

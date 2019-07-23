@@ -52,9 +52,9 @@
 #include "gfxContext.h"
 
 nsDisplayListBuilder::nsDisplayListBuilder(nsIFrame* aReferenceFrame,
-    PRBool aIsForEvents, PRBool aBuildCaret, nsIFrame* aMovingFrame)
+    PRBool aIsForEvents, PRBool aBuildCaret)
     : mReferenceFrame(aReferenceFrame),
-      mMovingFrame(aMovingFrame),
+      mMovingFrame(nsnull),
       mIgnoreScrollFrame(nsnull),
       mCurrentTableItem(nsnull),
       mBuildCaret(aBuildCaret),
@@ -233,23 +233,23 @@ nsDisplayItem::OptimizeVisibility(nsDisplayListBuilder* aBuilder,
   nsRect bounds = GetBounds(aBuilder);
   if (!aVisibleRegion->Intersects(bounds))
     return PR_FALSE;
-  
+
   nsIFrame* f = GetUnderlyingFrame();
   NS_ASSERTION(f, "GetUnderlyingFrame() must return non-null for leaf items");
-  if (aBuilder->HasMovingFrames() && aBuilder->IsMovingFrame(f)) {
-    
-    
-    
-    if (!IsVaryingRelativeToFrame(aBuilder, aBuilder->GetRootMovingFrame()))
-      return PR_FALSE;
-    
-    
-    return PR_TRUE;
-  }
+  PRBool isMoving = aBuilder->IsMovingFrame(f);
 
   if (IsOpaque(aBuilder)) {
-    aVisibleRegion->SimpleSubtract(bounds);
+    nsRect opaqueArea = bounds;
+    if (isMoving) {
+      
+      
+      
+      
+      opaqueArea.IntersectRect(bounds - aBuilder->GetMoveDelta(), bounds);
+    }
+    aVisibleRegion->SimpleSubtract(opaqueArea);
   }
+
   return PR_TRUE;
 }
 
@@ -509,26 +509,29 @@ nsDisplayBackground::IsUniform(nsDisplayListBuilder* aBuilder) {
 }
 
 PRBool
-nsDisplayBackground::IsVaryingRelativeToFrame(nsDisplayListBuilder* aBuilder,
-    nsIFrame* aAncestorFrame)
+nsDisplayBackground::IsVaryingRelativeToMovingFrame(nsDisplayListBuilder* aBuilder)
 {
+  NS_ASSERTION(aBuilder->IsMovingFrame(mFrame),
+              "IsVaryingRelativeToMovingFrame called on non-moving frame!");
+
+  nsPresContext* presContext = mFrame->PresContext();
   PRBool isCanvas;
   const nsStyleBackground* bg;
   PRBool hasBG =
-    nsCSSRendering::FindBackground(mFrame->PresContext(), mFrame, &bg, &isCanvas);
+    nsCSSRendering::FindBackground(presContext, mFrame, &bg, &isCanvas);
   if (!hasBG)
     return PR_FALSE;
   if (!bg->HasFixedBackground())
     return PR_FALSE;
 
+  nsIFrame* movingFrame = aBuilder->GetRootMovingFrame();
   
   
   
   
   
   
-  return mFrame == aAncestorFrame ||
-    nsLayoutUtils::IsProperAncestorFrame(aAncestorFrame, mFrame);
+  return movingFrame->PresContext() == presContext;
 }
 
 void
@@ -676,13 +679,13 @@ PRBool nsDisplayWrapList::IsUniform(nsDisplayListBuilder* aBuilder) {
   return PR_FALSE;
 }
 
-PRBool nsDisplayWrapList::IsVaryingRelativeToFrame(nsDisplayListBuilder* aBuilder,
-                                                   nsIFrame* aFrame) {
-  for (nsDisplayItem* i = mList.GetBottom(); i != nsnull; i = i->GetAbove()) {
-    if (i->IsVaryingRelativeToFrame(aBuilder, aFrame))
-      return PR_TRUE;
-  }
-  return PR_FALSE;
+PRBool nsDisplayWrapList::IsVaryingRelativeToMovingFrame(nsDisplayListBuilder* aBuilder) {
+  
+  
+  
+  NS_WARNING("nsDisplayWrapList::IsVaryingRelativeToMovingFrame called unexpectedly");
+  
+  return PR_TRUE;
 }
 
 void nsDisplayWrapList::Paint(nsDisplayListBuilder* aBuilder,

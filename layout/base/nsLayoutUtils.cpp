@@ -1025,19 +1025,17 @@ AddItemsToRegion(nsDisplayListBuilder* aBuilder, nsDisplayList* aList,
         AddItemsToRegion(aBuilder, sublist, aRect, aClipRect, aDelta, aRegion);
       }
     } else {
-      
-      
       nsRect r;
       if (r.IntersectRect(aClipRect, item->GetBounds(aBuilder))) {
-        PRBool inMovingSubtree = PR_FALSE;
-        if (item->IsVaryingRelativeToFrame(aBuilder, aBuilder->GetRootMovingFrame())) {
-          nsIFrame* f = item->GetUnderlyingFrame();
-          NS_ASSERTION(f, "Must have an underlying frame for leaf item");
-          inMovingSubtree = aBuilder->IsMovingFrame(f);
-          AccumulateItemInRegion(aRegion, aRect + aDelta, r, item);
-        }
-      
-        if (!inMovingSubtree) {
+        nsIFrame* f = item->GetUnderlyingFrame();
+        NS_ASSERTION(f, "Must have an underlying frame for leaf item");
+        if (aBuilder->IsMovingFrame(f)) {
+          if (item->IsVaryingRelativeToMovingFrame(aBuilder)) {
+            
+            
+            AccumulateItemInRegion(aRegion, aRect + aDelta, r, item);
+          }
+        } else {
           
           
           PRBool skip = r.Contains(aRect) && r.Contains(aRect + aDelta) &&
@@ -1073,9 +1071,15 @@ nsLayoutUtils::ComputeRepaintRegionForCopy(nsIFrame* aRootFrame,
   
   
   
+  
+  
+  
+  
+  
   nsRect rect;
   rect.UnionRect(aCopyRect, aCopyRect + aDelta);
-  nsDisplayListBuilder builder(aRootFrame, PR_FALSE, PR_TRUE, aMovingFrame);
+  nsDisplayListBuilder builder(aRootFrame, PR_FALSE, PR_TRUE);
+  builder.SetMovingFrame(aMovingFrame, aDelta);
   nsDisplayList list;
 
   builder.EnterPresShell(aRootFrame, rect);
