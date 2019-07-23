@@ -578,20 +578,6 @@ namespace nanojit
             }
     }
 
-    void Assembler::asm_loop(LInsp ins, NInsList& loopJumps)
-    {
-        (void)ins;
-        JMP_long_placeholder(); 
-
-        loopJumps.add(_nIns);
-
-        assignSavedRegs();
-
-        
-        LInsp state = _thisfrag->lirbuf->state;
-        findSpecificRegFor(state, argRegs[state->paramArg()]);
-    }
-
     void Assembler::asm_fcond(LInsp ins)
     {
         

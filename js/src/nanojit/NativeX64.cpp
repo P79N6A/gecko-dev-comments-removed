@@ -67,7 +67,6 @@
 
 
 
-
 namespace nanojit
 {
     const Register Assembler::retRegs[] = { RAX };
@@ -1137,10 +1136,6 @@ namespace nanojit
                 emitprm(X64_movsdmr, rr, d, FP);
             }
         }
-    }
-
-    void Assembler::asm_loop(LIns*, NInsList&) {
-        TODO(asm_loop);
     }
 
     NIns* Assembler::genPrologue() {

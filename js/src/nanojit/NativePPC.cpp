@@ -1295,10 +1295,6 @@ namespace nanojit
     }
 #endif 
 
-    void Assembler::asm_loop(LIns*, NInsList&) {
-        TODO(asm_loop);
-    }
-
     void Assembler::nFragExit(LIns*) {
         TODO(nFragExit);
     }
