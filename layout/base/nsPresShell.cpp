@@ -743,9 +743,6 @@ public:
 
   virtual NS_HIDDEN_(void) UnsuppressPainting();
 
-  virtual NS_HIDDEN_(void) DisableThemeSupport();
-  virtual PRBool IsThemeSupportEnabled();
-
   virtual nsresult GetAgentStyleSheets(nsCOMArray<nsIStyleSheet>& aSheets);
   virtual nsresult SetAgentStyleSheets(const nsCOMArray<nsIStyleSheet>& aSheets);
 
@@ -1177,8 +1174,6 @@ protected:
   nsCallbackEventRequest* mLastCallbackEventRequest;
 
   PRPackedBool      mSuppressInterruptibleReflows;
-
-  PRPackedBool      mIsThemeSupportDisabled;  
 
   PRPackedBool      mIsDocumentGone;      
                                           
@@ -4424,19 +4419,6 @@ PresShell::UnsuppressPainting()
     mShouldUnsuppressPainting = PR_TRUE;
   else
     UnsuppressAndInvalidate();
-}
-
-void
-PresShell::DisableThemeSupport()
-{
-  
-  mIsThemeSupportDisabled = PR_TRUE;
-}
-
-PRBool 
-PresShell::IsThemeSupportEnabled()
-{
-  return !mIsThemeSupportDisabled;
 }
 
 
