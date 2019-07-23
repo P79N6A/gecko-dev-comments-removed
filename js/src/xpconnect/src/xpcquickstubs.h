@@ -442,16 +442,6 @@ xpc_qsVariantToJsval(XPCCallContext &ccx,
                      uintN paramNum,
                      jsval *rval);
 
-
-
-
-
-
-
-
-JSBool
-xpc_qsReadOnlySetter(JSContext *cx, JSObject *obj, jsval id, jsval *vp);
-
 #ifdef DEBUG
 void
 xpc_qsAssertContextOK(JSContext *cx);
