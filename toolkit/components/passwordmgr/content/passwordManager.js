@@ -65,7 +65,7 @@ function SignonsStartup() {
 var signonsTreeView = {
   _filterSet : [],
   _lastSelectedRanges : [],
-  selection: null, 
+  selection: null,
 
   rowCount : 0,
   setTree : function(tree) {},
@@ -123,7 +123,7 @@ function LoadSignons() {
     element.removeAttribute("disabled");
     toggle.removeAttribute("disabled");
   }
- 
+
   return true;
 }
 
@@ -252,7 +252,7 @@ function SignonClearFilter() {
   lastSignonSortColumn = "";
   lastSignonSortAscending = false;
   LoadSignons();
-    
+
   
   if (singleSelection) {
     signonsTreeView.selection.clearSelection();
