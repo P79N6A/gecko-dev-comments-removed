@@ -113,9 +113,6 @@ static const char *sScreenManagerContractID = "@mozilla.org/gfx/screenmanager;1"
 
 
 
-
-
-
 nsWindow* nsWindow::gCurrentWindow = nsnull;
 BOOL nsWindow::sIsRegistered       = FALSE;
 
@@ -1354,9 +1351,12 @@ NS_METHOD nsWindow::Resize(PRInt32 aX,
          ptl.y = WinQuerySysValue(HWND_DESKTOP, SV_CYSCREEN) - h - 1 - aY;
       }
 
-      WinSetWindowPos(GetMainWindow(), 0, ptl.x, ptl.y, w, h, SWP_MOVE | SWP_SIZE);
-      if (aRepaint)
-         Invalidate(PR_FALSE);
+      if (!WinSetWindowPos(GetMainWindow(), 0, ptl.x, ptl.y, w, h,
+                           SWP_MOVE | SWP_SIZE)) {
+         if (aRepaint) {
+            Invalidate(PR_FALSE);
+         }
+      }
 
 #if DEBUG_sobotka
       printf("+++++++++++Resized 0x%lx at %ld, %ld to %d x %d (%d,%d)\n",
