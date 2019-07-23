@@ -549,7 +549,7 @@ js_CompileScript(JSContext *cx, JSObject *scopeChain, JSStackFrame *callerFrame,
 
 
 
-        JSParsedObjectBox *pob = js_NewParsedObjectBox(cx, &pc, callerFrame->callee);
+        JSParsedObjectBox *pob = js_NewParsedObjectBox(cx, &pc, FUN_OBJECT(callerFrame->fun));
         pob->emitLink = cg.objectList.lastPob;
         cg.objectList.lastPob = pob;
         cg.objectList.length++;
