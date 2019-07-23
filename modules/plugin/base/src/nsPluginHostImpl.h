@@ -68,6 +68,7 @@
 #include "nsIPrefBranch.h"
 #include "nsWeakReference.h"
 #include "nsThreadUtils.h"
+#include "nsTArray.h"
 
 
 #include "nsIFactory.h"
@@ -108,7 +109,8 @@ public:
               const char* const* aExtensions,
               PRInt32 aVariants,
               PRInt64 aLastModifiedTime = 0,
-              PRBool aCanUnload = PR_TRUE);
+              PRBool aCanUnload = PR_TRUE,
+              PRBool aArgsAreUTF8 = PR_FALSE);
 
   ~nsPluginTag();
 
@@ -143,11 +145,11 @@ public:
 
   nsRefPtr<nsPluginTag>   mNext;
   nsPluginHostImpl *mPluginHost;
-  char          *mName;
-  char          *mDescription;
+  nsCString     mName; 
+  nsCString     mDescription; 
   PRInt32       mVariants;
   char          **mMimeTypeArray;
-  char          **mMimeDescriptionArray;
+  nsTArray<nsCString> mMimeDescriptionArray; 
   char          **mExtensionsArray;
   PRLibrary     *mLibrary;
   nsIPlugin     *mEntryPoint;
@@ -155,11 +157,13 @@ public:
   PRPackedBool  mXPConnected;
   PRPackedBool  mIsJavaPlugin;
   PRPackedBool  mIsNPRuntimeEnabledJavaPlugin;
-  char          *mFileName;
-  char          *mFullPath;
+  nsCString     mFileName; 
+  nsCString     mFullPath; 
   PRInt64       mLastModifiedTime;
 private:
   PRUint32      mFlags;
+
+  nsresult EnsureMembersAreUTF8();
 };
 
 struct nsActivePlugin
