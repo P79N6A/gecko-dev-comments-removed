@@ -799,9 +799,11 @@ PluginInstanceChild::AnswerNPP_SetWindow(const NPRemoteWindow& aWindow)
                          &mWsInfo.visual, &mWsInfo.depth))
         return false;
 
-    if (aWindow.type == NPWindowTypeWindow) {
 #ifdef MOZ_WIDGET_GTK2
-        if (GdkWindow* socket_window = gdk_window_lookup(aWindow.window)) {
+    if (aWindow.type == NPWindowTypeWindow
+        && gtk_check_version(2,18,7) != NULL) { 
+        GdkWindow* socket_window = gdk_window_lookup(aWindow.window);
+        if (socket_window) {
             
             
             
@@ -809,8 +811,8 @@ PluginInstanceChild::AnswerNPP_SetWindow(const NPRemoteWindow& aWindow)
                               "moz-existed-before-set-window",
                               GUINT_TO_POINTER(1));
         }
-#endif
     }
+#endif
 
     if (mPluginIface->setwindow)
         (void) mPluginIface->setwindow(&mData, &mWindow);
