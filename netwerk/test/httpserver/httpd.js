@@ -2598,6 +2598,9 @@ ServerHandler.prototype =
           self._setObjectState(k, v);
         });
 
+        
+        this._setState(path, "__LOCATION__", file.path);
+
         try
         {
           
