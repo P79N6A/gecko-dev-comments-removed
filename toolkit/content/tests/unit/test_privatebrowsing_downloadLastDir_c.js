@@ -154,7 +154,7 @@ function run_test()
   
   do_check_eq(prefs.getComplexValue("lastDir", Ci.nsILocalFile).path, dir1.path);
   
-  do_check_eq(gDownloadLastDir.file, null);
+  do_check_eq(gDownloadLastDir.file.path, dir1.path);
 
   pb.privateBrowsingEnabled = true;
   do_check_eq(prefs.getComplexValue("lastDir", Ci.nsILocalFile).path, dir1.path);
@@ -170,7 +170,7 @@ function run_test()
 
   pb.privateBrowsingEnabled = false;
   
-  do_check_eq(gDownloadLastDir.file, null);
+  do_check_eq(gDownloadLastDir.file.path, dir1.path);
   fp.file = file3;
   fp.displayDirectory = null;
   do_check_true(getTargetFile(params));
@@ -179,7 +179,7 @@ function run_test()
   
   do_check_eq(prefs.getComplexValue("lastDir", Ci.nsILocalFile).path, dir3.path);
   
-  do_check_eq(gDownloadLastDir.file, null);
+  do_check_eq(gDownloadLastDir.file.path, dir3.path);
 
   
   [dir1, dir2, dir3].forEach(function(dir) dir.remove(true));

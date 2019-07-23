@@ -560,15 +560,6 @@ function getTargetFile(aFpP,  aSkipPrompt)
   if (!aSkipPrompt)
     useDownloadDir = false;
 
-  var inPrivateBrowsing = false;
-  try {
-    var pbs = Components.classes["@mozilla.org/privatebrowsing;1"]
-                        .getService(Components.interfaces.nsIPrivateBrowsingService);
-    inPrivateBrowsing = pbs.privateBrowsingEnabled;
-  }
-  catch (e) {
-  }
-
   
   
   var dlMgr = Components.classes["@mozilla.org/download-manager;1"]
@@ -590,11 +581,7 @@ function getTargetFile(aFpP,  aSkipPrompt)
     
     
     
-    var lastDir;
-    if (inPrivateBrowsing && gDownloadLastDir.file)
-      lastDir = gDownloadLastDir.file;
-    else
-      lastDir = prefs.getComplexValue("lastDir", nsILocalFile);
+    var lastDir = gDownloadLastDir.file;
     if (lastDir.exists()) {
       dir = lastDir;
       dirExists = true;
@@ -639,10 +626,7 @@ function getTargetFile(aFpP,  aSkipPrompt)
 
   
   var directory = fp.file.parent.QueryInterface(nsILocalFile);
-  if (inPrivateBrowsing)
-    gDownloadLastDir.file = directory;
-  else
-    prefs.setComplexValue("lastDir", nsILocalFile, directory);
+  gDownloadLastDir.file = directory;
 
   fp.file.leafName = validateFileName(fp.file.leafName);
   
