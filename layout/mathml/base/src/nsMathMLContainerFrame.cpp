@@ -714,8 +714,7 @@ nsMathMLContainerFrame::RebuildAutomaticDataForChildren(nsIFrame* aParentFrame)
 }
 
  nsresult
-nsMathMLContainerFrame::ReLayoutChildren(nsIFrame* aParentFrame,
-                                         nsFrameState aBits)
+nsMathMLContainerFrame::ReLayoutChildren(nsIFrame* aParentFrame)
 {
   if (!aParentFrame)
     return NS_OK;
@@ -743,6 +742,9 @@ nsMathMLContainerFrame::ReLayoutChildren(nsIFrame* aParentFrame,
 
     
     
+    
+    
+    
     frame->AddStateBits(NS_FRAME_IS_DIRTY | NS_FRAME_HAS_DIRTY_CHILDREN);
 
     frame = parent;
@@ -758,7 +760,7 @@ nsMathMLContainerFrame::ReLayoutChildren(nsIFrame* aParentFrame,
     return NS_OK;
 
   return frame->PresContext()->PresShell()->
-    FrameNeedsReflow(frame, nsIPresShell::eStyleChange, aBits);
+    FrameNeedsReflow(frame, nsIPresShell::eStyleChange, NS_FRAME_IS_DIRTY);
 }
 
 
@@ -782,10 +784,13 @@ nsMathMLContainerFrame::ChildListChanged(PRInt32 aModType)
 
       
       
+      
+      
+      
       frame->AddStateBits(NS_FRAME_IS_DIRTY | NS_FRAME_HAS_DIRTY_CHILDREN);
     }
   }
-  return ReLayoutChildren(frame, NS_FRAME_IS_DIRTY);
+  return ReLayoutChildren(frame);
 }
 
 NS_IMETHODIMP
