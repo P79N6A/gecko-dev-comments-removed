@@ -42,7 +42,6 @@
 #include "nsFont.h"
 #include "nsIView.h"
 #include "nsGfxCIID.h"
-#include "nsVoidArray.h"
 #include "nsIFontMetrics.h"
 #include "nsHashtable.h"
 #include "nsILanguageAtomService.h"
@@ -480,9 +479,9 @@ nsFontCache::GetMetricsFor(const nsFont& aFont, nsIAtom* aLangGroup,
   
 
   nsIFontMetrics* fm;
-  PRInt32 n = mFontMetrics.Count() - 1;
+  PRInt32 n = mFontMetrics.Length() - 1;
   for (PRInt32 i = n; i >= 0; --i) {
-    fm = static_cast<nsIFontMetrics*>(mFontMetrics[i]);
+    fm = mFontMetrics[i];
     nsIThebesFontMetrics* tfm = static_cast<nsIThebesFontMetrics*>(fm);
     if (fm->Font().Equals(aFont) && tfm->GetUserFontSet() == aUserFontSet) {
       nsCOMPtr<nsIAtom> langGroup;
@@ -490,7 +489,8 @@ nsFontCache::GetMetricsFor(const nsFont& aFont, nsIAtom* aLangGroup,
       if (aLangGroup == langGroup.get()) {
         if (i != n) {
           
-          mFontMetrics.MoveElement(i, n);
+          mFontMetrics.RemoveElementAt(i);
+          mFontMetrics.AppendElement(fm);
         }
         tfm->GetThebesFontGroup()->UpdateFontList();
         NS_ADDREF(aMetrics = fm);
@@ -535,9 +535,9 @@ nsFontCache::GetMetricsFor(const nsFont& aFont, nsIAtom* aLangGroup,
 
   
 
-  n = mFontMetrics.Count() - 1; 
+  n = mFontMetrics.Length() - 1; 
   if (n >= 0) {
-    aMetrics = static_cast<nsIFontMetrics*>(mFontMetrics[n]);
+    aMetrics = mFontMetrics[n];
     NS_ADDREF(aMetrics);
     return NS_OK;
   }
@@ -558,15 +558,15 @@ nsFontCache::CreateFontMetricsInstance(nsIFontMetrics** fm)
 
 nsresult nsFontCache::FontMetricsDeleted(const nsIFontMetrics* aFontMetrics)
 {
-  mFontMetrics.RemoveElement((void*)aFontMetrics);
+  mFontMetrics.RemoveElement(aFontMetrics);
   return NS_OK;
 }
 
 nsresult nsFontCache::Compact()
 {
   
-  for (PRInt32 i = mFontMetrics.Count()-1; i >= 0; --i) {
-    nsIFontMetrics* fm = static_cast<nsIFontMetrics*>(mFontMetrics[i]);
+  for (PRInt32 i = mFontMetrics.Length()-1; i >= 0; --i) {
+    nsIFontMetrics* fm = mFontMetrics[i];
     nsIFontMetrics* oldfm = fm;
     
     NS_RELEASE(fm); 
@@ -582,8 +582,8 @@ nsresult nsFontCache::Compact()
 
 nsresult nsFontCache::Flush()
 {
-  for (PRInt32 i = mFontMetrics.Count()-1; i >= 0; --i) {
-    nsIFontMetrics* fm = static_cast<nsIFontMetrics*>(mFontMetrics[i]);
+  for (PRInt32 i = mFontMetrics.Length()-1; i >= 0; --i) {
+    nsIFontMetrics* fm = mFontMetrics[i];
     
     
     
