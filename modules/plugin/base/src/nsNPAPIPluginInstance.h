@@ -136,11 +136,11 @@ protected:
   
   
   
-  NPPluginFuncs* fCallbacks;
+  NPPluginFuncs* mCallbacks;
 
   
   
-  NPP_t fNPP;
+  NPP_t mNPP;
 
 #ifdef XP_MACOSX
   NPDrawingModel mDrawingModel;
@@ -148,17 +148,16 @@ protected:
 
   
   
-  PRPackedBool  mWindowless;
-  PRPackedBool  mTransparent;
-  PRPackedBool  mStarted;
-  PRPackedBool  mCached;
-  PRPackedBool  mIsJavaPlugin;
-  PRPackedBool  mWantsAllNetworkStreams;
+  PRPackedBool mWindowless;
+  PRPackedBool mTransparent;
+  PRPackedBool mStarted;
+  PRPackedBool mCached;
+  PRPackedBool mWantsAllNetworkStreams;
 
 public:
   
   PRPackedBool mInPluginInitCall;
-  PRLibrary* fLibrary;
+  PRLibrary* mLibrary;
   nsInstanceStream *mStreams;
 
 private:

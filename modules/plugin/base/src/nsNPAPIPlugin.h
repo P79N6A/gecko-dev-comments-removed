@@ -76,7 +76,7 @@ class nsNPAPIPlugin : public nsIPlugin
 public:
   nsNPAPIPlugin(NPPluginFuncs* callbacks, PRLibrary* aLibrary,
                 NP_PLUGINSHUTDOWN aShutdown);
-  virtual ~nsNPAPIPlugin(void);
+  virtual ~nsNPAPIPlugin();
 
   NS_DECL_ISUPPORTS
   NS_DECL_NSIPLUGIN
