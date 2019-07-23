@@ -149,7 +149,7 @@ testScope.prototype = {
 
 const CHECK_INTERVAL = 3000;
 
-const TIMEOUT_SECONDS = 15;
+const TIMEOUT_SECONDS = 30;
 
 const MAX_LOOP_COUNT = (TIMEOUT_SECONDS * 1000) / CHECK_INTERVAL;
 
