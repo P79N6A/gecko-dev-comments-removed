@@ -126,8 +126,7 @@ public:
 
 
 
-
-  void RemoveFrame(nsIFrame* aFrame, nsIFrame* aPrevSiblingHint = nsnull);
+  void RemoveFrame(nsIFrame* aFrame);
 
   
 
@@ -154,9 +153,7 @@ public:
 
 
 
-
-
-  void DestroyFrame(nsIFrame* aFrame, nsIFrame* aPrevSiblingHint = nsnull);
+  void DestroyFrame(nsIFrame* aFrame);
 
   
 
@@ -234,8 +231,6 @@ public:
   PRBool ContainsFrameBefore(const nsIFrame* aFrame, const nsIFrame* aEnd) const;
 
   PRInt32 GetLength() const;
-
-  nsIFrame* GetPrevSiblingFor(nsIFrame* aFrame) const;
 
   
 

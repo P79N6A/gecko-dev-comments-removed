@@ -3261,7 +3261,7 @@ nsBlockFrame::ReflowBlockFrame(nsBlockReflowState& aState,
               NS_ENSURE_SUCCESS(rv, rv);
             }
             else if (madeContinuation) {
-              mFrames.RemoveFrame(nextFrame, frame);
+              mFrames.RemoveFrame(nextFrame);
             }
 
             
@@ -5204,29 +5204,21 @@ nsBlockFrame::DoRemoveFrame(nsIFrame* aDeletedFrame, PRUint32 aFlags)
   nsIPresShell* presShell = presContext->PresShell();
 
   
-  
   nsLineList::iterator line_start = mLines.begin(),
                        line_end = mLines.end();
   nsLineList::iterator line = line_start;
   PRBool searchingOverflowList = PR_FALSE;
-  nsIFrame* prevSibling = nsnull;
   
   
   TryAllLines(&line, &line_start, &line_end, &searchingOverflowList);
   while (line != line_end) {
-    nsIFrame* frame = line->mFirstChild;
-    PRInt32 n = line->GetChildCount();
-    while (--n >= 0) {
-      if (frame == aDeletedFrame) {
-        goto found_frame;
-      }
-      prevSibling = frame;
-      frame = frame->GetNextSibling();
+    if (line->Contains(aDeletedFrame)) {
+      break;
     }
     ++line;
     TryAllLines(&line, &line_start, &line_end, &searchingOverflowList);
   }
-found_frame:;
+
   if (line == line_end) {
     NS_ERROR("can't find deleted frame in lines");
     return NS_ERROR_FAILURE;
@@ -5242,13 +5234,6 @@ found_frame:;
       mLines.back()->SetInvalidateTextRuns(PR_TRUE);
     }
   }
-
-  if (prevSibling && !prevSibling->GetNextSibling()) {
-    
-    
-    prevSibling = nsnull;
-  }
-  NS_ASSERTION(!prevSibling || prevSibling->GetNextSibling() == aDeletedFrame, "bad prevSibling");
 
   while ((line != line_end) && (nsnull != aDeletedFrame)) {
     NS_ASSERTION(this == aDeletedFrame->GetParent(), "messed up delete code");
@@ -5287,13 +5272,14 @@ found_frame:;
     
     
     if (searchingOverflowList) {
+      nsIFrame* prevSibling = aDeletedFrame->GetPrevSibling();
       if (prevSibling) {
         
         
         prevSibling->SetNextSibling(nextFrame);
       }
     } else {
-      mFrames.RemoveFrame(aDeletedFrame, prevSibling);
+      mFrames.RemoveFrame(aDeletedFrame);
     }
 
     
@@ -5385,20 +5371,10 @@ found_frame:;
           line = line_end;
         }
 
-        PRBool wasSearchingOverflowList = searchingOverflowList;
         TryAllLines(&line, &line_start, &line_end, &searchingOverflowList);
-        if (NS_UNLIKELY(searchingOverflowList && !wasSearchingOverflowList &&
-                        prevSibling)) {
-          
-          
-          
-          NS_ASSERTION(!prevSibling->GetNextSibling(), "Unexpected next sibling");
-          prevSibling = nsnull;
-        }
 #ifdef NOISY_REMOVE_FRAME
-        printf("DoRemoveFrame: now on %s line=%p prevSibling=%p\n",
-               searchingOverflowList?"overflow":"normal", line.get(),
-               prevSibling);
+        printf("DoRemoveFrame: now on %s line=%p\n",
+               searchingOverflowList?"overflow":"normal", line.get());
 #endif
       }
     }
@@ -5467,7 +5443,7 @@ nsBlockFrame::StealFrame(nsPresContext* aPresContext,
             prevSibling->SetNextSibling(frame->GetNextSibling());
           frame->SetNextSibling(nsnull);
         } else {
-          mFrames.RemoveFrame(frame, prevSibling);
+          mFrames.RemoveFrame(frame);
         }
 
         

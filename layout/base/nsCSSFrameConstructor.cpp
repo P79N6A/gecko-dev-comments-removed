@@ -2014,14 +2014,11 @@ static void
 PullOutCaptionFrames(nsFrameItems& aItems, nsFrameItems& aCaptions)
 {
   nsIFrame *child = aItems.FirstChild();
-  nsIFrame* prev = nsnull;
   while (child) {
     nsIFrame *nextSibling = child->GetNextSibling();
     if (nsGkAtoms::tableCaptionFrame == child->GetType()) {
-      aItems.RemoveFrame(child, prev);
+      aItems.RemoveFrame(child);
       aCaptions.AddChild(child);
-    } else {
-      prev = child;
     }
     child = nextSibling;
   }
@@ -3463,17 +3460,15 @@ nsCSSFrameConstructor::ConstructFieldSetFrame(nsFrameConstructorState& aState,
   nsFrameItems fieldsetKids;
   fieldsetKids.AddChild(blockFrame);
 
-  for (nsFrameList::FrameLinkEnumerator link(childItems);
-       !link.AtEnd();
-       link.Next()) {
-    nsLegendFrame* legendFrame = do_QueryFrame(link.NextFrame());
+  for (nsFrameList::Enumerator e(childItems); !e.AtEnd(); e.Next()) {
+    nsLegendFrame* legendFrame = do_QueryFrame(e.get());
     if (legendFrame) {
       
       
       
       
       
-      childItems.RemoveFrame(link.NextFrame(), link.PrevFrame());
+      childItems.RemoveFrame(legendFrame);
       
       fieldsetKids.InsertFrame(newFrame, nsnull, legendFrame);
       break;
@@ -3970,7 +3965,7 @@ nsCSSFrameConstructor::ConstructFrameFromItemInternal(FrameConstructionItem& aIt
             break;
         }
 
-        childItems.RemoveFrame(f, nsnull);
+        childItems.RemoveFrame(f);
         if (wrapFrame) {
           currentBlock.AddChild(f);
         } else {
@@ -5700,7 +5695,7 @@ FindAppendPrevSibling(nsIFrame* aParentFrame, nsIFrame* aAfterFrame)
 {
   if (aAfterFrame) {
     NS_ASSERTION(aAfterFrame->GetParent() == aParentFrame, "Wrong parent");
-    return aParentFrame->GetChildList(nsnull).GetPrevSiblingFor(aAfterFrame);
+    return aAfterFrame->GetPrevSibling();
   }
 
   return aParentFrame->GetLastChild(nsnull);
@@ -10183,7 +10178,7 @@ nsCSSFrameConstructor::WrapFramesInFirstLetterFrame(
     if (parentFrame == aBlockFrame) {
       
       
-      aBlockFrames.DestroyFrame(textFrame, prevFrame);
+      aBlockFrames.DestroyFrame(textFrame);
       aBlockFrames.InsertFrames(nsnull, prevFrame, letterFrames);
     }
     else {
@@ -10344,18 +10339,7 @@ nsCSSFrameConstructor::RemoveFloatingFirstLetterFrames(
     frameToDelete = nextFrameToDelete;
   }
 
-  
-  
-  
-  
-  
-  
-  
-  
-  const nsFrameList& siblingList(parentFrame->GetChildList(nsnull));
-  NS_ASSERTION(siblingList.ContainsFrame(placeholderFrame),
-               "Placeholder not in parent's principal child list?");
-  nsIFrame* prevSibling = siblingList.GetPrevSiblingFor(placeholderFrame);
+  nsIFrame* prevSibling = placeholderFrame->GetPrevSibling();
 
   
 #ifdef NOISY_FIRST_LETTER

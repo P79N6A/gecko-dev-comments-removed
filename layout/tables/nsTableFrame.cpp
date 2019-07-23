@@ -1953,7 +1953,6 @@ nsTableFrame::PushChildren(const FrameArray& aFrames,
   
   nsFrameList frames;
   PRUint32 childX;
-  nsIFrame* prevSiblingHint = aFrames.SafeElementAt(aPushFrom - 1);
   for (childX = aPushFrom; childX < aFrames.Length(); ++childX) {
     nsIFrame* f = aFrames[childX];
     
@@ -1963,7 +1962,7 @@ nsTableFrame::PushChildren(const FrameArray& aFrames,
     nsTableRowGroupFrame* rgFrame = GetRowGroupFrame(f);
     NS_ASSERTION(rgFrame, "Unexpected non-row-group frame");
     if (!rgFrame || !rgFrame->IsRepeatable()) {
-      mFrames.RemoveFrame(f, prevSiblingHint);
+      mFrames.RemoveFrame(f);
       frames.AppendFrame(nsnull, f);
     }
   }
@@ -1975,7 +1974,7 @@ nsTableFrame::PushChildren(const FrameArray& aFrames,
     nsIFrame* firstBodyFrame = nextInFlow->GetFirstBodyRowGroupFrame();
     nsIFrame* prevSibling = nsnull;
     if (firstBodyFrame) {
-      prevSibling = nextInFlow->mFrames.GetPrevSiblingFor(firstBodyFrame);
+      prevSibling = firstBodyFrame->GetPrevSibling();
     }
     
     

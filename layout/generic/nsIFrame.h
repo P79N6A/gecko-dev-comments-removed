@@ -881,9 +881,17 @@ public:
 
   nsIFrame* GetNextSibling() const { return mNextSibling; }
   void SetNextSibling(nsIFrame* aNextSibling) {
-    NS_ASSERTION(this != aNextSibling, "Creating a circular frame list, this is very bad."); 
+    NS_ASSERTION(this != aNextSibling, "Creating a circular frame list, this is very bad.");
+    if (mNextSibling && mNextSibling->GetPrevSibling() == this) {
+      mNextSibling->mPrevSibling = nsnull;
+    }
     mNextSibling = aNextSibling;
+    if (mNextSibling) {
+      mNextSibling->mPrevSibling = this;
+    }
   }
+
+  nsIFrame* GetPrevSibling() const { return mPrevSibling; }
 
   
 
@@ -2320,6 +2328,7 @@ protected:
   nsIFrame*        mParent;
 private:
   nsIFrame*        mNextSibling;  
+  nsIFrame*        mPrevSibling;  
 protected:
   nsFrameState     mState;
 
