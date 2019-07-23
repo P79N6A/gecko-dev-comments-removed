@@ -3150,6 +3150,11 @@ js_EmitFunctionScript(JSContext *cx, JSCodeGenerator *cg, JSParseNode *body)
         CG_SWITCH_TO_MAIN(cg);
     }
 
+    if (!(cg->treeContext.flags & TCF_FUN_HEAVYWEIGHT) &&
+        (cg->treeContext.flags & TCF_COMPILE_N_GO)) {
+        STOBJ_SET_PARENT(FUN_OBJECT(cg->treeContext.fun), cx->fp->scopeChain);
+    }
+
     return js_EmitTree(cx, cg, body) &&
            js_Emit1(cx, cg, JSOP_STOP) >= 0 &&
            js_NewScriptFromCG(cx, cg);
