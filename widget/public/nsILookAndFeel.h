@@ -46,8 +46,8 @@ struct nsSize;
 
 
 #define NS_ILOOKANDFEEL_IID \
-{ 0xbec234d0, 0xaaa5, 0x430d, \
-    { 0x84, 0x35, 0xb1, 0x01, 0x00, 0xf7, 0x80, 0x03} }
+{ 0x6672e0ea, 0xc936, 0x11dc, \
+    { 0x9b, 0xb7, 0x00, 0x14, 0x85, 0x0b, 0x59, 0x2f} }
 
 
 class nsILookAndFeel: public nsISupports {
@@ -129,6 +129,8 @@ public:
 
     eColor__moz_cellhighlight,                               
     eColor__moz_cellhighlighttext,                           
+    eColor__moz_html_cellhighlight,                          
+    eColor__moz_html_cellhighlighttext,                      
     eColor__moz_buttonhoverface,                             
     eColor__moz_buttonhovertext,                             
     eColor__moz_menuhover,                                   

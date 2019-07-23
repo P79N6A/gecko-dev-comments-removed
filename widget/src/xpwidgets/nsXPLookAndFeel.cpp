@@ -214,6 +214,8 @@ const char nsXPLookAndFeel::sColorPrefs[][38] =
   "ui.-moz-dialog",
   "ui.-moz-dialogtext",
   "ui.-moz-dragtargetzone",
+  "ui.-moz-html-cellhighlight",
+  "ui.-moz-html-cellhighlighttext",
   "ui.-moz-mac-focusring",
   "ui.-moz-mac-menuselect",
   "ui.-moz-mac-menushadow",
