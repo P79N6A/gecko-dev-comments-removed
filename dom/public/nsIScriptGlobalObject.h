@@ -102,9 +102,9 @@ NS_HandleScriptError(nsIScriptGlobalObject *aScriptGlobal,
 
 
 #define NS_ISCRIPTGLOBALOBJECT_IID \
-{ /* {6E7EF978-47D0-47c9-9649-CDCDB1E4CCEC} */ \
-  0x6e7ef978, 0x47d0, 0x47c9, \
-  { 0x96, 0x49, 0xcd, 0xcd, 0xb1, 0xe4, 0xcc, 0xec } }
+{ /* {6afecd40-0b9a-4cfd-8c42-0f645cd91829} */ \
+  0x6afecd40, 0x0b9a, 0x4cfd, \
+  { 0x8c, 0x42, 0x0f, 0x64, 0x5c, 0xd9, 0x18, 0x29 } }
 
 
 
@@ -115,23 +115,6 @@ class nsIScriptGlobalObject : public nsISupports
 {
 public:
   NS_DECLARE_STATIC_IID_ACCESSOR(NS_ISCRIPTGLOBALOBJECT_IID)
-
-
-  
-
-
-
-
-
-  virtual void SetGlobalObjectOwner(nsIScriptGlobalObjectOwner* aOwner) = 0;
-
-  
-
-
-
-
-
-  virtual nsIScriptGlobalObjectOwner *GetGlobalObjectOwner() = 0;
 
   
 
