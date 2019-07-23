@@ -47,6 +47,7 @@
 #include "nsTableColGroupFrame.h"
 #include "nsCellMap.h"
 #include "nsGkAtoms.h"
+#include "nsDisplayList.h"
 
 class nsTableCellFrame;
 class nsTableColFrame;
@@ -71,6 +72,58 @@ static inline PRBool IS_TABLE_CELL(nsIAtom* frameType) {
   return nsGkAtoms::tableCellFrame == frameType ||
     nsGkAtoms::bcTableCellFrame == frameType;
 }
+
+class nsDisplayTableItem : public nsDisplayItem
+{
+public:
+  nsDisplayTableItem(nsIFrame* aFrame) : nsDisplayItem(aFrame),
+      mPartHasFixedBackground(PR_FALSE) {}
+
+  virtual PRBool IsVaryingRelativeToFrame(nsDisplayListBuilder* aBuilder,
+                                          nsIFrame* aAncestorFrame);
+  
+  
+  
+  
+  virtual nsRect GetBounds(nsDisplayListBuilder* aBuilder);
+
+  void UpdateForFrameBackground(nsIFrame* aFrame);
+
+private:
+  PRPackedBool mPartHasFixedBackground;
+};
+
+class nsAutoPushCurrentTableItem
+{
+public:
+  nsAutoPushCurrentTableItem() : mBuilder(nsnull) {}
+  
+  void Push(nsDisplayListBuilder* aBuilder, nsDisplayTableItem* aPushItem)
+  {
+    mBuilder = aBuilder;
+    mOldCurrentItem = aBuilder->GetCurrentTableItem();
+    aBuilder->SetCurrentTableItem(aPushItem);
+#ifdef DEBUG
+    mPushedItem = aPushItem;
+#endif
+  }
+  ~nsAutoPushCurrentTableItem() {
+    if (!mBuilder)
+      return;
+#ifdef DEBUG
+    NS_ASSERTION(mBuilder->GetCurrentTableItem() == mPushedItem,
+                 "Someone messed with the current table item behind our back!");
+#endif
+    mBuilder->SetCurrentTableItem(mOldCurrentItem);
+  }
+
+private:
+  nsDisplayListBuilder* mBuilder;
+  nsDisplayTableItem*   mOldCurrentItem;
+#ifdef DEBUG
+  nsDisplayTableItem*   mPushedItem;
+#endif
+};
 
 
 
@@ -186,7 +239,7 @@ public:
                                           nsFrame* aFrame,
                                           const nsRect& aDirtyRect,
                                           const nsDisplayListSet& aLists,
-                                          PRBool aIsRoot,
+                                          nsDisplayTableItem* aDisplayItem,
                                           DisplayGenericTablePartTraversal aTraversal = GenericTraversal);
 
   
