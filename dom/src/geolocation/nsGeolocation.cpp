@@ -193,7 +193,7 @@ nsGeolocationRequest::Allow()
     JSContext* cx;
     stack->Pop(&cx);
 
-    return rv;
+    return NS_OK;  
   }
 
   mAllowed = PR_TRUE;
