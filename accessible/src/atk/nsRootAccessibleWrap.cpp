@@ -100,29 +100,75 @@ NS_IMETHODIMP nsRootAccessibleWrap::GetParent(nsIAccessible **  aParent)
 nsresult nsRootAccessibleWrap::HandleEventWithTarget(nsIDOMEvent *aEvent,
                                                      nsIDOMNode  *aTargetNode)
 {
-    
-    
-    nsRootAccessible::HandleEventWithTarget(aEvent, aTargetNode);
-    
     nsAutoString eventType;
     aEvent->GetType(eventType);
     nsAutoString localName;
     aTargetNode->GetLocalName(localName);
 
-    if (eventType.LowerCaseEqualsLiteral("pagehide")) {
-      
-      
-      return NS_OK;
+    if (eventType.EqualsLiteral("pagehide")) {
+        nsRootAccessible::HandleEventWithTarget(aEvent, aTargetNode);
+        return NS_OK;
     }
-    
+
     nsCOMPtr<nsIAccessible> accessible;
     nsCOMPtr<nsIAccessibilityService> accService = GetAccService();
     accService->GetAccessibleFor(aTargetNode, getter_AddRefs(accessible));
     if (!accessible)
-      return NS_OK;
+        return NS_OK;
 
+    if (eventType.EqualsLiteral("popupshown")) {
+        nsRootAccessible::HandleEventWithTarget(aEvent, aTargetNode);
+        nsCOMPtr<nsIContent> content(do_QueryInterface(aTargetNode));
+
+        
+        
+        
+        
+
+        
+        
+        
+        
+        if (!content->NodeInfo()->Equals(nsAccessibilityAtoms::tooltip,
+                                        kNameSpaceID_XUL) &&
+            !content->AttrValueIs(kNameSpaceID_None, nsAccessibilityAtoms::type,
+                                 NS_LITERAL_STRING("autocomplete"), eIgnoreCase)) {
+            FireAccessibleFocusEvent(accessible, aTargetNode, aEvent);
+        }
+        return NS_OK;
+    }
+
+    StateChange stateData;
     nsCOMPtr<nsPIAccessible> privAcc(do_QueryInterface(accessible));
-    
+
+    if (eventType.EqualsLiteral("CheckboxStateChange") || 
+        eventType.EqualsLiteral("RadioStateChange")) { 
+        stateData.state = State(accessible);
+        
+        
+        stateData.enable = (stateData.state &
+          (nsIAccessibleStates::STATE_CHECKED |
+           nsIAccessibleStates::STATE_SELECTED)) != 0;
+        stateData.state = nsIAccessibleStates::STATE_CHECKED;
+        privAcc->FireToolkitEvent(nsIAccessibleEvent::EVENT_STATE_CHANGE,
+                                  accessible, &stateData);
+        
+        if (eventType.EqualsLiteral("RadioStateChange") &&
+            stateData.enable) {
+            FireAccessibleFocusEvent(accessible, aTargetNode, aEvent);
+        }
+        return NS_OK;
+    }
+
+    if (eventType.EqualsLiteral("OpenStateChange")) {
+        stateData.state = State(accessible); 
+        stateData.enable = (stateData.state & nsIAccessibleStates::STATE_EXPANDED) != 0;
+        stateData.state = nsIAccessibleStates::STATE_EXPANDED;
+        privAcc->FireToolkitEvent(nsIAccessibleEvent::EVENT_STATE_CHANGE,
+                                  accessible, &stateData);
+        return NS_OK;
+    }
+
 #ifdef MOZ_XUL
   
     nsCOMPtr<nsIAccessible> treeItemAccessible;
@@ -147,9 +193,8 @@ nsresult nsRootAccessibleWrap::HandleEventWithTarget(nsIDOMEvent *aEvent,
         }
     }
 #endif
-  
-    StateChange stateData;
-    if (eventType.LowerCaseEqualsLiteral("focus")) {
+
+    if (eventType.EqualsLiteral("focus")) {
 #ifdef MOZ_XUL
         if (treeItemAccessible) { 
             privAcc = do_QueryInterface(treeItemAccessible);
@@ -190,7 +235,7 @@ nsresult nsRootAccessibleWrap::HandleEventWithTarget(nsIDOMEvent *aEvent,
                                       &stateData);
         }
     }
-    else if (eventType.LowerCaseEqualsLiteral("select")) {
+    else if (eventType.EqualsLiteral("select")) {
 #ifdef MOZ_XUL
         if (treeItemAccessible) { 
             
@@ -204,65 +249,10 @@ nsresult nsRootAccessibleWrap::HandleEventWithTarget(nsIDOMEvent *aEvent,
             
             privAcc->FireToolkitEvent(nsIAccessibleEvent::EVENT_REORDER, accessible, nsnull);
         }
+    } else {
+      nsRootAccessible::HandleEventWithTarget(aEvent, aTargetNode);
     }
-    else if (eventType.LowerCaseEqualsLiteral("checkboxstatechange") || 
-             eventType.LowerCaseEqualsLiteral("radiostatechange")) { 
-        stateData.state = State(accessible);
-        
-        
-        stateData.enable = (stateData.state &
-          (nsIAccessibleStates::STATE_CHECKED |
-           nsIAccessibleStates::STATE_SELECTED)) != 0;
-        stateData.state = nsIAccessibleStates::STATE_CHECKED;
-        privAcc->FireToolkitEvent(nsIAccessibleEvent::EVENT_STATE_CHANGE, accessible, &stateData);
-        
-        if (eventType.LowerCaseEqualsLiteral("radiostatechange") &&
-            stateData.enable) {
-            FireAccessibleFocusEvent(accessible, aTargetNode, aEvent);
-        }
-    }
-    else if (eventType.LowerCaseEqualsLiteral("openstatechange")) { 
-        stateData.state = State(accessible);
-        stateData.enable = (stateData.state & nsIAccessibleStates::STATE_EXPANDED) != 0;
-        stateData.state = nsIAccessibleStates::STATE_EXPANDED;
-        privAcc->FireToolkitEvent(nsIAccessibleEvent::EVENT_STATE_CHANGE, accessible, &stateData);
-    }
-    else if (eventType.LowerCaseEqualsLiteral("popuphiding")) {
-        
-        
-        
-        
-        if (!gLastFocusedNode) {
-            return NS_OK;
-        }
-        nsCOMPtr<nsIDOMNode> parentOfFocus;
-        gLastFocusedNode->GetParentNode(getter_AddRefs(parentOfFocus));
-        if (parentOfFocus != aTargetNode) {
-            return NS_OK;
-        }
-        
-        FireCurrentFocusEvent();
-    }
-    else if (eventType.LowerCaseEqualsLiteral("popupshown")) {
-#ifdef MOZ_XUL
-      nsCOMPtr<nsIContent> content(do_QueryInterface(aTargetNode));
-      if (content->NodeInfo()->Equals(nsAccessibilityAtoms::tooltip, kNameSpaceID_XUL) ||
-          content->AttrValueIs(kNameSpaceID_None, nsAccessibilityAtoms::type,
-                               NS_LITERAL_STRING("autocomplete"), eIgnoreCase)) {
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        return NS_OK;
-      }
-#endif
-      FireAccessibleFocusEvent(accessible, aTargetNode, aEvent);      
-    }
+
     return NS_OK;
 }
 
