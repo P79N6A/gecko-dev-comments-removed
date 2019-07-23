@@ -218,6 +218,8 @@ LoginManagerPrompter.prototype = {
         if (aSavePassword == Ci.nsIAuthPrompt.SAVE_PASSWORD_FOR_SESSION)
             throw Components.results.NS_ERROR_NOT_IMPLEMENTED;
 
+        var selectedLogin = null;
+        var foundLogins;
         var checkBox = { value : false };
         var checkBoxLabel = null;
         var hostname = this._getFormattedHostname(aPasswordRealm);
@@ -234,13 +236,13 @@ LoginManagerPrompter.prototype = {
 
         if (!aUsername.value && !aPassword.value) {
             
-            var foundLogins = this._pwmgr.findLogins({}, hostname, null,
-
-                                                     aPasswordRealm);
+            foundLogins = this._pwmgr.findLogins({}, hostname, null,
+                                                 aPasswordRealm);
 
             
             
             if (foundLogins.length > 0) {
+                selectedLogin = foundLogins[0];
                 
                 
                 aUsername.value = foundLogins[0].username;
@@ -259,9 +261,22 @@ LoginManagerPrompter.prototype = {
                           aUsername.value, aPassword.value,
                           "", "");
 
-            this.log("New login seen for " + aPasswordRealm);
+            
+            
+            if (!selectedLogin || username != selectedLogin.username) {
+                
+                this.log("New login seen for " + aPasswordRealm);
 
-            this._pwmgr.addLogin(newLogin);
+                this._pwmgr.addLogin(newLogin);
+            } else if (selectedLogin &&
+                       password != selectedLogin.password) {
+                
+                this.log("Updating password for  " + aPasswordRealm);
+                this._pwmgr.modifyLogin(foundLogins[0], newLogin);
+            } else {
+                this.log("Login unchanged, no further action needed.");
+                return ok;
+            }
         }
 
         return ok;
