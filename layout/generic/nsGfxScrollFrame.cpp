@@ -2415,8 +2415,16 @@ nsGfxScrollFrameInner::ReflowFinished()
     nscoord curPosX, curPosY;
     scrollable->GetScrollPosition(curPosX, curPosY);
     if (vScroll) {
+      
+      
+      
+      
+      
+      
+      nscoord pageincrement = nscoord(scrollArea.height - fontHeight);
+      nscoord pageincrementMin = nscoord(float(scrollArea.height) * 0.8);
       FinishReflowForScrollbar(vScroll, minY, maxY, curPosY,
-                               nscoord(scrollArea.height - fontHeight),
+                               PR_MAX(pageincrement,pageincrementMin),
                                fontHeight);
     }
     if (hScroll) {
