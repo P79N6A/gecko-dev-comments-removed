@@ -99,16 +99,29 @@ function onLoadViewSource()
 {
   viewSource(window.arguments[0]);
   document.commandDispatcher.focusedWindow = content;
-  
-  
-  getBrowser().addProgressListener(gViewSourceProgressListener, 
-      Components.interfaces.nsIWebProgress.NOTIFY_ALL);
+      
+  if (isHistoryEnabled()) {
+    
+    getBrowser().addProgressListener(gViewSourceProgressListener, 
+        Components.interfaces.nsIWebProgress.NOTIFY_ALL);
+  } else {
+    
+    var viewSourceNavigation = document.getElementById("viewSourceNavigation");
+    viewSourceNavigation.setAttribute("disabled", "true");
+    viewSourceNavigation.setAttribute("hidden", "true");
+  }
 }
 
 function onUnloadViewSource() 
 {
   
-  getBrowser().removeProgressListener(gViewSourceProgressListener);
+  if (isHistoryEnabled()) {
+    getBrowser().removeProgressListener(gViewSourceProgressListener);
+  }
+}
+
+function isHistoryEnabled() {
+  return !getBrowser().hasAttribute("disablehistory");
 }
 
 function getBrowser()
