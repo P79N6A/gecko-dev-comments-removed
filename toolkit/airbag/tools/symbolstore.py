@@ -255,7 +255,7 @@ class Dumper:
             except:
                 print >> sys.stderr, "Unexpected error: ", sys.exc_info()[0]
                 raise
-            return result
+        return result
 
 
 
