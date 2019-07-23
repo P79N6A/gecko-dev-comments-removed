@@ -1460,23 +1460,39 @@ XPCConvert::JSObject2NativeInterface(XPCCallContext& ccx,
         
 
         
+        
+        
+        JSObject* inner = nsnull;
+        if(XPCWrapper::IsSecurityWrapper(src))
+        {
+            inner = XPCWrapper::Unwrap(cx, src);
+            if(!inner)
+            {
+                if(pErr)
+                    *pErr = NS_ERROR_XPC_SECURITY_MANAGER_VETO;
+                return JS_FALSE;
+            }
+        }
+
+        
         XPCWrappedNative* wrappedNative =
-                    XPCWrappedNative::GetWrappedNativeOfJSObject(cx, src);
+                    XPCWrappedNative::GetWrappedNativeOfJSObject(cx,
+                                                                 inner
+                                                                 ? inner
+                                                                 : src);
         if(wrappedNative)
         {
             iface = wrappedNative->GetIdentityObject();
             return NS_SUCCEEDED(iface->QueryInterface(*iid, dest));
         }
         
-        
+
         
         
         
         if(JS_TypeOfValue(cx, OBJECT_TO_JSVAL(src)) == JSTYPE_XML)
             return JS_FALSE;
 
-        
-        
         
         if(GetISupportsFromJSObject(src, &iface))
         {
