@@ -10866,13 +10866,13 @@ nsCSSFrameConstructor::WipeContainingBlock(nsFrameConstructorState& aState,
     if (aPrevSibling && !aPrevSibling->GetNextSibling()) {
       
       
-      if (!aItems.IsStartInline()) {
+      if (!aItems.IsEndInline()) {
         return PR_FALSE;
       }
     } else {
       
       
-      if (aPrevSibling || !aItems.IsEndInline()) {
+      if (aPrevSibling || !aItems.IsStartInline()) {
         return PR_FALSE;
       }
     }
