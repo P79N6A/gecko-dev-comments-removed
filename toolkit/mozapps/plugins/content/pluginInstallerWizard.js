@@ -58,9 +58,10 @@ function nsPluginInstallerWizard(){
   
   this.pluginsToInstallNum = 0;
 
-  this.mTab = null;
+  this.mBrowser = null;
   this.mSuccessfullPluginInstallation = 0;
 
+  
   
   
   
@@ -73,7 +74,7 @@ function nsPluginInstallerWizard(){
       this.mPluginRequestArrayLength++;
     }
 
-    this.mTab = window.arguments[0].tab;
+    this.mBrowser = window.arguments[0].browser;
   }
 
   this.WSPluginCounter = 0;
@@ -644,13 +645,12 @@ function wizardFinish(){
   
   if ((gPluginInstaller.mSuccessfullPluginInstallation > 0) &&
       (gPluginInstaller.mPluginInfoArray.length != 0) &&
-      gPluginInstaller.mTab) {
+      gPluginInstaller.mBrowser) {
     
-    gPluginInstaller.mTab.missingPlugins = null;
     
-    window.opener.gMissingPluginInstaller.closeNotification();
-    
-    window.opener.getBrowser().reloadTab(gPluginInstaller.mTab);
+    var event = document.createEvent("Events");
+    event.initEvent("NewPluginInstalled", true, true);
+    gPluginInstaller.mBrowser.dispatchEvent(event);
   }
 
   return true;
