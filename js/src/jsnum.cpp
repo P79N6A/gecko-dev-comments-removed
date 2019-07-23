@@ -50,7 +50,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include "jstypes.h"
-#include "jsstdint.h"
 #include "jsutil.h" 
 #include "jsapi.h"
 #include "jsatom.h"
@@ -785,6 +784,17 @@ js_NewNumberInRootedValue(JSContext *cx, jsdouble d, jsval *vp)
         return JS_TRUE;
     }
     return js_NewDoubleInRootedValue(cx, d, vp);
+}
+
+JSBool
+js_NewWeaklyRootedNumber(JSContext *cx, jsdouble d, jsval *rval)
+{
+    jsint i;
+    if (JSDOUBLE_IS_INT(d, i) && INT_FITS_IN_JSVAL(i)) {
+        *rval = INT_TO_JSVAL(i);
+        return JS_TRUE;
+    }
+    return JS_NewDoubleValue(cx, d, rval);
 }
 
 

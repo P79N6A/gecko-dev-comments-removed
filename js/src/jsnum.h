@@ -179,6 +179,13 @@ extern JSBool
 js_NewNumberInRootedValue(JSContext *cx, jsdouble d, jsval *vp);
 
 
+
+
+
+extern JSBool
+js_NewWeaklyRootedNumber(JSContext *cx, jsdouble d, jsval *vp);
+
+
 extern JSString * JS_FASTCALL
 js_NumberToString(JSContext *cx, jsdouble d);
 
