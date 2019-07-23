@@ -126,9 +126,20 @@ public:
 
 
 
-  NS_HIDDEN_(nsresult) GetMIMEInfoForMimeTypeFromDS(const nsACString& aContentType,
-                                                    nsIMIMEInfo * aMIMEInfo);
+
+  NS_HIDDEN_(nsresult) FillMIMEInfoForMimeTypeFromDS(
+    const nsACString& aContentType, nsIMIMEInfo * aMIMEInfo);
+
   
+
+
+
+
+
+
+  NS_HIDDEN_(nsresult) FillProtoInfoForSchemeFromDS(
+    const nsACString& aScheme, nsIHandlerInfo * aMIMEInfo);
+
   
 
 
@@ -138,8 +149,23 @@ public:
 
 
 
-  NS_HIDDEN_(nsresult) GetMIMEInfoForExtensionFromDS(const nsACString& aFileExtension,
-                                                     nsIMIMEInfo * aMIMEInfo);
+
+  NS_HIDDEN_(nsresult) FillHandlerInfoForTypeFromDS(
+    nsIRDFResource *aTypeNodeResource, const nsCAutoString& aType,
+    nsIRDFService *aRDFService, const char *aTypeNodePrefix, 
+    nsIHandlerInfo * aHandlerInfo);
+    
+  
+
+
+
+
+
+
+
+
+  NS_HIDDEN_(nsresult) FillMIMEInfoForExtensionFromDS(
+    const nsACString& aFileExtension, nsIMIMEInfo * aMIMEInfo);
 
   
 
@@ -196,8 +222,8 @@ public:
 
 
 
-  static NS_HIDDEN_(nsresult) GetWebProtocolHandlerURITemplate(const nsACString &aScheme,
-                                                               nsACString &aUriTemplate);
+  NS_HIDDEN_(nsresult) GetProtocolHandlerInfo(const nsACString &aScheme,
+                                              nsIHandlerInfo **aHandlerInfo);
 
   virtual NS_HIDDEN_(nsresult) OSProtocolHandlerExists(const char *aScheme,
                                                        PRBool *aExists) = 0;
@@ -219,6 +245,7 @@ protected:
   nsCOMPtr<nsIRDFResource> kNC_AlwaysAsk;
   nsCOMPtr<nsIRDFResource> kNC_HandleInternal;
   nsCOMPtr<nsIRDFResource> kNC_PrettyName;
+  nsCOMPtr<nsIRDFResource> kNC_UriTemplate;
 #endif
 
   
@@ -232,16 +259,17 @@ protected:
 
 
 #ifdef MOZ_RDF
-  NS_HIDDEN_(nsresult) FillTopLevelProperties(nsIRDFResource * aContentTypeNodeResource, 
-                                              nsIRDFService * aRDFService,
-                                              nsIMIMEInfo * aMIMEInfo);
+  NS_HIDDEN_(nsresult) FillMIMEExtensionProperties(
+    nsIRDFResource * aContentTypeNodeResource, nsIRDFService * aRDFService,
+    nsIMIMEInfo * aMIMEInfo);
+  
   
 
 
   NS_HIDDEN_(nsresult) FillContentHandlerProperties(const char * aContentType,
-                                                    nsIRDFResource * aContentTypeNodeResource,
+                                                    const char * aNodePrefix,
                                                     nsIRDFService * aRDFService,
-                                                    nsIMIMEInfo * aMIMEInfo);
+                                                    nsIHandlerInfo * aHandler);
 
   
 
@@ -261,8 +289,8 @@ protected:
 
 
 
-  NS_HIDDEN_(nsresult) GetMIMEInfoForMimeTypeFromExtras(const nsACString& aContentType,
-                                                        nsIMIMEInfo * aMIMEInfo);
+  NS_HIDDEN_(nsresult) FillMIMEInfoForMimeTypeFromExtras(
+    const nsACString& aContentType, nsIMIMEInfo * aMIMEInfo);
   
 
 
@@ -271,8 +299,8 @@ protected:
 
 
 
-  NS_HIDDEN_(nsresult) GetMIMEInfoForExtensionFromExtras(const nsACString& aExtension,
-                                                         nsIMIMEInfo * aMIMEInfo);
+  NS_HIDDEN_(nsresult) FillMIMEInfoForExtensionFromExtras(
+    const nsACString& aExtension, nsIMIMEInfo * aMIMEInfo);
 
   
 

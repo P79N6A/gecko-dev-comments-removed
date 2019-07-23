@@ -466,8 +466,10 @@ nsHelperAppDialog.prototype = {
         this.initDefaultApp();
 
         
-        if (this.chosenApp && this.chosenApp.path) {
-            this.dialogElement( "appPath" ).value = this.getPath(this.chosenApp);
+        if (this.chosenApp && this.chosenApp.executable &&
+            this.chosenApp.executable.path) {
+            this.dialogElement( "appPath" ).value = 
+              this.getPath(this.chosenApp.executable);
         }
 
         var useDefault = this.dialogElement( "useSystemDefault" );;
@@ -517,10 +519,10 @@ nsHelperAppDialog.prototype = {
             
             if ( result ) {
                 
-                if ( typed != result.path ) {
+                if ( typed != result.executable.path ) {
                     
                     try {
-                        result.QueryInterface( Components.interfaces.nsILocalFile ).initWithPath( typed );
+                        result.executable.QueryInterface( Components.interfaces.nsILocalFile ).initWithPath( typed );
                     } catch( e ) {
                         
                         result = null;
@@ -528,10 +530,15 @@ nsHelperAppDialog.prototype = {
                 }
             } else {
                 
-                result = Components.classes[ "@mozilla.org/file/local;1" ]
+                var localFile = Components.classes[ "@mozilla.org/file/local;1" ]
                     .createInstance( Components.interfaces.nsILocalFile );
                 try {
-                    result.initWithPath( typed );
+                    localFile.initWithPath( typed );
+                    result = Components.classes[
+                      "@mozilla.org/uriloader/local-handler-app;1"].
+                      createInstance(Components.interfaces.nsILocalHandlerApp);
+                    result.executable = localFile;
+
                 } catch( e ) {
                     result = null;
                 }
@@ -594,7 +601,6 @@ nsHelperAppDialog.prototype = {
                 
                 var app = this.helperAppChoice();
                 this.mLauncher.MIMEInfo.preferredApplicationHandler = app;
-                this.mLauncher.MIMEInfo.applicationDescription = "";
             }
         }
         
@@ -635,7 +641,7 @@ nsHelperAppDialog.prototype = {
         
         if ( this.dialogElement( "openUsing" ).selected ) {
             var helperApp = this.helperAppChoice();
-            if ( !helperApp || !helperApp.exists() ) {
+            if ( !helperApp || !helperApp.executable || !helperApp.exists() ) {
                 
                 var msg = this.replaceInsert( this.getString( "badApp" ), 1, this.dialogElement( "appPath" ).value );
                 var svc = Components.classes[ "@mozilla.org/embedcomp/prompt-service;1" ]
@@ -731,9 +737,15 @@ nsHelperAppDialog.prototype = {
 
         if ( fp.show() == nsIFilePicker.returnOK && fp.file ) {
             
-            this.chosenApp = fp.file;
+
+            var localHandler = Components.classes[
+              "@mozilla.org/uriloader/local-handler-app;1"].
+                createInstance(Components.interfaces.nsILocalHandlerApp);
+            localHandler.executable = fp.file;
+            this.chosenApp = localHandler;
             
-            this.dialogElement( "appPath" ).value = this.getPath(this.chosenApp);
+            this.dialogElement( "appPath" ).value = 
+              this.getPath(this.chosenApp.executable);
         }
     },
 

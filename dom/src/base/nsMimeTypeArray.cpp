@@ -137,13 +137,13 @@ nsMimeTypeArray::NamedItem(const nsAString& aName, nsIDOMMimeType** aReturn)
                                      getter_AddRefs(mimeInfo));
     if (mimeInfo) {
       
-      nsMIMEInfoHandleAction action = nsIMIMEInfo::saveToDisk;
+      nsHandlerInfoAction action = nsIHandlerInfo::saveToDisk;
       mimeInfo->GetPreferredAction(&action);
       if (action != nsIMIMEInfo::handleInternally) {
         PRBool hasHelper = PR_FALSE;
         mimeInfo->GetHasDefaultHandler(&hasHelper);
         if (!hasHelper) {
-          nsCOMPtr<nsIFile> helper;
+          nsCOMPtr<nsIHandlerApp> helper;
           mimeInfo->GetPreferredApplicationHandler(getter_AddRefs(helper));
           if (!helper) {
             

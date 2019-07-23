@@ -120,6 +120,9 @@
 
 #include "nsCRT.h"
 
+#include "nsMIMEInfoImpl.h"
+#include "nsHandlerAppImpl.h"
+
 #ifdef PR_LOGGING
 PRLogModuleInfo* nsExternalHelperAppService::mLog = nsnull;
 #endif
@@ -566,7 +569,10 @@ nsresult nsExternalHelperAppService::InitDataSource()
     rdf->GetResource(NS_LITERAL_CSTRING(NC_RDF_ALWAYSASK),
                      getter_AddRefs(kNC_AlwaysAsk));  
     rdf->GetResource(NS_LITERAL_CSTRING(NC_RDF_PRETTYNAME),
-                     getter_AddRefs(kNC_PrettyName));  
+                     getter_AddRefs(kNC_PrettyName));
+    rdf->GetResource(NS_LITERAL_CSTRING(NC_RDF_URITEMPLATE),
+                     getter_AddRefs(kNC_UriTemplate));
+     
   }
   
   mDataSourceInitialized = PR_TRUE;
@@ -715,8 +721,9 @@ NS_IMETHODIMP nsExternalHelperAppService::ApplyDecodingForExtension(const nsACSt
 }
 
 #ifdef MOZ_RDF
-nsresult nsExternalHelperAppService::FillTopLevelProperties(nsIRDFResource * aContentTypeNodeResource, 
-                                                            nsIRDFService * aRDFService, nsIMIMEInfo * aMIMEInfo)
+nsresult nsExternalHelperAppService::FillMIMEExtensionProperties(
+  nsIRDFResource * aContentTypeNodeResource, nsIRDFService * aRDFService,
+  nsIMIMEInfo * aMIMEInfo)
 {
   nsresult rv = NS_OK;
   nsCOMPtr<nsIRDFNode> target;
@@ -725,11 +732,6 @@ nsresult nsExternalHelperAppService::FillTopLevelProperties(nsIRDFResource * aCo
   
   rv = InitDataSource();
   if (NS_FAILED(rv)) return NS_OK;
-
-  
-  FillLiteralValueFromTarget(aContentTypeNodeResource,kNC_Description, &stringValue);
-  if (stringValue && *stringValue)
-    aMIMEInfo->SetDescription(nsDependentString(stringValue));
 
   
   nsCOMPtr<nsISimpleEnumerator> fileExtensions;
@@ -787,10 +789,9 @@ nsresult nsExternalHelperAppService::FillLiteralValueFromTarget(nsIRDFResource *
   return rv;
 }
 
-nsresult nsExternalHelperAppService::FillContentHandlerProperties(const char * aContentType, 
-                                                                  nsIRDFResource * aContentTypeNodeResource, 
-                                                                  nsIRDFService * aRDFService, 
-                                                                  nsIMIMEInfo * aMIMEInfo)
+nsresult nsExternalHelperAppService::FillContentHandlerProperties(
+  const char * aContentType, const char * aTypeNodePrefix,
+  nsIRDFService * aRDFService, nsIHandlerInfo * aHandlerInfo)
 {
   nsCOMPtr<nsIRDFNode> target;
   nsCOMPtr<nsIRDFLiteral> literal;
@@ -800,7 +801,8 @@ nsresult nsExternalHelperAppService::FillContentHandlerProperties(const char * a
   rv = InitDataSource();
   if (NS_FAILED(rv)) return rv;
 
-  nsCAutoString contentTypeHandlerNodeName(NC_CONTENT_NODE_HANDLER_PREFIX);
+  nsCAutoString contentTypeHandlerNodeName(aTypeNodePrefix);
+  contentTypeHandlerNodeName.Append(NC_HANDLER_SUFFIX);
   contentTypeHandlerNodeName.Append(aContentType);
 
   nsCOMPtr<nsIRDFResource> contentTypeHandlerNodeResource;
@@ -808,56 +810,79 @@ nsresult nsExternalHelperAppService::FillContentHandlerProperties(const char * a
   NS_ENSURE_TRUE(contentTypeHandlerNodeResource, NS_ERROR_FAILURE); 
 
   
-  aMIMEInfo->SetPreferredAction(nsIMIMEInfo::useHelperApp);
+  aHandlerInfo->SetPreferredAction(nsIHandlerInfo::useHelperApp);
 
   
   FillLiteralValueFromTarget(contentTypeHandlerNodeResource,kNC_SaveToDisk, &stringValue);
   NS_NAMED_LITERAL_STRING(trueString, "true");
   NS_NAMED_LITERAL_STRING(falseString, "false");
   if (stringValue && trueString.Equals(stringValue))
-       aMIMEInfo->SetPreferredAction(nsIMIMEInfo::saveToDisk);
+       aHandlerInfo->SetPreferredAction(nsIHandlerInfo::saveToDisk);
 
   
   FillLiteralValueFromTarget(contentTypeHandlerNodeResource,kNC_UseSystemDefault, &stringValue);
   if (stringValue && trueString.Equals(stringValue))
-      aMIMEInfo->SetPreferredAction(nsIMIMEInfo::useSystemDefault);
+      aHandlerInfo->SetPreferredAction(nsIHandlerInfo::useSystemDefault);
 
   
   FillLiteralValueFromTarget(contentTypeHandlerNodeResource,kNC_HandleInternal, &stringValue);
   if (stringValue && trueString.Equals(stringValue))
-       aMIMEInfo->SetPreferredAction(nsIMIMEInfo::handleInternally);
+       aHandlerInfo->SetPreferredAction(nsIHandlerInfo::handleInternally);
   
   
   FillLiteralValueFromTarget(contentTypeHandlerNodeResource,kNC_AlwaysAsk, &stringValue);
   
   
-  aMIMEInfo->SetAlwaysAskBeforeHandling(!stringValue ||
+  aHandlerInfo->SetAlwaysAskBeforeHandling(!stringValue ||
                                         !falseString.Equals(stringValue));
 
 
   
 
-  nsCAutoString externalAppNodeName (NC_CONTENT_NODE_EXTERNALAPP_PREFIX);
+  nsCAutoString externalAppNodeName(aTypeNodePrefix);
+  externalAppNodeName.AppendLiteral(NC_EXTERNALAPP_SUFFIX);
   externalAppNodeName.Append(aContentType);
   nsCOMPtr<nsIRDFResource> externalAppNodeResource;
   aRDFService->GetResource(externalAppNodeName, getter_AddRefs(externalAppNodeResource));
 
   
-  aMIMEInfo->SetApplicationDescription(EmptyString());
-  aMIMEInfo->SetPreferredApplicationHandler(nsnull);
+  aHandlerInfo->SetPreferredApplicationHandler(nsnull);
   if (externalAppNodeResource)
   {
-    FillLiteralValueFromTarget(externalAppNodeResource, kNC_PrettyName, &stringValue);
-    if (stringValue)
-      aMIMEInfo->SetApplicationDescription(nsDependentString(stringValue));
- 
+    const PRUnichar * appName;
+    FillLiteralValueFromTarget(externalAppNodeResource, kNC_PrettyName,
+                               &appName);
+
+    
     FillLiteralValueFromTarget(externalAppNodeResource, kNC_Path, &stringValue);
     if (stringValue && stringValue[0])
     {
       nsCOMPtr<nsIFile> application;
       GetFileTokenForPath(stringValue, getter_AddRefs(application));
-      if (application)
-        aMIMEInfo->SetPreferredApplicationHandler(application);
+      if (application) {
+        nsLocalHandlerApp *handlerApp(new nsLocalHandlerApp(appName, application));
+        if (!handlerApp) { 
+          return NS_ERROR_OUT_OF_MEMORY;
+        }
+
+        rv = aHandlerInfo->SetPreferredApplicationHandler(handlerApp);
+      }
+    } else {
+      
+      
+      FillLiteralValueFromTarget(externalAppNodeResource, kNC_UriTemplate, 
+                                 &stringValue);
+      if (stringValue && stringValue[0]) {
+        nsWebHandlerApp *handlerApp(new nsWebHandlerApp(appName, 
+          NS_ConvertUTF16toUTF8(stringValue)));
+        
+        if (!handlerApp) {
+            return NS_ERROR_OUT_OF_MEMORY;
+        }
+        rv = aHandlerInfo->SetPreferredApplicationHandler(handlerApp);
+      } else {
+        return NS_ERROR_FAILURE; 
+      }
     }
   }
 
@@ -903,7 +928,8 @@ PRBool nsExternalHelperAppService::MIMETypeIsInDataSource(const char * aContentT
   return PR_FALSE;
 }
 
-nsresult nsExternalHelperAppService::GetMIMEInfoForMimeTypeFromDS(const nsACString& aContentType, nsIMIMEInfo * aMIMEInfo)
+nsresult nsExternalHelperAppService::FillMIMEInfoForMimeTypeFromDS(
+  const nsACString& aContentType, nsIMIMEInfo * aMIMEInfo)
 {
 #ifdef MOZ_RDF
   NS_ENSURE_ARG_POINTER(aMIMEInfo);
@@ -919,33 +945,93 @@ nsresult nsExternalHelperAppService::GetMIMEInfoForMimeTypeFromDS(const nsACStri
   NS_ENSURE_SUCCESS(rv, rv);
 
   
-  
-  nsCAutoString contentTypeNodeName(NC_CONTENT_NODE_PREFIX);
-  nsCAutoString contentType(aContentType);
-  ToLowerCase(contentType);
-  contentTypeNodeName.Append(contentType);
+  nsCAutoString typeNodeName(NC_CONTENT_NODE_PREFIX);
+  nsCAutoString type(aContentType);
+  ToLowerCase(type);
+  typeNodeName.Append(type);
 
   
-  nsCOMPtr<nsIRDFResource> contentTypeNodeResource;
-  rv = rdf->GetResource(contentTypeNodeName, getter_AddRefs(contentTypeNodeResource));
+  nsCOMPtr<nsIRDFResource> typeNodeResource;
+  rv = rdf->GetResource(typeNodeName, getter_AddRefs(typeNodeResource));
   NS_ENSURE_SUCCESS(rv, rv);
 
   
+  rv = FillMIMEExtensionProperties(typeNodeResource, rdf, aMIMEInfo);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  return FillHandlerInfoForTypeFromDS(typeNodeResource.get(), type, rdf, 
+                                      NC_CONTENT_NODE_PREFIX, aMIMEInfo); 
+#else
+  return NS_ERROR_NOT_AVAILABLE;
+#endif
+}
+
+nsresult nsExternalHelperAppService::FillProtoInfoForSchemeFromDS(
+    const nsACString& aType, nsIHandlerInfo * aHandlerInfo)
+{
+#ifdef MOZ_RDF
+  NS_ENSURE_ARG_POINTER(aHandlerInfo);
+  nsresult rv = InitDataSource();
+  if (NS_FAILED(rv)) return rv;
+
   
-  nsCOMPtr<nsIRDFLiteral> mimeLiteral;
-  NS_ConvertUTF8toUTF16 mimeType(contentType);
-  rv = rdf->GetLiteral( mimeType.get(), getter_AddRefs( mimeLiteral ) );
+  if (!mOverRideDataSource)
+    return NS_ERROR_FAILURE;
+
+  
+  nsCOMPtr<nsIRDFService> rdf = do_GetService(kRDFServiceCID, &rv);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  nsCAutoString typeNodeName(NC_SCHEME_NODE_PREFIX);
+  nsCAutoString type(aType);
+  ToLowerCase(type);
+  typeNodeName.Append(type);
+
+  
+  nsCOMPtr<nsIRDFResource> typeNodeResource;
+  rv = rdf->GetResource(typeNodeName, getter_AddRefs(typeNodeResource));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  return FillHandlerInfoForTypeFromDS(typeNodeResource.get(), type, rdf,
+                                      NC_SCHEME_NODE_PREFIX, aHandlerInfo);
+#else
+  return NS_ERROR_NOT_AVAILABLE;
+#endif
+}
+
+nsresult nsExternalHelperAppService::FillHandlerInfoForTypeFromDS(
+  nsIRDFResource *aTypeNodeResource, const nsCAutoString &aType, 
+  nsIRDFService *rdf, const char *aTypeNodePrefix,
+  nsIHandlerInfo * aHandlerInfo)
+{
+#ifdef MOZ_RDF
+
+  
+  
+  
+  nsCOMPtr<nsIRDFLiteral> typeLiteral;
+  NS_ConvertUTF8toUTF16 UTF16Type(aType);
+  nsresult rv = rdf->GetLiteral( UTF16Type.get(), 
+                                 getter_AddRefs( typeLiteral ) );
   NS_ENSURE_SUCCESS(rv, rv);
   
   PRBool exists = PR_FALSE;
-  rv = mOverRideDataSource->HasAssertion(contentTypeNodeResource, kNC_Value, mimeLiteral, PR_TRUE, &exists );
-
+  rv = mOverRideDataSource->HasAssertion(aTypeNodeResource, kNC_Value,
+                                         typeLiteral, PR_TRUE, &exists );
   if (NS_SUCCEEDED(rv) && exists)
   {
      
-     rv = FillTopLevelProperties(contentTypeNodeResource, rdf, aMIMEInfo);
-     NS_ENSURE_SUCCESS(rv, rv);
-     rv = FillContentHandlerProperties(contentType.get(), contentTypeNodeResource, rdf, aMIMEInfo);
+
+     
+     const PRUnichar *stringValue;
+     FillLiteralValueFromTarget(aTypeNodeResource, kNC_Description, 
+                                &stringValue);
+     if (stringValue && *stringValue)
+       aHandlerInfo->SetDescription(nsDependentString(stringValue));
+
+     rv = FillContentHandlerProperties(aType.get(), aTypeNodePrefix,
+                                       rdf, aHandlerInfo);
 
   } 
   
@@ -959,14 +1045,15 @@ nsresult nsExternalHelperAppService::GetMIMEInfoForMimeTypeFromDS(const nsACStri
 #endif 
 }
 
-nsresult nsExternalHelperAppService::GetMIMEInfoForExtensionFromDS(const nsACString& aFileExtension, nsIMIMEInfo * aMIMEInfo)
+nsresult nsExternalHelperAppService::FillMIMEInfoForExtensionFromDS(
+  const nsACString& aFileExtension, nsIMIMEInfo * aMIMEInfo)
 {
   nsCAutoString type;
   PRBool found = GetTypeFromDS(aFileExtension, type);
   if (!found)
     return NS_ERROR_NOT_AVAILABLE;
 
-  return GetMIMEInfoForMimeTypeFromDS(type, aMIMEInfo);
+  return FillMIMEInfoForMimeTypeFromDS(type, aMIMEInfo);
 }
 
 PRBool nsExternalHelperAppService::GetTypeFromDS(const nsACString& aExtension,
@@ -1052,9 +1139,10 @@ NS_IMETHODIMP nsExternalHelperAppService::ExternalProtocolHandlerExists(const ch
                                                                         PRBool * aHandlerExists)
 {
   
-  nsCAutoString uriTemplate;
-  nsresult rv = GetWebProtocolHandlerURITemplate(
-    nsDependentCString(aProtocolScheme), uriTemplate);
+  
+  nsCOMPtr<nsIHandlerInfo> handlerInfo;
+  nsresult rv = GetProtocolHandlerInfo(
+      nsDependentCString(aProtocolScheme), getter_AddRefs(handlerInfo));
   if (NS_SUCCEEDED(rv)) {
     *aHandlerExists = PR_TRUE;
     return NS_OK;
@@ -1375,14 +1463,12 @@ nsresult nsExternalHelperAppService::ExpungeTemporaryFiles()
 }
 
 nsresult
-nsExternalHelperAppService::GetWebProtocolHandlerURITemplate(const nsACString &aScheme, 
-                                                             nsACString &aUriTemplate)
+nsExternalHelperAppService::GetProtocolHandlerInfo(const nsACString &aScheme, 
+                                                   nsIHandlerInfo **aHandlerInfo)
 {
-  nsresult rv;
-  nsCOMPtr<nsIPrefBranch> prefBranch = do_GetService(NS_PREFSERVICE_CONTRACTID,
-                                                     &rv);
-  NS_ENSURE_SUCCESS(rv, rv);
-    
+  
+  
+
   
   
 
@@ -1390,24 +1476,19 @@ nsExternalHelperAppService::GetWebProtocolHandlerURITemplate(const nsACString &a
   
   
   
-  nsCAutoString autoTemplatePref("network.protocol-handler.web.auto.");
-  autoTemplatePref += aScheme;
-    
-  nsCAutoString autoTemplate;
-  rv = prefBranch->GetCharPref(autoTemplatePref.get(), 
-                               getter_Copies(autoTemplate));
-  
-  if (NS_SUCCEEDED(rv)) {
-      aUriTemplate.Assign(autoTemplate);
-      return NS_OK;
+  nsMIMEInfoImpl *mimeInfo = new nsMIMEInfoImpl;
+  if (!mimeInfo) {
+    return NS_ERROR_OUT_OF_MEMORY;    
   }
-
+  NS_ADDREF(*aHandlerInfo = mimeInfo);
+     
+  nsresult rv = FillProtoInfoForSchemeFromDS(aScheme, *aHandlerInfo);     
+  if (NS_FAILED(rv)) {
+    NS_RELEASE(*aHandlerInfo);
+    return rv;
+  }
   
-  
-  
-  
-
-  return NS_ERROR_FAILURE;
+  return NS_OK;
 }
  
 
@@ -1894,7 +1975,7 @@ NS_IMETHODIMP nsExternalAppHandler::OnStartRequest(nsIRequest *request, nsISuppo
 
 
 
-    nsCOMPtr<nsIFile> prefApp;
+    nsCOMPtr<nsIHandlerApp> prefApp;
     mMimeInfo->GetPreferredApplicationHandler(getter_AddRefs(prefApp));
     if (action != nsIMIMEInfo::useHelperApp || !prefApp) {
       nsCOMPtr<nsIFile> fileToTest;
@@ -2166,7 +2247,7 @@ nsresult nsExternalAppHandler::ExecuteDesiredAction()
   nsresult rv = NS_OK;
   if (mProgressListenerInitialized && !mCanceled)
   {
-    nsMIMEInfoHandleAction action = nsIMIMEInfo::saveToDisk;
+    nsHandlerInfoAction action = nsIMIMEInfo::saveToDisk;
     mMimeInfo->GetPreferredAction(&action);
     if (action == nsIMIMEInfo::useHelperApp ||
         action == nsIMIMEInfo::useSystemDefault)
@@ -2521,8 +2602,11 @@ NS_IMETHODIMP nsExternalAppHandler::LaunchWithApplication(nsIFile * aApplication
   ProcessAnyRefreshTags(); 
   
   mReceivedDispositionInfo = PR_TRUE; 
-  if (mMimeInfo && aApplication)
-    mMimeInfo->SetPreferredApplicationHandler(aApplication);
+  if (mMimeInfo && aApplication) {
+    nsLocalHandlerApp *handlerApp(new nsLocalHandlerApp(EmptyString(), 
+                                                        aApplication));
+    mMimeInfo->SetPreferredApplicationHandler(handlerApp);
+  }
 
   
   
@@ -2609,7 +2693,7 @@ NS_IMETHODIMP nsExternalAppHandler::Cancel(nsresult aReason)
   
   
   
-  nsMIMEInfoHandleAction action = nsIMIMEInfo::saveToDisk;
+  nsHandlerInfoAction action = nsIMIMEInfo::saveToDisk;
   mMimeInfo->GetPreferredAction(&action);
   if (mTempFile &&
       (!mReceivedDispositionInfo || action != nsIMIMEInfo::saveToDisk))
@@ -2748,7 +2832,7 @@ NS_IMETHODIMP nsExternalHelperAppService::GetFromTypeAndExtension(const nsACStri
   
   
   
-  nsresult rv = GetMIMEInfoForMimeTypeFromDS(typeToUse, *_retval);
+  nsresult rv = FillMIMEInfoForMimeTypeFromDS(typeToUse, *_retval);
   found = found || NS_SUCCEEDED(rv);
 
   LOG(("Data source: Via type: retval 0x%08x\n", rv));
@@ -2756,7 +2840,7 @@ NS_IMETHODIMP nsExternalHelperAppService::GetFromTypeAndExtension(const nsACStri
   if (!found || NS_FAILED(rv)) {
     
     if (!aFileExt.IsEmpty()) {
-      rv = GetMIMEInfoForExtensionFromDS(aFileExt, *_retval);
+      rv = FillMIMEInfoForExtensionFromDS(aFileExt, *_retval);
       LOG(("Data source: Via ext: retval 0x%08x\n", rv));
       found = found || NS_SUCCEEDED(rv);
     }
@@ -2775,11 +2859,11 @@ NS_IMETHODIMP nsExternalHelperAppService::GetFromTypeAndExtension(const nsACStri
 
     if (!typeToUse.Equals(APPLICATION_OCTET_STREAM, nsCaseInsensitiveCStringComparator()))
 #endif
-      rv = GetMIMEInfoForMimeTypeFromExtras(typeToUse, *_retval);
+      rv = FillMIMEInfoForMimeTypeFromExtras(typeToUse, *_retval);
     LOG(("Searched extras (by type), rv 0x%08X\n", rv));
     
     if (NS_FAILED(rv) && !aFileExt.IsEmpty()) {
-      rv = GetMIMEInfoForExtensionFromExtras(aFileExt, *_retval);
+      rv = FillMIMEInfoForExtensionFromExtras(aFileExt, *_retval);
       LOG(("Searched extras (by ext), rv 0x%08X\n", rv));
     }
   }
@@ -2987,7 +3071,8 @@ NS_IMETHODIMP nsExternalHelperAppService::GetTypeFromFile(nsIFile* aFile, nsACSt
   return GetTypeFromExtension(fileExt, aContentType);
 }
 
-nsresult nsExternalHelperAppService::GetMIMEInfoForMimeTypeFromExtras(const nsACString& aContentType, nsIMIMEInfo * aMIMEInfo )
+nsresult nsExternalHelperAppService::FillMIMEInfoForMimeTypeFromExtras(
+  const nsACString& aContentType, nsIMIMEInfo * aMIMEInfo)
 {
   NS_ENSURE_ARG( aMIMEInfo );
 
@@ -3014,13 +3099,14 @@ nsresult nsExternalHelperAppService::GetMIMEInfoForMimeTypeFromExtras(const nsAC
   return NS_ERROR_NOT_AVAILABLE;
 }
 
-nsresult nsExternalHelperAppService::GetMIMEInfoForExtensionFromExtras(const nsACString& aExtension, nsIMIMEInfo * aMIMEInfo)
+nsresult nsExternalHelperAppService::FillMIMEInfoForExtensionFromExtras(
+  const nsACString& aExtension, nsIMIMEInfo * aMIMEInfo)
 {
   nsCAutoString type;
   PRBool found = GetTypeFromExtras(aExtension, type);
   if (!found)
     return NS_ERROR_NOT_AVAILABLE;
-  return GetMIMEInfoForMimeTypeFromExtras(type, aMIMEInfo);
+  return FillMIMEInfoForMimeTypeFromExtras(type, aMIMEInfo);
 }
 
 PRBool nsExternalHelperAppService::GetTypeFromExtras(const nsACString& aExtension, nsACString& aMIMEType)

@@ -35,6 +35,7 @@
 
 
 
+
 #ifndef __nsmimeinfoimpl_h___
 #define __nsmimeinfoimpl_h___
 
@@ -81,14 +82,12 @@ class nsMIMEInfoBase : public nsIMIMEInfo {
     NS_IMETHOD GetMacCreator(PRUint32 *aMacCreator);
     NS_IMETHOD SetMacCreator(PRUint32 aMacCreator);
     NS_IMETHOD Equals(nsIMIMEInfo *aMIMEInfo, PRBool *_retval);
-    NS_IMETHOD GetPreferredApplicationHandler(nsIFile * *aPreferredApplicationHandler);
-    NS_IMETHOD SetPreferredApplicationHandler(nsIFile * aPreferredApplicationHandler);
-    NS_IMETHOD GetApplicationDescription(nsAString & aApplicationDescription);
-    NS_IMETHOD SetApplicationDescription(const nsAString & aApplicationDescription);
+    NS_IMETHOD GetPreferredApplicationHandler(nsIHandlerApp * *aPreferredApplicationHandler);
+    NS_IMETHOD SetPreferredApplicationHandler(nsIHandlerApp * aPreferredApplicationHandler);
     NS_IMETHOD GetDefaultDescription(nsAString & aDefaultDescription);
     NS_IMETHOD LaunchWithFile(nsIFile *aFile);
-    NS_IMETHOD GetPreferredAction(nsMIMEInfoHandleAction *aPreferredAction);
-    NS_IMETHOD SetPreferredAction(nsMIMEInfoHandleAction aPreferredAction);
+    NS_IMETHOD GetPreferredAction(nsHandlerInfoAction *aPreferredAction);
+    NS_IMETHOD SetPreferredAction(nsHandlerInfoAction aPreferredAction);
     NS_IMETHOD GetAlwaysAskBeforeHandling(PRBool *aAlwaysAskBeforeHandling);
     NS_IMETHOD SetAlwaysAskBeforeHandling(PRBool aAlwaysAskBeforeHandling); 
 
@@ -143,8 +142,8 @@ class nsMIMEInfoBase : public nsIMIMEInfo {
     nsString               mDescription; 
     PRUint32               mMacType, mMacCreator; 
     nsCString              mMIMEType;
-    nsCOMPtr<nsIFile>      mPreferredApplication; 
-    nsMIMEInfoHandleAction mPreferredAction; 
+    nsCOMPtr<nsIHandlerApp> mPreferredApplication;
+    nsHandlerInfoAction    mPreferredAction; 
     nsString               mPreferredAppDescription;
     nsString               mDefaultAppDescription;
     PRBool                 mAlwaysAskBeforeHandling;
