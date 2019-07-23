@@ -3730,6 +3730,7 @@ nsRuleNode::ComputeContentData(nsStyleStruct* aStartStruct,
   nsCSSValueList* contentValue = contentData.mContent;
   if (contentValue) {
     if (eCSSUnit_Normal == contentValue->mValue.GetUnit() ||
+        eCSSUnit_None == contentValue->mValue.GetUnit() ||
         eCSSUnit_Initial == contentValue->mValue.GetUnit()) {
       
       content->AllocateContents(0);
