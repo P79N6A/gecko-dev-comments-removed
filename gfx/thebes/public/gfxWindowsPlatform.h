@@ -79,7 +79,7 @@ public:
 
 
 
-    FontEntry *FindFontForString(const PRUnichar *aString, PRUint32 aLength, gfxWindowsFont *aFont);
+    FontEntry *FindFontForChar(PRUint32 aCh, gfxWindowsFont *aFont);
 
     
     FontEntry *FindFontEntry(const nsAString& aName);
@@ -106,7 +106,7 @@ private:
                                                     nsRefPtr<FontEntry>& aData,
                                                     void* userArg);
 
-    static PLDHashOperator PR_CALLBACK FindFontForStringProc(nsStringHashKey::KeyType aKey,
+    static PLDHashOperator PR_CALLBACK FindFontForCharProc(nsStringHashKey::KeyType aKey,
                                                              nsRefPtr<FontEntry>& aFontEntry,
                                                              void* userArg);
 
@@ -119,6 +119,9 @@ private:
     nsDataHashtable<nsStringHashKey, nsRefPtr<FontEntry> > mFontSubstitutes;
     nsStringArray mNonExistingFonts;
 
+    
+    gfxSparseBitSet mCodepointsWithNoFonts;
+    
     nsDataHashtable<nsCStringHashKey, nsTArray<nsRefPtr<FontEntry> > > mPrefFonts;
 };
 
