@@ -405,6 +405,10 @@ class nsBuiltinDecoder : public nsMediaDecoder
   
   PRInt64 GetDownloadPosition();
 
+  
+  
+  void UpdatePlaybackOffset(PRInt64 aOffset);
+  
 public:
   
   void DecodeError();
