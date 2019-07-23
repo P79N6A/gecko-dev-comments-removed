@@ -50,8 +50,14 @@ function test() {
   const kTestSearchString = "privatebrowsing";
   let findBox = gFindBar.getElement("findbar-textbox");
   gFindBar.startFind(gFindBar.FIND_NORMAL);
-  for (let i = 0; i < kTestSearchString.length; ++ i)
-    EventUtils.synthesizeKey(kTestSearchString[i], {});
+
+  
+  is(findBox.editor.transactionManager.numberOfUndoItems, 0,
+    "No items in the undo list of the findbar control");
+  is(findBox.value, "",
+    "findbar text is empty");
+
+  findBox.value = kTestSearchString;
 
   
   pb.privateBrowsingEnabled = true;
