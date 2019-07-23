@@ -434,6 +434,12 @@ function onUpdateProgress()
     getDownload(dl.id).setAttribute("progress", dl.percentComplete);
 
     
+    var progressmeter = document.getAnonymousElementByAttribute(getDownload(dl.id), "anonid", "progressmeter");
+    var event = document.createEvent('Events');
+    event.initEvent('ValueChange', true, true);
+    progressmeter.dispatchEvent(event);
+
+    
     
     
     
