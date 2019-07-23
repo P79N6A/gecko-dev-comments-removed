@@ -63,7 +63,40 @@ public:
 
 private:
     
+    
+    enum BtlsWidthType { BTLS_MIN_WIDTH, 
+                         BTLS_PREF_WIDTH, 
+                         BTLS_FINAL_WIDTH };
+
+    
     void ComputeColumnIntrinsicWidths(nsIRenderingContext* aRenderingContext);
+
+    
+    void DistributePctWidthToColumns(float aSpanPrefPct,
+                                     PRInt32 aFirstCol,
+                                     PRInt32 aColCount);
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    void DistributeWidthToColumns(nscoord aWidth, 
+                                  PRInt32 aFirstCol, 
+                                  PRInt32 aColCount,
+                                  BtlsWidthType aWidthType,
+                                  PRBool aSpanHasSpecifiedWidth);
+ 
 
     
     
@@ -76,4 +109,4 @@ private:
     nscoord mLastCalcWidth;
 };
 
-#endif 
+#endif
