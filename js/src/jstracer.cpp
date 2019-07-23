@@ -7269,8 +7269,13 @@ TraceRecorder::call_imacro(jsbytecode* imacro)
     JSFrameRegs* regs = fp->regs;
 
     
-    if (fp->imacpc)
-        return JSRS_STOP;
+    if (fp->imacpc) {
+        
+        if (regs->pc[js_CodeSpec[*regs->pc].length] != JSOP_STOP)
+            return JSRS_STOP;
+        regs->pc = imacro;
+        return JSRS_IMACRO;
+    }
 
     fp->imacpc = regs->pc;
     regs->pc = imacro;
@@ -13029,6 +13034,123 @@ TraceRecorder::record_JSOP_HOLE()
 JSRecordingStatus
 TraceRecorder::record_JSOP_LOOP()
 {
+    return JSRS_CONTINUE;
+}
+
+static const uint32 sMaxConcatNSize = 32;
+
+
+
+
+
+jsval *
+js_ConcatPostImacroStackCleanup(uint32 argc, JSFrameRegs &regs,
+                                TraceRecorder *recorder)
+{
+    JS_ASSERT(*regs.pc == JSOP_IMACOP);
+
+    
+    jsint offset = JSVAL_TO_INT(*--regs.sp);
+    jsval *imacroResult = --regs.sp;
+
+    
+    jsval *vp = regs.sp - offset;
+    JS_ASSERT(regs.sp - argc <= vp && vp < regs.sp);
+    if (recorder)
+        recorder->set(vp, recorder->get(imacroResult));
+    *vp = *imacroResult;
+
+    return vp;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+JS_REQUIRES_STACK JSRecordingStatus
+TraceRecorder::record_JSOP_CONCATN()
+{
+    JSStackFrame *fp = cx->fp;
+    JSFrameRegs &regs = *fp->regs;
+
+    
+
+
+
+    uint32 argc;
+    jsval *loopStart;
+    if (fp->imacpc) {
+        JS_ASSERT(*fp->imacpc == JSOP_CONCATN);
+        argc = GET_ARGC(fp->imacpc);
+        loopStart = js_ConcatPostImacroStackCleanup(argc, regs, this) + 1;
+    } else {
+        argc = GET_ARGC(regs.pc);
+        JS_ASSERT(argc > 0);
+        loopStart = regs.sp - argc;
+
+        
+        if (argc > sMaxConcatNSize)
+            return JSRS_STOP;
+    }
+
+    
+    for (jsval *vp = loopStart; vp != regs.sp; ++vp) {
+        if (!JSVAL_IS_PRIMITIVE(*vp)) {
+            
+
+
+
+            jsint offset = regs.sp - vp;
+
+            
+            set(regs.sp, get(vp), true);
+            *regs.sp++ = *vp;
+
+            
+            set(regs.sp, lir->insImm(offset), true);
+            *regs.sp++ = INT_TO_JSVAL(offset);
+
+            
+            return call_imacro(defvalue_imacros.string);
+        }
+    }
+
+    
+    int32_t bufSize = argc * sizeof(JSString *);
+    LIns *buf_ins = lir->insAlloc(bufSize);
+    int32_t d = 0;
+    for (jsval *vp = regs.sp - argc; vp != regs.sp; ++vp, d += sizeof(void *))
+        lir->insStorei(stringify(*vp), buf_ins, d);
+
+    
+    LIns *args[] = { lir->insImm(argc), buf_ins, cx_ins };
+    LIns *concat = lir->insCall(&js_ConcatN_ci, args);
+    guard(false, lir->ins_eq0(concat), OOM_EXIT);
+
+    
+    jsval *afterPop = regs.sp - (argc - 1);
+    set(afterPop - 1, concat);
+
     return JSRS_CONTINUE;
 }
 

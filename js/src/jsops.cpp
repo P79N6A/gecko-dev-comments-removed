@@ -997,6 +997,53 @@
             }
           END_CASE(JSOP_ADD)
 
+          BEGIN_CASE(JSOP_CONCATN)
+          {
+            JS_ASSERT_IF(fp->imacpc,
+                         *fp->imacpc == JSOP_CONCATN && *regs.pc == JSOP_IMACOP);
+
+            
+
+
+
+
+
+
+
+
+            bool imacro = fp->imacpc != NULL;
+            bool recording = TRACE_RECORDER(cx) != NULL;
+            if (imacro) {
+                argc = GET_ARGC(fp->imacpc);
+                if (!recording)
+                    js_ConcatPostImacroStackCleanup(argc, regs, NULL);
+            } else {
+                argc = GET_ARGC(regs.pc);
+            }
+
+            JSCharBuffer buf(cx);
+            for (vp = regs.sp - argc; vp < regs.sp; vp++) {
+                if ((!JSVAL_IS_PRIMITIVE(*vp) &&
+                     !JSVAL_TO_OBJECT(*vp)->defaultValue(cx, JSTYPE_VOID, vp)) ||
+                    !js_ValueToCharBuffer(cx, *vp, buf)) {
+                    goto error;
+                }
+            }
+
+            str = js_NewStringFromCharBuffer(cx, buf);
+            if (!str)
+                goto error;
+
+            regs.sp -= argc - 1;
+            STORE_OPND(-1, STRING_TO_JSVAL(str));
+
+            if (imacro) {
+                
+                regs.pc -= JSOP_CONCATN_LENGTH - JSOP_IMACOP_LENGTH;
+            }
+          }
+          END_CASE(JSOP_CONCATN)
+
 #define BINARY_OP(OP)                                                         \
     JS_BEGIN_MACRO                                                            \
         FETCH_NUMBER(cx, -2, d);                                              \
