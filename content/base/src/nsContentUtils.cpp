@@ -1758,7 +1758,7 @@ nsContentUtils::GenerateStateKey(nsIContent* aContent,
 
         
         
-        index = htmlFormControls->IndexOf(aContent, PR_FALSE);
+        index = htmlFormControls->IndexOf(aContent, PR_TRUE);
         if (index > -1) {
           KeyAppendInt(index, aKey);
           generatedUniqueKey = PR_TRUE;
