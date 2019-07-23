@@ -52,7 +52,15 @@ class PluginScriptableObjectChild;
 struct ChildNPObject : NPObject
 {
   ChildNPObject()
-    : NPObject(), parent(NULL), invalidated(false) { }
+    : NPObject(), parent(NULL), invalidated(false)
+  {
+    MOZ_COUNT_CTOR(ChildNPObject);
+  }
+
+  ~ChildNPObject()
+  {
+    MOZ_COUNT_DTOR(ChildNPObject);
+  }
 
   
   
