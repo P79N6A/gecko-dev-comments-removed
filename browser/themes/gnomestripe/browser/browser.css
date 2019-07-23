@@ -202,7 +202,7 @@ menuitem.bookmark-item {
 
 
 .bookmark-item[container][livemark] { 
-  list-style-image: url("chrome://browser/skin/feeds/feedIcon16.png");
+  list-style-image: url("chrome://browser/skin/page-livemarks.png");
 }
 
 .bookmark-item[container][tagContainer] {
@@ -970,7 +970,7 @@ toolbar[iconsize="small"] #paste-button[disabled="true"] {
 }
 
 #feed-button[feeds] {
-  list-style-image: url("chrome://browser/skin/feeds/feedIcon16.png");
+  list-style-image: url("chrome://browser/skin/page-livemarks.png");
 }
 
 
