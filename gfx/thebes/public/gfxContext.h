@@ -181,6 +181,11 @@ public:
     
 
 
+    void QuadraticCurveTo(const gfxPoint& pt1, const gfxPoint& pt2);
+
+    
+
+
 
 
 
@@ -210,8 +215,31 @@ public:
 
 
     void Rectangle(const gfxRect& rect, PRBool snapToPixels = PR_FALSE);
+
+    
+
+
+
+
+
     void Ellipse(const gfxPoint& center, const gfxSize& dimensions);
+
+    
+
+
     void Polygon(const gfxPoint *points, PRUint32 numPoints);
+
+    
+
+
+
+
+
+
+
+    void RoundedRectangle(const gfxRect& rect,
+                          const gfxCornerSizes& corners,
+                          PRBool draw_clockwise = PR_TRUE);
 
     
 
