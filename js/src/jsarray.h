@@ -223,6 +223,12 @@ js_ArrayToJSDoubleBuffer(JSContext *cx, JSObject *obj, jsuint offset, jsuint cou
 JSBool
 js_PrototypeHasIndexedProperties(JSContext *cx, JSObject *obj);
 
+
+
+
+jsval
+js_GetDenseArrayElementValue(JSObject *obj, JSProperty *prop);
+
 JS_END_EXTERN_C
 
 #endif 
