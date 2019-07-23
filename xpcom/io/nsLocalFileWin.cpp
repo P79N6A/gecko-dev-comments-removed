@@ -2291,7 +2291,7 @@ nsLocalFile::IsExecutable(PRBool *_retval)
             *p +=  (*p >= L'A' && *p <= L'Z') ? 'a' - 'A' : 0; 
         
         
-        const char * const executableExts[] = {
+        static const char * const executableExts[] = {
             "ad",
             "ade",         
             "adp",
@@ -2363,10 +2363,10 @@ nsLocalFile::IsExecutable(PRBool *_retval)
             "ws",
             "wsc",
             "wsf",
-            "wsh",
-            0 };
-        for ( int i = 0; executableExts[i]; i++ ) {
-            if ( Substring(path, dotIdx + 1).EqualsASCII(executableExts[i])) {
+            "wsh"};
+        nsDependentSubstring ext = Substring(path, dotIdx + 1);
+        for ( int i = 0; i < NS_ARRAY_LENGTH(executableExts); i++ ) {
+            if ( ext.EqualsASCII(executableExts[i])) {
                 
                 *_retval = PR_TRUE;
                 break;
