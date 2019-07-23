@@ -175,7 +175,9 @@ public:
 
   NS_DECL_CYCLE_COLLECTION_CLASS(nsGeolocation)
 
-  nsGeolocation(nsIDOMWindow* contentDom);
+  nsGeolocation();
+
+  nsresult Init(nsIDOMWindow* contentDom=nsnull);
 
   
   void Update(nsIDOMGeoPosition* aPosition);
@@ -196,7 +198,7 @@ public:
   nsIWeakReference* GetOwner() { return mOwner; }
 
   
-  PRBool OwnerStillExists();
+  PRBool WindowOwnerStillExists();
 
 private:
 
