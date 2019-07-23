@@ -50,6 +50,7 @@
 #include "nsWeakReference.h"
 
 class nsAccessNode;
+class nsAccessible;
 class nsIFrame;
 class nsIWeakReference;
 class nsIDOMNode;
@@ -96,9 +97,9 @@ public:
 
 
 
-  nsresult GetAccessible(nsIDOMNode *aNode, nsIPresShell *aPresShell,
-                         nsIWeakReference *aWeakShell, nsIFrame *aFrameHint,
-                         PRBool *aIsHidden, nsIAccessible **aAccessible);
+  already_AddRefed<nsAccessible>
+    GetAccessible(nsIDOMNode *aNode, nsIPresShell *aPresShell,
+                  nsIWeakReference *aWeakShell, PRBool *aIsHidden = nsnull);
 
   
 
@@ -145,32 +146,42 @@ private:
 
 
 
-  nsresult InitAccessible(nsIAccessible *aAccessibleIn, nsIAccessible **aAccessibleOut,
-                          nsRoleMapEntry *aRoleMapEntry = nsnull);
+  PRBool InitAccessible(nsAccessible *aAccessible,
+                        nsRoleMapEntry *aRoleMapEntry);
 
   
 
 
 
-
-
-  nsresult GetAccessibleByType(nsIDOMNode *aNode, nsIAccessible **aAccessible);
+  already_AddRefed<nsAccessible>
+    CreateAccessibleByType(nsIDOMNode *aNode, nsIWeakReference *aWeakShell);
 
   
 
 
+  already_AddRefed<nsAccessible>
+    CreateDocOrRootAccessible(nsIPresShell *aShell, nsIDocument *aDocument);
+
+  
 
 
-  nsresult GetAccessibleForDeckChildren(nsIDOMNode *aNode,
-                                        nsIAccessible **aAccessible);
+  already_AddRefed<nsAccessible>
+    CreateHTMLAccessibleByMarkup(nsIFrame *aFrame, nsIWeakReference *aWeakShell,
+                                 nsIDOMNode *aNode);
+
+  
+
+
+  already_AddRefed<nsAccessible>
+    CreateAccessibleForDeckChild(nsIFrame *aFrame, nsIDOMNode *aNode,
+                                 nsIWeakReference *aWeakShell);
 
 #ifdef MOZ_XUL
   
 
 
-  nsresult GetAccessibleForXULTree(nsIDOMNode *aNode,
-                                   nsIWeakReference *aWeakShell,
-                                   nsIAccessible **aAccessible);
+  already_AddRefed<nsAccessible>
+    CreateAccessibleForXULTree(nsIDOMNode *aNode, nsIWeakReference *aWeakShell);
 #endif
   
   static nsAccessibilityService *gAccessibilityService;

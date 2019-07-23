@@ -175,6 +175,13 @@ class nsAccessNode: public nsIAccessNode
 
   PRBool HasWeakShell() const { return !!mWeakShell; }
 
+#ifdef DEBUG
+  
+
+
+  PRBool IsInCache();
+#endif
+
 protected:
     nsresult MakeAccessNode(nsIDOMNode *aNode, nsIAccessNode **aAccessNode);
 

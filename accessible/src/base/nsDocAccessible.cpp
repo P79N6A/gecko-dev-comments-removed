@@ -572,7 +572,7 @@ nsDocAccessible::GetCachedAccessNode(void *aUniqueID)
 }
 
 
-void
+PRBool
 nsDocAccessible::CacheAccessNode(void *aUniqueID, nsAccessNode *aAccessNode)
 {
   
@@ -581,7 +581,7 @@ nsDocAccessible::CacheAccessNode(void *aUniqueID, nsAccessNode *aAccessNode)
   if (accessNode)
     accessNode->Shutdown();
 
-  mAccessNodeCache.Put(aUniqueID, aAccessNode);
+  return mAccessNodeCache.Put(aUniqueID, aAccessNode);
 }
 
 
@@ -602,20 +602,26 @@ nsDocAccessible::RemoveAccessNodeFromCache(nsIAccessNode *aAccessNode)
 nsresult
 nsDocAccessible::Init()
 {
-  gGlobalDocAccessibleCache.Put(static_cast<void*>(mDocument), this);
-
-  AddEventListeners();
-
-  GetParent(); 
+  
+  if (!gGlobalDocAccessibleCache.Put(static_cast<void*>(mDocument), this))
+    return NS_ERROR_OUT_OF_MEMORY;
 
   
   mEventQueue = new nsAccEventQueue(this);
+  if (!mEventQueue)
+    return NS_ERROR_OUT_OF_MEMORY;
+
+  AddEventListeners();
+
+  
+  GetParent();
 
   
   
   nsRefPtr<nsAccEvent> reorderEvent =
     new nsAccReorderEvent(mParent, PR_FALSE, PR_TRUE, mDOMNode);
-  NS_ENSURE_TRUE(reorderEvent, NS_ERROR_OUT_OF_MEMORY);
+  if (!reorderEvent)
+    return NS_ERROR_OUT_OF_MEMORY;
 
   FireDelayedAccessibleEvent(reorderEvent);
   return NS_OK;

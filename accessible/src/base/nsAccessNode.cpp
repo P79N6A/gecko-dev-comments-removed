@@ -112,9 +112,6 @@ nsAccessNode::nsAccessNode(nsIDOMNode *aNode, nsIWeakReference* aShell):
 #endif
 }
 
-
-
-
 nsAccessNode::~nsAccessNode()
 {
   NS_ASSERTION(!mWeakShell, "LastRelease was never called!?!");
@@ -130,6 +127,9 @@ void nsAccessNode::LastRelease()
   
   NS_DELETEXPCOM(this);
 }
+
+
+
 
 nsresult
 nsAccessNode::Init()
@@ -168,7 +168,9 @@ nsAccessNode::Init()
   nsRefPtr<nsDocAccessible> docAcc =
     nsAccUtils::QueryAccessibleDocument(docAccessible);
   NS_ASSERTION(docAcc, "No nsDocAccessible for document accessible!");
-  docAcc->CacheAccessNode(uniqueID, this);
+
+  if (!docAcc->CacheAccessNode(uniqueID, this))
+    return NS_ERROR_OUT_OF_MEMORY;
 
   
   
@@ -201,11 +203,13 @@ nsAccessNode::Shutdown()
   return NS_OK;
 }
 
+
 NS_IMETHODIMP nsAccessNode::GetUniqueID(void **aUniqueID)
 {
   *aUniqueID = static_cast<void*>(mDOMNode);
   return NS_OK;
 }
+
 
 NS_IMETHODIMP nsAccessNode::GetOwnerWindow(void **aWindow)
 {
@@ -269,6 +273,7 @@ void nsAccessNode::InitXPAccessibility()
   NotifyA11yInitOrShutdown(PR_TRUE);
 }
 
+
 void nsAccessNode::NotifyA11yInitOrShutdown(PRBool aIsInit)
 {
   nsCOMPtr<nsIObserverService> obsService =
@@ -331,6 +336,7 @@ already_AddRefed<nsIPresShell> nsAccessNode::GetPresShell()
   return presShell;
 }
 
+
 nsPresContext* nsAccessNode::GetPresContext()
 {
   nsCOMPtr<nsIPresShell> presShell(GetPresShell());
@@ -339,6 +345,7 @@ nsPresContext* nsAccessNode::GetPresContext()
   }
   return presShell->GetPresContext();
 }
+
 
 already_AddRefed<nsIAccessibleDocument> nsAccessNode::GetDocAccessible()
 {
@@ -378,6 +385,28 @@ nsAccessNode::GetFrame()
   nsCOMPtr<nsIContent> content(do_QueryInterface(mDOMNode));
   return content ? content->GetPrimaryFrame() : nsnull;
 }
+
+#ifdef DEBUG
+PRBool
+nsAccessNode::IsInCache()
+{
+  nsCOMPtr<nsIAccessibleDocument> accessibleDoc =
+    nsAccessNode::GetDocAccessibleFor(mWeakShell);
+
+  if (!accessibleDoc)
+    return nsnull;
+
+  void* uniqueID = nsnull;
+  GetUniqueID(&uniqueID);
+
+  nsRefPtr<nsDocAccessible> docAccessible =
+    nsAccUtils::QueryObject<nsDocAccessible>(accessibleDoc);
+  return docAccessible->GetCachedAccessNode(uniqueID) ? PR_TRUE : PR_FALSE;
+}
+#endif
+
+
+
 
 NS_IMETHODIMP
 nsAccessNode::GetDOMNode(nsIDOMNode **aNode)
@@ -458,6 +487,7 @@ nsAccessNode::ScrollToPoint(PRUint32 aCoordinateType, PRInt32 aX, PRInt32 aY)
 
   return NS_OK;
 }
+
 
 nsresult
 nsAccessNode::MakeAccessNode(nsIDOMNode *aNode, nsIAccessNode **aAccessNode)
@@ -612,6 +642,7 @@ nsAccessNode::GetComputedStyleCSSValue(const nsAString& aPseudoElt,
 
 
 
+
 already_AddRefed<nsIAccessibleDocument>
 nsAccessNode::GetDocAccessibleFor(nsIDocument *aDocument)
 {
@@ -725,6 +756,7 @@ already_AddRefed<nsIDOMNode> nsAccessNode::GetCurrentFocus()
   return focusedNode;
 }
 
+
 NS_IMETHODIMP
 nsAccessNode::GetLanguage(nsAString& aLanguage)
 {
@@ -764,4 +796,3 @@ nsAccessNode::GetLanguage(nsAString& aLanguage)
  
   return NS_OK;
 }
-

@@ -168,7 +168,9 @@ public:
 
 
 
-  void CacheAccessNode(void *aUniqueID, nsAccessNode *aAccessNode);
+
+
+  PRBool CacheAccessNode(void *aUniqueID, nsAccessNode *aAccessNode);
 
   
 
