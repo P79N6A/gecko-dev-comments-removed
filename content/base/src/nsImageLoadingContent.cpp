@@ -290,7 +290,8 @@ nsImageLoadingContent::OnStopDecode(imgIRequest* aRequest,
   
 
   
-  nsIPresShell* shell = GetOurDocument()->GetPrimaryShell();
+  nsIDocument* doc = GetOurDocument();
+  nsIPresShell* shell = doc ? doc->GetPrimaryShell() : nsnull;
   if (shell) {
 
     
