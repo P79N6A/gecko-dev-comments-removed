@@ -507,8 +507,6 @@ struct nsCSSTable : public nsCSSStruct  {
   nsCSSValue mEmptyCells;
   
   nsCSSValue mLayout;
-  nsCSSValue mFrame; 
-  nsCSSValue mRules; 
   nsCSSValue mSpan; 
   nsCSSValue mCols; 
 private:

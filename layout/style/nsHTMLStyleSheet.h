@@ -155,71 +155,12 @@ private:
     NS_IMETHOD MapRuleInfoInto(nsRuleData* aRuleData);
   };
 
-  
-  
-  class TableTbodyRule;
-  friend class TableTbodyRule;
-  class TableTbodyRule: public GenericTableRule {
-  public:
-    TableTbodyRule() {}
-
-    NS_IMETHOD MapRuleInfoInto(nsRuleData* aRuleData);
-  };
-
-  
-  class TableRowRule;
-  friend class TableRowRule;
-  class TableRowRule: public GenericTableRule {
-  public:
-    TableRowRule() {}
-
-    NS_IMETHOD MapRuleInfoInto(nsRuleData* aRuleData);
-  };
-
-  
-  class TableColgroupRule;
-  friend class TableColgroupRule;
-  class TableColgroupRule: public GenericTableRule {
-  public:
-    TableColgroupRule() {}
-
-    NS_IMETHOD MapRuleInfoInto(nsRuleData* aRuleData);
-  };
-
-  
-  
-  
-  class TableColRule;
-  friend class TableColRule;
-  class TableColRule: public GenericTableRule {
-  public:
-    TableColRule() {}
-
-    NS_IMETHOD MapRuleInfoInto(nsRuleData* aRuleData);
-  };
-
-  
-  
-  class TableUngroupedColRule;
-  friend class TableUngroupedColRule;
-  class TableUngroupedColRule: public GenericTableRule {
-  public:
-    TableUngroupedColRule() {}
-
-    NS_IMETHOD MapRuleInfoInto(nsRuleData* aRuleData);
-  };
-
   nsIURI*              mURL;
   nsIDocument*         mDocument;
   HTMLColorRule*       mLinkRule;
   HTMLColorRule*       mVisitedRule;
   HTMLColorRule*       mActiveRule;
   HTMLColorRule*       mDocumentColorRule;
-  TableTbodyRule*      mTableTbodyRule;
-  TableRowRule*        mTableRowRule;
-  TableColgroupRule*   mTableColgroupRule;
-  TableColRule*        mTableColRule;
-  TableUngroupedColRule* mTableUngroupedColRule;
   TableTHRule*         mTableTHRule;
 
   PLDHashTable         mMappedAttrTable;

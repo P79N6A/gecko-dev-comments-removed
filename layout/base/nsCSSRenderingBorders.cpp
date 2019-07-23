@@ -1052,11 +1052,6 @@ nsCSSBorderRenderer::DrawBorders()
       allBordersSame = PR_FALSE;
       dashedSides |= (1 << i);
     }
-
-    
-    
-    if (style & NS_STYLE_BORDER_STYLE_RULES_MARKER)
-      return;
   }
 
   SF(" allBordersSame: %d dashedSides: 0x%02x\n", allBordersSame, dashedSides);

@@ -5249,14 +5249,6 @@ nsRuleNode::ComputeTableData(void* aStartStruct,
               NS_STYLE_TABLE_LAYOUT_AUTO, 0, 0, 0, 0);
 
   
-  if (eCSSUnit_Enumerated == tableData.mRules.GetUnit())
-    table->mRules = tableData.mRules.GetIntValue();
-
-  
-  if (eCSSUnit_Enumerated == tableData.mFrame.GetUnit())
-    table->mFrame = tableData.mFrame.GetIntValue();
-
-  
   if (eCSSUnit_Enumerated == tableData.mCols.GetUnit() ||
       eCSSUnit_Integer == tableData.mCols.GetUnit())
     table->mCols = tableData.mCols.GetIntValue();

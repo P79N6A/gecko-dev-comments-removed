@@ -199,10 +199,123 @@ table[align="right"] {
   text-align: start;
 }
 
-table[rules]:not([rules="none"]) {
+
+
+
+  
+
+
+
+  
+table[rules] { 
+  border: thin hidden; 
+}
+
+  
+
+
+
+  
+table[border]:not([border="0"]) { 
+  border: thin outset; 
+}
+
+  
+table[frame] {
+  border: thin hidden;
+}
+
+
+table[frame][frame="void"]   { border-style: hidden; }
+table[frame][frame="above"]  { border-style: outset hidden hidden hidden; }
+table[frame][frame="below"]  { border-style: hidden hidden outset hidden; }
+table[frame][frame="lhs"]    { border-style: hidden hidden hidden outset; }
+table[frame][frame="rhs"]    { border-style: hidden outset hidden hidden; }
+table[frame][frame="hsides"] { border-style: outset hidden; }
+table[frame][frame="vsides"] { border-style: hidden outset; }
+table[frame][frame="box"],
+table[frame][frame="border"] { border-style: outset; }
+
+ 
+
+
+  
+
+table[border]:not([border="0"])> * > tr > td,
+table[border]:not([border="0"])> * > tr > th,
+table[border]:not([border="0"])> * > td,
+table[border]:not([border="0"])> * > th,
+table[border]:not([border="0"])> td,
+table[border]:not([border="0"])> th
+{
+  border: thin inset;
+}
+
+
+table[rules]:not([rules="none"]):not([rules=""]) {
   border-collapse: collapse;
 }
-   
+
+
+
+table[rules]:not([rules=""])> tr > td,
+table[rules]:not([rules=""])> * > tr > td,
+table[rules]:not([rules=""])> tr > th,
+table[rules]:not([rules=""])> * > tr > th,
+table[rules]:not([rules=""])> td,
+table[rules]:not([rules=""])> th
+{
+  border: thin none;
+}
+
+
+table[rules][rules="none"]  > tr > td,
+table[rules][rules="none"] > * > tr > td,
+table[rules][rules="none"] > tr > th,
+table[rules][rules="none"] > * > tr > th,
+table[rules][rules="none"] > td,
+table[rules][rules="none"] > th
+{
+  border: thin hidden;
+}
+
+table[rules][rules="all"] > tr > td,
+table[rules][rules="all"] > * > tr > td,
+table[rules][rules="all"] > tr > th,
+table[rules][rules="all"] > * > tr > th,
+table[rules][rules="all"] > td,
+table[rules][rules="all"] > th 
+{
+  border: thin solid ;
+}
+
+table[rules][rules="rows"] > tr,
+table[rules][rules="rows"] > * > tr {
+  border-top: thin solid;
+  border-bottom: thin solid;
+}
+
+
+table[rules][rules="cols"] > tr > td,
+table[rules][rules="cols"] > * > tr > td,
+table[rules][rules="cols"] > tr > th,
+table[rules][rules="cols"] > * > tr > th {
+  border-left: thin solid;
+  border-right: thin solid;
+}
+
+table[rules][rules="groups"] > colgroup {
+  border-left: thin solid;
+  border-right: thin solid;
+}
+table[rules][rules="groups"] > tfoot,
+table[rules][rules="groups"] > thead,
+table[rules][rules="groups"] > tbody {
+  border-top: thin solid;
+  border-bottom: thin solid;
+}
+  
+  
   
 caption {
   display: table-caption;
