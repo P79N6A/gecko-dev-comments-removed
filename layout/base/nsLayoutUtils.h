@@ -626,6 +626,12 @@ public:
 
 
 
+  static nsIFrame* GetNonGeneratedAncestor(nsIFrame* aFrame);
+
+  
+
+
+
   static nsBlockFrame* GetAsBlock(nsIFrame* aFrame);
   
   
