@@ -3513,7 +3513,30 @@ WindowRef nsPluginInstanceOwner::FixUpPluginWindow(PRInt32 inPaintState)
     mPluginWindow->x = -pluginPort->qdPort.portx;
     mPluginWindow->y = -pluginPort->qdPort.porty;
   }
+  else if (drawingModel == NPDrawingModelCoreGraphics)
 #endif
+  {
+    
+    
+    
+    
+    
+    nsRect geckoBounds;
+    mWidget->GetBounds(geckoBounds);
+    
+    
+    geckoBounds.x = 0;
+    geckoBounds.y = 0;
+    nsRect geckoScreenCoords;
+    mWidget->WidgetToScreen(geckoBounds, geckoScreenCoords);
+
+    Rect windowRect;
+    WindowRef window = (WindowRef)pluginPort->cgPort.window;
+    ::GetWindowBounds(window, kWindowStructureRgn, &windowRect);
+
+    mPluginWindow->x = geckoScreenCoords.x - windowRect.left;
+    mPluginWindow->y = geckoScreenCoords.y - windowRect.top;
+  }
 
   nsPluginRect oldClipRect = mPluginWindow->clipRect;
   
