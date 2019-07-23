@@ -482,6 +482,10 @@ imgCacheExpirationTracker::imgCacheExpirationTracker()
 
 void imgCacheExpirationTracker::NotifyExpired(imgCacheEntry *entry)
 {
+  
+  
+  nsRefPtr<imgCacheEntry> kungFuDeathGrip(entry);
+
 #if defined(PR_LOGGING)
   nsRefPtr<imgRequest> req(entry->GetRequest());
   if (req) {
