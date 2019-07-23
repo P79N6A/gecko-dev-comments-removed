@@ -300,6 +300,8 @@ protected:
                                               nsIToolkit *aToolkit);
   void                 DestroyNativeWindow();
   void                 AdjustWindowShadow();
+  void                 SetUpWindowFilter();
+  void                 CleanUpWindowFilter();
 
   nsIWidget*           mParent;         
   BaseWindow*          mWindow;         
@@ -308,6 +310,7 @@ protected:
   NSWindow*            mSheetWindowParent; 
   nsChildView*         mPopupContentView; 
   PRInt32              mShadowStyle;
+  NSUInteger           mWindowFilter;
 
   PRPackedBool         mIsResizing;     
   PRPackedBool         mWindowMadeHere; 
