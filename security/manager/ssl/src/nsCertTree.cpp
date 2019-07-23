@@ -767,7 +767,7 @@ nsCertTree::GetCellText(PRInt32 row, nsITreeColumn* col,
     PRUint32 verified;
 
     nsAutoString theUsages;
-    rv = cert->GetUsagesString(PR_TRUE, &verified, theUsages); 
+    rv = cert->GetUsagesString(PR_FALSE, &verified, theUsages); 
     if (NS_FAILED(rv)) {
       verified = nsIX509Cert::NOT_VERIFIED_UNKNOWN;
     }
