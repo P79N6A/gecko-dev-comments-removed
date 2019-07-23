@@ -985,7 +985,7 @@ gfxTextRun::DrawPartialLigature(gfxFont *aFont, gfxContext *aCtx, PRUint32 aOffs
         
         widthBeforeCluster = 0;
     }
-    if (aOffset < data.mEndOffset) {
+    if (aOffset < data.mEndOffset - 1) {
         
         gfxFloat endEdge = aPt->x + clusterWidth;
         if (IsRightToLeft()) {
@@ -999,12 +999,15 @@ gfxTextRun::DrawPartialLigature(gfxFont *aFont, gfxContext *aCtx, PRUint32 aOffs
     }
 
     aCtx->Save();
+    aCtx->NewPath();
     
     
-    aCtx->Clip(gfxRect(left/mAppUnitsPerDevUnit,
-                       aDirtyRect->Y()/mAppUnitsPerDevUnit,
-                       (right - left)/mAppUnitsPerDevUnit,
-                       aDirtyRect->Height()/mAppUnitsPerDevUnit));
+    
+    aCtx->Rectangle(gfxRect(left/mAppUnitsPerDevUnit,
+                            aDirtyRect->Y()/mAppUnitsPerDevUnit,
+                            (right - left)/mAppUnitsPerDevUnit,
+                            aDirtyRect->Height()/mAppUnitsPerDevUnit), PR_TRUE);
+    aCtx->Clip();
     gfxPoint pt(aPt->x - direction*widthBeforeCluster, aPt->y);
     DrawGlyphs(aFont, aCtx, PR_FALSE, &pt, data.mStartOffset,
                data.mEndOffset, aProvider);
