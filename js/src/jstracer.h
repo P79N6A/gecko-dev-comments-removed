@@ -223,7 +223,8 @@ enum ExitType {
 struct VMSideExit : public nanojit::SideExit
 {
     JSObject* block;
-    intptr_t ip_adj;
+    jsbytecode* pc;
+    jsbytecode* imacpc;
     intptr_t sp_adj;
     intptr_t rp_adj;
     int32_t calldepth;
@@ -251,7 +252,8 @@ static inline uint8* getFullTypeMap(nanojit::SideExit* exit)
 struct FrameInfo {
     JSObject*       callee;     
     JSObject*       block;      
-    intptr_t        ip_adj;     
+    jsbytecode*     pc;         
+    jsbytecode*     imacpc;     
     union {
         struct {
             uint16  spdist;     
@@ -385,7 +387,8 @@ class TraceRecorder : public avmplus::GCObject {
     jsval*                  global_dslots;
     JSTraceableNative*      pendingTraceableNative;
     bool                    terminate;
-    intptr_t                terminate_ip_adj;
+    jsbytecode*             terminate_pc;
+    jsbytecode*             terminate_imacpc;
     nanojit::Fragment*      outerToBlacklist;
     TraceRecorder*          nextRecorderToAbort;
     bool                    wasRootFragment;
