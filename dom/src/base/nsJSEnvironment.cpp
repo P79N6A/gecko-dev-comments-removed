@@ -177,7 +177,7 @@ static PRUint32 sCCollectCount;
 static PRBool sUserIsActive;
 static PRTime sPreviousCCTime;
 static PRUint32 sCollectedObjectsCounts;
-static PRUint32 sGCCount;
+static PRUint32 sSavedGCCount;
 static PRUint32 sCCSuspectChanges;
 static PRUint32 sCCSuspectedCount;
 static nsITimer *sGCTimer;
@@ -868,7 +868,6 @@ MaybeGC(JSContext *cx)
       || cx->runtime->gcZeal > 0
 #endif
       ) {
-    ++sGCCount;
     JS_GC(cx);
   }
 }
@@ -3409,17 +3408,32 @@ nsJSContext::CC()
 #endif
   sPreviousCCTime = PR_Now();
   sDelayedCCollectCount = 0;
-  sGCCount = 0;
   sCCSuspectChanges = 0;
   
   
   sCollectedObjectsCounts = nsCycleCollector_collect();
   sCCSuspectedCount = nsCycleCollector_suspectedCount();
+  sSavedGCCount = JS_GetGCParameter(nsJSRuntime::sRuntime, JSGC_NUMBER);
 #ifdef DEBUG_smaug
   printf("Collected %u objects, %u suspected objects, took %lldms\n",
          sCollectedObjectsCounts, sCCSuspectedCount,
          (PR_Now() - sPreviousCCTime) / PR_USEC_PER_MSEC);
 #endif
+}
+
+static inline uint32
+GetGCRunsSinceLastCC()
+{
+    
+    
+    if (!nsJSRuntime::sRuntime)
+        return 0;
+
+    
+    
+    
+    return JS_GetGCParameter(nsJSRuntime::sRuntime, JSGC_NUMBER) -
+           sSavedGCCount;
 }
 
 
@@ -3430,7 +3444,7 @@ nsJSContext::MaybeCC(PRBool aHigherProbability)
 
   
   if (sCCSuspectChanges <= NS_MIN_SUSPECT_CHANGES ||
-      sGCCount <= NS_MAX_GC_COUNT) {
+      GetGCRunsSinceLastCC() <= NS_MAX_GC_COUNT) {
 #ifdef DEBUG_smaug
     PRTime now = PR_Now();
 #endif
@@ -3447,8 +3461,8 @@ nsJSContext::MaybeCC(PRBool aHigherProbability)
     }
   }
 #ifdef DEBUG_smaug
-  printf("sCCSuspectChanges %u, sGCCount %u\n",
-         sCCSuspectChanges, sGCCount);
+  printf("sCCSuspectChanges %u, GC runs %u\n",
+         sCCSuspectChanges, GetGCRunsSinceLastCC());
 #endif
 
   
@@ -3461,7 +3475,7 @@ nsJSContext::MaybeCC(PRBool aHigherProbability)
   if (!sGCTimer &&
       (sDelayedCCollectCount > NS_MAX_DELAYED_CCOLLECT) &&
       ((sCCSuspectChanges > NS_MIN_SUSPECT_CHANGES &&
-        sGCCount > NS_MAX_GC_COUNT) ||
+        GetGCRunsSinceLastCC() > NS_MAX_GC_COUNT) ||
        (sCCSuspectChanges > NS_MAX_SUSPECT_CHANGES))) {
     if ((PR_Now() - sPreviousCCTime) >=
         PRTime(NS_MIN_CC_INTERVAL * PR_USEC_PER_MSEC)) {
@@ -3691,7 +3705,7 @@ nsJSRuntime::Startup()
   sUserIsActive = PR_FALSE;
   sPreviousCCTime = 0;
   sCollectedObjectsCounts = 0;
-  sGCCount = 0;
+  sSavedGCCount = 0;
   sCCSuspectChanges = 0;
   sCCSuspectedCount = 0;
   sGCTimer = nsnull;
@@ -3797,6 +3811,8 @@ nsJSRuntime::Init()
 
   NS_ASSERTION(!gOldJSGCCallback,
                "nsJSRuntime initialized more than once");
+
+  sSavedGCCount = JS_GetGCParameter(nsJSRuntime::sRuntime, JSGC_NUMBER);
 
   
   gOldJSGCCallback = ::JS_SetGCCallbackRT(sRuntime, DOMGCCallback);
