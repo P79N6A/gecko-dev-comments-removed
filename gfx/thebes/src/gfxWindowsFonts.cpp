@@ -943,13 +943,12 @@ public:
     HRESULT ShapeGDI() {
         SelectFont();
 
-        mGlyphs.SetLength(mRangeLength);
         mNumGlyphs = mRangeLength;
         GetGlyphIndicesW(mDC, mRangeString, mRangeLength,
                          (WORD*) mGlyphs.Elements(),
                          GGI_MARK_NONEXISTING_GLYPHS);
 
-        for (PRUint32 i = 0; i < mItemLength; ++i)
+        for (PRUint32 i = 0; i < mRangeLength; ++i)
             mClusters[i] = i;
 
         return S_OK;
@@ -957,7 +956,7 @@ public:
 
     HRESULT Shape() {
         
-        if (mCurrentFont->GetFontEntry()->mIsType1)
+        if (mCurrentFont->GetFontEntry()->mForceGDI)
             return ShapeGDI();
 
         return ShapeUniscribe();
@@ -984,8 +983,7 @@ public:
 
     PRBool IsGlyphMissing(SCRIPT_FONTPROPERTIES *aSFP, PRUint32 aGlyphIndex) {
         PRBool missing = PR_FALSE;
-        if (GetCurrentFont()->GetFontEntry()->mIsType1) {
-            
+        if (GetCurrentFont()->GetFontEntry()->mForceGDI) {
             
             if (mGlyphs[aGlyphIndex] == 0xFFFF)
                 missing = PR_TRUE;
@@ -1051,8 +1049,8 @@ public:
         PRBool allCJK = PR_TRUE;
 
         
-
-        if (!mCurrentFont->GetFontEntry()->mIsType1) {
+        
+        if (!mCurrentFont->GetFontEntry()->mForceGDI) {
             for (PRUint32 i = 0; i < mRangeLength; i++) {
                 const PRUnichar ch = mRangeString[i];
                 if (ch == ' ' || FindCharUnicodeRange(ch) == kRangeSetCJK)
@@ -1063,7 +1061,7 @@ public:
             }
         }
 
-        if (allCJK || mCurrentFont->GetFontEntry()->mIsType1)
+        if (allCJK || mCurrentFont->GetFontEntry()->mForceGDI)
             return PlaceGDI();
 
         return PlaceUniscribe();
@@ -1245,7 +1243,7 @@ public:
         if (aFontEntry->mCharacterMap.test(ch))
             return PR_TRUE;
 
-        if (aFontEntry->mIsType1) {
+        if (aFontEntry->mForceGDI) {
             if (ch > 0xFFFF)
                 return PR_FALSE;
 
@@ -1768,7 +1766,7 @@ gfxWindowsFontGroup::InitTextRunUniscribe(gfxContext *aContext, gfxTextRun *aRun
     for (int i = 0; i < numItems; ++i) {
         SaveDC(aDC);
 
-        UniscribeItem *item = us.GetItem(i, this);
+        nsAutoPtr<UniscribeItem> item = us.GetItem(i, this);
 
         PRUint32 nranges = item->ComputeRanges();
 
@@ -1794,11 +1792,21 @@ gfxWindowsFontGroup::InitTextRunUniscribe(gfxContext *aContext, gfxTextRun *aRun
             rv = item->Place();
             NS_ASSERTION(SUCCEEDED(rv), "Failed to place -- this is pretty bad.");
 
+            if (FAILED(rv)) {
+                aRun->ResetGlyphRuns();
+
+                
+                item->GetCurrentFont()->GetFontEntry()->mForceGDI = PR_TRUE;
+                break;
+            }
+
             item->SaveGlyphs(aRun);
         }
 
-        delete item;
-
         RestoreDC(aDC, -1);
+
+        if (FAILED(rv)) {
+            i = -1;
+        }
     }
 }
