@@ -724,7 +724,22 @@ nsViewManager::UpdateViewAfterScroll(nsView *aView, const nsRegion& aUpdateRegio
 {
   NS_ASSERTION(RootViewManager()->mScrollCnt > 0,
                "Someone forgot to call WillBitBlit()");
+  
+  
+  nsRect damageRect = aView->GetDimensions();
+  if (damageRect.IsEmpty()) {
+    return;
+  }
   nsPoint offset = ComputeViewOffset(aView);
+  damageRect.MoveBy(offset);
+
+  
+  
+  if (aView->GetFloating()) {
+    return;
+  }
+
+  UpdateWidgetArea(RootViewManager()->GetRootView(), nsRegion(damageRect), aView);
   if (!aUpdateRegion.IsEmpty()) {
     
     
