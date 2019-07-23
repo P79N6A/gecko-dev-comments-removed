@@ -39,11 +39,11 @@
 #ifndef nsDragService_h__
 #define nsDragService_h__
 
-#include "nsIDragService.h"
+#include "nsBaseDragService.h"
 #include <qdrag.h>
 
 
-class nsDragService : public nsIDragService
+class nsDragService : public nsBaseDragService
 {
 public:
     NS_DECL_ISUPPORTS
@@ -55,7 +55,14 @@ private:
     ~nsDragService();
 
 protected:
-  
+    
+    NS_IMETHODIMP SetupDragSession(nsISupportsArray *aTransferables, PRUint32 aActionType);
+    NS_IMETHODIMP SetDropActionType(PRUint32 aActionType);
+    NS_IMETHODIMP ExecuteDrag();
+
+    QDrag *mDrag;
+    Qt::DropActions mDropAction;
+    QWidget *mHiddenWidget;
 };
 
-#endif
+#endif 
