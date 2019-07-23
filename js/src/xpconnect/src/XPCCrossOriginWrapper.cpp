@@ -789,9 +789,15 @@ XPC_XOW_Convert(JSContext *cx, JSObject *obj, JSType type, jsval *vp)
     return JS_TRUE;
   }
 
+  
   nsresult rv = IsWrapperSameOrigin(cx, wrappedObj);
   if (NS_FAILED(rv) &&
-      (rv != NS_ERROR_DOM_PROP_ACCESS_DENIED || type != JSTYPE_STRING)) {
+      (rv != NS_ERROR_DOM_PROP_ACCESS_DENIED ||
+       (type != JSTYPE_STRING && type != JSTYPE_VOID))) {
+    
+    if (rv == NS_ERROR_DOM_PROP_ACCESS_DENIED) {
+      ThrowException(rv, cx);
+    }
     return JS_FALSE;
   }
 
