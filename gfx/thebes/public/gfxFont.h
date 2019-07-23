@@ -470,6 +470,7 @@ public:
         
 
 
+
         TEXT_IS_8BIT                 = 0x0080,
         
 
@@ -487,7 +488,8 @@ public:
         
 
 
-        TEXT_DISABLE_LIGATURES       = 0x0400
+
+        TEXT_DISABLE_OPTIONAL_LIGATURES = 0x0400
     };
 
     
