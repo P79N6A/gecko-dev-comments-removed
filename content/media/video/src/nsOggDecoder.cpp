@@ -1225,7 +1225,7 @@ nsresult nsOggDecodeStateMachine::Run()
 
         
         QueueDecodedFrames();
-        while (mDecodedFrames.IsEmpty()) {
+        while (mDecodedFrames.IsEmpty() && !mDecodingCompleted) {
           mon.Wait(PR_MillisecondsToInterval(PRInt64(mCallbackPeriod*500)));
           if (mState != DECODER_STATE_DECODING)
             break;
