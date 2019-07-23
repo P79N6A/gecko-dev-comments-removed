@@ -29,13 +29,18 @@ enum AVScanState
   AVSCAN_GOOD,
   AVSCAN_BAD,
   AVSCAN_UGLY,
-  AVSCAN_FAILED
+  AVSCAN_FAILED,
+  AVSCAN_TIMEDOUT
 };
+
+
+class nsDownloadScannerWatchdog;
 
 class nsDownloadScanner
 {
 public:
   nsDownloadScanner();
+  ~nsDownloadScanner();
   nsresult Init();
   nsresult ScanDownload(nsDownload *download);
 
@@ -46,17 +51,36 @@ private:
   PRBool IsAESAvailable();
   PRInt32 ListCLSID();
 
+  nsAutoPtr<nsDownloadScannerWatchdog> mWatchdog;
+
   static unsigned int __stdcall ScannerThreadFunction(void *p);
   class Scan : public nsRunnable
   {
   public:
     Scan(nsDownloadScanner *scanner, nsDownload *download);
+    ~Scan();
     nsresult Start();
+
+    
+    PRTime GetStartTime() const { return mStartTime; }
+    
+    
+    
+    
+    
+    HANDLE GetWaitableThreadHandle() const;
+
+    
+    
+    PRBool NotifyTimeout();
 
   private:
     nsDownloadScanner *mDLScanner;
+    PRTime mStartTime;
     HANDLE mThread;
     nsRefPtr<nsDownload> mDownload;
+    
+    CRITICAL_SECTION mStateSync;
     AVScanState mStatus;
     nsString mPath;
     nsString mName;
@@ -65,13 +89,23 @@ private:
     PRBool mIsHttpDownload;
     PRBool mIsReadOnlyRequest;
 
+    
+
+
+
+
+
+    PRBool CheckAndSetState(AVScanState newState, AVScanState expectedState);
+
     NS_IMETHOD Run();
 
     void DoScan();
-    void DoScanAES();
-    void DoScanOAV();
+    PRBool DoScanAES();
+    PRBool DoScanOAV();
 
     friend unsigned int __stdcall nsDownloadScanner::ScannerThreadFunction(void *);
   };
+  
+  friend class nsDownloadScannerWatchdog;
 };
 #endif

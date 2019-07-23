@@ -45,6 +45,54 @@
 #include "nsXULAppAPI.h"
 #include "nsIPrefService.h"
 #include "nsNetUtil.h"
+#include "nsDeque.h"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -99,9 +147,41 @@
 static const GUID GUID_MozillaVirusScannerPromptGeneric =
   MOZ_VIRUS_SCANNER_PROMPT_GUID;
 
+
+#define WATCHDOG_TIMEOUT (30*PR_USEC_PER_SEC)
+
+class nsDownloadScannerWatchdog 
+{
+  typedef nsDownloadScanner::Scan Scan;
+public:
+  nsDownloadScannerWatchdog();
+  ~nsDownloadScannerWatchdog();
+
+  nsresult Init();
+  nsresult Shutdown();
+
+  void Watch(Scan *scan);
+private:
+  static unsigned int __stdcall WatchdogThread(void *p);
+  CRITICAL_SECTION mQueueSync;
+  nsDeque mScanQueue;
+  HANDLE mThread;
+  HANDLE mNewItemEvent;
+  HANDLE mQuitEvent;
+};
+
 nsDownloadScanner::nsDownloadScanner()
   : mHaveAVScanner(PR_FALSE), mHaveAttachmentExecute(PR_FALSE)
 {
+}
+ 
+
+
+
+
+nsDownloadScanner::~nsDownloadScanner() {
+  if (mWatchdog)
+    (void)mWatchdog->Shutdown();
 }
 
 nsresult
@@ -114,6 +194,16 @@ nsDownloadScanner::Init()
   if (!IsAESAvailable() && ListCLSID() < 0)
     rv = NS_ERROR_NOT_AVAILABLE;
   CoUninitialize();
+  if (NS_SUCCEEDED(rv)) {
+    mWatchdog = new nsDownloadScannerWatchdog();
+    if (mWatchdog) {
+      rv = mWatchdog->Init();
+      if (FAILED(rv))
+        mWatchdog = nsnull;
+    } else {
+      rv = NS_ERROR_OUT_OF_MEMORY;
+    }
+  }
 
   return rv;
 }
@@ -179,15 +269,41 @@ nsDownloadScanner::ScannerThreadFunction(void *p)
   return 0;
 }
 
+
+
+
+class ReleaseDispatcher : public nsRunnable {
+public:
+  ReleaseDispatcher(nsISupports *ptr)
+    : mPtr(ptr) {}
+  NS_IMETHOD Run();
+private:
+  nsISupports *mPtr;
+};
+
+nsresult ReleaseDispatcher::Run() {
+  NS_ASSERTION(NS_IsMainThread(), "Antivirus scan release dispatch should be run on the main thread");
+  NS_RELEASE(mPtr);
+  NS_RELEASE_THIS();
+  return NS_OK;
+}
+
 nsDownloadScanner::Scan::Scan(nsDownloadScanner *scanner, nsDownload *download)
   : mDLScanner(scanner), mThread(NULL), 
     mDownload(download), mStatus(AVSCAN_NOTSTARTED)
 {
+  InitializeCriticalSection(&mStateSync);
+}
+
+nsDownloadScanner::Scan::~Scan() {
+  DeleteCriticalSection(&mStateSync);
 }
 
 nsresult
 nsDownloadScanner::Scan::Start()
 {
+  mStartTime = PR_Now();
+
   mThread = (HANDLE)_beginthreadex(NULL, 0, ScannerThreadFunction,
       this, CREATE_SUSPENDED, NULL);
   if (!mThread)
@@ -250,11 +366,15 @@ nsDownloadScanner::Scan::Start()
 nsresult
 nsDownloadScanner::Scan::Run()
 {
+  NS_ASSERTION(NS_IsMainThread(), "Antivirus scan dispatch should be run on the main thread");
+
   
-  WaitForSingleObject(mThread, INFINITE);
+  if (mStatus != AVSCAN_TIMEDOUT)
+    WaitForSingleObject(mThread, INFINITE);
   CloseHandle(mThread);
 
   DownloadState downloadState = 0;
+  EnterCriticalSection(&mStateSync);
   switch (mStatus) {
     case AVSCAN_BAD:
       downloadState = nsIDownloadManager::DOWNLOAD_DIRTY;
@@ -263,16 +383,24 @@ nsDownloadScanner::Scan::Run()
     case AVSCAN_FAILED:
     case AVSCAN_GOOD:
     case AVSCAN_UGLY:
+    case AVSCAN_TIMEDOUT:
       downloadState = nsIDownloadManager::DOWNLOAD_FINISHED;
       break;
   }
-  (void)mDownload->SetState(downloadState);
+  LeaveCriticalSection(&mStateSync);
+  
+  if (mDownload)
+    (void)mDownload->SetState(downloadState);
+
+  
+  
+  mDownload = nsnull;
 
   NS_RELEASE_THIS();
   return NS_OK;
 }
 
-void
+PRBool
 nsDownloadScanner::Scan::DoScanAES()
 {
   HRESULT hr;
@@ -280,33 +408,37 @@ nsDownloadScanner::Scan::DoScanAES()
   hr = CoCreateInstance(CLSID_AttachmentServices, NULL, CLSCTX_ALL,
                         IID_IAttachmentExecute, getter_AddRefs(ae));
 
-  mStatus = AVSCAN_SCANNING;
+  
+  if (CheckAndSetState(AVSCAN_SCANNING, AVSCAN_NOTSTARTED)) {
+    AVScanState newState;
+    if (SUCCEEDED(hr)) {
+      (void)ae->SetClientGuid(GUID_MozillaVirusScannerPromptGeneric);
+      (void)ae->SetLocalPath(mPath.BeginWriting());
+      (void)ae->SetSource(mOrigin.BeginWriting());
 
-  if (SUCCEEDED(hr)) {
-    (void)ae->SetClientGuid(GUID_MozillaVirusScannerPromptGeneric);
-    (void)ae->SetLocalPath(mPath.BeginWriting());
-    (void)ae->SetSource(mOrigin.BeginWriting());
+      
+      hr = ae->Save();
 
-    
-    hr = ae->Save();
-
-    if (SUCCEEDED(hr)) { 
-      mStatus = AVSCAN_GOOD;
+      if (SUCCEEDED(hr)) { 
+        newState = AVSCAN_GOOD;
+      }
+      else if (HRESULT_CODE(hr) == ERROR_FILE_NOT_FOUND) {
+        NS_WARNING("Downloaded file disappeared before it could be scanned");
+        newState = AVSCAN_FAILED;
+      }
+      else { 
+        newState = AVSCAN_UGLY;
+      }
     }
-    else if (HRESULT_CODE(hr) == ERROR_FILE_NOT_FOUND) {
-      NS_WARNING("Downloaded file disappeared before it could be scanned");
-      mStatus = AVSCAN_FAILED;
+    else {
+      newState = AVSCAN_FAILED;
     }
-    else { 
-      mStatus = AVSCAN_UGLY;
-    }
+    return CheckAndSetState(newState, AVSCAN_SCANNING);
   }
-  else {
-    mStatus = AVSCAN_FAILED;
-  }
+  return PR_FALSE;
 }
 
-void
+PRBool
 nsDownloadScanner::Scan::DoScanOAV()
 {
   HRESULT hr;
@@ -322,41 +454,48 @@ nsDownloadScanner::Scan::DoScanOAV()
   info.u.pwzFullPath = mPath.BeginWriting();
   info.pwzOrigURL = mOrigin.BeginWriting();
 
-  for (PRUint32 i = 0; i < mDLScanner->mScanCLSID.Length(); i++) {
-    nsRefPtr<IOfficeAntiVirus> vScanner;
-    hr = CoCreateInstance(mDLScanner->mScanCLSID[i], NULL, CLSCTX_ALL,
-                          IID_IOfficeAntiVirus, getter_AddRefs(vScanner));
-    if (FAILED(hr)) {
-      NS_WARNING("Could not instantiate antivirus scanner");
-      mStatus = AVSCAN_FAILED;
-    } else {
-      mStatus = AVSCAN_SCANNING;
+  AVScanState newState = AVSCAN_GOOD;
+  
+  if (CheckAndSetState(AVSCAN_SCANNING, AVSCAN_NOTSTARTED)) {
+    for (PRUint32 i = 0; i < mDLScanner->mScanCLSID.Length(); i++) {
+      nsRefPtr<IOfficeAntiVirus> vScanner;
+      hr = CoCreateInstance(mDLScanner->mScanCLSID[i], NULL, CLSCTX_ALL,
+                            IID_IOfficeAntiVirus, getter_AddRefs(vScanner));
+      if (FAILED(hr)) {
+        NS_WARNING("Could not instantiate antivirus scanner");
+        newState = AVSCAN_FAILED;
+      } else {
+        newState = AVSCAN_SCANNING;
 
-      hr = vScanner->Scan(&info);
+        hr = vScanner->Scan(&info);
 
-      if (hr == S_OK) { 
-        mStatus = AVSCAN_GOOD;
-        continue;
-      }
-      else if (hr == S_FALSE) { 
-        mStatus = AVSCAN_UGLY;
-        continue;
-      }
-      else if (HRESULT_CODE(hr) == ERROR_FILE_NOT_FOUND) {
-        NS_WARNING("Downloaded file disappeared before it could be scanned");
-        mStatus = AVSCAN_FAILED;
-        break;
-      }
-      else if (hr == E_FAIL) { 
-        mStatus = AVSCAN_BAD;
-        break;
-      }
-      else {
-        mStatus = AVSCAN_FAILED;
-        break;
+        if (hr == S_OK) { 
+          newState = AVSCAN_GOOD;
+          continue;
+        }
+        else if (hr == S_FALSE) { 
+          newState = AVSCAN_UGLY;
+          continue;
+        }
+        else if (hr == ERROR_FILE_NOT_FOUND) {
+          NS_WARNING("Downloaded file disappeared before it could be scanned");
+          newState = AVSCAN_FAILED;
+          break;
+        }
+        else if (hr == E_FAIL) { 
+          newState = AVSCAN_BAD;
+          break;
+        }
+        else {
+          newState = AVSCAN_FAILED;
+          break;
+        }
       }
     }
   }
+
+  
+  return CheckAndSetState(newState, AVSCAN_SCANNING);
 }
 
 void
@@ -364,15 +503,53 @@ nsDownloadScanner::Scan::DoScan()
 {
   CoInitialize(NULL);
 
-  if (mDLScanner->mHaveAttachmentExecute)
-    DoScanAES();
-  else
-    DoScanOAV();
+  if (mDLScanner->mHaveAttachmentExecute ? DoScanAES() : DoScanOAV()) {
+    
+    NS_DispatchToMainThread(this);
+  } else {
+    
+    ReleaseDispatcher* releaser = new ReleaseDispatcher(this);
+    if(releaser) {
+      NS_ADDREF(releaser);
+      NS_DispatchToMainThread(releaser);
+    }
+  }
 
   CoUninitialize();
+}
 
-  
-  NS_DispatchToMainThread(this);
+HANDLE
+nsDownloadScanner::Scan::GetWaitableThreadHandle() const
+{
+  HANDLE targetHandle = INVALID_HANDLE_VALUE;
+  (void)DuplicateHandle(GetCurrentProcess(), mThread,
+                        GetCurrentProcess(), &targetHandle,
+                        SYNCHRONIZE, 
+                        FALSE, 
+                        0);
+  return targetHandle;
+}
+
+PRBool
+nsDownloadScanner::Scan::NotifyTimeout()
+{
+  PRBool didTimeout = CheckAndSetState(AVSCAN_TIMEDOUT, AVSCAN_SCANNING) ||
+                      CheckAndSetState(AVSCAN_TIMEDOUT, AVSCAN_NOTSTARTED);
+  if (didTimeout) {
+    
+    NS_DispatchToMainThread(this);
+  }
+  return didTimeout;
+}
+
+PRBool
+nsDownloadScanner::Scan::CheckAndSetState(AVScanState newState, AVScanState expectedState) {
+  PRBool gotExpectedState = PR_FALSE;
+  EnterCriticalSection(&mStateSync);
+  if(gotExpectedState = (mStatus == expectedState))
+    mStatus = newState;
+  LeaveCriticalSection(&mStateSync);
+  return gotExpectedState;
 }
 
 nsresult
@@ -394,6 +571,148 @@ nsDownloadScanner::ScanDownload(nsDownload *download)
   
   if (NS_FAILED(rv))
     NS_RELEASE(scan);
+  else
+    
+    mWatchdog->Watch(scan);
 
   return rv;
+}
+
+nsDownloadScannerWatchdog::nsDownloadScannerWatchdog() 
+  : mNewItemEvent(NULL), mQuitEvent(NULL) {
+  InitializeCriticalSection(&mQueueSync);
+}
+nsDownloadScannerWatchdog::~nsDownloadScannerWatchdog() {
+  DeleteCriticalSection(&mQueueSync);
+}
+
+nsresult
+nsDownloadScannerWatchdog::Init() {
+  
+  mNewItemEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
+  if (INVALID_HANDLE_VALUE == mNewItemEvent)
+    return NS_ERROR_OUT_OF_MEMORY;
+  mQuitEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
+  if (INVALID_HANDLE_VALUE == mQuitEvent) {
+    (void)CloseHandle(mNewItemEvent);
+    return NS_ERROR_OUT_OF_MEMORY;
+  }
+
+  
+  
+  mThread = (HANDLE)_beginthreadex(NULL, 0, WatchdogThread,
+                                   this, 0, NULL);
+  if (!mThread) {
+    (void)CloseHandle(mNewItemEvent);
+    (void)CloseHandle(mQuitEvent);
+    return NS_ERROR_OUT_OF_MEMORY;
+  }
+
+  return NS_OK;
+}
+
+nsresult
+nsDownloadScannerWatchdog::Shutdown() {
+  
+  (void)SetEvent(mQuitEvent);
+  (void)WaitForSingleObject(mThread, INFINITE);
+  (void)CloseHandle(mThread);
+  
+  while (mScanQueue.GetSize() != 0) {
+    Scan *scan = reinterpret_cast<Scan*>(mScanQueue.Pop());
+    NS_RELEASE(scan);
+  }
+  (void)CloseHandle(mNewItemEvent);
+  (void)CloseHandle(mQuitEvent);
+  return NS_OK;
+}
+
+void
+nsDownloadScannerWatchdog::Watch(Scan *scan) {
+  PRBool wasEmpty;
+  
+  
+  
+  
+  NS_ADDREF(scan);
+  EnterCriticalSection(&mQueueSync);
+  wasEmpty = mScanQueue.GetSize()==0;
+  mScanQueue.Push(scan);
+  LeaveCriticalSection(&mQueueSync);
+  
+  if (wasEmpty)
+    (void)SetEvent(mNewItemEvent);
+}
+
+unsigned int
+__stdcall
+nsDownloadScannerWatchdog::WatchdogThread(void *p) {
+  NS_ASSERTION(!NS_IsMainThread(), "Antivirus scan watchdog should not be run on the main thread");
+  nsDownloadScannerWatchdog *watchdog = (nsDownloadScannerWatchdog*)p;
+  HANDLE waitHandles[3] = {watchdog->mNewItemEvent, watchdog->mQuitEvent, INVALID_HANDLE_VALUE};
+  DWORD waitStatus;
+  DWORD queueItemsLeft = 0;
+  
+  while (0 != queueItemsLeft ||
+         (WAIT_OBJECT_0 + 1) !=
+           (waitStatus =
+              WaitForMultipleObjects(2, waitHandles, FALSE, INFINITE)) &&
+         waitStatus != WAIT_FAILED) {
+    Scan *scan = NULL;
+    PRTime startTime, expectedEndTime, now;
+    DWORD waitTime;
+
+    
+    EnterCriticalSection(&watchdog->mQueueSync);
+    scan = reinterpret_cast<Scan*>(watchdog->mScanQueue.Pop());
+    queueItemsLeft = watchdog->mScanQueue.GetSize();
+    LeaveCriticalSection(&watchdog->mQueueSync);
+
+    
+    startTime = scan->GetStartTime();
+    expectedEndTime = WATCHDOG_TIMEOUT + startTime;
+    now = PR_Now();
+    
+    
+    if (now > expectedEndTime) {
+      waitTime = 0;
+    } else {
+      
+      
+      
+      waitTime = static_cast<DWORD>((expectedEndTime - now)/PR_USEC_PER_MSEC);
+    }
+    HANDLE hThread = waitHandles[2] = scan->GetWaitableThreadHandle();
+
+    
+    waitStatus = WaitForMultipleObjects(2, (waitHandles+1), FALSE, waitTime);
+    CloseHandle(hThread);
+
+    ReleaseDispatcher* releaser = new ReleaseDispatcher(scan);
+    if(!releaser)
+      continue;
+    NS_ADDREF(releaser);
+    
+    if (waitStatus == WAIT_FAILED || waitStatus == WAIT_OBJECT_0) {
+      NS_DispatchToMainThread(releaser);
+      break;
+    
+    } else if (waitStatus == (WAIT_OBJECT_0+1)) {
+      NS_DispatchToMainThread(releaser);
+      continue;
+    
+    } else { 
+      NS_ASSERTION(waitStatus == WAIT_TIMEOUT, "Unexpected wait status in dlmgr watchdog thread");
+      if (!scan->NotifyTimeout()) {
+        
+        NS_DispatchToMainThread(releaser);
+      } else {
+        
+        
+        NS_RELEASE(releaser);
+      }
+    }
+  }
+  _endthreadex(0);
+  return 0;
 }
