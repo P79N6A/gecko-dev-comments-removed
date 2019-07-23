@@ -152,8 +152,27 @@ nsHtml5TreeOpExecutor::DidBuildModel(PRBool aTerminated)
 
   
   DidBuildModelImpl(aTerminated);
-  mDocument->ScriptLoader()->RemoveObserver(this);
+
+  if (!mLayoutStarted) {
+    
+    
+
+    
+    
+    
+    
+    PRBool destroying = PR_TRUE;
+    if (mDocShell) {
+      mDocShell->IsBeingDestroyed(&destroying);
+    }
+
+    if (!destroying) {
+      nsContentSink::StartLayout(PR_FALSE);
+    }
+  }
+
   ScrollToRef();
+  mDocument->ScriptLoader()->RemoveObserver(this);
   mDocument->RemoveObserver(this);
   if (!mParser) {
     
@@ -524,6 +543,24 @@ nsHtml5TreeOpExecutor::DocumentMode(nsHtml5DocumentMode m)
   nsCOMPtr<nsIHTMLDocument> htmlDocument = do_QueryInterface(mDocument);
   NS_ASSERTION(htmlDocument, "Document didn't QI into HTML document.");
   htmlDocument->SetCompatibilityMode(mode);
+}
+
+void
+nsHtml5TreeOpExecutor::StartLayout() {
+  if (mLayoutStarted || !mDocument) {
+    return;
+  }
+
+  EndDocUpdate();
+
+  if(NS_UNLIKELY(!mParser)) {
+    
+    return;
+  }
+
+  nsContentSink::StartLayout(PR_FALSE);
+
+  BeginDocUpdate();
 }
 
 
