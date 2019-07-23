@@ -379,10 +379,15 @@ PrivateBrowsingService.prototype = {
     let (lm = Cc["@mozilla.org/login-manager;1"].
               getService(Ci.nsILoginManager)) {
       
-      let logins = lm.getAllLogins({});
-      for (let i = 0; i < logins.length; i++)
-        if (logins[i].hostname.endsWith(aDomain))
-          lm.removeLogin(logins[i]);
+      try {
+        let logins = lm.getAllLogins({});
+        for (let i = 0; i < logins.length; i++)
+          if (logins[i].hostname.endsWith(aDomain))
+            lm.removeLogin(logins[i]);
+      }
+      
+      
+      catch (ex if ex == "User canceled Master Password entry") {}
 
       
       let disabledHosts = lm.getAllDisabledHosts({});
