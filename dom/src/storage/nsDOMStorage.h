@@ -37,7 +37,6 @@
 
 
 
-
 #ifndef nsDOMStorage_h___
 #define nsDOMStorage_h___
 
@@ -97,14 +96,10 @@ public:
   
   NS_DECL_NSIOBSERVER
 
-  nsDOMStorageManager();
-
   void AddToStoragesHash(nsDOMStorage* aStorage);
   void RemoveFromStoragesHash(nsDOMStorage* aStorage);
 
   nsresult ClearAllStorages();
-
-  PRBool InPrivateBrowsingMode() { return mInPrivateBrowsing; }
 
   static nsresult Initialize();
   static nsDOMStorageManager* GetInstance();
@@ -115,7 +110,6 @@ public:
 protected:
 
   nsTHashtable<nsDOMStorageEntry> mStorages;
-  PRBool mInPrivateBrowsing;
 };
 
 class nsDOMStorage : public nsIDOMStorage,
@@ -146,10 +140,7 @@ public:
   
   
   
-  PRBool UseDB() {
-    return mUseDB && !mSessionOnly &&
-           !nsDOMStorageManager::gStorageManager->InPrivateBrowsingMode();
-  }
+  PRBool UseDB() { return mUseDB && !mSessionOnly; }
 
   
   
