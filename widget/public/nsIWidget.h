@@ -104,8 +104,8 @@ typedef nsEventStatus (* EVENT_CALLBACK)(nsGUIEvent *event);
 
 
 #define NS_IWIDGET_IID \
-{ 0x5FF2CD19, 0x4F73, 0x4935, \
-  { 0x8E, 0xA2, 0x7A, 0x2C, 0x33, 0x16, 0x6D, 0x4C } }
+{ 0xA16A3387, 0xA529, 0x439C, \
+  { 0xA1, 0x27, 0xA5, 0x89, 0x33, 0x51, 0xFD, 0x24 } }
 
 
 
@@ -643,6 +643,14 @@ class nsIWidget : public nsISupports {
 
 
     NS_IMETHOD SetWindowShadowStyle(PRInt32 aStyle) = 0;
+
+    
+
+
+
+
+
+    virtual void SetShowsToolbarButton(PRBool aShow) = 0;
 
     
 
