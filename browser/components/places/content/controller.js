@@ -446,24 +446,21 @@ PlacesController.prototype = {
           uri = PlacesUtils._uri(node.uri);
           if (PlacesUtils.nodeIsBookmark(node)) {
             nodeData["bookmark"] = true;
+            PlacesUtils.nodeIsTagQuery(node.parent)
             var mss = PlacesUIUtils.microsummaries;
             if (mss.hasMicrosummary(node.itemId))
               nodeData["microsummary"] = true;
-            else if (node.parent &&
-                     PlacesUtils.nodeIsLivemarkContainer(node.parent))
-              nodeData["livemarkChild"] = true;
+
+            var parentNode = node.parent;
+            if (parentNode) {
+              if (PlacesUtils.nodeIsTagQuery(parentNode))
+                nodeData["tagChild"] = true;
+              else if (PlacesUtils.nodeIsLivemarkContainer(parentNode))
+                nodeData["livemarkChild"] = true;
+            }
           }
           break;
       }
-
-      
-      
-      
-      
-      
-      if (!PlacesUtils.nodeIsReadOnly(node) &&
-          !PlacesUtils.isReadonlyFolder(node.parent || root))
-        nodeData["mutable"] = true;
 
       
       if (uri) {
@@ -509,8 +506,12 @@ PlacesController.prototype = {
       }
     }
 
-    if (aMenuItem.hasAttribute("selection")) {
-      var showRules = aMenuItem.getAttribute("selection").split("|");
+    var selectionAttr = aMenuItem.getAttribute("selection");
+    if (selectionAttr) {
+      if (selectionAttr == "any")
+        return true;
+
+      var showRules = selectionAttr.split("|");
       var anyMatched = false;
       function metaDataNodeMatches(metaDataNode, rules) {
         for (var i=0; i < rules.length; i++) {
@@ -561,8 +562,12 @@ PlacesController.prototype = {
 
 
 
+
+
   buildContextMenu: function PC_buildContextMenu(aPopup) {
     var metadata = this._buildSelectionMetadata();
+    var ip = this._view.insertionPoint;
+    var noIp = !ip || ip.isTag;
 
     var separator = null;
     var visibleItemsBeforeSep = false;
@@ -570,7 +575,9 @@ PlacesController.prototype = {
     for (var i = 0; i < aPopup.childNodes.length; ++i) {
       var item = aPopup.childNodes[i];
       if (item.localName != "menuseparator") {
-        item.hidden = !this._shouldShowMenuItem(item, metadata);
+        item.hidden = item.getAttribute("hideifnoinsetionpoint") == "true" ||
+                      !this._shouldShowMenuItem(item, metadata);
+
         if (!item.hidden) {
           visibleItemsBeforeSep = true;
           anyVisible = true;

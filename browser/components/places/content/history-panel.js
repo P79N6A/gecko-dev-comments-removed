@@ -69,20 +69,6 @@ function HistorySidebarInit()
 
 function initContextMenu() {
   
-  var alwaysHideElements = ["placesContext_new:bookmark",
-                            "placesContext_new:folder",
-                            "placesContext_new:separator",
-                            "placesContext_cut",
-                            "placesContext_paste",
-                            "placesContext_sortBy:name"];
-  for (var i=0; i < alwaysHideElements.length; i++) {
-    var elt = document.getElementById(alwaysHideElements[i]);
-    elt.removeAttribute("selection");
-    elt.removeAttribute("forcehideselection");
-    elt.hidden = true;
-  }
-
-  
   document.getElementById("placesContext")
           .insertBefore(document.getElementById("addBookmarkContextItem"),
                         document.getElementById("placesContext_copy"));

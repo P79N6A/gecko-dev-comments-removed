@@ -104,6 +104,10 @@ var PlacesOrganizer = {
     var historyMenuForward = document.getElementById("historyMenuForward");
     historyMenuForward.removeAttribute("key");
 #endif
+
+    
+    document.getElementById("placesContext")
+            .removeChild(document.getElementById("placesContext_show:info"));
   },
 
   QueryInterface: function PO_QueryInterface(aIID) {
