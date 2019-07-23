@@ -49,6 +49,9 @@
 #include <string>
 #include <Carbon/Carbon.h>
 #include <fcntl.h>
+#elif defined(XP_LINUX)
+#include "client/linux/handler/exception_handler.h"
+#include <fcntl.h>
 #else
 #error "Not yet implemented for this platform"
 #endif 
@@ -216,78 +219,6 @@ bool MinidumpCallback(const XP_CHAR* dump_path,
  return succeeded;
 }
 
-static nsresult GetExecutablePath(nsString& exePath)
-{
-#if !defined(XP_MACOSX)
-
-#ifdef XP_WIN32
-  exePath.SetLength(XP_PATH_MAX);
-  if (!GetModuleFileName(NULL, (LPWSTR)exePath.BeginWriting(), XP_PATH_MAX))
-    return NS_ERROR_FAILURE;
-#else
-  return NS_ERROR_NOT_IMPLEMENTED;
-#endif
-
-  NS_NAMED_LITERAL_STRING(pathSep, PATH_SEPARATOR);
-
-  PRInt32 lastSlash = exePath.RFind(pathSep);
-  if (lastSlash < 0)
-    return NS_ERROR_FAILURE;
-
-  exePath.Truncate(lastSlash + 1);
-
-  return NS_OK;
-
-#else 
-
-  CFBundleRef appBundle = CFBundleGetMainBundle();
-  if (!appBundle)
-    return NS_ERROR_FAILURE;
-
-  CFURLRef executableURL = CFBundleCopyExecutableURL(appBundle);
-  if (!executableURL)
-    return NS_ERROR_FAILURE;
-
-  CFURLRef bundleURL = CFURLCreateCopyDeletingLastPathComponent(NULL,
-                                                                executableURL);
-  CFRelease(executableURL);
-
-  if (!bundleURL)
-    return NS_ERROR_FAILURE;
-
-  CFURLRef reporterURL = CFURLCreateCopyAppendingPathComponent(
-    NULL,
-    bundleURL,
-    CFSTR("crashreporter.app/Contents/MacOS/"),
-    false);
-  CFRelease(bundleURL);
-
-  if (!reporterURL)
-    return NS_ERROR_FAILURE;
-
-  FSRef fsRef;
-  if (!CFURLGetFSRef(reporterURL, &fsRef)) {
-    CFRelease(reporterURL);
-    return NS_ERROR_FAILURE;
-  }
-
-  CFRelease(reporterURL);
-
-  char path[PATH_MAX + 1];
-  OSStatus status = FSRefMakePath(&fsRef, (UInt8*)path, PATH_MAX);
-  if (status != noErr)
-    return NS_ERROR_FAILURE;
-
-  int len = strlen(path);
-  path[len] = '/';
-  path[len + 1] = '\0';
-
-  exePath = NS_ConvertUTF8toUTF16(path);
-
-  return NS_OK;
-#endif
-}
-
 nsresult SetExceptionHandler(nsILocalFile* aXREDirectory,
                              const char* aServerURL)
 {
@@ -316,21 +247,14 @@ nsresult SetExceptionHandler(nsILocalFile* aXREDirectory,
   
   nsString exePath;
 
-  if (aXREDirectory) {
-    aXREDirectory->GetPath(exePath);
-  }
-  else {
-    rv = GetExecutablePath(exePath);
-    NS_ENSURE_SUCCESS(rv, rv);
-  }
-
+  aXREDirectory->GetPath(exePath);
   NS_NAMED_LITERAL_STRING(crashReporterFilename, CRASH_REPORTER_FILENAME);
 
   crashReporterPath = TO_NEW_XP_CHAR(exePath + crashReporterFilename);
 
   
   nsString tempPath;
-#ifdef XP_WIN32
+#if defined(XP_WIN32)
   
   int pathLen = GetTempPath(0, NULL);
   if (pathLen == 0)
@@ -351,6 +275,9 @@ nsresult SetExceptionHandler(nsILocalFile* aXREDirectory,
     return NS_ERROR_FAILURE;
   tempPath = NS_ConvertUTF8toUTF16(path);
 
+#elif defined(XP_UNIX)
+  
+  tempPath = NS_LITERAL_STRING("/tmp/");
 #else
   
   return NS_ERROR_NOT_IMPLEMENTED;

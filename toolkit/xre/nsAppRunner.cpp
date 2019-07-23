@@ -2184,32 +2184,6 @@ XRE_main(int argc, char* argv[], const nsXREAppData* aAppData)
     NS_BREAK();
 #endif
 
-#ifdef MOZ_AIRBAG
-  
-  const char* airbagEnv = PR_GetEnv("MOZ_AIRBAG");
-  
-  if (((airbagEnv && *airbagEnv) ||
-      ((aAppData->flags & NS_XRE_ENABLE_CRASH_REPORTER) &&
-       aAppData->crashReporterURL)) &&
-      NS_SUCCEEDED(CrashReporter::SetExceptionHandler(aAppData->xreDirectory,
-                                                      aAppData->crashReporterURL)))
-    {
-    
-    if (aAppData->vendor)
-      CrashReporter::AnnotateCrashReport(NS_LITERAL_CSTRING("Vendor"),
-                                     nsDependentCString(aAppData->vendor));
-    if (aAppData->name)
-      CrashReporter::AnnotateCrashReport(NS_LITERAL_CSTRING("ProductName"),
-                                     nsDependentCString(aAppData->name));
-    if (aAppData->version)
-      CrashReporter::AnnotateCrashReport(NS_LITERAL_CSTRING("Version"),
-                                     nsDependentCString(aAppData->version));
-    if (aAppData->buildID)
-      CrashReporter::AnnotateCrashReport(NS_LITERAL_CSTRING("BuildID"),
-                                     nsDependentCString(aAppData->buildID));
-  }
-#endif
-
 #ifdef XP_WIN32
   
   
@@ -2312,13 +2286,6 @@ XRE_main(int argc, char* argv[], const nsXREAppData* aAppData)
     }
   }
 
-#ifdef MOZ_AIRBAG
-  
-  if (airbagEnv && *airbagEnv) {
-    appData.flags |= NS_XRE_ENABLE_CRASH_REPORTER;
-  }
-#endif
-
   ScopedLogging log;
 
   if (!appData.xreDirectory) {
@@ -2336,6 +2303,33 @@ XRE_main(int argc, char* argv[], const nsXREAppData* aAppData)
     if (NS_FAILED(rv))
       return 2;
   }
+
+#ifdef MOZ_AIRBAG
+  
+  const char* airbagEnv = PR_GetEnv("MOZ_AIRBAG");
+  if (airbagEnv && *airbagEnv) {
+    appData.flags |= NS_XRE_ENABLE_CRASH_REPORTER;
+  }
+
+  if ((appData.flags & NS_XRE_ENABLE_CRASH_REPORTER) &&
+      NS_SUCCEEDED(
+         CrashReporter::SetExceptionHandler(appData.xreDirectory,
+                                            appData.crashReporterURL))) {
+    
+    if (appData.vendor)
+      CrashReporter::AnnotateCrashReport(NS_LITERAL_CSTRING("Vendor"),
+                                     nsDependentCString(appData.vendor));
+    if (appData.name)
+      CrashReporter::AnnotateCrashReport(NS_LITERAL_CSTRING("ProductName"),
+                                     nsDependentCString(appData.name));
+    if (appData.version)
+      CrashReporter::AnnotateCrashReport(NS_LITERAL_CSTRING("Version"),
+                                     nsDependentCString(appData.version));
+    if (appData.buildID)
+      CrashReporter::AnnotateCrashReport(NS_LITERAL_CSTRING("BuildID"),
+                                     nsDependentCString(appData.buildID));
+  }
+#endif
 
 #ifdef XP_MACOSX
   if (PR_GetEnv("MOZ_LAUNCHED_CHILD")) {
