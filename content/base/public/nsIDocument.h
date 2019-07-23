@@ -595,6 +595,8 @@ public:
   
   virtual void BeginUpdate(nsUpdateType aUpdateType) = 0;
   virtual void EndUpdate(nsUpdateType aUpdateType) = 0;
+  virtual PRUint32 GetUpdateNestingLevel() = 0;
+  virtual PRBool AllUpdatesAreContent() = 0;
   virtual void BeginLoad() = 0;
   virtual void EndLoad() = 0;
   
@@ -975,22 +977,6 @@ protected:
   friend class mozAutoSubtreeModified;
   friend class nsPresShellIterator;
 
-  
-
-
-
-
-
-  PRUint32 GetRemovableUpdateLevel()
-  {
-    return mRemovableUpdateLevel;
-  }
-  void SetRemovableUpdateLevel(PRUint32 aLevel)
-  {
-    mRemovableUpdateLevel = aLevel;
-  }
-  friend class mozAutoDocUpdateRemover;
-
   nsString mDocumentTitle;
   nsCOMPtr<nsIURI> mDocumentURI;
   nsCOMPtr<nsIURI> mDocumentBaseURI;
@@ -1060,9 +1046,6 @@ protected:
   
   
   PRUint32 mMarkedCCGeneration;
-
-  
-  PRUint32 mRemovableUpdateLevel;
 
   nsTObserverArray<nsIPresShell*> mPresShells;
 
