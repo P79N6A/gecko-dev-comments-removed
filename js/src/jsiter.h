@@ -61,6 +61,12 @@ JS_BEGIN_EXTERN_C
 
 
 
+const uint32 JSSLOT_ITER_STATE  = JSSLOT_PRIVATE;
+const uint32 JSSLOT_ITER_FLAGS  = JSSLOT_PRIVATE + 1;
+
+
+
+
 
 
 
@@ -76,6 +82,12 @@ js_CloseIterator(JSContext *cx, jsval v);
 
 extern JS_FRIEND_API(JSBool)
 js_CallIteratorNext(JSContext *cx, JSObject *iterobj, jsval *rval);
+
+
+
+
+extern void
+js_CloseNativeIterator(JSContext *cx, JSObject *iterobj);
 
 extern JSBool
 js_ThrowStopIteration(JSContext *cx);

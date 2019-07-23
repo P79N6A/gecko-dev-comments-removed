@@ -799,6 +799,12 @@ struct JSRuntime {
 
 
 
+    js::Vector<JSObject*, 0, js::SystemAllocPolicy> gcIteratorTable;
+
+    
+
+
+
     JSTraceDataOp       gcExtraRootsTraceOp;
     void                *gcExtraRootsData;
 
