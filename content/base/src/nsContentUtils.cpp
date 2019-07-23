@@ -2978,18 +2978,15 @@ nsContentUtils::HasNonEmptyAttr(nsIContent* aContent, PRInt32 aNameSpaceID,
 
 PRBool
 nsContentUtils::HasMutationListeners(nsINode* aNode,
-                                     PRUint32 aType)
+                                     PRUint32 aType,
+                                     nsINode* aTargetForSubtreeModified)
 {
   nsIDocument* doc = aNode->GetOwnerDoc();
   if (!doc) {
     return PR_FALSE;
   }
 
-  
-  
-  if (doc->MutationEventBeingDispatched()) {
-    return PR_TRUE;
-  }
+  doc->MayDispatchMutationEvent(aTargetForSubtreeModified);
 
   
   nsCOMPtr<nsPIDOMWindow> window;

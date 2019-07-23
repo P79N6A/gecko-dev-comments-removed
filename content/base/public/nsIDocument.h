@@ -95,8 +95,9 @@ class mozAutoSubtreeModified;
 
 
 #define NS_IDOCUMENT_IID      \
-{ 0x7dd5790f, 0x110d, 0x4bf6, \
-  { 0x83, 0x50, 0x4b, 0xe3, 0x5d, 0xdc, 0xe1, 0x1e } }
+{ 0x6700e22b, 0x95b8, 0x44cf, \
+  { 0x8f, 0x5a, 0x57, 0x2c, 0x14, 0x5b, 0xd1, 0xa1 } }
+
 
 
 #define NS_STYLESHEET_FROM_CATALOG                (1 << 0)
@@ -853,7 +854,11 @@ public:
   
 
 
-  virtual PRBool MutationEventBeingDispatched() = 0;
+
+
+
+
+  virtual void MayDispatchMutationEvent(nsINode* aTarget) = 0;
 
   
 

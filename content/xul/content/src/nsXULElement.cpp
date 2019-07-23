@@ -1238,7 +1238,7 @@ nsXULElement::UnsetAttr(PRInt32 aNameSpaceID, nsIAtom* aName, PRBool aNotify)
 
     PRBool hasMutationListeners = aNotify &&
         nsContentUtils::HasMutationListeners(this,
-            NS_EVENT_BITS_MUTATION_ATTRMODIFIED);
+            NS_EVENT_BITS_MUTATION_ATTRMODIFIED, this);
 
     nsCOMPtr<nsIDOMAttr> attrNode;
     if (hasMutationListeners) {
@@ -1666,7 +1666,8 @@ nsXULElement::SetInlineStyleRule(nsICSSStyleRule* aStyleRule, PRBool aNotify)
 
   PRBool hasListeners = aNotify &&
     nsContentUtils::HasMutationListeners(this,
-                                         NS_EVENT_BITS_MUTATION_ATTRMODIFIED);
+                                         NS_EVENT_BITS_MUTATION_ATTRMODIFIED,
+                                         this);
 
   
   

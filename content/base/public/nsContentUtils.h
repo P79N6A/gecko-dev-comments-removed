@@ -786,8 +786,13 @@ public:
 
 
 
+
+
+
+
   static PRBool HasMutationListeners(nsINode* aNode,
-                                     PRUint32 aType);
+                                     PRUint32 aType,
+                                     nsINode* aTargetForSubtreeModified);
 
   
 
