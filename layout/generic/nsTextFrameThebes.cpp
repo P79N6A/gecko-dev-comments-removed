@@ -5714,7 +5714,10 @@ nsTextFrame::Reflow(nsPresContext*           aPresContext,
   
   aMetrics.width = NSToCoordCeil(PR_MAX(0, textMetrics.mAdvanceWidth));
 
-  if (needTightBoundingBox) {
+  if (transformedCharsFit == 0) {
+    aMetrics.ascent = 0;
+    aMetrics.height = 0;
+  } else if (needTightBoundingBox) {
     
     aMetrics.ascent = NSToCoordCeil(textMetrics.mAscent);
     aMetrics.height = aMetrics.ascent + NSToCoordCeil(textMetrics.mDescent);
