@@ -2083,97 +2083,130 @@ PRBool nsWindow::OnReposition(PSWP pSwp)
 
 PRBool nsWindow::OnPaint()
 {
-  PRBool rc = PR_FALSE;
+  HPS    hPS;
+  HPS    hpsDrag;
+  HRGN   hrgn;
   nsEventStatus eventStatus = nsEventStatus_eIgnore;
 
-#ifdef NS_DEBUG
+#ifdef DEBUG_PAINT
   HRGN debugPaintFlashRegion = 0;
-  HPS debugPaintFlashPS = 0;
+  HPS  debugPaintFlashPS = 0;
 
   if (debug_WantPaintFlashing()) {
     debugPaintFlashPS = WinGetPS(mWnd);
     debugPaintFlashRegion = GpiCreateRegion(debugPaintFlashPS, 0, 0);
     WinQueryUpdateRegion(mWnd, debugPaintFlashRegion);
-  } 
+  }
 #endif
 
-  if (mContext && mEventCallback) {
-    
-    RECTL rcl = { 0 };
 
-    
-    
-    
-    HPS hpsDrag = 0;
-    CheckDragStatus(ACTION_PAINT, &hpsDrag);
-    HPS hPS = WinBeginPaint(mWnd, hpsDrag, &rcl);
+do {
 
-    
-    if (!WinIsRectEmpty(0, &rcl)) {
-      
-      if (mEventCallback) {
-        nsPaintEvent event(PR_TRUE, NS_PAINT, this);
-        InitEvent(event);
+  
+  
+  
+  CheckDragStatus(ACTION_PAINT, &hpsDrag);
+  hPS = hpsDrag ? hpsDrag : WinGetPS(mWnd);
 
-        
-        nsIntRect rect;
-        rect.x = rcl.xLeft;
-        rect.y = mBounds.height - rcl.yTop;
-        rect.width = rcl.xRight - rcl.xLeft;
-        rect.height = rcl.yTop - rcl.yBottom;
-        event.rect = &rect;
-        event.region = nsnull;
+  
+  
+  RECTL  rcl = { 0 };
+  if (!hPS) {
+    WinQueryWindowRect(mWnd, &rcl);
+    WinValidateRect(mWnd, &rcl, FALSE);
+    break;
+  }
 
-#ifdef NS_DEBUG
-        debug_DumpPaintEvent(stdout, this, &event, nsCAutoString("noname"),
-                             (PRInt32)mWnd);
+  
+  hrgn = GpiCreateRegion(hPS, 0, 0);
+  WinQueryUpdateRegion(mWnd, hrgn);
+  WinBeginPaint(mWnd, hPS, &rcl);
+
+  
+  if (WinIsRectEmpty(0, &rcl) || !GetThebesSurface()) {
+    break;
+  }
+
+  
+  
+  if (!mEventCallback) {
+    mThebesSurface->Refresh(&rcl, hPS);
+    break;
+  }
+
+  
+  nsPaintEvent event(PR_TRUE, NS_PAINT, this);
+  InitEvent(event);
+  nsRefPtr<gfxContext> thebesContext = new gfxContext(mThebesSurface);
+  thebesContext->SetFlag(gfxContext::FLAG_DESTINED_FOR_SCREEN);
+
+  
+  
+  
+  #define MAX_CLIPRECTS 8
+  RGNRECT rgnrect = { 1, MAX_CLIPRECTS, 0, RECTDIR_LFRT_TOPBOT };
+  RECTL   arect[MAX_CLIPRECTS];
+  RECTL*  pr = arect;
+
+  if (!GpiQueryRegionRects(hPS, hrgn, 0, &rgnrect, 0) ||
+      rgnrect.crcReturned > MAX_CLIPRECTS) {
+    rgnrect.crcReturned = 1;
+    arect[0] = rcl;
+  } else {
+    GpiQueryRegionRects(hPS, hrgn, 0, &rgnrect, arect);
+  }
+
+  
+  thebesContext->NewPath();
+  for (PRUint32 i = 0; i < rgnrect.crcReturned; i++, pr++) {
+    event.region.Or(event.region, 
+                    nsIntRect(pr->xLeft,
+                              mBounds.height - pr->yTop,
+                              pr->xRight - pr->xLeft,
+                              pr->yTop - pr->yBottom));
+
+    thebesContext->Rectangle(gfxRect(pr->xLeft,
+                                     mBounds.height - pr->yTop,
+                                     pr->xRight - pr->xLeft,
+                                     pr->yTop - pr->yBottom));
+  }
+  thebesContext->Clip();
+
+#ifdef DEBUG_PAINT
+  debug_DumpPaintEvent(stdout, this, &event, nsCAutoString("noname"),
+                       (PRInt32)mWnd);
 #endif
 
-        nsRefPtr<gfxContext> thebesContext = new gfxContext(mThebesSurface);
+  
+  
+  AutoLayerManagerSetup setupLayerManager(this, thebesContext);
+  if (!DispatchWindowEvent(&event, eventStatus)) {
+    break;
+  }
 
-        nsCOMPtr<nsIRenderingContext> context;
-        nsresult rv = mContext->CreateRenderingContextInstance(*getter_AddRefs(context));
-        if (NS_FAILED(rv)) {
-          NS_WARNING("CreateRenderingContextInstance failed");
-          return PR_FALSE;
-        }
+  
+  thebesContext->PopGroupToSource();
+  thebesContext->SetOperator(gfxContext::OPERATOR_SOURCE);
+  thebesContext->Paint();
+  pr = arect;
+  for (PRUint32 i = 0; i < rgnrect.crcReturned; i++, pr++) {
+    mThebesSurface->Refresh(pr, hPS);
+  }
 
-        rv = context->Init(mContext, thebesContext);
-        if (NS_FAILED(rv)) {
-          NS_WARNING("context::Init failed");
-          return PR_FALSE;
-        }
+} while (0);
 
-        
-        
-        event.renderingContext = context;
-        for (int i = 0; i < 10; i++) {
-          rc = DispatchWindowEvent(&event, eventStatus);
-          if (rc) {
-            
-            break;
-          }
-        }
-        event.renderingContext = nsnull;
-
-        
-        
-        if (rc) {
-          thebesContext->PopGroupToSource();
-          thebesContext->SetOperator(gfxContext::OPERATOR_SOURCE);
-          thebesContext->Paint();
-        }
-      } 
-      mThebesSurface->Refresh(&rcl, hPS);
-    } 
-
+  
+  if (hPS) {
     WinEndPaint(hPS);
-    if (hpsDrag) {
-      ReleaseIfDragHPS(hpsDrag);
+    if (hrgn) {
+      GpiDestroyRegion(hPS, hrgn);
     }
-  } 
+    if (!hpsDrag || !ReleaseIfDragHPS(hpsDrag)) {
+      WinReleasePS(hPS);
+    }
+  }
 
-#ifdef NS_DEBUG
+#ifdef DEBUG_PAINT
   if (debug_WantPaintFlashing()) {
     
     
@@ -2188,13 +2221,13 @@ PRBool nsWindow::OnPaint()
       PR_Sleep(PR_MillisecondsToInterval(30));
 
       GpiSetMix(debugPaintFlashPS, CurMix);
-    } 
+    }
     GpiDestroyRegion(debugPaintFlashPS, debugPaintFlashRegion);
     WinReleasePS(debugPaintFlashPS);
-  } 
+  }
 #endif
 
-  return rc;
+  return PR_TRUE;
 }
 
 
