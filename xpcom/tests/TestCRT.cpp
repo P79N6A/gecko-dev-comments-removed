@@ -40,6 +40,8 @@
 #include "plstr.h"
 #include <stdlib.h>
 
+namespace TestCRT {
+
 
 
 PRIntn sign(PRIntn val) {
@@ -100,6 +102,10 @@ static Test tests[] = {
   { "bar", "fo", 3 },
 };
 #define NUM_TESTS int((sizeof(tests) / sizeof(tests[0])))
+
+}
+
+using namespace TestCRT;
 
 int main()
 {

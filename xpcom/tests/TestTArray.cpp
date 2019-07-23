@@ -49,6 +49,8 @@
 #include "nsXPCOM.h"
 #include "nsILocalFile.h"
 
+namespace TestTArray {
+
 
 template <class T>
 inline bool operator<(const nsCOMPtr<T>& lhs, const nsCOMPtr<T>& rhs) {
@@ -517,6 +519,10 @@ static const struct Test {
 #endif
   { nsnull, nsnull }
 };
+
+}
+
+using namespace TestTArray;
 
 int main(int argc, char **argv) {
   int count = 1;
