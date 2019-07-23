@@ -425,7 +425,10 @@ nsAbsoluteContainingBlock::ReflowAbsoluteFrame(nsIFrame*                aDelegat
                                              &kidDesiredSize.mOverflowArea);
 
   if (oldRect.TopLeft() != rect.TopLeft() || 
-      (aDelegatingFrame->GetStateBits() & NS_FRAME_FIRST_REFLOW)) {
+      (aDelegatingFrame->GetStateBits() & NS_FRAME_FIRST_REFLOW) ||
+      ((aKidFrame->GetStyleDisplay()->mClipFlags & NS_STYLE_CLIP_RECT) && 
+       (kidDesiredSize.mOverflowArea != oldOverflowRect))) {
+    
     
     
     
@@ -447,18 +450,6 @@ nsAbsoluteContainingBlock::ReflowAbsoluteFrame(nsIFrame*                aDelegat
   }
   aKidFrame->DidReflow(aPresContext, &kidReflowState, NS_FRAME_REFLOW_FINISHED);
 
-  
-  
-  
-  if (aKidFrame->GetStateBits() & NS_FRAME_OUTSIDE_CHILDREN) {
-    
-    nsRect* overflowArea = aKidFrame->GetOverflowAreaProperty(PR_TRUE);
-
-    NS_ASSERTION(overflowArea, "should have created rect");
-    if (overflowArea) {
-      *overflowArea = kidDesiredSize.mOverflowArea;
-    }
-  }
 #ifdef DEBUG
   if (nsBlockFrame::gNoisyReflow) {
     nsFrame::IndentBy(stdout,nsBlockFrame::gNoiseIndent - 1);

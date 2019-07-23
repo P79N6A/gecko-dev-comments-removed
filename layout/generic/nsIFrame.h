@@ -156,9 +156,6 @@ typedef PRUint32 nsFrameState;
 
 
 
-
-
-
 #define NS_FRAME_OUTSIDE_CHILDREN                     0x00000008
 
 
