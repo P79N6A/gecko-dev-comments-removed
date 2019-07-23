@@ -38,6 +38,7 @@
 
 
 
+
 #include "nsDebug.h"
 #include "nsWindow.h"
 #include "nsIAppShell.h"
@@ -2571,6 +2572,10 @@ nsresult nsWindow::OnPaint(BRegion *breg)
 	}	
 
 	nsIRenderingContext* rc = GetRenderingContext();
+	if (NS_UNLIKELY(!rc)) {
+		return NS_ERROR_FAILURE;
+	}
+
 	
 #ifdef MOZ_CAIRO_GFX
 	nsRefPtr<gfxContext> ctx =
