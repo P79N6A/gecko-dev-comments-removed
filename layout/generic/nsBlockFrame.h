@@ -621,16 +621,31 @@ protected:
                      nsIFrame* aFrame,
                      LineReflowStatus* aLineReflowStatus);
 
-  nsresult PullFrame(nsBlockReflowState& aState,
-                     line_iterator aLine,
-                     nsIFrame*& aFrameResult);
+  
 
-  PRBool PullFrameFrom(nsBlockReflowState& aState,
-                       nsLineBox* aLine,
-                       nsBlockFrame* aFromContainer,
-                       PRBool aFromOverflowLine,
-                       nsLineList::iterator aFromLine,
-                       nsIFrame*& aFrameResult);
+
+
+
+  nsIFrame* PullFrame(nsBlockReflowState& aState,
+                      line_iterator       aLine);
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  nsIFrame* PullFrameFrom(nsBlockReflowState&  aState,
+                          nsLineBox*           aLine,
+                          nsBlockFrame*        aFromContainer,
+                          PRBool               aFromOverflowLine,
+                          nsLineList::iterator aFromLine);
 
   void PushLines(nsBlockReflowState& aState,
                  nsLineList::iterator aLineBefore);

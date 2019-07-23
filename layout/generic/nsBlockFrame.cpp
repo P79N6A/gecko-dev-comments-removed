@@ -2454,25 +2454,13 @@ nsBlockFrame::ReflowLine(nsBlockReflowState& aState,
   return rv;
 }
 
-
-
-
-
-nsresult
+nsIFrame*
 nsBlockFrame::PullFrame(nsBlockReflowState& aState,
-                        line_iterator aLine,
-                        nsIFrame*& aFrameResult)
+                        line_iterator       aLine)
 {
-  aFrameResult = nsnull;
-
   
   if (end_lines() != aLine.next()) {
-#ifdef DEBUG
-    PRBool retry =
-#endif
-      PullFrameFrom(aState, aLine, this, PR_FALSE, aLine.next(), aFrameResult);
-    NS_ASSERTION(!retry, "Shouldn't have to retry in the current block");
-    return NS_OK;
+    return PullFrameFrom(aState, aLine, this, PR_FALSE, aLine.next());
   }
 
   NS_ASSERTION(!GetOverflowLines(),
@@ -2483,50 +2471,29 @@ nsBlockFrame::PullFrame(nsBlockReflowState& aState,
   while (nextInFlow) {
     
     if (!nextInFlow->mLines.empty()) {
-      if (PullFrameFrom(aState, aLine, nextInFlow, PR_FALSE,
-                        nextInFlow->mLines.begin(), aFrameResult)) {
-        
-        continue;
-      }
-      break;
+      return PullFrameFrom(aState, aLine, nextInFlow, PR_FALSE,
+                           nextInFlow->mLines.begin());
     }
 
     nsLineList* overflowLines = nextInFlow->GetOverflowLines();
     if (overflowLines) {
-      if (PullFrameFrom(aState, aLine, nextInFlow, PR_TRUE,
-                        overflowLines->begin(), aFrameResult)) {
-        
-        continue;
-      }
-      break;
+      return PullFrameFrom(aState, aLine, nextInFlow, PR_TRUE,
+                           overflowLines->begin());
     }
 
-    nextInFlow = (nsBlockFrame*) nextInFlow->GetNextInFlow();
+    nextInFlow = static_cast<nsBlockFrame*>(nextInFlow->GetNextInFlow());
     aState.mNextInFlow = nextInFlow;
   }
 
-  return NS_OK;
+  return nsnull;
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-PRBool
-nsBlockFrame::PullFrameFrom(nsBlockReflowState& aState,
-                            nsLineBox* aLine,
-                            nsBlockFrame* aFromContainer,
-                            PRBool aFromOverflowLine,
-                            nsLineList::iterator aFromLine,
-                            nsIFrame*& aFrameResult)
+nsIFrame*
+nsBlockFrame::PullFrameFrom(nsBlockReflowState&  aState,
+                            nsLineBox*           aLine,
+                            nsBlockFrame*        aFromContainer,
+                            PRBool               aFromOverflowLine,
+                            nsLineList::iterator aFromLine)
 {
   nsLineBox* fromLine = aFromLine;
   NS_ABORT_IF_FALSE(fromLine, "bad line to pull from");
@@ -2540,88 +2507,85 @@ nsBlockFrame::PullFrameFrom(nsBlockReflowState& aState,
     
     
     
-    aFrameResult = nsnull;
+    return nsnull;
+  }
+  
+  nsIFrame* frame = fromLine->mFirstChild;
+  nsIFrame* newFirstChild = frame->GetNextSibling();
+
+  if (aFromContainer != this) {
+    NS_ASSERTION(aState.mPrevChild == aLine->LastChild(),
+      "mPrevChild should be the LastChild of the line we are adding to");
+    
+    
+    if (NS_LIKELY(!aFromOverflowLine)) {
+      NS_ASSERTION(aFromLine == aFromContainer->mLines.begin(),
+                   "should only pull from first line");
+      
+      aFromContainer->mFrames.RemoveFrame(frame);
+    } else {
+      
+      
+      
+      frame->SetNextSibling(nsnull);
+    }
+
+    
+    
+    NS_ASSERTION(frame->GetParent() == aFromContainer, "unexpected parent frame");
+
+    ReparentFrame(frame, aFromContainer, this);
+    mFrames.InsertFrame(nsnull, aState.mPrevChild, frame);
+
+    
+    
+    ReparentFloats(frame, aFromContainer, aFromOverflowLine, PR_TRUE);
+  }
+  
+  
+  aLine->SetChildCount(aLine->GetChildCount() + 1);
+    
+  PRInt32 fromLineChildCount = fromLine->GetChildCount();
+  if (0 != --fromLineChildCount) {
+    
+    fromLine->SetChildCount(fromLineChildCount);
+    fromLine->MarkDirty();
+    fromLine->mFirstChild = newFirstChild;
   }
   else {
     
-    nsIFrame* frame = fromLine->mFirstChild;
-    nsIFrame* newFirstChild = frame->GetNextSibling();
+    
+    
+    
+    Invalidate(fromLine->mBounds);
+    nsLineList* fromLineList = aFromOverflowLine
+      ? aFromContainer->RemoveOverflowLines()
+      : &aFromContainer->mLines;
+    if (aFromLine.next() != fromLineList->end())
+      aFromLine.next()->MarkPreviousMarginDirty();
 
-    if (aFromContainer != this) {
-      NS_ASSERTION(aState.mPrevChild == aLine->LastChild(),
-        "mPrevChild should be the LastChild of the line we are adding to");
-      
-      
-      if (NS_LIKELY(!aFromOverflowLine)) {
-        NS_ASSERTION(aFromLine == aFromContainer->mLines.begin(),
-                     "should only pull from first line");
-        
-        aFromContainer->mFrames.RemoveFrame(frame);
+    Invalidate(fromLine->GetCombinedArea());
+    fromLineList->erase(aFromLine);
+    
+    aState.FreeLineBox(fromLine);
+
+    
+    if (aFromOverflowLine) {
+      if (!fromLineList->empty()) {
+        aFromContainer->SetOverflowLines(fromLineList);
       } else {
+        delete fromLineList;
         
         
-        
-        frame->SetNextSibling(nsnull);
-      }
-
-      
-      
-      NS_ASSERTION(frame->GetParent() == aFromContainer, "unexpected parent frame");
-
-      ReparentFrame(frame, aFromContainer, this);
-      mFrames.InsertFrame(nsnull, aState.mPrevChild, frame);
-
-      
-      
-      ReparentFloats(frame, aFromContainer, aFromOverflowLine, PR_TRUE);
-    }
-    
-    
-    aLine->SetChildCount(aLine->GetChildCount() + 1);
-      
-    PRInt32 fromLineChildCount = fromLine->GetChildCount();
-    if (0 != --fromLineChildCount) {
-      
-      fromLine->SetChildCount(fromLineChildCount);
-      fromLine->MarkDirty();
-      fromLine->mFirstChild = newFirstChild;
-    }
-    else {
-      
-      
-      
-      
-      Invalidate(fromLine->mBounds);
-      nsLineList* fromLineList = aFromOverflowLine
-        ? aFromContainer->RemoveOverflowLines()
-        : &aFromContainer->mLines;
-      if (aFromLine.next() != fromLineList->end())
-        aFromLine.next()->MarkPreviousMarginDirty();
-
-      Invalidate(fromLine->GetCombinedArea());
-      fromLineList->erase(aFromLine);
-      
-      aState.FreeLineBox(fromLine);
-
-      
-      if (aFromOverflowLine) {
-        if (!fromLineList->empty()) {
-          aFromContainer->SetOverflowLines(fromLineList);
-        } else {
-          delete fromLineList;
-          
-          
-        }
       }
     }
-
-    
-    aFrameResult = frame;
-#ifdef DEBUG
-    VerifyLines(PR_TRUE);
-#endif
   }
-  return PR_FALSE;
+
+#ifdef DEBUG
+  VerifyLines(PR_TRUE);
+#endif
+
+  return frame;
 }
 
 static void
@@ -3571,9 +3535,8 @@ nsBlockFrame::DoReflowInlineFrames(nsBlockReflowState& aState,
   if (aAllowPullUp) {
     
     while (LINE_REFLOW_OK == lineReflowStatus) {
-      rv = PullFrame(aState, aLine, frame);
-      NS_ENSURE_SUCCESS(rv, rv);
-      if (nsnull == frame) {
+      frame = PullFrame(aState, aLine);
+      if (!frame) {
         break;
       }
 
