@@ -304,6 +304,11 @@ public:
                           nsCOMArray<nsNavHistoryResultNode>* aDest);
 
   
+  
+  nsresult BeginUpdateBatch();
+  nsresult EndUpdateBatch();
+
+  
   nsresult QueryStringToQueryArray(const nsACString& aQueryString,
                                    nsCOMArray<nsNavHistoryQuery>* aQueries,
                                    nsNavHistoryQueryOptions** aOptions);

@@ -107,6 +107,9 @@ public:
   
   nsresult OnQuit();
 
+  nsresult BeginUpdateBatch();
+  nsresult EndUpdateBatch();
+
 private:
   static nsNavBookmarks *sInstance;
 
@@ -143,6 +146,9 @@ private:
 
   
   PRInt32 mBatchLevel;
+
+  
+  PRLock* mLock;
 
   
   

@@ -442,6 +442,50 @@ LivemarkLoadListener.prototype = {
   },
 
   
+  runBatched: function LLL_runBatched(aUserData) {
+    var result = aUserData.QueryInterface(Ci.nsIFeedResult);
+
+    
+    var secMan = Cc[SEC_CONTRACTID].getService(Ci.nsIScriptSecurityManager);
+      
+    
+    
+    var lmService = Cc[LS_CONTRACTID].getService(Ci.nsILivemarkService);
+    this.deleteLivemarkChildren(this._livemark.folderId);
+
+    
+    if (!result || !result.doc || result.bozo) {
+      this.insertLivemarkFailedItem(this._livemark.folderId);
+      this._ttl = EXPIRATION;
+      throw Cr.NS_ERROR_FAILURE;
+    }
+
+    var title, href, entry;
+    var feed = result.doc.QueryInterface(Ci.nsIFeed);
+    
+    
+    for (var i = 0; i < feed.items.length; ++i) {
+      entry = feed.items.queryElementAt(i, Ci.nsIFeedEntry);
+      if (entry.title)
+        title = entry.title.plainText();
+      else if (entry.updated)
+        title = entry.updated;
+
+      if (entry.link) {
+        try {
+          secMan.checkLoadURIStr(this._livemark.feedURI.spec, entry.link.spec,
+                                 SEC_FLAGS);
+          href = entry.link;
+        }
+        catch (ex) { }
+      }
+
+      if (href && title)
+        this.insertLivemarkChild(this._livemark.folderId, href, title);
+    }
+  },
+
+  
 
 
   handleResult: function LLL_handleResult(result) {
@@ -449,54 +493,11 @@ LivemarkLoadListener.prototype = {
       this._livemark.locked = false;
       return;
     }
-    
-    this._bms.beginUpdateBatch();
+    try {
       
-    try {  
-      
-      var secMan = Cc[SEC_CONTRACTID].getService(Ci.nsIScriptSecurityManager);
-      
-      
-      
-      var lmService = Cc[LS_CONTRACTID].getService(Ci.nsILivemarkService);
-      this.deleteLivemarkChildren(this._livemark.folderId);
-
-      
-      if (!result || !result.doc || result.bozo) {
-        this.insertLivemarkFailedItem(this._livemark.folderId);
-        this._ttl = EXPIRATION;
-        throw Cr.NS_ERROR_FAILURE;
-      }
-
-      var title, href, entry;
-      var feed = result.doc.QueryInterface(Ci.nsIFeed);
-      
-      
-      for (var i = 0; i < feed.items.length; ++i) {
-        entry = feed.items.queryElementAt(i, Ci.nsIFeedEntry);
-        if (entry.title)
-          title = entry.title.plainText();
-        else if (entry.updated)
-          title = entry.updated;
-        
-        if (entry.link) {
-          try {
-              secMan.checkLoadURIStr(this._livemark.feedURI.spec,
-                                     entry.link.spec, SEC_FLAGS);
-              href = entry.link;
-          } 
-          catch (ex) {
-          }
-        }
-        
-        if (href && title) {
-          this.insertLivemarkChild(this._livemark.folderId,
-                                   href, title);
-        }
-      }
-    } 
+      this._bms.runInBatchMode(this, result);
+    }
     finally {
-      this._bms.endUpdateBatch();
       this._processor.listener = null;
       this._processor = null;
       this._livemark.locked = false;
@@ -598,6 +599,7 @@ LivemarkLoadListener.prototype = {
     if (iid.equals(Ci.nsIFeedResultListener) ||
         iid.equals(Ci.nsIStreamListener) ||
         iid.equals(Ci.nsIRequestObserver)||
+        iid.equals(Ci.nsINavHistoryBatchCallback) ||
         iid.equals(Ci.nsISupports))
       return this;
     throw Cr.NS_ERROR_NO_INTERFACE;
