@@ -44,6 +44,7 @@
 #include "gfxRect.h"
 
 class gfxASurface;
+class gfxPattern;
 
 class nsIDeviceContext;
 
@@ -222,6 +223,10 @@ public:
 
 
 
+
+
+
+
   NS_IMETHOD LockImagePixels(PRBool aMaskPixels) = 0;
   
   
@@ -244,7 +249,18 @@ public:
 
 
 
+
   NS_IMETHOD GetSurface(gfxASurface **aSurface) = 0;
+
+  
+
+
+
+
+
+
+
+  NS_IMETHOD GetPattern(gfxPattern **aPattern) = 0;
 
   
 

@@ -260,13 +260,6 @@ nsThebesImage::Optimize(nsIDeviceContext* aContext)
                 mSinglePixel = PR_TRUE;
 
                 
-                
-                
-                
-                
-                
-#if 0
-                
 
                 mImageSurface = nsnull;
                 mOptSurface = nsnull;
@@ -275,7 +268,6 @@ nsThebesImage::Optimize(nsIDeviceContext* aContext)
 #endif
 #ifdef XP_MACOSX
                 mQuartzSurface = nsnull;
-#endif
 #endif
                 return NS_OK;
             }
@@ -391,7 +383,15 @@ nsThebesImage::LockImagePixels(PRBool aMaskPixels)
         else
             context.SetSource(mOptSurface);
         context.Paint();
+
+#ifdef XP_WIN
+        mWinSurface = nsnull;
+#endif
+#ifdef XP_MACOSX
+        mQuartzSurface = nsnull;
+#endif
     }
+
     return NS_OK;
 }
 
