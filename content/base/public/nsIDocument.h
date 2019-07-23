@@ -41,6 +41,7 @@
 #include "nsStringGlue.h"
 #include "nsIDocumentObserver.h" 
 #include "nsCOMPtr.h"
+#include "nsCOMArray.h"
 #include "nsIURI.h"
 #include "nsWeakPtr.h"
 #include "nsIWeakReferenceUtils.h"
@@ -95,8 +96,8 @@ class mozAutoSubtreeModified;
 
 
 #define NS_IDOCUMENT_IID      \
-{ 0x6700e22b, 0x95b8, 0x44cf, \
-  { 0x8f, 0x5a, 0x57, 0x2c, 0x14, 0x5b, 0xd1, 0xa1 } }
+{ 0x9a26d0aa, 0x37d2, 0x4313, \
+  { 0x9e, 0x53, 0x16, 0xd1, 0xa4, 0x67, 0xb3, 0x5b } }
 
 
 
@@ -853,7 +854,12 @@ public:
 
 
 
-  virtual void MayDispatchMutationEvent(nsINode* aTarget) = 0;
+  void MayDispatchMutationEvent(nsINode* aTarget)
+  {
+    if (mSubtreeModifiedDepth > 0) {
+      mSubtreeModifiedTargets.AppendObject(aTarget);
+    }
+  }
 
   
 
@@ -962,6 +968,9 @@ protected:
   PRUint32 mMarkedCCGeneration;
 
   nsTObserverArray<nsIPresShell> mPresShells;
+
+  nsCOMArray<nsINode> mSubtreeModifiedTargets;
+  PRUint32            mSubtreeModifiedDepth;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsIDocument, NS_IDOCUMENT_IID)
