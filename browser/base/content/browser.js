@@ -220,8 +220,13 @@ function SetClickAndHoldHandlers() {
     if (aEvent.button == 0 &&
         aEvent.target == aEvent.currentTarget &&
         !aEvent.currentTarget.open &&
-        !aEvent.currentTarget.disabled)
-      aEvent.currentTarget.doCommand();
+        !aEvent.currentTarget.disabled) {
+      let cmdEvent = document.createEvent("xulcommandevent");
+      cmdEvent.initCommandEvent("command", true, true, window, 0,
+                                aEvent.ctrlKey, aEvent.altKey, aEvent.shiftKey,
+                                aEvent.metaKey, null);
+      aEvent.currentTarget.dispatchEvent(cmdEvent);
+    }
   }
 
   function stopTimer(aEvent) {
@@ -786,13 +791,14 @@ let gGestureSupport = {
   _power: function GS__power(aArray) {
     
     let num = 1 << aArray.length;
-    while (--num >= 0)
+    while (--num >= 0) {
       
-      yield aArray.reduce(function(aPrev, aCurr, aIndex) {
+      yield aArray.reduce(function (aPrev, aCurr, aIndex) {
         if (num & 1 << aIndex)
           aPrev.push(aCurr);
         return aPrev;
       }, []);
+    }
   },
 
   
@@ -808,46 +814,43 @@ let gGestureSupport = {
 
   _doAction: function GS__doAction(aEvent, aGesture) {
     
-    let fakeEvent = { shiftKey: aEvent.shiftKey, ctrlKey: aEvent.ctrlKey,
-      metaKey: aEvent.metaKey, altKey: aEvent.altKey, button: 0 };
-
-    
     
     
     let keyCombos = [];
-    const keys = ["shift", "alt", "ctrl", "meta"];
-    for each (let key in keys)
+    ["shift", "alt", "ctrl", "meta"].forEach(function (key) {
       if (aEvent[key + "Key"])
         keyCombos.push(key);
+    });
 
-    try {
-      
-      for (let subCombo in this._power(keyCombos)) {
-        
-        
-        
-        let command = this._getPref(aGesture.concat(subCombo).join("."));
-
-        
-        if (command) {
-          let node = document.getElementById(command);
-          
-          if (node && node.hasAttribute("oncommand")) {
-            
-            if (node.getAttribute("disabled") != "true")
-              new Function("event", node.getAttribute("oncommand")).
-                call(node, fakeEvent);
-          }
-          
-          else
-            goDoCommand(command);
-
-          return command;
-        }
-      }
-    }
     
-    catch (e) {}
+    for each (let subCombo in this._power(keyCombos)) {
+      
+      
+      
+      let command;
+      try {
+        command = this._getPref(aGesture.concat(subCombo).join("."));
+      } catch (e) {}
+
+      if (!command)
+        continue;
+
+      let node = document.getElementById(command);
+      if (node) {
+        if (node.getAttribute("disabled") != "true") {
+          let cmdEvent = document.createEvent("xulcommandevent");
+          cmdEvent.initCommandEvent("command", true, true, window, 0,
+                                    aEvent.ctrlKey, aEvent.altKey, aEvent.shiftKey,
+                                    aEvent.metaKey, null);
+          node.dispatchEvent(cmdEvent);
+        }
+      } else {
+        goDoCommand(command);
+      }
+
+      return command;
+    }
+    return null;
   },
 
   
