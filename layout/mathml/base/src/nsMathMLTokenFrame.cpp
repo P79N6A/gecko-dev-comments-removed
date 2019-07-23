@@ -166,11 +166,6 @@ nsMathMLTokenFrame::Reflow(nsPresContext*          aPresContext,
   
   FinalizeReflow(*aReflowState.rendContext, aDesiredSize);
 
-  
-  
-  aDesiredSize.mOverflowArea.SetRect(0, 0, aDesiredSize.width, aDesiredSize.height);
-  FinishAndStoreOverflow(&aDesiredSize);
-
   aStatus = NS_FRAME_COMPLETE;
   NS_FRAME_SET_TRUNCATION(aStatus, aReflowState, aDesiredSize);
   return NS_OK;
@@ -203,7 +198,7 @@ nsMathMLTokenFrame::Place(nsIRenderingContext& aRenderingContext,
       nsRect rect = childFrame->GetRect();
       nsHTMLReflowMetrics childSize;
       childSize.width = rect.width;
-      childSize.height = aDesiredSize.height; 
+      childSize.height = rect.height;
 
       
       dy = rect.IsEmpty() ? 0 : aDesiredSize.ascent - rect.y;

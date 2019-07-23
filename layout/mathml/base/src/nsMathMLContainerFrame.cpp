@@ -318,10 +318,10 @@ nsMathMLContainerFrame::Stretch(nsIRenderingContext& aRenderingContext,
 
     
 
-    nsIFrame* childFrame = mPresentationData.baseFrame;
-    if (childFrame) {
+    nsIFrame* baseFrame = mPresentationData.baseFrame;
+    if (baseFrame) {
       nsIMathMLFrame* mathMLFrame;
-      childFrame->QueryInterface(NS_GET_IID(nsIMathMLFrame), (void**)&mathMLFrame);
+      baseFrame->QueryInterface(NS_GET_IID(nsIMathMLFrame), (void**)&mathMLFrame);
       NS_ASSERTION(mathMLFrame, "Something is wrong somewhere");
       if (mathMLFrame) {
         PRBool stretchAll =
@@ -331,7 +331,7 @@ nsMathMLContainerFrame::Stretch(nsIRenderingContext& aRenderingContext,
         
         
         nsHTMLReflowMetrics childSize(aDesiredStretchSize);
-        GetReflowAndBoundingMetricsFor(childFrame, childSize, childSize.mBoundingMetrics);
+        GetReflowAndBoundingMetricsFor(baseFrame, childSize, childSize.mBoundingMetrics);
 
         
         
@@ -362,8 +362,8 @@ nsMathMLContainerFrame::Stretch(nsIRenderingContext& aRenderingContext,
                              mEmbellishData.direction, containerSize, childSize);
 
         
-        childFrame->SetRect(nsRect(0, childSize.ascent,
-                                   childSize.width, childSize.height));
+        baseFrame->SetRect(nsRect(0, childSize.ascent,
+                                  childSize.width, childSize.height));
 
         
         
@@ -378,7 +378,7 @@ nsMathMLContainerFrame::Stretch(nsIRenderingContext& aRenderingContext,
           GetPreferredStretchSize(aRenderingContext, STRETCH_CONSIDER_EMBELLISHMENTS,
                                   stretchDir, containerSize);
 
-          childFrame = mFrames.FirstChild();
+          nsIFrame* childFrame = mFrames.FirstChild();
           while (childFrame) {
             if (childFrame != mPresentationData.baseFrame) {
               childFrame->QueryInterface(NS_GET_IID(nsIMathMLFrame), (void**)&mathMLFrame);
@@ -425,20 +425,23 @@ nsMathMLContainerFrame::Stretch(nsIRenderingContext& aRenderingContext,
           aDesiredStretchSize.mBoundingMetrics.width = mBoundingMetrics.width;
 
           nscoord dx = coreData.leftSpace;
-          if (!dx) return NS_OK;
+          if (dx != 0) {
+            mBoundingMetrics.leftBearing += dx;
+            mBoundingMetrics.rightBearing += dx;
+            aDesiredStretchSize.mBoundingMetrics.leftBearing += dx;
+            aDesiredStretchSize.mBoundingMetrics.rightBearing += dx;
 
-          mBoundingMetrics.leftBearing += dx;
-          mBoundingMetrics.rightBearing += dx;
-          aDesiredStretchSize.mBoundingMetrics.leftBearing += dx;
-          aDesiredStretchSize.mBoundingMetrics.rightBearing += dx;
-
-          childFrame = mFrames.FirstChild();
-          while (childFrame) {
-            childFrame->SetPosition(childFrame->GetPosition()
-				    + nsPoint(dx, 0));
-            childFrame = childFrame->GetNextSibling();
+            nsIFrame* childFrame = mFrames.FirstChild();
+            while (childFrame) {
+              childFrame->SetPosition(childFrame->GetPosition()
+                                      + nsPoint(dx, 0));
+              childFrame = childFrame->GetNextSibling();
+            }
           }
         }
+
+        
+        GatherAndStoreOverflow(&aDesiredStretchSize);
       }
     }
   }
@@ -539,11 +542,17 @@ nsMathMLContainerFrame::FinalizeReflow(nsIRenderingContext& aRenderingContext,
 #endif
     }
   }
-  
-  aDesiredSize.mBoundingMetrics = mBoundingMetrics;
 
   
   FixInterFrameSpacing(aDesiredSize);
+
+  
+  aDesiredSize.mBoundingMetrics = mBoundingMetrics;
+
+  if (placeOrigin) {
+    
+    GatherAndStoreOverflow(&aDesiredSize);
+  }
 
   return NS_OK;
 }
@@ -966,6 +975,35 @@ nsMathMLContainerFrame::AttributeChanged(PRInt32         aNameSpaceID,
                             NS_FRAME_IS_DIRTY);
 }
 
+void
+nsMathMLContainerFrame::GatherAndStoreOverflow(nsHTMLReflowMetrics* aMetrics)
+{
+  
+  
+  nsRect frameRect(0, 0, aMetrics->width, aMetrics->height);
+
+  
+  
+  nsRect boundingBox(mBoundingMetrics.leftBearing,
+                     aMetrics->ascent - mBoundingMetrics.ascent,
+                     mBoundingMetrics.rightBearing - mBoundingMetrics.leftBearing,
+                     mBoundingMetrics.ascent + mBoundingMetrics.descent);
+
+  aMetrics->mOverflowArea.UnionRect(frameRect, boundingBox);
+
+  
+  
+  
+  
+  nsIFrame* childFrame = mFrames.FirstChild();
+  while (childFrame) {
+    ConsiderChildOverflow(aMetrics->mOverflowArea, childFrame);
+    childFrame = childFrame->GetNextSibling();
+  }
+
+  FinishAndStoreOverflow(aMetrics);
+}
+
 static PRBool
 IsForeignChild(nsIFrame* aFrame)
 {
@@ -1029,12 +1067,11 @@ nsMathMLContainerFrame::ReflowChild(nsIFrame*                aChildFrame,
 }
 
 NS_IMETHODIMP
-nsMathMLContainerFrame::Reflow(nsPresContext*          aPresContext,
+nsMathMLContainerFrame::Reflow(nsPresContext*           aPresContext,
                                nsHTMLReflowMetrics&     aDesiredSize,
                                const nsHTMLReflowState& aReflowState,
                                nsReflowStatus&          aStatus)
 {
-  nsresult rv;
   aDesiredSize.width = aDesiredSize.height = 0;
   aDesiredSize.ascent = 0;
   aDesiredSize.mBoundingMetrics.Clear();
@@ -1050,8 +1087,8 @@ nsMathMLContainerFrame::Reflow(nsPresContext*          aPresContext,
     nsHTMLReflowMetrics childDesiredSize(aDesiredSize.mFlags);
     nsHTMLReflowState childReflowState(aPresContext, aReflowState,
                                        childFrame, availSize);
-    rv = ReflowChild(childFrame, aPresContext, childDesiredSize,
-                     childReflowState, childStatus);
+    nsresult rv = ReflowChild(childFrame, aPresContext, childDesiredSize,
+                              childReflowState, childStatus);
     
     if (NS_FAILED(rv)) {
       

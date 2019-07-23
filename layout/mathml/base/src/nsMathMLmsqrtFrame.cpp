@@ -164,18 +164,20 @@ nsMathMLmsqrtFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
 }
 
 NS_IMETHODIMP
-nsMathMLmsqrtFrame::Reflow(nsPresContext*          aPresContext,
-                           nsHTMLReflowMetrics&     aDesiredSize,
-                           const nsHTMLReflowState& aReflowState,
-                           nsReflowStatus&          aStatus)
+nsMathMLmsqrtFrame::Place(nsIRenderingContext& aRenderingContext,
+                          PRBool               aPlaceOrigin,
+                          nsHTMLReflowMetrics& aDesiredSize)
 {
   
   
-  nsHTMLReflowMetrics baseSize(aDesiredSize);
-  nsresult rv = nsMathMLContainerFrame::Reflow(aPresContext, baseSize,
-                                               aReflowState, aStatus);
   
-  if (NS_FAILED(rv)) return rv;
+  nsHTMLReflowMetrics baseSize;
+  nsresult rv =
+    nsMathMLContainerFrame::Place(aRenderingContext, aPlaceOrigin, baseSize);
+  if (NS_MATHML_HAS_ERROR(mPresentationData.flags) || NS_FAILED(rv)) {
+    DidReflowChildren(GetFirstChild(nsnull));
+    return rv;
+  }
 
   nsBoundingMetrics bmSqr, bmBase;
   bmBase = baseSize.mBoundingMetrics;
@@ -183,20 +185,19 @@ nsMathMLmsqrtFrame::Reflow(nsPresContext*          aPresContext,
   
   
 
-  nsIRenderingContext& renderingContext = *aReflowState.rendContext;
-  renderingContext.SetFont(GetStyleFont()->mFont, nsnull);
+  aRenderingContext.SetFont(GetStyleFont()->mFont, nsnull);
   nsCOMPtr<nsIFontMetrics> fm;
-  renderingContext.GetFontMetrics(*getter_AddRefs(fm));
+  aRenderingContext.GetFontMetrics(*getter_AddRefs(fm));
 
   
   
   
   
   nscoord ruleThickness, leading, em;
-  GetRuleThickness(renderingContext, fm, ruleThickness);
+  GetRuleThickness(aRenderingContext, fm, ruleThickness);
 
   nsBoundingMetrics bmOne;
-  renderingContext.GetBoundingMetrics(NS_LITERAL_STRING("1").get(), 1, bmOne);
+  aRenderingContext.GetBoundingMetrics(NS_LITERAL_STRING("1").get(), 1, bmOne);
 
   
   
@@ -235,7 +236,7 @@ nsMathMLmsqrtFrame::Reflow(nsPresContext*          aPresContext,
 
   
   nsBoundingMetrics radicalSize;
-  mSqrChar.Stretch(aPresContext, renderingContext,
+  mSqrChar.Stretch(PresContext(), aRenderingContext,
                    NS_STRETCH_DIRECTION_VERTICAL, 
                    contSize, radicalSize,
                    NS_STRETCH_LARGER);
@@ -271,20 +272,19 @@ nsMathMLmsqrtFrame::Reflow(nsPresContext*          aPresContext,
   mReference.x = 0;
   mReference.y = aDesiredSize.ascent;
 
-  
-  
+  if (aPlaceOrigin) {
+    
+    
 
-  dx = radicalSize.width;
-  dy = aDesiredSize.ascent - baseSize.ascent;
-  nsIFrame* childFrame = mFrames.FirstChild();
-  while (childFrame) {
-    childFrame->SetPosition(childFrame->GetPosition() + nsPoint(dx, dy));
-    childFrame = childFrame->GetNextSibling();
+    dx = radicalSize.width;
+    dy = aDesiredSize.ascent - baseSize.ascent;
+    nsIFrame* childFrame = mFrames.FirstChild();
+    while (childFrame) {
+      childFrame->SetPosition(childFrame->GetPosition() + nsPoint(dx, dy));
+      childFrame = childFrame->GetNextSibling();
+    }
   }
 
-  aDesiredSize.mBoundingMetrics = mBoundingMetrics;
-  aStatus = NS_FRAME_COMPLETE;
-  NS_FRAME_SET_TRUNCATION(aStatus, aReflowState, aDesiredSize);
   return NS_OK;
 }
 

@@ -890,6 +890,9 @@ nsMathMLmoFrame::Stretch(nsIRenderingContext& aRenderingContext,
     }
   }
 
+  
+  GatherAndStoreOverflow(&aDesiredStretchSize);
+
   if (mFrames.GetLength() != 1)
     return NS_OK;
 
