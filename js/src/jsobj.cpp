@@ -1130,10 +1130,8 @@ js_CheckContentSecurityPolicy(JSContext *cx)
 
     
     
-    if (callbacks) {
-        return callbacks->contentSecurityPolicyAllows &&
-               callbacks->contentSecurityPolicyAllows(cx);
-    }
+    if (callbacks && callbacks->contentSecurityPolicyAllows)
+        return callbacks->contentSecurityPolicyAllows(cx);
 
     return JS_TRUE;
 }
