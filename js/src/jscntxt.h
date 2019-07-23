@@ -391,7 +391,18 @@ struct JSRuntime {
     JSPackedBool        gcPoke;
     JSPackedBool        gcRunning;
     JSPackedBool        gcRegenShapes;
-    uint8               gcPadding;
+
+    
+
+
+
+
+
+
+
+
+    uint8              gcRegenShapesScopeFlag;
+
 #ifdef JS_GC_ZEAL
     jsrefcount          gcZeal;
 #endif
