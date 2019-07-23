@@ -129,6 +129,8 @@ protected:
   PRPackedBool mDoingDrag;
   
   PRPackedBool mHasImage;
+  
+  PRPackedBool mUserCancelled;
 
   PRUint32 mDragAction;
   nsSize mTargetSize;

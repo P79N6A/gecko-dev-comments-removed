@@ -37,6 +37,7 @@
 #ifndef _nsNativeDragSource_h_
 #define _nsNativeDragSource_h_
 
+#include "nscore.h"
 #include <ole2.h>
 #include <oleidl.h>
 
@@ -74,11 +75,13 @@ public:
   
   STDMETHODIMP QueryContinueDrag(BOOL fESC, DWORD grfKeyState);
 
+  PRPackedBool UserCancelled() { return mUserCancelled; }
+
 protected:
   ULONG        m_cRef;     
-  
-  
 
+  
+  PRPackedBool mUserCancelled;
 };
 
 #endif 

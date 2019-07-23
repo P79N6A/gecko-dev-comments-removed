@@ -270,11 +270,12 @@ nsDragService::StartInvokingDragSession(IDataObject * aDataObj,
 {
   
   
-  NS_IF_RELEASE(mNativeDragSrc);
-  mNativeDragSrc = (IDropSource *)new nsNativeDragSource();
-  if (!mNativeDragSrc)
+  nsNativeDragSource* nativeDragSource = new nsNativeDragSource();
+  if (!nativeDragSource)
     return NS_ERROR_OUT_OF_MEMORY;
 
+  NS_IF_RELEASE(mNativeDragSrc);
+  mNativeDragSrc = (IDropSource *)nativeDragSource;
   mNativeDragSrc->AddRef();
 
   
@@ -351,7 +352,9 @@ nsDragService::StartInvokingDragSession(IDataObject * aDataObj,
         dataTransfer->SetDropEffectInt(DRAGDROP_ACTION_NONE);
     }
   }
-      
+
+  mUserCancelled = nativeDragSource->UserCancelled();
+
   
   EndDragSession(PR_TRUE);
 
