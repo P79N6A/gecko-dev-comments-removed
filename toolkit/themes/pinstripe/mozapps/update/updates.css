@@ -107,7 +107,7 @@ wizardpage {
 }
 
 
-#downloadStatusTop, #downloadStatusLine {
+#downloadStatusLine {
   -moz-box-align: center;
 }
 
