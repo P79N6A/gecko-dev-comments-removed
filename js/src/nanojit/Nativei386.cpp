@@ -870,7 +870,7 @@ namespace nanojit
         
         
         Register ra = ( lhs->isUnusedOrHasUnknownReg()
-                      ? findSpecificRegFor(lhs, rr)
+                      ? findSpecificRegForUnallocated(lhs, rr)
                       : lhs->getReg() );
 
         if (forceReg)
@@ -996,7 +996,7 @@ namespace nanojit
         
         
         Register ra = ( lhs->isUnusedOrHasUnknownReg()
-                      ? findSpecificRegFor(lhs, rr)
+                      ? findSpecificRegForUnallocated(lhs, rr)
                       : lhs->getReg() );
 
         if (op == LIR_not)
@@ -1048,12 +1048,12 @@ namespace nanojit
 
 
             Register rleft = ( lhs->isUnusedOrHasUnknownReg()
-                             ? findSpecificRegFor(lhs, rr)
+                             ? findSpecificRegForUnallocated(lhs, rr)
                              : lhs->getReg() );
 
             
             Register rright = ( rr != rleft && rhs->isUnusedOrHasUnknownReg()
-                              ? findSpecificRegFor(rhs, rr)
+                              ? findSpecificRegForUnallocated(rhs, rr)
                               : findRegFor(rhs, GpRegs & ~(rmask(rleft))) );
 
             if (op == LIR_ldcb)
@@ -1268,7 +1268,7 @@ namespace nanojit
             
             
             if (lhs->isUnusedOrHasUnknownReg()) {
-                ra = findSpecificRegFor(lhs, rr);
+                ra = findSpecificRegForUnallocated(lhs, rr);
             } else {
                 ra = lhs->getReg();
                 if ((rmask(ra) & XmmRegs) == 0) {
@@ -1296,7 +1296,7 @@ namespace nanojit
             
             
             if (lhs->isUnusedOrHasUnknownReg())
-                findSpecificRegFor(lhs, rr);
+                findSpecificRegForUnallocated(lhs, rr);
 
             NanoAssert(lhs->getReg()==FST0);
             
@@ -1457,7 +1457,7 @@ namespace nanojit
 
             
             if (lhs->isUnusedOrHasUnknownReg()) {
-                ra = findSpecificRegFor(lhs, rr);
+                ra = findSpecificRegForUnallocated(lhs, rr);
             } else if ((rmask(lhs->getReg()) & XmmRegs) == 0) {
                 
                 
@@ -1499,7 +1499,7 @@ namespace nanojit
             
             
             if (lhs->isUnusedOrHasUnknownReg())
-                findSpecificRegFor(lhs, rr);
+                findSpecificRegForUnallocated(lhs, rr);
 
             NanoAssert(lhs->getReg()==FST0);
             
@@ -1747,7 +1747,7 @@ namespace nanojit
                 
                 int d = findMemFor(rhs);
                 int pop = lhs->isUnusedOrHasUnknownReg();
-                findSpecificRegFor(lhs, FST0);
+                findSpecificRegForUnallocated(lhs, FST0);
                 
                 FCOM(pop, d, FP);
             }
@@ -1755,7 +1755,7 @@ namespace nanojit
             {
                 
                 int pop = lhs->isUnusedOrHasUnknownReg();
-                findSpecificRegFor(lhs, FST0);
+                findSpecificRegForUnallocated(lhs, FST0);
                 
                 if (pop)
                     FCOMPP();

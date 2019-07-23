@@ -417,6 +417,30 @@ namespace nanojit
         return r;
     }
 
+    
+    
+    
+    
+    
+    Register Assembler::findSpecificRegForUnallocated(LIns* ins, Register r)
+    {
+        if (ins->isop(LIR_alloc)) {
+            
+            findMemFor(ins);
+        }
+
+        NanoAssert(ins->isUnusedOrHasUnknownReg());
+        NanoAssert(_allocator.free & rmask(r));
+
+        if (!ins->isUsed())
+            ins->markAsUsed();
+        ins->setReg(r);
+        _allocator.removeFree(r);
+        _allocator.addActive(r, ins);
+
+        return r;
+    }
+ 
     int Assembler::findMemFor(LIns *ins)
     {
         if (!ins->isUsed())
@@ -1379,7 +1403,7 @@ namespace nanojit
         for (int i=0, n = NumSavedRegs; i < n; i++) {
             LIns *p = b->savedRegs[i];
             if (p)
-                findSpecificRegFor(p, savedRegs[p->paramArg()]);
+                findSpecificRegForUnallocated(p, savedRegs[p->paramArg()]);
         }
     }
 
@@ -1398,10 +1422,10 @@ namespace nanojit
     {
         LInsp state = _thisfrag->lirbuf->state;
         if (state)
-            findSpecificRegFor(state, argRegs[state->paramArg()]);
+            findSpecificRegForUnallocated(state, argRegs[state->paramArg()]);
         LInsp param1 = _thisfrag->lirbuf->param1;
         if (param1)
-            findSpecificRegFor(param1, argRegs[param1->paramArg()]);
+            findSpecificRegForUnallocated(param1, argRegs[param1->paramArg()]);
     }
 
     void Assembler::handleLoopCarriedExprs(InsList& pending_lives)
