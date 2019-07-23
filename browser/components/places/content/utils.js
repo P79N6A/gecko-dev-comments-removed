@@ -308,11 +308,11 @@ var PlacesUIUtils = {
     var siteURI = null;
     aData.annos = aData.annos.filter(function(aAnno) {
       if (aAnno.name == LMANNO_FEEDURI) {
-        feedURI = this._uri(aAnno.value);
+        feedURI = PlacesUtils._uri(aAnno.value);
         return false;
       }
       else if (aAnno.name == LMANNO_SITEURI) {
-        siteURI = this._uri(aAnno.value);
+        siteURI = PlacesUtils._uri(aAnno.value);
         return false;
       }
       return true;
