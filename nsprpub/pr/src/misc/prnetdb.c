@@ -1535,7 +1535,8 @@ PR_IsNetAddrType(const PRNetAddr *addr, PRNetAddrValue val)
     return PR_FALSE;
 }
 
-#ifndef _PR_HAVE_INET_NTOP
+extern int pr_inet_aton(const char *cp, PRUint32 *addr);
+
 #define XX 127
 static const unsigned char index_hex[256] = {
     XX,XX,XX,XX, XX,XX,XX,XX, XX,XX,XX,XX, XX,XX,XX,XX,
@@ -1668,7 +1669,8 @@ static int StringToV6Addr(const char *string, PRIPv6Addr *addr)
     return 1;
 }
 #undef XX
-            
+
+#ifndef _PR_HAVE_INET_NTOP
 static const char *basis_hex = "0123456789abcdef";
 
 
@@ -1774,7 +1776,6 @@ static const char *V6AddrToString(
     return bufcopy;
 #undef STUFF    
 }
-
 #endif 
 
 
@@ -2141,12 +2142,6 @@ static PRStatus pr_StringToNetAddrGAI(const char *string, PRNetAddr *addr)
     PRNetAddr laddr;
     PRStatus status = PR_SUCCESS;
 
-    if (NULL == addr)
-    {
-        PR_SetError(PR_INVALID_ARGUMENT_ERROR, 0);
-        return PR_FAILURE;
-    }
-
     memset(&hints, 0, sizeof(hints));
     hints.ai_flags = AI_NUMERICHOST;
     hints.ai_family = AF_UNSPEC;
@@ -2183,64 +2178,42 @@ static PRStatus pr_StringToNetAddrGAI(const char *string, PRNetAddr *addr)
 }
 #endif  
 
-#if !defined(_PR_HAVE_GETADDRINFO) || defined(_PR_INET6_PROBE) || defined(DARWIN)
 static PRStatus pr_StringToNetAddrFB(const char *string, PRNetAddr *addr)
 {
-    PRStatus status = PR_SUCCESS;
     PRIntn rv;
 
-#if defined(_PR_HAVE_INET_NTOP)
-    rv = inet_pton(AF_INET6, string, &addr->ipv6.ip);
+    rv = pr_inet_aton(string, &addr->inet.ip);
+    if (1 == rv)
+    {
+        addr->raw.family = AF_INET;
+        return PR_SUCCESS;
+    }
+
+    PR_ASSERT(0 == rv);
+    
+    memset(&addr->inet.ip, 0, sizeof(addr->inet.ip));
+
+    rv = StringToV6Addr(string, &addr->ipv6.ip);
     if (1 == rv)
     {
         addr->raw.family = PR_AF_INET6;
-    }
-    else
-    {
-        PR_ASSERT(0 == rv);
-        
-        memset(&addr->ipv6.ip, 0, sizeof(addr->ipv6.ip));
-        rv = inet_pton(AF_INET, string, &addr->inet.ip);
-        if (1 == rv)
-        {
-            addr->raw.family = AF_INET;
-        }
-        else
-        {
-            PR_ASSERT(0 == rv);
-            PR_SetError(PR_INVALID_ARGUMENT_ERROR, 0);
-            status = PR_FAILURE;
-        }
-    }
-#else 
-    rv = StringToV6Addr(string, &addr->ipv6.ip);
-    if (1 == rv) {
-        addr->raw.family = PR_AF_INET6;
         return PR_SUCCESS;
     }
+
     PR_ASSERT(0 == rv);
-    
-    memset(&addr->ipv6.ip, 0, sizeof(addr->ipv6.ip));
-
-    addr->inet.family = AF_INET;
-    addr->inet.ip = inet_addr(string);
-    if ((PRUint32) -1 == addr->inet.ip)
-    {
-        
-
-
-        PR_SetError(PR_INVALID_ARGUMENT_ERROR, 0);
-        status = PR_FAILURE;
-    }
-#endif 
-
-    return status;
+    PR_SetError(PR_INVALID_ARGUMENT_ERROR, 0);
+    return PR_FAILURE;
 }
-#endif 
 
 PR_IMPLEMENT(PRStatus) PR_StringToNetAddr(const char *string, PRNetAddr *addr)
 {
     if (!_pr_initialized) _PR_ImplicitInitialization();
+
+    if (!addr || !string || !*string)
+    {
+        PR_SetError(PR_INVALID_ARGUMENT_ERROR, 0);
+        return PR_FAILURE;
+    }
 
 #if !defined(_PR_HAVE_GETADDRINFO)
     return pr_StringToNetAddrFB(string, addr);
@@ -2249,7 +2222,6 @@ PR_IMPLEMENT(PRStatus) PR_StringToNetAddr(const char *string, PRNetAddr *addr)
     if (!_pr_ipv6_is_present())
         return pr_StringToNetAddrFB(string, addr);
 #endif
-#if defined(DARWIN)
     
 
 
@@ -2258,7 +2230,7 @@ PR_IMPLEMENT(PRStatus) PR_StringToNetAddr(const char *string, PRNetAddr *addr)
 
     if (!strchr(string, '%'))
         return pr_StringToNetAddrFB(string, addr);
-#endif
+
     return pr_StringToNetAddrGAI(string, addr);
 #endif
 }
