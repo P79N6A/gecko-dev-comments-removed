@@ -297,7 +297,7 @@ CallTree(void **bp)
             return NULL;
 
         
-        site = (JSCallsite *) malloc(sizeof(JSCallsite));
+        site = (JSCallsite *) js_malloc(sizeof(JSCallsite));
         if (!site)
             return NULL;
 
