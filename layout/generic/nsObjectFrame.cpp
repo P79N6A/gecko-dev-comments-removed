@@ -108,6 +108,7 @@
 #include "nsIImageLoadingContent.h"
 #include "nsIObjectLoadingContent.h"
 #include "nsPIDOMWindow.h"
+#include "nsIDOMElement.h"
 #include "nsContentUtils.h"
 #include "nsDisplayList.h"
 #include "nsAttrName.h"
@@ -124,6 +125,7 @@
 #include "nsIXPConnect.h"
 #include "nsIXPCScriptable.h"
 #include "nsIClassInfo.h"
+#include "nsIDOMClientRect.h"
 
 #include "nsObjectFrame.h"
 #include "nsIObjectFrame.h"
@@ -172,6 +174,16 @@ enum { XKeyPress = KeyPress };
 
 #if defined(MOZ_PLATFORM_HILDON) && defined(MOZ_WIDGET_GTK2)
 #define MOZ_COMPOSITED_PLUGINS 1
+
+#include "gfxXlibSurface.h"
+
+#include <X11/Xutil.h>
+#include <X11/Xatom.h>
+#include <X11/extensions/XShm.h>
+#include <sys/ipc.h>
+#include <sys/shm.h>
+
+
 #endif
 
 #ifdef MOZ_WIDGET_GTK2
@@ -331,11 +343,6 @@ public:
 
   void SetPluginHost(nsIPluginHost* aHost);
 
-#ifdef MOZ_PLATFORM_HILDON
-  
-  PRBool UpdateVisibility(PRBool aForce = PR_FALSE);
-#endif
-
   nsEventStatus ProcessEvent(const nsGUIEvent & anEvent);
 
 #ifdef XP_MACOSX
@@ -404,6 +411,12 @@ public:
   {
     return strncmp(GetPluginName(), aPluginName, strlen(aPluginName)) == 0;
   }
+
+#ifdef MOZ_PLATFORM_HILDON
+  nsresult SetAbsoluteScreenPosition(nsIDOMElement* element,
+                                     nsIDOMClientRect* position,
+                                     nsIDOMClientRect* clip);
+#endif
 
 private:
   void FixUpURLS(const nsString &name, nsAString &value);
@@ -499,14 +512,33 @@ private:
 
   
   
-  
-  unsigned char*  mImageExposeBuffer;
-  gfxIntSize mImageExposeBufferSize;
 
-  nsresult NativeImageDraw(gfxContext *aContext,
-                           NPWindow* mWindow,
-                           const nsIntSize& mPluginSize,
-                           const nsIntRect& mDirtyRect);
+  
+  nsIntSize mPluginSize;
+
+  
+  
+  float mPluginScale;
+
+  
+  
+  nsCOMPtr<nsIDOMElement> mBlitParentElement;
+
+  
+  nsIntRect mAbsolutePosition;
+
+  
+  nsIntRect mAbsolutePositionClip;
+
+  Window mBlitWindow;
+  XImage *mSharedXImage;
+  XShmSegmentInfo mSharedSegmentInfo;
+
+  PRBool SetupXShm();
+  void ReleaseXShm();
+  nsresult NativeImageDraw();
+  PRBool UpdateVisibility();
+
 #endif
 };
 
@@ -931,10 +963,6 @@ nsObjectFrame::FixupWindow(const nsSize& aSize)
 
   NS_ENSURE_TRUE(window, );
 
-#ifdef MOZ_PLATFORM_HILDON
-  mInstanceOwner->UpdateVisibility(PR_TRUE);
-#endif
-
 #ifdef XP_MACOSX
   mInstanceOwner->FixUpPluginWindow(ePluginPaintDisable);
 #endif
@@ -978,11 +1006,6 @@ nsObjectFrame::CallSetWindow()
     return;
 
   nsPluginNativeWindow *window = (nsPluginNativeWindow *)win;
-
-#ifdef MOZ_PLATFORM_HILDON
-  mInstanceOwner->UpdateVisibility(PR_TRUE);
-#endif
-
 #ifdef XP_MACOSX
   mInstanceOwner->FixUpPluginWindow(ePluginPaintDisable);
 #endif
@@ -1188,6 +1211,19 @@ nsObjectFrame::ComputeWidgetGeometry(const nsRegion& aRegion,
       configuration->mClipRegion.AppendElement(pixRect);
     }
   }
+}
+
+nsresult
+nsObjectFrame::SetAbsoluteScreenPosition(nsIDOMElement* element,
+                                         nsIDOMClientRect* position,
+                                         nsIDOMClientRect* clip)
+{
+#ifdef MOZ_PLATFORM_HILDON
+  NS_ASSERTION(mInstanceOwner, "failed to get mInstanceOwner");
+  return mInstanceOwner->SetAbsoluteScreenPosition(element, position, clip);
+#else
+  return NS_ERROR_NOT_IMPLEMENTED;
+#endif
 }
 
 void
@@ -2363,15 +2399,10 @@ nsPluginInstanceOwner::nsPluginInstanceOwner()
 #endif
 
 #ifdef MOZ_PLATFORM_HILDON
-  mImageExposeBuffer = nsnull;
-  mImageExposeBufferSize = gfxIntSize(0,0);
-#endif
-#ifdef XP_MACOSX
-#ifndef NP_NO_QUICKDRAW
-  mEventModel = NPEventModelCarbon;
-#else
-  mEventModel = NPEventModelCocoa;
-#endif
+  mPluginSize = nsIntSize(0,0);
+  mPluginScale = 1.0;
+  mSharedXImage = nsnull;
+  mSharedSegmentInfo.shmaddr = nsnull;
 #endif
   PR_LOG(nsObjectFrameLM, PR_LOG_DEBUG,
          ("nsPluginInstanceOwner %p created\n", this));
@@ -2428,11 +2459,8 @@ nsPluginInstanceOwner::~nsPluginInstanceOwner()
   }
 
 #ifdef MOZ_PLATFORM_HILDON
-  if (mImageExposeBuffer)
-    free(mImageExposeBuffer);
-  mImageExposeBuffer = nsnull;
+  ReleaseXShm();
 #endif
-
 }
 
 
@@ -2649,6 +2677,11 @@ NS_IMETHODIMP nsPluginInstanceOwner::GetDocument(nsIDocument* *aDocument)
 
 NS_IMETHODIMP nsPluginInstanceOwner::InvalidateRect(NPRect *invalidRect)
 {
+#ifdef MOZ_PLATFORM_HILDON
+  if (mObjectFrame && mBlitWindow && NS_SUCCEEDED(NativeImageDraw()))
+    return NS_OK;
+#endif
+
   if (!mObjectFrame || !invalidRect || !mWidgetVisible)
     return NS_ERROR_FAILURE;
 
@@ -3485,10 +3518,6 @@ nsPluginInstanceOwner::GetEventloopNestingLevel()
 
 nsresult nsPluginInstanceOwner::ScrollPositionWillChange(nsIScrollableView* aScrollable, nscoord aX, nscoord aY)
 {
-#ifdef MOZ_PLATFORM_HILDON
-  CancelTimer();
-#endif
-
 #if defined(XP_MACOSX) && !defined(NP_NO_CARBON)
   if (GetEventModel() != NPEventModelCarbon)
     return NS_OK;
@@ -4735,7 +4764,18 @@ void nsPluginInstanceOwner::Paint(gfxContext* aContext,
   if (!mInstance || !mObjectFrame)
     return;
 
-  
+#ifdef MOZ_PLATFORM_HILDON
+  PRBool simpleImageRender = PR_FALSE;
+  mInstance->GetValueFromPlugin(NPPVpluginWindowlessLocalBool,
+                                &simpleImageRender);
+  if (simpleImageRender) {    
+    gfxMatrix matrix = aContext->CurrentMatrix();
+    if (!matrix.HasNonAxisAlignedTransform() &&
+        NS_SUCCEEDED(NativeImageDraw()))
+      return;
+  }
+#endif
+
   
   gfxRect pluginRect = aFrameRect;
   if (aContext->UserToDevicePixelSnapped(pluginRect)) {
@@ -4788,15 +4828,6 @@ void nsPluginInstanceOwner::Paint(gfxContext* aContext,
   gfxContextAutoSaveRestore autoSR(aContext);
   aContext->Translate(pluginRect.pos);
 
-#ifdef MOZ_PLATFORM_HILDON
-  PRBool simpleImageRender = PR_FALSE;
-  mInstance->GetValueFromPlugin(NPPVpluginWindowlessLocalBool, (void *)&simpleImageRender);
-
-  if (simpleImageRender && NS_SUCCEEDED(NativeImageDraw(aContext, window, pluginSize, pluginDirtyRect)))
-    return;
-
-#endif
-
   Renderer renderer(window, mInstance, pluginSize, pluginDirtyRect);
   renderer.Draw(aContext, window->width, window->height,
                 rendererFlags, nsnull);
@@ -4821,6 +4852,103 @@ DepthOfVisual(const Screen* screen, const Visual* visual)
 
 #ifdef MOZ_PLATFORM_HILDON
 
+static GdkWindow* GetClosestWindow(nsIDOMElement *element)
+{
+  nsCOMPtr<nsIDOMDocument> domDocument;
+  element->GetOwnerDocument(getter_AddRefs(domDocument));
+
+  nsCOMPtr<nsIDocument> doc = do_QueryInterface(domDocument);  
+  if (!doc)
+    return nsnull;
+
+  nsIPresShell *presShell = doc->GetPrimaryShell();
+  if (!presShell)
+    return nsnull;
+
+  nsCOMPtr<nsIContent> content = do_QueryInterface(element);
+  nsIFrame* frame = presShell->GetPrimaryFrameFor(content);
+  if (!frame)
+    return nsnull;
+
+  nsIWidget* win = frame->GetWindow();
+  if (!win)
+    return nsnull;
+
+  GdkWindow* w = static_cast<GdkWindow*>(win->GetNativeData(NS_NATIVE_WINDOW));
+  return w;
+}
+
+void
+nsPluginInstanceOwner::ReleaseXShm()
+{
+  if (mSharedSegmentInfo.shmaddr) {
+    XShmDetach(gdk_x11_get_default_xdisplay(), &mSharedSegmentInfo);
+    shmdt(mSharedSegmentInfo.shmaddr);
+    mSharedSegmentInfo.shmaddr = nsnull;
+  }
+
+  if (mSharedXImage) {
+    XDestroyImage(mSharedXImage);
+    mSharedXImage = nsnull;
+  }
+}
+
+PRBool
+nsPluginInstanceOwner::SetupXShm()
+{
+  mBlitWindow = GDK_WINDOW_XWINDOW(GetClosestWindow(mBlitParentElement));
+  if (!mBlitWindow)
+    return PR_FALSE;
+
+  ReleaseXShm();
+
+  
+  
+  XVisualInfo vinfo;
+  int foundVisual = XMatchVisualInfo(gdk_x11_get_default_xdisplay(),
+                                     gdk_x11_get_default_screen(),
+                                     16,
+                                     TrueColor,
+                                     &vinfo);
+  if (!foundVisual) 
+    return PR_FALSE;
+
+  memset(&mSharedSegmentInfo, 0, sizeof(XShmSegmentInfo));
+  mSharedXImage = XShmCreateImage(gdk_x11_get_default_xdisplay(),
+                                  vinfo.visual,
+                                  16,
+                                  ZPixmap,
+                                  0,
+                                  &mSharedSegmentInfo,
+                                  mPluginSize.width,
+                                  mPluginSize.height);
+  if (!mSharedXImage)
+    return PR_FALSE;
+
+  mSharedSegmentInfo.shmid = shmget(IPC_PRIVATE,
+                                    mSharedXImage->bytes_per_line * mSharedXImage->height,
+                                    IPC_CREAT | 0777);
+
+  mSharedXImage->data = static_cast<char*>(shmat(mSharedSegmentInfo.shmid, 0, 0));
+  mSharedSegmentInfo.shmaddr = mSharedXImage->data;
+  mSharedSegmentInfo.readOnly = False;
+
+  Status s = XShmAttach(gdk_x11_get_default_xdisplay(), &mSharedSegmentInfo);
+  XSync(gdk_x11_get_default_xdisplay(), False);
+  shmctl(mSharedSegmentInfo.shmid, IPC_RMID, 0);
+  if (!s) {
+    
+    
+    shmdt(mSharedSegmentInfo.shmaddr);
+    mSharedSegmentInfo.shmaddr = nsnull;
+    ReleaseXShm();
+    return PR_FALSE;
+  }
+
+  return PR_TRUE;
+}
+
+
 
 
 
@@ -4840,65 +4968,53 @@ DepthOfVisual(const Screen* screen, const Visual* visual)
 
 
 nsresult
-nsPluginInstanceOwner::NativeImageDraw(gfxContext *aContext,
-                                       NPWindow* mWindow,
-                                       const nsIntSize& mPluginSize,
-                                       const nsIntRect& mDirtyRect)
+nsPluginInstanceOwner::NativeImageDraw()
 {
-  PRBool doupdatewindow = PR_FALSE;
-
-  if (mWindow->x || mWindow->y) {
-    mWindow->x = 0;
-    mWindow->y = 0;
-    doupdatewindow = PR_TRUE;
-  }
-
-  if (nsIntSize(mWindow->width, mWindow->height) != mPluginSize) {
-    mWindow->width = mPluginSize.width;
-    mWindow->height = mPluginSize.height;
-    doupdatewindow = PR_TRUE;
-  }
+  
+  if (!mBlitParentElement)
+    return NS_OK;
 
   
-  nsIntRect clipRect;
-  clipRect.x = 0;
-  clipRect.y = 0;
-  clipRect.width  = mWindow->width;
-  clipRect.height = mWindow->height;
+  if (mAbsolutePositionClip.width == 0 || mAbsolutePositionClip.height == 0)
+    return NS_OK;
 
+  
+  if (!mSharedXImage ||
+      mPluginSize.width != mAbsolutePosition.width ||
+      mPluginSize.height != mAbsolutePosition.height) {
+
+    mPluginSize = nsIntSize(mAbsolutePosition.width, mAbsolutePosition.height);
+
+    if (NS_FAILED(SetupXShm()))
+      return NS_ERROR_FAILURE;
+  }  
+  
+  NPWindow* window;
+  GetWindow(window);
+  NS_ASSERTION(window, "Window can not be null");
+
+  
+  
+  
+  
   NPRect newClipRect;
-  newClipRect.left = clipRect.x;
-  newClipRect.top = clipRect.y;
-  newClipRect.right = clipRect.XMost();
-  newClipRect.bottom = clipRect.YMost();
-  if (mWindow->clipRect.left    != newClipRect.left   ||
-      mWindow->clipRect.top     != newClipRect.top    ||
-      mWindow->clipRect.right   != newClipRect.right  ||
-      mWindow->clipRect.bottom  != newClipRect.bottom) {
-    mWindow->clipRect = newClipRect;
-    doupdatewindow = PR_TRUE;
-  }
-
+  newClipRect.left = 0;
+  newClipRect.top = 0;
+  newClipRect.right = window->width;
+  newClipRect.bottom = window->height;
+  
+  window->clipRect = newClipRect; 
+  window->x = 0;
+  window->y = 0;
+    
   NPSetWindowCallbackStruct* ws_info =
-    static_cast<NPSetWindowCallbackStruct*>(mWindow->ws_info);
+    static_cast<NPSetWindowCallbackStruct*>(window->ws_info);
   ws_info->visual = 0;
   ws_info->colormap = 0;
-  if (ws_info->depth != 24) {
-    ws_info->depth = 24;
-    doupdatewindow = PR_TRUE;
-  }
+  ws_info->depth = 16;
+  mInstance->SetWindow(window);
 
-  if (doupdatewindow)
-    mInstance->SetWindow(mWindow);
-
-  nsIntRect dirtyRect = mDirtyRect;
-
-  
-  
-  if (!dirtyRect.IntersectRect(mDirtyRect, clipRect))
-    return NS_ERROR_FAILURE;
-
-  XEvent pluginEvent;
+  NPEvent pluginEvent;
   NPImageExpose imageExpose;
   XGraphicsExposeEvent& exposeEvent = pluginEvent.xgraphicsexpose;
 
@@ -4908,71 +5024,82 @@ nsPluginInstanceOwner::NativeImageDraw(gfxContext *aContext,
 
   
   exposeEvent.drawable = (Drawable)&imageExpose;
-  exposeEvent.x = mDirtyRect.x;
-  exposeEvent.y = mDirtyRect.y;
-  exposeEvent.width = mDirtyRect.width;
-  exposeEvent.height = mDirtyRect.height;
   exposeEvent.count = 0;
-
-  
   exposeEvent.serial = 0;
   exposeEvent.send_event = False;
   exposeEvent.major_code = 0;
   exposeEvent.minor_code = 0;
 
-  
-  imageExpose.depth = 24;
-  imageExpose.translateX = 1;
-  imageExpose.translateY = 1;
-  imageExpose.scaleX = 1;
-  imageExpose.scaleY = 1;
+  exposeEvent.x = 0;
+  exposeEvent.y = 0;
+  exposeEvent.width  = window->width;
+  exposeEvent.height = window->height;
 
-  
-  imageExpose.x = mDirtyRect.x;
-  imageExpose.y = mDirtyRect.y;
-  imageExpose.width = mDirtyRect.width;
-  imageExpose.height = mDirtyRect.height;
+  imageExpose.x = 0;
+  imageExpose.y = 0;
+  imageExpose.width  = window->width;
+  imageExpose.height = window->height;
 
-  
-  
-  if (!mImageExposeBuffer ||
-      (mImageExposeBufferSize.width * mImageExposeBufferSize.height < mWindow->width * mWindow->height)) {
-    if (mImageExposeBuffer)
-      free(mImageExposeBuffer);
+  imageExpose.depth = 16;
 
-    mImageExposeBuffer = (unsigned char*) malloc (mWindow->width * mWindow->height * 4);
-    mImageExposeBufferSize = gfxIntSize(mWindow->width, mWindow->height);
-  }
+  imageExpose.translateX = 0;
+  imageExpose.translateY = 0;
 
-  NS_ENSURE_TRUE(mImageExposeBuffer, NS_ERROR_OUT_OF_MEMORY);
+  imageExpose.scaleX = mPluginScale;
+  imageExpose.scaleY = mPluginScale;
 
-  
-  
-  memset(mImageExposeBuffer, 0, mImageExposeBufferSize.height * mImageExposeBufferSize.width * 4);
-
-  nsRefPtr<gfxImageSurface> surf = new gfxImageSurface(mImageExposeBuffer,
-                                                       mImageExposeBufferSize,
-                                                       mImageExposeBufferSize.width * 4,
-                                                       gfxASurface::ImageFormatRGB24);
-  NS_ENSURE_TRUE(surf, NS_ERROR_OUT_OF_MEMORY);
-
-  
-  imageExpose.stride = surf->Stride();
-  imageExpose.data = reinterpret_cast<char*>(surf->Data());
-  imageExpose.dataSize.width = surf->Width();
-  imageExpose.dataSize.height = surf->Height(); 
+  imageExpose.stride          = mPluginSize.width * 2;
+  imageExpose.data            = mSharedXImage->data;
+  imageExpose.dataSize.width  = mPluginSize.width;
+  imageExpose.dataSize.height = mPluginSize.height; 
 
   PRBool eventHandled = PR_FALSE;
-  
-  
   mInstance->HandleEvent(&pluginEvent, &eventHandled);
-  
-  if (eventHandled) {
-    nsRefPtr<gfxPattern> pat = new gfxPattern(surf);
-    aContext->NewPath();
-    aContext->PixelSnappedRectangleAndSetPattern(gfxRect(0, 0, mWindow->width, mWindow->height), pat);
-    aContext->Fill();
+
+  if (!eventHandled) {
+    
+    
+    
+    return NS_ERROR_FAILURE;
   }
+
+  
+  XRectangle rect;
+  rect.x = mAbsolutePositionClip.x;
+  rect.y = mAbsolutePositionClip.y;
+  rect.width = mAbsolutePositionClip.width;
+  rect.height = mAbsolutePositionClip.height;
+
+  GC gc = XCreateGC(gdk_x11_get_default_xdisplay(),
+                    mBlitWindow,
+                    0,
+                    0);
+  if (!gc)
+    return NS_ERROR_FAILURE;
+
+  XSetClipRectangles(gdk_x11_get_default_xdisplay(),
+                     gc,
+                     mAbsolutePosition.x,
+                     mAbsolutePosition.y, 
+                     &rect, 1,
+                     Unsorted);
+
+  XShmPutImage(gdk_x11_get_default_xdisplay(),
+               mBlitWindow,
+               gc,
+               mSharedXImage,
+               0,
+               0,
+               mAbsolutePosition.x,
+               mAbsolutePosition.y,
+               mPluginSize.width,
+               mPluginSize.height,
+               PR_FALSE);
+  
+  XSetClipRectangles(gdk_x11_get_default_xdisplay(), gc, 0, 0, nsnull, 0, Unsorted);  
+
+  XFreeGC(gdk_x11_get_default_xdisplay(), gc);
+  XFlush(gdk_x11_get_default_xdisplay());
   return NS_OK;
 }
 #endif
@@ -5149,11 +5276,6 @@ nsPluginInstanceOwner::Renderer::NativeDraw(QWidget * drawable,
 
 NS_IMETHODIMP nsPluginInstanceOwner::Notify(nsITimer* timer)
 {
-#ifdef MOZ_PLATFORM_HILDON
-  if (mInstance)
-    UpdateVisibility();
-#endif
-
 #if defined(XP_MACOSX) && !defined(NP_NO_CARBON)
   if (GetEventModel() != NPEventModelCarbon)
     return NS_OK;
@@ -5202,20 +5324,6 @@ void nsPluginInstanceOwner::StartTimer(unsigned int aDelay)
   if (mPluginTimer) {
     mTimerCanceled = PR_FALSE;
     mPluginTimer->InitWithCallback(this, aDelay, nsITimer::TYPE_REPEATING_SLACK);
-  }
-#endif
-
-#ifdef MOZ_PLATFORM_HILDON
-  if (!mTimerCanceled)
-    return;
-
-  
-  if (!mPluginTimer)
-    mPluginTimer = do_CreateInstance("@mozilla.org/timer;1");
-
-  if (mPluginTimer) {
-    mTimerCanceled = PR_FALSE;
-    mPluginTimer->InitWithCallback(this, aDelay, nsITimer::TYPE_ONE_SHOT);
   }
 #endif
 }
@@ -5423,27 +5531,20 @@ void nsPluginInstanceOwner::SetPluginHost(nsIPluginHost* aHost)
 }
 
 #ifdef MOZ_PLATFORM_HILDON
-PRBool nsPluginInstanceOwner::UpdateVisibility(PRBool aForce)
+PRBool nsPluginInstanceOwner::UpdateVisibility()
 {
-  if (!mPluginWindow || !mInstance || !mObjectFrame)
-    return PR_FALSE;
-
+  NS_ASSERTION(mInstance, "mInstance should never be null");
   
-  PRBool isVisible =
-    mObjectFrame->GetView()->GetVisibility() == nsViewVisibility_kShow;
+  PRBool handled;
+  NPEvent pluginEvent;
+  XVisibilityEvent& visibilityEvent = pluginEvent.xvisibility;
+  visibilityEvent.type = VisibilityNotify;
+  visibilityEvent.display = 0;
+  visibilityEvent.state = VisibilityUnobscured;
+  mInstance->HandleEvent(&pluginEvent, &handled);
 
-  if (aForce || mWidgetVisible != isVisible) {
-    PRBool handled;
-    NPEvent pluginEvent;
-    XVisibilityEvent& visibilityEvent = pluginEvent.xvisibility;
-    visibilityEvent.type = VisibilityNotify;
-    visibilityEvent.display = 0;
-    visibilityEvent.state = isVisible ? VisibilityUnobscured : VisibilityFullyObscured;
-    mInstance->HandleEvent(&pluginEvent, &handled);
-    mWidgetVisible = isVisible;
-    return PR_TRUE;
-  }
-  return PR_FALSE;
+  mWidgetVisible = PR_TRUE;
+  return PR_TRUE;
 }
 #endif
 
@@ -5584,3 +5685,50 @@ void nsPluginInstanceOwner::FixUpURLS(const nsString &name, nsAString &value)
       value = newURL;
   }
 }
+
+#ifdef MOZ_PLATFORM_HILDON
+nsresult
+nsPluginInstanceOwner::SetAbsoluteScreenPosition(nsIDOMElement* element,
+                                                 nsIDOMClientRect* position,
+                                                 nsIDOMClientRect* clip)
+{
+  if ((mBlitParentElement && (mBlitParentElement != element)) ||
+      !position || !clip)
+    return NS_ERROR_FAILURE;
+  
+  
+  float left, top, width, height;
+  position->GetLeft(&left);
+  position->GetTop(&top);
+  position->GetWidth(&width);
+  position->GetHeight(&height);
+  
+  NPWindow  *window;
+  GetWindow(window);
+  NS_ASSERTION(window, "Must have a window here");
+  
+  mPluginScale = width / window->width;
+  
+  
+  
+  mAbsolutePosition = nsIntRect(NSToIntFloor(left),
+                                NSToIntFloor(top),
+                                NSToIntCeil(width) / 2 * 2,
+                                NSToIntCeil(height) / 2 * 2);
+  clip->GetLeft(&left);
+  clip->GetTop(&top);
+  clip->GetWidth(&width);
+  clip->GetHeight(&height);
+  
+  mAbsolutePositionClip = nsIntRect(NSToIntFloor(left),
+                                    NSToIntFloor(top),
+                                    NSToIntCeil(width),
+                                    NSToIntCeil(height));
+  mBlitParentElement = element;
+    
+  
+  UpdateVisibility();
+  return NS_OK;
+}
+#endif
+
