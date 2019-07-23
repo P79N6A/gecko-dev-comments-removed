@@ -316,7 +316,7 @@ nsTSubstring_CharT::EnsureMutable( size_type newLen )
 
         
         char_type* prevData = mData;
-        Assign(string_type(mData, mLength));
+        Assign(mData, mLength);
         return mData != prevData;
       }
     else
@@ -394,7 +394,12 @@ nsTSubstring_CharT::Assign( const self_type& str )
     if (&str == this)
       return;
 
-    if (str.mFlags & F_SHARED)
+    if (!str.mLength)
+      {
+        Truncate();
+        mFlags |= str.mFlags & F_VOIDED;
+      }
+    else if (str.mFlags & F_SHARED)
       {
         
 
@@ -409,11 +414,6 @@ nsTSubstring_CharT::Assign( const self_type& str )
 
         
         nsStringBuffer::FromData(mData)->AddRef();
-      }
-    else if (str.mFlags & F_VOIDED)
-      {
-        
-        SetIsVoid(PR_TRUE);
       }
     else
       {
