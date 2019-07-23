@@ -783,16 +783,18 @@ PrintWinCodebase(nsGlobalWindow *win)
 #endif
 
 
+#define MAYBE_GC_BRANCH_COUNT_MASK 0x00000fff // 4095
 
 
 
-const PRUint32 INITIALIZE_TIME_OPERATION_LIMIT = 256 * 1000;
 
 
-const PRUint32 MAYBE_GC_OPERATION_LIMIT = INITIALIZE_TIME_OPERATION_LIMIT * 16;
+
+#define INITIALIZE_TIME_BRANCH_COUNT_MASK 0x000000ff // 255
+
 
 JSBool JS_DLL_CALLBACK
-nsJSContext::DOMOperationCallback(JSContext *cx)
+nsJSContext::DOMBranchCallback(JSContext *cx, JSScript *script)
 {
   
   nsJSContext *ctx = static_cast<nsJSContext *>(::JS_GetContextPrivate(cx));
@@ -802,34 +804,40 @@ nsJSContext::DOMOperationCallback(JSContext *cx)
     return JS_TRUE;
   }
 
-  if (LL_IS_ZERO(ctx->mOperationCallbackTime)) {
-    
-    
-    ctx->mOperationCallbackTime = PR_Now();
+  PRUint32 callbackCount = ++ctx->mBranchCallbackCount;
 
-    NS_ASSERTION(::JS_GetOperationLimit(cx) == INITIALIZE_TIME_OPERATION_LIMIT,
-                 "The operation limit must match the initialization value");
-    ::JS_SetOperationLimit(cx, MAYBE_GC_OPERATION_LIMIT);
+  if (callbackCount & INITIALIZE_TIME_BRANCH_COUNT_MASK) {
     return JS_TRUE;
   }
 
-  NS_ASSERTION(::JS_GetOperationLimit(cx) == MAYBE_GC_OPERATION_LIMIT,
-               "The operation limit must match the long-running value");
+  if (callbackCount == INITIALIZE_TIME_BRANCH_COUNT_MASK + 1 &&
+      LL_IS_ZERO(ctx->mBranchCallbackTime)) {
+    
+    
+    ctx->mBranchCallbackTime = PR_Now();
+
+    ctx->mIsTrackingChromeCodeTime =
+      ::JS_IsSystemObject(cx, ::JS_GetGlobalObject(cx));
+
+    return JS_TRUE;
+  }
+
+  if (callbackCount & MAYBE_GC_BRANCH_COUNT_MASK) {
+    return JS_TRUE;
+  }
 
   
   
   
   
-  PRTime callbackTime = ctx->mOperationCallbackTime;
+  PRTime callbackTime = ctx->mBranchCallbackTime;
 
   
-  ::JS_MaybeGC(cx);
+  JS_MaybeGC(cx);
 
   
-  ctx->mOperationCallbackTime = callbackTime;
-
-  PRBool isTrackingChromeCodeTime =
-    ::JS_IsSystemObject(cx, ::JS_GetGlobalObject(cx));
+  ctx->mBranchCallbackTime = callbackTime;
+  ctx->mBranchCallbackCount = callbackCount;
 
   PRTime now = PR_Now();
 
@@ -838,7 +846,7 @@ nsJSContext::DOMOperationCallback(JSContext *cx)
 
   
   
-  if (duration < (isTrackingChromeCodeTime ?
+  if (duration < (ctx->mIsTrackingChromeCodeTime ?
                   sMaxChromeScriptRunTime : sMaxScriptRunTime)) {
     return JS_TRUE;
   }
@@ -863,9 +871,7 @@ nsJSContext::DOMOperationCallback(JSContext *cx)
   nsresult rv;
 
   
-  JSStackFrame* fp = ::JS_GetScriptedCaller(cx, NULL);
-  PRBool debugPossible = (fp != nsnull &&
-                          cx->debugHooks->debuggerHandler != nsnull);
+  PRBool debugPossible = (cx->debugHooks->debuggerHandler != nsnull);
 #ifdef MOZ_JSDEBUGGER
   
   if (debugPossible) {
@@ -933,7 +939,6 @@ nsJSContext::DOMOperationCallback(JSContext *cx)
   }
 
   
-  JSScript *script = fp ? ::JS_GetFrameScript(cx, fp) : nsnull;
   if (script) {
     const char *filename = ::JS_GetScriptFilename(cx, script);
     if (filename) {
@@ -983,24 +988,23 @@ nsJSContext::DOMOperationCallback(JSContext *cx)
       nsIPrefBranch *prefBranch = nsContentUtils::GetPrefBranch();
 
       if (prefBranch) {
-        prefBranch->SetIntPref(isTrackingChromeCodeTime ?
+        prefBranch->SetIntPref(ctx->mIsTrackingChromeCodeTime ?
                                "dom.max_chrome_script_run_time" :
                                "dom.max_script_run_time", 0);
       }
     }
 
-    ctx->mOperationCallbackTime = PR_Now();
+    ctx->mBranchCallbackTime = PR_Now();
     return JS_TRUE;
   }
   else if ((buttonPressed == 2) && debugPossible) {
     
     jsval rval;
-    switch(cx->debugHooks->debuggerHandler(cx, script, ::JS_GetFramePC(cx, fp),
-                                           &rval,
+    switch(cx->debugHooks->debuggerHandler(cx, script, cx->fp->pc, &rval,
                                            cx->debugHooks->
                                            debuggerHandlerData)) {
       case JSTRAP_RETURN:
-        fp->rval = rval;
+        cx->fp->rval = rval;
         return JS_TRUE;
       case JSTRAP_ERROR:
         cx->throwing = JS_FALSE;
@@ -1088,7 +1092,9 @@ nsJSContext::nsJSContext(JSRuntime *aRuntime) : mGCOnDestruction(PR_TRUE)
 
   ++sContextCount;
 
-  mDefaultJSOptions = JSOPTION_PRIVATE_IS_NSISUPPORTS | JSOPTION_ANONFUNFIX;
+  mDefaultJSOptions = JSOPTION_PRIVATE_IS_NSISUPPORTS
+                    | JSOPTION_NATIVE_BRANCH_CALLBACK
+                    | JSOPTION_ANONFUNFIX;
 
   
   
@@ -1107,8 +1113,7 @@ nsJSContext::nsJSContext(JSRuntime *aRuntime) : mGCOnDestruction(PR_TRUE)
                                          JSOptionChangedCallback,
                                          this);
 
-    ::JS_SetOperationCallback(mContext, DOMOperationCallback,
-                              INITIALIZE_TIME_OPERATION_LIMIT);
+    ::JS_SetBranchCallback(mContext, DOMBranchCallback);
 
     static JSLocaleCallbacks localeCallbacks =
       {
@@ -1124,8 +1129,10 @@ nsJSContext::nsJSContext(JSRuntime *aRuntime) : mGCOnDestruction(PR_TRUE)
   mNumEvaluations = 0;
   mTerminations = nsnull;
   mScriptsEnabled = PR_TRUE;
-  mOperationCallbackTime = LL_ZERO;
+  mBranchCallbackCount = 0;
+  mBranchCallbackTime = LL_ZERO;
   mProcessingScriptTag = PR_FALSE;
+  mIsTrackingChromeCodeTime = PR_FALSE;
 }
 
 nsJSContext::~nsJSContext()
@@ -1161,7 +1168,7 @@ nsJSContext::Unlink()
   ::JS_SetContextPrivate(mContext, nsnull);
 
   
-  ::JS_ClearOperationCallback(mContext);
+  ::JS_SetBranchCallback(mContext, nsnull);
 
   
   nsContentUtils::UnregisterPrefCallback(js_options_dot_str,
@@ -1472,8 +1479,6 @@ nsJSContext::EvaluateString(const nsAString& aScript,
   
   
   
-  
-  
   jsval val;
 
   nsJSContext::TerminationFuncHolder holder(this);
@@ -1678,6 +1683,7 @@ nsJSContext::ExecuteScript(void *aScriptObject,
     return NS_ERROR_FAILURE;
   }
 
+  
   
   
   
@@ -3219,8 +3225,8 @@ nsJSContext::ScriptEvaluated(PRBool aTerminated)
   }
 #endif
 
-  mOperationCallbackTime = LL_ZERO;
-  ::JS_SetOperationLimit(mContext, INITIALIZE_TIME_OPERATION_LIMIT);
+  mBranchCallbackCount = 0;
+  mBranchCallbackTime = LL_ZERO;
 }
 
 nsresult
