@@ -73,6 +73,14 @@ pref("browser.cache.offline.capacity",         10240);
 
 
 
+pref("offline-apps.quota.max",        204800);
+
+
+
+pref("offline-apps.quota.warn",        51200);
+
+
+
 pref("browser.sessionhistory.max_total_viewers", -1);
 
 pref("browser.display.use_document_fonts",  1);  
