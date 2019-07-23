@@ -1361,12 +1361,9 @@ NS_IMETHODIMP nsAccessibilityService::GetAccessible(nsIDOMNode *aNode,
                                         nsIAccessibleRole::ROLE_EQUATION);
     }
   } else if (!newAcc) {  
-    
-    
-    CreateHTMLAccessibleByMarkup(frame, aWeakShell, aNode, getter_AddRefs(newAcc));
+    PRBool tryTagNameOrFrame = PR_TRUE;
 
-    PRBool tryFrame = (newAcc == nsnull);
-    if (!content->IsFocusable()) { 
+    if (!content->IsFocusable()) {
       
       
       nsIAtom *tag = content->Tag();
@@ -1386,28 +1383,40 @@ NS_IMETHODIMP nsAccessibilityService::GetAccessible(nsIDOMNode *aNode,
               
               
               
-              tryFrame = PR_FALSE;
+              tryTagNameOrFrame = PR_FALSE;
             }
-
             break;
           }
         }
       }
     }
 
-    if (tryFrame) {
+    if (tryTagNameOrFrame) {
       
       
       
       
-      if (frame->GetType() == nsAccessibilityAtoms::tableCaptionFrame &&
-         frame->GetRect().IsEmpty()) {
+      
+      rv = CreateHTMLAccessibleByMarkup(frame, aWeakShell, aNode,
+                                        getter_AddRefs(newAcc));
+      NS_ENSURE_SUCCESS(rv, rv);
+
+      if (!newAcc) {
         
         
-        *aIsHidden = PR_TRUE;
-        return NS_OK;
+        
+        
+        
+        
+        if (frame->GetType() == nsAccessibilityAtoms::tableCaptionFrame &&
+           frame->GetRect().IsEmpty()) {
+          
+          
+          *aIsHidden = PR_TRUE;
+          return NS_OK;
+        }
+        frame->GetAccessible(getter_AddRefs(newAcc)); 
       }
-      frame->GetAccessible(getter_AddRefs(newAcc)); 
     }
   }
 
