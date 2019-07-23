@@ -1181,6 +1181,15 @@ PopulateReportBlame(JSContext *cx, JSErrorReport *report)
 void
 js_ReportOutOfMemory(JSContext *cx)
 {
+#ifdef JS_TRACER
+    
+
+
+
+    if (JS_ON_TRACE(cx) && !cx->bailExit)
+        return;
+#endif
+
     JSErrorReport report;
     JSErrorReporter onError = cx->errorReporter;
 
