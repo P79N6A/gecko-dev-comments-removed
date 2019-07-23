@@ -92,9 +92,7 @@
 
 
 #include "nsLayoutCID.h"
-#ifndef MOZ_CAIRO_GFX
-#include "nsISelectionImageService.h"
-#endif
+
 static nscolor
 MakeColorPref(const char *colstr)
 {
@@ -155,7 +153,6 @@ destroy_loads(const void * aKey, nsCOMPtr<nsImageLoader>& aData, void* closure)
 
 static NS_DEFINE_CID(kLookAndFeelCID,  NS_LOOKANDFEEL_CID);
 #include "nsContentCID.h"
-static NS_DEFINE_CID(kSelectionImageService, NS_SELECTIONIMAGESERVICE_CID);
 
   
   
@@ -1389,18 +1386,6 @@ nsPresContext::SysColorChangedInternal()
   
   
   GetDocumentColorPreferences();
-
-#ifndef MOZ_CAIRO_GFX
-  
-  
-  nsCOMPtr<nsISelectionImageService> imageService;
-  nsresult result;
-  imageService = do_GetService(kSelectionImageService, &result);
-  if (NS_SUCCEEDED(result) && imageService)
-  {
-    imageService->Reset();
-  }
-#endif
 
   
   
