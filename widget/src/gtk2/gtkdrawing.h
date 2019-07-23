@@ -328,6 +328,21 @@ moz_gtk_widget_get_focus(GtkWidget* widget, gboolean* interior_focus,
 
 
 
+
+
+
+gint
+moz_gtk_button_get_default_border(gint* border_top, gint* border_left,
+                                  gint* border_bottom, gint* border_right);
+
+
+
+
+
+
+
+
+
 gint
 moz_gtk_get_scalethumb_metrics(GtkOrientation orient, gint* thumb_length, gint* thumb_height);
 
