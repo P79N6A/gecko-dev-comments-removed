@@ -3343,8 +3343,10 @@ nsGlobalWindow::SetFullScreen(PRBool aFullScreen)
 {
   FORWARD_TO_OUTER(SetFullScreen, (aFullScreen), NS_ERROR_NOT_INITIALIZED);
 
+  PRBool rootWinFullScreen;
+  GetFullScreen(&rootWinFullScreen);
   
-  if (aFullScreen == mFullScreen || 
+  if (aFullScreen == rootWinFullScreen || 
       !nsContentUtils::IsCallerTrustedForWrite()) {
     return NS_OK;
   }
@@ -3390,6 +3392,18 @@ nsGlobalWindow::GetFullScreen(PRBool* aFullScreen)
 {
   FORWARD_TO_OUTER(GetFullScreen, (aFullScreen), NS_ERROR_NOT_INITIALIZED);
 
+  
+  
+  nsCOMPtr<nsIDocShellTreeItem> treeItem = do_QueryInterface(mDocShell);
+  nsCOMPtr<nsIDocShellTreeItem> rootItem;
+  treeItem->GetRootTreeItem(getter_AddRefs(rootItem));
+  if (rootItem != treeItem) {
+    nsCOMPtr<nsIDOMWindowInternal> window = do_GetInterface(rootItem);
+    if (window)
+      return window->GetFullScreen(aFullScreen);
+  }
+
+  
   *aFullScreen = mFullScreen;
   return NS_OK;
 }
