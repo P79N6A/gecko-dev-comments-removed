@@ -289,7 +289,11 @@ public:
 
 
 
-    PRBool UserToDevicePixelSnapped(gfxRect& rect) const;
+
+
+
+
+    PRBool UserToDevicePixelSnapped(gfxRect& rect, PRBool ignoreScale = PR_FALSE) const;
 
     
 

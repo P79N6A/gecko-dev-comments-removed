@@ -383,12 +383,15 @@ gfxContext::UserToDevice(const gfxRect& rect) const
 }
 
 PRBool
-gfxContext::UserToDevicePixelSnapped(gfxRect& rect) const
+gfxContext::UserToDevicePixelSnapped(gfxRect& rect, PRBool ignoreScale) const
 {
+    
+    
     
     cairo_matrix_t mat;
     cairo_get_matrix(mCairo, &mat);
-    if (mat.xx != 1.0 || mat.yy != 1.0)
+    if ((!ignoreScale && (mat.xx != 1.0 || mat.yy != 1.0)) ||
+        (mat.xy != 0.0 || mat.yx != 0.0))
         return PR_FALSE;
 
     gfxPoint p1 = UserToDevice(rect.pos);
