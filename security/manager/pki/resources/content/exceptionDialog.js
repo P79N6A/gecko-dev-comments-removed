@@ -83,19 +83,6 @@ function initExceptionDialog() {
                                                          [brandName], 1));
   gDialog.getButton("extra1").disabled = true;
   
-  
-  
-  
-  try {
-    var pb = Components.classes["@mozilla.org/privatebrowsing;1"].
-             getService(Components.interfaces.nsIPrivateBrowsingService);
-    if (pb.privateBrowsingEnabled) {
-      var permanentCheckbox = document.getElementById("permanent");
-      permanentCheckbox.setAttribute("disabled", "true");
-      permanentCheckbox.removeAttribute("checked");
-    }
-  } catch (ex) {}
-  
   var args = window.arguments;
   if (args && args[0]) {
     if (args[0].location) {
@@ -300,7 +287,15 @@ function updateCertStatus() {
       
       
       gDialog.getButton("extra1").disabled = false;
-      document.getElementById("permanent").disabled = false;
+
+      
+      
+      
+      var inPrivateBrowsing = inPrivateBrowsingMode();
+      var pe = document.getElementById("permanent");
+      pe.disabled = inPrivateBrowsing;
+      pe.checked = !inPrivateBrowsing;
+
       setText("headerDescription", gPKIBundle.GetStringFromName("addExceptionInvalidHeader"));
     }
     else {
@@ -370,17 +365,39 @@ function addException() {
     flags |= overrideService.ERROR_TIME;
   
   var permanentCheckbox = document.getElementById("permanent");
+  var shouldStorePermanently = permanentCheckbox.checked && !inPrivateBrowsingMode();
 
   var uri = getURI();
   overrideService.rememberValidityOverride(
     uri.asciiHost, uri.port,
     gCert,
     flags,
-    !permanentCheckbox.checked);
+    !shouldStorePermanently);
   
   var args = window.arguments;
   if (args && args[0])
     args[0].exceptionAdded = true;
   
   gDialog.acceptDialog();
+}
+
+
+
+
+
+function inPrivateBrowsingMode() {
+  
+  var args = window.arguments;
+  if (args && args[0] && args[0].handlePrivateBrowsing) {
+    
+    try {
+      var pb = Components.classes["@mozilla.org/privatebrowsing;1"].
+               getService(Components.interfaces.nsIPrivateBrowsingService);
+      return pb.privateBrowsingEnabled;
+    } catch (ex) {
+      Components.utils.reportError("Could not get the Private Browsing service");
+    }
+  }
+
+  return false;
 }
