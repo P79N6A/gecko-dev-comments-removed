@@ -56,8 +56,8 @@
 class nsIParser;
 
 #define NS_ICONTENT_SINK_IID \
-{ 0x94ec4df1, 0x6885, 0x4b1f, \
- { 0x85, 0x10, 0xe3, 0x5f, 0x4f, 0x36, 0xea, 0xaa } }
+{ 0xcfa3643b, 0xee60, 0x4bf0, \
+  { 0xbc, 0x83, 0x49, 0x95, 0xdb, 0xbc, 0xda, 0x75 } }
 
 class nsIContentSink : public nsISupports {
 public:
@@ -87,6 +87,12 @@ public:
 
 
   NS_IMETHOD DidBuildModel()=0;
+
+  
+
+
+
+  virtual PRBool ReadyToCallDidBuildModel() { return PR_TRUE; };
 
   
 
