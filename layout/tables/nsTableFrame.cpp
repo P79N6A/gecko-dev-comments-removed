@@ -4054,6 +4054,9 @@ nsTableFrame::ColumnHasCellSpacingBefore(PRInt32 aColIndex) const
   
   if (LayoutStrategy()->GetType() == nsITableLayoutStrategy::Fixed)
     return PR_TRUE;
+  
+  if (aColIndex == 0)
+    return PR_TRUE;
   nsTableCellMap* cellMap = GetCellMap();
   if (!cellMap) 
     return PR_FALSE;
