@@ -145,6 +145,12 @@ bool CreateNotificationPipeForChild(int* childCrashFd, int* childCrashRemapFd);
 
 
 bool SetRemoteExceptionHandler();
+
+#  elif defined(XP_MACOSX)
+
+
+
+void CreateNotificationPipeForChild();
 #endif  
 
 bool UnsetRemoteExceptionHandler();

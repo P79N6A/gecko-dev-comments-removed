@@ -222,7 +222,8 @@ GeckoChildProcessHost::PerformAsyncLaunch(std::vector<std::string> aExtraOpts)
   childArgv.push_back(pidstring);
   childArgv.push_back(childProcessType);
 
-#if defined(MOZ_CRASHREPORTER) && !defined(XP_MACOSX)
+#if defined(MOZ_CRASHREPORTER)
+#  if defined(OS_LINUX)
   int childCrashFd, childCrashRemapFd;
   if (!CrashReporter::CreateNotificationPipeForChild(
         &childCrashFd, &childCrashRemapFd))
@@ -236,6 +237,11 @@ GeckoChildProcessHost::PerformAsyncLaunch(std::vector<std::string> aExtraOpts)
     
     childArgv.push_back("false");
   }
+#  elif defined(XP_MACOSX)
+  
+  
+  CrashReporter::CreateNotificationPipeForChild();
+#  endif  
 #endif
 
   base::LaunchApp(childArgv, mFileMap,
