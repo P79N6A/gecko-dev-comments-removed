@@ -276,6 +276,12 @@ js_SweepScriptFilenames(JSRuntime *rt);
 
 
 
+
+
+
+
+
+
 extern JSScript *
 js_NewScript(JSContext *cx, uint32 length, uint32 nsrcnotes, uint32 natoms,
              uint32 nobjects, uint32 nupvars, uint32 nregexps,

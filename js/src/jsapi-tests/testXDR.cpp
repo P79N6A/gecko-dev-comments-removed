@@ -1,4 +1,5 @@
 #include "tests.h"
+#include "jsscript.h"
 #include "jsxdrapi.h"
 
 BEGIN_TEST(testXDR_bug506491)
@@ -24,7 +25,7 @@ BEGIN_TEST(testXDR_bug506491)
     uint32 nbytes;
     void *p = JS_XDRMemGetData(w, &nbytes);
     CHECK(p);
-    void *frozen = malloc(nbytes);
+    void *frozen = JS_malloc(cx, nbytes);
     CHECK(frozen);
     memcpy(frozen, p, nbytes);
     JS_XDRDestroy(w);
@@ -70,7 +71,7 @@ BEGIN_TEST(testXDR_bug516827)
     uint32 nbytes;
     void *p = JS_XDRMemGetData(w, &nbytes);
     CHECK(p);
-    void *frozen = malloc(nbytes);
+    void *frozen = JS_malloc(cx, nbytes);
     CHECK(frozen);
     memcpy(frozen, p, nbytes);
     JS_XDRDestroy(w);
@@ -90,3 +91,35 @@ BEGIN_TEST(testXDR_bug516827)
     return true;
 }
 END_TEST(testXDR_bug516827)
+
+BEGIN_TEST(testXDR_bug525481)
+{
+    
+    JSScript *script = JSScript::emptyScript();
+    CHECK(script);
+
+    
+    JSXDRState *w = JS_XDRNewMem(cx, JSXDR_ENCODE);
+    CHECK(w);
+    CHECK(JS_XDRScript(w, &script));
+    const char s[] = "don't decode me; don't encode me";
+    char b[sizeof s - 1];
+    memcpy(b, s, sizeof b);
+    CHECK(JS_XDRBytes(w, b, sizeof b));
+    uint32 nbytes;
+    void *p = JS_XDRMemGetData(w, &nbytes);
+    CHECK(p);
+    void *frozen = JS_malloc(cx, nbytes);
+    CHECK(frozen);
+    memcpy(frozen, p, nbytes);
+    JS_XDRDestroy(w);
+
+    
+    script = NULL;
+    JSXDRState *r = JS_XDRNewMem(cx, JSXDR_DECODE);
+    JS_XDRMemSetData(r, frozen, nbytes);
+    CHECK(JS_XDRScript(r, &script));
+    JS_XDRDestroy(r);  
+    return true;
+}
+END_TEST(testXDR_bug525481)
