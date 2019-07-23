@@ -167,13 +167,15 @@ namespace nanojit
 		public:
 			#ifdef NJ_VERBOSE
 			static char  outline[8192]; 
+			static char  outlineEOL[512];  
 			static char* outputAlign(char* s, int col); 
 
+			void FASTCALL outputForEOL(const char* format, ...);
 			void FASTCALL output(const char* s); 
 			void FASTCALL outputf(const char* format, ...); 
 			void FASTCALL output_asm(const char* s); 
 			
-			bool _verbose, vpad[3];
+			bool _verbose, outputAddr, vpad[2];  
 			void printActivationState();
 
 			StringList* _outputCache;
