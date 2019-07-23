@@ -95,8 +95,7 @@ function hiddenDataCheck(bytes, uri, path)
   var top = ios.newURI(uri, null, null);
 
   
-  var dirEntries = [{name: "CVS", isDirectory: true}, 
-                    {name: "file.txt", isDirectory: false},
+  var dirEntries = [{name: "file.txt", isDirectory: false},
                     {name: "SHOULD_SEE_THIS.txt^", isDirectory: false}];
 
   for (var i = 0; i < items.length; i++)
