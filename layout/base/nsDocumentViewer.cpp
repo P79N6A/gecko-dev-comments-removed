@@ -117,8 +117,8 @@
 #include "nsIClipboardHelper.h"
 
 #include "nsPIDOMWindow.h"
+#include "nsPIWindowRoot.h"
 #include "nsJSEnvironment.h"
-#include "nsIFocusController.h"
 #include "nsFocusManager.h"
 
 #include "nsIScrollableFrame.h"
@@ -3356,17 +3356,16 @@ DocumentViewerImpl::GetPopupNode(nsIDOMNode** aNode)
   nsIDocument* document = GetDocument();
   NS_ENSURE_TRUE(document, NS_ERROR_FAILURE);
 
-
   
-  nsPIDOMWindow *privateWin = document->GetWindow();
-  NS_ENSURE_TRUE(privateWin, NS_ERROR_NOT_AVAILABLE);
+  nsCOMPtr<nsPIDOMWindow> window(document->GetWindow());
+  NS_ENSURE_TRUE(window, NS_ERROR_NOT_AVAILABLE);
+  if (window) {
+    nsCOMPtr<nsPIWindowRoot> root = window->GetTopWindowRoot();
+    NS_ENSURE_TRUE(root, NS_ERROR_FAILURE);
 
-  
-  nsIFocusController *focusController = privateWin->GetRootFocusController();
-  NS_ENSURE_TRUE(focusController, NS_ERROR_FAILURE);
-
-  
-  focusController->GetPopupNode(aNode); 
+    
+    root->GetPopupNode(aNode); 
+  }
 
   return NS_OK;
 }

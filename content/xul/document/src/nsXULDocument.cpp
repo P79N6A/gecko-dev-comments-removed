@@ -90,6 +90,7 @@
 #include "nsILocalStore.h"
 #include "nsXPIDLString.h"
 #include "nsPIDOMWindow.h"
+#include "nsPIWindowRoot.h"
 #include "nsXULCommandDispatcher.h"
 #include "nsXULDocument.h"
 #include "nsXULElement.h"
@@ -101,7 +102,6 @@
 #include "nsMimeTypes.h"
 #include "nsIObjectInputStream.h"
 #include "nsIObjectOutputStream.h"
-#include "nsIFocusController.h"
 #include "nsContentList.h"
 #include "nsIScriptGlobalObject.h"
 #include "nsIScriptGlobalObjectOwner.h"
@@ -1553,28 +1553,29 @@ nsXULDocument::GetPopupNode(nsIDOMNode** aNode)
 NS_IMETHODIMP
 nsXULDocument::TrustedGetPopupNode(nsIDOMNode** aNode)
 {
-    
-    nsCOMPtr<nsIFocusController> focusController;
-    GetFocusController(getter_AddRefs(focusController));
-    NS_ENSURE_TRUE(focusController, NS_ERROR_FAILURE);
+    *aNode = nsnull;
 
-    
-    return focusController->GetPopupNode(aNode); 
+    nsCOMPtr<nsPIWindowRoot> rootWin = GetWindowRoot();
+    if (rootWin)
+        rootWin->GetPopupNode(aNode); 
+
+    return NS_OK;
 }
 
 NS_IMETHODIMP
 nsXULDocument::SetPopupNode(nsIDOMNode* aNode)
 {
-    nsresult rv;
+    if (aNode) {
+        
+        nsCOMPtr<nsINode> node = do_QueryInterface(aNode);
+        NS_ENSURE_ARG(node);
+    }
 
-    
-    nsCOMPtr<nsIFocusController> focusController;
-    GetFocusController(getter_AddRefs(focusController));
-    NS_ENSURE_TRUE(focusController, NS_ERROR_FAILURE);
-    
-    rv = focusController->SetPopupNode(aNode);
+    nsCOMPtr<nsPIWindowRoot> rootWin = GetWindowRoot();
+    if (rootWin)
+        rootWin->SetPopupNode(aNode); 
 
-    return rv;
+    return NS_OK;
 }
 
 
@@ -4610,15 +4611,13 @@ nsXULDocument::ParserObserver::OnStopRequest(nsIRequest *request,
     return rv;
 }
 
-void
-nsXULDocument::GetFocusController(nsIFocusController** aFocusController)
+already_AddRefed<nsPIWindowRoot>
+nsXULDocument::GetWindowRoot()
 {
     nsCOMPtr<nsIInterfaceRequestor> ir = do_QueryReferent(mDocumentContainer);
-    nsCOMPtr<nsPIDOMWindow> windowPrivate = do_GetInterface(ir);
-    if (windowPrivate) {
-        NS_IF_ADDREF(*aFocusController = windowPrivate->GetRootFocusController());
-    } else
-        *aFocusController = nsnull;
+    nsCOMPtr<nsIDOMWindow> window(do_GetInterface(ir));
+    nsCOMPtr<nsPIDOMWindow> piWin(do_QueryInterface(window));
+    return piWin ? piWin->GetTopWindowRoot() : nsnull;
 }
 
 PRBool

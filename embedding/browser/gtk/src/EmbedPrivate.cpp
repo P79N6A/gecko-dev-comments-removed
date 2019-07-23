@@ -68,9 +68,6 @@
 #include "nsIDOMBarProp.h"
 
 
-#include "nsIFocusController.h"
-
-
 #include "nsIGenericFactory.h"
 #include "nsIComponentRegistrar.h"
 

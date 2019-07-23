@@ -61,7 +61,7 @@
 class nsIRDFResource;
 class nsIRDFService;
 class nsIXULPrototypeCache;
-class nsIFocusController;
+class nsPIWindowRoot;
 #if 0 
 class nsIObjectInputStream;
 class nsIObjectOutputStream;
@@ -245,7 +245,7 @@ protected:
                                  nsIDOMElement* aListener,
                                  nsIAtom* aAttr);
 
-    void GetFocusController(nsIFocusController** aFocusController);
+    already_AddRefed<nsPIWindowRoot> GetWindowRoot();
 
     PRInt32 GetDefaultNamespaceID() const
     {
@@ -317,12 +317,6 @@ protected:
     PRUint32 mPendingSheets;
 
     
-
-
-
-
-
-
 
 
 
