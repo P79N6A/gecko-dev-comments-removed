@@ -113,6 +113,13 @@ function cleanup()
     try { dbFile.remove(true); } catch(e) {  }
 
   
+  
+  dbFile = dirSvc.get("ProfD", Ci.nsIFile);
+  dbFile.append("places.sqlite");
+  if (dbFile.exists())
+    try { dbFile.remove(true); } catch(e) {  }
+
+  
   var destFile = dirSvc.get("ProfD", Ci.nsIFile);
   destFile.append("download.result");
   if (destFile.exists()) destFile.remove(true);
