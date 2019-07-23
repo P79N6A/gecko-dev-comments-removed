@@ -4,7 +4,7 @@
 
 
 
-const HOTLOOP = 2;
+const HOTLOOP = jitstats.HOTLOOP;
 
 const RECORDLOOP = HOTLOOP;
 
@@ -17,19 +17,53 @@ var fails = [], passes=[];
 
 function test(f)
 {
-  if (!testName || testName == f.name)
-    check(f.name, f(), f.expected);
+  if (!testName || testName == f.name) {
+    
+    var localJITstats = {};
+    if (!f.jitstats)
+      f.jitstats = null;
+    for (var propName in jitstats) {
+      localJITstats[propName] = jitstats[propName];
+    }
+    check(f.name, f(), f.expected, localJITstats, f.jitstats);
+  }
 }
 
-function check(desc, actual, expected)
+function check(desc, actual, expected, oldJITstats, expectedJITstats)
 {
   if (expected == actual) {
-    passes.push(desc);
-    return print(desc, ": passed");
+    var pass = true;
+    for (var propName in expectedJITstats) {
+      if (expectedJITstats[propName] !=
+            jitstats[propName] - oldJITstats[propName]) {
+        pass = false;
+        break;
+      }
+    }
+    if (pass) {
+      passes.push(desc);
+      return print(desc, ": passed");
+    }
   }
   fails.push(desc);
-  print(desc, ": FAILED: expected", typeof(expected), "(", expected, ") != actual",
-	typeof(actual), "(", actual, ")");
+  var expectedStats = "";
+  for (var propName in expectedJITstats) {
+    if (expectedStats)
+      expectedStats += " ";
+    expectedStats += propName + ": " + expectedJITstats[propName];
+  }
+  var actualStats = "";
+  for (var propName in expectedJITstats) {
+    if (actualStats)
+      actualStats += " ";
+    actualStats +=
+      propName + ": " + (jitstats[propName] - oldJITstats[propName]);
+  }
+  print(desc, ": FAILED: expected", typeof(expected), "(", expected, ")",
+	(expectedStats ? " [" + expectedStats + "] " : ""),
+	"!= actual",
+	typeof(actual), "(", actual, ")",
+	(actualStats ? " [" + actualStats + "] " : ""));
 }
 
 function ifInsideLoop()
@@ -1337,13 +1371,6 @@ function testStrict() {
 testStrict.expected = "true,false,false,false";
 test(testStrict);
 
-function testGlobalProtoAccess() {
-    return "ok";
-}
-this.__proto__.a = 3; for (var j = 0; j < 4; ++j) { [a]; }
-testGlobalProtoAccess.expected = "ok";
-test(testGlobalProtoAccess);
-
 function testSetPropNeitherMissNorHit() {
     for (var j = 0; j < 5; ++j) { if (({}).__proto__ = 1) { } }
     return "ok";
@@ -1487,7 +1514,25 @@ function testNestedExitStackOuter() {
   return counter;
 }
 testNestedExitStackOuter.expected = 81;
+testNestedExitStackOuter.jitstats = {};
+testNestedExitStackOuter.jitstats.recorderStarted = 4;
+testNestedExitStackOuter.jitstats.recorderAborted = 0;
 test(testNestedExitStackOuter);
+
+function testHOTLOOPSize() {
+    return HOTLOOP > 1;
+}
+testHOTLOOPSize.expected = true;
+test(testHOTLOOPSize);
+
+
+
+function testGlobalProtoAccess() {
+    return "ok";
+}
+this.__proto__.a = 3; for (var j = 0; j < 4; ++j) { [a]; }
+testGlobalProtoAccess.expected = "ok";
+test(testGlobalProtoAccess);
 
 
 print("\npassed:", passes.length && passes.join(","));
