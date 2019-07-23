@@ -54,7 +54,8 @@ struct nsRuleData;
 
 
 #define NS_ISTYLE_RULE_IID     \
-{0x40ae5c90, 0xad6a, 0x11d1, {0x80, 0x31, 0x00, 0x60, 0x08, 0x15, 0x9b, 0x5a}}
+{ 0xf75f3f70, 0x435d, 0x43a6, \
+ { 0xa0, 0x1b, 0x65, 0x97, 0x04, 0x89, 0xca, 0x26 } }
 
 
 
@@ -104,6 +105,8 @@ public:
 
 
   NS_IMETHOD MapRuleInfoInto(nsRuleData* aRuleData)=0;
+
+  virtual nsIStyleRule* GetImportantRule(void) { return nsnull; }
 
 #ifdef DEBUG
   NS_IMETHOD List(FILE* out = stdout, PRInt32 aIndent = 0) const = 0;
