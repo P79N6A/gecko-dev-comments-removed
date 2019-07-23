@@ -63,8 +63,6 @@ inline NS_HIDDEN_(PRInt32) NS_lround(double x)
 
 inline NS_HIDDEN_(PRInt32) NS_lroundup30(float x)
 {
-#if defined(XP_WIN32) && defined(_M_IX86) && !defined(__GNUC__)
-
     
     
 
@@ -92,9 +90,6 @@ inline NS_HIDDEN_(PRInt32) NS_lroundup30(float x)
       fistp   dword ptr i         ; convert the result to int
     }
     return i >> 1;                
-#else
-    return nscoord(NS_floorf(x + 0.5f));
-#endif 
 }
 
 inline NS_HIDDEN_(PRInt32) NS_lroundf(float x)
