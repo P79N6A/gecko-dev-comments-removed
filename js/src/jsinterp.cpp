@@ -2759,6 +2759,21 @@ static inline void prim_ursh(uint32& a, jsint& b, uint32& r) {
 
 
 
+static inline void monitor_branch(JSContext* cx, JSFrameRegs& regs, int offset) {
+}
+
+
+
+
+
+static inline void trace_stop(const char* op) {
+}
+
+
+
+
+
+
 
 #define CAN_DO_FAST_INC_DEC(v)     (((((v) << 1) ^ v) & 0x80000001) == 1)
 
@@ -2932,7 +2947,9 @@ js_Interpret(JSContext *cx)
                                 DO_OP();                                      \
                             JS_END_MACRO
 
-# define BEGIN_CASE(OP)     L_##OP:
+# define BEGIN_CASE(OP)     L_##OP:                                           \
+                            trace_stop(#OP);
+# define TRACE_CASE(OP)     L_##OP:
 # define END_CASE(OP)       DO_NEXT_OP(OP##_LENGTH);
 # define END_VARLEN_CASE    DO_NEXT_OP(len);
 # define ADD_EMPTY_CASE(OP) BEGIN_CASE(OP)                                    \
@@ -2950,7 +2967,9 @@ js_Interpret(JSContext *cx)
                                 goto advance_pc;                              \
                             JS_END_MACRO
 
-# define BEGIN_CASE(OP)     case OP:
+# define BEGIN_CASE(OP)     case OP:                                          \
+                            trace_stop(#OP);
+# define TRACE_CASE(OP)     case OP:
 # define END_CASE(OP)       END_CASE_LEN(OP##_LENGTH)
 # define END_CASE_LEN(n)    END_CASE_LENX(n)
 # define END_CASE_LENX(n)   END_CASE_LEN##n
@@ -3015,9 +3034,12 @@ js_Interpret(JSContext *cx)
 
 #define CHECK_BRANCH(len)                                                     \
     JS_BEGIN_MACRO                                                            \
-        if (len <= 0 && (cx->operationCount -= JSOW_SCRIPT_JUMP) <= 0) {      \
-            if (!js_ResetOperationCount(cx))                                  \
-                goto error;                                                   \
+        if (len <= 0) {                                                       \
+            if ((cx->operationCount -= JSOW_SCRIPT_JUMP) <= 0) {              \
+                if (!js_ResetOperationCount(cx))                              \
+                    goto error;                                               \
+            }                                                                 \
+            monitor_branch(cx, regs, len);                                    \
         }                                                                     \
     JS_END_MACRO
 
@@ -7077,7 +7099,11 @@ js_Interpret(JSContext *cx)
     }
 #endif 
 
-  error:
+#define DEFINE_HANDLER(handler)                                               \
+        handler:                                                              \
+        trace_stop(#handler);
+    
+  DEFINE_HANDLER(error)
     JS_ASSERT((size_t)(regs.pc - script->code) < script->length);
     if (!cx->throwing) {
         
@@ -7222,7 +7248,7 @@ js_Interpret(JSContext *cx)
 #endif
     }
 
-  forced_return:
+  DEFINE_HANDLER(forced_return)
     
 
 
@@ -7236,7 +7262,7 @@ js_Interpret(JSContext *cx)
     if (inlineCallCount)
         goto inline_return;
 
-  exit:
+  DEFINE_HANDLER(exit)
     
 
 
@@ -7275,14 +7301,14 @@ js_Interpret(JSContext *cx)
         }
     }
 
-  exit2:
+  DEFINE_HANDLER(exit2)
     JS_ASSERT(JS_PROPERTY_CACHE(cx).disabled == fp->pcDisabledSave);
     if (cx->version == currentVersion && currentVersion != originalVersion)
         js_SetVersion(cx, originalVersion);
     cx->interpLevel--;
     return ok;
 
-  atom_not_defined:
+  DEFINE_HANDLER(atom_not_defined)
     {
         const char *printable;
 
