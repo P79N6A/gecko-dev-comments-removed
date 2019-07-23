@@ -55,6 +55,7 @@
 struct JSTraceMonitor {
     int         freq;
     JSObject*   recorder;
+    bool        error;
 };
 
 #define TRACE_TRIGGER_MASK 0x3f
@@ -67,12 +68,10 @@ jsval js_CallRecorder(JSContext* cx, const char* fn, jsval a, jsval b);
 
 
 
-
 static inline jsval
 native_pointer_to_jsval(void* p)
 {
-    JS_ASSERT(INT_FITS_IN_JSVAL((int)p));
-    return INT_TO_JSVAL((int)p);
+    return INT_TO_JSVAL(((uint32)p) >> 2);
 }
 
 #endif 
