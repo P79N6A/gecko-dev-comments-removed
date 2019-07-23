@@ -92,7 +92,7 @@ typedef DWORD (WINAPI* tRASGETAUTODIALPARAM)(DWORD,LPVOID,LPDWORD);
 
 
 
-class nsRASAutodial
+class nsAutodial
 {
 private:
 
@@ -174,10 +174,10 @@ private:
 public:
   
     
-    nsRASAutodial();
+    nsAutodial();
 
     
-    virtual ~nsRASAutodial();
+    virtual ~nsAutodial();
 
     
     

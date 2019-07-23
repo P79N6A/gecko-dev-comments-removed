@@ -44,15 +44,15 @@
 #include <windows.h>
 
 
-class nsRASAutodial
+class nsAutodial
 {
 public:
   
     
-    nsRASAutodial();
+    nsAutodial();
 
     
-    virtual ~nsRASAutodial();
+    virtual ~nsAutodial();
 
     
     

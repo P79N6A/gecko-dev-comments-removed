@@ -49,24 +49,24 @@
 #include "nsIServiceManager.h"
 
 
-static const GUID ras_DestNetInternet =
+static const GUID autodial_DestNetInternet =
         { 0x436ef144, 0xb4fb, 0x4863, { 0xa0, 0x41, 0x8f, 0x90, 0x5a, 0x62, 0xc5, 0x72 } };
 
-nsRASAutodial::nsRASAutodial()
+nsAutodial::nsAutodial()
 {
 }
 
-nsRASAutodial::~nsRASAutodial()
+nsAutodial::~nsAutodial()
 {
 }
 
 nsresult
-nsRASAutodial::Init()
+nsAutodial::Init()
 {
   return NS_OK;
 }
 
-nsresult nsRASAutodial::DialDefault(const PRUnichar* )
+nsresult nsAutodial::DialDefault(const PRUnichar* )
 {
 #ifdef WINCE_WINDOWS_MOBILE
   HANDLE connectionHandle;
@@ -78,7 +78,7 @@ nsresult nsRASAutodial::DialDefault(const PRUnichar* )
   conn_info.cbSize      = sizeof(conn_info);
   conn_info.dwParams    = CONNMGR_PARAM_GUIDDESTNET;
   conn_info.dwPriority  = CONNMGR_PRIORITY_USERINTERACTIVE;
-  conn_info.guidDestNet = ras_DestNetInternet;
+  conn_info.guidDestNet = autodial_DestNetInternet;
   conn_info.bExclusive  = FALSE;
   conn_info.bDisabled   = FALSE;
   
@@ -98,7 +98,7 @@ nsresult nsRASAutodial::DialDefault(const PRUnichar* )
 }
 
 PRBool
-nsRASAutodial::ShouldDialOnNetworkError()
+nsAutodial::ShouldDialOnNetworkError()
 {
 #ifdef WINCE_WINDOWS_MOBILE
   return PR_TRUE;

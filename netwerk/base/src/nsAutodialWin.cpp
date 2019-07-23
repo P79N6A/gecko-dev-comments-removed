@@ -70,23 +70,23 @@ static PRLogModuleInfo* gLog = nsnull;
 
 
 #define NO_RETRY_PERIOD_SEC 5
-PRIntervalTime nsRASAutodial::mDontRetryUntil = 0;
+PRIntervalTime nsAutodial::mDontRetryUntil = 0;
 
 
-tRASPHONEBOOKDLG nsRASAutodial::mpRasPhonebookDlg = nsnull;
-tRASENUMCONNECTIONS nsRASAutodial::mpRasEnumConnections = nsnull;
-tRASENUMENTRIES nsRASAutodial::mpRasEnumEntries = nsnull;
-tRASDIALDLG nsRASAutodial::mpRasDialDlg = nsnull;
-tRASSETAUTODIALADDRESS nsRASAutodial::mpRasSetAutodialAddress = nsnull;
-tRASGETAUTODIALADDRESS nsRASAutodial::mpRasGetAutodialAddress = nsnull;
-tRASGETAUTODIALENABLE nsRASAutodial::mpRasGetAutodialEnable = nsnull;
-tRASGETAUTODIALPARAM nsRASAutodial::mpRasGetAutodialParam = nsnull;
+tRASPHONEBOOKDLG nsAutodial::mpRasPhonebookDlg = nsnull;
+tRASENUMCONNECTIONS nsAutodial::mpRasEnumConnections = nsnull;
+tRASENUMENTRIES nsAutodial::mpRasEnumEntries = nsnull;
+tRASDIALDLG nsAutodial::mpRasDialDlg = nsnull;
+tRASSETAUTODIALADDRESS nsAutodial::mpRasSetAutodialAddress = nsnull;
+tRASGETAUTODIALADDRESS nsAutodial::mpRasGetAutodialAddress = nsnull;
+tRASGETAUTODIALENABLE nsAutodial::mpRasGetAutodialEnable = nsnull;
+tRASGETAUTODIALPARAM nsAutodial::mpRasGetAutodialParam = nsnull;
 
-HINSTANCE nsRASAutodial::mhRASdlg = nsnull;
-HINSTANCE nsRASAutodial::mhRASapi32 = nsnull;
+HINSTANCE nsAutodial::mhRASdlg = nsnull;
+HINSTANCE nsAutodial::mhRASapi32 = nsnull;
 
 
-nsRASAutodial::nsRASAutodial()
+nsAutodial::nsAutodial()
 :   mAutodialBehavior(AUTODIAL_DEFAULT),
     mNumRASConnectionEntries(0),
     mAutodialServiceDialingLocation(-1)
@@ -100,7 +100,7 @@ nsRASAutodial::nsRASAutodial()
 }
 
 
-nsRASAutodial::~nsRASAutodial()
+nsAutodial::~nsAutodial()
 {
 }
 
@@ -108,7 +108,7 @@ nsRASAutodial::~nsRASAutodial()
 
 
 
-nsresult nsRASAutodial::Init()
+nsresult nsAutodial::Init()
 {
 #ifdef PR_LOGGING
     if (!gLog)
@@ -140,7 +140,7 @@ nsresult nsRASAutodial::Init()
 
 
 
-PRBool nsRASAutodial::ShouldDialOnNetworkError()
+PRBool nsAutodial::ShouldDialOnNetworkError()
 {
     
     if (mDontRetryUntil) 
@@ -164,7 +164,7 @@ PRBool nsRASAutodial::ShouldDialOnNetworkError()
 
 
 
-int nsRASAutodial::QueryAutodialBehavior()
+int nsAutodial::QueryAutodialBehavior()
 {
     if (IsAutodialServiceRunning())
     {
@@ -256,7 +256,7 @@ int nsRASAutodial::QueryAutodialBehavior()
 
 
 
-nsresult nsRASAutodial::DialDefault(const PRUnichar* hostName)
+nsresult nsAutodial::DialDefault(const PRUnichar* hostName)
 {
     mDontRetryUntil = 0;
 
@@ -369,7 +369,7 @@ nsresult nsRASAutodial::DialDefault(const PRUnichar* hostName)
 
 
 
-PRBool nsRASAutodial::IsRASConnected()
+PRBool nsAutodial::IsRASConnected()
 {
     DWORD connections;
     RASCONN rasConn;
@@ -392,7 +392,7 @@ PRBool nsRASAutodial::IsRASConnected()
 }
 
 
-nsresult nsRASAutodial::GetFirstEntryName(PRUnichar* entryName, int bufferSize)
+nsresult nsAutodial::GetFirstEntryName(PRUnichar* entryName, int bufferSize)
 {
     
     if (!LoadRASapi32DLL())
@@ -418,7 +418,7 @@ nsresult nsRASAutodial::GetFirstEntryName(PRUnichar* entryName, int bufferSize)
 }
 
 
-int nsRASAutodial::NumRASEntries()
+int nsAutodial::NumRASEntries()
 {
     
     if (!LoadRASapi32DLL())
@@ -443,7 +443,7 @@ int nsRASAutodial::NumRASEntries()
 }
 
 
-nsresult nsRASAutodial::GetDefaultEntryName(PRUnichar* entryName, int bufferSize)
+nsresult nsAutodial::GetDefaultEntryName(PRUnichar* entryName, int bufferSize)
 {
     
     if (mNumRASConnectionEntries <= 0)
@@ -545,7 +545,7 @@ nsresult nsRASAutodial::GetDefaultEntryName(PRUnichar* entryName, int bufferSize
 
 
 
-PRBool nsRASAutodial::IsAutodialServiceRunning()
+PRBool nsAutodial::IsAutodialServiceRunning()
 {
     SC_HANDLE hSCManager = 
       OpenSCManager(nsnull, SERVICES_ACTIVE_DATABASE, SERVICE_QUERY_STATUS);
@@ -580,7 +580,7 @@ PRBool nsRASAutodial::IsAutodialServiceRunning()
 }
 
 
-PRBool nsRASAutodial::AddAddressToAutodialDirectory(const PRUnichar* hostName)
+PRBool nsAutodial::AddAddressToAutodialDirectory(const PRUnichar* hostName)
 {
     
     if (!LoadRASapi32DLL())
@@ -629,7 +629,7 @@ PRBool nsRASAutodial::AddAddressToAutodialDirectory(const PRUnichar* hostName)
 }
 
 
-int nsRASAutodial::GetCurrentLocation()
+int nsAutodial::GetCurrentLocation()
 {
     HKEY hKey = 0;
     LONG result = ::RegOpenKeyExW(
@@ -663,7 +663,7 @@ int nsRASAutodial::GetCurrentLocation()
 }
 
 
-PRBool nsRASAutodial::IsAutodialServiceEnabled(int location)
+PRBool nsAutodial::IsAutodialServiceEnabled(int location)
 {
     if (location < 0)
         return PR_FALSE;
@@ -683,7 +683,7 @@ PRBool nsRASAutodial::IsAutodialServiceEnabled(int location)
 
 
 
-PRBool nsRASAutodial::LoadRASapi32DLL()
+PRBool nsAutodial::LoadRASapi32DLL()
 {
     if (!mhRASapi32)
     {
@@ -732,7 +732,7 @@ PRBool nsRASAutodial::LoadRASapi32DLL()
     return PR_TRUE;
 }
 
-PRBool nsRASAutodial::LoadRASdlgDLL()
+PRBool nsAutodial::LoadRASdlgDLL()
 {
     if (!mhRASdlg)
     {
