@@ -86,7 +86,7 @@ void QueryFontFromINI(char* fontType, char* fontName, ULONG ulLength)
 
     
     
-    BOOL rc = PrfQueryProfileData(HINI_USER, "PM_SystemFonts", fontType,
+    BOOL rc = PrfQueryProfileData(HINI_USER, (PCSZ)"PM_SystemFonts", (PCSZ)fontType,
                                   fontName, &ulMaxNameL);
     
     if (rc == FALSE) {
