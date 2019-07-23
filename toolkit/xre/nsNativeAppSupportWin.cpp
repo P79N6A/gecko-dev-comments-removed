@@ -129,7 +129,7 @@ struct Mutex {
         : mName( name ),
           mHandle( 0 ),
           mState( -1 ) {
-        mHandle = CreateMutex( 0, FALSE, mName.get() );
+        mHandle = CreateMutexA( 0, FALSE, mName.get() );
 #if MOZ_DEBUG_DDE
         printf( "CreateMutex error = 0x%08X\n", (int)GetLastError() );
 #endif
@@ -328,8 +328,8 @@ private:
                                                     ULONG    dwData1,
                                                     ULONG    dwData2 );
     static void HandleCommandLine(const char* aCmdLineString, nsIFile* aWorkingDir, PRUint32 aState);
-    static void ParseDDEArg( HSZ args, int index, nsCString& string);
-    static void ParseDDEArg( const char* args, int index, nsCString& aString);
+    static void ParseDDEArg( HSZ args, int index, nsString& string);
+    static void ParseDDEArg( const WCHAR* args, int index, nsString& aString);
     static void ActivateLastWindow();
     static HDDEDATA CreateDDEData( DWORD value );
     static HDDEDATA CreateDDEData( LPBYTE value, DWORD len );
@@ -487,7 +487,7 @@ struct MessageWindow {
     
     MessageWindow() {
         
-        mHandle = ::FindWindow( className(), 0 );
+        mHandle = ::FindWindowA( className(), 0 );
     }
 
     
@@ -512,7 +512,7 @@ struct MessageWindow {
 
     
     NS_IMETHOD Create() {
-        WNDCLASS classStruct = { 0,                          
+        WNDCLASSA classStruct = { 0,                          
                                  &MessageWindow::WindowProc, 
                                  0,                          
                                  0,                          
@@ -524,10 +524,10 @@ struct MessageWindow {
                                  className() };              
 
         
-        NS_ENSURE_TRUE( ::RegisterClass( &classStruct ), NS_ERROR_FAILURE );
+        NS_ENSURE_TRUE( ::RegisterClassA( &classStruct ), NS_ERROR_FAILURE );
 
         
-        NS_ENSURE_TRUE( ( mHandle = ::CreateWindow( className(),
+        NS_ENSURE_TRUE( ( mHandle = ::CreateWindowA(className(),
                                                     0,          
                                                     WS_CAPTION, 
                                                     0,0,0,0,    
@@ -721,7 +721,7 @@ nsNativeAppSupportWin::Start( PRBool *aResult ) {
 PRBool
 nsNativeAppSupportWin::InitTopicStrings() {
     for ( int i = 0; i < topicCount; i++ ) {
-        if ( !( mTopics[ i ] = DdeCreateStringHandle( mInstance, const_cast<char *>(topicNames[ i ]), CP_WINANSI ) ) ) {
+        if ( !( mTopics[ i ] = DdeCreateStringHandleA( mInstance, const_cast<char *>(topicNames[ i ]), CP_WINANSI ) ) ) {
             return PR_FALSE;
         }
     }
@@ -761,7 +761,7 @@ nsNativeAppSupportWin::StartDDE() {
                     NS_ERROR_FAILURE );
 
     
-    NS_ENSURE_TRUE( ( mApplication = DdeCreateStringHandle( mInstance, (char*) gAppData->name, CP_WINANSI ) ) && InitTopicStrings(),
+    NS_ENSURE_TRUE( ( mApplication = DdeCreateStringHandleA( mInstance, (char*) gAppData->name, CP_WINANSI ) ) && InitTopicStrings(),
                     NS_ERROR_FAILURE );
 
     
@@ -992,26 +992,26 @@ nsNativeAppSupportWin::HandleDDENotification( UINT uType,
                     
 
                     
-                    nsCAutoString url;
+                    nsAutoString url;
                     ParseDDEArg(hsz2, 0, url);
 
                     
                     
-                    nsCAutoString windowID;
+                    nsAutoString windowID;
                     ParseDDEArg(hsz2, 2, windowID);
                     
-                    if ( windowID.Equals( "" ) ) {
-                        url.Insert("mozilla -new-window ", 0);
+                    if ( windowID.IsEmpty() ) {
+                        url.Insert(NS_LITERAL_STRING("mozilla -new-window "), 0);
                     }
                     else {
-                        url.Insert("mozilla -url ", 0);
+                        url.Insert(NS_LITERAL_STRING("mozilla -url "), 0);
                     }
 
 #if MOZ_DEBUG_DDE
-                    printf( "Handling dde XTYP_REQUEST request: [%s]...\n", url.get() );
+                    printf( "Handling dde XTYP_REQUEST request: [%s]...\n", NS_ConvertUTF16toUTF8(url).get() );
 #endif
                     
-                    HandleCommandLine(url.get(), nsnull, nsICommandLine::STATE_REMOTE_EXPLICIT);
+                    HandleCommandLine(NS_ConvertUTF16toUTF8(url).get(), nsnull, nsICommandLine::STATE_REMOTE_EXPLICIT);
 
                     
                     result = CreateDDEData( 1 );
@@ -1109,12 +1109,12 @@ nsNativeAppSupportWin::HandleDDENotification( UINT uType,
                 }
                 case topicActivate: {
                     
-                    nsCAutoString windowID;
+                    nsAutoString windowID;
                     ParseDDEArg(hsz2, 0, windowID);
                     
                     
-                    if ( windowID.Equals( "-1" ) ||
-                         windowID.Equals( "4294967295" ) ) {
+                    if ( windowID.EqualsLiteral( "-1" ) ||
+                         windowID.EqualsLiteral( "4294967295" ) ) {
                         
                         ActivateLastWindow();
                         
@@ -1163,26 +1163,26 @@ nsNativeAppSupportWin::HandleDDENotification( UINT uType,
             
             PRBool new_window = PR_FALSE;
 
-            nsCAutoString url;
-            ParseDDEArg((const char*) request, 0, url);
+            nsAutoString url;
+            ParseDDEArg((const WCHAR*) request, 0, url);
 
             
             
-            nsCAutoString windowID;
-            ParseDDEArg((const char*) request, 2, windowID);
+            nsAutoString windowID;
+            ParseDDEArg((const WCHAR*) request, 2, windowID);
 
             
-            if ( windowID.Equals( "" ) ) {
-                url.Insert("mozilla -new-window ", 0);
+            if ( windowID.IsEmpty() ) {
+                url.Insert(NS_LITERAL_STRING("mozilla -new-window "), 0);
             }
             else {
-                url.Insert("mozilla -url ", 0);
+                url.Insert(NS_LITERAL_STRING("mozilla -url "), 0);
             }
 #if MOZ_DEBUG_DDE
-            printf( "Handling dde XTYP_REQUEST request: [%s]...\n", url.get() );
+            printf( "Handling dde XTYP_REQUEST request: [%s]...\n", NS_ConvertUTF16toUTF8(url).get() );
 #endif
             
-            HandleCommandLine(url.get(), nsnull, nsICommandLine::STATE_REMOTE_EXPLICIT);
+            HandleCommandLine(NS_ConvertUTF16toUTF8(url).get(), nsnull, nsICommandLine::STATE_REMOTE_EXPLICIT);
 
             
             DdeUnaccessData( hdata );
@@ -1204,7 +1204,7 @@ nsNativeAppSupportWin::HandleDDENotification( UINT uType,
 
 
 
-static PRInt32 advanceToEndOfQuotedArg( const char *p, PRInt32 offset, PRInt32 len ) {
+static PRInt32 advanceToEndOfQuotedArg( const WCHAR *p, PRInt32 offset, PRInt32 len ) {
     
     if ( p[++offset] == '"' ) {
         
@@ -1219,17 +1219,16 @@ static PRInt32 advanceToEndOfQuotedArg( const char *p, PRInt32 offset, PRInt32 l
     return offset;
 }
 
-void nsNativeAppSupportWin::ParseDDEArg( const char* args, int index, nsCString& aString) {
+void nsNativeAppSupportWin::ParseDDEArg( const WCHAR* args, int index, nsString& aString) {
     if ( args ) {
-        int argLen = strlen(args);
-        nsDependentCString temp(args, argLen);
+        nsDependentString temp(args);
 
         
         PRInt32 offset = -1;
         
         while( index-- ) {
             
-            offset = advanceToEndOfQuotedArg( args, offset, argLen);
+            offset = advanceToEndOfQuotedArg( args, offset, temp.Length());
             
             offset = temp.FindChar( ',', offset );
             if ( offset == kNotFound ) {
@@ -1246,12 +1245,12 @@ void nsNativeAppSupportWin::ParseDDEArg( const char* args, int index, nsCString&
         
         
         
-        PRInt32 end = advanceToEndOfQuotedArg( args, offset++, argLen );
+        PRInt32 end = advanceToEndOfQuotedArg( args, offset++, temp.Length() );
         
         end = temp.FindChar( ',', end );
         if ( end == kNotFound ) {
             
-            end = argLen;
+            end = temp.Length();
         }
         
         aString.Assign( args + offset, end - offset );
@@ -1260,15 +1259,15 @@ void nsNativeAppSupportWin::ParseDDEArg( const char* args, int index, nsCString&
 }
 
 
-void nsNativeAppSupportWin::ParseDDEArg( HSZ args, int index, nsCString& aString) {
-    DWORD argLen = DdeQueryString( mInstance, args, NULL, NULL, CP_WINANSI );
+void nsNativeAppSupportWin::ParseDDEArg( HSZ args, int index, nsString& aString) {
+    DWORD argLen = DdeQueryStringW( mInstance, args, NULL, NULL, CP_WINUNICODE );
     
     if ( !argLen ) return;
-    nsCAutoString temp;
+    nsAutoString temp;
     
     temp.SetLength( argLen );
     
-    DdeQueryString( mInstance, args, temp.BeginWriting(), temp.Length(), CP_WINANSI );
+    DdeQueryString( mInstance, args, temp.BeginWriting(), temp.Length(), CP_WINUNICODE );
     
     ParseDDEArg(temp.get(), index, aString);
     return;
