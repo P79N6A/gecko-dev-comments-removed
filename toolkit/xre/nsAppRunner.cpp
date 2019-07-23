@@ -2386,8 +2386,16 @@ static void MOZ_gdk_display_close(GdkDisplay *display)
     PangoContext *pangoContext = gdk_pango_context_get();
 #endif
 
-    if (!theme_is_qt)
-      gdk_display_close(display);
+    PRBool buggyCairoShutdown = cairo_version() < CAIRO_VERSION_ENCODE(1, 4, 0);
+
+    if (!buggyCairoShutdown) {
+      
+      
+      
+      
+      if (!theme_is_qt)
+        gdk_display_close(display);
+    }
 
 #if CLEANUP_MEMORY
     
@@ -2415,6 +2423,11 @@ static void MOZ_gdk_display_close(GdkDisplay *display)
     cairo_debug_reset_static_data();
 #endif 
 #endif 
+
+    if (buggyCairoShutdown) {
+      if (!theme_is_qt)
+        gdk_display_close(display);
+    }
   }
 }
 #endif 
