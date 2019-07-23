@@ -36,6 +36,9 @@
 
 
 
+
+
+
 const Cc = Components.classes;
 const Ci = Components.interfaces;
 const Cr = Components.results;
@@ -345,7 +348,37 @@ TaggingService.prototype = {
   },
 
   
+
+
+
+
+
+
+
+
+
+
+  _getTagsIfUnbookmarkedURI: function TS__getTagsIfUnbookmarkedURI(aURI) {
+    var tagIds = [];
+    var isBookmarked = false;
+    var itemIds = this._bms.getBookmarkIdsForURI(aURI, {});
+
+    for (let i = 0; !isBookmarked && i < itemIds.length; i++) {
+      var parentId = this._bms.getFolderIdForItem(itemIds[i]);
+      if (this._tagFolders[parentId])
+        tagIds.push(parentId);
+      else
+        isBookmarked = true;
+    }
+
+    return !isBookmarked && tagIds.length > 0 ? tagIds : null;
+  },
+
+  
   _inBatch: false,
+
+  
+  _itemsInRemoval: {},
 
   
   onBeginUpdateBatch: function() {
@@ -360,17 +393,39 @@ TaggingService.prototype = {
       this._tagFolders[aItemId] = this._bms.getItemTitle(aItemId);
   },
   onBeforeItemRemoved: function(aItemId) {
+    
+    
+    
+    try {
+      this._itemsInRemoval[aItemId] = this._bms.getBookmarkURI(aItemId);
+    }
+    catch (e) {}
   },
-  onItemRemoved: function(aItemId, aFolderId, aIndex){
+  onItemRemoved: function(aItemId, aFolderId, aIndex) {
+    var itemURI = this._itemsInRemoval[aItemId];
+    delete this._itemsInRemoval[aItemId];
+
+    
     if (aFolderId == this._bms.tagsFolder && this._tagFolders[aItemId])
       delete this._tagFolders[aItemId];
+
+    
+    else if (itemURI && !this._tagFolders[aFolderId]) {
+
+      
+      
+      
+      var tagIds = this._getTagsIfUnbookmarkedURI(itemURI);
+      if (tagIds)
+        this.untagURI(itemURI, tagIds);
+    }
   },
-  onItemChanged: function(aItemId, aProperty, aIsAnnotationProperty, aValue){
+  onItemChanged: function(aItemId, aProperty, aIsAnnotationProperty, aValue) {
     if (this._tagFolders[aItemId])
       this._tagFolders[aItemId] = this._bms.getItemTitle(aItemId);
   },
-  onItemVisited: function(aItemId, aVisitID, time){},
-  onItemMoved: function(aItemId, aOldParent, aOldIndex, aNewParent, aNewIndex){
+  onItemVisited: function(aItemId, aVisitID, time) {},
+  onItemMoved: function(aItemId, aOldParent, aOldIndex, aNewParent, aNewIndex) {
     if (this._tagFolders[aItemId] && this._bms.tagFolder == aOldParent &&
         this._bms.tagFolder != aNewParent)
       delete this._tagFolders[aItemId];
