@@ -693,6 +693,15 @@ protected:
 
 
 
+  NS_HIDDEN_(PRBool) GetURIAttr(nsIAtom* aAttr, nsIAtom* aBaseAttr,
+                                nsIURI** aURI) const;
+
+  
+
+
+
+
+
 
 
 

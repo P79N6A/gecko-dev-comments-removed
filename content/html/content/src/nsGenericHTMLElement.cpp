@@ -1060,24 +1060,7 @@ nsGenericHTMLElement::GetHrefURIForAnchors(nsIURI** aURI) const
   
 
   
-  const nsAttrValue* attr = mAttrsAndChildren.GetAttr(nsGkAtoms::href);
-  if (attr) {
-    
-    nsCOMPtr<nsIURI> baseURI = GetBaseURI();
-
-    
-    nsresult rv = nsContentUtils::NewURIWithDocumentCharset(aURI,
-                                                            attr->GetStringValue(),
-                                                            GetOwnerDoc(),
-                                                            baseURI);
-    if (NS_FAILED(rv)) {
-      *aURI = nsnull;
-    }
-  }
-  else {
-    
-    *aURI = nsnull;
-  }
+  GetURIAttr(nsGkAtoms::href, nsnull, aURI);
 
   return NS_OK;
 }
@@ -2156,51 +2139,72 @@ nsGenericHTMLElement::SetFloatAttr(nsIAtom* aAttr, float aValue)
 nsresult
 nsGenericHTMLElement::GetURIAttr(nsIAtom* aAttr, nsIAtom* aBaseAttr, nsAString& aResult)
 {
-  nsAutoString attrValue;
-  if (!GetAttr(kNameSpaceID_None, aAttr, attrValue)) {
+  nsCOMPtr<nsIURI> uri;
+  PRBool hadAttr = GetURIAttr(aAttr, aBaseAttr, getter_AddRefs(uri));
+  if (!hadAttr) {
     aResult.Truncate();
-
     return NS_OK;
   }
 
+  if (!uri) {
+    
+    GetAttr(kNameSpaceID_None, aAttr, aResult);
+    return NS_OK;
+  }
+
+  nsCAutoString spec;
+  uri->GetSpec(spec);
+  CopyUTF8toUTF16(spec, aResult);
+  return NS_OK;
+}
+
+PRBool
+nsGenericHTMLElement::GetURIAttr(nsIAtom* aAttr, nsIAtom* aBaseAttr,
+                                 nsIURI** aURI) const
+{
+  *aURI = nsnull;
+
+  const nsAttrValue* attr = mAttrsAndChildren.GetAttr(aAttr);
+  if (!attr) {
+    return PR_FALSE;
+  }
+
+  PRBool isURIAttr = (attr->Type() == nsAttrValue::eLazyURIValue);
+
+  if (isURIAttr && (*aURI = attr->GetURIValue())) {
+    NS_ADDREF(*aURI);
+    return PR_TRUE;
+  }
+  
   nsCOMPtr<nsIURI> baseURI = GetBaseURI();
-  nsresult rv;
 
   if (aBaseAttr) {
     nsAutoString baseAttrValue;
     if (GetAttr(kNameSpaceID_None, aBaseAttr, baseAttrValue)) {
       nsCOMPtr<nsIURI> baseAttrURI;
-      rv = nsContentUtils::NewURIWithDocumentCharset(getter_AddRefs(baseAttrURI),
-                                                     baseAttrValue, GetOwnerDoc(),
-                                                     baseURI);
+      nsresult rv =
+        nsContentUtils::NewURIWithDocumentCharset(getter_AddRefs(baseAttrURI),
+                                                  baseAttrValue, GetOwnerDoc(),
+                                                  baseURI);
       if (NS_FAILED(rv)) {
-        
-        aResult = attrValue;
-
-        return NS_OK;
+        return PR_TRUE;
       }
       baseURI.swap(baseAttrURI);
     }
   }
 
-  nsCOMPtr<nsIURI> attrURI;
-  rv = nsContentUtils::NewURIWithDocumentCharset(getter_AddRefs(attrURI),
-                                                 attrValue, GetOwnerDoc(),
-                                                 baseURI);
-  if (NS_FAILED(rv)) {
-    
-    aResult = attrValue;
+  
+  
+  nsContentUtils::NewURIWithDocumentCharset(aURI,
+                                            isURIAttr ?
+                                              attr->GetURIStringValue() :
+                                              attr->GetStringValue(),
+                                            GetOwnerDoc(), baseURI);
 
-    return NS_OK;
+  if (isURIAttr) {
+    const_cast<nsAttrValue*>(attr)->CacheURIValue(*aURI);
   }
-
-  NS_ASSERTION(attrURI,
-               "nsContentUtils::NewURIWithDocumentCharset return value lied");
-
-  nsCAutoString spec;
-  attrURI->GetSpec(spec);
-  CopyUTF8toUTF16(spec, aResult);
-  return NS_OK;
+  return PR_TRUE;
 }
 
 nsresult
