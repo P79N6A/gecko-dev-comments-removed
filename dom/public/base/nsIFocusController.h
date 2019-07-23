@@ -54,7 +54,7 @@ class nsAString;
 
 
 #define NS_IFOCUSCONTROLLER_IID \
-{ 0xda47ea2a, 0x5e9a, 0x4281, { 0x9b, 0x5b, 0xa0, 0x8c, 0x0e, 0x6b, 0x1f, 0xa5 } }
+{ 0xf9004db3, 0x5272, 0x4a8c, { 0x8b, 0x19, 0x70, 0xa4, 0xad, 0xb8, 0xf8, 0xb6 } }
 
 class nsIFocusController : public nsISupports {
 public:
@@ -85,6 +85,7 @@ public:
   NS_IMETHOD GetControllers(nsIControllers** aResult)=0;
 
   NS_IMETHOD MoveFocus(PRBool aForward, nsIDOMElement* aElt)=0;
+  NS_IMETHOD RewindFocusState()=0;
 
   NS_IMETHOD ResetElementFocus() = 0;
 };

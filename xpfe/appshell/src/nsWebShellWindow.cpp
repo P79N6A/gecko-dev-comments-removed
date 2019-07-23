@@ -353,6 +353,21 @@ nsWebShellWindow::HandleEvent(nsGUIEvent *aEvent)
         
         
         
+#ifdef XP_WIN
+        
+        
+        
+        
+        if(modeEvent->mSizeMode == nsSizeMode_Minimized) {
+          nsCOMPtr<nsPIDOMWindow> privateDOMWindow = do_GetInterface(docShell);
+          if(privateDOMWindow) {
+            nsIFocusController *focusController =
+              privateDOMWindow->GetRootFocusController();
+            if (focusController)
+              focusController->RewindFocusState();
+          }
+        }
+#endif
         break;
       }
       case NS_OS_TOOLBAR: {
