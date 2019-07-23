@@ -90,6 +90,26 @@ function makeBIS(stream)
 
 
 
+function fileContents(file)
+{
+  const PR_RDONLY = 0x01;
+  var fis = new FileInputStream(file, PR_RDONLY, 0444,
+                                Ci.nsIFileInputStream.CLOSE_ON_EOF);
+  var sis = new ScriptableInputStream(fis);
+  var contents = sis.read(file.fileSize);
+  sis.close();
+  return contents;
+}
+
+
+
+
+
+
+
+
+
+
 
 
 

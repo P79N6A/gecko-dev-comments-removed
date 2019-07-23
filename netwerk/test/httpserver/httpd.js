@@ -49,10 +49,13 @@
 const Cc = Components.classes;
 const Ci = Components.interfaces;
 const Cr = Components.results;
+const Cu = Components.utils;
 const CC = Components.Constructor;
 
 
 var DEBUG = false; 
+
+var gGlobalObject = this;
 
 
 
@@ -158,6 +161,9 @@ const HIDDEN_CHAR = "^";
 const HEADERS_SUFFIX = HIDDEN_CHAR + "headers" + HIDDEN_CHAR;
 
 
+const SJS_TYPE = "sjs";
+
+
 
 function dumpn(str)
 {
@@ -189,6 +195,9 @@ const ServerSocket = CC("@mozilla.org/network/server-socket;1",
 const BinaryInputStream = CC("@mozilla.org/binaryinputstream;1",
                              "nsIBinaryInputStream",
                              "setInputStream");
+const ScriptableInputStream = CC("@mozilla.org/scriptableinputstream;1",
+                                 "nsIScriptableInputStream",
+                                 "init");
 const Pipe = CC("@mozilla.org/pipe;1",
                 "nsIPipe",
                 "init");
@@ -441,7 +450,7 @@ nsHttpServer.prototype =
   
   registerFile: function(path, file)
   {
-    if (!file.exists() || file.isDirectory())
+    if (file && (!file.exists() || file.isDirectory()))
       throw Cr.NS_ERROR_INVALID_ARG;
 
     this._handler.registerFile(path, file);
@@ -487,6 +496,14 @@ nsHttpServer.prototype =
   setIndexHandler: function(handler)
   {
     this._handler.setIndexHandler(handler);
+  },
+
+  
+  
+  
+  registerContentType: function(ext, type)
+  {
+    this._handler.registerContentType(ext, type);
   },
 
   
@@ -1240,29 +1257,6 @@ LineData.prototype =
 
 
 
-
-
-
-
-
-function getTypeFromFile(file)
-{
-  try
-  {
-    return Cc["@mozilla.org/uriloader/external-helper-app-service;1"]
-             .getService(Ci.nsIMIMEService)
-             .getTypeFromFile(file);
-  }
-  catch (e)
-  {
-    return "application/octet-stream";
-  }
-}
-
-
-
-
-
 function createHandlerFunc(handler)
 {
   return function(metadata, response) { handler.handle(metadata, response); };
@@ -1529,6 +1523,12 @@ function ServerHandler(server)
 
 
 
+  this._mimeMappings = {};
+
+  
+
+
+
   this._indexHandler = defaultIndexHandler;
 }
 ServerHandler.prototype =
@@ -1620,6 +1620,13 @@ ServerHandler.prototype =
   
   registerFile: function(path, file)
   {
+    if (!file)
+    {
+      dumpn("*** unregistering '" + path + "' mapping");
+      delete this._overridePaths[path];
+      return;
+    }
+
     dumpn("*** registering '" + path + "' as mapping to " + file.path);
     file = file.clone();
 
@@ -1631,8 +1638,7 @@ ServerHandler.prototype =
           throw HTTP_404;
 
         response.setStatusLine(metadata.httpVersion, 200, "OK");
-        self._writeFileResponse(file, response);
-        maybeAddHeaders(file, metadata, response);
+        self._writeFileResponse(metadata, file, response);
       };
   },
 
@@ -1701,6 +1707,17 @@ ServerHandler.prototype =
       handler = createHandlerFunc(handler);
 
     this._indexHandler = handler;
+  },
+
+  
+  
+  
+  registerContentType: function(ext, type)
+  {
+    if (!type)
+      delete this._mimeMappings[ext];
+    else
+      this._mimeMappings[ext] = headerUtils.normalizeFieldValue(type);
   },
 
   
@@ -1784,9 +1801,7 @@ ServerHandler.prototype =
 
     
     dumpn("*** handling '" + path + "' as mapping to " + file.path);
-    this._writeFileResponse(file, response);
-
-    maybeAddHeaders(file, metadata, response);
+    this._writeFileResponse(metadata, file, response);
   },
 
   
@@ -1798,23 +1813,82 @@ ServerHandler.prototype =
 
 
 
-  _writeFileResponse: function(file, response)
+
+
+  _writeFileResponse: function(metadata, file, response)
+  {
+    const PR_RDONLY = 0x01;
+
+    var type = this._getTypeFromFile(file);
+    if (type == SJS_TYPE)
+    {
+      try
+      {
+        var fis = new FileInputStream(file, PR_RDONLY, 0444,
+                                      Ci.nsIFileInputStream.CLOSE_ON_EOF);
+        var sis = new ScriptableInputStream(fis);
+        var s = Cu.Sandbox(gGlobalObject);
+        Cu.evalInSandbox(sis.read(file.fileSize), s);
+        s.handleRequest(metadata, response);
+      }
+      catch (e)
+      {
+        dumpn("*** error running SJS: " + e);
+        throw HTTP_500;
+      }
+    }
+    else
+    {
+      try
+      {
+        response.setHeader("Last-Modified",
+                           toDateString(file.lastModifiedTime),
+                           false);
+      }
+      catch (e) {  }
+
+      response.setHeader("Content-Type", type, false);
+  
+      var fis = new FileInputStream(file, PR_RDONLY, 0444,
+                                    Ci.nsIFileInputStream.CLOSE_ON_EOF);
+      response.bodyOutputStream.writeFrom(fis, file.fileSize);
+      fis.close();
+      
+      maybeAddHeaders(file, metadata, response);
+    }
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+  _getTypeFromFile: function(file)
   {
     try
     {
-      response.setHeader("Last-Modified",
-                         toDateString(file.lastModifiedTime),
-                         false);
+      var name = file.leafName;
+      var dot = name.lastIndexOf(".");
+      if (dot > 0)
+      {
+        var ext = name.slice(dot + 1);
+        if (ext in this._mimeMappings)
+          return this._mimeMappings[ext];
+      }
+      return Cc["@mozilla.org/uriloader/external-helper-app-service;1"]
+               .getService(Ci.nsIMIMEService)
+               .getTypeFromFile(file);
     }
-    catch (e) {  }
-
-    response.setHeader("Content-Type", getTypeFromFile(file), false);
-
-    const PR_RDONLY = 0x01;
-    var fis = new FileInputStream(file, PR_RDONLY, 0444,
-                                  Ci.nsIFileInputStream.CLOSE_ON_EOF);
-    response.bodyOutputStream.writeFrom(fis, file.fileSize);
-    fis.close();
+    catch (e)
+    {
+      return "application/octet-stream";
+    }
   },
 
   
@@ -2037,7 +2111,7 @@ ServerHandler.prototype =
   {
     
     response.setHeader("Connection", "close", false);
-    response.setHeader("Server", "MozJSHTTP", false);
+    response.setHeader("Server", "httpd.js", false);
     response.setHeader("Date", toDateString(Date.now()), false);
 
     var bodyStream = response.bodyInputStream;
@@ -3291,6 +3365,7 @@ function server(port, basePath)
   var srv = new nsHttpServer();
   if (lp)
     srv.registerDirectory("/", lp);
+  srv.registerContentType("sjs", SJS_TYPE);
   srv.start(port);
 
   var thread = gThreadManager.currentThread;
