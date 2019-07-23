@@ -2089,7 +2089,8 @@ nsGenericElement::UnbindFromTree(PRBool aDeep, PRBool aNullParent)
                   "Shallow unbind won't clear document and binding parent on "
                   "kids!");
   
-  nsIDocument *document = GetCurrentDoc();
+  nsIDocument *document =
+    HasFlag(NODE_FORCE_XBL_BINDINGS) ? GetOwnerDoc() : GetCurrentDoc();
   if (document) {
     
     
