@@ -648,9 +648,7 @@ IsMarkedDouble(JSGCArenaInfo *a, uint32 index)
 
 
 
-
-
-#define MAX_THREAD_LOCAL_THINGS 8
+#define MAX_THREAD_LOCAL_THINGS 64
 
 #endif
 
