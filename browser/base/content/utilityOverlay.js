@@ -352,6 +352,12 @@ function getShellService()
 }
 
 function isBidiEnabled() {
+  
+  if (getBoolPref("browser.bidi.ui", false))
+    return true;
+
+  
+  
   var rv = false;
 
   try {
@@ -366,12 +372,11 @@ function isBidiEnabled() {
       case "ur-":
       case "syr":
         rv = true;
+        var pref = Components.classes["@mozilla.org/preferences-service;1"]
+                             .getService(Components.interfaces.nsIPrefBranch);
+        pref.setBoolPref("bidi.browser.ui", true);
     }
   } catch (e) {}
-
-  
-  if (!rv)
-    rv = getBoolPref("bidi.browser.ui");
 
   return rv;
 }

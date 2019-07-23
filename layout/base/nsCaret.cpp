@@ -163,6 +163,9 @@ nsresult nsCaret::Init(nsIPresShell *inPresShell)
   {
     StartBlinking();
   }
+#ifdef IBMBIDI
+  mBidiUI = nsContentUtils::GetBoolPref("bidi.browser.ui");
+#endif
 
   return NS_OK;
 }
@@ -757,8 +760,7 @@ nsCaret::GetCaretFrameForNodeOffset(nsIContent*             aContentNode,
   
   
   
-  nsPresContext *presContext = presShell->GetPresContext();
-  if (presContext && presContext->BidiEnabled())
+  if (mBidiUI)
   {
     
     if (aBidiLevel & BIDI_LEVEL_UNDEFINED)
@@ -1218,7 +1220,6 @@ nsresult nsCaret::UpdateHookRect(nsPresContext* aPresContext,
 
 #ifdef IBMBIDI
   
-  PRBool bidiEnabled;
   PRBool isCaretRTL=PR_FALSE;
   nsIBidiKeyboard* bidiKeyboard = nsContentUtils::GetBidiKeyboard();
   if (!bidiKeyboard || NS_FAILED(bidiKeyboard->IsLangRTL(&isCaretRTL)))
@@ -1226,14 +1227,7 @@ nsresult nsCaret::UpdateHookRect(nsPresContext* aPresContext,
     
     
     return NS_OK;
-  if (isCaretRTL)
-  {
-    bidiEnabled = PR_TRUE;
-    aPresContext->SetBidiEnabled();
-  }
-  else
-    bidiEnabled = aPresContext->BidiEnabled();
-  if (bidiEnabled)
+  if (mBidiUI)
   {
     if (isCaretRTL != mKeyboardRTL)
     {

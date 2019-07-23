@@ -292,6 +292,14 @@ protected:
     PRPackedBool          mReadOnly;          
     PRPackedBool          mShowDuringSelection; 
 
+    PRPackedBool          mIgnoreUserModify;
+
+#ifdef IBMBIDI
+    PRPackedBool          mKeyboardRTL;       
+    PRPackedBool          mBidiUI;            
+    nsRect                mHookRect;          
+    PRUint8               mLastBidiLevel;     
+#endif
     nsRect                mCaretRect;         
 
     nsCOMPtr<nsIContent>  mLastContent;       
@@ -303,13 +311,6 @@ protected:
     nsFrameSelection::HINT mLastHint;        
                                               
 
-    PRPackedBool          mIgnoreUserModify;
-
-#ifdef IBMBIDI
-    nsRect                mHookRect;          
-    PRUint8               mLastBidiLevel;     
-    PRPackedBool          mKeyboardRTL;       
-#endif
 };
 
 nsresult

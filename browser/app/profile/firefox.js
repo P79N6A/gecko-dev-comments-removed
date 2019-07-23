@@ -554,10 +554,6 @@ pref("browser.download.hide_plugins_without_extensions", true);
 
 
 
-pref("bidi.browser.ui", false);
-
-
-
 
 
 #ifdef UNIX_BUT_NOT_MAC

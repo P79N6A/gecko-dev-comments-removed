@@ -1038,6 +1038,11 @@ pref("bidi.edit.delete_immediately", false);
 pref("bidi.edit.caret_movement_style", 2);
 
 
+
+
+pref("bidi.browser.ui", false);
+
+
 pref("layout.word_select.eat_space_to_next_word", false);
 pref("layout.word_select.stop_at_punctuation", true);
 
