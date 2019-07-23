@@ -207,12 +207,6 @@ var PlacesOrganizer = {
       return;
 
     var node = this._places.selectedNode;
-    
-    
-    
-    if (node == this._cachedLeftPaneSelectedNode)
-      return;
-    this._cachedLeftPaneSelectedNode = node;
     var queries = asQuery(node).getQueries({});
 
     
@@ -232,6 +226,17 @@ var PlacesOrganizer = {
 
     
     PlacesSearchBox.hideSearchUI();
+
+    
+    
+    
+    
+    
+    
+    if (node == this._cachedLeftPaneSelectedNode)
+      return;
+    this._cachedLeftPaneSelectedNode = node;
+
     if (resetSearchBox)
       PlacesSearchBox.searchFilter.reset();
 
