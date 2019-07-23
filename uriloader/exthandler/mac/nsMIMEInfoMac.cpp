@@ -39,6 +39,7 @@
 
 
 
+
 #include <LaunchServices.h>
 
 #include "nsMIMEInfoMac.h"
@@ -115,12 +116,3 @@ nsMIMEInfoMac::LoadUriInternal(nsIURI *aURI)
   }
   return rv;
 }
-
-NS_IMETHODIMP
-nsMIMEInfoMac::GetHasDefaultHandler(PRBool *_retval)
-{
-  
-  *_retval = !mDefaultAppDescription.IsEmpty();
-  return NS_OK;
-}
-

@@ -38,6 +38,7 @@
 
 
 
+
 #include "nsOSHelperAppService.h"
 #include "nsISupports.h"
 #include "nsString.h"
@@ -281,13 +282,37 @@ nsOSHelperAppService::GetMIMEInfoFromOS(const nsACString& aMIMEType,
   if (!mimeInfo) {
     *aFound = PR_FALSE;
     PR_LOG(mLog, PR_LOG_DEBUG, ("Creating new mimeinfo\n"));
-    mimeInfo = new nsMIMEInfoMac(aMIMEType);
-    if (!mimeInfo)
+    
+    nsMIMEInfoMac* mimeInfoMac = new nsMIMEInfoMac(aMIMEType);
+    if (!mimeInfoMac)
       return nsnull;
-    NS_ADDREF(mimeInfo);
+    NS_ADDREF(mimeInfoMac);
 
     if (!aFileExt.IsEmpty())
-      mimeInfo->AppendExtension(aFileExt);
+      mimeInfoMac->AppendExtension(aFileExt);
+
+    
+    OSStatus err;
+    FSRef appFSRef;
+    CFStringRef CFExt = ::CFStringCreateWithCString(NULL, flatExt.get(), kCFStringEncodingUTF8);
+    err = ::LSGetApplicationForInfo(kLSUnknownType, kLSUnknownCreator, CFExt,
+                                    kLSRolesAll, &appFSRef, nsnull);
+    if (err == noErr) {
+      nsCOMPtr<nsILocalFileMac> app(do_CreateInstance(NS_LOCAL_FILE_CONTRACTID));
+      if (!app) {
+        ::CFRelease(CFExt);
+        NS_RELEASE(mimeInfoMac);
+        return nsnull;
+      }
+      app->InitWithFSRef(&appFSRef);
+      mimeInfoMac->SetDefaultApplication(app);
+      PR_LOG(mLog, PR_LOG_DEBUG, ("LSGetApplicationForInfo found a default application\n"));
+    } else {
+      
+      PR_LOG(mLog, PR_LOG_DEBUG, ("LSGetApplicationForInfo returned error code %d; default application was not set\n", err));
+    }
+    mimeInfo = mimeInfoMac;
+    ::CFRelease(CFExt);
   }
   
   return mimeInfo;

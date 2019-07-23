@@ -34,6 +34,7 @@
 
 
 
+
 #ifndef nsMIMEInfoMac_h_
 #define nsMIMEInfoMac_h_
 
@@ -47,7 +48,6 @@ class nsMIMEInfoMac : public nsMIMEInfoImpl {
       nsMIMEInfoImpl(aType, aClass) {}
 
     NS_IMETHOD LaunchWithFile(nsIFile* aFile);
-    NS_IMETHOD GetHasDefaultHandler(PRBool *_retval);
   protected:
     virtual NS_HIDDEN_(nsresult) LoadUriInternal(nsIURI *aURI);
 #ifdef DEBUG
