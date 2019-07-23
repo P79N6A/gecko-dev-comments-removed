@@ -5775,7 +5775,8 @@ nsresult
 nsCSSFrameConstructor::AppendFrames(nsFrameConstructorState&       aState,
                                     nsIFrame*                      aParentFrame,
                                     nsFrameItems&                  aFrameList,
-                                    nsIFrame*                      aPrevSibling)
+                                    nsIFrame*                      aPrevSibling,
+                                    PRBool                         aIsRecursiveCall)
 {
   NS_PRECONDITION(!IsFrameSpecial(aParentFrame) ||
                   !GetSpecialSibling(aParentFrame) ||
@@ -5788,13 +5789,15 @@ nsCSSFrameConstructor::AppendFrames(nsFrameConstructorState&       aState,
 
   NS_ASSERTION(nextSibling ||
                !aParentFrame->GetNextContinuation() ||
-               !aParentFrame->GetNextContinuation()->GetFirstChild(nsnull),
+               !aParentFrame->GetNextContinuation()->GetFirstChild(nsnull) ||
+               aIsRecursiveCall,
                "aParentFrame has later continuations with kids?");
   NS_ASSERTION(nextSibling ||
                !IsFrameSpecial(aParentFrame) ||
                (IsInlineFrame(aParentFrame) &&
                 !GetSpecialSibling(aParentFrame) &&
-                !aParentFrame->GetNextContinuation()),
+                !aParentFrame->GetNextContinuation()) ||
+               aIsRecursiveCall,
                "aParentFrame is not last?");
 
   
@@ -5854,7 +5857,7 @@ nsCSSFrameConstructor::AppendFrames(nsFrameConstructorState&       aState,
 
       
       return AppendFrames(aState, aParentFrame->GetParent(), ibSiblings,
-                          aParentFrame);
+                          aParentFrame, PR_TRUE);
     }
 
     return NS_OK;
