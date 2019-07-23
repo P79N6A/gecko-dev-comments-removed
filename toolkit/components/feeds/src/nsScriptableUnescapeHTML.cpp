@@ -147,7 +147,7 @@ nsScriptableUnescapeHTML::ParseFragment(const nsAString &aFragment,
 
   
   
-  nsVoidArray tagStack;
+  nsAutoTArray<nsAutoString, 2> tagStack;
   nsCAutoString base, spec;
   if (aIsXML) {
     
@@ -162,20 +162,20 @@ nsScriptableUnescapeHTML::ParseFragment(const nsAString &aFragment,
         base += escapedSpec;
       NS_Free(escapedSpec);
       base.Append(NS_LITERAL_CSTRING("\""));
-      tagStack.AppendElement(ToNewUnicode(base));
+      tagStack.AppendElement(NS_ConvertUTF8toUTF16(base));
     }  else {
-      tagStack.AppendElement(ToNewUnicode(NS_LITERAL_CSTRING(XHTML_DIV_TAG)));
+      tagStack.AppendElement(NS_LITERAL_STRING(XHTML_DIV_TAG));
     }
   } else {
     
-    tagStack.AppendElement(ToNewUnicode(NS_LITERAL_CSTRING(HTML_BODY_TAG)));
+    tagStack.AppendElement(NS_LITERAL_STRING(HTML_BODY_TAG));
     if (aBaseURI) {
       base.Append(NS_LITERAL_CSTRING((HTML_BASE_TAG)));
       base.Append(NS_LITERAL_CSTRING(" href=\""));
       aBaseURI->GetSpec(spec);
       base = base + spec;
       base.Append(NS_LITERAL_CSTRING("\""));
-      tagStack.AppendElement(ToNewUnicode(base));
+      tagStack.AppendElement(NS_ConvertUTF8toUTF16(base));
     }
   }
 
@@ -204,14 +204,6 @@ nsScriptableUnescapeHTML::ParseFragment(const nsAString &aFragment,
     } else {
       rv = NS_ERROR_FAILURE;
     }
-  }
-
-  
-  PRInt32 count = tagStack.Count();
-  for (PRInt32 i = 0; i < count; i++) {
-    PRUnichar* str = (PRUnichar*)tagStack.ElementAt(i);
-    if (str)
-      NS_Free(str);
   }
 
   if (scripts_enabled)
