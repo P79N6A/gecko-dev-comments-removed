@@ -3609,6 +3609,36 @@ nsWindow::ThemeChanged()
     }
 }
 
+void
+nsWindow::CheckNeedDragLeaveEnter(nsWindow* aInnerMostWidget,
+                                  nsIDragService* aDragService,
+                                  GdkDragContext *aDragContext,
+                                  nscoord aX, nscoord aY)
+{
+    
+    if (mLastDragMotionWindow) {
+        
+        if (mLastDragMotionWindow == aInnerMostWidget) {
+            UpdateDragStatus(aDragContext, aDragService);
+            return;
+        }
+
+        
+        nsRefPtr<nsWindow> kungFuDeathGrip = mLastDragMotionWindow;
+        mLastDragMotionWindow->OnDragLeave();
+    }
+
+    
+    aDragService->StartDragSession();
+
+    
+    UpdateDragStatus(aDragContext, aDragService);
+    aInnerMostWidget->OnDragEnter(aX, aY);
+
+    
+    mLastDragMotionWindow = aInnerMostWidget;
+}
+
 gboolean
 nsWindow::OnDragMotionEvent(GtkWidget *aWidget,
                             GdkDragContext *aDragContext,
@@ -3658,28 +3688,16 @@ nsWindow::OnDragMotionEvent(GtkWidget *aWidget,
         innerMostWidget = this;
 
     
-    if (mLastDragMotionWindow) {
-        
-        if (mLastDragMotionWindow != innerMostWidget) {
-            
-            nsRefPtr<nsWindow> kungFuDeathGrip = mLastDragMotionWindow;
-            mLastDragMotionWindow->OnDragLeave();
-            
-            innerMostWidget->OnDragEnter(retx, rety);
-        }
-    }
-    else {
-        
-        
-
-        innerMostWidget->OnDragEnter(retx, rety);
-    }
-
-    
-    mLastDragMotionWindow = innerMostWidget;
-
-    
     dragSessionGTK->TargetSetLastContext(aWidget, aDragContext, aTime);
+
+    
+    
+    if (mDragLeaveTimer) {
+        mDragLeaveTimer->Cancel();
+        mDragLeaveTimer = nsnull;
+    }
+
+    CheckNeedDragLeaveEnter(innerMostWidget, dragService, aDragContext, retx, rety);
 
     
     dragSessionGTK->TargetStartDragMotion();
@@ -3689,9 +3707,6 @@ nsWindow::OnDragMotionEvent(GtkWidget *aWidget,
     nsDragEvent event(PR_TRUE, NS_DRAGDROP_OVER, innerMostWidget);
 
     InitDragEvent(event);
-
-    
-    UpdateDragStatus(event, aDragContext, dragService);
 
     event.refPoint.x = retx;
     event.refPoint.y = rety;
@@ -3761,28 +3776,11 @@ nsWindow::OnDragDropEvent(GtkWidget *aWidget,
                                                   &retx, &rety);
     nsRefPtr<nsWindow> innerMostWidget = get_window_for_gdk_window(innerWindow);
 
-    
-    dragSessionGTK->TargetSetLastContext(aWidget, aDragContext, aTime);
-
     if (!innerMostWidget)
         innerMostWidget = this;
 
     
-    if (mLastDragMotionWindow) {
-        
-        if (mLastDragMotionWindow != innerMostWidget) {
-            
-            nsRefPtr<nsWindow> kungFuDeathGrip = mLastDragMotionWindow;
-            mLastDragMotionWindow->OnDragLeave();
-            
-            innerMostWidget->OnDragEnter(retx, rety);
-        }
-    }
-    else {
-        
-        
-        innerMostWidget->OnDragEnter(retx, rety);
-    }
+    dragSessionGTK->TargetSetLastContext(aWidget, aDragContext, aTime);
 
     
     
@@ -3791,8 +3789,7 @@ nsWindow::OnDragDropEvent(GtkWidget *aWidget,
         mDragLeaveTimer = nsnull;
     }
 
-    
-    mLastDragMotionWindow = innerMostWidget;
+    CheckNeedDragLeaveEnter(innerMostWidget, dragService, aDragContext, retx, rety);
 
     
     
@@ -3801,9 +3798,6 @@ nsWindow::OnDragDropEvent(GtkWidget *aWidget,
     nsDragEvent event(PR_TRUE, NS_DRAGDROP_OVER, innerMostWidget);
 
     InitDragEvent(event);
-
-    
-    UpdateDragStatus(event, aDragContext, dragService);
 
     event.refPoint.x = retx;
     event.refPoint.y = rety;
@@ -3908,13 +3902,6 @@ nsWindow::OnDragEnter(nscoord aX, nscoord aY)
     
 
     LOGDRAG(("nsWindow::OnDragEnter(%p)\n", (void*)this));
-
-    nsCOMPtr<nsIDragService> dragService = do_GetService(kCDragServiceCID);
-
-    if (dragService) {
-        
-        dragService->StartDragSession();
-    }
 
     nsDragEvent event(PR_TRUE, NS_DRAGDROP_ENTER, this);
 
@@ -6103,8 +6090,7 @@ nsWindow::InitDragEvent(nsDragEvent &aEvent)
 
 
 void
-nsWindow::UpdateDragStatus(nsDragEvent   &aEvent,
-                           GdkDragContext *aDragContext,
+nsWindow::UpdateDragStatus(GdkDragContext *aDragContext,
                            nsIDragService *aDragService)
 {
     
