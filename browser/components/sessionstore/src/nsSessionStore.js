@@ -1508,16 +1508,11 @@ SessionStoreService.prototype = {
     var hosts = this._windows[aWindow.__SSi]._hosts = {};
     
     
-    var _this = this;
     function extractHosts(aEntry) {
-      if (/^https?:\/\/(?:[^@\/\s]+@)?([\w.-]+)/.test(aEntry.url) &&
-        !hosts[RegExp.$1] && _this._checkPrivacyLevel(_this._getURIFromString(aEntry.url).schemeIs("https"))) {
-        var host = RegExp.$1;
-        var ix;
-        for (ix = host.indexOf(".") + 1; ix; ix = host.indexOf(".", ix) + 1) {
-          hosts[host.substr(ix)] = true;
+      if (/^https?:\/\/(?:[^@\/\s]+@)?([\w.-]+)/.test(aEntry.url)) {
+        if (!hosts[RegExp.$1] && this._checkPrivacyLevel(this._getURIFromString(aEntry.url).schemeIs("https"))) {
+          hosts[RegExp.$1] = true;
         }
-        hosts[host] = true;
       }
       else if (/^file:\/\/([^\/]*)/.test(aEntry.url)) {
         hosts[RegExp.$1] = true;
@@ -1526,8 +1521,8 @@ SessionStoreService.prototype = {
         aEntry.children.forEach(extractHosts);
       }
     }
-    
-    this._windows[aWindow.__SSi].tabs.forEach(function(aTabData) { aTabData.entries.forEach(extractHosts); });
+
+    this._windows[aWindow.__SSi].tabs.forEach(function(aTabData) { aTabData.entries.forEach(extractHosts, this); }, this);
   },
 
   
@@ -1536,36 +1531,59 @@ SessionStoreService.prototype = {
 
 
   _updateCookies: function sss_updateCookies(aWindows) {
-    var cookiesEnum = Cc["@mozilla.org/cookiemanager;1"].
-                      getService(Ci.nsICookieManager).enumerator;
+    function addCookieToHash(aHash, aHost, aPath, aName, aCookie) {
+      
+      
+      if (!aHash[aHost])
+        aHash[aHost] = {};
+      if (!aHash[aHost][aPath])
+        aHash[aHost][aPath] = {};
+      if (!aHash[aHost][aPath][aName])
+        aHash[aHost][aPath][aName] = {};
+
+      aHash[aHost][aPath][aName] = aCookie;
+    }
+
+    var cm = Cc["@mozilla.org/cookiemanager;1"].getService(Ci.nsICookieManager2);
     
     for (var i = 0; i < aWindows.length; i++)
       aWindows[i].cookies = [];
-    
+
+    var jscookies = {};
     
     var MAX_EXPIRY = Math.pow(2, 62);
-    while (cookiesEnum.hasMoreElements()) {
-      var cookie = cookiesEnum.getNext().QueryInterface(Ci.nsICookie2);
-      if (cookie.isSession && this._checkPrivacyLevel(cookie.isSecure)) {
-        var jscookie = null;
-        aWindows.forEach(function(aWindow) {
-          if (aWindow._hosts && aWindow._hosts[cookie.rawHost]) {
+    aWindows.forEach(function(aWindow) {
+      for (var host in aWindow._hosts) {
+        var list = cm.getCookiesFromHost(host);
+        while (list.hasMoreElements()) {
+          var cookie = list.getNext().QueryInterface(Ci.nsICookie2);
+          if (cookie.isSession && this._checkPrivacyLevel(cookie.isSecure)) {
             
-            if (!jscookie) {
-              jscookie = { host: cookie.host, value: cookie.value };
+            
+            var isInHash = false;
+            try {
+              if (jscookies[cookie.host][cookie.path][cookie.name])
+                isInHash = true;
+            } catch (e) {
+              
+            }
+            if (!isInHash) {
+              var jscookie = { "host": cookie.host, "value": cookie.value };
               
               if (cookie.path) jscookie.path = cookie.path;
               if (cookie.name) jscookie.name = cookie.name;
               if (cookie.isSecure) jscookie.secure = true;
               if (cookie.isHttpOnly) jscookie.httponly = true;
               if (cookie.expiry < MAX_EXPIRY) jscookie.expiry = cookie.expiry;
+
+              addCookieToHash(jscookies, cookie.host, cookie.path, cookie.name, jscookie);
             }
-            aWindow.cookies.push(jscookie);
+            aWindow.cookies.push(jscookies[cookie.host][cookie.path][cookie.name]);
           }
-        });
+        }
       }
-    }
-    
+    }, this);
+
     
     for (i = 0; i < aWindows.length; i++)
       if (aWindows[i].cookies.length == 0)
