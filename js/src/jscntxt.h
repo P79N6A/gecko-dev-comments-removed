@@ -138,7 +138,6 @@ struct JSTraceMonitor {
 
 
 
-
     JSContext               *tracecx;
 
     CLS(nanojit::LirBuffer) lirbuf;
@@ -165,16 +164,13 @@ struct JSTraceMonitor {
 
 
 
-
-
-    uintN                   prohibitFlush;
-    JSPackedBool            needFlush;
+    JSBool                  needFlush;
 
     
 
 
 
-    JSPackedBool            useReservedObjects;
+    JSBool                  useReservedObjects;
     JSObject                *reservedObjects;
 
     
