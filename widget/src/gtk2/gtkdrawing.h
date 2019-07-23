@@ -341,7 +341,7 @@ moz_gtk_get_scrollbar_metrics(MozGtkScrollbarMetrics* metrics);
 
 
 
-gint moz_gtk_get_dropdown_arrow_size(gint* width, gint* height);
+gint moz_gtk_get_combo_box_entry_button_size(gint* width, gint* height);
 
 
 
