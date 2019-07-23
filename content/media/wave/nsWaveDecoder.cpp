@@ -461,7 +461,12 @@ nsWaveStateMachine::GetNextFrameStatus()
   nsAutoMonitor monitor(mMonitor);
   if (mState == STATE_BUFFERING)
     return nsHTMLMediaElement::NEXT_FRAME_UNAVAILABLE_BUFFERING;
-  if (mPlaybackPosition < mStream->GetCachedDataEnd(mPlaybackPosition))
+  
+  
+  
+  if (mMetadataValid &&
+      mPlaybackPosition < mStream->GetCachedDataEnd(mPlaybackPosition) &&
+      mPlaybackPosition < mWavePCMOffset + GetDataLength())
     return nsHTMLMediaElement::NEXT_FRAME_AVAILABLE;
   return nsHTMLMediaElement::NEXT_FRAME_UNAVAILABLE;
 }
