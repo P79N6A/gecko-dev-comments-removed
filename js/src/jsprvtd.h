@@ -285,31 +285,6 @@ typedef struct JSDebugHooks {
 
 
 
-typedef void
-(* JSTempValueTrace)(JSTracer *trc, JSTempValueRooter *tvr);
-
-typedef union JSTempValueUnion {
-    jsval               value;
-    JSObject            *object;
-    JSXML               *xml;
-    JSTempValueTrace    trace;
-    JSScopeProperty     *sprop;
-    JSWeakRoots         *weakRoots;
-    JSCompiler          *compiler;
-    JSScript            *script;
-    jsval               *array;
-} JSTempValueUnion;
-
-struct JSTempValueRooter {
-    JSTempValueRooter   *down;
-    ptrdiff_t           count;
-    JSTempValueUnion    u;
-};
-
-
-
-
-
 
 
 
