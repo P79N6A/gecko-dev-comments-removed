@@ -197,10 +197,6 @@ function createAppInfo(id, name, version, platformVersion)
 
 function startupEM()
 {
-  
-  var updateSvc = Components.classes["@mozilla.org/updates/update-service;1"]
-                            .getService(Components.interfaces.nsISupports);
-
   gEM = Components.classes["@mozilla.org/extensions/manager;1"]
                   .getService(Components.interfaces.nsIExtensionManager);
 
