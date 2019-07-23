@@ -704,10 +704,15 @@ xpc_qsDOMString::xpc_qsDOMString(JSContext *cx, jsval v, jsval *pval,
             behavior = undefinedBehavior;
         }
 
-        if (behavior != eStringify)
+        
+        
+        
+        if (behavior != eStringify || !pval)
         {
+            
+            
             (new(mBuf) implementation_type(
-                traits::sEmptyBuffer, PRUint32(0)))->SetIsVoid(behavior == eNull);
+                traits::sEmptyBuffer, PRUint32(0)))->SetIsVoid(behavior != eEmpty);
             mValid = JS_TRUE;
             return;
         }
