@@ -167,6 +167,7 @@ nsXMLContentSink::Init(nsIDocument* aDoc,
   NS_ENSURE_SUCCESS(rv, rv);
 
   aDoc->AddObserver(this);
+  mIsDocumentObserver = PR_TRUE;
 
   if (!mDocShell) {
     mPrettyPrintXML = PR_FALSE;
@@ -247,6 +248,7 @@ nsXMLContentSink::MaybePrettyPrint()
 
   
   mDocument->RemoveObserver(this);
+  mIsDocumentObserver = PR_FALSE;
 
   
   if (mCSSLoader) {
@@ -315,6 +317,7 @@ nsXMLContentSink::DidBuildModel()
   if (mXSLTProcessor) {
     
     mDocument->RemoveObserver(this);
+    mIsDocumentObserver = PR_FALSE;
 
     
     PRUint32 i;
@@ -373,6 +376,7 @@ nsXMLContentSink::DidBuildModel()
     }
 
     mDocument->RemoveObserver(this);
+    mIsDocumentObserver = PR_FALSE;
 
     mDocument->EndLoad();
   }
@@ -1458,6 +1462,7 @@ nsXMLContentSink::ReportError(const PRUnichar* aErrorText,
 
   
   mDocument->RemoveObserver(this);
+  mIsDocumentObserver = PR_FALSE;
 
   
   
@@ -1620,13 +1625,17 @@ nsXMLContentSink::FlushPendingNotifications(mozFlushType aType)
   
   
   if (!mInNotification) {
-    if (aType >= Flush_ContentAndNotify) {
-      FlushTags();
+    if (mIsDocumentObserver) {
+      
+      
+      if (aType >= Flush_ContentAndNotify) {
+        FlushTags();
+      }
+      else {
+        FlushText(PR_FALSE);
+      }
     }
-    else {
-      FlushText(PR_FALSE);
-    }
-    if (aType >= Flush_Layout) {
+    if (aType >= Flush_InterruptibleLayout) {
       
       
       MaybeStartLayout(PR_TRUE);
