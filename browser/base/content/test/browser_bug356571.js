@@ -52,7 +52,7 @@ var gProgressListener = {
       
       ok(didFail, "Correctly failed on unknown protocol");
       
-      ok(gBrowser.mTabs.length == kURIs.length, "Correctly opened all expected tabs");
+      ok(gBrowser.tabs.length == kURIs.length, "Correctly opened all expected tabs");
       finishTest();
     }
   },
@@ -85,8 +85,8 @@ function finishTest() {
   gBrowser.removeTabsProgressListener(gProgressListener);
 
   
-  for (var i = gBrowser.mTabs.length-1; i > 0; i--)
-    gBrowser.removeTab(gBrowser.mTabs[i]);
+  for (var i = gBrowser.tabs.length-1; i > 0; i--)
+    gBrowser.removeTab(gBrowser.tabs[i]);
 
   finish();
 }

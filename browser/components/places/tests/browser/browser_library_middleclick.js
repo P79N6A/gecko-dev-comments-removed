@@ -58,7 +58,7 @@ var gTabsListener = {
       return;
 
     if (++this._openTabsCount == gCurrentTest.URIs.length) {
-      is(gBrowser.mTabs.length, gCurrentTest.URIs.length + 1,
+      is(gBrowser.tabs.length, gCurrentTest.URIs.length + 1,
          "We have opened " + gCurrentTest.URIs.length + " new tab(s)");
     }
 
@@ -92,7 +92,7 @@ var gTabsListener = {
       
       this._loadedURIs.length = 0;
       
-      while (gBrowser.mTabs.length > 1)
+      while (gBrowser.tabs.length > 1)
         gBrowser.removeCurrentTab();
       this._openTabsCount = 0;
 
