@@ -37,8 +37,8 @@
 
 
 
-#ifndef jsatom_inlines_h___
-#define jsatom_inlines_h___
+#ifndef jsatominlines_h___
+#define jsatominlines_h___
 
 #include "jsatom.h"
 #include "jsnum.h"

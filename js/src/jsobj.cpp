@@ -71,12 +71,14 @@
 #include "jsparse.h"
 #include "jsscope.h"
 #include "jsscript.h"
-#include "jsscriptinlines.h"
 #include "jsstaticcheck.h"
 #include "jsstdint.h"
 #include "jsstr.h"
 #include "jstracer.h"
 #include "jsdbgapi.h"
+
+#include "jsscopeinlines.h"
+#include "jsscriptinlines.h"
 
 #if JS_HAS_GENERATORS
 #include "jsiter.h"
@@ -2177,6 +2179,8 @@ InitScopeForObject(JSContext* cx, JSObject* obj, JSObject* proto, JSObjectOps* o
         scope = OBJ_SCOPE(proto)->getEmptyScope(cx, clasp);
         if (!scope)
             goto bad;
+        if (!DSLOTS_IS_NOT_NULL(obj))
+            DSLOTS_BUMP(obj);
     } else {
         scope = JSScope::create(cx, ops, clasp, obj, js_GenerateShape(cx, false));
         if (!scope)

@@ -73,6 +73,10 @@
 #include "jstracer.h"
 #include "jslibmath.h"
 #include "jsvector.h"
+
+#include "jsatominlines.h"
+#include "jsscopeinlines.h"
+#include "jsscriptinlines.h"
 #include "jsstrinlines.h"
 
 #ifdef INCLUDE_MOZILLA_DTRACE
@@ -82,9 +86,6 @@
 #if JS_HAS_XML_SUPPORT
 #include "jsxml.h"
 #endif
-
-#include "jsatominlines.h"
-#include "jsscriptinlines.h"
 
 #include "jsautooplen.h"
 
@@ -246,8 +247,6 @@ js_FillPropertyCache(JSContext *cx, JSObject *obj,
             SPROP_HAS_VALID_SLOT(sprop, scope)) {
             
             vword = SLOT_TO_PCVAL(sprop->slot);
-            if (sprop->slot >= JS_INITIAL_NSLOTS && !DSLOTS_IS_NOT_NULL(obj))
-                DSLOTS_BUMP(obj);
         } else {
             
             vword = SPROP_TO_PCVAL(sprop);

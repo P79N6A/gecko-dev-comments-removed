@@ -37,8 +37,8 @@
 
 
 
-#ifndef jsstr_inlines_h___
-#define jsstr_inlines_h___
+#ifndef jsstrinlines_h___
+#define jsstrinlines_h___
 
 #include "jsstr.h"
 
