@@ -93,11 +93,6 @@ public:
     void                    SetCacheParentDirectory(nsILocalFile * parentDir);
     void                    SetCapacity(PRUint32  capacity);
 
-    
-    
-    void                    SetCacheParentDirectoryAndName(nsILocalFile * parentDir,
-                                                           const nsACString & str);
-
 
 
     void                    getCacheDirectory(nsILocalFile ** result);
