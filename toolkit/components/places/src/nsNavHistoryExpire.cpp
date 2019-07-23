@@ -245,6 +245,8 @@ nsNavHistoryExpire::ClearHistory()
   mozIStorageConnection* connection = mHistory->GetStorageConnection();
   NS_ENSURE_TRUE(connection, NS_ERROR_OUT_OF_MEMORY);
 
+  mozStorageTransaction transaction(connection, PR_FALSE);
+
   
   
   
@@ -289,6 +291,9 @@ nsNavHistoryExpire::ClearHistory()
   rv = mHistory->FixInvalidFrecenciesForExcludedPlaces();
   if (NS_FAILED(rv))
     NS_WARNING("failed to fix invalid frecencies");
+
+  rv = transaction.Commit();
+  NS_ENSURE_SUCCESS(rv, rv);
 
   
   
