@@ -4159,9 +4159,15 @@ var XULBrowserWindow = {
     if (level) {
       this.securityButton.setAttribute("level", level);
       this.securityButton.hidden = false;
+      
+      
+      if (gURLBar)
+        gURLBar.setAttribute("level", level);
     } else {
       this.securityButton.hidden = true;
       this.securityButton.removeAttribute("level");
+      if (gURLBar)
+        gURLBar.removeAttribute("level");
     }
 
     if (setHost && this._host)
