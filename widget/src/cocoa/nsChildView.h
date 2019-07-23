@@ -113,6 +113,10 @@ union nsPluginPort;
 
   
   
+  BOOL mIsTransparent;
+
+  
+  
   
   
   
@@ -127,6 +131,7 @@ union nsPluginPort;
 
 
 - (void)delayedTearDown;
+- (void)setTransparent:(BOOL)transparent;
 @end
 
 
@@ -292,12 +297,13 @@ public:
   NS_IMETHOD        StartDrawPlugin();
   NS_IMETHOD        EndDrawPlugin();
   
+  NS_IMETHOD        GetHasTransparentBackground(PRBool& aTransparent);
+  NS_IMETHOD        SetHasTransparentBackground(PRBool aTransparent);
+  
   
   virtual PRBool    PointInWidget(Point aThePoint);
   
   virtual PRBool    DispatchWindowEvent(nsGUIEvent& event);
-  virtual void      AcceptFocusOnClick(PRBool aBool) { mAcceptFocusOnClick = aBool;};
-  PRBool            AcceptFocusOnClick() { return mAcceptFocusOnClick;};
   
   void              LiveResizeStarted();
   void              LiveResizeEnded();
@@ -345,8 +351,7 @@ protected:
   PRPackedBool          mVisible;
 
   PRPackedBool          mDrawing;
-    
-  PRPackedBool          mAcceptFocusOnClick;
+
   PRPackedBool          mLiveResizeInProgress;
   PRPackedBool          mIsPluginView; 
   PRPackedBool          mPluginDrawing;

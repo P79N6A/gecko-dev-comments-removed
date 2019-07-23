@@ -3299,13 +3299,13 @@ nsCSSRendering::PaintBackground(nsPresContext* aPresContext,
     nsIView* rootView;
     vm->GetRootView(rootView);
     if (!rootView->GetParent()) {
-      PRBool widgetIsTranslucent = PR_FALSE;
+      PRBool widgetIsTransparent = PR_FALSE;
 
       if (rootView->HasWidget()) {
-        rootView->GetWidget()->GetWindowTranslucency(widgetIsTranslucent);
+        rootView->GetWidget()->GetHasTransparentBackground(widgetIsTransparent);
       }
       
-      if (!widgetIsTranslucent) {
+      if (!widgetIsTransparent) {
         
         
         canvasColor.mBackgroundFlags &= ~NS_STYLE_BG_COLOR_TRANSPARENT;

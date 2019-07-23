@@ -343,11 +343,10 @@ public:
 
    void                ResizeTransparencyBitmap(PRInt32 aNewWidth, PRInt32 aNewHeight);
    void                ApplyTransparencyBitmap();
-   NS_IMETHOD          SetWindowTranslucency(PRBool aTransparent);
-   NS_IMETHOD          GetWindowTranslucency(PRBool& aTransparent);
+   NS_IMETHOD          SetHasTransparentBackground(PRBool aTransparent);
+   NS_IMETHOD          GetHasTransparentBackground(PRBool& aTransparent);
    nsresult            UpdateTranslucentWindowAlphaInternal(const nsRect& aRect,
                                                             PRUint8* aAlphas, PRInt32 aStride);
-   NS_IMETHOD          UpdateTranslucentWindowAlpha(const nsRect& aRect, PRUint8* aAlphas);
 
     gfxASurface       *GetThebesSurface();
 
@@ -399,7 +398,7 @@ private:
     static GdkCursor   *gsGtkCursorCache[eCursorCount];
 
     
-    PRBool       mIsTranslucent;
+    PRBool       mIsTransparent;
     
     
     

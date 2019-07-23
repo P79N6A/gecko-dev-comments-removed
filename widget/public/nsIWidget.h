@@ -97,8 +97,8 @@ typedef nsEventStatus (*PR_CALLBACK EVENT_CALLBACK)(nsGUIEvent *event);
 
 
 #define NS_IWIDGET_IID \
-{ 0xd7d1aae8, 0xfcb9, 0x4fe7, \
-  { 0xbe, 0x62, 0xb2, 0x0f, 0xfc, 0x53, 0xf1, 0xf9 } }
+{ 0xa6593177, 0xba36, 0x400e, \
+  { 0x88, 0x12, 0xa0, 0xd3, 0x6b, 0x3a, 0xf1, 0x7b } }
 
 
 
@@ -672,7 +672,7 @@ class nsIWidget : public nsISupports {
 
 
 
-    NS_IMETHOD SetWindowTranslucency(PRBool aTranslucent) = 0;
+    NS_IMETHOD SetHasTransparentBackground(PRBool aTransparent) = 0;
 
     
 
@@ -680,18 +680,7 @@ class nsIWidget : public nsISupports {
 
 
 
-    NS_IMETHOD GetWindowTranslucency(PRBool& aTranslucent) = 0;
-
-    
-
-
-
-
-
-
-
-
-    NS_IMETHOD UpdateTranslucentWindowAlpha(const nsRect& aRect, PRUint8* aAlphas) = 0;
+    NS_IMETHOD GetHasTransparentBackground(PRBool& aTransparent) = 0;
 
     
 
