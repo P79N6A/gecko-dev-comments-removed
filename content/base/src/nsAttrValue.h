@@ -247,6 +247,17 @@ public:
 
 
 
+
+
+  PRBool ParseNonNegativeIntValue(const nsAString& aString);
+
+  
+
+
+
+
+
+
   PRBool ParseColor(const nsAString& aString, nsIDocument* aDocument);
 
   
