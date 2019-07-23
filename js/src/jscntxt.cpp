@@ -1925,6 +1925,39 @@ js_CurrentPCIsInImacro(JSContext *cx)
 #endif
 }
 
+CallStack *
+JSContext::containingCallStack(JSStackFrame *target)
+{
+    
+    CallStack *cs = currentCallStack;
+    if (!cs)
+        return NULL;
+
+    
+    if (fp) {
+        JS_ASSERT(activeCallStack() == cs);
+        JSStackFrame *f = fp;
+        JSStackFrame *stop = cs->getInitialFrame()->down;
+        for (; f != stop; f = f->down) {
+            if (f == target)
+                return cs;
+        }
+        cs = cs->getPrevious();
+    }
+
+    
+    for (; cs; cs = cs->getPrevious()) {
+        JSStackFrame *f = cs->getSuspendedFrame();
+        JSStackFrame *stop = cs->getInitialFrame()->down;
+        for (; f != stop; f = f->down) {
+            if (f == target)
+                return cs;
+        }
+    }
+
+    return NULL;
+}
+
 void
 JSContext::checkMallocGCPressure(void *p)
 {

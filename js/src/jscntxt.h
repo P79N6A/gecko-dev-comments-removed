@@ -1363,6 +1363,12 @@ struct JSContext
         currentCallStack->restore();
     }
 
+    
+
+
+
+    js::CallStack *containingCallStack(JSStackFrame *target);
+
 #ifdef JS_THREADSAFE
     JSThread            *thread;
     jsrefcount          requestDepth;

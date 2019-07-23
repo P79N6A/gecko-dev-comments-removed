@@ -919,7 +919,8 @@ struct JSCompiler : private js::AutoGCRooter {
     JSTokenStream       tokenStream;
     void                *tempPoolMark;  
     JSPrincipals        *principals;    
-    JSStackFrame        *callerFrame;   
+    JSStackFrame *const callerFrame;    
+    JSObject     *const callerVarObj;   
     JSParseNode         *nodeList;      
     uint32              functionCount;  
     JSObjectBox         *traceListHead; 
@@ -927,9 +928,9 @@ struct JSCompiler : private js::AutoGCRooter {
 
     JSCompiler(JSContext *cx, JSPrincipals *prin = NULL, JSStackFrame *cfp = NULL)
       : js::AutoGCRooter(cx, COMPILER), context(cx),
-        aleFreeList(NULL), tokenStream(cx), principals(NULL),
-        callerFrame(cfp), nodeList(NULL), functionCount(0), traceListHead(NULL),
-        tc(NULL)
+        aleFreeList(NULL), tokenStream(cx), principals(NULL), callerFrame(cfp),
+        callerVarObj(cfp ? cfp->varobj(cx->containingCallStack(cfp)) : NULL),
+        nodeList(NULL), functionCount(0), traceListHead(NULL), tc(NULL)
     {
         js::PodArrayZero(tempFreeList);
         setPrincipals(prin);

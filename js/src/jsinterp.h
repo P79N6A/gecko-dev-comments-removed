@@ -170,13 +170,6 @@ struct JSStackFrame {
 };
 
 #ifdef __cplusplus
-
-
-
-
-extern js::CallStack *
-js_ContainingCallStack(JSContext *cx, JSStackFrame *target);
-
 static JS_INLINE uintN
 FramePCOffset(JSStackFrame* fp)
 {
