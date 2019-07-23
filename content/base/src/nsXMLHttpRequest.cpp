@@ -2307,11 +2307,11 @@ nsXMLHttpRequest::SetRequestHeader(const nsACString& header,
   
   
   
-  if (mACGetChannel) {
+  if (mACPreflightChannel) {
     PRBool pending;
-    rv = mACGetChannel->IsPending(&pending);
+    rv = mACPreflightChannel->IsPending(&pending);
     NS_ENSURE_SUCCESS(rv, rv);
-    
+
     if (pending) {
       return NS_ERROR_IN_PROGRESS;
     }
