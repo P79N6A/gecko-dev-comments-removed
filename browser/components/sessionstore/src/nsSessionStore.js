@@ -828,10 +828,15 @@ SessionStoreService.prototype = {
       tabData.index = history.index + 1;
     }
     else if (history && history.count > 0) {
-      for (var j = 0; j < history.count; j++)
-        tabData.entries.push(this._serializeHistoryEntry(history.getEntryAtIndex(j, false)));
-      tabData.index = history.index + 1;
       
+      var cap = this._prefBranch.getIntPref("sessionstore.max_tab_back_history");
+
+      var startIndex = -1 < cap && cap < history.index ? history.index - cap : 0;
+      for (var j = startIndex; j < history.count; j++)
+        tabData.entries.push(this._serializeHistoryEntry(history.getEntryAtIndex(j, false)));
+
+      tabData.index = history.index - startIndex + 1;
+
       browser.parentNode.__SS_data = tabData;
     }
     else {

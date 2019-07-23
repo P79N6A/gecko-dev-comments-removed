@@ -583,6 +583,8 @@ pref("browser.sessionstore.privacy_level", 1);
 
 pref("browser.sessionstore.max_tabs_undo", 10);
 
+pref("browser.sessionstore.max_tab_back_history", 10);
+
 
 pref("accessibility.blockautorefresh", false);
 
