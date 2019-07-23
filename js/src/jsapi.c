@@ -1664,8 +1664,24 @@ JS_GetScopeChain(JSContext *cx)
 
     fp = cx->fp;
     if (!fp) {
-        JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_INACTIVE);
-        return NULL;
+        
+
+
+
+
+
+
+
+
+
+        JSObject *obj = cx->globalObject;
+        if (!obj) {
+            JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_INACTIVE);
+            return NULL;
+        }
+
+        OBJ_TO_INNER_OBJECT(cx, obj);
+        return obj;
     }
     return js_GetScopeChain(cx, fp);
 }
