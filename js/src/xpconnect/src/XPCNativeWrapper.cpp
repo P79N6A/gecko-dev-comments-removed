@@ -235,33 +235,59 @@ RewrapIfDeepWrapper(JSContext *cx, JSObject *obj, jsval v, jsval *rval)
   
   
   if (HAS_FLAGS(flags, FLAG_DEEP) && !primitive) {
-    JSObject *scope = JS_GetScopeChain(cx);
-    if (!scope) {
+    
+    if (STOBJ_GET_CLASS(nativeObj) == &XPCCrossOriginWrapper::XOWClass.base) {
+      if (!::JS_GetReservedSlot(cx, nativeObj, sWrappedObjSlot,
+                                &v)) {
+        return JS_FALSE;
+      }
+
+      
+      
+      if (!JSVAL_IS_PRIMITIVE(v)) {
+        nativeObj = JSVAL_TO_OBJECT(v);
+      }
+    }
+
+    XPCWrappedNative* wrappedNative =
+      XPCWrappedNative::GetAndMorphWrappedNativeOfJSObject(cx, nativeObj);
+    if (!wrappedNative) {
+      return XPCSafeJSObjectWrapper::WrapObject(cx, JS_GetScopeChain(cx),
+                                                v, rval);
+    }
+
+    if (HAS_FLAGS(flags, FLAG_EXPLICIT)) {
+#ifdef DEBUG_XPCNativeWrapper
+      printf("Rewrapping for deep explicit wrapper\n");
+#endif
+      if (wrappedNative == XPCNativeWrapper::SafeGetWrappedNative(obj)) {
+        
+        *rval = OBJECT_TO_JSVAL(obj);
+        return JS_TRUE;
+      }
+
+      
+      
+
+      return XPCNativeWrapper::CreateExplicitWrapper(cx, wrappedNative,
+                                                     JS_TRUE, rval);
+    }
+
+#ifdef DEBUG_XPCNativeWrapper
+    printf("Rewrapping for deep implicit wrapper\n");
+#endif
+    
+    
+    
+    JSObject* wrapperObj = XPCNativeWrapper::GetNewOrUsed(cx, wrappedNative,
+                                                          JS_GetScopeChain(cx),
+                                                          nsnull);
+    if (!wrapperObj) {
       return JS_FALSE;
     }
 
-    WrapperType type = HAS_FLAGS(flags, FLAG_EXPLICIT)
-                       ? XPCNW_EXPLICIT : XPCNW_IMPLICIT;
-
-    if (!RewrapObject(cx, JS_GetGlobalForObject(cx, scope),
-                      nativeObj, type, rval)) {
-      return JS_FALSE;
-    }
+    *rval = OBJECT_TO_JSVAL(wrapperObj);
   } else {
-    if (!JSVAL_IS_PRIMITIVE(v)) {
-      JSObject *scope = JS_GetScopeChain(cx);
-      if (!scope) {
-        return JS_FALSE;
-      }
-
-      
-      
-      if (!RewrapObject(cx, JS_GetGlobalForObject(cx, scope),
-                        JSVAL_TO_OBJECT(v), SJOW, &v)) {
-        return JS_FALSE;
-      }
-    }
-
     *rval = v;
   }
 
@@ -372,13 +398,6 @@ EnsureLegalActivity(JSContext *cx, JSObject *obj,
     return JS_TRUE;
   }
 
-  jsval flags;
-
-  JS_GetReservedSlot(cx, obj, sFlagsSlot, &flags);
-  if (HAS_FLAGS(flags, FLAG_SOW) && !SystemOnlyWrapper::CheckFilename(cx, id, fp)) {
-    return JS_FALSE;
-  }
-
   
   
   XPCWrappedNative *wn = XPCNativeWrapper::SafeGetWrappedNative(obj);
@@ -409,10 +428,12 @@ EnsureLegalActivity(JSContext *cx, JSObject *obj,
     }
   }
 
-#ifdef DEBUG
   
   
+  
+  jsval flags;
 
+  ::JS_GetReservedSlot(cx, obj, 0, &flags);
   if (HAS_FLAGS(flags, FLAG_EXPLICIT)) {
     
     return JS_TRUE;
@@ -433,13 +454,7 @@ EnsureLegalActivity(JSContext *cx, JSObject *obj,
 
   
   
-  NS_ERROR("Implicit native wrapper in content code");
-  return JS_FALSE;
-#else
-  return JS_TRUE;
-#endif
-
-  
+  return ThrowException(NS_ERROR_XPC_SECURITY_MANAGER_VETO, cx);
 }
 
 static JSBool
@@ -510,7 +525,7 @@ XPC_NW_FunctionWrapper(JSContext *cx, JSObject *obj, uintN argc, jsval *argv,
   }
 
   while (obj && !XPCNativeWrapper::IsNativeWrapper(obj)) {
-    obj = STOBJ_GET_PROTO(obj);
+    obj = obj->getProto();
   }
 
   if (!obj) {
@@ -585,7 +600,7 @@ XPC_NW_GetOrSetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp,
   }
 
   while (!XPCNativeWrapper::IsNativeWrapper(obj)) {
-    obj = STOBJ_GET_PROTO(obj);
+    obj = obj->getProto();
     if (!obj) {
       return ThrowException(NS_ERROR_UNEXPECTED, cx);
     }
@@ -737,7 +752,7 @@ XPC_NW_NewResolve(JSContext *cx, JSObject *obj, jsval id, uintN flags,
   }
 
   while (!XPCNativeWrapper::IsNativeWrapper(obj)) {
-    obj = STOBJ_GET_PROTO(obj);
+    obj = obj->getProto();
     if (!obj) {
       return ThrowException(NS_ERROR_UNEXPECTED, cx);
     }
@@ -920,7 +935,7 @@ XPCNativeWrapperCtor(JSContext *cx, JSObject *obj, uintN argc, jsval *argv,
   if (JS_FrameIterator(cx, &fp) && JS_IsConstructorFrame(cx, fp)) {
     constructing = JS_TRUE;
 
-    JSObject *proto = STOBJ_GET_PROTO(obj);
+    JSObject *proto = obj->getProto();
     if (proto && !XPCNativeWrapper::IsNativeWrapper(proto)) {
       
 
@@ -952,48 +967,48 @@ XPCNativeWrapperCtor(JSContext *cx, JSObject *obj, uintN argc, jsval *argv,
   JSObject *nativeObj = JSVAL_TO_OBJECT(native);
 
   
-  
-  nativeObj = UnsafeUnwrapSecurityWrapper(cx, nativeObj);
-  if (!nativeObj) {
-    return ThrowException(NS_ERROR_INVALID_ARG, cx);
+  JSObject *wrapper;
+  if ((wrapper = UnwrapGeneric(cx, &XPCCrossOriginWrapper::XOWClass, nativeObj))) {
+    nativeObj = wrapper;
+  } else if ((wrapper = UnwrapGeneric(cx, &XPCSafeJSObjectWrapper::SJOWClass, nativeObj))) {
+    nativeObj = wrapper;
   }
-  native = OBJECT_TO_JSVAL(nativeObj);
-
-  
-  JSObject *scope = JS_GetScopeChain(cx);
-  if (!scope) {
-    return JS_FALSE;
-  }
-
-  XPCWrappedNativeScope *xpcscope =
-    XPCWrappedNativeScope::FindInJSObjectScope(cx, scope);
-  NS_ASSERTION(xpcscope, "what crazy scope are we in?");
 
   XPCWrappedNative *wrappedNative;
-  WrapperType type = xpcscope->GetWrapperFor(cx, nativeObj, XPCNW_EXPLICIT,
-                                             &wrappedNative);
 
-  if (type != NONE && !(type & XPCNW_EXPLICIT)) {
-    return ThrowException(NS_ERROR_INVALID_ARG, cx);
-  }
+  if (XPCNativeWrapper::IsNativeWrapper(nativeObj)) {
+    
+    
 
-  
-  if (!wrappedNative) {
+#ifdef DEBUG_XPCNativeWrapper
+    printf("Wrapping already wrapped object\n");
+#endif
+
+    
+    wrappedNative = XPCNativeWrapper::SafeGetWrappedNative(nativeObj);
+
+    if (!wrappedNative) {
+      return ThrowException(NS_ERROR_INVALID_ARG, cx);
+    }
+
+    nativeObj = wrappedNative->GetFlatJSObject();
+    native = OBJECT_TO_JSVAL(nativeObj);
+  } else {
     wrappedNative =
       XPCWrappedNative::GetAndMorphWrappedNativeOfJSObject(cx, nativeObj);
 
     if (!wrappedNative) {
       return ThrowException(NS_ERROR_INVALID_ARG, cx);
     }
-  }
 
-  
-  
-  nsCOMPtr<nsIXPConnectWrappedJS> xpcwrappedjs =
-    do_QueryWrappedNative(wrappedNative);
+    
+    
+    nsCOMPtr<nsIXPConnectWrappedJS> xpcwrappedjs =
+      do_QueryWrappedNative(wrappedNative);
 
-  if (xpcwrappedjs) {
-    return ThrowException(NS_ERROR_INVALID_ARG, cx);
+    if (xpcwrappedjs) {
+      return ThrowException(NS_ERROR_INVALID_ARG, cx);
+    }
   }
 
   PRBool hasStringArgs = PR_FALSE;
@@ -1032,16 +1047,8 @@ XPCNativeWrapperCtor(JSContext *cx, JSObject *obj, uintN argc, jsval *argv,
     }
   }
 
-  if (!XPCNativeWrapper::CreateExplicitWrapper(cx, wrappedNative,
-                                               !hasStringArgs, rval)) {
-    return JS_FALSE;
-  }
-
-  if (!(type & SOW)) {
-    return JS_TRUE;
-  }
-
-  return SystemOnlyWrapper::MakeSOW(cx, JSVAL_TO_OBJECT(*rval));
+  return XPCNativeWrapper::CreateExplicitWrapper(cx, wrappedNative,
+                                                 !hasStringArgs, rval);
 }
 
 static void
@@ -1130,7 +1137,7 @@ XPC_NW_toString(JSContext *cx, JSObject *obj, uintN argc, jsval *argv,
                 jsval *rval)
 {
   while (!XPCNativeWrapper::IsNativeWrapper(obj)) {
-    obj = STOBJ_GET_PROTO(obj);
+    obj = obj->getProto();
     if (!obj) {
       return ThrowException(NS_ERROR_UNEXPECTED, cx);
     }

@@ -262,6 +262,12 @@ extern const char       *js_CodeName[];
 extern const char       js_EscapeMap[];
 
 
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable:4100)
+#endif
+
+
 
 
 
@@ -463,6 +469,10 @@ js_DecompileValueGenerator(JSContext *cx, intN spindex, jsval v,
 
 extern uintN
 js_ReconstructStackDepth(JSContext *cx, JSScript *script, jsbytecode *pc);
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 
 JS_END_EXTERN_C
 

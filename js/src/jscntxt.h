@@ -63,6 +63,13 @@
 #include "jsvector.h"
 #include "jshashtable.h"
 
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable:4100) /* Silence unreferenced formal parameter warnings */
+#pragma warning(push)
+#pragma warning(disable:4355) /* Silence warning about "this" used in base member initializer list */
+#endif
+
 
 
 
@@ -125,7 +132,7 @@ struct TreeFragment;
 struct InterpState;
 template<typename T> class Queue;
 typedef Queue<uint16> SlotList;
-struct TypeMap;
+class TypeMap;
 struct REFragment;
 typedef nanojit::HashMap<REHashKey, REFragment*, REHashFn> REHashMap;
 
@@ -283,7 +290,7 @@ class CallStack
         return suspendedFrame;
     }
 
-    bool isSuspended() const { return suspendedFrame; }
+    bool isSuspended() const { return !!suspendedFrame; }
 
     void setPrevious(CallStack *cs) { previous = cs; }
     CallStack *getPrevious() const  { return previous; }
@@ -1801,6 +1808,10 @@ class JSAutoIdArray {
     JSIdArray * const idArray;
     JSTempValueRooter tvr;
     JS_DECL_USE_GUARD_OBJECT_NOTIFIER
+
+    
+    JSAutoIdArray(JSAutoIdArray &);
+    void operator=(JSAutoIdArray &);
 };
 
 
@@ -2279,5 +2290,10 @@ ContextAllocPolicy::reportAllocOverflow() const
 }
 
 }
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#pragma warning(pop)
+#endif
 
 #endif

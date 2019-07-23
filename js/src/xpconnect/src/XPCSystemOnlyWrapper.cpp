@@ -94,8 +94,6 @@ ThrowException(nsresult rv, JSContext *cx)
   return DoThrowException(rv, cx);
 }
 
-static const char prefix[] = "chrome://global/";
-
 namespace SystemOnlyWrapper {
 
 JSExtendedClass SOWClass = {
@@ -149,26 +147,6 @@ WrapObject(JSContext *cx, JSObject *parent, jsval v, jsval *vp)
   return JS_TRUE;
 }
 
-JSBool
-MakeSOW(JSContext *cx, JSObject *obj)
-{
-#ifdef DEBUG
-  {
-    JSClass *clasp = STOBJ_GET_CLASS(obj);
-    NS_ASSERTION(clasp != &SystemOnlyWrapper::SOWClass.base &&
-                 clasp != &XPCCrossOriginWrapper::XOWClass.base &&
-                 strcmp(clasp->name, "XPCNativeWrapper"),
-                 "bad call");
-  }
-#endif
-
-  jsval flags;
-  return JS_GetReservedSlot(cx, obj, sFlagsSlot, &flags) &&
-         JS_SetReservedSlot(cx, obj, sFlagsSlot,
-                            INT_TO_JSVAL(JSVAL_TO_INT(flags) | FLAG_SOW));
-}
-
-
 
 JSBool
 AllowedToAct(JSContext *cx, jsval idval)
@@ -208,6 +186,7 @@ AllowedToAct(JSContext *cx, jsval idval)
 
   
   
+  static const char prefix[] = "chrome://global/";
   const char *filename;
   if (fp &&
       (filename = fp->script->filename) &&
@@ -218,30 +197,6 @@ AllowedToAct(JSContext *cx, jsval idval)
   
   nsresult rv = ssm->IsCapabilityEnabled("UniversalXPConnect", &privileged);
   if (NS_SUCCEEDED(rv) && privileged) {
-    return JS_TRUE;
-  }
-
-  if (JSVAL_IS_VOID(idval)) {
-    ThrowException(NS_ERROR_XPC_SECURITY_MANAGER_VETO, cx);
-  } else {
-    
-    JSString *str = JS_ValueToString(cx, idval);
-    if (str) {
-      JS_ReportError(cx, "Permission denied to access property '%hs' from a non-chrome context",
-                     JS_GetStringChars(str));
-    }
-  }
-
-  return JS_FALSE;
-}
-
-JSBool
-CheckFilename(JSContext *cx, jsval idval, JSStackFrame *fp)
-{
-  const char *filename;
-  if (fp &&
-      (filename = fp->script->filename) &&
-      !strncmp(filename, prefix, NS_ARRAY_LENGTH(prefix) - 1)) {
     return JS_TRUE;
   }
 
@@ -287,7 +242,7 @@ JSObject *
 GetWrapper(JSObject *obj)
 {
   while (STOBJ_GET_CLASS(obj) != &SOWClass.base) {
-    obj = STOBJ_GET_PROTO(obj);
+    obj = obj->getProto();
     if (!obj) {
       break;
     }
@@ -391,7 +346,7 @@ XPC_SOW_RewrapValue(JSContext *cx, JSObject *wrapperObj, jsval *vp)
     if (native == XPC_SOW_FunctionWrapper) {
       
       
-      if (STOBJ_GET_PROTO(wrapperObj) == STOBJ_GET_PARENT(obj)) {
+      if (wrapperObj->getProto() == STOBJ_GET_PARENT(obj)) {
         return JS_TRUE;
       }
 
@@ -555,7 +510,7 @@ XPC_SOW_NewResolve(JSContext *cx, JSObject *obj, jsval id, uintN flags,
     return JS_FALSE;
   }
 
-  return NewResolve(cx, obj, JS_FALSE, wrappedObj, id, flags, objp);
+  return NewResolve(cx, obj, JS_TRUE, wrappedObj, id, flags, objp);
 }
 
 static JSBool

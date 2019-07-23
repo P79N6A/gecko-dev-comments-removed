@@ -67,9 +67,6 @@ JSObject::isArray() const
     return isDenseArray() || getClass() == &js_SlowArrayClass;
 }
 
-#define OBJ_IS_DENSE_ARRAY(cx,obj)  (obj)->isDenseArray()
-#define OBJ_IS_ARRAY(cx,obj)        (obj)->isArray()
-
 
 
 
@@ -90,9 +87,9 @@ JSObject::isArray() const
 
 
 static JS_INLINE JSObject *
-js_GetProtoIfDenseArray(JSContext *cx, JSObject *obj)
+js_GetProtoIfDenseArray(JSObject *obj)
 {
-    return OBJ_IS_DENSE_ARRAY(cx, obj) ? OBJ_GET_PROTO(cx, obj) : obj;
+    return obj->isDenseArray() ? obj->getProto() : obj;
 }
 
 extern JSObject *
