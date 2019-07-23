@@ -349,14 +349,6 @@ nsPluginInstanceTag::~nsPluginInstanceTag()
         peer2->InvalidateOwner();
     }
 
-    
-    
-    
-    PRBool doCache = PR_TRUE;
-    mInstance->GetValue(nsPluginInstanceVariable_DoCacheBool, (void *) &doCache);
-    if (doCache)
-      mInstance->Destroy();
-
     NS_RELEASE(mInstance);
     NS_IF_RELEASE(mPeer);
   }
@@ -496,13 +488,11 @@ void nsPluginInstanceTagList::stopRunning(nsISupportsArray* aReloadDocs,
                              (void *) &doCallSetWindowAfterDestroy);
       if (doCallSetWindowAfterDestroy) {
         p->mInstance->Stop();
-        p->mInstance->Destroy();
         p->mInstance->SetWindow(nsnull);
       }
       else {
         p->mInstance->SetWindow(nsnull);
         p->mInstance->Stop();
-        p->mInstance->Destroy();
       }
       doCallSetWindowAfterDestroy = PR_FALSE;
       p->setStopped(PR_TRUE);

@@ -1040,14 +1040,6 @@ nsresult nsNPAPIPluginInstance::InitializePlugin(nsIPluginInstancePeer* peer)
   return NS_OK;
 }
 
-NS_IMETHODIMP nsNPAPIPluginInstance::Destroy(void)
-{
-  PLUGIN_LOG(PLUGIN_LOG_NORMAL, ("nsNPAPIPluginInstance::Destroy this=%p\n",this));
-
-  
-  return NS_OK;
-}
-
 NS_IMETHODIMP nsNPAPIPluginInstance::SetWindow(nsPluginWindow* window)
 {
   
