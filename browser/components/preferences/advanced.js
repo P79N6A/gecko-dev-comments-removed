@@ -61,9 +61,11 @@ var gAdvancedPane = {
       advancedPrefs.selectedIndex = preference.value;
     }
 
+#ifdef MOZ_UPDATER
     this.updateAppUpdateItems();
     this.updateAutoItems();
     this.updateModeItems();
+#endif
     this.updateOfflineApps();
   },
 
@@ -375,6 +377,7 @@ var gAdvancedPane = {
 
 
 
+#ifdef MOZ_UPDATER
   updateAppUpdateItems: function () 
   {
     var aus = 
@@ -420,18 +423,6 @@ var gAdvancedPane = {
                   !autoPref.value || modePref.locked;
     warnIncompatible.disabled = disable;
   },
-
-  
-
-
-
-  updateAddonUpdateUI: function ()
-  {
-    var enabledPref = document.getElementById("extensions.update.enabled");
-    var enableAddonUpdate = document.getElementById("enableAddonUpdate");
-
-    enableAddonUpdate.disabled = enabledPref.locked;
-  },  
 
   
 
@@ -483,6 +474,19 @@ var gAdvancedPane = {
                              .createInstance(Components.interfaces.nsIUpdatePrompt);
     prompter.showUpdateHistory(window);
   },
+#endif
+
+  
+
+
+
+  updateAddonUpdateUI: function ()
+  {
+    var enabledPref = document.getElementById("extensions.update.enabled");
+    var enableAddonUpdate = document.getElementById("enableAddonUpdate");
+
+    enableAddonUpdate.disabled = enabledPref.locked;
+  },  
   
   
 

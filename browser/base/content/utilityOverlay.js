@@ -442,7 +442,8 @@ function openReleaseNotes(event)
   
   openUILink(relnotesURL, event, false, true);
 }
-  
+
+#ifdef MOZ_UPDATER
 
 
 
@@ -463,6 +464,7 @@ function checkForUpdates()
   else
     prompter.checkForUpdates();
 }
+#endif
 
 function buildHelpMenu()
 {
@@ -471,6 +473,7 @@ function buildHelpMenu()
   if (typeof safebrowsing != "undefined")
     safebrowsing.setReportPhishingMenu();
 
+#ifdef MOZ_UPDATER
   var updates = 
       Components.classes["@mozilla.org/updates/update-service;1"].
       getService(Components.interfaces.nsIApplicationUpdateService);
@@ -519,6 +522,10 @@ function buildHelpMenu()
     checkForUpdates.setAttribute("loading", "true");
   else
     checkForUpdates.removeAttribute("loading");
+#else
+  
+  document.getElementById("updateSeparator").hidden = true;
+#endif
 }
 
 function isElementVisible(aElement)
