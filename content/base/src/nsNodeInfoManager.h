@@ -68,7 +68,8 @@ struct PLArenaPool;
 class nsDOMNodeAllocator
 {
 public:
-  nsDOMNodeAllocator() : mPool(nsnull) {}
+  nsDOMNodeAllocator()
+  : mSmallPool(nsnull), mLargePool(nsnull), mSmallPoolAllocated(0) {}
   ~nsDOMNodeAllocator();
 
   nsrefcnt AddRef()
@@ -86,7 +87,9 @@ protected:
   friend class nsNodeInfoManager;
   nsresult Init();
   nsAutoRefCnt mRefCnt;
-  PLArenaPool* mPool;
+  PLArenaPool* mSmallPool;
+  PLArenaPool* mLargePool;
+  size_t       mSmallPoolAllocated;
   
   
   void*        mRecyclers[NS_NODE_RECYCLER_SIZE];
