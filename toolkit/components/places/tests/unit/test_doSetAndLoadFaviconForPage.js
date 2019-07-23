@@ -2,6 +2,44 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 var iconsvc = Cc["@mozilla.org/browser/favicon-service;1"].
               getService(Ci.nsIFaviconService);
 
@@ -23,17 +61,6 @@ function checkAddSucceeded(pageURI, mimetype, data) {
   do_check_eq(mimetype, outMimeType.value);
   do_check_true(compareArrays(data, outData));
 }
-
-
-
-
-
-
-
-
-
-
-
 
 var favicons = [
   {
@@ -57,18 +84,6 @@ var tests = [
     }
   },
 
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-
   {
     desc: "test setAndLoadFaviconForPage for bookmarked about: URIs",
     pageURI: uri("about:test2"),
@@ -83,26 +98,6 @@ var tests = [
       checkAddSucceeded(this.pageURI, this.favicon.mimetype, this.favicon.data);
     }
   },
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
 
   {
     desc: "test setAndLoadFaviconForPage with history disabled for bookmarked URI",
@@ -127,25 +122,6 @@ var tests = [
     }
   },
 
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
 ];
 
 if ("@mozilla.org/privatebrowsing;1" in Cc) {
