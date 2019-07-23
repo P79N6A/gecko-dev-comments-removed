@@ -53,6 +53,12 @@ WCHAR g_sUninstallPath[MAX_PATH];
 const DWORD c_nTempBufSize = MAX_PATH * 2;
 const WCHAR c_sRemoveParam[] = L"remove";
 
+
+int nTotalRetries = 0;
+const int c_nMaxTotalRetries = 10;
+const int c_nMaxOneFileRetries = 6;
+const int c_nRetryDelay = 500; 
+
 enum {
   ErrOK = 0,
   ErrCancel = 1,
@@ -189,6 +195,7 @@ BOOL GetInstallPath(WCHAR *sPath)
 
 BOOL DeleteDirectory(const WCHAR* sPathToDelete)
 {
+  BOOL            bResult = TRUE;
   HANDLE          hFile;
   WCHAR           sFilePath[MAX_PATH];
   WCHAR           sPattern[MAX_PATH];
@@ -208,12 +215,8 @@ BOOL DeleteDirectory(const WCHAR* sPathToDelete)
         if (findData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
         {
           
-          BOOL bRet = DeleteDirectory(sFilePath);
-          if (!bRet)
-          {
-            
-            
-          }
+          if (!DeleteDirectory(sFilePath))
+            bResult = FALSE;
         }
         else
         {
@@ -221,10 +224,21 @@ BOOL DeleteDirectory(const WCHAR* sPathToDelete)
           if (SetFileAttributes(sFilePath, FILE_ATTRIBUTE_NORMAL))
           {
             
-            if (!DeleteFile(sFilePath))
+            if (!DeleteFile(sFilePath) && nTotalRetries < c_nMaxTotalRetries)
             {
-              
-              
+              BOOL bDeleted = FALSE;
+              nTotalRetries++;
+              for (int nRetry = 0; nRetry < c_nMaxOneFileRetries; nRetry++)
+              {
+                Sleep(c_nRetryDelay);
+                if (DeleteFile(sFilePath))
+                {
+                  bDeleted = TRUE;
+                  break;
+                }
+              }
+              if (!bDeleted)
+                bResult = FALSE;
             }
           }
         }
@@ -233,23 +247,31 @@ BOOL DeleteDirectory(const WCHAR* sPathToDelete)
 
     
     FindClose(hFile);
+  }
 
-    DWORD dwError = GetLastError();
-    if (dwError != ERROR_NO_MORE_FILES)
-      return FALSE;
-    else
+  
+  if (SetFileAttributes(sPathToDelete, FILE_ATTRIBUTE_NORMAL))
+  {
+    
+    if (!RemoveDirectory(sPathToDelete) && nTotalRetries < c_nMaxTotalRetries)
     {
-      
-      if (SetFileAttributes(sPathToDelete, FILE_ATTRIBUTE_NORMAL))
+      BOOL bDeleted = FALSE;
+      nTotalRetries++;
+      for (int nRetry = 0; nRetry < c_nMaxOneFileRetries; nRetry++)
       {
-        
-        if (!RemoveDirectory(sPathToDelete))
-          return FALSE;
+        Sleep(c_nRetryDelay);
+        if (RemoveDirectory(sPathToDelete))
+        {
+          bDeleted = TRUE;
+          break;
+        }
       }
+      if (!bDeleted)
+        bResult = FALSE;
     }
   }
 
-  return TRUE;
+  return bResult;
 }
 
 
@@ -357,6 +379,7 @@ BOOL ShutdownFastStartService(const WCHAR *wsInstallPath)
       Sleep(500);
       handle = ::FindWindowW(sClassName, NULL);
     }
+
     
     result = (handle == NULL);
   }

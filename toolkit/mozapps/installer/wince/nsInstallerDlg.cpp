@@ -330,6 +330,10 @@ BOOL nsInstallerDlg::CreateShortcut()
     WCHAR sShortcutPath[MAX_PATH];
     _snwprintf(sShortcutPath, MAX_PATH, L"%s\\%s.lnk", sProgramsPath, Strings.GetString(StrID_AppShortName));
 
+    
+    if(SetFileAttributes(sShortcutPath, FILE_ATTRIBUTE_NORMAL))
+      DeleteFile(sShortcutPath);
+
     result = SHCreateShortcut(sShortcutPath, sFennecPath);
   }
 
@@ -343,6 +347,9 @@ BOOL nsInstallerDlg::CreateShortcut()
     {
       WCHAR sStartupShortcutPath[MAX_PATH];
       _snwprintf(sStartupShortcutPath, MAX_PATH, L"%s\\%sFastStart.lnk", sStartupPath, Strings.GetString(StrID_AppShortName));
+
+      if(SetFileAttributes(sStartupShortcutPath, FILE_ATTRIBUTE_NORMAL))
+        DeleteFile(sStartupShortcutPath);
 
       result = SHCreateShortcut(sStartupShortcutPath, sFastStartPath) && result;
     }
@@ -389,6 +396,26 @@ BOOL nsInstallerDlg::SilentFirstRun()
     
     WaitForSingleObject(pi.hProcess, 10000);
   }
+
+  if (m_bFastStart)
+  {
+    
+    
+    
+
+    
+    WCHAR sClassName[MAX_PATH];
+    _snwprintf(sClassName, MAX_PATH, L"%s%s", Strings.GetString(StrID_AppShortName), L"MessageWindow");
+
+    
+    HWND handle = NULL;
+    for (int i = 0; i < 20 && !handle; i++)
+    {
+      handle = ::FindWindowW(sClassName, NULL);
+      Sleep(500);
+    }
+  }
+
   SetWindowText(GetDlgItem(m_hDlg, IDC_STATUS_TEXT), L"");
   return bResult;
 }
