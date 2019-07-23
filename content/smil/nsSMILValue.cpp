@@ -38,7 +38,6 @@
 
 #include "nsSMILValue.h"
 #include "nsDebug.h"
-#include "prlog.h"
 
 
 
@@ -83,29 +82,6 @@ nsSMILValue::operator==(const nsSMILValue& aVal) const
     return PR_TRUE;
 
   return mType == aVal.mType && mType->IsEqual(*this, aVal);
-}
-
-static inline void
-CopyMemberData(nsSMILValue& aDest, const nsSMILValue& aSrc)
-{
-  aDest.mType = aSrc.mType;
-  aDest.mU.mUint = aSrc.mU.mUint;
-  
-  PR_STATIC_ASSERT(sizeof(aDest) ==
-                   sizeof(aDest.mType) + sizeof(aDest.mU.mUint));
-}
-
-void
-nsSMILValue::Swap(nsSMILValue& aOther)
-{
-  nsSMILValue tmp;
-  CopyMemberData(tmp, aOther);    
-  CopyMemberData(aOther, *this);  
-  CopyMemberData(*this, tmp);     
-
-  
-  
-  tmp.mType = &nsSMILNullType::sSingleton;
 }
 
 nsresult
