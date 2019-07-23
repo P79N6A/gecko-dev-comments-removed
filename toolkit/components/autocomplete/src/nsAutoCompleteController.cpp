@@ -127,7 +127,7 @@ nsAutoCompleteController::SetInput(nsIAutoCompleteInput *aInput)
       ClosePopup();
     mSearches->Clear();
   }
-    
+
   mInput = aInput;
 
   
@@ -136,10 +136,10 @@ nsAutoCompleteController::SetInput(nsIAutoCompleteInput *aInput)
 
   nsAutoString newValue;
   aInput->GetTextValue(newValue);
-  
+
   
   mTree = nsnull;
-  
+
   
   mSearchString = newValue;
   mEnterAfterSearch = 0;
@@ -148,7 +148,7 @@ nsAutoCompleteController::SetInput(nsIAutoCompleteInput *aInput)
   mSearchStatus = nsIAutoCompleteController::STATUS_NONE;
   mRowCount = 0;
   mSearchesOngoing = 0;
-  
+
   
   PRUint32 searchCount;
   aInput->GetSearchCount(&searchCount);
@@ -164,7 +164,7 @@ nsAutoCompleteController::SetInput(nsIAutoCompleteInput *aInput)
     aInput->GetSearchAt(i, searchName);
     nsCAutoString cid(searchCID);
     cid.Append(searchName);
-    
+
     
     nsCOMPtr<nsIAutoCompleteSearch> search = do_GetService(cid.get());
     if (search)
@@ -176,7 +176,7 @@ nsAutoCompleteController::SetInput(nsIAutoCompleteInput *aInput)
 
 NS_IMETHODIMP
 nsAutoCompleteController::StartSearch(const nsAString &aSearchString)
-{ 
+{
   mSearchString = aSearchString;
   StartSearchTimer();
   return NS_OK;
@@ -292,7 +292,7 @@ nsAutoCompleteController::HandleEnter(PRBool aIsPopupSelection, PRBool *_retval)
       *_retval = selectedIndex >= 0;
     }
   }
-  
+
   
   
   
@@ -300,7 +300,7 @@ nsAutoCompleteController::HandleEnter(PRBool aIsPopupSelection, PRBool *_retval)
   if (mSearchStatus != nsIAutoCompleteController::STATUS_SEARCHING)
     ClearSearchTimer();
   EnterMatch(aIsPopupSelection);
-  
+
   return NS_OK;
 }
 
@@ -313,7 +313,7 @@ nsAutoCompleteController::HandleEscape(PRBool *_retval)
 
   
   mInput->GetPopupOpen(_retval);
-  
+
   
   StopSearch();
   ClearResults();
@@ -411,14 +411,14 @@ nsAutoCompleteController::HandleKeyNavigation(PRUint32 aKey, PRBool *_retval)
   NS_ENSURE_TRUE(!disabled, NS_OK);
 
   if (aKey == nsIDOMKeyEvent::DOM_VK_UP ||
-      aKey == nsIDOMKeyEvent::DOM_VK_DOWN || 
-      aKey == nsIDOMKeyEvent::DOM_VK_PAGE_UP || 
+      aKey == nsIDOMKeyEvent::DOM_VK_DOWN ||
+      aKey == nsIDOMKeyEvent::DOM_VK_PAGE_UP ||
       aKey == nsIDOMKeyEvent::DOM_VK_PAGE_DOWN)
   {
     
     
     *_retval = PR_TRUE;
-    
+
     PRBool isOpen;
     input->GetPopupOpen(&isOpen);
     if (isOpen) {
@@ -426,7 +426,7 @@ nsAutoCompleteController::HandleKeyNavigation(PRUint32 aKey, PRBool *_retval)
                       aKey == nsIDOMKeyEvent::DOM_VK_PAGE_UP ? PR_TRUE : PR_FALSE;
       PRBool page = aKey == nsIDOMKeyEvent::DOM_VK_PAGE_UP ||
                     aKey == nsIDOMKeyEvent::DOM_VK_PAGE_DOWN ? PR_TRUE : PR_FALSE;
-      
+
       
       
       
@@ -486,9 +486,9 @@ nsAutoCompleteController::HandleKeyNavigation(PRUint32 aKey, PRBool *_retval)
         } else
           StartSearchTimer();
       }
-    }    
-  } else if (   aKey == nsIDOMKeyEvent::DOM_VK_LEFT 
-             || aKey == nsIDOMKeyEvent::DOM_VK_RIGHT 
+    }
+  } else if (   aKey == nsIDOMKeyEvent::DOM_VK_LEFT
+             || aKey == nsIDOMKeyEvent::DOM_VK_RIGHT
 #ifndef XP_MACOSX
              || aKey == nsIDOMKeyEvent::DOM_VK_HOME
 #endif
@@ -519,7 +519,7 @@ nsAutoCompleteController::HandleKeyNavigation(PRUint32 aKey, PRBool *_retval)
     input->GetTextValue(value);
     mSearchString = value;
   }
-  
+
   return NS_OK;
 }
 
@@ -538,7 +538,7 @@ nsAutoCompleteController::HandleDelete(PRBool *_retval)
     HandleText(PR_FALSE);
     return NS_OK;
   }
-  
+
   nsCOMPtr<nsIAutoCompletePopup> popup;
   input->GetPopup(getter_AddRefs(popup));
 
@@ -598,7 +598,7 @@ NS_IMETHODIMP
 nsAutoCompleteController::GetValueAt(PRInt32 aIndex, nsAString & _retval)
 {
   GetResultValueAt(aIndex, PR_FALSE, _retval);
-  
+
   return NS_OK;
 }
 
@@ -609,7 +609,7 @@ nsAutoCompleteController::GetCommentAt(PRInt32 aIndex, nsAString & _retval)
   PRInt32 rowIndex;
   RowIndexToSearch(aIndex, &searchIndex, &rowIndex);
   NS_ENSURE_TRUE(searchIndex >= 0 && rowIndex >= 0, NS_ERROR_FAILURE);
-  
+
   nsCOMPtr<nsIAutoCompleteResult> result;
   mResults->GetElementAt(searchIndex, getter_AddRefs(result));
   NS_ENSURE_TRUE(result, NS_ERROR_FAILURE);
@@ -624,7 +624,7 @@ nsAutoCompleteController::GetStyleAt(PRInt32 aIndex, nsAString & _retval)
   PRInt32 rowIndex;
   RowIndexToSearch(aIndex, &searchIndex, &rowIndex);
   NS_ENSURE_TRUE(searchIndex >= 0 && rowIndex >= 0, NS_ERROR_FAILURE);
-  
+
   nsCOMPtr<nsIAutoCompleteResult> result;
   mResults->GetElementAt(searchIndex, getter_AddRefs(result));
   NS_ENSURE_TRUE(result, NS_ERROR_FAILURE);
@@ -639,7 +639,7 @@ nsAutoCompleteController::GetImageAt(PRInt32 aIndex, nsAString & _retval)
   PRInt32 rowIndex;
   RowIndexToSearch(aIndex, &searchIndex, &rowIndex);
   NS_ENSURE_TRUE(searchIndex >= 0 && rowIndex >= 0, NS_ERROR_FAILURE);
-  
+
   nsCOMPtr<nsIAutoCompleteResult> result;
   mResults->GetElementAt(searchIndex, getter_AddRefs(result));
   NS_ENSURE_TRUE(result, NS_ERROR_FAILURE);
@@ -649,14 +649,14 @@ nsAutoCompleteController::GetImageAt(PRInt32 aIndex, nsAString & _retval)
 
 NS_IMETHODIMP
 nsAutoCompleteController::SetSearchString(const nsAString &aSearchString)
-{ 
+{
   mSearchString = aSearchString;
   return NS_OK;
 }
 
 NS_IMETHODIMP
 nsAutoCompleteController::GetSearchString(nsAString &aSearchString)
-{ 
+{
   aSearchString = mSearchString;
   return NS_OK;
 }
@@ -678,7 +678,7 @@ nsAutoCompleteController::OnSearchResult(nsIAutoCompleteSearch *aSearch, nsIAuto
       ProcessResult(i, aResult);
     }
   }
-  
+
   return NS_OK;
 }
 
@@ -710,7 +710,7 @@ nsAutoCompleteController::GetRowProperties(PRInt32 index, nsISupportsArray *prop
   
   PRInt32 currentIndex;
   mSelection->GetCurrentIndex(&currentIndex);
-  
+
   
 
 
@@ -727,7 +727,7 @@ NS_IMETHODIMP
 nsAutoCompleteController::GetCellProperties(PRInt32 row, nsITreeColumn* col, nsISupportsArray* properties)
 {
   GetRowProperties(row, properties);
-  
+
   if (row >= 0) {
     nsAutoString className;
     GetStyleAt(row, className);
@@ -738,7 +738,7 @@ nsAutoCompleteController::GetCellProperties(PRInt32 row, nsITreeColumn* col, nsI
       properties->AppendElement(atom);
     }
   }
-  
+
   return NS_OK;
 }
 
@@ -769,7 +769,7 @@ nsAutoCompleteController::GetProgressMode(PRInt32 row, nsITreeColumn* col, PRInt
 
 NS_IMETHODIMP
 nsAutoCompleteController::GetCellValue(PRInt32 row, nsITreeColumn* col, nsAString& _retval)
-{  
+{
   NS_NOTREACHED("all of our cells are text");
   return NS_OK;
 }
@@ -779,12 +779,12 @@ nsAutoCompleteController::GetCellText(PRInt32 row, nsITreeColumn* col, nsAString
 {
   const PRUnichar* colID;
   col->GetIdConst(&colID);
-  
+
   if (NS_LITERAL_STRING("treecolAutoCompleteValue").Equals(colID))
     GetValueAt(row, _retval);
   else if (NS_LITERAL_STRING("treecolAutoCompleteComment").Equals(colID))
     GetCommentAt(row, _retval);
-     
+
   return NS_OK;
 }
 
@@ -958,7 +958,7 @@ nsAutoCompleteController::OpenPopup()
     mIsOpen = PR_TRUE;
     return mInput->SetPopupOpen(PR_TRUE);
   }
-  
+
   return NS_OK;
 }
 
@@ -989,7 +989,7 @@ nsAutoCompleteController::StartSearch()
   nsCOMPtr<nsIAutoCompleteInput> input(mInput);
   mSearchStatus = nsIAutoCompleteController::STATUS_SEARCHING;
   mDefaultIndexCompleted = PR_FALSE;
-  
+
   PRUint32 count;
   mSearches->Count(&count);
   mSearchesOngoing = count;
@@ -997,14 +997,14 @@ nsAutoCompleteController::StartSearch()
 
   
   input->OnSearchBegin();
-  
+
   PRUint32 searchesFailed = 0;
   for (PRUint32 i = 0; i < count; ++i) {
     nsCOMPtr<nsIAutoCompleteSearch> search;
     mSearches->GetElementAt(i, getter_AddRefs(search));
     nsCOMPtr<nsIAutoCompleteResult> result;
     mResults->GetElementAt(i, getter_AddRefs(result));
-    
+
     if (result) {
       PRUint16 searchResult;
       result->GetSearchResult(&searchResult);
@@ -1012,19 +1012,19 @@ nsAutoCompleteController::StartSearch()
           searchResult != nsIAutoCompleteResult::RESULT_SUCCESS_ONGOING)
         result = nsnull;
     }
-    
+
     nsAutoString searchParam;
     nsresult rv = input->GetSearchParam(searchParam);
     if (NS_FAILED(rv))
         return rv;
-    
+
     rv = search->StartSearch(mSearchString, searchParam, result, static_cast<nsIAutoCompleteObserver *>(this));
     if (NS_FAILED(rv)) {
       ++searchesFailed;
       --mSearchesOngoing;
     }
   }
-  
+
   if (searchesFailed == count)
     PostSearchCleanup();
 
@@ -1041,7 +1041,7 @@ nsAutoCompleteController::StopSearch()
   if (mSearchStatus == nsIAutoCompleteController::STATUS_SEARCHING) {
     PRUint32 count;
     mSearches->Count(&count);
-  
+
     for (PRUint32 i = 0; i < count; ++i) {
       nsCOMPtr<nsIAutoCompleteSearch> search;
       mSearches->GetElementAt(i, getter_AddRefs(search));
@@ -1051,7 +1051,7 @@ nsAutoCompleteController::StopSearch()
     
     
     PostSearchCleanup();
-  } 
+  }
   return NS_OK;
 }
 
@@ -1074,7 +1074,7 @@ nsAutoCompleteController::StartSearchTimer()
   rv = mTimer->InitWithCallback(this, timeout, nsITimer::TYPE_ONE_SHOT);
   if (NS_FAILED(rv))
       mTimer = nsnull;
-  
+
   return rv;
 }
 
@@ -1098,15 +1098,15 @@ nsAutoCompleteController::EnterMatch(PRBool aIsPopupSelection)
     return NS_OK;
   }
   mEnterAfterSearch = 0;
-  
+
   nsCOMPtr<nsIAutoCompleteInput> input(mInput);
   nsCOMPtr<nsIAutoCompletePopup> popup;
   input->GetPopup(getter_AddRefs(popup));
   NS_ENSURE_TRUE(popup != nsnull, NS_ERROR_FAILURE);
-  
+
   PRBool forceComplete;
   input->GetForceComplete(&forceComplete);
-  
+
   
   nsAutoString value;
   popup->GetOverrideValue(value);
@@ -1122,7 +1122,7 @@ nsAutoCompleteController::EnterMatch(PRBool aIsPopupSelection)
     popup->GetSelectedIndex(&selectedIndex);
     if (selectedIndex >= 0 && (!completeSelection || aIsPopupSelection))
       GetResultValueAt(selectedIndex, PR_TRUE, value);
-    
+
     if (forceComplete && value.IsEmpty()) {
       
       
@@ -1143,7 +1143,7 @@ nsAutoCompleteController::EnterMatch(PRBool aIsPopupSelection)
       }
     }
   }
-  
+
   nsCOMPtr<nsIObserverService> obsSvc =
     do_GetService("@mozilla.org/observer-service;1");
   NS_ENSURE_STATE(obsSvc);
@@ -1154,13 +1154,13 @@ nsAutoCompleteController::EnterMatch(PRBool aIsPopupSelection)
     input->SelectTextRange(value.Length(), value.Length());
     mSearchString = value;
   }
-  
+
   obsSvc->NotifyObservers(input, "autocomplete-did-enter-text", nsnull);
   ClosePopup();
-  
+
   PRBool cancel;
   input->OnTextEntered(&cancel);
-  
+
   return NS_OK;
 }
 
@@ -1175,9 +1175,9 @@ nsAutoCompleteController::RevertTextValue()
 
   nsAutoString oldValue(mSearchString);
   nsCOMPtr<nsIAutoCompleteInput> input(mInput);
-  
+
   PRBool cancel = PR_FALSE;
-  input->OnTextReverted(&cancel);  
+  input->OnTextReverted(&cancel);
 
   if (!cancel) {
     nsCOMPtr<nsIObserverService> obsSvc =
@@ -1262,7 +1262,7 @@ nsAutoCompleteController::ProcessResult(PRInt32 aSearchIndex, nsIAutoCompleteRes
   input->GetPopup(getter_AddRefs(popup));
   NS_ENSURE_TRUE(popup != nsnull, NS_ERROR_FAILURE);
   popup->Invalidate();
-  
+
   
   
   
@@ -1286,20 +1286,27 @@ nsAutoCompleteController::ProcessResult(PRInt32 aSearchIndex, nsIAutoCompleteRes
 
 nsresult
 nsAutoCompleteController::PostSearchCleanup()
-{  
+{
   NS_ENSURE_STATE(mInput);
   nsCOMPtr<nsIAutoCompleteInput> input(mInput);
-  if (mRowCount) {
+
+  PRUint32 minResults;
+  mInput->GetMinResultsForPopup(&minResults);
+
+  if (mRowCount || minResults == 0) {
     OpenPopup();
-    mSearchStatus = nsIAutoCompleteController::STATUS_COMPLETE_MATCH;
+    if (mRowCount)
+      mSearchStatus = nsIAutoCompleteController::STATUS_COMPLETE_MATCH;
+    else
+      mSearchStatus = nsIAutoCompleteController::STATUS_COMPLETE_NO_MATCH;
   } else {
     mSearchStatus = nsIAutoCompleteController::STATUS_COMPLETE_NO_MATCH;
     ClosePopup();
   }
-  
+
   
   input->OnSearchComplete();
-  
+
   
   
   if (mEnterAfterSearch)
@@ -1347,7 +1354,7 @@ nsAutoCompleteController::CompleteDefaultIndex(PRInt32 aSearchIndex)
   nsCOMPtr<nsIAutoCompleteResult> result;
   mResults->GetElementAt(aSearchIndex, getter_AddRefs(result));
   NS_ENSURE_TRUE(result != nsnull, NS_ERROR_FAILURE);
-  
+
   
   
   PRInt32 defaultIndex;
@@ -1357,14 +1364,14 @@ nsAutoCompleteController::CompleteDefaultIndex(PRInt32 aSearchIndex)
   nsAutoString resultValue;
   result->GetValueAt(defaultIndex, resultValue);
   CompleteValue(resultValue, PR_TRUE);
-  
+
   mDefaultIndexCompleted = PR_TRUE;
 
   return NS_OK;
 }
 
 nsresult
-nsAutoCompleteController::CompleteValue(nsString &aValue, 
+nsAutoCompleteController::CompleteValue(nsString &aValue,
                                         PRBool selectDifference)
 
 
@@ -1373,7 +1380,7 @@ nsAutoCompleteController::CompleteValue(nsString &aValue,
   const PRInt32 mSearchStringLength = mSearchString.Length();
   PRInt32 endSelect = aValue.Length();  
 
-  if (aValue.IsEmpty() || 
+  if (aValue.IsEmpty() ||
       StringBeginsWith(aValue, mSearchString,
                        nsCaseInsensitiveStringComparator())) {
     
@@ -1410,20 +1417,20 @@ nsAutoCompleteController::CompleteValue(nsString &aValue,
       const nsString::const_iterator::pointer start = iter.get();
       ++iter;  
 
-      FindInReadable(mSearchString, iter, end, 
+      FindInReadable(mSearchString, iter, end,
                      nsCaseInsensitiveStringComparator());
 
       findIndex = iter.get() - start;
     }
 
-    mInput->SetTextValue(mSearchString + 
+    mInput->SetTextValue(mSearchString +
                          Substring(aValue, mSearchStringLength + findIndex,
                                    endSelect));
 
     endSelect -= findIndex; 
   }
 
-  mInput->SelectTextRange(selectDifference ? 
+  mInput->SelectTextRange(selectDifference ?
                           mSearchStringLength : endSelect, endSelect);
 
   return NS_OK;
@@ -1438,14 +1445,14 @@ nsAutoCompleteController::GetResultValueAt(PRInt32 aIndex, PRBool aValueOnly, ns
   PRInt32 rowIndex;
   RowIndexToSearch(aIndex, &searchIndex, &rowIndex);
   NS_ENSURE_TRUE(searchIndex >= 0 && rowIndex >= 0, NS_ERROR_FAILURE);
-  
+
   nsCOMPtr<nsIAutoCompleteResult> result;
   mResults->GetElementAt(searchIndex, getter_AddRefs(result));
   NS_ENSURE_TRUE(result != nsnull, NS_ERROR_FAILURE);
-  
+
   PRUint16 searchResult;
   result->GetSearchResult(&searchResult);
-  
+
   if (searchResult == nsIAutoCompleteResult::RESULT_FAILURE) {
     if (aValueOnly)
       return NS_ERROR_FAILURE;
@@ -1454,7 +1461,7 @@ nsAutoCompleteController::GetResultValueAt(PRInt32 aIndex, PRBool aValueOnly, ns
              searchResult == nsIAutoCompleteResult::RESULT_SUCCESS_ONGOING) {
     result->GetValueAt(rowIndex, _retval);
   }
-  
+
   return NS_OK;
 }
 
@@ -1468,7 +1475,7 @@ nsAutoCompleteController::RowIndexToSearch(PRInt32 aRowIndex, PRInt32 *aSearchIn
 {
   *aSearchIndex = -1;
   *aItemIndex = -1;
-  
+
   PRUint32 count;
   mSearches->Count(&count);
   PRUint32 index = 0;
@@ -1480,10 +1487,10 @@ nsAutoCompleteController::RowIndexToSearch(PRInt32 aRowIndex, PRInt32 *aSearchIn
     mResults->GetElementAt(i, getter_AddRefs(result));
     if (!result)
       continue;
-      
+
     PRUint16 searchResult;
     result->GetSearchResult(&searchResult);
-    
+
     
     
     PRUint32 rowCount = 0;
@@ -1491,7 +1498,7 @@ nsAutoCompleteController::RowIndexToSearch(PRInt32 aRowIndex, PRInt32 *aSearchIn
         searchResult == nsIAutoCompleteResult::RESULT_SUCCESS_ONGOING) {
       result->GetMatchCount(&rowCount);
     }
-    
+
     
     
     
@@ -1518,18 +1525,18 @@ NS_GENERIC_FACTORY_CONSTRUCTOR(nsAutoCompleteMdbResult)
 static const nsModuleComponentInfo components[] =
 {
   { "AutoComplete Controller",
-    NS_AUTOCOMPLETECONTROLLER_CID, 
+    NS_AUTOCOMPLETECONTROLLER_CID,
     NS_AUTOCOMPLETECONTROLLER_CONTRACTID,
     nsAutoCompleteControllerConstructor },
 
   { "AutoComplete Simple Result",
-    NS_AUTOCOMPLETESIMPLERESULT_CID, 
+    NS_AUTOCOMPLETESIMPLERESULT_CID,
     NS_AUTOCOMPLETESIMPLERESULT_CONTRACTID,
     nsAutoCompleteSimpleResultConstructor },
 
 #ifdef MOZ_MORK
   { "AutoComplete Mdb Result",
-    NS_AUTOCOMPLETEMDBRESULT_CID, 
+    NS_AUTOCOMPLETEMDBRESULT_CID,
     NS_AUTOCOMPLETEMDBRESULT_CONTRACTID,
     nsAutoCompleteMdbResultConstructor },
 #endif
