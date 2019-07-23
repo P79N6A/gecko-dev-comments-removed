@@ -4629,7 +4629,10 @@ nsCSSFrameConstructor::FindMathMLData(nsIContent* aContent,
 
   
   if (aTag == nsGkAtoms::math) {
-    if (aStyleContext->GetStyleDisplay()->mDisplay == NS_STYLE_DISPLAY_BLOCK) {
+    
+    
+    
+    if (aStyleContext->GetStyleDisplay()->IsBlockOutside()) {
       static const FrameConstructionData sBlockMathData =
         FCDATA_DECL(FCDATA_FORCE_NULL_ABSPOS_CONTAINER |
                     FCDATA_WRAP_KIDS_IN_BLOCKS,

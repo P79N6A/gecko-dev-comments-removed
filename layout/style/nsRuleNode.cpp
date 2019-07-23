@@ -151,6 +151,8 @@ static void EnsureBlockDisplay(PRUint8& display)
     
     
     
+    
+    
     break;
 
   case NS_STYLE_DISPLAY_INLINE_TABLE :
