@@ -600,7 +600,7 @@ var BookmarksEventHandler = {
       
       
       if (target.localName == "menu" || target.localName == "toolbarbutton")
-        PlacesUtils.openContainerNodeInTabs(target.node, aEvent);
+        PlacesUIUtils.openContainerNodeInTabs(target.node, aEvent);
     }
     else
       this.onCommand(aEvent);
