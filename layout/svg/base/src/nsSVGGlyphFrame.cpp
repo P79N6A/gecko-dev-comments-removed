@@ -823,13 +823,6 @@ CompressIndex(int index, const nsTextFragment*fragment)
   return ci;
 }
 
-static int
-UncompressIndex(int index, PRBool bRightAffinity, const nsTextFragment*fragment)
-{
-  
-  return index;
-}
-
 nsresult
 nsSVGGlyphFrame::GetHighlight(PRUint32 *charnum, PRUint32 *nchars,
                               nscolor *foreground, nscolor *background)
