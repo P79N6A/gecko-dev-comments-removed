@@ -358,9 +358,6 @@ private:
   
   PRPackedBool mDefaultPluginDisabled;
 
-  
-  PRPackedBool mJavaEnabled;
-
   nsPluginInstanceTagList mPluginInstanceTagList;
   nsTArray<PRLibrary*> mUnusedLibraries;
 
