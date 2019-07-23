@@ -2880,10 +2880,11 @@ js_TraceRuntime(JSTracer *trc, JSBool allAtoms)
     if (rt->gcExtraRootsTraceOp)
         rt->gcExtraRootsTraceOp(trc, rt->gcExtraRootsData);
 
-
+#ifndef JS_THREADSAFE
     
     JSTraceMonitor* tm = &rt->traceMonitor;
-    TRACE_JSVALS(trc, tm->loopIndexGen, tm->loopTable, "rt->traceMonitor.loopTable");
+    TRACE_JSVALS(trc, tm->loopTableSize, tm->loopTable, "rt->traceMonitor.loopTable");
+#endif    
 }
 
 static void

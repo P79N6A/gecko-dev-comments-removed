@@ -62,13 +62,25 @@ bad:
 
 
 
+uint32 js_AllocateLoopTableSlot(JSRuntime *rt) {
+    uint32 slot = JS_ATOMIC_INCREMENT(&rt->loopTableIndexGen);
+    JS_ASSERT(slot < JS_BITMASK(24));
+    return slot;
+}
+
+
+
+
+
+
+
 
 
 
 
 void
-js_GrowLoopTableIfNeeded(JSRuntime* rt, uint32 index) {
-    JSTraceMonitor *tm = &rt->traceMonitor;
+js_GrowLoopTableIfNeeded(JSContext *cx, uint32 index) {
+    JSTraceMonitor *tm = &JS_TRACE_MONITOR(cx);
     JS_ACQUIRE_LOCK(&tm->lock);
     uint32 oldSize;
     if (index >= (oldSize = tm->loopTableSize)) {
