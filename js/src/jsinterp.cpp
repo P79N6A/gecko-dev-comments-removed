@@ -3108,6 +3108,7 @@ js_Interpret(JSContext *cx)
 #endif 
 
   error:
+#ifdef JS_TRACER
     if (fp->imacpc && cx->throwing) {
         
         if (*fp->imacpc == JSOP_NEXTITER &&
@@ -3130,6 +3131,7 @@ js_Interpret(JSContext *cx)
         fp->imacpc = NULL;
         atoms = script->atomMap.vector;
     }
+#endif
 
     JS_ASSERT((size_t)((fp->imacpc ? fp->imacpc : regs.pc) - script->code) < script->length);
 
