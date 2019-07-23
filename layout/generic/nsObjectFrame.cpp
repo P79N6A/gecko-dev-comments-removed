@@ -753,9 +753,10 @@ nsObjectFrame::CreateWidget(nscoord aWidth,
     
     
     for (nsIFrame* frame = this; frame; frame = frame->GetParent()) {
-      const nsStyleBackground* background = frame->GetStyleBackground();
-      if (!background->IsTransparent()) {  
-        mWidget->SetBackgroundColor(background->mBackgroundColor);
+      nscolor bgcolor =
+        frame->GetVisitedDependentColor(eCSSProperty_background_color);
+      if (NS_GET_A(bgcolor) > 0) {  
+        mWidget->SetBackgroundColor(bgcolor);
         break;
       }
     }
