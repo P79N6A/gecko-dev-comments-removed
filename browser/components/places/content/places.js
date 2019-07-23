@@ -1054,7 +1054,7 @@ var ViewMenu = {
       else if (type == "checkbox") {
         menuitem.setAttribute("type", "checkbox");
         
-        if (column.primary)
+        if (column.getAttribute("primary") == "true")
           menuitem.setAttribute("disabled", "true");
         
         if (!column.hidden)
