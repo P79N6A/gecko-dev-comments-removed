@@ -68,6 +68,13 @@ for (var i = 0; i != 1000*1000; ++i)
   Object.prototype[i] = i;
 
 var time2 = test(); 
+
+
+
+
+for (var i = 0; i != 1000*1000; ++i)
+    delete Object.prototype[i];
+
 if (time1 * 10 < time2) {
   throw "Assigns to Object.prototype increased time of XML enumeration from "+
         time1+"ms to "+time2+"ms";
