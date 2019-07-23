@@ -2495,8 +2495,7 @@ nsXMLHttpRequest::Send(nsIVariant *aBody)
           NS_ENSURE_SUCCESS(rv, rv);
 
           
-          
-          rv = serializer->SerializeToStream(doc, output, EmptyCString());
+          rv = serializer->SerializeToStream(doc, output, charset);
           NS_ENSURE_SUCCESS(rv, rv);
 
           output->Close();
