@@ -2992,6 +2992,7 @@ nsXULDocument::ResumeWalk()
         if (! count)
             break;
 
+        nsCOMPtr<nsIURI> overlayURI = mCurrentPrototype->GetURI();
         nsCOMPtr<nsIURI> uri = mUnloadedOverlays[count-1];
         mUnloadedOverlays.RemoveObjectAt(count-1);
 
@@ -3005,8 +3006,21 @@ nsXULDocument::ResumeWalk()
             continue;
         if (NS_FAILED(rv))
             return rv;
-        if (shouldReturn)
+        if (shouldReturn) {
+            if (mOverlayLoadObservers.IsInitialized()) {
+                nsIObserver *obs = mOverlayLoadObservers.GetWeak(overlayURI);
+                if (obs) {
+                    
+                    
+                    
+                    
+                    if (!mOverlayLoadObservers.GetWeak(uri))
+                        mOverlayLoadObservers.Put(uri, obs);
+                    mOverlayLoadObservers.Remove(overlayURI);
+                }
+            }
             return NS_OK;
+        }
     }
 
     
