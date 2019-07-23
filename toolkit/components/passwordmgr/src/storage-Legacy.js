@@ -185,12 +185,27 @@ LoginManagerStorage_legacy.prototype = {
         var key = login.hostname;
 
         
-        if (!this._logins[key])
+        var rollback;
+        if (!this._logins[key]) {
             this._logins[key] = [];
+            rollback = null;
+        } else {
+            rollback = this._logins[key].concat(); 
+        }
 
         this._logins[key].push(login);
 
-        this._writeFile();
+        var ok = this._writeFile();
+
+        
+        if (!ok) {
+            if (rollback)
+                this._logins[key] = rollback;
+            else
+                delete this._logins[key];
+
+            throw "Couldn't write to file, login not added.";
+        }
     },
 
 
@@ -205,6 +220,8 @@ LoginManagerStorage_legacy.prototype = {
         if (!logins)
             throw "No logins found for hostname (" + key + ")";
 
+        var rollback = this._logins[key].concat(); 
+
         
         
         
@@ -215,7 +232,7 @@ LoginManagerStorage_legacy.prototype = {
                         this._decryptLogins([logins[i]]);
 
             if (userCanceled)
-                return;
+                throw "User canceled master password entry, login not removed.";
 
             if (!decryptedLogin)
                 continue;
@@ -232,7 +249,13 @@ LoginManagerStorage_legacy.prototype = {
         if (logins.length == 0)
             delete this._logins[key];
 
-        this._writeFile();
+        var ok = this._writeFile();
+
+        
+        if (!ok) {
+            this._logins[key] = rollback;
+            throw "Couldn't write to file, login not removed.";
+        }
     },
 
 
@@ -618,6 +641,9 @@ LoginManagerStorage_legacy.prototype = {
 
 
 
+
+
+
     _writeFile : function () {
         function writeLine(data) {
             data += "\r\n";
@@ -724,7 +750,7 @@ LoginManagerStorage_legacy.prototype = {
                 this.log("User canceled Master Password, aborting write.");
                 
                 outputStream.close();
-                return;
+                return false;
             }
 
             
@@ -734,6 +760,7 @@ LoginManagerStorage_legacy.prototype = {
         
 
         outputStream.finish();
+        return true;
     },
 
 
@@ -825,7 +852,9 @@ LoginManagerStorage_legacy.prototype = {
             cipherText = this._decoderRing.encryptString(plainOctet);
         } catch (e) {
             this.log("Failed to encrypt string. (" + e.name + ")");
-            if (e.result == Components.results.NS_ERROR_NOT_AVAILABLE)
+            
+            
+            if (e.result == Components.results.NS_ERROR_FAILURE)
                 userCanceled = true;
         }
 
