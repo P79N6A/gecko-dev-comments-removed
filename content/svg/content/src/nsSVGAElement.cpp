@@ -121,31 +121,6 @@ nsSVGAElement::GetTarget(nsIDOMSVGAnimatedString * *aTarget)
 
 
 
-nsresult
-nsSVGAElement::BindToTree(nsIDocument *aDocument, nsIContent *aParent,
-                          nsIContent *aBindingParent,
-                          PRBool aCompileEventHandlers)
-{
-  Link::ResetLinkState();
-
-  nsresult rv = nsSVGAElementBase::BindToTree(aDocument, aParent,
-                                              aBindingParent,
-                                              aCompileEventHandlers);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  return NS_OK;
-}
-
-void
-nsSVGAElement::UnbindFromTree(PRBool aDeep, PRBool aNullParent)
-{
-  
-  
-  Link::ResetLinkState();
-
-  nsSVGAElementBase::UnbindFromTree(aDeep, aNullParent);
-}
-
 nsLinkState
 nsSVGAElement::GetLinkState() const
 {
