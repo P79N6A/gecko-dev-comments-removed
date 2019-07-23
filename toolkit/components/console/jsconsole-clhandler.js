@@ -87,9 +87,9 @@ const jsConsoleHandler = {
           console.focus();
         }
 
-        
-        
-        
+        if (cmdLine.state ==  nsICommandLine.STATE_REMOTE_AUTO) {
+            cmdLine.preventDefault = true;
+        }
     },
 
     helpInfo : "  -jsconsole           Open the Error console.\n",
