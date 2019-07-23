@@ -465,7 +465,7 @@ namespace nanojit
     void Assembler::MOVQRX(  R l, R r)  { emitprr(X64_movqrx,  r,l); asm_output("movq %s, %s",    RQ(l),RQ(r)); } 
     void Assembler::MOVQXR(  R l, R r)  { emitprr(X64_movqxr,  l,r); asm_output("movq %s, %s",    RQ(l),RQ(r)); }
 
-
+    
     void Assembler::MOVI(  R r, I32 i32)    { emitr_imm(X64_movi,  r,i32); asm_output("movl %s, %d",RL(r),i32); }
     void Assembler::ADDLRI(R r, I32 i32)    { emitr_imm(X64_addlri,r,i32); asm_output("addl %s, %d",RL(r),i32); }
     void Assembler::SUBLRI(R r, I32 i32)    { emitr_imm(X64_sublri,r,i32); asm_output("subl %s, %d",RL(r),i32); }
@@ -896,7 +896,7 @@ namespace nanojit
             } else {
                 
                 CALLRAX();
-                asm_quad(RAX, (uint64_t)target);
+                asm_quad(RAX, (uint64_t)target, true);
             }
         } else {
             
@@ -949,7 +949,7 @@ namespace nanojit
         if (sz == ARGSIZE_I) {
             NanoAssert(p->isI32());
             if (p->isconst()) {
-                asm_quad(r, int64_t(p->imm32()));
+                asm_quad(r, int64_t(p->imm32()), true);
                 return;
             }
             
@@ -957,7 +957,7 @@ namespace nanojit
         } else if (sz == ARGSIZE_U) {
             NanoAssert(p->isI32());
             if (p->isconst()) {
-                asm_quad(r, uint64_t(uint32_t(p->imm32())));
+                asm_quad(r, uint64_t(uint32_t(p->imm32())), true);
                 return;
             }
             
@@ -1328,13 +1328,11 @@ namespace nanojit
         }
         else if (ins->isconst()) {
             ins->clearReg();
-            
-            MOVI(r, ins->imm32());
+            asm_int(r, ins->imm32(), false);
         }
         else if (ins->isconstq() && IsGpReg(r)) {
             ins->clearReg();
-            
-            asm_quad(r, ins->imm64());
+            asm_quad(r, ins->imm64(), false);
         }
         else {
             int d = findMemFor(ins);
@@ -1548,11 +1546,41 @@ namespace nanojit
 
     }
 
-    
-    void Assembler::asm_quad(Register r, uint64_t v) {
-        NanoAssert(IsGpReg(r));
+    void Assembler::asm_int(LIns *ins) {
+        Register rr = prepareResultReg(ins, GpRegs);
+
+        asm_int(rr, ins->imm32(), true);
+
+        freeResourcesOf(ins);
+    }
+
+    void Assembler::asm_int(Register r, int32_t v, bool canClobberCCs) {
+        if (v == 0 && canClobberCCs) {
+            if (IsGpReg(r)) {
+                XORRR(r, r);
+            } else {
+                XORPS(r);
+            }
+        } else {
+            NanoAssert(!IsFpReg(r));
+            MOVI(r, v);
+        }
+    }
+
+    void Assembler::asm_quad(LIns *ins) {
+        uint64_t v = ins->imm64();
+        RegisterMask allow = v == 0 ? GpRegs|FpRegs : GpRegs;
+        Register rr = prepareResultReg(ins, allow);
+
+        asm_quad(rr, v, true);
+
+        freeResourcesOf(ins);
+    }
+
+    void Assembler::asm_quad(Register r, uint64_t v, bool canClobberCCs) {
+        NanoAssert(v == 0 || IsGpReg(r));
         if (isU32(v)) {
-            MOVI(r, int32_t(v));
+            asm_int(r, int32_t(v), canClobberCCs);
         } else if (isS32(v)) {
             
             MOVQI32(r, int32_t(v));
@@ -1562,34 +1590,6 @@ namespace nanojit
             LEARIP(r, d);
         } else {
             MOVQI(r, v);
-        }
-    }
-
-    void Assembler::asm_int(LIns *ins) {
-        Register r = deprecated_prepResultReg(ins, GpRegs);
-        int32_t v = ins->imm32();
-        if (v == 0) {
-            
-            XORRR(r, r);
-        } else {
-            MOVI(r, v);
-        }
-    }
-
-    void Assembler::asm_quad(LIns *ins) {
-        uint64_t v = ins->imm64();
-        RegisterMask allow = v == 0 ? GpRegs|FpRegs : GpRegs;
-        Register r = deprecated_prepResultReg(ins, allow);
-        if (v == 0) {
-            if (IsGpReg(r)) {
-                
-                XORRR(r, r);
-            } else {
-                
-                XORPS(r);
-            }
-        } else {
-            asm_quad(r, v);
         }
     }
 
@@ -1650,8 +1650,8 @@ namespace nanojit
             
             rr = deprecated_prepResultReg(ins, GpRegs);
             ra = findRegFor(ins->oprnd1(), GpRegs & ~rmask(rr));
-            XORQRR(rr, ra);                     
-            asm_quad(rr, negateMask[0]);        
+            XORQRR(rr, ra);                                     
+            asm_quad(rr, negateMask[0], true); 
         }
     }
 
@@ -1798,7 +1798,7 @@ namespace nanojit
         MR(RSP, RBP);
 
         
-        asm_quad(RAX, uintptr_t(lr));
+        asm_quad(RAX, uintptr_t(lr), true);
     }
 
     void Assembler::nInit(AvmCore*) {
@@ -1873,10 +1873,10 @@ namespace nanojit
         
         
         
-        emitr(X64_popr, RAX);             
-        emit(X64_inclmRAX);               
-        asm_quad(RAX, (uint64_t)pCtr);    
-        emitr(X64_pushr, RAX);            
+        emitr(X64_popr, RAX);                                   
+        emit(X64_inclmRAX);                                     
+        asm_quad(RAX, (uint64_t)pCtr, true);   
+        emitr(X64_pushr, RAX);                                  
     }
     )
 
@@ -1895,7 +1895,7 @@ namespace nanojit
             
             JMPXB(indexreg, tablereg);
             
-            asm_quad(tablereg, (uint64_t)table);
+            asm_quad(tablereg, (uint64_t)table, true);
         }
     }
 
