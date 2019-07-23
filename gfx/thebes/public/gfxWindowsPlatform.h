@@ -85,6 +85,7 @@ public:
 
     
     FontFamily *FindFontFamily(const nsAString& aName);
+    FontEntry *FindFontEntry(FontFamily *aFontFamily, const gfxFontStyle *aFontStyle);
     FontEntry *FindFontEntry(const nsAString& aName, const gfxFontStyle *aFontStyle);
 
     PRBool GetPrefFontEntries(const nsCString& aLangGroup, nsTArray<nsRefPtr<FontEntry> > *array);
