@@ -130,7 +130,22 @@ public:
   PRBool HasPseudoElementData() const
     { return !!(mBits & NS_STYLE_HAS_PSEUDO_ELEMENT_DATA); }
 
+  
   NS_HIDDEN_(void) SetStyle(nsStyleStructID aSID, void* aStruct);
+
+  
+  #define STYLE_STRUCT_INHERITED(name_, checkdata_cb_, ctor_args_)          \
+    void SetStyle##name_ (nsStyle##name_ * aStruct) {                       \
+      NS_ASSERTION(!mCachedInheritedData.m##name_##Data ||                  \
+                   (mBits &                                                 \
+                    nsCachedStyleData::GetBitForSID(eStyleStruct_##name_)), \
+                   "Going to leak styledata");                              \
+      mCachedInheritedData.m##name_##Data = aStruct;                        \
+    }
+#define STYLE_STRUCT_RESET(name_, checkdata_cb_, ctor_args_)
+  #include "nsStyleStructList.h"
+  #undef STYLE_STRUCT_RESET
+  #undef STYLE_STRUCT_INHERITED
 
   nsRuleNode* GetRuleNode() { return mRuleNode; }
   void AddStyleBit(const PRUint32& aBit) { mBits |= aBit; }
