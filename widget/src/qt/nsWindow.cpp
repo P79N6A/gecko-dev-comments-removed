@@ -1411,7 +1411,7 @@ nsWindow::OnButtonPressEvent(QMouseEvent *aEvent)
         NS_LIKELY(!mIsDestroyed)) {
         nsMouseEvent contextMenuEvent(PR_TRUE, NS_CONTEXTMENU, this,
                                       nsMouseEvent::eReal);
-        InitButtonEvent(contextMenuEvent, aEvent);
+        InitButtonEvent(contextMenuEvent, aEvent, 1);
         DispatchEvent(&contextMenuEvent, status);
     }
 
@@ -1438,7 +1438,7 @@ nsWindow::OnButtonReleaseEvent(QMouseEvent *aEvent)
 
     nsMouseEvent event(PR_TRUE, NS_MOUSE_BUTTON_UP, this, nsMouseEvent::eReal);
     event.button = domButton;
-    InitButtonEvent(event, aEvent);
+    InitButtonEvent(event, aEvent, 1);
 
     nsEventStatus status;
     DispatchEvent(&event, status);
@@ -1480,8 +1480,8 @@ nsWindow::OnContainerFocusInEvent(QFocusEvent *aEvent)
     
     
 
-    if (mIsTopLevel)
-        mActivatePending = PR_TRUE;
+    if (!mDrawingarea)
+        return FALSE;
 
     
 
@@ -1492,10 +1492,7 @@ nsWindow::OnContainerFocusInEvent(QFocusEvent *aEvent)
     
     
     
-    if (mActivatePending) {
-        mActivatePending = PR_FALSE;
-        DispatchActivateEvent();
-    }
+    DispatchActivateEvent();
 
     LOGFOCUS(("Events sent from focus in event [%p]\n", (void *)this));
     return FALSE;
@@ -1509,8 +1506,6 @@ nsWindow::OnContainerFocusOutEvent(QFocusEvent *aEvent)
     DispatchLostFocusEvent();
     if (mDrawingarea)
         DispatchDeactivateEvent();
-
-    mActivatePending = PR_FALSE;
 
     LOGFOCUS(("Done with container focus out [%p]\n", (void *)this));
     return FALSE;
