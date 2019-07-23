@@ -542,8 +542,10 @@ nsFileControlFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
 
   tempList.BorderBackground()->DeleteAll();
 
-  rv = OverflowClip(aBuilder, tempList, aLists,
-                    nsRect(aBuilder->ToReferenceFrame(this), GetSize()));
+  
+  nsRect clipRect(aBuilder->ToReferenceFrame(this), GetSize());
+  clipRect.width = GetOverflowRect().XMost();
+  rv = OverflowClip(aBuilder, tempList, aLists, clipRect);
   NS_ENSURE_SUCCESS(rv, rv);
 
   
