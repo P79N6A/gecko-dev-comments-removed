@@ -754,6 +754,7 @@ pref("network.IDN.whitelist.cat", true);
 pref("network.IDN.whitelist.info", true);
 pref("network.IDN.whitelist.museum", true);
 pref("network.IDN.whitelist.org", true);
+pref("network.IDN.whitelist.tel", true);
 
 
 
