@@ -278,8 +278,12 @@ PlacesController.prototype = {
 
       
       var nodeItemId = nodes[i].itemId;
+      if (PlacesUtils.annotations
+                     .itemHasAnnotation(nodeItemId, ORGANIZER_QUERY_ANNO))
+        return false;
+
+      
       if (!aIsMoveCommand &&
-           PlacesUtils.nodeIsFolder(nodes[i]) &&
            (nodeItemId == PlacesUtils.toolbarFolderId ||
             nodeItemId == PlacesUtils.unfiledBookmarksFolderId ||
             nodeItemId == PlacesUtils.bookmarksMenuFolderId))
