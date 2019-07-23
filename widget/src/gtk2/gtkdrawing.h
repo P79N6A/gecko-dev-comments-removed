@@ -89,6 +89,12 @@ typedef enum {
 } GtkTabFlags;
 
 
+typedef enum {
+  
+  MOZ_TOPLEVEL_MENU_ITEM      = 1 << 0
+} GtkMenuItemFlags;
+
+
 typedef gint (*style_prop_t)(GtkStyle*, const gchar*, gint);
 
 
