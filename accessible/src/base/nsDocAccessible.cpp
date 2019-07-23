@@ -1933,10 +1933,11 @@ NS_IMETHODIMP nsDocAccessible::InvalidateCacheSubtree(nsIContent *aChild,
                             eCoalesceFromSameSubtree, isAsynch);
 
     
+    
     nsRoleMapEntry *roleMapEntry = nsAccUtils::GetRoleMapEntry(childNode);
     if (roleMapEntry && roleMapEntry->role == nsIAccessibleRole::ROLE_MENUPOPUP) {
       FireDelayedToolkitEvent(nsIAccessibleEvent::EVENT_MENUPOPUP_START,
-                              childNode, eAllowDupes, isAsynch);
+                              childNode, eRemoveDupes, isAsynch);
     }
 
     
