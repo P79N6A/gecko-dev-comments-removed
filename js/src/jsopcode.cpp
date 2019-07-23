@@ -555,12 +555,17 @@ SprintEnsureBuffer(Sprinter *sp, size_t len)
 static ptrdiff_t
 SprintPut(Sprinter *sp, const char *s, size_t len)
 {
-    ptrdiff_t offset;
-    char *bp;
+    ptrdiff_t offset = sp->size; 
+    char *bp = sp->base;         
 
     
     if (!SprintEnsureBuffer(sp, len))
         return -1;
+
+    if (sp->base != bp &&               
+        s >= bp && s < bp + offset) {   
+        s = sp->base + (s - bp);        
+    }
 
     
     offset = sp->offset;
