@@ -160,7 +160,8 @@ let DownloadUtils = {
 
 
 
-  getDownloadStatus: function(aCurrBytes, aMaxBytes, aSpeed, aLastSec)
+  getDownloadStatus: function DU_getDownloadStatus(aCurrBytes, aMaxBytes,
+                                                   aSpeed, aLastSec)
   {
     if (isNil(aMaxBytes))
       aMaxBytes = -1;
@@ -208,7 +209,7 @@ let DownloadUtils = {
 
 
 
-  getTransferTotal: function(aCurrBytes, aMaxBytes)
+  getTransferTotal: function DU_getTransferTotal(aCurrBytes, aMaxBytes)
   {
     if (isNil(aMaxBytes))
       aMaxBytes = -1;
@@ -245,7 +246,7 @@ let DownloadUtils = {
 
 
 
-  getTimeLeft: function(aSeconds, aLastSec)
+  getTimeLeft: function DU_getTimeLeft(aSeconds, aLastSec)
   {
     if (isNil(aLastSec))
       aLastSec = Infinity;
@@ -316,7 +317,7 @@ let DownloadUtils = {
 
 
 
-  getURIHost: function(aURIString)
+  getURIHost: function DU_getURIHost(aURIString)
   {
     let ioService = Cc["@mozilla.org/network/io-service;1"].
                     getService(Ci.nsIIOService);
@@ -379,7 +380,7 @@ let DownloadUtils = {
 
 
 
-  convertByteUnits: function(aBytes)
+  convertByteUnits: function DU_convertByteUnits(aBytes)
   {
     let unitIndex = 0;
 
@@ -405,7 +406,7 @@ let DownloadUtils = {
 
 
 
-  convertTimeUnits: function(aSecs)
+  convertTimeUnits: function DU_convertTimeUnits(aSecs)
   {
     
     
