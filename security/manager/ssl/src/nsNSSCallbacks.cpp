@@ -812,22 +812,16 @@ void PR_CALLBACK HandshakeCallback(PRFileDesc* fd, void* client_data) {
                  nsIWebProgressListener::STATE_SECURE_LOW);
 
   CERTCertificate *peerCert = SSL_PeerCertificate(fd);
-  char* caName = CERT_GetOrgName(&peerCert->issuer);
+  const char* caName = nsnull; 
+  char* certOrgName = CERT_GetOrgName(&peerCert->issuer);
   CERT_DestroyCertificate(peerCert);
-  if (!caName) {
-    caName = signer;
-  }
+  caName = certOrgName ? certOrgName : signer;
 
+  const char* verisignName = "Verisign, Inc.";
   
   
   if (nsCRT::strcmp((const char*)caName, "RSA Data Security, Inc.") == 0) {
-    
-    
-    
-    
-    NS_ASSERTION(caName != signer, "caName was equal to caName when it shouldn't be");
-    PR_Free(caName);
-    caName = PL_strdup("Verisign, Inc.");
+    caName = verisignName;
   }
 
   nsAutoString shortDesc;
@@ -860,9 +854,7 @@ void PR_CALLBACK HandshakeCallback(PRFileDesc* fd, void* client_data) {
     infoObject->SetSSLStatus(status);
   }
 
-  if (caName != signer) {
-    PR_Free(caName);
-  }
+  PR_FREEIF(certOrgName);
   PR_Free(signer);
 }
 
