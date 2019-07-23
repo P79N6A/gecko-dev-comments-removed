@@ -100,7 +100,7 @@ static cairo_scaled_font_t *CreateScaledFont(FcPattern *aPattern);
 
 static PangoFontMap *gPangoFontMap;
 static PangoFontMap *GetPangoFontMap();
-static PRBool gPangoFontHasFontMapProperty;
+static PRBool gUseFontMapProperty;
 
 static FT_Library gFTLibrary;
 static nsILanguageAtomService* gLangService;
@@ -139,6 +139,18 @@ ScaleRoundDesignUnits(FT_Short aDesignMetric, FT_Fixed aScale)
 {
     FT_Long fixed26dot6 = FT_MulFix(aDesignMetric, aScale);
     return ROUND_26_6_TO_INT(fixed26dot6);
+}
+
+static PRFuncPtr
+FindFunctionSymbol(const char *name)
+{
+    PRLibrary *lib = nsnull;
+    PRFuncPtr result = PR_FindFunctionSymbolAndLibrary(name, &lib);
+    if (lib) {
+        PR_UnloadLibrary(lib);
+    }
+
+    return result;
 }
 
 
@@ -365,23 +377,12 @@ typedef FcPattern* (*QueryFaceFunction)(const FT_Face face,
                                         const FcChar8 *file, int id,
                                         FcBlanks *blanks);
 
-static QueryFaceFunction
-GetFcFreeTypeQueryFace()
-{
-    PRLibrary *lib = nsnull;
-    PRFuncPtr result =
-        PR_FindFunctionSymbolAndLibrary("FcFreeTypeQueryFace", &lib);
-    if (lib) {
-        PR_UnloadLibrary(lib);
-    }
-
-    return reinterpret_cast<QueryFaceFunction>(result);
-}
-
 void
 gfxDownloadedFcFontEntry::InitPattern()
 {
-    static QueryFaceFunction sQueryFacePtr = GetFcFreeTypeQueryFace();
+    static QueryFaceFunction sQueryFacePtr =
+        reinterpret_cast<QueryFaceFunction>
+        (FindFunctionSymbol("FcFreeTypeQueryFace"));
     FcPattern *pattern;
 
     
@@ -651,8 +652,9 @@ struct gfxPangoFcFont {
         PangoFontMap *fontmap = GetPangoFontMap();
         
         
+        
         PangoFcFont *fc_font = &font->parent_instance;
-        if (gPangoFontHasFontMapProperty) {
+        if (gUseFontMapProperty) {
             g_object_set(font, "fontmap", fontmap, NULL);
         } else {
             
@@ -910,6 +912,8 @@ gfx_pango_fc_font_get_glyph(PangoFcFont *font, gunichar wc)
     return gfxFont->GetGlyph(wc);
 }
 
+typedef int (*PangoVersionFunction)();
+
 static void
 gfx_pango_fc_font_class_init (gfxPangoFcFontClass *klass)
 {
@@ -934,9 +938,17 @@ gfx_pango_fc_font_class_init (gfxPangoFcFontClass *klass)
     fc_font_class->unlock_face = gfx_pango_fc_font_unlock_face;
     fc_font_class->get_glyph = gfx_pango_fc_font_get_glyph;
 
-    gPangoFontHasFontMapProperty =
-        g_object_class_find_property(G_OBJECT_CLASS(gfx_pango_fc_font_parent_class),
-                                     "fontmap") != NULL;
+    
+    
+    
+    
+    
+    
+    
+    PangoVersionFunction pango_version =
+        reinterpret_cast<PangoVersionFunction>
+        (FindFunctionSymbol("pango_version"));
+    gUseFontMapProperty = pango_version && (*pango_version)() >= 12404;
 }
 
 
@@ -1098,24 +1110,13 @@ FindFontPatterns(gfxUserFontSet *mUserFontSet,
 typedef FcBool (*FcPatternRemoveFunction)(FcPattern *p, const char *object,
                                           int id);
 
-static FcPatternRemoveFunction
-GetFcPatternRemove()
-{
-    PRLibrary *lib = nsnull;
-    PRFuncPtr result =
-        PR_FindFunctionSymbolAndLibrary("FcPatternRemove", &lib);
-    if (lib) {
-        PR_UnloadLibrary(lib);
-    }
-
-    return reinterpret_cast<FcPatternRemoveFunction>(result);
-}
-
 
 static FcBool
 moz_FcPatternRemove(FcPattern *p, const char *object, int id)
 {
-    static FcPatternRemoveFunction sFcPatternRemovePtr = GetFcPatternRemove();
+    static FcPatternRemoveFunction sFcPatternRemovePtr =
+        reinterpret_cast<FcPatternRemoveFunction>
+        (FindFunctionSymbol("FcPatternRemove"));
 
     if (!sFcPatternRemovePtr)
         return FcFalse;
