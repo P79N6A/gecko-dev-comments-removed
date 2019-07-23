@@ -193,12 +193,6 @@ protected:
                        const PRUnichar *aString, PRUint32 aLength,
                        PRUint32 aLayoutStart, PRUint32 aLayoutLength,
                        PRUint32 aOffsetInTextRun, PRUint32 aLengthInTextRun);
-
-    
-
-
-
-    void InitFontList();
     
     
     nsRefPtr<MacOSFamilyEntry>    mLastPrefFamily;

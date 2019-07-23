@@ -522,9 +522,45 @@ gfxAtsuiFontGroup::gfxAtsuiFontGroup(const nsAString& families,
                                      gfxUserFontSet *aUserFontSet)
     : gfxFontGroup(families, aStyle, aUserFontSet)
 {
+    ForEachFont(FindATSUFont, this);
+
+    if (mFonts.Length() == 0) {
+        
+        
+        
+        
+        
+
+        
+
+        
+        
+        
+
+        PRBool needsBold;
+        MacOSFontEntry *defaultFont = gfxQuartzFontCache::SharedFontCache()->GetDefaultFont(aStyle, needsBold);
+        NS_ASSERTION(defaultFont, "invalid default font returned by GetDefaultFont");
+
+        nsRefPtr<gfxAtsuiFont> font = GetOrMakeFont(defaultFont, aStyle, needsBold);
+
+        if (font) {
+            mFonts.AppendElement(font);
+        }
+    }
+
     mPageLang = gfxPlatform::GetFontPrefLangFor(mStyle.langGroup.get());
 
-    InitFontList();
+    if (!mStyle.systemFont) {
+        for (PRUint32 i = 0; i < mFonts.Length(); ++i) {
+            gfxAtsuiFont* font = static_cast<gfxAtsuiFont*>(mFonts[i].get());
+            if (font->GetFontEntry()->mIsBadUnderlineFont) {
+                gfxFloat first = mFonts[0]->GetMetrics().underlineOffset;
+                gfxFloat bad = font->GetMetrics().underlineOffset;
+                mUnderlineOffset = PR_MIN(first, bad);
+                break;
+            }
+        }
+    }
 }
 
 PRBool
@@ -934,8 +970,7 @@ gfxAtsuiFontGroup::UpdateFontList()
     if (mUserFontSet && mCurrGeneration != GetGeneration()) {
         
         mFonts.Clear();
-        mUnderlineOffset = UNDERLINE_OFFSET_NOT_SET;
-        InitFontList();
+        ForEachFont(FindATSUFont, this);
         mCurrGeneration = GetGeneration();
     }
 }
@@ -1570,44 +1605,3 @@ gfxAtsuiFontGroup::InitTextRun(gfxTextRun *aRun,
     return !closure.mOverrunningGlyphs;
 }
 
-void
-gfxAtsuiFontGroup::InitFontList()
-{
-    ForEachFont(FindATSUFont, this);
-
-    if (mFonts.Length() == 0) {
-        
-        
-        
-        
-        
-
-        
-
-        
-        
-        
-
-        PRBool needsBold;
-        MacOSFontEntry *defaultFont = gfxQuartzFontCache::SharedFontCache()->GetDefaultFont(&mStyle, needsBold);
-        NS_ASSERTION(defaultFont, "invalid default font returned by GetDefaultFont");
-
-        nsRefPtr<gfxAtsuiFont> font = GetOrMakeFont(defaultFont, &mStyle, needsBold);
-
-        if (font) {
-            mFonts.AppendElement(font);
-        }
-    }
-
-    if (!mStyle.systemFont) {
-        for (PRUint32 i = 0; i < mFonts.Length(); ++i) {
-            gfxAtsuiFont* font = static_cast<gfxAtsuiFont*>(mFonts[i].get());
-            if (font->GetFontEntry()->mIsBadUnderlineFont) {
-                gfxFloat first = mFonts[0]->GetMetrics().underlineOffset;
-                gfxFloat bad = font->GetMetrics().underlineOffset;
-                mUnderlineOffset = PR_MIN(first, bad);
-                break;
-            }
-        }
-    }
-}
