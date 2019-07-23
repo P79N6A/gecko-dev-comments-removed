@@ -1080,6 +1080,10 @@ CaptureChange(nsStyleContext* aOldContext, nsStyleContext* aNewContext,
               nsChangeHint aChangeToAssume)
 {
   nsChangeHint ourChange = aOldContext->CalcStyleDifference(aNewContext);
+  NS_ASSERTION(!(ourChange & nsChangeHint_ReflowFrame) ||
+               (ourChange & nsChangeHint_NeedReflow),
+               "Reflow hint bits set without actually asking for a reflow");
+
   NS_UpdateHint(ourChange, aChangeToAssume);
   if (NS_UpdateHint(aMinChange, ourChange)) {
     aChangeList->AppendChange(aFrame, aContent, ourChange);
@@ -1103,14 +1107,22 @@ nsFrameManager::ReResolveStyleContext(nsPresContext     *aPresContext,
                                       nsChangeHint       aMinChange,
                                       PRBool             aFireAccessibilityEvents)
 {
-  
-  
-  
-  
-  
-  
   if (!NS_IsHintSubset(nsChangeHint_NeedDirtyReflow, aMinChange)) {
-    aMinChange = NS_SubtractHint(aMinChange, nsChangeHint_NeedReflow);
+    
+    
+    
+    
+    
+    aMinChange = NS_SubtractHint(aMinChange, nsChangeHint_ReflowFrame);
+  } else if (!NS_IsHintSubset(nsChangeHint_ClearDescendantIntrinsics,
+                              aMinChange)) {
+    
+    
+    
+    
+    
+    aMinChange =
+      NS_SubtractHint(aMinChange, nsChangeHint_ClearAncestorIntrinsics);
   }
   
   
