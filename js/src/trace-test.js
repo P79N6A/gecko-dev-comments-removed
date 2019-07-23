@@ -1675,6 +1675,25 @@ testRUNLOOPCorrectness.jitstats = {
 this.testRUNLOOPCorrectnessVar = 1;
 test(testRUNLOOPCorrectness);
 
+function testDateNow()
+{
+    
+    
+    
+    var time = Date.now();
+    for (var j = 0; j < RUNLOOP; ++j) {
+	time = Date.now();
+    }
+    return "ok";
+}
+testDateNow.expected = "ok";
+testDateNow.jitstats = {
+    recorderStarted: 1,
+    recorderAborted: 0,
+    traceTriggered: 1
+};
+test(testDateNow);
+
 
 print("\npassed:", passes.length && passes.join(","));
 print("\nFAILED:", fails.length && fails.join(","));
