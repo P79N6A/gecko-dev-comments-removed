@@ -278,6 +278,21 @@ private:
   bool mIsBookmarked;
 };
 
+
+
+
+
+class FetchDatabaseIconStep : public AsyncFaviconStep
+                            , public mozilla::places::AsyncStatementCallback
+{
+public:
+  NS_DECL_ISUPPORTS_INHERITED
+  NS_DECL_MOZISTORAGESTATEMENTCALLBACK
+
+  FetchDatabaseIconStep() {};
+  void Run();
+};
+
 } 
 } 
 
