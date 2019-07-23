@@ -466,9 +466,7 @@ public:
                  const nsRect& aDirtyRect);
   
   void PaintTextDecorations(gfxContext* aCtx, const gfxRect& aDirtyRect,
-                            const gfxPoint& aFramePt,
-                            const gfxPoint& aTextBaselinePt,
-                            nsTextPaintStyle& aTextStyle,
+                            const gfxPoint& aFramePt, nsTextPaintStyle& aTextStyle,
                             PropertyProvider& aProvider);
   
   
@@ -3734,7 +3732,6 @@ FillClippedRect(gfxContext* aCtx, nsPresContext* aPresContext,
 void 
 nsTextFrame::PaintTextDecorations(gfxContext* aCtx, const gfxRect& aDirtyRect,
                                   const gfxPoint& aFramePt,
-                                  const gfxPoint& aTextBaselinePt,
                                   nsTextPaintStyle& aTextPaintStyle,
                                   PropertyProvider& aProvider)
 {
@@ -3801,7 +3798,7 @@ nsTextFrame::PaintTextDecorations(gfxContext* aCtx, const gfxRect& aDirtyRect,
   PRInt32 app = aTextPaintStyle.PresContext()->AppUnitsPerDevPixel();
 
   
-  gfxPoint pt(aFramePt.x / app, (aTextBaselinePt.y - mAscent) / app);
+  gfxPoint pt(aFramePt.x / app, aFramePt.y / app);
   gfxSize size(GetRect().width / app, 0);
   gfxFloat ascent = mAscent / app;
 
@@ -4177,15 +4174,15 @@ nsTextFrame::PaintTextSelectionDecorations(gfxContext* aCtx,
                              aProvider, mTextRun);
   gfxFloat xOffset, hyphenWidth;
   PRUint32 offset, length;
-  PRInt32 app = aTextPaintStyle.PresContext()->AppUnitsPerDevPixel();
-  
-  gfxPoint pt(0.0, (aTextBaselinePt.y - mAscent) / app);
   SelectionType type;
   while (iterator.GetNextSegment(&xOffset, &offset, &length, &hyphenWidth, &type)) {
     gfxFloat advance = hyphenWidth +
       mTextRun->GetAdvanceWidth(offset, length, &aProvider);
     if (type == aSelectionType) {
-      pt.x = (aTextBaselinePt.x + xOffset) / app;
+      PRInt32 app = aTextPaintStyle.PresContext()->AppUnitsPerDevPixel();
+      
+      gfxPoint pt((aTextBaselinePt.x + xOffset) / app,
+                  (aTextBaselinePt.y - mAscent) / app);
       gfxFloat width = PR_ABS(advance) / app;
       DrawSelectionDecorations(aCtx, aSelectionType, aTextPaintStyle,
                                pt, width, mAscent / app, decorationMetrics,
@@ -4208,8 +4205,7 @@ nsTextFrame::PaintTextWithSelection(gfxContext* aCtx,
   SelectionType allTypes;
   PaintTextWithSelectionColors(aCtx, aFramePt, aTextBaselinePt, aDirtyRect,
                                aProvider, aTextPaintStyle, details, &allTypes);
-  PaintTextDecorations(aCtx, aDirtyRect, aFramePt, aTextBaselinePt,
-                       aTextPaintStyle, aProvider);
+  PaintTextDecorations(aCtx, aDirtyRect, aFramePt, aTextPaintStyle, aProvider);
   PRInt32 i;
   
   
@@ -4301,8 +4297,7 @@ nsTextFrame::PaintText(nsIRenderingContext* aRenderingContext, nsPoint aPt,
                           0, hyphenTextRun->GetLength(), &dirtyRect, nsnull, nsnull);
     }
   }
-  PaintTextDecorations(ctx, dirtyRect, framePt, textBaselinePt,
-                       textPaintStyle, provider);
+  PaintTextDecorations(ctx, dirtyRect, framePt, textPaintStyle, provider);
 }
 
 PRInt16

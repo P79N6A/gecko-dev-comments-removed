@@ -4437,7 +4437,7 @@ nsCSSRendering::PaintDecorationLine(gfxContext* aGfxContext,
 
   
   gfxFloat x = NS_round(aPt.x);
-  gfxFloat y = NS_round(aPt.y + aAscent) - NS_round(offset);
+  gfxFloat y = NS_round(aPt.y + aAscent - offset);
   gfxFloat width = NS_round(aLineSize.width);
   gfxFloat height = NS_round(aLineSize.height);
   
