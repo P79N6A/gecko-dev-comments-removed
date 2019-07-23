@@ -689,7 +689,7 @@ nsFrameItems::AddChild(nsIFrame* aChild)
   
   
   if (IsEmpty()) {
-    AppendFrames(nsnull, aChild);
+    nsFrameList::AppendFrames(nsnull, aChild);
   }
   else
   {
@@ -9558,7 +9558,8 @@ nsCSSFrameConstructor::ProcessChildren(nsFrameConstructorState& aState,
     rv = WrapFramesInFirstLetterFrame(aContent, aFrame, aFrameItems);
   }
   if (haveFirstLineStyle) {
-    rv = WrapFramesInFirstLineFrame(aState, aContent, aFrame, aFrameItems);
+    rv = WrapFramesInFirstLineFrame(aState, aContent, aFrame, nsnull,
+                                    aFrameItems);
   }
 
   
@@ -9637,72 +9638,60 @@ nsCSSFrameConstructor::WrapFramesInFirstLineFrame(
   nsFrameConstructorState& aState,
   nsIContent*              aBlockContent,
   nsIFrame*                aBlockFrame,
+  nsIFrame*                aLineFrame,
   nsFrameItems&            aFrameItems)
 {
   nsresult rv = NS_OK;
 
   
-  nsIFrame* kid = aFrameItems.FirstChild();
-  nsIFrame* firstInlineFrame = nsnull;
-  nsIFrame* lastInlineFrame = nsnull;
-  while (kid) {
-    if (IsInlineOutside(kid)) {
-      if (!firstInlineFrame) firstInlineFrame = kid;
-      lastInlineFrame = kid;
-    }
-    else {
-      break;
-    }
-    kid = kid->GetNextSibling();
+  nsFrameList::FrameLinkEnumerator link(aFrameItems);
+  while (!link.AtEnd() && IsInlineOutside(link.NextFrame())) {
+    link.Next();
   }
 
-  
-  if (!firstInlineFrame) {
-    return rv;
+  nsFrameItems firstLineChildren = aFrameItems.ExtractHead(link);
+
+  if (firstLineChildren.IsEmpty()) {
+    
+    return NS_OK;
   }
 
-  
-  nsStyleContext* parentStyle =
-    nsFrame::CorrectStyleParentFrame(aBlockFrame,
-                                     nsCSSPseudoElements::firstLine)->
-      GetStyleContext();
-  nsRefPtr<nsStyleContext> firstLineStyle = GetFirstLineStyle(aBlockContent,
-                                                              parentStyle);
+  if (!aLineFrame) {
+    
+    nsStyleContext* parentStyle =
+      nsFrame::CorrectStyleParentFrame(aBlockFrame,
+                                       nsCSSPseudoElements::firstLine)->
+        GetStyleContext();
+    nsRefPtr<nsStyleContext> firstLineStyle = GetFirstLineStyle(aBlockContent,
+                                                                parentStyle);
 
-  nsIFrame* lineFrame = NS_NewFirstLineFrame(mPresShell, firstLineStyle);
+    aLineFrame = NS_NewFirstLineFrame(mPresShell, firstLineStyle);
 
-  if (lineFrame) {
-    
-    rv = InitAndRestoreFrame(aState, aBlockContent, aBlockFrame, nsnull,
-                             lineFrame);
-
-    
-    
-    nsIFrame* secondBlockFrame = lastInlineFrame->GetNextSibling();
-    lastInlineFrame->SetNextSibling(nsnull);
-
-    
-    
-    
-    
-    if (secondBlockFrame) {
-      lineFrame->SetNextSibling(secondBlockFrame);
-    }
-    if (aFrameItems.FirstChild() == lastInlineFrame) {
+    if (aLineFrame) {
       
-      aFrameItems.lastChild = lineFrame;
-    }
-    aFrameItems.SetFrames(lineFrame);
+      rv = InitAndRestoreFrame(aState, aBlockContent, aBlockFrame, nsnull,
+                               aLineFrame);
 
-    
-    kid = firstInlineFrame;
-    NS_ASSERTION(lineFrame->GetStyleContext() == firstLineStyle,
-                 "Bogus style context on line frame");
-    while (kid) {
-      ReparentFrame(aState.mFrameManager, lineFrame, kid);
-      kid = kid->GetNextSibling();
+      
+      
+      
+      aFrameItems.InsertFrame(nsnull, nsnull, aLineFrame);
+
+      NS_ASSERTION(aLineFrame->GetStyleContext() == firstLineStyle,
+                   "Bogus style context on line frame");
     }
-    lineFrame->SetInitialChildList(nsnull, firstInlineFrame);
+  }
+
+  if (aLineFrame) {
+    
+    ReparentFrames(aState.mFrameManager, aLineFrame, firstLineChildren);
+    if (aLineFrame->GetChildList(nsnull).IsEmpty() &&
+        (aLineFrame->GetStateBits() & NS_FRAME_FIRST_REFLOW)) {
+      aLineFrame->SetInitialChildList(nsnull, firstLineChildren);
+    } else {
+      aState.mFrameManager->AppendFrames(aLineFrame, nsnull,
+                                         firstLineChildren.FirstChild());
+    }
   }
   else {
     rv = NS_ERROR_OUT_OF_MEMORY;
@@ -9723,66 +9712,25 @@ nsCSSFrameConstructor::AppendFirstLineFrames(
 {
   
   
-  nsIFrame* blockKid = aBlockFrame->GetFirstChild(nsnull);
-  if (!blockKid) {
+  const nsFrameList& blockKids = aBlockFrame->GetChildList(nsnull);
+  if (blockKids.IsEmpty()) {
     return WrapFramesInFirstLineFrame(aState, aBlockContent,
-                                      aBlockFrame, aFrameItems);
+                                      aBlockFrame, nsnull, aFrameItems);
   }
 
   
   
-  nsresult rv = NS_OK;
-  nsFrameList blockFrames(blockKid);
-  nsIFrame* lastBlockKid = blockFrames.LastChild();
+  nsIFrame* lastBlockKid = blockKids.LastChild();
   if (lastBlockKid->GetType() != nsGkAtoms::lineFrame) {
     
     
     
     
-    return rv;
-  }
-  nsIFrame* lineFrame = lastBlockKid;
-
-  
-  nsIFrame* kid = aFrameItems.FirstChild();
-  nsIFrame* firstInlineFrame = nsnull;
-  nsIFrame* lastInlineFrame = nsnull;
-  while (kid) {
-    if (IsInlineOutside(kid)) {
-      if (!firstInlineFrame) firstInlineFrame = kid;
-      lastInlineFrame = kid;
-    }
-    else {
-      break;
-    }
-    kid = kid->GetNextSibling();
+    return NS_OK;
   }
 
-  
-  if (!firstInlineFrame) {
-    return rv;
-  }
-
-  
-  
-  nsIFrame* remainingFrames = lastInlineFrame->GetNextSibling();
-  lastInlineFrame->SetNextSibling(nsnull);
-  kid = firstInlineFrame;
-  while (kid) {
-    ReparentFrame(aState.mFrameManager, lineFrame, kid);
-    kid = kid->GetNextSibling();
-  }
-  aState.mFrameManager->AppendFrames(lineFrame, nsnull, firstInlineFrame);
-
-  
-  if (remainingFrames) {
-    aFrameItems.SetFrames(remainingFrames);
-  }
-  else {
-    aFrameItems.Clear();
-  }
-
-  return rv;
+  return WrapFramesInFirstLineFrame(aState, aBlockContent, aBlockFrame,
+                                    lastBlockKid, aFrameItems);
 }
 
 
@@ -10067,18 +10015,16 @@ nsCSSFrameConstructor::CreateFloatingLetterFrame(
   }
 
   NS_ASSERTION(aResult.IsEmpty(), "aResult should be an empty nsFrameItems!");
-  nsIFrame* insertAfter = nsnull;
   
   
-  for (nsFrameList::Enumerator e(aState.mFloatedItems); !e.AtEnd(); e.Next()) {
-    if (e.get()->GetParent() == aBlockFrame)
-      break;
-    insertAfter = e.get();
+  nsFrameList::FrameLinkEnumerator link(aState.mFloatedItems);
+  while (!link.AtEnd() && link.NextFrame()->GetParent() != aBlockFrame) {
+    link.Next();
   }
 
   rv = aState.AddChild(letterFrame, aResult, letterContent, aStyleContext,
                        aParentFrame, PR_FALSE, PR_TRUE, PR_FALSE, PR_TRUE,
-                       insertAfter);
+                       link.PrevFrame());
 
   if (nextTextFrame) {
     if (NS_FAILED(rv)) {

@@ -87,6 +87,13 @@ struct nsFrameItems : public nsFrameList {
   
   nsFrameItems(nsIFrame* aFrame = nsnull);
 
+  nsFrameItems(const nsFrameList& aList, nsIFrame* aLastChild) :
+    nsFrameList(aList),
+    lastChild(aLastChild)
+  {
+    NS_ASSERTION(LastChild() == lastChild, "Bogus aLastChild");
+  }
+
   
   void AddChild(nsIFrame* aChild);
 
@@ -133,12 +140,32 @@ struct nsFrameItems : public nsFrameList {
     return removed;
   }
 
+  nsFrameItems ExtractHead(FrameLinkEnumerator& aLink) {
+    nsIFrame* newLastChild = aLink.PrevFrame();
+    if (lastChild && aLink.NextFrame() == lastChild) {
+      lastChild = nsnull;
+    }
+    return nsFrameItems(nsFrameList::ExtractHead(aLink),
+                        newLastChild);
+  }
+
   void Clear() {
     mFirstChild = lastChild = nsnull;
   }
 
   
   operator nsIFrame* ()  { return FirstChild(); }
+
+private:
+  
+  void SetFrames(nsIFrame* aFrameList);
+  void AppendFrames(nsIFrame* aParent, nsIFrame* aFrameList);
+  Slice AppendFrames(nsIFrame* aParent, nsFrameList& aFrameList);
+  void AppendFrame(nsIFrame* aParent, nsIFrame* aFrame);
+  PRBool RemoveFirstChild();
+  void InsertFrames(nsIFrame* aParent, nsIFrame* aPrevSibling,
+                    nsIFrame* aFrameList);
+  void SortByContentOrder();
 };
 
 class nsCSSFrameConstructor
@@ -1590,11 +1617,21 @@ private:
 
   
 
+  
+  
+  
+  
+  
+  
+  
   nsresult WrapFramesInFirstLineFrame(nsFrameConstructorState& aState,
                                       nsIContent*              aBlockContent,
                                       nsIFrame*                aBlockFrame,
+                                      nsIFrame*                aLineFrame,
                                       nsFrameItems&            aFrameItems);
 
+  
+  
   nsresult AppendFirstLineFrames(nsFrameConstructorState& aState,
                                  nsIContent*              aContent,
                                  nsIFrame*                aBlockFrame,

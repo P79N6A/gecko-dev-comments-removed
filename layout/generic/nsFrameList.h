@@ -172,7 +172,13 @@ public:
   inline Slice InsertFrames(nsIFrame* aParent, nsIFrame* aPrevSibling,
                             nsFrameList& aFrameList);
 
-  PRBool Split(nsIFrame* aAfterFrame, nsIFrame** aNextFrameResult);
+  class FrameLinkEnumerator;
+
+  
+
+
+
+  nsFrameList ExtractHead(FrameLinkEnumerator& aLink);
 
   
 
@@ -310,13 +316,54 @@ public:
 
     nsIFrame* get() const { return mFrame; }
 
-  private:
+#ifdef DEBUG
+    const nsFrameList& List() const { return mSlice.mList; }
+#endif
+
+  protected:
 #ifdef DEBUG
     const Slice& mSlice;
 #endif
     nsIFrame* mFrame; 
     const nsIFrame* const mEnd; 
                                 
+  };
+
+  
+
+
+
+
+
+
+
+
+  class FrameLinkEnumerator : private Enumerator {
+  public:
+    friend class nsFrameList;
+
+    FrameLinkEnumerator(const nsFrameList& aList) :
+      Enumerator(aList),
+      mPrev(nsnull)
+    {}
+
+    FrameLinkEnumerator(const FrameLinkEnumerator& aOther) :
+      Enumerator(aOther),
+      mPrev(aOther.mPrev)
+    {}
+
+    void Next() {
+      mPrev = mFrame;
+      Enumerator::Next();
+    }
+
+    PRBool AtEnd() const { return Enumerator::AtEnd(); }
+
+    nsIFrame* PrevFrame() const { return mPrev; }
+    nsIFrame* NextFrame() const { return mFrame; }
+
+  protected:
+    nsIFrame* mPrev;
   };
 
 private:
