@@ -5410,6 +5410,7 @@ nsTextFrame::TrimTrailingWhiteSpace(nsPresContext* aPresContext,
   gfxSkipCharsIterator iter = start;
   const nsStyleText* textStyle = GetStyleText();
   gfxFloat delta = 0;
+  PRUint32 trimmedEnd = iter.ConvertOriginalToSkipped(trimmed.GetEnd());
   
   if (GetStateBits() & TEXT_TRIMMED_TRAILING_WHITESPACE) {
     aLastCharIsJustifiable = PR_TRUE;
@@ -5427,18 +5428,6 @@ nsTextFrame::TrimTrailingWhiteSpace(nsPresContext* aPresContext,
       
       aLastCharIsJustifiable = PR_TRUE;
     }
-  }
-
-  PRUint32 trimmedEnd = iter.ConvertOriginalToSkipped(trimmed.GetEnd());
-  
-  if (HasSoftHyphenBefore(frag, mTextRun, trimmed, iter)) {
-    
-    gfxTextRunCache::AutoTextRun hyphenTextRun(GetHyphenTextRun(mTextRun, aReflowState.rendContext));
-    if (hyphenTextRun.get()) {
-      AddCharToMetrics(hyphenTextRun.get(),
-                       mTextRun, &textMetrics, needTightBoundingBox, ctx);
-    }
-    AddStateBits(TEXT_HYPHEN_BREAK);
   }
 
   if (!aLastCharIsJustifiable &&
@@ -5549,8 +5538,6 @@ nsresult nsTextFrame::GetRenderedText(nsAString* aAppendToString,
   PRUint32 keptCharsLength = 0;
   PRUint32 validCharsLength = 0;
 
-  
-  
   
   for (textFrame = this; textFrame;
        textFrame = static_cast<nsTextFrame*>(textFrame->GetNextContinuation())) {
