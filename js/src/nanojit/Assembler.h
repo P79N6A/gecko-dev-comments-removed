@@ -362,6 +362,7 @@ namespace nanojit
 			
 			void* _endJit2Addr;
 	#endif 
+			avmplus::Config &config;
 	};
 
 	inline int32_t disp(Reservation* r) 
