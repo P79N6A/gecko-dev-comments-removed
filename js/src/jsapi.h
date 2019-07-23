@@ -987,21 +987,21 @@ JS_CallTracer(JSTracer *trc, void *thing, uint32 kind);
 #define JS_CALL_OBJECT_TRACER(trc, object, name)                              \
     JS_BEGIN_MACRO                                                            \
         JSObject *obj_ = (object);                                            \
-        JS_ASSERT(object);                                                    \
+        JS_ASSERT(obj_);                                                      \
         JS_CALL_TRACER((trc), obj_, JSTRACE_OBJECT, name);                    \
     JS_END_MACRO
 
 #define JS_CALL_STRING_TRACER(trc, string, name)                              \
     JS_BEGIN_MACRO                                                            \
         JSString *str_ = (string);                                            \
-        JS_ASSERT(string);                                                    \
+        JS_ASSERT(str_);                                                      \
         JS_CALL_TRACER((trc), str_, JSTRACE_STRING, name);                    \
     JS_END_MACRO
 
 #define JS_CALL_DOUBLE_TRACER(trc, number, name)                              \
     JS_BEGIN_MACRO                                                            \
         jsdouble *num_ = (number);                                            \
-        JS_ASSERT(number);                                                    \
+        JS_ASSERT(num_);                                                      \
         JS_CALL_TRACER((trc), num_, JSTRACE_DOUBLE, name);                    \
     JS_END_MACRO
 
