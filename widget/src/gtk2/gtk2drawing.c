@@ -397,65 +397,67 @@ moz_gtk_get_combo_box_entry_arrow(GtkWidget *widget, gpointer client_data)
 static gint
 ensure_combo_box_entry_widgets()
 {
-    if (!gComboBoxEntryTextareaWidget ||
-        !gComboBoxEntryButtonWidget ||
-        !gComboBoxEntryArrowWidget) {
-        GtkWidget* buttonChild;
+    if (gComboBoxEntryTextareaWidget &&
+            gComboBoxEntryButtonWidget &&
+            gComboBoxEntryArrowWidget)
+        return MOZ_GTK_SUCCESS;
 
-        
-        if (!gComboBoxEntryWidget) {
-            gComboBoxEntryWidget = gtk_combo_box_entry_new();
-            setup_widget_prototype(gComboBoxEntryWidget);
-        }
+    GtkWidget* buttonChild;
 
-        
-        gtk_container_forall(GTK_CONTAINER(gComboBoxEntryWidget),
-                             moz_gtk_get_combo_box_entry_inner_widgets,
-                             NULL);
-
-        if (!gComboBoxEntryTextareaWidget) {
-            ensure_entry_widget();
-            gComboBoxEntryTextareaWidget = gEntryWidget;
-        }
-
-        if (gComboBoxEntryButtonWidget) {
-            
-            buttonChild = GTK_BIN(gComboBoxEntryButtonWidget)->child;
-            if (GTK_IS_HBOX(buttonChild)) {
-                
-
-
-
-
-
-
-                gtk_container_forall(GTK_CONTAINER(buttonChild),
-                                     moz_gtk_get_combo_box_entry_arrow,
-                                     NULL);
-            } else if(GTK_IS_ARROW(buttonChild)) {
-                
-
-                gComboBoxEntryArrowWidget = buttonChild;
-                g_object_add_weak_pointer(G_OBJECT(buttonChild), (gpointer)
-                                          &gComboBoxEntryArrowWidget);
-                gtk_widget_realize(gComboBoxEntryArrowWidget);
-            }
-        } else {
-            
-
-
-            ensure_toggle_button_widget();
-            gComboBoxEntryButtonWidget = gToggleButtonWidget;
-        }
-
-        if (!gComboBoxEntryArrowWidget) {
-            
-
-
-            ensure_button_arrow_widget();
-            gComboBoxEntryArrowWidget = gButtonArrowWidget;
-        }
+    
+    if (!gComboBoxEntryWidget) {
+        gComboBoxEntryWidget = gtk_combo_box_entry_new();
+        setup_widget_prototype(gComboBoxEntryWidget);
     }
+
+    
+    gtk_container_forall(GTK_CONTAINER(gComboBoxEntryWidget),
+                         moz_gtk_get_combo_box_entry_inner_widgets,
+                         NULL);
+
+    if (!gComboBoxEntryTextareaWidget) {
+        ensure_entry_widget();
+        gComboBoxEntryTextareaWidget = gEntryWidget;
+    }
+
+    if (gComboBoxEntryButtonWidget) {
+        
+        buttonChild = GTK_BIN(gComboBoxEntryButtonWidget)->child;
+        if (GTK_IS_HBOX(buttonChild)) {
+            
+
+
+
+
+
+
+            gtk_container_forall(GTK_CONTAINER(buttonChild),
+                                 moz_gtk_get_combo_box_entry_arrow,
+                                 NULL);
+        } else if(GTK_IS_ARROW(buttonChild)) {
+            
+
+            gComboBoxEntryArrowWidget = buttonChild;
+            g_object_add_weak_pointer(G_OBJECT(buttonChild), (gpointer)
+                                      &gComboBoxEntryArrowWidget);
+            gtk_widget_realize(gComboBoxEntryArrowWidget);
+        }
+    } else {
+        
+
+
+        ensure_toggle_button_widget();
+        gComboBoxEntryButtonWidget = gToggleButtonWidget;
+    }
+
+    if (!gComboBoxEntryArrowWidget) {
+        
+
+
+        ensure_button_arrow_widget();
+        gComboBoxEntryArrowWidget = gButtonArrowWidget;
+    }
+
     return MOZ_GTK_SUCCESS;
 }
 
