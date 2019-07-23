@@ -432,6 +432,10 @@ nsHTMLTableHeaderCellAccessible::GetRoleInternal(PRUint32 *aRole)
     }
   }
 
+  
+  
+  *aRole = nsIAccessibleRole::ROLE_COLUMNHEADER;
+
   return NS_OK;
 }
 
