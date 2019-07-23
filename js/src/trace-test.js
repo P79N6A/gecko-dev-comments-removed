@@ -1949,6 +1949,19 @@ testBug465688.expected = true;
 test(testBug465688);
 
 
+function testBug466262() {
+	var e = 1;
+	for (var d = 0; d < 3; ++d) {
+	  if (d == 2) {
+		e = "";
+	  }
+	}
+	return true;
+}
+testBug466262.expected = true;
+test(testBug466262);
+
+
 
 
 
