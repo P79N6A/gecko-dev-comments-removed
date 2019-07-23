@@ -636,7 +636,11 @@ nsThebesImage::Draw(gfxContext*        aContext,
             
             
             
-            pattern->SetFilter(0);
+            
+            
+            
+            if (userSpaceToImageSpace.xx < 1.0 || userSpaceToImageSpace.yy < 1.0)
+              pattern->SetFilter(0);
             break;
   
         case gfxASurface::SurfaceTypeQuartz:
