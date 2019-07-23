@@ -90,6 +90,7 @@
 #include "nsIDOMKeyListener.h"
 #include "nsLayoutUtils.h"
 #include "nsDisplayList.h"
+#include "nsBoxLayoutState.h"
 
 
 const nscoord kMaxDropDownRows          = 20; 
@@ -532,7 +533,9 @@ nsListControlFrame::GetMinWidth(nsIRenderingContext *aRenderingContext)
   nscoord result;
   DISPLAY_MIN_WIDTH(this, result);
 
-  result = GetPrefWidth(aRenderingContext);
+  result = GetScrolledFrame()->GetMinWidth(aRenderingContext);
+  nsBoxLayoutState bls(PresContext(), aRenderingContext);
+  result += GetDesiredScrollbarSizes(&bls).LeftRight();
 
   return result;
 }
