@@ -8172,6 +8172,8 @@ nsHTMLDocumentSH::DocumentAllGetProperty(JSContext *cx, JSObject *obj,
       }
 
       *vp = INT_TO_JSVAL(length);
+
+      return JS_TRUE;
     } else if (id != sTags_id) {
       
 
@@ -8185,7 +8187,7 @@ nsHTMLDocumentSH::DocumentAllGetProperty(JSContext *cx, JSObject *obj,
         return JS_FALSE;
       }
     }
-  } else if (JSVAL_TO_INT(id) >= 0) {
+  } else if (JSVAL_IS_INT(id) && JSVAL_TO_INT(id) >= 0) {
     
     
 
