@@ -1,0 +1,61 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+var bug = 374713;
+var summary = 'Do not assert decompiling function() { try { } catch([]) { } }';
+var actual = '';
+var expect = '';
+
+
+
+test();
+
+
+function test()
+{
+  enterFunc ('test');
+  printBugNumber (bug);
+  printStatus (summary);
+
+  var f = function() { try { } catch([]) { } };
+  expect = 'function() { try { } catch([]) { } }';
+  actual = f + '';
+  
+  compareSource(expect, actual, summary);
+
+  exitFunc ('test');
+}
