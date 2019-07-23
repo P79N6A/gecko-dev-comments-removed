@@ -215,6 +215,7 @@ PlacesTreeView.prototype = {
     var cc = aContainer.childCount;
     for (var i=0; i < cc; i++) {
       var curChild = aContainer.getChild(i);
+      var curChildType = curChild.type;
 
       
       if (this._collapseDuplicates) {
@@ -226,6 +227,7 @@ PlacesTreeView.prototype = {
             
             curChild.viewIndex = -1;
             curChild = aContainer.getChild(i+1);
+            curChildType = curChild.type;
           }
           else {
             
@@ -236,7 +238,7 @@ PlacesTreeView.prototype = {
       }
 
       
-      if (PlacesUtils.nodeIsSeparator(curChild)) {
+      if (curChildType == Ci.nsINavHistoryResultNode.RESULT_TYPE_SEPARATOR) {
         if (this._result.sortingMode !=
             Ci.nsINavHistoryQueryOptions.SORT_BY_NONE) {
           curChild.viewIndex = -1;
@@ -249,11 +251,13 @@ PlacesTreeView.prototype = {
       aVisible.push(curChild);
 
       
-      if (PlacesUtils.nodeIsContainer(curChild)) {
+      if (PlacesUtils.containerTypes.indexOf(curChildType) != -1) {
+        asContainer(curChild);
+
         var resource = this._getResourceForNode(curChild);
         var isopen = resource != null &&
-                     PlacesUtils.localStore.HasAssertion(resource, openLiteral, trueLiteral, true);
-        asContainer(curChild);
+                     PlacesUtils.localStore.HasAssertion(resource, openLiteral,
+                                                         trueLiteral, true);
         if (isopen != curChild.containerOpen)
           aToOpen.push(curChild);
         else if (curChild.containerOpen && curChild.childCount > 0)
@@ -371,7 +375,7 @@ PlacesTreeView.prototype = {
 
     
     for (var i = 0; i < toOpenElements.length; i++) {
-      var item = asContainer(toOpenElements[i]);
+      var item = toOpenElements[i];
       var parent = item.parent;
       
       while (parent) {
@@ -736,18 +740,7 @@ PlacesTreeView.prototype = {
     this.invalidateContainer(aItem);
   },
 
-  get ignoreInvalidateContainer() {
-    return this._ignoreInvalidateContainer;
-  },
-
-  set ignoreInvalidateContainer(val) {
-    return this._ignoreInvalidateContainer = val;
-  },
-
   invalidateContainer: function PTV_invalidateContainer(aItem) {
-    if (this._ignoreInvalidateContainer)
-      return;
-
     NS_ASSERT(this._result, "Got a notification but have no result!");
     if (!this._tree)
       return; 
@@ -808,8 +801,10 @@ PlacesTreeView.prototype = {
   },
 
   set result(val) {
-    this._result = val;
-    this._finishInit();
+    if (this._result != val) {
+      this._result = val;
+      this._finishInit();
+    }
     return val;
   },
 
@@ -875,7 +870,7 @@ PlacesTreeView.prototype = {
     return viewIndex;
   },
 
-  _getResourceForNode : function PTV_getResourceForNode(aNode)
+  _getResourceForNode: function PTV_getResourceForNode(aNode)
   {
     var uri = aNode.uri;
     NS_ASSERT(uri, "if there is no uri, we can't persist the open state");
@@ -916,7 +911,7 @@ PlacesTreeView.prototype = {
   },
 
   getCellProperties: function PTV_getCellProperties(aRow, aColumn, aProperties) {
-    var columnType = aColumn.id || aColumn.element.getAttribute("anonid") ;
+    var columnType = aColumn.id || aColumn.element.getAttribute("anonid");
     if (columnType != "title")
       return;
 
@@ -934,15 +929,13 @@ PlacesTreeView.prototype = {
     var node = this._visibleElements[aRow];
     if (PlacesUtils.nodeIsContainer(node)) {
       
+      if (!node.parent)
+        return true;
+
+      
       if (PlacesUtils.nodeIsQuery(node)) {
         asQuery(node);
-        if (node.queryOptions.expandQueries)
-          return true;
-        
-        if (!node.parent)
-          return true;
-
-        return false;
+        return node.queryOptions.expandQueries;
       }
       return true;
     }
@@ -954,7 +947,7 @@ PlacesTreeView.prototype = {
     if (!PlacesUtils.nodeIsContainer(this._visibleElements[aRow]))
       throw Cr.NS_ERROR_INVALID_ARG;
 
-    return asContainer(this._visibleElements[aRow]).containerOpen;
+    return this._visibleElements[aRow].containerOpen;
   },
 
   isContainerEmpty: function PTV_isContainerEmpty(aRow) {
@@ -962,7 +955,7 @@ PlacesTreeView.prototype = {
     if (!PlacesUtils.nodeIsContainer(this._visibleElements[aRow]))
       throw Cr.NS_ERROR_INVALID_ARG;
 
-    return !asContainer(this._visibleElements[aRow]).hasChildren;
+    return !this._visibleElements[aRow].hasChildren;
   },
 
   isSeparator: function PTV_isSeparator(aRow) {
@@ -1140,7 +1133,6 @@ PlacesTreeView.prototype = {
     if (!PlacesUtils.nodeIsContainer(node))
       return; 
 
-    asContainer(node);
     var resource = this._getResourceForNode(node);
     if (resource) {
       const openLiteral = PlacesUtils.RDF.GetResource("http://home.netscape.com/NC-rdf#open");
@@ -1311,5 +1303,4 @@ function PlacesTreeView(aShowRoot) {
   this._visibleElements = [];
   this._observers = [];
   this._showRoot = aShowRoot;
-  this._ignoreInvalidateContainer = false;
 }
