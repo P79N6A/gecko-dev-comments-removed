@@ -6190,7 +6190,8 @@ nsWindowSH::NewResolve(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
   
   
   
-  if ((flags & (JSRESOLVE_ASSIGNING)) && win->IsInnerWindow()) {
+  if ((flags & (JSRESOLVE_ASSIGNING)) && (JSOp)*cx->fp->pc != JSOP_BINDNAME &&
+      win->IsInnerWindow()) {
     JSObject *realObj;
     wrapper->GetJSObject(&realObj);
 
