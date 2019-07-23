@@ -37,6 +37,7 @@
 
 
 
+
 #ifndef __nsWindow_h__
 #define __nsWindow_h__
 
@@ -229,8 +230,6 @@ public:
 
     
 
-    void CommonCreate(nsIWidget *aParent, PRBool aListenForResizes);
-
     
 
     void DispatchGotFocusEvent(void);
@@ -262,16 +261,7 @@ protected:
     PRPackedBool        mIsDestroyed;
 
     
-    
-    PRPackedBool        mNeedsResize;
-    
-    
-    PRPackedBool        mNeedsMove;
-    
-    PRPackedBool        mListenForResizes;
-    
     PRPackedBool        mIsShown;
-    PRPackedBool        mNeedsShow;
     
     PRBool              mEnabled;
     

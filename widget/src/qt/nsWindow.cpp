@@ -39,6 +39,7 @@
 
 
 
+
 #include "prlink.h"
 
 #include <qevent.h> 
@@ -178,13 +179,11 @@ keyEventToContextMenuEvent(const nsKeyEvent* aKeyEvent,
 
 nsWindow::nsWindow()
 {
+    LOG(("%s [%p]\n", __PRETTY_FUNCTION__, (void *)this));
+    
     mIsTopLevel       = PR_FALSE;
     mIsDestroyed      = PR_FALSE;
-    mNeedsResize      = PR_FALSE;
-    mNeedsMove        = PR_FALSE;
-    mListenForResizes = PR_FALSE;
     mIsShown          = PR_FALSE;
-    mNeedsShow        = PR_FALSE;
     mEnabled          = PR_TRUE;
     mCreated          = PR_FALSE;
     mPlaced           = PR_FALSE;
@@ -216,8 +215,8 @@ nsWindow::nsWindow()
 
 nsWindow::~nsWindow()
 {
-    LOG(("nsWindow::~nsWindow() [%p]\n", (void *)this));
-
+    LOG(("%s [%p]\n", __PRETTY_FUNCTION__, (void *)this));
+    
     Destroy();
 }
 
@@ -228,6 +227,8 @@ nsWindow::~nsWindow()
 void
 nsWindow::Initialize(QWidget *widget)
 {
+    LOG(("%s [%p]\n", __PRETTY_FUNCTION__, (void *)this));
+
     Q_ASSERT(widget);
 
     mDrawingArea = widget;
@@ -240,7 +241,7 @@ nsWindow::ReleaseGlobals()
 {
 }
 
-NS_IMPL_ISUPPORTS1(nsWindow, nsISupportsWeakReference)
+NS_IMPL_ISUPPORTS_INHERITED1(nsWindow, nsBaseWidget, nsISupportsWeakReference)
 
 NS_IMETHODIMP
 nsWindow::Create(nsIWidget        *aParent,
@@ -251,6 +252,8 @@ nsWindow::Create(nsIWidget        *aParent,
                  nsIToolkit       *aToolkit,
                  nsWidgetInitData *aInitData)
 {
+    LOG(("%s [%p]\n", __PRETTY_FUNCTION__, (void *)this));
+
     nsresult rv = NativeCreate(aParent, nsnull, aRect, aHandleEventFunction,
                                aContext, aAppShell, aToolkit, aInitData);
     return rv;
@@ -265,6 +268,8 @@ nsWindow::Create(nsNativeWidget aParent,
                  nsIToolkit       *aToolkit,
                  nsWidgetInitData *aInitData)
 {
+    LOG(("%s [%p]\n", __PRETTY_FUNCTION__, (void *)this));
+
     nsresult rv = NativeCreate(nsnull, aParent, aRect, aHandleEventFunction,
                                aContext, aAppShell, aToolkit, aInitData);
     return rv;
@@ -280,7 +285,7 @@ nsWindow::Destroy(void)
     mIsDestroyed = PR_TRUE;
     mCreated = PR_FALSE;
 
-    NativeShow(PR_FALSE);
+    Show(PR_FALSE);
 
     
     
@@ -1823,22 +1828,11 @@ nsWindow::NativeCreate(nsIWidget        *aParent,
                aAppShell, aToolkit, aInitData);
 
     
-    PRBool listenForResizes = PR_FALSE;;
-    if (aNativeParent || (aInitData && aInitData->mListenForResizes))
-        listenForResizes = PR_TRUE;
-
-    
-    CommonCreate(aParent, listenForResizes);
+    mParent = aParent;
+    mCreated = PR_TRUE;
 
     
     mBounds = aRect;
-    if (mWindowType != eWindowType_child) {
-        
-        
-        
-        
-        mNeedsMove = PR_TRUE;
-    }
 
     
     QWidget      *parent = nsnull;
@@ -1852,14 +1846,10 @@ nsWindow::NativeCreate(nsIWidget        *aParent,
 
     Initialize(mDrawingArea);
 
-    LOG(("nsWindow [%p]\n", (void *)this));
-    if (mDrawingArea) {
-        LOG(("\tmDrawingArea %p %p %p %lx %lx\n", (void *)mDrawingArea));
-    }
+    LOG(("Create: nsWindow [%p] [%p]\n", (void *)this, (void *)mDrawingArea));
 
     
-    if (!mIsTopLevel)
-        Resize(mBounds.x, mBounds.y, mBounds.width, mBounds.height, PR_FALSE);
+    Resize(mBounds.x, mBounds.y, mBounds.width, mBounds.height, PR_FALSE);
 
     return NS_OK;
 }
@@ -1926,9 +1916,6 @@ nsWindow::NativeResize(PRInt32 aWidth, PRInt32 aHeight, PRBool  aRepaint)
     LOG(("nsWindow::NativeResize [%p] %d %d\n", (void *)this,
          aWidth, aHeight));
 
-    
-    mNeedsResize = PR_FALSE;
-
     mDrawingArea->resize( aWidth, aHeight);
 
     if (aRepaint)
@@ -1940,9 +1927,6 @@ nsWindow::NativeResize(PRInt32 aX, PRInt32 aY,
                        PRInt32 aWidth, PRInt32 aHeight,
                        PRBool  aRepaint)
 {
-    mNeedsResize = PR_FALSE;
-    mNeedsMove = PR_FALSE;
-
     LOG(("nsWindow::NativeResize [%p] %d %d %d %d\n", (void *)this,
          aX, aY, aWidth, aHeight));
 
@@ -1971,22 +1955,6 @@ nsWindow::NativeResize(PRInt32 aX, PRInt32 aY,
 
     if (aRepaint)
         mDrawingArea->update();
-}
-
-void
-nsWindow::NativeShow (PRBool  aAction)
-{
-    if (aAction) {
-        
-        mNeedsShow = PR_FALSE;
-    }
-    if (!mDrawingArea) {
-        
-        
-        qDebug("nsCommon::Show : widget empty");
-        return;
-    }
-    mDrawingArea->setShown(aAction);
 }
 
 NS_IMETHODIMP
@@ -2545,14 +2513,6 @@ nsWindow::GetParent(void)
 }
 
 void
-nsWindow::CommonCreate(nsIWidget *aParent, PRBool aListenForResizes)
-{
-    mParent = aParent;
-    mListenForResizes = aListenForResizes;
-    mCreated = PR_TRUE;
-}
-
-void
 nsWindow::DispatchGotFocusEvent(void)
 {
     nsGUIEvent event(PR_TRUE, NS_GOTFOCUS, this);
@@ -2624,36 +2584,14 @@ nsWindow::DispatchEvent(nsGUIEvent *aEvent,
 NS_IMETHODIMP
 nsWindow::Show(PRBool aState)
 {
-    mIsShown = aState;
-
     LOG(("nsWindow::Show [%p] state %d\n", (void *)this, aState));
 
-    
-    
-    
-    if ((aState && !AreBoundsSane()) || !mCreated) {
-        LOG(("\tbounds are insane or window hasn't been created yet\n"));
-        mNeedsShow = PR_TRUE;
+    mIsShown = aState;
+
+    if (!mDrawingArea)
         return NS_OK;
-    }
 
-    
-    if (!aState)
-        mNeedsShow = PR_FALSE;
-
-    
-    
-    if (aState) {
-        if (mNeedsMove) {
-            LOG(("\tresizing\n"));
-            NativeResize(mBounds.x, mBounds.y, mBounds.width, mBounds.height,
-                         PR_FALSE);
-        } else if (mNeedsResize) {
-            NativeResize(mBounds.width, mBounds.height, PR_FALSE);
-        }
-    }
-
-    NativeShow(aState);
+    mDrawingArea->setShown(aState);
 
     return NS_OK;
 }
@@ -2664,74 +2602,20 @@ nsWindow::Resize(PRInt32 aWidth, PRInt32 aHeight, PRBool aRepaint)
     mBounds.width = aWidth;
     mBounds.height = aHeight;
 
-    if (!mCreated)
+    if (!mDrawingArea)
         return NS_OK;
 
-    
-    
-    
+    mDrawingArea->resize(aWidth, aHeight);
 
-    
-    if (mIsShown) {
-        
-        if (AreBoundsSane()) {
-            
-            
-
-            
-            
-            
-            
-            if (mIsTopLevel || mNeedsShow)
-                NativeResize(mBounds.x, mBounds.y,
-                             mBounds.width, mBounds.height, aRepaint);
-            else
-                NativeResize(mBounds.width, mBounds.height, aRepaint);
-
-            
-            if (mNeedsShow)
-                NativeShow(PR_TRUE);
-        }
-        else {
-            
-            
-            
-            
-            
-            
-            if (!mNeedsShow) {
-                mNeedsShow = PR_TRUE;
-                NativeShow(PR_FALSE);
-            }
-        }
-    }
-    
-    
-    else {
-        if (AreBoundsSane() && mListenForResizes) {
-            
-            
-            
-            NativeResize(aWidth, aHeight, aRepaint);
-        }
-        else {
-            mNeedsResize = PR_TRUE;
-        }
-    }
-
-    
-    if (mIsTopLevel || mListenForResizes) {
-        nsRect rect(mBounds.x, mBounds.y, aWidth, aHeight);
-        nsEventStatus status;
-        DispatchResizeEvent(rect, status);
-    }
+    if (aRepaint)
+        mDrawingArea->update();
 
     return NS_OK;
 }
 
 NS_IMETHODIMP
 nsWindow::Resize(PRInt32 aX, PRInt32 aY, PRInt32 aWidth, PRInt32 aHeight,
-                       PRBool aRepaint)
+                 PRBool aRepaint)
 {
     mBounds.x = aX;
     mBounds.y = aY;
@@ -2740,57 +2624,32 @@ nsWindow::Resize(PRInt32 aX, PRInt32 aY, PRInt32 aWidth, PRInt32 aHeight,
 
     mPlaced = PR_TRUE;
 
-    if (!mCreated)
+    if (!mDrawingArea)
         return NS_OK;
 
-    
-    
-    
+    QPoint pos(aX, aY);
 
     
-    if (mIsShown) {
-        
-        if (AreBoundsSane()) {
-            
-            NativeResize(aX, aY, aWidth, aHeight, aRepaint);
-            
-            if (mNeedsShow)
-                NativeShow(PR_TRUE);
-        }
-        else {
-            
-            
-            
-            
-            
-            
-            if (!mNeedsShow) {
-                mNeedsShow = PR_TRUE;
-                NativeShow(PR_FALSE);
-            }
-        }
-    }
-    
-    
-    else {
-        if (AreBoundsSane() && mListenForResizes){
-            
-            
-            
-            NativeResize(aX, aY, aWidth, aHeight, aRepaint);
-        }
-        else {
-            mNeedsResize = PR_TRUE;
-            mNeedsMove = PR_TRUE;
-        }
-    }
+#if 0
+    if (mParent && mDrawingArea->windowType() == Qt::Popup) {
+        nsRect oldrect, newrect;
+        oldrect.x = aX;
+        oldrect.y = aY;
 
-    if (mIsTopLevel || mListenForResizes) {
-        
-        nsRect rect(aX, aY, aWidth, aHeight);
-        nsEventStatus status;
-        DispatchResizeEvent(rect, status);
+        mParent->WidgetToScreen(oldrect, newrect);
+
+        pos = QPoint(newrect.x, newrect.y);
+#ifdef DEBUG_WIDGETS
+        qDebug("pos is [%d,%d]", pos.x(), pos.y());
+#endif
+    } else {
+#ifdef DEBUG_WIDGETS
+        qDebug("Widget with original position? (%p)", mDrawingArea);
+#endif
     }
+#endif
+
+    mDrawingArea->setGeometry(pos.x(), pos.y(), aWidth, aHeight);
 
     return NS_OK;
 }
