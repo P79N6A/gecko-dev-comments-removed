@@ -106,7 +106,7 @@ public:
   NS_DECL_NSIMUTATIONOBSERVER
 
   
-  void*             NativeData()     {return (void*)mNativeMenu;}
+  void*             NativeData()     {return (void*)mRootMenu;}
   nsMenuObjectTypeX MenuObjectType() {return eMenuBarObjectType;}
 
   
@@ -120,13 +120,10 @@ public:
   nsMenuX*          GetMenuAt(PRUint32 aIndex);
   nsMenuItemX*      GetMenuItemForCommandID(PRUint32 inCommandID);
   nsresult          Paint();
-  void              ForceNativeMenuReload(); 
 
 protected:
-  void              ConstructNativeMenus();
-  bool              MenuContainsAppMenu();
-  nsresult          InsertMenuAtIndex(nsMenuX* aMenu, PRUint32 aIndex);
-  void              RemoveMenuAtIndex(PRUint32 aIndex);
+  nsresult          AddMenu(nsMenuX* aMenu);
+  void              RemoveMenu(PRUint32 aIndex);
   nsChangeObserver* LookupContentChangeObserver(nsIContent* aContent);
   void              HideItem(nsIDOMDocument* inDoc, const nsAString & inID, nsIContent** outHiddenNode);
   void              AquifyMenuBar();
@@ -135,10 +132,10 @@ protected:
   nsresult          CreateApplicationMenu(nsMenuX* inMenu);
 
   nsTArray< nsAutoPtr<nsMenuX> > mMenuArray;
-  nsIWidget*         mParentWindow;        
+  nsIWidget*         mParent;              
   PRUint32           mCurrentCommandID;    
   nsIDocument*       mDocument;            
-  GeckoNSMenu*       mNativeMenu;            
+  GeckoNSMenu*       mRootMenu;            
   nsHashtable        mObserverTable;       
 };
 

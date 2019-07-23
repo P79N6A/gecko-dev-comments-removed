@@ -83,11 +83,12 @@ public:
   NS_DECL_CHANGEOBSERVER
 
   
-  void*             NativeData()     {return (void*)mNativeMenu;}
+  void*             NativeData()     {return (void*)mMacMenu;}
   nsMenuObjectTypeX MenuObjectType() {return eSubmenuObjectType;}
 
   
-  nsresult       Create(nsMenuObjectX* aParent, nsMenuBarX* aMenuBar, nsIContent* aNode);
+  nsresult       Create(nsMenuObjectX* aParent, const nsAString &aLabel,
+                        nsMenuBarX* aMenuBar, nsIContent* aNode);
   PRUint32       GetItemCount();
   nsMenuObjectX* GetItemAt(PRUint32 aPos);
   nsresult       GetVisibleItemCount(PRUint32 &aCount);
@@ -98,7 +99,7 @@ public:
   NSMenuItem*    NativeMenuItem();
 
 protected:
-  void           MenuConstruct();
+  void           MenuConstruct(nsIWidget* aParentWindow, void* aMenuNode);
   nsresult       RemoveAll();
   nsresult       SetEnabled(PRBool aIsEnabled);
   nsresult       GetEnabled(PRBool* aIsEnabled);
@@ -121,7 +122,7 @@ protected:
   nsMenuObjectX*            mParent; 
   nsMenuBarX*               mMenuBar; 
   nsRefPtr<nsMenuItemIconX> mIcon;
-  GeckoNSMenu*              mNativeMenu; 
+  GeckoNSMenu*              mMacMenu; 
   MenuDelegate*             mMenuDelegate; 
   NSMenuItem*               mNativeMenuItem; 
   PRPackedBool              mIsEnabled;

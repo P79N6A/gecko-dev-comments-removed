@@ -1196,14 +1196,6 @@ class nsIWidget : public nsISupports {
 
     NS_IMETHOD GetToggledKeyState(PRUint32 aKeyCode, PRBool* aLEDState) = 0;
 
-    
-
-
-
-
-
-    virtual nsresult ForceNativeMenuReload() = 0;
-
 protected:
     
     
