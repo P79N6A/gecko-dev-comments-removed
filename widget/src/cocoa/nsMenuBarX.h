@@ -44,7 +44,6 @@
 #include "nsIMutationObserver.h"
 #include "nsCOMArray.h"
 #include "nsHashtable.h"
-#include "nsTHashtable.h"
 #include "nsWeakReference.h"
 #include "nsIContent.h"
 
@@ -72,89 +71,22 @@ namespace MenuHelpersX
 
 
 
+
+
+@interface GeckoNSMenu : NSMenu
+{
+}
+- (BOOL)performKeyEquivalent:(NSEvent *)theEvent;
+- (void)performMenuUserInterfaceEffectsForEvent:(NSEvent*)theEvent;
+@end
+
+
+
 @interface NativeMenuItemTarget : NSObject
 {
 }
 -(IBAction)menuItemHit:(id)sender;
 @end
-
-
-struct CocoaKeyEquivContainer {
-  CocoaKeyEquivContainer(const unsigned int modifiers, const NSString* string)
-  {
-    NS_OBJC_BEGIN_TRY_ABORT_BLOCK;
-
-    mModifiers = modifiers;
-    mString = [string retain];
-
-    NS_OBJC_END_TRY_ABORT_BLOCK;
-  }
-  
-  ~CocoaKeyEquivContainer()
-  {
-    NS_OBJC_BEGIN_TRY_ABORT_BLOCK;
-
-    [mString release];
-
-    NS_OBJC_END_TRY_ABORT_BLOCK;
-  }
-  
-  CocoaKeyEquivContainer(const CocoaKeyEquivContainer& other)
-  {
-    NS_OBJC_BEGIN_TRY_ABORT_BLOCK;
-
-    mModifiers = other.mModifiers;
-    mString = [other.mString retain];
-
-    NS_OBJC_END_TRY_ABORT_BLOCK;
-  }
-  
-  CocoaKeyEquivContainer& operator=(CocoaKeyEquivContainer& other)
-  {
-    NS_OBJC_BEGIN_TRY_ABORT_BLOCK_RETURN;
-
-    mModifiers = other.mModifiers;
-    if (mString)
-      [mString release];
-    mString = [other.mString retain];
-    return *this;
-
-    NS_OBJC_END_TRY_ABORT_BLOCK_RETURN(*this);
-  }
-  
-  unsigned int mModifiers;
-  NSString* mString;
-};
-
-
-struct CocoaKeyEquivKey : public PLDHashEntryHdr {
-  typedef const CocoaKeyEquivContainer& KeyType;
-  typedef const CocoaKeyEquivContainer* KeyTypePointer;
-  
-  CocoaKeyEquivKey(KeyTypePointer aObj) : mObj(*aObj) { }
-  CocoaKeyEquivKey(const CocoaKeyEquivKey& other) : mObj(other.mObj) { }
-  ~CocoaKeyEquivKey() { }
-  
-  KeyType GetKey() const { return mObj; }
-  
-  PRBool KeyEquals(KeyTypePointer aKey) const {
-    NS_OBJC_BEGIN_TRY_ABORT_BLOCK_RETURN;
-
-    return aKey->mModifiers == mObj.mModifiers &&
-    [aKey->mString isEqualToString:mObj.mString];
-
-    NS_OBJC_END_TRY_ABORT_BLOCK_RETURN(PR_FALSE);
-  }
-  
-  static KeyTypePointer KeyToPointer(KeyType aKey) { return &aKey; }
-  static PLDHashNumber HashKey(KeyTypePointer aKey) {
-    return [aKey->mString hash] ^ aKey->mModifiers;
-  }
-  enum { ALLOW_MEMMOVE = PR_FALSE };
-private:
-  const CocoaKeyEquivContainer mObj;
-};
-
 
 
 
@@ -193,7 +125,6 @@ public:
     NS_IMETHOD Paint();
     NS_IMETHOD SetNativeData(void* aData);
     NS_IMETHOD MenuConstruct(const nsMenuEvent & aMenuEvent, nsIWidget * aParentWindow, void * aMenuNode);
-    PRBool ContainsKeyEquiv(unsigned int modifiers, NSString* string);
 
     PRUint32 RegisterForCommand(nsIMenuItem* aItem);
     void UnregisterCommand(PRUint32 aCommandID);
@@ -202,9 +133,6 @@ public:
     void RegisterForContentChanges(nsIContent* aContent, nsChangeObserver* aMenuObject);
     void UnregisterForContentChanges(nsIContent* aContent);
     nsChangeObserver* LookupContentChangeObserver(nsIContent* aContent);
-
-    void RegisterKeyEquivalent(unsigned int modifiers, NSString* string);
-    void UnregisterKeyEquivalent(unsigned int modifiers, NSString* string);
 
     nsCOMPtr<nsIContent>    mAboutItemContent;    
                                                   
@@ -226,9 +154,8 @@ protected:
     PRBool                  mIsMenuBarAdded;
     PRUint32                mCurrentCommandID;    
     nsIDocument*            mDocument;            
-    NSMenu*                 mRootMenu;            
+    GeckoNSMenu*            mRootMenu;            
     nsHashtable             mObserverTable;       
-    nsTHashtable<CocoaKeyEquivKey> mKeyEquivTable;
 };
 
 #endif 

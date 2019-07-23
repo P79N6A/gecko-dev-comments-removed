@@ -45,6 +45,7 @@
 
 #include "nsRect.h"
 #include "nsIWidget.h"
+#include "nsObjCExceptions.h"
 
 
 
@@ -66,6 +67,23 @@ typedef unsigned int NSUInteger;
 #define NSINTEGER_DEFINED 1
 
 #endif  
+
+
+
+class nsAutoRetainCocoaObject {
+public:
+nsAutoRetainCocoaObject(id anObject)
+{
+  mObject = NS_OBJC_TRY_EXPR_ABORT([anObject retain]);
+}
+~nsAutoRetainCocoaObject()
+{
+  NS_OBJC_TRY_ABORT([mObject release]);
+}
+private:
+  id mObject;  
+};
+
 
 @interface NSApplication (Undocumented)
 

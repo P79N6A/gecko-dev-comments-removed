@@ -131,7 +131,7 @@ protected:
     void LoadMenuItem(nsIContent* inMenuItemContent);  
     void LoadSubMenu(nsIContent* inMenuContent);
 
-    NSMenu* CreateMenuWithGeckoString(nsString& menuTitle);
+    GeckoNSMenu* CreateMenuWithGeckoString(nsString& menuTitle);
 
 protected:
     nsString                    mLabel;
@@ -145,7 +145,7 @@ protected:
 
     
     PRInt16                     mMacMenuID;
-    NSMenu*                     mMacMenu;               
+    GeckoNSMenu*                mMacMenu;               
     MenuDelegate*               mMenuDelegate;          
     NSMenuItem*                 mNativeMenuItem;        
     PRPackedBool                mIsEnabled;
