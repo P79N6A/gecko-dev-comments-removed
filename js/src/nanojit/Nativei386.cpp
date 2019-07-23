@@ -360,7 +360,8 @@ namespace nanojit
 			#else
 			if (mprotect((void *)addr, count*NJ_PAGE_SIZE, PROT_READ|PROT_WRITE|PROT_EXEC) == -1) {
 			#endif
-                AvmDebugLog(("FATAL ERROR: mprotect(PROT_EXEC) failed\n"));
+
+				NanoAssertMsg(false, "FATAL ERROR: mprotect(PROT_EXEC) failed\n");
                 abort();
             }
 		#endif
