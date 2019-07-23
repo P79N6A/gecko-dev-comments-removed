@@ -1147,6 +1147,7 @@ public:
     {}
 
     
+    
     const nsLineList_iterator* line;
 
     
