@@ -1480,6 +1480,13 @@ void nsViewManager::GetRegionsForBlit(nsView* aView, nsPoint aDelta,
   nsView* displayRoot = GetDisplayRootFor(aView);
   nsPoint displayOffset = aView->GetParent()->GetOffsetTo(displayRoot);
   nsRect parentBounds = aView->GetParent()->GetDimensions() + displayOffset;
+
+  
+  
+  
+  PRInt32 p2a = mContext->AppUnitsPerDevPixel();
+  parentBounds = parentBounds.ToNearestPixels(p2a).ToAppUnits(p2a);
+
   if (IsPainting() || !mObserver) {
     
     aBlitRegion->SetEmpty();

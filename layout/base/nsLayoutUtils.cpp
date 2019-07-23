@@ -1180,8 +1180,16 @@ AddItemsToRegion(nsDisplayListBuilder* aBuilder, nsDisplayList* aList,
         
         
         
-        if (!aBuilder->IsMovingFrame(clipItem->GetClippingFrame())) {
-          clip.IntersectRect(clip, clipItem->GetClipRect());
+        nsIFrame* clipFrame = clipItem->GetClippingFrame();
+        if (!aBuilder->IsMovingFrame(clipFrame)) {
+          nscoord appUnitsPerDevPixel = clipFrame->PresContext()->AppUnitsPerDevPixel();
+          
+          
+          
+          nsRect snappedClip =
+            clipItem->GetClipRect().ToNearestPixels(appUnitsPerDevPixel).
+            ToAppUnits(appUnitsPerDevPixel);
+          clip.IntersectRect(clip, snappedClip);
 
           
           nsRegion clippedOutSource;
