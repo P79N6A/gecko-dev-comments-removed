@@ -790,9 +790,9 @@ namespace nanojit
 
         
         verbose_only(
-        ReverseLister *pp_init = NULL,
-                      *pp_after_sf1 = NULL,
-                      *pp_after_sf2 = NULL;
+        ReverseLister *pp_init = NULL;
+        ReverseLister *pp_after_sf1 = NULL;
+        ReverseLister *pp_after_sf2 = NULL;
         )
 
         
