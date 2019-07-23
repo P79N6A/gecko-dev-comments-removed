@@ -47,6 +47,10 @@
 
 
 
+
+
+
+
 class nsTString_CharT : public nsTSubstring_CharT
   {
     public:
@@ -89,11 +93,7 @@ class nsTString_CharT : public nsTSubstring_CharT
         }
 
       explicit
-#ifdef MOZ_V1_STRING_ABI
-      nsTString_CharT( const abstract_string_type& readable )
-#else
       nsTString_CharT( const substring_type& readable )
-#endif
         : substring_type()
         {
           Assign(readable);
@@ -106,10 +106,6 @@ class nsTString_CharT : public nsTSubstring_CharT
       self_type& operator=( const self_type& str )                                              { Assign(str);      return *this; }
       self_type& operator=( const substring_type& str )                                         { Assign(str);      return *this; }
       self_type& operator=( const substring_tuple_type& tuple )                                 { Assign(tuple);    return *this; }
-#ifdef MOZ_V1_STRING_ABI
-      self_type& operator=( const abstract_string_type& readable )                              { Assign(readable); return *this; }
-#endif
-
 
         
 
@@ -457,9 +453,6 @@ class nsTFixedString_CharT : public nsTString_CharT
       self_type& operator=( const char_type* data )                                             { Assign(data);     return *this; }
       self_type& operator=( const substring_type& str )                                         { Assign(str);      return *this; }
       self_type& operator=( const substring_tuple_type& tuple )                                 { Assign(tuple);    return *this; }
-#ifdef MOZ_V1_STRING_ABI
-      self_type& operator=( const abstract_string_type& readable )                              { Assign(readable); return *this; }
-#endif
 
     protected:
 
@@ -471,6 +464,12 @@ class nsTFixedString_CharT : public nsTString_CharT
 
 
   
+
+
+
+
+
+
 
 
 
@@ -525,24 +524,12 @@ class NS_STACK_CLASS nsTAutoString_CharT : public nsTFixedString_CharT
           Assign(tuple);
         }
 
-#ifdef MOZ_V1_STRING_ABI
-      explicit
-      nsTAutoString_CharT( const abstract_string_type& readable )
-        : fixed_string_type(mStorage, kDefaultStorageSize, 0)
-        {
-          Assign(readable);
-        }
-#endif
-
         
       self_type& operator=( char_type c )                                                       { Assign(c);        return *this; }
       self_type& operator=( const char_type* data )                                             { Assign(data);     return *this; }
       self_type& operator=( const self_type& str )                                              { Assign(str);      return *this; }
       self_type& operator=( const substring_type& str )                                         { Assign(str);      return *this; }
       self_type& operator=( const substring_tuple_type& tuple )                                 { Assign(tuple);    return *this; }
-#ifdef MOZ_V1_STRING_ABI
-      self_type& operator=( const abstract_string_type& readable )                              { Assign(readable); return *this; }
-#endif
 
       enum { kDefaultStorageSize = 64 };
 
@@ -553,6 +540,11 @@ class NS_STACK_CLASS nsTAutoString_CharT : public nsTFixedString_CharT
 
 
   
+
+
+
+
+
 
 
 
@@ -602,9 +594,6 @@ class nsTXPIDLString_CharT : public nsTString_CharT
       self_type& operator=( const self_type& str )                                              { Assign(str);      return *this; }
       self_type& operator=( const substring_type& str )                                         { Assign(str);      return *this; }
       self_type& operator=( const substring_tuple_type& tuple )                                 { Assign(tuple);    return *this; }
-#ifdef MOZ_V1_STRING_ABI
-      self_type& operator=( const abstract_string_type& readable )                              { Assign(readable); return *this; }
-#endif
   };
 
 
@@ -685,9 +674,6 @@ class nsTAdoptingString_CharT : public nsTXPIDLString_CharT
         
       self_type& operator=( const substring_type& str )                                         { Assign(str);      return *this; }
       self_type& operator=( const substring_tuple_type& tuple )                                 { Assign(tuple);    return *this; }
-#ifdef MOZ_V1_STRING_ABI
-      self_type& operator=( const abstract_string_type& readable )                              { Assign(readable); return *this; }
-#endif
 
         
         

@@ -68,10 +68,6 @@ class nsReadingIterator
     private:
       friend class nsAString;
       friend class nsACString;
-#ifdef MOZ_V1_STRING_ABI
-      friend class nsSubstring;
-      friend class nsCSubstring;
-#endif
 
         
         
@@ -206,10 +202,6 @@ class nsWritingIterator
     private:
       friend class nsAString;
       friend class nsACString;
-#ifdef MOZ_V1_STRING_ABI
-      friend class nsSubstring;
-      friend class nsCSubstring;
-#endif
 
         
         

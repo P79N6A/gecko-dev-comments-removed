@@ -185,42 +185,6 @@ NS_UnescapeURL(const nsCSubstring &str, PRUint32 flags, nsCSubstring &result) {
 }
 
 
-#ifdef MOZ_V1_STRING_ABI
-inline const nsACString &
-NS_EscapeURL(const nsACString &str, PRUint32 flags, nsACString &result) {
-    
-    
-    nsACString::const_iterator iter;
-    str.BeginReading(iter);
-    if (NS_EscapeURL(iter.get(), iter.size_forward(), flags, result))
-        return result;
-    return str;
-}
-inline const nsACString &
-NS_EscapeURL(const nsCSubstring &str, PRUint32 flags, nsACString &result) {
-    if (NS_EscapeURL(str.Data(), str.Length(), flags, result))
-        return result;
-    return str;
-}
-inline const nsACString &
-NS_UnescapeURL(const nsACString &str, PRUint32 flags, nsACString &result) {
-    
-    
-    nsACString::const_iterator iter;
-    str.BeginReading(iter);
-    if (NS_UnescapeURL(iter.get(), iter.size_forward(), flags, result))
-        return result;
-    return str;
-}
-inline const nsACString &
-NS_UnescapeURL(const nsCSubstring &str, PRUint32 flags, nsACString &result) {
-    if (NS_UnescapeURL(str.Data(), str.Length(), flags, result))
-        return result;
-    return str;
-}
-#endif  
-
-
 
 
 

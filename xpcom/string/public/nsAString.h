@@ -47,12 +47,6 @@
 #include "nsStringIterator.h"
 #endif
 
-#ifdef MOZ_V1_STRING_ABI
-#ifndef nsObsoleteAString_h___
-#include "nsObsoleteAString.h"
-#endif
-#endif
-
 
 
 #ifndef NS_DISABLE_LITERAL_TEMPLATE
@@ -63,15 +57,16 @@
 
 #include <string.h>
 
+#define kNotFound -1
+
   
 #include "string-template-def-unichar.h"
-#include "nsTAString.h"
+#include "nsTSubstring.h"
 #include "string-template-undef.h"
-
 
   
 #include "string-template-def-char.h"
-#include "nsTAString.h"
+#include "nsTSubstring.h"
 #include "string-template-undef.h"
 
 
