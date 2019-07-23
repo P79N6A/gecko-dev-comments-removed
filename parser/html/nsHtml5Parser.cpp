@@ -381,7 +381,7 @@ nsHtml5Parser::Parse(const nsAString& aSourceBuffer,
         if (mTreeBuilder->HasScript()) {
           
           mTreeBuilder->Flush(); 
-          mExecutor->Flush(); 
+          mExecutor->Flush(PR_TRUE); 
         }
         if (mBlocked) {
           
@@ -397,7 +397,7 @@ nsHtml5Parser::Parse(const nsAString& aSourceBuffer,
     
     mTreeBuilder->flushCharacters(); 
     mTreeBuilder->Flush(); 
-    mExecutor->Flush(); 
+    mExecutor->Flush(PR_TRUE); 
   }
 
   return NS_OK;
@@ -492,7 +492,7 @@ nsHtml5Parser::ParseFragment(const nsAString& aSourceBuffer,
   mTokenizer->eof();
   mTreeBuilder->StreamEnded();
   mTreeBuilder->Flush();
-  mExecutor->Flush();
+  mExecutor->Flush(PR_TRUE);
   mTokenizer->end();
   mExecutor->DropParserAndPerfHint();
   mAtomTable.Clear();
@@ -600,7 +600,7 @@ nsHtml5Parser::ParseUntilBlocked()
           mTokenizer->eof();
           mTreeBuilder->StreamEnded();
           mTreeBuilder->Flush();
-          mExecutor->Flush();
+          mExecutor->Flush(PR_TRUE);
           mTokenizer->end();
           return;            
         } else {
@@ -645,7 +645,7 @@ nsHtml5Parser::ParseUntilBlocked()
       }
       if (mTreeBuilder->HasScript()) {
         mTreeBuilder->Flush();
-        mExecutor->Flush();   
+        mExecutor->Flush(PR_TRUE);
       }
       if (mBlocked) {
         
