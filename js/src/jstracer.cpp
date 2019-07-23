@@ -4124,6 +4124,9 @@ TraceRecorder::activeCallOrGlobalSlot(JSObject* obj, jsval*& vp)
         return true;
     }
 
+    if (wasDeepAborted())
+        ABORT_TRACE("deep abort from property lookup");
+
     if (obj == obj2 && OBJ_GET_CLASS(cx, obj) == &js_CallClass) {
         JSStackFrame* cfp = (JSStackFrame*) JS_GetPrivate(cx, obj);
         if (cfp && FrameInRange(cx->fp, cfp, callDepth)) {
@@ -4894,6 +4897,9 @@ TraceRecorder::test_property_cache(JSObject* obj, LIns* obj_ins, JSObject*& obj2
             ABORT_TRACE("failed to fill property cache");
     }
 
+    if (wasDeepAborted())
+        ABORT_TRACE("deep abort from property lookup");
+
 #ifdef JS_THREADSAFE
     
     
@@ -5258,6 +5264,9 @@ TraceRecorder::guardElemOp(JSObject* obj, LIns* obj_ins, jsid id, size_t op_offs
         if (!traceable_slot)
             ABORT_TRACE("elem op hit direct and slotless getter or setter");
     }
+
+    if (wasDeepAborted())
+        ABORT_TRACE("deep abort from property lookup");
 
     
     if (OBJ_SHAPE(obj) != shape)
