@@ -108,8 +108,10 @@ nsSVGValue::AddObserver(nsISVGValueObserver* observer)
   
   
   
-  if (mObservers.IndexOf((void*)wr) >= 0)
+  if (mObservers.IndexOf((void*)wr) >= 0) {
+    NS_RELEASE(wr);
     return NS_OK;
+  }
 
   mObservers.AppendElement((void*)wr);
   return NS_OK;
