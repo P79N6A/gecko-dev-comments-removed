@@ -270,7 +270,7 @@ BOOLEAN_TO_JSVAL(JSBool b)
 
 
 #define JSVAL_TO_PRIVATE(v)     ((void *)((v) & ~JSVAL_INT))
-#define PRIVATE_TO_JSVAL(p)     ((jsval)(p) | JSVAL_INT)
+#define PRIVATE_TO_JSVAL(p)     ((jsval)(ptrdiff_t)(p) | JSVAL_INT)
 
 
 #define JSPROP_ENUMERATE        0x01    /* property is visible to for/in loop */
