@@ -117,9 +117,6 @@ function run_test() {
   remove_all_bookmarks();
 
   
-  let scriptLoader = Cc["@mozilla.org/moz/jssubscript-loader;1"].
-                     getService(Ci.mozIJSSubScriptLoader);
-  scriptLoader.loadSubScript("chrome://browser/content/places/utils.js", this);
   do_check_true(!!PlacesUIUtils);
 
   

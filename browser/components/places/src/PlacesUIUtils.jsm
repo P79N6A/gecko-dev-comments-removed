@@ -40,27 +40,24 @@
 
 
 
-function LOG(str) {
-  dump("*** " + str + "\n");
-}
+var EXPORTED_SYMBOLS = ["PlacesUIUtils"];
 
 var Ci = Components.interfaces;
 var Cc = Components.classes;
 var Cr = Components.results;
+var Cu = Components.utils;
 
-__defineGetter__("PlacesUtils", function() {
-  delete this.PlacesUtils
-  var tmpScope = {};
-  Components.utils.import("resource://gre/modules/utils.js", tmpScope);
-  return this.PlacesUtils = tmpScope.PlacesUtils;
+Cu.import("resource://gre/modules/XPCOMUtils.jsm");
+
+XPCOMUtils.defineLazyGetter(this, "Services", function() {
+  Cu.import("resource://gre/modules/Services.jsm");
+  return Services;
 });
 
-const LOAD_IN_SIDEBAR_ANNO = "bookmarkProperties/loadInSidebar";
-const DESCRIPTION_ANNO = "bookmarkProperties/description";
-
-const ORGANIZER_FOLDER_ANNO = "PlacesOrganizer/OrganizerFolder";
-const ORGANIZER_QUERY_ANNO = "PlacesOrganizer/OrganizerQuery";
-const ORGANIZER_LEFTPANE_VERSION = 6;
+XPCOMUtils.defineLazyGetter(this, "PlacesUtils", function() {
+  Cu.import("resource://gre/modules/utils.js");
+  return PlacesUtils;
+});
 
 #ifdef XP_MACOSX
 
@@ -72,48 +69,12 @@ const NEWLINE = "\r\n";
 #endif
 
 var PlacesUIUtils = {
-  get RDF() {
-    delete this.RDF;
-    return this.RDF = Cc["@mozilla.org/rdf/rdf-service;1"].
-                      getService(Ci.nsIRDFService);
-  },
+  ORGANIZER_LEFTPANE_VERSION: 6,
+  ORGANIZER_FOLDER_ANNO: "PlacesOrganizer/OrganizerFolder",
+  ORGANIZER_QUERY_ANNO: "PlacesOrganizer/OrganizerQuery",
 
-  get localStore() {
-    delete this.localStore;
-    return this.localStore = this.RDF.GetDataSource("rdf:local-store");
-  },
-
-  get ptm() {
-    delete this.ptm;
-    return this.ptm = Cc["@mozilla.org/browser/placesTransactionsService;1"].
-                      getService(Ci.nsIPlacesTransactionsService);
-  },
-
-  get clipboard() {
-    delete this.clipboard;
-    return this.clipboard = Cc["@mozilla.org/widget/clipboard;1"].
-                            getService(Ci.nsIClipboard);
-  },
-
-  get URIFixup() {
-    delete this.URIFixup;
-    return this.URIFixup = Cc["@mozilla.org/docshell/urifixup;1"].
-                           getService(Ci.nsIURIFixup);
-  },
-
-  get ellipsis() {
-    delete this.ellipsis;
-    var pref = Cc["@mozilla.org/preferences-service;1"].
-               getService(Ci.nsIPrefBranch);
-    return this.ellipsis = pref.getComplexValue("intl.ellipsis",
-                                                Ci.nsIPrefLocalizedString).data;
-  },
-
-  get privateBrowsing() {
-    delete this.privateBrowsing;
-    return this.privateBrowsing = Cc["@mozilla.org/privatebrowsing;1"].
-                                  getService(Ci.nsIPrivateBrowsingService);
-  },
+  LOAD_IN_SIDEBAR_ANNO: "bookmarkProperties/loadInSidebar",
+  DESCRIPTION_ANNO: "bookmarkProperties/description",
 
   
 
@@ -121,7 +82,7 @@ var PlacesUIUtils = {
 
 
 
-  createFixedURI: function PU_createFixedURI(aSpec) {
+  createFixedURI: function PUIU_createFixedURI(aSpec) {
     return this.URIFixup.createFixupURI(aSpec, 0);
   },
 
@@ -131,30 +92,18 @@ var PlacesUIUtils = {
 
 
 
-  _wrapString: function PU__wrapString(aString) {
+  _wrapString: function PUIU__wrapString(aString) {
     var s = Cc["@mozilla.org/supports-string;1"].
             createInstance(Ci.nsISupportsString);
     s.data = aString;
     return s;
   },
 
-  
-
-
-  get _bundle() {
-    const PLACES_STRING_BUNDLE_URI =
-        "chrome://browser/locale/places/places.properties";
-    delete this._bundle;
-    return this._bundle = Cc["@mozilla.org/intl/stringbundle;1"].
-                          getService(Ci.nsIStringBundleService).
-                          createBundle(PLACES_STRING_BUNDLE_URI);
-  },
-
-  getFormattedString: function PU_getFormattedString(key, params) {
+  getFormattedString: function PUIU_getFormattedString(key, params) {
     return this._bundle.formatStringFromName(key, params, params.length);
   },
 
-  getString: function PU_getString(key) {
+  getString: function PUIU_getString(key) {
     return this._bundle.GetStringFromName(key);
   },
 
@@ -189,7 +138,7 @@ var PlacesUIUtils = {
 
 
   _getBookmarkItemCopyTransaction:
-  function PU__getBookmarkItemCopyTransaction(aData, aContainer, aIndex,
+  function PUIU__getBookmarkItemCopyTransaction(aData, aContainer, aIndex,
                                               aExcludeAnnotations) {
     var itemURL = PlacesUtils._uri(aData.uri);
     var itemTitle = aData.title;
@@ -236,8 +185,7 @@ var PlacesUIUtils = {
 
 
   _getFolderCopyTransaction:
-  function PU__getFolderCopyTransaction(aData, aContainer, aIndex) {
-    var self = this;
+  function PUIU__getFolderCopyTransaction(aData, aContainer, aIndex) {
     function getChildItemsTransactions(aChildren) {
       var childItemsTransactions = [];
       var cc = aChildren.length;
@@ -254,18 +202,19 @@ var PlacesUIUtils = {
 
         if (node.type == PlacesUtils.TYPE_X_MOZ_PLACE_CONTAINER) {
           if (node.livemark && node.annos) 
-            txn = self._getLivemarkCopyTransaction(node, aContainer, index);
+            txn = PlacesUIUtils._getLivemarkCopyTransaction(node, aContainer, index);
           else
-            txn = self._getFolderCopyTransaction(node, aContainer, index);
+            txn = PlacesUIUtils._getFolderCopyTransaction(node, aContainer, index);
         }
         else if (node.type == PlacesUtils.TYPE_X_MOZ_PLACE_SEPARATOR)
-          txn = self.ptm.createSeparator(-1, index);
+          txn = PlacesUIUtils.ptm.createSeparator(-1, index);
         else if (node.type == PlacesUtils.TYPE_X_MOZ_PLACE)
-          txn = self._getBookmarkItemCopyTransaction(node, -1, index);
+          txn = PlacesUIUtils._getBookmarkItemCopyTransaction(node, -1, index);
 
-        NS_ASSERT(txn, "Unexpected item under a bookmarks folder");
         if (txn)
           childItemsTransactions.push(txn);
+        else
+          throw("Unexpected item under a bookmarks folder");
       }
       return childItemsTransactions;
     }
@@ -301,8 +250,9 @@ var PlacesUIUtils = {
   },
 
   _getLivemarkCopyTransaction:
-  function PU__getLivemarkCopyTransaction(aData, aContainer, aIndex) {
-    NS_ASSERT(aData.livemark && aData.annos, "node is not a livemark");
+  function PUIU__getLivemarkCopyTransaction(aData, aContainer, aIndex) {
+    if (!aData.livemark || !aData.annos)
+      throw("node is not a livemark");
     
     var feedURI = null;
     var siteURI = null;
@@ -338,7 +288,7 @@ var PlacesUIUtils = {
 
 
 
-  makeTransaction: function PU_makeTransaction(data, type, container,
+  makeTransaction: function PUIU_makeTransaction(data, type, container,
                                                index, copy) {
     switch (data.type) {
       case PlacesUtils.TYPE_X_MOZ_PLACE_CONTAINER:
@@ -421,7 +371,7 @@ var PlacesUIUtils = {
 
 
 
-  showAddBookmarkUI: function PU_showAddBookmarkUI(aURI,
+  showAddBookmarkUI: function PUIU_showAddBookmarkUI(aURI,
                                                    aTitle,
                                                    aDescription,
                                                    aDefaultInsertionPoint,
@@ -477,7 +427,7 @@ var PlacesUIUtils = {
 
 
   showMinimalAddBookmarkUI:
-  function PU_showMinimalAddBookmarkUI(aURI, aTitle, aDescription,
+  function PUIU_showMinimalAddBookmarkUI(aURI, aTitle, aDescription,
                                        aDefaultInsertionPoint, aShowPicker,
                                        aLoadInSidebar, aKeyword, aPostData,
                                        aCharSet) {
@@ -520,7 +470,7 @@ var PlacesUIUtils = {
     else
       info.hiddenRows.push("keyword");
 
-    this._showBookmarkDialog(info, true);
+    return this._showBookmarkDialog(info, true);
   },
 
   
@@ -545,7 +495,7 @@ var PlacesUIUtils = {
 
 
 
-  showAddLivemarkUI: function PU_showAddLivemarkURI(aFeedURI,
+  showAddLivemarkUI: function PUIU_showAddLivemarkURI(aFeedURI,
                                                     aSiteURI,
                                                     aTitle,
                                                     aDescription,
@@ -585,7 +535,7 @@ var PlacesUIUtils = {
 
 
   showMinimalAddLivemarkUI:
-  function PU_showMinimalAddLivemarkURI(aFeedURI, aSiteURI, aTitle,
+  function PUIU_showMinimalAddLivemarkURI(aFeedURI, aSiteURI, aTitle,
                                         aDescription, aDefaultInsertionPoint,
                                         aShowPicker) {
     var info = {
@@ -611,7 +561,7 @@ var PlacesUIUtils = {
       if (!aShowPicker)
         info.hiddenRows.push("folderPicker");
     }
-    this._showBookmarkDialog(info, true);
+    return this._showBookmarkDialog(info, true);
   },
 
   
@@ -623,16 +573,16 @@ var PlacesUIUtils = {
 
 
 
-  showMinimalAddMultiBookmarkUI: function PU_showAddMultiBookmarkUI(aURIList) {
-    NS_ASSERT(aURIList.length,
-              "showAddMultiBookmarkUI expects a list of nsIURI objects");
+  showMinimalAddMultiBookmarkUI: function PUIU_showAddMultiBookmarkUI(aURIList) {
+    if (aURIList.length == 0)
+      throw("showAddMultiBookmarkUI expects a list of nsIURI objects");
     var info = {
       action: "add",
       type: "folder",
       hiddenRows: ["description"],
       URIList: aURIList
     };
-    this._showBookmarkDialog(info, true);
+    return this._showBookmarkDialog(info, true);
   },
 
   
@@ -646,7 +596,7 @@ var PlacesUIUtils = {
 
 
 
-  showItemProperties: function PU_showItemProperties(aItemId, aType, aReadOnly) {
+  showItemProperties: function PUIU_showItemProperties(aItemId, aType, aReadOnly) {
     var info = {
       action: "edit",
       type: aType,
@@ -671,7 +621,7 @@ var PlacesUIUtils = {
 
 
   showAddFolderUI:
-  function PU_showAddFolderUI(aTitle, aDefaultInsertionPoint, aShowPicker) {
+  function PUIU_showAddFolderUI(aTitle, aDefaultInsertionPoint, aShowPicker) {
     var info = {
       action: "add",
       type: "folder",
@@ -702,7 +652,7 @@ var PlacesUIUtils = {
 
 
 
-  _showBookmarkDialog: function PU__showBookmarkDialog(aInfo, aMinimalUI) {
+  _showBookmarkDialog: function PUIU__showBookmarkDialog(aInfo, aMinimalUI) {
     var dialogURL = aMinimalUI ?
                     "chrome://browser/content/places/bookmarkProperties2.xul" :
                     "chrome://browser/content/places/bookmarkProperties.xul";
@@ -712,8 +662,16 @@ var PlacesUIUtils = {
       features = "centerscreen,chrome,dialog,resizable,modal";
     else
       features = "centerscreen,chrome,modal,resizable=no";
-    window.openDialog(dialogURL, "",  features, aInfo);
+    this._getCurrentActiveWin().openDialog(dialogURL, "",  features, aInfo);
     return ("performed" in aInfo && aInfo.performed);
+  },
+
+  _getTopBrowserWin: function PUIU__getTopBrowserWin() {
+    return Services.wm.getMostRecentWindow("navigator:browser");
+  },
+
+  _getCurrentActiveWin: function PUIU__getCurrentActiveWin() {
+    return this.fm.activeWindow;
   },
 
   
@@ -722,7 +680,7 @@ var PlacesUIUtils = {
 
 
 
-  getViewForNode: function PU_getViewForNode(aNode) {
+  getViewForNode: function PUIU_getViewForNode(aNode) {
     var node = aNode;
 
     
@@ -750,7 +708,7 @@ var PlacesUIUtils = {
 
 
 
-  markPageAsTyped: function PU_markPageAsTyped(aURL) {
+  markPageAsTyped: function PUIU_markPageAsTyped(aURL) {
     PlacesUtils.history.QueryInterface(Ci.nsIBrowserHistory)
                .markPageAsTyped(this.createFixedURI(aURL));
   },
@@ -762,7 +720,7 @@ var PlacesUIUtils = {
 
 
 
-  markPageAsFollowedBookmark: function PU_markPageAsFollowedBookmark(aURL) {
+  markPageAsFollowedBookmark: function PUIU_markPageAsFollowedBookmark(aURL) {
     PlacesUtils.history.markPageAsFollowedBookmark(this.createFixedURI(aURL));
   },
 
@@ -772,7 +730,7 @@ var PlacesUIUtils = {
 
 
 
-  markPageAsFollowedLink: function PU_markPageAsUserClicked(aURL) {
+  markPageAsFollowedLink: function PUIU_markPageAsUserClicked(aURL) {
     PlacesUtils.history.QueryInterface(Ci.nsIBrowserHistory)
                .markPageAsFollowedLink(this.createFixedURI(aURL));
   },
@@ -785,7 +743,7 @@ var PlacesUIUtils = {
 
 
 
-  checkURLSecurity: function PU_checkURLSecurity(aURINode) {
+  checkURLSecurity: function PUIU_checkURLSecurity(aURINode, aWindow) {
     if (!PlacesUtils.nodeIsBookmark(aURINode)) {
       var uri = PlacesUtils._uri(aURINode.uri);
       if (uri.schemeIs("javascript") || uri.schemeIs("data")) {
@@ -794,11 +752,9 @@ var PlacesUIUtils = {
                              getService(Ci.nsIStringBundleService).
                              createBundle(BRANDING_BUNDLE_URI).
                              GetStringFromName("brandShortName");
-        var promptService = Cc["@mozilla.org/embedcomp/prompt-service;1"].
-                            getService(Ci.nsIPromptService);
 
         var errorStr = this.getString("load-js-data-url-error");
-        promptService.alert(window, brandShortName, errorStr);
+        Services.prompt.alert(aWindow, brandShortName, errorStr);
         return false;
       }
     }
@@ -813,7 +769,7 @@ var PlacesUIUtils = {
 
 
 
-  getDescriptionFromDocument: function PU_getDescriptionFromDocument(doc) {
+  getDescriptionFromDocument: function PUIU_getDescriptionFromDocument(doc) {
     var metaElements = doc.getElementsByTagName("META");
     for (var i = 0; i < metaElements.length; ++i) {
       if (metaElements[i].name.toLowerCase() == "description" ||
@@ -831,26 +787,23 @@ var PlacesUIUtils = {
 
 
 
-  getItemDescription: function PU_getItemDescription(aItemId) {
-    if (PlacesUtils.annotations.itemHasAnnotation(aItemId, DESCRIPTION_ANNO))
-      return PlacesUtils.annotations.getItemAnnotation(aItemId, DESCRIPTION_ANNO);
+  getItemDescription: function PUIU_getItemDescription(aItemId) {
+    if (PlacesUtils.annotations.itemHasAnnotation(aItemId, this.DESCRIPTION_ANNO))
+      return PlacesUtils.annotations.getItemAnnotation(aItemId, this.DESCRIPTION_ANNO);
     return "";
   },
 
   
 
 
-  _confirmOpenInTabs: function PU__confirmOpenInTabs(numTabsToOpen) {
-    var pref = Cc["@mozilla.org/preferences-service;1"].
-               getService(Ci.nsIPrefBranch);
-
-    const kWarnOnOpenPref = "browser.tabs.warnOnOpen";
+  _confirmOpenInTabs: function PUIU__confirmOpenInTabs(numTabsToOpen) {
+    let pref = Services.prefs;
+    let prompt = Services.prompt;
+    const WARN_ON_OPEN_PREF = "browser.tabs.warnOnOpen";
     var reallyOpen = true;
-    if (pref.getBoolPref(kWarnOnOpenPref)) {
-      if (numTabsToOpen >= pref.getIntPref("browser.tabs.maxOpenBeforeWarn")) {
-        var promptService = Cc["@mozilla.org/embedcomp/prompt-service;1"].
-                            getService(Ci.nsIPromptService);
 
+    if (pref.getBoolPref(WARN_ON_OPEN_PREF)) {
+      if (numTabsToOpen >= pref.getIntPref("browser.tabs.maxOpenBeforeWarn")) {
         
         var warnOnOpen = { value: true };
 
@@ -862,28 +815,32 @@ var PlacesUIUtils = {
                              createBundle(BRANDING_BUNDLE_URI).
                              GetStringFromName("brandShortName");
 
-        var buttonPressed = promptService.confirmEx(window,
+        var buttonPressed = prompt.confirmEx(
+          this._getCurrentActiveWin(),
           this.getString("tabs.openWarningTitle"),
           this.getFormattedString(messageKey, [numTabsToOpen, brandShortName]),
-          (promptService.BUTTON_TITLE_IS_STRING * promptService.BUTTON_POS_0)
-           + (promptService.BUTTON_TITLE_CANCEL * promptService.BUTTON_POS_1),
+          (prompt.BUTTON_TITLE_IS_STRING * prompt.BUTTON_POS_0) +
+            (prompt.BUTTON_TITLE_CANCEL * prompt.BUTTON_POS_1),
           this.getString(openKey), null, null,
           this.getFormattedString("tabs.openWarningPromptMeBranded",
-                                  [brandShortName]), warnOnOpen);
+                                  [brandShortName]),
+          warnOnOpen
+        );
 
         reallyOpen = (buttonPressed == 0);
         
         if (reallyOpen && !warnOnOpen.value)
-          pref.setBoolPref(kWarnOnOpenPref, false);
+          pref.setBoolPref(WARN_ON_OPEN_PREF, false);
       }
     }
+
     return reallyOpen;
   },
 
   
 
 
-  _openTabset: function PU__openTabset(aItemsToOpen, aEvent) {
+  _openTabset: function PUIU__openTabset(aItemsToOpen, aEvent) {
     if (!aItemsToOpen.length)
       return;
 
@@ -898,12 +855,13 @@ var PlacesUIUtils = {
       urls.push(item.uri);
     }
 
-    var browserWindow = getTopWin();
+    var browserWindow = this._getTopBrowserWin();
     var where = browserWindow ?
-                whereToOpenLink(aEvent, false, true) : "window";
+                browserWindow.whereToOpenLink(aEvent, false, true) : "window";
     if (where == "window") {
-      window.openDialog(getBrowserURL(), "_blank",
-                        "chrome,all,dialog=no", urls.join("|"));
+      let win = this._getCurrentActiveWin();
+      win.openDialog(win.getBrowserURL(), "_blank",
+                     "chrome,all,dialog=no", urls.join("|"));
       return;
     }
 
@@ -912,7 +870,7 @@ var PlacesUIUtils = {
     browserWindow.gBrowser.loadTabs(urls, loadInBackground, replaceCurrentTab);
   },
 
-  openContainerNodeInTabs: function PU_openContainerInTabs(aNode, aEvent) {
+  openContainerNodeInTabs: function PUIU_openContainerInTabs(aNode, aEvent) {
     var urlsToOpen = PlacesUtils.getURLsForContainerNode(aNode);
     if (!this._confirmOpenInTabs(urlsToOpen.length))
       return;
@@ -920,7 +878,7 @@ var PlacesUIUtils = {
     this._openTabset(urlsToOpen, aEvent);
   },
 
-  openURINodesInTabs: function PU_openURINodesInTabs(aNodes, aEvent) {
+  openURINodesInTabs: function PUIU_openURINodesInTabs(aNodes, aEvent) {
     var urlsToOpen = [];
     for (var i=0; i < aNodes.length; i++) {
       
@@ -940,8 +898,8 @@ var PlacesUIUtils = {
 
 
 
-  openNodeWithEvent: function PU_openNodeWithEvent(aNode, aEvent) {
-    this.openNodeIn(aNode, whereToOpenLink(aEvent));
+  openNodeWithEvent: function PUIU_openNodeWithEvent(aNode, aEvent) {
+    this.openNodeIn(aNode, this._getCurrentActiveWin().whereToOpenLink(aEvent));
   },
   
   
@@ -949,9 +907,9 @@ var PlacesUIUtils = {
 
 
 
-  openNodeIn: function PU_openNodeIn(aNode, aWhere) {
+  openNodeIn: function PUIU_openNodeIn(aNode, aWhere) {
     if (aNode && PlacesUtils.nodeIsURI(aNode) &&
-        this.checkURLSecurity(aNode)) {
+        this.checkURLSecurity(aNode, this._getCurrentActiveWin())) {
       var isBookmark = PlacesUtils.nodeIsBookmark(aNode);
 
       if (isBookmark)
@@ -963,15 +921,15 @@ var PlacesUIUtils = {
       
       if (aWhere == "current" && isBookmark) {
         if (PlacesUtils.annotations
-                       .itemHasAnnotation(aNode.itemId, LOAD_IN_SIDEBAR_ANNO)) {
-          var w = getTopWin();
-          if (w) {
-            w.openWebPanel(aNode.title, aNode.uri);
+                       .itemHasAnnotation(aNode.itemId, this.LOAD_IN_SIDEBAR_ANNO)) {
+          var browserWin = this._getTopBrowserWin();
+          if (browserWin) {
+            browserWin.openWebPanel(aNode.title, aNode.uri);
             return;
           }
         }
       }
-      openUILinkIn(aNode.uri, aWhere);
+      this._getCurrentActiveWin().openUILinkIn(aNode.uri, aWhere);
     }
   },
 
@@ -995,9 +953,11 @@ var PlacesUIUtils = {
   createMenuItemForNode:
   function PUU_createMenuItemForNode(aNode) {
     var element;
+    var document = this._getCurrentActiveWin().document;
     var type = aNode.type;
-    if (type == Ci.nsINavHistoryResultNode.RESULT_TYPE_SEPARATOR)
+    if (type == Ci.nsINavHistoryResultNode.RESULT_TYPE_SEPARATOR) {
       element = document.createElement("menuseparator");
+    }
     else {
       if (PlacesUtils.uriTypes.indexOf(type) != -1) {
         element = document.createElement("menuitem");
@@ -1054,7 +1014,7 @@ var PlacesUIUtils = {
     return element;
   },
 
-  cleanPlacesPopup: function PU_cleanPlacesPopup(aPopup) {
+  cleanPlacesPopup: function PUIU_cleanPlacesPopup(aPopup) {
     
     
     var start = aPopup._startMarker != -1 ? aPopup._startMarker + 1 : 0;
@@ -1077,10 +1037,11 @@ var PlacesUIUtils = {
       }
       else {
         
-        if (!placesNodeFound)
+        if (!placesNodeFound) {
           
           
           aPopup._startMarker++;
+        }
         else {
           
           aPopup._endMarker = i;
@@ -1096,7 +1057,7 @@ var PlacesUIUtils = {
     }
   },
 
-  getBestTitle: function PU_getBestTitle(aNode) {
+  getBestTitle: function PUIU_getBestTitle(aNode) {
     var title;
     if (!aNode.title && PlacesUtils.uriTypes.indexOf(aNode.type) != -1) {
       
@@ -1161,16 +1122,16 @@ var PlacesUIUtils = {
     
     function safeRemoveItem(aItemId) {
       try {
-        if (as.itemHasAnnotation(aItemId, ORGANIZER_QUERY_ANNO) &&
-            !(as.getItemAnnotation(aItemId, ORGANIZER_QUERY_ANNO) in queries)) {
+        if (as.itemHasAnnotation(aItemId, PlacesUIUtils.ORGANIZER_QUERY_ANNO) &&
+            !(as.getItemAnnotation(aItemId, PlacesUIUtils.ORGANIZER_QUERY_ANNO) in queries)) {
           
           
           return;
         }
         
         
-        as.removeItemAnnotation(aItemId, ORGANIZER_FOLDER_ANNO);
-        as.removeItemAnnotation(aItemId, ORGANIZER_QUERY_ANNO);
+        as.removeItemAnnotation(aItemId, PlacesUIUtils.ORGANIZER_FOLDER_ANNO);
+        as.removeItemAnnotation(aItemId, PlacesUIUtils.ORGANIZER_QUERY_ANNO);
         
         bs.removeItem(aItemId);
       }
@@ -1189,7 +1150,7 @@ var PlacesUIUtils = {
     }
 
     
-    let items = as.getItemsWithAnnotation(ORGANIZER_FOLDER_ANNO);
+    let items = as.getItemsWithAnnotation(this.ORGANIZER_FOLDER_ANNO);
     if (items.length > 1) {
       
       
@@ -1197,10 +1158,10 @@ var PlacesUIUtils = {
     }
     else if (items.length == 1 && items[0] != -1) {
       leftPaneRoot = items[0];
-
       
-      let version = as.getItemAnnotation(leftPaneRoot, ORGANIZER_FOLDER_ANNO);
-      if (version != ORGANIZER_LEFTPANE_VERSION || !itemExists(leftPaneRoot)) {
+      let version = as.getItemAnnotation(leftPaneRoot, this.ORGANIZER_FOLDER_ANNO);
+      if (version != this.ORGANIZER_LEFTPANE_VERSION ||
+          !itemExists(leftPaneRoot)) {
         
         safeRemoveItem(leftPaneRoot);
         leftPaneRoot = -1;
@@ -1214,11 +1175,12 @@ var PlacesUIUtils = {
       delete this.leftPaneQueries;
       this.leftPaneQueries = {};
 
-      let items = as.getItemsWithAnnotation(ORGANIZER_QUERY_ANNO);
+      let items = as.getItemsWithAnnotation(this.ORGANIZER_QUERY_ANNO);
       
       let queriesCount = 0;
-      for(let i = 0; i < items.length; i++) {
-        let queryName = as.getItemAnnotation(items[i], ORGANIZER_QUERY_ANNO);
+      for (let i = 0; i < items.length; i++) {
+        let queryName = as.getItemAnnotation(items[i], this.ORGANIZER_QUERY_ANNO);
+
         
         
         if (!(queryName in queries))
@@ -1269,7 +1231,6 @@ var PlacesUIUtils = {
     }
 
     
-    var self = this;
     var callback = {
       
       create_query: function CB_create_query(aQueryName, aParentId, aQueryUrl) {
@@ -1278,13 +1239,13 @@ var PlacesUIUtils = {
                                        bs.DEFAULT_INDEX,
                                        queries[aQueryName].title);
         
-        as.setItemAnnotation(itemId, ORGANIZER_QUERY_ANNO, aQueryName,
+        as.setItemAnnotation(itemId, PlacesUIUtils.ORGANIZER_QUERY_ANNO, aQueryName,
                              0, as.EXPIRE_NEVER);
         
         as.setItemAnnotation(itemId, PlacesUtils.EXCLUDE_FROM_BACKUP_ANNO, 1,
                              0, as.EXPIRE_NEVER);
         
-        self.leftPaneQueries[aQueryName] = itemId;
+        PlacesUIUtils.leftPaneQueries[aQueryName] = itemId;
         return itemId;
       },
 
@@ -1302,22 +1263,22 @@ var PlacesUIUtils = {
 
         if (aIsRoot) {
           
-          as.setItemAnnotation(folderId, ORGANIZER_FOLDER_ANNO,
-                               ORGANIZER_LEFTPANE_VERSION,
+          as.setItemAnnotation(folderId, PlacesUIUtils.ORGANIZER_FOLDER_ANNO,
+                               PlacesUIUtils.ORGANIZER_LEFTPANE_VERSION,
                                0, as.EXPIRE_NEVER);
         }
         else {
           
-          as.setItemAnnotation(folderId, ORGANIZER_QUERY_ANNO, aFolderName,
+          as.setItemAnnotation(folderId, PlacesUIUtils.ORGANIZER_QUERY_ANNO, aFolderName,
                            0, as.EXPIRE_NEVER);
-          self.leftPaneQueries[aFolderName] = folderId;
+          PlacesUIUtils.leftPaneQueries[aFolderName] = folderId;
         }
         return folderId;
       },
 
       runBatched: function CB_runBatched(aUserData) {
-        delete self.leftPaneQueries;
-        self.leftPaneQueries = { };
+        delete PlacesUIUtils.leftPaneQueries;
+        PlacesUIUtils.leftPaneQueries = { };
 
         
         leftPaneRoot = this.create_folder("PlacesRoot", bs.placesRoot, true);
@@ -1377,14 +1338,14 @@ var PlacesUIUtils = {
 
 
 
-  getLeftPaneQueryNameFromId: function PU_getLeftPaneQueryNameFromId(aItemId) {
+  getLeftPaneQueryNameFromId: function PUIU_getLeftPaneQueryNameFromId(aItemId) {
     var queryName = "";
     
     
     if (this.__lookupGetter__("leftPaneFolderId")) {
       try {
         queryName = PlacesUtils.annotations.
-                                getItemAnnotation(aItemId, ORGANIZER_QUERY_ANNO);
+                                getItemAnnotation(aItemId, this.ORGANIZER_QUERY_ANNO);
       }
       catch (ex) {
         
@@ -1408,7 +1369,7 @@ var PlacesUIUtils = {
 
 
   ensureLivemarkStatusMenuItem:
-  function PU_ensureLivemarkStatusMenuItem(aPopup) {
+  function PUIU_ensureLivemarkStatusMenuItem(aPopup) {
     var itemId = aPopup._resultNode.itemId;
 
     var lmStatus = null;
@@ -1421,6 +1382,7 @@ var PlacesUIUtils = {
 
     if (lmStatus && !aPopup._lmStatusMenuItem) {
       
+      let document = this._getCurrentActiveWin().document;
       aPopup._lmStatusMenuItem = document.createElement("menuitem");
       aPopup._lmStatusMenuItem.setAttribute("lmStatus", lmStatus);
       aPopup._lmStatusMenuItem.setAttribute("label", this.getString(lmStatus));
@@ -1443,3 +1405,40 @@ var PlacesUIUtils = {
     }
   }
 };
+
+XPCOMUtils.defineLazyServiceGetter(PlacesUIUtils, "RDF",
+                                   "@mozilla.org/rdf/rdf-service;1",
+                                   "nsIRDFService");
+
+XPCOMUtils.defineLazyGetter(PlacesUIUtils, "localStore", function() {
+  return PlacesUIUtils.RDF.GetDataSource("rdf:local-store");
+});
+
+XPCOMUtils.defineLazyServiceGetter(PlacesUIUtils, "ptm",
+                                   "@mozilla.org/browser/placesTransactionsService;1",
+                                   "nsIPlacesTransactionsService");
+
+XPCOMUtils.defineLazyServiceGetter(PlacesUIUtils, "URIFixup",
+                                   "@mozilla.org/docshell/urifixup;1",
+                                   "nsIURIFixup");
+
+XPCOMUtils.defineLazyGetter(PlacesUIUtils, "ellipsis", function() {
+  return Services.prefs.getComplexValue("intl.ellipsis",
+                                        Ci.nsIPrefLocalizedString).data;
+});
+
+XPCOMUtils.defineLazyServiceGetter(PlacesUIUtils, "privateBrowsing",
+                                   "@mozilla.org/privatebrowsing;1",
+                                   "nsIPrivateBrowsingService");
+
+XPCOMUtils.defineLazyGetter(PlacesUIUtils, "_bundle", function() {
+  const PLACES_STRING_BUNDLE_URI =
+    "chrome://browser/locale/places/places.properties";
+  return Cc["@mozilla.org/intl/stringbundle;1"].
+         getService(Ci.nsIStringBundleService).
+         createBundle(PLACES_STRING_BUNDLE_URI);
+});
+
+XPCOMUtils.defineLazyServiceGetter(PlacesUIUtils, "fm",
+                                   "@mozilla.org/focus-manager;1",
+                                   "nsIFocusManager");

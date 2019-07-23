@@ -60,7 +60,7 @@ function windowObserver(aSubject, aTopic, aData) {
          "Left pane folder correctly created");
       var leftPaneItems =
         PlacesUtils.annotations
-                   .getItemsWithAnnotation(ORGANIZER_FOLDER_ANNO);
+                   .getItemsWithAnnotation(PlacesUIUtils.ORGANIZER_FOLDER_ANNO);
       is(leftPaneItems.length, 1,
          "We correctly have only 1 left pane folder");
       var leftPaneRoot = leftPaneItems[0];
@@ -69,8 +69,8 @@ function windowObserver(aSubject, aTopic, aData) {
       
       var version =
         PlacesUtils.annotations.getItemAnnotation(leftPaneRoot,
-                                                  ORGANIZER_FOLDER_ANNO);
-      is(version, ORGANIZER_LEFTPANE_VERSION,
+                                                  PlacesUIUtils.ORGANIZER_FOLDER_ANNO);
+      is(version, PlacesUIUtils.ORGANIZER_LEFTPANE_VERSION,
          "Left pane version has been correctly upgraded");
 
       
@@ -92,20 +92,20 @@ function test() {
   
   ok(PlacesUtils, "PlacesUtils is running in chrome context");
   ok(PlacesUIUtils, "PlacesUIUtils is running in chrome context");
-  ok(ORGANIZER_LEFTPANE_VERSION > 0,
-     "Left pane version in chrome context, current version is: " + ORGANIZER_LEFTPANE_VERSION );
+  ok(PlacesUIUtils.ORGANIZER_LEFTPANE_VERSION > 0,
+     "Left pane version in chrome context, current version is: " + PlacesUIUtils.ORGANIZER_LEFTPANE_VERSION );
 
   
   var leftPaneItems = PlacesUtils.annotations
-                                 .getItemsWithAnnotation(ORGANIZER_FOLDER_ANNO);
+                                 .getItemsWithAnnotation(PlacesUIUtils.ORGANIZER_FOLDER_ANNO);
   if (leftPaneItems.length > 0) {
     
     
     is(leftPaneItems.length, 1, "We correctly have only 1 left pane folder");
     
     var version = PlacesUtils.annotations.getItemAnnotation(leftPaneItems[0],
-                                                            ORGANIZER_FOLDER_ANNO);
-    is(version, ORGANIZER_LEFTPANE_VERSION, "Left pane version is actual");
+                                                            PlacesUIUtils.ORGANIZER_FOLDER_ANNO);
+    is(version, PlacesUIUtils.ORGANIZER_LEFTPANE_VERSION, "Left pane version is actual");
     ok(true, "left pane has already been created, skipping test");
     finish();
     return;
@@ -116,21 +116,21 @@ function test() {
     PlacesUtils.bookmarks.createFolder(PlacesUtils.placesRootId, "",
                                        PlacesUtils.bookmarks.DEFAULT_INDEX);
   PlacesUtils.annotations.setItemAnnotation(fakeLeftPaneRoot,
-                                            ORGANIZER_FOLDER_ANNO,
-                                            ORGANIZER_LEFTPANE_VERSION - 1,
+                                            PlacesUIUtils.ORGANIZER_FOLDER_ANNO,
+                                            PlacesUIUtils.ORGANIZER_LEFTPANE_VERSION - 1,
                                             0,
                                             PlacesUtils.annotations.EXPIRE_NEVER);
 
   
   var leftPaneItems =
-    PlacesUtils.annotations.getItemsWithAnnotation(ORGANIZER_FOLDER_ANNO);
+    PlacesUtils.annotations.getItemsWithAnnotation(PlacesUIUtils.ORGANIZER_FOLDER_ANNO);
   is(leftPaneItems.length, 1, "We correctly have only 1 left pane folder");
   is(leftPaneItems[0], fakeLeftPaneRoot, "left pane root itemId is correct");
 
   
   var version = PlacesUtils.annotations.getItemAnnotation(fakeLeftPaneRoot,
-                                                          ORGANIZER_FOLDER_ANNO);
-  is(version, ORGANIZER_LEFTPANE_VERSION - 1, "Left pane version correctly set");
+                                                          PlacesUIUtils.ORGANIZER_FOLDER_ANNO);
+  is(version, PlacesUIUtils.ORGANIZER_LEFTPANE_VERSION - 1, "Left pane version correctly set");
 
   
   ww.registerNotification(windowObserver);

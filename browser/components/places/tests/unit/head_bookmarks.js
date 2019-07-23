@@ -53,6 +53,16 @@ let (commonFile = do_get_file("../../test_places/head_common.js", false)) {
 
 
 
+XPCOMUtils.defineLazyGetter(this, "PlacesUIUtils", function() {
+  Cu.import("resource://gre/modules/PlacesUIUtils.jsm");
+  return PlacesUIUtils;
+});
+
+
+const ORGANIZER_FOLDER_ANNO = "PlacesOrganizer/OrganizerFolder";
+const ORGANIZER_QUERY_ANNO = "PlacesOrganizer/OrganizerQuery";
+
+
 
 let (XULAppInfo = {
   vendor: "Mozilla",
