@@ -151,13 +151,27 @@ public:
   
   virtual nsresult SetFormProperty(nsIAtom* aName, const nsAString& aValue);
   virtual nsresult GetFormProperty(nsIAtom* aName, nsAString& aValue) const; 
+  
+
+
+
+
+
+
+
   virtual void SetFocus(PRBool aOn, PRBool aRepaint);
 
   
   virtual PRBool IsDroppedDown() { return mDroppedDown; }
+  
+
+
   virtual void ShowDropDown(PRBool aDoDropDown);
   virtual nsIFrame* GetDropDown();
   virtual void SetDropDown(nsIFrame* aDropDownFrame);
+  
+
+
   virtual void RollupFromList();
   virtual void AbsolutelyPositionDropDown();
   virtual PRInt32 GetIndexOfDisplayArea();
@@ -177,15 +191,21 @@ public:
 
   
   
+
+
+
   NS_IMETHOD Rollup();
-   
-   
-  NS_IMETHOD ShouldRollupOnMouseWheelEvent(PRBool *aShouldRollup)
-    { *aShouldRollup = PR_TRUE; return NS_OK;}
-  
   
 
+
+
+  NS_IMETHOD ShouldRollupOnMouseWheelEvent(PRBool *aShouldRollup)
+    { *aShouldRollup = PR_TRUE; return NS_OK;}
+
   
+
+
+
   NS_IMETHOD ShouldRollupOnMouseActivate(PRBool *aShouldRollup)
     { *aShouldRollup = PR_FALSE; return NS_OK;}
 
@@ -217,14 +237,24 @@ protected:
     nsComboboxControlFrame *mControlFrame;
   };
   
+  
+
+
+
   void ShowPopup(PRBool aShowPopup);
-  void ShowList(nsPresContext* aPresContext, PRBool aShowList);
+
+  
+
+
+
+
+
+  PRBool ShowList(nsPresContext* aPresContext, PRBool aShowList);
   void CheckFireOnChange();
   void FireValueChangeEvent();
   nsresult RedisplayText(PRInt32 aIndex);
   void HandleRedisplayTextEvent();
   void ActuallyDisplayText(PRBool aNotify);
-  NS_IMETHOD ToggleList(nsPresContext* aPresContext);
 
   nsFrameList              mPopupFrames;             
   nsCOMPtr<nsIContent>     mDisplayContent;          

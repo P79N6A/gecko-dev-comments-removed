@@ -1141,10 +1141,6 @@ nsListControlFrame::Init(nsIContent*     aContent,
   return result;
 }
 
-
-
-
-
 PRBool
 nsListControlFrame::GetMultiple(nsIDOMHTMLSelectElement* aSelect) const
 {
@@ -1166,11 +1162,6 @@ nsListControlFrame::GetMultiple(nsIDOMHTMLSelectElement* aSelect) const
   return PR_FALSE;
 }
 
-
-
-
-
-
 already_AddRefed<nsIContent> 
 nsListControlFrame::GetOptionAsContent(nsIDOMHTMLOptionsCollection* aCollection, PRInt32 aIndex) 
 {
@@ -1187,10 +1178,6 @@ nsListControlFrame::GetOptionAsContent(nsIDOMHTMLOptionsCollection* aCollection,
   return content;
 }
 
-
-
-
-
 already_AddRefed<nsIContent> 
 nsListControlFrame::GetOptionContent(PRInt32 aIndex) const
   
@@ -1204,9 +1191,6 @@ nsListControlFrame::GetOptionContent(PRInt32 aIndex) const
   return nsnull;
 }
 
-
-
-
 already_AddRefed<nsIDOMHTMLOptionsCollection>
 nsListControlFrame::GetOptions(nsIContent * aContent)
 {
@@ -1218,10 +1202,6 @@ nsListControlFrame::GetOptions(nsIContent * aContent)
 
   return options;
 }
-
-
-
-
 
 already_AddRefed<nsIDOMHTMLOptionElement>
 nsListControlFrame::GetOption(nsIDOMHTMLOptionsCollection* aCollection,
@@ -1243,12 +1223,6 @@ nsListControlFrame::GetOption(nsIDOMHTMLOptionsCollection* aCollection,
   return nsnull;
 }
 
-
-
-
-
-
-
 PRBool 
 nsListControlFrame::IsContentSelected(nsIContent* aContent) const
 {
@@ -1261,10 +1235,6 @@ nsListControlFrame::IsContentSelected(nsIContent* aContent) const
   return isSelected;
 }
 
-
-
-
-
 PRBool 
 nsListControlFrame::IsContentSelectedByIndex(PRInt32 aIndex) const 
 {
@@ -1273,10 +1243,6 @@ nsListControlFrame::IsContentSelectedByIndex(PRInt32 aIndex) const
 
   return IsContentSelected(content);
 }
-
-
-
-
 
 NS_IMETHODIMP
 nsListControlFrame::OnOptionSelected(nsPresContext* aPresContext,
@@ -1289,7 +1255,6 @@ nsListControlFrame::OnOptionSelected(nsPresContext* aPresContext,
   return NS_OK;
 }
 
-
 PRIntn
 nsListControlFrame::GetSkipSides() const
 {    
@@ -1297,16 +1262,11 @@ nsListControlFrame::GetSkipSides() const
   return 0;
 }
 
-
 void
 nsListControlFrame::OnContentReset()
 {
   ResetList(PR_TRUE);
 }
-
-
-
-
 
 void 
 nsListControlFrame::ResetList(PRBool aAllowScrolling)
@@ -1337,7 +1297,6 @@ nsListControlFrame::ResetList(PRBool aAllowScrolling)
   
 } 
  
-
 void 
 nsListControlFrame::SetFocus(PRBool aOn, PRBool aRepaint)
 {
@@ -1357,7 +1316,6 @@ void nsListControlFrame::ComboboxFocusSet()
   gLastKeyTime = 0;
 }
 
-
 void
 nsListControlFrame::SetComboboxFrame(nsIFrame* aComboboxFrame)
 {
@@ -1365,12 +1323,6 @@ nsListControlFrame::SetComboboxFrame(nsIFrame* aComboboxFrame)
     aComboboxFrame->QueryInterface(NS_GET_IID(nsIComboboxControlFrame),(void**) &mComboboxFrame); 
   }
 }
-
-
-
-
-
-
 
 void
 nsListControlFrame::GetOptionText(PRInt32 aIndex, nsAString & aStr)
@@ -1413,7 +1365,6 @@ nsListControlFrame::GetOptionText(PRInt32 aIndex, nsAString & aStr)
   }
 }
 
-
 PRInt32
 nsListControlFrame::GetSelectedIndex()
 {
@@ -1425,13 +1376,11 @@ nsListControlFrame::GetSelectedIndex()
   return aIndex;
 }
 
-
 PRBool 
 nsListControlFrame::IsInDropDownMode() const
 {
   return (mComboboxFrame != nsnull);
 }
-
 
 PRInt32
 nsListControlFrame::GetNumberOfOptions()
@@ -1468,7 +1417,6 @@ PRBool nsListControlFrame::CheckIfAllFramesHere()
   return mIsAllFramesHere;
 }
 
-
 NS_IMETHODIMP
 nsListControlFrame::DoneAddingChildren(PRBool aIsDone)
 {
@@ -1487,7 +1435,6 @@ nsListControlFrame::DoneAddingChildren(PRBool aIsDone)
   }
   return NS_OK;
 }
-
 
 NS_IMETHODIMP
 nsListControlFrame::AddOption(nsPresContext* aPresContext, PRInt32 aIndex)
@@ -1515,7 +1462,6 @@ nsListControlFrame::AddOption(nsPresContext* aPresContext, PRInt32 aIndex)
   mPostChildrenLoadedReset = mIsAllContentHere;
   return NS_OK;
 }
-
 
 NS_IMETHODIMP
 nsListControlFrame::RemoveOption(nsPresContext* aPresContext, PRInt32 aIndex)
@@ -1633,7 +1579,7 @@ nsListControlFrame::ComboboxFinish(PRInt32 aIndex)
       mComboboxFrame->RedisplaySelectedText();
     }
 
-    mComboboxFrame->RollupFromList();
+    mComboboxFrame->RollupFromList(); 
   }
 }
 
@@ -1661,7 +1607,6 @@ nsListControlFrame::FireOnChange()
     presShell->HandleEventWithTarget(&event, this, nsnull, &status);
   }
 }
-
 
 
 NS_IMETHODIMP
@@ -1695,7 +1640,6 @@ nsListControlFrame::OnSetSelectedIndex(PRInt32 aOldIndex, PRInt32 aNewIndex)
 
 
 
-
 nsresult
 nsListControlFrame::SetFormProperty(nsIAtom* aName,
                                 const nsAString& aValue)
@@ -1712,7 +1656,6 @@ nsListControlFrame::SetFormProperty(nsIAtom* aName,
 
   return NS_OK;
 }
-
 
 nsresult 
 nsListControlFrame::GetFormProperty(nsIAtom* aName, nsAString& aValue) const
@@ -1737,7 +1680,6 @@ nsListControlFrame::GetFormProperty(nsIAtom* aName, nsAString& aValue) const
   return NS_OK;
 }
 
-
 void
 nsListControlFrame::SyncViewWithFrame()
 {
@@ -1750,7 +1692,6 @@ nsListControlFrame::SyncViewWithFrame()
   nsContainerFrame::PositionFrameView(this);
 }
 
-
 void
 nsListControlFrame::AboutToDropDown()
 {
@@ -1762,7 +1703,6 @@ nsListControlFrame::AboutToDropDown()
   }
   mItemSelectionStarted = PR_FALSE;
 }
-
 
 
 void
@@ -1778,10 +1718,9 @@ nsListControlFrame::AboutToRollup()
   
 
   if (IsInDropDownMode()) {
-    ComboboxFinish(mComboboxFrame->GetIndexOfDisplayArea());
+    ComboboxFinish(mComboboxFrame->GetIndexOfDisplayArea()); 
   }
 }
-
 
 NS_IMETHODIMP
 nsListControlFrame::DidReflow(nsPresContext*           aPresContext,
@@ -1849,13 +1788,11 @@ nsListControlFrame::GetFrameName(nsAString& aResult) const
 }
 #endif
 
-
 nscoord
 nsListControlFrame::GetHeightOfARow()
 {
   return HeightOfARow();
 }
-
 
 nsresult
 nsListControlFrame::IsOptionDisabled(PRInt32 anIndex, PRBool &aIsDisabled)
@@ -2036,7 +1973,10 @@ nsListControlFrame::MouseUp(nsIDOMEvent* aMouseEvent)
       }
 
       if (kNothingSelected != selectedIndex) {
+        nsWeakFrame weakFrame(this);
         ComboboxFinish(selectedIndex);
+        if (!weakFrame.IsAlive())
+          return NS_OK;
         FireOnChange();
       }
 
@@ -2054,19 +1994,10 @@ nsListControlFrame::MouseUp(nsIDOMEvent* aMouseEvent)
       mChangesSinceDragStart = PR_FALSE;
       FireOnChange();
     }
-#if 0 
-    if (mSelectedIndex != mStartExtendedIndex) {
-      mEndExtendedIndex = mSelectedIndex;
-    }
-#endif
   }
 
   return NS_OK;
 }
-
-
-
-
 
 void
 nsListControlFrame::UpdateInListState(nsIDOMEvent* aEvent)
@@ -2081,16 +2012,6 @@ nsListControlFrame::UpdateInListState(nsIDOMEvent* aEvent)
   }
 }
 
-
-
-
-
-
-
-
-
-
-
 PRBool nsListControlFrame::IgnoreMouseEventForSelection(nsIDOMEvent* aEvent)
 {
   if (!mComboboxFrame)
@@ -2103,10 +2024,6 @@ PRBool nsListControlFrame::IgnoreMouseEventForSelection(nsIDOMEvent* aEvent)
 
   return !mItemSelectionStarted;
 }
-
-
-
-
 
 #ifdef ACCESSIBILITY
 void
@@ -2136,12 +2053,6 @@ nsListControlFrame::FireMenuItemActiveEvent()
   FireDOMEvent(NS_LITERAL_STRING("DOMMenuItemActive"), optionContent);
 }
 #endif
-
-
-
-
-
-
 
 nsresult
 nsListControlFrame::GetIndexFromDOMEvent(nsIDOMEvent* aMouseEvent, 
@@ -2211,7 +2122,6 @@ nsListControlFrame::GetIndexFromDOMEvent(nsIDOMEvent* aMouseEvent,
   return NS_ERROR_FAILURE;
 }
 
-
 nsresult
 nsListControlFrame::MouseDown(nsIDOMEvent* aMouseEvent)
 {
@@ -2262,7 +2172,12 @@ nsListControlFrame::MouseDown(nsIDOMEvent* aMouseEvent)
       if (!nsComboboxControlFrame::ToolkitHasNativePopup())
       {
         PRBool isDroppedDown = mComboboxFrame->IsDroppedDown();
+        nsIFrame* comboFrame;
+        CallQueryInterface(mComboboxFrame, &comboFrame);
+        nsWeakFrame weakFrame(comboFrame);
         mComboboxFrame->ShowDropDown(!isDroppedDown);
+        if (!weakFrame.IsAlive())
+          return NS_OK;
         if (isDroppedDown) {
           CaptureMouseEvents(PR_FALSE);
         }
@@ -2335,6 +2250,9 @@ nsListControlFrame::DragMove(nsIDOMEvent* aMouseEvent)
   return NS_OK;
 }
 
+
+
+
 nsresult
 nsListControlFrame::ScrollToIndex(PRInt32 aIndex)
 {
@@ -2351,7 +2269,6 @@ nsListControlFrame::ScrollToIndex(PRInt32 aIndex)
 
   return NS_ERROR_FAILURE;
 }
-
 
 nsresult
 nsListControlFrame::ScrollToFrame(nsIContent* aOptElement)
@@ -2538,9 +2455,14 @@ nsListControlFrame::DropDownToggleKey(nsIDOMEvent* aKeyEvent)
   
   
   if (IsInDropDownMode() && !nsComboboxControlFrame::ToolkitHasNativePopup()) {
-    mComboboxFrame->ShowDropDown(!mComboboxFrame->IsDroppedDown());
-    mComboboxFrame->RedisplaySelectedText();
     aKeyEvent->PreventDefault();
+    nsIFrame* comboFrame;
+    CallQueryInterface(mComboboxFrame, &comboFrame);
+    nsWeakFrame weakFrame(comboFrame);
+    mComboboxFrame->ShowDropDown(!mComboboxFrame->IsDroppedDown());
+    if (!weakFrame.IsAlive())
+      return;
+    mComboboxFrame->RedisplaySelectedText();
   }
 }
 
@@ -2628,7 +2550,10 @@ nsListControlFrame::KeyPress(nsIDOMEvent* aKeyEvent)
     case nsIDOMKeyEvent::DOM_VK_RETURN: {
       if (mComboboxFrame != nsnull) {
         if (mComboboxFrame->IsDroppedDown()) {
+          nsWeakFrame weakFrame(this);
           ComboboxFinish(mEndSelectionIndex);
+          if (!weakFrame.IsAlive())
+            return NS_OK;
         }
         FireOnChange();
         return NS_OK;
@@ -2638,8 +2563,13 @@ nsListControlFrame::KeyPress(nsIDOMEvent* aKeyEvent)
       } break;
 
     case nsIDOMKeyEvent::DOM_VK_ESCAPE: {
+      nsWeakFrame weakFrame(this);
       AboutToRollup();
-      } break;
+      if (!weakFrame.IsAlive()) {
+        aKeyEvent->PreventDefault(); 
+        return NS_OK;
+      }
+    } break;
 
     case nsIDOMKeyEvent::DOM_VK_PAGE_UP: {
       AdjustIndexForDisabledOpt(mEndSelectionIndex, newIndex,

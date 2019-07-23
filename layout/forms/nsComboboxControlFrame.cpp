@@ -140,7 +140,7 @@ class nsComboButtonListener: public nsIDOMMouseListener
   NS_IMETHOD MouseClick(nsIDOMEvent* aMouseEvent) 
   {
     mComboBox->ShowDropDown(!mComboBox->IsDroppedDown());
-    return PR_FALSE; 
+    return NS_OK; 
   }
 
   nsComboButtonListener(nsComboboxControlFrame* aCombobox) 
@@ -346,7 +346,10 @@ nsComboboxControlFrame::SetFocus(PRBool aOn, PRBool aRepaint)
   } else {
     mFocused = nsnull;
     if (mDroppedDown) {
-      mListControlFrame->ComboboxFinish(mDisplayedIndex);
+      mListControlFrame->ComboboxFinish(mDisplayedIndex); 
+      if (!weakFrame.IsAlive()) {
+        return;
+      }
     }
     
     mListControlFrame->FireOnChange();
@@ -399,44 +402,45 @@ nsComboboxControlFrame::ShowPopup(PRBool aShowPopup)
     shell->HandleDOMEventWithTarget(mContent, &event, &status);
 }
 
-
-
-void 
+PRBool
 nsComboboxControlFrame::ShowList(nsPresContext* aPresContext, PRBool aShowList)
 {
-  nsIWidget* widget = nsnull;
+  nsCOMPtr<nsIPresShell> shell = PresContext()->GetPresShell();
+
+  nsWeakFrame weakFrame(this);
+  ShowPopup(aShowList);  
+  if (!weakFrame.IsAlive()) {
+    return PR_FALSE;
+  }
+
+  mDroppedDown = aShowList;
+  if (mDroppedDown) {
+    
+    
+    mListControlFrame->AboutToDropDown();
+    mListControlFrame->CaptureMouseEvents(PR_TRUE);
+  }
 
   
-  nsIFrame * listFrame;
-  if (NS_OK == mListControlFrame->QueryInterface(NS_GET_IID(nsIFrame), (void **)&listFrame)) {
+  shell->GetDocument()->FlushPendingNotifications(Flush_OnlyReflow);
+  if (!weakFrame.IsAlive()) {
+    NS_ERROR("Flush_OnlyReflow destroyed the frame");
+    return PR_FALSE;
+  }
+
+  nsIFrame* listFrame;
+  CallQueryInterface(mListControlFrame, &listFrame);
+  if (listFrame) {
     nsIView* view = listFrame->GetView();
     NS_ASSERTION(view, "nsComboboxControlFrame view is null");
     if (view) {
-    	widget = view->GetWidget();
+      nsIWidget* widget = view->GetWidget();
+      if (widget)
+        widget->CaptureRollupEvents(this, mDroppedDown, mDroppedDown);
     }
   }
 
-  if (PR_TRUE == aShowList) {
-    ShowPopup(PR_TRUE);
-    mDroppedDown = PR_TRUE;
-
-     
-     
-    mListControlFrame->AboutToDropDown();
-    mListControlFrame->CaptureMouseEvents(PR_TRUE);
-
-  } else {
-    ShowPopup(PR_FALSE);
-    mDroppedDown = PR_FALSE;
-  }
-
-  
-  aPresContext->PresShell()->
-    GetDocument()->FlushPendingNotifications(Flush_OnlyReflow);
-
-  if (widget)
-    widget->CaptureRollupEvents((nsIRollupListener *)this, mDroppedDown, aShowList);
-
+  return weakFrame.IsAlive();
 }
 
 nsresult
@@ -736,9 +740,9 @@ nsComboboxControlFrame::ShowDropDown(PRBool aDoDropDown)
     if (mListControlFrame) {
       mListControlFrame->SyncViewWithFrame();
     }
-    ToggleList(PresContext());
+    ShowList(PresContext(), aDoDropDown); 
   } else if (mDroppedDown && !aDoDropDown) {
-    ToggleList(PresContext());
+    ShowList(PresContext(), aDoDropDown); 
   }
 }
 
@@ -754,16 +758,6 @@ nsIFrame*
 nsComboboxControlFrame::GetDropDown() 
 {
   return mDropdownFrame;
-}
-
-
-
-NS_IMETHODIMP 
-nsComboboxControlFrame::ToggleList(nsPresContext* aPresContext)
-{
-  ShowList(aPresContext, (PR_FALSE == mDroppedDown));
-
-  return NS_OK;
 }
 
 
@@ -1193,7 +1187,7 @@ nsComboboxControlFrame::Destroy()
       if (view) {
         nsIWidget* widget = view->GetWidget();
         if (widget)
-          widget->CaptureRollupEvents((nsIRollupListener *)this, PR_FALSE, PR_TRUE);
+          widget->CaptureRollupEvents(this, PR_FALSE, PR_TRUE);
       }
     }
   }
@@ -1262,8 +1256,13 @@ NS_IMETHODIMP
 nsComboboxControlFrame::Rollup()
 {
   if (mDroppedDown) {
-    mListControlFrame->AboutToRollup();
-    ShowDropDown(PR_FALSE);
+    nsWeakFrame weakFrame(this);
+    mListControlFrame->AboutToRollup(); 
+    if (!weakFrame.IsAlive())
+      return NS_OK;
+    ShowDropDown(PR_FALSE); 
+    if (!weakFrame.IsAlive())
+      return NS_OK;
     mListControlFrame->CaptureMouseEvents(PR_FALSE);
   }
   return NS_OK;
@@ -1272,10 +1271,8 @@ nsComboboxControlFrame::Rollup()
 void
 nsComboboxControlFrame::RollupFromList()
 {
-  nsPresContext* aPresContext = PresContext();
-
-  ShowList(aPresContext, PR_FALSE);
-  mListControlFrame->CaptureMouseEvents(PR_FALSE);
+  if (ShowList(PresContext(), PR_FALSE))
+    mListControlFrame->CaptureMouseEvents(PR_FALSE);
 }
 
 PRInt32

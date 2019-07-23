@@ -156,14 +156,35 @@ public:
     
   virtual void SetComboboxFrame(nsIFrame* aComboboxFrame);
   virtual PRInt32 GetSelectedIndex(); 
+
+  
+
+
+
+
   virtual void GetOptionText(PRInt32 aIndex, nsAString & aStr);
+
   virtual void CaptureMouseEvents(PRBool aGrabMouseEvents);
   virtual nscoord GetHeightOfARow();
   virtual PRInt32 GetNumberOfOptions();  
   virtual void SyncViewWithFrame();
   virtual void AboutToDropDown();
+
+  
+
+
   virtual void AboutToRollup();
+
+  
+
+
+
   virtual void FireOnChange();
+
+  
+
+
+
   virtual void ComboboxFinish(PRInt32 aIndex);
   virtual void OnContentReset();
 
@@ -172,6 +193,11 @@ public:
   NS_IMETHOD RemoveOption(nsPresContext* aPresContext, PRInt32 index);
   NS_IMETHOD GetOptionSelected(PRInt32 aIndex, PRBool* aValue);
   NS_IMETHOD DoneAddingChildren(PRBool aIsDone);
+
+  
+
+
+
   NS_IMETHOD OnOptionSelected(nsPresContext* aPresContext,
                               PRInt32 aIndex,
                               PRBool aSelected);
@@ -189,10 +215,22 @@ public:
   nsresult KeyPress(nsIDOMEvent* aKeyEvent);
 
   
+
+
   static already_AddRefed<nsIDOMHTMLOptionsCollection>
     GetOptions(nsIContent * aContent);
+
+  
+
+
+
   static already_AddRefed<nsIDOMHTMLOptionElement>
     GetOption(nsIDOMHTMLOptionsCollection* aOptions, PRInt32 aIndex);
+
+  
+
+
+
   static already_AddRefed<nsIContent>
     GetOptionAsContent(nsIDOMHTMLOptionsCollection* aCollection,PRInt32 aIndex);
 
@@ -232,21 +270,61 @@ public:
   PRBool IsInDropDownMode() const;
 
 #ifdef ACCESSIBILITY
+  
+
+
+
+
   void FireMenuItemActiveEvent(); 
 #endif
 
 protected:
   
+
+
+
   PRBool     UpdateSelection();
+
+  
+
+
+
   PRBool     GetMultiple(nsIDOMHTMLSelectElement* aSelect = nsnull) const;
+
+  
+
+
+
   void       DropDownToggleKey(nsIDOMEvent* aKeyEvent);
+
   nsresult   IsOptionDisabled(PRInt32 anIndex, PRBool &aIsDisabled);
   nsresult   ScrollToFrame(nsIContent * aOptElement);
   nsresult   ScrollToIndex(PRInt32 anIndex);
+
+  
+
+
+
+
+
+
+
+
+
   PRBool     IgnoreMouseEventForSelection(nsIDOMEvent* aEvent);
+
+  
+
+
+
   void       UpdateInListState(nsIDOMEvent* aEvent);
   void       AdjustIndexForDisabledOpt(PRInt32 aStartIndex, PRInt32 &anNewIndex,
                                        PRInt32 aNumOptions, PRInt32 aDoAdjustInc, PRInt32 aDoAdjustIncNext);
+
+  
+
+
+
   virtual void ResetList(PRBool aAllowScrolling);
 
   nsListControlFrame(nsIPresShell* aShell, nsIDocument* aDocument, nsStyleContext* aContext);
@@ -255,10 +333,33 @@ protected:
   
   nsresult GetSizeAttribute(PRInt32 *aSize);
   nsIContent* GetOptionFromContent(nsIContent *aContent);
+
+  
+
+
+
+
+
   nsresult GetIndexFromDOMEvent(nsIDOMEvent* aMouseEvent, PRInt32& aCurIndex);
+
+  
+
+
+
   already_AddRefed<nsIContent> GetOptionContent(PRInt32 aIndex) const;
+
+  
+
+
+
+
   PRBool   IsContentSelected(nsIContent* aContent) const;
+
+  
+
+
   PRBool   IsContentSelectedByIndex(PRInt32 aIndex) const;
+
   PRBool   IsOptionElement(nsIContent* aContent);
   PRBool   CheckIfAllFramesHere();
   PRInt32  GetIndexFromContent(nsIContent *aContent);
