@@ -133,7 +133,10 @@ protected:
                           const nsAString &aTempPath,
                           PRInt64 aStartTime,
                           PRInt64 aEndTime,
-                          PRInt32 aState);
+                          PRInt32 aState,
+                          const nsACString &aMimeType,
+                          const nsACString &aPreferredApp,
+                          nsHandlerInfoAction aPreferredAction);
 
   void NotifyListenersOnDownloadStateChange(PRInt16 aOldState,
                                             nsIDownload *aDownload);
@@ -299,6 +302,18 @@ protected:
 
 
   nsresult FailDownload(nsresult aStatus, const PRUnichar *aMessage);
+
+  
+
+
+
+
+
+
+
+
+
+  nsresult OpenWithApplication();
 
   nsDownloadManager *mDownloadManager;
   nsCOMPtr<nsIURI> mTarget;

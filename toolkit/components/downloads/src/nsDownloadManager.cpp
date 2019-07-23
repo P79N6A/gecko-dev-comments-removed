@@ -74,6 +74,9 @@
 #include "nsIDownloadManagerUI.h"
 #include "nsTArray.h"
 #include "nsIResumableChannel.h"
+#include "nsCExternalHandlerService.h"
+#include "nsIExternalHelperAppService.h"
+#include "nsIMIMEService.h"
 
 #ifdef XP_WIN
 #include <shlobj.h>
@@ -89,10 +92,11 @@ static PRBool gStoppingDownloads = PR_FALSE;
 #define PREF_BDM_RETENTION "browser.download.manager.retention"
 #define PREF_BDM_CLOSEWHENDONE "browser.download.manager.closeWhenDone"
 #define PREF_BDM_ADDTORECENTDOCS "browser.download.manager.addToRecentDocs"
+#define PREF_BH_DELETETEMPFILEONEXIT "browser.helperApps.deleteTempFileOnExit"
 
 static const PRInt64 gUpdateInterval = 400 * PR_USEC_PER_MSEC;
 
-#define DM_SCHEMA_VERSION      6
+#define DM_SCHEMA_VERSION      7
 #define DM_DB_NAME             NS_LITERAL_STRING("downloads.sqlite")
 #define DM_DB_CORRUPT_FILENAME NS_LITERAL_STRING("downloads.sqlite.corrupt")
 
@@ -323,6 +327,30 @@ nsDownloadManager::InitDB(PRBool *aDoImport)
     }
     
 
+  case 6: 
+    {
+      rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
+        "ALTER TABLE moz_downloads "
+        "ADD COLUMN mimeType TEXT"));
+      NS_ENSURE_SUCCESS(rv, rv);
+
+      rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
+        "ALTER TABLE moz_downloads "
+        "ADD COLUMN preferredApplication TEXT"));
+      NS_ENSURE_SUCCESS(rv, rv);
+
+      rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
+        "ALTER TABLE moz_downloads "
+        "ADD COLUMN preferredAction INTEGER NOT NULL DEFAULT 0"));
+      NS_ENSURE_SUCCESS(rv, rv);
+
+      
+      schemaVersion = 7;
+      rv = mDBConn->SetSchemaVersion(schemaVersion);
+      NS_ENSURE_SUCCESS(rv, rv);
+    }
+    
+
   
 #ifndef DEBUG
   case DM_SCHEMA_VERSION:
@@ -353,7 +381,8 @@ nsDownloadManager::InitDB(PRBool *aDoImport)
       nsCOMPtr<mozIStorageStatement> stmt;
       rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
         "SELECT id, name, source, target, tempPath, startTime, endTime, state, "
-               "referrer, entityID, currBytes, maxBytes "
+               "referrer, entityID, currBytes, maxBytes, mimeType, "
+               "preferredApplication, preferredAction "
         "FROM moz_downloads"), getter_AddRefs(stmt));
       if (NS_SUCCEEDED(rv))
         break;
@@ -398,7 +427,10 @@ nsDownloadManager::CreateTable()
       "referrer TEXT, "
       "entityID TEXT, "
       "currBytes INTEGER NOT NULL DEFAULT 0, "
-      "maxBytes INTEGER NOT NULL DEFAULT -1"
+      "maxBytes INTEGER NOT NULL DEFAULT -1, "
+      "mimeType TEXT, "
+      "preferredApplication TEXT, "
+      "preferredAction INTEGER NOT NULL DEFAULT 0"
     ")"));
 }
 
@@ -535,7 +567,8 @@ nsDownloadManager::ImportDownloadHistory()
     if (NS_FAILED(rv)) continue;
 
     (void)AddDownloadToDB(name, source, target, EmptyString(), startTime,
-                          endTime, state);
+                          endTime, state, EmptyCString(), EmptyCString(),
+                          nsIMIMEInfo::saveToDisk);
   }
 
   return NS_OK;
@@ -636,13 +669,17 @@ nsDownloadManager::AddDownloadToDB(const nsAString &aName,
                                    const nsAString &aTempPath,
                                    PRInt64 aStartTime,
                                    PRInt64 aEndTime,
-                                   PRInt32 aState)
+                                   PRInt32 aState,
+                                   const nsACString &aMimeType,
+                                   const nsACString &aPreferredApp,
+                                   nsHandlerInfoAction aPreferredAction)
 {
   nsCOMPtr<mozIStorageStatement> stmt;
   nsresult rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
     "INSERT INTO moz_downloads "
-    "(name, source, target, tempPath, startTime, endTime, state) "
-    "VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)"), getter_AddRefs(stmt));
+    "(name, source, target, tempPath, startTime, endTime, state, "
+     "mimeType, preferredApplication, preferredAction) "
+    "VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)"), getter_AddRefs(stmt));
   NS_ENSURE_SUCCESS(rv, 0);
 
   PRInt32 i = 0;
@@ -672,6 +709,18 @@ nsDownloadManager::AddDownloadToDB(const nsAString &aName,
 
   
   rv = stmt->BindInt32Parameter(i++, aState);
+  NS_ENSURE_SUCCESS(rv, 0);
+
+  
+  rv = stmt->BindUTF8StringParameter(i++, aMimeType);
+  NS_ENSURE_SUCCESS(rv, 0);
+
+  
+  rv = stmt->BindUTF8StringParameter(i++, aPreferredApp);
+  NS_ENSURE_SUCCESS(rv, 0);
+
+  
+  rv = stmt->BindInt32Parameter(i++, aPreferredAction);
   NS_ENSURE_SUCCESS(rv, 0);
 
   PRBool hasMore;
@@ -775,7 +824,8 @@ nsDownloadManager::GetDownloadFromDB(PRUint32 aID, nsDownload **retVal)
   nsCOMPtr<mozIStorageStatement> stmt;
   nsresult rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
     "SELECT id, state, startTime, source, target, tempPath, name, referrer, "
-           "entityID, currBytes, maxBytes "
+           "entityID, currBytes, maxBytes, mimeType, preferredAction, "
+           "preferredApplication "
     "FROM moz_downloads "
     "WHERE id = ?1"), getter_AddRefs(stmt));
   NS_ENSURE_SUCCESS(rv, rv);
@@ -832,6 +882,52 @@ nsDownloadManager::GetDownloadFromDB(PRUint32 aID, nsDownload **retVal)
   PRInt64 currBytes = stmt->AsInt64(i++);
   PRInt64 maxBytes = stmt->AsInt64(i++);
   dl->SetProgressBytes(currBytes, maxBytes);
+
+  
+  nsCAutoString mimeType;
+  rv = stmt->GetUTF8String(i++, mimeType);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  if (!mimeType.IsEmpty()) {
+    nsCOMPtr<nsIMIMEService> mimeService =
+      do_GetService(NS_MIMESERVICE_CONTRACTID, &rv);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    rv = mimeService->GetFromTypeAndExtension(mimeType, EmptyCString(),
+                                              getter_AddRefs(dl->mMIMEInfo));
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    nsHandlerInfoAction action = stmt->AsInt32(i++);
+    rv = dl->mMIMEInfo->SetPreferredAction(action);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    nsCAutoString persistentDescriptor;
+    rv = stmt->GetUTF8String(i++, persistentDescriptor);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    if (!persistentDescriptor.IsEmpty()) {
+      nsCOMPtr<nsILocalHandlerApp> handler =
+        do_CreateInstance(NS_LOCALHANDLERAPP_CONTRACTID, &rv);
+      NS_ENSURE_SUCCESS(rv, rv);
+
+      nsCOMPtr<nsILocalFile> localExecutable;
+      rv = NS_NewNativeLocalFile(EmptyCString(), PR_FALSE,
+                                 getter_AddRefs(localExecutable));
+      NS_ENSURE_SUCCESS(rv, rv);
+
+      rv = localExecutable->SetPersistentDescriptor(persistentDescriptor);
+      NS_ENSURE_SUCCESS(rv, rv);
+
+      rv = handler->SetExecutable(localExecutable);
+      NS_ENSURE_SUCCESS(rv, rv);
+
+      rv = dl->mMIMEInfo->SetPreferredApplicationHandler(handler);
+      NS_ENSURE_SUCCESS(rv, rv);
+    }
+  } else {
+    
+    i += 2;
+  }
 
   
   NS_ADDREF(*retVal = dl);
@@ -1090,9 +1186,33 @@ nsDownloadManager::AddDownload(DownloadType aDownloadType,
   if (aTempFile)
     aTempFile->GetPath(tempPath);
 
+  
+  
+  nsCAutoString persistentDescriptor, mimeType;
+  nsHandlerInfoAction action = nsIMIMEInfo::saveToDisk;
+  if (aMIMEInfo) {
+    (void)aMIMEInfo->GetType(mimeType);
+
+    nsCOMPtr<nsIHandlerApp> handlerApp;
+    (void)aMIMEInfo->GetPreferredApplicationHandler(getter_AddRefs(handlerApp));
+    nsCOMPtr<nsILocalHandlerApp> locHandlerApp = do_QueryInterface(handlerApp);
+
+    if (locHandlerApp) {
+      nsCOMPtr<nsIFile> executable;
+      (void)locHandlerApp->GetExecutable(getter_AddRefs(executable));
+      nsCOMPtr<nsILocalFile> locExecutable = do_QueryInterface(executable);
+
+      if (locExecutable)
+        (void)locExecutable->GetPersistentDescriptor(persistentDescriptor);
+    }
+
+    (void)aMIMEInfo->GetPreferredAction(&action);
+  }
+
   PRInt64 id = AddDownloadToDB(dl->mDisplayName, source, target, tempPath,
                                dl->mStartTime, dl->mLastUpdate,
-                               nsIDownloadManager::DOWNLOAD_NOTSTARTED);
+                               nsIDownloadManager::DOWNLOAD_NOTSTARTED,
+                               mimeType, persistentDescriptor, action);
   NS_ENSURE_TRUE(id, NS_ERROR_FAILURE);
   dl->mID = id;
 
@@ -2066,17 +2186,23 @@ nsDownload::ExecuteDesiredAction()
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
-  nsresult ret = NS_OK;
+  nsresult retVal = NS_OK;
   switch (action) {
     case nsIMIMEInfo::saveToDisk:
       
-      ret = MoveTempToTarget();
+      retVal = MoveTempToTarget();
+      break;
+    case nsIMIMEInfo::useHelperApp:
+    case nsIMIMEInfo::useSystemDefault:
+      
+      
+      retVal = OpenWithApplication();
       break;
     default:
       break;
   }
 
-  return ret;
+  return retVal;
 }
 
 nsresult
@@ -2105,6 +2231,60 @@ nsDownload::MoveTempToTarget()
   NS_ENSURE_SUCCESS(rv, rv);
 
   return NS_OK;
+}
+
+nsresult
+nsDownload::OpenWithApplication()
+{
+  
+  nsCOMPtr<nsILocalFile> target;
+  nsresult rv = GetTargetFile(getter_AddRefs(target));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  
+  
+  rv = target->CreateUnique(nsIFile::NORMAL_FILE_TYPE, 0600);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  rv = MoveTempToTarget();
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  
+  
+  
+  nsresult retVal = mMIMEInfo->LaunchWithFile(target);
+
+  PRBool deleteTempFileOnExit;
+  nsCOMPtr<nsIPrefBranch> prefs(do_GetService(NS_PREFSERVICE_CONTRACTID));
+  if (!prefs || NS_FAILED(prefs->GetBoolPref(PREF_BH_DELETETEMPFILEONEXIT,
+                                             &deleteTempFileOnExit))) {
+    
+#if !defined(XP_MACOSX)
+    
+    
+    
+    deleteTempFileOnExit = PR_TRUE;
+#else
+    deleteTempFileOnExit = PR_FALSE;
+#endif
+  }
+
+  if (deleteTempFileOnExit) {
+    
+    
+    nsCOMPtr<nsPIExternalAppLauncher> appLauncher(do_GetService
+                    (NS_EXTERNALHELPERAPPSERVICE_CONTRACTID));
+
+    
+    
+    if (appLauncher)
+      (void)appLauncher->DeleteTemporaryFileOnExit(target);
+  }
+
+  return retVal;
 }
 
 void
@@ -2258,12 +2438,7 @@ nsDownload::IsPaused()
 PRBool
 nsDownload::IsResumable()
 {
-  nsHandlerInfoAction action = nsIMIMEInfo::saveToDisk;
-  if (mMIMEInfo)
-    (void)mMIMEInfo->GetPreferredAction(&action);
-
-  
-  return action == nsIMIMEInfo::saveToDisk && !mEntityID.IsEmpty();
+  return !mEntityID.IsEmpty();
 }
 
 PRBool
