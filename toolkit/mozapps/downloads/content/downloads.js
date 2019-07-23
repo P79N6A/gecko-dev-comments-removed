@@ -183,7 +183,12 @@ function autoRemoveAndClose(aDownload)
     
     
     
-    var autoClose = pref.getBoolPref(PREF_BDM_CLOSEWHENDONE);
+    
+    
+    let autoClose = false;
+    try {
+      autoClose = pref.getBoolPref(PREF_BDM_CLOSEWHENDONE);
+    } catch (e) { }
     var autoOpened =
       !window.opener || window.opener.location.href == window.location.href;
     if (autoClose && autoOpened && !gUserInteracted) {
