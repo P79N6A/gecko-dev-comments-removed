@@ -244,6 +244,19 @@ protected:
 
   
   
+  
+  
+  
+  
+  
+  nsXBLInsertionPoint* FindInsertionPointAndIndex(nsIContent* aContainer,
+                                                  nsIContent* aInsertionParent,
+                                                  PRUint32 aIndexInContainer,
+                                                  PRInt32 aAppend,
+                                                  PRInt32* aInsertionIndex);
+
+  
+  
   void DoProcessAttachedQueue();
 
   

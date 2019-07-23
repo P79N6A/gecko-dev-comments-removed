@@ -1422,51 +1422,105 @@ nsBindingManager::GetNestedSingleInsertionPoint(nsIContent* aParent,
   return insertionElement;
 }
 
+nsXBLInsertionPoint*
+nsBindingManager::FindInsertionPointAndIndex(nsIContent* aContainer,
+                                             nsIContent* aInsertionParent,
+                                             PRUint32 aIndexInContainer,
+                                             PRInt32 aAppend,
+                                             PRInt32* aInsertionIndex)
+{
+  PRBool isAnonymousContentList;
+  nsINodeList* nodeList =
+    GetXBLChildNodesInternal(aInsertionParent, &isAnonymousContentList);
+  if (!nodeList || !isAnonymousContentList) {
+    return nsnull;
+  }
+
+  
+  
+  
+  
+  nsAnonymousContentList* contentList =
+    static_cast<nsAnonymousContentList*>(nodeList);
+
+  PRInt32 count = contentList->GetInsertionPointCount();
+  for (PRInt32 i = 0; i < count; i++) {
+    nsXBLInsertionPoint* point = contentList->GetInsertionPointAt(i);
+    if (point->GetInsertionIndex() != -1) {
+      
+
+      
+      
+      
+      
+      
+      PRInt32 pointSize = point->ChildCount();
+      for (PRInt32 parentIndex = aIndexInContainer - 1; parentIndex >= 0;
+           --parentIndex) {
+        nsIContent* currentSibling = aContainer->GetChildAt(parentIndex);
+        for (PRInt32 pointIndex = pointSize - 1; pointIndex >= 0;
+             --pointIndex) {
+          if (point->ChildAt(pointIndex) == currentSibling) {
+            *aInsertionIndex = pointIndex + 1;
+            return point;
+          }
+        }
+      }
+
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      if (aAppend) {
+        *aInsertionIndex = pointSize;
+      } else {
+        *aInsertionIndex = 0;
+      }
+      return point;
+    }
+  }
+
+  return nsnull;  
+}
+
 void
 nsBindingManager::ContentAppended(nsIDocument* aDocument,
                                   nsIContent* aContainer,
                                   PRInt32     aNewIndexInContainer)
 {
-  
   if (aNewIndexInContainer != -1 &&
       (mContentListTable.ops || mAnonymousNodesTable.ops)) {
     
+    NS_ASSERTION(aNewIndexInContainer >= 0, "Bogus index");
+
     PRBool multiple;
     nsIContent* ins = GetNestedSingleInsertionPoint(aContainer, &multiple);
 
     if (multiple) {
       
       PRInt32 childCount = aContainer->GetChildCount();
-      NS_ASSERTION(aNewIndexInContainer >= 0, "Bogus index");
       for (PRInt32 idx = aNewIndexInContainer; idx < childCount; ++idx) {
         HandleChildInsertion(aContainer, aContainer->GetChildAt(idx),
                              idx, PR_TRUE);
       }
     }
     else if (ins) {
-      PRBool isAnonymousContentList;
-      nsCOMPtr<nsIDOMNodeList> nodeList =
-        GetXBLChildNodesInternal(ins, &isAnonymousContentList);
-
-      if (nodeList && isAnonymousContentList) {
-        
-        nsAnonymousContentList* contentList =
-          static_cast<nsAnonymousContentList*>(nodeList.get());
-
-        PRInt32 count = contentList->GetInsertionPointCount();
-        for (PRInt32 i = 0; i < count; i++) {
-          nsXBLInsertionPoint* point = contentList->GetInsertionPointAt(i);
-          PRInt32 index = point->GetInsertionIndex();
-          if (index != -1) {
-            
-            PRInt32 childCount = aContainer->GetChildCount();
-            for (PRInt32 j = aNewIndexInContainer; j < childCount; j++) {
-              nsIContent* child = aContainer->GetChildAt(j);
-              point->AddChild(child);
-              SetInsertionParent(child, ins);
-            }
-            break;
-          }
+      PRInt32 insertionIndex;
+      nsXBLInsertionPoint* point =
+        FindInsertionPointAndIndex(aContainer, ins, aNewIndexInContainer,
+                                   PR_TRUE, &insertionIndex);
+      if (point) {
+        PRInt32 childCount = aContainer->GetChildCount();
+        for (PRInt32 j = aNewIndexInContainer; j < childCount;
+             j++, insertionIndex++) {
+          nsIContent* child = aContainer->GetChildAt(j);
+          point->InsertChildAt(insertionIndex, child);
+          SetInsertionParent(child, ins);
         }
       }
     }
@@ -1479,7 +1533,6 @@ nsBindingManager::ContentInserted(nsIDocument* aDocument,
                                   nsIContent* aChild,
                                   PRInt32 aIndexInContainer)
 {
-  
   if (aIndexInContainer != -1 &&
       (mContentListTable.ops || mAnonymousNodesTable.ops)) {
     
@@ -1640,61 +1693,13 @@ nsBindingManager::HandleChildInsertion(nsIContent* aContainer,
   nsIContent* ins = GetNestedInsertionPoint(aContainer, aChild);
 
   if (ins) {
-    PRBool isAnonymousContentList;
-    nsCOMPtr<nsIDOMNodeList> nodeList =
-      GetXBLChildNodesInternal(ins, &isAnonymousContentList);
-
-    if (nodeList && isAnonymousContentList) {
-      
-      
-      
-      
-      nsAnonymousContentList* contentList =
-        static_cast<nsAnonymousContentList*>(nodeList.get());
-
-      PRInt32 count = contentList->GetInsertionPointCount();
-      for (PRInt32 i = 0; i < count; i++) {
-        nsXBLInsertionPoint* point = contentList->GetInsertionPointAt(i);
-        if (point->GetInsertionIndex() != -1) {
-          
-
-          
-          
-          
-          
-          
-          PRInt32 pointSize = point->ChildCount();
-          PRBool inserted = PR_FALSE;
-          for (PRInt32 parentIndex = aIndexInContainer - 1;
-               parentIndex >= 0 && !inserted; --parentIndex) {
-            nsIContent* currentSibling = aContainer->GetChildAt(parentIndex);
-            for (PRInt32 pointIndex = pointSize - 1; pointIndex >= 0;
-                 --pointIndex) {
-              nsCOMPtr<nsIContent> currContent = point->ChildAt(pointIndex);
-              if (currContent == currentSibling) {
-                point->InsertChildAt(pointIndex + 1, aChild);
-                inserted = PR_TRUE;
-                break;
-              }
-            }
-          }
-          if (!inserted) {
-            
-            
-            
-            
-            
-            
-            if (aAppend) {
-              point->AddChild(aChild);
-            } else {
-              point->InsertChildAt(0, aChild);
-            }
-          }
-          SetInsertionParent(aChild, ins);
-          break;
-        }
-      }
+    PRInt32 insertionIndex;
+    nsXBLInsertionPoint* point =
+      FindInsertionPointAndIndex(aContainer, ins, aIndexInContainer, aAppend,
+                                 &insertionIndex);
+    if (point) {
+      point->InsertChildAt(insertionIndex, aChild);
+      SetInsertionParent(aChild, ins);
     }
   }
 }
