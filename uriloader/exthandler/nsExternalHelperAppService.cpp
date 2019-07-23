@@ -1887,6 +1887,19 @@ nsresult nsExternalAppHandler::ExecuteDesiredAction()
         if (NS_SUCCEEDED(rv))
           rv = OpenWithApplication();
       }
+      else
+      {
+        
+        
+        
+        nsAutoString path;
+        mTempFile->GetPath(path);
+        SendStatusChange(kWriteError, rv, nsnull, path);
+        Cancel(rv);
+
+        
+        
+      }
     }
     else 
     {
@@ -1899,7 +1912,7 @@ nsresult nsExternalAppHandler::ExecuteDesiredAction()
         gExtProtSvc->FixFilePermissions(destfile);
       }
     }
-    
+
     
     
     
@@ -1915,7 +1928,7 @@ nsresult nsExternalAppHandler::ExecuteDesiredAction()
         nsIWebProgressListener::STATE_IS_NETWORK, NS_OK);
     }
   }
-  
+
   return rv;
 }
 

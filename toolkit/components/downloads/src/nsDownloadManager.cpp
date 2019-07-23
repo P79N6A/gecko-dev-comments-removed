@@ -2111,10 +2111,6 @@ nsDownload::SetState(DownloadState aState)
   PRInt16 oldState = mDownloadState;
   mDownloadState = aState;
 
-  nsresult rv;
-
-  nsCOMPtr<nsIPrefBranch> pref = do_GetService(NS_PREFSERVICE_CONTRACTID);
-
   
   nsRefPtr<nsDownload> kungFuDeathGrip = this;
 
@@ -2146,10 +2142,18 @@ nsDownload::SetState(DownloadState aState)
     case nsIDownloadManager::DOWNLOAD_FINISHED:
     {
       
-      (void)ExecuteDesiredAction();
+      nsresult rv = ExecuteDesiredAction();
+      if (NS_FAILED(rv)) {
+        
+        
+        (void)FailDownload(rv, nsnull);
+        return rv;
+      }
 
       
       Finalize();
+
+      nsCOMPtr<nsIPrefBranch> pref(do_GetService(NS_PREFSERVICE_CONTRACTID));
 
       
       PRBool showTaskbarAlert = PR_TRUE;
@@ -2243,7 +2247,7 @@ nsDownload::SetState(DownloadState aState)
 
   
   
-  rv = UpdateDB();
+  nsresult rv = UpdateDB();
   NS_ENSURE_SUCCESS(rv, rv);
 
   mDownloadManager->NotifyListenersOnDownloadStateChange(oldState, this);
