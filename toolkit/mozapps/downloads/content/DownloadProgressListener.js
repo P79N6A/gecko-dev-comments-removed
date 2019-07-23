@@ -81,6 +81,13 @@ DownloadProgressListener.prototype = {
     
     try {
       let dl = getDownload(aDownload.id);
+
+      
+      let referrer = aDownload.referrer;
+      if (referrer)
+        dl.setAttribute("referrer", referrer.spec);
+
+      
       dl.setAttribute("state", state);
       updateStatus(dl);
       gDownloadViewController.onCommandUpdate();
