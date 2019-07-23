@@ -3463,7 +3463,7 @@ js_NewArrayObject(JSContext *cx, jsuint length, jsval *vector, JSBool holey)
     JS_POP_TEMP_ROOT(cx, &tvr);
 
     
-    cx->weakRoots.newbornObject = obj;
+    cx->weakRoots.finalizableNewborns[FINALIZE_OBJECT] = obj;
     return obj;
 }
 
