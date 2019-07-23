@@ -1550,9 +1550,8 @@ nsLineLayout::VerticalAlignFrames(PerSpanData* psd)
   
   
   
-  nsIFrame* spanNextInFlow = spanFrame->GetNextInFlow();
-  nsIFrame* spanPrevInFlow = spanFrame->GetPrevInFlow();
-  PRBool emptyContinuation = spanPrevInFlow && !spanNextInFlow &&
+  PRBool emptyContinuation = psd != mRootSpan &&
+    spanFrame->GetPrevInFlow() && !spanFrame->GetNextInFlow() &&
     (0 == spanFramePFD->mBounds.width) && (0 == spanFramePFD->mBounds.height);
 
 #ifdef NOISY_VERTICAL_ALIGN
@@ -1679,7 +1678,8 @@ nsLineLayout::VerticalAlignFrames(PerSpanData* psd)
 
     
     
-    if (spanFramePFD->GetFlag(PFD_ISLETTERFRAME) && !spanPrevInFlow &&
+    if (spanFramePFD->GetFlag(PFD_ISLETTERFRAME) &&
+        !spanFrame->GetPrevInFlow() &&
         spanFrame->GetStyleText()->mLineHeight.GetUnit() == eStyleUnit_Normal) {
       logicalHeight = spanFramePFD->mBounds.height;
     }
