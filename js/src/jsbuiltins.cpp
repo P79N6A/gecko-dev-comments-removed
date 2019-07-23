@@ -66,7 +66,7 @@ jsdouble FASTCALL builtin_dmod(jsdouble a, jsdouble b)
     jsdouble r;
 #ifdef XP_WIN
     
-    if (!(JSDOUBLE_IS_FINITE(a) && JSDOUBLE_IS_INFINITE(b)))
+    if (JSDOUBLE_IS_FINITE(a) && JSDOUBLE_IS_INFINITE(b))
         r = a;
     else
 #endif
