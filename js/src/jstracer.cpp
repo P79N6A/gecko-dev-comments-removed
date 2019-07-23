@@ -1823,8 +1823,7 @@ js_ContinueRecording(JSContext* cx, TraceRecorder* r, jsbytecode* oldpc, uintN& 
         GuardRecord* lr = js_ExecuteTree(cx, &f, inlineCallCount);
         debug_only(printf("actual fragment: %p, lr=%p\n", f, lr)); 
         if (!lr) {
-            js_AbortRecording(cx, oldpc, "Couldn't call inner tree, trying to record one.");
-            
+            js_AbortRecording(cx, oldpc, "Couldn't call inner tree.");
             return false;
         }
         switch (lr->exit->exitType) {
