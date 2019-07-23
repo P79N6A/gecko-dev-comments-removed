@@ -240,9 +240,31 @@ public:
                                                      nsGenericHTMLElement)
 
 protected:
+  class RemoveElementRunnable;
+  friend class RemoveElementRunnable;
+
+  class RemoveElementRunnable : public nsRunnable {
+  public:
+    RemoveElementRunnable(nsHTMLFormElement* aForm, PRBool aNotify):
+      mForm(aForm), mNotify(aNotify)
+    {}
+
+    NS_IMETHOD Run() {
+      mForm->HandleDefaultSubmitRemoval(mNotify);
+      return NS_OK;
+    }
+
+  private:
+    nsRefPtr<nsHTMLFormElement> mForm;
+    PRBool mNotify;
+  };
+
   nsresult DoSubmitOrReset(nsEvent* aEvent,
                            PRInt32 aMessage);
   nsresult DoReset();
+
+  
+  void HandleDefaultSubmitRemoval(PRBool aNotify);
 
   
   
@@ -1498,42 +1520,55 @@ nsHTMLFormElement::RemoveElement(nsIFormControl* aChild,
 
   if (aChild == mDefaultSubmitElement) {
     
-    if (!mFirstSubmitNotInElements) {
-      mDefaultSubmitElement = mFirstSubmitInElements;
-    } else if (!mFirstSubmitInElements) {
-      mDefaultSubmitElement = mFirstSubmitNotInElements;
-    } else {
-      NS_ASSERTION(mFirstSubmitInElements != mFirstSubmitNotInElements,
-                   "How did that happen?");
-      
-      mDefaultSubmitElement =
-        CompareFormControlPosition(mFirstSubmitInElements,
-                                   mFirstSubmitNotInElements, this) < 0 ?
-          mFirstSubmitInElements : mFirstSubmitNotInElements;
-    }
-
-    NS_POSTCONDITION(mDefaultSubmitElement == mFirstSubmitInElements ||
-                     mDefaultSubmitElement == mFirstSubmitNotInElements,
-                     "What happened here?");
+    
+    mDefaultSubmitElement = nsnull;
+    nsContentUtils::AddScriptRunner(new RemoveElementRunnable(this, aNotify));
 
     
     
     
     
-    if (aNotify && mDefaultSubmitElement) {
-      NS_ASSERTION(mDefaultSubmitElement != aChild,
-                   "Notifying but elements haven't changed.");
-      nsIDocument* document = GetCurrentDoc();
-      if (document) {
-        MOZ_AUTO_DOC_UPDATE(document, UPDATE_CONTENT_STATE, PR_TRUE);
-        nsCOMPtr<nsIContent> newElement(do_QueryInterface(mDefaultSubmitElement));
-        document->ContentStatesChanged(newElement, nsnull,
-                                       NS_EVENT_STATE_DEFAULT);
-      }
-    }
   }
 
   return rv;
+}
+
+void
+nsHTMLFormElement::HandleDefaultSubmitRemoval(PRBool aNotify)
+{
+  if (mDefaultSubmitElement) {
+    
+    return;
+  }
+
+  if (!mFirstSubmitNotInElements) {
+    mDefaultSubmitElement = mFirstSubmitInElements;
+  } else if (!mFirstSubmitInElements) {
+    mDefaultSubmitElement = mFirstSubmitNotInElements;
+  } else {
+    NS_ASSERTION(mFirstSubmitInElements != mFirstSubmitNotInElements,
+                 "How did that happen?");
+    
+    mDefaultSubmitElement =
+      CompareFormControlPosition(mFirstSubmitInElements,
+                                 mFirstSubmitNotInElements, this) < 0 ?
+      mFirstSubmitInElements : mFirstSubmitNotInElements;
+  }
+
+  NS_POSTCONDITION(mDefaultSubmitElement == mFirstSubmitInElements ||
+                   mDefaultSubmitElement == mFirstSubmitNotInElements,
+                   "What happened here?");
+
+  
+  if (aNotify && mDefaultSubmitElement) {
+    nsIDocument* document = GetCurrentDoc();
+    if (document) {
+      MOZ_AUTO_DOC_UPDATE(document, UPDATE_CONTENT_STATE, PR_TRUE);
+      nsCOMPtr<nsIContent> newElement(do_QueryInterface(mDefaultSubmitElement));
+      document->ContentStatesChanged(newElement, nsnull,
+                                     NS_EVENT_STATE_DEFAULT);
+    }
+  }
 }
 
 NS_IMETHODIMP
