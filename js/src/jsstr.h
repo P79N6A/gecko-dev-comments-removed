@@ -64,24 +64,41 @@ JS_BEGIN_EXTERN_C
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 struct JSString {
     size_t          length;
-    jschar          *chars;
+    union {
+        jschar      *chars;
+        JSString    *base;
+    } u;
 };
 
 
 
 
 
-
-
-
-
-
-struct JSDependentString {
-    size_t          length;
-    JSString        *base;
-};
 
 
 #define JSSTRFLAG_BITS              2
@@ -89,22 +106,52 @@ struct JSDependentString {
 #define JSSTRFLAG_MASK              JSSTRFLAG_SHIFT(JS_BITMASK(JSSTRFLAG_BITS))
 #define JSSTRFLAG_DEPENDENT         JSSTRFLAG_SHIFT(1)
 #define JSSTRFLAG_PREFIX            JSSTRFLAG_SHIFT(2)
+#define JSSTRFLAG_MUTABLE           JSSTRFLAG_SHIFT(2)
 
 
 #define JSSTRING_BIT(n)             ((size_t)1 << (n))
 #define JSSTRING_BITMASK(n)         (JSSTRING_BIT(n) - 1)
 #define JSSTRING_HAS_FLAG(str,flg)  ((str)->length & (flg))
 #define JSSTRING_IS_DEPENDENT(str)  JSSTRING_HAS_FLAG(str, JSSTRFLAG_DEPENDENT)
-#define JSSTRING_IS_PREFIX(str)     JSSTRING_HAS_FLAG(str, JSSTRFLAG_PREFIX)
+#define JSSTRING_IS_MUTABLE(str)    (((str)->length & JSSTRFLAG_MASK) ==      \
+                                     JSSTRFLAG_MUTABLE)
+
 #define JSSTRING_CHARS(str)         (JSSTRING_IS_DEPENDENT(str)               \
                                      ? JSSTRDEP_CHARS(str)                    \
-                                     : (str)->chars)
+                                     : (str)->u.chars)
 #define JSSTRING_LENGTH(str)        (JSSTRING_IS_DEPENDENT(str)               \
                                      ? JSSTRDEP_LENGTH(str)                   \
-                                     : (str)->length)
+                                     : ((str)->length &  ~JSSTRFLAG_MUTABLE))
+
+#define JSSTRING_CHARS_AND_LENGTH(str, chars_, length_)                       \
+    ((void)(JSSTRING_IS_DEPENDENT(str)                                        \
+            ? ((length_) = JSSTRDEP_LENGTH(str),                              \
+               (chars_) = JSSTRDEP_CHARS(str))                                \
+            : ((length_) = (str)->length & ~JSSTRFLAG_MUTABLE,                \
+               (chars_) = (str)->u.chars)))
+
+#define JSSTRING_CHARS_AND_END(str, chars_, end)                              \
+    ((void)((end) = JSSTRING_IS_DEPENDENT(str)                                \
+                  ? JSSTRDEP_LENGTH(str) + ((chars_) = JSSTRDEP_CHARS(str))   \
+                  : ((str)->length & ~JSSTRFLAG_MUTABLE) +                    \
+                    ((chars_) = (str)->u.chars)))
+
 #define JSSTRING_LENGTH_BITS        (sizeof(size_t) * JS_BITS_PER_BYTE        \
                                      - JSSTRFLAG_BITS)
 #define JSSTRING_LENGTH_MASK        JSSTRING_BITMASK(JSSTRING_LENGTH_BITS)
+
+#define JSSTRING_INIT(str, chars_, length_)                                   \
+    ((void)(JS_ASSERT(((length_) & JSSTRFLAG_MASK) == 0),                     \
+            (str)->length = (length_), (str)->u.chars = (chars_)))
+
+
+#define JSSTRING_SET_MUTABLE(str)                                             \
+    ((void)(JS_ASSERT(!JSSTRING_IS_DEPENDENT(str)),                           \
+            (str)->length |= JSSTRFLAG_MUTABLE))
+
+#define JSSTRING_CLEAR_MUTABLE(str)                                           \
+    ((void)(JS_ASSERT(!JSSTRING_IS_DEPENDENT(str)),                           \
+            (str)->length &= ~JSSTRFLAG_MUTABLE))
 
 
 #define JSSTRDEP_START_BITS         (JSSTRING_LENGTH_BITS-JSSTRDEP_LENGTH_BITS)
@@ -113,32 +160,35 @@ struct JSDependentString {
 #define JSSTRDEP_LENGTH_BITS        (JSSTRING_LENGTH_BITS / 2)
 #define JSSTRDEP_LENGTH_MASK        JSSTRING_BITMASK(JSSTRDEP_LENGTH_BITS)
 
-#define JSSTRDEP(str)               ((JSDependentString *)(str))
-#define JSSTRDEP_START(str)         (JSSTRING_IS_PREFIX(str) ? 0              \
-                                     : ((JSSTRDEP(str)->length                \
+#define JSSTRDEP_IS_PREFIX(str)     JSSTRING_HAS_FLAG(str, JSSTRFLAG_PREFIX)
+
+#define JSSTRDEP_START(str)         (JSSTRDEP_IS_PREFIX(str) ? 0              \
+                                     : (((str)->length                        \
                                          >> JSSTRDEP_START_SHIFT)             \
                                         & JSSTRDEP_START_MASK))
-#define JSSTRDEP_LENGTH(str)        (JSSTRDEP(str)->length                    \
-                                     & (JSSTRING_IS_PREFIX(str)               \
+#define JSSTRDEP_LENGTH(str)        ((str)->length                            \
+                                     & (JSSTRDEP_IS_PREFIX(str)               \
                                         ? JSSTRING_LENGTH_MASK                \
                                         : JSSTRDEP_LENGTH_MASK))
 
-#define JSSTRDEP_SET_START_AND_LENGTH(str,off,len)                            \
-    (JSSTRDEP(str)->length = JSSTRFLAG_DEPENDENT                              \
-                           | ((off) << JSSTRDEP_START_SHIFT)                  \
-                           | (len))
-#define JSPREFIX_SET_LENGTH(str,len)                                          \
-    (JSSTRDEP(str)->length = JSSTRFLAG_DEPENDENT | JSSTRFLAG_PREFIX | (len))
+#define JSSTRDEP_INIT(str,bstr,off,len)                                       \
+    ((str)->length = JSSTRFLAG_DEPENDENT                                      \
+                   | ((off) << JSSTRDEP_START_SHIFT)                          \
+                   | (len),                                                   \
+     (str)->u.base = (bstr))
 
-#define JSSTRDEP_BASE(str)          (JSSTRDEP(str)->base)
-#define JSSTRDEP_SET_BASE(str,bstr) (JSSTRDEP(str)->base = (bstr))
+#define JSPREFIX_INIT(str,bstr,len)                                           \
+    ((str)->length = JSSTRFLAG_DEPENDENT | JSSTRFLAG_PREFIX | (len),          \
+     (str)->u.base = (bstr))
+
+#define JSSTRDEP_BASE(str)          ((str)->u.base)
 #define JSPREFIX_BASE(str)          JSSTRDEP_BASE(str)
-#define JSPREFIX_SET_BASE(str,bstr) JSSTRDEP_SET_BASE(str,bstr)
+#define JSPREFIX_SET_BASE(str,bstr) ((str)->u.base = (bstr))
 
 #define JSSTRDEP_CHARS(str)                                                   \
     (JSSTRING_IS_DEPENDENT(JSSTRDEP_BASE(str))                                \
      ? js_GetDependentStringChars(str)                                        \
-     : JSSTRDEP_BASE(str)->chars + JSSTRDEP_START(str))
+     : JSSTRDEP_BASE(str)->u.chars + JSSTRDEP_START(str))
 
 extern size_t
 js_MinimizeDependentStrings(JSString *str, int level, JSString **basep);
@@ -154,6 +204,14 @@ js_ConcatStrings(JSContext *cx, JSString *left, JSString *right);
 
 extern const jschar *
 js_UndependString(JSContext *cx, JSString *str);
+
+extern JSBool
+js_MakeStringImmutable(JSContext *cx, JSString *str);
+
+typedef struct JSCharBuffer {
+    size_t          length;
+    jschar          *chars;
+} JSCharBuffer;
 
 struct JSSubString {
     size_t          length;
@@ -334,7 +392,7 @@ extern const char js_encodeURIComponent_str[];
 
 
 extern JSString *
-js_NewString(JSContext *cx, jschar *chars, size_t length, uintN gcflag);
+js_NewString(JSContext *cx, jschar *chars, size_t length);
 
 extern JSString *
 js_NewDependentString(JSContext *cx, JSString *base, size_t start,
