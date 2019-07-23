@@ -1806,8 +1806,9 @@ CNavDTD::HandleSavedTokens(PRInt32 anIndex)
       PRInt32   attrCount;
       PRInt32   theTopIndex = anIndex + 1;
       PRInt32   theTagCount = mBodyContext->GetCount();
+      PRBool    formWasOnStack = mSink->IsFormOnStack();
 
-      if (mSink->IsFormOnStack()) {
+      if (formWasOnStack) {
         
         
         
@@ -1875,9 +1876,19 @@ CNavDTD::HandleSavedTokens(PRInt32 anIndex)
           result = HandleToken(theToken, mParser);
         }
       }
+
       if (theTopIndex != mBodyContext->GetCount()) {
+        
+        
+        
         CloseContainersTo(theTopIndex, mBodyContext->TagAt(theTopIndex),
                           PR_TRUE);
+      }      
+
+      if (!formWasOnStack && mSink->IsFormOnStack()) {
+        
+        
+        mSink->CloseContainer(eHTMLTag_form);
       }
 
       
@@ -2707,6 +2718,19 @@ CNavDTD::OpenContainer(const nsCParserNode *aNode,
   return result;
 }
 
+nsresult
+CNavDTD::CloseResidualStyleTags(const eHTMLTags aTag,
+                                PRBool aClosedByStartTag)
+{
+  const PRInt32 count = mBodyContext->GetCount();
+  PRInt32 pos = count;
+  while (nsHTMLElement::IsResidualStyleTag(mBodyContext->TagAt(pos - 1)))
+    --pos;
+  if (pos < count)
+    return CloseContainersTo(pos, aTag, aClosedByStartTag);
+  return NS_OK;
+}
+
 
 
 
@@ -2749,6 +2773,10 @@ CNavDTD::CloseContainer(const eHTMLTags aTag, PRBool aMalformed)
       if (mFlags & NS_DTD_FLAG_HAS_OPEN_FORM) {
         mFlags &= ~NS_DTD_FLAG_HAS_OPEN_FORM;
         done = PR_FALSE;
+        
+        
+        
+        CloseResidualStyleTags(eHTMLTag_form, PR_FALSE);
       }
       break;
 

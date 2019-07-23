@@ -310,6 +310,8 @@ private:
     nsresult CloseContainersTo(eHTMLTags aTag, PRBool aClosedByStartTag);
     nsresult CloseContainersTo(PRInt32 anIndex, eHTMLTags aTag,
                                PRBool aClosedByStartTag);
+    nsresult CloseResidualStyleTags(const eHTMLTags aTag,
+                                    PRBool aClosedByStartTag);
 
     
 
