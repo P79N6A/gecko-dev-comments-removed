@@ -58,21 +58,19 @@
 
 
 
-function bind(fn, self, opt_args) {
-  var boundargs = (typeof fn.boundArgs_ != "undefined") ? fn.boundArgs_ : [];
-  boundargs = boundargs.concat(Array.prototype.slice.call(arguments, 2));
 
-  if (typeof fn.boundSelf_ != "undefined") {
+function BindToObject(fn, self, opt_args) {
+  var boundargs = fn.boundArgs_ || [];
+  boundargs = boundargs.concat(Array.slice(arguments, 2, arguments.length));
+
+  if (fn.boundSelf_)
     self = fn.boundSelf_;
-  }
-
-  if (typeof fn.boundFn_ != "undefined") {
+  if (fn.boundFn_)
     fn = fn.boundFn_;
-  }
 
   var newfn = function() {
     
-    var args = boundargs.concat(Array.prototype.slice.call(arguments));
+    var args = boundargs.concat(Array.slice(arguments));
     return fn.apply(self, args);
   }
 
@@ -81,51 +79,6 @@ function bind(fn, self, opt_args) {
   newfn.boundFn_ = fn;
 
   return newfn;
-}
-
-
-
-
-
-
-
-
-Function.prototype.bind = function(self, opt_args) {
-  return bind.apply(
-    null, [this, self].concat(Array.prototype.slice.call(arguments, 1)));
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-function BindToObject(func, obj, opt_A, opt_B, opt_C, opt_D, opt_E, opt_F) {
-  
-  var args = Array.prototype.splice.call(arguments, 1, arguments.length);
-  return Function.prototype.bind.apply(func, args);
 }
 
 
