@@ -69,7 +69,6 @@ struct nsGenConInitializer;
 class ChildIterator;
 class nsICSSAnonBoxPseudo;
 class nsPageContentFrame;
-struct PendingBinding;
 
 struct nsFindFrameHint
 {
@@ -768,12 +767,11 @@ private:
                                       nsIAtom* aTag,
                                       PRInt32 aNameSpaceID,
                                       PRInt32 aContentIndex,
-                                      PendingBinding* aPendingBinding,
                                       already_AddRefed<nsStyleContext> aStyleContext)
     {
       FrameConstructionItem* item =
         new FrameConstructionItem(aFCData, aContent, aTag, aNameSpaceID,
-                                  aContentIndex, aPendingBinding, aStyleContext);
+                                  aContentIndex, aStyleContext);
       if (item) {
         PR_APPEND_LINK(item, &mItems);
         ++mItemCount;
@@ -925,11 +923,10 @@ private:
                           nsIAtom* aTag,
                           PRInt32 aNameSpaceID,
                           PRInt32 aContentIndex,
-                          PendingBinding* aPendingBinding,
                           already_AddRefed<nsStyleContext> aStyleContext) :
       mFCData(aFCData), mContent(aContent), mTag(aTag),
       mNameSpaceID(aNameSpaceID), mContentIndex(aContentIndex),
-      mPendingBinding(aPendingBinding), mStyleContext(aStyleContext),
+      mStyleContext(aStyleContext),
       mIsText(PR_FALSE), mIsGeneratedContent(PR_FALSE),
       mIsRootPopupgroup(PR_FALSE), mIsAllInline(PR_FALSE), mIsBlock(PR_FALSE),
       mHasInlineEnds(PR_FALSE), mIsPopup(PR_FALSE),
@@ -966,15 +963,6 @@ private:
     
     
     PRInt32 mContentIndex;
-    
-    
-    
-    
-    
-    
-    
-    
-    PendingBinding* mPendingBinding;
     
     nsRefPtr<nsStyleContext> mStyleContext;
     
@@ -1177,7 +1165,6 @@ private:
   nsresult CreateAnonymousFrames(nsFrameConstructorState& aState,
                                  nsIContent*              aParent,
                                  nsIFrame*                aParentFrame,
-                                 PendingBinding  *        aPendingBinding,
                                  nsFrameItems&            aChildItems);
 
   nsresult GetAnonymousContent(nsIContent* aParent,
@@ -1311,14 +1298,14 @@ private:
 
 
 
+
   nsresult ProcessChildren(nsFrameConstructorState& aState,
                            nsIContent*              aContent,
                            nsStyleContext*          aStyleContext,
                            nsIFrame*                aFrame,
                            const PRBool             aCanHaveGeneratedContent,
                            nsFrameItems&            aFrameItems,
-                           const PRBool             aAllowBlockStyles,
-                           PendingBinding*          aPendingBinding);
+                           const PRBool             aAllowBlockStyles);
 
   nsIFrame* GetFrameFor(nsIContent* aContent);
 
@@ -1375,7 +1362,6 @@ private:
                         nsIFrame*                aParentFrame,
                         nsStyleContext*          aStyleContext,
                         PRBool                   aBuildCombobox,
-                        PendingBinding*          aPendingBinding,
                         nsFrameItems&            aFrameItems);
 
   nsresult MaybeRecreateFramesForContent(nsIContent* aContent);
@@ -1449,8 +1435,6 @@ private:
   
   
   
-  
-  
   nsresult ConstructBlock(nsFrameConstructorState& aState,
                           const nsStyleDisplay*    aDisplay,
                           nsIContent*              aContent,
@@ -1459,8 +1443,7 @@ private:
                           nsStyleContext*          aStyleContext,
                           nsIFrame**               aNewFrame,
                           nsFrameItems&            aFrameItems,
-                          PRBool                   aAbsPosContainer,
-                          PendingBinding*          aPendingBinding);
+                          PRBool                   aAbsPosContainer);
 
   nsresult ConstructInline(nsFrameConstructorState& aState,
                            FrameConstructionItem&   aItem,
