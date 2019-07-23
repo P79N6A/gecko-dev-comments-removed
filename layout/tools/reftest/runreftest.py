@@ -123,6 +123,8 @@ Are you executing $objdir/_tests/reftest/runreftest.py?""" \
     
     options.xrePath = getFullPath(options.xrePath)
 
+  options.symbolsPath = getFullPath(options.symbolsPath)
+
   profileDir = None
   try:
     profileDir = mkdtemp()
