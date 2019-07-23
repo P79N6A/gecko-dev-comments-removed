@@ -1132,23 +1132,16 @@ nsObjectFrame::PrintPlugin(nsIRenderingContext& aRenderingContext,
   pi->GetValue(nsPluginInstanceVariable_WindowlessBool, (void *)&windowless);
   window.type  =  windowless ? nsPluginWindowType_Drawable : nsPluginWindowType_Window;
 
-  
-  nsTransform2D* rcTransform;
-  aRenderingContext.GetCurrentTransform(rcTransform);
-  nsPoint origin;
-  rcTransform->GetTranslationCoord(&origin.x, &origin.y);
-
-  
-  
-  window.x = presContext->AppUnitsToDevPixels(origin.x);
-  window.y = presContext->AppUnitsToDevPixels(origin.y);
-  window.width = presContext->AppUnitsToDevPixels(mRect.width);
-  window.height= presContext->AppUnitsToDevPixels(mRect.height);
   window.clipRect.bottom = 0; window.clipRect.top = 0;
   window.clipRect.left = 0; window.clipRect.right = 0;
   
 
 #if defined(XP_UNIX) && !defined(XP_MACOSX)
+
+  
+
+
+#if 0
     
 
 
@@ -1188,6 +1181,7 @@ nsObjectFrame::PrintPlugin(nsIRenderingContext& aRenderingContext,
   fclose(plugintmpfile);
 
   PR_LOG(nsObjectFrameLM, PR_LOG_DEBUG, ("plugin printing done, return code is %lx\n", (long)rv));
+#endif
 
 #elif defined(XP_WIN)
 
@@ -1206,15 +1200,30 @@ nsObjectFrame::PrintPlugin(nsIRenderingContext& aRenderingContext,
 
 
 
+  
+  window.x = 0;
+  window.y = 0;
+  window.width = presContext->AppUnitsToDevPixels(mRect.width);
+  window.height = presContext->AppUnitsToDevPixels(mRect.height);
+
   gfxContext *ctx = aRenderingContext.ThebesContext();
 
   ctx->Save();
 
+  
   ctx->NewPath();
   ctx->Rectangle(gfxRect(window.x, window.y,
                          window.width, window.height));
   ctx->Clip();
-  ctx->PushGroup(gfxASurface::CONTENT_COLOR_ALPHA);
+
+  
+
+
+
+  if (windowless)
+    ctx->PushGroup(gfxASurface::CONTENT_COLOR_ALPHA);
+  else
+    ctx->PushGroup(gfxASurface::CONTENT_COLOR);
 
   gfxWindowsNativeDrawing nativeDraw(ctx,
                                      gfxRect(window.x, window.y,
@@ -1239,6 +1248,19 @@ nsObjectFrame::PrintPlugin(nsIRenderingContext& aRenderingContext,
   ctx->Restore();
 
 #else
+
+  
+  nsTransform2D* rcTransform;
+  aRenderingContext.GetCurrentTransform(rcTransform);
+  nsPoint origin;
+  rcTransform->GetTranslationCoord(&origin.x, &origin.y);
+
+  
+  
+  window.x = presContext->AppUnitsToDevPixels(origin.x);
+  window.y = presContext->AppUnitsToDevPixels(origin.y);
+  window.width = presContext->AppUnitsToDevPixels(mRect.width);
+  window.height= presContext->AppUnitsToDevPixels(mRect.height);
 
   
   
