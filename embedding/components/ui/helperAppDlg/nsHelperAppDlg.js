@@ -461,7 +461,13 @@ nsHelperAppDialog.prototype = {
     
     initAppAndSaveToDiskValues: function() {
         
-        this.chosenApp = this.mLauncher.MIMEInfo.preferredApplicationHandler;
+        try {
+            this.chosenApp =
+              this.mLauncher.MIMEInfo.preferredApplicationHandler
+                  .QueryInterface(Components.interfaces.nsILocalHandlerApp);
+        } catch (e) {
+            this.chosenApp = null;
+        }
         
         this.initDefaultApp();
 
