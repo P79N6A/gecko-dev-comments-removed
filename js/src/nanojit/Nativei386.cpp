@@ -617,10 +617,15 @@ namespace nanojit
                     {
                         NanoAssert(rmask(rr)&x87Regs);
                         _allocator.retire(rr);
+                        
+                        
+                        if (dr)
+                            FSTQ(0,dr, FP);
                         FLD32(db, rb);
                     }
                     else
                     {
+                        
                         
                         NanoAssert(dr != 0);
                         FSTPQ(dr, FP);
