@@ -853,23 +853,6 @@ nsCSSScanner::NextURL(nsCSSToken& aToken)
     (void) EatWhiteSpace();
     return PR_TRUE;
   }
-  if (ch == '/') {
-    PRInt32 nextChar = Peek();
-    if (nextChar == '*') {
-      (void) Read();
-#if 0
-      
-      
-      
-      
-      aToken.mIdent.SetCapacity(2);
-      aToken.mIdent.Assign(PRUnichar(ch));
-      aToken.mIdent.Append(PRUnichar(nextChar));
-      return ParseCComment(aToken);
-#endif
-      return SkipCComment() && Next(aToken);
-    }
-  }
 
   
   
