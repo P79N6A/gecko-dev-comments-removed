@@ -200,12 +200,19 @@ var PlacesOrganizer = {
 
 
 
+  _cachedLeftPaneSelectedNode: null,
   onPlaceSelected: function PO_onPlaceSelected(resetSearchBox) {
     
     if (!this._places.hasSelection)
       return;
 
     var node = this._places.selectedNode;
+    
+    
+    
+    if (node == this._cachedLeftPaneSelectedNode)
+      return;
+    this._cachedLeftPaneSelectedNode = node;
     var queries = asQuery(node).getQueries({});
 
     
@@ -332,7 +339,7 @@ var PlacesOrganizer = {
       this._places.selectPlaceURI(aContainer.uri);
   },
 
-  openSelectedNode: function PU_openSelectedNode(aEvent) {
+  openSelectedNode: function PO_openSelectedNode(aEvent) {
     PlacesUIUtils.openNodeWithEvent(this._content.selectedNode, aEvent);
   },
 
