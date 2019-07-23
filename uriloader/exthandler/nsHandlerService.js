@@ -357,12 +357,26 @@ HandlerService.prototype = {
 
     
     
-    
-    
-    
-    aHandlerInfo.alwaysAskBeforeHandling =
-      !this._hasValue(infoID, NC_ALWAYS_ASK) ||
-      this._getValue(infoID, NC_ALWAYS_ASK) != "false";
+    var alwaysAsk;
+    if (this._hasValue(infoID, NC_ALWAYS_ASK)) {
+      alwaysAsk = (this._getValue(infoID, NC_ALWAYS_ASK) != "false");
+    } else {
+      var prefSvc = Cc["@mozilla.org/preferences-service;1"].
+                    getService(Ci.nsIPrefService);
+      var prefBranch = prefSvc.getBranch("network.protocol-handler.");
+      try {
+        alwaysAsk = prefBranch.getBoolPref("warn-external." + type);
+      } catch (e) {
+        
+        try {
+          alwaysAsk = prefBranch.getBoolPref("warn-external-default");
+        } catch (e) {
+          
+          alwaysAsk = true;
+        }
+      }
+    }
+    aHandlerInfo.alwaysAskBeforeHandling = alwaysAsk;
 
     
     

@@ -130,16 +130,49 @@ function run_test() {
   do_check_true(protoInfo.alwaysAskBeforeHandling);
   
   
+  
   const kExternalWarningPrefPrefix = "network.protocol-handler.warn-external.";
-  prefSvc.setBoolPref(kExternalWarningPrefPrefix + "mailto", false)
-  protoInfo = protoSvc.getProtocolHandlerInfo("mailto");
+  prefSvc.setBoolPref(kExternalWarningPrefPrefix + "http", false);
+  protoInfo = protoSvc.getProtocolHandlerInfo("http");
+  do_check_eq(0, protoInfo.possibleApplicationHandlers.length);
   do_check_false(protoInfo.alwaysAskBeforeHandling);
   
   
-  prefSvc.setBoolPref(kExternalWarningPrefPrefix + "mailto", true)
-  protoInfo = protoSvc.getProtocolHandlerInfo("mailto");
-  do_check_true(protoInfo.alwaysAskBeforeHandling);
   
+  prefSvc.setBoolPref(kExternalWarningPrefPrefix + "http", true);
+  protoInfo = protoSvc.getProtocolHandlerInfo("http");
+  
+  
+  
+  do_check_eq(0, protoInfo.possibleApplicationHandlers.length);
+  do_check_true(protoInfo.alwaysAskBeforeHandling);
+
+  
+  prefSvc.setBoolPref(kExternalWarningPrefPrefix + "mailto", false);
+  protoInfo = protoSvc.getProtocolHandlerInfo("mailto");
+  do_check_eq(1, protoInfo.possibleApplicationHandlers.length);
+  do_check_false(protoInfo.alwaysAskBeforeHandling);
+
+  
+  prefSvc.setBoolPref(kExternalWarningPrefPrefix + "mailto", true);
+  protoInfo = protoSvc.getProtocolHandlerInfo("mailto");
+  do_check_eq(1, protoInfo.possibleApplicationHandlers.length);
+  
+  
+  
+  
+  do_check_false(protoInfo.alwaysAskBeforeHandling);
+  
+  
+  
+  prefSvc.setBoolPref(kExternalWarningPrefPrefix + "mailto", false);
+  protoInfo.alwaysAskBeforeHandling = true;
+  handlerSvc.store(protoInfo);
+  protoInfo = protoSvc.getProtocolHandlerInfo("mailto");
+  do_check_eq(1, protoInfo.possibleApplicationHandlers.length);
+  do_check_true(protoInfo.alwaysAskBeforeHandling);
+
+
   
   
 
@@ -180,6 +213,7 @@ function run_test() {
     
     rootPrefBranch.getCharPref("gecko.handlerService.defaultHandlersVersion");
     handlerTypes.push("webcal");
+    handlerTypes.push("mailto");
   } catch (ex) {}   
   var handlers = handlerSvc.enumerate();
   while (handlers.hasMoreElements()) {
