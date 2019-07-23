@@ -133,6 +133,9 @@ var observer = {
 os.addObserver(observer, PLACES_VACUUM_STARTING_TOPIC, false);
 
 function run_test() {
+  
+  return;
+
   while (gTests.length) {
     observer.vacuum = false;
     let test = gTests.shift();
