@@ -2094,26 +2094,6 @@ FillArray(nsHashKey* aKey, void* aData, void* aClosure)
   return PR_TRUE;
 }
 
-
-
-
-
-
-static void PutRulesInList(nsObjectHashtable* aRuleArrays,
-                           nsVoidArray* aWeightedRules)
-{
-  PRInt32 arrayCount = aRuleArrays->Count();
-  RuleArrayData* arrayData = new RuleArrayData[arrayCount];
-  FillArrayData faData(arrayData);
-  aRuleArrays->Enumerate(FillArray, &faData);
-  NS_QuickSort(arrayData, arrayCount, sizeof(RuleArrayData),
-               CompareArrayData, nsnull);
-  for (PRInt32 i = 0; i < arrayCount; ++i)
-    aWeightedRules->AppendElements(*arrayData[i].mRuleArray);
-
-  delete [] arrayData;
-}
-
 RuleCascadeData*
 nsCSSRuleProcessor::GetRuleCascade(nsPresContext* aPresContext)
 {
@@ -2133,22 +2113,33 @@ nsCSSRuleProcessor::GetRuleCascade(nsPresContext* aPresContext)
   }
 
   if (mSheets.Count() != 0) {
-    cascade = new RuleCascadeData(medium,
-                                  eCompatibility_NavQuirks == aPresContext->CompatibilityMode());
-    if (cascade) {
-      CascadeEnumData data(aPresContext, cascade->mRuleHash.Arena());
+    nsAutoPtr<RuleCascadeData> newCascade(
+      new RuleCascadeData(medium,
+                          eCompatibility_NavQuirks == aPresContext->CompatibilityMode()));
+    if (newCascade) {
+      CascadeEnumData data(aPresContext, newCascade->mRuleHash.Arena());
       mSheets.EnumerateForwards(CascadeSheetRulesInto, &data);
-      nsVoidArray weightedRules;
-      PutRulesInList(&data.mRuleArrays, &weightedRules);
 
       
       
-      if (!weightedRules.EnumerateBackwards(AddRule, cascade)) {
-        delete cascade;
-        cascade = nsnull;
+      PRInt32 arrayCount = data.mRuleArrays.Count();
+      nsAutoArrayPtr<RuleArrayData> arrayData(new RuleArrayData[arrayCount]);
+      FillArrayData faData(arrayData);
+      data.mRuleArrays.Enumerate(FillArray, &faData);
+      NS_QuickSort(arrayData, arrayCount, sizeof(RuleArrayData),
+                   CompareArrayData, nsnull);
+
+      
+      
+      for (PRInt32 i = arrayCount - 1; i >= 0; --i) {
+        if (!arrayData[i].mRuleArray->EnumerateBackwards(AddRule,
+                                                         newCascade)) {
+          return nsnull;
+        }
       }
 
-      *cascadep = cascade;
+      *cascadep = newCascade;
+      cascade = newCascade.forget();
     }
   }
   return cascade;
