@@ -100,16 +100,8 @@ namespace nanojit {
 #ifdef DEBUG
     class LabelMap;
 #endif
-    extern "C++" {
-        template<typename K> class DefaultHash;
-        template<typename K, typename V, typename H> class HashMap;
-        template<typename T> class Seq;
-    }
+    extern "C++" { template<typename K, typename V, typename H> class HashMap; }
 }
-#if defined(JS_JIT_SPEW) || defined(DEBUG)
-struct FragPI;
-typedef nanojit::HashMap<uint32, FragPI, nanojit::DefaultHash<uint32> > FragStatsMap;
-#endif
 class TraceRecorder;
 class VMAllocator;
 extern "C++" { template<typename T> class Queue; }
@@ -199,18 +191,6 @@ struct JSTraceMonitor {
 
     
     CLS(TraceRecorder)      abortStack;
-
-#ifdef DEBUG
-    
-    CLS(nanojit::Seq<nanojit::Fragment*>) branches;
-    uint32                  lastFragID;
-    
-
-
-
-    CLS(VMAllocator)        profAlloc;
-    CLS(FragStatsMap)       profTab;
-#endif
 
     
     void flush();
