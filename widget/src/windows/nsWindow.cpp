@@ -1181,7 +1181,7 @@ nsWindow::EventIsInsideWindow(UINT Msg, nsWindow* aWindow)
 {
   RECT r;
 
-  if (Msg == WM_ACTIVATE)
+  if (Msg == WM_ACTIVATEAPP)
 #ifndef WINCE
     
     return PR_FALSE;
