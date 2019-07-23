@@ -90,6 +90,17 @@ js_dmod(jsdouble a, jsdouble b)
 
 
 
+
+jsint FASTCALL
+js_imod(jsint a, jsint b)
+{
+    return a % b;
+}
+
+
+
+
+
 jsval FASTCALL
 js_BoxDouble(JSContext* cx, jsdouble d)
 {
