@@ -67,45 +67,6 @@
 
 
 
-
-
-
-
-
-
-
-class WeightTable
-{
-public:
-    THEBES_INLINE_DECL_REFCOUNTING(WeightTable)
-
-    WeightTable() : mWeights(0) {}
-    ~WeightTable() {
-
-    }
-    PRBool TriedWeight(PRUint8 aWeight) {
-        return mWeights[aWeight - 1 + 10];
-    }
-    PRBool HasWeight(PRUint8 aWeight) {
-        return mWeights[aWeight - 1];
-    }
-    void SetWeight(PRUint8 aWeight, PRBool aValue) {
-        mWeights[aWeight - 1] = (aValue == PR_TRUE);
-        mWeights[aWeight - 1 + 10] = PR_TRUE;
-    }
-
-private:
-    std::bitset<20> mWeights;
-};
-
-
-
-
-
-
-
-
-
 struct UnicodeRangeTableEntry
 {
     PRUint8 bit;
@@ -280,6 +241,58 @@ static PRUint8 CharRangeBit(PRUint32 ch) {
 }
 
 
+class gfxSparseBitSet {
+public:
+    enum { BLOCK_SIZE = 32 };
+
+    PRBool test(PRUint32 aIndex) {
+        PRUint32 blockIndex = aIndex/(BLOCK_SIZE*8);
+        if (blockIndex >= mBlocks.Length())
+            return PR_FALSE;
+        Block *block = mBlocks[blockIndex];
+        if (!block)
+            return PR_FALSE;
+        return ((block->mBits[(aIndex/8) & (BLOCK_SIZE - 1)]) & (1 << (aIndex & 0x7))) != 0;
+    }
+   
+    void set(PRUint32 aIndex) {
+        PRUint32 blockIndex = aIndex/(BLOCK_SIZE*8);
+        if (blockIndex >= mBlocks.Length()) {
+            nsAutoPtr<Block> *blocks = mBlocks.AppendElements(blockIndex + 1 - mBlocks.Length());
+            if (!blocks) 
+                return;
+        }
+        Block *block = mBlocks[blockIndex];
+        if (!block) {
+            block = new Block;
+            if (!block) 
+                return;
+            memset(block, 0, sizeof(Block));
+            mBlocks[blockIndex] = block;
+        }
+        block->mBits[(aIndex/8) & (BLOCK_SIZE - 1)] |= 1 << (aIndex & 0x7);
+    }
+
+    PRUint32 getsize() {
+        PRUint32 size = 0;
+        for (PRUint32 i = 0; i < mBlocks.Length(); i++)
+            if (mBlocks[i])
+                size += sizeof(Block);
+        return size;
+    }
+
+    
+    
+
+private:
+    struct Block {
+        PRUint8 mBits[BLOCK_SIZE];
+    };
+    
+    nsTArray< nsAutoPtr<Block> > mBlocks;
+};
+
+
 
 
 
@@ -291,8 +304,8 @@ public:
     THEBES_INLINE_DECL_REFCOUNTING(FontEntry)
 
     FontEntry(const nsAString& aName, PRUint16 aFontType) : 
-        mName(aName), mFontType(aFontType), mUnicodeFont(PR_FALSE),
-        mCharset(0), mUnicodeRanges(0)
+        mName(aName), mFontType(aFontType), mDefaultWeight(0),
+        mUnicodeFont(PR_FALSE), mCharset(0), mUnicodeRanges(0)
     {
     }
 
@@ -385,10 +398,32 @@ public:
         return mUnicodeRanges[range];
     }
 
+    class WeightTable
+    {
+    public:
+        THEBES_INLINE_DECL_REFCOUNTING(WeightTable)
+            
+        WeightTable() : mWeights(0) {}
+        ~WeightTable() {}
+        PRBool TriedWeight(PRUint8 aWeight) {
+            return mWeights[aWeight - 1 + 10];
+        }
+        PRBool HasWeight(PRUint8 aWeight) {
+            return mWeights[aWeight - 1];
+        }
+        void SetWeight(PRUint8 aWeight, PRBool aValue) {
+            mWeights[aWeight - 1] = aValue;
+            mWeights[aWeight - 1 + 10] = PR_TRUE;
+        }
+    private:
+        std::bitset<20> mWeights;
+    };
+
     
     nsString mName;
 
     PRUint16 mFontType;
+    PRUint16 mDefaultWeight;
 
     PRUint8 mFamily;
     PRUint8 mPitch;
@@ -396,6 +431,10 @@ public:
 
     std::bitset<256> mCharset;
     std::bitset<128> mUnicodeRanges;
+
+    WeightTable mWeightTable;
+
+    gfxSparseBitSet mCharacterMap;
 };
 
 
@@ -429,6 +468,8 @@ public:
         return mSpaceGlyph;
     };
 
+    FontEntry *GetFontEntry() { return mFontEntry; }
+
 protected:
     HFONT MakeHFONT();
     cairo_font_face_t *MakeCairoFontFace();
@@ -452,7 +493,7 @@ private:
 
     LOGFONTW mLogFont;
 
-    nsRefPtr<WeightTable> mWeightTable;
+    nsRefPtr<FontEntry> mFontEntry;
     
     virtual void SetupCairoFont(cairo_t *aCR);
 };
@@ -514,4 +555,4 @@ private:
     nsCString mGenericFamily;
 };
 
-#endif 
+#endif
