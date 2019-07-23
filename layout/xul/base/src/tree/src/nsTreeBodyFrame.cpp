@@ -2643,7 +2643,9 @@ nsTreeBodyFrame::HandleEvent(nsPresContext* aPresContext,
     
     PRInt32 lastDropRow = mSlots->mDropRow;
     PRInt16 lastDropOrient = mSlots->mDropOrient;
+#ifndef XP_MACOSX
     PRInt16 lastScrollLines = mSlots->mScrollLines;
+#endif
 
     
     PRUint32 lastDragAction = mSlots->mDragAction;
