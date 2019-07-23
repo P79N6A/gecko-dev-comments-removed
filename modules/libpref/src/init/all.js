@@ -789,11 +789,6 @@ pref("network.automatic-ntlm-auth.trusted-uris", "");
 
 pref("network.ntlm.send-lm-response", false);
 
-
-
-
-pref("network.hosts.nntp_server",           "news.mozilla.org");
-
 pref("permissions.default.image",           1); 
 
 #ifndef XP_MACOSX
