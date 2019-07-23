@@ -71,9 +71,13 @@
 #if defined(XP_UNIX)
 #include <sys/time.h> 
 #endif
-#if defined(WIN32) && !defined(WINCE)
+#if defined(WIN32)
+#if defined(WINCE)
+#include <windows.h>
+#else
 #include <sys/types.h>
 #include <sys/timeb.h>  
+#endif
 #endif
 
 #define DEFAULT_LEAD_TIME_SECS 5
