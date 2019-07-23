@@ -107,10 +107,6 @@ extern PRLogModuleInfo* gContentSinkLogModuleInfo;
 
 #define NS_DELAY_FOR_WINDOW_CREATION  500000
 
-
-
-#define NS_MAX_TOKENS_DEFLECTED_IN_LOW_FREQ_MODE 200
-
 class nsContentSink : public nsICSSLoaderObserver,
                       public nsIScriptLoaderObserver,
                       public nsSupportsWeakReference,
@@ -362,6 +358,8 @@ protected:
 
   
   PRInt32 mDynamicIntervalSwitchThreshold;
+
+  PRInt32 mMaxTokensDeflectedInLowFreqMode;
 
   PRInt32 mBeginLoadTime;
 

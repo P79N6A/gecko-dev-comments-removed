@@ -298,6 +298,11 @@ nsContentSink::Init(nsIDocument* aDoc,
   mCanInterruptParser =
     nsContentUtils::GetBoolPref("content.interrupt.parsing", PR_TRUE);
 
+  
+  
+  mMaxTokensDeflectedInLowFreqMode =
+    nsContentUtils::GetIntPref("content.max.deflected.tokens", 200);
+
   return NS_OK;
 
 }
@@ -1538,9 +1543,7 @@ nsContentSink::DidProcessATokenImpl()
       
       
       rv = vm->GetLastUserEventTime(eventTime);
-      NS_ENSURE_SUCCESS(rv , NS_ERROR_FAILURE);
   }
-
 
   NS_ENSURE_SUCCESS(rv, NS_ERROR_FAILURE);
 
@@ -1549,7 +1552,8 @@ nsContentSink::DidProcessATokenImpl()
     
     
     
-    if (mDeflectedCount < NS_MAX_TOKENS_DEFLECTED_IN_LOW_FREQ_MODE) {
+    
+    if (mDeflectedCount < mMaxTokensDeflectedInLowFreqMode) {
       mDeflectedCount++;
       
       
