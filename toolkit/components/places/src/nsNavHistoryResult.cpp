@@ -587,6 +587,9 @@ nsNavHistoryContainerResultNode::ReverseUpdateStats(PRInt32 aAccessCountChange)
           sortMode == nsINavHistoryQueryOptions::SORT_BY_DATE_DESCENDING) &&
          timeChanged)) {
 
+      SortComparator comparator = GetSortingComparator(sortMode);
+      nsCAutoString sortingAnnotation;
+      GetSortingAnnotation(sortingAnnotation);
       PRUint32 ourIndex = mParent->FindChild(this);
       resorted = EnsureItemPosition(ourIndex);
     }
@@ -2314,11 +2317,11 @@ nsNavHistoryQueryResultNode::FillChildren()
   
   
   SortComparator comparator = GetSortingComparator(GetSortType());
-  if (comparator) {
-    nsCAutoString sortingAnnotation;
-    GetSortingAnnotation(sortingAnnotation);
+  nsCAutoString sortingAnnotation;
+  GetSortingAnnotation(sortingAnnotation);
+
+  if (comparator)
     RecursiveSort(sortingAnnotation.get(), comparator);
-  }
 
   
   
@@ -3076,11 +3079,11 @@ nsNavHistoryFolderResultNode::FillChildren()
   
   
   SortComparator comparator = GetSortingComparator(GetSortType());
-  if (comparator) {
-    nsCAutoString sortingAnnotation;
-    GetSortingAnnotation(sortingAnnotation);
+  nsCAutoString sortingAnnotation;
+  GetSortingAnnotation(sortingAnnotation);
+
+  if (comparator)
     RecursiveSort(sortingAnnotation.get(), comparator);
-  }
 
   
   nsNavHistoryResult* result = GetResult();
