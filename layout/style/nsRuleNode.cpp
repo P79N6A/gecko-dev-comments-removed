@@ -2326,6 +2326,12 @@ nsRuleNode::AdjustLogicalBoxProp(nsStyleContext* aContext,
       if (RTLlogical)
         aValueRect.*(nsCSSRect::sides[aSide]) = aRTLLogicalValue;
     }
+  } else if (aLTRLogicalValue.GetUnit() == eCSSUnit_Inherit ||
+             aRTLLogicalValue.GetUnit() == eCSSUnit_Inherit) {
+    
+    
+    
+    aCanStoreInRuleTree = PR_FALSE;
   }
 }
 
