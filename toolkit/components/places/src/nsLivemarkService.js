@@ -159,7 +159,7 @@ LivemarkService.prototype = {
   
   _pushLivemark: function LS__pushLivemark(folderId, folderURI, feedURI) {
     return this._livemarks.push({folderId: folderId, folderURI: folderURI,
-	                         feedURI: feedURI});
+                                 feedURI: feedURI});
   },
 
   _getLivemarkIndex: function LS__getLivemarkIndex(folderId) {
@@ -227,9 +227,9 @@ LivemarkService.prototype = {
       var exprTime = this._ans.getAnnotationInt64(livemark.feedURI,
                                                   LMANNO_EXPIRATION);
       if (!forceUpdate && exprTime > Date.now()) {
-	
-	livemark.locked = false;
-	return;
+        
+        livemark.locked = false;
+        return;
       }
     } 
     catch (ex) {
@@ -570,7 +570,7 @@ LivemarkLoadListener.prototype = {
 
 
   onDataAvailable: function LLL_onDataAvailable(request, context, inputStream, 
-						sourceOffset, count) {
+                                                sourceOffset, count) {
     this._processor.onDataAvailable(request, context, inputStream,
                                     sourceOffset, count);
   },
