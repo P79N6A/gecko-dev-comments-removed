@@ -161,16 +161,12 @@ struct nsStyleBackground {
   static nsChangeHint MaxDifference();
 #endif
 
-  
-  
-  
-  
-  PRUint8 mBackgroundFlags;            
-  PRUint8 mBackgroundAttachment   : 4; 
-  PRUint8 mBackgroundClip         : 3; 
-  PRUint8 mBackgroundInlinePolicy : 2; 
-  PRUint8 mBackgroundOrigin       : 3; 
-  PRUint8 mBackgroundRepeat       : 4; 
+  PRUint8 mBackgroundFlags;        
+  PRUint8 mBackgroundAttachment;   
+  PRUint8 mBackgroundClip;         
+  PRUint8 mBackgroundInlinePolicy; 
+  PRUint8 mBackgroundOrigin;       
+  PRUint8 mBackgroundRepeat;       
 
   
   

@@ -68,18 +68,18 @@ struct NS_GFX nsFont {
   nsString name;
 
   
-  unsigned int style : 7;
+  PRUint8 style;
 
   
   
-  unsigned int systemFont : 1;
+  PRUint8 systemFont;
 
   
-  PRUint8 variant : 7;
+  PRUint8 variant;
 
   
   
-  PRUint8 familyNameQuirks : 1;
+  PRUint8 familyNameQuirks;
 
   
   PRUint16 weight;

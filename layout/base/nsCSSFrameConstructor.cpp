@@ -7404,8 +7404,11 @@ nsCSSFrameConstructor::ConstructFrameInternal( nsFrameConstructorState& aState,
   
   
   
+  
   {
-    styleContext->GetStyleVisibility();
+    if (styleContext->GetStyleVisibility()->mDirection ==
+        NS_STYLE_DIRECTION_RTL)
+      aState.mPresContext->SetBidiEnabled();
   }
   
   
