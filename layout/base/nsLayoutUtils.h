@@ -1023,6 +1023,18 @@ public:
 
 
 
+  static PRBool IsPopup(nsIFrame* aFrame);
+
+  
+
+
+
+  static nsIFrame* GetDisplayRootFrame(nsIFrame* aFrame);
+
+  
+
+
+
 
 
 

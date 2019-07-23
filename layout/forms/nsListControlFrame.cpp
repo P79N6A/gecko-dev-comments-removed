@@ -1020,12 +1020,6 @@ nsListControlFrame::CaptureMouseEvents(PRBool aGrabMouseEvents)
   
   if (aGrabMouseEvents && IsInDropDownMode() && nsComboboxControlFrame::ToolkitHasNativePopup())
     return;
-  
-  nsIView* view = GetScrolledFrame()->GetView();
-
-  NS_ASSERTION(view, "no view???");
-  if (NS_UNLIKELY(!view))
-    return;
 
   if (aGrabMouseEvents) {
     nsIPresShell::SetCapturingContent(mContent, CAPTURE_IGNOREALLOWED);
