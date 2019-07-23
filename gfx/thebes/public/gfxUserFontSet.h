@@ -66,6 +66,14 @@ struct gfxFontFaceSrc {
 
 
 
+class gfxFontLoaderContext {
+public:
+  gfxFontLoaderContext() { }
+  virtual ~gfxFontLoaderContext() { }
+};
+
+
+
 class gfxUserFontData {
 public:
     gfxUserFontData() { }
