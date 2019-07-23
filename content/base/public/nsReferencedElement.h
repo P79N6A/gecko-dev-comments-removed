@@ -56,6 +56,15 @@ class nsCycleCollectionCallback;
 
 
 
+
+
+
+
+
+
+
+
+
 class nsReferencedElement {
 public:
   nsReferencedElement() {}
@@ -65,15 +74,34 @@ public:
       mPendingNotification->Clear();
     }
   }
+
+  
+
+
   nsIContent* get() { return mContent; }
 
+  
+
+
+
+
+
+
+
+
+
   void Reset(nsIContent* aFrom, nsIURI* aURI, PRBool aWatch = PR_TRUE);
+  
+
+
+
   void Unlink();
 
   void Traverse(nsCycleCollectionTraversalCallback* aCB);
   
 protected:
   
+
 
 
 
