@@ -13064,6 +13064,7 @@ nsCSSFrameConstructor::LazyGenerateChildrenEvent::Run()
   
   nsIFrame* frame = mPresShell->GetPrimaryFrameFor(mContent);
   if (frame && frame->GetType() == nsGkAtoms::menuPopupFrame) {
+#ifdef MOZ_XUL
     
     
     
@@ -13073,6 +13074,7 @@ nsCSSFrameConstructor::LazyGenerateChildrenEvent::Run()
 
     
     menuPopupFrame->SetGeneratedChildren();
+#endif
 
     nsFrameItems childItems;
     nsFrameConstructorState state(mPresShell, nsnull, nsnull, nsnull);
