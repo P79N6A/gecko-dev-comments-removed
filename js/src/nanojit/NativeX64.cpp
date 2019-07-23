@@ -1009,6 +1009,7 @@ namespace nanojit
         
         NanoAssert((condop & ~LIR64) >= LIR_ov);
         NanoAssert((condop & ~LIR64) <= LIR_uge);
+        underrunProtect(8); 
         if (target && isS8(target - _nIns)) {
             if (onFalse) {
                 switch (condop & ~LIR64) {
