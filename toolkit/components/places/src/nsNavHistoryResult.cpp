@@ -2093,7 +2093,8 @@ nsNavHistoryQueryResultNode::CanExpand()
     return PR_TRUE;
 
   
-  if (mResult && mResult->mRootNode->mOptions->ExcludeItems())
+  if ((mResult && mResult->mRootNode->mOptions->ExcludeItems()) ||
+      (mParent && mParent->mOptions->ExcludeItems()))
     return PR_FALSE;
 
   nsNavHistoryQueryOptions* options = GetGeneratingOptions();
@@ -3482,6 +3483,10 @@ nsNavHistoryFolderResultNode::OnItemAdded(PRInt64 aItemId,
 {
   NS_ASSERTION(aParentFolder == mItemId, "Got wrong bookmark update");
 
+  PRBool excludeItems = (mResult && mResult->mRootNode->mOptions->ExcludeItems()) ||
+                        (mParent && mParent->mOptions->ExcludeItems()) ||
+                        mOptions->ExcludeItems();
+
   
   
   if (aIndex < 0) {
@@ -3489,15 +3494,10 @@ nsNavHistoryFolderResultNode::OnItemAdded(PRInt64 aItemId,
     aIndex = 0;
   }
   else if (aIndex > mChildren.Count()) {
-    PRBool excludeItems = (mResult && mResult->mRootNode->mOptions->ExcludeItems()) ||
-                          (mParent && mParent->mOptions->ExcludeItems()) ||
-                          mOptions->ExcludeItems();
-    if (excludeItems &&
-        (aItemType == nsINavBookmarksService::TYPE_BOOKMARK ||
-         aItemType == nsINavBookmarksService::TYPE_SEPARATOR))
-      return NS_OK;
-
-    NS_NOTREACHED("Invalid index for item adding: greater than count");
+    if (!excludeItems) {
+      
+      NS_NOTREACHED("Invalid index for item adding: greater than count");
+    }
     aIndex = mChildren.Count();
   }
 
@@ -3520,7 +3520,7 @@ nsNavHistoryFolderResultNode::OnItemAdded(PRInt64 aItemId,
   }
 
   if (aItemType != nsINavBookmarksService::TYPE_FOLDER &&
-      !isQuery && mOptions->ExcludeItems()) {
+      !isQuery && excludeItems) {
     
     
     ReindexRange(aIndex, PR_INT32_MAX, 1);
@@ -3725,7 +3725,10 @@ NS_IMETHODIMP
 nsNavHistoryFolderResultNode::OnItemVisited(PRInt64 aItemId,
                                             PRInt64 aVisitId, PRTime aTime)
 {
-  if (mOptions->ExcludeItems())
+  PRBool excludeItems = (mResult && mResult->mRootNode->mOptions->ExcludeItems()) ||
+                        (mParent && mParent->mOptions->ExcludeItems()) ||
+                        mOptions->ExcludeItems();
+  if (excludeItems)
     return NS_OK; 
   if (! StartIncrementalUpdate())
     return NS_OK;
