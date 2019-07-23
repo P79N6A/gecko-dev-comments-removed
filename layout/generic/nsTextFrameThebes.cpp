@@ -2132,11 +2132,11 @@ static PRUint32 GetSkippedDistance(const gfxSkipCharsIterator& aStart,
 void
 PropertyProvider::FindEndOfJustificationRange(gfxSkipCharsIterator* aIter)
 {
-  if (!(mFrame->GetStateBits() & TEXT_END_OF_LINE))
-    return;
+  aIter->SetOriginalOffset(mStart.GetOriginalOffset() + mLength);
 
   
-  aIter->SetOriginalOffset(mStart.GetOriginalOffset() + mLength);
+  if (!(mFrame->GetStateBits() & TEXT_END_OF_LINE))
+    return;
   while (aIter->GetOriginalOffset() > mStart.GetOriginalOffset()) {
     aIter->AdvanceOriginal(-1);
     if (!aIter->IsOriginalCharSkipped() &&
