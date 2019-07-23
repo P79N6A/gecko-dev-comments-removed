@@ -99,6 +99,7 @@ class TableBackgroundPainter
 
 
 
+
     
 
 
@@ -107,7 +108,11 @@ class TableBackgroundPainter
 
 
 
-    nsresult PaintTable(nsTableFrame* aTableFrame, nsMargin* aDeflate);
+
+
+
+    nsresult PaintTable(nsTableFrame* aTableFrame, const nsMargin& aDeflate,
+                        PRBool aPaintTableBackground);
 
     
 
@@ -143,7 +148,7 @@ class TableBackgroundPainter
     nsresult PaintTableFrame(nsTableFrame*         aTableFrame,
                              nsTableRowGroupFrame* aFirstRowGroup,
                              nsTableRowGroupFrame* aLastRowGroup,
-                             nsMargin*             aDeflate = nsnull);
+                             const nsMargin&       aDeflate);
 
     
 

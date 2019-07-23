@@ -282,15 +282,13 @@ nsresult
 TableBackgroundPainter::PaintTableFrame(nsTableFrame*         aTableFrame,
                                         nsTableRowGroupFrame* aFirstRowGroup,
                                         nsTableRowGroupFrame* aLastRowGroup,
-                                        nsMargin*             aDeflate)
+                                        const nsMargin&       aDeflate)
 {
   NS_PRECONDITION(aTableFrame, "null frame");
   TableBackgroundData tableData;
   tableData.SetFull(aTableFrame);
   tableData.mRect.MoveTo(0,0); 
-  if (aDeflate) {
-    tableData.mRect.Deflate(*aDeflate);
-  }
+  tableData.mRect.Deflate(aDeflate);
   if (mIsBorderCollapse && tableData.ShouldSetBCBorder()) {
     if (aFirstRowGroup && aLastRowGroup && mNumCols > 0) {
       
@@ -354,8 +352,9 @@ TableBackgroundPainter::TranslateContext(nscoord aDX,
 }
 
 nsresult
-TableBackgroundPainter::PaintTable(nsTableFrame* aTableFrame,
-                                   nsMargin*     aDeflate)
+TableBackgroundPainter::PaintTable(nsTableFrame*   aTableFrame,
+                                   const nsMargin& aDeflate,
+                                   PRBool          aPaintTableBackground)
 {
   NS_PRECONDITION(aTableFrame, "null table frame");
 
@@ -363,13 +362,17 @@ TableBackgroundPainter::PaintTable(nsTableFrame* aTableFrame,
   aTableFrame->OrderRowGroups(rowGroups);
 
   if (rowGroups.Length() < 1) { 
-    PaintTableFrame(aTableFrame, nsnull, nsnull, nsnull);
+    if (aPaintTableBackground) {
+      PaintTableFrame(aTableFrame, nsnull, nsnull, nsMargin(0,0,0,0));
+    }
     
     return NS_OK;
   }
 
-  PaintTableFrame(aTableFrame, rowGroups[0], rowGroups[rowGroups.Length() - 1],
-                  aDeflate);
+  if (aPaintTableBackground) {
+    PaintTableFrame(aTableFrame, rowGroups[0], rowGroups[rowGroups.Length() - 1],
+                    aDeflate);
+  }
 
   
   if (mNumCols > 0) {

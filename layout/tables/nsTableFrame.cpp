@@ -1409,6 +1409,18 @@ nsTableFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
 
   DO_GLOBAL_REFLOW_COUNT_DSP_COLOR("nsTableFrame", NS_RGB(255,128,255));
 
+  if (GetStyleVisibility()->IsVisible()) {
+    nsMargin deflate = GetDeflationForBackground(PresContext());
+    
+    
+    
+    if (deflate.IsZero()) {
+      nsresult rv = DisplayBackgroundUnconditional(aBuilder, aLists, PR_FALSE);
+      NS_ENSURE_SUCCESS(rv, rv);
+    }
+  }
+
+  
   
   
   
@@ -1417,6 +1429,16 @@ nsTableFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   NS_ENSURE_SUCCESS(rv, rv);
   
   return DisplayGenericTablePart(aBuilder, this, aDirtyRect, aLists, item);
+}
+
+nsMargin
+nsTableFrame::GetDeflationForBackground(nsPresContext* aPresContext) const
+{
+  if (eCompatibility_NavQuirks != aPresContext->CompatibilityMode() ||
+      !IsBorderCollapse())
+    return nsMargin(0,0,0,0);
+
+  return GetOuterBCBorder();
 }
 
 
@@ -1431,30 +1453,11 @@ nsTableFrame::PaintTableBorderBackground(nsIRenderingContext& aRenderingContext,
   TableBackgroundPainter painter(this, TableBackgroundPainter::eOrigin_Table,
                                  presContext, aRenderingContext,
                                  aDirtyRect, aPt);
-  nsresult rv;
+  nsMargin deflate = GetDeflationForBackground(presContext);
   
-  if (eCompatibility_NavQuirks == presContext->CompatibilityMode()) {
-    nsMargin deflate(0,0,0,0);
-    if (IsBorderCollapse()) {
-      PRInt32 p2t = nsPresContext::AppUnitsPerCSSPixel();
-      BCPropertyData* propData =
-        (BCPropertyData*)nsTableFrame::GetProperty((nsIFrame*)this,
-                                                   nsGkAtoms::tableBCProperty,
-                                                   PR_FALSE);
-      if (propData) {
-        deflate.top    = BC_BORDER_TOP_HALF_COORD(p2t, propData->mTopBorderWidth);
-        deflate.right  = BC_BORDER_RIGHT_HALF_COORD(p2t, propData->mRightBorderWidth);
-        deflate.bottom = BC_BORDER_BOTTOM_HALF_COORD(p2t, propData->mBottomBorderWidth);
-        deflate.left   = BC_BORDER_LEFT_HALF_COORD(p2t, propData->mLeftBorderWidth);
-      }
-    }
-    rv = painter.PaintTable(this, &deflate);
-    if (NS_FAILED(rv)) return;
-  }
-  else {
-    rv = painter.PaintTable(this, nsnull);
-    if (NS_FAILED(rv)) return;
-  }
+  
+  nsresult rv = painter.PaintTable(this, deflate, !deflate.IsZero());
+  if (NS_FAILED(rv)) return;
 
   if (GetStyleVisibility()->IsVisible()) {
     const nsStyleBorder* border = GetStyleBorder();
@@ -2593,6 +2596,7 @@ nsTableFrame::GetExcludedOuterBCBorder() const
 {
   return GetOuterBCBorder() - GetIncludedOuterBCBorder();
 }
+
 static
 void GetSeparateModelBorderPadding(const nsHTMLReflowState* aReflowState,
                                    nsStyleContext&          aStyleContext,

@@ -302,6 +302,12 @@ public:
 
 
 
+  nsMargin GetDeflationForBackground(nsPresContext* aPresContext) const;
+
+  
+
+
+
   nscoord GetContinuousLeftBCBorderWidth() const;
   void SetContinuousLeftBCBorderWidth(nscoord aValue);
 
