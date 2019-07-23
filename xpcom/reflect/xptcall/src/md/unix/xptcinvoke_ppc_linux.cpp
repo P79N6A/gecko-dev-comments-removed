@@ -48,6 +48,7 @@
 
 
 
+
 #include "xptcprivate.h"
 
 
@@ -55,8 +56,10 @@
 
 
 
-#define FPR_COUNT     8
 
+#ifndef __NO_FPRS__
+#define FPR_COUNT     8
+#endif
 extern "C" PRUint32
 invoke_count_words(PRUint32 paramCount, nsXPTCVariant* s)
 {
@@ -71,7 +74,9 @@ invoke_copy_to_stack(PRUint32* d,
                      double* fpregs)
 {
     PRUint32 gpr = 1; 
+#ifndef __NO_FPRS__
     PRUint32 fpr = 0;
+#endif
     PRUint32 tempu32;
     PRUint64 tempu64;
     
@@ -98,8 +103,17 @@ invoke_copy_to_stack(PRUint32* d,
         }
 
         if (!s->IsPtrData() && s->type == nsXPTType::T_DOUBLE) {
+#ifndef __NO_FPRS__
             if (fpr < FPR_COUNT)
                 fpregs[fpr++]    = s->val.d;
+#else
+            if (gpr & 1)
+                gpr++;
+            if ((gpr + 1) < GPR_COUNT) {
+                *((double*) &gpregs[gpr]) = s->val.d;
+                gpr += 2;
+            }
+#endif
             else {
                 if ((PRUint32) d & 4) d++; 
                 *((double*) d) = s->val.d;
@@ -107,8 +121,13 @@ invoke_copy_to_stack(PRUint32* d,
             }
         }
         else if (!s->IsPtrData() && s->type == nsXPTType::T_FLOAT) {
+#ifndef __NO_FPRS__
             if (fpr < FPR_COUNT)
                 fpregs[fpr++]   = s->val.f; 
+#else
+            if (gpr < GPR_COUNT)
+                *((float*) &gpregs[gpr++]) = s->val.f;
+#endif
             else
                 *((float*) d++) = s->val.f;
         }
