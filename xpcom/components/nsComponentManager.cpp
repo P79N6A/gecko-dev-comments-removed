@@ -84,6 +84,7 @@
 #include "xptinfo.h" 
 #include "nsThreadUtils.h"
 #include "prthread.h"
+#include "private/pprthred.h"
 
 #include "nsInt64.h"
 #include "nsManifestLineReader.h"
@@ -1298,7 +1299,7 @@ nsComponentManagerImpl::HashContractID(const char *aContractID,
     if(!aContractID || !aContractIDLen)
         return NS_ERROR_NULL_POINTER;
 
-    nsAutoMonitor mon(mMon);
+    NS_ABORT_IF_FALSE(PR_InMonitor(mMon), "called from outside mMon");
 
     nsContractIDTableEntry* contractIDTableEntry =
         static_cast<nsContractIDTableEntry*>
