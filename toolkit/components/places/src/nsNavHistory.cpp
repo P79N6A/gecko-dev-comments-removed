@@ -3174,7 +3174,6 @@ nsNavHistory::LazyTimerCallback(nsITimer* aTimer, void* aClosure)
 
 
 
-
 void
 nsNavHistory::CommitLazyMessages()
 {
@@ -4514,12 +4513,15 @@ GetSimpleBookmarksQueryFolder(const nsCOMArray<nsNavHistoryQuery>& aQueries,
   query->GetHasUri(&hasIt);
   if (hasIt)
     return 0;
+  (void)query->GetHasSearchTerms(&hasIt);
+  if (hasIt)
+    return 0;
   if (aOptions->MaxResults() > 0)
     return 0;
 
   
   
-
+  NS_ASSERTION(query->Folders()[0] > 0, "bad folder id");
   return query->Folders()[0];
 }
 
