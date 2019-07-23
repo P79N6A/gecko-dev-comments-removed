@@ -1617,14 +1617,9 @@ SessionStoreService.prototype = {
           if (cookie.isSession && _this._checkPrivacyLevel(cookie.isSecure)) {
             
             
-            var isInHash = false;
-            try {
-              if (jscookies[cookie.host][cookie.path][cookie.name])
-                isInHash = true;
-            } catch (e) {
-              
-            }
-            if (!isInHash) {
+            if (!(cookie.host in jscookies &&
+                  cookie.path in jscookies[cookie.host] &&
+                  cookie.name in jscookies[cookie.host][cookie.path])) {
               var jscookie = { "host": cookie.host, "value": cookie.value };
               
               if (cookie.path) jscookie.path = cookie.path;
