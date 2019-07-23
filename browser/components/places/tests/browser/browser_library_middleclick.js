@@ -82,10 +82,6 @@ var gTabsListener = {
     if (gCurrentTest.URIs.indexOf(spec) != -1 )
       this._loadedURIs.push(spec);
 
-    var fm = Components.classes["@mozilla.org/focus-manager;1"].
-               getService(Components.interfaces.nsIFocusManager);
-    is(fm.activeWindow, gBrowser.ownerDocument.defaultView, "window made active");
-
     if (this._loadedURIs.length == gCurrentTest.URIs.length) {
       
 
@@ -97,7 +93,7 @@ var gTabsListener = {
       this._openTabsCount = 0;
 
       
-      gCurrentTest.finish();
+      waitForFocus(gCurrentTest.finish, gBrowser.ownerDocument.defaultView);
     }
   },
 
@@ -252,6 +248,8 @@ gTests.push({
 
 function test() {
   waitForExplicitFinish();
+  
+  requestLongerTimeout(2);
 
   
   ok(PlacesUtils, "PlacesUtils in context");
@@ -302,8 +300,10 @@ function runNextTest() {
     gCurrentTest.setup();
 
     
-    gLibrary.PlacesOrganizer._content.focus();
-    mouseEventOnCell(gLibrary.PlacesOrganizer._content, 0, 0, { button: 1 });
+    gLibrary.focus();
+    waitForFocus(function() {
+      mouseEventOnCell(gLibrary.PlacesOrganizer._content, 0, 0, { button: 1 });
+    }, gLibrary);
   }
   else {
     
