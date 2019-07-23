@@ -159,17 +159,18 @@ public:
 
 
 
-class Tracker {
-    struct Page {
-        struct Page*    next;
-        jsuword         base;
-        nanojit::LIns*  map[1];
-    };
-    struct Page* pagelist;
 
-    jsuword         getPageBase(const void* v) const;
-    struct Page*    findPage(const void* v) const;
-    struct Page*    addPage(const void* v);
+class Tracker {
+    struct TrackerPage {
+        struct TrackerPage* next;
+        jsuword             base;
+        nanojit::LIns*      map[1];
+    };
+    struct TrackerPage* pagelist;
+
+    jsuword             getTrackerPageBase(const void* v) const;
+    struct TrackerPage* findTrackerPage(const void* v) const;
+    struct TrackerPage* addTrackerPage(const void* v);
 public:
     Tracker();
     ~Tracker();

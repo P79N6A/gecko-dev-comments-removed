@@ -864,7 +864,10 @@ static Oracle oracle;
 
 
 
-#define PAGEMASK (((NJ_PAGE_SIZE / sizeof(void*)) << 2) - 1)
+
+#define TRACKER_PAGE_MASK (((TRACKER_PAGE_SIZE / sizeof(void*)) << 2) - 1)
+
+#define TRACKER_PAGE_SIZE   4096
 
 Tracker::Tracker()
 {
@@ -877,16 +880,16 @@ Tracker::~Tracker()
 }
 
 jsuword
-Tracker::getPageBase(const void* v) const
+Tracker::getTrackerPageBase(const void* v) const
 {
-    return jsuword(v) & ~jsuword(PAGEMASK);
+    return jsuword(v) & ~jsuword(TRACKER_PAGE_MASK);
 }
 
-struct Tracker::Page*
-Tracker::findPage(const void* v) const
+struct Tracker::TrackerPage*
+Tracker::findTrackerPage(const void* v) const
 {
-    jsuword base = getPageBase(v);
-    struct Tracker::Page* p = pagelist;
+    jsuword base = getTrackerPageBase(v);
+    struct Tracker::TrackerPage* p = pagelist;
     while (p) {
         if (p->base == base) {
             return p;
@@ -896,11 +899,11 @@ Tracker::findPage(const void* v) const
     return 0;
 }
 
-struct Tracker::Page*
-Tracker::addPage(const void* v) {
-    jsuword base = getPageBase(v);
-    struct Tracker::Page* p = (struct Tracker::Page*)
-        calloc(1, sizeof(*p) - sizeof(p->map) + (NJ_PAGE_SIZE >> 2) * sizeof(LIns*));
+struct Tracker::TrackerPage*
+Tracker::addTrackerPage(const void* v) {
+    jsuword base = getTrackerPageBase(v);
+    struct Tracker::TrackerPage* p = (struct Tracker::TrackerPage*)
+        calloc(1, sizeof(*p) - sizeof(p->map) + (TRACKER_PAGE_SIZE >> 2) * sizeof(LIns*));
     p->base = base;
     p->next = pagelist;
     pagelist = p;
@@ -911,7 +914,7 @@ void
 Tracker::clear()
 {
     while (pagelist) {
-        Page* p = pagelist;
+        TrackerPage* p = pagelist;
         pagelist = pagelist->next;
         free(p);
     }
@@ -926,19 +929,19 @@ Tracker::has(const void *v) const
 LIns*
 Tracker::get(const void* v) const
 {
-    struct Tracker::Page* p = findPage(v);
+    struct Tracker::TrackerPage* p = findTrackerPage(v);
     if (!p)
         return NULL;
-    return p->map[(jsuword(v) & PAGEMASK) >> 2];
+    return p->map[(jsuword(v) & TRACKER_PAGE_MASK) >> 2];
 }
 
 void
 Tracker::set(const void* v, LIns* i)
 {
-    struct Tracker::Page* p = findPage(v);
+    struct Tracker::TrackerPage* p = findTrackerPage(v);
     if (!p)
-        p = addPage(v);
-    p->map[(jsuword(v) & PAGEMASK) >> 2] = i;
+        p = addTrackerPage(v);
+    p->map[(jsuword(v) & TRACKER_PAGE_MASK) >> 2] = i;
 }
 
 static inline jsuint

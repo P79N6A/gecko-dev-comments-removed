@@ -91,7 +91,6 @@
 
 namespace nanojit
 {
-    const int NJ_LOG2_PAGE_SIZE = 12;       
     const int NJ_MAX_REGISTERS = 24; 
 
     #define NJ_MAX_STACK_ENTRY 256
