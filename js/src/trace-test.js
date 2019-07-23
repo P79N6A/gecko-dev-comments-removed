@@ -2208,6 +2208,12 @@ function testTypeUnstableForIn() {
 testTypeUnstableForIn.expected = 16;
 test(testTypeUnstableForIn);
 
+function testAddUndefined() {
+    for (var j = 0; j < 3; ++j)
+        (0 + void 0) && 0;
+}
+test(testAddUndefined);
+
 
 function testGlobalProtoAccess() {
     return "ok";
@@ -2215,12 +2221,6 @@ function testGlobalProtoAccess() {
 this.__proto__.a = 3; for (var j = 0; j < 4; ++j) { [a]; }
 testGlobalProtoAccess.expected = "ok";
 test(testGlobalProtoAccess);
-
-function testAddUndefined() {
-    for (var j = 0; j < 3; ++j)
-        (0 + void 0) && 0;
-}
-test(testAddUndefined);
 
 
 print("\npassed:", passes.length && passes.join(","));
