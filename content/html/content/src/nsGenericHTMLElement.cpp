@@ -1358,7 +1358,13 @@ nsGenericHTMLElement::GetEventListenerManagerForAttr(nsIEventListenerManager** a
     
     nsIDocument *document = GetOwnerDoc();
     nsresult rv = NS_OK;
-    if (document && (win = document->GetInnerWindow())) {
+
+    
+    
+    
+    
+    if (document &&
+        (win = document->GetInnerWindow()) && win->IsInnerWindow()) {
       nsCOMPtr<nsPIDOMEventTarget> piTarget(do_QueryInterface(win));
       NS_ENSURE_TRUE(piTarget, NS_ERROR_FAILURE);
 
