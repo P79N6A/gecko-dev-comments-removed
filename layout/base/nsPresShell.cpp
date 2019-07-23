@@ -6113,7 +6113,7 @@ PresShell::HandleEvent(nsIView         *aView,
   
   if (!frame &&
       (dispatchUsingCoordinates || NS_IS_KEY_EVENT(aEvent) ||
-       NS_IS_IME_EVENT(aEvent))) {
+       NS_IS_IME_EVENT(aEvent) || aEvent->message == NS_PLUGIN_ACTIVATE)) {
     nsIView* targetView = aView;
     while (targetView && !targetView->GetClientData()) {
       targetView = targetView->GetParent();
