@@ -504,14 +504,10 @@ nsObjectLoadingContent::OnStartRequest(nsIRequest *aRequest,
       break;
     case eType_Document: {
       if (!mFrameLoader) {
-        if (!thisContent->IsInDoc()) {
-          
+        mFrameLoader = nsFrameLoader::Create(thisContent);
+        if (!mFrameLoader) {
           Fallback(PR_FALSE);
           return NS_ERROR_UNEXPECTED;
-        }
-        mFrameLoader = new nsFrameLoader(thisContent);
-        if (!mFrameLoader) {
-          return NS_ERROR_OUT_OF_MEMORY;
         }
       }
 
@@ -1143,15 +1139,10 @@ nsObjectLoadingContent::LoadObject(nsIURI* aURI,
       
       
       if (!mFrameLoader && newType == eType_Document) {
-        if (!thisContent->IsInDoc()) {
-          
+        mFrameLoader = nsFrameLoader::Create(thisContent);
+        if (!mFrameLoader) {
           mURI = nsnull;
           return NS_OK;
-        }
-
-        mFrameLoader = new nsFrameLoader(thisContent);
-        if (!mFrameLoader) {
-          return NS_ERROR_OUT_OF_MEMORY;
         }
       }
 
