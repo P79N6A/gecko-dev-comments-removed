@@ -104,7 +104,7 @@ nsProxyAutoConfig.prototype = {
 function proxyAlert(msg) {
     
     if (typeof msg != "string")
-        msg = new XPCSafeJSObjectWraper(msg).toString();
+        msg = new XPCSafeJSObjectWrapper(msg).toString();
 
     try {
         
