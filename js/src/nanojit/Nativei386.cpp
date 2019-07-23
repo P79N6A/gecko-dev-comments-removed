@@ -148,7 +148,7 @@ namespace nanojit
         MR(SP,FP);
 
         
-        asm_int(EAX, int(lr), true);
+        asm_immi(EAX, int(lr), true);
     }
 
     NIns *Assembler::genEpilogue()
@@ -369,11 +369,11 @@ namespace nanojit
             LEA(r, arDisp(ins), FP);
 
         } else if (ins->isconst()) {
-            asm_int(r, ins->imm32(), false);
+            asm_immi(r, ins->imm32(), false);
             ins->clearReg();
 
-        } else if (ins->isconstq()) {
-            asm_quad(r, ins->imm64(), ins->imm64f(), false);
+        } else if (ins->isconstf()) {
+            asm_immf(r, ins->imm64(), ins->imm64f(), false);
             ins->clearReg();
 
         } else if (ins->isop(LIR_param) && ins->paramKind() == 0 &&
@@ -1251,16 +1251,16 @@ namespace nanojit
         freeResourcesOf(ins);
     }
 
-    void Assembler::asm_int(LInsp ins)
+    void Assembler::asm_immi(LInsp ins)
     {
         Register rr = prepareResultReg(ins, GpRegs);
 
-        asm_int(rr, ins->imm32(), true);
+        asm_immi(rr, ins->imm32(), true);
 
         freeResourcesOf(ins);
     }
 
-    void Assembler::asm_int(Register r, int32_t val, bool canClobberCCs)
+    void Assembler::asm_immi(Register r, int32_t val, bool canClobberCCs)
     {
         if (val == 0 && canClobberCCs)
             XOR(r, r);
@@ -1268,7 +1268,7 @@ namespace nanojit
             LDi(r, val);
     }
 
-    void Assembler::asm_quad(Register r, uint64_t q, double d, bool canClobberCCs)
+    void Assembler::asm_immf(Register r, uint64_t q, double d, bool canClobberCCs)
     {
         
         
@@ -1288,7 +1288,7 @@ namespace nanojit
                 Register tr = registerAllocTmp(GpRegs);
                 SSE_CVTSI2SD(r, tr);
                 SSE_XORPDr(r, r);   
-                asm_int(tr, (int)d, canClobberCCs);
+                asm_immi(tr, (int)d, canClobberCCs);
             } else {
                 const uint64_t* p = findQuadConstant(q);
                 LDSDm(r, (const double*)p);
@@ -1307,13 +1307,13 @@ namespace nanojit
         }
     }
 
-    void Assembler::asm_quad(LInsp ins)
+    void Assembler::asm_immf(LInsp ins)
     {
         NanoAssert(ins->isconstf());
         if (ins->isInReg()) {
             Register rr = ins->getReg();
             NanoAssert(rmask(rr) & FpRegs);
-            asm_quad(rr, ins->imm64(), ins->imm64f(), true);
+            asm_immf(rr, ins->imm64(), ins->imm64f(), true);
         } else {
             
         }
@@ -1393,7 +1393,7 @@ namespace nanojit
             if (r != UnspecifiedReg) {
                 if (ins->isconst()) {
                     
-                    asm_int(r, ins->imm32(), true);
+                    asm_immi(r, ins->imm32(), true);
                 } else if (ins->isInReg()) {
                     if (r != ins->getReg())
                         MR(r, ins->getReg());
