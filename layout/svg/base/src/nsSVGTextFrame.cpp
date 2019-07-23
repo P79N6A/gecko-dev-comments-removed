@@ -95,15 +95,9 @@ nsSVGTextFrame::AttributeChanged(PRInt32         aNameSpaceID,
 
     
     mCanvasTM = nsnull;
-    
-    nsIFrame* kid = mFrames.FirstChild();
-    while (kid) {
-      nsISVGChildFrame* SVGFrame = nsnull;
-      CallQueryInterface(kid, &SVGFrame);
-      if (SVGFrame)
-        SVGFrame->NotifyCanvasTMChanged(PR_FALSE);
-      kid = kid->GetNextSibling();
-    }
+
+    nsSVGUtils::NotifyChildrenOfSVGChange(this, TRANSFORM_CHANGED);
+   
   } else if (aAttribute == nsGkAtoms::x ||
              aAttribute == nsGkAtoms::y ||
              aAttribute == nsGkAtoms::dx ||
@@ -198,19 +192,25 @@ nsSVGTextFrame::GetCharNumAtPosition(nsIDOMSVGPoint *point, PRInt32 *_retval)
 
 
 
-NS_IMETHODIMP
-nsSVGTextFrame::NotifyCanvasTMChanged(PRBool suppressInvalidation)
+void
+nsSVGTextFrame::NotifySVGChanged(PRUint32 aFlags)
 {
-  
-  mCanvasTM = nsnull;
+  if (aFlags & TRANSFORM_CHANGED) {
+    
+    mCanvasTM = nsnull;
+  }
 
-  
-  
-  
-  
-  NotifyGlyphMetricsChange();
+  if (aFlags & COORD_CONTEXT_CHANGED) {
+    
+    
 
-  return nsSVGTextFrameBase::NotifyCanvasTMChanged(suppressInvalidation);
+    
+    
+    
+    NotifyGlyphMetricsChange();
+  }
+
+  nsSVGTextFrameBase::NotifySVGChanged(aFlags);
 }
 
 NS_IMETHODIMP

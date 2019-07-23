@@ -227,7 +227,7 @@ nsSVGOuterSVGFrame::GetPrefWidth(nsIRenderingContext *aRenderingContext)
   nsSVGSVGElement *svg = static_cast<nsSVGSVGElement*>(mContent);
   nsSVGLength2 &width = svg->mLengthAttributes[nsSVGSVGElement::WIDTH];
 
-  if (width.GetSpecifiedUnitType() == nsIDOMSVGLength::SVG_LENGTHTYPE_PERCENTAGE) {
+  if (width.IsPercentage()) {
     result = nscoord(0);
   } else {
     result = nsPresContext::CSSPixelsToAppUnits(width.GetAnimValue(svg));
@@ -251,7 +251,7 @@ nsSVGOuterSVGFrame::GetIntrinsicSize()
   nsSVGLength2 &width  = content->mLengthAttributes[nsSVGSVGElement::WIDTH];
   nsSVGLength2 &height = content->mLengthAttributes[nsSVGSVGElement::HEIGHT];
 
-  if (width.GetSpecifiedUnitType() == nsIDOMSVGLength::SVG_LENGTHTYPE_PERCENTAGE) {
+  if (width.IsPercentage()) {
     float val = width.GetAnimValInSpecifiedUnits() / 100.0f;
     if (val < 0.0f) val = 0.0f;
     intrinsicSize.width.SetPercentValue(val);
@@ -261,7 +261,7 @@ nsSVGOuterSVGFrame::GetIntrinsicSize()
     intrinsicSize.width.SetCoordValue(val);
   }
 
-  if (height.GetSpecifiedUnitType() == nsIDOMSVGLength::SVG_LENGTHTYPE_PERCENTAGE) {
+  if (height.IsPercentage()) {
     float val = height.GetAnimValInSpecifiedUnits() / 100.0f;
     if (val < 0.0f) val = 0.0f;
     intrinsicSize.height.SetPercentValue(val);
@@ -285,8 +285,7 @@ nsSVGOuterSVGFrame::GetIntrinsicRatio()
   nsSVGLength2 &width  = content->mLengthAttributes[nsSVGSVGElement::WIDTH];
   nsSVGLength2 &height = content->mLengthAttributes[nsSVGSVGElement::HEIGHT];
 
-  if (width.GetSpecifiedUnitType()  != nsIDOMSVGLength::SVG_LENGTHTYPE_PERCENTAGE &&
-      height.GetSpecifiedUnitType() != nsIDOMSVGLength::SVG_LENGTHTYPE_PERCENTAGE) {
+  if (!width.IsPercentage() && !height.IsPercentage()) {
     nsSize ratio(width.GetAnimValue(content), height.GetAnimValue(content));
     if (ratio.width < 0) {
       ratio.width = 0;
@@ -718,22 +717,28 @@ NS_IMETHODIMP
 nsSVGOuterSVGFrame::NotifyViewportChange()
 {
   
-  if (!mViewportInitialized) return NS_OK;
+  if (!mViewportInitialized) {
+    return NS_OK;
+  }
 
-
-
-
-
-
-
-
+  PRUint32 flags = COORD_CONTEXT_CHANGED;
 
   
-  mCanvasTM = nsnull;
-  
+#if 1
+  {
+#else
+
+  if (mContent->HasAttr(kNameSpaceID_None, nsGkAtoms::viewBox)) {
+#endif
+
+    mCanvasTM = nsnull;
+
+    flags |= TRANSFORM_CHANGED;
+  }
+
   
   SuspendRedraw();
-  nsSVGUtils::NotifyChildrenCanvasTMChanged(this, PR_FALSE);
+  nsSVGUtils::NotifyChildrenOfSVGChange(this, flags);
   UnsuspendRedraw();
   return NS_OK;
 }

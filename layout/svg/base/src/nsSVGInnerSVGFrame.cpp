@@ -87,7 +87,7 @@ public:
 
   
   NS_IMETHOD PaintSVG(nsSVGRenderState *aContext, nsRect *aDirtyRect);
-  NS_IMETHOD NotifyCanvasTMChanged(PRBool suppressInvalidation);
+  virtual void NotifySVGChanged(PRUint32 aFlags);
   NS_IMETHOD SetMatrixPropagation(PRBool aPropagate);
   NS_IMETHOD SetOverrideCTM(nsIDOMSVGMatrix *aCTM);
   virtual already_AddRefed<nsIDOMSVGMatrix> GetOverrideCTM();
@@ -191,13 +191,49 @@ nsSVGInnerSVGFrame::PaintSVG(nsSVGRenderState *aContext, nsRect *aDirtyRect)
   return rv;
 }
 
-NS_IMETHODIMP
-nsSVGInnerSVGFrame::NotifyCanvasTMChanged(PRBool suppressInvalidation)
+void
+nsSVGInnerSVGFrame::NotifySVGChanged(PRUint32 aFlags)
 {
-  
-  mCanvasTM = nsnull;
+  if (aFlags & COORD_CONTEXT_CHANGED) {
 
-  return nsSVGInnerSVGFrameBase::NotifyCanvasTMChanged(suppressInvalidation);
+    nsSVGSVGElement *svg = static_cast<nsSVGSVGElement*>(mContent);
+
+    
+    
+    
+
+    if (!(aFlags & TRANSFORM_CHANGED) &&
+        svg->mLengthAttributes[nsSVGSVGElement::X].IsPercentage() ||
+        svg->mLengthAttributes[nsSVGSVGElement::Y].IsPercentage() ||
+        (mContent->HasAttr(kNameSpaceID_None, nsGkAtoms::viewBox) &&
+         (svg->mLengthAttributes[nsSVGSVGElement::WIDTH].IsPercentage() ||
+          svg->mLengthAttributes[nsSVGSVGElement::HEIGHT].IsPercentage()))) {
+    
+      aFlags |= TRANSFORM_CHANGED;
+    }
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+  }
+
+  if (aFlags & TRANSFORM_CHANGED) {
+    
+    mCanvasTM = nsnull;
+  }
+
+  nsSVGInnerSVGFrameBase::NotifySVGChanged(aFlags);
 }
 
 NS_IMETHODIMP
@@ -275,19 +311,30 @@ nsSVGInnerSVGFrame::UnsuspendRedraw()
 NS_IMETHODIMP
 nsSVGInnerSVGFrame::NotifyViewportChange()
 {
+  PRUint32 flags = COORD_CONTEXT_CHANGED;
+
+#if 1
+  
+  
+  
+
+  flags |= TRANSFORM_CHANGED;
+
   
   mCanvasTM = nsnull;
+#else
+  
+  if (mContent->HasAttr(kNameSpaceID_None, nsGkAtoms::viewBox)) {
+    
+    mCanvasTM = nsnull;
+
+    flags |= TRANSFORM_CHANGED;
+  }
+#endif
   
   
   SuspendRedraw();
-  nsIFrame* kid = mFrames.FirstChild();
-  while (kid) {
-    nsISVGChildFrame* SVGFrame = nsnull;
-    CallQueryInterface(kid, &SVGFrame);
-    if (SVGFrame)
-      SVGFrame->NotifyCanvasTMChanged(PR_FALSE); 
-    kid = kid->GetNextSibling();
-  }
+  nsSVGUtils::NotifyChildrenOfSVGChange(this, flags);
   UnsuspendRedraw();
   return NS_OK;
 }

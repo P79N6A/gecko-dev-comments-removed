@@ -380,40 +380,46 @@ nsSVGForeignObjectFrame::InitialUpdate()
   return NS_OK;
 }
 
-NS_IMETHODIMP
-nsSVGForeignObjectFrame::NotifyCanvasTMChanged(PRBool suppressInvalidation)
+void
+nsSVGForeignObjectFrame::NotifySVGChanged(PRUint32 aFlags)
 {
-  mCanvasTM = nsnull;
+  PRBool reflow = PR_FALSE;
 
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
+  if (aFlags & TRANSFORM_CHANGED) {
+    
+    
+    
+    
+    
+    reflow = PR_TRUE;
+    mCanvasTM = nsnull;
 
-  UpdateGraphic(); 
-
-  
-  
-  
-  
-  
-  
-  
-
-  PRBool reflowing;
-  PresContext()->PresShell()->IsReflowLocked(&reflowing);
-  if (!reflowing) {
-    RequestReflow(nsIPresShell::eResize); 
+  } else if (aFlags & COORD_CONTEXT_CHANGED) {
+    
+    
+    nsSVGForeignObjectElement *fO =
+      static_cast<nsSVGForeignObjectElement*>(mContent);
+    if (fO->mLengthAttributes[nsSVGForeignObjectElement::WIDTH].IsPercentage() ||
+        fO->mLengthAttributes[nsSVGForeignObjectElement::HEIGHT].IsPercentage()) {
+      reflow = PR_TRUE;
+    }
   }
 
-  return NS_OK;
+  if (reflow) {
+    
+    
+    
+    
+    
+    
+    
+    PRBool reflowing;
+    PresContext()->PresShell()->IsReflowLocked(&reflowing);
+    if (!reflowing) {
+      UpdateGraphic(); 
+      RequestReflow(nsIPresShell::eResize);
+    }
+  }
 }
 
 NS_IMETHODIMP

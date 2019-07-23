@@ -69,13 +69,15 @@ nsSVGGFrame::GetType() const
 
 
 
-NS_IMETHODIMP
-nsSVGGFrame::NotifyCanvasTMChanged(PRBool suppressInvalidation)
+void
+nsSVGGFrame::NotifySVGChanged(PRUint32 aFlags)
 {
-  
-  mCanvasTM = nsnull;
+  if (aFlags & TRANSFORM_CHANGED) {
+    
+    mCanvasTM = nsnull;
+  }
 
-  return nsSVGGFrameBase::NotifyCanvasTMChanged(suppressInvalidation);
+  nsSVGGFrameBase::NotifySVGChanged(aFlags);
 }
 
 NS_IMETHODIMP
@@ -155,13 +157,7 @@ nsSVGGFrame::AttributeChanged(PRInt32         aNameSpaceID,
     
     mCanvasTM = nsnull;
 
-    for (nsIFrame* kid = mFrames.FirstChild(); kid;
-         kid = kid->GetNextSibling()) {
-      nsISVGChildFrame* SVGFrame = nsnull;
-      CallQueryInterface(kid, &SVGFrame);
-      if (SVGFrame)
-        SVGFrame->NotifyCanvasTMChanged(PR_FALSE);
-    }  
+    nsSVGUtils::NotifyChildrenOfSVGChange(this, TRANSFORM_CHANGED);
   }
   
   return NS_OK;

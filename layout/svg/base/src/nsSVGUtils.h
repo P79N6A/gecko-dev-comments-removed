@@ -357,7 +357,7 @@ public:
 
 
   static void
-  NotifyChildrenCanvasTMChanged(nsIFrame *aFrame, PRBool suppressInvalidation);
+  NotifyChildrenOfSVGChange(nsIFrame *aFrame, PRUint32 aFlags);
 
   
 

@@ -81,7 +81,7 @@ public:
   }
 #endif
   
-  NS_IMETHOD NotifyCanvasTMChanged(PRBool suppressInvalidation);
+  virtual void NotifySVGChanged(PRUint32 aFlags);
   
   
   virtual already_AddRefed<nsIDOMSVGMatrix> GetCanvasTM();
@@ -123,14 +123,7 @@ nsSVGAFrame::AttributeChanged(PRInt32         aNameSpaceID,
     
     mCanvasTM = nsnull;
     
-    nsIFrame* kid = mFrames.FirstChild();
-    while (kid) {
-      nsISVGChildFrame* SVGFrame = nsnull;
-      CallQueryInterface(kid, &SVGFrame);
-      if (SVGFrame)
-        SVGFrame->NotifyCanvasTMChanged(PR_FALSE);
-      kid = kid->GetNextSibling();
-    }
+    nsSVGUtils::NotifyChildrenOfSVGChange(this, TRANSFORM_CHANGED);
   }
 
  return NS_OK;
@@ -153,13 +146,15 @@ nsSVGAFrame::GetType() const
 
 
 
-NS_IMETHODIMP
-nsSVGAFrame::NotifyCanvasTMChanged(PRBool suppressInvalidation)
+void
+nsSVGAFrame::NotifySVGChanged(PRUint32 aFlags)
 {
-  
-  mCanvasTM = nsnull;
+  if (aFlags & TRANSFORM_CHANGED) {
+    
+    mCanvasTM = nsnull;
+  }
 
-  return nsSVGAFrameBase::NotifyCanvasTMChanged(suppressInvalidation);
+  nsSVGAFrameBase::NotifySVGChanged(aFlags);
 }
 
 

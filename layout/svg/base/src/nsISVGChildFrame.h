@@ -51,8 +51,8 @@ class nsSVGRenderState;
 struct nsRect;
 
 #define NS_ISVGCHILDFRAME_IID \
-{ 0x93560e72, 0x6818, 0x4218, \
- { 0xa1, 0xe9, 0xf3, 0xb9, 0x63, 0x6a, 0xff, 0xc2 } }
+{ 0x667e8781, 0x72bd, 0x4344, \
+ { 0x95, 0x8c, 0x69, 0xa5, 0x70, 0xc4, 0xcc, 0xb3 } }
 
 class nsISVGChildFrame : public nsISupports {
 public:
@@ -84,7 +84,19 @@ public:
   
   NS_IMETHOD InitialUpdate()=0;
 
-  NS_IMETHOD NotifyCanvasTMChanged(PRBool suppressInvalidation)=0;
+  
+  
+  
+  
+  
+  
+  
+  enum SVGChangedFlags {
+    SUPPRESS_INVALIDATION = 0x01,
+    TRANSFORM_CHANGED     = 0x02,
+    COORD_CONTEXT_CHANGED = 0x04
+  };
+  virtual void NotifySVGChanged(PRUint32 aFlags)=0;
   NS_IMETHOD NotifyRedrawSuspended()=0;
   NS_IMETHOD NotifyRedrawUnsuspended()=0;
 
