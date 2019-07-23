@@ -467,12 +467,6 @@ js_GetExistingStringAtom(JSContext *cx, const jschar *chars, size_t length);
 JSBool
 js_AtomizePrimitiveValue(JSContext *cx, jsval v, JSAtom **atomp);
 
-
-
-
-extern JSBool
-js_ValueToStringId(JSContext *cx, jsval v, jsid *idp);
-
 #ifdef DEBUG
 
 extern JS_FRIEND_API(void)

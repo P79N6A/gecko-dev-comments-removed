@@ -77,6 +77,8 @@
 # include "jsxdrapi.h"
 #endif
 
+#include "jsatominlines.h"
+
 
 enum {
     CALL_ARGUMENTS  = -1,       

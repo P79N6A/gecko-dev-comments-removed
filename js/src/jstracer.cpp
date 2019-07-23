@@ -75,6 +75,8 @@
 #include "jstracer.h"
 #include "jsxml.h"
 
+#include "jsatominlines.h"
+
 #include "jsautooplen.h"        
 #include "imacros.c.out"
 

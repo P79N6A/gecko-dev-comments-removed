@@ -838,38 +838,6 @@ js_AtomizePrimitiveValue(JSContext *cx, jsval v, JSAtom **atomp)
     return JS_TRUE;
 }
 
-JSBool
-js_ValueToStringId(JSContext *cx, jsval v, jsid *idp)
-{
-    JSString *str;
-    JSAtom *atom;
-
-    
-
-
-
-
-
-
-    if (JSVAL_IS_STRING(v)) {
-        str = JSVAL_TO_STRING(v);
-        if (str->isAtomized()) {
-            cx->weakRoots.lastAtom = v;
-            *idp = ATOM_TO_JSID((JSAtom *) v);
-            return JS_TRUE;
-        }
-    } else {
-        str = js_ValueToString(cx, v);
-        if (!str)
-            return JS_FALSE;
-    }
-    atom = js_AtomizeString(cx, str, 0);
-    if (!atom)
-        return JS_FALSE;
-    *idp = ATOM_TO_JSID(atom);
-    return JS_TRUE;
-}
-
 #ifdef DEBUG
 
 static JSDHashOperator
