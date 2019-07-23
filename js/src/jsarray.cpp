@@ -231,7 +231,7 @@ js_GetLengthProperty(JSContext *cx, JSObject *obj, jsuint *lengthp)
         return JS_TRUE;
     }
 
-    JSAutoTempValueRooter tvr(cx, JSVAL_NULL);
+    AutoValueRooter tvr(cx, JSVAL_NULL);
     if (!obj->getProperty(cx, ATOM_TO_JSID(cx->runtime->atomState.lengthAtom), tvr.addr()))
         return JS_FALSE;
 
@@ -405,7 +405,7 @@ EnsureCapacity(JSContext *cx, JSObject *obj, uint32 newcap,
 static bool
 ReallyBigIndexToId(JSContext* cx, jsdouble index, jsid* idp)
 {
-    JSAutoTempValueRooter dval(cx);
+    AutoValueRooter dval(cx);
     if (!js_NewDoubleInRootedValue(cx, index, dval.addr()) ||
         !js_ValueToStringId(cx, dval.value(), idp)) {
         return JS_FALSE;
@@ -450,7 +450,7 @@ GetArrayElement(JSContext *cx, JSObject *obj, jsdouble index, JSBool *hole,
         return JS_TRUE;
     }
 
-    JSAutoTempIdRooter idr(cx);
+    AutoIdRooter idr(cx);
 
     *hole = JS_FALSE;
     if (!IndexToId(cx, obj, index, hole, idr.addr()))
@@ -505,7 +505,7 @@ SetArrayElement(JSContext *cx, JSObject *obj, jsdouble index, jsval v)
             return JS_FALSE;
     }
 
-    JSAutoTempIdRooter idr(cx);
+    AutoIdRooter idr(cx);
 
     if (!IndexToId(cx, obj, index, NULL, idr.addr(), JS_TRUE))
         return JS_FALSE;
@@ -531,7 +531,7 @@ DeleteArrayElement(JSContext *cx, JSObject *obj, jsdouble index)
         return JS_TRUE;
     }
 
-    JSAutoTempIdRooter idr(cx);
+    AutoIdRooter idr(cx);
 
     if (!IndexToId(cx, obj, index, NULL, idr.addr()))
         return JS_FALSE;
@@ -573,7 +573,7 @@ JSBool
 js_HasLengthProperty(JSContext *cx, JSObject *obj, jsuint *lengthp)
 {
     JSErrorReporter older = JS_SetErrorReporter(cx, NULL);
-    JSAutoTempValueRooter tvr(cx, JSVAL_NULL);
+    AutoValueRooter tvr(cx, JSVAL_NULL);
     jsid id = ATOM_TO_JSID(cx->runtime->atomState.lengthAtom);
     JSBool ok = obj->getProperty(cx, id, tvr.addr());
     JS_SetErrorReporter(cx, older);
@@ -626,8 +626,6 @@ array_length_setter(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 {
     jsuint newlen, oldlen, gap, index;
     jsval junk;
-    JSTempValueRooter tvr;
-    JSBool ok;
 
     if (!obj->isArray()) {
         jsid lengthId = ATOM_TO_JSID(cx->runtime->atomState.lengthAtom);
@@ -675,24 +673,19 @@ array_length_setter(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
             return false;
 
         
-        JS_PUSH_TEMP_ROOT_OBJECT(cx, iter, &tvr);
+        AutoValueRooter tvr(cx, iter);
+
         gap = oldlen - newlen;
         for (;;) {
-            ok = (JS_CHECK_OPERATION_LIMIT(cx) &&
-                  JS_NextProperty(cx, iter, &id));
-            if (!ok)
-                break;
+            if (!JS_CHECK_OPERATION_LIMIT(cx) || !JS_NextProperty(cx, iter, &id))
+                return false;
             if (JSVAL_IS_VOID(id))
                 break;
-            if (js_IdIsIndex(id, &index) && index - newlen < gap) {
-                ok = obj->deleteProperty(cx, id, &junk);
-                if (!ok)
-                    break;
+            if (js_IdIsIndex(id, &index) && index - newlen < gap &&
+                !obj->deleteProperty(cx, id, &junk)) {
+                return false;
             }
         }
-        JS_POP_TEMP_ROOT(cx, &tvr);
-        if (!ok)
-            return false;
     }
 
     obj->fslots[JSSLOT_ARRAY_LENGTH] = newlen;
@@ -1515,7 +1508,7 @@ array_toString_sub(JSContext *cx, JSObject *obj, JSBool locale,
         return true;
     }
 
-    JSAutoTempValueRooter tvr(cx, obj);
+    AutoValueRooter tvr(cx, obj);
 
     
     MUST_FLOW_THROUGH("out");
@@ -1649,7 +1642,7 @@ InitArrayElements(JSContext *cx, JSObject *obj, jsuint start, jsuint count, jsva
 #ifdef DEBUG_jwalden
         {
             
-            JSAutoTempIdRooter idr(cx, JSVAL_ZERO);
+            AutoIdRooter idr(cx);
             for (jsuint i = 0; i < count; i++) {
                 JS_ASSERT_IF(vectorType == SourceVectorAllValues, vector[i] != JSVAL_HOLE);
 
@@ -1715,12 +1708,12 @@ InitArrayElements(JSContext *cx, JSObject *obj, jsuint start, jsuint count, jsva
 
     JS_ASSERT(start == MAXINDEX);
     jsval tmp[2] = {JSVAL_NULL, JSVAL_NULL};
-    JSAutoTempValueRooter tvr(cx, JS_ARRAY_LENGTH(tmp), tmp);
+    AutoArrayRooter tvr(cx, JS_ARRAY_LENGTH(tmp), tmp);
     if (!js_NewDoubleInRootedValue(cx, MAXINDEX, &tmp[0]))
         return JS_FALSE;
     jsdouble *dp = JSVAL_TO_DOUBLE(tmp[0]);
     JS_ASSERT(*dp == MAXINDEX);
-    JSAutoTempIdRooter idr(cx);
+    AutoIdRooter idr(cx);
     do {
         tmp[1] = *vector++;
         if (!js_ValueToStringId(cx, tmp[0], idr.addr()) ||
@@ -1766,7 +1759,7 @@ InitArrayObject(JSContext *cx, JSObject *obj, jsuint length, jsval *vector,
 static JSString* FASTCALL
 Array_p_join(JSContext* cx, JSObject* obj, JSString *str)
 {
-    JSAutoTempValueRooter tvr(cx);
+    AutoValueRooter tvr(cx);
     if (!array_toString_sub(cx, obj, JS_FALSE, str, tvr.addr())) {
         SetBuiltinError(cx);
         return NULL;
@@ -1777,7 +1770,7 @@ Array_p_join(JSContext* cx, JSObject* obj, JSString *str)
 static JSString* FASTCALL
 Array_p_toString(JSContext* cx, JSObject* obj)
 {
-    JSAutoTempValueRooter tvr(cx);
+    AutoValueRooter tvr(cx);
     if (!array_toString_sub(cx, obj, JS_FALSE, NULL, tvr.addr())) {
         SetBuiltinError(cx);
         return NULL;
@@ -1849,7 +1842,7 @@ array_reverse(JSContext *cx, uintN argc, jsval *vp)
         return JS_TRUE;
     }
 
-    JSAutoTempValueRooter tvr(cx, JSVAL_NULL);
+    AutoValueRooter tvr(cx);
     for (jsuint i = 0, half = len / 2; i < half; i++) {
         JSBool hole, hole2;
         if (!JS_CHECK_OPERATION_LIMIT(cx) ||
@@ -2099,40 +2092,28 @@ JS_STATIC_ASSERT(JSVAL_NULL == 0);
 static JSBool
 array_sort(JSContext *cx, uintN argc, jsval *vp)
 {
-    jsval *argv, fval, *vec, *mergesort_tmp, v;
-    JSObject *obj;
-    CompareArgs ca;
+    jsval fval;
     jsuint len, newlen, i, undefs;
-    JSTempValueRooter tvr;
-    JSBool hole;
-    JSBool ok;
     size_t elemsize;
     JSString *str;
 
-    
-
-
-
-    JSBool all_strings;
-
-    argv = JS_ARGV(cx, vp);
+    jsval *argv = JS_ARGV(cx, vp);
     if (argc > 0) {
         if (JSVAL_IS_PRIMITIVE(argv[0])) {
-            JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL,
-                                 JSMSG_BAD_SORT_ARG);
-            return JS_FALSE;
+            JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_BAD_SORT_ARG);
+            return false;
         }
         fval = argv[0];     
     } else {
         fval = JSVAL_NULL;
     }
 
-    obj = JS_THIS_OBJECT(cx, vp);
+    JSObject *obj = JS_THIS_OBJECT(cx, vp);
     if (!obj || !js_GetLengthProperty(cx, obj, &len))
-        return JS_FALSE;
+        return false;
     if (len == 0) {
         *vp = OBJECT_TO_JSVAL(obj);
-        return JS_TRUE;
+        return true;
     }
 
     
@@ -2142,14 +2123,11 @@ array_sort(JSContext *cx, uintN argc, jsval *vp)
 
 
 #if JS_BITS_PER_WORD == 32
-    if ((size_t)len > ~(size_t)0 / (2 * sizeof(jsval))) {
+    if (size_t(len) > size_t(-1) / (2 * sizeof(jsval))) {
         js_ReportAllocationOverflow(cx);
-        return JS_FALSE;
+        return false;
     }
 #endif
-    vec = (jsval *) cx->malloc(2 * (size_t) len * sizeof(jsval));
-    if (!vec)
-        return JS_FALSE;
 
     
 
@@ -2162,72 +2140,81 @@ array_sort(JSContext *cx, uintN argc, jsval *vp)
 
 
 
-    JS_PUSH_TEMP_ROOT(cx, 0, vec, &tvr);
+    {
+        jsval *vec = (jsval *) cx->malloc(2 * size_t(len) * sizeof(jsval));
+        if (!vec)
+            return false;
 
-    
+        struct AutoFreeVector {
+            AutoFreeVector(JSContext *cx, jsval *&vec) : cx(cx), vec(vec) { }
+            ~AutoFreeVector() {
+                cx->free(vec);
+            }
+            JSContext * const cx;
+            jsval *&vec;
+        } free(cx, vec);
 
-
-
-
-
-
-
-    undefs = 0;
-    newlen = 0;
-    all_strings = JS_TRUE;
-    for (i = 0; i < len; i++) {
-        ok = JS_CHECK_OPERATION_LIMIT(cx);
-        if (!ok)
-            goto out;
+        AutoArrayRooter tvr(cx, 0, vec);
 
         
-        vec[newlen] = JSVAL_NULL;
-        tvr.count = newlen + 1;
-        ok = GetArrayElement(cx, obj, i, &hole, &vec[newlen]);
-        if (!ok)
-            goto out;
 
-        if (hole)
-            continue;
 
-        if (JSVAL_IS_VOID(vec[newlen])) {
-            ++undefs;
-            continue;
+
+
+
+
+
+        undefs = 0;
+        newlen = 0;
+        bool allStrings = true;
+        for (i = 0; i < len; i++) {
+            if (!JS_CHECK_OPERATION_LIMIT(cx))
+                return false;
+
+            
+            JSBool hole;
+            vec[newlen] = JSVAL_NULL;
+            tvr.changeLength(newlen + 1);
+            if (!GetArrayElement(cx, obj, i, &hole, &vec[newlen]))
+                return false;
+
+            if (hole)
+                continue;
+
+            if (JSVAL_IS_VOID(vec[newlen])) {
+                ++undefs;
+                continue;
+            }
+
+            allStrings = allStrings && JSVAL_IS_STRING(vec[newlen]);
+
+            ++newlen;
         }
 
-        
-        all_strings &= JSVAL_IS_STRING(vec[newlen]);
+        if (newlen == 0)
+            return true; 
 
-        ++newlen;
-    }
-
-    if (newlen == 0) {
-        
-        ok = JS_TRUE;
-        goto out;
-    }
-
-    
-
-
-
-
-
-
-    mergesort_tmp = vec + newlen;
-    memset(mergesort_tmp, 0, newlen * sizeof(jsval));
-    tvr.count = newlen * 2;
-
-    
-    if (fval == JSVAL_NULL) {
         
 
 
 
-        if (all_strings) {
-            elemsize = sizeof(jsval);
-        } else {
+
+
+
+        jsval *mergesort_tmp = vec + newlen;
+        PodZero(mergesort_tmp, newlen);
+        tvr.changeLength(newlen * 2);
+
+        
+        if (fval == JSVAL_NULL) {
             
+
+
+
+            if (allStrings) {
+                elemsize = sizeof(jsval);
+            } else {
+                
 
 
 
@@ -2246,120 +2233,103 @@ array_sort(JSContext *cx, uintN argc, jsval *vp)
 
 
 #if JS_BITS_PER_WORD == 32
-            if ((size_t)newlen > ~(size_t)0 / (4 * sizeof(jsval))) {
-                js_ReportAllocationOverflow(cx);
-                ok = JS_FALSE;
-                goto out;
-            }
+                if (size_t(newlen) > size_t(-1) / (4 * sizeof(jsval))) {
+                    js_ReportAllocationOverflow(cx);
+                    return false;
+                }
 #endif
 
-            
+                
 
 
 
 
 
-            i = newlen;
-            do {
-                --i;
-                ok = JS_CHECK_OPERATION_LIMIT(cx);
-                if (!ok)
-                    goto out;
-                v = vec[i];
-                str = js_ValueToString(cx, v);
-                if (!str) {
-                    ok = JS_FALSE;
-                    goto out;
+                i = newlen;
+                do {
+                    --i;
+                    if (!JS_CHECK_OPERATION_LIMIT(cx))
+                        return false;
+                    jsval v = vec[i];
+                    str = js_ValueToString(cx, v);
+                    if (!str)
+                        return false;
+                    vec[2 * i] = STRING_TO_JSVAL(str);
+                    vec[2 * i + 1] = v;
+                } while (i != 0);
+
+                JS_ASSERT(tvr.array == vec);
+                vec = (jsval *) cx->realloc(vec, 4 * size_t(newlen) * sizeof(jsval));
+                if (!vec) {
+                    vec = tvr.array;
+                    return false;
                 }
-                vec[2 * i] = STRING_TO_JSVAL(str);
-                vec[2 * i + 1] = v;
-            } while (i != 0);
-
-            JS_ASSERT(tvr.u.array == vec);
-            vec = (jsval *) cx->realloc(vec,
-                                        4 * (size_t) newlen * sizeof(jsval));
-            if (!vec) {
-                vec = tvr.u.array;
-                ok = JS_FALSE;
-                goto out;
+                mergesort_tmp = vec + 2 * newlen;
+                PodZero(mergesort_tmp, newlen * 2);
+                tvr.changeArray(vec, newlen * 4);
+                elemsize = 2 * sizeof(jsval);
             }
-            tvr.u.array = vec;
-            mergesort_tmp = vec + 2 * newlen;
-            PodZero(mergesort_tmp, newlen * 2);
-            tvr.count = newlen * 4;
-            elemsize = 2 * sizeof(jsval);
+            if (!js_MergeSort(vec, size_t(newlen), elemsize,
+                              sort_compare_strings, cx, mergesort_tmp)) {
+                return false;
+            }
+            if (!allStrings) {
+                
+
+
+
+
+
+                i = 0;
+                do {
+                    vec[i] = vec[2 * i + 1];
+                } while (++i != newlen);
+            }
+        } else {
+            void *mark;
+
+            LeaveTrace(cx);
+
+            CompareArgs ca;
+            ca.context = cx;
+            ca.fval = fval;
+            ca.elemroot  = js_AllocStack(cx, 2 + 2, &mark);
+            if (!ca.elemroot)
+                return false;
+            bool ok = js_MergeSort(vec, size_t(newlen), sizeof(jsval),
+                                   comparator_stack_cast(sort_compare),
+                                   &ca, mergesort_tmp);
+            js_FreeStack(cx, mark);
+            if (!ok)
+                return false;
         }
-        ok = js_MergeSort(vec, (size_t) newlen, elemsize,
-                          sort_compare_strings, cx, mergesort_tmp);
-        if (!ok)
-            goto out;
-        if (!all_strings) {
-            
+
+        
 
 
 
 
-
-            i = 0;
-            do {
-                vec[i] = vec[2 * i + 1];
-            } while (++i != newlen);
+        tvr.changeLength(newlen);
+        if (!InitArrayElements(cx, obj, 0, newlen, vec, TargetElementsMayContainValues,
+                               SourceVectorAllValues)) {
+            return false;
         }
-    } else {
-        void *mark;
-
-        LeaveTrace(cx);
-
-        ca.context = cx;
-        ca.fval = fval;
-        ca.elemroot  = js_AllocStack(cx, 2 + 2, &mark);
-        if (!ca.elemroot) {
-            ok = JS_FALSE;
-            goto out;
-        }
-        ok = js_MergeSort(vec, (size_t) newlen, sizeof(jsval),
-                          comparator_stack_cast(sort_compare),
-                          &ca, mergesort_tmp);
-        js_FreeStack(cx, mark);
-        if (!ok)
-            goto out;
     }
-
-    
-
-
-
-
-    tvr.count = newlen;
-    ok = InitArrayElements(cx, obj, 0, newlen, vec, TargetElementsMayContainValues,
-                           SourceVectorAllValues);
-    if (!ok)
-        goto out;
-
-  out:
-    JS_POP_TEMP_ROOT(cx, &tvr);
-    cx->free(vec);
-    if (!ok)
-        return JS_FALSE;
 
     
     while (undefs != 0) {
         --undefs;
-        if (!JS_CHECK_OPERATION_LIMIT(cx) ||
-            !SetArrayElement(cx, obj, newlen++, JSVAL_VOID)) {
-            return JS_FALSE;
-        }
+        if (!JS_CHECK_OPERATION_LIMIT(cx) || !SetArrayElement(cx, obj, newlen++, JSVAL_VOID))
+            return false;
     }
 
     
     while (len > newlen) {
-        if (!JS_CHECK_OPERATION_LIMIT(cx) ||
-            !DeleteArrayElement(cx, obj, --len)) {
+        if (!JS_CHECK_OPERATION_LIMIT(cx) || !DeleteArrayElement(cx, obj, --len))
             return JS_FALSE;
-        }
     }
     *vp = OBJECT_TO_JSVAL(obj);
-    return JS_TRUE;
+    return true;
 }
 
 
@@ -2433,7 +2403,7 @@ JS_DEFINE_CALLINFO_3(extern, BOOL, js_ArrayCompPush, CONTEXT, OBJECT, JSVAL, 0,
 static jsval FASTCALL
 Array_p_push1(JSContext* cx, JSObject* obj, jsval v)
 {
-    JSAutoTempValueRooter tvr(cx, v);
+    AutoValueRooter tvr(cx, v);
     if (obj->isDenseArray()
         ? array_push1_dense(cx, obj, v, tvr.addr())
         : array_push_slowly(cx, obj, 1, tvr.addr(), tvr.addr())) {
@@ -2505,7 +2475,7 @@ array_pop_dense(JSContext *cx, JSObject* obj, jsval *vp)
 static jsval FASTCALL
 Array_p_pop(JSContext* cx, JSObject* obj)
 {
-    JSAutoTempValueRooter tvr(cx);
+    AutoValueRooter tvr(cx);
     if (obj->isDenseArray()
         ? array_pop_dense(cx, obj, tvr.addr())
         : array_pop_slowly(cx, obj, tvr.addr())) {
@@ -2569,7 +2539,7 @@ array_shift(JSContext *cx, uintN argc, jsval *vp)
                 return JS_FALSE;
 
             
-            JSAutoTempValueRooter tvr(cx, JSVAL_NULL);
+            AutoValueRooter tvr(cx);
             for (i = 0; i != length; i++) {
                 if (!JS_CHECK_OPERATION_LIMIT(cx) ||
                     !GetArrayElement(cx, obj, i + 1, &hole, tvr.addr()) ||
@@ -2614,7 +2584,7 @@ array_unshift(JSContext *cx, uintN argc, jsval *vp)
             } else {
                 last = length;
                 jsdouble upperIndex = last + argc;
-                JSAutoTempValueRooter tvr(cx, JSVAL_NULL);
+                AutoValueRooter tvr(cx);
                 do {
                     --last, --upperIndex;
                     if (!JS_CHECK_OPERATION_LIMIT(cx) ||
@@ -2704,7 +2674,7 @@ array_splice(JSContext *cx, uintN argc, jsval *vp)
         argv++;
     }
 
-    JSAutoTempValueRooter tvr(cx, JSVAL_NULL);
+    AutoValueRooter tvr(cx, JSVAL_NULL);
 
     
     if (count > 0) {
@@ -2843,7 +2813,7 @@ array_concat(JSContext *cx, uintN argc, jsval *vp)
         length = 0;
     }
 
-    JSAutoTempValueRooter tvr(cx, JSVAL_NULL);
+    AutoValueRooter tvr(cx, JSVAL_NULL);
 
     
     for (i = 0; i <= argc; i++) {
@@ -2957,7 +2927,7 @@ array_slice(JSContext *cx, uintN argc, jsval *vp)
         return JS_FALSE;
     *vp = OBJECT_TO_JSVAL(nobj);
 
-    JSAutoTempValueRooter tvr(cx, JSVAL_NULL);
+    AutoValueRooter tvr(cx);
     for (slot = begin; slot < end; slot++) {
         if (!JS_CHECK_OPERATION_LIMIT(cx) ||
             !GetArrayElement(cx, obj, slot, &hole, tvr.addr())) {
@@ -3478,7 +3448,7 @@ js_NewArrayObject(JSContext *cx, jsuint length, jsval *vector, JSBool holey)
     JS_ASSERT(obj->getProto());
 
     {
-        JSAutoTempValueRooter tvr(cx, obj);
+        AutoValueRooter tvr(cx, obj);
         if (!InitArrayObject(cx, obj, length, vector, holey))
             obj = NULL;
     }
@@ -3597,7 +3567,7 @@ js_NewArrayObjectWithCapacity(JSContext *cx, jsuint capacity, jsval **vector)
     if (!obj)
         return NULL;
 
-    JSAutoTempValueRooter tvr(cx, obj);
+    AutoValueRooter tvr(cx, obj);
     if (!EnsureCapacity(cx, obj, capacity, JS_FALSE))
         obj = NULL;
 
