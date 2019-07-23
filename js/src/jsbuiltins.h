@@ -256,6 +256,29 @@ struct JSTraceableNative {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #define JS_DEFINE_CALLINFO_1(linkage, rt, op, at0, cse, fold)                                     \
     _JS_DEFINE_CALLINFO(linkage, op, _JS_CTYPE_TYPE(rt), (_JS_CTYPE_TYPE(at0)),                   \
                         (_JS_CTYPE_ARGSIZE(at0) << 2) | _JS_CTYPE_RETSIZE(rt), cse, fold)
@@ -442,17 +465,28 @@ JS_DECLARE_CALLINFO(js_String_p_charCodeAt0_int)
 JS_DECLARE_CALLINFO(js_String_p_charCodeAt_int)
 
 
-#define BUILTIN1(linkage, rt, op, at0,                     cse, fold)  JS_DECLARE_CALLINFO(op)
-#define BUILTIN2(linkage, rt, op, at0, at1,                cse, fold)  JS_DECLARE_CALLINFO(op)
-#define BUILTIN3(linkage, rt, op, at0, at1, at2,           cse, fold)  JS_DECLARE_CALLINFO(op)
-#define BUILTIN4(linkage, rt, op, at0, at1, at2, at3,      cse, fold)  JS_DECLARE_CALLINFO(op)
-#define BUILTIN5(linkage, rt, op, at0, at1, at2, at3, at4, cse, fold)  JS_DECLARE_CALLINFO(op)
-#include "builtins.tbl"
-#undef BUILTIN
-#undef BUILTIN1
-#undef BUILTIN2
-#undef BUILTIN3
-#undef BUILTIN4
-#undef BUILTIN5
+JS_DECLARE_CALLINFO(js_BoxDouble)
+JS_DECLARE_CALLINFO(js_BoxInt32)
+JS_DECLARE_CALLINFO(js_UnboxDouble)
+JS_DECLARE_CALLINFO(js_UnboxInt32)
+JS_DECLARE_CALLINFO(js_dmod)
+JS_DECLARE_CALLINFO(js_imod)
+JS_DECLARE_CALLINFO(js_DoubleToInt32)
+JS_DECLARE_CALLINFO(js_DoubleToUint32)
+
+JS_DECLARE_CALLINFO(js_StringToNumber)
+JS_DECLARE_CALLINFO(js_StringToInt32)
+JS_DECLARE_CALLINFO(js_CloseIterator)
+JS_DECLARE_CALLINFO(js_CallTree)
+JS_DECLARE_CALLINFO(js_AddProperty)
+JS_DECLARE_CALLINFO(js_HasNamedProperty)
+JS_DECLARE_CALLINFO(js_HasNamedPropertyInt32)
+JS_DECLARE_CALLINFO(js_CallGetter)
+JS_DECLARE_CALLINFO(js_TypeOfObject)
+JS_DECLARE_CALLINFO(js_TypeOfBoolean)
+JS_DECLARE_CALLINFO(js_BooleanOrUndefinedToNumber)
+JS_DECLARE_CALLINFO(js_BooleanOrUndefinedToString)
+JS_DECLARE_CALLINFO(js_Arguments)
+JS_DECLARE_CALLINFO(js_NewNullClosure)
 
 #endif 
