@@ -39,8 +39,9 @@
 
 #import <Cocoa/Cocoa.h>
 
+#define GROWL_STRING_BUNDLE_LOCATION \
+  "chrome://alerts/locale/notificationNames.properties"
 
-#define NOTIFICATION_NAME @"Application Notice"
 #define OBSERVER_KEY      @"ALERT_OBSERVER"
 #define COOKIE_KEY        @"ALERT_COOKIE"
 
@@ -48,7 +49,9 @@
 {
 @private
   PRUint32 mKey;
-  NSMutableDictionary* mDict;
+  NSMutableDictionary *mDict;
+  NSMutableArray *mNames;
+  NSMutableArray *mEnabled;
 }
 
 
@@ -60,11 +63,13 @@
 
 
 
-+ (void) notifyWithTitle:(const nsAString&)aTitle
-             description:(const nsAString&)aText
-                iconData:(NSData*)aImage
-                     key:(PRUint32)aKey
-                  cookie:(const nsAString&)aCookie;
+
++ (void) notifyWithName:(const nsAString&)aName
+                  title:(const nsAString&)aTitle
+            description:(const nsAString&)aText
+               iconData:(NSData*)aImage
+                    key:(PRUint32)aKey
+                 cookie:(const nsAString&)aCookie;
 
 
 
