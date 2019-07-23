@@ -55,12 +55,11 @@
 
 #include <stdlib.h>
 
-#if defined(XP_WIN)
+#if defined(PROCESSMODEL_WINAPI)
 #include "prmem.h"
 #include "nsString.h"
 #include "nsLiteralString.h"
 #include "nsReadableUtils.h"
-#include <windows.h>
 #else
 #include <sys/types.h>
 #include <signal.h>
@@ -73,23 +72,17 @@ NS_IMPL_ISUPPORTS1(nsProcess, nsIProcess)
 
 
 nsProcess::nsProcess()
-    : mExitValue(-1)
+    : mExitValue(-1),
+      mProcess(nsnull)
 {
-#if defined(PROCESSMODEL_WINAPI)
-    procInfo.dwProcessId = nsnull;
-#else
-    mProcess = nsnull;
-#endif
 }
 
 
 nsProcess::~nsProcess()
 {
 #if defined(PROCESSMODEL_WINAPI)
-    if (procInfo.dwProcessId) {
-        CloseHandle( procInfo.hProcess );
-        CloseHandle( procInfo.hThread );
-    }
+    if (mProcess)
+        CloseHandle(mProcess);
 #else
     if (mProcess) 
         PR_DetachProcess(mProcess);
@@ -101,7 +94,7 @@ nsProcess::Init(nsIFile* executable)
 {
     
 #if defined(PROCESSMODEL_WINAPI)
-    if (procInfo.dwProcessId)
+    if (mProcess)
         return NS_ERROR_ALREADY_INITIALIZED;
 #else
     if (mProcess)
@@ -245,6 +238,7 @@ nsProcess::Run(PRBool blocking, const char **args, PRUint32 count)
 {
     NS_ENSURE_TRUE(mExecutable, NS_ERROR_NOT_INITIALIZED);
     PRStatus status = PR_SUCCESS;
+    mExitValue = -1;
 
     
     
@@ -266,41 +260,44 @@ nsProcess::Run(PRBool blocking, const char **args, PRUint32 count)
     my_argv[count+1] = NULL;
 
 #if defined(PROCESSMODEL_WINAPI)
-    STARTUPINFOW startupInfo;
     BOOL retVal;
     PRUnichar *cmdLine;
 
-    if (assembleCmdLine(my_argv, &cmdLine) == -1) {
+    if (count > 0 && assembleCmdLine(my_argv + 1, &cmdLine) == -1) {
         nsMemory::Free(my_argv);
         return NS_ERROR_FILE_EXECUTION_FAILED;    
     }
-
-    ZeroMemory(&startupInfo, sizeof(startupInfo));
-    startupInfo.cb = sizeof(startupInfo);
 
     
 
 
 
+    PRInt32 numChars = MultiByteToWideChar(CP_ACP, 0, my_argv[0], -1, NULL, 0); 
+    PRUnichar* wideFile = (PRUnichar *) PR_MALLOC(numChars * sizeof(PRUnichar));
+    MultiByteToWideChar(CP_ACP, 0, my_argv[0], -1, wideFile, numChars); 
 
+    SHELLEXECUTEINFOW sinfo;
+    memset(&sinfo, 0, sizeof(SHELLEXECUTEINFOW));
+    sinfo.cbSize = sizeof(SHELLEXECUTEINFOW);
+    sinfo.hwnd   = NULL;
+    sinfo.lpFile = wideFile;
+    sinfo.nShow  = SW_SHOWNORMAL;
+    sinfo.fMask  = SEE_MASK_FLAG_DDEWAIT |
+                   SEE_MASK_NO_CONSOLE |
+                   SEE_MASK_NOCLOSEPROCESS;
 
-    retVal = CreateProcessW(NULL,
-                            
-                            cmdLine,
-                            NULL,  
+    if (count > 0)
+        sinfo.lpParameters = cmdLine;
 
-                            NULL,  
+    retVal = ShellExecuteExW(&sinfo);
+    mProcess = sinfo.hProcess;
 
-                            FALSE,  
-                            CREATE_NO_WINDOW, 
-                            NULL,  
-                            NULL,  
-                            &startupInfo,
-                            &procInfo
-                           );
-    PR_Free( cmdLine );
+    PR_Free(wideFile);
+    if (count > 0)
+        PR_Free( cmdLine );
+
     if (blocking) {
- 
+
         
         
         
@@ -309,20 +306,19 @@ nsProcess::Run(PRBool blocking, const char **args, PRUint32 count)
             DWORD dwRetVal;
             unsigned long exitCode;
 
-            dwRetVal = WaitForSingleObject(procInfo.hProcess, INFINITE);
+            dwRetVal = WaitForSingleObject(mProcess, INFINITE);
             if (dwRetVal == WAIT_FAILED) {
                 nsMemory::Free(my_argv);
                 return NS_ERROR_FAILURE;
             }
-            if (GetExitCodeProcess(procInfo.hProcess, &exitCode) == FALSE) {
+            if (GetExitCodeProcess(mProcess, &exitCode) == FALSE) {
                 mExitValue = exitCode;
                 nsMemory::Free(my_argv);
-               return NS_ERROR_FAILURE;
+                return NS_ERROR_FAILURE;
             }
             mExitValue = exitCode;
-            CloseHandle(procInfo.hProcess);
-            CloseHandle(procInfo.hThread);
-            procInfo.dwProcessId = nsnull;
+            CloseHandle(mProcess);
+            mProcess = NULL;
         }
         else
             status = PR_FAILURE;
@@ -361,15 +357,23 @@ nsProcess::Run(PRBool blocking, const char **args, PRUint32 count)
 NS_IMETHODIMP nsProcess::GetIsRunning(PRBool *aIsRunning)
 {
 #if defined(PROCESSMODEL_WINAPI)
-    if (!procInfo.dwProcessId) {
+    if (!mProcess) {
         *aIsRunning = PR_FALSE;
         return NS_OK;
     }
     DWORD ec = 0;
-    BOOL br = GetExitCodeProcess(procInfo.hProcess, &ec);
+    BOOL br = GetExitCodeProcess(mProcess, &ec);
     if (!br)
         return NS_ERROR_FAILURE;
-    *aIsRunning = (ec == STILL_ACTIVE ? PR_TRUE : PR_FALSE); 
+    if (ec == STILL_ACTIVE) {
+        *aIsRunning = PR_TRUE;
+    }
+    else {
+        *aIsRunning = PR_FALSE;
+        mExitValue = ec;
+        CloseHandle(mProcess);
+        mProcess = NULL;
+    }
     return NS_OK;
 #elif defined WINCE
     return NS_ERROR_NOT_IMPLEMENTED;   
@@ -402,9 +406,18 @@ NS_IMETHODIMP
 nsProcess::GetPid(PRUint32 *aPid)
 {
 #if defined(PROCESSMODEL_WINAPI)
-    if (!procInfo.dwProcessId)
+    if (!mProcess)
         return NS_ERROR_FAILURE;
-    *aPid = procInfo.dwProcessId;
+    HMODULE kernelDLL = ::LoadLibraryW(L"kernel32.dll");
+    if (!kernelDLL)
+        return NS_ERROR_NOT_IMPLEMENTED;
+    GetProcessIdPtr getProcessId = (GetProcessIdPtr)GetProcAddress(kernelDLL, "GetProcessId");
+    if (!getProcessId) {
+        FreeLibrary(kernelDLL);
+        return NS_ERROR_NOT_IMPLEMENTED;
+    }
+    *aPid = getProcessId(mProcess);
+    FreeLibrary(kernelDLL);
     return NS_OK;
 #elif defined WINCE
     return NS_ERROR_NOT_IMPLEMENTED;
@@ -437,15 +450,14 @@ NS_IMETHODIMP
 nsProcess::Kill()
 {
 #if defined(PROCESSMODEL_WINAPI)
-    if (!procInfo.dwProcessId)
+    if (!mProcess)
         return NS_ERROR_NOT_INITIALIZED;
 
-    if ( TerminateProcess(procInfo.hProcess, NULL) == 0 )
+    if ( TerminateProcess(mProcess, NULL) == 0 )
         return NS_ERROR_FAILURE;
 
-    CloseHandle( procInfo.hProcess );
-    CloseHandle( procInfo.hThread );
-    procInfo.dwProcessId = nsnull;
+    CloseHandle( mProcess );
+    mProcess = NULL;
 #else
     if (!mProcess)
         return NS_ERROR_NOT_INITIALIZED;
@@ -461,6 +473,20 @@ nsProcess::Kill()
 NS_IMETHODIMP
 nsProcess::GetExitValue(PRInt32 *aExitValue)
 {
+#if defined(PROCESSMODEL_WINAPI)
+    if (mProcess) {
+        DWORD ec = 0;
+        BOOL br = GetExitCodeProcess(mProcess, &ec);
+        if (!br)
+            return NS_ERROR_FAILURE;
+        
+        if (ec != STILL_ACTIVE) {
+            mExitValue = ec;
+            CloseHandle(mProcess);
+            mProcess = NULL;
+        }
+    }
+#endif
     *aExitValue = mExitValue;
     
     return NS_OK;
