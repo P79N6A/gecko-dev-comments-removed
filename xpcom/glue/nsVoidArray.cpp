@@ -733,6 +733,9 @@ nsStringArray&
 nsStringArray::operator=(const nsStringArray& other)
 {
   
+  Clear();
+  
+  
   nsVoidArray::operator=(other);
 
   
@@ -982,6 +985,9 @@ nsCStringArray::~nsCStringArray(void)
 nsCStringArray& 
 nsCStringArray::operator=(const nsCStringArray& other)
 {
+  
+  Clear();
+  
   
   nsVoidArray::operator=(other);
 
