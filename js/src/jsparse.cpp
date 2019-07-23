@@ -3636,6 +3636,38 @@ FindPropertyValue(JSParseNode *pn, JSParseNode *pnid, FindPropValData *data)
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 static JSBool
 CheckDestructuring(JSContext *cx, BindData *data,
                    JSParseNode *left, JSParseNode *right,
@@ -3855,9 +3887,9 @@ DestructuringExpr(JSContext *cx, BindData *data, JSTreeContext *tc,
     JSParseNode *pn;
 
     ts = TS(tc->compiler);
-    ts->flags |= TSF_DESTRUCTURING;
+    tc->flags |= TCF_DECL_DESTRUCTURING;
     pn = PrimaryExpr(cx, ts, tc, tt, JS_FALSE);
-    ts->flags &= ~TSF_DESTRUCTURING;
+    tc->flags &= ~TCF_DECL_DESTRUCTURING;
     if (!pn)
         return NULL;
     if (!CheckDestructuring(cx, data, pn, NULL, tc))
@@ -5560,9 +5592,9 @@ Variables(JSContext *cx, JSTokenStream *ts, JSTreeContext *tc, bool inLetHead)
         tt = js_GetToken(cx, ts);
 #if JS_HAS_DESTRUCTURING
         if (tt == TOK_LB || tt == TOK_LC) {
-            ts->flags |= TSF_DESTRUCTURING;
+            tc->flags |= TCF_DECL_DESTRUCTURING;
             pn2 = PrimaryExpr(cx, ts, tc, tt, JS_FALSE);
-            ts->flags &= ~TSF_DESTRUCTURING;
+            tc->flags &= ~TCF_DECL_DESTRUCTURING;
             if (!pn2)
                 return NULL;
 
@@ -6498,9 +6530,9 @@ ComprehensionTail(JSParseNode *kid, uintN blockid, JSTreeContext *tc,
 #if JS_HAS_DESTRUCTURING
           case TOK_LB:
           case TOK_LC:
-            ts->flags |= TSF_DESTRUCTURING;
+            tc->flags |= TCF_DECL_DESTRUCTURING;
             pn3 = PrimaryExpr(cx, ts, tc, tt, JS_FALSE);
-            ts->flags &= ~TSF_DESTRUCTURING;
+            tc->flags &= ~TCF_DECL_DESTRUCTURING;
             if (!pn3)
                 return NULL;
             break;
@@ -8111,7 +8143,7 @@ PrimaryExpr(JSContext *cx, JSTokenStream *ts, JSTreeContext *tc,
 
 
 
-            if (!afterDot && !(ts->flags & TSF_DESTRUCTURING) && !tc->inStatement(STMT_WITH)) {
+            if (!afterDot && !(tc->flags & TCF_DECL_DESTRUCTURING) && !tc->inStatement(STMT_WITH)) {
                 pn->pn_op = JSOP_ARGUMENTS;
                 pn->pn_dflags |= PND_BOUND;
             }
@@ -8119,7 +8151,7 @@ PrimaryExpr(JSContext *cx, JSTokenStream *ts, JSTreeContext *tc,
 #if JS_HAS_XML_SUPPORT
                     || js_PeekToken(cx, ts) == TOK_DBLCOLON
 #endif
-                   ) && !(ts->flags & TSF_DESTRUCTURING)) {
+                   ) && !(tc->flags & TCF_DECL_DESTRUCTURING)) {
             JSStmtInfo *stmt = js_LexicalLookup(tc, pn->pn_atom, NULL);
             if (!stmt || stmt->type != STMT_WITH) {
                 JSDefinition *dn;

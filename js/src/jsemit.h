@@ -264,6 +264,19 @@ struct JSTreeContext {
 
 
 
+
+
+
+
+
+
+
+
+#define TCF_DECL_DESTRUCTURING    0x10000
+
+
+
+
 #define TCF_FUN_FLAGS           (TCF_FUN_SETS_OUTER_NAME |                    \
                                  TCF_FUN_USES_ARGUMENTS  |                    \
                                  TCF_FUN_PARAM_ARGUMENTS |                    \
