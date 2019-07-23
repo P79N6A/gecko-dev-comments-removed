@@ -6248,19 +6248,42 @@ TraceRecorder::unbox_jsval(jsval v, LIns*& v_ins, LIns* exit)
 JS_REQUIRES_STACK bool
 TraceRecorder::getThis(LIns*& this_ins)
 {
-    JSObject* thisObj = js_ComputeThisForFrame(cx, cx->fp);
-    if (!thisObj)
-        ABORT_TRACE("js_ComputeThis failed");
-    if (!cx->fp->callee || JSVAL_IS_NULL(cx->fp->argv[-1])) {
+    
+
+
+    if (!cx->fp->callee) {
         JS_ASSERT(callDepth == 0);
+        JSObject* thisObj = js_ComputeThisForFrame(cx, cx->fp);
+        if (!thisObj)
+            ABORT_TRACE("js_ComputeThis failed");
+        JS_ASSERT(JSVAL_IS_OBJECT(cx->fp->argv[-1]));
+        this_ins = INS_CONSTPTR(thisObj);
+
         
 
 
+        return true;
+    }
 
+    
+
+
+
+
+
+
+    if (JSVAL_IS_NULL(cx->fp->argv[-1])) {
+        JSObject* thisObj = js_ComputeThisForFrame(cx, cx->fp);
+        if (!thisObj) 
+            ABORT_TRACE("js_ComputeThis failed");
+        JS_ASSERT(!JSVAL_IS_PRIMITIVE(cx->fp->argv[-1]));
+        JS_ASSERT(thisObj == globalObj);
         this_ins = INS_CONSTPTR(thisObj);
+        set(&cx->fp->argv[-1], this_ins);
         return true;
     }
     this_ins = get(&cx->fp->argv[-1]);
+
     
 
 
