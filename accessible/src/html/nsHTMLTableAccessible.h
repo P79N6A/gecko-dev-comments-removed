@@ -211,7 +211,16 @@ protected:
   virtual void CacheChildren();
   nsresult GetTableNode(nsIDOMNode **_retval);
   nsresult GetTableLayout(nsITableLayout **aLayoutObject);
-  PRBool HasDescendant(const char *aTagName, PRBool aAllowEmpty = PR_TRUE);
+
+  
+
+
+
+
+
+
+  PRBool HasDescendant(const nsAString& aTagName, PRBool aAllowEmpty = PR_TRUE);
+
 #ifdef SHOW_LAYOUT_HEURISTIC
   nsAutoString mLayoutHeuristic;
 #endif
