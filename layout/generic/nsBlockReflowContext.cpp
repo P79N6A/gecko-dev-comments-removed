@@ -107,11 +107,10 @@ nsBlockReflowContext::ComputeCollapsedTopMargin(const nsHTMLReflowState& aRS,
   
   
   
-  void* bf;
   nsIFrame* frame = DescendIntoBlockLevelFrame(aRS.frame);
   nsPresContext* prescontext = frame->PresContext();
   if (0 == aRS.mComputedBorderPadding.top &&
-      NS_SUCCEEDED(frame->QueryInterface(kBlockFrameCID, &bf)) &&
+      nsLayoutUtils::GetAsBlock(frame) &&
       !nsBlockFrame::BlockIsMarginRoot(frame)) {
     
     

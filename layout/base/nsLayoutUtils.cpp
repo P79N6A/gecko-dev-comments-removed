@@ -2330,9 +2330,8 @@ nsLayoutUtils::GetStringWidth(const nsIFrame*      aFrame,
  PRBool
 nsLayoutUtils::GetFirstLineBaseline(const nsIFrame* aFrame, nscoord* aResult)
 {
-  const nsBlockFrame* block;
-  if (NS_FAILED(const_cast<nsIFrame*>(aFrame)->
-                  QueryInterface(kBlockFrameCID, (void**)&block))) {
+  const nsBlockFrame* block = nsLayoutUtils::GetAsBlock(const_cast<nsIFrame*>(aFrame));
+  if (!block) {
     
     
     nsIAtom* fType = aFrame->GetType();
@@ -2388,9 +2387,8 @@ nsLayoutUtils::GetFirstLineBaseline(const nsIFrame* aFrame, nscoord* aResult)
  PRBool
 nsLayoutUtils::GetLastLineBaseline(const nsIFrame* aFrame, nscoord* aResult)
 {
-  const nsBlockFrame* block;
-  if (NS_FAILED(const_cast<nsIFrame*>(aFrame)->
-                  QueryInterface(kBlockFrameCID, (void**)&block)))
+  const nsBlockFrame* block = nsLayoutUtils::GetAsBlock(const_cast<nsIFrame*>(aFrame));
+  if (!block)
     
     return PR_FALSE;
 

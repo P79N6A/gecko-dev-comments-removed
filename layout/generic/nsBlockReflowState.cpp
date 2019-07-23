@@ -444,8 +444,7 @@ nsBlockReflowState::RecoverFloats(nsLineList::iterator aLine,
       fc = fc->Next();
     }
   } else if (aLine->IsBlock()) {
-    nsBlockFrame *kid = nsnull;
-    aLine->mFirstChild->QueryInterface(kBlockFrameCID, (void**)&kid);
+    nsBlockFrame *kid = nsLayoutUtils::GetAsBlock(aLine->mFirstChild);
     
     
     

@@ -2529,10 +2529,8 @@ static FrameTarget GetSelectionClosestFrameForLine(
 static FrameTarget GetSelectionClosestFrameForBlock(nsIFrame* aFrame,
                                                     nsPoint aPoint)
 {
-  nsresult rv;
-  nsBlockFrame* bf; 
-  rv = aFrame->QueryInterface(kBlockFrameCID, (void**)&bf);
-  if (NS_FAILED(rv))
+  nsBlockFrame* bf = nsLayoutUtils::GetAsBlock(aFrame); 
+  if (!bf)
     return FrameTarget::Null();
 
   
@@ -4623,12 +4621,10 @@ FindBlockFrameOrBR(nsIFrame* aFrame, nsDirection aDirection)
     return result;
   
   
-  nsBlockFrame* bf; 
-  rv = aFrame->QueryInterface(kBlockFrameCID, (void**)&bf);
   
   
   
-  if (NS_SUCCEEDED(rv) && !(aFrame->GetStateBits() & NS_FRAME_IS_SPECIAL) ||
+  if (nsLayoutUtils::GetAsBlock(aFrame) && !(aFrame->GetStateBits() & NS_FRAME_IS_SPECIAL) ||
       aFrame->GetType() == nsGkAtoms::brFrame) {
     nsIContent* content = aFrame->GetContent();
     result.mContent = content->GetParent();
@@ -4674,7 +4670,6 @@ nsresult
 nsIFrame::PeekOffsetParagraph(nsPeekOffsetStruct *aPos)
 {
   nsIFrame* frame = this;
-  nsBlockFrame* bf;  
   nsContentAndOffset blockFrameOrBR;
   blockFrameOrBR.mContent = nsnull;
   PRBool reachedBlockAncestor = PR_FALSE;
@@ -4704,7 +4699,7 @@ nsIFrame::PeekOffsetParagraph(nsPeekOffsetStruct *aPos)
         break;
       }
       frame = parent;
-      reachedBlockAncestor = NS_SUCCEEDED(frame->QueryInterface(kBlockFrameCID, (void**)&bf));
+      reachedBlockAncestor = (nsLayoutUtils::GetAsBlock(frame) != nsnull);
     }
     if (reachedBlockAncestor) { 
       aPos->mResultContent = frame->GetContent();
@@ -4729,7 +4724,7 @@ nsIFrame::PeekOffsetParagraph(nsPeekOffsetStruct *aPos)
         break;
       }
       frame = parent;
-      reachedBlockAncestor = NS_SUCCEEDED(frame->QueryInterface(kBlockFrameCID, (void**)&bf));
+      reachedBlockAncestor = (nsLayoutUtils::GetAsBlock(frame) != nsnull);
     }
     if (reachedBlockAncestor) { 
       aPos->mResultContent = frame->GetContent();
