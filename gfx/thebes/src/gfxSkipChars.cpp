@@ -65,7 +65,14 @@ gfxSkipChars::BuildShortcuts()
     for (i = 0; i < mListLength; ++i) {
         PRUint8 len = mList[i];
     
-        while (originalCharOffset + len > (nextShortcutIndex + 1)*SHORTCUT_FREQUENCY) {
+        
+        
+        
+        
+        
+        
+        
+        while (originalCharOffset + len >= (nextShortcutIndex + 1)*SHORTCUT_FREQUENCY) {
             mShortcuts[nextShortcutIndex] =
                 Shortcut(i, originalCharOffset, skippedCharOffset);
             ++nextShortcutIndex;
