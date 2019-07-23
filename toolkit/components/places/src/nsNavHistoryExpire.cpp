@@ -433,9 +433,9 @@ nsNavHistoryExpire::FindVisits(PRTime aExpireThreshold, PRUint32 aNumToExpire,
   
   nsCAutoString sqlBase;
   sqlBase.AssignLiteral(
-    "SELECT v.id, v.place_id, v.visit_date, h.url, h.favicon_id, h.hidden, b.fk "
-    "FROM moz_places h LEFT OUTER JOIN moz_historyvisits v ON h.id = v.place_id "
-    "LEFT OUTER JOIN moz_bookmarks b on h.id = b.fk ");
+    "SELECT v.id, v.place_id, v.visit_date, h.url, h.favicon_id, h.hidden, "
+    "(SELECT fk FROM moz_bookmarks WHERE fk = h.id) "
+    "FROM moz_places h JOIN moz_historyvisits v ON h.id = v.place_id ");
 
   
   nsCAutoString sqlMaxAge;
@@ -444,7 +444,7 @@ nsNavHistoryExpire::FindVisits(PRTime aExpireThreshold, PRUint32 aNumToExpire,
   if (aNumToExpire) {
     
     sqlMaxAge.AppendLiteral("WHERE v.visit_date < ?1 "
-                            "ORDER BY v.visit_date DESC LIMIT ?2");
+                            "ORDER BY v.visit_date ASC LIMIT ?2");
   }
 
   nsCOMPtr<mozIStorageStatement> selectStatement;
