@@ -167,6 +167,13 @@ public:
   
   void ClearAll();
 
+  nsIDOMStorageItem* GetNamedItem(const nsAString& aKey, nsresult* aResult);
+
+  static nsDOMStorage* FromSupports(nsISupports* aSupports)
+  {
+    return static_cast<nsDOMStorage*>(static_cast<nsIDOMStorage*>(aSupports));
+  }
+
 protected:
 
   friend class nsDOMStorageManager;
@@ -217,6 +224,8 @@ public:
   
   NS_DECL_NSIDOMSTORAGELIST
 
+  nsIDOMStorage* GetNamedItem(const nsAString& aDomain, nsresult* aResult);
+
   
 
 
@@ -236,12 +245,12 @@ protected:
 
 
 
-  nsresult
+  nsIDOMStorage*
   GetStorageForDomain(nsIURI* aURI,
                       const nsAString& aRequestedDomain,
                       const nsAString& aCurrentDomain,
                       PRBool aNoCurrentDomainCheck,
-                      nsIDOMStorage** aStorage);
+                      nsresult* aResult);
 
   
 
