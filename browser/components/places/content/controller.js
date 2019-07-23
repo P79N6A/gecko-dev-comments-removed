@@ -1165,7 +1165,8 @@ PlacesController.prototype = {
 
       var data = new TransferData();
       function addData(type, overrideURI) {
-        data.addDataForFlavour(type, PlacesUtils._wrapString(PlacesUtils.wrapNode(node, type, overrideURI)));
+        data.addDataForFlavour(type, PlacesUtils._wrapString(
+                               PlacesUtils.wrapNode(node, type, overrideURI)));
       }
 
       function addURIData(overrideURI) {
@@ -1174,29 +1175,17 @@ PlacesController.prototype = {
         addData(PlacesUtils.TYPE_HTML, overrideURI);
       }
 
-      if (PlacesUtils.nodeIsFolder(node) || PlacesUtils.nodeIsQuery(node)) {
-        
-        
-        
-
-        addData(PlacesUtils.TYPE_X_MOZ_PLACE_CONTAINER);
-
-        
-        if (PlacesUtils.nodeIsLivemarkContainer(node)) {
-          var uri = PlacesUtils.livemarks.getFeedURI(node.itemId);
-          addURIData(uri.spec);
-        }
-
-      }
-      else if (PlacesUtils.nodeIsSeparator(node)) {
-        addData(PlacesUtils.TYPE_X_MOZ_PLACE_SEPARATOR);
-      }
-      else {
-        
-        
-        addData(PlacesUtils.TYPE_X_MOZ_PLACE);
-        addURIData();
-      }
+      
+      
+      addData(PlacesUtils.TYPE_X_MOZ_PLACE);
+      
+      var uri;
+      
+      
+      if (PlacesUtils.nodeIsLivemarkContainer(node))
+        uri = PlacesUtils.livemarks.getFeedURI(node.itemId).spec;
+      
+      addURIData(uri);
       dataSet.push(data);
     }
     return dataSet;
