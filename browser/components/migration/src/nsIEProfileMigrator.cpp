@@ -1200,6 +1200,12 @@ nsIEProfileMigrator::CopyFavorites(PRBool aReplace) {
   }
   else {
     
+    nsCOMPtr<nsIFile> profile;
+    GetProfilePath(nsnull, profile);
+    rv = InitializeBookmarks(profile);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    
     
     nsCOMPtr<nsIWindowsRegKey> regKey = 
       do_CreateInstance("@mozilla.org/windows-registry-key;1");
@@ -1419,9 +1425,6 @@ nsIEProfileMigrator::ParseFavoritesFolder(nsIFile* aDirectory,
       PRInt64 folder;
       if (bookmarkName.Equals(aPersonalToolbarFolderName)) {
         aBookmarksService->GetToolbarFolder(&folder);
-        
-        
-        aBookmarksService->RemoveFolderChildren(folder);
       }
       else {
         rv = aBookmarksService->CreateFolder(aParentFolder,

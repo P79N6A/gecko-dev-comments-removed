@@ -930,6 +930,10 @@ nsSafariProfileMigrator::CopyBookmarks(PRBool aReplace)
                       &folder);
   }
   else {
+    nsCOMPtr<nsIFile> profile;
+    GetProfilePath(nsnull, profile);
+    rv = InitializeBookmarks(profile);
+    NS_ENSURE_SUCCESS(rv, rv);
     
     folder = root;
   }

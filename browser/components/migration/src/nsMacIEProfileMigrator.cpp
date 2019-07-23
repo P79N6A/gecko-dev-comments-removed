@@ -51,7 +51,7 @@
 
 #define MACIE_BOOKMARKS_FILE_NAME NS_LITERAL_STRING("Favorites.html")
 #define MACIE_PREFERENCES_FOLDER_NAME NS_LITERAL_STRING("Explorer")
-#define FIREFOX_BOOKMARKS_FILE_NAME NS_LITERAL_STRING("bookmarks.html")
+#define TEMP_BOOKMARKS_FILE_NAME NS_LITERAL_STRING("bookmarks_tmp.html")
 
 #define MIGRATION_BUNDLE "chrome://browser/locale/migration/migration.properties"
 
@@ -172,6 +172,7 @@ nsMacIEProfileMigrator::GetSourceHomePageURL(nsACString& aResult)
 nsresult
 nsMacIEProfileMigrator::CopyBookmarks(PRBool aReplace)
 {
+  nsresult rv;
   nsCOMPtr<nsIFile> sourceFile;
   mSourceProfile->Clone(getter_AddRefs(sourceFile));
 
@@ -181,46 +182,52 @@ nsMacIEProfileMigrator::CopyBookmarks(PRBool aReplace)
   if (!exists)
     return NS_OK;
 
-  nsCOMPtr<nsIFile> targetFile;
-  mTargetProfile->Clone(getter_AddRefs(targetFile));
-  targetFile->Append(FIREFOX_BOOKMARKS_FILE_NAME);
+  
+  if (!aReplace)
+    return ImportBookmarksHTML(sourceFile,
+                               PR_FALSE,
+                               PR_FALSE,
+                               NS_LITERAL_STRING("sourceNameIE").get());
+
+  
+  rv = InitializeBookmarks(mTargetProfile);
+  NS_ENSURE_SUCCESS(rv, rv);
 
   
   
-  if (aReplace) {
-    nsresult rv;
+  nsCOMPtr<nsIFile> tempFile;
+  mTargetProfile->Clone(getter_AddRefs(tempFile));
+  tempFile->Append(TEMP_BOOKMARKS_FILE_NAME);
 
-    
-    nsCOMPtr<nsIStringBundleService> bundleService =
-      do_GetService(NS_STRINGBUNDLE_CONTRACTID, &rv);
-    NS_ENSURE_SUCCESS(rv, rv);
+  
+  nsCOMPtr<nsIStringBundleService> bundleService =
+    do_GetService(NS_STRINGBUNDLE_CONTRACTID, &rv);
+  NS_ENSURE_SUCCESS(rv, rv);
 
-    nsCOMPtr<nsIStringBundle> bundle;
-    rv = bundleService->CreateBundle(MIGRATION_BUNDLE, getter_AddRefs(bundle));
-    NS_ENSURE_SUCCESS(rv, rv);
+  nsCOMPtr<nsIStringBundle> bundle;
+  rv = bundleService->CreateBundle(MIGRATION_BUNDLE, getter_AddRefs(bundle));
+  NS_ENSURE_SUCCESS(rv, rv);
 
-    nsString toolbarFolderNameMacIE;
-    bundle->GetStringFromName(NS_LITERAL_STRING("toolbarFolderNameMacIE").get(), 
-                              getter_Copies(toolbarFolderNameMacIE));
-    nsCAutoString ctoolbarFolderNameMacIE;
-    CopyUTF16toUTF8(toolbarFolderNameMacIE, ctoolbarFolderNameMacIE);
+  nsString toolbarFolderNameMacIE;
+  bundle->GetStringFromName(NS_LITERAL_STRING("toolbarFolderNameMacIE").get(), 
+                            getter_Copies(toolbarFolderNameMacIE));
+  nsCAutoString ctoolbarFolderNameMacIE;
+  CopyUTF16toUTF8(toolbarFolderNameMacIE, ctoolbarFolderNameMacIE);
 
-    
-    if (NS_FAILED(rv)) {
-      targetFile->Exists(&exists);
-      if (exists)
-        targetFile->Remove(PR_FALSE);
+  
+  
+  rv = AnnotatePersonalToolbarFolder(sourceFile,
+                                     tempFile,
+                                     ctoolbarFolderNameMacIE.get());
+  NS_ENSURE_SUCCESS(rv, rv);
 
-      return sourceFile->CopyTo(mTargetProfile, FIREFOX_BOOKMARKS_FILE_NAME);
-    }
+  
+  rv = ImportBookmarksHTML(tempFile,
+                           PR_TRUE,
+                           PR_FALSE,
+                           EmptyString().get());
+  NS_ENSURE_SUCCESS(rv, rv);
 
-    
-    
-    return AnnotatePersonalToolbarFolder(sourceFile,
-                                         targetFile,
-                                         ctoolbarFolderNameMacIE.get());
-  }
-
-  return ImportBookmarksHTML(sourceFile,
-                             NS_LITERAL_STRING("sourceNameIE").get());
+  
+  return tempFile->Remove(PR_FALSE);
 }

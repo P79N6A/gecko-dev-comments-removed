@@ -104,8 +104,15 @@ nsresult AnnotatePersonalToolbarFolder(nsIFile* aSourceBookmarksFile,
 
 
 
+
+
+
 nsresult ImportBookmarksHTML(nsIFile* aBookmarksFile, 
+                             PRBool aImportIntoRoot,
+                             PRBool aOverwriteDefaults,
                              const PRUnichar* aImportSourceNameKey);
+
+nsresult InitializeBookmarks(nsIFile* aTargetProfile);
 
 #endif
 

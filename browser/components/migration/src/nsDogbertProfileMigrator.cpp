@@ -622,8 +622,11 @@ nsresult
 nsDogbertProfileMigrator::CopyBookmarks(PRBool aReplace)
 {
   
-  if (aReplace)
+  if (aReplace) {
+    nsresult rv = InitializeBookmarks(mTargetProfile);
+    NS_ENSURE_SUCCESS(rv, rv);
     return MigrateDogbertBookmarks();
+  }
 
   return ImportNetscapeBookmarks(BOOKMARKS_FILE_NAME_IN_4x, 
                                  NS_LITERAL_STRING("sourceNameDogbert").get());
