@@ -254,6 +254,13 @@ public:
 
 
 
+  static PRBool GetUIntAttr(nsIContent *aContent, nsIAtom *aAttr,
+                            PRInt32 *aUInt);
+
+  
+
+
+
 
 
   static PRBool IsXLink(nsIContent *aContent);

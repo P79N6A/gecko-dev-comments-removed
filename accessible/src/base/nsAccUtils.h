@@ -95,6 +95,17 @@ public:
   
 
 
+  static PRInt32 GetDefaultLevel(nsAccessible *aAcc);
+
+  
+
+
+
+  static PRInt32 GetARIAOrDefaultLevel(nsIAccessible *aAcc);
+
+  
+
+
 
   static void GetPositionAndSizeForXULSelectControlItem(nsIDOMNode *aNode,
                                                         PRInt32 *aPosInSet,

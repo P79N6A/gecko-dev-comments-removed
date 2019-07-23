@@ -1644,29 +1644,12 @@ nsAccessible::GroupPosition(PRInt32 *aGroupLevel,
   if (!content)
     return NS_OK;
 
-  nsAutoString value;
-  PRInt32 error = NS_OK;
-
-  content->GetAttr(kNameSpaceID_None, nsAccessibilityAtoms::aria_level, value);
-  if (!value.IsEmpty()) {
-    PRInt32 level = value.ToInteger(&error);
-    if (NS_SUCCEEDED(error))
-      *aGroupLevel = level;
-  }
-
-  content->GetAttr(kNameSpaceID_None, nsAccessibilityAtoms::aria_posinset, value);
-  if (!value.IsEmpty()) {
-    PRInt32 posInSet = value.ToInteger(&error);
-    if (NS_SUCCEEDED(error))
-      *aPositionInGroup = posInSet;
-  }
-
-  content->GetAttr(kNameSpaceID_None, nsAccessibilityAtoms::aria_setsize, value);
-  if (!value.IsEmpty()) {
-    PRInt32 sizeSet = value.ToInteger(&error);
-    if (NS_SUCCEEDED(error))
-      *aSimilarItemsInGroup = sizeSet;
-  }
+  nsCoreUtils::GetUIntAttr(content, nsAccessibilityAtoms::aria_level,
+                           aGroupLevel);
+  nsCoreUtils::GetUIntAttr(content, nsAccessibilityAtoms::aria_posinset,
+                           aPositionInGroup);
+  nsCoreUtils::GetUIntAttr(content, nsAccessibilityAtoms::aria_setsize,
+                           aSimilarItemsInGroup);
 
   
   
@@ -3294,9 +3277,6 @@ nsAccessible::GetPositionAndSizeInternal(PRInt32 *aPosInSet, PRInt32 *aSetSize)
       role != nsIAccessibleRole::ROLE_GRID_CELL)
     return;
 
-  PRInt32 positionInGroup = 0;
-  PRInt32 setSize = 0;
-
   PRUint32 baseRole = role;
   if (role == nsIAccessibleRole::ROLE_CHECK_MENU_ITEM ||
       role == nsIAccessibleRole::ROLE_RADIO_MENU_ITEM)
@@ -3305,12 +3285,20 @@ nsAccessible::GetPositionAndSizeInternal(PRInt32 *aPosInSet, PRInt32 *aSetSize)
   nsAccessible* parent = GetParent();
   NS_ENSURE_TRUE(parent,);
 
-  PRBool foundCurrent = PR_FALSE;
-  PRInt32 siblingCount = parent->GetChildCount();
-  for (PRInt32 siblingIdx = 0; siblingIdx < siblingCount; siblingIdx++) {
-    nsAccessible* sibling = parent->GetChildAt(siblingIdx);
+  PRInt32 indexInParent = parent->GetIndexOf(this);
+  PRInt32 level = nsAccUtils::GetARIAOrDefaultLevel(this);
+
+  
+  PRInt32 positionInGroup = 1;
+  for (PRInt32 idx = indexInParent - 1; idx >= 0; idx--) {
+    nsAccessible* sibling = parent->GetChildAt(idx);
 
     PRUint32 siblingRole = siblingRole = nsAccUtils::Role(sibling);
+
+    
+    if (siblingRole == nsIAccessibleRole::ROLE_SEPARATOR)
+      break;
+
     PRUint32 siblingBaseRole = siblingRole;
     if (siblingRole == nsIAccessibleRole::ROLE_CHECK_MENU_ITEM ||
         siblingRole == nsIAccessibleRole::ROLE_RADIO_MENU_ITEM)
@@ -3319,22 +3307,48 @@ nsAccessible::GetPositionAndSizeInternal(PRInt32 *aPosInSet, PRInt32 *aSetSize)
     
     if (siblingBaseRole == baseRole &&
         !(nsAccUtils::State(sibling) & nsIAccessibleStates::STATE_INVISIBLE)) {
-      ++ setSize;
-      if (!foundCurrent) {
-        ++ positionInGroup;
-        if (sibling == this)
-          foundCurrent = PR_TRUE;
-      }
-    }
-
-    
-    if (siblingRole == nsIAccessibleRole::ROLE_SEPARATOR) {
-      if (foundCurrent) 
-        break;
 
       
-      positionInGroup = 0;
-      setSize = 0;
+      
+      
+      
+      PRInt32 siblingLevel = nsAccUtils::GetARIAOrDefaultLevel(sibling);
+      if (siblingLevel < level)
+        break;
+      else if (level == siblingLevel)
+        ++ positionInGroup;
+    }
+  }
+
+  
+  PRInt32 setSize = positionInGroup;
+
+  PRInt32 siblingCount = parent->GetChildCount();
+  for (PRInt32 idx = indexInParent + 1; idx < siblingCount; idx++) {
+    nsAccessible* sibling = parent->GetChildAt(idx);
+    NS_ENSURE_TRUE(sibling,);
+
+    PRUint32 siblingRole = nsAccUtils::Role(sibling);
+
+    
+    if (siblingRole == nsIAccessibleRole::ROLE_SEPARATOR)
+      break;
+
+    PRUint32 siblingBaseRole = siblingRole;
+    if (siblingRole == nsIAccessibleRole::ROLE_CHECK_MENU_ITEM ||
+        siblingRole == nsIAccessibleRole::ROLE_RADIO_MENU_ITEM)
+      siblingBaseRole = nsIAccessibleRole::ROLE_MENUITEM;
+
+    
+    if (siblingBaseRole == baseRole &&
+        !(nsAccUtils::State(sibling) & nsIAccessibleStates::STATE_INVISIBLE)) {
+
+      
+      PRInt32 siblingLevel = nsAccUtils::GetARIAOrDefaultLevel(sibling);
+      if (siblingLevel < level)
+        break;
+      else if (level == siblingLevel)
+        ++ setSize;
     }
   }
 
@@ -3345,6 +3359,8 @@ nsAccessible::GetPositionAndSizeInternal(PRInt32 *aPosInSet, PRInt32 *aSetSize)
 PRInt32
 nsAccessible::GetLevelInternal()
 {
+  PRInt32 level = nsAccUtils::GetDefaultLevel(this);
+
   PRUint32 role = nsAccUtils::Role(this);
   nsAccessible* parent = GetParent();
 
@@ -3352,7 +3368,8 @@ nsAccessible::GetLevelInternal()
     
     
     
-    PRInt32 level = 1;
+    level = 1;
+
     while (parent) {
       PRUint32 parentRole = nsAccUtils::Role(parent);
 
@@ -3364,17 +3381,14 @@ nsAccessible::GetLevelInternal()
       parent = parent->GetParent();
     }
 
-    return level;
-  }
-
-  if (role == nsIAccessibleRole::ROLE_LISTITEM) {
+  } else if (role == nsIAccessibleRole::ROLE_LISTITEM) {
     
     
     
     
 
     
-    PRInt32 level = 0;
+    level = 0;
 
     while (parent) {
       PRUint32 parentRole = nsAccUtils::Role(parent);
@@ -3405,16 +3419,7 @@ nsAccessible::GetLevelInternal()
     } else {
       ++ level; 
     }
-
-    return level;
   }
 
-  if (role == nsIAccessibleRole::ROLE_ROW &&
-      nsAccUtils::Role(parent) == nsIAccessibleRole::ROLE_TREE_TABLE) {
-    
-    
-    return 1;
-  }
-
-  return 0;
+  return level;
 }
