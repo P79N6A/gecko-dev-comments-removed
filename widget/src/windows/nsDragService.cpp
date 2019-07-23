@@ -365,30 +365,6 @@ nsDragService::StartInvokingDragSession(IDataObject * aDataObj,
   SetDragEndPoint(nsIntPoint(cpos.x, cpos.y));
   EndDragSession(PR_TRUE);
 
-  
-  
-  
-  
-  
-  
-  
-  static CLIPFORMAT PerformedDropEffect =
-    ::RegisterClipboardFormat(CFSTR_PERFORMEDDROPEFFECT);
-
-  FORMATETC fmte =
-    {
-      (CLIPFORMAT)PerformedDropEffect,
-      NULL,
-      DVASPECT_CONTENT,
-      -1,
-      TYMED_NULL
-    };
-
-  STGMEDIUM medium;
-  medium.tymed = TYMED_NULL;
-  medium.pUnkForRelease = NULL;
-  aDataObj->SetData(&fmte, &medium, FALSE);
-
   mDoingDrag = PR_FALSE;
 
   return DRAGDROP_S_DROP == res ? NS_OK : NS_ERROR_FAILURE;

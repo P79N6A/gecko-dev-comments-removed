@@ -52,6 +52,8 @@
 #include "nsIInputStream.h"
 #include "nsIChannel.h"
 #include "nsTPtrArray.h"
+#include "nsCOMArray.h"
+#include "nsITimer.h"
 
 
 
@@ -333,6 +335,8 @@ class nsDataObj : public IDataObject,
                             BOOL fCopyIn);
     IUnknown* GetCanonicalIUnknown(IUnknown *punk);
     HGLOBAL GlobalClone(HGLOBAL hglobIn);
+    static void RemoveTempFile(nsITimer* aTimer, void* aClosure);
+    nsCOMPtr<nsITimer> mTimer;
 };
 
 

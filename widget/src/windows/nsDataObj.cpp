@@ -63,6 +63,7 @@
 #include "nscore.h"
 #include "prtypes.h"
 #include "nsDirectoryServiceDefs.h"
+#include "nsITimer.h"
 
 
 #include <stdlib.h>
@@ -448,6 +449,22 @@ STDMETHODIMP_(ULONG) nsDataObj::Release()
 	if (0 != m_cRef)
 		return m_cRef;
 
+  
+  
+  
+  
+  if (mCachedTempFile) {
+    nsresult rv;
+    mTimer = do_CreateInstance(NS_TIMER_CONTRACTID, &rv);
+    if (NS_SUCCEEDED(rv)) {
+      mTimer->InitWithFuncCallback(nsDataObj::RemoveTempFile, this,
+                                   500, nsITimer::TYPE_ONE_SHOT);
+      return AddRef();
+    }
+    mCachedTempFile->Remove(PR_FALSE);
+    mCachedTempFile = NULL;
+  }
+
 	delete this;
 
 	return 0;
@@ -622,15 +639,6 @@ IUnknown* nsDataObj::GetCanonicalIUnknown(IUnknown *punk)
 STDMETHODIMP nsDataObj::SetData(LPFORMATETC pFE, LPSTGMEDIUM pSTM, BOOL fRelease)
 {
   PRNTDEBUG("nsDataObj::SetData\n");
-  static CLIPFORMAT PerformedDropEffect = ::RegisterClipboardFormat( CFSTR_PERFORMEDDROPEFFECT );  
-
-  if (pFE && pFE->cfFormat == PerformedDropEffect) {
-    
-    if (mCachedTempFile) {
-      mCachedTempFile->Remove(PR_FALSE);
-      mCachedTempFile = NULL;
-    }
-  }
   
   LPDATAENTRY pde;
   HRESULT hres = FindFORMATETC(pFE, &pde, TRUE); 
@@ -1355,8 +1363,6 @@ HRESULT nsDataObj::GetText(const nsACString & aDataFlavor, FORMATETC& aFE, STGME
 
 HRESULT nsDataObj::GetFile(FORMATETC& aFE, STGMEDIUM& aSTG)
 {
-  HRESULT res = S_OK;
-
   
   
   
@@ -1449,101 +1455,99 @@ HRESULT nsDataObj::DropFile(FORMATETC& aFE, STGMEDIUM& aSTG)
 HRESULT nsDataObj::DropImage(FORMATETC& aFE, STGMEDIUM& aSTG)
 {
   nsresult rv;
-  PRUint32 len = 0;
-  nsCOMPtr<nsISupports> genericDataWrapper;
+  if (!mCachedTempFile) {
+    PRUint32 len = 0;
+    nsCOMPtr<nsISupports> genericDataWrapper;
 
-  mTransferable->GetTransferData(kNativeImageMime, getter_AddRefs(genericDataWrapper), &len);
-  nsCOMPtr<imgIContainer> image ( do_QueryInterface(genericDataWrapper) );
-  
-  if (!image) {
+    mTransferable->GetTransferData(kNativeImageMime, getter_AddRefs(genericDataWrapper), &len);
+    nsCOMPtr<imgIContainer> image(do_QueryInterface(genericDataWrapper));
+
+    if (!image) {
+      
+      
+      
+      nsCOMPtr<nsISupportsInterfacePointer> ptr(do_QueryInterface(genericDataWrapper));
+      if (ptr)
+        ptr->GetData(getter_AddRefs(image));
+    }
+
+    if (!image) 
+      return E_FAIL;
+
+    
+    nsImageToClipboard converter(image);
+    HANDLE bits = nsnull;
+    rv = converter.GetPicture(&bits); 
+
+    if (NS_FAILED(rv) || !bits)
+      return E_FAIL;
+
+    
+    PRUint32 bitmapSize = GlobalSize(bits);
+    if (!bitmapSize) {
+      GlobalFree(bits);
+      return E_FAIL;
+    }
+
+    
+    nsCOMPtr<nsIFile> dropFile;
+    rv = NS_GetSpecialDirectory(NS_OS_TEMP_DIR, getter_AddRefs(dropFile));
+    if (!dropFile) {
+      GlobalFree(bits);
+      return E_FAIL;
+    }
+
+    
+    
+    char buf[13];
+    nsCString filename;
+    MakeRandomString(buf, 8);
+    memcpy(buf+8, ".bmp", 5);
+    filename.Append(nsDependentCString(buf, 12));
+    dropFile->AppendNative(filename);
+    rv = dropFile->CreateUnique(nsIFile::NORMAL_FILE_TYPE, 0660);
+    if (NS_FAILED(rv)) { 
+      GlobalFree(bits);
+      return E_FAIL;
+    }
+
     
     
     
-    nsCOMPtr<nsISupportsInterfacePointer> ptr(do_QueryInterface(genericDataWrapper));
-    if (ptr)
-      ptr->GetData(getter_AddRefs(image));
-  }
+    dropFile->Clone(getter_AddRefs(mCachedTempFile));
 
-  if (!image) 
-    return E_FAIL;
+    
+    nsCOMPtr<nsIOutputStream> outStream;
+    rv = NS_NewLocalFileOutputStream(getter_AddRefs(outStream), dropFile);
+    if (NS_FAILED(rv)) { 
+      GlobalFree(bits);
+      return E_FAIL;
+    }
 
-  
-  nsImageToClipboard converter(image);
-  HANDLE bits = nsnull;
-  rv = converter.GetPicture(&bits); 
-  
-  if (NS_FAILED(rv) || !bits)
-    return E_FAIL;
+    char * bm = (char *)GlobalLock(bits);
 
-  
-  PRUint32 bitmapSize = GlobalSize(bits);
-  if (!bitmapSize) {
+    BITMAPFILEHEADER	fileHdr;
+    BITMAPINFOHEADER *bmpHdr = (BITMAPINFOHEADER*)bm;
+
+    fileHdr.bfType        = ((WORD) ('M' << 8) | 'B');
+    fileHdr.bfSize        = GlobalSize (bits) + sizeof(fileHdr);
+    fileHdr.bfReserved1   = 0;
+    fileHdr.bfReserved2   = 0;
+    fileHdr.bfOffBits     = (DWORD) (sizeof(fileHdr) + bmpHdr->biSize);
+
+    PRUint32 writeCount = 0;
+    if (NS_FAILED(outStream->Write((const char *)&fileHdr, sizeof(fileHdr), &writeCount)) ||
+        NS_FAILED(outStream->Write((const char *)bm, bitmapSize, &writeCount)))
+      rv = NS_ERROR_FAILURE;
+
+    outStream->Close();
+
+    GlobalUnlock(bits);
     GlobalFree(bits);
-    return E_FAIL;
+
+    if (NS_FAILED(rv))
+      return E_FAIL;
   }
-
-  if (mCachedTempFile) {
-    mCachedTempFile->Remove(PR_FALSE);
-    mCachedTempFile = NULL;
-  }
-
-  
-  nsCOMPtr<nsIFile> dropFile;
-  rv = NS_GetSpecialDirectory(NS_OS_TEMP_DIR, getter_AddRefs(dropFile));
-  if (!dropFile)
-    return E_FAIL;
-
-  
-  
-  char buf[13];
-  nsCString filename;
-  MakeRandomString(buf, 8);
-  memcpy(buf+8, ".bmp", 5);
-  filename.Append(nsDependentCString(buf, 12));
-  dropFile->AppendNative(filename);
-  rv = dropFile->CreateUnique(nsIFile::NORMAL_FILE_TYPE, 0660);
-  if (NS_FAILED(rv)) { 
-    GlobalFree(bits);
-    return E_FAIL;
-  }
-
-  
-  dropFile->Clone(getter_AddRefs(mCachedTempFile));
-
-  
-  nsCOMPtr<nsIOutputStream> outStream;
-  rv = NS_NewLocalFileOutputStream(getter_AddRefs(outStream), dropFile);
-  if (NS_FAILED(rv)) { 
-    GlobalFree(bits);
-    return E_FAIL;
-  }
-  
-  char * bm = (char *)GlobalLock(bits);
-
-  BITMAPFILEHEADER	fileHdr;
-  BITMAPINFOHEADER *bmpHdr = (BITMAPINFOHEADER*)bm;
-
-	fileHdr.bfType		    = ((WORD) ('M' << 8) | 'B');
-	fileHdr.bfSize		    = GlobalSize (bits) + sizeof(fileHdr);
-	fileHdr.bfReserved1 	= 0;
-	fileHdr.bfReserved2 	= 0;
-	fileHdr.bfOffBits		  = (DWORD) (sizeof(fileHdr) + bmpHdr->biSize);
-
-  PRUint32 writeCount = 0;
-  if (NS_FAILED(outStream->Write((const char *)&fileHdr, sizeof(fileHdr), &writeCount)) ||
-      NS_FAILED(outStream->Write((const char *)bm, bitmapSize, &writeCount)))
-     rv = NS_ERROR_FAILURE;
-  
-  outStream->Close();
-
-  GlobalUnlock(bits);
-
-  if (NS_FAILED(rv)) { 
-    GlobalFree(bits);
-    return E_FAIL;
-  }
-
-  GlobalFree(bits);
   
   
   nsAutoString path;
@@ -2072,4 +2076,14 @@ HRESULT nsDataObj::GetFileContents_IStream(FORMATETC& aFE, STGMEDIUM& aSTG)
   aSTG.pUnkForRelease = NULL;
 
   return S_OK;
+}
+
+void nsDataObj::RemoveTempFile(nsITimer* aTimer, void* aClosure)
+{
+  nsDataObj *timedDataObj = static_cast<nsDataObj *>(aClosure);
+  if (timedDataObj->mCachedTempFile) {
+    timedDataObj->mCachedTempFile->Remove(PR_FALSE);
+    timedDataObj->mCachedTempFile = NULL;
+  }
+  timedDataObj->Release();
 }
