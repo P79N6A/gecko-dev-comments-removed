@@ -19,7 +19,12 @@
 
 
 
-function do_crash(setup, callback)
+
+
+
+
+
+function do_crash(setup, callback, canReturnZero)
 {
   
   let ds = Components.classes["@mozilla.org/file/directory_service;1"]
@@ -55,8 +60,11 @@ function do_crash(setup, callback)
   }
   catch(ex) {} 
 
-  
-  do_check_neq(process.exitValue, 0);
+  if (!canReturnZero) {
+    
+    do_check_neq(process.exitValue, 0);
+  }
+
   
   let minidump = null;
   let en = do_get_cwd().directoryEntries;
