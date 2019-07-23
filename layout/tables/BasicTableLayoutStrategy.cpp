@@ -681,6 +681,10 @@ BasicTableLayoutStrategy::DistributeWidthToColumns(nscoord aWidth,
 
 
 
+
+
+
+
     
     
 
@@ -692,6 +696,7 @@ BasicTableLayoutStrategy::DistributeWidthToColumns(nscoord aWidth,
             total_fixed_pref = 0;
     float total_pct = 0.0f; 
     PRInt32 numInfiniteWidthCols = 0;
+    PRInt32 numNonSpecZeroWidthCols = 0;
 
     PRInt32 col;
     for (col = aFirstCol; col < aFirstCol + aColCount; ++col) {
@@ -713,7 +718,7 @@ BasicTableLayoutStrategy::DistributeWidthToColumns(nscoord aWidth,
         } else {
             nscoord pref_width = colFrame->GetPrefCoord();
             if (pref_width == nscoord_MAX) {
-                numInfiniteWidthCols++;
+                ++numInfiniteWidthCols;
             }
             guess_pref = NSCoordSaturatingAdd(guess_pref, pref_width);
             guess_min_pct += min_width;
@@ -725,6 +730,10 @@ BasicTableLayoutStrategy::DistributeWidthToColumns(nscoord aWidth,
                 guess_min_spec = NSCoordSaturatingAdd(guess_min_spec, delta);
                 total_fixed_pref = NSCoordSaturatingAdd(total_fixed_pref, 
                                                         pref_width);
+            } else if (pref_width == 0) {
+                if (aWidthType == BTLS_FINAL_WIDTH) {
+                    ++numNonSpecZeroWidthCols;
+                }
             } else {
                 total_flex_pref = NSCoordSaturatingAdd(total_flex_pref,
                                                        pref_width);
@@ -739,6 +748,7 @@ BasicTableLayoutStrategy::DistributeWidthToColumns(nscoord aWidth,
         FLEX_FIXED_SMALL, 
         FLEX_FLEX_SMALL, 
         FLEX_FLEX_LARGE, 
+        FLEX_FLEX_LARGE_ZERO, 
         FLEX_FIXED_LARGE, 
         FLEX_PCT_LARGE, 
         FLEX_ALL_LARGE 
@@ -782,6 +792,12 @@ BasicTableLayoutStrategy::DistributeWidthToColumns(nscoord aWidth,
         if (total_flex_pref > 0) {
             l2t = FLEX_FLEX_LARGE;
             basis.c = total_flex_pref;
+        } else if (numNonSpecZeroWidthCols > 0) {
+            NS_ASSERTION(aWidthType == BTLS_FINAL_WIDTH,
+                         "numNonSpecZeroWidthCols should only "
+                         "be set when we're setting final width.");
+            l2t = FLEX_FLEX_LARGE_ZERO;
+            basis.c = numNonSpecZeroWidthCols;
         } else if (total_fixed_pref > 0) {
             l2t = FLEX_FIXED_LARGE;
             basis.c = total_fixed_pref;
@@ -878,7 +894,7 @@ BasicTableLayoutStrategy::DistributeWidthToColumns(nscoord aWidth,
                         if (numInfiniteWidthCols) {
                             if (colFrame->GetPrefCoord() == nscoord_MAX) {
                                 c = c / float(numInfiniteWidthCols);
-                                numInfiniteWidthCols--;
+                                --numInfiniteWidthCols;
                             } else {
                                 c = 0.0f;
                             }
@@ -906,6 +922,23 @@ BasicTableLayoutStrategy::DistributeWidthToColumns(nscoord aWidth,
                             col_width += NSToCoordRound(float(col_width) * c);
                         }
                     }
+                }
+                break;
+            case FLEX_FLEX_LARGE_ZERO:
+                NS_ASSERTION(aWidthType == BTLS_FINAL_WIDTH,
+                             "FLEX_FLEX_LARGE_ZERO only should be hit "
+                             "when we're setting final width.");
+                if (pct == 0.0f &&
+                    !colFrame->GetHasSpecifiedCoord()) {
+
+                    NS_ASSERTION(col_width == 0 &&
+                                 colFrame->GetPrefCoord() == 0,
+                                 "Since we're in FLEX_FLEX_LARGE_ZERO case, "
+                                 "all auto-width cols should have zero pref "
+                                 "width.");
+                    float c = float(space) / float(basis.c);
+                    col_width += NSToCoordRound(c);
+                    --basis.c;
                 }
                 break;
             case FLEX_FIXED_LARGE:
