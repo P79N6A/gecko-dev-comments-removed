@@ -77,6 +77,23 @@ nsMathMLmstyleFrame::InheritAutomaticData(nsIFrame* aParent)
   
   nsMathMLFrame::FindAttrDisplaystyle(mContent, mPresentationData);
 
+  
+  nsAutoString value;
+  mContent->GetAttr(kNameSpaceID_None, nsGkAtoms::scriptlevel_, value);
+  if (!value.IsEmpty()) {
+    PRInt32 errorCode, userValue;
+    userValue = value.ToInteger(&errorCode); 
+    if (!errorCode) {
+      if (value[0] != '+' && value[0] != '-') { 
+        mPresentationData.flags |= NS_MATHML_EXPLICIT_SCRIPTLEVEL;
+        mPresentationData.scriptLevel = userValue;
+      }
+      else {
+        mPresentationData.scriptLevel += userValue; 
+      }
+    }
+  }
+
   return NS_OK;
 }
 
@@ -95,7 +112,8 @@ nsMathMLmstyleFrame::TransmitAutomaticData()
 
 
 NS_IMETHODIMP
-nsMathMLmstyleFrame::UpdatePresentationData(PRUint32        aFlagsValues,
+nsMathMLmstyleFrame::UpdatePresentationData(PRInt32         aScriptLevelIncrement,
+                                            PRUint32        aFlagsValues,
                                             PRUint32        aWhichFlags)
 {
   if (NS_MATHML_HAS_EXPLICIT_DISPLAYSTYLE(mPresentationData.flags)) {
@@ -103,13 +121,19 @@ nsMathMLmstyleFrame::UpdatePresentationData(PRUint32        aFlagsValues,
     aWhichFlags &= ~NS_MATHML_DISPLAYSTYLE;
     aFlagsValues &= ~NS_MATHML_DISPLAYSTYLE;
   }
+  if (NS_MATHML_HAS_EXPLICIT_SCRIPTLEVEL(mPresentationData.flags)) {
+    
+    aScriptLevelIncrement = 0;
+  }
 
-  return nsMathMLContainerFrame::UpdatePresentationData(aFlagsValues, aWhichFlags);
+  return nsMathMLContainerFrame::UpdatePresentationData(
+    aScriptLevelIncrement, aFlagsValues, aWhichFlags);
 }
 
 NS_IMETHODIMP
 nsMathMLmstyleFrame::UpdatePresentationDataFromChildAt(PRInt32         aFirstIndex,
                                                        PRInt32         aLastIndex,
+                                                       PRInt32         aScriptLevelIncrement,
                                                        PRUint32        aFlagsValues,
                                                        PRUint32        aWhichFlags)
 {
@@ -118,11 +142,16 @@ nsMathMLmstyleFrame::UpdatePresentationDataFromChildAt(PRInt32         aFirstInd
     aWhichFlags &= ~NS_MATHML_DISPLAYSTYLE;
     aFlagsValues &= ~NS_MATHML_DISPLAYSTYLE;
   }
+  if (NS_MATHML_HAS_EXPLICIT_SCRIPTLEVEL(mPresentationData.flags)) {
+    
+    aScriptLevelIncrement = 0;
+  }
 
   
   return
     nsMathMLContainerFrame::UpdatePresentationDataFromChildAt(
-      aFirstIndex, aLastIndex, aFlagsValues, aWhichFlags); 
+      aFirstIndex, aLastIndex, aScriptLevelIncrement,
+      aFlagsValues, aWhichFlags); 
 }
 
 NS_IMETHODIMP
@@ -130,6 +159,10 @@ nsMathMLmstyleFrame::AttributeChanged(PRInt32         aNameSpaceID,
                                       nsIAtom*        aAttribute,
                                       PRInt32         aModType)
 {
+  
+  if (CommonAttributeChangedFor(PresContext(), mContent, aAttribute))
+    return NS_OK;
+
   
   
   

@@ -85,6 +85,40 @@ math[display="inline"] {
   font-style: normal; 
 }
 
+[-moz-math-font-size="+1"] {
+  font-size: 71%;
+}
+[-moz-math-font-size="+2"] {
+  font-size: 50%;
+}
+[-moz-math-font-size="+3"] {
+  font-size: 36%;
+}
+[-moz-math-font-size="+4"] {
+  font-size: 25%;
+}
+[-moz-math-font-size="+5"] {
+  font-size: 18%;
+}
+[-moz-math-font-size="scriptminsize"] {
+  font-size: 8pt;
+}
+[-moz-math-font-size="-1"] {
+  font-size: 141%;
+}
+[-moz-math-font-size="-2"] {
+  font-size: 200%;
+}
+[-moz-math-font-size="-3"] {
+  font-size: 283%;
+}
+[-moz-math-font-size="-4"] {
+  font-size: 400%;
+}
+[-moz-math-font-size="-5"] {
+  font-size: 566%;
+}
+
 
 
 
@@ -106,6 +140,33 @@ math[display="inline"] {
   font-weight: bold;
 }
 
+[fontsize="xx-small"] {
+  font-size: xx-small;
+}
+[fontsize="x-small"] {
+  font-size: x-small;
+}
+[fontsize="small"] {
+  font-size: small;
+}
+[fontsize="smaller"] {
+  font-size: smaller;
+}
+[fontsize="medium"] {
+  font-size: medium;
+}
+[fontsize="large"] {
+  font-size: large;
+}
+[fontsize="larger"] {
+  font-size: larger;
+}
+[fontsize="x-large"] {
+  font-size: x-large;
+}
+[fontsize="xx-large"] {
+  font-size: xx-large;
+}
 
 
 
@@ -114,6 +175,15 @@ math[display="inline"] {
 
 
 
+
+
+
+[mathsize="small"] {
+  font-size: small;
+}
+[mathsize="big"] {
+  font-size: large;
+}
 
 
 
@@ -411,21 +481,3 @@ semantics > :not(:first-child) {
   display: inline-block !important;
   position: static !important;
 }
-
-
-
-
-
-
-
-
-:-moz-math-increment-script-level { -moz-script-level:+1; }
-
-
-
-mroot > :not(:first-child) { -moz-script-level:+2; }
-
-msub > :not(:first-child),
-msup > :not(:first-child),
-msubsup > :not(:first-child),
-mmultiscripts > :not(:first-child) { -moz-script-level:+1; }

@@ -297,19 +297,6 @@ public:
   {
     mBidiEnabled = aBidiEnabled;
   }
-  
-  
-
-
-  PRBool GetMathMLEnabled() const
-  {
-    return mMathMLEnabled;
-  }
-  
-  void SetMathMLEnabled()
-  {
-    mMathMLEnabled = PR_TRUE;
-  }
 
   
 
@@ -978,8 +965,6 @@ protected:
 
   
   PRPackedBool mBidiEnabled;
-  
-  PRPackedBool mMathMLEnabled;
 
   
   

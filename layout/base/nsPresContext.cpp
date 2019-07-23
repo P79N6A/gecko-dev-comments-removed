@@ -701,6 +701,38 @@ nsPresContext::GetUserPreferences()
   SetBidi(bidiOptions, PR_FALSE);
 }
 
+void
+nsPresContext::ClearStyleDataAndReflow()
+{
+  
+  
+  
+  if (mShell && mShell->GetRootFrame()) {
+    
+    
+    nsresult rv = mShell->StyleSet()->BeginReconstruct();
+    if (NS_FAILED(rv))
+      return;
+    
+    
+    
+    
+    
+    
+    nsStyleChangeList changeList;
+    mShell->FrameManager()->ComputeStyleChangeFor(mShell->GetRootFrame(),
+                                                  &changeList, nsChangeHint(0));
+    
+    mShell->FrameConstructor()->ProcessRestyledFrames(changeList);
+    
+    
+    
+    
+    
+    mShell->StyleSet()->EndReconstruct();
+  }
+}
+
 static const char sMinFontSizePref[] = "browser.display.auto_quality_min_font_size";
 
 void
@@ -723,13 +755,13 @@ nsPresContext::PreferenceChanged(const char* aPrefName)
       nscoord height = NSToCoordRound(oldHeightDevPixels*AppUnitsPerDevPixel());
       vm->SetWindowDimensions(width, height);
 
-      RebuildAllStyleData();
+      ClearStyleDataAndReflow();
     }
     return;
   }
   if (!nsCRT::strcmp(aPrefName, sMinFontSizePref)) {
     mAutoQualityMinFontSizePixelsPref = nsContentUtils::GetIntPref(sMinFontSizePref);
-    RebuildAllStyleData();
+    ClearStyleDataAndReflow();
     return;
   }
   
@@ -764,7 +796,7 @@ nsPresContext::UpdateAfterPreferencesChanged()
   }
 
   mDeviceContext->FlushFontCache();
-  RebuildAllStyleData();
+  ClearStyleDataAndReflow();
 }
 
 nsresult
@@ -950,7 +982,8 @@ nsPresContext::Observe(nsISupports* aSubject,
   if (!nsCRT::strcmp(aTopic, "charset")) {
     UpdateCharSet(NS_LossyConvertUTF16toASCII(aData));
     mDeviceContext->FlushFontCache();
-    RebuildAllStyleData();
+    ClearStyleDataAndReflow();
+
     return NS_OK;
   }
 
@@ -1141,7 +1174,7 @@ nsPresContext::SetFullZoom(float aZoom)
   mFullZoom = aZoom;
   GetViewManager()->SetWindowDimensions(NSToCoordRound(oldWidthDevPixels*AppUnitsPerDevPixel()),
                                         NSToCoordRound(oldHeightDevPixels*AppUnitsPerDevPixel()));
-  RebuildAllStyleData();
+  ClearStyleDataAndReflow();
   mCurAppUnitsPerDevPixel = AppUnitsPerDevPixel();
 }
 
@@ -1251,14 +1284,14 @@ nsPresContext::GetBidiUtils()
 }
 
 void
-nsPresContext::SetBidi(PRUint32 aSource, PRBool aForceRestyle)
+nsPresContext::SetBidi(PRUint32 aSource, PRBool aForceReflow)
 {
   
   if (aSource == GetBidi()) {
     return;
   }
 
-  NS_ASSERTION(!(aForceRestyle && (GetBidi() == 0)), 
+  NS_ASSERTION(!(aForceReflow && (GetBidi() == 0)), 
                "ForceReflow on new prescontext");
 
   Document()->SetBidiOptions(aSource);
@@ -1278,8 +1311,8 @@ nsPresContext::SetBidi(PRUint32 aSource, PRBool aForceRestyle)
       SetVisualMode(IsVisualCharset(doc->GetDocumentCharacterSet()));
     }
   }
-  if (aForceRestyle) {
-    RebuildAllStyleData();
+  if (aForceReflow) {
+    ClearStyleDataAndReflow();
   }
 }
 
@@ -1340,7 +1373,7 @@ nsPresContext::ThemeChangedInternal()
   
   
   
-  RebuildAllStyleData();
+  nsPresContext::ClearStyleDataAndReflow();
 }
 
 void
@@ -1376,21 +1409,7 @@ nsPresContext::SysColorChangedInternal()
   
   
   
-  
-  
-  RebuildAllStyleData();
-}
-
-void
-nsPresContext::RebuildAllStyleData()
-{
-  mShell->FrameConstructor()->RebuildAllStyleData();
-}
-
-void
-nsPresContext::PostRebuildAllStyleDataEvent()
-{
-  mShell->FrameConstructor()->PostRebuildAllStyleDataEvent();
+  ClearStyleDataAndReflow();
 }
 
 void

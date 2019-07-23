@@ -201,9 +201,6 @@ public:
     { return GetPresShell()->FrameManager(); } 
 #endif
 
-  void RebuildAllStyleData();
-  void PostRebuildAllStyleDataEvent();
-
   
 
 
@@ -240,6 +237,11 @@ public:
 
 
   nsIAtom* Medium() { return mMedium; }
+
+  
+
+
+  NS_HIDDEN_(void) ClearStyleDataAndReflow();
 
   void* AllocateFromShell(size_t aSize)
   {
@@ -466,7 +468,7 @@ public:
   float TextZoom() { return mTextZoom; }
   void SetTextZoom(float aZoom) {
     mTextZoom = aZoom;
-    RebuildAllStyleData();
+    ClearStyleDataAndReflow();
   }
 
   float GetFullZoom() { return mFullZoom; }
@@ -635,7 +637,7 @@ public:
 
   
   NS_HIDDEN_(void) SetBidi(PRUint32 aBidiOptions,
-                           PRBool aForceRestyle = PR_FALSE);
+                           PRBool aForceReflow = PR_FALSE);
 
   
 

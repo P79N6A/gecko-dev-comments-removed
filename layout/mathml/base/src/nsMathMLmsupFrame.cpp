@@ -74,7 +74,7 @@ nsMathMLmsupFrame::TransmitAutomaticData()
   
   
   
-  UpdatePresentationDataFromChildAt(1, -1,
+  UpdatePresentationDataFromChildAt(1, -1, 1,
     ~NS_MATHML_DISPLAYSTYLE,
      NS_MATHML_DISPLAYSTYLE);
 
@@ -190,7 +190,7 @@ nsMathMLmsupFrame::PlaceSuperScript(nsPresContext*      aPresContext,
   nscoord supScriptShift;
   nsPresentationData presentationData;
   aFrame->GetPresentationData (presentationData);
-  if ( aFrame->GetStyleFont()->mScriptLevel == 0 && 
+  if ( presentationData.scriptLevel == 0 && 
        NS_MATHML_IS_DISPLAYSTYLE(presentationData.flags) &&
       !NS_MATHML_IS_COMPRESSED(presentationData.flags)) {
     

@@ -909,6 +909,28 @@ nsXMLContentSink::MaybeStartLayout(PRBool aIgnorePendingSheets)
   StartLayout(aIgnorePendingSheets);
 }
 
+#ifdef MOZ_MATHML
+
+
+
+
+nsresult
+NS_NewMathMLElement(nsIContent** aResult, nsINodeInfo* aNodeInfo)
+{
+  static const char kMathMLStyleSheetURI[] = "resource://gre/res/mathml.css";
+
+  aNodeInfo->SetIDAttributeAtom(nsGkAtoms::id);
+  
+  
+  nsIDocument *doc = aNodeInfo->GetDocument();
+  if (doc)
+    doc->EnsureCatalogStyleSheet(kMathMLStyleSheetURI);
+
+  return NS_NewXMLElement(aResult, aNodeInfo);
+}
+#endif 
+
+
 
 
 PRBool

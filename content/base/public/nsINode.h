@@ -180,9 +180,7 @@ public:
     eDOCUMENT_FRAGMENT   = 1 << 11,
     
 
-    eDATA_NODE           = 1 << 12,
-    
-    eMATHML              = 1 << 13
+    eDATA_NODE           = 1 << 12
   };
 
   

@@ -117,11 +117,13 @@ nsMathMLFrame::InheritAutomaticData(nsIFrame* aParent)
   mPresentationData.flags = 0;
   mPresentationData.baseFrame = nsnull;
   mPresentationData.mstyle = nsnull;
+  mPresentationData.scriptLevel = 0;
 
   
   nsPresentationData parentData;
   GetPresentationDataFrom(aParent, parentData);
   mPresentationData.mstyle = parentData.mstyle;
+  mPresentationData.scriptLevel = parentData.scriptLevel;
   if (NS_MATHML_IS_DISPLAYSTYLE(parentData.flags)) {
     mPresentationData.flags |= NS_MATHML_DISPLAYSTYLE;
   }
@@ -134,9 +136,11 @@ nsMathMLFrame::InheritAutomaticData(nsIFrame* aParent)
 }
 
 NS_IMETHODIMP
-nsMathMLFrame::UpdatePresentationData(PRUint32        aFlagsValues,
+nsMathMLFrame::UpdatePresentationData(PRInt32         aScriptLevelIncrement,
+                                      PRUint32        aFlagsValues,
                                       PRUint32        aWhichFlags)
 {
+  mPresentationData.scriptLevel += aScriptLevelIncrement;
   
   if (NS_MATHML_IS_DISPLAYSTYLE(aWhichFlags)) {
     
@@ -211,6 +215,7 @@ nsMathMLFrame::GetPresentationDataFrom(nsIFrame*           aFrame,
   aPresentationData.flags = 0;
   aPresentationData.baseFrame = nsnull;
   aPresentationData.mstyle = nsnull;
+  aPresentationData.scriptLevel = 0;
 
   nsIFrame* frame = aFrame;
   while (frame) {
@@ -346,6 +351,106 @@ nsMathMLFrame::GetAxisHeight(nsIRenderingContext& aRenderingContext,
   }
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ PRBool
+nsMathMLFrame::ParseNumericValue(nsString&   aString,
+                                 nsCSSValue& aCSSValue)
+{
+  aCSSValue.Reset();
+  aString.CompressWhitespace(); 
+
+  PRInt32 stringLength = aString.Length();
+  if (!stringLength)
+    return PR_FALSE;
+
+  nsAutoString number, unit;
+
+  
+  PRInt32 i = 0;
+  PRUnichar c = aString[0];
+  if (c == '-') {
+    number.Append(c);
+    i++;
+
+    
+    if (i < stringLength && nsCRT::IsAsciiSpace(aString[i]))
+      i++;
+  }
+
+  
+  PRBool gotDot = PR_FALSE;
+  for ( ; i < stringLength; i++) {
+    c = aString[i];
+    if (gotDot && c == '.')
+      return PR_FALSE;  
+    else if (c == '.')
+      gotDot = PR_TRUE;
+    else if (!nsCRT::IsAsciiDigit(c)) {
+      aString.Right(unit, stringLength - i);
+      unit.CompressWhitespace(); 
+      break;
+    }
+    number.Append(c);
+  }
+
+  
+  
+  aString.Assign(number);
+  aString.Append(unit);
+
+  
+  PRInt32 errorCode;
+  float floatValue = number.ToFloat(&errorCode);
+  if (errorCode)
+    return PR_FALSE;
+
+  nsCSSUnit cssUnit;
+  if (unit.IsEmpty()) {
+    cssUnit = eCSSUnit_Number; 
+  }
+  else if (unit.EqualsLiteral("%")) {
+    aCSSValue.SetPercentValue(floatValue / 100.0f);
+    return PR_TRUE;
+  }
+  else if (unit.EqualsLiteral("em")) cssUnit = eCSSUnit_EM;
+  else if (unit.EqualsLiteral("ex")) cssUnit = eCSSUnit_XHeight;
+  else if (unit.EqualsLiteral("px")) cssUnit = eCSSUnit_Pixel;
+  else if (unit.EqualsLiteral("in")) cssUnit = eCSSUnit_Inch;
+  else if (unit.EqualsLiteral("cm")) cssUnit = eCSSUnit_Centimeter;
+  else if (unit.EqualsLiteral("mm")) cssUnit = eCSSUnit_Millimeter;
+  else if (unit.EqualsLiteral("pt")) cssUnit = eCSSUnit_Point;
+  else if (unit.EqualsLiteral("pc")) cssUnit = eCSSUnit_Pica;
+  else 
+    return PR_FALSE;
+
+  aCSSValue.SetFloatValue(floatValue, cssUnit);
+  return PR_TRUE;
+}
+
  nscoord
 nsMathMLFrame::CalcLength(nsPresContext*   aPresContext,
                           nsStyleContext*   aStyleContext,
@@ -454,6 +559,247 @@ nsCSSMapping {
   const nsIAtom* attrAtom;
   const char*    cssProperty;
 };
+
+static void
+GetMathMLAttributeStyleSheet(nsPresContext* aPresContext,
+                             nsIStyleSheet** aSheet)
+{
+  static const char kTitle[] = "Internal MathML/CSS Attribute Style Sheet";
+  *aSheet = nsnull;
+
+  
+  nsStyleSet *styleSet = aPresContext->StyleSet();
+  NS_ASSERTION(styleSet, "no style set");
+
+  nsAutoString title;
+  for (PRInt32 i = styleSet->SheetCount(nsStyleSet::eAgentSheet) - 1;
+       i >= 0; --i) {
+    nsIStyleSheet *sheet = styleSet->StyleSheetAt(nsStyleSet::eAgentSheet, i);
+    nsCOMPtr<nsICSSStyleSheet> cssSheet(do_QueryInterface(sheet));
+    if (cssSheet) {
+      cssSheet->GetTitle(title);
+      if (title.Equals(NS_ConvertASCIItoUTF16(kTitle))) {
+        *aSheet = sheet;
+        NS_IF_ADDREF(*aSheet);
+        return;
+      }
+    }
+  }
+
+  
+  nsCOMPtr<nsIURI> uri;
+  NS_NewURI(getter_AddRefs(uri), "about:internal-mathml-attribute-stylesheet");
+  if (!uri)
+    return;
+  nsCOMPtr<nsICSSStyleSheet> cssSheet(do_CreateInstance(kCSSStyleSheetCID));
+  if (!cssSheet)
+    return;
+  cssSheet->SetURIs(uri, nsnull, uri);
+  cssSheet->SetTitle(NS_ConvertASCIItoUTF16(kTitle));
+  
+  cssSheet->SetComplete();
+
+  nsCOMPtr<nsIDOMCSSStyleSheet> domSheet(do_QueryInterface(cssSheet));
+  if (domSheet) {
+    PRUint32 index;
+    domSheet->InsertRule(NS_LITERAL_STRING("@namespace url(http://www.w3.org/1998/Math/MathML);"),
+                                           0, &index);
+  }
+
+  
+  
+  styleSet->PrependStyleSheet(nsStyleSet::eAgentSheet, cssSheet);
+  *aSheet = cssSheet;
+  NS_ADDREF(*aSheet);
+}
+
+ PRInt32
+nsMathMLFrame::MapCommonAttributesIntoCSS(nsPresContext* aPresContext,
+                                          nsIContent*    aContent)
+{
+  
+  NS_ASSERTION(aContent, "null arg");
+  PRUint32 attrCount = 0;
+  if (aContent)
+    attrCount = aContent->GetAttrCount();
+  if (!attrCount)
+    return 0;
+
+  
+  static const nsCSSMapping
+  kCSSMappingTable[] = {
+    {kMathMLversion2, nsGkAtoms::mathcolor_,      "color:"},
+    {kMathMLversion1, nsGkAtoms::color,           "color:"},
+    {kMathMLversion2, nsGkAtoms::mathsize_,       "font-size:"},
+    {kMathMLversion1, nsGkAtoms::fontsize_,       "font-size:"},
+    {kMathMLversion1, nsGkAtoms::fontfamily_,     "font-family:"},
+    {kMathMLversion2, nsGkAtoms::mathbackground_, "background-color:"},
+    {kMathMLversion1, nsGkAtoms::background,      "background-color:"},
+    {0, nsnull, nsnull}
+  };
+
+  nsCOMPtr<nsIDocument> doc;
+  nsCOMPtr<nsIStyleSheet> sheet;
+  nsCOMPtr<nsICSSStyleSheet> cssSheet;
+  nsCOMPtr<nsIDOMCSSStyleSheet> domSheet;
+
+  PRInt32 ruleCount = 0;
+  for (PRUint32 i = 0; i < attrCount; ++i) {
+    const nsAttrName* name = aContent->GetAttrNameAt(i);
+    if (name->NamespaceID() != kNameSpaceID_None)
+      continue;
+
+    nsIAtom* attrAtom = name->LocalName();
+
+    
+    const nsCSSMapping* map = kCSSMappingTable;
+    while (map->attrAtom && map->attrAtom != attrAtom)
+      ++map;
+    if (!map->attrAtom)
+      continue;
+    nsAutoString cssProperty(NS_ConvertASCIItoUTF16(map->cssProperty));
+
+    nsAutoString attrValue;
+    aContent->GetAttr(kNameSpaceID_None, attrAtom, attrValue);
+    if (attrValue.IsEmpty())
+      continue;
+    nsAutoString escapedAttrValue;
+    nsStyleUtil::EscapeCSSString(attrValue, escapedAttrValue);
+
+    
+    
+    if (attrAtom == nsGkAtoms::fontsize_ || attrAtom == nsGkAtoms::mathsize_) {
+      nsCSSValue cssValue;
+      nsAutoString numericValue(attrValue);
+      if (!ParseNumericValue(numericValue, cssValue))
+        continue;
+      
+      
+      cssProperty.Append(numericValue);
+    }
+    else
+      cssProperty.Append(attrValue);
+
+    nsAutoString attrName;
+    attrAtom->ToString(attrName);
+
+    
+    nsAutoString selector, cssRule;
+    selector.Assign(NS_LITERAL_STRING("[") + attrName +
+                    NS_LITERAL_STRING("=\"") + escapedAttrValue +
+                    NS_LITERAL_STRING("\"]"));
+    cssRule.Assign(selector +
+                   NS_LITERAL_STRING("{") + cssProperty + NS_LITERAL_STRING("}"));
+
+    if (!sheet) {
+      
+      
+      doc = aContent->GetDocument();
+      if (!doc) 
+        return 0;
+      GetMathMLAttributeStyleSheet(aPresContext, getter_AddRefs(sheet));
+      if (!sheet)
+        return 0;
+      
+      cssSheet = do_QueryInterface(sheet);
+      domSheet = do_QueryInterface(sheet);
+      NS_ASSERTION(cssSheet && domSheet, "unexpected null pointers");
+      
+      
+      
+      
+      sheet->SetOwningDocument(nsnull);
+    }
+
+    
+    
+    PRInt32 k, count;
+    cssSheet->StyleRuleCount(count);
+    for (k = 0; k < count; ++k) {
+      nsAutoString tmpSelector;
+      nsCOMPtr<nsICSSRule> tmpRule;
+      cssSheet->GetStyleRuleAt(k, *getter_AddRefs(tmpRule));
+      nsCOMPtr<nsICSSStyleRule> tmpStyleRule = do_QueryInterface(tmpRule);
+      if (tmpStyleRule) {
+        tmpStyleRule->GetSelectorText(tmpSelector);
+        NS_ASSERTION(tmpSelector.CharAt(0) != '*', "unexpected universal symbol");
+#ifdef DEBUG_rbs
+        nsCAutoString str;
+        LossyAppendUTF16toASCII(selector, str);
+        str.AppendLiteral(" vs ");
+        LossyAppendUTF16toASCII(tmpSelector, str);
+        printf("Attr selector %s %s\n", str.get(),
+        tmpSelector.Equals(selector)? " ... match" : " ... nomatch");
+#endif
+        if (tmpSelector.Equals(selector)) {
+          k = -1;
+          break;
+        }
+      }
+    }
+    if (k >= 0) {
+      
+      
+      
+      PRInt32 pos = (map->compatibility == kMathMLversion2) ? count : 1;
+      PRUint32 index;
+      domSheet->InsertRule(cssRule, pos, &index);
+      ++ruleCount;
+    }
+  }
+  
+  if (sheet) {
+    sheet->SetOwningDocument(doc);
+  }
+
+  return ruleCount;
+}
+
+ PRInt32
+nsMathMLFrame::MapCommonAttributesIntoCSS(nsPresContext* aPresContext,
+                                          nsIFrame*      aFrame)
+{
+  PRInt32 ruleCount = MapCommonAttributesIntoCSS(aPresContext, aFrame->GetContent());
+  if (!ruleCount)
+    return 0;
+
+  
+  nsFrameManager *fm = aPresContext->FrameManager();
+  nsStyleChangeList changeList;
+  fm->ComputeStyleChangeFor(aFrame, &changeList, NS_STYLE_HINT_NONE);
+#ifdef DEBUG
+  
+  nsIFrame* parentFrame = aFrame->GetParent();
+  fm->DebugVerifyStyleTree(parentFrame ? parentFrame : aFrame);
+#endif
+
+  return ruleCount;
+}
+
+ PRBool
+nsMathMLFrame::CommonAttributeChangedFor(nsPresContext* aPresContext,
+                                         nsIContent*    aContent,
+                                         nsIAtom*       aAttribute)
+{
+  if (aAttribute == nsGkAtoms::mathcolor_      ||
+      aAttribute == nsGkAtoms::color           ||
+      aAttribute == nsGkAtoms::mathsize_       ||
+      aAttribute == nsGkAtoms::fontsize_       ||
+      aAttribute == nsGkAtoms::fontfamily_     ||
+      aAttribute == nsGkAtoms::mathbackground_ ||
+      aAttribute == nsGkAtoms::background) {
+
+    MapCommonAttributesIntoCSS(aPresContext, aContent);
+
+    
+    
+    
+    
+    return PR_TRUE;
+  }
+
+  return PR_FALSE;
+}
 
 #if defined(NS_DEBUG) && defined(SHOW_BOUNDING_BOX)
 class nsDisplayMathMLBoundingMetrics : public nsDisplayItem {

@@ -177,23 +177,9 @@ public:
   
   
   void ProcessPendingRestyles();
-  
-  void RebuildAllStyleData();
 
   void PostRestyleEvent(nsIContent* aContent, nsReStyleHint aRestyleHint,
                         nsChangeHint aMinChangeHint);
-
-  
-
-
-
-
-
-
-
-
-
-  void PostRebuildAllStyleDataEvent();
 
   
   nsresult CreateContinuingFrame(nsPresContext* aPresContext,
@@ -1148,7 +1134,6 @@ private:
   PRPackedBool        mCountersDirty : 1;
   PRPackedBool        mInitialContainingBlockIsAbsPosContainer : 1;
   PRPackedBool        mIsDestroyingFrameTree : 1;
-  PRPackedBool        mRebuildAllStyleData : 1;
 
   nsRevocableEventPtr<RestyleEvent> mRestyleEvent;
 
