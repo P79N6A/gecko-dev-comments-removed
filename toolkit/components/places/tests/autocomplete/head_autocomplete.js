@@ -220,3 +220,18 @@ function run_test() {
 
   ensure_results(search, expected);
 }
+
+
+function removePages(aURIs)
+{
+  for each (let uri in aURIs)
+    histsvc.removePage(toURI(kURIs[uri]));
+}
+
+
+function markTyped(aURIs)
+{
+  for each (let uri in aURIs)
+    histsvc.addVisit(toURI(kURIs[uri]), Date.now() * 1000, null,
+      histsvc.TRANSITION_TYPED, false, 0);
+}

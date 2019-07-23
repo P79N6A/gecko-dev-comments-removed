@@ -904,6 +904,12 @@ nsNavHistory::ProcessTokensForSpecialSearch()
   }
 
   
+  if (mOrigSearchString.IsEmpty()) {
+    SET_BEHAVIOR(History);
+    SET_BEHAVIOR(Typed);
+  }
+
+  
   
   mDBCurrentQuery = GET_BEHAVIOR(Tag) ? GetDBAutoCompleteTagsQuery() :
     GET_BEHAVIOR(Bookmark) ? GetDBAutoCompleteStarQuery() :

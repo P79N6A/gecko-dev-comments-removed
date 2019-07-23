@@ -79,12 +79,9 @@ addPageBook(11, 1, 1, [1]);
 
 
 
-for each (let uri in [4,6,7,8,9,11])
-  histsvc.removePage(toURI(kURIs[uri]));
+removePages([4,6,7,8,9,11]);
 
-
-for each (let uri in [0,3,10])
-  histsvc.addVisit(toURI(kURIs[uri]), Date.now() * 1000, null, histsvc.TRANSITION_TYPED, false, 0);
+markTyped([0,3,10]);
 
 
 
