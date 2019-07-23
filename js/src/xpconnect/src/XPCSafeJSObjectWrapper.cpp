@@ -868,17 +868,6 @@ XPC_SJOW_Construct(JSContext *cx, JSObject *obj, uintN argc, jsval *argv,
     return ThrowException(NS_ERROR_FAILURE, cx);
   }
 
-  if (STOBJ_GET_CLASS(objToWrap) == &sXPC_XOW_JSClass.base) {
-    
-    
-    
-
-    JSObject *maybeInner = XPCWrapper::Unwrap(cx, objToWrap);
-    if (maybeInner) {
-      objToWrap = maybeInner;
-    }
-  }
-
   
   if (!CanCallerAccess(cx, objToWrap)) {
     
@@ -982,6 +971,18 @@ XPC_SJOW_Iterator(JSContext *cx, JSObject *obj, JSBool keysonly)
   if (!CanCallerAccess(cx, unsafeObj)) {
     
     return nsnull;
+  }
+
+  JSObject *tmp = XPCWrapper::UnwrapGeneric(cx, &sXPC_XOW_JSClass, unsafeObj);
+  if (tmp) {
+    unsafeObj = tmp;
+
+    
+    
+    if (!CanCallerAccess(cx, unsafeObj)) {
+      
+      return nsnull;
+    }
   }
 
   
