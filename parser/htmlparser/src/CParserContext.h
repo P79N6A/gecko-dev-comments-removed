@@ -73,7 +73,9 @@ public:
 
     ~CParserContext();
 
-    nsresult GetTokenizer(nsIDTD* aDTD, nsITokenizer*& aTokenizer);
+    nsresult GetTokenizer(nsIDTD* aDTD,
+                          nsIContentSink* aSink,
+                          nsITokenizer*& aTokenizer);
     void  SetMimeType(const nsACString& aMimeType);
 
     nsCOMPtr<nsIRequest> mRequest; 

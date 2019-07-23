@@ -41,7 +41,6 @@
 #include "expat_config.h"
 #include "expat.h"
 #include "nsCOMPtr.h"
-#include "nsAutoPtr.h"
 #include "nsString.h"
 #include "nsIDTD.h"
 #include "nsITokenizer.h"
@@ -157,13 +156,8 @@ private:
   
   PRUint32         mExpatBuffered;
 
-  
-  
-  
-  nsCOMPtr<nsIContentSink> mOriginalSink;
   nsCOMPtr<nsIExpatSink> mSink;
   nsCOMPtr<nsIExtendedExpatSink> mExtendedSink;
-
   const nsCatalogData* mCatalogData; 
   nsString         mURISpec;
 };

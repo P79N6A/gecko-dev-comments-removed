@@ -60,6 +60,14 @@ class nsTokenAllocator;
 
 
 
+class nsITokenObserver {
+public:
+  virtual PRBool  operator()(CToken* aToken)=0;
+};
+
+
+
+
 
 
 class nsITokenizer : public nsISupports {
