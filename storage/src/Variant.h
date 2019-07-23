@@ -37,8 +37,8 @@
 
 
 
-#ifndef __mozStorageVariant_h__
-#define __mozStorageVariant_h__
+#ifndef mozilla_storage_Variant_h__
+#define mozilla_storage_Variant_h__
 
 #include <utility>
 
@@ -365,5 +365,7 @@ typedef Variant_base NullVariant;
 
 } 
 } 
+
+#include "Variant_inl.h"
 
 #endif 
