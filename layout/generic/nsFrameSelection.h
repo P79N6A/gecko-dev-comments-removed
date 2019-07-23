@@ -214,8 +214,7 @@ public:
   enum HINT { HINTLEFT = 0, HINTRIGHT = 1};  
   
   
-  NS_DECL_CYCLE_COLLECTING_ISUPPORTS
-  NS_DECL_CYCLE_COLLECTION_CLASS(nsFrameSelection)
+  NS_DECL_ISUPPORTS
 
   
 
@@ -552,6 +551,7 @@ public:
 
 
   nsFrameSelection();
+  virtual ~nsFrameSelection();
 
   void StartBatchChanges();
   void EndBatchChanges();
@@ -615,7 +615,7 @@ private:
   
   nsresult     NotifySelectionListeners(SelectionType aType);     
 
-  nsRefPtr<nsTypedSelection> mDomSelections[nsISelectionController::NUM_SELECTIONTYPES];
+  nsTypedSelection *mDomSelections[nsISelectionController::NUM_SELECTIONTYPES];
 
   
   
