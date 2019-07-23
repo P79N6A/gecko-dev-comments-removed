@@ -74,7 +74,11 @@ refAccessibleAtPointCB(AtkComponent *aComponent,
 
     
     if (aCoordType == ATK_XY_WINDOW) {
-        
+        nsCOMPtr<nsIDOMNode> domNode;
+        accWrap->GetDOMNode(getter_AddRefs(domNode));
+        nsIntPoint winCoords = nsAccUtils::GetScreenCoordsForWindow(domNode);
+        aAccX += winCoords.x;
+        aAccY += winCoords.y;
     }
 
     nsCOMPtr<nsIAccessible> pointAcc;
