@@ -37,6 +37,7 @@
 
 
 
+
 #ifndef nsLayoutUtils_h__
 #define nsLayoutUtils_h__
 
@@ -97,7 +98,21 @@ public:
 
 
 
-  static nsIFrame* GetPageFrame(nsIFrame* aFrame);
+
+  static nsIFrame* GetClosestFrameOfType(nsIFrame* aFrame, nsIAtom* aFrameType);
+
+  
+
+
+
+
+
+
+
+  static nsIFrame* GetPageFrame(nsIFrame* aFrame)
+  {
+    return GetClosestFrameOfType(aFrame, nsGkAtoms::pageFrame);
+  }
 
   
 

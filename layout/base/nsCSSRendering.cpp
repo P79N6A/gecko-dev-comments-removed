@@ -3028,35 +3028,6 @@ ComputeBackgroundAnchorPoint(const nsStyleBackground& aColor,
   aResult.y = y;
 }
 
-
-
-static nsIScrollableFrame*
-GetRootScrollableFrame(nsPresContext* aPresContext, nsIFrame* aRootFrame)
-{
-  nsIScrollableFrame* scrollableFrame = nsnull;
-
-  if (nsGkAtoms::viewportFrame == aRootFrame->GetType()) {
-    nsIFrame* childFrame = aRootFrame->GetFirstChild(nsnull);
-
-    if (childFrame) {
-      if (nsGkAtoms::scrollFrame == childFrame->GetType()) {
-        
-        
-        
-        
-        CallQueryInterface(childFrame, &scrollableFrame);
-      }
-    }
-  }
-#ifdef DEBUG
-  else {
-    NS_WARNING("aRootFrame is not a viewport frame");
-  }
-#endif 
-
-  return scrollableFrame;
-}
-
 const nsStyleBackground*
 nsCSSRendering::FindNonTransparentBackground(nsStyleContext* aContext,
                                              PRBool aStartAtParent )
@@ -3606,42 +3577,30 @@ nsCSSRendering::PaintBackgroundWithSC(nsPresContext* aPresContext,
   if (NS_STYLE_BG_ATTACHMENT_FIXED == aColor.mBackgroundAttachment) {
     
     
-    nsIView* viewportView = nsnull;
-    nsRect viewportArea;
+    
 
     
     aPresContext->SetRenderedPositionVaryingContent();
 
-    nsIFrame* rootFrame =
+    nsIFrame* topFrame =
       aPresContext->PresShell()->FrameManager()->GetRootFrame();
-    NS_ASSERTION(rootFrame, "no root frame");
-
+    NS_ASSERTION(topFrame, "no root frame");
     if (aPresContext->IsPaginated()) {
-      nsIFrame* page = nsLayoutUtils::GetPageFrame(aForFrame);
-      NS_ASSERTION(page, "no page");
-      rootFrame = page;
-    }
-
-    viewportView = rootFrame->GetView();
-    NS_ASSERTION(viewportView, "no viewport view");
-    viewportArea = viewportView->GetBounds();
-    viewportArea.x = 0;
-    viewportArea.y = 0;
-
-    nsIScrollableFrame* scrollableFrame =
-      GetRootScrollableFrame(aPresContext, rootFrame);
-
-    if (scrollableFrame) {
-      nsMargin scrollbars = scrollableFrame->GetActualScrollbarSizes();
-      viewportArea.Deflate(scrollbars);
+      nsIFrame* pageContentFrame =
+        nsLayoutUtils::GetClosestFrameOfType(aForFrame, nsGkAtoms::pageContentFrame);
+      if (pageContentFrame) {
+        topFrame = pageContentFrame;
+      }
+      
     }
 
     
+    nsRect viewportArea = topFrame->GetRect();
     ComputeBackgroundAnchorPoint(aColor, viewportArea, viewportArea, tileWidth, tileHeight, anchor);
 
     
     
-    anchor -= aForFrame->GetOffsetTo(rootFrame);
+    anchor -= aForFrame->GetOffsetTo(topFrame);
   } else {
     if (frameType == nsGkAtoms::canvasFrame) {
       

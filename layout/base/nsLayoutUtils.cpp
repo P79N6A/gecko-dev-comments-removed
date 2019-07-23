@@ -37,6 +37,7 @@
 
 
 
+
 #include "nsLayoutUtils.h"
 #include "nsIFrame.h"
 #include "nsIFontMetrics.h"
@@ -185,10 +186,10 @@ nsLayoutUtils::GetAfterFrame(nsIFrame* aFrame)
 
 
 nsIFrame*
-nsLayoutUtils::GetPageFrame(nsIFrame* aFrame)
+nsLayoutUtils::GetClosestFrameOfType(nsIFrame* aFrame, nsIAtom* aFrameType)
 {
   for (nsIFrame* frame = aFrame; frame; frame = frame->GetParent()) {
-    if (frame->GetType() == nsGkAtoms::pageFrame) {
+    if (frame->GetType() == aFrameType) {
       return frame;
     }
   }
