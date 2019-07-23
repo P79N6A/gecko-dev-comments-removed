@@ -84,7 +84,6 @@ NS_IMPL_ELEMENT_CLONE(nsHTMLVideoElement)
 
 NS_IMPL_INT_ATTR(nsHTMLVideoElement, Width, width)
 NS_IMPL_INT_ATTR(nsHTMLVideoElement, Height, height)
-NS_IMPL_URI_ATTR(nsHTMLVideoElement, Poster, poster)
 
 
 

@@ -212,18 +212,6 @@ protected:
 
   
   
-  
-  float mDefaultPlaybackRate;
-
-  
-  
-  
-  
-  
-  float mPlaybackRate;
-
-  
-  
   PRPackedBool mBegun;
 
   
