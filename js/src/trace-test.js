@@ -1325,6 +1325,13 @@ function testStrict() {
 testStrict.expected = "true,false,false,false";
 test(testStrict);
 
+function testGlobalProtoAccess() {
+    return "ok";
+}
+this.__proto__.a = 3; for (var j = 0; j < 4; ++j) { [a]; }
+testGlobalProtoAccess.expected = "ok";
+test(testGlobalProtoAccess);
+
 
 print("\npassed:", passes.length && passes.join(","));
 print("\nFAILED:", fails.length && fails.join(","));
