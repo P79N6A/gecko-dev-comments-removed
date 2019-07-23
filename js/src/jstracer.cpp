@@ -1145,9 +1145,9 @@ TraceRecorder::writeBack(LIns* i, LIns* base, ptrdiff_t offset)
     
 
 
-     if (isPromoteInt(i))
-         i = ::demote(lir, i);
-     return lir->insStorei(i, base, offset);
+    if (isPromoteInt(i))
+        i = ::demote(lir, i);
+    return lir->insStorei(i, base, offset);
 }
 
 
@@ -1260,7 +1260,6 @@ TraceRecorder::snapshot(ExitType exitType)
         *m = isNumber(*vp)
                ? (isPromoteInt(i) ? JSVAL_INT : JSVAL_DOUBLE)
                : JSVAL_TAG(*vp);
-               if (*m == JSVAL_INT && JSVAL_TAG(*vp) == 2)
         JS_ASSERT((*m != JSVAL_INT) || isInt32(*vp));
         ++m;
     );
@@ -1434,7 +1433,7 @@ TraceRecorder::emitTreeCallStackSetup(Fragment* inner)
     if (callDepth > 0) {
         
 
-        ptrdiff_t sp_adj = nativeStackOffset(&cx->fp->argv[0]);
+        ptrdiff_t sp_adj = nativeStackOffset(&cx->fp->argv[-1]) + sizeof(double);
         
         ptrdiff_t rp_adj = callDepth * sizeof(FrameInfo);
         
