@@ -1728,6 +1728,19 @@ private:
 
 NS_IMPL_ISUPPORTS_INHERITED1(nsStopPluginRunnable, nsRunnable, nsITimerCallback)
 
+static const char*
+GetMIMEType(nsIPluginInstance *aPluginInstance)
+{
+  nsCOMPtr<nsIPluginInstancePeer> peer;
+  aPluginInstance->GetPeer(getter_AddRefs(peer));
+  if (peer) {
+    nsMIMEType mime = NULL;
+    if (NS_SUCCEEDED(peer->GetMIMEType(&mime)) && mime)
+      return mime;
+  }
+  return "";
+}
+
 static void
 DoStopPlugin(nsPluginInstanceOwner *aInstanceOwner, PRBool aDelayedStop)
 {
@@ -1848,30 +1861,18 @@ nsStopPluginRunnable::Run()
 void
 nsObjectFrame::StopPlugin()
 {
+  PRBool delayedStop = PR_FALSE;
 #ifdef XP_WIN
-  
-  
-  PRBool delayedStop = PR_TRUE;
   nsCOMPtr<nsIPluginInstance> inst;
   if (mInstanceOwner)
     mInstanceOwner->GetInstance(*getter_AddRefs(inst));
   if (inst) {
-    PRBool doCache = PR_TRUE;
-    inst->GetValue(nsPluginInstanceVariable_DoCacheBool, (void *)&doCache);
-    if (!doCache) {
-      PRBool doCallSetWindowAfterDestroy = PR_FALSE;
-      inst->GetValue(nsPluginInstanceVariable_CallSetWindowAfterDestroyBool, 
-                     (void *)&doCallSetWindowAfterDestroy);
-      if (doCallSetWindowAfterDestroy) {
-        
-        delayedStop = PR_FALSE;
-      }
-    }
+    
+    const char* pluginType = ::GetMIMEType(inst);
+    delayedStop = strcmp(pluginType, "audio/x-pn-realaudio-plugin") == 0;
   }
-  StopPluginInternal(delayedStop);
-#else
-  StopPluginInternal(PR_FALSE);
 #endif
+  StopPluginInternal(delayedStop);
 }
 
 void
