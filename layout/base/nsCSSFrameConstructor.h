@@ -512,6 +512,139 @@ private:
                           nsIFrame*&               aParentFrame,
                           PRBool&                  aIsPseudoParent);
 
+private:
+  
+
+
+
+
+
+
+  typedef nsIFrame* (* FrameCreationFunc)(nsIPresShell*, nsStyleContext*);
+
+  
+
+
+
+
+
+  struct FrameConstructionData;
+  typedef const FrameConstructionData*
+    (* FrameConstructionDataGetter)(nsIContent*, nsStyleContext*);
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  typedef nsresult
+    (nsCSSFrameConstructor::* FrameFullConstructor)(nsFrameConstructorState& aState,
+                                                    nsIContent* aContent,
+                                                    nsIFrame* aParentFrame,
+                                                    nsIAtom* aTag,
+                                                    nsStyleContext* aStyleContext,
+                                                    const nsStyleDisplay* aStyleDisplay,
+                                                    nsFrameItems& aFrameItems,
+                                                    nsIFrame** aFrame);
+
+  
+
+  
+
+#define FCDATA_SKIP_FRAMEMAP 0x1
+  
+
+
+#define FCDATA_FUNC_IS_DATA_GETTER 0x2
+  
+
+
+#define FCDATA_FUNC_IS_FULL_CTOR 0x4
+  
+
+
+#define FCDATA_DISALLOW_OUT_OF_FLOW 0x8
+  
+
+
+
+#define FCDATA_FORCE_NULL_ABSPOS_CONTAINER 0x10
+
+  
+
+  struct FrameConstructionData {
+    
+    PRUint32 mBits;
+    
+    
+    
+    
+    
+    
+    
+    union Func {
+      FrameCreationFunc mCreationFunc;
+      FrameConstructionDataGetter mDataGetter;
+    } mFunc;
+    FrameFullConstructor mFullConstructor;
+  };
+
+  
+
+
+
+  struct FrameConstructionDataByTag {
+    
+    
+    const nsIAtom * const * const mTag;
+    const FrameConstructionData mData;
+  };
+
+  
+
+  struct FrameConstructionDataByInt {
+    
+    const PRInt32 mInt;
+    const FrameConstructionData mData;
+  };
+
+  
+
+
+
+
+  static const FrameConstructionData*
+    FindDataByInt(PRInt32 aInt, nsIContent* aContent,
+                  nsStyleContext* aStyleContext,
+                  const FrameConstructionDataByInt* aDataPtr,
+                  PRUint32 aDataLength);
+
+  
+
+
+
+
+  static const FrameConstructionData*
+    FindDataByTag(nsIAtom* aTag, nsIContent* aContent,
+                  nsStyleContext* aStyleContext,
+                  const FrameConstructionDataByTag* aDataPtr,
+                  PRUint32 aDataLength);
+
   
 
 
@@ -547,8 +680,6 @@ private:
                              PRBool&                      aSuppressFrame,
                              PRBool&                      aCreatedPseudo);
 
-  const nsStyleDisplay* GetDisplay(nsIFrame* aFrame);
-
   
 
 protected:
@@ -568,10 +699,9 @@ private:
                                 nsIFrame*                aParentFrame,
                                 nsIAtom*                 aTag,
                                 nsStyleContext*          aStyleContext,
-                                nsIFrame**               aNewFrame,
                                 const nsStyleDisplay*    aStyleDisplay,
                                 nsFrameItems&            aFrameItems,
-                                PRBool                   aHasPseudoParent);
+                                nsIFrame**               aNewFrame);
 
   
   
@@ -580,10 +710,9 @@ private:
                                 nsIFrame*                aParentFrame,
                                 nsIAtom*                 aTag,
                                 nsStyleContext*          aStyleContext,
-                                nsIFrame*&               aNewFrame,
                                 const nsStyleDisplay*    aStyleDisplay,
-                                PRBool&                  aFrameHasBeenInitialized,
-                                nsFrameItems&            aFrameItems);
+                                nsFrameItems&            aFrameItems,
+                                nsIFrame**               aNewFrame);
 
   
   
@@ -592,10 +721,9 @@ private:
                                   nsIFrame*                aParentFrame,
                                   nsIAtom*                 aTag,
                                   nsStyleContext*          aStyleContext,
-                                  nsIFrame*&               aNewFrame,
-                                  nsFrameItems&            aFrameItems,
                                   const nsStyleDisplay*    aStyleDisplay,
-                                  PRBool&                  aFrameHasBeenInitialized);
+                                  nsFrameItems&            aFrameItems,
+                                  nsIFrame**               aNewFrame);
 
   nsresult ConstructTextFrame(nsFrameConstructorState& aState,
                               nsIContent*              aContent,
@@ -619,14 +747,50 @@ private:
                          nsStyleContext*          aStyleContext,
                          nsFrameItems&            aFrameItems);
 
-  nsresult ConstructHTMLFrame(nsFrameConstructorState& aState,
-                              nsIContent*              aContent,
-                              nsIFrame*                aParentFrame,
-                              nsIAtom*                 aTag,
-                              PRInt32                  aNameSpaceID,
-                              nsStyleContext*          aStyleContext,
-                              nsFrameItems&            aFrameItems,
-                              PRBool                   aHasPseudoParent);
+  static PRBool IsSpecialContent(nsIContent*     aContent,
+                                 nsIAtom*        aTag,
+                                 PRInt32         aNameSpaceID,
+                                 nsStyleContext* aStyleContext);
+
+  
+  
+  static const FrameConstructionData* FindHTMLData(nsIContent* aContent,
+                                                   nsIAtom* aTag,
+                                                   PRInt32 aNameSpaceID,
+                                                   nsStyleContext* aStyleContext);
+  
+  static const FrameConstructionData*
+    FindImgData(nsIContent* aContent, nsStyleContext* aStyleContext);
+  static const FrameConstructionData*
+    FindImgControlData(nsIContent* aContent, nsStyleContext* aStyleContext);
+  static const FrameConstructionData*
+    FindInputData(nsIContent* aContent, nsStyleContext* aStyleContext);
+  static const FrameConstructionData*
+    FindObjectData(nsIContent* aContent, nsStyleContext* aStyleContext);
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  nsresult ConstructFrameFromData(const FrameConstructionData* aData,
+                                  nsFrameConstructorState& aState,
+                                  nsIContent* aContent,
+                                  nsIFrame* aParentFrame,
+                                  nsIAtom* aTag,
+                                  nsStyleContext* aStyleContext,
+                                  nsFrameItems& aFrameItems,
+                                  PRBool aHasPseudoParent);
 
   nsresult ConstructFrameInternal( nsFrameConstructorState& aState,
                                    nsIContent*              aContent,
@@ -742,33 +906,6 @@ private:
                            PRBool                   aCanHaveGeneratedContent,
                            nsFrameItems&            aFrameItems,
                            PRBool                   aAllowBlockStyles);
-
-  
-  nsresult CreateInputFrame(nsFrameConstructorState& aState,
-                            nsIContent*              aContent,
-                            nsIFrame*                aParentFrame,
-                            nsIAtom*                 aTag,
-                            nsStyleContext*          aStyleContext,
-                            nsIFrame**               aFrame,
-                            const nsStyleDisplay*    aStyleDisplay,
-                            PRBool&                  aFrameHasBeenInitialized,
-                            PRBool&                  aAddedToFrameList,
-                            nsFrameItems&            aFrameItems,
-                            PRBool                   aHasPseudoParent);
-
-  
-  typedef nsIFrame* (* ImageFrameCreatorFunc)(nsIPresShell*, nsStyleContext*);
-
-  
-
-
-
-
-
-  nsresult CreateHTMLImageFrame(nsIContent*           aContent,
-                                nsStyleContext*       aStyleContext,
-                                ImageFrameCreatorFunc aFunc,
-                                nsIFrame**            aFrame);
 
   nsIFrame* GetFrameFor(nsIContent* aContent);
 

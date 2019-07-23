@@ -1150,7 +1150,6 @@ public:
   
   
   
-  
   nsIFrame* GetGeometricParent(const nsStyleDisplay* aStyleDisplay,
                                nsIFrame* aContentParentFrame);
 
@@ -2183,99 +2182,6 @@ nsCSSFrameConstructor::CreateGeneratedContentFrame(nsFrameConstructorState& aSta
   aState.mAdditionalStateBits = savedStateBits;
 }
 
-nsresult
-nsCSSFrameConstructor::CreateInputFrame(nsFrameConstructorState& aState,
-                                        nsIContent*              aContent,
-                                        nsIFrame*                aParentFrame,
-                                        nsIAtom*                 aTag,
-                                        nsStyleContext*          aStyleContext,
-                                        nsIFrame**               aFrame,
-                                        const nsStyleDisplay*    aStyleDisplay,
-                                        PRBool&                  aFrameHasBeenInitialized,
-                                        PRBool&                  aAddedToFrameList,
-                                        nsFrameItems&            aFrameItems,
-                                        PRBool                   aHasPseudoParent)
-{
-  
-  
-  
-  
-  
-  nsCOMPtr<nsIFormControl> control = do_QueryInterface(aContent);
-  if (!control) {
-    NS_ERROR("input doesn't implement nsIFormControl?");
-    return NS_OK;
-  }
-
-  switch (control->GetType()) {
-    case NS_FORM_INPUT_SUBMIT:
-    case NS_FORM_INPUT_RESET:
-    case NS_FORM_INPUT_BUTTON:
-    {
-      nsresult rv = ConstructButtonFrame(aState, aContent, aParentFrame,
-                                         aTag, aStyleContext, aFrame,
-                                         aStyleDisplay, aFrameItems,
-                                         aHasPseudoParent);
-      aAddedToFrameList = PR_TRUE;
-      aFrameHasBeenInitialized = PR_TRUE;
-      return rv;
-    }
-
-    case NS_FORM_INPUT_CHECKBOX:
-      *aFrame = NS_NewGfxCheckboxControlFrame(mPresShell, aStyleContext);
-      return *aFrame ? NS_OK : NS_ERROR_OUT_OF_MEMORY;
-
-    case NS_FORM_INPUT_RADIO:
-      *aFrame = NS_NewGfxRadioControlFrame(mPresShell, aStyleContext);
-      return *aFrame ? NS_OK : NS_ERROR_OUT_OF_MEMORY;
-
-    case NS_FORM_INPUT_FILE:
-    {
-      *aFrame = NS_NewFileControlFrame(mPresShell, aStyleContext);
-      return *aFrame ? NS_OK : NS_ERROR_OUT_OF_MEMORY;
-    }
-
-    case NS_FORM_INPUT_HIDDEN:
-      return NS_OK; 
-                    
-
-    case NS_FORM_INPUT_IMAGE:
-      return CreateHTMLImageFrame(aContent, aStyleContext,
-                                  NS_NewImageControlFrame, aFrame);
-
-    case NS_FORM_INPUT_TEXT:
-    case NS_FORM_INPUT_PASSWORD:
-    {
-      *aFrame = NS_NewTextControlFrame(mPresShell, aStyleContext);
-      
-      return NS_UNLIKELY(!*aFrame) ? NS_ERROR_OUT_OF_MEMORY : NS_OK;
-    }
-
-    default:
-      NS_ASSERTION(0, "Unknown input type!");
-      return NS_ERROR_INVALID_ARG;
-  }
-}
-
-nsresult
-nsCSSFrameConstructor::CreateHTMLImageFrame(nsIContent* aContent,
-                                            nsStyleContext* aStyleContext,
-                                            ImageFrameCreatorFunc aFunc,
-                                            nsIFrame** aFrame)
-{
-  *aFrame = nsnull;
-
-  
-  if (nsImageFrame::ShouldCreateImageFrameFor(aContent, aStyleContext)) {
-    *aFrame = (*aFunc)(mPresShell, aStyleContext);
-     
-    if (NS_UNLIKELY(!*aFrame))
-      return NS_ERROR_OUT_OF_MEMORY;
-  }
-
-  return NS_OK;
-}
-
 static PRBool
 TextIsOnlyWhitespace(nsIContent* aContent)
 {
@@ -3192,66 +3098,18 @@ nsCSSFrameConstructor::GetParentFrame(PRInt32                  aNameSpaceID,
   return rv;
 }
 
-static PRBool
-IsSpecialContent(nsIContent*     aContent,
-                 nsIAtom*        aTag,
-                 PRInt32         aNameSpaceID,
-                 nsStyleContext* aStyleContext)
+
+PRBool
+nsCSSFrameConstructor::IsSpecialContent(nsIContent*     aContent,
+                                        nsIAtom*        aTag,
+                                        PRInt32         aNameSpaceID,
+                                        nsStyleContext* aStyleContext)
 {
   
   
   
-  if (aContent->IsNodeOfType(nsINode::eHTML) ||
-      aNameSpaceID == kNameSpaceID_XHTML) {
-    
-    
-
-    if (aTag == nsGkAtoms::input) {
-      nsCOMPtr<nsIFormControl> control = do_QueryInterface(aContent);
-      if (control) {
-        PRInt32 type = control->GetType();
-        if (NS_FORM_INPUT_HIDDEN == type) {
-          return PR_FALSE; 
-        }
-        else if (NS_FORM_INPUT_IMAGE == type) {
-          return nsImageFrame::ShouldCreateImageFrameFor(aContent, aStyleContext);
-        }
-      }
-
-      return PR_TRUE;
-    }
-
-    if (aTag == nsGkAtoms::img ||
-        aTag == nsGkAtoms::mozgeneratedcontentimage) {
-      return nsImageFrame::ShouldCreateImageFrameFor(aContent, aStyleContext);
-    }
-
-    if (aTag == nsGkAtoms::object ||
-        aTag == nsGkAtoms::applet ||
-        aTag == nsGkAtoms::embed) {
-      return !(aContent->IntrinsicState() &
-             (NS_EVENT_STATE_BROKEN | NS_EVENT_STATE_USERDISABLED |
-              NS_EVENT_STATE_SUPPRESSED));
-    }
-
-    return
-      aTag == nsGkAtoms::br ||
-      aTag == nsGkAtoms::wbr ||
-      aTag == nsGkAtoms::textarea ||
-      aTag == nsGkAtoms::select ||
-      aTag == nsGkAtoms::fieldset ||
-      aTag == nsGkAtoms::legend ||
-      aTag == nsGkAtoms::frameset ||
-      aTag == nsGkAtoms::iframe ||
-      aTag == nsGkAtoms::spacer ||
-      aTag == nsGkAtoms::button ||
-      aTag == nsGkAtoms::isindex ||
-      aTag == nsGkAtoms::canvas ||
-#if defined(MOZ_MEDIA)
-      aTag == nsGkAtoms::video ||
-      aTag == nsGkAtoms::audio ||
-#endif
-      PR_FALSE;
+  if (FindHTMLData(aContent, aTag, aNameSpaceID, aStyleContext)) {
+    return PR_TRUE;
   }
 
 
@@ -3934,15 +3792,6 @@ NeedFrameFor(nsIFrame*   aParentFrame,
   return !aParentFrame->IsFrameOfType(nsIFrame::eExcludesIgnorableWhitespace)
     || !TextIsOnlyWhitespace(aChildContent)
     || aParentFrame->IsGeneratedContentFrame();
-}
-
-const nsStyleDisplay* 
-nsCSSFrameConstructor::GetDisplay(nsIFrame* aFrame)
-{
-  if (nsnull == aFrame) {
-    return nsnull;
-  }
-  return aFrame->GetStyleContext()->GetStyleDisplay();
 }
 
 
@@ -4642,15 +4491,10 @@ nsCSSFrameConstructor::ConstructButtonFrame(nsFrameConstructorState& aState,
                                             nsIFrame*                aParentFrame,
                                             nsIAtom*                 aTag,
                                             nsStyleContext*          aStyleContext,
-                                            nsIFrame**               aNewFrame,
                                             const nsStyleDisplay*    aStyleDisplay,
                                             nsFrameItems&            aFrameItems,
-                                            PRBool                   aHasPseudoParent)
+                                            nsIFrame**               aNewFrame)
 {
-  if (!aHasPseudoParent && !aState.mPseudoFrames.IsEmpty()) {
-    ProcessPseudoFrames(aState, aFrameItems); 
-  }      
-
   *aNewFrame = nsnull;
   nsIFrame* buttonFrame = nsnull;
   
@@ -4766,10 +4610,9 @@ nsCSSFrameConstructor::ConstructSelectFrame(nsFrameConstructorState& aState,
                                             nsIFrame*                aParentFrame,
                                             nsIAtom*                 aTag,
                                             nsStyleContext*          aStyleContext,
-                                            nsIFrame*&               aNewFrame,
                                             const nsStyleDisplay*    aStyleDisplay,
-                                            PRBool&                  aFrameHasBeenInitialized,
-                                            nsFrameItems&            aFrameItems)
+                                            nsFrameItems&            aFrameItems,
+                                            nsIFrame**               aNewFrame)
 {
   nsresult rv = NS_OK;
   const PRInt32 kNoSizeSpecified = -1;
@@ -4867,8 +4710,7 @@ nsCSSFrameConstructor::ConstructSelectFrame(nsFrameConstructorState& aState,
       comboboxFrame->SetInitialChildList(nsGkAtoms::selectPopupList,
                                          popupItems.childList);
 
-      aNewFrame = comboboxFrame;
-      aFrameHasBeenInitialized = PR_TRUE;
+      *aNewFrame = comboboxFrame;
       aState.mFrameState = historyState;
       if (aState.mFrameState && aState.mFrameManager) {
         
@@ -4896,9 +4738,7 @@ nsCSSFrameConstructor::ConstructSelectFrame(nsFrameConstructorState& aState,
       InitializeSelectFrame(aState, listFrame, scrolledFrame, aContent,
                             aParentFrame, aStyleContext, PR_FALSE, aFrameItems);
 
-      aNewFrame = listFrame;
-
-      aFrameHasBeenInitialized = PR_TRUE;
+      *aNewFrame = listFrame;
     }
   }
   return rv;
@@ -4995,10 +4835,9 @@ nsCSSFrameConstructor::ConstructFieldSetFrame(nsFrameConstructorState& aState,
                                               nsIFrame*                aParentFrame,
                                               nsIAtom*                 aTag,
                                               nsStyleContext*          aStyleContext,
-                                              nsIFrame*&               aNewFrame,
-                                              nsFrameItems&            aFrameItems,
                                               const nsStyleDisplay*    aStyleDisplay,
-                                              PRBool&                  aFrameHasBeenInitialized)
+                                              nsFrameItems&            aFrameItems,
+                                              nsIFrame**               aNewFrame)
 {
   nsIFrame* newFrame = NS_NewFieldSetFrame(mPresShell, aStyleContext);
   if (NS_UNLIKELY(!newFrame)) {
@@ -5077,10 +4916,7 @@ nsCSSFrameConstructor::ConstructFieldSetFrame(nsFrameConstructorState& aState,
   newFrame->SetInitialChildList(nsnull, legendFrame ? legendFrame : blockFrame);
 
   
-  aNewFrame = newFrame; 
-
-  
-  aFrameHasBeenInitialized = PR_TRUE; 
+  *aNewFrame = newFrame; 
 
   return NS_OK;
 }
@@ -5168,259 +5004,281 @@ nsCSSFrameConstructor::ConstructTextFrame(nsFrameConstructorState& aState,
   return rv;
 }
 
-nsresult
-nsCSSFrameConstructor::ConstructHTMLFrame(nsFrameConstructorState& aState,
-                                          nsIContent*              aContent,
-                                          nsIFrame*                aParentFrame,
-                                          nsIAtom*                 aTag,
-                                          PRInt32                  aNameSpaceID,
-                                          nsStyleContext*          aStyleContext,
-                                          nsFrameItems&            aFrameItems,
-                                          PRBool                   aHasPseudoParent)
+
+const nsCSSFrameConstructor::FrameConstructionData*
+nsCSSFrameConstructor::FindDataByInt(PRInt32 aInt,
+                                     nsIContent* aContent,
+                                     nsStyleContext* aStyleContext,
+                                     const FrameConstructionDataByInt* aDataPtr,
+                                     PRUint32 aDataLength)
+{
+  for (const FrameConstructionDataByInt *curData = aDataPtr,
+         *endData = aDataPtr + aDataLength;
+       curData != endData;
+       ++curData) {
+    if (curData->mInt == aInt) {
+      const FrameConstructionData* data = &curData->mData;
+      if (data->mBits & FCDATA_FUNC_IS_DATA_GETTER) {
+        return data->mFunc.mDataGetter(aContent, aStyleContext);
+      }
+
+      return data;
+    }
+  }
+
+  return nsnull;
+}
+
+
+const nsCSSFrameConstructor::FrameConstructionData*
+nsCSSFrameConstructor::FindDataByTag(nsIAtom* aTag,
+                                     nsIContent* aContent,
+                                     nsStyleContext* aStyleContext,
+                                     const FrameConstructionDataByTag* aDataPtr,
+                                     PRUint32 aDataLength)
+{
+  for (const FrameConstructionDataByTag *curData = aDataPtr,
+         *endData = aDataPtr + aDataLength;
+       curData != endData;
+       ++curData) {
+    if (*curData->mTag == aTag) {
+      const FrameConstructionData* data = &curData->mData;
+      if (data->mBits & FCDATA_FUNC_IS_DATA_GETTER) {
+        return data->mFunc.mDataGetter(aContent, aStyleContext);
+      }
+
+      return data;
+    }
+  }
+
+  return nsnull;
+}
+
+#define FCDATA_DECL(_flags, _func) \
+  { _flags, { (FrameCreationFunc)_func } }
+#define SIMPLE_FCDATA(_func) FCDATA_DECL(0, _func)
+#define SIMPLE_INT_CREATE(_int, _func) { _int, SIMPLE_FCDATA(_func) }
+#define SIMPLE_INT_CHAIN(_int, _func)                       \
+  { _int, FCDATA_DECL(FCDATA_FUNC_IS_DATA_GETTER, _func) }
+#define COMPLEX_INT_CREATE(_int, _func)                     \
+  { _int, { FCDATA_FUNC_IS_FULL_CTOR, { nsnull }, _func } }
+
+#define SIMPLE_TAG_CREATE(_tag, _func)          \
+  { &nsGkAtoms::_tag, SIMPLE_FCDATA(_func) }
+#define SIMPLE_TAG_CHAIN(_tag, _func)                                   \
+  { &nsGkAtoms::_tag, FCDATA_DECL(FCDATA_FUNC_IS_DATA_GETTER,  _func) }
+#define COMPLEX_TAG_CREATE(_tag, _func)                                 \
+  { &nsGkAtoms::_tag, { FCDATA_FUNC_IS_FULL_CTOR, { nsnull }, _func } }
+
+
+const nsCSSFrameConstructor::FrameConstructionData*
+nsCSSFrameConstructor::FindHTMLData(nsIContent* aContent,
+                                    nsIAtom* aTag,
+                                    PRInt32 aNameSpaceID,
+                                    nsStyleContext* aStyleContext)
 {
   
   
   
   if (!aContent->IsNodeOfType(nsINode::eHTML) &&
       aNameSpaceID != kNameSpaceID_XHTML) {
+    return nsnull;
+  }
+
+  static const FrameConstructionDataByTag sHTMLData[] = {
+    SIMPLE_TAG_CHAIN(img, nsCSSFrameConstructor::FindImgData),
+    SIMPLE_TAG_CHAIN(mozgeneratedcontentimage,
+                     nsCSSFrameConstructor::FindImgData),
+    { &nsGkAtoms::br, FCDATA_DECL(FCDATA_SKIP_FRAMEMAP, NS_NewBRFrame) },
+    SIMPLE_TAG_CREATE(wbr, NS_NewBRFrame),
+    SIMPLE_TAG_CHAIN(input, nsCSSFrameConstructor::FindInputData),
+    SIMPLE_TAG_CREATE(textarea, NS_NewTextControlFrame),
+    COMPLEX_TAG_CREATE(select, &nsCSSFrameConstructor::ConstructSelectFrame),
+    SIMPLE_TAG_CHAIN(object, nsCSSFrameConstructor::FindObjectData),
+    SIMPLE_TAG_CHAIN(applet, nsCSSFrameConstructor::FindObjectData),
+    SIMPLE_TAG_CHAIN(embed, nsCSSFrameConstructor::FindObjectData),
+    COMPLEX_TAG_CREATE(fieldset,
+                       &nsCSSFrameConstructor::ConstructFieldSetFrame),
+    SIMPLE_TAG_CREATE(legend, NS_NewLegendFrame),
+    SIMPLE_TAG_CREATE(frameset, NS_NewHTMLFramesetFrame),
+    SIMPLE_TAG_CREATE(iframe, NS_NewSubDocumentFrame),
+    SIMPLE_TAG_CREATE(spacer, NS_NewSpacerFrame),
+    COMPLEX_TAG_CREATE(button, &nsCSSFrameConstructor::ConstructButtonFrame),
+    SIMPLE_TAG_CREATE(canvas, NS_NewHTMLCanvasFrame),
+#if defined(MOZ_MEDIA)
+    SIMPLE_TAG_CREATE(video, NS_NewHTMLVideoFrame),
+    SIMPLE_TAG_CREATE(audio, NS_NewHTMLVideoFrame),
+#endif
+    SIMPLE_TAG_CREATE(isindex, NS_NewIsIndexFrame)
+  };
+
+  return FindDataByTag(aTag, aContent, aStyleContext, sHTMLData,
+                       NS_ARRAY_LENGTH(sHTMLData));
+}
+
+
+const nsCSSFrameConstructor::FrameConstructionData*
+nsCSSFrameConstructor::FindImgData(nsIContent* aContent,
+                                   nsStyleContext* aStyleContext)
+{
+  if (!nsImageFrame::ShouldCreateImageFrameFor(aContent, aStyleContext)) {
+    return nsnull;
+  }
+
+  static const FrameConstructionData sImgData = SIMPLE_FCDATA(NS_NewImageFrame);
+  return &sImgData;
+}
+
+
+const nsCSSFrameConstructor::FrameConstructionData*
+nsCSSFrameConstructor::FindImgControlData(nsIContent* aContent,
+                                          nsStyleContext* aStyleContext)
+{
+  if (!nsImageFrame::ShouldCreateImageFrameFor(aContent, aStyleContext)) {
+    return nsnull;
+  }
+
+  static const FrameConstructionData sImgControlData =
+    SIMPLE_FCDATA(NS_NewImageControlFrame);
+  return &sImgControlData;
+}
+
+
+const nsCSSFrameConstructor::FrameConstructionData*
+nsCSSFrameConstructor::FindInputData(nsIContent* aContent,
+                                     nsStyleContext* aStyleContext)
+{
+  static const FrameConstructionDataByInt sInputData[] = {
+    SIMPLE_INT_CREATE(NS_FORM_INPUT_CHECKBOX, NS_NewGfxCheckboxControlFrame),
+    SIMPLE_INT_CREATE(NS_FORM_INPUT_RADIO, NS_NewGfxRadioControlFrame),
+    SIMPLE_INT_CREATE(NS_FORM_INPUT_FILE, NS_NewFileControlFrame),
+    SIMPLE_INT_CHAIN(NS_FORM_INPUT_IMAGE,
+                     nsCSSFrameConstructor::FindImgControlData),
+    SIMPLE_INT_CREATE(NS_FORM_INPUT_TEXT, NS_NewTextControlFrame),
+    SIMPLE_INT_CREATE(NS_FORM_INPUT_PASSWORD, NS_NewTextControlFrame),
+    COMPLEX_INT_CREATE(NS_FORM_INPUT_SUBMIT,
+                       &nsCSSFrameConstructor::ConstructButtonFrame),
+    COMPLEX_INT_CREATE(NS_FORM_INPUT_RESET,
+                       &nsCSSFrameConstructor::ConstructButtonFrame),
+    COMPLEX_INT_CREATE(NS_FORM_INPUT_BUTTON,
+                       &nsCSSFrameConstructor::ConstructButtonFrame)
+    
+    
+  };
+
+  nsCOMPtr<nsIFormControl> control = do_QueryInterface(aContent);
+  NS_ASSERTION(control, "input doesn't implement nsIFormControl?");
+
+  return FindDataByInt(control->GetType(), aContent, aStyleContext,
+                       sInputData, NS_ARRAY_LENGTH(sInputData));
+}
+
+
+const nsCSSFrameConstructor::FrameConstructionData*
+nsCSSFrameConstructor::FindObjectData(nsIContent* aContent,
+                                      nsStyleContext* aStyleContext)
+{
+  
+  
+  
+  PRUint32 type;
+  if (aContent->IntrinsicState() &
+      (NS_EVENT_STATE_BROKEN | NS_EVENT_STATE_USERDISABLED |
+       NS_EVENT_STATE_SUPPRESSED)) {
+    type = nsIObjectLoadingContent::TYPE_NULL;
+  } else {
+    nsCOMPtr<nsIObjectLoadingContent> objContent(do_QueryInterface(aContent));
+    NS_ASSERTION(objContent,
+                 "applet, embed and object must implement "
+                 "nsIObjectLoadingContent!");
+
+    objContent->GetDisplayedType(&type);
+  }
+
+  static const FrameConstructionDataByInt sObjectData[] = {
+    SIMPLE_INT_CREATE(nsIObjectLoadingContent::TYPE_LOADING,
+                      NS_NewEmptyFrame),
+    SIMPLE_INT_CREATE(nsIObjectLoadingContent::TYPE_PLUGIN,
+                      NS_NewObjectFrame),
+    SIMPLE_INT_CREATE(nsIObjectLoadingContent::TYPE_IMAGE,
+                      NS_NewImageFrame),
+    SIMPLE_INT_CREATE(nsIObjectLoadingContent::TYPE_DOCUMENT,
+                      NS_NewSubDocumentFrame)
+    
+  };
+
+  return FindDataByInt((PRInt32)type, aContent, aStyleContext,
+                       sObjectData, NS_ARRAY_LENGTH(sObjectData));
+}
+
+nsresult
+nsCSSFrameConstructor::ConstructFrameFromData(const FrameConstructionData* aData,
+                                              nsFrameConstructorState& aState,
+                                              nsIContent* aContent,
+                                              nsIFrame* aParentFrame,
+                                              nsIAtom* aTag,
+                                              nsStyleContext* aStyleContext,
+                                              nsFrameItems& aFrameItems,
+                                              PRBool aHasPseudoParent)
+{
+  if (!aData) {
+    
     return NS_OK;
   }
 
-  PRBool    frameHasBeenInitialized = PR_FALSE;
-  nsIFrame* newFrame = nsnull;  
-  PRBool    addToHashTable = PR_TRUE;
-  PRBool    addedToFrameList = PR_FALSE;
-  nsresult  rv = NS_OK;
-  
-  PRBool triedFrame = PR_FALSE;
+  PRUint32 bits = aData->mBits;
+
+  NS_ASSERTION(!(bits & FCDATA_FUNC_IS_DATA_GETTER),
+               "Should have dealt with this inside the data finder");
 
   
+  
+  if (!aHasPseudoParent && !aState.mPseudoFrames.IsEmpty()) {
+    ProcessPseudoFrames(aState, aFrameItems); 
+  }
+
   const nsStyleDisplay* display = aStyleContext->GetStyleDisplay();
 
-  
-  if (nsGkAtoms::img == aTag || nsGkAtoms::mozgeneratedcontentimage == aTag) {
-    
-    rv = CreateHTMLImageFrame(aContent, aStyleContext, NS_NewImageFrame,
-                              &newFrame);
-    if (newFrame) {
-      if (!aHasPseudoParent && !aState.mPseudoFrames.IsEmpty()) {
-        ProcessPseudoFrames(aState, aFrameItems); 
-      }
+  nsIFrame* newFrame;
+  if (bits & FCDATA_FUNC_IS_FULL_CTOR) {
+    nsresult rv =
+      (this->*(aData->mFullConstructor))(aState, aContent, aParentFrame,
+                                         aTag, aStyleContext, display,
+                                         aFrameItems, &newFrame);
+    if (NS_FAILED(rv)) {
+      return rv;
     }
-  }
-  else if (nsGkAtoms::br == aTag) {
-    if (!aHasPseudoParent && !aState.mPseudoFrames.IsEmpty()) {
-      ProcessPseudoFrames(aState, aFrameItems); 
+  } else {
+    newFrame =
+      (*aData->mFunc.mCreationFunc)(mPresShell, aStyleContext);
+    if (!newFrame) {
+      return NS_ERROR_OUT_OF_MEMORY;
     }
-    newFrame = NS_NewBRFrame(mPresShell, aStyleContext);
-    triedFrame = PR_TRUE;
 
-    
-    
-    
-    addToHashTable = PR_FALSE;
-  }
-  else if (nsGkAtoms::wbr == aTag) {
-    if (!aHasPseudoParent && !aState.mPseudoFrames.IsEmpty()) {
-      ProcessPseudoFrames(aState, aFrameItems); 
-    }
-    newFrame = NS_NewWBRFrame(mPresShell, aStyleContext);
-    triedFrame = PR_TRUE;
-  }
-  else if (nsGkAtoms::input == aTag) {
-    
-    rv = CreateInputFrame(aState, aContent, aParentFrame,
-                          aTag, aStyleContext, &newFrame,
-                          display, frameHasBeenInitialized,
-                          addedToFrameList, aFrameItems,
-                          aHasPseudoParent);
-    if (!aHasPseudoParent && !aState.mPseudoFrames.IsEmpty() &&
-        newFrame && !addedToFrameList) {
-      
-      
-      ProcessPseudoFrames(aState, aFrameItems);       
-    }
-  }
-  else if (nsGkAtoms::textarea == aTag) {
-    if (!aHasPseudoParent && !aState.mPseudoFrames.IsEmpty()) {
-      ProcessPseudoFrames(aState, aFrameItems); 
-    }
-    newFrame = NS_NewTextControlFrame(mPresShell, aStyleContext);
-    triedFrame = PR_TRUE;
-  }
-  else if (nsGkAtoms::select == aTag) {
-    if (!aHasPseudoParent && !aState.mPseudoFrames.IsEmpty()) {
-      ProcessPseudoFrames(aState, aFrameItems); 
-    }
-    rv = ConstructSelectFrame(aState, aContent, aParentFrame,
-                              aTag, aStyleContext, newFrame,
-                              display, frameHasBeenInitialized,
-                              aFrameItems);
-    if (newFrame) {
-      NS_ASSERTION(nsPlaceholderFrame::GetRealFrameFor(aFrameItems.lastChild) ==
-                   newFrame,
-                   "Frame didn't get added to aFrameItems?");
-      addedToFrameList = PR_TRUE;
-    }
-  }
-  else if (nsGkAtoms::object == aTag ||
-           nsGkAtoms::applet == aTag ||
-           nsGkAtoms::embed == aTag) {
-    
-    if (!(aContent->IntrinsicState() &
-          (NS_EVENT_STATE_BROKEN | NS_EVENT_STATE_USERDISABLED |
-           NS_EVENT_STATE_SUPPRESSED))) {
-      if (!aHasPseudoParent && !aState.mPseudoFrames.IsEmpty()) {
-        ProcessPseudoFrames(aState, aFrameItems); 
-      }
+    PRBool allowOutOfFlow = !(bits & FCDATA_DISALLOW_OUT_OF_FLOW);
 
-      nsCOMPtr<nsIObjectLoadingContent> objContent(do_QueryInterface(aContent));
-      NS_ASSERTION(objContent,
-                   "applet, embed and object must implement nsIObjectLoadingContent!");
-      if (!objContent) {
-        
-        return NS_ERROR_UNEXPECTED;
-      }
-
-      PRUint32 type;
-      objContent->GetDisplayedType(&type);
-      if (type == nsIObjectLoadingContent::TYPE_LOADING) {
-        
-        
-        
-        newFrame = NS_NewEmptyFrame(mPresShell, aStyleContext);
-      }
-      else if (type == nsIObjectLoadingContent::TYPE_PLUGIN)
-        newFrame = NS_NewObjectFrame(mPresShell, aStyleContext);
-      else if (type == nsIObjectLoadingContent::TYPE_IMAGE)
-        newFrame = NS_NewImageFrame(mPresShell, aStyleContext);
-      else if (type == nsIObjectLoadingContent::TYPE_DOCUMENT)
-        newFrame = NS_NewSubDocumentFrame(mPresShell, aStyleContext);
-#ifdef DEBUG
-      else
-        NS_ERROR("Shouldn't get here if we're not broken and not "
-                 "suppressed and not blocked");
-#endif
-
-      triedFrame = PR_TRUE;
-    }
-  }
-  else if (nsGkAtoms::fieldset == aTag) {
-    if (!aHasPseudoParent && !aState.mPseudoFrames.IsEmpty()) {
-      ProcessPseudoFrames(aState, aFrameItems); 
-    }
-    rv = ConstructFieldSetFrame(aState, aContent, aParentFrame,
-                                aTag, aStyleContext, newFrame,
-                                aFrameItems, display, frameHasBeenInitialized);
-    NS_ASSERTION(nsPlaceholderFrame::GetRealFrameFor(aFrameItems.lastChild) ==
-                 newFrame,
-                 "Frame didn't get added to aFrameItems?");
-    addedToFrameList = PR_TRUE;
-  }
-  else if (nsGkAtoms::legend == aTag) {
-    if (!aHasPseudoParent && !aState.mPseudoFrames.IsEmpty()) {
-      ProcessPseudoFrames(aState, aFrameItems); 
-    }
-    newFrame = NS_NewLegendFrame(mPresShell, aStyleContext);
-    triedFrame = PR_TRUE;
-  }
-  else if (nsGkAtoms::frameset == aTag) {
-    if (!aHasPseudoParent && !aState.mPseudoFrames.IsEmpty()) {
-      ProcessPseudoFrames(aState, aFrameItems); 
-    }
-   
-    newFrame = NS_NewHTMLFramesetFrame(mPresShell, aStyleContext);
-    triedFrame = PR_TRUE;
-  }
-  else if (nsGkAtoms::iframe == aTag) {
-    if (!aHasPseudoParent && !aState.mPseudoFrames.IsEmpty()) {
-      ProcessPseudoFrames(aState, aFrameItems); 
-    }
-    
-    newFrame = NS_NewSubDocumentFrame(mPresShell, aStyleContext);
-    triedFrame = PR_TRUE;
-  }
-  else if (nsGkAtoms::spacer == aTag) {
-    if (!aHasPseudoParent && !aState.mPseudoFrames.IsEmpty()) {
-      ProcessPseudoFrames(aState, aFrameItems); 
-    }
-    newFrame = NS_NewSpacerFrame(mPresShell, aStyleContext);
-    triedFrame = PR_TRUE;
-  }
-  else if (nsGkAtoms::button == aTag) {
-    rv = ConstructButtonFrame(aState, aContent, aParentFrame,
-                              aTag, aStyleContext, &newFrame,
-                              display, aFrameItems, aHasPseudoParent);
-    
-    
-    
-    
-    frameHasBeenInitialized = PR_TRUE;
-    addedToFrameList = PR_TRUE;
-  }
-  else if (nsGkAtoms::isindex == aTag) {
-    if (!aHasPseudoParent && !aState.mPseudoFrames.IsEmpty()) {
-      ProcessPseudoFrames(aState, aFrameItems);
-    }
-    newFrame = NS_NewIsIndexFrame(mPresShell, aStyleContext);
-    triedFrame = PR_TRUE;
-  }
-  else if (nsGkAtoms::canvas == aTag) {
-    if (!aHasPseudoParent && !aState.mPseudoFrames.IsEmpty()) {
-      ProcessPseudoFrames(aState, aFrameItems); 
-    }
-    newFrame = NS_NewHTMLCanvasFrame(mPresShell, aStyleContext);
-    triedFrame = PR_TRUE;
-  }
-#if defined(MOZ_MEDIA)
-  else if (nsGkAtoms::video == aTag || nsGkAtoms::audio == aTag) {
-    
-    
-    
-    if (!aHasPseudoParent && !aState.mPseudoFrames.IsEmpty()) {
-      ProcessPseudoFrames(aState, aFrameItems); 
-    }
-    newFrame = NS_NewHTMLVideoFrame(mPresShell, aStyleContext);
-    triedFrame = PR_TRUE;
-  }
-#endif
-  if (NS_UNLIKELY(triedFrame && !newFrame)) {
-    return NS_ERROR_OUT_OF_MEMORY;
-  }
-  else if (NS_FAILED(rv) || !newFrame) {
-    return rv;
-  }
-
-  
-  
-
-  
-  
-  
-  if (!frameHasBeenInitialized) {
-    NS_ASSERTION(!addedToFrameList,
-                 "Frames that were already added to the frame list should be "
-                 "initialized by now!");
-    nsIFrame* geometricParent = aState.GetGeometricParent(display,
-                                                          aParentFrame);
-     
-    rv = InitAndRestoreFrame(aState, aContent, geometricParent, nsnull, newFrame);
+    nsIFrame* geometricParent =
+      allowOutOfFlow ? aState.GetGeometricParent(display, aParentFrame)
+                     : aParentFrame;
+    nsresult rv = InitAndRestoreFrame(aState, aContent, geometricParent, nsnull,
+                                      newFrame);
     NS_ASSERTION(NS_SUCCEEDED(rv), "InitAndRestoreFrame failed");
     
     nsHTMLContainerFrame::CreateViewForFrame(newFrame, PR_FALSE);
 
     rv = aState.AddChild(newFrame, aFrameItems, aContent, aStyleContext,
-                         aParentFrame);
+                         aParentFrame, allowOutOfFlow, allowOutOfFlow);
     if (NS_FAILED(rv)) {
       return rv;
     }
-    addedToFrameList = PR_TRUE;
-      
+
     
     nsFrameItems childItems;
     nsFrameConstructorSaveState absoluteSaveState;
 
-    if (display->IsPositioned()) {
+    if (bits & FCDATA_FORCE_NULL_ABSPOS_CONTAINER) {
+      aState.PushAbsoluteContainingBlock(nsnull, absoluteSaveState);
+    } else if (display->IsPositioned()) {
       aState.PushAbsoluteContainingBlock(newFrame, absoluteSaveState);
     }
 
@@ -5433,25 +5291,11 @@ nsCSSFrameConstructor::ConstructHTMLFrame(nsFrameConstructorState& aState,
     newFrame->SetInitialChildList(nsnull, childItems.childList);
   }
 
-  if (!addedToFrameList) {
-    
-    
-    
-    rv = aState.AddChild(newFrame, aFrameItems, aContent, aStyleContext,
-                         aParentFrame);
-    if (NS_FAILED(rv)) {
-      return rv;
-    }
-  }
-
-  if (addToHashTable) {
-    
-    
-    
+  if (!(bits & FCDATA_SKIP_FRAMEMAP)) {
     aState.mFrameManager->SetPrimaryFrameFor(aContent, newFrame);
   }
 
-  return rv;
+  return NS_OK;
 }
 
 nsresult
@@ -7280,8 +7124,10 @@ nsCSSFrameConstructor::ConstructFrameInternal( nsFrameConstructorState& aState,
   nsIFrame* lastChild = frameItems->lastChild;
 
   
-  rv = ConstructHTMLFrame(aState, aContent, adjParentFrame, aTag, aNameSpaceID,
-                          styleContext, *frameItems, pseudoParent);
+  rv = ConstructFrameFromData(FindHTMLData(aContent, aTag, aNameSpaceID,
+                                           styleContext),
+                              aState, aContent, adjParentFrame, aTag,
+                              styleContext, *frameItems, pseudoParent);
 
   
   
