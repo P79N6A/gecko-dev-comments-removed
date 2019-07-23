@@ -58,18 +58,11 @@ struct xpc_qsFunctionSpec {
     uintN arity;
 };
 
-struct xpc_qsTraceableSpec {
-    const char *name;
-    JSNative native;
-    uintN arity;
-};
-
 
 struct xpc_qsHashEntry {
     nsID iid;
     const xpc_qsPropertySpec *properties;
     const xpc_qsFunctionSpec *functions;
-    const xpc_qsTraceableSpec *traceables;
     
     
     size_t parentInterface;
@@ -113,11 +106,6 @@ xpc_qsThrowMethodFailed(JSContext *cx, nsresult rv, jsval *vp);
 JSBool
 xpc_qsThrowMethodFailedWithCcx(XPCCallContext &ccx, nsresult rv);
 
-void
-xpc_qsThrowMethodFailedWithDetails(JSContext *cx, nsresult rv,
-                                   const char *ifaceName,
-                                   const char *memberName);
-
 
 
 
@@ -128,10 +116,6 @@ xpc_qsThrowBadArg(JSContext *cx, nsresult rv, jsval *vp, uintN paramnum);
 
 void
 xpc_qsThrowBadArgWithCcx(XPCCallContext &ccx, nsresult rv, uintN paramnum);
-
-void
-xpc_qsThrowBadArgWithDetails(JSContext *cx, nsresult rv, uintN paramnum,
-                             const char *ifaceName, const char *memberName);
 
 
 
@@ -476,13 +460,5 @@ _iface##_Interface(XPCCallContext& ccx)                                       \
             XPCNativeInterface::GetNewOrUsed(ccx, &NS_GET_IID(_iface));       \
     return (_iface_cache);                                                    \
 }
-
-class xpc_qsDependentJSString : public nsDependentString
-{
-public:
-  explicit xpc_qsDependentJSString(JSString *str)
-    : nsDependentString((PRUnichar *)::JS_GetStringChars(str),
-                        ::JS_GetStringLength(str)) { }
-};
 
 #endif 
