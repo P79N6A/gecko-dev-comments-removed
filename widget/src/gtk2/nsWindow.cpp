@@ -122,13 +122,6 @@ static const char sAccessibilityKey [] = "config.use_system_prefs.accessibility"
 #include "gfxXlibSurface.h"
 #endif
 
-#if defined(MOZ_PLATFORM_HILDON) && defined(MOZ_ENABLE_GCONF)
-#include "gconf/gconf-client.h"
-static PRBool gWidgetCompletionEnabled = PR_FALSE;
-static const char sWidgetCompletionGConfPref [] =
-    "/apps/osso/inputmethod/hildon-im-languages/en_GB/word-completion";
-#endif
-
 #ifdef MOZ_DFB
 extern "C" {
 #ifdef MOZ_DIRECT_DEBUG
@@ -2830,33 +2823,6 @@ nsWindow::OnContainerFocusInEvent(GtkWidget *aWidget, GdkEventFocus *aEvent)
         return;
     }
 
-#if defined(MOZ_PLATFORM_HILDON) && defined(MOZ_ENABLE_GCONF)
-    if (mIsTopLevel) {
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        if (mWindowType == eWindowType_toplevel)
-            if (GConfClient *gConfClient = gconf_client_get_default()) {
-                GError* error = nsnull;
-                gWidgetCompletionEnabled = gconf_client_get_bool(gConfClient,
-                                                                 sWidgetCompletionGConfPref,
-                                                                 &error);
-                if (error)
-                    g_error_free(error);
-                else if (gWidgetCompletionEnabled)
-                    gconf_client_set_bool(gConfClient, sWidgetCompletionGConfPref,
-                                          PR_FALSE, nsnull);
-                g_object_unref(gConfClient);
-            }
-    }
-#endif
-
     
     GtkWidget* top_window = nsnull;
     GetToplevelWidget(&top_window);
@@ -2887,16 +2853,6 @@ nsWindow::OnContainerFocusOutEvent(GtkWidget *aWidget, GdkEventFocus *aEvent)
     if (!gFocusWindow)
         return;
 
-#if defined(MOZ_PLATFORM_HILDON) && defined(MOZ_ENABLE_GCONF)
-    if (mIsTopLevel && mWindowType == eWindowType_toplevel)
-        if(GConfClient *gConfClient = gconf_client_get_default()) {
-            GError* error = nsnull;
-            gconf_client_set_bool(gConfClient, sWidgetCompletionGConfPref, gWidgetCompletionEnabled, &error);
-            if (error)
-                g_error_free(error);
-            g_object_unref(gConfClient);
-        }
-#endif
     GdkWindow *tmpWindow;
     tmpWindow = (GdkWindow *)gFocusWindow->GetNativeData(NS_NATIVE_WINDOW);
     nsWindow *tmpnsWindow = get_window_for_gdk_window(tmpWindow);
@@ -6720,7 +6676,6 @@ nsWindow::SetIMEEnabled(PRUint32 aState)
             int mode;
             g_object_get (G_OBJECT(IMEGetContext()), "hildon-input-mode", &mode, NULL);
 
-
             if (mIMEData->mEnabled == nsIWidget::IME_STATUS_ENABLED ||
                 mIMEData->mEnabled == nsIWidget::IME_STATUS_PLUGIN)
                 mode &= ~HILDON_GTK_INPUT_MODE_INVISIBLE;
@@ -6754,9 +6709,7 @@ nsWindow::SetIMEEnabled(PRUint32 aState)
             rectBuf.Append(NS_LITERAL_STRING("}"));
             observerService->NotifyObservers(nsnull, "softkb-change", rectBuf.get());
         }
-
 #endif
-
     } else {
         if (IsIMEEditableState(mIMEData->mEnabled))
             ResetInputState();
