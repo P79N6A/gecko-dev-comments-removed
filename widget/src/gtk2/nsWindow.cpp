@@ -290,6 +290,9 @@ static GdkEventKey *gKeyEvent = NULL;
 static PRBool       gKeyEventCommitted = PR_FALSE;
 static PRBool       gKeyEventChanged = PR_FALSE;
 static PRBool       gIMESuppressCommit = PR_FALSE;
+#ifdef MOZ_PLATFORM_HILDON
+static PRBool       gIMEVirtualKeyboardOpened = PR_FALSE;
+#endif
 
 static void IM_commit_cb              (GtkIMContext *aContext,
                                        const gchar *aString,
@@ -2795,6 +2798,17 @@ nsWindow::OnVisibilityNotifyEvent(GtkWidget *aWidget,
     case GDK_VISIBILITY_UNOBSCURED:
     case GDK_VISIBILITY_PARTIAL:
         mIsVisible = PR_TRUE;
+#ifdef MOZ_PLATFORM_HILDON
+#ifdef USE_XIM
+        
+        
+        
+        
+        
+        
+        if(!gIMEVirtualKeyboardOpened)
+#endif 
+#endif 
         
         EnsureGrabs();
         break;
@@ -6120,10 +6134,13 @@ nsWindow::SetIMEEnabled(PRUint32 aState)
         
         focusedWin->IMESetFocus();
 #ifdef MOZ_PLATFORM_HILDON
-        if (mIMEData->mEnabled)
+        if (mIMEData->mEnabled) {
+            gIMEVirtualKeyboardOpened = PR_TRUE;
             hildon_gtk_im_context_show (focusedIm);
-        else
+        } else {
+            gIMEVirtualKeyboardOpened = PR_FALSE;
             hildon_gtk_im_context_hide (focusedIm);
+        }
 #endif
         
     } else {
