@@ -131,6 +131,90 @@ WifiGeoPositionObject.prototype = {
     timestamp: 0,
 };
 
+function HELD() {};
+ 
+ 
+HELD.encode = function(requestObject) {
+    
+    var requestString = "<locationRequest xmlns=\"urn:ietf:params:xml:ns:geopriv:held\">";
+    
+    if (requestObject.wifi_towers && requestObject.wifi_towers.length > 0) {
+      requestString += "<measurements xmlns=\"urn:ietf:params:xml:ns:geopriv:lm\">";
+      requestString += "<wifi xmlns=\"urn:ietf:params:xml:ns:geopriv:lm:wifi\">";
+      for (var i=0; i < requestObject.wifi_towers.length; ++i) {
+        requestString += "<neighbourWap>";
+        requestString += "<bssid>" + requestObject.wifi_towers[i].mac_address     + "</bssid>";
+        requestString += "<ssid>"  + requestObject.wifi_towers[i].ssid            + "</ssid>";
+        requestString += "<rssi>"  + requestObject.wifi_towers[i].signal_strength + "</rssi>";
+        requestString += "</neighbourWap>";
+      }
+      
+      requestString += "</wifi></measurements>";
+    }
+    requestString += "</locationRequest>";
+    return requestString;
+};
+
+
+HELD.decode = function(responseXML) {
+    
+    function nsResolver(prefix) {
+        var ns = {
+            'held': 'urn:ietf:params:xml:ns:geopriv:held',
+            'pres': 'urn:ietf:params:xml:ns:pidf',
+            'gp': 'urn:ietf:params:xml:ns:pidf:geopriv10',
+            'gml': 'http://www.opengis.net/gml',
+            'gs': 'http://www.opengis.net/pidflo/1.0',
+        };
+        return ns[prefix] || null;
+    }
+
+    var xpathEval = Components.classes["@mozilla.org/dom/xpath-evaluator;1"].createInstance(Ci.nsIDOMXPathEvaluator);
+
+    
+    var pos = xpathEval.evaluate(
+        '/held:locationResponse/pres:presence/pres:tuple/pres:status/gp:geopriv/gp:location-info/gs:Circle/gml:pos',
+        responseXML,
+        nsResolver,
+        Ci.nsIDOMXPathResult.STRING_TYPE,
+        null);
+
+    var rad = xpathEval.evaluate(
+        '/held:locationResponse/pres:presence/pres:tuple/pres:status/gp:geopriv/gp:location-info/gs:Circle/gs:radius',
+        responseXML,
+        nsResolver,
+        Ci.nsIDOMXPathResult.NUMBER_TYPE,
+        null );
+
+    var uom = xpathEval.evaluate(
+        '/held:locationResponse/pres:presence/pres:tuple/pres:status/gp:geopriv/gp:location-info/gs:Circle/gs:radius/@uom',
+        responseXML,
+        nsResolver,
+        Ci.nsIDOMXPathResult.STRING_TYPE,
+        null);
+
+    
+    if ((pos.stringValue == null) ||
+        (rad.numberValue == null) ||
+        (uom.stringValue == null) ||
+        (uom.stringValue != "urn:ogc:def:uom:EPSG::9001")) {
+        return null;
+    }
+
+    
+    var coords = pos.stringValue.split(/[ \t\n]+/);
+
+    
+    var obj = {
+        location: {
+            latitude: parseFloat(coords[0]),
+            longitude: parseFloat(coords[1]),
+            accuracy: rad.numberValue
+        }
+    };
+    return obj;
+}  
+
 function WifiGeoPositionProvider() {
     this.prefService = Cc["@mozilla.org/preferences-service;1"].getService(Ci.nsIPrefBranch).QueryInterface(Ci.nsIPrefService);
     try {
@@ -156,6 +240,7 @@ WifiGeoPositionProvider.prototype = {
     provider_url:    null,
     wifi_service:    null,
     timer:           null,
+    protocol:        null,
     hasSeenWiFi:     false,
 
     startup:         function() {
@@ -164,6 +249,12 @@ WifiGeoPositionProvider.prototype = {
         this.provider_url = this.prefService.getCharPref("geo.wifi.uri");
         LOG("provider url = " + this.provider_url);
 
+        try {
+            this.protocol = this.prefService.getIntPref("geo.wifi.protocol");
+            LOG("protocol = " + this.protocol);
+        } catch (e) {
+            this.protocol = 0;
+        }
         
         
         
@@ -237,6 +328,9 @@ WifiGeoPositionProvider.prototype = {
         this.hasSeenWiFi = true;
 
         
+        var protocol = this.protocol;
+
+        
         var xhr = Components.classes["@mozilla.org/xmlextras/xmlhttprequest;1"].createInstance(Ci.nsIXMLHttpRequest);
 
         
@@ -253,10 +347,20 @@ WifiGeoPositionProvider.prototype = {
 
         xhr.onload = function (req) {  
 
-            LOG("service returned: " + req.target.responseText);
+            LOG("xhr onload...");
 
             
-            var response = JSON.parse(req.target.responseText);
+            var response;
+            switch (this.protocol) {
+                case 1:
+                    LOG("service returned: " + req.target.responseXML);
+                    response = HELD.decode(req.target.responseXML);
+                    break;
+                case 0:
+                default:
+                    LOG("service returned: " + req.target.responseText);
+                    response = JSON.parse(req.target.responseText);
+            }
 
             
             
@@ -314,11 +418,19 @@ WifiGeoPositionProvider.prototype = {
             request.wifi_towers = accessPoints.filter(filterBlankSSIDs).map(deconstruct);
         }
 
-        var jsonString = JSON.stringify(request);
-        LOG("client sending: " + jsonString);
-
+        var requestString;
+        switch (protocol) {
+          case 1:
+              requestString = HELD.encode(request);
+              break;
+          case 0:
+          default:
+              requestString = JSON.stringify(request);
+        }
+        LOG("client sending: " + requestString);
+ 
         try {
-          xhr.send(jsonString);
+          xhr.send(requestString);
         } catch (e) {}
     },
 
