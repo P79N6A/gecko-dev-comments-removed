@@ -2737,6 +2737,9 @@ pref("image.cache.size", 5242880);
 
 pref("image.cache.timeweight", 500);
 
+
+pref("image.http.accept", "image/png,image/*;q=0.8,*/*;q=0.5");
+
 #ifdef XP_WIN
 #ifndef WINCE
 
