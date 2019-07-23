@@ -173,6 +173,17 @@ JS_STATIC_ASSERT(sizeof(size_t) == sizeof(jsword));
 
 
 
+#define JSFLATSTR_REINIT(str, chars_, length_)                                \
+    ((void)(JS_ASSERT(((length_) & ~JSSTRING_LENGTH_MASK) == 0),              \
+            (str)->length = ((str)->length & JSSTRFLAG_DEFLATED) |            \
+                             (length_ & ~JSSTRFLAG_DEFLATED),                 \
+            (str)->u.chars = (chars_)))
+
+
+
+
+
+
 
 
 
@@ -233,8 +244,22 @@ JS_STATIC_ASSERT(sizeof(size_t) == sizeof(jsword));
                    | (len),                                                   \
      (str)->u.base = (bstr))
 
+
+#define JSSTRDEP_REINIT(str,bstr,off,len)                                     \
+    ((str)->length = JSSTRFLAG_DEPENDENT                                      \
+                   | ((str->length) & JSSTRFLAG_DEFLATED)                     \
+                   | ((off) << JSSTRDEP_START_SHIFT)                          \
+                   | (len),                                                   \
+     (str)->u.base = (bstr))
+
 #define JSPREFIX_INIT(str,bstr,len)                                           \
     ((str)->length = JSSTRFLAG_DEPENDENT | JSSTRFLAG_PREFIX | (len),          \
+     (str)->u.base = (bstr))
+
+
+#define JSPREFIX_REINIT(str,bstr,len)                                         \
+    ((str)->length = JSSTRFLAG_DEPENDENT | JSSTRFLAG_PREFIX |                 \
+                     ((str->length) & JSSTRFLAG_DEFLATED) | (len),            \
      (str)->u.base = (bstr))
 
 #define JSSTRDEP_BASE(str)          ((str)->u.base)
