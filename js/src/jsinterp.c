@@ -1261,7 +1261,12 @@ have_fun:
 
 
 
-        if (!js_ComputeThis(cx, JS_FALSE, vp + 2)) {
+
+
+
+
+        if (native && fun && !(fun->flags & JSFUN_FAST_NATIVE) &&
+            !js_ComputeThis(cx, JS_FALSE, vp + 2)) {
             ok = JS_FALSE;
             goto out2;
         }
