@@ -551,11 +551,6 @@ nsTransitionManager::ConsiderStartingTransition(nsCSSProperty aProperty,
 
   ElementPropertyTransition pt;
   nsStyleAnimation::Value dummyValue;
-  
-  
-  
-  
-  
   PRBool shouldAnimate =
     nsStyleAnimation::ExtractComputedValue(aProperty, aOldStyleContext,
                                            pt.mStartValue) &&
