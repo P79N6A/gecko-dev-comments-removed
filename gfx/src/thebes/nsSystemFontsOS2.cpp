@@ -113,6 +113,20 @@ nsSystemFontsOS2::nsSystemFontsOS2()
 #endif
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 nsresult nsSystemFontsOS2::GetSystemFont(nsSystemFontID aID, nsString* aFontName,
                                          gfxFontStyle *aFontStyle) const
 {
@@ -172,7 +186,7 @@ nsresult nsSystemFontsOS2::GetSystemFont(nsSystemFontID aID, nsString* aFontName
     printf(" (%s)\n", szFontNameSize);
 #endif
 
-    char *szFacename = strchr(szFontNameSize, '.') + 1;
+    char *szFacename = strchr(szFontNameSize, '.');
     if (!szFacename || (*(szFacename++) == '\0'))
         return NS_ERROR_FAILURE;
 
@@ -195,15 +209,63 @@ nsresult nsSystemFontsOS2::GetSystemFont(nsSystemFontID aID, nsString* aFontName
     
     aFontStyle->size *= vertScreenRes / 72.0;
 
-    NS_NAMED_LITERAL_STRING(quote, "\""); 
     NS_ConvertUTF8toUTF16 fontFace(szFacename);
-    *aFontName = quote + fontFace + quote;
+    int pos = 0;
 
     
-    aFontStyle->style = FONT_STYLE_NORMAL;
-    aFontStyle->weight = FONT_WEIGHT_NORMAL;
-
     aFontStyle->systemFont = PR_TRUE;
+
+    
+    
+    NS_NAMED_LITERAL_CSTRING(spcBold, " Bold");
+    if ((pos = fontFace.Find(spcBold.get(), PR_FALSE, 0, -1)) > -1) {
+        aFontStyle->weight = FONT_WEIGHT_BOLD;
+        
+        fontFace.Cut(pos, spcBold.Length());
+    } else {
+        aFontStyle->weight = FONT_WEIGHT_NORMAL;
+    }
+
+    
+    NS_NAMED_LITERAL_CSTRING(spcItalic, " Italic");
+    NS_NAMED_LITERAL_CSTRING(spcOblique, " Oblique");
+    NS_NAMED_LITERAL_CSTRING(spcObli, " Obli");
+    if ((pos = fontFace.Find(spcItalic.get(), PR_FALSE, 0, -1)) > -1) {
+        aFontStyle->style = FONT_STYLE_ITALIC;
+        fontFace.Cut(pos, spcItalic.Length());
+    } else if ((pos = fontFace.Find(spcOblique.get(), PR_FALSE, 0, -1)) > -1) {
+        
+        
+        aFontStyle->style = FONT_STYLE_OBLIQUE;
+        fontFace.Cut(pos, spcOblique.Length());
+    } else if ((pos = fontFace.Find(spcObli.get(), PR_FALSE, 0, -1)) > -1) {
+        
+        
+        aFontStyle->style = FONT_STYLE_OBLIQUE;
+        
+        
+        
+        fontFace.Cut(pos, fontFace.Length());
+    } else {
+        aFontStyle->style = FONT_STYLE_NORMAL;
+    }
+
+    
+    
+    
+    if ((pos = fontFace.Find(".", PR_FALSE, 0, -1)) > -1) {
+        fontFace.Cut(pos, fontFace.Length());
+    }
+
+#ifdef DEBUG_thebes
+    printf("  after=%s\n", NS_LossyConvertUTF16toASCII(fontFace).get());
+    printf("  style: %s %s %s\n",
+           (aFontStyle->weight == FONT_WEIGHT_BOLD) ? "BOLD" : "",
+           (aFontStyle->style == FONT_STYLE_ITALIC) ? "ITALIC" : "",
+           (aFontStyle->style == FONT_STYLE_OBLIQUE) ? "OBLIQUE" : "");
+#endif
+    NS_NAMED_LITERAL_STRING(quote, "\""); 
+    *aFontName = quote + fontFace + quote;
 
     return NS_OK;
 }
