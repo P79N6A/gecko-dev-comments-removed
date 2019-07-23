@@ -2166,6 +2166,14 @@ function testSubstring() {
 testSubstring.expected = "";
 test(testSubstring);
 
+function testForInLoopChangeIteratorType() {
+    for(y in [0,1,2]) y = NaN;
+    (function(){ [].__proto__.u = void 0; for (let y in [5,6,7,8]) y = NaN; })()
+    return "ok";
+}
+testForInLoopChangeIteratorType.expected = "ok";
+test(testForInLoopChangeIteratorType);
+
 
 print("\npassed:", passes.length && passes.join(","));
 print("\nFAILED:", fails.length && fails.join(","));
