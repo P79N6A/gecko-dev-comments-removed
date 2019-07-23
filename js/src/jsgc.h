@@ -207,9 +207,15 @@ js_NewGCThing(JSContext *cx, uintN flags, size_t nbytes);
 
 
 
+extern JSBool
+js_NewDoubleInRootedValue(JSContext *cx, jsdouble d, jsval *vp);
+
+
+
+
 
 extern jsdouble *
-js_NewDoubleGCThing(JSContext *cx);
+js_NewWeaklyRootedDouble(JSContext *cx, jsdouble d);
 
 extern JSBool
 js_LockGCThingRT(JSRuntime *rt, void *thing);

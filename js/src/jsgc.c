@@ -2038,14 +2038,13 @@ RefillDoubleFreeList(JSContext *cx)
     return list;
 }
 
-jsdouble *
-js_NewDoubleGCThing(JSContext *cx)
+JSBool
+js_NewDoubleInRootedValue(JSContext *cx, jsdouble d, jsval *vp)
 {
-    JSGCDoubleCell *cell;
-    jsdouble *dp;
 #ifdef JS_GCMETER
     JSGCArenaStats *astats;
 #endif
+    JSGCDoubleCell *cell;
 
     
     METER(astats = &cx->runtime->gcStats.doubleArenaStats);
@@ -2055,29 +2054,32 @@ js_NewDoubleGCThing(JSContext *cx)
         cell = RefillDoubleFreeList(cx);
         if (!cell) {
             METER(astats->fail++);
-            return NULL;
+            return JS_FALSE;
         }
     } else {
         METER(astats->localalloc++);
     }
     cx->doubleFreeList = cell->link;
-    dp = &cell->number;
+    cell->number = d;
+    *vp = DOUBLE_TO_JSVAL(&cell->number);
+    return JS_TRUE;
+}
 
+jsdouble *
+js_NewWeaklyRootedDouble(JSContext *cx, jsdouble d)
+{
+    jsval v;
+    jsdouble *dp;
+
+    if (!js_NewDoubleInRootedValue(cx, d, &v))
+        return NULL;
+
+    JS_ASSERT(JSVAL_IS_DOUBLE(v));
+    dp = JSVAL_TO_DOUBLE(v);
     if (cx->localRootStack) {
-        
-
-
-
-
-
-
-        if (js_PushLocalRoot(cx, cx->localRootStack, DOUBLE_TO_JSVAL(dp)) < 0)
+        if (js_PushLocalRoot(cx, cx->localRootStack, v) < 0)
             return NULL;
     } else {
-        
-
-
-
         cx->weakRoots.newborn[GCX_DOUBLE] = dp;
     }
     return dp;

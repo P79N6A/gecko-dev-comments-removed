@@ -169,14 +169,10 @@ extern const char js_parseFloat_str[];
 extern const char js_parseInt_str[];
 
 
-extern jsdouble *
-js_NewDouble(JSContext *cx, jsdouble d);
+
 
 extern JSBool
-js_NewDoubleValue(JSContext *cx, jsdouble d, jsval *rval);
-
-extern JSBool
-js_NewNumberValue(JSContext *cx, jsdouble d, jsval *rval);
+js_NewNumberInRootedValue(JSContext *cx, jsdouble d, jsval *vp);
 
 
 extern JSString *
@@ -200,8 +196,15 @@ js_NumberToCString(JSContext *cx, jsdouble d, char *buf, size_t bufSize);
 
 
 
+
+
+
 extern jsdouble
 js_ValueToNumber(JSContext *cx, jsval* vp);
+
+
+
+
 
 
 
@@ -227,8 +230,12 @@ js_DoubleToECMAUint32(jsdouble d);
 
 
 
+
+
+
 extern int32
 js_ValueToInt32(JSContext *cx, jsval *vp);
+
 
 
 
