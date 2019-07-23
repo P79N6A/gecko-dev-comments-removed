@@ -978,6 +978,22 @@ nsMathMLmoFrame::MarkIntrinsicWidthsDirty()
   nsMathMLContainerFrame::MarkIntrinsicWidthsDirty();
 }
 
+ nscoord
+nsMathMLmoFrame::GetIntrinsicWidth(nsIRenderingContext *aRenderingContext)
+{
+  ProcessOperatorData();
+  
+  
+  nscoord width = nsMathMLTokenFrame::GetIntrinsicWidth(aRenderingContext);
+
+  
+  
+  
+  width += mEmbellishData.leftSpace + mEmbellishData.rightSpace;
+
+  return width;
+}
+
 NS_IMETHODIMP
 nsMathMLmoFrame::AttributeChanged(PRInt32         aNameSpaceID,
                                   nsIAtom*        aAttribute,
