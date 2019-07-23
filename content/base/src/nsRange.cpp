@@ -317,8 +317,10 @@ nsRange::ContentRemoved(nsIDocument* aDocument,
   nsINode* container = NODE_FROM(aContainer, aDocument);
 
   
-  if (container == mStartParent && aIndexInContainer < mStartOffset) {
-    --mStartOffset;
+  if (container == mStartParent) {
+    if (aIndexInContainer < mStartOffset) {
+      --mStartOffset;
+    }
   }
   
   else if (nsContentUtils::ContentIsDescendantOf(mStartParent, aChild)) {
@@ -327,8 +329,10 @@ nsRange::ContentRemoved(nsIDocument* aDocument,
   }
 
   
-  if (container == mEndParent && aIndexInContainer < mEndOffset) {
-    --mEndOffset;
+  if (container == mEndParent) {
+    if (aIndexInContainer < mEndOffset) {
+      --mEndOffset;
+    }
   }
   else if (nsContentUtils::ContentIsDescendantOf(mEndParent, aChild)) {
     mEndParent = container;
