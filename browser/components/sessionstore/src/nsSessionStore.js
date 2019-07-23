@@ -235,6 +235,12 @@ SessionStoreService.prototype = {
       this._clearDisk();
     
     
+    
+    if (this._loadState != STATE_QUITTING &&
+        this._prefBranch.getBoolPref("sessionstore.resume_session_once"))
+      this._prefBranch.setBoolPref("sessionstore.resume_session_once", false);
+    
+    
     this.onLoad(aWindow);
   },
 

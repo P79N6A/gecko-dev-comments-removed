@@ -135,10 +135,6 @@ SessionStartup.prototype = {
         this._iniString = null; 
     }
 
-    if (this._prefBranch.getBoolPref("sessionstore.resume_session_once")) {
-      this._prefBranch.setBoolPref("sessionstore.resume_session_once", false);
-    }
-    
     if (this._sessionType != Ci.nsISessionStartup.NO_SESSION) {
       
       var observerService = Cc["@mozilla.org/observer-service;1"].
@@ -165,7 +161,6 @@ SessionStartup.prototype = {
       this.init();
       break;
     case "quit-application":
-      
       
       observerService.removeObserver(this, "final-ui-startup");
       observerService.removeObserver(this, "quit-application");
