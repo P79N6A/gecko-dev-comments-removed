@@ -346,7 +346,6 @@ namespace nanojit
             
             RegisterMask prefer = hint(i, allow);
             resv->init();
-            fprintf(stderr, "XXX: %d\n", prefer & _allocator.free);
             r = resv->reg = registerAlloc(prefer);
             _allocator.addActive(r, i);
 
