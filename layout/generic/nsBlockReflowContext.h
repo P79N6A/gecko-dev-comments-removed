@@ -69,6 +69,7 @@ public:
                        nscoord             aClearance,
                        PRBool              aIsAdjacentWithTop,
                        nsMargin&           aComputedOffsets,
+                       nsLineBox*          aLine,
                        nsHTMLReflowState&  aReflowState,
                        nsReflowStatus&     aReflowStatus);
 
@@ -87,10 +88,6 @@ public:
 
   nscoord GetTopMargin() const {
     return mTopMargin.get();
-  }
-
-  const nsMargin& GetMargin() const {
-    return mMargin;
   }
 
   const nsHTMLReflowMetrics& GetMetrics() const {
@@ -122,13 +119,6 @@ protected:
   nsIFrame* mFrame;
   nsRect mSpace;
 
-  
-  const nsStyleBorder* mStyleBorder;
-  const nsStyleMargin* mStyleMargin;
-  const nsStylePadding* mStylePadding;
-
-  nscoord mComputedWidth;               
-  nsMargin mMargin;
   nscoord mX, mY;
   nsHTMLReflowMetrics mMetrics;
   nsCollapsingMargin mTopMargin;

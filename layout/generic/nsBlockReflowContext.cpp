@@ -72,9 +72,6 @@ nsBlockReflowContext::nsBlockReflowContext(nsPresContext* aPresContext,
     mOuterReflowState(aParentRS),
     mMetrics()
 {
-  mStyleBorder = nsnull;
-  mStyleMargin = nsnull;
-  mStylePadding = nsnull;
 }
 
 static nsIFrame* DescendIntoBlockLevelFrame(nsIFrame* aFrame)
@@ -251,6 +248,7 @@ nsBlockReflowContext::ReflowBlock(const nsRect&       aSpace,
                                   nscoord             aClearance,
                                   PRBool              aIsAdjacentWithTop,
                                   nsMargin&           aComputedOffsets,
+                                  nsLineBox*          aLine,
                                   nsHTMLReflowState&  aFrameRS,
                                   nsReflowStatus&     aFrameReflowStatus)
 {
@@ -280,7 +278,6 @@ nsBlockReflowContext::ReflowBlock(const nsRect&       aSpace,
   if (!aIsAdjacentWithTop) {
     aFrameRS.mFlags.mIsTopOfPage = PR_FALSE;  
   }
-  mComputedWidth = aFrameRS.ComputedWidth();
 
   if (aApplyTopMargin) {
     mTopMargin = aPrevMargin;
@@ -299,67 +296,38 @@ nsBlockReflowContext::ReflowBlock(const nsRect&       aSpace,
     }
   }
 
+  nscoord tx = 0, ty = 0;
   
   
   
-  mMargin = aFrameRS.mComputedMargin;
-  mStyleBorder = aFrameRS.mStyleBorder;
-  mStyleMargin = aFrameRS.mStyleMargin;
-  mStylePadding = aFrameRS.mStylePadding;
-  nscoord x;
-  nscoord y = mSpace.y + mTopMargin.get() + aClearance;
+  
+  if (aLine) {
+    
+    
+    
 
-  
-  
-  if (NS_STYLE_FLOAT_RIGHT == aFrameRS.mStyleDisplay->mFloats) {
-    nscoord frameWidth;
-     
-    if (NS_UNCONSTRAINEDSIZE == aFrameRS.ComputedWidth()) {
-      
-      frameWidth = mFrame->GetSize().width;
-    } else {
-      frameWidth = aFrameRS.ComputedWidth() +
-                   aFrameRS.mComputedBorderPadding.left +
-                   aFrameRS.mComputedBorderPadding.right;
-    }
+    nscoord x = mSpace.x + aFrameRS.mComputedMargin.left;
+    nscoord y = mSpace.y + mTopMargin.get() + aClearance;
+
+    if ((mFrame->GetStateBits() & NS_BLOCK_SPACE_MGR) == 0)
+      aFrameRS.mBlockDelta = mOuterReflowState.mBlockDelta + y - aLine->mBounds.y;
+
+    mX = x;
+    mY = y;
 
     
-    if (NS_UNCONSTRAINEDSIZE == mSpace.width)
-      x = mSpace.x;
-    else
-      x = mSpace.XMost() - mMargin.right - frameWidth;
-
-  } else {
-    x = mSpace.x + mMargin.left;
-  }
-  mX = x;
-  mY = y;
-
-   
-   
-   
-   
-   
-   
-   
-   nscoord tx = x - mOuterReflowState.mComputedBorderPadding.left;
-   nscoord ty = y - mOuterReflowState.mComputedBorderPadding.top;
- 
-  
-  if (NS_STYLE_POSITION_RELATIVE == aFrameRS.mStyleDisplay->mPosition) {
-    x += aFrameRS.mComputedOffsets.left;
-    y += aFrameRS.mComputedOffsets.top;
+    
+    
+    
+    
+    
+    
+    tx = x - mOuterReflowState.mComputedBorderPadding.left;
+    ty = y - mOuterReflowState.mComputedBorderPadding.top;
   }
 
   
   mFrame->WillReflow(mPresContext);
-
-  
-  
-  
-  
-  mFrame->SetPosition(nsPoint(x, y));
-  nsContainerFrame::PositionFrameView(mFrame);
 
 #ifdef DEBUG
   mMetrics.width = nscoord(0xdeadbeef);
@@ -436,7 +404,7 @@ nsBlockReflowContext::PlaceBlock(const nsHTMLReflowState& aReflowState,
   
   if (NS_FRAME_IS_COMPLETE(aReflowStatus)) {
     aBottomMarginResult = mMetrics.mCarriedOutBottomMargin;
-    aBottomMarginResult.Include(mMargin.bottom);
+    aBottomMarginResult.Include(aReflowState.mComputedMargin.bottom);
   } else {
     
     aBottomMarginResult.Zero();

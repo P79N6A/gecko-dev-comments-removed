@@ -1577,10 +1577,17 @@ nsBlockFrame::PropagateFloatDamage(nsBlockReflowState& aState,
                                    nsLineBox* aLine,
                                    nscoord aDeltaY)
 {
-  NS_PRECONDITION(!aLine->IsDirty(), "should never be called on dirty lines");
+  nsSpaceManager *spaceManager = aState.mReflowState.mSpaceManager;
+  NS_ASSERTION((aState.mReflowState.parentReflowState &&
+                aState.mReflowState.parentReflowState->mSpaceManager == spaceManager) ||
+                aState.mReflowState.mBlockDelta == 0, "Bad block delta passed in");
 
   
-  nsSpaceManager *spaceManager = aState.mReflowState.mSpaceManager;
+  
+  if (!spaceManager->HasAnyFloats())
+    return;
+
+  
   if (spaceManager->HasFloatDamage()) {
     nscoord lineYA = aLine->mBounds.y + aDeltaY;
     nscoord lineYB = lineYA + aLine->mBounds.height;
@@ -1590,39 +1597,32 @@ nsBlockFrame::PropagateFloatDamage(nsBlockReflowState& aState,
     }
   }
 
-  if (aDeltaY) {
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    aState.GetAvailableSpace(aLine->mBounds.y + aDeltaY, PR_FALSE);
-    PRBool wasImpactedByFloat = aLine->IsImpactedByFloat();
-    PRBool isImpactedByFloat = aState.IsImpactedByFloat();
+  
+  if (aDeltaY + aState.mReflowState.mBlockDelta != 0) {
+    if (aLine->IsBlock()) {
+      
+      
+      
+      
+      aLine->MarkDirty();
+    } else {
+      
+      
+      aState.GetAvailableSpace(aLine->mBounds.y + aDeltaY, PR_FALSE);
+      PRBool wasImpactedByFloat = aLine->IsImpactedByFloat();
+      PRBool isImpactedByFloat = aState.IsImpactedByFloat();
+
 #ifdef REALLY_NOISY_REFLOW
     printf("nsBlockFrame::PropagateFloatDamage %p was = %d, is=%d\n", 
        this, wasImpactedByFloat, isImpactedByFloat);
 #endif
-    
-    
-    
-    
-    
-    
-    
-    if ((wasImpactedByFloat != isImpactedByFloat) ||
-        (isImpactedByFloat && aLine->IsBlock())) {
-      aLine->MarkDirty();
+
+      
+      
+      
+      if (wasImpactedByFloat || isImpactedByFloat) {
+        aLine->MarkDirty();
+      }
     }
   }
 }
@@ -2919,7 +2919,7 @@ nsBlockFrame::ReflowBlockFrame(nsBlockReflowState& aState,
     nsReflowStatus frameReflowStatus = NS_FRAME_COMPLETE;
     rv = brc.ReflowBlock(availSpace, applyTopMargin, aState.mPrevBottomMargin,
                          clearance, aState.IsAdjacentWithTop(), computedOffsets,
-                         blockHtmlRS, frameReflowStatus);
+                         aLine.get(), blockHtmlRS, frameReflowStatus);
 
     
     
@@ -5484,7 +5484,7 @@ nsBlockFrame::ReflowFloat(nsBlockReflowState& aState,
                       
     rv = brc.ReflowBlock(availSpace, PR_TRUE, margin,
                          0, isAdjacentWithTop,
-                         offsets, floatRS,
+                         offsets, nsnull, floatRS,
                          aReflowStatus);
   } while (NS_SUCCEEDED(rv) && clearanceFrame);
 
@@ -5526,7 +5526,7 @@ nsBlockFrame::ReflowFloat(nsBlockReflowState& aState,
   }
 
   
-  const nsMargin& m = brc.GetMargin();
+  const nsMargin& m = floatRS.mComputedMargin;
   aFloatMargin.top = brc.GetTopMargin();
   aFloatMargin.right = m.right;
   

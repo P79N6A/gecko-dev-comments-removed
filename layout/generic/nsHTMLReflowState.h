@@ -168,10 +168,6 @@ public:
     InitOffsets(aContainingBlockWidth);
   }
 
-  void InitOffsets(nscoord aContainingBlockWidth,
-                   const nsMargin *aBorder = nsnull,
-                   const nsMargin *aPadding = nsnull);
-
   
   static void DestroyMarginFunc(void*    aFrame,
                                 nsIAtom* aPropertyName,
@@ -188,6 +184,10 @@ private:
   void ComputePadding(nscoord aContainingBlockWidth);
 
 protected:
+
+  void InitOffsets(nscoord aContainingBlockWidth,
+                   const nsMargin *aBorder = nsnull,
+                   const nsMargin *aPadding = nsnull);
 
   
 
@@ -259,6 +259,16 @@ struct nsHTMLReflowState : public nsCSSOffsetState {
 
   
   nsSpaceManager* mSpaceManager;
+
+  
+  
+  
+  
+  
+  
+  
+  
+  nscoord mBlockDelta;
 
   
   nsLineLayout*    mLineLayout;
@@ -416,15 +426,11 @@ public:
   static nscoord CalcLineHeight(nsStyleContext* aStyleContext,
                                 nsIDeviceContext* aDeviceContext);
 
-  void InitFrameType();
 
   void ComputeContainingBlockRectangle(nsPresContext*          aPresContext,
                                        const nsHTMLReflowState* aContainingBlockRS,
                                        nscoord&                 aContainingBlockWidth,
                                        nscoord&                 aContainingBlockHeight);
-
-  void CalculateBlockSideMargins(nscoord aAvailWidth,
-                                 nscoord aComputedWidth);
 
   
 
@@ -457,7 +463,7 @@ public:
   void SetTruncated(const nsHTMLReflowMetrics& aMetrics, nsReflowStatus* aStatus) const;
 
 protected:
-
+  void InitFrameType();
   void InitCBReflowState();
   void InitResizeFlags(nsPresContext* aPresContext);
 
@@ -501,6 +507,8 @@ protected:
                                          nscoord* aInsideBoxSizing,
                                          nscoord* aOutsideBoxSizing);
 
+  void CalculateBlockSideMargins(nscoord aAvailWidth,
+                                 nscoord aComputedWidth);
 };
 
 #endif 
