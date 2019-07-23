@@ -3096,6 +3096,21 @@ const BrowserSearch = {
 
 function FillHistoryMenu(aParent) {
   
+  if (!aParent.hasStatusListener) {
+    
+    aParent.addEventListener("DOMMenuItemActive", function(aEvent) {
+      
+      if (!aEvent.target.hasAttribute("checked"))
+        XULBrowserWindow.setOverLink(aEvent.target.getAttribute("uri"));
+    }, false);
+    aParent.addEventListener("DOMMenuItemInactive", function() {
+      XULBrowserWindow.setOverLink("");
+    }, false);
+
+    aParent.hasStatusListener = true;
+  }
+
+  
   var children = aParent.childNodes;
   for (var i = children.length - 1; i >= 0; --i) {
     if (children[i].hasAttribute("index"))
@@ -3126,8 +3141,10 @@ function FillHistoryMenu(aParent) {
   for (var j = end - 1; j >= start; j--) {
     let item = document.createElement("menuitem");
     let entry = sessionHistory.getEntryAtIndex(j, false);
+    let uri = entry.URI.spec;
 
-    item.setAttribute("label", entry.title || entry.URI.spec);
+    item.setAttribute("uri", uri);
+    item.setAttribute("label", entry.title || uri);
     item.setAttribute("index", j);
 
     if (j != index) {
