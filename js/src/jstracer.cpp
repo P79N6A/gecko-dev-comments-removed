@@ -39,7 +39,6 @@
 
 
 
-#include "jsstdint.h"
 #include "jsbit.h"              
 #include "jsprf.h"
 #include <math.h>               
@@ -133,7 +132,7 @@ static const char tagChar[]  = "OIDISIBI";
      MAX_CALL_STACK_ENTRIES * sizeof(JSInlineFrame))
 
 
-#define MAX_BRANCHES 16
+#define MAX_BRANCHES 32
 
 #ifdef JS_JIT_SPEW
 #define debug_only_a(x) if (js_verboseAbort || js_verboseDebug ) { x; }
