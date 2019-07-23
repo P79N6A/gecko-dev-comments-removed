@@ -44,12 +44,14 @@
 #include "gfxTypes.h"
 #include "gfxFont.h"
 #include "gfxFontUtils.h"
+#include "gfxPlatform.h"
 
 #include <Carbon/Carbon.h>
 
 class gfxAtsuiFontGroup;
 
 class MacOSFontEntry;
+class MacOSFamilyEntry;
 
 class gfxAtsuiFont : public gfxFont {
 public:
@@ -159,6 +161,12 @@ protected:
     
     PRBool InitTextRun(gfxTextRun *aRun, const PRUnichar *aString, PRUint32 aLength,
                        PRBool aWrapped, PRUint32 aSegmentStart, PRUint32 aSegmentLength);
-
+    
+    
+    nsRefPtr<MacOSFamilyEntry>    mLastPrefFamily;
+    nsRefPtr<gfxAtsuiFont>        mLastPrefFont;
+    eFontPrefLang                 mLastPrefLang;       
+    PRBool                        mLastPrefFirstFont;  
+    eFontPrefLang                 mPageLang;
 };
 #endif 

@@ -424,6 +424,8 @@ gfxAtsuiFontGroup::gfxAtsuiFontGroup(const nsAString& families,
             mFonts.AppendElement(font);
         }
     }
+    
+    mPageLang = gfxPlatform::GetFontPrefLangFor(mStyle.langGroup.get());
 }
 
 PRBool
@@ -691,14 +693,19 @@ gfxAtsuiFontGroup::WhichPrefFontSupportsChar(PRUint32 aCh)
     
     PRUint32 unicodeRange = FindCharUnicodeRange(aCh);
     eFontPrefLang charLang = GetFontPrefLangFor(unicodeRange);
-    eFontPrefLang pageLang = gfxPlatform::GetFontPrefLangFor(mStyle.langGroup.get());    
+
+    
+    if (mLastPrefFont && charLang == mLastPrefLang && mLastPrefFirstFont && mLastPrefFont->TestCharacterMap(aCh)) {
+        nsRefPtr<gfxAtsuiFont> prefFont = mLastPrefFont;
+        return prefFont.forget();
+    }
     
     
     eFontPrefLang prefLangs[kMaxLenPrefLangList];
     PRUint32 i, numLangs = 0;
     
     gfxPlatformMac *macPlatform = gfxPlatformMac::GetPlatform();
-    macPlatform->GetLangPrefs(prefLangs, numLangs, charLang, pageLang);
+    macPlatform->GetLangPrefs(prefLangs, numLangs, charLang, mPageLang);
     
     for (i = 0; i < numLangs; i++) {
         nsAutoTArray<nsRefPtr<MacOSFamilyEntry>, 5> families;
@@ -721,13 +728,28 @@ gfxAtsuiFontGroup::WhichPrefFontSupportsChar(PRUint32 aCh)
         for (i = 0; i < numPrefs; i++) {
             
             MacOSFamilyEntry *family = families[i];
-            if (family) {
-                MacOSFontEntry *fe = family->FindFont(&mStyle);
-                
-                if (fe && fe->TestCharacterMap(aCh)) {
-                    return GetOrMakeFont(fe, &mStyle);
-                }
+            if (!family) continue;
+            
+            
+            
+            
+            
+            if (family == mLastPrefFamily && mLastPrefFont->TestCharacterMap(aCh)) {
+                nsRefPtr<gfxAtsuiFont> prefFont = mLastPrefFont;
+                return prefFont.forget();
             }
+            
+            MacOSFontEntry *fe = family->FindFont(&mStyle);
+            
+            if (fe && fe->TestCharacterMap(aCh)) {
+                nsRefPtr<gfxAtsuiFont> prefFont = GetOrMakeFont(fe, &mStyle);
+                mLastPrefFamily = family;
+                mLastPrefFont = prefFont;
+                mLastPrefLang = charLang;
+                mLastPrefFirstFont == (i == 0);
+                return prefFont.forget();
+            }
+
         }
     }
     
