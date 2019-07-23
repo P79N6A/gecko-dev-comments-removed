@@ -101,6 +101,12 @@ private:
   
   
   PRBool mCheckPhishing;
+
+  
+  
+  
+  
+  PRBool mInUpdate;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsUrlClassifierDBService, NS_URLCLASSIFIERDBSERVICE_CID)
