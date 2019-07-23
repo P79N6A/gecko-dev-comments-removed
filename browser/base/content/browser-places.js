@@ -192,6 +192,14 @@ var StarUI = {
     this._element("editBookmarkPanelRemoveButton").hidden = this._batching;
 
     
+    
+    var bookmarks = PlacesUtils.getBookmarksForURI(gBrowser.currentURI);
+    var forms = bundle.getString("editBookmark.removeBookmarks.label");
+    Cu.import("resource://gre/modules/PluralForm.jsm");
+    var label = PluralForm.get(bookmarks.length, forms).replace("#1", bookmarks.length);
+    this._element("editBookmarkPanelRemoveButton").label = label;
+
+    
     this._element("editBookmarkPanelStarIcon").removeAttribute("unstarred");
 
     this._itemId = aItemId !== undefined ? aItemId : this._itemId;
