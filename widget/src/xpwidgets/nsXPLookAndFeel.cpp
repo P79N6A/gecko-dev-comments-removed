@@ -475,6 +475,12 @@ nsXPLookAndFeel::IsSpecialColor(const nsColorID aID, nscolor &aColor)
     case eColor_IMESelectedRawTextUnderline:
     case eColor_IMESelectedConvertedTextUnderline:
       return NS_IS_IME_SPECIAL_COLOR(aColor);
+    default:
+      
+
+
+
+      return PR_FALSE;
   }
   return PR_FALSE;
 }
@@ -644,6 +650,12 @@ nsXPLookAndFeel::GetMetric(const nsMetricID aID, PRInt32& aMetric)
     case eMetric_ScrollButtonRightMouseButtonAction:
       aMetric = 3;
       return NS_OK;
+    default:
+      
+
+
+
+    break;
   }
 
   for (unsigned int i = 0; i < ((sizeof (sIntPrefs) / sizeof (*sIntPrefs))); ++i)
