@@ -53,7 +53,6 @@
 #include "nsEditor.h"
 #include "nsIDOMElement.h"
 #include "nsIDOMEventListener.h"
-#include "nsICSSLoader.h"
 #include "nsICSSLoaderObserver.h"
 #include "nsITableLayout.h"
 
@@ -409,9 +408,6 @@ public:
                            PRBool aListOrCellNotEmpty,
                            PRBool aSafeToAskFrames,
                            PRBool *aSeenBR);
-
-  
-  nsresult GetCSSLoader(const nsAString& aURL, nsICSSLoader** aCSSLoader);
 
   
   PRBool   EnableExistingStyleSheet(const nsAString& aURL);

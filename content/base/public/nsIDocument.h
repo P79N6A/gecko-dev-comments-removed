@@ -90,7 +90,6 @@ class nsIDOMDocumentType;
 class nsScriptLoader;
 class nsIContentSink;
 class nsIScriptEventManager;
-class nsICSSLoader;
 class nsHTMLStyleSheet;
 class nsHTMLCSSStyleSheet;
 class nsILayoutHistoryState;
@@ -106,6 +105,10 @@ class nsFrameLoader;
 class nsIBoxObject;
 
 namespace mozilla {
+namespace css {
+class Loader;
+} 
+
 namespace dom {
 class Link;
 } 
@@ -568,7 +571,7 @@ public:
   
 
 
-  nsICSSLoader* CSSLoader() const {
+  mozilla::css::Loader* CSSLoader() const {
     return mCSSLoader;
   }
 
@@ -1333,7 +1336,7 @@ protected:
   
   
   nsNodeInfoManager* mNodeInfoManager; 
-  nsICSSLoader* mCSSLoader; 
+  mozilla::css::Loader* mCSSLoader; 
 
   
   
