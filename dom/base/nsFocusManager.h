@@ -181,6 +181,8 @@ protected:
 
 
 
+
+
   PRBool Blur(nsPIDOMWindow* aWindowToClear,
               nsPIDOMWindow* aAncestorWindowToFocus,
               PRBool aIsLeavingDocument);
