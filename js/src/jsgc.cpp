@@ -90,12 +90,10 @@
 
 
 
-
-#if HAS_POSIX_MEMALIGN && MOZ_MEMORY_WINDOWS
-JS_BEGIN_EXTERN_C
-extern int
-posix_memalign(void **memptr, size_t alignment, size_t size);
-JS_END_EXTERN_C
+#ifdef MOZ_MEMORY
+extern "C" {
+#include "../../memory/jemalloc/jemalloc.h"
+}
 #endif
 
 
@@ -1686,7 +1684,9 @@ unsigned gchpos = 0;
 
 #ifdef JS_THREADSAFE
 
-const JSGCFreeListSet js_GCEmptyFreeListSet;
+const JSGCFreeListSet js_GCEmptyFreeListSet = {
+    { NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL }, NULL
+};
 
 static void
 TrimGCFreeListsPool(JSRuntime *rt, uintN keepCount)
