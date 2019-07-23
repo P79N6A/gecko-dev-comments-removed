@@ -225,7 +225,8 @@ function next_test() {
 
   
   
-  os.addObserver(bg, TOPIC_PLACES_INIT_COMPLETE, false);
+  if (testIndex > 0)
+    os.addObserver(bg, TOPIC_PLACES_INIT_COMPLETE, false);
 
   
   let test = tests.shift();
