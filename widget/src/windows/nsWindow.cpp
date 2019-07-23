@@ -3655,12 +3655,20 @@ nsWindow::IsAsyncResponseEvent(UINT aMsg, LRESULT& aResult)
   return false;
 }
 
-
 void
-nsWindow::IPCWindowProcHandler(HWND& hWnd, UINT& msg, WPARAM& wParam, LPARAM& lParam)
+nsWindow::IPCWindowProcHandler(UINT& msg, WPARAM& wParam, LPARAM& lParam)
 {
   NS_ASSERTION(!mozilla::ipc::SyncChannel::IsPumpingMessages(),
                "Failed to prevent a nonqueued message from running!");
+
+  
+  if (mWindowType == eWindowType_plugin && msg == WM_SETFOCUS &&
+      ::GetPropW(mWnd, L"PluginInstanceParentProperty")) {
+      ::ReplyMessage(0);
+      return;
+  }
+
+  
   if (mozilla::ipc::RPCChannel::IsSpinLoopActive() &&
       (::InSendMessageEx(NULL)&(ISMEX_REPLIED|ISMEX_SEND)) == ISMEX_SEND) {
     LRESULT res;
@@ -3695,8 +3703,12 @@ nsWindow::IPCWindowProcHandler(HWND& hWnd, UINT& msg, WPARAM& wParam, LPARAM& lP
 
 LRESULT CALLBACK nsWindow::WindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
+  
+  nsWindow *someWindow = GetNSWindowPtr(hWnd);
+
 #ifdef MOZ_IPC
-  IPCWindowProcHandler(hWnd, msg, wParam, lParam);
+  if (someWindow)
+    someWindow->IPCWindowProcHandler(msg, wParam, lParam);
 #endif
 
   
@@ -3706,9 +3718,6 @@ LRESULT CALLBACK nsWindow::WindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM
   LRESULT popupHandlingResult;
   if ( DealWithPopups(hWnd, msg, wParam, lParam, &popupHandlingResult) )
     return popupHandlingResult;
-
-  
-  nsWindow *someWindow = GetNSWindowPtr(hWnd);
 
   
   
