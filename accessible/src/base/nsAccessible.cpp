@@ -3152,12 +3152,13 @@ PRInt32 nsAccessible::TextLength(nsIAccessible *aAccessible)
   NS_ASSERTION(pAccNode, "QI to nsPIAccessNode failed");
 
   nsIFrame *frame = pAccNode->GetFrame();
-  if (frame) { 
+  if (frame && frame->GetType() == nsAccessibilityAtoms::textFrame) {
+    
     nsIContent *content = frame->GetContent();
     if (content) {
       PRUint32 length;
       nsresult rv = nsHyperTextAccessible::ContentToRenderedOffset(frame, content->TextLength(), &length);
-      return NS_SUCCEEDED(rv) ? length : -1;
+      return NS_SUCCEEDED(rv) ? static_cast<PRInt32>(length) : -1;
     }
   }
 
