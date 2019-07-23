@@ -226,6 +226,8 @@ enum {
 #define NS_MODIFIER_ALT      4
 #define NS_MODIFIER_META     8
 
+static PRBool GetWindowShowCaret(nsIDocument *aDocument);
+
 static nsIDocument *
 GetDocumentFromWindow(nsIDOMWindow *aWindow)
 {
@@ -1042,10 +1044,19 @@ nsEventStateManager::PreHandleEvent(nsPresContext* aPresContext,
   case NS_LOSTFOCUS:
     {
       
-      if (mBrowseWithCaret && mPresContext) {
+      if (mPresContext) {
         nsIPresShell *presShell = mPresContext->GetPresShell();
-        if (presShell)
-           SetContentCaretVisible(presShell, mCurrentFocus, PR_FALSE);
+        if (presShell) {
+           nsCOMPtr<nsICaret> caret;
+           presShell->GetCaret(getter_AddRefs(caret));
+           if (caret) {
+             PRBool caretVisible = PR_FALSE;
+             caret->GetCaretVisible(&caretVisible);
+             if (caretVisible) {
+               SetContentCaretVisible(presShell, mCurrentFocus, PR_FALSE);
+             }
+           }
+        }
       }
 
       
@@ -4714,7 +4725,7 @@ nsEventStateManager::SendFocusBlur(nsPresContext* aPresContext,
     }
   }
 
-  if (mBrowseWithCaret)
+  if (mBrowseWithCaret || GetWindowShowCaret(mDocument))
     SetContentCaretVisible(presShell, aContent, PR_TRUE);
 
   return NS_OK;
@@ -5342,6 +5353,7 @@ nsEventStateManager::SetCaretEnabled(nsIPresShell *aPresShell, PRBool aEnabled)
 
   selCon->SetCaretEnabled(aEnabled);
   caret->SetCaretVisible(aEnabled);
+  caret->SetIgnoreUserModify(aEnabled);
 
   return NS_OK;
 }
@@ -5374,9 +5386,6 @@ nsEventStateManager::SetContentCaretVisible(nsIPresShell* aPresShell,
       caret->SetCaretDOMSelection(domSelection);
 
       
-      caret->SetIgnoreUserModify(aVisible);
-
-      
       
       
 
@@ -5388,11 +5397,30 @@ nsEventStateManager::SetContentCaretVisible(nsIPresShell* aPresShell,
   return NS_OK;
 }
 
-
 PRBool
 nsEventStateManager::GetBrowseWithCaret()
 {
   return mBrowseWithCaret;
+}
+
+
+
+static PRBool
+GetWindowShowCaret(nsIDocument *aDocument)
+{
+  if (!aDocument) return PR_FALSE;
+
+  nsPIDOMWindow* window = aDocument->GetWindow();
+  if (!window) return PR_FALSE;
+
+  nsCOMPtr<nsIContent> docContent =
+    do_QueryInterface(window->GetFrameElementInternal());
+  if (!docContent) return PR_FALSE;
+
+  return docContent->AttrValueIs(kNameSpaceID_None,
+                                 nsGkAtoms::showcaret,
+                                 NS_LITERAL_STRING("true"),
+                                 eCaseMatters);
 }
 
 void
@@ -5436,12 +5464,20 @@ nsEventStateManager::ResetBrowseWithCaret()
 
   mBrowseWithCaret = browseWithCaret;
 
-
   
   
   
   if (presShell && gLastFocusedDocument && gLastFocusedDocument == mDocument) {
-    SetContentCaretVisible(presShell, mCurrentFocus, browseWithCaret);
+
+    
+    PRBool isFocusEditable =
+      (mCurrentFocus) ? mCurrentFocus->HasFlag(NODE_IS_EDITABLE) : PR_FALSE;
+
+    PRBool caretShouldBeVisible = isFocusEditable ||
+                                  browseWithCaret ||
+                                  GetWindowShowCaret(mDocument);
+
+    SetContentCaretVisible(presShell, mCurrentFocus, caretShouldBeVisible);
   }
 }
 

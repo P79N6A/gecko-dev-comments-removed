@@ -171,7 +171,9 @@ protected:
     nscoord               mBidiIndicatorSize;   
 
     PRPackedBool          mVisible;           
+
     PRPackedBool          mDrawn;             
+
     PRPackedBool          mReadOnly;          
     PRPackedBool          mShowDuringSelection; 
 
