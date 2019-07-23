@@ -1649,6 +1649,12 @@ NS_METHOD nsWindow::IsEnabled(PRBool *aState)
 NS_METHOD nsWindow::SetFocus(PRBool aRaise)
 {
   if (mWnd) {
+#ifdef WINSTATE_DEBUG_OUTPUT
+    if (mWnd == GetTopLevelHWND(mWnd))
+      printf("*** SetFocus: [  top] raise=%d\n", aRaise);
+    else
+      printf("*** SetFocus: [child] raise=%d\n", aRaise);
+#endif
     
     HWND toplevelWnd = GetTopLevelHWND(mWnd);
     if (aRaise && ::IsIconic(toplevelWnd)) {
@@ -4825,23 +4831,88 @@ BOOL nsWindow::OnInputLangChange(HKL aHKL)
   return PR_FALSE;   
 }
 
+#if !defined(WINCE)
 void nsWindow::OnWindowPosChanged(WINDOWPOS *wp, PRBool& result)
 {
   if (wp == nsnull)
     return;
 
+#ifdef WINSTATE_DEBUG_OUTPUT
+  if (mWnd == GetTopLevelHWND(mWnd))
+    printf("*** OnWindowPosChanged: [  top] ");
+  else
+    printf("*** OnWindowPosChanged: [child] ");
+  printf("WINDOWPOS flags:");
+  if (wp->flags & SWP_FRAMECHANGED)
+    printf("SWP_FRAMECHANGED ");
+  if (wp->flags & SWP_SHOWWINDOW)
+    printf("SWP_SHOWWINDOW ");
+  if (wp->flags & SWP_NOSIZE)
+    printf("SWP_NOSIZE ");
+  if (wp->flags & SWP_HIDEWINDOW)
+    printf("SWP_HIDEWINDOW ");
+  printf("\n");
+#endif
+
   
-  
+  if (wp->flags & SWP_FRAMECHANGED) {
+    nsSizeModeEvent event(PR_TRUE, NS_SIZEMODE, this);
+
+    WINDOWPLACEMENT pl;
+    pl.length = sizeof(pl);
+    ::GetWindowPlacement(mWnd, &pl);
+
+    if (pl.showCmd == SW_SHOWMAXIMIZED)
+      event.mSizeMode = nsSizeMode_Maximized;
+    else if (pl.showCmd == SW_SHOWMINIMIZED)
+      event.mSizeMode = nsSizeMode_Minimized;
+    else
+      event.mSizeMode = nsSizeMode_Normal;
+
+    
+    
+    
+    
+    
+    
+    
+    mSizeMode = event.mSizeMode;
+
+#ifdef WINSTATE_DEBUG_OUTPUT
+    switch (mSizeMode) {
+      case nsSizeMode_Normal:
+          printf("*** mSizeMode: nsSizeMode_Normal\n");
+        break;
+      case nsSizeMode_Minimized:
+          printf("*** mSizeMode: nsSizeMode_Minimized\n");
+        break;
+      case nsSizeMode_Maximized:
+          printf("*** mSizeMode: nsSizeMode_Maximized\n");
+        break;
+      default:
+          printf("*** mSizeMode: ??????\n");
+        break;
+    };
+#endif
+
+    InitEvent(event);
+
+    result = DispatchWindowEvent(&event);
+
+    
+    if (mSizeMode == nsSizeMode_Minimized)
+      return;
+  }
+
   
   if (0 == (wp->flags & SWP_NOSIZE)) {
-    
-    
-    
     RECT r;
-    ::GetWindowRect(mWnd, &r);
     PRInt32 newWidth, newHeight;
-    newWidth = PRInt32(r.right - r.left);
-    newHeight = PRInt32(r.bottom - r.top);
+
+    ::GetWindowRect(mWnd, &r);
+
+    newWidth  = r.right - r.left;
+    newHeight = r.bottom - r.top;
     nsIntRect rect(wp->x, wp->y, newWidth, newHeight);
 
 #ifdef MOZ_XUL
@@ -4854,87 +4925,56 @@ void nsWindow::OnWindowPosChanged(WINDOWPOS *wp, PRBool& result)
       RECT drect;
 
       
-      drect.left = wp->x + mLastSize.width;
-      drect.top = wp->y;
-      drect.right = drect.left + (newWidth - mLastSize.width);
+      drect.left   = wp->x + mLastSize.width;
+      drect.top    = wp->y;
+      drect.right  = drect.left + (newWidth - mLastSize.width);
       drect.bottom = drect.top + newHeight;
 
       ::RedrawWindow(mWnd, &drect, NULL,
-                     RDW_INVALIDATE | RDW_NOERASE | RDW_NOINTERNALPAINT | RDW_ERASENOW | RDW_ALLCHILDREN);
+                     RDW_INVALIDATE |
+                     RDW_NOERASE |
+                     RDW_NOINTERNALPAINT |
+                     RDW_ERASENOW |
+                     RDW_ALLCHILDREN);
     }
     if (newHeight > mLastSize.height)
     {
       RECT drect;
 
       
-      drect.left = wp->x;
-      drect.top = wp->y + mLastSize.height;
-      drect.right = drect.left + newWidth;
+      drect.left   = wp->x;
+      drect.top    = wp->y + mLastSize.height;
+      drect.right  = drect.left + newWidth;
       drect.bottom = drect.top + (newHeight - mLastSize.height);
 
       ::RedrawWindow(mWnd, &drect, NULL,
-                     RDW_INVALIDATE | RDW_NOERASE | RDW_NOINTERNALPAINT | RDW_ERASENOW | RDW_ALLCHILDREN);
+                     RDW_INVALIDATE |
+                     RDW_NOERASE |
+                     RDW_NOINTERNALPAINT |
+                     RDW_ERASENOW |
+                     RDW_ALLCHILDREN);
     }
 
-    mBounds.width  = newWidth;
-    mBounds.height = newHeight;
-    mLastSize.width = newWidth;
+    mBounds.width    = newWidth;
+    mBounds.height   = newHeight;
+    mLastSize.width  = newWidth;
     mLastSize.height = newHeight;
 
-    
-    
-    
-    
-    HWND toplevelWnd = GetTopLevelHWND(mWnd);
-    if (mWnd == toplevelWnd && IsIconic(toplevelWnd)) {
-      result = PR_FALSE;
-      return;
-    }
+#ifdef WINSTATE_DEBUG_OUTPUT
+    printf("*** Resize window: %d x %d x %d x %d\n", wp->x, wp->y, newWidth, newHeight);
+#endif
 
-    
     
     if (::GetClientRect(mWnd, &r)) {
-      rect.width  = PRInt32(r.right - r.left);
-      rect.height = PRInt32(r.bottom - r.top);
+      rect.width  = r.right - r.left;
+      rect.height = r.bottom - r.top;
     }
+    
+    
     result = OnResize(rect);
   }
-
-  
-  
-  
-  
-  
-  if (wp->flags & SWP_FRAMECHANGED && ::IsWindowVisible(mWnd)) {
-    nsSizeModeEvent event(PR_TRUE, NS_SIZEMODE, this);
-#ifndef WINCE
-    WINDOWPLACEMENT pl;
-    pl.length = sizeof(pl);
-    ::GetWindowPlacement(mWnd, &pl);
-
-    if (pl.showCmd == SW_SHOWMAXIMIZED)
-      event.mSizeMode = nsSizeMode_Maximized;
-    else if (pl.showCmd == SW_SHOWMINIMIZED)
-      event.mSizeMode = nsSizeMode_Minimized;
-    else
-      event.mSizeMode = nsSizeMode_Normal;
-#else
-    event.mSizeMode = mSizeMode;
-#endif
-    
-    
-    
-    
-    
-    
-    
-    mSizeMode = event.mSizeMode;
-
-    InitEvent(event);
-
-    result = DispatchWindowEvent(&event);
-  }
 }
+#endif 
 
 #if !defined(WINCE)
 void nsWindow::OnWindowPosChanging(LPWINDOWPOS& info)
