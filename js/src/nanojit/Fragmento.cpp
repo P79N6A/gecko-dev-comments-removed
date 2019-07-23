@@ -192,7 +192,7 @@ namespace nanojit
 #ifdef MEMORY_INFO
 			ChangeSizeExplicit("NanoJitMem", 1, _gcHeap->Size(memory));
 #endif
-			NanoAssert((int*)memory == pageTop(memory));
+            NanoAssert((uintptr_t)memory == pageTop(memory));
 			
 
             entry = NJ_NEW(gc, AllocEntry);

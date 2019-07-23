@@ -856,7 +856,7 @@ Assembler::nativePageSetup()
 
         
         
-        _nSlot = pageDataStart(_nIns); 
+        _nSlot = (int*)pageDataStart(_nIns);
     }
 }
 
@@ -906,7 +906,7 @@ Assembler::underrunProtect(int bytes)
 
         
         
-        _nSlot = pageDataStart(_nIns);
+        _nSlot = (int*)pageDataStart(_nIns);
 
         
         
@@ -915,7 +915,7 @@ Assembler::underrunProtect(int bytes)
         JMP_nochk(target);
     } else if (!_nSlot) {
         
-        _nSlot = pageDataStart(_nIns);
+        _nSlot = (int*)pageDataStart(_nIns);
     }
 }
 

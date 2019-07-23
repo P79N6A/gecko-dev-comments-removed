@@ -357,7 +357,6 @@ namespace nanojit
 			NanoAssert(isCall());
 			return c.imm8b;
 		}
-        size_t callInsSlots() const;
 		const CallInfo *callInfo() const;
 	};
 	typedef LIns*		LInsp;
@@ -438,16 +437,19 @@ namespace nanojit
 	};
 
 
-	
-	
-	
-	
-	
-	
-	
-#define MAX_SKIP_BYTES (NJ_PAGE_SIZE			\
-						- sizeof(PageHeader)	\
-						- 6*sizeof(LIns))
+    
+    #define NJ_PAGE_CODE_AREA_SZB       (NJ_PAGE_SIZE - sizeof(PageHeader))
+
+    
+    
+    
+    #define NJ_MAX_LINS_SZB             (NJ_PAGE_CODE_AREA_SZB - sizeof(LIns))
+
+    
+    
+    
+    #define NJ_MAX_SKIP_PAYLOAD_SZB     (NJ_MAX_LINS_SZB - sizeof(LIns))
+ 
 
 #ifdef NJ_VERBOSE
 	extern const char* lirNames[];
@@ -680,14 +682,15 @@ namespace nanojit
 			virtual ~LirBuffer();
 			void        clear();
             void        rewind();
-			LInsp		next();
+            uintptr_t   makeRoom(size_t szB);   
+            LInsp       lastWritten();          
 			bool		outOMem() { return _noMem != 0; }
 			
 			debug_only (void validate() const;)
 			verbose_only(DWB(LirNameMap*) names;)
 			
-			int32_t insCount();
-			int32_t byteCount();
+            int32_t insCount();
+            size_t  byteCount();
 
 			
 			struct 
@@ -701,16 +704,14 @@ namespace nanojit
             LInsp state,param1,sp,rp;
             LInsp savedRegs[NumSavedRegs];
             bool explicitSavedRegs;
-			
-		protected:
-			friend class LirBufWriter;
 
-			LInsp		commit(uint32_t count);
+		protected:
 			Page*		pageAlloc();
+            void        moveToNewPage(uintptr_t addrOfLastLInsOnCurrentPage);
 
 			PageList	_pages;
 			Page*		_nextPage; 
-			LInsp		_unused;	
+            uintptr_t   _unused;    
 			int			_noMem;		
 	};	
 
@@ -738,12 +739,6 @@ namespace nanojit
 			LInsp	insBranch(LOpcode v, LInsp condition, LInsp to);
             LInsp   insAlloc(int32_t size);
             LInsp   insSkip(size_t);
-
-		protected:
-			void	ensureRoom(uint32_t count);
-			
-		private:
-            LInsp   insSkipWithoutBuffer(LInsp to);     
 	};
 
 	class LirFilter
@@ -767,7 +762,7 @@ namespace nanojit
 		LInsp _i; 
 
 	public:
-		LirReader(LirBuffer* buf) : LirFilter(0), _i(buf->next()-1) { }
+        LirReader(LirBuffer* buf) : LirFilter(0), _i(buf->lastWritten()) { }
 		LirReader(LInsp i) : LirFilter(0), _i(i) { }
 		virtual ~LirReader() {}
 

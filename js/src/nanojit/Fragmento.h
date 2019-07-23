@@ -58,7 +58,10 @@ namespace nanojit
     struct Page: public PageHeader
     {
         union {
-            LIns lir[(NJ_PAGE_SIZE-sizeof(PageHeader))/sizeof(LIns)];
+            
+            
+            
+            int8_t lir[NJ_PAGE_SIZE-sizeof(PageHeader)];
             NIns code[(NJ_PAGE_SIZE-sizeof(PageHeader))/sizeof(NIns)];
         };
     };
