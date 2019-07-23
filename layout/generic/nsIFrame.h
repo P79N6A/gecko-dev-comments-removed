@@ -2154,6 +2154,12 @@ protected:
 
 
 
+  nsRect GetAdditionalOverflow(const nsRect& aOverflowArea, const nsSize& aNewSize);
+
+  
+
+
+
 
 
 

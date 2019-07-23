@@ -1028,6 +1028,26 @@ private:
 
 
 
+class nsDisplayBoxShadow : public nsDisplayItem {
+public:
+  nsDisplayBoxShadow(nsIFrame* aFrame) : nsDisplayItem(aFrame) {
+    MOZ_COUNT_CTOR(nsDisplayBoxShadow);
+  }
+#ifdef NS_BUILD_REFCNT_LOGGING
+  virtual ~nsDisplayBoxShadow() {
+    MOZ_COUNT_DTOR(nsDisplayBoxShadow);
+  }
+#endif
+
+  virtual void Paint(nsDisplayListBuilder* aBuilder, nsIRenderingContext* aCtx,
+     const nsRect& aDirtyRect);
+  virtual nsRect GetBounds(nsDisplayListBuilder* aBuilder);
+  NS_DISPLAY_DECL_NAME("BoxShadow")
+};
+
+
+
+
 class nsDisplayOutline : public nsDisplayItem {
 public:
   nsDisplayOutline(nsIFrame* aFrame) : nsDisplayItem(aFrame) {

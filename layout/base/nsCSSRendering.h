@@ -60,6 +60,11 @@ public:
 
   static void Shutdown();
   
+  static void PaintBoxShadow(nsPresContext* aPresContext,
+                             nsIRenderingContext& aRenderingContext,
+                             nsIFrame* aForFrame,
+                             const nsPoint& aForFramePt);
+
   
 
 
@@ -305,6 +310,11 @@ protected:
                                                const gfxFloat aOffset,
                                                const PRUint8 aDecoration,
                                                const PRUint8 aStyle);
+
+  
+  static PRBool GetBorderRadiusTwips(const nsStyleSides& aBorderRadius,
+                                     const nscoord& aFrameWidth,
+                                     PRInt32 aTwipsRadii[4]);
 };
 
 
@@ -323,6 +333,8 @@ protected:
 class nsContextBoxBlur {
 public:
   
+
+
 
 
 
