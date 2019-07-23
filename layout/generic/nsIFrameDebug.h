@@ -78,9 +78,7 @@ public:
 
 
 
-
-
-  NS_IMETHOD  DumpRegressionData(nsPresContext* aPresContext, FILE* out, PRInt32 aIndent, PRBool aIncludeStyleData) = 0;
+  NS_IMETHOD  DumpRegressionData(nsPresContext* aPresContext, FILE* out, PRInt32 aIndent) = 0;
 
   NS_IMETHOD  VerifyTree() const = 0;
 
