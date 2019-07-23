@@ -165,8 +165,7 @@ jsdtrace_function_name(JSContext *cx, JSStackFrame *fp, JSFunction *fun)
 
 
             break;
-          default: 
-            break;
+          default: ;
         }
 
         switch ((JSOp) *pc) {
