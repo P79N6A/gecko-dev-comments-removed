@@ -1962,14 +1962,35 @@ JSCompiler::setFunctionKinds(JSFunctionBox *funbox, uint16& tcflags)
 
 
 
-                            if (!afunbox || afunbox->node->isFunArg()) {
-                                JS_ASSERT_IF(!afunbox,
-                                             lexdep->isLet() ||
-                                             (!(tcflags & TCF_IN_FUNCTION) &&
-                                              callerFrame && callerFrame->fun));
+
+
+
+
+
+
+
+
+                            JS_ASSERT(afunbox);
+
+                            
+
+
+
+
+
+                            if (!afunbox || afunbox->node->isFunArg())
                                 goto break2;
-                            }
                         }
+
+                        
+
+
+
+
+
+                        JSFunctionBox *parentbox = afunbox->parent ? afunbox->parent : afunbox;
+                        if (parentbox->tcflags & TCF_FUN_HEAVYWEIGHT)
+                            break;
 
                         
 
