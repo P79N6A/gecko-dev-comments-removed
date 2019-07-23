@@ -183,10 +183,7 @@ function windowObserver(aSubject, aTopic, aData) {
   gLibrary = aSubject.QueryInterface(Ci.nsIDOMWindow);
   gLibrary.addEventListener("load", function onLoad(event) {
     gLibrary.removeEventListener("load", onLoad, false);
-    executeSoon(function () {
-      
-      nextTest();
-    });
+    executeSoon(nextTest);
   }, false);
 }
 
