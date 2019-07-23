@@ -153,9 +153,6 @@ function downloadCompleted(aDownload)
     dl.setAttribute("maxBytes", aDownload.size);
 
     
-    updateTime(dl);
-
-    
     
     if (gSearchTerms.length == 0) {
       

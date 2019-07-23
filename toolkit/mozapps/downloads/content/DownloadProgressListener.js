@@ -87,7 +87,11 @@ DownloadProgressListener.prototype = {
 
       
       dl.setAttribute("state", state);
+
+      
+      updateTime(dl);
       updateStatus(dl);
+
       gDownloadViewController.onCommandUpdate();
     } catch (e) { }
   },
