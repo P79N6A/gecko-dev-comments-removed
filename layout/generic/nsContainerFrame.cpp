@@ -1433,7 +1433,7 @@ nsOverflowContinuationTracker::Finish(nsIFrame* aChild)
       
       nsIFrame* prevOverflowCont = mPrevOverflowCont;
       StepForward();
-      if (mPrevOverflowCont == aChild) {
+      if (mPrevOverflowCont == aChild->GetNextInFlow()) {
         
         
         mPrevOverflowCont = prevOverflowCont;
