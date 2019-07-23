@@ -5537,14 +5537,6 @@ nsNavHistory::Observe(nsISupports *aSubject, const char *aTopic,
     NS_ENSURE_SUCCESS(rv, rv);
 
     
-    nsCOMPtr<nsICategoryManager> catMan =
-      do_GetService(NS_CATEGORYMANAGER_CONTRACTID);
-    if (catMan) {
-      (void)catMan->DeleteCategory("bookmark-observers");
-      (void)catMan->DeleteCategory("history-observers");
-    }
-
-    
     
   }
 #ifdef MOZ_XUL
