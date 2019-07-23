@@ -2065,7 +2065,7 @@ nsCanvasRenderingContext2D::SetFont(const nsAString& font)
     gfxFontStyle style(fontStyle->mFont.style,
                        fontStyle->mFont.weight,
                        fontStyle->mFont.stretch,
-                       NSAppUnitsToFloatPixels(fontSize, aupcp),
+                       NSAppUnitsToFloatPixels(fontSize, float(aupcp)),
                        language,
                        fontStyle->mFont.sizeAdjust,
                        fontStyle->mFont.systemFont,
@@ -3328,7 +3328,8 @@ nsCanvasRenderingContext2D::DrawWindow(nsIDOMWindow* aWindow, float aX, float aY
 
     
     
-    if (!gfxASurface::CheckSurfaceSize(gfxIntSize(aW, aH), 0xffff))
+    if (!gfxASurface::CheckSurfaceSize(gfxIntSize(PRInt32(aW), PRInt32(aH)),
+                                       0xffff))
         return NS_ERROR_FAILURE;
 
     
