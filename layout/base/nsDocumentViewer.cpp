@@ -1263,6 +1263,8 @@ DocumentViewerImpl::PageHide(PRBool aIsUnload)
   
   if (mPresShell)
     mPresShell->HidePopups();
+
+  return NS_OK;
 }
 
 static void
