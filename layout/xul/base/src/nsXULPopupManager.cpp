@@ -64,6 +64,9 @@
 #include "nsIBaseWindow.h"
 #include "nsIDocShellTreeItem.h"
 #include "nsIDOMMouseEvent.h"
+#include "nsICaret.h"
+#include "nsIDocument.h"
+#include "nsPIDOMWindow.h"
 
 
 nsNavigationDirection DirectionFromKeyCode_lr_tb [6] = {
@@ -489,6 +492,44 @@ nsXULPopupManager::ShowPopupWithAnchorAlign(nsIContent* aPopup,
                         popupFrame->PopupType(), aIsContextMenu, PR_FALSE);
 }
 
+static void
+CheckCaretDrawingState(nsIDocument *aDocument) {
+
+  
+  
+  if (!aDocument)
+    return;
+
+  nsCOMPtr<nsISupports> container = aDocument->GetContainer();
+  nsCOMPtr<nsPIDOMWindow> windowPrivate = do_GetInterface(container);
+  if (!windowPrivate)
+    return;
+
+  nsIFocusController *focusController =
+    windowPrivate->GetRootFocusController();
+  if (!focusController)
+    return;
+
+  nsCOMPtr<nsIDOMWindowInternal> windowInternal;
+  focusController->GetFocusedWindow(getter_AddRefs(windowInternal));
+  if (!windowInternal)
+    return;
+
+  nsCOMPtr<nsIDOMDocument> domDoc;
+  nsCOMPtr<nsIDocument> focusedDoc;
+  windowInternal->GetDocument(getter_AddRefs(domDoc));
+  focusedDoc = do_QueryInterface(domDoc);
+  if (!focusedDoc)
+    return;
+
+  nsIPresShell* presShell = focusedDoc->GetPrimaryShell();
+
+  nsCOMPtr<nsICaret> caret;
+  nsresult res = presShell->GetCaret(getter_AddRefs(caret));
+  caret->CheckCaretDrawingState();
+
+}
+
 void
 nsXULPopupManager::ShowPopupCallback(nsIContent* aPopup,
                                      nsMenuPopupFrame* aPopupFrame,
@@ -555,6 +596,10 @@ nsXULPopupManager::ShowPopupCallback(nsIContent* aPopup,
     if (ismenu)
       UpdateMenuItems(aPopup);
   }
+
+  
+  
+  CheckCaretDrawingState(aPopup->GetCurrentDoc());
 }
 
 void

@@ -69,6 +69,8 @@
 #include "nsDisplayList.h"
 #include "nsCaret.h"
 #include "nsTextFrame.h"
+#include "nsXULPopupManager.h"
+#include "nsMenuPopupFrame.h"
 
 
 
@@ -934,6 +936,13 @@ void nsCaret::GetViewForRendering(nsIFrame *caretFrame,
   *outRenderingView = returnView;
 }
 
+nsresult nsCaret::CheckCaretDrawingState() 
+{
+  
+  if (mDrawn && (!mVisible || !MustDrawCaret(PR_TRUE)))
+    EraseCaret();
+  return NS_OK;
+}
 
 
 
@@ -945,7 +954,9 @@ void nsCaret::GetViewForRendering(nsIFrame *caretFrame,
 
 
 
-PRBool nsCaret::MustDrawCaret()
+
+
+PRBool nsCaret::MustDrawCaret(PRBool aIgnoreDrawnState)
 {
   nsCOMPtr<nsIPresShell> presShell = do_QueryReferent(mPresShell);
   if (presShell) {
@@ -955,7 +966,7 @@ PRBool nsCaret::MustDrawCaret()
       return PR_FALSE;
   }
 
-  if (mDrawn)
+  if (!aIgnoreDrawnState && mDrawn)
     return PR_TRUE;
 
   nsCOMPtr<nsISelection> domSelection = do_QueryReferent(mDomSelectionWeak);
@@ -969,9 +980,55 @@ PRBool nsCaret::MustDrawCaret()
   if (mShowDuringSelection)
     return PR_TRUE;      
 
+  if (IsMenuPopupHidingCaret())
+    return PR_FALSE;
+
   return isCollapsed;
 }
 
+PRBool nsCaret::IsMenuPopupHidingCaret()
+{
+  
+  nsXULPopupManager *popMgr = nsXULPopupManager::GetInstance();
+  nsTArray<nsIFrame*> popups = popMgr->GetOpenPopups();
+
+  if (popups.Length() == 0)
+    return PR_FALSE; 
+
+  
+  
+  nsCOMPtr<nsIDOMNode> node;
+  nsCOMPtr<nsISelection> domSelection = do_QueryReferent(mDomSelectionWeak);
+  if (!domSelection)
+    return PR_TRUE; 
+  domSelection->GetFocusNode(getter_AddRefs(node));
+  if (!node)
+    return PR_TRUE; 
+  nsCOMPtr<nsIContent> caretContent = do_QueryInterface(node);
+
+  
+  
+  for (PRUint32 i=0; i<popups.Length(); i++) {
+    nsMenuPopupFrame* popupFrame = static_cast<nsMenuPopupFrame*>(popups[i]);
+    nsIContent* popupContent = popupFrame->GetContent();
+
+    if (nsContentUtils::ContentIsDescendantOf(caretContent, popupContent)) {
+      
+      
+      return PR_FALSE;
+    }
+
+    if (popupFrame->PopupType() == ePopupTypeMenu) {
+      
+      
+      
+      return PR_TRUE;
+    }
+  }
+
+  
+  return PR_FALSE;
+}
 
 
 
@@ -982,7 +1039,7 @@ PRBool nsCaret::MustDrawCaret()
 void nsCaret::DrawCaret(PRBool aInvalidate)
 {
   
-  if (!MustDrawCaret())
+  if (!MustDrawCaret(PR_FALSE))
     return;
   
   nsCOMPtr<nsIDOMNode> node;

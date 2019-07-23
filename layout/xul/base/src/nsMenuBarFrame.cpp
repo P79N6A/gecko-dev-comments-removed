@@ -86,8 +86,7 @@ nsMenuBarFrame::nsMenuBarFrame(nsIPresShell* aShell, nsStyleContext* aContext):
     mStayActive(PR_FALSE),
     mIsActive(PR_FALSE),
     mCurrentMenu(nsnull),
-    mTarget(nsnull),
-    mCaretWasVisible(PR_FALSE)
+    mTarget(nsnull)
 {
 } 
 
@@ -150,57 +149,6 @@ nsMenuBarFrame::SetActive(PRBool aActiveFlag)
   else {
     RemoveKeyboardNavigator();
   }
-  
-  
-  
-  
-  do {
-    nsIPresShell *presShell = PresContext()->GetPresShell();
-    if (!presShell)
-      break;
-
-    nsIDocument *document = presShell->GetDocument();
-    if (!document)
-      break;
-
-    nsCOMPtr<nsISupports> container = document->GetContainer();
-    nsCOMPtr<nsPIDOMWindow> windowPrivate = do_GetInterface(container);
-    if (!windowPrivate)
-      break;
-
-    nsIFocusController *focusController =
-      windowPrivate->GetRootFocusController();
-    if (!focusController)
-      break;
-
-    nsCOMPtr<nsIDOMWindowInternal> windowInternal;
-    focusController->GetFocusedWindow(getter_AddRefs(windowInternal));
-    if (!windowInternal)
-      break;
-
-    nsCOMPtr<nsIDOMDocument> domDoc;
-    nsCOMPtr<nsIDocument> focusedDoc;
-    windowInternal->GetDocument(getter_AddRefs(domDoc));
-    focusedDoc = do_QueryInterface(domDoc);
-    if (!focusedDoc)
-      break;
-
-    presShell = focusedDoc->GetPrimaryShell();
-    nsCOMPtr<nsISelectionController> selCon(do_QueryInterface(presShell));
-    
-    if (!selCon)
-      break;
-
-    if (mIsActive) {
-      PRBool isCaretVisible;
-      selCon->GetCaretEnabled(&isCaretVisible);
-      mCaretWasVisible |= isCaretVisible;
-    }
-    selCon->SetCaretEnabled(!mIsActive && mCaretWasVisible);
-    if (!mIsActive) {
-      mCaretWasVisible = PR_FALSE;
-    }
-  } while (0);
 
   NS_NAMED_LITERAL_STRING(active, "DOMMenuBarActive");
   NS_NAMED_LITERAL_STRING(inactive, "DOMMenuBarInactive");

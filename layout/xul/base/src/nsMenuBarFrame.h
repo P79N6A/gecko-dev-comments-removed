@@ -139,9 +139,6 @@ protected:
 
   nsIDOMEventTarget* mTarget;
 
-private:
-  PRBool mCaretWasVisible;
-
 }; 
 
 #endif

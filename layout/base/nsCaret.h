@@ -120,7 +120,10 @@ class nsCaret : public nsICaret,
                                              PRUint8 aBidiLevel,
                                              nsIFrame** aReturnFrame,
                                              PRInt32* aReturnOffset);
-  protected:
+
+    NS_IMETHOD CheckCaretDrawingState();
+
+protected:
 
     void          KillTimer();
     nsresult      PrimeTimer();
@@ -138,7 +141,14 @@ class nsCaret : public nsICaret,
                                          nsFrameSelection::HINT aFrameHint,
                                          PRUint8 aBidiLevel,
                                          PRBool aInvalidate);
-    PRBool        MustDrawCaret();
+
+    
+    
+    
+    
+    
+    PRBool        MustDrawCaret(PRBool aIgnoreDrawnState);
+
     void          DrawCaret(PRBool aInvalidate);
     void          DrawCaretAfterBriefDelay();
     nsresult      UpdateCaretRects(nsIFrame* aFrame, PRInt32 aFrameOffset);
@@ -156,6 +166,16 @@ class nsCaret : public nsICaret,
     void          ToggleDrawnStatus() { mDrawn = !mDrawn; }
 
     already_AddRefed<nsFrameSelection> GetFrameSelection();
+
+    
+    
+    
+    
+    
+    
+    
+    
+    PRBool IsMenuPopupHidingCaret();
 
 protected:
 
