@@ -5480,6 +5480,18 @@ Statement(JSContext *cx, JSTokenStream *ts, JSTreeContext *tc)
         pn->pn_type = TOK_SEMI;
         pn->pn_pos = pn2->pn_pos;
         pn->pn_kid = pn2;
+
+        
+
+
+
+
+
+        if (PN_TYPE(pn2) == TOK_ASSIGN && PN_OP(pn2) == JSOP_NOP &&
+            PN_OP(pn2->pn_left) == JSOP_SETPROP &&
+            PN_OP(pn2->pn_right) == JSOP_LAMBDA) {
+            pn2->pn_left->pn_op = JSOP_SETMETHOD;
+        }
         break;
     }
 

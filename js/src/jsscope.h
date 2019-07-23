@@ -286,12 +286,13 @@ struct JSScope {
         BRANDED                 = 0x0004,
         INDEXED_PROPERTIES      = 0x0008,
         OWN_SHAPE               = 0x0010,
+        METHOD_BARRIER          = 0x0020,
 
         
 
 
 
-        SHAPE_REGEN             = 0x0020
+        SHAPE_REGEN             = 0x0040
     };
 
     bool hadMiddleDelete()      { return flags & MIDDLE_DELETE; }
@@ -321,6 +322,42 @@ struct JSScope {
     void setOwnShape()          { flags |= OWN_SHAPE; }
 
     bool hasRegenFlag(uint8 regenFlag) { return (flags & SHAPE_REGEN) == regenFlag; }
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    bool hasMethodBarrier()     { return flags & METHOD_BARRIER; }
+    void setMethodBarrier()     { flags |= METHOD_BARRIER | BRANDED; }
 
     bool owned()                { return object != NULL; }
 };
@@ -363,7 +400,8 @@ js_CastAsPropertyOp(JSObject *object)
 struct JSScopeProperty {
     jsid            id;                 
     JSPropertyOp    getter;             
-    JSPropertyOp    setter;
+    JSPropertyOp    setter;             
+
     uint32          slot;               
     uint8           attrs;              
     uint8           flags;              
@@ -372,6 +410,53 @@ struct JSScopeProperty {
     JSScopeProperty *kids;              
 
     uint32          shape;              
+
+
+#define SPROP_MARK                      0x01
+#define SPROP_IS_ALIAS                  0x02
+#define SPROP_HAS_SHORTID               0x04
+#define SPROP_FLAG_SHAPE_REGEN          0x08
+#define SPROP_IS_METHOD                 0x10
+
+    bool isMethod() const {
+        return flags & SPROP_IS_METHOD;
+    }
+    JSObject *methodObject() const {
+        JS_ASSERT(isMethod());
+        return js_CastAsObject(getter);
+    }
+    jsval methodValue() const {
+        JS_ASSERT(isMethod());
+        return js_CastAsObjectJSVal(getter);
+    }
+
+    bool hasGetter() const {
+        return attrs & JSPROP_GETTER;
+    }
+    JSObject *getterObject() const {
+        JS_ASSERT(hasGetter());
+        return js_CastAsObject(getter);
+    }
+    jsval getterValue() const {
+        JS_ASSERT(hasGetter());
+        return js_CastAsObjectJSVal(getter);
+    }
+
+    bool hasSetter() const {
+        return attrs & JSPROP_SETTER;
+    }
+    JSObject *setterObject() const {
+        JS_ASSERT(hasSetter());
+        return js_CastAsObject(setter);
+    }
+    jsval setterValue() const {
+        JS_ASSERT(hasSetter());
+        return js_CastAsObjectJSVal(setter);
+    }
+
+    bool methodBarrier(JSContext *cx, JSObject *obj, jsval *vp);
+    bool get(JSContext* cx, JSObject* obj, jsval* vp);
+    bool set(JSContext* cx, JSObject* obj, jsval* vp);
 
     void trace(JSTracer *trc);
 };
@@ -409,12 +494,6 @@ JSScope::has(JSScopeProperty *sprop)
 }
 
 
-#define SPROP_MARK                      0x01
-#define SPROP_IS_ALIAS                  0x02
-#define SPROP_HAS_SHORTID               0x04
-#define SPROP_FLAG_SHAPE_REGEN          0x08
-
-
 
 
 
@@ -429,6 +508,9 @@ JSScope::has(JSScopeProperty *sprop)
 
 #define SPROP_HAS_STUB_GETTER(sprop)    (!(sprop)->getter)
 #define SPROP_HAS_STUB_SETTER(sprop)    (!(sprop)->setter)
+
+#define SPROP_HAS_STUB_GETTER_OR_IS_METHOD(sprop)                             \
+    (SPROP_HAS_STUB_GETTER(sprop) || (sprop)->isMethod())
 
 #ifndef JS_THREADSAFE
 # define js_GenerateShape(cx, gcLocked)    js_GenerateShape (cx)
@@ -551,15 +633,47 @@ JSScope::trace(JSTracer *trc)
 }
 
 
-static JS_INLINE bool
-js_GetSprop(JSContext* cx, JSScopeProperty* sprop, JSObject* obj, jsval* vp)
-{
-    JS_ASSERT(!SPROP_HAS_STUB_GETTER(sprop));
 
-    if (sprop->attrs & JSPROP_GETTER) {
-        jsval fval = js_CastAsObjectJSVal(sprop->getter);
-        return js_InternalGetOrSet(cx, obj, sprop->id, fval, JSACC_READ,
-                                   0, 0, vp);
+
+
+
+JS_ALWAYS_INLINE bool
+JSScopeProperty::methodBarrier(JSContext *cx, JSObject *obj, jsval *vp)
+{
+    JSScope *scope = OBJ_SCOPE(obj);
+#ifdef JS_THREADSAFE
+    JS_ASSERT(scope->title.ownercx == cx);
+#endif
+
+    if (scope->hasMethodBarrier()) {
+        JSObject *funobj = JSVAL_TO_OBJECT(*vp);
+        JSFunction *fun = GET_FUNCTION_PRIVATE(cx, funobj);
+
+        if (FUN_OBJECT(fun) == funobj && FUN_INTERPRETED(fun)) {
+            funobj = js_CloneFunctionObject(cx, fun, OBJ_GET_PARENT(cx, funobj));
+            if (!funobj)
+                return false;
+            *vp = OBJECT_TO_JSVAL(funobj);
+            return js_SetPropertyHelper(cx, obj, id, 0, vp);
+        }
+    }
+    return true;
+}
+
+JS_ALWAYS_INLINE bool
+JSScopeProperty::get(JSContext* cx, JSObject* obj, jsval* vp)
+{
+    JS_ASSERT(!SPROP_HAS_STUB_GETTER(this));
+
+    if (attrs & JSPROP_GETTER) {
+        JS_ASSERT(!isMethod());
+        jsval fval = getterValue();
+        return js_InternalGetOrSet(cx, obj, id, fval, JSACC_READ, 0, 0, vp);
+    }
+
+    if (isMethod()) {
+        *vp = methodValue();
+        return methodBarrier(cx, obj, vp);
     }
 
     
@@ -570,22 +684,20 @@ js_GetSprop(JSContext* cx, JSScopeProperty* sprop, JSObject* obj, jsval* vp)
 
     if (STOBJ_GET_CLASS(obj) == &js_WithClass)
         obj = obj->map->ops->thisObject(cx, obj);
-    return sprop->getter(cx, obj, SPROP_USERID(sprop), vp);
+    return getter(cx, obj, SPROP_USERID(this), vp);
 }
 
-static JS_INLINE bool
-js_SetSprop(JSContext* cx, JSScopeProperty* sprop, JSObject* obj, jsval* vp)
+JS_ALWAYS_INLINE bool
+JSScopeProperty::set(JSContext* cx, JSObject* obj, jsval* vp)
 {
-    JS_ASSERT(!(SPROP_HAS_STUB_SETTER(sprop) &&
-                !(sprop->attrs & JSPROP_GETTER)));
+    JS_ASSERT_IF(SPROP_HAS_STUB_SETTER(this), attrs & JSPROP_GETTER);
 
-    if (sprop->attrs & JSPROP_SETTER) {
-        jsval fval = js_CastAsObjectJSVal(sprop->setter);
-        return js_InternalGetOrSet(cx, obj, (sprop)->id, fval, JSACC_WRITE,
-                                   1, vp, vp);
+    if (attrs & JSPROP_SETTER) {
+        jsval fval = setterValue();
+        return js_InternalGetOrSet(cx, obj, id, fval, JSACC_WRITE, 1, vp, vp);
     }
 
-    if (sprop->attrs & JSPROP_GETTER) {
+    if (attrs & JSPROP_GETTER) {
         js_ReportGetterOnlyAssignment(cx);
         return JS_FALSE;
     }
@@ -593,7 +705,7 @@ js_SetSprop(JSContext* cx, JSScopeProperty* sprop, JSObject* obj, jsval* vp)
     
     if (STOBJ_GET_CLASS(obj) == &js_WithClass)
         obj = obj->map->ops->thisObject(cx, obj);
-    return sprop->setter(cx, obj, SPROP_USERID(sprop), vp);
+    return setter(cx, obj, SPROP_USERID(this), vp);
 }
 
 
