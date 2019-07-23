@@ -43,11 +43,11 @@
 
 nsresult NS_NewPipe2(nsIAsyncInputStream** input,
                      nsIAsyncOutputStream** output,
-                     PRBool nonBlockingInput = PR_FALSE,
-                     PRBool nonBlockingOutput = PR_FALSE,
-                     size_t segmentSize = 0,
-                     PRUint32 segmentCount = 0,
-                     nsIMemory* segmentAlloc = nsnull)
+                     PRBool nonBlockingInput,
+                     PRBool nonBlockingOutput,
+                     size_t segmentSize,
+                     PRUint32 segmentCount,
+                     nsIMemory* segmentAlloc)
 {
   nsCOMPtr<nsIPipe> pipe = do_CreateInstance("@mozilla.org/pipe;1");
   if (!pipe)
