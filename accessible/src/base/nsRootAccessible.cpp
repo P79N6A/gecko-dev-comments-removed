@@ -406,29 +406,11 @@ void nsRootAccessible::TryFireEarlyLoadEvent(nsIDOMNode *aDocNode)
   nsCOMPtr<nsIDocShellTreeItem> rootContentTreeItem;
   treeItem->GetSameTypeRootTreeItem(getter_AddRefs(rootContentTreeItem));
   NS_ASSERTION(rootContentTreeItem, "No root content tree item");
-  if (!rootContentTreeItem) { 
-    return;
+  if (rootContentTreeItem == treeItem) {
+    
+    FireDelayedToolkitEvent(nsIAccessibleEvent::EVENT_INTERNAL_LOAD, aDocNode,
+                            eRemoveDupes);
   }
-  if (rootContentTreeItem != treeItem) {
-    nsCOMPtr<nsIAccessibleDocument> rootContentDocAccessible =
-      GetDocAccessibleFor(rootContentTreeItem);
-    nsCOMPtr<nsIAccessible> rootContentAccessible =
-      do_QueryInterface(rootContentDocAccessible);
-    if (!rootContentAccessible) {
-      return;
-    }
-    PRUint32 state, extState;
-    rootContentAccessible->GetFinalState(&state, &extState);
-    if ((state & nsIAccessibleStates::STATE_BUSY) ||
-        (extState & nsIAccessibleStates::EXT_STATE_DEFUNCT)) {
-      
-      return;
-    }
-  }
-
-  
-  FireDelayedToolkitEvent(nsIAccessibleEvent::EVENT_INTERNAL_LOAD, aDocNode,
-                          eRemoveDupes);
 }
 
 PRBool nsRootAccessible::FireAccessibleFocusEvent(nsIAccessible *aAccessible,
@@ -632,9 +614,6 @@ nsresult nsRootAccessible::HandleEventWithTarget(nsIDOMEvent* aEvent,
     nsCOMPtr<nsPIAccessNode> privateAcc = do_QueryInterface(accDoc);
     if (privateAcc) {
       privateAcc->Shutdown();
-      
-      
-      gGlobalDocAccessibleCache.Remove(static_cast<void*>(doc));
     }
     return NS_OK;
   }

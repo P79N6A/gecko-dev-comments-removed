@@ -526,17 +526,13 @@ NS_IMETHODIMP nsDocAccessible::Shutdown()
     nsAccUtils::GetDocShellTreeItemFor(mDOMNode);
   ShutdownChildDocuments(treeItem);
 
-  if (mDocLoadTimer) {
-    mDocLoadTimer->Cancel();
-    mDocLoadTimer = nsnull;
-  }
-
   RemoveEventListeners();
 
   mWeakShell = nsnull;  
 
   ClearCache(mAccessNodeCache);
 
+  nsCOMPtr<nsIDocument> kungFuDeathGripDoc = mDocument;
   mDocument = nsnull;
 
   nsHyperTextAccessibleWrap::Shutdown();
@@ -552,6 +548,10 @@ NS_IMETHODIMP nsDocAccessible::Shutdown()
       NS_RELEASE_THIS();
     }
   }
+
+  
+  
+  gGlobalDocAccessibleCache.Remove(static_cast<void*>(kungFuDeathGripDoc));
 
   return NS_OK;
 }
@@ -771,6 +771,14 @@ NS_IMETHODIMP nsDocAccessible::FireDocLoadEvents(PRUint32 aEventType)
   }
   mIsContentLoaded = isFinished;
 
+  nsCOMPtr<nsIDocShellTreeItem> treeItem =
+    nsAccUtils::GetDocShellTreeItemFor(mDOMNode);
+  if (!treeItem) {
+    return NS_OK;
+  }
+  nsCOMPtr<nsIDocShellTreeItem> sameTypeRoot;
+  treeItem->GetSameTypeRootTreeItem(getter_AddRefs(sameTypeRoot));
+
   if (isFinished) {
     
     AddScrollListener();
@@ -780,36 +788,31 @@ NS_IMETHODIMP nsDocAccessible::FireDocLoadEvents(PRUint32 aEventType)
       
       privateAccessible->InvalidateChildren();
     }
-    
-    
-    if (!mDocLoadTimer) {
-      mDocLoadTimer = do_CreateInstance("@mozilla.org/timer;1");
-    }
-    if (mDocLoadTimer) {
-      mDocLoadTimer->InitWithFuncCallback(DocLoadCallback, this, 0,
-                                          nsITimer::TYPE_ONE_SHOT);
-    }
-  } else {
-    nsCOMPtr<nsIDocShellTreeItem> treeItem =
-      nsAccUtils::GetDocShellTreeItemFor(mDOMNode);
-    if (!treeItem) {
-      return NS_OK;
-    }
-
-    nsCOMPtr<nsIDocShellTreeItem> sameTypeRoot;
-    treeItem->GetSameTypeRootTreeItem(getter_AddRefs(sameTypeRoot));
     if (sameTypeRoot != treeItem) {
-      return NS_OK; 
+      
+      
+      InvalidateCacheSubtree(nsnull, nsIAccessibleEvent::EVENT_DOM_SIGNIFICANT_CHANGE);
     }
-
-    
-    nsCOMPtr<nsIAccessibleStateChangeEvent> accEvent =
-      new nsAccStateChangeEvent(this, nsIAccessibleStates::STATE_BUSY,
-                                PR_FALSE, PR_TRUE);
-    FireAccessibleEvent(accEvent);
   }
-
-  nsAccUtils::FireAccEvent(aEventType, this);
+  
+  if (gLastFocusedNode) {
+    nsCOMPtr<nsIDocShellTreeItem> focusedTreeItem =
+      nsAccUtils::GetDocShellTreeItemFor(gLastFocusedNode);
+    if (focusedTreeItem) {
+      nsCOMPtr<nsIDocShellTreeItem> sameTypeRootOfFocus;
+      focusedTreeItem->GetSameTypeRootTreeItem(getter_AddRefs(sameTypeRootOfFocus));
+      if (sameTypeRoot == sameTypeRootOfFocus) {
+        nsCOMPtr<nsIAccessibleStateChangeEvent> accEvent =
+          new nsAccStateChangeEvent(this, nsIAccessibleStates::STATE_BUSY, PR_FALSE, PR_FALSE);
+        FireAccessibleEvent(accEvent);
+        FireAnchorJumpEvent();
+      }
+    }
+  }
+  if (sameTypeRoot == treeItem) {
+    
+    nsAccUtils::FireAccEvent(aEventType, this);
+  }
   return NS_OK;
 }
 
@@ -2067,55 +2070,3 @@ nsDocAccessible::FireShowHideEvents(nsIDOMNode *aDOMNode, PRBool aAvoidOnThisNod
 
   return NS_OK;
 }
-
-void nsDocAccessible::DocLoadCallback(nsITimer *aTimer, void *aClosure)
-{
-  
-  
-  
-  
-  
-
-  nsDocAccessible *docAcc =
-    reinterpret_cast<nsDocAccessible*>(aClosure);
-  if (!docAcc) {
-    return;
-  }
-
-  
-  nsCOMPtr<nsIDOMNode> docDomNode;
-  docAcc->GetDOMNode(getter_AddRefs(docDomNode));
-  nsCOMPtr<nsIDocument> doc(do_QueryInterface(docDomNode));
-  if (doc) {
-    nsCOMPtr<nsISupports> container = doc->GetContainer();
-    nsCOMPtr<nsIDocShellTreeItem> docShellTreeItem = do_QueryInterface(container);
-    if (!docShellTreeItem) {
-      return;
-    }
-    nsCOMPtr<nsIDocShellTreeItem> sameTypeRoot;
-    docShellTreeItem->GetSameTypeRootTreeItem(getter_AddRefs(sameTypeRoot));
-    if (sameTypeRoot != docShellTreeItem) {
-      
-      docAcc->InvalidateCacheSubtree(nsnull, nsIAccessibleEvent::EVENT_DOM_SIGNIFICANT_CHANGE);
-      return;
-    }
-
-    
-    if (gLastFocusedNode) {
-      nsCOMPtr<nsIDocShellTreeItem> focusedTreeItem =
-        nsAccUtils::GetDocShellTreeItemFor(gLastFocusedNode);
-      if (focusedTreeItem) {
-        nsCOMPtr<nsIDocShellTreeItem> sameTypeRootOfFocus;
-        focusedTreeItem->GetSameTypeRootTreeItem(getter_AddRefs(sameTypeRootOfFocus));
-        if (sameTypeRoot == sameTypeRootOfFocus) {
-          nsCOMPtr<nsIAccessibleStateChangeEvent> accEvent =
-            new nsAccStateChangeEvent(docAcc, nsIAccessibleStates::STATE_BUSY,
-                                      PR_FALSE, PR_FALSE);
-          docAcc->FireAccessibleEvent(accEvent);
-          docAcc->FireAnchorJumpEvent();
-        }
-      }
-    }
-  }
-}
-
