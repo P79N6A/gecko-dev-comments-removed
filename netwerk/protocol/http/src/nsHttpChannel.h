@@ -188,7 +188,7 @@ private:
     
     nsresult OpenCacheEntry(PRBool offline, PRBool *delayed);
     nsresult OpenOfflineCacheEntryForWriting();
-    nsresult GenerateCacheKey(nsACString &key);
+    nsresult GenerateCacheKey(PRUint32 postID, nsACString &key);
     nsresult UpdateExpirationTime();
     nsresult CheckCache();
     nsresult ShouldUpdateOfflineCacheEntry(PRBool *shouldCacheForOfflineUse);
@@ -202,6 +202,8 @@ private:
     nsresult FinalizeCacheEntry();
     nsresult InstallCacheListener(PRUint32 offset = 0);
     nsresult InstallOfflineCacheListener();
+    void     MaybeInvalidateCacheEntryForSubsequentGet();
+    nsCacheStoragePolicy DetermineStoragePolicy();
 
     
     void ClearBogusContentEncodingIfNeeded();

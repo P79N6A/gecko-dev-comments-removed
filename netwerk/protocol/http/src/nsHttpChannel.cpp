@@ -867,6 +867,7 @@ nsHttpChannel::ProcessResponse()
         }
         
         rv = ProcessNormal();
+        MaybeInvalidateCacheEntryForSubsequentGet();
         break;
     case 206:
         if (mCachedContentIsPartial) 
@@ -883,6 +884,7 @@ nsHttpChannel::ProcessResponse()
     case 305: 
 #endif
         
+        MaybeInvalidateCacheEntryForSubsequentGet();
         rv = ProcessRedirection(httpStatus);
         if (NS_SUCCEEDED(rv)) {
             InitCacheEntry();
@@ -917,6 +919,7 @@ nsHttpChannel::ProcessResponse()
         break;
     default:
         rv = ProcessNormal();
+        MaybeInvalidateCacheEntryForSubsequentGet();
         break;
     }
 
@@ -1514,14 +1517,10 @@ nsHttpChannel::OpenCacheEntry(PRBool offline, PRBool *delayed)
         return NS_OK;
     }
 
-    GenerateCacheKey(cacheKey);
+    GenerateCacheKey(mPostID, cacheKey);
 
     
-    nsCacheStoragePolicy storagePolicy;
-    if (mLoadFlags & INHIBIT_PERSISTENT_CACHING)
-        storagePolicy = nsICache::STORE_IN_MEMORY;
-    else
-        storagePolicy = nsICache::STORE_ANYWHERE; 
+    nsCacheStoragePolicy storagePolicy = DetermineStoragePolicy();
 
     
     nsCacheAccessMode accessRequested;
@@ -1713,7 +1712,7 @@ nsHttpChannel::OpenOfflineCacheEntryForWriting()
     }
 
     nsCAutoString cacheKey;
-    GenerateCacheKey(cacheKey);
+    GenerateCacheKey(mPostID, cacheKey);
 
     NS_ENSURE_TRUE(!mOfflineCacheClientID.IsEmpty(),
                    NS_ERROR_NOT_AVAILABLE);
@@ -1748,7 +1747,7 @@ nsHttpChannel::OpenOfflineCacheEntryForWriting()
 }
 
 nsresult
-nsHttpChannel::GenerateCacheKey(nsACString &cacheKey)
+nsHttpChannel::GenerateCacheKey(PRUint32 postID, nsACString &cacheKey)
 {
     cacheKey.Truncate();
 
@@ -1756,9 +1755,9 @@ nsHttpChannel::GenerateCacheKey(nsACString &cacheKey)
       cacheKey.AssignLiteral("anon&");
     }
 
-    if (mPostID) {
+    if (postID) {
         char buf[32];
-        PR_snprintf(buf, sizeof(buf), "id=%x&", mPostID);
+        PR_snprintf(buf, sizeof(buf), "id=%x&", postID);
         cacheKey.Append(buf);
     }
 
@@ -2263,7 +2262,7 @@ nsHttpChannel::CloseOfflineCacheEntry()
             do_GetService(NS_APPLICATIONCACHESERVICE_CONTRACTID);
         if (appCacheService) {
             nsCAutoString cacheKey;
-            GenerateCacheKey(cacheKey);
+            GenerateCacheKey(mPostID, cacheKey);
             appCacheService->CacheOpportunistically(mApplicationCache,
                                                     cacheKey);
         }
@@ -5414,3 +5413,62 @@ nsHttpChannel::SetNewListener(nsIStreamListener *aListener, nsIStreamListener **
     mListener = aListener;
     return NS_OK;
 }
+
+void
+nsHttpChannel::MaybeInvalidateCacheEntryForSubsequentGet()
+{
+    
+    
+    
+    
+    
+    if (mRequestHead.Method() == nsHttp::Options ||
+       mRequestHead.Method() == nsHttp::Get ||
+       mRequestHead.Method() == nsHttp::Head ||
+       mRequestHead.Method() == nsHttp::Trace ||
+       mRequestHead.Method() == nsHttp::Connect)
+        return;
+        
+    
+    
+    
+    
+    
+    LOG(("MaybeInvalidateCacheEntryForSubsequentGet [this=%x]\n", this));
+
+    nsCAutoString tmpCacheKey;
+    
+    GenerateCacheKey(0, tmpCacheKey);
+
+    
+    nsCOMPtr<nsICacheSession> session;
+    nsCacheStoragePolicy storagePolicy = DetermineStoragePolicy();
+
+    nsresult rv;
+    rv = gHttpHandler->GetCacheSession(storagePolicy,
+                                       getter_AddRefs(session));
+
+    if (NS_FAILED(rv)) return;
+
+    
+    nsCOMPtr<nsICacheEntryDescriptor> tmpCacheEntry;
+    rv = session->OpenCacheEntry(tmpCacheKey, nsICache::ACCESS_READ,
+                                 PR_FALSE,
+                                 getter_AddRefs(tmpCacheEntry));
+    
+    
+    if(NS_SUCCEEDED(rv)) {
+       tmpCacheEntry->SetExpirationTime(0);
+    }
+}
+
+nsCacheStoragePolicy
+nsHttpChannel::DetermineStoragePolicy()
+{
+    nsCacheStoragePolicy policy = nsICache::STORE_ANYWHERE;
+    if (mLoadFlags & INHIBIT_PERSISTENT_CACHING)
+        policy = nsICache::STORE_IN_MEMORY;
+
+    return policy;
+}
+
