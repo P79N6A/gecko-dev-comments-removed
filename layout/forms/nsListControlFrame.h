@@ -439,6 +439,12 @@ protected:
   PRPackedBool mMightNeedSecondPass:1;
 
   
+
+
+
+  PRPackedBool mHasPendingInterruptAtStartOfReflow:1;
+
+  
   
   
   nscoord mLastDropdownComputedHeight;
