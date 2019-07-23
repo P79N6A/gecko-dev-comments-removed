@@ -59,6 +59,7 @@ try {
 
 var gSelectionListener = {
   timeout: 0,
+  attached: false,
   notifySelectionChanged: function(doc, sel, reason)
   {
     
@@ -295,6 +296,7 @@ function onLoadContent()
   window.content.getSelection()
    .QueryInterface(nsISelectionPrivate)
    .addSelectionListener(gSelectionListener);
+  gSelectionListener.attached = true;
 }
 
 function onUnloadContent()
@@ -304,6 +306,15 @@ function onUnloadContent()
   
   
   document.getElementById('cmd_goToLine').setAttribute('disabled', 'true');
+
+  
+  
+  
+  if (gSelectionListener.attached) {
+    window.content.getSelection().QueryInterface(nsISelectionPrivate)
+          .removeSelectionListener(gSelectionListener);
+    gSelectionListener.attached = false;
+  }
 }
 
 function HandleAppCommandEvent(evt)
