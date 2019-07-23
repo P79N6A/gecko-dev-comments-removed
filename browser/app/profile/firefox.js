@@ -845,9 +845,6 @@ pref("browser.zoom.siteSpecific", true);
 pref("browser.zoom.updateBackgroundTabs", true);
 
 
-pref("editor.singleLine.pasteNewlines", 2);
-
-
 pref("breakpad.reportURL", "http://crash-stats.mozilla.com/report/index/");
 
 
