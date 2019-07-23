@@ -146,6 +146,12 @@ class Pickle {
   
   void TrimWriteData(int length);
 
+#if defined(CHROMIUM_MOZILLA_BUILD)
+  void EndRead(void* iter) const {
+    DCHECK(iter == end_of_payload());
+  }
+#endif
+
   
   struct Header {
     uint32 payload_size;  

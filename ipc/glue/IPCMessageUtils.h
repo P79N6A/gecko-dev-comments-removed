@@ -193,29 +193,10 @@ struct ParamTraits<nsTArray<E> >
       return false;
     }
 
-    
-    
-    
-    
-    
-    
-    if (aMsg->IteratorHasRoomFor(*aIter, length * sizeof(E))) {
-      if (!aResult->SetLength(length)) {
+    for (PRUint32 index = 0; index < length; index++) {
+      E* element = aResult->AppendElement();
+      if (!(element && ReadParam(aMsg, aIter, element))) {
         return false;
-      }
-      for (PRUint32 index = 0; index < length; index++) {
-        E& element = aResult->ElementAt(index);
-        if (!ReadParam(aMsg, aIter, &element)) {
-          return false;
-        }
-      }
-    }
-    else {
-      for (PRUint32 index = 0; index < length; index++) {
-        E* element = aResult->AppendElement();
-        if (!(element && ReadParam(aMsg, aIter, element))) {
-          return false;
-        }
       }
     }
 
