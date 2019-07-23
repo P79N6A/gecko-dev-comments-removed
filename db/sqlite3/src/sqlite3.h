@@ -107,8 +107,8 @@ extern "C" {
 
 
 
-#define SQLITE_VERSION         "3.6.6.2"
-#define SQLITE_VERSION_NUMBER  3006006
+#define SQLITE_VERSION         "3.6.7"
+#define SQLITE_VERSION_NUMBER  3006007
 
 
 
@@ -507,6 +507,8 @@ int sqlite3_exec(
 #define SQLITE_IOERR_ACCESS            (SQLITE_IOERR | (13<<8))
 #define SQLITE_IOERR_CHECKRESERVEDLOCK (SQLITE_IOERR | (14<<8))
 #define SQLITE_IOERR_LOCK              (SQLITE_IOERR | (15<<8))
+#define SQLITE_IOERR_CLOSE             (SQLITE_IOERR | (16<<8))
+#define SQLITE_IOERR_DIR_CLOSE         (SQLITE_IOERR | (17<<8))
 
 
 
@@ -723,6 +725,9 @@ struct sqlite3_io_methods {
 
 
 #define SQLITE_FCNTL_LOCKSTATE        1
+#define SQLITE_GET_LOCKPROXYFILE      2
+#define SQLITE_SET_LOCKPROXYFILE      3
+#define SQLITE_LAST_ERRNO             4
 
 
 
@@ -735,6 +740,7 @@ struct sqlite3_io_methods {
 
 
 typedef struct sqlite3_mutex sqlite3_mutex;
+
 
 
 
@@ -869,7 +875,7 @@ struct sqlite3_vfs {
   int (*xFullPathname)(sqlite3_vfs*, const char *zName, int nOut, char *zOut);
   void *(*xDlOpen)(sqlite3_vfs*, const char *zFilename);
   void (*xDlError)(sqlite3_vfs*, int nByte, char *zErrMsg);
-  void *(*xDlSym)(sqlite3_vfs*,void*, const char *zSymbol);
+  void (*(*xDlSym)(sqlite3_vfs*,void*, const char *zSymbol))(void);
   void (*xDlClose)(sqlite3_vfs*, void*);
   int (*xRandomness)(sqlite3_vfs*, int nByte, char *zOut);
   int (*xSleep)(sqlite3_vfs*, int microseconds);
@@ -1399,6 +1405,7 @@ struct sqlite3_mem_methods {
 
 
 int sqlite3_extended_result_codes(sqlite3*, int onoff);
+
 
 
 
@@ -5443,7 +5450,7 @@ int sqlite3_enable_load_extension(sqlite3 *db, int onoff);
 
 
 
-int sqlite3_auto_extension(void *xEntryPoint);
+int sqlite3_auto_extension(void (*xEntryPoint)(void));
 
 
 
