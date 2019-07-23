@@ -12067,14 +12067,15 @@ nsCSSFrameConstructor::RemoveFloatingFirstLetterFrames(
 
   
   
-  nsIFrame* nextTextFrame = textFrame->GetNextInFlow();
-  if (nextTextFrame) {
+  nsIFrame* nextTextFrame = textFrame->GetNextContinuation();
+  while (nextTextFrame) {
     nsIFrame* nextTextParent = nextTextFrame->GetParent();
     if (nextTextParent) {
-      nsSplittableFrame::BreakFromPrevFlow(nextTextFrame);
+      nsSplittableFrame::RemoveFromFlow(nextTextFrame);
       ::DeletingFrameSubtree(aFrameManager, nextTextFrame);
       aFrameManager->RemoveFrame(nextTextParent, nsnull, nextTextFrame);
     }
+    nextTextFrame = textFrame->GetNextContinuation();
   }
 
   
