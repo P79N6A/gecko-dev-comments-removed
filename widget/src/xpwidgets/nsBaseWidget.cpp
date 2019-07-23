@@ -94,7 +94,6 @@ nsBaseWidget::nsBaseWidget()
 , mEventCallback(nsnull)
 , mContext(nsnull)
 , mToolkit(nsnull)
-, mEventListener(nsnull)
 , mCursor(eCursor_standard)
 , mWindowType(eWindowType_child)
 , mBorderStyle(eBorderStyle_none)
@@ -246,8 +245,6 @@ NS_METHOD nsBaseWidget::Destroy()
   if (parent) {
     parent->RemoveChild(this);
   }
-  
-  NS_IF_RELEASE(mEventListener);
 
   return NS_OK;
 }
@@ -730,19 +727,6 @@ NS_METHOD nsBaseWidget::SetBorderStyle(nsBorderStyle aBorderStyle)
   return NS_OK;
 }
 
-
-
-
-
-
-NS_METHOD nsBaseWidget::AddEventListener(nsIEventListener * aListener)
-{
-  NS_PRECONDITION(mEventListener == nsnull, "Null event listener");
-  NS_IF_RELEASE(mEventListener);
-  NS_ADDREF(aListener);
-  mEventListener = aListener;
-  return NS_OK;
-}
 
 
 

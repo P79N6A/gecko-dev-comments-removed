@@ -2764,11 +2764,6 @@ NS_IMETHODIMP nsWindow::DispatchEvent(nsGUIEvent* event, nsEventStatus & aStatus
   }
 
   
-  if ((aStatus != nsEventStatus_eIgnore) && (nsnull != mEventListener)) {
-    aStatus = mEventListener->ProcessEvent(*event);
-  }
-
-  
   
   
   if (mOnDestroyCalled)

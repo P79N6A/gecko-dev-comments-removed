@@ -370,11 +370,6 @@ NS_IMETHODIMP nsWindow::DispatchEvent(nsGUIEvent* event, nsEventStatus & aStatus
     if (nsnull != mEventCallback) {
       aStatus = (*mEventCallback)( event);
     }
-   
-    
-    if ((aStatus != nsEventStatus_eIgnore) && (nsnull != mEventListener)) {
-      aStatus = mEventListener->ProcessEvent(*event);
-    }
   }
 
   return NS_OK;
@@ -2822,7 +2817,7 @@ PRBool nsWindow::OnPaint()
   } 
 #endif
 
-  if (mContext && (mEventCallback || mEventListener)) {
+  if (mContext && mEventCallback) {
     
     RECTL rcl = { 0 };
 
