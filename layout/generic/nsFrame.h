@@ -134,25 +134,29 @@ public:
 
 
 
-  friend nsIFrame* NS_NewEmptyFrame(nsIPresShell* aShell, nsStyleContext* aContext);
+  friend nsIFrame* NS_NewEmptyFrame(nsIPresShell* aShell,
+                                    nsStyleContext* aContext);
 
   
   
   void* operator new(size_t sz, nsIPresShell* aPresShell) CPP_THROW_NEW;
 
+private:
+  
+  void* operator new(size_t sz) CPP_THROW_NEW;
+
+protected:
+  
+  
+  
+  
+  
+  
   
   
   
   
   void operator delete(void* aPtr, size_t sz);
-
-  
-  
-  virtual PRBool ComputesOwnOverflowArea() { return PR_TRUE; }
-
-private:
-  
-  void* operator new(size_t sz) CPP_THROW_NEW { return nsnull; }
 
 public:
 
@@ -370,6 +374,10 @@ public:
   virtual nsSize GetMaxSize(nsBoxLayoutState& aBoxLayoutState);
   virtual nscoord GetFlex(nsBoxLayoutState& aBoxLayoutState);
   virtual nscoord GetBoxAscent(nsBoxLayoutState& aBoxLayoutState);
+
+  
+  
+  virtual PRBool ComputesOwnOverflowArea() { return PR_TRUE; }
 
   
   

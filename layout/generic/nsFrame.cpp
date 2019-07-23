@@ -292,22 +292,15 @@ NS_NewEmptyFrame(nsIPresShell* aPresShell, nsStyleContext* aContext)
 
 
 
-void* 
+void*
 nsFrame::operator new(size_t sz, nsIPresShell* aPresShell) CPP_THROW_NEW
 {
-  
-  void* result = aPresShell->AllocateFrame(sz);
-  
-  if (result) {
-    memset(result, 0, sz);
-  }
-
-  return result;
+  return aPresShell->AllocateFrame(sz, 0 );
 }
 
 
 
-void 
+void
 nsFrame::operator delete(void* aPtr, size_t sz)
 {
   
@@ -477,7 +470,7 @@ nsFrame::Destroy()
   if (view) {
     
     view->SetClientData(nsnull);
-    
+
     
     view->Destroy();
   }
@@ -489,7 +482,7 @@ nsFrame::Destroy()
   
   
   size_t* sz = (size_t*)this;
-  shell->FreeFrame(*sz, (void*)this);
+  shell->FreeFrame(*sz, 0 , (void*)this);
 }
 
 NS_IMETHODIMP

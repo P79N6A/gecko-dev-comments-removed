@@ -104,9 +104,10 @@ class nsDisplayListBuilder;
 typedef short SelectionType;
 typedef PRUint32 nsFrameState;
 
-#define NS_IPRESSHELL_IID \
-{ 0xfea81c36, 0xed5b, 0x41f5, \
-  { 0x89, 0x5d, 0x4c, 0x50, 0x79, 0x49, 0xad, 0x3b } }
+
+#define NS_IPRESSHELL_IID     \
+{ 0xeba51d41, 0x68db, 0x4dab, \
+  { 0xa5, 0x7b, 0xdc, 0x1a, 0x27, 0x04, 0xde, 0x87 } }
 
 
 #define NS_PRESSHELL_SCROLL_TOP      0
@@ -172,8 +173,16 @@ public:
   
   
   
-  virtual void* AllocateFrame(size_t aSize) = 0;
-  virtual void  FreeFrame(size_t aSize, void* aFreeChunk) = 0;
+  
+  virtual void* AllocateFrame(size_t aSize, unsigned int aCode) = 0;
+  virtual void  FreeFrame(size_t aSize, unsigned int aCode, void* aChunk) = 0;
+
+  
+  
+  
+  
+  virtual void* AllocateMisc(size_t aSize) = 0;
+  virtual void  FreeMisc(size_t aSize, void* aChunk) = 0;
 
   
 

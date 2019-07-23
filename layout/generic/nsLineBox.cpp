@@ -96,15 +96,15 @@ NS_NewLineBox(nsIPresShell* aPresShell, nsIFrame* aFrame,
 
 
 
-void* 
+void*
 nsLineBox::operator new(size_t sz, nsIPresShell* aPresShell) CPP_THROW_NEW
 {
-  return aPresShell->AllocateFrame(sz);
+  return aPresShell->AllocateMisc(sz);
 }
 
 
 
-void 
+void
 nsLineBox::operator delete(void* aPtr, size_t sz)
 {
 }
@@ -116,7 +116,7 @@ nsLineBox::Destroy(nsIPresShell* aPresShell)
   delete this;
 
   
-  aPresShell->FreeFrame(sizeof(*this), (void*)this);
+  aPresShell->FreeMisc(sizeof(*this), (void*)this);
 }
 
 void
