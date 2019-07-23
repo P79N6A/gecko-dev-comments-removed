@@ -131,6 +131,7 @@ Are you executing $objdir/_tests/reftest/runreftest.py?""" \
 
     
     
+    
     browserEnv["NO_EM_RESTART"] = "1"
     browserEnv["XPCOM_DEBUG_BREAK"] = "warn"
     if automation.UNIXISH:
@@ -147,9 +148,9 @@ Are you executing $objdir/_tests/reftest/runreftest.py?""" \
     automation.log.info("REFTEST INFO | runreftest.py | Performing extension manager registration: start.\n")
     
     status = automation.runApp(None, browserEnv, options.app, profileDir,
-                               extraArgs = ["-silent"],
-                               symbolsPath=options.symbolsPath,
-                               xrePath=options.xrePath)
+                               ["-silent"],
+                               xrePath=options.xrePath,
+                               symbolsPath=options.symbolsPath)
     
     automation.log.info("\nREFTEST INFO | runreftest.py | Performing extension manager registration: end.")
 
@@ -162,9 +163,9 @@ Are you executing $objdir/_tests/reftest/runreftest.py?""" \
     automation.log.info("REFTEST INFO | runreftest.py | Running tests: start.\n")
     reftestlist = getFullPath(args[0])
     status = automation.runApp(None, browserEnv, options.app, profileDir,
-                               extraArgs = ["-reftest", reftestlist],
-                               symbolsPath=options.symbolsPath,
-                               xrePath=options.xrePath)
+                               ["-reftest", reftestlist],
+                               xrePath=options.xrePath,
+                               symbolsPath=options.symbolsPath)
     automation.processLeakLog(leakLogFile, options.leakThreshold)
     automation.log.info("\nREFTEST INFO | runreftest.py | Running tests: end.")
   finally:
