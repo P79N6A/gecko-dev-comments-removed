@@ -123,7 +123,13 @@ nsScreenManagerGtk :: ~nsScreenManagerGtk()
     mRootWindow = nsnull;
   }
 
-#ifdef MOZ_X11
+
+
+
+
+
+
+#if defined (MOZ_X11) && !defined (SOLARIS)
   if (mXineramalib && mXineramalib != SCREEN_MANAGER_LIBRARY_LOAD_FAILED) {
     PR_UnloadLibrary(mXineramalib);
   }
