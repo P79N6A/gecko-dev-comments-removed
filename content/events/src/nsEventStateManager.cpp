@@ -830,21 +830,9 @@ nsEventStateManager::PreHandleEvent(nsPresContext* aPresContext,
     
     
     
-    
-    
-    
-    
-    
     {
       nsMouseEvent* mouseEvent = static_cast<nsMouseEvent*>(aEvent);
-      nsIWidget* parentWidget = mouseEvent->widget->GetParent();
-      nsPoint eventPoint;
-      eventPoint = nsLayoutUtils::TranslateWidgetToView(aPresContext,
-                                                        mouseEvent->widget,
-                                                        mouseEvent->refPoint,
-                                                        aView);
-      if (parentWidget &&
-          (aView->GetBounds() - aView->GetPosition()).Contains(eventPoint)) {
+      if (mouseEvent->exit != nsMouseEvent::eTopLevel) {
         
         
         
