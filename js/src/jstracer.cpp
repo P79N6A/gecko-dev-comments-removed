@@ -8485,8 +8485,13 @@ TraceRecorder::upvar(JSScript* script, JSUpvarArray* uva, uintN index, jsval& v)
     
 
 
-    v = js_GetUpvar(cx, script->staticLevel, uva->vector[index]);
-    LIns* upvar_ins = get(&v);
+
+
+
+
+    jsval& vr = js_GetUpvar(cx, script->staticLevel, uva->vector[index]);
+    v = vr;
+    LIns* upvar_ins = get(&vr);
     if (upvar_ins) {
         return upvar_ins;
     }
