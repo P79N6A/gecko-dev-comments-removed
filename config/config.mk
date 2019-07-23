@@ -247,6 +247,7 @@ else # ! MOZ_DEBUG
 # Used in the Windows nightlies to generate symbols for crash reporting.
 ifdef MOZ_DEBUG_SYMBOLS
 OS_CXXFLAGS += -Zi -UDEBUG -DNDEBUG
+OS_CFLAGS += -Zi -UDEBUG -DNDEBUG
 OS_LDFLAGS += -DEBUG -OPT:REF -OPT:nowin98
 endif
 
@@ -511,16 +512,6 @@ INCLUDES	= $(LOCAL_INCLUDES) $(REQ_INCLUDES) $(REQ_INCLUDES_SDK) -I$(PUBLIC) $(O
 
 ifndef MOZILLA_INTERNAL_API
 INCLUDES	+= -I$(LIBXUL_DIST)/sdk/include
-endif
-
-# The entire tree should be subject to static analysis using the XPCOM
-# script. Additional scripts may be added by specific subdirectories.
-
-DEHYDRA_SCRIPTS = $(topsrcdir)/xpcom/static-checking.js
-
-ifdef DEHYDRA_PATH
-DEHYDRA_FLAGS = -fplugin=$(DEHYDRA_PATH) $(foreach script,$(DEHYDRA_SCRIPTS),-fplugin-arg=$(script))
-OS_CXXFLAGS += $(DEHYDRA_FLAGS)
 endif
 
 CFLAGS		= $(OS_CFLAGS)
