@@ -151,6 +151,24 @@ js_UnboxInt32(jsval v)
 }
 JS_DEFINE_CALLINFO_1(extern, INT32, js_UnboxInt32, JSVAL, 1, 1)
 
+JSBool FASTCALL
+js_TryUnboxInt32(jsval v, int32* i32p)
+{
+    if (JS_LIKELY(JSVAL_IS_INT(v))) {
+        *i32p = JSVAL_TO_INT(v);
+        return JS_TRUE;
+    }
+    if (!JSVAL_IS_DOUBLE(v))
+        return JS_FALSE;
+    int32 i;
+    jsdouble d = *JSVAL_TO_DOUBLE(v);
+    if (!JSDOUBLE_IS_INT(d, i))
+        return JS_FALSE;
+    *i32p = i;
+    return JS_TRUE;
+}
+JS_DEFINE_CALLINFO_2(extern, BOOL, js_TryUnboxInt32, JSVAL, INT32PTR, 1, 1);
+
 int32 FASTCALL
 js_DoubleToInt32(jsdouble d)
 {
@@ -405,6 +423,42 @@ js_NewNullClosure(JSContext* cx, JSObject* funobj, JSObject* proto, JSObject* pa
     return closure;
 }
 JS_DEFINE_CALLINFO_4(extern, OBJECT, js_NewNullClosure, CONTEXT, OBJECT, OBJECT, OBJECT, 0, 0)
+
+JS_REQUIRES_STACK JSBool FASTCALL
+js_PopInterpFrame(JSContext* cx, InterpState* state)
+{
+    JS_ASSERT(cx->fp && cx->fp->down);
+    JSInlineFrame* ifp = (JSInlineFrame*)cx->fp;
+
+    
+
+
+
+
+    if (ifp->hookData)
+        return JS_FALSE;
+    if (cx->version != ifp->callerVersion)
+        return JS_FALSE;
+    if (cx->fp->flags & JSFRAME_CONSTRUCTING)
+        return JS_FALSE;
+    if (cx->fp->imacpc)
+        return JS_FALSE;
+    
+    
+    if (cx->fp->script->staticLevel < JS_DISPLAY_SIZE)
+        cx->display[cx->fp->script->staticLevel] = cx->fp->displaySave;
+    
+    
+    cx->fp = cx->fp->down;
+    JS_ASSERT(cx->fp->regs == &ifp->callerRegs);
+    cx->fp->regs = ifp->frame.regs;
+    JS_ARENA_RELEASE(&cx->stackPool, ifp->mark);
+
+    
+    *state->inlineCallCountp = *state->inlineCallCountp - 1;
+    return JS_TRUE;
+}
+JS_DEFINE_CALLINFO_2(extern, BOOL, js_PopInterpFrame, CONTEXT, INTERPSTATE, 0, 0)
 
 JSString* FASTCALL
 js_ConcatN(JSContext *cx, JSString **strArray, uint32 size)
