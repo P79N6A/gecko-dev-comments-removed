@@ -102,8 +102,10 @@ private:
     
     nsresult PreLaunchPopup(nsIDOMEvent* aMouseEvent);
 
+#ifndef NS_CONTEXT_MENU_IS_MOUSEUP
     
     nsresult FireFocusOnTargetContent(nsIDOMNode* aTargetNode);
+#endif
 
     
     nsCOMPtr<nsIDOMElement> mElement;
