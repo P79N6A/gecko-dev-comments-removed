@@ -54,17 +54,17 @@ def _actorName(pname, side):
     """|pname| is the protocol name. |side| is 'Parent' or 'Child'."""
     return pname + side
 
-def _makeForwardDecl(p, side):
-    clsname = _actorName(p.decl.type.qname.baseid, side)
+def _makeForwardDecl(ptype, side):
+    clsname = _actorName(ptype.qname.baseid, side)
     
     fd = cxx.ForwardDecl(clsname, cls=1)
-    if 0 == len(p.namespaces):
+    if 0 == len(ptype.qname.quals):
         return fd
 
-    outerns = cxx.Namespace(p.namespaces[0].namespace)
+    outerns = cxx.Namespace(ptype.qname.quals[0])
     innerns = outerns
-    for ns in p.namespaces[1:]:
-        tmpns = cxx.Namespace(ns.namespace)
+    for ns in ptype.qname.quals[1:]:
+        tmpns = cxx.Namespace(ns)
         innerns.addstmt(tmpns)
         innerns = tmpns
 
@@ -112,7 +112,7 @@ class GenerateProtocolHeader(Visitor):
 
 
     def typedef(self, t, name):
-        self.typedefs.append(cxx.Typedef(cxx.Type(t), cxx.Type(name)))
+        self.typedefs.append(cxx.Typedef(cxx.Type(t), name))
 
     def injectTypedefs(self, scope):
         for tdef in self.typedefs:
@@ -148,6 +148,556 @@ class GenerateProtocolHeader(Visitor):
             cxx.CppDirective(
                 'include',
                 '"'+ _protocolHeaderFilename(p, _protocolHeaderName(p.name)) +'"'))
+
+
+    def visitUnionDecl(self, ud):
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        cls = cxx.Class(ud.name, final=1)
+        clstyperef = cxx.Type(ud.name, ref=1)
+        typetype = cxx.Type('Type')
+        valuetype = cxx.Type('Value')
+        mtypevar = cxx.ExprVar('mType')
+        mvaluevar = cxx.ExprVar('mValue')
+        assertsanityvar = cxx.ExprVar('AssertSanity')
+
+        
+        valuevar = cxx.ExprVar('aValue')
+        rhsvar = cxx.ExprVar('aRhs')
+        returnthis = cxx.StmtReturn(cxx.ExprDeref(cxx.ExprVar('this')))
+        returnfalse = cxx.StmtReturn(cxx.ExprVar('false'))
+        returntrue = cxx.StmtReturn(cxx.ExprVar('true'))
+        hardabort = cxx.StmtExpr(cxx.ExprCall(
+            cxx.ExprVar('NS_RUNTIMEABORT'),
+            [ cxx.ExprLiteral.String("catastrophically unexpected type") ]))
+            
+        enumvs = [ ]
+        union = cxx.TypeUnion('Value')
+        union.hasActor = False
+        ptrmeths = [ ]
+        constptrmeths = [ ]
+        typedefs = [ ]
+        dtorswitch = cxx.StmtSwitch(mtypevar)
+        copyctors = [ ]
+        copyswitch = cxx.StmtSwitch(mtypevar)
+        opeqs = [ ]
+        opeqswitch = cxx.StmtSwitch(mtypevar)
+        optypes = [ ]
+        opconsttypes = [ ]
+        gettypes = [ ]
+        getconsttypes = [ ]
+        writeswitch = cxx.StmtSwitch(
+            cxx.ExprCall(cxx.ExprSelect(cxx.ExprVar('aParam'), '.', 'type')))
+        readswitch = cxx.StmtSwitch(cxx.ExprVar('type'))
+
+        
+        basiccopydecl = cxx.ConstructorDecl(
+            ud.name,
+            params=[ cxx.Decl(cxx.Type('!!DUMMY!!', const=1, ref=1),
+                              'aValue') ],
+            explicit=1)
+        basicopeqdecl = cxx.MethodDecl(
+            'operator=',
+            params=[ cxx.Decl(cxx.Type('!!DUMMY!!', const=1, ref=1),
+                              'aRhs') ],
+            ret=cxx.Type(ud.name, ref=1))
+
+        
+        cxxtypes = [ ]
+        forwarddecls = [ ]              
+        usingTypedefs = [ ]             
+        for t in ud.decl.type.components:
+            if t.isIPDL() and t.isActor():
+                p = cxx.Type(t.name() +'Parent', ptr=1)
+                p._ipdl = t
+                p._side = 'Parent'
+                c = cxx.Type(t.name() +'Child', ptr=1)
+                c._ipdl = t
+                c._side = 'Child'
+                cxxtypes.append(p)
+                cxxtypes.append(c)
+                
+                
+                
+                forwarddecls.append(_makeForwardDecl(t.protocol, 'Parent'))
+                forwarddecls.append(_makeForwardDecl(t.protocol, 'Child'))
+            else:
+                ct = cxx.Type(t.name())
+                ct._ipdl = None
+                cxxtypes.append(ct)
+                if t.name() != t.fullname():
+                    usingTypedefs.append(cxx.Typedef(cxx.Type(t.fullname()),
+                                                     t.name()))
+
+        
+        
+        t = cxx.Type('ActorHandle');  t._ipdl = None
+        cxxtypes.append(t)
+
+        for cxxt in cxxtypes:
+            cxxtptr = deepcopy(cxxt)
+            if cxxt.ptr:
+                cxxtptr.ptr = 0
+                cxxtptr.ptrptr = 1
+            else:
+                cxxtptr.ptr = 1
+            cxxtconstptr = deepcopy(cxxtptr)
+            cxxtconstptr.const = 1
+            if cxxt._ipdl is not None:
+                cxxtconstptr.ptrptr = 0
+                cxxtconstptr.ptrconstptr = 1
+            cxxtdefname = cxxt.name +'__tdef'
+            typename = cxxt.name
+            consttypename = cxxt.name
+            if cxxt.ptr:
+                typename += '*'
+                consttypename += '* const'
+
+            
+            copyintype = deepcopy(cxxt)
+            if cxxt._ipdl is None:
+                
+                copyintype.const = 1
+                copyintype.ref = 1
+
+            enumv = 'T'+ cxxt.name
+            enumvar = cxx.ExprVar(enumv)
+            unionname = 'V'+ cxxt.name
+            caselabel = cxx.CaseLabel(enumv)
+            fullcaselabel = cxx.CaseLabel(ud.decl.fullname +'::'+ enumv)
+            gettypen = 'get_'+ cxxt.name
+            gettypevar = cxx.ExprVar(gettypen)
+            returngettype = cxx.StmtReturn(cxx.ExprCall(cxx.ExprVar(gettypen)))
+
+            enumvs.append(enumv)
+            cxxt._tag = enumv
+            
+            union.addComponent(cxxt, unionname)
+
+            ptrmethdecl = cxx.MethodDecl(name='ptr'+ cxxt.name,
+                                         ret=cxxtptr)
+            callptrmeth = cxx.ExprCall(cxx.ExprVar('ptr'+ cxxt.name))
+            ptrmeth = cxx.MethodDefn(ptrmethdecl)
+            ptrmeth.addstmt(cxx.StmtReturn(
+                cxx.ExprCast(
+                    cxx.ExprAddrOf(cxx.ExprSelect(mvaluevar, '.', unionname)),
+                    cxxtptr,
+                    reinterpret=1)))
+            ptrmeths.append(ptrmeth)
+            constptrmethdecl = cxx.MethodDecl(name='constptr'+ cxxt.name,
+                                              ret=cxxtconstptr,
+                                              const=1)
+            callconstptrmeth = cxx.ExprCall(cxx.ExprVar('constptr'+ cxxt.name))
+            constptrmeth = cxx.MethodDefn(constptrmethdecl)
+            constptrmeth.addstmt(cxx.StmtReturn(
+                cxx.ExprCast(
+                    cxx.ExprAddrOf(cxx.ExprSelect(mvaluevar, '.', unionname)),
+                    cxxtconstptr,
+                    reinterpret=1)))
+            constptrmeths.append(constptrmeth)
+
+            typedefs.append(cxx.Typedef(cxxt, cxxtdefname))
+
+            dtorswitch.addstmt(caselabel)
+            dtorswitch.addstmt(cxx.StmtExpr(
+                cxx.ExprCall(
+                    cxx.ExprSelect(callptrmeth,
+                                   '->', '~'+ cxxtdefname))))
+            dtorswitch.addstmt(cxx.StmtBreak())
+
+            copyctordecl = deepcopy(basiccopydecl)
+            copyctordecl.params[0].type = copyintype
+            copyctor = cxx.ConstructorDefn(
+                copyctordecl,
+                memberinits=[ cxx.ExprMemberInit(mtypevar,
+                                                 args=[ enumvar ]) ])
+            copyctor.addstmt(cxx.StmtExpr(
+                cxx.ExprNew(cxxt,
+                            args=[ valuevar ],
+                            newargs=[ callptrmeth ])))
+            copyctors.append(copyctor)
+
+            copyswitch.addstmt(caselabel)
+            copyinval = cxx.ExprCall(cxx.ExprSelect(valuevar, '.', gettypen))
+            if cxxt._ipdl is not None:
+                
+                
+                
+                
+                copyinval = cxx.ExprCast(copyinval, cxxt, const=1)
+            copyswitch.addstmt(cxx.StmtExpr(
+                cxx.ExprNew(cxxt,
+                            args=[ copyinval ],
+                            newargs=[ callptrmeth ])))
+            copyswitch.addstmt(cxx.StmtBreak())
+
+            opeqdecl = deepcopy(basicopeqdecl)
+            opeqdecl.params[0].type = copyintype
+            opeq = cxx.MethodDefn(opeqdecl)
+            opeq.addstmt(cxx.StmtExpr(cxx.ExprAssn(mtypevar, enumvar)))
+            opeq.addstmt(cxx.StmtExpr(
+                cxx.ExprAssn(cxx.ExprDeref(callptrmeth),
+                             rhsvar)))
+            opeq.addstmt(returnthis)
+            opeqs.append(opeq)
+
+            opeqswitch.addstmt(caselabel)
+            opeqswitch.addstmt(cxx.StmtExpr(
+                cxx.ExprAssn(cxx.ExprDeref(callptrmeth),
+                             cxx.ExprCast(rhsvar, clstyperef, const=1))))
+            opeqswitch.addstmt(cxx.StmtBreak())
+
+            optype = cxx.MethodDefn(
+                cxx.MethodDecl('operator '+ typename +'&', typeop=1))
+            optype.addstmt(returngettype)
+            optypes.append(optype)
+
+            opconsttype = cxx.MethodDefn(
+                cxx.MethodDecl('operator const '+ consttypename +'&',
+                               const=1, typeop=1))
+            opconsttype.addstmt(returngettype)
+            opconsttypes.append(opconsttype)
+
+            callassertsanetype = cxx.StmtExpr(
+                cxx.ExprCall(assertsanityvar,
+                             args=[ enumvar ]))
+
+            rettype = deepcopy(cxxt)
+            rettype.ref = 1
+            gettype = cxx.MethodDefn(cxx.MethodDecl(gettypen,
+                                                    ret=rettype))
+            gettype.addstmt(callassertsanetype)
+            gettype.addstmt(cxx.StmtReturn(cxx.ExprDeref(callptrmeth)))
+            gettypes.append(gettype)
+
+            constrettype = deepcopy(rettype)
+            constrettype.const = 1
+            if cxxt._ipdl is not None:
+                constrettype.ptr = 0
+                constrettype.ptrconst = 1
+            getconsttype = cxx.MethodDefn(cxx.MethodDecl(gettypen,
+                                                         ret=constrettype,
+                                                         const=1))
+            getconsttype.addstmt(callassertsanetype)
+            getconsttype.addstmt(cxx.StmtReturn(
+                cxx.ExprDeref(callconstptrmeth)))
+            getconsttypes.append(getconsttype)
+
+            
+            
+            if cxxt._ipdl is None:
+                writeswitch.addstmt(fullcaselabel)
+                case = cxx.StmtBlock()
+                case.addstmt(cxx.StmtExpr(
+                    cxx.ExprCall(
+                        cxx.ExprVar('WriteParam'),
+                        args=[ cxx.ExprVar('aMsg'),
+                               cxx.ExprCall(
+                                   cxx.ExprSelect(cxx.ExprVar('aParam'),
+                                                  '.', gettypen)) ])))
+                case.addstmt(cxx.StmtReturn())
+                writeswitch.addstmt(case)
+
+                
+                
+                readswitch.addstmt(fullcaselabel)
+                case = cxx.StmtBlock()
+                case.addstmt(cxx.StmtDecl(cxx.Decl(cxxt, 'val')))
+                valvar = cxx.ExprVar('val')
+                readval = cxx.ExprCall(
+                    cxx.ExprVar('ReadParam'),
+                    args=[ cxx.ExprVar('aMsg'),
+                           cxx.ExprVar('aIter'),
+                           cxx.ExprAddrOf(valvar) ])
+                failif = cxx.StmtIf(cxx.ExprPrefixUnop(readval, '!'))
+                failif.addifstmt(cxx.StmtReturn(cxx.ExprVar('false')))
+                case.addstmt(failif)
+                case.addstmt(cxx.StmtExpr(
+                    cxx.ExprAssn(cxx.ExprDeref(cxx.ExprVar('aResult')),
+                                 valvar)))
+                case.addstmt(returntrue)
+                readswitch.addstmt(case)
+            else:
+                union.hasActor = True
+
+
+        
+        cls.addstmt(cxx.Label.PRIVATE)
+        for td in usingTypedefs:
+            cls.addstmt(td)
+        cls.addstmt(cxx.Typedef(cxx.Type('mozilla::ipc::ActorHandle'),
+                                'ActorHandle'))
+        for tdef in typedefs:
+            cls.addstmt(tdef)
+        cls.addstmt(cxx.Whitespace.NL)
+
+        cls.addstmt(cxx.Label.PUBLIC)
+        tenum = cxx.TypeEnum('Type')
+        for enumv in enumvs:
+            tenum.addId(enumv)
+        tenum.addId('T__First', enumvs[0])
+        tenum.addId('T__Last', enumvs[len(enumvs)-1])
+        cls.addstmt(cxx.StmtDecl(cxx.Decl(tenum, '')))
+        cls.addstmt(cxx.Whitespace.NL)
+
+        cls.addstmt(cxx.Label.PRIVATE)
+        cls.addstmt(cxx.StmtDecl(cxx.Decl(union, '')))
+        for ptrmeth in ptrmeths:
+            cls.addstmt(ptrmeth)
+        for constptrmeth in constptrmeths:
+            cls.addstmt(constptrmeth)
+        cls.addstmt(cxx.Whitespace.NL)
+
+        
+        sanity = cxx.MethodDefn(cxx.MethodDecl(assertsanityvar.name,
+                                               ret=cxx.Type('void'),
+                                               const=1))
+        sanity.addstmt(cxx.StmtExpr(
+            cxx.ExprCall(cxx.ExprVar('NS_ABORT_IF_FALSE'),
+                         [ cxx.ExprBinary(cxx.ExprVar('T__First'),
+                                          '<=',
+                                          mtypevar),
+                           cxx.ExprLiteral.String('invalid type tag') ])))
+        sanity.addstmt(cxx.StmtExpr(
+            cxx.ExprCall(cxx.ExprVar('NS_ABORT_IF_FALSE'),
+                         [ cxx.ExprBinary(mtypevar,
+                                          '<=',
+                                          cxx.ExprVar('T__Last')),
+                           cxx.ExprLiteral.String('invalid type tag') ])))
+        cls.addstmt(sanity)
+        sanity = cxx.MethodDefn(
+            cxx.MethodDecl(assertsanityvar.name,
+                           params=[ cxx.Decl(typetype, 'aType') ],
+                           ret=cxx.Type('void'),
+                           const=1))
+        sanity.addstmt(cxx.StmtExpr(cxx.ExprCall(assertsanityvar)))
+        sanity.addstmt(cxx.StmtExpr(
+            cxx.ExprCall(
+                cxx.ExprVar('NS_ABORT_IF_FALSE'),
+                [ cxx.ExprBinary(mtypevar, '==', cxx.ExprVar('aType')),
+                  cxx.ExprLiteral.String('unexpected type tag') ])))
+        cls.addstmt(sanity)
+        cls.addstmt(cxx.Whitespace.NL)
+
+        cls.addstmt(cxx.Label.PUBLIC)
+        
+        cls.addstmt(
+            cxx.ConstructorDefn(
+                cxx.ConstructorDecl(ud.name),
+                [ cxx.ExprMemberInit(mtypevar,
+                                     [ cxx.ExprCast(cxx.ExprLiteral.ZERO,
+                                                    typetype,
+                                                    static=1) ]) ]))
+        for copyctor in copyctors:
+            cls.addstmt(copyctor)
+        
+        copyctordecl = deepcopy(basiccopydecl)
+        copyctordecl.params[0].type.name = ud.name
+        copyctor = cxx.MethodDefn(copyctordecl)
+        copyctor.addstmt(cxx.StmtExpr(cxx.ExprCall(
+            cxx.ExprSelect(valuevar,
+                           '.', assertsanityvar.name))))
+        copyctor.addstmt(cxx.StmtExpr(
+            cxx.ExprAssn(mtypevar,
+                         cxx.ExprSelect(valuevar,
+                                        '.', 'mType'))))
+        copyctor.addstmt(copyswitch)
+        cls.addstmt(copyctor)
+        cls.addstmt(cxx.Whitespace.NL)
+
+        
+        
+        dtorswitch.addstmt(cxx.DefaultLabel())
+        dtorswitch.addstmt(cxx.StmtBreak())
+        dtor = cxx.DestructorDefn(cxx.DestructorDecl(ud.name))
+        dtor.addstmt(dtorswitch)
+        cls.addstmt(dtor)
+        cls.addstmt(cxx.Whitespace.NL)
+
+        
+        for opeq in opeqs:
+            cls.addstmt(opeq)
+        opeqdecl = deepcopy(basicopeqdecl)
+        opeqdecl.params[0].type.name = ud.name
+        opeq = cxx.MethodDefn(opeqdecl)
+        opeq.addstmt(cxx.StmtExpr(
+            cxx.ExprCall(cxx.ExprSelect(rhsvar, '.', assertsanityvar.name))))
+        opeq.addstmt(cxx.StmtExpr(
+            cxx.ExprAssn(mtypevar, cxx.ExprSelect(rhsvar, '.', 'mType'))))
+        opeq.addstmt(opeqswitch)
+        opeq.addstmt(cxx.StmtReturn(cxx.ExprDeref(cxx.ExprVar('this'))))
+        cls.addstmt(opeq)
+        cls.addstmt(cxx.Whitespace.NL)
+
+        
+        for optype in optypes:
+            cls.addstmt(optype)
+        for opconsttype in opconsttypes:
+            cls.addstmt(opconsttype)
+        for gettype in gettypes:
+            cls.addstmt(gettype)
+        for getconsttype in getconsttypes:
+            cls.addstmt(getconsttype)
+        cls.addstmt(cxx.Whitespace.NL)
+
+        gettype = cxx.MethodDefn(cxx.MethodDecl('type', ret=typetype, const=1))
+        gettype.addstmt(cxx.StmtExpr(cxx.ExprCall(assertsanityvar)))
+        gettype.addstmt(cxx.StmtReturn(mtypevar))
+        cls.addstmt(gettype)
+        cls.addstmt(cxx.Whitespace.NL)
+
+        cls.addstmt(cxx.Label.PRIVATE)
+        cls.addstmt(cxx.StmtDecl(cxx.Decl(typetype, 'mType')))
+        cls.addstmt(cxx.StmtDecl(cxx.Decl(valuetype, 'mValue')))
+
+        
+        
+        uniontype = cxx.Type(ud.decl.type.fullname())
+        pickle = cxx.Class('ParamTraits', specializes=uniontype, struct=1)
+        pickle.addstmt(cxx.Label.PRIVATE)
+        for td in usingTypedefs:
+            pickle.addstmt(td)
+        pickle.addstmt(cxx.Typedef(cxx.Type('mozilla::ipc::ActorHandle'),
+                                   'ActorHandle'))
+        pickle.addstmt(cxx.Label.PUBLIC)
+        pickle.addstmt(cxx.Typedef(uniontype, 'paramType'))
+        pickle.addstmt(cxx.Whitespace.NL)
+
+        serialize = cxx.MethodDefn(cxx.MethodDecl(
+            'Write',
+            params=[ cxx.Decl(cxx.Type('Message', ptr=1), 'aMsg'),
+                     cxx.Decl(cxx.Type('paramType', const=1, ref=1), 'aParam') ],
+            ret=cxx.Type('void'),
+            static=1))
+        serialize.addstmt(cxx.StmtExpr(
+            cxx.ExprCall(
+                cxx.ExprVar('WriteParam'),
+                args=[
+                    cxx.ExprVar('aMsg'),
+                    cxx.ExprCast(
+                        cxx.ExprCall(
+                            cxx.ExprSelect(cxx.ExprVar('aParam'),
+                                           '.', 'type')),
+                        cxx.Type('int'),
+                        static=1) ])))
+        
+        writeswitch.addstmt(cxx.DefaultLabel())
+        writeswitch.addstmt(hardabort)
+        serialize.addstmt(writeswitch)
+        pickle.addstmt(serialize)
+
+        deserialize = cxx.MethodDefn(
+            cxx.MethodDecl(
+                'Read',
+                params=[ cxx.Decl(cxx.Type('Message', const=1, ptr=1),
+                                  'aMsg'),
+                         cxx.Decl(cxx.Type('void', ptrptr=1),
+                                  'aIter'),
+                         cxx.Decl(cxx.Type('paramType', ptr=1),
+                                  'aResult') ],
+                ret=cxx.Type('bool'),
+                static=1))
+        deserialize.addstmt(cxx.StmtDecl(cxx.Decl(cxx.Type('int'), 'type')))
+        readtype = cxx.ExprCall(
+            cxx.ExprVar('ReadParam'),
+            args=[ cxx.ExprVar('aMsg'),
+                   cxx.ExprVar('aIter'),
+                   cxx.ExprAddrOf(cxx.ExprVar('type')) ])
+        failif = cxx.StmtIf(cxx.ExprPrefixUnop(readtype, '!'))
+        failif.ifb.addstmt(returnfalse)
+        deserialize.addstmt(failif)
+        
+        readswitch.addstmt(cxx.DefaultLabel())
+        readswitch.addstmt(returnfalse)
+        deserialize.addstmt(readswitch)
+        pickle.addstmt(deserialize)
+
+        logger = cxx.MethodDefn(
+            cxx.MethodDecl(
+                'Log',
+                params=[ cxx.Decl(cxx.Type('paramType', const=1, ref=1),
+                                  'aParam'),
+                         cxx.Decl(cxx.Type('std::wstring', ptr=1),
+                                  'aLog') ],
+                static=1))
+        
+        logger.addstmt(cxx.StmtExpr(cxx.ExprCall(
+            cxx.ExprSelect(cxx.ExprVar('aLog'), '->', 'append'),
+            args=[ cxx.ExprLiteral.WString('('+ ud.name +')') ])))
+        pickle.addstmt(logger)
+
+        
+        
+        
+        
+        ud.decl.type._cxxunion = union
+
+        
+        if 0 == len(ud.namespaces):
+            nscls = cls
+        else:
+            nscls = cxx.Namespace(ud.namespaces[0].namespace)
+            innerns = nscls
+            for ns in ud.namespaces[1:]:
+                tmp = cxx.Namespace(ns.namespace)
+                innerns.addstmt(tmp)
+                innerns = tmp
+            innerns.addstmt(cls)
+
+        nspickle = cxx.Namespace('IPC')
+        nspickle.addstmt(pickle)
+
+        self.file.addthing(cxx.Whitespace.NL)
+        for fd in forwarddecls:
+            self.file.addthing(fd)
+            self.file.addthing(cxx.Whitespace.NL)
+        self.file.addthing(cxx.Whitespace.NL)
+        self.file.addthing(nscls)
+        self.file.addthing(cxx.Whitespace.NL)
+        self.file.addthing(nspickle)
+        self.file.addthing(cxx.Whitespace.NL)
 
 
     def visitUsingStmt(self, using):
@@ -226,13 +776,22 @@ class GenerateProtocolHeader(Visitor):
         
         md._cxx = _struct()
 
+        def canonicalType(t):
+            cxxt = cxx.Type(t.name())
+            if t.isIPDL() and t.isUnionType():
+                cxxt._union = t._cxxunion
+            else:
+                cxxt._union = None
+
+            if t.isIPDL() and t.isActor():
+                cxxt.actor = 1
+                cxxt.ptr = 1
+
+            return cxxt
+
         def makeCxxDecl(decl):
-            cxxd = cxx.Decl(cxx.Type(decl.type.name()),
+            return cxx.Decl(canonicalType(decl.type),
                             decl.progname)
-            if decl.type.isIPDL() and decl.type.isActor():
-                cxxd.type.actor = 1
-                cxxd.type.ptr = 1
-            return cxxd
 
         md._cxx.params = [ makeCxxDecl(d) for d in md.inParams ]
         md._cxx.returns = [ makeCxxDecl(d) for d in md.outParams ]
@@ -273,11 +832,11 @@ class GenerateProtocolHeader(Visitor):
 def generateMsgClass(md, clsname, params, typedefInjector):
         cls = cxx.Class(name=clsname,
                         inherits=[ cxx.Inherit('IPC::Message') ])
-        cls.addstmt(cxx.Label('private'))
+        cls.addstmt(cxx.Label.PRIVATE)
         typedefInjector(cls)
         cls.addstmt(cxx.Whitespace.NL)
 
-        cls.addstmt(cxx.Label('public'))
+        cls.addstmt(cxx.Label.PUBLIC)
 
         idenum = cxx.TypeEnum()
         idenum.addId('ID', clsname +'__ID')
@@ -313,7 +872,6 @@ def generateMsgClass(md, clsname, params, typedefInjector):
                                           [ cxx.ExprVar('this'),
                                             cxx.ExprVar(cparam.name) ])))
         cls.addstmt(ctor)
-
         cls.addstmt(cxx.Whitespace.NL)
 
         
@@ -554,12 +1112,12 @@ class GenerateProtocolActorHeader(Visitor):
                 p, _actorName(p.name, self.myside))
             self.file.addthing(cxx.CppDirective('include', '"'+ header +'"'))
         else:
-            self.file.addthing(_makeForwardDecl(p, self.myside))
+            self.file.addthing(_makeForwardDecl(p.decl.type, self.myside))
             
         if p.decl.fullname is not None:
             self.typedefs.append(cxx.Typedef(
                 cxx.Type(_actorName(p.decl.fullname, self.myside)),
-                cxx.Type(_actorName(p.decl.shortname, self.myside))))
+                _actorName(p.decl.shortname, self.myside)))
 
     def visitProtocol(self, p):
         p._cxx = _struct()
@@ -568,7 +1126,8 @@ class GenerateProtocolActorHeader(Visitor):
         self.file.addthing(cxx.CppDirective('include', '"prenv.h"'))
         self.file.addthing(cxx.CppDirective('endif', '// DEBUG'))
 
-        if p.decl.type.isManager():
+        
+        if p.decl.type.isManager() or 1:
             self.file.addthing(cxx.CppDirective('include', '"base/id_map.h"'))
 
         
@@ -625,7 +1184,7 @@ class GenerateProtocolActorHeader(Visitor):
                            self.myside)))
             cls.addstmt(cxx.Whitespace.NL)
 
-        cls.addstmt(cxx.Label('protected'))
+        cls.addstmt(cxx.Label.PROTECTED)
         for typedef in self.typedefs:
             cls.addstmt(typedef)
         cls.addstmt(cxx.Whitespace.NL)
@@ -674,16 +1233,16 @@ class GenerateProtocolActorHeader(Visitor):
                     cls.addstmt(cxx.StmtDecl(meth))
         cls.addstmt(cxx.Whitespace.NL)
 
-        cls.addstmt(cxx.Label('private'))
+        cls.addstmt(cxx.Label.PRIVATE)
         cls.addstmt(cxx.Typedef(cxx.Type('IPC::Message'),
-                                cxx.Type('Message')))
+                                'Message'))
         cls.addstmt(cxx.Typedef(cxx.Type(channelname),
-                                cxx.Type('Channel')))
+                                'Channel'))
         cls.addstmt(cxx.Typedef(cxx.Type(channellistener),
-                                cxx.Type('ChannelListener')))
+                                'ChannelListener'))
         cls.addstmt(cxx.Whitespace.NL)
         
-        cls.addstmt(cxx.Label('public'))
+        cls.addstmt(cxx.Label.PUBLIC)
         ctor = cxx.ConstructorDefn(cxx.ConstructorDecl(self.clsname))
         if p.decl.type.isToplevel():
             ctor.memberinits = [
@@ -836,7 +1395,11 @@ class GenerateProtocolActorHeader(Visitor):
                 cls.addstmt(cxx.Whitespace.NL)
 
         
-        if p.decl.type.isManager():
+        
+        
+        
+        
+        if 1 or p.decl.type.isManager():
             register = cxx.MethodDefn(
                 cxx.MethodDecl(
                     'Register',
@@ -885,9 +1448,9 @@ class GenerateProtocolActorHeader(Visitor):
                 registerid.addstmt(cxx.StmtReturn(idvar))
 
                 lookup.addstmt(cxx.StmtReturn(
-                        cxx.ExprCall(cxx.ExprSelect(cxx.ExprVar('mActorMap'),
-                                                    '.', 'Lookup'),
-                                     [ cxx.ExprVar('aId') ])))
+                    cxx.ExprCall(cxx.ExprSelect(cxx.ExprVar('mActorMap'),
+                                                '.', 'Lookup'),
+                                 [ cxx.ExprVar('aId') ])))
                 unregister.addstmt(cxx.StmtReturn(
                         cxx.ExprCall(cxx.ExprSelect(cxx.ExprVar('mActorMap'),
                                                     '.', 'Remove'),
@@ -903,9 +1466,9 @@ class GenerateProtocolActorHeader(Visitor):
                                      [ cxx.ExprVar('aRouted'), 
                                        cxx.ExprVar('aId') ])))
                 lookup.addstmt(cxx.StmtReturn(
-                        cxx.ExprCall(cxx.ExprSelect(cxx.ExprVar('mManager'),
-                                                    '->', 'Lookup'),
-                                     [ cxx.ExprVar('aId') ])))
+                    cxx.ExprCall(cxx.ExprSelect(cxx.ExprVar('mManager'),
+                                                '->', 'Lookup'),
+                                 [ cxx.ExprVar('aId') ])))
                 unregister.addstmt(cxx.StmtReturn(
                         cxx.ExprCall(cxx.ExprSelect(cxx.ExprVar('mManager'),
                                                     '->', 'Unregister'),
@@ -917,12 +1480,13 @@ class GenerateProtocolActorHeader(Visitor):
             cls.addstmt(cxx.Whitespace.NL)
 
         
-        cls.addstmt(cxx.Label('private'))
+        cls.addstmt(cxx.Label.PRIVATE)
         channeltype = cxx.Type('Channel')
         if p.decl.type.isManaged():
             channeltype.ptr = True 
         cls.addstmt(cxx.StmtDecl(cxx.Decl(channeltype, 'mChannel')))
-        if p.decl.type.isToplevel() and p.decl.type.isManager():
+        
+        if p.decl.type.isToplevel() and (1 or p.decl.type.isManager()):
             cls.addstmt(cxx.StmtDecl(cxx.Decl(
                         cxx.Type('IDMap<ChannelListener>'), 'mActorMap')))
             cls.addstmt(cxx.StmtDecl(cxx.Decl(
@@ -1079,6 +1643,16 @@ class GenerateProtocolActorHeader(Visitor):
                                      objid)))
                 impl.addstmt(cxx.Whitespace.NL)
 
+            hasreply = md.decl.type.hasReply()
+            if hasreply:
+                impl.addstmt(cxx.StmtDecl(cxx.Decl(cxx.Type('Message'),
+                                                   '__reply')))
+                replyvar = cxx.ExprVar('__reply')
+
+            impl.addstmt(cxx.StmtDecl(cxx.Decl(cxx.Type(md._cxx.nsid, ptr=1),
+                                               '__msg')))
+            msgvar = cxx.ExprVar('__msg')
+
             
             
             for param in mdecl.params:
@@ -1093,22 +1667,109 @@ class GenerateProtocolActorHeader(Visitor):
                                                   failcode=valueerrcode))
             impl.addstmt(cxx.Whitespace.NL)
 
-            hasreply = md.decl.type.hasReply()
-            if hasreply:
-                impl.addstmt(cxx.StmtDecl(cxx.Decl(cxx.Type('Message'),
-                                                   '__reply')))
-                replyvar = cxx.ExprVar('__reply')
+            
+            
+            
+            uahvars = [ ]
+            wasrepackedvars = [ ]
+            ruid = 0
+            switches = [ ]
+            for p in md._cxx.params:
+                if (p.type._union is None
+                    or not p.type._union.hasActor):
+                    uahvars.append(None)
+                    wasrepackedvars.append(None)
+                    continue
 
-            impl.addstmt(cxx.StmtDecl(cxx.Decl(cxx.Type(md._cxx.nsid, ptr=1),
-                                               '__msg')))
-            msgvar = cxx.ExprVar('__msg')
+                pvar = cxx.ExprVar(p.name)
+                u = p.type._union
+
+                uahdecl = cxx.StmtDecl(cxx.Decl(
+                    cxx.Type('mozilla::ipc::ActorHandle'),
+                    '__uah'+ str(ruid)))
+                uahvar = cxx.ExprVar('__uah'+ str(ruid))
+                uahvars.append( (uahdecl, uahvar) )
+
+                wrvar = cxx.ExprVar('__wr_'+ str(ruid))
+                wrdecl = cxx.StmtDecl(cxx.Decl(cxx.Type('bool'), wrvar.name))
+                wasrepackedvars.append( (wrdecl, wrvar) )
+                ruid += 1
+                
+                
+                switch = cxx.StmtSwitch(cxx.ExprCall(
+                    cxx.ExprSelect(pvar, '.', 'type')))
+                for t, n in u.components:
+                    if (t._ipdl is None
+                        or self.myside is not t._side):
+                        continue
+                    switch.addstmt(cxx.CaseLabel(p.type.name +'::'+ t._tag))
+                    repack = cxx.StmtBlock()
+                    repack.addstmt(cxx.StmtDecl(cxx.Decl(t, '__ua')))
+
+                    uavar = cxx.ExprVar('__ua')
+                    
+                    
+                    
+                    
+                    
+                    utype = deepcopy(p.type)
+                    utype.ref = 1
+                    repack.addstmt(cxx.StmtExpr(cxx.ExprAssn(
+                        uavar,
+                        cxx.ExprCast(pvar, utype, const=1))))
+
+                    repack.addstmts(_actorToActorHandle(actor=uavar,
+                                                       handle=uahvar,
+                                                       failcode=valueerrcode))
+
+                    
+                    repack.addstmt(cxx.StmtExpr(cxx.ExprAssn(
+                        wrvar, cxx.ExprVar('true'))))
+                    repack.addstmt(cxx.StmtBreak())
+                    switch.addstmt(repack)
+
+                
+                switch.addstmt(cxx.DefaultLabel())
+                switch.addstmt(cxx.StmtBreak())
+                switches.append(switch)
+
+            for udv in uahvars:
+                if udv is None: continue
+                uahdecl, _ = udv
+                impl.addstmt(uahdecl)
+            for wrdv in wasrepackedvars:
+                if wrdv is None: continue
+                wrdecl, wrvar = wrdv
+                impl.addstmt(wrdecl)
+                impl.addstmt(cxx.StmtExpr(
+                    cxx.ExprAssn(wrvar, cxx.ExprVar('false'))))
+            impl.addstmt(cxx.Whitespace.NL)
+                
+            for switch in switches:
+                impl.addstmt(switch)
+            impl.addstmt(cxx.Whitespace.NL)
 
             msgctorargs = [ ]
-            for param in md._cxx.params:
-                aname = param.name
-                if param.type.actor:
-                    aname += '__ah'
-                msgctorargs.append(cxx.ExprVar(aname))
+            for i, param in enumerate(md._cxx.params):
+                pvar = cxx.ExprVar(param.name)
+                wrdv = wasrepackedvars[i]
+
+                if wrdv is None:
+                    
+                    if param.type.actor:
+                        
+                        pvar.name += '__ah'
+                    msgctorargs.append(pvar)
+                else:
+                    wrvar = wrdv[1]
+                    uahvar = uahvars[i][1]
+                    
+                    
+                    
+                    
+                    msgctorargs.append(
+                        cxx.ExprConditional(wrvar, uahvar, pvar))
+                
             if md.decl.type.hasImplicitActorParam():
                 msgctorargs.append(ahvar)
                 
@@ -1188,6 +1849,54 @@ class GenerateProtocolActorHeader(Visitor):
                 errhandle = cxx.StmtIf(cxx.ExprPrefixUnop(unpack, '!'))
                 errhandle.ifb.addstmt(cxx.StmtReturn(valueerrcode))
                 impl.addstmt(errhandle)
+
+                
+                
+                for r in md._cxx.returns:
+                    if (r.type._union is None
+                        or not r.type._union.hasActor):
+                        continue
+                    u = r.type._union
+                    for t, n in u.components:
+                        if (t._ipdl is None
+                            or self.myside is not t._side):
+                            continue
+                        rvar = cxx.ExprVar(r.name)
+                        
+                        
+                        
+                        ifhandle = cxx.StmtIf(
+                            cxx.ExprBinary(
+                                cxx.ExprVar(r.type.name +'::TActorHandle'),
+                                '==',
+                                cxx.ExprCall(cxx.ExprSelect(rvar,
+                                                            '.', 'type'))))
+                        ifhandle.addifstmt(cxx.StmtDecl(
+                            cxx.Decl(cxx.Type('mozilla::ipc::ActorHandle'),
+                                              '__uah')))
+                        uahvar = cxx.ExprVar('__uah')
+                        ifhandle.addifstmt(cxx.StmtExpr(cxx.ExprAssn(uahvar,
+                                                                     rvar)))
+                        
+                        ifhandle.addifstmt(cxx.StmtDecl(cxx.Decl(t, '__ua')))
+                        uavar = cxx.ExprVar('__ua')
+                        actorid = cxx.ExprSelect(uahvar, '.', 'mId')
+                        cast = cxx.ExprCast(
+                            cxx.ExprCall(cxx.ExprVar('Lookup'), [ actorid ]),
+                            t,
+                            static=1)
+                        ifhandle.addifstmt(cxx.StmtExpr(
+                            cxx.ExprAssn(uavar, cast)))
+                        failif = cxx.StmtIf(cxx.ExprPrefixUnop(uavar, '!'))
+                        failif.addifstmt(cxx.StmtReturn(
+                            cxx.ExprVar('MsgValueError')))
+                        ifhandle.addifstmt(failif)
+
+                        
+                        ifhandle.addifstmt(cxx.StmtExpr(cxx.ExprAssn(
+                            rvar, uavar)))
+                        
+                        impl.addstmt(ifhandle)
 
                 
                 injectLogger(impl,
@@ -1299,6 +2008,55 @@ class GenerateProtocolActorHeader(Visitor):
                          pfx +' ')
 
             
+            
+            
+            
+            
+            
+            for p in md._cxx.params:
+                if (p.type._union is None
+                    or not p.type._union.hasActor):
+                    continue
+                u = p.type._union
+                for t, n in u.components:
+                    if (t._ipdl is None
+                        or self.myside is not t._side):
+                        continue
+                    pvar = cxx.ExprVar(p.name)
+                    
+                    
+                    
+                    ifhandle = cxx.StmtIf(
+                        cxx.ExprBinary(
+                            cxx.ExprVar(p.type.name +'::TActorHandle'),
+                            '==',
+                            cxx.ExprCall(cxx.ExprSelect(pvar,
+                                                        '.', 'type'))))
+                    ifhandle.addifstmt(cxx.StmtDecl(
+                        cxx.Decl(cxx.Type('mozilla::ipc::ActorHandle'),
+                                 '__uah')))
+                    uahvar = cxx.ExprVar('__uah')
+                    ifhandle.addifstmt(cxx.StmtExpr(cxx.ExprAssn(uahvar,
+                                                                 pvar)))
+                    
+                    ifhandle.addifstmt(cxx.StmtDecl(cxx.Decl(t, '__ua')))
+                    uavar = cxx.ExprVar('__ua')
+
+                    ifhandle.ifb.addstmts(
+                        _actorHandleToActor(
+                            handle=uahvar,
+                            actor=uavar,
+                            actortype=t,
+                            failcode=cxx.ExprVar('MsgValueError')))
+
+                    
+                    ifhandle.addifstmt(cxx.StmtExpr(
+                        cxx.ExprAssn(pvar, uavar)))
+                        
+                    block.addstmt(ifhandle)
+
+            
+            
             for param in md._cxx.params:
                 if not param.type.actor: continue
 
@@ -1399,9 +2157,90 @@ class GenerateProtocolActorHeader(Visitor):
                     block.addstmt(cxx.StmtDecl(
                             cxx.Decl(cxx.Type('Message', ptr=1), 'reply')))
                 replyvar = cxx.ExprVar('reply')
-                replymsgctor = cxx.ExprNew(
-                    cxx.Type(md._cxx.nsreplyid),
-                    [ cxx.ExprVar(r.name) for r in md._cxx.returns ])
+
+                
+                
+                
+                
+                
+                uahvars = [ ]
+                wasrepackedvars = [ ]
+                ruid = 0
+                switches = [ ]
+                for r in md._cxx.returns:
+                    if (r.type._union is None
+                        or not r.type._union.hasActor):
+                        uahvars.append(None)
+                        wasrepackedvars.append(None)
+                        continue
+
+                    rvar = cxx.ExprVar(r.name)
+                    u = r.type._union
+
+                    uahdecl = cxx.StmtDecl(cxx.Decl(
+                        cxx.Type('mozilla::ipc::ActorHandle'),
+                        '__uah'+ str(ruid)))
+                    uahvar = cxx.ExprVar('__uah'+ str(ruid))
+                    uahvars.append( (uahdecl, uahvar) )
+
+                    wrvar = cxx.ExprVar('__wr_'+ str(ruid))
+                    wrdecl = cxx.StmtDecl(cxx.Decl(cxx.Type('bool'),
+                                                   wrvar.name))
+                    wasrepackedvars.append( (wrdecl, wrvar) )
+                    ruid += 1
+                    
+                    
+                    switch = cxx.StmtSwitch(cxx.ExprCall(
+                        cxx.ExprSelect(rvar, '.', 'type')))
+                    for t, n in u.components:
+                        if (t._ipdl is None
+                            or self.myside is not t._side):
+                            continue
+                        switch.addstmt(cxx.Label(t._tag))
+                        repack = cxx.StmtBlock()
+                        repack.addstmt(cxx.StmtDecl(cxx.Decl(t, '__ua')))
+                        uavar = cxx.ExprVar('__ua')
+                        repack.addstmt(cxx.StmtExpr(cxx.ExprAssn(uavar, rvar)))
+                        repack.addstmt(cxx.StmtExpr(
+                            cxx.ExprAssn(cxx.ExprSelect(uahvar, '.', 'mId'),
+                                         cxx.ExprSelect(uavar, '.', 'mId'))))
+                        repack.addstmt(cxx.StmtExpr(cxx.ExprAssn(rvar,
+                                                                 uahvar)))
+                        repack.addstmt(cxx.StmtExpr(cxx.ExprAssn(
+                            wrvar, cxx.ExprVar('true'))))
+                        repack.addstmt(cxx.StmtBreak())
+                        switch.addstmt(repack)
+                    
+                    switch.addstmt(cxx.DefaultLabel())
+                    switches.append(switch)
+
+                for udv in uahvars:
+                    if udv is None: continue
+                    uahdecl, _ = udv
+                    block.addstmt(uahdecl)
+                for wrdv in wasrepackedvars:
+                    if wrdv is None: continue
+                    wrdecl, wrvar = wrdv
+                    block.addstmt(wrdecl)
+                    block.addstmt(cxx.StmtExpr(
+                        cxx.ExprAssn(wrvar, cxx.ExprVar('false'))))
+                for switch in switches:
+                    block.addstmt(switch)
+
+                ctorparams = [ ]
+                for i, r in enumerate(md._cxx.returns):
+                    rvar = cxx.ExprVar(r.name)
+                    wrdv = wasrepackedvars[i]
+                    if wrdv is None:
+                        ctorparams.append(rvar)
+                    else:
+                        wrvar = wrdv[1]
+                        uahvar = uahvars[i][1]
+                        ctorparams.append(
+                            cxx.ExprConditional(wrvar, uahvar, rvar))
+
+                replymsgctor = cxx.ExprNew(cxx.Type(md._cxx.nsreplyid),
+                                           args=ctorparams)
                 if md.decl.type.hasImplicitActorParam():
                     replymsgctor.args.append(ahvar)
                 block.addstmt(cxx.StmtExpr(cxx.ExprAssn(replyvar,

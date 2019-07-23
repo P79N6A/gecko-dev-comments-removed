@@ -118,6 +118,7 @@ class IPDLType(Type):
     def isMessage(self): return False
     def isProtocol(self): return False
     def isActor(self): return False
+    def isUnion(self): return False
 
     def isAsync(self): return self.sendSemantics is ASYNC
     def isSync(self): return self.sendSemantics is SYNC
@@ -199,7 +200,7 @@ class ProtocolType(IPDLType):
         return not self.isManaged()
 
 class ActorType(IPDLType):
-    def __init__(self, protocol, state):
+    def __init__(self, protocol, state=None):
         self.protocol = protocol
         self.state = state
     def isActor(self): return True
@@ -208,6 +209,15 @@ class ActorType(IPDLType):
         return self.protocol.name()
     def fullname(self):
         return self.protocol.fullname()
+
+class UnionType(IPDLType):
+    def __init__(self, qname, components):
+        self.qname = qname
+        self.components = components
+
+    def isUnionType(self): return True
+    def name(self): return self.qname.baseid
+    def fullname(self): return str(self.qname)
 
 
 _builtinloc = Loc('<builtin>', 0)
@@ -395,8 +405,7 @@ class GatherDecls(TcheckVisitor):
         
         
         
-        qname = QualifiedId(p.loc, p.name,
-                            [ ns.namespace for ns in p.namespaces ])
+        qname = p.qname()
         if 0 == len(qname.quals):
             fullname = None
         else:
@@ -416,6 +425,10 @@ class GatherDecls(TcheckVisitor):
             using.accept(self)
 
         
+        for union in tu.unions:
+            union.accept(self)
+
+        
         p.accept(self)
 
         tu.type = VOID
@@ -426,6 +439,32 @@ class GatherDecls(TcheckVisitor):
     def visitProtocolInclude(self, pi):
         pi.tu.accept(self)
         self.symtab.declare(pi.tu.protocol.decl)
+
+    def visitUnionDecl(self, ud):
+        qname = ud.qname()
+        if 0 == len(qname.quals):
+            fullname = None
+        else:
+            fullname = str(qname)
+        components = [ ]
+
+        nactors = 0                     
+        
+        for c in ud.components:
+            ctype = self.symtab.lookup(str(c)).type
+            if ctype.isIPDL() and ctype.isProtocol():
+                ctype = ActorType(ctype)
+                nactors += 1
+            components.append(ctype)
+
+        if nactors > 1:
+            self.error(ud.loc, 'sorry, IPDL currently limits you to one actor type per union. file a bug against :cjones')
+       
+        ud.decl = self.declare(
+            loc=ud.loc,
+            type=UnionType(qname, components),
+            shortname=ud.name,
+            fullname=fullname)
 
     def visitUsingStmt(self, using):
         fullname = str(using.type)
