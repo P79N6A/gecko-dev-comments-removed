@@ -38,7 +38,6 @@
 #define nsIStringCharsetDetector_h__
 
 #include "nsISupports.h"
-#include "nsString.h"
 #include "nsDetectionConfident.h"
 
 
