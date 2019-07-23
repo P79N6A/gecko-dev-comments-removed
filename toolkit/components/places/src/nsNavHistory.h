@@ -651,6 +651,7 @@ protected:
   static const PRInt32 kAutoCompleteIndex_BookmarkTitle;
   static const PRInt32 kAutoCompleteIndex_Tags;
   nsCOMPtr<mozIStorageStatement> mDBAutoCompleteQuery; 
+  nsCOMPtr<mozIStorageStatement> mDBPreviousQuery; 
   nsCOMPtr<mozIStorageStatement> mDBAdaptiveQuery; 
   nsCOMPtr<mozIStorageStatement> mDBFeedbackIncrease;
 
@@ -685,6 +686,7 @@ protected:
   nsDataHashtable<nsStringHashKey, PRBool> mLivemarkFeedURIs;
 
   nsresult AutoCompleteFullHistorySearch(PRBool* aHasMoreResults);
+  nsresult AutoCompletePreviousSearch();
   nsresult AutoCompleteAdaptiveSearch();
 
   

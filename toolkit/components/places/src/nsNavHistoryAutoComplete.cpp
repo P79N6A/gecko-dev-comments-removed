@@ -81,6 +81,26 @@
 
 
 
+#define SQL_STR_FRAGMENT_GET_BOOK_TAG(name, column, comparison, getMostRecent) \
+  NS_LITERAL_CSTRING(", (" \
+  "SELECT " column " " \
+  "FROM moz_bookmarks b " \
+  "JOIN moz_bookmarks t ON t.id = b.parent AND t.parent " comparison " ?1 " \
+  "WHERE b.type = ") + nsPrintfCString("%d", \
+    nsINavBookmarksService::TYPE_BOOKMARK) + \
+    NS_LITERAL_CSTRING(" AND b.fk = h.id") + \
+  (getMostRecent ? NS_LITERAL_CSTRING(" " \
+    "ORDER BY b.lastModified DESC LIMIT 1") : EmptyCString()) + \
+  NS_LITERAL_CSTRING(") " name)
+
+
+const nsCString &kBookTagSQL = 
+  SQL_STR_FRAGMENT_GET_BOOK_TAG("parent", "b.parent", "!=", PR_TRUE) +
+  SQL_STR_FRAGMENT_GET_BOOK_TAG("bookmark", "b.title", "!=", PR_TRUE) +
+  SQL_STR_FRAGMENT_GET_BOOK_TAG("tags", "GROUP_CONCAT(t.title, ',')", "=", PR_FALSE);
+
+
+
 
 
 
@@ -89,6 +109,25 @@ inline PRBool
 StartsWithJS(const nsAString &aString)
 {
   return StringBeginsWith(aString, NS_LITERAL_STRING("javascript:"));
+}
+
+
+
+
+
+
+
+
+
+
+
+
+PLDHashOperator
+HashedURLsToArray(const nsAString &aKey, PRBool aData, void *aArg)
+{
+  
+  static_cast<nsStringArray *>(aArg)->AppendString(aKey);
+  return PL_DHASH_NEXT;
 }
 
 
@@ -206,28 +245,8 @@ nsNavHistory::InitAutoComplete()
 nsresult
 nsNavHistory::CreateAutoCompleteQueries()
 {
-  
-  
-#define SQL_STR_FRAGMENT_GET_BOOK_TAG(column, comparison, getMostRecent) \
-  NS_LITERAL_CSTRING( \
-  "(SELECT " column " " \
-  "FROM moz_bookmarks b " \
-  "JOIN moz_bookmarks t ON t.id = b.parent AND t.parent " comparison " ?1 " \
-  "WHERE b.type = ") + nsPrintfCString("%d", \
-    nsINavBookmarksService::TYPE_BOOKMARK) + \
-    NS_LITERAL_CSTRING(" AND b.fk = h.id") + \
-  (getMostRecent ? NS_LITERAL_CSTRING(" " \
-    "ORDER BY b.lastModified DESC LIMIT 1), ") : NS_LITERAL_CSTRING("), "))
-
-  
-  const nsCString &bookTag = 
-    SQL_STR_FRAGMENT_GET_BOOK_TAG("b.parent", "!=", PR_TRUE) +
-    SQL_STR_FRAGMENT_GET_BOOK_TAG("b.title", "!=", PR_TRUE) +
-    SQL_STR_FRAGMENT_GET_BOOK_TAG("GROUP_CONCAT(t.title, ' ')", "=", PR_FALSE);
-
   nsCString sql = NS_LITERAL_CSTRING(
-    "SELECT h.url, h.title, f.url, ") + bookTag +
-      NS_LITERAL_CSTRING("NULL "
+    "SELECT h.url, h.title, f.url") + kBookTagSQL + NS_LITERAL_CSTRING(" "
     "FROM moz_places h "
     "LEFT OUTER JOIN moz_favicons f ON f.id = h.favicon_id "
     "WHERE h.frecency <> 0 ");
@@ -244,13 +263,12 @@ nsNavHistory::CreateAutoCompleteQueries()
   
   sql += NS_LITERAL_CSTRING(
     "ORDER BY h.frecency DESC LIMIT ?2 OFFSET ?3");
-
   nsresult rv = mDBConn->CreateStatement(sql, 
     getter_AddRefs(mDBAutoCompleteQuery));
   NS_ENSURE_SUCCESS(rv, rv);
 
   sql = NS_LITERAL_CSTRING(
-    "SELECT h.url, h.title, f.url, ") + bookTag + NS_LITERAL_CSTRING(
+    "SELECT h.url, h.title, f.url") + kBookTagSQL + NS_LITERAL_CSTRING(", "
       "ROUND(MAX(((i.input = ?2) + (SUBSTR(i.input, 1, LENGTH(?2)) = ?2)) * "
                 "i.use_count), 1) rank "
     "FROM moz_inputhistory i "
@@ -321,8 +339,14 @@ nsNavHistory::PerformAutoComplete()
   }
 
   PRBool moreChunksToSearch = PR_FALSE;
-  rv = AutoCompleteFullHistorySearch(&moreChunksToSearch);
-  NS_ENSURE_SUCCESS(rv, rv);
+  
+  if (mDBPreviousQuery) {
+    rv = AutoCompletePreviousSearch();
+    NS_ENSURE_SUCCESS(rv, rv);
+  } else {
+    rv = AutoCompleteFullHistorySearch(&moreChunksToSearch);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
 
   
   moreChunksToSearch &= !AutoCompleteHasEnoughResults();
@@ -424,7 +448,43 @@ nsNavHistory::StartSearch(const nsAString & aSearchString,
       DoneSearching(PR_TRUE);
 
       return NS_OK;
+    } else {
+      
+      
+      nsCString sql = NS_LITERAL_CSTRING(
+        "SELECT h.url, h.title, f.url") + kBookTagSQL + NS_LITERAL_CSTRING(" "
+        "FROM moz_places h "
+        "LEFT OUTER JOIN moz_favicons f ON f.id = h.favicon_id "
+        "WHERE h.url IN (");
+
+      
+      for (PRUint32 i = 0; i < prevMatchCount; i++) {
+        if (i)
+          sql += NS_LITERAL_CSTRING(",");
+
+        
+        sql += nsPrintfCString("?%d", i + 2);
+      }
+
+      sql += NS_LITERAL_CSTRING(") "
+        "ORDER BY h.frecency DESC");
+
+      rv = mDBConn->CreateStatement(sql, getter_AddRefs(mDBPreviousQuery));
+      NS_ENSURE_SUCCESS(rv, rv);
+
+      
+      nsStringArray urls;
+      (void)mCurrentResultURLs.EnumerateRead(HashedURLsToArray, &urls);
+
+      
+      for (PRUint32 i = 0; i < prevMatchCount; i++) {
+        rv = mDBPreviousQuery->BindStringParameter(i + 1, *urls[i]);
+        NS_ENSURE_SUCCESS(rv, rv);
+      }
     }
+  } else {
+    
+    mDBPreviousQuery = nsnull;
   }
 
   mAutoCompleteFinishedSearch = PR_FALSE;
@@ -475,7 +535,6 @@ nsNavHistory::StopSearch()
   if (mAutoCompleteTimer)
     mAutoCompleteTimer->Cancel();
 
-  mCurrentSearchString.Truncate();
   DoneSearching(PR_FALSE);
 
   return NS_OK;
@@ -525,6 +584,21 @@ nsNavHistory::AutoCompleteAdaptiveSearch()
 
   rv = AutoCompleteProcessSearch(mDBAdaptiveQuery, QUERY_ADAPTIVE);
   NS_ENSURE_SUCCESS(rv, rv);
+
+  return NS_OK;
+}
+
+nsresult
+nsNavHistory::AutoCompletePreviousSearch()
+{
+  nsresult rv = mDBPreviousQuery->BindInt32Parameter(0, GetTagsFolder());
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  rv = AutoCompleteProcessSearch(mDBPreviousQuery, QUERY_FULL);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  mDBPreviousQuery = nsnull;
 
   return NS_OK;
 }
