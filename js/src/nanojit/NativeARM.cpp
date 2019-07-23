@@ -754,7 +754,7 @@ Assembler::asm_call(LInsp ins)
     
     ArgSize rsize = (ArgSize)(atypes & ARGSIZE_MASK_ANY);
 
-    atypes >>= ARGSIZE_MASK_SHIFT;
+    atypes >>= ARGSIZE_SHIFT;
 
     
     
