@@ -50,6 +50,7 @@ version(180);
 
 
 
+
 var histsvc = Cc["@mozilla.org/browser/nav-history-service;1"].
               getService(Ci.nsINavHistoryService);
 var bmsvc = Cc["@mozilla.org/browser/nav-bookmarks-service;1"].
@@ -253,8 +254,19 @@ function run_test() {
 
     
     for (var i = 0; i < controller.matchCount; i++) {
-      do_check_eq(controller.getValueAt(i), results[i][0].spec);
-      do_check_eq(controller.getCommentAt(i), results[i][2]);
+      let searchURL = controller.getValueAt(i);
+      let expectURL = results[i][0].spec;
+      if (searchURL == expectURL) {
+        do_check_eq(controller.getValueAt(i), results[i][0].spec);
+        do_check_eq(controller.getCommentAt(i), results[i][2]);
+      } else {
+        
+        
+        
+        
+        let getFrecency = function(aURL) aURL.match(/frecency:(-?\d+)$/)[1];
+        do_check_eq(getFrecency(searchURL), getFrecency(expectURL));
+      }
     }
 
     do_test_finished();

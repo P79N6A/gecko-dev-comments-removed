@@ -37,6 +37,7 @@
 
 
 
+
 var current_test = 0;
 
 function AutoCompleteInput(aSearches) {
@@ -124,10 +125,14 @@ function ensure_tag_results(uris, searchTerm)
     do_check_eq(controller.searchStatus, 
                 Ci.nsIAutoCompleteController.STATUS_COMPLETE_MATCH);
     do_check_eq(controller.matchCount, uris.length);
+    let vals = [];
     for (var i=0; i<controller.matchCount; i++) {
-      do_check_eq(controller.getValueAt(i), uris[i].spec);
+      
+      vals.push(controller.getValueAt(i));
       do_check_eq(controller.getStyleAt(i), "tag");
     }
+    
+    vals.sort().forEach(function(val, i) do_check_eq(val, uris[i].spec))
    
     if (current_test < (tests.length - 1)) {
       current_test++;

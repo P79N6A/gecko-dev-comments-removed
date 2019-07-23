@@ -106,11 +106,30 @@ nsNavHistory::InitAutoComplete()
 nsresult
 nsNavHistory::CreateAutoCompleteQueries()
 {
+  
+  
+#define SQL_STR_FRAGMENT_GET_BOOK_TAG(column, comparison, getMostRecent) \
+  NS_LITERAL_CSTRING( \
+  "(SELECT " column " " \
+  "FROM moz_bookmarks b " \
+  "JOIN moz_bookmarks t ON t.id = b.parent AND t.parent " comparison " ?1 " \
+  "WHERE b.type = ") + nsPrintfCString("%d", \
+    nsINavBookmarksService::TYPE_BOOKMARK) + \
+    NS_LITERAL_CSTRING(" AND b.fk = h.id") + \
+  (getMostRecent ? NS_LITERAL_CSTRING(" " \
+    "ORDER BY b.lastModified DESC LIMIT 1), ") : NS_LITERAL_CSTRING("), "))
+
+  
+  const nsCString &bookTag = 
+    SQL_STR_FRAGMENT_GET_BOOK_TAG("b.parent", "!=", PR_TRUE) +
+    SQL_STR_FRAGMENT_GET_BOOK_TAG("b.title", "!=", PR_TRUE) +
+    SQL_STR_FRAGMENT_GET_BOOK_TAG("GROUP_CONCAT(t.title, ' ')", "=", PR_FALSE);
+
   nsCString sql = NS_LITERAL_CSTRING(
-    "SELECT h.url, h.title, f.url, b.id, b.parent, b.title "
+    "SELECT h.url, h.title, f.url, ") + bookTag +
+      NS_LITERAL_CSTRING("NULL "
     "FROM moz_places h "
-    "LEFT OUTER JOIN moz_bookmarks b ON b.fk = h.id "
-    "LEFT OUTER JOIN moz_favicons f ON h.favicon_id = f.id "
+    "LEFT OUTER JOIN moz_favicons f ON f.id = h.favicon_id "
     "WHERE h.frecency <> 0 ");
 
   if (mAutoCompleteOnlyTyped)
@@ -124,7 +143,7 @@ nsNavHistory::CreateAutoCompleteQueries()
   
   
   sql += NS_LITERAL_CSTRING(
-    "ORDER BY h.frecency DESC LIMIT ?1 OFFSET ?2");
+    "ORDER BY h.frecency DESC LIMIT ?2 OFFSET ?3");
 
   nsresult rv = mDBConn->CreateStatement(sql, 
     getter_AddRefs(mDBAutoCompleteQuery));
@@ -184,11 +203,6 @@ nsNavHistory::PerformAutoComplete()
   nsresult rv;
   
   if (!mCurrentChunkOffset) {
-    
-    if (!mCurrentSearchString.IsEmpty()) {
-      rv = AutoCompleteTagsSearch();
-      NS_ENSURE_SUCCESS(rv, rv);
-    }
   }
 
   PRBool moreChunksToSearch = PR_FALSE;
@@ -348,59 +362,6 @@ nsNavHistory::AddSearchToken(nsAutoString &aToken)
     mCurrentSearchTokens.AppendString(aToken);
 }
 
-nsresult
-nsNavHistory::AutoCompleteTagsSearch()
-{
-  
-  
-  
-  
-  
-  
-  
-  nsCString sql = NS_LITERAL_CSTRING(
-    "SELECT h.url, h.title, f.url, b.id, b.parent, b.title "
-    "FROM moz_places h "
-    "JOIN moz_bookmarks b ON b.fk = h.id "
-    "LEFT OUTER JOIN moz_favicons f ON f.id = h.favicon_id "
-    "WHERE h.frecency <> 0 AND (b.parent IN "
-      "(SELECT t.id FROM moz_bookmarks t WHERE t.parent = ?1 AND (");
-
-  nsStringArray terms;
-  CreateTermsFromTokens(mCurrentSearchTokens, terms);
-
-  for (PRInt32 i = 0; i < terms.Count(); i++) {
-    if (i)
-      sql += NS_LITERAL_CSTRING(" OR");
-
-    
-    sql += NS_LITERAL_CSTRING(" LOWER(t.title) = ") +
-           nsPrintfCString("LOWER(?%d)", i + 2);
-  }
-
-  sql += NS_LITERAL_CSTRING("))) "
-    "ORDER BY h.frecency DESC");
-
-  nsCOMPtr<mozIStorageStatement> tagAutoCompleteQuery;
-  nsresult rv = mDBConn->CreateStatement(sql,
-    getter_AddRefs(tagAutoCompleteQuery));
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  rv = tagAutoCompleteQuery->BindInt64Parameter(0, GetTagsFolder());
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  for (PRInt32 i = 0; i < terms.Count(); i++) {
-    
-    rv = tagAutoCompleteQuery->BindStringParameter(i + 1, *(terms.StringAt(i)));
-    NS_ENSURE_SUCCESS(rv, rv);
-  }
-
-  rv = AutoCompleteProcessSearch(tagAutoCompleteQuery, QUERY_TAGS);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  return NS_OK;
-}
-
 
 
 
@@ -415,10 +376,13 @@ nsNavHistory::AutoCompleteFullHistorySearch(PRBool* aHasMoreResults)
 {
   mozStorageStatementScoper scope(mDBAutoCompleteQuery);
 
-  nsresult rv = mDBAutoCompleteQuery->BindInt32Parameter(0, mAutoCompleteSearchChunkSize);
+  nsresult rv = mDBAutoCompleteQuery->BindInt32Parameter(0, GetTagsFolder());
   NS_ENSURE_SUCCESS(rv, rv);
 
-  rv = mDBAutoCompleteQuery->BindInt32Parameter(1, mCurrentChunkOffset);
+  rv = mDBAutoCompleteQuery->BindInt32Parameter(1, mAutoCompleteSearchChunkSize);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  rv = mDBAutoCompleteQuery->BindInt32Parameter(2, mCurrentChunkOffset);
   NS_ENSURE_SUCCESS(rv, rv);
 
   rv = AutoCompleteProcessSearch(mDBAutoCompleteQuery, QUERY_FULL, aHasMoreResults);
@@ -468,55 +432,53 @@ nsNavHistory::AutoCompleteProcessSearch(mozIStorageStatement* aQuery,
       NS_UnescapeURL(cEntryURL);
       NS_ConvertUTF8toUTF16 entryURL(cEntryURL);
 
+      PRInt64 parentId = 0;
       nsAutoString entryTitle, entryFavicon, entryBookmarkTitle;
       rv = aQuery->GetString(kAutoCompleteIndex_Title, entryTitle);
       NS_ENSURE_SUCCESS(rv, rv);
       rv = aQuery->GetString(kAutoCompleteIndex_FaviconURL, entryFavicon);
       NS_ENSURE_SUCCESS(rv, rv);
-      PRInt64 itemId = 0;
-      rv = aQuery->GetInt64(kAutoCompleteIndex_ItemId, &itemId);
+      rv = aQuery->GetInt64(kAutoCompleteIndex_ParentId, &parentId);
       NS_ENSURE_SUCCESS(rv, rv);
-
-      PRInt64 parentId = 0;
       
-      if (itemId) {
-        rv = aQuery->GetInt64(kAutoCompleteIndex_ParentId, &parentId);
-        NS_ENSURE_SUCCESS(rv, rv);
+      
+      if (parentId) {
         rv = aQuery->GetString(kAutoCompleteIndex_BookmarkTitle, entryBookmarkTitle);
         NS_ENSURE_SUCCESS(rv, rv);
       }
 
+      nsAutoString entryTags;
+      rv = aQuery->GetString(kAutoCompleteIndex_Tags, entryTags);
+      NS_ENSURE_SUCCESS(rv, rv);
+
       PRBool useBookmark = PR_FALSE;
+      PRBool showTags = PR_FALSE;
       nsString style;
       switch (aType) {
-        case QUERY_TAGS: {
-          
-          useBookmark = !entryBookmarkTitle.IsEmpty();
-
-          
-          style = NS_LITERAL_STRING("tag");
-
-          break;
-        }
         case QUERY_FULL: {
           
           if (aHasMoreResults)
             *aHasMoreResults = PR_TRUE;
 
           
+          
           PRBool matchAll = PR_TRUE;
           for (PRInt32 i = 0; i < mCurrentSearchTokens.Count() && matchAll; i++) {
             const nsString *token = mCurrentSearchTokens.StringAt(i);
 
             
-            PRBool bookmarkMatch = itemId &&
+            PRBool bookmarkMatch = parentId &&
               CaseInsensitiveFindInReadable(*token, entryBookmarkTitle);
             
             
             useBookmark |= bookmarkMatch;
 
             
-            matchAll = bookmarkMatch ||
+            PRBool tagsMatch = CaseInsensitiveFindInReadable(*token, entryTags);
+            showTags |= tagsMatch;
+
+            
+            matchAll = bookmarkMatch || tagsMatch ||
               CaseInsensitiveFindInReadable(*token, entryTitle) ||
               CaseInsensitiveFindInReadable(*token, entryURL);
           }
@@ -525,25 +487,36 @@ nsNavHistory::AutoCompleteProcessSearch(mozIStorageStatement* aQuery,
           if (!matchAll)
             continue;
 
-          
-          style = (itemId && !mLivemarkFeedItemIds.Get(parentId, &dummy)) ||
-            mLivemarkFeedURIs.Get(escapedEntryURL, &dummy) ?
-            NS_LITERAL_STRING("bookmark") : NS_LITERAL_STRING("favicon");
-
           break;
         }
         default: {
           
-          useBookmark = !entryBookmarkTitle.IsEmpty();
-
           
-          style = (itemId && !mLivemarkFeedItemIds.Get(parentId, &dummy)) ||
-            mLivemarkFeedURIs.Get(escapedEntryURL, &dummy) ?
-            NS_LITERAL_STRING("bookmark") : NS_LITERAL_STRING("favicon");
+          if (!entryTags.IsEmpty())
+            showTags = PR_TRUE;
+          else
+            useBookmark = !entryBookmarkTitle.IsEmpty();
 
           break;
         }
       }
+
+      
+      if (showTags) {
+        
+        useBookmark = !entryBookmarkTitle.IsEmpty();
+        
+
+
+
+      }
+
+      
+      
+      style = showTags ? NS_LITERAL_STRING("tag") : (parentId &&
+        !mLivemarkFeedItemIds.Get(parentId, &dummy)) ||
+        mLivemarkFeedURIs.Get(escapedEntryURL, &dummy) ?
+        NS_LITERAL_STRING("bookmark") : NS_LITERAL_STRING("favicon");
 
       
       const nsAString &title = useBookmark ? entryBookmarkTitle : entryTitle;
