@@ -85,6 +85,7 @@ public:
   NS_IMETHOD_(nsIFrame*) GetFrameForPoint(const nsPoint &aPoint);
 
   
+  NS_IMETHOD UpdateCoveredRegion();
   virtual PRUint16 GetHittestMask();
 
   
@@ -307,6 +308,25 @@ nsSVGImageFrame::GetType() const
 
 
 
+
+NS_IMETHODIMP
+nsSVGImageFrame::UpdateCoveredRegion()
+{
+  mRect.Empty();
+
+  gfxContext context(nsSVGUtils::GetThebesComputationalSurface());
+
+  GeneratePath(&context);
+  context.IdentityMatrix();
+
+  gfxRect extent = context.GetUserPathExtent();
+
+  if (!extent.IsEmpty()) {
+    mRect = nsSVGUtils::ToAppPixelRect(PresContext(), extent);
+  }
+
+  return NS_OK;
+}
 
 PRUint16
 nsSVGImageFrame::GetHittestMask()
