@@ -57,12 +57,12 @@ Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 
 const nsIDM = Ci.nsIDownloadManager;
 
-var gDownloadManager = Cc["@mozilla.org/download-manager;1"].getService(nsIDM);
-var gDownloadListener = null;
-var gDownloadsView = null;
-var gSearchBox = null;
-var gSearchTerms = "";
-var gBuilder = 0;
+let gDownloadManager = Cc["@mozilla.org/download-manager;1"].getService(nsIDM);
+let gDownloadListener = null;
+let gDownloadsView = null;
+let gSearchBox = null;
+let gSearchTerms = "";
+let gBuilder = 0;
 
 
 
@@ -76,7 +76,7 @@ var gUserInteracted = false;
 
 
 
-var gStr = {
+let gStr = {
   paused: "paused",
   statusFormat: "statusFormat2",
   transferSameUnits: "transferSameUnits",
@@ -111,7 +111,7 @@ gDownloadManager.DBConnection.createFunction("getDisplayHost", 1, {
 });
 
 
-var gStmt = gDownloadManager.DBConnection.createStatement(
+let gStmt = gDownloadManager.DBConnection.createStatement(
   "SELECT id, target, name, source, state, startTime, endTime, referrer, " +
          "currBytes, maxBytes, state IN (?1, ?2, ?3, ?4, ?5) isActive, " +
          "getDisplayHost(IFNULL(referrer, source)) display " +
@@ -372,7 +372,7 @@ function onUpdateProgress()
     gLastComputedMean = mean;
     gLastActiveDownloads = numActiveDownloads;
 
-    var strings = document.getElementById("downloadStrings");
+    let strings = document.getElementById("downloadStrings");
     if (numActiveDownloads > 1) {
       document.title = strings.getFormattedString("downloadsTitleMultiple",
                                                   [mean, numActiveDownloads]);
@@ -409,7 +409,7 @@ function Startup()
   if (!autoRemoveAndClose())
     gDownloadsView.focus();
 
-  var obs = Cc["@mozilla.org/observer-service;1"].
+  let obs = Cc["@mozilla.org/observer-service;1"].
             getService(Ci.nsIObserverService);
   obs.addObserver(gDownloadObserver, "download-manager-remove-download", false);
 }
@@ -418,7 +418,7 @@ function Shutdown()
 {
   gDownloadManager.removeListener(gDownloadListener);
 
-  var obs = Cc["@mozilla.org/observer-service;1"].
+  let obs = Cc["@mozilla.org/observer-service;1"].
             getService(Ci.nsIObserverService);
   obs.removeObserver(gDownloadObserver, "download-manager-remove-download");
 
@@ -429,7 +429,7 @@ function Shutdown()
   gDownloadManager.DBConnection.removeFunction("getDisplayHost");
 }
 
-var gDownloadObserver = {
+let gDownloadObserver = {
   observe: function gdo_observe(aSubject, aTopic, aData) {
     switch (aTopic) {
       case "download-manager-remove-download":
@@ -441,8 +441,8 @@ var gDownloadObserver = {
         }
 
         
-        var id = aSubject.QueryInterface(Ci.nsISupportsPRUint32);
-        var dl = getDownload(id.data);
+        let id = aSubject.QueryInterface(Ci.nsISupportsPRUint32);
+        let dl = getDownload(id.data);
         removeFromView(dl);
         break;
     }
@@ -618,7 +618,7 @@ var gDownloadViewController = {
       case "cmd_cancel":
         return dl.inProgress;
       case "cmd_open":
-        var file = getLocalFileFromNativePathOrUrl(dl.getAttribute("file"));
+        let file = getLocalFileFromNativePathOrUrl(dl.getAttribute("file"));
         return dl.openable && file.exists();
       case "cmd_pause":
         return dl.inProgress && !dl.paused;
@@ -743,7 +743,7 @@ function openExternal(aFile)
 
 function createDownloadItem(aAttrs)
 {
-  var dl = document.createElement("richlistitem");
+  let dl = document.createElement("richlistitem");
 
   
   for (let attr in aAttrs)
@@ -797,15 +797,15 @@ function updateButtons(aItem)
 
 
 function updateStatus(aItem, aDownload) {
-  var status = "";
-  var statusTip = "";
+  let status = "";
+  let statusTip = "";
 
-  var state = Number(aItem.getAttribute("state"));
+  let state = Number(aItem.getAttribute("state"));
   switch (state) {
     case nsIDM.DOWNLOAD_PAUSED:
     case nsIDM.DOWNLOAD_DOWNLOADING:
-      var currBytes = Number(aItem.getAttribute("currBytes"));
-      var maxBytes = Number(aItem.getAttribute("maxBytes"));
+      let currBytes = Number(aItem.getAttribute("currBytes"));
+      let maxBytes = Number(aItem.getAttribute("maxBytes"));
 
       
       let ([progress, progressUnits] = convertByteUnits(currBytes),
@@ -835,7 +835,7 @@ function updateStatus(aItem, aDownload) {
       }
 
       
-      var speed = aDownload ? aDownload.speed : 0;
+      let speed = aDownload ? aDownload.speed : 0;
 
       
       let ([rate, unit] = convertByteUnits(speed)) {
@@ -848,8 +848,8 @@ function updateStatus(aItem, aDownload) {
       
       let (remain) {
         if ((speed > 0) && (maxBytes > 0)) {
-          var seconds = Math.ceil((maxBytes - currBytes) / speed);
-          var lastSec = Number(aItem.getAttribute("lastSeconds"));
+          let seconds = Math.ceil((maxBytes - currBytes) / speed);
+          let lastSec = Number(aItem.getAttribute("lastSeconds"));
 
           
           
@@ -905,7 +905,7 @@ function updateStatus(aItem, aDownload) {
         status = replaceInsert(gStr.doneStatus, 1, stateSize[state]());
       }
 
-      var [displayHost, fullHost] = getHost(getReferrerOrSource(aItem));
+      let [displayHost, fullHost] = getHost(getReferrerOrSource(aItem));
       
       status = replaceInsert(status, 2, displayHost);
       
@@ -930,18 +930,18 @@ function updateTime(aItem)
   if (aItem.inProgress)
     return;
 
-  var dts = Cc["@mozilla.org/intl/scriptabledateformat;1"].
+  let dts = Cc["@mozilla.org/intl/scriptabledateformat;1"].
             getService(Ci.nsIScriptableDateFormat);
 
   
-  var now = new Date();
-  var today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  let now = new Date();
+  let today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
   
-  var end = new Date(parseInt(aItem.getAttribute("endTime")));
+  let end = new Date(parseInt(aItem.getAttribute("endTime")));
 
   
-  var dateTime;
+  let dateTime;
   if (end >= today) {
     
     dateTime = dts.FormatTime("", dts.timeFormatNoSeconds,
@@ -954,9 +954,9 @@ function updateTime(aItem)
     dateTime = end.toLocaleFormat("%A");
   } else {
     
-    var month = end.toLocaleFormat("%B");
+    let month = end.toLocaleFormat("%B");
     
-    var date = Number(end.toLocaleFormat("%d"));
+    let date = Number(end.toLocaleFormat("%d"));
     dateTime = replaceInsert(gStr.monthDate, 1, month);
     dateTime = replaceInsert(dateTime, 2, date);
   }
@@ -964,7 +964,7 @@ function updateTime(aItem)
   aItem.setAttribute("dateTime", dateTime);
 
   
-  var dateTimeTip = dts.FormatDateTime("",
+  let dateTimeTip = dts.FormatDateTime("",
                                        dts.dateFormatLong,
                                        dts.timeFormatNoSeconds,
                                        end.getFullYear(),
@@ -985,7 +985,7 @@ function updateTime(aItem)
 
 function convertByteUnits(aBytes)
 {
-  var unitIndex = 0;
+  let unitIndex = 0;
 
   
   
@@ -1011,21 +1011,21 @@ function convertByteUnits(aBytes)
 
 function getHost(aURIString)
 {
-  var ioService = Cc["@mozilla.org/network/io-service;1"].
+  let ioService = Cc["@mozilla.org/network/io-service;1"].
                   getService(Ci.nsIIOService);
-  var eTLDService = Cc["@mozilla.org/network/effective-tld-service;1"].
+  let eTLDService = Cc["@mozilla.org/network/effective-tld-service;1"].
                     getService(Ci.nsIEffectiveTLDService);
-  var idnService = Cc["@mozilla.org/network/idn-service;1"].
+  let idnService = Cc["@mozilla.org/network/idn-service;1"].
                    getService(Ci.nsIIDNService);
 
   
-  var uri = ioService.newURI(aURIString, null, null);
+  let uri = ioService.newURI(aURIString, null, null);
 
   
   if (uri instanceof Ci.nsINestedURI)
     uri = uri.innermostURI;
 
-  var fullHost;
+  let fullHost;
   try {
     
     fullHost = uri.host;
@@ -1033,7 +1033,7 @@ function getHost(aURIString)
     fullHost = "";
   }
 
-  var displayHost;
+  let displayHost;
   try {
     
     let baseDomain = eTLDService.getBaseDomain(uri);
@@ -1075,13 +1075,13 @@ function replaceInsert(aText, aIndex, aValue)
 function doDefaultForSelected()
 {
   
-  var item = gDownloadsView.selectedItem;
+  let item = gDownloadsView.selectedItem;
   if (!item)
     return;
 
   
-  var state = Number(item.getAttribute("state"));
-  var menuitem = document.getElementById(gContextMenus[state][0]);
+  let state = Number(item.getAttribute("state"));
+  let menuitem = document.getElementById(gContextMenus[state][0]);
 
   
   gDownloadViewController.doCommand(menuitem.getAttribute("cmd"), item);
@@ -1092,7 +1092,7 @@ function removeFromView(aDownload)
   
   if (!aDownload) return;
 
-  var index = gDownloadsView.selectedIndex;
+  let index = gDownloadsView.selectedIndex;
   gDownloadsView.removeChild(aDownload);
   gDownloadsView.selectedIndex = Math.min(index, gDownloadsView.itemCount - 1);
 
@@ -1131,7 +1131,7 @@ function buildDownloadList()
   if (!gSearchBox.hasAttribute("empty"))
     gSearchTerms = gSearchBox.value.replace(/^\s+|\s+$/, "");
 
-  var like = "%" + gStmt.escapeStringForLIKE(gSearchTerms, "/") + "%";
+  let like = "%" + gStmt.escapeStringForLIKE(gSearchTerms, "/") + "%";
 
   try {
     gStmt.bindInt32Parameter(0, nsIDM.DOWNLOAD_NOTSTARTED);
@@ -1227,7 +1227,7 @@ function stepListBuilder(aNumItems) {
 
 function prependList(aDownload)
 {
-  var attrs = {
+  let attrs = {
     dlid: aDownload.id,
     file: aDownload.target.spec,
     target: aDownload.displayName,
@@ -1241,7 +1241,7 @@ function prependList(aDownload)
   };
 
   
-  var item = createDownloadItem(attrs);
+  let item = createDownloadItem(attrs);
   if (item) {
     
     gDownloadsView.insertBefore(item, gDownloadsView.firstChild);
@@ -1262,9 +1262,9 @@ function prependList(aDownload)
 
 function stripeifyList(aItem)
 {
-  var alt = "alternate";
+  let alt = "alternate";
   
-  var flipFrom = function(aOther) aOther && aOther.hasAttribute(alt) ?
+  let flipFrom = function(aOther) aOther && aOther.hasAttribute(alt) ?
     aItem.removeAttribute(alt) : aItem.setAttribute(alt, "true");
 
   
@@ -1298,7 +1298,7 @@ function getLocalFileFromNativePathOrUrl(aPathOrUrl)
 {
   if (aPathOrUrl.substring(0,7) == "file://") {
     
-    var ioSvc = Cc["@mozilla.org/network/io-service;1"].
+    let ioSvc = Cc["@mozilla.org/network/io-service;1"].
                 getService(Ci.nsIIOService);
 
     
