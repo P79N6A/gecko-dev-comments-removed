@@ -770,6 +770,7 @@ nsNSSComponent::InstallLoadableRoots()
 
     if (RootsModule) {
       
+      SECMOD_DestroyModule(RootsModule);
       break;
     }
   }
@@ -1863,69 +1864,34 @@ nsNSSComponent::Observe(nsISupports *aSubject, const char *aTopic,
                         const PRUnichar *someData)
 {
   if (nsCRT::strcmp(aTopic, PROFILE_APPROVE_CHANGE_TOPIC) == 0) {
-    if (mShutdownObjectList->isUIActive()) {
-      ShowAlert(ai_crypto_ui_active);
-      nsCOMPtr<nsIProfileChangeStatus> status = do_QueryInterface(aSubject);
-      if (status) {
-        status->VetoChange();
-      }
-    }
+    DoProfileApproveChange(aSubject);
   }
   else if (nsCRT::strcmp(aTopic, PROFILE_CHANGE_TEARDOWN_TOPIC) == 0) {
     PR_LOG(gPIPNSSLog, PR_LOG_DEBUG, ("in PSM code, receiving change-teardown\n"));
-
-    PRBool callVeto = PR_FALSE;
-
-    if (!mShutdownObjectList->ifPossibleDisallowUI()) {
-      callVeto = PR_TRUE;
-      ShowAlert(ai_crypto_ui_active);
-    }
-    else if (mShutdownObjectList->areSSLSocketsActive()) {
-      callVeto = PR_TRUE;
-      ShowAlert(ai_sockets_still_active);
-    }
-
-    if (callVeto) {
-      nsCOMPtr<nsIProfileChangeStatus> status = do_QueryInterface(aSubject);
-      if (status) {
-        status->VetoChange();
-      }
-    }
+    DoProfileChangeTeardown(aSubject);
   }
   else if (nsCRT::strcmp(aTopic, PROFILE_CHANGE_TEARDOWN_VETO_TOPIC) == 0) {
     mShutdownObjectList->allowUI();
   }
   else if (nsCRT::strcmp(aTopic, PROFILE_BEFORE_CHANGE_TOPIC) == 0) {
     PR_LOG(gPIPNSSLog, PR_LOG_DEBUG, ("receiving profile change topic\n"));
-    NS_ASSERTION(mIsNetworkDown, "nsNSSComponent relies on profile manager to wait for synchronous shutdown of all network activity");
-
-    PRBool needsCleanup = PR_TRUE;
-
-    {
-      nsAutoLock lock(mutex);
-
-      if (!mNSSInitialized) {
-        
-        
-        
-        needsCleanup = PR_FALSE;
-      }
-    }
-    
-    StopCRLUpdateTimer();
-
-    if (needsCleanup) {
-      if (NS_FAILED(ShutdownNSS())) {
-        nsCOMPtr<nsIProfileChangeStatus> status = do_QueryInterface(aSubject);
-        if (status) {
-          status->ChangeFailed();
-        }
-      }
-    }
-    mShutdownObjectList->allowUI();
-
+    DoProfileBeforeChange(aSubject);
   }
   else if (nsCRT::strcmp(aTopic, PROFILE_AFTER_CHANGE_TOPIC) == 0) {
+    if (someData && NS_LITERAL_STRING("startup").Equals(someData)) {
+      
+      
+      
+      
+      
+      
+      
+      DoProfileApproveChange(aSubject);
+      DoProfileChangeNetTeardown();
+      DoProfileChangeTeardown(aSubject);
+      DoProfileBeforeChange(aSubject);
+      DoProfileChangeNetRestore();
+    }
   
     PRBool needsInit = PR_TRUE;
 
@@ -2021,23 +1987,11 @@ nsNSSComponent::Observe(nsISupports *aSubject, const char *aTopic,
   }
   else if (nsCRT::strcmp(aTopic, PROFILE_CHANGE_NET_TEARDOWN_TOPIC) == 0) {
     PR_LOG(gPIPNSSLog, PR_LOG_DEBUG, ("receiving network teardown topic\n"));
-    if (mSSLThread)
-      mSSLThread->requestExit();
-    if (mCertVerificationThread)
-      mCertVerificationThread->requestExit();
-    mIsNetworkDown = PR_TRUE;
+    DoProfileChangeNetTeardown();
   }
   else if (nsCRT::strcmp(aTopic, PROFILE_CHANGE_NET_RESTORE_TOPIC) == 0) {
     PR_LOG(gPIPNSSLog, PR_LOG_DEBUG, ("receiving network restore topic\n"));
-    delete mSSLThread;
-    mSSLThread = new nsSSLThread();
-    if (mSSLThread)
-      mSSLThread->startThread();
-    delete mCertVerificationThread;
-    mCertVerificationThread = new nsCertVerificationThread();
-    if (mCertVerificationThread)
-      mCertVerificationThread->startThread();
-    mIsNetworkDown = PR_FALSE;
+    DoProfileChangeNetRestore();
   }
 
   return NS_OK;
@@ -2230,6 +2184,95 @@ nsNSSComponent::GetErrorMessage(nsresult aXPCOMErrorCode, nsAString &aErrorMessa
     aErrorMessage = msg;
   }
   return rv;
+}
+
+void
+nsNSSComponent::DoProfileApproveChange(nsISupports* aSubject)
+{
+  if (mShutdownObjectList->isUIActive()) {
+    ShowAlert(ai_crypto_ui_active);
+    nsCOMPtr<nsIProfileChangeStatus> status = do_QueryInterface(aSubject);
+    if (status) {
+      status->VetoChange();
+    }
+  }
+}
+
+void
+nsNSSComponent::DoProfileChangeNetTeardown()
+{
+  if (mSSLThread)
+    mSSLThread->requestExit();
+  if (mCertVerificationThread)
+    mCertVerificationThread->requestExit();
+  mIsNetworkDown = PR_TRUE;
+}
+
+void
+nsNSSComponent::DoProfileChangeTeardown(nsISupports* aSubject)
+{
+  PRBool callVeto = PR_FALSE;
+
+  if (!mShutdownObjectList->ifPossibleDisallowUI()) {
+    callVeto = PR_TRUE;
+    ShowAlert(ai_crypto_ui_active);
+  }
+  else if (mShutdownObjectList->areSSLSocketsActive()) {
+    callVeto = PR_TRUE;
+    ShowAlert(ai_sockets_still_active);
+  }
+
+  if (callVeto) {
+    nsCOMPtr<nsIProfileChangeStatus> status = do_QueryInterface(aSubject);
+    if (status) {
+      status->VetoChange();
+    }
+  }
+}
+
+void
+nsNSSComponent::DoProfileBeforeChange(nsISupports* aSubject)
+{
+  NS_ASSERTION(mIsNetworkDown, "nsNSSComponent relies on profile manager to wait for synchronous shutdown of all network activity");
+
+  PRBool needsCleanup = PR_TRUE;
+
+  {
+    nsAutoLock lock(mutex);
+
+    if (!mNSSInitialized) {
+      
+      
+      
+      needsCleanup = PR_FALSE;
+    }
+  }
+    
+  StopCRLUpdateTimer();
+
+  if (needsCleanup) {
+    if (NS_FAILED(ShutdownNSS())) {
+      nsCOMPtr<nsIProfileChangeStatus> status = do_QueryInterface(aSubject);
+      if (status) {
+        status->ChangeFailed();
+      }
+    }
+  }
+  mShutdownObjectList->allowUI();
+}
+
+void
+nsNSSComponent::DoProfileChangeNetRestore()
+{
+  delete mSSLThread;
+  mSSLThread = new nsSSLThread();
+  if (mSSLThread)
+    mSSLThread->startThread();
+  delete mCertVerificationThread;
+  mCertVerificationThread = new nsCertVerificationThread();
+  if (mCertVerificationThread)
+    mCertVerificationThread->startThread();
+  mIsNetworkDown = PR_FALSE;
 }
 
 
