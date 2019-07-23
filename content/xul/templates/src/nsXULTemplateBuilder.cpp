@@ -144,11 +144,8 @@ DestroyMatchList(nsISupports* aKey, nsTemplateMatch* aMatch, void* aContext)
 
     
     while (aMatch) {
-        if (aMatch->mResult)
-            aMatch->mResult->HasBeenRemoved();
-
         nsTemplateMatch* next = aMatch->mNext;
-        nsTemplateMatch::Destroy(*pool, aMatch);
+        nsTemplateMatch::Destroy(*pool, aMatch, PR_TRUE);
         aMatch = next;
     }
 
@@ -582,11 +579,97 @@ nsXULTemplateBuilder::UpdateResultInContainer(nsIXULTemplateResult* aOldResult,
                                               nsIRDFResource* aNewId,
                                               nsIContent* aInsertionPoint)
 {
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+
     nsresult rv = NS_OK;
     PRInt16 ruleindex;
     nsTemplateRule* matchedrule = nsnull;
-    nsTemplateMatch* acceptedmatch = nsnull, * removedmatch = nsnull;
-    nsTemplateMatch* replacedmatch = nsnull;
+
+    
+    
+    PRBool oldMatchWasActive = PR_FALSE;
+
+    
+    
+    
+    
+    
+    
+    nsTemplateMatch* acceptedmatch = nsnull;
+
+    
+    
+    
+    
+    nsTemplateMatch* removedmatch = nsnull;
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    nsTemplateMatch* replacedmatch = nsnull, * replacedmatchtodelete = nsnull;
 
     if (aOldResult) {
         nsTemplateMatch* firstmatch;
@@ -608,6 +691,10 @@ nsXULTemplateBuilder::UpdateResultInContainer(nsIXULTemplateResult* aOldResult,
                 nsTemplateMatch* nextmatch = findmatch;
 
                 if (oldmatch->IsActive()) {
+                    
+                    
+                    oldMatchWasActive = PR_TRUE;
+
                     
                     
                     
@@ -689,10 +776,13 @@ nsXULTemplateBuilder::UpdateResultInContainer(nsIXULTemplateResult* aOldResult,
                     break;
                 }
 
+                
                 if (oldmatch->GetContainer() == aInsertionPoint) {
                     if (priority == findpriority)
                         break;
 
+                    
+                    
                     if (oldmatch->IsActive())
                         hasEarlierActiveMatch = PR_TRUE;
                 }
@@ -700,6 +790,10 @@ nsXULTemplateBuilder::UpdateResultInContainer(nsIXULTemplateResult* aOldResult,
                 prevmatch = oldmatch;
                 oldmatch = oldmatch->mNext;
             }
+
+            
+            
+            
 
             if (oldmatch)
                 newmatch->mNext = oldmatch->mNext;
@@ -711,12 +805,26 @@ nsXULTemplateBuilder::UpdateResultInContainer(nsIXULTemplateResult* aOldResult,
             
             
             
+            
+            
+            
+            
+            
+            
             if (! hasEarlierActiveMatch) {
+                
+                
+                if (oldmatch) {
+                    if (oldmatch->IsActive())
+                        replacedmatch = oldmatch;
+                    replacedmatchtodelete = oldmatch;
+                }
+
                 
                 rv = DetermineMatchedRule(aInsertionPoint, newmatch->mResult,
                                           aQuerySet, &matchedrule, &ruleindex);
                 if (NS_FAILED(rv)) {
-                    nsTemplateMatch::Destroy(mPool, newmatch);
+                    nsTemplateMatch::Destroy(mPool, newmatch, PR_FALSE);
                     return rv;
                 }
 
@@ -725,18 +833,33 @@ nsXULTemplateBuilder::UpdateResultInContainer(nsIXULTemplateResult* aOldResult,
                                                matchedrule, ruleindex,
                                                newmatch->mResult);
                     if (NS_FAILED(rv)) {
-                        nsTemplateMatch::Destroy(mPool, newmatch);
+                        nsTemplateMatch::Destroy(mPool, newmatch, PR_FALSE);
                         return rv;
                     }
 
+                    
+                    
+                    
+                    
+                    
+                    
                     acceptedmatch = newmatch;
 
                     
                     
                     nsTemplateMatch* clearmatch = newmatch->mNext;
                     while (clearmatch) {
-                        if (clearmatch->GetContainer() == aInsertionPoint)
+                        if (clearmatch->GetContainer() == aInsertionPoint &&
+                            clearmatch->IsActive()) {
                             clearmatch->SetInactive();
+                            
+                            
+                            
+                            NS_ASSERTION(!replacedmatch,
+                                         "replaced match already set");
+                            replacedmatch = clearmatch;
+                            break;
+                        }
                         clearmatch = clearmatch->mNext;
                     }
                 }
@@ -744,14 +867,14 @@ nsXULTemplateBuilder::UpdateResultInContainer(nsIXULTemplateResult* aOldResult,
                     
                     
                     
-
                     newmatch = newmatch->mNext;
                     while (newmatch) {
                         if (newmatch->GetContainer() == aInsertionPoint) {
                             rv = DetermineMatchedRule(aInsertionPoint, newmatch->mResult,
                                                       aQuerySet, &matchedrule, &ruleindex);
                             if (NS_FAILED(rv)) {
-                                nsTemplateMatch::Destroy(mPool, newmatch);
+                                nsTemplateMatch::Destroy(mPool, newmatch,
+                                                         PR_FALSE);
                                 return rv;
                             }
 
@@ -760,7 +883,8 @@ nsXULTemplateBuilder::UpdateResultInContainer(nsIXULTemplateResult* aOldResult,
                                                            matchedrule, ruleindex,
                                                            newmatch->mResult);
                                 if (NS_FAILED(rv)) {
-                                    nsTemplateMatch::Destroy(mPool, newmatch);
+                                    nsTemplateMatch::Destroy(mPool, newmatch,
+                                                             PR_FALSE);
                                     return rv;
                                 }
 
@@ -776,13 +900,13 @@ nsXULTemplateBuilder::UpdateResultInContainer(nsIXULTemplateResult* aOldResult,
                 
                 if (! prevmatch) {
                     if (!mMatchMap.Put(aNewId, newmatch)) {
-                        nsTemplateMatch::Destroy(mPool, newmatch);
+                        
+                        
+                        
+                        nsTemplateMatch::Destroy(mPool, newmatch, PR_TRUE);
                         return rv;
                     }
                 }
-
-                if (oldmatch)
-                    replacedmatch = oldmatch;
             }
 
             
@@ -791,10 +915,11 @@ nsXULTemplateBuilder::UpdateResultInContainer(nsIXULTemplateResult* aOldResult,
         }
         else {
             
+            
             rv = DetermineMatchedRule(aInsertionPoint, aNewResult,
                                       aQuerySet, &matchedrule, &ruleindex);
             if (NS_FAILED(rv)) {
-                nsTemplateMatch::Destroy(mPool, newmatch);
+                nsTemplateMatch::Destroy(mPool, newmatch, PR_FALSE);
                 return rv;
             }
 
@@ -802,7 +927,7 @@ nsXULTemplateBuilder::UpdateResultInContainer(nsIXULTemplateResult* aOldResult,
                 rv = newmatch->RuleMatched(aQuerySet, matchedrule,
                                            ruleindex, aNewResult);
                 if (NS_FAILED(rv)) {
-                    nsTemplateMatch::Destroy(mPool, newmatch);
+                    nsTemplateMatch::Destroy(mPool, newmatch, PR_FALSE);
                     return rv;
                 }
 
@@ -810,30 +935,35 @@ nsXULTemplateBuilder::UpdateResultInContainer(nsIXULTemplateResult* aOldResult,
             }
 
             if (!mMatchMap.Put(aNewId, newmatch)) {
-                nsTemplateMatch::Destroy(mPool, newmatch);
+                nsTemplateMatch::Destroy(mPool, newmatch, PR_TRUE);
                 return NS_ERROR_OUT_OF_MEMORY;
             }
         }
     }
 
-    if (replacedmatch) {
-        
-        rv = ReplaceMatch(replacedmatch->mResult, nsnull, nsnull, aInsertionPoint);
+    
+    
 
-        replacedmatch->mResult->HasBeenRemoved();
-        nsTemplateMatch::Destroy(mPool, replacedmatch);
-    }
+    
+    if (replacedmatch)
+        rv = ReplaceMatch(replacedmatch->mResult, nsnull, nsnull,
+                          aInsertionPoint);
+ 
+    
+    if (replacedmatchtodelete)
+        nsTemplateMatch::Destroy(mPool, replacedmatchtodelete, PR_TRUE);
 
     
     
-    if (aOldResult || acceptedmatch)
-        rv = ReplaceMatch(aOldResult, acceptedmatch, matchedrule, aInsertionPoint);
+    
+    
+    if (oldMatchWasActive || acceptedmatch)
+        rv = ReplaceMatch(oldMatchWasActive ? aOldResult : nsnull,
+                          acceptedmatch, matchedrule, aInsertionPoint);
 
-    if (removedmatch) {
-        
-        removedmatch->mResult->HasBeenRemoved();
-        nsTemplateMatch::Destroy(mPool, removedmatch);
-    }
+    
+    if (removedmatch)
+        nsTemplateMatch::Destroy(mPool, removedmatch, PR_TRUE);
 
     return rv;
 }
