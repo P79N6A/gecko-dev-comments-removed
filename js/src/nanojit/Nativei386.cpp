@@ -173,7 +173,7 @@ namespace nanojit
         Fragment *frag = exit->target;
         GuardRecord *lr = 0;
 		bool destKnown = (frag && frag->fragEntry);
-		if (destKnown && !trees && exit->exitType != TIMEOUT_EXIT)
+		if (destKnown && !trees && !guard->isop(LIR_loop))
 		{
 			
 			JMP(frag->fragEntry);
@@ -952,7 +952,7 @@ namespace nanojit
 		SideExit* exit = guard->exit;
 
 		
-		exit->exitType = TIMEOUT_EXIT;
+		
 		asm_exit(ins);
 
 		

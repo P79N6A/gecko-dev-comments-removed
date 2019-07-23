@@ -162,60 +162,6 @@ static __inline__ unsigned long long rdtsc(void)
 
 struct JSContext;
 
-namespace nanojit
-{
-	class Fragment;
-
-	enum ExitType {
-	    BRANCH_EXIT, 
-	    LOOP_EXIT, 
-	    NESTED_EXIT,
-	    MISMATCH_EXIT,
-	    OOM_EXIT,
-	    OVERFLOW_EXIT,
-	    UNSTABLE_LOOP_EXIT,
-	    TIMEOUT_EXIT
-	};
-
-    struct GuardRecord;
-	
-    class LIns;
-
-    struct SideExit;
-    
-    typedef struct GuardRecord 
-    {
-        void* jmpToStub;
-        void* stubEntry;
-        void* jmpToTarget;
-        GuardRecord* next;
-        SideExit* exit;
-    };
-    
-    typedef struct SideExit
-    {
-        GuardRecord* guards;
-        Fragment* from;
-        Fragment* target;
-        intptr_t ip_adj;
-        intptr_t sp_adj;
-        intptr_t rp_adj;
-        int32_t calldepth;
-        uint32 numGlobalSlots;
-        uint32 numStackSlots;
-        uint32 numStackSlotsBelowCurrentFrame;
-        ExitType exitType;
-        
-        void addGuard(GuardRecord* lr) 
-        {
-            lr->next = guards;
-            guards = lr;
-        }
-	};
-    
-    static inline uint8* getTypeMap(SideExit* exit) { return (uint8*)(exit + 1); }
-}
-
 class GC;
 
 class GCObject 
@@ -335,20 +281,6 @@ typedef int FunctionID;
 
 namespace avmplus
 {
-    struct InterpState
-    {
-        void* sp; 
-        void* rp; 
-        void* gp; 
-        JSContext *cx; 
-        void* eos; 
-        void* eor; 
-        nanojit::SideExit* lastTreeExitGuard; 
-        nanojit::SideExit* lastTreeCallGuard; 
-
-        void* rpAtLastTreeCall; 
-    };
-
     class String
     {
     };
