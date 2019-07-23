@@ -998,6 +998,21 @@ public:
         PRUint32    mEndOffset;
     };
 
+    class GlyphRunOffsetComparator {
+    public:
+        PRBool Equals(const GlyphRun& a,
+                      const GlyphRun& b) const
+        {
+            return a.mCharacterOffset == b.mCharacterOffset;
+        }
+
+        PRBool LessThan(const GlyphRun& a,
+                        const GlyphRun& b) const
+        {
+            return a.mCharacterOffset < b.mCharacterOffset;
+        }
+    };
+
     friend class GlyphRunIterator;
     friend class FontSelector;
 
@@ -1014,8 +1029,17 @@ public:
 
 
 
-    nsresult AddGlyphRun(gfxFont *aFont, PRUint32 aStartCharIndex);
+
+
+
+
+
+
+
+    nsresult AddGlyphRun(gfxFont *aFont, PRUint32 aStartCharIndex, PRBool aForceNewRun = PR_FALSE);
     void ResetGlyphRuns() { mGlyphRuns.Clear(); }
+    void SortGlyphRuns();
+
     
     
     
