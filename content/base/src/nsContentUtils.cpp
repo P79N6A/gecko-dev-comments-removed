@@ -162,6 +162,8 @@ static NS_DEFINE_CID(kXTFServiceCID, NS_XTFSERVICE_CID);
 #include "nsCPrefetchService.h"
 #include "nsIChromeRegistry.h"
 #include "nsIMIMEHeaderParam.h"
+#include "nsIDOMDragEvent.h"
+#include "nsDOMDataTransfer.h"
 
 #ifdef IBMBIDI
 #include "nsIBidiKeyboard.h"
@@ -4526,6 +4528,115 @@ nsContentUtils::GetDragSession()
   if (dragService)
     dragService->GetCurrentSession(&dragSession);
   return dragSession;
+}
+
+
+nsresult
+nsContentUtils::SetDataTransferInEvent(nsDragEvent* aDragEvent)
+{
+  if (aDragEvent->dataTransfer || !NS_IS_TRUSTED_EVENT(aDragEvent))
+    return NS_OK;
+
+  
+  
+  
+  NS_ASSERTION(aDragEvent->message != NS_DRAGDROP_GESTURE &&
+               aDragEvent->message != NS_DRAGDROP_START,
+               "draggesture event created without a dataTransfer");
+
+  nsCOMPtr<nsIDragSession> dragSession = GetDragSession();
+  NS_ENSURE_TRUE(dragSession, NS_OK); 
+
+  nsCOMPtr<nsIDOMDataTransfer> initialDataTransfer;
+  dragSession->GetDataTransfer(getter_AddRefs(initialDataTransfer));
+  if (!initialDataTransfer) {
+    
+    
+    
+    
+    
+    PRUint32 action = 0;
+    dragSession->GetDragAction(&action);
+    initialDataTransfer =
+      new nsDOMDataTransfer(aDragEvent->message, action);
+    NS_ENSURE_TRUE(initialDataTransfer, NS_ERROR_OUT_OF_MEMORY);
+
+    
+    dragSession->SetDataTransfer(initialDataTransfer);
+  }
+
+  
+  nsCOMPtr<nsIDOMNSDataTransfer> initialDataTransferNS =
+    do_QueryInterface(initialDataTransfer);
+  NS_ENSURE_TRUE(initialDataTransferNS, NS_ERROR_FAILURE);
+  initialDataTransferNS->Clone(aDragEvent->message, aDragEvent->userCancelled,
+                               getter_AddRefs(aDragEvent->dataTransfer));
+  NS_ENSURE_TRUE(aDragEvent->dataTransfer, NS_ERROR_OUT_OF_MEMORY);
+
+  
+  
+  
+  if (aDragEvent->message == NS_DRAGDROP_ENTER ||
+      aDragEvent->message == NS_DRAGDROP_OVER) {
+    nsCOMPtr<nsIDOMNSDataTransfer> newDataTransfer =
+      do_QueryInterface(aDragEvent->dataTransfer);
+    NS_ENSURE_TRUE(newDataTransfer, NS_ERROR_FAILURE);
+
+    PRUint32 action, effectAllowed;
+    dragSession->GetDragAction(&action);
+    newDataTransfer->GetEffectAllowedInt(&effectAllowed);
+    newDataTransfer->SetDropEffectInt(FilterDropEffect(action, effectAllowed));
+  }
+  else if (aDragEvent->message == NS_DRAGDROP_DROP ||
+           aDragEvent->message == NS_DRAGDROP_DRAGDROP ||
+           aDragEvent->message == NS_DRAGDROP_END) {
+    
+    
+    
+    
+    nsCOMPtr<nsIDOMNSDataTransfer> newDataTransfer =
+      do_QueryInterface(aDragEvent->dataTransfer);
+    NS_ENSURE_TRUE(newDataTransfer, NS_ERROR_FAILURE);
+
+    PRUint32 dropEffect;
+    initialDataTransferNS->GetDropEffectInt(&dropEffect);
+    newDataTransfer->SetDropEffectInt(dropEffect);
+  }
+
+  return NS_OK;
+}
+
+
+PRUint32
+nsContentUtils::FilterDropEffect(PRUint32 aAction, PRUint32 aEffectAllowed)
+{
+  
+  
+  
+  
+  
+  if (aAction & nsIDragService::DRAGDROP_ACTION_COPY)
+    aAction = nsIDragService::DRAGDROP_ACTION_COPY;
+  else if (aAction & nsIDragService::DRAGDROP_ACTION_LINK)
+    aAction = nsIDragService::DRAGDROP_ACTION_LINK;
+  else if (aAction & nsIDragService::DRAGDROP_ACTION_MOVE)
+    aAction = nsIDragService::DRAGDROP_ACTION_MOVE;
+
+  
+  
+  
+  
+  
+  if (aAction & aEffectAllowed ||
+      aEffectAllowed == nsIDragService::DRAGDROP_ACTION_UNINITIALIZED)
+    return aAction;
+  if (aEffectAllowed & nsIDragService::DRAGDROP_ACTION_MOVE)
+    return nsIDragService::DRAGDROP_ACTION_MOVE;
+  if (aEffectAllowed & nsIDragService::DRAGDROP_ACTION_COPY)
+    return nsIDragService::DRAGDROP_ACTION_COPY;
+  if (aEffectAllowed & nsIDragService::DRAGDROP_ACTION_LINK)
+    return nsIDragService::DRAGDROP_ACTION_LINK;
+  return nsIDragService::DRAGDROP_ACTION_NONE;
 }
 
 

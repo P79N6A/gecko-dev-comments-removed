@@ -1260,6 +1260,15 @@ public:
   
 
 
+  static nsresult SetDataTransferInEvent(nsDragEvent* aDragEvent);
+
+  
+  
+  static PRUint32 FilterDropEffect(PRUint32 aAction, PRUint32 aEffectAllowed);
+
+  
+
+
   static PRBool URIIsLocalFile(nsIURI *aURI);
 
   

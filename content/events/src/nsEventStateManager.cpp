@@ -2838,7 +2838,7 @@ nsEventStateManager::PostHandleEvent(nsPresContext* aPresContext,
 
           
           
-          dropEffect = nsDOMDragEvent::FilterDropEffect(action,
+          dropEffect = nsContentUtils::FilterDropEffect(action,
                          nsIDragService::DRAGDROP_ACTION_UNINITIALIZED);
         }
 
