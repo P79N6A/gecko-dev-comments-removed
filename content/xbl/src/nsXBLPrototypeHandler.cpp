@@ -419,14 +419,20 @@ nsXBLPrototypeHandler::ExecuteHandler(nsPIDOMEventTarget* aTarget,
   
   nsCOMPtr<nsIScriptGlobalObject> boundGlobal;
   nsCOMPtr<nsPIWindowRoot> winRoot(do_QueryInterface(aTarget));
-  nsCOMPtr<nsIDOMWindow> window;
+  nsCOMPtr<nsIDOMWindowInternal> focusedWin;
 
   if (winRoot) {
-    window = winRoot->GetWindow();
+    nsCOMPtr<nsIFocusController> focusController;
+    winRoot->GetFocusController(getter_AddRefs(focusController));
+    focusController->GetFocusedWindow(getter_AddRefs(focusedWin));
   }
 
-  if (window) {
-    nsCOMPtr<nsPIDOMWindow> piWin(do_QueryInterface(window));
+  
+  
+  if (focusedWin) {
+    NS_ASSERTION(isXULKey, "We should only use the focused window for "
+                 "XUL key handlers!");
+    nsCOMPtr<nsPIDOMWindow> piWin(do_QueryInterface(focusedWin));
 
     if (piWin) {
       piWin = piWin->GetCurrentInnerWindow();
