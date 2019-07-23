@@ -1116,26 +1116,27 @@ SessionStoreService.prototype = {
     let hasContent = false;
 
     for (let i = 0; i < aHistory.count; i++) {
-      let uri = aHistory.getEntryAtIndex(i, false).URI.clone();
+      let uri = aHistory.getEntryAtIndex(i, false).URI;
       
-      if (uri instanceof Ci.nsIURL)
-        uri.path = "";
-      if (storageData[uri.spec] || !(aFullData || this._checkPrivacyLevel(uri.schemeIs("https"))))
+      let domain = uri.spec;
+      try {
+        if (uri.host)
+          domain = uri.prePath;
+      }
+      catch (ex) {  }
+      if (storageData[domain] || !(aFullData || this._checkPrivacyLevel(uri.schemeIs("https"))))
         continue;
 
-      let storage, storageItemCount;
+      let storage, storageItemCount = 0;
       try {
         storage = aDocShell.getSessionStorageForURI(uri);
         storageItemCount = storage.length;
-        if (storageItemCount == 0)
-          continue;
       }
-      catch (ex) {
-        
+      catch (ex) {  }
+      if (storageItemCount == 0)
         continue;
-      }
 
-      let data = storageData[uri.spec] = {};
+      let data = storageData[domain] = {};
       for (let j = 0; j < storageItemCount; j++) {
         try {
           let key = storage.key(j);
