@@ -58,8 +58,8 @@ Components.utils.import("resource://gre/modules/Services.jsm");
 
 
 
-function WARN(str) {
-  dump("*** addons.weblistener: " + str + "\n");
+function WARN(aStr) {
+  dump("*** addons.weblistener: " + aStr + "\n");
 }
 
 
@@ -73,25 +73,25 @@ function WARN(str) {
 
 
 
-function Installer(window, url, installs) {
-  this.window = window;
-  this.url = url;
-  this.downloads = installs;
+function Installer(aWindow, aUrl, aInstalls) {
+  this.window = aWindow;
+  this.url = aUrl;
+  this.downloads = aInstalls;
   this.installs = [];
 
   this.bundle = Cc["@mozilla.org/intl/stringbundle;1"].
                 getService(Ci.nsIStringBundleService).
                 createBundle("chrome://mozapps/locale/extensions/extensions.properties");
 
-  this.count = installs.length;
-  installs.forEach(function(install) {
-    install.addListener(this);
+  this.count = aInstalls.length;
+  aInstalls.forEach(function(aInstall) {
+    aInstall.addListener(this);
 
     
-    if (install.state == AddonManager.STATE_DOWNLOADED)
-      this.onDownloadEnded(install);
+    if (aInstall.state == AddonManager.STATE_DOWNLOADED)
+      this.onDownloadEnded(aInstall);
     else
-      install.install();
+      aInstall.install();
   }, this);
 }
 
@@ -121,54 +121,54 @@ Installer.prototype = {
                            null, "chrome,modal,centerscreen", args);
   },
 
-  onDownloadCancelled: function(install) {
-    install.removeListener(this);
+  onDownloadCancelled: function(aInstall) {
+    aInstall.removeListener(this);
 
     this.checkAllDownloaded();
   },
 
-  onDownloadFailed: function(install, error) {
-    install.removeListener(this);
+  onDownloadFailed: function(aInstall, aError) {
+    aInstall.removeListener(this);
 
     
-    Services.prompt.alert(this.window, "Download Failed", "The download of " + install.sourceURL + " failed: " + error);
+    Services.prompt.alert(this.window, "Download Failed", "The download of " + aInstall.sourceURL + " failed: " + aError);
     this.checkAllDownloaded();
   },
 
-  onDownloadEnded: function(install) {
-    install.removeListener(this);
+  onDownloadEnded: function(aInstall) {
+    aInstall.removeListener(this);
 
-    if (install.addon.appDisabled) {
+    if (aInstall.addon.appDisabled) {
       
-      install.cancel();
+      aInstall.cancel();
 
       let title = null;
       let text = null;
 
       let problems = "";
-      if (!install.addon.isCompatible)
+      if (!aInstall.addon.isCompatible)
         problems += "incompatible, ";
-      if (!install.addon.providesUpdatesSecurely)
+      if (!aInstall.addon.providesUpdatesSecurely)
         problems += "insecure updates, ";
-      if (install.addon.blocklistState == Ci.nsIBlocklistService.STATE_BLOCKED) {
+      if (aInstall.addon.blocklistState == Ci.nsIBlocklistService.STATE_BLOCKED) {
         problems += "blocklisted, ";
         title = bundle.GetStringFromName("blocklistedInstallTitle2");
         text = this.bundle.formatStringFromName("blocklistedInstallMsg2",
                                                 [install.addon.name], 1);
       }
       problems = problems.substring(0, problems.length - 2);
-      WARN("Not installing " + install.addon.id + " because of the following: " + problems);
+      WARN("Not installing " + aInstall.addon.id + " because of the following: " + problems);
 
       title = this.bundle.GetStringFromName("incompatibleTitle2", 1);
       text = this.bundle.formatStringFromName("incompatibleMessage",
-                                              [install.addon.name,
-                                               install.addon.version,
+                                              [aInstall.addon.name,
+                                               aInstall.addon.version,
                                                Services.appinfo.name,
                                                Services.appinfo.version], 4);
       Services.prompt.alert(this.window, title, text);
     }
     else {
-      this.installs.push(install);
+      this.installs.push(aInstall);
     }
 
     this.checkAllDownloaded();
@@ -183,11 +183,11 @@ extWebInstallListener.prototype = {
   
 
 
-  onWebInstallBlocked: function(window, uri, installs) {
+  onWebInstallBlocked: function(aWindow, aUri, aInstalls) {
     let info = {
-      originatingWindow: window,
-      originatingURI: uri,
-      installs: installs,
+      originatingWindow: aWindow,
+      originatingURI: aUri,
+      installs: aInstalls,
 
       install: function() {
         dump("Start installs\n");
@@ -204,8 +204,8 @@ extWebInstallListener.prototype = {
   
 
 
-  onWebInstallRequested: function(window, uri, installs) {
-    new Installer(window, uri, installs);
+  onWebInstallRequested: function(aWindow, aUri, aInstalls) {
+    new Installer(aWindow, aUri, aInstalls);
 
     
     return false;
@@ -217,5 +217,5 @@ extWebInstallListener.prototype = {
   QueryInterface: XPCOMUtils.generateQI([Ci.amIWebInstallListener])
 };
 
-function NSGetModule(compMgr, fileSpec)
+function NSGetModule(aCompMgr, aFileSpec)
   XPCOMUtils.generateModule([extWebInstallListener]);
