@@ -144,7 +144,7 @@ public:
   RuleProcessorData* mParentData;
 
 protected:
-  nsAutoString *mLanguage; 
+  nsString *mLanguage; 
 
   
   
