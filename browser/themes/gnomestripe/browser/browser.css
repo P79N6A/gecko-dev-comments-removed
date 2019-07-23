@@ -230,7 +230,9 @@ menuitem:not([type]) {
 }
 
 #menu_close {
-  list-style-image: url("moz-icon://stock/gtk-close?size=menu");
+  
+
+  list-style-image: url("moz-icon://stock/gtk-close?size=toolbar");
 }
 
 #context-media-play {
@@ -1202,7 +1204,9 @@ tabpanels {
 }
 
 #context_closeTab {
-  list-style-image: url("moz-icon://stock/gtk-close?size=menu");
+  
+
+  list-style-image: url("moz-icon://stock/gtk-close?size=toolbar");
 }
 
 
