@@ -244,9 +244,24 @@ nsAuthSSPI::Init(const char *serviceName,
     SEC_WCHAR *package;
 
     package = (SEC_WCHAR *) pTypeName[(int)mPackage];
-    rv = MakeSN(serviceName, mServiceName);
-    if (NS_FAILED(rv))
-        return rv;
+
+    if (mPackage == PACKAGE_TYPE_NTLM) {
+        
+        
+        
+        mServiceName.Assign(serviceName);
+        PRInt32 index = mServiceName.FindChar('@');
+        if (index == kNotFound)
+            return NS_ERROR_UNEXPECTED;
+        mServiceName.Replace(index, 1, '/');
+    }
+    else {
+        
+        
+        rv = MakeSN(serviceName, mServiceName);
+        if (NS_FAILED(rv))
+            return rv;
+    }
 
     mServiceFlags = serviceFlags;
 
