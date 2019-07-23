@@ -995,12 +995,25 @@ js_GetterOnlyPropertyStub(JSContext *cx, JSObject *obj, jsval id, jsval *vp);
 
 
 
+
+
+
+
+
+
 static inline bool
 js_ObjectIsSimilarToProto(JSContext *cx, JSObject *obj, const JSObjectOps *ops,
                           JSClass *clasp, JSObject *proto)
 {
     JS_ASSERT(proto == OBJ_GET_PROTO(cx, obj));
-    return (proto->map->ops == ops && OBJ_GET_CLASS(cx, proto) == clasp);
+
+    JSClass *protoclasp;
+    return (proto->map->ops == ops &&
+            ((protoclasp = OBJ_GET_CLASS(cx, proto)) == clasp ||
+             (!((protoclasp->flags ^ clasp->flags) &
+                (JSCLASS_HAS_PRIVATE |
+                 (JSCLASS_RESERVED_SLOTS_MASK << JSCLASS_RESERVED_SLOTS_SHIFT))) &&
+              protoclasp->reserveSlots == clasp->reserveSlots)));
 }
 
 #ifdef DEBUG
