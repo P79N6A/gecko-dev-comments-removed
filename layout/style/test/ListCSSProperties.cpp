@@ -112,6 +112,7 @@ const char* gShorthandPropertiesWithDOMProp[] = {
 const char *gInaccessibleProperties[] = {
     
     
+    "-x-system-font",
     "margin-end-value",
     "margin-left-value",
     "margin-right-value",

@@ -472,6 +472,7 @@ nsCSSDeclaration::AppendCSSValueToString(nsCSSProperty aProperty,
     case eCSSUnit_Initial:      aResult.AppendLiteral("-moz-initial"); break;
     case eCSSUnit_None:         aResult.AppendLiteral("none");     break;
     case eCSSUnit_Normal:       aResult.AppendLiteral("normal");   break;
+    case eCSSUnit_System_Font:  aResult.AppendLiteral("-moz-use-system-font"); break;
 
     case eCSSUnit_String:       break;
     case eCSSUnit_URL:          break;
@@ -532,6 +533,17 @@ nsCSSDeclaration::GetValue(nsCSSProperty aProperty,
     return NS_OK;
   }
 
+  
+  CSSPROPS_FOR_SHORTHAND_SUBPROPERTIES(p, aProperty) {
+    if (!mData->StorageFor(*p) &&
+        (!mImportantData || !mImportantData->StorageFor(*p)))
+      
+      if (*p != eCSSProperty__x_system_font)
+        return NS_OK;
+  }
+
+
+  
   
   
   
@@ -635,23 +647,38 @@ nsCSSDeclaration::GetValue(nsCSSProperty aProperty,
       break;
     }
     case eCSSProperty_font: {
-      if (AppendValueToString(eCSSProperty_font_style, aValue))
-        aValue.Append(PRUnichar(' '));
-      if (AppendValueToString(eCSSProperty_font_variant, aValue))
-        aValue.Append(PRUnichar(' '));
-      if (AppendValueToString(eCSSProperty_font_weight, aValue))
-        aValue.Append(PRUnichar(' '));
-      if (AppendValueToString(eCSSProperty_font_size, aValue)) {
-          nsAutoString tmp;
-          if (AppendValueToString(eCSSProperty_line_height, tmp)) {
-            aValue.Append(PRUnichar('/'));
-            aValue.Append(tmp);
-          }
-          aValue.Append(PRUnichar(' '));
-          if (!AppendValueToString(eCSSProperty_font_family, aValue))
-            aValue.Truncate();
+      nsCSSValue style, variant, weight, size, lh, family, systemFont;
+      GetValueOrImportantValue(eCSSProperty__x_system_font, systemFont);
+      GetValueOrImportantValue(eCSSProperty_font_style, style);
+      GetValueOrImportantValue(eCSSProperty_font_variant, variant);
+      GetValueOrImportantValue(eCSSProperty_font_weight, weight);
+      GetValueOrImportantValue(eCSSProperty_font_size, size);
+      GetValueOrImportantValue(eCSSProperty_line_height, lh);
+      GetValueOrImportantValue(eCSSProperty_font_family, family);
+
+      if (systemFont.GetUnit() != eCSSUnit_None &&
+          systemFont.GetUnit() != eCSSUnit_Null) {
+        AppendCSSValueToString(eCSSProperty__x_system_font, systemFont, aValue);
       } else {
-        aValue.Truncate();
+        if (style.GetUnit() != eCSSUnit_Normal) {
+          AppendCSSValueToString(eCSSProperty_font_style, style, aValue);
+          aValue.Append(PRUnichar(' '));
+        }
+        if (variant.GetUnit() != eCSSUnit_Normal) {
+          AppendCSSValueToString(eCSSProperty_font_variant, variant, aValue);
+          aValue.Append(PRUnichar(' '));
+        }
+        if (weight.GetUnit() != eCSSUnit_Normal) {
+          AppendCSSValueToString(eCSSProperty_font_weight, weight, aValue);
+          aValue.Append(PRUnichar(' '));
+        }
+        AppendCSSValueToString(eCSSProperty_font_size, size, aValue);
+        if (lh.GetUnit() != eCSSUnit_Normal) {
+          aValue.Append(PRUnichar('/'));
+          AppendCSSValueToString(eCSSProperty_line_height, lh, aValue);
+        }
+        aValue.Append(PRUnichar(' '));
+        AppendCSSValueToString(eCSSProperty_font_family, family, aValue);
       }
       break;
     }

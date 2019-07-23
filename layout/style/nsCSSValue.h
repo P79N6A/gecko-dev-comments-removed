@@ -62,6 +62,7 @@ enum nsCSSUnit {
   eCSSUnit_Initial      = 3,      
   eCSSUnit_None         = 4,      
   eCSSUnit_Normal       = 5,      
+  eCSSUnit_System_Font  = 6,      
   eCSSUnit_String       = 10,     
   eCSSUnit_Attr         = 11,     
   eCSSUnit_Array        = 20,     
@@ -135,8 +136,8 @@ public:
   explicit nsCSSValue(nsCSSUnit aUnit = eCSSUnit_Null)
     : mUnit(aUnit)
   {
-    NS_ASSERTION(aUnit <= eCSSUnit_Normal, "not a valueless unit");
-    if (aUnit > eCSSUnit_Normal) {
+    NS_ASSERTION(aUnit <= eCSSUnit_System_Font, "not a valueless unit");
+    if (aUnit > eCSSUnit_System_Font) {
       mUnit = eCSSUnit_Null;
     }
     mValue.mInt = 0;
@@ -275,6 +276,7 @@ public:
   NS_HIDDEN_(void)  SetInitialValue();
   NS_HIDDEN_(void)  SetNoneValue();
   NS_HIDDEN_(void)  SetNormalValue();
+  NS_HIDDEN_(void)  SetSystemFontValue();
   NS_HIDDEN_(void)  StartImageLoad(nsIDocument* aDocument,
                                    PRBool aIsBGImage = PR_FALSE)
                                    const;  
