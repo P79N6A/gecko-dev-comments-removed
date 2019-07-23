@@ -1002,6 +1002,13 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(nsGlobalWindow)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(mDoc)
 
   
+  {
+    if (tmp->mDoc) {
+      cb.NoteXPCOMChild(tmp->mDoc->GetReference(tmp));
+    }
+  }
+
+  
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(mChromeEventHandler)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(mDocument)
 
@@ -1032,6 +1039,12 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(nsGlobalWindow)
   NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mSessionStorage)
   NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mApplicationCache)
   NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mDocumentPrincipal)
+
+  
+  if (tmp->mDoc) {
+    tmp->mDoc->RemoveReference(tmp);
+    NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mDoc)
+  }
 
   
   NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mChromeEventHandler)
@@ -4584,7 +4597,7 @@ nsGlobalWindow::ScrollTo(PRInt32 aXScroll, PRInt32 aYScroll)
 
     result = view->ScrollTo(nsPresContext::CSSPixelsToAppUnits(aXScroll),
                             nsPresContext::CSSPixelsToAppUnits(aYScroll),
-                            0);
+                            NS_VMREFRESH_IMMEDIATE);
   }
 
   return result;
