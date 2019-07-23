@@ -219,6 +219,10 @@ BrowserGlue.prototype = {
 
   _onQuitRequest: function(aCancelQuit, aQuitType)
   {
+    
+    if ((aCancelQuit instanceof Ci.nsISupportsPRBool) && aCancelQuit.data)
+      return;
+
     var wm = Cc["@mozilla.org/appshell/window-mediator;1"].
              getService(Ci.nsIWindowMediator);
     var windowcount = 0;

@@ -1718,6 +1718,12 @@ nsDownloadManager::ConfirmCancelDownloads(PRInt32 aCount,
                                           const PRUnichar *aCancelMessageSingle,
                                           const PRUnichar *aDontCancelButton)
 {
+  
+  PRBool quitRequestCancelled = PR_FALSE;
+  aCancelDownloads->GetData(&quitRequestCancelled);
+  if (quitRequestCancelled)
+    return;
+
   nsXPIDLString title, message, quitButton, dontQuitButton;
 
   mBundle->GetStringFromName(aTitle, getter_Copies(title));
