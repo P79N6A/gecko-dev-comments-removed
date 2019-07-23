@@ -259,6 +259,8 @@ private:
     
     PRUint8  mPhishyUserPassLength;
 
+    PRPackedBool mPipeliningOverSSL;
+
     nsCString mAccept;
     nsCString mAcceptLanguages;
     nsCString mAcceptEncodings;
