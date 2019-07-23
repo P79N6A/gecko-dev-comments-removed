@@ -775,21 +775,25 @@ gProfD.create(AUS_Ci.nsIFile.DIRECTORY_TYPE, PERMS_DIRECTORY);
 var gRealGreD = gDirSvc.get(NS_GRE_DIR, AUS_Ci.nsIFile);
 
 
-var gCustomGreD = do_get_cwd();
-gCustomGreD.append("app_dir");
-try {
-  
-  
-  if (gCustomGreD.exists())
-    gCustomGreD.remove(true);
-}
-catch (e) {
-  dump("Unable to remove directory\npath: " + gCustomGreD.path +
-       "\nException: " + e + "\n");
-}
 
-if (!gCustomGreD.exists())
-  gCustomGreD.create(AUS_Ci.nsIFile.DIRECTORY_TYPE, PERMS_DIRECTORY);
+
+var gCustomGreD = gRealGreD.clone();
+
+
+
+
+  
+  
+
+
+
+
+
+
+
+
+
+
 
 var dirProvider = {
   getFile: function(prop, persistent) {
@@ -798,10 +802,10 @@ var dirProvider = {
       case NS_APP_PROFILE_DIR_STARTUP:
         persistent.value = true;
         return gProfD.clone();
-      case NS_GRE_DIR:
-      case XRE_UPDATE_ROOT_DIR:
-        persistent.value = true;
-        return gCustomGreD.clone();
+
+
+
+
     }
     return null;
   },
