@@ -3153,7 +3153,7 @@ BOOL nsWindow::OnKeyDown(UINT aVirtualKeyCode, UINT aScanCode, LPARAM aKeyData)
   
   
   if (DOMKeyCode == NS_VK_RETURN || DOMKeyCode == NS_VK_BACK ||
-      ((mIsControlDown || mIsAltDown) &&
+      ((mIsControlDown || mIsAltDown) && !gKbdLayout.IsDeadKey() &&
        KeyboardLayout::IsPrintableCharKey(aVirtualKeyCode)))
   {
     
