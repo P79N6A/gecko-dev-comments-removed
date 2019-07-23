@@ -73,9 +73,6 @@ nsCCUncollectableMarker::Init()
   NS_ENSURE_SUCCESS(rv, rv);
 
   
-  rv = obs->AddObserver(marker, "xpcom-shutdown", PR_FALSE);
-  NS_ENSURE_SUCCESS(rv, rv);
-
   rv = obs->AddObserver(marker, "cycle-collector-begin", PR_FALSE);
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -186,30 +183,11 @@ nsresult
 nsCCUncollectableMarker::Observe(nsISupports* aSubject, const char* aTopic,
                                  const PRUnichar* aData)
 {
+  
+  ++sGeneration;
+
+  
   nsresult rv;
-
-  if (!strcmp(aTopic, "xpcom-shutdown")) {
-    nsCOMPtr<nsIObserverService> obs =
-      do_GetService("@mozilla.org/observer-service;1", &rv);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    
-    obs->RemoveObserver(this, "xpcom-shutdown");
-    obs->RemoveObserver(this, "cycle-collector-begin");
-    
-    sGeneration = 0;
-    
-    return NS_OK;
-  }
-
-  NS_ASSERTION(!strcmp(aTopic, "cycle-collector-begin"), "wrong topic");
-
-  
-  if (!++sGeneration) {
-    ++sGeneration;
-  }
-
-  
   nsCOMPtr<nsISimpleEnumerator> windowList;
   nsCOMPtr<nsIWindowMediator> med =
     do_GetService(NS_WINDOWMEDIATOR_CONTRACTID);
@@ -228,7 +206,5 @@ nsCCUncollectableMarker::Observe(nsISupports* aSubject, const char* aTopic,
 
     MarkWindowList(windowList);
   }
-
-  return NS_OK;
 }
 

@@ -83,15 +83,10 @@ class nsNodeSupportsWeakRefTearoff;
 #define NODE_MAY_HAVE_FRAME          0x00000020U
 
 
+#define NODE_SCRIPT_TYPE_OFFSET                6
 
 
-#define NODE_HAS_FAKED_INDOC         0x00000040U
-
-
-#define NODE_SCRIPT_TYPE_OFFSET                7
-
-
-#define NODE_TYPE_SPECIFIC_BITS_OFFSET       0x0b
+#define NODE_TYPE_SPECIFIC_BITS_OFFSET       0x0a
 
 
 
