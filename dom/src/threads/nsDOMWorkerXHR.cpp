@@ -51,7 +51,6 @@
 #include "nsContentUtils.h"
 #include "nsIClassInfoImpl.h"
 #include "nsJSUtils.h"
-#include "nsProxyRelease.h"
 #include "nsThreadUtils.h"
 
 
@@ -337,6 +336,13 @@ nsDOMWorkerXHR::nsDOMWorkerXHR(nsDOMWorker* aWorker)
   NS_ASSERTION(aWorker, "Must have a worker!");
 }
 
+nsDOMWorkerXHR::~nsDOMWorkerXHR()
+{
+  if (mXHRProxy) {
+    mXHRProxy->Destroy();
+  }
+}
+
 
 
 
@@ -371,12 +377,15 @@ nsDOMWorkerXHR::Trace(nsIXPConnectWrappedNative* ,
                       JSTracer* aTracer,
                       JSObject* )
 {
+  NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
+
   if (!mCanceled) {
     nsDOMWorkerMessageHandler::Trace(aTracer);
     if (mUpload) {
       mUpload->Trace(aTracer);
     }
   }
+
   return NS_OK;
 }
 
@@ -385,10 +394,14 @@ nsDOMWorkerXHR::Finalize(nsIXPConnectWrappedNative* ,
                          JSContext* ,
                          JSObject* )
 {
+  NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
+
   nsDOMWorkerMessageHandler::ClearAllListeners();
+
   if (mUpload) {
     mUpload->ClearAllListeners();
   }
+
   return NS_OK;
 }
 
@@ -436,6 +449,7 @@ nsDOMWorkerXHR::Cancel()
 
   if (mXHRProxy) {
     mXHRProxy->Destroy();
+    mXHRProxy = nsnull;
   }
 
   mWorker = nsnull;
