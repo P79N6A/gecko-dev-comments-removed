@@ -610,29 +610,73 @@ function jsTestDriverBrowserInit()
     return;
   }
 
-  var re = /test=([^;]+);language=(language|type);([a-zA-Z0-9.=;\/]+)/;
-  var matches = re.exec(document.location.search);
+  var properties = {};
+  var fields = document.location.search.slice(1).split(';');
+  for (var ifield = 0; ifield < fields.length; ifield++)
+  {
+    var propertycaptures = /^([^=]+)=(.*)$/.exec(fields[ifield]);
+    if (!propertycaptures)
+    {
+      properties[fields[ifield]] = true;
+    }
+    else
+    {
+      properties[propertycaptures[1]] = decodeURIComponent(propertycaptures[2]);
+      if (propertycaptures[1] == 'language')
+      {
+        
+        properties.mimetype = fields[ifield+1];
+      }
+    }
+  }
+
+  if (properties.language != 'type')
+  {
+    try
+    {
+      properties.version = /javascript([.0-9]+)/.exec(properties.mimetype)[1];
+    }
+    catch(ex)
+    {
+    }
+  }
+
+  if (!properties.version && navigator.userAgent.indexOf('Gecko/') != -1)
+  {
+    
+    
+    if (properties.test.match(/^js1_6/))
+    {
+      properties.version = '1.6';
+    }
+    else if (properties.test.match(/^js1_7/))
+    {
+      properties.version = '1.7';
+    }
+    else if (properties.test.match(/^js1_8/))
+    {
+      properties.version = '1.8';
+    }
+    else if (properties.test.match(/^js1_8_1/))
+    {
+      properties.version = '1.8';
+    }
+    else
+    {
+      properties.version = '1.5';
+    }
+  }
+
+  gTestPath = properties.test;
+
+  gVersion = 10*parseInt(properties.version.replace(/\./g, ''));
+
+  if (properties.gczeal)
+  {
+    gczeal(Number(properties.gczeal));
+  }
 
   
-  var testpath  = matches[1];
-  var attribute = matches[2];
-  var value     = matches[3];
-
-  if (testpath)
-  {
-    testpath = decodeURIComponent(testpath);
-    gTestPath = testpath;
-  }
-
-  var ise4x = /e4x\//.test(testpath);
-
-  var gczealmatches = /gczeal=([0-9]*)/.exec(document.location.search);
-
-  if (gczealmatches)
-  {
-    var zeal = Number(gczealmatches[1]);
-    gczeal(zeal);
-  }
 
 
 
@@ -641,75 +685,9 @@ function jsTestDriverBrowserInit()
 
 
 
+  jit(properties.jit);
 
-
-  var jitmatches = /;jit/.exec(document.location.search);
-
-  if (jitmatches)
-  {
-    jit(true);
-  }
-  else
-  {
-    jit(false);
-  }
-
-  var versionmatches;
-
-  if (attribute == 'type')
-  {
-    versionmatches = /version=([.0-9]+)/.exec(value);
-  }
-  else
-  {
-    versionmatches = /javascript([.0-9]+)/.exec(value);
-  }
-
-  if (versionmatches)
-  {
-    gVersion = 10*parseInt(versionmatches[1].replace(/\./g, ''));
-  }
-  else if (navigator.userAgent.indexOf('Gecko/') != -1)
-  {
-    
-    
-    if (attribute == 'type')
-    {
-      value = 'text/javascript;version=';
-    }
-    else
-    {
-      value = 'javascript';
-    }
-
-    if (testpath.match(/^js1_6/))
-    {
-      gVersion = 160;
-      value += '1.6';
-    }
-    else if (testpath.match(/^js1_7/))
-    {
-      gVersion = 170;
-      value += '1.7';
-    }
-    else if (testpath.match(/^js1_8/))
-    {
-      gVersion = 180;
-      value += '1.8';
-    }
-    else if (testpath.match(/^js1_8_1/))
-    {
-      gVersion = 180;
-      value += '1.8';
-    }
-    else
-    {
-      gVersion = 150;
-      value += '1.5';
-    }
-  }
-
-  var testpathparts = testpath.split(/\//);
+  var testpathparts = properties.test.split(/\//);
 
   if (testpathparts.length < 3)
   {
@@ -720,52 +698,55 @@ function jsTestDriverBrowserInit()
   var subsuite = testpathparts[testpathparts.length - 2];
   var test     = testpathparts[testpathparts.length - 1];
 
-  outputscripttag(suitepath + '/shell.js', attribute, value,
-                  ise4x);
-  outputscripttag(suitepath + '/browser.js', attribute, value,
-                  ise4x);
-  outputscripttag(suitepath + '/' + subsuite + '/shell.js', attribute, value,
-                  ise4x);
-  outputscripttag(suitepath + '/' + subsuite + '/browser.js', attribute, value,
-                  ise4x);
-  outputscripttag(suitepath + '/' + subsuite + '/' + test, attribute, value,
-                  ise4x);
+  outputscripttag(suitepath + '/shell.js', properties);
+  outputscripttag(suitepath + '/browser.js', properties);
+  outputscripttag(suitepath + '/' + subsuite + '/shell.js', properties);
+  outputscripttag(suitepath + '/' + subsuite + '/browser.js', properties);
+  outputscripttag(suitepath + '/' + subsuite + '/' + test, properties,
+  	properties.e4x || /e4x\//.test(properties.test));
 
-  document.write('<title>' + suitepath + '/' + subsuite + '/' + test +
-                 '<\/title>');
+  document.write('<title>' + suitepath + '/' + subsuite + '/' + test + '<\/title>');
 
-  outputscripttag('js-test-driver-end.js', attribute, value,
-                  false);
+  outputscripttag('js-test-driver-end.js', properties);
   return;
 }
 
-function outputscripttag(src, attribute, value, ise4x)
+function outputscripttag(src, properties, e4x)
 {
   if (!src)
   {
     return;
   }
 
-  var s = '<script src="' +  src + '" ';
-
-  if (ise4x)
+  if (e4x)
   {
-    if (attribute == 'type')
-    {
-      value += ';e4x=1 ';
-    }
-    else
-    {
-      s += ' type="text/javascript';
-      if (gVersion != 150)
-      {
-        s += ';version=' + gVersion/100;
-      }
-      s += ';e4x=1" ';
-    }
+    
+    properties.language = 'type';
   }
 
-  s +=  attribute + '="' + value + '"><\/script>';
+  var s = '<script src="' +  src + '" ';
+
+  if (properties.language != 'type')
+  {
+    s += 'language="javascript';
+    if (properties.version)
+    {
+      s += properties.version;
+    }
+  }
+  else
+  {
+    s += 'type="' + properties.mimetype;
+    if (properties.version)
+    {
+      s += ';version=' + properties.version;
+    }
+    if (e4x)
+    {
+      s += ';e4x=1';
+    }
+  }
+  s += '"><\/script>';
 
   document.write(s);
 }
