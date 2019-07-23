@@ -1004,10 +1004,13 @@ namespace nanojit
 
     LIns* LirBufWriter::insCall(const CallInfo *ci, LInsp args[])
     {
-        static const LOpcode k_callmap[]  = { LIR_call,  LIR_fcall,  LIR_call,  LIR_callh };
+        static const LOpcode k_callmap[] = {
+        
+            LIR_call,     LIR_fcall, LIR_call,   LIR_callh, LIR_skip,  LIR_skip,  LIR_call,  LIR_skip
+        };
 
         uint32_t argt = ci->_argtypes;
-        LOpcode op = k_callmap[argt & 3];
+        LOpcode op = k_callmap[argt & ARGSIZE_MASK_ANY];
         NanoAssert(op != LIR_skip); 
 
         ArgSize sizes[MAXARGS];

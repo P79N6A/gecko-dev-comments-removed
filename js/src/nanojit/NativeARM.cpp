@@ -752,9 +752,9 @@ Assembler::asm_call(LInsp ins)
     uint32_t atypes = call->_argtypes;
 
     
-    ArgSize rsize = (ArgSize)(atypes & 3);
+    ArgSize rsize = (ArgSize)(atypes & ARGSIZE_MASK_ANY);
 
-    atypes >>= 2;
+    atypes >>= ARGSIZE_MASK_SHIFT;
 
     
     

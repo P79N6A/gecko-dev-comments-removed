@@ -213,7 +213,7 @@ namespace nanojit
         
         uint32_t n = 0;
 
-        ArgSize sizes[2*MAXARGS];
+        ArgSize sizes[MAXARGS];
         uint32_t argc = call->get_sizes(sizes);
 
         for(uint32_t i=0; i < argc; i++)
@@ -1283,7 +1283,7 @@ namespace nanojit
                 NanoAssert(0); 
             }
         }
-        else if (sz == ARGSIZE_LO)
+        else if (sz == ARGSIZE_I || sz == ARGSIZE_U)
         {
             if (r != UnknownReg) {
                 
