@@ -788,10 +788,13 @@ TraceRecorder::import(LIns* base, unsigned slot, jsval* p, uint8& t,
 
 
 
-        ins = lir->ins1(LIR_i2f, lir->insLoadi(base, offset));
+        ins = lir->insLoadi(base, offset);
+        stackTracker.set(p, ins);
+        ins = lir->ins1(LIR_i2f, ins);
     } else {
         JS_ASSERT(isNumber(*p) == (TYPEMAP_GET_TYPE(t) == JSVAL_DOUBLE));
         ins = lir->insLoad(t == JSVAL_DOUBLE ? LIR_ldq : LIR_ld, base, offset);
+        stackTracker.set(p, ins);
     }
     tracker.set(p, ins);
 #ifdef DEBUG
@@ -828,7 +831,23 @@ TraceRecorder::set(jsval* p, LIns* i, bool initializing)
 
     if (isPromoteInt(i))
         i = ::demote(lir, i);
-    lir->insStorei(i, lirbuf->sp, -treeInfo->nativeStackBase + nativeFrameOffset(p) + 8);
+    
+
+
+    if (initializing) { 
+        stackTracker.set(p, lir->insStorei(i, lirbuf->sp, 
+                -treeInfo->nativeStackBase + nativeFrameOffset(p) + 8));
+    } else {
+        LIns* q = stackTracker.get(p);
+        if (q->isop(LIR_ld) || q->isop(LIR_ldq)) {
+            JS_ASSERT(q->oprnd1() == lirbuf->sp);
+            lir->insStorei(i, q->oprnd1(), q->oprnd2()->constval());
+        } else {
+            JS_ASSERT(q->isop(LIR_sti) || q->isop(LIR_stqi));
+            JS_ASSERT(q->oprnd2() == lirbuf->sp);
+            lir->insStorei(i, q->oprnd2(), q->immdisp());
+        }
+    }
 }
 
 LIns*
