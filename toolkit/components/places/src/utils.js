@@ -884,6 +884,8 @@ var PlacesUtils = {
   },
 
   
+  
+  
   get placesRootId() {
     delete this.placesRootId;
     return this.placesRootId = this.bookmarks.placesRoot;
@@ -1358,7 +1360,7 @@ var PlacesUtils = {
     var id = -1;
     switch (aData.type) {
       case this.TYPE_X_MOZ_PLACE_CONTAINER:
-        if (aContainer == PlacesUtils.bookmarks.tagsFolder) {
+        if (aContainer == PlacesUtils.tagsFolderId) {
           
           if (aData.children) {
             aData.children.forEach(function(aChild) {
@@ -1495,10 +1497,8 @@ var PlacesUtils = {
     
     function addGenericProperties(aPlacesNode, aJSNode) {
       aJSNode.title = aPlacesNode.title;
-      var id = aPlacesNode.itemId;
-      if (id != -1) {
-        aJSNode.id = id;
-
+      aJSNode.id = aPlacesNode.itemId;
+      if (aJSNode.id != -1) {
         var parent = aPlacesNode.parent;
         if (parent)
           aJSNode.parent = parent.itemId;
@@ -1512,7 +1512,7 @@ var PlacesUtils = {
         
         var annos = [];
         try {
-          annos = self.getAnnotationsForItem(id).filter(function(anno) {
+          annos = self.getAnnotationsForItem(aJSNode.id).filter(function(anno) {
             
             
             
@@ -1560,32 +1560,37 @@ var PlacesUtils = {
     }
 
     function addContainerProperties(aPlacesNode, aJSNode) {
-      
       var concreteId = PlacesUtils.getConcreteItemId(aPlacesNode);
-      if (aJSNode.id != -1 && (PlacesUtils.nodeIsQuery(aPlacesNode) ||
-          (concreteId != aPlacesNode.itemId && !aResolveShortcuts))) {
+      if (concreteId != -1) {
+        
+        if (PlacesUtils.nodeIsQuery(aPlacesNode) ||
+            (concreteId != aPlacesNode.itemId && !aResolveShortcuts)) {
+          aJSNode.type = self.TYPE_X_MOZ_PLACE;
+          aJSNode.uri = aPlacesNode.uri;
+          
+          if (aIsUICommand)
+            aJSNode.concreteId = concreteId;
+        }
+        else { 
+          aJSNode.type = self.TYPE_X_MOZ_PLACE_CONTAINER;
+
+          
+          if (aJSNode.id == self.placesRootId)
+            aJSNode.root = "placesRoot";
+          else if (aJSNode.id == self.bookmarksMenuFolderId)
+            aJSNode.root = "bookmarksMenuFolder";
+          else if (aJSNode.id == self.tagsFolderId)
+            aJSNode.root = "tagsFolder";
+          else if (aJSNode.id == self.unfiledBookmarksFolderId)
+            aJSNode.root = "unfiledBookmarksFolder";
+          else if (aJSNode.id == self.toolbarFolderId)
+            aJSNode.root = "toolbarFolder";
+        }
+      }
+      else {
+        
         aJSNode.type = self.TYPE_X_MOZ_PLACE;
         aJSNode.uri = aPlacesNode.uri;
-        
-        if (aIsUICommand)
-          aJSNode.concreteId = concreteId;
-        return;
-      }
-      else if (aJSNode.id != -1) { 
-        if (concreteId != aPlacesNode.itemId)
-        aJSNode.type = self.TYPE_X_MOZ_PLACE;
-        aJSNode.type = self.TYPE_X_MOZ_PLACE_CONTAINER;
-        
-        if (aJSNode.id == self.bookmarks.placesRoot)
-          aJSNode.root = "placesRoot";
-        else if (aJSNode.id == self.bookmarks.bookmarksMenuFolder)
-          aJSNode.root = "bookmarksMenuFolder";
-        else if (aJSNode.id == self.bookmarks.tagsFolder)
-          aJSNode.root = "tagsFolder";
-        else if (aJSNode.id == self.bookmarks.unfiledBookmarksFolder)
-          aJSNode.root = "unfiledBookmarksFolder";
-        else if (aJSNode.id == self.bookmarks.toolbarFolder)
-          aJSNode.root = "toolbarFolder";
       }
     }
 
@@ -1736,7 +1741,7 @@ var PlacesUtils = {
     var options = this.history.getNewQueryOptions();
     options.expandQueries = false;
     var query = this.history.getNewQuery();
-    query.setFolders([this.bookmarks.placesRoot], 1);
+    query.setFolders([this.placesRootId], 1);
     var result = this.history.executeQuery(query, options);
     result.root.containerOpen = true;
     
