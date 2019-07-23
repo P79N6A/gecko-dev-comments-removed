@@ -158,8 +158,8 @@ private:
   nsCOMPtr<nsIDOMNode> mEndNode;
   PRInt32 mEndOffset;
   
-  nsCOMPtr<nsIDOMNode> mStartOuterNode;
-  nsCOMPtr<nsIDOMNode> mEndOuterNode;
+  nsCOMPtr<nsIContent> mStartOuterContent;
+  nsCOMPtr<nsIContent> mEndOuterContent;
   PRBool mFindBackward;
 
   void Reset();
@@ -279,8 +279,8 @@ void
 nsFindContentIterator::Reset()
 {
   mInnerIterator = nsnull;
-  mStartOuterNode = nsnull;
-  mEndOuterNode = nsnull;
+  mStartOuterContent = nsnull;
+  mEndOuterContent = nsnull;
 
   
   
@@ -288,15 +288,13 @@ nsFindContentIterator::Reset()
   
   nsCOMPtr<nsIContent> startContent(do_QueryInterface(mStartNode));
   if (startContent) {
-    mStartOuterNode =
-      do_QueryInterface(startContent->FindFirstNonNativeAnonymous());
+    mStartOuterContent = startContent->FindFirstNonNativeAnonymous();
   }
 
   
   nsCOMPtr<nsIContent> endContent(do_QueryInterface(mEndNode));
   if (endContent) {
-    mEndOuterNode =
-      do_QueryInterface(endContent->FindFirstNonNativeAnonymous());
+    mEndOuterContent = endContent->FindFirstNonNativeAnonymous();
   }
 
   
@@ -306,27 +304,26 @@ nsFindContentIterator::Reset()
   range->SetStart(mStartNode, mStartOffset);
   range->SetEnd(mEndNode, mEndOffset);
   mOuterIterator->Init(range);
-  
-  if (mOuterIterator->IsDone())
-    return;
 
   if (!mFindBackward) {
-    if (mStartOuterNode != mStartNode) {
+    if (mStartOuterContent != startContent) {
       
-      SetupInnerIterator(startContent);
+      SetupInnerIterator(mStartOuterContent);
       if (mInnerIterator)
         mInnerIterator->First();
     }
-    mOuterIterator->First();
+    if (!mOuterIterator->IsDone())
+      mOuterIterator->First();
   }
   else {
-    if (mEndOuterNode != mEndNode) {
+    if (mEndOuterContent != endContent) {
       
-      SetupInnerIterator(endContent);
+      SetupInnerIterator(mEndOuterContent);
       if (mInnerIterator)
         mInnerIterator->Last();
     }
-    mOuterIterator->Last();
+    if (!mOuterIterator->IsDone())
+      mOuterIterator->Last();
   }
 
   
@@ -358,13 +355,15 @@ nsFindContentIterator::MaybeSetupInnerIterator()
       mInnerIterator->First();
       
       
-      mOuterIterator->First();
+      if (!mOuterIterator->IsDone())
+        mOuterIterator->First();
     }
     else {
       mInnerIterator->Last();
       
       
-      mOuterIterator->Last();
+      if (!mOuterIterator->IsDone())
+        mOuterIterator->Last();
     }
   }
 }
@@ -415,18 +414,14 @@ nsFindContentIterator::SetupInnerIterator(nsIContent* aContent)
   mInnerIterator = do_CreateInstance(kCPreContentIteratorCID);
 
   if (mInnerIterator) {
-    {
-      nsCOMPtr<nsIDOMNode> node(do_QueryInterface(rootContent));
-      innerRange->SelectNodeContents(node);
-    }
+    innerRange->SelectNodeContents(rootElement);
 
     
     
-    nsCOMPtr<nsIDOMNode> outerNode(do_QueryInterface(aContent));
-    if (outerNode == mStartOuterNode) {
+    if (aContent == mStartOuterContent) {
       innerRange->SetStart(mStartNode, mStartOffset);
     }
-    if (outerNode == mEndOuterNode) {
+    if (aContent == mEndOuterContent) {
       innerRange->SetEnd(mEndNode, mEndOffset);
     }
     
@@ -435,6 +430,7 @@ nsFindContentIterator::SetupInnerIterator(nsIContent* aContent)
     
     
     nsresult res;
+    nsCOMPtr<nsIDOMNode> outerNode(do_QueryInterface(aContent));
     if (!mFindBackward) { 
       
       res = outerRange->SetEnd(mEndNode, mEndOffset);
