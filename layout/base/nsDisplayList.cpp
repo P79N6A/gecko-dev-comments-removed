@@ -975,11 +975,12 @@ static PRBool IsZOrderLEQ(nsDisplayItem* aItem1, nsDisplayItem* aItem2,
                           void* aClosure) {
   
   
-  PRInt32 diff = nsLayoutUtils::GetZIndex(aItem1->GetUnderlyingFrame()) -
-    nsLayoutUtils::GetZIndex(aItem2->GetUnderlyingFrame());
-  if (diff == 0)
+  
+  PRInt32 index1 = nsLayoutUtils::GetZIndex(aItem1->GetUnderlyingFrame());
+  PRInt32 index2 = nsLayoutUtils::GetZIndex(aItem2->GetUnderlyingFrame());
+  if (index1 == index2)
     return IsContentLEQ(aItem1, aItem2, aClosure);
-  return diff < 0;
+  return index1 < index2;
 }
 
 void nsDisplayList::ExplodeAnonymousChildLists(nsDisplayListBuilder* aBuilder) {

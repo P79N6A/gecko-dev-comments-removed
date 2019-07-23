@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <style>
+      div { position: absolute; top: 0; left: 0; width: 100px; height: 100px; }
+      div.offset { left: 100px; }
+      div.offset2 { left: 200px; }
+    </style>
+  </head>
+  <body>
+    
+
+
+
+    <div style="background: green; z-index: 1073741825"></div>
+    <div style="background: red; z-index: -1073741825"></div>
+    
+
+    <div class="offset" style="background: green; z-index: 4294967297"></div>
+    <div class="offset" style="background: red; z-index: 2"></div>
+    
+
+    <div class="offset2" style="background: green; z-index: -2"></div>
+    <div class="offset2" style="background: red; z-index: -4294967297"></div>
+  </body>
+</html>
