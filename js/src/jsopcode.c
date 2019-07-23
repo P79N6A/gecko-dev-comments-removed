@@ -1843,6 +1843,12 @@ DecompileBytecode(SprintStack *ss, jsbytecode *pc, intN nb, JSOp nextop)
                             op = JSOP_GETLOCAL;
                             break;
                           default:
+                            
+
+
+
+
+
                             LOCAL_ASSERT(0);
                         }
                     }
