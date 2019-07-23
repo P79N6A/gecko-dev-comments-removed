@@ -549,6 +549,19 @@ BoxBlur(const PRUint8 *aInput, PRUint8 *aOutput,
   }
 }
 
+static PRUint32
+GetBlurBoxSize(double aStdDev)
+{
+  NS_ASSERTION(aStdDev >= 0, "Negative standard deviations not allowed");
+
+  double size = aStdDev*3*sqrt(2*M_PI)/4;
+  
+  PRUint32 max = 1024;
+  if (size > max)
+    return max;
+  return PRUint32(floor(size + 0.5));
+}
+
 nsresult
 nsSVGFEGaussianBlurElement::GetDXY(PRUint32 *aDX, PRUint32 *aDY,
                                    const nsSVGFilterInstance& aInstance)
@@ -569,8 +582,11 @@ nsSVGFEGaussianBlurElement::GetDXY(PRUint32 *aDX, PRUint32 *aDY,
   if (stdX == 0 || stdY == 0)
     return NS_ERROR_UNEXPECTED;
 
-  *aDX = PRUint32(floor(stdX * 3*sqrt(2*M_PI)/4 + 0.5));
-  *aDY = PRUint32(floor(stdY * 3*sqrt(2*M_PI)/4 + 0.5));
+  
+  
+  
+  *aDX = GetBlurBoxSize(stdX);
+  *aDY = GetBlurBoxSize(stdY);
   return NS_OK;
 }
 
