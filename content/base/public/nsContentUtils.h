@@ -47,10 +47,6 @@
 #include <float.h>
 #endif
 
-#if defined(SOLARIS)
-#include <ieeefp.h>
-#endif
-
 #include "nsAString.h"
 #include "nsIStatefulFrame.h"
 #include "nsINodeInfo.h"
@@ -67,7 +63,6 @@
 #include "nsTextFragment.h"
 #include "nsReadableUtils.h"
 #include "nsIPrefBranch2.h"
-#include "mozilla/AutoRestore.h"
 
 #include "jsapi.h"
 
@@ -1501,8 +1496,6 @@ public:
 
 
 
-
-
   static nsresult GetASCIIOrigin(nsIPrincipal* aPrincipal,
                                  nsCString& aOrigin);
   static nsresult GetASCIIOrigin(nsIURI* aURI, nsCString& aOrigin);
@@ -1561,28 +1554,6 @@ public:
   }
 
   static void StripNullChars(const nsAString& aInStr, nsAString& aOutStr);
-
-  
-
-
-
-
-
-
-
-
-  static nsresult CreateStructuredClone(JSContext* cx, jsval val, jsval* rval);
-
-  
-
-
-
-
-
-
-  static nsresult ReparentClonedObjectToScope(JSContext* cx, JSObject* obj,
-                                              JSObject* scope);
-
 private:
 
   static PRBool InitializeEventTable();
@@ -1701,32 +1672,26 @@ private:
 #endif
 };
 
-class NS_STACK_CLASS nsAutoGCRoot {
+class nsAutoGCRoot {
 public:
   
-  nsAutoGCRoot(jsval* aPtr, nsresult* aResult
-               MOZILLA_GUARD_OBJECT_NOTIFIER_PARAM) :
+  nsAutoGCRoot(jsval* aPtr, nsresult* aResult) :
     mPtr(aPtr)
   {
-    MOZILLA_GUARD_OBJECT_NOTIFIER_INIT;
     mResult = *aResult = AddJSGCRoot(aPtr, "nsAutoGCRoot");
   }
 
   
-  nsAutoGCRoot(JSObject** aPtr, nsresult* aResult
-               MOZILLA_GUARD_OBJECT_NOTIFIER_PARAM) :
+  nsAutoGCRoot(JSObject** aPtr, nsresult* aResult) :
     mPtr(aPtr)
   {
-    MOZILLA_GUARD_OBJECT_NOTIFIER_INIT;
     mResult = *aResult = AddJSGCRoot(aPtr, "nsAutoGCRoot");
   }
 
   
-  nsAutoGCRoot(void* aPtr, nsresult* aResult
-               MOZILLA_GUARD_OBJECT_NOTIFIER_PARAM) :
+  nsAutoGCRoot(void* aPtr, nsresult* aResult) :
     mPtr(aPtr)
   {
-    MOZILLA_GUARD_OBJECT_NOTIFIER_INIT;
     mResult = *aResult = AddJSGCRoot(aPtr, "nsAutoGCRoot");
   }
 
@@ -1747,34 +1712,28 @@ private:
 
   void* mPtr;
   nsresult mResult;
-  MOZILLA_DECL_USE_GUARD_OBJECT_NOTIFIER
 };
 
-class NS_STACK_CLASS nsAutoScriptBlocker {
+class nsAutoScriptBlocker {
 public:
-  nsAutoScriptBlocker(MOZILLA_GUARD_OBJECT_NOTIFIER_ONLY_PARAM) {
-    MOZILLA_GUARD_OBJECT_NOTIFIER_INIT;
+  nsAutoScriptBlocker() {
     nsContentUtils::AddScriptBlocker();
   }
   ~nsAutoScriptBlocker() {
     nsContentUtils::RemoveScriptBlocker();
   }
-private:
-  MOZILLA_DECL_USE_GUARD_OBJECT_NOTIFIER
 };
 
-class NS_STACK_CLASS mozAutoRemovableBlockerRemover
+class mozAutoRemovableBlockerRemover
 {
 public:
-  mozAutoRemovableBlockerRemover(nsIDocument* aDocument
-                                 MOZILLA_GUARD_OBJECT_NOTIFIER_PARAM);
+  mozAutoRemovableBlockerRemover(nsIDocument* aDocument);
   ~mozAutoRemovableBlockerRemover();
 
 private:
   PRUint32 mNestingLevel;
   nsCOMPtr<nsIDocument> mDocument;
   nsCOMPtr<nsIDocumentObserver> mObserver;
-  MOZILLA_DECL_USE_GUARD_OBJECT_NOTIFIER
 };
 
 #define NS_AUTO_GCROOT_PASTE2(tok,line) tok##line
@@ -1783,6 +1742,9 @@ private:
 #define NS_AUTO_GCROOT(ptr, result) \ \
   nsAutoGCRoot NS_AUTO_GCROOT_PASTE(_autoGCRoot_, __LINE__) \
   (ptr, result)
+
+#define NS_INTERFACE_MAP_ENTRY_CONTENT_CLASSINFO(_class)                      \
+  NS_DOM_INTERFACE_MAP_ENTRY_CLASSINFO(_class)
 
 #define NS_INTERFACE_MAP_ENTRY_TEAROFF(_interface, _allocator)                \
   if (aIID.Equals(NS_GET_IID(_interface))) {                                  \
@@ -1869,4 +1831,4 @@ private:
   nsIMIMEHeaderParam*   mService;
 };
 
-#endif
+#endif 

@@ -1415,8 +1415,12 @@ checkReportFlags(JSContext *cx, uintN *flags)
 {
     if (JSREPORT_IS_STRICT_MODE_ERROR(*flags)) {
         
-        JS_ASSERT(JS_IsRunning(cx));
-        if (js_GetTopStackFrame(cx)->script->strictModeCode)
+
+
+
+
+        JSStackFrame *fp = js_GetScriptedCaller(cx, NULL);
+        if (fp && fp->script->strictModeCode)
             *flags &= ~JSREPORT_WARNING;
         else if (JS_HAS_STRICT_OPTION(cx))
             *flags |= JSREPORT_WARNING;

@@ -154,6 +154,7 @@ public:
   { mCompatMode = aCompatMode; }
   nsCompatibility GetCompatibilityMode() { return mCompatMode; }
   nsresult SetPreferredSheet(const nsAString& aTitle);
+  nsresult GetPreferredSheet(nsAString& aTitle);
 
   
 
@@ -317,7 +318,7 @@ public:
 
 
 
-
+  nsresult StopLoadingSheet(nsIURI* aURL);
 
   
 

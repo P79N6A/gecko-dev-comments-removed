@@ -1111,6 +1111,26 @@ Object_p_valueOf(JSContext* cx, JSObject* obj, JSString *hint)
 
 
 
+JSBool
+js_CheckContentSecurityPolicy(JSContext *cx)
+{
+    JSSecurityCallbacks *callbacks;
+    callbacks = JS_GetSecurityCallbacks(cx);
+
+    
+    
+    if (callbacks) {
+        return callbacks->contentSecurityPolicyAllows &&
+               callbacks->contentSecurityPolicyAllows(cx);
+    }
+
+    return JS_TRUE;
+}
+
+
+
+
+
 
 JSBool
 js_CheckPrincipalsAccess(JSContext *cx, JSObject *scopeobj,
@@ -1382,6 +1402,13 @@ obj_eval(JSContext *cx, uintN argc, jsval *vp)
     JS_ASSERT_IF(result, result == scopeobj);
     if (!result)
         return JS_FALSE;
+
+    
+    
+    if (!js_CheckContentSecurityPolicy(cx)) {
+        JS_ReportError(cx, "call to eval() blocked by CSP");
+        return  JS_FALSE;
+    }
 
     JSObject *callee = JSVAL_TO_OBJECT(vp[0]);
     JSPrincipals *principals = js_EvalFramePrincipals(cx, callee, caller);

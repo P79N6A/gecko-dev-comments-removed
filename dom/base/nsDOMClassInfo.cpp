@@ -37,12 +37,6 @@
 
 
 
-
-#include "jsapi.h"
-#include "jsprvtd.h"    
-#include "jscntxt.h"
-#include "jsdbgapi.h"
-
 #include "nscore.h"
 #include "nsDOMClassInfo.h"
 #include "nsCRT.h"
@@ -67,6 +61,13 @@
 #include "nsCSSValue.h"
 #include "nsIRunnable.h"
 #include "nsThreadUtils.h"
+
+
+#include "jsapi.h"
+#include "jsprvtd.h"    
+#include "jscntxt.h"
+#include "jsobj.h"
+#include "jsdbgapi.h"
 
 
 #include "nsGlobalWindow.h"
@@ -131,6 +132,7 @@
 #include "nsIForm.h"
 #include "nsIFormControl.h"
 #include "nsIDOMHTMLFormElement.h"
+#include "nsIDOMNSHTMLFormControlList.h"
 #include "nsIDOMHTMLCollection.h"
 #include "nsIHTMLCollection.h"
 #include "nsHTMLDocument.h"
@@ -671,9 +673,12 @@ static nsDOMClassInfoData sClassInfoData[] = {
                            nsHTMLOptionsCollectionSH,
                            ARRAY_SCRIPTABLE_FLAGS |
                            nsIXPCScriptable::WANT_SETPROPERTY)
-  NS_DEFINE_CLASSINFO_DATA(HTMLCollection,
-                           nsHTMLCollectionSH,
-                           ARRAY_SCRIPTABLE_FLAGS)
+  NS_DEFINE_CLASSINFO_DATA_WITH_NAME(HTMLFormControlCollection, HTMLCollection,
+                                     nsHTMLCollectionSH,
+                                     ARRAY_SCRIPTABLE_FLAGS)
+  NS_DEFINE_CLASSINFO_DATA_WITH_NAME(HTMLGenericCollection, HTMLCollection,
+                                     nsHTMLCollectionSH,
+                                     ARRAY_SCRIPTABLE_FLAGS)
 
   
   NS_DEFINE_CLASSINFO_DATA(HTMLAnchorElement, nsElementSH,
@@ -2264,7 +2269,14 @@ nsDOMClassInfo::Init()
     DOM_CLASSINFO_MAP_ENTRY(nsIDOMHTMLCollection)
   DOM_CLASSINFO_MAP_END
 
-  DOM_CLASSINFO_MAP_BEGIN(HTMLCollection, nsIDOMHTMLCollection)
+  DOM_CLASSINFO_MAP_BEGIN_NO_CLASS_IF(HTMLFormControlCollection,
+                                      nsIDOMHTMLCollection)
+    DOM_CLASSINFO_MAP_ENTRY(nsIDOMHTMLCollection)
+    DOM_CLASSINFO_MAP_ENTRY(nsIDOMNSHTMLFormControlList)
+  DOM_CLASSINFO_MAP_END
+
+  DOM_CLASSINFO_MAP_BEGIN_NO_CLASS_IF(HTMLGenericCollection,
+                                      nsIDOMHTMLCollection)
     DOM_CLASSINFO_MAP_ENTRY(nsIDOMHTMLCollection)
   DOM_CLASSINFO_MAP_END
 
@@ -7886,7 +7898,8 @@ nsNodeListSH::PreCreate(nsISupports *nativeObj, JSContext *cx,
   nsWrapperCache* cache = nsnull;
   CallQueryInterface(nativeObj, &cache);
   if (!cache) {
-    return nsDOMClassInfo::PreCreate(nativeObj, cx, globalObj, parentObj);
+    *parentObj = globalObj;
+    return NS_OK;
   }
 
   
@@ -10371,7 +10384,8 @@ nsEventListenerThisTranslator::TranslateThis(nsISupports *aInitialThis,
   nsCOMPtr<nsIDOMEventTarget> target;
   event->GetCurrentTarget(getter_AddRefs(target));
 
-  *_retval = target.forget().get();
+  *_retval = target;
+  NS_IF_ADDREF(*_retval);
 
   return NS_OK;
 }
