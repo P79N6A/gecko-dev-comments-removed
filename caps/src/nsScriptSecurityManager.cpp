@@ -842,9 +842,6 @@ nsScriptSecurityManager::CheckPropertyAccessImpl(PRUint32 aAction,
         if (!nsAutoInPrincipalDomainOriginSetter::sInPrincipalDomainOrigin) {
             nsCOMPtr<nsIURI> uri, domain;
             subjectPrincipal->GetURI(getter_AddRefs(uri));
-            
-            
-            NS_ASSERTION(uri, "How did that happen?");
             GetOriginFromURI(uri, subjectOrigin);
             subjectPrincipal->GetDomain(getter_AddRefs(domain));
             if (domain) {
@@ -862,9 +859,7 @@ nsScriptSecurityManager::CheckPropertyAccessImpl(PRUint32 aAction,
             objectPrincipal) {
             nsCOMPtr<nsIURI> uri, domain;
             objectPrincipal->GetURI(getter_AddRefs(uri));
-            if (uri) { 
-                GetOriginFromURI(uri, objectOrigin);
-            }
+            GetOriginFromURI(uri, objectOrigin);
             objectPrincipal->GetDomain(getter_AddRefs(domain));
             if (domain) {
                 GetOriginFromURI(domain, objectDomain);
