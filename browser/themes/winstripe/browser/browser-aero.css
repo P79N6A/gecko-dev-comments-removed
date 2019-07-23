@@ -8,6 +8,12 @@
 
 
 
+.ac-url-text:-moz-system-metric(windows-default-theme) {
+  color: #0066cc;
+}
+
+
+
 #urlbar[chromedir="ltr"] {
   -moz-margin-start: 6px;
 }
