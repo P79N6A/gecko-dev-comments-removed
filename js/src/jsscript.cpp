@@ -1550,8 +1550,22 @@ js_NewScriptFromCG(JSContext *cx, JSCodeGenerator *cg)
             if (cg->flags & TCF_IN_FUNCTION) {
                 fun = cg->fun;
                 JS_ASSERT(FUN_INTERPRETED(fun) && !FUN_SCRIPT(fun));
+                if (fun->u.i.nupvars != 0) {
+                    
+
+
+
+
+
+
+
+
+
+
+
+                    goto skip_empty;
+                }
                 js_FreezeLocalNames(cx, fun);
-                fun->u.i.nupvars = 0;
                 fun->u.i.script = empty;
             }
 
@@ -1561,6 +1575,7 @@ js_NewScriptFromCG(JSContext *cx, JSCodeGenerator *cg)
         }
     }
 
+  skip_empty:
     CG_COUNT_FINAL_SRCNOTES(cg, nsrcnotes);
     script = js_NewScript(cx, prologLength + mainLength, nsrcnotes,
                           cg->atomList.count, cg->objectList.length,
