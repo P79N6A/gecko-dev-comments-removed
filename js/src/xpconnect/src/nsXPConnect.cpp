@@ -77,8 +77,8 @@ nsXPConnect::nsXPConnect()
         mDefaultSecurityManager(nsnull),
         mDefaultSecurityManagerFlags(0),
         mShuttingDown(JS_FALSE),
-        mObjRefcounts(nsnull),
-        mCycleCollectionContext(nsnull)
+        mCycleCollectionContext(nsnull),
+        mCycleCollecting(PR_FALSE)
 {
     
     
@@ -87,6 +87,9 @@ nsXPConnect::nsXPConnect()
     CallGetService(XPC_CONTEXT_STACK_CONTRACTID, &mContextStack);
 
     nsCycleCollector_registerRuntime(nsIProgrammingLanguage::JAVASCRIPT, this);
+#ifdef DEBUG_CC
+    mJSRoots.ops = nsnull;
+#endif
 
 #ifdef XPC_TOOLS_SUPPORT
   {
@@ -115,120 +118,11 @@ nsXPConnect::nsXPConnect()
 
 }
 
-#ifndef XPCONNECT_STANDALONE
-typedef nsBaseHashtable<nsVoidPtrHashKey, nsISupports*, nsISupports*> ScopeSet;
-#endif
-
-static const PLDHashTableOps RefCountOps =
-{
-    PL_DHashAllocTable,
-    PL_DHashFreeTable,
-    PL_DHashVoidPtrKeyStub,
-    PL_DHashMatchEntryStub,
-    PL_DHashMoveEntryStub,
-    PL_DHashClearEntryStub,
-    PL_DHashFinalizeStub,
-    nsnull
-};
-
-struct JSObjectRefcounts 
-{
-    PLDHashTable mRefCounts;
-#ifndef XPCONNECT_STANDALONE
-    ScopeSet mScopes;
-#endif
-    PRBool mMarkEnded;
-
-    struct ObjRefCount : public PLDHashEntryStub
-    {
-        PRUint32 mCount;
-    };
-
-    JSObjectRefcounts() : mMarkEnded(PR_FALSE)
-    {
-        mRefCounts.ops = nsnull;
-#ifndef XPCONNECT_STANDALONE
-        mScopes.Init();
-#endif
-    }
-
-    ~JSObjectRefcounts()
-    {
-        NS_ASSERTION(!mRefCounts.ops,
-                     "Didn't call PL_DHashTableFinish on mRefCounts?");
-    }
-
-    void Finish()
-    {
-        if(mRefCounts.ops) {
-            PL_DHashTableFinish(&mRefCounts);
-            mRefCounts.ops = nsnull;
-        }
-#ifndef XPCONNECT_STANDALONE
-        mScopes.Clear();
-#endif
-    }
-
-    void MarkStart()
-    {
-        if(mRefCounts.ops)
-            PL_DHashTableFinish(&mRefCounts);
-
-        if(!PL_DHashTableInit(&mRefCounts, &RefCountOps, nsnull,
-                              sizeof(ObjRefCount), 65536))
-            mRefCounts.ops = nsnull;
-
-        mMarkEnded = PR_FALSE;
-    }
-
-    void MarkEnd()
-    {
-        mMarkEnded = PR_TRUE;
-    }
-
-    void Ref(void *obj)
-    {
-        if(!mRefCounts.ops)
-            return;
-
-        ObjRefCount *entry =
-            (ObjRefCount *)PL_DHashTableOperate(&mRefCounts, obj, PL_DHASH_ADD);
-        if(entry)
-        {
-            entry->key = obj;
-            ++entry->mCount;
-        }
-    }
-
-    PRUint32 Get(void *obj)
-    {
-        PRUint32 count;
-        if(mRefCounts.ops)
-        {
-            PLDHashEntryHdr *entry =
-                PL_DHashTableOperate(&mRefCounts, obj, PL_DHASH_LOOKUP);
-            count = PL_DHASH_ENTRY_IS_BUSY(entry) ?
-                    ((ObjRefCount *)entry)->mCount :
-                    0;
-        }
-        else
-        {
-            count = 0;
-        }
-        return count;
-    }
-};
-
 nsXPConnect::~nsXPConnect()
 {
     NS_ASSERTION(!mCycleCollectionContext,
                  "Didn't call FinishCycleCollection?");
     nsCycleCollector_forgetRuntime(nsIProgrammingLanguage::JAVASCRIPT);
-    if (mObjRefcounts)
-    {
-        delete mObjRefcounts;
-        mObjRefcounts = NULL;
-    }
 
     JSContext *cx = nsnull;
     if (mRuntime) {
@@ -515,66 +409,193 @@ nsXPConnect::GetInfoForName(const char * name, nsIInterfaceInfo** info)
 
 static JSGCCallback gOldJSGCCallback;
 
-JS_STATIC_DLL_CALLBACK(JSBool)
-XPCCycleGCCallback(JSContext *cx, JSGCStatus status)
-{
-    
-    
-    JSBool ok = gOldJSGCCallback ? gOldJSGCCallback(cx, status) : JS_TRUE;
+static PRUint32 gCollections;
 
-    
+static PRBool gCollect;
+
+JS_STATIC_DLL_CALLBACK(JSBool)
+XPCCycleCollectGCCallback(JSContext *cx, JSGCStatus status)
+{
     
     if(status == JSGC_MARK_END)
-        nsXPConnect::GetXPConnect()->GetJSObjectRefcounts()->MarkEnd();
-
-    return ok;
-}
-
-void XPCMarkNotification(void *thing, uint8 flags, void *closure)
-{
-    
-    uint8 ty = flags & GCF_TYPEMASK;
-    if(ty == GCX_FUNCTION)
-        return;
-
-    JSObjectRefcounts* jsr = static_cast<JSObjectRefcounts*>(closure);
-    
-    
-    if(jsr->mMarkEnded)
-        jsr->MarkStart();
-    jsr->Ref(thing);
-}
-
-nsresult 
-nsXPConnect::BeginCycleCollection()
-{
-    if (!mObjRefcounts)
-        mObjRefcounts = new JSObjectRefcounts;
-
-    mObjRefcounts->MarkStart();
-
-    NS_ASSERTION(!mCycleCollectionContext,
-                 "Didn't call FinishCycleCollection?");
-    mCycleCollectionContext = new XPCCallContext(NATIVE_CALLER);
-    if(!mCycleCollectionContext || !mCycleCollectionContext->IsValid())
     {
-        delete mCycleCollectionContext;
-        mCycleCollectionContext = nsnull;
-        return NS_ERROR_FAILURE;
+        
+        
+        if(gCollect && nsCycleCollector_doCollect())
+            ++gCollections;
+        else
+            
+            
+            
+            gCollect = PR_FALSE;
+
+        
+        
+        nsXPConnect::GetRuntime()->
+            TraceXPConnectRoots(cx->runtime->gcMarkingTracer);
     }
 
+    return gOldJSGCCallback ? gOldJSGCCallback(cx, status) : JS_TRUE;
+}
+
+PRUint32
+nsXPConnect::Collect()
+{
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+
+    XPCCallContext cycleCollectionContext(NATIVE_CALLER);
+    if(!cycleCollectionContext.IsValid())
+    {
+        return PR_FALSE;
+    }
+
+    mCycleCollecting = PR_TRUE;
+    mCycleCollectionContext = &cycleCollectionContext;
+    gCollections = 0;
+    gCollect = PR_TRUE;
+
     JSContext *cx = mCycleCollectionContext->GetJSContext();
-    gOldJSGCCallback = JS_SetGCCallback(cx, XPCCycleGCCallback);
-    JS_SetGCThingCallback(cx, XPCMarkNotification, mObjRefcounts);
+    gOldJSGCCallback = JS_SetGCCallback(cx, XPCCycleCollectGCCallback);
+    GetRuntime()->UnsetContextGlobals();
     JS_GC(cx);
-    JS_SetGCThingCallback(cx, nsnull, nsnull);
+    GetRuntime()->RestoreContextGlobals();
     JS_SetGCCallback(cx, gOldJSGCCallback);
     gOldJSGCCallback = nsnull;
 
-    XPCWrappedNativeScope::SuspectAllWrappers(mRuntime);
+    mCycleCollectionContext = nsnull;
+    mCycleCollecting = PR_FALSE;
+
+    return gCollections;
+}
+
+#ifdef DEBUG_CC
+struct NoteJSRootTracer : public JSTracer
+{
+    NoteJSRootTracer(PLDHashTable *aObjects,
+                     nsCycleCollectionTraversalCallback& cb)
+      : mObjects(aObjects),
+        mCb(cb)
+    {
+    }
+    PLDHashTable* mObjects;
+    nsCycleCollectionTraversalCallback& mCb;
+};
+
+JS_STATIC_DLL_CALLBACK(void)
+NoteJSRoot(JSTracer *trc, void *thing, uint32 kind)
+{
+    if(kind == JSTRACE_OBJECT || kind == JSTRACE_NAMESPACE ||
+       kind == JSTRACE_QNAME || kind == JSTRACE_XML)
+    {
+        NoteJSRootTracer *tracer = static_cast<NoteJSRootTracer*>(trc);
+        PLDHashEntryHdr *entry = PL_DHashTableOperate(tracer->mObjects, thing,
+                                                      PL_DHASH_ADD);
+        if(entry && !reinterpret_cast<PLDHashEntryStub*>(entry)->key)
+        {
+            reinterpret_cast<PLDHashEntryStub*>(entry)->key = thing;
+            tracer->mCb.NoteRoot(nsIProgrammingLanguage::JAVASCRIPT, thing,
+                                 nsXPConnect::GetXPConnect());
+        }
+    }
+}
+#endif
+
+nsresult 
+nsXPConnect::BeginCycleCollection(nsCycleCollectionTraversalCallback &cb)
+{
+#ifdef DEBUG_CC
+    NS_ASSERTION(!mJSRoots.ops, "Didn't call FinishCollection?");
+
+    if(!mCycleCollectionContext)
+    {
+        
+        mExplainCycleCollectionContext = new XPCCallContext(NATIVE_CALLER);
+        if(!mExplainCycleCollectionContext ||
+           !mExplainCycleCollectionContext->IsValid())
+        {
+            mExplainCycleCollectionContext = nsnull;
+            return PR_FALSE;
+        }
+
+        mCycleCollectionContext = mExplainCycleCollectionContext;
+
+        
+        
+        
+        
+        if(!PL_DHashTableInit(&mJSRoots, PL_DHashGetStubOps(), nsnull,
+                              sizeof(PLDHashEntryStub), PL_DHASH_MIN_SIZE)) {
+            mJSRoots.ops = nsnull;
+
+            return NS_ERROR_OUT_OF_MEMORY;
+        }
+
+        PRBool alreadyCollecting = mCycleCollecting;
+        mCycleCollecting = PR_TRUE;
+        NoteJSRootTracer trc(&mJSRoots, cb);
+        JS_TRACER_INIT(&trc, mCycleCollectionContext->GetJSContext(),
+                       NoteJSRoot);
+        JS_TraceRuntime(&trc);
+        mCycleCollecting = alreadyCollecting;
+    }
+#else
+    NS_ASSERTION(mCycleCollectionContext,
+                 "Didn't call nsXPConnect::Collect()?");
+#endif
+
+    GetRuntime()->AddXPConnectRoots(mCycleCollectionContext->GetJSContext(),
+                                    cb);
 
 #ifndef XPCONNECT_STANDALONE
-    NS_ASSERTION(mObjRefcounts->mScopes.Count() == 0, "Didn't clear mScopes?");
+    if(!mScopes.IsInitialized())
+    {
+        mScopes.Init();
+    }
+    NS_ASSERTION(mScopes.Count() == 0, "Didn't clear mScopes?");
     XPCWrappedNativeScope::TraverseScopes(*mCycleCollectionContext);
 #endif
 
@@ -585,36 +606,45 @@ nsXPConnect::BeginCycleCollection()
 void
 nsXPConnect::RecordTraversal(void *p, nsISupports *s)
 {
-    mObjRefcounts->mScopes.Put(p, s);
+    mScopes.Put(p, s);
 }
 #endif
 
 nsresult 
 nsXPConnect::FinishCycleCollection()
 {
-    delete mCycleCollectionContext;
-    mCycleCollectionContext = nsnull;
-    if (mObjRefcounts)
-        mObjRefcounts->Finish();
+#ifdef DEBUG_CC
+    if(mExplainCycleCollectionContext)
+    {
+        mCycleCollectionContext = nsnull;
+        mExplainCycleCollectionContext = nsnull;
+    }
+#endif
+
+#ifndef XPCONNECT_STANDALONE
+    mScopes.Clear();
+#endif
+
+#ifdef DEBUG_CC
+    if(mJSRoots.ops)
+    {
+        PL_DHashTableFinish(&mJSRoots);
+        mJSRoots.ops = nsnull;
+    }
+#endif
+
     return NS_OK;
 }
 
 nsCycleCollectionParticipant *
 nsXPConnect::ToParticipant(void *p)
 {
-    
-    
-    NS_ASSERTION(mObjRefcounts->Get(p) > 0,
-                 "JS object but unknown to the JS GC?");
-
     return this;
 }
 
 NS_IMETHODIMP
 nsXPConnect::Root(void *p)
 {
-    if(!mCycleCollectionContext || !JS_LockGCThing(*mCycleCollectionContext, p))
-        return NS_ERROR_FAILURE;
     return NS_OK;
 }
 
@@ -631,62 +661,36 @@ nsXPConnect::PrintAllReferencesTo(void *p)
                 0x7fffffff, nsnull);
 #endif
 }
-
-JS_STATIC_DLL_CALLBACK(JSDHashOperator)
-SuspectWrappedJS(JSDHashTable *table, JSDHashEntryHdr *hdr,
-                 uint32 number, void *arg)
-{
-    for (nsXPCWrappedJS* wrapper = ((JSObject2WrappedJSMap::Entry*)hdr)->value;
-         wrapper; wrapper = wrapper->GetNextWrapper())
-        if (wrapper->IsValid() && !wrapper->IsSubjectToFinalization())
-            nsCycleCollector_suspectCurrent(
-                NS_CYCLE_COLLECTION_CLASSNAME(nsXPCWrappedJS)::Upcast(wrapper));
-    return JS_DHASH_NEXT;
-}
-
-void
-nsXPConnect::SuspectExtraPointers()
-{
-    
-    
-    
-    GetRuntime(this)->GetWrappedJSMap()->Enumerate(SuspectWrappedJS, nsnull);
-}
 #endif
 
 NS_IMETHODIMP
 nsXPConnect::Unlink(void *p)
 {
-    if(!mCycleCollectionContext)
-        return NS_ERROR_FAILURE;
-    uint8 ty = *js_GetGCThingFlags(p) & GCF_TYPEMASK;
-    if(ty == GCX_OBJECT)
-        JS_ClearScope(*mCycleCollectionContext, static_cast<JSObject*>(p));
     return NS_OK;
 }
 
 NS_IMETHODIMP
 nsXPConnect::Unroot(void *p)
 {
-    if(!mCycleCollectionContext ||
-       !JS_UnlockGCThing(*mCycleCollectionContext, p))
-        return NS_ERROR_FAILURE;
     return NS_OK;
 }
 
-struct ContextCallbackItem : public JSTracer
+struct TraversalTracer : public JSTracer
 {
-    nsCycleCollectionTraversalCallback *cb;
+    TraversalTracer(nsCycleCollectionTraversalCallback &aCb) : cb(aCb)
+    {
+    }
+    nsCycleCollectionTraversalCallback &cb;
 };
 
-void
+JS_STATIC_DLL_CALLBACK(void)
 NoteJSChild(JSTracer *trc, void *thing, uint32 kind)
 {
     if(kind == JSTRACE_OBJECT || kind == JSTRACE_NAMESPACE ||
        kind == JSTRACE_QNAME || kind == JSTRACE_XML)
     {
-        ContextCallbackItem *item = static_cast<ContextCallbackItem*>(trc);
-        item->cb->NoteScriptChild(nsIProgrammingLanguage::JAVASCRIPT, thing);
+        TraversalTracer *tracer = static_cast<TraversalTracer*>(trc);
+        tracer->cb.NoteScriptChild(nsIProgrammingLanguage::JAVASCRIPT, thing);
     }
 }
 
@@ -698,7 +702,7 @@ static uint8 GCTypeToTraceKindMap[GCX_NTYPES] = {
     JSTRACE_NAMESPACE,  
     JSTRACE_QNAME,      
     JSTRACE_XML,        
-    (uint8)-1,         
+    (uint8)-1,          
     JSTRACE_STRING,     
     JSTRACE_STRING,     
     JSTRACE_STRING,     
@@ -725,10 +729,22 @@ nsXPConnect::Traverse(void *p, nsCycleCollectionTraversalCallback &cb)
 
     JSContext *cx = mCycleCollectionContext->GetJSContext();
 
-    PRUint32 refcount = mObjRefcounts->Get(p);
-    NS_ASSERTION(refcount > 0, "JS object but unknown to the JS GC?");
+    uint8 ty = GetTraceKind(p);
+
+    CCNodeType type;
 
 #ifdef DEBUG_CC
+    if(mJSRoots.ops)
+    {
+        PLDHashEntryHdr* entry =
+            PL_DHashTableOperate(&mJSRoots, p, PL_DHASH_LOOKUP);
+        type = PL_DHASH_ENTRY_IS_BUSY(entry) ? GCMarked : GCUnmarked;
+    }
+    else
+    {
+        type = JS_IsAboutToBeFinalized(cx, p) ? GCUnmarked : GCMarked;
+    }
+
     if(ty == GCX_OBJECT)
     {
         JSObject *obj = static_cast<JSObject*>(p);
@@ -807,10 +823,12 @@ nsXPConnect::Traverse(void *p, nsCycleCollectionTraversalCallback &cb)
             else if(clazz == &js_FunctionClass)
             {
                 JSFunction* fun = (JSFunction*) JS_GetPrivate(cx, obj);
-                if(fun->atom)
+                if(fun->atom && ATOM_IS_STRING(fun->atom))
                 {
+                    NS_ConvertUTF16toUTF8
+                        fname(JS_GetStringChars(ATOM_TO_STRING(fun->atom)));
                     JS_snprintf(name, sizeof(name), "JS Object (Function - %s)",
-                                js_AtomToPrintableString(cx, fun->atom));
+                                fname.get());
                 }
                 else
                 {
@@ -823,23 +841,31 @@ nsXPConnect::Traverse(void *p, nsCycleCollectionTraversalCallback &cb)
             }
         }
 
-        cb.DescribeNode(refcount, sizeof(JSObject), name);
+        cb.DescribeNode(type, 0, sizeof(JSObject), name);
     }
     else
     {
-        cb.DescribeNode(refcount, sizeof(JSObject), "JS Object");
+        cb.DescribeNode(type, 0, sizeof(JSObject), "JS Object");
     }
 #else
-    cb.DescribeNode(refcount);
+    type = JS_IsAboutToBeFinalized(cx, p) ? GCUnmarked : GCMarked;
+    cb.DescribeNode(type, 0);
 #endif
 
-    uint8 ty = GetTraceKind(p);
     if(ty != GCX_OBJECT && ty != GCX_NAMESPACE && ty != GCX_QNAME &&
        ty != GCX_XML)
         return NS_OK;
 
-    ContextCallbackItem trc;
-    trc.cb = &cb;
+#ifndef DEBUG_CC
+    
+    
+    
+    
+    if(type == GCMarked)
+        return NS_OK;
+#endif
+
+    TraversalTracer trc(cb);
 
     JS_TRACER_INIT(&trc, cx, NoteJSChild);
     JS_TraceChildren(&trc, p, GCTypeToTraceKindMap[ty]);
@@ -874,12 +900,86 @@ nsXPConnect::Traverse(void *p, nsCycleCollectionTraversalCallback &cb)
     if(clazz->flags & JSCLASS_IS_GLOBAL)
     {
         nsISupports *principal = nsnull;
-        mObjRefcounts->mScopes.Get(obj, &principal);
+        mScopes.Get(obj, &principal);
         cb.NoteXPCOMChild(principal);
     }
 #endif
 
     return NS_OK;
+}
+
+PRInt32
+nsXPConnect::GetRequestDepth(JSContext* cx)
+{
+    PRInt32 requestDepth = cx->outstandingRequests;
+    XPCCallContext* context = GetCycleCollectionContext();
+    if(context && cx == context->GetJSContext())
+        
+        
+        --requestDepth;
+    return requestDepth;
+}
+
+class JSContextParticipant : public nsCycleCollectionParticipant
+{
+public:
+    NS_IMETHOD Root(void *n)
+    {
+        return NS_OK;
+    }
+    NS_IMETHOD Unlink(void *n)
+    {
+        
+        
+        return NS_OK;
+    }
+    NS_IMETHOD Unroot(void *n)
+    {
+        return NS_OK;
+    }
+    NS_IMETHODIMP Traverse(void *n, nsCycleCollectionTraversalCallback &cb)
+    {
+        JSContext *cx = static_cast<JSContext*>(n);
+
+        
+        
+        
+        
+        PRInt32 refCount = nsXPConnect::GetXPConnect()->GetRequestDepth(cx) + 1;
+
+#ifdef DEBUG_CC
+        cb.DescribeNode(RefCounted, refCount, sizeof(JSContext),
+                        "JSContext");
+#else
+        cb.DescribeNode(RefCounted, refCount);
+#endif
+
+        void* globalObject;
+        if(cx->globalObject)
+            globalObject = cx->globalObject;
+        else
+            globalObject = nsXPConnect::GetRuntime()->GetUnsetContextGlobal(cx);
+
+        cb.NoteScriptChild(nsIProgrammingLanguage::JAVASCRIPT, globalObject);
+
+        return NS_OK;
+    }
+};
+
+static JSContextParticipant JSContext_cycleCollectorGlobal;
+
+
+nsCycleCollectionParticipant*
+nsXPConnect::JSContextParticipant()
+{
+    return &JSContext_cycleCollectorGlobal;
+}
+
+NS_IMETHODIMP_(void)
+nsXPConnect::NoteJSContext(JSContext *aJSContext,
+                           nsCycleCollectionTraversalCallback &aCb)
+{
+    aCb.NoteNativeChild(aJSContext, &JSContext_cycleCollectorGlobal);
 }
 
 

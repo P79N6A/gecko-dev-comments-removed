@@ -97,11 +97,16 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(XPCVariant)
     nsVariant::Traverse(tmp->mData, cb);
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
-
-
-
-
-NS_IMPL_CYCLE_COLLECTION_UNLINK_0(XPCVariant)
+NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(XPCVariant)
+    if(!JSVAL_IS_STRING(tmp->mJSVal))
+        nsVariant::Cleanup(&tmp->mData);
+    if(JSVAL_IS_TRACEABLE(tmp->mJSVal))
+    {
+        XPCTraceableVariant *v = static_cast<XPCTraceableVariant*>(tmp);
+        v->RemoveFromRootSet(nsXPConnect::GetRuntime()->GetJSRuntime());
+    }
+    tmp->mJSVal = JSVAL_NULL;
+NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
 
 XPCVariant* XPCVariant::newVariant(XPCCallContext& ccx, jsval aJSVal)

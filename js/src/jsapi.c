@@ -848,10 +848,12 @@ JS_BeginRequest(JSContext *cx)
         
         rt->requestCount++;
         cx->requestDepth = 1;
+        cx->outstandingRequests++;
         JS_UNLOCK_GC(rt);
         return;
     }
     cx->requestDepth++;
+    cx->outstandingRequests++;
 }
 
 JS_PUBLIC_API(void)
@@ -863,11 +865,13 @@ JS_EndRequest(JSContext *cx)
 
     CHECK_REQUEST(cx);
     JS_ASSERT(cx->requestDepth > 0);
+    JS_ASSERT(cx->outstandingRequests > 0);
     if (cx->requestDepth == 1) {
         
         rt = cx->runtime;
         JS_LOCK_GC(rt);
         cx->requestDepth = 0;
+        cx->outstandingRequests--;
 
         
         todop = &rt->scopeSharingTodo;
@@ -908,6 +912,7 @@ JS_EndRequest(JSContext *cx)
     }
 
     cx->requestDepth--;
+    cx->outstandingRequests--;
 }
 
 

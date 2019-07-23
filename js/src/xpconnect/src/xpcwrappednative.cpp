@@ -67,9 +67,10 @@ NS_CYCLE_COLLECTION_CLASSNAME(XPCWrappedNative)::Traverse(void *p,
     else
         JS_snprintf(name, sizeof(name), "XPCWrappedNative");
 
-    cb.DescribeNode(tmp->mRefCnt.get(), sizeof(XPCWrappedNative), name);
+    cb.DescribeNode(RefCounted, tmp->mRefCnt.get(), sizeof(XPCWrappedNative),
+                    name);
 #else
-    cb.DescribeNode(tmp->mRefCnt.get());
+    cb.DescribeNode(RefCounted, tmp->mRefCnt.get());
 #endif
 
     if (tmp->mRefCnt.get() > 1) {
@@ -93,20 +94,39 @@ NS_CYCLE_COLLECTION_CLASSNAME(XPCWrappedNative)::Traverse(void *p,
     
     cb.NoteXPCOMChild(tmp->GetIdentityObject());
 
+    tmp->NoteTearoffs(cb);
+
     return NS_OK;
 }
 
-NS_IMETHODIMP
-NS_CYCLE_COLLECTION_CLASSNAME(XPCWrappedNative)::Unlink(void *p)
+void
+XPCWrappedNative::NoteTearoffs(nsCycleCollectionTraversalCallback& cb)
 {
     
     
     
     
     
-    return NS_OK;
+    XPCWrappedNativeTearOffChunk* chunk;
+    for(chunk = &mFirstChunk; chunk; chunk = chunk->mNextChunk)
+    {
+        XPCWrappedNativeTearOff* to = chunk->mTearOffs;
+        for(int i = XPC_WRAPPED_NATIVE_TEAROFFS_PER_CHUNK-1; i >= 0; i--, to++)
+        {
+            JSObject* jso = to->GetJSObject();
+            if(!jso)
+            {
+                cb.NoteXPCOMChild(to->GetNative());
+            }
+        }
+    }
 }
 
+
+
+
+
+NS_IMPL_CYCLE_COLLECTION_UNLINK_0(XPCWrappedNative)
 
 #ifdef XPC_CHECK_CLASSINFO_CLAIMS
 static void DEBUG_CheckClassInfoClaims(XPCWrappedNative* wrapper);

@@ -1082,8 +1082,26 @@ nsJSContext::~nsJSContext()
   nsCycleCollector_DEBUG_wasFreed(static_cast<nsIScriptContext*>(this));
 #endif
   NS_PRECONDITION(!mTerminations, "Shouldn't have termination funcs by now");
-                  
-  
+
+  Unlink();
+
+  --sContextCount;
+
+  if (!sContextCount && sDidShutdown) {
+    
+    
+    
+
+    NS_IF_RELEASE(sRuntimeService);
+    NS_IF_RELEASE(sSecurityManager);
+    NS_IF_RELEASE(gCollation);
+    NS_IF_RELEASE(gDecoder);
+  }
+}
+
+void
+nsJSContext::Unlink()
+{
   if (!mContext)
     return;
 
@@ -1110,49 +1128,19 @@ nsJSContext::~nsJSContext()
   } else {
     ::JS_DestroyContext(mContext);
   }
-
-  --sContextCount;
-
-  if (!sContextCount && sDidShutdown) {
-    
-    
-    
-
-    NS_IF_RELEASE(sRuntimeService);
-    NS_IF_RELEASE(sSecurityManager);
-    NS_IF_RELEASE(gCollation);
-    NS_IF_RELEASE(gDecoder);
-  }
-}
-
-struct ContextCallbackItem : public JSTracer
-{
-  nsCycleCollectionTraversalCallback *cb;
-};
-
-void
-NoteContextChild(JSTracer *trc, void *thing, uint32 kind)
-{
-  if (kind == JSTRACE_OBJECT || kind == JSTRACE_NAMESPACE ||
-      kind == JSTRACE_QNAME || kind == JSTRACE_XML) {
-    ContextCallbackItem *item = static_cast<ContextCallbackItem*>(trc);
-    item->cb->NoteScriptChild(JAVASCRIPT, thing);
-  }
+  mContext = nsnull;
 }
 
 
 NS_IMPL_CYCLE_COLLECTION_CLASS(nsJSContext)
-
-NS_IMPL_CYCLE_COLLECTION_UNLINK_0(nsJSContext)
+NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(nsJSContext)
+  NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mGlobalWrapperRef)
+  tmp->Unlink();
+  tmp->mIsInitialized = PR_FALSE;
+NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(nsJSContext)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(mGlobalWrapperRef)
-  {
-    ContextCallbackItem trc;
-    trc.cb = &cb;
-
-    JS_TRACER_INIT(&trc, tmp->mContext, NoteContextChild);
-    js_TraceContext(&trc, tmp->mContext);
-  }
+  nsContentUtils::XPConnect()->NoteJSContext(tmp->mContext, cb);
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(nsJSContext)

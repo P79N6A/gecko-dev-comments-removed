@@ -318,7 +318,12 @@ void XPCJSRuntime::TraceJS(JSTracer* trc, void* data)
     for(XPCRootSetElem *e = self->mObjectHolderRoots; e ; e = e->GetNextRoot())
         static_cast<XPCJSObjectHolder*>(e)->TraceJS(trc);
         
-    self->TraceXPConnectRoots(trc);
+    if(self->GetXPConnect()->ShouldTraceRoots())
+    {
+        
+        
+        self->TraceXPConnectRoots(trc);
+    }
 }
 
 PR_STATIC_CALLBACK(void)
@@ -343,8 +348,32 @@ TraceJSHolder(JSDHashTable *table, JSDHashEntryHdr *hdr, uint32 number,
     return JS_DHASH_NEXT;
 }
 
+struct ClearedGlobalObject : public JSDHashEntryHdr
+{
+    JSContext* mContext;
+    JSObject* mGlobalObject;
+};
+
 void XPCJSRuntime::TraceXPConnectRoots(JSTracer *trc)
 {
+    if(mClearedGlobalObjects.ops)
+    {
+        JSContext *iter = nsnull, *acx;
+        while((acx = JS_ContextIterator(GetJSRuntime(), &iter)))
+        {
+            JSDHashEntryHdr* entry =
+                JS_DHashTableOperate(&mClearedGlobalObjects, acx,
+                                     JS_DHASH_LOOKUP);
+            if(JS_DHASH_ENTRY_IS_BUSY(entry))
+            {
+                ClearedGlobalObject* clearedGlobal =
+                    reinterpret_cast<ClearedGlobalObject*>(entry);
+                JS_CALL_OBJECT_TRACER(trc, clearedGlobal->mGlobalObject,
+                                      "global object");
+            }
+        }
+    }
+
     XPCWrappedNativeScope::TraceJS(trc, this);
 
     for(XPCRootSetElem *e = mVariantRoots; e ; e = e->GetNextRoot())
@@ -355,6 +384,126 @@ void XPCJSRuntime::TraceXPConnectRoots(JSTracer *trc)
 
     if(mJSHolders.ops)
         JS_DHashTableEnumerate(&mJSHolders, TraceJSHolder, trc);
+}
+
+JS_STATIC_DLL_CALLBACK(JSDHashOperator)
+NoteJSHolder(JSDHashTable *table, JSDHashEntryHdr *hdr, uint32 number,
+             void *arg)
+{
+    ObjectHolder* entry = reinterpret_cast<ObjectHolder*>(hdr);
+
+    nsCycleCollectionTraversalCallback* cb =
+        static_cast<nsCycleCollectionTraversalCallback*>(arg);
+    cb->NoteRoot(nsIProgrammingLanguage::CPLUSPLUS, entry->holder,
+                 entry->tracer);
+
+    return JS_DHASH_NEXT;
+}
+
+
+void XPCJSRuntime::AddXPConnectRoots(JSContext* cx,
+                                     nsCycleCollectionTraversalCallback &cb)
+{
+    
+    
+    
+    
+    
+    
+    
+
+    JSContext *iter = nsnull, *acx;
+    while((acx = JS_ContextIterator(GetJSRuntime(), &iter)))
+    {
+#ifndef DEBUG_CC
+        
+        
+        
+        if(nsXPConnect::GetXPConnect()->GetRequestDepth(acx) != 0)
+            continue;
+#endif
+        cb.NoteRoot(nsIProgrammingLanguage::CPLUSPLUS, acx,
+                    nsXPConnect::JSContextParticipant());
+    }
+
+    XPCWrappedNativeScope::SuspectAllWrappers(this, cx, cb);
+
+    for(XPCRootSetElem *e = mVariantRoots; e ; e = e->GetNextRoot())
+        cb.NoteXPCOMRoot(static_cast<XPCTraceableVariant*>(e));
+
+    for(XPCRootSetElem *e = mWrappedJSRoots; e ; e = e->GetNextRoot())
+    {
+        nsIXPConnectWrappedJS *wrappedJS = static_cast<nsXPCWrappedJS*>(e);
+        cb.NoteXPCOMRoot(wrappedJS);
+    }
+
+    if(mJSHolders.ops)
+        JS_DHashTableEnumerate(&mJSHolders, NoteJSHolder, &cb);
+}
+
+void XPCJSRuntime::UnsetContextGlobals()
+{
+    if(!JS_DHashTableInit(&mClearedGlobalObjects, JS_DHashGetStubOps(), nsnull,
+                          sizeof(ClearedGlobalObject), JS_DHASH_MIN_SIZE))
+    {
+        mClearedGlobalObjects.ops = nsnull;
+        return;
+    }
+
+    JSContext *iter = nsnull, *acx;
+    while((acx = JS_ContextIterator(GetJSRuntime(), &iter)))
+    {
+        if(nsXPConnect::GetXPConnect()->GetRequestDepth(acx) == 0)
+        {
+            JS_ClearNewbornRoots(acx);
+            JSDHashEntryHdr* entry =
+                JS_DHashTableOperate(&mClearedGlobalObjects, acx, JS_DHASH_ADD);
+            ClearedGlobalObject* clearedGlobal =
+                reinterpret_cast<ClearedGlobalObject*>(entry);
+            if(clearedGlobal)
+            {
+                clearedGlobal->mContext = acx;
+                clearedGlobal->mGlobalObject = acx->globalObject;
+                acx->globalObject = nsnull;
+            }
+        }
+    }
+}
+
+void XPCJSRuntime::RestoreContextGlobals()
+{
+    if(!mClearedGlobalObjects.ops)
+        return;
+
+    JSContext *iter = nsnull, *acx;
+    while((acx = JS_ContextIterator(GetJSRuntime(), &iter)))
+    {
+        JSDHashEntryHdr* entry =
+            JS_DHashTableOperate(&mClearedGlobalObjects, acx, JS_DHASH_LOOKUP);
+        if(JS_DHASH_ENTRY_IS_BUSY(entry))
+        {
+            ClearedGlobalObject* clearedGlobal =
+                reinterpret_cast<ClearedGlobalObject*>(entry);
+            acx->globalObject = clearedGlobal->mGlobalObject;
+        }
+    }
+    JS_DHashTableFinish(&mClearedGlobalObjects);
+    mClearedGlobalObjects.ops = nsnull;
+}
+
+JSObject* XPCJSRuntime::GetUnsetContextGlobal(JSContext* cx)
+{
+    if(!mClearedGlobalObjects.ops)
+        return nsnull;
+
+    JSDHashEntryHdr* entry =
+        JS_DHashTableOperate(&mClearedGlobalObjects, cx, JS_DHASH_LOOKUP);
+    ClearedGlobalObject* clearedGlobal =
+        reinterpret_cast<ClearedGlobalObject*>(entry);
+
+    return JS_DHASH_ENTRY_IS_BUSY(entry) ?
+           clearedGlobal->mGlobalObject :
+           nsnull;
 }
 
 
@@ -939,6 +1088,7 @@ XPCJSRuntime::XPCJSRuntime(nsXPConnect* aXPConnect,
     if(!JS_DHashTableInit(&mJSHolders, JS_DHashGetStubOps(), nsnull,
                           sizeof(ObjectHolder), 512))
         mJSHolders.ops = nsnull;
+    mClearedGlobalObjects.ops = nsnull;
 
     
 #ifdef DEBUG

@@ -44,31 +44,41 @@
 
 class nsISupports;
 class nsCycleCollectionParticipant;
+class nsCycleCollectionTraversalCallback;
 
 
 
 
 struct nsCycleCollectionLanguageRuntime
 {
-    virtual nsresult BeginCycleCollection() = 0;
+    virtual nsresult BeginCycleCollection(nsCycleCollectionTraversalCallback &cb) = 0;
     virtual nsresult FinishCycleCollection() = 0;
     virtual nsCycleCollectionParticipant *ToParticipant(void *p) = 0;
 #ifdef DEBUG_CC
     virtual void PrintAllReferencesTo(void *p) = 0;
-
-    
-    
-    virtual void SuspectExtraPointers() = 0;
 #endif
 };
-
-
-NS_COM void nsCycleCollector_suspectCurrent(nsISupports *n);
 
 nsresult nsCycleCollector_startup();
 
 NS_COM PRBool nsCycleCollector_collect();
 void nsCycleCollector_shutdown();
+
+
+
+
+
+
+struct nsCycleCollectionJSRuntime : public nsCycleCollectionLanguageRuntime
+{
+    
+
+
+
+    virtual PRUint32 Collect() = 0;
+};
+
+NS_COM PRBool nsCycleCollector_doCollect();
 
 #ifdef DEBUG
 NS_COM void nsCycleCollector_DEBUG_shouldBeFreed(nsISupports *n);
