@@ -7107,8 +7107,21 @@ TraceRecorder::alu(LOpcode v, jsdouble v0, jsdouble v1, LIns* s0, LIns* s1)
         exit = snapshot(OVERFLOW_EXIT);
 
         
-        if (!d1->isconst())
+
+
+
+
+        if (!d1->isconst()) {
+            LIns* gt = lir->insBranch(LIR_jt, lir->ins2i(LIR_gt, d1, 0), NULL);
             guard(false, lir->ins_eq0(d1), exit);
+            guard(false, lir->ins2(LIR_and,
+                                   lir->ins2i(LIR_eq, d0, -2147483648),
+                                   lir->ins2i(LIR_eq, d1, -1)), exit);
+            gt->setTarget(lir->ins0(LIR_label));
+        } else {
+            if (d1->imm32() == -1)
+                guard(false, lir->ins2i(LIR_eq, d0, -2147483648), exit);
+        }
         result = lir->ins2(v = LIR_div, d0, d1);
 
         
