@@ -62,6 +62,7 @@
 #include "jsdbgapi.h"           
 #include "nsReadableUtils.h"
 #include "nsDOMClassInfo.h"
+#include "nsContentUtils.h"
 
 
 #include "nsIEventListenerManager.h"
@@ -6752,6 +6753,39 @@ nsGlobalWindow::PageHidden()
     fm->WindowHidden(this);
 
   mNeedsFocus = PR_TRUE;
+}
+
+nsresult
+nsGlobalWindow::DispatchAsyncHashchange()
+{
+  FORWARD_TO_INNER(DispatchAsyncHashchange, (), NS_OK);
+
+  nsIDocument::ReadyState readyState = mDoc->GetReadyStateEnum();
+
+  
+  if (readyState != nsIDocument::READYSTATE_COMPLETE)
+      return NS_OK;
+
+  nsCOMPtr<nsIRunnable> event =
+    NS_NEW_RUNNABLE_METHOD(nsGlobalWindow, this, FireHashchange);
+   
+  return NS_DispatchToCurrentThread(event);
+}
+
+nsresult
+nsGlobalWindow::FireHashchange()
+{
+  NS_ENSURE_TRUE(IsInnerWindow(), NS_ERROR_FAILURE);
+
+  
+  if (IsFrozen())
+      return NS_OK;
+
+  
+  
+  return nsContentUtils::DispatchTrustedEvent(mDoc, GetOuterWindow(),
+                                              NS_LITERAL_STRING("hashchange"),
+                                              PR_FALSE, PR_FALSE);
 }
 
 

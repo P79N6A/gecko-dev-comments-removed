@@ -77,8 +77,8 @@ class nsScriptObjectHolder;
 class nsXBLPrototypeHandler;
 
 #define NS_PIDOMWINDOW_IID \
-{ 0x601e5415, 0x613e, 0x4ce2, \
-  { 0xb4, 0xe1, 0x85, 0xac, 0x2a, 0x4a, 0xf2, 0x3d } }
+{ 0x50cada82, 0x2350, 0x4bb5, \
+  { 0xb4, 0x72, 0xc8, 0xca, 0x8d, 0x39, 0x31, 0x77 } }
 
 class nsPIDOMWindow : public nsIDOMWindowInternal
 {
@@ -451,6 +451,12 @@ public:
 
 
   virtual void PageHidden() = 0;
+
+  
+
+
+
+  virtual nsresult DispatchAsyncHashchange() = 0;
 
 protected:
   

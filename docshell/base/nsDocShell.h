@@ -360,8 +360,15 @@ protected:
     
     nsresult CheckClassifier(nsIChannel *aChannel);
 
-    NS_IMETHOD ScrollIfAnchor(nsIURI * aURI, PRBool * aWasAnchor,
-                              PRUint32 aLoadType, nscoord *cx, nscoord *cy);
+    nsresult ScrollIfAnchor(nsIURI * aURI, PRBool * aWasAnchor,
+                            PRUint32 aLoadType, nscoord *cx, nscoord *cy,
+                            PRBool * aDoHashchange);
+
+    
+    
+    nsresult DispatchAsyncHashchange();
+
+    nsresult FireHashchange();
 
     
     
