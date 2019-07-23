@@ -1342,6 +1342,15 @@ nsNavHistory::InitStatements()
   NS_ENSURE_SUCCESS(rv, rv);
 
   
+  rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
+      "UPDATE moz_places_view "
+      "SET title = ?1 "
+      "WHERE url = ?2"),
+    getter_AddRefs(mDBSetPlaceTitle));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+
+  
   
   
   
@@ -6604,8 +6613,6 @@ nsNavHistory::SetPageTitleInternal(nsIURI* aURI, const nsAString& aTitle)
 {
   nsresult rv;
 
-  mozStorageTransaction transaction(mDBConn, PR_TRUE);
-
   
   
   nsAutoString title;
@@ -6633,32 +6640,24 @@ nsNavHistory::SetPageTitleInternal(nsIURI* aURI, const nsAString& aTitle)
   if ((aTitle.IsVoid() && title.IsVoid()) || aTitle == title)
     return NS_OK;
 
-  nsCOMPtr<mozIStorageStatement> dbModStatement;
-  title = aTitle;
-  rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
-      "UPDATE moz_places_view SET title = ?1 WHERE url = ?2"),
-    getter_AddRefs(dbModStatement));
-  NS_ENSURE_SUCCESS(rv, rv);
-
+  mozStorageStatementScoper scoper(mDBSetPlaceTitle);
   
   if (aTitle.IsVoid())
-    dbModStatement->BindNullParameter(0);
+    rv = mDBSetPlaceTitle->BindNullParameter(0);
   else
-    dbModStatement->BindStringParameter(0, StringHead(aTitle, HISTORY_TITLE_LENGTH_MAX));
+    rv = mDBSetPlaceTitle->BindStringParameter(0, StringHead(aTitle, HISTORY_TITLE_LENGTH_MAX));
   NS_ENSURE_SUCCESS(rv, rv);
 
   
-  rv = BindStatementURI(dbModStatement, 1, aURI);
+  rv = BindStatementURI(mDBSetPlaceTitle, 1, aURI);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  rv = dbModStatement->Execute();
-  NS_ENSURE_SUCCESS(rv, rv);
-  rv = transaction.Commit();
+  rv = mDBSetPlaceTitle->Execute();
   NS_ENSURE_SUCCESS(rv, rv);
 
   
   ENUMERATE_WEAKARRAY(mObservers, nsINavHistoryObserver,
-                      OnTitleChanged(aURI, title))
+                      OnTitleChanged(aURI, aTitle))
 
   return NS_OK;
 
