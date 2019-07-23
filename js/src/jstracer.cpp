@@ -52,6 +52,11 @@
 
 #include "jsautooplen.h"
 
+#ifdef _MSC_VER
+#include <malloc.h>
+  __inline void * alloca(size_t size) { return _alloca(size); }
+#endif
+
 using namespace avmplus;
 using namespace nanojit;
 
@@ -740,7 +745,7 @@ TraceRecorder::import(jsval* p, uint8& t, char *prefix, int index)
 
 
 
-    ssize_t offset = -fragmentInfo->nativeStackBase + nativeFrameOffset(p) + 8;
+    ptrdiff_t offset = -fragmentInfo->nativeStackBase + nativeFrameOffset(p) + 8;
     if (TYPEMAP_GET_TYPE(t) == JSVAL_INT) { 
         JS_ASSERT(isInt32(*p));
         
