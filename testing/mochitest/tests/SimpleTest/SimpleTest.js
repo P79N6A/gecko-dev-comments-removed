@@ -465,17 +465,23 @@ var todo_isnot = SimpleTest.todo_isnot;
 var isDeeply = SimpleTest.isDeeply;
 
 const oldOnError = window.onerror;
-window.onerror = function (ev) {
+window.onerror = function simpletestOnerror(errorMsg, url, lineNumber) {
+  var funcIdentifier = "[SimpleTest/SimpleTest.js, window.onerror] ";
+
   
-  ok(false, "[SimpleTest/SimpleTest.js, window.onerror] An error occurred", ev);
+  ok(false, funcIdentifier + "An error occurred", errorMsg);
+  
 
   
   if (oldOnError) {
     try {
-      oldOnError(ev);
+      oldOnError(errorMsg, url, lineNumber);
     } catch (e) {
       
-      ok(false, "[SimpleTest/SimpleTest.js, window.onerror] Exception thrown by oldOnError()", e);
+      ok(false, funcIdentifier + "Exception thrown by oldOnError()", e);
+      
+      if (e.stack)
+        ok(false, funcIdentifier + "JavaScript error stack:\n" + e.stack);
     }
   }
 
