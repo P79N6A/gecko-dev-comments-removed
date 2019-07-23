@@ -96,12 +96,16 @@ function PROT_ListManager() {
                                           BindToObject(this.cookieChanged_, this),
                                           false);
 
-  this.requestBackoff_ = new RequestBackoff(3 ,
-                                   10*60*1000 ,
+  
+  var backoffInterval = 30 * 60 * 1000;
+  backoffInterval += Math.floor(Math.random() * (30 * 60 * 1000));
+
+  this.requestBackoff_ = new RequestBackoff(2 ,
+                                      60*1000 ,
                                             4 ,
                                    60*60*1000 ,
-                                   60*60*1000 ,
-                                   6*60*60*1000 );
+                              backoffInterval ,
+                                 8*60*60*1000 );
 
   this.dbService_ = Cc["@mozilla.org/url-classifier/dbservice;1"]
                    .getService(Ci.nsIUrlClassifierDBService);
@@ -509,7 +513,8 @@ PROT_ListManager.prototype.downloadError_ = function(status) {
   if (this.requestBackoff_.isErrorStatus(status)) {
     
     this.currentUpdateChecker_ =
-      new G_Alarm(BindToObject(this.checkForUpdates, this), 60000);
+      new G_Alarm(BindToObject(this.checkForUpdates, this),
+                  this.requestBackoff_.nextRequestDelay());
   }
 }
 

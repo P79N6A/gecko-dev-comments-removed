@@ -11,54 +11,67 @@ function setNow(time) {
 function run_test() {
   
   
-  var rb = new jslib.RequestBackoff(2, 5, 3, 10, 5, 20);
+  var rb = new jslib.RequestBackoff(3, 1, 3, 10, 5, 19);
   setNow(1);
   rb.noteServerResponse(200);
   do_check_true(rb.canMakeRequest());
-
   setNow(2);
-  rb.noteServerResponse(500);
-  do_check_true(rb.canMakeRequest());
-
-  setNow(3);
-  rb.noteServerResponse(200);
   do_check_true(rb.canMakeRequest());
 
   
+  rb.noteServerResponse(500);
+  do_check_false(rb.canMakeRequest());
+  do_check_eq(rb.nextRequestTime_, 3);
+  setNow(3);
+  do_check_true(rb.canMakeRequest());
+
+  
+  rb.noteServerResponse(500);
+  do_check_false(rb.canMakeRequest());
+  do_check_eq(rb.nextRequestTime_, 4);
   setNow(4);
-  rb.noteServerResponse(502);
+  do_check_true(rb.canMakeRequest());
+
+  
+  rb.noteServerResponse(500);
   do_check_false(rb.canMakeRequest());
   do_check_eq(rb.nextRequestTime_, 9);
+  setNow(9);
+  do_check_true(rb.canMakeRequest());
 
   
-  setNow(10);
-  do_check_true(rb.canMakeRequest());
   rb.noteServerResponse(503);
   do_check_false(rb.canMakeRequest());
-  do_check_eq(rb.nextRequestTime_, 25);
+  do_check_eq(rb.nextRequestTime_, 19);
+  setNow(19);
+  do_check_true(rb.canMakeRequest());
 
   
-  setNow(30);
-  do_check_true(rb.canMakeRequest());
   rb.noteServerResponse(302);
   do_check_false(rb.canMakeRequest());
-  do_check_eq(rb.nextRequestTime_, 50);
+  do_check_eq(rb.nextRequestTime_, 38);
+  setNow(38);
+  do_check_true(rb.canMakeRequest());
 
   
-  setNow(100);
+  rb.noteServerResponse(400);
+  do_check_false(rb.canMakeRequest());
+  do_check_eq(rb.nextRequestTime_, 57);
+  setNow(57);
   do_check_true(rb.canMakeRequest());
+
+  
   rb.noteServerResponse(200);
   do_check_true(rb.canMakeRequest());
   do_check_eq(rb.nextRequestTime_, 0);
+  setNow(58);
+  rb.noteServerResponse(500);
 
   
-  setNow(101);
-  rb.noteServerResponse(500);
-  do_check_true(rb.canMakeRequest());
+  do_check_false(rb.canMakeRequest());
+  do_check_eq(rb.nextRequestTime_, 59);
 
-  
-  setNow(107);
-  rb.noteServerResponse(500);
+  setNow(59);
   do_check_true(rb.canMakeRequest());
 
   setNow(200);

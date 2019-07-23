@@ -58,12 +58,11 @@ const HTTP_TEMPORARY_REDIRECT    = 307;
 
 
 
-
-function RequestBackoff(maxErrors, errorPeriod,
+function RequestBackoff(maxErrors, retryIncrement,
                         maxRequests, requestPeriod,
                         timeoutIncrement, maxTimeout) {
   this.MAX_ERRORS_ = maxErrors;
-  this.ERROR_PERIOD_ = errorPeriod;
+  this.RETRY_INCREMENT_ = retryIncrement;
   this.MAX_REQUESTS_ = maxRequests;
   this.REQUEST_PERIOD_ = requestPeriod;
   this.TIMEOUT_INCREMENT_ = timeoutIncrement;
@@ -72,21 +71,18 @@ function RequestBackoff(maxErrors, errorPeriod,
   
   this.requestTimes_ = [];
 
-  
-  this.errorTimes_ = [];
+  this.numErrors_ = 0;
   this.errorTimeout_ = 0;
   this.nextRequestTime_ = 0;
-  this.backoffTriggered_ = false;
 }
 
 
 
 
 RequestBackoff.prototype.reset = function() {
-  this.errorTimes_ = [];
+  this.numErrors_ = 0;
   this.errorTimeout_ = 0;
   this.nextRequestTime_ = 0;
-  this.backoffTriggered_ = false;
 }
 
 
@@ -94,7 +90,7 @@ RequestBackoff.prototype.reset = function() {
 
 RequestBackoff.prototype.canMakeRequest = function() {
   var now = Date.now();
-  if (now <= this.nextRequestTime_) {
+  if (now < this.nextRequestTime_) {
     return false;
   }
 
@@ -111,36 +107,29 @@ RequestBackoff.prototype.noteRequest = function() {
     this.requestTimes_.shift();
 }
 
+RequestBackoff.prototype.nextRequestDelay = function() {
+  return Math.max(0, this.nextRequestTime_ - Date.now());
+}
+
 
 
 
 RequestBackoff.prototype.noteServerResponse = function(status) {
   if (this.isErrorStatus(status)) {
-    var now = Date.now();
-    this.errorTimes_.push(now);
+    this.numErrors_++;
 
-    
-    if (this.errorTimes_.length > this.MAX_ERRORS_)
-      this.errorTimes_.shift();
+    if (this.numErrors_ < this.MAX_ERRORS_)
+      this.errorTimeout_ = this.RETRY_INCREMENT_;
+    else if (this.numErrors_ == this.MAX_ERRORS_)
+      this.errorTimeout_ = this.TIMEOUT_INCREMENT_;
+    else
+      this.errorTimeout_ *= 2;
 
-    
-    
-    
-    
-    if ((this.errorTimes_.length == this.MAX_ERRORS_ &&
-         now - this.errorTimes_[0] < this.ERROR_PERIOD_)
-        || this.backoffTriggered_) {
-      this.errorTimeout_ = (this.errorTimeout_ * 2)  + this.TIMEOUT_INCREMENT_;
-      this.errorTimeout_ = Math.min(this.errorTimeout_, this.MAX_TIMEOUT_);
-      this.nextRequestTime_ = now + this.errorTimeout_;
-      this.backoffTriggered_ = true;
-    }
+    this.errorTimeout_ = Math.min(this.errorTimeout_, this.MAX_TIMEOUT_);
+    this.nextRequestTime_ = Date.now() + this.errorTimeout_;
   } else {
     
-    
-    this.errorTimeout_ = 0;
-    this.nextRequestTime_ = 0;
-    this.backoffTriggered_ = false;
+    this.reset();
   }
 }
 
