@@ -118,8 +118,11 @@ nsRootAccessible::~nsRootAccessible()
 
 
 
-NS_IMETHODIMP nsRootAccessible::GetName(nsAString& aName)
+NS_IMETHODIMP
+nsRootAccessible::GetName(nsAString& aName)
 {
+  aName.Truncate();
+
   if (!mDocument) {
     return NS_ERROR_FAILURE;
   }

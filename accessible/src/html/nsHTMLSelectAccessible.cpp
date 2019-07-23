@@ -513,8 +513,11 @@ NS_IMETHODIMP nsHTMLSelectOptionAccessible::GetRole(PRUint32 *aRole)
 
 
 
-NS_IMETHODIMP nsHTMLSelectOptionAccessible::GetName(nsAString& aName)
+NS_IMETHODIMP
+nsHTMLSelectOptionAccessible::GetName(nsAString& aName)
 {
+  aName.Truncate();
+
   
   
   nsCOMPtr<nsIDOMElement> domElement(do_QueryInterface(mDOMNode));
@@ -1383,8 +1386,11 @@ NS_IMETHODIMP nsHTMLComboboxButtonAccessible::GetParent(nsIAccessible **aParent)
 
 
 
-NS_IMETHODIMP nsHTMLComboboxButtonAccessible::GetName(nsAString& aName)
+NS_IMETHODIMP
+nsHTMLComboboxButtonAccessible::GetName(nsAString& aName)
 {
+  aName.Truncate();
+
   return GetActionName(eAction_Click, aName);
 }
 
