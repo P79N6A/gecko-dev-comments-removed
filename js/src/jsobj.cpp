@@ -4278,10 +4278,20 @@ js_DefineNativeProperty(JSContext *cx, JSObject *obj, jsid id, jsval value,
         }
 
         added = !scope->hasProperty(id);
+        uint32 oldShape = scope->shape;
         sprop = scope->putProperty(cx, id, getter, setter, SPROP_INVALID_SLOT,
                                    attrs, flags, shortid);
         if (!sprop)
             goto error;
+
+        
+
+
+
+
+
+        if (scope->shape == oldShape && scope->branded())
+            scope->methodWriteBarrier(cx, sprop->slot, value);
     }
 
     
