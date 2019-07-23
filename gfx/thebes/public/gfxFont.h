@@ -418,7 +418,7 @@ protected:
     gfxFontStyle      mStyle;
 
     
-    virtual void SetupCairoFont(cairo_t *aCR) = 0;
+    virtual PRBool SetupCairoFont(cairo_t *aCR) = 0;
 };
 
 class THEBES_API gfxTextRunFactory {
