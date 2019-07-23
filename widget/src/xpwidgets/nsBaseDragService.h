@@ -56,6 +56,7 @@ class nsIDOMNode;
 class nsIFrame;
 class nsPresContext;
 class nsIImageLoadingContent;
+class nsICanvasElement;
 
 
 
@@ -109,8 +110,10 @@ protected:
   
 
 
+
   nsresult DrawDragForImage(nsPresContext* aPresContext,
                             nsIImageLoadingContent* aImageLoader,
+                            nsICanvasElement* aCanvas,
                             PRInt32 aScreenX, PRInt32 aScreenY,
                             nsRect* aScreenDragRect,
                             gfxASurface** aSurface);
