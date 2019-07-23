@@ -856,7 +856,7 @@ struct JSContext {
     
 
 
-#define JS_DISPLAY_SIZE 16
+#define JS_DISPLAY_SIZE 16U
 
     JSStackFrame        *display[JS_DISPLAY_SIZE];
 
