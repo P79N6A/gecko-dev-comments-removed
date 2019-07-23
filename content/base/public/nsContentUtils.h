@@ -1497,6 +1497,10 @@ public:
     return WrapNative(cx, scope, native, nsnull, vp, aHolder, aAllowWrapping);
   }
 
+  
+  
+  static nsresult PlayEventSound(PRUint32 aEventID);
+
 private:
 
   static PRBool InitializeEventTable();

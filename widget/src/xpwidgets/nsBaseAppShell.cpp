@@ -40,6 +40,7 @@
 #include "nsThreadUtils.h"
 #include "nsIObserverService.h"
 #include "nsServiceManagerUtils.h"
+#include "nsSound.h"
 
 
 
@@ -80,6 +81,13 @@ nsBaseAppShell::Init()
       do_GetService("@mozilla.org/observer-service;1");
   if (obsSvc)
     obsSvc->AddObserver(this, NS_XPCOM_SHUTDOWN_OBSERVER_ID, PR_FALSE);
+
+  
+  
+  
+  
+  nsSystemSoundServiceBase::InitService();
+
   return NS_OK;
 }
 
