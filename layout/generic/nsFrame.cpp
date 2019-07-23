@@ -99,7 +99,6 @@
 #include "nsITextControlFrame.h"
 #include "nsINameSpaceManager.h"
 #include "nsIPercentHeightObserver.h"
-#include "nsTextTransformer.h"
 
 #ifdef IBMBIDI
 #include "nsBidiPresUtils.h"
@@ -4818,9 +4817,9 @@ nsIFrame::PeekOffset(nsPeekOffsetStruct* aPos)
         
         
         
-        nsTextTransformer::Initialize();
-        wordSelectEatSpace = aPos->mDirection == eDirNext && nsTextTransformer::GetWordSelectEatSpaceAfter();
-      }      
+        wordSelectEatSpace = aPos->mDirection == eDirNext &&
+          nsContentUtils::GetBoolPref("layout.word_select.eat_space_to_next_word");
+      }
       
       
       

@@ -40,9 +40,9 @@
 #include "nsContentUtils.h"
 #include "nsIWordBreaker.h"
 #include "gfxFont.h"
-#include "nsTextTransformer.h"
 #include "nsCompressedCharMap.h"
 #include "nsUnicharUtils.h"
+#include "nsBidiUtils.h"
 
 
 
@@ -83,7 +83,7 @@ static PRBool IsDiscardable(PRUnichar ch, PRUint32* aFlags)
     
     return PR_FALSE;
   }
-  return IS_BIDI_CONTROL(ch);
+  return IS_BIDI_CONTROL_CHAR(ch);
 }
 
 static PRBool IsDiscardable(PRUint8 ch, PRUint32* aFlags)
