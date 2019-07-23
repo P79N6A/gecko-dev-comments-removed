@@ -840,10 +840,6 @@ static PRBool HebrewToText(PRInt32 ordinal, nsString& result)
 
 static PRBool ArmenianToText(PRInt32 ordinal, nsString& result)
 {
-  
-  
-  
-  
   if (ordinal < 1 || ordinal > 9999) { 
     DecimalToText(ordinal, result);
     return PR_FALSE;
