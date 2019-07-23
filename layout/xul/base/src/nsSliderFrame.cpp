@@ -86,26 +86,6 @@ GetContentOfBox(nsIBox *aBox)
   return content;
 }
 
-
-
-
-static PRBool
-GetScrollToClick()
-{
-  PRBool scrollToClick = PR_FALSE;
-  nsresult rv;
-  nsCOMPtr<nsILookAndFeel> lookNFeel =
-    do_GetService("@mozilla.org/widget/lookandfeel;1", &rv);
-  if (NS_SUCCEEDED(rv)) {
-    PRInt32 scrollToClickMetric;
-    rv = lookNFeel->GetMetric(nsILookAndFeel::eMetric_ScrollToClick,
-                              scrollToClickMetric);
-    if (NS_SUCCEEDED(rv) && scrollToClickMetric == 1)
-      scrollToClick = PR_TRUE;
-  }
-  return scrollToClick;
-}
-
 nsIFrame*
 NS_NewSliderFrame (nsIPresShell* aPresShell, nsStyleContext* aContext)
 {
@@ -577,7 +557,7 @@ nsSliderFrame::HandleEvent(nsPresContext* aPresContext,
               
               (static_cast<nsMouseEvent*>(aEvent)->isAlt != GetScrollToClick())) ||
 #else
-              static_cast<nsMouseEvent*>(aEvent)->isShift) ||
+              (static_cast<nsMouseEvent*>(aEvent)->isShift != GetScrollToClick())) ||
 #endif
              (gMiddlePref && aEvent->message == NS_MOUSE_BUTTON_DOWN &&
               static_cast<nsMouseEvent*>(aEvent)->button ==
@@ -622,6 +602,39 @@ nsSliderFrame::HandleEvent(nsPresContext* aPresContext,
 }
 
 
+
+
+PRBool
+nsSliderFrame::GetScrollToClick()
+{
+  
+  
+  
+  if (GetScrollbar() == this)
+#ifdef XP_MACOSX
+    return !mContent->AttrValueIs(kNameSpaceID_None, nsGkAtoms::movetoclick,
+                                   nsGkAtoms::_false, eCaseMatters);
+ 
+  
+  PRBool scrollToClick = PR_FALSE;
+  nsresult rv;
+  nsCOMPtr<nsILookAndFeel> lookNFeel =
+    do_GetService("@mozilla.org/widget/lookandfeel;1", &rv);
+  if (NS_SUCCEEDED(rv)) {
+    PRInt32 scrollToClickMetric;
+    rv = lookNFeel->GetMetric(nsILookAndFeel::eMetric_ScrollToClick,
+                              scrollToClickMetric);
+    if (NS_SUCCEEDED(rv) && scrollToClickMetric == 1)
+      scrollToClick = PR_TRUE;
+  }
+  return scrollToClick;
+
+#else
+    return mContent->AttrValueIs(kNameSpaceID_None, nsGkAtoms::movetoclick,
+                                  nsGkAtoms::_true, eCaseMatters);
+  return PR_FALSE;
+#endif
+}
 
 nsIBox*
 nsSliderFrame::GetScrollbar()
@@ -909,11 +922,6 @@ nsSliderFrame::MouseDown(nsIDOMEvent* aMouseEvent)
   if (button != 0) {
     scrollToClick = PR_TRUE;
   }
-
-  
-  
-  if (!scrollToClick)
-    scrollToClick = GetScrollToClick();
 #endif
 
   nsPoint pt =  nsLayoutUtils::GetDOMEventCoordinatesRelativeTo(mouseEvent,
@@ -1052,7 +1060,7 @@ nsSliderFrame::HandlePress(nsPresContext* aPresContext,
   
   if (((nsMouseEvent *)aEvent)->isAlt != GetScrollToClick())
 #else
-  if (((nsMouseEvent *)aEvent)->isShift)
+  if (((nsMouseEvent *)aEvent)->isShift != GetScrollToClick())
 #endif
     return NS_OK;
 
