@@ -9202,11 +9202,24 @@ nsClassifierCallback::Run()
     NS_ENSURE_SUCCESS(rv, rv);
 
     
-    
-    nsCOMPtr<nsIHttpChannel> httpChannel = do_QueryInterface(channel);
-    if (!httpChannel) {
-        return NS_OK;
-    }
+    PRBool hasFlags;
+    rv = NS_URIChainHasFlags(uri,
+                             nsIProtocolHandler::URI_DANGEROUS_TO_LOAD,
+                             &hasFlags);
+    NS_ENSURE_SUCCESS(rv, rv);
+    if (hasFlags) return NS_OK;
+
+    rv = NS_URIChainHasFlags(uri,
+                             nsIProtocolHandler::URI_IS_LOCAL_FILE,
+                             &hasFlags);
+    NS_ENSURE_SUCCESS(rv, rv);
+    if (hasFlags) return NS_OK;
+
+    rv = NS_URIChainHasFlags(uri,
+                             nsIProtocolHandler::URI_IS_UI_RESOURCE,
+                             &hasFlags);
+    NS_ENSURE_SUCCESS(rv, rv);
+    if (hasFlags) return NS_OK;
 
     nsCOMPtr<nsIURIClassifier> uriClassifier =
         do_GetService(NS_URICLASSIFIERSERVICE_CONTRACTID, &rv);
@@ -9220,7 +9233,13 @@ nsClassifierCallback::Run()
         
         
         rv = channel->Suspend();
-        NS_ENSURE_SUCCESS(rv, rv);
+        if (NS_FAILED(rv)) {
+            
+            
+            
+            return NS_OK;
+        }
+
         mSuspendedChannel = channel;
 #ifdef DEBUG
         PR_LOG(gDocShellLog, PR_LOG_DEBUG,
