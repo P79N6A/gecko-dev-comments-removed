@@ -98,7 +98,11 @@ NS_GetCurrentThread(nsIThread **result);
 extern NS_COM_GLUE NS_METHOD
 NS_GetMainThread(nsIThread **result);
 
-#if defined(MOZILLA_INTERNAL_API) && defined(NS_TLS)
+#if defined(MOZILLA_INTERNAL_API) && defined(XP_WIN)
+
+NS_COM bool NS_IsMainThread();
+
+#elif defined(MOZILLA_INTERNAL_API) && defined(NS_TLS)
 
 
 extern NS_TLS bool gTLSIsMainThread;
