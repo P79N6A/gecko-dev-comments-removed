@@ -4864,9 +4864,23 @@ interrupt:
             if (!ok)
                 goto error;
             if (!cx->rval2set) {
-                JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL,
-                                     JSMSG_BAD_LEFTSIDE_OF_ASS);
-                goto error;
+                op2 = regs.pc[JSOP_SETCALL_LENGTH];
+                if (op2 != JSOP_DELELEM) {
+                    JS_ASSERT(!(js_CodeSpec[op2].format & JOF_DEL));
+                    JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL,
+                                         JSMSG_BAD_LEFTSIDE_OF_ASS);
+                    goto error;
+                }
+
+                
+
+
+
+
+                *vp = JSVAL_TRUE;
+                regs.pc += JSOP_SETCALL_LENGTH + JSOP_DELELEM_LENGTH;
+                op = (JSOp) *regs.pc;
+                DO_OP();
             }
             PUSH_OPND(cx->rval2);
             cx->rval2set = JS_FALSE;
