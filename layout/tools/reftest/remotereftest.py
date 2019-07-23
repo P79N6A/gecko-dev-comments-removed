@@ -1,3 +1,40 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 import sys
 import os
 import time
@@ -53,7 +90,9 @@ class RemoteAutomation(Automation):
             print "going to launch process: " + str(self.dm.host)
             self.proc = dm.launchProcess(cmd)
             self.procName = appName
-            self.timeout = 600
+
+            
+            self.timeout = 3600
             time.sleep(5)
 
         @property
@@ -67,15 +106,18 @@ class RemoteAutomation(Automation):
         def stdout(self):
             return self.dm.getFile(self.proc)
 
-        def wait(self):
+        def wait(self, timeout = None):
             timer = 0
+            if timeout == None:
+                timeout = self.timeout
+
             while (self.dm.process.isAlive()):
                 time.sleep(1)
                 timer += 1
-                if (timer > self.timeout):
+                if (timer > timeout):
                     break
 
-            if (timer >= self.timeout):
+            if (timer >= timeout):
                 return 1
             return 0
 

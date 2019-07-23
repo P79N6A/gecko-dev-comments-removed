@@ -1,3 +1,40 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 import sys
 import os
 import time
@@ -53,7 +90,9 @@ class RemoteAutomation(Automation):
             exepath = cmd[0]
             name = exepath.split('/')[-1]
             self.procName = name
-            self.timeout = 600
+
+            
+            self.timeout = 3600
             time.sleep(5)
 
         @property
@@ -67,15 +106,19 @@ class RemoteAutomation(Automation):
         def stdout(self):
             return self.dm.getFile(self.proc)
  
-        def wait(self):
+        def wait(self, timeout = None):
             timer = 0
+
+            if timeout == None:
+                timeout = self.timeout
+
             while (self.dm.process.isAlive()):
                 time.sleep(1)
                 timer += 1
-                if (timer > self.timeout):
+                if (timer > timeout):
                     break
         
-            if (timer >= self.timeout):
+            if (timer >= timeout):
                 return 1
             return 0
  
@@ -146,8 +189,8 @@ class RemoteOptions(MochitestOptions):
         tempSSL = options.sslPort
         options = MochitestOptions.verifyOptions(self, options, mochitest)
         options.app = temp
-        options.httpPort = tempPort
         options.sslPort = tempSSL
+        options.httpPort = tempPort
 
         if (options.remoteWebServer == None):
           print "ERROR: you must provide a remote webserver ip address"
