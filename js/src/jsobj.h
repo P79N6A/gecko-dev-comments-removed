@@ -175,9 +175,8 @@ struct JSObject {
     }
 
     JS_ALWAYS_INLINE JSBool defineProperty(JSContext *cx, jsid id, jsval value,
-                                           JSPropertyOp getter, JSPropertyOp setter,
-                                           uintN attrs, JSProperty **propp) {
-        return map->ops->defineProperty(cx, this, id, value, getter, setter, attrs, propp);
+                                           JSPropertyOp getter, JSPropertyOp setter, uintN attrs) {
+        return map->ops->defineProperty(cx, this, id, value, getter, setter, attrs);
     }
 
     JS_ALWAYS_INLINE JSBool getProperty(JSContext *cx, jsid id, jsval *vp) {
@@ -701,23 +700,22 @@ js_ChangeNativePropertyAttrs(JSContext *cx, JSObject *obj,
                              JSScopeProperty *sprop, uintN attrs, uintN mask,
                              JSPropertyOp getter, JSPropertyOp setter);
 
-
-
-
-
-
-
-
 extern JSBool
 js_DefineProperty(JSContext *cx, JSObject *obj, jsid id, jsval value,
-                  JSPropertyOp getter, JSPropertyOp setter, uintN attrs,
-                  JSProperty **propp);
+                  JSPropertyOp getter, JSPropertyOp setter, uintN attrs);
 
 
 
 
 const uintN JSDNP_CACHE_RESULT = 1; 
 const uintN JSDNP_DONT_PURGE   = 2; 
+
+
+
+
+
+
+
 
 extern JSBool
 js_DefineNativeProperty(JSContext *cx, JSObject *obj, jsid id, jsval value,

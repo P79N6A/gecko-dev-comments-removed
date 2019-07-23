@@ -4852,7 +4852,7 @@ js_ExecuteRegExp(JSContext *cx, JSRegExp *re, JSString *str, size_t *indexp,
 #define DEFVAL(val, id) {                                                     \
     ok = js_DefineProperty(cx, obj, id, val,                                  \
                            JS_PropertyStub, JS_PropertyStub,                  \
-                           JSPROP_ENUMERATE, NULL);                           \
+                           JSPROP_ENUMERATE);                                 \
     if (!ok) {                                                                \
         cx->weakRoots.newborn[GCX_OBJECT] = NULL;                             \
         cx->weakRoots.newborn[GCX_STRING] = NULL;                             \
@@ -4917,9 +4917,8 @@ js_ExecuteRegExp(JSContext *cx, JSRegExp *re, JSString *str, size_t *indexp,
             if (test)
                 continue;
             if (parsub->index == -1) {
-                ok = js_DefineProperty(cx, obj, INT_TO_JSID(num + 1),
-                                       JSVAL_VOID, NULL, NULL,
-                                       JSPROP_ENUMERATE, NULL);
+                ok = js_DefineProperty(cx, obj, INT_TO_JSID(num + 1), JSVAL_VOID, NULL, NULL,
+                                       JSPROP_ENUMERATE);
             } else {
                 parstr = js_NewDependentString(cx, str,
                                                gData.cpbegin + parsub->index -
@@ -4931,9 +4930,8 @@ js_ExecuteRegExp(JSContext *cx, JSRegExp *re, JSString *str, size_t *indexp,
                     ok = JS_FALSE;
                     goto out;
                 }
-                ok = js_DefineProperty(cx, obj, INT_TO_JSID(num + 1),
-                                       STRING_TO_JSVAL(parstr), NULL, NULL,
-                                       JSPROP_ENUMERATE, NULL);
+                ok = js_DefineProperty(cx, obj, INT_TO_JSID(num + 1), STRING_TO_JSVAL(parstr),
+                                       NULL, NULL, JSPROP_ENUMERATE);
             }
             if (!ok) {
                 cx->weakRoots.newborn[GCX_OBJECT] = NULL;
@@ -5135,27 +5133,19 @@ js_InitRegExpStatics(JSContext *cx)
 }
 
 JS_FRIEND_API(void)
-js_SaveAndClearRegExpStatics(JSContext *cx, JSRegExpStatics *statics,
-                             JSTempValueRooter *tvr)
+js_SaveRegExpStatics(JSContext *cx, JSRegExpStatics *statics,
+                     JSTempValueRooter *tvr)
 {
-    *statics = cx->regExpStatics;
-    JS_PUSH_TEMP_ROOT_STRING(cx, statics->input, tvr);
-    
-
-
-
-    cx->regExpStatics.moreParens = NULL;
-    JS_ClearRegExpStatics(cx);
+  *statics = cx->regExpStatics;
+  JS_PUSH_TEMP_ROOT_STRING(cx, statics->input, tvr);
 }
 
 JS_FRIEND_API(void)
 js_RestoreRegExpStatics(JSContext *cx, JSRegExpStatics *statics,
                         JSTempValueRooter *tvr)
 {
-    
-    JS_ClearRegExpStatics(cx);
-    cx->regExpStatics = *statics;
-    JS_POP_TEMP_ROOT(cx, tvr);
+  cx->regExpStatics = *statics;
+  JS_POP_TEMP_ROOT(cx, tvr);
 }
 
 void
@@ -5170,7 +5160,12 @@ js_TraceRegExpStatics(JSTracer *trc, JSContext *acx)
 void
 js_FreeRegExpStatics(JSContext *cx)
 {
-    JS_ClearRegExpStatics(cx);
+    JSRegExpStatics *res = &cx->regExpStatics;
+
+    if (res->moreParens) {
+        cx->free(res->moreParens);
+        res->moreParens = NULL;
+    }
     JS_FinishArenaPool(&cx->regexpPool);
 }
 

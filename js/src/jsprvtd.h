@@ -299,18 +299,9 @@ typedef JSBool
 
 
 
-
-
-
-
-
-
-
-
 typedef JSBool
 (* JSDefinePropOp)(JSContext *cx, JSObject *obj, jsid id, jsval value,
-                   JSPropertyOp getter, JSPropertyOp setter, uintN attrs,
-                   JSProperty **propp);
+                   JSPropertyOp getter, JSPropertyOp setter, uintN attrs);
 
 
 
