@@ -760,7 +760,7 @@ nsJSContext::DOMBranchCallback(JSContext *cx, JSScript *script)
   nsresult rv;
 
   
-  PRBool debugPossible = (cx->runtime && cx->runtime->debuggerHandler);
+  PRBool debugPossible = (cx->debugHooks->debuggerHandler != nsnull);
 #ifdef MOZ_JSDEBUGGER
   
   if (debugPossible) {
@@ -860,8 +860,9 @@ nsJSContext::DOMBranchCallback(JSContext *cx, JSScript *script)
   else if ((buttonPressed == 2) && debugPossible) {
     
     jsval rval;
-    switch(cx->runtime->debuggerHandler(cx, script, cx->fp->pc, &rval, 
-                                        cx->runtime->debuggerHandlerData)) {
+    switch(cx->debugHooks->debuggerHandler(cx, script, cx->fp->pc, &rval,
+                                           cx->debugHooks->
+                                           debuggerHandlerData)) {
       case JSTRAP_RETURN:
         cx->fp->rval = rval;
         return JS_TRUE;

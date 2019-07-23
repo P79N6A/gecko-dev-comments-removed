@@ -862,7 +862,7 @@ XPCJSRuntime::XPCJSRuntime(nsXPConnect* aXPConnect,
 
     
 #ifdef DEBUG
-    if(mJSRuntime && !mJSRuntime->debuggerHandler)
+    if(mJSRuntime && !JS_GetGlobalDebugHooks(mJSRuntime)->debuggerHandler)
         xpc_InstallJSDebuggerKeywordHandler(mJSRuntime);
 #endif
 }

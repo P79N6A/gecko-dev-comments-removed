@@ -265,26 +265,7 @@ struct JSRuntime {
     JSCList             contextList;
 
     
-    JSTrapHandler       interruptHandler;
-    void                *interruptHandlerData;
-    JSNewScriptHook     newScriptHook;
-    void                *newScriptHookData;
-    JSDestroyScriptHook destroyScriptHook;
-    void                *destroyScriptHookData;
-    JSTrapHandler       debuggerHandler;
-    void                *debuggerHandlerData;
-    JSSourceHandler     sourceHandler;
-    void                *sourceHandlerData;
-    JSInterpreterHook   executeHook;
-    void                *executeHookData;
-    JSInterpreterHook   callHook;
-    void                *callHookData;
-    JSObjectHook        objectHook;
-    void                *objectHookData;
-    JSTrapHandler       throwHook;
-    void                *throwHookData;
-    JSDebugErrorHook    debugErrorHook;
-    void                *debugErrorHookData;
+    JSDebugHooks        globalDebugHooks;
 
     
     JSCList             trapList;
@@ -786,6 +767,9 @@ struct JSContext {
 
     
     JSTempValueRooter   *tempValueRooters;
+
+    
+    JSDebugHooks        *debugHooks;
 };
 
 #ifdef JS_THREADSAFE
