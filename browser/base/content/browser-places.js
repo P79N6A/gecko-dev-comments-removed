@@ -276,6 +276,7 @@ var StarUI = {
   },
 
   removeBookmarkButtonCommand: function SU_removeBookmarkButtonCommand() {
+#ifdef ADVANCED_STARRING_UI
     
     
     
@@ -298,6 +299,7 @@ var StarUI = {
       this._element("editBookmarkPanelStarIcon").setAttribute("unstarred", "true");
       this.panel.focus();
     }
+#endif
 
     
     this._uri = PlacesUtils.bookmarks.getBookmarkURI(this._itemId);
@@ -310,9 +312,11 @@ var StarUI = {
       PlacesUtils.ptm.doTransaction(txn);
     }
 
+#ifdef ADVANCED_STARRING_UI
     
     
     if (!this._batching)
+#endif
       this.panel.hidePopup();
   },
 
@@ -395,8 +399,10 @@ var PlacesCommandHook = {
       if (starIcon && isElementVisible(starIcon)) {
         if (aShowEditUI)
           StarUI.showEditBookmarkPopup(itemId, starIcon, "after_end");
+#ifdef ADVANCED_STARRING_UI
         else
           StarUI.showPageBookmarkedNotification(itemId, starIcon, "after_end");
+#endif
         return;
       }
     }
