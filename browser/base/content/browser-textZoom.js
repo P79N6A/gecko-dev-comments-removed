@@ -41,6 +41,7 @@
 
 
 
+
 const MOUSE_SCROLL_ZOOM = 3;
 
 
@@ -83,8 +84,14 @@ var FullZoom = {
   },
 
   
-  siteSpecific: undefined,
+  _siteSpecificPref: undefined,
 
+  
+  _inPrivateBrowsing: false,
+
+  get siteSpecific FullZoom_get_siteSpecific() {
+    return !this._inPrivateBrowsing && this._siteSpecificPref;
+  },
 
   
   
@@ -115,12 +122,26 @@ var FullZoom = {
 
     
     
-    this.siteSpecific =
+    let os = Cc["@mozilla.org/observer-service;1"].
+             getService(Ci.nsIObserverService);
+    os.addObserver(this, "private-browsing", true);
+
+    
+    this._inPrivateBrowsing = Cc["@mozilla.org/privatebrowsing;1"].
+                              getService(Ci.nsIPrivateBrowsingService).
+                              privateBrowsingEnabled;
+
+    
+    
+    this._siteSpecificPref =
       this._prefBranch.getBoolPref("browser.zoom.siteSpecific");
     this._prefBranch.addObserver("browser.zoom.siteSpecific", this, true);
   },
 
   destroy: function FullZoom_destroy() {
+    let os = Cc["@mozilla.org/observer-service;1"].
+             getService(Ci.nsIObserverService);
+    os.removeObserver(this, "private-browsing");
     this._prefBranch.removeObserver("browser.zoom.siteSpecific", this);
     this._cps.removeObserver(this.name, this);
     window.removeEventListener("DOMMouseScroll", this, false);
@@ -186,8 +207,18 @@ var FullZoom = {
       case "nsPref:changed":
         switch(aData) {
           case "browser.zoom.siteSpecific":
-            this.siteSpecific =
+            this._siteSpecificPref =
               this._prefBranch.getBoolPref("browser.zoom.siteSpecific");
+            break;
+        }
+        break;
+      case "private-browsing":
+        switch (aData) {
+          case "enter":
+            this._inPrivateBrowsing = true;
+            break;
+          case "exit":
+            this._inPrivateBrowsing = false;
             break;
         }
         break;
