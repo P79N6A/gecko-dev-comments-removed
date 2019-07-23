@@ -133,17 +133,6 @@ nsXULSliderAccessible::SetCurrentValue(double aValue)
 }
 
 
-NS_IMETHODIMP
-nsXULSliderAccessible::GetAllowsAnonChildAccessibles(PRBool *aAllowsAnonChildren)
-{
-  NS_ENSURE_ARG_POINTER(aAllowsAnonChildren);
-
-  
-  *aAllowsAnonChildren = PR_TRUE;
-  return NS_OK;
-}
-
-
 
 already_AddRefed<nsIContent>
 nsXULSliderAccessible::GetSliderNode()

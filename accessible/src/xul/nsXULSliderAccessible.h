@@ -58,9 +58,6 @@ public:
   NS_DECL_NSIACCESSIBLEVALUE
 
   
-  NS_IMETHOD GetAllowsAnonChildAccessibles(PRBool *aAllowsAnonChildren);
-
-  
   virtual nsresult GetRoleInternal(PRUint32 *aRole);
 
 protected:
