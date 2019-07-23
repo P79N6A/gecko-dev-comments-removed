@@ -934,10 +934,6 @@ nsXULPopupManager::FirePopupShowingEvent(nsIContent* aPopup,
 {
   nsCOMPtr<nsIPresShell> presShell = aPresContext->PresShell();
 
-  if (aMenu)
-    aMenu->SetAttr(kNameSpaceID_None, nsGkAtoms::open,
-                   NS_LITERAL_STRING("true"), PR_TRUE);
-
   
   
   
