@@ -403,12 +403,6 @@ nsNavHistory::Init()
   }
 
   
-  mTLDService = do_GetService(NS_EFFECTIVETLDSERVICE_CONTRACTID, &rv);
-  NS_ENSURE_SUCCESS(rv, rv);
-  mIDNService = do_GetService(NS_IDNSERVICE_CONTRACTID, &rv);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  
   nsCOMPtr<nsIStringBundleService> bundleService =
     do_GetService(NS_STRINGBUNDLE_CONTRACTID, &rv);
   NS_ENSURE_SUCCESS(rv, rv);
@@ -2051,13 +2045,20 @@ nsNavHistory::DomainNameFromURI(nsIURI *aURI,
                                 nsACString& aDomainName)
 {
   
-  
-  nsresult rv = mTLDService->GetBaseDomain(aURI, 0, aDomainName);
-  if (NS_FAILED(rv)) {
+  if (!mTLDService)
+    mTLDService = do_GetService(NS_EFFECTIVETLDSERVICE_CONTRACTID);
+
+  if (mTLDService) {
     
     
-    aURI->GetAsciiHost(aDomainName);
+    nsresult rv = mTLDService->GetBaseDomain(aURI, 0, aDomainName);
+    if (NS_SUCCEEDED(rv))
+      return;
   }
+
+  
+  
+  aURI->GetAsciiHost(aDomainName);
 }
 
 
@@ -4653,9 +4654,15 @@ nsNavHistory::GroupByHost(nsNavHistoryQueryResultNode *aResultNode,
         DomainNameFromURI(uri, domainName);
 
         
-        
-        PRBool isAscii;
-        rv = mIDNService->ConvertToDisplayIDN(domainName, &isAscii, curHostName);
+        if (!mIDNService)
+          mIDNService = do_GetService(NS_IDNSERVICE_CONTRACTID, &rv);
+
+        if (mIDNService) {
+          
+          
+          PRBool isAscii;
+          rv = mIDNService->ConvertToDisplayIDN(domainName, &isAscii, curHostName);
+        }
 
       } else {
         
