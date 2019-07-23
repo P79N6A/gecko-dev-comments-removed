@@ -49,6 +49,7 @@
 #include "nsIDOMEventListener.h"
 
 #include "nsEditRules.h"
+#include "nsCycleCollectionParticipant.h"
  
 class nsITransferable;
 class nsIDocumentEncoder;
@@ -68,6 +69,7 @@ public:
 
 
   NS_DECL_ISUPPORTS_INHERITED
+  NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(nsPlaintextEditor, nsEditor)
 
   
   enum {
