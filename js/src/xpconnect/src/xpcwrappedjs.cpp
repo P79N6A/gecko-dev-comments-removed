@@ -51,35 +51,10 @@ NS_IMETHODIMP
 NS_CYCLE_COLLECTION_CLASSNAME(nsXPCWrappedJS)::Traverse
    (void *p, nsCycleCollectionTraversalCallback &cb)
 {
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-
-    nsresult rv;
-    nsIXPConnectWrappedJS *base;
-    nsXPCWrappedJS *tmp;
-    {
-        
-        
-        nsCOMPtr<nsIXPConnectWrappedJS> owner =
-            do_QueryInterface(static_cast<nsISupports*>(p), &rv);
-        if (NS_FAILED(rv))
-            return rv;
-
-        base = owner.get();
-        tmp = static_cast<nsXPCWrappedJS*>(base);
-        NS_ASSERTION(tmp->mRefCnt.get() > 2,
-                     "How can this be, no one else holds a strong ref?");
-    }
-
-    NS_ASSERTION(tmp->IsValid(), "How did we get here?");
+    nsISupports *s = static_cast<nsISupports*>(p);
+    NS_ASSERTION(CheckForRightISupports(s),
+                 "not the nsISupports pointer we expect");
+    nsXPCWrappedJS *tmp = Downcast(s);
 
     nsrefcnt refcnt = tmp->mRefCnt.get();
 #ifdef DEBUG_CC
@@ -93,7 +68,7 @@ NS_CYCLE_COLLECTION_CLASSNAME(nsXPCWrappedJS)::Traverse
 
     
     
-    cb.NoteXPCOMChild(base);
+    cb.NoteXPCOMChild(s);
 
     if(refcnt > 1)
         
