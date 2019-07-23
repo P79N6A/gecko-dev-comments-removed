@@ -356,19 +356,19 @@ Sanitizer.prototype = {
       {
         
         var pm = Components.classes["@mozilla.org/permissionmanager;1"]
-                          .getService(Components.interfaces.nsIPermissionManager);
+                           .getService(Components.interfaces.nsIPermissionManager);
         pm.removeAll();
         
         
         var cps = Components.classes["@mozilla.org/content-pref/service;1"]
-                           .getService(Components.interfaces.nsIContentPrefService);
+                            .getService(Components.interfaces.nsIContentPrefService);
         cps.removeGroupedPrefs();
         
         
         
         var pwmgr = Components.classes["@mozilla.org/login-manager;1"]
-                   .getService(Components.interfaces.nsILoginManager);
-        var hosts = pwmgr.getAllDisabledHosts({})
+                              .getService(Components.interfaces.nsILoginManager);
+        var hosts = pwmgr.getAllDisabledHosts();
         for each (var host in hosts) {
           pwmgr.setLoginSavingEnabled(host, true);
         }

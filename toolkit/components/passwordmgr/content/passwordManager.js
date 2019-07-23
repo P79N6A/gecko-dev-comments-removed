@@ -107,7 +107,7 @@ var signonsTreeView = {
 function LoadSignons() {
   
   try {
-    signons = passwordmanager.getAllLogins({});
+    signons = passwordmanager.getAllLogins();
   } catch (e) {
     signons = [];
   }
@@ -228,7 +228,7 @@ function FinalizeSignonDeletions(syncNeeded) {
   
   if (syncNeeded) {
     try {
-      signons = passwordmanager.getAllLogins({});
+      signons = passwordmanager.getAllLogins();
     } catch (e) {
       signons = [];
     }

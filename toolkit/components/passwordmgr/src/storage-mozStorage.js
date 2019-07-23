@@ -494,7 +494,8 @@ LoginManagerStorage_mozStorage.prototype = {
             throw "User canceled Master Password entry";
 
         this.log("_getAllLogins: returning " + logins.length + " logins.");
-        count.value = logins.length; 
+        if (count)
+            count.value = logins.length; 
         return logins;
     },
 
@@ -661,7 +662,8 @@ LoginManagerStorage_mozStorage.prototype = {
         let disabledHosts = this._queryDisabledHosts(null);
 
         this.log("_getAllDisabledHosts: returning " + disabledHosts.length + " disabled hosts.");
-        count.value = disabledHosts.length; 
+        if (count)
+            count.value = disabledHosts.length; 
         return disabledHosts;
     },
 
@@ -1011,7 +1013,7 @@ LoginManagerStorage_mozStorage.prototype = {
                 legacy.init();
 
             
-            let logins = legacy.getAllEncryptedLogins({});
+            let logins = legacy.getAllEncryptedLogins();
 
             
             this._dbConnection.beginTransaction();
@@ -1022,7 +1024,7 @@ LoginManagerStorage_mozStorage.prototype = {
                     this.log("_importLegacySignons failed to add login: " + e);
                 }
             }
-            let disabledHosts = legacy.getAllDisabledHosts({});
+            let disabledHosts = legacy.getAllDisabledHosts();
             for each (let hostname in disabledHosts)
                 this.setLoginSavingEnabled(hostname, false);
             this._dbConnection.commitTransaction();

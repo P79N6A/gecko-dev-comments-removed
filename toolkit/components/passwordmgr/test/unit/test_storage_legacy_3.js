@@ -536,12 +536,12 @@ dummyuser1.usernameField = "ohnoes";
 LoginTest.checkStorageData(storage, [], [dummyuser2]);
 
 
-var logins = storage.getAllLogins({});
+var logins = storage.getAllLogins();
 do_check_eq(logins.length, 1);
 var obtainedLogin1 = logins[0];
 obtainedLogin1.usernameField = "ohnoes";
 
-logins = storage.getAllLogins({});
+logins = storage.getAllLogins();
 var obtainedLogin2 = logins[0];
 
 do_check_neq(obtainedLogin1.usernameField, obtainedLogin2.usernameField);
