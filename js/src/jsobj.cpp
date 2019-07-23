@@ -3198,9 +3198,9 @@ js_DefineNativeProperty(JSContext *cx, JSObject *obj, jsid id, jsval value,
         
         if (clasp->flags & JSCLASS_SHARE_ALL_PROPERTIES)
             attrs |= JSPROP_SHARED;
-            sprop = js_AddScopeProperty(cx, scope, id, getter, setter,
-                                        SPROP_INVALID_SLOT, attrs, flags,
-                                        shortid);
+        sprop = js_AddScopeProperty(cx, scope, id, getter, setter,
+                                    SPROP_INVALID_SLOT, attrs, flags,
+                                    shortid);
         if (!sprop)
             goto bad;
     }
