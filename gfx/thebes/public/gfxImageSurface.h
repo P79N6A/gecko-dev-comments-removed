@@ -69,17 +69,23 @@ public:
     gfxImageFormat Format() const { return mFormat; }
 
     const gfxIntSize& GetSize() const { return mSize; }
+    PRInt32 Width() const { return mSize.width; }
+    PRInt32 Height() const { return mSize.height; }
 
     
 
 
 
-    long Stride() const { return mStride; }
+    PRInt32 Stride() const { return mStride; }
     
 
 
 
-    unsigned char* Data() { return mData; } 
+    unsigned char* Data() const { return mData; } 
+    
+
+
+    PRInt32 GetDataSize() const { return mStride*mSize.height; }
 
     
     PRBool CopyFrom (gfxImageSurface *other);
