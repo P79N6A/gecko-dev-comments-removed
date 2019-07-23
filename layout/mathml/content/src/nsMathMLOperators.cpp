@@ -35,6 +35,8 @@
 
 
 
+
+
 #include "nsCOMPtr.h"
 #include "nsString.h"
 #include "nsHashtable.h"
@@ -300,7 +302,7 @@ InitOperators(void)
   if (NS_FAILED(rv)) return rv;
 
   
-  for (PRInt32 i = 0; i < nsMathMLOperators::eMATHVARIANT_COUNT; ++i) {
+  for (PRInt32 i = 0; i < eMATHVARIANT_COUNT; ++i) {
     nsCAutoString key(NS_LITERAL_CSTRING("mathvariant."));
     key.Append(kMathVariant_name[i]);
     nsAutoString value;
@@ -611,22 +613,46 @@ nsMathMLOperators::DisableStretchyOperatorAt(PRInt32 aIndex)
   }
 }
 
-PRBool
-nsMathMLOperators::LookupInvariantChar(PRUnichar     aChar,
-                                       eMATHVARIANT* aType)
+ eMATHVARIANT
+nsMathMLOperators::LookupInvariantChar(const nsAString& aChar)
 {
   if (!gInitialized) {
     InitGlobals();
   }
-  if (aType) *aType = eMATHVARIANT_NONE;
   if (gInvariantCharArray) {
     for (PRInt32 i = gInvariantCharArray->Count()-1; i >= 0; --i) {
       nsString* list = gInvariantCharArray->StringAt(i);
-      if (kNotFound != list->FindChar(aChar)) {
-        if (aType) *aType = eMATHVARIANT(i);
-        return PR_TRUE;
+      nsString::const_iterator start, end;
+      list->BeginReading(start);
+      list->EndReading(end);
+      
+      if (FindInReadable(aChar, start, end) &&
+          start.size_backward() % 3 == 1) {
+        return eMATHVARIANT(i);
       }
     }
   }
-  return PR_FALSE;
+  return eMATHVARIANT_NONE;
+}
+
+ const nsDependentSubstring
+nsMathMLOperators::TransformVariantChar(const PRUnichar& aChar,
+                                        eMATHVARIANT aVariant)
+{
+  if (!gInitialized) {
+    InitGlobals();
+  }
+  if (gInvariantCharArray) {
+    nsString* list = gInvariantCharArray->StringAt(aVariant);
+    PRInt32 index = list->FindChar(aChar);
+    
+    if (index != kNotFound && index % 3 == 0 && list->Length() - index >= 2 ) {
+      
+      
+      ++index;
+      PRUint32 len = NS_IS_HIGH_SURROGATE(list->CharAt(index)) ? 2 : 1;
+      return nsDependentSubstring(*list, index, len);
+    }
+  }
+  return nsDependentSubstring(&aChar, &aChar + 1);  
 }

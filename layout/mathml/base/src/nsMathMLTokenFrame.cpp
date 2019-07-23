@@ -36,6 +36,7 @@
 
 
 
+
 #include "nsCOMPtr.h"
 #include "nsFrame.h"
 #include "nsPresContext.h"
@@ -66,10 +67,38 @@ nsMathMLTokenFrame::GetMathMLFrameType()
 
   
   
-  return mContent->AttrValueIs(kNameSpaceID_None, nsGkAtoms::MOZfontstyle,
-                               nsGkAtoms::normal, eCaseMatters)
-    ? eMathMLFrameType_UprightIdentifier
-    : eMathMLFrameType_ItalicIdentifier;
+  
+  nsAutoString style;
+  
+  
+  mContent->GetAttr(kNameSpaceID_None, nsGkAtoms::MOZfontstyle, style) ||
+    mContent->GetAttr(kNameSpaceID_None, nsGkAtoms::mathvariant_, style) ||
+    mContent->GetAttr(kNameSpaceID_None, nsGkAtoms::fontstyle_, style);
+
+  if (style.EqualsLiteral("italic") || style.EqualsLiteral("bold-italic") ||
+      style.EqualsLiteral("script") || style.EqualsLiteral("bold-script") ||
+      style.EqualsLiteral("sans-serif-italic") ||
+      style.EqualsLiteral("sans-serif-bold-italic")) {
+    return eMathMLFrameType_ItalicIdentifier;
+  }
+  else if(style.EqualsLiteral("invariant")) {
+    nsAutoString data;
+    nsContentUtils::GetNodeTextContent(mContent, PR_FALSE, data);
+    eMATHVARIANT variant = nsMathMLOperators::LookupInvariantChar(data);
+
+    switch (variant) {
+    case eMATHVARIANT_italic:
+    case eMATHVARIANT_bold_italic:
+    case eMATHVARIANT_script:
+    case eMATHVARIANT_bold_script:
+    case eMATHVARIANT_sans_serif_italic:
+    case eMATHVARIANT_sans_serif_bold_italic:
+      return eMathMLFrameType_ItalicIdentifier;
+    default:
+      ; 
+    }
+  }
+  return eMathMLFrameType_UprightIdentifier;
 }
 
 static void
@@ -253,6 +282,29 @@ nsMathMLTokenFrame::ProcessTextData()
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 PRBool
 nsMathMLTokenFrame::SetTextStyle()
 {
@@ -269,21 +321,47 @@ nsMathMLTokenFrame::SetTextStyle()
   if (!length)
     return PR_FALSE;
 
-  
   nsAutoString fontstyle;
-  GetAttribute(mContent, mPresentationData.mstyle, nsGkAtoms::fontstyle_, fontstyle);
-  if (1 == length && nsMathMLOperators::LookupInvariantChar(data[0])) {
+  PRBool isSingleCharacter =
+    length == 1 ||
+    (length == 2 && NS_IS_HIGH_SURROGATE(data[0]));
+  if (isSingleCharacter &&
+      nsMathMLOperators::LookupInvariantChar(data) != eMATHVARIANT_NONE) {
     
     fontstyle.AssignLiteral("invariant");
   }
-  if (fontstyle.IsEmpty()) {
-    fontstyle.AssignASCII((1 == length) ? "italic" : "normal"); 
+  else {
+    
+    if (!(mContent->HasAttr(kNameSpaceID_None, nsGkAtoms::mathvariant_) ||
+          mContent->HasAttr(kNameSpaceID_None, nsGkAtoms::fontstyle_))) {
+      if (!isSingleCharacter) {
+        fontstyle.AssignLiteral("normal");
+      }
+      else if (length == 1 && 
+               !nsMathMLOperators::
+                TransformVariantChar(data[0], eMATHVARIANT_italic).
+                Equals(data)) {
+        
+        
+        fontstyle.AssignLiteral("italic");
+      }
+      
+      
+      
+    }
   }
 
   
-  if (!mContent->AttrValueIs(kNameSpaceID_None, nsGkAtoms::MOZfontstyle,
-                             fontstyle, eCaseMatters)) {
-    mContent->SetAttr(kNameSpaceID_None, nsGkAtoms::MOZfontstyle, fontstyle, PR_FALSE);
+  if (fontstyle.IsEmpty()) {
+    if (mContent->HasAttr(kNameSpaceID_None, nsGkAtoms::MOZfontstyle)) {
+      mContent->UnsetAttr(kNameSpaceID_None, nsGkAtoms::MOZfontstyle, PR_FALSE);
+      return PR_TRUE;
+    }
+  }
+  else if (!mContent->AttrValueIs(kNameSpaceID_None, nsGkAtoms::MOZfontstyle,
+                                  fontstyle, eCaseMatters)) {
+    mContent->SetAttr(kNameSpaceID_None, nsGkAtoms::MOZfontstyle,
+                      fontstyle, PR_FALSE);
     return PR_TRUE;
   }
 

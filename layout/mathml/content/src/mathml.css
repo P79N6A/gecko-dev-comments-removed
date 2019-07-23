@@ -75,14 +75,30 @@ math[display="inline"] {
 
 
 
+
+
 [-moz-math-font-style="italic"] {
-  font-style: italic; 
+  font-style: italic;
+  font-weight: normal;
 }
+
+
+
+
+
+
+
+
+
+
+
 [-moz-math-font-style="normal"] {
-  font-style: normal; 
+  font-style: normal;
 }
+
 [-moz-math-font-style="invariant"] {
-  font-style: normal; 
+  font-style: normal;
+  font-weight: normal;
 }
 
 
@@ -105,6 +121,12 @@ math[display="inline"] {
 [fontweight="bold"] {
   font-weight: bold;
 }
+
+
+
+
+
+
 
 
 
