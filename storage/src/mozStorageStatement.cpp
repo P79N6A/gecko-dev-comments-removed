@@ -38,6 +38,7 @@
 
 
 
+
 #include <stdio.h>
 
 #include "nsError.h"
@@ -803,5 +804,22 @@ mozStorageStatement::EscapeStringForLIKE(const nsAString & aValue,
             aEscapedString += aEscapeChar;
         aEscapedString += aValue[i];
     }
+    return NS_OK;
+}
+
+
+NS_IMETHODIMP
+mozStorageStatement::GetColumnDecltype(PRUint32 aParamIndex,
+                                       nsACString& aDeclType)
+{
+    if (!mDBConnection || !mDBStatement)
+        return NS_ERROR_NOT_INITIALIZED;
+    
+    if (aParamIndex < 0 || aParamIndex >= mResultColumnCount)
+        return NS_ERROR_ILLEGAL_VALUE;
+
+    const char *declType = sqlite3_column_decltype(mDBStatement, aParamIndex);
+    aDeclType.Assign(declType);
+    
     return NS_OK;
 }
