@@ -754,20 +754,21 @@ nsEventListenerManager::AddScriptEventListener(nsISupports *aObject,
     }
   }
 
-  if (global) {
+  if (!global) {
     
     
-    if (NS_FAILED(global->EnsureScriptEnvironment(aLanguage))) {
-      NS_WARNING("Failed to setup script environment for this language");
-      
-    }
-
-    context = global->GetScriptContext(aLanguage);
+    return NS_OK;
   }
-  NS_ENSURE_TRUE(context, NS_ERROR_FAILURE);
+  
+  
+  
+  if (NS_FAILED(global->EnsureScriptEnvironment(aLanguage))) {
+    NS_WARNING("Failed to setup script environment for this language");
+    
+  }
 
-  NS_ASSERTION(global, "How could we possibly have a context without an "
-               "nsIScriptGlobalObject?");
+  context = global->GetScriptContext(aLanguage);
+  NS_ENSURE_TRUE(context, NS_ERROR_FAILURE);
 
   void *scope = global->GetScriptGlobal(aLanguage);
   nsresult rv;
