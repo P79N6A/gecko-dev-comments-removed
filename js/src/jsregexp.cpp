@@ -3181,7 +3181,7 @@ class RegExpNativeCompiler {
         if (outOfMemory())
             goto fail;
         
-        lir = lirBufWriter = new LirBufWriter(lirbuf);
+        lir = lirBufWriter = new LirBufWriter(lirbuf, nanojit::AvmCore::config);
 
         
 #ifdef NJ_VERBOSE
