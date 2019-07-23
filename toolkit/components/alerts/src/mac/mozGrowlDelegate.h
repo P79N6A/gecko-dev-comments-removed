@@ -76,6 +76,20 @@
 
 
 
+- (void) addNotificationNames:(NSArray*)aNames;
+
+
+
+
+
+
+- (void) addEnabledNotifications:(NSArray*)aEnabled;
+
+
+
+
+
+
 
 - (PRUint32) addObserver:(nsIObserver*)aObserver;
 
