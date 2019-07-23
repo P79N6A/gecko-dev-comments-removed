@@ -284,10 +284,12 @@ protected:
     WebGLObjectRefPtr<WebGLBuffer> mBoundElementArrayBuffer;
     WebGLObjectRefPtr<WebGLProgram> mCurrentProgram;
 
-    nsTArray<nsRefPtr<WebGLFramebuffer> > mBoundColorFramebuffers;
-    nsRefPtr<WebGLFramebuffer> mBoundDepthFramebuffer;
-    nsRefPtr<WebGLFramebuffer> mBoundStencilFramebuffer;
+    
+    nsTArray<WebGLObjectRefPtr<WebGLTexture> > mFramebufferColorAttachments;
+    nsRefPtr<WebGLFramebuffer> mFramebufferDepthAttachment;
+    nsRefPtr<WebGLFramebuffer> mFramebufferStencilAttachment;
 
+    nsRefPtr<WebGLFramebuffer> mBoundFramebuffer;
     nsRefPtr<WebGLRenderbuffer> mBoundRenderbuffer;
 
     
