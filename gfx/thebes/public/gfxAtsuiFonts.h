@@ -133,6 +133,14 @@ public:
                              PRBool aWrapped, gfxTextRun *aTextRun);
 
     gfxAtsuiFont* GetFontAt(PRInt32 aFontIndex) {
+        
+        
+        
+        
+        NS_ASSERTION(!mUserFontSet || mCurrGeneration == GetGeneration(),
+                     "Whoever was caching this font group should have "
+                     "called UpdateFontList on it");
+
         return static_cast<gfxAtsuiFont*>(static_cast<gfxFont*>(mFonts[aFontIndex]));
     }
 

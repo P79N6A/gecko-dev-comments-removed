@@ -116,6 +116,10 @@ public:
     virtual PRInt32 GetMaxStringLength() = 0;
 
     virtual gfxFontGroup* GetThebesFontGroup() = 0;
+
+    
+    
+    virtual gfxUserFontSet* GetUserFontSet() = 0;
 };
 
 #endif 
