@@ -2589,10 +2589,11 @@ nsGenericHTMLFormElement::GetDesiredIMEState()
 }
 
 PRBool
-nsGenericHTMLFrameElement::IsFocusable(PRInt32 *aTabIndex)
+nsGenericHTMLFrameElement::IsHTMLFocusable(PRBool *aIsFocusable,
+                                           PRInt32 *aTabIndex)
 {
-  if (!nsGenericHTMLElement::IsFocusable(aTabIndex)) {
-    return PR_FALSE;
+  if (nsGenericHTMLElement::IsHTMLFocusable(aIsFocusable, aTabIndex)) {
+    return PR_TRUE;
   }
 
   
@@ -2623,11 +2624,12 @@ nsGenericHTMLFrameElement::IsFocusable(PRInt32 *aTabIndex)
     }
   }
 
+  *aIsFocusable = isFocusable;
   if (!isFocusable && aTabIndex) {
     *aTabIndex = -1;
   }
 
-  return isFocusable;
+  return PR_FALSE;
 }
 
 nsresult
@@ -3121,7 +3123,7 @@ nsGenericHTMLElement::RemoveFocus(nsPresContext *aPresContext)
 }
 
 PRBool
-nsGenericHTMLElement::IsFocusable(PRInt32 *aTabIndex)
+nsGenericHTMLElement::IsHTMLFocusable(PRBool *aIsFocusable, PRInt32 *aTabIndex)
 {
   nsIDocument *doc = GetCurrentDoc();
   if (!doc || doc->HasFlag(NODE_IS_EDITABLE)) {
@@ -3130,14 +3132,19 @@ nsGenericHTMLElement::IsFocusable(PRInt32 *aTabIndex)
       *aTabIndex = -1;
     }
 
-    return PR_FALSE;
+    *aIsFocusable = PR_FALSE;
+
+    return PR_TRUE;
   }
 
   PRInt32 tabIndex = 0;   
   GetTabIndex(&tabIndex);
 
-  PRBool disabled;
+  PRBool override, disabled;
   if (IsEditableRoot()) {
+    
+    override = PR_TRUE;
+
     
     
     disabled = PR_FALSE;
@@ -3148,6 +3155,8 @@ nsGenericHTMLElement::IsFocusable(PRInt32 *aTabIndex)
     }
   }
   else {
+    override = PR_FALSE;
+
     
     disabled = HasAttr(kNameSpaceID_None, nsGkAtoms::disabled);
     if (disabled) {
@@ -3160,7 +3169,10 @@ nsGenericHTMLElement::IsFocusable(PRInt32 *aTabIndex)
   }
 
   
-  return tabIndex >= 0 || (!disabled && HasAttr(kNameSpaceID_None, nsGkAtoms::tabindex));
+  *aIsFocusable = tabIndex >= 0 ||
+                  (!disabled && HasAttr(kNameSpaceID_None, nsGkAtoms::tabindex));
+
+  return override;
 }
 
 void

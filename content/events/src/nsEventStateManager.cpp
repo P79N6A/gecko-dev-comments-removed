@@ -3522,6 +3522,13 @@ nsEventStateManager::ShiftFocusInternal(PRBool aForward, nsIContent* aStart)
         selectionFrame = nsnull;
       
       
+      nsCOMPtr<nsIHTMLDocument> htmlDoc = do_QueryInterface(mDocument);
+      if (htmlDoc &&
+          htmlDoc->GetEditingState() == nsIHTMLDocument::eContentEditable &&
+          selectionContent && selectionContent->HasFlag(NODE_IS_EDITABLE))
+        selectionFrame = nsnull;
+      
+      
       
       if (selectionFrame) {
         PRBool selectionWithFocus;

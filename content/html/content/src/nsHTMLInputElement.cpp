@@ -198,7 +198,7 @@ public:
 
   
   virtual void SetFocus(nsPresContext* aPresContext);
-  virtual PRBool IsFocusable(PRInt32 *aTabIndex = nsnull);
+  virtual PRBool IsHTMLFocusable(PRBool *aIsFocusable, PRInt32 *aTabIndex);
 
   virtual PRBool ParseAttribute(PRInt32 aNamespaceID,
                                 nsIAtom* aAttribute,
@@ -2902,14 +2902,15 @@ nsHTMLInputElement::WillRemoveFromRadioGroup()
 }
 
 PRBool
-nsHTMLInputElement::IsFocusable(PRInt32 *aTabIndex)
+nsHTMLInputElement::IsHTMLFocusable(PRBool *aIsFocusable, PRInt32 *aTabIndex)
 {
-  if (!nsGenericHTMLElement::IsFocusable(aTabIndex)) {
-    return PR_FALSE;
+  if (nsGenericHTMLElement::IsHTMLFocusable(aIsFocusable, aTabIndex)) {
+    return PR_TRUE;
   }
 
   if (mType == NS_FORM_INPUT_TEXT || mType == NS_FORM_INPUT_PASSWORD) {
-    return PR_TRUE;
+    *aIsFocusable = PR_TRUE;
+    return PR_FALSE;
   }
 
   if (mType == NS_FORM_INPUT_HIDDEN || mType == NS_FORM_INPUT_FILE) {
@@ -2917,12 +2918,14 @@ nsHTMLInputElement::IsFocusable(PRInt32 *aTabIndex)
     if (aTabIndex) {
       *aTabIndex = -1;
     }
+    *aIsFocusable = PR_FALSE;
     return PR_FALSE;
   }
 
   if (!aTabIndex) {
     
-    return PR_TRUE;
+    *aIsFocusable = PR_TRUE;
+    return PR_FALSE;
   }
 
   
@@ -2932,14 +2935,16 @@ nsHTMLInputElement::IsFocusable(PRInt32 *aTabIndex)
   }
 
   if (mType != NS_FORM_INPUT_RADIO) {
-    return PR_TRUE;
+    *aIsFocusable = PR_TRUE;
+    return PR_FALSE;
   }
 
   PRBool checked;
   GetChecked(&checked);
   if (checked) {
     
-    return PR_TRUE;
+    *aIsFocusable = PR_TRUE;
+    return PR_FALSE;
   }
 
   
@@ -2947,7 +2952,8 @@ nsHTMLInputElement::IsFocusable(PRInt32 *aTabIndex)
   nsCOMPtr<nsIRadioGroupContainer> container = GetRadioGroupContainer();
   nsAutoString name;
   if (!container || !GetNameIfExists(name)) {
-    return PR_TRUE;
+    *aIsFocusable = PR_TRUE;
+    return PR_FALSE;
   }
 
   nsCOMPtr<nsIDOMHTMLInputElement> currentRadio;
@@ -2955,7 +2961,8 @@ nsHTMLInputElement::IsFocusable(PRInt32 *aTabIndex)
   if (currentRadio) {
     *aTabIndex = -1;
   }
-  return PR_TRUE;
+  *aIsFocusable = PR_TRUE;
+  return PR_FALSE;
 }
 
 nsresult
