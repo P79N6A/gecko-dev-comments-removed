@@ -3874,7 +3874,7 @@ nsBrowserStatusHandler.prototype =
       this.securityButton.removeAttribute("label");
 
     this.securityButton.setAttribute("tooltiptext", this._tooltipText);
-    getIdentityHandler().checkIdentity(this._state, this._host);
+    getIdentityHandler().checkIdentity(this._state, gBrowser.contentWindow.location);
   },
 
   
@@ -5986,7 +5986,7 @@ IdentityHandler.prototype = {
 
   
   _lastStatus : null,
-  _lastHost : null,
+  _lastLocation : null,
 
   
 
@@ -6053,12 +6053,12 @@ IdentityHandler.prototype = {
 
 
 
-  checkIdentity : function(state, host) {
+  checkIdentity : function(state, location) {
     var currentStatus = gBrowser.securityUI
                                 .QueryInterface(Components.interfaces.nsISSLStatusProvider)
                                 .SSLStatus;
     this._lastStatus = currentStatus;
-    this._lastHost = host;
+    this._lastLocation = location;
     
     if (state & Components.interfaces.nsIWebProgressListener.STATE_IDENTITY_EV_TOPLEVEL)
       this.setMode(this.IDENTITY_MODE_IDENTIFIED);
@@ -6066,6 +6066,23 @@ IdentityHandler.prototype = {
       this.setMode(this.IDENTITY_MODE_DOMAIN_VERIFIED);
     else
       this.setMode(this.IDENTITY_MODE_UNKNOWN);
+  },
+  
+  
+
+
+  getEffectiveHost : function() {
+    
+    if (!this._eTLDService)
+      this._eTLDService = Cc["@mozilla.org/network/effective-tld-service;1"]
+                         .getService(Ci.nsIEffectiveTLDService);
+    try {
+      return this._eTLDService.getBaseDomainFromHost(this._lastLocation.hostname);
+    } catch (e) {
+      
+      
+      return this._lastLocation.hostname;
+    }
   },
   
   
@@ -6106,24 +6123,15 @@ IdentityHandler.prototype = {
       var icon_label = "";
       switch (gPrefService.getIntPref("browser.identity.ssl_domain_display")) {
         case 2 : 
-          icon_label = this._lastHost;
+          icon_label = this._lastLocation.hostname;
           break;
         case 1 : 
-          if (!this._eTLDService)
-            this._eTLDService = Cc["@mozilla.org/network/effective-tld-service;1"]
-                                .getService(Ci.nsIEffectiveTLDService);
-          try {
-            icon_label = this._eTLDService.getBaseDomainFromHost(this._lastHost);
-          } catch (e) {
-            
-            
-            icon_label = this._lastHost;
-          }
+          icon_label = this.getEffectiveHost();
       }
       
       
       
-      var lookupHost = this._lastHost;
+      var lookupHost = this._lastLocation.host;
       if (lookupHost.indexOf(':') < 0)
         lookupHost += ":443";
 
@@ -6178,21 +6186,10 @@ IdentityHandler.prototype = {
     
     var supplemental = "";
     var verifier = "";
-      
-    
-    if (!this._eTLDService)
-      this._eTLDService = Cc["@mozilla.org/network/effective-tld-service;1"]
-                          .getService(Ci.nsIEffectiveTLDService);
     
     if (newMode == this.IDENTITY_MODE_DOMAIN_VERIFIED) {
       var iData = this.getIdentityData();
-
-      try {
-        var host = this._eTLDService.getBaseDomainFromHost(this._lastHost);
-      } catch (e) {
-        
-        host = this._lastHost;
-      }
+      var host = this.getEffectiveHost();
       var owner = this._stringBundle.getString("identity.ownerUnknown2");
       verifier = this._identityBox.tooltipText;
       supplemental = "";
@@ -6200,13 +6197,7 @@ IdentityHandler.prototype = {
     else if (newMode == this.IDENTITY_MODE_IDENTIFIED) {
       
       iData = this.getIdentityData();
-
-      try {
-        host = this._eTLDService.getBaseDomainFromHost(this._lastHost);
-      } catch (e) {
-        
-        host = this._lastHost;
-      }
+      host = this.getEffectiveHost();
       owner = iData.subjectOrg; 
       verifier = this._identityBox.tooltipText;
 
