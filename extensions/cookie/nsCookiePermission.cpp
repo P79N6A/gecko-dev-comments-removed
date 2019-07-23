@@ -39,6 +39,7 @@
 
 
 
+
 #include "nsCookiePermission.h"
 #include "nsICookie2.h"
 #include "nsIServiceManager.h"
@@ -59,6 +60,7 @@
 #include "nsCRT.h"
 #include "nsILoadContext.h"
 #include "nsIScriptObjectPrincipal.h"
+#include "nsNetCID.h"
 
 
 
@@ -302,7 +304,9 @@ nsCookiePermission::CanSetCookie(nsIURI     *aURI,
     if (mCookiesLifetimePolicy == ASK_BEFORE_ACCEPT) {
       
       
-      if (*aIsSession && mCookiesAlwaysAcceptSession) {
+      
+      if ((*aIsSession && mCookiesAlwaysAcceptSession) ||
+          InPrivateBrowsing()) {
         *aResult = PR_TRUE;
         return NS_OK;
       }
@@ -507,4 +511,15 @@ nsCookiePermission::Observe(nsISupports     *aSubject,
   if (prefBranch)
     PrefChanged(prefBranch, NS_LossyConvertUTF16toASCII(aData).get());
   return NS_OK;
+}
+
+PRBool
+nsCookiePermission::InPrivateBrowsing()
+{
+  PRBool inPrivateBrowsingMode = PR_FALSE;
+  if (!mPBService)
+    mPBService = do_GetService(NS_PRIVATE_BROWSING_SERVICE_CONTRACTID);
+  if (mPBService)
+    mPBService->GetPrivateBrowsingEnabled(&inPrivateBrowsingMode);
+  return inPrivateBrowsingMode;
 }
