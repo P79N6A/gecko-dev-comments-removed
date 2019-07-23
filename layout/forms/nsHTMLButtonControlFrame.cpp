@@ -347,7 +347,6 @@ nsHTMLButtonControlFrame::ReflowButtonContents(nsPresContext* aPresContext,
   
   
   availSize.width -= aFocusPadding.LeftRight();
-  availSize.width = PR_MAX(availSize.width,0);
   
   
   
@@ -367,6 +366,7 @@ nsHTMLButtonControlFrame::ReflowButtonContents(nsPresContext* aPresContext,
     xoffset -= extraleft;
     availSize.width += extraleft + extraright;
   }
+  availSize.width = PR_MAX(availSize.width,0);
   
   nsHTMLReflowState reflowState(aPresContext, aReflowState, aFirstKid,
                                 availSize);
