@@ -325,15 +325,16 @@ nsComputedDOMStyle::GetStyleContextForContent(nsIContent* aContent,
 {
   NS_ASSERTION(aContent->IsNodeOfType(nsINode::eELEMENT),
                "aContent must be an element");
+  if (!aPseudo) {
+    
+    if (!aPresShell) {
+      aPresShell = GetPresShellForContent(aContent);
+      if (!aPresShell)
+        return nsnull;
+    }
 
-  
-  if (!aPresShell) {
-    aPresShell = GetPresShellForContent(aContent);
-    if (!aPresShell)
-      return nsnull;
+    aPresShell->FlushPendingNotifications(Flush_Style);
   }
-
-  aPresShell->FlushPendingNotifications(Flush_Style);
 
   return GetStyleContextForContentNoFlush(aContent, aPseudo, aPresShell);
 }
@@ -375,7 +376,7 @@ nsComputedDOMStyle::GetStyleContextForContentNoFlush(nsIContent* aContent,
   nsIContent* parent = aPseudo ? aContent : aContent->GetParent();
   
   if (parent && parent->IsNodeOfType(nsINode::eELEMENT))
-    parentContext = GetStyleContextForContentNoFlush(parent, nsnull, aPresShell);
+    parentContext = GetStyleContextForContent(parent, nsnull, aPresShell);
 
   nsPresContext *presContext = aPresShell->GetPresContext();
   if (!presContext)
@@ -384,11 +385,7 @@ nsComputedDOMStyle::GetStyleContextForContentNoFlush(nsIContent* aContent,
   nsStyleSet *styleSet = aPresShell->StyleSet();
 
   if (aPseudo) {
-    nsCSSPseudoElements::Type type = nsCSSPseudoElements::GetPseudoType(aPseudo);
-    if (type >= nsCSSPseudoElements::ePseudo_PseudoElementCount) {
-      return nsnull;
-    }
-    return styleSet->ResolvePseudoElementStyle(aContent, type, parentContext);
+    return styleSet->ResolvePseudoStyleFor(aContent, aPseudo, parentContext);
   }
 
   return styleSet->ResolveStyleFor(aContent, parentContext);

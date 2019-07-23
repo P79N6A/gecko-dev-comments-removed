@@ -55,8 +55,6 @@
 #include "nsCOMArray.h"
 #include "nsAutoPtr.h"
 #include "nsIStyleRule.h"
-#include "nsCSSPseudoElements.h"
-#include "nsCSSAnonBoxes.h"
 
 class nsIURI;
 class nsCSSFontFaceRule;
@@ -107,7 +105,6 @@ class nsStyleSet
   already_AddRefed<nsStyleContext>
   ResolveStyleForRules(nsStyleContext* aParentContext,
                        nsIAtom* aPseudoTag,
-                       nsCSSPseudoElements::Type aPseudoType,
                        nsRuleNode *aRuleNode,
                        const nsCOMArray<nsIStyleRule> &aRules);
 
@@ -124,34 +121,20 @@ class nsStyleSet
   
   
   
+  
   already_AddRefed<nsStyleContext>
-  ResolvePseudoElementStyle(nsIContent* aParentContent,
-                            nsCSSPseudoElements::Type aType,
-                            nsStyleContext* aParentContext);
+  ResolvePseudoStyleFor(nsIContent* aParentContent,
+                        nsIAtom* aPseudoTag,
+                        nsStyleContext* aParentContext,
+                        nsICSSPseudoComparator* aComparator = nsnull);
 
   
   
   
   already_AddRefed<nsStyleContext>
-  ProbePseudoElementStyle(nsIContent* aParentContent,
-                          nsCSSPseudoElements::Type aType,
-                          nsStyleContext* aParentContext);
-  
-  
-  
-  already_AddRefed<nsStyleContext>
-  ResolveAnonymousBoxStyle(nsIAtom* aPseudoTag, nsStyleContext* aParentContext);
-
-#ifdef MOZ_XUL
-  
-  
-  
-  already_AddRefed<nsStyleContext>
-  ResolveXULTreePseudoStyle(nsIContent* aParentContent,
-                            nsIAtom* aPseudoTag,
-                            nsStyleContext* aParentContext,
-                            nsICSSPseudoComparator* aComparator);
-#endif
+  ProbePseudoStyleFor(nsIContent* aParentContent,
+                      nsIAtom* aPseudoTag,
+                      nsStyleContext* aParentContext);
 
   
   
@@ -298,7 +281,7 @@ class nsStyleSet
 
   
   
-  void WalkRestrictionRule(nsCSSPseudoElements::Type aPseudoType,
+  void WalkRestrictionRule(nsIAtom* aPseudoType,
                            nsRuleWalker* aRuleWalker);
 
 #ifdef DEBUG
@@ -317,11 +300,8 @@ class nsStyleSet
   
   
   
-  
-  
-  
   void FileRules(nsIStyleRuleProcessor::EnumFunc aCollectorFunc,
-                 void* aData, nsIContent* aContent, nsRuleWalker* aRuleWalker);
+                 RuleProcessorData* aData, nsRuleWalker* aRuleWalker);
 
   
   
@@ -331,8 +311,7 @@ class nsStyleSet
   already_AddRefed<nsStyleContext> GetContext(nsPresContext* aPresContext,
                                               nsStyleContext* aParentContext,
                                               nsRuleNode* aRuleNode,
-                                              nsIAtom* aPseudoTag,
-                                              nsCSSPseudoElements::Type aPseudoType);
+                                              nsIAtom* aPseudoTag);
 
   nsPresContext* PresContext() { return mRuleTree->GetPresContext(); }
 

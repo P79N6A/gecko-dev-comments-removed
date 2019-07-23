@@ -48,7 +48,6 @@
 #include "nsString.h"
 #include "nsChangeHint.h"
 #include "nsIContent.h"
-#include "nsCSSPseudoElements.h"
 
 class nsIStyleSheet;
 class nsPresContext;
@@ -154,11 +153,10 @@ private:
   
   PRInt32 mNthIndices[2][2];
 
-  
   PRInt32 mContentState;  
-                          
   nsLinkState mLinkState; 
   PRPackedBool mIsLink;   
+                          
   PRPackedBool mGotContentState;
   PRPackedBool mGotLinkInfo; 
                              
@@ -171,67 +169,29 @@ struct ElementRuleProcessorData : public RuleProcessorData {
   : RuleProcessorData(aPresContext,aContent,aRuleWalker)
   {
     NS_PRECONDITION(aPresContext, "null pointer");
+    NS_PRECONDITION(aContent, "null pointer");
     NS_PRECONDITION(aRuleWalker, "null pointer");
   }
 };
 
-struct PseudoElementRuleProcessorData : public RuleProcessorData {
-  PseudoElementRuleProcessorData(nsPresContext* aPresContext,
-                                 nsIContent* aParentContent,
-                                 nsRuleWalker* aRuleWalker,
-                                 nsCSSPseudoElements::Type aPseudoType)
-    : RuleProcessorData(aPresContext, aParentContent, aRuleWalker),
-      mPseudoType(aPseudoType)
-  {
-    NS_PRECONDITION(aPresContext, "null pointer");
-    NS_PRECONDITION(aPseudoType <
-                      nsCSSPseudoElements::ePseudo_PseudoElementCount,
-                    "null pointer");
-    NS_PRECONDITION(aRuleWalker, "null pointer");
-  }
-
-  nsCSSPseudoElements::Type mPseudoType;
-};
-
-struct AnonBoxRuleProcessorData {
-  AnonBoxRuleProcessorData(nsPresContext* aPresContext,
-                           nsIAtom* aPseudoTag,
-                           nsRuleWalker* aRuleWalker)
-    : mPresContext(aPresContext),
-      mPseudoTag(aPseudoTag),
-      mRuleWalker(aRuleWalker)
-  {
-    NS_PRECONDITION(mPresContext, "Must have prescontext");
-    NS_PRECONDITION(aPseudoTag, "Must have pseudo tag");
-    NS_PRECONDITION(aRuleWalker, "Must have rule walker");
-  }
-
-  nsPresContext* mPresContext;
-  nsIAtom* mPseudoTag;
-  nsRuleWalker* mRuleWalker;
-};
-
-#ifdef MOZ_XUL
-struct XULTreeRuleProcessorData : public RuleProcessorData {
-  XULTreeRuleProcessorData(nsPresContext* aPresContext,
-                           nsIContent* aParentContent,
-                           nsRuleWalker* aRuleWalker,
-                           nsIAtom* aPseudoTag,
-                           nsICSSPseudoComparator* aComparator)
-    : RuleProcessorData(aPresContext, aParentContent, aRuleWalker),
-      mPseudoTag(aPseudoTag),
-      mComparator(aComparator)
+struct PseudoRuleProcessorData : public RuleProcessorData {
+  PseudoRuleProcessorData(nsPresContext* aPresContext,
+                          nsIContent* aParentContent,
+                          nsIAtom* aPseudoTag,
+                          nsICSSPseudoComparator* aComparator,
+                          nsRuleWalker* aRuleWalker)
+  : RuleProcessorData(aPresContext, aParentContent, aRuleWalker)
   {
     NS_PRECONDITION(aPresContext, "null pointer");
     NS_PRECONDITION(aPseudoTag, "null pointer");
     NS_PRECONDITION(aRuleWalker, "null pointer");
-    NS_PRECONDITION(aComparator, "must have a comparator");
+    mPseudoTag = aPseudoTag;
+    mComparator = aComparator;
   }
 
   nsIAtom*                 mPseudoTag;
   nsICSSPseudoComparator*  mComparator;
 };
-#endif
 
 struct StateRuleProcessorData : public RuleProcessorData {
   StateRuleProcessorData(nsPresContext* aPresContext,
@@ -241,6 +201,7 @@ struct StateRuleProcessorData : public RuleProcessorData {
       mStateMask(aStateMask)
   {
     NS_PRECONDITION(aPresContext, "null pointer");
+    NS_PRECONDITION(aContent, "null pointer");
   }
   const PRInt32 mStateMask; 
                             
@@ -258,6 +219,7 @@ struct AttributeRuleProcessorData : public RuleProcessorData {
       mAttrHasChanged(aAttrHasChanged)
   {
     NS_PRECONDITION(aPresContext, "null pointer");
+    NS_PRECONDITION(aContent, "null pointer");
   }
   nsIAtom* mAttribute; 
   PRInt32 mModType;    

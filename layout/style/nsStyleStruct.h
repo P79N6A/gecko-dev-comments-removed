@@ -84,9 +84,6 @@ class imgIContainer;
 
 #define NS_STYLE_HAS_PSEUDO_ELEMENT_DATA  0x02000000
 
-#define NS_STYLE_CONTEXT_TYPE_MASK        0xf0000000
-#define NS_STYLE_CONTEXT_TYPE_SHIFT       28
-
 
 #define NS_RULE_NODE_GC_MARK              0x02000000
 #define NS_RULE_NODE_IS_IMPORTANT         0x08000000

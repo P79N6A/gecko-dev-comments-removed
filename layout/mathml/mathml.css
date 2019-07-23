@@ -65,6 +65,9 @@ math[mode="display"], math[display="block"] {
 math[display="inline"] {
   display: inline;
 }
+::-moz-math-inline {
+  display: inline;
+}
 
 
 
@@ -405,11 +408,8 @@ mtd[-moz-math-columnline="dashed"] {
   font-family: serif; 
 
 }
-
-
-
-
-
+::-moz-math-anonymous {
+}
 
 
 
