@@ -525,7 +525,7 @@ protected:
     
     PRBool IsOKToLoadURI(nsIURI* aURI);
     
-    void ReattachEditorToWindow(nsIDOMWindow *aWindow, nsISHEntry *aSHEntry);
+    void ReattachEditorToWindow(nsISHEntry *aSHEntry);
     void DetachEditorFromWindow(nsISHEntry *aSHEntry);
 
 protected:
@@ -676,10 +676,6 @@ protected:
 #endif
 
     static nsIURIFixup *sURIFixup;
-
-    
-    
-    PRBool HasDetachedEditor();
 
 public:
     class InterfaceRequestorProxy : public nsIInterfaceRequestor {

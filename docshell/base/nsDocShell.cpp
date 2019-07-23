@@ -1011,12 +1011,9 @@ nsDocShell::FirePageHideNotification(PRBool aIsUnload)
                 kids[i]->FirePageHideNotification(aIsUnload);
             }
         }
-    }
-
-    
-    
-    if (mEditorData && aIsUnload) {
-      DetachEditorFromWindow();
+        
+        
+        DetachEditorFromWindow();
     }
 
     return NS_OK;
@@ -3377,11 +3374,6 @@ nsDocShell::Reload(PRUint32 aReloadFlags)
     }
     
 
-    
-    
-    if (mOSHE)
-      mOSHE->SetEditorData(nsnull);
-
     return rv;
 }
 
@@ -4885,8 +4877,13 @@ nsDocShell::Embed(nsIContentViewer * aContentViewer,
             SetBaseUrlForWyciwyg(aContentViewer);
     }
     
-    if (mLSHE)
+    if (mLSHE) {
+        
+        if (mLSHE->HasDetachedEditor()) {
+            ReattachEditorToWindow(mLSHE);
+        }
         SetHistoryEntry(&mOSHE, mLSHE);
+    }
 
     PRBool updateHistory = PR_TRUE;
 
@@ -5332,29 +5329,20 @@ nsDocShell::CanSavePresentation(PRUint32 aLoadType,
     return PR_TRUE;
 }
 
-PRBool
-nsDocShell::HasDetachedEditor()
-{
-  return (mOSHE && mOSHE->HasDetachedEditor()) ||
-         (mLSHE && mLSHE->HasDetachedEditor());
-}
-
 void
-nsDocShell::ReattachEditorToWindow(nsIDOMWindow *aWindow, nsISHEntry *aSHEntry)
+nsDocShell::ReattachEditorToWindow(nsISHEntry *aSHEntry)
 {
     NS_ASSERTION(!mEditorData,
                  "Why reattach an editor when we already have one?");
-    NS_ASSERTION(aWindow,
-                 "Need a window to reattach to.");
-    NS_ASSERTION(HasDetachedEditor(),
+    NS_ASSERTION(aSHEntry && aSHEntry->HasDetachedEditor(),
                  "Reattaching when there's not a detached editor.");
 
-    if (mEditorData || !aWindow || !aSHEntry)
+    if (mEditorData || !aSHEntry)
       return;
 
     mEditorData = aSHEntry->ForgetEditorData();
     if (mEditorData) {
-        nsresult res = mEditorData->ReattachToWindow(aWindow);
+        nsresult res = mEditorData->ReattachToWindow(this);
         NS_ASSERTION(NS_SUCCEEDED(res), "Failed to reattach editing session");
     }
 }
@@ -5362,18 +5350,21 @@ nsDocShell::ReattachEditorToWindow(nsIDOMWindow *aWindow, nsISHEntry *aSHEntry)
 void
 nsDocShell::DetachEditorFromWindow(nsISHEntry *aSHEntry)
 {
-    if (!aSHEntry || !mEditorData)
+    if (!mEditorData)
         return;
 
-    NS_ASSERTION(!aSHEntry->HasDetachedEditor(),
-                 "Why detach an editor twice?");
+    NS_ASSERTION(!aSHEntry || !aSHEntry->HasDetachedEditor(),
+                 "Detaching editor when it's already detached.");
 
     nsresult res = mEditorData->DetachFromWindow();
     NS_ASSERTION(NS_SUCCEEDED(res), "Failed to detach editor");
 
     if (NS_SUCCEEDED(res)) {
-      
-      aSHEntry->SetEditorData(mEditorData.forget());
+        
+        if (aSHEntry)
+            aSHEntry->SetEditorData(mEditorData.forget());
+        else
+            mEditorData = nsnull;
     }
 
 #ifdef DEBUG
@@ -5390,7 +5381,8 @@ nsDocShell::DetachEditorFromWindow(nsISHEntry *aSHEntry)
 void
 nsDocShell::DetachEditorFromWindow()
 {
-    DetachEditorFromWindow(mOSHE);
+    if (mOSHE)
+        DetachEditorFromWindow(mOSHE);
 }
 
 nsresult
@@ -5540,6 +5532,10 @@ nsDocShell::FinishRestore()
         if (child) {
             child->FinishRestore();
         }
+    }
+
+    if (mOSHE && mOSHE->HasDetachedEditor()) {
+      ReattachEditorToWindow(mOSHE);
     }
 
     if (mContentViewer) {
@@ -6008,11 +6004,6 @@ nsDocShell::RestoreFromHistory()
             widget->Resize(newBounds.x, newBounds.y, newBounds.width,
                            newBounds.height, PR_FALSE);
         }
-    }
-
-    if (HasDetachedEditor()) {
-      nsCOMPtr<nsIDOMWindow> domWin = do_QueryInterface(privWin);
-      ReattachEditorToWindow(domWin, mLSHE);
     }
 
     
@@ -7155,10 +7146,6 @@ nsDocShell::InternalLoad(nsIURI * aURI,
 
     
     
-    DetachEditorFromWindow();
-
-    
-    
     
     if (mLoadType != LOAD_ERROR_PAGE)
         SetHistoryEntry(&mLSHE, aSHEntry);
@@ -7219,22 +7206,6 @@ nsDocShell::InternalLoad(nsIURI * aURI,
     if (NS_FAILED(rv)) {
         nsCOMPtr<nsIChannel> chan(do_QueryInterface(req));
         DisplayLoadError(rv, aURI, nsnull, chan);
-    }
-    
-    if (aSHEntry) {
-        if (aLoadType & LOAD_CMD_HISTORY) {
-            
-            
-            nsCOMPtr<nsIDOMWindow> domWin;
-            CallGetInterface(this, static_cast<nsIDOMWindow**>(getter_AddRefs(domWin)));
-            ReattachEditorToWindow(domWin, aSHEntry);
-        } else {
-            
-            
-            
-            
-            aSHEntry->SetEditorData(nsnull);
-        }
     }
 
     return rv;
@@ -8735,9 +8706,12 @@ nsDocShell::ShouldDiscardLayoutState(nsIHttpChannel * aChannel)
 NS_IMETHODIMP nsDocShell::GetEditor(nsIEditor * *aEditor)
 {
   NS_ENSURE_ARG_POINTER(aEditor);
-  nsresult rv = EnsureEditorData();
-  if (NS_FAILED(rv)) return rv;
-  
+
+  if (!mEditorData) {
+    *aEditor = nsnull;
+    return NS_OK;
+  }
+
   return mEditorData->GetEditor(aEditor);
 }
 
@@ -9043,9 +9017,12 @@ nsDocShell::EnsureScriptEnvironment()
 NS_IMETHODIMP
 nsDocShell::EnsureEditorData()
 {
-    NS_ASSERTION(!HasDetachedEditor(), "EnsureEditorData() called when detached.\n");
-
-    if (!mEditorData && !mIsBeingDestroyed && !HasDetachedEditor()) {
+    PRBool openDocHasDetachedEditor = mOSHE && mOSHE->HasDetachedEditor();
+    if (!mEditorData && !mIsBeingDestroyed && !openDocHasDetachedEditor) {
+        
+        
+        
+        
         mEditorData = new nsDocShellEditorData(this);
     }
 
