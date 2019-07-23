@@ -222,6 +222,12 @@ class nsWaveDecoder : public nsMediaDecoder
   virtual void Resume();
 
   
+  
+  void NextFrameUnavailableBuffering();
+  void NextFrameAvailable();
+  void NextFrameUnavailable();
+
+  
   void UpdateReadyStateForData();
 
   
