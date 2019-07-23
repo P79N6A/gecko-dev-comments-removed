@@ -8415,7 +8415,8 @@ nsCSSFrameConstructor::FindFrameForContentSibling(nsIContent* aContent,
   }
 
   
-  NS_ASSERTION(!sibling->GetPrevContinuation(), "How did that happen?");
+  
+  sibling = sibling->GetFirstContinuation();
 
   if (aPrevSibling) {
     
