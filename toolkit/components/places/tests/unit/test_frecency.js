@@ -47,6 +47,12 @@
 
 
 
+
+
+
+
+
+
 var current_test = 0;
 
 function AutoCompleteInput(aSearches) {
@@ -148,6 +154,8 @@ try {
   var bhist = histsvc.QueryInterface(Ci.nsIBrowserHistory);
   var tagssvc = Cc["@mozilla.org/browser/tagging-service;1"].
                 getService(Ci.nsITaggingService);
+  var bmksvc = Cc["@mozilla.org/browser/nav-bookmarks-service;1"].
+                getService(Ci.nsINavBookmarksService);
 } catch(ex) {
   do_throw("Could not get history service\n");
 } 
@@ -159,8 +167,15 @@ function setCountDate(aURI, aCount, aDate)
     histsvc.addVisit(aURI, aDate, null, histsvc.TRANSITION_TYPED, false, 0);
 }
 
+function setBookmark(aURI)
+{
+  bmksvc.insertBookmark(bmksvc.bookmarksMenuFolder, aURI, -1, "bleh");
+}
+
 var uri1 = uri("http://site.tld/1");
 var uri2 = uri("http://site.tld/2");
+var uri3 = uri("http://aaaaaaaaaa/1");
+var uri4 = uri("http://aaaaaaaaaa/2");
 
 
 
@@ -234,6 +249,38 @@ function() {
   setCountDate(uri2, c1, d1);
   tagssvc.tagURI(uri1, ["site"]);
   ensure_results([uri2, uri1], "site");
+},
+
+
+function() {
+  setBookmark(uri3);
+  setBookmark(uri4);
+  prepTest("8: same count, same date");  
+  ensure_results([uri4, uri3], "a");
+},
+function() {
+  prepTest("8: same count, same date");  
+  ensure_results([uri4, uri3], "aa");
+},
+function() {
+  prepTest("8: same count, same date");
+  ensure_results([uri4, uri3], "aaa");
+},
+function() {
+  prepTest("8: same count, same date");
+  ensure_results([uri4, uri3], "aaaa");
+},
+function() {
+  prepTest("8: same count, same date");
+  ensure_results([uri4, uri3], "aaa");
+},
+function() {
+  prepTest("8: same count, same date");
+  ensure_results([uri4, uri3], "aa");
+},
+function() {
+  prepTest("8: same count, same date");
+  ensure_results([uri4, uri3], "a");
 }
 ];
 
