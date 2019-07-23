@@ -211,6 +211,7 @@ nsNavBookmarks::InitStatements()
   
   
   nsresult rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
+      "/* do not warn (bug 482346) */ "
       "SELECT b.id "
       "FROM moz_bookmarks b "
       "JOIN ( "
