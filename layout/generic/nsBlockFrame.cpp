@@ -6561,8 +6561,7 @@ nsBlockFrame::RenumberListsFor(nsPresContext* aPresContext,
           kidRenumberedABullet = PR_TRUE;
 
           
-          nsRect damageRect(nsPoint(0, 0), listItem->mBullet->GetSize());
-          listItem->mBullet->Invalidate(damageRect);
+          listItem->ChildIsDirty(listItem->mBullet);
         }
       }
 
