@@ -241,14 +241,15 @@ function testCanonicalBookmarks(aFolder) {
   do_check_eq(testBookmark1.lastModified/1000000, 1177375423);
 
   
-  do_check_true(annosvc.itemHasAnnotation(testBookmark1.itemId, POST_DATA_ANNO));
+  do_check_true(annosvc.itemHasAnnotation(testBookmark1.itemId,
+                                          POST_DATA_ANNO));
   do_check_eq("hidden1%3Dbar&text1%3D%25s",
               annosvc.getItemAnnotation(testBookmark1.itemId, POST_DATA_ANNO));
 
   
-  var pageURI = iosvc.newURI(testBookmark1.uri, "", null);
-  do_check_true(annosvc.pageHasAnnotation(pageURI, LAST_CHARSET_ANNO));
-  do_check_eq("ISO-8859-1", annosvc.getPageAnnotation(pageURI,
+  do_check_true(annosvc.itemHasAnnotation(testBookmark1.itemId,
+                                          LAST_CHARSET_ANNO));
+  do_check_eq("ISO-8859-1", annosvc.getItemAnnotation(testBookmark1.itemId,
                                                       LAST_CHARSET_ANNO));
   
   do_check_true(annosvc.itemHasAnnotation(testBookmark1.itemId,
