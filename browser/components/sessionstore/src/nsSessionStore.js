@@ -2017,6 +2017,9 @@ SessionStoreService.prototype = {
         
         let value = aData[key];
         if (typeof value == "string" && node.type != "file") {
+          if (node.value == value)
+            continue; 
+          
           node.value = value;
           
           let event = aDocument.createEvent("UIEvents");
