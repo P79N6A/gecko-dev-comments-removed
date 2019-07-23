@@ -203,9 +203,19 @@ const SEARCH_LOG_PREFIX = "*** Search: ";
 
 
 
+function DO_LOG(aText) {
+  dump(SEARCH_LOG_PREFIX + aText + "\n");
+  var consoleService = Cc["@mozilla.org/consoleservice;1"].
+                       getService(Ci.nsIConsoleService);
+  consoleService.logStringMessage(aText);
+}
 
-function LOG(aText) {
 #ifdef DEBUG
+
+
+
+
+function PREF_LOG(aText) {
   var prefB = Cc["@mozilla.org/preferences-service;1"].
               getService(Ci.nsIPrefBranch);
   var shouldLog = false;
@@ -214,13 +224,20 @@ function LOG(aText) {
   } catch (ex) {}
 
   if (shouldLog) {
-    dump(SEARCH_LOG_PREFIX + aText + "\n");
-    var consoleService = Cc["@mozilla.org/consoleservice;1"].
-                         getService(Ci.nsIConsoleService);
-    consoleService.logStringMessage(aText);
+    DO_LOG(aText);
   }
-#endif
 }
+var LOG = PREF_LOG;
+
+#else
+
+
+
+
+
+var LOG = function(){};
+
+#endif
 
 function ERROR(message, resultCode) {
   NS_ASSERT(false, SEARCH_LOG_PREFIX + message);
@@ -2203,6 +2220,18 @@ SearchService.prototype = {
   _needToSetOrderPrefs: false,
 
   _init: function() {
+    var prefB = Cc["@mozilla.org/preferences-service;1"].
+                getService(Ci.nsIPrefBranch);
+    var shouldLog = false;
+    try {
+      shouldLog = prefB.getBoolPref(BROWSER_SEARCH_PREF + "log");
+    } catch (ex) {}
+
+    if (shouldLog) {
+      
+      LOG = DO_LOG;
+    }
+
     engineMetadataService.init();
     engineUpdateService.init();
 
