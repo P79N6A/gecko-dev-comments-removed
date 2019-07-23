@@ -69,14 +69,11 @@ public:
 
   static PRInt32 ConstrainFontWeight(PRInt32 aWeight);
 
-  
-  
   static PRBool IsHTMLLink(nsIContent *aContent, nsIAtom *aTag,
                            nsILinkHandler *aLinkHandler,
-                           PRBool aForStyling,
                            nsLinkState *aState);
   static PRBool IsLink(nsIContent *aContent, nsILinkHandler *aLinkHandler,
-                       PRBool aForStyling, nsLinkState *aState);
+                       nsLinkState *aState);
 
  static PRBool DashMatchCompare(const nsAString& aAttributeValue,
                                 const nsAString& aSelectorValue,
