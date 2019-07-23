@@ -320,6 +320,11 @@ protected:
 
   PRUint32 mReason;
 
+  
+
+
+  PRBool mTempFileIsExecutable;
+
   PRTime mTimeDownloadStarted;
   nsInt64 mContentLength;
   nsInt64 mProgress; 

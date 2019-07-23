@@ -1030,6 +1030,17 @@ NS_IMETHODIMP nsExternalAppHandler::GetTargetFile(nsIFile** aTarget)
   return NS_OK;
 }
 
+NS_IMETHODIMP nsExternalAppHandler::GetTargetFileIsExecutable(PRBool *aExec)
+{
+  
+  if (mFinalFileDestination)
+    return mFinalFileDestination->IsExecutable(aExec);
+
+  
+  *aExec = mTempFileIsExecutable;
+  return NS_OK;
+}
+
 NS_IMETHODIMP nsExternalAppHandler::GetTimeDownloadStarted(PRTime* aTime)
 {
   *aTime = mTimeDownloadStarted;
@@ -1173,6 +1184,23 @@ nsresult nsExternalAppHandler::SetUpTempFile(nsIChannel * aChannel)
     tempLeafName.Append(ext);
   }
 
+#ifdef XP_WIN
+  
+  
+  
+  nsCOMPtr<nsIFile> dummyFile;
+  rv = NS_GetSpecialDirectory(NS_OS_TEMP_DIR, getter_AddRefs(dummyFile));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  dummyFile->Append(NS_ConvertUTF8toUTF16(tempLeafName));
+  dummyFile->CreateUnique(nsIFile::NORMAL_FILE_TYPE, 0600);
+
+  
+  dummyFile->IsExecutable(&mTempFileIsExecutable);
+  dummyFile->Remove(PR_FALSE);
+#endif
+
   
   
   tempLeafName.Append(NS_LITERAL_CSTRING(".part"));
@@ -1180,6 +1208,12 @@ nsresult nsExternalAppHandler::SetUpTempFile(nsIChannel * aChannel)
   mTempFile->Append(NS_ConvertUTF8toUTF16(tempLeafName));
   
   mTempFile->CreateUnique(nsIFile::NORMAL_FILE_TYPE, 0600);
+
+#ifndef XP_WIN
+  
+  
+  mTempFile->IsExecutable(&mTempFileIsExecutable);
+#endif
 
 #ifdef XP_MACOSX
   
