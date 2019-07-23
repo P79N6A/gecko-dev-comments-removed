@@ -94,7 +94,14 @@ public:
 
 
 
-  nsresult GetProfileStartupDir(nsIFile* *aResult);   
+  nsresult GetUpdateRootDir(nsIFile* *aResult);
+
+  
+
+
+
+
+  nsresult GetProfileStartupDir(nsIFile* *aResult);
 
   
 

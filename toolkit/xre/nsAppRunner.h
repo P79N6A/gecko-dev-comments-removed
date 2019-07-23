@@ -60,6 +60,16 @@
 
 #define NS_LOCALSTORE_UNSAFE_FILE "LStoreS"
 
+
+
+
+
+
+
+
+
+#define XRE_UPDATE_ROOT_DIR "UpdRootD"
+
 class nsACString;
 struct nsStaticModuleInfo;
 
