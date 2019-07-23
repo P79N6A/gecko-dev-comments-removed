@@ -34,49 +34,11 @@
 
 
 
-#include "nsSVGGraphicElement.h"
-#include "nsIDOMSVGClipPathElement.h"
+#include "nsSVGClipPathElement.h"
 #include "nsGkAtoms.h"
-#include "nsSVGAnimatedEnumeration.h"
 #include "nsSVGEnum.h"
 
-typedef nsSVGGraphicElement nsSVGClipPathElementBase;
-
-class nsSVGClipPathElement : public nsSVGClipPathElementBase,
-                             public nsIDOMSVGClipPathElement
-{
-protected:
-  friend nsresult NS_NewSVGClipPathElement(nsIContent **aResult,
-                                           nsINodeInfo *aNodeInfo);
-  nsSVGClipPathElement(nsINodeInfo *aNodeInfo);
-  nsresult Init();
-
-public:
-  
-  
-  NS_DECL_ISUPPORTS_INHERITED
-  NS_DECL_NSIDOMSVGCLIPPATHELEMENT
-
-  
-  NS_FORWARD_NSIDOMNODE(nsSVGClipPathElementBase::)
-  NS_FORWARD_NSIDOMELEMENT(nsSVGClipPathElementBase::)
-  NS_FORWARD_NSIDOMSVGELEMENT(nsSVGClipPathElementBase::)
-
-  virtual nsresult Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const;
-
-protected:
-
-  
-  nsCOMPtr<nsIDOMSVGAnimatedEnumeration> mClipPathUnits;
-
-};
-
-
-
-
-
 NS_IMPL_NS_NEW_SVG_ELEMENT(ClipPath)
-
 
 
 
