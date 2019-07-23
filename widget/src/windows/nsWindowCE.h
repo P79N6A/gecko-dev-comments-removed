@@ -77,7 +77,6 @@
 
 
 inline void FlashWindow(HWND window, BOOL ignore){}
-inline int  GetMessageTime() {return 0;}
 inline BOOL IsIconic(HWND inWnd){return false;}
 
 class nsWindowCE {
