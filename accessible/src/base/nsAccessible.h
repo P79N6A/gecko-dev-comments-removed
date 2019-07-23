@@ -57,6 +57,7 @@
 #include "nsWeakReference.h"
 #include "nsString.h"
 #include "nsIDOMDOMStringList.h"
+#include "nsARIAMap.h"
 
 struct nsRect;
 class nsIContent;
@@ -72,55 +73,6 @@ class nsIView;
 
 
 enum { eChildCountUninitialized = -1 };
-
-struct nsStateMapEntry
-{
-  const char* attributeName;  
-  const char* attributeValue; 
-  PRUint32 state;       
-};
-
-enum ENameRule {
-  eNameLabelOrTitle,     
-                         
-                         
-                         
-  eNameOkFromChildren    
-                         
-                         
-                         
-};
-
-enum EValueRule {
-  eNoValue,
-  eHasValueMinMax    
-};
-
-#define eNoReqStates 0
-#define END_ENTRY {0, 0, 0}  // To fill in array of state mappings
-#define BOOL_STATE 0
-
-struct nsRoleMapEntry
-{
-  const char *roleString; 
-  PRUint32 role;   
-  ENameRule nameRule;  
-  EValueRule valueRule;  
-  PRUint32 state;  
-  
-  
-  
-  
-  
-  nsStateMapEntry attributeMap1;
-  nsStateMapEntry attributeMap2;
-  nsStateMapEntry attributeMap3;
-  nsStateMapEntry attributeMap4;
-  nsStateMapEntry attributeMap5;
-  nsStateMapEntry attributeMap6;
-  nsStateMapEntry attributeMap7;
-};
-
 
 class nsAccessibleDOMStringList : public nsIDOMDOMStringList
 {
@@ -311,9 +263,6 @@ protected:
   nsIAccessible *mFirstChild, *mNextSibling;
   nsRoleMapEntry *mRoleMapEntry; 
   PRInt32 mAccChildCount;
-
-  static nsRoleMapEntry gWAIRoleMap[];
-  static nsStateMapEntry gUnivStateMap[];
 };
 
 

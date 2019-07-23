@@ -763,6 +763,7 @@ STDMETHODIMP nsAccessibleWrap::accSelect(
   
   nsCOMPtr<nsIAccessible> xpAccessible;
   GetXPAccessibleFor(varChild, getter_AddRefs(xpAccessible));
+  NS_ENSURE_TRUE(xpAccessible, E_FAIL);
 
   if (flagsSelect & (SELFLAG_TAKEFOCUS|SELFLAG_TAKESELECTION|SELFLAG_REMOVESELECTION))
   {
