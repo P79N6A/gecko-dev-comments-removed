@@ -563,21 +563,28 @@ Assembler::asm_quad(LInsp ins)
 #ifdef NJ_ARM_VFP
     freeRsrcOf(ins, false);
 
-    
-    underrunProtect(d ? 20 : 16);
+    if (rr == UnknownReg) {
+        underrunProtect(12);
 
-    
-    
-    
-    
-    
-    if (rr == UnknownReg)
-        rr = D7;
+        
+        
+        
 
-    if (d)
-        FSTD(rr, FP, d);
+        STR(Scratch, FP, d+4);
+        LDR(Scratch, PC, -20);
+        STR(Scratch, FP, d);
+        LDR(Scratch, PC, -16);
 
-    asm_quad_nochk(rr, p);
+        *(--_nIns) = (NIns) p[1];
+        *(--_nIns) = (NIns) p[0];
+        JMP_nochk(_nIns+2);
+    } else {
+        if (d)
+            FSTD(rr, FP, d);
+
+        underrunProtect(16);
+        asm_quad_nochk(rr, p);
+    }
 #else
     freeRsrcOf(ins, false);
     if (d) {
@@ -632,9 +639,16 @@ Assembler::asm_mmq(Register rd, int dd, Register rs, int ds)
     
 
     
+    
+    
+    NanoAssert(rs != PC);
+
+    
     Register t = registerAlloc(GpRegs & ~(rmask(rd)|rmask(rs)));
     _allocator.addFree(t);
 
+    
+    
     STR(Scratch, rd, dd+4);
     STR(t, rd, dd);
     LDR(Scratch, rs, ds+4);
