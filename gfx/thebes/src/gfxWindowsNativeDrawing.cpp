@@ -118,6 +118,10 @@ gfxWindowsNativeDrawing::BeginNativeDrawing()
 
             
             
+            mNativeRect.RoundOut();
+
+            
+            
             
             
             
@@ -282,8 +286,6 @@ gfxWindowsNativeDrawing::PaintToContext()
         nsRefPtr<gfxImageSurface> white = mWhiteSurface->GetImageSurface();
         nsRefPtr<gfxImageSurface> alphaSurface =
             gfxAlphaRecovery::RecoverAlpha(black, white, mTempSurfaceSize);
-
-        mNativeRect.Round();
 
         mContext->Save();
         mContext->Translate(mNativeRect.pos);
