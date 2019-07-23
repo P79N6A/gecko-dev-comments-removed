@@ -61,7 +61,7 @@
 
 
 
-#define kLineBufferSize 1024
+#define kLineBufferSize 4096
 
 
 
