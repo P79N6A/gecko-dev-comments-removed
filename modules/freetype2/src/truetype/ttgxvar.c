@@ -682,7 +682,11 @@
       if ( fvar_head.version != (FT_Long)0x00010000L                      ||
            fvar_head.countSizePairs != 2                                  ||
            fvar_head.axisSize != 20                                       ||
+           
+           fvar_head.axisCount > 0x3ffe                                   ||
            fvar_head.instanceSize != 4 + 4 * fvar_head.axisCount          ||
+           
+           fvar_head.instanceCount > 0x7eff                               ||
            fvar_head.offsetToData + fvar_head.axisCount * 20U +
              fvar_head.instanceCount * fvar_head.instanceSize > table_len )
       {
