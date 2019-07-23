@@ -101,16 +101,19 @@ nsSVGNumber2::SetBaseValueString(const nsAString &aValueAsString,
     return NS_ERROR_DOM_SYNTAX_ERR;
   }
 
-  mBaseVal = mAnimVal = val;
-
-  
-
+  mBaseVal = val;
+  if (!mIsAnimated) {
+    mAnimVal = mBaseVal;
+  }
 #ifdef MOZ_SMIL
-  if (mIsAnimated) {
+  else {
     aSVGElement->AnimationNeedsResample();
   }
 #endif
 
+  
+  
+  
   return NS_OK;
 }
 
@@ -127,13 +130,16 @@ nsSVGNumber2::SetBaseValue(float aValue,
                            nsSVGElement *aSVGElement,
                            PRBool aDoSetAttr)
 {
-  mAnimVal = mBaseVal = aValue;
-  aSVGElement->DidChangeNumber(mAttrEnum, aDoSetAttr);
+  mBaseVal = aValue;
+  if (!mIsAnimated) {
+    mAnimVal = mBaseVal;
+  }
 #ifdef MOZ_SMIL
-  if (mIsAnimated) {
+  else {
     aSVGElement->AnimationNeedsResample();
   }
 #endif
+  aSVGElement->DidChangeNumber(mAttrEnum, aDoSetAttr);
 }
 
 void

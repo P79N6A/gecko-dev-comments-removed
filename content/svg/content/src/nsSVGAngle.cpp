@@ -312,10 +312,10 @@ nsSVGAngle::SetBaseValueString(const nsAString &aValueAsString,
 
   mBaseVal = mAnimVal = value;
   mSpecifiedUnitType = PRUint8(unitType);
-  if (aSVGElement) {
-    aSVGElement->DidChangeAngle(mAttrEnum, aDoSetAttr);
-  }
 
+  
+  
+  
   return NS_OK;
 }
 

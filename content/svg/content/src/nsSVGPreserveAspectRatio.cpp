@@ -224,13 +224,19 @@ nsSVGPreserveAspectRatio::SetBaseValueString(const nsAString &aValueAsString,
     return res;
   }
 
-  mAnimVal = mBaseVal = val;
-  aSVGElement->DidChangePreserveAspectRatio(aDoSetAttr);
+  mBaseVal = val;
+  if (!mIsAnimated) {
+    mAnimVal = mBaseVal;
+  }
 #ifdef MOZ_SMIL
-  if (mIsAnimated) {
+  else {
     aSVGElement->AnimationNeedsResample();
   }
 #endif
+
+  
+  
+  
   return NS_OK;
 }
 
