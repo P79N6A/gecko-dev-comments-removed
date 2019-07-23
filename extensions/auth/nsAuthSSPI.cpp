@@ -45,6 +45,7 @@
 
 
 
+
 #include "nsAuthSSPI.h"
 #include "nsIServiceManager.h"
 #include "nsIDNSService.h"
@@ -229,10 +230,6 @@ nsAuthSSPI::Init(const char *serviceName,
     LOG(("  nsAuthSSPI::Init\n"));
 
     
-    NS_ASSERTION(!domain && !username && !password, "unexpected credentials");
-
-    
-    
     
     NS_ENSURE_TRUE(serviceName && *serviceName, NS_ERROR_INVALID_ARG);
 
@@ -266,18 +263,41 @@ nsAuthSSPI::Init(const char *serviceName,
 
     TimeStamp useBefore;
 
+    SEC_WINNT_AUTH_IDENTITY_W ai;
+    SEC_WINNT_AUTH_IDENTITY_W *pai = nsnull;
+    
+    
+    
+    
+    if (username && password) {
+        if (domain) {
+            ai.Domain = const_cast<unsigned short*>(domain);
+            ai.DomainLength = wcslen(domain);
+        }
+        else {
+            ai.Domain = NULL;
+            ai.DomainLength = 0;
+        }
+        ai.User = const_cast<unsigned short*>(username);
+        ai.UserLength = wcslen(username);
+        ai.Password = const_cast<unsigned short*>(password);
+        ai.PasswordLength = wcslen(password);
+        ai.Flags = SEC_WINNT_AUTH_IDENTITY_UNICODE;
+        pai = &ai;
+    }
+
     rc = (sspi->AcquireCredentialsHandleW)(NULL,
                                            package,
                                            SECPKG_CRED_OUTBOUND,
                                            NULL,
-                                           NULL,
+                                           pai,
                                            NULL,
                                            NULL,
                                            &mCred,
                                            &useBefore);
     if (rc != SEC_E_OK)
         return NS_ERROR_UNEXPECTED;
-
+    LOG(("AcquireCredentialsHandle() succeeded.\n"));
     return NS_OK;
 }
 
@@ -351,6 +371,14 @@ nsAuthSSPI::GetNextToken(const void *inToken,
                                             &ctxAttr,
                                             &ignored);
     if (rc == SEC_I_CONTINUE_NEEDED || rc == SEC_E_OK) {
+
+#ifdef PR_LOGGING
+        if (rc == SEC_E_OK)
+            LOG(("InitializeSecurityContext: succeeded.\n"));
+        else
+            LOG(("InitializeSecurityContext: continue.\n"));
+#endif
+
         if (!ob.cbBuffer) {
             nsMemory::Free(ob.pvBuffer);
             ob.pvBuffer = NULL;

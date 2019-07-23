@@ -826,6 +826,15 @@ pref("network.auth.use-sspi", true);
 
 
 
+
+
+
+pref("network.auth.force-generic-ntlm", false);
+
+
+
+
+
 pref("network.automatic-ntlm-auth.allow-proxies", true);
 pref("network.automatic-ntlm-auth.trusted-uris", "");
 

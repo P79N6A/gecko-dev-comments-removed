@@ -257,14 +257,14 @@ nsHttpNegotiateAuth::GenerateCredentials(nsIHttpChannel *httpChannel,
             challenge++;
         len = strlen(challenge);
 
+        
+        while (challenge[len - 1] == '=')
+            len--;
+
         inTokenLen = (len * 3)/4;
         inToken = malloc(inTokenLen);
         if (!inToken)
             return (NS_ERROR_OUT_OF_MEMORY);
-
-        
-        while (challenge[len - 1] == '=')
-            len--;
 
         
         

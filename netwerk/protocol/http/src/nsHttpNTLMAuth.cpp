@@ -36,6 +36,7 @@
 
 
 
+
 #include <stdlib.h>
 #include "nsHttp.h"
 #include "nsHttpNTLMAuth.h"
@@ -54,6 +55,7 @@
 
 static const char kAllowProxies[] = "network.automatic-ntlm-auth.allow-proxies";
 static const char kTrustedURIs[]  = "network.automatic-ntlm-auth.trusted-uris";
+static const char kForceGeneric[] = "network.auth.force-generic-ntlm";
 
 
 
@@ -169,37 +171,48 @@ TestPref(nsIURI *uri, const char *pref)
     return PR_FALSE;
 }
 
-static PRBool
-CanUseSysNTLM(nsIHttpChannel *channel, PRBool isProxyAuth)
-{
-    
 
+static PRBool
+ForceGenericNTLM()
+{
+    nsCOMPtr<nsIPrefBranch> prefs = do_GetService(NS_PREFSERVICE_CONTRACTID);
+    if (!prefs)
+        return PR_FALSE;
+    PRBool flag = PR_FALSE;
+
+    if (NS_FAILED(prefs->GetBoolPref(kForceGeneric, &flag)))
+        flag = PR_FALSE;
+
+    LOG(("Force use of generic ntlm auth module: %d\n", flag));
+    return flag;
+}
+
+
+static PRBool
+CanUseDefaultCredentials(nsIHttpChannel *channel, PRBool isProxyAuth)
+{
     nsCOMPtr<nsIPrefBranch> prefs = do_GetService(NS_PREFSERVICE_CONTRACTID);
     if (!prefs)
         return PR_FALSE;
 
-    PRBool val;
     if (isProxyAuth) {
+        PRBool val;
         if (NS_FAILED(prefs->GetBoolPref(kAllowProxies, &val)))
             val = PR_FALSE;
-        LOG(("sys-ntlm allowed for proxy: %d\n", val));
+        LOG(("Default credentials allowed for proxy: %d\n", val));
         return val;
     }
-    else {
-        nsCOMPtr<nsIURI> uri;
-        channel->GetURI(getter_AddRefs(uri));
-        if (uri && TestPref(uri, kTrustedURIs)) {
-            LOG(("sys-ntlm allowed for host\n"));
-            return PR_TRUE;
-        }
-    }
 
-    return PR_FALSE;
+    nsCOMPtr<nsIURI> uri;
+    channel->GetURI(getter_AddRefs(uri));
+    PRBool isTrustedHost = (uri && TestPref(uri, kTrustedURIs));
+    LOG(("Default credentials allowed for host: %d\n", isTrustedHost));
+    return isTrustedHost;
 }
 
 
 
-class nsNTLMSessionState : public nsISupports 
+class nsNTLMSessionState : public nsISupports
 {
 public:
     NS_DECL_ISUPPORTS
@@ -224,32 +237,50 @@ nsHttpNTLMAuth::ChallengeReceived(nsIHttpChannel *channel,
     
 
     *identityInvalid = PR_FALSE;
+
+    
+    
     
     if (PL_strcasecmp(challenge, "NTLM") == 0) {
         nsCOMPtr<nsISupports> module;
-        
-        
-        
-        
-        PRBool trySysNTLM = (*sessionState == nsnull);
 
         
         
         
         
-        
-        
-        
-        
-        
-        
-        if (trySysNTLM && !*continuationState && CanUseSysNTLM(channel, isProxyAuth)) {
-            module = do_CreateInstance(NS_AUTH_MODULE_CONTRACTID_PREFIX "sys-ntlm");
+        PRBool forceGeneric = ForceGenericNTLM();
+        if (!forceGeneric && !*sessionState) {
+            
+            
+            
+            if (!*continuationState && CanUseDefaultCredentials(channel, isProxyAuth)) {
+                
+                
+                
+                module = do_CreateInstance(NS_AUTH_MODULE_CONTRACTID_PREFIX "sys-ntlm");
+            }
+#ifdef XP_WIN
+            else {
+                
+                
+                
+                
+                
+                module = do_CreateInstance(NS_AUTH_MODULE_CONTRACTID_PREFIX "sys-ntlm");
+                *identityInvalid = PR_TRUE;
+            }
+#endif 
 #ifdef PR_LOGGING
             if (!module)
-                LOG(("failed to load sys-ntlm module\n"));
+                LOG(("Native sys-ntlm auth module not found.\n"));
 #endif
         }
+
+#ifdef XP_WIN
+        
+        if (!forceGeneric && !module)
+            return NS_ERROR_UNEXPECTED;
+#endif
 
         
         if (!module) {
@@ -262,6 +293,9 @@ nsHttpNTLMAuth::ChallengeReceived(nsIHttpChannel *channel,
                 NS_ADDREF(*sessionState);
             }
 
+            
+            
+            LOG(("Trying to fall back on internal ntlm auth.\n"));
             module = do_CreateInstance(NS_AUTH_MODULE_CONTRACTID_PREFIX "ntlm");
 
             
@@ -269,8 +303,10 @@ nsHttpNTLMAuth::ChallengeReceived(nsIHttpChannel *channel,
         }
 
         
-        if (!module)
+        if (!module) {
+            LOG(("No ntlm auth modules available.\n"));
             return NS_ERROR_UNEXPECTED;
+        }
 
         
         
@@ -333,14 +369,14 @@ nsHttpNTLMAuth::GenerateCredentials(nsIHttpChannel  *httpChannel,
         len -= 5;
 
         
+        while (challenge[len - 1] == '=')
+          len--;
+
+        
         inBufLen = (len * 3)/4;      
         inBuf = nsMemory::Alloc(inBufLen);
         if (!inBuf)
             return NS_ERROR_OUT_OF_MEMORY;
-
-        
-        while (challenge[len - 1] == '=')
-          len--;
 
         if (PL_Base64Decode(challenge, len, (char *) inBuf) == nsnull) {
             nsMemory::Free(inBuf);
