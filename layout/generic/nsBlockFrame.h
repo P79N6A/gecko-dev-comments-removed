@@ -467,6 +467,10 @@ protected:
 
   
 
+  PRUint8 FindTrailingClear();
+
+  
+
 
 
   line_iterator RemoveFloat(nsIFrame* aFloat);

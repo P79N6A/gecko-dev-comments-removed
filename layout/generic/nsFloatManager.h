@@ -250,6 +250,12 @@ public:
 
   nscoord ClearFloats(nscoord aY, PRUint8 aBreakType) const;
 
+  
+
+
+
+  PRBool ClearContinues(PRUint8 aBreakType) const;
+
   void AssertStateMatches(SavedState *aState) const
   {
     NS_ASSERTION(aState->mX == mX && aState->mY == mY &&
