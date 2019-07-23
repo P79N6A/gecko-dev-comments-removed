@@ -217,11 +217,6 @@ struct JSObjectRefcounts
 
 nsXPConnect::~nsXPConnect()
 {
-    
-    
-    
-    
-
     NS_ASSERTION(!mCycleCollectionContext,
                  "Didn't call FinishCycleCollection?");
     nsCycleCollector_forgetRuntime(nsIProgrammingLanguage::JAVASCRIPT);
@@ -231,35 +226,30 @@ nsXPConnect::~nsXPConnect()
         mObjRefcounts = NULL;
     }
 
+    JSContext *cx = nsnull;
+    if (mRuntime) {
+        cx = JS_NewContext(mRuntime->GetJSRuntime(), 8192);
+    }
+
+    XPCPerThreadData::CleanupAllThreads();
     mShuttingDown = JS_TRUE;
-    { 
-        XPCCallContext ccx(NATIVE_CALLER);
-        if(ccx.IsValid())
-        {
-            XPCWrappedNativeScope::SystemIsBeingShutDown(ccx);
-            if(mRuntime)
-                mRuntime->SystemIsBeingShutDown(&ccx);
-                
-        }
+    if (cx) {
+        
+        
+        
+        JS_BeginRequest(cx);
+
+        
+        XPCWrappedNativeScope::SystemIsBeingShutDown(cx);
+
+        mRuntime->SystemIsBeingShutDown(cx);
+
+        JS_EndRequest(cx);
+        JS_DestroyContext(cx);
     }
 
     NS_IF_RELEASE(mContextStack);
     NS_IF_RELEASE(mDefaultSecurityManager);
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-
-    XPCPerThreadData::CleanupAllThreads();
 
     
     XPC_LOG_FINISH();
