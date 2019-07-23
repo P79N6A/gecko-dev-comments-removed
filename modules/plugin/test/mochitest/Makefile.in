@@ -49,7 +49,6 @@ _MOCHITEST_FILES = \
 		test_npruntime_npnevaluate.html \
 		test_npruntime_npninvoke.html \
 		test_npruntime_npninvokedefault.html \
-		test_npruntime_npnsetexception.html \
 		loremipsum.txt \
 		loremipsum_file.txt \
 		post.sjs \
@@ -67,11 +66,7 @@ _MOCHITEST_FILES = \
 		test_pluginstream_newstream.html \
 		$(NULL)
 
-ifeq ($(OS_ARCH),WINNT)
-_MOCHITEST_FILES += \
- 		test_windowed_invalidate.html \
-        $(NULL)
-endif
+#		test_npruntime_npnsetexception.html \ Disabled for e10s
 
 _MOCHICHROME_FILES = \
 		test_bug479979.xul \
@@ -80,12 +75,6 @@ _MOCHICHROME_FILES = \
 		test_wmode.xul \
 		test_npapi_timers.xul \
 		$(NULL)
-
-ifeq (cocoa,$(MOZ_WIDGET_TOOLKIT))
-_MOCHICHROME_FILES += \
-		test_convertpoint.xul \
-		$(NULL)
-endif
 
 libs:: $(_MOCHICHROME_FILES)
 	$(INSTALL) $^ $(DEPTH)/_tests/testing/mochitest/chrome/$(relativesrcdir)
