@@ -295,21 +295,7 @@ js_NewContext(JSRuntime *rt, size_t stackChunkSize)
                        1024,  
                        sizeof(jsdouble), &cx->scriptStackQuota);
 
-    
-
-
-
-
-
-
-    JS_INIT_ARENA_POOL(&cx->regexpPool, "regexp",
-                       12 * 1024 - 40,  
-                       sizeof(void *), &cx->scriptStackQuota);
-
-    if (!js_InitRegExpStatics(cx, &cx->regExpStatics)) {
-        js_DestroyContext(cx, JSDCM_NEW_FAILED);
-        return NULL;
-    }
+    js_InitRegExpStatics(cx);
 
     cx->resolveFlags = 0;
 
@@ -429,12 +415,7 @@ js_DestroyContext(JSContext *cx, JSDestroyContextMode mode)
     }
 
     
-
-
-
-
-
-    js_FreeRegExpStatics(cx, &cx->regExpStatics);
+    JS_ClearRegExpRoots(cx);
 
 #ifdef JS_THREADSAFE
     
@@ -475,9 +456,9 @@ js_DestroyContext(JSContext *cx, JSDestroyContextMode mode)
     }
 
     
+    js_FreeRegExpStatics(cx);
     JS_FinishArenaPool(&cx->stackPool);
     JS_FinishArenaPool(&cx->tempPool);
-    JS_FinishArenaPool(&cx->regexpPool);
 
     if (cx->lastMessage)
         free(cx->lastMessage);

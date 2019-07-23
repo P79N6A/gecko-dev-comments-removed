@@ -2950,7 +2950,7 @@ js_TraceContext(JSTracer *trc, JSContext *acx)
     }
 
     
-    if (acx->globalObject && !JS_HAS_OPTION(acx, JSOPTION_UNROOTED_GLOBAL))
+    if (acx->globalObject)
         JS_CALL_OBJECT_TRACER(trc, acx->globalObject, "global object");
     TraceWeakRoots(trc, &acx->weakRoots);
     if (acx->throwing) {
@@ -3002,6 +3002,8 @@ js_TraceContext(JSTracer *trc, JSContext *acx)
 
     if (acx->sharpObjectMap.depth > 0)
         js_TraceSharpMap(trc, &acx->sharpObjectMap);
+
+    js_TraceRegExpStatics(trc, acx);
 }
 
 void
