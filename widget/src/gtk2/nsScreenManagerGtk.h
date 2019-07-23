@@ -43,6 +43,7 @@
 #include "nsIScreen.h"
 #include "nsCOMPtr.h"
 #include "nsCOMArray.h"
+#include "prlink.h"
 
 
 
@@ -61,6 +62,8 @@ private:
 
   
   nsCOMArray<nsIScreen> mCachedScreenArray;
+
+  PRLibrary *mXineramalib;
 };
 
 #endif  
