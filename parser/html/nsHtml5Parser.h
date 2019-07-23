@@ -62,11 +62,9 @@
 #include "nsHtml5StreamParser.h"
 #include "nsHtml5AtomTable.h"
 #include "nsWeakReference.h"
-#include "nsAHtml5EncodingDeclarationHandler.h"
 
 class nsHtml5Parser : public nsIParser,
-                      public nsSupportsWeakReference,
-                      public nsAHtml5EncodingDeclarationHandler
+                      public nsSupportsWeakReference
 {
   public:
     NS_DECL_AND_IMPL_ZEROING_OPERATOR_NEW
@@ -281,12 +279,6 @@ class nsHtml5Parser : public nsIParser,
     
     
 
-
-    virtual void internalEncodingDeclaration(nsString* aEncoding);
-
-    
-    
-
   public:
 
     
@@ -326,13 +318,6 @@ class nsHtml5Parser : public nsIParser,
   private:
 
     
-
-    
-
-
-
-
-    PRInt32                       mCharsetSource;
 
     
 

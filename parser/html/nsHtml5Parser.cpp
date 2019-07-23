@@ -60,9 +60,6 @@
 #include "nsHtml5TreeBuilder.h"
 #include "nsHtml5Parser.h"
 #include "nsHtml5AtomTable.h"
-#include "nsICharsetAlias.h"
-
-static NS_DEFINE_CID(kCharsetAliasCID, NS_CHARSETALIAS_CID);
 
 NS_INTERFACE_TABLE_HEAD(nsHtml5Parser)
   NS_INTERFACE_TABLE2(nsHtml5Parser, nsIParser, nsISupportsWeakReference)
@@ -147,7 +144,6 @@ nsHtml5Parser::SetDocumentCharset(const nsACString& aCharset,
   mStreamParser->SetDocumentCharset(aCharset, aCharsetSource);
   mExecutor->SetDocumentCharsetAndSource((nsACString&)aCharset,
                                          aCharsetSource);
-  mCharsetSource = aCharsetSource; 
 }
 
 NS_IMETHODIMP_(void)
@@ -256,7 +252,6 @@ nsHtml5Parser::Parse(const nsAString& aSourceBuffer,
                  "Had stream parser but document.write started life cycle.");
     
     mExecutor->SetParser(this);
-    mTokenizer->setEncodingDeclarationHandler(this);
     mTreeBuilder->setScriptingEnabled(mExecutor->IsScriptEnabled());
     mTokenizer->start();
     mExecutor->Start();
@@ -675,38 +670,4 @@ nsHtml5Parser::ContinueAfterFailedCharsetSwitch()
   NS_PRECONDITION(mStreamParser, 
     "Tried to continue after failed charset switch without a stream parser");
   mStreamParser->ContinueAfterFailedCharsetSwitch();
-}
-
-void
-nsHtml5Parser::internalEncodingDeclaration(nsString* aEncoding)
-{
-  
-  
-
-  
-  if (mCharsetSource >= kCharsetFromMetaTag) {
-    return;
-  }
-
-  nsresult rv = NS_OK;
-  nsCOMPtr<nsICharsetAlias> calias(do_GetService(kCharsetAliasCID, &rv));
-  if (NS_FAILED(rv)) {
-    NS_NOTREACHED("Charset alias service not available.");
-    return;
-  }
-  nsCAutoString newEncoding;
-  CopyUTF16toUTF8(*aEncoding, newEncoding);
-  
-  
-  
-  nsCAutoString preferred;
-  
-  rv = calias->GetPreferred(newEncoding, preferred);
-  if (NS_FAILED(rv)) {
-    
-    return;
-  }
-  
-  mCharsetSource = kCharsetFromMetaTag;
-  mTreeBuilder->SetDocumentCharset(preferred, mCharsetSource);
 }
