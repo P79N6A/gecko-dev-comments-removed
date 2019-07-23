@@ -970,12 +970,12 @@ namespace avmplus {
                         bits.ar[i] = 0;
             }
 
-            void set(GC *gc, int bitNbr)
+            void set(int bitNbr)
             {
                 int index = bitNbr / kUnit;
                 int bit = bitNbr % kUnit;
                 if (index >= capacity)
-                    grow(gc, index+1);
+                    grow(index+1);
 
                 if (capacity > kDefaultCapacity)
                     bits.ptr[index] |= (1<<bit);
@@ -1013,7 +1013,7 @@ namespace avmplus {
 
         private:
             
-            void grow(GC *gc, int newCapacity)
+            void grow(int newCapacity)
             {
                 
                 newCapacity *= 2;
