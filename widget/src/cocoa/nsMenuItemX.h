@@ -40,6 +40,7 @@
 #define nsMenuItemX_h_
 
 #include "nsMenuBaseX.h"
+#include "nsMenuGroupOwnerX.h"
 #include "nsChangeObserver.h"
 #include "nsAutoPtr.h"
 
@@ -48,7 +49,6 @@
 class nsString;
 class nsMenuItemIconX;
 class nsMenuX;
-class nsMenuBarX;
 
 enum {
   knsMenuItemNoModifier      = 0,
@@ -83,7 +83,7 @@ public:
 
   
   nsresult      Create(nsMenuX* aParent, const nsString& aLabel, EMenuItemType aItemType,
-                       nsMenuBarX* aMenuBar, nsIContent* aNode);
+                       nsMenuGroupOwnerX* aMenuGroupOwner, nsIContent* aNode);
   nsresult      SetChecked(PRBool aIsChecked);
   EMenuItemType GetMenuItemType();
   void          DoCommand();
@@ -98,7 +98,7 @@ protected:
   
   NSMenuItem*               mNativeMenuItem;      
   nsMenuX*                  mMenuParent;          
-  nsMenuBarX*               mMenuBar;             
+  nsMenuGroupOwnerX*        mMenuGroupOwner;      
   nsCOMPtr<nsIContent>      mCommandContent;
   
   nsRefPtr<nsMenuItemIconX> mIcon;

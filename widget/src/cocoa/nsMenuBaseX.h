@@ -39,6 +39,8 @@
 #ifndef nsMenuBaseX_h_
 #define nsMenuBaseX_h_
 
+#import <Foundation/Foundation.h>
+
 #include "nsCOMPtr.h"
 #include "nsIContent.h"
 
@@ -65,4 +67,34 @@ protected:
   nsCOMPtr<nsIContent> mContent;
 };
 
-#endif 
+
+
+
+
+
+class nsMenuGroupOwnerX;
+
+@interface MenuItemInfo : NSObject
+{
+  nsMenuGroupOwnerX * mMenuGroupOwner;
+}
+
+- (id) initWithMenuGroupOwner:(nsMenuGroupOwnerX *)aMenuGroupOwner;
+- (nsMenuGroupOwnerX *) menuGroupOwner;
+- (void) setMenuGroupOwner:(nsMenuGroupOwnerX *)aMenuGroupOwner;
+
+@end
+
+
+
+
+
+
+enum {
+  eCommand_ID_About = 1,
+  eCommand_ID_Prefs = 2,
+  eCommand_ID_Quit  = 3,
+  eCommand_ID_Last  = 4
+};
+
+#endif

@@ -46,6 +46,7 @@
 
 #include "nsMenuBaseX.h"
 #include "nsMenuBarX.h"
+#include "nsMenuGroupOwnerX.h"
 #include "nsCOMPtr.h"
 #include "nsChangeObserver.h"
 #include "nsAutoPtr.h"
@@ -88,7 +89,7 @@ public:
   nsMenuObjectTypeX MenuObjectType() {return eSubmenuObjectType;}
 
   
-  nsresult       Create(nsMenuObjectX* aParent, nsMenuBarX* aMenuBar, nsIContent* aNode);
+  nsresult       Create(nsMenuObjectX* aParent, nsMenuGroupOwnerX* aMenuGroupOwner, nsIContent* aNode);
   PRUint32       GetItemCount();
   nsMenuObjectX* GetItemAt(PRUint32 aPos);
   nsresult       GetVisibleItemCount(PRUint32 &aCount);
@@ -119,7 +120,7 @@ protected:
   nsString                  mLabel;
   PRUint32                  mVisibleItemsCount; 
   nsMenuObjectX*            mParent; 
-  nsMenuBarX*               mMenuBar; 
+  nsMenuGroupOwnerX*        mMenuGroupOwner; 
   
   nsRefPtr<nsMenuItemIconX> mIcon;
   GeckoNSMenu*              mNativeMenu; 
