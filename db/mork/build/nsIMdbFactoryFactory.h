@@ -46,17 +46,17 @@ class nsIMdbFactory;
 
 
 #define NS_IMDBFACTORYFACTORY_IID          \
-{ 0xd5440650, 0x2807, 0x11d3, { 0x8d, 0x75, 0x00, 0x80, 0x5f, 0x8a, 0x66, 0x17}}
+{ 0x2794d0b7, 0xe740, 0x47a4, { 0x91, 0xc0, 0x3e, 0x4f, 0xcb, 0x95, 0xb8, 0x6 } }
 
 
 
-class nsIMdbFactoryFactory : public nsISupports
+class nsIMdbFactoryService : public nsISupports
 {
 public:
-    NS_DECLARE_STATIC_IID_ACCESSOR(NS_IMDBFACTORYFACTORY_IID)
-	NS_IMETHOD GetMdbFactory(nsIMdbFactory **aFactory) = 0;
+  NS_DECLARE_STATIC_IID_ACCESSOR(NS_IMDBFACTORYFACTORY_IID)
+  NS_IMETHOD GetMdbFactory(nsIMdbFactory **aFactory) = 0;
 };
 
-NS_DEFINE_STATIC_IID_ACCESSOR(nsIMdbFactoryFactory, NS_IMDBFACTORYFACTORY_IID)
+NS_DEFINE_STATIC_IID_ACCESSOR(nsIMdbFactoryService, NS_IMDBFACTORYFACTORY_IID)
 
 #endif
