@@ -648,7 +648,7 @@ typedef enum JSSrcNoteType {
 
 typedef struct JSSrcNoteSpec {
     const char      *name;      
-    uint8           arity;      
+    int8            arity;      
     uint8           offsetBias; 
     int8            isSpanDep;  
 
