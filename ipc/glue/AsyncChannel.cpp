@@ -53,13 +53,6 @@ struct RunnableMethodTraits<mozilla::ipc::AsyncChannel>
     static void ReleaseCallee(mozilla::ipc::AsyncChannel* obj) { }
 };
 
-template<>
-struct RunnableMethodTraits<ContentProcessChild>
-{
-    static void RetainCallee(ContentProcessChild* obj) { }
-    static void ReleaseCallee(ContentProcessChild* obj) { }
-};
-
 namespace mozilla {
 namespace ipc {
 
@@ -181,9 +174,7 @@ AsyncChannel::OnChannelError()
         
 #ifdef DEBUG
         
-        mWorkerLoop->PostTask(FROM_HERE,
-            NewRunnableMethod(ContentProcessChild::GetSingleton(),
-                              &ContentProcessChild::Quit));
+        XRE_ShutdownChildProcess(mWorkerLoop);
 
         
         MessageLoop::current()->Quit();
