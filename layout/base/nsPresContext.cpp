@@ -112,6 +112,9 @@
 
 #include "nsLayoutCID.h"
 
+using mozilla::TimeDuration;
+using mozilla::TimeStamp;
+
 static nscolor
 MakeColorPref(const char *colstr)
 {
@@ -2062,18 +2065,33 @@ nsPresContext::HasCachedStyleData()
   return mShell && mShell->StyleSet()->HasCachedStyleData();
 }
 
-static NS_DEFINE_CID(kAppShellCID, NS_APPSHELL_CID);
 static PRBool sGotInterruptEnv = PR_FALSE;
-static PRUint32 sInterruptSeed = 1;
-static PRUint32 sInterruptChecksToSkip = 200;
 enum InterruptMode {
   ModeRandom,
   ModeCounter,
   ModeEvent
 };
+
+
+
 static InterruptMode sInterruptMode = ModeEvent;
-static PRUint32 sInterruptCounter;
+
+
+static PRUint32 sInterruptSeed = 1;
+
+
+
 static PRUint32 sInterruptMaxCounter = 10;
+
+
+static PRUint32 sInterruptCounter;
+
+
+static PRUint32 sInterruptChecksToSkip = 200;
+
+
+
+static TimeDuration sInterruptTimeout = TimeDuration::FromMilliseconds(100);
 
 static void GetInterruptEnv()
 {
@@ -2101,6 +2119,11 @@ static void GetInterruptEnv()
   ev = PR_GetEnv("GECKO_REFLOW_INTERRUPT_CHECKS_TO_SKIP");
   if (ev) {
     sInterruptChecksToSkip = atoi(ev);
+  }
+
+  ev = PR_GetEnv("GECKO_REFLOW_MIN_NOINTERRUPT_DURATION");
+  if (ev) {
+    sInterruptTimeout = TimeDuration::FromMilliseconds(atoi(ev));
   }
 }
 
@@ -2136,6 +2159,11 @@ nsPresContext::HavePendingInputEvent()
 void
 nsPresContext::ReflowStarted(PRBool aInterruptible)
 {
+#ifdef NOISY_INTERRUPTIBLE_REFLOW
+  if (!aInterruptible) {
+    printf("STARTING NONINTERRUPTIBLE REFLOW\n");
+  }
+#endif
   
   
   mInterruptsEnabled = aInterruptible && !IsPaginated();
@@ -2149,6 +2177,10 @@ nsPresContext::ReflowStarted(PRBool aInterruptible)
   mHasPendingInterrupt = PR_FALSE;
 
   mInterruptChecksToSkip = sInterruptChecksToSkip;
+
+  if (mInterruptsEnabled) {
+    mReflowStartTime = TimeStamp::Now();
+  }
 }
 
 PRBool
@@ -2174,7 +2206,12 @@ nsPresContext::CheckForInterrupt(nsIFrame* aFrame)
   }
   mInterruptChecksToSkip = sInterruptChecksToSkip;
 
-  mHasPendingInterrupt = HavePendingInputEvent();
+  
+  
+  mHasPendingInterrupt =
+    TimeStamp::Now() - mReflowStartTime > sInterruptTimeout &&
+    HavePendingInputEvent() &&
+    !IsChrome();
   if (mHasPendingInterrupt) {
 #ifdef NOISY_INTERRUPTIBLE_REFLOW
     printf("*** DETECTED pending interrupt (time=%lld)\n", PR_Now());
