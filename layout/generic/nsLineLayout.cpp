@@ -991,6 +991,11 @@ nsLineLayout::ReflowFrame(nsIFrame* aFrame,
     PRBool continuingTextRun = aFrame->CanContinueTextRun();
     
     
+    if (!continuingTextRun && !pfd->GetFlag(PFD_SKIPWHENTRIMMINGWHITESPACE)) {
+      mTrimmableWidth = 0;
+    }
+
+    
     
     PRBool optionalBreakAfterFits;
     if (CanPlaceFrame(pfd, reflowState, notSafeToBreak, continuingTextRun,
@@ -1009,9 +1014,6 @@ nsLineLayout::ReflowFrame(nsIFrame* aFrame,
       }
       
       if (!continuingTextRun) {
-        if (!pfd->GetFlag(PFD_SKIPWHENTRIMMINGWHITESPACE)) {
-          mTrimmableWidth = 0;
-        }
         if (!psd->mNoWrap && (!CanPlaceFloatNow() || placedFloat)) {
           
           
