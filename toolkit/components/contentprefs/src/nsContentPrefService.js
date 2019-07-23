@@ -83,30 +83,13 @@ ContentPrefService.prototype = {
 
     
     
-    this.__observerSvc = null;
-    this.__consoleSvc = null;
-    this._grouper = null;
-    this.__stmtSelectPref = null;
-    this.__stmtSelectGlobalPref = null;
-    this.__stmtSelectGroupID = null;
-    this.__stmtInsertGroup = null;
-    this.__stmtSelectSettingID = null;
-    this.__stmtInsertSetting = null;
-    this.__stmtSelectPrefID = null;
-    this.__stmtSelectGlobalPrefID = null;
-    this.__stmtInsertPref = null;
-    this.__stmtUpdatePref = null;
-    this.__stmtDeletePref = null;
-    this.__stmtDeleteSettingIfUnused = null;
-    this.__stmtDeleteGroupIfUnused = null;
-    this.__stmtSelectPrefs = null;
-    this.__stmtSelectGlobalPrefs = null;
-    this._dbConnection = null;
-
     
     
-    this._observers = {};
-    this._genericObservers = [];
+    for (var i in this) {
+      try { this[i] = null }
+      
+      catch(ex) {}
+    }
   },
 
 

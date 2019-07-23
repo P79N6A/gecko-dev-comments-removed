@@ -136,8 +136,11 @@ var TextZoom = {
 
     
     
-    this.__cps = null;
-    this.__prefBranch = null;
+    for (var i in this) {
+      try { this[i] = null }
+      
+      catch(ex) {}
+    }
   },
 
 

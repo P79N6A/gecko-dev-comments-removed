@@ -86,12 +86,13 @@ var ContentPrefSink = {
 
     
     
-    this.__cps = null;
-
     
     
-    this._observers = {};
-    this._genericObservers = [];
+    for (var i in this) {
+      try { this[i] = null }
+      
+      catch(ex) {}
+    }
   },
 
 
