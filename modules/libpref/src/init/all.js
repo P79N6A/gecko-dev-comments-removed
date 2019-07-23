@@ -2873,7 +2873,7 @@ pref("geo.enabled", true);
 pref("accelerometer.enabled", true);
 
 
-pref("html5.enable", true);
+pref("html5.enable", false);
 
 pref("html5.offmainthread", true);
 
