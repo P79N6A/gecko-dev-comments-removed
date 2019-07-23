@@ -263,6 +263,8 @@ ACCESSIBILITY_ATOM(aria_valuetext, "aria-valuetext")
 
 ACCESSIBILITY_ATOM(defaultLabel, "defaultLabel")
 
+ACCESSIBILITY_ATOM(mozeditorbogusnode, "_moz_editor_bogus_node")
+
 
 ACCESSIBILITY_ATOM(tableCellIndex, "table-cell-index")
 ACCESSIBILITY_ATOM(containerAtomic, "container-atomic")

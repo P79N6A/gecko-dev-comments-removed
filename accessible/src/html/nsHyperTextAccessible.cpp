@@ -586,16 +586,14 @@ nsresult nsHyperTextAccessible::DOMPointToHypertextOffset(nsIDOMNode* aNode, PRI
   if (findNode) {
     nsCOMPtr<nsIContent> findContent = do_QueryInterface(findNode);
     if (findContent->IsHTML() && 
-        findContent->NodeInfo()->Equals(nsAccessibilityAtoms::br)) {
-      nsIContent *parent = findContent->GetParent();
-      if (parent &&
-          parent->IsRootOfNativeAnonymousSubtree() &&
-          parent->GetChildCount() == 1) {
-        
-        
-        *aHyperTextOffset = 0;
-        return NS_OK;
-      }
+        findContent->NodeInfo()->Equals(nsAccessibilityAtoms::br) &&
+        findContent->AttrValueIs(kNameSpaceID_None,
+                                 nsAccessibilityAtoms::mozeditorbogusnode,
+                                 nsAccessibilityAtoms::_true,
+                                 eIgnoreCase)) {
+      
+      *aHyperTextOffset = 0;
+      return NS_OK;
     }
     descendantAccessible = GetFirstAvailableAccessible(findNode);
   }
