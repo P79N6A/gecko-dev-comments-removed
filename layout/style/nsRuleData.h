@@ -46,6 +46,7 @@
 
 #include "nsCSSStruct.h"
 #include "nsStyleStructFwd.h"
+#include "nsTArray.h"
 class nsPresContext;
 class nsStyleContext;
 
@@ -60,7 +61,9 @@ struct nsRuleData
   PRUint8 mLevel; 
   nsPresContext* mPresContext;
   nsStyleContext* mStyleContext;
-  nsPostResolveFunc mPostResolveCallback;
+  
+  
+  nsTArray<nsPostResolveFunc> mPostResolveCallbacks;
   nsRuleDataFont* mFontData; 
   nsRuleDataDisplay* mDisplayData;
   nsRuleDataMargin* mMarginData;
@@ -80,7 +83,7 @@ struct nsRuleData
   nsRuleDataColumn* mColumnData;
 
   nsRuleData(PRUint32 aSIDs, nsPresContext* aContext, nsStyleContext* aStyleContext) 
-    :mSIDs(aSIDs), mPresContext(aContext), mStyleContext(aStyleContext), mPostResolveCallback(nsnull),
+    :mSIDs(aSIDs), mPresContext(aContext), mStyleContext(aStyleContext),
      mFontData(nsnull), mDisplayData(nsnull), mMarginData(nsnull), mListData(nsnull), 
      mPositionData(nsnull), mTableData(nsnull), mColorData(nsnull), mContentData(nsnull), mTextData(nsnull),
      mUserInterfaceData(nsnull), mColumnData(nsnull)
