@@ -126,22 +126,19 @@ nsSVGDisplayContainerFrame::InsertFrames(nsIAtom* aListName,
   nsSVGContainerFrame::InsertFrames(aListName, aPrevFrame, aFrameList);
 
   
+  nsIFrame* end = nsnull;
+  if (lastNewFrame)
+    end = lastNewFrame->GetNextSibling();
   
-  if (!(GetStateBits() & NS_FRAME_FIRST_REFLOW)) {
-    nsIFrame* end = nsnull;
-    if (lastNewFrame)
-      end = lastNewFrame->GetNextSibling();
-    
-    for (nsIFrame* kid = aFrameList; kid != end;
-         kid = kid->GetNextSibling()) {
-      nsISVGChildFrame* SVGFrame=nsnull;
-      CallQueryInterface(kid, &SVGFrame);
-      if (SVGFrame) {
-        SVGFrame->InitialUpdate(); 
-      }
+  for (nsIFrame* kid = aFrameList; kid != end;
+       kid = kid->GetNextSibling()) {
+    nsISVGChildFrame* SVGFrame=nsnull;
+    CallQueryInterface(kid, &SVGFrame);
+    if (SVGFrame) {
+      SVGFrame->InitialUpdate(); 
     }
   }
-
+  
   return NS_OK;
 }
 
@@ -217,10 +214,6 @@ nsSVGDisplayContainerFrame::UpdateCoveredRegion()
 NS_IMETHODIMP
 nsSVGDisplayContainerFrame::InitialUpdate()
 {
-  NS_ASSERTION(GetStateBits() & NS_FRAME_FIRST_REFLOW,
-               "Yikes! We've been called already! Hopefully we weren't called "
-               "before our nsSVGOuterSVGFrame's initial Reflow()!!!");
-
   for (nsIFrame* kid = mFrames.FirstChild(); kid;
        kid = kid->GetNextSibling()) {
     nsISVGChildFrame* SVGFrame = nsnull;
