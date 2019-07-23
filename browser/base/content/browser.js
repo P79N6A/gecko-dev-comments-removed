@@ -238,7 +238,7 @@ function SetClickAndHoldHandlers()
                           false);
     aElm.addEventListener("mouseout",
                           MayStopClickAndHoldTimer,
-                          false);  
+                          false);
     
     
     
