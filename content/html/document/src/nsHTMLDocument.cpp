@@ -2219,6 +2219,7 @@ nsHTMLDocument::OpenCommon(const nsACString& aContentType, PRBool aReplace)
 
   if (root) {
     
+    MOZ_AUTO_DOC_UPDATE(this, UPDATE_CONTENT_MODEL, PR_TRUE);
     nsNodeUtils::ContentRemoved(this, root, 0);
 
     
