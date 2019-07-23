@@ -12289,10 +12289,14 @@ TraceRecorder::setElem(int lval_spindex, int idx_spindex, int v_spindex)
         
         
         
+        
         LIns* res_ins;
         LIns* args[] = { NULL, idx_ins, obj_ins, cx_ins };
         if (isNumber(v)) {
-            if (isPromoteInt(v_ins)) {
+            if (fcallinfo(v_ins) == &js_UnboxDouble_ci) {
+                args[0] = fcallarg(v_ins, 0);
+                res_ins = lir->insCall(&js_Array_dense_setelem_ci, args);
+            } else if (isPromoteInt(v_ins)) {
                 args[0] = demote(lir, v_ins);
                 res_ins = lir->insCall(&js_Array_dense_setelem_int_ci, args);
             } else {
@@ -12300,7 +12304,7 @@ TraceRecorder::setElem(int lval_spindex, int idx_spindex, int v_spindex)
                 res_ins = lir->insCall(&js_Array_dense_setelem_double_ci, args);
             }
         } else {
-            LIns* args[] = { box_jsval(v, v_ins), idx_ins, obj_ins, cx_ins };
+            args[0] = box_jsval(v, v_ins);
             res_ins = lir->insCall(&js_Array_dense_setelem_ci, args);
         }
         guard(false, lir->insEqI_0(res_ins), MISMATCH_EXIT);
