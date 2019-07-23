@@ -690,10 +690,10 @@ Application.prototype = {
   _xpcom_factory: ApplicationFactory,
 
   
-  QueryInterface : XPCOMUtils.generateQI([Ci.fuelIApplication, Ci.nsIObserver, Ci.nsIClassInfo]),
+  QueryInterface : XPCOMUtils.generateQI([Ci.fuelIApplication, Ci.extIApplication, Ci.nsIObserver, Ci.nsIClassInfo]),
 
   getInterfaces : function app_gi(aCount) {
-    var interfaces = [Ci.fuelIApplication, Ci.nsIObserver, Ci.nsIClassInfo];
+    var interfaces = [Ci.fuelIApplication, Ci.extIApplication, Ci.nsIObserver, Ci.nsIClassInfo];
     aCount.value = interfaces.length;
     return interfaces;
   },
@@ -701,7 +701,7 @@ Application.prototype = {
   
   observe: function app_observe(aSubject, aTopic, aData) {
     
-    this.__proto__.__proto__.observe(aSubject, aTopic, aData);
+    this.__proto__.__proto__.observe.call(this, aSubject, aTopic, aData);
     if (aTopic == "xpcom-shutdown") {
       this._bookmarks = null;
       Utilities.free();
