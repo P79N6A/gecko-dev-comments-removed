@@ -52,7 +52,6 @@
 
 
 
-#define NS_APP_MICROSUMMARY_DIR                 "MicsumGens"
 #define NS_APP_EXISTING_PREF_OVERRIDE           "ExistingPrefOverride"
 
 
