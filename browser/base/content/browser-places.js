@@ -286,9 +286,10 @@ var BookmarksEventHandler = {
 
 
   onPopupShowing: function BM_onPopupShowing(event) {
-    var target = event.target;
-
-    if (target.localName == "menupopup" && target.id != "bookmarksMenuPopup") {
+    var target = event.originalTarget;
+    if (target.localName == "menupopup" &&
+        target.id != "bookmarksMenuPopup" &&
+        target.getAttribute("anonid") != "chevronPopup") {
       
       
       
