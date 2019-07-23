@@ -213,7 +213,10 @@ PRBool nsClipboard::GetClipboardDataByID(ULONG ulFormatID, const char *aFlavor)
 
   nsCOMPtr<nsISupports> genericDataWrapper;
   nsPrimitiveHelpers::CreatePrimitiveForData( aFlavor, pDataMem, NumOfBytes, getter_AddRefs(genericDataWrapper) );
-  nsresult errCode = mTransferable->SetTransferData( aFlavor, genericDataWrapper, NumOfBytes );
+#ifdef DEBUG
+  nsresult errCode =
+#endif
+  mTransferable->SetTransferData( aFlavor, genericDataWrapper, NumOfBytes );
 #ifdef DEBUG
   if (errCode != NS_OK)
     printf( "nsClipboard:: Error setting data into transferable\n" );
@@ -234,7 +237,10 @@ void nsClipboard::SetClipboardData(const char *aFlavor)
 
   
   nsCOMPtr<nsISupports> genericDataWrapper;
-  nsresult errCode = mTransferable->GetTransferData( aFlavor, getter_AddRefs(genericDataWrapper), &NumOfBytes );
+#ifdef DEBUG
+  nsresult errCode =
+#endif
+  mTransferable->GetTransferData( aFlavor, getter_AddRefs(genericDataWrapper), &NumOfBytes );
 #ifdef DEBUG
   if (NS_FAILED(errCode)) printf( "nsClipboard:: Error getting data from transferable\n" );
 #endif
@@ -261,11 +267,12 @@ void nsClipboard::SetClipboardData(const char *aFlavor)
         pByteMem[NumOfBytes] = '\0';                    
 
         
-        if (strlen(pByteMem) <= 0xFFFF) {
-          WinSetClipbrdData( 0, reinterpret_cast<ULONG>(pByteMem), ulFormatID, CFI_POINTER );
-        } else {
+        
+        
+        if (strlen(pByteMem) > 0xFFFF) {
           WinAlarm(HWND_DESKTOP, WA_ERROR);
         }
+        WinSetClipbrdData(0, reinterpret_cast<ULONG>(pByteMem), ulFormatID, CFI_POINTER);
       }
     }
     else                           
@@ -316,12 +323,12 @@ void nsClipboard::SetClipboardData(const char *aFlavor)
                               NumOfBytes, buffer, bufLength);
           memcpy(pByteMem, buffer.get(), NumOfBytes);
           
-          if (strlen(pByteMem) <= 0xFFFF) {
-            WinSetClipbrdData(0, reinterpret_cast<ULONG>(pByteMem), CF_TEXT,
-                              CFI_POINTER);
-          } else {
+          
+          
+          if (strlen(pByteMem) > 0xFFFF) {
             WinAlarm(HWND_DESKTOP, WA_ERROR);
           }
+          WinSetClipbrdData(0, reinterpret_cast<ULONG>(pByteMem), CF_TEXT, CFI_POINTER);
         }
       }
     }
