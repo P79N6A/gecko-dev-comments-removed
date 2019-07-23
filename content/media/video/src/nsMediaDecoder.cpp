@@ -211,7 +211,9 @@ void nsMediaDecoder::SetRGBData(PRInt32 aWidth, PRInt32 aHeight, float aFramerat
   mRGB = aRGBBuffer;
 }
 
-void nsMediaDecoder::Paint(gfxContext* aContext, const gfxRect& aRect)
+void nsMediaDecoder::Paint(gfxContext* aContext,
+                           gfxPattern::GraphicsFilter aFilter,
+                           const gfxRect& aRect)
 {
   nsAutoLock lock(mVideoUpdateLock);
 
@@ -234,6 +236,8 @@ void nsMediaDecoder::Paint(gfxContext* aContext, const gfxRect& aRect)
 
   
   pat->SetMatrix(gfxMatrix().Scale(mRGBWidth/aRect.Width(), mRGBHeight/aRect.Height()));
+
+  pat->SetFilter(aFilter);
 
   
   

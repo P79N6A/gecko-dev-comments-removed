@@ -120,7 +120,9 @@ class nsMediaDecoder : public nsIObserver
   
   
   
-  virtual void Paint(gfxContext* aContext, const gfxRect& aRect);
+  virtual void Paint(gfxContext* aContext,
+                     gfxPattern::GraphicsFilter aFilter,
+                     const gfxRect& aRect);
 
   
   virtual void ResourceLoaded() = 0;

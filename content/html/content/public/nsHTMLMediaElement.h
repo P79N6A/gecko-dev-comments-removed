@@ -129,7 +129,9 @@ public:
 
   
   
-  void Paint(gfxContext* aContext, const gfxRect& aRect);
+  void Paint(gfxContext* aContext,
+             gfxPattern::GraphicsFilter aFilter,
+             const gfxRect& aRect);
 
   
   nsresult DispatchSimpleEvent(const nsAString& aName);
