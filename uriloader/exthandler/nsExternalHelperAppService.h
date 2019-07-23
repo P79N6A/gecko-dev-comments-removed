@@ -251,7 +251,7 @@ public:
   nsExternalAppHandler(nsIMIMEInfo * aMIMEInfo, const nsCSubstring& aFileExtension,
                        nsIInterfaceRequestor * aWindowContext,
                        const nsAString& aFilename,
-                       PRUint32 aReason);
+                       PRUint32 aReason, PRBool aForceSave);
 
   ~nsExternalAppHandler();
 
@@ -280,6 +280,13 @@ protected:
 
   nsString mSuggestedFileName;
 
+  
+
+
+
+
+  PRPackedBool mForceSave;
+  
   
 
 
