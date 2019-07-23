@@ -4449,8 +4449,10 @@ js_SetPropertyHelper(JSContext *cx, JSObject *obj, jsid id, JSBool cacheResult,
                     if (cacheResult)
                         TRACE_2(SetPropHit, JS_NO_PROP_CACHE_FILL, sprop);
                     return JS_TRUE;
+#ifdef JS_TRACER
                 error: 
                     return JS_FALSE;
+#endif
                 }
 
                 
