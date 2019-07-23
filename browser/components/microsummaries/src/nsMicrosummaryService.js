@@ -297,7 +297,9 @@ MicrosummaryService.prototype = {
   
   _updateMicrosummary: function MSS__updateMicrosummary(bookmarkID, microsummary) {
     
-    var oldValue = this._getField(bookmarkID, FIELD_GENERATED_TITLE);
+    var oldValue = null;
+    if (this._hasField(bookmarkID, FIELD_GENERATED_TITLE))
+      oldValue = this._getField(bookmarkID, FIELD_GENERATED_TITLE);
 
     
     var bookmarkIdentity = 
