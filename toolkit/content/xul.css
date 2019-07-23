@@ -16,6 +16,10 @@
   display: -moz-box;
 }
 
+:root {
+  text-rendering: optimizeLegibility;
+}
+
 
 *[hidden="true"] {
   display: none;
