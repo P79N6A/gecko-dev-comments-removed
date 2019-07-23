@@ -968,10 +968,7 @@ void nsXULWindow::OnChromeLoaded()
   if (NS_SUCCEEDED(rv)) {
     mChromeLoaded = PR_TRUE;
     ApplyChromeFlags();
-
-    LoadChromeHidingFromXUL();
-    LoadWindowClassFromXUL();
-    LoadIconFromXUL();
+    SyncAttributesToWidget();
     LoadSizeFromXUL();
     if (mIntrinsicallySized) {
       
@@ -994,9 +991,6 @@ void nsXULWindow::OnChromeLoaded()
     if (positionSet)
       positionSet = LoadPositionFromXUL();
     LoadMiscPersistentAttributesFromXUL();
-    LoadToolbarButtonPresenceFromXUL();
-
-    
 
     if (mCenterAfterLoad && !positionSet)
       Center(parentWindow, parentWindow ? PR_FALSE : PR_TRUE, PR_FALSE);
@@ -1005,25 +999,6 @@ void nsXULWindow::OnChromeLoaded()
       SetVisibility(PR_TRUE);
   }
   mPersistentAttributesMask |= PAD_POSITION | PAD_SIZE | PAD_MISC;
-}
-
-nsresult nsXULWindow::LoadChromeHidingFromXUL()
-{
-  NS_ENSURE_STATE(mWindow);
-
-  
-  nsCOMPtr<nsIDOMElement> windowElement;
-  GetWindowDOMElement(getter_AddRefs(windowElement));
-  NS_ENSURE_TRUE(windowElement, NS_ERROR_FAILURE);
-
-  nsAutoString attr;
-  nsresult rv = windowElement->GetAttribute(NS_LITERAL_STRING("hidechrome"), attr);
-
-  if (NS_SUCCEEDED(rv) && attr.LowerCaseEqualsLiteral("true")) {
-    mWindow->HideWindowChrome(PR_TRUE);
-  }
-
-  return NS_OK;
 }
 
 PRBool nsXULWindow::LoadPositionFromXUL()
@@ -1359,95 +1334,39 @@ void nsXULWindow::StaggerPosition(PRInt32 &aRequestedX, PRInt32 &aRequestedY,
   } while (keepTrying);
 }
 
-NS_IMETHODIMP nsXULWindow::LoadWindowClassFromXUL()
-{
-  nsCOMPtr<nsIDOMElement> docShellElement;
-  GetWindowDOMElement(getter_AddRefs(docShellElement));
-  NS_ENSURE_TRUE(docShellElement, NS_ERROR_FAILURE);
-
-  nsAutoString windowType;
-
-  docShellElement->GetAttribute(NS_LITERAL_STRING("windowtype"),
-                                windowType);
-
-  if (!windowType.IsEmpty()) {
-    mWindow->SetWindowClass(windowType);
-  }
-
-  return NS_OK;
-}
-
-NS_IMETHODIMP nsXULWindow::LoadIconFromXUL()
-{
-  NS_ENSURE_STATE(mWindow);
-
-  
-  nsCOMPtr<nsIDOMElement> windowElement;
-  GetWindowDOMElement(getter_AddRefs(windowElement));
-  NS_ENSURE_TRUE(windowElement, NS_ERROR_FAILURE);
-
-  
-  
-  
-  
-  
-  
-  
-  
-#if 0
-  
-  nsCOMPtr<nsIDOMDocument> document;
-  windowElement->GetOwnerDocument(getter_AddRefs(document));
-  NS_ENSURE_TRUE(document, NS_ERROR_FAILURE);
-
-  
-  nsCOMPtr<nsIDOMDocumentView> docView(do_QueryInterface(document));
-  NS_ENSURE_TRUE(docView, NS_ERROR_FAILURE);
-
-  
-  nsCOMPtr<nsIDOMAbstractView> abstractView;
-  docView->GetDefaultView(getter_AddRefs(abstractView));
-  NS_ENSURE_TRUE(abstractView, NS_ERROR_FAILURE);
-
-  
-  nsCOMPtr<nsIDOMViewCSS> viewCSS(do_QueryInterface(abstractView));
-  NS_ENSURE_TRUE(viewCSS, NS_ERROR_FAILURE);
-
-  
-  nsCOMPtr<nsIDOMCSSStyleDeclaration> cssDecl;
-  viewCSS->GetComputedStyle(windowElement, EmptyString(),
-                            getter_AddRefs(cssDecl));
-  NS_ENSURE_TRUE(cssDecl, NS_ERROR_FAILURE);
-
-  
-  nsAutoString windowIcon;
-  windowIcon.AssignLiteral("-moz-window-icon");
-  nsAutoString icon;
-  cssDecl->GetPropertyValue(windowIcon, icon);
-#endif
-
-  nsAutoString id;
-  windowElement->GetAttribute(NS_LITERAL_STRING("id"), id);
-
-  if (id.IsEmpty()) {
-    id.AssignLiteral("default");
-  }
-
-  mWindow->SetIcon(id);
-  return NS_OK;
-}
-
-NS_IMETHODIMP nsXULWindow::LoadToolbarButtonPresenceFromXUL()
+void nsXULWindow::SyncAttributesToWidget()
 {
   nsCOMPtr<nsIDOMElement> windowElement;
   GetWindowDOMElement(getter_AddRefs(windowElement));
-  NS_ENSURE_TRUE(windowElement, NS_ERROR_FAILURE);
+  if (!windowElement)
+    return;
+
   nsAutoString attr;
-  nsresult rv = windowElement->GetAttribute(NS_LITERAL_STRING("toggletoolbar"), attr);
+
+  
+  nsresult rv = windowElement->GetAttribute(NS_LITERAL_STRING("hidechrome"), attr);
+  if (NS_SUCCEEDED(rv) && attr.EqualsLiteral("true")) {
+    mWindow->HideWindowChrome(PR_TRUE);
+  }
+
+  
+  rv = windowElement->GetAttribute(NS_LITERAL_STRING("windowtype"), attr);
+  if (NS_SUCCEEDED(rv) && !attr.IsEmpty()) {
+    mWindow->SetWindowClass(attr);
+  }
+
+  
+  rv = windowElement->GetAttribute(NS_LITERAL_STRING("id"), attr);
+  if (NS_FAILED(rv) || attr.IsEmpty()) {
+    attr.AssignLiteral("default");
+  }
+  mWindow->SetIcon(attr);
+
+  
+  rv = windowElement->GetAttribute(NS_LITERAL_STRING("toggletoolbar"), attr);
   if (NS_SUCCEEDED(rv)) {
     mWindow->SetShowsToolbarButton(attr.LowerCaseEqualsLiteral("true"));
   }
-  return NS_OK;
 }
 
 NS_IMETHODIMP nsXULWindow::SavePersistentAttributes()
