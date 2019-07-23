@@ -673,8 +673,9 @@ nsHTMLScrollFrame::PlaceScrollArea(const ScrollReflowState& aState)
   scrolledFrame->SetPosition(scrolledView->GetOffsetTo(GetView()));
 
   nsRect scrolledArea;
-  scrolledArea.UnionRect(mInner.GetScrolledRect(aState.mScrollPortRect.Size()),
-                         nsRect(nsPoint(0,0), aState.mScrollPortRect.Size()));
+  
+  scrolledArea.UnionRectIncludeEmpty(mInner.GetScrolledRect(aState.mScrollPortRect.Size()),
+                                     nsRect(nsPoint(0,0), aState.mScrollPortRect.Size()));
 
   
   

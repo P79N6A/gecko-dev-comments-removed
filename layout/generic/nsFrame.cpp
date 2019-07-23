@@ -5293,6 +5293,11 @@ nsIFrame::FinishAndStoreOverflow(nsRect* aOverflowArea, nsSize aNewSize)
       aOverflowArea->UnionRect(*aOverflowArea, r);
     }
   }
+  
+  
+  
+  aOverflowArea->UnionRectIncludeEmpty(*aOverflowArea,
+                                       nsRect(nsPoint(0, 0), aNewSize));
 
   PRBool geometricOverflow =
     aOverflowArea->x < 0 || aOverflowArea->y < 0 ||
@@ -5318,7 +5323,6 @@ nsIFrame::FinishAndStoreOverflow(nsRect* aOverflowArea, nsSize aNewSize)
   }
 
   if (outlineRect != nsRect(nsPoint(0, 0), aNewSize)) {
-    
     mState |= NS_FRAME_OUTSIDE_CHILDREN;
     nsRect* overflowArea = GetOverflowAreaProperty(PR_TRUE); 
     NS_ASSERTION(overflowArea, "should have created rect");

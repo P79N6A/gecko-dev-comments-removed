@@ -3803,11 +3803,7 @@ UnionRectForClosestScrolledView(nsIFrame* aFrame,
       
       
       
-      nscoord x = PR_MIN(aRect.x, frameBounds.x),
-              y = PR_MIN(aRect.y, frameBounds.y),
-          xmost = PR_MAX(aRect.XMost(), frameBounds.XMost()),
-          ymost = PR_MAX(aRect.YMost(), frameBounds.YMost());
-      aRect.SetRect(x, y, xmost - x, ymost - y);
+      aRect.UnionRectIncludeEmpty(aRect, frameBounds);
     } else {
       aHaveRect = PR_TRUE;
       aRect = frameBounds;

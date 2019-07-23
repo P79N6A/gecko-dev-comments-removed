@@ -104,8 +104,17 @@ struct NS_GFX nsRect {
   
   
   
+  
   PRBool UnionRect(const nsRect& aRect1, const nsRect& aRect2);
 
+  
+  
+  
+  
+  
+  
+  void UnionRectIncludeEmpty(const nsRect& aRect1, const nsRect& aRect2);
+  
   
   void SetRect(nscoord aX, nscoord aY, nscoord aWidth, nscoord aHeight) {
     x = aX; y = aY; width = aWidth; height = aHeight;
@@ -143,6 +152,13 @@ struct NS_GFX nsRect {
     return (PRBool) !operator==(aRect);
   }
 
+  
+  
+  PRBool IsExactEqual(const nsRect& aRect) const {
+    return x == aRect.x && y == aRect.y &&
+           width == aRect.width && height == aRect.height;
+  }
+  
   nsRect  operator+(const nsPoint& aPoint) const {
     return nsRect(x + aPoint.x, y + aPoint.y, width, height);
   }
