@@ -4634,7 +4634,7 @@ FindBlockFrameOrBR(nsIFrame* aFrame, nsDirection aDirection)
 
   
   if (aFrame->HasTerminalNewline() &&
-      aFrame->GetStyleContext()->GetStyleText()->WhiteSpaceIsSignificant()) {
+      aFrame->GetStyleContext()->GetStyleText()->NewlineIsSignificant()) {
     PRInt32 startOffset, endOffset;
     aFrame->GetOffsets(startOffset, endOffset);
     result.mContent = aFrame->GetContent();

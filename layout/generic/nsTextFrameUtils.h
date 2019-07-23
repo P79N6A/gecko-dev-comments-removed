@@ -92,6 +92,12 @@ public:
     return aLength > 0 && aChars[0] == 0x200D; 
   }
 
+  enum CompressionMode {
+    COMPRESS_NONE,
+    COMPRESS_WHITESPACE,
+    COMPRESS_WHITESPACE_NEWLINE
+  };
+
   
 
 
@@ -107,14 +113,14 @@ public:
 
   static PRUnichar* TransformText(const PRUnichar* aText, PRUint32 aLength,
                                   PRUnichar* aOutput,
-                                  PRBool aCompressWhitespace,
+                                  CompressionMode aCompression,
                                   PRPackedBool* aIncomingWhitespace,
                                   gfxSkipCharsBuilder* aSkipChars,
                                   PRUint32* aAnalysisFlags);
 
   static PRUint8* TransformText(const PRUint8* aText, PRUint32 aLength,
                                 PRUint8* aOutput,
-                                PRBool aCompressWhitespace,
+                                CompressionMode aCompression,
                                 PRPackedBool* aIncomingWhitespace,
                                 gfxSkipCharsBuilder* aSkipChars,
                                 PRUint32* aAnalysisFlags);
