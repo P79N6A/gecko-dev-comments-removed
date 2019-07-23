@@ -1124,6 +1124,8 @@ public:
 
 
 
+
+
   virtual nscoord GetMinWidth(nsIRenderingContext *aRenderingContext) = 0;
 
   
