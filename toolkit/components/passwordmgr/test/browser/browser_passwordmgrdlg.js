@@ -173,11 +173,11 @@ function test() {
             let testCounter = 0;
 
             function setFilter(string) {
-                
-                filter.ownerDocument.defaultView.focus();
-                filter.focus();
                 filter.value = string;
-                EventUtils.synthesizeKey("VK_RETURN", {}, win);
+                
+                let event = doc.createEvent("Events");
+                event.initEvent("command", true, true);
+                filter.dispatchEvent(event);
             }
 
             function runOneTest(test) {
