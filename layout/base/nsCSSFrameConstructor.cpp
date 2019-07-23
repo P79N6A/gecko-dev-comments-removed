@@ -1959,6 +1959,34 @@ IsTableRelated(nsIAtom* aParentType)
 }
 
 
+
+
+
+
+
+
+static PRBool
+IsTablePseudo(nsIFrame* aFrame)
+{
+  nsIAtom* pseudoType = aFrame->GetStyleContext()->GetPseudoType();
+  return pseudoType &&
+    (pseudoType == nsCSSAnonBoxes::table ||
+     pseudoType == nsCSSAnonBoxes::inlineTable ||
+     pseudoType == nsCSSAnonBoxes::tableColGroup ||
+     pseudoType == nsCSSAnonBoxes::tableRowGroup ||
+     pseudoType == nsCSSAnonBoxes::tableRow ||
+     pseudoType == nsCSSAnonBoxes::tableCell ||
+     (pseudoType == nsCSSAnonBoxes::cellContent &&
+      aFrame->GetParent()->GetStyleContext()->GetPseudoType() ==
+        nsCSSAnonBoxes::tableCell) ||
+     (pseudoType == nsCSSAnonBoxes::tableOuter &&
+      (aFrame->GetFirstChild(nsnull)->GetStyleContext()->GetPseudoType() ==
+         nsCSSAnonBoxes::table ||
+       aFrame->GetFirstChild(nsnull)->GetStyleContext()->GetPseudoType() ==
+         nsCSSAnonBoxes::inlineTable)));
+}
+
+
 nsCSSFrameConstructor::ParentType
 nsCSSFrameConstructor::GetParentType(nsIFrame* aParentFrame)
 {
@@ -7021,11 +7049,7 @@ nsCSSFrameConstructor::ContentRemoved(nsIContent* aContainer,
     InvalidateCanvasIfNeeded(mPresShell, aChild);
     
     
-    
-    
-    
-    
-    if (MaybeRecreateContainerForIBSplitterFrame(childFrame, &rv)) {
+    if (MaybeRecreateContainerForFrameRemoval(childFrame, &rv)) {
       *aDidReconstruct = PR_TRUE;
       return rv;
     }
@@ -8674,8 +8698,8 @@ nsCSSFrameConstructor::MaybeRecreateFramesForContent(nsIContent* aContent)
 }
 
 PRBool
-nsCSSFrameConstructor::MaybeRecreateContainerForIBSplitterFrame(nsIFrame* aFrame,
-                                                                nsresult* aResult)
+nsCSSFrameConstructor::MaybeRecreateContainerForFrameRemoval(nsIFrame* aFrame,
+                                                             nsresult* aResult)
 {
   NS_PRECONDITION(aFrame, "Must have a frame");
   NS_PRECONDITION(aFrame->GetParent(), "Frame shouldn't be root");
@@ -8688,7 +8712,7 @@ nsCSSFrameConstructor::MaybeRecreateContainerForIBSplitterFrame(nsIFrame* aFrame
     
 #ifdef DEBUG
     if (gNoisyContentUpdates) {
-      printf("nsCSSFrameConstructor::MaybeRecreateContainerForIBSplitterFrame: "
+      printf("nsCSSFrameConstructor::MaybeRecreateContainerForFrameRemoval: "
              "frame=");
       nsFrame::ListTag(stdout, aFrame);
       printf(" is special\n");
@@ -8700,9 +8724,31 @@ nsCSSFrameConstructor::MaybeRecreateContainerForIBSplitterFrame(nsIFrame* aFrame
   }
 
   
+  nsIFrame* inFlowFrame =
+    (aFrame->GetStateBits() & NS_FRAME_OUT_OF_FLOW) ?
+      mPresShell->FrameManager()->GetPlaceholderFrameFor(aFrame) : aFrame;
+  NS_ASSERTION(inFlowFrame, "How did that happen?");
+  nsIFrame* parent = inFlowFrame->GetParent();
+  if (IsTablePseudo(parent)) {
+    if (parent->GetFirstChild(nsnull) == inFlowFrame ||
+        !inFlowFrame->GetLastContinuation()->GetNextSibling() ||
+        
+        
+        (inFlowFrame->GetType() == nsGkAtoms::tableColGroupFrame &&
+         parent->GetFirstChild(nsGkAtoms::colGroupList) == inFlowFrame) ||
+        
+        (inFlowFrame->GetType() == nsGkAtoms::tableCaptionFrame &&
+         parent->GetFirstChild(nsGkAtoms::captionList) == inFlowFrame)) {
+      
+      
+      *aResult = RecreateFramesForContent(parent->GetContent());
+      return PR_TRUE;
+    }
+  }
+
   
   
-  nsIFrame* parent = aFrame->GetParent();
+  
   if (!IsFrameSpecial(parent)) {
     return PR_FALSE;
   }
@@ -8711,20 +8757,20 @@ nsCSSFrameConstructor::MaybeRecreateContainerForIBSplitterFrame(nsIFrame* aFrame
   
   
   
-  if (IsInlineOutside(aFrame)) {
+  if (IsInlineOutside(inFlowFrame)) {
     return PR_FALSE;
   }
 
   
   
-  if (aFrame != parent->GetFirstChild(nsnull) &&
-      aFrame->GetLastContinuation()->GetNextSibling()) {
+  if (inFlowFrame != parent->GetFirstChild(nsnull) &&
+      inFlowFrame->GetLastContinuation()->GetNextSibling()) {
     return PR_FALSE;
   }
 
 #ifdef DEBUG
   if (gNoisyContentUpdates) {
-    printf("nsCSSFrameConstructor::MaybeRecreateContainerForIBSplitterFrame: "
+    printf("nsCSSFrameConstructor::MaybeRecreateContainerForFrameRemoval: "
            "frame=");
     nsFrame::ListTag(stdout, parent);
     printf(" is special\n");
@@ -8775,7 +8821,7 @@ nsCSSFrameConstructor::RecreateFramesForContent(nsIContent* aContent)
 
   nsresult rv = NS_OK;
 
-  if (frame && MaybeRecreateContainerForIBSplitterFrame(frame, &rv)) {
+  if (frame && MaybeRecreateContainerForFrameRemoval(frame, &rv)) {
     return rv;
   }
 
