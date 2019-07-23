@@ -251,11 +251,12 @@ nsHTMLReflowState::SetComputedWidth(nscoord aComputedWidth)
   
   
 
-  nscoord oldComputedWidth = mComputedWidth;
-  mComputedWidth = aComputedWidth;
-  if (mComputedWidth != oldComputedWidth &&
-      frame->GetType() != nsGkAtoms::viewportFrame) {  
-    InitResizeFlags(frame->PresContext());
+  NS_PRECONDITION(aComputedWidth >= 0, "Invalid computed width");
+  if (mComputedWidth != aComputedWidth) {
+    mComputedWidth = aComputedWidth;
+    if (frame->GetType() != nsGkAtoms::viewportFrame) { 
+      InitResizeFlags(frame->PresContext());
+    }
   }
 }
 
