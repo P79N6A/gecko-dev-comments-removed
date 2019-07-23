@@ -367,7 +367,7 @@ public:
   
   void PostPendingUpdate() { RootViewManager()->mHasPendingUpdates = PR_TRUE; }
 private:
-  nsIDeviceContext  *mContext;
+  nsCOMPtr<nsIDeviceContext> mContext;
   nsIViewObserver   *mObserver;
   nsIScrollableView *mRootScrollable;
   nsIntPoint        mMouseLocation; 
