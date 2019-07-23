@@ -531,7 +531,11 @@ nsUrlClassifierHashCompleter::Complete(const nsACString &partialHash,
     }
 
     
-    NS_DispatchToCurrentThread(this);
+    
+    if (!mGethashUrl.IsEmpty()) {
+      
+      NS_DispatchToCurrentThread(this);
+    }
   }
 
   return mRequest->Add(partialHash, c);
@@ -541,6 +545,12 @@ NS_IMETHODIMP
 nsUrlClassifierHashCompleter::SetGethashUrl(const nsACString &url)
 {
   mGethashUrl = url;
+
+  if (mRequest) {
+    
+    NS_DispatchToCurrentThread(this);
+  }
+
   return NS_OK;
 }
 
