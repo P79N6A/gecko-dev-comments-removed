@@ -431,6 +431,15 @@ function openReleaseNotes()
   openUILinkIn(relnotesURL, "tab");
 }
 
+
+
+
+
+function openTroubleshootingPage()
+{
+  openUILinkIn("about:support", "tab");
+}
+
 #ifdef MOZ_UPDATER
 
 
