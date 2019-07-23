@@ -102,7 +102,9 @@
 
 
 
-NS_NAMED_LITERAL_STRING(kTitleTagsSeparator, " \u2013 ");
+
+const PRUnichar kTitleTagsSeparatorChars[] = { ' ', 0x2013, ' ', 0 };
+const nsString kTitleTagsSeparator = nsAutoString(kTitleTagsSeparatorChars);
 
 
 
