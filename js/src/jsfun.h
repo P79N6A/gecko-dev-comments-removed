@@ -63,32 +63,6 @@ typedef union JSLocalNames {
     JSLocalNameMap  *map;
 } JSLocalNames;
 
-struct JSFunction {
-    JSObject        object;       
-    uint16          nargs;        
-
-    uint16          flags;        
-    union {
-        struct {
-            uint16      extra;    
-            uint16      spare;    
-            JSNative    native;   
-            JSClass     *clasp;   
-
-            JSTraceableNative *trcinfo;  
-
-        } n;
-        struct {
-            uint16      nvars;    
-            uint16      nupvars;  
-
-            JSScript    *script;  
-            JSLocalNames names;   
-        } i;
-    } u;
-    JSAtom          *atom;        
-};
-
 
 
 
@@ -153,6 +127,50 @@ struct JSFunction {
 #define FUN_TRCINFO(fun)     (JS_ASSERT(!FUN_INTERPRETED(fun)),               \
                               JS_ASSERT((fun)->flags & JSFUN_TRACEABLE),      \
                               fun->u.n.trcinfo)
+
+struct JSFunction {
+    JSObject        object;       
+    uint16          nargs;        
+
+    uint16          flags;        
+    union {
+        struct {
+            uint16      extra;    
+            uint16      spare;    
+            JSNative    native;   
+            JSClass     *clasp;   
+
+            JSTraceableNative *trcinfo;  
+
+        } n;
+        struct {
+            uint16      nvars;    
+            uint16      nupvars;  
+
+            JSScript    *script;  
+            JSLocalNames names;   
+        } i;
+    } u;
+    JSAtom          *atom;        
+
+#ifdef __cplusplus
+
+    uintN countArgsAndVars() const {
+        JS_ASSERT(FUN_INTERPRETED(this));
+        return nargs + u.i.nvars;
+    }
+
+    uintN countLocalNames() const {
+        JS_ASSERT(FUN_INTERPRETED(this));
+        return countArgsAndVars() + u.i.nupvars;
+    }
+
+    bool hasLocalNames() const {
+        JS_ASSERT(FUN_INTERPRETED(this));
+        return countLocalNames() != 0;
+    }
+#endif
+};
 
 
 
@@ -272,10 +290,6 @@ typedef enum JSLocalKind {
     JSLOCAL_CONST,
     JSLOCAL_UPVAR
 } JSLocalKind;
-
-#define JS_UPVAR_LOCAL_NAME_START(fun)  ((fun)->nargs + (fun)->u.i.nvars)
-#define JS_GET_LOCAL_NAME_COUNT(fun)    (JS_UPVAR_LOCAL_NAME_START(fun) +     \
-                                         (fun)->u.i.nupvars)
 
 extern JSBool
 js_AddLocal(JSContext *cx, JSFunction *fun, JSAtom *atom, JSLocalKind kind);
