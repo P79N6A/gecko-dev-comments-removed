@@ -529,49 +529,6 @@ js_ErrorFromException(JSContext *cx, jsval exn)
     return priv->errorReport;
 }
 
-struct JSExnSpec {
-    int protoIndex;
-    const char *name;
-    JSProtoKey key;
-    JSNative native;
-};
-
-
-
-
-
-
-
-#define MAKE_EXCEPTION_CTOR(name)                                             \
-static JSBool                                                                 \
-name(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)      \
-{                                                                             \
-    return Exception(cx, obj, argc, argv, rval);                              \
-}
-
-MAKE_EXCEPTION_CTOR(Error)
-MAKE_EXCEPTION_CTOR(InternalError)
-MAKE_EXCEPTION_CTOR(EvalError)
-MAKE_EXCEPTION_CTOR(RangeError)
-MAKE_EXCEPTION_CTOR(ReferenceError)
-MAKE_EXCEPTION_CTOR(SyntaxError)
-MAKE_EXCEPTION_CTOR(TypeError)
-MAKE_EXCEPTION_CTOR(URIError)
-
-#undef MAKE_EXCEPTION_CTOR
-
-static struct JSExnSpec exceptions[] = {
-    {JSEXN_NONE, js_Error_str,          JSProto_Error,          Error},
-    {JSEXN_ERR,  js_InternalError_str,  JSProto_InternalError,  InternalError},
-    {JSEXN_ERR,  js_EvalError_str,      JSProto_EvalError,      EvalError},
-    {JSEXN_ERR,  js_RangeError_str,     JSProto_RangeError,     RangeError},
-    {JSEXN_ERR,  js_ReferenceError_str, JSProto_ReferenceError, ReferenceError},
-    {JSEXN_ERR,  js_SyntaxError_str,    JSProto_SyntaxError,    SyntaxError},
-    {JSEXN_ERR,  js_TypeError_str,      JSProto_TypeError,      TypeError},
-    {JSEXN_ERR,  js_URIError_str,       JSProto_URIError,       URIError},
-    {0,          NULL,                  JSProto_Null,           NULL}
-};
-
 static JSString *
 ValueToShortSource(JSContext *cx, jsval v)
 {
@@ -1022,11 +979,30 @@ static JSFunctionSpec exception_methods[] = {
     JS_FS_END
 };
 
+
+JS_STATIC_ASSERT(JSEXN_ERR == 0);
+JS_STATIC_ASSERT(JSProto_Error + JSEXN_INTERNALERR  == JSProto_InternalError);
+JS_STATIC_ASSERT(JSProto_Error + JSEXN_EVALERR      == JSProto_EvalError);
+JS_STATIC_ASSERT(JSProto_Error + JSEXN_RANGEERR     == JSProto_RangeError);
+JS_STATIC_ASSERT(JSProto_Error + JSEXN_REFERENCEERR == JSProto_ReferenceError);
+JS_STATIC_ASSERT(JSProto_Error + JSEXN_SYNTAXERR    == JSProto_SyntaxError);
+JS_STATIC_ASSERT(JSProto_Error + JSEXN_TYPEERR      == JSProto_TypeError);
+JS_STATIC_ASSERT(JSProto_Error + JSEXN_URIERR       == JSProto_URIError);
+
+static JS_INLINE JSProtoKey
+GetExceptionProtoKey(intN exn)
+{
+    JS_ASSERT(JSEXN_ERR <= exn);
+    JS_ASSERT(exn < JSEXN_LIMIT);
+    return (JSProtoKey) (JSProto_Error + exn);
+}
+
 JSObject *
 js_InitExceptionClasses(JSContext *cx, JSObject *obj)
 {
-    JSObject *obj_proto, *protos[JSEXN_LIMIT];
-    int i;
+    jsval roots[3];
+    JSObject *obj_proto, *error_proto;
+    jsval empty;
 
     
 
@@ -1043,94 +1019,82 @@ js_InitExceptionClasses(JSContext *cx, JSObject *obj)
         return NULL;
     }
 
-    if (!js_EnterLocalRootScope(cx))
-        return NULL;
+    memset(roots, 0, sizeof(roots));
+    JSAutoTempValueRooter tvr(cx, JS_ARRAY_LENGTH(roots), roots);
+
+#ifdef __GNUC__
+    error_proto = NULL;   
+#endif
 
     
-    for (i = 0; exceptions[i].name != 0; i++) {
+    for (intN i = JSEXN_ERR; i != JSEXN_LIMIT; i++) {
+        JSObject *proto;
+        JSProtoKey protoKey;
         JSAtom *atom;
         JSFunction *fun;
-        JSString *nameString;
-        int protoIndex = exceptions[i].protoIndex;
 
         
-        protos[i] = js_NewObject(cx, &js_ErrorClass,
-                                 (protoIndex != JSEXN_NONE)
-                                 ? protos[protoIndex]
-                                 : obj_proto,
-                                 obj, 0);
-        if (!protos[i])
-            break;
+        proto = js_NewObject(cx, &js_ErrorClass,
+                             (i != JSEXN_ERR) ? error_proto : obj_proto,
+                             obj, 0);
+        if (!proto)
+            return NULL;
+        if (i == JSEXN_ERR) {
+            error_proto = proto;
+            roots[0] = OBJECT_TO_JSVAL(proto);
+        } else {
+            
+            
+            roots[1] = OBJECT_TO_JSVAL(proto);
+        }
 
         
-        STOBJ_SET_SLOT(protos[i], JSSLOT_PRIVATE, JSVAL_VOID);
+        STOBJ_SET_SLOT(proto, JSSLOT_PRIVATE, JSVAL_VOID);
 
         
-        atom = cx->runtime->atomState.classAtoms[exceptions[i].key];
-        fun = js_DefineFunction(cx, obj, atom, exceptions[i].native, 3, 0);
+        protoKey = GetExceptionProtoKey(i);
+        atom = cx->runtime->atomState.classAtoms[protoKey];
+        fun = js_DefineFunction(cx, obj, atom, Exception, 3, 0);
         if (!fun)
-            break;
+            return NULL;
+        roots[2] = OBJECT_TO_JSVAL(FUN_OBJECT(fun));
 
         
         FUN_CLASP(fun) = &js_ErrorClass;
 
         
-        if (!js_SetClassPrototype(cx, FUN_OBJECT(fun), protos[i],
+        if (!js_SetClassPrototype(cx, FUN_OBJECT(fun), proto,
                                   JSPROP_READONLY | JSPROP_PERMANENT)) {
-            break;
+            return NULL;
         }
 
         
-        nameString = JS_NewStringCopyZ(cx, exceptions[i].name);
-        if (!nameString)
-            break;
-
-        
-        if (!JS_DefineProperty(cx, protos[i], js_name_str,
-                               STRING_TO_JSVAL(nameString),
-                               NULL, NULL,
-                               JSPROP_ENUMERATE)) {
-            break;
+        if (!JS_DefineProperty(cx, proto, js_name_str, ATOM_KEY(atom),
+                               NULL, NULL, JSPROP_ENUMERATE)) {
+            return NULL;
         }
 
         
-        if (!js_SetClassObject(cx, obj, exceptions[i].key, FUN_OBJECT(fun)))
-            break;
-    }
-
-    js_LeaveLocalRootScope(cx);
-    if (exceptions[i].name)
-        return NULL;
-
-    
-
-
-
-
-    if (!JS_DefineProperty(cx, protos[0], js_message_str,
-                           STRING_TO_JSVAL(cx->runtime->emptyString),
-                           NULL, NULL, JSPROP_ENUMERATE)) {
-        return NULL;
-    }
-    if (!JS_DefineProperty(cx, protos[0], js_fileName_str,
-                           STRING_TO_JSVAL(cx->runtime->emptyString),
-                           NULL, NULL, JSPROP_ENUMERATE)) {
-        return NULL;
-    }
-    if (!JS_DefineProperty(cx, protos[0], js_lineNumber_str,
-                           INT_TO_JSVAL(0),
-                           NULL, NULL, JSPROP_ENUMERATE)) {
-        return NULL;
+        if (!js_SetClassObject(cx, obj, protoKey, FUN_OBJECT(fun)))
+            return NULL;
     }
 
     
 
 
 
-    if (!JS_DefineFunctions(cx, protos[0], exception_methods))
+    empty = STRING_TO_JSVAL(cx->runtime->emptyString);
+    if (!JS_DefineProperty(cx, error_proto, js_message_str, empty,
+                           NULL, NULL, JSPROP_ENUMERATE) ||
+        !JS_DefineProperty(cx, error_proto, js_fileName_str, empty,
+                           NULL, NULL, JSPROP_ENUMERATE) ||
+        !JS_DefineProperty(cx, error_proto, js_lineNumber_str, JSVAL_ZERO,
+                           NULL, NULL, JSPROP_ENUMERATE) ||
+        !JS_DefineFunctions(cx, error_proto, exception_methods)) {
         return NULL;
+    }
 
-    return protos[0];
+    return error_proto;
 }
 
 const JSErrorFormatString*
@@ -1218,7 +1182,7 @@ js_ErrorToException(JSContext *cx, const char *message, JSErrorReport *reportp)
 
 
 
-    ok = js_GetClassPrototype(cx, NULL, INT_TO_JSID(exceptions[exn].key),
+    ok = js_GetClassPrototype(cx, NULL, INT_TO_JSID(GetExceptionProtoKey(exn)),
                               &errProto);
     if (!ok)
         goto out;
