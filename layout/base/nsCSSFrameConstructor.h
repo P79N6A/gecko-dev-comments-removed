@@ -325,7 +325,6 @@ private:
 
 
 
-
  
   nsresult ConstructTableFrame(nsFrameConstructorState& aState,
                                nsIContent*              aContent,
@@ -334,7 +333,6 @@ private:
                                PRInt32                  aNameSpaceID,
                                PRBool                   aIsPseudo,
                                nsFrameItems&            aChildItems,
-                               PRBool                   aAllowOutOfFlow,
                                nsIFrame*&               aNewOuterFrame,
                                nsIFrame*&               aNewInnerFrame);
 

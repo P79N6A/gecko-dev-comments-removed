@@ -93,23 +93,3 @@ nsMathMLmrowFrame::AttributeChanged(PRInt32  aNameSpaceID,
 
   return nsMathMLContainerFrame::AttributeChanged(aNameSpaceID, aAttribute, aModType);
 }
-
-nsIFrame*
-nsMathMLmrowFrame::GetContentInsertionFrame()
-{
-  
-  
-  
-  
-  if (mContent->Tag() == nsGkAtoms::mtable_) {
-    nsIFrame* frame = mFrames.FirstChild();
-    for ( ; frame; frame = frame->GetFirstChild(nsnull)) {
-      
-      if (frame->GetType() == nsGkAtoms::tableOuterFrame)
-        return frame->GetContentInsertionFrame();
-    }
-    NS_NOTREACHED("mtable wrapper without the real table frame");
-  }
-
-  return nsMathMLContainerFrame::GetContentInsertionFrame();
-}

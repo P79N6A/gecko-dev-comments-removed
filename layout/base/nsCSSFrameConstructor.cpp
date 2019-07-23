@@ -2860,7 +2860,7 @@ nsCSSFrameConstructor::CreatePseudoTableFrame(PRInt32                  aNameSpac
   nsFrameItems items;
   rv = ConstructTableFrame(aState, parentContent,
                            parentFrame, childStyle, aNameSpaceID,
-                           PR_TRUE, items, PR_TRUE, pseudoOuter.mFrame, 
+                           PR_TRUE, items, pseudoOuter.mFrame, 
                            pseudoInner.mFrame);
 
   if (NS_FAILED(rv)) return rv;
@@ -3489,8 +3489,6 @@ IsSpecialContent(nsIContent*     aContent,
       aTag == nsGkAtoms::merror_ ||
       aTag == nsGkAtoms::none   ||
       aTag == nsGkAtoms::mprescripts_ ||
-      (aTag == nsGkAtoms::mtable_ &&
-       aStyleContext->GetStyleDisplay()->mDisplay == NS_STYLE_DISPLAY_TABLE) ||
       aTag == nsGkAtoms::math;
 #endif
   return PR_FALSE;
@@ -3595,7 +3593,6 @@ nsCSSFrameConstructor::ConstructTableFrame(nsFrameConstructorState& aState,
                                            PRInt32                  aNameSpaceID,
                                            PRBool                   aIsPseudo,
                                            nsFrameItems&            aChildItems,
-                                           PRBool                   aAllowOutOfFlow,
                                            nsIFrame*&               aNewOuterFrame,
                                            nsIFrame*&               aNewInnerFrame)
 {
@@ -3638,14 +3635,9 @@ nsCSSFrameConstructor::ConstructTableFrame(nsFrameConstructorState& aState,
     }
   }
 
-  
-  
-  
-  nsIFrame* geometricParent =
-    aAllowOutOfFlow ?
-      aState.GetGeometricParent(outerStyleContext->GetStyleDisplay(),
-                                parentFrame) :
-      parentFrame;
+  nsIFrame* geometricParent = aState.GetGeometricParent
+                                (outerStyleContext->GetStyleDisplay(),
+                                 parentFrame);
 
   
   
@@ -3669,8 +3661,7 @@ nsCSSFrameConstructor::ConstructTableFrame(nsFrameConstructorState& aState,
     aNewOuterFrame->SetInitialChildList(nsnull, aNewInnerFrame);
 
     rv = aState.AddChild(aNewOuterFrame, *frameItems, aContent,
-                         aStyleContext, parentFrame, aAllowOutOfFlow,
-                         aAllowOutOfFlow);
+                         aStyleContext, parentFrame);
     if (NS_FAILED(rv)) {
       return rv;
     }
@@ -6661,8 +6652,8 @@ nsCSSFrameConstructor::ConstructFrameByDisplayType(nsFrameConstructorState& aSta
       nsIFrame* innerTable;
       rv = ConstructTableFrame(aState, aContent, 
                                aParentFrame, aStyleContext,
-                               aNameSpaceID, PR_FALSE, aFrameItems, PR_TRUE,
-                               newFrame, innerTable);
+                               aNameSpaceID, PR_FALSE, aFrameItems, newFrame,
+                               innerTable);
       addedToFrameList = PR_TRUE;
       
       
@@ -6956,93 +6947,6 @@ nsCSSFrameConstructor::ConstructMathMLFrame(nsFrameConstructorState& aState,
   else if (aTag == nsGkAtoms::mrow_ ||
            aTag == nsGkAtoms::merror_)
     newFrame = NS_NewMathMLmrowFrame(mPresShell, aStyleContext);
-  
-  else if (aTag == nsGkAtoms::mtable_ &&
-           disp->mDisplay == NS_STYLE_DISPLAY_TABLE) {
-    
-    
-    
-    
-    
-    
-
-    nsStyleContext* parentContext = aParentFrame->GetStyleContext();
-    nsStyleSet *styleSet = mPresShell->StyleSet();
-
-    
-    nsRefPtr<nsStyleContext> mrowContext;
-    mrowContext = styleSet->ResolvePseudoStyleFor(aContent,
-                                                  nsCSSAnonBoxes::mozMathInline,
-                                                  parentContext);
-    newFrame = NS_NewMathMLmrowFrame(mPresShell, mrowContext);
-    if (NS_UNLIKELY(!newFrame)) {
-      return NS_ERROR_OUT_OF_MEMORY;
-    }
-    InitAndRestoreFrame(aState, aContent, aParentFrame, nsnull, newFrame);
-
-    
-    nsRefPtr<nsStyleContext> blockContext;
-    blockContext = styleSet->ResolvePseudoStyleFor(aContent,
-                                                   nsCSSAnonBoxes::mozMathMLAnonymousBlock,
-                                                   mrowContext);
-    
-    
-    nsIFrame* blockFrame = NS_NewBlockFrame(mPresShell, blockContext,
-                                            NS_BLOCK_SPACE_MGR |
-                                            NS_BLOCK_MARGIN_ROOT);
-    if (NS_UNLIKELY(!blockFrame)) {
-      newFrame->Destroy();
-      return NS_ERROR_OUT_OF_MEMORY;
-    }
-    InitAndRestoreFrame(aState, aContent, newFrame, nsnull, blockFrame);
-
-    
-    nsRefPtr<nsStyleContext> tableContext =
-      ResolveStyleContext(blockFrame, aContent);
-
-    nsFrameItems tempItems;
-    nsIFrame* outerTable;
-    nsIFrame* innerTable;
-    
-    
-    
-    
-    
-    nsPseudoFrames priorPseudoFrames; 
-    aState.mPseudoFrames.Reset(&priorPseudoFrames);
-
-    
-    
-    
-    rv = ConstructTableFrame(aState, aContent, blockFrame, tableContext,
-                             aNameSpaceID, PR_FALSE, tempItems, PR_FALSE,
-                             outerTable, innerTable);
-    
-    
-
-    NS_ASSERTION(aState.mPseudoFrames.IsEmpty(),
-                 "How did we end up with pseudo-frames here?");
-
-    
-    
-    aState.mPseudoFrames = priorPseudoFrames;
-    
-    
-    blockFrame->SetInitialChildList(nsnull, outerTable);
-
-    
-    newFrame->SetInitialChildList(nsnull, blockFrame);
-
-    
-    
-    
-    
-    aFrameItems.AddChild(newFrame);
-
-    return rv; 
-  }
-  
-
   else if (aTag == nsGkAtoms::math) { 
     
     const nsStyleDisplay* display = aStyleContext->GetStyleDisplay();
