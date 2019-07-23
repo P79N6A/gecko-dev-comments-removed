@@ -110,6 +110,9 @@ public:
                                     nsIFrame**    aLastColGroup);
 
   
+  virtual void DidSetStyleContext(nsStyleContext* aOldStyleContext);
+
+  
 
   NS_IMETHOD AppendFrames(nsIAtom*        aListName,
                           nsIFrame*       aFrameList);

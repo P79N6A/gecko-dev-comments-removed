@@ -390,9 +390,9 @@ nsImageBoxFrame::PaintImage(nsIRenderingContext& aRenderingContext,
 
 
  void
-nsImageBoxFrame::DidSetStyleContext()
+nsImageBoxFrame::DidSetStyleContext(nsStyleContext* aOldStyleContext)
 {
-  nsLeafBoxFrame::DidSetStyleContext();
+  nsLeafBoxFrame::DidSetStyleContext(aOldStyleContext);
 
   
   const nsStyleList* myList = GetStyleList();

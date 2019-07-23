@@ -276,6 +276,7 @@ nsTableFrame::Destroy()
 }
 
 
+
 void
 nsTableFrame::RePositionViews(nsIFrame* aFrame)
 {
@@ -2226,9 +2227,19 @@ nsTableFrame::GetCollapsedWidth(nsMargin aBorderPadding)
   return width;
 }
 
- void
-nsTableFrame::DidSetStyleContext()
+
+    void
+nsTableFrame::DidSetStyleContext(nsStyleContext* aOldStyleContext)
 {
+   if (!aOldStyleContext) 
+     return;
+   
+   if (IsBorderCollapse() &&
+       BCRecalcNeeded(aOldStyleContext, GetStyleContext())) {
+     nsRect damageArea(0, 0, GetColCount(), GetRowCount());
+     SetBCDamageArea(damageArea);
+   }
+
    
    if (!mTableLayoutStrategy || GetPrevInFlow())
      return;
@@ -4678,8 +4689,62 @@ GetColorAndStyle(const nsIFrame*  aFrame,
   width = styleData->GetActualBorderWidth(aSide);
   aWidth = nsPresContext::AppUnitsToIntCSSPixels(width);
 }
- 
- 
+
+class nsDelayedCalcBCBorders : public nsRunnable {
+public:
+  nsDelayedCalcBCBorders(nsIFrame* aFrame) :
+    mFrame(aFrame) {}
+
+  NS_IMETHOD Run() {
+    if (mFrame) {
+      nsTableFrame* tableFrame = static_cast <nsTableFrame*>(mFrame.GetFrame());
+      if (tableFrame) {
+        if (tableFrame->NeedToCalcBCBorders()) {
+          tableFrame->CalcBCBorders();
+        }
+      }
+    }
+    return NS_OK;
+  }
+private:
+  nsWeakFrame mFrame;
+};
+  
+PRBool
+nsTableFrame::BCRecalcNeeded(nsStyleContext* aOldStyleContext,
+                             nsStyleContext* aNewStyleContext)
+{
+   
+   
+   
+   
+  const nsStyleBorder* oldStyleData = static_cast<const nsStyleBorder*>
+                       (aOldStyleContext->PeekStyleData(eStyleStruct_Border));
+  if (!oldStyleData)
+    return PR_FALSE;
+  
+  const nsStyleBorder* newStyleData = aNewStyleContext->GetStyleBorder();
+  nsChangeHint change = newStyleData->CalcDifference(*oldStyleData);
+  if (change == NS_STYLE_HINT_NONE)
+    return PR_FALSE;
+  if (change == NS_STYLE_HINT_REFLOW)
+    return PR_TRUE; 
+  if (change == NS_STYLE_HINT_VISUAL) {
+    NS_FOR_CSS_SIDES(side) {
+      if (newStyleData->GetBorderStyle(side) !=
+          oldStyleData->GetBorderStyle(side)) {
+        
+        
+        nsCOMPtr<nsIRunnable> evt = new nsDelayedCalcBCBorders(this);
+        if (evt)
+          NS_DispatchToCurrentThread(evt);
+        return PR_TRUE;
+      }
+    }
+  }
+  return PR_FALSE;
+}
+
 
 
 

@@ -198,7 +198,7 @@ public:
   virtual void Destroy();
   
   
-  virtual void DidSetStyleContext();
+  virtual void DidSetStyleContext(nsStyleContext* aOldStyleContext);
 
   NS_IMETHOD AppendFrames(nsIAtom*        aListName,
                           nsIFrame*       aFrameList);
@@ -307,9 +307,11 @@ public:
 
 
   nscoord GetContinuousLeftBCBorderWidth() const;
-
+  friend class nsDelayedCalcBCBorders;
+  
   void SetBCDamageArea(const nsRect& aValue);
-
+  PRBool BCRecalcNeeded(nsStyleContext* aOldStyleContext,
+                        nsStyleContext* aNewStyleContext);
   void PaintBCBorders(nsIRenderingContext& aRenderingContext,
                       const nsRect&        aDirtyRect);
 

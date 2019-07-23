@@ -610,13 +610,14 @@ public:
   void SetStyleContext(nsStyleContext* aContext)
   { 
     if (aContext != mStyleContext) {
-      if (mStyleContext)
-        mStyleContext->Release();
+      nsStyleContext* oldStyleContext = mStyleContext;
       mStyleContext = aContext;
       if (aContext) {
         aContext->AddRef();
-        DidSetStyleContext();
+        DidSetStyleContext(oldStyleContext);
       }
+      if (oldStyleContext)
+        oldStyleContext->Release();
     }
   }
   
@@ -633,7 +634,10 @@ public:
   }
 
   
-  virtual void DidSetStyleContext() = 0;
+  
+  
+  
+  virtual void DidSetStyleContext(nsStyleContext* aOldStyleContext) = 0;
 
   
 

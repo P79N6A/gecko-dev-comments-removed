@@ -180,9 +180,9 @@ nsBoxFrame::SetInitialChildList(nsIAtom*        aListName,
 }
 
  void
-nsBoxFrame::DidSetStyleContext()
+nsBoxFrame::DidSetStyleContext(nsStyleContext* aOldStyleContext)
 {
-  nsContainerFrame::DidSetStyleContext();
+  nsContainerFrame::DidSetStyleContext(aOldStyleContext);
 
   
   

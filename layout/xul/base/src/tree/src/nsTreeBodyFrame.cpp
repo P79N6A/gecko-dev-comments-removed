@@ -4219,9 +4219,9 @@ nsTreeBodyFrame::ClearStyleAndImageCaches()
 }
 
  void
-nsTreeBodyFrame::DidSetStyleContext()
+nsTreeBodyFrame::DidSetStyleContext(nsStyleContext* aOldStyleContext)
 {
-  nsLeafBoxFrame::DidSetStyleContext();
+  nsLeafBoxFrame::DidSetStyleContext(aOldStyleContext);
 
   
   mStyleCache.Clear();

@@ -133,9 +133,9 @@ nsBulletFrame::IsSelfEmpty()
 }
 
  void
-nsBulletFrame::DidSetStyleContext()
+nsBulletFrame::DidSetStyleContext(nsStyleContext* aOldStyleContext)
 {
-  nsFrame::DidSetStyleContext();
+  nsFrame::DidSetStyleContext(aOldStyleContext);
 
   imgIRequest *newRequest = GetStyleList()->mListStyleImage;
 
