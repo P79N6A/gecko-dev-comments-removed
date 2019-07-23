@@ -481,7 +481,7 @@ nsPluginInstallerWizard.prototype.showPluginResults = function (){
         notInstalledList += "&mimetype=" + pluginInfoItem;
       } else if (!myPluginItem.licenseAccepted) {
         statusMsg = this.getString("pluginInstallationSummary.licenseNotAccepted");
-      } else if (!myPluginItem.XPILocation) {
+      } else if (!myPluginItem.XPILocation && !myPluginItem.InstallerLocation) {
         statusMsg = this.getString("pluginInstallationSummary.notAvailable");
         notInstalledList += "&mimetype=" + pluginInfoItem;
       } else {
@@ -495,7 +495,8 @@ nsPluginInstallerWizard.prototype.showPluginResults = function (){
 
       
       var manualUrl;
-      if ((myPluginItem.error || !myPluginItem.XPILocation) && (myPluginItem.manualInstallationURL || this.mPluginRequestArray[myPluginItem.requestedMimetype].pluginsPage)){
+      if ((myPluginItem.error || (!myPluginItem.XPILocation && !myPluginItem.InstallerLocation)) &&
+          (myPluginItem.manualInstallationURL || this.mPluginRequestArray[myPluginItem.requestedMimetype].pluginsPage)){
         manualUrl = myPluginItem.manualInstallationURL ? myPluginItem.manualInstallationURL : this.mPluginRequestArray[myPluginItem.requestedMimetype].pluginsPage;
       }
 
@@ -669,13 +670,25 @@ function wizardFinish(){
 
   
   if ((gPluginInstaller.mSuccessfullPluginInstallation > 0) &&
-      (gPluginInstaller.mPluginInfoArray.length != 0) &&
-      gPluginInstaller.mBrowser) {
+      (gPluginInstaller.mPluginInfoArray.length != 0)) {
+
     
-    
-    var event = document.createEvent("Events");
-    event.initEvent("NewPluginInstalled", true, true);
-    gPluginInstaller.mBrowser.dispatchEvent(event);
+    try {
+      var pm = Components.classes["@mozilla.org/plugin/manager;1"]
+                         .getService(Components.interfaces.nsIPluginManager);
+      pm.reloadPlugins(false);
+    }
+    catch (e) {
+      
+    }
+
+    if (gPluginInstaller.mBrowser) {
+      
+      
+      var event = document.createEvent("Events");
+      event.initEvent("NewPluginInstalled", true, true);
+      gPluginInstaller.mBrowser.dispatchEvent(event);
+    }
   }
 
   return true;

@@ -5935,7 +5935,8 @@ missingPluginInstaller.prototype.newDisabledPlugin = function(aEvent){
 }
 
 missingPluginInstaller.prototype.refreshBrowser = function(aEvent) {
-  var browser = aEvent.target;
+  
+  var browser = aEvent.originalTarget;
   var notificationBox = gBrowser.getNotificationBox(browser);
   var notification = notificationBox.getNotificationWithValue("missing-plugins");
 
