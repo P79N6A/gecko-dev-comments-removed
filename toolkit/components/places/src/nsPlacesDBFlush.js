@@ -37,8 +37,8 @@
 
 
 
+
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
-Components.utils.import("resource://gre/modules/PlacesBackground.jsm");
 
 
 
@@ -47,7 +47,8 @@ const Cc = Components.classes;
 const Ci = Components.interfaces;
 const Cr = Components.results;
 
-const kPlacesBackgroundShutdown = "places-background-shutdown";
+const kQuitApplication = "quit-application";
+const kSyncFinished = "places-sync-finished";
 
 const kSyncPrefName = "syncDBTableIntervalInSecs";
 const kDefaultSyncInterval = 120;
@@ -57,27 +58,11 @@ const kDefaultSyncInterval = 120;
 
 function nsPlacesDBFlush()
 {
-  
-  
-
-  this.__defineGetter__("_db", function() {
-    delete this._db;
-    return this._db = Cc["@mozilla.org/browser/nav-history-service;1"].
-                      getService(Ci.nsPIPlacesDatabase).
-                      DBConnection;
-  });
-
-  this.__defineGetter__("_bh", function() {
-    delete this._bh;
-    return this._bh = Cc["@mozilla.org/browser/nav-bookmarks-service;1"].
-                      getService(Ci.nsINavBookmarksService);
-  });
-
-
-  
   this._prefs = Cc["@mozilla.org/preferences-service;1"].
-                getService(Ci.nsIPrefService).
-                getBranch("places.");
+              getService(Ci.nsIPrefService).
+              getBranch("places.");
+
+  
   try {
     
     
@@ -91,13 +76,16 @@ function nsPlacesDBFlush()
   }
 
   
-  this._bh.addObserver(this, false);
+  this._bs = Cc["@mozilla.org/browser/nav-bookmarks-service;1"].
+             getService(Ci.nsINavBookmarksService);
+  this._bs.addObserver(this, false);
 
-  this._prefs.QueryInterface(Ci.nsIPrefBranch2).addObserver("", this, false);
+  this._os = Cc["@mozilla.org/observer-service;1"].
+             getService(Ci.nsIObserverService);
+  this._os.addObserver(this, kQuitApplication, false);
 
-  let os = Cc["@mozilla.org/observer-service;1"].
-           getService(Ci.nsIObserverService);
-  os.addObserver(this, kPlacesBackgroundShutdown, false);
+  this._prefs.QueryInterface(Ci.nsIPrefBranch2)
+             .addObserver("", this, false);
 
   
   this._timer = this._newTimer();
@@ -109,11 +97,13 @@ nsPlacesDBFlush.prototype = {
 
   observe: function DBFlush_observe(aSubject, aTopic, aData)
   {
-    if (aTopic == kPlacesBackgroundShutdown) {
-      this._bh.removeObserver(this);
+    if (aTopic == kQuitApplication) {
+      this._bs.removeObserver(this);
+      this._os.removeObserver(this, kQuitApplication);
+      this._prefs.QueryInterface(Ci.nsIPrefBranch2).removeObserver("", this);
       this._timer.cancel();
       this._timer = null;
-      this._syncAll();
+      this._syncTables(["places", "historyvisits"]);
     }
     else if (aTopic == "nsPref:changed" && aData == kSyncPrefName) {
       
@@ -148,18 +138,18 @@ nsPlacesDBFlush.prototype = {
     this._inBatchMode = false;
 
     
-    this._syncAll();
+    this._syncTables(["places", "historyvisits"]);
     this._timer = this._newTimer();
   },
 
-  onItemAdded: function() this._syncMozPlaces(),
+  onItemAdded: function() this._syncTables(["places"]),
 
   onItemChanged: function DBFlush_onItemChanged(aItemId, aProperty,
                                                          aIsAnnotationProperty,
                                                          aValue)
   {
     if (aProperty == "uri")
-      this._syncMozPlaces();
+      this._syncTables(["places"]);
   },
 
   onItemRemoved: function() { },
@@ -169,58 +159,40 @@ nsPlacesDBFlush.prototype = {
   
   
 
-  notify: function() this._syncAll(),
+  notify: function() this._syncTables(["places", "historyvisits"]),
 
   
   
 
+  handleCompletion: function DBFlush_handleCompletion(aReason)
+  {
+    if (aReason == Ci.mozIStorageStatementCallback.REASON_FINISHED) {
+      
+      this._os.notifyObservers(null, kSyncFinished, null);
+    }
+  },
+
+  
+  
+  _syncInterval: kDefaultSyncInterval,
+
   
 
 
-  _syncMozPlaces: function DBFlush_syncMozPlaces()
+
+
+  _syncTables: function DBFlush_syncTables(aTableNames)
   {
     
     if (this._inBatchMode)
       return;
 
-    let self = this;
-    PlacesBackground.dispatch({
-      run: function() self._doSyncMozX("places")
-    }, Ci.nsIEventTarget.DISPATCH_NORMAL);
-  },
+    let statements = [];
+    for (let i = 0; i < aTableNames.length; i++)
+      statements.push(this._getSyncTableStatement(aTableNames[i]));
 
-  
-
-
-  _syncAll: function DBFlush_syncAll()
-  {
-    let self = this;
-    PlacesBackground.dispatch({
-      run: function() {
-        
-        let ourTransaction = false;
-        try {
-          this._db.beginTransaction();
-          ourTransaction = true;
-        }
-        catch (e) { }
-
-        try {
-          
-          
-          self._doSyncMozX("places");
-          self._doSyncMozX("historyvisits");
-        }
-        catch (e) {
-          if (ourTransaction)
-            this._db.rollbackTransaction();
-          throw e;
-        }
-
-        if (ourTransaction)
-          this._db.commitTransaction();
-      }
-    }, Ci.nsIEventTarget.DISPATCH_NORMAL);
+    
+    this._db.executeAsync(statements, statements.length, this);
   },
 
   
@@ -229,12 +201,15 @@ nsPlacesDBFlush.prototype = {
 
 
 
-  _doSyncMozX: function DBFlush_doSyncMozX(aName)
+
+
+
+  _getSyncTableStatement: function DBFlush_getSyncTableStatement(aTableName)
   {
     
     
-   
-   this._db.executeSimpleSQL("DELETE FROM moz_" + aName + "_temp");
+    
+    return this._db.createStatement("DELETE FROM moz_" + aTableName + "_temp");
   },
 
   
@@ -266,6 +241,16 @@ nsPlacesDBFlush.prototype = {
     Ci.nsITimerCallback,
   ])
 };
+
+
+
+
+nsPlacesDBFlush.prototype.__defineGetter__("_db", function() {
+  delete nsPlacesDBFlush._db;
+  return nsPlacesDBFlush._db = Cc["@mozilla.org/browser/nav-history-service;1"].
+                               getService(Ci.nsPIPlacesDatabase).
+                               DBConnection;
+});
 
 
 
