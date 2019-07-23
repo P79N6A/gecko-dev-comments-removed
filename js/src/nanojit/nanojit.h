@@ -57,6 +57,45 @@
 #error "unknown nanojit architecture"
 #endif
 
+
+
+
+
+
+
+
+
+
+
+#ifdef MMGC_API
+	
+	
+	
+	inline void mmgc_delete(GCObject* o)
+	{
+		GC* g = GC::GetGC(o); 
+		if (g->Collecting()) 
+			g->Free(o); 
+		else 
+			delete o; 
+	}
+
+	inline void mmgc_delete(GCFinalizedObject* o)
+	{
+		GC* g = GC::GetGC(o); 
+		if (g->Collecting()) 
+			g->Free(o); 
+		else 
+			delete o; 
+	}
+
+	#define NJ_NEW(gc, cls)			new (gc) cls
+	#define NJ_DELETE(obj)			do { mmgc_delete(obj); } while (0)
+#else
+	#define NJ_NEW(gc, cls)			new (gc) cls
+	#define NJ_DELETE(obj)			do { delete obj; } while (0)
+#endif
+
 namespace nanojit
 {
 	
