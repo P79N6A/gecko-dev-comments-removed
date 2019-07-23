@@ -261,7 +261,7 @@ nsSVGForeignObjectFrame::PaintSVG(nsSVGRenderState *aContext,
 
   
   nsCOMPtr<nsIDOMSVGMatrix> tm;
-  cssPxToDevPxMatrix->Multiply(localTM, getter_AddRefs(tm));
+  localTM->Multiply(cssPxToDevPxMatrix, getter_AddRefs(tm));
 
   gfxMatrix matrix = nsSVGUtils::ConvertSVGMatrixToThebes(tm);
 
