@@ -249,9 +249,6 @@ pref("print.show_print_progress", true);
 pref("print.use_global_printsettings", true);
 
 
-pref("print.use_native_print_dialog", false);
-
-
 pref("print.save_print_settings", true);
 
 pref("print.whileInPrintPreview", true);
@@ -1470,9 +1467,6 @@ pref("slider.snapMultiplier", 6);
 pref("print.print_extra_margin", 90); 
 
 
-pref("print.use_native_print_dialog", true);
-
-
 pref("print.extend_native_print_dialog", true);
 
 
@@ -1931,9 +1925,6 @@ pref("ui.key.contentAccess", 2);
 
 
 pref("print.print_extra_margin", 90); 
-
-
-pref("print.use_native_print_dialog", true);
 
 
 pref("ui.panel.default_level_parent", false);
