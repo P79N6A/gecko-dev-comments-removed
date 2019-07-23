@@ -36,6 +36,7 @@
 
 
 
+
 #ifndef __nsPlacesTables_h__
 #define __nsPlacesTables_h__
 
@@ -61,6 +62,9 @@
   "SELECT * FROM moz_places " \
   "WHERE id NOT IN (SELECT id FROM moz_places_temp) " \
 )
+#define MOZ_PLACES_COLUMNS \
+  "id, url, title, rev_host, visit_count, hidden, typed, favicon_id, " \
+  "frecency"
 
 #define CREATE_MOZ_HISTORYVISITS_BASE(__name, __temporary) NS_LITERAL_CSTRING( \
   "CREATE " __temporary " TABLE " __name " (" \
@@ -83,6 +87,8 @@
   "SELECT * FROM moz_historyvisits " \
   "WHERE id NOT IN (SELECT id FROM moz_historyvisits_temp) " \
 )
+#define MOZ_HISTORYVISITS_COLUMNS \
+  "id, from_visit, place_id, visit_date, visit_type, session"
 
 #define CREATE_MOZ_INPUTHISTORY NS_LITERAL_CSTRING( \
   "CREATE TABLE moz_inputhistory (" \
