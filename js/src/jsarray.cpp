@@ -2346,7 +2346,7 @@ static JSBool
 array_concat(JSContext *cx, uintN argc, jsval *vp)
 {
     jsval *argv, v;
-    JSObject *nobj, *aobj;
+    JSObject *aobj, *nobj;
     jsuint length, alength, slot;
     uintN i;
     JSBool hole, ok;
@@ -2359,11 +2359,21 @@ array_concat(JSContext *cx, uintN argc, jsval *vp)
     
     aobj = JS_THIS_OBJECT(cx, vp);
     if (OBJ_IS_DENSE_ARRAY(cx, aobj)) {
-        nobj = js_NewArrayObject(cx, ARRAY_DENSE_LENGTH(aobj), aobj->dslots,
-                                 JS_TRUE);
+        
+
+
+
+
+
+
+
+        length = aobj->fslots[JSSLOT_ARRAY_LENGTH];
+        jsuint capacity = ARRAY_DENSE_LENGTH(aobj);
+        nobj = js_NewArrayObject(cx, JS_MIN(length, capacity), aobj->dslots,
+                                 aobj->fslots[JSSLOT_ARRAY_COUNT] !=
+                                 (jsval) length);
         if (!nobj)
             return JS_FALSE;
-        length = aobj->fslots[JSSLOT_ARRAY_LENGTH];
         nobj->fslots[JSSLOT_ARRAY_LENGTH] = length;
         *vp = OBJECT_TO_JSVAL(nobj);
         if (argc == 0)
@@ -2492,7 +2502,8 @@ array_slice(JSContext *cx, uintN argc, jsval *vp)
 
     if (OBJ_IS_DENSE_ARRAY(cx, obj) && end <= ARRAY_DENSE_LENGTH(obj)) {
         nobj = js_NewArrayObject(cx, end - begin, obj->dslots + begin,
-                                 JS_TRUE);
+                                 obj->fslots[JSSLOT_ARRAY_COUNT] !=
+                                 obj->fslots[JSSLOT_ARRAY_LENGTH]);
         if (!nobj)
             return JS_FALSE;
         *vp = OBJECT_TO_JSVAL(nobj);
