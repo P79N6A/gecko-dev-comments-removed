@@ -229,6 +229,9 @@ public:
   PRPackedBool mVerticalOverflow:1;
   PRPackedBool mPostedReflowCallback:1;
   PRPackedBool mMayHaveDirtyFixedChildren:1;
+  
+  
+  PRPackedBool mUpdateScrollbarAttributes:1;
 };
 
 
