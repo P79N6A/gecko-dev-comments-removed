@@ -215,46 +215,17 @@ mozStorageStatement::GetParameterName(PRUint32 aParamIndex, nsACString & _retval
 
 
 NS_IMETHODIMP
-mozStorageStatement::GetParameterIndexes(const nsACString &aParameterName, PRUint32 *aCount, PRUint32 **aIndexes)
+mozStorageStatement::GetParameterIndex(const nsACString &aName,
+                                       PRUint32 *_retval)
 {
     NS_ASSERTION (mDBConnection && mDBStatement, "statement not initialized");
-    NS_ENSURE_ARG_POINTER(aCount);
-    NS_ENSURE_ARG_POINTER(aIndexes);
 
-    nsCAutoString name(":");
-    name.Append(aParameterName);
-
-    if (sqlite3_bind_parameter_index(mDBStatement, name.get()) == 0) {
-        
-        *aCount = 0;
-        *aIndexes = nsnull;
-        return NS_OK;
-    }
+    int ind = sqlite3_bind_parameter_index(mDBStatement,
+                                           nsPromiseFlatCString(aName).get());
+    if (ind  == 0) 
+        return NS_ERROR_INVALID_ARG;
     
-    int count = sqlite3_bind_parameter_count(mDBStatement);
-    int *idxs = new int[count];
-    if (!idxs)
-        return NS_ERROR_OUT_OF_MEMORY;
-
-    int size = 0;
-    for (int i = 0; i < count; i++) {
-        
-        const char *pName = sqlite3_bind_parameter_name(mDBStatement, i + 1);
-        if (name.Equals(pName))
-            idxs[size++] = i;
-    }
-
-    *aCount = size;
-    *aIndexes = (PRUint32*) NS_Alloc(sizeof(PRUint32) * size);
-    if (!aIndexes) {
-        delete[] idxs;
-        return NS_ERROR_OUT_OF_MEMORY;
-    }
-
-    for (int i = 0; i < size; i++)
-        (*aIndexes)[i] = idxs[i];
-
-    delete[] idxs;
+    *_retval = ind - 1; 
 
     return NS_OK;
 }
