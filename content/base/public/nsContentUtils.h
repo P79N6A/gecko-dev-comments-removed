@@ -1371,6 +1371,13 @@ public:
 
 
 
+  static void AddScriptBlockerAndPreventAddingRunners();
+
+  
+
+
+
+
 
 
   static void RemoveScriptBlocker();
@@ -1590,6 +1597,7 @@ private:
   static PRUint32 sRemovableScriptBlockerCount;
   static nsCOMArray<nsIRunnable>* sBlockedScriptRunners;
   static PRUint32 sRunnersCountAtFirstBlocker;
+  static PRUint32 sScriptBlockerCountWhereRunnersPrevented;
 
   static nsIInterfaceRequestor* sSameOriginChecker;
 };
