@@ -318,20 +318,17 @@ var PlacesCommandHook = {
 
 
 
-
-  showPlacesOrganizer: function PCH_showPlacesOrganizer(aPlace, aForcePlace) {
+  showPlacesOrganizer: function PCH_showPlacesOrganizer(aLeftPaneRoot) {
     var wm = Cc["@mozilla.org/appshell/window-mediator;1"].
              getService(Ci.nsIWindowMediator);
     var organizer = wm.getMostRecentWindow("Places:Organizer");
     if (!organizer) {
       
       openDialog("chrome://browser/content/places/places.xul", 
-                 "", "chrome,toolbar=yes,dialog=no,resizable", aPlace);
+                 "", "chrome,toolbar=yes,dialog=no,resizable", aLeftPaneRoot);
     }
     else {
-      if (aForcePlace)
-        organizer.selectPlaceURI(aPlace);
-
+      organizer.PlacesOrganizer.selectLeftPaneQuery(aLeftPaneRoot);
       organizer.focus();
     }
   },
