@@ -1044,6 +1044,7 @@ nsFrameManager::ReResolveStyleContext(nsPresContext    *aPresContext,
   
 
   nsChangeHint assumeDifferenceHint = NS_STYLE_HINT_NONE;
+  
   nsStyleContext* oldContext = aFrame->GetStyleContext();
   nsStyleSet* styleSet = aPresContext->StyleSet();
 #ifdef ACCESSIBILITY
@@ -1054,6 +1055,8 @@ nsFrameManager::ReResolveStyleContext(nsPresContext    *aPresContext,
   }
 #endif
 
+  
+  
   if (oldContext) {
     oldContext->AddRef();
     nsIAtom* const pseudoTag = oldContext->GetPseudoType();
@@ -1093,6 +1096,7 @@ nsFrameManager::ReResolveStyleContext(nsPresContext    *aPresContext,
       
       resolvedChild = providerFrame;
     }
+    
     
     
     nsStyleContext* newContext = nsnull;
@@ -1214,7 +1218,7 @@ nsFrameManager::ReResolveStyleContext(nsPresContext    *aPresContext,
     }
 
     
-    if (localContent && mUndisplayedMap) {
+    if (!pseudoTag && localContent && mUndisplayedMap) {
       for (UndisplayedNode* undisplayed =
                                    mUndisplayedMap->GetFirstNode(localContent);
            undisplayed; undisplayed = undisplayed->mNext) {

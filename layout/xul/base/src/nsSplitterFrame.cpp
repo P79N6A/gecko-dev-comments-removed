@@ -348,15 +348,15 @@ nsSplitterFrame::Init(nsIContent*      aContent,
   
   
   
-  nsRefPtr<nsStyleContext> newContext;
+  
   if (aParent && aParent->IsBoxFrame()) {
     if (!aParent->IsHorizontal()) {
       if (!nsContentUtils::HasNonEmptyAttr(aContent, kNameSpaceID_None,
                                            nsGkAtoms::orient)) {
         aContent->SetAttr(kNameSpaceID_None, nsGkAtoms::orient,
                           NS_LITERAL_STRING("vertical"), PR_FALSE);
-        nsStyleContext* parentStyleContext = aParent->GetStyleContext();
-        newContext = GetStyleContext()->GetRuleNode()->GetPresContext()->StyleSet()->
+        nsStyleContext* parentStyleContext = GetStyleContext()->GetParent();
+        nsRefPtr<nsStyleContext> newContext = PresContext()->StyleSet()->
           ResolveStyleFor(aContent, parentStyleContext);
         SetStyleContextWithoutNotification(newContext);
       }

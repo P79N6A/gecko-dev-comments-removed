@@ -137,11 +137,13 @@ nsMathMLmactionFrame::Init(nsIContent*      aContent,
         
 
         
+        
+        
         PRBool notify = PR_FALSE; 
         aContent->UnsetAttr(kNameSpaceID_None, nsGkAtoms::actiontype_, notify);
 
         
-        nsStyleContext* parentStyleContext = aParent->GetStyleContext();
+        nsStyleContext* parentStyleContext = GetStyleContext()->GetParent();
         newStyleContext = PresContext()->StyleSet()->
           ResolveStyleFor(aContent, parentStyleContext);
 
