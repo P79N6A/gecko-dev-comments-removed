@@ -13062,30 +13062,16 @@ nsCSSFrameConstructor::PostRestyleEvent(nsIContent* aContent,
   }
 }
 
-NS_IMETHODIMP nsCSSFrameConstructor::RestyleEvent::Run() {
+NS_IMETHODIMP nsCSSFrameConstructor::RestyleEvent::Run()
+{
   if (!mConstructor)
     return NS_OK;  
 
-  nsCOMPtr<nsIViewManager> viewManager =
-    mConstructor->mPresShell->GetViewManager();
-  NS_ASSERTION(viewManager, "Must have view manager for update");
-
-  viewManager->BeginUpdateViewBatch();
   
   
+  mConstructor->mRestyleEvent.Forget();  
   
-  mConstructor->mPresShell->GetDocument()->
-    FlushPendingNotifications(Flush_ContentAndNotify);
-
-  
-  
-  mConstructor->mRestyleEvent.Forget();
-
-  mConstructor->ProcessPendingRestyles();
-  mConstructor->mDocument->BindingManager()->ProcessAttachedQueue();
-  viewManager->EndUpdateViewBatch(NS_VMREFRESH_NO_SYNC);
-
-  return NS_OK;
+  return mConstructor->mPresShell->FlushPendingNotifications(Flush_Style);
 }
 
 NS_IMETHODIMP

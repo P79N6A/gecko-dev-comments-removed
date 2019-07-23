@@ -6194,15 +6194,7 @@ PresShell::ProcessReflowCommands(PRBool aInterruptible)
         : (PRIntervalTime)0;
 
     
-    mDocument->BeginUpdate(UPDATE_ALL);
-    mDocument->EndUpdate(UPDATE_ALL);
-
-    
-    
-    
-
-    
-    if (!mIsDestroying && mDirtyRoots.Count() != 0) {
+    {
       AUTO_LAYOUT_PHASE_ENTRY_POINT(GetPresContext(), Reflow);
       mIsReflowing = PR_TRUE;
 
