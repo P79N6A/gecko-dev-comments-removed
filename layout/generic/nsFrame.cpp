@@ -6752,6 +6752,13 @@ nsFrame::VerifyDirtyBitSet(const nsFrameList& aFrameList)
   }
 }
 
+nscolor
+nsIFrame::GetCaretColorAt(PRInt32 aOffset)
+{
+  
+  return GetStyleColor()->mColor;
+}
+
 
 #ifdef DEBUG
 
