@@ -811,6 +811,7 @@ var AddonManager = {
   PENDING_UNINSTALL: 4,
   
   PENDING_INSTALL: 8,
+  PENDING_UPGRADE: 16,
 
   
   
