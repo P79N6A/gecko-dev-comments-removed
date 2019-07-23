@@ -139,7 +139,8 @@ PRUint32 nsAutoInPrincipalDomainOriginSetter::sInPrincipalDomainOrigin;
 
 static
 nsresult
-GetOriginFromURI(nsIURI* aURI, nsACString& aOrigin)
+GetPrincipalDomainOrigin(nsIPrincipal* aPrincipal,
+                         nsACString& aOrigin)
 {
   if (nsAutoInPrincipalDomainOriginSetter::sInPrincipalDomainOrigin > 1) {
       
@@ -150,8 +151,16 @@ GetOriginFromURI(nsIURI* aURI, nsACString& aOrigin)
   }
 
   nsAutoInPrincipalDomainOriginSetter autoSetter;
+  aOrigin.Truncate();
 
-  nsCOMPtr<nsIURI> uri = NS_GetInnermostURI(aURI);
+  nsCOMPtr<nsIURI> uri;
+  aPrincipal->GetDomain(getter_AddRefs(uri));
+  if (!uri) {
+    aPrincipal->GetURI(getter_AddRefs(uri));
+  }
+  NS_ENSURE_TRUE(uri, NS_ERROR_UNEXPECTED);
+
+  uri = NS_GetInnermostURI(uri);
   NS_ENSURE_TRUE(uri, NS_ERROR_UNEXPECTED);
 
   nsCAutoString hostPort;
@@ -171,22 +180,6 @@ GetOriginFromURI(nsIURI* aURI, nsACString& aOrigin)
   }
 
   return NS_OK;
-}
-
-static
-nsresult
-GetPrincipalDomainOrigin(nsIPrincipal* aPrincipal,
-                         nsACString& aOrigin)
-{
-
-  nsCOMPtr<nsIURI> uri;
-  aPrincipal->GetDomain(getter_AddRefs(uri));
-  if (!uri) {
-    aPrincipal->GetURI(getter_AddRefs(uri));
-  }
-  NS_ENSURE_TRUE(uri, NS_ERROR_UNEXPECTED);
-
-  return GetOriginFromURI(uri, aOrigin);
 }
 
 
@@ -838,76 +831,35 @@ nsScriptSecurityManager::CheckPropertyAccessImpl(PRUint32 aAction,
 
         NS_ConvertUTF8toUTF16 className(classInfoData.GetName());
         nsCAutoString subjectOrigin;
-        nsCAutoString subjectDomain;
         if (!nsAutoInPrincipalDomainOriginSetter::sInPrincipalDomainOrigin) {
-            nsCOMPtr<nsIURI> uri, domain;
-            subjectPrincipal->GetURI(getter_AddRefs(uri));
-            GetOriginFromURI(uri, subjectOrigin);
-            subjectPrincipal->GetDomain(getter_AddRefs(domain));
-            if (domain) {
-                GetOriginFromURI(domain, subjectDomain);
-            }
+            GetPrincipalDomainOrigin(subjectPrincipal, subjectOrigin);
         } else {
             subjectOrigin.AssignLiteral("the security manager");
         }
         NS_ConvertUTF8toUTF16 subjectOriginUnicode(subjectOrigin);
-        NS_ConvertUTF8toUTF16 subjectDomainUnicode(subjectDomain);
 
         nsCAutoString objectOrigin;
-        nsCAutoString objectDomain;
         if (!nsAutoInPrincipalDomainOriginSetter::sInPrincipalDomainOrigin &&
             objectPrincipal) {
-            nsCOMPtr<nsIURI> uri, domain;
-            objectPrincipal->GetURI(getter_AddRefs(uri));
-            GetOriginFromURI(uri, objectOrigin);
-            objectPrincipal->GetDomain(getter_AddRefs(domain));
-            if (domain) {
-                GetOriginFromURI(domain, objectDomain);
-            }
+            GetPrincipalDomainOrigin(objectPrincipal, objectOrigin);
         }
         NS_ConvertUTF8toUTF16 objectOriginUnicode(objectOrigin);
-        NS_ConvertUTF8toUTF16 objectDomainUnicode(objectDomain);
-
+            
         nsXPIDLString errorMsg;
         const PRUnichar *formatStrings[] =
         {
             subjectOriginUnicode.get(),
             className.get(),
             JSValIDToString(cx, aProperty),
-            objectOriginUnicode.get(),
-            subjectDomainUnicode.get(),
-            objectDomainUnicode.get()
+            objectOriginUnicode.get()
         };
 
         PRUint32 length = NS_ARRAY_LENGTH(formatStrings);
 
-        
-        
-        
-        
-        
         if (nsAutoInPrincipalDomainOriginSetter::sInPrincipalDomainOrigin ||
             !objectPrincipal) {
             stringName.AppendLiteral("OnlySubject");
-            length -= 3;
-        } else {
-            
-            
-            length -= 2;
-            if (!subjectDomainUnicode.IsEmpty()) {
-                stringName.AppendLiteral("SubjectDomain");
-                length += 1;
-            }
-            if (!objectDomainUnicode.IsEmpty()) {
-                stringName.AppendLiteral("ObjectDomain");
-                length += 1;
-                if (length != NS_ARRAY_LENGTH(formatStrings)) {
-                    
-                    
-                    
-                    formatStrings[length-1] = formatStrings[length];
-                }
-            }
+            --length;
         }
         
         
