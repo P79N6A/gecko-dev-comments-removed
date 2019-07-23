@@ -53,12 +53,19 @@ public:
 
   
   NS_IMETHOD GetValue(nsAString& aValue);
+  NS_IMETHOD GetNumActions(PRUint8 *aCount);
+  NS_IMETHOD GetActionName(PRUint8 aIndex, nsAString& aName);
+  NS_IMETHOD DoAction(PRUint8 aIndex);
 
   
   NS_DECL_NSIACCESSIBLEVALUE
 
   
   virtual nsresult GetRoleInternal(PRUint32 *aRole);
+  virtual nsresult GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState);
+
+  
+  NS_IMETHOD GetAllowsAnonChildAccessibles(PRBool *aAllowsAnonChildren);
 
 protected:
   already_AddRefed<nsIContent> GetSliderNode();
