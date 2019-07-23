@@ -111,26 +111,23 @@ js_GenerateShape(JSContext *cx, JSBool gcLocked, JSScopeProperty *sprop)
 }
 
 JS_REQUIRES_STACK void
-js_FillPropertyCache(JSContext *cx, JSObject *obj,
+js_FillPropertyCache(JSContext *cx, JSObject *obj, jsuword kshape,
                      uintN scopeIndex, uintN protoIndex,
                      JSObject *pobj, JSScopeProperty *sprop,
-                     JSBool cacheByPrevShape, JSPropCacheEntry **entryp)
+                     JSPropCacheEntry **entryp)
 {
     JSPropertyCache *cache;
     jsbytecode *pc;
     JSScope *scope;
-    jsuword kshape, khash;
     JSOp op;
     const JSCodeSpec *cs;
     jsuword vword;
     ptrdiff_t pcoff;
+    jsuword khash;
     JSAtom *atom;
     JSPropCacheEntry *entry;
 
-    JS_ASSERT(OBJ_SCOPE(pobj)->object == pobj);
-    JS_ASSERT(SCOPE_HAS_PROPERTY(OBJ_SCOPE(pobj), sprop));
     JS_ASSERT(!cx->runtime->gcRunning);
-
     cache = &JS_PROPERTY_CACHE(cx);
     pc = cx->fp->regs->pc;
     if (cache->disabled || (cx->fp->flags & JSFRAME_EVAL)) {
@@ -140,6 +137,19 @@ js_FillPropertyCache(JSContext *cx, JSObject *obj,
     }
 
     
+
+
+
+    scope = OBJ_SCOPE(pobj);
+    JS_ASSERT(scope->object == pobj);
+    if (!SCOPE_HAS_PROPERTY(scope, sprop)) {
+        PCMETER(cache->oddfills++);
+        *entryp = NULL;
+        return;
+    }
+
+    
+
 
 
 
@@ -188,8 +198,7 @@ js_FillPropertyCache(JSContext *cx, JSObject *obj,
 
     op = js_GetOpcode(cx, cx->fp->script, pc);
     cs = &js_CodeSpec[op];
-    scope = OBJ_SCOPE(pobj);
-    kshape = 0;
+
     do {
         
 
@@ -225,18 +234,12 @@ js_FillPropertyCache(JSContext *cx, JSObject *obj,
                             JSVAL_TO_OBJECT(v),
                             JS_GetFunctionName(GET_FUNCTION_PRIVATE(cx,
                                                  JSVAL_TO_OBJECT(v))),
-                            OBJ_SHAPE(obj));
+                            kshape);
 #endif
                         SCOPE_MAKE_UNIQUE_SHAPE(cx, scope);
-                        if (cache->disabled) {
-                            
-
-
-
-                            *entryp = NULL;
-                            return;
-                        }
                         SCOPE_SET_BRANDED(scope);
+                        if (OBJ_SCOPE(obj) == scope)
+                            kshape = scope->shape;
                     }
                     vword = JSVAL_OBJECT_TO_PCVAL(v);
                     break;
@@ -253,48 +256,26 @@ js_FillPropertyCache(JSContext *cx, JSObject *obj,
         } else {
             
             vword = SPROP_TO_PCVAL(sprop);
-            if (cacheByPrevShape) {
-                
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-                JS_ASSERT(scope->object == obj);
-                JS_ASSERT(sprop == scope->lastProp);
-                if (sprop->parent) {
-                    kshape = sprop->parent->shape;
-                } else {
-                    JSObject *proto = STOBJ_GET_PROTO(obj);
-                    if (proto && OBJ_IS_NATIVE(proto))
-                        kshape = OBJ_SHAPE(proto);
-                }
-            }
         }
     } while (0);
 
-    if (kshape == 0)
-        kshape = OBJ_SHAPE(obj);
+    
+
+
+
+
+
+
+
+
+
+
+    if (!(cs->format & (JOF_SET | JOF_INCDEC)) && obj == pobj)
+        kshape = scope->shape;
+
     khash = PROPERTY_CACHE_HASH_PC(pc, kshape);
     if (obj == pobj) {
-        JS_ASSERT(kshape != 0);
+        JS_ASSERT(kshape != 0 || scope->shape != 0);
         JS_ASSERT(scopeIndex == 0 && protoIndex == 0);
         JS_ASSERT(OBJ_SCOPE(obj)->object == obj);
     } else {
@@ -489,6 +470,7 @@ js_PurgePropertyCache(JSContext *cx, JSPropertyCache *cache)
         P(nofills);
         P(rofills);
         P(disfills);
+        P(oddfills);
         P(modfills);
         P(brandfills);
         P(noprotos);
@@ -2638,16 +2620,6 @@ JS_STATIC_ASSERT(JSOP_INCNAME_LENGTH == JSOP_DECNAME_LENGTH);
 JS_STATIC_ASSERT(JSOP_INCNAME_LENGTH == JSOP_NAMEINC_LENGTH);
 JS_STATIC_ASSERT(JSOP_INCNAME_LENGTH == JSOP_NAMEDEC_LENGTH);
 
-#ifdef JS_TRACER
-# define ABORT_RECORDING(cx, reason)                                          \
-    JS_BEGIN_MACRO                                                            \
-        if (TRACE_RECORDER(cx))                                               \
-            js_AbortRecording(cx, reason);                                    \
-    JS_END_MACRO
-#else
-# define ABORT_RECORDING(cx, reason)    ((void) 0)
-#endif
-
 JS_REQUIRES_STACK JSBool
 js_Interpret(JSContext *cx)
 {
@@ -3043,7 +3015,10 @@ js_Interpret(JSContext *cx)
             bool moreInterrupts = false;
             JSTrapHandler handler = cx->debugHooks->interruptHandler;
             if (handler) {
-                ABORT_RECORDING(cx, "interrupt handler");
+#ifdef JS_TRACER
+                if (TRACE_RECORDER(cx))
+                    js_AbortRecording(cx, "interrupt handler");
+#endif
                 switch (handler(cx, script, regs.pc, &rval,
                                 cx->debugHooks->interruptHandlerData)) {
                   case JSTRAP_ERROR:
@@ -3583,25 +3558,21 @@ js_Interpret(JSContext *cx)
             *vp = ((sprop)->slot != SPROP_INVALID_SLOT)                       \
                   ? LOCKED_OBJ_GET_SLOT(pobj, (sprop)->slot)                  \
                   : JSVAL_VOID;                                               \
-            JS_UNLOCK_OBJ(cx, pobj);                                          \
         } else {                                                              \
             if (!js_NativeGet(cx, obj, pobj, sprop, vp))                      \
                 goto error;                                                   \
         }                                                                     \
     JS_END_MACRO
 
-#define NATIVE_SET(cx,obj,entry,sprop,vp)                                     \
+#define NATIVE_SET(cx,obj,sprop,vp)                                           \
     JS_BEGIN_MACRO                                                            \
         if (SPROP_HAS_STUB_SETTER(sprop) &&                                   \
             (sprop)->slot != SPROP_INVALID_SLOT) {                            \
             /* Fast path for, e.g., Object instance properties. */            \
             LOCKED_OBJ_WRITE_BARRIER(cx, obj, (sprop)->slot, *vp);            \
-            JS_UNLOCK_OBJ(cx, obj);                                           \
-            TRACE_2(SetPropHit, entry, sprop);                                \
         } else {                                                              \
             if (!js_NativeSet(cx, obj, sprop, vp))                            \
                 goto error;                                                   \
-            ABORT_RECORDING(cx, "non-stub setter");                           \
         }                                                                     \
     JS_END_MACRO
 
@@ -4393,8 +4364,15 @@ js_Interpret(JSContext *cx)
 
 #define COMPUTE_THIS(cx, fp, obj)                                             \
     JS_BEGIN_MACRO                                                            \
-        if (!(obj = js_ComputeThisForFrame(cx, fp)))                          \
-            goto error;                                                       \
+        if (fp->flags & JSFRAME_COMPUTED_THIS) {                              \
+            obj = fp->thisp;                                                  \
+        } else {                                                              \
+            obj = js_ComputeThis(cx, JS_TRUE, fp->argv);                      \
+            if (!obj)                                                         \
+                goto error;                                                   \
+            fp->thisp = obj;                                                  \
+            fp->flags |= JSFRAME_COMPUTED_THIS;                               \
+        }                                                                     \
     JS_END_MACRO
 
           BEGIN_CASE(JSOP_THIS)
@@ -4454,7 +4432,6 @@ js_Interpret(JSContext *cx)
                             JS_ASSERT(PCVAL_IS_SPROP(entry->vword));
                             sprop = PCVAL_TO_SPROP(entry->vword);
                             NATIVE_GET(cx, obj, obj2, sprop, &rval);
-                            break;
                         }
                         JS_UNLOCK_OBJ(cx, obj2);
                         break;
@@ -4538,17 +4515,16 @@ js_Interpret(JSContext *cx)
                     ASSERT_VALID_PROPERTY_CACHE_HIT(0, aobj, obj2, entry);
                     if (PCVAL_IS_OBJECT(entry->vword)) {
                         rval = PCVAL_OBJECT_TO_JSVAL(entry->vword);
-                        JS_UNLOCK_OBJ(cx, obj2);
                     } else if (PCVAL_IS_SLOT(entry->vword)) {
                         slot = PCVAL_TO_SLOT(entry->vword);
                         JS_ASSERT(slot < obj2->map->freeslot);
                         rval = LOCKED_OBJ_GET_SLOT(obj2, slot);
-                        JS_UNLOCK_OBJ(cx, obj2);
                     } else {
                         JS_ASSERT(PCVAL_IS_SPROP(entry->vword));
                         sprop = PCVAL_TO_SPROP(entry->vword);
                         NATIVE_GET(cx, obj, obj2, sprop, &rval);
                     }
+                    JS_UNLOCK_OBJ(cx, obj2);
                     STORE_OPND(-1, rval);
                     PUSH_OPND(lval);
                     goto end_callprop;
@@ -4659,7 +4635,9 @@ js_Interpret(JSContext *cx)
                                     SCOPE_HAS_PROPERTY(scope, sprop)) {
                                     PCMETER(cache->pchits++);
                                     PCMETER(cache->setpchits++);
-                                    NATIVE_SET(cx, obj, entry, sprop, &rval);
+                                    NATIVE_SET(cx, obj, sprop, &rval);
+                                    JS_UNLOCK_SCOPE(cx, scope);
+                                    TRACE_2(SetPropHit, entry, sprop);
                                     break;
                                 }
                             } else {
@@ -4726,8 +4704,7 @@ js_Interpret(JSContext *cx)
                                                             slot,
                                                             sprop->attrs,
                                                             sprop->flags,
-                                                            sprop->shortid,
-                                                            NULL);
+                                                            sprop->shortid);
                                     if (!sprop2) {
                                         js_FreeSlot(cx, obj, slot);
                                         JS_UNLOCK_SCOPE(cx, scope);
@@ -4785,10 +4762,13 @@ js_Interpret(JSContext *cx)
                             sprop = PCVAL_TO_SPROP(entry->vword);
                             JS_ASSERT(!(sprop->attrs & JSPROP_READONLY));
                             JS_ASSERT(!SCOPE_IS_SEALED(OBJ_SCOPE(obj2)));
-                            NATIVE_SET(cx, obj, entry, sprop, &rval);
-                            break;
+                            NATIVE_SET(cx, obj, sprop, &rval);
                         }
                         JS_UNLOCK_OBJ(cx, obj2);
+                        if (sprop) {
+                            TRACE_2(SetPropHit, entry, sprop);
+                            break;
+                        }
                     }
                 }
 
@@ -4806,8 +4786,10 @@ js_Interpret(JSContext *cx)
                     if (!OBJ_SET_PROPERTY(cx, obj, id, &rval))
                         goto error;
                 }
-                if (!entry)
-                    ABORT_RECORDING(cx, "SetPropUncached");
+#ifdef JS_TRACER
+                if (!entry && TRACE_RECORDER(cx))
+                    js_AbortRecording(cx, "SetPropUncached");
+#endif
             } while (0);
           END_SET_CASE_STORE_RVAL(JSOP_SETPROP, 2);
 
@@ -5327,6 +5309,7 @@ js_Interpret(JSContext *cx)
                 sprop = (JSScopeProperty *)prop;
           do_native_get:
                 NATIVE_GET(cx, obj, obj2, sprop, &rval);
+                OBJ_DROP_PROPERTY(cx, obj2, (JSProperty *) sprop);
             }
 
           do_push_rval:
@@ -5806,7 +5789,10 @@ js_Interpret(JSContext *cx)
 
 
 
-                ABORT_RECORDING(cx, "SETGVAR with NULL slot");
+#ifdef JS_TRACER
+                if (TRACE_RECORDER(cx))
+                    js_AbortRecording(cx, "SETGVAR with NULL slot");
+#endif
                 LOAD_ATOM(0);
                 id = ATOM_TO_JSID(atom);
                 if (!OBJ_SET_PROPERTY(cx, obj, id, &rval))
@@ -6111,7 +6097,10 @@ js_Interpret(JSContext *cx)
                     goto error;
 
                 if (OBJ_GET_PARENT(cx, obj) != parent) {
-                    ABORT_RECORDING(cx, "DEFLOCALFUN for closure");
+#ifdef JS_TRACER
+                    if (TRACE_RECORDER(cx))
+                        js_AbortRecording(cx, "DEFLOCALFUN for closure");
+#endif
                     obj = js_CloneFunctionObject(cx, fun, parent);
                     if (!obj)
                         goto error;
@@ -6405,8 +6394,7 @@ js_Interpret(JSContext *cx)
                             js_AddScopeProperty(cx, scope, sprop->id,
                                                 sprop->getter, sprop->setter,
                                                 slot, sprop->attrs,
-                                                sprop->flags, sprop->shortid,
-                                                NULL);
+                                                sprop->flags, sprop->shortid);
                         if (!sprop2) {
                             js_FreeSlot(cx, obj, slot);
                             JS_UNLOCK_SCOPE(cx, scope);
@@ -7153,12 +7141,15 @@ js_Interpret(JSContext *cx)
 
     JS_ASSERT((size_t)((fp->imacpc ? fp->imacpc : regs.pc) - script->code) < script->length);
 
+#ifdef JS_TRACER
     
 
 
 
 
-    ABORT_RECORDING(cx, "error or exception while recording");
+    if (TRACE_RECORDER(cx))
+        js_AbortRecording(cx, "error or exception while recording");
+#endif
 
     if (!cx->throwing) {
         

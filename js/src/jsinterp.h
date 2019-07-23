@@ -273,6 +273,7 @@ typedef struct JSPropertyCache {
     uint32              nofills;        
     uint32              rofills;        
     uint32              disfills;       
+    uint32              oddfills;       
     uint32              modfills;       
     uint32              brandfills;     
 
@@ -343,10 +344,10 @@ typedef struct JSPropertyCache {
 
 
 extern JS_REQUIRES_STACK void
-js_FillPropertyCache(JSContext *cx, JSObject *obj,
+js_FillPropertyCache(JSContext *cx, JSObject *obj, jsuword kshape,
                      uintN scopeIndex, uintN protoIndex,
                      JSObject *pobj, JSScopeProperty *sprop,
-                     JSBool cacheByPrevShape, JSPropCacheEntry **entryp);
+                     JSPropCacheEntry **entryp);
 
 
 

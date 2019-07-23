@@ -692,14 +692,10 @@ js_FindVariableScope(JSContext *cx, JSFunction **funp);
 
 
 
+
 extern JSBool
 js_NativeGet(JSContext *cx, JSObject *obj, JSObject *pobj,
              JSScopeProperty *sprop, jsval *vp);
-
-
-
-
-
 
 extern JSBool
 js_NativeSet(JSContext *cx, JSObject *obj, JSScopeProperty *sprop, jsval *vp);
