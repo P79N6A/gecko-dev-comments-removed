@@ -7225,24 +7225,26 @@ TraceRecorder::ifop()
 
 
 
-JS_REQUIRES_STACK LIns*
+JS_REQUIRES_STACK JSRecordingStatus
 TraceRecorder::tableswitch()
 {
     jsval& v = stackval(-1);
+
+    
     if (!isNumber(v))
-        return NULL;
+        return JSRS_CONTINUE;
 
     
     LIns* v_ins = f2i(get(&v));
     if (v_ins->isconst() || v_ins->isconstq())
-        return NULL;
+        return JSRS_CONTINUE;
 
     jsbytecode* pc = cx->fp->regs->pc;
     
     if (anchor &&
         (anchor->exitType == CASE_EXIT || anchor->exitType == DEFAULT_EXIT) &&
         fragment->ip == pc) {
-        return NULL;
+        return JSRS_CONTINUE;
     }
 
     
@@ -7263,14 +7265,8 @@ TraceRecorder::tableswitch()
 
 
 
-    if ((high + 1 - low) * sizeof(intptr_t*) + 128 > (unsigned) LARGEST_UNDERRUN_PROT) {
-        
-
-
-
-        (void) switchop();
-        return NULL;
-    }
+    if ((high + 1 - low) * sizeof(intptr_t*) + 128 > (unsigned) LARGEST_UNDERRUN_PROT)
+        return switchop();
 
     
     LIns* si_ins = lir_buf_writer->insSkip(sizeof(SwitchInfo));
@@ -7284,7 +7280,10 @@ TraceRecorder::tableswitch()
     lir->insStorei(diff, lir->insImmPtr(&si->index), 0);
     VMSideExit* exit = snapshot(CASE_EXIT);
     exit->switchInfo = si;
-    return lir->insGuard(LIR_xtbl, diff, createGuardRecord(exit));
+    LIns* guardIns = lir->insGuard(LIR_xtbl, diff, createGuardRecord(exit));
+    fragment->lastIns = guardIns;
+    compile(&JS_TRACE_MONITOR(cx));
+    return JSRS_STOP;
 }
 #endif
 
@@ -11073,12 +11072,7 @@ TraceRecorder::record_JSOP_TABLESWITCH()
 {
 #ifdef NANOJIT_IA32
     
-    LIns* guardIns = tableswitch();
-    if (guardIns) {
-        fragment->lastIns = guardIns;
-        compile(&JS_TRACE_MONITOR(cx));
-    }
-    return JSRS_STOP;
+    return tableswitch();
 #else
     return switchop();
 #endif
