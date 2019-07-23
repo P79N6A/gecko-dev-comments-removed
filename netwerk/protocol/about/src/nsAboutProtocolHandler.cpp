@@ -285,7 +285,11 @@ nsNestedAboutURI::Read(nsIObjectInputStream* aStream)
     if (NS_FAILED(rv)) return rv;
 
     if (haveBase) {
-        rv = aStream->ReadObject(PR_TRUE, getter_AddRefs(mBaseURI));
+        nsCOMPtr<nsISupports> supports;
+        rv = aStream->ReadObject(PR_TRUE, getter_AddRefs(supports));
+        if (NS_FAILED(rv)) return rv;
+
+        mBaseURI = do_QueryInterface(supports, &rv);
         if (NS_FAILED(rv)) return rv;
     }
 
@@ -302,7 +306,16 @@ nsNestedAboutURI::Write(nsIObjectOutputStream* aStream)
     if (NS_FAILED(rv)) return rv;
 
     if (mBaseURI) {
-        rv = aStream->WriteObject(mBaseURI, PR_TRUE);
+        
+        
+        
+        
+        
+        
+        
+        
+        rv = aStream->WriteCompoundObject(mBaseURI, NS_GET_IID(nsISupports),
+                                          PR_TRUE);
         if (NS_FAILED(rv)) return rv;
     }
 
