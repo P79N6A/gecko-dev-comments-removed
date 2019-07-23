@@ -181,6 +181,9 @@ public:
     NS_ASSERTION(mUpdateCount == 0, "Dying in the middle of our own update?");
   }
 
+  struct RestyleData;
+  friend struct RestyleData;
+
   
   static nsIXBLService * GetXBLService();
   static void ReleaseGlobals() { NS_IF_RELEASE(gXBLService); }
@@ -274,6 +277,9 @@ private:
   void ProcessOneRestyle(nsIContent* aContent, nsReStyleHint aRestyleHint,
                          nsChangeHint aChangeHint);
 
+  void ProcessPendingRestyleTable(
+           nsDataHashtable<nsISupportsHashKey, RestyleData>& aRestyles);
+
 public:
   
   
@@ -303,9 +309,43 @@ public:
   
   void RebuildAllStyleData(nsChangeHint aExtraHint);
 
+  
   void PostRestyleEvent(nsIContent* aContent, nsReStyleHint aRestyleHint,
-                        nsChangeHint aMinChangeHint);
+                        nsChangeHint aMinChangeHint)
+  {
+    nsPresContext *presContext = mPresShell->GetPresContext();
+    if (presContext) {
+      PostRestyleEventCommon(aContent, aRestyleHint, aMinChangeHint,
+                             presContext->IsProcessingAnimationStyleChange());
+    }
+  }
+
+  
+  void PostAnimationRestyleEvent(nsIContent* aContent,
+                                 nsReStyleHint aRestyleHint,
+                                 nsChangeHint aMinChangeHint)
+  {
+    PostRestyleEventCommon(aContent, aRestyleHint, aMinChangeHint, PR_TRUE);
+  }
 private:
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  void PostRestyleEventCommon(nsIContent* aContent, nsReStyleHint aRestyleHint,
+                              nsChangeHint aMinChangeHint,
+                              PRBool aForAnimation);
   void PostRestyleEventInternal();
 public:
 
@@ -1707,8 +1747,6 @@ private:
   }
 
 public:
-  struct RestyleData;
-  friend struct RestyleData;
 
   struct RestyleData {
     nsReStyleHint mRestyleHint;  
@@ -1794,6 +1832,7 @@ private:
   nsCOMPtr<nsILayoutHistoryState> mTempFrameTreeState;
 
   nsDataHashtable<nsISupportsHashKey, RestyleData> mPendingRestyles;
+  nsDataHashtable<nsISupportsHashKey, RestyleData> mPendingAnimationRestyles;
 
   static nsIXBLService * gXBLService;
 };

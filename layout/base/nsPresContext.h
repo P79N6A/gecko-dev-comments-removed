@@ -818,6 +818,16 @@ public:
     mCrossDocDirtyRegion.SetEmpty();
   }
 
+  PRBool IsProcessingAnimationStyleChange() const {
+    return mProcessingAnimationStyleChange;
+  }
+
+  void SetProcessingAnimationStyleChange(PRBool aProcessing) {
+    NS_ASSERTION(aProcessing != mProcessingAnimationStyleChange,
+                 "should never nest");
+    mProcessingAnimationStyleChange = aProcessing;
+  }
+
   
 
 
@@ -1031,10 +1041,10 @@ protected:
   
   unsigned              mSupressResizeReflow : 1;
 
-#ifdef IBMBIDI
   unsigned              mIsVisual : 1;
 
-#endif
+  unsigned              mProcessingAnimationStyleChange : 1;
+
 #ifdef DEBUG
   PRBool                mInitialized;
 #endif

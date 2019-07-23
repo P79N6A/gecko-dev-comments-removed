@@ -1544,7 +1544,7 @@ nsCSSFrameConstructor::nsCSSFrameConstructor(nsIDocument *aDocument,
   , mRebuildAllExtraHint(nsChangeHint(0))
 {
   
-  if (!mPendingRestyles.Init()) {
+  if (!mPendingRestyles.Init() || !mPendingAnimationRestyles.Init()) {
     
   }
 
@@ -11598,13 +11598,10 @@ nsCSSFrameConstructor::RebuildAllStyleData(nsChangeHint aExtraHint)
 }
 
 void
-nsCSSFrameConstructor::ProcessPendingRestyles()
+nsCSSFrameConstructor::ProcessPendingRestyleTable(
+                   nsDataHashtable<nsISupportsHashKey, RestyleData>& aRestyles)
 {
-  NS_PRECONDITION(mDocument, "No document?  Pshaw!\n");
-  NS_PRECONDITION(!nsContentUtils::IsSafeToRunScript(),
-                  "Missing a script blocker!");
-
-  PRUint32 count = mPendingRestyles.Count();
+  PRUint32 count = aRestyles.Count();
 
   
   
@@ -11621,14 +11618,14 @@ nsCSSFrameConstructor::ProcessPendingRestyles()
     }
 
     RestyleEnumerateData* lastRestyle = restylesToProcess;
-    mPendingRestyles.Enumerate(CollectRestyles, &lastRestyle);
+    aRestyles.Enumerate(CollectRestyles, &lastRestyle);
 
     NS_ASSERTION(lastRestyle - restylesToProcess == PRInt32(count),
                  "Enumeration screwed up somehow");
 
     
     
-    mPendingRestyles.Clear();
+    aRestyles.Clear();
 
     for (RestyleEnumerateData* currentRestyle = restylesToProcess;
          currentRestyle != lastRestyle;
@@ -11646,6 +11643,30 @@ nsCSSFrameConstructor::ProcessPendingRestyles()
 #ifdef DEBUG
   mPresShell->VerifyStyleTree();
 #endif
+}
+
+void
+nsCSSFrameConstructor::ProcessPendingRestyles()
+{
+  NS_PRECONDITION(mDocument, "No document?  Pshaw!\n");
+  NS_PRECONDITION(!nsContentUtils::IsSafeToRunScript(),
+                  "Missing a script blocker!");
+
+  
+  ProcessPendingRestyleTable(mPendingRestyles);
+
+  
+  
+  
+  
+  
+  
+  
+  
+  nsPresContext *presContext = mPresShell->GetPresContext();
+  presContext->SetProcessingAnimationStyleChange(PR_TRUE);
+  ProcessPendingRestyleTable(mPendingAnimationRestyles);
+  presContext->SetProcessingAnimationStyleChange(PR_FALSE);
 
   if (mRebuildAllStyleData) {
     
@@ -11655,9 +11676,10 @@ nsCSSFrameConstructor::ProcessPendingRestyles()
 }
 
 void
-nsCSSFrameConstructor::PostRestyleEvent(nsIContent* aContent,
-                                        nsReStyleHint aRestyleHint,
-                                        nsChangeHint aMinChangeHint)
+nsCSSFrameConstructor::PostRestyleEventCommon(nsIContent* aContent,
+                                              nsReStyleHint aRestyleHint,
+                                              nsChangeHint aMinChangeHint,
+                                              PRBool aForAnimation)
 {
   if (NS_UNLIKELY(mPresShell->IsDestroying())) {
     return;
@@ -11675,12 +11697,15 @@ nsCSSFrameConstructor::PostRestyleEvent(nsIContent* aContent,
   existingData.mRestyleHint = nsReStyleHint(0);
   existingData.mChangeHint = NS_STYLE_HINT_NONE;
 
-  mPendingRestyles.Get(aContent, &existingData);
+  nsDataHashtable<nsISupportsHashKey, RestyleData> &restyles =
+    aForAnimation ? mPendingAnimationRestyles : mPendingRestyles;
+
+  restyles.Get(aContent, &existingData);
   existingData.mRestyleHint =
     nsReStyleHint(existingData.mRestyleHint | aRestyleHint);
   NS_UpdateHint(existingData.mChangeHint, aMinChangeHint);
 
-  mPendingRestyles.Put(aContent, existingData);
+  restyles.Put(aContent, existingData);
 
   PostRestyleEventInternal();
 }
