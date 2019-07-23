@@ -538,25 +538,25 @@ nsThebesImage::Draw(nsIRenderingContext &aContext,
 
     pat->SetMatrix(mat);
 
-    if (xscale != 1.0 || yscale != 1.0) {
 #if !defined(XP_MACOSX) && !defined(XP_WIN)
-        
-        
-        
-        
-        
-        
-        
-        
+    
+    
+    
+    
+    
+    
+    
+    
+    if (xscale > 1.0 || yscale > 1.0)
         pat->SetFilter(0);
 #endif
 
 #if defined(XP_WIN)
-        
-        
+    
+    
+    if (xscale != 1.0 || yscale != 1.0)
         pat->SetExtend(gfxPattern::EXTEND_PAD);
 #endif
-    }
 
     gfxContext::GraphicsOperator op = ctx->CurrentOperator();
     if (op == gfxContext::OPERATOR_OVER && mFormat == gfxASurface::ImageFormatRGB24)
