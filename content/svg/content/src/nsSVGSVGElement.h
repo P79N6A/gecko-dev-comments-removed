@@ -41,22 +41,23 @@
 #define __NS_SVGSVGELEMENT_H__
 
 #include "nsSVGStylableElement.h"
-#include "nsISVGSVGElement.h"
+#include "nsIDOMSVGSVGElement.h"
 #include "nsIDOMSVGFitToViewBox.h"
 #include "nsIDOMSVGLocatable.h"
 #include "nsIDOMSVGZoomAndPan.h"
 #include "nsIDOMSVGMatrix.h"
 #include "nsSVGLength2.h"
 
-#define QI_TO_NSSVGSVGELEMENT(base)                                           \
-  NS_STATIC_CAST(nsSVGSVGElement*,                                            \
-    NS_STATIC_CAST(nsISVGSVGElement*,                                         \
-      nsCOMPtr<nsISVGSVGElement>(do_QueryInterface(base))));
+class nsISVGEnum;
+
+#define QI_AND_CAST_TO_NSSVGSVGELEMENT(base)                                  \
+  (nsCOMPtr<nsIDOMSVGSVGElement>(do_QueryInterface(base)) ?                   \
+   NS_STATIC_CAST(nsSVGSVGElement*, base.get()) : nsnull)
 
 typedef nsSVGStylableElement nsSVGSVGElementBase;
 
 class nsSVGSVGElement : public nsSVGSVGElementBase,
-                        public nsISVGSVGElement, 
+                        public nsIDOMSVGSVGElement,
                         public nsIDOMSVGFitToViewBox,
                         public nsIDOMSVGLocatable,
                         public nsIDOMSVGZoomAndPan
@@ -75,7 +76,6 @@ protected:
   void SetCoordCtxRect(nsIDOMSVGRect* aCtxRect);
 
 public:
-  NS_DECLARE_STATIC_IID_ACCESSOR(NS_ISVGSVGELEMENT_IID)
 
   
   NS_DECL_ISUPPORTS_INHERITED
@@ -92,9 +92,31 @@ public:
   
   NS_IMETHOD GetCurrentScaleNumber(nsIDOMSVGNumber **aResult);
   NS_IMETHOD GetZoomAndPanEnum(nsISVGEnum **aResult);
+
+  
+
+
+
+
   NS_IMETHOD SetCurrentScaleTranslate(float s, float x, float y);
+
+  
+
+
+
+
   NS_IMETHOD SetCurrentTranslate(float x, float y);
+
+  
+
+
+
   NS_IMETHOD_(void) RecordCurrentScaleTranslate();
+
+  
+
+
+
   NS_IMETHOD_(float) GetPreviousTranslate_x();
   NS_IMETHOD_(float) GetPreviousTranslate_y();
   NS_IMETHOD_(float) GetPreviousScale();

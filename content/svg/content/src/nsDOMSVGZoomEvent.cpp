@@ -39,7 +39,7 @@
 #include "nsContentUtils.h"
 #include "nsSVGRect.h"
 #include "nsSVGPoint.h"
-#include "nsISVGSVGElement.h"
+#include "nsSVGSVGElement.h"
 #include "nsIDOMSVGSVGElement.h"
 #include "nsIContent.h"
 #include "nsIPresShell.h"
@@ -87,16 +87,16 @@ nsDOMSVGZoomEvent::nsDOMSVGZoomEvent(nsPresContext* aPresContext,
           currentTranslate->GetX(&x);
           currentTranslate->GetY(&y);
           NS_NewSVGReadonlyPoint(getter_AddRefs(mNewTranslate), x, y);
-        }
-        nsCOMPtr<nsISVGSVGElement> privSVGElement = do_QueryInterface(rootContent);
-        if (svgElement) {
-          mPreviousScale = privSVGElement->GetPreviousScale();
+
+          nsSVGSVGElement *SVGSVGElement =
+            NS_STATIC_CAST(nsSVGSVGElement*, rootContent);
+          mPreviousScale = SVGSVGElement->GetPreviousScale();
           NS_NewSVGReadonlyPoint(getter_AddRefs(mPreviousTranslate),
-                                 privSVGElement->GetPreviousTranslate_x(),
-                                 privSVGElement->GetPreviousTranslate_y());
+                                 SVGSVGElement->GetPreviousTranslate_x(),
+                                 SVGSVGElement->GetPreviousTranslate_y());
           
           
-          privSVGElement->RecordCurrentScaleTranslate();
+          SVGSVGElement->RecordCurrentScaleTranslate();
         }
       }
     }
