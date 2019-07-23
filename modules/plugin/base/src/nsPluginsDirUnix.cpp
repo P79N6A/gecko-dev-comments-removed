@@ -45,12 +45,10 @@
 
 #include "nsNPAPIPlugin.h"
 #include "nsNPAPIPluginInstance.h"
-#include "nsIServiceManager.h"
 #include "nsIMemory.h"
 #include "nsIPluginStreamListener.h"
 #include "nsPluginsDir.h"
 #include "nsPluginsDirUtils.h"
-#include "nsObsoleteModuleLoading.h"
 #include "prmem.h"
 #include "prenv.h"
 #include "prerror.h"
@@ -431,45 +429,13 @@ nsresult nsPluginFile::LoadPlugin(PRLibrary* &outLibrary)
 
 nsresult nsPluginFile::GetPluginInfo(nsPluginInfo& info)
 {
-    nsresult rv;
-
-    
-    
-    nsIServiceManagerObsolete* mgr;
-    nsServiceManager::GetGlobalServiceManager((nsIServiceManager**)&mgr);
-
-    nsFactoryProc nsGetFactory =
-        (nsFactoryProc) PR_FindFunctionSymbol(pLibrary, "NSGetFactory");
-
-    nsCOMPtr<nsIPlugin> plugin;
-
     info.fVersion = nsnull;
-    if (nsGetFactory) {
-        
-        static NS_DEFINE_CID(kPluginCID, NS_PLUGIN_CID);
 
-        nsCOMPtr<nsIFactory> factory;
-        rv = nsGetFactory(mgr, kPluginCID, nsnull, nsnull, 
-			  getter_AddRefs(factory));
-
-        if (NS_FAILED(rv)) {
-            
-            
-            
-            
-            
-            rv = nsNPAPIPlugin::CreatePlugin(NULL, pLibrary, getter_AddRefs(plugin));
-            if (NS_FAILED(rv))
-                return rv;
-        } else {
-            plugin = do_QueryInterface(factory);
-        }
-    } else {
-        
-        
-        rv = nsNPAPIPlugin::CreatePlugin(NULL, pLibrary, getter_AddRefs(plugin));
-        if (NS_FAILED(rv)) return rv;
-    }
+    
+    nsCOMPtr<nsIPlugin> plugin;
+    nsresult rv = nsNPAPIPlugin::CreatePlugin(NULL, pLibrary, getter_AddRefs(plugin));
+    if (NS_FAILED(rv))
+      return rv;
 
     if (plugin) {
         const char* (*npGetPluginVersion)() =
