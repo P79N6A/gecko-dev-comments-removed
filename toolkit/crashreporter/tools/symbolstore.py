@@ -538,6 +538,8 @@ class Dumper:
                         else:
                             
                             f.write(line)
+                            
+                            result = True
                     f.close()
                     cmd.close()
                     
@@ -547,8 +549,7 @@ class Dumper:
                         self.CopyDebug(file, debug_file, guid)
                     if self.srcsrv and vcs_root:
                         
-                        result = self.SourceServerIndexing(debug_file, guid, sourceFileStream, vcs_root)
-                    result = True
+                        self.SourceServerIndexing(debug_file, guid, sourceFileStream, vcs_root)
             except StopIteration:
                 pass
             except:
@@ -710,6 +711,12 @@ class Dumper_Mac(Dumper):
         res = Dumper.ProcessFile(self, dsymbundle)
         
         shutil.rmtree(dsymbundle)
+
+        
+        if not res:
+            print >> sys.stderr, "Couldn't read DWARF symbols in: %s" % dsymbundle
+            res = Dumper.ProcessFile(self, file)
+
         return res
 
     def CopyDebug(self, file, debug_file, guid):
