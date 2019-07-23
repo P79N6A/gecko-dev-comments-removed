@@ -97,8 +97,8 @@ typedef nsEventStatus (*PR_CALLBACK EVENT_CALLBACK)(nsGUIEvent *event);
 
 
 #define NS_IWIDGET_IID \
-{ 0xe197eeba, 0xa82b, 0x46d9, \
-  { 0x8a, 0xa9, 0x52, 0xe1, 0x13, 0x3f, 0xc5, 0x93 } }
+{ 0x517a0eef, 0xcd1c, 0x48b3, \
+  { 0x96, 0xf0, 0xe3, 0x41, 0xa5, 0x0f, 0x12, 0x0d } }
 
 
 
@@ -1097,11 +1097,13 @@ class nsIWidget : public nsISupports {
 
 
 
-    virtual void SynthesizeNativeKeyEvent(PRInt32 aNativeKeyboardLayout,
-                                          PRInt32 aNativeKeyCode,
-                                          PRUint32 aModifierFlags,
-                                          const nsAString& aCharacters,
-                                          const nsAString& aUnmodifiedCharacters) = 0;
+
+
+    virtual nsresult SynthesizeNativeKeyEvent(PRInt32 aNativeKeyboardLayout,
+                                              PRInt32 aNativeKeyCode,
+                                              PRUint32 aModifierFlags,
+                                              const nsAString& aCharacters,
+                                              const nsAString& aUnmodifiedCharacters) = 0;
 
 protected:
     
