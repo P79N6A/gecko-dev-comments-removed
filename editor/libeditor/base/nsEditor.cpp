@@ -2613,15 +2613,17 @@ NS_IMETHODIMP nsEditor::InsertTextImpl(const nsAString& aStringToInsert,
 }
 
 
-NS_IMETHODIMP nsEditor::InsertTextIntoTextNodeImpl(const nsAString& aStringToInsert, 
-                                                     nsIDOMCharacterData *aTextNode, 
-                                                     PRInt32 aOffset, PRBool suppressIME)
+nsresult nsEditor::InsertTextIntoTextNodeImpl(const nsAString& aStringToInsert, 
+                                              nsIDOMCharacterData *aTextNode, 
+                                              PRInt32 aOffset,
+                                              PRBool aSuppressIME)
 {
   nsRefPtr<EditTxn> txn;
   nsresult result = NS_OK;
+  PRBool isIMETransaction = PR_FALSE;
   
   
-  if (mIMETextRangeList && mInIMEMode && !suppressIME)
+  if (mIMETextRangeList && mInIMEMode && !aSuppressIME)
   {
     if (!mIMETextNode)
     {
@@ -2669,6 +2671,7 @@ NS_IMETHODIMP nsEditor::InsertTextIntoTextNodeImpl(const nsAString& aStringToIns
     nsRefPtr<IMETextTxn> imeTxn;
     result = CreateTxnForIMEText(aStringToInsert, getter_AddRefs(imeTxn));
     txn = imeTxn;
+    isIMETransaction = PR_TRUE;
   }
   else
   {
@@ -2705,7 +2708,7 @@ NS_IMETHODIMP nsEditor::InsertTextIntoTextNodeImpl(const nsAString& aStringToIns
   
   
   
-  if (mInIMEMode && mIMETextNode)
+  if (isIMETransaction)
   {
     PRUint32 len;
     mIMETextNode->GetLength(&len);
