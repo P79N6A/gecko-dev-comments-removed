@@ -601,6 +601,10 @@ NS_IMETHODIMP nsXULTreeitemAccessible::GetName(nsAString& aName)
   mTreeView->GetCellText(mRow, mColumn, aName);
   
   
+  
+  
+  
+  
   if (aName.IsEmpty()) {
     mTreeView->GetCellValue(mRow, mColumn, aName);
   }

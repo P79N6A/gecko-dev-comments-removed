@@ -92,7 +92,6 @@
 
 #include <unknwn.h>
 
-
 #include <zmouse.h>
 
 #include "nsGfxCIID.h"
@@ -105,7 +104,10 @@
 
 #ifdef ACCESSIBILITY
 #include "OLEIDL.H"
-#include "winable.h"
+#include <winuser.h>
+#ifndef WINABLEAPI
+#include <winable.h>
+#endif
 #include "nsIAccessible.h"
 #include "nsIAccessibleDocument.h"
 #include "nsIAccessNode.h"
