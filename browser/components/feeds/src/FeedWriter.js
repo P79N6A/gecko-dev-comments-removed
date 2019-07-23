@@ -24,6 +24,7 @@
 #   Asaf Romano <mano@mozilla.com>
 #   Robert Sayre <sayrer@gmail.com>
 #   Michael Ventnor <m.ventnor@gmail.com>
+#   Will Guaraldi <will.guaraldi@pculture.org>
 #
 # Alternatively, the contents of this file may be used under the terms of
 # either the GNU General Public License Version 2 or later (the "GPL"), or
@@ -91,8 +92,35 @@ const PREF_SHOW_FIRST_RUN_UI = "browser.feeds.showFirstRunUI";
 const TITLE_ID = "feedTitleText";
 const SUBTITLE_ID = "feedSubtitleText";
 
+
+
+
+
+
+
+function convertByteUnits(aBytes) {
+  var units = ["bytes", "kilobyte", "megabyte", "gigabyte"];
+  let unitIndex = 0;
+ 
+  
+  
+  while ((aBytes >= 999.5) && (unitIndex < units.length - 1)) {
+    aBytes /= 1024;
+    unitIndex++;
+  }
+ 
+  
+  
+  aBytes = aBytes.toFixed((aBytes > 0) && (aBytes < 100) ? 1 : 0);
+ 
+  return [aBytes, units[unitIndex]];
+}
+
 function FeedWriter() {}
 FeedWriter.prototype = {
+  _mimeSvc      : Cc["@mozilla.org/mime;1"].
+                  getService(Ci.nsIMIMEService),
+
   _getPropertyAsBag: function FW__getPropertyAsBag(container, property) {
     return container.fields.getProperty(property).
                      QueryInterface(Ci.nsIPropertyBag2);
@@ -357,11 +385,116 @@ FeedWriter.prototype = {
       }
       body.className = "feedEntryContent";
       entryContainer.appendChild(body);
+
+      if (entry.enclosures && entry.enclosures.length > 0) {
+        var enclosuresDiv = this._buildEnclosureDiv(entry);
+        entryContainer.appendChild(enclosuresDiv);
+      }
+
       feedContent.appendChild(entryContainer);
       var clearDiv = this._document.createElementNS(HTML_NS, "div");
       clearDiv.style.clear = "both";
       feedContent.appendChild(clearDiv);
     }
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+  _getURLDisplayName: function FW__getURLDisplayName(aURL) {
+    var url = makeURI(aURL);
+    url.QueryInterface(Ci.nsIURL);
+    if (url == null || url.fileName.length == 0)
+      return aURL;
+
+    return decodeURI(url.fileName);
+  },
+
+  
+
+
+
+
+
+
+  _buildEnclosureDiv: function FW__buildEnclosureDiv(entry) {
+    var enclosuresDiv = this._document.createElementNS(HTML_NS, "div");
+    enclosuresDiv.setAttribute("class", "enclosures");
+
+    enclosuresDiv.appendChild(this._document.createTextNode(this._getString("mediaLabel")));
+
+    var roundme = function(n) {
+      return (Math.round(n * 100) / 100).toLocaleString();
+    }
+
+    for (var i_enc = 0; i_enc < entry.enclosures.length; ++i_enc) {
+      var enc = entry.enclosures.queryElementAt(i_enc, Ci.nsIWritablePropertyBag2);
+
+      if (!(enc.hasKey("url"))) 
+        continue;
+
+      var enclosureDiv = this._document.createElementNS(HTML_NS, "div");
+      enclosureDiv.setAttribute("class", "enclosure");
+
+      var mozicon = "moz-icon://.txt?size=16";
+      var type_text = null;
+      var size_text = null;
+
+      if (enc.hasKey("type")) {
+        type_text = enc.get("type");
+        try {
+          var handlerInfoWrapper = this._mimeSvc.getFromTypeAndExtension(enc.get("type"), null);
+
+          if (handlerInfoWrapper)
+            type_text = handlerInfoWrapper.description;
+
+          if  (type_text && type_text.length > 0)
+            mozicon = "moz-icon://goat?size=16&contentType=" + enc.get("type");
+
+        } catch (ex) { }
+
+      }
+
+      if (enc.hasKey("length") && /^[0-9]+$/.test(enc.get("length"))) {
+        var enc_size = convertByteUnits(parseInt(enc.get("length")));
+
+        var size_text = this._getFormattedString("enclosureSizeText", 
+                             [enc_size[0], this._getString(enc_size[1])]);
+      }
+
+      var iconimg = this._document.createElementNS(HTML_NS, "img");
+      iconimg.setAttribute("src", mozicon);
+      iconimg.setAttribute("class", "type-icon");
+      enclosureDiv.appendChild(iconimg);
+
+      enclosureDiv.appendChild(this._document.createTextNode( " " ));
+
+      var enc_href = this._document.createElementNS(HTML_NS, "a");
+      enc_href.appendChild(this._document.createTextNode(this._getURLDisplayName(enc.get("url"))));
+      this._safeSetURIAttribute(enc_href, "href", enc.get("url"));
+      enclosureDiv.appendChild(enc_href);
+
+      if (type_text && size_text)
+        enclosureDiv.appendChild(this._document.createTextNode( " (" + type_text + ", " + size_text + ")"));
+
+      else if (type_text) 
+        enclosureDiv.appendChild(this._document.createTextNode( " (" + type_text + ")"))
+
+      else if (size_text)
+        enclosureDiv.appendChild(this._document.createTextNode( " (" + size_text + ")"))
+ 
+      enclosuresDiv.appendChild(enclosureDiv);
+    }
+
+    return enclosuresDiv;
   },
 
   
