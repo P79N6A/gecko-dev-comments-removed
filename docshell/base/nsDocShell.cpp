@@ -1044,6 +1044,9 @@ ConvertDocShellLoadInfoToLoadType(nsDocShellInfoLoadType aDocShellLoadType)
     case nsIDocShellLoadInfo::loadStopContentAndReplace:
         loadType = LOAD_STOP_CONTENT_AND_REPLACE;
         break;
+    case nsIDocShellLoadInfo::loadPushState:
+        loadType = LOAD_PUSHSTATE;
+        break;
     default:
         NS_NOTREACHED("Unexpected nsDocShellInfoLoadType value");
     }
@@ -1108,6 +1111,9 @@ nsDocShell::ConvertLoadTypeToDocShellLoadInfo(PRUint32 aLoadType)
         break;
     case LOAD_STOP_CONTENT_AND_REPLACE:
         docShellLoadType = nsIDocShellLoadInfo::loadStopContentAndReplace;
+        break;
+    case LOAD_PUSHSTATE:
+        docShellLoadType = nsIDocShellLoadInfo::loadPushState;
         break;
     default:
         NS_NOTREACHED("Unexpected load type value");
@@ -9229,11 +9235,12 @@ nsDocShell::AddState(nsIVariant *aData, const nsAString& aTitle,
     
     PRInt32 maxStateObjSize = 0xA0000;
     if (mPrefs) {
-      mPrefs->GetIntPref("browser.history.maxStateObjectSize",
-                         &maxStateObjSize);
+        mPrefs->GetIntPref("browser.history.maxStateObjectSize",
+                           &maxStateObjSize);
     }
-    if (maxStateObjSize < 0)
-      maxStateObjSize = 0;
+    if (maxStateObjSize < 0) {
+        maxStateObjSize = 0;
+    }
     NS_ENSURE_TRUE(dataStr.Length() <= (PRUint32)maxStateObjSize,
                    NS_ERROR_ILLEGAL_VALUE);
 
@@ -9242,7 +9249,7 @@ nsDocShell::AddState(nsIVariant *aData, const nsAString& aTitle,
     nsCOMPtr<nsIURI> oldURI = mCurrentURI;
     nsCOMPtr<nsIURI> newURI;
     if (aURL.Length() == 0) {
-      newURI = mCurrentURI;
+        newURI = mCurrentURI;
     }
     else {
         
@@ -9326,7 +9333,7 @@ nsDocShell::AddState(nsIVariant *aData, const nsAString& aTitle,
     NS_ENSURE_TRUE(sessionHistory, NS_ERROR_FAILURE);
 
     nsCOMPtr<nsISHistoryInternal> shInternal =
-      do_QueryInterface(sessionHistory, &rv);
+        do_QueryInterface(sessionHistory, &rv);
     NS_ENSURE_SUCCESS(rv, rv);
 
     
@@ -9384,20 +9391,24 @@ nsDocShell::AddState(nsIVariant *aData, const nsAString& aTitle,
 
     
     
+    
+    
+    
+    
+    
     if (!equalURIs) {
         SetCurrentURI(newURI, nsnull, PR_TRUE);
         document->SetDocumentURI(newURI);
 
         AddToGlobalHistory(newURI, PR_FALSE, oldURI);
     }
+    else {
+        FireOnLocationChange(this, nsnull, mCurrentURI);
+    }
 
     
     if (mOSHE)
-      mOSHE->SetTitle(aTitle);
-
-    
-    
-    FireOnLocationChange(this, nsnull, mCurrentURI);
+        mOSHE->SetTitle(aTitle);
 
     return NS_OK;
 }
