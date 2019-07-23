@@ -49,6 +49,7 @@
 #include "nsITheme.h"
 #include "nsNativeWidget.h"
 #include "nsWidgetInitData.h"
+#include "nsTArray.h"
 
 
 class   nsIAppShell;
@@ -100,10 +101,9 @@ typedef nsEventStatus (* EVENT_CALLBACK)(nsGUIEvent *event);
 #define NS_NATIVE_TSF_DISPLAY_ATTR_MGR 102
 #endif
 
-
 #define NS_IWIDGET_IID \
-{ 0xa395289d, 0xb344, 0x42c3, \
-  { 0xae, 0x7e, 0x34, 0xd6, 0x42, 0x82, 0xb6, 0xe0 } }
+  { 0x8f0869be, 0x6a53, 0x4f21, \
+    { 0xa9, 0x64, 0x90, 0xd9, 0x26, 0x04, 0x05, 0xa3 } }
 
 
 
@@ -607,6 +607,37 @@ class nsIWidget : public nsISupports {
 
 
     virtual nsTransparencyMode GetTransparencyMode() = 0;
+
+    
+
+
+
+    struct Configuration {
+        nsIWidget* mChild;
+        nsIntRect mBounds;
+        nsTArray<nsIntRect> mClipRegion;
+    };
+
+    
+
+
+
+
+
+
+
+
+
+
+
+    virtual nsresult ConfigureChildren(const nsTArray<Configuration>& aConfigurations) = 0;
+
+    
+
+
+
+
+    virtual void GetWindowClipRegion(nsTArray<nsIntRect>* aRects) = 0;
 
     
 
