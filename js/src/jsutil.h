@@ -46,10 +46,14 @@
 
 JS_BEGIN_EXTERN_C
 
-#ifdef DEBUG
+
+
+
 
 extern JS_PUBLIC_API(void)
 JS_Assert(const char *s, const char *file, JSIntn ln);
+
+#ifdef DEBUG
 
 #define JS_ASSERT(expr)                                                       \
     ((expr) ? (void)0 : JS_Assert(#expr, __FILE__, __LINE__))
