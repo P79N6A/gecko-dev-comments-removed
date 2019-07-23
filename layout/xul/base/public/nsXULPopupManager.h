@@ -501,7 +501,7 @@ public:
 
 
 
-  nsTArray<nsIFrame *> GetOpenPopups();
+  nsTArray<nsIFrame *> GetVisiblePopups();
 
   
 
