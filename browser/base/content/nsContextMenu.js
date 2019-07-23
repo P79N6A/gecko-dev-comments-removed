@@ -76,7 +76,6 @@ function nsContextMenu(aXulMenu, aBrowser) {
   this.onLink            = false;
   this.onMailtoLink      = false;
   this.onSaveableLink    = false;
-  this.onMetaDataItem    = false;
   this.onMathML          = false;
   this.link              = false;
   this.linkURL           = "";
@@ -131,7 +130,6 @@ nsContextMenu.prototype = {
     this.initSpellingItems();
     this.initSaveItems();
     this.initClipboardItems();
-    this.initMetadataItems();
     this.initMediaPlayerItems();
   },
 
@@ -205,9 +203,7 @@ nsContextMenu.prototype = {
     this.showItem("context-viewinfo", shouldShow);
 
     this.showItem("context-sep-properties",
-                  !(this.isContentSelected ||
-                    this.onTextInput || this.onCanvas ||
-                    this.onVideo || this.onAudio));
+                  (shouldShow || this.isContentSelected));
 
     
     
@@ -390,11 +386,6 @@ nsContextMenu.prototype = {
                   this.onVideo || this.onAudio);
   },
 
-  initMetadataItems: function() {
-    
-    this.showItem("context-metadata", this.onMetaDataItem);
-  },
-
   initMediaPlayerItems: function() {
     var onMedia = (this.onVideo || this.onAudio);
     
@@ -433,7 +424,6 @@ nsContextMenu.prototype = {
     this.onCanvas          = false;
     this.onVideo           = false;
     this.onAudio           = false;
-    this.onMetaDataItem    = false;
     this.onTextInput       = false;
     this.onKeywordField    = false;
     this.mediaURL          = "";
@@ -466,7 +456,6 @@ nsContextMenu.prototype = {
       if (this.target instanceof Ci.nsIImageLoadingContent &&
           this.target.currentURI) {
         this.onImage = true;
-        this.onMetaDataItem = true;
                 
         var request =
           this.target.getRequest(Ci.nsIImageLoadingContent.CURRENT_REQUEST);
@@ -537,7 +526,6 @@ nsContextMenu.prototype = {
             
           
           this.onLink = true;
-          this.onMetaDataItem = true;
 
           
           
@@ -562,22 +550,6 @@ nsContextMenu.prototype = {
           this.linkProtocol = this.getLinkProtocol();
           this.onMailtoLink = (this.linkProtocol == "mailto");
           this.onSaveableLink = this.isLinkSaveable( this.link );
-        }
-
-        
-        if (!this.onMetaDataItem) {
-          
-          
-          
-          if ((elem instanceof HTMLQuoteElement && elem.cite) ||
-              (elem instanceof HTMLTableElement && elem.summary) ||
-              (elem instanceof HTMLModElement &&
-               (elem.cite || elem.dateTime)) ||
-              (elem instanceof HTMLElement &&
-               (elem.title || elem.lang)) ||
-              elem.getAttributeNS(XMLNS, "lang")) {
-            this.onMetaDataItem = true;
-          }
         }
 
         
@@ -632,7 +604,6 @@ nsContextMenu.prototype = {
         this.onImage           = false;
         this.onLoadedImage     = false;
         this.onCompletedImage  = false;
-        this.onMetaDataItem    = false;
         this.onMathML          = false;
         this.inFrame           = false;
         this.hasBGImage        = false;
@@ -1097,14 +1068,6 @@ nsContextMenu.prototype = {
     var clipboard = Cc["@mozilla.org/widget/clipboardhelper;1"].
                     getService(Ci.nsIClipboardHelper);
     clipboard.copyString(addresses);
-  },
-
-  
-  showMetadata: function () {
-    window.openDialog("chrome://browser/content/metaData.xul",
-                      "_blank",
-                      "scrollbars,resizable,chrome,dialog=no",
-                      this.target);
   },
 
   
