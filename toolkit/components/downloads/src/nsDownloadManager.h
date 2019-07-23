@@ -218,6 +218,12 @@ protected:
 
 
 
+  void SetProgressBytes(PRInt64 aCurrBytes, PRInt64 aMaxBytes);
+
+  
+
+
+
   nsresult Pause();
 
   
@@ -291,8 +297,8 @@ private:
 
 
 
-  PRUint64 mCurrBytes;
-  PRUint64 mMaxBytes;
+  PRInt64 mCurrBytes;
+  PRInt64 mMaxBytes;
 
   PRTime mStartTime;
   PRTime mLastUpdate;
