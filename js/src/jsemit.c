@@ -5591,41 +5591,56 @@ js_EmitTree(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
 
 
 
-
-
-
-
-
-        pn3 = pn;
-        if (!js_EmitTree(cx, cg, pn->pn_left))
-            return JS_FALSE;
-        top = EmitJump(cx, cg, JSOP_BACKPATCH_POP, 0);
-        if (top < 0)
-            return JS_FALSE;
-        jmp = top;
-        pn2 = pn->pn_right;
-        while (pn2->pn_type == TOK_OR || pn2->pn_type == TOK_AND) {
-            pn = pn2;
+        if (pn->pn_arity == PN_BINARY) {
             if (!js_EmitTree(cx, cg, pn->pn_left))
                 return JS_FALSE;
-            off = EmitJump(cx, cg, JSOP_BACKPATCH_POP, 0);
-            if (off < 0)
+            top = EmitJump(cx, cg, JSOP_BACKPATCH_POP, 0);
+            if (top < 0)
                 return JS_FALSE;
-            if (!SetBackPatchDelta(cx, cg, CG_CODE(cg, jmp), off - jmp))
+            if (!js_EmitTree(cx, cg, pn->pn_right))
                 return JS_FALSE;
-            jmp = off;
-            pn2 = pn->pn_right;
-        }
-        if (!js_EmitTree(cx, cg, pn2))
-            return JS_FALSE;
-        off = CG_OFFSET(cg);
-        do {
+            off = CG_OFFSET(cg);
             pc = CG_CODE(cg, top);
-            tmp = GetJumpOffset(cg, pc);
             CHECK_AND_SET_JUMP_OFFSET(cx, cg, pc, off - top);
-            *pc = pn3->pn_op;
-            top += tmp;
-        } while ((pn3 = pn3->pn_right) != pn2);
+            *pc = pn->pn_op;
+        } else {
+            JS_ASSERT(pn->pn_arity == PN_LIST);
+            JS_ASSERT(pn->pn_head->pn_next->pn_next);
+
+            
+            pn2 = pn->pn_head;
+            if (!js_EmitTree(cx, cg, pn2))
+                return JS_FALSE;
+            top = EmitJump(cx, cg, JSOP_BACKPATCH_POP, 0);
+            if (top < 0)
+                return JS_FALSE;
+
+            
+            jmp = top;
+            while ((pn2 = pn2->pn_next)->pn_next) {
+                if (!js_EmitTree(cx, cg, pn2))
+                    return JS_FALSE;
+                off = EmitJump(cx, cg, JSOP_BACKPATCH_POP, 0);
+                if (off < 0)
+                    return JS_FALSE;
+                if (!SetBackPatchDelta(cx, cg, CG_CODE(cg, jmp), off - jmp))
+                    return JS_FALSE;
+                jmp = off;
+
+            }
+            if (!js_EmitTree(cx, cg, pn2))
+                return JS_FALSE;
+
+            pn2 = pn->pn_head;
+            off = CG_OFFSET(cg);
+            do {
+                pc = CG_CODE(cg, top);
+                tmp = GetJumpOffset(cg, pc);
+                CHECK_AND_SET_JUMP_OFFSET(cx, cg, pc, off - top);
+                *pc = pn->pn_op;
+                top += tmp;
+            } while ((pn2 = pn2->pn_next)->pn_next);
+        }
         break;
 
       case TOK_BITOR:
