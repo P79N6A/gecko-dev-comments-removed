@@ -2572,7 +2572,11 @@ SessionStoreService.prototype = {
     
     
     let winData = aState.windows || null;
-    if (winData && winData.length == 1 && winData[0].tabs &&
+    if (!winData || winData.length == 0)
+      return false;
+    
+    
+    if (winData.length == 1 && winData[0].tabs &&
         winData[0].tabs.length == 1 && winData[0].tabs[0].entries &&
         winData[0].tabs[0].entries.length == 1 &&
         winData[0].tabs[0].entries[0].url == "about:sessionrestore")
