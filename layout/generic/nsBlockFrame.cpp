@@ -1901,7 +1901,7 @@ nsBlockFrame::ReflowDirtyLines(nsBlockReflowState& aState)
       
       
       if (line.next() != end_lines()) {
-        PRBool maybeWasEmpty = oldY == oldYMost;
+        PRBool maybeWasEmpty = oldY == line.next()->mBounds.y;
         PRBool isEmpty = line->mBounds.height == 0 && line->CachedIsEmpty();
         if (maybeReflowingForFirstTime  ||
             (isEmpty || maybeWasEmpty) ) {
