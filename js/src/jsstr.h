@@ -55,6 +55,12 @@
 
 JS_BEGIN_EXTERN_C
 
+
+
+
+
+#define UNIT_STRING_LIMIT 256U
+
 #define JSSTRING_BIT(n)             ((size_t)1 << (n))
 #define JSSTRING_BITMASK(n)         (JSSTRING_BIT(n) - 1)
 
@@ -70,6 +76,13 @@ class TraceRecorder;
 
 extern jschar *
 js_GetDependentStringChars(JSString *str);
+
+
+
+
+
+extern JSString *
+js_MakeUnitString(JSContext *cx, jschar c);
 
 
 
@@ -364,6 +377,9 @@ public:
         JS_ASSERT(isDependent() && dependentIsPrefix());
         mBase = bstr;
     }
+
+    static JSString *getUnitString(JSContext *cx, jschar c);
+    static JSString *getUnitString(JSContext *cx, JSString *str, size_t index);
 };
 
 extern const jschar *
@@ -534,26 +550,6 @@ js_InitRuntimeStringState(JSContext *cx);
 
 extern JSBool
 js_InitDeflatedStringCache(JSRuntime *rt);
-
-
-
-
-
-#define UNIT_STRING_LIMIT 256U
-
-
-
-
-
-extern JSString *
-js_GetUnitString(JSContext *cx, JSString *str, size_t index);
-
-
-
-
-
-extern JSString *
-js_GetUnitStringForChar(JSContext *cx, jschar c);
 
 extern void
 js_FinishUnitStrings(JSRuntime *rt);
