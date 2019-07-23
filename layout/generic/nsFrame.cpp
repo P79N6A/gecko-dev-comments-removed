@@ -3947,8 +3947,7 @@ nsIFrame::CheckInvalidateSizeChange(const nsRect& aOldRect,
                                     const nsRect& aOldOverflowRect,
                                     const nsSize& aNewDesiredSize)
 {
-  if (aNewDesiredSize.width == aOldRect.width &&
-      aNewDesiredSize.height == aOldRect.height)
+  if (aNewDesiredSize == aOldRect.Size())
     return;
 
   
@@ -3992,13 +3991,25 @@ nsIFrame::CheckInvalidateSizeChange(const nsRect& aOldRect,
     }
   }
 
-  
-  
   const nsStyleBackground *bg = GetStyleBackground();
-  NS_FOR_VISIBLE_BACKGROUND_LAYERS_BACK_TO_FRONT(i, bg) {
-    const nsStyleBackground::Layer &layer = bg->mLayers[i];
-    if (!layer.mImage.IsEmpty() &&
-        (layer.mPosition.mXIsPercent || layer.mPosition.mYIsPercent)) {
+  if (!bg->IsTransparent()) {
+    
+    
+    NS_FOR_VISIBLE_BACKGROUND_LAYERS_BACK_TO_FRONT(i, bg) {
+      const nsStyleBackground::Layer &layer = bg->mLayers[i];
+      if (!layer.mImage.IsEmpty() &&
+          (layer.mPosition.mXIsPercent || layer.mPosition.mYIsPercent)) {
+        Invalidate(nsRect(0, 0, aOldRect.width, aOldRect.height));
+        return;
+      }
+    }
+
+    
+    
+    
+    
+    
+    if (nsLayoutUtils::HasNonZeroCorner(border->mBorderRadius)) {
       Invalidate(nsRect(0, 0, aOldRect.width, aOldRect.height));
       return;
     }
