@@ -1148,6 +1148,11 @@ namespace nanojit
 
         return prefer;
     }
+ 
+    bool Assembler::canRemat(LIns* ins)
+    {
+        return ins->isImmAny() || ins->isop(LIR_alloc);
+    }
 
     
     

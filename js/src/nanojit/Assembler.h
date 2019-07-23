@@ -367,7 +367,10 @@ namespace nanojit
 
             void        codeAlloc(NIns *&start, NIns *&end, NIns *&eip
                                   verbose_only(, size_t &nBytes));
-            bool        canRemat(LIns*);
+
+            
+            
+            static bool canRemat(LIns*);
 
             bool deprecated_isKnownReg(Register r) {
                 return r != deprecated_UnknownReg;

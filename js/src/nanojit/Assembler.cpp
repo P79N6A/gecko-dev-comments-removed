@@ -252,14 +252,6 @@ namespace nanojit
         _allocator.removeActive(r);
         _allocator.addFree(r);
         return r;
-     }
-
-    
-
-
-
-    bool Assembler::canRemat(LIns *i) {
-        return i->isImmAny() || i->isop(LIR_alloc);
     }
 
     void Assembler::codeAlloc(NIns *&start, NIns *&end, NIns *&eip

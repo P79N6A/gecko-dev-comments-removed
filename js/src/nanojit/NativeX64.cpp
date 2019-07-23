@@ -1370,6 +1370,10 @@ namespace nanojit
         UCOMISD(ra, rb);
     }
 
+    bool Assembler::canRemat(LIns* ins) {
+        return ins->isImmAny() || ins->isop(LIR_alloc);
+    }
+
     
     
     void Assembler::asm_restore(LIns *ins, Register r) {
