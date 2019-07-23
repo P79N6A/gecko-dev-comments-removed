@@ -652,12 +652,12 @@ public:
   
 
 
-  NS_IMETHOD GetEventTargetFrame(nsIFrame** aFrame) = 0;
+  virtual NS_HIDDEN_(nsIFrame*) GetEventTargetFrame() = 0;
 
   
 
 
-  NS_IMETHOD GetEventTargetContent(nsEvent* aEvent, nsIContent** aContent) = 0;
+  virtual NS_HIDDEN_(already_AddRefed<nsIContent>) GetEventTargetContent(nsEvent* aEvent) = 0;
 
   
 
