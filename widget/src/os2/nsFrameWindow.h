@@ -61,6 +61,10 @@ class nsFrameWindow : public nsWindow
    PFNWP  fnwpDefFrame;
    nsSize mSizeClient;
    nsSize mSizeBorder;
+   PRBool mNeedActivation;
+
+   
+   virtual void ActivateTopLevelWidget();
 
    
    virtual void RealDoCreate( HWND hwndP, nsWindow *aParent,

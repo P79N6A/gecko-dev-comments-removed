@@ -124,9 +124,6 @@ nsIWidget         * gRollupWidget             = nsnull;
 PRBool              gRollupConsumeRollupEvent = PR_FALSE;
 
 
-PRBool gJustGotActivate = PR_FALSE;
-PRBool gJustGotDeactivate = PR_FALSE;
-
 
 
 
@@ -184,6 +181,9 @@ static PRUint32  gDragStatus = 0;
 
 #define FAPPCOMMAND_MASK  0xF000
 #define GET_APPCOMMAND_LPARAM(lParam) ((USHORT)(HIUSHORT(lParam) & ~FAPPCOMMAND_MASK))
+
+
+#define NS_PLUGIN_WINDOW_PROPERTY_ASSOCIATION "MozillaPluginWindowPropertyAssociation"
 
 
 
@@ -1141,19 +1141,18 @@ NS_METHOD nsWindow::SetZIndex(PRInt32 aZIndex)
 
 NS_IMETHODIMP nsWindow::SetSizeMode(PRInt32 aMode)
 {
-  nsresult rv;
+  PRInt32 previousMode;
+  GetSizeMode(&previousMode);
 
   
-  rv = nsBaseWidget::SetSizeMode(aMode);
+  nsresult rv = nsBaseWidget::SetSizeMode(aMode);
 
   
   
   
-  if (gJustGotActivate) {
+  if (previousMode == nsSizeMode_Minimized && previousMode != aMode) {
     DEBUGFOCUS(deferred NS_ACTIVATE);
-    gJustGotActivate = PR_FALSE;
-    gJustGotDeactivate = PR_FALSE;
-    DispatchFocus(NS_ACTIVATE);
+    ActivateTopLevelWidget();
   }
 
   
@@ -2386,6 +2385,7 @@ void nsWindow::ConstrainZLevel(HWND *aAfter) {
 
 
 
+
 PRBool nsWindow::ProcessMessage( ULONG msg, MPARAM mp1, MPARAM mp2, MRESULT &rc)
 {
     PRBool result = PR_FALSE; 
@@ -2499,12 +2499,10 @@ PRBool nsWindow::ProcessMessage( ULONG msg, MPARAM mp1, MPARAM mp2, MRESULT &rc)
         case WM_BUTTON1DOWN:
           if (!mIsScrollBar)
             WinSetCapture( HWND_DESKTOP, mWnd);
-          result = DispatchMouseEvent( NS_MOUSE_BUTTON_DOWN, mp1, mp2);
+          DispatchMouseEvent( NS_MOUSE_BUTTON_DOWN, mp1, mp2);
             
           gLastButton1Down.x = XFROMMP(mp1);
           gLastButton1Down.y = YFROMMP(mp1);
-          WinSetActiveWindow(HWND_DESKTOP, mWnd);
-          result = PR_TRUE;
           break;
         case WM_BUTTON1UP:
           if (!mIsScrollBar)
@@ -2662,58 +2660,25 @@ PRBool nsWindow::ProcessMessage( ULONG msg, MPARAM mp1, MPARAM mp2, MRESULT &rc)
           result = OnScroll( msg, mp1, mp2);
           break;
 
-        case WM_ACTIVATE:
-          DEBUGFOCUS(WM_ACTIVATE);
-          if (mp1)
-            gJustGotActivate = PR_TRUE;
-          else
-            gJustGotDeactivate = PR_TRUE;
-          break;
+        
+        
+        
 
+        
+        
+        
         case WM_FOCUSCHANGED:
-        {
           DEBUGFOCUS(WM_FOCUSCHANGED);
-
-          
-          
-          
-          
-          
-
           if (SHORT1FROMMP(mp2)) {
-            if (gJustGotActivate || mp1 == 0) {
-              HWND hActive = WinQueryActiveWindow( HWND_DESKTOP);
-              if (!(WinQueryWindowULong( hActive, QWL_STYLE) & WS_MINIMIZED)) {
-                DEBUGFOCUS(NS_ACTIVATE);
-                gJustGotActivate = PR_FALSE;
-                gJustGotDeactivate = PR_FALSE;
-                result = DispatchFocus(NS_ACTIVATE);
-              }
-            }
-
-            if ( WinIsChild( mWnd, HWNDFROMMP(mp1)) && mNextID == 1) {
-              DEBUGFOCUS(NS_PLUGIN_ACTIVATE);
-              result = DispatchFocus(NS_PLUGIN_ACTIVATE);
-              WinSetFocus(HWND_DESKTOP, mWnd);
-            }
+            ActivateTopLevelWidget();
+            ActivatePlugin(HWNDFROMMP(mp1));
           }
-          
-          else {
-            if (gJustGotDeactivate) {
-              DEBUGFOCUS(NS_DEACTIVATE);
-              gJustGotDeactivate = PR_FALSE;
-              result = DispatchFocus(NS_DEACTIVATE);
-            }
-          }
-
           break;
-        }
 
         case WM_WINDOWPOSCHANGED: 
           result = OnReposition( (PSWP) mp1);
           break;
-    
-    
+
         case WM_PRESPARAMCHANGED:
           
           rc = GetPrevWP()( mWnd, msg, mp1, mp2);
@@ -2735,6 +2700,73 @@ PRBool nsWindow::ProcessMessage( ULONG msg, MPARAM mp1, MPARAM mp2, MRESULT &rc)
     return result;
 }
 
+
+
+
+
+
+
+void    nsWindow::ActivateTopLevelWidget()
+{
+  nsWindow * top = static_cast<nsWindow*>(GetTopLevelWidget());
+  if (top) {
+    top->ActivateTopLevelWidget();
+  }
+  return;
+}
+
+
+
+
+
+
+void    nsWindow::ActivatePlugin(HWND aWnd)
+{
+  
+  static PRBool inPluginActivate = FALSE;
+  if (inPluginActivate) {
+    return;
+  }
+
+  
+  
+  if (!WinQueryProperty(mWnd, NS_PLUGIN_WINDOW_PROPERTY_ASSOCIATION)) {
+    return;
+  }
+
+  
+  inPluginActivate = TRUE;
+  DEBUGFOCUS(NS_PLUGIN_ACTIVATE);
+  DispatchFocus(NS_PLUGIN_ACTIVATE);
+
+  
+  
+  
+  
+  
+  
+  HWND hFocus = 0;
+  if (WinIsChild(aWnd, mWnd)) {
+    hFocus = aWnd;
+  } else {
+    hFocus = WinQueryWindow(mWnd, QW_TOP);
+    if (hFocus) {
+      PID pidFocus, pidThis;
+      TID tid;
+      WinQueryWindowProcess(hFocus, &pidFocus, &tid);
+      WinQueryWindowProcess(mWnd, &pidThis, &tid);
+      if (pidFocus != pidThis) {
+        hFocus = 0;
+      }
+    }
+  }
+  if (hFocus) {
+    WinSetFocus(HWND_DESKTOP, hFocus);
+  }
+
+  inPluginActivate = FALSE;
+  return;
+}
 
 
 

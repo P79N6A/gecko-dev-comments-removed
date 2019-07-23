@@ -40,6 +40,7 @@
 
 
 
+
 #define INCL_WIN
 #include "os2.h"
 
@@ -180,7 +181,6 @@ private:
 
 public:
   
-  PFNWP GetPrevWindowProc();
   PFNWP GetWindowProc();
   PluginWindowEvent* GetPluginWindowEvent(HWND aWnd,
                                           ULONG aMsg,
@@ -188,7 +188,6 @@ public:
                                           MPARAM mp2);
 
 private:
-  PFNWP mPrevWinProc;
   PFNWP mPluginWinProc;
   PluginWindowWeakRef mWeakRef;
   nsRefPtr<PluginWindowEvent> mCachedPluginWindowEvent;
@@ -299,15 +298,27 @@ static MRESULT EXPENTRY PluginWndProc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM m
       enablePopups = PR_TRUE;
       break;
 
-    case WM_SETFOCUS:
-    case WM_FOCUSCHANGE:
-    case WM_FOCUSCHANGED:
-    case WM_ACTIVATE: {
+    
+    
+    
+    
+    case WM_FOCUSCHANGE: {
+
       
       
-      PFNWP prevWndProc = win->GetPrevWindowProc();
-      if (prevWndProc)
-        prevWndProc(hWnd, msg, mp1, mp2);
+      WinDefWindowProc(hWnd, msg, mp1, mp2);
+
+      
+      
+      
+      
+      
+      if (SHORT1FROMMP(mp2) && (HWND)mp1 != hWnd) {
+        HWND hFocus = WinQueryFocus(HWND_DESKTOP);
+        if (hFocus != hWnd) {
+          WinPostMsg(hWnd, WM_FOCUSCHANGED, (MPARAM)hFocus, mp2);
+        }
+      }
       break;
     }
   }
@@ -370,7 +381,6 @@ nsPluginNativeWindowOS2::nsPluginNativeWindowOS2() : nsPluginNativeWindow()
   width = 0; 
   height = 0; 
 
-  mPrevWinProc = NULL;
   mPluginWinProc = NULL;
   mPluginType = nsPluginType_Unknown;
 
@@ -389,11 +399,6 @@ nsPluginNativeWindowOS2::~nsPluginNativeWindowOS2()
   
   
   mWeakRef.forget();
-}
-
-PFNWP nsPluginNativeWindowOS2::GetPrevWindowProc()
-{
-  return mPrevWinProc;
 }
 
 PFNWP nsPluginNativeWindowOS2::GetWindowProc()
@@ -468,14 +473,6 @@ nsresult nsPluginNativeWindowOS2::CallSetWindow(nsCOMPtr<nsIPluginInstance> &aPl
   
   if (!aPluginInstance) {
     UndoSubclassAndAssociateWindow();
-    mPrevWinProc = NULL;
-  }
-
-  
-  if (aPluginInstance) {
-    PFNWP currentWndProc = (PFNWP)::WinQueryWindowPtr((HWND)window, QWP_PFNWP);
-    if (currentWndProc != PluginWndProc)
-      mPrevWinProc = currentWndProc;
   }
 
   nsPluginNativeWindow::CallSetWindow(aPluginInstance);

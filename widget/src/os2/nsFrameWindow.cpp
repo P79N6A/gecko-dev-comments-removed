@@ -70,6 +70,7 @@ nsFrameWindow::nsFrameWindow() : nsWindow()
 {
    fnwpDefFrame = 0;
    mWindowType  = eWindowType_toplevel;
+   mNeedActivation = PR_FALSE;
 }
 
 nsFrameWindow::~nsFrameWindow()
@@ -323,6 +324,29 @@ nsresult nsFrameWindow::Show( PRBool bState)
 }
 
 
+
+
+
+
+void    nsFrameWindow::ActivateTopLevelWidget()
+{
+  
+  
+  
+
+  if (mNeedActivation) {
+    PRInt32 sizeMode;
+    GetSizeMode(&sizeMode);
+    if (sizeMode != nsSizeMode_Minimized) {
+      mNeedActivation = PR_FALSE;
+      DEBUGFOCUS(NS_ACTIVATE);
+      DispatchFocus(NS_ACTIVATE);
+    }
+  }
+  return;
+}
+
+
 MRESULT EXPENTRY fnwpFrame( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 {
    
@@ -468,11 +492,22 @@ MRESULT nsFrameWindow::FrameMessage( ULONG msg, MPARAM mp1, MPARAM mp2)
             }
          }
          break;
+
+      
+      
+      
       case WM_ACTIVATE:
-         DEBUGFOCUS(frame WM_ACTIVATE);
-         if (SHORT1FROMMP(mp1) &&
-             !(WinQueryWindowULong(mFrameWnd, QWL_STYLE) & WS_MINIMIZED)) {
-            bDone = DispatchFocus(NS_ACTIVATE);
+         DEBUGFOCUS(WM_ACTIVATE);
+         if (mp1) {
+            mNeedActivation = PR_TRUE;
+         } else {
+            mNeedActivation = PR_FALSE;
+            DEBUGFOCUS(NS_DEACTIVATE);
+            DispatchFocus(NS_DEACTIVATE);
+            
+            
+            
+            WinSetWindowULong(mFrameWnd, QWL_HWNDFOCUSSAVE, 0);
          }
          break;
    }
@@ -482,3 +517,4 @@ MRESULT nsFrameWindow::FrameMessage( ULONG msg, MPARAM mp1, MPARAM mp2)
 
    return mresult;
 }
+

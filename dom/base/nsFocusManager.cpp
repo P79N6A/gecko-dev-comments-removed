@@ -1667,7 +1667,7 @@ nsFocusManager::RaiseWindow(nsPIDOMWindow* aWindow)
   if (!aWindow || aWindow == mActiveWindow || aWindow == mWindowBeingLowered)
     return;
 
-#ifdef XP_WIN
+#if defined(XP_WIN) || defined(XP_OS2)
   
   
   
