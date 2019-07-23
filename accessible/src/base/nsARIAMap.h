@@ -63,6 +63,13 @@ enum EActionRule
   eSwitchAction
 };
 
+enum ELiveAttrRule
+{
+  eNoLiveAttr,
+  eOffLiveAttr,
+  ePoliteLiveAttr
+};
+
 
 
 
@@ -114,6 +121,10 @@ struct nsRoleMapEntry
 
   
   EActionRule actionRule;
+
+  
+  
+  ELiveAttrRule liveAttRule;
 
   
   PRUint32 state;   

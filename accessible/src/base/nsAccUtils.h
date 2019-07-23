@@ -273,6 +273,12 @@ public:
   
 
 
+
+  static void GetLiveAttrValue(PRUint32 aRule, nsAString& aValue);
+
+  
+
+
   static already_AddRefed<nsAccessNode>
     QueryAccessNode(nsIAccessible *aAccessible)
   {

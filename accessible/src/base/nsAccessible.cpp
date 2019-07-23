@@ -1925,7 +1925,8 @@ NS_IMETHODIMP nsAccessible::GetFinalRole(PRUint32 *aRole)
 
     
     
-    if (mRoleMapEntry != &nsARIAMap::gLandmarkRoleMap) {
+    if (mRoleMapEntry->role != nsIAccessibleRole::ROLE_NOTHING) {
+      
       
       
       
@@ -2032,6 +2033,17 @@ nsAccessible::GetAttributes(nsIPersistentProperties **aAttributes)
       if (content->GetAttr(kNameSpaceID_None, attrAtom, value)) {
         attributes->SetStringProperty(nsDependentCString(attrStr + 5), value, oldValueUnused);
       }
+    }
+  }
+
+  
+  
+  if (mRoleMapEntry) {
+    nsAutoString live;
+    nsAccUtils::GetAccAttr(attributes, nsAccessibilityAtoms::live, live);
+    if (live.IsEmpty()) {
+      nsAccUtils::GetLiveAttrValue(mRoleMapEntry->liveAttRule, live);
+      nsAccUtils::SetAccAttr(attributes, nsAccessibilityAtoms::live, live);
     }
   }
 
