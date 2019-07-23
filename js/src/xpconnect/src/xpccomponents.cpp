@@ -2827,21 +2827,12 @@ nsXPCComponents_Utils::LookupMethod()
 
     
     jsval funval;
-    if(!member->GetValue(inner_cc, iface, &funval))
+    if(!member->NewFunctionObject(inner_cc, iface, wrapper->GetFlatJSObject(),
+                                  &funval))
         return NS_ERROR_XPC_BAD_CONVERT_JS;
 
     
-    
-    AUTO_MARK_JSVAL(inner_cc, funval);
-
-    
-    JSObject* funobj = xpc_CloneJSFunction(inner_cc, JSVAL_TO_OBJECT(funval),
-                                           wrapper->GetFlatJSObject());
-    if(!funobj)
-        return NS_ERROR_XPC_BAD_CONVERT_JS;
-
-    
-    *retval = OBJECT_TO_JSVAL(funobj);
+    *retval = funval;
     cc->SetReturnValueWasSet(PR_TRUE);
 
     return NS_OK;
