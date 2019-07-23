@@ -126,6 +126,9 @@ public:
   
   NS_IMETHOD GetUniqueID(void **aUniqueID);
 
+  
+  virtual PRBool IsDefunct();
+
 protected:
   PRBool IsExpandable();
   nsCOMPtr<nsITreeBoxObject> mTree;
