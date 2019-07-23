@@ -205,6 +205,9 @@ enum { XKeyPress = KeyPress };
 #ifdef XP_WIN
 #include <wtypes.h>
 #include <winuser.h>
+#ifdef MOZ_IPC
+#define NS_OOPP_DOUBLEPASS_MSGID TEXT("MozDoublePassMsg")
+#endif
 #endif
 
 #ifdef XP_OS2
@@ -413,7 +416,7 @@ public:
     return strncmp(GetPluginName(), aPluginName, strlen(aPluginName)) == 0;
   }
 
-#if defined(MOZ_PLATFORM_HILDON) && defined(MOZ_WIDGET_GTK2)
+#ifdef MOZ_PLATFORM_HILDON
   nsresult SetAbsoluteScreenPosition(nsIDOMElement* element,
                                      nsIDOMClientRect* position,
                                      nsIDOMClientRect* clip);
@@ -509,8 +512,7 @@ private:
     const nsIntRect& mDirtyRect;
   };
 #endif
-
-#if defined(MOZ_PLATFORM_HILDON) && defined(MOZ_WIDGET_GTK2)
+#ifdef MOZ_PLATFORM_HILDON
 
   
   
@@ -606,6 +608,9 @@ nsObjectFrame::Init(nsIContent*      aContent,
   if (NS_SUCCEEDED(rv)) {
     NotifyPluginEventObservers(NS_LITERAL_STRING("init").get());
   }
+#ifdef XP_WIN
+  mDoublePassEvent = 0;
+#endif
   return rv;
 }
 
@@ -1225,7 +1230,7 @@ nsObjectFrame::SetAbsoluteScreenPosition(nsIDOMElement* element,
                                          nsIDOMClientRect* position,
                                          nsIDOMClientRect* clip)
 {
-#if defined(MOZ_PLATFORM_HILDON) && defined(MOZ_WIDGET_GTK2)
+#ifdef MOZ_PLATFORM_HILDON
   if (!mInstanceOwner)
     return NS_ERROR_NOT_AVAILABLE;
   return mInstanceOwner->SetAbsoluteScreenPosition(element, position, clip);
@@ -1322,12 +1327,22 @@ void
 nsObjectFrame::PrintPlugin(nsIRenderingContext& aRenderingContext,
                            const nsRect& aDirtyRect)
 {
-  nsCOMPtr<nsIObjectLoadingContent> obj(do_QueryInterface(mContent));
-  if (!obj)
+  
+  
+
+  
+  nsIDocument* doc = mContent->GetCurrentDoc();
+  if (!doc)
     return;
 
-  nsIFrame* frame = nsnull;
-  obj->GetPrintFrame(&frame);
+  
+  
+  nsIPresShell *shell = doc->GetPrimaryShell();
+  if (!shell)
+    return;
+
+  
+  nsIFrame* frame = shell->GetPrimaryFrameFor(mContent);
   if (!frame)
     return;
 
@@ -1671,6 +1686,7 @@ nsObjectFrame::PaintPlugin(nsIRenderingContext& aRenderingContext,
       nsPoint origin;
       
       gfxWindowsNativeDrawing nativeDraw(ctx, frameGfxRect);
+      PRBool doublePass = PR_FALSE;
       do {
         HDC hdc = nativeDraw.BeginNativeDrawing();
         if (!hdc)
@@ -1733,7 +1749,26 @@ nsObjectFrame::PaintPlugin(nsIRenderingContext& aRenderingContext,
 
         mInstanceOwner->Paint(dirty, hdc);
         nativeDraw.EndNativeDrawing();
-      } while (nativeDraw.ShouldRenderAgain());
+        doublePass = nativeDraw.ShouldRenderAgain();
+#ifdef MOZ_IPC
+        if (doublePass) {
+          
+          
+          
+          if (!mDoublePassEvent)
+            mDoublePassEvent = ::RegisterWindowMessage(NS_OOPP_DOUBLEPASS_MSGID);
+          if (mDoublePassEvent) {
+            NPEvent pluginEvent;
+            pluginEvent.event = mDoublePassEvent;
+            pluginEvent.wParam = 0;
+            pluginEvent.lParam = 0;
+            PRBool eventHandled = PR_FALSE;
+
+            inst->HandleEvent(&pluginEvent, &eventHandled);
+          }          
+        }
+#endif
+      } while (doublePass);
 
       nativeDraw.PaintToContext();
     } else if (!(ctx->GetFlags() & gfxContext::FLAG_DESTINED_FOR_SCREEN)) {
@@ -2099,7 +2134,7 @@ GetMIMEType(nsIPluginInstance *aPluginInstance)
 static PRBool
 DoDelayedStop(nsPluginInstanceOwner *aInstanceOwner, PRBool aDelayedStop)
 {
-#if defined(MOZ_PLATFORM_HILDON) && defined(MOZ_WIDGET_GTK2)
+#ifdef MOZ_PLATFORM_HILDON
   
   if (aDelayedStop && aInstanceOwner->MatchPluginName("Shockwave Flash"))
     return PR_FALSE;
@@ -2412,7 +2447,7 @@ nsPluginInstanceOwner::nsPluginInstanceOwner()
   mLastPoint = nsIntPoint(0,0);
 #endif
 
-#if defined(MOZ_PLATFORM_HILDON) && defined(MOZ_WIDGET_GTK2)
+#ifdef MOZ_PLATFORM_HILDON
   mPluginSize = nsIntSize(0,0);
   mXlibSurfGC = None;
   mSharedXImage = nsnull;
@@ -2480,7 +2515,7 @@ nsPluginInstanceOwner::~nsPluginInstanceOwner()
     mInstance->InvalidateOwner();
   }
 
-#if defined(MOZ_PLATFORM_HILDON) && defined(MOZ_WIDGET_GTK2)
+#ifdef MOZ_PLATFORM_HILDON
   ReleaseXShm();
 #endif
 }
@@ -2702,7 +2737,7 @@ NS_IMETHODIMP nsPluginInstanceOwner::InvalidateRect(NPRect *invalidRect)
   if (!mObjectFrame || !invalidRect || !mWidgetVisible)
     return NS_ERROR_FAILURE;
 
-#if defined(MOZ_PLATFORM_HILDON) && defined(MOZ_WIDGET_GTK2)
+#ifdef MOZ_PLATFORM_HILDON
   PRBool simpleImageRender = PR_FALSE;
   mInstance->GetValueFromPlugin(NPPVpluginWindowlessLocalBool,
                                 &simpleImageRender);
@@ -4791,7 +4826,7 @@ void nsPluginInstanceOwner::Paint(gfxContext* aContext,
   if (!mInstance || !mObjectFrame)
     return;
 
-#if defined(MOZ_PLATFORM_HILDON) && defined(MOZ_WIDGET_GTK2)
+#ifdef MOZ_PLATFORM_HILDON
   
   
   
@@ -4880,7 +4915,7 @@ DepthOfVisual(const Screen* screen, const Visual* visual)
 }
 #endif
 
-#if defined(MOZ_PLATFORM_HILDON) && defined(MOZ_WIDGET_GTK2)
+#ifdef MOZ_PLATFORM_HILDON
 
 static GdkWindow* GetClosestWindow(nsIDOMElement *element)
 {
@@ -5593,7 +5628,7 @@ void nsPluginInstanceOwner::SetPluginHost(nsIPluginHost* aHost)
   mPluginHost = aHost;
 }
 
-#if defined(MOZ_PLATFORM_HILDON) && defined(MOZ_WIDGET_GTK2)
+#ifdef MOZ_PLATFORM_HILDON
 PRBool nsPluginInstanceOwner::UpdateVisibility()
 {
   if (!mInstance)
@@ -5750,7 +5785,7 @@ void nsPluginInstanceOwner::FixUpURLS(const nsString &name, nsAString &value)
   }
 }
 
-#if defined(MOZ_PLATFORM_HILDON) && defined(MOZ_WIDGET_GTK2)
+#ifdef MOZ_PLATFORM_HILDON
 nsresult
 nsPluginInstanceOwner::SetAbsoluteScreenPosition(nsIDOMElement* element,
                                                  nsIDOMClientRect* position,

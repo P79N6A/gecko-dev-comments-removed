@@ -36,6 +36,7 @@
 
 
 
+
 #include "PluginInstanceChild.h"
 #include "PluginModuleChild.h"
 #include "BrowserStreamChild.h"
@@ -45,6 +46,7 @@
 #include "mozilla/ipc/SyncChannel.h"
 
 using namespace mozilla::plugins;
+using namespace mozilla::gfx;
 
 #ifdef MOZ_WIDGET_GTK2
 
@@ -330,6 +332,13 @@ PluginInstanceChild::AnswerNPP_HandleEvent(const NPRemoteEvent& event,
 
     
     NPEvent evcopy = event.event;
+
+#ifdef OS_WIN
+    
+    if (NPWindowTypeDrawable == mWindow.type && WM_PAINT == evcopy.event)
+        SharedSurfaceBeforePaint(evcopy);
+#endif
+
     *handled = mPluginIface->event(&mData, reinterpret_cast<void*>(&evcopy));
 
 #ifdef MOZ_X11
@@ -408,25 +417,43 @@ PluginInstanceChild::AnswerNPP_SetWindow(const NPRemoteWindow& aWindow,
     *rv = mPluginIface->setwindow(&mData, &mWindow);
 
 #elif defined(OS_WIN)
-    ReparentPluginWindow((HWND)aWindow.window);
-    SizePluginWindow(aWindow.width, aWindow.height);
+    switch (aWindow.type) {
+      case NPWindowTypeWindow:
+      {
+          if (!CreatePluginWindow())
+              return false;
 
-    mWindow.window = (void*)mPluginWindowHWND;
-    mWindow.x = aWindow.x;
-    mWindow.y = aWindow.y;
-    mWindow.width = aWindow.width;
-    mWindow.height = aWindow.height;
-    mWindow.type = aWindow.type;
+          ReparentPluginWindow((HWND)aWindow.window);
+          SizePluginWindow(aWindow.width, aWindow.height);
 
-    *rv = mPluginIface->setwindow(&mData, &mWindow);
-    if (*rv == NPERR_NO_ERROR) {
-        WNDPROC wndProc = reinterpret_cast<WNDPROC>(
-            GetWindowLongPtr(mPluginWindowHWND, GWLP_WNDPROC));
-        if (wndProc != PluginWindowProc) {
-            mPluginWndProc = reinterpret_cast<WNDPROC>(
-                SetWindowLongPtr(mPluginWindowHWND, GWLP_WNDPROC,
-                                 reinterpret_cast<LONG>(PluginWindowProc)));
-        }
+          mWindow.window = (void*)mPluginWindowHWND;
+          mWindow.x = aWindow.x;
+          mWindow.y = aWindow.y;
+          mWindow.width = aWindow.width;
+          mWindow.height = aWindow.height;
+          mWindow.type = aWindow.type;
+
+          *rv = mPluginIface->setwindow(&mData, &mWindow);
+          if (*rv == NPERR_NO_ERROR) {
+              WNDPROC wndProc = reinterpret_cast<WNDPROC>(
+                  GetWindowLongPtr(mPluginWindowHWND, GWLP_WNDPROC));
+              if (wndProc != PluginWindowProc) {
+                  mPluginWndProc = reinterpret_cast<WNDPROC>(
+                      SetWindowLongPtr(mPluginWindowHWND, GWLP_WNDPROC,
+                                       reinterpret_cast<LONG>(PluginWindowProc)));
+              }
+          }
+      }
+      break;
+
+      case NPWindowTypeDrawable:
+          return SharedSurfaceSetWindow(aWindow, rv);
+      break;
+
+      default:
+          NS_NOTREACHED("Bad plugin window type.");
+          return false;
+      break;
     }
 
 #elif defined(OS_MACOSX)
@@ -442,11 +469,6 @@ PluginInstanceChild::AnswerNPP_SetWindow(const NPRemoteWindow& aWindow,
 bool
 PluginInstanceChild::Initialize()
 {
-#if defined(OS_WIN)
-    if (!CreatePluginWindow())
-        return false;
-#endif
-
     return true;
 }
 
@@ -468,6 +490,10 @@ PluginInstanceChild::Destroy()
           PluginScriptableObjectChild::ScriptableInvalidate(object);
         }
     }
+
+#if defined(OS_WIN)
+    SharedSurfaceRelease();
+#endif
 }
 
 #if defined(OS_WIN)
@@ -505,26 +531,28 @@ PluginInstanceChild::RegisterWindowClass()
 bool
 PluginInstanceChild::CreatePluginWindow()
 {
+    
+    if (mPluginWindowHWND)
+        return true;
+        
     if (!RegisterWindowClass())
         return false;
 
-    if (!mPluginWindowHWND) {
-        mPluginWindowHWND =
-            CreateWindowEx(WS_EX_LEFT | WS_EX_LTRREADING |
-                           WS_EX_NOPARENTNOTIFY | 
-                           WS_EX_RIGHTSCROLLBAR,
-                           kWindowClassName, 0,
-                           WS_POPUP | WS_CLIPCHILDREN | WS_CLIPSIBLINGS, 0, 0,
-                           0, 0, NULL, 0, GetModuleHandle(NULL), 0);
-        if (!mPluginWindowHWND)
-            return false;
-        if (!SetProp(mPluginWindowHWND, kPluginInstanceChildProperty, this))
-            return false;
+    mPluginWindowHWND =
+        CreateWindowEx(WS_EX_LEFT | WS_EX_LTRREADING |
+                       WS_EX_NOPARENTNOTIFY | 
+                       WS_EX_RIGHTSCROLLBAR,
+                       kWindowClassName, 0,
+                       WS_POPUP | WS_CLIPCHILDREN | WS_CLIPSIBLINGS, 0, 0,
+                       0, 0, NULL, 0, GetModuleHandle(NULL), 0);
+    if (!mPluginWindowHWND)
+        return false;
+    if (!SetProp(mPluginWindowHWND, kPluginInstanceChildProperty, this))
+        return false;
 
-        
-        SetWindowLongPtrA(mPluginWindowHWND, GWLP_WNDPROC,
-                          reinterpret_cast<LONG>(DefWindowProcA));
-    }
+    
+    SetWindowLongPtrA(mPluginWindowHWND, GWLP_WNDPROC,
+                      reinterpret_cast<LONG>(DefWindowProcA));
 
     return true;
 }
@@ -618,6 +646,60 @@ PluginInstanceChild::PluginWindowProc(HWND hWnd,
         RemoveProp(hWnd, kPluginInstanceChildProperty);
 
     return res;
+}
+
+
+
+bool
+PluginInstanceChild::SharedSurfaceSetWindow(const NPRemoteWindow& aWindow,
+                                            NPError* rv)
+{
+    
+    
+    
+    if (!aWindow.surfaceHandle) {
+        if (!mSharedSurfaceDib.IsValid()) {
+            return false;
+        }
+    }
+    else {
+        
+        if (NS_FAILED(mSharedSurfaceDib.Attach((SharedDIB::Handle)aWindow.surfaceHandle,
+                                               aWindow.width, aWindow.height, 32)))
+          return false;
+    }
+      
+    
+    mWindow.x      = 0;
+    mWindow.y      = 0;
+    mWindow.width  = aWindow.width;
+    mWindow.height = aWindow.height;
+    mWindow.type   = aWindow.type;
+
+    mWindow.window = reinterpret_cast<void*>(mSharedSurfaceDib.GetHDC());
+    *rv = mPluginIface->setwindow(&mData, &mWindow);
+
+    return true;
+}
+
+void
+PluginInstanceChild::SharedSurfaceRelease()
+{
+    mSharedSurfaceDib.Close();
+}
+
+void
+PluginInstanceChild::SharedSurfaceBeforePaint(NPEvent& evcopy)
+{
+    
+    RECT* pRect = reinterpret_cast<RECT*>(evcopy.lParam);
+    if (pRect) {
+      HRGN clip = ::CreateRectRgnIndirect(pRect);
+      ::SelectClipRgn(mSharedSurfaceDib.GetHDC(), clip);
+      ::DeleteObject(clip);
+    }
+    
+    evcopy.wParam = WPARAM(mSharedSurfaceDib.GetHDC());
 }
 
 #endif 
@@ -853,10 +935,17 @@ PluginInstanceChild::InternalInvalidateRect(NPRect* aInvalidRect)
     NS_ASSERTION(aInvalidRect, "Null pointer!");
 
 #ifdef OS_WIN
-    NS_ASSERTION(IsWindow(mPluginWindowHWND), "Bad window?!");
-    RECT rect = { aInvalidRect->left, aInvalidRect->top,
-                  aInvalidRect->right, aInvalidRect->bottom };
-    InvalidateRect(mPluginWindowHWND, &rect, FALSE);
+    
+    if (mWindow.type == NPWindowTypeWindow) {
+      NS_ASSERTION(IsWindow(mPluginWindowHWND), "Bad window?!");
+      RECT rect = { aInvalidRect->left, aInvalidRect->top,
+                    aInvalidRect->right, aInvalidRect->bottom };
+      InvalidateRect(mPluginWindowHWND, &rect, FALSE);
+      return false;
+    }
+    
+    
+    return true;
 #endif
 
     

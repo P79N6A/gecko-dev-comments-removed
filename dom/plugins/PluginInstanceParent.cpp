@@ -36,6 +36,7 @@
 
 
 
+
 #include "PluginInstanceParent.h"
 
 #include "BrowserStreamParent.h"
@@ -46,6 +47,10 @@
 #include "npfunctions.h"
 #include "nsAutoPtr.h"
 
+#if defined(OS_WIN)
+#define NS_OOPP_DOUBLEPASS_MSGID TEXT("MozDoublePassMsg")
+#endif
+
 using namespace mozilla::plugins;
 
 PluginInstanceParent::PluginInstanceParent(PluginModuleParent* parent,
@@ -53,8 +58,17 @@ PluginInstanceParent::PluginInstanceParent(PluginModuleParent* parent,
                                            const NPNetscapeFuncs* npniface)
   : mParent(parent),
     mNPP(npp),
-    mNPNIface(npniface)
+    mNPNIface(npniface),
+    mWindowType(NPWindowTypeWindow)
 {
+#if defined(OS_WIN)
+    
+    
+    
+    
+    mDoublePassEvent = ::RegisterWindowMessage(NS_OOPP_DOUBLEPASS_MSGID);
+    mLocalCopyRender = false;
+#endif
 }
 
 PluginInstanceParent::~PluginInstanceParent()
@@ -78,6 +92,10 @@ PluginInstanceParent::Destroy()
           PluginScriptableObjectParent::ScriptableInvalidate(object);
         }
     }
+
+#if defined(OS_WIN)
+    SharedSurfaceRelease();
+#endif
 }
 
 PBrowserStreamParent*
@@ -319,13 +337,34 @@ PluginInstanceParent::NPP_SetWindow(const NPWindow* aWindow)
     NS_ENSURE_TRUE(aWindow, NPERR_GENERIC_ERROR);
 
     NPRemoteWindow window;
+    mWindowType = aWindow->type;
+
+#if defined(OS_WIN)
+    
+    if (mWindowType == NPWindowTypeDrawable) {
+        
+        if (!SharedSurfaceSetWindow(aWindow, window)) {
+          return NPERR_OUT_OF_MEMORY_ERROR;
+        }
+    }
+    else {
+        window.window = reinterpret_cast<unsigned long>(aWindow->window);
+        window.x = aWindow->x;
+        window.y = aWindow->y;
+        window.width = aWindow->width;
+        window.height = aWindow->height;
+        window.type = aWindow->type;
+    }
+#else
     window.window = reinterpret_cast<unsigned long>(aWindow->window);
     window.x = aWindow->x;
     window.y = aWindow->y;
     window.width = aWindow->width;
     window.height = aWindow->height;
-    window.clipRect = aWindow->clipRect;
+    window.clipRect = aWindow->clipRect; 
     window.type = aWindow->type;
+#endif
+
 #if defined(MOZ_X11) && defined(XP_UNIX) && !defined(XP_MACOSX)
     const NPSetWindowCallbackStruct* ws_info =
       static_cast<NPSetWindowCallbackStruct*>(aWindow->ws_info);
@@ -443,6 +482,21 @@ PluginInstanceParent::NPP_HandleEvent(void* event)
     NPRemoteEvent npremoteevent;
     npremoteevent.event = *npevent;
 
+#if defined(OS_WIN)
+    RECT rect;
+    if (mWindowType == NPWindowTypeDrawable) {
+        if (mDoublePassEvent && mDoublePassEvent == npevent->event) {
+            
+            mLocalCopyRender = PR_TRUE;
+            return true;
+        } else if (WM_PAINT == npevent->event) {
+            
+            if (!SharedSurfaceBeforePaint(rect, npremoteevent))
+                return true;
+        }
+    }
+#endif
+
 #if defined(MOZ_X11)
     if (GraphicsExpose == npevent->type) {
         printf("  schlepping drawable 0x%lx across the pipe\n",
@@ -464,6 +518,12 @@ PluginInstanceParent::NPP_HandleEvent(void* event)
     if (!CallNPP_HandleEvent(npremoteevent, &handled)) {
         return 0;               
     }
+
+#if defined(OS_WIN)
+    if (handled && mWindowType == NPWindowTypeDrawable && WM_PAINT == npevent->event)
+        SharedSurfaceAfterPaint(npevent);
+#endif
+
     return handled;
 }
 
@@ -632,3 +692,126 @@ PluginInstanceParent::AnswerNPN_PopPopupsEnabledState(bool* aSuccess)
     *aSuccess = mNPNIface->poppopupsenabledstate(mNPP);
     return true;
 }
+
+#if defined(OS_WIN)
+
+
+
+void
+PluginInstanceParent::SharedSurfaceRelease()
+{
+    mSharedSurfaceDib.Close();
+}
+
+bool
+PluginInstanceParent::SharedSurfaceSetWindow(const NPWindow* aWindow,
+                                             NPRemoteWindow& aRemoteWindow)
+{
+    aRemoteWindow.window = nsnull;
+    aRemoteWindow.x      = 0;
+    aRemoteWindow.y      = 0;
+    aRemoteWindow.width  = aWindow->width;
+    aRemoteWindow.height = aWindow->height;
+    aRemoteWindow.type   = aWindow->type;
+
+    nsIntRect newPort(aWindow->x, aWindow->y, aWindow->width, aWindow->height);
+
+    
+    mPluginPort = newPort;
+
+    
+    newPort.MoveTo(0,0);
+
+    
+    if (mSharedSurfaceDib.IsValid() && mSharedSize.Contains(newPort)) {
+      
+      aRemoteWindow.surfaceHandle = 0;
+      return true;
+    }
+    
+    
+    SharedSurfaceRelease();
+    if (NS_FAILED(mSharedSurfaceDib.Create(reinterpret_cast<HDC>(aWindow->window),
+                                           newPort.width, newPort.height, 32)))
+      return false;
+
+    
+    mSharedSize = newPort;
+    
+    base::SharedMemoryHandle handle;
+    if (NS_FAILED(mSharedSurfaceDib.ShareToProcess(mParent->ChildProcessHandle(), &handle)))
+      return false;
+
+    aRemoteWindow.surfaceHandle = handle;
+    
+    return true;
+}
+
+bool
+PluginInstanceParent::SharedSurfaceBeforePaint(RECT& rect,
+                                               NPRemoteEvent& npremoteevent)
+{
+    RECT* dr = (RECT*)npremoteevent.event.lParam;
+    HDC parentHdc = (HDC)npremoteevent.event.wParam;
+
+    
+    
+    
+    
+    
+    
+    if (mLocalCopyRender) {
+      mLocalCopyRender = false;
+      
+      SharedSurfaceAfterPaint(&npremoteevent.event);
+      return false;
+    }
+
+    nsIntRect dirtyRect(dr->left, dr->top, dr->right-dr->left, dr->bottom-dr->top);
+    dirtyRect.MoveBy(-mPluginPort.x, -mPluginPort.y); 
+
+    ::BitBlt(mSharedSurfaceDib.GetHDC(),
+             dirtyRect.x,
+             dirtyRect.y,
+             dirtyRect.width,
+             dirtyRect.height,
+             parentHdc,
+             dr->left,
+             dr->top,
+             SRCCOPY);
+
+    
+    rect.left   = dirtyRect.x;
+    rect.top    = dirtyRect.y;
+    rect.right  = dirtyRect.width;
+    rect.bottom = dirtyRect.height;
+
+    npremoteevent.event.wParam = WPARAM(0);
+    npremoteevent.event.lParam = LPARAM(&rect);
+
+    
+    return true;
+}
+
+void
+PluginInstanceParent::SharedSurfaceAfterPaint(NPEvent* npevent)
+{
+    RECT* dr = (RECT*)npevent->lParam;
+    HDC parentHdc = (HDC)npevent->wParam;
+
+    nsIntRect dirtyRect(dr->left, dr->top, dr->right-dr->left, dr->bottom-dr->top);
+    dirtyRect.MoveBy(-mPluginPort.x, -mPluginPort.y);
+
+    
+    ::BitBlt(parentHdc,
+             dr->left,
+             dr->top,
+             dirtyRect.width,
+             dirtyRect.height,
+             mSharedSurfaceDib.GetHDC(),
+             dirtyRect.x,
+             dirtyRect.y,
+             SRCCOPY);
+}
+
+#endif 
