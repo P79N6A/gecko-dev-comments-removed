@@ -1,38 +1,38 @@
-/* cairo - a vector graphics library with display and print output
- *
- * Copyright © 2004 Keith Packard
- *
- * This library is free software; you can redistribute it and/or
- * modify it either under the terms of the GNU Lesser General Public
- * License version 2.1 as published by the Free Software Foundation
- * (the "LGPL") or, at your option, under the terms of the Mozilla
- * Public License Version 1.1 (the "MPL"). If you do not alter this
- * notice, a recipient may use your version of this file under either
- * the MPL or the LGPL.
- *
- * You should have received a copy of the LGPL along with this library
- * in the file COPYING-LGPL-2.1; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
- * You should have received a copy of the MPL along with this library
- * in the file COPYING-MPL-1.1
- *
- * The contents of this file are subject to the Mozilla Public License
- * Version 1.1 (the "License"); you may not use this file except in
- * compliance with the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * This software is distributed on an "AS IS" basis, WITHOUT WARRANTY
- * OF ANY KIND, either express or implied. See the LGPL or the MPL for
- * the specific language governing rights and limitations.
- *
- * The Original Code is the cairo graphics library.
- *
- * The Initial Developer of the Original Code is Keith Packard
- *
- * Contributor(s):
- *	Keith R. Packard <keithp@keithp.com>
- *
- */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #ifndef CAIRO_WIDEINT_H
 #define CAIRO_WIDEINT_H
@@ -41,15 +41,18 @@
 
 #include "cairo-compiler-private.h"
 
-/*
- * 64-bit datatypes.  Two separate implementations, one using
- * built-in 64-bit signed/unsigned types another implemented
- * as a pair of 32-bit ints
- */
+
+
+
+
+
 
 #define I cairo_private cairo_const
 
 #if !HAVE_UINT64_T
+
+cairo_uquorem64_t I
+_cairo_uint64_divrem (cairo_uint64_t num, cairo_uint64_t den);
 
 cairo_uint64_t I	_cairo_uint32_to_uint64 (uint32_t i);
 #define			_cairo_uint64_to_uint32(a)  ((a).lo)
@@ -90,6 +93,16 @@ int	       I	_cairo_int64_cmp (cairo_int64_t a, cairo_int64_t b);
 
 #else
 
+static inline cairo_uquorem64_t
+_cairo_uint64_divrem (cairo_uint64_t num, cairo_uint64_t den)
+{
+    cairo_uquorem64_t	qr;
+
+    qr.quo = num / den;
+    qr.rem = num % den;
+    return qr;
+}
+
 #define			_cairo_uint32_to_uint64(i)  ((uint64_t) (i))
 #define			_cairo_uint64_to_uint32(i)  ((uint32_t) (i))
 #define			_cairo_uint64_add(a,b)	    ((a) + (b))
@@ -129,9 +142,9 @@ int	       I	_cairo_int64_cmp (cairo_int64_t a, cairo_int64_t b);
 
 #endif
 
-/*
- * 64-bit comparisions derived from lt or eq
- */
+
+
+
 #define			_cairo_uint64_le(a,b)	    (!_cairo_uint64_gt(a,b))
 #define			_cairo_uint64_ne(a,b)	    (!_cairo_uint64_eq(a,b))
 #define			_cairo_uint64_ge(a,b)	    (!_cairo_uint64_lt(a,b))
@@ -142,22 +155,51 @@ int	       I	_cairo_int64_cmp (cairo_int64_t a, cairo_int64_t b);
 #define			_cairo_int64_ge(a,b)	    (!_cairo_int64_lt(a,b))
 #define			_cairo_int64_gt(a,b)	    _cairo_int64_lt(b,a)
 
-/*
- * As the C implementation always computes both, create
- * a function which returns both for the 'native' type as well
- */
 
-cairo_uquorem64_t I
-_cairo_uint64_divrem (cairo_uint64_t num, cairo_uint64_t den);
 
-cairo_quorem64_t I
-_cairo_int64_divrem (cairo_int64_t num, cairo_int64_t den);
 
-/*
- * 128-bit datatypes.  Again, provide two implementations in
- * case the machine has a native 128-bit datatype.  GCC supports int128_t
- * on ia64
- */
+
+
+static inline cairo_quorem64_t
+_cairo_int64_divrem (cairo_int64_t num, cairo_int64_t den)
+{
+    int			num_neg = _cairo_int64_negative (num);
+    int			den_neg = _cairo_int64_negative (den);
+    cairo_uquorem64_t	uqr;
+    cairo_quorem64_t	qr;
+
+    if (num_neg)
+	num = _cairo_int64_negate (num);
+    if (den_neg)
+	den = _cairo_int64_negate (den);
+    uqr = _cairo_uint64_divrem (num, den);
+    if (num_neg)
+	qr.rem = _cairo_int64_negate (uqr.rem);
+    else
+	qr.rem = uqr.rem;
+    if (num_neg != den_neg)
+	qr.quo = (cairo_int64_t) _cairo_int64_negate (uqr.quo);
+    else
+	qr.quo = (cairo_int64_t) uqr.quo;
+    return qr;
+}
+
+static inline int32_t
+_cairo_int64_32_div (cairo_int64_t num, int32_t den)
+{
+#if !HAVE_UINT64_T
+    return _cairo_int64_to_int32
+	(_cairo_int64_divrem (num, _cairo_int32_to_int64 (den)).quo);
+#else
+    return num / den;
+#endif
+}
+
+
+
+
+
+
 
 #if !HAVE_UINT128_T
 
@@ -203,7 +245,7 @@ int	        I	_cairo_int128_cmp (cairo_int128_t a, cairo_int128_t b);
 #define			_cairo_int128_negative(a)   (_cairo_uint128_negative(a))
 #define			_cairo_int128_not(a)	    _cairo_uint128_not(a)
 
-#else	/* !HAVE_UINT128_T */
+#else	
 
 #define			_cairo_uint32_to_uint128(i) ((uint128_t) (i))
 #define			_cairo_uint64_to_uint128(i) ((uint128_t) (i))
@@ -235,6 +277,7 @@ int	        I	_cairo_int128_cmp (cairo_int128_t a, cairo_int128_t b);
 #define			_cairo_int128_sub(a,b)	    ((a) - (b))
 #define			_cairo_int128_mul(a,b)	    ((a) * (b))
 #define			_cairo_int64x64_128_mul(a,b) ((int128_t) (a) * (b))
+#define                 _cairo_int64x32_128_mul(a, b) _cairo_int64x64_128_mul(a, _cairo_int32_to_int64(b))
 #define			_cairo_int128_lt(a,b)	    ((a) < (b))
 #define			_cairo_int128_cmp(a,b)	    ((a) == (b) ? 0 : (a) < (b) ? -1 : 1)
 #define			_cairo_int128_is_zero(a)    ((a) == 0)
@@ -246,7 +289,7 @@ int	        I	_cairo_int128_cmp (cairo_int128_t a, cairo_int128_t b);
 #define			_cairo_int128_negative(a)   ((a) < 0)
 #define			_cairo_int128_not(a)	    (~(a))
 
-#endif	/* HAVE_UINT128_T */
+#endif	
 
 cairo_uquorem128_t I
 _cairo_uint128_divrem (cairo_uint128_t num, cairo_uint128_t den);
@@ -274,4 +317,4 @@ _cairo_int_96by64_32x64_divrem (cairo_int128_t num,
 
 #undef I
 
-#endif /* CAIRO_WIDEINT_H */
+#endif 

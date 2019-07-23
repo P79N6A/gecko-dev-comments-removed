@@ -156,10 +156,7 @@ gfxWindowsNativeDrawing::BeginNativeDrawing()
         
 
         
-        mContext->UpdateSurfaceClip();
-
-        
-        mDC = mWinSurface->GetDC();
+        mDC = mWinSurface->GetDCWithClip(mContext);
 
         
         if (mTransformType != TRANSLATION_ONLY) {

@@ -36,14 +36,7 @@
 
 #include "cairoint.h"
 
-void
-_cairo_slope_init (cairo_slope_t *slope,
-		   const cairo_point_t *a,
-		   const cairo_point_t *b)
-{
-    slope->dx = b->x - a->x;
-    slope->dy = b->y - a->y;
-}
+#include "cairo-slope-private.h"
 
 
 
@@ -94,9 +87,7 @@ _cairo_slope_compare (const cairo_slope_t *a, const cairo_slope_t *b)
 
 
 
-    if (((a->dx > 0) != (b->dx > 0)) ||
-	((a->dy > 0) != (b->dy > 0)))
-    {
+    if ((a->dx ^ b->dx) < 0 || (a->dy ^ b->dy) < 0) {
 	if (a->dx > 0 || (a->dx == 0 && a->dy > 0))
 	    return +1;
 	else

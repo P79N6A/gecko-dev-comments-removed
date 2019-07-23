@@ -1,42 +1,42 @@
-/* cairo - a vector graphics library with display and print output
- *
- * Copyright © 2006, 2008 Red Hat, Inc
- *
- * This library is free software; you can redistribute it and/or
- * modify it either under the terms of the GNU Lesser General Public
- * License version 2.1 as published by the Free Software Foundation
- * (the "LGPL") or, at your option, under the terms of the Mozilla
- * Public License Version 1.1 (the "MPL"). If you do not alter this
- * notice, a recipient may use your version of this file under either
- * the MPL or the LGPL.
- *
- * You should have received a copy of the LGPL along with this library
- * in the file COPYING-LGPL-2.1; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
- * You should have received a copy of the MPL along with this library
- * in the file COPYING-MPL-1.1
- *
- * The contents of this file are subject to the Mozilla Public License
- * Version 1.1 (the "License"); you may not use this file except in
- * compliance with the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * This software is distributed on an "AS IS" basis, WITHOUT WARRANTY
- * OF ANY KIND, either express or implied. See the LGPL or the MPL for
- * the specific language governing rights and limitations.
- *
- * The Original Code is the cairo graphics library.
- *
- * The Initial Developer of the Original Code is Red Hat, Inc.
- *
- * Contributor(s):
- *      Kristian Høgsberg <krh@redhat.com>
- *      Behdad Esfahbod <behdad@behdad.org>
- */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #include "cairoint.h"
 #include "cairo-user-font-private.h"
-#include "cairo-meta-surface-private.h"
+#include "cairo-recording-surface-private.h"
 #include "cairo-analysis-surface-private.h"
 
 typedef struct _cairo_user_scaled_font_methods {
@@ -49,8 +49,8 @@ typedef struct _cairo_user_scaled_font_methods {
 typedef struct _cairo_user_font_face {
     cairo_font_face_t	             base;
 
-    /* Set to true after first scaled font is created.  At that point,
-     * the scaled_font_methods cannot change anymore. */
+    
+
     cairo_bool_t		     immutable;
 
     cairo_user_scaled_font_methods_t scaled_font_methods;
@@ -61,33 +61,33 @@ typedef struct _cairo_user_scaled_font {
 
     cairo_text_extents_t default_glyph_extents;
 
-    /* space to compute extents in, and factors to convert back to user space */
+    
     cairo_matrix_t extent_scale;
     double extent_x_scale;
     double extent_y_scale;
 
-    /* multiplier for metrics hinting */
+    
     double snap_x_scale;
     double snap_y_scale;
 
 } cairo_user_scaled_font_t;
 
-/* #cairo_user_scaled_font_t */
+
 
 static cairo_t *
-_cairo_user_scaled_font_create_meta_context (cairo_user_scaled_font_t *scaled_font)
+_cairo_user_scaled_font_create_recording_context (cairo_user_scaled_font_t *scaled_font)
 {
     cairo_content_t content;
-    cairo_surface_t *meta_surface;
+    cairo_surface_t *recording_surface;
     cairo_t *cr;
 
     content = scaled_font->base.options.antialias == CAIRO_ANTIALIAS_SUBPIXEL ?
 						     CAIRO_CONTENT_COLOR_ALPHA :
 						     CAIRO_CONTENT_ALPHA;
 
-    meta_surface = cairo_meta_surface_create (content, -1, -1);
-    cr = cairo_create (meta_surface);
-    cairo_surface_destroy (meta_surface);
+    recording_surface = cairo_recording_surface_create (content, NULL);
+    cr = cairo_create (recording_surface);
+    cairo_surface_destroy (recording_surface);
 
     cairo_set_matrix (cr, &scaled_font->base.scale);
     cairo_set_font_size (cr, 1.0);
@@ -104,64 +104,53 @@ _cairo_user_scaled_glyph_init (void			 *abstract_font,
 {
     cairo_int_status_t status = CAIRO_STATUS_SUCCESS;
     cairo_user_scaled_font_t *scaled_font = abstract_font;
-    cairo_surface_t *meta_surface = scaled_glyph->meta_surface;
+    cairo_surface_t *recording_surface = scaled_glyph->recording_surface;
 
-    if (!scaled_glyph->meta_surface) {
+    if (!scaled_glyph->recording_surface) {
 	cairo_user_font_face_t *face =
 	    (cairo_user_font_face_t *) scaled_font->base.font_face;
 	cairo_text_extents_t extents = scaled_font->default_glyph_extents;
 	cairo_t *cr;
 
-	cr = _cairo_user_scaled_font_create_meta_context (scaled_font);
+	cr = _cairo_user_scaled_font_create_recording_context (scaled_font);
 
-	if (face->scaled_font_methods.render_glyph)
+	if (face->scaled_font_methods.render_glyph) {
 	    status = face->scaled_font_methods.render_glyph ((cairo_scaled_font_t *)scaled_font,
 							     _cairo_scaled_glyph_index(scaled_glyph),
 							     cr, &extents);
-	else
+	} else
 	    status = CAIRO_STATUS_USER_FONT_NOT_IMPLEMENTED;
 
 	if (status == CAIRO_STATUS_SUCCESS)
 	    status = cairo_status (cr);
 
-	meta_surface = cairo_surface_reference (cairo_get_target (cr));
+	recording_surface = cairo_surface_reference (cairo_get_target (cr));
 
 	cairo_destroy (cr);
 
 	if (unlikely (status)) {
-	    cairo_surface_destroy (meta_surface);
+	    cairo_surface_destroy (recording_surface);
 	    return status;
 	}
 
-	_cairo_scaled_glyph_set_meta_surface (scaled_glyph,
-					      &scaled_font->base,
-					      meta_surface);
+	_cairo_scaled_glyph_set_recording_surface (scaled_glyph,
+						   &scaled_font->base,
+						   recording_surface);
 
 
-	/* set metrics */
+	
 
 	if (extents.width == 0.) {
-	    /* Compute extents.x/y/width/height from meta_surface, in font space */
-
 	    cairo_box_t bbox;
 	    double x1, y1, x2, y2;
 	    double x_scale, y_scale;
-	    cairo_surface_t *null_surface;
-	    cairo_surface_t *analysis_surface;
 
-	    null_surface = _cairo_null_surface_create (cairo_surface_get_content (meta_surface));
-	    analysis_surface = _cairo_analysis_surface_create (null_surface, -1, -1);
-	    cairo_surface_destroy (null_surface);
-	    status = analysis_surface->status;
-	    if (unlikely (status))
-		return status;
+	    
 
-	    _cairo_analysis_surface_set_ctm (analysis_surface,
-					     &scaled_font->extent_scale);
-	    status = cairo_meta_surface_replay (meta_surface, analysis_surface);
-	    _cairo_analysis_surface_get_bounding_box (analysis_surface, &bbox);
-	    cairo_surface_destroy (analysis_surface);
 
+	    status = _cairo_recording_surface_get_bbox ((cairo_recording_surface_t *) recording_surface,
+							&bbox,
+							&scaled_font->extent_scale);
 	    if (unlikely (status))
 		return status;
 
@@ -190,11 +179,11 @@ _cairo_user_scaled_glyph_init (void			 *abstract_font,
 	cairo_format_t format;
 	int width, height;
 
-	/* TODO
-	 * extend the glyph cache to support argb glyphs.
-	 * need to figure out the semantics and interaction with subpixel
-	 * rendering first.
-	 */
+	
+
+
+
+
 
 	width = _cairo_fixed_integer_ceil (scaled_glyph->bbox.p2.x) -
 	  _cairo_fixed_integer_floor (scaled_glyph->bbox.p1.x);
@@ -213,7 +202,7 @@ _cairo_user_scaled_glyph_init (void			 *abstract_font,
 	cairo_surface_set_device_offset (surface,
 	                                 - _cairo_fixed_integer_floor (scaled_glyph->bbox.p1.x),
 	                                 - _cairo_fixed_integer_floor (scaled_glyph->bbox.p1.y));
-	status = cairo_meta_surface_replay (meta_surface, surface);
+	status = _cairo_recording_surface_replay (recording_surface, surface);
 
 	if (unlikely (status)) {
 	    cairo_surface_destroy(surface);
@@ -230,8 +219,7 @@ _cairo_user_scaled_glyph_init (void			 *abstract_font,
 	if (!path)
 	    return _cairo_error (CAIRO_STATUS_NO_MEMORY);
 
-	status = _cairo_meta_surface_get_path (meta_surface, path);
-
+	status = _cairo_recording_surface_get_path (recording_surface, path);
 	if (unlikely (status)) {
 	    _cairo_path_fixed_destroy (path);
 	    return status;
@@ -317,7 +305,7 @@ _cairo_user_text_to_glyphs (void		      *abstract_font,
 	    return CAIRO_INT_STATUS_UNSUPPORTED;
 	}
 
-	/* Convert from font space to user space and add x,y */
+	
 	for (i = 0; i < *num_glyphs; i++) {
 	    double gx = (*glyphs)[i].x;
 	    double gy = (*glyphs)[i].y;
@@ -349,16 +337,16 @@ _cairo_user_font_face_create_for_toy (cairo_toy_font_face_t   *toy_face,
 
 static const cairo_scaled_font_backend_t _cairo_user_scaled_font_backend = {
     CAIRO_FONT_TYPE_USER,
-    NULL,	/* scaled_font_fini */
+    NULL,	
     _cairo_user_scaled_glyph_init,
     _cairo_user_text_to_glyphs,
     _cairo_user_ucs4_to_index,
-    NULL,	/* show_glyphs */
-    NULL,	/* load_truetype_table */
-    NULL	/* index_to_ucs4 */
+    NULL,	
+    NULL,	
+    NULL	
 };
 
-/* #cairo_user_font_face_t */
+
 
 static cairo_status_t
 _cairo_user_font_face_scaled_font_create (void                        *abstract_face,
@@ -388,11 +376,11 @@ _cairo_user_font_face_scaled_font_create (void                        *abstract_
 	return status;
     }
 
-    /* XXX metrics hinting? */
+    
 
-    /* compute a normalized version of font scale matrix to compute
-     * extents in.  This is to minimize error caused by the cairo_fixed_t
-     * representation. */
+    
+
+
     {
 	double fixed_scale, x_scale, y_scale;
 
@@ -408,8 +396,8 @@ _cairo_user_font_face_scaled_font_create (void                        *abstract_
 	    user_scaled_font->snap_x_scale = x_scale;
 	    user_scaled_font->snap_y_scale = y_scale;
 
-	    /* since glyphs are pretty much 1.0x1.0, we can reduce error by
-	     * scaling to a larger square.  say, 1024.x1024. */
+	    
+
 	    fixed_scale = 1024.;
 	    x_scale /= fixed_scale;
 	    y_scale /= fixed_scale;
@@ -424,16 +412,16 @@ _cairo_user_font_face_scaled_font_create (void                        *abstract_
     if (status == CAIRO_STATUS_SUCCESS &&
 	font_face->scaled_font_methods.init != NULL)
     {
-	/* Lock the scaled_font mutex such that user doesn't accidentally try
-         * to use it just yet. */
+	
+
 	CAIRO_MUTEX_LOCK (user_scaled_font->base.mutex);
 
-	/* Give away fontmap lock such that user-font can use other fonts */
+	
 	status = _cairo_scaled_font_register_placeholder_and_unlock_font_map (&user_scaled_font->base);
 	if (status == CAIRO_STATUS_SUCCESS) {
 	    cairo_t *cr;
 
-	    cr = _cairo_user_scaled_font_create_meta_context (user_scaled_font);
+	    cr = _cairo_user_scaled_font_create_recording_context (user_scaled_font);
 
 	    status = font_face->scaled_font_methods.init (&user_scaled_font->base,
 							  cr,
@@ -476,7 +464,7 @@ _cairo_user_font_face_scaled_font_create (void                        *abstract_
 const cairo_font_face_backend_t _cairo_user_font_face_backend = {
     CAIRO_FONT_TYPE_USER,
     _cairo_user_font_face_create_for_toy,
-    NULL,	/* destroy */
+    NULL,	
     _cairo_user_font_face_scaled_font_create
 };
 
@@ -487,27 +475,27 @@ _cairo_font_face_is_user (cairo_font_face_t *font_face)
     return font_face->backend == &_cairo_user_font_face_backend;
 }
 
-/* Implement the public interface */
 
-/**
- * cairo_user_font_face_create:
- *
- * Creates a new user font-face.
- *
- * Use the setter functions to associate callbacks with the returned
- * user font.  The only mandatory callback is render_glyph.
- *
- * After the font-face is created, the user can attach arbitrary data
- * (the actual font data) to it using cairo_font_face_set_user_data()
- * and access it from the user-font callbacks by using
- * cairo_scaled_font_get_font_face() followed by
- * cairo_font_face_get_user_data().
- *
- * Return value: a newly created #cairo_font_face_t. Free with
- *  cairo_font_face_destroy() when you are done using it.
- *
- * Since: 1.8
- **/
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 cairo_font_face_t *
 cairo_user_font_face_create (void)
 {
@@ -528,24 +516,24 @@ cairo_user_font_face_create (void)
 }
 slim_hidden_def(cairo_user_font_face_create);
 
-/* User-font method setters */
 
 
-/**
- * cairo_user_font_face_set_init_func:
- * @font_face: A user font face
- * @init_func: The init callback, or %NULL
- *
- * Sets the scaled-font initialization function of a user-font.
- * See #cairo_user_scaled_font_init_func_t for details of how the callback
- * works.
- *
- * The font-face should not be immutable or a %CAIRO_STATUS_USER_FONT_IMMUTABLE
- * error will occur.  A user font-face is immutable as soon as a scaled-font
- * is created from it.
- *
- * Since: 1.8
- **/
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 void
 cairo_user_font_face_set_init_func (cairo_font_face_t                  *font_face,
 				    cairo_user_scaled_font_init_func_t  init_func)
@@ -569,25 +557,25 @@ cairo_user_font_face_set_init_func (cairo_font_face_t                  *font_fac
 }
 slim_hidden_def(cairo_user_font_face_set_init_func);
 
-/**
- * cairo_user_font_face_set_render_glyph_func:
- * @font_face: A user font face
- * @render_glyph_func: The render_glyph callback, or %NULL
- *
- * Sets the glyph rendering function of a user-font.
- * See #cairo_user_scaled_font_render_glyph_func_t for details of how the callback
- * works.
- *
- * The font-face should not be immutable or a %CAIRO_STATUS_USER_FONT_IMMUTABLE
- * error will occur.  A user font-face is immutable as soon as a scaled-font
- * is created from it.
- *
- * The render_glyph callback is the only mandatory callback of a user-font.
- * If the callback is %NULL and a glyph is tried to be rendered using
- * @font_face, a %CAIRO_STATUS_USER_FONT_ERROR will occur.
- *
- * Since: 1.8
- **/
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 void
 cairo_user_font_face_set_render_glyph_func (cairo_font_face_t                          *font_face,
 					    cairo_user_scaled_font_render_glyph_func_t  render_glyph_func)
@@ -611,21 +599,21 @@ cairo_user_font_face_set_render_glyph_func (cairo_font_face_t                   
 }
 slim_hidden_def(cairo_user_font_face_set_render_glyph_func);
 
-/**
- * cairo_user_font_face_set_text_to_glyphs_func:
- * @font_face: A user font face
- * @text_to_glyphs_func: The text_to_glyphs callback, or %NULL
- *
- * Sets th text-to-glyphs conversion function of a user-font.
- * See #cairo_user_scaled_font_text_to_glyphs_func_t for details of how the callback
- * works.
- *
- * The font-face should not be immutable or a %CAIRO_STATUS_USER_FONT_IMMUTABLE
- * error will occur.  A user font-face is immutable as soon as a scaled-font
- * is created from it.
- *
- * Since: 1.8
- **/
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 void
 cairo_user_font_face_set_text_to_glyphs_func (cairo_font_face_t                            *font_face,
 					      cairo_user_scaled_font_text_to_glyphs_func_t  text_to_glyphs_func)
@@ -648,21 +636,21 @@ cairo_user_font_face_set_text_to_glyphs_func (cairo_font_face_t                 
     user_font_face->scaled_font_methods.text_to_glyphs = text_to_glyphs_func;
 }
 
-/**
- * cairo_user_font_face_set_unicode_to_glyph_func:
- * @font_face: A user font face
- * @unicode_to_glyph_func: The unicode_to_glyph callback, or %NULL
- *
- * Sets the unicode-to-glyph conversion function of a user-font.
- * See #cairo_user_scaled_font_unicode_to_glyph_func_t for details of how the callback
- * works.
- *
- * The font-face should not be immutable or a %CAIRO_STATUS_USER_FONT_IMMUTABLE
- * error will occur.  A user font-face is immutable as soon as a scaled-font
- * is created from it.
- *
- * Since: 1.8
- **/
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 void
 cairo_user_font_face_set_unicode_to_glyph_func (cairo_font_face_t                              *font_face,
 						cairo_user_scaled_font_unicode_to_glyph_func_t  unicode_to_glyph_func)
@@ -685,19 +673,19 @@ cairo_user_font_face_set_unicode_to_glyph_func (cairo_font_face_t               
 }
 slim_hidden_def(cairo_user_font_face_set_unicode_to_glyph_func);
 
-/* User-font method getters */
 
-/**
- * cairo_user_font_face_get_init_func:
- * @font_face: A user font face
- *
- * Gets the scaled-font initialization function of a user-font.
- *
- * Return value: The init callback of @font_face
- * or %NULL if none set or an error has occurred.
- *
- * Since: 1.8
- **/
+
+
+
+
+
+
+
+
+
+
+
+
 cairo_user_scaled_font_init_func_t
 cairo_user_font_face_get_init_func (cairo_font_face_t *font_face)
 {
@@ -715,17 +703,17 @@ cairo_user_font_face_get_init_func (cairo_font_face_t *font_face)
     return user_font_face->scaled_font_methods.init;
 }
 
-/**
- * cairo_user_font_face_get_render_glyph_func:
- * @font_face: A user font face
- *
- * Gets the glyph rendering function of a user-font.
- *
- * Return value: The render_glyph callback of @font_face
- * or %NULL if none set or an error has occurred.
- *
- * Since: 1.8
- **/
+
+
+
+
+
+
+
+
+
+
+
 cairo_user_scaled_font_render_glyph_func_t
 cairo_user_font_face_get_render_glyph_func (cairo_font_face_t *font_face)
 {
@@ -743,17 +731,17 @@ cairo_user_font_face_get_render_glyph_func (cairo_font_face_t *font_face)
     return user_font_face->scaled_font_methods.render_glyph;
 }
 
-/**
- * cairo_user_font_face_get_text_to_glyphs_func:
- * @font_face: A user font face
- *
- * Gets the text-to-glyphs conversion function of a user-font.
- *
- * Return value: The text_to_glyphs callback of @font_face
- * or %NULL if none set or an error occurred.
- *
- * Since: 1.8
- **/
+
+
+
+
+
+
+
+
+
+
+
 cairo_user_scaled_font_text_to_glyphs_func_t
 cairo_user_font_face_get_text_to_glyphs_func (cairo_font_face_t *font_face)
 {
@@ -771,17 +759,17 @@ cairo_user_font_face_get_text_to_glyphs_func (cairo_font_face_t *font_face)
     return user_font_face->scaled_font_methods.text_to_glyphs;
 }
 
-/**
- * cairo_user_font_face_get_unicode_to_glyph_func:
- * @font_face: A user font face
- *
- * Gets the unicode-to-glyph conversion function of a user-font.
- *
- * Return value: The unicode_to_glyph callback of @font_face
- * or %NULL if none set or an error occurred.
- *
- * Since: 1.8
- **/
+
+
+
+
+
+
+
+
+
+
+
 cairo_user_scaled_font_unicode_to_glyph_func_t
 cairo_user_font_face_get_unicode_to_glyph_func (cairo_font_face_t *font_face)
 {

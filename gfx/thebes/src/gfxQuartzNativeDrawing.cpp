@@ -83,10 +83,7 @@ gfxQuartzNativeDrawing::BeginNativeDrawing()
     }
 
     
-    mContext->UpdateSurfaceClip();
-
-    
-    mCGContext = mQuartzSurface->GetCGContext();
+    mCGContext = mQuartzSurface->GetCGContextWithClip(mContext);
     if (!mCGContext)
         return nsnull;
 

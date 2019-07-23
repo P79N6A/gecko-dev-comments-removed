@@ -191,9 +191,6 @@ _cairo_hash_table_create (cairo_hash_keys_equal_func_t keys_equal)
 void
 _cairo_hash_table_destroy (cairo_hash_table_t *hash_table)
 {
-    if (hash_table == NULL)
-	return;
-
     
     assert (hash_table->live_entries == 0);
     
@@ -524,9 +521,6 @@ _cairo_hash_table_foreach (cairo_hash_table_t	      *hash_table,
 {
     unsigned long i;
     cairo_hash_entry_t *entry;
-
-    if (hash_table == NULL)
-	return;
 
     
     ++hash_table->iterating;
