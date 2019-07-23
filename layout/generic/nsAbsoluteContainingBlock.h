@@ -127,6 +127,8 @@ public:
 
   PRBool  HasAbsoluteFrames() {return mAbsoluteFrames.NotEmpty();}
 
+  void MarkSizeDependentFramesDirty();
+
 protected:
   
   

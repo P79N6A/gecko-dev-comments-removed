@@ -1153,40 +1153,48 @@ nsBlockFrame::Reflow(nsPresContext*           aPresContext,
   
   
   
-  if (mAbsoluteContainer.HasAbsoluteFrames() &&
-      !aReflowState.WillReflowAgainForClearance()) {
-    nsRect childBounds;
-    nsSize containingBlockSize
-      = CalculateContainingBlockSizeForAbsolutes(aReflowState,
-                                                 nsSize(aMetrics.width, aMetrics.height));
+  if (mAbsoluteContainer.HasAbsoluteFrames()) {
+    if (aReflowState.WillReflowAgainForClearance()) {
+      
+      
+      
+      
+      mAbsoluteContainer.MarkSizeDependentFramesDirty();
+    } else {
+      nsRect childBounds;
+      nsSize containingBlockSize =
+        CalculateContainingBlockSizeForAbsolutes(aReflowState,
+                                                 nsSize(aMetrics.width,
+                                                        aMetrics.height));
 
-    
-    
-    
-    
-    
-    
-    PRBool cbWidthChanged = aMetrics.width != oldSize.width;
-    PRBool isRoot = !GetContent()->GetParent();
-    
-    
-    
-    
-    PRBool cbHeightChanged =
-      !(isRoot && NS_UNCONSTRAINEDSIZE == aReflowState.ComputedHeight()) &&
-      aMetrics.height != oldSize.height;
+      
+      
+      
+      
+      
+      
+      PRBool cbWidthChanged = aMetrics.width != oldSize.width;
+      PRBool isRoot = !GetContent()->GetParent();
+      
+      
+      
+      
+      PRBool cbHeightChanged =
+        !(isRoot && NS_UNCONSTRAINEDSIZE == aReflowState.ComputedHeight()) &&
+        aMetrics.height != oldSize.height;
 
-    rv = mAbsoluteContainer.Reflow(this, aPresContext, aReflowState,
-                                   state.mReflowStatus,
-                                   containingBlockSize.width,
-                                   containingBlockSize.height, PR_TRUE,
-                                   cbWidthChanged, cbHeightChanged,
-                                   &childBounds);
+      rv = mAbsoluteContainer.Reflow(this, aPresContext, aReflowState,
+                                     state.mReflowStatus,
+                                     containingBlockSize.width,
+                                     containingBlockSize.height, PR_TRUE,
+                                     cbWidthChanged, cbHeightChanged,
+                                     &childBounds);
 
-    
+      
 
-    
-    aMetrics.mOverflowArea.UnionRect(aMetrics.mOverflowArea, childBounds);
+      
+      aMetrics.mOverflowArea.UnionRect(aMetrics.mOverflowArea, childBounds);
+    }
   }
 
   

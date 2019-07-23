@@ -332,6 +332,19 @@ nsAbsoluteContainingBlock::DestroyFrames(nsIFrame* aDelegatingFrame)
   mAbsoluteFrames.DestroyFrames();
 }
 
+void
+nsAbsoluteContainingBlock::MarkSizeDependentFramesDirty()
+{
+  for (nsIFrame* kidFrame = mAbsoluteFrames.FirstChild();
+       kidFrame;
+       kidFrame = kidFrame->GetNextSibling()) {
+    if (FrameDependsOnContainer(kidFrame, PR_TRUE, PR_TRUE)) {
+      
+      kidFrame->AddStateBits(NS_FRAME_HAS_DIRTY_CHILDREN);
+    }
+  }
+}
+
 
 
 
