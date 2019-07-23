@@ -1264,6 +1264,9 @@ nsJSContext::LeaveModalState()
 
 static const char js_options_dot_str[]   = JS_OPTIONS_DOT_STR;
 static const char js_strict_option_str[] = JS_OPTIONS_DOT_STR "strict";
+#ifdef DEBUG
+static const char js_strict_debug_option_str[] = JS_OPTIONS_DOT_STR "strict.debug";
+#endif
 static const char js_werror_option_str[] = JS_OPTIONS_DOT_STR "werror";
 static const char js_relimit_option_str[]= JS_OPTIONS_DOT_STR "relimit";
 #ifdef JS_GC_ZEAL
@@ -1308,9 +1311,10 @@ nsJSContext::JSOptionChangedCallback(const char *pref, void *data)
 
 #ifdef DEBUG
   
+  PRBool strictDebug = nsContentUtils::GetBoolPref(js_strict_debug_option_str);
   
   
-  if ((newDefaultJSOptions & JSOPTION_STRICT) == 0) {
+  if (strictDebug && (newDefaultJSOptions & JSOPTION_STRICT) == 0) {
     if (chromeWindow)
       newDefaultJSOptions |= JSOPTION_STRICT;
   }
