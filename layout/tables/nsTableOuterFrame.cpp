@@ -878,6 +878,8 @@ nsTableOuterFrame::GetCaptionOrigin(PRUint32         aCaptionSide,
                                     nsMargin&        aCaptionMargin,
                                     nsPoint&         aOrigin)
 {
+  
+  
   aOrigin.x = aOrigin.y = 0;
   if ((NS_UNCONSTRAINEDSIZE == aInnerSize.width) || (NS_UNCONSTRAINEDSIZE == aInnerSize.height) ||  
       (NS_UNCONSTRAINEDSIZE == aCaptionSize.width) || (NS_UNCONSTRAINEDSIZE == aCaptionSize.height)) {
@@ -885,6 +887,8 @@ nsTableOuterFrame::GetCaptionOrigin(PRUint32         aCaptionSide,
   }
   if (!mCaptionFrame) return NS_OK;
 
+  
+  
   switch(aCaptionSide) {
   case NS_STYLE_CAPTION_SIDE_BOTTOM:
   case NS_STYLE_CAPTION_SIDE_BOTTOM_OUTSIDE: {
@@ -893,9 +897,16 @@ nsTableOuterFrame::GetCaptionOrigin(PRUint32         aCaptionSide,
                                            aContainBlockSize.width, aCaptionSize.width);
     }
     aOrigin.x = aCaptionMargin.left;
+    if (aCaptionSide == NS_STYLE_CAPTION_SIDE_BOTTOM) {
+      
+      
+      aOrigin.x += aInnerMargin.left;
+    }
     if (NS_AUTOMARGIN == aCaptionMargin.top) {
       aCaptionMargin.top = 0;
     }
+    
+    
     nsCollapsingMargin marg;
     marg.Include(aCaptionMargin.top);
     marg.Include(aInnerMargin.bottom);
@@ -964,6 +975,13 @@ nsTableOuterFrame::GetCaptionOrigin(PRUint32         aCaptionSide,
                                            aContainBlockSize.width, aCaptionSize.width);
     }
     aOrigin.x = aCaptionMargin.left;
+    if (aCaptionSide == NS_STYLE_CAPTION_SIDE_TOP) {
+      
+      
+      aOrigin.x += aInnerMargin.left;
+    }
+    
+    
     if (NS_AUTOMARGIN == aCaptionMargin.bottom) {
       aCaptionMargin.bottom = 0;
     }
@@ -991,6 +1009,8 @@ nsTableOuterFrame::GetInnerOrigin(PRUint32         aCaptionSide,
                                   nsMargin&        aInnerMargin,
                                   nsPoint&         aOrigin)
 {
+  
+  
   aOrigin.x = aOrigin.y = 0;
   if ((NS_UNCONSTRAINEDSIZE == aInnerSize.width) || (NS_UNCONSTRAINEDSIZE == aInnerSize.height) ||  
       (NS_UNCONSTRAINEDSIZE == aCaptionSize.width) || (NS_UNCONSTRAINEDSIZE == aCaptionSize.height)) {
@@ -1268,6 +1288,7 @@ NS_METHOD nsTableOuterFrame::Reflow(nsPresContext*           aPresContext,
     
     OuterBeginReflowChild(aPresContext, mInnerTableFrame, aOuterRS,
                           innerRSSpace, aOuterRS.ComputedWidth());
+    
     
     
     
