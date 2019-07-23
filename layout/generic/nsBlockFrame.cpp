@@ -1948,9 +1948,11 @@ nsBlockFrame::ReflowDirtyLines(nsBlockReflowState& aState)
       else
         repositionViews = PR_TRUE;
 
-      if (willReflowAgain) {
-        NS_ASSERTION(!line->IsDirty() || !line->HasFloats(),
-                     "Possibly stale float cache here!");
+      NS_ASSERTION(!line->IsDirty() || !line->HasFloats(),
+                   "Possibly stale float cache here!");
+      if (willReflowAgain && line->IsBlock()) {
+        
+        
         
         
         
