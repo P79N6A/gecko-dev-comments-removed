@@ -3313,7 +3313,7 @@ nsPrintEngine::StartPagePrintTimer(nsPrintObject* aPO)
 
     
     
-    PRInt32 printPageDelay = 500;
+    PRInt32 printPageDelay = 50;
     mPrt->mPrintSettings->GetPrintPageDelay(&printPageDelay);
 
     mPagePrintTimer->Init(this, mDocViewerPrint, printPageDelay);
