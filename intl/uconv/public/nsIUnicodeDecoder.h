@@ -47,8 +47,8 @@
 
 
 #define NS_IUNICODEDECODER_IID	\
-	{ 0xb2f178e1, 0x832a, 0x11d2,	\
-		{ 0x8a, 0x8e, 0x0, 0x60, 0x8, 0x11, 0xa8, 0x36 }}
+	{ 0x25359602, 0xfc70, 0x4d13,	\
+		{ 0xa9, 0xab, 0x80, 0x86, 0xd3, 0x82, 0x7c, 0xd }}
 
 
  
@@ -168,6 +168,20 @@ public:
 
 
   NS_IMETHOD Reset() = 0;
+
+  
+
+
+
+
+
+
+  virtual void SetInputErrorBehavior(PRInt32 aBehavior) = 0;
+
+  
+
+
+  virtual PRUnichar GetCharacterForUnMapped() = 0;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsIUnicodeDecoder, NS_IUNICODEDECODER_IID)

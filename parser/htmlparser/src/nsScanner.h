@@ -315,9 +315,19 @@ class nsScanner {
         mParser = aParser;
       }
 
+
+      
+
+
+
+
+
+
+      void OverrideReplacementCharacter(PRUnichar aReplacementCharacter);
+
   protected:
 
-      PRBool AppendToBuffer(nsScannerString::Buffer *, nsIRequest *aRequest);
+      PRBool AppendToBuffer(nsScannerString::Buffer *, nsIRequest *aRequest, PRInt32 aErrorPos = -1);
       PRBool AppendToBuffer(const nsAString& aStr)
       {
         nsScannerString::Buffer* buf = nsScannerString::AllocBufferFromString(aStr);
@@ -331,10 +341,13 @@ class nsScanner {
       nsScannerIterator            mCurrentPosition; 
       nsScannerIterator            mMarkPosition;    
       nsScannerIterator            mEndPosition;     
+      nsScannerIterator            mFirstInvalidPosition; 
       nsString        mFilename;
       PRUint32        mCountRemaining; 
                                        
       PRPackedBool    mIncremental;
+      PRPackedBool    mHasInvalidCharacter;
+      PRUnichar       mReplacementCharacter;
       PRInt32         mFirstNonWhitespacePosition;
       PRInt32         mCharsetSource;
       nsCString       mCharset;
