@@ -526,8 +526,11 @@ nsCacheProfilePrefObserver::MemoryCacheCapacity()
     PRUint64 bytes = PR_GetPhysicalMemorySize();
     CACHE_LOG_DEBUG(("Physical Memory size is %llu\n", bytes));
 
-    if (LL_CMP(bytes, ==, LL_ZERO))
-        return 0;
+    
+    
+    
+    if (bytes == 0)
+        bytes = 32 * 1024 * 1024;
 
     
     
