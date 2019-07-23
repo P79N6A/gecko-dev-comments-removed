@@ -5622,23 +5622,7 @@ PresShell::HandleEvent(nsIView         *aView,
       if (mCurrentEventFrame) {
         esm->GetFocusedContent(getter_AddRefs(mCurrentEventContent));
       } else {
-#if defined(MOZ_X11) || defined(XP_WIN)
-#if defined(MOZ_X11)
-        if (NS_IS_IME_EVENT(aEvent)) {
-          
-          
-          
-          
-          
-          
-#else
-        if (NS_IS_KEY_EVENT(aEvent) || NS_IS_IME_EVENT(aEvent)) {
-          
-          
-          
-          
-          
-#endif
+        if (NS_TargetUnfocusedEventToLastFocusedContent(aEvent)) {
           nsPIDOMWindow *ourWindow = mDocument->GetWindow();
           if (ourWindow) {
             nsIFocusController *focusController =
@@ -5659,7 +5643,6 @@ PresShell::HandleEvent(nsIView         *aView,
             }
           }
         }
-#endif 
         if (!mCurrentEventContent) {
           mCurrentEventContent = mDocument->GetRootContent();
         }

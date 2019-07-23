@@ -47,15 +47,6 @@
 { 0xa7, 0xfd, 0x17, 0x75, 0x01, 0xad, 0xec, 0x98 } }
 
 
-#if defined(XP_MACOSX)
-
-
-
-
-
-#define NS_KBSC_USE_SHARED_CONTEXT 1
-#endif
-
 
 
 

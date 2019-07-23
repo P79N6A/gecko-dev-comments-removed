@@ -179,15 +179,6 @@ nsIMEStateManager::OnDeactivate(nsPresContext* aPresContext)
     return NS_OK;
 
   sActiveWindow = nsnull;
-#ifdef NS_KBSC_USE_SHARED_CONTEXT
-  
-  
-  sContent = nsnull;
-  
-  nsCOMPtr<nsIKBStateControl> kb = GetKBStateControl(aPresContext);
-  if (kb)
-    SetIMEState(aPresContext, nsIContent::IME_STATUS_ENABLE, kb);
-#endif 
   return NS_OK;
 }
 

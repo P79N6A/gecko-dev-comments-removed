@@ -1180,4 +1180,33 @@ enum nsDragDropEventStatus {
 #define NS_TEXTRANGE_CONVERTEDTEXT				0x04
 #define NS_TEXTRANGE_SELECTEDCONVERTEDTEXT		0x05
 
+static PRBool NS_TargetUnfocusedEventToLastFocusedContent(nsEvent* aEvent)
+{
+#if defined(MOZ_X11) || defined(XP_MACOSX)
+  
+  
+  
+  
+  
+  
+
+  
+  
+  
+  
+
+  return NS_IS_IME_EVENT(aEvent);
+#elif defined(XP_WIN)
+  
+  
+  
+  
+  
+
+  return NS_IS_KEY_EVENT(aEvent) || NS_IS_IME_EVENT(aEvent);
+#else
+  return PR_FALSE;
+#endif
+}
+
 #endif
