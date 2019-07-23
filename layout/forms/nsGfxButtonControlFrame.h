@@ -100,6 +100,7 @@ protected:
 
   PRBool IsFileBrowseButton(PRInt32 type); 
 
+  virtual PRBool IsInput() { return PR_TRUE; }
 private:
   nsSize mSuggestedSize;
   nsCOMPtr<nsIContent> mTextContent;

@@ -132,26 +132,6 @@ nsHTMLButtonControlFrame::GetType() const
   return nsGkAtoms::HTMLButtonControlFrame;
 }
 
-PRBool
-nsHTMLButtonControlFrame::IsReset(PRInt32 type)
-{
-  if (NS_FORM_BUTTON_RESET == type) {
-    return PR_TRUE;
-  } else {
-    return PR_FALSE;
-  }
-}
-
-PRBool
-nsHTMLButtonControlFrame::IsSubmit(PRInt32 type)
-{
-  if (NS_FORM_BUTTON_SUBMIT == type) {
-    return PR_TRUE;
-  } else {
-    return PR_FALSE;
-  }
-}
-
 void 
 nsHTMLButtonControlFrame::SetFocus(PRBool aOn, PRBool aRepaint)
 {
@@ -197,19 +177,19 @@ nsHTMLButtonControlFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   
   set.Content()->AppendToTop(&onTop);
 
-    
   
+  if (IsInput()) {
+    nsMargin border = GetStyleBorder()->GetActualBorder();
+    nsRect rect(aBuilder->ToReferenceFrame(this), GetSize());
+    rect.Deflate(border);
   
+    nsresult rv = OverflowClip(aBuilder, set, aLists, rect);
+    NS_ENSURE_SUCCESS(rv, rv);
+  } else {
+    set.MoveTo(aLists);
+  }
   
-  
-  nsMargin border = GetStyleBorder()->GetActualBorder();
-  nsRect rect(aBuilder->ToReferenceFrame(this), GetSize());
-  rect.Deflate(border);
-  
-  nsresult rv = OverflowClip(aBuilder, set, aLists, rect);
-  NS_ENSURE_SUCCESS(rv, rv);
-  
-  rv = DisplayOutline(aBuilder, aLists);
+  nsresult rv = DisplayOutline(aBuilder, aLists);
   NS_ENSURE_SUCCESS(rv, rv);
 
   
