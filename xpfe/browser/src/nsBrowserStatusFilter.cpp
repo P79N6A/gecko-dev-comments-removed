@@ -243,7 +243,7 @@ nsBrowserStatusFilter::OnStatusChange(nsIWebProgress *aWebProgress,
     
     
     
-    if (!mCurrentStatusMsg.Equals(aMessage)) {
+    if (mStatusIsDirty || !mCurrentStatusMsg.Equals(aMessage)) {
         mStatusIsDirty = PR_TRUE;
         mStatusMsg = aMessage;
     }

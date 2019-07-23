@@ -45,8 +45,10 @@
 #include "nsNetUtil.h"
 #include "nsIHttpChannel.h"
 #include "nsICachingChannel.h"
+#include "nsIInterfaceRequestor.h"
 #include "nsIPrefBranch2.h"
 #include "nsIPrefService.h"
+#include "nsIProgressEventSink.h"
 #include "nsIProxyObjectManager.h"
 #include "nsIServiceManager.h"
 #include "nsIFileURL.h"
@@ -108,6 +110,86 @@ static void PrintImageDecoders()
   }
 }
 #endif
+
+
+
+
+
+
+
+class nsProgressNotificationProxy : public nsIProgressEventSink
+                                  , public nsIInterfaceRequestor
+{
+  public:
+    nsProgressNotificationProxy(nsIChannel* channel,
+                                imgIRequest* proxy)
+        : mChannel(channel), mImageRequest(proxy) {
+      channel->GetNotificationCallbacks(getter_AddRefs(mOriginalCallbacks));
+    }
+
+    NS_DECL_ISUPPORTS
+    NS_DECL_NSIPROGRESSEVENTSINK
+    NS_DECL_NSIINTERFACEREQUESTOR
+  private:
+    ~nsProgressNotificationProxy() {}
+
+    nsCOMPtr<nsIChannel> mChannel;
+    nsCOMPtr<nsIInterfaceRequestor> mOriginalCallbacks;
+    nsCOMPtr<nsIRequest> mImageRequest;
+};
+
+NS_IMPL_ISUPPORTS2(nsProgressNotificationProxy,
+                     nsIProgressEventSink,
+                     nsIInterfaceRequestor)
+
+NS_IMETHODIMP
+nsProgressNotificationProxy::OnProgress(nsIRequest* request,
+                                        nsISupports* ctxt,
+                                        PRUint64 progress,
+                                        PRUint64 progressMax) {
+  nsCOMPtr<nsILoadGroup> loadGroup;
+  mChannel->GetLoadGroup(getter_AddRefs(loadGroup));
+
+  nsCOMPtr<nsIProgressEventSink> target;
+  NS_QueryNotificationCallbacks(mOriginalCallbacks,
+                                loadGroup,
+                                NS_GET_IID(nsIProgressEventSink),
+                                getter_AddRefs(target));
+  if (!target)
+    return NS_OK;
+  return target->OnProgress(mImageRequest, ctxt, progress, progressMax);
+}
+
+NS_IMETHODIMP
+nsProgressNotificationProxy::OnStatus(nsIRequest* request,
+                                      nsISupports* ctxt,
+                                      nsresult status,
+                                      const PRUnichar* statusArg) {
+  nsCOMPtr<nsILoadGroup> loadGroup;
+  mChannel->GetLoadGroup(getter_AddRefs(loadGroup));
+
+  nsCOMPtr<nsIProgressEventSink> target;
+  NS_QueryNotificationCallbacks(mOriginalCallbacks,
+                                loadGroup,
+                                NS_GET_IID(nsIProgressEventSink),
+                                getter_AddRefs(target));
+  if (!target)
+    return NS_OK;
+  return target->OnStatus(mImageRequest, ctxt, status, statusArg);
+}
+
+NS_IMETHODIMP
+nsProgressNotificationProxy::GetInterface(const nsIID& iid,
+                                          void** result) {
+  if (iid.Equals(NS_GET_IID(nsIProgressEventSink))) {
+    *result = static_cast<nsIProgressEventSink*>(this);
+    AddRef();
+    return NS_OK;
+  }
+  if (mOriginalCallbacks)
+    return mOriginalCallbacks->GetInterface(iid, result);
+  return NS_NOINTERFACE;
+}
 
 static PRBool NewRequestAndEntry(nsIURI *uri, imgRequest **request, imgCacheEntry **entry)
 {
@@ -923,6 +1005,13 @@ PRBool imgLoader::ValidateRequestWithNewChannel(imgRequest *request,
       return PR_FALSE;
     }
 
+    
+    nsCOMPtr<nsIInterfaceRequestor> requestor(
+        new nsProgressNotificationProxy(newChannel, req));
+    if (!requestor)
+      return PR_FALSE;
+    newChannel->SetNotificationCallbacks(requestor);
+
     imgCacheValidator *hvc = new imgCacheValidator(request, aCX);
     if (!hvc) {
       return PR_FALSE;
@@ -1295,10 +1384,12 @@ NS_IMETHODIMP imgLoader::LoadImage(nsIURI *aURI,
   }
 
   
+  
+  nsCOMPtr<nsIChannel> newChannel;
+  
   if (!request) {
     LOG_SCOPE(gImgLog, "imgLoader::LoadImage |cache miss|");
 
-    nsCOMPtr<nsIChannel> newChannel;
     rv = NewImageChannel(getter_AddRefs(newChannel),
                          aURI,
                          aInitialDocumentURI,
@@ -1368,6 +1459,16 @@ NS_IMETHODIMP imgLoader::LoadImage(nsIURI *aURI,
     rv = CreateNewProxyForRequest(request, aLoadGroup, aObserver,
                                   requestFlags, aRequest, _retval);
     imgRequestProxy *proxy = static_cast<imgRequestProxy *>(*_retval);
+
+    
+    
+    if (newChannel) {
+      nsCOMPtr<nsIInterfaceRequestor> requestor(
+          new nsProgressNotificationProxy(newChannel, proxy));
+      if (!requestor)
+        return NS_ERROR_OUT_OF_MEMORY;
+      newChannel->SetNotificationCallbacks(requestor);
+    }
 
     
     
