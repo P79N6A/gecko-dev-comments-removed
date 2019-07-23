@@ -25,7 +25,7 @@ TestRunner._checkForHangs = function() {
       frameWindow.SimpleTest.finish();
     }
     TestRunner._testCheckPoint = TestRunner._currentTest;
-    TestRunner.deferred = callLater(60, TestRunner._checkForHangs); 
+    TestRunner.deferred = callLater(120, TestRunner._checkForHangs); 
   }
 }
 
