@@ -2402,12 +2402,6 @@ class RegExpNativeCompiler {
         
 #ifdef NJ_VERBOSE
         debug_only_stmt(
-        fragment->lirbuf->names = new (&gc) LirNameMap(&gc, fragmento->labels);
-        )
-#endif
-        
-#ifdef NJ_VERBOSE
-        debug_only_stmt(
             if (js_LogController.lcbits & LC_TMRegexp) {
                 lir = new (&gc) VerboseWriter(&gc, lir, lirbuf->names,
                                               &js_LogController);
