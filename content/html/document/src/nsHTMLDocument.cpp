@@ -1070,6 +1070,21 @@ nsHTMLDocument::DocumentWriteTerminationFunc(nsISupports *aRef)
 }
 
 void
+nsHTMLDocument::BeginLoad()
+{
+  if (IsEditingOn()) {
+    
+    
+    
+    
+
+    TurnEditingOff();
+    EditingStateChanged();
+  }
+  nsDocument::BeginLoad();
+}
+
+void
 nsHTMLDocument::EndLoad()
 {
   if (mParser && mWriteState != eDocumentClosed) {
@@ -1983,16 +1998,6 @@ nsHTMLDocument::OpenCommon(const nsACString& aContentType, PRBool aReplace)
   Reset(channel, group);
   if (baseURI) {
     mDocumentBaseURI = baseURI;
-  }
-
-  if (IsEditingOn()) {
-    
-    
-    
-    
-
-    TurnEditingOff();
-    EditingStateChanged();
   }
 
   
