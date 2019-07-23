@@ -959,8 +959,10 @@ gfxFontUtils::RenameFont(const nsAString& aName, const PRUint8 *aFontData,
     if (dataLength + nameTableSize > PR_UINT32_MAX)
         return NS_ERROR_FAILURE;
         
-    PRUint32 adjFontDataSize = aFontDataLength + nameTableSize;
     
+    PRUint32 paddedFontDataSize = (aFontDataLength + 3) & ~3;
+    PRUint32 adjFontDataSize = paddedFontDataSize + nameTableSize;
+
     
     if (!aNewFont->AppendElements(adjFontDataSize))
         return NS_ERROR_OUT_OF_MEMORY;
@@ -968,13 +970,17 @@ gfxFontUtils::RenameFont(const nsAString& aName, const PRUint8 *aFontData,
     
     PRUint8 *newFontData = reinterpret_cast<PRUint8*>(aNewFont->Elements());
     
+    
+    memset(newFontData + aFontDataLength, 0, paddedFontDataSize - aFontDataLength);
+
+    
     memcpy(newFontData, aFontData, aFontDataLength);
     
     
     memset(newFontData + adjFontDataSize - 4, 0, 4);
     
     NameHeader *nameHeader = reinterpret_cast<NameHeader*>(newFontData +
-                                                            aFontDataLength);
+                                                            paddedFontDataSize);
     
     
     nameHeader->format = 0;
@@ -1036,7 +1042,7 @@ gfxFontUtils::RenameFont(const nsAString& aName, const PRUint8 *aFontData,
         checkSum = checkSum + *nameData++;
     
     
-    dirEntry->offset = aFontDataLength;
+    dirEntry->offset = paddedFontDataSize;
     dirEntry->length = nameTableSize;
     dirEntry->checkSum = checkSum;
     
