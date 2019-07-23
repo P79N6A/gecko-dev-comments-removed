@@ -863,8 +863,7 @@ nsXBLBinding::InstallEventHandlers()
         
         
         nsIDOMEventGroup* eventGroup = nsnull;
-        if ((isChromeDoc || mBoundElement->IsInNativeAnonymousSubtree()) &&
-            (curr->GetType() & (NS_HANDLER_TYPE_XBL_COMMAND | NS_HANDLER_TYPE_SYSTEM))) {
+        if (curr->GetType() & (NS_HANDLER_TYPE_XBL_COMMAND | NS_HANDLER_TYPE_SYSTEM)) {
           if (!systemEventGroup)
             manager->GetSystemEventGroupLM(getter_AddRefs(systemEventGroup));
           eventGroup = systemEventGroup;
@@ -902,8 +901,7 @@ nsXBLBinding::InstallEventHandlers()
         
         
         nsIDOMEventGroup* eventGroup = nsnull;
-        if ((isChromeDoc || mBoundElement->IsInNativeAnonymousSubtree()) &&
-            (handler->GetType() & (NS_HANDLER_TYPE_XBL_COMMAND | NS_HANDLER_TYPE_SYSTEM))) {
+        if (handler->GetType() & (NS_HANDLER_TYPE_XBL_COMMAND | NS_HANDLER_TYPE_SYSTEM)) {
           if (!systemEventGroup)
             manager->GetSystemEventGroupLM(getter_AddRefs(systemEventGroup));
           eventGroup = systemEventGroup;
@@ -1001,9 +999,7 @@ nsXBLBinding::UnhookEventHandlers()
     if (!manager) {
       return;
     }
-
-    PRBool isChromeDoc =
-      nsContentUtils::IsChromeDoc(mBoundElement->GetOwnerDoc());
+                                      
     nsCOMPtr<nsIDOMEventGroup> systemEventGroup;
     nsXBLPrototypeHandler* curr;
     for (curr = handlerChain; curr; curr = curr->GetNextHandler()) {
@@ -1032,8 +1028,7 @@ nsXBLBinding::UnhookEventHandlers()
       
       
       nsIDOMEventGroup* eventGroup = nsnull;
-      if ((isChromeDoc || mBoundElement->IsInNativeAnonymousSubtree()) &&
-          (curr->GetType() & (NS_HANDLER_TYPE_XBL_COMMAND | NS_HANDLER_TYPE_SYSTEM))) {
+      if (curr->GetType() & (NS_HANDLER_TYPE_XBL_COMMAND | NS_HANDLER_TYPE_SYSTEM)) {
         if (!systemEventGroup)
           manager->GetSystemEventGroupLM(getter_AddRefs(systemEventGroup));
         eventGroup = systemEventGroup;
@@ -1061,8 +1056,7 @@ nsXBLBinding::UnhookEventHandlers()
       
       
       nsIDOMEventGroup* eventGroup = nsnull;
-      if ((isChromeDoc || mBoundElement->IsInNativeAnonymousSubtree()) &&
-          (handler->GetType() & (NS_HANDLER_TYPE_XBL_COMMAND | NS_HANDLER_TYPE_SYSTEM))) {
+      if (handler->GetType() & (NS_HANDLER_TYPE_XBL_COMMAND | NS_HANDLER_TYPE_SYSTEM)) {
         if (!systemEventGroup)
           manager->GetSystemEventGroupLM(getter_AddRefs(systemEventGroup));
         eventGroup = systemEventGroup;
