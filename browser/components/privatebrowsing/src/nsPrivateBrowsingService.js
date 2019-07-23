@@ -369,7 +369,12 @@ PrivateBrowsingService.prototype = {
               getService(Ci.nsICacheService)) {
       
       
-      cs.evictEntries(Ci.nsICache.STORE_ANYWHERE);
+      try {
+        cs.evictEntries(Ci.nsICache.STORE_ANYWHERE);
+      } catch (ex) {
+        Cu.reportError("Exception thrown while clearing the cache: " +
+          ex.toString());
+      }
     }
 
     
