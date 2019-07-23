@@ -669,7 +669,7 @@ public:
 
 
 
-  NS_IMETHOD IsReflowLocked(PRBool* aIsLocked) = 0;  
+  virtual NS_HIDDEN_(PRBool) IsReflowLocked() const = 0;
 
   
 

@@ -400,9 +400,7 @@ nsSVGForeignObjectFrame::NotifySVGChanged(PRUint32 aFlags)
     
     
     
-    PRBool reflowing;
-    PresContext()->PresShell()->IsReflowLocked(&reflowing);
-    if (!reflowing) {
+    if (!PresContext()->PresShell()->IsReflowLocked()) {
       UpdateGraphic(); 
       RequestReflow(nsIPresShell::eResize);
     }

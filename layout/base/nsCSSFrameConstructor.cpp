@@ -10739,9 +10739,7 @@ nsCSSFrameConstructor::ReframeContainingBlock(nsIFrame* aFrame)
 
   
   
-  PRBool isReflowing;
-  mPresShell->IsReflowLocked(&isReflowing);
-  if(isReflowing) {
+  if (mPresShell->IsReflowLocked()) {
     
     
     NS_ERROR("Atemptted to nsCSSFrameConstructor::ReframeContainingBlock during a Reflow!!!");
