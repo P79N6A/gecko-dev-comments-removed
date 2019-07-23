@@ -315,6 +315,13 @@ class nsParser : public nsIParser,
 
 
 
+
+    NS_IMETHOD GetStreamListener(nsIStreamListener** aListener);
+
+    
+
+
+
     PRBool DetectMetaTag(const char* aBytes, 
                          PRInt32 aLen, 
                          nsCString& oCharset, 

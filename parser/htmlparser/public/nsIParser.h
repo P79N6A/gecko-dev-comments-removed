@@ -194,6 +194,13 @@ class nsIParser : public nsISupports {
 
 
     NS_IMETHOD GetDTD(nsIDTD** aDTD) = 0;
+    
+    
+
+
+
+
+    NS_IMETHOD GetStreamListener(nsIStreamListener** aListener) = 0;
 
     
 
