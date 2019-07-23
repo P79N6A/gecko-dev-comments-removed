@@ -83,8 +83,6 @@
 #include "nsDownloadScanner.h"
 #endif
 
-static PRBool gStoppingDownloads = PR_FALSE;
-
 #define DOWNLOAD_MANAGER_BUNDLE "chrome://mozapps/locale/downloads/downloads.properties"
 #define DOWNLOAD_MANAGER_ALERT_ICON "chrome://mozapps/skin/downloads/downloadIcon.png"
 #define PREF_BDM_SHOWALERTONCOMPLETE "browser.download.manager.showAlertOnComplete"
@@ -131,6 +129,29 @@ nsDownloadManager::~nsDownloadManager()
   delete mScanner;
 #endif
   gDownloadManagerService = nsnull;
+}
+
+nsresult
+nsDownloadManager::PauseAllDownloads(PRBool aSetResume)
+{
+  nsresult retVal = NS_OK;
+  for (PRInt32 i = mCurrentDownloads.Count() - 1; i >= 0; --i) {
+    nsRefPtr<nsDownload> dl = mCurrentDownloads[i];
+
+    
+    if (!dl->IsPaused()) {
+      
+      dl->mAutoResume = aSetResume ? nsDownload::AUTO_RESUME :
+                                     nsDownload::DONT_RESUME;
+
+      
+      nsresult rv = dl->Pause();
+      if (NS_FAILED(rv))
+        retVal = rv;
+    }
+  }
+
+  return retVal;
 }
 
 nsresult
@@ -1562,10 +1583,11 @@ nsDownloadManager::Observe(nsISupports *aSubject,
     if (dl2)
       return CancelDownload(id);
   } else if (strcmp(aTopic, "quit-application") == 0) {
-    gStoppingDownloads = PR_TRUE;
+    
+    (void)PauseAllDownloads(PR_TRUE);
 
-    if (currDownloadCount)
-      (void)RemoveAllDownloads();
+    
+    (void)RemoveAllDownloads();
 
     
     

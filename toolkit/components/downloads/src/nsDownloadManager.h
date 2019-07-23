@@ -161,6 +161,15 @@ protected:
 
 
 
+
+  nsresult PauseAllDownloads(PRBool aSetResume);
+
+  
+
+
+
+
+
   nsresult RemoveAllDownloads();
 
   void ConfirmCancelDownloads(PRInt32 aCount,
