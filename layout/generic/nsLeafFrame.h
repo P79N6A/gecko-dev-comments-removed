@@ -77,6 +77,14 @@ public:
                     nsHTMLReflowMetrics& aDesiredSize,
                     const nsHTMLReflowState& aReflowState,
                     nsReflowStatus&      aStatus);
+  
+  
+
+
+  NS_IMETHOD DoReflow(nsPresContext*      aPresContext,
+                      nsHTMLReflowMetrics& aDesiredSize,
+                      const nsHTMLReflowState& aReflowState,
+                      nsReflowStatus&      aStatus);
 
   virtual PRBool IsFrameOfType(PRUint32 aFlags) const
   {
