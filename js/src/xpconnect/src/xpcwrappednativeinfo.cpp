@@ -165,14 +165,6 @@ XPCNativeMember::Resolve(XPCCallContext& ccx, XPCNativeInterface* iface)
 
     
 
-    
-    
-    
-
-    JSContext* cx = ccx.GetSafeJSContext();
-    if(!cx)
-        return JS_FALSE;
-
     intN argc;
     intN flags;
     JSNative callback;
@@ -201,10 +193,31 @@ XPCNativeMember::Resolve(XPCCallContext& ccx, XPCNativeInterface* iface)
         callback = XPC_WN_GetterSetter;
     }
 
-    JSAutoRequest ar(cx);
+    
+    
+    
+
+    JSContext* cx = ccx.GetSafeJSContext();
+    if(!cx)
+        return JS_FALSE;
+
+    const char *memberName = iface->GetMemberName(ccx, this);
+
+    jsrefcount suspendDepth = 0;
+    if(cx != ccx) {
+        
+        suspendDepth = JS_SuspendRequest(ccx);
+        JS_BeginRequest(cx);
+    }
 
     JSFunction *fun = JS_NewFunction(cx, callback, argc, flags, nsnull,
-                                     iface->GetMemberName(ccx, this));
+                                     memberName);
+
+    if(suspendDepth) {
+        JS_EndRequest(cx);
+        JS_ResumeRequest(ccx, suspendDepth);
+    }
+
     if(!fun)
         return JS_FALSE;
 
