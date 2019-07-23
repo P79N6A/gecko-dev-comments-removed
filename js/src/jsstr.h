@@ -354,6 +354,9 @@ typedef enum JSCharType {
 extern JSBool
 js_InitRuntimeStringState(JSContext *cx);
 
+extern JSBool
+js_InitDeflatedStringCache(JSRuntime *rt);
+
 
 
 
