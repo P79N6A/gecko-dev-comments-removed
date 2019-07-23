@@ -127,9 +127,9 @@ public:
 
 
 
-  nsresult FireDelayedToolkitEvent(PRUint32 aEvent, nsIDOMNode *aDOMNode,
-                                   nsAccEvent::EEventRule aAllowDupes = nsAccEvent::eRemoveDupes,
-                                   PRBool aIsAsynch = PR_FALSE);
+  nsresult FireDelayedAccessibleEvent(PRUint32 aEventType, nsIDOMNode *aDOMNode,
+                                      nsAccEvent::EEventRule aAllowDupes = nsAccEvent::eRemoveDupes,
+                                      PRBool aIsAsynch = PR_FALSE);
 
   
 

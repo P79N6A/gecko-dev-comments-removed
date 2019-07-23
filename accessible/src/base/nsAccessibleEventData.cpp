@@ -311,88 +311,88 @@ void
 nsAccEvent::ApplyEventRules(nsCOMArray<nsIAccessibleEvent> &aEventsToFire)
 {
   PRUint32 numQueuedEvents = aEventsToFire.Count();
-  for (PRInt32 tail = numQueuedEvents - 1; tail >= 0; tail --) {
-    nsRefPtr<nsAccEvent> tailEvent = GetAccEventPtr(aEventsToFire[tail]);
-    switch(tailEvent->mEventRule) {
-      case nsAccEvent::eCoalesceFromSameSubtree:
-      {
-        for (PRInt32 index = 0; index < tail; index ++) {
-          nsRefPtr<nsAccEvent> thisEvent = GetAccEventPtr(aEventsToFire[index]);
-          if (thisEvent->mEventType != tailEvent->mEventType)
-            continue; 
+  PRInt32 tail = numQueuedEvents - 1;
 
-          if (thisEvent->mEventRule == nsAccEvent::eAllowDupes ||
-              thisEvent->mEventRule == nsAccEvent::eDoNotEmit)
-            continue; 
+  nsRefPtr<nsAccEvent> tailEvent = GetAccEventPtr(aEventsToFire[tail]);
+  switch(tailEvent->mEventRule) {
+    case nsAccEvent::eCoalesceFromSameSubtree:
+    {
+      for (PRInt32 index = 0; index < tail; index ++) {
+        nsRefPtr<nsAccEvent> thisEvent = GetAccEventPtr(aEventsToFire[index]);
+        if (thisEvent->mEventType != tailEvent->mEventType)
+          continue; 
 
-          if (thisEvent->mDOMNode == tailEvent->mDOMNode) {
-            if (thisEvent->mEventType == nsIAccessibleEvent::EVENT_REORDER) {
-              CoalesceReorderEventsFromSameSource(thisEvent, tailEvent);
-              continue;
-            }
+        if (thisEvent->mEventRule == nsAccEvent::eAllowDupes ||
+            thisEvent->mEventRule == nsAccEvent::eDoNotEmit)
+          continue; 
 
-            
-            thisEvent->mEventRule = nsAccEvent::eDoNotEmit;
+        if (thisEvent->mDOMNode == tailEvent->mDOMNode) {
+          if (thisEvent->mEventType == nsIAccessibleEvent::EVENT_REORDER) {
+            CoalesceReorderEventsFromSameSource(thisEvent, tailEvent);
             continue;
           }
-          if (nsCoreUtils::IsAncestorOf(tailEvent->mDOMNode,
-                                        thisEvent->mDOMNode)) {
-            
-            if (thisEvent->mEventType == nsIAccessibleEvent::EVENT_REORDER) {
-              CoalesceReorderEventsFromSameTree(tailEvent, thisEvent);
-              continue;
-            }
 
-            
-            
-            thisEvent->mEventRule = nsAccEvent::eDoNotEmit;
-            ApplyToSiblings(aEventsToFire, 0, index, thisEvent->mEventType,
-                            thisEvent->mDOMNode, nsAccEvent::eDoNotEmit);
+          
+          thisEvent->mEventRule = nsAccEvent::eDoNotEmit;
+          continue;
+        }
+        if (nsCoreUtils::IsAncestorOf(tailEvent->mDOMNode,
+                                      thisEvent->mDOMNode)) {
+          
+          if (thisEvent->mEventType == nsIAccessibleEvent::EVENT_REORDER) {
+            CoalesceReorderEventsFromSameTree(tailEvent, thisEvent);
             continue;
           }
-          if (nsCoreUtils::IsAncestorOf(thisEvent->mDOMNode,
-                                        tailEvent->mDOMNode)) {
-            
-            if (thisEvent->mEventType == nsIAccessibleEvent::EVENT_REORDER) {
-              CoalesceReorderEventsFromSameTree(thisEvent, tailEvent);
-              continue;
-            }
 
-            
-            
-            tailEvent->mEventRule = nsAccEvent::eDoNotEmit;
-            ApplyToSiblings(aEventsToFire, 0, tail, tailEvent->mEventType,
-                            tailEvent->mDOMNode, nsAccEvent::eDoNotEmit);
-            break;
+          
+          
+          thisEvent->mEventRule = nsAccEvent::eDoNotEmit;
+          ApplyToSiblings(aEventsToFire, 0, index, thisEvent->mEventType,
+                          thisEvent->mDOMNode, nsAccEvent::eDoNotEmit);
+          continue;
+        }
+        if (nsCoreUtils::IsAncestorOf(thisEvent->mDOMNode,
+                                      tailEvent->mDOMNode)) {
+          
+          if (thisEvent->mEventType == nsIAccessibleEvent::EVENT_REORDER) {
+            CoalesceReorderEventsFromSameTree(thisEvent, tailEvent);
+            continue;
           }
-        } 
 
-        if (tailEvent->mEventRule != nsAccEvent::eDoNotEmit) {
           
           
-          
-          
+          tailEvent->mEventRule = nsAccEvent::eDoNotEmit;
           ApplyToSiblings(aEventsToFire, 0, tail, tailEvent->mEventType,
-                          tailEvent->mDOMNode, nsAccEvent::eAllowDupes);
+                          tailEvent->mDOMNode, nsAccEvent::eDoNotEmit);
+          break;
         }
-      } break; 
+      } 
 
-      case nsAccEvent::eRemoveDupes:
-      {
+      if (tailEvent->mEventRule != nsAccEvent::eDoNotEmit) {
         
-        for (PRInt32 index = 0; index < tail; index ++) {
-          nsRefPtr<nsAccEvent> accEvent = GetAccEventPtr(aEventsToFire[index]);
-          if (accEvent->mEventType == tailEvent->mEventType &&
-              accEvent->mEventRule == tailEvent->mEventRule &&
-              accEvent->mDOMNode == tailEvent->mDOMNode) {
-            accEvent->mEventRule = nsAccEvent::eDoNotEmit;
-          }
-        }
-      } break; 
+        
+        
+        
+        ApplyToSiblings(aEventsToFire, 0, tail, tailEvent->mEventType,
+                        tailEvent->mDOMNode, nsAccEvent::eAllowDupes);
+      }
+    } break; 
 
-      default:
-        break; 
-    } 
+    case nsAccEvent::eRemoveDupes:
+    {
+      
+      for (PRInt32 index = 0; index < tail; index ++) {
+        nsRefPtr<nsAccEvent> accEvent = GetAccEventPtr(aEventsToFire[index]);
+        if (accEvent->mEventType == tailEvent->mEventType &&
+            accEvent->mEventRule == tailEvent->mEventRule &&
+            accEvent->mDOMNode == tailEvent->mDOMNode) {
+          accEvent->mEventRule = nsAccEvent::eDoNotEmit;
+        }
+      }
+    } break; 
+
+    default:
+      break; 
   } 
 }
 
