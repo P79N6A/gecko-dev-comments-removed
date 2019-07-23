@@ -925,7 +925,7 @@ nsExternalHelperAppService::GetProtocolHandlerInfoFromOS(const nsACString &aSche
 
 NS_IMETHODIMP
 nsExternalHelperAppService::SetProtocolHandlerDefaults(nsIHandlerInfo *aHandlerInfo,
-                                                       const PRBool aOSHandlerExists)
+                                                       PRBool aOSHandlerExists)
 {
   
   
