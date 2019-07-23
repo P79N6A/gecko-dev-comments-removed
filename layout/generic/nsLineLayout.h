@@ -77,14 +77,6 @@ public:
     mLineNumber = aLineNumber;
   }
 
-  PRInt32 GetColumn() {
-    return mColumn;
-  }
-
-  void SetColumn(PRInt32 aNewColumn) {
-    mColumn = aNewColumn;
-  }
-  
   PRInt32 GetLineNumber() const {
     return mLineNumber;
   }
@@ -144,9 +136,6 @@ public:
 
   
 protected:
-#define LL_ENDSINWHITESPACE            0x00000001
-#define LL_UNDERSTANDSNWHITESPACE      0x00000002
-#define LL_INWORD                      0x00000004
 #define LL_FIRSTLETTERSTYLEOK          0x00000008
 #define LL_ISTOPOFPAGE                 0x00000010
 #define LL_UPDATEDBAND                 0x00000020
@@ -154,14 +143,8 @@ protected:
 #define LL_LASTFLOATWASLETTERFRAME     0x00000080
 #define LL_CANPLACEFLOAT               0x00000100
 #define LL_LINEENDSINBR                0x00000200
-
-
-
-
-
-#define LL_LINEENDSINSOFTBR            0x00000400
+#define LL_HASTRAILINGTEXTFRAME        0x00000400
 #define LL_NEEDBACKUP                  0x00000800
-#define LL_LASTTEXTFRAME_WRAPPINGENABLED 0x00001000
 #define LL_INFIRSTLINE                 0x00002000
 #define LL_GOTLINEBOX                  0x00004000
 #define LL_LASTFLAG                    LL_GOTLINEBOX
@@ -191,19 +174,6 @@ protected:
 public:
 
   
-  
-
-  void SetEndsInWhiteSpace(PRBool aState) {
-    SetFlag(LL_ENDSINWHITESPACE, aState);
-  }
-
-  PRBool GetEndsInWhiteSpace() const {
-    return GetFlag(LL_ENDSINWHITESPACE);
-  }
-
-  void SetUnderstandsWhiteSpace(PRBool aSetting) {
-    SetFlag(LL_UNDERSTANDSNWHITESPACE, aSetting);
-  }
 
   void SetTextJustificationWeights(PRInt32 aNumSpaces, PRInt32 aNumLetters) {
     mTextJustificationNumSpaces = aNumSpaces;
@@ -224,26 +194,6 @@ public:
     SetFlag(LL_LINEENDSINBR, aOn); 
   }
 
-  PRBool GetLineEndsInSoftBR() const 
-  { 
-    return GetFlag(LL_LINEENDSINSOFTBR); 
-  }
-
-  void SetLineEndsInSoftBR(PRBool aOn) 
-  { 
-    SetFlag(LL_LINEENDSINSOFTBR, aOn); 
-  }
-
-  PRBool InStrictMode() const
-  {
-    return mCompatMode != eCompatibility_NavQuirks;
-  }
-
-  nsCompatibility GetCompatMode() const
-  {
-    return mCompatMode;
-  }
-
   
   
   
@@ -261,30 +211,11 @@ public:
 
 
 
-  PRBool InWord() {
-    return GetFlag(LL_INWORD);
+  PRBool HasTrailingTextFrame() const {
+    return GetFlag(LL_HASTRAILINGTEXTFRAME);
   }
-  void SetInWord(PRBool aInWord) {
-    SetFlag(LL_INWORD, aInWord);
-  }
-  
-  
-
-
-
-
-
-
-
-
-  nsIFrame* GetTrailingTextFrame(PRBool* aWrappingEnabled) const {
-    *aWrappingEnabled = GetFlag(LL_LASTTEXTFRAME_WRAPPINGENABLED);
-    return mTrailingTextFrame;
-  }
-  void SetTrailingTextFrame(nsIFrame* aFrame, PRBool aWrappingEnabled)
-  { 
-    mTrailingTextFrame = aFrame;
-    SetFlag(LL_LASTTEXTFRAME_WRAPPINGENABLED, aWrappingEnabled);
+  void SetHasTrailingTextFrame(PRBool aHasTrailingTextFrame) { 
+    SetFlag(LL_HASTRAILINGTEXTFRAME, aHasTrailingTextFrame);
   }
 
   
@@ -295,10 +226,6 @@ public:
 
   void SetFirstLetterStyleOK(PRBool aSetting) {
     SetFlag(LL_FIRSTLETTERSTYLEOK, aSetting);
-  }
-
-  void SetFirstLetterFrame(nsIFrame* aFrame) {
-    mFirstLetterFrame = aFrame;
   }
 
   PRBool GetInFirstLine() const {
@@ -422,13 +349,10 @@ protected:
   PRInt32     mLastOptionalBreakContentOffset;
   PRInt32     mForceBreakContentOffset;
   
-  nsIFrame* mTrailingTextFrame;
-
   
   friend class nsInlineFrame;
 
   nsBlockReflowState* mBlockRS;
-  nsCompatibility mCompatMode;
   nscoord mMinLineHeight;
   PRUint8 mTextAlign;
 
@@ -440,9 +364,7 @@ protected:
 
   
   
-  nsIFrame* mFirstLetterFrame;
   PRInt32 mLineNumber;
-  PRInt32 mColumn;
   PRInt32 mTextJustificationNumSpaces;
   PRInt32 mTextJustificationNumLetters;
 

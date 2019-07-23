@@ -3595,7 +3595,6 @@ static void DrawSelectionDecorations(gfxContext* aContext, SelectionType aType,
     gfxFloat aAscent, const gfxFont::Metrics& aFontMetrics, PRBool aIsRTL)
 {
   gfxSize size(aWidth, aFontMetrics.underlineSize);
-  gfxFloat offset = aFontMetrics.underlineOffset;
 
   switch (aType) {
     case nsISelectionController::SELECTION_SPELLCHECK: {
@@ -5135,16 +5134,8 @@ nsTextFrame::Reflow(nsPresContext*           aPresContext,
     needTightBoundingBox = PR_TRUE;
   }
 #endif
-  PRBool suppressInitialBreak = PR_FALSE;
-  if (!lineLayout.LineIsBreakable()) {
-    suppressInitialBreak = PR_TRUE;
-  } else {
-    PRBool trailingTextFrameCanWrap;
-    nsIFrame* lastTextFrame = lineLayout.GetTrailingTextFrame(&trailingTextFrameCanWrap);
-    if (!lastTextFrame) {
-      suppressInitialBreak = PR_TRUE;
-    }
-  }
+  PRBool suppressInitialBreak = !lineLayout.LineIsBreakable() ||
+    !lineLayout.HasTrailingTextFrame();
 
   PRInt32 limitLength = length;
   PRInt32 forceBreak = lineLayout.GetForcedBreakPosition(mContent);
@@ -5291,15 +5282,11 @@ nsTextFrame::Reflow(nsPresContext*           aPresContext,
   
   
 
-  lineLayout.SetUnderstandsWhiteSpace(PR_TRUE);
   if (charsFit > 0) {
-    PRBool endsInWhitespace = IsTrimmableSpace(frag, offset + charsFit - 1);
-    lineLayout.SetInWord(!endsInWhitespace);
-    lineLayout.SetEndsInWhiteSpace(endsInWhitespace);
-    PRBool wrapping = textStyle->WhiteSpaceCanWrap();
-    lineLayout.SetTrailingTextFrame(this, wrapping);
+    lineLayout.SetHasTrailingTextFrame(PR_TRUE);
     if (charsFit == length) {
-      if (endsInWhitespace && wrapping) {
+      if (textStyle->WhiteSpaceCanWrap() &&
+          IsTrimmableSpace(frag, offset + charsFit - 1)) {
         
         lineLayout.NotifyOptionalBreakPosition(mContent, offset + length,
             textMetrics.mAdvanceWidth <= aReflowState.availableWidth);
@@ -5313,8 +5300,7 @@ nsTextFrame::Reflow(nsPresContext*           aPresContext,
     
     
     
-    lineLayout.SetEndsInWhiteSpace(PR_FALSE);
-    lineLayout.SetTrailingTextFrame(nsnull, PR_FALSE);
+    lineLayout.SetHasTrailingTextFrame(PR_FALSE);
   }
   if (completedFirstLetter) {
     lineLayout.SetFirstLetterStyleOK(PR_FALSE);

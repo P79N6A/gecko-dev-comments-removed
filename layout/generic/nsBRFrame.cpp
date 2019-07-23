@@ -128,7 +128,7 @@ BRFrame::Reflow(nsPresContext* aPresContext,
     
     
     if ( ll->CanPlaceFloatNow() ||
-         ll->GetCompatMode() == eCompatibility_FullStandards ) {
+         aPresContext->CompatibilityMode() == eCompatibility_FullStandards ) {
       
       
       
