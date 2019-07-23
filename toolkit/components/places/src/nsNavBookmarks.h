@@ -134,7 +134,18 @@ private:
   nsresult AdjustIndices(PRInt64 aFolder,
                          PRInt32 aStartIndex, PRInt32 aEndIndex,
                          PRInt32 aDelta);
-  PRInt32 FolderCount(PRInt64 aFolder);
+
+  
+
+
+
+
+
+
+
+
+  nsresult FolderCount(PRInt64 aFolderId, PRInt32 *aFolderCount);
+
   nsresult GetFolderType(PRInt64 aFolder, nsACString &aType);
 
   nsresult GetLastChildId(PRInt64 aFolder, PRInt64* aItemId);
