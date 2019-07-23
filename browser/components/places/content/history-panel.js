@@ -166,6 +166,6 @@ function searchHistory(aInput)
   }
 
   gHistoryTree.applyFilter(aInput, false , 
-                           0 , null); 
+                           null , null); 
 }
 
