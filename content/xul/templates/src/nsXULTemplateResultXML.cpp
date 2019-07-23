@@ -120,6 +120,8 @@ nsXULTemplateResultXML::GetType(nsAString& aType)
 NS_IMETHODIMP
 nsXULTemplateResultXML::GetBindingFor(nsIAtom* aVar, nsAString& aValue)
 {
+    NS_ENSURE_ARG_POINTER(aVar);
+
     
     nsXMLBinding* binding;
 
@@ -153,6 +155,8 @@ nsXULTemplateResultXML::GetBindingFor(nsIAtom* aVar, nsAString& aValue)
 NS_IMETHODIMP
 nsXULTemplateResultXML::GetBindingObjectFor(nsIAtom* aVar, nsISupports** aValue)
 {
+    NS_ENSURE_ARG_POINTER(aVar);
+
     nsXMLBinding* binding;
     nsCOMPtr<nsIDOMNode> node;
 

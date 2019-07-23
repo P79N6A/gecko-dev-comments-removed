@@ -331,8 +331,9 @@ nsXULTemplateQueryProcessorXML::GenerateResults(nsISupports* aDatasource,
         return NS_ERROR_INVALID_ARG;
 
     nsCOMPtr<nsIDOMNode> context;
-    aRef->GetBindingObjectFor(xmlquery->GetMemberVariable(),
-                              getter_AddRefs(context));
+    if (aRef)
+      aRef->GetBindingObjectFor(xmlquery->GetMemberVariable(),
+                                getter_AddRefs(context));
     if (!context)
         context = mRoot;
 
@@ -422,16 +423,20 @@ nsXULTemplateQueryProcessorXML::CompareResults(nsIXULTemplateResult* aLeft,
                                                PRInt32* aResult)
 {
     *aResult = 0;
+    if (!aVar)
+      return NS_OK;
 
     
     
     
 
     nsAutoString leftVal;
-    aLeft->GetBindingFor(aVar, leftVal);
+    if (aLeft)
+      aLeft->GetBindingFor(aVar, leftVal);
 
     nsAutoString rightVal;
-    aRight->GetBindingFor(aVar, rightVal);
+    if (aRight)
+      aRight->GetBindingFor(aVar, rightVal);
 
     
     *aResult = ::Compare(leftVal, rightVal,
