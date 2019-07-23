@@ -396,6 +396,15 @@ protected:
   nsCOMPtr<mozIStorageStatement> mDBUrlToUrlResult; 
   nsCOMPtr<mozIStorageStatement> mDBBookmarkToUrlResult; 
 
+  
+
+
+
+
+
+
+
+
   nsresult RecalculateFrecencies(PRInt32 aCount, PRBool aRecalcOld);
   nsresult RecalculateFrecenciesInternal(mozIStorageStatement *aStatement, PRInt64 aBindParameter, PRInt32 aCount);
 
@@ -410,8 +419,36 @@ protected:
   nsCOMPtr<mozIStorageStatement> mDBVisitCountForFrecency;
   nsCOMPtr<mozIStorageStatement> mDBTrueVisitCount;
 
+  
+
+
+
+
+
+
+
   nsresult InitDBFile(PRBool aForceInit);
+
+  
+
+
   nsresult BackupDBFile();
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   nsresult InitDB(PRInt16 *aMadeChanges);
   nsresult InitStatements();
   nsresult ForceMigrateBookmarksDB(mozIStorageConnection *aDBConn);
@@ -446,6 +483,14 @@ protected:
   PRBool FindLastVisit(nsIURI* aURI, PRInt64* aVisitID,
                        PRInt64* aSessionID);
   PRBool IsURIStringVisited(const nsACString& url);
+
+  
+
+
+
+
+
+
   nsresult LoadPrefs(PRBool aInitializing);
 
   
@@ -679,6 +724,10 @@ protected:
   nsresult TokensToQueries(const nsTArray<QueryKeyValuePair>& aTokens,
                            nsCOMArray<nsNavHistoryQuery>* aQueries,
                            nsNavHistoryQueryOptions* aOptions);
+
+  
+
+
 
   nsCOMPtr<nsITimer> mIdleTimer;
   nsresult InitializeIdleTimer();

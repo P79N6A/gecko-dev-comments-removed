@@ -442,9 +442,12 @@ nsNavHistory::Init()
   NS_ENSURE_TRUE(mRecentRedirects.Init(128), NS_ERROR_OUT_OF_MEMORY);
 
   
-  
-  
-  
+
+
+
+
+
+
 
   nsCOMPtr<nsIObserverService> observerService =
     do_GetService("@mozilla.org/observer-service;1", &rv);
@@ -463,6 +466,14 @@ nsNavHistory::Init()
 
   observerService->AddObserver(this, gQuitApplicationMessage, PR_FALSE);
   observerService->AddObserver(this, gXpcomShutdown, PR_FALSE);
+
+  
+
+
+
+
+
+
 
   if (migrationType == DB_MIGRATION_CREATED) {
     nsCOMPtr<nsIFile> historyFile;
