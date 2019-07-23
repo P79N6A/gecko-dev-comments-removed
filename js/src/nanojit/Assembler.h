@@ -162,7 +162,6 @@ namespace nanojit
 
 	class Assembler MMGC_SUBCLASS_DECL
 	{
-		friend class DeadCodeFilter;
 		friend class VerboseBlockReader;
 		public:
 			#ifdef NJ_VERBOSE
@@ -262,8 +261,6 @@ namespace nanojit
             DWB(Fragment*)		_thisfrag;
 			RegAllocMap*		_branchStateMap;
 		
-			const CallInfo	*_functions;
-			
 			NIns*		_nIns;			
 			NIns*		_nExitIns;		
 			NIns*		_startingIns;	
@@ -341,7 +338,6 @@ namespace nanojit
 			Register	nRegisterAllocFromSet(int32_t set);
 			void		nRegisterResetAll(RegAlloc& a);
 			void		nMarkExecute(Page* page, int flags);
-			void		nFrameRestore(RegisterMask rmask);
 			NIns*    	nPatchBranch(NIns* branch, NIns* location);
 			void		nFragExit(LIns* guard);
 

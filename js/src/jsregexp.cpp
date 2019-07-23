@@ -2401,7 +2401,7 @@ class RegExpNativeCompiler {
 
         
 #ifdef NJ_VERBOSE
-        debug_only_v(fragment->lirbuf->names = new (&gc) LirNameMap(&gc, NULL, fragmento->labels);)
+        debug_only_v(fragment->lirbuf->names = new (&gc) LirNameMap(&gc, fragmento->labels);)
 #endif
         
 #ifdef NJ_VERBOSE
