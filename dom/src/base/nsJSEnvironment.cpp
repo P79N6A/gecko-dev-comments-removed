@@ -1950,39 +1950,6 @@ nsJSContext::CallEventHandler(nsISupports* aTarget, void *aScope, void *aHandler
 
   
   rv = sSecurityManager->CheckFunctionAccess(mContext, aHandler, target);
-  if (NS_SUCCEEDED(rv)) {
-    
-    
-    
-    nsCOMPtr<nsIContent> content = do_QueryInterface(aTarget);
-    if (content) {
-      
-      nsIDocument* ownerDoc = content->GetOwnerDoc();
-      if (ownerDoc) {
-        nsIScriptGlobalObject* global = ownerDoc->GetScriptGlobalObject();
-        if (global) {
-          nsIScriptContext* context =
-            global->GetScriptContext(JAVASCRIPT);
-          if (context && context != this) {
-            JSContext* cx =
-              static_cast<JSContext*>(context->GetNativeContext());
-            rv = stack->Push(cx);
-            if (NS_SUCCEEDED(rv)) {
-              rv = sSecurityManager->CheckFunctionAccess(cx, aHandler,
-                                                         target);
-              
-              
-              
-              
-              if (NS_FAILED(stack->Pop(nsnull))) {
-                return NS_ERROR_FAILURE;
-              }
-            }
-          }
-        }
-      }
-    }
-  }
 
   nsJSContext::TerminationFuncHolder holder(this);
 
