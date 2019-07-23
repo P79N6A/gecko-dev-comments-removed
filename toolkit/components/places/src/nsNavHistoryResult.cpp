@@ -2450,14 +2450,6 @@ nsNavHistoryQueryResultNode::Refresh()
 {
   
   
-  
-  
-  if (mOptions->ResultType() == nsINavHistoryQueryOptions::RESULTS_AS_TAG_CONTENTS &&
-      !mExpanded)
-    return NS_OK;
-
-  
-  
   if (mBatchInProgress)
     return NS_OK;
 
@@ -2467,7 +2459,13 @@ nsNavHistoryQueryResultNode::Refresh()
   if (mIndentLevel > -1 && !mParent)
     return NS_OK;
 
-  if (! mExpanded) {
+  
+  
+  
+  
+  if (!mExpanded ||
+      (mParent && mParent->IsQuery() &&
+       mParent->GetAsQuery()->IsContainersQuery())) {
     
     ClearChildren(PR_TRUE);
     return NS_OK; 
