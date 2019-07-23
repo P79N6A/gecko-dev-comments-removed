@@ -477,7 +477,8 @@ static const char kDOMStringBundleURL[] =
 
 
 #define ELEMENT_SCRIPTABLE_FLAGS                                              \
-  (NODE_SCRIPTABLE_FLAGS & ~nsIXPCScriptable::CLASSINFO_INTERFACES_ONLY)
+  ((NODE_SCRIPTABLE_FLAGS & ~nsIXPCScriptable::CLASSINFO_INTERFACES_ONLY) |   \
+   nsIXPCScriptable::WANT_ENUMERATE)
 
 #define EXTERNAL_OBJ_SCRIPTABLE_FLAGS                                         \
   (ELEMENT_SCRIPTABLE_FLAGS & ~nsIXPCScriptable::USE_JSSTUB_FOR_SETPROPERTY | \
@@ -6939,6 +6940,32 @@ nsElementSH::PostCreate(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
 
   return NS_OK;
 }
+
+NS_IMETHODIMP
+nsElementSH::Enumerate(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
+                       JSObject *obj, PRBool *_retval)
+{
+  
+  nsCOMPtr<nsIContent> content(do_QueryWrappedNative(wrapper));
+  NS_ENSURE_TRUE(content, NS_ERROR_UNEXPECTED);
+
+  nsIDocument* doc = content->GetOwnerDoc();
+  if (!doc) {
+    
+    return NS_OK;
+  }
+
+  nsXBLBinding* binding = doc->BindingManager()->GetBinding(content);
+  if (!binding) {
+    
+    return NS_OK;
+  }
+
+  *_retval = binding->ResolveAllFields(cx, obj);
+  
+  return NS_OK;
+}
+  
 
 
 

@@ -42,9 +42,11 @@
 #include "nsMemory.h"
 #include "nsXBLPrototypeHandler.h"
 #include "nsXBLProtoImplMember.h"
-#include "nsXBLPrototypeBinding.h"
+#include "nsXBLProtoImplField.h"
 
 class nsIXPConnectJSObjectHolder;
+class nsXBLPrototypeBinding;
+class nsXBLProtoImplAnonymousMethod;
 
 class nsXBLProtoImpl
 {
@@ -52,6 +54,7 @@ public:
   nsXBLProtoImpl() 
     : mClassObject(nsnull),
       mMembers(nsnull),
+      mFields(nsnull),
       mConstructor(nsnull),
       mDestructor(nsnull)
   { 
@@ -64,7 +67,8 @@ public:
     
     for (nsXBLProtoImplMember* curr = mMembers; curr; curr=curr->GetNext())
       curr->Destroy(mClassObject != nsnull);
-    delete mMembers; 
+    delete mMembers;
+    delete mFields;
   }
   
   nsresult InstallImplementation(nsXBLPrototypeBinding* aBinding, nsIContent* aBoundElement);
@@ -74,9 +78,25 @@ public:
                              void** aTargetClassObject);
   nsresult CompilePrototypeMembers(nsXBLPrototypeBinding* aBinding);
 
-  void SetMemberList(nsXBLProtoImplMember* aMemberList) { delete mMembers; mMembers = aMemberList; }
+  void SetMemberList(nsXBLProtoImplMember* aMemberList)
+  {
+    delete mMembers;
+    mMembers = aMemberList;
+  }
+
+  void SetFieldList(nsXBLProtoImplField* aFieldList)
+  {
+    delete mFields;
+    mFields = aFieldList;
+  }
 
   void Traverse(nsCycleCollectionTraversalCallback &cb) const;
+
+  nsXBLProtoImplField* FindField(const nsString& aFieldName) const;
+
+  
+  
+  PRBool ResolveAllFields(JSContext *cx, JSObject *obj) const;
 
 protected:
   
@@ -93,6 +113,8 @@ protected:
                         
 
   nsXBLProtoImplMember* mMembers; 
+
+  nsXBLProtoImplField* mFields; 
   
 public:
   nsXBLProtoImplAnonymousMethod* mConstructor; 
