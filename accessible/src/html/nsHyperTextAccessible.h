@@ -114,8 +114,6 @@ public:
                                      nsIAccessible **aFinalAccessible = nsnull);
 
 protected:
-  PRBool IsHyperText();
-
   
 
 

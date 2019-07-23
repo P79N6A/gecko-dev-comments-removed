@@ -83,38 +83,36 @@ nsresult nsHyperTextAccessible::QueryInterface(REFNSIID aIID, void** aInstancePt
     
     
     
+    
+
+    PRUint32 role = Role(this);
     if (aIID.Equals(NS_GET_IID(nsIAccessibleText))) {
-      
-      PRInt32 numChildren;
-      GetChildCount(&numChildren);
-      if (numChildren > 0) {
-        *aInstancePtr = static_cast<nsIAccessibleText*>(this);
-        NS_ADDREF_THIS();
-        return NS_OK;
+      if (role == nsIAccessibleRole::ROLE_TEXT_LEAF) {
+        return NS_ERROR_NO_INTERFACE;
       }
-      return NS_ERROR_NO_INTERFACE;
+      *aInstancePtr = static_cast<nsIAccessibleText*>(this);
+      NS_ADDREF_THIS();
+      return NS_OK;
     }
 
     if (aIID.Equals(NS_GET_IID(nsIAccessibleHyperText))) {
-      if (IsHyperText()) {
-        
-        *aInstancePtr = static_cast<nsIAccessibleHyperText*>(this);
-        NS_ADDREF_THIS();
-        return NS_OK;
+      if (role == nsIAccessibleRole::ROLE_ENTRY ||
+          role == nsIAccessibleRole::ROLE_PASSWORD_TEXT ||
+          role == nsIAccessibleRole::ROLE_TEXT_LEAF) {
+        return NS_ERROR_NO_INTERFACE;
       }
-      return NS_ERROR_NO_INTERFACE;
+      *aInstancePtr = static_cast<nsIAccessibleHyperText*>(this);
+      NS_ADDREF_THIS();
+      return NS_OK;
     }
 
     if (aIID.Equals(NS_GET_IID(nsIAccessibleEditableText))) {
-      
-      PRUint32 state, extState;
-      GetState(&state, &extState);
-      if (extState & nsIAccessibleStates::EXT_STATE_EDITABLE) {
-        *aInstancePtr = static_cast<nsIAccessibleEditableText*>(this);
-        NS_ADDREF_THIS();
-        return NS_OK;
+      if (role == nsIAccessibleRole::ROLE_TEXT_LEAF) {
+        return NS_ERROR_NO_INTERFACE;
       }
-      return NS_ERROR_NO_INTERFACE;
+      *aInstancePtr = static_cast<nsIAccessibleEditableText*>(this);
+      NS_ADDREF_THIS();
+      return NS_OK;
     }
   }
 
@@ -124,18 +122,6 @@ nsresult nsHyperTextAccessible::QueryInterface(REFNSIID aIID, void** aInstancePt
 nsHyperTextAccessible::nsHyperTextAccessible(nsIDOMNode* aNode, nsIWeakReference* aShell):
 nsAccessibleWrap(aNode, aShell)
 {
-}
-
-PRBool nsHyperTextAccessible::IsHyperText()
-{
-  nsCOMPtr<nsIAccessible> accessible;
-  while (NextChild(accessible)) {
-    if (IsEmbeddedObject(accessible)) {
-      return PR_TRUE;
-    }
-  }
-
-  return PR_FALSE;
 }
 
 NS_IMETHODIMP nsHyperTextAccessible::GetRole(PRUint32 *aRole)
@@ -482,7 +468,10 @@ NS_IMETHODIMP nsHyperTextAccessible::GetCharacterAtOffset(PRInt32 aOffset, PRUni
   }
   nsAutoString text;
   nsresult rv = GetText(aOffset, aOffset + 1, text);
-  NS_ENSURE_SUCCESS(rv, rv);
+  if (NS_FAILED(rv)) {
+    return rv;
+  }
+
   if (text.IsEmpty()) {
     return NS_ERROR_FAILURE;
   }

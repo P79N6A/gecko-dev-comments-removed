@@ -54,10 +54,6 @@ public:
   nsDocAccessibleWrap(nsIDOMNode *aNode, nsIWeakReference *aShell);
   virtual ~nsDocAccessibleWrap();
 
-  
-  
-  void SetEditor(nsIEditor* aEditor);
-
   PRBool mActivated;
 };
 
