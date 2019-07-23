@@ -2106,7 +2106,7 @@ Decompile(SprintStack *ss, jsbytecode *pc, intN nb, JSOp nextop)
                     if (cond != tail) {
                         
                         DECOMPILE_CODE(pc + cond, tail - cond);
-                        js_printf(jp, " %s", POP_COND_STR());
+                        js_printf(jp, " %s", POP_STR());
                     }
 
                     
