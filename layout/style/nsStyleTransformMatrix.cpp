@@ -56,6 +56,17 @@
 
 
 
+static double FlushToZero(double aVal)
+{
+  if (-FLT_EPSILON < aVal && aVal < FLT_EPSILON)
+    return 0.0f;
+  else
+    return aVal;
+}
+
+
+
+
 
 static double SafeTangent(double aTheta)
 {
@@ -73,7 +84,7 @@ static double SafeTangent(double aTheta)
   else if (cosTheta < 0 && cosTheta >= -kEpsilon)
     cosTheta = -kEpsilon;
 
-  return sinTheta / cosTheta;
+  return FlushToZero(sinTheta / cosTheta);
 }
 
 
@@ -425,8 +436,8 @@ static void ProcessRotate(float aMain[4], const nsCSSValue::Array* aData)
 
 
   double theta = aData->Item(1).GetAngleValueInRadians();
-  float cosTheta = cos(theta);
-  float sinTheta = sin(theta);
+  float cosTheta = FlushToZero(cos(theta));
+  float sinTheta = FlushToZero(sin(theta));
 
   aMain[0] = cosTheta;
   aMain[1] = sinTheta;
