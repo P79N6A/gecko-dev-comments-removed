@@ -3846,6 +3846,7 @@ nsBrowserStatusHandler.prototype =
       this.securityButton.removeAttribute("label");
 
     this.securityButton.setAttribute("tooltiptext", this._tooltipText);
+    getIdentityHandler().checkIdentity(this._state, this._host);
   },
 
   
@@ -5615,7 +5616,7 @@ IdentityHandler.prototype = {
 
   
   _lastStatus : null,
-  _lastURI : null,
+  _lastHost : null,
 
   
 
@@ -5668,22 +5669,12 @@ IdentityHandler.prototype = {
 
 
 
-
-  checkIdentity : function(state) {
-    var currentURI = gBrowser.currentURI;
-    if (currentURI.schemeIs("http") && this._lastURI.schemeIs("http"))
-      return;
-
+  checkIdentity : function(state, host) {
     var currentStatus = gBrowser.securityUI
                                 .QueryInterface(Components.interfaces.nsISSLStatusProvider)
                                 .SSLStatus;
-    if (currentStatus == this._lastStatus && currentURI == this._lastURI) {
-      
-      return;
-    }
-
     this._lastStatus = currentStatus;
-    this._lastURI = currentURI;
+    this._lastHost = host;
     
     if (state & Components.interfaces.nsIWebProgressListener.STATE_IDENTITY_EV_TOPLEVEL)
       this.setMode(this.IDENTITY_MODE_IDENTIFIED);
@@ -5721,7 +5712,7 @@ IdentityHandler.prototype = {
       
       
       
-      var icon_label = this._lastURI.host; 
+      var icon_label = this._lastHost; 
       var tooltip = this._stringBundle.getFormattedString("identity.identified.verifier",
                                                           [iData.caOrg]);
     }
@@ -5769,7 +5760,7 @@ IdentityHandler.prototype = {
     if (newMode == this.IDENTITY_MODE_DOMAIN_VERIFIED) {
       var iData = this.getIdentityData();
 
-      var body = this._lastURI.host;     
+      var body = this._lastHost;     
       verifier = this._stringBundle.getFormattedString("identity.identified.verifier",
                                                        [iData.caOrg]);
       supplemental = this._stringBundle.getString("identity.domainverified.supplemental");
