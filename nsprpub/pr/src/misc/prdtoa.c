@@ -2673,7 +2673,7 @@ nrv_alloc(char *s, char **rve, int n)
 
 
 
- void
+ static void
 #ifdef KR_headers
 freedtoa(s) char *s;
 #else
