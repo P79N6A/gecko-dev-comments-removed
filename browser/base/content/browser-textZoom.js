@@ -39,60 +39,38 @@
 
 
 
+
 const MOUSE_SCROLL_IS_HORIZONTAL = 1 << 2;
 
 
 
-const MOUSE_SCROLL_TEXTSIZE = 3;
+const MOUSE_SCROLL_FULLZOOM = 3;
 
 
 
 
-var TextZoom = {
-
-  
-  
+var FullZoom = {
 
   
-  name: "browser.content.text-zoom",
+  
+
+  
+  name: "browser.content.full-zoom",
 
   
   
   
   globalValue: undefined,
 
-  
-  minValue: 1,
-  maxValue: 2000,
-  defaultValue: 100,
-
 
   
   
 
-  __zoomManager: null,
-  get _zoomManager() {
-    if (!this.__zoomManager)
-      this.__zoomManager = ZoomManager.prototype.getInstance();
-    return this.__zoomManager;
-  },
-
   
-  __cps: null,
   get _cps() {
-    if (!this.__cps)
-      this.__cps = Cc["@mozilla.org/content-pref/service;1"].
-                   getService(Ci.nsIContentPrefService);
-    return this.__cps;
-  },
-
-  
-  __prefBranch: null,
-  get _prefBranch() {
-    if (!this.__prefBranch)
-      this.__prefBranch = Cc["@mozilla.org/preferences-service;1"].
-                           getService(Ci.nsIPrefBranch);
-    return this.__prefBranch;
+    delete this._cps;
+    return this._cps = Cc["@mozilla.org/content-pref/service;1"].
+                       getService(Ci.nsIContentPrefService);
   },
 
 
@@ -104,8 +82,8 @@ var TextZoom = {
                Components.interfaces.nsIContentPrefObserver,
                Components.interfaces.nsISupports],
 
-  QueryInterface: function TextZoom_QueryInterface(aIID) {
-    if (!this.interfaces.some( function(v) { return aIID.equals(v) } ))
+  QueryInterface: function (aIID) {
+    if (!this.interfaces.some(function (v) aIID.equals(v)))
       throw Cr.NS_ERROR_NO_INTERFACE;
     return this;
   },
@@ -114,7 +92,7 @@ var TextZoom = {
   
   
 
-  init: function TextZoom_init() {
+  init: function () {
     
     window.addEventListener("DOMMouseScroll", this, false);
 
@@ -129,7 +107,7 @@ var TextZoom = {
     this._applyPrefToSetting();
   },
 
-  destroy: function TextZoom_destroy() {
+  destroy: function () {
     ContentPrefSink.removeObserver(this.name, this);
     this._cps.removeObserver(this.name, this);
     window.removeEventListener("DOMMouseScroll", this, false);
@@ -149,12 +127,15 @@ var TextZoom = {
 
   
 
-  handleEvent: function TextZoom_handleEvent(event) {
-    
-    this._handleMouseScrolled(event);
+  handleEvent: function (event) {
+    switch (event.type) {
+      case "DOMMouseScroll":
+        this._handleMouseScrolled(event);
+        break;
+    }
   },
 
-  _handleMouseScrolled: function TextZoom__handleMouseScrolled(event) {
+  _handleMouseScrolled: function (event) {
     
     
     var pref = "mousewheel";
@@ -175,7 +156,11 @@ var TextZoom = {
     pref += ".action";
 
     
-    if (this._getAppPref(pref, null) != MOUSE_SCROLL_TEXTSIZE)
+    var isZoomEvent = false;
+    try {
+      isZoomEvent = (gPrefService.getIntPref(pref) == MOUSE_SCROLL_FULLZOOM);
+    } catch (e) {}
+    if (!isZoomEvent)
       return;
 
     
@@ -185,12 +170,12 @@ var TextZoom = {
     
     
     
-    window.setTimeout(function() { TextZoom._applySettingToPref() }, 0);
+    window.setTimeout(function (self) { self._applySettingToPref() }, 0, this);
   },
 
   
 
-  onContentPrefSet: function TextZoom_onContentPrefSet(aGroup, aName, aValue) {
+  onContentPrefSet: function (aGroup, aName, aValue) {
     if (aGroup == this._cps.grouper.group(gBrowser.currentURI))
       this._applyPrefToSetting(aValue);
     else if (aGroup == null) {
@@ -204,7 +189,7 @@ var TextZoom = {
     }
   },
 
-  onContentPrefRemoved: function TextZoom_onContentPrefRemoved(aGroup, aName) {
+  onContentPrefRemoved: function (aGroup, aName) {
     if (aGroup == this._cps.grouper.group(gBrowser.currentURI))
       this._applyPrefToSetting();
     else if (aGroup == null) {
@@ -220,7 +205,7 @@ var TextZoom = {
 
   
 
-  onLocationChanged: function TextZoom_onLocationChanged(aURI, aName, aValue) {
+  onLocationChanged: function (aURI, aName, aValue) {
     this._applyPrefToSetting(aValue);
   },
 
@@ -228,21 +213,21 @@ var TextZoom = {
   
   
 
-  reduce: function TextZoom_reduce() {
-    this._zoomManager.reduce();
+  reduce: function () {
+    ZoomManager.reduce();
     this._applySettingToPref();
   },
 
-  enlarge: function TextZoom_enlarge() {
-    this._zoomManager.enlarge();
+  enlarge: function () {
+    ZoomManager.enlarge();
     this._applySettingToPref();
   },
 
-  reset: function TextZoom_reset() {
+  reset: function () {
     if (typeof this.globalValue != "undefined")
-      this._zoomManager.textZoom = this.globalValue;
+      ZoomManager.fullZoom = this.globalValue;
     else
-      this._zoomManager.reset();
+      ZoomManager.reset();
 
     this._removePref();
   },
@@ -264,26 +249,26 @@ var TextZoom = {
 
 
 
-  _applyPrefToSetting: function TextZoom__applyPrefToSetting(aValue) {
+  _applyPrefToSetting: function (aValue) {
     
     
     try {
       if (typeof aValue != "undefined")
-        this._zoomManager.textZoom = this._ensureValid(aValue);
+        ZoomManager.fullZoom = this._ensureValid(aValue);
       else if (typeof this.globalValue != "undefined")
-        this._zoomManager.textZoom = this.globalValue;
+        ZoomManager.fullZoom = this.globalValue;
       else
-        this._zoomManager.reset();
+        ZoomManager.reset();
     }
     catch(ex) {}
   },
 
-  _applySettingToPref: function TextZoom__applySettingToPref() {
-    var textZoom = this._zoomManager.textZoom;
-    this._cps.setPref(gBrowser.currentURI, this.name, textZoom);
+  _applySettingToPref: function () {
+    var fullZoom = ZoomManager.fullZoom;
+    this._cps.setPref(gBrowser.currentURI, this.name, fullZoom);
   },
 
-  _removePref: function TextZoom__removePref() {
+  _removePref: function () {
     this._cps.removePref(gBrowser.currentURI, this.name);
   },
 
@@ -291,41 +276,16 @@ var TextZoom = {
   
   
 
-  _ensureValid: function TextZoom__ensureValid(aValue) {
+  _ensureValid: function (aValue) {
     if (isNaN(aValue))
-      return this.defaultValue;
+      return 1;
 
-    if (aValue < this.minValue)
-      return this.minValue;
+    if (aValue < ZoomManager.MIN)
+      return ZoomManager.MIN;
 
-    if (aValue > this.maxValue)
-      return this.maxValue;
+    if (aValue > ZoomManager.MAX)
+      return ZoomManager.MAX;
 
     return aValue;
-  },
-
-  
-
-
-
-
-
-
-  _getAppPref: function TextZoom__getAppPref(aPrefName, aDefaultValue) {
-    try {
-      switch (this._prefBranch.getPrefType(aPrefName)) {
-        case this._prefBranch.PREF_STRING:
-          return this._prefBranch.getCharPref(aPrefName);
-
-        case this._prefBranch.PREF_BOOL:
-          return this._prefBranch.getBoolPref(aPrefName);
-
-        case this._prefBranch.PREF_INT:
-          return this._prefBranch.getIntPref(aPrefName);
-      }
-    }
-    catch (ex) {  }
-    
-    return aDefaultValue;
   }
 };
