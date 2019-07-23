@@ -2938,9 +2938,7 @@ nsCanvasRenderingContext2D::DrawImage()
     gfxMatrix matrix;
     nsRefPtr<gfxPattern> pattern;
     nsRefPtr<gfxPath> path;
-#ifdef WINCE
-    nsRefPtr<gfxASurface> currentSurface;
-#endif
+
     nsLayoutUtils::SurfaceFromElementResult res =
         nsLayoutUtils::SurfaceFromElement(imgElt);
     if (!res.mSurface)
@@ -3026,13 +3024,11 @@ nsCanvasRenderingContext2D::DrawImage()
     matrix.Translate(gfxPoint(sx, sy));
     matrix.Scale(sw/dw, sh/dh);
 #ifdef WINCE
-    currentSurface = getter_AddRefs(mThebes->CurrentSurface());
-
     
 
 
 
-    if (currentSurface == imgsurf) {
+    if (mThebes->CurrentSurface() == imgsurf) {
         if (imgsurf->GetType() == gfxASurface::SurfaceTypeImage) {
             gfxImageSurface *surf = static_cast<gfxImageSurface*>(imgsurf.get());
             gfxContext::GraphicsOperator op = mThebes->CurrentOperator();
