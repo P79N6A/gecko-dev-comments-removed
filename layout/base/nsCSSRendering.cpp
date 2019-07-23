@@ -1054,7 +1054,8 @@ void
 nsCSSRendering::PaintBoxShadow(nsPresContext* aPresContext,
                                nsIRenderingContext& aRenderingContext,
                                nsIFrame* aForFrame,
-                               const nsPoint& aForFramePt)
+                               const nsPoint& aForFramePt,
+                               const nsRect& aDirtyRect)
 {
   nsMargin      borderValues;
   PRIntn        sidesToSkip;
@@ -1076,6 +1077,8 @@ nsCSSRendering::PaintBoxShadow(nsPresContext* aPresContext,
                     twipsPerPixel, &borderRadii);
 
   gfxRect frameGfxRect = RectToGfxRect(frameRect, twipsPerPixel);
+  gfxRect dirtyGfxRect = RectToGfxRect(aDirtyRect, twipsPerPixel);
+
   for (PRUint32 i = styleBorder->mBoxShadow->Length(); i > 0; --i) {
     nsCSSShadowItem* shadowItem = styleBorder->mBoxShadow->ShadowAt(i - 1);
     gfxRect shadowRect(frameRect.x, frameRect.y, frameRect.width, frameRect.height);
@@ -1099,7 +1102,7 @@ nsCSSRendering::PaintBoxShadow(nsPresContext* aPresContext,
 
     
     blurRadius /= twipsPerPixel;
-    shadowContext = blurringArea.Init(shadowRect, blurRadius, 1, renderContext);
+    shadowContext = blurringArea.Init(shadowRect, blurRadius, 1, renderContext, dirtyGfxRect);
     if (!shadowContext)
       continue;
 
@@ -2540,7 +2543,8 @@ GetTextDecorationRectInternal(const gfxPoint& aPt,
 gfxContext*
 nsContextBoxBlur::Init(const gfxRect& aRect, nscoord aBlurRadius,
                        PRInt32 aAppUnitsPerDevPixel,
-                       gfxContext* aDestinationCtx)
+                       gfxContext* aDestinationCtx,
+                       const gfxRect& aDirtyRect)
 {
   mDestinationCtx = aDestinationCtx;
 
@@ -2561,9 +2565,24 @@ nsContextBoxBlur::Init(const gfxRect& aRect, nscoord aBlurRadius,
     return mContext;
   }
 
+  gfxRect dirtyRect = aDirtyRect;
+  dirtyRect.ScaleInverse(aAppUnitsPerDevPixel);
+  gfxRect rectWithBlur = rect;
+  rectWithBlur.Outset(blurRadius);
+
+  
+  mRequiredShadowArea = dirtyRect.Intersect(rectWithBlur);
+
   mDestinationCtx = aDestinationCtx;
 
-  mContext = blur.Init(rect, gfxIntSize(blurRadius, blurRadius));
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+  mContext = blur.Init(mRequiredShadowArea, gfxIntSize(blurRadius, blurRadius));
   return mContext;
 }
 
@@ -2573,7 +2592,12 @@ nsContextBoxBlur::DoPaint()
   if (mContext == mDestinationCtx)
     return;
 
+  mDestinationCtx->Save();
+  mDestinationCtx->NewPath();
+  mDestinationCtx->Rectangle(mRequiredShadowArea);
+  mDestinationCtx->Clip();
   blur.Paint(mDestinationCtx);
+  mDestinationCtx->Restore();
 }
 
 gfxContext*
@@ -2581,3 +2605,4 @@ nsContextBoxBlur::GetContext()
 {
   return mContext;
 }
+

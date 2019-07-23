@@ -64,7 +64,8 @@ struct nsCSSRendering {
   static void PaintBoxShadow(nsPresContext* aPresContext,
                              nsIRenderingContext& aRenderingContext,
                              nsIFrame* aForFrame,
-                             const nsPoint& aForFramePt);
+                             const nsPoint& aForFramePt,
+                             const nsRect& aDirtyRect);
 
   
 
@@ -301,8 +302,12 @@ public:
 
 
 
+
+
+
   gfxContext* Init(const gfxRect& aRect, nscoord aBlurRadius,
-                   PRInt32 aAppUnitsPerDevPixel, gfxContext* aDestinationCtx);
+                   PRInt32 aAppUnitsPerDevPixel, gfxContext* aDestinationCtx,
+                   const gfxRect& aDirtyRect);
 
   
 
@@ -322,6 +327,8 @@ protected:
   gfxAlphaBoxBlur blur;
   nsRefPtr<gfxContext> mContext;
   gfxContext* mDestinationCtx;
+
+  gfxRect mRequiredShadowArea;
   
 };
 
