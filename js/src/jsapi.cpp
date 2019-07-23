@@ -879,8 +879,6 @@ JS_BeginRequest(JSContext *cx)
 
     JS_ASSERT(cx->thread->id == js_CurrentThreadId());
     if (!cx->requestDepth) {
-        JS_ASSERT(cx->gcLocalFreeLists == &js_GCEmptyFreeListSet);
-
         
         rt = cx->runtime;
         JS_LOCK_GC(rt);
@@ -948,8 +946,6 @@ JS_EndRequest(JSContext *cx)
         }
         if (shared)
             JS_NOTIFY_ALL_CONDVAR(rt->titleSharingDone);
-
-        js_RevokeGCLocalFreeLists(cx);
 
         
         JS_ASSERT(rt->requestCount > 0);
