@@ -1275,11 +1275,24 @@ JSClass js_SlowArrayClass = {
 JSBool
 js_MakeArraySlow(JSContext *cx, JSObject *obj)
 {
-    JS_ASSERT(OBJ_GET_CLASS(cx, obj) == &js_ArrayClass);
+    JS_ASSERT(obj->getClass() == &js_ArrayClass);
 
     
-    JSScope *scope = JSScope::create(cx, &js_SlowArrayObjectOps,
-                                     &js_SlowArrayClass, obj);
+
+
+
+    uint32 emptyShape;
+    JSObject *arrayProto = obj->getProto();
+    if (arrayProto->getClass() == &js_ObjectClass) {
+        
+        emptyShape = js_GenerateShape(cx, false);
+    } else {
+        JS_ASSERT(arrayProto->getClass() == &js_SlowArrayClass);
+        if (!OBJ_SCOPE(arrayProto)->getEmptyScopeShape(cx, &js_SlowArrayClass, &emptyShape))
+            return JS_FALSE;
+    }
+    JSScope *scope = JSScope::create(cx, &js_SlowArrayObjectOps, &js_SlowArrayClass, obj,
+                                     emptyShape);
     if (!scope)
         return JS_FALSE;
 
