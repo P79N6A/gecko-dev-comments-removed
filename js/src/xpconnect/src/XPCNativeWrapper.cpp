@@ -229,11 +229,9 @@ EnsureLegalActivity(JSContext *cx, JSObject *obj)
 
   
   
-  
-  
-  PRBool isSystem;
-  nsresult rv = ssm->SubjectPrincipalIsSystem(&isSystem);
-  if (NS_SUCCEEDED(rv) && isSystem) {
+  PRBool isPrivileged;
+  nsresult rv = ssm->IsCapabilityEnabled("UniversalXPConnect", &isPrivileged);
+  if (NS_SUCCEEDED(rv) && isPrivileged) {
     return JS_TRUE;
   }
 
