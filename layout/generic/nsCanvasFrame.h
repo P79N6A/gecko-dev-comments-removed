@@ -52,9 +52,6 @@
 #include "nsAbsoluteContainingBlock.h"
 
 
-#include "nsIScrollableView.h"
-
-
 
 
 
