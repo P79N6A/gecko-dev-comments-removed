@@ -293,6 +293,7 @@ SessionStoreService.prototype = {
           delete aBrowser.parentNode.__SS_data;
         });
       });
+      this._lastWindowClosed = null;
       this._clearDisk();
       
       for (ix in this._windows) {
@@ -1296,8 +1297,8 @@ SessionStoreService.prototype = {
     }
 
     
-    var aIdMap = { used: {} };
-    this.restoreHistory(aWindow, aTabs, aIdMap);
+    var idMap = { used: {} };
+    this.restoreHistory(aWindow, aTabs, idMap);
   },
 
   
