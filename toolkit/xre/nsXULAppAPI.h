@@ -403,4 +403,13 @@ XRE_API(nsresult,
 XRE_API(void,
         XRE_FreeAppData, (nsXREAppData *aAppData))
 
+
+
+
+
+
+
+XRE_API(void,
+        XRE_SetAppDataFile, (nsILocalFile* aINIFile))
+
 #endif 
