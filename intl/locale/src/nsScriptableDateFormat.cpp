@@ -46,7 +46,6 @@
 #include "nsIScriptableDateFormat.h"
 #include "nsCRT.h"
 #include "nsReadableUtils.h"
-#include "nsIPrefService.h"
 
 static NS_DEFINE_CID(kLocaleServiceCID, NS_LOCALESERVICE_CID);
 static NS_DEFINE_CID(kDateTimeFormatCID, NS_DATETIMEFORMAT_CID);
@@ -115,19 +114,14 @@ NS_IMETHODIMP nsScriptableDateFormat::FormatDateTime(
 
   nsCOMPtr<nsILocale> locale;
   
-  if (localeName.IsEmpty()) {
-    nsCOMPtr<nsIPrefBranch> prefs(do_GetService(NS_PREFSERVICE_CONTRACTID, &rv));
+  if (!localeName.IsEmpty()) {
+    
+    nsCOMPtr<nsILocaleService> localeService(do_GetService(kLocaleServiceCID, &rv));
     NS_ENSURE_SUCCESS(rv, rv);
-    nsCString cLocaleName;
-    rv = prefs->GetCharPref("general.useragent.locale", getter_Copies(cLocaleName));
-    CopyUTF8toUTF16(cLocaleName, localeName);
+    
+    rv = localeService->NewLocale(localeName, getter_AddRefs(locale));
+    NS_ENSURE_SUCCESS(rv, rv);
   }
-  
-  nsCOMPtr<nsILocaleService> localeService(do_GetService(kLocaleServiceCID, &rv));
-  NS_ENSURE_SUCCESS(rv, rv);
-  
-  rv = localeService->NewLocale(localeName, getter_AddRefs(locale));
-  NS_ENSURE_SUCCESS(rv, rv);
 
   nsCOMPtr<nsIDateTimeFormat> dateTimeFormat(do_CreateInstance(kDateTimeFormatCID, &rv));
   NS_ENSURE_SUCCESS(rv, rv);
