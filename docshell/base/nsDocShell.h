@@ -512,6 +512,11 @@ protected:
 
     
     static PRBool IsAboutBlank(nsIURI* aURI);
+
+    
+    
+    
+    PRBool IsOKToLoadURI(nsIURI* aURI);
     
 protected:
     
@@ -641,6 +646,13 @@ protected:
 
     
     nsRefPtr<nsClassifierCallback> mClassifier;
+
+    
+    
+    
+    
+    
+    nsCOMPtr<nsIURI> mLoadingURI;
 
     
     

@@ -678,7 +678,9 @@ nsDocShell::LoadURI(nsIURI * aURI,
                     PRUint32 aLoadFlags,
                     PRBool aFirstParty)
 {
-    if (!IsNavigationAllowed()) {
+    
+    
+    if (IsPrintingOrPP()) {
       return NS_OK; 
     }
     nsresult rv;
@@ -3604,6 +3606,10 @@ nsDocShell::Destroy()
     }
 
     
+    
+    mLoadingURI = nsnull;
+    
+    
     (void) FirePageHideNotification(PR_TRUE);
 
     
@@ -5140,6 +5146,10 @@ nsDocShell::CreateAboutBlankContentViewer(nsIPrincipal* aPrincipal)
 
     
     
+    mLoadingURI = nsnull;
+    
+    
+    
     
     
     
@@ -5555,6 +5565,10 @@ nsDocShell::RestoreFromHistory()
     nsCOMPtr<nsISHEntry> origLSHE = mLSHE;
 
     
+    
+    mLoadingURI = nsnull;
+    
+    
     FirePageHideNotification(!mSavingOldViewer);
 
     
@@ -5916,7 +5930,14 @@ nsDocShell::CreateContentViewer(const char *aContentType,
         mSavingOldViewer = CanSavePresentation(mLoadType, request, doc);
     }
 
+    NS_ASSERTION(!mLoadingURI, "Re-entering unload?");
+    
+    nsCOMPtr<nsIChannel> aOpenedChannel = do_QueryInterface(request);
+    if (aOpenedChannel) {
+        aOpenedChannel->GetURI(getter_AddRefs(mLoadingURI));
+    }
     FirePageHideNotification(!mSavingOldViewer);
+    mLoadingURI = nsnull;
 
     
     
@@ -5926,8 +5947,6 @@ nsDocShell::CreateContentViewer(const char *aContentType,
     
     
     mURIResultedInDocument = PR_TRUE;
-
-    nsCOMPtr<nsIChannel> aOpenedChannel = do_QueryInterface(request);
 
     PRBool onLocationChangeNeeded = OnLoadingSite(aOpenedChannel, PR_FALSE);
 
@@ -6450,6 +6469,60 @@ nsDocShell::CheckLoadingPermissions()
 
 
 
+class InternalLoadEvent : public nsRunnable
+{
+public:
+    InternalLoadEvent(nsDocShell* aDocShell, nsIURI * aURI, nsIURI * aReferrer,
+                      nsISupports * aOwner, PRUint32 aFlags,
+                      const PRUnichar *aWindowTarget, const char* aTypeHint,
+                      nsIInputStream * aPostData,
+                      nsIInputStream * aHeadersData, PRUint32 aLoadType,
+                      nsISHEntry * aSHEntry, PRBool aFirstParty) :
+        mDocShell(aDocShell),
+        mURI(aURI),
+        mReferrer(aReferrer),
+        mOwner(aOwner),
+        mFlags(aFlags),
+        mPostData(aPostData),
+        mHeadersData(aHeadersData),
+        mLoadType(aLoadType),
+        mSHEntry(aSHEntry),
+        mFirstParty(aFirstParty)
+    {
+        
+        if (aWindowTarget) {
+            mWindowTarget = aWindowTarget;
+        }
+        if (aTypeHint) {
+            mTypeHint = aTypeHint;
+        }
+    }
+    
+    NS_IMETHOD Run() {
+        return mDocShell->InternalLoad(mURI, mReferrer, mOwner, mFlags,
+                                       mWindowTarget.get(), mTypeHint.get(),
+                                       mPostData, mHeadersData, mLoadType,
+                                       mSHEntry, mFirstParty, nsnull, nsnull);
+    }
+
+private:
+    nsRefPtr<nsDocShell> mDocShell;
+    nsCOMPtr<nsIURI> mURI;
+    nsCOMPtr<nsIURI> mReferrer;
+    nsCOMPtr<nsISupports> mOwner;
+    PRUint32 mFlags;
+
+    
+    nsXPIDLString mWindowTarget;
+    nsXPIDLCString mTypeHint;
+    
+    nsCOMPtr<nsIInputStream> mPostData;
+    nsCOMPtr<nsIInputStream> mHeadersData;
+    PRUint32 mLoadType;
+    nsCOMPtr<nsISHEntry> mSHEntry;
+    PRBool mFirstParty;
+};
+
 NS_IMETHODIMP
 nsDocShell::InternalLoad(nsIURI * aURI,
                          nsIURI * aReferrer,
@@ -6465,10 +6538,6 @@ nsDocShell::InternalLoad(nsIURI * aURI,
                          nsIDocShell** aDocShell,
                          nsIRequest** aRequest)
 {
-    if (mFiredUnloadEvent) {
-      return NS_OK; 
-    }
-
     nsresult rv = NS_OK;
 
 #ifdef PR_LOGGING
@@ -6495,6 +6564,21 @@ nsDocShell::InternalLoad(nsIURI * aURI,
     NS_ENSURE_TRUE(IsValidLoadType(aLoadType), NS_ERROR_INVALID_ARG);
 
     NS_ENSURE_TRUE(!mIsBeingDestroyed, NS_ERROR_NOT_AVAILABLE);
+
+    if (mFiredUnloadEvent) {
+        if (IsOKToLoadURI(aURI)) {
+            
+            nsCOMPtr<nsIRunnable> ev =
+                new InternalLoadEvent(this, aURI, aReferrer, aOwner, aFlags,
+                                      aWindowTarget, aTypeHint,
+                                      aPostData, aHeadersData, aLoadType,
+                                      aSHEntry, aFirstParty);
+            return NS_DispatchToCurrentThread(ev);
+        }
+
+        
+        return NS_OK;
+    }
 
     
     
@@ -8064,6 +8148,10 @@ nsDocShell::AddToSessionHistory(nsIURI * aURI,
 NS_IMETHODIMP
 nsDocShell::LoadHistoryEntry(nsISHEntry * aEntry, PRUint32 aLoadType)
 {
+    if (!IsNavigationAllowed()) {
+        return NS_OK;
+    }
+    
     nsCOMPtr<nsIURI> uri;
     nsCOMPtr<nsIInputStream> postData;
     nsCOMPtr<nsIURI> referrerURI;
@@ -9209,6 +9297,26 @@ nsDocShell::IsAboutBlank(nsIURI* aURI)
     nsCAutoString str;
     aURI->GetSpec(str);
     return str.EqualsLiteral("about:blank");
+}
+
+PRBool
+nsDocShell::IsOKToLoadURI(nsIURI* aURI)
+{
+    NS_PRECONDITION(aURI, "Must have a URI!");
+    
+    if (!mFiredUnloadEvent) {
+        return PR_TRUE;
+    }
+
+    if (!mLoadingURI) {
+        return PR_FALSE;
+    }
+
+    nsCOMPtr<nsIScriptSecurityManager> secMan =
+        do_GetService(NS_SCRIPTSECURITYMANAGER_CONTRACTID);
+    return
+        secMan &&
+        NS_SUCCEEDED(secMan->CheckSameOriginURI(aURI, mLoadingURI, PR_FALSE));
 }
 
 
