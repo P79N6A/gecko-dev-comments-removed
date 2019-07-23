@@ -88,8 +88,6 @@ public:
 protected:
 
   
-  static const int kAquaPushButtonEndcaps = 10;
-  static const int kAquaMinButtonWidth = 68;
   static const int kAquaDropdownLeftEndcap = 9;
   static const int kAquaDropwdonRightEndcap = 20; 
 
