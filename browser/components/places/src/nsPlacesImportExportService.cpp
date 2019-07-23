@@ -117,6 +117,7 @@ static NS_DEFINE_CID(kParserCID, NS_PARSER_CID);
 #define KEY_SHORTCUTURL_LOWER "shortcuturl"
 #define KEY_POST_DATA_LOWER "post_data"
 #define KEY_ID_LOWER "id"
+#define KEY_NAME_LOWER "name"
 
 #define LOAD_IN_SIDEBAR_ANNO NS_LITERAL_CSTRING("bookmarkProperties/loadInSidebar")
 #define DESCRIPTION_ANNO NS_LITERAL_CSTRING("bookmarkProperties/description")
@@ -378,7 +379,7 @@ protected:
   void HandleHeadEnd();
   void HandleLinkBegin(const nsIParserNode& node);
   void HandleLinkEnd();
-  void HandleSeparator();
+  void HandleSeparator(const nsIParserNode& node);
 
   
   
@@ -576,7 +577,7 @@ BookmarkContentSink::AddLeaf(const nsIParserNode& aNode)
     CurFrame().mPreviousText.Append(PRUnichar(' '));
     break;
   case eHTMLTag_hr:
-    HandleSeparator();
+    HandleSeparator(aNode);
     break;
   }
 
@@ -924,7 +925,7 @@ BookmarkContentSink::HandleLinkEnd()
 
 
 void
-BookmarkContentSink::HandleSeparator()
+BookmarkContentSink::HandleSeparator(const nsIParserNode& node)
 {
   BookmarkImportFrame& frame = CurFrame();
 
@@ -941,6 +942,19 @@ BookmarkContentSink::HandleSeparator()
     mBookmarksService->InsertSeparator(frame.mContainerID,
                                        mBookmarksService->DEFAULT_INDEX,
                                        &itemId);
+
+    
+    nsAutoString name;
+    PRInt32 attrCount = node.GetAttributeCount();
+    for (PRInt32 i = 0; i < attrCount; i ++) {
+      const nsAString& key = node.GetKeyAt(i);
+      if (key.LowerCaseEqualsLiteral(KEY_NAME_LOWER))
+        name = node.GetValueAt(i);
+    }
+    name.Trim(kWhitespace);
+
+    if (!name.IsEmpty())
+      mBookmarksService->SetItemTitle(itemId, name);
   }
 }
 
@@ -1240,7 +1254,7 @@ static const char kContainerIntro[] = "<DT><H3";
 static const char kContainerClose[] = "</H3>" NS_LINEBREAK;
 static const char kItemOpen[] = "<DT><A";
 static const char kItemClose[] = "</A>" NS_LINEBREAK;
-static const char kSeparator[] = "<HR>" NS_LINEBREAK;
+static const char kSeparator[] = "<HR";
 static const char kQuoteStr[] = "\"";
 static const char kCloseAngle[] = ">";
 static const char kIndent[] = "    ";
@@ -1258,6 +1272,7 @@ static const char kWebPanelAttribute[] = " WEB_PANEL=\"true\"";
 static const char kKeywordAttribute[] = " SHORTCUTURL=\"";
 static const char kPostDataAttribute[] = " POST_DATA=\"";
 static const char kIdAttribute[] = " ID=\"";
+static const char kNameAttribute[] = " NAME=\"";
 
 
 
@@ -1759,18 +1774,52 @@ nsPlacesImportExportService::WriteLivemark(PRInt64 aFolderId, const nsACString& 
 
 
 nsresult
-WriteSeparator(const nsCString& aIndent, nsIOutputStream* aOutput)
+nsPlacesImportExportService::WriteSeparator(nsINavHistoryResultNode* aItem,
+                                            const nsACString& aIndent,
+                                            nsIOutputStream* aOutput)
 {
   PRUint32 dummy;
   nsresult rv;
 
   
   if (!aIndent.IsEmpty()) {
-    rv = aOutput->Write(aIndent.get(), aIndent.Length(), &dummy);
+    rv = aOutput->Write(PromiseFlatCString(aIndent).get(), aIndent.Length(),
+                        &dummy);
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
   rv = aOutput->Write(kSeparator, sizeof(kSeparator)-1, &dummy);
+
+  
+  PRInt64 itemId;
+  rv = aItem->GetItemId(&itemId);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  nsAutoString title;
+  rv = mBookmarksService->GetItemTitle(itemId, title);
+  if (NS_SUCCEEDED(rv) && !title.IsEmpty()) {
+    rv = aOutput->Write(kNameAttribute, strlen(kNameAttribute), &dummy);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    char* escapedTitle = nsEscapeHTML(NS_ConvertUTF16toUTF8(title).get());
+    if (escapedTitle) {
+      PRUint32 dummy;
+      rv = aOutput->Write(escapedTitle, strlen(escapedTitle), &dummy);
+      nsMemory::Free(escapedTitle);
+      NS_ENSURE_SUCCESS(rv, rv);
+      rv = aOutput->Write(kQuoteStr, sizeof(kQuoteStr)-1, &dummy);
+      NS_ENSURE_SUCCESS(rv, rv);
+    }
+  }
+
+  
+  rv = aOutput->Write(kCloseAngle, sizeof(kCloseAngle)-1, &dummy);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  rv = aOutput->Write(NS_LINEBREAK, sizeof(NS_LINEBREAK)-1, &dummy);
+  NS_ENSURE_SUCCESS(rv, rv);
+
   return rv;
 }
 
@@ -1882,7 +1931,7 @@ nsPlacesImportExportService::WriteContainerContents(PRInt64 aFolder, const nsACS
       else
         rv = WriteContainer(folderId, myIndent, aOutput);
     } else if (type == nsINavHistoryResultNode::RESULT_TYPE_SEPARATOR) {
-      rv = WriteSeparator(myIndent, aOutput);
+      rv = WriteSeparator(child, myIndent, aOutput);
     } else {
       rv = WriteItem(child, myIndent, aOutput);
     }
