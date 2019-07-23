@@ -242,7 +242,7 @@ class HashTable : AllocPolicy
 #endif
 
     static const unsigned sMinSize      = 16;
-    static const unsigned sSizeLimit    = tl::NBitMask<24>::result;
+    static const size_t   sSizeLimit    = tl::NBitMask<24>::result;
     static const unsigned sHashBits     = tl::BitSize<HashNumber>::result;
     static const unsigned sGoldenRatio  = 0x9E3779B9U;       
     static const uint8    sMinAlphaFrac = 64;  
