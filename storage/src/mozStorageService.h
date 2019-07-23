@@ -49,48 +49,54 @@
 
 #include "mozIStorageService.h"
 
-class mozStorageConnection;
 class nsIXPConnect;
 
-class mozStorageService : public mozIStorageService
-                        , public nsIObserver
+namespace mozilla {
+namespace storage {
+
+class Service : public mozIStorageService
+              , public nsIObserver
 {
-    friend class mozStorageConnection;
-
 public:
-    
-    nsresult Init();
-
-    static mozStorageService *GetSingleton();
-
-    NS_DECL_ISUPPORTS
-    NS_DECL_MOZISTORAGESERVICE
-    NS_DECL_NSIOBSERVER
-
-    
+  
 
 
+  nsresult initialize();
 
-    static already_AddRefed<nsIXPConnect> XPConnect();
+  static Service *getSingleton();
+
+  NS_DECL_ISUPPORTS
+  NS_DECL_MOZISTORAGESERVICE
+  NS_DECL_NSIOBSERVER
+
+  
+
+
+
+  static already_AddRefed<nsIXPConnect> getXPConnect();
+
 private:
-    virtual ~mozStorageService();
+  virtual ~Service();
 
-    
-
-
-
-    PRLock *mLock;
-
-    
+  
 
 
-    void Shutdown();
-protected:
-    nsCOMPtr<nsIFile> mProfileStorageFile;
 
-    static mozStorageService *gStorageService;
+  PRLock *mLock;
 
-    static nsIXPConnect *sXPConnect;
+  
+
+
+  void shutdown();
+
+  nsCOMPtr<nsIFile> mProfileStorageFile;
+
+  static Service *gService;
+
+  static nsIXPConnect *sXPConnect;
 };
+
+} 
+} 
 
 #endif 
