@@ -28,6 +28,8 @@ var gPlayTests = [
   
   { name:"bug482461.ogv", type:"video/ogg", duration:4.24 },
   
+  { name:"bug500311.ogv", type:"video/ogg", duration:1.96 },
+  
   { name:"small-shot.ogg", type:"video/ogg" },
 
   { name:"bogus.duh", type:"bogus/duh" }
