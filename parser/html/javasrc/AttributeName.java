@@ -508,19 +508,44 @@ public final class AttributeName
     }
 
     
+    
+
+
+
+
+
+
     static AttributeName create(@Local String name) {
         return new AttributeName(AttributeName.ALL_NO_NS,
                 AttributeName.SAME_LOCAL(name), ALL_NO_PREFIX,
                 AttributeName.ALL_NCNAME, false);
     }
 
+    
+
+
+
+
+
+
     public boolean isNcName(int mode) {
         return ncname[mode];
     }
 
+    
+
+
+
+
     public boolean isXmlns() {
         return xmlns;
     }
+
+    
+
+
+
+
 
     boolean isCaseFolded() {
         return this == AttributeName.ACTIVE || this == AttributeName.ALIGN

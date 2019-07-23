@@ -32,8 +32,14 @@ import org.xml.sax.SAXException;
 
 public abstract class MetaScanner {
 
+    
+
+
     private static final @NoLength char[] CHARSET = "charset".toCharArray();
     
+    
+
+
     private static final @NoLength char[] CONTENT = "content".toCharArray();
 
     private static final int NO = 0;
@@ -86,17 +92,38 @@ public abstract class MetaScanner {
     
     private static final int SELF_CLOSING_START_TAG = 20;
     
+    
+
+
     protected ByteReadable readable;
     
+    
+
+
     private int metaState = NO;
+
+    
+
 
     private int contentIndex = -1;
     
+    
+
+
     private int charsetIndex = -1;
+
+    
+
 
     protected int stateSave = DATA;
 
+    
+
+
     private int strBufLen;
+
+    
+
 
     private char[] strBuf;
     
@@ -123,6 +150,8 @@ public abstract class MetaScanner {
 
 
 
+
+
     protected int read() throws IOException {
         return readable.readByte();
     }
@@ -131,6 +160,9 @@ public abstract class MetaScanner {
 
     
     
+    
+
+
     protected final void stateLoop(int state)
             throws SAXException, IOException {
         int c = -1;
@@ -658,6 +690,10 @@ public abstract class MetaScanner {
         stateSave  = state;
     }
 
+    
+
+
+
     private void addToBuffer(int c) {
         if (strBufLen == strBuf.length) {
             char[] newBuf = new char[strBuf.length + (strBuf.length << 1)];
@@ -667,6 +703,11 @@ public abstract class MetaScanner {
         }
         strBuf[strBufLen++] = (char)c;
     }
+
+    
+
+
+
 
     private boolean tryCharset() throws SAXException {
         if (metaState != A || !(contentIndex == 6 || charsetIndex == 6)) {
@@ -690,6 +731,13 @@ public abstract class MetaScanner {
         return success;
     }
     
+    
+
+
+
+
+
+
     protected abstract boolean tryCharset(String encoding) throws SAXException;
 
     

@@ -24,14 +24,39 @@ package nu.validator.htmlparser.impl;
 
 import nu.validator.htmlparser.annotation.NoLength;
 
+
+
+
+
+
+
+
 public final class UTF16Buffer {
+
+    
+
+
+
     private final @NoLength char[] buffer;
 
+    
+
+
     private int start;
+
+    
+
+
+
 
     private int end;
 
     
+
+
+
+
+
 
 
 
@@ -52,6 +77,7 @@ public final class UTF16Buffer {
     }
 
     
+
 
 
 
@@ -77,11 +103,23 @@ public final class UTF16Buffer {
     public int getEnd() {
         return end;
     }
+
     
+
+
+
+
     public boolean hasMore() {
         return start < end;
     }
+
     
+
+
+
+
+
+
     public void adjust(boolean lastWasCR) {
         if (lastWasCR && buffer[start] == '\n') {
             start++;
@@ -89,6 +127,7 @@ public final class UTF16Buffer {
     }
 
     
+
 
 
 
