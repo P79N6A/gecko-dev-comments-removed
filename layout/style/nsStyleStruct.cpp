@@ -61,6 +61,11 @@
 #include "nsBidiUtils.h"
 
 #include "imgIRequest.h"
+#include "prlog.h"
+
+
+PR_STATIC_ASSERT((((1 << nsStyleStructID_Length) - 1) &
+                  ~(NS_STYLE_INHERIT_MASK)) == 0);
 
 inline PRBool IsFixedUnit(nsStyleUnit aUnit, PRBool aEnumOK)
 {

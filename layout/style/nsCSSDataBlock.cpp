@@ -189,7 +189,7 @@ nsCSSCompressedDataBlock::MapRuleInfoInto(nsRuleData *aRuleData) const
     
     
     
-    if (!(nsCachedStyleData::GetBitForSID(aRuleData->mSID) & mStyleBits))
+    if (!(aRuleData->mSIDs & mStyleBits))
         return NS_OK;
 
     const char* cursor = Block();
@@ -198,7 +198,8 @@ nsCSSCompressedDataBlock::MapRuleInfoInto(nsRuleData *aRuleData) const
         nsCSSProperty iProp = PropertyAtCursor(cursor);
         NS_ASSERTION(0 <= iProp && iProp < eCSSProperty_COUNT_no_shorthands,
                      "out of range");
-        if (nsCSSProps::kSIDTable[iProp] == aRuleData->mSID) {
+        if (nsCachedStyleData::GetBitForSID(nsCSSProps::kSIDTable[iProp]) &
+            aRuleData->mSIDs) {
             void *prop =
                 nsCSSExpandedDataBlock::RuleDataPropertyAt(aRuleData, iProp);
             switch (nsCSSProps::kTypeTable[iProp]) {

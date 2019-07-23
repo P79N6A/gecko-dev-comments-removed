@@ -138,7 +138,7 @@ NS_IMPL_ISUPPORTS1(BodyRule, nsIStyleRule)
 NS_IMETHODIMP
 BodyRule::MapRuleInfoInto(nsRuleData* aData)
 {
-  if (!aData || (aData->mSID != eStyleStruct_Margin) || !aData->mMarginData || !mPart)
+  if (!aData || !(aData->mSIDs & NS_STYLE_INHERIT_BIT(Margin)) || !aData->mMarginData || !mPart)
     return NS_OK; 
 
   PRInt32 bodyMarginWidth  = -1;
@@ -481,7 +481,7 @@ nsHTMLBodyElement::UnbindFromTree(PRBool aDeep, PRBool aNullParent)
 static 
 void MapAttributesIntoRule(const nsMappedAttributes* aAttributes, nsRuleData* aData)
 {
-  if (aData->mSID == eStyleStruct_Display) {
+  if (aData->mSIDs & NS_STYLE_INHERIT_BIT(Display)) {
     
     nsIPresShell *presShell = aData->mPresContext->GetPresShell();
     if (presShell) {
@@ -510,7 +510,7 @@ void MapAttributesIntoRule(const nsMappedAttributes* aAttributes, nsRuleData* aD
     }
   }
 
-  if (aData->mSID == eStyleStruct_Color) {
+  if (aData->mSIDs & NS_STYLE_INHERIT_BIT(Color)) {
     if (aData->mColorData->mColor.GetUnit() == eCSSUnit_Null) {
       
       nscolor color;

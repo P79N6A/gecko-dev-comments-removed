@@ -69,7 +69,7 @@ class imgIRequest;
 #include "nsStyleStructFwd.h"
 
 
-#define NS_STYLE_INHERIT_BIT(sid_)        (1 << PRInt32(eStyleStruct_##sid_))
+
 #define NS_STYLE_INHERIT_MASK             0x00ffffff
 
 

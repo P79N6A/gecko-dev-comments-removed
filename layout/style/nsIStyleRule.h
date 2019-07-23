@@ -102,6 +102,7 @@ public:
 
 
 
+
   NS_IMETHOD MapRuleInfoInto(nsRuleData* aRuleData)=0;
 
 #ifdef DEBUG

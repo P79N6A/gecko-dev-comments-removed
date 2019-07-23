@@ -170,7 +170,7 @@ static void
 MapAttributesIntoRule(const nsMappedAttributes* aAttributes,
                       nsRuleData* aData)
 {
-  if (aData->mSID == eStyleStruct_Font) {
+  if (aData->mSIDs & NS_STYLE_INHERIT_BIT(Font)) {
     nsRuleDataFont& font = *(aData->mFontData);
     
     
@@ -214,7 +214,7 @@ MapAttributesIntoRule(const nsMappedAttributes* aAttributes,
         font.mWeight.SetIntValue(value->GetIntegerValue(), eCSSUnit_Integer);
     }
   }
-  else if (aData->mSID == eStyleStruct_Color) {
+  if (aData->mSIDs & NS_STYLE_INHERIT_BIT(Color)) {
     if (aData->mColorData->mColor.GetUnit() == eCSSUnit_Null) {
       
       const nsAttrValue* value = aAttributes->GetAttr(nsGkAtoms::color);
@@ -224,7 +224,7 @@ MapAttributesIntoRule(const nsMappedAttributes* aAttributes,
       }
     }
   }
-  else if (aData->mSID == eStyleStruct_TextReset) {
+  if (aData->mSIDs & NS_STYLE_INHERIT_BIT(TextReset)) {
     
     
     
