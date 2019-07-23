@@ -283,7 +283,36 @@ nsAccessible::GetName(nsAString& aName)
   if (!aName.IsEmpty())
     return NS_OK;
 
-  return GetNameInternal(aName);
+  nsresult rv = GetNameInternal(aName);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  if (!aName.IsEmpty())
+    return NS_OK;
+
+  
+  nsCOMPtr<nsIContent> content = nsCoreUtils::GetRoleContent(mDOMNode);
+  if (!content)
+    return NS_OK;
+
+  nsIAtom *tooltipAttr = nsnull;
+
+  if (content->IsNodeOfType(nsINode::eHTML))
+    tooltipAttr = nsAccessibilityAtoms::title;
+  else if (content->IsNodeOfType(nsINode::eXUL))
+    tooltipAttr = nsAccessibilityAtoms::tooltiptext;
+  else
+    return NS_OK;
+
+  
+  nsAutoString name;
+  if (content->GetAttr(kNameSpaceID_None, tooltipAttr, name)) {
+    name.CompressWhitespace();
+    aName = name;
+  } else {
+    aName.SetIsVoid(PR_TRUE);
+  }
+
+  return NS_OK;
 }
 
 NS_IMETHODIMP nsAccessible::GetDescription(nsAString& aDescription)
@@ -1752,12 +1781,6 @@ nsAccessible::GetHTMLName(nsAString& aLabel)
       return NS_OK;
   }
 
-  
-  if (!content->GetAttr(kNameSpaceID_None, nsAccessibilityAtoms::title,
-                        aLabel)) {
-    aLabel.SetIsVoid(PR_TRUE);
-  }
-
   return NS_OK;
 }
 
@@ -1823,13 +1846,6 @@ nsAccessible::GetXULName(nsAString& aLabel)
   }
 
   
-  label.CompressWhitespace();
-  if (!label.IsEmpty()) {
-    aLabel = label;
-    return NS_OK;
-  }
-
-  content->GetAttr(kNameSpaceID_None, nsAccessibilityAtoms::tooltiptext, label);
   label.CompressWhitespace();
   if (!label.IsEmpty()) {
     aLabel = label;
