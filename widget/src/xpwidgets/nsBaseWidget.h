@@ -49,6 +49,9 @@
 #include "nsCOMPtr.h"
 #include "nsGUIEvent.h"
 
+class nsIContent;
+class nsAutoRollup;
+
 
 
 
@@ -60,6 +63,7 @@
 
 class nsBaseWidget : public nsIWidget
 {
+  friend class nsAutoRollup;
 
 public:
   nsBaseWidget();
@@ -149,6 +153,11 @@ protected:
                                      nsIToolkit *aToolkit,
                                      nsWidgetInitData *aInitData);
 
+  virtual nsIContent* GetLastRollup()
+  {
+    return mLastRollup;
+  }
+
 protected: 
   void*             mClientData;
   EVENT_CALLBACK    mEventCallback;
@@ -170,6 +179,10 @@ protected:
   nsRect*           mOriginalBounds;
   PRInt32           mZIndex;
   nsSizeMode        mSizeMode;
+
+  
+  
+  static nsIContent* mLastRollup;
     
     
     
@@ -209,6 +222,28 @@ protected:
 
   static PRBool debug_GetCachedBoolPref(const char* aPrefName);
 #endif
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+class nsAutoRollup
+{
+  PRBool wasClear;
+
+  public:
+
+  nsAutoRollup();
+  ~nsAutoRollup();
 };
 
 #endif 

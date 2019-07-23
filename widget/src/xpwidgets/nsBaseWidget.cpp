@@ -46,6 +46,7 @@
 #include "nsIScreenManager.h"
 #include "nsAppDirectoryServiceDefs.h"
 #include "nsISimpleEnumerator.h"
+#include "nsIContent.h"
 
 #ifdef DEBUG
 #include "nsIServiceManager.h"
@@ -62,9 +63,26 @@ static PRBool debug_InSecureKeyboardInputMode = PR_FALSE;
 static PRInt32 gNumWidgets;
 #endif
 
+nsIContent* nsBaseWidget::mLastRollup = nsnull;
+
 
 NS_IMPL_ISUPPORTS1(nsBaseWidget, nsIWidget)
 
+
+nsAutoRollup::nsAutoRollup()
+{
+  
+  
+  
+  wasClear = !nsBaseWidget::mLastRollup;
+}
+
+nsAutoRollup::~nsAutoRollup()
+{
+  if (nsBaseWidget::mLastRollup && wasClear) {
+    NS_RELEASE(nsBaseWidget::mLastRollup);
+  }
+}
 
 
 

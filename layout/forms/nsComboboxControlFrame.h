@@ -194,7 +194,7 @@ public:
 
 
 
-  NS_IMETHOD Rollup();
+  NS_IMETHOD Rollup(nsIContent** aLastRolledUp);
   
 
 

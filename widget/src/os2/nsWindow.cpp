@@ -664,7 +664,8 @@ nsWindow :: DealWithPopups ( ULONG inMsg, MRESULT* outResult )
 
       
       if ( rollup ) {
-        gRollupListener->Rollup();
+        
+        gRollupListener->Rollup(inMsg == WM_LBUTTONDOWN ? &mLastRollup : nsnull);
 
         
         
@@ -723,6 +724,8 @@ BOOL bothFromSameWindow( HWND hwnd1, HWND hwnd2 )
 
 MRESULT EXPENTRY fnwpNSWindow( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 {
+   nsAutoRollup autoRollup;
+
    MRESULT popupHandlingResult;
    if( nsWindow::DealWithPopups(msg, &popupHandlingResult) )
       return popupHandlingResult;
@@ -767,7 +770,7 @@ MRESULT EXPENTRY fnwpNSWindow( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
          if( !mp2 && 
              !bothFromSameWindow( ((nsWindow*)gRollupWidget)->GetMainWindow(), 
                                   (HWND)mp1) ) {
-            gRollupListener->Rollup();
+            gRollupListener->Rollup(nsnull);
          }
       }
    }
@@ -1120,7 +1123,7 @@ NS_METHOD nsWindow::Destroy()
     
     if (this == gRollupWidget) {
       if (gRollupListener) {
-        gRollupListener->Rollup();
+        gRollupListener->Rollup(nsnull);
       }
       CaptureRollupEvents(nsnull, PR_FALSE, PR_TRUE);
     }

@@ -1301,8 +1301,11 @@ nsComboboxControlFrame::GetAdditionalChildListName(PRInt32 aIndex) const
   
 
 NS_IMETHODIMP 
-nsComboboxControlFrame::Rollup()
+nsComboboxControlFrame::Rollup(nsIContent** aLastRolledUp)
 {
+  if (aLastRolledUp)
+    *aLastRolledUp = nsnull;
+
   if (mDroppedDown) {
     nsWeakFrame weakFrame(this);
     mListControlFrame->AboutToRollup(); 

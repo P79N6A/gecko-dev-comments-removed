@@ -1232,6 +1232,10 @@ BOOL nsWindow::SetNSWindowPtr(HWND aWnd, nsWindow * ptr) {
 
 LRESULT CALLBACK nsWindow::WindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
+  
+  
+  nsAutoRollup autoRollup;
+
   LRESULT popupHandlingResult;
   if ( DealWithPopups(hWnd, msg, wParam, lParam, &popupHandlingResult) )
     return popupHandlingResult;
@@ -1526,7 +1530,7 @@ NS_METHOD nsWindow::Destroy()
   
   if ( this == gRollupWidget ) {
     if ( gRollupListener )
-      gRollupListener->Rollup();
+      gRollupListener->Rollup(nsnull);
     CaptureRollupEvents(nsnull, PR_FALSE, PR_TRUE);
   }
 
@@ -7670,6 +7674,7 @@ VOID CALLBACK nsWindow::HookTimerForPopups(HWND hwnd, UINT uMsg, UINT idEvent, D
     
     
     LRESULT popupHandlingResult;
+    nsAutoRollup autoRollup;
     DealWithPopups(gRollupMsgWnd, gRollupMsgId, 0, 0, &popupHandlingResult);
     gRollupMsgId = 0;
     gRollupMsgWnd = NULL;
@@ -7770,7 +7775,8 @@ nsWindow :: DealWithPopups ( HWND inWnd, UINT inMsg, WPARAM inWParam, LPARAM inL
       else
 #endif
       if ( rollup ) {
-        gRollupListener->Rollup();
+        
+        gRollupListener->Rollup(inMsg == WM_LBUTTONDOWN ? &mLastRollup : nsnull);
 
         
         gProcessHook = PR_FALSE;

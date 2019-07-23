@@ -63,6 +63,7 @@ struct  nsColorMap;
 class   imgIContainer;
 class   gfxASurface;
 class   nsIMouseListener;
+class   nsIContent;
 
 
 
@@ -96,8 +97,8 @@ typedef nsEventStatus (*PR_CALLBACK EVENT_CALLBACK)(nsGUIEvent *event);
 
 
 #define NS_IWIDGET_IID \
-{ 0x3B4E560A, 0x11E6, 0x4EBD, \
-  { 0xB9, 0x87, 0x35, 0x38, 0x56, 0x24, 0x97, 0x0D } }
+{ 0x092c37e8, 0x2806, 0x4ebc, \
+  { 0xb0, 0x4b, 0xe0, 0xbb, 0x62, 0x4c, 0xe0, 0xd4 } }
 
 
 
@@ -1039,6 +1040,10 @@ class nsIWidget : public nsISupports {
 
     virtual gfxASurface *GetThebesSurface() = 0;
 
+    
+
+
+    virtual nsIContent* GetLastRollup() = 0;
 
 protected:
     
