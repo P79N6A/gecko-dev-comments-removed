@@ -107,7 +107,7 @@ let gStr = {
 
 gDownloadManager.DBConnection.createFunction("getDisplayHost", 1, {
   QueryInterface: XPCOMUtils.generateQI([Ci.mozIStorageFunction]),
-  onFunctionCall: function(aArgs) getDisplayHost(aArgs.getUTF8String(0))
+  onFunctionCall: function(aArgs) getHost(aArgs.getUTF8String(0))[0]
 });
 
 
@@ -787,6 +787,7 @@ function createDownloadItem(aAttrs)
 
 function updateStatus(aItem, aDownload) {
   let status = "";
+  let statusTip = "";
 
   let state = Number(aItem.getAttribute("state"));
   switch (state) {
@@ -893,15 +894,17 @@ function updateStatus(aItem, aDownload) {
         status = replaceInsert(gStr.doneStatus, 1, stateSize[state]());
       }
 
-      let (displayHost = getDisplayHost(getReferrerOrSource(aItem))) {
-        
-        status = replaceInsert(status, 2, displayHost);
-      }
+      let [displayHost, fullHost] = getHost(getReferrerOrSource(aItem));
+      
+      status = replaceInsert(status, 2, displayHost);
+      
+      statusTip = fullHost;
 
       break;
   }
 
   aItem.setAttribute("status", status);
+  aItem.setAttribute("statusTip", statusTip != "" ? statusTip : status);
 }
 
 
@@ -995,7 +998,7 @@ function convertByteUnits(aBytes)
 
 
 
-function getDisplayHost(aURIString)
+function getHost(aURIString)
 {
   let ioService = Cc["@mozilla.org/network/io-service;1"].
                   getService(Ci.nsIIOService);
@@ -1011,6 +1014,14 @@ function getDisplayHost(aURIString)
   if (uri instanceof Ci.nsINestedURI)
     uri = uri.innermostURI;
 
+  let fullHost;
+  try {
+    
+    fullHost = uri.host;
+  } catch (e) {
+    fullHost = "";
+  }
+
   let displayHost;
   try {
     
@@ -1019,27 +1030,27 @@ function getDisplayHost(aURIString)
     
     displayHost = idnService.convertToDisplayIDN(baseDomain, {});
   } catch (e) {
-    try {
-      
-      displayHost = uri.host;
-    } catch (e) {
-      displayHost = "";
-    }
+    
+    displayHost = fullHost;
   }
 
   
   if (uri.scheme == "file") {
     
     displayHost = gStr.doneFileScheme;
+    fullHost = displayHost;
   } else if (displayHost.length == 0) {
     
     displayHost = replaceInsert(gStr.doneScheme, 1, uri.scheme);
+    fullHost = displayHost;
   } else if (uri.port != -1) {
     
-    displayHost += ":" + uri.port;
+    let port = ":" + uri.port;
+    displayHost += port;
+    fullHost += port;
   }
 
-  return displayHost;
+  return [displayHost, fullHost];
 }
 
 function replaceInsert(aText, aIndex, aValue)
