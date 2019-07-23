@@ -3004,18 +3004,6 @@ ProcessSetSlotRequest(JSContext *cx, JSSetSlotRequest *ssr)
     STOBJ_SET_SLOT(obj, slot, OBJECT_TO_JSVAL(pobj));
 }
 
-static void
-DestroyScriptsToGC(JSContext *cx, JSScript **listp)
-{
-    JSScript *script;
-
-    while ((script = *listp) != NULL) {
-        *listp = script->u.nextToGC;
-        script->u.nextToGC = NULL;
-        js_DestroyScript(cx, script);
-    }
-}
-
 
 
 
@@ -3249,9 +3237,6 @@ js_GC(JSContext *cx, JSGCInvocationKind gckind)
     js_FlushJITCache(cx);
 #endif
 
-    
-    DestroyScriptsToGC(cx, &JS_SCRIPTS_TO_GC(cx));
-
 #ifdef JS_THREADSAFE
     
 
@@ -3275,7 +3260,6 @@ js_GC(JSContext *cx, JSGCInvocationKind gckind)
 #ifdef JS_TRACER
         js_FlushJITCache(acx);
 #endif
-        DestroyScriptsToGC(cx, &acx->thread->scriptsToGC);
     }
 #else
     
