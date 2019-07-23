@@ -57,8 +57,8 @@ class nsIEditor;
 
 
 #define NS_IHTMLDOCUMENT_IID \
-{ 0x19d63a6c, 0xcc94, 0x499c, \
-  { 0x89, 0x2a, 0x95, 0x5a, 0xdd, 0x77, 0x2e, 0x10 } }
+{ 0x5a959364, 0xa2f4, 0x4cac, \
+  { 0x9a, 0x2c, 0x95, 0x70, 0x55, 0xdc, 0x35, 0x69 } }
 
 
 
@@ -190,6 +190,8 @@ public:
 
 
   virtual void TearingDownEditor(nsIEditor *aEditor) = 0;
+
+  virtual void SetIsXHTML(PRBool aXHTML) = 0;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsIHTMLDocument, NS_IHTMLDOCUMENT_IID)
