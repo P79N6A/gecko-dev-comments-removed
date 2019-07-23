@@ -230,6 +230,8 @@ TraceRecorder::onFrame(void* p) const
     return findFrame(p) != NULL;
 }
 
+
+
 unsigned
 TraceRecorder::nativeFrameSlots(JSStackFrame* fp) const
 {
@@ -269,6 +271,7 @@ TraceRecorder::nativeFrameOffset(void* p) const
     return offset * sizeof(double);
 }
 
+
 static inline int gettag(jsval v)
 {
     if (JSVAL_IS_INT(v))
@@ -297,7 +300,9 @@ TraceRecorder::buildTypeMap(char* m) const
     buildTypeMap(cx->fp, m);
 }
 
-bool 
+
+
+bool
 TraceRecorder::unbox_jsval(jsval v, int t, double* slot) const
 {
     if (t != gettag(v))
@@ -314,6 +319,7 @@ TraceRecorder::unbox_jsval(jsval v, int t, double* slot) const
     }
     return true;
 }
+
 
 bool 
 TraceRecorder::box_jsval(jsval* vp, int t, double* slot) const
@@ -373,6 +379,7 @@ TraceRecorder::box(JSStackFrame* fp, char* m, double* native) const
     return true;
 }
 
+
 void 
 TraceRecorder::readstack(void* p)
 {
@@ -381,16 +388,12 @@ TraceRecorder::readstack(void* p)
             nativeFrameOffset(p)));
 }
 
-void 
-TraceRecorder::init(void* p, LIns* i)
-{
-    tracker.set(p, i);
-}
+
 
 void 
 TraceRecorder::set(void* p, LIns* i)
 {
-    init(p, i);
+    tracker.set(p, i);
     if (onFrame(p))
         lir->insStorei(i, sp_load_ins, 
                 nativeFrameOffset(p));
