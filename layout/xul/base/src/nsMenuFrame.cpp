@@ -459,13 +459,13 @@ nsMenuFrame::HandleEvent(nsPresContext* aPresContext,
            !IsDisabled() && IsMenu()) {
     
     
+    
+    
     if (!mMenuParent || mMenuParent->IsMenuBar()) {
-      *aEventStatus = nsEventStatus_eConsumeNoDefault;
       ToggleMenuState();
     }
     else {
       if (!IsOpen()) {
-        *aEventStatus = nsEventStatus_eConsumeNoDefault;
         OpenMenu(PR_FALSE);
       }
     }
