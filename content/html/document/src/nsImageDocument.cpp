@@ -600,33 +600,39 @@ nsImageDocument::CreateSyntheticDocument()
 nsresult
 nsImageDocument::CheckOverflowing(PRBool changeState)
 {
-  nsIPresShell *shell = GetPrimaryShell();
-  if (!shell) {
-    return NS_OK;
-  }
+  
 
-  nsPresContext *context = shell->GetPresContext();
-  nsRect visibleArea = context->GetVisibleArea();
 
-  nsCOMPtr<nsIContent> content = do_QueryInterface(mBodyContent);
-  if (!content) {
-    NS_WARNING("no body on image document!");
-    return NS_ERROR_FAILURE;
-  }
 
-  nsRefPtr<nsStyleContext> styleContext =
-    context->StyleSet()->ResolveStyleFor(content, nsnull);
+  {
+    nsIPresShell *shell = GetPrimaryShell();
+    if (!shell) {
+      return NS_OK;
+    }
 
-  nsMargin m;
-  if (styleContext->GetStyleMargin()->GetMargin(m))
+    nsPresContext *context = shell->GetPresContext();
+    nsRect visibleArea = context->GetVisibleArea();
+
+    nsCOMPtr<nsIContent> content = do_QueryInterface(mBodyContent);
+    if (!content) {
+      NS_WARNING("no body on image document!");
+      return NS_ERROR_FAILURE;
+    }
+
+    nsRefPtr<nsStyleContext> styleContext =
+      context->StyleSet()->ResolveStyleFor(content, nsnull);
+
+    nsMargin m;
+    if (styleContext->GetStyleMargin()->GetMargin(m))
+      visibleArea.Deflate(m);
+    m = styleContext->GetStyleBorder()->GetBorder();
     visibleArea.Deflate(m);
-  m = styleContext->GetStyleBorder()->GetBorder();
-  visibleArea.Deflate(m);
-  if (styleContext->GetStylePadding()->GetPadding(m))
-    visibleArea.Deflate(m);
+    if (styleContext->GetStylePadding()->GetPadding(m))
+      visibleArea.Deflate(m);
 
-  mVisibleWidth = nsPresContext::AppUnitsToIntCSSPixels(visibleArea.width);
-  mVisibleHeight = nsPresContext::AppUnitsToIntCSSPixels(visibleArea.height);
+    mVisibleWidth = nsPresContext::AppUnitsToIntCSSPixels(visibleArea.width);
+    mVisibleHeight = nsPresContext::AppUnitsToIntCSSPixels(visibleArea.height);
+  }
 
   PRBool imageWasOverflowing = mImageIsOverflowing;
   mImageIsOverflowing =
