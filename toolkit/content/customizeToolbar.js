@@ -238,6 +238,8 @@ function unwrapToolbarItems()
     if (paletteItem.hasAttribute("itemcommand")) {
       let commandID = paletteItem.getAttribute("itemcommand");
       toolbarItem.setAttribute("command", commandID);
+
+      
       toolbarItem.disabled = gToolboxDocument.getElementById(commandID).disabled;
     }
 
