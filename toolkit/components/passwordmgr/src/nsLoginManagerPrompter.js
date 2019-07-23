@@ -659,16 +659,7 @@ LoginManagerPrompter.prototype = {
         var displayHost = this._getShortDisplayHost(aLogin.hostname);
         var notificationText;
         if (aLogin.username) {
-            
-            
-            
-            
-            var displayUser = aLogin.username;
-            if (displayUser.length > 30) {
-                displayUser = displayUser.substring(0, 30);
-                displayUser += this._ellipsis;
-            }
-            displayUser = displayUser.replace(/['"]/g, "");
+            var displayUser = this._sanitizeUsername(aLogin.username);
             notificationText  = this._getLocalizedString(
                                         "saveLoginText",
                                         [brandShortName, displayUser, displayHost]);
@@ -757,16 +748,7 @@ LoginManagerPrompter.prototype = {
 
         var dialogText;
         if (aLogin.username) {
-            
-            
-            
-            
-            var displayUser = aLogin.username;
-            if (displayUser.length > 30) {
-                displayUser = displayUser.substring(0, 30);
-                displayUser += this._ellipsis;
-            }
-            displayUser = displayUser.replace(/['"]/g, "");
+            var displayUser = this._sanitizeUsername(aLogin.username);
             dialogText = this._getLocalizedString(
                                  "saveLoginText",
                                  [brandShortName, displayUser, displayHost]);
@@ -1065,6 +1047,22 @@ LoginManagerPrompter.prototype = {
                                         key, formatArgs, formatArgs.length);
         else
             return this._strBundle.GetStringFromName(key);
+    },
+
+
+    
+
+
+
+
+
+
+    _sanitizeUsername : function (username) {
+        if (username.length > 30) {
+            username = username.substring(0, 30);
+            username += this._ellipsis;
+        }
+        return username.replace(/['"]/g, "");
     },
 
 
