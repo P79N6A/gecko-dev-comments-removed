@@ -1,33 +1,61 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 const Ci = Components.interfaces;
 const Cc = Components.classes;
 
-const kUrlBarElm = document.getElementById('urlbar');
-const kSearchBarElm = document.getElementById('searchbar');
 const kTestString = "  hello hello  \n  world\nworld  ";
 
-function testPaste(name, element, expected) {
-  element.focus();
-  listener.expected = expected;
-  listener.name = name;
-  
-  
-  EventUtils.synthesizeKey("v", { accelKey: true });
-}
+var gTests = [
 
-var listener = {
-  expected: "",
-  name: "",
-  handleEvent: function(event) {
-    var element = event.target;
-    is(element.value, this.expected, this.name);
-    switch (element) {
-      case kUrlBarElm:
-        continue_test();
-      case kSearchBarElm:
-        finish_test();
-    }
-  }
-}
+  { desc: "Urlbar strips newlines and surrounding whitespace",
+    element: gURLBar,
+    expected: kTestString.replace(/\s*\n\s*/g,'')
+  },
+
+  { desc: "Searchbar replaces newlines with spaces",
+    element: document.getElementById('searchbar'),
+    expected: kTestString.replace('\n',' ','g')
+  },
+
+];
 
 
 
@@ -36,13 +64,9 @@ function test() {
   waitForExplicitFinish();
 
   
-  kUrlBarElm.addEventListener("input", listener, true);
-  kSearchBarElm.addEventListener("input", listener, true);
-
-  
-  Components.classes["@mozilla.org/widget/clipboardhelper;1"]
-            .getService(Components.interfaces.nsIClipboardHelper)
-            .copyString(kTestString);
+  info("About to put a string in clipboard");
+  Cc["@mozilla.org/widget/clipboardhelper;1"].getService(Ci.nsIClipboardHelper)
+                                             .copyString(kTestString);
 
   
   
@@ -60,44 +84,75 @@ function poll_clipboard() {
     return;
   }
 
-  var clip = Components.classes["@mozilla.org/widget/clipboard;1"].
-             getService(Components.interfaces.nsIClipboard);
-  var trans = Components.classes["@mozilla.org/widget/transferable;1"].
-              createInstance(Components.interfaces.nsITransferable);
+  info("Polling clipboard cycle " + runCount);
+  var clip = Cc["@mozilla.org/widget/clipboard;1"].
+             getService(Ci.nsIClipboard);
+  var trans = Cc["@mozilla.org/widget/transferable;1"].
+              createInstance(Ci.nsITransferable);
   trans.addDataFlavor("text/unicode");
   var str = new Object();
   try {
     
-    clip.getData(trans,clip.kGlobalClipboard);
-    trans.getTransferData("text/unicode",str,{});
-    str = str.value.QueryInterface(Components.interfaces.nsISupportsString);
-  } catch (ex) {}
+    clip.getData(trans, clip.kGlobalClipboard);
+    trans.getTransferData("text/unicode", str, {});
+    str = str.value.QueryInterface(Ci.nsISupportsString);
+  }
+  catch(ex) {}
 
   if (kTestString == str) {
-    testPaste('urlbar strips newlines and surrounding whitespace',
-              kUrlBarElm,
-              kTestString.replace(/\s*\n\s*/g,''));
+    next_test();
   }
   else
     setTimeout(poll_clipboard, 100);
 }
 
-function continue_test() {
-  testPaste('searchbar replaces newlines with spaces', 
-            kSearchBarElm,
-            kTestString.replace('\n',' ','g'));
+function next_test() {
+  if (gTests.length) {
+    var currentTest = gTests.shift();
+    test_paste(currentTest);
+  }
+  else {
+    
+    
+    
+    Cc["@mozilla.org/widget/clipboardhelper;1"].getService(Ci.nsIClipboardHelper)
+                                               .copyString("");
+    finish();
+  }
 }
 
-function finish_test() {
-  kUrlBarElm.removeEventListener("input", listener, true);
-  kSearchBarElm.removeEventListener("input", listener, true);
+function test_paste(aCurrentTest) {
+  var element = aCurrentTest.element;
+
   
+  var inputListener = {
+    test: aCurrentTest,
+    handleEvent: function(event) {
+      var element = event.target;
+      element.removeEventListener("input", this, false);
+
+      is(element.value, this.test.expected, this.test.desc);
+
+      
+      element.value = "";
+      setTimeout(next_test, 0);
+    }
+  }
+  element.addEventListener("input", inputListener, false);
+
   
-  Components.classes["@mozilla.org/widget/clipboardhelper;1"]
-            .getService(Components.interfaces.nsIClipboardHelper)
-            .copyString("");
+  window.focus();
+
   
-  kUrlBarElm.value="";
-  kSearchBarElm.value="";
-  finish();
+  info("About to focus " + element.id);
+  element.addEventListener("focus", function() {
+    element.removeEventListener("focus", arguments.callee, false);
+    executeSoon(function() {
+      
+      
+      info("Pasting into " + element.id);
+      EventUtils.synthesizeKey("v", { accelKey: true });
+    });
+  }, false);
+  element.focus();
 }
