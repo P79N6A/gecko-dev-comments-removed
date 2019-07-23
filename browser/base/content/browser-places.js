@@ -205,9 +205,8 @@ var PlacesCommandHook = {
     
     var starIcon = document.getElementById("star-button");
     if (starIcon && isElementVisible(starIcon)) {
-      var dockTo = starIcon.parentNode; 
       this.bookmarkPage(getBrowser().selectedBrowser, aParent, aShowEditUI,
-                        dockTo, "after_start");
+                        starIcon, "after_start");
     }
     else {
       this.bookmarkPage(getBrowser().selectedBrowser, aParent, aShowEditUI,
