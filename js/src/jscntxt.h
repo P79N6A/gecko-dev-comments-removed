@@ -541,9 +541,6 @@ struct JSThreadData {
     JSPropertyCache     propertyCache;
 
     
-    int64               rngSeed;
-
-    
     JSLocalRootStack    *localRootStack;
 
 #ifdef JS_TRACER
@@ -1393,6 +1390,9 @@ struct JSContext
 
     
     uintN               resolveFlags;
+
+    
+    int64               rngSeed;
 
 #ifdef JS_TRACER
     
