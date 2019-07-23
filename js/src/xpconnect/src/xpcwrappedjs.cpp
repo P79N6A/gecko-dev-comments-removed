@@ -461,7 +461,20 @@ void
 nsXPCWrappedJS::Unlink()
 {
     XPCJSRuntime* rt = nsXPConnect::GetRuntime();
-    if(mRoot != this)
+    if(mRoot == this)
+    {
+        
+        if(rt)
+        {
+            JSObject2WrappedJSMap* map = rt->GetWrappedJSMap();
+            if(map)
+            {
+                XPCAutoLock lock(rt->GetMapLock());
+                map->Remove(this);
+            }
+        }
+    }
+    else if(mRoot)
     {
         
         nsXPCWrappedJS* cur = mRoot;
@@ -477,19 +490,6 @@ nsXPCWrappedJS::Unlink()
         }
         
         NS_RELEASE(mRoot);
-    }
-    else
-    {
-        
-        if(rt)
-        {
-            JSObject2WrappedJSMap* map = rt->GetWrappedJSMap();
-            if(map)
-            {
-                XPCAutoLock lock(rt->GetMapLock());
-                map->Remove(this);
-            }
-        }
     }
 
     if(IsValid())
