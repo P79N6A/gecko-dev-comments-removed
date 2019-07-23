@@ -519,7 +519,6 @@ nsListBoxBodyFrame::EnsureIndexIsVisible(PRInt32 aRowIndex)
   if (mCurrentIndex <= aRowIndex && aRowIndex < bottomIndex)
     return NS_OK;
 
-  
   PRInt32 delta;
 
   PRBool up = aRowIndex < mCurrentIndex;
@@ -528,6 +527,10 @@ nsListBoxBodyFrame::EnsureIndexIsVisible(PRInt32 aRowIndex)
     mCurrentIndex = aRowIndex;
   }
   else {
+    
+    if (aRowIndex >= GetRowCount())
+      return NS_ERROR_ILLEGAL_VALUE;
+
     
     delta = 1 + (aRowIndex-bottomIndex);
     mCurrentIndex += delta; 
@@ -894,9 +897,7 @@ nsListBoxBodyFrame::DoInternalPositionChanged(PRBool aUp, PRInt32 aDelta)
   if (aDelta == 0)
     return NS_OK;
 
-  nsAutoScriptBlocker scriptBlocker;
-
-  nsPresContext *presContext = PresContext();
+  nsRefPtr<nsPresContext> presContext(PresContext());
   nsBoxLayoutState state(presContext);
 
   
@@ -908,45 +909,52 @@ nsListBoxBodyFrame::DoInternalPositionChanged(PRBool aUp, PRInt32 aDelta)
     return NS_OK;
   }
 
-  PRInt32 visibleRows = 0;
-  if (mRowHeight)
-    visibleRows = GetAvailableHeight()/mRowHeight;
+  {
+    nsAutoScriptBlocker scriptBlocker;
+
+    PRInt32 visibleRows = 0;
+    if (mRowHeight)
+      visibleRows = GetAvailableHeight()/mRowHeight;
   
-  if (aDelta < visibleRows) {
-    PRInt32 loseRows = aDelta;
-    if (aUp) {
-      
-      ReverseDestroyRows(loseRows);
-      mRowsToPrepend += aDelta;
-      mLinkupFrame = nsnull;
+    if (aDelta < visibleRows) {
+      PRInt32 loseRows = aDelta;
+      if (aUp) {
+        
+        ReverseDestroyRows(loseRows);
+        mRowsToPrepend += aDelta;
+        mLinkupFrame = nsnull;
+      }
+      else {
+        
+        DestroyRows(loseRows);
+        mRowsToPrepend = 0;
+      }
     }
     else {
       
-      DestroyRows(loseRows);
-      mRowsToPrepend = 0;
+      
+      nsIFrame *currBox = mFrames.FirstChild();
+      nsCSSFrameConstructor* fc = presContext->PresShell()->FrameConstructor();
+      fc->BeginUpdate();
+      while (currBox) {
+        nsIFrame *nextBox = currBox->GetNextSibling();
+        RemoveChildFrame(state, currBox);
+        currBox = nextBox;
+      }
+      fc->EndUpdate();
     }
-  }
-  else {
-    
-    
-    nsIFrame *currBox = mFrames.FirstChild();
-    nsCSSFrameConstructor* fc = PresContext()->PresShell()->FrameConstructor();
-    fc->BeginUpdate();
-    while (currBox) {
-      nsIFrame *nextBox = currBox->GetNextSibling();
-      RemoveChildFrame(state, currBox);
-      currBox = nextBox;
-    }
-    fc->EndUpdate();
-  }
 
+    
+    mTopFrame = mBottomFrame = nsnull; 
   
-  mTopFrame = mBottomFrame = nsnull; 
-  
-  mYPosition = mCurrentIndex*mRowHeight;
-  mScrolling = PR_TRUE;
-  PresContext()->PresShell()->
-    FrameNeedsReflow(this, nsIPresShell::eResize, NS_FRAME_HAS_DIRTY_CHILDREN);
+    mYPosition = mCurrentIndex*mRowHeight;
+    mScrolling = PR_TRUE;
+    presContext->PresShell()->
+      FrameNeedsReflow(this, nsIPresShell::eResize, NS_FRAME_HAS_DIRTY_CHILDREN);
+  }
+  if (!weakThis.IsAlive()) {
+    return NS_OK;
+  }
   
   
   presContext->PresShell()->FlushPendingNotifications(Flush_Layout);
