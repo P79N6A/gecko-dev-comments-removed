@@ -491,7 +491,12 @@ nsPrintSettingsGTK::SetPrinterName(const PRUnichar * aPrinter)
     gtkPrinter.Cut(0, strlen("CUPS/"));
   }
 
-  if (!gtkPrinter.Equals(gtk_print_settings_get_printer(mPrintSettings))) {
+  
+  
+  
+  
+  const char* oldPrinterName = gtk_print_settings_get_printer(mPrintSettings);
+  if (!oldPrinterName || !gtkPrinter.Equals(oldPrinterName)) {
     mIsInitedFromPrinter = PR_FALSE;
     mIsInitedFromPrefs = PR_FALSE;
     gtk_print_settings_set_printer(mPrintSettings, gtkPrinter.get());
