@@ -1363,31 +1363,22 @@ HRESULT nsDataObj::GetText(const nsACString & aDataFlavor, FORMATETC& aFE, STGME
 
 HRESULT nsDataObj::GetFile(FORMATETC& aFE, STGMEDIUM& aSTG)
 {
-  
-  
-  
-  
   PRUint32 dfInx = 0;
   ULONG count;
   FORMATETC fe;
   m_enumFE->Reset();
   PRBool found = PR_FALSE;
   while (NOERROR == m_enumFE->Next(1, &fe, &count)
-         && dfInx < mDataFlavors.Length()) {
-    if (mDataFlavors[dfInx].EqualsLiteral(kNativeImageMime) ||
-        mDataFlavors[dfInx].EqualsLiteral(kFileMime)) {
-      found = PR_TRUE;
-      break;
-    }
-    dfInx++;
+    && dfInx < mDataFlavors.Length()) {
+      if (mDataFlavors[dfInx].EqualsLiteral(kNativeImageMime))
+        return DropImage(aFE, aSTG);
+      if (mDataFlavors[dfInx].EqualsLiteral(kFileMime))
+        return DropFile(aFE, aSTG);
+      if (mDataFlavors[dfInx].EqualsLiteral(kFilePromiseMime))
+        return DropTempFile(aFE, aSTG);
+      dfInx++;
   }
-
-  if (!found)
-    return E_FAIL;
-
-  if (mDataFlavors[dfInx].EqualsLiteral(kNativeImageMime))
-    return DropImage(aFE, aSTG);
-  return DropFile(aFE, aSTG);
+  return E_FAIL;
 }
 
 HRESULT nsDataObj::DropFile(FORMATETC& aFE, STGMEDIUM& aSTG)
@@ -1559,6 +1550,108 @@ HRESULT nsDataObj::DropImage(FORMATETC& aFE, STGMEDIUM& aSTG)
   HGLOBAL hGlobalMemory = NULL;
 
   PRUint32 allocLen = path.Length() + 2;
+
+  aSTG.tymed = TYMED_HGLOBAL;
+  aSTG.pUnkForRelease = NULL;
+
+  hGlobalMemory = GlobalAlloc(GMEM_MOVEABLE, sizeof(DROPFILES) + allocLen * sizeof(PRUnichar));
+  if (!hGlobalMemory)
+    return E_FAIL;
+
+  DROPFILES* pDropFile = (DROPFILES*)GlobalLock(hGlobalMemory);
+
+  
+  pDropFile->pFiles = sizeof(DROPFILES); 
+  pDropFile->fNC    = 0;
+  pDropFile->pt.x   = 0;
+  pDropFile->pt.y   = 0;
+  pDropFile->fWide  = TRUE;
+
+  
+  PRUnichar* dest = (PRUnichar*)(((char*)pDropFile) + pDropFile->pFiles);
+  memcpy(dest, path.get(), (allocLen - 1) * sizeof(PRUnichar)); 
+
+  
+  
+  
+  dest[allocLen - 1] = L'\0';
+
+  GlobalUnlock(hGlobalMemory);
+
+  aSTG.hGlobal = hGlobalMemory;
+
+  return S_OK;
+}
+
+HRESULT nsDataObj::DropTempFile(FORMATETC& aFE, STGMEDIUM& aSTG)
+{
+  nsresult rv;
+  if (!mCachedTempFile) {
+    PRUint32 len = 0;
+
+    
+    nsCOMPtr<nsIFile> dropFile;
+    rv = NS_GetSpecialDirectory(NS_OS_TEMP_DIR, getter_AddRefs(dropFile));
+    if (!dropFile)
+      return E_FAIL;
+
+    
+    nsCString filename;
+    nsAutoString wideFileName;
+    nsCOMPtr<nsIURI> sourceURI;
+    rv = GetDownloadDetails(getter_AddRefs(sourceURI),
+      wideFileName);
+    if (NS_FAILED(rv))
+      return E_FAIL;
+    NS_UTF16ToCString(wideFileName, NS_CSTRING_ENCODING_NATIVE_FILESYSTEM, filename);
+
+    dropFile->AppendNative(filename);
+    rv = dropFile->CreateUnique(nsIFile::NORMAL_FILE_TYPE, 0660);
+    if (NS_FAILED(rv))
+      return E_FAIL;
+
+    
+    
+    
+    dropFile->Clone(getter_AddRefs(mCachedTempFile));
+
+    
+    nsCOMPtr<nsIOutputStream> outStream;
+    rv = NS_NewLocalFileOutputStream(getter_AddRefs(outStream), dropFile);
+    if (NS_FAILED(rv))
+      return E_FAIL;
+
+    IStream *pStream = NULL;
+    nsDataObj::CreateStream(&pStream);
+    NS_ENSURE_TRUE(pStream, E_FAIL);
+
+    char buffer[512];
+    ULONG readCount = 0;
+    PRUint32 writeCount = 0;
+    while (1) {
+      rv = pStream->Read(buffer, sizeof(buffer), &readCount);
+      if (NS_FAILED(rv))
+        return E_FAIL;
+      if (readCount == 0)
+        break;
+      rv = outStream->Write(buffer, readCount, &writeCount);
+      if (NS_FAILED(rv))
+        return E_FAIL;
+    }
+    outStream->Close();
+    pStream->Release();
+  }
+
+  
+  nsAutoString path;
+  rv = mCachedTempFile->GetPath(path);
+  if (NS_FAILED(rv))
+    return E_FAIL;
+
+  PRUint32 allocLen = path.Length() + 2;
+
+  
+  HGLOBAL hGlobalMemory = NULL;
 
   aSTG.tymed = TYMED_HGLOBAL;
   aSTG.pUnkForRelease = NULL;
