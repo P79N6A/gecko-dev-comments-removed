@@ -45,7 +45,7 @@
 #include "jsscope.h"
 
 inline jsval
-JSObject::lockAndGetSlot(JSContext *cx, uintN slot) {
+JSObject::getSlotMT(JSContext *cx, uintN slot) {
 #ifdef JS_THREADSAFE
     
 
@@ -66,7 +66,7 @@ JSObject::lockAndGetSlot(JSContext *cx, uintN slot) {
 }
 
 inline void
-JSObject::lockAndSetSlot(JSContext *cx, uintN slot, jsval value) {
+JSObject::setSlotMT(JSContext *cx, uintN slot, jsval value) {
 #ifdef JS_THREADSAFE
     
     OBJ_CHECK_SLOT(this, slot);
@@ -102,7 +102,7 @@ JSObject::freeSlotsArray(JSContext *cx)
 inline bool
 JSObject::unbrand(JSContext *cx)
 {
-    if (OBJ_IS_NATIVE(this)) {
+    if (this->isNative()) {
         JS_LOCK_OBJ(cx, this);
         JSScope *scope = OBJ_SCOPE(this);
         if (scope->isSharedEmpty()) {

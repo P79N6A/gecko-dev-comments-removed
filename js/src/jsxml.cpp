@@ -7285,7 +7285,7 @@ js_InitXMLClass(JSContext *cx, JSObject *obj)
     JS_ASSERT(prop);
     sprop = (JSScopeProperty *) prop;
     JS_ASSERT(SPROP_HAS_VALID_SLOT(sprop, OBJ_SCOPE(pobj)));
-    cval = pobj->lockAndGetSlot(cx, sprop->slot);
+    cval = pobj->getSlotMT(cx, sprop->slot);
     pobj->dropProperty(cx, prop);
     JS_ASSERT(VALUE_IS_FUNCTION(cx, cval));
 

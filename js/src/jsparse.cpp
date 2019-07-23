@@ -223,7 +223,7 @@ JSFunctionBox *
 JSCompiler::newFunctionBox(JSObject *obj, JSParseNode *fn, JSTreeContext *tc)
 {
     JS_ASSERT(obj);
-    JS_ASSERT(HAS_FUNCTION_CLASS(obj));
+    JS_ASSERT(obj->isFunction());
 
     
 
