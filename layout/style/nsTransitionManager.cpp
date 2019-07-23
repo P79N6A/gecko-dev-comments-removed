@@ -64,7 +64,7 @@ using mozilla::TimeDuration;
 struct ElementPropertyTransition
 {
   nsCSSProperty mProperty;
-  nsStyleCoord mStartValue, mEndValue;
+  nsStyleAnimation::Value mStartValue, mEndValue;
   TimeStamp mStartTime; 
 
   
@@ -129,7 +129,7 @@ public:
 #endif
 
   NS_HIDDEN_(void) CoverValue(nsCSSProperty aProperty,
-                              nsStyleCoord &aStartValue)
+                              nsStyleAnimation::Value &aStartValue)
   {
     CoveredValue v = { aProperty, aStartValue };
     mCoveredValues.AppendElement(v);
@@ -137,7 +137,7 @@ public:
 
   struct CoveredValue {
     nsCSSProperty mProperty;
-    nsStyleCoord mCoveredValue;
+    nsStyleAnimation::Value mCoveredValue;
   };
 
 private:
@@ -227,7 +227,7 @@ ElementTransitionsStyleRule::MapRuleInfoInto(nsRuleData* aRuleData)
 
       double valuePortion =
         pt.mTimingFunction.GetSplineValue(timePortion);
-      nsStyleCoord value;
+      nsStyleAnimation::Value value;
 #ifdef DEBUG
       PRBool ok =
 #endif
@@ -494,7 +494,7 @@ nsTransitionManager::ConsiderStartingTransition(nsCSSProperty aProperty,
   }
 
   ElementPropertyTransition pt;
-  nsStyleCoord dummyValue;
+  nsStyleAnimation::Value dummyValue;
   
   
   
@@ -555,7 +555,7 @@ nsTransitionManager::ConsiderStartingTransition(nsCSSProperty aProperty,
   
   
   if (currentIndex != nsTArray<ElementPropertyTransition>::NoIndex) {
-    const nsStyleCoord &endVal =
+    const nsStyleAnimation::Value &endVal =
       aElementTransitions->mPropertyTransitions[currentIndex].mEndValue;
 
     if (endVal == pt.mEndValue) {
