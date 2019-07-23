@@ -54,11 +54,8 @@ var gDirSvc = Cc["@mozilla.org/file/directory_service;1"].
 
 
 function createProfileFolder() {
-  gProfD = gDirSvc.get("CurProcD", Ci.nsILocalFile);
-  gProfD = gProfD.parent.parent;
-  gProfD.append("_tests");
-  gProfD.append("xpcshell-simple");
-  gProfD.append("test_plugin");
+  
+  gProfD = __LOCATION__.parent.parent;
   gProfD.append("profile");
   
   if (gProfD.exists())
