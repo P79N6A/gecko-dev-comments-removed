@@ -95,6 +95,9 @@ public:
   
   virtual nsINode* GetCommonAncestor();
   virtual void Reset();
+  virtual nsresult SetStart(nsINode* aParent, PRInt32 aOffset);
+  virtual nsresult SetEnd(nsINode* aParent, PRInt32 aOffset);
+  virtual nsresult CloneRange(nsIRange** aNewRange);
   
   
   virtual void CharacterDataChanged(nsIDocument* aDocument,
@@ -124,6 +127,11 @@ private:
 
 
   nsresult CutContents(nsIDOMDocumentFragment** frag);
+
+  
+
+
+  nsresult DoCloneRange(nsRange** aNewRange);
 
   static nsresult CloneParentsBetween(nsIDOMNode *aAncestor,
                                       nsIDOMNode *aNode,
