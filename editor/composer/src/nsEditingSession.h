@@ -167,6 +167,9 @@ protected:
   PRUint32        mBaseCommandControllerId;
   PRUint32        mDocStateControllerId;
   PRUint32        mHTMLCommandControllerId;
+
+  
+  nsWeakPtr       mDocShell;
 };
 
 
