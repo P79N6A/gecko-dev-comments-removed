@@ -11141,6 +11141,10 @@ nsCSSFrameConstructor::ProcessPendingRestyleTable(
     count = aRestyles.Count();
   }
 
+  
+  
+  mInStyleRefresh = PR_FALSE;
+
   EndUpdate();
 
 #ifdef DEBUG
@@ -11163,8 +11167,9 @@ nsCSSFrameConstructor::ProcessPendingRestyles()
 
   ProcessPendingRestyleTable(mPendingRestyles);
 
-  NS_POSTCONDITION(mPendingRestyles.Count() == 0,
-                   "We should have processed mPendingRestyles to completion");
+#ifdef DEBUG
+  PRUint32 oldPendingRestyleCount = mPendingRestyles.Count();
+#endif
 
   
   
@@ -11179,12 +11184,7 @@ nsCSSFrameConstructor::ProcessPendingRestyles()
   presContext->SetProcessingAnimationStyleChange(PR_FALSE);
 
   presContext->SetProcessingRestyles(PR_FALSE);
-  mInStyleRefresh = PR_FALSE;
-
-  NS_POSTCONDITION(mPendingAnimationRestyles.Count() == 0,
-                   "We should have processed mPendingAnimationRestyles to "
-                   "completion");
-  NS_POSTCONDITION(mPendingRestyles.Count() == 0,
+  NS_POSTCONDITION(mPendingRestyles.Count() == oldPendingRestyleCount,
                    "We should not have posted new non-animation restyles while "
                    "processing animation restyles");
 
