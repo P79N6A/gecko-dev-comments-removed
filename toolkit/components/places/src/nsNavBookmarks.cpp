@@ -348,13 +348,15 @@ nsNavBookmarks::InitTables(mozIStorageConnection* aDBConn)
 
     
     
+    
+    
     rv = aDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
-        "CREATE INDEX moz_bookmarks_itemindex ON moz_bookmarks (fk)"));
+        "CREATE INDEX moz_bookmarks_itemindex ON moz_bookmarks (fk,type)"));
     NS_ENSURE_SUCCESS(rv, rv);
 
     
     rv = aDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
-        "CREATE INDEX moz_bookmarks_parentindex ON moz_bookmarks (parent)"));
+        "CREATE INDEX moz_bookmarks_parentindex ON moz_bookmarks (parent,position)"));
     NS_ENSURE_SUCCESS(rv, rv);
   }
 

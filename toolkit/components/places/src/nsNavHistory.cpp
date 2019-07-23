@@ -391,10 +391,6 @@ nsNavHistory::Init()
   NS_ENSURE_TRUE(mRecentBookmark.Init(128), NS_ERROR_OUT_OF_MEMORY);
   NS_ENSURE_TRUE(mRecentRedirects.Init(128), NS_ERROR_OUT_OF_MEMORY);
 
-  rv = CreateLookupIndexes();
-  if (NS_FAILED(rv))
-    return rv;
-
   
   
   
@@ -681,19 +677,23 @@ nsNavHistory::InitDB(PRBool *aDoImport)
         "favicon_id INTEGER)"));
     NS_ENSURE_SUCCESS(rv, rv);
 
-    rv = mDBConn->ExecuteSimpleSQL(
-        NS_LITERAL_CSTRING("CREATE INDEX moz_places_urlindex ON moz_places (url)"));
+    rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
+        "CREATE UNIQUE INDEX moz_places_url_uniqueindex ON moz_places (url)"));
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    
+    rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
+        "CREATE INDEX moz_places_faviconindex ON moz_places (favicon_id)"));
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
+        "CREATE INDEX moz_places_hostindex ON moz_places (rev_host)"));
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
+        "CREATE INDEX moz_places_visitcount ON moz_places (visit_count)"));
     NS_ENSURE_SUCCESS(rv, rv);
   }
-
-  
-  
-  
-  
-  
-  
-  mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
-      "CREATE INDEX moz_places_faviconindex ON moz_places (favicon_id)"));
 
   
   rv = mDBConn->TableExists(NS_LITERAL_CSTRING("moz_historyvisits"), &tableExists);
@@ -708,19 +708,20 @@ nsNavHistory::InitDB(PRBool *aDoImport)
         "session INTEGER)"));
     NS_ENSURE_SUCCESS(rv, rv);
 
-    rv = mDBConn->ExecuteSimpleSQL(
-        NS_LITERAL_CSTRING("CREATE INDEX moz_historyvisits_pageindex ON moz_historyvisits (place_id)"));
+    rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
+        "CREATE INDEX moz_historyvisits_pageindex ON moz_historyvisits (place_id)"));
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    
+    
+    rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
+        "CREATE INDEX moz_historyvisits_fromindex ON moz_historyvisits (from_visit)"));
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
+        "CREATE INDEX moz_historyvisits_dateindex ON moz_historyvisits (visit_date)"));
     NS_ENSURE_SUCCESS(rv, rv);
   }
-
-  
-  
-  
-  
-  
-  
-  mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
-      "CREATE INDEX moz_historyvisits_fromindex ON moz_historyvisits (from_visit)"));
 
   rv = transaction.Commit();
   NS_ENSURE_SUCCESS(rv, rv);
@@ -835,7 +836,7 @@ nsNavHistory::InitStatements()
 
   
   rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
-      "INSERT INTO moz_places "
+      "INSERT OR REPLACE INTO moz_places "
       "(url, title, rev_host, hidden, typed, visit_count) "
       "VALUES (?1, ?2, ?3, ?4, ?5, ?6)"),
     getter_AddRefs(mDBAddNewPage));
@@ -1040,6 +1041,10 @@ nsNavHistory::CleanUpOnQuit()
     NS_ENSURE_SUCCESS(rv, rv);
 
     
+    rv = RemoveDuplicateURIs();
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    
     rv = mDBConn->ExecuteSimpleSQL(
       NS_LITERAL_CSTRING("ALTER TABLE moz_places RENAME TO moz_places_backup"));
     NS_ENSURE_SUCCESS(rv, rv);
@@ -1060,10 +1065,7 @@ nsNavHistory::CleanUpOnQuit()
     
     
     rv = mDBConn->ExecuteSimpleSQL(
-        NS_LITERAL_CSTRING("CREATE INDEX moz_places_urlindex ON moz_places (url)"));
-    NS_ENSURE_SUCCESS(rv, rv);
-    rv = mDBConn->ExecuteSimpleSQL(
-        NS_LITERAL_CSTRING("CREATE INDEX moz_places_titleindex ON moz_places (title)"));
+        NS_LITERAL_CSTRING("CREATE UNIQUE INDEX moz_places_url_uniqueindex ON moz_places (url)"));
     NS_ENSURE_SUCCESS(rv, rv);
     rv = mDBConn->ExecuteSimpleSQL(
         NS_LITERAL_CSTRING("CREATE INDEX moz_places_faviconindex ON moz_places (favicon_id)"));
@@ -1115,6 +1117,11 @@ nsNavHistory::InitMemDB()
   
   rv = mMemDBConn->ExecuteSimpleSQL(
       NS_LITERAL_CSTRING("CREATE TABLE moz_memhistory (url LONGVARCHAR UNIQUE)"));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  rv = mMemDBConn->ExecuteSimpleSQL(
+      NS_LITERAL_CSTRING("CREATE INDEX moz_memhistory_index ON moz_memhistory (url)"));
   NS_ENSURE_SUCCESS(rv, rv);
 
   
@@ -1193,6 +1200,7 @@ nsNavHistory::GetUrlIdFor(nsIURI* aURI, PRInt64* aEntryID,
     return NS_OK;
   }
 }
+
 
 
 
@@ -3396,6 +3404,30 @@ nsNavHistory::OnIdle()
   
   
   if (idleTime > VACUUM_IDLE_TIME_IN_MSECS) {
+    
+    
+    PRBool oldIndexExists = PR_FALSE;
+    rv = mDBConn->IndexExists(NS_LITERAL_CSTRING("moz_places_urlindex"), &oldIndexExists);
+    if (oldIndexExists) {
+      
+      mozStorageTransaction urlindexTransaction(
+          mDBConn, PR_FALSE, mozIStorageConnection::TRANSACTION_EXCLUSIVE);
+      
+      PRTime start = PR_Now();
+      rv = mDBConn->ExecuteSimpleSQL(
+          NS_LITERAL_CSTRING("DROP INDEX IF EXISTS moz_places_urlindex"));
+      NS_ENSURE_SUCCESS(rv, rv);
+      
+      rv = RemoveDuplicateURIs();
+      NS_ENSURE_SUCCESS(rv, rv);
+      
+      rv = mDBConn->ExecuteSimpleSQL(
+        NS_LITERAL_CSTRING("CREATE UNIQUE INDEX moz_places_url_uniqueindex ON moz_places (url)"));
+      NS_ENSURE_SUCCESS(rv, rv);
+      rv = urlindexTransaction.Commit();
+      NS_ENSURE_SUCCESS(rv, rv);
+    }
+
 #if 0
     
     
@@ -4881,7 +4913,8 @@ nsNavHistory::SetPageTitleInternal(nsIURI* aURI, const nsAString& aTitle)
 
   rv = dbModStatement->Execute();
   NS_ENSURE_SUCCESS(rv, rv);
-  transaction.Commit();
+  rv = transaction.Commit();
+  NS_ENSURE_SUCCESS(rv, rv);
 
   
   ENUMERATE_WEAKARRAY(mObservers, nsINavHistoryObserver,
@@ -4889,48 +4922,6 @@ nsNavHistory::SetPageTitleInternal(nsIURI* aURI, const nsAString& aTitle)
 
   return NS_OK;
 
-}
-
-
-
-
-
-
-
-
-
-
-
-
-nsresult
-nsNavHistory::CreateLookupIndexes()
-{
-  nsresult rv;
-
-  
-  rv = mDBConn->ExecuteSimpleSQL(
-      NS_LITERAL_CSTRING("CREATE INDEX moz_places_hostindex ON moz_places (rev_host)"));
-  
-  rv = mDBConn->ExecuteSimpleSQL(
-      NS_LITERAL_CSTRING("CREATE INDEX moz_places_visitcount ON moz_places (visit_count)"));
-  
-
-  
-  rv = mDBConn->ExecuteSimpleSQL(
-      NS_LITERAL_CSTRING("CREATE INDEX moz_historyvisits_fromindex ON moz_historyvisits (from_visit)"));
-  
-  rv = mDBConn->ExecuteSimpleSQL(
-      NS_LITERAL_CSTRING("CREATE INDEX moz_historyvisits_dateindex ON moz_historyvisits (visit_date)"));
-  
-
-#ifdef IN_MEMORY_LINKS
-  
-  rv = mMemDBConn->ExecuteSimpleSQL(
-      NS_LITERAL_CSTRING("CREATE INDEX moz_memhistory_index ON moz_memhistory (url)"));
-  NS_ENSURE_SUCCESS(rv, rv);
-#endif
-
-  return NS_OK;
 }
 
 nsresult

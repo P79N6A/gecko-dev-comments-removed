@@ -323,6 +323,12 @@ public:
   
   
   
+  
+  
+  
+  
+  
+  
   nsresult AddPageWithVisit(nsIURI *aURI,
                             const nsString &aTitle,
                             PRBool aHidden, PRBool aTyped,
@@ -606,10 +612,6 @@ protected:
   nsresult TokensToQueries(const nsTArray<QueryKeyValuePair>& aTokens,
                            nsCOMArray<nsNavHistoryQuery>* aQueries,
                            nsNavHistoryQueryOptions* aOptions);
-
-  
-  
-  nsresult CreateLookupIndexes();
 
   nsCOMPtr<nsITimer> mIdleTimer;
   static void IdleTimerCallback(nsITimer* aTimer, void* aClosure);
