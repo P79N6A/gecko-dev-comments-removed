@@ -187,7 +187,7 @@ nsSVGTransformSMILAttr::ParseValue(const nsAString& aSpec,
   }
 
   
-  aResult.Swap(val);
+  aResult = val;
 }
 
 inline PRBool

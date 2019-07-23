@@ -301,9 +301,7 @@ nsSMILAnimationFunction::ComposeResult(const nsISMILAttr& aSMILAttr,
 
   
   if (!IsAdditive() || NS_FAILED(aResult.SandwichAdd(result))) {
-    aResult.Swap(result);
-    
-    
+    aResult = result;
   }
 }
 
