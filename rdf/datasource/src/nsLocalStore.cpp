@@ -42,6 +42,7 @@
 
 
 
+
 #include "nsNetUtil.h"
 #include "nsIURI.h"
 #include "nsIIOService.h"
@@ -332,7 +333,11 @@ NS_IMETHODIMP
 LocalStoreImpl::Flush()
 {
 	nsCOMPtr<nsIRDFRemoteDataSource> remote = do_QueryInterface(mInner);
-    NS_ASSERTION(remote != nsnull, "not an nsIRDFRemoteDataSource");
+    
+    
+    
+    
+    NS_WARN_IF_FALSE(remote != nsnull, "not an nsIRDFRemoteDataSource");
 	if (! remote)
         return NS_ERROR_UNEXPECTED;
 
