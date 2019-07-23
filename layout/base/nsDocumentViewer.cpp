@@ -1385,6 +1385,7 @@ DocumentViewerImpl::Destroy()
   
   
   
+  
   if (mPrintEngine) {
     if (mPrintEngine->CheckBeforeDestroy()) {
       return NS_OK;
