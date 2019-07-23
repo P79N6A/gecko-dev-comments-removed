@@ -97,7 +97,8 @@ class nsStyleSet
 
   
   already_AddRefed<nsStyleContext>
-  ResolveStyleFor(nsIContent* aContent, nsStyleContext* aParentContext);
+  ResolveStyleFor(mozilla::dom::Element* aElement,
+                  nsStyleContext* aParentContext);
 
   
   
@@ -126,7 +127,7 @@ class nsStyleSet
   
   
   already_AddRefed<nsStyleContext>
-  ResolvePseudoElementStyle(nsIContent* aParentContent,
+  ResolvePseudoElementStyle(mozilla::dom::Element* aParentElement,
                             nsCSSPseudoElements::Type aType,
                             nsStyleContext* aParentContext);
 
@@ -134,7 +135,7 @@ class nsStyleSet
   
   
   already_AddRefed<nsStyleContext>
-  ProbePseudoElementStyle(nsIContent* aParentContent,
+  ProbePseudoElementStyle(mozilla::dom::Element* aParentElement,
                           nsCSSPseudoElements::Type aType,
                           nsStyleContext* aParentContext);
   
@@ -148,7 +149,7 @@ class nsStyleSet
   
   
   already_AddRefed<nsStyleContext>
-  ResolveXULTreePseudoStyle(nsIContent* aParentContent,
+  ResolveXULTreePseudoStyle(mozilla::dom::Element* aParentElement,
                             nsIAtom* aPseudoTag,
                             nsStyleContext* aParentContext,
                             nsICSSPseudoComparator* aComparator);
