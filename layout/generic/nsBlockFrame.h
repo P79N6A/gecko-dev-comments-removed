@@ -257,7 +257,8 @@ public:
                               PRBool         aForceNormal);
 
   virtual void DeleteNextInFlowChild(nsPresContext* aPresContext,
-                                     nsIFrame*       aNextInFlow);
+                                     nsIFrame*      aNextInFlow,
+                                     PRBool         aDeletingEmptyFrames);
 
   
 
@@ -420,8 +421,16 @@ public:
 
 
 
-  nsresult DoRemoveFrame(nsIFrame* aDeletedFrame, PRBool aDestroyFrames = PR_TRUE, 
-                         PRBool aRemoveOnlyFluidContinuations = PR_TRUE);
+
+
+
+
+  enum {
+    PERSERVE_REMOVED_FRAMES    = 0x01,
+    REMOVE_FIXED_CONTINUATIONS = 0x02,
+    FRAMES_ARE_EMPTY           = 0x04
+  };
+  nsresult DoRemoveFrame(nsIFrame* aDeletedFrame, PRUint32 aFlags);
 
   void ReparentFloats(nsIFrame* aFirstFrame,
                       nsBlockFrame* aOldParent, PRBool aFromOverflow,

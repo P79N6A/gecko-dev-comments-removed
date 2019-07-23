@@ -270,7 +270,7 @@ nsFirstLetterFrame::Reflow(nsPresContext*          aPresContext,
     if (kidNextInFlow) {
       
       static_cast<nsContainerFrame*>(kidNextInFlow->GetParent())
-        ->DeleteNextInFlowChild(aPresContext, kidNextInFlow);
+        ->DeleteNextInFlowChild(aPresContext, kidNextInFlow, PR_TRUE);
     }
   }
   else {

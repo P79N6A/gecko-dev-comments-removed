@@ -100,8 +100,16 @@ public:
 #endif  
 
   
+
+  
+
+
+
+
+
   virtual void DeleteNextInFlowChild(nsPresContext* aPresContext,
-                                     nsIFrame*       aNextInFlow);
+                                     nsIFrame*      aNextInFlow,
+                                     PRBool         aDeletingEmptyFrames);
 
   static PRInt32 LengthOf(nsIFrame* aFrameList) {
     nsFrameList tmp(aFrameList);
