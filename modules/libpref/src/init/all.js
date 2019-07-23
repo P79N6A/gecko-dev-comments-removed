@@ -196,6 +196,11 @@ pref("toolkit.scrollbox.clickToScroll.scrollDelay", 150);
 
 pref("view_source.syntax_highlight", true);
 pref("view_source.wrap_long_lines", false);
+pref("view_source.editor.external", false);
+pref("view_source.editor.path", "");
+
+
+pref("view_source.editor.args", "");
 
 
 pref("nglayout.events.dispatchLeftClickOnly", true);
