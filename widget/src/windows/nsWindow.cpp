@@ -321,7 +321,7 @@ nsWindow::nsWindow() : nsBaseWidget()
   mDeferredPositioner   = nsnull;
   mOldIMC               = nsnull;
   mNativeDragTarget     = nsnull;
-  mIsDestroying         = PR_FALSE;
+  mInDtor               = PR_FALSE;
   mIsVisible            = PR_FALSE;
   mHas3DBorder          = PR_FALSE;
   mIsInMouseCapture     = PR_FALSE;
@@ -384,30 +384,14 @@ nsWindow::nsWindow() : nsBaseWidget()
 
 nsWindow::~nsWindow()
 {
-  mIsDestroying = PR_TRUE;
-  if (sCurrentWindow == this) {
-    sCurrentWindow = nsnull;
-  }
-
-  MouseTrailer* mtrailer = nsToolkit::gMouseTrailer;
-  if (mtrailer) {
-    if (mtrailer->GetMouseTrailerWindow() == mWnd)
-      mtrailer->DestroyTimer();
-
-    if (mtrailer->GetCaptureWindow() == mWnd)
-      mtrailer->SetCaptureWindow(nsnull);
-  }
+  mInDtor = PR_TRUE;
 
   
   
-  if (NULL != mWnd) {
+  
+  
+  if (NULL != mWnd)
     Destroy();
-  }
-
-  if (mCursor == -1) {
-    
-    SetCursor(eCursor_standard);
-  }
 
   sInstanceCount--;
 
@@ -475,76 +459,6 @@ NS_METHOD nsWindow::Create(nsNativeWidget aParent,
   return(StandardWindowCreate(nsnull, aRect, aHandleEventFunction,
                               aContext, aAppShell, aToolkit, aInitData,
                               aParent));
-}
-
-
-NS_METHOD nsWindow::Destroy()
-{
-  
-  
-  nsToolkit* toolkit = (nsToolkit *)mToolkit;
-  if (toolkit != nsnull && !toolkit->IsGuiThread()) {
-    MethodInfo info(this, nsWindow::DESTROY);
-    toolkit->CallMethod(&info);
-    return NS_ERROR_FAILURE;
-  }
-
-  
-  if (!mIsDestroying) {
-    nsBaseWidget::Destroy();
-  }
-
-  
-  
-  if ( this == sRollupWidget ) {
-    if ( sRollupListener )
-      sRollupListener->Rollup(nsnull, nsnull);
-    CaptureRollupEvents(nsnull, PR_FALSE, PR_TRUE);
-  }
-
-  EnableDragDrop(PR_FALSE);
-
-  
-  if (mWnd) {
-    
-    mEventCallback = nsnull;
-
-    
-    if (mOldIMC) {
-      mOldIMC = ::ImmAssociateContext(mWnd, mOldIMC);
-      NS_ASSERTION(!mOldIMC, "Another IMC was associated");
-    }
-
-    HICON icon;
-    icon = (HICON) ::SendMessageW(mWnd, WM_SETICON, (WPARAM)ICON_BIG, (LPARAM) 0);
-    if (icon)
-      ::DestroyIcon(icon);
-
-    icon = (HICON) ::SendMessageW(mWnd, WM_SETICON, (WPARAM)ICON_SMALL, (LPARAM) 0);
-    if (icon)
-      ::DestroyIcon(icon);
-
-#ifdef MOZ_XUL
-    if (eTransparencyTransparent == mTransparencyMode)
-    {
-      SetupTranslucentWindowMemoryBitmap(eTransparencyOpaque);
-
-    }
-#endif
-
-    VERIFY(::DestroyWindow(mWnd));
-
-    mWnd = NULL;
-    
-    
-    
-    
-    
-    if (PR_FALSE == mOnDestroyCalled)
-      OnDestroy();
-  }
-
-  return NS_OK;
 }
 
 
@@ -729,6 +643,45 @@ nsWindow::StandardWindowCreate(nsIWidget *aParent,
     mGesture.InitWinGestureSupport(mWnd);
   }
 #endif 
+
+  return NS_OK;
+}
+
+
+NS_METHOD nsWindow::Destroy()
+{
+  
+  if (nsnull == mWnd)
+    return NS_OK;
+
+  
+  
+  nsToolkit* toolkit = (nsToolkit *)mToolkit;
+  if (toolkit != nsnull && !toolkit->IsGuiThread()) {
+    MethodInfo info(this, nsWindow::DESTROY);
+    toolkit->CallMethod(&info);
+    return NS_ERROR_FAILURE;
+  }
+
+  
+  nsCOMPtr<nsIWidget> kungFuDeathGrip(this);
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  VERIFY(::DestroyWindow(mWnd));
+  
+  
+  
+  if (PR_FALSE == mOnDestroyCalled)
+    OnDestroy();
 
   return NS_OK;
 }
@@ -1038,7 +991,8 @@ NS_IMETHODIMP nsWindow::SetParent(nsIWidget *aNewParent)
   }
 
   if (mWnd) {
-    ::SetParent(mWnd, nsnull);
+    
+    VERIFY(::SetParent(mWnd, nsnull));
   }
 
   return NS_OK;
@@ -1061,7 +1015,7 @@ nsWindow* nsWindow::GetParentWindow(PRBool aIncludeOwner)
   
   
   
-  if (mIsDestroying || mOnDestroyCalled)
+  if (mInDtor || mOnDestroyCalled)
     return nsnull;
 
 
@@ -1084,7 +1038,7 @@ nsWindow* nsWindow::GetParentWindow(PRBool aIncludeOwner)
       if (widget) {
         
         
-        if (widget->mIsDestroying) {
+        if (widget->mInDtor) {
           widget = nsnull;
         }
       }
@@ -3346,12 +3300,12 @@ PRBool nsWindow::DispatchMouseEvent(PRUint32 aEventType, WPARAM wParam,
 
       if (rect.Contains(event.refPoint)) {
         if (sCurrentWindow == NULL || sCurrentWindow != this) {
-          if ((nsnull != sCurrentWindow) && (!sCurrentWindow->mIsDestroying)) {
+          if ((nsnull != sCurrentWindow) && (!sCurrentWindow->mInDtor)) {
             LPARAM pos = sCurrentWindow->lParamToClient(lParamToScreen(lParam));
             sCurrentWindow->DispatchMouseEvent(NS_MOUSE_EXIT, wParam, pos);
           }
           sCurrentWindow = this;
-          if (!mIsDestroying) {
+          if (!mInDtor) {
             LPARAM pos = sCurrentWindow->lParamToClient(lParamToScreen(lParam));
             sCurrentWindow->DispatchMouseEvent(NS_MOUSE_ENTER, wParam, pos);
           }
@@ -3561,7 +3515,7 @@ LRESULT CALLBACK nsWindow::WindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM
   
   
   nsCOMPtr<nsISupports> kungFuDeathGrip;
-  if (!someWindow->mIsDestroying) 
+  if (!someWindow->mInDtor) 
     kungFuDeathGrip = do_QueryInterface((nsBaseWidget*)someWindow);
 
   
@@ -5477,18 +5431,61 @@ void nsWindow::OnDestroy()
 {
   mOnDestroyCalled = PR_TRUE;
 
+  
+  nsCOMPtr<nsIWidget> kungFuDeathGrip(this);
+  
+  
+  if (!mInDtor)
+    DispatchStandardEvent(NS_DESTROY);
+
+  
+  mEventCallback = nsnull;
+
+  
+  
   SubclassWindow(FALSE);
 
   
   
-  EnableDragDrop(PR_FALSE);
-
-  mWnd = NULL;
+  if (sCurrentWindow == this)
+    sCurrentWindow = nsnull;
 
   
-  if (mBrush) {
-    VERIFY(::DeleteObject(mBrush));
-    mBrush = NULL;
+  nsBaseWidget::Destroy();
+
+  
+  nsBaseWidget::OnDestroy();
+  
+  
+  
+  
+  
+
+  
+  EnableDragDrop(PR_FALSE);
+
+  
+  
+  if ( this == sRollupWidget ) {
+    if ( sRollupListener )
+      sRollupListener->Rollup(nsnull, nsnull);
+    CaptureRollupEvents(nsnull, PR_FALSE, PR_TRUE);
+  }
+
+  
+  if (mOldIMC) {
+    mOldIMC = ::ImmAssociateContext(mWnd, mOldIMC);
+    NS_ASSERTION(!mOldIMC, "Another IMC was associated");
+  }
+
+  
+  MouseTrailer* mtrailer = nsToolkit::gMouseTrailer;
+  if (mtrailer) {
+    if (mtrailer->GetMouseTrailerWindow() == mWnd)
+      mtrailer->DestroyTimer();
+
+    if (mtrailer->GetCaptureWindow() == mWnd)
+      mtrailer->SetCaptureWindow(nsnull);
   }
 
   
@@ -5499,17 +5496,33 @@ void nsWindow::OnDestroy()
   }
 
   
-  nsBaseWidget::OnDestroy();
+  if (mBrush) {
+    VERIFY(::DeleteObject(mBrush));
+    mBrush = NULL;
+  }
 
   
-  if (!mIsDestroying) {
-    
-    
-    
-    AddRef();
-    DispatchStandardEvent(NS_DESTROY);
-    Release();
-  }
+  HICON icon;
+  icon = (HICON) ::SendMessageW(mWnd, WM_SETICON, (WPARAM)ICON_BIG, (LPARAM) 0);
+  if (icon)
+    ::DestroyIcon(icon);
+
+  icon = (HICON) ::SendMessageW(mWnd, WM_SETICON, (WPARAM)ICON_SMALL, (LPARAM) 0);
+  if (icon)
+    ::DestroyIcon(icon);
+
+  
+  if (mCursor == -1)
+    SetCursor(eCursor_standard);
+
+#ifdef MOZ_XUL
+  
+  if (eTransparencyTransparent == mTransparencyMode)
+    SetupTranslucentWindowMemoryBitmap(eTransparencyOpaque);
+#endif
+
+  
+  mWnd = NULL;
 }
 
 
@@ -5741,7 +5754,7 @@ already_AddRefed<nsIAccessible> nsWindow::GetRootAccessible()
 {
   nsWindow::sIsAccessibilityOn = TRUE;
 
-  if (mIsDestroying || mOnDestroyCalled || mWindowType == eWindowType_invisible) {
+  if (mInDtor || mOnDestroyCalled || mWindowType == eWindowType_invisible) {
     return nsnull;
   }
 
