@@ -740,7 +740,7 @@ BuildStyleRule(nsCSSProperty aProperty,
                                       aTargetElement->NodePrincipal(),
                                       declaration, &changed)) ||
       
-      !declaration->SlotForValue(propertyToCheck) ||
+      !declaration->HasNonImportantValueFor(propertyToCheck) ||
       NS_FAILED(NS_NewCSSStyleRule(getter_AddRefs(styleRule), nsnull,
                                    declaration))) {
     NS_WARNING("failure in BuildStyleRule");
