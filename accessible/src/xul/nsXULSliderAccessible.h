@@ -58,14 +58,22 @@ public:
   NS_DECL_NSIACCESSIBLEVALUE
 
   
+  NS_IMETHOD GetAllowsAnonChildAccessibles(PRBool *aAllowsAnonChildren);
+
+  
   virtual nsresult GetRoleInternal(PRUint32 *aRole);
 
 protected:
+  already_AddRefed<nsIContent> GetSliderNode();
+
   nsresult GetSliderAttr(nsIAtom *aName, nsAString& aValue);
   nsresult SetSliderAttr(nsIAtom *aName, const nsAString& aValue);
 
   nsresult GetSliderAttr(nsIAtom *aName, double *aValue);
   nsresult SetSliderAttr(nsIAtom *aName, double aValue);
+
+private:
+  nsCOMPtr<nsIDOMElement> mSliderNode;
 };
 
 
