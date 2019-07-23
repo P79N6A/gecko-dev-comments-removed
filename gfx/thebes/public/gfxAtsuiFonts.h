@@ -104,8 +104,11 @@ public:
     
     
     
+    
+    
+    
     gfxTextRun *MakeTextRunInternal(const PRUnichar *aString, PRUint32 aLength,
-                                    Parameters *aParams, PRUint32 aheaderChars);
+                                    PRBool aWrapped, Parameters *aParams);
 
     ATSUFontFallbacks *GetATSUFontFallbacksPtr() { return &mFallbacks; }
     
@@ -121,7 +124,7 @@ protected:
                                void *closure);
 
     void InitTextRun(gfxTextRun *aRun, const PRUnichar *aString, PRUint32 aLength,
-                     PRUint32 aHeaderChars);
+                     PRBool aWrapped);
 
     ATSUFontFallbacks mFallbacks;
 };
