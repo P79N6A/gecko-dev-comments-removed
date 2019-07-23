@@ -1221,8 +1221,16 @@ js_IsLoopExit(JSContext* cx, JSScript* script, jsbytecode* pc)
         pc++;
         
 
+      case JSOP_IFEQ:
+      case JSOP_IFEQX:
       case JSOP_IFNE:
       case JSOP_IFNEX:
+        
+
+
+
+        if (pc[GET_JUMP_OFFSET(pc)] == JSOP_ENDITER)
+            return true;
         return GET_JUMP_OFFSET(pc) < 0;
 
       default:;
