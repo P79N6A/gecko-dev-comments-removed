@@ -45,9 +45,9 @@
 
 
 
+#include "sqlite3.h"
+#include "nsIVariant.h"
 #include "mozStorage.h"
-
-struct sqlite3_stmt;
 
 namespace mozilla {
 namespace storage {
@@ -80,6 +80,13 @@ nsresult convertResultCode(int aSQLiteResultCode);
 
 
 void checkAndLogStatementPerformance(sqlite3_stmt *aStatement);
+
+
+
+
+template <typename T>
+int variantToSQLiteT(T aObj, nsIVariant *aValue);
+#include "variantToSQLiteT_impl.h" 
 
 } 
 } 
