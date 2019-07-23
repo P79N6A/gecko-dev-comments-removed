@@ -419,18 +419,30 @@ var PlacesUtils = {
     return false;
   },
 
- 
+  
 
+
+
+
+
+  itemIsLivemark: function PU_itemIsLivemark(aItemId) {
+    
+    
+    
+    if (this.__lookupGetter__("livemarks"))
+      return this.annotations.itemHasAnnotation(aItemId, LMANNO_FEEDURI);
+    
+    return this.livemarks.isLivemark(aItemId);
+  },
+
+  
 
 
 
 
 
   nodeIsLivemarkContainer: function PU_nodeIsLivemarkContainer(aNode) {
-    
-    
-    return this.nodeIsFolder(aNode) &&
-           this.annotations.itemHasAnnotation(aNode.itemId, LMANNO_FEEDURI);
+    return this.nodeIsFolder(aNode) && this.itemIsLivemark(aNode.itemId);
   },
 
  
@@ -955,13 +967,13 @@ var PlacesUtils = {
 
     
     return bmkIds.filter(function(aID) {
-      var parent = this.bookmarks.getFolderIdForItem(aID);
+      var parentId = this.bookmarks.getFolderIdForItem(aID);
       
-      if (this.annotations.itemHasAnnotation(parent, LMANNO_FEEDURI))
+      if (this.itemIsLivemark(parentId))
         return false;
-      var grandparent = this.bookmarks.getFolderIdForItem(parent);
+      var grandparentId = this.bookmarks.getFolderIdForItem(parentId);
       
-      if (grandparent == this.tagsFolderId)
+      if (grandparentId == this.tagsFolderId)
         return false;
       return true;
     }, this);
@@ -977,17 +989,20 @@ var PlacesUtils = {
     for (var i = 0; i < bmkIds.length; i++) {
       
       var bk = bmkIds[i];
-      var parent = this.bookmarks.getFolderIdForItem(bk);
-      if (parent == this.unfiledBookmarksFolderId)
+      var parentId = this.bookmarks.getFolderIdForItem(bk);
+      if (parentId == this.unfiledBookmarksFolderId)
         return bk;
 
-      var grandparent = this.bookmarks.getFolderIdForItem(parent);
-      if (grandparent != this.tagsFolderId &&
-          !this.annotations.itemHasAnnotation(parent, LMANNO_FEEDURI))
+      var grandparentId = this.bookmarks.getFolderIdForItem(parentId);
+      if (grandparentId != this.tagsFolderId &&
+          !this.itemIsLivemark(parentId))
         return bk;
     }
     return -1;
   },
+
+  
+
 
   getMostRecentFolderForFeedURI:
   function PU_getMostRecentFolderForFeedURI(aURI) {

@@ -128,7 +128,7 @@ placesTransactionsService.prototype = {
     
     
     
-    if (PlacesUtils.livemarks.isLivemark(aItemId))
+    if (PlacesUtils.itemIsLivemark(aItemId))
       return new placesRemoveLivemarkTransaction(aItemId);
 
     return new placesRemoveItemTransaction(aItemId);
