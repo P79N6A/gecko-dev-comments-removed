@@ -242,7 +242,7 @@ function openUILinkIn( url, where, allowThirdPartyFixup, postData, referrerUrl )
     loadInBackground = !loadInBackground;
     
   case "tab":
-    var browser = w.getBrowser();
+    let browser = w.getBrowser();
     browser.loadOneTab(url, referrerUrl, null, postData, loadInBackground,
                        allowThirdPartyFixup || false);
     break;
@@ -250,9 +250,17 @@ function openUILinkIn( url, where, allowThirdPartyFixup, postData, referrerUrl )
 
   
   
-  var browser = w.getBrowserFromContentWindow(w.content);
-  if (browser)
-    browser.focus();
+  
+  var fm = Components.classes["@mozilla.org/focus-manager;1"].
+             getService(Components.interfaces.nsIFocusManager);
+  if (window == fm.activeWindow) {
+    w.content.focus();
+  }
+  else {
+    let browser = w.getBrowserFromContentWindow(w.content);
+    if (browser)
+      browser.focus();
+  }
 }
 
 
