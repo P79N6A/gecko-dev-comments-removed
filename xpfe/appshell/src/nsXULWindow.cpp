@@ -1992,16 +1992,25 @@ void nsXULWindow::SetContentScrollbarVisibility(PRBool aVisible)
 
 PRBool nsXULWindow::GetContentScrollbarVisibility()
 {
-  PRBool visible = PR_TRUE;
+  
+  
+  
+  
+  nsCOMPtr<nsIScrollable> scroller(do_QueryInterface(mPrimaryContentShell));
 
-  nsCOMPtr<nsIDOMWindow> contentWin(do_GetInterface(mPrimaryContentShell));
-  if (contentWin) {
-    nsCOMPtr<nsIDOMBarProp> scrollbars;
-    contentWin->GetScrollbars(getter_AddRefs(scrollbars));
-    if (scrollbars)
-      scrollbars->GetVisible(&visible);
+  if (scroller) {
+    PRInt32 prefValue;
+    scroller->GetDefaultScrollbarPreferences(
+                  nsIScrollable::ScrollOrientation_Y, &prefValue);
+    if (prefValue == nsIScrollable::Scrollbar_Never) 
+      scroller->GetDefaultScrollbarPreferences(
+                  nsIScrollable::ScrollOrientation_X, &prefValue);
+
+    if (prefValue == nsIScrollable::Scrollbar_Never)
+      return PR_FALSE;
   }
-  return visible;
+
+  return PR_TRUE;
 }
 
 

@@ -651,6 +651,10 @@ protected:
     nsIDocShellTreeOwner *     mTreeOwner; 
     nsPIDOMEventTarget *       mChromeEventHandler; 
 
+#ifdef DEBUG
+    PRBool mInEnsureScriptEnv;
+#endif
+
     static nsIURIFixup *sURIFixup;
 
 
