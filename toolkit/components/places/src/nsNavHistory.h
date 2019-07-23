@@ -197,17 +197,6 @@ public:
     return gHistoryService;
   }
 
-  
-
-
-
-  void SyncDB()
-  {
-    #ifdef LAZY_ADD
-      CommitLazyMessages();
-    #endif
-  }
-
 #ifdef LAZY_ADD
   
 
@@ -400,6 +389,19 @@ public:
 
   typedef nsDataHashtable<nsCStringHashKey, nsCString> StringHash;
 
+  
+
+
+  static nsresult
+  FinalizeStatement(mozIStorageStatement *aStatement) {
+    nsresult rv;
+    if (aStatement) {
+      rv = aStatement->Finalize();
+      NS_ENSURE_SUCCESS(rv, rv);
+    }
+    return NS_OK;
+  }
+
  private:
   ~nsNavHistory();
 
@@ -443,6 +445,11 @@ protected:
   nsCOMPtr<mozIStorageStatement> mDBVisitToVisitResult; 
   mozIStorageStatement *GetDBBookmarkToUrlResult();
   nsCOMPtr<mozIStorageStatement> mDBBookmarkToUrlResult; 
+
+  
+
+
+  nsresult FinalizeStatements();
 
   
   NS_DECL_NSICHARSETRESOLVER
