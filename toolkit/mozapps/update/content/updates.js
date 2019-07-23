@@ -226,6 +226,16 @@ var gUpdates = {
     
     be1.hidden = extraButton1String == null;
     be2.hidden = extraButton2String == null;
+
+    
+    
+    
+    
+    
+    if (cancelButtonString)
+        bc.removeAttribute("icon");
+    else
+        bc.setAttribute("icon", "cancel");
   },
 
   never: function () {
