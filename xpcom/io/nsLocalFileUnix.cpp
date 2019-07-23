@@ -1307,9 +1307,7 @@ nsLocalFile::GetParent(nsIFile **aParent)
 
 
 
-#if defined(XP_BEOS) || defined(SOLARIS)
-
-
+#if defined(XP_BEOS)
 
 
 NS_IMETHODIMP
@@ -1411,6 +1409,23 @@ nsLocalFile::IsExecutable(PRBool *_retval)
     NS_ENSURE_ARG_POINTER(_retval);
 
     *_retval = (access(mPath.get(), X_OK) == 0);
+#ifdef SOLARIS
+    
+    
+    
+    if (*_retval) {
+        struct STAT buf;
+
+        *_retval = (STAT(mPath.get(), &buf) == 0);
+        if (*_retval || errno == EACCES) {
+            *_retval = *_retval &&
+                       (buf.st_mode & (S_IXUSR | S_IXGRP | S_IXOTH ));
+            return NS_OK;
+        }
+
+        return NSRESULT_FOR_ERRNO();
+    }
+#endif
     if (*_retval || errno == EACCES)
         return NS_OK;
     return NSRESULT_FOR_ERRNO();
