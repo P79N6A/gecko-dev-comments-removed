@@ -110,6 +110,9 @@ try
     "    x = (1)['#'];\n" +
     "}";
   actual = "" + b;
+  
+  
+  actual = actual.replace(/\(1\)\[1\];/, "(1)['1'];");
   compareSource(expect, actual, summary + ': 5');
 }
 catch(ex)
