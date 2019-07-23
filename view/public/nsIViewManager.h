@@ -60,8 +60,8 @@ enum nsRectVisibility {
 }; 
 
 #define NS_IVIEWMANAGER_IID   \
-  { 0x739bbc2b, 0x5c45, 0x40bb, \
-    { 0xb0, 0xbc, 0xe3, 0x1c, 0xe0, 0xf2, 0x19, 0xc2 } }
+  { 0xe1f3095c, 0x65cd, 0x46e1, \
+    { 0x9d, 0x70, 0x88, 0xcf, 0x54, 0x19, 0x9d, 0x05 } }
 
 class nsIViewManager : public nsISupports
 {
@@ -186,21 +186,6 @@ public:
 
   NS_IMETHOD  DispatchEvent(nsGUIEvent *aEvent,
       nsIView* aViewTarget, nsEventStatus* aStatus) = 0;
-
-  
-
-
-
-
-
-
-  NS_IMETHOD  GrabMouseEvents(nsIView *aView, PRBool& aResult) = 0;
-
-  
-
-
-
-  NS_IMETHOD  GetMouseEventGrabber(nsIView *&aView) = 0;
 
   
 

@@ -55,6 +55,7 @@
 #include "nsStyleContext.h"
 #include "nsIView.h"
 #include "nsIViewManager.h"
+#include "nsIScrollableView.h"
 #include "nsIScrollableFrame.h"
 #include "nsPresContext.h"
 #include "nsCRT.h"
@@ -743,18 +744,17 @@ nsFrame::GetChildList(nsIAtom* aListName) const
 }
 
 static nsIFrame*
-GetActiveSelectionFrame(nsIFrame* aFrame)
+GetActiveSelectionFrame(nsPresContext* aPresContext, nsIFrame* aFrame)
 {
-  nsIView* mouseGrabber;
-  aFrame->PresContext()->GetPresShell()->
-    GetViewManager()->GetMouseEventGrabber(mouseGrabber);
-  if (mouseGrabber) {
-    nsIFrame* activeFrame = nsLayoutUtils::GetFrameFor(mouseGrabber);
-    if (activeFrame) {
-      return activeFrame;
+  nsIPresShell* shell = aPresContext->GetPresShell(); 
+  if (shell) {
+    nsIContent* capturingContent = nsIPresShell::GetCapturingContent();
+    if (capturingContent) {
+      nsIFrame* activeFrame = shell->GetPrimaryFrameFor(capturingContent);
+      return activeFrame ? activeFrame : aFrame;
     }
   }
-    
+
   return aFrame;
 }
 
@@ -1907,8 +1907,23 @@ nsFrame::HandlePress(nsPresContext* aPresContext,
   
   PRBool useFrameSelection = (selectStyle == NS_STYLE_USER_SELECT_TEXT);
 
-  if (!IsMouseCaptured(aPresContext))
-    CaptureMouse(aPresContext, PR_TRUE);
+  
+  
+  
+  
+  
+  if (!nsIPresShell::GetCapturingContent()) {
+    nsIFrame* checkFrame = this;
+    nsIScrollableFrame *scrollFrame = nsnull;
+    while (checkFrame) {
+      scrollFrame = do_QueryFrame(checkFrame);
+      if (scrollFrame) {
+        nsIPresShell::SetCapturingContent(checkFrame->GetContent(), CAPTURE_IGNOREALLOWED);
+        break;
+      }
+      checkFrame = checkFrame->GetParent();
+    }
+  }
 
   
   
@@ -2183,29 +2198,6 @@ nsFrame::PeekBackwardAndForward(nsSelectionAmount aAmountBack,
   return frameSelection->MaintainSelection(aAmountBack);
 }
 
-
-
-static nsIView* GetNearestCapturingView(nsIFrame* aFrame) {
-  nsIView* view = nsnull;
-  while (!(view = aFrame->GetMouseCapturer()) && aFrame->GetParent()) {
-    aFrame = aFrame->GetParent();
-  }
-  if (!view) {
-    
-    view = aFrame->GetView();
-  }
-  NS_ASSERTION(view, "No capturing view found");
-  return view;
-}
-
-nsIFrame* nsFrame::GetNearestCapturingFrame(nsIFrame* aFrame) {
-  nsIFrame* captureFrame = aFrame;
-  while (captureFrame && !captureFrame->GetMouseCapturer()) {
-    captureFrame = captureFrame->GetParent();
-  }
-  return captureFrame;
-}
-
 NS_IMETHODIMP nsFrame::HandleDrag(nsPresContext* aPresContext, 
                                   nsGUIEvent*     aEvent,
                                   nsEventStatus*  aEventStatus)
@@ -2231,13 +2223,6 @@ NS_IMETHODIMP nsFrame::HandleDrag(nsPresContext* aPresContext,
   frameselection->StopAutoScrollTimer();
 
   
-  
-  nsWeakFrame weakFrame = GetNearestCapturingView(this) ? this : nsnull;
-#ifdef NS_DEBUG
-  PRBool frameAlive = weakFrame.IsAlive();
-#endif
-
-  
   nsCOMPtr<nsIContent> parentContent;
   PRInt32 contentOffset;
   PRInt32 target;
@@ -2254,22 +2239,29 @@ NS_IMETHODIMP nsFrame::HandleDrag(nsPresContext* aPresContext,
     frameselection->HandleDrag(this, pt);
   }
 
-  if (weakFrame) {
-    nsIView* captureView = GetNearestCapturingView(this);
-    if (captureView) {
+  
+  nsIFrame* checkFrame = this;
+  nsIScrollableFrame *scrollFrame = nsnull;
+  while (checkFrame) {
+    scrollFrame = do_QueryFrame(checkFrame);
+    if (scrollFrame) {
+      break;
+    }
+    checkFrame = checkFrame->GetParent();
+  }
+
+  if (scrollFrame) {
+    nsIView* capturingView = scrollFrame->GetScrollableView()->View();
+    if (capturingView) {
       
       nsIView* eventView = nsnull;
       nsPoint pt = nsLayoutUtils::GetEventCoordinatesForNearestView(aEvent, this,
                                                                     &eventView);
-      nsPoint capturePt = pt + eventView->GetOffsetTo(captureView);
-      frameselection->StartAutoScrollTimer(captureView, capturePt, 30);
+      nsPoint capturePt = pt + eventView->GetOffsetTo(capturingView);
+      frameselection->StartAutoScrollTimer(capturingView, capturePt, 30);
     }
   }
-#ifdef NS_DEBUG
-  if (frameAlive && !weakFrame.IsAlive()) {
-    NS_WARNING("nsFrame deleted during nsFrame::HandleDrag.");
-  }
-#endif
+
   return NS_OK;
 }
 
@@ -2342,11 +2334,11 @@ NS_IMETHODIMP nsFrame::HandleRelease(nsPresContext* aPresContext,
                                      nsGUIEvent*    aEvent,
                                      nsEventStatus* aEventStatus)
 {
-  nsIFrame* activeFrame = GetActiveSelectionFrame(this);
+  nsIFrame* activeFrame = GetActiveSelectionFrame(aPresContext, this);
 
   
   
-  CaptureMouse(aPresContext, PR_FALSE);
+  nsIPresShell::SetCapturingContent(nsnull, 0);
 
   PRBool selectionOff =
     (DisplaySelection(aPresContext) == nsISelectionController::SELECTION_OFF);
@@ -5929,51 +5921,6 @@ nsFrame::GetFirstLeaf(nsPresContext* aPresContext, nsIFrame **aFrame)
       return;
     *aFrame = child;
   }
-}
-
-NS_IMETHODIMP
-nsFrame::CaptureMouse(nsPresContext* aPresContext, PRBool aGrabMouseEvents)
-{
-  
-  nsIView* view = GetNearestCapturingView(this);
-  if (!view) {
-    return NS_ERROR_FAILURE;
-  }
-
-  nsIViewManager* viewMan = view->GetViewManager();
-  if (!viewMan) {
-    return NS_ERROR_FAILURE;
-  }
-
-  if (aGrabMouseEvents) {
-    PRBool result;
-    viewMan->GrabMouseEvents(view, result);
-  } else {
-    PRBool result;
-    viewMan->GrabMouseEvents(nsnull, result);
-  }
-
-  return NS_OK;
-}
-
-PRBool
-nsFrame::IsMouseCaptured(nsPresContext* aPresContext)
-{
-    
-  nsIView* view = GetNearestCapturingView(this);
-  
-  if (view) {
-    nsIViewManager* viewMan = view->GetViewManager();
-
-    if (viewMan) {
-        nsIView* grabbingView;
-        viewMan->GetMouseEventGrabber(grabbingView);
-        if (grabbingView == view)
-          return PR_TRUE;
-    }
-  }
-
-  return PR_FALSE;
 }
 
 nsresult

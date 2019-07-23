@@ -185,13 +185,11 @@ nsView::nsView(nsViewManager* aViewManager, nsViewVisibility aVisibility)
   mDeletionObserver = nsnull;
 }
 
-void nsView::DropMouseGrabbing() {
-  
-  if (mViewManager->GetMouseEventGrabber() == this) {
-    
-    PRBool boolResult; 
-    
-    mViewManager->GrabMouseEvents(GetParent(), boolResult);
+void nsView::DropMouseGrabbing()
+{
+  nsCOMPtr<nsIViewObserver> viewObserver = mViewManager->GetViewObserver();
+  if (viewObserver) {
+    viewObserver->ClearMouseCapture(this);
   }
 }
 
@@ -495,15 +493,6 @@ NS_IMETHODIMP nsView::SetFloating(PRBool aFloatingView)
 
 void nsView::InvalidateHierarchy(nsViewManager *aViewManagerParent)
 {
-  if (aViewManagerParent) {
-    
-    
-    if (aViewManagerParent->GetMouseEventGrabber() == this) {
-      PRBool res;
-      aViewManagerParent->GrabMouseEvents(nsnull, res);
-    }
-  }
-
   if (mViewManager->GetRootView() == this)
     mViewManager->InvalidateHierarchy();
 

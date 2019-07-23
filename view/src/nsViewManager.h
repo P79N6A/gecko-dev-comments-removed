@@ -128,10 +128,6 @@ public:
   NS_IMETHOD  DispatchEvent(nsGUIEvent *aEvent,
       nsIView* aTargetView, nsEventStatus* aStatus);
 
-  NS_IMETHOD  GrabMouseEvents(nsIView *aView, PRBool &aResult);
-
-  NS_IMETHOD  GetMouseEventGrabber(nsIView *&aView);
-
   NS_IMETHOD  InsertChild(nsIView *parent, nsIView *child, nsIView *sibling,
                           PRBool above);
 
@@ -305,14 +301,10 @@ private:
 
 public: 
   nsView* GetRootView() const { return mRootView; }
-  nsView* GetMouseEventGrabber() const {
-    return RootViewManager()->mMouseGrabber;
-  }
   nsViewManager* RootViewManager() const { return mRootViewManager; }
   PRBool IsRootVM() const { return this == RootViewManager(); }
 
-  nsEventStatus HandleEvent(nsView* aView, nsPoint aPoint, nsGUIEvent* aEvent,
-                            PRBool aCaptured);
+  nsEventStatus HandleEvent(nsView* aView, nsPoint aPoint, nsGUIEvent* aEvent);
 
   
 
@@ -390,8 +382,6 @@ private:
   
   
   
-  
-  nsView            *mMouseGrabber;
   
   
   PRInt32           mUpdateCnt;
