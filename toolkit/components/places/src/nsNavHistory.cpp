@@ -121,7 +121,8 @@
 
 
 
-#define DEFAULT_DB_PAGE_SIZE 1024
+
+#define DEFAULT_DB_PAGE_SIZE 4096
 
 
 #define HISTORY_EXPIRE_NOW_TIMEOUT (3 * PR_MSEC_PER_SEC)
@@ -511,6 +512,17 @@ nsNavHistory::InitDB(PRBool *aDoImport)
   
   
   
+  
+  
+  
+  nsCAutoString pageSizePragma("PRAGMA page_size=");
+  pageSizePragma.AppendInt(DEFAULT_DB_PAGE_SIZE);
+  rv = mDBConn->ExecuteSimpleSQL(pageSizePragma);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  
+  
   rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING("PRAGMA auto_vacuum=2"));
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -523,14 +535,6 @@ nsNavHistory::InitDB(PRBool *aDoImport)
                                             nsITimer::TYPE_REPEATING_SLACK);
     NS_ENSURE_SUCCESS(rv, rv);
   }
-
-  
-  
-  
-  nsCAutoString pageSizePragma("PRAGMA page_size=");
-  pageSizePragma.AppendInt(DEFAULT_DB_PAGE_SIZE);
-  rv = mDBConn->ExecuteSimpleSQL(pageSizePragma);
-  NS_ENSURE_SUCCESS(rv, rv);
 
   mozStorageTransaction transaction(mDBConn, PR_FALSE);
 
