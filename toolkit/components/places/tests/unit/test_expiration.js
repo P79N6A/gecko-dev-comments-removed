@@ -98,6 +98,15 @@ var observer = {
 histsvc.addObserver(observer, false);
 
 
+var dirService = Cc["@mozilla.org/file/directory_service;1"].getService(Ci.nsIProperties);
+var dbFile = dirService.get("ProfD", Ci.nsIFile);
+dbFile.append("places.sqlite");
+
+var dbService = Cc["@mozilla.org/storage/service;1"].getService(Ci.mozIStorageService);
+var dbConnection = dbService.openDatabase(dbFile);
+  
+
+
 function run_test() {
   var testURI = uri("http://mozilla.com");
   var testAnnoName = "tests/expiration/history";
@@ -125,16 +134,21 @@ function run_test() {
 
 
 
-  histsvc.addVisit(testURI, Date.now(), 0, histsvc.TRANSITION_TYPED, false, 0);
-  annosvc.setPageAnnotation(testURI, testAnnoName + "Hist", testAnnoVal, 0, annosvc.EXPIRE_WITH_HISTORY);
-  annosvc.setPageAnnotation(testURI, testAnnoName + "Never", testAnnoVal, 0, annosvc.EXPIRE_NEVER);
+  var removeAllTestURI = uri("http://removeallpages.com");
+  histsvc.addVisit(removeAllTestURI, Date.now(), 0, histsvc.TRANSITION_TYPED, false, 0);
+  annosvc.setPageAnnotation(removeAllTestURI, testAnnoName + "Hist", testAnnoVal, 0, annosvc.EXPIRE_WITH_HISTORY);
+  annosvc.setPageAnnotation(removeAllTestURI, testAnnoName + "Never", testAnnoVal, 0, annosvc.EXPIRE_NEVER);
   bhist.removeAllPages();
   try {
     annosvc.getPageAnnotation(testAnnoName + "Hist");
     do_throw("nsIBrowserHistory.removePagesFromHost() didn't remove an EXPIRE_WITH_HISTORY annotation");
   } catch(ex) {}
-  do_check_eq(annosvc.getPageAnnotation(testURI, testAnnoName + "Never"), testAnnoVal);
-  annosvc.removePageAnnotation(testURI, testAnnoName + "Never");
+  try {
+    do_check_eq(annosvc.getPageAnnotation(removeAllTestURI, testAnnoName + "Never"), testAnnoVal);
+    annosvc.removePageAnnotation(removeAllTestURI, testAnnoName + "Never");
+  } catch(ex) {
+    do_throw("nsIBrowserHistory.removeAllPages deleted EXPIRE_NEVER annos!");
+  }
 
   
 
@@ -154,14 +168,6 @@ function run_test() {
   do_check_eq(testURI.spec, observer.expiredURI);
   do_check_eq(annosvc.getPageAnnotationNames(testURI, {}).length, 0);
 
-  
-  var dirService = Cc["@mozilla.org/file/directory_service;1"].getService(Ci.nsIProperties);
-  var dbFile = dirService.get("ProfD", Ci.nsIFile);
-  dbFile.append("places.sqlite");
-
-  var dbService = Cc["@mozilla.org/storage/service;1"].getService(Ci.mozIStorageService);
-  var dbConnection = dbService.openDatabase(dbFile);
-  
   
 
 
