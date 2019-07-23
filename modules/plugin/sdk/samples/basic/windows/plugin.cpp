@@ -106,7 +106,7 @@ NPBool nsPluginInstance::init(NPWindow* aWindow)
 
   
   
-  SetWindowLong(mhWnd, GWL_USERDATA, (LONG)this);
+  SetWindowLongPtr(mhWnd, GWLP_USERDATA, (LONG_PTR)this);
 
   mInitialized = TRUE;
   return TRUE;
@@ -143,7 +143,7 @@ static LRESULT CALLBACK PluginWinProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM
         FrameRect(hdc, &rc, GetStockBrush(BLACK_BRUSH));
 
         
-        nsPluginInstance *plugin = (nsPluginInstance *)GetWindowLong(hWnd, GWL_USERDATA);
+        nsPluginInstance *plugin = (nsPluginInstance *)GetWindowLongPtr(hWnd, GWLP_USERDATA);
         if (plugin) {
           const char * string = plugin->getVersion();
           DrawText(hdc, string, strlen(string), &rc, DT_SINGLELINE | DT_CENTER | DT_VCENTER);

@@ -770,7 +770,7 @@ nsresult EventsPluginInstance::PlatformDestroy(void) {
 
 nsresult EventsPluginInstance::PlatformCreateWindow(nsPluginWindow* window) {
 	
-	fPlatform.fParentWindowProc = (WNDPROC)::GetWindowLong(wMain, GWL_WNDPROC);
+	fPlatform.fParentWindowProc = (WNDPROC)::GetWindowLongPtr(wMain, GWLP_WNDPROC);
 	NS_ABORT_IF_FALSE(fPlatform.fParentWindowProc!=NULL, "Couldn't get the parent WNDPROC");
 
 	
@@ -791,9 +791,9 @@ nsresult EventsPluginInstance::PlatformCreateWindow(nsPluginWindow* window) {
 	
 	::SetProp(wChild, gInstanceLookupString, (HANDLE)this);
 	fPlatform.fOldChildWindowProc =
-		(WNDPROC)::SetWindowLong( wChild,
-								GWL_WNDPROC, 
-								(LONG)EventsPluginInstance::WndProcChild);
+		(WNDPROC)::SetWindowLongPtr( wChild,
+								GWLP_WNDPROC, 
+								(LONG_PTR)EventsPluginInstance::WndProcChild);
 	return NS_OK;
 }
 
@@ -806,7 +806,7 @@ void EventsPluginInstance::PlatformResetWindow() {
 	printf("EventsPluginInstance::PlatformResetWindow\n");
 #endif
 	fPlatform.fParentWindowProc = NULL;
-	::SetWindowLong(wChild, GWL_WNDPROC, (LONG)fPlatform.fOldChildWindowProc);
+	::SetWindowLongPtr(wChild, GWLP_WNDPROC, (LONG_PTR)fPlatform.fOldChildWindowProc);
 	fPlatform.fOldChildWindowProc = NULL;
 	wChild = NULL;
 	wMain = NULL;
