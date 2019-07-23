@@ -68,6 +68,13 @@
 
 #define MapVirtualKeyEx(a,b,c)  MapVirtualKey(a,b)
 
+#ifndef WINCE_WINDOWS_MOBILE
+
+#define BROWSEINFOW             BROWSEINFO
+#define BFFM_SETSELECTIONW      BFFM_SETSELECTION
+#define SHBrowseForFolderW(a)   SHBrowseForFolder(a)
+#endif
+
 
 inline void FlashWindow(HWND window, BOOL ignore){}
 inline int  GetMessageTime() {return 0;}
