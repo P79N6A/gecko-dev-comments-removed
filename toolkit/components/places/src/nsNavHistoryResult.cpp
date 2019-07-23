@@ -1812,6 +1812,12 @@ nsNavHistoryContainerResultNode::AppendURINode(
   if (!IsDynamicContainer())
     return NS_ERROR_INVALID_ARG; 
 
+  
+  
+  if ((mResult && mResult->mRootNode->mOptions->ExcludeItems()) ||
+      (mParent && mParent->mOptions->ExcludeItems()))
+    return NS_OK;
+
   nsRefPtr<nsNavHistoryResultNode> result =
       new nsNavHistoryResultNode(aURI, aTitle, aAccessCount, aTime, aIconURI);
   NS_ENSURE_TRUE(result, NS_ERROR_OUT_OF_MEMORY);
