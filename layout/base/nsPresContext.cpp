@@ -90,6 +90,10 @@
 #include "nsFontFaceLoader.h"
 #include "nsIEventListenerManager.h"
 
+#ifdef MOZ_SMIL
+#include "nsSMILAnimationController.h"
+#endif 
+
 #ifdef IBMBIDI
 #include "nsBidiPresUtils.h"
 #endif 
@@ -291,7 +295,6 @@ nsPresContext::~nsPresContext()
   NS_IF_RELEASE(mDeviceContext);
   NS_IF_RELEASE(mLookAndFeel);
   NS_IF_RELEASE(mLangGroup);
-  NS_IF_RELEASE(mUserFontSet);
 }
 
 NS_IMPL_CYCLE_COLLECTION_CLASS(nsPresContext)
@@ -902,6 +905,12 @@ nsPresContext::Init(nsIDeviceContext* aDeviceContext)
 void
 nsPresContext::SetShell(nsIPresShell* aShell)
 {
+  if (mUserFontSet) {
+    
+    mUserFontSet->Destroy();
+    NS_RELEASE(mUserFontSet);
+  }
+
   if (mShell) {
     
     
@@ -1072,6 +1081,30 @@ void nsPresContext::SetImgAnimations(nsIContent *aParent, PRUint16 aMode)
   }
 }
 
+#ifdef MOZ_SMIL
+void
+nsPresContext::SetSMILAnimations(nsIDocument *aDoc, PRUint16 aNewMode,
+                                 PRUint16 aOldMode)
+{
+  nsSMILAnimationController *controller = aDoc->GetAnimationController();
+  if (controller) {
+    switch (aNewMode)
+    {
+      case imgIContainer::kNormalAnimMode:
+      case imgIContainer::kLoopOnceAnimMode:
+        if (aOldMode == imgIContainer::kDontAnimMode)
+          controller->Resume(nsSMILTimeContainer::PAUSE_USERPREF);
+        break;
+
+      case imgIContainer::kDontAnimMode:
+        if (aOldMode != imgIContainer::kDontAnimMode)
+          controller->Pause(nsSMILTimeContainer::PAUSE_USERPREF);
+        break;
+    }
+  }
+}
+#endif 
+
 void
 nsPresContext::SetImageAnimationModeInternal(PRUint16 aMode)
 {
@@ -1096,6 +1129,10 @@ nsPresContext::SetImageAnimationModeInternal(PRUint16 aMode)
       if (rootContent) {
         SetImgAnimations(rootContent, aMode);
       }
+
+#ifdef MOZ_SMIL
+      SetSMILAnimations(doc, aMode, mImageAnimationMode);
+#endif 
     }
   }
 
@@ -1109,10 +1146,12 @@ nsPresContext::SetImageAnimationModeExternal(PRUint16 aMode)
 }
 
 already_AddRefed<nsIFontMetrics>
-nsPresContext::GetMetricsFor(const nsFont& aFont)
+nsPresContext::GetMetricsFor(const nsFont& aFont, PRBool aUseUserFontSet)
 {
   nsIFontMetrics* metrics = nsnull;
-  mDeviceContext->GetMetricsFor(aFont, mLangGroup, GetUserFontSet(), metrics);
+  mDeviceContext->GetMetricsFor(aFont, mLangGroup,
+                                aUseUserFontSet ? GetUserFontSet() : nsnull,
+                                metrics);
   return metrics;
 }
 
@@ -1579,8 +1618,10 @@ nsPresContext::IsChrome() const
  PRBool
 nsPresContext::HasAuthorSpecifiedRules(nsIFrame *aFrame, PRUint32 ruleTypeMask) const
 {
-  return nsRuleNode::
-    HasAuthorSpecifiedRules(aFrame->GetStyleContext(), ruleTypeMask);
+  return
+    UseDocumentColors() &&
+    nsRuleNode::HasAuthorSpecifiedRules(aFrame->GetStyleContext(),
+                                        ruleTypeMask);
 }
 
 static void
@@ -1706,6 +1747,10 @@ InsertFontFaceRule(nsCSSFontFaceRule *aRule, gfxUserFontSet* aFontSet,
             face->mFormatFlags |= gfxUserFontSet::FLAG_FORMAT_EOT;   
           } else if (valueString.LowerCaseEqualsASCII("svg")) {
             face->mFormatFlags |= gfxUserFontSet::FLAG_FORMAT_SVG;   
+          } else {
+            
+            
+            face->mFormatFlags |= gfxUserFontSet::FLAG_FORMAT_UNKNOWN;
           }
           i++;
         }
@@ -1794,10 +1839,13 @@ nsPresContext::FlushUserFontSet()
 
       
       if (differ) {
-        NS_IF_RELEASE(mUserFontSet);
+        if (mUserFontSet) {
+          mUserFontSet->Destroy();
+          NS_RELEASE(mUserFontSet);
+        }
 
         if (rules.Length() > 0) {
-          gfxUserFontSet *fs = new nsUserFontSet(this);
+          nsUserFontSet *fs = new nsUserFontSet(this);
           if (!fs)
             return;
           mUserFontSet = fs;
@@ -1954,7 +2002,7 @@ nsPresContext::NotifyInvalidation(const nsRect& aRect, PRBool aIsCrossDoc)
       !MayHavePaintEventListener(mDocument->GetInnerWindow()))
     return;
 
-  if (mSameDocDirtyRegion.IsEmpty() && mCrossDocDirtyRegion.IsEmpty()) {
+  if (!IsDOMPaintEventPending()) {
     
     nsCOMPtr<nsIRunnable> ev =
       new nsRunnableMethod<nsPresContext>(this,
