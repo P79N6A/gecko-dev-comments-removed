@@ -134,7 +134,14 @@ nsAsyncInstantiateEvent::Run()
   
   nsIObjectFrame* frame = mContent->
     GetExistingFrame(nsObjectLoadingContent::eFlushContent);
-  if (mFrame.IsAlive() &&
+#ifdef DEBUG
+  if (frame && mFrame.IsAlive()) {
+    nsIFrame* objectFrame = do_QueryFrame(frame);
+    NS_ASSERTION(objectFrame == mFrame.GetFrame(), "Wrong frame!");
+  }
+#endif
+  if (frame &&
+      mFrame.IsAlive() &&
       mContent->mURI == mURI &&
       mContent->mContentType.Equals(mContentType)) {
     if (LOG_ENABLED()) {
