@@ -44,6 +44,7 @@
 #define TestHarness_h__
 
 #include "nsIServiceManager.h"
+#include "nsComponentManagerUtils.h"
 #include "nsCOMPtr.h"
 #include "nsAutoPtr.h"
 #include <stdio.h>

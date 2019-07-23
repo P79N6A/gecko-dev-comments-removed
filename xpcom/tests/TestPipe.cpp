@@ -41,6 +41,33 @@
 #include "nsIMemory.h"
 
 
+nsresult NS_NewPipe2(nsIAsyncInputStream** input,
+                     nsIAsyncOutputStream** output,
+                     PRBool nonBlockingInput = PR_FALSE,
+                     PRBool nonBlockingOutput = PR_FALSE,
+                     size_t segmentSize = 0,
+                     PRUint32 segmentCount = 0,
+                     nsIMemory* segmentAlloc = nsnull)
+{
+  nsCOMPtr<nsIPipe> pipe = do_CreateInstance("@mozilla.org/pipe;1");
+  if (!pipe)
+    return NS_ERROR_OUT_OF_MEMORY;
+
+  nsresult rv = pipe->Init(nonBlockingInput,
+                           nonBlockingOutput,
+                           segmentSize,
+                           segmentCount,
+                           segmentAlloc);
+
+  if (NS_FAILED(rv))
+    return rv;
+
+  pipe->GetInputStream(input);
+  pipe->GetOutputStream(output);
+  return NS_OK;
+}
+
+
 
 
 
