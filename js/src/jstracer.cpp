@@ -7382,7 +7382,9 @@ arm_read_auxv() {
                 {
                     
                     
-                    JS_ASSERT(false);
+                    
+                    if (getenv("_SBOX_DIR") == NULL)
+                        JS_ASSERT(false);
                 }
             }
         }
