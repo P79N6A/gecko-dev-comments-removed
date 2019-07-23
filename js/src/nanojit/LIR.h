@@ -560,6 +560,13 @@ namespace nanojit
         NanoAssert(isCses[op] != -1);   
         return isCses[op] == 1;
     }
+    inline bool isLiveOpcode(LOpcode op) {
+        return 
+#if defined NANOJIT_64BIT
+               op == LIR_liveq ||
+#endif
+               op == LIR_livei || op == LIR_lived;
+    }
     inline bool isRetOpcode(LOpcode op) {
         return
 #if defined NANOJIT_64BIT
@@ -776,13 +783,20 @@ namespace nanojit
         
         
         
+        
+        
+        
+        
+        
         struct SharedFields {
-            uint32_t inReg:1;       
+            uint32_t inReg:1;           
             Register reg:7;
-            uint32_t inAr:1;        
-            uint32_t arIndex:15;    
+            uint32_t inAr:1;            
+            uint32_t isResultLive:1;    
+                                    
+            uint32_t arIndex:14;        
 
-            LOpcode  opcode:8;      
+            LOpcode  opcode:8;          
         };
 
         union {
@@ -839,6 +853,20 @@ namespace nanojit
         
         
         
+        bool isLive() const { 
+            return isV() ||
+                   sharedFields.isResultLive ||
+                   (isCall() && !callInfo()->_isPure) ||    
+                   isop(LIR_paramp);                        
+        }
+        void setResultLive() {
+            NanoAssert(!isV());
+            sharedFields.isResultLive = 1;
+        }
+
+        
+        
+        
         
         
         
@@ -847,20 +875,25 @@ namespace nanojit
             sharedFields.inAr = 0;
         }
         bool deprecated_hasKnownReg() {
-            NanoAssert(isUsed());
+            NanoAssert(isExtant());
             return isInReg();
         }
         Register deprecated_getReg() {
-            NanoAssert(isUsed());
+            NanoAssert(isExtant());
             return ( isInReg() ? sharedFields.reg : deprecated_UnknownReg );
         }
         uint32_t deprecated_getArIndex() {
-            NanoAssert(isUsed());
+            NanoAssert(isExtant());
             return ( isInAr() ? sharedFields.arIndex : 0 );
         }
 
         
-        bool isUsed() {
+        
+        
+        
+        
+        
+        bool isExtant() {
             return isInReg() || isInAr();
         }
         bool isInReg() {
@@ -1004,13 +1037,6 @@ namespace nanojit
         bool isRet() const {
             return isRetOpcode(opcode());
         }
-        bool isLive() const {
-            return isop(LIR_livei) ||
-#if defined NANOJIT_64BIT
-                   isop(LIR_liveq) ||
-#endif
-                   isop(LIR_lived);
-        }
         bool isCmp() const {
             LOpcode op = opcode();
             return isCmpIOpcode(op) ||
@@ -1115,22 +1141,6 @@ namespace nanojit
 #else
             return isI();
 #endif
-        }
-
-        
-        
-        
-        
-        
-        
-        bool isStmt() {
-            NanoAssert(!isop(LIR_skip));
-            
-            
-            if (isCall())
-                return !callInfo()->_isPure;
-            else
-                return isV();
         }
 
         inline void* immP() const

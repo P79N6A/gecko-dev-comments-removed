@@ -2251,11 +2251,11 @@ namespace nanojit
     void Assembler::asm_pusharg(LInsp ins)
     {
         
-        if (!ins->isUsed() && ins->isImmI())
+        if (!ins->isExtant() && ins->isImmI())
         {
             PUSHi(ins->immI());    
         }
-        else if (!ins->isUsed() || ins->isop(LIR_alloc))
+        else if (!ins->isExtant() || ins->isop(LIR_alloc))
         {
             Register ra = findRegFor(ins, GpRegs);
             PUSHr(ra);
@@ -2274,7 +2274,7 @@ namespace nanojit
     void Assembler::asm_stkarg(LInsp ins, int32_t& stkd)
     {
         
-        if (!ins->isUsed() && ins->isImmI())
+        if (!ins->isExtant() && ins->isImmI())
         {
             
             STi(SP, stkd, ins->immI());

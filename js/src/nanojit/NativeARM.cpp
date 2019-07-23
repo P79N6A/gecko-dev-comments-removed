@@ -729,7 +729,7 @@ Assembler::asm_regarg(ArgType ty, LInsp p, Register r)
         if (p->isImmI()) {
             asm_ld_imm(r, p->immI());
         } else {
-            if (p->isUsed()) {
+            if (p->isExtant()) {
                 if (!p->deprecated_hasKnownReg()) {
                     
                     int d = findMemFor(p);
@@ -765,7 +765,7 @@ Assembler::asm_stkarg(LInsp arg, int stkd)
     bool isF64 = arg->isD();
 
     Register rr;
-    if (arg->isUsed() && (rr = arg->deprecated_getReg(), deprecated_isKnownReg(rr))) {
+    if (arg->isExtant() && (rr = arg->deprecated_getReg(), deprecated_isKnownReg(rr))) {
         
         
         if (!_config.arm_vfp || !isF64) {
@@ -861,7 +861,7 @@ Assembler::asm_call(LInsp ins)
     
     
     
-    if (_config.arm_vfp && ins->isUsed()) {
+    if (_config.arm_vfp && ins->isExtant()) {
         
         
         if (ci->returnType() == ARGTYPE_D) {
