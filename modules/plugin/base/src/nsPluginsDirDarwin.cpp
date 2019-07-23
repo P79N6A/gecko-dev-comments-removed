@@ -505,6 +505,7 @@ nsresult nsPluginFile::GetPluginInfo(nsPluginInfo& info)
   }
 
   
+  
 
   
   int variantCount = info.fVariantCount;
