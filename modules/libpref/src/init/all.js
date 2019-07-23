@@ -771,11 +771,6 @@ pref("network.proxy.autoconfig_url", "");
 pref("network.proxy.autoconfig_retry_interval_min", 5);    
 pref("network.proxy.autoconfig_retry_interval_max", 300);  
 
-
-
-pref("network.cookie.p3p",                  "ffffaaaa");
-pref("network.cookie.p3plevel",             1); 
-
 pref("converter.html2txt.structs",          true); 
 pref("converter.html2txt.header_strategy",  1); 
 
