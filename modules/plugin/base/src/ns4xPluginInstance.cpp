@@ -59,18 +59,13 @@
 #include "nsILegacyPluginWrapperOS2.h"
 #endif
 
-
-
 static NS_DEFINE_IID(kCPluginManagerCID, NS_PLUGINMANAGER_CID); 
 static NS_DEFINE_IID(kIPluginStreamListenerIID, NS_IPLUGINSTREAMLISTENER_IID);
 
 
 
-
 NS_IMPL_ISUPPORTS3(ns4xPluginStreamListener, nsIPluginStreamListener,
                    nsITimerCallback, nsIHTTPHeaderListener)
-
-
 
 ns4xPluginStreamListener::ns4xPluginStreamListener(ns4xPluginInstance* inst, 
                                                    void* notifyData,
@@ -97,17 +92,15 @@ ns4xPluginStreamListener::ns4xPluginStreamListener(ns4xPluginInstance* inst,
   NS_IF_ADDREF(mInst);
 }
 
-
-
 ns4xPluginStreamListener::~ns4xPluginStreamListener(void)
 {
   
   ns4xPluginInstance *inst = mInst;
-  if(inst) {
+  if (inst) {
     nsInstanceStream * prev = nsnull;
-    for(nsInstanceStream *is = inst->mStreams; is != nsnull; is = is->mNext) {
-      if(is->mPluginStreamListener == this) {
-        if(prev == nsnull)
+    for (nsInstanceStream *is = inst->mStreams; is != nsnull; is = is->mNext) {
+      if (is->mPluginStreamListener == this) {
+        if (!prev)
           inst->mStreams = is->mNext;
         else
           prev->mNext = is->mNext;
@@ -126,8 +119,7 @@ ns4xPluginStreamListener::~ns4xPluginStreamListener(void)
   CallURLNotify(NPRES_NETWORK_ERR);
 
   
-  if (mStreamBuffer)
-  {
+  if (mStreamBuffer) {
     PR_Free(mStreamBuffer);
     mStreamBuffer=nsnull;
   }
@@ -141,29 +133,27 @@ ns4xPluginStreamListener::~ns4xPluginStreamListener(void)
     PL_strfree(mResponseHeaderBuf);
 }
 
-
 nsresult ns4xPluginStreamListener::CleanUpStream(NPReason reason)
 {
   nsresult rv = NS_ERROR_FAILURE;
 
-  if(mStreamCleanedUp)
+  if (mStreamCleanedUp)
     return NS_OK;
 
-  if(!mInst || !mInst->IsStarted())
+  if (!mInst || !mInst->IsStarted())
     return rv;
 
   PluginDestructionGuard guard(mInst);
 
   const NPPluginFuncs *callbacks = nsnull;
   mInst->GetCallbacks(&callbacks);
-  if(!callbacks)
+  if (!callbacks)
     return rv;
 
   NPP npp;
   mInst->GetNPP(&npp);
 
-  if (mStreamStarted && callbacks->destroystream != NULL)
-  {
+  if (mStreamStarted && callbacks->destroystream) {
     PRLibrary* lib = nsnull;
     lib = mInst->fLibrary;
     NPError error;
@@ -176,7 +166,7 @@ nsresult ns4xPluginStreamListener::CleanUpStream(NPReason reason)
     ("NPP DestroyStream called: this=%p, npp=%p, reason=%d, return=%d, url=%s\n",
     this, npp, reason, error, mNPStream.url));
 
-    if(error == NPERR_NO_ERROR)
+    if (error == NPERR_NO_ERROR)
       rv = NS_OK;
   }
 
@@ -191,11 +181,9 @@ nsresult ns4xPluginStreamListener::CleanUpStream(NPReason reason)
   return rv;
 }
 
-
-
 void ns4xPluginStreamListener::CallURLNotify(NPReason reason)
 {
-  if(!mCallNotify || !mInst || !mInst->IsStarted())
+  if (!mCallNotify || !mInst || !mInst->IsStarted())
     return;
 
   PluginDestructionGuard guard(mInst);
@@ -204,7 +192,7 @@ void ns4xPluginStreamListener::CallURLNotify(NPReason reason)
 
   const NPPluginFuncs *callbacks = nsnull;
   mInst->GetCallbacks(&callbacks);
-  if(!callbacks)
+  if (!callbacks)
     return;
   
   if (callbacks->urlnotify) {
@@ -224,12 +212,10 @@ void ns4xPluginStreamListener::CallURLNotify(NPReason reason)
   }
 }
 
-
-
 NS_IMETHODIMP
 ns4xPluginStreamListener::OnStartBinding(nsIPluginStreamInfo* pluginInfo)
 {
-  if(!mInst)
+  if (!mInst)
     return NS_ERROR_FAILURE;
 
   PluginDestructionGuard guard(mInst);
@@ -240,7 +226,7 @@ ns4xPluginStreamListener::OnStartBinding(nsIPluginStreamInfo* pluginInfo)
   mInst->GetCallbacks(&callbacks);
   mInst->GetNPP(&npp);
 
-  if(!callbacks || !mInst->IsStarted())
+  if (!callbacks || !mInst->IsStarted())
     return NS_ERROR_FAILURE;
 
   PRBool seekable;
@@ -275,7 +261,7 @@ ns4xPluginStreamListener::OnStartBinding(nsIPluginStreamInfo* pluginInfo)
   ("NPP NewStream called: this=%p, npp=%p, mime=%s, seek=%d, type=%d, return=%d, url=%s\n",
   this, npp, (char *)contentType, seekable, streamType, error, mNPStream.url));
 
-  if(error != NPERR_NO_ERROR)
+  if (error != NPERR_NO_ERROR)
     return NS_ERROR_FAILURE;
 
   
@@ -385,9 +371,6 @@ ns4xPluginStreamListener::PluginInitJSLoadInProgress()
 
 
 
-
-
-
 NS_IMETHODIMP
 ns4xPluginStreamListener::OnDataAvailable(nsIPluginStreamInfo* pluginInfo,
                                           nsIInputStream* input,
@@ -404,11 +387,10 @@ ns4xPluginStreamListener::OnDataAvailable(nsIPluginStreamInfo* pluginInfo,
   const NPPluginFuncs *callbacks = nsnull;
   mInst->GetCallbacks(&callbacks);
   
-  if(!callbacks || !callbacks->write || !length)
+  if (!callbacks || !callbacks->write || !length)
     return NS_ERROR_FAILURE; 
   
-  if (!mStreamBuffer)
-  {
+  if (!mStreamBuffer) {
     
     
     
@@ -661,19 +643,18 @@ ns4xPluginStreamListener::OnDataAvailable(nsIPluginStreamInfo* pluginInfo,
   return rv;
 }
 
-
 NS_IMETHODIMP
 ns4xPluginStreamListener::OnFileAvailable(nsIPluginStreamInfo* pluginInfo, 
                                           const char* fileName)
 {
-  if(!mInst || !mInst->IsStarted())
+  if (!mInst || !mInst->IsStarted())
     return NS_ERROR_FAILURE;
 
   PluginDestructionGuard guard(mInst);
 
   const NPPluginFuncs *callbacks = nsnull;
   mInst->GetCallbacks(&callbacks);
-  if(!callbacks || !callbacks->asfile)
+  if (!callbacks || !callbacks->asfile)
     return NS_ERROR_FAILURE;
   
   NPP npp;
@@ -694,8 +675,6 @@ ns4xPluginStreamListener::OnFileAvailable(nsIPluginStreamInfo* pluginInfo,
   return NS_OK;
 }
 
-
-
 NS_IMETHODIMP
 ns4xPluginStreamListener::OnStopBinding(nsIPluginStreamInfo* pluginInfo, 
                                         nsresult status)
@@ -714,13 +693,13 @@ ns4xPluginStreamListener::OnStopBinding(nsIPluginStreamInfo* pluginInfo,
     }
   }
 
-  if(!mInst || !mInst->IsStarted())
+  if (!mInst || !mInst->IsStarted())
     return NS_ERROR_FAILURE;
 
   
   
   nsresult rv = NS_OK;
-  if(mStreamType != nsPluginStreamType_Seek) {
+  if (mStreamType != nsPluginStreamType_Seek) {
     NPReason reason = NPRES_DONE;
 
     if (NS_FAILED(status))
@@ -729,7 +708,7 @@ ns4xPluginStreamListener::OnStopBinding(nsIPluginStreamInfo* pluginInfo,
     rv = CleanUpStream(reason);
   }
 
-  if(rv != NPERR_NO_ERROR)
+  if (rv != NPERR_NO_ERROR)
     return NS_ERROR_FAILURE;
 
   return NS_OK;
@@ -776,7 +755,6 @@ ns4xPluginStreamListener::Notify(nsITimer *aTimer)
   return NS_OK;
 }
 
-
 NS_IMETHODIMP
 ns4xPluginStreamListener::StatusLine(const char* line)
 {
@@ -784,7 +762,6 @@ ns4xPluginStreamListener::StatusLine(const char* line)
   mResponseHeaders.Append('\n');
   return NS_OK;
 }
-
 
 NS_IMETHODIMP
 ns4xPluginStreamListener::NewResponseHeader(const char* headerName,
@@ -797,26 +774,18 @@ ns4xPluginStreamListener::NewResponseHeader(const char* headerName,
   return NS_OK;
 }
 
-
 nsInstanceStream::nsInstanceStream()
 {
   mNext = nsnull;
   mPluginStreamListener = nsnull;
 }
 
-
-
 nsInstanceStream::~nsInstanceStream()
 {
 }
 
-
-
-
 NS_IMPL_ISUPPORTS3(ns4xPluginInstance, nsIPluginInstance, nsIScriptablePlugin,
                    nsIPluginInstanceInternal)
-
-
 
 ns4xPluginInstance::ns4xPluginInstance(NPPluginFuncs* callbacks,
                                        PRLibrary* aLibrary)
@@ -848,21 +817,17 @@ ns4xPluginInstance::ns4xPluginInstance(NPPluginFuncs* callbacks,
   PLUGIN_LOG(PLUGIN_LOG_BASIC, ("ns4xPluginInstance ctor: this=%p\n",this));
 }
 
-
-
 ns4xPluginInstance::~ns4xPluginInstance(void)
 {
   PLUGIN_LOG(PLUGIN_LOG_BASIC, ("ns4xPluginInstance dtor: this=%p\n",this));
 
   
-  for(nsInstanceStream *is = mStreams; is != nsnull;) {
+  for (nsInstanceStream *is = mStreams; is != nsnull;) {
     nsInstanceStream * next = is->mNext;
     delete is;
     is = next;
   }
 }
-
-
 
 PRBool
 ns4xPluginInstance::IsStarted(void)
@@ -870,15 +835,12 @@ ns4xPluginInstance::IsStarted(void)
   return mStarted;
 }
 
-
-
 NS_IMETHODIMP ns4xPluginInstance::Initialize(nsIPluginInstancePeer* peer)
 {
   PLUGIN_LOG(PLUGIN_LOG_NORMAL, ("ns4xPluginInstance::Initialize this=%p\n",this));
 
   return InitializePlugin(peer);
 }
-
 
 NS_IMETHODIMP ns4xPluginInstance::GetPeer(nsIPluginInstancePeer* *resultingPeer)
 {
@@ -888,18 +850,15 @@ NS_IMETHODIMP ns4xPluginInstance::GetPeer(nsIPluginInstancePeer* *resultingPeer)
   return NS_OK;
 }
 
-
 NS_IMETHODIMP ns4xPluginInstance::Start(void)
 {
   PLUGIN_LOG(PLUGIN_LOG_NORMAL, ("ns4xPluginInstance::Start this=%p\n",this));
 
-  if(mStarted)
+  if (mStarted)
     return NS_OK;
 
   return InitializePlugin(mPeer); 
 }
-
-
 
 NS_IMETHODIMP ns4xPluginInstance::Stop(void)
 {
@@ -916,7 +875,7 @@ NS_IMETHODIMP ns4xPluginInstance::Stop(void)
     }
   }
 
-  if(!mStarted)
+  if (!mStarted)
     return NS_OK;
 
   
@@ -939,7 +898,7 @@ NS_IMETHODIMP ns4xPluginInstance::Stop(void)
   NPSavedData *sdata = 0;
 
   
-  for(nsInstanceStream *is = mStreams; is != nsnull;) {
+  for (nsInstanceStream *is = mStreams; is != nsnull;) {
     ns4xPluginStreamListener * listener = is->mPluginStreamListener;
 
     nsInstanceStream *next = is->mNext;
@@ -949,7 +908,7 @@ NS_IMETHODIMP ns4xPluginInstance::Stop(void)
 
     
     
-    if(listener)
+    if (listener)
       listener->CleanUpStream(NPRES_USER_BREAK);
   }
 
@@ -960,7 +919,7 @@ NS_IMETHODIMP ns4xPluginInstance::Stop(void)
 
   nsJSNPRuntime::OnPluginDestroy(&fNPP);
 
-  if(error != NPERR_NO_ERROR)
+  if (error != NPERR_NO_ERROR)
     return NS_ERROR_FAILURE;
   else
     return NS_OK;
@@ -993,7 +952,6 @@ ns4xPluginInstance::GetDOMWindow()
 
   return window;
 }
-
 
 nsresult ns4xPluginInstance::InitializePlugin(nsIPluginInstancePeer* peer)
 {
@@ -1120,7 +1078,7 @@ nsresult ns4xPluginInstance::InitializePlugin(nsIPluginInstancePeer* peer)
   ("NPP New called: this=%p, npp=%p, mime=%s, mode=%d, argc=%d, return=%d\n",
   this, &fNPP, mimetype, mode, count, error));
 
-  if(error != NPERR_NO_ERROR) {
+  if (error != NPERR_NO_ERROR) {
     
     mPeer = nsnull;
     mStarted = PR_FALSE;
@@ -1131,8 +1089,6 @@ nsresult ns4xPluginInstance::InitializePlugin(nsIPluginInstancePeer* peer)
   return NS_OK;
 }
 
-
-
 NS_IMETHODIMP ns4xPluginInstance::Destroy(void)
 {
   PLUGIN_LOG(PLUGIN_LOG_NORMAL, ("ns4xPluginInstance::Destroy this=%p\n",this));
@@ -1140,8 +1096,6 @@ NS_IMETHODIMP ns4xPluginInstance::Destroy(void)
   
   return NS_OK;
 }
-
-
 
 NS_IMETHODIMP ns4xPluginInstance::SetWindow(nsPluginWindow* window)
 {
@@ -1192,14 +1146,10 @@ NS_IMETHODIMP ns4xPluginInstance::SetWindow(nsPluginWindow* window)
 
 
 
-
-
 NS_IMETHODIMP ns4xPluginInstance::NewStream(nsIPluginStreamListener** listener)
 {
   return NewNotifyStream(listener, nsnull, PR_FALSE, nsnull);
 }
-
-
 
 
 nsresult ns4xPluginInstance::NewNotifyStream(nsIPluginStreamListener** listener, 
@@ -1240,14 +1190,14 @@ NS_IMETHODIMP ns4xPluginInstance::Print(nsPluginPrint* platformPrint)
   
   
   
-  if(fCallbacks) {
+  if (fCallbacks) {
     PRUint16 sdkmajorversion = (fCallbacks->version & 0xff00)>>8;
     PRUint16 sdkminorversion = fCallbacks->version & 0x00ff;
-    if((sdkmajorversion == 0) && (sdkminorversion < 11)) { 
+    if ((sdkmajorversion == 0) && (sdkminorversion < 11)) { 
       
       
       
-      if(sizeof(NPWindowType) >= sizeof(void *)) {
+      if (sizeof(NPWindowType) >= sizeof(void *)) {
         void* source = thePrint->print.embedPrint.platformPrint; 
         void** destination = (void **)&(thePrint->print.embedPrint.window.type); 
         *destination = source;
@@ -1257,7 +1207,7 @@ NS_IMETHODIMP ns4xPluginInstance::Print(nsPluginPrint* platformPrint)
     }
   }
 
-  if(fCallbacks->print) {
+  if (fCallbacks->print) {
       NS_TRY_SAFE_CALL_VOID(CallNPP_PrintProc(fCallbacks->print,
                                               &fNPP,
                                               thePrint), fLibrary, this);
@@ -1281,10 +1231,10 @@ NS_IMETHODIMP ns4xPluginInstance::Print(nsPluginPrint* platformPrint)
 
 NS_IMETHODIMP ns4xPluginInstance::HandleEvent(nsPluginEvent* event, PRBool* handled)
 {
-  if(!mStarted)
+  if (!mStarted)
     return NS_OK;
 
-  if (event == nsnull)
+  if (!event)
     return NS_ERROR_FAILURE;
 
   PluginDestructionGuard guard(this);
@@ -1326,7 +1276,7 @@ NS_IMETHODIMP ns4xPluginInstance::HandleEvent(nsPluginEvent* event, PRBool* hand
 nsresult ns4xPluginInstance::GetValueInternal(NPPVariable variable, void* value)
 {
   nsresult  res = NS_OK;
-  if(fCallbacks->getvalue && mStarted) {
+  if (fCallbacks->getvalue && mStarted) {
     PluginDestructionGuard guard(this);
 
     NS_TRY_SAFE_CALL_RETURN(res, 
@@ -1361,10 +1311,7 @@ nsresult ns4xPluginInstance::GetValueInternal(NPPVariable variable, void* value)
   return res;
 }
 
-
-
-NS_IMETHODIMP ns4xPluginInstance::GetValue(nsPluginInstanceVariable variable,
-                                           void *value)
+NS_IMETHODIMP ns4xPluginInstance::GetValue(nsPluginInstanceVariable variable, void *value)
 {
   nsresult  res = NS_OK;
 
@@ -1398,11 +1345,9 @@ NS_IMETHODIMP ns4xPluginInstance::GetValue(nsPluginInstanceVariable variable,
   return res;
 }
 
-
-
 nsresult ns4xPluginInstance::GetNPP(NPP* aNPP) 
 {
-  if(aNPP != nsnull)
+  if (aNPP != nsnull)
     *aNPP = &fNPP;
   else
     return NS_ERROR_NULL_POINTER;
@@ -1410,11 +1355,9 @@ nsresult ns4xPluginInstance::GetNPP(NPP* aNPP)
   return NS_OK;
 }
 
-
-
 nsresult ns4xPluginInstance::GetCallbacks(const NPPluginFuncs ** aCallbacks)
 {
-  if(aCallbacks != nsnull)
+  if (aCallbacks != nsnull)
     *aCallbacks = fCallbacks;
   else
     return NS_ERROR_NULL_POINTER;
@@ -1422,22 +1365,17 @@ nsresult ns4xPluginInstance::GetCallbacks(const NPPluginFuncs ** aCallbacks)
   return NS_OK;
 }
 
-
-
 NPError ns4xPluginInstance::SetWindowless(PRBool aWindowless)
 {
   mWindowless = aWindowless;
   return NPERR_NO_ERROR;
 }
 
-
-
 NPError ns4xPluginInstance::SetTransparent(PRBool aTransparent)
 {
   mTransparent = aTransparent;
   return NPERR_NO_ERROR;
 }
-
 
 NPError ns4xPluginInstance::SetWantsAllNetworkStreams(PRBool aWantsAllNetworkStreams)
 {
@@ -1446,20 +1384,16 @@ NPError ns4xPluginInstance::SetWantsAllNetworkStreams(PRBool aWantsAllNetworkStr
 }
 
 #ifdef XP_MACOSX
-
 void ns4xPluginInstance::SetDrawingModel(NPDrawingModel aModel)
 {
   mDrawingModel = aModel;
 }
-
-
 
 NPDrawingModel ns4xPluginInstance::GetDrawingModel()
 {
   return mDrawingModel;
 }
 #endif
-
 
 
 NS_IMETHODIMP ns4xPluginInstance::GetScriptablePeer(void * *aScriptablePeer)
@@ -1470,7 +1404,6 @@ NS_IMETHODIMP ns4xPluginInstance::GetScriptablePeer(void * *aScriptablePeer)
   *aScriptablePeer = nsnull;
   return GetValueInternal(NPPVpluginScriptableInstance, aScriptablePeer);
 }
-
 
 
 NS_IMETHODIMP ns4xPluginInstance::GetScriptableInterface(nsIID * *aScriptableInterface)
@@ -1595,7 +1528,6 @@ ns4xPluginInstance::PopPopupsEnabledState()
 
   if (last < 0) {
     
-
     return;
   }
 

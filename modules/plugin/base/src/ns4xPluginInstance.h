@@ -37,16 +37,8 @@
 
 
 
-#ifndef ns4xPluginInstance_h__
-#define ns4xPluginInstance_h__
-
-#define _UINT32
-
-
-
-#ifndef HPUX11
-#define _INT32
-#endif 
+#ifndef ns4xPluginInstance_h_
+#define ns4xPluginInstance_h_
 
 #include "nsCOMPtr.h"
 #include "nsVoidArray.h"
@@ -58,9 +50,7 @@
 #include "nsIPluginInstanceInternal.h"
 
 #include "npupp.h"
-#include "prlink.h"  
-
-
+#include "prlink.h"
 
 class ns4xPluginStreamListener;
 class nsPIDOMWindow;
@@ -85,7 +75,6 @@ public:
     NS_DECL_NSISCRIPTABLEPLUGIN
 
     
-    
 
     virtual JSObject *GetJSObject(JSContext *cx);
 
@@ -99,16 +88,11 @@ public:
     virtual void DefineJavaProperties();
 
     
-    
 
     
-
-
     nsresult GetNPP(NPP * aNPP);
 
     
-
-
     nsresult GetCallbacks(const NPPluginFuncs ** aCallbacks);
 
     NPError SetWindowless(PRBool aWindowless);
@@ -128,9 +112,7 @@ public:
                              const char * aURL);
 
     
-
-
-
+    
     ns4xPluginInstance(NPPluginFuncs* callbacks, PRLibrary* aLibrary);
 
     
@@ -155,26 +137,18 @@ protected:
     nsresult InitializePlugin(nsIPluginInstancePeer* peer);
 
     
-
-
     nsresult GetValueInternal(NPPVariable variable, void* value);
-    
-    
 
-
+    
     nsCOMPtr<nsIPluginInstancePeer> mPeer;
 
     
-
-
-
-
+    
+    
     NPPluginFuncs* fCallbacks;
 
     
-
-
-
+    
     NPP_t fNPP;
 
 #ifdef XP_MACOSX
@@ -183,7 +157,6 @@ protected:
 
     
     
-
     PRPackedBool  mWindowless;
     PRPackedBool  mTransparent;
     PRPackedBool  mStarted;
@@ -192,7 +165,6 @@ protected:
     PRPackedBool  mWantsAllNetworkStreams;
 
 public:
-    
     
     PRPackedBool  mInPluginInitCall;
     PRLibrary* fLibrary;
