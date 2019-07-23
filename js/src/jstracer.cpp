@@ -1226,11 +1226,12 @@ bool TraceRecorder::JSOP_SETELEM()
     
     LIns* addr = lir->ins2(LIR_add, dslots_ins, 
             lir->ins2i(LIR_lsh, idx_ins, sizeof(jsval) == 4 ? 2 : 3));
-    
-    if (obj->dslots[idx] == JSVAL_HOLE)
-        return false;
     LIns* oldval = lir->insLoad(LIR_ld, addr, 0);
-    guard(false, lir->ins2(LIR_eq, oldval, lir->insImmPtr((void*)JSVAL_HOLE)));
+    LIns* isHole = lir->ins2(LIR_eq, oldval, lir->insImmPtr((void*)JSVAL_HOLE));
+    LIns* count = lir->insLoadi(obj_ins,
+                                offsetof(JSObject, fslots[JSSLOT_ARRAY_COUNT]));
+    lir->insStorei(lir->ins2(LIR_add, count, isHole), obj_ins,
+                   offsetof(JSObject, fslots[JSSLOT_ARRAY_COUNT]));
     
     LIns* v_ins = get(&v);
     if (isInt(v))
