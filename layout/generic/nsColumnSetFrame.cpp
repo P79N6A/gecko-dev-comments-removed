@@ -755,6 +755,16 @@ nsColumnSetFrame::ReflowChildren(nsHTMLReflowMetrics&     aDesiredSize,
       }
     }
 
+    if (PresContext()->HasPendingInterrupt()) {
+      
+      
+      
+      
+      
+      
+      break;
+    }
+
     
     child = child->GetNextSibling();
 
@@ -768,6 +778,14 @@ nsColumnSetFrame::ReflowChildren(nsHTMLReflowMetrics&     aDesiredSize,
 #ifdef DEBUG_roc
       printf("*** NEXT CHILD ORIGIN.x = %d\n", childOrigin.x);
 #endif
+    }
+  }
+
+  if (PresContext()->HasPendingInterrupt() &&
+      (GetStateBits() & NS_FRAME_IS_DIRTY)) {
+    
+    for (; child; child = child->GetNextSibling()) {
+      child->AddStateBits(NS_FRAME_IS_DIRTY);
     }
   }
   
@@ -897,7 +915,7 @@ nsColumnSetFrame::Reflow(nsPresContext*           aPresContext,
   PRBool feasible = ReflowChildren(aDesiredSize, aReflowState,
     aStatus, config, unboundedLastColumn, &carriedOutBottomMargin, colData);
 
-  if (isBalancing) {
+  if (isBalancing && !aPresContext->HasPendingInterrupt()) {
     nscoord availableContentHeight = GetAvailableContentHeight(aReflowState);
   
     
@@ -910,7 +928,7 @@ nsColumnSetFrame::Reflow(nsPresContext*           aPresContext,
     
     PRBool maybeContinuousBreakingDetected = PR_FALSE;
 
-    while (1) {
+    while (!aPresContext->HasPendingInterrupt()) {
       nscoord lastKnownFeasibleHeight = knownFeasibleHeight;
 
       
@@ -1002,7 +1020,7 @@ nsColumnSetFrame::Reflow(nsPresContext*           aPresContext,
                                 &carriedOutBottomMargin, colData);
     }
 
-    if (!feasible) {
+    if (!feasible && !aPresContext->HasPendingInterrupt()) {
       
       
       PRBool skip = PR_FALSE;
@@ -1020,6 +1038,13 @@ nsColumnSetFrame::Reflow(nsPresContext*           aPresContext,
                        PR_FALSE, &carriedOutBottomMargin, colData);
       }
     }
+  }
+
+  if (aPresContext->HasPendingInterrupt() &&
+      aReflowState.availableHeight == NS_UNCONSTRAINEDSIZE) {
+    
+    
+    aStatus = NS_FRAME_COMPLETE;
   }
   
   CheckInvalidateSizeChange(aDesiredSize);

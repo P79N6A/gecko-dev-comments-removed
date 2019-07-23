@@ -6990,21 +6990,26 @@ void nsWindow::StopFlashing()
 NS_IMETHODIMP
 nsWindow::GetLastInputEventTime(PRUint32& aTime)
 {
-  WORD qstatus = HIWORD(GetQueueStatus(QS_INPUT));
-
-  
-  
-  
-  
-  
-  nsToolkit* toolkit = (nsToolkit *)mToolkit;
-  if (qstatus || (toolkit && toolkit->UserIsMovingWindow())) {
+  if (HasPendingInputEvent()) {
     gLastInputEventTime = PR_IntervalToMicroseconds(PR_IntervalNow());
   }
 
   aTime = gLastInputEventTime;
 
   return NS_OK;
+}
+
+PRBool
+nsWindow::HasPendingInputEvent()
+{
+  
+  
+  
+  
+  
+  WORD qstatus = HIWORD(GetQueueStatus(QS_INPUT));
+  nsToolkit* toolkit = (nsToolkit *)mToolkit;
+  return qstatus || (toolkit && toolkit->UserIsMovingWindow());
 }
 
 

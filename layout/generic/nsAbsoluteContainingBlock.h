@@ -127,7 +127,12 @@ public:
 
   PRBool  HasAbsoluteFrames() {return mAbsoluteFrames.NotEmpty();}
 
+  
+  
   void MarkSizeDependentFramesDirty();
+
+  
+  void MarkAllFramesDirty();
 
 protected:
   
@@ -145,6 +150,11 @@ protected:
                                nsIFrame*                aKidFrame,
                                nsReflowStatus&          aStatus,
                                nsRect*                  aChildBounds);
+
+  
+  
+  
+  void DoMarkFramesDirty(PRBool aMarkAllDirty);
 
 protected:
   nsFrameList mAbsoluteFrames;  
