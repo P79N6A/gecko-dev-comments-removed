@@ -204,16 +204,14 @@ js_FillPropertyCache(JSContext *cx, JSObject *obj,
 
 
 
+        if ((cs->format & JOF_CALLOP) &&
+            SPROP_HAS_STUB_GETTER(sprop) &&
+            SPROP_HAS_VALID_SLOT(sprop, scope)) {
+            jsval v;
 
-        if (cs->format & JOF_CALLOP) {
-            if (SPROP_HAS_STUB_GETTER(sprop) &&
-                SPROP_HAS_VALID_SLOT(sprop, scope)) {
-                jsval v;
-
-                v = LOCKED_OBJ_GET_SLOT(pobj, sprop->slot);
-                if (VALUE_IS_FUNCTION(cx, v)) {
-                    
-
+            v = LOCKED_OBJ_GET_SLOT(pobj, sprop->slot);
+            if (VALUE_IS_FUNCTION(cx, v)) {
+                
 
 
 
@@ -224,30 +222,23 @@ js_FillPropertyCache(JSContext *cx, JSObject *obj,
 
 
 
-                    if (!SCOPE_IS_BRANDED(scope)) {
-                        PCMETER(cache->brandfills++);
+                if (!SCOPE_IS_BRANDED(scope)) {
+                    PCMETER(cache->brandfills++);
 #ifdef DEBUG_notme
-                        fprintf(stderr,
+                    fprintf(stderr,
                             "branding %p (%s) for funobj %p (%s), shape %lu\n",
                             pobj, LOCKED_OBJ_GET_CLASS(pobj)->name,
                             JSVAL_TO_OBJECT(v),
-                            JS_GetFunctionName(GET_FUNCTION_PRIVATE(cx,
-                                                 JSVAL_TO_OBJECT(v))),
+                            JS_GetFunctionName(GET_FUNCTION_PRIVATE(cx, JSVAL_TO_OBJECT(v))),
                             OBJ_SHAPE(obj));
 #endif
-                        js_MakeScopeShapeUnique(cx, scope);
-                        if (js_IsPropertyCacheDisabled(cx)) {
-                            
-
-
-
-                            return JS_NO_PROP_CACHE_FILL;
-                        }
-                        SCOPE_SET_BRANDED(scope);
-                    }
-                    vword = JSVAL_OBJECT_TO_PCVAL(v);
-                    break;
+                    js_MakeScopeShapeUnique(cx, scope);
+                    if (js_IsPropertyCacheDisabled(cx))  
+                        return JS_NO_PROP_CACHE_FILL;
+                    SCOPE_SET_BRANDED(scope);
                 }
+                vword = JSVAL_OBJECT_TO_PCVAL(v);
+                break;
             }
         }
 
