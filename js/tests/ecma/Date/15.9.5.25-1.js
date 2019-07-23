@@ -95,28 +95,11 @@
                     UTCDateFromTime(SetUTCMilliseconds(0,-999)),
                     LocalDateFromTime(SetUTCMilliseconds(0,-999)) );
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 test();
 
 function addNewTestCase( initialTime, ms, DateString, UTCDate, LocalDate) {
     DateCase = new Date(initialTime);
     DateCase.setUTCMilliseconds(ms);
-
-
-
 
     new TestCase( SECTION, DateString+".getTime()",             UTCDate.value,       DateCase.getTime() );
     new TestCase( SECTION, DateString+".valueOf()",             UTCDate.value,       DateCase.valueOf() );

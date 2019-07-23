@@ -82,68 +82,10 @@ addNewTestCase( "TDATE = new Date(0);(TDATE).setFullYear(1971,0,1);TDATE",
 		UTCDateFromTime(SetFullYear(0,1971,0,1)),
 		LocalDateFromTime(SetFullYear(0,1971,0,1)) );
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 test();
 
 function addNewTestCase( DateString, UTCDate, LocalDate) {
   DateCase = eval( DateString );
-
-
-
 
   new TestCase( SECTION, DateString+".getTime()",             UTCDate.value,       DateCase.getTime() );
   new TestCase( SECTION, DateString+".valueOf()",             UTCDate.value,       DateCase.valueOf() );

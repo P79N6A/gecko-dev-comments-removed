@@ -59,10 +59,6 @@ writeHeaderToLog( SECTION + " Date.prototype.setMilliseconds(ms)");
 
 addTestCase( 0, "-2208988800000" );
 
-
-
-
-
 test();
 
 function addTestCase( startms, newms ) {
@@ -72,9 +68,6 @@ function addTestCase( startms, newms ) {
   var DateString = "var date = new Date("+ startms +"); date.setMilliseconds("+ newms +"); date";
   var UTCDate = UTCDateFromTime( Number(newms) );
   var LocalDate = LocalDateFromTime( Number(newms) );
-
-
-
 
   new TestCase( SECTION, DateString+".getTime()",             UTCDate.value,       DateCase.getTime() );
   new TestCase( SECTION, DateString+".valueOf()",             UTCDate.value,       DateCase.valueOf() );

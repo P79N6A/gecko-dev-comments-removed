@@ -97,85 +97,17 @@ var MS          = 16;
 writeHeaderToLog( SECTION + " "+ TITLE);
 
 
-var TZ_ADJUST =  TZ_PST * msPerHour;
-
-
-
-var UTC_FEB_29_2000 = TIME_2000 + ( 30 * msPerDay ) + ( 29 * msPerDay );
-
 addNewTestCase( new Date(2000,1,28,16,0,0,0),
 		"new Date(2000,1,28,16,0,0,0)",
 		[UTC_FEB_29_2000,2000,1,29,2,0,0,0,0,2000,1,28,1,16,0,0,0] );
 
 addNewTestCase( new Date(2000,1,29,0,0,0,0),
 		"new Date(2000,1,29,0,0,0,0)",
-		[UTC_FEB_29_2000-TZ_ADJUST,2000,1,29,2,8,0,0,0,2000,1,29,2,0,0,0,0] );
+		[UTC_FEB_29_2000 - PST_ADJUST,2000,1,29,2,8,0,0,0,2000,1,29,2,0,0,0,0] );
 
 addNewTestCase( new Date(2000,1,28,24,0,0,0),
 		"new Date(2000,1,28,24,0,0,0)",
-		[UTC_FEB_29_2000-TZ_ADJUST,2000,1,29,2,8,0,0,0,2000,1,29,2,0,0,0,0] );
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+		[UTC_FEB_29_2000 - PST_ADJUST,2000,1,29,2,8,0,0,0,2000,1,29,2,0,0,0,0] );
 
 test();
 

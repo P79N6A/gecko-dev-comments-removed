@@ -58,24 +58,6 @@ writeHeaderToLog( SECTION + " Date.prototype.setDate(date) ");
 addNewTestCase( 0, 1,
 		"TDATE = new Date(0);(TDATE).setDate(1);TDATE" );
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 test();
 
 function addNewTestCase( t, d, DateString ) {

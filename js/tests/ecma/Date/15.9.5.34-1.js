@@ -60,8 +60,6 @@ startTest();
 
 writeHeaderToLog( SECTION + " Date.prototype.setMonth(mon [, date ] )");
 
-var now =  (new Date()).valueOf();
-
 getFunctionCases();
 
 
@@ -76,9 +74,9 @@ addNewTestCase(
 
 
 
-addNewTestCase( "TDATE = new Date(now); (TDATE).setMonth(11,31); TDATE",
-		UTCDateFromTime(SetMonth(now,11,31)),
-		LocalDateFromTime(SetMonth(now,11,31)) );
+addNewTestCase( "TDATE = new Date(TIME_NOW); (TDATE).setMonth(11,31); TDATE",
+		UTCDateFromTime(SetMonth(TIME_NOW,11,31)),
+		LocalDateFromTime(SetMonth(TIME_NOW,11,31)) );
 
 
 
@@ -91,39 +89,10 @@ addNewTestCase( "TDATE = new Date("+TIME_1900+"); "+
 		UTCDateFromTime( SetMonth(TIME_1900,11,31) ),
 		LocalDateFromTime( SetMonth(TIME_1900,11,31) ) );
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 test();
 
 function addNewTestCase( DateString, UTCDate, LocalDate) {
   DateCase = eval( DateString );
-
-
-
 
   new TestCase( SECTION, DateString+".getTime()",             UTCDate.value,       DateCase.getTime() );
   new TestCase( SECTION, DateString+".valueOf()",             UTCDate.value,       DateCase.valueOf() );
@@ -168,17 +137,8 @@ function getFunctionCases() {
     "function",
     typeof Date.prototype.setMonth );
 
-
-
-
-
-
-
-
-
-
-
 }
+
 function MyDate() {
   this.year = 0;
   this.month = 0;

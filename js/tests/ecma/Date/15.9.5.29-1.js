@@ -101,23 +101,6 @@ addNewTestCase( -2208988800000, 59, 999, void 0,
 		UTCDateFromTime(SetUTCMinutes(-2208988800000,59,999)),
 		LocalDateFromTime(SetUTCMinutes(-2208988800000,59,999)) );
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 test();
 
 function addNewTestCase( time, min, sec, ms, DateString, UTCDate, LocalDate) {
@@ -132,9 +115,6 @@ function addNewTestCase( time, min, sec, ms, DateString, UTCDate, LocalDate) {
       DateCase.setUTCMinutes( min, sec, ms );
     }
   }
-
-
-
 
   new TestCase( SECTION, DateString+".getTime()",             UTCDate.value,       DateCase.getTime() );
   new TestCase( SECTION, DateString+".valueOf()",             UTCDate.value,       DateCase.valueOf() );

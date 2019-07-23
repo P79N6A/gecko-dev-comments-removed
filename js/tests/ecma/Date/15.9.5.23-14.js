@@ -61,14 +61,6 @@ writeHeaderToLog( SECTION + " Date.prototype.setTime(time)");
 var now = "now";
 addTestCase( now, 946684800000 );
 
-
-
-
-
-
-
-
-
 test();
 
 function addTestCase( startTime, setTime ) {
@@ -82,8 +74,6 @@ function addTestCase( startTime, setTime ) {
   var DateString = "var d = new Date("+startTime+"); d.setTime("+setTime+"); d" ;
   var UTCDate   = UTCDateFromTime ( Number(setTime) );
   var LocalDate = LocalDateFromTime( Number(setTime) );
-
-
 
   new TestCase( SECTION, DateString+".getTime()",             UTCDate.value,      DateCase.getTime() );
   new TestCase( SECTION, DateString+".valueOf()",             UTCDate.value,      DateCase.valueOf() );

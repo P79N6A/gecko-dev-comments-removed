@@ -97,46 +97,16 @@ var MS          = 16;
 writeHeaderToLog( SECTION + " "+ TITLE);
 
 
-var TZ_ADJUST =  TZ_PST * msPerHour;
 
 
-
-var UTC_YEAR_2005 = TIME_2000 + TimeInYear(2000) + TimeInYear(2001) +
-TimeInYear(2002) + TimeInYear(2003) + TimeInYear(2004);
 
 addNewTestCase( new Date(2005,0,1,0,0,0,0),
 		"new Date(2005,0,1,0,0,0,0)",
-		[UTC_YEAR_2005-TZ_ADJUST,2005,0,1,6,8,0,0,0,2005,0,1,6,0,0,0,0] );
+		[UTC_JAN_1_2005-PST_ADJUST,2005,0,1,6,8,0,0,0,2005,0,1,6,0,0,0,0] );
 
 addNewTestCase( new Date(2004,11,31,16,0,0,0),
 		"new Date(2004,11,31,16,0,0,0)",
-		[UTC_YEAR_2005,2005,0,1,6,0,0,0,0,2004,11,31,5,16,0,0,0] );
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+		[UTC_JAN_1_2005,2005,0,1,6,0,0,0,0,2004,11,31,5,16,0,0,0] );
 
 test();
 

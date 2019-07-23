@@ -64,24 +64,4 @@ new TestCase( SECTION, "Date(1900,0,1,0,0,0)",          (new Date()).toString(),
 new TestCase( SECTION, "Date(1900,0,1,0,0,1)",          (new Date()).toString(),    Date(1900,0,1,0,0,1) );
 new TestCase( SECTION, "Date(1899,11,31,16,0,0,0)",     (new Date()).toString(),    Date(1899,11,31,16,0,0,0));
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 test();

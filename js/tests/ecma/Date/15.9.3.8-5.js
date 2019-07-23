@@ -132,31 +132,6 @@ addNewTestCase( new Date( (new Date(PST_1900)).toUTCString() ),
 		"new Date(\""+(new Date(PST_1900 )).toUTCString()+"\")",
 		[ PST_1900,1900,0,1,1,8,0,0,0,1900,0,1,1,0,0,0,0] );
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 test();
 
 function addNewTestCase( DateCase, DateString, ResultArray ) {

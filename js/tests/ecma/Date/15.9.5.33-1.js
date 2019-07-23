@@ -67,19 +67,6 @@ addNewTestCase( "TDATE = new Date(86400000);(TDATE).setUTCDate(1);TDATE",
 		UTCDateFromTime(SetUTCDate(86400000,1)),
 		LocalDateFromTime(SetUTCDate(86400000,1)) );
 
-
-
-
-
-
-
-
-
-
-
-
-
-
 test();
 
 function addNewTestCase( DateString, UTCDate, LocalDate) {

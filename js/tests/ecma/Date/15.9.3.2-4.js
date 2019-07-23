@@ -95,7 +95,6 @@ var TITLE =   "Date( year, month, date, hours, minutes, seconds )";
 
 writeHeaderToLog( SECTION+" " +TITLE );
 
-var UTC_FEB_29_2000 = TIME_2000 + msPerDay*31 + msPerDay*28;
 var PST_FEB_29_2000 = UTC_FEB_29_2000 + 8*msPerHour;
 
 
@@ -110,47 +109,6 @@ addNewTestCase( new Date(2000,1,29,0,0,0,0),
 addNewTestCase( new Date(2000,1,29,24,0,0,0),
 		"new Date(2000,1,29,24,0,0,0)",
 		[PST_FEB_29_2000+msPerDay,2000,2,1,3,8,0,0,0,2000,2,1,3,0,0,0,0] );
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 test();
 

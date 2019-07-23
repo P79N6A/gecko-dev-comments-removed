@@ -80,22 +80,6 @@ addNewTestCase( "TDATE = new Date(0); TDATE.setUTCFullYear(2006);TDATE",
 		UTCDateFromTime(SetUTCFullYear(0,2006)),
 		LocalDateFromTime(SetUTCFullYear(0,2006)) );
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 test();
 
 function addNewTestCase( DateString, UTCDate, LocalDate) {

@@ -113,63 +113,6 @@ addNewTestCase( new Date(1900,0,1,0,0,1),
 		"new Date(1900,0,1,0,0,1)",
 		[-2208959999000,1900,0,1,1,8,0,1,0,1900,0,1,1,0,0,1,0] );
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 test();
 
 function addNewTestCase( DateCase, DateString, ResultArray ) {

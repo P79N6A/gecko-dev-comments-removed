@@ -84,43 +84,10 @@ addNewTestCase( "TDATE = new Date("+PST_FEB_29_1972+"); "+
 		UTCDateFromTime(SetUTCFullYear(PST_FEB_29_1972,2000)),
 		LocalDateFromTime(SetUTCFullYear(PST_FEB_29_1972,2000)) );
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 test();
 
 function addNewTestCase( DateString, UTCDate, LocalDate) {
   DateCase = eval( DateString );
-
-
-
 
   new TestCase( SECTION, DateString+".getTime()",             UTCDate.value,       DateCase.getTime() );
   new TestCase( SECTION, DateString+".valueOf()",             UTCDate.value,       DateCase.valueOf() );

@@ -105,7 +105,6 @@ var TZ_ADJUST =  -TZ_PST * msPerHour;
 
 
 
-var UTC_FEB_29_2000 = TIME_2000 + 31*msPerDay + 28*msPerDay;
 var PST_FEB_29_2000 = UTC_FEB_29_2000 + TZ_ADJUST;
 
 addNewTestCase( new Date(UTC_FEB_29_2000),
@@ -132,62 +131,6 @@ addNewTestCase( new Date( (new Date(UTC_FEB_29_2000)).toGMTString() ),
 addNewTestCase( new Date( (new Date(PST_FEB_29_2000)).toGMTString() ),
 		"new Date(\""+(new Date(PST_FEB_29_2000)).toGMTString()+"\")",
 		[PST_FEB_29_2000,2000,1,29,2,8,0,0,0,2000,1,29,2,0,0,0,0] );
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 test();
 

@@ -56,48 +56,19 @@ var TITLE   = "Date.prototype.getUTCDate()";
 
 writeHeaderToLog( SECTION + " "+ TITLE);
 
-var TZ_ADJUST = TZ_DIFF * msPerHour;
-
-
-for ( var time = 0, year = 1969; year >= 0; year-- ) {
-  time -= TimeInYear(year);
-}
-
-addTestCase( time );
+addTestCase( TIME_0000 );
 
 test();
 
 function addTestCase( t ) {
-  for ( var m = 0; m < 11; m++ ) {
-    t += TimeInMonth(m);
+  var start = TimeFromYear(YearFromTime(t));
+  var stop  = TimeFromYear(YearFromTime(t) + 1);
 
-    for ( var d = 0; d < TimeInMonth( m ); d += 7*msPerDay ) {
-      t += d;
-      new TestCase( SECTION,
-		    "(new Date("+t+")).getUTCDate()",
-		    DateFromTime((t)),
-		    (new Date(t)).getUTCDate() );
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    }
+  for (var d = start; d < stop; d += msPerDay)
+  {
+    new TestCase( SECTION,
+                  "(new Date("+d+")).getUTCDate()",
+                  DateFromTime(d),
+                  (new Date(d)).getUTCDate() );
   }
 }

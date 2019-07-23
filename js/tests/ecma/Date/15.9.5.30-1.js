@@ -91,29 +91,6 @@ addNewTestCase( TIME_2000 - msPerDay, 23, 59, 59, 999,
 addNewTestCase( TIME_2000 - msPerDay, 23, 59, 59, 1000,
 		"d = new Date( " + (TIME_2000-msPerDay) +"); d.setHours(23,59,59,1000)" );
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 test();
 
 function addNewTestCase( time, hours, min, sec, ms, DateString) {

@@ -254,12 +254,26 @@ var msPerSecond =  1000;
 var msPerMinute =  60000;  
 var msPerHour =   3600000; 
 var TZ_DIFF = getTimeZoneDiff();  
+var TZ_ADJUST  = TZ_DIFF * msPerHour;
 var TZ_PST = -8;  
 var PST_DIFF = TZ_DIFF - TZ_PST;  
+var PST_ADJUST = TZ_PST * msPerHour;
+var TIME_0000  = (function () 
+  { 
+    for ( var time = 0, year = 1969; year >= 0; year-- ) {
+      time -= TimeInYear(year);
+    }
+    return time;
+  })();
 var TIME_1970  = 0;
 var TIME_2000  = 946684800000;
 var TIME_1900  = -2208988800000;
-
+var UTC_FEB_29_2000 = TIME_2000 + 31*msPerDay + 28*msPerDay;
+var UTC_JAN_1_2005 = TIME_2000 + TimeInYear(2000) + TimeInYear(2001) +
+    TimeInYear(2002) + TimeInYear(2003) + TimeInYear(2004);
+var now = new Date();
+var TIME_NOW = now.valueOf();  
+                               
 
 
 
@@ -276,11 +290,10 @@ function getTimeZoneDiff()
 
 
 
-
 function adjustResultArray(ResultArray, msMode)
 {
   
-  if (!PST_DIFF) {return;} 
+
 
   
 
@@ -323,7 +336,6 @@ function adjustResultArray(ResultArray, msMode)
     ResultArray[UTC_YEAR] = YearFromTime(t);
   }
 }
-
 
 function Day( t ) {
   return ( Math.floor(t/msPerDay ) );
@@ -522,34 +534,37 @@ function LocalTZA() {
 function UTC( t ) {
   return ( t - LocalTZA() - DaylightSavingTA(t - LocalTZA()) );
 }
-
+function LocalTime( t ) {
+  return ( t + LocalTZA() + DaylightSavingTA(t) );
+}
 function DaylightSavingTA( t ) {
   t = t - LocalTZA();
 
-  var dst_start = GetFirstSundayInApril(t) + 2*msPerHour;
-  var dst_end   = GetLastSundayInOctober(t)+ 2*msPerHour;
+  var dst_start = GetDSTStart(t);
+  var dst_end   = GetDSTEnd(t);
 
-  if ( t >= dst_start && t < dst_end ) {
+  if ( t >= dst_start && t < dst_end ) 
     return msPerHour;
-  } else {
-    return 0;
-  }
 
-  
-  
-
-  print( new Date( UTC(dst_start + LocalTZA())) );
-
-  return UTC(dst_start  + LocalTZA());
+  return 0;
 }
-function GetFirstSundayInApril( t ) {
+
+function GetFirstSundayInMonth( t, m ) {
   var year = YearFromTime(t);
   var leap = InLeapYear(t);
 
-  var april = TimeFromYear(year) + TimeInMonth(0, leap) + TimeInMonth(1,leap) +
-    TimeInMonth(2,leap);
 
-  for ( var first_sunday = april; WeekDay(first_sunday) > 0;
+
+
+
+  
+  var time = TimeFromYear(year);
+  for (var i = 0; i < m; ++i)
+  {
+    time += TimeInMonth(i, leap);
+  }
+
+  for ( var first_sunday = time; WeekDay(first_sunday) > 0;
         first_sunday += msPerDay )
   {
     ;
@@ -557,23 +572,84 @@ function GetFirstSundayInApril( t ) {
 
   return first_sunday;
 }
-function GetLastSundayInOctober( t ) {
+
+function GetLastSundayInMonth( t, m ) {
   var year = YearFromTime(t);
   var leap = InLeapYear(t);
 
-  for ( var oct = TimeFromYear(year), m = 0; m < 9; m++ ) {
-    oct += TimeInMonth(m, leap);
+
+
+
+
+  
+  var time = TimeFromYear(year);
+  for (var i = 0; i <= m; ++i)
+  {
+    time += TimeInMonth(i, leap);
   }
-  for ( var last_sunday = oct + 30*msPerDay; WeekDay(last_sunday) > 0;
+  
+  time -= msPerDay;
+
+  for ( var last_sunday = time; WeekDay(last_sunday) > 0;
         last_sunday -= msPerDay )
   {
     ;
   }
   return last_sunday;
 }
-function LocalTime( t ) {
-  return ( t + LocalTZA() + DaylightSavingTA(t) );
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function GetDSTStart( t )
+{
+  return (GetFirstSundayInMonth(t, 2) + 7*msPerDay + 2*msPerHour - LocalTZA());
 }
+
+function GetDSTEnd( t )
+{
+  return (GetFirstSundayInMonth(t, 10) + 2*msPerHour - LocalTZA());
+ }
+
+function GetOldDSTStart( t )
+{
+  return (GetFirstSundayInMonth(t, 3) + 2*msPerHour - LocalTZA());
+}
+
+function GetOldDSTEnd( t )
+{
+  return (GetLastSundayInMonth(t, 9) + 2*msPerHour - LocalTZA());
+}
+
 function MakeTime( hour, min, sec, ms ) {
   if ( isNaN( hour ) || isNaN( min ) || isNaN( sec ) || isNaN( ms ) ) {
     return Number.NaN;

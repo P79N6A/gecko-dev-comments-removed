@@ -36,8 +36,6 @@
 
 
 
-
-var testcases = new Array();
 var SECTION = "15.9.4.3";
 var TITLE = "Date.UTC( year, month, date, hours, minutes, seconds, ms )";
 
@@ -121,31 +119,8 @@ test();
 function addNewTestCase( DateCase, DateString, ExpectDate) {
   DateCase = DateCase;
 
-
-
-
   new TestCase( SECTION, DateString,         ExpectDate.value,       DateCase );
   new TestCase( SECTION, DateString,         ExpectDate.value,       DateCase );
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 }
 
 function MyDate() {

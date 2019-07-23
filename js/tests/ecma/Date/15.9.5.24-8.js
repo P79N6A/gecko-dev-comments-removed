@@ -68,9 +68,6 @@ function addTestCase( startms, newms ) {
   var UTCDate = UTCDateFromTime( Number(newms) );
   var LocalDate = LocalDateFromTime( Number(newms) );
 
-
-
-
   new TestCase( SECTION, DateString+".getTime()",             UTCDate.value,       DateCase.getTime() );
   new TestCase( SECTION, DateString+".valueOf()",             UTCDate.value,       DateCase.valueOf() );
 

@@ -84,9 +84,6 @@ test();
 function addNewTestCase( DateString, UTCDate, LocalDate) {
   DateCase = eval( DateString );
 
-
-
-
   new TestCase( SECTION, DateString+".getTime()",             UTCDate.value,       DateCase.getTime() );
   new TestCase( SECTION, DateString+".valueOf()",             UTCDate.value,       DateCase.valueOf() );
 
