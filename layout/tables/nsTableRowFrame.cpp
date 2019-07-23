@@ -164,9 +164,6 @@ nsTableRowFrame::Init(nsIContent*      aContent,
   
   rv = nsHTMLContainerFrame::Init(aContent, aParent, aPrevInFlow);
 
-  NS_ASSERTION(NS_STYLE_DISPLAY_TABLE_ROW == GetStyleDisplay()->mDisplay,
-               "wrong display on table row frame");
-
   if (aPrevInFlow) {
     
     nsTableRowFrame* rowFrame = (nsTableRowFrame*)aPrevInFlow;
