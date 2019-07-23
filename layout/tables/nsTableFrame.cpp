@@ -306,7 +306,7 @@ nsTableFrame::PageBreakAfter(nsIFrame& aSourceFrame,
 
 NS_IMETHODIMP
 nsTableFrame::SetInitialChildList(nsIAtom*        aListName,
-                                  nsIFrame*       aChildList)
+                                  nsFrameList&    aChildList)
 {
 
   if (!mFrames.IsEmpty() || !mColGroups.IsEmpty()) {
@@ -320,48 +320,34 @@ nsTableFrame::SetInitialChildList(nsIAtom*        aListName,
     NS_NOTREACHED("unknown frame list");
     return NS_ERROR_INVALID_ARG;
   } 
+
   
-  nsIFrame *childFrame = aChildList;
+  
+  
+  
+  
+  
   nsIFrame *prevMainChild = nsnull;
   nsIFrame *prevColGroupChild = nsnull;
-  for ( ; nsnull!=childFrame; )
+  while (aChildList.NotEmpty())
   {
+    nsIFrame* childFrame = aChildList.FirstChild();
+    aChildList.RemoveFrame(childFrame);
     const nsStyleDisplay* childDisplay = childFrame->GetStyleDisplay();
-    
-    if (PR_TRUE==IsRowGroup(childDisplay->mDisplay))
-    {
-      if (mFrames.IsEmpty()) 
-        mFrames.SetFrames(childFrame);
-      else
-        prevMainChild->SetNextSibling(childFrame);
-      prevMainChild = childFrame;
-    }
-    else if (NS_STYLE_DISPLAY_TABLE_COLUMN_GROUP == childDisplay->mDisplay)
+
+    if (NS_STYLE_DISPLAY_TABLE_COLUMN_GROUP == childDisplay->mDisplay)
     {
       NS_ASSERTION(nsGkAtoms::tableColGroupFrame == childFrame->GetType(),
                    "This is not a colgroup");
-      if (mColGroups.IsEmpty())
-        mColGroups.SetFrames(childFrame);
-      else
-        prevColGroupChild->SetNextSibling(childFrame);
+      mColGroups.InsertFrame(nsnull, prevColGroupChild, childFrame);
       prevColGroupChild = childFrame;
     }
     else
     { 
-      if (mFrames.IsEmpty())
-        mFrames.SetFrames(childFrame);
-      else
-        prevMainChild->SetNextSibling(childFrame);
+      mFrames.InsertFrame(nsnull, prevMainChild, childFrame);
       prevMainChild = childFrame;
     }
-    nsIFrame *prevChild = childFrame;
-    childFrame = childFrame->GetNextSibling();
-    prevChild->SetNextSibling(nsnull);
   }
-  if (nsnull!=prevMainChild)
-    prevMainChild->SetNextSibling(nsnull);
-  if (nsnull!=prevColGroupChild)
-    prevColGroupChild->SetNextSibling(nsnull);
 
   
   

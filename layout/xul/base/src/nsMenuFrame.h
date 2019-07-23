@@ -132,7 +132,7 @@ public:
   
   virtual nsFrameList GetChildList(nsIAtom* aListName) const;
   NS_IMETHOD SetInitialChildList(nsIAtom*        aListName,
-                                 nsIFrame*       aChildList);
+                                 nsFrameList&    aChildList);
   virtual nsIAtom* GetAdditionalChildListName(PRInt32 aIndex) const;
   virtual void Destroy();
 
@@ -232,6 +232,9 @@ protected:
   
   
   nsIFrame* SetPopupFrame(nsIFrame* aChildList);
+
+  
+  void SetPopupFrame(nsFrameList& aChildList);
 
   
   

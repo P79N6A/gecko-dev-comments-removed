@@ -316,7 +316,7 @@ nsInlineFrame::Reflow(nsPresContext*          aPresContext,
         
         
         
-        mFrames.InsertFrames(nsnull, nsnull, *prevOverflowFrames);
+        mFrames.SetFrames(*prevOverflowFrames);
         lazilySetParentPointer = PR_TRUE;
       } else {
         
@@ -1083,7 +1083,7 @@ nsPositionedInlineFrame::Destroy()
 
 NS_IMETHODIMP
 nsPositionedInlineFrame::SetInitialChildList(nsIAtom*        aListName,
-                                             nsIFrame*       aChildList)
+                                             nsFrameList&    aChildList)
 {
   nsresult  rv;
 

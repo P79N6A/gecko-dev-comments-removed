@@ -477,14 +477,14 @@ nsHTMLFramesetFrame::Init(nsIContent*      aContent,
 }
 
 NS_IMETHODIMP
-nsHTMLFramesetFrame::SetInitialChildList(nsIAtom*  aListName,
-                                         nsIFrame* aChildList)
+nsHTMLFramesetFrame::SetInitialChildList(nsIAtom*     aListName,
+                                         nsFrameList& aChildList)
 {
   
   
   
   
-  if (!aListName && !aChildList) {
+  if (!aListName && aChildList.IsEmpty()) {
     return NS_OK;
   }
 

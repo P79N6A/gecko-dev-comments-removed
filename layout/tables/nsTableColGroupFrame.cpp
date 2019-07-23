@@ -174,7 +174,7 @@ nsTableColGroupFrame::GetLastRealColGroup(nsTableFrame* aTableFrame,
 
 NS_IMETHODIMP
 nsTableColGroupFrame::SetInitialChildList(nsIAtom*        aListName,
-                                          nsIFrame*       aChildList)
+                                          nsFrameList&    aChildList)
 {
   if (!mFrames.IsEmpty()) {
     
@@ -191,7 +191,7 @@ nsTableColGroupFrame::SetInitialChildList(nsIAtom*        aListName,
   if (!tableFrame)
     return NS_ERROR_NULL_POINTER;
 
-  if (!aChildList) {
+  if (aChildList.IsEmpty()) {
     tableFrame->AppendAnonymousColFrames(this, GetSpan(), eColAnonymousColGroup, 
                                          PR_FALSE);
     return NS_OK; 

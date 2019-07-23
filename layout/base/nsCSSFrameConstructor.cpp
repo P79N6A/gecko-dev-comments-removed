@@ -610,6 +610,14 @@ MarkIBSpecialPrevSibling(nsIFrame *aAnonymousFrame,
                                aSpecialParent, nsnull, nsnull);
 }
 
+inline void
+SetInitialSingleChild(nsIFrame* aParent, nsIFrame* aFrame)
+{
+  NS_PRECONDITION(!aFrame->GetNextSibling(), "Should be using a frame list");
+  nsFrameList temp(aFrame);
+  aParent->SetInitialChildList(nsnull, temp);
+}
+
 
 
 static PRBool
@@ -1249,8 +1257,11 @@ nsFrameConstructorState::ProcessFrameInsertions(nsAbsoluteItems& aFrameItems,
 
     rv = containingBlock->InsertFrames(aChildListName, insertionPoint,
                                        firstNewFrame);
+    aFrameItems.Clear();
   }
-  aFrameItems.Clear();
+
+  NS_POSTCONDITION(aFrameItems.IsEmpty(), "How did that happen?");
+
   
   
   
@@ -1360,6 +1371,7 @@ AdjustFloatParentPtrs(nsIFrame*                aFrame,
     childFrame = childFrame->GetNextSibling();
   }
 }
+
 
 
 
@@ -2057,7 +2069,7 @@ nsCSSFrameConstructor::ConstructTable(nsFrameConstructorState& aState,
   InitAndRestoreFrame(aState, content, newFrame, nsnull, innerFrame);
 
   
-  newFrame->SetInitialChildList(nsnull, innerFrame);
+  SetInitialSingleChild(newFrame, innerFrame);
 
   rv = aState.AddChild(newFrame, aFrameItems, content, styleContext,
                        aParentFrame);
@@ -2286,7 +2298,7 @@ nsCSSFrameConstructor::ConstructTableCell(nsFrameConstructorState& aState,
   }
 
   cellInnerFrame->SetInitialChildList(nsnull, childItems);
-  newFrame->SetInitialChildList(nsnull, cellInnerFrame);
+  SetInitialSingleChild(newFrame, cellInnerFrame);
   aFrameItems.AddChild(newFrame);
   *aNewFrame = newFrame;
 
@@ -2913,7 +2925,7 @@ nsCSSFrameConstructor::SetUpDocElementContainingBlock(nsIContent* aDocElement)
     nsIFrame *pageFrame, *canvasFrame;
     ConstructPageFrame(mPresShell, presContext, rootFrame, nsnull,
                        pageFrame, canvasFrame);
-    rootFrame->SetInitialChildList(nsnull, pageFrame);
+    SetInitialSingleChild(rootFrame, pageFrame);
 
     
     
@@ -2922,7 +2934,7 @@ nsCSSFrameConstructor::SetUpDocElementContainingBlock(nsIContent* aDocElement)
   }
 
   if (viewportFrame->GetStateBits() & NS_FRAME_FIRST_REFLOW) {
-    viewportFrame->SetInitialChildList(nsnull, newFrame);
+    SetInitialSingleChild(viewportFrame, newFrame);
   } else {
     viewportFrame->AppendFrames(nsnull, newFrame);
   }
@@ -2971,7 +2983,7 @@ nsCSSFrameConstructor::ConstructPageFrame(nsIPresShell*  aPresShell,
     NS_ASSERTION(prevPageContentFrame, "missing page content frame");
   }
   pageContentFrame->Init(nsnull, aPageFrame, prevPageContentFrame);
-  aPageFrame->SetInitialChildList(nsnull, pageContentFrame);
+  SetInitialSingleChild(aPageFrame, pageContentFrame);
   mFixedContainingBlock = pageContentFrame;
 
   nsRefPtr<nsStyleContext> canvasPseudoStyle;
@@ -2989,7 +3001,7 @@ nsCSSFrameConstructor::ConstructPageFrame(nsIPresShell*  aPresShell,
     NS_ASSERTION(prevCanvasFrame, "missing canvas frame");
   }
   aCanvasFrame->Init(nsnull, pageContentFrame, prevCanvasFrame);
-  pageContentFrame->SetInitialChildList(nsnull, aCanvasFrame);
+  SetInitialSingleChild(pageContentFrame, aCanvasFrame);
 
   return NS_OK;
 }
@@ -3126,7 +3138,7 @@ nsCSSFrameConstructor::ConstructButtonFrame(nsFrameConstructorState& aState,
     blockFrame->SetInitialChildList(nsnull, childItems);
   }
 
-  buttonFrame->SetInitialChildList(nsnull, blockFrame);
+  SetInitialSingleChild(buttonFrame, blockFrame);
 
   if (isLeaf) {
     nsFrameItems  anonymousChildItems;
@@ -3429,31 +3441,31 @@ nsCSSFrameConstructor::ConstructFieldSetFrame(nsFrameConstructorState& aState,
   ProcessChildren(aState, content, styleContext, blockFrame, PR_TRUE,
                   childItems, PR_TRUE);
 
-  nsIFrame * child      = childItems.FirstChild();
-  nsIFrame * previous   = nsnull;
-  nsLegendFrame* legendFrame = nsnull;
-  while (nsnull != child) {
-    legendFrame = do_QueryFrame(child);
+  nsFrameItems fieldsetKids;
+  fieldsetKids.AddChild(blockFrame);
+
+  for (nsFrameList::FrameLinkEnumerator link(childItems);
+       !link.AtEnd();
+       link.Next()) {
+    nsLegendFrame* legendFrame = do_QueryFrame(link.NextFrame());
     if (legendFrame) {
       
       
       
       
       
-      childItems.RemoveFrame(child, previous);
-      legendFrame->SetNextSibling(blockFrame);
-      legendFrame->SetParent(newFrame);
+      childItems.RemoveFrame(link.NextFrame(), link.PrevFrame());
+      
+      fieldsetKids.InsertFrame(newFrame, nsnull, legendFrame);
       break;
     }
-    previous = child;
-    child = child->GetNextSibling();
   }
 
   
   blockFrame->SetInitialChildList(nsnull, childItems);
 
   
-  newFrame->SetInitialChildList(nsnull, legendFrame ? legendFrame : blockFrame);
+  newFrame->SetInitialChildList(nsnull, fieldsetKids);
 
   
   *aNewFrame = newFrame; 
@@ -4727,7 +4739,8 @@ nsCSSFrameConstructor::FlushAccumulatedBlock(nsFrameConstructorState& aState,
   
   
   blockFrame->SetInitialChildList(nsnull, *aBlockItems);
-  *aBlockItems = nsFrameItems();
+  NS_ASSERTION(aBlockItems->IsEmpty(), "What happened?");
+  aBlockItems->Clear();
   aNewItems->AddChild(blockFrame);
   return NS_OK;
 }
@@ -8317,7 +8330,7 @@ nsCSSFrameConstructor::CreateContinuingFrame(nsPresContext* aPresContext,
       }
 
       
-      newFrame->SetInitialChildList(nsnull, continuingBlockFrame);
+      SetInitialSingleChild(newFrame, continuingBlockFrame);
     }
   
   } else if (nsGkAtoms::lineFrame == frameType) {
@@ -8385,7 +8398,7 @@ nsCSSFrameConstructor::CreateContinuingFrame(nsPresContext* aPresContext,
         return rv;
       }
       
-      newFrame->SetInitialChildList(nsnull, continuingBlockFrame);
+      SetInitialSingleChild(newFrame, continuingBlockFrame);
     }
   } else if (nsGkAtoms::legendFrame == frameType) {
     newFrame = NS_NewLegendFrame(shell, styleContext);
@@ -9607,8 +9620,9 @@ nsCSSFrameConstructor::ProcessChildren(nsFrameConstructorState& aState,
     NS_ASSERTION(!blockFrame->HasView(), "need to do view reparenting");
     ReparentFrames(aState.mFrameManager, blockFrame, aFrameItems);
 
-    blockFrame->AppendFrames(nsnull, aFrameItems.FirstChild());
-    aFrameItems = nsFrameItems();
+    blockFrame->SetInitialChildList(nsnull, aFrameItems);
+    NS_ASSERTION(aFrameItems.IsEmpty(), "How did that happen?");
+    aFrameItems.Clear();
     aFrameItems.AddChild(blockFrame);
 
     aFrame->AddStateBits(NS_STATE_BOX_WRAPS_KIDS_IN_BLOCK);
@@ -9987,7 +10001,7 @@ nsCSSFrameConstructor::CreateFloatingLetterFrame(
   InitAndRestoreFrame(aState, aTextContent, letterFrame, nsnull, aTextFrame);
 
   
-  letterFrame->SetInitialChildList(nsnull, aTextFrame);
+  SetInitialSingleChild(letterFrame, aTextFrame);
 
   
   
@@ -10097,7 +10111,7 @@ nsCSSFrameConstructor::CreateLetterFrame(nsIFrame* aBlockFrame,
         InitAndRestoreFrame(state, aTextContent, letterFrame, nsnull,
                             textFrame);
 
-        letterFrame->SetInitialChildList(nsnull, textFrame);
+        SetInitialSingleChild(letterFrame, textFrame);
         aResult.Clear();
         aResult.AddChild(letterFrame);
         aBlockFrame->AddStateBits(NS_BLOCK_HAS_FIRST_LETTER_CHILD);
@@ -10558,7 +10572,7 @@ nsCSSFrameConstructor::ConstructBlock(nsFrameConstructorState& aState,
     parent = columnSetFrame;
     *aNewFrame = columnSetFrame;
 
-    columnSetFrame->SetInitialChildList(nsnull, blockFrame);
+    SetInitialSingleChild(columnSetFrame, blockFrame);
   }
 
   blockFrame->SetStyleContextWithoutNotification(blockStyle);
@@ -10722,6 +10736,9 @@ nsCSSFrameConstructor::ConstructInline(nsFrameConstructorState& aState,
                                                 newFrame, blockFrame);
   }
 
+  
+  
+  nsIFrame* firstBlock = blockKids.FirstChild();
   blockFrame->SetInitialChildList(nsnull, blockKids);
 
   nsFrameConstructorState state(mPresShell, mFixedContainingBlock,
@@ -10733,7 +10750,7 @@ nsCSSFrameConstructor::ConstructInline(nsFrameConstructorState& aState,
   
   
   
-  MoveChildrenTo(state.mFrameManager, blockFrame, blockKids.FirstChild(), nsnull,
+  MoveChildrenTo(state.mFrameManager, blockFrame, firstBlock, nsnull,
                  &state, &aState);
 
   
@@ -10814,12 +10831,14 @@ nsCSSFrameConstructor::MoveFramesToEndOfIBSplit(nsFrameConstructorState& aState,
   }
 
   
+  
+  
   nsIFrame* existingFirstChild = aExistingEndFrame->GetFirstChild(nsnull);
   if (!existingFirstChild &&
       (aExistingEndFrame->GetStateBits() & NS_FRAME_FIRST_REFLOW)) {
     aExistingEndFrame->SetInitialChildList(nsnull, aFramesToMove);
   } else {
-    aExistingEndFrame->InsertFrames(nsnull, nsnull, aFramesToMove);
+    aExistingEndFrame->InsertFrames(nsnull, nsnull, aFramesToMove.FirstChild());
   }
   nsFrameConstructorState* startState = aTargetState ? &aState : nsnull;
   MoveChildrenTo(aState.mFrameManager, aExistingEndFrame, newFirstChild,

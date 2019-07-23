@@ -317,10 +317,10 @@ private:
 
 NS_IMETHODIMP
 nsMenuPopupFrame::SetInitialChildList(nsIAtom* aListName,
-                                      nsIFrame* aChildList)
+                                      nsFrameList& aChildList)
 {
   
-  if (aChildList)
+  if (aChildList.NotEmpty())
     mGeneratedChildren = PR_TRUE;
   return nsBoxFrame::SetInitialChildList(aListName, aChildList);
 }

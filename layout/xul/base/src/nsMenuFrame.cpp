@@ -339,28 +339,30 @@ nsMenuFrame::SetPopupFrame(nsIFrame* aChildList)
 {
   
   nsFrameList frames(aChildList);
-  nsIFrame* frame = frames.FirstChild();
-  while (frame) {
-    if (frame->GetType() == nsGkAtoms::menuPopupFrame) {
+  SetPopupFrame(frames);
+  return frames.FirstChild();
+}
+
+void
+nsMenuFrame::SetPopupFrame(nsFrameList& aFrameList)
+{
+  for (nsFrameList::Enumerator e(aFrameList); !e.AtEnd(); e.Next()) {
+    if (e.get()->GetType() == nsGkAtoms::menuPopupFrame) {
       
-      frames.RemoveFrame(frame);
-      mPopupFrame = (nsMenuPopupFrame *)frame;
-      aChildList = frames.FirstChild();
+      mPopupFrame = (nsMenuPopupFrame *)e.get();
+      aFrameList.RemoveFrame(e.get());
       break;
     }
-    frame = frame->GetNextSibling();
   }
-
-  return aChildList;
 }
 
 NS_IMETHODIMP
 nsMenuFrame::SetInitialChildList(nsIAtom*        aListName,
-                                 nsIFrame*       aChildList)
+                                 nsFrameList&    aChildList)
 {
   NS_ASSERTION(!mPopupFrame, "already have a popup frame set");
   if (!aListName || aListName == nsGkAtoms::popupList)
-    aChildList = SetPopupFrame(aChildList);
+    SetPopupFrame(aChildList);
   return nsBoxFrame::SetInitialChildList(aListName, aChildList);
 }
 

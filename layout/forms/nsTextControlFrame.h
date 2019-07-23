@@ -127,7 +127,7 @@ public:
   
   nsresult SetValue(const nsAString& aValue);
   NS_IMETHOD SetInitialChildList(nsIAtom*        aListName,
-                                 nsIFrame*       aChildList);
+                                 nsFrameList&    aChildList);
 
 
   virtual void SetFocus(PRBool aOn , PRBool aRepaint); 

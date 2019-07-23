@@ -546,8 +546,10 @@ public:
 
 
 
+
+
   NS_IMETHOD  SetInitialChildList(nsIAtom*        aListName,
-                                  nsIFrame*       aChildList) = 0;
+                                  nsFrameList&    aChildList) = 0;
 
   
 
@@ -2559,7 +2561,7 @@ nsFrameList::InsertFrames(nsIFrame* aParent, nsIFrame* aPrevSibling,
   nsIFrame* nextSibling =
     aPrevSibling ? aPrevSibling->GetNextSibling() : FirstChild();
   InsertFrames(aParent, aPrevSibling, firstNewFrame);
-  aFrameList.mFirstChild = nsnull;
+  aFrameList.Clear();
   return Slice(*this, firstNewFrame, nextSibling);
 }
 #endif 

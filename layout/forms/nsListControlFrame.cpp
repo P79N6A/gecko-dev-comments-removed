@@ -1094,7 +1094,7 @@ nsListControlFrame::HandleEvent(nsPresContext* aPresContext,
 
 NS_IMETHODIMP
 nsListControlFrame::SetInitialChildList(nsIAtom*       aListName,
-                                        nsIFrame*      aChildList)
+                                        nsFrameList&   aChildList)
 {
   
   mIsAllContentHere = mContent->IsDoneAddingChildren();
