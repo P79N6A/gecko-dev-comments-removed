@@ -38,7 +38,6 @@
 
 NPError pluginInstanceInit(InstanceData* instanceData);
 int16_t pluginHandleEvent(InstanceData* instanceData, void* event);
-
 void    pluginDraw(InstanceData* instanceData);
 
 #endif 
