@@ -210,7 +210,7 @@ RuleHash_TagTable_GetKey(PLDHashTable *table, const PLDHashEntryHdr *hdr)
 {
   const RuleHashTableEntry *entry =
     static_cast<const RuleHashTableEntry*>(hdr);
-  return entry->mRules->mSelector->mTag;
+  return entry->mRules->mSelector->mLowercaseTag;
 }
 
 static nsIAtom*
@@ -513,8 +513,8 @@ void RuleHash::PrependRule(RuleValue *aRuleInfo)
     PrependRuleToTable(&mClassTable, selector->mClassList->mAtom, aRuleInfo);
     RULE_HASH_STAT_INCREMENT(mClassSelectors);
   }
-  else if (nsnull != selector->mTag) {
-    PrependRuleToTable(&mTagTable, selector->mTag, aRuleInfo);
+  else if (nsnull != selector->mLowercaseTag) {
+    PrependRuleToTable(&mTagTable, selector->mLowercaseTag, aRuleInfo);
     RULE_HASH_STAT_INCREMENT(mTagSelectors);
   }
   else if (kNameSpaceID_Unknown != selector->mNameSpace) {
@@ -1191,11 +1191,23 @@ static PRBool SelectorMatches(RuleProcessorData &data,
 
 {
   
+  
   if ((kNameSpaceID_Unknown != aSelector->mNameSpace &&
-       data.mNameSpaceID != aSelector->mNameSpace) ||
-      (aSelector->mTag && aSelector->mTag != data.mContentTag)) {
-    
+       data.mNameSpaceID != aSelector->mNameSpace))
     return PR_FALSE;
+
+  if (aSelector->mLowercaseTag) {
+    
+    
+    
+    if (data.mIsHTMLContent) {
+      if (data.mContentTag != aSelector->mLowercaseTag)
+        return PR_FALSE;
+    }
+    else {
+      if (data.mContentTag != aSelector->mCasedTag)
+        return PR_FALSE;
+    }
   }
 
   PRBool result = PR_TRUE;
@@ -1593,7 +1605,8 @@ static PRBool SelectorMatches(RuleProcessorData &data,
       if ((stateToCheck & (NS_EVENT_STATE_HOVER | NS_EVENT_STATE_ACTIVE)) &&
           data.mCompatMode == eCompatibility_NavQuirks &&
           
-          !aSelector->mTag && !aSelector->mIDList && !aSelector->mAttrList &&
+          !aSelector->HasTagSelector() && !aSelector->mIDList && 
+          !aSelector->mAttrList &&
           
           
           
@@ -1929,7 +1942,10 @@ static void PseudoEnumFunc(nsICSSStyleRule* aRule, nsCSSSelector* aSelector,
 {
   PseudoRuleProcessorData* data = (PseudoRuleProcessorData*)aData;
 
-  NS_ASSERTION(aSelector->mTag == data->mPseudoTag, "RuleHash failure");
+  if (!aSelector->IsPseudoElement())
+    return;
+
+  NS_ASSERTION(aSelector->mLowercaseTag == data->mPseudoTag, "RuleHash failure");
   PRBool matches = PR_TRUE;
   if (data->mComparator)
     data->mComparator->PseudoMatches(data->mPseudoTag, aSelector, &matches);

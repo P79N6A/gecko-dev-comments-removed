@@ -2452,7 +2452,7 @@ CSSParserImpl::ParseSelectorList(nsCSSSelectorList*& aListHead,
 static PRBool IsSinglePseudoClass(const nsCSSSelector& aSelector)
 {
   return PRBool((aSelector.mNameSpace == kNameSpaceID_Unknown) &&
-                (aSelector.mTag == nsnull) &&
+                (aSelector.mLowercaseTag == nsnull) &&
                 (aSelector.mIDList == nsnull) &&
                 (aSelector.mClassList == nsnull) &&
                 (aSelector.mAttrList == nsnull) &&
@@ -2527,7 +2527,7 @@ CSSParserImpl::ParseSelectorGroup(nsCSSSelectorList*& aList)
             list->AddSelector(empty); 
             listSel = list->mSelectors; 
           }
-          listSel->mTag = pseudoElement;
+          listSel->mLowercaseTag = pseudoElement;
         }
         else {  
           nsAutoPtr<nsCSSSelector> pseudoTagSelector(new nsCSSSelector());
@@ -2535,9 +2535,9 @@ CSSParserImpl::ParseSelectorGroup(nsCSSSelectorList*& aList)
             mScanner.SetLowLevelError(NS_ERROR_OUT_OF_MEMORY);
             return PR_FALSE;
           }
-          pseudoTagSelector->mTag = pseudoClassList->mAtom; 
+          pseudoTagSelector->mLowercaseTag = pseudoClassList->mAtom; 
 #ifdef MOZ_XUL
-          if (IsTreePseudoElement(pseudoTagSelector->mTag)) {
+          if (IsTreePseudoElement(pseudoTagSelector->mLowercaseTag)) {
             
             
             
@@ -2684,13 +2684,8 @@ CSSParserImpl::ParseTypeOrUniversalSelector(PRInt32&       aDataMask,
       }
       if (eCSSToken_Ident == mToken.mType) {  
         aDataMask |= SEL_MASK_ELEM;
-        if (mCaseSensitive) {
-          aSelector.SetTag(mToken.mIdent);
-        }
-        else {
-          ToLowerCase(mToken.mIdent, buffer);
-          aSelector.SetTag(buffer);
-        }
+
+        aSelector.SetTag(mToken.mIdent, mCaseSensitive);
       }
       else if (mToken.IsSymbol('*')) {  
         aDataMask |= SEL_MASK_ELEM;
@@ -2728,13 +2723,8 @@ CSSParserImpl::ParseTypeOrUniversalSelector(PRInt32&       aDataMask,
       }
       if (eCSSToken_Ident == mToken.mType) {  
         aDataMask |= SEL_MASK_ELEM;
-        if (mCaseSensitive) {
-          aSelector.SetTag(mToken.mIdent);
-        }
-        else {
-          ToLowerCase(mToken.mIdent, buffer);
-          aSelector.SetTag(buffer);
-        }
+       
+        aSelector.SetTag(mToken.mIdent, mCaseSensitive);
       }
       else if (mToken.IsSymbol('*')) {  
         aDataMask |= SEL_MASK_ELEM;
@@ -2748,13 +2738,8 @@ CSSParserImpl::ParseTypeOrUniversalSelector(PRInt32&       aDataMask,
     }
     else {  
       SetDefaultNamespaceOnSelector(aSelector);
-      if (mCaseSensitive) {
-        aSelector.SetTag(buffer);
-      }
-      else {
-        ToLowerCase(buffer);
-        aSelector.SetTag(buffer);
-      }
+      aSelector.SetTag(buffer, mCaseSensitive);
+
       aDataMask |= SEL_MASK_ELEM;
     }
     if (! GetToken(PR_FALSE)) {   
@@ -2772,13 +2757,7 @@ CSSParserImpl::ParseTypeOrUniversalSelector(PRInt32&       aDataMask,
     }
     if (eCSSToken_Ident == mToken.mType) {  
       aDataMask |= SEL_MASK_ELEM;
-      if (mCaseSensitive) {
-        aSelector.SetTag(mToken.mIdent);
-      }
-      else {
-        ToLowerCase(mToken.mIdent, buffer);
-        aSelector.SetTag(buffer);
-      }
+      aSelector.SetTag(mToken.mIdent, mCaseSensitive);
     }
     else if (mToken.IsSymbol('*')) {  
       aDataMask |= SEL_MASK_ELEM;
