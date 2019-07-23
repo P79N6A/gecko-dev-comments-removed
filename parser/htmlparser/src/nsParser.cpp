@@ -1527,10 +1527,9 @@ nsParser::DidBuildModel(nsresult anErrorCode)
     if (mParserContext && !mParserContext->mPrevContext) {
       
       
-      
+      PRBool terminated = mInternalState == NS_ERROR_HTMLPARSER_STOPPARSING;
       if (mParserContext->mDTD && mSink &&
-          (mInternalState == NS_ERROR_HTMLPARSER_STOPPARSING ||
-           mSink->ReadyToCallDidBuildModel())) {
+          mSink->ReadyToCallDidBuildModel(terminated)) {
         result = mParserContext->mDTD->DidBuildModel(anErrorCode,PR_TRUE,this,mSink);
       }
 

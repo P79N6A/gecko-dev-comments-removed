@@ -206,7 +206,10 @@ public:
 
 
 
-  void EndDeferringScripts();
+
+
+
+  void EndDeferringScripts(PRBool aKillDeferred);
 
   
 

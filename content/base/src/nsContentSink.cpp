@@ -353,8 +353,8 @@ nsContentSink::ScriptAvailable(nsresult aResult,
   
   
   NS_ASSERTION(count == 0 ||
-               mScriptElements.IndexOf(aElement) == PRUint32(count - 1) ||
-               mScriptElements.IndexOf(aElement) == PRUint32(-1),
+               mScriptElements.IndexOf(aElement) == PRInt32(count - 1) ||
+               mScriptElements.IndexOf(aElement) == -1,
                "script found at unexpected position");
 
   
@@ -1757,21 +1757,23 @@ nsContentSink::ContinueInterruptedParsingAsync()
 }
 
 PRBool
-nsContentSink::ReadyToCallDidBuildModelImpl()
+nsContentSink::ReadyToCallDidBuildModelImpl(PRBool aTerminated)
 {
   if (!mDidGetReadyToCallDidBuildModelCall) {
-    if (mDocument) {
+    if (mDocument && !aTerminated) {
       mDocument->SetReadyStateInternal(nsIDocument::READYSTATE_INTERACTIVE);
     }
 
     if (mScriptLoader) {
-      mScriptLoader->EndDeferringScripts();
+      mScriptLoader->EndDeferringScripts(aTerminated);
     }
   }
 
   mDidGetReadyToCallDidBuildModelCall = PR_TRUE;
   
-  return !mScriptLoader || !mScriptLoader->HasPendingOrCurrentScripts();
+  
+  return aTerminated || !mScriptLoader ||
+         !mScriptLoader->HasPendingOrCurrentScripts();
 }
 
 

@@ -92,7 +92,12 @@ public:
 
 
 
-  virtual PRBool ReadyToCallDidBuildModel() { return PR_TRUE; };
+
+
+  virtual PRBool ReadyToCallDidBuildModel(PRBool aTerminated)
+  {
+    return PR_TRUE;
+  };
 
   
 
