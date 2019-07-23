@@ -1252,30 +1252,18 @@ static void
 fun_finalize(JSContext *cx, JSObject *obj)
 {
     JSFunction *fun;
-    JSScript *script;
 
     
     fun = (JSFunction *) JS_GetPrivate(cx, obj);
     if (!fun)
         return;
 
-    if (fun->object == obj)
-        fun->object = NULL;
-
     
 
 
 
-
-
-
-    if (FUN_INTERPRETED(fun) && fun->u.i.script &&
-        js_IsAboutToBeFinalized(cx, fun))
-    {
-        script = fun->u.i.script;
-        fun->u.i.script = NULL;
-        js_DestroyScript(cx, script);
-    }
+    if (fun->object == obj)
+        fun->object = NULL;
 }
 
 #if JS_HAS_XDR
@@ -2199,7 +2187,7 @@ js_NewFunction(JSContext *cx, JSObject *funobj, JSNative native, uintN nargs,
 
 
 
-    fun = (JSFunction *) js_NewGCThing(cx, GCX_PRIVATE, sizeof(JSFunction));
+    fun = (JSFunction *) js_NewGCThing(cx, GCX_FUNCTION, sizeof(JSFunction));
     if (!fun)
         goto out;
 
@@ -2222,6 +2210,22 @@ js_NewFunction(JSContext *cx, JSObject *funobj, JSNative native, uintN nargs,
 out:
     JS_POP_TEMP_ROOT(cx, &tvr);
     return fun;
+}
+
+void
+js_FinalizeFunction(JSContext *cx, JSFunction *fun)
+{
+    JSScript *script;
+
+    
+
+
+
+    if (FUN_INTERPRETED(fun) && fun->u.i.script) {
+        script = fun->u.i.script;
+        fun->u.i.script = NULL;
+        js_DestroyScript(cx, script);
+    }
 }
 
 JSObject *
