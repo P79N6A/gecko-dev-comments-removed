@@ -203,7 +203,7 @@ namespace nanojit
 		{
             uint32_t j = argc - i - 1;
             ArgSize sz = sizes[j];
-            NanoAssert(sz == ARGSIZES_LO || sz == ARGSIZES_Q);
+            NanoAssert(sz == ARGSIZE_LO || sz == ARGSIZE_Q);
     		
             Register r = i < 4 ? argRegs[i] : UnknownReg;
             asm_arg(sz, ins->arg(j), r);

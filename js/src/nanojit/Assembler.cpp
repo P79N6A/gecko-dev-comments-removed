@@ -532,25 +532,45 @@ namespace nanojit
         
         LInsp lhs = cond->oprnd1();
 		LInsp rhs = cond->oprnd2();
-		NanoAssert(!lhs->isQuad() && !rhs->isQuad());
 		Reservation *rA, *rB;
+
+		NanoAssert((!lhs->isQuad() && !rhs->isQuad()) || (lhs->isQuad() && rhs->isQuad()));
+
+		
+#if !defined NANOJIT_64BIT
+		NanoAssert(!lhs->isQuad() && !rhs->isQuad());
+#endif
 
 		
 		if (rhs->isconst())
 		{
 			int c = rhs->constval();
 			Register r = findRegFor(lhs, GpRegs);
-			if (c == 0 && cond->isop(LIR_eq))
-				TEST(r,r);
-			else
+			if (c == 0 && cond->isop(LIR_eq)) {
+				if (rhs->isQuad()) {
+#if defined NANOJIT_64BIT
+					TESTQ(r, r);
+#endif
+				} else {
+					TEST(r,r);
+				}
+			
+			} else if (!rhs->isQuad()) {
 				CMPi(r, c);
+			}
 		}
 		else
 		{
 			findRegFor2(GpRegs, lhs, rA, rhs, rB);
 			Register ra = rA->reg;
 			Register rb = rB->reg;
-			CMP(ra, rb);
+			if (rhs->isQuad()) {
+#if defined NANOJIT_64BIT
+				CMPQ(ra, rb);
+#endif
+			} else {
+				CMP(ra, rb);
+			}
 		}
 	}
 
@@ -1145,9 +1165,7 @@ namespace nanojit
 					LOpcode condop = cond->opcode();
 					NanoAssert(cond->isCond());
 #ifndef NJ_SOFTFLOAT
-					bool fp = cond->oprnd1()->isQuad();
-
-                    if (fp)
+                    if (condop >= LIR_feq && condop <= LIR_fge)
 					{
 						if (op == LIR_xf)
 							JP(exit);
@@ -1229,7 +1247,11 @@ namespace nanojit
                     #ifdef NJ_VERBOSE
                     
                     if (_frago->core()->config.show_stats)
+					#if defined NANOJIT_AMD64
+                        LDQi(argRegs[1], intptr_t((Fragment*)_thisfrag));
+					#else
                         LDi(argRegs[1], int((Fragment*)_thisfrag));
+                    #endif
                     #endif
 
 					
@@ -1547,7 +1569,7 @@ namespace nanojit
 		size_t size = GuardRecordSize(guard);
 		SideExit *exit = guard->exit();
 		NIns* ptr = (NIns*)alignTo(_nIns-size, 4);
-		underrunProtect( (int)_nIns-(int)ptr );  
+		underrunProtect( (intptr_t)_nIns-(intptr_t)ptr );  
 		GuardRecord* rec = (GuardRecord*) alignTo(_nIns-size,4);
 		rec->outgoing = _latestGuard;
 		_latestGuard = rec;
