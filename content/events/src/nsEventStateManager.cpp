@@ -840,7 +840,6 @@ nsEventStateManager::PreHandleEvent(nsPresContext* aPresContext,
         break;
 
       if (mDocument) {
-        PRBool isAlreadySuppressed = PR_FALSE;
         if (gLastFocusedDocument && gLastFocusedPresContext) {
           nsCOMPtr<nsPIDOMWindow> ourWindow =
             gLastFocusedDocument->GetWindow();
@@ -854,6 +853,7 @@ nsEventStateManager::PreHandleEvent(nsPresContext* aPresContext,
           
           
           nsCOMPtr<nsIFocusController> focusController;
+          PRBool isAlreadySuppressed = PR_FALSE;
 
           if (ourWindow) {
             focusController = ourWindow->GetRootFocusController();
@@ -922,7 +922,7 @@ nsEventStateManager::PreHandleEvent(nsPresContext* aPresContext,
 
         nsCOMPtr<nsPIDOMWindow> window(mDocument->GetWindow());
 
-        if (window && !isAlreadySuppressed) {
+        if (window) {
           
           
 
