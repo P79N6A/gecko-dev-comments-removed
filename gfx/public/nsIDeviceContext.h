@@ -170,8 +170,8 @@ const PRUint8 kUseAltDCFor_SURFACE_DIM     = 0x08;
 
 
 #define NS_IDEVICE_CONTEXT_IID   \
-{ 0x4dd372b6, 0xef19, 0x4995, \
- { 0xa7, 0xac, 0xba, 0x3e, 0xfd, 0x3f, 0x65, 0x6f } }
+{ 0x92a1e76c, 0xadbd, 0x441e, \
+ { 0xaa, 0xe6, 0x24, 0x3d, 0x60, 0x4, 0xe0, 0xee } }
 
 
 typedef void * nsPalette;
@@ -293,6 +293,13 @@ public:
 
 
   PRInt32 AppUnitsPerDevPixel() const { return mAppUnitsPerDevPixel; }
+
+  
+
+
+
+  nscoord GfxUnitsToAppUnits(gfxFloat aGfxUnits) const
+  { return nscoord(NS_round(aGfxUnits * AppUnitsPerDevPixel())); }
 
   
 

@@ -474,7 +474,7 @@ void nsWebBrowserFind::SetSelectionAndScroll(nsIDOMWindow* aWindow,
     
     selCon->ScrollSelectionIntoView
       (nsISelectionController::SELECTION_NORMAL,
-       nsISelectionController::SELECTION_FOCUS_REGION, PR_TRUE);
+       nsISelectionController::SELECTION_FOCUS_REGION, PR_FALSE);
   }
 }
 
