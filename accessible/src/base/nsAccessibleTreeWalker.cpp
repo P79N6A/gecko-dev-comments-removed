@@ -37,8 +37,11 @@
 
 
 #include "nsAccessibleTreeWalker.h"
+
 #include "nsAccessibilityAtoms.h"
 #include "nsAccessNode.h"
+
+#include "nsIAnonymousContentCreator.h"
 #include "nsIServiceManager.h"
 #include "nsIContent.h"
 #include "nsIDOMXULElement.h"
@@ -229,9 +232,17 @@ void nsAccessibleTreeWalker::UpdateFrame(PRBool aTryFirstChild)
   if (!mState.frame) {
     return;
   }
+
   if (aTryFirstChild) {
-    nsIContent *containerContent = mState.frame->GetContent();
+    
+    
+    nsIAnonymousContentCreator* creator = do_QueryFrame(mState.frame);
     mState.frame = mState.frame->GetFirstChild(nsnull);
+
+    if (creator && mState.frame && mState.siblingIndex < 0) {
+      mState.domNode = do_QueryInterface(mState.frame->GetContent());
+      mState.siblingIndex = eSiblingsWalkFrames;
+    }
 
 
 #if 0
@@ -254,17 +265,6 @@ void nsAccessibleTreeWalker::UpdateFrame(PRBool aTryFirstChild)
       mState.siblingIndex = eSiblingsWalkFrames;
     }
 #endif
-    
-    
-    
-    
-    if (containerContent->Tag() == nsAccessibilityAtoms::input &&
-        containerContent->AttrValueIs(kNameSpaceID_None, nsAccessibilityAtoms::type,
-                                      NS_LITERAL_STRING("file"), eIgnoreCase) &&
-        mState.frame && mState.siblingIndex < 0)  {
-      mState.domNode = do_QueryInterface(mState.frame->GetContent());
-      mState.siblingIndex = eSiblingsWalkFrames;
-    }
   }
   else {
     mState.frame = mState.frame->GetNextSibling();
