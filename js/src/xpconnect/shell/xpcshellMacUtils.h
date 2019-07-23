@@ -38,6 +38,5 @@
 
 
 
-
 void InitAutoreleasePool();
 void FinishAutoreleasePool();
