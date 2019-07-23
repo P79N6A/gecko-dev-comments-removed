@@ -1549,6 +1549,28 @@ public:
   }
 
   static void StripNullChars(const nsAString& aInStr, nsAString& aOutStr);
+
+  
+
+
+
+
+
+
+
+
+  static nsresult CreateStructuredClone(JSContext* cx, jsval val, jsval* rval);
+
+  
+
+
+
+
+
+
+  static nsresult ReparentClonedObjectToScope(JSContext* cx, JSObject* obj,
+                                              JSObject* scope);
+
 private:
 
   static PRBool InitializeEventTable();
