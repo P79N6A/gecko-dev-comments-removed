@@ -456,8 +456,7 @@ public:
   
 
 
-
-  virtual nsresult DispatchAsyncHashchange() = 0;
+  virtual nsresult DispatchSyncHashchange() = 0;
 
 
   
