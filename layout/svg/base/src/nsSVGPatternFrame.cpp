@@ -212,7 +212,11 @@ nsSVGPatternFrame::PaintPattern(gfxASurface** surface,
   if (ctm.IsSingular()) {
     return NS_ERROR_FAILURE;
   }
-  mCTM = NS_NewSVGMatrix(ctm);
+
+  
+  nsSVGPatternFrame *patternFrame =
+    static_cast<nsSVGPatternFrame*>(firstKid->GetParent());
+  patternFrame->mCTM = NS_NewSVGMatrix(ctm);
 
   
   
@@ -244,8 +248,8 @@ nsSVGPatternFrame::PaintPattern(gfxASurface** surface,
                     surfaceSize.width / patternWidth, 0.0f,
                     0.0f, surfaceSize.height / patternHeight,
                     0.0f, 0.0f);
-    mCTM->Multiply(tempTM, getter_AddRefs(aCTM));
-    aCTM.swap(mCTM);
+    patternFrame->mCTM->Multiply(tempTM, getter_AddRefs(aCTM));
+    aCTM.swap(patternFrame->mCTM);
 
     
     patternMatrix->Scale(patternWidth / surfaceSize.width,
@@ -276,20 +280,20 @@ nsSVGPatternFrame::PaintPattern(gfxASurface** surface,
   
 
   
-  mSource = aSource;
+  patternFrame->mSource = aSource;
 
   
   
-  if (!mPaintLoopFlag) {
-    mPaintLoopFlag = PR_TRUE;
+  if (!patternFrame->mPaintLoopFlag) {
+    patternFrame->mPaintLoopFlag = PR_TRUE;
     for (nsIFrame* kid = firstKid; kid;
          kid = kid->GetNextSibling()) {
       nsSVGUtils::PaintFrameWithEffects(&tmpState, nsnull, kid);
     }
-    mPaintLoopFlag = PR_FALSE;
+    patternFrame->mPaintLoopFlag = PR_FALSE;
   }
 
-  mSource = nsnull;
+  patternFrame->mSource = nsnull;
 
   if (aGraphicOpacity != 1.0f) {
     tmpContext->PopGroupToSource();
