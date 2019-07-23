@@ -77,6 +77,26 @@ static PRLogModuleInfo *gCoreTextTextRunLog = PR_NewLogModule("coreTextTextRun")
 CTFontDescriptorRef gfxCoreTextFont::sDefaultFeaturesDescriptor = NULL;
 CTFontDescriptorRef gfxCoreTextFont::sDisableLigaturesDescriptor = NULL;
 
+#ifdef DEBUG_jonathan
+static void dumpFontDescCallback(const void *key, const void *value, void *context)
+{
+    CFStringRef attribute = (CFStringRef)key;
+    CFTypeRef setting = (CFTypeRef)value;
+    fprintf(stderr, "attr: "); CFShow(attribute);
+    fprintf(stderr, "    = "); CFShow(setting);
+    fprintf(stderr, "\n");
+}
+
+static void
+dumpFontDescriptor(CTFontRef font)
+{
+    CTFontDescriptorRef desc = CTFontCopyFontDescriptor(font);
+    CFDictionaryRef dict = CTFontDescriptorCopyAttributes(desc);
+    CFRelease(desc);
+    CFDictionaryApplyFunction(dict, &dumpFontDescCallback, 0);
+    CFRelease(dict);
+}
+#endif
 
 gfxCoreTextFont::gfxCoreTextFont(MacOSFontEntry *aFontEntry,
                                  const gfxFontStyle *aFontStyle,
@@ -453,7 +473,7 @@ gfxCoreTextFont::CreateDefaultFeaturesDescriptor()
 
 
 CTFontRef
-gfxCoreTextFont::CreateCopyWithDisabledLigatures(CTFontRef aFontRef)
+gfxCoreTextFont::CreateCTFontWithDisabledLigatures(ATSFontRef aFontRef, CGFloat aSize)
 {
     if (sDisableLigaturesDescriptor == NULL) {
         
@@ -499,16 +519,11 @@ gfxCoreTextFont::CreateCopyWithDisabledLigatures(CTFontRef aFontRef)
         CFRelease(featuresArray);
 
         sDisableLigaturesDescriptor =
-            CTFontDescriptorCreateWithAttributes(attributesDict);
+            CTFontDescriptorCreateCopyWithAttributes(GetDefaultFeaturesDescriptor(), attributesDict);
         CFRelease(attributesDict);
     }
-    
-    aFontRef =
-        CTFontCreateCopyWithAttributes(aFontRef,
-                                       0.0,
-                                       NULL,
-                                       sDisableLigaturesDescriptor);
-    return aFontRef;
+
+    return CTFontCreateWithPlatformFont(aFontRef, aSize, NULL, sDisableLigaturesDescriptor);
 }
 
 void
@@ -759,19 +774,20 @@ gfxCoreTextFontGroup::InitTextRun(gfxTextRun *aTextRun,
     if (disableLigatures) {
         
         
-        CTFontRef mainCTFont = mainFont->GetCTFont();
-        mainCTFont = gfxCoreTextFont::CreateCopyWithDisabledLigatures(mainCTFont);
+        CTFontRef ctFont =
+            gfxCoreTextFont::CreateCTFontWithDisabledLigatures(mainFont->GetATSFont(),
+                                                               CTFontGetSize(mainFont->GetCTFont()));
 
         
         attrObj =
             CFDictionaryCreate(kCFAllocatorDefault,
                                (const void**) &kCTFontAttributeName,
-                               (const void**) &mainCTFont,
+                               (const void**) &ctFont,
                                1, 
                                &kCFTypeDictionaryKeyCallBacks,
                                &kCFTypeDictionaryValueCallBacks);
         
-        CFRelease(mainCTFont);
+        CFRelease(ctFont);
     } else {
         attrObj = mainFont->GetAttributesDictionary();
         CFRetain(attrObj);
@@ -813,7 +829,8 @@ gfxCoreTextFontGroup::InitTextRun(gfxTextRun *aTextRun,
             if (matchedFont != mainFont) {
                 CTFontRef matchedCTFont = matchedFont->GetCTFont();
                 if (disableLigatures)
-                    matchedCTFont = gfxCoreTextFont::CreateCopyWithDisabledLigatures(matchedCTFont);
+                    matchedCTFont = gfxCoreTextFont::CreateCTFontWithDisabledLigatures(matchedFont->GetATSFont(),
+                                                                                       CTFontGetSize(matchedCTFont));
                 
                 if (!mutableStringObj) {
                     mutableStringObj =
