@@ -1170,6 +1170,10 @@ var gDownloadingPage = {
     this._pauseButton = document.getElementById("pauseButton");
     this._label_downloadStatus = this._downloadStatus.textContent;
 
+    
+    this._pauseButton.focus();
+    this._pauseButton.disabled = true;
+
     var updates =
         Components.classes["@mozilla.org/updates/update-service;1"].
         getService(Components.interfaces.nsIApplicationUpdateService);
