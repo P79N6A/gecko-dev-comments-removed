@@ -2987,7 +2987,7 @@ js_GC(JSContext *cx, JSGCInvocationKind gckind)
 
 
 
-                if (gckind == GC_LAST_DITCH)
+                if (gckind & GC_KEEP_ATOMS)
                     JS_KEEP_ATOMS(rt);
 
                 
@@ -3000,7 +3000,7 @@ js_GC(JSContext *cx, JSGCInvocationKind gckind)
                 } while (rt->gcLevel > 0);
 
                 cx->thread->gcWaiting = false;
-                if (gckind == GC_LAST_DITCH)
+                if (gckind & GC_KEEP_ATOMS)
                     JS_UNKEEP_ATOMS(rt);
                 rt->requestCount += requestDebit;
             }
@@ -3149,9 +3149,20 @@ js_GC(JSContext *cx, JSGCInvocationKind gckind)
     }
 #endif
 
-    
-    if (gckind != GC_LAST_DITCH)
+    if (gckind & GC_KEEP_ATOMS) {
+        
+
+
+
+        keepAtoms = true;
+    } else {
+        
+
+
+
+        keepAtoms = (rt->gcKeepAtoms != 0);
         JS_CLEAR_WEAK_ROOTS(&cx->weakRoots);
+    }
 
   restart:
     rt->gcNumber++;
@@ -3170,12 +3181,6 @@ js_GC(JSContext *cx, JSGCInvocationKind gckind)
         JS_ASSERT(!a->info.hasMarkedDoubles);
 #endif
 
-    
-
-
-
-
-    keepAtoms = (gckind == GC_LAST_DITCH) || (rt->gcKeepAtoms != 0);
     js_TraceRuntime(&trc, keepAtoms);
     js_MarkScriptFilenames(rt, keepAtoms);
 
@@ -3390,7 +3395,7 @@ out:
         JSWeakRoots savedWeakRoots;
         JSTempValueRooter tvr;
 
-        if (gckind == GC_LAST_DITCH) {
+        if (gckind & GC_KEEP_ATOMS) {
             
 
 
@@ -3404,7 +3409,7 @@ out:
 
         (void) callback(cx, JSGC_END);
 
-        if (gckind == GC_LAST_DITCH) {
+        if (gckind & GC_KEEP_ATOMS) {
             JS_LOCK_GC(rt);
             JS_UNKEEP_ATOMS(rt);
             JS_POP_TEMP_ROOT(cx, &tvr);
