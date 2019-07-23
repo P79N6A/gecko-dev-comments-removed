@@ -38,11 +38,13 @@ const kTreeColumnHeader = 2;
 
 
 
+
 function testTableStruct(aIdentifier, aCellsArray, aColHeaderType,
-                         aCaption, aSummary)
+                         aCaption, aSummary, aIsTreeTable)
 {
   var tableNode = getNode(aIdentifier);
   var isGrid = tableNode.getAttribute("role") == "grid" ||
+    tableNode.getAttribute("role") == "treegrid" ||
     tableNode.localName == "tree";
 
   var rowCount = aCellsArray.length;
@@ -50,7 +52,7 @@ function testTableStruct(aIdentifier, aCellsArray, aColHeaderType,
 
   
   var tableObj = {
-    role: ROLE_TABLE,
+    role: aIsTreeTable ? ROLE_TREE_TABLE : ROLE_TABLE,
     children: []
   };
 

@@ -1511,10 +1511,14 @@ NS_IMETHODIMP nsAccessibilityService::GetAccessible(nsIDOMNode *aNode,
                                getter_AddRefs(tableAccessible));
 
           if (tableAccessible) {
-            if (!roleMapEntry &&
-                nsAccUtils::Role(tableAccessible) != nsIAccessibleRole::ROLE_TABLE) {
-              
-              roleMapEntry = &nsARIAMap::gEmptyRoleMap;
+            if (!roleMapEntry) {
+              PRUint32 role = nsAccUtils::Role(tableAccessible);
+              if (role != nsIAccessibleRole::ROLE_TABLE &&
+                  role != nsIAccessibleRole::ROLE_TREE_TABLE) {
+                
+                
+                roleMapEntry = &nsARIAMap::gEmptyRoleMap;
+              }
             }
 
             break;
