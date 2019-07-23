@@ -172,12 +172,10 @@ nsSVGTransformList::SetValueString(const nsAString& aValue)
   
   
 
-  nsresult rv = NS_OK;
-
   
   nsCOMArray<nsIDOMSVGTransform> xforms;
   nsSVGTransformListParser parser(&xforms);
-  rv = parser.Parse(aValue);
+  nsresult rv = parser.Parse(aValue);
 
   if (NS_FAILED(rv)) {
     
