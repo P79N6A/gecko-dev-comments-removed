@@ -2447,7 +2447,72 @@ JS_GC(JSContext *cx)
 JS_PUBLIC_API(void)
 JS_MaybeGC(JSContext *cx)
 {
-    js_MaybeGC(cx);
+    JSRuntime *rt;
+    uint32 bytes, lastBytes;
+
+    rt = cx->runtime;
+
+#ifdef JS_GC_ZEAL
+    if (rt->gcZeal > 0) {
+        JS_GC(cx);
+        return;
+    }
+#endif
+
+    bytes = rt->gcBytes;
+    lastBytes = rt->gcLastBytes;
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    if ((bytes > 8192 && bytes > lastBytes + lastBytes / 3) ||
+        rt->gcMallocBytes >= rt->gcMaxMallocBytes) {
+        JS_GC(cx);
+    }
 }
 
 JS_PUBLIC_API(JSGCCallback)
@@ -2481,10 +2546,17 @@ JS_SetGCParameter(JSRuntime *rt, JSGCParamKey key, uint32 value)
       case JSGC_MAX_BYTES:
         rt->gcMaxBytes = value;
         break;
-      default:
-        JS_ASSERT(key == JSGC_STACKPOOL_LIFESPAN);
+      case JSGC_MAX_MALLOC_BYTES:
+        rt->gcMaxMallocBytes = value;
+        break;
+      case JSGC_STACKPOOL_LIFESPAN:
         rt->gcEmptyArenaPoolLifespan = value;
         break;
+      default:
+        JS_ASSERT(key == JSGC_TRIGGER_FACTOR);
+        JS_ASSERT(value >= 100);
+        rt->setGCTriggerFactor(value);
+        return;
     }
 }
 
@@ -2494,8 +2566,12 @@ JS_GetGCParameter(JSRuntime *rt, JSGCParamKey key)
     switch (key) {
       case JSGC_MAX_BYTES:
         return rt->gcMaxBytes;
+      case JSGC_MAX_MALLOC_BYTES:
+        return rt->gcMaxMallocBytes;
       case JSGC_STACKPOOL_LIFESPAN:
         return rt->gcEmptyArenaPoolLifespan;
+      case JSGC_TRIGGER_FACTOR:
+        return rt->gcTriggerFactor;
       case JSGC_BYTES:
         return rt->gcBytes;
       default:
