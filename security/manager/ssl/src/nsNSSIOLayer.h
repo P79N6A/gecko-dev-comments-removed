@@ -74,6 +74,7 @@ public:
   PRBool ensure_buffer_size(PRInt32 amount);
   
   enum ssl_state { 
+    ssl_invalid,       
     ssl_idle,          
     ssl_pending_write, 
     ssl_pending_read,  
