@@ -339,67 +339,65 @@ namespace nanojit
             findMemFor(i);
         }
 
-        Reservation* resv = getresv(i);
-        Register r;
+        Reservation* resv = i->resv();
+        Register r = resv->reg;
 
-        
-        
-        
-        if (resv && (r=resv->reg) != UnknownReg && (rmask(r) & allow)) {
-            _allocator.useActive(r);
-            return r;
-        }
-
-        
-        RegisterMask prefer = hint(i, allow);
-
-        
-        if (!resv) {
-            (resv = i->resv())->init();
-        }
-
-        r = resv->reg;
-
-#ifdef AVMPLUS_IA32
-        if (r != UnknownReg &&
-            (((rmask(r)&XmmRegs) && !(allow&XmmRegs)) ||
-                 ((rmask(r)&x87Regs) && !(allow&x87Regs))))
-        {
+        if (!resv->used) {
             
-            
-            evict(r);
-            r = UnknownReg;
-        }
-#endif
-
-        if (r == UnknownReg)
-        {
+            RegisterMask prefer = hint(i, allow);
+            resv->init();
+            fprintf(stderr, "XXX: %d\n", prefer & _allocator.free);
             r = resv->reg = registerAlloc(prefer);
             _allocator.addActive(r, i);
-            return r;
-        }
-        else
-        {
+
+        } else if (r == UnknownReg) {
             
             
+            RegisterMask prefer = hint(i, allow);
+            r = resv->reg = registerAlloc(prefer);
+            _allocator.addActive(r, i);
+
+        } else if (rmask(r) & allow) {
             
-            resv->reg = UnknownReg;
-            _allocator.retire(r);
-            Register s = resv->reg = registerAlloc(prefer);
-            _allocator.addActive(s, i);
-            if ((rmask(r) & GpRegs) && (rmask(s) & GpRegs)) {
-#ifdef NANOJIT_ARM
-                MOV(r, s);
-#else
-                MR(r, s);
+            
+            _allocator.useActive(r);
+
+        } else {
+            
+            
+            RegisterMask prefer = hint(i, allow);
+#ifdef AVMPLUS_IA32
+            if (((rmask(r)&XmmRegs) && !(allow&XmmRegs)) ||
+                ((rmask(r)&x87Regs) && !(allow&x87Regs)))
+            {
+                
+                
+                evict(r);
+                r = resv->reg = registerAlloc(prefer);
+                _allocator.addActive(r, i);
+            } else
 #endif
+            {
+                
+                _allocator.retire(r);
+                Register s = r;
+                r = resv->reg = registerAlloc(prefer);
+                _allocator.addActive(r, i);
+                if ((rmask(s) & GpRegs) && (rmask(r) & GpRegs)) {
+#ifdef NANOJIT_ARM
+                    MOV(s, r);
+#else
+                    MR(s, r);
+#endif
+                }
+                else {
+                    asm_nongp_copy(s, r);
+                }
             }
-            else {
-                asm_nongp_copy(r, s);
-            }
-            return s;
         }
+        return r;
     }
+
 
     int Assembler::findMemFor(LIns *i)
     {
