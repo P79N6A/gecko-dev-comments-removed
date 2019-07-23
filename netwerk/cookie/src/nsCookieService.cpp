@@ -1760,13 +1760,8 @@ nsCookieService::AddInternal(const nsCString &aBaseDomain,
 
 
 
-
-
-
-
 static inline PRBool iswhitespace     (char c) { return c == ' '  || c == '\t'; }
 static inline PRBool isterminator     (char c) { return c == '\n' || c == '\r'; }
-static inline PRBool isquoteterminator(char c) { return isterminator(c) || c == '"'; }
 static inline PRBool isvalueseparator (char c) { return isterminator(c) || c == ';'; }
 static inline PRBool istokenseparator (char c) { return isvalueseparator(c) || c == '='; }
 
@@ -1806,39 +1801,16 @@ nsCookieService::GetTokenValue(nsASingleFragmentCString::const_char_iterator &aI
 
     start = aIter;
 
-    if (*aIter == '"') {
-      
-      
-      
-      
-      while (++aIter != aEndIter && !isquoteterminator(*aIter)) {
-        
-        
-        
-        
-        if (*aIter == '\\' && (++aIter == aEndIter || isterminator(*aIter)))
-          break;
-      }
+    
+    
+    while (aIter != aEndIter && !isvalueseparator(*aIter))
+      ++aIter;
 
-      if (aIter != aEndIter && !isterminator(*aIter)) {
-        
-        aTokenValue.Rebind(start, ++aIter);
-        
-        while (aIter != aEndIter && !isvalueseparator(*aIter))
-          ++aIter;
-      }
-    } else {
-      
-      
-      while (aIter != aEndIter && !isvalueseparator(*aIter))
-        ++aIter;
-
-      
-      if (aIter != start) {
-        lastSpace = aIter;
-        while (--lastSpace != start && iswhitespace(*lastSpace));
-        aTokenValue.Rebind(start, ++lastSpace);
-      }
+    
+    if (aIter != start) {
+      lastSpace = aIter;
+      while (--lastSpace != start && iswhitespace(*lastSpace));
+      aTokenValue.Rebind(start, ++lastSpace);
     }
   }
 
@@ -1900,10 +1872,6 @@ nsCookieService::ParseAttributes(nsDependentCString &aCookieHeader,
     if (!tokenValue.IsEmpty()) {
       tokenValue.BeginReading(tempBegin);
       tokenValue.EndReading(tempEnd);
-      if (*tempBegin == '"' && *--tempEnd == '"') {
-        
-        tokenValue.Rebind(++tempBegin, tempEnd);
-      }
     }
 
     
@@ -2273,7 +2241,14 @@ nsCookieService::GetExpiry(nsCookieAttributes &aCookieAttributes,
     PRInt64 expires;
 
     
-    if (PR_ParseTimeString(aCookieAttributes.expires.get(), PR_TRUE, &tempExpires) == PR_SUCCESS) {
+    
+    
+    nsCString& expiresAttr = aCookieAttributes.expires;
+    if (!expiresAttr.IsEmpty() && expiresAttr.First() == '"' && expiresAttr.Last() == '"')
+      expiresAttr = Substring(expiresAttr.BeginReading() + 1, expiresAttr.EndReading() - 1);
+
+    
+    if (PR_ParseTimeString(expiresAttr.get(), PR_TRUE, &tempExpires) == PR_SUCCESS) {
       expires = tempExpires / PR_USEC_PER_SEC;
     } else {
       return PR_TRUE;
