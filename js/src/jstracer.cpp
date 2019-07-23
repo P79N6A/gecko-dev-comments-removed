@@ -2298,8 +2298,6 @@ TraceRecorder::deduceTypeStability(Fragment* root_peer, Fragment** stable_peer, 
     if (stable_peer)
         *stable_peer = NULL;
 
-    demote = false;
-    
     
 
 
@@ -3465,7 +3463,7 @@ js_CloseLoop(JSContext* cx)
         return false;
     }
 
-    bool demote;
+    bool demote = false;
     Fragment* f = r->getFragment();
     r->closeLoop(tm, demote);
     js_DeleteRecorder(cx);
