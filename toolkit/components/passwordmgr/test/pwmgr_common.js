@@ -104,3 +104,26 @@ function checkUnmodifiedForm(formNum) {
             ele.name + " in form " + formNum);
     }
 }
+
+
+
+
+function doKey(aKey, modifier) {
+    
+    netscape.security.PrivilegeManager.enablePrivilege('UniversalXPConnect');
+
+    var keyName = "DOM_VK_" + aKey.toUpperCase();
+    var key = Components.interfaces.nsIDOMKeyEvent[keyName];
+
+    
+    if (!modifier)
+        modifier = null;
+
+    
+    var wutils = window.QueryInterface(Components.interfaces.nsIInterfaceRequestor).
+                          getInterface(Components.interfaces.nsIDOMWindowUtils);
+
+    wutils.sendKeyEvent("keydown",  key, 0, modifier);
+    wutils.sendKeyEvent("keypress", key, 0, modifier);
+    wutils.sendKeyEvent("keyup",    key, 0, modifier);
+}

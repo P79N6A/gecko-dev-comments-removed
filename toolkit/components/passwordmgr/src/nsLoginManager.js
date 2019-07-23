@@ -35,6 +35,7 @@
 
 
 
+
 const Cc = Components.classes;
 const Ci = Components.interfaces;
 
@@ -120,6 +121,31 @@ LoginManager.prototype = {
         }
 
         return this.__storage;
+    },
+
+
+    
+    
+    __privateBrowsingService : undefined,
+    get _privateBrowsingService() {
+        if (this.__privateBrowsingService == undefined) {
+            if ("@mozilla.org/privatebrowsing;1" in Cc)
+                this.__privateBrowsingService = Cc["@mozilla.org/privatebrowsing;1"].
+                                                getService(Ci.nsIPrivateBrowsingService);
+            else
+                this.__privateBrowsingService = null;
+        }
+        return this.__privateBrowsingService;
+    },
+
+
+    
+    get _inPrivateBrowsing() {
+        var pbSvc = this._privateBrowsingService;
+        if (pbSvc)
+            return pbSvc.privateBrowsingEnabled;
+        else
+            return false;
     },
 
     _prefBranch  : null, 
@@ -764,6 +790,13 @@ LoginManager.prototype = {
             return prompterSvc;
         }
 
+        if (this._inPrivateBrowsing) {
+            
+            
+            this.log("(form submission ignored in private browsing mode)");
+            return;
+        }
+
         var doc = form.ownerDocument;
         var win = doc.defaultView;
 
@@ -953,7 +986,8 @@ LoginManager.prototype = {
         this.log("fillDocument processing " + forms.length +
                  " forms on " + doc.documentURI);
 
-        var autofillForm = this._prefBranch.getBoolPref("autofillForms");
+        var autofillForm = !this._inPrivateBrowsing &&
+                           this._prefBranch.getBoolPref("autofillForms");
         var previousActionOrigin = null;
         var foundLogins = null;
 

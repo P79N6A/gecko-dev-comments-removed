@@ -167,6 +167,19 @@ LoginManagerPrompter.prototype = {
 
 
     
+    get _inPrivateBrowsing() {
+      
+      try {
+        var pbs = Cc["@mozilla.org/privatebrowsing;1"].
+                  getService(Ci.nsIPrivateBrowsingService);
+        return pbs.privateBrowsingEnabled;
+      } catch (e) {
+        return false;
+      }
+    },
+
+
+    
 
 
 
@@ -227,7 +240,11 @@ LoginManagerPrompter.prototype = {
 
         
         if (hostname) {
-            var canRememberLogin = (aSavePassword ==
+            var canRememberLogin;
+            if (this._inPrivateBrowsing)
+                canRememberLogin = false;
+            else
+                canRememberLogin = (aSavePassword ==
                                     Ci.nsIAuthPrompt.SAVE_PASSWORD_PERMANENTLY) &&
                                    this._pwmgr.getLoginSavingEnabled(hostname);
 
@@ -323,7 +340,7 @@ LoginManagerPrompter.prototype = {
         var [hostname, realm, username] = this._getRealmInfo(aPasswordRealm);
 
         
-        if (hostname) {
+        if (hostname && !this._inPrivateBrowsing) {
           var canRememberLogin = (aSavePassword ==
                                   Ci.nsIAuthPrompt.SAVE_PASSWORD_PERMANENTLY) &&
                                  this._pwmgr.getLoginSavingEnabled(hostname);
@@ -448,6 +465,8 @@ LoginManagerPrompter.prototype = {
             }
 
             var canRememberLogin = this._pwmgr.getLoginSavingEnabled(hostname);
+            if (this._inPrivateBrowsing)
+              canRememberLogin = false;
         
             
             if (canRememberLogin && !notifyBox)
