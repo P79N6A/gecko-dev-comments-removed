@@ -36,6 +36,10 @@
 
 
 
+#ifdef MOZ_IPC
+#include "base/basictypes.h"
+#endif 
+
 #include "prtypes.h"
 #include "prmem.h"
 #include "prenv.h"

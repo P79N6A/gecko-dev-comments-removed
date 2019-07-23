@@ -7,6 +7,13 @@
 
 #ifdef CHROMIUM_MOZILLA_BUILD
 
+
+
+
+#if defined(prtypes_h___) && !defined(BUILD_BUILD_CONFIG_H_)
+#error You_must_include_basictypes.h_before_prtypes.h!
+#endif
+
 #ifndef NO_NSPR_10_SUPPORT
 #define NO_NSPR_10_SUPPORT
 #define NO_NSPR_10_SUPPORT_SAVE
