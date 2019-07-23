@@ -117,14 +117,19 @@ public:
                                WPARAM &wParam, LPARAM &lParam,
                                LRESULT *aRetValue, PRBool &aEatMessage);
   static PRBool IsComposing(nsWindow* aWindow);
-  static PRBool IsStatusChanged();
+  static PRBool IsStatusChanged() { return sIsStatusChanged; }
 
   static PRBool IsDoingKakuteiUndo(HWND aWnd);
 
-  static void NotifyEndStatusChange();
+  static void NotifyEndStatusChange() { sIsStatusChanged = PR_FALSE; }
 
 protected:
   static void EnsureHandlerInstance();
+
+  static PRBool ShouldDrawCompositionStringOurselves();
+  static void InitKeyboardLayout(HKL aKeyboardLayout);
+  static UINT GetKeyboardCodePage();
+
   static PRBool ProcessMessageForPlugin(nsWindow* aWindow, UINT msg,
                                         WPARAM &wParam, LPARAM &lParam,
                                         LRESULT *aRetValue,
@@ -134,17 +139,21 @@ protected:
   ~nsIMM32Handler();
 
   
-  PRBool OnIMEChar(nsWindow* aWindow, WPARAM wParam, LPARAM lParam);
   PRBool OnIMEStartComposition(nsWindow* aWindow);
   PRBool OnIMEComposition(nsWindow* aWindow, WPARAM wParam, LPARAM lParam);
   PRBool OnIMEEndComposition(nsWindow* aWindow);
-  PRBool OnIMECompositionFull(nsWindow* aWindow);
-  PRBool OnIMENotify(nsWindow* aWindow, WPARAM wParam, LPARAM lParam);
   PRBool OnIMERequest(nsWindow* aWindow, WPARAM wParam, LPARAM lParam,
                       LRESULT *aResult);
-  PRBool OnIMESelect(nsWindow* aWindow, WPARAM wParam, LPARAM lParam);
-  PRBool OnIMESetContext(nsWindow* aWindow, WPARAM wParam, LPARAM &lParam);
   PRBool OnInputLangChange(nsWindow* aWindow, WPARAM wParam, LPARAM lParam);
+
+  
+  
+  static PRBool OnIMEChar(nsWindow* aWindow, WPARAM wParam, LPARAM lParam);
+  static PRBool OnIMESetContext(nsWindow* aWindow,
+                                WPARAM wParam, LPARAM &lParam);
+  static PRBool OnIMECompositionFull(nsWindow* aWindow);
+  static PRBool OnIMENotify(nsWindow* aWindow, WPARAM wParam, LPARAM lParam);
+  static PRBool OnIMESelect(nsWindow* aWindow, WPARAM wParam, LPARAM lParam);
 
   
   void HandleStartComposition(nsWindow* aWindow,
@@ -190,9 +199,6 @@ protected:
   void DispatchTextEvent(nsWindow* aWindow, const nsIMEContext &aIMEContext,
                          PRBool aCheckAttr = PR_TRUE);
   void SetTextRangeList(nsTArray<nsTextRange> &aTextRangeList);
-  void InitKeyboardLayout(HKL aKeyboardLayout);
-  PRBool ShouldDrawCompositionStringOurselves() const;
-  UINT GetKeyboardCodePage() const;
 
   nsresult EnsureClauseArray(PRInt32 aCount);
   nsresult EnsureAttributeArray(PRInt32 aCount);
@@ -204,14 +210,14 @@ protected:
   PRInt32 mCursorPosition;
 
   PRPackedBool mIsComposing;
-  PRPackedBool mIsStatusChanged;
   PRPackedBool mNativeCaretIsCreated;
 
   static PRPackedBool sIsComposingOnPlugin;
+  static PRPackedBool sIsStatusChanged;
 
 #ifndef WINCE
-  UINT mCodePage;
-  DWORD mIMEProperty;
+  static UINT sCodePage;
+  static DWORD sIMEProperty;
 #endif 
 
 #ifdef ENABLE_IME_MOUSE_HANDLING
