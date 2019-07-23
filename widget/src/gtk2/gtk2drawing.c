@@ -355,14 +355,6 @@ ensure_tree_view_widget()
 {
     if (!gTreeViewWidget) {
         gTreeViewWidget = gtk_tree_view_new();
-        
-
-
- 
-        gtk_widget_modify_bg(gTreeViewWidget, GTK_STATE_INSENSITIVE, 
-                             &gTreeViewWidget->style->base[GTK_STATE_INSENSITIVE]);
-        gtk_widget_modify_bg(gTreeViewWidget, GTK_STATE_NORMAL, 
-                             &gTreeViewWidget->style->base[GTK_STATE_NORMAL]);
         setup_widget_prototype(gTreeViewWidget);
     }
     return MOZ_GTK_SUCCESS;
@@ -1031,7 +1023,13 @@ moz_gtk_treeview_paint(GdkDrawable* drawable, GdkRectangle* rect,
     
 
     state_type = state->disabled ? GTK_STATE_INSENSITIVE : GTK_STATE_NORMAL;
- 
+
+    
+
+
+    gtk_widget_modify_bg(gTreeViewWidget, state_type,
+                         &gTreeViewWidget->style->base[state_type]);
+
     style = gTreeViewWidget->style;
 
     TSOffsetStyleGCs(style, rect->x, rect->y);
