@@ -85,7 +85,9 @@ nsTArray_base::EnsureCapacity(size_type capacity, size_type elemSize) {
   }
 
   
-  capacity = PR_MAX(capacity, mHdr->mCapacity << 1);
+  
+  
+  capacity = PR_MAX(capacity, mHdr->mCapacity * 2u);
 
   Header *header;
   if (UsesAutoArrayBuffer()) {
