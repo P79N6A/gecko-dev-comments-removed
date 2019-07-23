@@ -1,16 +1,6 @@
 
-
-
-wizard[description=""] .wizard-header-description {
-  display: none;
-}
-
-
-
-
 #updates:not([currentpageid="checking"]) #checkingProgress,
 #updates:not([currentpageid="incompatibleCheck"]) #incompatibleCheckProgress,
-#updates:not([currentpageid="downloading"]) #downloadThrobber,
 #updates:not([currentpageid="downloading"]) #downloadProgress {
   display: none;
 }
@@ -18,12 +8,29 @@ wizard[description=""] .wizard-header-description {
 
 
 
+.wizard-header {
+  display: none;
+}
+
+
+.update-header {
+  display: -moz-box !important;
+}
+
+
+
+
+updateheader {
+  -moz-binding: url("chrome://mozapps/content/update/updates.xml#updateheader");
+  display: -moz-box;
+  -moz-box-orient: horizontal;
+}
+
+
 remotecontent {
   -moz-binding: url("chrome://mozapps/content/update/updates.xml#remotecontent");
   display: -moz-deck;
 }
-
-
 
 
 update {
