@@ -101,15 +101,6 @@ radio[pane=paneAdvanced][selected="true"] {
 }
 
 
-#browserHomePage {
-  padding-top: 2px;
-  padding-bottom: 3px;
-  -moz-padding-start: 4px;
-  -moz-padding-end: 2px;
-  background-color: -moz-Dialog;
-}
-
-
 #BrowserPreferences[animated="true"] #handlersView {
   height: 25em;
 }

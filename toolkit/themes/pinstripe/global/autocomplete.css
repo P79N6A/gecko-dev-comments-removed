@@ -46,7 +46,8 @@
 
 
 
-textbox {
+
+textbox:not(.padded) {
   cursor: default;
   padding: 0;
 }
@@ -55,13 +56,11 @@ textbox[nomatch="true"][highlightnonmatches="true"] {
   color: red;
 }
 
-
-textbox.padded {
-  padding: 1px 0px 1px 2px;
+textbox:not(.padded) .textbox-input-box {
+  margin: 0 3px;
 }
 
 .textbox-input-box {
-  margin: 0 3px;
   -moz-box-align: center;
 }
 
