@@ -106,8 +106,7 @@ private:
 
 public:
   
-  nsresult ConstructRootFrame(nsIContent*     aDocElement,
-                              nsIFrame**      aNewFrame);
+  nsresult ConstructRootFrame(nsIFrame** aNewFrame);
 
   nsresult ReconstructDocElementHierarchy();
 
@@ -282,11 +281,6 @@ private:
   struct FrameConstructionItem;
   class FrameConstructionItemList;
 
-  nsresult ReconstructDocElementHierarchyInternal();
-
-  nsresult ReinsertContent(nsIContent*    aContainer,
-                           nsIContent*    aChild);
-
   nsresult ConstructPageFrame(nsIPresShell*  aPresShell, 
                               nsPresContext* aPresContext,
                               nsIFrame*      aParentFrame,
@@ -333,15 +327,16 @@ private:
                                  nsIFrame*                aParentFrame,
                                  FrameConstructionItemList& aItems);
 
-  nsresult ConstructDocElementFrame(nsFrameConstructorState& aState,
-                                    nsIContent*              aDocElement,
-                                    nsIFrame*                aParentFrame,
+  
+  
+  
+  nsresult ConstructDocElementFrame(nsIContent*              aDocElement,
+                                    nsILayoutHistoryState*   aFrameState,
                                     nsIFrame**               aNewFrame);
 
-  nsresult ConstructDocElementTableFrame(nsIContent*            aDocElement,
-                                         nsIFrame*              aParentFrame,
-                                         nsIFrame**             aNewTableFrame,
-                                         nsFrameConstructorState& aState);
+  
+  
+  nsresult SetUpDocElementContainingBlock(nsIContent* aDocElement);
 
   
 
@@ -1482,9 +1477,6 @@ private:
                                  nsIFrame*                aPrevSibling,
                                  nsFrameItems&            aFrameItems);
 
-  nsresult RemoveFixedItems(const nsFrameConstructorState& aState,
-                            nsIFrame*                      aRootElementFrame);
-
   
   
   
@@ -1601,6 +1593,7 @@ private:
   nsIFrame*           mRootElementFrame;
   
   nsIFrame*           mRootElementStyleFrame;
+  
   
   nsIFrame*           mFixedContainingBlock;
   

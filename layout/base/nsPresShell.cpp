@@ -2537,6 +2537,11 @@ PresShell::InitialReflow(nscoord aWidth, nscoord aHeight)
     return NS_OK;
   }
 
+  if (!mDocument) {
+    
+    return NS_OK;
+  }
+
   NS_ASSERTION(!mDidInitialReflow, "Why are we being called?");
 
   nsCOMPtr<nsIPresShell> kungFuDeathGrip(this);
@@ -2563,11 +2568,28 @@ PresShell::InitialReflow(nscoord aWidth, nscoord aHeight)
 
   mPresContext->SetVisibleArea(nsRect(0, 0, aWidth, aHeight));
 
-  nsIContent *root = mDocument ? mDocument->GetRootContent() : nsnull;
-
+  
+  
+  
   
   nsIFrame* rootFrame = FrameManager()->GetRootFrame();
-  
+  NS_ASSERTION(!rootFrame, "How did that happen, exactly?");
+  if (!rootFrame) {
+    nsAutoScriptBlocker scriptBlocker;
+    mFrameConstructor->BeginUpdate();
+    mFrameConstructor->ConstructRootFrame(&rootFrame);
+    FrameManager()->SetRootFrame(rootFrame);
+    mFrameConstructor->EndUpdate();
+  }
+
+  NS_ENSURE_STATE(!mHaveShutDown);
+
+  if (!rootFrame) {
+    return NS_ERROR_OUT_OF_MEMORY;
+  }
+
+  nsIContent *root = mDocument->GetRootContent();
+
   if (root) {
     MOZ_TIMER_DEBUGLOG(("Reset and start: Frame Creation: PresShell::InitialReflow(), this=%p\n",
                         (void*)this));
@@ -2577,13 +2599,6 @@ PresShell::InitialReflow(nscoord aWidth, nscoord aHeight)
     {
       nsAutoScriptBlocker scriptBlocker;
       mFrameConstructor->BeginUpdate();
-
-      if (!rootFrame) {
-        
-        
-        mFrameConstructor->ConstructRootFrame(root, &rootFrame);
-        FrameManager()->SetRootFrame(rootFrame);
-      }
 
       
       
@@ -2618,27 +2633,22 @@ PresShell::InitialReflow(nscoord aWidth, nscoord aHeight)
 
     
     NS_ENSURE_STATE(!mHaveShutDown);
-
-    
-    
-    
-    rootFrame = FrameManager()->GetRootFrame();
   }
 
-  if (rootFrame) {
-    
-    
-    NS_ASSERTION(!mDirtyRoots.Contains(rootFrame),
-                 "Why is the root in mDirtyRoots already?");
+  NS_ASSERTION(rootFrame, "How did that happen?");
 
-    rootFrame->RemoveStateBits(NS_FRAME_IS_DIRTY |
-                               NS_FRAME_HAS_DIRTY_CHILDREN);
-    FrameNeedsReflow(rootFrame, eResize, NS_FRAME_IS_DIRTY);
+  
+  
+  NS_ASSERTION(!mDirtyRoots.Contains(rootFrame),
+               "Why is the root in mDirtyRoots already?");
 
-    NS_ASSERTION(mDirtyRoots.Contains(rootFrame),
-                 "Should be in mDirtyRoots now");
-    NS_ASSERTION(mReflowEvent.IsPending(), "Why no reflow event pending?");
-  }
+  rootFrame->RemoveStateBits(NS_FRAME_IS_DIRTY |
+                             NS_FRAME_HAS_DIRTY_CHILDREN);
+  FrameNeedsReflow(rootFrame, eResize, NS_FRAME_IS_DIRTY);
+
+  NS_ASSERTION(mDirtyRoots.Contains(rootFrame),
+               "Should be in mDirtyRoots now");
+  NS_ASSERTION(mReflowEvent.IsPending(), "Why no reflow event pending?");
 
   
   
