@@ -148,29 +148,28 @@ nsAutoFilterInstance::nsAutoFilterInstance(nsIFrame *aTarget,
   
 
   gfxIntSize filterRes;
-  PRBool intOverflow;
-
   if (filter->HasAttr(kNameSpaceID_None, nsGkAtoms::filterRes)) {
     PRInt32 filterResX, filterResY;
     filter->GetAnimatedIntegerValues(&filterResX, &filterResY, nsnull);
     
 
+    
+    
+    PRBool overflow;
     filterRes =
       nsSVGUtils::ConvertToSurfaceSize(gfxSize(filterResX, filterResY),
-                                       &intOverflow);
-    
-    
-
+                                       &overflow);
     
     
   } else {
     
     
-
     float scale = nsSVGUtils::MaxExpansion(userToDeviceSpace);
+    
+    
+    PRBool overflow;
     filterRes = nsSVGUtils::ConvertToSurfaceSize(filterRegion.size * scale,
-                                                 &intOverflow);
-    NS_ASSERTION(!intOverflow, "filterRegion must be huge! clip it?");
+                                                 &overflow);
   }
 
   if (filterRes.width <= 0 || filterRes.height <= 0) {
