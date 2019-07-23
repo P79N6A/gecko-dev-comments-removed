@@ -70,9 +70,6 @@ class nsIView;
 NS_ERROR_GENERATE_SUCCESS(NS_ERROR_MODULE_GENERAL, 0x21)
 
 
-#define DEAD_END_ACCESSIBLE static_cast<nsIAccessible*>((void*)1)
-
-
 
 enum { eChildCountUninitialized = -1 };
 
@@ -106,6 +103,8 @@ public:
   virtual ~nsAccessible();
 
   NS_DECL_ISUPPORTS_INHERITED
+  NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(nsAccessible, nsAccessNode)
+
   NS_DECL_NSIACCESSIBLE
   NS_DECL_NSPIACCESSIBLE
   NS_DECL_NSIACCESSIBLEHYPERLINK
@@ -272,7 +271,9 @@ protected:
 
   
   nsCOMPtr<nsIAccessible> mParent;
-  nsIAccessible *mFirstChild, *mNextSibling;
+  nsCOMPtr<nsIAccessible> mFirstChild;
+  nsCOMPtr<nsIAccessible> mNextSibling;
+
   nsRoleMapEntry *mRoleMapEntry; 
   PRInt32 mAccChildCount;
 };
