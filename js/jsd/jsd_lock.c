@@ -161,9 +161,8 @@ jsd_Unlock(JSDStaticLock* lock)
     
     JS_ASSERT(lock->owner == me);
     if(lock->owner != me)
-    {
         return;
-    }
+
     if(--lock->count == 0)
     {
         lock->owner = NULL;
