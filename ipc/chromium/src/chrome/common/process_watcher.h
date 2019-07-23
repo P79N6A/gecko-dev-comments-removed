@@ -23,7 +23,11 @@ class ProcessWatcher {
   
   
   
-  static void EnsureProcessTerminated(base::ProcessHandle process_handle);
+  static void EnsureProcessTerminated(base::ProcessHandle process_handle
+#if defined(CHROMIUM_MOZILLA_BUILD) && defined(OS_POSIX)
+                                      , bool force=true
+#endif
+  );
 
  private:
   

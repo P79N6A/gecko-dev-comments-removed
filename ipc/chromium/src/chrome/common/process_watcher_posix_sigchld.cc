@@ -76,8 +76,7 @@ IsProcessDead(pid_t process)
 }
 
 
-class ChildReaper : public Task,
-                    public base::MessagePumpLibevent::SignalEvent,
+class ChildReaper : public base::MessagePumpLibevent::SignalEvent,
                     public base::MessagePumpLibevent::SignalWatcher
 {
 public:
@@ -87,8 +86,9 @@ public:
 
   virtual ~ChildReaper()
   {
-    if (process_)
-      KillProcess();
+    
+    DCHECK(!process_);
+
     
   }
 
@@ -103,6 +103,35 @@ public:
       process_ = 0;
       StopCatching();
     }
+  }
+
+protected:
+  void WaitForChildExit()
+  {
+    DCHECK(process_);
+    HANDLE_EINTR(waitpid(process_, NULL, 0));
+  }
+
+  pid_t process_;
+
+private:
+  DISALLOW_EVIL_CONSTRUCTORS(ChildReaper);
+};
+
+
+
+class ChildGrimReaper : public ChildReaper,
+                        public Task
+{
+public:
+  explicit ChildGrimReaper(pid_t process) : ChildReaper(process)
+  {
+  } 
+
+  virtual ~ChildGrimReaper()
+  {
+    if (process_)
+      KillProcess();
   }
 
   
@@ -127,7 +156,7 @@ private:
       
       
       
-      HANDLE_EINTR(waitpid(process_, NULL, 0));
+      WaitForChildExit();
     }
     else {
       LOG(ERROR) << "Failed to deliver SIGKILL to " << process_ << "!"
@@ -136,16 +165,76 @@ private:
     process_ = 0;
   }
 
-  pid_t process_;
+  DISALLOW_EVIL_CONSTRUCTORS(ChildGrimReaper);
+};
 
-  DISALLOW_EVIL_CONSTRUCTORS(ChildReaper);
+
+class ChildLaxReaper : public ChildReaper,
+                       public MessageLoop::DestructionObserver
+{
+public:
+  explicit ChildLaxReaper(pid_t process) : ChildReaper(process)
+  {
+  } 
+
+  virtual ~ChildLaxReaper()
+  {
+    
+    DCHECK(!process_);
+  }
+
+  
+  virtual void OnSignal(int sig)
+  {
+    ChildReaper::OnSignal(sig);
+
+    if (!process_) {
+      MessageLoop::current()->RemoveDestructionObserver(this);
+      delete this;
+    }
+  }
+
+  
+  virtual void WillDestroyCurrentMessageLoop()
+  {
+    DCHECK(process_);
+
+    WaitForChildExit();
+    process_ = 0;
+
+    
+    
+    MessageLoop::current()->RemoveDestructionObserver(this);
+    delete this;
+  }
+
+private:
+  DISALLOW_EVIL_CONSTRUCTORS(ChildLaxReaper);
 };
 
 }  
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 void
-ProcessWatcher::EnsureProcessTerminated(base::ProcessHandle process)
+ProcessWatcher::EnsureProcessTerminated(base::ProcessHandle process,
+                                        bool force)
 {
   DCHECK(process != base::GetCurrentProcId());
   DCHECK(process > 0);
@@ -154,13 +243,17 @@ ProcessWatcher::EnsureProcessTerminated(base::ProcessHandle process)
     return;
 
   MessageLoopForIO* loop = MessageLoopForIO::current();
-  ChildReaper* reaper = new ChildReaper(process);
+  if (force) {
+    ChildGrimReaper* reaper = new ChildGrimReaper(process);
 
-  
-  
-  
-  
-  loop->CatchSignal(SIGCHLD, reaper, reaper);
-  
-  loop->PostDelayedTask(FROM_HERE, reaper, kMaxWaitMs);
+    loop->CatchSignal(SIGCHLD, reaper, reaper);
+    
+    loop->PostDelayedTask(FROM_HERE, reaper, kMaxWaitMs);
+  } else {
+    ChildLaxReaper* reaper = new ChildLaxReaper(process);
+
+    loop->CatchSignal(SIGCHLD, reaper, reaper);
+    
+    loop->AddDestructionObserver(reaper);
+  }
 }
