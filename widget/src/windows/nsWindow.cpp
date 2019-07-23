@@ -3813,28 +3813,35 @@ nsWindow::IPCWindowProcHandler(UINT& msg, WPARAM& wParam, LPARAM& lParam)
   
   
 
-  
-  if ((msg == WM_SETFOCUS || msg == WM_KILLFOCUS) &&
-      (InSendMessageEx(NULL)&(ISMEX_REPLIED|ISMEX_SEND)) == ISMEX_SEND) {
-    ReplyMessage(0);
-    return;
+  DWORD dwResult = 0;
+  PRBool handled = PR_FALSE;
+
+  switch(msg) {
+    
+    
+    case WM_ACTIVATE:
+      if (lParam != 0 && LOWORD(wParam) == WA_ACTIVE &&
+          IsWindow((HWND)lParam))
+        handled = PR_TRUE;
+    break;
+
+    
+    
+    case WM_SETFOCUS:
+    case WM_KILLFOCUS:
+    
+    
+    case WM_SYSCOMMAND:
+    
+    
+    case WM_CONTEXTMENU:
+      handled = PR_TRUE;
+    break;
   }
 
-  
-  
-  if (msg == WM_ACTIVATE && lParam != 0 &&
-      LOWORD(wParam) == WA_ACTIVE && IsWindow((HWND)lParam) &&
+  if (handled &&
       (InSendMessageEx(NULL)&(ISMEX_REPLIED|ISMEX_SEND)) == ISMEX_SEND) {
-    ReplyMessage(0);
-    return;
-  }
-
-  
-  
-  if (msg == WM_SYSCOMMAND &&
-      (InSendMessageEx(NULL)&(ISMEX_REPLIED|ISMEX_SEND)) == ISMEX_SEND) {
-    ReplyMessage(0);
-    return;
+    ReplyMessage(dwResult);
   }
 }
 
