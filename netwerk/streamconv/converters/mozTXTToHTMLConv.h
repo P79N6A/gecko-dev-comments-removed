@@ -142,12 +142,15 @@ private:
 
 
 
-  void EscapeChar(const PRUnichar ch, nsString& aStringToAppendto);
+
+
+  void EscapeChar(const PRUnichar ch, nsString& aStringToAppendto,
+                  PRBool inAttribute);
 
 
 
 
-  void EscapeStr(nsString& aInString);
+  void EscapeStr(nsString& aInString, PRBool inAttribute);
 
 
 
@@ -156,7 +159,8 @@ private:
 
 
 
-  void UnescapeStr(const PRUnichar * aInString, PRInt32 aStartPos, PRInt32 aLength, nsString& aOutString);
+  void UnescapeStr(const PRUnichar * aInString, PRInt32 aStartPos,
+                   PRInt32 aLength, nsString& aOutString);
 
 
 

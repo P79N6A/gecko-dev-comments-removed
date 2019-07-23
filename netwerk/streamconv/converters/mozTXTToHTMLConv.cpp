@@ -64,7 +64,8 @@ static inline PRBool IsSpace(const PRUnichar aChar)
 
 
 void
-mozTXTToHTMLConv::EscapeChar(const PRUnichar ch, nsString& aStringToAppendTo)
+mozTXTToHTMLConv::EscapeChar(const PRUnichar ch, nsString& aStringToAppendTo,
+                             PRBool inAttribute)
 {
     switch (ch)
     {
@@ -77,6 +78,13 @@ mozTXTToHTMLConv::EscapeChar(const PRUnichar ch, nsString& aStringToAppendTo)
     case '&':
       aStringToAppendTo.AppendLiteral("&amp;");
       break;
+    case '"':
+      if (inAttribute)
+      {
+        aStringToAppendTo.AppendLiteral("&quot;");
+        break;
+      }
+      
     default:
       aStringToAppendTo += ch;
     }
@@ -86,8 +94,8 @@ mozTXTToHTMLConv::EscapeChar(const PRUnichar ch, nsString& aStringToAppendTo)
 
 
 
-void 
-mozTXTToHTMLConv::EscapeStr(nsString& aInString)
+void
+mozTXTToHTMLConv::EscapeStr(nsString& aInString, PRBool inAttribute)
 {
   
   
@@ -115,6 +123,15 @@ mozTXTToHTMLConv::EscapeStr(nsString& aInString)
       aInString.Insert(NS_LITERAL_STRING("&amp;"), i);
       i += 5; 
       break;
+    case '"':
+      if (inAttribute)
+      {
+        aInString.Cut(i, 1);
+        aInString.Insert(NS_LITERAL_STRING("&quot;"), i);
+        i += 6;
+        break;
+      }
+      
     default:
       i++;
     }
@@ -145,6 +162,11 @@ mozTXTToHTMLConv::UnescapeStr(const PRUnichar * aInString, PRInt32 aStartPos, PR
       {
         aOutString.Append(PRUnichar('&'));
         i += 5;
+      }
+      else if (!nsCRT::strncmp(subString, NS_LITERAL_STRING("&quot;").get(), MinInt(6, aLength - remainingChars)))
+      {
+        aOutString.Append(PRUnichar('"'));
+        i += 6;
       }
       else
       {
@@ -383,7 +405,7 @@ mozTXTToHTMLConv::CalculateURLBoundaries(const PRUnichar * aInString, PRInt32 aI
   default: break;
   } 
 
-  EscapeStr(desc);
+  EscapeStr(desc, PR_FALSE);
 
   txtURL.Append(&aInString[start], end - start + 1);
   txtURL.StripWhitespace();
@@ -465,8 +487,11 @@ mozTXTToHTMLConv::CheckURLAndCreateHTML(
       break;
     default: break;
     }
+    nsAutoString escapedURL(txtURL);
+    EscapeStr(escapedURL, PR_TRUE);
+
     outputHTML.AppendLiteral("\" href=\"");
-    outputHTML += txtURL;
+    outputHTML += escapedURL;
     outputHTML.AppendLiteral("\">");
     outputHTML += desc;
     outputHTML.AppendLiteral("</a>");
@@ -1196,7 +1221,7 @@ mozTXTToHTMLConv::ScanTXT(const PRUnichar * aInString, PRInt32 aInStringLength, 
     case '<':
     case '>':
     case '&':
-      EscapeChar(aInString[i], aOutString);
+      EscapeChar(aInString[i], aOutString, PR_FALSE);
       i++;
       break;
     
