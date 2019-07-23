@@ -37,6 +37,8 @@
 
 
 
+
+
 #include "nsStorageFormHistory.h"
 
 #include "nsIServiceManager.h"
@@ -61,6 +63,8 @@
 #include "mozStorageCID.h"
 #include "nsIAutoCompleteSimpleResult.h"
 #include "nsTArray.h"
+#include "nsIPrivateBrowsingService.h"
+#include "nsNetCID.h"
 
 
 
@@ -224,6 +228,15 @@ nsFormHistory::GetHasEntries(PRBool *aHasEntries)
 NS_IMETHODIMP
 nsFormHistory::AddEntry(const nsAString &aName, const nsAString &aValue)
 {
+  
+  PRBool inPrivateBrowsing = PR_FALSE;
+  nsCOMPtr<nsIPrivateBrowsingService> pbs =
+    do_GetService(NS_PRIVATE_BROWSING_SERVICE_CONTRACTID);
+  if (pbs)
+    pbs->GetPrivateBrowsingEnabled(&inPrivateBrowsing);
+  if (inPrivateBrowsing)
+    return NS_OK;
+
   if (!FormHistoryEnabled())
     return NS_OK;
 
