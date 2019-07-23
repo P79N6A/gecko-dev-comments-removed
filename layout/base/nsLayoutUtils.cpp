@@ -2236,7 +2236,6 @@ nsLayoutUtils::DrawImage(nsIRenderingContext* aRenderingContext,
                          const nsRect& aDirtyRect,
                          const nsRect* aSourceRect)
 {
-#ifdef MOZ_CAIRO_GFX
   nsRect dirtyRect;
   dirtyRect.IntersectRect(aDirtyRect, aDestRect);
   if (dirtyRect.IsEmpty())
@@ -2369,12 +2368,6 @@ nsLayoutUtils::DrawImage(nsIRenderingContext* aRenderingContext,
   }
 
   return img->Draw(*aRenderingContext, pxSrc, pxDirty);
-#else
-  
-
-
-
-#endif
 }
 
 void

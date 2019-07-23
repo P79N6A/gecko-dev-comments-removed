@@ -150,7 +150,6 @@ public:
   NS_IMETHOD ParseColorString(const nsSubstring& aBuffer,
                               nsIURI* aURL, 
                               PRUint32 aLineNumber, 
-                              PRBool aHandleAlphaColors,
                               nscolor* aColor);
 
   void AppendRule(nsICSSRule* aRule);
@@ -458,10 +457,6 @@ protected:
   PRPackedBool mHTMLMediaMode : 1;
 
   
-  
-  PRPackedBool mHandleAlphaColors : 1;
-
-  
   PRPackedBool  mCaseSensitive : 1;
 
   
@@ -559,11 +554,6 @@ CSSParserImpl::CSSParserImpl()
     mSVGMode(PR_FALSE),
 #endif
     mHTMLMediaMode(PR_FALSE),
-#ifdef MOZ_CAIRO_GFX
-    mHandleAlphaColors(PR_TRUE),
-#else
-    mHandleAlphaColors(PR_FALSE),
-#endif
     mCaseSensitive(PR_FALSE),
     mParsingCompoundProperty(PR_FALSE)
 #ifdef DEBUG
@@ -1079,25 +1069,17 @@ NS_IMETHODIMP
 CSSParserImpl::ParseColorString(const nsSubstring& aBuffer,
                                 nsIURI* aURL, 
                                 PRUint32 aLineNumber, 
-                                PRBool aHandleAlphaColors,
                                 nscolor* aColor)
 {
-  NS_ASSERTION(aHandleAlphaColors == PR_TRUE || aHandleAlphaColors == PR_FALSE, "bad PRBool value");
-
   nsresult rv = InitScanner(aBuffer, aURL, aLineNumber, aURL, nsnull);
   if (NS_FAILED(rv))
     return rv;
-
-  PRBool origHandleAlphaColors = mHandleAlphaColors;
-  mHandleAlphaColors = aHandleAlphaColors;
 
   nsCSSValue value;
   PRBool colorParsed = ParseColor(rv, value);
 
   OUTPUT_ERROR();
   ReleaseScanner();
-
-  mHandleAlphaColors = origHandleAlphaColors;
 
   if (!colorParsed) {
     return NS_ERROR_FAILURE;
@@ -2918,13 +2900,11 @@ PRBool CSSParserImpl::ParseColor(nsresult& aErrorCode, nsCSSValue& aValue)
         nsCSSKeyword keyword = nsCSSKeywords::LookupKeyword(tk->mIdent);
         if (eCSSKeyword_UNKNOWN < keyword) { 
           PRInt32 value;
-#ifdef MOZ_CAIRO_GFX
           
           
           
           
-#endif
-          if (mHandleAlphaColors && keyword == eCSSKeyword_transparent) {
+          if (keyword == eCSSKeyword_transparent) {
             aValue.SetColorValue(NS_RGBA(0, 0, 0, 0));
             return PR_TRUE;
           }
@@ -2950,7 +2930,7 @@ PRBool CSSParserImpl::ParseColor(nsresult& aErrorCode, nsCSSValue& aValue)
         return PR_FALSE;  
       }
       else if (mToken.mIdent.LowerCaseEqualsLiteral("-moz-rgba") ||
-               (mHandleAlphaColors && mToken.mIdent.LowerCaseEqualsLiteral("rgba"))) {
+               mToken.mIdent.LowerCaseEqualsLiteral("rgba")) {
         
         PRUint8 r, g, b, a;
         PRInt32 type = COLOR_TYPE_UNKNOWN;
@@ -2974,7 +2954,7 @@ PRBool CSSParserImpl::ParseColor(nsresult& aErrorCode, nsCSSValue& aValue)
         return PR_FALSE;
       }
       else if (mToken.mIdent.LowerCaseEqualsLiteral("-moz-hsla") ||
-               (mHandleAlphaColors && mToken.mIdent.LowerCaseEqualsLiteral("hsla"))) {
+               mToken.mIdent.LowerCaseEqualsLiteral("hsla")) {
         
         
         
@@ -3881,8 +3861,8 @@ PRBool CSSParserImpl::ParseVariant(nsresult& aErrorCode, nsCSSValue& aValue,
           tk->mIdent.LowerCaseEqualsLiteral("hsl") ||
           tk->mIdent.LowerCaseEqualsLiteral("-moz-rgba") ||
           tk->mIdent.LowerCaseEqualsLiteral("-moz-hsla") ||
-          (mHandleAlphaColors && (tk->mIdent.LowerCaseEqualsLiteral("rgba") ||
-                                  tk->mIdent.LowerCaseEqualsLiteral("hsla"))))))
+          tk->mIdent.LowerCaseEqualsLiteral("rgba") ||
+          tk->mIdent.LowerCaseEqualsLiteral("hsla"))))
     {
       
       UngetToken();

@@ -167,7 +167,6 @@ public:
   NS_IMETHOD ParseColorString(const nsSubstring& aBuffer,
                               nsIURI* aURL, 
                               PRUint32 aLineNumber, 
-                              PRBool aHandleAlphaColors,
                               nscolor* aColor) = 0;
 };
 
