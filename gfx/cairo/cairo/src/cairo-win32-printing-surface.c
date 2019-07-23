@@ -1311,7 +1311,22 @@ _cairo_win32_printing_surface_show_glyphs (void                 *abstract_surfac
     }
 
     if (surface->paginated_mode == CAIRO_PAGINATED_MODE_ANALYZE) {
+	
+
+
+
+
+
+
+
+
+
+
+	if (_cairo_win32_scaled_font_is_bitmap (scaled_font))
+	    return CAIRO_INT_STATUS_UNSUPPORTED;
+
 	if (!(cairo_scaled_font_get_type (scaled_font) == CAIRO_FONT_TYPE_WIN32 &&
+	      ! _cairo_win32_scaled_font_is_type1 (scaled_font) &&
 	      source->type == CAIRO_PATTERN_TYPE_SOLID)) {
 	    for (i = 0; i < num_glyphs; i++) {
 		status = _cairo_scaled_glyph_lookup (scaled_font,
