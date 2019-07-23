@@ -932,7 +932,19 @@ placesTagURITransaction.prototype = {
 
 function placesUntagURITransaction(aURI, aTags) {
   this._uri = aURI;
-  this._tags = aTags || PlacesUtils.tagging.getTagsForURI(this._uri, {});
+  if (aTags) {    
+    
+    
+    
+    this._tags = aTags;
+    for (var i=0; i < aTags.length; i++) {
+      if (typeof(this._tags[i]) == "number")
+        this._tags[i] = PlacesUtils.bookmarks.getItemTitle(this._tags[i]);
+    }
+  }
+  else
+    this._tags = PlacesUtils.tagging.getTagsForURI(this._uri, {});
+
   this.redoTransaction = this.doTransaction;
 }
 
