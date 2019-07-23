@@ -617,8 +617,14 @@ js_NewObjectWithGivenProto(JSContext *cx, JSClass *clasp, JSObject *proto,
 
 
 
-extern JSObject* JS_FASTCALL
-js_NewNativeObject(JSContext *cx, JSClass *clasp, JSObject *proto, JSObject *parent);
+
+
+
+
+
+
+extern JSObject*
+js_NewNativeObject(JSContext *cx, JSClass *clasp, JSObject *proto, uint32 slot);
 
 
 
