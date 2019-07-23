@@ -173,10 +173,6 @@ public:
     eColor__moz_combobox,
 
     
-    eColor__moz_entrytext,
-    eColor__moz_entry,
-
-    
     eColor_LAST_COLOR
   } nsColorID;
 
