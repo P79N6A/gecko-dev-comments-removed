@@ -296,13 +296,6 @@ nsXMLDocument::OnChannelRedirect(nsIChannel *aOldChannel,
     return rv;
   }
 
-  
-  
-  nsCOMPtr<nsIPrincipal> principal;
-  rv = secMan->GetCodebasePrincipal(newLocation, getter_AddRefs(principal));
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  SetPrincipal(principal);
   return NS_OK;
 }
 
@@ -368,8 +361,9 @@ nsXMLDocument::Load(const nsAString& aUrl, PRBool *aReturn)
     return rv;
   }
 
+  nsCOMPtr<nsIPrincipal> principal = NodePrincipal();
   nsCOMPtr<nsIURI> codebase;
-  NodePrincipal()->GetURI(getter_AddRefs(codebase));
+  principal->GetURI(getter_AddRefs(codebase));
 
   
   
@@ -413,7 +407,6 @@ nsXMLDocument::Load(const nsAString& aUrl, PRBool *aReturn)
   
   
   
-  nsCOMPtr<nsIPrincipal> principal = NodePrincipal();
   nsCOMPtr<nsIEventListenerManager> elm(mListenerManager);
   mListenerManager = nsnull;
 
@@ -440,23 +433,6 @@ nsXMLDocument::Load(const nsAString& aUrl, PRBool *aReturn)
   if (NS_FAILED(rv)) {
     return rv;
   }
-
-  
-  
-  
-  nsCOMPtr<nsISupports> channelOwner;
-  rv = channel->GetOwner(getter_AddRefs(channelOwner));
-
-  
-  
-  principal = do_QueryInterface(channelOwner);
-
-  if (NS_FAILED(rv) || !principal) {
-    rv = secMan->GetCodebasePrincipal(uri, getter_AddRefs(principal));
-    NS_ENSURE_TRUE(principal, rv);
-  }
-
-  SetPrincipal(principal);
 
   
   nsCOMPtr<nsIStreamListener> listener;
