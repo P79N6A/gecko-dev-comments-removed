@@ -246,6 +246,20 @@ nsMathMLmfracFrame::Reflow(nsPresContext*          aPresContext,
                                         aReflowState, aStatus);
 }
 
+ nscoord
+nsMathMLmfracFrame::GetIntrinsicWidth(nsIRenderingContext* aRenderingContext)
+{
+  if (mSlashChar) {
+    
+    return nsMathMLmfencedFrame::doGetIntrinsicWidth(aRenderingContext, this,
+                                                     nsnull, nsnull,
+                                                     mSlashChar, 1);
+  }
+
+  
+  return nsMathMLContainerFrame::GetIntrinsicWidth(aRenderingContext);  
+}
+
 nscoord
 nsMathMLmfracFrame::FixInterFrameSpacing(nsHTMLReflowMetrics& aDesiredSize)
 {

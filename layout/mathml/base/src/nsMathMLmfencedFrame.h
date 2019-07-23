@@ -74,6 +74,9 @@ public:
                               const nsRect&           aDirtyRect,
                               const nsDisplayListSet& aLists);
 
+  virtual nscoord
+  GetIntrinsicWidth(nsIRenderingContext* aRenderingContext);
+
   NS_IMETHOD
   AttributeChanged(PRInt32         aNameSpaceID,
                    nsIAtom*        aAttribute,
@@ -99,6 +102,14 @@ public:
            nsMathMLChar*            aCloseChar,
            nsMathMLChar*            aSeparatorsChar,
            PRInt32                  aSeparatorsCount);
+
+  static nscoord
+  doGetIntrinsicWidth(nsIRenderingContext*    aRenderingContext,
+                      nsMathMLContainerFrame* aForFrame,
+                      nsMathMLChar*           aOpenChar,
+                      nsMathMLChar*           aCloseChar,
+                      nsMathMLChar*           aSeparatorsChar,
+                      PRInt32                 aSeparatorsCount);
 
   
   static nsresult
