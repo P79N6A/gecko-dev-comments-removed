@@ -181,6 +181,10 @@ class nsMediaDecoder : public nsIObserver
   
   virtual void Resume() = 0;
 
+  
+  
+  nsHTMLMediaElement* GetMediaElement();
+
 protected:
 
   
