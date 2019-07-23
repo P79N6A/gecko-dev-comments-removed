@@ -94,6 +94,7 @@
 #include "nsCOMArray.h"
 #include "nsEventListenerService.h"
 #include "nsDOMEvent.h"
+#include "nsIContentSecurityPolicy.h"
 
 #define EVENT_TYPE_EQUALS( ls, type, userType ) \
   (ls->mEventType && ls->mEventType == type && \
@@ -663,6 +664,8 @@ nsEventListenerManager::AddScriptEventListener(nsISupports *aObject,
     return NS_ERROR_FAILURE;
   }
 
+  nsresult rv;
+
   nsCOMPtr<nsINode> node(do_QueryInterface(aObject));
 
   nsCOMPtr<nsIDocument> doc;
@@ -697,7 +700,31 @@ nsEventListenerManager::AddScriptEventListener(nsISupports *aObject,
     
     return NS_OK;
   }
+
   
+  
+  if (doc) {
+    nsCOMPtr<nsIContentSecurityPolicy> csp;
+    rv = doc->NodePrincipal()->GetCsp(getter_AddRefs(csp));
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    if (csp) {
+      PRBool inlineOK;
+      
+      rv = csp->GetAllowsInlineScript(&inlineOK);
+      NS_ENSURE_SUCCESS(rv, rv);
+
+      if ( !inlineOK ) {
+        
+        
+        
+        
+        
+        return NS_OK;
+      }
+    }
+  }
+
   
   
   if (NS_FAILED(global->EnsureScriptEnvironment(aLanguage))) {
@@ -709,7 +736,6 @@ nsEventListenerManager::AddScriptEventListener(nsISupports *aObject,
   NS_ENSURE_TRUE(context, NS_ERROR_FAILURE);
 
   void *scope = global->GetScriptGlobal(aLanguage);
-  nsresult rv;
 
   if (!aDeferCompilation) {
     nsCOMPtr<nsIScriptEventHandlerOwner> handlerOwner =
