@@ -878,9 +878,13 @@ nsObjectFrame::InstantiatePlugin(nsIPluginHost* aPluginHost,
 
   nsIDocument* doc = mContent->GetOwnerDoc();
   nsCOMPtr<nsIPluginDocument> pDoc (do_QueryInterface(doc));
+  PRBool fullPageMode = PR_FALSE;
+  if (pDoc) {
+    pDoc->GetWillHandleInstantiation(&fullPageMode);
+  }
 
   nsresult rv;
-  if (pDoc) {  
+  if (fullPageMode) {  
     nsCOMPtr<nsIStreamListener> stream;
     rv = aPluginHost->InstantiateFullPagePlugin(aMimeType, aURI,
                  *getter_AddRefs(stream),
