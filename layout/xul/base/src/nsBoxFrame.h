@@ -214,6 +214,12 @@ public:
                                  const nsDisplayListSet& aIn,
                                  const nsDisplayListSet& aOut);
 
+  
+
+
+
+  virtual PRBool SupportsOrdinalsInChildren();
+
 protected:
 #ifdef DEBUG_LAYOUT
     virtual void GetBoxName(nsAutoString& aName);
