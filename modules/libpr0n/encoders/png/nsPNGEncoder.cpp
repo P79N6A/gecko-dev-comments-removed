@@ -37,8 +37,11 @@
 
 
 
+
+#include "nsCRT.h"
 #include "nsPNGEncoder.h"
 #include "prmem.h"
+#include "prprf.h"
 #include "nsString.h"
 #include "nsStreamUtils.h"
 
@@ -53,8 +56,10 @@
 
 NS_IMPL_THREADSAFE_ISUPPORTS2(nsPNGEncoder, imgIEncoder, nsIInputStream)
 
-nsPNGEncoder::nsPNGEncoder() : mImageBuffer(nsnull), mImageBufferSize(0),
-                                 mImageBufferUsed(0), mImageBufferReadPoint(0)
+nsPNGEncoder::nsPNGEncoder() : mPNG(nsnull), mPNGinfo(nsnull),
+                               mIsAnimation(PR_FALSE),
+                               mImageBuffer(nsnull), mImageBufferSize(0),
+                               mImageBufferUsed(0), mImageBufferReadPoint(0)
 {
 }
 
@@ -82,6 +87,39 @@ NS_IMETHODIMP nsPNGEncoder::InitFromData(const PRUint8* aData,
                                           PRUint32 aInputFormat,
                                           const nsAString& aOutputOptions)
 {
+  nsresult rv;
+
+  rv = StartImageEncode(aWidth, aHeight, aInputFormat, aOutputOptions);
+  if (!NS_SUCCEEDED(rv))
+    return rv;
+
+  rv = AddImageFrame(aData, aLength, aWidth, aHeight, aStride, aInputFormat, aOutputOptions);
+  if (!NS_SUCCEEDED(rv))
+    return rv;
+
+  rv = EndImageEncode();
+
+  return rv;
+}
+
+
+
+
+
+
+NS_IMETHODIMP nsPNGEncoder::StartImageEncode(PRUint32 aWidth,
+                                             PRUint32 aHeight,
+                                             PRUint32 aInputFormat,
+                                             const nsAString& aOutputOptions)
+{
+  PRBool useTransparency = PR_TRUE, skipFirstFrame = PR_FALSE;
+  PRUint32 numFrames = 1;
+  PRUint32 numPlays = 0; 
+
+  
+  if (mImageBuffer != nsnull)
+    return NS_ERROR_ALREADY_INITIALIZED;
+
   
   if (aInputFormat != INPUT_FORMAT_RGB &&
       aInputFormat != INPUT_FORMAT_RGBA &&
@@ -89,42 +127,35 @@ NS_IMETHODIMP nsPNGEncoder::InitFromData(const PRUint8* aData,
     return NS_ERROR_INVALID_ARG;
 
   
-  
-  if ((aInputFormat == INPUT_FORMAT_RGB &&
-       aStride < aWidth * 3) ||
-      ((aInputFormat == INPUT_FORMAT_RGBA || aInputFormat == INPUT_FORMAT_HOSTARGB) &&
-       aStride < aWidth * 4)) {
-    NS_WARNING("Invalid stride for InitFromData");
-    return NS_ERROR_INVALID_ARG;
+  nsresult rv = ParseOptions(aOutputOptions, &useTransparency, &skipFirstFrame,
+                             &numFrames, &numPlays, nsnull, nsnull,
+                             nsnull, nsnull, nsnull);
+  if (rv != NS_OK) { return rv; }
+
+  if (numFrames > 1) {
+    mIsAnimation = PR_TRUE;
   }
 
   
-  if (mImageBuffer != nsnull)
-    return NS_ERROR_ALREADY_INITIALIZED;
-
-  
-  PRBool useTransparency = PR_TRUE;
-  if (aOutputOptions.Length() >= 17) {
-    if (StringBeginsWith(aOutputOptions,  NS_LITERAL_STRING("transparency=none")))
-      useTransparency = PR_FALSE;
-  }
-
-  
-  png_struct* png_ptr = png_create_write_struct(PNG_LIBPNG_VER_STRING,
-                                                png_voidp_NULL,
-                                                png_error_ptr_NULL,
-                                                png_error_ptr_NULL);
-  if (! png_ptr)
+  mPNG = png_create_write_struct(PNG_LIBPNG_VER_STRING,
+                                 png_voidp_NULL,
+                                 ErrorCallback,
+                                 ErrorCallback);
+  if (! mPNG)
     return NS_ERROR_OUT_OF_MEMORY;
-  png_info* info_ptr = png_create_info_struct(png_ptr);
-  if (! info_ptr)
-  {
-    png_destroy_write_struct(&png_ptr, nsnull);
+
+  mPNGinfo = png_create_info_struct(mPNG);
+  if (! mPNGinfo) {
+    png_destroy_write_struct(&mPNG, nsnull);
     return NS_ERROR_FAILURE;
   }
-  if (setjmp(png_jmpbuf(png_ptr))) {
-    png_destroy_write_struct(&png_ptr, &info_ptr);
-    return NS_ERROR_OUT_OF_MEMORY;
+
+  
+  
+  
+  if (setjmp(png_jmpbuf(mPNG))) {
+    png_destroy_write_struct(&mPNG, &mPNGinfo);
+    return NS_ERROR_FAILURE;
   }
 
   
@@ -133,13 +164,13 @@ NS_IMETHODIMP nsPNGEncoder::InitFromData(const PRUint8* aData,
   mImageBufferSize = 8192;
   mImageBuffer = (PRUint8*)PR_Malloc(mImageBufferSize);
   if (!mImageBuffer) {
-    png_destroy_write_struct(&png_ptr, &info_ptr);
+    png_destroy_write_struct(&mPNG, &mPNGinfo);
     return NS_ERROR_OUT_OF_MEMORY;
   }
   mImageBufferUsed = 0;
 
   
-  png_set_write_fn(png_ptr, this, WriteCallback, NULL);
+  png_set_write_fn(mPNG, this, WriteCallback, NULL);
 
   
   int colorType;
@@ -149,11 +180,75 @@ NS_IMETHODIMP nsPNGEncoder::InitFromData(const PRUint8* aData,
   else
     colorType = PNG_COLOR_TYPE_RGB;
 
-  png_set_IHDR(png_ptr, info_ptr, aWidth, aHeight, 8, colorType,
+  png_set_IHDR(mPNG, mPNGinfo, aWidth, aHeight, 8, colorType,
                PNG_INTERLACE_NONE, PNG_COMPRESSION_TYPE_DEFAULT,
                PNG_FILTER_TYPE_DEFAULT);
 
-  png_write_info(png_ptr, info_ptr);
+  if (mIsAnimation) {
+    png_set_first_frame_is_hidden(mPNG, mPNGinfo, skipFirstFrame);
+    png_set_acTL(mPNG, mPNGinfo, numFrames, numPlays);
+  }
+
+  
+
+  png_write_info(mPNG, mPNGinfo);
+
+  return NS_OK;
+}
+
+
+NS_IMETHODIMP nsPNGEncoder::AddImageFrame(const PRUint8* aData,
+                                          PRUint32 aLength, 
+                                          PRUint32 aWidth,
+                                          PRUint32 aHeight,
+                                          PRUint32 aStride,
+                                          PRUint32 aInputFormat,
+                                          const nsAString& aFrameOptions)
+{
+  PRBool useTransparency= PR_TRUE;
+  PRUint32 delay_ms = 500;
+  PRUint32 dispose_op = PNG_DISPOSE_OP_NONE;
+  PRUint32 blend_op = PNG_BLEND_OP_SOURCE;
+  PRUint32 x_offset = 0, y_offset = 0;
+
+  
+  if (mImageBuffer == nsnull)
+    return NS_ERROR_NOT_INITIALIZED;
+
+  
+  if (aInputFormat != INPUT_FORMAT_RGB &&
+      aInputFormat != INPUT_FORMAT_RGBA &&
+      aInputFormat != INPUT_FORMAT_HOSTARGB)
+    return NS_ERROR_INVALID_ARG;
+
+  
+  if (setjmp(png_jmpbuf(mPNG))) {
+    png_destroy_write_struct(&mPNG, &mPNGinfo);
+    return NS_ERROR_FAILURE;
+  }
+
+  
+  nsresult rv = ParseOptions(aFrameOptions, &useTransparency, nsnull,
+                             nsnull, nsnull, &dispose_op, &blend_op,
+                             &delay_ms, &x_offset, &y_offset);
+  if (rv != NS_OK) { return rv; }
+
+  if (mIsAnimation) {
+    
+    png_write_frame_head(mPNG, mPNGinfo, nsnull,
+                         aWidth, aHeight, x_offset, y_offset,
+                         delay_ms, 1000, dispose_op, blend_op);
+  }
+
+  
+  
+  if ((aInputFormat == INPUT_FORMAT_RGB &&
+       aStride < aWidth * 3) ||
+      ((aInputFormat == INPUT_FORMAT_RGBA || aInputFormat == INPUT_FORMAT_HOSTARGB) &&
+       aStride < aWidth * 4)) {
+    NS_WARNING("Invalid stride for InitFromData/AddImageFrame");
+    return NS_ERROR_INVALID_ARG;
+  }
 
   
   
@@ -162,7 +257,7 @@ NS_IMETHODIMP nsPNGEncoder::InitFromData(const PRUint8* aData,
     PRUint8* row = new PRUint8[aWidth * 4];
     for (PRUint32 y = 0; y < aHeight; y ++) {
       ConvertHostARGBRow(&aData[y * aStride], row, aWidth, useTransparency);
-      png_write_row(png_ptr, row);
+      png_write_row(mPNG, row);
     }
     delete[] row;
 
@@ -171,7 +266,7 @@ NS_IMETHODIMP nsPNGEncoder::InitFromData(const PRUint8* aData,
     PRUint8* row = new PRUint8[aWidth * 4];
     for (PRUint32 y = 0; y < aHeight; y ++) {
       StripAlpha(&aData[y * aStride], row, aWidth);
-      png_write_row(png_ptr, row);
+      png_write_row(mPNG, row);
     }
     delete[] row;
 
@@ -179,19 +274,159 @@ NS_IMETHODIMP nsPNGEncoder::InitFromData(const PRUint8* aData,
              aInputFormat == INPUT_FORMAT_RGBA) {
     
     for (PRUint32 y = 0; y < aHeight; y ++) {
-      png_write_row(png_ptr, (PRUint8*)&aData[y * aStride]);
+      png_write_row(mPNG, (PRUint8*)&aData[y * aStride]);
     }
 
   } else {
     NS_NOTREACHED("Bad format type");
+    return NS_ERROR_INVALID_ARG;
   }
 
-  png_write_end(png_ptr, info_ptr);
-  png_destroy_write_struct(&png_ptr, &info_ptr);
+  if (mIsAnimation) {
+    png_write_frame_tail(mPNG, mPNGinfo);
+  }
+
+  return NS_OK;
+}
+
+
+NS_IMETHODIMP nsPNGEncoder::EndImageEncode()
+{
+  
+  if (mImageBuffer == nsnull)
+    return NS_ERROR_NOT_INITIALIZED;
+
+  
+  if (setjmp(png_jmpbuf(mPNG))) {
+    png_destroy_write_struct(&mPNG, &mPNGinfo);
+    return NS_ERROR_FAILURE;
+  }
+
+  png_write_end(mPNG, mPNGinfo);
+  png_destroy_write_struct(&mPNG, &mPNGinfo);
 
   
   if (!mImageBuffer)
     return NS_ERROR_OUT_OF_MEMORY;
+
+  return NS_OK;
+}
+
+
+nsresult
+nsPNGEncoder::ParseOptions(const nsAString& aOptions,
+                           PRBool* useTransparency,
+                           PRBool* skipFirstFrame,
+                           PRUint32* numFrames,
+                           PRUint32* numPlays,
+                           PRUint32* frameDispose,
+                           PRUint32* frameBlend,
+                           PRUint32* frameDelay,
+                           PRUint32* offsetX,
+                           PRUint32* offsetY)
+{
+  char* token;
+  char* options = nsCRT::strdup(PromiseFlatCString(NS_ConvertUTF16toUTF8(aOptions)).get());
+
+  while ((token = nsCRT::strtok(options, ";", &options))) {
+    
+    char* equals = token, *value = nsnull;
+    while(*equals != '=' && *equals) { ++equals; }
+    if (*equals == '=') { value = equals + 1; }
+
+    if (value) { *equals = '\0'; } 
+
+    
+    if (nsCRT::strcmp(token, "transparency") == 0 && useTransparency) {
+      if (!value) { return NS_ERROR_INVALID_ARG; }
+
+      if (nsCRT::strcmp(value, "none") == 0 || nsCRT::strcmp(value, "no") == 0) {
+        *useTransparency = PR_FALSE;
+      } else if (nsCRT::strcmp(value, "yes") == 0) {
+        *useTransparency = PR_TRUE;
+      } else {
+        return NS_ERROR_INVALID_ARG;
+      }
+
+    
+    } else if (nsCRT::strcmp(token, "skipfirstframe") == 0 && skipFirstFrame) {
+      if (!value) { return NS_ERROR_INVALID_ARG; }
+
+      if (nsCRT::strcmp(value, "no") == 0) {
+        *skipFirstFrame = PR_FALSE;
+      } else if (nsCRT::strcmp(value, "yes") == 0) {
+        *skipFirstFrame = PR_TRUE;
+      } else {
+        return NS_ERROR_INVALID_ARG;
+      }
+
+    
+    } else if (nsCRT::strcmp(token, "frames") == 0 && numFrames) {
+      if (!value) { return NS_ERROR_INVALID_ARG; }
+
+      if (PR_sscanf(value, "%u", numFrames) != 1) { return NS_ERROR_INVALID_ARG; }
+
+      
+      if (*numFrames == 0) { return NS_ERROR_INVALID_ARG; }
+
+    
+    } else if (nsCRT::strcmp(token, "plays") == 0 && numPlays) {
+      if (!value) { return NS_ERROR_INVALID_ARG; }
+
+      
+      if (PR_sscanf(value, "%u", numPlays) != 1) { return NS_ERROR_INVALID_ARG; }
+
+    
+    } else if (nsCRT::strcmp(token, "dispose") == 0 && frameDispose) {
+      if (!value) { return NS_ERROR_INVALID_ARG; }
+
+      if (nsCRT::strcmp(value, "none") == 0) {
+        *frameDispose = PNG_DISPOSE_OP_NONE;
+      } else if (nsCRT::strcmp(value, "background") == 0) {
+        *frameDispose = PNG_DISPOSE_OP_BACKGROUND;
+      } else if (nsCRT::strcmp(value, "previous") == 0) {
+        *frameDispose = PNG_DISPOSE_OP_PREVIOUS;
+      } else {
+        return NS_ERROR_INVALID_ARG;
+      }
+
+    
+    } else if (nsCRT::strcmp(token, "blend") == 0 && frameBlend) {
+      if (!value) { return NS_ERROR_INVALID_ARG; }
+
+      if (nsCRT::strcmp(value, "source") == 0) {
+        *frameBlend = PNG_BLEND_OP_SOURCE;
+      } else if (nsCRT::strcmp(value, "over") == 0) {
+        *frameBlend = PNG_BLEND_OP_OVER;
+      } else {
+        return NS_ERROR_INVALID_ARG;
+      }
+
+    
+    } else if (nsCRT::strcmp(token, "delay") == 0 && frameDelay) {
+      if (!value) { return NS_ERROR_INVALID_ARG; }
+
+      if (PR_sscanf(value, "%u", frameDelay) != 1) { return NS_ERROR_INVALID_ARG; }
+
+    
+    } else if (nsCRT::strcmp(token, "xoffset") == 0 && offsetX) {
+      if (!value) { return NS_ERROR_INVALID_ARG; }
+
+      if (PR_sscanf(value, "%u", offsetX) != 1) { return NS_ERROR_INVALID_ARG; }
+
+    
+    } else if (nsCRT::strcmp(token, "yoffset") == 0 && offsetY) {
+      if (!value) { return NS_ERROR_INVALID_ARG; }
+
+      if (PR_sscanf(value, "%u", offsetY) != 1) { return NS_ERROR_INVALID_ARG; }
+
+    
+    } else {
+      return NS_ERROR_INVALID_ARG;
+    }
+
+    if (value) { *equals = '='; } 
+  }
 
   return NS_OK;
 }
@@ -305,6 +540,18 @@ nsPNGEncoder::StripAlpha(const PRUint8* aSrc, PRUint8* aDest,
     pixelOut[1] = pixelIn[1];
     pixelOut[2] = pixelIn[2];
   }
+}
+
+
+
+
+void 
+nsPNGEncoder::ErrorCallback(png_structp png_ptr, png_const_charp warning_msg)
+{
+#ifdef DEBUG
+	
+	PR_fprintf(PR_STDERR, "PNG Encoder: %s\n", warning_msg);;
+#endif
 }
 
 
