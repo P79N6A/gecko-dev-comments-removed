@@ -481,14 +481,24 @@ public:
 
 
 
-    PRBool SetPotentialLineBreaks(PRUint32 aStart, PRUint32 aLength,
-                                  PRPackedBool *aBreakBefore);
+
+
+
+
+    virtual PRBool SetPotentialLineBreaks(PRUint32 aStart, PRUint32 aLength,
+                                          PRPackedBool *aBreakBefore);
 
     
 
 
 
-    class TextProvider {
+
+
+
+
+
+
+    class PropertyProvider {
     public:
         
 
@@ -499,20 +509,7 @@ public:
 
 
         virtual void ForceRememberText() = 0;
-    };
 
-    
-
-
-
-
-
-
-
-
-
-    class PropertyProvider : public TextProvider {
-    public:
         
         
         virtual void GetHyphenationBreaks(PRUint32 aStart, PRUint32 aLength,
@@ -623,10 +620,14 @@ public:
 
 
 
-    void SetLineBreaks(PRUint32 aStart, PRUint32 aLength,
-                       PRBool aLineBreakBefore, PRBool aLineBreakAfter,
-                       TextProvider *aProvider,
-                       gfxFloat *aAdvanceWidthDelta);
+
+
+
+
+    virtual PRBool SetLineBreaks(PRUint32 aStart, PRUint32 aLength,
+                                 PRBool aLineBreakBefore, PRBool aLineBreakAfter,
+                                 PropertyProvider *aProvider,
+                                 gfxFloat *aAdvanceWidthDelta);
 
     
 
@@ -867,6 +868,7 @@ public:
 
 
     nsresult AddGlyphRun(gfxFont *aFont, PRUint32 aStartCharIndex);
+    void ResetGlyphRuns() { mGlyphRuns.Clear(); }
     
     
     
@@ -888,7 +890,7 @@ public:
 
 
 
-    void SetDetailedGlyphs(PRUint32 aCharIndex, DetailedGlyph *aGlyphs,
+    void SetDetailedGlyphs(PRUint32 aCharIndex, const DetailedGlyph *aGlyphs,
                            PRUint32 aNumGlyphs);
 
     
@@ -901,6 +903,10 @@ public:
         return mDetailedGlyphs[aCharIndex];
     }
     PRUint32 CountMissingGlyphs();
+    const GlyphRun *GetGlyphRuns(PRUint32 *aNumGlyphRuns) {
+        *aNumGlyphRuns = mGlyphRuns.Length();
+        return mGlyphRuns.Elements();
+    }
 
 private:
     
