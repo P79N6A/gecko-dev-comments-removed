@@ -283,6 +283,11 @@ protected:
   
 
 
+  PRBool ShouldAutoResume();
+
+  
+
+
   PRBool IsFinishable();
 
   
@@ -347,6 +352,16 @@ private:
   PRTime mLastUpdate;
   PRInt64 mResumedAt;
   double mSpeed;
+
+  
+
+
+
+
+
+
+  enum AutoResume { DONT_RESUME, AUTO_RESUME };
+  AutoResume mAutoResume;
 
   friend class nsDownloadManager;
 };
