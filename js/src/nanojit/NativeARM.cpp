@@ -2754,13 +2754,15 @@ Assembler::asm_ret(LIns *ins)
 }
 
 void
-Assembler::asm_promote(LIns *ins)
+Assembler::asm_q2i(LIns *)
 {
-    
+    NanoAssert(0);  
+}
 
-
-    (void)ins;
-    NanoAssert(0);
+void
+Assembler::asm_promote(LIns *)
+{
+    NanoAssert(0);  
 }
 
 void

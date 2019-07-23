@@ -2088,14 +2088,18 @@ namespace nanojit
         if (ins->isop(LIR_ret)) {
             findSpecificRegFor(val, retRegs[0]);
         } else {
+            NanoAssert(ins->isop(LIR_fret));
             findSpecificRegFor(val, FST0);
             fpu_pop();
         }
     }
 
+    void Assembler::asm_q2i(LIns *) {
+        NanoAssert(0);  
+    }
+
     void Assembler::asm_promote(LIns *) {
-        
-        TODO(asm_promote);
+        NanoAssert(0);  
     }
 
     void Assembler::swapCodeChunks() {

@@ -1200,12 +1200,14 @@ namespace nanojit
         NanoAssert(_thisfrag->nStaticExits == 0);
 
         
-        NanoAssert(reader->pos()->isop(LIR_x) ||
-                   reader->pos()->isop(LIR_ret) ||
-                   reader->pos()->isop(LIR_fret) ||
-                   reader->pos()->isop(LIR_xtbl) ||
-                   reader->pos()->isop(LIR_flive) ||
-                   reader->pos()->isop(LIR_live));
+        NanoAssert(reader->pos()->isop(LIR_x)     ||
+                   reader->pos()->isop(LIR_xtbl)  ||
+                   reader->pos()->isop(LIR_ret)   ||
+                   reader->pos()->isop(LIR_qret)  ||
+                   reader->pos()->isop(LIR_fret)  ||
+                   reader->pos()->isop(LIR_live)  ||
+                   reader->pos()->isop(LIR_qlive) ||
+                   reader->pos()->isop(LIR_flive));
 
         InsList pending_lives(alloc);
 
@@ -1286,8 +1288,9 @@ namespace nanojit
                     evictAllActiveRegs();
                     break;
 
-                case LIR_flive:
-                case LIR_live: {
+                case LIR_live:
+                case LIR_qlive:
+                case LIR_flive: {
                     countlir_live();
                     LInsp op1 = ins->oprnd1();
                     
@@ -1305,8 +1308,9 @@ namespace nanojit
                     break;
                 }
 
-                case LIR_fret:
-                case LIR_ret:  {
+                case LIR_ret:
+                case LIR_qret:
+                case LIR_fret: {
                     countlir_ret();
                     asm_ret(ins);
                     break;
@@ -1353,6 +1357,12 @@ namespace nanojit
                 {
                     countlir_param();
                     asm_param(ins);
+                    break;
+                }
+                case LIR_q2i:
+                {
+                    countlir_alu();
+                    asm_q2i(ins);
                     break;
                 }
                 case LIR_qlo:
@@ -1866,9 +1876,9 @@ namespace nanojit
         
         reserveSavedRegs();
         for (Seq<LIns*> *p = pending_lives.get(); p != NULL; p = p->tail) {
-            LIns *i = p->head;
-            NanoAssert(i->isop(LIR_live) || i->isop(LIR_flive));
-            LIns *op1 = i->oprnd1();
+            LIns *ins = p->head;
+            NanoAssert(ins->isop(LIR_live) || ins->isop(LIR_qlive) || ins->isop(LIR_flive));
+            LIns *op1 = ins->oprnd1();
             
             
             
@@ -1881,7 +1891,7 @@ namespace nanojit
                 findMemFor(op1);
             }
             if (! (op1->isconst() || op1->isconstf() || op1->isconstq()))
-                findRegFor(op1, i->isop(LIR_flive) ? FpRegs : GpRegs);
+                findRegFor(op1, ins->isop(LIR_flive) ? FpRegs : GpRegs);
         }
 
         

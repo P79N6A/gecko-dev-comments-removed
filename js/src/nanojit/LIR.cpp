@@ -443,57 +443,61 @@ namespace nanojit
         return false;
     }
 
-    LIns* ExprFilter::ins1(LOpcode v, LIns* i)
+    LIns* ExprFilter::ins1(LOpcode v, LIns* oprnd)
     {
         switch (v) {
+        case LIR_q2i:
+            if (oprnd->isconstq())
+                return insImm(oprnd->imm64_0());
+            break;
         case LIR_qlo:
-            if (i->isconstq())
-                return insImm(i->imm64_0());
-            if (i->isop(LIR_qjoin))
-                return i->oprnd1();
+            if (oprnd->isconstq())
+                return insImm(oprnd->imm64_0());
+            if (oprnd->isop(LIR_qjoin))
+                return oprnd->oprnd1();
             break;
         case LIR_qhi:
-            if (i->isconstq())
-                return insImm(i->imm64_1());
-            if (i->isop(LIR_qjoin))
-                return i->oprnd2();
+            if (oprnd->isconstq())
+                return insImm(oprnd->imm64_1());
+            if (oprnd->isop(LIR_qjoin))
+                return oprnd->oprnd2();
             break;
         case LIR_not:
-            if (i->isconst())
-                return insImm(~i->imm32());
+            if (oprnd->isconst())
+                return insImm(~oprnd->imm32());
         involution:
-            if (v == i->opcode())
-                return i->oprnd1();
+            if (v == oprnd->opcode())
+                return oprnd->oprnd1();
             break;
         case LIR_neg:
-            if (i->isconst())
-                return insImm(-i->imm32());
-            if (i->isop(LIR_sub)) 
-                return out->ins2(LIR_sub, i->oprnd2(), i->oprnd1());
+            if (oprnd->isconst())
+                return insImm(-oprnd->imm32());
+            if (oprnd->isop(LIR_sub)) 
+                return out->ins2(LIR_sub, oprnd->oprnd2(), oprnd->oprnd1());
             goto involution;
         case LIR_fneg:
-            if (i->isconstq())
-                return insImmf(-i->imm64f());
-            if (i->isop(LIR_fsub))
-                return out->ins2(LIR_fsub, i->oprnd2(), i->oprnd1());
+            if (oprnd->isconstq())
+                return insImmf(-oprnd->imm64f());
+            if (oprnd->isop(LIR_fsub))
+                return out->ins2(LIR_fsub, oprnd->oprnd2(), oprnd->oprnd1());
             goto involution;
         case LIR_i2f:
-            if (i->isconst())
-                return insImmf(i->imm32());
+            if (oprnd->isconst())
+                return insImmf(oprnd->imm32());
             break;
         case LIR_f2i:
-            if (i->isconstq())
-                return insImm(int32_t(i->imm64f()));
+            if (oprnd->isconstq())
+                return insImm(int32_t(oprnd->imm64f()));
             break;
         case LIR_u2f:
-            if (i->isconst())
-                return insImmf(uint32_t(i->imm32()));
+            if (oprnd->isconst())
+                return insImmf(uint32_t(oprnd->imm32()));
             break;
         default:
             ;
         }
 
-        return out->ins1(v, i);
+        return out->ins1(v, oprnd);
     }
 
     
@@ -1521,8 +1525,10 @@ namespace nanojit
                 case LIR_ld32f:
                 case LIR_ldc32f:
                 case LIR_ret:
+                case LIR_qret:
                 case LIR_fret:
                 case LIR_live:
+                case LIR_qlive:
                 case LIR_flive:
                 case LIR_xt:
                 case LIR_xf:
@@ -1540,6 +1546,7 @@ namespace nanojit
                 case LIR_u2q:
                 case LIR_i2f:
                 case LIR_u2f:
+                case LIR_q2i:
                 case LIR_f2i:
                 case LIR_mod:
                     live.add(ins->oprnd1(), ins);
@@ -1848,7 +1855,10 @@ namespace nanojit
                 break;
 
             case LIR_live:
+            case LIR_flive:
+            case LIR_qlive:
             case LIR_ret:
+            case LIR_qret:
             case LIR_fret:
                 VMPI_sprintf(s, "%s %s", lirNames[op], formatRef(i->oprnd1()));
                 break;
@@ -1865,6 +1875,7 @@ namespace nanojit
             case LIR_mod:
             case LIR_i2q:
             case LIR_u2q:
+            case LIR_q2i:
             case LIR_f2i:
                 VMPI_sprintf(s, "%s = %s %s", formatRef(i), lirNames[op], formatRef(i->oprnd1()));
                 break;
@@ -2315,7 +2326,7 @@ namespace nanojit
     void ValidateWriter::errorStructureShouldBe(LOpcode op, const char* argDesc, int argN,
                                                 LIns* arg, const char* shouldBeDesc)
     {
-        fprintf(stderr,
+        NanoAssertMsgf(0,
             "\n\n"
             "  LIR structure error (%s):\n"
             "    in instruction with opcode: %s\n"
@@ -2499,16 +2510,9 @@ namespace nanojit
         case LIR_not:
         case LIR_i2f:
         case LIR_u2f:
-            formals[0] = LTy_I32;
-            break;
-
+        case LIR_live:
         case LIR_ret:
-            
-            
-            
-            
-            
-            nArgs = 0;
+            formals[0] = LTy_I32;
             break;
 
         case LIR_i2q:
@@ -2530,15 +2534,14 @@ namespace nanojit
             formals[0] = LTy_I32;
             break;
 
-        case LIR_qlo:
-            
-            
-            
-            
-            
-            nArgs = 0;
+        case LIR_q2i:
+        case LIR_qret:
+        case LIR_qlive:
+            checkIs64BitPlatform(op);
+            formals[0] = LTy_I64;
             break;
 
+        case LIR_qlo:
         case LIR_qhi:
             checkIs32BitPlatform(op);
             formals[0] = LTy_F64;
@@ -2549,13 +2552,6 @@ namespace nanojit
         case LIR_flive:
         case LIR_f2i:
             formals[0] = LTy_F64;
-            break;
-
-        case LIR_live:
-            
-            
-            
-            nArgs = 0;
             break;
 
         case LIR_callh:
