@@ -53,8 +53,7 @@ window[chromehidden~="toolbar"] .chromeclass-toolbar-additional
 
 
 
-textbox.uri-element,
-menulist.uri-element
+.uri-element
 {
   direction: ltr !important;
 }
