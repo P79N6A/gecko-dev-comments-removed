@@ -152,7 +152,7 @@ GUID CGID_MSHTML_Moz =
 
 
 
-nsVoidArray CMozillaBrowser::sBrowserList;
+nsTArray<CMozillaBrowser*> CMozillaBrowser::sBrowserList;
 
 
 

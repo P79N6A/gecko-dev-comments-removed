@@ -51,7 +51,7 @@
 #include <nsIPrintSettings.h>
 #include <nsIAppShell.h>
 #include <nsPIDOMEventTarget.h>
-#include <nsVoidArray.h>
+#include <nsTArray.h>
 #include <nsClipboard.h>
 
 #include <nsIPref.h>
@@ -177,7 +177,7 @@ class EmbedPrivate {
   static nsIAppShell            *sAppShell;
   
   static nsIPref                *sPrefs;
-	static nsVoidArray            *sWindowList;
+	static nsTArray<EmbedPrivate*> *sWindowList;
   
   static nsClipboard *sClipboard;
 

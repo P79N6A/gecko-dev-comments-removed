@@ -47,7 +47,7 @@
 #include "nsIWebBrowserChrome.h"
 #include "nsIAppShell.h"
 #include "nsPIDOMEventTarget.h"
-#include "nsVoidArray.h"
+#include "nsTArray.h"
 
 #include "nsIGenericFactory.h"
 #include "nsIComponentRegistrar.h"
@@ -153,7 +153,7 @@ class EmbedPrivate {
   
   static nsIAppShell            *sAppShell;
   
-  static nsVoidArray            *sWindowList;
+  static nsTArray<EmbedPrivate*> *sWindowList;
   
   static nsILocalFile           *sProfileDir;
   static nsISupports            *sProfileLock;
