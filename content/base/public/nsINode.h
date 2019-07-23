@@ -48,6 +48,7 @@
 class nsIContent;
 class nsIDocument;
 class nsIDOMEvent;
+class nsIPresShell;
 class nsPresContext;
 class nsEventChainVisitor;
 class nsEventChainPreVisitor;
@@ -59,6 +60,7 @@ class nsIMutationObserver;
 class nsChildContentList;
 class nsNodeWeakReference;
 class nsNodeSupportsWeakRefTearoff;
+class nsIEditor;
 
 enum {
   
@@ -144,8 +146,8 @@ inline nsINode* NODE_FROM(C& aContent, D& aDocument)
 
 
 #define NS_INODE_IID \
-{ 0xd1c2e967, 0x854a, 0x436b, \
-  { 0xbf, 0xa5, 0xf6, 0xa4, 0x9a, 0x97, 0x46, 0x74 } }
+{ 0x6f69dd90, 0x318d, 0x40ac, \
+  { 0xb8, 0xb8, 0x99, 0xb8, 0xa7, 0xbb, 0x9a, 0x58 } }
 
 
 
@@ -651,6 +653,22 @@ public:
     return IsEditableExternal();
 #endif
   }
+
+  
+
+
+
+
+  nsIContent* GetTextEditorRootContent(nsIEditor** aEditor = nsnull);
+
+  
+
+
+
+
+
+
+  nsIContent* GetSelectionRootContent(nsIPresShell* aPresShell);
 
 protected:
 
