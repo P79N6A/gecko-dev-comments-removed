@@ -61,21 +61,7 @@ namespace nanojit
 
 
 
-
-
-
-
 	#define STACK_GRANULARITY		sizeof(void *)
-
-	
-
-
-    struct Reservation
-	{
-		uint32_t arIndex:16;	
-		Register reg:15;			
-        uint32_t used:1;
-	};
 
 	struct AR
 	{
@@ -118,7 +104,6 @@ namespace nanojit
 		 None = 0
 		,OutOMem
 		,StackFull
-		,ResvFull
 		,RegionFull
         ,MaxLength
         ,MaxExit
@@ -247,13 +232,9 @@ namespace nanojit
 			void		internalReset();
             bool        canRemat(LIns*);
 
-			Reservation* reserveAlloc(LInsp i);
-			void		reserveFree(LInsp i);
-			void		reserveReset();
-
 			Reservation* getresv(LIns *x) {
-                uint32_t resv_index = x->resv();
-                return resv_index ? &_resvTable[resv_index] : 0;
+                Reservation* r = x->resv();
+                return r->used ? r : 0;
             }
 
 			DWB(Fragmento*)		_frago;
@@ -274,8 +255,6 @@ namespace nanojit
 
 			LabelStateMap	_labels; 
 			NInsMap		_patches;
-			Reservation _resvTable[ NJ_MAX_STACK_ENTRY ]; 
-			uint32_t	_resvFree;
 			bool		_inExit, vpad2[3];
             InsList     pending_lives;
 

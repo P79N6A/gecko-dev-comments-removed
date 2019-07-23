@@ -367,7 +367,7 @@ namespace nanojit
 	}
 
     bool LIns::isFloat() const {
-        switch (u.code) {
+        switch (firstWord.code) {
             default:
                 return false;
             case LIR_fadd:
@@ -384,22 +384,22 @@ namespace nanojit
     }
     
 	bool LIns::isCmp() const {
-        LOpcode op = u.code;
+        LOpcode op = firstWord.code;
         return (op >= LIR_eq && op <= LIR_uge) || (op >= LIR_feq && op <= LIR_fge);
 	}
 
     bool LIns::isCond() const {
-        LOpcode op = u.code;
+        LOpcode op = firstWord.code;
         return (op == LIR_ov) || (op == LIR_cs) || isCmp();
     }
 	
 	bool LIns::isQuad() const {
 		#ifdef AVMPLUS_64BIT
 			
-			return (u.code & LIR64) != 0 || u.code == LIR_callh;
+			return (firstWord.code & LIR64) != 0 || firstWord.code == LIR_callh;
 		#else
 			
-			return (u.code & LIR64) != 0;
+			return (firstWord.code & LIR64) != 0;
 		#endif
 	}
     
@@ -410,7 +410,7 @@ namespace nanojit
 
 	bool LIns::isconstq() const
 	{	
-        return u.code == LIR_quad;
+        return firstWord.code == LIR_quad;
 	}
 
 	bool LIns::isconstp() const
@@ -424,14 +424,27 @@ namespace nanojit
 
     bool LIns::isCse(const CallInfo *functions) const
     { 
-        return nanojit::isCseOpcode(u.code) || (isCall() && callInfo()->_cse);
+        return nanojit::isCseOpcode(firstWord.code) || (isCall() && callInfo()->_cse);
     }
 
     void LIns::initOpcodeAndClearResv(LOpcode op)
 	{
         NanoAssert(4*sizeof(void*) == sizeof(LIns));
-        u.code = op;
-        u.resv = 0;     
+        firstWord.code = op;
+        firstWord.used = 0;
+	}
+
+    Reservation* LIns::initResv()
+	{
+        firstWord.reg     = UnknownReg;
+        firstWord.arIndex = 0;
+        firstWord.used    = 1;
+        return &firstWord;
+	}
+
+    void LIns::clearResv()
+	{
+        firstWord.used = 0;
 	}
 
     void LIns::setTarget(LInsp label)
