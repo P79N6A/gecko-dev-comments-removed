@@ -2030,9 +2030,12 @@ nsAccessible::GetARIAState(PRUint32 *aState, PRUint32 *aExtraState)
   }
 
   if (mRoleMapEntry) {
+
     
     
-    *aState &= ~nsIAccessibleStates::STATE_READONLY;
+    
+    if (mRoleMapEntry->role != nsIAccessibleRole::ROLE_NOTHING)
+      *aState &= ~nsIAccessibleStates::STATE_READONLY;
 
     if (content->HasAttr(kNameSpaceID_None, content->GetIDAttributeName())) {
       
