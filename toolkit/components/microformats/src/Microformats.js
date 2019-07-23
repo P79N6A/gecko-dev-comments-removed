@@ -26,7 +26,6 @@ var Microformats = {
 
 
 
-
   get: function(name, rootElement, options, targetArray) {
     function isAncestor(haystack, needle) {
       var parent = needle;
@@ -50,7 +49,7 @@ var Microformats = {
     var rootDocument = rootElement.ownerDocument || rootElement;
 
     
-    if (!options || !options.hasOwnProperty("recurseExternalFrames") || options.recurseExternalFrames) {
+    if (!options || !options.hasOwnProperty("recurseFrames") || options.recurseFrames) {
       if (defaultView && defaultView.frames.length > 0) {
         for (let i=0; i < defaultView.frames.length; i++) {
           if (isAncestor(rootDocument, defaultView.frames[i].frameElement)) {
@@ -114,7 +113,6 @@ var Microformats = {
     return targetArray;
   },
   
-
 
 
 
