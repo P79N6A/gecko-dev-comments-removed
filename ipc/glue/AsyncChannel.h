@@ -175,6 +175,7 @@ protected:
     void OnChannelOpened();
     void OnSend(Message* aMsg);
     void OnCloseChannel();
+    void PostErrorNotifyTask();
 
     
     

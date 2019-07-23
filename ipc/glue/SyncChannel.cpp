@@ -213,19 +213,15 @@ SyncChannel::OnChannelError()
 {
     AssertIOThread();
 
-    {
-        MutexAutoLock lock(mMutex);
+    MutexAutoLock lock(mMutex);
 
-        
-        
-        if (ChannelClosing != mChannelState)
-            mChannelState = ChannelError;
+    if (ChannelClosing != mChannelState)
+        mChannelState = ChannelError;
 
-        if (AwaitingSyncReply())
-            NotifyWorkerThread();
-    }
+    if (AwaitingSyncReply())
+        NotifyWorkerThread();
 
-    AsyncChannel::OnChannelError();
+    PostErrorNotifyTask();
 }
 
 
