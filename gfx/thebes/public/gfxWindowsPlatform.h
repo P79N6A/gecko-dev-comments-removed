@@ -55,12 +55,12 @@
 #ifdef MOZ_FT2_FONTS
 #include "gfxFT2Fonts.h"
 #else
-#include "gfxWindowsFonts.h"
 #ifdef CAIRO_HAS_DWRITE_FONT
 #include "gfxDWriteFonts.h"
 #endif
 #endif
 #include "gfxPlatform.h"
+#include "gfxContext.h"
 
 #include "nsTArray.h"
 #include "nsDataHashtable.h"
@@ -70,6 +70,40 @@ typedef struct FT_LibraryRec_ *FT_Library;
 #endif
 
 #include <windows.h>
+
+
+
+struct DCFromContext {
+    DCFromContext(gfxContext *aContext) {
+        dc = NULL;
+        nsRefPtr<gfxASurface> aSurface = aContext->CurrentSurface();
+        NS_ASSERTION(aSurface, "DCFromContext: null surface");
+        if (aSurface &&
+            (aSurface->GetType() == gfxASurface::SurfaceTypeWin32 ||
+             aSurface->GetType() == gfxASurface::SurfaceTypeWin32Printing))
+        {
+            dc = static_cast<gfxWindowsSurface*>(aSurface.get())->GetDC();
+            needsRelease = PR_FALSE;
+        }
+        if (!dc) {
+            dc = GetDC(NULL);
+            SetGraphicsMode(dc, GM_ADVANCED);
+            needsRelease = PR_TRUE;
+        }
+    }
+
+    ~DCFromContext() {
+        if (needsRelease)
+            ReleaseDC(NULL, dc);
+    }
+
+    operator HDC () {
+        return dc;
+    }
+
+    HDC dc;
+    PRBool needsRelease;
+};
 
 class THEBES_API gfxWindowsPlatform : public gfxPlatform {
 public:
@@ -146,10 +180,6 @@ public:
 
 
     virtual PRBool IsFontFormatSupported(nsIURI *aFontURI, PRUint32 aFormatFlags);
-
-#ifndef MOZ_FT2_FONTS
-    virtual void SetupClusterBoundaries(gfxTextRun *aTextRun, const PRUnichar *aString);
-#endif
 
     
     gfxFontFamily *FindFontFamily(const nsAString& aName);

@@ -660,11 +660,11 @@ public:
 
     virtual ~gfxFontShaper() { }
 
-    virtual void InitTextRun(gfxContext *aContext,
-                             gfxTextRun *aTextRun,
-                             const PRUnichar *aString,
-                             PRUint32 aRunStart,
-                             PRUint32 aRunLength) = 0;
+    virtual PRBool InitTextRun(gfxContext *aContext,
+                               gfxTextRun *aTextRun,
+                               const PRUnichar *aString,
+                               PRUint32 aRunStart,
+                               PRUint32 aRunLength) = 0;
 
 protected:
     
@@ -697,6 +697,14 @@ public:
 
     PRInt32 GetRefCount() { return mRefCnt; }
 
+    
+    typedef enum {
+        kAntialiasDefault,
+        kAntialiasNone,
+        kAntialiasGrayscale,
+        kAntialiasSubpixel
+    } AntialiasOption;
+
 protected:
     nsAutoRefCnt mRefCnt;
 
@@ -712,7 +720,8 @@ protected:
         }
     }
 
-    gfxFont(gfxFontEntry *aFontEntry, const gfxFontStyle *aFontStyle);
+    gfxFont(gfxFontEntry *aFontEntry, const gfxFontStyle *aFontStyle,
+            AntialiasOption anAAOption = kAntialiasDefault);
 
 public:
     virtual ~gfxFont();
@@ -752,6 +761,11 @@ public:
     const gfxFontStyle *GetStyle() const { return &mStyle; }
 
     virtual nsString GetUniqueName() { return GetName(); }
+
+    virtual gfxFont* CopyWithAntialiasOption(AntialiasOption anAAOption) {
+        
+        return nsnull;
+    }
 
     
     struct Metrics {
@@ -910,17 +924,14 @@ public:
         return mFontEntry->HasCharacter(ch); 
     }
 
-    void InitTextRun(gfxContext *aContext,
-                     gfxTextRun *aTextRun,
-                     const PRUnichar *aString,
-                     PRUint32 aRunStart,
-                     PRUint32 aRunLength) {
-        NS_ASSERTION(mShaper != nsnull, "no shaper?!");
-        if (!mShaper) {
-            return;
-        }
-        mShaper->InitTextRun(aContext, aTextRun, aString, aRunStart, aRunLength);
-    }
+    
+    
+    
+    virtual void InitTextRun(gfxContext *aContext,
+                             gfxTextRun *aTextRun,
+                             const PRUnichar *aString,
+                             PRUint32 aRunStart,
+                             PRUint32 aRunLength);
 
 protected:
     nsRefPtr<gfxFontEntry> mFontEntry;
@@ -932,6 +943,9 @@ protected:
 
     
     PRUint32                   mSyntheticBoldOffset;  
+
+    
+    AntialiasOption            mAntialiasOption;
 
     nsAutoPtr<gfxFontShaper>   mShaper;
 
