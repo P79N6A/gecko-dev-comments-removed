@@ -582,6 +582,8 @@ nsXULElement::IsFocusable(PRInt32 *aTabIndex)
         
         
         shouldFocus = *aTabIndex >= 0;
+        if (shouldFocus)
+          *aTabIndex = 0;
       }
 
       if (shouldFocus && sTabFocusModelAppliesToXUL &&
