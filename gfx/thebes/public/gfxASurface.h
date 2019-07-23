@@ -136,7 +136,7 @@ public:
 
 
 
-    virtual PRInt32 GetDefaultContextFlags() { return 0; }
+    virtual PRInt32 GetDefaultContextFlags() const { return 0; }
 
 protected:
     gfxASurface() : mSurface(nsnull), mFloatingRefs(0), mSurfaceValid(PR_FALSE) { }

@@ -557,12 +557,17 @@ public:
 
 
 
-        FLAG_SIMPLIFY_OPERATORS = (1 << 0)
+        FLAG_SIMPLIFY_OPERATORS = (1 << 0),
+        
+
+
+
+        FLAG_DISABLE_SNAPPING = (1 << 1)
     };
 
     void SetFlag(PRInt32 aFlag) { mFlags |= aFlag; }
     void ClearFlag(PRInt32 aFlag) { mFlags &= ~aFlag; }
-    PRInt32 GetFlags() { return mFlags; }
+    PRInt32 GetFlags() const { return mFlags; }
 
 private:
     cairo_t *mCairo;
