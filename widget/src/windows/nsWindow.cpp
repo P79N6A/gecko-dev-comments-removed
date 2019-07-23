@@ -7395,6 +7395,7 @@ nsWindow :: DealWithPopups ( HWND inWnd, UINT inMsg, WPARAM inWParam, LPARAM inL
           *outResult = TRUE;
           return TRUE;
         }
+#ifndef WINCE
         
         
         
@@ -7402,6 +7403,7 @@ nsWindow :: DealWithPopups ( HWND inWnd, UINT inMsg, WPARAM inWParam, LPARAM inL
           *outResult = MA_NOACTIVATEANDEAT;
           return TRUE;
         }
+#endif
       }
     } 
   } 
