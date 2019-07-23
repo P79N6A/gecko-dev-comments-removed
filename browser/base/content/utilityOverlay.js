@@ -437,10 +437,6 @@ function openAdvancedPreferences(tabID)
 
 
 
-
-
-
-
 function openReleaseNotes()
 {
   var formatter = Components.classes["@mozilla.org/toolkit/URLFormatterService;1"]
