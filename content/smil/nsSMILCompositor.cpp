@@ -114,24 +114,15 @@ nsSMILCompositor::ComposeAttribute()
 
   
   
-  
-                                 
+  PRBool changed = PR_FALSE;
   PRUint32 length = mAnimationFunctions.Length();
   PRUint32 i;
   for (i = length; i > 0; --i) {
     nsSMILAnimationFunction* curAnimFunc = mAnimationFunctions[i-1];
-    
-    
-    
-    
-    
-    
-    
-    
-
-
-
-
+    if (curAnimFunc->UpdateCachedTarget(mKey) ||
+        (!changed && curAnimFunc->HasChanged())) {
+      changed = PR_TRUE;
+    }
 
     if (curAnimFunc->WillReplace()) {
       --i;

@@ -42,6 +42,7 @@
 #include "nsISMILAttr.h"
 #include "nsGkAtoms.h"
 #include "nsString.h"
+#include "nsSMILTargetIdentifier.h"
 #include "nsSMILTimeValue.h"
 #include "nsSMILKeySpline.h"
 #include "nsSMILValue.h"
@@ -216,6 +217,20 @@ public:
   PRBool HasChanged() const;
 
   
+
+
+
+
+
+
+
+
+
+
+
+  PRBool UpdateCachedTarget(const nsSMILTargetIdentifier& aNewTarget);
+
+  
   class Comparator {
     public:
       PRBool Equals(const nsSMILAnimationFunction* aElem1,
@@ -378,6 +393,11 @@ protected:
   
   
   nsSMILValue                   mFrozenValue;
+
+  
+  
+  
+  nsSMILWeakTargetIdentifier    mLastTarget;
 };
 
 #endif 
