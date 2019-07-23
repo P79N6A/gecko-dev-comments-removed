@@ -214,6 +214,7 @@ class nsDocAccessible : public nsHyperTextAccessibleWrap,
     nsCOMPtr<nsITimer> mFireEventTimer;
     PRUint16 mScrollPositionChangedTicks; 
     PRPackedBool mIsContentLoaded;
+    PRPackedBool mIsLoadCompleteFired;
     nsCOMArray<nsIAccessibleEvent> mEventsToFire;
 
 protected:
