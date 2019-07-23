@@ -150,78 +150,6 @@ nsDownloadManager::RemoveAllDownloads()
   return rv;
 }
 
-void
-nsDownloadManager::CompleteDownload(nsDownload *aDownload)
-{
-  
-  aDownload->mCancelable = nsnull;
-  aDownload->mEntityID.Truncate();
-
-  
-  if (aDownload->mDownloadState == nsIDownloadManager::DOWNLOAD_FINISHED &&
-      aDownload->WasResumed())
-    (void)ExecuteDesiredAction(aDownload);
-
-  (void)mCurrentDownloads.RemoveObject(aDownload);
-}
-
-nsresult
-nsDownloadManager::ExecuteDesiredAction(nsDownload *aDownload)
-{
-  
-  
-  if (!aDownload->mTempFile || !aDownload->WasResumed())
-    return NS_OK;
-
-  
-  PRBool fileExists;
-  if (NS_FAILED(aDownload->mTempFile->Exists(&fileExists)) || !fileExists)
-    return NS_ERROR_FAILURE;
-
-  
-  nsHandlerInfoAction action = nsIMIMEInfo::saveToDisk;
-  nsresult rv;
-  if (aDownload->mMIMEInfo) {
-    rv = aDownload->mMIMEInfo->GetPreferredAction(&action);
-    NS_ENSURE_SUCCESS(rv, rv);
-  }
-
-  switch (action) {
-    case nsIMIMEInfo::saveToDisk:
-      
-      {
-        nsCOMPtr<nsILocalFile> target;
-        rv = aDownload->GetTargetFile(getter_AddRefs(target));
-        NS_ENSURE_SUCCESS(rv, rv);
-
-        
-        
-        
-        if (NS_SUCCEEDED(target->Exists(&fileExists)) && fileExists) {
-          rv = target->Remove(PR_FALSE);
-          NS_ENSURE_SUCCESS(rv, rv);
-        }
-
-        
-        nsAutoString fileName;
-        rv = target->GetLeafName(fileName);
-        NS_ENSURE_SUCCESS(rv, rv);
-        nsCOMPtr<nsIFile> dir;
-        rv = target->GetParent(getter_AddRefs(dir));
-        NS_ENSURE_SUCCESS(rv, rv);
-        if (dir) {
-          rv = aDownload->mTempFile->MoveTo(dir, fileName);
-          NS_ENSURE_SUCCESS(rv, rv);
-        }
-      }
-      break;
-    default:
-      break;
-  }
-
-  return NS_OK;
-}
-
 nsresult
 nsDownloadManager::InitDB(PRBool *aDoImport)
 {
@@ -1616,7 +1544,8 @@ nsDownload::SetState(DownloadState aState)
     case nsIDownloadManager::DOWNLOAD_BLOCKED:
     case nsIDownloadManager::DOWNLOAD_CANCELED:
     case nsIDownloadManager::DOWNLOAD_FAILED:
-      mDownloadManager->CompleteDownload(this);
+      
+      Finalize();
       break;
 #ifdef XP_WIN
     case nsIDownloadManager::DOWNLOAD_SCANNING:
@@ -1630,7 +1559,11 @@ nsDownload::SetState(DownloadState aState)
 #endif
     case nsIDownloadManager::DOWNLOAD_FINISHED:
     {
-      mDownloadManager->CompleteDownload(this);
+      
+      (void)ExecuteDesiredAction();
+
+      
+      Finalize();
 
       
       PRBool showTaskbarAlert = PR_TRUE;
@@ -1738,19 +1671,6 @@ nsDownload::SetState(DownloadState aState)
       break;
   }
   return NS_OK;
-}
-
-DownloadType
-nsDownload::GetDownloadType()
-{
-  return mDownloadType;
-}
-
-void
-nsDownload::SetStartTime(PRInt64 aStartTime)
-{
-  mStartTime = aStartTime;
-  mLastUpdate = aStartTime;
 }
 
 
@@ -2084,6 +2004,90 @@ nsDownload::GetReferrer(nsIURI **referrer)
 {
   NS_IF_ADDREF(*referrer = mReferrer);
   return NS_OK;
+}
+
+
+
+
+void
+nsDownload::Finalize()
+{
+  
+  mCancelable = nsnull;
+
+  
+  mEntityID.Truncate();
+
+  
+  (void)mDownloadManager->mCurrentDownloads.RemoveObject(this);
+}
+
+nsresult
+nsDownload::ExecuteDesiredAction()
+{
+  
+  
+  if (!mTempFile || !WasResumed())
+    return NS_OK;
+
+  
+  PRBool fileExists;
+  if (NS_FAILED(mTempFile->Exists(&fileExists)) || !fileExists)
+    return NS_ERROR_FILE_NOT_FOUND;
+
+  
+  nsHandlerInfoAction action = nsIMIMEInfo::saveToDisk;
+  if (mMIMEInfo) {
+    nsresult rv = mMIMEInfo->GetPreferredAction(&action);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
+
+  nsresult ret = NS_OK;
+  switch (action) {
+    case nsIMIMEInfo::saveToDisk:
+      
+      ret = MoveTempToTarget();
+      break;
+    default:
+      break;
+  }
+
+  return ret;
+}
+
+nsresult
+nsDownload::MoveTempToTarget()
+{
+  nsCOMPtr<nsILocalFile> target;
+  nsresult rv = GetTargetFile(getter_AddRefs(target));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  
+  PRBool fileExists;
+  if (NS_SUCCEEDED(target->Exists(&fileExists)) && fileExists) {
+    rv = target->Remove(PR_FALSE);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
+
+  
+  nsAutoString fileName;
+  rv = target->GetLeafName(fileName);
+  NS_ENSURE_SUCCESS(rv, rv);
+  nsCOMPtr<nsIFile> dir;
+  rv = target->GetParent(getter_AddRefs(dir));
+  NS_ENSURE_SUCCESS(rv, rv);
+  rv = mTempFile->MoveTo(dir, fileName);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  return NS_OK;
+}
+
+void
+nsDownload::SetStartTime(PRInt64 aStartTime)
+{
+  mStartTime = aStartTime;
+  mLastUpdate = aStartTime;
 }
 
 void

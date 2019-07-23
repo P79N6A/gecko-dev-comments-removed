@@ -155,14 +155,6 @@ protected:
 
   nsresult RemoveAllDownloads();
 
-  
-
-
-
-
-
-  void CompleteDownload(nsDownload *aDownload);
-
   void ConfirmCancelDownloads(PRInt32 aCount,
                               nsISupportsPRBool *aCancelDownloads,
                               const PRUnichar *aTitle,
@@ -171,7 +163,6 @@ protected:
                               const PRUnichar *aDontCancelButton);
 
   PRInt32 GetRetentionBehavior();
-  nsresult ExecuteDesiredAction(nsDownload *aDownload);
 
 private:
   nsCOMArray<nsIDownloadProgressListener> mListeners;
@@ -198,7 +189,6 @@ public:
   nsDownload();
   virtual ~nsDownload();
 
-public:
   
 
 
@@ -206,12 +196,32 @@ public:
 
   nsresult SetState(DownloadState aState);
 
-  DownloadType GetDownloadType();
-  void SetDownloadType(DownloadType aType);
-
-  nsresult UpdateDB();
-
 protected:
+  
+
+
+
+
+
+
+
+  void Finalize();
+
+  
+
+
+
+  nsresult ExecuteDesiredAction();
+
+  
+
+
+
+  nsresult MoveTempToTarget();
+
+  
+
+
   void SetStartTime(PRInt64 aStartTime);
 
   
@@ -271,6 +281,13 @@ protected:
 
 
   PRBool IsFinished();
+
+  
+
+
+
+
+  nsresult UpdateDB();
 
   
 
