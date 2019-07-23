@@ -240,7 +240,14 @@ struct JSObject {
 
 
 
-#define STOBJ_GET_CLASS(obj)    ((JSClass *)((obj)->classword & ~3))
+#define JSSLOT_CLASS_MASK_BITS 3
+
+JS_ALWAYS_INLINE JSClass*
+STOBJ_GET_CLASS(const JSObject* obj)
+{
+    return (JSClass *) (obj->classword & ~JSSLOT_CLASS_MASK_BITS);
+}
+
 #define STOBJ_IS_DELEGATE(obj)  (((obj)->classword & 1) != 0)
 #define STOBJ_SET_DELEGATE(obj) ((obj)->classword |= 1)
 #define STOBJ_NULLSAFE_SET_DELEGATE(obj)                                      \
