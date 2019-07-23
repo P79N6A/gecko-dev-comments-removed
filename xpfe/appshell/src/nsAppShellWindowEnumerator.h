@@ -72,7 +72,6 @@ struct nsWindowInfo
 
 
 
-
 class nsAppShellWindowEnumerator : public nsISimpleEnumerator {
 
 friend class nsWindowMediator;
@@ -197,5 +196,3 @@ public:
 protected:
   virtual nsWindowInfo *FindNext();
 };
-
-

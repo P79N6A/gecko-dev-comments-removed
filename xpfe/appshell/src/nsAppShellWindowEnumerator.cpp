@@ -56,7 +56,7 @@
 
 
 static nsresult GetDOMWindow(nsIXULWindow* inWindow,
-                  nsCOMPtr<nsIDOMWindowInternal> &outDOMWindow);
+                             nsCOMPtr<nsIDOMWindowInternal> &outDOMWindow);
 static nsCOMPtr<nsIDOMNode> GetDOMNodeFromDocShell(nsIDocShell *aShell);
 static void GetAttribute(nsIXULWindow *inWindow, const nsAString &inAttribute,
                          nsAString &outValue);
@@ -71,8 +71,6 @@ nsresult GetDOMWindow(nsIXULWindow *aWindow, nsCOMPtr<nsIDOMWindowInternal> &aDO
   aDOMWindow = do_GetInterface(docShell);
   return aDOMWindow ? NS_OK : NS_ERROR_FAILURE;
 }
-
-
 
 nsCOMPtr<nsIDOMNode> GetDOMNodeFromDocShell(nsIDocShell *aShell)
 {
@@ -106,7 +104,6 @@ void GetAttribute(nsIXULWindow *inWindow, const nsAString &inAttribute,
 {
   nsCOMPtr<nsIDocShell> shell;
   if (inWindow && NS_SUCCEEDED(inWindow->GetDocShell(getter_AddRefs(shell)))) {
-
     nsCOMPtr<nsIDOMNode> node(GetDOMNodeFromDocShell(shell));
     if (node) {
       nsCOMPtr<nsIDOMElement> webshellElement(do_QueryInterface(node));
@@ -136,7 +133,7 @@ nsWindowInfo::nsWindowInfo(nsIXULWindow* inWindow, PRInt32 inTimeStamp) :
 nsWindowInfo::~nsWindowInfo()
 {
 }
-  
+
 
 
 PRBool nsWindowInfo::TypeEquals(const nsAString &aType)
@@ -148,7 +145,8 @@ PRBool nsWindowInfo::TypeEquals(const nsAString &aType)
 
 
 
-void nsWindowInfo::InsertAfter(nsWindowInfo *inOlder , nsWindowInfo *inHigher) {
+void nsWindowInfo::InsertAfter(nsWindowInfo *inOlder , nsWindowInfo *inHigher)
+{
   if (inOlder) {
     mOlder = inOlder;
     mYounger = inOlder->mYounger;
@@ -172,8 +170,8 @@ void nsWindowInfo::InsertAfter(nsWindowInfo *inOlder , nsWindowInfo *inHigher) {
 }
 
 
-void nsWindowInfo::Unlink(PRBool inAge, PRBool inZ) {
-
+void nsWindowInfo::Unlink(PRBool inAge, PRBool inZ)
+{
   if (inAge) {
     mOlder->mYounger = mYounger;
     mYounger->mOlder = mOlder;
@@ -182,12 +180,12 @@ void nsWindowInfo::Unlink(PRBool inAge, PRBool inZ) {
     mLower->mHigher = mHigher;
     mHigher->mLower = mLower;
   }
-  ReferenceSelf( inAge, inZ );
+  ReferenceSelf(inAge, inZ);
 }
 
 
-void nsWindowInfo::ReferenceSelf(PRBool inAge, PRBool inZ) {
-
+void nsWindowInfo::ReferenceSelf(PRBool inAge, PRBool inZ)
+{
   if (inAge) {
     mYounger = this;
     mOlder = this;
@@ -204,27 +202,25 @@ void nsWindowInfo::ReferenceSelf(PRBool inAge, PRBool inZ) {
 
 NS_IMPL_ISUPPORTS1(nsAppShellWindowEnumerator, nsISimpleEnumerator)
 
-nsAppShellWindowEnumerator::nsAppShellWindowEnumerator (
+nsAppShellWindowEnumerator::nsAppShellWindowEnumerator(
     const PRUnichar* aTypeString,
     nsWindowMediator& aMediator) :
-
-    mWindowMediator(&aMediator), mType(aTypeString),
-    mCurrentPosition(0)
+      mWindowMediator(&aMediator), mType(aTypeString), mCurrentPosition(nsnull)
 {
   mWindowMediator->AddEnumerator(this);
   NS_ADDREF(mWindowMediator);
 }
 
-nsAppShellWindowEnumerator::~nsAppShellWindowEnumerator() {
-
+nsAppShellWindowEnumerator::~nsAppShellWindowEnumerator()
+{
   mWindowMediator->RemoveEnumerator(this);
   NS_RELEASE(mWindowMediator);
 }
 
 
 
-void nsAppShellWindowEnumerator::AdjustInitialPosition() {
-
+void nsAppShellWindowEnumerator::AdjustInitialPosition()
+{
   if (!mType.IsEmpty() && mCurrentPosition && !mCurrentPosition->TypeEquals(mType))
     mCurrentPosition = FindNext();
 }
@@ -237,10 +233,10 @@ NS_IMETHODIMP nsAppShellWindowEnumerator::HasMoreElements(PRBool *retval)
   *retval = mCurrentPosition ? PR_TRUE : PR_FALSE;
   return NS_OK;
 }
-	
 
-void nsAppShellWindowEnumerator::WindowRemoved(nsWindowInfo *inInfo) {
 
+void nsAppShellWindowEnumerator::WindowRemoved(nsWindowInfo *inInfo)
+{
   if (mCurrentPosition == inInfo)
     mCurrentPosition = FindNext();
 }
@@ -252,20 +248,20 @@ void nsAppShellWindowEnumerator::WindowRemoved(nsWindowInfo *inInfo) {
 nsASDOMWindowEnumerator::nsASDOMWindowEnumerator(
     const PRUnichar* aTypeString,
     nsWindowMediator& aMediator) :
-
-  nsAppShellWindowEnumerator(aTypeString, aMediator) {
-
+      nsAppShellWindowEnumerator(aTypeString, aMediator)
+{
 }
 
-nsASDOMWindowEnumerator::~nsASDOMWindowEnumerator() {
+nsASDOMWindowEnumerator::~nsASDOMWindowEnumerator()
+{
 }
 
-NS_IMETHODIMP nsASDOMWindowEnumerator::GetNext(nsISupports **retval) {
-
+NS_IMETHODIMP nsASDOMWindowEnumerator::GetNext(nsISupports **retval)
+{
   if (!retval)
     return NS_ERROR_INVALID_ARG;
 
-  *retval = NULL;
+  *retval = nsnull;
   if (mCurrentPosition) {
     nsCOMPtr<nsIDOMWindowInternal> domWindow;
     GetDOMWindow(mCurrentPosition->mWindow, domWindow);
@@ -282,20 +278,20 @@ NS_IMETHODIMP nsASDOMWindowEnumerator::GetNext(nsISupports **retval) {
 nsASXULWindowEnumerator::nsASXULWindowEnumerator(
     const PRUnichar* aTypeString,
     nsWindowMediator& aMediator) :
-
-  nsAppShellWindowEnumerator(aTypeString, aMediator) {
-
+      nsAppShellWindowEnumerator(aTypeString, aMediator)
+{
 }
 
-nsASXULWindowEnumerator::~nsASXULWindowEnumerator() {
+nsASXULWindowEnumerator::~nsASXULWindowEnumerator()
+{
 }
 
-NS_IMETHODIMP nsASXULWindowEnumerator::GetNext(nsISupports **retval) {
-
+NS_IMETHODIMP nsASXULWindowEnumerator::GetNext(nsISupports **retval)
+{
   if (!retval)
     return NS_ERROR_INVALID_ARG;
 
-  *retval = NULL;
+  *retval = nsnull;
   if (mCurrentPosition) {
     CallQueryInterface(mCurrentPosition->mWindow, retval);
     mCurrentPosition = FindNext();
@@ -310,25 +306,25 @@ NS_IMETHODIMP nsASXULWindowEnumerator::GetNext(nsISupports **retval) {
 nsASDOMWindowEarlyToLateEnumerator::nsASDOMWindowEarlyToLateEnumerator(
     const PRUnichar *aTypeString,
     nsWindowMediator &aMediator) :
-
-  nsASDOMWindowEnumerator(aTypeString, aMediator) {
-
+      nsASDOMWindowEnumerator(aTypeString, aMediator)
+{
   mCurrentPosition = aMediator.mOldestWindow;
   AdjustInitialPosition();
 }
 
-nsASDOMWindowEarlyToLateEnumerator::~nsASDOMWindowEarlyToLateEnumerator() {
+nsASDOMWindowEarlyToLateEnumerator::~nsASDOMWindowEarlyToLateEnumerator()
+{
 }
 
-nsWindowInfo *nsASDOMWindowEarlyToLateEnumerator::FindNext() {
-
+nsWindowInfo *nsASDOMWindowEarlyToLateEnumerator::FindNext()
+{
   nsWindowInfo *info,
                *listEnd;
   PRBool        allWindows = mType.IsEmpty();
 
   
   if (!mCurrentPosition)
-    return 0;
+    return nsnull;
 
   info = mCurrentPosition->mYounger;
   listEnd = mWindowMediator->mOldestWindow;
@@ -339,7 +335,7 @@ nsWindowInfo *nsASDOMWindowEarlyToLateEnumerator::FindNext() {
     info = info->mYounger;
   }
 
-  return 0;
+  return nsnull;
 }
 
 
@@ -349,18 +345,18 @@ nsWindowInfo *nsASDOMWindowEarlyToLateEnumerator::FindNext() {
 nsASXULWindowEarlyToLateEnumerator::nsASXULWindowEarlyToLateEnumerator(
     const PRUnichar *aTypeString,
     nsWindowMediator &aMediator) :
-
-  nsASXULWindowEnumerator(aTypeString, aMediator) {
-
+      nsASXULWindowEnumerator(aTypeString, aMediator)
+{
   mCurrentPosition = aMediator.mOldestWindow;
   AdjustInitialPosition();
 }
 
-nsASXULWindowEarlyToLateEnumerator::~nsASXULWindowEarlyToLateEnumerator() {
+nsASXULWindowEarlyToLateEnumerator::~nsASXULWindowEarlyToLateEnumerator()
+{
 }
 
-nsWindowInfo *nsASXULWindowEarlyToLateEnumerator::FindNext() {
-
+nsWindowInfo *nsASXULWindowEarlyToLateEnumerator::FindNext()
+{
   nsWindowInfo *info,
                *listEnd;
   PRBool        allWindows = mType.IsEmpty();
@@ -373,7 +369,7 @@ nsWindowInfo *nsASXULWindowEarlyToLateEnumerator::FindNext() {
 
 
   if (!mCurrentPosition)
-    return 0;
+    return nsnull;
 
   info = mCurrentPosition->mYounger;
   listEnd = mWindowMediator->mOldestWindow;
@@ -384,7 +380,7 @@ nsWindowInfo *nsASXULWindowEarlyToLateEnumerator::FindNext() {
     info = info->mYounger;
   }
 
-  return 0;
+  return nsnull;
 }
 
 
@@ -394,25 +390,25 @@ nsWindowInfo *nsASXULWindowEarlyToLateEnumerator::FindNext() {
 nsASDOMWindowFrontToBackEnumerator::nsASDOMWindowFrontToBackEnumerator(
     const PRUnichar *aTypeString,
     nsWindowMediator &aMediator) :
-
-  nsASDOMWindowEnumerator(aTypeString, aMediator) {
-
+      nsASDOMWindowEnumerator(aTypeString, aMediator)
+{
   mCurrentPosition = aMediator.mTopmostWindow;
   AdjustInitialPosition();
 }
 
-nsASDOMWindowFrontToBackEnumerator::~nsASDOMWindowFrontToBackEnumerator() {
+nsASDOMWindowFrontToBackEnumerator::~nsASDOMWindowFrontToBackEnumerator()
+{
 }
 
-nsWindowInfo *nsASDOMWindowFrontToBackEnumerator::FindNext() {
-
+nsWindowInfo *nsASDOMWindowFrontToBackEnumerator::FindNext()
+{
   nsWindowInfo *info,
                *listEnd;
   PRBool        allWindows = mType.IsEmpty();
 
   
   if (!mCurrentPosition)
-    return 0;
+    return nsnull;
 
   info = mCurrentPosition->mLower;
   listEnd = mWindowMediator->mTopmostWindow;
@@ -423,7 +419,7 @@ nsWindowInfo *nsASDOMWindowFrontToBackEnumerator::FindNext() {
     info = info->mLower;
   }
 
-  return 0;
+  return nsnull;
 }
 
 
@@ -433,9 +429,8 @@ nsWindowInfo *nsASDOMWindowFrontToBackEnumerator::FindNext() {
 nsASXULWindowFrontToBackEnumerator::nsASXULWindowFrontToBackEnumerator(
     const PRUnichar *aTypeString,
     nsWindowMediator &aMediator) :
-
-  nsASXULWindowEnumerator(aTypeString, aMediator) {
-
+      nsASXULWindowEnumerator(aTypeString, aMediator)
+{
   mCurrentPosition = aMediator.mTopmostWindow;
   AdjustInitialPosition();
 }
@@ -444,15 +439,15 @@ nsASXULWindowFrontToBackEnumerator::~nsASXULWindowFrontToBackEnumerator()
 {
 }
 
-nsWindowInfo *nsASXULWindowFrontToBackEnumerator::FindNext() {
-
+nsWindowInfo *nsASXULWindowFrontToBackEnumerator::FindNext()
+{
   nsWindowInfo *info,
                *listEnd;
   PRBool        allWindows = mType.IsEmpty();
 
   
   if (!mCurrentPosition)
-    return 0;
+    return nsnull;
 
   info = mCurrentPosition->mLower;
   listEnd = mWindowMediator->mTopmostWindow;
@@ -463,7 +458,7 @@ nsWindowInfo *nsASXULWindowFrontToBackEnumerator::FindNext() {
     info = info->mLower;
   }
 
-  return 0;
+  return nsnull;
 }
 
 
@@ -473,26 +468,26 @@ nsWindowInfo *nsASXULWindowFrontToBackEnumerator::FindNext() {
 nsASDOMWindowBackToFrontEnumerator::nsASDOMWindowBackToFrontEnumerator(
     const PRUnichar *aTypeString,
     nsWindowMediator &aMediator) :
-
-  nsASDOMWindowEnumerator(aTypeString, aMediator) {
-
+  nsASDOMWindowEnumerator(aTypeString, aMediator)
+{
   mCurrentPosition = aMediator.mTopmostWindow ?
-                     aMediator.mTopmostWindow->mHigher : 0;
+                     aMediator.mTopmostWindow->mHigher : nsnull;
   AdjustInitialPosition();
 }
 
-nsASDOMWindowBackToFrontEnumerator::~nsASDOMWindowBackToFrontEnumerator() {
+nsASDOMWindowBackToFrontEnumerator::~nsASDOMWindowBackToFrontEnumerator()
+{
 }
 
-nsWindowInfo *nsASDOMWindowBackToFrontEnumerator::FindNext() {
-
+nsWindowInfo *nsASDOMWindowBackToFrontEnumerator::FindNext()
+{
   nsWindowInfo *info,
                *listEnd;
   PRBool        allWindows = mType.IsEmpty();
 
   
   if (!mCurrentPosition)
-    return 0;
+    return nsnull;
 
   info = mCurrentPosition->mHigher;
   listEnd = mWindowMediator->mTopmostWindow;
@@ -505,7 +500,7 @@ nsWindowInfo *nsASDOMWindowBackToFrontEnumerator::FindNext() {
     info = info->mHigher;
   }
 
-  return 0;
+  return nsnull;
 }
 
 
@@ -515,11 +510,10 @@ nsWindowInfo *nsASDOMWindowBackToFrontEnumerator::FindNext() {
 nsASXULWindowBackToFrontEnumerator::nsASXULWindowBackToFrontEnumerator(
     const PRUnichar *aTypeString,
     nsWindowMediator &aMediator) :
-
-  nsASXULWindowEnumerator(aTypeString, aMediator) {
-
+      nsASXULWindowEnumerator(aTypeString, aMediator)
+{
   mCurrentPosition = aMediator.mTopmostWindow ?
-                     aMediator.mTopmostWindow->mHigher : 0;
+                     aMediator.mTopmostWindow->mHigher : nsnull;
   AdjustInitialPosition();
 }
 
@@ -527,15 +521,15 @@ nsASXULWindowBackToFrontEnumerator::~nsASXULWindowBackToFrontEnumerator()
 {
 }
 
-nsWindowInfo *nsASXULWindowBackToFrontEnumerator::FindNext() {
-
+nsWindowInfo *nsASXULWindowBackToFrontEnumerator::FindNext()
+{
   nsWindowInfo *info,
                *listEnd;
   PRBool        allWindows = mType.IsEmpty();
 
   
   if (!mCurrentPosition)
-    return 0;
+    return nsnull;
 
   info = mCurrentPosition->mHigher;
   listEnd = mWindowMediator->mTopmostWindow;
@@ -548,6 +542,5 @@ nsWindowInfo *nsASXULWindowBackToFrontEnumerator::FindNext() {
     info = info->mHigher;
   }
 
-  return 0;
+  return nsnull;
 }
-
