@@ -185,6 +185,8 @@ AllowedToAct(JSContext *cx, jsval idval)
     
     
     fp = nsnull;
+  } else if (!fp->script) {
+    fp = nsnull;
   }
 
   void *annotation = fp ? JS_GetFrameAnnotation(cx, fp) : nsnull;
