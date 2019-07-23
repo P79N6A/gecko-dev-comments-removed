@@ -530,6 +530,10 @@ private:
     nsCOMPtr<nsITimer> mDragLeaveTimer;
     float              mLastMotionPressure;
 
+    
+    
+    nsSizeMode         mLastSizeMode;
+
     static PRBool      sIsDraggingOutOf;
     
     static PRBool DragInProgress(void);
