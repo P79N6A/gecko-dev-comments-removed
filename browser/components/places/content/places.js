@@ -215,12 +215,12 @@ var PlacesOrganizer = {
     
     
     
-    if (this._content.place != placeURI || !resetSearchBox)
+    if (this._content.place != placeURI || !resetSearchBox) {
       this._content.place = placeURI;
 
-    
-    
-    this.location = node.uri;
+      
+      this.location = node.uri;
+    }
 
     
     PlacesSearchBox.hideSearchUI();
