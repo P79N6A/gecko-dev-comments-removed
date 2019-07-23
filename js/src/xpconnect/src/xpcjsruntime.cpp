@@ -414,13 +414,13 @@ void XPCJSRuntime::AddXPConnectRoots(JSContext* cx,
     JSContext *iter = nsnull, *acx;
     while((acx = JS_ContextIterator(GetJSRuntime(), &iter)))
     {
-#ifndef DEBUG_CC
         
         
         
-        if(nsXPConnect::GetXPConnect()->GetRequestDepth(acx) != 0)
+        
+        if(!cb.WantAllTraces() &&
+           nsXPConnect::GetXPConnect()->GetRequestDepth(acx) != 0)
             continue;
-#endif
         cb.NoteRoot(nsIProgrammingLanguage::CPLUSPLUS, acx,
                     nsXPConnect::JSContextParticipant());
     }

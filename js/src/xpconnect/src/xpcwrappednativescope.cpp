@@ -412,11 +412,11 @@ WrappedNativeSuspecter(JSDHashTable *table, JSDHashEntryHdr *hdr,
         NS_ASSERTION(NS_IsMainThread(), 
                      "Suspecting wrapped natives from non-main thread");
 
-#ifndef DEBUG_CC
         
-        if(!JS_IsAboutToBeFinalized(closure->cx, wrapper->GetFlatJSObject()))
+        
+        if(!(closure->cb.WantAllTraces()) && 
+           !JS_IsAboutToBeFinalized(closure->cx, wrapper->GetFlatJSObject()))
             return JS_DHASH_NEXT;
-#endif
 
         closure->cb.NoteRoot(nsIProgrammingLanguage::JAVASCRIPT,
                              wrapper->GetFlatJSObject(),
