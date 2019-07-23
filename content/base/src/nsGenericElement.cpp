@@ -1536,8 +1536,8 @@ nsDOMEventRTTearoff::mCachedEventTearoff[NS_EVENT_TEAROFF_CACHE_SIZE];
 PRUint32 nsDOMEventRTTearoff::mCachedEventTearoffCount = 0;
 
 
-nsDOMEventRTTearoff::nsDOMEventRTTearoff(nsIContent *aContent)
-  : mContent(aContent)
+nsDOMEventRTTearoff::nsDOMEventRTTearoff(nsINode *aNode)
+  : mNode(aNode)
 {
 }
 
@@ -1545,13 +1545,13 @@ nsDOMEventRTTearoff::~nsDOMEventRTTearoff()
 {
 }
 
-NS_IMPL_CYCLE_COLLECTION_1(nsDOMEventRTTearoff, mContent)
+NS_IMPL_CYCLE_COLLECTION_1(nsDOMEventRTTearoff, mNode)
 
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(nsDOMEventRTTearoff)
   NS_INTERFACE_MAP_ENTRY(nsIDOMEventTarget)
   NS_INTERFACE_MAP_ENTRY(nsIDOM3EventTarget)
   NS_INTERFACE_MAP_ENTRY(nsIDOMNSEventTarget)
-NS_INTERFACE_MAP_END_AGGREGATED(mContent)
+NS_INTERFACE_MAP_END_AGGREGATED(mNode)
 
 NS_IMPL_CYCLE_COLLECTING_ADDREF_AMBIGUOUS(nsDOMEventRTTearoff,
                                           nsIDOMEventTarget)
@@ -1560,7 +1560,7 @@ NS_IMPL_CYCLE_COLLECTING_RELEASE_AMBIGUOUS_WITH_DESTROY(nsDOMEventRTTearoff,
                                                         LastRelease())
 
 nsDOMEventRTTearoff *
-nsDOMEventRTTearoff::Create(nsIContent *aContent)
+nsDOMEventRTTearoff::Create(nsINode *aNode)
 {
   if (mCachedEventTearoffCount) {
     
@@ -1569,13 +1569,13 @@ nsDOMEventRTTearoff::Create(nsIContent *aContent)
       mCachedEventTearoff[--mCachedEventTearoffCount];
 
     
-    tearoff->mContent = aContent;
+    tearoff->mNode = aNode;
 
     return tearoff;
   }
 
   
-  return new nsDOMEventRTTearoff(aContent);
+  return new nsDOMEventRTTearoff(aNode);
 }
 
 
@@ -1600,8 +1600,8 @@ nsDOMEventRTTearoff::LastRelease()
     
     
     
-    nsCOMPtr<nsIContent> kungFuDeathGrip;
-    kungFuDeathGrip.swap(mContent);
+    nsCOMPtr<nsINode> kungFuDeathGrip;
+    kungFuDeathGrip.swap(mNode);
 
     
     
@@ -1619,7 +1619,7 @@ nsDOMEventRTTearoff::GetDOM3EventTarget(nsIDOM3EventTarget **aTarget)
 {
   nsCOMPtr<nsIEventListenerManager> listener_manager;
   nsresult rv =
-    mContent->GetListenerManager(PR_TRUE, getter_AddRefs(listener_manager));
+    mNode->GetListenerManager(PR_TRUE, getter_AddRefs(listener_manager));
   NS_ENSURE_SUCCESS(rv, rv);
 
   return CallQueryInterface(listener_manager, aTarget);
@@ -1628,14 +1628,14 @@ nsDOMEventRTTearoff::GetDOM3EventTarget(nsIDOM3EventTarget **aTarget)
 NS_IMETHODIMP
 nsDOMEventRTTearoff::GetScriptTypeID(PRUint32 *aLang)
 {
-    *aLang = mContent->GetScriptTypeID();
-    return NS_OK;
+  *aLang = mNode->GetScriptTypeID();
+  return NS_OK;
 }
 
 NS_IMETHODIMP
 nsDOMEventRTTearoff::SetScriptTypeID(PRUint32 aLang)
 {
-    return mContent->SetScriptTypeID(aLang);
+  return mNode->SetScriptTypeID(aLang);
 }
 
 
@@ -1647,7 +1647,7 @@ nsDOMEventRTTearoff::AddEventListener(const nsAString& aType,
 {
   return
     AddEventListener(aType, aListener, useCapture,
-                     !nsContentUtils::IsChromeDoc(mContent->GetOwnerDoc()));
+                     !nsContentUtils::IsChromeDoc(mNode->GetOwnerDoc()));
 }
 
 NS_IMETHODIMP
@@ -1663,7 +1663,7 @@ nsDOMEventRTTearoff::DispatchEvent(nsIDOMEvent *aEvt, PRBool* _retval)
 {
   nsCOMPtr<nsIEventListenerManager> listener_manager;
   nsresult rv =
-    mContent->GetListenerManager(PR_TRUE, getter_AddRefs(listener_manager));
+    mNode->GetListenerManager(PR_TRUE, getter_AddRefs(listener_manager));
   NS_ENSURE_SUCCESS(rv, rv);
   nsCOMPtr<nsIDOMEventTarget> target = do_QueryInterface(listener_manager);
   NS_ENSURE_STATE(target);
@@ -1720,7 +1720,7 @@ nsDOMEventRTTearoff::AddEventListener(const nsAString& aType,
 {
   nsCOMPtr<nsIEventListenerManager> listener_manager;
   nsresult rv =
-    mContent->GetListenerManager(PR_TRUE, getter_AddRefs(listener_manager));
+    mNode->GetListenerManager(PR_TRUE, getter_AddRefs(listener_manager));
   NS_ENSURE_SUCCESS(rv, rv);
 
   PRInt32 flags = aUseCapture ? NS_EVENT_FLAG_CAPTURE : NS_EVENT_FLAG_BUBBLE;

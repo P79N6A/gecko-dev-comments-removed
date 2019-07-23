@@ -249,7 +249,7 @@ private:
   
   
 
-  nsDOMEventRTTearoff(nsIContent *aContent);
+  nsDOMEventRTTearoff(nsINode *aNode);
 
   static nsDOMEventRTTearoff *mCachedEventTearoff[NS_EVENT_TEAROFF_CACHE_SIZE];
   static PRUint32 mCachedEventTearoffCount;
@@ -270,7 +270,7 @@ public:
 
 
 
-  static nsDOMEventRTTearoff *Create(nsIContent *aContent);
+  static nsDOMEventRTTearoff *Create(nsINode *aNode);
 
   
 
@@ -297,7 +297,7 @@ private:
 
 
 
-  nsCOMPtr<nsIContent> mContent;
+  nsCOMPtr<nsINode> mNode;
 };
 
 
