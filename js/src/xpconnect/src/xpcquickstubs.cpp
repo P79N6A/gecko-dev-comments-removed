@@ -105,7 +105,15 @@ xpc_qsDefineQuickStubs(JSContext *cx, JSObject *proto, uintN flags,
                        PRUint32 ifacec, const nsIID **interfaces,
                        PRUint32 tableSize, const xpc_qsHashEntry *table)
 {
-    for(uint32 i = 0; i < ifacec; i++)
+    
+
+
+
+
+
+
+
+    for(uint32 i = ifacec; i-- != 0;)
     {
         const nsID &iid = *interfaces[i];
         const xpc_qsHashEntry *entry =
