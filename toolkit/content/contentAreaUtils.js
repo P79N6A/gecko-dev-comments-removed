@@ -337,7 +337,7 @@ function internalSave(aURL, aDocument, aDefaultFileName, aContentDisposition,
       
       filesFolder = file.clone();
 
-      var nameWithoutExtension = filesFolder.leafName.replace(/\.[^.]*$/, "");
+      var nameWithoutExtension = getFileBaseName(filesFolder.leafName);
       var filesFolderLeafName = getStringBundle().formatStringFromName("filesFolder",
                                                                        [nameWithoutExtension],
                                                                        1);
@@ -441,7 +441,7 @@ function initFileInfo(aFI, aURL, aURLCharset, aDocument,
       aFI.fileBaseName = aFI.fileName;
     } else {
       aFI.fileExt = getDefaultExtension(aFI.fileName, aFI.uri, aContentType);
-      aFI.fileBaseName = getFileBaseName(aFI.fileName, aFI.fileExt);
+      aFI.fileBaseName = getFileBaseName(aFI.fileName);
     }
   } catch (e) {
   }
@@ -710,7 +710,7 @@ function getMIMEService()
 }
 
 
-function getFileBaseName(aFileName, aFileExt)
+function getFileBaseName(aFileName)
 {
   
   return aFileName.replace(/\.[^.]*$/, "");
