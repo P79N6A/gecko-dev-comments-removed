@@ -451,31 +451,6 @@ typedef uintptr_t JSUword;
 #define JS_BITS_PER_WORD (JS_BITS_PER_BYTE * JS_BYTES_PER_WORD)
 #define JS_BITS_PER_DOUBLE (JS_BITS_PER_BYTE * JS_BYTES_PER_DOUBLE)
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#ifdef __GNUC__
-# define JS_FUNC_TO_DATA_PTR(type, fun) (__extension__ (type) (fun))
-# define JS_DATA_TO_FUNC_PTR(type, ptr) (__extension__ (type) (ptr))
-#else
-
-# define JS_FUNC_TO_DATA_PTR(type, fun) ((type) (void *) (fun))
-# define JS_DATA_TO_FUNC_PTR(type, ptr) ((type) (void *) (ptr))
-#endif
-
 JS_END_EXTERN_C
 
 #endif 

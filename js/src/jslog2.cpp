@@ -62,18 +62,10 @@ JS_PUBLIC_API(JSIntn) JS_FloorLog2(JSUint32 n)
     return log2;
 }
 
-#if JS_BYTES_PER_WORD == 8
-# ifdef JS_HAS_BUILTIN_BITSCAN64
 
 
 
-
-JS_STATIC_ASSERT(sizeof(unsigned long long) == sizeof(JSUword));
-
-# else
-
-
-
+#if !defined(JS_HAS_BUILTIN_BITSCAN64) && JS_BYTES_PER_WORD == 8
 
 JSUword
 js_FloorLog2wImpl(JSUword n)
@@ -98,5 +90,4 @@ js_FloorLog2wImpl(JSUword n)
     return log2;
 }
 
-# endif
 #endif
