@@ -1257,8 +1257,10 @@ array_sort(JSContext *cx, uintN argc, jsval *vp)
 
 
 
-            for (i = 0; i < newlen; i++)
+            i = 0;
+            do {
                 vec[i] = vec[2 * i + 1];
+            } while (++i != newlen);
         }
     } else {
         void *mark;
