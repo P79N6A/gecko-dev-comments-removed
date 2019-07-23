@@ -333,7 +333,6 @@ function flush_main_thread_events()
 
 
 let randomFailingSyncTests = [
-  "test_browserGlue_smartBookmarks.js",
 ];
 let currentTestFilename = do_get_file(_TEST_FILE[0], true).leafName;
 if (randomFailingSyncTests.indexOf(currentTestFilename) != -1) {
