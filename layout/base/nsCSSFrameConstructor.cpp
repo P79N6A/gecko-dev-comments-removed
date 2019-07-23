@@ -8494,7 +8494,7 @@ nsCSSFrameConstructor::ContentAppended(nsIContent*     aContainer,
 
   
   if (haveFirstLetterStyle) {
-    RecoverLetterFrames(state, containingBlock);
+    RecoverLetterFrames(containingBlock);
   }
 
 #ifdef DEBUG
@@ -8935,7 +8935,7 @@ nsCSSFrameConstructor::ContentInserted(nsIContent*            aContainer,
   if (haveFirstLetterStyle) {
     
     
-    RecoverLetterFrames(state, state.mFloatedItems.containingBlock);
+    RecoverLetterFrames(state.mFloatedItems.containingBlock);
   }
 
 #ifdef DEBUG
@@ -9379,7 +9379,7 @@ nsCSSFrameConstructor::ContentRemoved(nsIContent* aContainer,
       nsFrameConstructorState state(mPresShell, mFixedContainingBlock,
                                     GetAbsoluteContainingBlock(parentFrame),
                                     containingBlock);
-      RecoverLetterFrames(state, containingBlock);
+      RecoverLetterFrames(containingBlock);
     }
 
 #ifdef DEBUG
@@ -9678,7 +9678,7 @@ nsCSSFrameConstructor::CharacterDataChanged(nsIContent* aContent,
       nsFrameConstructorState state(mPresShell, mFixedContainingBlock,
                                     GetAbsoluteContainingBlock(frame),
                                     block, nsnull);
-      RecoverLetterFrames(state, block);
+      RecoverLetterFrames(block);
     }
   }
 
@@ -11254,7 +11254,7 @@ nsCSSFrameConstructor::ProcessChildren(nsFrameConstructorState& aState,
                "can't be both block and box");
 
   if (haveFirstLetterStyle) {
-    rv = WrapFramesInFirstLetterFrame(aState, aContent, aFrame, aFrameItems);
+    rv = WrapFramesInFirstLetterFrame(aContent, aFrame, aFrameItems);
   }
   if (haveFirstLineStyle) {
     rv = WrapFramesInFirstLineFrame(aState, aContent, aFrame, aFrameItems);
@@ -11306,6 +11306,13 @@ nsCSSFrameConstructor::ProcessChildren(nsFrameConstructorState& aState,
 
   return rv;
 }
+
+
+
+
+
+
+
 
 
 
@@ -11779,8 +11786,7 @@ nsCSSFrameConstructor::CreateFloatingLetterFrame(
 
 
 nsresult
-nsCSSFrameConstructor::CreateLetterFrame(nsFrameConstructorState& aState,
-                                         nsIFrame* aBlockFrame,
+nsCSSFrameConstructor::CreateLetterFrame(nsIFrame* aBlockFrame,
                                          nsIContent* aTextContent,
                                          nsIFrame* aParentFrame,
                                          nsFrameItems& aResult)
@@ -11795,13 +11801,10 @@ nsCSSFrameConstructor::CreateLetterFrame(nsFrameConstructorState& aState,
     nsFrame::CorrectStyleParentFrame(aParentFrame,
                                      nsCSSPseudoElements::firstLetter)->
       GetStyleContext();
-  
-  
-  nsIContent* blockContent =
-    aState.mFloatedItems.containingBlock->GetContent();
 
-  NS_ASSERTION(blockContent == aBlockFrame->GetContent(),
-               "Unexpected block content");
+  
+  
+  nsIContent* blockContent = aBlockFrame->GetContent();
 
   
   nsRefPtr<nsStyleContext> sc = GetFirstLetterStyle(blockContent,
@@ -11814,11 +11817,17 @@ nsCSSFrameConstructor::CreateLetterFrame(nsFrameConstructorState& aState,
     
     nsIFrame* textFrame = NS_NewTextFrame(mPresShell, textSC);
 
+    NS_ASSERTION(aBlockFrame == GetFloatContainingBlock(aParentFrame),
+                 "Containing block is confused");
+    nsFrameConstructorState state(mPresShell, mFixedContainingBlock,
+                                  GetAbsoluteContainingBlock(aParentFrame),
+                                  aBlockFrame);
+
     
     const nsStyleDisplay* display = sc->GetStyleDisplay();
     if (display->IsFloating()) {
       
-      CreateFloatingLetterFrame(aState, aBlockFrame, aTextContent, textFrame,
+      CreateFloatingLetterFrame(state, aBlockFrame, aTextContent, textFrame,
                                 blockContent, aParentFrame,
                                 sc, aResult);
     }
@@ -11833,7 +11842,7 @@ nsCSSFrameConstructor::CreateLetterFrame(nsFrameConstructorState& aState,
         nsIContent* letterContent = aTextContent->GetParent();
         letterFrame->Init(letterContent, aParentFrame, nsnull);
 
-        InitAndRestoreFrame(aState, aTextContent, letterFrame, nsnull,
+        InitAndRestoreFrame(state, aTextContent, letterFrame, nsnull,
                             textFrame);
 
         letterFrame->SetInitialChildList(nsnull, textFrame);
@@ -11848,7 +11857,6 @@ nsCSSFrameConstructor::CreateLetterFrame(nsFrameConstructorState& aState,
 
 nsresult
 nsCSSFrameConstructor::WrapFramesInFirstLetterFrame(
-  nsFrameConstructorState& aState,
   nsIContent*              aBlockContent,
   nsIFrame*                aBlockFrame,
   nsFrameItems&            aBlockFrames)
@@ -11862,7 +11870,7 @@ nsCSSFrameConstructor::WrapFramesInFirstLetterFrame(
   nsIFrame* prevFrame = nsnull;
   nsFrameItems letterFrames;
   PRBool stopLooking = PR_FALSE;
-  rv = WrapFramesInFirstLetterFrame(aState, aBlockFrame, aBlockFrame,
+  rv = WrapFramesInFirstLetterFrame(aBlockFrame, aBlockFrame,
                                     aBlockFrames.childList,
                                     &parentFrame, &textFrame, &prevFrame,
                                     letterFrames, &stopLooking);
@@ -11894,7 +11902,7 @@ nsCSSFrameConstructor::WrapFramesInFirstLetterFrame(
     }
     else {
       
-      ::DeletingFrameSubtree(aState.mFrameManager, textFrame);
+      ::DeletingFrameSubtree(mPresShell->FrameManager(), textFrame);
       parentFrame->RemoveFrame(nsnull, textFrame);
 
       
@@ -11907,7 +11915,6 @@ nsCSSFrameConstructor::WrapFramesInFirstLetterFrame(
 
 nsresult
 nsCSSFrameConstructor::WrapFramesInFirstLetterFrame(
-  nsFrameConstructorState& aState,
   nsIFrame*                aBlockFrame,
   nsIFrame*                aParentFrame,
   nsIFrame*                aParentFrameList,
@@ -11931,7 +11938,7 @@ nsCSSFrameConstructor::WrapFramesInFirstLetterFrame(
       nsIContent* textContent = frame->GetContent();
       if (IsFirstLetterContent(textContent)) {
         
-        rv = CreateLetterFrame(aState, aBlockFrame, textContent,
+        rv = CreateLetterFrame(aBlockFrame, textContent,
                                aParentFrame, aLetterFrames);
         if (NS_FAILED(rv)) {
           return rv;
@@ -11947,7 +11954,7 @@ nsCSSFrameConstructor::WrapFramesInFirstLetterFrame(
     }
     else if (IsInlineFrame(frame) && frameType != nsGkAtoms::brFrame) {
       nsIFrame* kids = frame->GetFirstChild(nsnull);
-      WrapFramesInFirstLetterFrame(aState, aBlockFrame, frame, kids,
+      WrapFramesInFirstLetterFrame(aBlockFrame, frame, kids,
                                    aModifiedParent, aTextFrame,
                                    aPrevFrame, aLetterFrames, aStopLooking);
       if (*aStopLooking) {
@@ -12177,8 +12184,7 @@ nsCSSFrameConstructor::RemoveLetterFrames(nsPresContext* aPresContext,
 
 
 nsresult
-nsCSSFrameConstructor::RecoverLetterFrames(nsFrameConstructorState& aState,
-                                           nsIFrame* aBlockFrame)
+nsCSSFrameConstructor::RecoverLetterFrames(nsIFrame* aBlockFrame)
 {
   aBlockFrame = aBlockFrame->GetFirstContinuation();
   
@@ -12191,7 +12197,7 @@ nsCSSFrameConstructor::RecoverLetterFrames(nsFrameConstructorState& aState,
   do {
     
     aBlockFrame->AddStateBits(NS_BLOCK_HAS_FIRST_LETTER_STYLE);
-    rv = WrapFramesInFirstLetterFrame(aState, aBlockFrame, aBlockFrame,
+    rv = WrapFramesInFirstLetterFrame(aBlockFrame, aBlockFrame,
                                       aBlockFrame->GetFirstChild(nsnull),
                                       &parentFrame, &textFrame, &prevFrame,
                                       letterFrames, &stopLooking);
@@ -12206,7 +12212,7 @@ nsCSSFrameConstructor::RecoverLetterFrames(nsFrameConstructorState& aState,
 
   if (parentFrame) {
     
-    ::DeletingFrameSubtree(aState.mFrameManager, textFrame);
+    ::DeletingFrameSubtree(mPresShell->FrameManager(), textFrame);
     parentFrame->RemoveFrame(nsnull, textFrame);
 
     
