@@ -253,6 +253,14 @@ NS_IMPL_BOOL_ATTR(nsHTMLMediaElement, Controls, controls)
 NS_IMPL_BOOL_ATTR(nsHTMLMediaElement, Autoplay, autoplay)
 
 
+NS_IMETHODIMP nsHTMLMediaElement::GetMozAutoplayEnabled(PRBool *aAutoplayEnabled)
+{
+  *aAutoplayEnabled = mAutoplayEnabled;
+
+  return NS_OK;
+}
+
+
 NS_IMETHODIMP nsHTMLMediaElement::GetError(nsIDOMHTMLMediaError * *aError)
 {
   NS_IF_ADDREF(*aError = mError);
@@ -619,6 +627,7 @@ nsHTMLMediaElement::nsHTMLMediaElement(nsINodeInfo *aNodeInfo, PRBool aFromParse
     mBegun(PR_FALSE),
     mLoadedFirstFrame(PR_FALSE),
     mAutoplaying(PR_TRUE),
+    mAutoplayEnabled(PR_TRUE),
     mPaused(PR_TRUE),
     mMuted(PR_FALSE),
     mIsDoneAddingChildren(!aFromParser),
@@ -720,11 +729,17 @@ nsresult nsHTMLMediaElement::SetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
   return rv;
 }
 
+static PRBool IsAutoplayEnabled()
+{
+  return nsContentUtils::GetBoolPref("media.autoplay.enabled");
+}
+
 nsresult nsHTMLMediaElement::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
                                         nsIContent* aBindingParent,
                                         PRBool aCompileEventHandlers)
 {
   mIsBindingToTree = PR_TRUE;
+  mAutoplayEnabled = IsAutoplayEnabled();
   nsresult rv = nsGenericHTMLElement::BindToTree(aDocument, 
                                                  aParent, 
                                                  aBindingParent, 
@@ -1291,7 +1306,8 @@ void nsHTMLMediaElement::ChangeReadyState(nsMediaReadyState aState)
       }
       if (mAutoplaying &&
           mPaused &&
-          HasAttr(kNameSpaceID_None, nsGkAtoms::autoplay)) {
+          HasAttr(kNameSpaceID_None, nsGkAtoms::autoplay) &&
+          mAutoplayEnabled) {
         mPaused = PR_FALSE;
         if (mDecoder) {
           mDecoder->Play();

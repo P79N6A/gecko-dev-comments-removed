@@ -144,6 +144,9 @@ pref("media.wave.enabled", true);
 #endif
 
 
+pref("media.autoplay.enabled", true);
+
+
 
 pref("gfx.color_management.mode", 2);
 pref("gfx.color_management.display_profile", "");

@@ -339,6 +339,10 @@ protected:
 
   
   
+  PRPackedBool mAutoplayEnabled;
+
+  
+  
   PRPackedBool mPaused;
 
   
