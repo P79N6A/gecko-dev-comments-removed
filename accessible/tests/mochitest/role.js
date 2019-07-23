@@ -1,12 +1,34 @@
-function testRole(aID, aRole)
-{
-  var acc = getAccessible(aID);
-  if (!acc)
-    return;
 
+
+
+
+
+
+
+function getRole(aAccOrElmOrID)
+{
+  var acc = getAccessible(aAccOrElmOrID);
+  if (!acc)
+    return -1;
+
+  var role = -1;
   try {
-    is(acc.finalRole, aRole, "Wrong role for " + aID + "!");
+    role = acc.finalRole;
   } catch(e) {
-    ok(false, "Error getting role for " + aID + "!");
+    ok(false, "Role for " + aAccOrElmOrID + " could not be retrieved!");
   }
+
+  return role;
+}
+
+
+
+
+
+
+
+function testRole(aAccOrElmOrID, aRole)
+{
+  var role = getRole(aAccOrElmOrID);
+  is(role, aRole, "Wrong role for " + aAccOrElmOrID + "!");
 }

@@ -1,3 +1,15 @@
+
+
+
+
+
+
+
+
+
+
+
+
 function testStates(aAccOrElmOrID, aState, aExtraState, aAbsentState,
                     aAbsentExtraState)
 {
@@ -37,6 +49,48 @@ function testStates(aAccOrElmOrID, aState, aExtraState, aAbsentState,
   if (state & STATE_EXPANDED)
     is(state & STATE_COLLAPSED, 0,
        "Expanded " + aAccOrElmOrID + " cannot be collapsed!");
+
+  if ((state & STATE_UNAVAILABLE)
+      && (getRole(aAccOrElmOrID) != ROLE_GROUPING))
+    is(state & STATE_FOCUSABLE, STATE_FOCUSABLE,
+       "Disabled " + aAccOrElmOrID + " must be focusable!");
+}
+
+
+
+
+
+
+
+
+
+
+
+function testStatesInSubtree(aAccOrElmOrID, aState, aExtraState, aAbsentState)
+{
+  
+  var acc = getAccessible(aAccOrElmOrID);
+  if (!acc)
+    return;
+
+  if (acc.finalRole != ROLE_TEXT_LEAF)
+    
+    
+    testStates(acc, aState, aExtraState, aAbsentState);
+
+  
+  var children = null;
+  try {
+    children = acc.children;
+  } catch(e) {}
+  ok(children, "Could not get children for " + aAccOrElmOrID +"!");
+
+  if (children) {
+    for (var i = 0; i < children.length; i++) {
+      var childAcc = children.queryElementAt(i, nsIAccessible);
+      testStatesInSubtree(childAcc, aState, aExtraState, aAbsentState);
+    }
+  }
 }
 
 function getStringStates(aAccOrElmOrID)
