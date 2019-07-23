@@ -110,6 +110,7 @@ nsMenuPopupFrame::nsMenuPopupFrame(nsIPresShell* aShell, nsStyleContext* aContex
   mPopupState(ePopupClosed),
   mIsOpenChanged(PR_FALSE),
   mIsContextMenu(PR_FALSE),
+  mAdjustOffsetForContextMenu(PR_FALSE),
   mGeneratedChildren(PR_FALSE),
   mMenuCanOverlapOSBar(PR_FALSE),
   mShouldAutoPosition(PR_TRUE),
@@ -381,6 +382,7 @@ nsMenuPopupFrame::InitializePopup(nsIContent* aAnchorContent,
   mAnchorContent = aAnchorContent;
   mXPos = aXPos;
   mYPos = aYPos;
+  mAdjustOffsetForContextMenu = PR_FALSE;
 
   
   
@@ -476,7 +478,8 @@ nsMenuPopupFrame::InitializePopup(nsIContent* aAnchorContent,
 }
 
 void
-nsMenuPopupFrame::InitializePopupAtScreen(PRInt32 aXPos, PRInt32 aYPos)
+nsMenuPopupFrame::InitializePopupAtScreen(PRInt32 aXPos, PRInt32 aYPos,
+                                          PRBool aIsContextMenu)
 {
   EnsureWidget();
 
@@ -486,6 +489,8 @@ nsMenuPopupFrame::InitializePopupAtScreen(PRInt32 aXPos, PRInt32 aYPos)
   mScreenYPos = aYPos;
   mPopupAnchor = POPUPALIGNMENT_NONE;
   mPopupAlignment = POPUPALIGNMENT_NONE;
+  mIsContextMenu = aIsContextMenu;
+  mAdjustOffsetForContextMenu = aIsContextMenu;
 }
 
 void
@@ -497,6 +502,7 @@ nsMenuPopupFrame::InitializePopupWithAnchorAlign(nsIContent* aAnchorContent,
   EnsureWidget();
 
   mPopupState = ePopupShowing;
+  mAdjustOffsetForContextMenu = PR_FALSE;
 
   
   
@@ -947,6 +953,7 @@ nsMenuPopupFrame::SetPopupPosition(nsIFrame* aAnchorFrame)
   nsRect rootScreenRect = rootFrame->GetScreenRect();
 
   nsIDeviceContext* devContext = PresContext()->DeviceContext();
+  nscoord offsetForContextMenu = 0;
   if (mScreenXPos == -1 && mScreenYPos == -1) {
     
     
@@ -986,11 +993,19 @@ nsMenuPopupFrame::SetPopupPosition(nsIFrame* aAnchorFrame)
     screenViewLocX = nsPresContext::CSSPixelsToAppUnits(mScreenXPos) / factor;
     screenViewLocY = nsPresContext::CSSPixelsToAppUnits(mScreenYPos) / factor;
 
+    if (mAdjustOffsetForContextMenu) {
+      PRInt32 offsetForContextMenuDev =
+        nsPresContext::CSSPixelsToAppUnits(2) / factor;
+      offsetForContextMenu = presContext->DevPixelsToAppUnits(offsetForContextMenuDev);
+    }
+
     
     
     GetStyleMargin()->GetMargin(margin);
-    screenViewLocX = presContext->DevPixelsToAppUnits(screenViewLocX) + margin.left;
-    screenViewLocY = presContext->DevPixelsToAppUnits(screenViewLocY) + margin.top;
+    screenViewLocX = presContext->DevPixelsToAppUnits(screenViewLocX) +
+        margin.left + offsetForContextMenu;
+    screenViewLocY = presContext->DevPixelsToAppUnits(screenViewLocY) +
+        margin.top + offsetForContextMenu;
 
     
     
@@ -1213,6 +1228,9 @@ nsMenuPopupFrame::SetPopupPosition(nsIFrame* aAnchorFrame)
       } else {
         
         
+        
+        screenViewLocY -= 2*offsetForContextMenu;
+        ypos -= 2*offsetForContextMenu;
         if (mRect.height > screenViewLocY - screenTopTwips) {
           
           mRect.height = screenViewLocY - screenTopTwips;

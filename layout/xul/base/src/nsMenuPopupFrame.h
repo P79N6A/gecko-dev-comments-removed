@@ -228,7 +228,13 @@ public:
                        PRInt32 aXPos, PRInt32 aYPos,
                        PRBool aAttributesOverride);
 
-  void InitializePopupAtScreen(PRInt32 aXPos, PRInt32 aYPos);
+  
+
+
+
+
+  void InitializePopupAtScreen(PRInt32 aXPos, PRInt32 aYPos,
+                               PRBool aIsContextMenu);
 
   void InitializePopupWithAnchorAlign(nsIContent* aAnchorContent,
                                       nsAString& aAnchor,
@@ -327,6 +333,8 @@ protected:
 
   PRPackedBool mIsOpenChanged; 
   PRPackedBool mIsContextMenu; 
+  
+  PRPackedBool mAdjustOffsetForContextMenu;
   PRPackedBool mGeneratedChildren; 
 
   PRPackedBool mMenuCanOverlapOSBar;    

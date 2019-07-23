@@ -423,6 +423,10 @@ public:
 
 
 
+
+
+
+
   void ShowPopupAtScreen(nsIContent* aPopup,
                          PRInt32 aXPos, PRInt32 aYPos,
                          PRBool aIsContextMenu,
