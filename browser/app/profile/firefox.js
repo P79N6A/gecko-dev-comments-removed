@@ -885,6 +885,9 @@ pref("content.sink.interactive_time", 750000);
 pref("content.sink.initial_perf_time", 500000); 
 pref("content.sink.enable_perf_mode", 0); 
 
+
+pref("browser.sessionstore.interval", 60000);
+
 #endif 
 
 
