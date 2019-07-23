@@ -3355,8 +3355,6 @@ function BrowserToolboxCustomizeDone(aToolboxChanged) {
 
   CombinedStopReload.init();
 
-  gHomeButton.updatePersonalToolbarStyle();
-
   
   if (gURLBar) {
     URLBarSetURI();
@@ -3380,11 +3378,12 @@ function BrowserToolboxCustomizeDone(aToolboxChanged) {
   
   if (!gCustomizeSheet)
     window.focus();
-
 }
 
 function BrowserToolboxCustomizeChange() {
   gHomeButton.updatePersonalToolbarStyle();
+
+  allTabs.readPref();
 }
 
 
