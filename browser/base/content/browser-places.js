@@ -54,11 +54,47 @@ var PlacesCommandHook = {
   },
 
   
-  handleEvent: function PCH_handleEvent(aEvent) {
-    if (aEvent.originalTarget != this.panel)
-      return;
+  _blockedCommands: ["cmd_close", "cmd_closeWindow"],
 
-    gEditItemOverlay.uninitPanel(true);
+  _blockCommands: function PCH__blockCommands() {
+    for each(var key in this._blockedCommands) {
+      var elt = document.getElementById(key);
+      if (elt.getAttribute("disabled") == "true")
+        elt.setAttribute("wasDisabled", "true");
+      else {
+        elt.setAttribute("wasDisabled", "false");
+        elt.setAttribute("disabled", "true");
+      }
+    }
+  },
+
+  _restoreCommandsState: function PCH__restoreCommandsState() {
+    for each(var key in this._blockedCommands) {
+      var elt = document.getElementById(key);
+      if (elt.getAttribute("wasDisabled") != "true")
+        elt.removeAttribute("disabled");
+      elt.removeAttribute("wasDisabled");
+    }
+  },
+
+  
+  handleEvent: function PCH_handleEvent(aEvent) {
+    switch (aEvent.type) {
+      case "popuphiding":
+        if (aEvent.originalTarget == this.panel) {
+          gEditItemOverlay.uninitPanel(true);
+          this._restoreCommandsState();
+        }
+        break;
+      case "keypress":
+        if (aEvent.keyCode == KeyEvent.DOM_VK_ESCAPE ||
+            aEvent.keyCode == KeyEvent.DOM_VK_RETURN) {
+          
+          window.content.focus();
+          this.panel.hidePopup();
+        }
+        break;
+    }
   },
 
   _overlayLoaded: false,
@@ -98,10 +134,17 @@ var PlacesCommandHook = {
 
   _doShowEditBookmarkPanel:
   function PCH__doShowEditBookmarkPanel(aItemId, aAnchorElement, aPosition) {
+    this.panel.addEventListener("keypress", this, true);
+    this._blockCommands(); 
     this.panel.openPopup(aAnchorElement, aPosition, -1, -1);
 
     gEditItemOverlay.initPanel(aItemId,
                                { hiddenRows: ["description", "location"] });
+    setTimeout(function() {
+                 var namePicker = document.getElementById("editBMPanel_namePicker");
+                 namePicker.focus();
+                 namePicker.editor.selectAll();
+              }, 0);
   },
 
   
