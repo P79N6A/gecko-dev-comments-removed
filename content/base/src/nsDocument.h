@@ -184,7 +184,7 @@ class nsUint32ToContentHashEntry : public PLDHashEntryHdr
     PRBool IsEmpty() { return mValOrHash == nsnull; }
 
   private:
-    typedef unsigned long PtrBits;
+    typedef PRUptrdiff PtrBits;
     typedef nsTHashtable<nsISupportsHashKey> HashSet;
     
     HashSet* GetHashSet()

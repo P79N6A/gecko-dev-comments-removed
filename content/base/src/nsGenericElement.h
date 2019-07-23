@@ -84,7 +84,7 @@ class nsIScrollableView;
 class nsContentList;
 struct nsRect;
 
-typedef unsigned long PtrBits;
+typedef PRUptrdiff PtrBits;
 
 
 
