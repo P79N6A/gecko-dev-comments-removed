@@ -54,6 +54,7 @@ import time
 
 import ffprocess
 import ffprofile
+import ffinfo
 import config
 
 
@@ -134,6 +135,7 @@ def RunStartupTests(profile_configs, num_runs):
     
     
     ffprofile.InitializeNewProfile(config[2], profile_dir)
+    ffinfo.GetMetricsFromBrowser(config[2], profile_dir)
 
     
     times = RunStartupTest(config[2], profile_dir, 5, 10)

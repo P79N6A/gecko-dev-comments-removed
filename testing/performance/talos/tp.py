@@ -57,6 +57,7 @@ import sys
 
 import ffprocess
 import ffprofile
+import ffinfo
 import config
 
 if config.OS == "linux":
@@ -116,6 +117,7 @@ def RunPltTests(profile_configs,
     
     
     ffprofile.InitializeNewProfile(pconfig[2], profile_dir)
+    ffinfo.GetMetricsFromBrowser(pconfig[2], profile_dir)
     print "initialized firefox"
     sys.stdout.flush()
     ffprocess.SyncAndSleep()
