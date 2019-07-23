@@ -3526,7 +3526,10 @@ PlacesSQLQueryBuilder::SelectAsDay()
         
         tm.tm_mday = 1;
         tm.tm_month -= MonthIndex;
-        PR_NormalizeTime(&tm, PR_LocalTimeParameters);
+        
+        
+        
+        PR_NormalizeTime(&tm, PR_GMTParameters);
         
         history->GetMonthName(tm.tm_month+1, dateName);
 
