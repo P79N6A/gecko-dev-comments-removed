@@ -66,12 +66,7 @@ public:
   }
 
   
-  static nsCSSFontDesc LookupFontDesc(const nsAString& aProperty);
-  static nsCSSFontDesc LookupFontDesc(const nsACString& aProperty);
-
-  
   static const nsAFlatCString& GetStringValue(nsCSSProperty aProperty);
-  static const nsAFlatCString& GetStringValue(nsCSSFontDesc aFontDesc);
 
   
   

@@ -45,13 +45,12 @@
 
 #include "nsCSSRule.h"
 #include "nsICSSGroupRule.h"
+#include "nsCOMPtr.h"
+#include "nsAutoPtr.h"
+#include "nsCOMArray.h"
 #include "nsIDOMCSSMediaRule.h"
 #include "nsIDOMCSSMozDocumentRule.h"
-#include "nsIDOMCSSFontFaceRule.h"
-#include "nsIDOMCSSStyleDeclaration.h"
-#include "nsAutoPtr.h"
-#include "nsCSSProperty.h"
-#include "nsCSSValue.h"
+#include "nsString.h"
 
 class CSSGroupRuleRuleListImpl;
 class nsMediaList;
@@ -143,7 +142,7 @@ public:
   nsresult SetMedia(nsMediaList* aMedia);
   
 protected:
-  nsRefPtr<nsMediaList> mMedia;
+  nsCOMPtr<nsMediaList> mMedia;
 };
 
 class nsCSSDocumentRule : public nsCSSGroupRule,
@@ -202,81 +201,5 @@ protected:
   nsAutoPtr<URL> mURLs; 
 };
 
-
-class nsCSSFontFaceRule;
-class nsCSSFontFaceStyleDecl : public nsIDOMCSSStyleDeclaration
-{
-public:
-  NS_DECL_ISUPPORTS
-  NS_DECL_NSIDOMCSSSTYLEDECLARATION
-
-  nsresult GetPropertyValue(nsCSSFontDesc aFontDescID,
-                            nsAString & aResult NS_OUTPARAM) const;
-
-protected:
-  friend class nsCSSFontFaceRule;
-  nsCSSValue mFamily;
-  nsCSSValue mStyle;
-  nsCSSValue mWeight;
-  nsCSSValue mStretch;
-  nsCSSValue mSrc;
-  nsCSSValue mUnicodeRange;
-
-  static nsCSSValue nsCSSFontFaceStyleDecl::* const Fields[];  
-  inline nsCSSFontFaceRule* ContainingRule();
-  inline const nsCSSFontFaceRule* ContainingRule() const;
-
-private:
-  
-  
-  
-  void* operator new(size_t size) CPP_THROW_NEW;
-};
-
-class nsCSSFontFaceRule : public nsCSSRule,
-                          public nsICSSRule,
-                          public nsIDOMCSSFontFaceRule
-{
-public:
-  NS_DECL_ISUPPORTS_INHERITED
-
-  
-#ifdef DEBUG
-  NS_IMETHOD List(FILE* out = stdout, PRInt32 aIndent = 0) const;
-#endif
-
-  
-  DECL_STYLE_RULE_INHERIT
-
-  NS_IMETHOD GetType(PRInt32& aType) const;
-  NS_IMETHOD Clone(nsICSSRule*& aClone) const;
-
-  
-  NS_DECL_NSIDOMCSSRULE
-
-  
-  NS_DECL_NSIDOMCSSFONTFACERULE
-
-  void SetDesc(nsCSSFontDesc aDescID, nsCSSValue const & aValue);
-  void GetDesc(nsCSSFontDesc aDescID, nsCSSValue & aValue);
-
-protected:
-  friend class nsCSSFontFaceStyleDecl;
-  nsCSSFontFaceStyleDecl mDecl;
-};
-
-inline nsCSSFontFaceRule*
-nsCSSFontFaceStyleDecl::ContainingRule()
-{
-  return reinterpret_cast<nsCSSFontFaceRule*>
-    (reinterpret_cast<char*>(this) - offsetof(nsCSSFontFaceRule, mDecl));
-}
-
-inline const nsCSSFontFaceRule*
-nsCSSFontFaceStyleDecl::ContainingRule() const
-{
-  return reinterpret_cast<const nsCSSFontFaceRule*>
-    (reinterpret_cast<const char*>(this) - offsetof(nsCSSFontFaceRule, mDecl));
-}
 
 #endif 

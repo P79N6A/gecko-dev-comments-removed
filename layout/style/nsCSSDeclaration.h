@@ -150,11 +150,6 @@ public:
   void List(FILE* out = stdout, PRInt32 aIndent = 0) const;
 #endif
   
-  
-  static PRBool AppendCSSValueToString(nsCSSProperty aProperty,
-                                       const nsCSSValue& aValue,
-                                       nsAString& aResult);
-
 private:
   
   nsCSSDeclaration& operator=(const nsCSSDeclaration& aCopy);
@@ -163,6 +158,13 @@ private:
   static void AppendImportanceToString(PRBool aIsImportant, nsAString& aString);
   
   PRBool   AppendValueToString(nsCSSProperty aProperty, nsAString& aResult) const;
+public:
+  
+  static PRBool AppendCSSValueToString(nsCSSProperty aProperty,
+                                       const nsCSSValue& aValue,
+                                       nsAString& aResult);
+
+private:
   
   nsresult GetValueOrImportantValue(nsCSSProperty aProperty, nsCSSValue& aValue) const;
 
