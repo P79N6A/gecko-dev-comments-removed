@@ -261,8 +261,9 @@ nsHTMLContainerFrame::GetTextDecorations(nsPresContext* aPresContext,
 
       nsStyleContext* styleContext = frame->GetStyleContext();
       const nsStyleDisplay* styleDisplay = styleContext->GetStyleDisplay();
-      if (!styleDisplay->IsBlockOutside() &&
-          styleDisplay->mDisplay != NS_STYLE_DISPLAY_TABLE_CELL) {
+      if (!styleDisplay->IsBlockInside() &&
+          styleDisplay->mDisplay != NS_STYLE_DISPLAY_TABLE_CELL &&
+          styleDisplay->mDisplay != NS_STYLE_DISPLAY_TABLE_CAPTION) {
         
         
         
