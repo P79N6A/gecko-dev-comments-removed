@@ -286,7 +286,6 @@ nsEscapeHTML(const char * string)
 NS_IMPL_ISUPPORTS1(nsPlacesImportExportService, nsIPlacesImportExportService)
 
 nsPlacesImportExportService::nsPlacesImportExportService()
-  : mPlacesRoot(0), mBookmarksRoot(0), mToolbarFolder(0)
 {
   nsresult rv;
   mHistoryService = do_GetService(NS_NAVHISTORYSERVICE_CONTRACTID, &rv);
@@ -301,10 +300,6 @@ nsPlacesImportExportService::nsPlacesImportExportService()
   NS_WARN_IF_FALSE(NS_SUCCEEDED(rv), "could not get livemark service");
   mMicrosummaryService = do_GetService("@mozilla.org/microsummary/service;1", &rv);
   NS_WARN_IF_FALSE(NS_SUCCEEDED(rv), "could not get microsummary service");
-
-  mBookmarksService->GetPlacesRoot(&mPlacesRoot);
-  mBookmarksService->GetBookmarksRoot(&mBookmarksRoot);
-  mBookmarksService->GetToolbarFolder(&mToolbarFolder);
 }
 
 nsPlacesImportExportService::~nsPlacesImportExportService()
@@ -635,9 +630,11 @@ BookmarkContentSink::HandleHead1Begin(const nsIParserNode& node)
                    "This can only be set at the beginning.");
         return;
       }
-      PRInt64 mPlacesRoot;
-      mBookmarksService->GetPlacesRoot(&mPlacesRoot);
-      CurFrame().mContainerID = mPlacesRoot;
+
+      PRInt64 placesRoot;
+      nsresult rv = mBookmarksService->GetPlacesRoot(&placesRoot);
+      NS_WARN_IF_FALSE(NS_SUCCEEDED(rv), "could not get placesRoot");
+      CurFrame().mContainerID = placesRoot;
       break;
     }
   }
@@ -1106,10 +1103,10 @@ BookmarkContentSink::NewFrame()
         break;
       case BookmarkImportFrame::Container_Toolbar:
         
-        PRInt64 bookmarkToolbarFolder;
-        rv = mBookmarksService->GetToolbarFolder(&bookmarkToolbarFolder);
+        PRInt64 toolbarFolder;
+        rv = mBookmarksService->GetToolbarFolder(&toolbarFolder);
         NS_ENSURE_SUCCESS(rv, rv);
-        if (!bookmarkToolbarFolder) {
+        if (!toolbarFolder) {
           
           rv = mBookmarksService->CreateFolder(CurFrame().mContainerID,
                                               containerName,
@@ -1120,7 +1117,7 @@ BookmarkContentSink::NewFrame()
           NS_ENSURE_SUCCESS(rv, rv);
         }
         else {
-          ourID = bookmarkToolbarFolder;
+          ourID = toolbarFolder;
         }
         break;
       default:
@@ -1540,14 +1537,26 @@ nsPlacesImportExportService::WriteContainerHeader(PRInt64 aFolder, const nsACStr
   rv = aOutput->Write(kContainerIntro, sizeof(kContainerIntro)-1, &dummy);
   NS_ENSURE_SUCCESS(rv, rv);
 
+  PRInt64 placesRoot;
+  rv = mBookmarksService->GetPlacesRoot(&placesRoot);
+  NS_ENSURE_SUCCESS(rv,rv);
+
+  PRInt64 bookmarksRoot;
+  rv = mBookmarksService->GetBookmarksRoot(&bookmarksRoot);
+  NS_ENSURE_SUCCESS(rv,rv);
+
+  PRInt64 toolbarFolder;
+  rv = mBookmarksService->GetToolbarFolder(&toolbarFolder);
+  NS_ENSURE_SUCCESS(rv,rv);
+
   
-  if (aFolder == mPlacesRoot) {
+  if (aFolder == placesRoot) {
     rv = aOutput->Write(kPlacesRootAttribute, sizeof(kPlacesRootAttribute)-1, &dummy);
     NS_ENSURE_SUCCESS(rv, rv);
-  } else if (aFolder == mBookmarksRoot) {
+  } else if (aFolder == bookmarksRoot) {
     rv = aOutput->Write(kBookmarksRootAttribute, sizeof(kBookmarksRootAttribute)-1, &dummy);
     NS_ENSURE_SUCCESS(rv, rv);
-  } else if (aFolder == mToolbarFolder) {
+  } else if (aFolder == toolbarFolder) {
     rv = aOutput->Write(kToolbarFolderAttribute, sizeof(kToolbarFolderAttribute)-1, &dummy);
     NS_ENSURE_SUCCESS(rv, rv);
   }
@@ -2018,6 +2027,18 @@ nsPlacesImportExportService::WriteContainerContents(PRInt64 aFolder, const nsACS
   rv = rootNode->SetContainerOpen(PR_TRUE);
   NS_ENSURE_SUCCESS(rv, rv);
 
+  PRInt64 placesRoot;
+  rv = mBookmarksService->GetPlacesRoot(&placesRoot);
+  NS_ENSURE_SUCCESS(rv,rv);
+
+  PRInt64 bookmarksRoot;
+  rv = mBookmarksService->GetBookmarksRoot(&bookmarksRoot);
+  NS_ENSURE_SUCCESS(rv,rv);
+
+  PRInt64 toolbarFolder;
+  rv = mBookmarksService->GetToolbarFolder(&toolbarFolder);
+  NS_ENSURE_SUCCESS(rv,rv);
+
   PRUint32 childCount = 0;
   rootNode->GetChildCount(&childCount);
   for (PRUint32 i = 0; i < childCount; ++i) {
@@ -2032,8 +2053,8 @@ nsPlacesImportExportService::WriteContainerContents(PRInt64 aFolder, const nsACS
       PRInt64 folderId;
       rv = child->GetItemId(&folderId);
       NS_ENSURE_SUCCESS(rv, rv);
-      if (aFolder == mPlacesRoot && (folderId == mToolbarFolder ||
-                               folderId == mBookmarksRoot)) {
+      if (aFolder == placesRoot && (folderId == toolbarFolder ||
+                                    folderId == bookmarksRoot)) {
         
         
         
@@ -2106,7 +2127,11 @@ nsPlacesImportExportService::ImportHTMLFromFileInternal(nsILocalFile* aFile,
   mBookmarksService->BeginUpdateBatch();
 
   if (aIsImportDefaults) {
-    rv = mBookmarksService->RemoveFolderChildren(mBookmarksRoot);
+    PRInt64 bookmarksRoot;
+    rv = mBookmarksService->GetBookmarksRoot(&bookmarksRoot);
+    NS_ENSURE_SUCCESS(rv,rv);
+
+    rv = mBookmarksService->RemoveFolderChildren(bookmarksRoot);
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
@@ -2219,9 +2244,13 @@ nsPlacesImportExportService::ExportHTMLToFile(nsILocalFile* aBookmarksFile)
   rv = strm->Write(kRootIntro, sizeof(kRootIntro)-1, &dummy); 
   NS_ENSURE_SUCCESS(rv, rv);
 
+  PRInt64 bookmarksRoot;
+  rv = mBookmarksService->GetBookmarksRoot(&bookmarksRoot);
+  NS_ENSURE_SUCCESS(rv,rv);
+
   
   nsCOMPtr<nsIURI> folderURI;
-  rv = mBookmarksService->GetFolderURI(mBookmarksRoot, getter_AddRefs(folderURI));
+  rv = mBookmarksService->GetFolderURI(bookmarksRoot, getter_AddRefs(folderURI));
   NS_ENSURE_SUCCESS(rv, rv);
   nsCAutoString folderSpec;
   rv = folderURI->GetSpec(folderSpec);
@@ -2232,7 +2261,7 @@ nsPlacesImportExportService::ExportHTMLToFile(nsILocalFile* aBookmarksFile)
   
   rv = strm->Write(kCloseAngle, sizeof(kCloseAngle)-1, &dummy); 
   NS_ENSURE_SUCCESS(rv, rv);
-  rv = WriteContainerTitle(mBookmarksRoot, strm);
+  rv = WriteContainerTitle(bookmarksRoot, strm);
   NS_ENSURE_SUCCESS(rv, rv);
   rv = strm->Write(kCloseRootH1, sizeof(kCloseRootH1)-1, &dummy); 
   NS_ENSURE_SUCCESS(rv, rv);
@@ -2246,7 +2275,7 @@ nsPlacesImportExportService::ExportHTMLToFile(nsILocalFile* aBookmarksFile)
   indent.Assign(kIndent);
 
   
-  rv = WriteContainerContents(mBookmarksRoot, EmptyCString(), strm);
+  rv = WriteContainerContents(bookmarksRoot, EmptyCString(), strm);
   NS_ENSURE_SUCCESS(rv, rv);
 
   
