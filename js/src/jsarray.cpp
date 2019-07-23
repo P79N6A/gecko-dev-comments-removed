@@ -338,14 +338,47 @@ ResizeSlots(JSContext *cx, JSObject *obj, uint32 oldsize, uint32 size)
     return JS_TRUE;
 }
 
-static JSBool
-EnsureCapacity(JSContext *cx, JSObject *obj, uint32 len)
-{
-    uint32 oldlen = js_DenseArrayCapacity(obj);
 
-    if (len > oldlen) {
-        return ResizeSlots(cx, obj, oldlen,
-                           len + ARRAY_GROWBY - (len % ARRAY_GROWBY));
+
+
+
+
+
+
+#define CAPACITY_DOUBLING_MAX    (1024 * 1024)
+
+
+
+
+
+#define CAPACITY_CHUNK  (1024 * 1024 / sizeof(jsval))
+
+static JSBool
+EnsureCapacity(JSContext *cx, JSObject *obj, uint32 capacity)
+{
+    uint32 oldsize = js_DenseArrayCapacity(obj);
+
+    if (capacity > oldsize) {
+        
+
+
+
+
+
+
+
+
+
+        uint32 nextsize = (oldsize <= CAPACITY_DOUBLING_MAX)
+                          ? oldsize * 2 + 1
+                          : oldsize + (oldsize >> 3);
+
+        capacity = JS_MAX(capacity, nextsize);
+        if (capacity >= CAPACITY_CHUNK)
+            capacity = JS_ROUNDUP(capacity + 1, CAPACITY_CHUNK) - 1;  
+        else if (capacity < ARRAY_CAPACITY_MIN)
+            capacity = ARRAY_CAPACITY_MIN;
+        return ResizeSlots(cx, obj, oldsize, capacity);
     }
     return JS_TRUE;
 }
@@ -2147,7 +2180,7 @@ js_ArrayCompPush(JSContext *cx, JSObject *obj, jsval v)
             return JS_FALSE;
         }
 
-        if (!ResizeSlots(cx, obj, length, length + ARRAY_GROWBY))
+        if (!EnsureCapacity(cx, obj, length + 1))
             return JS_FALSE;
     }
     obj->fslots[JSSLOT_ARRAY_LENGTH] = length + 1;
@@ -3125,7 +3158,7 @@ JSObject* FASTCALL
 js_NewUninitializedArray(JSContext* cx, JSObject* proto, uint32 len)
 {
     JSObject *obj = js_FastNewArrayWithLength(cx, proto, len);
-    if (!obj || !ResizeSlots(cx, obj, 0, JS_MAX(len, ARRAY_GROWBY)))
+    if (!obj || !ResizeSlots(cx, obj, 0, JS_MAX(len, ARRAY_CAPACITY_MIN)))
         return NULL;
     return obj;
 }
@@ -3134,7 +3167,7 @@ js_NewUninitializedArray(JSContext* cx, JSObject* proto, uint32 len)
     JS_ASSERT(JS_ON_TRACE(cx));                                               \
     JSObject* obj = js_FastNewArray(cx, proto);                               \
     if (obj) {                                                                \
-        const uint32 len = ARRAY_GROWBY;                                      \
+        const uint32 len = ARRAY_CAPACITY_MIN;                                \
         jsval* newslots = (jsval*) JS_malloc(cx, sizeof (jsval) * (len + 1)); \
         if (newslots) {                                                       \
             obj->dslots = newslots + 1;                                       \
