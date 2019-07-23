@@ -1058,7 +1058,14 @@ public:
   virtual nsIFrame* GetLastContinuation() const {
     return const_cast<nsIFrame*>(this);
   }
+
   
+
+
+
+
+  nsIFrame* GetTailContinuation();
+
   
 
 

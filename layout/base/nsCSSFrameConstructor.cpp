@@ -8011,7 +8011,9 @@ nsCSSFrameConstructor::AppendFrames(nsFrameConstructorState&       aState,
   if (IsFrameSpecial(aParentFrame) &&
       !IsInlineFrame(aParentFrame) &&
       IsInlineOutside(aFrameList.lastChild)) {
-    NS_ASSERTION(!aParentFrame->GetNextContinuation(), "Shouldn't happen");
+    NS_ASSERTION(!aParentFrame->GetNextContinuation() ||
+                 !aParentFrame->GetNextContinuation()->GetFirstChild(nsnull),
+                 "Shouldn't happen");
     
     
     nsIFrame* lastBlock = FindLastBlock(aFrameList.childList);
@@ -8355,11 +8357,7 @@ nsCSSFrameConstructor::FindFrameForContentSibling(nsIContent* aContent,
 
     
     
-    sibling = sibling->GetLastContinuation();
-    while (sibling->GetStateBits() & NS_FRAME_IS_OVERFLOW_CONTAINER) {
-      sibling = sibling->GetPrevInFlow();
-      NS_ASSERTION(sibling, "first-in-flow can't be overflow container");
-    }
+    sibling = sibling->GetTailContinuation();
   }
 
   if (aTargetContent &&
@@ -8674,7 +8672,7 @@ nsCSSFrameConstructor::ContentAppended(nsIContent*     aContainer,
   }
 
   
-  parentFrame = parentFrame->GetLastContinuation();
+  parentFrame = nsLayoutUtils::GetLastContinuationWithChild(parentFrame);
 
   nsIAtom* frameType = parentFrame->GetType();
   
@@ -9121,7 +9119,7 @@ nsCSSFrameConstructor::ContentInserted(nsIContent*            aContainer,
         nsLayoutUtils::IsGeneratedContentFor(aContainer, firstChild,
                                              nsCSSPseudoElements::before)) {
       
-      prevSibling = firstChild->GetLastContinuation();
+      prevSibling = firstChild->GetTailContinuation();
       parentFrame = prevSibling->GetParent();
       
       
@@ -11174,7 +11172,7 @@ nsCSSFrameConstructor::MaybeRecreateContainerForIBSplitterFrame(nsIFrame* aFrame
        
        GetSpecialSibling(parent) || !IsInlineOutside(parent) ||
        
-       aFrame->GetLastContinuation()->GetNextSibling() ||
+       aFrame->GetTailContinuation()->GetNextSibling() ||
        aFrame != parent->GetFirstContinuation()->GetFirstChild(nsnull)
       )) {
     return PR_FALSE;

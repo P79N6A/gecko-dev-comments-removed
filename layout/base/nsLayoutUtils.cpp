@@ -81,6 +81,19 @@
 
 
 
+nsIFrame*
+nsLayoutUtils::GetLastContinuationWithChild(nsIFrame* aFrame)
+{
+  NS_PRECONDITION(aFrame, "NULL frame pointer");
+  aFrame = aFrame->GetLastContinuation();
+  while (!aFrame->GetFirstChild(nsnull) &&
+         aFrame->GetPrevContinuation()) {
+    aFrame = aFrame->GetPrevContinuation();
+  }
+  return aFrame;
+}
+
+
 
 
 
@@ -122,10 +135,10 @@ GetLastChildFrame(nsIFrame*       aFrame,
   NS_PRECONDITION(aFrame, "NULL frame pointer");
 
   
-  nsIFrame* lastContinuation = aFrame->GetLastContinuation();
+  nsIFrame* lastParentContinuation = nsLayoutUtils::GetLastContinuationWithChild(aFrame);
 
   
-  nsIFrame* firstChildFrame = lastContinuation->GetFirstChild(nsnull);
+  nsIFrame* firstChildFrame = lastParentContinuation->GetFirstChild(nsnull);
   if (firstChildFrame) {
     nsFrameList frameList(firstChildFrame);
     nsIFrame*   lastChildFrame = frameList.LastChild();
