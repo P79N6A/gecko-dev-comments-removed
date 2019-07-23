@@ -393,45 +393,6 @@ public:
         }                                                                     \
     JS_END_MACRO
 
-class ExitFilter: public LirWriter
-{
-    JSContext* _cx;
-    JSStackFrame* _entryFrame;
-    Fragment* _fragment;
-    Tracker* _tracker;
-public:
-    ExitFilter(LirWriter *out, JSContext* cx, JSStackFrame* entryFrame,
-               Fragment* fragment, Tracker* tracker):
-        LirWriter(out), _cx(cx),
-        _entryFrame(entryFrame),
-        _fragment(fragment), _tracker(tracker)
-    {
-    }
-
-    
-
-
-    uint8 getStoreType(jsval& v) {
-        LIns* i = _tracker->get(&v);
-        int t = isNumber(v)
-                ? (isPromoteInt(i) ? JSVAL_INT : JSVAL_DOUBLE)
-                : JSVAL_TAG(v);
-        return t;
-    }
-
-    
-
-    virtual LInsp insGuard(LOpcode v, LIns *c, SideExit *x) {
-        uint8* m = x->typeMap;
-        TreeInfo* ti = (TreeInfo*)_fragment->root->vmprivate;
-        unsigned _ngslots = ti->ngslots;
-        uint16* _gslots = ti->gslots;
-        FORALL_SLOTS_IN_PENDING_FRAMES(_cx, _ngslots, _gslots, _entryFrame, _cx->fp,
-            *m++ = getStoreType(*vp));
-        return out->insGuard(v, c, x);
-    }
-};
-
 TraceRecorder::TraceRecorder(JSContext* cx, GuardRecord* _anchor,
         Fragment* _fragment, uint8* typeMap)
 {
@@ -460,8 +421,6 @@ TraceRecorder::TraceRecorder(JSContext* cx, GuardRecord* _anchor,
 #endif
     lir = cse_filter = new (&gc) CseFilter(lir, &gc);
     lir = expr_filter = new (&gc) ExprFilter(lir);
-    lir = exit_filter = new (&gc) ExitFilter(lir, cx,
-            entryFrame, fragment, &tracker);
     lir = func_filter = new (&gc) FuncFilter(lir, *this);
     lir->ins0(LIR_trace);
 
@@ -500,7 +459,6 @@ TraceRecorder::~TraceRecorder()
 #endif
     delete cse_filter;
     delete expr_filter;
-    delete exit_filter;
     delete func_filter;
     delete lir_buf_writer;
 }
@@ -871,7 +829,17 @@ TraceRecorder::snapshot()
     exit.ip_adj = cx->fp->regs->pc - entryRegs->pc;
     exit.sp_adj = (cx->fp->regs->sp - entryRegs->sp) * sizeof(double);
     exit.rp_adj = exit.calldepth;
-    exit.typeMap = (uint8 *)data->payload();
+    uint8* m = exit.typeMap = (uint8 *)data->payload();
+    TreeInfo* ti = (TreeInfo*)fragment->root->vmprivate;
+    
+
+
+    FORALL_SLOTS_IN_PENDING_FRAMES(cx, ti->ngslots, ti->gslots, entryFrame, cx->fp,
+        LIns* i = get(vp);
+        *m++ = isNumber(*vp)
+            ? (isPromoteInt(i) ? JSVAL_INT : JSVAL_DOUBLE)
+            : JSVAL_TAG(*vp);
+    );
     return &exit;
 }
 
