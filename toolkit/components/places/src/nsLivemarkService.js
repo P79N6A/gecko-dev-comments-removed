@@ -43,6 +43,7 @@
 
 
 
+
 const Cc = Components.classes;
 const Ci = Components.interfaces;
 const Cr = Components.results;
@@ -77,6 +78,12 @@ const SEC_FLAGS = Ci.nsIScriptSecurityManager.DISALLOW_INHERIT_PRINCIPAL;
 
 
 var gExpiration = 3600000;
+
+
+var gLimitCount = 1;
+
+
+var gDelayTime  = 3;
 
 
 const ERROR_EXPIRATION = 600000;
@@ -136,6 +143,18 @@ function LivemarkService() {
     
     
     gExpiration = Math.max(livemarkRefresh * 1000, 60000);
+  }
+  catch (ex) { }
+
+  try {
+    gLimitCount = prefs.getIntPref("browser.bookmarks.livemark_refresh_limit_count");
+    if ( gLimitCount < 1 ) gLimitCount = 1;
+  }
+  catch (ex) { }
+
+  try {
+    gDelayTime = prefs.getIntPref("browser.bookmarks.livemark_refresh_delay_time");
+    if ( gDelayTime < 1 ) gDelayTime = 1;
   }
   catch (ex) { }
 
@@ -200,10 +219,18 @@ LivemarkService.prototype = {
     
     
     this._checkAllLivemarks();
+  },
+
+  stopUpdateLivemarks: function LS_stopUpdateLivemarks() {
+    for (var livemark in this._livemarks) {
+      if (livemark.loadGroup)
+        livemark.loadGroup.cancel(Components.results.NS_BINDING_ABORTED);
+    }
     
-    var refresh_time = Math.min(Math.floor(gExpiration / 4), MAX_REFRESH_TIME);
-    this._updateTimer = new G_Alarm(BindToObject(this._checkAllLivemarks, this),
-                                    refresh_time, true );
+    if (this._updateTimer) {
+      this._updateTimer.cancel();
+      this._updateTimer = null;
+    }
   },
 
   _pushLivemark: function LS__pushLivemark(aFolderId, aFeedURI) {
@@ -223,22 +250,34 @@ LivemarkService.prototype = {
     
     this._bms.removeObserver(this);
 
-    for (var livemark in this._livemarks) {
-      if (livemark.loadGroup)
-        livemark.loadGroup.cancel(Components.results.NS_BINDING_ABORTED);
-    }
-
     
-    if (this._updateTimer) {
-      this._updateTimer.cancel();
-      this._updateTimer = null;
-    }
+    this.stopUpdateLivemarks();
   },
 
+  
+  
+  _nextUpdateStartIndex : 0,
   _checkAllLivemarks: function LS__checkAllLivemarks() {
-    
-    for (var i = 0; i < this._livemarks.length; ++i) {
-      this._updateLivemarkChildren(i, false);
+    var startNo = this._nextUpdateStartIndex;
+    var count = 0;
+    for (var i = startNo; (i < this._livemarks.length) && (count < gLimitCount); ++i ) {
+      
+      try {
+        if (this._updateLivemarkChildren(i, false)) count++;
+      }
+      catch (ex) { }
+      this._nextUpdateStartIndex = i+1;
+    }
+    if ( this._nextUpdateStartIndex >= this._livemarks.length ) {
+      
+      this._nextUpdateStartIndex = 0;
+      var refresh_time = Math.min(Math.floor(gExpiration / 4), MAX_REFRESH_TIME);
+      this._updateTimer = new G_Alarm(BindToObject(this._checkAllLivemarks, this),
+                                      refresh_time);
+    } else {
+      
+      this._updateTimer = new G_Alarm(BindToObject(this._checkAllLivemarks, this),
+                                      gDelayTime*1000);
     }
   },
 
