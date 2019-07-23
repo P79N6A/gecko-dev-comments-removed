@@ -2809,14 +2809,14 @@ EnsureDifferentColors(nscolor colorA, nscolor colorB)
 
 
 
-
 static nscolor
 DarkenColor(nscolor aColor)
 {
-  PRUint16  hue,sat,value;
+  PRUint16  hue, sat, value;
+  PRUint8 alpha;
 
   
-  NS_RGB2HSV(aColor,hue,sat,value);
+  NS_RGB2HSV(aColor, hue, sat, value, alpha);
 
   
   
@@ -2827,7 +2827,7 @@ DarkenColor(nscolor aColor)
   if (value > sat) {
     value = sat;
     
-    NS_HSV2RGB(aColor,hue,sat,value);
+    NS_HSV2RGB(aColor, hue, sat, value, alpha);
   }
   return aColor;
 }

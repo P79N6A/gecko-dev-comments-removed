@@ -181,13 +181,6 @@ struct nsCSSRendering {
                                      nscoord              aStartBevelOffset = 0,
                                      PRUint8              aEndBevelSide = 0,
                                      nscoord              aEndBevelOffset = 0);
-  
-
-
-
-
-
-  static nscolor TransformColor(nscolor  aMapColor,PRBool aNoBackGround);
 
   
 
