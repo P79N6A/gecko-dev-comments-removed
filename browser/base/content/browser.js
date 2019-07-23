@@ -2203,10 +2203,9 @@ function BrowserImport()
 
 function BrowserOnCommand(event) {
     
-    
     if (!event.isTrusted)
       return;
-    
+
     
     
     if (/^about:neterror\?e=nssBadCert/.test(event.originalTarget.ownerDocument.documentURI)) {
@@ -2771,7 +2770,15 @@ const BrowserSearch = {
   addEngine: function(engine, targetDoc) {
     if (!this.searchBar)
       return;
+
     var browser = gBrowser.getBrowserForDocument(targetDoc);
+
+    
+    if (browser.engines) {
+      if (browser.engines.some(function (e) e.title == engine.title))
+        return;
+    }
+
     
     var iconURL = null;
     if (gBrowser.shouldLoadFavIcon(browser.currentURI))
@@ -2797,7 +2804,7 @@ const BrowserSearch = {
       browser.hiddenEngines = engines;
     else {
       browser.engines = engines;
-      if (browser == gBrowser || browser == gBrowser.mCurrentBrowser)
+      if (browser == gBrowser.mCurrentBrowser)
         this.updateSearchButton();
     }
   },
