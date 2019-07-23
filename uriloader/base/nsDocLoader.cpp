@@ -1098,28 +1098,6 @@ void nsDocLoader::ClearInternalProgress()
 }
 
 
-
-
-
-#define NOTIFY_LISTENERS(_flag, _code)                     \
-PR_BEGIN_MACRO                                             \
-  nsCOMPtr<nsIWebProgressListener> listener;               \
-  ListenerArray::BackwardIterator iter(mListenerInfoList); \
-  while (iter.HasMore()) {                                 \
-    nsListenerInfo &info = iter.GetNext();                 \
-    if (!(info.mNotifyMask & (_flag))) {                   \
-      continue;                                            \
-    }                                                      \
-    listener = do_QueryReferent(info.mWeakListener);       \
-    if (!listener) {                                       \
-      RemoveEmptyListeners();                              \
-      continue;                                            \
-    }                                                      \
-    _code                                                  \
-  }                                                        \
-  mListenerInfoList.Compact();                             \
-PR_END_MACRO
-
 void nsDocLoader::FireOnProgressChange(nsDocLoader *aLoadInitiator,
                                        nsIRequest *request,
                                        PRInt64 aProgress,
@@ -1145,12 +1123,29 @@ void nsDocLoader::FireOnProgressChange(nsDocLoader *aLoadInitiator,
           this, buffer.get(), aProgress, aProgressMax, aTotalProgress, aMaxTotalProgress));
 #endif 
 
-  NOTIFY_LISTENERS(nsIWebProgress::NOTIFY_PROGRESS,
+  
+  nsCOMPtr<nsIWebProgressListener> listener;
+  ListenerArray::BackwardIterator iter(mListenerInfoList);
+
+  while (iter.HasMore()) {
+    nsListenerInfo &info = iter.GetNext();
+    if (!(info.mNotifyMask & nsIWebProgress::NOTIFY_PROGRESS)) {
+      continue;
+    }
+
+    listener = do_QueryReferent(info.mWeakListener);
+    if (!listener) {
+      
+      RemoveEmptyListeners();
+      continue;
+    }
+
     
     listener->OnProgressChange(aLoadInitiator,request,
                                PRInt32(aProgress), PRInt32(aProgressMax),
                                PRInt32(aTotalProgress), PRInt32(aMaxTotalProgress));
-  );
+  }
+  mListenerInfoList.Compact();
 
   
   if (mParent) {
@@ -1195,9 +1190,26 @@ void nsDocLoader::FireOnStateChange(nsIWebProgress *aProgress,
 
   NS_ASSERTION(aRequest, "Firing OnStateChange(...) notification with a NULL request!");
 
-  NOTIFY_LISTENERS((aStateFlags >> 16),
+  
+  nsCOMPtr<nsIWebProgressListener> listener;
+  ListenerArray::BackwardIterator iter(mListenerInfoList);
+
+  while (iter.HasMore()) {
+    nsListenerInfo &info = iter.GetNext();
+    if (!(info.mNotifyMask & (aStateFlags >>16))) {
+      continue;
+    }
+
+    listener = do_QueryReferent(info.mWeakListener);
+    if (!listener) {
+      
+      RemoveEmptyListeners();
+      continue;
+    }
+
     listener->OnStateChange(aProgress, aRequest, aStateFlags, aStatus);
-  );
+  }
+  mListenerInfoList.Compact();
 
   
   if (mParent) {
@@ -1212,9 +1224,26 @@ nsDocLoader::FireOnLocationChange(nsIWebProgress* aWebProgress,
                                   nsIRequest* aRequest,
                                   nsIURI *aUri)
 {
-  NOTIFY_LISTENERS(nsIWebProgress::NOTIFY_LOCATION,
+  
+  nsCOMPtr<nsIWebProgressListener> listener;
+  ListenerArray::BackwardIterator iter(mListenerInfoList);
+
+  while (iter.HasMore()) {
+    nsListenerInfo &info = iter.GetNext();
+    if (!(info.mNotifyMask & nsIWebProgress::NOTIFY_LOCATION)) {
+      continue;
+    }
+
+    listener = do_QueryReferent(info.mWeakListener);
+    if (!listener) {
+      
+      RemoveEmptyListeners();
+      continue;
+    }
+
     listener->OnLocationChange(aWebProgress, aRequest, aUri);
-  );
+  }
+  mListenerInfoList.Compact();
 
   
   if (mParent) {
@@ -1228,9 +1257,26 @@ nsDocLoader::FireOnStatusChange(nsIWebProgress* aWebProgress,
                                 nsresult aStatus,
                                 const PRUnichar* aMessage)
 {
-  NOTIFY_LISTENERS(nsIWebProgress::NOTIFY_STATUS,
+  
+  nsCOMPtr<nsIWebProgressListener> listener;
+  ListenerArray::BackwardIterator iter(mListenerInfoList);
+
+  while (iter.HasMore()) {
+    nsListenerInfo &info = iter.GetNext();
+    if (!(info.mNotifyMask & nsIWebProgress::NOTIFY_STATUS)) {
+      continue;
+    }
+
+    listener = do_QueryReferent(info.mWeakListener);
+    if (!listener) {
+      
+      RemoveEmptyListeners();
+      continue;
+    }
+
     listener->OnStatusChange(aWebProgress, aRequest, aStatus, aMessage);
-  );
+  }
+  mListenerInfoList.Compact();
 
   
   if (mParent) {
@@ -1251,8 +1297,22 @@ nsDocLoader::RefreshAttempted(nsIWebProgress* aWebProgress,
 
 
   PRBool allowRefresh = PR_TRUE;
+  ListenerArray::BackwardIterator iter(mListenerInfoList);
 
-  NOTIFY_LISTENERS(nsIWebProgress::NOTIFY_REFRESH,
+  while (iter.HasMore()) {
+    nsListenerInfo &info = iter.GetNext();
+    if (!(info.mNotifyMask & nsIWebProgress::NOTIFY_REFRESH)) {
+      continue;
+    }
+
+    nsCOMPtr<nsIWebProgressListener> listener =
+      do_QueryReferent(info.mWeakListener);
+    if (!listener) {
+      
+      RemoveEmptyListeners();
+      continue;
+    }
+
     nsCOMPtr<nsIWebProgressListener2> listener2 =
       do_QueryReferent(info.mWeakListener);
     if (!listener2)
@@ -1265,7 +1325,8 @@ nsDocLoader::RefreshAttempted(nsIWebProgress* aWebProgress,
       continue;
 
     allowRefresh = allowRefresh && listenerAllowedRefresh;
-  );
+  }
+  mListenerInfoList.Compact();
 
   
   if (mParent) {
@@ -1409,9 +1470,26 @@ NS_IMETHODIMP nsDocLoader::OnSecurityChange(nsISupports * aContext,
   nsCOMPtr<nsIRequest> request = do_QueryInterface(aContext);
   nsIWebProgress* webProgress = static_cast<nsIWebProgress*>(this);
 
-  NOTIFY_LISTENERS(nsIWebProgress::NOTIFY_SECURITY,
+  
+  nsCOMPtr<nsIWebProgressListener> listener;
+  ListenerArray::BackwardIterator iter(mListenerInfoList);
+
+  while (iter.HasMore()) {
+    nsListenerInfo &info = iter.GetNext();
+    if (!(info.mNotifyMask & nsIWebProgress::NOTIFY_SECURITY)) {
+      continue;
+    }
+
+    listener = do_QueryReferent(info.mWeakListener);
+    if (!listener) {
+      
+      RemoveEmptyListeners();
+      continue;
+    }
+
     listener->OnSecurityChange(webProgress, request, aState);
-  );
+  }
+  mListenerInfoList.Compact();
 
   
   if (mParent) {
