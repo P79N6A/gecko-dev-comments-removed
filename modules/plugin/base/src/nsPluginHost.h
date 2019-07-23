@@ -192,7 +192,7 @@ private:
   NewEmbeddedPluginStream(nsIURI* aURL, nsIPluginInstanceOwner *aOwner, nsIPluginInstance* aInstance);
 
   nsresult
-  NewFullPagePluginStream(nsIStreamListener *&aStreamListener, nsIPluginInstance *aInstance);
+  NewFullPagePluginStream(nsIStreamListener *&aStreamListener, nsIURI* aURI, nsIPluginInstance *aInstance);
 
   
   
