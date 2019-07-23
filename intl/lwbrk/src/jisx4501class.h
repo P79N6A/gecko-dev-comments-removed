@@ -144,7 +144,7 @@ static const PRUint32 gLBClass21[32] = {
 };
 
 static const PRUint32 gLBClass30[32] = {
-0x55155115, 
+0x55555115, 
 0x10101010, 
 0x10105510, 
 0x11011010, 
