@@ -910,22 +910,16 @@ void nsOggDecodeStateMachine::PlayFrame() {
       }
 
       double time;
-      double prevTime = -1.0;
+      PRUint32 hasAudio = frame->mAudioData.Length();
       for (;;) {
         
         
         
         PlayAudio(frame);
-        double hwtime = mAudioStream ? mAudioStream->GetPosition() : -1.0;
+        double hwtime = mAudioStream && hasAudio ? mAudioStream->GetPosition() : -1.0;
         time = hwtime < 0.0 ?
           (TimeStamp::Now() - mPlayStartTime - mPauseDuration).ToSeconds() :
           hwtime;
-        
-        
-        
-        if (time == prevTime)
-          break;
-        prevTime = time;
         
         
         PRInt64 wait = PRInt64((frame->mTime - time)*1000);
