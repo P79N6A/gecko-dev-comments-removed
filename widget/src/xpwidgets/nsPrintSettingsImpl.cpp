@@ -957,6 +957,16 @@ nsPrintSettings::SetEdgeInTwips(nsMargin& aEdge)
 
 
 
+NS_IMETHODIMP 
+nsPrintSettings::SetUnwriteableMarginInTwips(nsMargin& aUnwriteableMargin)
+{
+  
+  return NS_OK;
+}
+
+
+
+
 
 NS_IMETHODIMP 
 nsPrintSettings::GetMarginInTwips(nsMargin& aMargin)
@@ -969,6 +979,14 @@ NS_IMETHODIMP
 nsPrintSettings::GetEdgeInTwips(nsMargin& aEdge)
 {
   aEdge = mEdge;
+  return NS_OK;
+}
+
+NS_IMETHODIMP 
+nsPrintSettings::GetUnwriteableMarginInTwips(nsMargin& aUnwriteableMargin)
+{
+  
+  aUnwriteableMargin.SizeTo(0,0,0,0);
   return NS_OK;
 }
 

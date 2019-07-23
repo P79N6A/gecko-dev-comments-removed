@@ -247,10 +247,24 @@ pref("print.always_cache_old_pres", false);
 
 
 
-pref("print.print_edge_top", 0); 
-pref("print.print_edge_left", 0); 
-pref("print.print_edge_right", 0); 
-pref("print.print_edge_bottom", 0); 
+
+
+
+
+
+pref("print.print_unwriteable_margin_top",    -1);
+pref("print.print_unwriteable_margin_left",   -1);
+pref("print.print_unwriteable_margin_right",  -1);
+pref("print.print_unwriteable_margin_bottom", -1);
+
+
+
+
+
+pref("print.print_edge_top", 0);
+pref("print.print_edge_left", 0);
+pref("print.print_edge_right", 0);
+pref("print.print_edge_bottom", 0);
 
 
 
@@ -2112,13 +2126,6 @@ pref("print.print_reversed", false);
 pref("print.print_color", true);
 pref("print.print_landscape", false);
 pref("print.print_paper_size", 0);
-
-
-
-pref("print.print_edge_top", 4); 
-pref("print.print_edge_left", 4); 
-pref("print.print_edge_right", 4); 
-pref("print.print_edge_bottom", 4); 
 
 
 
