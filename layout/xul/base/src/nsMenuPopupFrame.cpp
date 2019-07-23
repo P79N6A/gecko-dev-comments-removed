@@ -860,7 +860,8 @@ nsMenuPopupFrame::SetPopupPosition(nsIFrame* aAnchorFrame)
     if (!aAnchorFrame)
       return NS_OK;
   }
-  else {
+
+  if (aAnchorFrame->GetContent()) {
     
     sizedToPopup = nsMenuFrame::IsSizedToPopup(aAnchorFrame->GetContent(), PR_FALSE);
   }
