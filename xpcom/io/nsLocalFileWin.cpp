@@ -900,12 +900,16 @@ nsLocalFile::InitWithPath(const nsAString &filePath)
     PRUnichar *path = nsnull;
     PRInt32 pathLen = 0;
 
-    if ( ( (secondChar == L':') && !FindCharInReadable(L'/', begin, end) ) ||  
-#ifdef WINCE
-         ( (firstChar == L'\\') )   
+    if (( 
+         !FindCharInReadable(L'/', begin, end) )   
+#ifndef WINCE
+        && (secondChar == L':') ||  
+        (secondChar == L'\\') &&    
 #else
-         ( (firstChar == L'\\') && (secondChar == L'\\') )   
-#endif
+        ||
+#endif 
+        (firstChar == L'\\')    
+
          )
     {
         
