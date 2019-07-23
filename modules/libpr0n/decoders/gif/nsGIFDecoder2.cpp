@@ -691,7 +691,7 @@ static void ConvertColormap(PRUint32 *aColormap, PRUint32 aColors)
 
   
   
-  while ((NS_PTR_TO_UINT32(from) & 0x3) && c--) {
+  for (; (NS_PTR_TO_UINT32(from) & 0x3) && c; --c) {
     from -= 3;
     *--to = GFX_PACKED_PIXEL(0xFF, from[0], from[1], from[2]);
   }
