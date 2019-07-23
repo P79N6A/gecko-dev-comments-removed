@@ -89,5 +89,5 @@ protected:
 
 
 
-  void InvalidateColumns();
+  void InvalidateColumns(PRBool aCanWalkFrameTree = PR_TRUE);
 };
