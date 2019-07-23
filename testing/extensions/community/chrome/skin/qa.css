@@ -65,7 +65,7 @@ groupbox {
 caption {
   font: bold 12px helvetica, arial, sans-serif;
   color: #BD1D01;
-  background: transparent url(caption-bg.gif) repeat-x left 6px;
+  background: white none repeat-x left 6px;
   padding: 0;
 }
 
