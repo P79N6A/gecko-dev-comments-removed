@@ -474,7 +474,7 @@ nsEventDispatcher::Dispatch(nsISupports* aTarget,
       
       aEvent->target = target;
       
-      aTarget = win->GetChromeEventHandler();
+      target = do_QueryInterface(win->GetChromeEventHandler());
     }
   }
 

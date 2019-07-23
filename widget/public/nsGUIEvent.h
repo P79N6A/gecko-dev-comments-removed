@@ -525,8 +525,6 @@ public:
   
   nsCOMPtr<nsIAtom>     userType;
   
-  
-  
   nsCOMPtr<nsPIDOMEventTarget> target;
   nsCOMPtr<nsPIDOMEventTarget> currentTarget;
   nsCOMPtr<nsPIDOMEventTarget> originalTarget;
