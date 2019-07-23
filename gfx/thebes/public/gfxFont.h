@@ -354,6 +354,8 @@ public:
         }
     }
 
+    PRBool IsBadUnderlineFamily() const { return mIsBadUnderlineFamily; }
+
     
     void SortAvailableFonts();
 

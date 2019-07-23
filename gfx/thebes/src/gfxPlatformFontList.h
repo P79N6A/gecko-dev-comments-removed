@@ -139,7 +139,7 @@ protected:
     virtual void PreloadNamesList();
 
     
-    virtual void InitBadUnderlineList();
+    void LoadBadUnderlineList();
 
     
     void SetFixedPitch(const nsAString& aFamilyName);
@@ -180,6 +180,8 @@ protected:
 
     
     PRPackedBool mOtherFamilyNamesInitialized;
+
+    nsTHashtable<nsStringHashKey> mBadUnderlineFamilyNames;
 
     
     nsTArray<nsRefPtr<gfxFontFamily> > mFontFamiliesToLoad;
