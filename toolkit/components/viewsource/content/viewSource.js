@@ -273,7 +273,7 @@ function viewSource(url)
   }
 
   window.addEventListener("AppCommand", HandleAppCommandEvent, true);
-  window._content.focus();
+  window.content.focus();
 
   return true;
 }
@@ -290,7 +290,7 @@ function onLoadContent()
   document.getElementById('cmd_goToLine').removeAttribute('disabled');
 
   
-  window._content.getSelection()
+  window.content.getSelection()
    .QueryInterface(nsISelectionPrivate)
    .addSelectionListener(gSelectionListener);
 }
@@ -413,7 +413,7 @@ function ViewSourceGoToLine()
 
 function goToLine(line)
 {
-  var viewsource = window._content.document.body;
+  var viewsource = window.content.document.body;
 
   
   
@@ -446,7 +446,7 @@ function goToLine(line)
     return false;
   }
 
-  var selection = window._content.getSelection();
+  var selection = window.content.getSelection();
   selection.removeAllRanges();
 
   
@@ -502,7 +502,7 @@ function updateStatusBar()
 
   var statusBarField = document.getElementById("statusbar-line-col");
 
-  var selection = window._content.getSelection();
+  var selection = window.content.getSelection();
   if (!selection.focusNode) {
     statusBarField.label = '';
     return;
@@ -556,7 +556,7 @@ function findLocation(pre, line, node, offset, interlinePosition, result)
   
   
   
-  var treewalker = window._content.document
+  var treewalker = window.content.document
       .createTreeWalker(pre, NodeFilter.SHOW_TEXT, null, false);
 
   
@@ -648,7 +648,7 @@ function findLocation(pre, line, node, offset, interlinePosition, result)
 
 function wrapLongLines()
 {
-  var myWrap = window._content.document.body;
+  var myWrap = window.content.document.body;
 
   if (myWrap.className == '')
     myWrap.className = 'wrap';
