@@ -3060,11 +3060,19 @@ nsNavHistoryQueryResultNode::OnItemChanged(PRInt64 aItemId,
   
 
   if (mLiveUpdate == QUERYUPDATE_COMPLEX_WITH_BOOKMARKS) {
-    
-    if (aItemType != nsINavBookmarksService::TYPE_BOOKMARK)
-      return NS_OK;
-
-    (void)Refresh();
+    switch (aItemType) {
+      case nsINavBookmarksService::TYPE_SEPARATOR:
+        
+        return NS_OK;
+      case nsINavBookmarksService::TYPE_FOLDER:
+        
+        
+        
+        if (mOptions->ResultType() != nsINavHistoryQueryOptions::RESULTS_AS_TAG_QUERY)
+          return NS_OK;
+      default:
+        (void)Refresh();
+    }
   }
   else {
     NS_WARNING("history observers should not get OnItemChanged, but should get the corresponding history notifications instead");

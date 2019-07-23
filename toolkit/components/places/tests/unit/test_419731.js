@@ -94,22 +94,36 @@ function run_test() {
   
   options = histsvc.getNewQueryOptions();
   options.queryType = Ci.nsINavHistoryQueryOptions.QUERY_TYPE_BOOKMARKS;
-  options.resultType = options.RESULTS_AS_TAG_CONTENTS;
+  options.resultType = options.RESULTS_AS_TAG_QUERY;
 
   query = histsvc.getNewQuery();
-  query.setFolders([tagItemId], 1);
   result = histsvc.executeQuery(query, options);
   var root = result.root;
-
   root.containerOpen = true;
-  var cc = root.childCount;
-  do_check_eq(cc, 1);
-  var node = root.getChild(0);
+  do_check_eq(root.childCount, 1);
+
+  var theTag = root.getChild(0)
+                   .QueryInterface(Ci.nsINavHistoryContainerResultNode);
+  
+  do_check_eq(theTag.title, "foo")
+  bmsvc.setItemTitle(tagItemId, "bar");
+
+  
+  do_check_neq(theTag, root.getChild(0));
+  var theTag = root.getChild(0)
+                   .QueryInterface(Ci.nsINavHistoryContainerResultNode);
+  do_check_eq(theTag.title, "bar");
+
+  
+  theTag.containerOpen = true;
+  do_check_eq(theTag.childCount, 1);
+  var node = theTag.getChild(0);
   do_check_eq(node.title, "new title 1");
   root.containerOpen = false;
 
   
   bmsvc.setItemTitle(bookmark2id, "new title 2");
+
   
   var bookmark1LastMod = bmsvc.getItemLastModified(bookmark1id);
   bmsvc.setItemLastModified(bookmark2id, bookmark1LastMod + 1);
