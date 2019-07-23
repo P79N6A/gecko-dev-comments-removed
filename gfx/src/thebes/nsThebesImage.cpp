@@ -491,12 +491,11 @@ nsThebesImage::Draw(gfxContext*        aContext,
     NS_ASSERTION(!sourceRect.Intersect(subimage).IsEmpty(),
                  "We must be allowed to sample *some* source pixels!");
 
-    PRBool doTile = !imageRect.Contains(sourceRect);
     if (doPadding || doPartialDecode) {
         gfxRect available = gfxRect(mDecoded.x, mDecoded.y, mDecoded.width, mDecoded.height) +
             gfxPoint(aPadding.left, aPadding.top);
   
-        if (!doTile && !mSinglePixel) {
+        if (imageRect.Contains(sourceRect) && !mSinglePixel) {
             
             
             
@@ -597,20 +596,43 @@ nsThebesImage::Draw(gfxContext*        aContext,
     pattern->SetMatrix(userSpaceToImageSpace);
 
     
+    PRBool doTileX = (subimage.X() < imageRect.X()) ||
+        (subimage.XMost() > imageRect.XMost());
+    PRBool doTileY = (subimage.Y() < imageRect.Y()) ||
+        (subimage.YMost() > imageRect.YMost());
+
     
     
     
     
-    if (!currentMatrix.HasNonIntegerTranslation() &&
-        !userSpaceToImageSpace.HasNonIntegerTranslation()) {
-        if (doTile) {
+    
+
+    
+    
+    
+    
+    if ((mWidth == 1 && doTileX && !doTileY) ||
+        (mHeight == 1 && doTileY && !doTileX) ||
+        (!currentMatrix.HasNonIntegerTranslation() &&
+         !userSpaceToImageSpace.HasNonIntegerTranslation()))
+    {
+        if (doTileX || doTileY) {
             pattern->SetExtend(gfxPattern::EXTEND_REPEAT);
         }
     } else {
-        if (doTile || !subimage.Contains(imageRect)) {
+        if (doTileX || doTileY || !subimage.Contains(imageRect)) {
             
             
             
+
+            
+            
+            
+            
+            
+            
+            
+
             gfxRect needed = subimage.Intersect(sourceRect);
             needed.RoundOut();
             gfxIntSize size(PRInt32(needed.Width()), PRInt32(needed.Height()));
