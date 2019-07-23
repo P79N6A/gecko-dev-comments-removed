@@ -69,10 +69,6 @@
 
 #define HOTEXIT 0
 
-
-
-#define DEMOTE_THRESHOLD 32
-
 #ifdef DEBUG
 #define ABORT_TRACE(msg)   do { fprintf(stdout, "abort: %d: %s\n", __LINE__, msg); return false; } while(0)
 #else
@@ -169,17 +165,6 @@ Tracker::set(const void* v, LIns* i)
     if (!p)
         p = addPage(v);
     p->map[(jsuword(v) & 0xfff) >> 2] = i;
-}
-
-
-
-
-
-static inline int getCoercedType(jsval v)
-{
-    if (JSVAL_IS_INT(v))
-        return JSVAL_DOUBLE;
-    return JSVAL_TAG(v);
 }
 
 static inline bool isNumber(jsval v)
@@ -691,9 +676,8 @@ TraceRecorder::trackNativeStackUse(unsigned slots)
 
 
 static bool
-unbox_jsval(jsval v, uint8 t, double* slot)
+unbox_jsval(jsval v, uint8 type, double* slot)
 {
-    jsuint type = TYPEMAP_GET_TYPE(t);
     if (type == TYPEMAP_TYPE_ANY) {
         debug_only(printf("any ");)
         return true;
@@ -753,9 +737,8 @@ unbox_jsval(jsval v, uint8 t, double* slot)
 
 
 static bool
-box_jsval(JSContext* cx, jsval& v, uint8 t, double* slot)
+box_jsval(JSContext* cx, jsval& v, uint8 type, double* slot)
 {
-    jsuint type = TYPEMAP_GET_TYPE(t);
     if (type == TYPEMAP_TYPE_ANY) {
         debug_only(printf("any ");)
         return true;
@@ -791,7 +774,7 @@ box_jsval(JSContext* cx, jsval& v, uint8 t, double* slot)
         debug_only(printf("string<%p> ", *(JSString**)slot);)
         break;
       default:
-        JS_ASSERT(t == JSVAL_OBJECT);
+        JS_ASSERT(type == JSVAL_OBJECT);
         v = OBJECT_TO_JSVAL(*(JSObject**)slot);
         debug_only(printf("object<%p:%s> ", JSVAL_TO_OBJECT(v),
                             JSVAL_IS_NULL(v)
@@ -872,9 +855,9 @@ void
 TraceRecorder::import(LIns* base, ptrdiff_t offset, jsval* p, uint8& t,
         const char *prefix, int index, jsuword *localNames)
 {
-    JS_ASSERT(TYPEMAP_GET_TYPE(t) != TYPEMAP_TYPE_ANY);
+    JS_ASSERT(t != TYPEMAP_TYPE_ANY);
     LIns* ins;
-    if (TYPEMAP_GET_TYPE(t) == JSVAL_INT) { 
+    if (t == JSVAL_INT) { 
         JS_ASSERT(isInt32(*p));
         
 
@@ -884,7 +867,7 @@ TraceRecorder::import(LIns* base, ptrdiff_t offset, jsval* p, uint8& t,
         nativeFrameTracker.set(p, ins);
         ins = lir->ins1(LIR_i2f, ins);
     } else {
-        JS_ASSERT(isNumber(*p) == (TYPEMAP_GET_TYPE(t) == JSVAL_DOUBLE));
+        JS_ASSERT(isNumber(*p) == (t == JSVAL_DOUBLE));
         ins = lir->insLoad(t == JSVAL_DOUBLE ? LIR_ldq : LIR_ld, base, offset);
         nativeFrameTracker.set(p, ins);
     }
@@ -1029,85 +1012,46 @@ TraceRecorder::checkType(jsval& v, uint8& t)
 {
     if (t == TYPEMAP_TYPE_ANY) 
         return true;
-    if (isNumber(v)) {
-        
-
-
+    if (t == JSVAL_INT) { 
+        if (!isNumber(v))
+            return false; 
         LIns* i = get(&v);
-        if (TYPEMAP_GET_TYPE(t) == JSVAL_DOUBLE) {
-            
-
-            if (fragment->root != fragment)
-                return true;
-            
-            if (DEMOTE_THRESHOLD > 0 && guardCount > DEMOTE_THRESHOLD)
-                return true;
-            if (isInt32(v) && !TYPEMAP_GET_FLAG(t, TYPEMAP_FLAG_DONT_DEMOTE)) {
-                
-
-
-
-
-                if (i->isop(LIR_i2f) ||
-                        (i->isop(LIR_fadd) && i->oprnd2()->isconstq() &&
-                                fabs(i->oprnd2()->constvalf()) == 1.0)) {
-#ifdef DEBUG
-                    ptrdiff_t offset;
-                    printf("demoting type of an entry slot #%d, triggering re-compilation\n",
-                            ((offset = nativeGlobalOffset(&v)) == -1)
-                             ? nativeStackOffset(&v)
-                             : offset);
-#endif
-                    JS_ASSERT(!TYPEMAP_GET_FLAG(t, TYPEMAP_FLAG_DEMOTE) ||
-                            TYPEMAP_GET_FLAG(t, TYPEMAP_FLAG_DONT_DEMOTE));
-                    TYPEMAP_SET_FLAG(t, TYPEMAP_FLAG_DEMOTE);
-                    TYPEMAP_SET_TYPE(t, JSVAL_INT);
-                    AUDIT(slotDemoted);
-                    recompileFlag = true;
-                    return true; 
-                }
-            }
-            return true;
-        }
-        
-
-
-
-
-        JS_ASSERT(TYPEMAP_GET_TYPE(t) == JSVAL_INT &&
-                TYPEMAP_GET_FLAG(t, TYPEMAP_FLAG_DEMOTE) &&
-                !TYPEMAP_GET_FLAG(t, TYPEMAP_FLAG_DONT_DEMOTE));
-        if (!i->isop(LIR_i2f)) {
-            AUDIT(slotPromoted);
+        if (!isInt32(v) || (!i->isop(LIR_i2f) && 
+                !(i->isop(LIR_fadd) && i->oprnd2()->isconstq() && 
+                        fabs(i->oprnd2()->constvalf()) == 1.0))) {
 #ifdef DEBUG
             ptrdiff_t offset;
-            printf("demoting type of a slot #%d failed, locking it and re-compiling\n",
-                    ((offset = nativeGlobalOffset(&v)) == -1)
+            printf("int slot is !isInt32, slot #%d, triggering re-compilation\n",
+                   ((offset = nativeGlobalOffset(&v)) == -1)
                      ? nativeStackOffset(&v)
                      : offset);
+            
 #endif
-            TYPEMAP_SET_FLAG(t, TYPEMAP_FLAG_DONT_DEMOTE);
-            TYPEMAP_SET_TYPE(t, JSVAL_DOUBLE);
+            AUDIT(slotPromoted);
+            if (fragment->root == fragment) 
+
+                t = JSVAL_DOUBLE; 
             recompileFlag = true;
             return true; 
-
-
         }
-        JS_ASSERT(isInt32(v));
+        
+        JS_ASSERT(i->isop(LIR_i2f));
         
 
 
         set(&v, i->oprnd1());
         return true;
     }
+    if (t == JSVAL_DOUBLE) 
+        return isNumber(v);
     
 #ifdef DEBUG
-    if (JSVAL_TAG(v) != TYPEMAP_GET_TYPE(t)) {
+    if (JSVAL_TAG(v) != t) {
         printf("Type mismatch: val %c, map %c ", "OID?S?B"[JSVAL_TAG(v)],
                "OID?S?B"[t]);
     }
 #endif
-    return JSVAL_TAG(v) == TYPEMAP_GET_TYPE(t);
+    return JSVAL_TAG(v) == t;
 }
 
 
@@ -1121,6 +1065,11 @@ TraceRecorder::verifyTypeStability(uint8* map)
             return false;
         ++m
     );
+    
+    if (recompileFlag && fragment->root != fragment) {
+        fragment->blacklist();
+        return false;
+    }
     return !recompileFlag;
 }
 
@@ -1300,7 +1249,6 @@ js_AttemptToExtendTree(JSContext* cx, GuardRecord* lr, Fragment* f)
         lr->exit->target = c;
         lr->target = c;
         c->root = f;
-        c->calldepth = lr->calldepth;
     }
 
     if (++c->hits() >= HOTEXIT) {
@@ -1390,7 +1338,7 @@ js_LoopEdge(JSContext* cx, jsbytecode* oldpc)
                 uint8* m = ti->typeMap;
                 
                 FORALL_SLOTS(cx, ti->ngslots, ti->gslots, 0,
-                    *m++ = getCoercedType(*vp)
+                    *m++ = isInt32(*vp) ? JSVAL_INT : JSVAL_TAG(*vp);
                 );
             }
             
