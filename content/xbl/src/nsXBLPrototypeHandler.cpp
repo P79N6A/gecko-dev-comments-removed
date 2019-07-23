@@ -468,8 +468,7 @@ nsXBLPrototypeHandler::ExecuteHandler(nsPIDOMEventTarget* aTarget,
   } else {
     scriptTarget = aTarget;
   }
-  
-  
+
   void *scope = boundGlobal->GetScriptGlobal(stID);
 
   PRUint32 argCount;
