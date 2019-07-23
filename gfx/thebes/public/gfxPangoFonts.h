@@ -84,6 +84,9 @@ public:
 
     
     static gfxFontEntry *NewFontEntry(const gfxProxyFontEntry &aProxyEntry,
+                                      const nsAString &aFullname);
+    
+    static gfxFontEntry *NewFontEntry(const gfxProxyFontEntry &aProxyEntry,
                                       nsISupports *aLoader,
                                       const PRUint8 *aFontData,
                                       PRUint32 aLength);

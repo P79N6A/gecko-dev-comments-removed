@@ -198,7 +198,9 @@ public:
 
 
 
-    virtual gfxFontEntry* LookupLocalFont(const nsAString& aFontName) { return nsnull; }
+    virtual gfxFontEntry* LookupLocalFont(const gfxProxyFontEntry *aProxyEntry,
+                                          const nsAString& aFontName)
+    { return nsnull; }
 
     
 

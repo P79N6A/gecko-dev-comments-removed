@@ -105,6 +105,9 @@ public:
     const nsTArray< nsCountedRef<FcPattern> >&
     GetFontsForFamily(const FcChar8 *aFamilyName);
 
+    const nsTArray< nsCountedRef<FcPattern> >&
+    GetFontsForFullname(const FcChar8 *aFullname);
+
     
     FcLangResult GetBestLangSupport(const FcChar8 *aLang);
     
@@ -120,6 +123,10 @@ public:
     {
         return reinterpret_cast<const FcChar8*>(aCharPtr);
     }
+    static const FcChar8 *ToFcChar8(const nsCString& aCString)
+    {
+        return ToFcChar8(aCString.get());
+    }
     static const char *ToCString(const FcChar8 *aChar8Ptr)
     {
         return reinterpret_cast<const char*>(aChar8Ptr);
@@ -132,6 +139,9 @@ public:
     static int GetFcSlant(const gfxFontStyle& aFontStyle);
     
     static int FcWeightForBaseWeight(PRInt8 aBaseWeight);
+
+    static PRBool GetFullnameFromFamilyAndStyle(FcPattern *aFont,
+                                                nsACString *aFullname);
 
     
     
@@ -218,7 +228,7 @@ public:
             : mKey(toCopy.mKey) { }
 
         PRBool KeyEquals(KeyTypePointer aKey) const {
-            return FcStrCmpIgnoreCase(aKey, ToFcChar8(mKey.get())) == 0;
+            return FcStrCmpIgnoreCase(aKey, ToFcChar8(mKey)) == 0;
         }
 
         PRBool IsKeyInitialized() { return !mKey.IsVoid(); }
@@ -247,6 +257,41 @@ protected:
         nsTArray< nsCountedRef<FcPattern> > mFonts;
     };
 
+    
+    
+    
+    
+    
+    
+    
+    class FontsByFullnameEntry : public DepFcStrEntry {
+    public:
+        
+        
+        
+        
+        FontsByFullnameEntry(KeyTypePointer aName)
+            : DepFcStrEntry(aName) { }
+
+        FontsByFullnameEntry(const FontsByFullnameEntry& toCopy)
+            : DepFcStrEntry(toCopy), mFonts(toCopy.mFonts) { }
+
+        PRBool KeyEquals(KeyTypePointer aKey) const;
+
+        PRBool AddFont(FcPattern *aFont) {
+            return mFonts.AppendElement(aFont) != nsnull;
+        }
+        const nsTArray< nsCountedRef<FcPattern> >& GetFonts() {
+            return mFonts;
+        }
+
+        
+        enum { ALLOW_MEMMOVE = PR_FALSE };
+    private:
+        
+        nsAutoTArray<nsCountedRef<FcPattern>,1> mFonts;
+    };
+
     class LangSupportEntry : public CopiedFcStrEntry {
     public:
         LangSupportEntry(KeyTypePointer aName)
@@ -267,10 +312,18 @@ protected:
                                  const nsACString& aLangGroup);
     nsresult UpdateFontListInternal(PRBool aForce = PR_FALSE);
 
+    void AddFullnameEntries();
+
     LangSupportEntry *GetLangSupportEntry(const FcChar8 *aLang,
                                           PRBool aWithFonts);
 
+    
+    
     nsTHashtable<FontsByFcStrEntry> mFontsByFamily;
+    nsTHashtable<FontsByFullnameEntry> mFontsByFullname;
+    
+    
+    
     nsTHashtable<LangSupportEntry> mLangSupportTable;
     const nsTArray< nsCountedRef<FcPattern> > mEmptyPatternArray;
 

@@ -265,6 +265,7 @@ gfxFontconfigUtils::gfxFontconfigUtils()
     : mLastConfig(NULL)
 {
     mFontsByFamily.Init(50);
+    mFontsByFullname.Init(50);
     mLangSupportTable.Init(20);
     UpdateFontListInternal();
 }
@@ -537,6 +538,7 @@ gfxFontconfigUtils::UpdateFontListInternal(PRBool aForce)
     FcFontSet *fontSet = FcConfigGetFonts(currentConfig, FcSetSystem);
 
     mFontsByFamily.Clear();
+    mFontsByFullname.Clear();
     mLangSupportTable.Clear();
     mAliasForMultiFonts.Clear();
 
@@ -753,13 +755,121 @@ gfxFontconfigUtils::ResolveFontName(const nsAString& aFontName,
 PRBool
 gfxFontconfigUtils::IsExistingFamily(const nsCString& aFamilyName)
 {
-    return mFontsByFamily.GetEntry(ToFcChar8(aFamilyName.get())) != nsnull;
+    return mFontsByFamily.GetEntry(ToFcChar8(aFamilyName)) != nsnull;
 }
 
 const nsTArray< nsCountedRef<FcPattern> >&
 gfxFontconfigUtils::GetFontsForFamily(const FcChar8 *aFamilyName)
 {
     FontsByFcStrEntry *entry = mFontsByFamily.GetEntry(aFamilyName);
+
+    if (!entry)
+        return mEmptyPatternArray;
+
+    return entry->GetFonts();
+}
+
+
+
+
+
+
+PRBool
+gfxFontconfigUtils::GetFullnameFromFamilyAndStyle(FcPattern *aFont,
+                                                  nsACString *aFullname)
+{
+    FcChar8 *family;
+    if (FcPatternGetString(aFont, FC_FAMILY, 0, &family) != FcResultMatch)
+        return PR_FALSE;
+
+    aFullname->Truncate();
+    aFullname->Append(ToCString(family));
+
+    FcChar8 *style;
+    if (FcPatternGetString(aFont, FC_STYLE, 0, &style) == FcResultMatch &&
+        strcmp(ToCString(style), "Regular") != 0) {
+        aFullname->Append(' ');
+        aFullname->Append(ToCString(style));
+    }
+
+    return PR_TRUE;
+}
+
+PRBool
+gfxFontconfigUtils::FontsByFullnameEntry::KeyEquals(KeyTypePointer aKey) const
+{
+    const FcChar8 *key = mKey;
+    
+    nsCAutoString fullname;
+    if (!key) {
+        NS_ASSERTION(mFonts.Length(), "No font in FontsByFullnameEntry!");
+        GetFullnameFromFamilyAndStyle(mFonts[0], &fullname);
+
+        key = ToFcChar8(fullname);
+    }
+
+    return FcStrCmpIgnoreCase(aKey, key) == 0;
+}
+
+void
+gfxFontconfigUtils::AddFullnameEntries()
+{
+    
+    FcFontSet *fontSet = FcConfigGetFonts(NULL, FcSetSystem);
+
+    
+    for (int f = 0; f < fontSet->nfont; ++f) {
+        FcPattern *font = fontSet->fonts[f];
+
+        int v = 0;
+        FcChar8 *fullname;
+        while (FcPatternGetString(font,
+                                  FC_FULLNAME, v, &fullname) == FcResultMatch) {
+            FontsByFullnameEntry *entry = mFontsByFullname.PutEntry(fullname);
+            if (entry) {
+                
+                
+                
+                PRBool added = entry->AddFont(font);
+                
+                
+                
+                
+                
+                if (!entry->mKey && added) {
+                    entry->mKey = fullname;
+                }
+            }
+
+            ++v;
+        }
+
+        
+        if (v == 0) {
+            nsCAutoString name;
+            if (!GetFullnameFromFamilyAndStyle(font, &name))
+                continue;
+
+            FontsByFullnameEntry *entry =
+                mFontsByFullname.PutEntry(ToFcChar8(name));
+            if (entry) {
+                entry->AddFont(font);
+                
+                
+                
+            }
+        }
+    }
+}
+
+const nsTArray< nsCountedRef<FcPattern> >&
+gfxFontconfigUtils::GetFontsForFullname(const FcChar8 *aFullname)
+{
+    if (mFontsByFullname.Count() == 0) {
+        AddFullnameEntries();
+    }
+
+    FontsByFullnameEntry *entry = mFontsByFullname.GetEntry(aFullname);
 
     if (!entry)
         return mEmptyPatternArray;
