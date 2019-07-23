@@ -103,18 +103,24 @@ def runTest(browser_config, test_config):
   for dir in browser_config['dirs']:
     ffsetup.InstallInBrowser(browser_config['firefox'], browser_config['dirs'][dir])
   
-  profile_dir = ffsetup.CreateTempProfileDir(browser_config['profile_path'],
-                                               browser_config['preferences'],
-                                               browser_config['extensions'])
-  utils.debug("created profile") 
-  
-  
-  
-  res = ffsetup.InitializeNewProfile(browser_config['firefox'], profile_dir, browser_config['init_url'])
-  if not res:
-    print "FAIL: couldn't initialize firefox"
-    return (res, all_browser_results, all_counter_results)
-  res = 0
+  if browser_config["profile_path"] != {}:
+      
+      profile_dir = ffsetup.CreateTempProfileDir(browser_config['profile_path'],
+                                                 browser_config['preferences'],
+                                                 browser_config['extensions'])
+      utils.debug("created profile") 
+      
+      
+      
+      
+      res = ffsetup.InitializeNewProfile(browser_config['firefox'], profile_dir, browser_config['init_url'])
+      if not res:
+          print "FAIL: couldn't initialize firefox"
+          return (res, all_browser_results, all_counter_results)
+      res = 0
+  else:
+      
+      profile_dir = ""
 
   utils.debug("initialized firefox")
   sys.stdout.flush()
@@ -130,6 +136,9 @@ def runTest(browser_config, test_config):
     if 'url_mod' in test_config:
       url += eval(test_config['url_mod']) 
     command_line = ffprocess.GenerateFirefoxCommandLine(browser_config['firefox'], profile_dir, url)
+
+    utils.debug("command line: " + command_line)
+
     process = subprocess.Popen(command_line, stdout=subprocess.PIPE, universal_newlines=True, shell=True, bufsize=0, env=os.environ)
     handle = process.stdout
 
