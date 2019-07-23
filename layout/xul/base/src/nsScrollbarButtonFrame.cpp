@@ -156,14 +156,7 @@ nsScrollbarButtonFrame::HandleButtonPress(nsPresContext* aPresContext,
   PRBool smoothScroll = PR_TRUE;
   switch (pressedButtonAction) {
     case 0:
-#ifdef MOZ_WIDGET_COCOA
-      
-      
-      
-      mIncrement = direction * nsSliderFrame::GetIncrement(content) * 2;
-#else
       mIncrement = direction * nsSliderFrame::GetIncrement(content);
-#endif
       break;
     case 1:
       mIncrement = direction * nsSliderFrame::GetPageIncrement(content);
