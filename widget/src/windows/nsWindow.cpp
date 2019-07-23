@@ -3840,7 +3840,7 @@ PRBool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
     
     
     case WM_ERASEBKGND:
-      if (! AutoErase()) {
+      if (!AutoErase((HDC)wParam)) {
         *aRetValue = 1;
         result = PR_TRUE;
       }
@@ -5969,8 +5969,13 @@ HBRUSH nsWindow::OnControlColor()
 }
 
 
-PRBool nsWindow::AutoErase()
+PRBool nsWindow::AutoErase(HDC dc)
 {
+#ifdef WINCE
+  RECT wrect;
+  GetClipBox(dc, &wrect);
+  AddRECTToRegion(wrect, mInvalidatedRegion);
+#endif
   return PR_FALSE;
 }
 
