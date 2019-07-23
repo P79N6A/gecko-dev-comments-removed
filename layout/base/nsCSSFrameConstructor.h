@@ -174,6 +174,22 @@ public:
   
   
   
+  void RestyleForInsertOrChange(nsIContent* aContainer,
+                                nsIContent* aChild);
+  
+  
+  
+  
+  void RestyleForRemove(nsIContent* aContainer, nsIContent* aOldChild,
+                        PRInt32 aIndexInContainer);
+  
+  
+  void RestyleForAppend(nsIContent* aContainer,
+                        PRInt32 aNewIndexInContainer);
+
+  
+  
+  
   
   
   void ProcessPendingRestyles();

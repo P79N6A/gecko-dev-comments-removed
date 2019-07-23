@@ -97,7 +97,29 @@ enum {
   NODE_IS_INSERTION_PARENT =     0x00000800U,
 
   
-  NODE_SCRIPT_TYPE_OFFSET =               12,
+  NODE_HAS_EMPTY_SELECTOR =      0x00001000U,
+
+  
+  
+  NODE_HAS_SLOW_SELECTOR =       0x00002000U,
+
+  
+  
+  NODE_HAS_EDGE_CHILD_SELECTOR = 0x00004000U,
+
+  
+  
+  
+  NODE_HAS_SLOW_SELECTOR_NOAPPEND
+                               = 0x00008000U,
+
+  NODE_ALL_SELECTOR_FLAGS =      NODE_HAS_EMPTY_SELECTOR |
+                                 NODE_HAS_SLOW_SELECTOR |
+                                 NODE_HAS_EDGE_CHILD_SELECTOR |
+                                 NODE_HAS_SLOW_SELECTOR_NOAPPEND,
+
+  
+  NODE_SCRIPT_TYPE_OFFSET =               16,
 
   NODE_SCRIPT_TYPE_SIZE =                  4,
 
