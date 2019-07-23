@@ -57,6 +57,46 @@ inline NS_HIDDEN_(PRInt32) NS_lround(double x)
 {
     return x >= 0.0 ? PRInt32(x + 0.5) : PRInt32(x - 0.5);
 }
+
+
+
+
+inline NS_HIDDEN_(PRInt32) NS_lroundup30(float x)
+{
+#if defined(XP_WIN32) && defined(_M_IX86) && !defined(__GNUC__)
+
+    
+    
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+
+    
+    
+    
+
+    static const double round_to_nearest = 0.5f;
+    int i;
+
+    __asm {
+      fld     x                   ; load fp argument
+      fadd    st, st(0)           ; double it
+      fadd    round_to_nearest    ; add the rounding factor
+      fistp   dword ptr i         ; convert the result to int
+    }
+    return i >> 1;                
+#else
+    return nscoord(NS_floorf(x + 0.5f));
+#endif 
+}
+
 inline NS_HIDDEN_(PRInt32) NS_lroundf(float x)
 {
     return x >= 0.0f ? PRInt32(x + 0.5f) : PRInt32(x - 0.5f);
