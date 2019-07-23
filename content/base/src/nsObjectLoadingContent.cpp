@@ -99,12 +99,12 @@ public:
   
   
   nsObjectLoadingContent *mContent;
-  nsIObjectFrame*         mFrame;
+  nsWeakFrame             mFrame;
   nsCString               mContentType;
   nsCOMPtr<nsIURI>        mURI;
 
   nsAsyncInstantiateEvent(nsObjectLoadingContent* aContent,
-                          nsIObjectFrame* aFrame,
+                          nsIFrame* aFrame,
                           const nsCString& aType,
                           nsIURI* aURI)
     : mContent(aContent), mFrame(aFrame), mContentType(aType), mURI(aURI)
@@ -134,7 +134,7 @@ nsAsyncInstantiateEvent::Run()
   
   nsIObjectFrame* frame = mContent->
     GetExistingFrame(nsObjectLoadingContent::eFlushContent);
-  if (frame == mFrame &&
+  if (mFrame.IsAlive() &&
       mContent->mURI == mURI &&
       mContent->mContentType.Equals(mContentType)) {
     if (LOG_ENABLED()) {
@@ -805,8 +805,10 @@ nsObjectLoadingContent::HasNewFrame(nsIObjectFrame* aFrame)
       }
     }
 
+    nsIFrame* frame = nsnull;
+    CallQueryInterface(aFrame, &frame);
     nsCOMPtr<nsIRunnable> event =
-        new nsAsyncInstantiateEvent(this, aFrame, mContentType, mURI);
+      new nsAsyncInstantiateEvent(this, frame, mContentType, mURI);
     if (!event) {
       return NS_ERROR_OUT_OF_MEMORY;
     }
