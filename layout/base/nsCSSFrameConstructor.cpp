@@ -6562,17 +6562,18 @@ nsCSSFrameConstructor::ConstructFrameByDisplayType(nsFrameConstructorState& aSta
   }
   
   else if ((NS_STYLE_POSITION_RELATIVE == aDisplay->mPosition) &&
-           ((NS_STYLE_DISPLAY_BLOCK == aDisplay->mDisplay) ||
-            (NS_STYLE_DISPLAY_INLINE == aDisplay->mDisplay) ||
-            (NS_STYLE_DISPLAY_LIST_ITEM == aDisplay->mDisplay))) {
+           (aDisplay->IsBlockInside() ||
+            (NS_STYLE_DISPLAY_INLINE == aDisplay->mDisplay))) {
     if (!aHasPseudoParent && !aState.mPseudoFrames.IsEmpty()) {
       ProcessPseudoFrames(aState, aFrameItems); 
     }
     
-    if ((NS_STYLE_DISPLAY_BLOCK == aDisplay->mDisplay) ||
-        (NS_STYLE_DISPLAY_LIST_ITEM == aDisplay->mDisplay)) {
+    if (aDisplay->IsBlockInside()) {
       
-      newFrame = NS_NewRelativeItemWrapperFrame(mPresShell, aStyleContext);
+      PRUint32 flags = (aDisplay->mDisplay == NS_STYLE_DISPLAY_INLINE_BLOCK ?
+                        NS_BLOCK_SPACE_MGR | NS_BLOCK_MARGIN_ROOT : 0);
+      newFrame = NS_NewRelativeItemWrapperFrame(mPresShell, aStyleContext, 
+                                                flags);
       
       ConstructBlock(aState, aDisplay, aContent,
                      aParentFrame, nsnull, aStyleContext, &newFrame,
@@ -12634,7 +12635,7 @@ nsCSSFrameConstructor::ConstructInline(nsFrameConstructorState& aState,
     blockSC = mPresShell->StyleSet()->
       ResolvePseudoStyleFor(aContent, blockStyle, aStyleContext);
       
-    blockFrame = NS_NewRelativeItemWrapperFrame(mPresShell, blockSC);
+    blockFrame = NS_NewRelativeItemWrapperFrame(mPresShell, blockSC, 0);
   }
   else {
     blockStyle = nsCSSAnonBoxes::mozAnonymousBlock;
