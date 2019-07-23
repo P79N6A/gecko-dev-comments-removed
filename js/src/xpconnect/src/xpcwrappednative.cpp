@@ -886,6 +886,18 @@ XPCWrappedNative::Init(XPCCallContext& ccx, JSObject* parent, JSBool isGlobal,
 
     JSClass* jsclazz = si ? si->GetJSClass() : &XPC_WN_NoHelper_JSClass.base;
 
+    if(isGlobal)
+    {
+        
+        
+        
+        if(!(jsclazz->flags & JSCLASS_IS_GLOBAL))
+            jsclazz->flags |= JSCLASS_GLOBAL_FLAGS;
+    }
+    else
+        NS_ASSERTION(!(jsclazz->flags & JSCLASS_IS_GLOBAL),
+                     "Non-global object has the wrong flags");
+
     NS_ASSERTION(jsclazz &&
                  jsclazz->name &&
                  jsclazz->flags &&
