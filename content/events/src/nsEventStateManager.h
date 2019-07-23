@@ -65,7 +65,7 @@ class nsDOMDataTransfer;
 
 
 
-#if defined(XP_MACOSX) || defined(NS_HILDON)
+#if defined(XP_MACOSX) || defined(MOZ_PLATFORM_HILDON)
 #define CLICK_HOLD_CONTEXT_MENUS 1
 #endif
 
