@@ -176,6 +176,7 @@ protected:
     MessageLoop* mIOLoop;       
     MessageLoop* mWorkerLoop;   
     bool mChild;                
+    CancelableTask* mChannelErrorTask; 
 };
 
 
