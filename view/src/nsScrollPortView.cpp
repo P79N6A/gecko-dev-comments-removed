@@ -62,30 +62,30 @@ static NS_DEFINE_IID(kWidgetCID, NS_CHILD_CID);
 
 #define SMOOTH_SCROLL_PREF_NAME "general.smoothScroll"
 
-class AsyncScroll {
+class SmoothScroll {
 public:
-  AsyncScroll() {}
-  ~AsyncScroll() {
-    if (mScrollTimer) mScrollTimer->Cancel();
+  SmoothScroll() {}
+  ~SmoothScroll() {
+    if (mScrollAnimationTimer) mScrollAnimationTimer->Cancel();
   }
 
-  nsCOMPtr<nsITimer> mScrollTimer;
+  nsCOMPtr<nsITimer> mScrollAnimationTimer;
   PRInt32 mVelocities[SMOOTH_SCROLL_FRAMES*2];
   PRInt32 mFrameIndex;
-  PRPackedBool mIsSmoothScroll;
+  nscoord mDestinationX;
+  nscoord mDestinationY;
 };
 
 nsScrollPortView::nsScrollPortView(nsViewManager* aViewManager)
   : nsView(aViewManager)
 {
   mOffsetX = mOffsetY = 0;
-  mDestinationX = mDestinationY = 0;
   nsCOMPtr<nsIDeviceContext> dev;
   mViewManager->GetDeviceContext(*getter_AddRefs(dev));
   mLineHeight = dev->AppUnitsPerInch() / 6; 
 
   mListeners = nsnull;
-  mAsyncScroll = nsnull;
+  mSmoothScroll = nsnull;
 }
 
 nsScrollPortView::~nsScrollPortView()
@@ -103,7 +103,7 @@ nsScrollPortView::~nsScrollPortView()
      }
   }
 
-  delete mAsyncScroll;
+  delete mSmoothScroll;
 }
 
 nsresult nsScrollPortView::QueryInterface(const nsIID& aIID, void** aInstancePtr)
@@ -244,70 +244,73 @@ NS_IMETHODIMP nsScrollPortView::ScrollTo(nscoord aDestinationX, nscoord aDestina
                                          PRUint32 aUpdateFlags)
 {
   
-  if (aDestinationX == mDestinationX && aDestinationY == mDestinationY) {
+  if (aDestinationX == mOffsetX && aDestinationY == mOffsetY) {
     
-    delete mAsyncScroll;
-    mAsyncScroll = nsnull;
+    delete mSmoothScroll;
+    mSmoothScroll = nsnull;
     return NS_OK;
   }
-
-  mDestinationX = aDestinationX;
-  mDestinationY = aDestinationY;
-  ClampScrollValues(mDestinationX, mDestinationY, this);
-
-  if (!(aUpdateFlags & NS_VMREFRESH_DEFERRED)) {
+  
+  if ((aUpdateFlags & NS_VMREFRESH_SMOOTHSCROLL) == 0
+      || !IsSmoothScrollingEnabled()) {
     
     
-    delete mAsyncScroll;
-    mAsyncScroll = nsnull;
-    return ScrollToImpl(mDestinationX, mDestinationY);
+    delete mSmoothScroll;
+    mSmoothScroll = nsnull;
+    return ScrollToImpl(aDestinationX, aDestinationY, aUpdateFlags);
   }
 
-  PRInt32 currentVelocityX = 0;
-  PRInt32 currentVelocityY = 0;
-  PRBool isSmoothScroll = (aUpdateFlags & NS_VMREFRESH_SMOOTHSCROLL) &&
-                          IsSmoothScrollingEnabled();
+  PRInt32 currentVelocityX;
+  PRInt32 currentVelocityY;
 
-  if (mAsyncScroll && mAsyncScroll->mIsSmoothScroll) {
-    currentVelocityX = mAsyncScroll->mVelocities[mAsyncScroll->mFrameIndex*2];
-    currentVelocityY = mAsyncScroll->mVelocities[mAsyncScroll->mFrameIndex*2 + 1];
+  if (mSmoothScroll) {
+    currentVelocityX = mSmoothScroll->mVelocities[mSmoothScroll->mFrameIndex*2];
+    currentVelocityY = mSmoothScroll->mVelocities[mSmoothScroll->mFrameIndex*2 + 1];
   } else {
-    mAsyncScroll = new AsyncScroll;
-    if (mAsyncScroll) {
-      mAsyncScroll->mScrollTimer = do_CreateInstance("@mozilla.org/timer;1");
-      if (!mAsyncScroll->mScrollTimer) {
-        delete mAsyncScroll;
-        mAsyncScroll = nsnull;
+    currentVelocityX = 0;
+    currentVelocityY = 0;
+
+    mSmoothScroll = new SmoothScroll;
+    if (mSmoothScroll) {
+      mSmoothScroll->mScrollAnimationTimer = do_CreateInstance("@mozilla.org/timer;1");
+      if (!mSmoothScroll->mScrollAnimationTimer) {
+        delete mSmoothScroll;
+        mSmoothScroll = nsnull;
       }
     }
-    if (!mAsyncScroll) {
+    if (!mSmoothScroll) {
       
-      return ScrollToImpl(mDestinationX, mDestinationY);
+      return ScrollToImpl(aDestinationX, aDestinationY, aUpdateFlags);
     }
-    if (isSmoothScroll) {
-      mAsyncScroll->mScrollTimer->InitWithFuncCallback(
-        AsyncScrollCallback, this, SMOOTH_SCROLL_MSECS_PER_FRAME,
-        nsITimer::TYPE_REPEATING_PRECISE);
-    } else {
-      mAsyncScroll->mScrollTimer->InitWithFuncCallback(
-        AsyncScrollCallback, this, 0, nsITimer::TYPE_ONE_SHOT);
-    }
+    mSmoothScroll->mScrollAnimationTimer->InitWithFuncCallback(
+      SmoothScrollAnimationCallback, this, SMOOTH_SCROLL_MSECS_PER_FRAME,
+      nsITimer::TYPE_REPEATING_PRECISE);
+    mSmoothScroll->mDestinationX = mOffsetX;
+    mSmoothScroll->mDestinationY = mOffsetY;
   }
 
-  mAsyncScroll->mFrameIndex = 0;
-  mAsyncScroll->mIsSmoothScroll = isSmoothScroll;
+  
+  
+  
+  
+  
+  
+  mSmoothScroll->mDestinationX += aDestinationX - mOffsetX;
+  mSmoothScroll->mDestinationY += aDestinationY - mOffsetY;
+  mSmoothScroll->mFrameIndex = 0;
+  ClampScrollValues(mSmoothScroll->mDestinationX, mSmoothScroll->mDestinationY, this);
 
-  if (isSmoothScroll) {
-    nsCOMPtr<nsIDeviceContext> dev;
-    mViewManager->GetDeviceContext(*getter_AddRefs(dev));
-    PRInt32 p2a = dev->AppUnitsPerDevPixel();
+  nsCOMPtr<nsIDeviceContext> dev;
+  mViewManager->GetDeviceContext(*getter_AddRefs(dev));
+  PRInt32 p2a = dev->AppUnitsPerDevPixel();
 
-    
-    ComputeVelocities(currentVelocityX, mOffsetX, mDestinationX,
-                      mAsyncScroll->mVelocities, p2a);
-    ComputeVelocities(currentVelocityY, mOffsetY, mDestinationY,
-                      mAsyncScroll->mVelocities + 1, p2a);
-  }
+  
+  ComputeVelocities(currentVelocityX, mOffsetX,
+                    mSmoothScroll->mDestinationX, mSmoothScroll->mVelocities,
+                    p2a);
+  ComputeVelocities(currentVelocityY, mOffsetY,
+                    mSmoothScroll->mDestinationY, mSmoothScroll->mVelocities + 1,
+                    p2a);
 
   return NS_OK;
 }
@@ -407,8 +410,7 @@ NS_IMETHODIMP nsScrollPortView::ScrollByLines(PRInt32 aNumLinesX, PRInt32 aNumLi
   nscoord dx = mLineHeight*aNumLinesX;
   nscoord dy = mLineHeight*aNumLinesY;
 
-  return ScrollTo(mDestinationX + dx, mDestinationY + dy,
-                  NS_VMREFRESH_SMOOTHSCROLL | NS_VMREFRESH_DEFERRED);
+  return ScrollTo(mOffsetX + dx, mOffsetY + dy, NS_VMREFRESH_SMOOTHSCROLL);
 }
 
 NS_IMETHODIMP nsScrollPortView::GetPageScrollDistances(nsSize *aDistances)
@@ -433,8 +435,8 @@ NS_IMETHODIMP nsScrollPortView::ScrollByPages(PRInt32 aNumPagesX, PRInt32 aNumPa
   delta.width *= aNumPagesX;
   delta.height *= aNumPagesY;
 
-  return ScrollTo(mDestinationX + delta.width, mDestinationY + delta.height,
-                  NS_VMREFRESH_SMOOTHSCROLL | NS_VMREFRESH_DEFERRED);
+  return ScrollTo(mOffsetX + delta.width, mOffsetY + delta.height,
+                  NS_VMREFRESH_SMOOTHSCROLL);
 }
 
 NS_IMETHODIMP nsScrollPortView::ScrollByWhole(PRBool aTop)
@@ -448,7 +450,7 @@ NS_IMETHODIMP nsScrollPortView::ScrollByWhole(PRBool aTop)
     newPos = scrolledSize.height;
   }
 
-  ScrollTo(mDestinationX, newPos, NS_VMREFRESH_DEFERRED);
+  ScrollTo(mOffsetX, newPos, 0);
 
   return NS_OK;
 }
@@ -463,7 +465,7 @@ NS_IMETHODIMP nsScrollPortView::ScrollByPixels(PRInt32 aNumPixelsX,
   nscoord dx = NSIntPixelsToAppUnits(aNumPixelsX, p2a);
   nscoord dy = NSIntPixelsToAppUnits(aNumPixelsY, p2a);
 
-  return ScrollTo(mDestinationX + dx, mDestinationY + dy, NS_VMREFRESH_DEFERRED);
+  return ScrollTo(mOffsetX + dx, mOffsetY + dy, 0);
 }
 
 NS_IMETHODIMP nsScrollPortView::CanScroll(PRBool aHorizontal,
@@ -596,7 +598,7 @@ void nsScrollPortView::Scroll(nsView *aScrolledView, nsPoint aTwipsDelta, nsPoin
   }
 }
 
-NS_IMETHODIMP nsScrollPortView::ScrollToImpl(nscoord aX, nscoord aY)
+NS_IMETHODIMP nsScrollPortView::ScrollToImpl(nscoord aX, nscoord aY, PRUint32 aUpdateFlags)
 {
   PRInt32           dxPx = 0, dyPx = 0;
 
@@ -688,6 +690,12 @@ NS_IMETHODIMP nsScrollPortView::ScrollToImpl(nscoord aX, nscoord aY)
   return NS_OK;
 }
 
+
+
+
+
+
+
 PRBool nsScrollPortView::IsSmoothScrollingEnabled() {
   nsCOMPtr<nsIPrefBranch> prefs = do_GetService(NS_PREFSERVICE_CONTRACTID);
   if (prefs) {
@@ -703,8 +711,10 @@ PRBool nsScrollPortView::IsSmoothScrollingEnabled() {
 
 
 
+
+
 void
-nsScrollPortView::AsyncScrollCallback(nsITimer *aTimer, void* anInstance) 
+nsScrollPortView::SmoothScrollAnimationCallback (nsITimer *aTimer, void* anInstance) 
 {
   nsScrollPortView* self = static_cast<nsScrollPortView*>(anInstance);
   if (self) {
@@ -718,19 +728,17 @@ nsScrollPortView::AsyncScrollCallback(nsITimer *aTimer, void* anInstance)
 void
 nsScrollPortView::IncrementalScroll()
 {
-  if (!mAsyncScroll)
+  if (!mSmoothScroll) {
     return;
-
-  if (mAsyncScroll->mIsSmoothScroll) {
-    if (mAsyncScroll->mFrameIndex < SMOOTH_SCROLL_FRAMES) {
-      ScrollToImpl(mOffsetX + mAsyncScroll->mVelocities[mAsyncScroll->mFrameIndex*2],
-                   mOffsetY + mAsyncScroll->mVelocities[mAsyncScroll->mFrameIndex*2 + 1]);
-      mAsyncScroll->mFrameIndex++;
-      return;
-    }
-  } else {
-    ScrollToImpl(mDestinationX, mDestinationY);
   }
-  delete mAsyncScroll;
-  mAsyncScroll = nsnull;
+
+  if (mSmoothScroll->mFrameIndex < SMOOTH_SCROLL_FRAMES) {
+    ScrollToImpl(mOffsetX + mSmoothScroll->mVelocities[mSmoothScroll->mFrameIndex*2],
+                 mOffsetY + mSmoothScroll->mVelocities[mSmoothScroll->mFrameIndex*2 + 1],
+                 0);
+    mSmoothScroll->mFrameIndex++;
+  } else {
+    delete mSmoothScroll;
+    mSmoothScroll = nsnull;
+  }
 }
