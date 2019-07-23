@@ -264,19 +264,29 @@ nsPlacesDBUtils.prototype = {
 
 
 
+    
+    
+    
+    let selectPlacesRoot = this._dbConn.createStatement(
+      "SELECT id FROM moz_bookmarks WHERE id = :places_root");
+    selectPlacesRoot.params["places_root"] = this._bms.placesRoot;
+    if (!selectPlacesRoot.executeStep()) {
+      
+      let createPlacesRoot = this._dbConn.createStatement(
+        "INSERT INTO moz_bookmarks (id, type, fk, parent, position, title) " +
+        "VALUES (:places_root, 2, NULL, 0, 0, NULL)");
+      createPlacesRoot.params["places_root"] = this._bms.placesRoot;
+      cleanupStatements.push(createPlacesRoot);
 
-
-
-
-
-
-
-
-
-
-
-
-
+      
+      let fixPlacesRootChildren = this._dbConn.createStatement(
+        "UPDATE moz_bookmarks SET parent = :places_root WHERE id IN " +
+          "(SELECT folder_id FROM moz_bookmarks_roots " +
+            "WHERE folder_id <> :places_root)");
+      fixPlacesRootChildren.params["places_root"] = this._bms.placesRoot;
+      cleanupStatements.push(fixPlacesRootChildren);
+    }
+    selectPlacesRoot.finalize();
 
     
     
