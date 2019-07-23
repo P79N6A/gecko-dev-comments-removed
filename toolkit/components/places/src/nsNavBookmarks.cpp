@@ -151,6 +151,7 @@ nsNavBookmarks::Init()
   
   
   
+
   nsCAutoString selectChildren(
     NS_LITERAL_CSTRING("SELECT h.id, h.url, a.title, "
       "h.rev_host, h.visit_count, "
@@ -271,7 +272,7 @@ nsNavBookmarks::Init()
   NS_ENSURE_SUCCESS(rv, rv);
   rv = moveUnfiledBookmarks->BindInt32Parameter(1, TYPE_BOOKMARK);
   NS_ENSURE_SUCCESS(rv, rv);
-  rv = moveUnfiledBookmarks->BindInt32Parameter(2, mRoot);
+  rv = moveUnfiledBookmarks->BindInt64Parameter(2, mRoot);
   NS_ENSURE_SUCCESS(rv, rv);
   rv = moveUnfiledBookmarks->Execute();
   NS_ENSURE_SUCCESS(rv, rv);
@@ -931,8 +932,13 @@ nsNavBookmarks::InsertBookmark(PRInt64 aFolder, nsIURI *aItem, PRInt32 aIndex,
   NS_ENSURE_SUCCESS(rv, rv);
   rv = statement->BindInt32Parameter(3, index);
   NS_ENSURE_SUCCESS(rv, rv);
-  rv = statement->BindStringParameter(4, aTitle);
+
+  if (aTitle.IsVoid())
+    rv = statement->BindNullParameter(4);
+  else
+    rv = statement->BindStringParameter(4, aTitle);
   NS_ENSURE_SUCCESS(rv, rv);
+
   rv = statement->BindInt64Parameter(5, PR_Now());
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -1927,11 +1933,8 @@ nsNavBookmarks::GetFolderURI(PRInt64 aFolder, nsIURI **aURI)
   
   
   
-  
-  
   nsCAutoString spec("place:folder=");
   spec.AppendInt(aFolder);
-  spec.AppendLiteral("&group=3"); 
   return NS_NewURI(aURI, spec);
 }
 

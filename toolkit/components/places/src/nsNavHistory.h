@@ -370,6 +370,7 @@ protected:
   nsCOMPtr<mozIStorageStatement> mDBUpdatePageVisitStats; 
   nsCOMPtr<mozIStorageStatement> mDBAddNewPage; 
   nsCOMPtr<mozIStorageStatement> mDBURIHasTag; 
+  nsCOMPtr<mozIStorageStatement> mFoldersWithAnnotationQuery;  
 
   
   nsCOMPtr<mozIStorageStatement> mDBVisitToURLResult; 
@@ -512,6 +513,10 @@ protected:
                        nsCOMArray<nsNavHistoryResultNode>* aDest,
                        PRBool aIsDomain);
 
+  nsresult GroupByFolder(nsNavHistoryQueryResultNode *aResultNode,
+                         const nsCOMArray<nsNavHistoryResultNode>& aSource,
+                         nsCOMArray<nsNavHistoryResultNode>* aDest);
+
   PRBool URIHasTag(nsIURI* aURI, const nsAString& aTag);
 
   nsresult FilterResultSet(nsNavHistoryQueryResultNode *aParentNode,
@@ -584,7 +589,6 @@ protected:
 
   nsDataHashtable<nsTrimInt64HashKey, PRBool> mLivemarkFeedItemIds;
   nsDataHashtable<nsStringHashKey, PRBool> mLivemarkFeedURIs;
-  nsCOMPtr<mozIStorageStatement> mLivemarkFeedsQuery;
 
   nsresult AutoCompleteTypedSearch();
   nsresult AutoCompleteFullHistorySearch();
@@ -609,6 +613,9 @@ protected:
   nsresult PerformVacuumIfIdle();
   nsCOMPtr<nsITimer> mVacuumTimer;
   static void VacuumTimerCallback(nsITimer* aTimer, void* aClosure);
+
+  PRInt64 mTagRoot;
+  PRInt64 nsNavHistory::GetTagRoot();
 };
 
 

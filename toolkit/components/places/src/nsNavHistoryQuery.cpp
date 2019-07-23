@@ -162,10 +162,13 @@ static void SetOptionsKeyUint32(const nsCString& aValue,
 #define QUERYKEY_EXCLUDE_ITEMS "excludeItems"
 #define QUERYKEY_EXCLUDE_QUERIES "excludeQueries"
 #define QUERYKEY_EXCLUDE_READ_ONLY_FOLDERS "excludeReadOnlyFolders"
+#define QUERYKEY_EXCLUDE_ITEM_IF_PARENT_HAS_ANNOTATION "excludeItemIfParentHasAnnotation"
 #define QUERYKEY_EXPAND_QUERIES "expandQueries"
 #define QUERYKEY_FORCE_ORIGINAL_TITLE "originalTitle"
 #define QUERYKEY_INCLUDE_HIDDEN "includeHidden"
 #define QUERYKEY_SHOW_SESSIONS "showSessions"
+#define QUERYKEY_RESOLVE_NULL_BOOKMARK_TITLES "resolveNullBookmarkTitles"
+#define QUERYKEY_APPLY_OPTIONS_TO_CONTAINERS "applyOptionsToContainers"
 #define QUERYKEY_MAX_RESULTS "maxResults"
 #define QUERYKEY_QUERY_TYPE "queryType"
 
@@ -470,6 +473,18 @@ nsNavHistory::QueriesToQueryString(nsINavHistoryQuery **aQueries,
   }
 
   
+  nsCAutoString parentAnnotationToExclude;
+  if (NS_SUCCEEDED(options->GetExcludeItemIfParentHasAnnotation(parentAnnotationToExclude)) &&
+      !parentAnnotationToExclude.IsEmpty()) {
+    nsCString escaped;
+    if (!NS_Escape(parentAnnotationToExclude, escaped, url_XAlphas))
+      return NS_ERROR_OUT_OF_MEMORY;
+    AppendAmpersandIfNonempty(queryString);
+    queryString += NS_LITERAL_CSTRING(QUERYKEY_EXCLUDE_ITEM_IF_PARENT_HAS_ANNOTATION "=");
+    queryString.Append(escaped);
+  }
+
+  
   if (!options->ExpandQueries()) {
     AppendAmpersandIfNonempty(queryString);
     queryString += NS_LITERAL_CSTRING(QUERYKEY_EXPAND_QUERIES "=0");
@@ -485,6 +500,18 @@ nsNavHistory::QueriesToQueryString(nsINavHistoryQuery **aQueries,
   if (options->ShowSessions()) {
     AppendAmpersandIfNonempty(queryString);
     queryString += NS_LITERAL_CSTRING(QUERYKEY_SHOW_SESSIONS "=1");
+  }
+
+  
+  if (options->ResolveNullBookmarkTitles()) {
+    AppendAmpersandIfNonempty(queryString);
+    queryString += NS_LITERAL_CSTRING(QUERYKEY_RESOLVE_NULL_BOOKMARK_TITLES "=1");
+  }
+
+  
+  if (options->ApplyOptionsToContainers()) {
+    AppendAmpersandIfNonempty(queryString);
+    queryString += NS_LITERAL_CSTRING(QUERYKEY_APPLY_OPTIONS_TO_CONTAINERS "=1");
   }
 
   
@@ -715,6 +742,13 @@ nsNavHistory::TokensToQueries(const nsTArray<QueryKeyValuePair>& aTokens,
                         &nsINavHistoryQueryOptions::SetExcludeReadOnlyFolders);
 
     
+    } else if (kvp.key.EqualsLiteral(QUERYKEY_EXCLUDE_ITEM_IF_PARENT_HAS_ANNOTATION)) {
+      nsCString parentAnnotationToExclude = kvp.value;
+      NS_UnescapeURL(parentAnnotationToExclude);
+      rv = aOptions->SetExcludeItemIfParentHasAnnotation(parentAnnotationToExclude);
+      NS_ENSURE_SUCCESS(rv, rv);
+
+    
     } else if (kvp.key.EqualsLiteral(QUERYKEY_EXPAND_QUERIES)) {
       SetOptionsKeyBool(kvp.value, aOptions,
                         &nsINavHistoryQueryOptions::SetExpandQueries);
@@ -728,6 +762,14 @@ nsNavHistory::TokensToQueries(const nsTArray<QueryKeyValuePair>& aTokens,
       SetOptionsKeyBool(kvp.value, aOptions,
                         &nsINavHistoryQueryOptions::SetShowSessions);
 
+    
+    } else if (kvp.key.EqualsLiteral(QUERYKEY_RESOLVE_NULL_BOOKMARK_TITLES)) {
+      SetOptionsKeyBool(kvp.value, aOptions,
+                        &nsINavHistoryQueryOptions::SetResolveNullBookmarkTitles);
+    
+    } else if (kvp.key.EqualsLiteral(QUERYKEY_APPLY_OPTIONS_TO_CONTAINERS)) {
+      SetOptionsKeyBool(kvp.value, aOptions,
+                        &nsINavHistoryQueryOptions::SetApplyOptionsToContainers);
     
     } else if (kvp.key.EqualsLiteral(QUERYKEY_MAX_RESULTS)) {
       SetOptionsKeyUint32(kvp.value, aOptions,
@@ -1204,6 +1246,19 @@ nsNavHistoryQueryOptions::SetExcludeReadOnlyFolders(PRBool aExclude)
 
 
 NS_IMETHODIMP
+nsNavHistoryQueryOptions::GetExcludeItemIfParentHasAnnotation(nsACString& _result) {
+  _result.Assign(mParentAnnotationToExclude);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsNavHistoryQueryOptions::SetExcludeItemIfParentHasAnnotation(const nsACString& aParentAnnotationToExclude) {
+  mParentAnnotationToExclude.Assign(aParentAnnotationToExclude);
+  return NS_OK;
+}
+
+
+NS_IMETHODIMP
 nsNavHistoryQueryOptions::GetExpandQueries(PRBool* aExpand)
 {
   *aExpand = mExpandQueries;
@@ -1241,6 +1296,34 @@ NS_IMETHODIMP
 nsNavHistoryQueryOptions::SetShowSessions(PRBool aShowSessions)
 {
   mShowSessions = aShowSessions;
+  return NS_OK;
+}
+
+
+NS_IMETHODIMP
+nsNavHistoryQueryOptions::GetResolveNullBookmarkTitles(PRBool* aResolveNullBookmarkTitles)
+{
+  *aResolveNullBookmarkTitles = mResolveNullBookmarkTitles;
+  return NS_OK;
+}
+NS_IMETHODIMP
+nsNavHistoryQueryOptions::SetResolveNullBookmarkTitles(PRBool aResolveNullBookmarkTitles)
+{
+  mResolveNullBookmarkTitles = aResolveNullBookmarkTitles;
+  return NS_OK;
+}
+
+
+NS_IMETHODIMP
+nsNavHistoryQueryOptions::GetApplyOptionsToContainers(PRBool* aApplyOptionsToContainers)
+{
+  *aApplyOptionsToContainers = mApplyOptionsToContainers;
+  return NS_OK;
+}
+NS_IMETHODIMP
+nsNavHistoryQueryOptions::SetApplyOptionsToContainers(PRBool aApplyOptionsToContainers)
+{
+  mApplyOptionsToContainers = aApplyOptionsToContainers;
   return NS_OK;
 }
 
@@ -1306,9 +1389,12 @@ nsNavHistoryQueryOptions::Clone(nsNavHistoryQueryOptions **aResult)
   result->mExcludeItems = mExcludeItems;
   result->mExcludeQueries = mExcludeQueries;
   result->mShowSessions = mShowSessions;
+  result->mResolveNullBookmarkTitles = mResolveNullBookmarkTitles;
+  result->mApplyOptionsToContainers = mApplyOptionsToContainers;
   result->mExpandQueries = mExpandQueries;
   result->mMaxResults = mMaxResults;
   result->mQueryType = mQueryType;
+  result->mParentAnnotationToExclude = mParentAnnotationToExclude;
 
   resultHolder.swap(*aResult);
   return NS_OK;

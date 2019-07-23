@@ -300,7 +300,7 @@ PlacesTreeView.prototype = {
     
     
     if (this._showRoot || aContainer != this._result.root) {
-      if (aContainer.viewIndex < 0 &&
+      if (aContainer.viewIndex < 0 ||
           aContainer.viewIndex > this._visibleElements.length)
         throw "Trying to expand a node that is not visible";
 
@@ -372,7 +372,17 @@ PlacesTreeView.prototype = {
     
     for (var i = 0; i < toOpenElements.length; i++) {
       var item = asContainer(toOpenElements[i]);
-      item.containerOpen = !item.containerOpen;
+      var parent = item.parent;
+      
+      while (parent) {
+        if (parent.uri == item.uri)
+          break;
+        parent = parent.parent;
+      }
+      
+      
+      if (!parent)
+        item.containerOpen = !item.containerOpen;
     }
 
     
@@ -726,7 +736,18 @@ PlacesTreeView.prototype = {
     this.invalidateContainer(aItem);
   },
 
+  get ignoreInvalidateContainer() {
+    return this._ignoreInvalidateContainer;
+  },
+
+  set ignoreInvalidateContainer(val) {
+    return this._ignoreInvalidateContainer = val;
+  },
+
   invalidateContainer: function PTV_invalidateContainer(aItem) {
+    if (this._ignoreInvalidateContainer)
+      return;
+
     NS_ASSERT(this._result, "Got a notification but have no result!");
     if (!this._tree)
       return; 
@@ -1219,6 +1240,7 @@ PlacesTreeView.prototype = {
           newSort = NHQO.SORT_BY_ANNOTATION_ASCENDING;
           newSortingAnnotation = DESCRIPTION_ANNO;
         }
+
         break;
       case this.COLUMN_TYPE_DATEADDED:
         if (oldSort == NHQO.SORT_BY_DATEADDED_ASCENDING)
@@ -1282,4 +1304,5 @@ function PlacesTreeView(aShowRoot) {
   this._visibleElements = [];
   this._observers = [];
   this._showRoot = aShowRoot;
+  this._ignoreInvalidateContainer = false;
 }
