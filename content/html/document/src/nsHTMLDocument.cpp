@@ -3345,65 +3345,64 @@ nsHTMLDocument::EditingStateChanged()
   }
 
   PRBool makeWindowEditable = mEditingState == eOff;
-  if (makeWindowEditable) {
-    
-    
-    
-    
-    EditingState oldState = mEditingState;
-    mEditingState = eSettingUp;
-
-    rv = editSession->MakeWindowEditable(window, "html", PR_FALSE, PR_FALSE,
-                                         PR_TRUE);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    mEditingState = oldState;
-  }
-
-  
-  nsCOMPtr<nsIEditorDocShell> editorDocShell =
-    do_QueryInterface(docshell, &rv);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  nsCOMPtr<nsIEditor> editor;
-  editorDocShell->GetEditor(getter_AddRefs(editor));
-  if (!editor)
-    return NS_ERROR_FAILURE;
-
-  nsCOMPtr<nsIEditorStyleSheets> editorss = do_QueryInterface(editor, &rv);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  editorss->AddOverrideStyleSheet(NS_LITERAL_STRING("resource://gre/res/contenteditable.css"));
-
-  
-  
-  
   PRBool updateState;
-
   PRBool spellRecheckAll = PR_FALSE;
-  if (designMode) {
-    
-    editorss->AddOverrideStyleSheet(NS_LITERAL_STRING("resource://gre/res/designmode.css"));
+  nsCOMPtr<nsIEditor> editor;
+
+  {
+    nsAutoEditingState push(this, eSettingUp);
+
+    if (makeWindowEditable) {
+      
+      
+      
+      
+      rv = editSession->MakeWindowEditable(window, "html", PR_FALSE, PR_FALSE,
+                                           PR_TRUE);
+      NS_ENSURE_SUCCESS(rv, rv);
+    }
 
     
-    rv = editSession->DisableJSAndPlugins(window);
+    nsCOMPtr<nsIEditorDocShell> editorDocShell =
+      do_QueryInterface(docshell, &rv);
     NS_ENSURE_SUCCESS(rv, rv);
 
-    updateState = PR_TRUE;
-    spellRecheckAll = mEditingState == eContentEditable;
-  }
-  else if (mEditingState == eDesignMode) {
-    
-    editorss->RemoveOverrideStyleSheet(NS_LITERAL_STRING("resource://gre/res/designmode.css"));
+    editorDocShell->GetEditor(getter_AddRefs(editor));
+    if (!editor)
+      return NS_ERROR_FAILURE;
 
-    rv = editSession->RestoreJSAndPlugins(window);
+    nsCOMPtr<nsIEditorStyleSheets> editorss = do_QueryInterface(editor, &rv);
     NS_ENSURE_SUCCESS(rv, rv);
 
-    updateState = PR_TRUE;
-  }
-  else {
+    editorss->AddOverrideStyleSheet(NS_LITERAL_STRING("resource://gre/res/contenteditable.css"));
+
     
-    updateState = PR_FALSE;
+    
+    
+    if (designMode) {
+      
+      editorss->AddOverrideStyleSheet(NS_LITERAL_STRING("resource://gre/res/designmode.css"));
+
+      
+      rv = editSession->DisableJSAndPlugins(window);
+      NS_ENSURE_SUCCESS(rv, rv);
+
+      updateState = PR_TRUE;
+      spellRecheckAll = mEditingState == eContentEditable;
+    }
+    else if (mEditingState == eDesignMode) {
+      
+      editorss->RemoveOverrideStyleSheet(NS_LITERAL_STRING("resource://gre/res/designmode.css"));
+
+      rv = editSession->RestoreJSAndPlugins(window);
+      NS_ENSURE_SUCCESS(rv, rv);
+
+      updateState = PR_TRUE;
+    }
+    else {
+      
+      updateState = PR_FALSE;
+    }
   }
 
   mEditingState = newState;
