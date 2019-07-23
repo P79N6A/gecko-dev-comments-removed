@@ -105,19 +105,6 @@ public:
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
   nsSMILTimeValue GetStartTime() const;
 
   
