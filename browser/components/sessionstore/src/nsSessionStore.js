@@ -57,7 +57,6 @@ const Cu = Components.utils;
 const STATE_STOPPED = 0;
 const STATE_RUNNING = 1;
 const STATE_QUITTING = -1;
-const STATE_DISABLED = -2;
 
 const STATE_STOPPED_STR = "stopped";
 const STATE_RUNNING_STR = "running";
@@ -159,9 +158,6 @@ SessionStoreService.prototype = {
 
 
   init: function sss_init(aWindow) {
-    if (this._loadState == STATE_DISABLED)
-      return;
-
     if (!aWindow || this._loadState == STATE_RUNNING) {
       
       
@@ -176,15 +172,6 @@ SessionStoreService.prototype = {
 
     var observerService = Cc["@mozilla.org/observer-service;1"].
                           getService(Ci.nsIObserverService);
-
-    
-    if (!this._prefBranch.getBoolPref("sessionstore.enabled")) {
-      
-      observerService.notifyObservers(null, NOTIFY_WINDOWS_RESTORED, "");
-      
-      this._loadState = STATE_DISABLED;
-      return;
-    }
 
     OBSERVING.forEach(function(aTopic) {
       observerService.addObserver(this, aTopic, true);

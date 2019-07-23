@@ -99,10 +99,6 @@ SessionStartup.prototype = {
                        getService(Ci.nsIPrefService).getBranch("browser.");
 
     
-    if (!this._prefBranch.getBoolPref("sessionstore.enabled"))
-      return;
-
-    
     var dirService = Cc["@mozilla.org/file/directory_service;1"].
                      getService(Ci.nsIProperties);
     this._sessionFile = dirService.get("ProfD", Ci.nsILocalFile);
