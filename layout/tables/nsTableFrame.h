@@ -117,6 +117,10 @@ public:
 
   
   
+  static PRBool AncestorsHaveStyleHeight(const nsHTMLReflowState& aParentReflowState);
+
+  
+  
   static void CheckRequestSpecialHeightReflow(const nsHTMLReflowState& aReflowState);
 
   

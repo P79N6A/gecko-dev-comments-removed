@@ -135,13 +135,23 @@ nsTableCellFrame::NotifyPercentHeight(const nsHTMLReflowState& aReflowState)
     
     
 
-    for (const nsHTMLReflowState *rs = aReflowState.parentReflowState;
-         rs != cellRS;
-         rs = rs->parentReflowState) {
-      rs->frame->AddStateBits(NS_FRAME_CONTAINS_RELATIVE_HEIGHT);
-    }
+    
+    
+    
 
-    nsTableFrame::RequestSpecialHeightReflow(*cellRS);
+    if (nsTableFrame::AncestorsHaveStyleHeight(*cellRS) ||
+        (nsTableFrame::GetTableFrame(this)->GetEffectiveRowSpan(*this) == 1 &&
+         (cellRS->parentReflowState->frame->GetStateBits() &
+          NS_ROW_HAS_CELL_WITH_STYLE_HEIGHT))) {
+
+      for (const nsHTMLReflowState *rs = aReflowState.parentReflowState;
+           rs != cellRS;
+           rs = rs->parentReflowState) {
+        rs->frame->AddStateBits(NS_FRAME_CONTAINS_RELATIVE_HEIGHT);
+      }
+      
+      nsTableFrame::RequestSpecialHeightReflow(*cellRS);
+    }
   }
 }
 

@@ -45,9 +45,14 @@ class  nsTableFrame;
 class  nsTableCellFrame;
 struct nsTableCellReflowState;
 
+
+
+
+
+
+#define NS_ROW_HAS_CELL_WITH_STYLE_HEIGHT   0x20000000
+
 #define NS_TABLE_ROW_HAS_UNPAGINATED_HEIGHT 0x40000000
-
-
 
 
 
@@ -302,6 +307,14 @@ private:
   BCPixelSize mRightContBorderWidth;
   BCPixelSize mTopContBorderWidth;
   BCPixelSize mLeftContBorderWidth;
+
+  
+
+
+
+
+  void InitHasCellWithStyleHeight(nsTableFrame* aTableFrame);
+
 };
 
 inline PRInt32 nsTableRowFrame::GetRowIndex() const

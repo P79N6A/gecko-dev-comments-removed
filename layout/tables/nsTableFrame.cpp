@@ -1693,40 +1693,23 @@ nsTableFrame::ComputeAutoSize(nsIRenderingContext *aRenderingContext,
 }
 
 
-static PRBool 
-IsPctStyleHeight(const nsStylePosition* aStylePosition)
+
+PRBool
+nsTableFrame::AncestorsHaveStyleHeight(const nsHTMLReflowState& aParentReflowState)
 {
-  return (aStylePosition && 
-          (eStyleUnit_Percent == aStylePosition->mHeight.GetUnit()));
-}
-
-
-static PRBool 
-IsFixedStyleHeight(const nsStylePosition* aStylePosition)
-{
-  return (aStylePosition && 
-          (eStyleUnit_Coord == aStylePosition->mHeight.GetUnit()));
-}
-
-
-
-static PRBool
-AncestorsHaveStyleHeight(const nsHTMLReflowState& aReflowState)
-{
-  for (const nsHTMLReflowState* parentRS = aReflowState.parentReflowState;
-       parentRS && parentRS->frame; 
-       parentRS = parentRS->parentReflowState) {
-    nsIAtom* frameType = parentRS->frame->GetType();
-    if (IS_TABLE_CELL(frameType)                         ||
+  for (const nsHTMLReflowState* rs = &aParentReflowState;
+       rs && rs->frame; rs = rs->parentReflowState) {
+    nsIAtom* frameType = rs->frame->GetType();
+    if (IS_TABLE_CELL(frameType)                     ||
         (nsGkAtoms::tableRowFrame      == frameType) ||
         (nsGkAtoms::tableRowGroupFrame == frameType)) {
-      if (::IsPctStyleHeight(parentRS->mStylePosition) || ::IsFixedStyleHeight(parentRS->mStylePosition)) {
+      if (rs->mStylePosition->mHeight.GetUnit() != eStyleUnit_Auto) {
         return PR_TRUE;
       }
     }
     else if (nsGkAtoms::tableFrame == frameType) {
       
-      if (::IsPctStyleHeight(parentRS->mStylePosition) || ::IsFixedStyleHeight(parentRS->mStylePosition)) {
+      if (rs->mStylePosition->mHeight.GetUnit() != eStyleUnit_Auto) {
         return PR_TRUE;
       }
       else return PR_FALSE;
@@ -1742,8 +1725,8 @@ nsTableFrame::CheckRequestSpecialHeightReflow(const nsHTMLReflowState& aReflowSt
   if (!aReflowState.frame->GetPrevInFlow() &&  
       (NS_UNCONSTRAINEDSIZE == aReflowState.mComputedHeight ||  
        0                    == aReflowState.mComputedHeight) && 
-      ::IsPctStyleHeight(aReflowState.mStylePosition) && 
-      ::AncestorsHaveStyleHeight(aReflowState)) {
+      eStyleUnit_Percent == aReflowState.mStylePosition->mHeight.GetUnit() && 
+      nsTableFrame::AncestorsHaveStyleHeight(*aReflowState.parentReflowState)) {
     nsTableFrame::RequestSpecialHeightReflow(aReflowState);
   }
 }
