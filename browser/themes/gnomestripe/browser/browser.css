@@ -1190,20 +1190,8 @@ statusbarpanel#statusbar-display {
 }
 
 
-.tab-drop-indicator-bar {
-  height: 11px;
-  margin-top: -11px;
-  position: relative;
-  
-  -moz-margin-start: -5px;
-}
-
 .tab-drop-indicator {
-  height: 11px;
-  width: 11px;
-  margin-bottom: -5px;
-  position: relative;
-  background: url('chrome://browser/skin/tabbrowser/tabDragIndicator.png') 50% 50% no-repeat;
+  list-style-image: url(chrome://browser/skin/tabbrowser/tabDragIndicator.png);
 }
 
 
