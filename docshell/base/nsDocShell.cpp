@@ -6370,7 +6370,9 @@ nsDocShell::InternalLoad(nsIURI * aURI,
     
     {
         PRBool inherits;
-        if (!owner && (aFlags & INTERNAL_LOAD_FLAGS_INHERIT_OWNER) &&
+        
+        if (aLoadType != LOAD_NORMAL_EXTERNAL && !owner &&
+            (aFlags & INTERNAL_LOAD_FLAGS_INHERIT_OWNER) &&
             NS_SUCCEEDED(URIInheritsSecurityContext(aURI, &inherits)) &&
             inherits) {
             owner = GetInheritedPrincipal(PR_TRUE);
