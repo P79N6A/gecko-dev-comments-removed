@@ -1320,7 +1320,7 @@ static CanPlayStatus GetCanPlay(const nsAString& aType)
   CanPlayStatus result = CANPLAY_YES;
   
   
-  nsCommaSeparatedTokenizer tokenizer(codecs);
+  nsCharSeparatedTokenizer tokenizer(codecs, ',');
   PRBool expectMoreTokens = PR_FALSE;
   while (tokenizer.hasMoreTokens()) {
     const nsSubstring& token = tokenizer.nextToken();
