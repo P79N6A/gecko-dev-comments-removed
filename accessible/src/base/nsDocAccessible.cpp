@@ -1562,9 +1562,12 @@ NS_IMETHODIMP nsDocAccessible::FlushPendingEvents()
       
       
       if (domNode && domNode != mDOMNode) {
-        if (!containerAccessible)
+        if (!containerAccessible) {
           GetAccessibleInParentChain(domNode, PR_TRUE,
                                      getter_AddRefs(containerAccessible));
+          if (!containerAccessible)
+            containerAccessible = this;
+        }
 
         nsCOMPtr<nsIAccessibleTextChangeEvent> textChangeEvent =
           CreateTextChangeEventForNode(containerAccessible, domNode, accessible, PR_TRUE, PR_TRUE);
