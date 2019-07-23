@@ -148,7 +148,7 @@ public:
 
 
 
-  NS_HIDDEN_(nsresult) ReParentStyleContext(nsIFrame* aFrame);
+  NS_HIDDEN_(nsresult) ReparentStyleContext(nsIFrame* aFrame);
 
   
 

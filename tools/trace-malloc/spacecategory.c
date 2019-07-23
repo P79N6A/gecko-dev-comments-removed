@@ -122,7 +122,7 @@ AddChild(STCategoryNode * parent, STCategoryNode * child)
 }
 
 int
-ReParent(STCategoryNode * parent, STCategoryNode * child)
+Reparent(STCategoryNode * parent, STCategoryNode * child)
 {
     PRUint32 i;
 
@@ -312,7 +312,7 @@ ProcessCategoryParentRule(STCategoryRule * parentRule, STCategoryNode * root,
 
 
 
-            ReParent(node, child);
+            Reparent(node, child);
         }
     }
 

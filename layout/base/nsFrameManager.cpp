@@ -757,7 +757,7 @@ TryStartingTransition(nsPresContext *aPresContext, nsIContent *aContent,
 }
 
 nsresult
-nsFrameManager::ReParentStyleContext(nsIFrame* aFrame)
+nsFrameManager::ReparentStyleContext(nsIFrame* aFrame)
 {
   if (nsGkAtoms::placeholderFrame == aFrame->GetType()) {
     
@@ -765,7 +765,7 @@ nsFrameManager::ReParentStyleContext(nsIFrame* aFrame)
       nsPlaceholderFrame::GetRealFrameForPlaceholder(aFrame);
     NS_ASSERTION(outOfFlow, "no out-of-flow frame");
 
-    ReParentStyleContext(outOfFlow);
+    ReparentStyleContext(outOfFlow);
   }
 
   
@@ -781,7 +781,7 @@ nsFrameManager::ReParentStyleContext(nsIFrame* aFrame)
                                        &providerIsChild);
     nsStyleContext* newParentContext = nsnull;
     if (providerIsChild) {
-      ReParentStyleContext(providerFrame);
+      ReparentStyleContext(providerFrame);
       newParentContext = providerFrame->GetStyleContext();
       providerChild = providerFrame;
     } else if (providerFrame) {
@@ -886,7 +886,7 @@ nsFrameManager::ReParentStyleContext(nsIFrame* aFrame)
               }
 #endif
 
-              ReParentStyleContext(child);
+              ReparentStyleContext(child);
             }
 
             child = child->GetNextSibling();
@@ -906,7 +906,7 @@ nsFrameManager::ReParentStyleContext(nsIFrame* aFrame)
           nsIFrame* sib = static_cast<nsIFrame*>
             (aFrame->Properties().Get(nsIFrame::IBSplitSpecialSibling()));
           if (sib) {
-            ReParentStyleContext(sib);
+            ReparentStyleContext(sib);
           }
         }
 
