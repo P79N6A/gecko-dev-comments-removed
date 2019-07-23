@@ -1606,8 +1606,18 @@ InitSprintStack(JSContext *cx, SprintStack *ss, JSPrinter *jp, uintN depth)
     return JS_TRUE;
 }
 
-static JS_INLINE jsbytecode *
-DecompileBytecode(SprintStack *ss, jsbytecode *pc, intN nb, JSOp nextop)
+
+
+
+
+
+
+
+
+
+
+static jsbytecode *
+Decompile(SprintStack *ss, jsbytecode *pc, intN nb, JSOp nextop)
 {
     JSContext *cx;
     JSPrinter *jp, *jp2;
@@ -1714,6 +1724,7 @@ DecompileBytecode(SprintStack *ss, jsbytecode *pc, intN nb, JSOp nextop)
     JS_END_MACRO
 
     cx = ss->sprinter.context;
+    JS_CHECK_RECURSION(cx, return NULL);
 
     jp = ss->printer;
     startpc = pc;
@@ -4546,46 +4557,6 @@ DecompileBytecode(SprintStack *ss, jsbytecode *pc, intN nb, JSOp nextop)
     return pc;
 }
 
-
-
-
-
-
-
-
-
-
-
-static jsbytecode *
-Decompile(SprintStack *ss, jsbytecode *pc, intN nb, JSOp nextop)
-{
-    JSContext *cx;
-    JSPrinter *jp;
-    jsbytecode *oldcode, *oldmain, *code;
-
-    cx = ss->sprinter.context;
-    JS_CHECK_RECURSION(cx, return NULL);
-
-    jp = ss->printer;
-    oldcode = jp->script->code;
-    oldmain = jp->script->main;
-    code = js_UntrapScriptCode(cx, jp->script);
-    if (code != oldcode) {
-        jp->script->code = code;
-        jp->script->main = code + (oldmain - jp->script->code);
-        pc = code + (pc - oldcode);
-    }
-
-    pc = DecompileBytecode(ss, pc, nb, nextop);
-
-    if (code != oldcode) {
-        JS_free(cx, jp->script->code);
-        jp->script->code = oldcode;
-        jp->script->main = oldmain;
-    }
-    return (pc ? pc - code + oldcode : NULL);
-}
-
 static JSBool
 DecompileCode(JSPrinter *jp, JSScript *script, jsbytecode *pc, uintN len,
               uintN pcdepth)
@@ -4596,6 +4567,7 @@ DecompileCode(JSPrinter *jp, JSScript *script, jsbytecode *pc, uintN len,
     void *mark;
     JSBool ok;
     JSScript *oldscript;
+    jsbytecode *oldcode, *oldmain, *code;
     char *last;
 
     depth = script->depth;
@@ -4630,11 +4602,25 @@ DecompileCode(JSPrinter *jp, JSScript *script, jsbytecode *pc, uintN len,
     
     oldscript = jp->script;
     jp->script = script;
+    oldcode = jp->script->code;
+    oldmain = jp->script->main;
+    code = js_UntrapScriptCode(cx, jp->script);
+    if (code != oldcode) {
+        jp->script->code = code;
+        jp->script->main = code + (oldmain - jp->script->code);
+        pc = code + (pc - oldcode);
+    }
+
     ok = Decompile(&ss, pc, len, JSOP_NOP) != NULL;
+    if (code != oldcode) {
+        JS_free(cx, jp->script->code);
+        jp->script->code = oldcode;
+        jp->script->main = oldmain;
+    }
     jp->script = oldscript;
 
     
-    if (ss.top) {
+    if (ok && ss.top) {
         do {
             last = OFF2STR(&ss.sprinter, PopOff(&ss, JSOP_POP));
         } while (ss.top > pcdepth);
