@@ -67,13 +67,6 @@
 
 
 
-#pragma warning( disable : 4509 )
-
-
-
-
-
-
 
 #ifdef DEBUG_LEAKS
 static gAccessibles = 0;

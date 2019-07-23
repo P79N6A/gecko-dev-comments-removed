@@ -117,6 +117,7 @@ STDMETHODIMP nsDocAccessibleWrap::get_accChild(
        VARIANT varChild,
        IDispatch __RPC_FAR *__RPC_FAR *ppdispChild)
 {
+__try {
   *ppdispChild = NULL;
 
   if (varChild.vt == VT_I4 && varChild.lVal < 0) {
@@ -157,6 +158,8 @@ STDMETHODIMP nsDocAccessibleWrap::get_accChild(
 
   
   return nsAccessibleWrap::get_accChild(varChild, ppdispChild);
+} __except(FilterA11yExceptions(::GetExceptionCode(), GetExceptionInformation())) { }
+  return E_FAIL;
 }
 
 NS_IMETHODIMP nsDocAccessibleWrap::Shutdown()
@@ -202,51 +205,60 @@ NS_IMETHODIMP nsDocAccessibleWrap::FireAnchorJumpEvent()
 
 STDMETHODIMP nsDocAccessibleWrap::get_URL( BSTR __RPC_FAR *aURL)
 {
+__try {
   *aURL = NULL;
   nsAutoString URL;
   if (NS_SUCCEEDED(GetURL(URL))) {
     *aURL= ::SysAllocString(URL.get());
     return S_OK;
   }
+} __except(FilterA11yExceptions(::GetExceptionCode(), GetExceptionInformation())) { }
   return E_FAIL;
 }
 
 STDMETHODIMP nsDocAccessibleWrap::get_title(  BSTR __RPC_FAR *aTitle)
 {
+__try {
   *aTitle = NULL;
   nsAutoString title;
   if (NS_SUCCEEDED(GetTitle(title))) { 
     *aTitle= ::SysAllocString(title.get());
     return S_OK;
   }
+} __except(FilterA11yExceptions(::GetExceptionCode(), GetExceptionInformation())) { }
   return E_FAIL;
 }
 
 STDMETHODIMP nsDocAccessibleWrap::get_mimeType( BSTR __RPC_FAR *aMimeType)
 {
+__try {
   *aMimeType = NULL;
   nsAutoString mimeType;
   if (NS_SUCCEEDED(GetMimeType(mimeType))) {
     *aMimeType= ::SysAllocString(mimeType.get());
     return S_OK;
   }
+} __except(FilterA11yExceptions(::GetExceptionCode(), GetExceptionInformation())) { }
   return E_FAIL;
 }
 
 STDMETHODIMP nsDocAccessibleWrap::get_docType( BSTR __RPC_FAR *aDocType)
 {
+__try {
   *aDocType = NULL;
   nsAutoString docType;
   if (NS_SUCCEEDED(GetDocType(docType))) {
     *aDocType= ::SysAllocString(docType.get());
     return S_OK;
   }
+} __except(FilterA11yExceptions(::GetExceptionCode(), GetExceptionInformation())) { }
   return E_FAIL;
 }
 
 STDMETHODIMP nsDocAccessibleWrap::get_nameSpaceURIForID(  short aNameSpaceID,
    BSTR __RPC_FAR *aNameSpaceURI)
 {
+__try {
   if (aNameSpaceID < 0) {
     return E_FAIL;  
   }
@@ -256,6 +268,7 @@ STDMETHODIMP nsDocAccessibleWrap::get_nameSpaceURIForID(  short aNameSpaceID,
     *aNameSpaceURI = ::SysAllocString(nameSpaceURI.get());
     return S_OK;
   }
+} __except(FilterA11yExceptions(::GetExceptionCode(), GetExceptionInformation())) { }
   return E_FAIL;
 }
 

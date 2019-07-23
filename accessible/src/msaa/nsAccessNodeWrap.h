@@ -43,6 +43,13 @@
 #ifndef _nsAccessNodeWrap_H_
 #define _nsAccessNodeWrap_H_
 
+
+
+
+
+
+#pragma warning( disable : 4509 )
+
 #include "nsCOMPtr.h"
 #include "nsIAccessible.h"
 #include "nsIAccessibleEvent.h"

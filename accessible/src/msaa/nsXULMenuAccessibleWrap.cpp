@@ -51,6 +51,8 @@ nsXULMenuitemAccessible(aDOMNode, aShell)
 
 NS_IMETHODIMP nsXULMenuitemAccessibleWrap::GetName(nsAString& aName)
 {
+  
+  
   nsresult rv = nsXULMenuitemAccessible::GetName(aName);
   if (NS_FAILED(rv)) {
     return rv;
