@@ -82,9 +82,8 @@ public:
   NS_FORWARD_NSIDOMSVGELEMENT(nsSVGImageElementBase::)
 
   
-  virtual void DidChangeString(PRUint8 aAttrEnum, PRBool aDoSetAttr);
-
-  
+  virtual nsresult AfterSetAttr(PRInt32 aNamespaceID, nsIAtom* aName,
+                                const nsAString* aValue, PRBool aNotify);
   virtual nsresult BindToTree(nsIDocument* aDocument, nsIContent* aParent,
                               nsIContent* aBindingParent,
                               PRBool aCompileEventHandlers);
@@ -249,23 +248,6 @@ nsSVGImageElement::GetLengthInfo()
                               NS_ARRAY_LENGTH(sLengthInfo));
 }
 
-void
-nsSVGImageElement::DidChangeString(PRUint8 aAttrEnum, PRBool aDoSetAttr)
-{
-  nsSVGImageElementBase::DidChangeString(aAttrEnum, aDoSetAttr);
-
-  if (aAttrEnum == HREF) {
-    
-    
-    if (nsContentUtils::GetBoolPref("dom.disable_image_src_set") &&
-        !nsContentUtils::IsCallerChrome()) {
-      return;
-    }
-
-    LoadSVGImage(PR_TRUE, PR_TRUE);
-  }
-}
-
 
 
 nsresult
@@ -287,6 +269,28 @@ nsSVGImageElement::LoadSVGImage(PRBool aForce, PRBool aNotify)
 
 
 nsresult
+nsSVGImageElement::AfterSetAttr(PRInt32 aNamespaceID, nsIAtom* aName,
+                                const nsAString* aValue, PRBool aNotify)
+{
+  if (aNamespaceID == kNameSpaceID_XLink && aName == nsGkAtoms::href) {
+    
+    
+    if (nsContentUtils::GetBoolPref("dom.disable_image_src_set") &&
+        !nsContentUtils::IsCallerChrome()) {
+      return NS_OK;
+    }
+
+    if (aValue) {
+      LoadSVGImage(PR_TRUE, aNotify);
+    } else {
+      CancelImageRequests(aNotify);
+    }
+  }
+  return nsSVGImageElementBase::AfterSetAttr(aNamespaceID, aName,
+                                             aValue, aNotify);
+}
+
+nsresult
 nsSVGImageElement::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
                               nsIContent* aBindingParent,
                               PRBool aCompileEventHandlers)
@@ -296,11 +300,13 @@ nsSVGImageElement::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
                                                   aCompileEventHandlers);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  
-  
-  
-  
-  LoadSVGImage(PR_FALSE, PR_FALSE);
+  if (HasAttr(kNameSpaceID_XLink, nsGkAtoms::href)) {
+    
+    
+    
+    
+    LoadSVGImage(PR_FALSE, PR_FALSE);
+  }
 
   return rv;
 }

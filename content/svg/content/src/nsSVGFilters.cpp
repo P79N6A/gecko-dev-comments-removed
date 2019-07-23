@@ -5196,11 +5196,10 @@ public:
   NS_FORWARD_NSIDOMELEMENT(nsSVGFEImageElementBase::)
 
   
-  virtual void DidChangeString(PRUint8 aAttrEnum, PRBool aDoSetAttr);
-
-  
   virtual nsresult Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const;
 
+  virtual nsresult AfterSetAttr(PRInt32 aNamespaceID, nsIAtom* aName,
+                                const nsAString* aValue, PRBool aNotify);
   virtual nsresult BindToTree(nsIDocument* aDocument, nsIContent* aParent,
                               nsIContent* aBindingParent,
                               PRBool aCompileEventHandlers);
@@ -5317,6 +5316,22 @@ nsSVGFEImageElement::LoadSVGImage(PRBool aForce, PRBool aNotify)
 
 
 nsresult
+nsSVGFEImageElement::AfterSetAttr(PRInt32 aNamespaceID, nsIAtom* aName,
+                                  const nsAString* aValue, PRBool aNotify)
+{
+  if (aNamespaceID == kNameSpaceID_XLink && aName == nsGkAtoms::href) {
+    if (aValue) {
+      LoadSVGImage(PR_TRUE, aNotify);
+    } else {
+      CancelImageRequests(aNotify);
+    }
+  }
+
+  return nsSVGFEImageElementBase::AfterSetAttr(aNamespaceID, aName,
+                                               aValue, aNotify);
+}
+
+nsresult
 nsSVGFEImageElement::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
                                 nsIContent* aBindingParent,
                                 PRBool aCompileEventHandlers)
@@ -5326,11 +5341,13 @@ nsSVGFEImageElement::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
                                                     aCompileEventHandlers);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  
-  
-  
-  
-  LoadSVGImage(PR_FALSE, PR_FALSE);
+  if (HasAttr(kNameSpaceID_XLink, nsGkAtoms::href)) {
+    
+    
+    
+    
+    LoadSVGImage(PR_FALSE, PR_FALSE);
+  }
 
   return rv;
 }
@@ -5432,16 +5449,6 @@ nsSVGFEImageElement::GetStringInfo()
 {
   return StringAttributesInfo(mStringAttributes, sStringInfo,
                               NS_ARRAY_LENGTH(sStringInfo));
-}
-
-void
-nsSVGFEImageElement::DidChangeString(PRUint8 aAttrEnum, PRBool aDoSetAttr)
-{
-  nsSVGFEImageElementBase::DidChangeString(aAttrEnum, aDoSetAttr);
-
-  if (aAttrEnum == HREF) {
-    LoadSVGImage(PR_TRUE, PR_TRUE);
-  }
 }
 
 
