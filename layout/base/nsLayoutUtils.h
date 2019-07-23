@@ -343,7 +343,7 @@ public:
 
 
 
-  static nsIFrame* GetFloatFromPlaceholder(nsIFrame* aPossiblePlaceholder);
+  static nsIFrame* GetFloatFromPlaceholder(nsIFrame* aPlaceholder);
 
   
   

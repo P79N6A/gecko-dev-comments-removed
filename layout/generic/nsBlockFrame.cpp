@@ -6644,7 +6644,9 @@ void nsBlockFrame::CollectFloats(nsIFrame* aFrame, nsFrameList& aList,
   while (aFrame) {
     
     if (!aFrame->IsFloatContainingBlock()) {
-      nsIFrame *outOfFlowFrame = nsLayoutUtils::GetFloatFromPlaceholder(aFrame);
+      nsIFrame *outOfFlowFrame =
+        aFrame->GetType() == nsGkAtoms::placeholderFrame ?
+          nsLayoutUtils::GetFloatFromPlaceholder(aFrame) : nsnull;
       if (outOfFlowFrame) {
         
         
