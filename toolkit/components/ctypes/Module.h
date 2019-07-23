@@ -52,9 +52,6 @@ public:
 
   Module();
 
-  
-  JSBool Init(JSContext* aContext, JSObject* aGlobal);
-
 private:
   ~Module();
 };
