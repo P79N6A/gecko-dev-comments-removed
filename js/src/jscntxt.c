@@ -416,6 +416,9 @@ js_DestroyContext(JSContext *cx, JSDestroyContextMode mode)
         js_GC(cx, GC_LAST_CONTEXT);
 
         
+
+
+
         if (rt->scriptFilenameTable && rt->scriptFilenameTable->nentries == 0)
             js_FinishRuntimeScriptState(rt);
 
