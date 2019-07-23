@@ -459,7 +459,7 @@ LoginManagerPrompter.prototype = {
             this._pwmgr.setLoginSavingEnabled(aLogin.hostname, false);
         } else if (userChoice == 0) {
             this.log("Saving login for " + aLogin.hostname);
-            this._pwmgr.addLogin(aLogin.formLogin);
+            this._pwmgr.addLogin(aLogin);
         } else {
             
             this.log("Ignoring login.");
