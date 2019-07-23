@@ -41,6 +41,7 @@
 #include "nsAutoPtr.h"
 #include "nsAutoLock.h"
 #include "nsCOMArray.h"
+#include "prtime.h"
 
 #include "sqlite3.h"
 
@@ -52,6 +53,20 @@
 #include "mozStorageConnection.h"
 #include "mozStorageError.h"
 #include "mozStorageEvents.h"
+
+
+
+
+
+
+
+
+
+
+
+
+#define MAX_MILLISECONDS_BETWEEN_RESULTS 100
+#define MAX_ROWS_PER_RESULT 15
 
 
 
@@ -94,6 +109,8 @@ public:
 
   NS_IMETHOD Run()
   {
+    NS_ASSERTION(mCallback, "Trying to notify about results without a callback!");
+
     if (mEventStatus->runEvent())
       (void)mCallback->HandleResult(mResults);
 
@@ -213,6 +230,8 @@ public:
     , mTransactionManager(nsnull)
     , mCallback(aCallback)
     , mCallingThread(do_GetCurrentThread())
+    , mMaxIntervalWait(PR_MicrosecondsToInterval(MAX_MILLISECONDS_BETWEEN_RESULTS))
+    , mIntervalStart(PR_IntervalNow())
     , mState(PENDING)
     , mCancelRequested(PR_FALSE)
     , mLock(nsAutoLock::NewLock("AsyncExecute::mLock"))
@@ -250,105 +269,16 @@ public:
     }
 
     
-    nsresult rv = NS_OK;
     for (PRUint32 i = 0; i < mStatements.Length(); i++) {
-      
-      
-      
-      nsAutoLock mutex(mLock);
-
-      while (PR_TRUE) {
-        int rc = sqlite3_step(mStatements[i]);
-        
-        if (rc == SQLITE_DONE)
-          break;
-
-        
-        if (rc != SQLITE_OK && rc != SQLITE_ROW) {
-          if (rc == SQLITE_BUSY) {
-            
-            nsAutoUnlock cancelationScope(mLock);
-
-            
-            PR_Sleep(PR_INTERVAL_NO_WAIT);
-            continue;
-          }
-
-          
-          mState = ERROR;
-
-          
-          mutex.unlock();
-
-          
-          sqlite3 *db = sqlite3_db_handle(mStatements[i]);
-          (void)NotifyError(rc, sqlite3_errmsg(db));
-
-          
-          return NotifyComplete();
-        }
-
-        
-        
-        if (!mCallback)
-          break;
-
-        
-        if (mCancelRequested) {
-          mState = CANCELED;
-          mutex.unlock();
-          return NotifyComplete();
-        }
-
-        
-        
-        
-        
-        nsAutoUnlock cancelationScope(mLock);
-
-        
-        
-        nsRefPtr<mozStorageResultSet> results(new mozStorageResultSet());
-        if (!results) {
-          rv = NS_ERROR_OUT_OF_MEMORY;
-          break;
-        }
-
-        nsRefPtr<mozStorageRow> row(new mozStorageRow());
-        if (!row) {
-          rv = NS_ERROR_OUT_OF_MEMORY;
-          break;
-        }
-
-        rv = row->initialize(mStatements[i]);
-        if (NS_FAILED(rv))
-          break;
-
-        rv = results->add(row);
-        if (NS_FAILED(rv))
-          break;
-
-        
-        (void)NotifyResults(results);
-      }
-
-      
-      
-      if (NS_FAILED(rv)) {
-        mState = ERROR;
-
-        
-        mutex.unlock();
-        (void)NotifyError(mozIStorageError::ERROR, "");
+      PRBool finished = (i == (mStatements.Length() - 1));
+      if (!ExecuteAndProcessStatement(mStatements[i], finished))
         break;
-      }
-
-      
-      
-      
-      if (i == (mStatements.Length() - 1))
-        mState = COMPLETED;
     }
+
+    
+    
+    if (mResultSet)
+      (void)NotifyResults();
 
     
     return NotifyComplete();
@@ -404,7 +334,7 @@ public:
   }
 
 private:
-  AsyncExecute() { }
+  AsyncExecute() : mMaxIntervalWait(0) { }
 
   ~AsyncExecute()
   {
@@ -412,6 +342,152 @@ private:
   }
 
   
+
+
+
+
+
+
+
+
+
+
+
+
+
+  PRBool ExecuteAndProcessStatement(sqlite3_stmt *aStatement, PRBool aFinished)
+  {
+    
+    
+    
+    nsAutoLock mutex(mLock);
+
+    nsresult rv = NS_OK;
+    while (PR_TRUE) {
+      int rc = sqlite3_step(aStatement);
+      
+      if (rc == SQLITE_DONE)
+        break;
+
+      
+      if (rc != SQLITE_OK && rc != SQLITE_ROW) {
+        if (rc == SQLITE_BUSY) {
+          
+          nsAutoUnlock cancelationScope(mLock);
+
+          
+          PR_Sleep(PR_INTERVAL_NO_WAIT);
+          continue;
+        }
+
+        
+        mState = ERROR;
+
+        
+        mutex.unlock();
+
+        
+        sqlite3 *db = sqlite3_db_handle(aStatement);
+        (void)NotifyError(rc, sqlite3_errmsg(db));
+
+        
+        return PR_FALSE;
+      }
+
+      
+      
+      
+      
+      if (!mCallback)
+        break;
+
+      
+      if (mCancelRequested) {
+        mState = CANCELED;
+        return PR_FALSE;
+      }
+
+      
+      rv = BuildAndNotifyResults(aStatement);
+      if (NS_FAILED(rv))
+        break;
+    }
+
+    
+    
+    if (NS_FAILED(rv)) {
+      mState = ERROR;
+
+      
+      mutex.unlock();
+
+      
+      (void)NotifyError(mozIStorageError::ERROR, "");
+      return PR_FALSE;
+    }
+
+    
+    
+    
+    if (aFinished)
+      mState = COMPLETED;
+
+    return PR_TRUE;
+  }
+
+  
+
+
+
+
+
+
+
+
+  nsresult BuildAndNotifyResults(sqlite3_stmt *aStatement)
+  {
+    NS_ASSERTION(mCallback, "Trying to dispatch results without a callback!");
+
+    
+    
+    
+    nsAutoUnlock cancelationScope(mLock);
+
+    
+    if (!mResultSet)
+      mResultSet = new mozStorageResultSet();
+    NS_ENSURE_TRUE(mResultSet, NS_ERROR_OUT_OF_MEMORY);
+
+    nsRefPtr<mozStorageRow> row(new mozStorageRow());
+    NS_ENSURE_TRUE(row, NS_ERROR_OUT_OF_MEMORY);
+
+    nsresult rv = row->initialize(aStatement);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    rv = mResultSet->add(row);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    
+    
+    
+    PRIntervalTime now = PR_IntervalNow();
+    PRIntervalTime delta = now - mIntervalStart;
+    if (mResultSet->rows() >= MAX_ROWS_PER_RESULT || delta > mMaxIntervalWait) {
+      
+      rv = NotifyResults();
+      if (NS_FAILED(rv))
+        return NS_OK; 
+
+      
+      mIntervalStart = now;
+    }
+
+    return NS_OK;
+  }
+
+  
+
+
 
 
   nsresult NotifyComplete()
@@ -465,6 +541,8 @@ private:
 
 
 
+
+
   nsresult NotifyError(PRInt32 aErrorCode, const char *aMessage)
   {
     if (!mCallback)
@@ -486,16 +564,18 @@ private:
 
 
 
-
-  nsresult NotifyResults(mozStorageResultSet *aResultSet)
+  nsresult NotifyResults()
   {
     NS_ASSERTION(mCallback, "NotifyResults called without a callback!");
 
     nsRefPtr<CallbackResultNotifier> notifier =
-      new CallbackResultNotifier(mCallback, aResultSet, this);
+      new CallbackResultNotifier(mCallback, mResultSet, this);
     NS_ENSURE_TRUE(notifier, NS_ERROR_OUT_OF_MEMORY);
 
-    return mCallingThread->Dispatch(notifier, NS_DISPATCH_NORMAL);
+    nsresult rv = mCallingThread->Dispatch(notifier, NS_DISPATCH_NORMAL);
+    if (NS_SUCCEEDED(rv))
+      mResultSet = nsnull; 
+    return rv;
   };
 
   nsTArray<sqlite3_stmt *> mStatements;
@@ -503,6 +583,18 @@ private:
   mozStorageTransaction *mTransactionManager;
   mozIStorageStatementCallback *mCallback;
   nsCOMPtr<nsIThread> mCallingThread;
+  nsRefPtr<mozStorageResultSet> mResultSet;
+
+  
+
+
+
+  const PRIntervalTime mMaxIntervalWait;
+
+  
+
+
+  PRIntervalTime mIntervalStart;
 
   
 

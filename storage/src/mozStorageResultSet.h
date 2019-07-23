@@ -58,6 +58,11 @@ public:
 
   nsresult add(mozIStorageRow *aTuple);
 
+  
+
+
+  PRInt32 rows() const { return mData.Count(); }
+
 private:
   
 
