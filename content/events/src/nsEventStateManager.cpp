@@ -93,7 +93,9 @@
 #include "nsIContentViewer.h"
 #include "nsIPrefBranch2.h"
 #include "nsIObjectFrame.h"
+#ifdef MOZ_XUL
 #include "nsXULPopupManager.h"
+#endif
 
 #include "nsIServiceManager.h"
 #include "nsIScriptSecurityManager.h"
@@ -3390,6 +3392,7 @@ nsEventStateManager::ShiftFocusInternal(PRBool aForward, nsIContent* aStart)
     popupFrame = nsLayoutUtils::GetClosestFrameOfType(curFocusFrame,
                                                       nsGkAtoms::menuPopupFrame);
   }
+#ifdef MOZ_XUL
   else {
     
     
@@ -3398,6 +3401,7 @@ nsEventStateManager::ShiftFocusInternal(PRBool aForward, nsIContent* aStart)
       popupFrame = pm->GetTopPopup(ePopupTypePanel);
     }
   }
+#endif
 
   if (popupFrame) {
     
