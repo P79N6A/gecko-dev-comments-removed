@@ -1387,8 +1387,6 @@ nsIFrame::BuildDisplayListForStackingContext(nsDisplayListBuilder* aBuilder,
   
   resultList.AppendToTop(set.Content());
   
-  resultList.AppendToTop(set.PositionedDescendants());
-  
   
   
   
@@ -1398,7 +1396,8 @@ nsIFrame::BuildDisplayListForStackingContext(nsDisplayListBuilder* aBuilder,
   DisplayDebugBorders(aBuilder, this, set);
 #endif
   resultList.AppendToTop(set.Outlines());
-
+  
+  resultList.AppendToTop(set.PositionedDescendants());
 
   if (applyAbsPosClipping) {
     nsAbsPosClipWrapper wrapper(absPosClip);
@@ -1600,8 +1599,8 @@ nsIFrame::BuildDisplayListForChild(nsDisplayListBuilder*   aBuilder,
     list.AppendToTop(pseudoStack.BlockBorderBackgrounds());
     list.AppendToTop(pseudoStack.Floats());
     list.AppendToTop(pseudoStack.Content());
+    list.AppendToTop(pseudoStack.Outlines());
     extraPositionedDescendants.AppendToTop(pseudoStack.PositionedDescendants());
-    aLists.Outlines()->AppendToTop(pseudoStack.Outlines());
 #ifdef NS_DEBUG
     DisplayDebugBorders(aBuilder, aChild, aLists);
 #endif
