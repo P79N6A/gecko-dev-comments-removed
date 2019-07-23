@@ -83,9 +83,8 @@
 #include "jscntxt.h"  
 #include "nsCRT.h"
 
-#include "nsIFastLoadService.h"         
-#include "nsIObjectInputStream.h"       
-#include "nsXULDocument.h"              
+#include "nsXULPrototypeDocument.h"     
+#include "nsICSSLoader.h"
 
 #include "nsUnicharUtils.h"
 #include "nsGkAtoms.h"

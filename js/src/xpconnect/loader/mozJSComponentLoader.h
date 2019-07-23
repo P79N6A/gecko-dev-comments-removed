@@ -59,8 +59,6 @@
 #include "nsIPrincipal.h"
 #endif
 
-class nsIFastLoadService;
-
 
 
 #define MOZJSCOMPONENTLOADER_CID \
