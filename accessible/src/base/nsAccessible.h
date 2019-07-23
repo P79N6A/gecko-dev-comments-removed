@@ -149,7 +149,8 @@ public:
 
 
 
-  virtual nsresult GetARIAState(PRUint32 *aState);
+
+  virtual nsresult GetARIAState(PRUint32 *aState, PRUint32 *aExtraState);
 
   
 
@@ -279,7 +280,6 @@ public:
   }
 
 protected:
-  PRBool MappedAttrState(nsIContent *aContent, PRUint32 *aStateInOut, nsStateMapEntry *aStateMapEntry);
   virtual nsIFrame* GetBoundsFrame();
   virtual void GetBoundsRect(nsRect& aRect, nsIFrame** aRelativeFrame);
   PRBool IsVisible(PRBool *aIsOffscreen); 

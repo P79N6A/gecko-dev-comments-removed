@@ -1891,45 +1891,6 @@ nsAccessible::GroupPosition(PRInt32 *aGroupLevel,
   return NS_OK;
 }
 
-PRBool nsAccessible::MappedAttrState(nsIContent *aContent, PRUint32 *aStateInOut,
-                                     nsStateMapEntry *aStateMapEntry)
-{
-  
-  if (!aStateMapEntry->attributeName) {
-    return PR_FALSE;  
-  }
-
-  
-  
-  
-  
-  
-  
-  
-  if (!nsAccUtils::HasDefinedARIAToken(aContent, *aStateMapEntry->attributeName)) {
-    return PR_TRUE;
-  }
-  
-  nsAutoString attribValue;
-  if (aContent->GetAttr(kNameSpaceID_None, *aStateMapEntry->attributeName, attribValue)) {
-    if (aStateMapEntry->attributeValue == kBoolState) {
-      
-      if (attribValue.EqualsLiteral("false") ||
-          attribValue.EqualsLiteral("mixed")) {
-        *aStateInOut &= ~aStateMapEntry->state;
-      }
-      else {
-        *aStateInOut |= aStateMapEntry->state;
-      }
-    }
-    else if (NS_ConvertUTF16toUTF8(attribValue).Equals(aStateMapEntry->attributeValue)) {
-      *aStateInOut |= aStateMapEntry->state;
-    }
-  }
-
-  return PR_TRUE;
-}
-
 NS_IMETHODIMP
 nsAccessible::GetState(PRUint32 *aState, PRUint32 *aExtraState)
 {
@@ -1947,7 +1908,7 @@ nsAccessible::GetState(PRUint32 *aState, PRUint32 *aExtraState)
   NS_ENSURE_A11Y_SUCCESS(rv, rv);
 
   
-  GetARIAState(aState);
+  GetARIAState(aState, aExtraState);
 
   if (mRoleMapEntry && mRoleMapEntry->role == nsIAccessibleRole::ROLE_PAGETAB) {
     if (*aState & nsIAccessibleStates::STATE_FOCUSED) {
@@ -2019,33 +1980,6 @@ nsAccessible::GetState(PRUint32 *aState, PRUint32 *aExtraState)
   rv = GetRole(&role);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  if (role == nsIAccessibleRole::ROLE_ENTRY ||
-      role == nsIAccessibleRole::ROLE_COMBOBOX) {
-
-    nsCOMPtr<nsIContent> content = nsCoreUtils::GetRoleContent(mDOMNode);
-    NS_ENSURE_STATE(content);
-
-    nsAutoString autocomplete;
-    if (content->GetAttr(kNameSpaceID_None, nsAccessibilityAtoms::aria_autocomplete, autocomplete) &&
-        (autocomplete.EqualsIgnoreCase("inline") ||
-         autocomplete.EqualsIgnoreCase("list") ||
-         autocomplete.EqualsIgnoreCase("both"))) {
-      *aExtraState |= nsIAccessibleStates::EXT_STATE_SUPPORTS_AUTOCOMPLETION;
-    }
-
-    
-    if (mRoleMapEntry && mRoleMapEntry->role == nsIAccessibleRole::ROLE_ENTRY) {
-      PRBool isMultiLine = content->AttrValueIs(kNameSpaceID_None, nsAccessibilityAtoms::aria_multiline,
-                                                nsAccessibilityAtoms::_true, eCaseMatters);
-      *aExtraState |= isMultiLine ? nsIAccessibleStates::EXT_STATE_MULTI_LINE :
-                                    nsIAccessibleStates::EXT_STATE_SINGLE_LINE;
-      if (0 == (*aState & nsIAccessibleStates::STATE_READONLY))
-        *aExtraState |= nsIAccessibleStates::EXT_STATE_EDITABLE; 
-      else  
-        *aExtraState &= ~nsIAccessibleStates::EXT_STATE_EDITABLE;
-    }
-  }
-
   
   
   nsIFrame *frame = GetFrame();
@@ -2077,7 +2011,7 @@ nsAccessible::GetState(PRUint32 *aState, PRUint32 *aExtraState)
 }
 
 nsresult
-nsAccessible::GetARIAState(PRUint32 *aState)
+nsAccessible::GetARIAState(PRUint32 *aState, PRUint32 *aExtraState)
 {
   
   nsIContent *content = nsCoreUtils::GetRoleContent(mDOMNode);
@@ -2086,7 +2020,8 @@ nsAccessible::GetARIAState(PRUint32 *aState)
   }
 
   PRUint32 index = 0;
-  while (MappedAttrState(content, aState, &nsARIAMap::gWAIUnivStateMap[index])) {
+  while (nsStateMapEntry::MapToStates(content, aState, aExtraState,
+                                      nsARIAMap::gWAIUnivStateMap[index])) {
     ++ index;
   }
 
@@ -2126,14 +2061,12 @@ nsAccessible::GetARIAState(PRUint32 *aState)
 
   
   *aState |= mRoleMapEntry->state;
-  if (MappedAttrState(content, aState, &mRoleMapEntry->attributeMap1) &&
-      MappedAttrState(content, aState, &mRoleMapEntry->attributeMap2) &&
-      MappedAttrState(content, aState, &mRoleMapEntry->attributeMap3) &&
-      MappedAttrState(content, aState, &mRoleMapEntry->attributeMap4) &&
-      MappedAttrState(content, aState, &mRoleMapEntry->attributeMap5) &&
-      MappedAttrState(content, aState, &mRoleMapEntry->attributeMap6) &&
-      MappedAttrState(content, aState, &mRoleMapEntry->attributeMap7)) {
-    MappedAttrState(content, aState, &mRoleMapEntry->attributeMap8);
+  if (nsStateMapEntry::MapToStates(content, aState, aExtraState,
+                                   mRoleMapEntry->attributeMap1) &&
+      nsStateMapEntry::MapToStates(content, aState, aExtraState,
+                                   mRoleMapEntry->attributeMap2)) {
+    nsStateMapEntry::MapToStates(content, aState, aExtraState,
+                                 mRoleMapEntry->attributeMap3);
   }
 
   return NS_OK;

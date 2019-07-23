@@ -43,12 +43,33 @@
 #include "prtypes.h"
 #include "nsAccessibilityAtoms.h"
 
+#include "nsIContent.h"
+
+
+
+
+
+
 
 enum EValueRule
 {
+  
+
+
   eNoValue,
-  eHasValueMinMax    
+
+  
+
+
+
+  eHasValueMinMax
 };
+
+
+
+
+
+
 
 
 enum EActionRule
@@ -65,6 +86,13 @@ enum EActionRule
   eSwitchAction
 };
 
+
+
+
+
+
+
+
 enum ELiveAttrRule
 {
   eNoLiveAttr,
@@ -73,8 +101,20 @@ enum ELiveAttrRule
 };
 
 
+
+
+
+
+
+
 const PRBool kUseMapRole = PR_TRUE;
+
+
+
+
 const PRBool kUseNativeRole = PR_FALSE;
+
+
 
 
 
@@ -93,19 +133,6 @@ const PRUint8 ATTR_BYPASSOBJ  = 0x0001;
 const PRUint8 ATTR_VALTOKEN   = 0x0010;
 
 
-#define kBoolState 0
-
-
-#define kNoReqStates 0
-
-
-
-struct nsStateMapEntry
-{
-  nsIAtom** attributeName;  
-  const char* attributeValue; 
-  PRUint32 state;             
-};
 
 
 struct nsAttributeCharacteristics
@@ -113,6 +140,122 @@ struct nsAttributeCharacteristics
   nsIAtom** attributeName;
   const PRUint8 characteristics;
 };
+
+
+
+
+
+
+
+
+
+#define kNoReqStates 0
+
+enum eStateValueType
+{
+  kBoolType,
+  kMixedType
+};
+
+
+
+
+enum eStateMapEntryID
+{
+  eARIANone,
+  eARIAAutoComplete,
+  eARIABusy,
+  eARIACheckableBool,
+  eARIACheckableMixed,
+  eARIACheckedMixed,
+  eARIADisabled,
+  eARIAExpanded,
+  eARIAHasPopup,
+  eARIAInvalid,
+  eARIAMultiline,
+  eARIAMultiSelectable,
+  eARIAPressed,
+  eARIAReadonly,
+  eARIAReadonlyOrEditable,
+  eARIARequired,
+  eARIASelected
+};
+
+class nsStateMapEntry
+{
+public:
+  
+
+
+  nsStateMapEntry() {}
+
+  
+
+
+  nsStateMapEntry(nsIAtom **aAttrName, eStateValueType aType,
+                  PRUint32 aPermanentState,
+                  PRUint32 aTrueState, PRUint32 aTrueExtraState,
+                  PRUint32 aFalseState = 0, PRUint32 aFalseExtraState = 0,
+                  PRBool aDefinedIfAbsent = PR_FALSE);
+
+  
+
+
+  nsStateMapEntry(nsIAtom **aAttrName,
+                  const char *aValue1, PRUint32 aState1, PRUint32 aExtraState1,
+                  const char *aValue2, PRUint32 aState2, PRUint32 aExtraState2,
+                  const char *aValue3 = 0, PRUint32 aState3 = 0,
+                  PRUint32 aExtraState3 = 0);
+
+  
+
+
+
+
+
+
+
+
+  static PRBool MapToStates(nsIContent *aContent,
+                            PRUint32 *aState, PRUint32 *aExtraState,
+                            eStateMapEntryID aStateMapEntryID);
+
+private:
+  
+  nsIAtom** attributeName;
+
+  
+  PRBool isToken;
+
+  
+  PRUint32 permanentState;
+
+  
+  const char* value1;
+  PRUint32 state1;
+  PRUint32 extraState1;
+
+  const char* value2;
+  PRUint32 state2;
+  PRUint32 extraState2;
+
+  const char* value3;
+  PRUint32 state3;
+  PRUint32 extraState3;
+
+  
+  PRUint32 defaultState;
+  PRUint32 defaultExtraState;
+
+  
+  PRBool definedIfAbsent;
+};
+
+
+
+
+
+
 
 
 struct nsRoleMapEntry
@@ -144,15 +287,14 @@ struct nsRoleMapEntry
   
   
   
-  nsStateMapEntry attributeMap1;
-  nsStateMapEntry attributeMap2;
-  nsStateMapEntry attributeMap3;
-  nsStateMapEntry attributeMap4;
-  nsStateMapEntry attributeMap5;
-  nsStateMapEntry attributeMap6;
-  nsStateMapEntry attributeMap7;
-  nsStateMapEntry attributeMap8;
+  eStateMapEntryID attributeMap1;
+  eStateMapEntryID attributeMap2;
+  eStateMapEntryID attributeMap3;
 };
+
+
+
+
 
 
 
@@ -183,8 +325,13 @@ struct nsARIAMap
   
 
 
+  static nsStateMapEntry nsARIAMap::gWAIStateMap[];
 
-  static nsStateMapEntry gWAIUnivStateMap[];
+  
+
+
+
+  static eStateMapEntryID gWAIUnivStateMap[];
   
   
 
