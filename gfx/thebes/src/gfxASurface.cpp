@@ -48,6 +48,8 @@
 
 #ifdef CAIRO_HAS_XLIB_SURFACE
 #include "gfxXlibSurface.h"
+
+#undef Status
 #endif
 
 #ifdef CAIRO_HAS_QUARTZ_SURFACE
