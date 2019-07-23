@@ -153,7 +153,7 @@ PrivateBrowsingService.prototype = {
         if (this._saveSession && !this._savedBrowserState)
           this._savedBrowserState = ss.getBrowserState();
       }
-      if (!this.quitting && this._saveSession) {
+      if (!this._quitting && this._saveSession) {
         
         let transitionState = {
           "windows": [{
