@@ -37,7 +37,7 @@
 
 
 
-#include "TabThread.h"
+#include "ContentProcessThread.h"
 
 #include "prlink.h"
 
@@ -49,31 +49,31 @@
 using mozilla::ipc::GeckoThread;
 
 namespace mozilla {
-namespace tabs {
+namespace dom {
 
-TabThread::TabThread() :
+ContentProcessThread::ContentProcessThread() :
     GeckoThread(),
-    mTab()
+    mContentProcess()
 {
 }
 
-TabThread::~TabThread()
+ContentProcessThread::~ContentProcessThread()
 {
 }
 
 void
-TabThread::Init()
+ContentProcessThread::Init()
 {
     GeckoThread::Init();
 
     
     
     
-    mTab.Init(owner_loop(), channel());
+    mContentProcess.Init(owner_loop(), channel());
 }
 
 void
-TabThread::CleanUp()
+ContentProcessThread::CleanUp()
 {
     GeckoThread::CleanUp();
 }
