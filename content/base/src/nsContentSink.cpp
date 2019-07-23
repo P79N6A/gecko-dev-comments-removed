@@ -1096,7 +1096,7 @@ void
 nsContentSink::ProcessOfflineManifest(nsIContent *aElement)
 {
   
-  if (aElement != mDocument->GetRootContent()) {
+  if (aElement != mDocument->GetRootElement()) {
     return;
   }
 

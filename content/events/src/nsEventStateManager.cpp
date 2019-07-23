@@ -2760,7 +2760,7 @@ nsEventStateManager::PostHandleEvent(nsPresContext* aPresContext,
         
         if (newFocus && !newFocus->IsEditable()) {
           nsIDocument *doc = newFocus->GetCurrentDoc();
-          if (doc && newFocus == doc->GetRootContent()) {
+          if (doc && newFocus == doc->GetRootElement()) {
             nsIContent *bodyContent =
               nsLayoutUtils::GetEditableRootContentByContentEditable(doc);
             if (bodyContent) {
@@ -3616,7 +3616,7 @@ nsEventStateManager::GenerateMouseEnterExit(nsGUIEvent* aEvent)
         
         
         
-        targetElement = mDocument->GetRootContent();
+        targetElement = mDocument->GetRootElement();
       }
       if (targetElement) {
         NotifyMouseOver(aEvent, targetElement);

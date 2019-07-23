@@ -78,6 +78,9 @@
 #include "nsCSSProps.h"
 #include "nsTArray.h"
 #include "nsContentUtils.h"
+#include "Element.h"
+
+using namespace mozilla::dom;
 
 #define NS_SET_IMAGE_REQUEST(method_, context_, request_)                   \
   if ((context_)->PresContext()->IsDynamic()) {                               \
@@ -227,7 +230,7 @@ static nscoord CalcLengthWith(const nsCSSValue& aValue,
         
         nsRefPtr<nsStyleContext> rootStyle;
         const nsStyleFont *rootStyleFont = aStyleFont;
-        nsIContent* docElement = aPresContext->Document()->GetRootContent();
+        Element* docElement = aPresContext->Document()->GetRootElement();
 
         rootStyle = aPresContext->StyleSet()->ResolveStyleFor(docElement,
                                                               nsnull);

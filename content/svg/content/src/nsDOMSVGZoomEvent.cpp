@@ -44,6 +44,9 @@
 #include "nsIContent.h"
 #include "nsIPresShell.h"
 #include "nsIDocument.h"
+#include "Element.h"
+
+using namespace mozilla::dom;
 
 
 
@@ -72,16 +75,16 @@ nsDOMSVGZoomEvent::nsDOMSVGZoomEvent(nsPresContext* aPresContext,
   if (mPresContext && (presShell = mPresContext->GetPresShell())) {
     nsIDocument *doc = presShell->GetDocument();
     if (doc) {
-      nsIContent *rootContent = doc->GetRootContent();
-      if (rootContent) {
+      Element *rootElement = doc->GetRootElement();
+      if (rootElement) {
         
         
         
         
-        nsCOMPtr<nsIDOMSVGSVGElement> svgElement = do_QueryInterface(rootContent);
+        nsCOMPtr<nsIDOMSVGSVGElement> svgElement = do_QueryInterface(rootElement);
         if (svgElement) {
           nsSVGSVGElement *SVGSVGElement =
-            static_cast<nsSVGSVGElement*>(rootContent);
+            static_cast<nsSVGSVGElement*>(rootElement);
   
           mNewScale = SVGSVGElement->GetCurrentScale();
           mPreviousScale = SVGSVGElement->GetPreviousScale();

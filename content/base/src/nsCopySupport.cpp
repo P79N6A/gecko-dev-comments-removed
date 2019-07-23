@@ -682,7 +682,7 @@ nsCopySupport::FireClipboardEvent(PRInt32 aType, nsIPresShell* aPresShell, nsISe
 
   
   if (!content) {
-    content = doc->GetRootContent();
+    content = doc->GetRootElement();
     if (!content)
       return PR_FALSE;
   }

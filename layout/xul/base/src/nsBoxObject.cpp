@@ -58,6 +58,9 @@
 #include "nsISupportsPrimitives.h"
 #include "prtypes.h"
 #include "nsSupportsPrimitives.h"
+#include "Element.h"
+
+using namespace mozilla::dom;
 
 
 
@@ -197,7 +200,7 @@ nsBoxObject::GetOffsetRect(nsIntRect& aRect)
     nsPoint origin = frame->GetPositionIgnoringScrolling();
 
     
-    nsIContent *docElement = mContent->GetCurrentDoc()->GetRootContent();
+    Element *docElement = mContent->GetCurrentDoc()->GetRootElement();
     nsIFrame* parent = frame->GetParent();
     for (;;) {
       

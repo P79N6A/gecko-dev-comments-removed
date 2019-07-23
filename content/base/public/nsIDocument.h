@@ -111,6 +111,7 @@ class Loader;
 
 namespace dom {
 class Link;
+class Element;
 } 
 } 
 
@@ -472,30 +473,32 @@ public:
   
 
 
-  nsIContent *GetRootContent() const
+  mozilla::dom::Element *GetRootElement() const
   {
-    return (mCachedRootContent &&
-            mCachedRootContent->GetNodeParent() == this) ?
-           reinterpret_cast<nsIContent*>(mCachedRootContent.get()) :
-           GetRootContentInternal();
+    return (mCachedRootElement &&
+            mCachedRootElement->GetNodeParent() == this) ?
+           reinterpret_cast<mozilla::dom::Element*>(mCachedRootElement.get()) :
+           GetRootElementInternal();
   }
-  virtual nsIContent *GetRootContentInternal() const = 0;
+protected:
+  virtual mozilla::dom::Element *GetRootElementInternal() const = 0;
 
+public:
   
   
-  nsIContent* GetHtmlContent();
+  mozilla::dom::Element* GetHtmlElement();
   
   
-  nsIContent* GetHtmlChildContent(nsIAtom* aTag);
+  mozilla::dom::Element* GetHtmlChildElement(nsIAtom* aTag);
   
   
-  nsIContent* GetBodyContent() {
-    return GetHtmlChildContent(nsGkAtoms::body);
+  mozilla::dom::Element* GetBodyElement() {
+    return GetHtmlChildElement(nsGkAtoms::body);
   }
   
   
-  nsIContent* GetHeadContent() {
-    return GetHtmlChildContent(nsGkAtoms::head);
+  mozilla::dom::Element* GetHeadElement() {
+    return GetHtmlChildElement(nsGkAtoms::head);
   }
   
   
@@ -1382,7 +1385,7 @@ protected:
   
   
   
-  nsCOMPtr<nsINode> mCachedRootContent;
+  nsCOMPtr<nsINode> mCachedRootElement;
 
   
   

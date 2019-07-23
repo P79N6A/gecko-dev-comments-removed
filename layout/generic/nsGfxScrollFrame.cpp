@@ -80,6 +80,9 @@
 #include "nsBidiUtils.h"
 #include "nsFrameManager.h"
 #include "nsIPrefService.h"
+#include "Element.h"
+
+using namespace mozilla::dom;
 
 
 
@@ -2687,14 +2690,14 @@ nsGfxScrollFrameInner::IsLTR() const
     
     nsPresContext *presContext = mOuter->PresContext();
     nsIDocument *document = presContext->Document();
-    nsIContent *root = document->GetRootContent();
+    Element *root = document->GetRootElement();
 
     
     nsCOMPtr<nsIHTMLDocument> htmlDoc = do_QueryInterface(document);
     if (htmlDoc) {
-      nsIContent *bodyContent = htmlDoc->GetBodyContentExternal();
-      if (bodyContent)
-        root = bodyContent; 
+      Element *bodyElement = document->GetBodyElement();
+      if (bodyElement)
+        root = bodyElement; 
     }
 
     if (root) {

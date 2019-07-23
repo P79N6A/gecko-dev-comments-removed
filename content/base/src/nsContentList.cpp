@@ -1018,7 +1018,7 @@ nsContentList::AssertInSync()
   
   nsIContent *root;
   if (mRootNode->IsNodeOfType(nsINode::eDOCUMENT)) {
-    root = static_cast<nsIDocument*>(mRootNode)->GetRootContent();
+    root = static_cast<nsIDocument*>(mRootNode)->GetRootElement();
   }
   else {
     root = static_cast<nsIContent*>(mRootNode);

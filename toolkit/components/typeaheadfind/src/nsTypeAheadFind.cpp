@@ -711,7 +711,7 @@ nsTypeAheadFind::GetSearchContainers(nsISupports *aContainer,
   }
 
   if (!rootContent)
-    rootContent = doc->GetRootContent();
+    rootContent = doc->GetRootElement();
  
   nsCOMPtr<nsIDOMNode> rootNode(do_QueryInterface(rootContent));
 
@@ -1007,7 +1007,7 @@ nsTypeAheadFind::Find(const nsAString& aSearchString, PRBool aLinksOnly,
         
         
         if (focusedElement &&
-            !SameCOMIdentity(focusedElement, document->GetRootContent())) {
+            !SameCOMIdentity(focusedElement, document->GetRootElement())) {
           fm->MoveCaretToFocus(window);
           isFirstVisiblePreferred = PR_FALSE;
         }

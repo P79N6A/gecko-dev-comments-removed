@@ -164,7 +164,7 @@ nsSVGOuterSVGFrame::Init(nsIContent* aContent,
   nsIDocument* doc = mContent->GetCurrentDoc();
   if (doc) {
     
-    if (doc->GetRootContent() == mContent) {
+    if (doc->GetRootElement() == mContent) {
       mIsRootContent = PR_TRUE;
     }
     

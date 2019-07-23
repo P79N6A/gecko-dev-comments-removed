@@ -158,19 +158,7 @@
 #include "nsSVGFeatures.h"
 #endif 
 
-#ifdef DEBUG_waterson
-
-
-
-
-void
-DebugListContentTree(nsIContent* aElement)
-{
-  aElement->List(stdout, 0);
-  printf("\n");
-}
-
-#endif
+using namespace mozilla::dom;
 
 NS_DEFINE_IID(kThisPtrOffsetsSID, NS_THISPTROFFSETS_SID);
 
@@ -391,7 +379,7 @@ nsINode::GetSelectionRootContent(nsIPresShell* aPresShell)
   NS_ENSURE_TRUE(aPresShell, nsnull);
 
   if (IsNodeOfType(eDOCUMENT))
-    return static_cast<nsIDocument*>(this)->GetRootContent();
+    return static_cast<nsIDocument*>(this)->GetRootElement();
   if (!IsNodeOfType(eCONTENT))
     return nsnull;
 
@@ -440,7 +428,7 @@ nsINode::GetSelectionRootContent(nsIPresShell* aPresShell)
     if (!content) {
       nsIDocument* doc = aPresShell->GetDocument();
       NS_ENSURE_TRUE(doc, nsnull);
-      content = doc->GetRootContent();
+      content = doc->GetRootElement();
       if (!content)
         return nsnull;
     }
@@ -1272,8 +1260,8 @@ nsNSElementTearoff::GetScrollFrame(nsIFrame **aStyledFrame)
 
   nsIDocument* doc = mContent->GetOwnerDoc();
   PRBool quirksMode = doc->GetCompatibilityMode() == eCompatibility_NavQuirks;
-  nsIContent* elementWithRootScrollInfo =
-    quirksMode ? doc->GetBodyContent() : doc->GetRootContent();
+  Element* elementWithRootScrollInfo =
+    quirksMode ? doc->GetBodyElement() : doc->GetRootElement();
   if (mContent == elementWithRootScrollInfo) {
     
     
@@ -3623,12 +3611,12 @@ PRBool IsAllowedAsChild(nsIContent* aNewChild, PRUint16 aNewNodeType,
         return PR_TRUE;
       }
 
-      nsIContent* rootContent =
-        static_cast<nsIDocument*>(aParent)->GetRootContent();
-      if (rootContent) {
+      Element* rootElement =
+        static_cast<nsIDocument*>(aParent)->GetRootElement();
+      if (rootElement) {
         
         
-        return aIsReplace && rootContent == aRefContent;
+        return aIsReplace && rootElement == aRefContent;
       }
 
       
@@ -3678,9 +3666,9 @@ PRBool IsAllowedAsChild(nsIContent* aNewChild, PRUint16 aNewNodeType,
 
       
       
-      nsIContent* rootContent =
-        static_cast<nsIDocument*>(aParent)->GetRootContent();
-      if (!rootContent) {
+      Element* rootElement =
+        static_cast<nsIDocument*>(aParent)->GetRootElement();
+      if (!rootElement) {
         
         return PR_TRUE;
       }
@@ -3690,7 +3678,7 @@ PRBool IsAllowedAsChild(nsIContent* aNewChild, PRUint16 aNewNodeType,
         return PR_FALSE;
       }
 
-      PRInt32 rootIndex = aParent->IndexOf(rootContent);
+      PRInt32 rootIndex = aParent->IndexOf(rootElement);
       PRInt32 insertIndex = aParent->IndexOf(aRefContent);
 
       
