@@ -106,12 +106,9 @@ class nsFindContentIterator : public nsIContentIterator
 {
 public:
   nsFindContentIterator(PRBool aFindBackward)
-    : mOuterIterator(nsnull)
-    , mInnerIterator(nsnull)
-    , mRange(nsnull)
-    , mStartOuterNode(nsnull)
-    , mEndOuterNode(nsnull)
-    , mFindBackward(aFindBackward)
+    : mStartOffset(0),
+      mEndOffset(0),
+      mFindBackward(aFindBackward)
   {
   }
 
@@ -128,7 +125,14 @@ public:
     NS_NOTREACHED("internal error");
     return NS_ERROR_NOT_IMPLEMENTED;
   }
-  virtual nsresult Init(nsIDOMRange* aRange);
+  virtual nsresult Init(nsIDOMRange* aRange)
+  {
+    NS_NOTREACHED("internal error");
+    return NS_ERROR_NOT_IMPLEMENTED;
+  }
+  
+  nsresult Init(nsIDOMNode* aStartNode, PRInt32 aStartOffset,
+                nsIDOMNode* aEndNode, PRInt32 aEndOffset);
   virtual void First();
   virtual void Last();
   virtual void Next();
@@ -140,7 +144,13 @@ public:
 private:
   nsCOMPtr<nsIContentIterator> mOuterIterator;
   nsCOMPtr<nsIContentIterator> mInnerIterator;
-  nsCOMPtr<nsIDOMRange> mRange;
+  
+  
+  nsCOMPtr<nsIDOMNode> mStartNode;
+  PRInt32 mStartOffset;
+  nsCOMPtr<nsIDOMNode> mEndNode;
+  PRInt32 mEndOffset;
+  
   nsCOMPtr<nsIDOMNode> mStartOuterNode;
   nsCOMPtr<nsIDOMNode> mEndOuterNode;
   PRBool mFindBackward;
@@ -153,7 +163,8 @@ private:
 NS_IMPL_ISUPPORTS1(nsFindContentIterator, nsIContentIterator)
 
 nsresult
-nsFindContentIterator::Init(nsIDOMRange* aRange)
+nsFindContentIterator::Init(nsIDOMNode* aStartNode, PRInt32 aStartOffset,
+                            nsIDOMNode* aEndNode, PRInt32 aEndOffset)
 {
   if (!mOuterIterator) {
     if (mFindBackward) {
@@ -172,7 +183,12 @@ nsFindContentIterator::Init(nsIDOMRange* aRange)
   }
 
   
-  return aRange->CloneRange(getter_AddRefs(mRange));
+  mStartNode = aStartNode;
+  mStartOffset = aStartOffset;
+  mEndNode = aEndNode;
+  mEndOffset = aEndOffset;
+
+  return NS_OK;
 }
 
 void
@@ -263,31 +279,37 @@ nsFindContentIterator::Reset()
   
 
   
-  nsCOMPtr<nsIDOMNode> startNode;
-  mRange->GetStartContainer(getter_AddRefs(startNode));
-  nsCOMPtr<nsIContent> startContent(do_QueryInterface(startNode));
+  nsCOMPtr<nsIContent> startContent(do_QueryInterface(mStartNode));
   for ( ; startContent; startContent = startContent->GetParent()) {
-    if (!startContent->IsNativeAnonymous()) {
+    if (!startContent->IsNativeAnonymous() &&
+        (!startContent->GetBindingParent() ||
+         !startContent->GetBindingParent()->IsNativeAnonymous())) {
       mStartOuterNode = do_QueryInterface(startContent);
       break;
     }
   }
 
   
-  nsCOMPtr<nsIDOMNode> endNode;
-  mRange->GetEndContainer(getter_AddRefs(endNode));
-  nsCOMPtr<nsIContent> endContent(do_QueryInterface(endNode));
+  nsCOMPtr<nsIContent> endContent(do_QueryInterface(mEndNode));
   for ( ; endContent; endContent = endContent->GetParent()) {
-    if (!endContent->IsNativeAnonymous()) {
+    if (!endContent->IsNativeAnonymous() &&
+        (!endContent->GetBindingParent() ||
+         !endContent->GetBindingParent()->IsNativeAnonymous())) {
       mEndOuterNode = do_QueryInterface(endContent);
       break;
     }
   }
 
-  mOuterIterator->Init(mRange);
+  
+  
+  
+  nsCOMPtr<nsIDOMRange> range (do_CreateInstance(kRangeCID));
+  range->SetStart(mStartNode, mStartOffset);
+  range->SetEnd(mEndNode, mEndOffset);
+  mOuterIterator->Init(range);
 
   if (!mFindBackward) {
-    if (mStartOuterNode != startNode) {
+    if (mStartOuterNode != mStartNode) {
       
       SetupInnerIterator(startContent);
       if (mInnerIterator)
@@ -296,7 +318,7 @@ nsFindContentIterator::Reset()
     mOuterIterator->First();
   }
   else {
-    if (mEndOuterNode != endNode) {
+    if (mEndOuterNode != mEndNode) {
       
       SetupInnerIterator(endContent);
       if (mInnerIterator)
@@ -378,53 +400,57 @@ nsFindContentIterator::SetupInnerIterator(nsIContent* aContent)
   editor->GetRootElement(getter_AddRefs(rootElement));
   nsCOMPtr<nsIContent> rootContent(do_QueryInterface(rootElement));
 
+  nsCOMPtr<nsIDOMRange> innerRange(do_CreateInstance(kRangeCID));
+  nsCOMPtr<nsIDOMRange> outerRange(do_CreateInstance(kRangeCID));
+  if (!innerRange || !outerRange) {
+    return;
+  }
+     
   
   mInnerIterator = do_CreateInstance(kCPreContentIteratorCID);
 
   if (mInnerIterator) {
-    nsCOMPtr<nsIDOMNode> node(do_QueryInterface(rootContent));
-    nsCOMPtr<nsIDOMRange> range(do_CreateInstance(kRangeCID));
-    range->SelectNodeContents(node);
+    {
+      nsCOMPtr<nsIDOMNode> node(do_QueryInterface(rootContent));
+      innerRange->SelectNodeContents(node);
+    }
 
     
     
-    PRInt32 offset;
     nsCOMPtr<nsIDOMNode> outerNode(do_QueryInterface(aContent));
     if (outerNode == mStartOuterNode) {
-      mRange->GetStartOffset(&offset);
-      mRange->GetStartContainer(getter_AddRefs(node));
-      range->SetStart(node, offset);
+      innerRange->SetStart(mStartNode, mStartOffset);
     }
     if (outerNode == mEndOuterNode) {
-      mRange->GetEndOffset(&offset);
-      mRange->GetEndContainer(getter_AddRefs(node));
-      range->SetEnd(node, offset);
+      innerRange->SetEnd(mEndNode, mEndOffset);
     }
     
-    mInnerIterator->Init(range);
+    mInnerIterator->Init(innerRange);
 
     
     
     nsresult res;
-    mRange->CloneRange(getter_AddRefs(range));
     if (!mFindBackward) { 
       
-      res = range->SetStartAfter(outerNode);
+      res = outerRange->SetEnd(mEndNode, mEndOffset);
+      res |= outerRange->SetStartAfter(outerNode);
     }
     else { 
       
-      res = range->SetEndBefore(outerNode);
+      res = outerRange->SetStart(mStartNode, mStartOffset);
+      res |= outerRange->SetEndBefore(outerNode);
     }
     if (NS_FAILED(res)) {
       
       
-      range->Collapse(PR_TRUE);
+      outerRange->Collapse(PR_TRUE);
     }
+
     
     
     
     
-    mOuterIterator->Init(range);
+    mOuterIterator->Init(outerRange);
   }
 }
 
@@ -532,23 +558,24 @@ static void DumpRange(nsIDOMRange* aRange)
 #endif
 
 nsresult
-nsFind::InitIterator(nsIDOMRange* aSearchRange)
+nsFind::InitIterator(nsIDOMNode* aStartNode, PRInt32 aStartOffset,
+                     nsIDOMNode* aEndNode, PRInt32 aEndOffset)
 {
-  nsresult rv;
   if (!mIterator)
   {
-    rv = NS_NewFindContentIterator(mFindBackward, getter_AddRefs(mIterator));
-    NS_ENSURE_SUCCESS(rv, rv);
-    NS_ENSURE_ARG_POINTER(mIterator);
+    mIterator = new nsFindContentIterator(mFindBackward);
+    NS_ENSURE_TRUE(mIterator, NS_ERROR_OUT_OF_MEMORY);
   }
 
-  NS_ENSURE_ARG_POINTER(aSearchRange);
+  NS_ENSURE_ARG_POINTER(aStartNode);
+  NS_ENSURE_ARG_POINTER(aEndNode);
 
 #ifdef DEBUG_FIND
   printf("InitIterator search range:\n"); DumpRange(aSearchRange);
 #endif
 
-  rv = mIterator->Init(aSearchRange);
+  nsresult rv =
+    mIterator->Init(aStartNode, aStartOffset, aEndNode, aEndOffset);
   NS_ENSURE_SUCCESS(rv, rv);
   if (mFindBackward) {
     mIterator->Last();
@@ -636,18 +663,17 @@ nsFind::NextNode(nsIDOMRange* aSearchRange,
 
   if (!mIterator || aContinueOk)
   {
-      
-      
-      
-    nsCOMPtr<nsIDOMRange> newRange (do_CreateInstance(kRangeCID));
+    
+    
+    
+    nsCOMPtr<nsIDOMNode> startNode;
+    nsCOMPtr<nsIDOMNode> endNode;
+    PRInt32 startOffset, endOffset;
     if (aContinueOk)
     {
 #ifdef DEBUG_FIND
       printf("Match in progress: continuing past endpoint\n");
 #endif
-      nsCOMPtr<nsIDOMNode> startNode;
-      nsCOMPtr<nsIDOMNode> endNode;
-      PRInt32 startOffset, endOffset;
       if (mFindBackward) {
         aSearchRange->GetStartContainer(getter_AddRefs(startNode));
         aSearchRange->GetStartOffset(&startOffset);
@@ -659,14 +685,9 @@ nsFind::NextNode(nsIDOMRange* aSearchRange,
         aSearchRange->GetEndContainer(getter_AddRefs(endNode));
         aSearchRange->GetEndOffset(&endOffset);
       }
-      newRange->SetStart(startNode, startOffset);
-      newRange->SetEnd(endNode, endOffset);
     }
     else  
     {
-      nsCOMPtr<nsIDOMNode> startNode;
-      nsCOMPtr<nsIDOMNode> endNode;
-      PRInt32 startOffset, endOffset;
       if (mFindBackward) {
         aSearchRange->GetStartContainer(getter_AddRefs(startNode));
         aSearchRange->GetStartOffset(&startOffset);
@@ -685,11 +706,9 @@ nsFind::NextNode(nsIDOMRange* aSearchRange,
         aEndPoint->GetEndContainer(getter_AddRefs(endNode));
         aEndPoint->GetEndOffset(&endOffset);
       }
-      newRange->SetStart(startNode, startOffset);
-      newRange->SetEnd(endNode, endOffset);
     }
 
-    rv = InitIterator(newRange);
+    rv = InitIterator(startNode, startOffset, endNode, endOffset);
     NS_ENSURE_SUCCESS(rv, rv);
     if (!aStartPoint)
       aStartPoint = aSearchRange;
