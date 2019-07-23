@@ -7,6 +7,8 @@
 
 
 
+
+
 #include "ffitest.h"
 
 long double cls_ldouble_fn(
@@ -47,19 +49,11 @@ cls_ldouble_gn(ffi_cif* cif __UNUSED__, void* resp,
 int main(void)
 {
 	ffi_cif	cif;
-#ifndef USING_MMAP
-	static ffi_closure	cl;
-#endif
-	ffi_closure*	pcl;
+        void* code;
+	ffi_closure*	pcl = ffi_closure_alloc(sizeof(ffi_closure), &code);
 	void*			args[9];
 	ffi_type*		arg_types[9];
 	long double		res	= 0;
-
-#ifdef USING_MMAP
-	pcl = allocate_mmap(sizeof(ffi_closure));
-#else
-	pcl = &cl;
-#endif
 
 	long double	arg1	= 1;
 	long double	arg2	= 2;
@@ -98,10 +92,10 @@ int main(void)
 	printf("res: %Lg\n", res);
 	
 
-	CHECK(ffi_prep_closure(pcl, &cif, cls_ldouble_gn, NULL) == FFI_OK);
+	CHECK(ffi_prep_closure_loc(pcl, &cif, cls_ldouble_gn, NULL, code) == FFI_OK);
 
 	res = ((long double(*)(long double, long double, long double, long double,
-		long double, long double, long double, long double))(pcl))(arg1, arg2,
+		long double, long double, long double, long double))(code))(arg1, arg2,
 		arg3, arg4, arg5, arg6, arg7, arg8);
 	
 	printf("res: %Lg\n", res);

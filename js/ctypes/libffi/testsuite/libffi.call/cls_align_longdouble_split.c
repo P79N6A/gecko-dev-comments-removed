@@ -7,6 +7,8 @@
 
 
 
+
+
 #include "ffitest.h"
 
 typedef struct cls_struct_align {
@@ -78,20 +80,12 @@ cls_struct_align_gn(ffi_cif* cif __UNUSED__, void* resp, void** args,
 int main (void)
 {
 	ffi_cif cif;
-#ifndef USING_MMAP
-	static ffi_closure cl;
-#endif
-	ffi_closure *pcl;
+        void *code;
+	ffi_closure *pcl = ffi_closure_alloc(sizeof(ffi_closure), &code);
 	void* args_dbl[3];
 	ffi_type* cls_struct_fields[8];
 	ffi_type cls_struct_type;
 	ffi_type* dbl_arg_types[3];
-
-#ifdef USING_MMAP
-	pcl = allocate_mmap (sizeof(ffi_closure));
-#else
-	pcl = &cl;
-#endif
 
 	cls_struct_type.size = 0;
 	cls_struct_type.alignment = 0;
@@ -128,9 +122,9 @@ int main (void)
 		res_dbl.c, res_dbl.d, res_dbl.e, res_dbl.f, res_dbl.g);
 	
 
-	CHECK(ffi_prep_closure(pcl, &cif, cls_struct_align_gn, NULL) == FFI_OK);
+	CHECK(ffi_prep_closure_loc(pcl, &cif, cls_struct_align_gn, NULL, code) == FFI_OK);
 
-	res_dbl = ((cls_struct_align(*)(cls_struct_align, cls_struct_align))(pcl))(g_dbl, f_dbl);
+	res_dbl = ((cls_struct_align(*)(cls_struct_align, cls_struct_align))(code))(g_dbl, f_dbl);
 	
 	printf("res: %Lg %Lg %Lg %Lg %Lg %Lg %Lg\n", res_dbl.a, res_dbl.b,
 		res_dbl.c, res_dbl.d, res_dbl.e, res_dbl.f, res_dbl.g);

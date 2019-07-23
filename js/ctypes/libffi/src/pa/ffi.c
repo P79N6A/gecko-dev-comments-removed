@@ -492,6 +492,13 @@ ffi_status ffi_closure_inner_pa32(ffi_closure *closure, UINT32 *stack)
 	  avalue[i] = (void *)(stack - slot);
 	  break;
 
+#ifdef PA_HPUX
+	case FFI_TYPE_LONGDOUBLE:
+	  
+	  avalue[i] = (void *) *(stack - slot);
+	  break;
+#endif
+
 	case FFI_TYPE_STRUCT:
 	  
 

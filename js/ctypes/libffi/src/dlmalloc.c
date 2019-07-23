@@ -1140,7 +1140,7 @@ int mspace_mallopt(int, int);
 
 
 
-#ifdef WIN32
+#ifdef _MSC_VER
 #pragma warning( disable : 4146 ) /* no "unsigned" warnings */
 #endif 
 
@@ -1315,14 +1315,14 @@ static int dev_zero_fd = -1;
 
 
 static void* win32mmap(size_t size) {
-  void* ptr = VirtualAlloc(0, size, MEM_RESERVE|MEM_COMMIT, PAGE_READWRITE);
+  void* ptr = VirtualAlloc(0, size, MEM_RESERVE|MEM_COMMIT, PAGE_EXECUTE_READWRITE);
   return (ptr != 0)? ptr: MFAIL;
 }
 
 
 static void* win32direct_mmap(size_t size) {
   void* ptr = VirtualAlloc(0, size, MEM_RESERVE|MEM_COMMIT|MEM_TOP_DOWN,
-                           PAGE_READWRITE);
+                           PAGE_EXECUTE_READWRITE);
   return (ptr != 0)? ptr: MFAIL;
 }
 
