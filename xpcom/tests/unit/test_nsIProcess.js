@@ -39,12 +39,11 @@ var isWindows = ("@mozilla.org/windows-registry-key;1" in Components.classes);
 
 function get_test_program(prog)
 {
-    var progPath = do_get_cwd();
-    progPath.append(prog);
-    if (isWindows) {
-	progPath.leafName = progPath.leafName + ".exe";
-    }
-    return progPath;
+  var progPath = do_get_cwd();
+  progPath.append(prog);
+  if (isWindows)
+    progPath.leafName = progPath.leafName + ".exe";
+  return progPath;
 }
 
 function set_environment()
@@ -125,37 +124,65 @@ function test_arguments()
   
   process.run(true, args, args.length);
   
-  
-  do_check_neq(process.exitValue, 255);
+  do_check_eq(process.exitValue, 0);
 }
 
-var gProcess;
 
-
-
-function test_nonblocking()
+function test_notify_blocking()
 {
   var file = get_test_program("TestQuickReturn");
 
-  gProcess = Components.classes["@mozilla.org/process/util;1"]
-                       .createInstance(Components.interfaces.nsIProcess);
-  gProcess.init(file);
+  var process = Components.classes["@mozilla.org/process/util;1"]
+                          .createInstance(Components.interfaces.nsIProcess2);
+  process.init(file);
 
-  gProcess.run(false, [], 0);
-
-  do_test_pending();
-  do_timeout(100, "check_nonblocking()");
+  process.runAsync([], 0, {
+    observe: function(subject, topic, data) {
+      process = subject.QueryInterface(Components.interfaces.nsIProcess);
+      do_check_eq(topic, "process-finished");
+      do_check_eq(process.exitValue, 42);
+      test_notify_nonblocking();
+    }
+  });
 }
 
-function check_nonblocking()
-{
-  if (gProcess.isRunning) {
-    do_timeout(100, "check_nonblocking()");
-    return;
-  }
 
-  do_check_eq(gProcess.exitValue, 42);
-  do_test_finished();
+function test_notify_nonblocking()
+{
+  var file = get_test_program("TestArguments");
+
+  var process = Components.classes["@mozilla.org/process/util;1"]
+                          .createInstance(Components.interfaces.nsIProcess2);
+  process.init(file);
+
+  process.runAsync(["mozilla"], 1, {
+    observe: function(subject, topic, data) {
+      process = subject.QueryInterface(Components.interfaces.nsIProcess);
+      do_check_eq(topic, "process-finished");
+      do_check_eq(process.exitValue, 0);
+      test_notify_killed();
+    }
+  });
+}
+
+
+function test_notify_killed()
+{
+  var file = get_test_program("TestBlockingProcess");
+
+  var process = Components.classes["@mozilla.org/process/util;1"]
+                          .createInstance(Components.interfaces.nsIProcess2);
+  process.init(file);
+
+  process.runAsync([], 0, {
+    observe: function(subject, topic, data) {
+      process = subject.QueryInterface(Components.interfaces.nsIProcess);
+      do_check_eq(topic, "process-finished");
+      do_test_finished();
+    }
+  });
+
+  process.kill();
 }
 
 function run_test() {
@@ -163,6 +190,6 @@ function run_test() {
   test_kill();
   test_quick();
   test_arguments();
-  if (isWindows)
-    test_nonblocking();
+  do_test_pending();
+  test_notify_blocking();
 }
