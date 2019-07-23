@@ -265,14 +265,23 @@ function showDownload(aDownload)
   var f = getLocalFileFromNativePathOrUrl(aDownload.getAttribute("file"));
 
   try {
+    
     f.reveal();
-  } catch (ex) {
+  } catch (e) {
     
     
-    
-    var parent = f.parent;
-    if (parent)
+    let parent = f.parent.QueryInterface(Ci.nsILocalFile);
+    if (!parent)
+      return;
+
+    try {
+      
+      parent.launch();
+    } catch (e) {
+      
+      
       openExternal(parent);
+    }
   }
 }
 
@@ -629,7 +638,6 @@ var gDownloadViewController = {
       case "cmd_cancel":
         return dl.inProgress;
       case "cmd_open":
-      case "cmd_show":
         let file = getLocalFileFromNativePathOrUrl(dl.getAttribute("file"));
         return dl.openable && file.exists();
       case "cmd_pause":
@@ -643,6 +651,7 @@ var gDownloadViewController = {
       case "cmd_removeFromList":
       case "cmd_retry":
         return dl.removable;
+      case "cmd_show":
       case "cmd_copyLocation":
         return true;
     }
