@@ -1450,8 +1450,7 @@ NS_IMETHODIMP nsAccessibilityService::GetAccessible(nsIDOMNode *aNode,
           }
           if (tableAccessible && nsAccessible::Role(tableAccessible) != nsIAccessibleRole::ROLE_TABLE) {
             NS_ASSERTION(!roleMapEntry, "Should not be changing ARIA role, just overriding impl class role");
-            
-            roleMapEntry = &nsARIAMap::gEmptyRoleMap;
+            roleMapEntry = &nsARIAMap::gLandmarkRoleMap; 
           }
           break;
         }
@@ -1459,8 +1458,7 @@ NS_IMETHODIMP nsAccessibilityService::GetAccessible(nsIDOMNode *aNode,
           
           
           NS_ASSERTION(!roleMapEntry, "Should not be changing ARIA role, just overriding impl class role");
-          
-          roleMapEntry = &nsARIAMap::gEmptyRoleMap;
+          roleMapEntry = &nsARIAMap::gLandmarkRoleMap; 
           break;
         }
       }

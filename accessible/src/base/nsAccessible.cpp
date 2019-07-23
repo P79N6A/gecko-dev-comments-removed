@@ -1987,13 +1987,10 @@ NS_IMETHODIMP nsAccessible::GetFinalRole(PRUint32 *aRole)
       }
     }
 
-    if (mRoleMapEntry == &nsARIAMap::gEmptyRoleMap) {
-      
-      
-      
-      
-      return NS_OK;
-    }
+    
+    
+    
+    return NS_OK;
   }
   return mDOMNode ? GetRole(aRole) : NS_ERROR_FAILURE;  
 }

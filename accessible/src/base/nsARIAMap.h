@@ -125,29 +125,9 @@ struct nsRoleMapEntry
 
 struct nsARIAMap
 {
-  
-
-
   static nsRoleMapEntry gWAIRoleMap[];
   static PRUint32 gWAIRoleMapLength;
-
-  
-
-
-
   static nsRoleMapEntry gLandmarkRoleMap;
-
-  
-
-
-
-
-  static nsRoleMapEntry gEmptyRoleMap;
-
-  
-
-
-
   static nsStateMapEntry gWAIUnivStateMap[];
 };
 

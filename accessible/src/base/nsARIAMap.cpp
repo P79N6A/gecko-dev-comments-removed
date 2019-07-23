@@ -213,15 +213,6 @@ nsRoleMapEntry nsARIAMap::gLandmarkRoleMap = {
   kEndEntry
 };
 
-nsRoleMapEntry nsARIAMap::gEmptyRoleMap = {
-  "",
-  nsIAccessibleRole::ROLE_NOTHING,
-  eNameLabelOrTitle,
-  eNoValue,
-  kNoReqStates,
-  kEndEntry
-};
-
 
 
 
