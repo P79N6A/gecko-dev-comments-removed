@@ -73,7 +73,7 @@ var safebrowsing = {
     safebrowsing.malwareWarden = malwareWarden;
 
     
-    malwareWarden.registerBlackTable("goog-malware-shavar");
+    malwareWarden.registerBlackTable("goog-malware-sha128");
 
     malwareWarden.maybeToggleUpdateChecking();
 
@@ -87,7 +87,7 @@ var safebrowsing = {
     
     
     
-    phishWarden.registerBlackTable("goog-phish-shavar");
+    phishWarden.registerBlackTable("goog-phish-sha128");
 
     
     phishWarden.maybeToggleUpdateChecking();

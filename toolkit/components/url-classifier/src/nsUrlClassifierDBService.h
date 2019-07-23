@@ -43,21 +43,9 @@
 #include <nsISupportsUtils.h>
 
 #include "nsID.h"
-#include "nsInterfaceHashtable.h"
 #include "nsIObserver.h"
-#include "nsIUrlClassifierHashCompleter.h"
 #include "nsIUrlClassifierDBService.h"
 #include "nsIURIClassifier.h"
-#include "nsToolkitCompsCID.h"
-
-
-#define DOMAIN_LENGTH 4
-
-
-#define PARTIAL_LENGTH 4
-
-
-#define COMPLETE_LENGTH 32
 
 class nsUrlClassifierDBServiceWorker;
 
@@ -86,19 +74,16 @@ public:
   NS_DECL_NSIURICLASSIFIER
   NS_DECL_NSIOBSERVER
 
-  PRBool GetCompleter(const nsACString& tableName,
-                      nsIUrlClassifierHashCompleter** completer) {
-    return mCompleters.Get(tableName, completer);
-  }
-
 private:
   
   ~nsUrlClassifierDBService();
 
+  nsresult LookupURI(nsIURI* uri,
+                     nsIUrlClassifierCallback* c,
+                     PRBool needsProxy);
+
   
   nsUrlClassifierDBService(nsUrlClassifierDBService&);
-
-  nsresult LookupURI(nsIURI* uri, nsIUrlClassifierCallback* c);
 
   
   void EnsureThreadStarted();
@@ -108,8 +93,6 @@ private:
   
   nsCOMPtr<nsUrlClassifierDBServiceWorker> mWorker;
   nsCOMPtr<nsUrlClassifierDBServiceWorker> mWorkerProxy;
-
-  nsInterfaceHashtable<nsCStringHashKey, nsIUrlClassifierHashCompleter> mCompleters;
 
   
   
