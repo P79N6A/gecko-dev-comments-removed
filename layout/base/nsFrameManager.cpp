@@ -1118,9 +1118,16 @@ nsFrameManager::ReResolveStyleContext(nsPresContext     *aPresContext,
                                       nsStyleChangeList *aChangeList, 
                                       nsChangeHint       aMinChange)
 {
-  NS_ASSERTION(aFrame->GetContent() ||
-               (!aFrame->GetParent() && !aParentContent),
-               "frame must have content (unless viewport)");
+  
+  
+  
+  
+  
+  
+  
+  NS_ASSERTION(aFrame->GetContent() || !aParentContent ||
+               !aParentContent->GetParent(),
+               "frame must have content (unless at the top of the tree)");
   
   
   
@@ -1143,6 +1150,7 @@ nsFrameManager::ReResolveStyleContext(nsPresContext     *aPresContext,
     oldContext->AddRef();
     nsIAtom* const pseudoTag = oldContext->GetPseudoType();
     nsIContent* localContent = aFrame->GetContent();
+    
     
     
     
@@ -1193,6 +1201,8 @@ nsFrameManager::ReResolveStyleContext(nsPresContext     *aPresContext,
       newContext = styleSet->ResolveStyleForNonElement(parentContext).get();
     }
     else if (pseudoTag) {
+      
+      
       
       
       nsIContent* pseudoContent =
