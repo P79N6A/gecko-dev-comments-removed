@@ -146,6 +146,12 @@ var gUpdates = {
 
 
 
+  _runUnload: true,
+
+  
+
+
+
   _setButton: function(button, string) {
     if (string) {
       var label = this.getAUSString(string);
@@ -244,6 +250,7 @@ var gUpdates = {
 
 
   onWizardFinish: function() {
+    this._runUnload = false;
     var pageid = document.documentElement.currentPage.pageid;
     if ("onWizardFinish" in this._pages[pageid])
       this._pages[pageid].onWizardFinish();
@@ -254,6 +261,7 @@ var gUpdates = {
 
 
   onWizardCancel: function() {
+    this._runUnload = false;
     var pageid = document.documentElement.currentPage.pageid;
     if ("onWizardCancel" in this._pages[pageid])
       this._pages[pageid].onWizardCancel();
@@ -331,6 +339,17 @@ var gUpdates = {
     var startPage = this.startPage;
     LOG("gUpdates", "onLoad - setting current page to startpage " + startPage.id);
     gUpdates.wiz.currentPage = startPage;
+  },
+
+  
+
+
+  onUnload: function() {
+    if (this._runUnload) {
+      var cp = gUpdates.wiz.currentPage;
+      if (cp.pageid != "finished" && cp.pageid != "finishedBackground")
+        this.onWizardCancel();
+    }
   },
 
   
@@ -1631,17 +1650,6 @@ var gInstalledPage = {
     gUpdates.wiz.getButton("finish").focus();
   }
 };
-
-
-
-
-
-function tryToClose() {
-  var cp = gUpdates.wiz.currentPage;
-  if (cp.pageid != "finished" && cp.pageid != "finishedBackground")
-    gUpdates.onWizardCancel();
-  return true;
-}
 
 
 
