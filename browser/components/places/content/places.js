@@ -85,6 +85,19 @@ var PlacesOrganizer = {
 
     
     PlacesQueryBuilder.init();
+
+#ifdef XP_MACOSX
+    
+    var findCommand = document.getElementById("cmd_find");
+    findCommand.setAttribute("oncommand", "PlacesSearchBox.findCurrent();");
+    findCommand.removeAttribute("disabled");
+
+    
+    var elements = ["cmd_handleBackspace", "cmd_handleShiftBackspace"];
+    for (var i=0; i < elements.length; i++) {
+      document.getElementById(elements[i]).setAttribute("disabled", "true");
+    }
+#endif
   },
 
   destroy: function PO_destroy() {
