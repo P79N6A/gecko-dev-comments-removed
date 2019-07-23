@@ -2625,12 +2625,6 @@ function FillInHTMLTooltip(tipElement)
       
       label.textContent = t;
       
-      
-      tipNode.width = "";
-      tipNode.height = "";
-      tipNode.width = label.boxObject.width;
-      tipNode.height = label.boxObject.height;
-
       retVal = true;
     }
   }
