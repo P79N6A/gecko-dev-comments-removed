@@ -7877,15 +7877,17 @@ JS_DEFINE_CALLINFO_4(extern, UINT32, GetClosureArg, CONTEXT, OBJECT, CVIPTR, DOU
 
 
 JS_REQUIRES_STACK AbortableRecordingStatus
-TraceRecorder::scopeChainProp(JSObject* obj, jsval*& vp, LIns*& ins, NameResult& nr)
+TraceRecorder::scopeChainProp(JSObject* chainHead, jsval*& vp, LIns*& ins, NameResult& nr)
 {
-    JS_ASSERT(obj != globalObj);
+    JS_ASSERT(chainHead == cx->fp->scopeChain);
+    JS_ASSERT(chainHead != globalObj);
 
     JSTraceMonitor &localtm = *traceMonitor;
 
     JSAtom* atom = atoms[GET_INDEX(cx->fp->regs->pc)];
     JSObject* obj2;
     JSProperty* prop;
+    JSObject *obj = chainHead;
     bool ok = js_FindProperty(cx, ATOM_TO_JSID(atom), &obj, &obj2, &prop);
 
     
@@ -7902,12 +7904,18 @@ TraceRecorder::scopeChainProp(JSObject* obj, jsval*& vp, LIns*& ins, NameResult&
         
         
         
+        LIns *head_ins;
         if (cx->fp->argv) {
-            LIns* obj_ins;
-            JSObject* parent = STOBJ_GET_PARENT(cx->fp->calleeObject());
-            LIns* parent_ins = stobj_get_parent(get(&cx->fp->argv[-2]));
-            CHECK_STATUS_A(traverseScopeChain(parent, parent_ins, obj, obj_ins));
+            
+            
+            
+            chainHead = cx->fp->calleeObject()->getParent();
+            head_ins = stobj_get_parent(get(&cx->fp->argv[-2]));
+        } else {
+            head_ins = scopeChain();
         }
+        LIns *obj_ins;
+        CHECK_STATUS_A(traverseScopeChain(chainHead, head_ins, obj, obj_ins));
 
         JSScopeProperty* sprop = (JSScopeProperty*) prop;
 
