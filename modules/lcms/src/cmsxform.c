@@ -264,7 +264,7 @@ void NullXFORM(_LPcmsTRANSFORM p,
                      
                      
                      memmove(out, in, 
-                             Size * T_BYTES(p -> InputFormat) * T_CHANNELS(p -> InputFormat));
+                             Size * T_BYTES(p -> InputFormat) * (T_CHANNELS(p -> InputFormat) + T_EXTRA(p -> InputFormat)));
               }
 
               return;
