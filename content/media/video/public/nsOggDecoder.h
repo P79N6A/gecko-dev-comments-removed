@@ -94,157 +94,8 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#if !defined(nsOggDecoder_h_)
-#define nsOggDecoder_h_
+#if !defined(nsOggDecoder_h___)
+#define nsOggDecoder_h___
 
 #include "nsISupports.h"
 #include "nsCOMPtr.h"
@@ -255,21 +106,24 @@
 #include "nsIFrame.h"
 #include "nsAutoPtr.h"
 #include "nsSize.h"
+#include "prlock.h"
+#include "prcvar.h"
 #include "prlog.h"
-#include "prmon.h"
 #include "gfxContext.h"
 #include "gfxRect.h"
 #include "oggplay/oggplay.h"
-#include "nsMediaDecoder.h"
+#include "nsVideoDecoder.h"
 
 class nsAudioStream;
-class nsOggDecodeStateMachine;
-class nsOggDisplayStateMachine;
+class nsVideoDecodeEvent;
+class nsVideoPresentationEvent;
+class nsChannelToPipeListener;
 
-class nsOggDecoder : public nsMediaDecoder
+class nsOggDecoder : public nsVideoDecoder
 {
-  friend class nsOggDecodeStateMachine;
-  friend class nsOggDisplayStateMachine;
+  friend class nsVideoDecodeEvent;
+  friend class nsVideoPresentationEvent;
+  friend class nsChannelToPipeListener;
 
   
   NS_DECL_ISUPPORTS
@@ -278,22 +132,16 @@ class nsOggDecoder : public nsMediaDecoder
   NS_DECL_NSIOBSERVER
 
  public:
-  
-  enum PlayState {
-    PLAY_STATE_START,
-    PLAY_STATE_LOADING,
-    PLAY_STATE_PAUSED,
-    PLAY_STATE_PLAYING,
-    PLAY_STATE_SEEKING,
-    PLAY_STATE_ENDED,
-    PLAY_STATE_SHUTDOWN
-  };
-
   nsOggDecoder();
-  ~nsOggDecoder();
   PRBool Init();
   void Shutdown();
+  ~nsOggDecoder();
   
+  
+  
+  nsIntSize GetVideoSize(nsIntSize defaultSize);
+  double GetVideoFramerate();
+
   float GetCurrentTime();
 
   
@@ -323,33 +171,76 @@ class nsOggDecoder : public nsMediaDecoder
 
   virtual void UpdateBytesDownloaded(PRUint32 aBytes);
 
-  
-  
-  void ResourceLoaded();
-
-  
-  
-  virtual PRBool IsSeeking() const;
-
 protected:
   
-  
-  
-  void ChangeState(PlayState aState);
+
+
+
 
   
   
-  PRMonitor* GetMonitor() 
-  { 
-    return mMonitor; 
-  }
+  void DisplayFirstFrame();
 
   
   
-  PlayState GetState()
-  {
-    return mPlayState;
-  }
+  PRBool StepDisplay();
+
+  
+  
+  void ProcessTrack(int aTrackNumber, OggPlayCallbackInfo* aTrackInfo);
+
+  
+  
+  
+  
+  double GetSyncTime();
+
+  
+  
+  PRBool IsPaused();
+
+  
+  void HandleVideoData(int track_num, OggPlayVideoData* video_data);
+  void HandleAudioData(OggPlayAudioData* audio_data, int size);
+
+  
+  void DoPause();
+
+  
+  
+  void OpenAudioStream();
+
+  
+  
+  void CloseAudioStream();
+
+  
+  
+  void StartPresentationThread();
+
+  
+
+
+
+
+  
+  
+  
+  void LoadOggHeaders();
+
+  
+  
+  void LoadFirstFrame();
+
+  
+  
+  
+  PRBool StepDecoding();
+
+  
+  
+  
+  void BufferData();
 
   
 
@@ -366,7 +257,11 @@ protected:
 
   
   
-  void PlaybackEnded();
+  void ResourceLoaded();
+
+  
+  
+  void PlaybackCompleted();
 
   
   
@@ -384,46 +279,44 @@ protected:
   
   void BufferingStarted();
 
-  
-  
-  void SeekingStopped();
-
-  
-  
-  void SeekingStarted();
-
 private:
   
   
-  void RegisterShutdownObserver();
-  void UnregisterShutdownObserver();
-
+  void StartPlaybackThreads();
 
   
+
+
 
 
   
   PRUint32 mBytesDownloaded;
 
   
+
+
+  nsCOMPtr<nsIChannel> mChannel;
+  nsCOMPtr<nsChannelToPipeListener> mListener;
+
+  
   nsCOMPtr<nsIURI> mURI;
 
   
-  nsCOMPtr<nsIThread> mDecodeThread;
-  nsCOMPtr<nsIThread> mDisplayThread;
+  
+  nsAutoPtr<nsAudioStream> mAudioStream;
 
   
   
   
-  
-  float mInitialVolume;
+  double mVideoNextFrameTime;
 
   
   
+  PRPackedBool mLoadInProgress;
+
   
   
-  
-  float mSeekTime;
+  PRPackedBool mPlayAfterLoad;
 
   
   PRPackedBool mNotifyOnShutdown;
@@ -431,25 +324,47 @@ private:
   
 
 
+  
+  
+  
+  
+  nsCOMPtr<nsIThread> mDecodeThread;
+  nsCOMPtr<nsIThread> mPresentationThread;
 
   
   
   
   
-  
-  
-  nsCOMPtr<nsOggDecodeStateMachine> mDecodeStateMachine;
+  nsCOMPtr<nsVideoDecodeEvent> mDecodeEvent;
+  nsCOMPtr<nsVideoPresentationEvent> mPresentationEvent;
 
   
   
   
   
-  
-  nsCOMPtr<nsOggDisplayStateMachine> mDisplayStateMachine;
-  
-  
+  float mVideoCurrentFrameTime;
+
   
   
+  
+  
+  double mInitialVolume;
+
+  
+  
+  
+  PRInt32 mAudioRate;
+  PRInt32 mAudioChannels;
+  PRInt32 mAudioTrack;
+
+  
+  
+  PRInt32 mVideoTrack;
+
+  
+  
+  OggPlay* mPlayer;
+
   
   
   
@@ -458,19 +373,31 @@ private:
   
   
   
-  PRMonitor* mMonitor;
+  PRPackedBool mPaused;
 
   
   
   
   
-  PlayState mPlayState;
+  
+  PRPackedBool mFirstFrameLoaded;
+  PRCondVar* mFirstFrameCondVar;
+  PRLock* mFirstFrameLock;
 
   
   
   
   
-  PlayState mNextState;
+  double mSystemSyncSeconds;
+
+  
+  
+  
+  PRPackedBool mResourceLoaded;
+
+  
+  
+  PRPackedBool mMetadataLoaded;
 };
 
 #endif
