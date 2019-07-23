@@ -1727,7 +1727,7 @@ nsPrintEngine::SetupToPrintContent()
     rv = mPrt->mPrintDC->BeginDocument(docTitleStr, fileName, startPage, endPage);
   } 
 
-  if (mIsDoingPrintPreview) {
+  if (mIsCreatingPrintPreview) {
     
     
     nsIPageSequenceFrame *seqFrame = nsnull;
