@@ -307,13 +307,14 @@ enum {
         NanoAssert(IsGpReg(rd) && IsGpReg(rl));\
         NanoAssert(isOp2Imm(op2imm));\
         *(--_nIns) = (NIns) ((cond)<<28 | OP_IMM | (ARM_##op)<<21 | (S)<<20 | (rl)<<16 | (rd)<<12 | (op2imm));\
-        if (ARM_##op == ARM_mov || ARM_##op == ARM_mvn)\
+        if (ARM_##op == ARM_mov || ARM_##op == ARM_mvn) {               \
             asm_output("%s%s%s %s, #0x%X", #op, condNames[cond], (S)?"s":"", gpn(rd), decOp2Imm(op2imm));\
-        else if (ARM_##op >= ARM_tst && ARM_##op <= ARM_cmn) {\
+        } else if (ARM_##op >= ARM_tst && ARM_##op <= ARM_cmn) {         \
             NanoAssert(S==1);\
             asm_output("%s%s %s, #0x%X", #op, condNames[cond], gpn(rl), decOp2Imm(op2imm));\
-        } else\
+        } else {                                                        \
             asm_output("%s%s%s %s, %s, #0x%X", #op, condNames[cond], (S)?"s":"", gpn(rd), gpn(rl), decOp2Imm(op2imm));\
+        }\
     } while (0)
 
 
@@ -329,13 +330,14 @@ enum {
         NanoAssert(((S)==0) || ((S)==1));\
         NanoAssert(IsGpReg(rd) && IsGpReg(rl) && IsGpReg(rr));\
         *(--_nIns) = (NIns) ((cond)<<28 |(ARM_##op)<<21 | (S)<<20 | (rl)<<16 | (rd)<<12 | (rr));\
-        if (ARM_##op == ARM_mov || ARM_##op == ARM_mvn)\
+        if (ARM_##op == ARM_mov || ARM_##op == ARM_mvn) {               \
             asm_output("%s%s%s %s, %s", #op, condNames[cond], (S)?"s":"", gpn(rd), gpn(rr));\
-        else if (ARM_##op >= ARM_tst && ARM_##op <= ARM_cmn) {\
+        } else if (ARM_##op >= ARM_tst && ARM_##op <= ARM_cmn) {         \
             NanoAssert(S==1);\
             asm_output("%s%s  %s, %s", #op, condNames[cond], gpn(rl), gpn(rr));\
-        } else\
+        } else {                                                        \
             asm_output("%s%s%s %s, %s, %s", #op, condNames[cond], (S)?"s":"", gpn(rd), gpn(rl), gpn(rr));\
+        }\
     } while (0)
 
 
@@ -354,13 +356,14 @@ enum {
         NanoAssert(IsShift(sh));\
         NanoAssert((imm)>=0 && (imm)<32);\
         *(--_nIns) = (NIns) ((cond)<<28 |(ARM_##op)<<21 | (S)<<20 | (rl)<<16 | (rd)<<12 | (imm)<<7 | (sh)<<4 | (rr));\
-        if (ARM_##op == ARM_mov || ARM_##op == ARM_mvn)\
+        if (ARM_##op == ARM_mov || ARM_##op == ARM_mvn) {               \
             asm_output("%s%s%s %s, %s, %s #%d", #op, condNames[cond], (S)?"s":"", gpn(rd), gpn(rr), shiftNames[sh], (imm));\
-        else if (ARM_##op >= ARM_tst && ARM_##op <= ARM_cmn) {\
+        } else if (ARM_##op >= ARM_tst && ARM_##op <= ARM_cmn) {         \
             NanoAssert(S==1);\
             asm_output("%s%s  %s, %s, %s #%d", #op, condNames[cond], gpn(rl), gpn(rr), shiftNames[sh], (imm));\
-        } else\
+        } else {                                                        \
             asm_output("%s%s%s %s, %s, %s, %s #%d", #op, condNames[cond], (S)?"s":"", gpn(rd), gpn(rl), gpn(rr), shiftNames[sh], (imm));\
+        }\
     } while (0)
 
 
@@ -378,13 +381,14 @@ enum {
         NanoAssert(IsGpReg(rd) && IsGpReg(rl) && IsGpReg(rr) && IsGpReg(rs));\
         NanoAssert(IsShift(sh));\
         *(--_nIns) = (NIns) ((cond)<<28 |(ARM_##op)<<21 | (S)<<20 | (rl)<<16 | (rd)<<12 | (rs)<<8 | (sh)<<4 | (rr));\
-        if (ARM_##op == ARM_mov || ARM_##op == ARM_mvn)\
+        if (ARM_##op == ARM_mov || ARM_##op == ARM_mvn) {               \
             asm_output("%s%s%s %s, %s, %s %s", #op, condNames[cond], (S)?"s":"", gpn(rd), gpn(rr), shiftNames[sh], gpn(rs));\
-        else if (ARM_##op >= ARM_tst && ARM_##op <= ARM_cmn) {\
+        } else if (ARM_##op >= ARM_tst && ARM_##op <= ARM_cmn) {         \
             NanoAssert(S==1);\
             asm_output("%s%s  %s, %s, %s %s", #op, condNames[cond], gpn(rl), gpn(rr), shiftNames[sh], gpn(rs));\
-        } else\
+        } else {                                                        \
             asm_output("%s%s%s %s, %s, %s, %s %s", #op, condNames[cond], (S)?"s":"", gpn(rd), gpn(rl), gpn(rr), shiftNames[sh], gpn(rs));\
+        }\
     } while (0)
 
 
@@ -600,6 +604,26 @@ enum {
         if ((_off)<0)   *(--_nIns) = (NIns)( COND_AL | (0x50<<20) | ((_n)<<16) | ((_d)<<12) | ((-(_off))&0xFFF) ); \
         else            *(--_nIns) = (NIns)( COND_AL | (0x58<<20) | ((_n)<<16) | ((_d)<<12) | ((_off)&0xFFF) ); \
         asm_output("str %s, [%s, #%d]", gpn(_d), gpn(_n), (_off)); \
+    } while(0)
+
+
+#define STR_preindex(_d,_n,_off) do {                                   \
+        NanoAssert(IsGpReg(_d) && IsGpReg(_n));                         \
+        NanoAssert(isS12(_off));                                        \
+        underrunProtect(4);                                             \
+        if ((_off)<0)   *(--_nIns) = (NIns)( COND_AL | (0x52<<20) | ((_n)<<16) | ((_d)<<12) | ((-(_off))&0xFFF) ); \
+        else            *(--_nIns) = (NIns)( COND_AL | (0x5A<<20) | ((_n)<<16) | ((_d)<<12) | ((_off)&0xFFF) ); \
+        asm_output("str %s, [%s, #%d]!", gpn(_d), gpn(_n), (_off));     \
+    } while(0)
+
+
+#define STR_postindex(_d,_n,_off) do {                                  \
+        NanoAssert(IsGpReg(_d) && IsGpReg(_n));                         \
+        NanoAssert(isS12(_off));                                        \
+        underrunProtect(4);                                             \
+        if ((_off)<0)   *(--_nIns) = (NIns)( COND_AL | (0x40<<20) | ((_n)<<16) | ((_d)<<12) | ((-(_off))&0xFFF) ); \
+        else            *(--_nIns) = (NIns)( COND_AL | (0x48<<20) | ((_n)<<16) | ((_d)<<12) | ((_off)&0xFFF) ); \
+        asm_output("str %s, [%s]!, %d", gpn(_d), gpn(_n), (_off));      \
     } while(0)
 
 
