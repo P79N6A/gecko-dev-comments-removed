@@ -175,7 +175,7 @@ nsMathMLmfencedFrame::CreateFencesAndSeparators(nsPresContext* aPresContext)
     value = PRUnichar(','); 
   }
   else {
-    value.Trim(" ");
+    value.StripWhitespace();
   }
 
   mSeparatorsCount = value.Length();
