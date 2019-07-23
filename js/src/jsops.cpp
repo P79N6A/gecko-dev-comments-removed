@@ -1682,9 +1682,6 @@
                 entry = NULL;
                 atom = NULL;
                 if (JS_LIKELY(obj->map->ops->setProperty == js_SetProperty)) {
-                    JSPropertyCache *cache = &JS_PROPERTY_CACHE(cx);
-                    uint32 kshape = OBJ_SHAPE(obj);
-
                     
 
 
@@ -1704,21 +1701,91 @@
 
 
 
-                    entry = &cache->table[PROPERTY_CACHE_HASH_PC(regs.pc, kshape)];
-                    PCMETER(cache->pctestentry = entry);
-                    PCMETER(cache->tests++);
-                    PCMETER(cache->settests++);
-                    if (entry->kpc == regs.pc && entry->kshape == kshape) {
-                        JS_ASSERT(PCVCAP_TAG(entry->vcap) <= 1);
-                        if (JS_LOCK_OBJ_IF_SHAPE(cx, obj, kshape)) {
-                            JS_ASSERT(PCVAL_IS_SPROP(entry->vword));
-                            sprop = PCVAL_TO_SPROP(entry->vword);
-                            JS_ASSERT(!(sprop->attrs & JSPROP_READONLY));
-                            JS_ASSERT_IF(!(sprop->attrs & JSPROP_SHARED),
-                                         PCVCAP_TAG(entry->vcap) == 0);
+                    if (JS_PROPERTY_CACHE(cx).testForSet(cx, regs.pc, &obj,
+                                                         &obj2, &entry, &atom)) {
+                        JS_ASSERT(PCVAL_IS_SPROP(entry->vword));
+                        sprop = PCVAL_TO_SPROP(entry->vword);
+                        JS_ASSERT(!(sprop->attrs & JSPROP_READONLY));
+                        JS_ASSERT_IF(!(sprop->attrs & JSPROP_SHARED),
+                                     PCVCAP_TAG(entry->vcap) == 0);
 
-                            JSScope *scope = OBJ_SCOPE(obj);
-                            JS_ASSERT(!scope->sealed());
+                        JSScope *scope = OBJ_SCOPE(obj);
+                        JS_ASSERT(!scope->sealed());
+
+                        
+
+
+
+
+
+
+                        bool checkForAdd;
+                        if (sprop->attrs & JSPROP_SHARED) {
+                            if (PCVCAP_TAG(entry->vcap) == 0 ||
+                                ((obj2 = OBJ_GET_PROTO(cx, obj)) &&
+                                 OBJ_IS_NATIVE(obj2) &&
+                                 OBJ_SHAPE(obj2) == PCVCAP_SHAPE(entry->vcap))) {
+                                goto fast_set_propcache_hit;
+                            }
+
+                            
+                            checkForAdd = false;
+                        } else if (scope->owned()) {
+                            if (sprop == scope->lastProp || scope->has(sprop)) {
+                            fast_set_propcache_hit:
+                                PCMETER(cache->pchits++);
+                                PCMETER(cache->setpchits++);
+                                NATIVE_SET(cx, obj, sprop, entry, &rval);
+                                JS_UNLOCK_SCOPE(cx, scope);
+                                break;
+                            }
+                            checkForAdd =
+                                !(sprop->attrs & JSPROP_SHARED) &&
+                                sprop->parent == scope->lastProp &&
+                                !scope->hadMiddleDelete();
+                        } else {
+                            scope = js_GetMutableScope(cx, obj);
+                            if (!scope) {
+                                JS_UNLOCK_OBJ(cx, obj);
+                                goto error;
+                            }
+                            checkForAdd = !sprop->parent;
+                        }
+
+                        if (checkForAdd &&
+                            SPROP_HAS_STUB_SETTER(sprop) &&
+                            (slot = sprop->slot) == scope->freeslot) {
+                            
+
+
+
+
+
+
+
+
+
+
+                            JS_ASSERT(!(obj->getClass()->flags &
+                                        JSCLASS_SHARE_ALL_PROPERTIES));
+
+                            PCMETER(cache->pchits++);
+                            PCMETER(cache->addpchits++);
+
+                            
+
+
+
+
+                            if (slot < STOBJ_NSLOTS(obj) &&
+                                !OBJ_GET_CLASS(cx, obj)->reserveSlots) {
+                                ++scope->freeslot;
+                            } else {
+                                if (!js_AllocSlot(cx, obj, &slot)) {
+                                    JS_UNLOCK_SCOPE(cx, scope);
+                                    goto error;
+                                }
+                            }
 
                             
 
@@ -1727,138 +1794,56 @@
 
 
 
-                            bool checkForAdd;
-                            if (sprop->attrs & JSPROP_SHARED) {
-                                if (PCVCAP_TAG(entry->vcap) == 0 ||
-                                    ((obj2 = OBJ_GET_PROTO(cx, obj)) &&
-                                     OBJ_IS_NATIVE(obj2) &&
-                                     OBJ_SHAPE(obj2) == PCVCAP_SHAPE(entry->vcap))) {
-                                    goto fast_set_propcache_hit;
-                                }
 
-                                
-                                checkForAdd = false;
-                            } else if (scope->owned()) {
-                                if (sprop == scope->lastProp || scope->has(sprop)) {
-                                  fast_set_propcache_hit:
-                                    PCMETER(cache->pchits++);
-                                    PCMETER(cache->setpchits++);
-                                    NATIVE_SET(cx, obj, sprop, entry, &rval);
+
+
+                            if (slot != sprop->slot || scope->table) {
+                                JSScopeProperty *sprop2 =
+                                    scope->add(cx, sprop->id,
+                                               sprop->getter, sprop->setter,
+                                               slot, sprop->attrs,
+                                               sprop->flags, sprop->shortid);
+                                if (!sprop2) {
+                                    js_FreeSlot(cx, obj, slot);
                                     JS_UNLOCK_SCOPE(cx, scope);
-                                    break;
-                                }
-                                checkForAdd =
-                                    !(sprop->attrs & JSPROP_SHARED) &&
-                                    sprop->parent == scope->lastProp &&
-                                    !scope->hadMiddleDelete();
-                            } else {
-                                scope = js_GetMutableScope(cx, obj);
-                                if (!scope) {
-                                    JS_UNLOCK_OBJ(cx, obj);
                                     goto error;
                                 }
-                                checkForAdd = !sprop->parent;
+                                if (sprop2 != sprop) {
+                                    PCMETER(cache->slotchanges++);
+                                    JS_ASSERT(slot != sprop->slot &&
+                                              slot == sprop2->slot &&
+                                              sprop2->id == sprop->id);
+                                    entry->vword = SPROP_TO_PCVAL(sprop2);
+                                }
+                                sprop = sprop2;
+                            } else {
+                                scope->extend(cx, sprop);
                             }
 
-                            if (checkForAdd &&
-                                SPROP_HAS_STUB_SETTER(sprop) &&
-                                (slot = sprop->slot) == scope->freeslot) {
-                                
+                            
 
 
 
 
 
-
-
-
-
-
-                                JS_ASSERT(!(obj->getClass()->flags &
-                                            JSCLASS_SHARE_ALL_PROPERTIES));
-
-                                PCMETER(cache->pchits++);
-                                PCMETER(cache->addpchits++);
-
-                                
-
-
-
-
-                                if (slot < STOBJ_NSLOTS(obj) &&
-                                    !OBJ_GET_CLASS(cx, obj)->reserveSlots) {
-                                    ++scope->freeslot;
-                                } else {
-                                    if (!js_AllocSlot(cx, obj, &slot)) {
-                                        JS_UNLOCK_SCOPE(cx, scope);
-                                        goto error;
-                                    }
-                                }
-
-                                
-
-
-
-
-
-
-
-
-
-
-                                if (slot != sprop->slot || scope->table) {
-                                    JSScopeProperty *sprop2 =
-                                        scope->add(cx, sprop->id,
-                                                   sprop->getter, sprop->setter,
-                                                   slot, sprop->attrs,
-                                                   sprop->flags, sprop->shortid);
-                                    if (!sprop2) {
-                                        js_FreeSlot(cx, obj, slot);
-                                        JS_UNLOCK_SCOPE(cx, scope);
-                                        goto error;
-                                    }
-                                    if (sprop2 != sprop) {
-                                        PCMETER(cache->slotchanges++);
-                                        JS_ASSERT(slot != sprop->slot &&
-                                                  slot == sprop2->slot &&
-                                                  sprop2->id == sprop->id);
-                                        entry->vword = SPROP_TO_PCVAL(sprop2);
-                                    }
-                                    sprop = sprop2;
-                                } else {
-                                    scope->extend(cx, sprop);
-                                }
-
-                                
-
-
-
-
-
-                                TRACE_2(SetPropHit, entry, sprop);
-                                LOCKED_OBJ_SET_SLOT(obj, slot, rval);
-                                JS_UNLOCK_SCOPE(cx, scope);
-
-                                
-
-
-
-
-
-                                js_PurgeScopeChain(cx, obj, sprop->id);
-                                break;
-                            }
+                            TRACE_2(SetPropHit, entry, sprop);
+                            LOCKED_OBJ_SET_SLOT(obj, slot, rval);
                             JS_UNLOCK_SCOPE(cx, scope);
-                            PCMETER(cache->setpcmisses++);
+
+                            
+
+
+
+
+
+                            js_PurgeScopeChain(cx, obj, sprop->id);
+                            break;
                         }
+                        JS_UNLOCK_SCOPE(cx, scope);
+                        PCMETER(cache->setpcmisses++);
                     }
 
-                    atom = js_FullTestPropertyCache(cx, regs.pc, &obj, &obj2,
-                                                    &entry);
-                    if (atom) {
-                        PCMETER(cache->misses++);
-                        PCMETER(cache->setmisses++);
-                    } else {
+                    if (!atom) {
                         ASSERT_VALID_PROPERTY_CACHE_HIT(0, obj, obj2, entry);
                         sprop = NULL;
                         if (obj == obj2) {
@@ -3463,37 +3448,16 @@
             JS_ASSERT(!(obj->getClass()->flags & JSCLASS_SHARE_ALL_PROPERTIES));
 
             do {
-                JSScope *scope;
-                uint32 kshape;
-                JSPropertyCache *cache;
-                JSPropCacheEntry *entry;
-
                 JS_LOCK_OBJ(cx, obj);
-                scope = OBJ_SCOPE(obj);
+                JSScope *scope = OBJ_SCOPE(obj);
                 
                 
                 
                 
                 JS_ASSERT(!scope->sealed());
-                kshape = scope->shape;
-                cache = &JS_PROPERTY_CACHE(cx);
-                entry = &cache->table[PROPERTY_CACHE_HASH_PC(regs.pc, kshape)];
-                PCMETER(cache->pctestentry = entry);
-                PCMETER(cache->tests++);
-                PCMETER(cache->initests++);
 
-                if (entry->kpc == regs.pc &&
-                    entry->kshape == kshape &&
-                    PCVCAP_SHAPE(entry->vcap) == rt->protoHazardShape) {
-                    JS_ASSERT(PCVCAP_TAG(entry->vcap) == 0);
-
-                    PCMETER(cache->pchits++);
-                    PCMETER(cache->inipchits++);
-
-                    JS_ASSERT(PCVAL_IS_SPROP(entry->vword));
-                    sprop = PCVAL_TO_SPROP(entry->vword);
-                    JS_ASSERT(!(sprop->attrs & JSPROP_READONLY));
-
+                JSPropCacheEntry *entry;
+                if (JS_PROPERTY_CACHE(cx).testForInit(cx, regs.pc, obj, &entry, &sprop)) {
                     
 
 
