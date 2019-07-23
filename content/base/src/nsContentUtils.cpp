@@ -808,6 +808,16 @@ nsContentUtils::OfflineAppAllowed(nsIURI *aURI)
 }
 
 
+PRBool
+nsContentUtils::OfflineAppAllowed(nsIPrincipal *aPrincipal)
+{
+  nsCOMPtr<nsIURI> codebaseURI;
+  aPrincipal->GetURI(getter_AddRefs(codebaseURI));
+
+  return OfflineAppAllowed(codebaseURI);
+}
+
+
 void
 nsContentUtils::Shutdown()
 {

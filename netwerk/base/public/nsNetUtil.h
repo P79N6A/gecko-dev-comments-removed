@@ -74,6 +74,7 @@
 #include "nsIStringStream.h"
 #include "nsILocalFile.h"
 #include "nsIFileStreams.h"
+#include "nsIFileURL.h"
 #include "nsIProtocolProxyService.h"
 #include "nsIProxyInfo.h"
 #include "nsIFileStreams.h"
@@ -1463,6 +1464,130 @@ NS_OfflineAppAllowed(nsIURI *aURI, nsIPrefBranch *aPrefBranch = nsnull)
     NS_ENSURE_SUCCESS(rv, PR_FALSE);
 
     return allowed;
+}
+
+inline PRBool
+NS_SecurityCompareURIs(nsIURI* aSourceURI,
+                       nsIURI* aTargetURI,
+                       PRBool aStrictFileOriginPolicy)
+{
+    
+    
+    
+    
+    
+    if (aSourceURI && aSourceURI == aTargetURI)
+    {
+        return PR_TRUE;
+    }
+
+    if (!aTargetURI || !aSourceURI)
+    {
+        return PR_FALSE;
+    }
+
+    
+    nsCOMPtr<nsIURI> sourceBaseURI = NS_GetInnermostURI(aSourceURI);
+    nsCOMPtr<nsIURI> targetBaseURI = NS_GetInnermostURI(aTargetURI);
+
+    if (!sourceBaseURI || !targetBaseURI)
+        return PR_FALSE;
+
+    
+    nsCAutoString targetScheme;
+    PRBool sameScheme = PR_FALSE;
+    if (NS_FAILED( targetBaseURI->GetScheme(targetScheme) ) ||
+        NS_FAILED( sourceBaseURI->SchemeIs(targetScheme.get(), &sameScheme) ) ||
+        !sameScheme)
+    {
+        
+        return PR_FALSE;
+    }
+
+    
+    if (targetScheme.EqualsLiteral("file"))
+    {
+        
+        if (!aStrictFileOriginPolicy)
+            return PR_TRUE;
+
+        nsCOMPtr<nsIFileURL> sourceFileURL(do_QueryInterface(sourceBaseURI));
+        nsCOMPtr<nsIFileURL> targetFileURL(do_QueryInterface(targetBaseURI));
+
+        if (!sourceFileURL || !targetFileURL)
+            return PR_FALSE;
+
+        nsCOMPtr<nsIFile> sourceFile, targetFile;
+
+        sourceFileURL->GetFile(getter_AddRefs(sourceFile));
+        targetFileURL->GetFile(getter_AddRefs(targetFile));
+
+        if (!sourceFile || !targetFile)
+            return PR_FALSE;
+
+        
+        PRBool filesAreEqual = PR_FALSE;
+        nsresult rv = sourceFile->Equals(targetFile, &filesAreEqual);
+        return NS_SUCCEEDED(rv) && filesAreEqual;
+    }
+
+    
+    if (targetScheme.EqualsLiteral("imap") ||
+        targetScheme.EqualsLiteral("mailbox") ||
+        targetScheme.EqualsLiteral("news"))
+    {
+        
+        
+        nsCAutoString targetSpec;
+        nsCAutoString sourceSpec;
+        return ( NS_SUCCEEDED( targetBaseURI->GetSpec(targetSpec) ) &&
+                 NS_SUCCEEDED( sourceBaseURI->GetSpec(sourceSpec) ) &&
+                 targetSpec.Equals(sourceSpec) );
+    }
+
+    
+    nsCAutoString targetHost;
+    nsCAutoString sourceHost;
+    if (NS_FAILED( targetBaseURI->GetAsciiHost(targetHost) ) ||
+        NS_FAILED( sourceBaseURI->GetAsciiHost(sourceHost) ))
+    {
+        return PR_FALSE;
+    }
+
+#ifdef MOZILLA_INTERNAL_API
+    if (!targetHost.Equals(sourceHost, nsCaseInsensitiveCStringComparator() ))
+#else
+    if (!targetHost.Equals(sourceHost, CaseInsensitiveCompare))
+#endif
+    {
+        return PR_FALSE;
+    }
+
+    
+    PRInt32 targetPort;
+    nsresult rv = targetBaseURI->GetPort(&targetPort);
+    PRInt32 sourcePort;
+    if (NS_SUCCEEDED(rv))
+        rv = sourceBaseURI->GetPort(&sourcePort);
+    PRBool result = NS_SUCCEEDED(rv) && targetPort == sourcePort;
+    
+    
+    
+    if (NS_SUCCEEDED(rv) && !result &&
+        (sourcePort == -1 || targetPort == -1))
+    {
+        PRInt32 defaultPort = NS_GetDefaultPort(targetScheme.get());
+        if (defaultPort == -1)
+            return PR_FALSE; 
+
+        if (sourcePort == -1)
+            sourcePort = defaultPort;
+        else if (targetPort == -1)
+            targetPort = defaultPort;
+        result = targetPort == sourcePort;
+    }
+
+    return result;
 }
 
 #endif 
