@@ -59,6 +59,7 @@
 
 
 
+
 #include "nsNavHistory.h"
 #include "nsNetUtil.h"
 #include "nsEscape.h"
@@ -115,6 +116,38 @@ const PRUnichar kTitleTagsSeparatorChars[] = { ' ', 0x2013, ' ', 0 };
      "(SELECT rev_host FROM moz_places_temp WHERE id = b.fk), " \
      "(SELECT rev_host FROM moz_places WHERE id = b.fk)) " \
    "ORDER BY frecency DESC LIMIT 1) "
+
+
+
+
+
+
+
+
+
+
+
+
+
+const nsCString kAutoCompleteBaseQuery = NS_LITERAL_CSTRING(
+      "SELECT h.url, h.title, f.url") + BOOK_TAG_SQL + NS_LITERAL_CSTRING(", "
+        "h.visit_count, h.frecency "
+      "FROM moz_places_temp h "
+      "LEFT OUTER JOIN moz_favicons f ON f.id = h.favicon_id "
+      "WHERE h.frecency <> 0 "
+      "{ADDITIONAL_CONDITIONS} "
+      "UNION ALL "
+      "SELECT * FROM ( "
+        "SELECT h.url, h.title, f.url") + BOOK_TAG_SQL + NS_LITERAL_CSTRING(", "
+          "h.visit_count, h.frecency "
+        "FROM moz_places h "
+        "LEFT OUTER JOIN moz_favicons f ON f.id = h.favicon_id "
+        "WHERE h.id NOT IN (SELECT id FROM moz_places_temp) "
+        "AND h.frecency <> 0 "
+        "{ADDITIONAL_CONDITIONS} "
+        "ORDER BY h.frecency DESC LIMIT (?2 + ?3) "
+      ") "
+      "ORDER BY 8 DESC LIMIT ?2 OFFSET ?3");
 
 
 
@@ -266,71 +299,107 @@ nsNavHistory::InitAutoComplete()
 
 
 
+mozIStorageStatement*
+nsNavHistory::GetDBAutoCompleteHistoryQuery()
+{
+  if (mDBAutoCompleteHistoryQuery)
+    return mDBAutoCompleteHistoryQuery;
+
+  nsCString AutoCompleteHistoryQuery = kAutoCompleteBaseQuery;
+  AutoCompleteHistoryQuery.ReplaceSubstring("{ADDITIONAL_CONDITIONS}",
+                                            "AND h.visit_count > 0");
+  nsresult rv = mDBConn->CreateStatement(AutoCompleteHistoryQuery,
+    getter_AddRefs(mDBAutoCompleteHistoryQuery));
+  NS_ENSURE_SUCCESS(rv, nsnull);
+
+  return mDBAutoCompleteHistoryQuery;
+}
+
+
+
+
+
+mozIStorageStatement*
+nsNavHistory::GetDBAutoCompleteStarQuery()
+{
+  if (mDBAutoCompleteStarQuery)
+    return mDBAutoCompleteStarQuery;
+
+  nsCString AutoCompleteStarQuery = kAutoCompleteBaseQuery;
+  AutoCompleteStarQuery.ReplaceSubstring("{ADDITIONAL_CONDITIONS}",
+                                         "AND bookmark IS NOT NULL");
+  nsresult rv = mDBConn->CreateStatement(AutoCompleteStarQuery,
+    getter_AddRefs(mDBAutoCompleteStarQuery));
+  NS_ENSURE_SUCCESS(rv, nsnull);
+
+  return mDBAutoCompleteStarQuery;
+}
+
+
+
+
+
+mozIStorageStatement*
+nsNavHistory::GetDBAutoCompleteTagsQuery()
+{
+  if (mDBAutoCompleteTagsQuery)
+    return mDBAutoCompleteTagsQuery;
+
+  nsCString AutoCompleteTagsQuery = kAutoCompleteBaseQuery;
+  AutoCompleteTagsQuery.ReplaceSubstring("{ADDITIONAL_CONDITIONS}",
+                                         "AND tags IS NOT NULL");
+  nsresult rv = mDBConn->CreateStatement(AutoCompleteTagsQuery,
+    getter_AddRefs(mDBAutoCompleteTagsQuery));
+  NS_ENSURE_SUCCESS(rv, nsnull);
+
+  return mDBAutoCompleteTagsQuery;
+}
+
+
+
+
+
+mozIStorageStatement*
+nsNavHistory::GetDBFeedbackIncrease()
+{
+  if (mDBFeedbackIncrease)
+    return mDBFeedbackIncrease;
+
+  nsresult rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
+    
+    "INSERT OR REPLACE INTO moz_inputhistory "
+      
+      "SELECT h.id, IFNULL(i.input, ?1), IFNULL(i.use_count, 0) * .9 + 1 "
+      "FROM moz_places_temp h "
+      "LEFT JOIN moz_inputhistory i ON i.place_id = h.id AND i.input = ?1 "
+      "WHERE url = ?2 "
+      "UNION ALL "
+      "SELECT h.id, IFNULL(i.input, ?1), IFNULL(i.use_count, 0) * .9 + 1 "
+      "FROM moz_places h "
+      "LEFT JOIN moz_inputhistory i ON i.place_id = h.id AND i.input = ?1 "
+      "WHERE url = ?2 "
+        "AND h.id NOT IN (SELECT id FROM moz_places_temp)"),
+    getter_AddRefs(mDBFeedbackIncrease));
+  NS_ENSURE_SUCCESS(rv, nsnull);
+
+  return mDBFeedbackIncrease;
+}
+
+
+
+
+
 
 
 nsresult
 nsNavHistory::CreateAutoCompleteQueries()
 {
-  
-  
-  
-  
-
-  
-  
-  
-  
-
-  
-  
-
-  nsCString sqlBase = NS_LITERAL_CSTRING(
-    "SELECT h.url, h.title, f.url") + BOOK_TAG_SQL + NS_LITERAL_CSTRING(", "
-      "h.visit_count, h.frecency "
-    "FROM moz_places_temp h "
-    "LEFT OUTER JOIN moz_favicons f ON f.id = h.favicon_id "
-    "WHERE h.frecency <> 0 "
-    "{ADDITIONAL_CONDITIONS} "
-    "UNION ALL "
-    "SELECT * FROM ( "
-      "SELECT h.url, h.title, f.url") + BOOK_TAG_SQL + NS_LITERAL_CSTRING(", "
-        "h.visit_count, h.frecency "
-      "FROM moz_places h "
-      "LEFT OUTER JOIN moz_favicons f ON f.id = h.favicon_id "
-      "WHERE h.id NOT IN (SELECT id FROM moz_places_temp) "
-      "AND h.frecency <> 0 "
-      "{ADDITIONAL_CONDITIONS} "
-      "ORDER BY h.frecency DESC LIMIT (?2 + ?3) "
-    ") "
-    "ORDER BY 8 DESC LIMIT ?2 OFFSET ?3"); 
-
-  nsCString AutoCompleteQuery = sqlBase;
+  nsCString AutoCompleteQuery = kAutoCompleteBaseQuery;
   AutoCompleteQuery.ReplaceSubstring("{ADDITIONAL_CONDITIONS}",
                                      (mAutoCompleteOnlyTyped ?
                                         "AND h.typed = 1" : ""));
   nsresult rv = mDBConn->CreateStatement(AutoCompleteQuery,
                                 getter_AddRefs(mDBAutoCompleteQuery));
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  nsCString AutoCompleteHistoryQuery = sqlBase;
-  AutoCompleteHistoryQuery.ReplaceSubstring("{ADDITIONAL_CONDITIONS}",
-                                            "AND h.visit_count > 0");
-  rv = mDBConn->CreateStatement(AutoCompleteHistoryQuery,
-                                getter_AddRefs(mDBAutoCompleteHistoryQuery));
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  nsCString AutoCompleteStarQuery = sqlBase;
-  AutoCompleteStarQuery.ReplaceSubstring("{ADDITIONAL_CONDITIONS}",
-                                         "AND bookmark IS NOT NULL");
-  rv = mDBConn->CreateStatement(AutoCompleteStarQuery,
-                                getter_AddRefs(mDBAutoCompleteStarQuery));
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  nsCString AutoCompleteTagsQuery = sqlBase;
-  AutoCompleteTagsQuery.ReplaceSubstring("{ADDITIONAL_CONDITIONS}",
-                                         "AND tags IS NOT NULL");
-  rv = mDBConn->CreateStatement(AutoCompleteTagsQuery,
-                                getter_AddRefs(mDBAutoCompleteTagsQuery));
   NS_ENSURE_SUCCESS(rv, rv);
 
   
@@ -373,23 +442,6 @@ nsNavHistory::CreateAutoCompleteQueries()
     "WHERE LOWER(k.keyword) = LOWER(?1) "
     "ORDER BY IFNULL(h_t.frecency, h.frecency) DESC");
   rv = mDBConn->CreateStatement(sql, getter_AddRefs(mDBKeywordQuery));
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  sql = NS_LITERAL_CSTRING(
-    
-    "INSERT OR REPLACE INTO moz_inputhistory "
-      
-      "SELECT h.id, IFNULL(i.input, ?1), IFNULL(i.use_count, 0) * .9 + 1 "
-      "FROM moz_places_temp h "
-      "LEFT JOIN moz_inputhistory i ON i.place_id = h.id AND i.input = ?1 "
-      "WHERE url = ?2 "
-      "UNION ALL "
-      "SELECT h.id, IFNULL(i.input, ?1), IFNULL(i.use_count, 0) * .9 + 1 "
-      "FROM moz_places h "
-      "LEFT JOIN moz_inputhistory i ON i.place_id = h.id AND i.input = ?1 "
-      "WHERE url = ?2 "
-        "AND h.id NOT IN (SELECT id FROM moz_places_temp)");
-  rv = mDBConn->CreateStatement(sql, getter_AddRefs(mDBFeedbackIncrease));
   NS_ENSURE_SUCCESS(rv, rv);
 
   return NS_OK;
@@ -761,10 +813,10 @@ nsNavHistory::ProcessTokensForSpecialSearch()
 
   
   
-  mDBCurrentQuery = mRestrictTag ? mDBAutoCompleteTagsQuery :
-    mRestrictBookmark ? mDBAutoCompleteStarQuery :
-    mRestrictHistory ? mDBAutoCompleteHistoryQuery :
-    mDBAutoCompleteQuery;
+  mDBCurrentQuery = mRestrictTag ? GetDBAutoCompleteTagsQuery() :
+    mRestrictBookmark ? GetDBAutoCompleteStarQuery() :
+    mRestrictHistory ? GetDBAutoCompleteHistoryQuery() :
+    static_cast<mozIStorageStatement *>(mDBAutoCompleteQuery);
 }
 
 nsresult
@@ -1067,21 +1119,22 @@ nsresult
 nsNavHistory::AutoCompleteFeedback(PRInt32 aIndex,
                                    nsIAutoCompleteController *aController)
 {
-  mozStorageStatementScoper scope(mDBFeedbackIncrease);
+  mozIStorageStatement* statement = GetDBFeedbackIncrease();
+  mozStorageStatementScoper scope(statement);
 
   nsAutoString input;
   nsresult rv = aController->GetSearchString(input);
   NS_ENSURE_SUCCESS(rv, rv);
-  rv = mDBFeedbackIncrease->BindStringParameter(0, input);
+  rv = statement->BindStringParameter(0, input);
   NS_ENSURE_SUCCESS(rv, rv);
 
   nsAutoString url;
   rv = aController->GetValueAt(aIndex, url);
   NS_ENSURE_SUCCESS(rv, rv);
-  rv = mDBFeedbackIncrease->BindStringParameter(1, url);
+  rv = statement->BindStringParameter(1, url);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  rv = mDBFeedbackIncrease->Execute();
+  rv = statement->Execute();
   NS_ENSURE_SUCCESS(rv, rv);
 
   return NS_OK;
