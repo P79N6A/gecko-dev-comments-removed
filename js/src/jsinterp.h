@@ -45,7 +45,9 @@
 
 #include "jsprvtd.h"
 #include "jspubtd.h"
+#include "jsfun.h"
 #include "jsopcode.h"
+#include "jsscript.h"
 
 JS_BEGIN_EXTERN_C
 
@@ -66,7 +68,7 @@ typedef struct JSFrameRegs {
 
 struct JSStackFrame {
     JSFrameRegs     *regs;
-    jsval           *spbase;        
+    jsval           *slots;         
     JSObject        *callobj;       
     JSObject        *argsobj;       
     JSObject        *varobj;        
@@ -77,8 +79,6 @@ struct JSStackFrame {
     uintN           argc;           
     jsval           *argv;          
     jsval           rval;           
-    uintN           nvars;          
-    jsval           *vars;          
     JSStackFrame    *down;          
     void            *annotation;    
     JSObject        *scopeChain;    
@@ -92,6 +92,24 @@ struct JSStackFrame {
     jsrefcount      pcDisabledSave; 
 #endif
 };
+
+static inline jsval *
+StackBase(JSStackFrame *fp)
+{
+    return fp->slots + fp->script->nfixed;
+}
+
+static inline uintN
+GlobalVarCount(JSStackFrame *fp)
+{
+    uintN n;
+    
+    JS_ASSERT(!fp->fun);
+    n = fp->script->nfixed;
+    if (fp->script->regexpsOffset != 0)
+        n -= JS_SCRIPT_REGEXPS(fp->script)->length;
+    return n;
+}
 
 typedef struct JSInlineFrame {
     JSStackFrame    frame;          
