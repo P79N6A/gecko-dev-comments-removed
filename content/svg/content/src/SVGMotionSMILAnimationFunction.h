@@ -42,6 +42,8 @@
 #include "SVGMotionSMILType.h" 
 #include "gfxPath.h"  
 
+class nsSVGMpathElement;
+
 namespace mozilla {
 
 
@@ -59,6 +61,13 @@ public:
                                      nsAttrValue& aResult,
                                      nsresult* aParseResult = nsnull);
   NS_OVERRIDE virtual PRBool UnsetAttr(nsIAtom* aAttribute);
+
+  
+  
+  
+  
+  
+  void MpathChanged() { mIsPathStale = mHasChanged = PR_TRUE; }
 
 protected:
   enum PathSourceType {
@@ -88,6 +97,7 @@ protected:
   void     MarkStaleIfAttributeAffectsPath(nsIAtom* aAttribute);
   nsresult SetPathVerticesFromPathString(const nsAString& aPathSpec);
   void     RebuildPathAndVertices(const nsIContent* aContextElem);
+  void     RebuildPathAndVerticesFromMpathElem(nsSVGMpathElement* aMpathElem);
   void     RebuildPathAndVerticesFromPathAttr();
   void     RebuildPathAndVerticesFromBasicAttrs(const nsIContent* aContextElem);
   PRBool   GenerateValuesForPathAndPoints(gfxFlattenedPath* aPath,
