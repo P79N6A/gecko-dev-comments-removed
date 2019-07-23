@@ -97,10 +97,7 @@ public:
 
 
 
-
-
   void UpdateBand(const nsRect& aNewAvailableSpace,
-                  PRBool aPlacedLeftFloat,
                   nsIFrame* aFloatFrame);
 
   nsresult BeginSpan(nsIFrame* aFrame,
@@ -547,8 +544,6 @@ protected:
   PRUint16 mFlags;
 
   PRUint8 mTextAlign;
-
-  PRUint8 mPlacedFloats;
 
   nsresult NewPerFrameData(PerFrameData** aResult);
 
