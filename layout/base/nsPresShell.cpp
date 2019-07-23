@@ -4554,6 +4554,11 @@ PresShell::DoFlushPendingNotifications(mozFlushType aType,
     if (!mIsDestroying) {
       mPresContext->FlushPendingMediaFeatureValuesChanged();
 
+      
+      
+      
+      mPresContext->FlushUserFontSet();
+
       mFrameConstructor->ProcessPendingRestyles();
     }
 
@@ -4580,10 +4585,6 @@ PresShell::DoFlushPendingNotifications(mozFlushType aType,
     
     
     if (aType >= Flush_Layout && !mIsDestroying) {
-      
-      
-      mPresContext->FlushUserFontSet();
-
       mFrameConstructor->RecalcQuotesAndCounters();
       mViewManager->FlushDelayedResize();
       ProcessReflowCommands(aInterruptibleReflow);

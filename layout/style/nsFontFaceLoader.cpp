@@ -125,17 +125,10 @@ nsFontFaceLoader::OnStreamComplete(nsIStreamLoader* aLoader,
     nsFontFaceLoaderContext *loaderCtx 
                        = static_cast<nsFontFaceLoaderContext*> (mLoaderContext);
 
-    nsIPresShell *ps = loaderCtx->mPresContext->PresShell();
-    if (ps) {
-      
-      
-      
-      
-      
-      
-      ps->StyleChangeReflow();
-      LOG(("fontdownloader (%p) reflow\n", this));
-    }
+    
+    
+    loaderCtx->mPresContext->UserFontSetUpdated();
+    LOG(("fontdownloader (%p) reflow\n", this));
   }
 
   return aStatus;

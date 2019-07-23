@@ -766,6 +766,11 @@ public:
   void FlushUserFontSet();
   void RebuildUserFontSet(); 
 
+  
+  
+  
+  void UserFontSetUpdated();
+
   void NotifyInvalidation(const nsRect& aRect, PRBool aIsCrossDoc);
   void FireDOMPaintEvent();
 

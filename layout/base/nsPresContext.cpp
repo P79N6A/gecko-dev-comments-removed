@@ -1819,8 +1819,7 @@ nsPresContext::FlushUserFontSet()
         
         
         
-        
-        mShell->StyleChangeReflow();
+        UserFontSetUpdated();
       }
     }
 
@@ -1855,6 +1854,27 @@ nsPresContext::RebuildUserFontSet()
       mPostedFlushUserFontSet = PR_TRUE;
     }
   }    
+}
+
+void
+nsPresContext::UserFontSetUpdated()
+{
+  if (!mShell)
+    return;
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+  PostRebuildAllStyleDataEvent(NS_STYLE_HINT_REFLOW);
 }
 
 void
