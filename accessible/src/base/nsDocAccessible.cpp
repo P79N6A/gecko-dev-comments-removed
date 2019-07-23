@@ -1624,6 +1624,10 @@ void nsDocAccessible::FlushEventsCallback(nsITimer *aTimer, void *aClosure)
 
 void nsDocAccessible::RefreshNodes(nsIDOMNode *aStartNode)
 {
+  if (mAccessNodeCache.Count() <= 1) {
+    return; 
+  }
+
   nsCOMPtr<nsIAccessNode> accessNode;
   GetCachedAccessNode(aStartNode, getter_AddRefs(accessNode));
   nsCOMPtr<nsIDOMNode> nextNode, iterNode;
@@ -1672,8 +1676,15 @@ void nsDocAccessible::RefreshNodes(nsIDOMNode *aStartNode)
       iterNode->GetNextSibling(getter_AddRefs(nextNode));
     }
 
-    
-    if (accessNode && accessNode != static_cast<nsIAccessNode*>(this)) {
+    if (accessNode == this) {
+      
+      
+      
+      
+      InvalidateChildren();
+      return;
+    }
+    if (accessNode) {
       
       PRUint32 role = Role(accessible);
       if (role == nsIAccessibleRole::ROLE_MENUPOPUP) {
