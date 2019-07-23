@@ -2364,10 +2364,18 @@ nsXPConnect::GetWrapperForObject(JSContext* aJSContext,
 
     JSBool sameOrigin;
     JSBool sameScope = xpc_SameScope(objectscope, xpcscope, &sameOrigin);
+    JSBool forceXOW = XPC_XOW_ClassNeedsXOW(STOBJ_GET_CLASS(aObject)->name);
+
+    
+    
+    
+    
+    
+    
+    
     if(STOBJ_IS_SYSTEM(aObject) ||
        (sameScope &&
-        (!XPC_XOW_ClassNeedsXOW(STOBJ_GET_CLASS(aObject)->name) ||
-         (aFilenameFlags & JSFILENAME_SYSTEM))))
+        (!forceXOW || (aFilenameFlags & JSFILENAME_SYSTEM))))
         return NS_OK;
 
     JSObject* wrappedObj = nsnull;
@@ -2383,16 +2391,16 @@ nsXPConnect::GetWrapperForObject(JSContext* aJSContext,
         if(XPC_SJOW_Construct(aJSContext, nsnull, 1, &val, &val))
             wrappedObj = JSVAL_TO_OBJECT(val);
     }
-    else if (!sameOrigin)
-    {
-        jsval val = OBJECT_TO_JSVAL(aObject);
-        if(XPC_XOW_WrapObject(aJSContext, aScope, &val, wrapper))
-            wrappedObj = JSVAL_TO_OBJECT(val);
-    }
     else
     {
         
-        return NS_OK;
+        
+        if(sameOrigin && !forceXOW)
+            return NS_OK;
+
+        jsval val = OBJECT_TO_JSVAL(aObject);
+        if(XPC_XOW_WrapObject(aJSContext, aScope, &val, wrapper))
+            wrappedObj = JSVAL_TO_OBJECT(val);
     }
 
     if(!wrappedObj)
