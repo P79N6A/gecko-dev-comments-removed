@@ -649,28 +649,27 @@ Assembler::asm_load64(LInsp ins)
     int d = disp(resv);
 
     freeRsrcOf(ins, false);
+    Register rb = findRegFor(base, GpRegs);
+    NanoAssert(IsGpReg(rb));
 
-    if (AvmCore::config.vfp) {
-        Register rb = findRegFor(base, GpRegs);
+    if (AvmCore::config.vfp && rr != UnknownReg) {
+        
+        NanoAssert(IsFpReg(rr));
 
-        NanoAssert(rb != UnknownReg);
-        NanoAssert(rr == UnknownReg || IsFpReg(rr));
-
-        if (rr != UnknownReg) {
-            if (!isS8(offset >> 2) || (offset&3) != 0) {
-                FLDD(rr,IP,0);
-                ADDi(IP, rb, offset);
-            } else {
-                FLDD(rr,rb,offset);
-            }
+        if (!isS8(offset >> 2) || (offset&3) != 0) {
+            FLDD(rr,IP,0);
+            ADDi(IP, rb, offset);
         } else {
-            asm_mmq(FP, d, rb, offset);
+            FLDD(rr,rb,offset);
         }
+    } else {
+        
+        
+        
+        NanoAssert(resv->reg == UnknownReg);
+        NanoAssert(d != 0);
 
         
-    } else {
-        NanoAssert(resv->reg == UnknownReg && d != 0);
-        Register rb = findRegFor(base, GpRegs);
         asm_mmq(FP, d, rb, offset);
     }
 
