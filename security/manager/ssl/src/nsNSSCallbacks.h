@@ -86,6 +86,14 @@ public:
   
   PRBool mResponsibleForDoneSignal;
   void send_done_signal();
+
+  
+  
+  
+  
+  nsILoadGroup *mLoadGroup;
+  PRThread *mLoadGroupOwnerThread;
+  void FreeLoadGroup(PRBool aCancelLoad);
 };
 
 class nsNSSHttpServerSession
