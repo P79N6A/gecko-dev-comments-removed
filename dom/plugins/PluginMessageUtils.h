@@ -50,14 +50,18 @@ namespace mozilla {
 
 
 
-
 struct void_t { };
 struct null_t { };
 
 
+namespace plugins {
+class Variant;
+}
+
 namespace ipc {
 
 typedef intptr_t NPRemoteIdentifier;
+typedef mozilla::plugins::Variant NPRemoteVariant;
 
 } 
 

@@ -41,7 +41,6 @@
 #include "nsXULAppAPI.h"
 
 
-
 #if !defined(OS_WIN)
 #include <unistd.h>
 #endif
@@ -52,14 +51,10 @@
 #include "nsWindowsWMain.cpp"
 #endif
 
-#if defined(MOZ_WIDGET_GTK2)
-#include <gtk/gtk.h>
-#endif
-
 int
 main(int argc, char* argv[])
 {
-#if 0
+#if 1
     MessageBox(NULL, L"Hi", L"Hi", MB_OK);
 #endif
 
