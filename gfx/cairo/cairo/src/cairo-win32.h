@@ -109,6 +109,63 @@ cairo_win32_scaled_font_get_device_to_logical (cairo_scaled_font_t *scaled_font,
 
 #endif 
 
+#if CAIRO_HAS_DWRITE_FONT
+
+
+
+
+cairo_public cairo_font_face_t *
+cairo_dwrite_font_face_create_for_dwrite_fontface(void *dwrite_font, void *dwrite_font_face);
+
+#endif 
+
+#if CAIRO_HAS_D2D_SURFACE
+
+
+
+
+
+
+
+cairo_public cairo_surface_t *
+cairo_d2d_surface_create_for_hwnd(HWND wnd);
+
+
+
+
+
+
+
+
+
+cairo_public cairo_surface_t *
+cairo_d2d_surface_create(cairo_format_t format,
+                         int width,
+                         int height);
+
+
+
+
+
+
+
+
+void cairo_d2d_present_backbuffer(cairo_surface_t *surface);
+
+
+
+
+
+
+
+
+
+
+
+
+void cairo_d2d_scroll(cairo_surface_t *surface, int x, int y, cairo_rectangle_t *clip);
+#endif
+
 CAIRO_END_DECLS
 
 #else  
