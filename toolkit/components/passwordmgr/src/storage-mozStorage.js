@@ -485,6 +485,19 @@ LoginManagerStorage_mozStorage.prototype = {
 
 
 
+
+
+
+    getAllEncryptedLogins : function (count) {
+        throw Components.results.NS_ERROR_NOT_IMPLEMENTED;
+    },
+
+
+    
+
+
+
+
     removeAllLogins : function () {
         this.log("Removing all logins");
         
