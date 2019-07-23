@@ -60,49 +60,60 @@ class nsChildContentList;
 class nsNodeWeakReference;
 class nsNodeSupportsWeakRefTearoff;
 
+enum {
+  
+  NODE_DOESNT_HAVE_SLOTS =       0x00000001U,
 
-#define NODE_DOESNT_HAVE_SLOTS       0x00000001U
+  
+  
+  NODE_HAS_LISTENERMANAGER =     0x00000002U,
+
+  
+  NODE_HAS_PROPERTIES =          0x00000004U,
+
+  
+  
+  NODE_IS_ANONYMOUS =            0x00000008U,
+
+  
+  
+  NODE_IS_ANONYMOUS_FOR_EVENTS = 0x00000010U,
+
+  
+  
+  NODE_MAY_HAVE_FRAME =          0x00000020U,
+
+  
+  
+  NODE_FORCE_XBL_BINDINGS =      0x00000040U,
+
+  
+  NODE_MAY_BE_IN_BINDING_MNGR =  0x00000080U,
+
+  NODE_IS_EDITABLE =             0x00000100U,
+
+  
+  NODE_SCRIPT_TYPE_OFFSET =                9,
+
+  NODE_SCRIPT_TYPE_SIZE =                  4,
+
+  
+  NODE_TYPE_SPECIFIC_BITS_OFFSET =
+    NODE_SCRIPT_TYPE_OFFSET + NODE_SCRIPT_TYPE_SIZE
+};
 
 
 
-#define NODE_HAS_LISTENERMANAGER     0x00000002U
-
-
-#define NODE_HAS_PROPERTIES          0x00000004U
 
 
 
-#define NODE_IS_ANONYMOUS            0x00000008U
-
-
-
-#define NODE_IS_ANONYMOUS_FOR_EVENTS 0x00000010U
-
-
-
-#define NODE_MAY_HAVE_FRAME          0x00000020U
-
-
-
-#define NODE_FORCE_XBL_BINDINGS      0x00000040U
-
-
-#define NODE_MAY_BE_IN_BINDING_MNGR  0x00000080U
-
-#define NODE_IS_EDITABLE             0x00000100U
-
-
-#define NODE_SCRIPT_TYPE_OFFSET                9
-
-
-#define NODE_TYPE_SPECIFIC_BITS_OFFSET       0x0d
-
-
-
-
-#define NODE_FROM(content_, document_)                  \
-  ((content_) ? static_cast<nsINode*>((content_)) :  \
-                static_cast<nsINode*>((document_)))
+template<class C, class D>
+inline nsINode* NODE_FROM(C& aContent, D& aDocument)
+{
+  if (aContent)
+    return static_cast<nsINode*>(aContent);
+  return static_cast<nsINode*>(aDocument);
+}
 
 
 
