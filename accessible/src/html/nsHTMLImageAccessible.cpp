@@ -127,10 +127,6 @@ nsHTMLImageAccessible::GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState)
 nsresult
 nsHTMLImageAccessible::GetNameInternal(nsAString& aName)
 {
-  
-  
-  
-
   nsCOMPtr<nsIContent> content(do_QueryInterface(mDOMNode));
   PRBool hasAltAttrib =
     content->GetAttr(kNameSpaceID_None, nsAccessibilityAtoms::alt, aName);
@@ -140,10 +136,12 @@ nsHTMLImageAccessible::GetNameInternal(nsAString& aName)
   nsresult rv = nsAccessible::GetNameInternal(aName);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  if (aName.IsVoid() && hasAltAttrib) {
+  if (aName.IsEmpty() && hasAltAttrib) {
     
     
-    aName.Truncate();
+    
+    
+    return NS_OK_EMPTY_NAME;
   }
 
   return NS_OK;

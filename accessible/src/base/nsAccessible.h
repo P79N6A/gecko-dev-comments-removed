@@ -66,8 +66,13 @@ class nsIDOMNode;
 class nsIAtom;
 class nsIView;
 
+
 #define NS_OK_NO_ARIA_VALUE \
 NS_ERROR_GENERATE_SUCCESS(NS_ERROR_MODULE_GENERAL, 0x21)
+
+
+#define NS_OK_EMPTY_NAME \
+NS_ERROR_GENERATE_SUCCESS(NS_ERROR_MODULE_GENERAL, 0x23)
 
 
 
@@ -134,6 +139,12 @@ public:
   nsresult GetARIAName(nsAString& aName);
 
   
+
+
+
+
+
+
 
 
 
