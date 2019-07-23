@@ -223,10 +223,7 @@ nsContainerFrame::RemoveFrame(nsIAtom*  aListName,
         if (!parent->mFrames.DestroyFrame(aOldFrame)) {
           
           
-#ifdef DEBUG
-          nsresult rv =
-#endif
-            StealFrame(PresContext(), aOldFrame, PR_TRUE);
+          nsresult rv = StealFrame(PresContext(), aOldFrame, PR_TRUE);
           NS_ASSERTION(NS_SUCCEEDED(rv), "Could not find frame to remove!");
           aOldFrame->Destroy();
         }
@@ -492,7 +489,8 @@ SyncFrameViewGeometryDependentProperties(nsPresContext*  aPresContext,
 
   PRBool isCanvas;
   const nsStyleBackground* bg;
-  nsCSSRendering::FindBackground(aPresContext, aFrame, &bg, &isCanvas);
+  PRBool hasBG =
+    nsCSSRendering::FindBackground(aPresContext, aFrame, &bg, &isCanvas);
 
   if (isCanvas) {
     nsIView* rootView;
@@ -1099,7 +1097,8 @@ void
 nsContainerFrame::DeleteNextInFlowChild(nsPresContext* aPresContext,
                                         nsIFrame*      aNextInFlow)
 {
-  NS_PRECONDITION(aNextInFlow->GetPrevInFlow(), "bad prev-in-flow");
+  nsIFrame* prevInFlow = aNextInFlow->GetPrevInFlow();
+  NS_PRECONDITION(prevInFlow, "bad prev-in-flow");
 
   
   
@@ -1124,10 +1123,7 @@ nsContainerFrame::DeleteNextInFlowChild(nsPresContext* aPresContext,
   nsSplittableFrame::BreakFromPrevFlow(aNextInFlow);
 
   
-#ifdef DEBUG
-  nsresult rv = 
-#endif
-    StealFrame(aPresContext, aNextInFlow);
+  nsresult rv = StealFrame(aPresContext, aNextInFlow);
   NS_ASSERTION(NS_SUCCEEDED(rv), "StealFrame failure");
 
   
@@ -1588,9 +1584,6 @@ nsContainerFrame::List(FILE* out, PRInt32 aIndent) const
   PRInt32 listIndex = 0;
   PRBool outputOneList = PR_FALSE;
   do {
-    if (!outputOneList) {
-      fputs("\n", out);
-    }
     nsIFrame* kid = GetFirstChild(listName);
     if (nsnull != kid) {
       if (outputOneList) {

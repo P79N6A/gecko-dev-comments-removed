@@ -520,7 +520,9 @@ nsIFrame*
 nsBlockFrame::GetFirstChild(nsIAtom* aListName) const
 {
   if (nsGkAtoms::absoluteList == aListName) {
-    return mAbsoluteContainer.GetFirstChild();
+    nsIFrame* result = nsnull;
+    mAbsoluteContainer.FirstChild(this, aListName, &result);
+    return result;
   }
   else if (nsnull == aListName) {
     return (mLines.empty()) ? nsnull : mLines.front()->mFirstChild;
@@ -801,9 +803,7 @@ CalculateContainingBlockSizeForAbsolutes(const nsHTMLReflowState& aReflowState,
   cbSize.width -= border.LeftRight();
   cbSize.height -= border.TopBottom();
 
-  if (frame->GetParent()->GetContent() == frame->GetContent() &&
-      frame->GetParent()->GetType() != nsGkAtoms::canvasFrame) {
-    
+  if (frame->GetParent()->GetContent() == frame->GetContent()) {
     
     
     
@@ -816,10 +816,14 @@ CalculateContainingBlockSizeForAbsolutes(const nsHTMLReflowState& aReflowState,
     
     const nsHTMLReflowState* aLastRS = &aReflowState;
     const nsHTMLReflowState* lastButOneRS = &aReflowState;
+    PRBool isCanvasBlock = PR_FALSE;
     while (aLastRS->parentReflowState &&
            aLastRS->parentReflowState->frame->GetContent() == frame->GetContent()) {
       lastButOneRS = aLastRS;
       aLastRS = aLastRS->parentReflowState;
+      if (aLastRS->frame->GetType() == nsGkAtoms::canvasFrame) {
+        isCanvasBlock = PR_TRUE;
+      }
     }
     if (aLastRS != &aReflowState) {
       
@@ -840,11 +844,23 @@ CalculateContainingBlockSizeForAbsolutes(const nsHTMLReflowState& aReflowState,
       }
       
       
-      if (aLastRS->ComputedWidth() != NS_UNCONSTRAINEDSIZE) {
+      
+      
+      
+      
+      
+      
+      
+      
+      if (aLastRS->ComputedWidth() != NS_UNCONSTRAINEDSIZE && !isCanvasBlock) {
         cbSize.width = PR_MAX(0,
           aLastRS->ComputedWidth() + aLastRS->mComputedPadding.LeftRight() - scrollbars.LeftRight());
       }
       if (aLastRS->ComputedHeight() != NS_UNCONSTRAINEDSIZE) {
+        
+        
+        
+        
         cbSize.height = PR_MAX(0,
           aLastRS->ComputedHeight() + aLastRS->mComputedPadding.TopBottom() - scrollbars.TopBottom());
       }
@@ -4261,9 +4277,7 @@ nsBlockFrame::HandleOverflowPlaceholdersOnPulledLine(
   
   
   if (aLine->mFirstChild && IsContinuationPlaceholder(aLine->mFirstChild)) {
-#ifdef DEBUG
     PRBool taken =
-#endif
       HandleOverflowPlaceholdersForPulledFrame(aState, aLine->mFirstChild);
     NS_ASSERTION(taken, "We must have removed that frame");
     return PR_TRUE;
@@ -4615,10 +4629,8 @@ nsBlockFrame::SetOverflowOutOfFlows(const nsFrameList& aList)
     if (!(GetStateBits() & NS_BLOCK_HAS_OVERFLOW_OUT_OF_FLOWS)) {
       return;
     }
-#ifdef DEBUG
     nsIFrame* result = static_cast<nsIFrame*>
-#endif
-      (UnsetProperty(nsGkAtoms::overflowOutOfFlowsProperty));
+                                  (UnsetProperty(nsGkAtoms::overflowOutOfFlowsProperty));
     NS_ASSERTION(result, "value should always be non-empty when state set");
     RemoveStateBits(NS_BLOCK_HAS_OVERFLOW_OUT_OF_FLOWS);
   } else {
@@ -5595,7 +5607,8 @@ void
 nsBlockFrame::DeleteNextInFlowChild(nsPresContext* aPresContext,
                                     nsIFrame*       aNextInFlow)
 {
-  NS_PRECONDITION(aNextInFlow->GetPrevInFlow(), "bad next-in-flow");
+  nsIFrame* prevInFlow = aNextInFlow->GetPrevInFlow();
+  NS_PRECONDITION(prevInFlow, "bad next-in-flow");
 
   if (NS_FRAME_IS_OVERFLOW_CONTAINER & aNextInFlow->GetStateBits()) {
     nsContainerFrame::DeleteNextInFlowChild(aPresContext, aNextInFlow);
