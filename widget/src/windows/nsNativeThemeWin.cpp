@@ -1136,19 +1136,49 @@ RENDER_AGAIN:
       aFrame->GetContent()->IsNodeOfType(nsINode::eHTML) ||
       aWidgetType == NS_THEME_SCALE_HORIZONTAL ||
       aWidgetType == NS_THEME_SCALE_VERTICAL) {
-      PRInt32 contentState ;
+      PRInt32 contentState;
       contentState = GetContentState(aFrame, aWidgetType);  
-            
+
       if (contentState & NS_EVENT_STATE_FOCUS) {
-        
         POINT vpOrg;
+        HPEN hPen = nsnull;
+
+        PRUint8 id = SaveDC(hdc);
+
+        ::SelectClipRgn(hdc, NULL);
         ::GetViewportOrgEx(hdc, &vpOrg);
         ::SetBrushOrgEx(hdc, vpOrg.x + widgetRect.left, vpOrg.y + widgetRect.top, NULL);
-        PRInt32 oldColor;
-        oldColor = ::SetTextColor(hdc, 0);
+
         
-        ::DrawFocusRect(hdc, &widgetRect);
-        ::SetTextColor(hdc, oldColor);
+        
+        if (nsUXThemeData::sIsVistaOrLater && aWidgetType == NS_THEME_CHECKBOX) {
+          LOGBRUSH lb;
+          lb.lbStyle = BS_SOLID;
+          lb.lbColor = RGB(255,255,255);
+          lb.lbHatch = 0;
+
+          hPen = ::ExtCreatePen(PS_COSMETIC|PS_ALTERNATE, 1, &lb, 0, NULL);
+          ::SelectObject(hdc, hPen);
+
+          
+          if (contentState & NS_EVENT_STATE_ACTIVE) {
+            ::MoveToEx(hdc, widgetRect.left, widgetRect.bottom-1, NULL);
+            ::LineTo(hdc, widgetRect.left, widgetRect.top);
+            ::LineTo(hdc, widgetRect.right-1, widgetRect.top);
+          }
+
+          
+          ::MoveToEx(hdc, widgetRect.right-1, widgetRect.top, NULL);
+          ::LineTo(hdc, widgetRect.right-1, widgetRect.bottom-1);
+          ::LineTo(hdc, widgetRect.left, widgetRect.bottom-1);
+        } else {
+          ::SetTextColor(hdc, 0);
+          ::DrawFocusRect(hdc, &widgetRect);
+        }
+        ::RestoreDC(hdc, id);
+        if (hPen) {
+          ::DeleteObject(hPen);
+        }
       }
   }
   else if (aWidgetType == NS_THEME_TOOLBAR && state == 0) {
