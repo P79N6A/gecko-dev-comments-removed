@@ -9274,12 +9274,6 @@ nsHTMLSelectElementSH::SetProperty(nsIXPConnectWrappedNative *wrapper,
 
 
 
-
-
-
-
-
-
 nsresult
 nsHTMLPluginObjElementSH::GetPluginInstanceIfSafe(nsIXPConnectWrappedNative *wrapper,
                                                   JSObject *obj,
@@ -9471,24 +9465,6 @@ nsHTMLPluginObjElementSH::SetupProtoChain(nsIXPConnectWrappedNative *wrapper,
   
   
   
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
 
   return NS_OK;
 }
@@ -9633,9 +9609,9 @@ nsHTMLPluginObjElementSH::Call(nsIXPConnectWrappedNative *wrapper,
   nsresult rv = GetPluginInstanceIfSafe(wrapper, obj, getter_AddRefs(pi));
   NS_ENSURE_SUCCESS(rv, rv);
 
-  if (!pi) {
-    
-
+  
+  
+  if (!ObjectIsNativeWrapper(cx, obj) || !pi) {
     return NS_ERROR_NOT_AVAILABLE;
   }
 
@@ -9660,21 +9636,6 @@ nsHTMLPluginObjElementSH::Call(nsIXPConnectWrappedNative *wrapper,
 }
 
 
-
-
-
-nsresult
-nsHTMLPluginObjElementSH::GetJavaPluginJSObject(JSContext *cx, JSObject *obj,
-                                                nsIPluginInstance *plugin_inst,
-                                                JSObject **plugin_obj,
-                                                JSObject **plugin_proto)
-{
-  return NS_OK;
-}
-
-
-
-
 nsresult
 nsHTMLPluginObjElementSH::GetPluginJSObject(JSContext *cx, JSObject *obj,
                                             nsIPluginInstance *plugin_inst,
@@ -9694,89 +9655,6 @@ nsHTMLPluginObjElementSH::GetPluginJSObject(JSContext *cx, JSObject *obj,
   }
 
   return NS_OK;
-}
-
-NS_IMETHODIMP
-nsHTMLPluginObjElementSH::NewResolve(nsIXPConnectWrappedNative *wrapper,
-                                     JSContext *cx, JSObject *obj, jsval id,
-                                     PRUint32 flags, JSObject **objp,
-                                     PRBool *_retval)
-{
-  if (!JSVAL_IS_STRING(id)) {
-    return NS_OK;
-  }
-
-  
-  
-  
-  
-
-  nsCOMPtr<nsIPluginInstance> pi;
-  nsresult rv = GetPluginInstanceIfSafe(wrapper, obj, getter_AddRefs(pi));
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  
-  
-  JSObject *jsobj;
-  if (pi)
-    pi->GetJSObject(cx, &jsobj);
-  if (!pi || jsobj) {
-    return nsHTMLElementSH::NewResolve(wrapper, cx, obj, id, flags, objp,
-                                       _retval);
-  }
-
-  JSObject *proto = ::JS_GetPrototype(cx, obj);
-
-  if (!proto || strcmp(STOBJ_GET_CLASS(proto)->name, NPRUNTIME_JSCLASS_NAME)) {
-    
-
-    JSString *str = JSVAL_TO_STRING(id);
-    char* cstring = ::JS_GetStringBytes(str);
-
-    nsCOMPtr<nsIInterfaceInfoManager>
-      iim(do_GetService(NS_INTERFACEINFOMANAGER_SERVICE_CONTRACTID));
-    NS_ENSURE_TRUE(iim, NS_ERROR_UNEXPECTED);
-
-    nsIID* iid = nsnull;
-
-    nsresult rv = iim->GetIIDForName(cstring, &iid);
-
-    if (NS_SUCCEEDED(rv) && iid) {
-      
-      
-
-      nsCOMPtr<nsIPluginHost> pluginHost = do_GetService(MOZ_PLUGIN_HOST_CONTRACTID);
-      if (pluginHost)
-        pluginHost->SetIsScriptableInstance(pi, PR_TRUE);
-
-      nsCOMPtr<nsIXPConnectJSObjectHolder> holder;
-      rv = sXPConnect->WrapNative(cx, obj, pi, *iid, getter_AddRefs(holder));
-
-      if (NS_SUCCEEDED(rv)) {
-        JSObject* ifaceObj;
-
-        rv = holder->GetJSObject(&ifaceObj);
-
-        if (NS_SUCCEEDED(rv)) {
-          nsMemory::Free(iid);
-
-          *_retval = ::JS_DefineUCProperty(cx, obj, ::JS_GetStringChars(str),
-                                           ::JS_GetStringLength(str),
-                                           OBJECT_TO_JSVAL(ifaceObj), nsnull,
-                                           nsnull, JSPROP_ENUMERATE);
-
-          *objp = obj;
-
-          return *_retval ? NS_OK : NS_ERROR_FAILURE;
-        }
-      }
-    }
-
-    nsMemory::Free(iid);
-  }
-
-  return nsHTMLElementSH::NewResolve(wrapper, cx, obj, id, flags, objp,
-                                     _retval);
 }
 
 
