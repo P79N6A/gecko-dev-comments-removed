@@ -64,7 +64,6 @@
 
 #include "nsplugindefs.h"
 
-#undef DARWIN
 #import <Carbon/Carbon.h>
 #import <Cocoa/Cocoa.h>
 
@@ -98,11 +97,12 @@ union nsPluginPort;
   
   NSEvent* mCurKeyEvent;
   PRBool mKeyDownHandled;
-  BOOL mIgnoreDoCommand;
   
   
   
   BOOL mKeyPressSent;
+  
+  PRBool mKeyPressHandled;
 
   
   NSRange mMarkedRange;
