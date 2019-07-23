@@ -176,36 +176,6 @@ moz_container_move (MozContainer *container, GtkWidget *child_widget,
 
 
 
-
-
-
-void
-moz_container_scroll_update (MozContainer *container, GtkWidget *child_widget,
-                             gint x, gint y)
-{
-    MozContainerChild *child;
-    GtkAllocation new_allocation;
-
-    child = moz_container_get_child (container, child_widget);
-
-    child->x = x;
-    child->y = y;
-
-    new_allocation.x = x;
-    new_allocation.y = y;
-    new_allocation.width = child_widget->allocation.width;
-    new_allocation.height = child_widget->allocation.height;
-
-    
-
-
-
-
-    gtk_widget_size_allocate(child_widget, &new_allocation);
-}
-
-
-
 void
 moz_container_class_init (MozContainerClass *klass)
 {
