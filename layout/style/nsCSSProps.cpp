@@ -1349,6 +1349,7 @@ static const nsCSSProperty gBorderSubpropTable[] = {
 
 static const nsCSSProperty gBorderBottomSubpropTable[] = {
   
+  
   eCSSProperty_border_bottom_width,
   eCSSProperty_border_bottom_style,
   eCSSProperty_border_bottom_color,
@@ -1403,6 +1404,7 @@ static const nsCSSProperty gMozBorderStartColorSubpropTable[] = {
 
 static const nsCSSProperty gMozBorderEndSubpropTable[] = {
   
+  
   eCSSProperty_border_end_width_value,
   eCSSProperty_border_end_style_value,
   eCSSProperty_border_end_color_value,
@@ -1417,6 +1419,7 @@ static const nsCSSProperty gMozBorderEndSubpropTable[] = {
 };
 
 static const nsCSSProperty gBorderLeftSubpropTable[] = {
+  
   
   eCSSProperty_border_left_width_value,
   eCSSProperty_border_left_style_value,
@@ -1433,6 +1436,7 @@ static const nsCSSProperty gBorderLeftSubpropTable[] = {
 
 static const nsCSSProperty gBorderRightSubpropTable[] = {
   
+  
   eCSSProperty_border_right_width_value,
   eCSSProperty_border_right_style_value,
   eCSSProperty_border_right_color_value,
@@ -1447,6 +1451,7 @@ static const nsCSSProperty gBorderRightSubpropTable[] = {
 };
 
 static const nsCSSProperty gMozBorderStartSubpropTable[] = {
+  
   
   eCSSProperty_border_start_width_value,
   eCSSProperty_border_start_style_value,
@@ -1508,6 +1513,7 @@ static const nsCSSProperty gMozBorderEndStyleSubpropTable[] = {
 };
 
 static const nsCSSProperty gBorderTopSubpropTable[] = {
+  
   
   eCSSProperty_border_top_width,
   eCSSProperty_border_top_style,
@@ -1636,13 +1642,16 @@ static const nsCSSProperty gMozMarginEndSubpropTable[] = {
 
 static const nsCSSProperty gOutlineSubpropTable[] = {
   
-  eCSSProperty_outline_color,
-  eCSSProperty_outline_style,
+  
   eCSSProperty_outline_width,
+  eCSSProperty_outline_style,
+  eCSSProperty_outline_color,
   eCSSProperty_UNKNOWN
 };
 
 static const nsCSSProperty gMozColumnRuleSubpropTable[] = {
+  
+  
   eCSSProperty__moz_column_rule_width,
   eCSSProperty__moz_column_rule_style,
   eCSSProperty__moz_column_rule_color,
