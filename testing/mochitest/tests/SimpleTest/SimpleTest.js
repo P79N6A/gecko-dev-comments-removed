@@ -10,6 +10,10 @@
 
 
 
+
+
+
+
 if (typeof(SimpleTest) == "undefined") {
     var SimpleTest = {};
 }
@@ -549,7 +553,7 @@ var todo_is = SimpleTest.todo_is;
 var todo_isnot = SimpleTest.todo_isnot;
 var isDeeply = SimpleTest.isDeeply;
 
-const gOldOnError = window.onerror;
+var gOldOnError = window.onerror;
 window.onerror = function simpletestOnerror(errorMsg, url, lineNumber) {
   var funcIdentifier = "[SimpleTest/SimpleTest.js, window.onerror] ";
 
