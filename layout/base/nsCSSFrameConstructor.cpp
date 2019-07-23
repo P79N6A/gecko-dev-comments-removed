@@ -2189,25 +2189,19 @@ TextIsOnlyWhitespace(nsIContent* aContent)
 
 
 static PRBool
-IsTableRelated(PRUint8 aDisplay,
-               PRBool  aIncludeSpecial) 
+IsTableRelated(PRUint8 aDisplay)
 {
-  if ((aDisplay == NS_STYLE_DISPLAY_TABLE)              ||
-      (aDisplay == NS_STYLE_DISPLAY_INLINE_TABLE)       ||
-      (aDisplay == NS_STYLE_DISPLAY_TABLE_HEADER_GROUP) ||
-      (aDisplay == NS_STYLE_DISPLAY_TABLE_ROW_GROUP)    ||
-      (aDisplay == NS_STYLE_DISPLAY_TABLE_FOOTER_GROUP) ||
-      (aDisplay == NS_STYLE_DISPLAY_TABLE_ROW)) {
-    return PR_TRUE;
-  }
-  else if (aIncludeSpecial && 
-           ((aDisplay == NS_STYLE_DISPLAY_TABLE_CAPTION)      ||
-            (aDisplay == NS_STYLE_DISPLAY_TABLE_COLUMN_GROUP) ||
-            (aDisplay == NS_STYLE_DISPLAY_TABLE_COLUMN)       ||
-            (aDisplay == NS_STYLE_DISPLAY_TABLE_CELL))) {
-    return PR_TRUE;
-  }
-  else return PR_FALSE;
+  return
+    aDisplay == NS_STYLE_DISPLAY_TABLE              ||
+    aDisplay == NS_STYLE_DISPLAY_INLINE_TABLE       ||
+    aDisplay == NS_STYLE_DISPLAY_TABLE_HEADER_GROUP ||
+    aDisplay == NS_STYLE_DISPLAY_TABLE_ROW_GROUP    ||
+    aDisplay == NS_STYLE_DISPLAY_TABLE_FOOTER_GROUP ||
+    aDisplay == NS_STYLE_DISPLAY_TABLE_ROW          ||
+    aDisplay == NS_STYLE_DISPLAY_TABLE_CAPTION      ||
+    aDisplay == NS_STYLE_DISPLAY_TABLE_COLUMN_GROUP ||
+    aDisplay == NS_STYLE_DISPLAY_TABLE_COLUMN       ||
+    aDisplay == NS_STYLE_DISPLAY_TABLE_CELL;
 }
 
 static PRBool
@@ -3126,7 +3120,7 @@ nsCSSFrameConstructor::AdjustParentFrame(nsFrameConstructorState&     aState,
   
   
   if (IsTableRelated(aParentFrame->GetType(), PR_FALSE) &&
-      (!IsTableRelated(aDisplay->mDisplay, PR_TRUE) ||
+      (!IsTableRelated(aDisplay->mDisplay) ||
        
        
        aFCData)) {
@@ -6583,7 +6577,7 @@ nsCSSFrameConstructor::PageBreakBefore(nsFrameConstructorState& aState,
       NS_STYLE_POSITION_FIXED    != display->mPosition &&
       NS_STYLE_POSITION_ABSOLUTE != display->mPosition &&
       (NS_STYLE_DISPLAY_TABLE == display->mDisplay ||
-       !IsTableRelated(display->mDisplay, PR_TRUE))) { 
+       !IsTableRelated(display->mDisplay))) {
     if (display->mBreakBefore) {
       ConstructPageBreakFrame(aState, aContent, aParentFrame, aStyleContext,
                               aFrameItems);
@@ -7000,7 +6994,7 @@ nsCSSFrameConstructor::GetAbsoluteContainingBlock(nsIFrame* aFrame)
     
     const nsStyleDisplay* disp = frame->GetStyleDisplay();
 
-    if (disp->IsPositioned() && !IsTableRelated(disp->mDisplay, PR_TRUE)) {
+    if (disp->IsPositioned() && !IsTableRelated(disp->mDisplay)) {
       
       for (nsIFrame* wrappedFrame = aFrame; wrappedFrame != frame->GetParent();
            wrappedFrame = wrappedFrame->GetParent()) {
