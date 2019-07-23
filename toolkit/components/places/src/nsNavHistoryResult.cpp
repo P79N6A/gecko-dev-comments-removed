@@ -4318,6 +4318,17 @@ nsNavHistoryResult::OnVisit(nsIURI* aURI, PRInt64 aVisitId, PRTime aTime,
         resultType == nsINavHistoryQueryOptions::RESULTS_AS_DATE_SITE_QUERY ||
         resultType == nsINavHistoryQueryOptions::RESULTS_AS_SITE_QUERY)
       mRootNode->GetAsQuery()->Refresh();
+    else {
+      
+      
+      
+      
+      nsTArray<nsNavHistoryQueryResultNode*> observerCopy(mHistoryObservers);
+      for (PRUint32 i = 0; i < observerCopy.Length(); i++) {
+        if (observerCopy[i] && observerCopy[i]->IsContainersQuery())
+          observerCopy[i]->Refresh();
+      }
+    }
   }
 
   return NS_OK;

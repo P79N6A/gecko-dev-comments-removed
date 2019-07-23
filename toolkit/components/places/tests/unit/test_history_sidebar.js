@@ -37,6 +37,7 @@
 
 
 
+
 var hs = Cc["@mozilla.org/browser/nav-history-service;1"].
          getService(Ci.nsINavHistoryService);
 var bh = hs.QueryInterface(Ci.nsIBrowserHistory);
@@ -44,6 +45,8 @@ var bs = Cc["@mozilla.org/browser/nav-bookmarks-service;1"].
          getService(Ci.nsINavBookmarksService);
 var ps = Cc["@mozilla.org/preferences-service;1"].
          getService(Ci.nsIPrefBranch);
+
+
 
 
 
@@ -303,8 +306,8 @@ function test_RESULTS_AS_DATE_QUERY() {
 function test_RESULTS_AS_SITE_QUERY() {
   print("\n\n*** TEST RESULTS_AS_SITE_QUERY\n");
   
-  bs.insertBookmark(bs.toolbarFolder, uri("http://foobar"),
-                    bs.DEFAULT_INDEX, "");
+  var itemId = bs.insertBookmark(bs.toolbarFolder, uri("http://foobar"),
+                                 bs.DEFAULT_INDEX, "");
 
   var options = hs.getNewQueryOptions();
   options.resultType = options.RESULTS_AS_SITE_QUERY;
@@ -357,6 +360,68 @@ function test_RESULTS_AS_SITE_QUERY() {
 
   siteNode.containerOpen = false;
   root.containerOpen = false;
+
+  
+  bs.removeItem(itemId);
+}
+
+
+
+
+function test_date_liveupdate(aResultType) {
+  var midnight = nowObj;
+  midnight.setHours(0);
+  midnight.setMinutes(0);
+  midnight.setSeconds(0);
+  midnight.setMilliseconds(0);
+
+  
+  var options = hs.getNewQueryOptions();
+  options.resultType = aResultType;
+  var query = hs.getNewQuery();
+  var result = hs.executeQuery(query, options);
+  var root = result.root;
+  root.containerOpen = true;
+
+  do_check_eq(root.childCount, visibleContainers.length);
+  
+  hs.removePagesByTimeframe(midnight.getTime() * 1000, Date.now() * 1000);
+  do_check_eq(root.childCount, visibleContainers.length - 1);
+  
+  add_normalized_visit(uri("http://www.mozilla.org/"), nowObj.getTime(), 0);
+  do_check_eq(root.childCount, visibleContainers.length);
+
+  root.containerOpen = false;
+
+  
+  var itemId = bs.insertBookmark(bs.toolbarFolder,
+                                 uri("place:type=" + aResultType),
+                                 bs.DEFAULT_INDEX, "");
+
+  
+  options = hs.getNewQueryOptions();
+  query = hs.getNewQuery();
+  query.setFolders([bs.toolbarFolder], 1);
+  result = hs.executeQuery(query, options);
+  root = result.root;
+  root.containerOpen = true;
+  do_check_eq(root.childCount, 1);
+  var dateContainer = root.getChild(0).QueryInterface(Ci.nsINavHistoryContainerResultNode);
+  dateContainer.containerOpen = true;
+
+  do_check_eq(dateContainer.childCount, visibleContainers.length);
+  
+  hs.removePagesByTimeframe(midnight.getTime() * 1000, Date.now() * 1000);
+  do_check_eq(dateContainer.childCount, visibleContainers.length - 1);
+  
+  add_normalized_visit(uri("http://www.mozilla.org/"), nowObj.getTime(), 0);
+  do_check_eq(dateContainer.childCount, visibleContainers.length);
+
+  dateContainer.containerOpen = false;
+  root.containerOpen = false;
+
+  
+  bs.removeItem(itemId);
 }
 
 
@@ -366,11 +431,18 @@ function run_test() {
 
   
   bh.removeAllPages();
+  remove_all_bookmarks();
 
   fill_history();
   test_RESULTS_AS_DATE_SITE_QUERY();
   test_RESULTS_AS_DATE_QUERY();
   test_RESULTS_AS_SITE_QUERY();
+
+  test_date_liveupdate(Ci.nsINavHistoryQueryOptions.RESULTS_AS_DATE_SITE_QUERY);
+  test_date_liveupdate(Ci.nsINavHistoryQueryOptions.RESULTS_AS_DATE_QUERY);
+
+  
+  bh.removeAllPages();
 
   
   
