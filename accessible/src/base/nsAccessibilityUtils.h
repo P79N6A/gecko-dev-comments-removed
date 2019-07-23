@@ -45,6 +45,7 @@
 #include "nsIDOMNode.h"
 #include "nsIPersistentProperties2.h"
 #include "nsIContent.h"
+#include "nsIFrame.h"
 
 class nsAccUtils
 {
@@ -124,7 +125,7 @@ public:
    static PRBool IsAncestorOf(nsIDOMNode *aPossibleAncestorNode,
                               nsIDOMNode *aPossibleDescendantNode);
 
-   
+  
 
 
 
@@ -132,6 +133,31 @@ public:
 
    static already_AddRefed<nsIAccessible>
      GetAncestorWithRole(nsIAccessible *aDescendant, PRUint32 aRole);
+
+  
+
+
+
+
+
+
+
+
+
+
+  static nsresult ScrollSubstringTo(nsIFrame *aFrame,
+                                    nsIDOMNode *aStartNode, PRInt32 aStartIndex,
+                                    nsIDOMNode *aEndNode, PRInt32 aEndIndex,
+                                    PRUint32 aScrollType);
+
+  
+
+
+
+  static void ConvertScrollTypeToPercents(PRUint32 aScrollType,
+                                          PRInt16 *aVPercent,
+                                          PRInt16 *aHPercent);
 };
 
 #endif
+

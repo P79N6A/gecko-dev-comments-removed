@@ -139,6 +139,7 @@ protected:
 
   PRInt32 GetRelativeOffset(nsIPresShell *aPresShell, nsIFrame *aFromFrame, PRInt32 aFromOffset,
                             nsSelectionAmount aAmount, nsDirection aDirection, PRBool aNeedsStart);
+
   
 
 
@@ -151,8 +152,25 @@ protected:
 
 
 
-  nsIFrame* GetPosAndText(PRInt32& aStartOffset, PRInt32& aEndOffset, nsAString *aText = nsnull,
-                          nsIFrame **aEndFrame = nsnull, nsIntRect *aBoundsRect = nsnull);
+
+
+
+
+
+
+
+
+
+
+
+
+
+  nsIFrame* GetPosAndText(PRInt32& aStartOffset, PRInt32& aEndOffset,
+                          nsAString *aText = nsnull,
+                          nsIFrame **aEndFrame = nsnull,
+                          nsIntRect *aBoundsRect = nsnull,
+                          nsIAccessible **aStartAcc = nsnull,
+                          nsIAccessible **aEndAcc = nsnull);
 
   nsIntRect GetBoundsForString(nsIFrame *aFrame, PRUint32 aStartRenderedOffset, PRUint32 aEndRenderedOffset);
 
