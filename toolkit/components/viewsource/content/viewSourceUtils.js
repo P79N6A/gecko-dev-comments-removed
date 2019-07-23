@@ -247,7 +247,7 @@ var gViewSourceUtils = {
           
           
           
-          var editorArgs = []
+          var editorArgs = [];
           var prefs = Components.classes["@mozilla.org/preferences-service;1"]
                                 .getService(Components.interfaces.nsIPrefBranch);
           var args = prefs.getCharPref("view_source.editor.args");
