@@ -98,7 +98,6 @@
 #include "nsIDOMHTMLBodyElement.h"
 #include "nsINameSpaceManager.h"
 #include "nsGenericHTMLElement.h"
-#include "nsGenericDOMNodeList.h"
 #include "nsICSSLoader.h"
 #include "nsIHttpChannel.h"
 #include "nsIFile.h"
@@ -178,7 +177,7 @@ static PRBool ConvertToMidasInternalCommand(const nsAString & inCommandID,
 
 static PRBool ConvertToMidasInternalCommand(const nsAString & inCommandID,
                                             nsACString& outCommandID);
-static int PR_CALLBACK
+static int
 MyPrefChangedCallback(const char*aPrefName, void* instance_data)
 {
   const nsAdoptingString& detector_name =
@@ -255,11 +254,12 @@ NS_IMPL_RELEASE_INHERITED(nsHTMLDocument, nsDocument)
 
 
 NS_INTERFACE_TABLE_HEAD_CYCLE_COLLECTION_INHERITED(nsHTMLDocument)
-  NS_INTERFACE_TABLE_INHERITED3(nsHTMLDocument,
-                                nsIHTMLDocument,
-                                nsIDOMHTMLDocument,
-                                nsIDOMNSHTMLDocument)
-  NS_INTERFACE_TABLE_TO_MAP_SEGUE
+  NS_DOCUMENT_INTERFACE_TABLE_BEGIN(nsHTMLDocument)
+    NS_INTERFACE_TABLE_ENTRY(nsHTMLDocument, nsIHTMLDocument)
+    NS_INTERFACE_TABLE_ENTRY(nsHTMLDocument, nsIDOMHTMLDocument)
+    NS_INTERFACE_TABLE_ENTRY(nsHTMLDocument, nsIDOMNSHTMLDocument)
+  NS_OFFSET_AND_INTERFACE_TABLE_END
+  NS_OFFSET_AND_INTERFACE_TABLE_TO_MAP_SEGUE
   NS_INTERFACE_MAP_ENTRY_CONTENT_CLASSINFO(HTMLDocument)
 NS_INTERFACE_MAP_END_INHERITING(nsDocument)
 
@@ -1841,20 +1841,7 @@ nsHTMLDocument::OpenCommon(const nsACString& aContentType, PRBool aReplace)
   
   nsCOMPtr<nsIDocument> callerDoc =
     do_QueryInterface(nsContentUtils::GetDocumentFromContext());
-
-  
-  
-  nsCOMPtr<nsISupports> securityInfo;
-  if (callerDoc) {
-    securityInfo = callerDoc->GetSecurityInfo();
-  }
-
-  nsCOMPtr<nsIPrincipal> callerPrincipal;
-  nsIScriptSecurityManager *secMan = nsContentUtils::GetSecurityManager();
-
-  secMan->GetSubjectPrincipal(getter_AddRefs(callerPrincipal));
-
-  if (!callerPrincipal) {
+  if (!callerDoc) {
     
     
     
@@ -1864,6 +1851,13 @@ nsHTMLDocument::OpenCommon(const nsACString& aContentType, PRBool aReplace)
 
     return NS_ERROR_DOM_SECURITY_ERR;
   }
+
+  
+  
+  nsCOMPtr<nsISupports> securityInfo = callerDoc->GetSecurityInfo();
+  nsCOMPtr<nsIURI> uri = callerDoc->GetDocumentURI();
+  nsCOMPtr<nsIURI> baseURI = callerDoc->GetBaseURI();
+  nsCOMPtr<nsIPrincipal> callerPrincipal = callerDoc->NodePrincipal();
 
   
   
@@ -1875,18 +1869,6 @@ nsHTMLDocument::OpenCommon(const nsACString& aContentType, PRBool aReplace)
   if (NS_FAILED(callerPrincipal->Equals(NodePrincipal(), &equals)) ||
       !equals) {
     return NS_ERROR_DOM_SECURITY_ERR;
-  }
-
-  
-  
-  
-  nsCOMPtr<nsIURI> uri;
-  callerPrincipal->GetURI(getter_AddRefs(uri));
-
-  if (!uri) {
-    rv = NS_NewURI(getter_AddRefs(uri),
-                   NS_LITERAL_CSTRING("about:blank"));
-    NS_ENSURE_SUCCESS(rv, rv);
   }
 
   
@@ -1919,6 +1901,9 @@ nsHTMLDocument::OpenCommon(const nsACString& aContentType, PRBool aReplace)
   if (NS_FAILED(rv)) {
     return rv;
   }
+
+  
+  
 
   
   
@@ -2009,6 +1994,9 @@ nsHTMLDocument::OpenCommon(const nsACString& aContentType, PRBool aReplace)
   
 
   Reset(channel, group);
+  if (baseURI) {
+    mDocumentBaseURI = baseURI;
+  }
 
   if (root) {
     
@@ -3844,7 +3832,7 @@ nsHTMLDocument::ExecCommand(const nsAString & commandID,
   *_retval = PR_FALSE;
 
   
-  if (!IsEditingOn())
+  if (!IsEditingOnAfterFlush())
     return NS_ERROR_FAILURE;
 
   
@@ -3919,7 +3907,7 @@ nsHTMLDocument::ExecCommandShowHelp(const nsAString & commandID,
   *_retval = PR_FALSE;
 
   
-  if (!IsEditingOn())
+  if (!IsEditingOnAfterFlush())
     return NS_ERROR_FAILURE;
 
   return NS_ERROR_NOT_IMPLEMENTED;
@@ -3934,7 +3922,7 @@ nsHTMLDocument::QueryCommandEnabled(const nsAString & commandID,
   *_retval = PR_FALSE;
 
   
-  if (!IsEditingOn())
+  if (!IsEditingOnAfterFlush())
     return NS_ERROR_FAILURE;
 
   
@@ -3963,7 +3951,7 @@ nsHTMLDocument::QueryCommandIndeterm(const nsAString & commandID,
   *_retval = PR_FALSE;
 
   
-  if (!IsEditingOn())
+  if (!IsEditingOnAfterFlush())
     return NS_ERROR_FAILURE;
 
   
@@ -4005,7 +3993,7 @@ nsHTMLDocument::QueryCommandState(const nsAString & commandID, PRBool *_retval)
   *_retval = PR_FALSE;
 
   
-  if (!IsEditingOn())
+  if (!IsEditingOnAfterFlush())
     return NS_ERROR_FAILURE;
 
   
@@ -4067,7 +4055,7 @@ nsHTMLDocument::QueryCommandSupported(const nsAString & commandID,
   *_retval = PR_FALSE;
 
   
-  if (!IsEditingOn())
+  if (!IsEditingOnAfterFlush())
     return NS_ERROR_FAILURE;
 
   return NS_ERROR_NOT_IMPLEMENTED;
@@ -4081,7 +4069,7 @@ nsHTMLDocument::QueryCommandText(const nsAString & commandID,
   _retval.SetLength(0);
 
   
-  if (!IsEditingOn())
+  if (!IsEditingOnAfterFlush())
     return NS_ERROR_FAILURE;
 
   return NS_ERROR_NOT_IMPLEMENTED;
@@ -4095,7 +4083,7 @@ nsHTMLDocument::QueryCommandValue(const nsAString & commandID,
   _retval.SetLength(0);
 
   
-  if (!IsEditingOn())
+  if (!IsEditingOnAfterFlush())
     return NS_ERROR_FAILURE;
 
   
@@ -4188,4 +4176,17 @@ nsHTMLDocument::Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const
   clone->mLoadFlags = mLoadFlags;
 
   return CallQueryInterface(clone.get(), aResult);
+}
+
+PRBool
+nsHTMLDocument::IsEditingOnAfterFlush()
+{
+  nsIDocument* doc = GetParentDocument();
+  if (doc) {
+    
+    
+    doc->FlushPendingNotifications(Flush_Frames);
+  }
+
+  return IsEditingOn();
 }

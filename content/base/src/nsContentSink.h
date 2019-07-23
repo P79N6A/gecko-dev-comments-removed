@@ -131,13 +131,13 @@ class nsContentSink : public nsICSSLoaderObserver,
   virtual nsresult ProcessMETATag(nsIContent* aContent);
 
   
+  NS_HIDDEN_(nsresult) WillParseImpl(void);
   NS_HIDDEN_(nsresult) WillInterruptImpl(void);
   NS_HIDDEN_(nsresult) WillResumeImpl(void);
   NS_HIDDEN_(nsresult) DidProcessATokenImpl(void);
   NS_HIDDEN_(void) WillBuildModelImpl(void);
   NS_HIDDEN_(void) DidBuildModelImpl(void);
   NS_HIDDEN_(void) DropParserAndPerfHint(void);
-  NS_HIDDEN_(nsresult) WillProcessTokensImpl(void);
 
   void NotifyAppend(nsIContent* aContent, PRUint32 aStartIndex);
 
@@ -169,7 +169,10 @@ protected:
     
     
     
-    CACHE_SELECTION_RELOAD = 2
+    CACHE_SELECTION_RELOAD = 2,
+
+    
+    CACHE_SELECTION_RESELECT_WITHOUT_MANIFEST = 3
   };
 
   nsresult Init(nsIDocument* aDoc, nsIURI* aURI,
@@ -195,6 +198,10 @@ protected:
                     PRBool aExplicit);
 
   
+  
+  void PrefetchDNS(const nsAString &aHref);
+
+  
   nsresult GetChannelCacheKey(nsIChannel* aChannel, nsACString& aCacheKey);
 
   
@@ -213,11 +220,8 @@ protected:
   
   
   
-  
-  
   nsresult SelectDocAppCache(nsIApplicationCache *aLoadApplicationCache,
                              nsIURI *aManifestURI,
-                             PRBool aIsTopDocument,
                              PRBool aFetchedWithHTTPGetOrEquiv,
                              CacheSelectionAction *aAction);
 
@@ -236,10 +240,7 @@ protected:
   
   
   
-  
-  
   nsresult SelectDocAppCacheNoManifest(nsIApplicationCache *aLoadApplicationCache,
-                                       PRBool aIsTopDocument,
                                        nsIURI **aManifestURI,
                                        CacheSelectionAction *aAction);
 
@@ -300,7 +301,6 @@ protected:
 
   void ContinueInterruptedParsingAsync();
   void ContinueInterruptedParsingIfEnabled();
-  void ContinueInterruptedParsing();
 
   nsCOMPtr<nsIDocument>         mDocument;
   nsCOMPtr<nsIParser>           mParser;

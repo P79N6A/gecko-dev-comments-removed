@@ -229,6 +229,19 @@ class nsHtml5Parser : public nsIParser,
     
     
 
+
+
+
+    virtual void ScriptExecuting();
+
+    
+
+
+
+    virtual void ScriptDidExecute();
+    
+    
+
      
       
       
@@ -255,7 +268,7 @@ class nsHtml5Parser : public nsIParser,
 
     
 
-    NS_IMETHOD WillTokenize();
+    NS_IMETHOD WillParse();
     NS_IMETHOD WillBuildModel();
     NS_IMETHOD DidBuildModel();
     NS_IMETHOD WillInterrupt();
@@ -316,7 +329,8 @@ class nsHtml5Parser : public nsIParser,
 
     
     nsCOMPtr<nsIContent>         mScriptElement;
- 
+    PRUint32                     mScriptsExecuting;
+     
     
     void*                        mRootContextKey;
     nsCOMPtr<nsIRequest>         mRequest; 
