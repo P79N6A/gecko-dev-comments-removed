@@ -201,8 +201,7 @@ class MozInstaller:
   
   def normalizePath(self, path):
     if path[0] == "~":
-      path = path.replace("~", "${HOME}", 1)
-      path = os.path.expandvars(path)
+      path = os.path.expanduser(path)
 
     debug("NORMALIZE: path: " + path)
 

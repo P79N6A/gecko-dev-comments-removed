@@ -118,9 +118,8 @@ class MozDownloader:
     try:
       
       if self.dest[0] == "~":
-        self.dest = self.dest.replace("~", "${HOME}", 1)
+        self.dest = os.path.expanduser(self.dest)
       headpath = os.path.split(self.dest)[0]
-      headpath = os.path.expandvars(headpath)
       try:
         if not os.path.exists(headpath):
           os.makedirs(headpath)
@@ -141,9 +140,8 @@ class MozDownloader:
       
       
       if self.dest[0] == "~":
-        self.dest = self.dest.replace("~", "${HOME}", 1)
+        self.dest = os.path.expanduser(self.dest)
       headpath = os.path.split(self.dest)[0]
-      headpath = os.path.expandvars(headpath)
       try:
         if not os.path.exists(headpath):
           os.makedirs(headpath)
