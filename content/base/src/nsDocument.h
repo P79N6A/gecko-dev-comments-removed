@@ -108,8 +108,6 @@
 #include "nsPresShellIterator.h"
 #include "nsContentUtils.h"
 #include "nsThreadUtils.h"
-#include "nsIDocumentViewer.h"
-#include "nsIInterfaceRequestor.h"
 
 #define XML_DECLARATION_BITS_DECLARATION_EXISTS   (1 << 0)
 #define XML_DECLARATION_BITS_ENCODING_EXISTS      (1 << 1)
@@ -383,117 +381,6 @@ public:
 
 private:
   ~nsOnloadBlocker() {}
-};
-
-class nsExternalResourceMap
-{
-public:
-  typedef nsIDocument::ExternalResourceLoad ExternalResourceLoad;
-  nsExternalResourceMap();
-
-  
-
-
-
-  nsIDocument* RequestResource(nsIURI* aURI,
-                               nsINode* aRequestingNode,
-                               nsDocument* aDisplayDocument,
-                               ExternalResourceLoad** aPendingLoad);
-
-  
-
-
-
-  void EnumerateResources(nsIDocument::nsSubDocEnumFunc aCallback, void* aData);
-
-  
-
-
-  void Traverse(nsCycleCollectionTraversalCallback* aCallback) const;
-
-  
-
-
-
-  void Shutdown()
-  {
-    mPendingLoads.Clear();
-    mMap.Clear();
-    mHaveShutDown = PR_TRUE;
-  }
-
-  PRBool HaveShutDown() const
-  {
-    return mHaveShutDown;
-  }
-
-  
-  struct ExternalResource
-  {
-    ~ExternalResource();
-    nsCOMPtr<nsIDocument> mDocument;
-    nsCOMPtr<nsIContentViewer> mViewer;
-    nsCOMPtr<nsILoadGroup> mLoadGroup;
-  };
-
-protected:
-  class PendingLoad : public ExternalResourceLoad,
-                      public nsIStreamListener
-  {
-  public:
-    PendingLoad(nsDocument* aDisplayDocument) :
-      mDisplayDocument(aDisplayDocument)
-    {}
-
-    NS_DECL_ISUPPORTS
-    NS_DECL_NSISTREAMLISTENER
-    NS_DECL_NSIREQUESTOBSERVER
-
-    
-
-
-
-    nsresult StartLoad(nsIURI* aURI, nsINode* aRequestingNode);
-
-    
-
-
-
-    nsresult SetupViewer(nsIRequest* aRequest, nsIDocumentViewer** aViewer,
-                         nsILoadGroup** aLoadGroup);
-
-  private:
-    nsRefPtr<nsDocument> mDisplayDocument;
-    nsCOMPtr<nsIStreamListener> mTargetListener;
-    nsCOMPtr<nsIURI> mURI;
-  };
-  friend class PendingLoad;
-
-  class LoadgroupCallbacks : public nsIInterfaceRequestor
-  {
-  public:
-    LoadgroupCallbacks(nsIInterfaceRequestor* aOtherCallbacks)
-      : mCallbacks(aOtherCallbacks)
-    {}
-    NS_DECL_ISUPPORTS
-    NS_DECL_NSIINTERFACEREQUESTOR
-  private:
-    nsCOMPtr<nsIInterfaceRequestor> mCallbacks;
-  };
-  
-  
-
-
-
-
-
-  nsresult AddExternalResource(nsIURI* aURI, nsIDocumentViewer* aViewer,
-                               nsILoadGroup* aLoadGroup,
-                               nsIDocument* aDisplayDocument);
-  
-  nsClassHashtable<nsURIHashKey, ExternalResource> mMap;
-  nsRefPtrHashtable<nsURIHashKey, PendingLoad> mPendingLoads;
-  PRPackedBool mHaveShutDown;
 };
 
 
@@ -915,12 +802,6 @@ public:
   virtual NS_HIDDEN_(nsresult) FinalizeFrameLoader(nsFrameLoader* aLoader);
   virtual NS_HIDDEN_(void) TryCancelFrameLoaderInitialization(nsIDocShell* aShell);
   virtual NS_HIDDEN_(PRBool) FrameLoaderScheduledToBeFinalized(nsIDocShell* aShell);
-  virtual NS_HIDDEN_(nsIDocument*)
-    RequestExternalResource(nsIURI* aURI,
-                            nsINode* aRequestingNode,
-                            ExternalResourceLoad** aPendingLoad);
-  virtual NS_HIDDEN_(void)
-    EnumerateExternalResources(nsSubDocEnumFunc aCallback, void* aData);
 
   NS_DECL_CYCLE_COLLECTION_CLASS_AMBIGUOUS(nsDocument, nsIDocument)
 
@@ -933,11 +814,6 @@ public:
                                                nsIDOMNodeList** aReturn);
 
   void DoNotifyPossibleTitleChange();
-
-  nsExternalResourceMap& ExternalResourceMap()
-  {
-    return mExternalResourceMap;
-  }
 
   void SetLoadedAsData(PRBool aLoadedAsData) { mLoadedAsData = aLoadedAsData; }
 
@@ -1211,8 +1087,6 @@ private:
   nsTArray<nsRefPtr<nsFrameLoader> > mFinalizableFrameLoaders;
 
   nsRevocableEventPtr<nsRunnableMethod<nsDocument> > mPendingTitleChangeEvent;
-
-  nsExternalResourceMap mExternalResourceMap;
 };
 
 #endif 
