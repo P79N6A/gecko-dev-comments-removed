@@ -57,16 +57,6 @@
 # endif 
 #endif 
 
-#ifdef __MWERKS__
-# define _declspec __declspec
-# ifdef __INTEL__
-#  undef NULL
-#  ifndef XP_WIN
-#   define XP_WIN 1
-#  endif 
-# endif 
-#endif 
-
 #ifdef XP_MACOSX
 #ifdef __LP64__
 #define NP_NO_QUICKDRAW
