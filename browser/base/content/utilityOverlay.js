@@ -497,7 +497,8 @@ function isElementVisible(aElement)
 
 function makeURLAbsolute(aBase, aUrl)
 {
-  return IO.newURI(IO.newURI(aBase).resolve(aUrl)).spec;
+  
+  return IO.newURI(aUrl, null, IO.newURI(aBase)).spec;
 }
 
 function getBrowserFromContentWindow(aContentWindow)
