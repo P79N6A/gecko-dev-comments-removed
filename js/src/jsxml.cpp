@@ -5430,7 +5430,7 @@ out:
 
 
 JS_FRIEND_DATA(JSObjectOps) js_XMLObjectOps = {
-    js_NewObjectMap,            js_DestroyObjectMap,
+    NULL,
     xml_lookupProperty,         xml_defineProperty,
     xml_getProperty,            xml_setProperty,
     xml_getAttributes,          xml_setAttributes,

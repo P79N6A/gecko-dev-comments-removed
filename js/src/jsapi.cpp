@@ -2953,7 +2953,7 @@ JS_SealObject(JSContext *cx, JSObject *obj, JSBool deep)
         return JS_TRUE;
 
     
-    nslots = scope->map.freeslot;
+    nslots = scope->freeslot;
     for (i = 0; i != nslots; ++i) {
         v = STOBJ_GET_SLOT(obj, i);
         if (JSVAL_IS_PRIMITIVE(v))

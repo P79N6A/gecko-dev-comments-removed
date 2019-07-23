@@ -404,10 +404,14 @@ JavaArray_checkAccess(JSContext *cx, JSObject *obj, jsid id,
     }
 }
 
+extern JSObjectOps JavaArray_ops;
+
+static const JSObjectMap JavaArrayMap = { &JavaArray_ops };
+
 JSObjectOps JavaArray_ops = {
+    &JavaArrayMap,                  
+
     
-    jsj_wrapper_newObjectMap,       
-    jsj_wrapper_destroyObjectMap,   
     JavaArray_lookupProperty,
     JavaArray_defineProperty,
     JavaArray_getPropertyById,      

@@ -270,30 +270,6 @@ struct JSTempValueRooter {
 
 
 
-typedef JSObjectMap *
-(* JSNewObjectMapOp)(JSContext *cx, jsrefcount nrefs, JSObjectOps *ops,
-                     JSClass *clasp, JSObject *obj);
-
-
-
-
-
-typedef void
-(* JSObjectMapOp)(JSContext *cx, JSObjectMap *map);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

@@ -105,12 +105,8 @@ struct JSTitle {
 
 
 
-
-
-
-
-#define TITLE_TO_MAP(title)                                                   \
-    ((JSObjectMap *)((char *)(title) - sizeof(JSObjectMap)))
+#define TITLE_TO_SCOPE(title)                                                 \
+    ((JSScope *)((uint8 *) (title) - offsetof(JSScope, title)))
 
 
 

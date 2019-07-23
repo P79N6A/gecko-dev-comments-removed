@@ -57,8 +57,13 @@ JS_BEGIN_EXTERN_C
 
 struct JSObjectOps {
     
-    JSNewObjectMapOp    newObjectMap;
-    JSObjectMapOp       destroyObjectMap;
+
+
+
+
+    const JSObjectMap   *objectMap;
+
+    
     JSLookupPropOp      lookupProperty;
     JSDefinePropOp      defineProperty;
     JSPropertyIdOp      getProperty;
@@ -83,9 +88,7 @@ struct JSObjectOps {
 };
 
 struct JSObjectMap {
-    jsrefcount  nrefs;          
     JSObjectOps *ops;           
-    uint32      freeslot;       
 };
 
 
@@ -266,7 +269,7 @@ STOBJ_GET_CLASS(const JSObject* obj)
      JSVAL_TO_PRIVATE(STOBJ_GET_SLOT(obj, JSSLOT_PRIVATE)))
 
 #define OBJ_CHECK_SLOT(obj,slot)                                              \
-    JS_ASSERT(slot < (obj)->map->freeslot)
+    JS_ASSERT_IF(OBJ_IS_NATIVE(obj), slot < OBJ_SCOPE(obj)->freeslot)
 
 #define LOCKED_OBJ_GET_SLOT(obj,slot)                                         \
     (OBJ_CHECK_SLOT(obj, slot), STOBJ_GET_SLOT(obj, slot))
@@ -369,11 +372,13 @@ STOBJ_GET_CLASS(const JSObject* obj)
 #define OBJ_GET_PRIVATE(cx,obj)         STOBJ_GET_PRIVATE(obj)
 
 
-#define MAP_IS_NATIVE(map)                                                    \
-    JS_LIKELY((map)->ops == &js_ObjectOps ||                                  \
-              (map)->ops->newObjectMap == js_ObjectOps.newObjectMap)
 
-#define OBJ_IS_NATIVE(obj)  MAP_IS_NATIVE((obj)->map)
+
+
+#define OPS_IS_NATIVE(ops)                                                    \
+    JS_LIKELY((ops) == &js_ObjectOps || !(ops)->objectMap)
+
+#define OBJ_IS_NATIVE(obj)  OPS_IS_NATIVE((obj)->map->ops)
 
 extern JS_FRIEND_DATA(JSObjectOps) js_ObjectOps;
 extern JS_FRIEND_DATA(JSObjectOps) js_WithObjectOps;
@@ -501,23 +506,6 @@ extern const char js_defineGetter_str[];
 extern const char js_defineSetter_str[];
 extern const char js_lookupGetter_str[];
 extern const char js_lookupSetter_str[];
-
-extern void
-js_InitObjectMap(JSObjectMap *map, jsrefcount nrefs, JSObjectOps *ops,
-                 JSClass *clasp);
-
-extern JSObjectMap *
-js_NewObjectMap(JSContext *cx, jsrefcount nrefs, JSObjectOps *ops,
-                JSClass *clasp, JSObject *obj);
-
-extern void
-js_DestroyObjectMap(JSContext *cx, JSObjectMap *map);
-
-extern JSObjectMap *
-js_HoldObjectMap(JSContext *cx, JSObjectMap *map);
-
-extern JSObjectMap *
-js_DropObjectMap(JSContext *cx, JSObjectMap *map, JSObject *obj);
 
 extern JSBool
 js_GetClassId(JSContext *cx, JSClass *clasp, jsid *idp);

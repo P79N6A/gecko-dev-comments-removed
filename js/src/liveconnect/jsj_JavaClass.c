@@ -529,10 +529,14 @@ done:
     return JS_TRUE;
 }
 
+extern JSObjectOps JavaClass_ops;
+
+static const JSObjectMap JavaClassMap = { &JavaClass_ops };
+
 JSObjectOps JavaClass_ops = {
+    &JavaClassMap,                  
+
     
-    jsj_wrapper_newObjectMap,       
-    jsj_wrapper_destroyObjectMap,   
     JavaClass_lookupProperty,
     JavaClass_defineProperty,
     JavaClass_getPropertyById,      
