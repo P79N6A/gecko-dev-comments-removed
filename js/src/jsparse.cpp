@@ -6355,12 +6355,17 @@ js_FoldConstants(JSContext *cx, JSParseNode *pn, JSTreeContext *tc, bool inCond)
       }
 
       case PN_LIST:
+      {
+        
+        bool cond = inCond && (pn->pn_type == TOK_OR || pn->pn_type == TOK_AND);
+
         
         for (pn1 = pn2 = pn->pn_head; pn2; pn2 = pn2->pn_next) {
-            if (!js_FoldConstants(cx, pn2, tc))
+            if (!js_FoldConstants(cx, pn2, tc, cond))
                 return JS_FALSE;
         }
         break;
+      }
 
       case PN_TERNARY:
         
