@@ -256,6 +256,22 @@ nsSMILAnimationController::StopTimer()
 
 
 PR_CALLBACK PLDHashOperator
+TransferCachedBaseValue(nsSMILCompositor* aCompositor,
+                        void* aData)
+{
+  nsSMILCompositorTable* lastCompositorTable =
+    static_cast<nsSMILCompositorTable*>(aData);
+  nsSMILCompositor* lastCompositor =
+    lastCompositorTable->GetEntry(aCompositor->GetKey());
+
+  if (lastCompositor) {
+    aCompositor->StealCachedBaseValue(lastCompositor);
+  }
+
+  return PL_DHASH_NEXT;  
+}
+
+PR_CALLBACK PLDHashOperator
 RemoveCompositorFromTable(nsSMILCompositor* aCompositor,
                           void* aData)
 {
@@ -340,7 +356,13 @@ nsSMILAnimationController::DoSample(PRBool aSkipUnchangedContainers)
   activeContainers.Clear();
 
   
+  
+  
   if (mLastCompositorTable) {
+    
+    currentCompositorTable->EnumerateEntries(TransferCachedBaseValue,
+                                             mLastCompositorTable);
+
     
     
     

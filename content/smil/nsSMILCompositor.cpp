@@ -78,22 +78,6 @@ nsSMILCompositor::AddAnimationFunction(nsSMILAnimationFunction* aFunc)
   }
 }
 
-nsISMILAttr*
-nsSMILCompositor::CreateSMILAttr()
-{
-  if (mKey.mIsCSS) {
-    nsAutoString name;
-    mKey.mAttributeName->ToString(name);
-    nsCSSProperty propId = nsCSSProps::LookupProperty(name);
-    if (nsSMILCSSProperty::IsPropertyAnimatable(propId)) {
-      return new nsSMILCSSProperty(propId, mKey.mElement.get());
-    }
-  } else {
-    return mKey.mElement->GetAnimatedAttr(mKey.mAttributeName);
-  }
-  return nsnull;
-}
-
 void
 nsSMILCompositor::ComposeAttribute()
 {
@@ -120,42 +104,29 @@ nsSMILCompositor::ComposeAttribute()
 
   
   
-  PRBool changed = mForceCompositing;
-  PRUint32 length = mAnimationFunctions.Length();
-  PRUint32 i;
-  for (i = length; i > 0; --i) {
-    nsSMILAnimationFunction* curAnimFunc = mAnimationFunctions[i-1];
-    if (curAnimFunc->UpdateCachedTarget(mKey) ||
-        (!changed && curAnimFunc->HasChanged())) {
-      changed = PR_TRUE;
-    }
-
-    if (curAnimFunc->WillReplace()) {
-      --i;
-      break;
-    }
-  }
-  
-  
+  PRUint32 firstFuncToCompose = GetFirstFuncToAffectSandwich();
 
   
-  
-
-  
-  nsSMILValue resultValue = smilAttr->GetBaseValue();
-  if (resultValue.IsNull()) {
+  nsSMILValue sandwichResultValue = smilAttr->GetBaseValue();
+  if (sandwichResultValue.IsNull()) {
     NS_WARNING("nsISMILAttr::GetBaseValue failed");
     return;
   }
-  for (; i < length; ++i) {
-    nsSMILAnimationFunction* curAnimFunc = mAnimationFunctions[i];
-    if (curAnimFunc) {
-      curAnimFunc->ComposeResult(*smilAttr, resultValue);
-    }
+  UpdateCachedBaseValue(sandwichResultValue);
+
+  
+  
+  
+  
+
+  
+  PRUint32 length = mAnimationFunctions.Length();
+  for (PRUint32 i = firstFuncToCompose; i < length; ++i) {
+    mAnimationFunctions[i]->ComposeResult(*smilAttr, sandwichResultValue);
   }
 
   
-  nsresult rv = smilAttr->SetAnimValue(resultValue);
+  nsresult rv = smilAttr->SetAnimValue(sandwichResultValue);
   if (NS_FAILED(rv)) {
     NS_WARNING("nsISMILAttr::SetAnimValue failed");
   }
@@ -175,3 +146,54 @@ nsSMILCompositor::ClearAnimationEffects()
   smilAttr->ClearAnimValue();
 }
 
+
+
+nsISMILAttr*
+nsSMILCompositor::CreateSMILAttr()
+{
+  if (mKey.mIsCSS) {
+    nsAutoString name;
+    mKey.mAttributeName->ToString(name);
+    nsCSSProperty propId = nsCSSProps::LookupProperty(name);
+    if (nsSMILCSSProperty::IsPropertyAnimatable(propId)) {
+      return new nsSMILCSSProperty(propId, mKey.mElement.get());
+    }
+  } else {
+    return mKey.mElement->GetAnimatedAttr(mKey.mAttributeName);
+  }
+  return nsnull;
+}
+
+PRUint32
+nsSMILCompositor::GetFirstFuncToAffectSandwich()
+{
+  PRUint32 i;
+  for (i = mAnimationFunctions.Length(); i > 0; --i) {
+    nsSMILAnimationFunction* curAnimFunc = mAnimationFunctions[i-1];
+    if (curAnimFunc->UpdateCachedTarget(mKey) ||
+        (!mForceCompositing && curAnimFunc->HasChanged())) {
+      mForceCompositing = PR_TRUE;
+    }
+
+    if (curAnimFunc->WillReplace()) {
+      --i;
+      break;
+    }
+  }
+  return i;
+}
+
+void
+nsSMILCompositor::UpdateCachedBaseValue(const nsSMILValue& aBaseValue)
+{
+  if (!mCachedBaseValue) {
+    
+    mCachedBaseValue = new nsSMILValue(aBaseValue);
+    NS_WARN_IF_FALSE(mCachedBaseValue, "failed to cache base value (OOM?)");
+    mForceCompositing = PR_TRUE;
+  } else if (*mCachedBaseValue != aBaseValue) {
+    
+    *mCachedBaseValue = aBaseValue;
+    mForceCompositing = PR_TRUE;
+  }
+}

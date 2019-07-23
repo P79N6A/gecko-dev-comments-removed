@@ -95,10 +95,24 @@ public:
   
   void ToggleForceCompositing() { mForceCompositing = PR_TRUE; }
 
+  
+  void StealCachedBaseValue(nsSMILCompositor* aOther) {
+    mCachedBaseValue = aOther->mCachedBaseValue;
+  }
+
  private:
   
   
   nsISMILAttr* CreateSMILAttr();
+  
+  
+  
+  
+  PRUint32 GetFirstFuncToAffectSandwich();
+
+  
+  
+  void UpdateCachedBaseValue(const nsSMILValue& aBaseValue);
 
   
   PR_STATIC_CALLBACK(PLDHashOperator) DoComposeAttribute(
@@ -108,10 +122,18 @@ public:
   KeyType mKey;
 
   
-  
-  
   nsTArray<nsSMILAnimationFunction*> mAnimationFunctions;
+
+  
+  
+  
+  
   PRPackedBool mForceCompositing;
+
+  
+  
+  
+  nsAutoPtr<nsSMILValue> mCachedBaseValue;
 };
 
 #endif 
