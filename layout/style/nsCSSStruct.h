@@ -560,6 +560,7 @@ struct nsCSSUserInterface : public nsCSSStruct  {
   nsCSSValueList* mCursor;
   nsCSSValue      mForceBrokenImageIcon;
   nsCSSValue      mIMEMode;
+  nsCSSValue      mWindowShadow;
 private:
   nsCSSUserInterface(const nsCSSUserInterface& aOther); 
 };

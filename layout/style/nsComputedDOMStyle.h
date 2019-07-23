@@ -204,6 +204,9 @@ private:
   nsresult GetBoxShadow(nsIDOMCSSValue** aValue);
 
   
+  nsresult GetWindowShadow(nsIDOMCSSValue** aValue);
+
+  
   nsresult GetMarginWidth(nsIDOMCSSValue** aValue);
   nsresult GetMarginTopWidth(nsIDOMCSSValue** aValue);
   nsresult GetMarginBottomWidth(nsIDOMCSSValue** aValue);
