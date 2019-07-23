@@ -306,7 +306,7 @@ protected:
 
   
   friend class nsRunnableMethod<nsBindingManager>;
-  nsCOMPtr<nsIRunnable> mProcessAttachedQueueEvent;
+  nsRefPtr< nsRunnableMethod<nsBindingManager> > mProcessAttachedQueueEvent;
 
   
   nsIDocument* mDocument; 

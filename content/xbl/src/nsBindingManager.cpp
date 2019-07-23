@@ -965,8 +965,7 @@ void
 nsBindingManager::PostProcessAttachedQueueEvent()
 {
   mProcessAttachedQueueEvent =
-    new nsRunnableMethod<nsBindingManager>(
-      this, &nsBindingManager::DoProcessAttachedQueue);
+    NS_NEW_RUNNABLE_METHOD(nsBindingManager, this, DoProcessAttachedQueue);
   nsresult rv = NS_DispatchToCurrentThread(mProcessAttachedQueueEvent);
   if (NS_SUCCEEDED(rv) && mDocument) {
     mDocument->BlockOnload();
@@ -1555,6 +1554,9 @@ nsBindingManager::DropDocumentReference()
 {
   
   mProcessingAttachedStack = PR_TRUE;
+  if (mProcessAttachedQueueEvent) {
+    mProcessAttachedQueueEvent->Revoke();
+  }
   mDocument = nsnull;
 }
 
