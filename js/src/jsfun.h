@@ -279,14 +279,14 @@ js_PutCallObject(JSContext *cx, JSStackFrame *fp);
 extern JSBool
 js_GetCallArg(JSContext *cx, JSObject *obj, jsid id, jsval *vp);
 
-extern JS_REQUIRES_STACK JSBool
+extern JSBool
 js_GetCallVar(JSContext *cx, JSObject *obj, jsval id, jsval *vp);
 
 
 
 
 
-extern JS_REQUIRES_STACK JSBool
+extern JSBool
 js_GetCallVarChecked(JSContext *cx, JSObject *obj, jsid id, jsval *vp);
 
 extern JSBool
