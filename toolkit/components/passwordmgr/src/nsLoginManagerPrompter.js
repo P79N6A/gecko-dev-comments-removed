@@ -91,7 +91,7 @@ LoginManagerPrompter.prototype = {
                         [Ci.nsIAuthPrompt2, Ci.nsILoginManagerPrompter]),
 
     _window        : null,
-    _debug         : false,
+    _debug         : false, 
 
     __pwmgr : null, 
     get _pwmgr() {
@@ -192,9 +192,6 @@ LoginManagerPrompter.prototype = {
             
             
             
-            
-            
-            
             var notifyBox = this._getNotifyBox();
             if (notifyBox)
                 this._removeSaveLoginNotification(notifyBox);
@@ -207,7 +204,6 @@ LoginManagerPrompter.prototype = {
             var foundLogins = this._pwmgr.findLogins({},
                                         hostname, null, httpRealm);
 
-            
             
             if (foundLogins.length > 0) {
                 selectedLogin = foundLogins[0];
@@ -299,6 +295,10 @@ LoginManagerPrompter.prototype = {
 
     init : function (aWindow) {
         this._window = aWindow;
+
+        var prefBranch = Cc["@mozilla.org/preferences-service;1"].
+                         getService(Ci.nsIPrefService).getBranch("signon.");
+        this._debug = prefBranch.getBoolPref("debug");
         this.log("===== initialized =====");
     },
 

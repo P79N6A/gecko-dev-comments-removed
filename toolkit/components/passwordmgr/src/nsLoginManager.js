@@ -524,9 +524,6 @@ LoginManager.prototype = {
                 }
             }
         } else {
-            
-            
-            
             this.log("Creating new autocomplete search result.");
 
             var doc = aElement.ownerDocument;
@@ -699,8 +696,6 @@ LoginManager.prototype = {
 
 
 
-
-
     _onFormSubmit : function (form) {
 
         
@@ -770,17 +765,9 @@ LoginManager.prototype = {
 
             var logins = this.findLogins({}, hostname, formSubmitURL, null);
 
-            
-            
-            
-            
-            
-            
-            
-            
-            
-
             if (logins.length == 0) {
+                
+                
                 this.log("(no logins for this host -- pwchange ignored)");
                 return;
             }
@@ -985,7 +972,6 @@ LoginManager.prototype = {
             
             
             
-            
             if (usernameField)
                 this._attachToInput(usernameField);
 
@@ -1075,11 +1061,8 @@ LoginManager.prototype = {
         }
 
         
+        
         var passwordField = pwFields[0].element;
-
-        
-        
-        
 
         
         var currentLogin = new this._nsLoginInfo();

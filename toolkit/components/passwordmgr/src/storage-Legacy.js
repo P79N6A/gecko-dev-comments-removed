@@ -546,7 +546,7 @@ LoginManagerStorage_legacy.prototype = {
 
                     
                     
-                    const realmFormat = /^(.+?)( \(.*\))?$/; 
+                    const realmFormat = /^(.+?)( \(.*\))?$/;
                     var matches = realmFormat.exec(hostrealm);
 
                     var hostname, httpRealm;
