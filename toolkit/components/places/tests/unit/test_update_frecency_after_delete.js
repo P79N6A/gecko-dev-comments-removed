@@ -83,6 +83,7 @@ tests.push({
 
     
     do_check_eq(getFrecency(lmItemURL), 0);
+    runNextTest();
   }
 });
 
@@ -108,6 +109,7 @@ tests.push({
 
     
     do_check_neq(getFrecency(lmItemURL), 0);
+    runNextTest();
   }
 });
 
@@ -128,6 +130,7 @@ tests.push({
 
     
     do_check_eq(getFrecency(url), 0);
+    runNextTest();
   }
 });
 
@@ -151,6 +154,7 @@ tests.push({
 
     
     do_check_neq(getFrecency(bmURL), 0);
+    runNextTest();
   }
 });
 
@@ -178,6 +182,7 @@ tests.push({
 
     
     do_check_neq(getFrecency(bmURL), 0);
+    runNextTest();
   }
 });
 
@@ -204,6 +209,7 @@ tests.push({
 
     
     do_check_eq(getFrecency(lmItemURL), 0);
+    runNextTest();
   }
 });
 
@@ -230,6 +236,7 @@ tests.push({
 
     
     do_check_neq(getFrecency(lmItemURL), 0);
+    runNextTest();
   }
 });
 
@@ -251,6 +258,7 @@ tests.push({
 
     
     do_check_eq(getFrecency(url), 0);
+    runNextTest();
   }
 });
 
@@ -274,6 +282,7 @@ tests.push({
 
     
     do_check_neq(getFrecency(bmURL), 0);
+    runNextTest();
   }
 });
 
@@ -302,6 +311,7 @@ tests.push({
 
     
     do_check_neq(getFrecency(bmURL), 0);
+    runNextTest();
   }
 });
 
@@ -352,21 +362,6 @@ function getFrecency(aURL) {
 
 
 
-
-
-
-function prepTest(aTestIndex, aTestName) {
-  print("Test " + aTestIndex + ": " + aTestName);
-  histServ.QueryInterface(Ci.nsIBrowserHistory).removeAllPages();
-  remove_all_bookmarks();
-}
-
-
-
-
-
-
-
 function visit(aURI) {
   let visitId = histServ.addVisit(aURI,
                                   Date.now() * 1000,
@@ -374,14 +369,23 @@ function visit(aURI) {
                                   histServ.TRANSITION_BOOKMARK,
                                   false,
                                   0);
-  do_check_true(visitId > 0);
 }
 
 
 
 function run_test() {
-  for (let i= 0; i < tests.length; i++) {
-    prepTest(i, tests[i].desc);
-    tests[i].run();
+  do_test_pending();
+  runNextTest();
+}
+
+function runNextTest() {
+  if (tests.length) {
+    let test = tests.shift();
+    print("Test " +  + ": " + test.desc);
+    remove_all_bookmarks();
+    waitForClearHistory(test.run);
+  }
+  else {
+    do_test_finished();
   }
 }
