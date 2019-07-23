@@ -291,9 +291,12 @@ class nsObjectLoadingContent : public nsImageLoadingContent
 
 
 
+
     nsresult TryInstantiate(const nsACString& aMIMEType, nsIURI* aURI);
 
     
+
+
 
 
 

@@ -152,6 +152,8 @@ nsresult ns4xPluginStreamListener::CleanUpStream(NPReason reason)
   if(!mInst || !mInst->IsStarted())
     return rv;
 
+  PluginDestructionGuard guard(mInst);
+
   const NPPluginFuncs *callbacks = nsnull;
   mInst->GetCallbacks(&callbacks);
   if(!callbacks)
@@ -196,6 +198,8 @@ void ns4xPluginStreamListener::CallURLNotify(NPReason reason)
   if(!mCallNotify || !mInst || !mInst->IsStarted())
     return;
 
+  PluginDestructionGuard guard(mInst);
+
   mCallNotify = PR_FALSE; 
 
   const NPPluginFuncs *callbacks = nsnull;
@@ -227,6 +231,8 @@ ns4xPluginStreamListener::OnStartBinding(nsIPluginStreamInfo* pluginInfo)
 {
   if(!mInst)
     return NS_ERROR_FAILURE;
+
+  PluginDestructionGuard guard(mInst);
 
   NPP npp;
   const NPPluginFuncs *callbacks = nsnull;
@@ -389,6 +395,8 @@ ns4xPluginStreamListener::OnDataAvailable(nsIPluginStreamInfo* pluginInfo,
 {
   if (!mInst || !mInst->IsStarted())
     return NS_ERROR_FAILURE;
+
+  PluginDestructionGuard guard(mInst);
 
   
   mStreamInfo = pluginInfo;
@@ -661,6 +669,8 @@ ns4xPluginStreamListener::OnFileAvailable(nsIPluginStreamInfo* pluginInfo,
   if(!mInst || !mInst->IsStarted())
     return NS_ERROR_FAILURE;
 
+  PluginDestructionGuard guard(mInst);
+
   const NPPluginFuncs *callbacks = nsnull;
   mInst->GetCallbacks(&callbacks);
   if(!callbacks || !callbacks->asfile)
@@ -910,6 +920,12 @@ NS_IMETHODIMP ns4xPluginInstance::Stop(void)
 
   
   
+  if (PluginDestructionGuard::DelayDestroy(this)) {
+    return NS_OK;
+  }
+
+  
+  
   EnterAsyncPluginThreadCallLock();
   mStarted = PR_FALSE;
   ExitAsyncPluginThreadCallLock();
@@ -985,6 +1001,8 @@ nsresult ns4xPluginInstance::InitializePlugin(nsIPluginInstancePeer* peer)
   nsCOMPtr<nsIPluginTagInfo2> taginfo = do_QueryInterface(peer);
   NS_ENSURE_TRUE(taginfo, NS_ERROR_NO_INTERFACE);
   
+  PluginDestructionGuard guard(this);
+
   PRUint16 count = 0;
   const char* const* names = nsnull;
   const char* const* values = nsnull;
@@ -1142,6 +1160,8 @@ NS_IMETHODIMP ns4xPluginInstance::SetWindow(nsPluginWindow* window)
 #endif 
 
   if (fCallbacks->setwindow) {
+    PluginDestructionGuard guard(this);
+
     
     
 
@@ -1212,6 +1232,8 @@ NS_IMETHODIMP ns4xPluginInstance::Print(nsPluginPrint* platformPrint)
 {
   NS_ENSURE_TRUE(platformPrint, NS_ERROR_NULL_POINTER);
 
+  PluginDestructionGuard guard(this);
+
   NPPrint* thePrint = (NPPrint *)platformPrint;
 
   
@@ -1264,6 +1286,8 @@ NS_IMETHODIMP ns4xPluginInstance::HandleEvent(nsPluginEvent* event, PRBool* hand
   if (event == nsnull)
     return NS_ERROR_FAILURE;
 
+  PluginDestructionGuard guard(this);
+
   PRInt16 result = 0;
   
   if (fCallbacks->event) {
@@ -1302,6 +1326,7 @@ nsresult ns4xPluginInstance::GetValueInternal(NPPVariable variable, void* value)
 {
   nsresult  res = NS_OK;
   if(fCallbacks->getvalue && mStarted) {
+    PluginDestructionGuard guard(this);
 
     NS_TRY_SAFE_CALL_RETURN(res, 
                             CallNPP_GetValueProc(fCallbacks->getvalue, 

@@ -416,9 +416,10 @@ private:
   PRUint16          mNumCachedParams;
   char              **mCachedAttrParamNames;
   char              **mCachedAttrParamValues;
+
   
-  nsPluginDOMContextMenuListener * mCXMenuListener;  
-  
+  nsRefPtr<nsPluginDOMContextMenuListener> mCXMenuListener;
+
   nsresult DispatchKeyToPlugin(nsIDOMEvent* aKeyEvent);
   nsresult DispatchMouseToPlugin(nsIDOMEvent* aMouseEvent);
   nsresult DispatchFocusToPlugin(nsIDOMEvent* aFocusEvent);
@@ -460,8 +461,17 @@ static void ConvertAppUnitsToPixels(const nsPresContext& aPresContext, const nsR
 
 #endif 
 
+nsObjectFrame::nsObjectFrame(nsStyleContext* aContext)
+  : nsObjectFrameSuper(aContext)
+{
+  PR_LOG(nsObjectFrameLM, PR_LOG_DEBUG,
+         ("Created new nsObjectFrame %p\n", this));
+}
+
 nsObjectFrame::~nsObjectFrame()
 {
+  PR_LOG(nsObjectFrameLM, PR_LOG_DEBUG,
+         ("nsObjectFrame %p deleted\n", this));
 }
 
 NS_IMETHODIMP
@@ -522,6 +532,9 @@ nsObjectFrame::Init(nsIContent*      aContent,
                     nsIFrame*        aPrevInFlow)
 {
   mInstantiating = PR_FALSE;
+
+  PR_LOG(nsObjectFrameLM, PR_LOG_DEBUG,
+         ("Initializing nsObjectFrame %p for content %p\n", this, aContent));
 
   return nsObjectFrameSuper::Init(aContent, aParent, aPrevInFlow);
 }
@@ -1493,13 +1506,16 @@ nsObjectFrame::PrepareInstanceOwner()
   NS_ASSERTION(!mInstanceOwner, "Must not have an instance owner here");
 
   mInstanceOwner = new nsPluginInstanceOwner();
+
+  PR_LOG(nsObjectFrameLM, PR_LOG_DEBUG,
+         ("Created new instance owner %p for frame %p\n", mInstanceOwner.get(),
+          this));
+
   if (!mInstanceOwner)
     return NS_ERROR_OUT_OF_MEMORY;
 
-  NS_ADDREF(mInstanceOwner);
-  mInstanceOwner->Init(PresContext(), this, GetContent());
-
-  return NS_OK;
+  
+  return mInstanceOwner->Init(PresContext(), this, GetContent());
 }
 
 nsresult
@@ -1508,6 +1524,8 @@ nsObjectFrame::Instantiate(nsIChannel* aChannel, nsIStreamListener** aStreamList
   if (mInstantiating) {
     return NS_OK;
   }
+  
+  
   
   nsresult rv = PrepareInstanceOwner();
   NS_ENSURE_SUCCESS(rv, rv);
@@ -1531,11 +1549,18 @@ nsObjectFrame::Instantiate(nsIChannel* aChannel, nsIStreamListener** aStreamList
 nsresult
 nsObjectFrame::Instantiate(const char* aMimeType, nsIURI* aURI)
 {
+  PR_LOG(nsObjectFrameLM, PR_LOG_DEBUG,
+         ("nsObjectFrame::Instantiate(%s) called on frame %p\n", aMimeType,
+          this));
+
   if (mInstantiating) {
     return NS_OK;
   }
-  
+
   NS_ASSERTION(aMimeType || aURI, "Need a type or a URI!");
+
+  
+  
   nsresult rv = PrepareInstanceOwner();
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -1609,6 +1634,8 @@ DoStopPlugin(nsPluginInstanceOwner *aInstanceOwner)
       inst->GetValue(nsPluginInstanceVariable_CallSetWindowAfterDestroyBool, 
                      (void *)&doCallSetWindowAfterDestroy);
       if (doCallSetWindowAfterDestroy) {
+        
+        
         inst->Stop();
         inst->Destroy();
 
@@ -1699,7 +1726,7 @@ nsObjectFrame::StopPluginInternal(PRBool aDelayedStop)
   
   mInstanceOwner->SetOwner(nsnull);
 
-  NS_RELEASE(mInstanceOwner);
+  mInstanceOwner = nsnull;
 
   
   
@@ -1859,11 +1886,17 @@ nsPluginInstanceOwner::nsPluginInstanceOwner()
   mCachedAttrParamNames = nsnull;
   mCachedAttrParamValues = nsnull;
   mDestroyWidget = PR_FALSE;
+
+  PR_LOG(nsObjectFrameLM, PR_LOG_DEBUG,
+         ("nsPluginInstanceOwner %p created\n", this));
 }
 
 nsPluginInstanceOwner::~nsPluginInstanceOwner()
 {
   PRInt32 cnt;
+
+  PR_LOG(nsObjectFrameLM, PR_LOG_DEBUG,
+         ("nsPluginInstanceOwner %p deleted\n", this));
 
   
   if (mPluginTimer != nsnull) {
@@ -3596,7 +3629,7 @@ nsPluginInstanceOwner::Destroy()
   
   if (mCXMenuListener) {
     mCXMenuListener->Destroy(mContent);
-    NS_RELEASE(mCXMenuListener);
+    mCXMenuListener = nsnull;
   }
 
   nsCOMPtr<nsIDOMEventTarget> target(do_QueryInterface(mContent));
@@ -3933,19 +3966,32 @@ nsresult nsPluginInstanceOwner::Init(nsPresContext* aPresContext,
                                      nsObjectFrame* aFrame,
                                      nsIContent*    aContent)
 {
+  PR_LOG(nsObjectFrameLM, PR_LOG_DEBUG,
+         ("nsPluginInstanceOwner::Init() called on %p for frame %p\n", this,
+          aFrame));
+
   mOwner = aFrame;
   mContent = aContent;
-  
+
+  nsWeakFrame weakFrame(aFrame);
+
   
   
   
   
   aPresContext->EnsureVisible(PR_TRUE);
 
+  if (!weakFrame.IsAlive()) {
+    PR_LOG(nsObjectFrameLM, PR_LOG_DEBUG,
+           ("nsPluginInstanceOwner::Init's EnsureVisible() call destroyed "
+            "instance owner %p\n", this));
+
+    return NS_ERROR_NOT_AVAILABLE;
+  }
+
   
   mCXMenuListener = new nsPluginDOMContextMenuListener();
   if (mCXMenuListener) {    
-    NS_ADDREF(mCXMenuListener);    
     mCXMenuListener->Init(aContent);
   }
 

@@ -61,11 +61,21 @@ public:
 
 
 
+
+
+
   virtual nsresult Instantiate(nsIChannel* aChannel, nsIStreamListener** aStreamListener) = 0;
+
+  
+
+
 
   virtual void TryNotifyContentObjectWrapper() = 0;
 
   
+
+
+
 
 
 

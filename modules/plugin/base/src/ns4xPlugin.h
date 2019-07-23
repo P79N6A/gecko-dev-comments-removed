@@ -280,11 +280,22 @@ protected:
   static NPP sCurrentNPP;
 };
 
-class NPPAutoPusher : public NPPStack
+
+
+
+
+
+
+
+
+
+class NPPAutoPusher : public NPPStack,
+                      protected PluginDestructionGuard
 {
 public:
   NPPAutoPusher(NPP npp)
-    : mOldNPP(sCurrentNPP)
+    : PluginDestructionGuard(npp),
+      mOldNPP(sCurrentNPP)
   {
     NS_ASSERTION(npp, "Uh, null npp passed to NPPAutoPusher!");
 
