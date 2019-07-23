@@ -872,10 +872,6 @@ XPCWrappedNative::Init(XPCCallContext& ccx, JSObject* parent, JSBool isGlobal,
     }
 
     
-    if(JS_IsSystemObject(ccx, parent))
-        JS_FlagSystemObject(ccx, mFlatJSObject);
-
-    
     
     
     NS_ASSERTION(1 == mRefCnt, "unexpected refcount value");
@@ -1720,10 +1716,6 @@ XPCWrappedNative::InitTearOffJSObject(XPCCallContext& ccx,
 
     if(!obj || !JS_SetPrivate(ccx, obj, to))
         return JS_FALSE;
-
-    
-    if(JS_IsSystemObject(ccx, mFlatJSObject))
-        JS_FlagSystemObject(ccx, obj);
 
     to->SetJSObject(obj);
     return JS_TRUE;

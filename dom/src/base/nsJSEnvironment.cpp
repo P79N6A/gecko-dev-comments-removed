@@ -2260,6 +2260,7 @@ nsJSContext::InitContext(nsIScriptGlobalObject *aGlobalObject)
       
       
       
+      ::JS_FlagSystemContext(mContext);
       flags = nsIXPConnect::FLAG_SYSTEM_GLOBAL_OBJECT;
 
       

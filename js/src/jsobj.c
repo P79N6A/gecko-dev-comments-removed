@@ -2431,6 +2431,7 @@ JSObject *
 js_NewObject(JSContext *cx, JSClass *clasp, JSObject *proto, JSObject *parent)
 {
     jsid id;
+    uintN gcflags;
     JSObject *obj;
     JSObjectOps *ops;
     JSObjectMap *map;
@@ -2452,16 +2453,19 @@ js_NewObject(JSContext *cx, JSClass *clasp, JSObject *proto, JSObject *parent)
     }
 
     
-    ops = clasp->getObjectOps
-          ? clasp->getObjectOps(cx, clasp)
-          : &js_ObjectOps;
+
+
+
+    gcflags = GCX_OBJECT;
+    if (parent)
+        gcflags |= *js_GetGCThingFlags(parent) & GCF_SYSTEM;
 
     
 
 
 
 
-    obj = (JSObject *) js_NewGCThing(cx, GCX_OBJECT, sizeof(JSObject));
+    obj = (JSObject *) js_NewGCThing(cx, gcflags, sizeof(JSObject));
     if (!obj)
         return NULL;
 
@@ -2480,6 +2484,11 @@ js_NewObject(JSContext *cx, JSClass *clasp, JSObject *proto, JSObject *parent)
     
     for (i = JSSLOT_PRIVATE; i != JS_INITIAL_NSLOTS; ++i)
         obj->fslots[i] = JSVAL_VOID;
+
+    
+    ops = clasp->getObjectOps
+          ? clasp->getObjectOps(cx, clasp)
+          : &js_ObjectOps;
 
     
 
