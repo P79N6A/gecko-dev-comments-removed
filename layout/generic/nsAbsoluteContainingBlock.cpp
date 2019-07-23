@@ -395,7 +395,7 @@ nsAbsoluteContainingBlock::ReflowAbsoluteFrame(nsIFrame*                aDelegat
 
   nsresult  rv;
   
-  const nsMargin& border = aReflowState.mStyleBorder->GetActualBorder();
+  const nsMargin& border = aReflowState.mStyleBorder->GetBorder();
 
   nscoord availWidth = aContainingBlockWidth;
   if (availWidth == -1) {

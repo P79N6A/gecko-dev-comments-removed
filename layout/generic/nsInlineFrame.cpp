@@ -133,8 +133,8 @@ nsInlineFrame::IsSelfEmpty()
   
   
   
-  if (border->GetActualBorderWidth(NS_SIDE_RIGHT) != 0 ||
-      border->GetActualBorderWidth(NS_SIDE_LEFT) != 0 ||
+  if (border->GetBorderWidth(NS_SIDE_RIGHT) != 0 ||
+      border->GetBorderWidth(NS_SIDE_LEFT) != 0 ||
       !IsPaddingZero(padding->mPadding.GetRightUnit(),
                      padding->mPadding.GetRight()) ||
       !IsPaddingZero(padding->mPadding.GetLeftUnit(),

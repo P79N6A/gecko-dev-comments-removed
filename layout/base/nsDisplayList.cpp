@@ -50,7 +50,6 @@
 #include "nsRegion.h"
 #include "nsFrameManager.h"
 #include "gfxContext.h"
-#include "nsStyleStructInlines.h"
 
 nsDisplayListBuilder::nsDisplayListBuilder(nsIFrame* aReferenceFrame,
     PRBool aIsForEvents, PRBool aBuildCaret)
@@ -609,13 +608,8 @@ nsDisplayBorder::OptimizeVisibility(nsDisplayListBuilder* aBuilder,
 
   nsRect paddingRect = mFrame->GetPaddingRect() - mFrame->GetPosition() +
     aBuilder->ToReferenceFrame(mFrame);
-  const nsStyleBorder *styleBorder;
   if (paddingRect.Contains(aVisibleRegion->GetBounds()) &&
-      !(styleBorder = mFrame->GetStyleBorder())->IsBorderImageLoaded() &&
-      !nsLayoutUtils::HasNonZeroSide(styleBorder->mBorderRadius)) {
-    
-    
-    
+      !nsLayoutUtils::HasNonZeroSide(mFrame->GetStyleBorder()->mBorderRadius)) {
     
     
     

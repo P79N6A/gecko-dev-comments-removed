@@ -339,7 +339,6 @@ public:
 
 
 
-
     void SetSource(gfxASurface *surface, const gfxPoint& offset = gfxPoint(0.0, 0.0));
 
     

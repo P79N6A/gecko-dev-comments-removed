@@ -226,7 +226,7 @@ nsHTMLButtonControlFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   
   
   
-  nsMargin border = GetStyleBorder()->GetActualBorder();
+  nsMargin border = GetStyleBorder()->GetBorder();
   nsRect rect(aBuilder->ToReferenceFrame(this), GetSize());
   rect.Deflate(border);
   

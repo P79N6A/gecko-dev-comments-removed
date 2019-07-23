@@ -368,24 +368,10 @@ public:
 
 
 
+
+
   NS_HIDDEN_(imgIRequest*) LoadImage(imgIRequest* aImage,
                                      nsIFrame* aTargetFrame);
-  
-
-
-
-
-  NS_HIDDEN_(imgIRequest*) LoadBorderImage(imgIRequest* aImage,
-                                           nsIFrame* aTargetFrame);
-
-private:
-  typedef nsInterfaceHashtable<nsVoidPtrHashKey, nsImageLoader> ImageLoaderTable;
-
-  NS_HIDDEN_(imgIRequest*) DoLoadImage(ImageLoaderTable& aTable,
-                                       imgIRequest* aImage,
-                                       nsIFrame* aTargetFrame,
-                                       PRBool aReflowOnLoad);
-public:
 
   
 
@@ -814,8 +800,7 @@ protected:
   nsILinkHandler*       mLinkHandler;   
   nsIAtom*              mLangGroup;     
 
-  ImageLoaderTable      mImageLoaders;
-  ImageLoaderTable      mBorderImageLoaders;
+  nsInterfaceHashtable<nsVoidPtrHashKey, nsImageLoader> mImageLoaders;
   nsWeakPtr             mContainer;
 
   float                 mTextZoom;      
