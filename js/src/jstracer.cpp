@@ -676,23 +676,6 @@ TraceRecorder::TraceRecorder(JSContext* cx, GuardRecord* _anchor, Fragment* _fra
     eor_ins = addName(lir->insLoadi(lirbuf->state, offsetof(InterpState, eor)), "eor");
 
     
-
-
-
-
-
-
-
-
-
-    unsigned length;
-    if (ngslots < (length = treeInfo->globalTypeMap.length())) 
-        mergeTypeMaps(&globalTypeMap, &ngslots, 
-                      treeInfo->globalTypeMap.data(), length,
-                      (uint8*)alloca(sizeof(uint8) * length));
-    JS_ASSERT(ngslots == treeInfo->globalTypeMap.length());
-    
-    
     import(treeInfo, lirbuf->sp, ngslots, callDepth, globalTypeMap, stackTypeMap); 
 }
 
@@ -1087,6 +1070,23 @@ void
 TraceRecorder::import(TreeInfo* treeInfo, LIns* sp, unsigned ngslots, unsigned callDepth, 
                       uint8* globalTypeMap, uint8* stackTypeMap)
 {
+    
+
+
+
+
+
+
+
+
+
+    unsigned length;
+    if (ngslots < (length = treeInfo->globalTypeMap.length())) 
+        mergeTypeMaps(&globalTypeMap, &ngslots, 
+                      treeInfo->globalTypeMap.data(), length,
+                      (uint8*)alloca(sizeof(uint8) * length));
+    JS_ASSERT(ngslots == treeInfo->globalTypeMap.length());
+    
     
     uint16* gslots = treeInfo->globalSlots.data();
     uint8* m = globalTypeMap;
