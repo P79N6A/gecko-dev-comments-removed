@@ -284,6 +284,7 @@ nsPrefetchService::nsPrefetchService()
     : mQueueHead(nsnull)
     , mQueueTail(nsnull)
     , mStopCount(0)
+    , mHaveProcessed(PR_FALSE)
     , mDisabled(PR_TRUE)
     , mFetchedOffline(PR_FALSE)
 {
@@ -539,8 +540,10 @@ nsPrefetchService::StartPrefetching()
     
     
     
-    if (mStopCount == 0 && !mCurrentChannel)
+    if (mStopCount == 0 && !mCurrentChannel) {
+        mHaveProcessed = PR_TRUE;
         ProcessNextURI();
+    }
 }
 
 void
@@ -716,7 +719,14 @@ nsPrefetchService::Prefetch(nsIURI *aURI,
         }
     }
 
-    return EnqueueURI(aURI, aReferrerURI, aOffline);
+    rv = EnqueueURI(aURI, aReferrerURI, aOffline);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    
+    if (mStopCount == 0 && mHaveProcessed)
+        ProcessNextURI();
+
+    return NS_OK;
 }
 
 NS_IMETHODIMP
