@@ -192,6 +192,12 @@ class ExceptionHandler {
 
   
   
+  static bool WriteMinidump(const wstring &dump_path,
+                            bool write_exception_stream,
+                            MinidumpCallback callback, void* callback_context);
+
+  
+  
   
   
   
