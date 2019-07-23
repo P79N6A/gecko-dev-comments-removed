@@ -287,7 +287,7 @@ nsTableRowGroupFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   if (!IsVisibleInSelection(aBuilder))
     return NS_OK;
 
-  PRBool isRoot = aBuilder->IsAtRootOfPseudoStackingContext();
+  PRBool isRoot = aBuilder->IsAtRootOfPseudoStackingContext() || IsScrolled();
   nsDisplayTableItem* item = nsnull;
   if (isRoot) {
     
