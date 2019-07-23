@@ -204,6 +204,14 @@ class nsDocAccessible : public nsHyperTextAccessibleWrap,
     nsresult FireShowHideEvents(nsIDOMNode *aDOMNode, PRUint32 aEventType,
                                 PRBool aDelay, PRBool aForceIsFromUserInput);
 
+    
+
+
+
+
+
+    void AdoptChildren(nsIAccessible *aAccessible);
+
     nsAccessNodeHashtable mAccessNodeCache;
     void *mWnd;
     nsCOMPtr<nsIDocument> mDocument;

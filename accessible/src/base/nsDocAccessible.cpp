@@ -1806,6 +1806,10 @@ NS_IMETHODIMP nsDocAccessible::InvalidateCacheSubtree(nsIContent *aChild,
     
     GetAccService()->GetAttachedAccessibleFor(childNode,
                                               getter_AddRefs(childAccessible));
+    if (childAccessible) {
+      
+      AdoptChildren(childAccessible);
+    }
   }
 
 #ifdef DEBUG_A11Y
@@ -1933,6 +1937,13 @@ NS_IMETHODIMP nsDocAccessible::InvalidateCacheSubtree(nsIContent *aChild,
   return NS_OK;
 }
 
+void nsDocAccessible::AdoptChildren(nsIAccessible *aAccessible)
+{
+  PRInt32 childCountUnused;
+  
+  aAccessible->GetChildCount(&childCountUnused);
+}
+
 NS_IMETHODIMP
 nsDocAccessible::GetAccessibleInParentChain(nsIDOMNode *aNode,
                                             PRBool aCanCreate,
@@ -1959,14 +1970,17 @@ nsDocAccessible::GetAccessibleInParentChain(nsIDOMNode *aNode,
     if (NS_SUCCEEDED(accService->GetRelevantContentNodeFor(currentNode, getter_AddRefs(relevantNode))) && relevantNode) {
       currentNode = relevantNode;
     }
-    if (aCanCreate) {
-      accService->GetAccessibleInWeakShell(currentNode, mWeakShell, aAccessible);
+    
+    nsCOMPtr<nsIAccessNode> accessNode;
+    GetCachedAccessNode(currentNode, getter_AddRefs(accessNode)); 
+    if (accessNode) {
+      CallQueryInterface(accessNode, aAccessible); 
     }
-    else { 
-      nsCOMPtr<nsIAccessNode> accessNode;
-      GetCachedAccessNode(currentNode, getter_AddRefs(accessNode)); 
-      if (accessNode) {
-        CallQueryInterface(accessNode, aAccessible); 
+    if (!*aAccessible && aCanCreate) {
+      accService->GetAccessibleInWeakShell(currentNode, mWeakShell, aAccessible);
+      if (*aAccessible) {
+        
+        AdoptChildren(*aAccessible);
       }
     }
   } while (!*aAccessible);
