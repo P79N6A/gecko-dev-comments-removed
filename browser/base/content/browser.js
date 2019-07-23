@@ -61,8 +61,6 @@
 let Ci = Components.interfaces;
 let Cu = Components.utils;
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
-Cu.import("resource://gre/modules/DownloadUtils.jsm");
-Cu.import("resource://gre/modules/PluralForm.jsm");
 
 const kXULNS =
     "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul";
@@ -6051,6 +6049,10 @@ let DownloadMonitorPanel = {
 
 
   init: function DMP_init() {
+    
+    Cu.import("resource://gre/modules/DownloadUtils.jsm");
+    Cu.import("resource://gre/modules/PluralForm.jsm");
+
     
     this._panel = document.getElementById("download-monitor");
 
