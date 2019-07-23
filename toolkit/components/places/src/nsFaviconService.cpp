@@ -45,6 +45,7 @@
 
 
 
+
 #include "nsFaviconService.h"
 #include "nsICacheVisitor.h"
 #include "nsICachingChannel.h"
@@ -481,12 +482,14 @@ nsFaviconService::DoSetAndLoadFaviconForPage(nsIURI* aPageURI,
     return NS_OK;
 
   
-  
-  
-  PRBool isDataURL;
-  rv = aFaviconURI->SchemeIs("data", &isDataURL);
+  nsCOMPtr<nsIURI> errorPageFavicon;
+  rv = NS_NewURI(getter_AddRefs(errorPageFavicon),
+                 NS_LITERAL_CSTRING(FAVICON_ERRORPAGE_URL));
   NS_ENSURE_SUCCESS(rv, rv);
-  if (isDataURL)
+  PRBool isErrorPage;
+  rv = aFaviconURI->Equals(errorPageFavicon, &isErrorPage);
+  NS_ENSURE_SUCCESS(rv, rv);
+  if (isErrorPage)
     return NS_OK;
 
   
