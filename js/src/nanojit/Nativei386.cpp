@@ -265,12 +265,6 @@ namespace nanojit
             btr RegAlloc::free[ecx], eax    
             mov r, eax
         }
-    #elif defined WIN64
-        unsigned long tr, fr;
-        _BitScanForward(&tr, set);
-        _bittestandreset(&fr, tr);
-        regs.free = fr;
-        r = tr;
     #else
         asm(
             "bsf    %1, %%eax\n\t"
