@@ -89,14 +89,14 @@ public:
     void            clear();
 };
 
-class VMFragmentInfo {
+class TreeInfo {
 public:
-    VMFragmentInfo() {
+    TreeInfo() {
         typeMap = NULL;
         gslots = NULL;
     }
 
-    virtual ~VMFragmentInfo() {
+    virtual ~TreeInfo() {
         if (typeMap) free(typeMap);
         if (gslots) free(gslots);
     }
@@ -135,7 +135,7 @@ class TraceRecorder {
     JSAtom**                atoms;
     nanojit::GuardRecord*   anchor;
     nanojit::Fragment*      fragment;
-    VMFragmentInfo*         fragmentInfo;
+    TreeInfo*               treeInfo;
     nanojit::LirBuffer*     lirbuf;
     nanojit::LirWriter*     lir;
     nanojit::LirBufWriter*  lir_buf_writer;
@@ -180,7 +180,7 @@ class TraceRecorder {
 
     bool ifop();
     bool inc(jsval& v, jsint incr, bool pre = true);
-    bool inc(jsval& v, nanojit::LIns*& v_ins, jsint incr, bool pre = true);
+    bool inc(jsval& v, nanojit::LIns* v_before, jsint incr, bool pre = true);
     bool incProp(jsint incr, bool pre = true);
     bool incElem(jsint incr, bool pre = true);
     bool cmp(nanojit::LOpcode op, bool negate = false);
@@ -206,7 +206,7 @@ class TraceRecorder {
                     nanojit::LIns*& dslots_ins, nanojit::LIns*& v_ins);
 
     bool prop(JSObject* obj, nanojit::LIns* obj_ins, uint32& slot, nanojit::LIns*& v_ins);
-    bool elem(jsval& l, jsval& r, jsval*& vp, nanojit::LIns*& v_ins, nanojit::LIns*& addr_ins);
+    bool elem(jsval& l, jsval& r, jsval*& vp, nanojit::LIns*& v_ins);
 
     bool getProp(JSObject* obj, nanojit::LIns* obj_ins);
     bool getProp(jsval& v);
