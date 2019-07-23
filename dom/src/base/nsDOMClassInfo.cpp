@@ -6971,11 +6971,19 @@ nsElementSH::PostCreate(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
   
   
 
-  if (doc->BindingManager()->GetBinding(content)) {
+  nsRefPtr<nsXBLBinding> binding;
+  if ((binding = doc->BindingManager()->GetBinding(content))) {
+    
+    
+    
+    
+    
+    
+    
     
     
 
-    return NS_OK;
+    return binding->EnsureScriptAPI();
   }
 
   
@@ -6984,7 +6992,6 @@ nsElementSH::PostCreate(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
 
   
   
-  nsRefPtr<nsXBLBinding> binding;
   {
     
     nsRefPtr<nsStyleContext> sc = pctx->StyleSet()->ResolveStyleFor(content,
@@ -7009,12 +7016,17 @@ nsElementSH::PostCreate(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
   }
   
   if (binding) {
-    
+
+#ifdef DEBUG
     PRBool safeToRunScript = PR_FALSE;
     pctx->PresShell()->IsSafeToFlush(safeToRunScript);
-    if (safeToRunScript) {
-      binding->ExecuteAttachedHandler();
-    }
+    NS_ASSERTION(safeToRunScript, "Wrapping when it's not safe to flush");
+#endif
+
+    rv = binding->EnsureScriptAPI();
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    binding->ExecuteAttachedHandler();
   }
 
   return NS_OK;
