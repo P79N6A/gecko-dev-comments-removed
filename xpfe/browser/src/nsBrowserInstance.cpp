@@ -99,7 +99,7 @@
 
 
 
-#if defined(DEBUG) || defined(NS_BUILD_REFCNT_LOGGING) || defined(MOZ_PERF_METRICS) || defined(MOZ_JPROF)
+#if defined(DEBUG) || defined(NS_BUILD_REFCNT_LOGGING) || defined(MOZ_JPROF)
 #define ENABLE_PAGE_CYCLER
 #endif
 

@@ -62,7 +62,6 @@
 #include "nsIContentSink.h"
 #include "prlog.h"
 #include "nsIRequest.h"
-#include "nsTimer.h"
 #include "nsCycleCollectionParticipant.h"
 #include "nsThreadUtils.h"
 
@@ -399,9 +398,6 @@ protected:
 
   nsRevocableEventPtr<nsNonOwningRunnableMethod<nsContentSink> >
     mProcessLinkHeaderEvent;
-
-  
-  MOZ_TIMER_DECLARE(mWatch)
 };
 
 
@@ -409,4 +405,4 @@ extern PRBool IsAttrURI(nsIAtom *aName);
 extern nsIAtom** const kDefaultAllowedTags [];
 extern nsIAtom** const kDefaultAllowedAttributes [];
 
-#endif
+#endif 

@@ -51,13 +51,8 @@
 #include "nsIViewObserver.h"
 
 
-#ifdef MOZ_PERF_METRICS
 
-#endif
 
-#ifdef NS_VM_PERF_METRICS
-#include "nsTimer.h"
-#endif
 
 
 
@@ -421,10 +416,6 @@ private:
   static nsVoidArray       *gViewManagers;
 
   void PostInvalidateEvent();
-
-#ifdef NS_VM_PERF_METRICS
-  MOZ_TIMER_DECLARE(mWatch) 
-#endif
 };
 
 
