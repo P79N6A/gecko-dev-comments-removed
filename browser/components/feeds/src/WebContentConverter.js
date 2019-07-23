@@ -353,7 +353,14 @@ WebContentConverterRegistrar.prototype = {
       
       return; 
     }
- 
+
+    
+    
+    
+    
+    if (uri.scheme != "http" && uri.scheme != "https")
+      throw("Permission denied to add " + uri.spec + " as a content or protocol handler");
+
     
     if (uri.spec.indexOf("%s") < 0)
       throw NS_ERROR_DOM_SYNTAX_ERR; 
@@ -476,13 +483,6 @@ WebContentConverterRegistrar.prototype = {
       return;
 
     var uri = this._checkAndGetURI(aURIString);
-            
-    
-    
-    
-    
-    if (uri.scheme != "http" &&  uri.scheme != "https")
-      throw("Permission denied to add " + uri.spec + "as a content handler");
 
     var browserWindow = this._getBrowserWindowForContentWindow(aContentWindow);
     var browserElement = this._getBrowserForContentWindow(browserWindow, aContentWindow);
