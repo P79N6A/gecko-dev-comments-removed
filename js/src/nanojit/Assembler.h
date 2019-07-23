@@ -262,6 +262,7 @@ namespace nanojit
 			
 			NIns*		_nIns;			
 			NIns*		_nExitIns;		
+			NIns*		_startingIns;	
 			NIns*       _epilogue;
 			Page*		_nativePages;	
 			Page*		_nativeExitPages; 
@@ -275,7 +276,7 @@ namespace nanojit
 			Reservation _resvTable[ NJ_MAX_STACK_ENTRY ]; 
 			uint32_t	_resvFree;
 			bool		_inExit, vpad2[3];
-            avmplus::List<LIns*, avmplus::LIST_GCObjects> pending_lives;
+            InsList     pending_lives;
 
 			void		asm_cmp(LIns *cond);
 			void		asm_fcmp(LIns *cond);
@@ -359,7 +360,6 @@ namespace nanojit
 			
 			
 			
-			void* _endJit1Addr;
 			void* _endJit2Addr;
 	#endif 
 	};
