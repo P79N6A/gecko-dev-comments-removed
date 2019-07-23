@@ -295,6 +295,12 @@ function run_test() {
 
   
   do_check_eq(bmsvc.getIdForItemAt(testRoot, 0), workFolder);
+  
+  do_check_eq(bmsvc.getIdForItemAt(1337, 0), -1);
+  
+  do_check_eq(bmsvc.getIdForItemAt(testRoot, 1337), -1);
+  
+  do_check_eq(bmsvc.getIdForItemAt(1337, 1337), -1);
 
   
   var oldParentCC = getChildCount(testRoot);

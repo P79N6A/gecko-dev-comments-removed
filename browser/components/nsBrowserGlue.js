@@ -509,6 +509,18 @@ BrowserGlue.prototype = {
     var importBookmarks = databaseStatus == histsvc.DATABASE_STATUS_CREATE ||
                           databaseStatus == histsvc.DATABASE_STATUS_CORRUPT;
 
+    if (databaseStatus == histsvc.DATABASE_STATUS_CREATE) {
+      
+      
+      
+      
+      var bmsvc = Cc["@mozilla.org/browser/nav-bookmarks-service;1"].
+                  getService(Ci.nsINavBookmarksService);
+      if (bmsvc.getIdForItemAt(bmsvc.bookmarksMenuFolder, 0) != -1 ||
+          bmsvc.getIdForItemAt(bmsvc.toolbarFolder, 0) != -1)
+        importBookmarks = false;
+    }
+
     
     var importBookmarksHTML = false;
     try {
