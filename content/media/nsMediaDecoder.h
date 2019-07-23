@@ -92,7 +92,7 @@ public:
 
   
   virtual float GetDuration() = 0;
-  
+
   
   virtual void Pause() = 0;
 
@@ -170,7 +170,7 @@ public:
   
   
   virtual void SetDuration(PRInt64 aDuration) = 0;
- 
+
   
   virtual void SetSeekable(PRBool aSeekable) = 0;
 
@@ -191,7 +191,7 @@ public:
   
   
   virtual void NotifySuspendedStatusChanged() = 0;
-  
+
   
   
   virtual void NotifyBytesDownloaded() = 0;
