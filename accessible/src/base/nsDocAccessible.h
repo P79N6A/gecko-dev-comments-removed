@@ -56,11 +56,11 @@ class nsIScrollableView;
 const PRUint32 kDefaultCacheSize = 256;
 
 #define NS_DOCACCESSIBLE_IMPL_CID                       \
-{  /* 9e97d7af-b20a-4a5a-a8d9-bcae0de0b7a2 */           \
-  0x9e97d7af,                                           \
-  0xb20a,                                               \
-  0x4a5a,                                               \
-  { 0xa8, 0xd9, 0xbc, 0xae, 0x0d, 0xe0, 0xb7, 0xa2 }    \
+{  /* 11d54d4f-f135-4b1b-80e4-6425a64f703c */           \
+  0x11d54d4f,                                           \
+  0xf135,                                               \
+  0x4b1b,                                               \
+  { 0x80, 0xe4, 0x64, 0x25, 0xa6, 0x4f, 0x70, 0x3c }    \
 }
 
 class nsDocAccessible : public nsHyperTextAccessibleWrap,
@@ -127,7 +127,8 @@ public:
 
   nsresult FireDelayedAccessibleEvent(PRUint32 aEventType, nsIDOMNode *aDOMNode,
                                       nsAccEvent::EEventRule aAllowDupes = nsAccEvent::eRemoveDupes,
-                                      PRBool aIsAsynch = PR_FALSE);
+                                      PRBool aIsAsynch = PR_FALSE,
+                                      EIsFromUserInput aIsFromUserInput = eAutoDetect);
 
   
 
@@ -236,19 +237,26 @@ protected:
                                     CharacterDataChangeInfo* aInfo,
                                     PRBool aIsInserted);
 
-    
+  
 
 
 
 
 
 
-    already_AddRefed<nsAccEvent>
+
+
+
+
+
+
+  already_AddRefed<nsAccEvent>
     CreateTextChangeEventForNode(nsIAccessible *aContainerAccessible,
-                                 nsIDOMNode *aChangeNode,
-                                 nsIAccessible *aAccessibleForNode,
+                                 nsIDOMNode *aNode,
+                                 nsIAccessible *aAccessible,
                                  PRBool aIsInserting,
-                                 PRBool aIsAsynch);
+                                 PRBool aIsAsynch,
+                                 EIsFromUserInput aIsFromUserInput = eAutoDetect);
 
   
 
@@ -274,7 +282,7 @@ protected:
                               PRUint32 aEventType,
                               EEventFiringType aDelayedOrNormal,
                               PRBool aIsAsyncChange,
-                              PRBool aForceIsFromUserInput);
+                              EIsFromUserInput aIsFromUserInput = eAutoDetect);
 
     
 

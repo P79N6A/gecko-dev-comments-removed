@@ -1087,11 +1087,6 @@ nsDocAccessible::AttributeChangedImpl(nsIContent* aContent, PRInt32 aNameSpaceID
 
   
   
-  
-  nsAccEvent::PrepareForEvent(targetNode);
-
-  
-  
   if (aAttribute == nsAccessibilityAtoms::disabled ||
       aAttribute == nsAccessibilityAtoms::aria_disabled) {
 
@@ -1450,7 +1445,7 @@ nsDocAccessible::FireValueChangeForTextFields(nsIAccessible *aPossibleTextFieldA
   
   nsCOMPtr<nsIAccessibleEvent> valueChangeEvent =
     new nsAccEvent(nsIAccessibleEvent::EVENT_VALUE_CHANGE, aPossibleTextFieldAccessible,
-                   PR_FALSE, nsAccEvent::eRemoveDupes);
+                   PR_FALSE, eAutoDetect, nsAccEvent::eRemoveDupes);
   FireDelayedAccessibleEvent(valueChangeEvent );
 }
 
@@ -1520,7 +1515,8 @@ nsDocAccessible::CreateTextChangeEventForNode(nsIAccessible *aContainerAccessibl
                                               nsIDOMNode *aChangeNode,
                                               nsIAccessible *aAccessibleForChangeNode,
                                               PRBool aIsInserting,
-                                              PRBool aIsAsynch)
+                                              PRBool aIsAsynch,
+                                              EIsFromUserInput aIsFromUserInput)
 {
   nsRefPtr<nsHyperTextAccessible> textAccessible;
   aContainerAccessible->QueryInterface(NS_GET_IID(nsHyperTextAccessible),
@@ -1587,7 +1583,7 @@ nsDocAccessible::CreateTextChangeEventForNode(nsIAccessible *aContainerAccessibl
 
   nsAccEvent *event =
     new nsAccTextChangeEvent(aContainerAccessible, offset, length, aIsInserting,
-                             aIsAsynch);
+                             aIsAsynch, aIsFromUserInput);
   NS_IF_ADDREF(event);
 
   return event;
@@ -1598,10 +1594,11 @@ nsresult
 nsDocAccessible::FireDelayedAccessibleEvent(PRUint32 aEventType,
                                             nsIDOMNode *aDOMNode,
                                             nsAccEvent::EEventRule aAllowDupes,
-                                            PRBool aIsAsynch)
+                                            PRBool aIsAsynch,
+                                            EIsFromUserInput aIsFromUserInput)
 {
   nsCOMPtr<nsIAccessibleEvent> event =
-    new nsAccEvent(aEventType, aDOMNode, aIsAsynch, aAllowDupes);
+    new nsAccEvent(aEventType, aDOMNode, aIsAsynch, aIsFromUserInput, aAllowDupes);
   NS_ENSURE_TRUE(event, NS_ERROR_OUT_OF_MEMORY);
 
   return FireDelayedAccessibleEvent(event);
@@ -1694,7 +1691,9 @@ nsDocAccessible::FlushPendingEvents()
     accEvent->GetDOMNode(getter_AddRefs(domNode));
 
     PRUint32 eventType = accEvent->GetEventType();
-    PRBool isFromUserInput = accEvent->IsFromUserInput();
+    EIsFromUserInput isFromUserInput =
+      accEvent->IsFromUserInput() ? eFromUserInput : eNoUserInput;
+
     PRBool isAsync = accEvent->IsAsync();
 
     if (domNode == gLastFocusedNode && isAsync &&
@@ -1755,9 +1754,9 @@ nsDocAccessible::FlushPendingEvents()
       
       if (domNode && domNode != mDOMNode) {
         nsRefPtr<nsAccEvent> textChangeEvent =
-          CreateTextChangeEventForNode(containerAccessible, domNode, accessible, PR_TRUE, PR_TRUE);
+          CreateTextChangeEventForNode(containerAccessible, domNode, accessible,
+                                       PR_TRUE, PR_TRUE, isFromUserInput);
         if (textChangeEvent) {
-          nsAccEvent::PrepareForEvent(textChangeEvent, isFromUserInput);
           
           
           
@@ -1818,15 +1817,12 @@ nsDocAccessible::FlushPendingEvents()
         nsCOMPtr<nsAccReorderEvent> reorderEvent = do_QueryInterface(accEvent);
         if (reorderEvent->IsUnconditionalEvent() ||
             reorderEvent->HasAccessibleInReasonSubtree()) {
-          nsAccEvent::PrepareForEvent(accEvent);
           nsEventShell::FireEvent(accEvent);
         }
       }
       else {
-        
-        
-        nsAccEvent::PrepareForEvent(accEvent);
         nsEventShell::FireEvent(accEvent);
+
         
         if (eventType == nsIAccessibleEvent::EVENT_HIDE) {
           
@@ -1852,9 +1848,6 @@ nsDocAccessible::FlushPendingEvents()
     mEventsToFire.RemoveElementsAt(0, length);
     PreparePendingEventsFlush();
   }
-
-  
-  nsAccEvent::ResetLastInputState();
 
   mInFlushPendingEvents = PR_FALSE;
   NS_RELEASE_THIS(); 
@@ -2105,7 +2098,7 @@ nsDocAccessible::InvalidateCacheSubtree(nsIContent *aChild,
     
     nsresult rv = FireShowHideEvents(childNode, PR_FALSE,
                                      nsIAccessibleEvent::EVENT_HIDE,
-                                     eDelayedEvent, isAsynch, PR_FALSE);
+                                     eDelayedEvent, isAsynch);
     NS_ENSURE_SUCCESS(rv,);
 
     if (childNode != mDOMNode) { 
@@ -2253,7 +2246,7 @@ nsDocAccessible::FireShowHideEvents(nsIDOMNode *aDOMNode,
                                     PRUint32 aEventType,
                                     EEventFiringType aDelayedOrNormal,
                                     PRBool aIsAsyncChange,
-                                    PRBool aForceIsFromUserInput)
+                                    EIsFromUserInput aIsFromUserInput)
 {
   NS_ENSURE_ARG(aDOMNode);
 
@@ -2275,13 +2268,9 @@ nsDocAccessible::FireShowHideEvents(nsIDOMNode *aDOMNode,
     
     
     nsRefPtr<nsAccEvent> event =
-      new nsAccEvent(aEventType, accessible, aIsAsyncChange,
+      new nsAccEvent(aEventType, accessible, aIsAsyncChange, aIsFromUserInput,
                      nsAccEvent::eCoalesceFromSameSubtree);
     NS_ENSURE_TRUE(event, NS_ERROR_OUT_OF_MEMORY);
-
-    if (aForceIsFromUserInput) {
-      nsAccEvent::PrepareForEvent(event, aForceIsFromUserInput);
-    }
 
     if (aDelayedOrNormal == eDelayedEvent)
       return FireDelayedAccessibleEvent(event);
@@ -2298,7 +2287,7 @@ nsDocAccessible::FireShowHideEvents(nsIDOMNode *aDOMNode,
     nsCOMPtr<nsIDOMNode> childNode = do_QueryInterface(node->GetChildAt(index));
     nsresult rv = FireShowHideEvents(childNode, PR_FALSE, aEventType,
                                      aDelayedOrNormal, aIsAsyncChange,
-                                     aForceIsFromUserInput);
+                                     aIsFromUserInput);
     NS_ENSURE_SUCCESS(rv, rv);
   }
 

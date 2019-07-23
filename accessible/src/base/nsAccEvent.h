@@ -54,6 +54,17 @@
 
 class nsIPresShell;
 
+
+enum EIsFromUserInput
+{
+  
+  eNoUserInput = 0,
+  
+  eFromUserInput = 1,
+  
+  eAutoDetect = -1
+};
+
 #define NS_ACCEVENT_IMPL_CID                            \
 {  /* 39bde096-317e-4294-b23b-4af4a9b283f7 */           \
   0x39bde096,                                           \
@@ -81,17 +92,19 @@ public:
      eRemoveDupes,
      
      eDoNotEmit
-   };
+  };
 
   NS_DECLARE_STATIC_IID_ACCESSOR(NS_ACCEVENT_IMPL_CID)
 
   
   nsAccEvent(PRUint32 aEventType, nsIAccessible *aAccessible,
              PRBool aIsAsynch = PR_FALSE,
+             EIsFromUserInput aIsFromUserInput = eAutoDetect,
              EEventRule aEventRule = eRemoveDupes);
   
   nsAccEvent(PRUint32 aEventType, nsIDOMNode *aDOMNode,
              PRBool aIsAsynch = PR_FALSE,
+             EIsFromUserInput aIsFromUserInput = eAutoDetect,
              EEventRule aEventRule = eRemoveDupes);
   virtual ~nsAccEvent() {}
 
@@ -107,13 +120,18 @@ public:
   PRBool IsFromUserInput() const { return mIsFromUserInput; }
   nsIAccessible* GetAccessible() const { return mAccessible; }
 
-  static void GetLastEventAttributes(nsIDOMNode *aNode,
-                                     nsIPersistentProperties *aAttributes);
-
 protected:
+  
+
+
   already_AddRefed<nsIAccessible> GetAccessibleByNode();
 
-  void CaptureIsFromUserInput();
+  
+
+
+
+  void CaptureIsFromUserInput(EIsFromUserInput aIsFromUserInput);
+
   PRBool mIsFromUserInput;
 
   PRUint32 mEventType;
@@ -123,33 +141,7 @@ protected:
   nsCOMPtr<nsIDOMNode> mDOMNode;
   nsCOMPtr<nsIAccessibleDocument> mDocAccessible;
 
-private:
-  static PRBool gLastEventFromUserInput;
-  static nsIDOMNode* gLastEventNodeWeak;
-
 public:
-  static void ResetLastInputState()
-   {gLastEventFromUserInput = PR_FALSE; gLastEventNodeWeak = nsnull; }
-
-  
-
-
-
-
-
-
-
-
-  static void PrepareForEvent(nsIDOMNode *aChangeNode,
-                              PRBool aForceIsFromUserInput = PR_FALSE);
-
-  
-
-
-
-
-  static void PrepareForEvent(nsIAccessibleEvent *aEvent,
-                              PRBool aForceIsFromUserInput = PR_FALSE);
 
   
 
@@ -259,7 +251,8 @@ class nsAccTextChangeEvent: public nsAccEvent,
 {
 public:
   nsAccTextChangeEvent(nsIAccessible *aAccessible, PRInt32 aStart, PRUint32 aLength,
-                       PRBool aIsInserted, PRBool aIsAsynch = PR_FALSE);
+                       PRBool aIsInserted, PRBool aIsAsynch = PR_FALSE,
+                       EIsFromUserInput aIsFromUserInput = eAutoDetect);
 
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_NSIACCESSIBLETEXTCHANGEEVENT

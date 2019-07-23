@@ -1540,7 +1540,7 @@ nsAccessible::GetAttributesInternal(nsIPersistentProperties *aAttributes)
                                    oldValueUnused);
   }
 
-  nsAccEvent::GetLastEventAttributes(mDOMNode, aAttributes);
+  nsEventShell::GetEventAttributes(mDOMNode, aAttributes);
  
   
   
