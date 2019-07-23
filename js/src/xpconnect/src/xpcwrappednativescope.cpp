@@ -1053,15 +1053,19 @@ XPCWrappedNativeScope::GetWrapperFor(JSContext *cx, JSObject *obj,
             XPCCrossOriginWrapper::ClassNeedsXOW(obj->getClass()->name);
 
         
-        if(principalEqual || obj->isSystem())
-            return (hint & XPCNW) ? hint : wantsXOW ? SJOW : NONE;
-
-        
-        
-
         JSObject *obj2;
         XPCWrappedNative *wrapper =
             XPCWrappedNative::GetWrappedNativeOfJSObject(cx, obj, nsnull, &obj2);
+        if(principalEqual || obj->isSystem())
+        {
+            if(hint & XPCNW)
+                return (wrapper || obj2) ? hint : NONE;
+            return wantsXOW ? SJOW : NONE;
+        }
+
+        
+        
+
         if(!wrapper && !obj2)
             hint = SJOW;
 
@@ -1105,9 +1109,13 @@ XPCWrappedNativeScope::GetWrapperFor(JSContext *cx, JSObject *obj,
     
     if(!wrapper && !obj2)
     {
-        NS_ASSERTION(principalEqual,
+#if 0
+        
+        
+        NS_ASSERTION(principalEqual || hint == COW,
                      "touching non-wrappednative object cross origin?");
-        NS_ASSERTION(hint == SJOW || hint == UNKNOWN, "bad hint");
+        NS_ASSERTION(hint == SJOW || hint == COW || hint == UNKNOWN, "bad hint");
+#endif
         return hint;
     }
 
@@ -1132,7 +1140,10 @@ XPCWrappedNativeScope::GetWrapperFor(JSContext *cx, JSObject *obj,
     if(!principalEqual ||
        XPCCrossOriginWrapper::ClassNeedsXOW(obj->getClass()->name))
     {
-        NS_ASSERTION(hint != SJOW, "shouldn't have a SJOW for cross origin access?");
+        
+        
+        
+        
         return (hint & XPCNW) ? XPCNW_EXPLICIT : XOW;
     }
 
