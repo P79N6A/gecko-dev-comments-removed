@@ -578,4 +578,4 @@ pref("browser.places.importBookmarksHTML", true);
 pref("browser.warn_chromeless_window.infobar", false);
 
 
-pref("browser.places.createdDefaultQueries", true);
+pref("browser.places.createdDefaultQueries", false);
