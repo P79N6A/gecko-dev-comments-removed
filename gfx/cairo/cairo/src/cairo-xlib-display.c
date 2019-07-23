@@ -287,6 +287,7 @@ _cairo_xlib_display_get (Display *dpy,
 	    sizeof (display->cached_xrender_formats));
 
     display->buggy_repeat = FALSE;
+    display->buggy_pad_reflect = TRUE;
 
     
 
@@ -333,13 +334,19 @@ _cairo_xlib_display_get (Display *dpy,
 
 
     if (strstr (ServerVendor (dpy), "X.Org") != NULL) {
-	if (VendorRelease (dpy) >= 60700000 && VendorRelease (dpy) < 70000000)
-	    display->buggy_repeat = TRUE;
-	if (VendorRelease (dpy) < 10400000)
-	    display->buggy_repeat = TRUE;
+	if (VendorRelease (dpy) >= 60700000) {
+	    if (VendorRelease (dpy) < 70000000)
+		display->buggy_repeat = TRUE;
+	} else {
+	    if (VendorRelease (dpy) < 10400000)
+		display->buggy_repeat = TRUE;
+	    if (VendorRelease (dpy) >= 10699000)
+		display->buggy_pad_reflect = FALSE;
+	}
     } else if (strstr (ServerVendor (dpy), "XFree86") != NULL) {
 	if (VendorRelease (dpy) <= 40500000)
 	    display->buggy_repeat = TRUE;
+
     }
 
     

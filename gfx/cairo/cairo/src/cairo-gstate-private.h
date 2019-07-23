@@ -50,6 +50,7 @@ struct _cairo_gstate {
 
     cairo_font_face_t *font_face;
     cairo_scaled_font_t *scaled_font;	
+    cairo_scaled_font_t *previous_scaled_font;	
     cairo_matrix_t font_matrix;
     cairo_font_options_t font_options;
 

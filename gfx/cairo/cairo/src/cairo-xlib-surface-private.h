@@ -76,6 +76,7 @@ struct _cairo_xlib_surface {
 
 
     cairo_bool_t buggy_repeat;
+    cairo_bool_t buggy_pad_reflect;
 
     int width;
     int height;
