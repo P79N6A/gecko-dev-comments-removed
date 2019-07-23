@@ -620,7 +620,11 @@ gfxWindowsPlatform::FindFontForCharProc(nsStringHashKey::KeyType aKey,
     if (!fe)
         return PL_DHASH_NEXT;
 
-    PRInt32 rank = 0;
+    
+    
+    
+    
+    PRInt32 rank = 1;
 
     
     
