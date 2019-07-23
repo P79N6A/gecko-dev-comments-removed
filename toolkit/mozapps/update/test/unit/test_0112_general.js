@@ -60,7 +60,16 @@ function run_test() {
   
   
   var testFile = do_get_file("mar_test/1/1_1/1_1_text1", true);
-  testFile.create(AUS_Ci.nsIFile.NORMAL_FILE_TYPE, PERMS_FILE);
+  writeFile(testFile, "ShouldNotBeModified\n");
+
+  testFile = do_get_file("mar_test/1/1_1/1_1_text2", true);
+  writeFile(testFile, "ShouldNotBeDeleted\n");
+
+  testFile = do_get_file("data/aus-0111_general_ref_image.png");
+  testFile.copyTo(testDir, "1_1_image1.png");
+
+  testFile = do_get_file("mar_test/2/2_1/2_1_text1", true);
+  writeFile(testFile, "ShouldNotBeDeleted\n");
 
   var binDir = getGREDir();
 
@@ -80,7 +89,7 @@ function run_test() {
   }
 
   
-  var updatesSubDir = do_get_file("0110_complete_mar", true);
+  var updatesSubDir = do_get_file("0112_complete_mar", true);
   try {
     
     
@@ -92,32 +101,42 @@ function run_test() {
          "\nException: " + e + "\n");
   }
 
-  var mar = do_get_file("data/aus-0110_general.mar");
+  var mar = do_get_file("data/aus-0111_general.mar");
   mar.copyTo(updatesSubDir, "update.mar");
 
   
   var exitValue = runUpdate(updatesSubDir, updater);
   dump("Testing: updater binary process exitValue for success when applying " +
-       "a complete mar\n");
+       "a partial mar\n");
   do_check_eq(exitValue, 0);
 
-  dump("Testing: update.status should be set to STATE_SUCCEEDED\n");
+  dump("Testing: update.status should be set to STATE_FAILED\n");
   testFile = updatesSubDir.clone();
   testFile.append("update.status");
-  do_check_eq(readFile(testFile).split("\n")[0], STATE_SUCCEEDED);
+  
+  
+  do_check_eq(readFile(testFile).split(": ")[0], STATE_FAILED);
 
-  dump("Testing: contents of files added by a complete mar\n");
+  dump("Testing: files should not be modified or deleted when an update " +
+       "fails\n");
   do_check_eq(getFileBytes(do_get_file("mar_test/1/1_1/1_1_text1", true)),
-              "ToBeModified\n");
+              "ShouldNotBeModified\n");
+  do_check_true(do_get_file("mar_test/1/1_1/1_1_text2", true).exists());
   do_check_eq(getFileBytes(do_get_file("mar_test/1/1_1/1_1_text2", true)),
-              "ToBeDeleted\n");
+              "ShouldNotBeDeleted\n");
 
-  var refImage = do_get_file("data/aus-0110_general_ref_image.png");
+  var refImage = do_get_file("data/aus-0111_general_ref_image.png");
   var srcImage = do_get_file("mar_test/1/1_1/1_1_image1.png", true);
   do_check_eq(getFileBytes(srcImage), getFileBytes(refImage));
 
-  do_check_eq(getFileBytes(do_get_file("mar_test/2/2_1/2_1_text1", true)),
-              "ToBeDeleted\n");
+  dump("Testing: removal of a file by a partial mar\n");
+  do_check_true(do_get_file("mar_test/2/2_1/2_1_text1", true).exists());
+  do_check_eq(getFileBytes(do_get_file("mar_test/1/1_1/1_1_text2", true)),
+              "ShouldNotBeDeleted\n");
+
+  do_check_false(do_get_file("mar_test/3/3_1/3_1_text1", true).exists());
+  do_check_eq(getFileBytes(do_get_file("mar_test/1/1_1/1_1_text2", true)),
+              "ShouldNotBeDeleted\n");
 
   try {
     
