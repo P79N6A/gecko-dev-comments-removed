@@ -434,67 +434,81 @@ BrowserGlue.prototype = {
 
       
       this._rdf = Cc["@mozilla.org/rdf/rdf-service;1"].getService(Ci.nsIRDFService);
-      var localStore = this._rdf.GetDataSource("rdf:local-store");
-
-      
-      var foundHome = false;
+      this._dataSource = this._rdf.GetDataSource("rdf:local-store");
+      this._dirty = false;
 
       var currentSet = this._rdf.GetResource("currentset");
-      var target = null;
-      var dirty = false;
+      var collapsed = this._rdf.GetResource("collapsed");
+      var target;
+      var moveHome;
+
+      
+      var personalBar = this._rdf.GetResource("chrome://browser/content/browser.xul#PersonalToolbar");
+      var personalBarCollapsed = this._getPersist(personalBar, collapsed) == "true";
 
       
       var navBar = this._rdf.GetResource("chrome://browser/content/browser.xul#nav-bar");
-      target = this._getPersist(localStore, navBar, currentSet);
+      target = this._getPersist(navBar, currentSet);
       if (target) {
-        foundHome = (target.indexOf("home-button") != -1);
-        if (foundHome)
+        
+        moveHome = !personalBarCollapsed && (target.indexOf("home-button") != -1);
+        if (moveHome)
           target = target.replace("home-button", "");
+
+        
         target = "unified-back-forward-button," + target;
-        this._setPersist(localStore, navBar, currentSet, target);
-        dirty = true;
+
+        this._setPersist(navBar, currentSet, target);
+      } else {
+        
+        
+        moveHome = true;
+      }
+
+      if (moveHome) {
+        
+        
+        target = this._getPersist(personalBar, currentSet);
+        if (target && target.indexOf("home-button") == -1)
+          this._setPersist(personalBar, currentSet, "home-button," + target);
+
+        
+        if (personalBarCollapsed)
+          this._setPersist(personalBar, collapsed, "false");
       }
 
       
-      if (foundHome) {
-        var personalBar = this._rdf.GetResource("chrome://browser/content/browser.xul#PersonalToolbar");
-        target = this._getPersist(localStore, personalBar, currentSet);
-        if (target && target.indexOf("home-button") == -1) {
-          this._setPersist(localStore, personalBar, currentSet, "home-button," + target);
-          dirty = true;
-        }
-      }
-
-      
-      if (dirty)
-        localStore.QueryInterface(Ci.nsIRDFRemoteDataSource).Flush();
+      if (this._dirty)
+        this._dataSource.QueryInterface(Ci.nsIRDFRemoteDataSource).Flush();
 
       
       this._rdf = null;
+      this._dataSource = null;
 
       
       prefBranch.setIntPref("browser.migration.version", 1);
     }
   },
 
-  _getPersist: function bg__getPersist(aDataSource, aSource, aProperty) {
-    var target = aDataSource.GetTarget(aSource, aProperty, true);
+  _getPersist: function bg__getPersist(aSource, aProperty) {
+    var target = this._dataSource.GetTarget(aSource, aProperty, true);
     if (target instanceof Ci.nsIRDFLiteral)
       return target.Value;
     return null;
   },
 
-  _setPersist: function bg__setPersist(aDataSource, aSource, aProperty, aTarget) {
+  _setPersist: function bg__setPersist(aSource, aProperty, aTarget) {
+    this._dirty = true;
     try {
-      var oldTarget = aDataSource.GetTarget(aSource, aProperty, true);
+      var oldTarget = this._dataSource.GetTarget(aSource, aProperty, true);
       if (oldTarget) {
         if (aTarget)
-          aDataSource.Change(aSource, aProperty, oldTarget, this._rdf.GetLiteral(aTarget));
+          this._dataSource.Change(aSource, aProperty, oldTarget, this._rdf.GetLiteral(aTarget));
         else
-          aDataSource.Unassert(aSource, aProperty, oldTarget);
+          this._dataSource.Unassert(aSource, aProperty, oldTarget);
       }
       else {
-        aDataSource.Assert(aSource, aProperty, this._rdf.GetLiteral(aTarget), true);
+        this._dataSource.Assert(aSource, aProperty, this._rdf.GetLiteral(aTarget), true);
       }
     }
     catch(ex) {}
