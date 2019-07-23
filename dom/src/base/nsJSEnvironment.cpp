@@ -1084,6 +1084,7 @@ static const char js_relimit_option_str[]= JS_OPTIONS_DOT_STR "relimit";
 #ifdef JS_GC_ZEAL
 static const char js_zeal_option_str[]   = JS_OPTIONS_DOT_STR "gczeal";
 #endif
+static const char js_content_jit_str[]   = JS_OPTIONS_DOT_STR "content_jit";
 
 int PR_CALLBACK
 nsJSContext::JSOptionChangedCallback(const char *pref, void *data)
@@ -1098,13 +1099,21 @@ nsJSContext::JSOptionChangedCallback(const char *pref, void *data)
   else
     newDefaultJSOptions &= ~JSOPTION_STRICT;
 
+  nsIScriptGlobalObject *global = context->GetGlobalObject();
+  nsCOMPtr<nsIDOMChromeWindow> chromeWindow(do_QueryInterface(global));
+  if (!chromeWindow) {
+    PRBool contentJIT = nsContentUtils::GetBoolPref(js_content_jit_str);
+    if (contentJIT)
+      newDefaultJSOptions |= JSOPTION_JIT;
+    else
+      newDefaultJSOptions &= ~JSOPTION_JIT;
+  }
+
 #ifdef DEBUG
   
   
   
   if ((newDefaultJSOptions & JSOPTION_STRICT) == 0) {
-    nsIScriptGlobalObject *global = context->GetGlobalObject();
-    nsCOMPtr<nsIDOMChromeWindow> chromeWindow(do_QueryInterface(global));
     if (chromeWindow)
       newDefaultJSOptions |= JSOPTION_STRICT;
   }
@@ -2730,8 +2739,9 @@ nsJSContext::AddSupportsPrimitiveTojsvals(nsISupports *aArg, jsval *aArgv)
 
       p->GetData(&data);
 
-      JSBool ok = ::JS_NewNumberValue(cx, data, aArgv);
-      NS_ENSURE_TRUE(ok, NS_ERROR_OUT_OF_MEMORY);
+      jsdouble *d = ::JS_NewDouble(cx, data);
+
+      *aArgv = DOUBLE_TO_JSVAL(d);
 
       break;
     }
@@ -2743,8 +2753,9 @@ nsJSContext::AddSupportsPrimitiveTojsvals(nsISupports *aArg, jsval *aArgv)
 
       p->GetData(&data);
 
-      JSBool ok = ::JS_NewNumberValue(cx, data, aArgv);
-      NS_ENSURE_TRUE(ok, NS_ERROR_OUT_OF_MEMORY);
+      jsdouble *d = ::JS_NewDouble(cx, data);
+
+      *aArgv = DOUBLE_TO_JSVAL(d);
 
       break;
     }
@@ -3105,25 +3116,6 @@ static JSFunctionSpec SharkFunctions[] = {
 };
 #endif
 
-#ifdef MOZ_CALLGRIND
-static JSFunctionSpec CallgrindFunctions[] = {
-    {"startCallgrind",             js_StartCallgrind,          0, 0, 0},
-    {"stopCallgrind",              js_StopCallgrind,           0, 0, 0},
-    {"dumpCallgrind",              js_DumpCallgrind,           1, 0, 0},
-    {nsnull,                       nsnull,                     0, 0, 0}
-};
-#endif
-
-#ifdef MOZ_VTUNE
-static JSFunctionSpec VtuneFunctions[] = {
-    {"startVtune",                 js_StartVtune,              1, 0, 0},
-    {"stopVtune",                  js_StopVtune,               0, 0, 0},
-    {"pauseVtune",                 js_PauseVtune,              0, 0, 0},
-    {"resumeVtune",                js_ResumeVtune,             0, 0, 0},
-    {nsnull,                       nsnull,                     0, 0, 0}
-};
-#endif
-
 nsresult
 nsJSContext::InitClasses(void *aGlobalObj)
 {
@@ -3159,16 +3151,6 @@ nsJSContext::InitClasses(void *aGlobalObj)
 #ifdef MOZ_SHARK
   
   ::JS_DefineFunctions(mContext, globalObj, SharkFunctions);
-#endif
-
-#ifdef MOZ_CALLGRIND
-  
-  ::JS_DefineFunctions(mContext, globalObj, CallgrindFunctions);
-#endif
-
-#ifdef MOZ_VTUNE
-  
-  ::JS_DefineFunctions(mContext, globalObj, VtuneFunctions);
 #endif
 
   JSOptionChangedCallback(js_options_dot_str, this);
