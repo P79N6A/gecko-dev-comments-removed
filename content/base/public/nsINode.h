@@ -167,6 +167,77 @@ inline nsINode* NODE_FROM(C& aContent, D& aDocument)
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class nsMutationGuard {
+public:
+  nsMutationGuard()
+  {
+    mDelta = eMaxMutations - sMutationCount;
+    sMutationCount = eMaxMutations;
+  }
+  ~nsMutationGuard()
+  {
+    sMutationCount =
+      mDelta > sMutationCount ? 0 : sMutationCount - mDelta;
+  }
+
+  
+
+
+
+  PRBool Mutated(PRUint8 aIgnoreCount)
+  {
+    return sMutationCount < static_cast<PRUint32>(eMaxMutations - aIgnoreCount);
+  }
+
+  
+  
+  
+  static void DidMutate()
+  {
+    if (sMutationCount) {
+      --sMutationCount;
+    }
+  }
+
+private:
+  
+  
+  
+  PRUint32 mDelta;
+
+  
+  
+  enum { eMaxMutations = 300 };
+
+  
+  
+  
+  
+  static PRUint32 sMutationCount;
+};
+
+
 #define NS_INODE_IID \
 { 0x7bccc9bd, 0x30eb, 0x47c0, \
  { 0x8b, 0xc7, 0x6f, 0x19, 0x75, 0xc8, 0xe7, 0xd7 } }
@@ -738,6 +809,42 @@ public:
 
 
   nsIDocument* GetOwnerDocument() const;
+
+  
+
+
+
+  class ChildIterator {
+  public:
+    ChildIterator(const nsINode* aNode) { Init(aNode); }
+    ChildIterator(const nsINode* aNode, PRUint32 aOffset) {
+      Init(aNode);
+      Advance(aOffset);
+    }
+    ~ChildIterator() {
+      NS_ASSERTION(!mGuard.Mutated(0), "Unexpected mutations happened");
+    }
+
+    PRBool IsDone() const { return mCur == mEnd; }
+    operator nsIContent* const () { return *mCur; }
+    void Next() { NS_PRECONDITION(mCur != mEnd, "Check IsDone"); ++mCur; }
+    void Advance(PRUint32 aOffset) {
+      NS_ASSERTION(mCur + aOffset <= mEnd, "Unexpected offset");
+      mCur += aOffset;
+    }
+  private:
+    void Init(const nsINode* aNode) {
+      NS_PRECONDITION(aNode, "Must have node here!");
+      PRUint32 childCount;
+      mCur = aNode->GetChildArray(&childCount);
+      mEnd = mCur + childCount;
+    }
+#ifdef DEBUG
+    nsMutationGuard mGuard;
+#endif
+    nsIContent* const * mCur;
+    nsIContent* const * mEnd;
+  };
 
 protected:
 
