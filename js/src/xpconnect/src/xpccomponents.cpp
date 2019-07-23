@@ -3520,55 +3520,57 @@ xpc_EvalInSandbox(JSContext *cx, JSObject *sandbox, const nsAString& source,
 
     nsresult rv = NS_OK;
 
-    AutoJSRequestWithNoCallContext req(sandcx->GetJSContext());
-    JSString *str = nsnull;
-    if (!JS_EvaluateUCScriptForPrincipals(sandcx->GetJSContext(), sandbox,
-                                          jsPrincipals,
-                                          reinterpret_cast<const jschar *>
-                                                          (PromiseFlatString(source).get()),
-                                          source.Length(), filename, lineNo,
-                                          rval) ||
-        (returnStringOnly &&
-         !JSVAL_IS_VOID(*rval) &&
-         !(str = JS_ValueToString(sandcx->GetJSContext(), *rval)))) {
-        jsval exn;
-        if (JS_GetPendingException(sandcx->GetJSContext(), &exn)) {
-            
-            
-            {
-                AutoJSSuspendRequestWithNoCallContext sus(sandcx->GetJSContext());
-                AutoJSRequestWithNoCallContext cxreq(cx);
-
-                JS_SetPendingException(cx, exn);
-            }
-
-            JS_ClearPendingException(sandcx->GetJSContext());
-            if (returnStringOnly) {
+    {
+        AutoJSRequestWithNoCallContext req(sandcx->GetJSContext());
+        JSString *str = nsnull;
+        if (!JS_EvaluateUCScriptForPrincipals(sandcx->GetJSContext(), sandbox,
+                                              jsPrincipals,
+                                              reinterpret_cast<const jschar *>
+                                                              (PromiseFlatString(source).get()),
+                                              source.Length(), filename, lineNo,
+                                              rval) ||
+            (returnStringOnly &&
+             !JSVAL_IS_VOID(*rval) &&
+             !(str = JS_ValueToString(sandcx->GetJSContext(), *rval)))) {
+            jsval exn;
+            if (JS_GetPendingException(sandcx->GetJSContext(), &exn)) {
                 
                 
-                str = JS_ValueToString(sandcx->GetJSContext(), exn);
+                {
+                    AutoJSSuspendRequestWithNoCallContext sus(sandcx->GetJSContext());
+                    AutoJSRequestWithNoCallContext cxreq(cx);
 
-                AutoJSSuspendRequestWithNoCallContext sus(sandcx->GetJSContext());
-                AutoJSRequestWithNoCallContext cxreq(cx);
-                if (str) {
-                    
-                    
-                    JS_SetPendingException(cx, STRING_TO_JSVAL(str));
-                } else {
-                    JS_ClearPendingException(cx);
-                    rv = NS_ERROR_FAILURE;
+                    JS_SetPendingException(cx, exn);
                 }
+
+                JS_ClearPendingException(sandcx->GetJSContext());
+                if (returnStringOnly) {
+                    
+                    
+                    str = JS_ValueToString(sandcx->GetJSContext(), exn);
+
+                    AutoJSSuspendRequestWithNoCallContext sus(sandcx->GetJSContext());
+                    AutoJSRequestWithNoCallContext cxreq(cx);
+                    if (str) {
+                        
+                        
+                        JS_SetPendingException(cx, STRING_TO_JSVAL(str));
+                    } else {
+                        JS_ClearPendingException(cx);
+                        rv = NS_ERROR_FAILURE;
+                    }
+                }
+
+                
+                str = nsnull;
+            } else {
+                rv = NS_ERROR_OUT_OF_MEMORY;
             }
-
-            
-            str = nsnull;
-        } else {
-            rv = NS_ERROR_OUT_OF_MEMORY;
         }
-    }
 
-    if (str) {
-        *rval = STRING_TO_JSVAL(str);
+        if (str) {
+            *rval = STRING_TO_JSVAL(str);
+        }
     }
 
     if (stack) {
