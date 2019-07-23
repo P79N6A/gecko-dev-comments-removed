@@ -4305,19 +4305,17 @@ nsNavHistory::GroupByFolder(nsNavHistoryQueryResultNode *aResultNode,
     nsNavHistoryContainerResultNode* folderNode = nsnull;
     if (!folders.Get(parentId, &folderNode)) {
       
-      nsAutoString title;
+      nsCAutoString title;
       rv = bookmarks->GetItemTitle(parentId, title);
       NS_ENSURE_SUCCESS(rv, rv);
 
       nsCAutoString urn;
-      rv = CreatePlacesPersistURN(aResultNode, parentId, NS_ConvertUTF16toUTF8(title), urn);
+      rv = CreatePlacesPersistURN(aResultNode, parentId, title, urn);
       NS_ENSURE_SUCCESS(rv, rv);
 
       
       folderNode = new nsNavHistoryContainerResultNode(urn, 
-        NS_ConvertUTF16toUTF8(title),
-        EmptyCString(),
-        nsNavHistoryResultNode::RESULT_TYPE_FOLDER,
+        title, EmptyCString(), nsNavHistoryResultNode::RESULT_TYPE_FOLDER,
         PR_TRUE, EmptyCString(), aResultNode->mOptions);
 
       if (!folders.Put(parentId, folderNode))
@@ -4783,9 +4781,31 @@ nsNavHistory::RowToResult(mozIStorageValueArray* aRow,
   rv = aRow->GetUTF8String(kGetInfoIndex_FaviconURL, favicon);
   NS_ENSURE_SUCCESS(rv, rv);
 
+  
+  PRInt64 itemId = -1;
+  PRBool isNull;
+  rv = aRow->GetIsNull(kGetInfoIndex_ItemId, &isNull);
+  NS_ENSURE_SUCCESS(rv, rv);
+  if (!isNull) {
+    itemId = aRow->AsInt64(kGetInfoIndex_ItemId);
+  }
+
   if (IsQueryURI(url)) {
     
-    PRInt64 itemId = aRow->AsInt64(kGetInfoIndex_ItemId);
+      
+    
+    
+    
+    
+    
+    if (itemId != -1) {
+      nsNavBookmarks* bookmarks = nsNavBookmarks::GetBookmarksService();
+      NS_ENSURE_TRUE(bookmarks, NS_ERROR_OUT_OF_MEMORY);
+
+      rv = bookmarks->GetItemTitle(itemId, title);
+      NS_ENSURE_SUCCESS(rv, rv);
+    }
+
     rv = QueryRowToResult(itemId, url, title, accessCount, time, favicon, aResult);
 
     
@@ -4797,13 +4817,11 @@ nsNavHistory::RowToResult(mozIStorageValueArray* aRow,
   } else if (aOptions->ResultType() == nsNavHistoryQueryOptions::RESULTS_AS_URI) {
     *aResult = new nsNavHistoryResultNode(url, title, accessCount, time,
                                           favicon);
-    if (! *aResult)
+    if (!*aResult)
       return NS_ERROR_OUT_OF_MEMORY;
 
-    PRBool isNull;
-    if (NS_SUCCEEDED(aRow->GetIsNull(kGetInfoIndex_ItemId, &isNull)) &&
-        !isNull) {
-      (*aResult)->mItemId = aRow->AsInt64(kGetInfoIndex_ItemId);
+    if (itemId != -1) {
+      (*aResult)->mItemId = itemId;
       (*aResult)->mDateAdded = aRow->AsInt64(kGetInfoIndex_ItemDateAdded);
       (*aResult)->mLastModified = aRow->AsInt64(kGetInfoIndex_ItemLastModified);
     }
@@ -4890,6 +4908,14 @@ nsNavHistory::QueryRowToResult(PRInt64 itemId, const nsACString& aURI,
       
       rv = bookmarks->ResultNodeForContainer(folderId, options, aNode);
       NS_ENSURE_SUCCESS(rv, rv);
+
+      
+      (*aNode)->GetAsFolder()->mQueryItemId = itemId;
+
+      
+      
+      if (!aTitle.IsVoid())
+        (*aNode)->mTitle = aTitle;
     } else {
       
       *aNode = new nsNavHistoryQueryResultNode(aTitle, EmptyCString(),

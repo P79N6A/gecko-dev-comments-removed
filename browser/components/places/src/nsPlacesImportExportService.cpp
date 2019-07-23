@@ -918,7 +918,7 @@ BookmarkContentSink::HandleLinkBegin(const nsIParserNode& node)
     rv = mBookmarksService->InsertBookmark(frame.mContainerID,
                                            frame.mPreviousLink,
                                            mBookmarksService->DEFAULT_INDEX,
-                                           EmptyString(),
+                                           EmptyCString(),
                                            &frame.mPreviousId);
     NS_ASSERTION(NS_SUCCEEDED(rv), "InsertBookmark failed");
 
@@ -1026,7 +1026,7 @@ BookmarkContentSink::HandleLinkEnd()
         NS_ASSERTION(NS_SUCCEEDED(rv), "SetSiteURI failed!");
         rv = mLivemarkService->SetFeedURI(frame.mPreviousId, frame.mPreviousFeed);
         NS_ASSERTION(NS_SUCCEEDED(rv), "SetFeedURI failed!");
-        rv = mBookmarksService->SetItemTitle(frame.mPreviousId, frame.mPreviousText);
+        rv = mBookmarksService->SetItemTitle(frame.mPreviousId, NS_ConvertUTF16toUTF8(frame.mPreviousText));
         NS_ASSERTION(NS_SUCCEEDED(rv), "SetItemTitle failed!");
       }
     }
@@ -1069,11 +1069,11 @@ BookmarkContentSink::HandleLinkEnd()
                                                        nsIAnnotationService::EXPIRE_NEVER);
       NS_ASSERTION(NS_SUCCEEDED(rv), "Could not store user's bookmark title!");
 
-      mBookmarksService->SetItemTitle(frame.mPreviousId, frame.mPreviousMicrosummaryText);
+      mBookmarksService->SetItemTitle(frame.mPreviousId, NS_ConvertUTF16toUTF8(frame.mPreviousMicrosummaryText));
       mMicrosummaryService->SetMicrosummary(frame.mPreviousId, frame.mPreviousMicrosummary);
     }
     else
-      mBookmarksService->SetItemTitle(frame.mPreviousId, frame.mPreviousText);
+      mBookmarksService->SetItemTitle(frame.mPreviousId, NS_ConvertUTF16toUTF8(frame.mPreviousText));
   }
 
   
@@ -1119,7 +1119,7 @@ BookmarkContentSink::HandleSeparator(const nsIParserNode& aNode)
   name.Trim(kWhitespace);
 
   if (!name.IsEmpty())
-    mBookmarksService->SetItemTitle(frame.mPreviousId, name);
+    mBookmarksService->SetItemTitle(frame.mPreviousId, NS_ConvertUTF16toUTF8(name));
 
   
   
@@ -1150,7 +1150,7 @@ BookmarkContentSink::NewFrame()
     case BookmarkImportFrame::Container_Normal:
       
       rv = mBookmarksService->CreateFolder(CurFrame().mContainerID,
-                                           containerName,
+                                           NS_ConvertUTF16toUTF8(containerName),
                                            mBookmarksService->DEFAULT_INDEX, 
                                            &ourID);
       NS_ENSURE_SUCCESS(rv, rv);
@@ -1202,7 +1202,7 @@ BookmarkContentSink::NewFrame()
   if (updateFolder) {
     
     mBookmarksService->MoveItem(ourID, CurFrame().mContainerID, -1);
-    mBookmarksService->SetItemTitle(ourID, containerName);
+    mBookmarksService->SetItemTitle(ourID, NS_ConvertUTF16toUTF8(containerName));
 #ifdef DEBUG_IMPORT
     printf(" [reparenting]");
 #endif
@@ -2065,13 +2065,13 @@ nsPlacesImportExportService::WriteSeparator(nsINavHistoryResultNode* aItem,
   
   
 
-  nsAutoString title;
+  nsCAutoString title;
   rv = mBookmarksService->GetItemTitle(itemId, title);
   if (NS_SUCCEEDED(rv) && !title.IsEmpty()) {
     rv = aOutput->Write(kNameAttribute, strlen(kNameAttribute), &dummy);
     NS_ENSURE_SUCCESS(rv, rv);
 
-    char* escapedTitle = nsEscapeHTML(NS_ConvertUTF16toUTF8(title).get());
+    char* escapedTitle = nsEscapeHTML(title.get());
     if (escapedTitle) {
       PRUint32 dummy;
       rv = aOutput->Write(escapedTitle, strlen(escapedTitle), &dummy);

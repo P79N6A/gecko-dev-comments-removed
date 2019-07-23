@@ -216,7 +216,7 @@ NS_DEFINE_STATIC_IID_ACCESSOR(nsNavHistoryResult, NS_NAVHISTORYRESULT_IID)
 
 
 
-#define NS_IMPLEMENT_SIMPLE_RESULTNODE \
+#define NS_IMPLEMENT_SIMPLE_RESULTNODE_NO_GETITEMMID \
   NS_IMETHOD GetTitle(nsACString& aTitle) \
     { aTitle = mTitle; return NS_OK; } \
   NS_IMETHOD GetAccessCount(PRUint32* aAccessCount) \
@@ -231,13 +231,15 @@ NS_DEFINE_STATIC_IID_ACCESSOR(nsNavHistoryResult, NS_NAVHISTORYRESULT_IID)
     { mViewIndex = aViewIndex; return NS_OK; } \
   NS_IMETHOD GetBookmarkIndex(PRInt32* aIndex) \
     { *aIndex = mBookmarkIndex; return NS_OK; } \
-  NS_IMETHOD GetItemId(PRInt64* aId) \
-    { *aId = mItemId; return NS_OK; } \
   NS_IMETHOD GetDateAdded(PRTime* aDateAdded) \
     { *aDateAdded = mDateAdded; return NS_OK; } \
   NS_IMETHOD GetLastModified(PRTime* aLastModified) \
     { *aLastModified = mLastModified; return NS_OK; }
 
+#define NS_IMPLEMENT_SIMPLE_RESULTNODE \
+  NS_IMPLEMENT_SIMPLE_RESULTNODE_NO_GETITEMMID \
+  NS_IMETHOD GetItemId(PRInt64* aId) \
+    { *aId = mItemId; return NS_OK; }
 
 
 
@@ -247,8 +249,9 @@ NS_DEFINE_STATIC_IID_ACCESSOR(nsNavHistoryResult, NS_NAVHISTORYRESULT_IID)
 
 
 
-#define NS_FORWARD_COMMON_RESULTNODE_TO_BASE \
-  NS_IMPLEMENT_SIMPLE_RESULTNODE \
+
+#define NS_FORWARD_COMMON_RESULTNODE_TO_BASE_NO_GETITEMMID \
+  NS_IMPLEMENT_SIMPLE_RESULTNODE_NO_GETITEMMID \
   NS_IMETHOD GetIcon(nsIURI** aIcon) \
     { return nsNavHistoryResultNode::GetIcon(aIcon); } \
   NS_IMETHOD GetParent(nsINavHistoryContainerResultNode** aParent) \
@@ -259,6 +262,11 @@ NS_DEFINE_STATIC_IID_ACCESSOR(nsNavHistoryResult, NS_NAVHISTORYRESULT_IID)
     { return nsNavHistoryResultNode::GetPropertyBag(aBag); } \
   NS_IMETHOD GetTags(nsAString& aTags) \
     { return nsNavHistoryResultNode::GetTags(aTags); } \
+
+#define NS_FORWARD_COMMON_RESULTNODE_TO_BASE \
+  NS_FORWARD_COMMON_RESULTNODE_TO_BASE_NO_GETITEMMID \
+  NS_IMETHOD GetItemId(PRInt64* aId) \
+    { *aId = mItemId; return NS_OK; }
 
 class nsNavHistoryResultNode : public nsINavHistoryResultNode
 {
@@ -751,13 +759,14 @@ public:
                                const nsACString& aDynamicContainerType);
 
   NS_DECL_ISUPPORTS_INHERITED
-  NS_FORWARD_COMMON_RESULTNODE_TO_BASE
+  NS_FORWARD_COMMON_RESULTNODE_TO_BASE_NO_GETITEMMID
   NS_IMETHOD GetType(PRUint32* type)
     { *type = nsNavHistoryResultNode::RESULT_TYPE_FOLDER; return NS_OK; }
   NS_IMETHOD GetUri(nsACString& aURI);
   NS_FORWARD_CONTAINERNODE_EXCEPT_HASCHILDREN_AND_READONLY
   NS_IMETHOD GetHasChildren(PRBool* aHasChildren);
   NS_IMETHOD GetChildrenReadOnly(PRBool *aChildrenReadOnly);
+  NS_IMETHOD GetItemId(PRInt64 *aItemId);
   NS_DECL_NSINAVHISTORYQUERYRESULTNODE
 
   virtual nsresult OpenContainer();
@@ -774,6 +783,10 @@ public:
   
   
   PRBool mContentsValid;
+
+  
+  
+  PRInt64 mQueryItemId;
 
   nsresult FillChildren();
   void ClearChildren(PRBool aUnregister);
