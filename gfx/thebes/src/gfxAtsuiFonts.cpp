@@ -170,7 +170,7 @@ ATSUFontID gfxAtsuiFont::GetATSUFontID()
 }
 
 static void
-DisableUncommonLigatures(ATSUStyle aStyle)
+DisableUncommonLigaturesAndLineBoundarySwashes(ATSUStyle aStyle)
 {
     static const ATSUFontFeatureType types[] = {
         kLigaturesType,
@@ -178,7 +178,9 @@ DisableUncommonLigatures(ATSUStyle aStyle)
         kLigaturesType,
         kLigaturesType,
         kLigaturesType,
-        kLigaturesType
+        kLigaturesType,
+        kSmartSwashType,
+        kSmartSwashType
     };
     static const ATSUFontFeatureType selectors[NS_ARRAY_LENGTH(types)] = {
         kRareLigaturesOffSelector,
@@ -186,7 +188,9 @@ DisableUncommonLigatures(ATSUStyle aStyle)
         kRebusPicturesOffSelector,
         kDiphthongLigaturesOffSelector,
         kSquaredLigaturesOffSelector,
-        kAbbrevSquaredLigaturesOffSelector
+        kAbbrevSquaredLigaturesOffSelector,
+        kLineInitialSwashesOffSelector,
+        kLineFinalSwashesOffSelector
     };
     ATSUSetFontFeatures(aStyle, NS_ARRAY_LENGTH(types), types, selectors);
 }
@@ -253,7 +257,11 @@ gfxAtsuiFont::InitMetrics(ATSUFontID aFontID, ATSFontRef aFontRef)
     
     
     
-    DisableUncommonLigatures(mATSUStyle);
+    
+    
+    
+    
+    DisableUncommonLigaturesAndLineBoundarySwashes(mATSUStyle);
 
     
 
