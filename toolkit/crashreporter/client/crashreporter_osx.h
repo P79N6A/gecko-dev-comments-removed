@@ -124,7 +124,7 @@
 
 
 @interface TextViewWithPlaceHolder : NSTextView {
-  NSAttributedString *mPlaceHolderString;
+  NSMutableAttributedString *mPlaceHolderString;
 }
 
 - (BOOL)becomeFirstResponder;
