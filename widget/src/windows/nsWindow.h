@@ -51,7 +51,6 @@
 
 #include "nsBaseWidget.h"
 #include "nsdefs.h"
-#include "nsSwitchToUIThread.h"
 #include "nsToolkit.h"
 #include "nsIEventListener.h"
 #include "nsString.h"
@@ -91,8 +90,7 @@ class imgIContainer;
 
 
 
-class nsWindow : public nsSwitchToUIThread,
-                 public nsBaseWidget
+class nsWindow : public nsBaseWidget
 {
 public:
   nsWindow();
@@ -183,11 +181,6 @@ public:
   NS_IMETHOD              OnIMETextChange(PRUint32 aStart, PRUint32 aOldEnd, PRUint32 aNewEnd);
   NS_IMETHOD              OnIMESelectionChange(void);
 #endif 
-
-  
-
-
-  virtual BOOL            CallMethod(MethodInfo *info);
 
   
 
@@ -392,22 +385,6 @@ protected:
 #ifdef ACCESSIBILITY
   static STDMETHODIMP_(LRESULT) LresultFromObject(REFIID riid, WPARAM wParam, LPUNKNOWN pAcc);
 #endif 
-
-protected:
-
-  
-
-
-  enum {
-    
-    
-    CREATE = 0x0101,
-    CREATE_NATIVE,
-    DESTROY,
-    SET_FOCUS,
-    SET_CURSOR,
-    CREATE_HACK
-  };
 
 protected:
   nsIntSize             mLastSize;

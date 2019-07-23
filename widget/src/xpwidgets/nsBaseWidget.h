@@ -199,18 +199,6 @@ protected:
   
   static nsIContent* mLastRollup;
     
-    
-    
-    
-  enum {
-    CREATE       = 0x0101,
-    CREATE_NATIVE,
-    DESTROY, 
-    SET_FOCUS,
-    SET_CURSOR,
-    CREATE_HACK
-  };
-
 #ifdef DEBUG
 protected:
   static nsAutoString debug_GuiEventToString(nsGUIEvent * aGuiEvent);
