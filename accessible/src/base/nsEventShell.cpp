@@ -253,8 +253,21 @@ nsAccEventQueue::CoalesceEvents()
           thisEvent->mEventRule = nsAccEvent::eDoNotEmit;
           continue;
         }
-        if (nsCoreUtils::IsAncestorOf(tailEvent->mNode, thisEvent->mNode)) {
+
+        
+        
+        
+        
+        
+        
+        PRBool thisCanBeDescendantOfTail =
+          tailEvent->mEventType != nsIAccessibleEvent::EVENT_SHOW ||
+          tailEvent->mIsAsync;
+
+        if (thisCanBeDescendantOfTail &&
+            nsCoreUtils::IsAncestorOf(tailEvent->mNode, thisEvent->mNode)) {
           
+
           if (thisEvent->mEventType == nsIAccessibleEvent::EVENT_REORDER) {
             CoalesceReorderEventsFromSameTree(tailEvent, thisEvent);
             continue;
@@ -267,8 +280,20 @@ nsAccEventQueue::CoalesceEvents()
                           thisEvent->mNode, nsAccEvent::eDoNotEmit);
           continue;
         }
-        if (nsCoreUtils::IsAncestorOf(thisEvent->mNode, tailEvent->mNode)) {
+
+#ifdef DEBUG
+        if (!thisCanBeDescendantOfTail &&
+            nsCoreUtils::IsAncestorOf(tailEvent->mNode, thisEvent->mNode)) {
+          NS_NOTREACHED("Older event target is a descendant of recent event target!");
+        }
+#endif
+
+        
+        
+        if (tailEvent->mEventType != nsIAccessibleEvent::EVENT_HIDE &&
+            nsCoreUtils::IsAncestorOf(thisEvent->mNode, tailEvent->mNode)) {
           
+
           if (thisEvent->mEventType == nsIAccessibleEvent::EVENT_REORDER) {
             CoalesceReorderEventsFromSameTree(thisEvent, tailEvent);
             continue;
@@ -281,10 +306,21 @@ nsAccEventQueue::CoalesceEvents()
                           tailEvent->mNode, nsAccEvent::eDoNotEmit);
           break;
         }
+
+#ifdef DEBUG
+        if (tailEvent->mEventType == nsIAccessibleEvent::EVENT_HIDE &&
+            nsCoreUtils::IsAncestorOf(thisEvent->mNode, tailEvent->mNode)) {
+          NS_NOTREACHED("More older hide event target is an ancestor of recent hide event target!");
+        }
+#endif
+
       } 
 
       if (tailEvent->mEventRule != nsAccEvent::eDoNotEmit) {
         
+        
+        
+
         
         
         
