@@ -10,7 +10,6 @@ function run_test()
   do_check_neq(cr, null);
 
   
-  do_check_false(cr.enabled);
   cr.enabled = true;
   do_check_true(cr.enabled);
   
