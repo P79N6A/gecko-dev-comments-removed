@@ -620,7 +620,7 @@ nsHTMLFormElement::PostHandleEvent(nsEventChainPostVisitor& aVisitor)
             
             
             
-            ForgetPendingSubmission();
+            mPendingSubmission = nsnull;
           }
           DoSubmitOrReset(aVisitor.mEvent, msg);
         }
@@ -709,12 +709,12 @@ nsHTMLFormElement::DoSubmit(nsEvent* aEvent)
   mIsSubmitting = PR_TRUE;
   NS_ASSERTION(!mWebProgress && !mSubmittingRequest, "Web progress / submitting request should not exist here!");
 
-  nsRefPtr<nsFormSubmission> submission;
+  nsAutoPtr<nsFormSubmission> submission;
 
   
   
   
-  BuildSubmission(submission, aEvent); 
+  BuildSubmission(getter_Transfers(submission), aEvent); 
 
   
   
@@ -745,7 +745,7 @@ nsHTMLFormElement::DoSubmit(nsEvent* aEvent)
 }
 
 nsresult
-nsHTMLFormElement::BuildSubmission(nsRefPtr<nsFormSubmission>& aFormSubmission, 
+nsHTMLFormElement::BuildSubmission(nsFormSubmission** aFormSubmission, 
                                    nsEvent* aEvent)
 {
   NS_ASSERTION(!mPendingSubmission, "tried to build two submissions!");
@@ -763,13 +763,13 @@ nsHTMLFormElement::BuildSubmission(nsRefPtr<nsFormSubmission>& aFormSubmission,
   
   
   
-  rv = GetSubmissionFromForm(this, getter_AddRefs(aFormSubmission));
+  rv = GetSubmissionFromForm(this, aFormSubmission);
   NS_ENSURE_SUBMIT_SUCCESS(rv);
 
   
   
   
-  rv = WalkFormElements(aFormSubmission, originatingElement);
+  rv = WalkFormElements(*aFormSubmission, originatingElement);
   NS_ENSURE_SUBMIT_SUCCESS(rv);
 
   return NS_OK;
@@ -1327,26 +1327,13 @@ nsHTMLFormElement::OnSubmitClickEnd()
 void
 nsHTMLFormElement::FlushPendingSubmission()
 {
-  nsRefPtr<nsFormSubmission> kunkFuDeathGrip(mPendingSubmission);
+  if (mPendingSubmission) {
+    
+    
+    nsAutoPtr<nsFormSubmission> submission = mPendingSubmission;
 
-  if (!mPendingSubmission) {
-    return;
+    SubmitSubmission(submission);
   }
-
-  
-  
-  
-  SubmitSubmission(mPendingSubmission);
-
-  
-  mPendingSubmission = nsnull;
-}
-
-void
-nsHTMLFormElement::ForgetPendingSubmission()
-{
-  
-  mPendingSubmission = nsnull;
 }
 
 nsresult

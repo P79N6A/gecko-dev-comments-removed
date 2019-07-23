@@ -61,13 +61,6 @@ class nsFormSubmission {
 public:
   virtual ~nsFormSubmission();
 
-  void AddRef()
-  {
-    ++mRefCnt;
-    NS_LOG_ADDREF(this, mRefCnt, "nsFormSubmission", sizeof(*this));
-  }
-  void Release();
-
   
 
 
@@ -151,7 +144,6 @@ protected:
   nsresult UnicodeToNewBytes(const nsAString& aStr, nsISaveAsCharset* aEncoder,
                              nsACString& aOut);
 
-  nsAutoRefCnt mRefCnt;
   
   nsCString mCharset;
   

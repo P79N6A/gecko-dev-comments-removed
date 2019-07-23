@@ -289,7 +289,7 @@ protected:
 
 
 
-  nsresult BuildSubmission(nsRefPtr<nsFormSubmission>& aFormSubmission, 
+  nsresult BuildSubmission(nsFormSubmission** aFormSubmission, 
                            nsEvent* aEvent);
   
 
@@ -338,13 +338,6 @@ public:
 
   void FlushPendingSubmission();
 protected:
-  
-
-
-
-
-
-  void ForgetPendingSubmission();
 
   
   
@@ -371,7 +364,7 @@ protected:
   PRBool mSubmitInitiatedFromUserInput;
 
   
-  nsRefPtr<nsFormSubmission> mPendingSubmission;
+  nsAutoPtr<nsFormSubmission> mPendingSubmission;
   
   nsCOMPtr<nsIRequest> mSubmittingRequest;
   
