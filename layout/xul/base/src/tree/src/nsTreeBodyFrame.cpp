@@ -2431,6 +2431,10 @@ void nsTreeBodyFrame::CalcInnerBox()
 nscoord
 nsTreeBodyFrame::CalcHorzWidth(const ScrollParts& aParts)
 {
+  
+  
+  mAdjustWidth = mRect.width - aParts.mColumnsFrame->GetRect().width;
+
   nscoord width = 0;
   nscoord height;
 
@@ -2444,14 +2448,8 @@ nsTreeBodyFrame::CalcHorzWidth(const ScrollParts& aParts)
   }
 
   
-  if (width == 0) {
-    mAdjustWidth = 0;
+  if (width == 0)
     width = mRect.width;
-  } else {
-    
-    
-    mAdjustWidth = mRect.width - aParts.mColumnsFrame->GetRect().width;
-  }
 
   return width;
 }
