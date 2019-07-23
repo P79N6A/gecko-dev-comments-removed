@@ -160,6 +160,8 @@ static NS_DEFINE_CID(kDOMEventGroupCID, NS_DOMEVENTGROUP_CID);
 
 #include "nsFrameLoader.h"
 
+#include "mozAutoDocUpdate.h"
+
 #ifdef MOZ_LOGGING
 
 #define FORCE_PR_LOG 1
@@ -831,6 +833,8 @@ nsDocument::~nsDocument()
   
   DestroyLinkMap();
 
+  nsAutoScriptBlocker scriptBlocker;
+
   PRInt32 indx; 
   PRUint32 count = mChildren.ChildCount();
   for (indx = PRInt32(count) - 1; indx >= 0; --indx) {
@@ -1084,6 +1088,8 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(nsDocument)
   
   
   tmp->DestroyLinkMap();
+
+  nsAutoScriptBlocker scriptBlocker;
 
   
   for (PRInt32 indx = PRInt32(tmp->mChildren.ChildCount()) - 1; 

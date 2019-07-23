@@ -209,10 +209,6 @@ nsHTMLLinkElement::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
 
   UpdateStyleSheetInternal(nsnull);
 
-  
-  
-  
-  
   CreateAndDispatchEvent(aDocument, NS_LITERAL_STRING("DOMLinkAdded"));
 
   return rv;  
@@ -245,8 +241,6 @@ nsHTMLLinkElement::UnbindFromTree(PRBool aDeep, PRBool aNullParent)
 
   
   
-  
-  
   CreateAndDispatchEvent(oldDoc, NS_LITERAL_STRING("DOMLinkRemoved"));
   nsGenericHTMLElement::UnbindFromTree(aDeep, aNullParent);
   UpdateStyleSheetInternal(oldDoc);
@@ -276,7 +270,13 @@ nsHTMLLinkElement::CreateAndDispatchEvent(nsIDocument* aDoc,
 
   nsRefPtr<nsPLDOMEvent> event = new nsPLDOMEvent(this, aEventName);
   if (event) {
-    event->PostDOMEvent();
+    
+    
+    
+    if (nsContentUtils::IsSafeToRunScript())
+      event->PostDOMEvent();
+    else
+      event->RunDOMEventWhenSafe();
   }
 }
 
