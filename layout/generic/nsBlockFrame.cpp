@@ -1425,9 +1425,6 @@ nsBlockFrame::ComputeFinalSize(const nsHTMLReflowState& aReflowState,
     NS_FRAME_SET_OVERFLOW_INCOMPLETE(aState.mReflowStatus);
   }
 
-  
-  aMetrics.height = PR_MAX(0, aMetrics.height);
-
 #ifdef DEBUG_blocks
   if (CRAZY_WIDTH(aMetrics.width) || CRAZY_HEIGHT(aMetrics.height)) {
     ListTag(stdout);
