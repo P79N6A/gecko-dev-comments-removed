@@ -216,7 +216,7 @@ ViewportFrame::GetPrefWidth(nsIRenderingContext *aRenderingContext)
 }
 
 nsPoint
- ViewportFrame::AdjustReflowStateForScrollbars(nsHTMLReflowState* aReflowState) const
+ViewportFrame::AdjustReflowStateForScrollbars(nsHTMLReflowState* aReflowState) const
 {
   
   
@@ -240,7 +240,7 @@ nsPoint
 }
 
 NS_IMETHODIMP
-ViewportFrame::Reflow(nsPresContext*          aPresContext,
+ViewportFrame::Reflow(nsPresContext*           aPresContext,
                       nsHTMLReflowMetrics&     aDesiredSize,
                       const nsHTMLReflowState& aReflowState,
                       nsReflowStatus&          aStatus)
