@@ -176,10 +176,6 @@ enum {
 
   
   
-  NS_FRAME_IS_BOX =                             0x00000080,
-
-  
-  
   NS_FRAME_OUT_OF_FLOW =                        0x00000100,
 
   
@@ -1463,6 +1459,7 @@ public:
     
     
     eLineParticipant =                  1 << 6,
+    eXULBox =                           1 << 7,
 
 
     
@@ -1852,7 +1849,10 @@ NS_PTR_TO_INT32(frame->GetProperty(nsGkAtoms::embeddingLevel))
   
   
   
-  PRBool IsBoxFrame() const { return (mState & NS_FRAME_IS_BOX) != 0; }
+  PRBool IsBoxFrame() const
+  {
+    return IsFrameOfType(nsIFrame::eXULBox);
+  }
   PRBool IsBoxWrapped() const
   { return (!IsBoxFrame() && mParent && mParent->IsBoxFrame()); }
 

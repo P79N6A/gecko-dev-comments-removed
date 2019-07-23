@@ -148,7 +148,7 @@ public:
     
     
     return nsContainerFrame::IsFrameOfType(aFlags &
-      ~(nsIFrame::eReplaced | nsIFrame::eReplacedContainsBlock));
+      ~(nsIFrame::eReplaced | nsIFrame::eReplacedContainsBlock | eXULBox));
   }
 
 #ifdef DEBUG
