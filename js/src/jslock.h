@@ -39,6 +39,8 @@
 #ifndef jslock_h__
 #define jslock_h__
 
+#include "jspubtd.h"    
+
 #ifdef JS_THREADSAFE
 
 #include "jstypes.h"
@@ -47,8 +49,9 @@
 #include "prcvar.h"
 #include "prthread.h"
 
+#ifdef JS_DEBUG_TITLE_LOCKS
 #include "jsprvtd.h"    
-#include "jspubtd.h"    
+#endif
 
 JS_BEGIN_EXTERN_C
 
@@ -94,7 +97,7 @@ struct JSTitle {
     const char      *file[4];           
     unsigned int    line[4];            
 #endif
-};    
+};
 
 
 
@@ -114,6 +117,10 @@ struct JSTitle {
 #define JS_ATOMIC_DECREMENT(p)      PR_AtomicDecrement((PRInt32 *)(p))
 #define JS_ATOMIC_ADD(p,v)          PR_AtomicAdd((PRInt32 *)(p), (PRInt32)(v))
 #define JS_ATOMIC_SET(p,v)          PR_AtomicSet((PRInt32 *)(p), (PRInt32)(v))
+
+
+
+
 
 
 #if defined(_WIN32) && defined(_M_IX86)
@@ -347,11 +354,11 @@ extern void js_Unlock(JSThinLock *tl, jsword me);
 
 #else  
 
-#include "jscompat.h"
-
 JS_BEGIN_EXTERN_C
 
-static inline int32 js_NotThreadsafeAtomicAdd(int32* p, int32 v) {
+static inline int32
+js_AtomicAdd(int32* p, int32 v)
+{
     int32 r = *p;
     *p = v;
     return r;
@@ -360,7 +367,7 @@ static inline int32 js_NotThreadsafeAtomicAdd(int32* p, int32 v) {
 #define JS_ATOMIC_INCREMENT(p)      (++*(p))
 #define JS_ATOMIC_DECREMENT(p)      (--*(p))
 #define JS_ATOMIC_ADD(p,v)          (*(p) += (v))
-#define JS_ATOMIC_SET(p,v)          (js_NotThreadsafeAtomicAdd((int32*)p, (int32)v))
+#define JS_ATOMIC_SET(p,v)          (js_AtomicAdd((int32*)p, (int32)v))
 
 static inline int
 js_CompareAndSwap(jsword *w, jsword ov, jsword nv)
@@ -419,7 +426,7 @@ js_CompareAndSwap(jsword *w, jsword ov, jsword nv)
 
 #define JS_LOCK(P,CX)               JS_LOCK0(P, CX_THINLOCK_ID(CX))
 #define JS_UNLOCK(P,CX)             JS_UNLOCK0(P, CX_THINLOCK_ID(CX))
- 
+
 #ifndef SET_OBJ_INFO
 #define SET_OBJ_INFO(obj,f,l)       ((void)0)
 #endif
