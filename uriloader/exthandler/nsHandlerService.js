@@ -133,15 +133,19 @@ HandlerService.prototype = {
   _updateDB: function HS__updateDB() {
     
     
-    try { 
-      if (this._datastoreDefaultHandlersVersion <
-          this._prefsDefaultHandlersVersion) {
+    var defaultHandlersVersion = this._datastoreDefaultHandlersVersion;
+    try {
+      if (defaultHandlersVersion < this._prefsDefaultHandlersVersion) {
+        
+        
+        this._datastoreDefaultHandlersVersion =
+          this._prefsDefaultHandlersVersion;
         this._injectNewDefaults();
-        this._datastoreDefaultHandlersVersion = 
-        this._prefsDefaultHandlersVersion;
       }
     } catch (ex) {
       
+      
+      this._datastoreDefaultHandlersVersion = defaultHandlersVersion;      
     }
   },
   
