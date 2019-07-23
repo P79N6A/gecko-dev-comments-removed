@@ -194,7 +194,7 @@ nsHtml5TreeBuilder::comment(PRUnichar* buf, PRInt32 start, PRInt32 length)
 }
 
 void 
-nsHtml5TreeBuilder::characters(PRUnichar* buf, PRInt32 start, PRInt32 length)
+nsHtml5TreeBuilder::characters(const PRUnichar* buf, PRInt32 start, PRInt32 length)
 {
   if (needToDropLF) {
     if (buf[start] == '\n') {
