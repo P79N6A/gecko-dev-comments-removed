@@ -139,8 +139,6 @@ function runServer()
 
   server.registerPathHandler("/server/shutdown", serverShutdown);
 
-  server.registerPathHandler("/redirect", redirect);
-
   server.registerContentType("sjs", "sjs"); 
 
   server.setIndexHandler(defaultDirHandler);
@@ -198,12 +196,6 @@ function serverShutdown(metadata, response)
 
   
   server.stop();
-}
-
-function redirect(metadata, response)
-{
-  response.setStatusLine("1.1", 301, "Moved Permanently");
-  response.setHeader("Location", metadata.queryString, false);
 }
 
 
