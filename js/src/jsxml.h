@@ -40,6 +40,7 @@
 #define jsxml_h___
 
 #include "jspubtd.h"
+#include "jsobj.h"
 
 JS_BEGIN_EXTERN_C
 
@@ -220,19 +221,28 @@ extern JSClass                          js_XMLFilterClass;
 
 
 
-
-
-
-
 inline bool
 JSObject::isXML() const
 {
     return map->ops == &js_XMLObjectOps;
 }
 
-#define OBJECT_IS_XML(cx,obj)   (obj)->isXML()
-#define VALUE_IS_XML(cx,v)      (!JSVAL_IS_PRIMITIVE(v) &&                    \
-                                 JSVAL_TO_OBJECT(v)->isXML())
+#define VALUE_IS_XML(v)      (!JSVAL_IS_PRIMITIVE(v) && JSVAL_TO_OBJECT(v)->isXML())
+
+inline bool
+JSObject::isNamespace() const
+{
+    return getClass() == &js_NamespaceClass.base;
+}
+
+inline bool
+JSObject::isQName() const
+{
+    JSClass* clasp = getClass();
+    return clasp == &js_QNameClass.base ||
+           clasp == &js_AttributeNameClass ||
+           clasp == &js_AnyNameClass;
+}
 
 extern JSObject *
 js_InitNamespaceClass(JSContext *cx, JSObject *obj);

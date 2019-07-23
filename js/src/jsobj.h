@@ -497,6 +497,41 @@ struct JSObject {
 
 
 
+    
+
+
+
+
+
+
+  private:
+    static const uint32 JSSLOT_NAME_PREFIX          = JSSLOT_PRIVATE;       
+    static const uint32 JSSLOT_NAME_URI             = JSSLOT_PRIVATE + 1;   
+
+    static const uint32 JSSLOT_NAMESPACE_DECLARED   = JSSLOT_PRIVATE + 2;
+
+    static const uint32 JSSLOT_QNAME_LOCAL_NAME     = JSSLOT_PRIVATE + 2;
+
+  public:
+    static const uint32 NAMESPACE_FIXED_RESERVED_SLOTS = 3;
+    static const uint32 QNAME_FIXED_RESERVED_SLOTS     = 3;
+
+    inline jsval getNamePrefix() const;
+    inline void setNamePrefix(jsval prefix);
+
+    inline jsval getNameURI() const;
+    inline void setNameURI(jsval uri);
+
+    inline jsval getNamespaceDeclared() const;
+    inline void setNamespaceDeclared(jsval decl);
+
+    inline jsval getQNameLocalName() const;
+    inline void setQNameLocalName(jsval decl);
+
+    
+
+
+
     bool isCallable();
 
     
@@ -605,6 +640,8 @@ struct JSObject {
     inline bool isFunction() const;
     inline bool isRegExp() const;
     inline bool isXML() const;
+    inline bool isNamespace() const;
+    inline bool isQName() const;
 
     inline bool unbrand(JSContext *cx);
 };
