@@ -465,9 +465,6 @@ protected:
   nsresult ReflowDirtyLines(nsBlockReflowState& aState);
 
   
-  void MarkLineDirtyForInterrupt(nsLineBox* aLine);
-
-  
   
   
 

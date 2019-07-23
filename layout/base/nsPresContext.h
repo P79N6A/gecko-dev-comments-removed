@@ -806,58 +806,6 @@ public:
     mCrossDocDirtyRegion.SetEmpty();
   }
 
-  
-
-
-
-
-
-
-
-
-  void ReflowStarted(PRBool aInterruptible);
-
-  
-
-
-  class InterruptPreventer;
-  friend class InterruptPreventer;
-  class NS_STACK_CLASS InterruptPreventer {
-  public:
-    InterruptPreventer(nsPresContext* aCtx) :
-      mCtx(aCtx),
-      mInterruptsEnabled(aCtx->mInterruptsEnabled),
-      mHasPendingInterrupt(aCtx->mHasPendingInterrupt)
-    {
-      mCtx->mInterruptsEnabled = PR_FALSE;
-      mCtx->mHasPendingInterrupt = PR_FALSE;
-    }
-    ~InterruptPreventer() {
-      mCtx->mInterruptsEnabled = mInterruptsEnabled;
-      mCtx->mHasPendingInterrupt = mHasPendingInterrupt;
-    }
-
-  private:
-    nsPresContext* mCtx;
-    PRBool mInterruptsEnabled;
-    PRBool mHasPendingInterrupt;
-  };
-    
-  
-
-
-
-
-
-
-
-  PRBool CheckForInterrupt(nsIFrame* aFrame);
-  
-
-
-
-  PRBool HasPendingInterrupt() { return mHasPendingInterrupt; }
-
 protected:
   friend class nsRunnableMethod<nsPresContext>;
   NS_HIDDEN_(void) ThemeChangedInternal();
@@ -885,8 +833,6 @@ protected:
     mPostedFlushUserFontSet = PR_FALSE;
     FlushUserFontSet();
   }
-
-  PRBool HavePendingInputEvent();
 
   
   PRBool HasCachedStyleData();
@@ -975,10 +921,6 @@ protected:
 
   nscoord               mBorderWidthTable[3];
 
-  PRUint32              mInterruptChecksToSkip;
-
-  unsigned              mHasPendingInterrupt : 1;
-  unsigned              mInterruptsEnabled : 1;
   unsigned              mUseDocumentFonts : 1;
   unsigned              mUseDocumentColors : 1;
   unsigned              mUnderlineLinks : 1;

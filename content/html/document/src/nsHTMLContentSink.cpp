@@ -3200,7 +3200,7 @@ HTMLContentSink::FlushPendingNotifications(mozFlushType aType)
     else if (mCurrentContext) {
       mCurrentContext->FlushText();
     }
-    if (aType >= Flush_InterruptibleLayout) {
+    if (aType >= Flush_Layout) {
       
       
       StartLayout(PR_TRUE);

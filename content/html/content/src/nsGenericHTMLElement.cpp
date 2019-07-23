@@ -1309,7 +1309,8 @@ nsGenericHTMLElement::GetFormControlFrameFor(nsIContent* aContent,
 {
   if (aFlushContent) {
     
-    aDocument->FlushPendingNotifications(Flush_Frames);
+    
+    aDocument->FlushPendingNotifications(Flush_Layout);
   }
   nsIFrame* frame = GetPrimaryFrameFor(aContent, aDocument);
   if (frame) {
@@ -2695,10 +2696,7 @@ nsGenericHTMLFormElement::SetFocusAndScrollIntoView(nsPresContext* aPresContext)
 {
   nsIEventStateManager *esm = aPresContext->EventStateManager();
   if (esm->SetContentState(this, NS_EVENT_STATE_FOCUS)) {
-    
-    aPresContext->Document()->
-      FlushPendingNotifications(Flush_InterruptibleLayout);
-    nsIFormControlFrame* formControlFrame = GetFormControlFrame(PR_FALSE);
+    nsIFormControlFrame* formControlFrame = GetFormControlFrame(PR_TRUE);
     if (formControlFrame) {
       formControlFrame->SetFocus(PR_TRUE, PR_TRUE);
       nsCOMPtr<nsIPresShell> presShell = aPresContext->GetPresShell();

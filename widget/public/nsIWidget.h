@@ -102,8 +102,8 @@ typedef nsEventStatus (* EVENT_CALLBACK)(nsGUIEvent *event);
 
 
 #define NS_IWIDGET_IID \
-{ 0x3d277f04, 0x93f4, 0x4384, \
- { 0x9f, 0xdc, 0xe1, 0xe2, 0xd1, 0xfc, 0x4e, 0x33 } }
+{ 0xaf70b716, 0x2e34, 0x463f, \
+  { 0x8f, 0x1c, 0x27, 0x3d, 0xbd, 0xdd, 0x84, 0x5b } }
 
 
 
@@ -815,12 +815,6 @@ class nsIWidget : public nsISupports {
 
 
     NS_IMETHOD GetLastInputEventTime(PRUint32& aTime) = 0;
-
-    
-
-
-
-    virtual PRBool HasPendingInputEvent() = 0;
 
     
 
