@@ -214,9 +214,8 @@ nsresult nsLookAndFeel::NativeGetColor(const nsColorID aID, nscolor &aColor)
 		aColor = PH_TO_NS_RGB(Pg_BLACK);
 		break;
 
-	  
-	  
-
+	  case eColor__moz_eventreerow:
+	  case eColor__moz_oddtreerow:
 	  case eColor__moz_field:
 		aColor = PH_TO_NS_RGB(Pg_WHITE);
 		break;

@@ -136,7 +136,10 @@ public:
     eColor__moz_menuhover,                                   
     eColor__moz_menuhovertext,                               
     eColor__moz_menubarhovertext,                            
-    eColor__moz_oddrowbackground,                            
+    
+    
+    eColor__moz_eventreerow,
+    eColor__moz_oddtreerow,
 
     
     eColor__moz_mac_focusring,				
