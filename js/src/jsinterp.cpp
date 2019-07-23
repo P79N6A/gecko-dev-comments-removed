@@ -2568,7 +2568,7 @@ js_Interpret(JSContext *cx)
 #endif 
 
     
-    JS_ASSERT(!cx->runningJittedCode);
+    JS_ASSERT(!cx->executingTrace);
 
     
     JS_CHECK_RECURSION(cx, return JS_FALSE);

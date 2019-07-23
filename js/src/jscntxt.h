@@ -751,7 +751,7 @@ struct JSContext {
 
 
 
-    JSPackedBool        runningJittedCode;
+    JSPackedBool        executingTrace;
 
     
 
