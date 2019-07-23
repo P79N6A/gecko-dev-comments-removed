@@ -438,7 +438,7 @@ GDIFontFamily::FamilyAddStylesProc(const ENUMLOGFONTEXW *lpelfe,
         }
     }
 
-    fe = GDIFontEntry::CreateFontEntry(ff->mName, feType, (logFont.lfItalic == 0xFF),
+    fe = GDIFontEntry::CreateFontEntry(nsDependentString(lpelfe->elfFullName), feType, (logFont.lfItalic == 0xFF),
                                        (PRUint16) (logFont.lfWeight), nsnull);
     if (!fe)
         return 1;
@@ -592,18 +592,11 @@ gfxGDIFontList::InitFontList()
     if (fc)
         fc->AgeAllGenerations();
 
-    mFontFamilies.Clear();
-    mOtherFamilyNames.Clear();
-    mOtherFamilyNamesInitialized = PR_FALSE;
-    mPrefFonts.Clear();
+    
+    gfxPlatformFontList::InitFontList();
+    
     mFontSubstitutes.Clear();
     mNonExistingFonts.Clear();
-    CancelLoader();
-
-    
-    mCodepointsWithNoFonts.reset();
-    mCodepointsWithNoFonts.SetRange(0,0x1f);     
-    mCodepointsWithNoFonts.SetRange(0x7f,0x9f);  
 
     
     LOGFONTW logfont;
@@ -652,63 +645,36 @@ gfxFontEntry*
 gfxGDIFontList::LookupLocalFont(const gfxProxyFontEntry *aProxyEntry,
                                 const nsAString& aFullname)
 {
-    LOGFONTW logFont;
-    memset(&logFont, 0, sizeof(LOGFONTW));
-    logFont.lfCharSet = DEFAULT_CHARSET;
-    PRUint32 namelen = PR_MIN(aFullname.Length(), LF_FACESIZE - 1);
-    ::memcpy(logFont.lfFaceName,
-             nsPromiseFlatString(aFullname).get(),
-             namelen * sizeof(PRUnichar));
-    logFont.lfFaceName[namelen] = 0;
-
-    AutoDC dc;
-    ::SetGraphicsMode(dc.GetDC(), GM_ADVANCED);
-
-    AutoSelectFont font(dc.GetDC(), &logFont);
-    if (!font.IsValid())
-        return nsnull;
+    PRBool found;
+    gfxFontEntry *lookup;
 
     
-    const PRUint32 kNameTag = NS_SWAP32(TRUETYPE_TAG('n','a','m','e'));
-    nsAutoString fullName;
-
-    {
-        DWORD len = ::GetFontData(dc.GetDC(), kNameTag, 0, nsnull, 0);
-        if (len == GDI_ERROR || len == 0) 
-            return nsnull;                
-    
-        nsAutoTArray<PRUint8,1024> nameData;
-        if (!nameData.AppendElements(len))
-            return nsnull;
-        PRUint8 *nameTable = nameData.Elements();
-    
-        DWORD newLen = ::GetFontData(dc.GetDC(), kNameTag, 0, nameTable, len);
-        if (newLen != len)
-            return nsnull;
-    
-        nsresult rv;
-        rv = gfxFontUtils::ReadCanonicalName(nameData, 
-                                             gfxFontUtils::NAME_ID_FULL,
-                                             fullName);
-        if (NS_FAILED(rv))
-            return nsnull;
+    if (!mFaceNamesInitialized) {
+        InitFaceNameLists();
     }
 
     
-    if (!aFullname.Equals(fullName))
+    if (!(lookup = mPostscriptNames.GetWeak(aFullname, &found)) &&
+        !(lookup = mFullnames.GetWeak(aFullname, &found))) 
+    {
         return nsnull;
+    }
 
     
     PRUint16 w = (aProxyEntry->mWeight == 0 ? 400 : aProxyEntry->mWeight);
     PRBool isCFF = PR_FALSE; 
     
-    gfxFontEntry *fe = GDIFontEntry::CreateFontEntry(aFullname, 
+    
+    
+    
+    
+    gfxFontEntry *fe = GDIFontEntry::CreateFontEntry(lookup->Name(), 
         gfxWindowsFontType(isCFF ? GFX_FONT_TYPE_PS_OPENTYPE : GFX_FONT_TYPE_TRUETYPE) , 
         PRUint32(aProxyEntry->mItalic ? FONT_STYLE_ITALIC : FONT_STYLE_NORMAL), 
         w, nsnull);
         
     if (!fe)
-        return fe;
+        return nsnull;
 
     fe->mIsUserFont = PR_TRUE;
     return fe;

@@ -195,17 +195,9 @@ gfxFT2FontList::FindFonts()
 void
 gfxFT2FontList::InitFontList()
 {
-    mFontFamilies.Clear();
-    mOtherFamilyNames.Clear();
-    mOtherFamilyNamesInitialized = PR_FALSE;
-    mPrefFonts.Clear();
-    CancelLoader();
-
     
-    mCodepointsWithNoFonts.reset();
-    mCodepointsWithNoFonts.SetRange(0,0x1f);     
-    mCodepointsWithNoFonts.SetRange(0x7f,0x9f);  
-
+    gfxPlatformFontList::InitFontList();
+    
     FindFonts();
 }
 

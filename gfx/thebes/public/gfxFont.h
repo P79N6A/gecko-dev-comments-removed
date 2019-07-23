@@ -246,6 +246,7 @@ protected:
     friend class gfxMacPlatformFontList;
     friend class gfxFcFontEntry;
     friend class gfxFontFamily;
+    friend class gfxSingleFaceMacFontFamily;
 
     gfxFontEntry() :
         mItalic(PR_FALSE), mFixedPitch(PR_FALSE),
@@ -284,9 +285,6 @@ struct FontSearch {
     nsRefPtr<gfxFontEntry> mBestMatch;
 };
 
-
-class AddOtherFamilyNameFunctor;
-
 class gfxFontFamily {
 public:
     THEBES_INLINE_DECL_REFCOUNTING(gfxFontFamily)
@@ -295,6 +293,7 @@ public:
         mName(aName),
         mOtherFamilyNamesInitialized(PR_FALSE),
         mHasOtherFamilyNames(PR_FALSE),
+        mFaceNamesInitialized(PR_FALSE),
         mHasStyles(PR_FALSE),
         mIsSimpleFamily(PR_FALSE),
         mIsBadUnderlineFamily(PR_FALSE)
@@ -328,7 +327,12 @@ public:
     void FindFontForChar(FontSearch *aMatchData);
 
     
-    virtual void ReadOtherFamilyNames(AddOtherFamilyNameFunctor& aOtherFamilyFunctor);
+    virtual void ReadOtherFamilyNames(gfxPlatformFontList *aPlatformFontList);
+
+    
+    
+    virtual void ReadFaceNames(gfxPlatformFontList *aPlatformFontList,
+                               PRBool aNeedFullnamePostscriptNames);
 
     
     
@@ -370,8 +374,8 @@ protected:
     virtual PRBool FindWeightsForStyle(gfxFontEntry* aFontsForWeights[],
                                        PRBool anItalic, PRInt16 aStretch);
 
-    PRBool ReadOtherFamilyNamesForFace(AddOtherFamilyNameFunctor& aOtherFamilyFunctor,
-                                       gfxFontEntry *aFontEntry,
+    PRBool ReadOtherFamilyNamesForFace(gfxPlatformFontList *aPlatformFontList,
+                                       nsTArray<PRUint8>& aNameTable,
                                        PRBool useFullName = PR_FALSE);
 
     
@@ -388,6 +392,7 @@ protected:
     nsTArray<nsRefPtr<gfxFontEntry> >  mAvailableFonts;
     PRPackedBool mOtherFamilyNamesInitialized;
     PRPackedBool mHasOtherFamilyNames;
+    PRPackedBool mFaceNamesInitialized;
     PRPackedBool mHasStyles;
     PRPackedBool mIsSimpleFamily;
     PRPackedBool mIsBadUnderlineFamily;

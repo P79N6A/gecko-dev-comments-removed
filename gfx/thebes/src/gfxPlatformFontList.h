@@ -95,7 +95,15 @@ public:
     PRBool GetPrefFontFamilyEntries(eFontPrefLang aLangGroup, nsTArray<nsRefPtr<gfxFontFamily> > *array);
     void SetPrefFontFamilyEntries(eFontPrefLang aLangGroup, nsTArray<nsRefPtr<gfxFontFamily> >& array);
 
+    
+
     void AddOtherFamilyName(gfxFontFamily *aFamilyEntry, nsAString& aOtherFamilyName);
+
+    void AddFullname(gfxFontEntry *aFontEntry, nsAString& aFullname);
+
+    void AddPostscriptName(gfxFontEntry *aFontEntry, nsAString& aPostscriptName);
+
+    PRBool NeedFullnamePostscriptNames() { return mNeedFullnamePostscriptNames; }
 
     
 
@@ -118,7 +126,7 @@ public:
     virtual PRBool GetStandardFamilyName(const nsAString& aFontName, nsAString& aFamilyName);
 
 protected:
-    gfxPlatformFontList();
+    gfxPlatformFontList(PRBool aNeedFullnamePostscriptNames = PR_TRUE);
 
     static gfxPlatformFontList *sPlatformFontList;
 
@@ -127,13 +135,21 @@ protected:
                                                void* userArg);
 
     
-    virtual void InitFontList() = 0;
-
-    
-    void ReadOtherFamilyNamesForFamily(const nsAString& aFamilyName);
+    virtual void InitFontList();
 
     
     void InitOtherFamilyNames();
+
+    static PLDHashOperator InitOtherFamilyNamesProc(nsStringHashKey::KeyType aKey,
+                                                    nsRefPtr<gfxFontFamily>& aFamilyEntry,
+                                                    void* userArg);
+
+    
+    void InitFaceNameLists();
+
+    static PLDHashOperator InitFaceNameListsProc(nsStringHashKey::KeyType aKey,
+                                                 nsRefPtr<gfxFontFamily>& aFamilyEntry,
+                                                 void* userArg);
 
     
     virtual void PreloadNamesList();
@@ -143,10 +159,6 @@ protected:
 
     
     void SetFixedPitch(const nsAString& aFamilyName);
-
-    static PLDHashOperator InitOtherFamilyNamesProc(nsStringHashKey::KeyType aKey,
-                                                    nsRefPtr<gfxFontFamily>& aFamilyEntry,
-                                                    void* userArg);
 
     void GenerateFontListKey(const nsAString& aKeyName, nsAString& aResult);
 
@@ -160,12 +172,27 @@ protected:
     virtual PRBool RunLoader();
     virtual void FinishLoader();
 
+      
+    nsRefPtrHashtable<nsStringHashKey, gfxFontFamily> mFontFamilies;
+  
     
-    nsRefPtrHashtable<nsStringHashKey, gfxFontFamily> mFontFamilies;    
+    PRPackedBool mOtherFamilyNamesInitialized;
 
     
+      
+    nsRefPtrHashtable<nsStringHashKey, gfxFontFamily> mOtherFamilyNames;
+
     
-    nsRefPtrHashtable<nsStringHashKey, gfxFontFamily> mOtherFamilyNames;    
+    PRPackedBool mFaceNamesInitialized;
+
+    
+    PRPackedBool mNeedFullnamePostscriptNames;
+
+    
+    nsRefPtrHashtable<nsStringHashKey, gfxFontEntry> mFullnames;
+
+    
+    nsRefPtrHashtable<nsStringHashKey, gfxFontEntry> mPostscriptNames;
 
     
     
@@ -178,9 +205,6 @@ protected:
     
     nsString mReplacementCharFallbackFamily;
 
-    
-    PRPackedBool mOtherFamilyNamesInitialized;
-
     nsTHashtable<nsStringHashKey> mBadUnderlineFamilyNames;
 
     
@@ -189,22 +213,5 @@ protected:
     PRUint32 mIncrement;
     PRUint32 mNumFamilies;
 };
-
-
-
-class AddOtherFamilyNameFunctor 
-{
-public:
-    AddOtherFamilyNameFunctor(gfxPlatformFontList *aFontList) :
-        mFontList(aFontList)
-    {}
-
-    void operator() (gfxFontFamily *aFamilyEntry, nsAString& aOtherName) {
-        mFontList->AddOtherFamilyName(aFamilyEntry, aOtherName);
-    }
-
-    gfxPlatformFontList *mFontList;
-};
-
 
 #endif 
