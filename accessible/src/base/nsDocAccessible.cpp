@@ -1584,8 +1584,17 @@ NS_IMETHODIMP nsDocAccessible::FlushPendingEvents()
   nsCOMPtr<nsIPresShell> presShell = GetPresShell();
   if (!presShell)
     length = 0; 
-  else
+  else {
+    
+    
+    
+    
+    
+    presShell->FlushPendingNotifications(Flush_Layout);
+
+    
     nsAccEvent::ApplyEventRules(mEventsToFire);
+  }
   
   for (PRUint32 index = 0; index < length; index ++) {
     nsCOMPtr<nsIAccessibleEvent> accessibleEvent(

@@ -1935,6 +1935,14 @@ nsAccessible::GetState(PRUint32 *aState, PRUint32 *aExtraState)
 {
   NS_ENSURE_ARG_POINTER(aState);
 
+  if (!IsDefunct()) {
+    
+    
+    
+    nsCOMPtr<nsIPresShell> presShell = GetPresShell();
+    presShell->FlushPendingNotifications(Flush_Layout);
+  }
+
   nsresult rv = GetStateInternal(aState, aExtraState);
   NS_ENSURE_A11Y_SUCCESS(rv, rv);
 
