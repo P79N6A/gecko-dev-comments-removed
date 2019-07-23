@@ -11531,7 +11531,10 @@ nsCSSFrameConstructor::WrapFramesInFirstLineFrame(
   }
 
   
-  nsStyleContext* parentStyle = aBlockFrame->GetStyleContext();
+  nsStyleContext* parentStyle =
+    nsFrame::CorrectStyleParentFrame(aBlockFrame,
+                                     nsCSSPseudoElements::firstLine)->
+      GetStyleContext();
   nsRefPtr<nsStyleContext> firstLineStyle = GetFirstLineStyle(aBlockContent,
                                                               parentStyle);
 
@@ -11709,7 +11712,10 @@ nsCSSFrameConstructor::InsertFirstLineFrames(
 
         if (NS_SUCCEEDED(rv)) {
           
-          nsStyleContext* parentStyle = aBlockFrame->GetStyleContext();
+          nsStyleContext* parentStyle =
+            nsFrame::CorrectStyleParentFrame(aBlockFrame,
+                                             nsCSSPseudoElements::firstLine)->
+              GetStyleContext();
           nsRefPtr<nsStyleContext> firstLineStyle =
             GetFirstLineStyle(aContent, parentStyle);
 
@@ -11983,54 +11989,56 @@ nsCSSFrameConstructor::CreateLetterFrame(nsFrameConstructorState& aState,
 #endif
 
   
-  nsStyleContext* parentStyleContext = aParentFrame->GetStyleContext();
-  if (parentStyleContext) {
-    
-    
-    nsIContent* blockContent = aState.mFloatedItems.containingBlock->GetContent();
+  nsStyleContext* parentStyleContext =
+    nsFrame::CorrectStyleParentFrame(aParentFrame,
+                                     nsCSSPseudoElements::firstLetter)->
+      GetStyleContext();
+  
+  
+  nsIContent* blockContent =
+    aState.mFloatedItems.containingBlock->GetContent();
 
-    NS_ASSERTION(blockContent == aBlockFrame->GetContent(),
-                 "Unexpected block content");
+  NS_ASSERTION(blockContent == aBlockFrame->GetContent(),
+               "Unexpected block content");
+
+  
+  nsRefPtr<nsStyleContext> sc = GetFirstLetterStyle(blockContent,
+                                                    parentStyleContext);
+  if (sc) {
+    nsRefPtr<nsStyleContext> textSC;
+    textSC = mPresShell->StyleSet()->ResolveStyleForNonElement(sc);
+    
+    
+    
+    nsIFrame* textFrame = NS_NewTextFrame(mPresShell, textSC);
 
     
-    nsRefPtr<nsStyleContext> sc = GetFirstLetterStyle(blockContent,
-                                                      parentStyleContext);
-    if (sc) {
-      nsRefPtr<nsStyleContext> textSC;
-          textSC = mPresShell->StyleSet()->ResolveStyleForNonElement(sc);
-    
+    const nsStyleDisplay* display = sc->GetStyleDisplay();
+    if (display->IsFloating()) {
       
+      CreateFloatingLetterFrame(aState, aBlockFrame, aTextContent, textFrame,
+                                blockContent, aParentFrame,
+                                sc, aResult);
+    }
+    else {
       
-      nsIFrame* textFrame = NS_NewTextFrame(mPresShell, textSC);
+      nsIFrame* letterFrame = NS_NewFirstLetterFrame(mPresShell, sc);
 
-      
-      const nsStyleDisplay* display = sc->GetStyleDisplay();
-      if (display->IsFloating()) {
+      if (letterFrame) {
         
-        CreateFloatingLetterFrame(aState, aBlockFrame, aTextContent, textFrame,
-                                  blockContent, aParentFrame,
-                                  sc, aResult);
-      }
-      else {
         
-        nsIFrame* letterFrame = NS_NewFirstLetterFrame(mPresShell, sc);
+        
+        nsIContent* letterContent = aTextContent->GetParent();
+        NS_ASSERTION(letterContent->GetBindingParent() != letterContent,
+                     "Reframes of this letter frame will mess with the root "
+                     "of a native anonymous content subtree!");
+        letterFrame->Init(letterContent, aParentFrame, nsnull);
 
-        if (letterFrame) {
-          
-          
-          
-          nsIContent* letterContent = aTextContent->GetParent();
-          NS_ASSERTION(letterContent->GetBindingParent() != letterContent,
-                       "Reframes of this letter frame will mess with the root "
-                       "of a native anonymous content subtree!");
-          letterFrame->Init(letterContent, aParentFrame, nsnull);
+        InitAndRestoreFrame(aState, aTextContent, letterFrame, nsnull,
+                            textFrame);
 
-          InitAndRestoreFrame(aState, aTextContent, letterFrame, nsnull,
-                              textFrame);
-
-          letterFrame->SetInitialChildList(nsnull, textFrame);
-          aResult.childList = aResult.lastChild = letterFrame;
-        }
+        letterFrame->SetInitialChildList(nsnull, textFrame);
+        aResult.childList = aResult.lastChild = letterFrame;
       }
     }
   }
