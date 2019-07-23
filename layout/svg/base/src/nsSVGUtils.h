@@ -113,7 +113,8 @@ class nsSVGDisplayContainerFrame;
 
 
 
-#define NS_SVG_OFFSCREEN_MAX_DIMENSION 16384
+
+#define NS_SVG_OFFSCREEN_MAX_DIMENSION 4096
 
 
 
