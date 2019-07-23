@@ -1769,6 +1769,51 @@ TraceRecorder::snapshot(ExitType exitType)
     trackNativeStackUse(stackSlots + 1);
     
     unsigned ngslots = traceMonitor->globalSlots->length();
+    unsigned typemap_size = (stackSlots + ngslots) * sizeof(uint8);
+    uint8* typemap = (uint8*)alloca(typemap_size);
+    uint8* m = typemap;
+    
+
+
+    FORALL_SLOTS(cx, ngslots, traceMonitor->globalSlots->data(), callDepth,
+        *m++ = determineSlotType(vp);
+    );
+    JS_ASSERT(unsigned(m - typemap) == ngslots + stackSlots);
+    
+
+    jsbytecode* pc = fp->regs->pc;
+    if (*pc == JSOP_RESUME) 
+        m[-1] = JSVAL_BOXED;
+    
+
+
+    if (*pc == JSOP_GOTO) 
+        pc += GET_JUMP_OFFSET(pc);
+    else if (*pc == JSOP_GOTOX)
+        pc += GET_JUMPX_OFFSET(pc);
+    int ip_adj = pc - (jsbytecode*)fragment->root->ip;
+    
+
+    SideExit** exits = treeInfo->sideExits.data();
+    unsigned nexits = treeInfo->sideExits.length();
+    for (unsigned n = 0; n < nexits; ++n) {
+        SideExit* e = exits[n];
+        if (exitType == LOOP_EXIT &&
+            e->exitType == exitType && 
+            e->ip_adj == ip_adj && 
+            !memcmp(getTypeMap(exits[n]), typemap, typemap_size)) {
+            LIns* data = lir_buf_writer->skip(sizeof(GuardRecord));
+            GuardRecord* rec = (GuardRecord*)data->payload();
+            
+            memset(rec, 0, sizeof(GuardRecord));
+            SideExit* exit = exits[n];
+            rec->exit = exit;
+            exit->addGuard(rec);
+            AUDIT(mergedLoopExits);
+            return data;
+        }
+    }
+    
     LIns* data = lir_buf_writer->skip(sizeof(GuardRecord) +
                                       sizeof(SideExit) + 
                                       (stackSlots + ngslots) * sizeof(uint8));
@@ -1788,30 +1833,15 @@ TraceRecorder::snapshot(ExitType exitType)
         : 0;
     exit->exitType = exitType;
     exit->addGuard(rec);
-    
-
-
-    jsbytecode* pc = fp->regs->pc;
-    if (*pc == JSOP_GOTO) 
-        pc += GET_JUMP_OFFSET(pc);
-    else if (*pc == JSOP_GOTOX)
-        pc += GET_JUMPX_OFFSET(pc);
-    exit->ip_adj = pc - (jsbytecode*)fragment->root->ip;
+    exit->ip_adj = ip_adj;
     exit->sp_adj = (stackSlots * sizeof(double)) - treeInfo->nativeStackBase;
     exit->rp_adj = exit->calldepth * sizeof(FrameInfo);
-    uint8* m = getTypeMap(exit);
+    memcpy(getTypeMap(exit), typemap, typemap_size);
     
 
 
-    FORALL_SLOTS(cx, ngslots, traceMonitor->globalSlots->data(), callDepth,
-        *m++ = determineSlotType(vp);
-    );
-    JS_ASSERT(unsigned(m - getTypeMap(exit)) == ngslots + stackSlots);
 
-    
-
-    if (*cx->fp->regs->pc == JSOP_RESUME) 
-        m[-1] = JSVAL_BOXED;
+    treeInfo->sideExits.add(exit);
     return data;
 }
 
