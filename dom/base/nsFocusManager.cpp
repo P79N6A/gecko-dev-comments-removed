@@ -654,6 +654,13 @@ nsFocusManager::WindowRaised(nsIDOMWindow* aWindow)
   window->ActivateOrDeactivate(PR_TRUE);
 
   
+  nsCOMPtr<nsIDocument> document = do_QueryInterface(window->GetExtantDocument());
+  nsContentUtils::DispatchTrustedEvent(document,
+                                       window,
+                                       NS_LITERAL_STRING("activate"),
+                                       PR_TRUE, PR_TRUE, nsnull);
+
+  
   nsCOMPtr<nsPIDOMWindow> currentWindow;
   nsCOMPtr<nsIContent> currentFocus =
     GetFocusedDescendant(window, PR_TRUE, getter_AddRefs(currentWindow));
@@ -708,6 +715,13 @@ nsFocusManager::WindowLowered(nsIDOMWindow* aWindow)
   
   
   window->ActivateOrDeactivate(PR_FALSE);
+
+  
+  nsCOMPtr<nsIDocument> document = do_QueryInterface(window->GetExtantDocument());
+  nsContentUtils::DispatchTrustedEvent(document,
+                                       window,
+                                       NS_LITERAL_STRING("deactivate"),
+                                       PR_TRUE, PR_TRUE, nsnull);
 
   
   
