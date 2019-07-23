@@ -339,8 +339,6 @@ nsFrame::Init(nsIContent*      aContent,
 
   if (aContent) {
     NS_ADDREF(aContent);
-    aContent->SetMayHaveFrame(PR_TRUE);
-    NS_ASSERTION(mContent->MayHaveFrame(), "SetMayHaveFrame failed?");
   }
 
   if (aPrevInFlow) {
@@ -464,6 +462,11 @@ nsFrame::DestroyFrom(nsIFrame* aDestructRoot)
 
     
     view->Destroy();
+  }
+
+  
+  if (mContent && mContent->GetPrimaryFrame() == this) {
+    mContent->SetPrimaryFrame(nsnull);
   }
 
   

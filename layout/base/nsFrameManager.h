@@ -110,20 +110,12 @@ public:
   NS_HIDDEN_(nsIFrame*) GetCanvasFrame();
 
   
-  
-  
   NS_HIDDEN_(nsIFrame*) GetPrimaryFrameFor(nsIContent* aContent,
                                            PRInt32 aIndexHint);
   
   
-  NS_HIDDEN_(nsresult)  SetPrimaryFrameFor(nsIContent* aContent,
-                                           nsIFrame* aPrimaryFrame);
-  
-  
-  
   NS_HIDDEN_(void)      RemoveAsPrimaryFrame(nsIContent* aContent,
                                              nsIFrame* aPrimaryFrame);
-  NS_HIDDEN_(void)      ClearPrimaryFrameMap();
 
   
   NS_HIDDEN_(nsPlaceholderFrame*) GetPlaceholderFrameFor(nsIFrame* aFrame);

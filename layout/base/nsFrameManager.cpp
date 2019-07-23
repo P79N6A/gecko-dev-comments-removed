@@ -150,41 +150,6 @@ static PLDHashTableOps PlaceholderMapOps = {
 
 
 
-struct PrimaryFrameMapEntry : public PLDHashEntryHdr {
-  
-  
-  
-  
-  nsIContent *content;
-  nsIFrame *frame;
-};
-
-  
-  
-#if 0
-static PRBool
-PrimaryFrameMapMatchEntry(PLDHashTable *table, const PLDHashEntryHdr *hdr,
-                         const void *key)
-{
-  const PrimaryFrameMapEntry *entry =
-    static_cast<const PrimaryFrameMapEntry*>(hdr);
-  return entry->frame->GetContent() == key;
-}
-
-static PLDHashTableOps PrimaryFrameMapOps = {
-  PL_DHashAllocTable,
-  PL_DHashFreeTable,
-  PL_DHashVoidPtrKeyStub,
-  PrimaryFrameMapMatchEntry,
-  PL_DHashMoveEntryStub,
-  PL_DHashClearEntryStub,
-  PL_DHashFinalizeStub,
-  NULL
-};
-#endif 
-
-
-
 
 
 
@@ -292,7 +257,6 @@ nsFrameManager::Destroy()
     mRootFrame = nsnull;
   }
   
-  nsFrameManager::ClearPrimaryFrameMap();
   delete mUndisplayedMap;
   mUndisplayedMap = nsnull;
 
@@ -340,145 +304,19 @@ nsFrameManager::GetPrimaryFrameFor(nsIContent* aContent,
     return nsnull;
   }
 
-  if (!aContent->MayHaveFrame()) {
+  if (aContent->GetCurrentDoc() != mPresShell->GetDocument()) {
     return nsnull;
   }
 
-  if (mPrimaryFrameMap.ops) {
-    PrimaryFrameMapEntry *entry = static_cast<PrimaryFrameMapEntry*>
-                                             (PL_DHashTableOperate(&mPrimaryFrameMap, aContent, PL_DHASH_LOOKUP));
-    if (PL_DHASH_ENTRY_IS_BUSY(entry)) {
-      return entry->frame;
-    }
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-
-    
-    
-
-    
-    
-    
-    
-    nsFindFrameHint hint;
-    nsIContent* parent = aContent->GetParent();
-    if (parent)
-    {
-      PRInt32 index = aIndexHint >= 0 ? aIndexHint : parent->IndexOf(aContent);
-      if (index > 0)  
-      {
-        nsIContent *prevSibling;
-        do {
-          prevSibling = parent->GetChildAt(--index);
-        } while (index &&
-                 (prevSibling->IsNodeOfType(nsINode::eTEXT) ||
-                  prevSibling->IsNodeOfType(nsINode::eCOMMENT) ||
-                  prevSibling->IsNodeOfType(nsINode::ePROCESSING_INSTRUCTION)));
-        if (prevSibling) {
-          entry = static_cast<PrimaryFrameMapEntry*>
-                             (PL_DHashTableOperate(&mPrimaryFrameMap, prevSibling,
-                                               PL_DHASH_LOOKUP));
-          
-          
-          if (PL_DHASH_ENTRY_IS_BUSY(entry) && entry->frame &&
-              entry->frame->GetContent() == prevSibling)
-            hint.mPrimaryFrameForPrevSibling = entry->frame;
-        }
-      }
-    }
-
-    
-    
-    nsIFrame *result;
-
-    mPresShell->FrameConstructor()->
-      FindPrimaryFrameFor(this, aContent, &result, 
-                          hint.mPrimaryFrameForPrevSibling ? &hint : nsnull);
-
-    return result;
-  }
-
-  return nsnull;
-}
-
-nsresult
-nsFrameManager::SetPrimaryFrameFor(nsIContent* aContent,
-                                   nsIFrame*   aPrimaryFrame)
-{
-  NS_ENSURE_ARG_POINTER(aContent);
-  NS_ASSERTION(aPrimaryFrame && aPrimaryFrame->GetParent(),
-               "BOGUS!");
-#ifdef DEBUG
-  {
-    nsIFrame *docElementCB = 
-      mPresShell->FrameConstructor()->GetDocElementContainingBlock();
-    NS_ASSERTION(aPrimaryFrame != docElementCB &&
-                 !nsLayoutUtils::IsProperAncestorFrame(aPrimaryFrame,
-                                                       docElementCB),
-                 "too high in the frame tree to be a primary frame");
-  }
-#endif
-
-  
-  
-#if 0
-  NS_PRECONDITION(aPrimaryFrame->GetContent() == aContent, "wrong content");
-#endif
-
-  
-  if (!mPrimaryFrameMap.ops) {
-    if (!PL_DHashTableInit(&mPrimaryFrameMap, PL_DHashGetStubOps(), nsnull,
-                           sizeof(PrimaryFrameMapEntry), 16)) {
-      mPrimaryFrameMap.ops = nsnull;
-      return NS_ERROR_OUT_OF_MEMORY;
-    }
-  }
-
-  
-  PrimaryFrameMapEntry *entry = static_cast<PrimaryFrameMapEntry*>
-                                           (PL_DHashTableOperate(&mPrimaryFrameMap, aContent, PL_DHASH_ADD));
-#ifdef DEBUG_dbaron
-  if (entry->frame) {
-    NS_WARNING("already have primary frame for content");
-  }
-#endif
-  entry->frame = aPrimaryFrame;
-  entry->content = aContent;
-    
-  return NS_OK;
+  return aContent->GetPrimaryFrame();
 }
 
 void
 nsFrameManager::RemoveAsPrimaryFrame(nsIContent* aContent,
                                      nsIFrame* aPrimaryFrame)
 {
-  NS_PRECONDITION(aPrimaryFrame, "Must have a frame");
-  if (aContent && mPrimaryFrameMap.ops) {
-    PrimaryFrameMapEntry *entry = static_cast<PrimaryFrameMapEntry*>
-                                             (PL_DHashTableOperate(&mPrimaryFrameMap, aContent, PL_DHASH_LOOKUP));
-    if (PL_DHASH_ENTRY_IS_BUSY(entry) && entry->frame == aPrimaryFrame) {
-      
-      
-      PL_DHashTableOperate(&mPrimaryFrameMap, aContent, PL_DHASH_REMOVE);
-    }
-  }
-}
-
-void
-nsFrameManager::ClearPrimaryFrameMap()
-{
-  if (mPrimaryFrameMap.ops) {
-    PL_DHashTableFinish(&mPrimaryFrameMap);
-    mPrimaryFrameMap.ops = nsnull;
+  if (aContent->GetPrimaryFrame() == aPrimaryFrame) {
+    aContent->SetPrimaryFrame(nsnull);
   }
 }
 

@@ -72,12 +72,6 @@ class nsICSSAnonBoxPseudo;
 class nsPageContentFrame;
 struct PendingBinding;
 
-struct nsFindFrameHint
-{
-  nsIFrame *mPrimaryFrameForPrevSibling;  
-  nsFindFrameHint() : mPrimaryFrameForPrevSibling(nsnull) { }
-};
-
 typedef void (nsLazyFrameConstructionCallback)
              (nsIContent* aContent, nsIFrame* aFrame, void* aArg);
 
@@ -287,14 +281,6 @@ public:
   nsresult ReplicateFixedFrames(nsPageContentFrame* aParentFrame);
 
   
-  
-  
-  nsresult FindPrimaryFrameFor(nsFrameManager*  aFrameManager,
-                               nsIContent*      aContent,
-                               nsIFrame**       aFrame,
-                               nsFindFrameHint* aHint);
-
-  
   nsresult GetInsertionPoint(nsIFrame*     aParentFrame,
                              nsIContent*   aChildContent,
                              nsIFrame**    aInsertionPoint,
@@ -336,6 +322,7 @@ private:
   void DoContentStateChanged(nsIContent*     aContent,
                              PRInt32         aStateMask);
 
+  
   
   void RestyleElement(nsIContent*     aContent,
                       nsIFrame*       aPrimaryFrame,
@@ -577,7 +564,7 @@ private:
 
 
 
-#define FCDATA_SKIP_FRAMEMAP 0x1
+#define FCDATA_SKIP_FRAMESET 0x1
   
 
 
@@ -1397,6 +1384,7 @@ private:
   
   
   
+  
   PRBool MaybeRecreateContainerForFrameRemoval(nsIFrame* aFrame,
                                                nsresult* aResult);
 
@@ -1525,21 +1513,6 @@ private:
   nsresult ReframeContainingBlock(nsIFrame* aFrame);
 
   nsresult StyleChangeReflow(nsIFrame* aFrame, nsChangeHint aHint);
-
-  
-
-
-
-
-
-
-
-
-  nsIFrame* FindFrameWithContent(nsFrameManager*  aFrameManager,
-                                 nsIFrame*        aParentFrame,
-                                 nsIContent*      aParentContent,
-                                 nsIContent*      aContent,
-                                 nsFindFrameHint* aHint);
 
   
 

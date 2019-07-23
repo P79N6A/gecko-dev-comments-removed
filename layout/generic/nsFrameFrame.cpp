@@ -284,7 +284,7 @@ nsSubDocumentFrame::Init(nsIContent*     aContent,
   
   
   
-  PresContext()->FrameManager()->SetPrimaryFrameFor(aContent, this);
+  aContent->SetPrimaryFrame(this);
 
   ShowViewer();
   return NS_OK;

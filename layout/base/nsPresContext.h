@@ -72,6 +72,7 @@
 #include "nsContentUtils.h"
 #include "nsIWidget.h"
 #include "mozilla/TimeStamp.h"
+#include "nsIContent.h"
 
 class nsImageLoader;
 #ifdef IBMBIDI
@@ -82,7 +83,6 @@ struct nsRect;
 
 class imgIRequest;
 
-class nsIContent;
 class nsIFontMetrics;
 class nsIFrame;
 class nsFrameManager;
@@ -904,6 +904,22 @@ public:
 
   void SMILOverrideStyleChanged(nsIContent* aContent);
 #endif 
+
+  
+
+
+
+
+
+  nsIFrame* GetPrimaryFrameFor(nsIContent* aContent) {
+    NS_PRECONDITION(aContent, "Don't do that");
+    if (GetPresShell() &&
+        GetPresShell()->GetDocument() == aContent->GetCurrentDoc()) {
+      return aContent->GetPrimaryFrame();
+    }
+    return nsnull;
+  }
+
 protected:
   friend class nsRunnableMethod<nsPresContext>;
   NS_HIDDEN_(void) ThemeChangedInternal();

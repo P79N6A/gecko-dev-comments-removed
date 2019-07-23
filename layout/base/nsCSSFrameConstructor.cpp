@@ -239,7 +239,6 @@ nsIXBLService * nsCSSFrameConstructor::gXBLService = nsnull;
 static PRBool gNoisyContentUpdates = PR_FALSE;
 static PRBool gReallyNoisyContentUpdates = PR_FALSE;
 static PRBool gNoisyInlineConstruction = PR_FALSE;
-static PRBool gVerifyFastFindFrame = PR_FALSE;
 
 struct FrameCtorDebugFlags {
   const char* name;
@@ -249,8 +248,7 @@ struct FrameCtorDebugFlags {
 static FrameCtorDebugFlags gFlags[] = {
   { "content-updates",              &gNoisyContentUpdates },
   { "really-noisy-content-updates", &gReallyNoisyContentUpdates },
-  { "noisy-inline",                 &gNoisyInlineConstruction },
-  { "fast-find-frame",              &gVerifyFastFindFrame }
+  { "noisy-inline",                 &gNoisyInlineConstruction }
 };
 
 #define NUM_DEBUG_FLAGS (sizeof(gFlags) / sizeof(gFlags[0]))
@@ -2489,7 +2487,7 @@ nsCSSFrameConstructor::ConstructDocElementFrame(nsIContent*              aDocEle
   }
 
   
-  state.mFrameManager->SetPrimaryFrameFor(aDocElement, contentFrame);
+  aDocElement->SetPrimaryFrame(contentFrame);
 
   NS_ASSERTION(processChildren ? !mRootElementFrame :
                  mRootElementFrame == contentFrame,
@@ -3433,9 +3431,8 @@ nsCSSFrameConstructor::ConstructTextFrame(const FrameConstructionData* aData,
   
   aFrameItems.AddChild(newFrame);
 
+  aContent->SetPrimaryFrame(newFrame);
   
-  
-
   return rv;
 }
 
@@ -3550,8 +3547,7 @@ nsCSSFrameConstructor::FindHTMLData(nsIContent* aContent,
     SIMPLE_TAG_CHAIN(mozgeneratedcontentimage,
                      nsCSSFrameConstructor::FindImgData),
     { &nsGkAtoms::br,
-      FCDATA_DECL(FCDATA_SKIP_FRAMEMAP | FCDATA_IS_LINE_PARTICIPANT |
-                  FCDATA_IS_LINE_BREAK,
+      FCDATA_DECL(FCDATA_IS_LINE_PARTICIPANT | FCDATA_IS_LINE_BREAK,
                   NS_NewBRFrame) },
     SIMPLE_TAG_CREATE(wbr, NS_NewWBRFrame),
     SIMPLE_TAG_CHAIN(input, nsCSSFrameConstructor::FindInputData),
@@ -3748,8 +3744,7 @@ nsCSSFrameConstructor::ConstructFrameFromItemInternal(FrameConstructionItem& aIt
       BuildScrollFrame(aState, content, styleContext, newFrame,
                        geometricParent, frameToAddToList);
       
-      
-      bits |= FCDATA_SKIP_FRAMEMAP;
+      bits |= FCDATA_SKIP_FRAMESET;
     } else {
       rv = InitAndRestoreFrame(aState, content, geometricParent, nsnull,
                                newFrame);
@@ -3855,8 +3850,8 @@ nsCSSFrameConstructor::ConstructFrameFromItemInternal(FrameConstructionItem& aIt
                ((bits & FCDATA_IS_LINE_PARTICIPANT) != 0),
                "Incorrectly set FCDATA_IS_LINE_PARTICIPANT bits");
 
-  if (!(bits & FCDATA_SKIP_FRAMEMAP)) {
-    aState.mFrameManager->SetPrimaryFrameFor(aItem.mContent, newFrame);
+  if (!(bits & FCDATA_SKIP_FRAMESET)) {
+    aItem.mContent->SetPrimaryFrame(newFrame);
   }
 
   return NS_OK;
@@ -4334,7 +4329,7 @@ nsCSSFrameConstructor::BuildScrollFrame(nsFrameConstructorState& aState,
     FinishBuildingScrollFrame(aNewFrame, aScrolledFrame);
 
     
-    aState.mFrameManager->SetPrimaryFrameFor( aContent, aNewFrame );
+    aContent->SetPrimaryFrame(aNewFrame);
     return NS_OK;
 
 }
@@ -4394,56 +4389,50 @@ nsCSSFrameConstructor::FindDisplayData(const nsStyleDisplay* aDisplay,
     
     
     { NS_STYLE_DISPLAY_INLINE,
-      FULL_CTOR_FCDATA(FCDATA_SKIP_FRAMEMAP | FCDATA_IS_INLINE |
-                       FCDATA_IS_LINE_PARTICIPANT,
+      FULL_CTOR_FCDATA(FCDATA_IS_INLINE | FCDATA_IS_LINE_PARTICIPANT,
                        &nsCSSFrameConstructor::ConstructInline) },
     { NS_STYLE_DISPLAY_MARKER,
-      FULL_CTOR_FCDATA(FCDATA_SKIP_FRAMEMAP | FCDATA_IS_INLINE |
-                       FCDATA_IS_LINE_PARTICIPANT,
+      FULL_CTOR_FCDATA(FCDATA_IS_INLINE | FCDATA_IS_LINE_PARTICIPANT,
                        &nsCSSFrameConstructor::ConstructInline) },
     { NS_STYLE_DISPLAY_TABLE,
       FULL_CTOR_FCDATA(0, &nsCSSFrameConstructor::ConstructTable) },
     { NS_STYLE_DISPLAY_INLINE_TABLE,
       FULL_CTOR_FCDATA(0, &nsCSSFrameConstructor::ConstructTable) },
     { NS_STYLE_DISPLAY_TABLE_CAPTION,
-      FCDATA_DECL(FCDATA_IS_TABLE_PART | FCDATA_SKIP_FRAMEMAP |
-                  FCDATA_ALLOW_BLOCK_STYLES | FCDATA_DISALLOW_OUT_OF_FLOW |
-                  FCDATA_SKIP_ABSPOS_PUSH |
+      FCDATA_DECL(FCDATA_IS_TABLE_PART | FCDATA_ALLOW_BLOCK_STYLES |
+                  FCDATA_DISALLOW_OUT_OF_FLOW | FCDATA_SKIP_ABSPOS_PUSH |
                   FCDATA_DESIRED_PARENT_TYPE_TO_BITS(eTypeTable),
                   NS_NewTableCaptionFrame) },
     { NS_STYLE_DISPLAY_TABLE_ROW_GROUP,
-      FCDATA_DECL(FCDATA_IS_TABLE_PART | FCDATA_SKIP_FRAMEMAP |
-                  FCDATA_DISALLOW_OUT_OF_FLOW | FCDATA_MAY_NEED_SCROLLFRAME |
-                  FCDATA_SKIP_ABSPOS_PUSH |
+      FCDATA_DECL(FCDATA_IS_TABLE_PART | FCDATA_DISALLOW_OUT_OF_FLOW |
+                  FCDATA_MAY_NEED_SCROLLFRAME | FCDATA_SKIP_ABSPOS_PUSH |
                   FCDATA_DESIRED_PARENT_TYPE_TO_BITS(eTypeTable),
                   NS_NewTableRowGroupFrame) },
     { NS_STYLE_DISPLAY_TABLE_HEADER_GROUP,
-      FCDATA_DECL(FCDATA_IS_TABLE_PART | FCDATA_SKIP_FRAMEMAP |
-                  FCDATA_DISALLOW_OUT_OF_FLOW | FCDATA_MAY_NEED_SCROLLFRAME |
-                  FCDATA_SKIP_ABSPOS_PUSH |
+      FCDATA_DECL(FCDATA_IS_TABLE_PART | FCDATA_DISALLOW_OUT_OF_FLOW |
+                  FCDATA_MAY_NEED_SCROLLFRAME | FCDATA_SKIP_ABSPOS_PUSH |
                   FCDATA_DESIRED_PARENT_TYPE_TO_BITS(eTypeTable),
                   NS_NewTableRowGroupFrame) },
     { NS_STYLE_DISPLAY_TABLE_FOOTER_GROUP,
-      FCDATA_DECL(FCDATA_IS_TABLE_PART | FCDATA_SKIP_FRAMEMAP |
-                  FCDATA_DISALLOW_OUT_OF_FLOW | FCDATA_MAY_NEED_SCROLLFRAME |
-                  FCDATA_SKIP_ABSPOS_PUSH |
+      FCDATA_DECL(FCDATA_IS_TABLE_PART | FCDATA_DISALLOW_OUT_OF_FLOW |
+                  FCDATA_MAY_NEED_SCROLLFRAME | FCDATA_SKIP_ABSPOS_PUSH |
                   FCDATA_DESIRED_PARENT_TYPE_TO_BITS(eTypeTable),
                   NS_NewTableRowGroupFrame) },
     { NS_STYLE_DISPLAY_TABLE_COLUMN_GROUP,
-      FCDATA_DECL(FCDATA_IS_TABLE_PART | FCDATA_SKIP_FRAMEMAP |
-                  FCDATA_DISALLOW_OUT_OF_FLOW | FCDATA_SKIP_ABSPOS_PUSH |
+      FCDATA_DECL(FCDATA_IS_TABLE_PART | FCDATA_DISALLOW_OUT_OF_FLOW |
+                  FCDATA_SKIP_ABSPOS_PUSH |
                   FCDATA_DESIRED_PARENT_TYPE_TO_BITS(eTypeTable),
                   NS_NewTableColGroupFrame) },
     { NS_STYLE_DISPLAY_TABLE_COLUMN,
-      FULL_CTOR_FCDATA(FCDATA_IS_TABLE_PART | FCDATA_SKIP_FRAMEMAP |
+      FULL_CTOR_FCDATA(FCDATA_IS_TABLE_PART |
                        FCDATA_DESIRED_PARENT_TYPE_TO_BITS(eTypeColGroup),
                        &nsCSSFrameConstructor::ConstructTableCol) },
     { NS_STYLE_DISPLAY_TABLE_ROW,
-      FULL_CTOR_FCDATA(FCDATA_IS_TABLE_PART | FCDATA_SKIP_FRAMEMAP |
+      FULL_CTOR_FCDATA(FCDATA_IS_TABLE_PART |
                        FCDATA_DESIRED_PARENT_TYPE_TO_BITS(eTypeRowGroup),
                        &nsCSSFrameConstructor::ConstructTableRow) },
     { NS_STYLE_DISPLAY_TABLE_CELL,
-      FULL_CTOR_FCDATA(FCDATA_IS_TABLE_PART | FCDATA_SKIP_FRAMEMAP |
+      FULL_CTOR_FCDATA(FCDATA_IS_TABLE_PART |
                        FCDATA_DESIRED_PARENT_TYPE_TO_BITS(eTypeRow),
                        &nsCSSFrameConstructor::ConstructTableCell) }
   };
@@ -4644,8 +4633,7 @@ nsCSSFrameConstructor::FlushAccumulatedBlock(nsFrameConstructorState& aState,
   { &nsGkAtoms::_tag,                                                   \
       FCDATA_DECL(FCDATA_DISALLOW_OUT_OF_FLOW |                         \
                   FCDATA_FORCE_NULL_ABSPOS_CONTAINER |                  \
-                  FCDATA_WRAP_KIDS_IN_BLOCKS |                          \
-                  FCDATA_SKIP_FRAMEMAP, _func) }
+                  FCDATA_WRAP_KIDS_IN_BLOCKS, _func) }
 
 
 const nsCSSFrameConstructor::FrameConstructionData*
@@ -4663,17 +4651,14 @@ nsCSSFrameConstructor::FindMathMLData(nsIContent* aContent,
     if (aStyleContext->GetStyleDisplay()->mDisplay == NS_STYLE_DISPLAY_BLOCK) {
       static const FrameConstructionData sBlockMathData =
         FCDATA_DECL(FCDATA_FORCE_NULL_ABSPOS_CONTAINER |
-                    FCDATA_WRAP_KIDS_IN_BLOCKS |
-                    FCDATA_SKIP_FRAMEMAP,
+                    FCDATA_WRAP_KIDS_IN_BLOCKS,
                     NS_CreateNewMathMLmathBlockFrame);
       return &sBlockMathData;
     }
 
     static const FrameConstructionData sInlineMathData =
       FCDATA_DECL(FCDATA_FORCE_NULL_ABSPOS_CONTAINER |
-                  FCDATA_WRAP_KIDS_IN_BLOCKS |
-                  FCDATA_SKIP_FRAMEMAP |
-                  FCDATA_IS_LINE_PARTICIPANT,
+                  FCDATA_WRAP_KIDS_IN_BLOCKS,
                   NS_NewMathMLmathInlineFrame);
     return &sInlineMathData;
   }
@@ -4718,7 +4703,7 @@ nsCSSFrameConstructor::FindMathMLData(nsIContent* aContent,
 
 #define SIMPLE_SVG_FCDATA(_func)                                        \
   FCDATA_DECL(FCDATA_DISALLOW_OUT_OF_FLOW |                             \
-              FCDATA_SKIP_ABSPOS_PUSH | FCDATA_SKIP_FRAMEMAP |          \
+              FCDATA_SKIP_ABSPOS_PUSH |                                 \
               FCDATA_DISALLOW_GENERATED_CONTENT,  _func)
 #define SIMPLE_SVG_CREATE(_tag, _func)            \
   { &nsGkAtoms::_tag, SIMPLE_SVG_FCDATA(_func) }
@@ -4772,8 +4757,6 @@ nsCSSFrameConstructor::FindSVGData(nsIContent* aContent,
     
     
     
-    
-    
     return &sSuppressData;
   }
 
@@ -4801,7 +4784,7 @@ nsCSSFrameConstructor::FindSVGData(nsIContent* aContent,
 
     static const FrameConstructionData sOuterSVGData =
       FCDATA_DECL(FCDATA_FORCE_VIEW | FCDATA_SKIP_ABSPOS_PUSH |
-                  FCDATA_SKIP_FRAMEMAP | FCDATA_DISALLOW_GENERATED_CONTENT,
+                  FCDATA_DISALLOW_GENERATED_CONTENT,
                   NS_NewSVGOuterSVGFrame);
     return &sOuterSVGData;
   }
@@ -4980,7 +4963,7 @@ nsCSSFrameConstructor::AddPageBreakItem(nsIContent* aContent,
                  NS_STYLE_DISPLAY_BLOCK, "Unexpected display");
 
   static const FrameConstructionData sPageBreakData =
-    FCDATA_DECL(FCDATA_SKIP_FRAMEMAP, NS_NewPageBreakFrame);
+    FCDATA_DECL(FCDATA_SKIP_FRAMESET, NS_NewPageBreakFrame);
 
   
   
@@ -8290,251 +8273,6 @@ nsCSSFrameConstructor::ReplicateFixedFrames(nsPageContentFrame* aParentFrame)
   return NS_OK;
 }
 
-static PRBool
-IsBindingAncestor(nsIContent* aContent, nsIContent* aBindingRoot)
-{
-  while (PR_TRUE) {
-    
-    
-    if (aContent->IsRootOfNativeAnonymousSubtree())
-      return PR_FALSE;
-    nsIContent* bindingParent = aContent->GetBindingParent();
-    if (!bindingParent)
-      return PR_FALSE;
-    if (bindingParent == aBindingRoot)
-      return PR_TRUE;
-    aContent = bindingParent;
-  }
-}
-
-
-
-
-nsIFrame*
-nsCSSFrameConstructor::FindFrameWithContent(nsFrameManager*  aFrameManager,
-                                            nsIFrame*        aParentFrame,
-                                            nsIContent*      aParentContent,
-                                            nsIContent*      aContent,
-                                            nsFindFrameHint* aHint)
-{
-  NS_PRECONDITION(aParentFrame, "Must have a frame");
-  
-#ifdef NOISY_FINDFRAME
-  FFWC_totalCount++;
-  printf("looking for content=%p, given aParentFrame %p parentContent %p, hint is %s\n", 
-         aContent, aParentFrame, aParentContent, aHint ? "set" : "NULL");
-#endif
-
-  
-  nsIAtom* listName = nsnull;
-  PRInt32 listIndex = 0;
-  PRBool searchAgain;
-
-  do {
-#ifdef NOISY_FINDFRAME
-    FFWC_doLoop++;
-#endif
-    nsIFrame* kidFrame = nsnull;
-
-    searchAgain = PR_FALSE;
-
-    
-    
-    if (aHint) {
-#ifdef NOISY_FINDFRAME
-      printf("  hint frame is %p\n", aHint->mPrimaryFrameForPrevSibling);
-#endif
-      
-      kidFrame = aHint->mPrimaryFrameForPrevSibling;
-      
-      if (kidFrame && (kidFrame->GetStateBits() & NS_FRAME_OUT_OF_FLOW)) {
-        kidFrame = aFrameManager->GetPlaceholderFrameFor(kidFrame);
-      }
-
-      if (kidFrame) {
-        
-        if (kidFrame->GetNextSibling()) {
-          kidFrame = kidFrame->GetNextSibling();
-        }
-        else {
-          
-          
-          
-          nsIFrame *parentFrame = kidFrame->GetParent();
-          kidFrame = nsnull;
-          if (parentFrame) {
-            parentFrame = nsLayoutUtils::GetNextContinuationOrSpecialSibling(parentFrame);
-          }
-          if (parentFrame) {
-            
-            kidFrame = parentFrame->GetFirstChild(listName);
-            
-            
-          }
-        }
-#ifdef NOISY_FINDFRAME
-        printf("  hint gives us kidFrame=%p with parent frame %p content %p\n", 
-               kidFrame, aParentFrame, aParentContent);
-#endif
-      }
-    }
-    if (!kidFrame) {  
-      kidFrame = aParentFrame->GetFirstChild(listName);
-    }
-    while (kidFrame) {
-      
-      
-      nsIContent* kidContent = kidFrame->GetContent();
-      if (kidContent == aContent) {
-        
-        return nsPlaceholderFrame::GetRealFrameFor(kidFrame);
-      }
-
-      
-      if (kidContent) {
-        
-        
-        
-        
-        
-        
-        
-        if (aParentContent == kidContent ||
-            (aParentContent && IsBindingAncestor(kidContent, aParentContent))) {
-#ifdef NOISY_FINDFRAME
-          FFWC_recursions++;
-          printf("  recursing with new parent set to kidframe=%p, parentContent=%p\n", 
-                 kidFrame, aParentContent);
-#endif
-          nsIFrame* matchingFrame =
-              FindFrameWithContent(aFrameManager,
-                                   nsPlaceholderFrame::GetRealFrameFor(kidFrame),
-                                   aParentContent, aContent, nsnull);
-
-          if (matchingFrame) {
-            return matchingFrame;
-          }
-        }
-      }
-
-      kidFrame = kidFrame->GetNextSibling();
-
-#ifdef NOISY_FINDFRAME
-      if (kidFrame) {
-        FFWC_doSibling++;
-        printf("  searching sibling frame %p\n", kidFrame);
-      }
-#endif
-    }
-
-    if (aHint) {
-      
-      
-      
-      
-      
-      
-      
-      
-      aHint = nsnull;
-      searchAgain = PR_TRUE;
-    }
-    else {
-      do {
-        listName = aParentFrame->GetAdditionalChildListName(listIndex++);
-      } while (IsOutOfFlowList(listName));
-    }
-  } while (listName || searchAgain);
-
-  return nsnull;
-}
-
-
-
-
-nsresult
-nsCSSFrameConstructor::FindPrimaryFrameFor(nsFrameManager*  aFrameManager,
-                                           nsIContent*      aContent,
-                                           nsIFrame**       aFrame,
-                                           nsFindFrameHint* aHint)
-{
-  NS_ASSERTION(aFrameManager && aContent && aFrame, "bad arg");
-
-  *aFrame = nsnull;  
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  nsIFrame*              parentFrame;   
-
-  
-  
-  
-  nsCOMPtr<nsIContent> parentContent = aContent->GetParent(); 
-  if (parentContent) {
-    parentFrame = aFrameManager->GetPrimaryFrameFor(parentContent, -1);
-    while (parentFrame) {
-      
-      *aFrame = FindFrameWithContent(aFrameManager, parentFrame,
-                                     parentContent, aContent, aHint);
-#ifdef NOISY_FINDFRAME
-      printf("FindFrameWithContent returned %p\n", *aFrame);
-#endif
-
-#ifdef DEBUG
-      
-      
-      
-      
-      if (gVerifyFastFindFrame && aHint) {
-#ifdef NOISY_FINDFRAME
-        printf("VERIFYING...\n");
-#endif
-        nsIFrame *verifyTestFrame =
-            FindFrameWithContent(aFrameManager, parentFrame,
-                                 parentContent, aContent, nsnull);
-#ifdef NOISY_FINDFRAME
-        printf("VERIFY returned %p\n", verifyTestFrame);
-#endif
-        NS_ASSERTION(verifyTestFrame == *aFrame, "hint shortcut found wrong frame");
-      }
-#endif
-      
-      
-      if (*aFrame) {
-        aFrameManager->SetPrimaryFrameFor(aContent, *aFrame);
-        break;
-      }
-
-      
-      
-      parentFrame = nsLayoutUtils::GetNextContinuationOrSpecialSibling(parentFrame);
-#ifdef NOISY_FINDFRAME
-      if (parentFrame) {
-        FFWC_nextInFlows++;
-        printf("  searching NIF frame %p\n", parentFrame);
-      }
-#endif
-    }
-  }
-
-#ifdef NOISY_FINDFRAME
-  printf("%10s %10s %10s %10s %10s\n", 
-         "total", "doLoop", "doSibling", "recur", "nextIF");
-  printf("%10d %10d %10d %10d %10d\n", 
-         FFWC_totalCount, FFWC_doLoop, FFWC_doSibling, FFWC_recursions, 
-         FFWC_nextInFlows);
-#endif
-
-  return NS_OK;
-}
-
 nsresult
 nsCSSFrameConstructor::GetInsertionPoint(nsIFrame*     aParentFrame,
                                          nsIContent*   aChildContent,
@@ -8980,21 +8718,21 @@ nsCSSFrameConstructor::ShouldHaveSpecialBlockStyle(nsIContent* aContent,
 const nsCSSFrameConstructor::PseudoParentData
 nsCSSFrameConstructor::sPseudoParentData[eParentTypeCount] = {
   { 
-    FULL_CTOR_FCDATA(FCDATA_IS_TABLE_PART | FCDATA_SKIP_FRAMEMAP |
+    FULL_CTOR_FCDATA(FCDATA_IS_TABLE_PART | FCDATA_SKIP_FRAMESET |
                      FCDATA_USE_CHILD_ITEMS |
                      FCDATA_DESIRED_PARENT_TYPE_TO_BITS(eTypeRow),
                      &nsCSSFrameConstructor::ConstructTableCell),
     &nsCSSAnonBoxes::tableCell
   },
   { 
-    FULL_CTOR_FCDATA(FCDATA_IS_TABLE_PART | FCDATA_SKIP_FRAMEMAP |
+    FULL_CTOR_FCDATA(FCDATA_IS_TABLE_PART | FCDATA_SKIP_FRAMESET |
                      FCDATA_USE_CHILD_ITEMS |
                      FCDATA_DESIRED_PARENT_TYPE_TO_BITS(eTypeRowGroup),
                      &nsCSSFrameConstructor::ConstructTableRow),
     &nsCSSAnonBoxes::tableRow
   },
   { 
-    FCDATA_DECL(FCDATA_IS_TABLE_PART | FCDATA_SKIP_FRAMEMAP |
+    FCDATA_DECL(FCDATA_IS_TABLE_PART | FCDATA_SKIP_FRAMESET |
                 FCDATA_DISALLOW_OUT_OF_FLOW | FCDATA_USE_CHILD_ITEMS |
                 FCDATA_SKIP_ABSPOS_PUSH |
                 FCDATA_DESIRED_PARENT_TYPE_TO_BITS(eTypeTable),
@@ -9002,7 +8740,7 @@ nsCSSFrameConstructor::sPseudoParentData[eParentTypeCount] = {
     &nsCSSAnonBoxes::tableRowGroup
   },
   { 
-    FCDATA_DECL(FCDATA_IS_TABLE_PART | FCDATA_SKIP_FRAMEMAP |
+    FCDATA_DECL(FCDATA_IS_TABLE_PART | FCDATA_SKIP_FRAMESET |
                 FCDATA_DISALLOW_OUT_OF_FLOW | FCDATA_USE_CHILD_ITEMS |
                 FCDATA_SKIP_ABSPOS_PUSH |
                 FCDATA_DESIRED_PARENT_TYPE_TO_BITS(eTypeTable),
@@ -9010,7 +8748,7 @@ nsCSSFrameConstructor::sPseudoParentData[eParentTypeCount] = {
     &nsCSSAnonBoxes::tableColGroup
   },
   { 
-    FULL_CTOR_FCDATA(FCDATA_SKIP_FRAMEMAP | FCDATA_USE_CHILD_ITEMS,
+    FULL_CTOR_FCDATA(FCDATA_SKIP_FRAMESET | FCDATA_USE_CHILD_ITEMS,
                      &nsCSSFrameConstructor::ConstructTable),
     &nsCSSAnonBoxes::table
   }
@@ -9907,6 +9645,7 @@ nsCSSFrameConstructor::CreateLetterFrame(nsIFrame* aBlockFrame,
         aBlockFrame->AddStateBits(NS_BLOCK_HAS_FIRST_LETTER_CHILD);
       }
     }
+    aTextContent->SetPrimaryFrame(textFrame);
   }
 
   return NS_OK;
@@ -10084,6 +9823,7 @@ nsCSSFrameConstructor::RemoveFloatingFirstLetterFrames(
     return NS_ERROR_OUT_OF_MEMORY;;
   }
   newTextFrame->Init(textContent, parentFrame, nsnull);
+  textContent->SetPrimaryFrame(newTextFrame);
 
   
   
@@ -10146,6 +9886,7 @@ nsCSSFrameConstructor::RemoveFirstLetterFrames(nsPresContext* aPresContext,
       }
       textFrame = NS_NewTextFrame(aPresShell, newSC);
       textFrame->Init(textContent, aFrame, nsnull);
+      textContent->SetPrimaryFrame(textFrame);
 
       
       aFrameManager->RemoveFrame(nsnull, kid);
