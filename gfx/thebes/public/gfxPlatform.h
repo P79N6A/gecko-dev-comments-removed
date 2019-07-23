@@ -124,7 +124,7 @@ public:
     
 
 
-    virtual gfxFontGroup *CreateFontGroup(const nsAString& aFamilies,
+    virtual gfxFontGroup *CreateFontGroup(const nsAString &aFamilies,
                                           const gfxFontStyle *aStyle) = 0;
 
     

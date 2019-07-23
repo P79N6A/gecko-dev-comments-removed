@@ -54,21 +54,10 @@
 
 #include <string>
 
-
-
-
-
-
-
-
-
-
-
-
-
 gfxWindowsPlatform::gfxWindowsPlatform()
 {
     mFonts.Init(200);
+    mFontWeights.Init(200);
     mFontAliases.Init(20);
     mFontSubstitutes.Init(50);
     UpdateFontList();
@@ -115,10 +104,12 @@ gfxWindowsPlatform::FontEnumProc(const ENUMLOGFONTEXW *lpelfe,
     fe->mCharset[metrics.tmCharSet] = 1;
 
     
-    fe->mWeightTable.SetWeight(PR_MAX(1, PR_MIN(9, metrics.tmWeight / 100)), PR_TRUE);
-
-    
-    fe->mDefaultWeight = metrics.tmWeight;
+    nsRefPtr<WeightTable> wt;
+    if (!thisp->mFontWeights.Get(name, &wt)) {
+        wt = new WeightTable();
+        wt->SetWeight(PR_MAX(1, PR_MIN(9, metrics.tmWeight / 100)), PR_TRUE);
+        thisp->mFontWeights.Put(name, wt);
+    }
 
     fe->mFamily = logFont.lfPitchAndFamily & 0xF0;
     fe->mPitch = logFont.lfPitchAndFamily & 0x0F;
@@ -144,227 +135,6 @@ gfxWindowsPlatform::FontEnumProc(const ENUMLOGFONTEXW *lpelfe,
 
     return 1;
 }
-
-static inline PRUint16
-ReadShortAt(const PRUint8 *aBuf, PRUint32 aIndex)
-{
-    return (aBuf[aIndex] << 8) | aBuf[aIndex + 1];
-}
-
-static inline PRUint32
-ReadLongAt(const PRUint8 *aBuf, PRUint32 aIndex)
-{
-    return ((aBuf[aIndex] << 24) | (aBuf[aIndex + 1] << 16) | (aBuf[aIndex + 2] << 8) | (aBuf[aIndex + 3]));
-}
-
-static nsresult
-ReadCMAPTableFormat12(PRUint8 *aBuf, PRInt32 len, FontEntry *aFontEntry) 
-{
-    enum {
-        OffsetFormat = 0,
-        OffsetReserved = 2,
-        OffsetTableLength = 4,
-        OffsetLanguage = 8,
-        OffsetNumberGroups = 12,
-        OffsetGroups = 16,
-
-        SizeOfGroup = 12,
-
-        GroupOffsetStartCode = 0,
-        GroupOffsetEndCode = 4
-    };
-
-    NS_ENSURE_TRUE(ReadShortAt(aBuf, OffsetFormat) == 12, NS_ERROR_FAILURE);
-    NS_ENSURE_TRUE(ReadShortAt(aBuf, OffsetReserved) == 0, NS_ERROR_FAILURE);
-    NS_ENSURE_TRUE(ReadLongAt(aBuf, OffsetTableLength) != 0, NS_ERROR_FAILURE);
-    NS_ENSURE_TRUE(ReadLongAt(aBuf, OffsetLanguage) == 0, NS_ERROR_FAILURE);
-
-    const PRUint32 numGroups  = ReadLongAt(aBuf, OffsetNumberGroups);
-    const PRUint8 *groups = aBuf + OffsetGroups;
-    for (PRUint32 i = 0; i < numGroups; i++, groups += SizeOfGroup) {
-        const PRUint32 startCharCode = ReadLongAt(groups, GroupOffsetStartCode);
-        const PRUint32 endCharCode = ReadLongAt(groups, GroupOffsetEndCode);
-        for (PRUint32 c = startCharCode; c <= endCharCode; ++c) {
-            
-            
-            aFontEntry->mCharacterMap.set(c);
-#ifdef UPDATE_RANGES
-            PRUint16 b = CharRangeBit(c);
-            if (b != NO_RANGE_FOUND)
-                aFontEntry->mUnicodeRanges.set(b, true);
-#endif
-        }
-    }
-
-    return NS_OK;
-}
-
-static nsresult 
-ReadCMAPTableFormat4(PRUint8 *aBuf, PRInt32 aLength, FontEntry *aFontEntry)
-{
-    enum {
-        OffsetFormat = 0,
-        OffsetLength = 2,
-        OffsetLanguage = 4,
-        OffsetSegCountX2 = 6,
-    };
-
-    NS_ENSURE_TRUE(ReadShortAt(aBuf, OffsetFormat) == 4, NS_ERROR_FAILURE);
-    NS_ENSURE_TRUE(ReadShortAt(aBuf, OffsetLength) != 0, NS_ERROR_FAILURE);
-    NS_ENSURE_TRUE(ReadShortAt(aBuf, OffsetLanguage) == 0, NS_ERROR_FAILURE);
-
-    PRUint16 segCountX2 = ReadShortAt(aBuf, OffsetSegCountX2);
-    const PRUint8 *endCounts = aBuf + 14;
-    const PRUint8 *startCounts = endCounts + segCountX2 + 2;
-    const PRUint8 *idDeltas = startCounts + segCountX2;
-    const PRUint8 *idRangeOffsets = idDeltas + segCountX2;
-    for (PRUint16 i = 0; i < segCountX2; i += 2) {
-        const PRUint16 endCount = ReadShortAt(endCounts, i);
-        const PRUint16 startCount = ReadShortAt(startCounts, i);
-        const PRUint16 idRangeOffset = ReadShortAt(idRangeOffsets, i);
-        if (idRangeOffset == 0) {
-            for (PRUint32 c = startCount; c <= endCount; c++) {
-                aFontEntry->mCharacterMap.set(c);
-#ifdef UPDATE_RANGES
-                PRUint16 b = CharRangeBit(c);
-                if (b != NO_RANGE_FOUND)
-                    aFontEntry->mUnicodeRanges.set(b, true);
-#endif
-            }
-        } else {
-            const PRUint8 *gdata = idRangeOffsets + i + idRangeOffset;
-            for (PRUint16 c = startCount; c <= endCount; ++c, gdata += 2) {
-                
-                if (PRUint16 g = ReadShortAt(gdata, 0)) {
-                    aFontEntry->mCharacterMap.set(c);
-#ifdef UPDATE_RANGES
-                    PRUint16 b = CharRangeBit(c);
-                    if (b != NO_RANGE_FOUND)
-                        aFontEntry->mUnicodeRanges.set(b, true);
-#endif
-                }
-            }
-        }
-    }
-
-    return NS_OK;
-}
-
-static nsresult
-ReadCMAP(HDC hdc, FontEntry *aFontEntry)
-{
-    const PRUint32 kCMAP = (('c') | ('m' << 8) | ('a' << 16) | ('p' << 24));
-
-    DWORD len = GetFontData(hdc, kCMAP, 0, nsnull, 0);
-    NS_ENSURE_TRUE(len != GDI_ERROR && len != 0, NS_ERROR_FAILURE);
-
-    nsAutoTArray<PRUint8,16384> buffer;
-    if (!buffer.AppendElements(len))
-        return NS_ERROR_OUT_OF_MEMORY;
-    PRUint8 *buf = buffer.Elements();
-
-    DWORD newLen = GetFontData(hdc, kCMAP, 0, buf, len);
-    NS_ENSURE_TRUE(newLen == len, NS_ERROR_FAILURE);
-
-    enum {
-        OffsetVersion = 0,
-        OffsetNumTables = 2,
-        SizeOfHeader = 4,
-
-        TableOffsetPlatformID = 0,
-        TableOffsetEncodingID = 2,
-        TableOffsetOffset = 4,
-        SizeOfTable = 8,
-
-        SubtableOffsetFormat = 0,
-    };
-    enum {
-        PlatformIDMicrosoft = 3
-    };
-    enum {
-        EncodingIDMicrosoft = 1,
-        EncodingIDUCS4 = 10
-    };
-
-    PRUint16 version = ReadShortAt(buf, OffsetVersion);
-    PRUint16 numTables = ReadShortAt(buf, OffsetNumTables);
-
-    
-    PRUint32 keepOffset;
-    PRUint32 keepFormat;
-
-    PRUint8 *table = buf + SizeOfHeader;
-    for (PRUint16 i = 0; i < numTables; ++i, table += SizeOfTable) {
-        const PRUint16 platformID = ReadShortAt(table, TableOffsetPlatformID);
-        if (platformID != PlatformIDMicrosoft)
-            continue;
-
-        const PRUint16 encodingID = ReadShortAt(table, TableOffsetEncodingID);
-        const PRUint32 offset = ReadLongAt(table, TableOffsetOffset);
-
-        const PRUint8 *subtable = buf + offset;
-        const PRUint16 format = ReadShortAt(subtable, SubtableOffsetFormat);
-
-        if (format == 4 && encodingID == EncodingIDMicrosoft) {
-            keepFormat = format;
-            keepOffset = offset;
-        }
-        else if (format == 12 && encodingID == EncodingIDUCS4) {
-            keepFormat = format;
-            keepOffset = offset;
-            break; 
-        }
-    }
-
-    nsresult rv = NS_ERROR_FAILURE;
-
-    if (keepFormat == 12)
-        rv = ReadCMAPTableFormat12(buf + keepOffset, len - keepOffset, aFontEntry);
-    else if (keepFormat == 4)
-        rv = ReadCMAPTableFormat4(buf + keepOffset, len - keepOffset, aFontEntry);
-
-    return rv;
-}
-
-PLDHashOperator PR_CALLBACK
-gfxWindowsPlatform::FontGetCMapDataProc(nsStringHashKey::KeyType aKey,
-                                        nsRefPtr<FontEntry>& aFontEntry,
-                                        void* userArg)
-{
-    if (aFontEntry->IsCrappyFont())
-        return PL_DHASH_NEXT;
-
-    HDC hdc = GetDC(nsnull);
-
-    LOGFONTW logFont;
-    memset(&logFont, 0, sizeof(LOGFONTW));
-    logFont.lfCharSet = DEFAULT_CHARSET;
-    logFont.lfPitchAndFamily = 0;
-    PRUint32 l = PR_MIN(aFontEntry->mName.Length(), LF_FACESIZE - 1);
-    memcpy(logFont.lfFaceName,
-           nsPromiseFlatString(aFontEntry->mName).get(),
-           l * sizeof(PRUnichar));
-    logFont.lfFaceName[l] = 0;
-
-    HFONT font = CreateFontIndirectW(&logFont);
-
-    if (font) {
-        HFONT oldFont = (HFONT)SelectObject(hdc, font);
-
-        nsresult rv = ReadCMAP(hdc, aFontEntry);
-
-        if (NS_FAILED(rv))
-            aFontEntry->mUnicodeFont = PR_FALSE;
-
-        SelectObject(hdc, oldFont);
-        DeleteObject(font);
-    }
-
-    ReleaseDC(nsnull, hdc);
-
-    return PL_DHASH_NEXT;
-}
-
 
 struct FontListData {
     FontListData(const nsACString& aLangGroup, const nsACString& aGenericFamily, nsStringArray& aListOfFonts) :
@@ -438,16 +208,16 @@ gfxWindowsPlatform::UpdateFontList()
     ::ReleaseDC(nsnull, dc);
 
     
-    mFonts.Enumerate(gfxWindowsPlatform::FontGetCMapDataProc, nsnull);
-
-    
-    nsCOMPtr<nsIWindowsRegKey> regKey = do_CreateInstance("@mozilla.org/windows-registry-key;1");
+    nsCOMPtr<nsIWindowsRegKey> regKey =
+        do_CreateInstance("@mozilla.org/windows-registry-key;1");
     if (!regKey)
         return NS_ERROR_FAILURE;
-     NS_NAMED_LITERAL_STRING(kFontSubstitutesKey, "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\FontSubstitutes");
+     NS_NAMED_LITERAL_STRING(kFontSubstitutesKey,
+          "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\FontSubstitutes");
 
-    nsresult rv = regKey->Open(nsIWindowsRegKey::ROOT_KEY_LOCAL_MACHINE,
-                               kFontSubstitutesKey, nsIWindowsRegKey::ACCESS_READ);
+    nsresult rv =
+        regKey->Open(nsIWindowsRegKey::ROOT_KEY_LOCAL_MACHINE,
+                     kFontSubstitutesKey, nsIWindowsRegKey::ACCESS_READ);
     if (NS_FAILED(rv))
         return rv;
 
@@ -581,86 +351,155 @@ gfxWindowsPlatform::FontResolveProc(const ENUMLOGFONTEXW *lpelfe,
     
 }
 
+struct FontMatch {
+    FontMatch() : rank(0) {}
+    PRBool operator <(const FontMatch& other) const { return (rank < other.rank); }
+    PRBool operator >(const FontMatch& other) const { return (rank > other.rank); }
+    PRBool operator ==(const FontMatch& other) const { return (rank == other.rank); }
+    nsRefPtr<FontEntry> fontEntry;
+    PRInt8 rank;
+};
+
 struct FontSearch {
-    FontSearch(const PRUnichar *aString, PRUint32 aLength, gfxWindowsFont *aFont) :
-        string(aString), length(aLength), fontToMatch(aFont), matchRank(0) {
+    FontSearch(PRUnichar aCh, PRUint8 aRange, const char *aLangGroup, const char *aFamily) :
+        ch(aCh), langGroup(aLangGroup), family(aFamily), range(aRange), highestRank(0), fontMatches(25) {
     }
-    const PRUnichar *string;
-    const PRUint32 length;
-    nsRefPtr<gfxWindowsFont> fontToMatch;
-    PRInt32 matchRank;
-    nsRefPtr<FontEntry> bestMatch;
+    PRBool RankIsOK(PRUint32 rank) {
+        return (rank >= (highestRank / 2) + 1);
+    }
+    const PRUint32 ch;
+    const char *langGroup;
+    const char *family;
+    const PRUint8 range;
+    PRInt8 highestRank;
+    nsTArray<FontMatch> fontMatches;
 };
 
 PLDHashOperator PR_CALLBACK
-gfxWindowsPlatform::FindFontForStringProc(nsStringHashKey::KeyType aKey,
-                                          nsRefPtr<FontEntry>& aFontEntry,
-                                          void* userArg)
+gfxWindowsPlatform::FindFontForChar(nsStringHashKey::KeyType aKey,
+                                    nsRefPtr<FontEntry>& aFontEntry,
+                                    void* userArg)
 {
     
     if (aFontEntry->IsCrappyFont())
         return PL_DHASH_NEXT;
 
     FontSearch *data = (FontSearch*)userArg;
+    FontMatch fm;
+    if (aFontEntry->SupportsRange(data->range))
+        fm.rank += 20;
 
-    PRInt32 rank = 0;
+    if (aFontEntry->SupportsLangGroup(nsDependentCString(data->langGroup)))
+        fm.rank += 10;
 
-    for (PRUint32 i = 0; i < data->length; ++i) {
-        PRUint32 ch = data->string[i];
-
-        if ((i+1 < data->length) && NS_IS_HIGH_SURROGATE(ch) && NS_IS_LOW_SURROGATE(data->string[i+1])) {
-            i++;
-            ch = SURROGATE_TO_UCS4(ch, data->string[i]);
-        }
-
-        if (aFontEntry->mCharacterMap.test(ch)) {
-            rank += 20;
-
-            
-            
-            if (aFontEntry->SupportsRange(CharRangeBit(ch)))
-                rank += 1;
-        }
-    }
+    if (data->family && aFontEntry->MatchesGenericFamily(nsDependentCString(data->family)))
+        fm.rank += 5;
 
     
-    if (rank == 0)
+    
+    
+    
+
+
+    
+    
+
+    
+
+
+    if (fm.rank > data->highestRank)
+        data->highestRank = fm.rank;
+
+    if (!data->RankIsOK(fm.rank))
         return PL_DHASH_NEXT;
 
-
-    if (aFontEntry->SupportsLangGroup(data->fontToMatch->GetStyle()->langGroup))
-        rank += 10;
-
-    if (data->fontToMatch->GetFontEntry()->mFamily == aFontEntry->mFamily)
-        rank += 5;
-    if (data->fontToMatch->GetFontEntry()->mFamily == aFontEntry->mPitch)
-        rank += 5;
-
-    
-    PRInt8 baseWeight, weightDistance;
-    data->fontToMatch->GetStyle()->ComputeWeightAndOffset(&baseWeight, &weightDistance);
-    PRUint16 targetWeight = (baseWeight * 100) + (weightDistance * 100);
-    if (targetWeight == aFontEntry->mDefaultWeight)
-        rank += 5;
-
-    if (data->matchRank == 0 || rank > data->matchRank) {
-        data->bestMatch = aFontEntry;
-        data->matchRank = rank;
+    if (fm.rank > 0) {
+        fm.fontEntry = aFontEntry;
+        data->fontMatches.AppendElement(fm);
     }
 
     return PL_DHASH_NEXT;
 }
 
-
-FontEntry *
-gfxWindowsPlatform::FindFontForString(const PRUnichar *aString, PRUint32 aLength, gfxWindowsFont *aFont)
+void
+gfxWindowsPlatform::FindOtherFonts(const PRUnichar* aString, PRUint32 aLength, const char *aLangGroup, const char *aGeneric, nsString& fonts)
 {
-    FontSearch data(aString, aLength, aFont);
+    fonts.Truncate();
 
-    
-    mFonts.Enumerate(gfxWindowsPlatform::FindFontForStringProc, &data);
+    PRBool surrogates = PR_FALSE;
 
-    return data.bestMatch;
+    std::bitset<128> ranges(0);
+
+    for (PRUint32 z = 0; z < aLength; ++z) {
+        PRUint32 ch = aString[z];
+
+        if ((z+1 < aLength) && NS_IS_HIGH_SURROGATE(ch) && NS_IS_LOW_SURROGATE(aString[z+1])) {
+            z++;
+            ch = SURROGATE_TO_UCS4(ch, aString[z]);
+            surrogates = PR_TRUE;
+        }
+
+        PRUint8 range = CharRangeBit(ch);
+        if (range != NO_RANGE_FOUND && !ranges[range]) {
+            FontSearch data(ch, CharRangeBit(ch), aLangGroup, aGeneric);
+
+            mFonts.Enumerate(gfxWindowsPlatform::FindFontForChar, &data);
+
+            data.fontMatches.Sort();
+
+            PRUint32 nmatches = data.fontMatches.Length();
+            if (nmatches > 0) {
+                
+                for (PRUint32 i = nmatches - 1; i > 0; i--) {
+                    const FontMatch& fm = data.fontMatches[i];
+                    if (data.RankIsOK(fm.rank)) {
+                        if (!fonts.IsEmpty())
+                            fonts.AppendLiteral(", ");
+                        fonts.Append(fm.fontEntry->mName);
+                    }
+                }
+            }
+            ranges[range] = PR_TRUE;
+        }
+    }
+
+
+    if (surrogates) {
+        
+        FontSearch data(0xd801, 57, aLangGroup, aGeneric);
+
+        mFonts.Enumerate(gfxWindowsPlatform::FindFontForChar, &data);
+
+        data.fontMatches.Sort();
+
+        PRUint32 nmatches = data.fontMatches.Length();
+        if (nmatches > 0) {
+            for (PRUint32 i = nmatches - 1; i > 0; i--) {
+                const FontMatch& fm = data.fontMatches[i];
+                if (data.RankIsOK(fm.rank)) {
+                    if (!fonts.IsEmpty())
+                        fonts.AppendLiteral(", ");
+                    fonts.Append(fm.fontEntry->mName);
+                }
+            }
+        }
+    }
+}
+
+WeightTable *
+gfxWindowsPlatform::GetFontWeightTable(const nsAString& aName)
+{
+    nsRefPtr<WeightTable> wt;
+    if (!mFontWeights.Get(aName, &wt)) {
+        return nsnull;
+    }
+    return wt;
+}
+
+void
+gfxWindowsPlatform::PutFontWeightTable(const nsAString& aName, WeightTable *aWeightTable)
+{
+    mFontWeights.Put(aName, aWeightTable);
 }
 
 gfxFontGroup *
@@ -668,19 +507,4 @@ gfxWindowsPlatform::CreateFontGroup(const nsAString &aFamilies,
                                     const gfxFontStyle *aStyle)
 {
     return new gfxWindowsFontGroup(aFamilies, aStyle);
-}
-
-FontEntry *
-gfxWindowsPlatform::FindFontEntry(const nsAString& aName)
-{
-    nsString name(aName);
-    ToLowerCase(name);
-
-    nsRefPtr<FontEntry> fe;
-    if (!mFonts.Get(name, &fe) &&
-        !mFontSubstitutes.Get(name, &fe) &&
-        !mFontAliases.Get(name, &fe)) {
-        return nsnull;
-    }
-    return fe.get();
 }

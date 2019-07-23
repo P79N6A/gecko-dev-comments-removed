@@ -73,16 +73,10 @@ public:
                                   const gfxFontStyle *aStyle);
 
     
+    void FindOtherFonts(const PRUnichar *aString, PRUint32 aLength, const char *aLangGroup, const char *aGeneric, nsString& array);
 
-
-
-
-
-
-    FontEntry *FindFontForString(const PRUnichar *aString, PRUint32 aLength, gfxWindowsFont *aFont);
-
-    
-    FontEntry *FindFontEntry(const nsAString& aName);
+    WeightTable *GetFontWeightTable(const nsAString& aName);
+    void PutFontWeightTable(const nsAString& aName, WeightTable *aWeightTable);
 
 private:
     void Init();
@@ -90,10 +84,6 @@ private:
     static int CALLBACK FontEnumProc(const ENUMLOGFONTEXW *lpelfe,
                                      const NEWTEXTMETRICEXW *metrics,
                                      DWORD fontType, LPARAM data);
-
-    static PLDHashOperator PR_CALLBACK FontGetCMapDataProc(nsStringHashKey::KeyType aKey,
-                                                           nsRefPtr<FontEntry>& aFontEntry,
-                                                           void* userArg);
 
     static int CALLBACK FontResolveProc(const ENUMLOGFONTEXW *lpelfe,
                                         const NEWTEXTMETRICEXW *metrics,
@@ -103,11 +93,12 @@ private:
                                                     nsRefPtr<FontEntry>& aData,
                                                     void* userArg);
 
-    static PLDHashOperator PR_CALLBACK FindFontForStringProc(nsStringHashKey::KeyType aKey,
-                                                             nsRefPtr<FontEntry>& aFontEntry,
-                                                             void* userArg);
+    static PLDHashOperator PR_CALLBACK FindFontForChar(nsStringHashKey::KeyType aKey,
+                                                       nsRefPtr<FontEntry>& aFontEntry,
+                                                       void* userArg);
 
     nsDataHashtable<nsStringHashKey, nsRefPtr<FontEntry> > mFonts;
+    nsDataHashtable<nsStringHashKey, nsRefPtr<WeightTable> > mFontWeights;
     nsDataHashtable<nsStringHashKey, nsRefPtr<FontEntry> > mFontAliases;
     nsDataHashtable<nsStringHashKey, nsRefPtr<FontEntry> > mFontSubstitutes;
     nsStringArray mNonExistingFonts;
