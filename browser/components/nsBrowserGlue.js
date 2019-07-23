@@ -289,7 +289,6 @@ BrowserGlue.prototype = {
 
 
   _initPlaces: function bg__initPlaces() {
-#ifdef MOZ_PLACES_BOOKMARKS
     
     
     
@@ -338,7 +337,6 @@ BrowserGlue.prototype = {
         }
       }
     }
-#endif
   },
 
   
@@ -346,13 +344,11 @@ BrowserGlue.prototype = {
 
 
   _shutdownPlaces: function bg__shutdownPlaces() {
-#ifdef MOZ_PLACES_BOOKMARKS
     
     var importer =
       Cc["@mozilla.org/browser/places/import-export-service;1"].
       getService(Ci.nsIPlacesImportExportService);
     importer.backupBookmarksFile();
-#endif
   },
   
   
