@@ -42,7 +42,7 @@
 #include "nsHttpConnectionInfo.h"
 #include "nsHttpConnection.h"
 #include "nsHttpTransaction.h"
-#include "nsVoidArray.h"
+#include "nsTArray.h"
 #include "nsThreadUtils.h"
 #include "nsHashtable.h"
 #include "nsAutoPtr.h"
@@ -156,10 +156,10 @@ private:
         }
        ~nsConnectionEntry() { NS_RELEASE(mConnInfo); }
 
-        nsHttpConnectionInfo *mConnInfo;
-        nsVoidArray           mPendingQ;    
-        nsVoidArray           mActiveConns; 
-        nsVoidArray           mIdleConns;   
+        nsHttpConnectionInfo        *mConnInfo;
+        nsTArray<nsHttpTransaction*> mPendingQ;    
+        nsTArray<nsHttpConnection*>  mActiveConns; 
+        nsTArray<nsHttpConnection*>  mIdleConns;   
     };
 
     

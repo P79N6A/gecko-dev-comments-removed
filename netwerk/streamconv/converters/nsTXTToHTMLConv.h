@@ -40,7 +40,8 @@
 
 #include "nsITXTToHTMLConv.h"
 #include "nsCOMPtr.h"
-#include "nsVoidArray.h"
+#include "nsTArray.h"
+#include "nsAutoPtr.h"
 #include "nsIFactory.h"
 #include "nsString.h"
 
@@ -131,7 +132,7 @@ protected:
 
     nsCOMPtr<nsIStreamListener>     mListener; 
     nsString                        mBuffer;   
-    nsVoidArray                     mTokens;   
+    nsTArray<nsAutoPtr<convToken> > mTokens;   
     convToken                       *mToken;   
     nsString                        mPageTitle; 
     PRBool                          mPreFormatHTML; 

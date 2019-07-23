@@ -42,7 +42,7 @@
 #include "nsString.h"
 #include "nsCOMPtr.h"
 #include "nsAutoPtr.h"
-#include "nsVoidArray.h"
+#include "nsTArray.h"
 #include "nsIPrefBranch.h"
 #include "nsIProtocolProxyService2.h"
 #include "nsIProtocolProxyFilter.h"
@@ -290,8 +290,6 @@ protected:
 
     NS_HIDDEN_(PRBool) CanUseProxy(nsIURI *uri, PRInt32 defaultPort);
 
-    static PRBool CleanupFilterArray(void *aElement, void *aData);
-
 public:
     
     
@@ -352,7 +350,7 @@ protected:
     };
 
     
-    nsVoidArray                  mHostFiltersArray;
+    nsTArray<nsAutoPtr<HostInfo> > mHostFiltersArray;
 
     
     

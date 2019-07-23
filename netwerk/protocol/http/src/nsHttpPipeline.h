@@ -44,7 +44,7 @@
 #include "nsAHttpTransaction.h"
 #include "nsIInputStream.h"
 #include "nsIOutputStream.h"
-#include "nsVoidArray.h"
+#include "nsTArray.h"
 #include "nsCOMPtr.h"
 
 class nsHttpPipeline : public nsAHttpConnection
@@ -71,23 +71,23 @@ private:
     
     nsAHttpTransaction *Request(PRInt32 i)
     {
-        if (mRequestQ.Count() == 0)
+        if (mRequestQ.Length() == 0)
             return nsnull;
 
-        return (nsAHttpTransaction *) mRequestQ[i];
+        return mRequestQ[i];
     }
     nsAHttpTransaction *Response(PRInt32 i)
     {
-        if (mResponseQ.Count() == 0)
+        if (mResponseQ.Length() == 0)
             return nsnull;
 
-        return (nsAHttpTransaction *) mResponseQ[i];
+        return mResponseQ[i];
     }
 
-    nsAHttpConnection *mConnection;
-    nsVoidArray        mRequestQ;  
-    nsVoidArray        mResponseQ; 
-    nsresult           mStatus;
+    nsAHttpConnection            *mConnection;
+    nsTArray<nsAHttpTransaction*> mRequestQ;  
+    nsTArray<nsAHttpTransaction*> mResponseQ; 
+    nsresult                      mStatus;
 
     
     
