@@ -65,10 +65,7 @@
 
 
 
-
-
 #define NBUCKETS 6
-#define BY4ALLOC_ITEMS 320
 nsRecyclingAllocator *gZlibAllocator = NULL;
 
 
@@ -121,56 +118,14 @@ static nsresult ResolveSymlink(const char *path);
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 static void *
 zlibAlloc(void *opaque, uInt items, uInt size)
 {
   nsRecyclingAllocator *zallocator = (nsRecyclingAllocator *)opaque;
-  if (zallocator) {
-    
-    PRUint32 realitems = items;
-    if (size == 4 && items < BY4ALLOC_ITEMS)
-      realitems = BY4ALLOC_ITEMS;
-    return zallocator->Calloc(realitems, size);
+  if (gZlibAllocator) {
+    return gZlibAllocator->Calloc(items, size);
   }
-  else
-    return calloc(items, size);
+  return calloc(items, size);
 }
 
 static void
@@ -181,7 +136,6 @@ zlibFree(void *opaque, void *ptr)
     zallocator->Free(ptr);
   else
     free(ptr);
-  return;
 }
 
 nsresult gZlibInit(z_stream *zs)
