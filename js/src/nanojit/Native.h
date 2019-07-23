@@ -188,18 +188,13 @@ namespace nanojit {
         
         
         
-        
         #define asm_output(...) do { \
             counter_increment(native); \
             if (_logc->lcbits & LC_Assembly) { \
                 outline[0]='\0'; \
-                if (outputAddr) \
-                   VMPI_sprintf(outline, "%010lx   ", (unsigned long)_nIns); \
-                else \
-                   VMPI_memset(outline, (int)' ', 10+3); \
+               VMPI_sprintf(outline, "%010lx   ", (unsigned long)_nIns); \
                 sprintf(&outline[13], ##__VA_ARGS__); \
                 output(); \
-                outputAddr=(_logc->lcbits & LC_NoCodeAddrs) ? false : true;    \
             } \
         } while (0) /* no semi */
         #define gpn(r)                  regNames[(r)]

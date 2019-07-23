@@ -207,9 +207,6 @@ namespace nanojit
             
             
             static char  outlineEOL[512];
-            
-            
-            bool outputAddr, vpad[3];
 
             
             

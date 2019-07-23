@@ -249,14 +249,13 @@ namespace nanojit {
 
 
         
-        LC_FragProfile = 1<<7, 
-        LC_Activation  = 1<<6, 
-        LC_Liveness    = 1<<5, 
-        LC_ReadLIR     = 1<<4, 
-        LC_AfterSF     = 1<<3, 
-        LC_RegAlloc    = 1<<2, 
-        LC_Assembly    = 1<<1, 
-        LC_NoCodeAddrs = 1<<0  
+        LC_FragProfile = 1<<6, 
+        LC_Activation  = 1<<5, 
+        LC_Liveness    = 1<<4, 
+        LC_ReadLIR     = 1<<3, 
+        LC_AfterSF     = 1<<2, 
+        LC_RegAlloc    = 1<<1, 
+        LC_Assembly    = 1<<0, 
     };
 
     class LogControl
