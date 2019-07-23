@@ -153,6 +153,18 @@ JSD_DebuggerOff(JSDContext* jsdc);
 
 
 
+extern JSD_PUBLIC_API(void)
+JSD_DebuggerPause(JSDContext* jsdc);
+
+
+
+
+extern JSD_PUBLIC_API(void)
+JSD_DebuggerUnpause(JSDContext* jsdc);
+
+
+
+
 extern JSD_PUBLIC_API(uintN)
 JSD_GetMajorVersion(void);
 
