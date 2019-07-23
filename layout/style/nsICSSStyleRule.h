@@ -176,6 +176,10 @@ private:
   void ToStringInternal(nsAString& aString, nsICSSStyleSheet* aSheet,
                         PRBool aIsPseudoElem,
                         PRBool aIsNegated) const;
+  
+  
+  
+  PRBool CanBeNamespaced(PRBool aIsNegated) const;
 
 public:
   PRInt32         mNameSpace;

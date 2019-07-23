@@ -3183,6 +3183,7 @@ CSSParserImpl::ParseNegatedSimpleSelector(PRInt32&       aDataMask,
   
   
   
+  
   nsCSSSelector *newSel = new nsCSSSelector();
   if (!newSel) {
     mScanner.SetLowLevelError(NS_ERROR_OUT_OF_MEMORY);
@@ -3220,6 +3221,11 @@ CSSParserImpl::ParseNegatedSimpleSelector(PRInt32&       aDataMask,
     REPORT_UNEXPECTED_TOKEN(PENegationNoClose);
     return eSelectorParsingStatus_Error;
   }
+
+  NS_ASSERTION(newSel->mNameSpace == kNameSpaceID_Unknown ||
+               (!newSel->mIDList && !newSel->mClassList &&
+                !newSel->mPseudoClassList && !newSel->mAttrList),
+               "Need to fix the serialization code to deal with this");
 
   return eSelectorParsingStatus_Continue;
 }
