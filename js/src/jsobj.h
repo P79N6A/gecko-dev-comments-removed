@@ -1020,7 +1020,7 @@ js_IsDelegate(JSContext *cx, JSObject *obj, jsval v, JSBool *bp);
 
 
 
-extern JSBool
+extern JS_FRIEND_API(JSBool)
 js_GetClassPrototype(JSContext *cx, JSObject *scope, JSProtoKey protoKey,
                      JSObject **protop,  JSClass *clasp = NULL);
 
@@ -1088,6 +1088,10 @@ js_CheckScopeChainValidity(JSContext *cx, JSObject *scopeobj, const char *caller
 extern JSBool
 js_CheckPrincipalsAccess(JSContext *cx, JSObject *scopeobj,
                          JSPrincipals *principals, JSAtom *caller);
+
+
+extern JSBool
+js_CheckContentSecurityPolicy(JSContext *cx);
 
 
 extern JSObject *

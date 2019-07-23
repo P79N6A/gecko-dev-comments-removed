@@ -675,7 +675,8 @@ jsdouble js_NaN;
 jsdouble js_PositiveInfinity;
 jsdouble js_NegativeInfinity;
 
-#if (defined __GNUC__ && defined __i386__)
+#if (defined __GNUC__ && defined __i386__) || \
+    (defined __SUNPRO_CC && defined __i386)
 
 
 

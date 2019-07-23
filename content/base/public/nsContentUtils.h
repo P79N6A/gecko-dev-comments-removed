@@ -122,11 +122,16 @@ class nsIXTFService;
 class nsIBidiKeyboard;
 #endif
 class nsIMIMEHeaderParam;
+class nsIObserver;
 
 #ifndef have_PrefChangedFunc_typedef
 typedef int (*PR_CALLBACK PrefChangedFunc)(const char *, void *);
 #define have_PrefChangedFunc_typedef
 #endif
+
+namespace mozilla {
+  class IHistory;
+}
 
 extern const char kLoadAsData[];
 
@@ -471,6 +476,11 @@ public:
     return sImgLoader;
   }
 
+  static mozilla::IHistory* GetHistory()
+  {
+    return sHistory;
+  }
+
 #ifdef MOZ_XTF
   static nsIXTFService* GetXTFService();
 #endif
@@ -593,6 +603,13 @@ public:
   {
     return sGenCat;
   }
+
+  
+
+
+
+  static void RegisterShutdownObserver(nsIObserver* aObserver);
+  static void UnregisterShutdownObserver(nsIObserver* aObserver);
 
   
 
@@ -1247,6 +1264,11 @@ public:
   
 
 
+  static PRBool IsSystemPrincipal(nsIPrincipal* aPrincipal);
+
+  
+
+
 
 
 
@@ -1438,7 +1460,23 @@ public:
 
   static JSContext *GetCurrentJSContext();
 
-                                             
+  
+
+
+
+  static PRBool EqualsIgnoreASCIICase(const nsAString& aStr1,
+                                      const nsAString& aStr2);
+
+  
+
+
+  static void ASCIIToLower(const nsAString& aSource, nsAString& aDest);
+
+  
+
+
+  static void ASCIIToUpper(nsAString& aStr);
+
   static nsIInterfaceRequestor* GetSameOriginChecker();
 
   static nsIThreadJSContextStack* ThreadJSContextStack()
@@ -1515,6 +1553,29 @@ public:
     return WrapNative(cx, scope, native, nsnull, vp, aHolder, aAllowWrapping);
   }
 
+  static void StripNullChars(const nsAString& aInStr, nsAString& aOutStr);
+
+  
+
+
+
+
+
+
+
+
+  static nsresult CreateStructuredClone(JSContext* cx, jsval val, jsval* rval);
+
+  
+
+
+
+
+
+
+  static nsresult ReparentClonedObjectToScope(JSContext* cx, JSObject* obj,
+                                              JSObject* scope);
+
 private:
 
   static PRBool InitializeEventTable();
@@ -1553,6 +1614,8 @@ private:
 
   static imgILoader* sImgLoader;
   static imgICache* sImgCache;
+
+  static mozilla::IHistory* sHistory;
 
   static nsIConsoleService* sConsoleService;
 
@@ -1701,9 +1764,6 @@ private:
 #define NS_AUTO_GCROOT(ptr, result) \ \
   nsAutoGCRoot NS_AUTO_GCROOT_PASTE(_autoGCRoot_, __LINE__) \
   (ptr, result)
-
-#define NS_INTERFACE_MAP_ENTRY_CONTENT_CLASSINFO(_class)                      \
-  NS_DOM_INTERFACE_MAP_ENTRY_CLASSINFO(_class)
 
 #define NS_INTERFACE_MAP_ENTRY_TEAROFF(_interface, _allocator)                \
   if (aIID.Equals(NS_GET_IID(_interface))) {                                  \
