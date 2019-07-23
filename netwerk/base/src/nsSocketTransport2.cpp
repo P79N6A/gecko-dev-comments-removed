@@ -1126,7 +1126,18 @@ nsSocketTransport::InitiateSocket()
     opt.value.non_blocking = PR_TRUE;
     status = PR_SetSocketOption(fd, &opt);
     NS_ASSERTION(status == PR_SUCCESS, "unable to make socket non-blocking");
+
     
+    
+    
+    PRInt32 sndBufferSize;
+    gSocketTransportService->GetSendBufferSize(&sndBufferSize);
+    if (sndBufferSize > 0) {
+        opt.option = PR_SockOpt_SendBufferSize;
+        opt.value.send_buffer_size = sndBufferSize;
+        PR_SetSocketOption(fd, &opt);
+    }
+
     
     rv = gSocketTransportService->AttachSocket(fd, this);
     if (NS_FAILED(rv)) {

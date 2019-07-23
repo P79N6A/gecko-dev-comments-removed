@@ -2680,3 +2680,10 @@ pref("image.cache.size", 5242880);
 
 
 pref("image.cache.timeweight", 500);
+
+#ifdef XP_WIN
+#ifndef WINCE
+
+pref("network.tcp.sendbuffer", 131072);
+#endif
+#endif
