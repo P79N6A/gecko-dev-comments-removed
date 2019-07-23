@@ -747,7 +747,6 @@ function QueryParameter(aName, aValue) {
 
 
 
-
 function ParamSubstitution(aParamValue, aSearchTerms, aEngine) {
   var value = aParamValue;
 
@@ -2288,7 +2287,7 @@ Engine.prototype = {
       this._searchForm = makeURI(htmlUrl.template).prePath;
     }
 
-    return this._searchForm;
+    return ParamSubstitution(this._searchForm, "", this);
   },
 
   get queryCharset() {
