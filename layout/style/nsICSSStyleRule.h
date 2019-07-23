@@ -163,7 +163,8 @@ public:
                     const nsString& aValue, PRBool aCaseSensitive);
   void SetOperator(PRUnichar aOperator);
 
-  PRInt32 CalcWeight(void) const;
+  
+  PRInt32 CalcWeight() const;
 
   void ToString(nsAString& aString, nsICSSStyleSheet* aSheet,
                 PRBool aAppend = PR_FALSE) const;
@@ -180,6 +181,9 @@ private:
   
   
   PRBool CanBeNamespaced(PRBool aIsNegated) const;
+  
+  
+  PRInt32 CalcWeightWithoutNegations() const;
 
 public:
   PRInt32         mNameSpace;
