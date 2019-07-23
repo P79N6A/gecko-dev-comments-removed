@@ -630,6 +630,7 @@ CanvasFrame::Reflow(nsPresContext*           aPresContext,
     aDesiredSize.width = aDesiredSize.height = 0;
   } else {
     nsIFrame* kidFrame = mFrames.FirstChild();
+    nsRect oldKidRect = kidFrame->GetRect();
     PRBool kidDirty = (kidFrame->GetStateBits() & NS_FRAME_IS_DIRTY) != 0;
 
     nsHTMLReflowState kidReflowState(aPresContext, aReflowState, kidFrame,
@@ -694,6 +695,14 @@ CanvasFrame::Reflow(nsPresContext*           aPresContext,
       
       nsIFrame* viewport = PresContext()->GetPresShell()->GetRootFrame();
       viewport->Invalidate(nsRect(nsPoint(0, 0), viewport->GetSize()));
+    } else {
+      nsRect newKidRect = kidFrame->GetRect();
+      if (newKidRect.TopLeft() == oldKidRect.TopLeft()) {
+        InvalidateRectDifference(oldKidRect, kidFrame->GetRect());
+      } else {
+        Invalidate(oldKidRect);
+        Invalidate(newKidRect);
+      }
     }
     
     
