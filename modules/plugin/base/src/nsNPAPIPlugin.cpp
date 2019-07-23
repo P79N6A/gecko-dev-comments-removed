@@ -201,8 +201,7 @@ void NS_NotifyPluginCall(PRIntervalTime startTime)
                                    runTime);
 }
 
-void
-nsNPAPIPlugin::CheckClassInitialized()
+static void CheckClassInitialized()
 {
   static PRBool initialized = PR_FALSE;
 
@@ -219,68 +218,16 @@ nsNPAPIPlugin::CheckClassInitialized()
 
 NS_IMPL_ISUPPORTS1(nsNPAPIPlugin, nsIPlugin)
 
-nsNPAPIPlugin::nsNPAPIPlugin(NPPluginFuncs* callbacks, 
-                             PluginLibrary* aLibrary)
+nsNPAPIPlugin::nsNPAPIPlugin()
 {
-  memset((void*) &mPluginFuncs, 0, sizeof(mPluginFuncs));
-
-  mPluginFuncs.size = sizeof(mPluginFuncs);
-  mLibrary = nsnull;
-
-#if defined(XP_WIN) || defined(XP_OS2)
-  
-  
-  
-
-  NPError gepError;
-  nsresult gepResult = aLibrary->NP_GetEntryPoints(&mPluginFuncs, &gepError);
-  if (gepResult != NS_OK || gepError != NPERR_NO_ERROR)
-    return;
-
-  NS_ASSERTION(HIBYTE(mPluginFuncs.version) >= NP_VERSION_MAJOR,
-               "callback version is less than NP version");
-
-#elif defined(XP_MACOSX)
-  NPPluginFuncs np_callbacks;
-  memset((void*) &np_callbacks, 0, sizeof(np_callbacks));
-  np_callbacks.size = sizeof(np_callbacks);
-
-  if (!aLibrary->HasRequiredFunctions()) {
-    NS_WARNING("Not all necessary functions exposed by plugin, it will not load.");
-    return;
-  }
-
-  
-  
-  NPError initError;
-  nsresult initResult = aLibrary->NP_Initialize(&(sBrowserFuncs), &initError);
-  if (initResult != NS_OK || initError != NPERR_NO_ERROR)
-    return;
-  NPError gepError;
-  nsresult gepResult = aLibrary->NP_GetEntryPoints(&np_callbacks, &gepError);
-  if (gepResult != NS_OK || gepError != NPERR_NO_ERROR)
-    return;
-
-  mPluginFuncs.version = np_callbacks.version;
-  mPluginFuncs.newp = (NPP_NewProcPtr)np_callbacks.newp;
-  mPluginFuncs.destroy = (NPP_DestroyProcPtr)np_callbacks.destroy;
-  mPluginFuncs.setwindow = (NPP_SetWindowProcPtr)np_callbacks.setwindow;
-  mPluginFuncs.newstream = (NPP_NewStreamProcPtr)np_callbacks.newstream;
-  mPluginFuncs.destroystream = (NPP_DestroyStreamProcPtr)np_callbacks.destroystream;
-  mPluginFuncs.asfile = (NPP_StreamAsFileProcPtr)np_callbacks.asfile;
-  mPluginFuncs.writeready = (NPP_WriteReadyProcPtr)np_callbacks.writeready;
-  mPluginFuncs.write = (NPP_WriteProcPtr)np_callbacks.write;
-  mPluginFuncs.print = (NPP_PrintProcPtr)np_callbacks.print;
-  mPluginFuncs.event = (NPP_HandleEventProcPtr)np_callbacks.event;
-  mPluginFuncs.urlnotify = (NPP_URLNotifyProcPtr)np_callbacks.urlnotify;
-  mPluginFuncs.getvalue = (NPP_GetValueProcPtr)np_callbacks.getvalue;
-  mPluginFuncs.setvalue = (NPP_SetValueProcPtr)np_callbacks.setvalue;
-#else 
-  memcpy((void*) &mPluginFuncs, (void*) callbacks, sizeof(mPluginFuncs));
+#if defined(XP_MACOSX) && !defined(__LP64__)
+  mPluginRefNum = -1;
 #endif
 
-  mLibrary = aLibrary;
-  mLibrary->SetPlugin(this);
+  memset((void*)&mPluginFuncs, 0, sizeof(mPluginFuncs));
+  mPluginFuncs.size = sizeof(mPluginFuncs);
+
+  mLibrary = nsnull;
 }
 
 nsNPAPIPlugin::~nsNPAPIPlugin()
@@ -288,9 +235,8 @@ nsNPAPIPlugin::~nsNPAPIPlugin()
   
   memset((void*) &mPluginFuncs, 0, sizeof(mPluginFuncs));
   delete mLibrary;
-  mLibrary = NULL;
+  mLibrary = nsnull;
 }
-
 
 #if defined(XP_MACOSX)
 void
@@ -424,230 +370,73 @@ nsresult
 nsNPAPIPlugin::CreatePlugin(const char* aFilePath, PRLibrary* aLibrary,
                             nsIPlugin** aResult)
 {
+  *aResult = nsnull;
+
   CheckClassInitialized();
 
-#if defined(XP_UNIX) && !defined(XP_MACOSX)
-  nsNPAPIPlugin *plptr;
-
-  NPPluginFuncs callbacks;
-  memset((void*) &callbacks, 0, sizeof(callbacks));
-  callbacks.size = sizeof(callbacks);
-
-  PluginLibrary* pluginLib = GetNewPluginLibrary(aFilePath, aLibrary);
-
-  
-  *aResult = plptr = new nsNPAPIPlugin(&callbacks, pluginLib);
-
-  if (*aResult == NULL)
-    return NS_ERROR_OUT_OF_MEMORY;
-
-  NS_ADDREF(*aResult);
-
-  
-  if (!aFilePath)
-    return NS_OK;
-
-  
-  
-  
-  plptr->Initialize();
-
-  NPError initError;
-  nsresult initResult = pluginLib->NP_Initialize(&(sBrowserFuncs),&callbacks, &initError);
-  if (initResult != NS_OK || initError != NPERR_NO_ERROR) {
-    NS_RELEASE(*aResult);
-    return NS_ERROR_UNEXPECTED;
-  }
-
-  
-  memcpy((void*) &(plptr->mPluginFuncs), (void*)&callbacks, sizeof(callbacks));
-#endif
-
-#ifdef XP_WIN
-  PluginLibrary* pluginLib = GetNewPluginLibrary(aFilePath, aLibrary);
-
-  
-  
-  
-  *aResult = new nsNPAPIPlugin(nsnull, pluginLib);
-
-  if (*aResult == NULL)
-    return NS_ERROR_OUT_OF_MEMORY;
-
-  NS_ADDREF(*aResult);
-
-  
-  
-  
-  if (NS_FAILED((*aResult)->Initialize())) {
-    NS_RELEASE(*aResult);
-    return NS_ERROR_FAILURE;
-  }
-
-  NPError initError;
-  nsresult initResult = pluginLib->NP_Initialize(&(sBrowserFuncs), &initError);
-  if (initResult != NS_OK || initError != NPERR_NO_ERROR)
-    return NS_ERROR_FAILURE;
-#endif
-
-#ifdef XP_OS2
-  PluginLibrary* pluginLib = GetNewPluginLibrary(aFilePath, aLibrary);
-
-  
-  *aResult = new nsNPAPIPlugin(nsnull, pluginLib);
-
-  if (*aResult == NULL)
-    return NS_ERROR_OUT_OF_MEMORY;
-
-  NS_ADDREF(*aResult);
-
-  
-  
-  
-  if (NS_FAILED((*aResult)->Initialize())) {
-    NS_RELEASE(*aResult);
-    return NS_ERROR_FAILURE;
-  }
-
-  NP_PLUGININIT pfnInitialize =
-    (NP_PLUGININIT)PR_FindSymbol(aLibrary, "NP_Initialize");
-
-  if (!pfnInitialize)
-    return NS_ERROR_UNEXPECTED;
-
-  
-  
-  
-  
-  
-  
-
-#define MAP_DISKNUM_TO_LETTER(n) ('A' + (n - 1))
-#define MAP_LETTER_TO_DISKNUM(c) (toupper(c)-'A'+1)
-
-  unsigned long origDiskNum, pluginDiskNum, logicalDisk;
-
-  char pluginPath[CCHMAXPATH], origPath[CCHMAXPATH];
-  strcpy(pluginPath, aFilePath);
-  char* slash = strrchr(pluginPath, '\\');
-  *slash = '\0';
-
-  DosQueryCurrentDisk( &origDiskNum, &logicalDisk );
-  pluginDiskNum = MAP_LETTER_TO_DISKNUM(pluginPath[0]);
-
-  origPath[0] = MAP_DISKNUM_TO_LETTER(origDiskNum);
-  origPath[1] = ':';
-  origPath[2] = '\\';
-
-  ULONG len = CCHMAXPATH-3;
-  APIRET rc = DosQueryCurrentDir(0, &origPath[3], &len);
-  NS_ASSERTION(NO_ERROR == rc,"DosQueryCurrentDir failed");
-
-  BOOL bChangedDir = FALSE;
-  BOOL bChangedDisk = FALSE;
-  if (pluginDiskNum != origDiskNum) {
-    rc = DosSetDefaultDisk(pluginDiskNum);
-    NS_ASSERTION(NO_ERROR == rc,"DosSetDefaultDisk failed");
-    bChangedDisk = TRUE;
-  }
-
-  if (stricmp(origPath, pluginPath) != 0) {
-    rc = DosSetCurrentDir(pluginPath);
-    NS_ASSERTION(NO_ERROR == rc,"DosSetCurrentDir failed");
-    bChangedDir = TRUE;
-  }
-
-  nsresult rv = pfnInitialize(&(sBrowserFuncs));
-
-  if (bChangedDisk) {
-    rc= DosSetDefaultDisk(origDiskNum);
-    NS_ASSERTION(NO_ERROR == rc,"DosSetDefaultDisk failed");
-  }
-  if (bChangedDir) {
-    rc = DosSetCurrentDir(origPath);
-    NS_ASSERTION(NO_ERROR == rc,"DosSetCurrentDir failed");
-  }
-
-  if (!NS_SUCCEEDED(rv)) {
-    return NS_ERROR_UNEXPECTED;
-  }
-#endif
-
-#if defined(XP_MACOSX)
-#ifndef __LP64__
-  short appRefNum = ::CurResFile();
-  short pluginRefNum;
-
-  nsCOMPtr<nsILocalFile> pluginPath;
-  NS_NewNativeLocalFile(nsDependentCString(aFilePath), PR_TRUE,
-                        getter_AddRefs(pluginPath));
-  nsPluginFile pluginFile(pluginPath);
-
-  pluginRefNum = pluginFile.OpenPluginResource();
-#endif
-
-  PluginLibrary* pluginLib = GetNewPluginLibrary(aFilePath, aLibrary);
-  nsNPAPIPlugin* plugin = new nsNPAPIPlugin(nsnull, pluginLib);
-#ifndef __LP64__
-  ::UseResFile(appRefNum);
-#endif
+  nsRefPtr<nsNPAPIPlugin> plugin = new nsNPAPIPlugin();
   if (!plugin)
     return NS_ERROR_OUT_OF_MEMORY;
 
-  *aResult = plugin;
-
-  NS_ADDREF(*aResult);
-  if (NS_FAILED((*aResult)->Initialize())) {
-    NS_RELEASE(*aResult);
+  PluginLibrary* pluginLib = GetNewPluginLibrary(aFilePath, aLibrary);
+  if (!pluginLib) {
     return NS_ERROR_FAILURE;
   }
 
-#ifndef __LP64__
-  plugin->SetPluginRefNum(pluginRefNum);
-#endif
-#endif
-
-#ifdef XP_BEOS
-  
-  
-
-  
-
-  nsNPAPIPlugin *plptr;
-
-  NPPluginFuncs callbacks;
-  memset((void*) &callbacks, 0, sizeof(callbacks));
-  callbacks.size = sizeof(callbacks);
-
-  NP_PLUGINSHUTDOWN pfnShutdown =
-    (NP_PLUGINSHUTDOWN)PR_FindSymbol(aLibrary, "NP_Shutdown");
-
-  
-  *aResult = plptr = new nsNPAPIPlugin(&callbacks, aLibrary, pfnShutdown);
-
-  if (*aResult == NULL)
-    return NS_ERROR_OUT_OF_MEMORY;
-
-  NS_ADDREF(*aResult);
-
-  
-  
-  
-  plptr->Initialize();
-
-  NP_PLUGINUNIXINIT pfnInitialize =
-    (NP_PLUGINUNIXINIT)PR_FindSymbol(aLibrary, "NP_Initialize");
-
-  if (!pfnInitialize)
+#ifdef XP_MACOSX
+  if (!pluginLib->HasRequiredFunctions()) {
+    NS_WARNING("Not all necessary functions exposed by plugin, it will not load.");
     return NS_ERROR_FAILURE;
-
-  if (pfnInitialize(&(sBrowserFuncs),&callbacks) != NS_OK)
-    return NS_ERROR_FAILURE;
-
-  
-  memcpy((void*) &(plptr->mPluginFuncs), (void*)&callbacks, sizeof(callbacks));
+  }
 #endif
 
+  plugin->mLibrary = pluginLib;
+  pluginLib->SetPlugin(plugin);
+
+#if defined(XP_UNIX) && !defined(XP_MACOSX)
+  
+  if (!aFilePath) {
+    *aResult = plugin.forget().get();
+    return NS_OK;
+  }
+#endif
+
+  NPError pluginCallError;
+  nsresult rv;
+
+
+#if defined(XP_WIN) || defined(XP_OS2)
+  
+  rv = pluginLib->NP_GetEntryPoints(&plugin->mPluginFuncs, &pluginCallError);
+  if (rv != NS_OK || pluginCallError != NPERR_NO_ERROR) {
+    return NS_ERROR_FAILURE;
+  }
+
+  
+  rv = pluginLib->NP_Initialize(&sBrowserFuncs, &pluginCallError);
+  if (rv != NS_OK || pluginCallError != NPERR_NO_ERROR) {
+    return NS_ERROR_FAILURE;
+  }
+#elif defined(XP_MACOSX)
+  
+  
+  rv = pluginLib->NP_Initialize(&sBrowserFuncs, &pluginCallError);
+  if (rv != NS_OK || pluginCallError != NPERR_NO_ERROR) {
+    return NS_ERROR_FAILURE;
+  }
+
+  rv = pluginLib->NP_GetEntryPoints(&plugin->mPluginFuncs, &pluginCallError);
+  if (rv != NS_OK || pluginCallError != NPERR_NO_ERROR) {
+    return NS_ERROR_FAILURE;
+  }
+#else
+  rv = pluginLib->NP_Initialize(&sBrowserFuncs, &plugin->mPluginFuncs, &pluginCallError);
+  if (rv != NS_OK || pluginCallError != NPERR_NO_ERROR) {
+    return NS_ERROR_FAILURE;
+  }
+#endif
+
+  *aResult = plugin.forget().get();
   return NS_OK;
 }
 
@@ -666,14 +455,6 @@ nsNPAPIPlugin::CreatePluginInstance(nsIPluginInstance **aResult)
 
   NS_ADDREF(inst);
   *aResult = static_cast<nsIPluginInstance*>(inst);
-  return NS_OK;
-}
-
-nsresult
-nsNPAPIPlugin::Initialize()
-{
-  if (!mLibrary)
-    return NS_ERROR_FAILURE;
   return NS_OK;
 }
 
