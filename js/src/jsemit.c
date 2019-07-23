@@ -2246,7 +2246,7 @@ EmitNameOp(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn,
     if (op == JSOP_ARGUMENTS) {
         if (js_Emit1(cx, cg, op) < 0)
             return JS_FALSE;
-        if (callContext && js_Emit1(cx, cg, JSOP_GLOBALTHIS) < 0)
+        if (callContext && js_Emit1(cx, cg, JSOP_NULL) < 0)
             return JS_FALSE;
     } else {
         if (pn->pn_slot >= 0) {
@@ -5897,13 +5897,8 @@ js_EmitTree(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
 
 
 
-
-
-
-            if (!js_EmitTree(cx, cg, pn2) ||
-                !js_Emit1(cx, cg, JSOP_GLOBALTHIS) < 0) {
+            if (!js_EmitTree(cx, cg, pn2) || !js_Emit1(cx, cg, JSOP_NULL) < 0)
                 return JS_FALSE;
-            }
         }
 
         

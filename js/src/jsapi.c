@@ -4254,7 +4254,7 @@ js_generic_fast_native_method_dispatcher(JSContext *cx, uintN argc, jsval *vp)
 
 
 
-    if (!js_ComputeThis(cx, vp + 2))
+    if (!js_ComputeThis(cx, JS_FALSE, vp + 2))
         return JS_FALSE;
     
 
@@ -4310,7 +4310,7 @@ js_generic_native_method_dispatcher(JSContext *cx, JSObject *obj,
 
 
     JS_ASSERT(cx->fp->argv == argv);
-    if (!js_ComputeThis(cx, argv))
+    if (!js_ComputeThis(cx, JS_TRUE, argv))
         return JS_FALSE;
     cx->fp->thisp = JSVAL_TO_OBJECT(argv[-1]);
 

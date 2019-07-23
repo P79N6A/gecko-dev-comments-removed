@@ -353,8 +353,8 @@ js_GetPrimitiveThis(JSContext *cx, jsval *vp, JSClass *clasp, jsval *thisvp);
 
 
 
-extern JSBool
-js_ComputeThis(JSContext *cx, jsval *argv);
+extern JSObject *
+js_ComputeThis(JSContext *cx, JSBool lazy, jsval *argv);
 
 
 
