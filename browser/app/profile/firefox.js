@@ -216,8 +216,8 @@ pref("browser.urlbar.maxRichResults", 25);
 
 
 
-pref("browser.urlbar.search.chunkSize", 100);
-pref("browser.urlbar.search.timeout", 100);
+pref("browser.urlbar.search.chunkSize", 1000);
+pref("browser.urlbar.search.timeout", 50);
 
 pref("browser.download.useDownloadDir", true);
 pref("browser.download.folderList", 0);
