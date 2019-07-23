@@ -41,7 +41,6 @@
 #include "nsIFrame.h"
 #include "nsIContent.h"
 #include "nsISelectionController.h"
-#include "nsIScrollableViewProvider.h"
 #include "nsITableLayout.h"
 #include "nsITableCellLayout.h"
 #include "nsIDOMElement.h"
@@ -80,6 +79,7 @@ struct SelectionDetails
 };
 
 class nsIPresShell;
+class nsIScrollableFrame;
 
 enum EWordMovementType { eStartWord, eEndWord, eDefaultBehavior };
 
@@ -202,7 +202,7 @@ struct nsPrevNextBidiLevels
 };
 
 class nsTypedSelection;
-class nsIScrollableView;
+class nsIScrollableFrame;
 
 
 
@@ -225,25 +225,6 @@ public:
 
 
   void Init(nsIPresShell *aShell, nsIContent *aLimiter);
-
-  
-
-
-
-  void SetScrollableViewProvider(nsIScrollableViewProvider* aProvider)
-  {
-    mScrollableViewProvider = aProvider;
-  }
-
-  
-
-
-  nsIScrollableView* GetScrollableView() const
-  {
-    return mScrollableViewProvider
-      ? mScrollableViewProvider->GetScrollableView()
-      : nsnull;
-  }
 
   
 
@@ -445,7 +426,7 @@ public:
   
   void CommonPageMove(PRBool aForward,
                       PRBool aExtend,
-                      nsIScrollableView *aScrollableView);
+                      nsIScrollableFrame* aScrollableFrame);
 
   void SetHint(HINT aHintRight) { mHint = aHintRight; }
   HINT GetHint() const { return mHint; }
@@ -729,7 +710,6 @@ private:
 #endif
 
   PRInt32 mDesiredX;
-  nsIScrollableViewProvider* mScrollableViewProvider;
 
   nsMouseEvent mDelayedMouseEvent;
 

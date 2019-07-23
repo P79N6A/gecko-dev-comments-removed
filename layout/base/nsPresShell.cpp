@@ -2929,7 +2929,7 @@ PresShell::PageMove(PRBool aForward, PRBool aExtend)
   if (!scrollableFrame)
     return NS_OK;
 
-  mSelection->CommonPageMove(aForward, aExtend, scrollableFrame->GetScrollableView());
+  mSelection->CommonPageMove(aForward, aExtend, scrollableFrame);
   
   
   return ScrollSelectionIntoView(nsISelectionController::SELECTION_NORMAL, nsISelectionController::SELECTION_FOCUS_REGION, PR_TRUE);

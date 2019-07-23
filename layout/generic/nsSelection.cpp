@@ -196,7 +196,6 @@ public:
   
   nsresult      GetPresContext(nsPresContext **aPresContext);
   nsresult      GetPresShell(nsIPresShell **aPresShell);
-  nsresult      GetRootScrollableView(nsIScrollableView **aScrollableView);
   nsresult      GetFrameToScrolledViewOffsets(nsIScrollableView *aScrollableView, nsIFrame *aFrame, nscoord *aXOffset, nscoord *aYOffset);
   nsresult      GetPointFromOffset(nsIFrame *aFrame, PRInt32 aContentOffset, nsPoint *aPoint);
   nsresult      GetSelectionRegionRectAndScrollableView(SelectionRegion aRegion, nsRect *aRect, nsIScrollableView **aScrollableView);
@@ -714,8 +713,7 @@ nsSelectionIterator::IsDone()
 
 
 nsFrameSelection::nsFrameSelection()
-  : mScrollableViewProvider(nsnull),
-    mDelayedMouseEvent(PR_FALSE, 0, nsnull, nsMouseEvent::eReal)
+  : mDelayedMouseEvent(PR_FALSE, 0, nsnull, nsMouseEvent::eReal)
 {
   PRInt32 i;
   for (i = 0;i<nsISelectionController::NUM_SELECTIONTYPES;i++){
@@ -2105,10 +2103,8 @@ nsFrameSelection::GetFrameForNodeOffset(nsIContent *aNode,
 void
 nsFrameSelection::CommonPageMove(PRBool aForward,
                                  PRBool aExtend,
-                                 nsIScrollableView *aScrollableView)
+                                 nsIScrollableFrame* aScrollableFrame)
 {
-  if (!aScrollableView)
-    return;
   
   
 
@@ -2119,7 +2115,7 @@ nsFrameSelection::CommonPageMove(PRBool aForward,
 
   
   nsIView *scrolledView;
-  result = aScrollableView->GetScrolledView(scrolledView);
+  result = aScrollableFrame->GetScrollableView()->GetScrolledView(scrolledView);
 
   if (NS_FAILED(result))
     return;
@@ -2152,8 +2148,7 @@ nsFrameSelection::CommonPageMove(PRBool aForward,
     return;
   
   
-  nsSize scrollDelta;
-  aScrollableView->GetPageScrollDistances(&scrollDelta);
+  nsSize scrollDelta = aScrollableFrame->GetPageScrollAmount();
 
   if (aForward)
     caretPos.y += scrollDelta.height;
@@ -2177,7 +2172,9 @@ nsFrameSelection::CommonPageMove(PRBool aForward,
     return;
 
   
-  aScrollableView->ScrollByPages(0, aForward ? 1 : -1);
+  aScrollableFrame->ScrollBy(nsIntPoint(0, aForward ? 1 : -1),
+                             nsIScrollableFrame::PAGES,
+                             nsIScrollableFrame::SMOOTH);
 
   
   HandleClick(offsets.content, offsets.offset,
@@ -5515,47 +5512,6 @@ nsTypedSelection::GetPresShell(nsIPresShell **aPresShell)
   if (mPresShellWeak)
     NS_ADDREF(*aPresShell = shell);
   return rv;
-}
-
-nsresult
-nsTypedSelection::GetRootScrollableView(nsIScrollableView **aScrollableView)
-{
-  
-  
-  
-  
-  NS_ENSURE_ARG_POINTER(aScrollableView);
-
-  if (!mFrameSelection)
-    return NS_ERROR_FAILURE;
-
-  nsIScrollableView *scrollView = mFrameSelection->GetScrollableView();
-  if (!scrollView)
-  {
-    nsCOMPtr<nsIPresShell> presShell;
-
-    nsresult rv = GetPresShell(getter_AddRefs(presShell));
-
-    if (NS_FAILED(rv))
-      return rv;
-
-    if (!presShell)
-      return NS_ERROR_NULL_POINTER;
-
-    nsIViewManager* viewManager = presShell->GetViewManager();
-
-    if (!viewManager)
-      return NS_ERROR_NULL_POINTER;
-
-    
-    
-    
-    
-    return viewManager->GetRootScrollableView(aScrollableView);
-  }
-
-  *aScrollableView = scrollView;
-  return NS_OK;
 }
 
 nsresult
