@@ -2089,12 +2089,8 @@ JSCompiler::setFunctionKinds(JSFunctionBox *funbox, uint16& tcflags)
                         JSFunctionBox *afunbox = funbox->parent;
                         uintN lexdepLevel = lexdep->frameLevel();
 
-                        if (!afunbox) {
-                            if (tcflags & TCF_IN_FUNCTION)
-                                tcflags |= TCF_FUN_HEAVYWEIGHT;
-                        } else {
-                            do {
-                                
+                        while (afunbox) {
+                            
 
 
 
@@ -2102,12 +2098,14 @@ JSCompiler::setFunctionKinds(JSFunctionBox *funbox, uint16& tcflags)
 
 
 
-                                if (afunbox->level + 1U == lexdepLevel) {
-                                    afunbox->tcflags |= TCF_FUN_HEAVYWEIGHT;
-                                    break;
-                                }
-                            } while ((afunbox = afunbox->parent) != NULL);
+                            if (afunbox->level + 1U == lexdepLevel) {
+                                afunbox->tcflags |= TCF_FUN_HEAVYWEIGHT;
+                                break;
+                            }
+                            afunbox = afunbox->parent;
                         }
+                        if (!afunbox && (tcflags & TCF_IN_FUNCTION))
+                            tcflags |= TCF_FUN_HEAVYWEIGHT;
                     }
                 }
             }
