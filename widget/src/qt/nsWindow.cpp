@@ -1106,18 +1106,13 @@ nsWindow::OnExposeEvent(QPaintEvent *aEvent)
         
         
         
-        
-        
-        
 
+        bufferPixmap = new QPixmap(boundsRect.width, boundsRect.height);
         if (bufferPixmap) {
-#if 0
-            GdkVisual* visual = gdk_drawable_get_visual(Qt::Key_DRAWABLE(bufferPixmap));
-            Visual* XVisual = gdk_x11_visual_get_xvisual(visual);
-            Display* display = gdk_x11_drawable_get_xdisplay(Qt::Key_DRAWABLE(bufferPixmap));
-            Drawable drawable = gdk_x11_drawable_get_xid(Qt::Key_DRAWABLE(bufferPixmap));
             bufferPixmapSurface =
-                new gfxXlibSurface(display, drawable, XVisual,
+                new gfxXlibSurface(bufferPixmap->x11Info().display(),
+                                   bufferPixmap->handle(),
+                                   static_cast<Visual*>(bufferPixmap->x11Info().visual()),
                                    gfxIntSize(boundsRect.width, boundsRect.height));
             if (bufferPixmapSurface) {
                 bufferPixmapSurface->SetDeviceOffset(gfxPoint(-boundsRect.x, -boundsRect.y));
@@ -1135,8 +1130,8 @@ nsWindow::OnExposeEvent(QPaintEvent *aEvent)
                     }
                 }
             }
-#endif
         }
+
 #endif 
     }
 
