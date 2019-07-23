@@ -664,7 +664,7 @@ NS_InitXPCOM3(nsIServiceManager* *result,
     nsMemoryImpl::InitFlusher();
 
     
-    NS_CreateServicesFromCategory(NS_XPCOM_STARTUP_OBSERVER_ID, 
+    NS_CreateServicesFromCategory(NS_XPCOM_STARTUP_CATEGORY, 
                                   nsnull,
                                   NS_XPCOM_STARTUP_OBSERVER_ID);
     
