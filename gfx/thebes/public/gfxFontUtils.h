@@ -62,10 +62,6 @@
 #undef max
 #endif
 
-#include <bitset>
-
-
-
 class gfxSparseBitSet {
 private:
     enum { BLOCK_SIZE = 32 };   
@@ -425,7 +421,10 @@ public:
         LANG_ID_MAC_CZECH = 38,
         LANG_ID_MAC_SLOVAK = 39,
 
-        LANG_ID_MICROSOFT_EN_US = 0x0409         
+        LANG_ID_MICROSOFT_EN_US = 0x0409,        
+        
+        CMAP_MAX_CODEPOINT = 0x10ffff     
+                                          
     };
 
     

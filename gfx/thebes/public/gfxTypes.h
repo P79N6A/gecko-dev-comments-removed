@@ -59,6 +59,17 @@ typedef double gfxFloat;
 
 
 
+#define NS_ERROR_GFX_GENERAL_BASE (50) 
+
+
+#define NS_ERROR_GFX_CMAP_MALFORMED          \
+  NS_ERROR_GENERATE_FAILURE(NS_ERROR_MODULE_GFX,NS_ERROR_GFX_GENERAL_BASE+1)
+
+
+
+
+
+
 
 
 

@@ -657,6 +657,8 @@ FontEntry::CreateFontEntry(const nsAString& aName, gfxWindowsFontType aFontType,
     FontEntry *fe;
 
     fe = new FontEntry(aName, aFontType, aItalic, aWeight, aUserFontData);
+    if (!fe)
+        return nsnull;
 
     if (!aLogFont) {
         aLogFont = &logFont;
@@ -673,20 +675,33 @@ FontEntry::CreateFontEntry(const nsAString& aName, gfxWindowsFontType aFontType,
 
     if (font) {
         AutoPushPopFont fontCleanup(hdc, font);
+        nsresult rv;
 
-        
-        if (NS_FAILED(::ReadCMAP(hdc, fe))) {
-            
-            
-            if (fe->IsType1())
-                fe->mUnicodeFont = PR_TRUE;
-            else
-                fe->mUnicodeFont = PR_FALSE;
+        rv = ::ReadCMAP(hdc, fe);
+
+        if (NS_FAILED(rv)) {
 
             
             
-            fe->mUnknownCMAP = PR_TRUE;
+            
+            if (rv == NS_ERROR_GFX_CMAP_MALFORMED) {
+                delete fe;
+                return nsnull;
+            } else {
 
+                
+    
+                
+                
+                if (fe->IsType1())
+                    fe->mUnicodeFont = PR_TRUE;
+                else
+                    fe->mUnicodeFont = PR_FALSE;
+    
+                
+                
+                fe->mUnknownCMAP = PR_TRUE;
+            }
         } 
     }
 
