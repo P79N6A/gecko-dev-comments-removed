@@ -171,6 +171,11 @@ static NS_DEFINE_CID(kDOMEventGroupCID, NS_DOMEVENTGROUP_CID);
 
 #include "mozAutoDocUpdate.h"
 
+#ifdef MOZ_SMIL
+#include "nsSMILAnimationController.h"
+#include "imgIContainer.h"
+#endif 
+
 
 #ifdef MOZ_LOGGING
 
@@ -1776,6 +1781,13 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(nsDocument)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMARRAY(mStyleSheets)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMARRAY(mCatalogSheets)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMARRAY(mVisitednessChangedURIs)
+
+#ifdef MOZ_SMIL
+  
+  if (tmp->mAnimationController) {
+    tmp->mAnimationController->Traverse(&cb);
+  }
+#endif 
 
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE_PRESERVED_WRAPPER
 
@@ -5255,6 +5267,32 @@ nsDocument::EnumerateExternalResources(nsSubDocEnumFunc aCallback, void* aData)
   mExternalResourceMap.EnumerateResources(aCallback, aData);
 }
 
+#ifdef MOZ_SMIL
+nsSMILAnimationController*
+nsDocument::GetAnimationController()
+{
+  
+  
+  if (mAnimationController)
+    return mAnimationController;
+
+  mAnimationController = NS_NewSMILAnimationController(this);
+  
+  
+  
+  nsIPresShell *shell = GetPrimaryShell();
+  if (mAnimationController && shell) {
+    nsPresContext *context = shell->GetPresContext();
+    if (context &&
+        context->ImageAnimationMode() == imgIContainer::kDontAnimMode) {
+      mAnimationController->Pause(nsSMILTimeContainer::PAUSE_USERPREF);
+    }
+  }
+
+  return mAnimationController;
+}
+#endif 
+
 struct DirTable {
   const char* mName;
   PRUint8     mValue;
@@ -7103,6 +7141,12 @@ nsDocument::OnPageShow(PRBool aPersisted)
   
   
   mIsShowing = PR_TRUE;
+
+#ifdef MOZ_SMIL
+  if (mAnimationController) {
+    mAnimationController->OnPageShow();
+  }
+#endif
   
   nsPageTransitionEvent event(PR_TRUE, NS_PAGE_SHOW, aPersisted);
   DispatchEventToWindow(&event);
@@ -7133,6 +7177,12 @@ nsDocument::OnPageHide(PRBool aPersisted)
   
   
   mIsShowing = PR_FALSE;
+
+#ifdef MOZ_SMIL
+  if (mAnimationController) {
+    mAnimationController->OnPageHide();
+  }
+#endif
   
   
   nsPageTransitionEvent event(PR_TRUE, NS_PAGE_HIDE, aPersisted);

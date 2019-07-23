@@ -59,6 +59,9 @@ class nsAttrValue;
 class nsAttrName;
 class nsTextFragment;
 class nsIDocShell;
+#ifdef MOZ_SMIL
+class nsISMILAttr;
+#endif 
 
 
 #define NS_ICONTENT_IID       \
@@ -858,6 +861,16 @@ public:
 
 
   virtual void SaveSubtreeState() = 0;
+
+#ifdef MOZ_SMIL
+  
+
+
+
+
+
+  virtual nsISMILAttr* GetAnimatedAttr(const nsIAtom* aName) = 0;
+#endif 
 
 private:
   

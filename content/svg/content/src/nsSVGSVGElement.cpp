@@ -37,6 +37,7 @@
 
 
 
+
 #include "nsGkAtoms.h"
 #include "nsSVGLength.h"
 #include "nsSVGAngle.h"
@@ -63,6 +64,17 @@
 #include "nsSVGUtils.h"
 #include "nsSVGSVGElement.h"
 
+#ifdef MOZ_SMIL
+#include "nsEventDispatcher.h"
+#include "nsSMILTimeContainer.h"
+#include "nsSMILAnimationController.h"
+#include "nsSMILTypes.h"
+#include "nsIContentIterator.h"
+
+nsresult NS_NewContentIterator(nsIContentIterator** aInstancePtrResult);
+#endif 
+
+
 nsSVGElement::LengthInfo nsSVGSVGElement::sLengthInfo[4] =
 {
   { &nsGkAtoms::x, 0, nsIDOMSVGLength::SVG_LENGTHTYPE_NUMBER, nsSVGUtils::X },
@@ -85,7 +97,28 @@ nsSVGElement::EnumInfo nsSVGSVGElement::sEnumInfo[1] =
   }
 };
 
-NS_IMPL_NS_NEW_SVG_ELEMENT(SVG)
+
+nsresult
+NS_NewSVGSVGElement(nsIContent **aResult, nsINodeInfo *aNodeInfo,
+                    PRBool aFromParser)
+{
+  nsSVGSVGElement *it = new nsSVGSVGElement(aNodeInfo, aFromParser);
+  if (!it)
+    return NS_ERROR_OUT_OF_MEMORY;
+
+  NS_ADDREF(it);
+
+  nsresult rv = it->Init();
+
+  if (NS_FAILED(rv)) {
+    NS_RELEASE(it);
+    return rv;
+  }
+
+  *aResult = it;
+
+  return rv;
+}
 
 
 
@@ -104,7 +137,7 @@ NS_INTERFACE_MAP_END_INHERITING(nsSVGSVGElementBase)
 
 
 
-nsSVGSVGElement::nsSVGSVGElement(nsINodeInfo* aNodeInfo)
+nsSVGSVGElement::nsSVGSVGElement(nsINodeInfo* aNodeInfo, PRBool aFromParser)
   : nsSVGSVGElementBase(aNodeInfo),
     mCoordCtx(nsnull),
     mViewportWidth(0),
@@ -115,6 +148,9 @@ nsSVGSVGElement::nsSVGSVGElement(nsINodeInfo* aNodeInfo)
     mPreviousScale(0),
     mRedrawSuspendCount(0),
     mDispatchEvent(PR_FALSE)
+#ifdef MOZ_SMIL
+    ,mStartAnimationOnBindToTree(!aFromParser)
+#endif 
 {
 }
 
@@ -170,7 +206,25 @@ nsSVGSVGElement::Init()
 
 
 
-NS_IMPL_ELEMENT_CLONE_WITH_INIT(nsSVGSVGElement)
+nsresult
+nsSVGSVGElement::Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const
+{
+  *aResult = nsnull;
+
+  nsSVGSVGElement *it = new nsSVGSVGElement(aNodeInfo, PR_FALSE);
+  if (!it) {
+    return NS_ERROR_OUT_OF_MEMORY;
+  }
+
+  nsCOMPtr<nsINode> kungFuDeathGrip = it;
+  nsresult rv = it->Init();
+  rv |= CopyInnerTo(it);
+  if (NS_SUCCEEDED(rv)) {
+    kungFuDeathGrip.swap(*aResult);
+  }
+
+  return rv;
+}
 
 
 
@@ -428,32 +482,65 @@ nsSVGSVGElement::ForceRedraw()
 NS_IMETHODIMP
 nsSVGSVGElement::PauseAnimations()
 {
+#ifdef MOZ_SMIL
+  if (mTimedDocumentRoot) {
+    mTimedDocumentRoot->Pause(nsSMILTimeContainer::PAUSE_SCRIPT);
+  }
+  
+  return NS_OK;
+#else
   NS_NOTYETIMPLEMENTED("nsSVGSVGElement::PauseAnimations");
   return NS_ERROR_NOT_IMPLEMENTED;
+#endif
 }
 
 
 NS_IMETHODIMP
 nsSVGSVGElement::UnpauseAnimations()
 {
+#ifdef MOZ_SMIL
+  if (mTimedDocumentRoot) {
+    mTimedDocumentRoot->Resume(nsSMILTimeContainer::PAUSE_SCRIPT);
+  }
+  
+  return NS_OK;
+#else
   NS_NOTYETIMPLEMENTED("nsSVGSVGElement::UnpauseAnimations");
   return NS_ERROR_NOT_IMPLEMENTED;
+#endif
 }
 
 
 NS_IMETHODIMP
 nsSVGSVGElement::AnimationsPaused(PRBool *_retval)
 {
+#ifdef MOZ_SMIL
+  nsSMILTimeContainer* root = GetTimedDocumentRoot();
+  *_retval = root && root->IsPausedByType(nsSMILTimeContainer::PAUSE_SCRIPT);
+  return NS_OK;
+#else
   NS_NOTYETIMPLEMENTED("nsSVGSVGElement::AnimationsPaused");
   return NS_ERROR_NOT_IMPLEMENTED;
+#endif
 }
 
 
 NS_IMETHODIMP
 nsSVGSVGElement::GetCurrentTime(float *_retval)
 {
+#ifdef MOZ_SMIL
+  nsSMILTimeContainer* root = GetTimedDocumentRoot();
+  if (root) {
+    double fCurrentTimeMs = double(root->GetCurrentTime());
+    *_retval = (float)(fCurrentTimeMs / PR_MSEC_PER_SEC);
+  } else {
+    *_retval = 0.f;
+  }
+  return NS_OK;
+#else
   NS_NOTYETIMPLEMENTED("nsSVGSVGElement::GetCurrentTime");
   return NS_ERROR_NOT_IMPLEMENTED;
+#endif
 }
 
 
@@ -461,8 +548,21 @@ NS_IMETHODIMP
 nsSVGSVGElement::SetCurrentTime(float seconds)
 {
   NS_ENSURE_FINITE(seconds, NS_ERROR_ILLEGAL_VALUE);
+#ifdef MOZ_SMIL
+  if (mTimedDocumentRoot) {
+    double fMilliseconds = double(seconds) * PR_MSEC_PER_SEC;
+    
+    
+    nsSMILTime lMilliseconds = PRInt64(NS_round(fMilliseconds));
+    mTimedDocumentRoot->SetCurrentTime(lMilliseconds);
+    RequestSample();
+  } 
+    
+  return NS_OK;
+#else
   NS_NOTYETIMPLEMENTED("nsSVGSVGElement::SetCurrentTime");
   return NS_ERROR_NOT_IMPLEMENTED;
+#endif
 }
 
 
@@ -1052,6 +1152,43 @@ nsSVGSVGElement::GetPreviousScale()
   return mPreviousScale;
 }
 
+#ifdef MOZ_SMIL
+nsSMILTimeContainer*
+nsSVGSVGElement::GetTimedDocumentRoot()
+{
+  nsSMILTimeContainer *result = nsnull;
+
+  if (mTimedDocumentRoot) {
+    result = mTimedDocumentRoot;
+  } else {
+    
+    nsCOMPtr<nsIDOMSVGSVGElement> outerSVGDOM;
+
+    nsresult rv = GetOwnerSVGElement(getter_AddRefs(outerSVGDOM));
+
+    if (NS_SUCCEEDED(rv) && outerSVGDOM) {
+      nsSVGSVGElement *outerSVG =
+        static_cast<nsSVGSVGElement*>(outerSVGDOM.get());
+      result = outerSVG->GetTimedDocumentRoot();
+    }
+  }
+
+  return result;
+}
+
+void
+nsSVGSVGElement::RequestSample()
+{
+  nsIDocument* doc = GetCurrentDoc();
+  if (doc) {
+    nsSMILAnimationController* smilController = doc->GetAnimationController();
+    if (smilController) {
+      smilController->FireForceSampleEvent();
+    }
+  }
+}
+#endif 
+
 
 
 
@@ -1105,6 +1242,22 @@ nsSVGSVGElement::UnsetAttr(PRInt32 aNamespaceID, nsIAtom* aName,
 
   return NS_OK;
 }
+
+
+
+
+#ifdef MOZ_SMIL
+nsresult
+nsSVGSVGElement::PreHandleEvent(nsEventChainPreVisitor& aVisitor)
+{
+  if (aVisitor.mEvent->message == NS_SVG_LOAD) {
+    if (mTimedDocumentRoot) {
+      mTimedDocumentRoot->Begin();
+    }
+  }
+  return nsSVGSVGElementBase::PreHandleEvent(aVisitor);
+}
+#endif 
 
 
 
@@ -1244,6 +1397,57 @@ nsSVGSVGElement::GetViewboxToViewportTransform(nsIDOMSVGMatrix **_retval)
   return NS_OK;
 }
 
+#ifdef MOZ_SMIL
+nsresult
+nsSVGSVGElement::BindToTree(nsIDocument* aDocument,
+                            nsIContent* aParent,
+                            nsIContent* aBindingParent,
+                            PRBool aCompileEventHandlers)
+{
+  PRBool outermost = WillBeOutermostSVG(aParent, aBindingParent);
+
+  if (!mTimedDocumentRoot && outermost) {
+    
+    mTimedDocumentRoot = new nsSMILTimeContainer();
+    NS_ENSURE_TRUE(mTimedDocumentRoot, NS_ERROR_OUT_OF_MEMORY);
+  } else if (!outermost) {
+    mTimedDocumentRoot = nsnull;
+    mStartAnimationOnBindToTree = PR_TRUE;
+  }
+
+  nsresult rv = nsSVGSVGElementBase::BindToTree(aDocument, aParent,
+                                                aBindingParent,
+                                                aCompileEventHandlers);
+  NS_ENSURE_SUCCESS(rv,rv);
+
+  if (mTimedDocumentRoot) {
+    if (aDocument) {
+      nsSMILAnimationController* smilController = 
+        aDocument->GetAnimationController();
+      if (smilController) {
+        rv = mTimedDocumentRoot->SetParent(smilController);
+      }
+    }
+    if (mStartAnimationOnBindToTree) {
+      mTimedDocumentRoot->Begin();
+    }
+  }
+
+  return rv;
+}
+
+void
+nsSVGSVGElement::UnbindFromTree(PRBool aDeep, PRBool aNullParent)
+{
+  if (mTimedDocumentRoot) {
+    mTimedDocumentRoot->SetParent(nsnull);
+  }
+
+  nsSVGSVGElementBase::UnbindFromTree(aDeep, aNullParent);
+}
+
+#endif 
+
 
 
 
@@ -1283,6 +1487,29 @@ void nsSVGSVGElement::GetOffsetToAncestor(nsIContent* ancestor,
     y = nsPresContext::AppUnitsToFloatCSSPixels(point.y);
   }
 }
+
+#ifdef MOZ_SMIL
+PRBool
+nsSVGSVGElement::WillBeOutermostSVG(nsIContent* aParent,
+                                    nsIContent* aBindingParent) const
+{
+  nsIContent* parent = aBindingParent ? aBindingParent : aParent;
+
+  while (parent && parent->GetNameSpaceID() == kNameSpaceID_SVG) {
+    nsIAtom* tag = parent->Tag();
+    if (tag == nsGkAtoms::foreignObject) {
+      
+      return PR_FALSE;
+    }
+    if (tag == nsGkAtoms::svg) {
+      return PR_FALSE;
+    }
+    parent = parent->GetParent();
+  }
+
+  return PR_TRUE;
+}
+#endif 
 
 void
 nsSVGSVGElement::InvalidateTransformNotifyFrame()

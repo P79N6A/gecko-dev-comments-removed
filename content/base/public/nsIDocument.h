@@ -54,6 +54,9 @@
 #include "nsNodeInfoManager.h"
 #include "nsIStreamListener.h"
 #include "nsIObserver.h"
+#ifdef MOZ_SMIL
+class nsSMILAnimationController;
+#endif 
 
 class nsIContent;
 class nsPresContext;
@@ -1108,6 +1111,11 @@ public:
 
 
   PRBool IsShowing() { return mIsShowing; }
+
+#ifdef MOZ_SMIL
+  
+  virtual nsSMILAnimationController* GetAnimationController() = 0;
+#endif 
 
 protected:
   ~nsIDocument()

@@ -50,6 +50,10 @@
 #include "nsSVGEnum.h"
 #include "nsSVGPreserveAspectRatio.h"
 
+#ifdef MOZ_SMIL
+class nsSMILTimeContainer;
+#endif 
+
 #define QI_AND_CAST_TO_NSSVGSVGELEMENT(base)                                  \
   (nsCOMPtr<nsIDOMSVGSVGElement>(do_QueryInterface(base)) ?                   \
    static_cast<nsSVGSVGElement*>(base.get()) : nsnull)
@@ -80,8 +84,9 @@ class nsSVGSVGElement : public nsSVGSVGElementBase,
 
 protected:
   friend nsresult NS_NewSVGSVGElement(nsIContent **aResult,
-                                      nsINodeInfo *aNodeInfo);
-  nsSVGSVGElement(nsINodeInfo* aNodeInfo);
+                                      nsINodeInfo *aNodeInfo,
+                                      PRBool aFromParser);
+  nsSVGSVGElement(nsINodeInfo* aNodeInfo, PRBool aFromParser);
   virtual ~nsSVGSVGElement();
   nsresult Init();
   
@@ -130,8 +135,16 @@ public:
   NS_IMETHOD_(float) GetPreviousTranslate_y();
   NS_IMETHOD_(float) GetPreviousScale();
 
+#ifdef MOZ_SMIL
+  nsSMILTimeContainer* GetTimedDocumentRoot();
+  void RequestSample();
+#endif 
+
   
   NS_IMETHOD_(PRBool) IsAttributeMapped(const nsIAtom* aAttribute) const;
+#ifdef MOZ_SMIL
+  virtual nsresult PreHandleEvent(nsEventChainPreVisitor& aVisitor);
+#endif 
 
   virtual nsresult AfterSetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
                                 const nsAString* aValue, PRBool aNotify);
@@ -172,14 +185,36 @@ protected:
   
   PRBool IsEventName(nsIAtom* aName);
 
+#ifdef MOZ_SMIL
+  virtual nsresult BindToTree(nsIDocument* aDocument, nsIContent* aParent,
+                              nsIContent* aBindingParent,
+                              PRBool aCompileEventHandlers);
+  virtual void UnbindFromTree(PRBool aDeep, PRBool aNullParent);
+#endif 
+
   
   void GetOffsetToAncestor(nsIContent* ancestor, float &x, float &y);
+
   PRBool IsRoot() {
     NS_ASSERTION((IsInDoc() && !GetParent()) ==
                  (GetOwnerDoc() && (GetOwnerDoc()->GetRootContent() == this)),
                  "Can't determine if we're root");
     return IsInDoc() && !GetParent();
   }
+
+#ifdef MOZ_SMIL
+  
+
+
+
+
+
+
+
+
+  PRBool WillBeOutermostSVG(nsIContent* aParent,
+                            nsIContent* aBindingParent) const;
+#endif 
 
   
   void InvalidateTransformNotifyFrame();
@@ -216,6 +251,12 @@ protected:
 
   float mCoordCtxMmPerPx;
 
+#ifdef MOZ_SMIL
+  
+  
+  nsAutoPtr<nsSMILTimeContainer> mTimedDocumentRoot;
+#endif 
+
   
   
   
@@ -226,6 +267,14 @@ protected:
   float                             mPreviousScale;
   PRInt32                           mRedrawSuspendCount;
   PRPackedBool                      mDispatchEvent;
+
+#ifdef MOZ_SMIL
+  
+  
+  
+  
+  PRPackedBool                      mStartAnimationOnBindToTree;
+#endif 
 };
 
 #endif
