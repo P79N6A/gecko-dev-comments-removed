@@ -271,14 +271,26 @@ nsNativeThemeGTK::GetGtkWidgetAndState(PRUint8 aWidgetType, nsIFrame* aFrame,
           aState->maxpos = CheckIntAttr(tmpFrame, nsWidgetAtoms::maxpos);
         }
 
-        
-        
-        
         if (aWidgetType == NS_THEME_SCROLLBAR_BUTTON_UP ||
             aWidgetType == NS_THEME_SCROLLBAR_BUTTON_DOWN ||
             aWidgetType == NS_THEME_SCROLLBAR_BUTTON_LEFT ||
             aWidgetType == NS_THEME_SCROLLBAR_BUTTON_RIGHT) {
-          if (CheckBooleanAttr(aFrame, nsWidgetAtoms::active))
+          
+          
+          PRInt32 curpos = CheckIntAttr(aFrame, nsWidgetAtoms::curpos);
+          PRInt32 maxpos = CheckIntAttr(aFrame, nsWidgetAtoms::maxpos);
+          if ((curpos == 0 && (aWidgetType == NS_THEME_SCROLLBAR_BUTTON_UP ||
+                aWidgetType == NS_THEME_SCROLLBAR_BUTTON_LEFT)) ||
+              (curpos == maxpos &&
+               (aWidgetType == NS_THEME_SCROLLBAR_BUTTON_DOWN ||
+                aWidgetType == NS_THEME_SCROLLBAR_BUTTON_RIGHT)))
+            aState->disabled = PR_TRUE;
+
+          
+          
+          
+          
+          else if (CheckBooleanAttr(aFrame, nsWidgetAtoms::active))
             aState->active = PR_TRUE;
 
           if (aWidgetFlags) {
@@ -1131,6 +1143,16 @@ nsNativeThemeGTK::WidgetStateChanged(nsIFrame* aFrame, PRUint8 aWidgetType,
       aWidgetType == NS_THEME_WINDOW ||
       aWidgetType == NS_THEME_DIALOG) {
     *aShouldRepaint = PR_FALSE;
+    return NS_OK;
+  }
+
+  if ((aWidgetType == NS_THEME_SCROLLBAR_BUTTON_UP ||
+       aWidgetType == NS_THEME_SCROLLBAR_BUTTON_DOWN ||
+       aWidgetType == NS_THEME_SCROLLBAR_BUTTON_LEFT ||
+       aWidgetType == NS_THEME_SCROLLBAR_BUTTON_RIGHT) &&
+      (aAttribute == nsWidgetAtoms::curpos ||
+       aAttribute == nsWidgetAtoms::maxpos)) {
+    *aShouldRepaint = PR_TRUE;
     return NS_OK;
   }
 
