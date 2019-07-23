@@ -90,7 +90,6 @@ nsIFrame*
 NS_NewBlockFrame(nsIPresShell* aPresShell, nsStyleContext* aContext, PRUint32 aFlags = 0);
 
 
-
 nsresult
 NS_NewAttributeContent(nsNodeInfoManager *aNodeInfoManager,
                        PRInt32 aNameSpaceID, nsIAtom* aAttrName,

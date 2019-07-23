@@ -40,9 +40,8 @@
 #ifndef nsGenConList_h___
 #define nsGenConList_h___
 
-#include "nsIContent.h"
+#include "nsIFrame.h"
 #include "nsStyleStruct.h"
-#include "nsStyleContext.h"
 #include "prclist.h"
 #include "nsIDOMCharacterData.h"
 #include "nsCSSPseudoElements.h"
@@ -52,9 +51,7 @@ struct nsGenConNode : public PRCList {
   
   
   
-  nsIContent* mParentContent;
-  
-  nsIAtom*    mPseudoType;
+  nsIFrame* const mPseudoFrame;
 
   
   
@@ -65,27 +62,25 @@ struct nsGenConNode : public PRCList {
   
   nsCOMPtr<nsIDOMCharacterData> mText;
 
-  static nsIAtom* ToGeneratedContentType(nsIAtom* aPseudoType)
-  {
-    if (aPseudoType == nsCSSPseudoElements::before ||
-        aPseudoType == nsCSSPseudoElements::after)
-      return aPseudoType;
-    return nsnull;
-  }
-  
-  nsGenConNode(nsIContent* aParentContent, nsStyleContext* aStyleContext,
-               PRInt32 aContentIndex)
-    : mParentContent(aParentContent)
-    , mPseudoType(ToGeneratedContentType(aStyleContext->GetPseudoType()))
+  nsGenConNode(nsIFrame* aPseudoFrame, PRInt32 aContentIndex)
+    : mPseudoFrame(aPseudoFrame)
     , mContentIndex(aContentIndex)
   {
     NS_ASSERTION(aContentIndex <
-                 PRInt32(aStyleContext->GetStyleContent()->ContentCount()),
+                   PRInt32(aPseudoFrame->GetStyleContent()->ContentCount()),
                  "index out of range");
     
     
-    NS_ASSERTION(aContentIndex < 0 || mPseudoType,
+
+    NS_ASSERTION(aContentIndex < 0 ||
+                 aPseudoFrame->GetStyleContext()->GetPseudoType() ==
+                   nsCSSPseudoElements::before ||
+                 aPseudoFrame->GetStyleContext()->GetPseudoType() ==
+                   nsCSSPseudoElements::after,
                  "not :before/:after generated content and not counter change");
+    NS_ASSERTION(aContentIndex < 0 ||
+                 aPseudoFrame->GetStateBits() & NS_FRAME_GENERATED_CONTENT,
+                 "not generated content and not counter change");
   }
 
   virtual ~nsGenConNode() {} 
@@ -107,10 +102,7 @@ public:
   }
   void Insert(nsGenConNode* aNode);
   
-
-
-
-  PRBool DestroyNodesFor(nsIContent* aParentContent, nsIAtom* aPseudo);
+  PRBool DestroyNodesFor(nsIFrame* aFrame); 
 
   
   static PRBool NodeAfter(const nsGenConNode* aNode1,

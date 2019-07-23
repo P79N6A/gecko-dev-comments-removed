@@ -126,9 +126,6 @@ public:
 
 
 
-
-
-
   static PRBool IsGeneratedContentFor(nsIContent* aContent, nsIFrame* aFrame,
                                       nsIAtom* aPseudoElement);
 

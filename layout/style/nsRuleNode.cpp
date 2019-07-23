@@ -3307,7 +3307,50 @@ nsRuleNode::ComputeDisplayData(void* aStartStruct,
     }
   }
 
-  if (display->mDisplay != NS_STYLE_DISPLAY_NONE) {
+  
+  if (generatedContent) {
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+
+    if (display->mPosition != NS_STYLE_POSITION_STATIC)
+      display->mPosition = NS_STYLE_POSITION_STATIC;
+    if (display->mFloats != NS_STYLE_FLOAT_NONE)
+      display->mFloats = NS_STYLE_FLOAT_NONE;
+
+    PRUint8 displayValue = display->mDisplay;
+    if (displayValue != NS_STYLE_DISPLAY_NONE &&
+        displayValue != NS_STYLE_DISPLAY_INLINE &&
+        displayValue != NS_STYLE_DISPLAY_INLINE_BLOCK) {
+      inherited = PR_TRUE;
+      if (parentDisplay->IsBlockOutside() ||
+          parentDisplay->mDisplay == NS_STYLE_DISPLAY_INLINE_BLOCK ||
+          parentDisplay->mDisplay == NS_STYLE_DISPLAY_TABLE_CELL ||
+          parentDisplay->mDisplay == NS_STYLE_DISPLAY_TABLE_CAPTION) {
+        
+        
+        
+        
+        if (displayValue != NS_STYLE_DISPLAY_BLOCK &&
+            displayValue != NS_STYLE_DISPLAY_MARKER)
+          display->mDisplay = NS_STYLE_DISPLAY_BLOCK;
+      } else {
+        
+        
+        
+        
+        display->mDisplay = NS_STYLE_DISPLAY_INLINE;
+      }
+    }
+  }
+  else if (display->mDisplay != NS_STYLE_DISPLAY_NONE) {
     
     
     

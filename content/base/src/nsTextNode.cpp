@@ -93,7 +93,6 @@ public:
                       PRInt32 aNameSpaceID,
                       nsIAtom* aAttrName) :
     nsTextNode(aNodeInfo),
-    mGrandparent(nsnull),
     mNameSpaceID(aNameSpaceID),
     mAttrName(aAttrName)
   {
@@ -102,7 +101,7 @@ public:
   }
 
   virtual ~nsAttributeTextNode() {
-    NS_ASSERTION(!mGrandparent, "We were not unbound!");
+    DetachListener();
   }
 
   virtual nsresult BindToTree(nsIDocument* aDocument, nsIContent* aParent,
@@ -136,10 +135,8 @@ private:
   void UpdateText(PRBool aNotify);
 
   
-  
-  
-  
-  nsIContent* mGrandparent;
+  void DetachListener();
+
   
   PRInt32 mNameSpaceID;
   nsCOMPtr<nsIAtom> mAttrName;
@@ -304,16 +301,16 @@ nsAttributeTextNode::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
                                 nsIContent* aBindingParent,
                                 PRBool aCompileEventHandlers)
 {
-  NS_PRECONDITION(aParent && aParent->GetParent(),
-                  "This node can't be a child of the document or of the document root");
+  NS_PRECONDITION(aParent, "This node can't be a child of the document");
 
   nsresult rv = nsTextNode::BindToTree(aDocument, aParent,
                                        aBindingParent, aCompileEventHandlers);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  NS_ASSERTION(!mGrandparent, "We were already bound!");
-  mGrandparent = aParent->GetParent();
-  mGrandparent->AddMutationObserver(this);
+  nsINode* parent = GetNodeParent();
+  NS_ENSURE_TRUE(parent, NS_ERROR_UNEXPECTED);
+
+  parent->AddMutationObserver(this);
 
   
   
@@ -326,12 +323,8 @@ void
 nsAttributeTextNode::UnbindFromTree(PRBool aDeep, PRBool aNullParent)
 {
   
-  if (mGrandparent) {
-    
-    
-    
-    mGrandparent->RemoveMutationObserver(this);
-    mGrandparent = nsnull;
+  if (aNullParent) {
+    DetachListener();
   }
   nsTextNode::UnbindFromTree(aDeep, aNullParent);
 }
@@ -345,7 +338,7 @@ nsAttributeTextNode::AttributeChanged(nsIDocument* aDocument,
                                       PRUint32 aStateMask)
 {
   if (aNameSpaceID == mNameSpaceID && aAttribute == mAttrName &&
-      aContent == mGrandparent) {
+      aContent == GetNodeParent()) {
     
     
     
@@ -361,9 +354,19 @@ nsAttributeTextNode::AttributeChanged(nsIDocument* aDocument,
 void
 nsAttributeTextNode::UpdateText(PRBool aNotify)
 {
-  if (mGrandparent) {
+  nsIContent* parent = GetParent();
+  if (parent) {
     nsAutoString attrValue;
-    mGrandparent->GetAttr(mNameSpaceID, mAttrName, attrValue);
+    parent->GetAttr(mNameSpaceID, mAttrName, attrValue);
     SetText(attrValue, aNotify);
   }  
+}
+
+void
+nsAttributeTextNode::DetachListener()
+{
+  nsINode* parent = GetNodeParent();
+  if (parent) {
+    parent->RemoveMutationObserver(this);
+  }
 }
