@@ -448,8 +448,6 @@ static void SetMissingGlyphForUCS4(gfxTextRun *aTextRun, PRUint32 aIndex,
     }
 }
 
-#define IS_MISSING_GLYPH(g) (((g) & 0x10000000) || (g) == 0x0FFFFFFF || (g) == 0)
-
 
 
 
@@ -504,17 +502,22 @@ void gfxOS2FontGroup::CreateGlyphRunsFT(gfxTextRun *aTextRun, const PRUint8 *aUT
         if (ch == 0) {
             
             aTextRun->SetMissingGlyph(utf16Offset, 0);
+        } else if (ch < 0x10000 && IsInvisibleChar(PRUnichar(ch))) {
+            
+            aTextRun->SetCharacterGlyph(utf16Offset, g.SetMissing());
         } else {
             FT_UInt gid = FT_Get_Char_Index(face, ch); 
             PRInt32 advance = 0;
             if (gid == font->GetSpaceGlyph()) {
                 advance = (int)(font->GetMetrics().spaceWidth * appUnitsPerDevUnit);
+            } else if (gid == 0) {
+                advance = -1; 
             } else {
                 FT_Load_Glyph(face, gid, FT_LOAD_DEFAULT); 
                 advance = MOZ_FT_TRUNC(face->glyph->advance.x) * appUnitsPerDevUnit;
             }
 #ifdef DEBUG_thebes_2
-            printf(" gid=%d, advance=%d (%d)\n", gid, advance, appUnitsPerDevUnit);
+            printf(" gid=%d, advance=%d\n", gid, advance);
 #endif
             
             if (advance >= 0 &&
@@ -523,8 +526,7 @@ void gfxOS2FontGroup::CreateGlyphRunsFT(gfxTextRun *aTextRun, const PRUint8 *aUT
             {
                 aTextRun->SetCharacterGlyph(utf16Offset,
                                             g.SetSimpleGlyph(advance, gid));
-            } else if (IS_MISSING_GLYPH(gid)) {
-                
+            } else if (gid == 0) {
                 
                 SetMissingGlyphForUCS4(aTextRun, utf16Offset, ch);
             } else {
