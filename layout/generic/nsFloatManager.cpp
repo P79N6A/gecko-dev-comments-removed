@@ -170,7 +170,10 @@ nsFloatManager::GetFlowArea(nscoord aYOffset, BandInfoType aInfoType,
 
   nscoord bottom;
   if (aHeight == nscoord_MAX) {
-    NS_ASSERTION(aInfoType == BAND_FROM_POINT, "bad height");
+    
+    
+    NS_WARN_IF_FALSE(aInfoType == BAND_FROM_POINT,
+                     "bad height");
     bottom = nscoord_MAX;
   } else {
     bottom = top + aHeight;
