@@ -149,6 +149,22 @@ public:
 
 
 
+
+
+  static PRBool UncomputeValue(nsCSSProperty aProperty,
+                               nsPresContext* aPresContext,
+                               const nsStyleCoord& aComputedValue,
+                               nsAString& aSpecifiedValue);
+
+  
+
+
+
+
+
+
+
+
   static PRBool ExtractComputedValue(nsCSSProperty aProperty,
                                      nsStyleContext* aStyleContext,
                                      nsStyleCoord& aComputedValue);
