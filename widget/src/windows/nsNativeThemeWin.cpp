@@ -1091,6 +1091,12 @@ nsNativeThemeWin::GetThemePartAndState(nsIFrame* aFrame, PRUint8 aWidgetType,
 
       aPart = mIsVistaOrLater ? CBP_DROPMARKER_VISTA : CBP_DROPMARKER;
 
+      
+      
+      
+      if (isHTML && IsWidgetStyled(aFrame->PresContext(), aFrame, NS_THEME_DROPDOWN))
+        aPart = CBP_DROPMARKER;
+
       if (IsDisabled(aFrame)) {
         aState = TS_DISABLED;
         return NS_OK;
@@ -1247,19 +1253,17 @@ nsNativeThemeWin::DrawWidgetBackground(nsIRenderingContext* aContext,
   tr.ScaleInverse(p2a);
   cr.ScaleInverse(p2a);
 
-  if (mIsVistaOrLater) {
-    
-    if (aWidgetType == NS_THEME_DROPDOWN_BUTTON &&
-        IsHTMLContent(aFrame))
-    {
-      tr.pos.y -= 1.0;
-      tr.size.width += 1.0;
-      tr.size.height += 2.0;
+  
+  if (aWidgetType == NS_THEME_DROPDOWN_BUTTON &&
+      part == CBP_DROPMARKER_VISTA && IsHTMLContent(aFrame))
+  {
+    tr.pos.y -= 1.0;
+    tr.size.width += 1.0;
+    tr.size.height += 2.0;
 
-      cr.pos.y -= 1.0;
-      cr.size.width += 1.0;
-      cr.size.height += 2.0;
-    }
+    cr.pos.y -= 1.0;
+    cr.size.width += 1.0;
+    cr.size.height += 2.0;
   }
 
   nsRefPtr<gfxContext> ctx = aContext->ThebesContext();
@@ -1648,7 +1652,10 @@ nsNativeThemeWin::GetWidgetOverflow(nsIDeviceContext* aContext,
 
 
     if (aWidgetType == NS_THEME_DROPDOWN_BUTTON &&
-        IsHTMLContent(aFrame))
+        IsHTMLContent(aFrame) &&
+        !IsWidgetStyled(aFrame->GetParent()->PresContext(),
+                        aFrame->GetParent(),
+                        NS_THEME_DROPDOWN))
     {
       PRInt32 p2a = aContext->AppUnitsPerDevPixel();
       
