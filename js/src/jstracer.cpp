@@ -658,7 +658,8 @@ mergeTypeMaps(uint8** partial, unsigned* plength, uint8* complete, unsigned clen
 }
 
 TraceRecorder::TraceRecorder(JSContext* cx, GuardRecord* _anchor, Fragment* _fragment,
-        TreeInfo* ti, unsigned ngslots, uint8* globalTypeMap, uint8* stackTypeMap)
+        TreeInfo* ti, unsigned ngslots, uint8* globalTypeMap, uint8* stackTypeMap,
+        GuardRecord* innermostNestedGuard)
 {
     JS_ASSERT(!_fragment->vmprivate && ti);
 
@@ -701,6 +702,14 @@ TraceRecorder::TraceRecorder(JSContext* cx, GuardRecord* _anchor, Fragment* _fra
 
     
     import(treeInfo, lirbuf->sp, ngslots, callDepth, globalTypeMap, stackTypeMap);
+
+    
+
+    if (_anchor && _anchor->exit->exitType == NESTED_EXIT) {
+        LIns* nested_ins = addName(lir->insLoad(LIR_ldp, lirbuf->state, 
+                                                offsetof(InterpState, nestedExit)), "nestedExit");
+        guard(true, lir->ins2(LIR_eq, nested_ins, lir->insImmPtr(innermostNestedGuard)), NESTED_EXIT);
+    }
 }
 
 TraceRecorder::~TraceRecorder()
@@ -1526,13 +1535,13 @@ TraceRecorder::emitTreeCall(Fragment* inner, GuardRecord* lr)
     
     lir->insStorei(ret, lirbuf->state, offsetof(InterpState, nestedExit));
     
-
-    guard(true, lir->ins2(LIR_eq, ret, lir->insImmPtr(lr)), NESTED_EXIT);
-    
     if (callDepth > 0) {
         lir->insStorei(lirbuf->sp, lirbuf->state, offsetof(InterpState, sp));
         lir->insStorei(lirbuf->rp, lirbuf->state, offsetof(InterpState, rp));
     }
+    
+
+    guard(true, lir->ins2(LIR_eq, ret, lir->insImmPtr(lr)), NESTED_EXIT);
 }
 
 int
@@ -1603,11 +1612,12 @@ js_DeleteRecorder(JSContext* cx)
 
 static bool
 js_StartRecorder(JSContext* cx, GuardRecord* anchor, Fragment* f, TreeInfo* ti,
-        unsigned ngslots, uint8* globalTypeMap, uint8* stackTypeMap)
+        unsigned ngslots, uint8* globalTypeMap, uint8* stackTypeMap, 
+        GuardRecord* expectedInnerExit)
 {
     
     JS_TRACE_MONITOR(cx).recorder = new (&gc) TraceRecorder(cx, anchor, f, ti,
-            ngslots, globalTypeMap, stackTypeMap);
+            ngslots, globalTypeMap, stackTypeMap, expectedInnerExit);
     if (cx->throwing) {
         js_AbortRecording(cx, NULL, "setting up recorder failed");
         return false;
@@ -1766,13 +1776,13 @@ js_RecordTree(JSContext* cx, JSTraceMonitor* tm, Fragment* f)
     
     return js_StartRecorder(cx, NULL, f, ti,
                             tm->globalSlots->length(), tm->globalTypeMap->data(), 
-                            ti->stackTypeMap.data());
+                            ti->stackTypeMap.data(), NULL);
 }
 
 static bool
-js_AttemptToExtendTree(JSContext* cx, GuardRecord* lr, Fragment* f)
+js_AttemptToExtendTree(JSContext* cx, GuardRecord* lr, Fragment* f, GuardRecord* expectedInnerExit)
 {
-    JS_ASSERT(lr->from->root == f && f->vmprivate);
+    JS_ASSERT(f->root == f && f->vmprivate);
 
     debug_only_v(printf("trying to attach another branch to the tree\n");)
 
@@ -1794,13 +1804,14 @@ js_AttemptToExtendTree(JSContext* cx, GuardRecord* lr, Fragment* f)
         uint8* globalTypeMap = e->typeMap;
         uint8* stackTypeMap = globalTypeMap + ngslots;
         return js_StartRecorder(cx, lr, c, (TreeInfo*)f->vmprivate,
-                                ngslots, globalTypeMap, stackTypeMap);
+                                ngslots, globalTypeMap, stackTypeMap, expectedInnerExit);
     }
     return false;
 }
 
 static GuardRecord*
-js_ExecuteTree(JSContext* cx, Fragment** treep, uintN& inlineCallCount);
+js_ExecuteTree(JSContext* cx, Fragment** treep, uintN& inlineCallCount, 
+               GuardRecord** innermostNestedGuardp);
 
 bool
 js_ContinueRecording(JSContext* cx, TraceRecorder* r, jsbytecode* oldpc, uintN& inlineCallCount)
@@ -1833,7 +1844,8 @@ js_ContinueRecording(JSContext* cx, TraceRecorder* r, jsbytecode* oldpc, uintN& 
         r->selectCallablePeerFragment(&f) && 
         r->adjustCallerTypes(f)) { 
         r->prepareTreeCall(f);
-        GuardRecord* lr = js_ExecuteTree(cx, &f, inlineCallCount);
+        GuardRecord* innermostNestedGuard = NULL;
+        GuardRecord* lr = js_ExecuteTree(cx, &f, inlineCallCount, &innermostNestedGuard);
         if (!lr) {
             js_AbortRecording(cx, oldpc, "Couldn't call inner tree");
             return false;
@@ -1841,12 +1853,17 @@ js_ContinueRecording(JSContext* cx, TraceRecorder* r, jsbytecode* oldpc, uintN& 
         switch (lr->exit->exitType) {
         case LOOP_EXIT:
             
+            if (innermostNestedGuard) {
+                js_AbortRecording(cx, oldpc, "Inner tree took different side exit, abort recording");
+                return js_AttemptToExtendTree(cx, innermostNestedGuard, innermostNestedGuard->from->root, lr);
+            }
+            
             r->emitTreeCall(f, lr);
             return true;
         case BRANCH_EXIT:
             
             js_AbortRecording(cx, oldpc, "Inner tree is trying to grow, abort outer recording");
-            return js_AttemptToExtendTree(cx, lr, lr->from);
+            return js_AttemptToExtendTree(cx, lr, lr->from->root, NULL);
         default:
             debug_only_v(printf("exit_type=%d\n", lr->exit->exitType);)
             js_AbortRecording(cx, oldpc, "Inner tree not suitable for calling");
@@ -1864,7 +1881,8 @@ js_ContinueRecording(JSContext* cx, TraceRecorder* r, jsbytecode* oldpc, uintN& 
 }
 
 static inline GuardRecord*
-js_ExecuteTree(JSContext* cx, Fragment** treep, uintN& inlineCallCount)
+js_ExecuteTree(JSContext* cx, Fragment** treep, uintN& inlineCallCount, 
+               GuardRecord** innermostNestedGuardp)
 {
     Fragment* f = *treep;
 
@@ -1950,6 +1968,8 @@ js_ExecuteTree(JSContext* cx, Fragment** treep, uintN& inlineCallCount)
         
 
         do {
+            if (innermostNestedGuardp)
+                *innermostNestedGuardp = lr;
             debug_only_v(printf("processing tree call guard %p, calldepth=%d\n", lr, lr->calldepth);)
             unsigned calldepth = lr->calldepth;
             if (calldepth > 0) {
@@ -1972,10 +1992,6 @@ js_ExecuteTree(JSContext* cx, Fragment** treep, uintN& inlineCallCount)
         
         lr = state.nestedExit;
     }
-
-    
-
-    JS_ASSERT(state.rp == callstack);
 
     
 
@@ -2075,8 +2091,9 @@ js_LoopEdge(JSContext* cx, jsbytecode* oldpc, uintN& inlineCallCount)
     
 
     GuardRecord* lr = NULL;
+    GuardRecord* innermostNestedGuard = NULL;
     if (f->code() || f->peer)
-        lr = js_ExecuteTree(cx, &f, inlineCallCount);
+        lr = js_ExecuteTree(cx, &f, inlineCallCount, &innermostNestedGuard);
     if (!lr) {
         JS_ASSERT(!tm->recorder);
         
@@ -2086,11 +2103,20 @@ js_LoopEdge(JSContext* cx, jsbytecode* oldpc, uintN& inlineCallCount)
         return false;
     }
     
-    if ((lr->from->root == f) && (lr->exit->exitType == BRANCH_EXIT))
-        return js_AttemptToExtendTree(cx, lr, f);
-    
 
-    return false;
+
+    SideExit* exit = lr->exit;
+    switch (exit->exitType) {
+    case BRANCH_EXIT:
+        return js_AttemptToExtendTree(cx, lr, lr->from->root, NULL);
+    case LOOP_EXIT:
+        if (innermostNestedGuard)
+            return js_AttemptToExtendTree(cx, innermostNestedGuard, innermostNestedGuard->from->root, lr);
+        return false;
+    default:        
+        
+        return false;
+    }
 }
 
 void
@@ -3836,8 +3862,7 @@ TraceRecorder::record_JSOP_CALL()
 
     if (FUN_SLOW_NATIVE(fun)) {
         if (fun->u.n.native == js_obj_eval) {
-            jsval& thisv = stackval(0 - (argc + 1));
-            if (JSVAL_IS_PRIMITIVE(thisv))
+            if (JSVAL_IS_PRIMITIVE(tval))
                 ABORT_TRACE("eval with primitive |this|");
 
             jsval& arg = stackval(0 - argc);
@@ -3846,7 +3871,7 @@ TraceRecorder::record_JSOP_CALL()
                 return true;
             }
 
-            LIns* args[] = { get(&arg), get(&thisv), get(&fval), cx_ins };
+            LIns* args[] = { get(&arg), this_ins, get(&fval), cx_ins };
             LIns* res_ins = lir->insCall(F_FastEval, args);
             if (!unbox_jsval(JSVAL_STRING, res_ins))
                 ABORT_TRACE("unboxing non-string eval result");
