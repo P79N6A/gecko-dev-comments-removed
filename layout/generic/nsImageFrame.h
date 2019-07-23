@@ -52,6 +52,7 @@
 #include "nsTransform2D.h"
 #include "imgIRequest.h"
 #include "nsStubImageDecoderObserver.h"
+#include "imgIDecoderObserver.h"
 
 class nsIFrame;
 class nsImageMap;
@@ -268,7 +269,8 @@ private:
   nsSize mComputedSize;
   nsSize mIntrinsicSize;
   nsTransform2D mTransform;
-  
+  PRBool mDisplayingIcon;
+
   static nsIIOService* sIOService;
 
   
@@ -282,17 +284,13 @@ private:
   nsresult LoadIcons(nsPresContext *aPresContext);
   nsresult LoadIcon(const nsAString& aSpec, nsPresContext *aPresContext,
                     imgIRequest **aRequest);
-  
-  
-  
-  
-  PRBool HandleIconLoads(imgIRequest* aRequest, PRBool aCompleted);
 
-  class IconLoad : public nsIObserver {
+  class IconLoad : public nsIObserver,
+                   public imgIDecoderObserver {
     
     
   public:
-    IconLoad(imgIDecoderObserver* aObserver);
+    IconLoad();
 
     void Shutdown()
     {
@@ -309,15 +307,29 @@ private:
 
     NS_DECL_ISUPPORTS
     NS_DECL_NSIOBSERVER
+    NS_DECL_IMGICONTAINEROBSERVER
+    NS_DECL_IMGIDECODEROBSERVER
+
+    void AddIconObserver(nsImageFrame *frame) {
+        NS_ABORT_IF_FALSE(mIconObservers.IndexOf(frame) ==
+                          nsTArray<nsImageFrame*>::NoIndex,
+                          "Observer shouldn't aleady be in array");
+        mIconObservers.AppendElement(frame);
+    }
+
+    void RemoveIconObserver(nsImageFrame *frame) {
+        PRBool rv = mIconObservers.RemoveElement(frame);
+        NS_ABORT_IF_FALSE(rv, "Observer not in array");
+    }
 
   private:
     void GetPrefs();
+    nsTObserverArray<nsImageFrame*> mIconObservers;
+
 
   public:
     nsCOMPtr<imgIRequest> mLoadingImage;
     nsCOMPtr<imgIRequest> mBrokenImage;
-    nsCOMPtr<imgIDecoderObserver> mLoadObserver; 
-    PRUint8          mIconsLoaded;
     PRPackedBool     mPrefForceInlineAltText;
     PRPackedBool     mPrefShowPlaceholders;
   };
