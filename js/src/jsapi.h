@@ -55,18 +55,12 @@ JS_BEGIN_EXTERN_C
 
 
 typedef enum jsvaltag {
-    JSVAL_OBJECT  =         0x0,     
-    JSVAL_INT     =         0x1,     
-    JSVAL_DOUBLE  =         0x2,     
-    JSVAL_STRING  =         0x4,     
-    JSVAL_BOOLEAN =         0x6      
+    JSVAL_OBJECT  =             0x0,     
+    JSVAL_INT     =             0x1,     
+    JSVAL_DOUBLE  =             0x2,     
+    JSVAL_STRING  =             0x4,     
+    JSVAL_SPECIAL =             0x6      
 } jsvaltag;
-
-#define JSVAL_OBJECT ((jsvaltag)0x0)
-#define JSVAL_INT ((jsvaltag)0x1)
-#define JSVAL_DOUBLE ((jsvaltag)0x2)
-#define JSVAL_STRING ((jsvaltag)0x4)
-#define JSVAL_BOOLEAN ((jsvaltag)0x6)
 
 
 #define JSVAL_TAGBITS           3
@@ -92,9 +86,9 @@ JSVAL_CLRTAG(jsval v)
 #define JSVAL_NULL              ((jsval) 0)
 #define JSVAL_ZERO              INT_TO_JSVAL(0)
 #define JSVAL_ONE               INT_TO_JSVAL(1)
-#define JSVAL_FALSE             PSEUDO_BOOLEAN_TO_JSVAL(JS_FALSE)
-#define JSVAL_TRUE              PSEUDO_BOOLEAN_TO_JSVAL(JS_TRUE)
-#define JSVAL_VOID              PSEUDO_BOOLEAN_TO_JSVAL(2)
+#define JSVAL_FALSE             SPECIAL_TO_JSVAL(JS_FALSE)
+#define JSVAL_TRUE              SPECIAL_TO_JSVAL(JS_TRUE)
+#define JSVAL_VOID              SPECIAL_TO_JSVAL(2)
 
 
 
@@ -104,10 +98,9 @@ JSVAL_CLRTAG(jsval v)
 
 
 
-
-#define JSVAL_TO_PSEUDO_BOOLEAN(v) ((JSBool) ((v) >> JSVAL_TAGBITS))
-#define PSEUDO_BOOLEAN_TO_JSVAL(b)                                            \
-    JSVAL_SETTAG((jsval) (b) << JSVAL_TAGBITS, JSVAL_BOOLEAN)
+#define JSVAL_TO_SPECIAL(v) ((JSBool) ((v) >> JSVAL_TAGBITS))
+#define SPECIAL_TO_JSVAL(b)                                                   \
+    JSVAL_SETTAG((jsval) (b) << JSVAL_TAGBITS, JSVAL_SPECIAL)
 
 
 static JS_ALWAYS_INLINE JSBool
@@ -141,9 +134,15 @@ JSVAL_IS_STRING(jsval v)
 }
 
 static JS_ALWAYS_INLINE JSBool
+JSVAL_IS_SPECIAL(jsval v)
+{
+    return JSVAL_TAG(v) == JSVAL_SPECIAL;
+}
+
+static JS_ALWAYS_INLINE JSBool
 JSVAL_IS_BOOLEAN(jsval v)
 {
-    return (v & ~((jsval)1 << JSVAL_TAGBITS)) == JSVAL_BOOLEAN;
+    return (v & ~((jsval)1 << JSVAL_TAGBITS)) == JSVAL_SPECIAL;
 }
 
 static JS_ALWAYS_INLINE JSBool
@@ -168,7 +167,7 @@ JSVAL_IS_PRIMITIVE(jsval v)
 static JS_ALWAYS_INLINE JSBool
 JSVAL_IS_GCTHING(jsval v)
 {
-    return !(v & JSVAL_INT) && JSVAL_TAG(v) != JSVAL_BOOLEAN;
+    return !(v & JSVAL_INT) && JSVAL_TAG(v) != JSVAL_SPECIAL;
 }
 
 static JS_ALWAYS_INLINE void *
@@ -259,14 +258,14 @@ static JS_ALWAYS_INLINE JSBool
 JSVAL_TO_BOOLEAN(jsval v)
 {
     JS_ASSERT(v == JSVAL_TRUE || v == JSVAL_FALSE);
-    return JSVAL_TO_PSEUDO_BOOLEAN(v);
+    return JSVAL_TO_SPECIAL(v);
 }
 
 static JS_ALWAYS_INLINE jsval
 BOOLEAN_TO_JSVAL(JSBool b)
 {
     JS_ASSERT(b == JS_TRUE || b == JS_FALSE);
-    return PSEUDO_BOOLEAN_TO_JSVAL(b);
+    return SPECIAL_TO_JSVAL(b);
 }
 
 
