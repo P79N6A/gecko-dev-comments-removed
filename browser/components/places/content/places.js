@@ -94,6 +94,13 @@ var PlacesOrganizer = {
     for (var i=0; i < elements.length; i++) {
       document.getElementById(elements[i]).setAttribute("disabled", "true");
     }
+    
+    
+    
+    var historyMenuBack = document.getElementById("historyMenuBack");
+    historyMenuBack.removeAttribute("key");
+    var historyMenuForward = document.getElementById("historyMenuForward");
+    historyMenuForward.removeAttribute("key");
 #endif
   },
 
