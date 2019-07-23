@@ -43,11 +43,8 @@ var expect = '';
 printBugNumber (bug);
 printStatus (summary);
 
-var jsOptions = new JavaScriptOptions();
 
 
-jsOptions.setOption('strict', false);
-jsOptions.setOption('werror', false);
 try
 {
   expect = null;
@@ -56,11 +53,12 @@ try
 catch(e)
 {
 }
-jsOptions.reset();
+
 reportCompare(expect, actual, summary);
 
 
-jsOptions.setOption('strict', true);
+options('strict');
+
 expect = null;
 try
 {
@@ -69,7 +67,5 @@ try
 catch(e)
 {
 }
-jsOptions.reset();
-reportCompare(expect, actual, summary);
 
-  
+reportCompare(expect, actual, summary);
