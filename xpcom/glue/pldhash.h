@@ -256,9 +256,8 @@ typedef PLDHashNumber
 
 
 typedef PRBool
-(* PLDHashMatchEntry)(PLDHashTable *table,
-                                      const PLDHashEntryHdr *entry,
-                                      const void *key);
+(* PLDHashMatchEntry)(PLDHashTable *table, const PLDHashEntryHdr *entry,
+                      const void *key);
 
 
 
@@ -267,8 +266,7 @@ typedef PRBool
 
 
 typedef void
-(* PLDHashMoveEntry)(PLDHashTable *table,
-                     const PLDHashEntryHdr *from,
+(* PLDHashMoveEntry)(PLDHashTable *table, const PLDHashEntryHdr *from,
                      PLDHashEntryHdr *to);
 
 
@@ -277,8 +275,7 @@ typedef void
 
 
 typedef void
-(* PLDHashClearEntry)(PLDHashTable *table,
-                      PLDHashEntryHdr *entry);
+(* PLDHashClearEntry)(PLDHashTable *table, PLDHashEntryHdr *entry);
 
 
 
@@ -296,8 +293,7 @@ typedef void
 
 
 typedef PRBool
-(* PLDHashInitEntry)(PLDHashTable *table,
-                     PLDHashEntryHdr *entry,
+(* PLDHashInitEntry)(PLDHashTable *table, PLDHashEntryHdr *entry,
                      const void *key);
 
 
@@ -575,8 +571,8 @@ PL_DHashTableRawRemove(PLDHashTable *table, PLDHashEntryHdr *entry);
 
 
 typedef PLDHashOperator
-(* PLDHashEnumerator)(PLDHashTable *table, PLDHashEntryHdr *hdr,
-                                      PRUint32 number, void *arg);
+(* PLDHashEnumerator)(PLDHashTable *table, PLDHashEntryHdr *hdr, PRUint32 number,
+                      void *arg);
 
 NS_COM_GLUE PRUint32
 PL_DHashTableEnumerate(PLDHashTable *table, PLDHashEnumerator etor, void *arg);
