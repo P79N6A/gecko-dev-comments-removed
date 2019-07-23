@@ -94,6 +94,7 @@
 #include "nsPrintfCString.h"
 #include "nsIBlocklistService.h"
 #include "nsVersionComparator.h"
+#include "nsIPrivateBrowsingService.h"
 
 
 #ifdef None
@@ -1071,7 +1072,7 @@ nsresult PostPluginUnloadEvent(PRLibrary* aLibrary)
 void nsPluginTag::TryUnloadPlugin(PRBool aForceShutdown)
 {
   PRBool isXPCOM = PR_FALSE;
-  if (!(mFlags & NS_PLUGIN_FLAG_OLDSCHOOL))
+  if (!(mFlags & NS_PLUGIN_FLAG_NPAPI))
     isXPCOM = PR_TRUE;
 
   if (isXPCOM && !aForceShutdown) return;
@@ -2519,9 +2520,9 @@ nsPluginHostImpl::nsPluginHostImpl()
   }
 
   nsCOMPtr<nsIObserverService> obsService = do_GetService("@mozilla.org/observer-service;1");
-  if (obsService)
-  {
+  if (obsService) {
     obsService->AddObserver(this, NS_XPCOM_SHUTDOWN_OBSERVER_ID, PR_FALSE);
+    obsService->AddObserver(this, NS_PRIVATE_BROWSING_SWITCH_TOPIC, PR_FALSE);
   }
 
 #ifdef PLUGIN_LOGGING
@@ -2688,7 +2689,7 @@ nsresult nsPluginHostImpl::ReloadPlugins(PRBool reloadPages)
     
     
     
-    if (!IsRunningPlugin(p) && (!p->mEntryPoint || p->HasFlag(NS_PLUGIN_FLAG_OLDSCHOOL))) {
+    if (!IsRunningPlugin(p) && (!p->mEntryPoint || p->HasFlag(NS_PLUGIN_FLAG_NPAPI))) {
       if (p == mPlugins)
         mPlugins = next;
       else
@@ -4533,7 +4534,7 @@ NS_IMETHODIMP nsPluginHostImpl::GetPluginFactory(const char *aMimeType, nsIPlugi
         rv = CreateNPAPIPlugin(serviceManager, pluginTag, &plugin);
         if (NS_SUCCEEDED(rv))
           pluginTag->mEntryPoint = plugin;
-        pluginTag->Mark(NS_PLUGIN_FLAG_OLDSCHOOL);
+        pluginTag->Mark(NS_PLUGIN_FLAG_NPAPI);
         
       }
     }
@@ -6142,6 +6143,16 @@ NS_IMETHODIMP nsPluginHostImpl::Observe(nsISupports *aSubject,
     UnloadUnusedLibraries();
     sInst->Release();
   }
+  if (!nsCRT::strcmp(NS_PRIVATE_BROWSING_SWITCH_TOPIC, aTopic)) {
+    
+    for (nsActivePlugin* ap = mActivePluginList.mFirst; ap; ap = ap->mNext) {
+      nsPluginTag* pt = ap->mPluginTag;
+      if (pt->HasFlag(NS_PLUGIN_FLAG_NPAPI)) {
+        nsNPAPIPluginInstance* pi = static_cast<nsNPAPIPluginInstance*>(ap->mInstance);
+        pi->PrivateModeStateChanged();
+      }
+    }
+  }
   if (!nsCRT::strcmp(NS_PREFBRANCH_PREFCHANGE_TOPIC_ID, aTopic)) {
     NS_ASSERTION(someData &&
                  nsDependentString(someData).EqualsLiteral("security.enable_java"),
@@ -6161,7 +6172,7 @@ NS_IMETHODIMP nsPluginHostImpl::Observe(nsISupports *aSubject,
       for (nsPluginTag* cur = mPlugins; cur; cur = cur->mNext) {
         if (cur->mIsJavaPlugin)
           cur->SetDisabled(!mJavaEnabled);
-      }            
+      }
     }
   }
   return NS_OK;
@@ -6297,7 +6308,6 @@ nsPluginHostImpl::ParsePostBufferToFixHeaders(
   const char *pEoh = 0;   
   const char *pEod = inPostData + inPostDataLen; 
   if (*inPostData == LF) {
-    
     
     
     
@@ -6500,8 +6510,6 @@ nsPluginHostImpl::CreateTmpFileToPost(const char *postDataURL, char **pTmpFileNa
       if (NS_FAILED(rv) || (PRInt32)br <= 0)
         break;
       if (firstRead) {
-        
-        
         
         
         

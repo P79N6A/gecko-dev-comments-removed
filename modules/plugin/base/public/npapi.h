@@ -91,7 +91,7 @@
 
 
 #define NP_VERSION_MAJOR 0
-#define NP_VERSION_MINOR 21
+#define NP_VERSION_MINOR 22
 
 
 
@@ -327,7 +327,10 @@ typedef enum {
   
 
 
-  NPPVpluginWantsAllNetworkStreams = 18
+  NPPVpluginWantsAllNetworkStreams = 18,
+
+  NPPVprivateModeBool = 19
+
 #ifdef XP_MACOSX
   
   , NPPVpluginDrawingModel = 1000
@@ -358,7 +361,9 @@ typedef enum {
   
   NPNVPluginElementNPObject = 16,
 
-  NPNVSupportsWindowless = 17
+  NPNVSupportsWindowless = 17,
+
+  NPNVprivateModeBool = 18
 
 #ifdef XP_MACOSX
   

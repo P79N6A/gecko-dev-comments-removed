@@ -89,7 +89,6 @@ public:
 
     
 
-    
     nsresult GetNPP(NPP * aNPP);
 
     
@@ -132,6 +131,7 @@ public:
 
     already_AddRefed<nsPIDOMWindow> GetDOMWindow();
 
+    nsresult PrivateModeStateChanged();
 protected:
 
     nsresult InitializePlugin(nsIPluginInstancePeer* peer);
