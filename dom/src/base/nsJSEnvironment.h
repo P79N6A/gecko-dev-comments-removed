@@ -170,6 +170,27 @@ public:
   static void LoadStart();
   static void LoadEnd();
 
+  
+  
+  static void CC();
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  static PRBool MaybeCC(PRBool aHigherProbability);
+
+  
+  static void CCIfUserInactive();
 protected:
   nsresult InitializeExternalClasses();
   
