@@ -172,6 +172,12 @@ protected:
 
   
   void GetOffsetToAncestor(nsIContent* ancestor, float &x, float &y);
+  PRBool IsRoot() {
+    NS_ASSERTION((IsInDoc() && !GetParent()) ==
+                 (GetOwnerDoc() && (GetOwnerDoc()->GetRootContent() == this)),
+                 "Can't determine if we're root");
+    return IsInDoc() && !GetParent();
+  }
 
   
   void InvalidateTransformNotifyFrame();

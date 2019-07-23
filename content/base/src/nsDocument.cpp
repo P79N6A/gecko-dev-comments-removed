@@ -818,27 +818,17 @@ nsDocument::~nsDocument()
     mSubDocuments = nsnull;
   }
 
-  PRInt32 indx;
-  if (mRootContent) {
-    if (mRootContent->GetCurrentDoc()) {
-      NS_ASSERTION(mRootContent->GetCurrentDoc() == this,
-                   "Unexpected current doc in root content");
-      
-      
-      
-      
-      
-      DestroyLinkMap();
+  
+  
+  DestroyLinkMap();
 
-      PRUint32 count = mChildren.ChildCount();
-      for (indx = PRInt32(count) - 1; indx >= 0; --indx) {
-        mChildren.ChildAt(indx)->UnbindFromTree();
-        mChildren.RemoveChildAt(indx);
-      }
-    }
+  PRInt32 indx; 
+  PRUint32 count = mChildren.ChildCount();
+  for (indx = PRInt32(count) - 1; indx >= 0; --indx) {
+    mChildren.ChildAt(indx)->UnbindFromTree();
+    mChildren.RemoveChildAt(indx);
   }
-
-  mRootContent = nsnull;
+  mCachedRootContent = nsnull;
 
   
   indx = mStyleSheets.Count();
@@ -1020,6 +1010,7 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(nsDocument)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE_USERDATA
 
   
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(mCachedRootContent)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE_RAWPTR(mBindingManager)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(mSecurityInfo)
 
@@ -1078,13 +1069,14 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(nsDocument)
     tmp->mChildren.RemoveChildAt(indx);
   }
 
+  NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mCachedRootContent)
+
   NS_IMPL_CYCLE_COLLECTION_UNLINK_USERDATA
 
   
   tmp->RemoveReference(tmp);
 
   tmp->mParentDocument = nsnull;
-  tmp->mRootContent = nsnull;
 
   
   
@@ -1218,7 +1210,6 @@ nsDocument::ResetToURI(nsIURI *aURI, nsILoadGroup *aLoadGroup,
   
   DestroyLinkMap();
 
-  mRootContent = nsnull;
   PRUint32 count = mChildren.ChildCount();
   for (PRInt32 i = PRInt32(count) - 1; i >= 0; i--) {
     nsCOMPtr<nsIContent> content = mChildren.ChildAt(i);
@@ -1227,6 +1218,7 @@ nsDocument::ResetToURI(nsIURI *aURI, nsILoadGroup *aLoadGroup,
     content->UnbindFromTree();
     mChildren.RemoveChildAt(i);
   }
+  mCachedRootContent = nsnull;
 
   
   ResetStylesheetsToURI(aURI);
@@ -2207,6 +2199,24 @@ nsDocument::IsNodeOfType(PRUint32 aFlags) const
     return !(aFlags & ~eDOCUMENT);
 }
 
+nsIContent*
+nsDocument::GetRootContentInternal() const
+{
+  
+  
+  PRUint32 i;
+  for (i = mChildren.ChildCount(); i > 0; --i) {
+    nsIContent* child = mChildren.ChildAt(i - 1);
+    if (child->IsNodeOfType(nsINode::eELEMENT)) {
+      const_cast<nsDocument*>(this)->mCachedRootContent = child;
+      return child;
+    }
+  }
+  
+  const_cast<nsDocument*>(this)->mCachedRootContent = nsnull;
+  return nsnull;
+}
+
 nsIContent *
 nsDocument::GetChildAt(PRUint32 aIndex) const
 {
@@ -2229,37 +2239,14 @@ nsresult
 nsDocument::InsertChildAt(nsIContent* aKid, PRUint32 aIndex,
                           PRBool aNotify)
 {
-  if (aKid->IsNodeOfType(nsINode::eELEMENT)) {
-    if (mRootContent) {
-      NS_ERROR("Inserting element child when we already have one");
-      return NS_ERROR_DOM_HIERARCHY_REQUEST_ERR;
-    }
-
-    mRootContent = aKid;
-  }
-  
-  nsresult rv = nsGenericElement::doInsertChildAt(aKid, aIndex, aNotify,
-                                                  nsnull, this, mChildren);
-
-  if (NS_FAILED(rv) && mRootContent == aKid) {
-    PRInt32 kidIndex = mChildren.IndexOfChild(aKid);
-    NS_ASSERTION(kidIndex == -1,
-                 "Error result and still have same root content but it's in "
-                 "our child list?");
-    
-    
-    
-    
-    if (kidIndex == -1) {
-      mRootContent = nsnull;
-    }
+  if (aKid->IsNodeOfType(nsINode::eELEMENT) &&
+      GetRootContent()) {
+    NS_ERROR("Inserting element child when we already have one");
+    return NS_ERROR_DOM_HIERARCHY_REQUEST_ERR;
   }
 
-#ifdef DEBUG
-  VerifyRootContentState();
-#endif
-
-  return rv;
+  return nsGenericElement::doInsertChildAt(aKid, aIndex, aNotify,
+                                           nsnull, this, mChildren);
 }
 
 nsresult
@@ -2277,57 +2264,20 @@ nsresult
 nsDocument::RemoveChildAt(PRUint32 aIndex, PRBool aNotify)
 {
   nsCOMPtr<nsIContent> oldKid = GetChildAt(aIndex);
-  nsresult rv = NS_OK;
-  if (oldKid) {
-    if (oldKid == mRootContent) {
-      NS_ASSERTION(oldKid->IsNodeOfType(nsINode::eELEMENT),
-                   "Non-element root content?");
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      DestroyLinkMap();
-      mRootContent = nsnull;
-    }
-    
-    rv = nsGenericElement::doRemoveChildAt(aIndex, aNotify, oldKid,
-                                           nsnull, this, mChildren);
-    if (NS_FAILED(rv) && mChildren.IndexOfChild(oldKid) != -1) {
-      mRootContent = oldKid;
-    }
+  if (!oldKid) {
+    return NS_OK;
   }
 
-#ifdef DEBUG
-  VerifyRootContentState();
-#endif
+  if (oldKid->IsNodeOfType(nsINode::eELEMENT)) {
+    
+    DestroyLinkMap();
+  }
 
+  nsresult rv = nsGenericElement::doRemoveChildAt(aIndex, aNotify, oldKid,
+                                                  nsnull, this, mChildren);
+  mCachedRootContent = nsnull;
   return rv;
 }
-
-#ifdef DEBUG
-void
-nsDocument::VerifyRootContentState()
-{
-  nsIContent* elementChild = nsnull;
-  for (PRUint32 i = 0; i < GetChildCount(); ++i) {
-    nsIContent* kid = GetChildAt(i);
-    NS_ASSERTION(kid, "Must have kid here");
-
-    if (kid->IsNodeOfType(nsINode::eELEMENT)) {
-      NS_ASSERTION(!elementChild, "Multiple element kids?");
-      elementChild = kid;
-    }
-  }
-
-  NS_ASSERTION(mRootContent == elementChild, "Incorrect mRootContent");
-}
-#endif 
 
 PRInt32
 nsDocument::GetNumberOfStyleSheets() const
@@ -2959,28 +2909,11 @@ nsDocument::GetDoctype(nsIDOMDocumentType** aDoctype)
   *aDoctype = nsnull;
   PRInt32 i, count;
   count = mChildren.ChildCount();
-  nsCOMPtr<nsIDOMNode> rootContentNode(do_QueryInterface(mRootContent) );
-  nsCOMPtr<nsIDOMNode> node;
-
   for (i = 0; i < count; i++) {
-    node = do_QueryInterface(mChildren.ChildAt(i));
+    CallQueryInterface(mChildren.ChildAt(i), aDoctype);
 
-    NS_ASSERTION(node, "null element of mChildren");
-
-    
-    
-    
-    if (node == rootContentNode)
+    if (*aDoctype) {
       return NS_OK;
-
-    if (node) {
-      PRUint16 nodeType;
-
-      node->GetNodeType(&nodeType);
-
-      if (nodeType == nsIDOMNode::DOCUMENT_TYPE_NODE) {
-        return CallQueryInterface(node, aDoctype);
-      }
     }
   }
 
@@ -3015,16 +2948,14 @@ nsDocument::GetDocumentElement(nsIDOMElement** aDocumentElement)
 {
   NS_ENSURE_ARG_POINTER(aDocumentElement);
 
-  nsresult rv = NS_OK;
-
-  if (mRootContent) {
-    rv = CallQueryInterface(mRootContent, aDocumentElement);
-    NS_ASSERTION(NS_OK == rv, "Must be a DOM Element");
-  } else {
-    *aDocumentElement = nsnull;
+  nsIContent* root = GetRootContent();
+  if (root) {
+    return CallQueryInterface(root, aDocumentElement);
   }
 
-  return rv;
+  *aDocumentElement = nsnull;
+
+  return NS_OK;
 }
 
 NS_IMETHODIMP
@@ -4304,7 +4235,7 @@ NS_IMETHODIMP
 nsDocument::LookupPrefix(const nsAString& aNamespaceURI,
                          nsAString& aPrefix)
 {
-  nsCOMPtr<nsIDOM3Node> root(do_QueryInterface(mRootContent));
+  nsCOMPtr<nsIDOM3Node> root(do_QueryInterface(GetRootContent()));
   if (root) {
     return root->LookupPrefix(aNamespaceURI, aPrefix);
   }
@@ -4317,7 +4248,7 @@ NS_IMETHODIMP
 nsDocument::LookupNamespaceURI(const nsAString& aNamespacePrefix,
                                nsAString& aNamespaceURI)
 {
-  if (NS_FAILED(nsContentUtils::LookupNamespaceURI(mRootContent,
+  if (NS_FAILED(nsContentUtils::LookupNamespaceURI(GetRootContent(),
                                                    aNamespacePrefix,
                                                    aNamespaceURI))) {
     SetDOMStringToNull(aNamespaceURI);
@@ -5753,9 +5684,10 @@ nsDocument::OnPageShow(PRBool aPersisted)
   mVisible = PR_TRUE;
   UpdateLinkMap();
   
-  if (aPersisted && mRootContent) {
+  nsIContent* root = GetRootContent();
+  if (aPersisted && root) {
     
-    nsRefPtr<nsContentList> links = NS_GetContentList(mRootContent,
+    nsRefPtr<nsContentList> links = NS_GetContentList(root,
                                                       nsGkAtoms::link,
                                                       kNameSpaceID_Unknown);
 
@@ -5779,8 +5711,9 @@ nsDocument::OnPageHide(PRBool aPersisted)
 {
   
   
-  if (aPersisted && mRootContent) {
-    nsRefPtr<nsContentList> links = NS_GetContentList(mRootContent,
+  nsIContent* root = GetRootContent();
+  if (aPersisted && root) {
+    nsRefPtr<nsContentList> links = NS_GetContentList(root,
                                                       nsGkAtoms::link,
                                                       kNameSpaceID_Unknown);
 

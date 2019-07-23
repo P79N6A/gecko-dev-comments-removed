@@ -535,7 +535,7 @@ nsXMLDocument::Load(const nsAString& aUrl, PRBool *aReturn)
     }
 
     
-    nsCOMPtr<nsIDOMNode> node = do_QueryInterface(mRootContent);
+    nsCOMPtr<nsIDOMNode> node = do_QueryInterface(GetRootContent());
     if (node) {
       nsAutoString name, ns;      
       if (NS_SUCCEEDED(node->GetLocalName(name)) &&
@@ -660,14 +660,15 @@ nsXMLDocument::GetElementById(const nsAString& aElementId,
   
   
   
-  if (!mRootContent)
+  nsIContent* root = GetRootContent();
+  if (!root)
     return NS_OK;
 
   
   
   
   nsIContent *content =
-    nsContentUtils::MatchElementId(mRootContent, aElementId);
+    nsContentUtils::MatchElementId(root, aElementId);
 
   if (!content) {
     return NS_OK;

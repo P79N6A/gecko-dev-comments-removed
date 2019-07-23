@@ -396,8 +396,12 @@ public:
 
   nsIContent *GetRootContent() const
   {
-    return mRootContent;
+    return (mCachedRootContent &&
+            mCachedRootContent->GetNodeParent() == this) ?
+           reinterpret_cast<nsIContent*>(mCachedRootContent.get()) :
+           GetRootContentInternal();
   }
+  virtual nsIContent *GetRootContentInternal() const = 0;
 
   
 
@@ -943,7 +947,8 @@ protected:
 
   
   
-  nsIContent* mRootContent;
+  
+  nsCOMPtr<nsINode> mCachedRootContent;
 
   
   

@@ -382,7 +382,6 @@ IdAndNameMapEntryTraverse(PLDHashTable *table, PLDHashEntryHdr *hdr,
 }
 
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(nsHTMLDocument, nsDocument)
-  NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(mBodyContent)
   if (tmp->mIdAndNameHashTable.ops) {
     PL_DHashTableEnumerate(&tmp->mIdAndNameHashTable,
                            IdAndNameMapEntryTraverse,
@@ -478,8 +477,6 @@ nsHTMLDocument::ResetToURI(nsIURI *aURI, nsILoadGroup *aLoadGroup,
   mEmbeds = nsnull;
   mLinks = nsnull;
   mAnchors = nsnull;
-
-  mBodyContent = nsnull;
 
   mImageMaps.Clear();
   mForms = nsnull;
@@ -1373,12 +1370,6 @@ nsHTMLDocument::ContentRemoved(nsIDocument* aDocument,
 
   NS_ABORT_IF_FALSE(aChild, "Null content!");
 
-  if (aContainer == mRootContent) {
-    
-
-    mBodyContent = nsnull;
-  }
-
   UnregisterNamedItems(aChild);
 }
 
@@ -1791,66 +1782,62 @@ nsHTMLDocument::GetURL(nsAString& aURL)
 NS_IMETHODIMP
 nsHTMLDocument::GetBody(nsIDOMHTMLElement** aBody)
 {
-  NS_ENSURE_ARG_POINTER(aBody);
   *aBody = nsnull;
 
-  nsISupports* element = nsnull;
-  nsCOMPtr<nsIDOMNode> node;
+  nsIContent* body = GetBodyContent();
 
-  if (mBodyContent || GetBodyContent()) {
+  if (body) {
     
-    element = mBodyContent;
-  } else {
-    
-    
-
-    nsCOMPtr<nsIDOMNodeList> nodeList;
-
-    nsresult rv;
-    if (IsXHTML()) {
-      rv = GetElementsByTagNameNS(NS_LITERAL_STRING("http://www.w3.org/1999/xhtml"),
-                                  NS_LITERAL_STRING("frameset"),
-                                  getter_AddRefs(nodeList));
-    } else {
-      rv = GetElementsByTagName(NS_LITERAL_STRING("frameset"),
-                                getter_AddRefs(nodeList));
-    }
-
-    if (nodeList) {
-      rv |= nodeList->Item(0, getter_AddRefs(node));
-
-      element = node;
-    }
-
-    NS_ENSURE_SUCCESS(rv, rv);
+    return CallQueryInterface(body, aBody);
   }
 
-  return element ? CallQueryInterface(element, aBody) : NS_OK;
+  
+  
+  nsCOMPtr<nsIDOMNodeList> nodeList;
+
+  nsresult rv;
+  if (IsXHTML()) {
+    rv = GetElementsByTagNameNS(NS_LITERAL_STRING("http://www.w3.org/1999/xhtml"),
+                                NS_LITERAL_STRING("frameset"),
+                                getter_AddRefs(nodeList));
+  } else {
+    rv = GetElementsByTagName(NS_LITERAL_STRING("frameset"),
+                              getter_AddRefs(nodeList));
+  }
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  nsCOMPtr<nsIDOMNode> node;
+  nodeList->Item(0, getter_AddRefs(node));
+
+  return node ? CallQueryInterface(node, aBody) : NS_OK;
 }
 
 NS_IMETHODIMP
 nsHTMLDocument::SetBody(nsIDOMHTMLElement* aBody)
 {
-  nsCOMPtr<nsIContent> body(do_QueryInterface(aBody));
-  nsCOMPtr<nsIDOMElement> root(do_QueryInterface(mRootContent));
+  nsCOMPtr<nsIContent> newBody = do_QueryInterface(aBody);
+  nsIContent* root = GetRootContent();
 
   
-  if (!body || !root || !(body->Tag() == nsGkAtoms::body ||
-                          body->Tag() == nsGkAtoms::frameset)) {
+  
+  
+  if (!newBody || !(newBody->Tag() == nsGkAtoms::body ||
+                    newBody->Tag() == nsGkAtoms::frameset) ||
+      !root || !root->IsNodeOfType(nsINode::eHTML) ||
+      root->Tag() != nsGkAtoms::html) {
     return NS_ERROR_DOM_HIERARCHY_REQUEST_ERR;
   }
 
+  nsCOMPtr<nsIDOMElement> rootElem = do_QueryInterface(root);
   nsCOMPtr<nsIDOMNode> tmp;
 
-  if (mBodyContent || GetBodyContent()) {
-    root->ReplaceChild(aBody, mBodyContent, getter_AddRefs(tmp));
-  } else {
-    root->AppendChild(aBody, getter_AddRefs(tmp));
+  
+  nsCOMPtr<nsIDOMNode> currentBody = do_QueryInterface(GetBodyContent());
+  if (currentBody) {
+    return rootElem->ReplaceChild(aBody, currentBody, getter_AddRefs(tmp));
   }
 
-  mBodyContent = aBody;
-
-  return PR_FALSE;
+  return rootElem->AppendChild(aBody, getter_AddRefs(tmp));
 }
 
 NS_IMETHODIMP
@@ -2188,10 +2175,10 @@ nsHTMLDocument::OpenCommon(const nsACString& aContentType, PRBool aReplace)
   
 
   
-  nsCOMPtr<nsIContent> root(mRootContent);
+  nsCOMPtr<nsIContent> root = GetRootContent();
 
   if (root) {
-    PRInt32 rootIndex = mChildren.IndexOfChild(mRootContent);
+    PRInt32 rootIndex = mChildren.IndexOfChild(root);
     NS_ASSERTION(rootIndex >= 0, "Root must be in list!");
     
     PRUint32 count = root->GetChildCount();
@@ -2201,7 +2188,7 @@ nsHTMLDocument::OpenCommon(const nsACString& aContentType, PRBool aReplace)
       root->RemoveChildAt(count, PR_TRUE);
     }
 
-    count = mRootContent->GetAttrCount();
+    count = root->GetAttrCount();
 
     
     while (count-- > 0) {
@@ -2211,8 +2198,7 @@ nsHTMLDocument::OpenCommon(const nsACString& aContentType, PRBool aReplace)
 
     
     mChildren.RemoveChildAt(rootIndex);
-
-    mRootContent = nsnull;
+    mCachedRootContent = nsnull;
   }
 
   
@@ -2235,7 +2221,6 @@ nsHTMLDocument::OpenCommon(const nsACString& aContentType, PRBool aReplace)
     
 
     mChildren.AppendChild(root);
-    mRootContent = root;
   }
 
   if (IsEditingOn()) {
@@ -2615,18 +2600,19 @@ nsHTMLDocument::GetElementById(const nsAString& aElementId,
   if (!e) {
     
     
+    nsIContent* root = GetRootContent();
     if (!IdTableIsLive()) {
       if (IdTableShouldBecomeLive()) {
         
         
-        if (mRootContent) {
-          RegisterNamedItems(mRootContent);
+        if (root) {
+          RegisterNamedItems(root);
         }
         return GetElementById(aElementId, aReturn);
       }
 
-      if (mRootContent && CheckGetElementByIdArg(aElementId)) {
-        e = nsContentUtils::MatchElementId(mRootContent, idAtom);
+      if (root && CheckGetElementByIdArg(aElementId)) {
+        e = nsContentUtils::MatchElementId(root, idAtom);
       }
     }
 
@@ -2634,9 +2620,9 @@ nsHTMLDocument::GetElementById(const nsAString& aElementId,
 #ifdef DEBUG
       
       
-      if (IdTableIsLive() && mRootContent && !aElementId.IsEmpty()) {
+      if (IdTableIsLive() && root && !aElementId.IsEmpty()) {
         nsIContent* eDebug =
-          nsContentUtils::MatchElementId(mRootContent, idAtom);
+          nsContentUtils::MatchElementId(root, idAtom);
         NS_ASSERTION(!eDebug,
                      "We got null for |e| but MatchElementId found something?");
       }
@@ -2773,11 +2759,10 @@ nsHTMLDocument::GetBodySize(PRInt32* aWidth,
 
   
   
-  if (!mBodyContent && !GetBodyContent()) {
+  nsIContent* body = GetBodyContent();
+  if (!body) {
     return NS_OK;
   }
-
-  nsCOMPtr<nsIContent> body = do_QueryInterface(mBodyContent);
 
   
   nsIFrame* frame = shell->GetPrimaryFrameFor(body);
@@ -2815,8 +2800,7 @@ nsHTMLDocument::GetAlinkColor(nsAString& aAlinkColor)
 {
   aAlinkColor.Truncate();
 
-  nsCOMPtr<nsIDOMHTMLBodyElement> body;
-  GetBodyElement(getter_AddRefs(body));
+  nsCOMPtr<nsIDOMHTMLBodyElement> body = do_QueryInterface(GetBodyContent());
 
   if (body) {
     body->GetALink(aAlinkColor);
@@ -2834,8 +2818,7 @@ nsHTMLDocument::GetAlinkColor(nsAString& aAlinkColor)
 NS_IMETHODIMP
 nsHTMLDocument::SetAlinkColor(const nsAString& aAlinkColor)
 {
-  nsCOMPtr<nsIDOMHTMLBodyElement> body;
-  GetBodyElement(getter_AddRefs(body));
+  nsCOMPtr<nsIDOMHTMLBodyElement> body = do_QueryInterface(GetBodyContent());
 
   if (body) {
     body->SetALink(aAlinkColor);
@@ -2856,8 +2839,7 @@ nsHTMLDocument::GetLinkColor(nsAString& aLinkColor)
 {
   aLinkColor.Truncate();
 
-  nsCOMPtr<nsIDOMHTMLBodyElement> body;
-  GetBodyElement(getter_AddRefs(body));
+  nsCOMPtr<nsIDOMHTMLBodyElement> body = do_QueryInterface(GetBodyContent());
 
   if (body) {
     body->GetLink(aLinkColor);
@@ -2875,8 +2857,7 @@ nsHTMLDocument::GetLinkColor(nsAString& aLinkColor)
 NS_IMETHODIMP
 nsHTMLDocument::SetLinkColor(const nsAString& aLinkColor)
 {
-  nsCOMPtr<nsIDOMHTMLBodyElement> body;
-  GetBodyElement(getter_AddRefs(body));
+  nsCOMPtr<nsIDOMHTMLBodyElement> body = do_QueryInterface(GetBodyContent());
 
   if (body) {
     body->SetLink(aLinkColor);
@@ -2897,8 +2878,7 @@ nsHTMLDocument::GetVlinkColor(nsAString& aVlinkColor)
 {
   aVlinkColor.Truncate();
 
-  nsCOMPtr<nsIDOMHTMLBodyElement> body;
-  GetBodyElement(getter_AddRefs(body));
+  nsCOMPtr<nsIDOMHTMLBodyElement> body = do_QueryInterface(GetBodyContent());
 
   if (body) {
     body->GetVLink(aVlinkColor);
@@ -2916,8 +2896,7 @@ nsHTMLDocument::GetVlinkColor(nsAString& aVlinkColor)
 NS_IMETHODIMP
 nsHTMLDocument::SetVlinkColor(const nsAString& aVlinkColor)
 {
-  nsCOMPtr<nsIDOMHTMLBodyElement> body;
-  GetBodyElement(getter_AddRefs(body));
+  nsCOMPtr<nsIDOMHTMLBodyElement> body = do_QueryInterface(GetBodyContent());
 
   if (body) {
     body->SetVLink(aVlinkColor);
@@ -2938,8 +2917,7 @@ nsHTMLDocument::GetBgColor(nsAString& aBgColor)
 {
   aBgColor.Truncate();
 
-  nsCOMPtr<nsIDOMHTMLBodyElement> body;
-  GetBodyElement(getter_AddRefs(body));
+  nsCOMPtr<nsIDOMHTMLBodyElement> body = do_QueryInterface(GetBodyContent());
 
   if (body) {
     body->GetBgColor(aBgColor);
@@ -2951,8 +2929,7 @@ nsHTMLDocument::GetBgColor(nsAString& aBgColor)
 NS_IMETHODIMP
 nsHTMLDocument::SetBgColor(const nsAString& aBgColor)
 {
-  nsCOMPtr<nsIDOMHTMLBodyElement> body;
-  GetBodyElement(getter_AddRefs(body));
+  nsCOMPtr<nsIDOMHTMLBodyElement> body = do_QueryInterface(GetBodyContent());
 
   if (body) {
     body->SetBgColor(aBgColor);
@@ -2967,8 +2944,7 @@ nsHTMLDocument::GetFgColor(nsAString& aFgColor)
 {
   aFgColor.Truncate();
 
-  nsCOMPtr<nsIDOMHTMLBodyElement> body;
-  GetBodyElement(getter_AddRefs(body));
+  nsCOMPtr<nsIDOMHTMLBodyElement> body = do_QueryInterface(GetBodyContent());
 
   if (body) {
     body->GetText(aFgColor);
@@ -2980,8 +2956,7 @@ nsHTMLDocument::GetFgColor(nsAString& aFgColor)
 NS_IMETHODIMP
 nsHTMLDocument::SetFgColor(const nsAString& aFgColor)
 {
-  nsCOMPtr<nsIDOMHTMLBodyElement> body;
-  GetBodyElement(getter_AddRefs(body));
+  nsCOMPtr<nsIDOMHTMLBodyElement> body = do_QueryInterface(GetBodyContent());
 
   if (body) {
     body->SetText(aFgColor);
@@ -3474,10 +3449,11 @@ nsHTMLDocument::ResolveName(const nsAString& aName,
     entry->mNameContentList = list;
     NS_ADDREF(entry->mNameContentList);
 
-    if (mRootContent && !aName.IsEmpty()) {
+    nsIContent* root = GetRootContent();
+    if (root && !aName.IsEmpty()) {
       
       
-      FindNamedItems(name, mRootContent, *entry, PR_FALSE);
+      FindNamedItems(name, root, *entry, PR_FALSE);
     }
   }
 
@@ -3566,42 +3542,31 @@ nsHTMLDocument::ResolveName(const nsAString& aName,
 
 
 
-PRBool
+nsIContent*
 nsHTMLDocument::GetBodyContent()
 {
-  if (!mRootContent) {
-    return PR_FALSE;
-  }
+  
+  
+  PRUint32 i;
+  for (i = mChildren.ChildCount(); i > 0; --i) {
+    nsIContent* html = mChildren.ChildAt(i - 1);
+    if (html->Tag() == nsGkAtoms::html &&
+        html->IsNodeOfType(nsINode::eHTML)) {
 
-  PRUint32 i, child_count = mRootContent->GetChildCount();
+      
+      for (i = html->GetChildCount(); i > 0; --i) {
+        nsIContent* body = html->GetChildAt(i - 1);
+        if (body->Tag() == nsGkAtoms::body &&
+            body->IsNodeOfType(nsINode::eHTML)) {
+          return body;
+        }
+      }
 
-  for (i = 0; i < child_count; ++i) {
-    nsIContent *child = mRootContent->GetChildAt(i);
-    NS_ENSURE_TRUE(child, NS_ERROR_UNEXPECTED);
-
-    if (child->NodeInfo()->Equals(nsGkAtoms::body, mDefaultNamespaceID) &&
-        child->IsNodeOfType(nsINode::eHTML)) {
-      mBodyContent = do_QueryInterface(child);
-
-      return PR_TRUE;
+      break;
     }
   }
 
-  return PR_FALSE;
-}
-
-void
-nsHTMLDocument::GetBodyElement(nsIDOMHTMLBodyElement** aBody)
-{
-  *aBody = nsnull;
-
-  if (!mBodyContent && !GetBodyContent()) {
-    
-
-    return;
-  }
-
-  CallQueryInterface(mBodyContent, aBody);
+  return nsnull;
 }
 
 
@@ -3868,12 +3833,13 @@ nsHTMLDocument::GetDocumentAllResult(const nsAString& aID, nsISupports** aResult
     return NS_OK;
   }
 
-  if (!mRootContent) {
+  nsIContent* root = GetRootContent();
+  if (!root) {
     return NS_OK;
   }
 
   if (!entry->mDocAllList) {
-    entry->mDocAllList = new nsContentList(mRootContent, DocAllResultMatch,
+    entry->mDocAllList = new nsContentList(root, DocAllResultMatch,
                                            nsnull, nsnull, PR_TRUE, id);
     NS_ENSURE_TRUE(entry->mDocAllList, NS_ERROR_OUT_OF_MEMORY);
   }
