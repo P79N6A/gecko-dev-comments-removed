@@ -482,6 +482,39 @@ struct JSParseNode {
 
 
 
+
+
+
+    bool isDirectivePrologueMember() const {
+        if (PN_TYPE(this) == TOK_SEMI &&
+            pn_arity == PN_UNARY) {
+            JSParseNode *kid = pn_kid;
+            return kid && PN_TYPE(kid) == TOK_STRING && !kid->pn_parens;
+        }
+        return false;
+    }
+
+    
+
+
+
+    bool isDirective() const {
+        JS_ASSERT(isDirectivePrologueMember());
+        JSParseNode *kid = pn_kid;
+        JSString *str = ATOM_TO_STRING(kid->pn_atom);
+        
+
+
+
+
+        return (pn_pos.begin.lineno == pn_pos.end.lineno &&
+                pn_pos.begin.index + str->length() + 2 == pn_pos.end.index);
+    }
+
+    
+
+
+
     JSParseNode *last() const {
         JS_ASSERT(pn_arity == PN_LIST);
         JS_ASSERT(pn_count != 0);

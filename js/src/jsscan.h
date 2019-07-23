@@ -346,6 +346,9 @@ struct JSTokenStream {
 #define TSF_KEYWORD_IS_NAME 0x4000
 
 
+#define TSF_STRICT_MODE_CODE 0x8000
+
+
 #define LINE_SEPARATOR  0x2028
 #define PARA_SEPARATOR  0x2029
 

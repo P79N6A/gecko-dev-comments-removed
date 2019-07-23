@@ -234,11 +234,6 @@ struct JSTreeContext {
     bool ensureSharpSlots();
 };
 
-
-
-
-#define TCF_RETURN_FLAGS        (TCF_RETURN_EXPR | TCF_RETURN_VOID)
-
 #define TCF_COMPILING           0x01 /* JSTreeContext is JSCodeGenerator */
 #define TCF_IN_FUNCTION         0x02 /* parsing inside function body */
 #define TCF_RETURN_EXPR         0x04 /* function has 'return expr;' */
@@ -285,13 +280,27 @@ struct JSTreeContext {
 
 
 
+
+
+
+#define TCF_STRICT_MODE_CODE       0x40000
+
+
+
+
+#define TCF_RETURN_FLAGS        (TCF_RETURN_EXPR | TCF_RETURN_VOID)
+
+
+
+
 #define TCF_FUN_FLAGS           (TCF_FUN_SETS_OUTER_NAME |                    \
                                  TCF_FUN_USES_ARGUMENTS  |                    \
                                  TCF_FUN_PARAM_ARGUMENTS |                    \
                                  TCF_FUN_HEAVYWEIGHT     |                    \
                                  TCF_FUN_IS_GENERATOR    |                    \
                                  TCF_FUN_USES_OWN_NAME   |                    \
-                                 TCF_HAS_SHARPS)
+                                 TCF_HAS_SHARPS          |                    \
+                                 TCF_STRICT_MODE_CODE)
 
 
 

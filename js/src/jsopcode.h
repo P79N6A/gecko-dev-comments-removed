@@ -275,9 +275,14 @@ js_QuoteString(JSContext *cx, JSString *str, jschar quote);
 
 
 
+
+
+
+
+
 extern JSPrinter *
 js_NewPrinter(JSContext *cx, const char *name, JSFunction *fun,
-              uintN indent, JSBool pretty, JSBool grouped);
+              uintN indent, JSBool pretty, JSBool grouped, JSBool strict);
 
 extern void
 js_DestroyPrinter(JSPrinter *jp);
@@ -421,7 +426,7 @@ js_DecompileFunction(JSPrinter *jp);
 
 extern JSString *
 js_DecompileToString(JSContext *cx, const char *name, JSFunction *fun,
-                     uintN indent, JSBool pretty, JSBool grouped,
+                     uintN indent, JSBool pretty, JSBool grouped, JSBool strict,
                      JSBool (*decompiler)(JSPrinter *jp));
 
 

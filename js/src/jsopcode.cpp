@@ -724,8 +724,9 @@ struct JSPrinter {
     Sprinter        sprinter;       
     JSArenaPool     pool;           
     uintN           indent;         
-    JSPackedBool    pretty;         
-    JSPackedBool    grouped;        
+    bool            pretty;         
+    bool            grouped;        
+    bool            strict;         
     JSScript        *script;        
     jsbytecode      *dvgfence;      
     jsbytecode      **pcstack;      
@@ -735,7 +736,7 @@ struct JSPrinter {
 
 JSPrinter *
 js_NewPrinter(JSContext *cx, const char *name, JSFunction *fun,
-              uintN indent, JSBool pretty, JSBool grouped)
+              uintN indent, JSBool pretty, JSBool grouped, JSBool strict)
 {
     JSPrinter *jp;
 
@@ -747,6 +748,7 @@ js_NewPrinter(JSContext *cx, const char *name, JSFunction *fun,
     jp->indent = indent;
     jp->pretty = pretty;
     jp->grouped = grouped;
+    jp->strict = strict;
     jp->script = NULL;
     jp->dvgfence = NULL;
     jp->pcstack = NULL;
@@ -2244,7 +2246,8 @@ Decompile(SprintStack *ss, jsbytecode *pc, intN nb, JSOp nextop)
                   do_function:
                     js_puts(jp, "\n");
                     jp2 = js_NewPrinter(cx, "nested_function", fun,
-                                        jp->indent, jp->pretty, jp->grouped);
+                                        jp->indent, jp->pretty, jp->grouped,
+                                        jp->strict);
                     if (!jp2)
                         return NULL;
                     ok = js_DecompileFunction(jp2);
@@ -4144,8 +4147,9 @@ Decompile(SprintStack *ss, jsbytecode *pc, intN nb, JSOp nextop)
 
 
                     bool grouped = !(fun->flags & JSFUN_EXPR_CLOSURE);
+                    bool strict = jp->script->strictModeCode;
                     str = js_DecompileToString(cx, "lambda", fun, 0, 
-                                               false, grouped,
+                                               false, grouped, strict,
                                                js_DecompileFunction);
                     if (!str)
                         return NULL;
@@ -4902,13 +4906,13 @@ js_DecompileScript(JSPrinter *jp, JSScript *script)
 
 JSString *
 js_DecompileToString(JSContext *cx, const char *name, JSFunction *fun,
-                     uintN indent, JSBool pretty, JSBool grouped,
+                     uintN indent, JSBool pretty, JSBool grouped, JSBool strict,
                      JSBool (*decompiler)(JSPrinter *jp))
 {
     JSPrinter *jp;
     JSString *str;
 
-    jp = js_NewPrinter(cx, name, fun, indent, pretty, grouped);
+    jp = js_NewPrinter(cx, name, fun, indent, pretty, grouped, strict);
     if (!jp)
         return NULL;
     if (decompiler(jp))
@@ -5064,9 +5068,22 @@ js_DecompileFunction(JSPrinter *jp)
             return JS_FALSE;
         if (fun->flags & JSFUN_EXPR_CLOSURE) {
             js_printf(jp, ") ");
+            if (fun->u.i.script->strictModeCode && !jp->strict) {
+                
+
+
+
+                js_printf(jp, "\t/* use strict */ \n");
+                jp->strict = true;
+            }
+            
         } else {
             js_printf(jp, ") {\n");
             jp->indent += 4;
+            if (fun->u.i.script->strictModeCode && !jp->strict) {
+                js_printf(jp, "\t'use strict';\n");
+                jp->strict = true;
+            }
         }
 
         len = script->code + script->length - pc;
@@ -5314,7 +5331,7 @@ DecompileExpression(JSContext *cx, JSScript *script, JSFunction *fun,
 
     name = NULL;
     jp = js_NewPrinter(cx, "js_DecompileValueGenerator", fun, 0,
-                       false, false);
+                       false, false, false);
     if (jp) {
         jp->dvgfence = end;
         jp->pcstack = pcstack;
