@@ -120,6 +120,7 @@ nsHtml5TreeOpExecutor::DidBuildModel(PRBool aTerminated)
   if (!aTerminated) {
     
     
+    
     EndDocUpdate();
     
     
@@ -214,11 +215,11 @@ nsHtml5TreeOpExecutor::SetDocumentCharsetAndSource(nsACString& aCharset, PRInt32
     
     
     
-    nsCOMPtr<nsIMarkupDocumentViewer> muCV;
+    nsCOMPtr<nsIMarkupDocumentViewer> mucv;
     nsCOMPtr<nsIContentViewer> cv;
     mDocShell->GetContentViewer(getter_AddRefs(cv));
     if (cv) {
-      muCV = do_QueryInterface(cv);
+      mucv = do_QueryInterface(cv);
     } else {
       
       
@@ -236,12 +237,12 @@ nsHtml5TreeOpExecutor::SetDocumentCharsetAndSource(nsACString& aCharset, PRInt32
         nsresult rv =
           parent->GetContentViewer(getter_AddRefs(parentContentViewer));
         if (NS_SUCCEEDED(rv) && parentContentViewer) {
-          muCV = do_QueryInterface(parentContentViewer);
+          mucv = do_QueryInterface(parentContentViewer);
         }
       }
     }
-    if (muCV) {
-      muCV->SetPrevDocCharacterSet(aCharset);
+    if (mucv) {
+      mucv->SetPrevDocCharacterSet(aCharset);
     }
   }
 }
@@ -655,7 +656,7 @@ nsHtml5TreeOpExecutor::IsScriptEnabled()
 }
 
 void
-nsHtml5TreeOpExecutor::DocumentMode(nsHtml5DocumentMode m)
+nsHtml5TreeOpExecutor::SetDocumentMode(nsHtml5DocumentMode m)
 {
   nsCompatibility mode = eCompatibility_NavQuirks;
   switch (m) {
