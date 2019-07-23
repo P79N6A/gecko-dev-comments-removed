@@ -194,7 +194,9 @@ def runTests(xpcshell, testdirs=[], xrePath=None, testFile=None,
         print "TEST-PASS | %s | all tests passed" % test
       processLeakLog(leakLogFile)
       
-      os.remove(leakLogFile)
+      
+      if os.path.exists(leakLogFile):
+        os.remove(leakLogFile)
       if not (success or keepGoing):
         return False
 
