@@ -1088,6 +1088,14 @@ CNavDTD::HandleOmittedTag(CToken* aToken, eHTMLTags aChildTag,
     eHTMLTags theTag = eHTMLTag_unknown;
 
     
+    
+    if (mFlags & NS_DTD_FLAG_HAS_OPEN_HEAD) {
+      NS_ASSERTION(!(mFlags & NS_DTD_FLAG_HAS_MAIN_CONTAINER),
+                   "Bad state");
+      return;
+    }
+
+    
     while (theTagCount > 0) {
       theTag = mBodyContext->TagAt(--theTagCount);
       if (!gHTMLElements[theTag].HasSpecialProperty(kBadContentWatch)) {
@@ -1104,7 +1112,7 @@ CNavDTD::HandleOmittedTag(CToken* aToken, eHTMLTags aChildTag,
       mFlags |= NS_DTD_FLAG_MISPLACED_CONTENT;
     }
   }
-  
+
   if (aChildTag != aParent &&
       gHTMLElements[aParent].HasSpecialProperty(kSaveMisplaced)) {
     NS_ASSERTION(!pushToken, "A strange element has both kBadContentWatch "
