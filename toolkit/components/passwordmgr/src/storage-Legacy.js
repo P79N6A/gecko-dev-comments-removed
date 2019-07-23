@@ -800,7 +800,7 @@ LoginManagerStorage_legacy.prototype = {
 
             
             
-            if (!username || !password)
+            if (username == null || !password)
                 continue;
 
             
