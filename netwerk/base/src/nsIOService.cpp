@@ -72,6 +72,8 @@
 #include "nsThreadUtils.h"
 #include "nsIPermissionManager.h"
 #include "nsTArray.h"
+#include "nsIConsoleService.h"
+#include "nsIUploadChannel2.h"
 
 #if defined(XP_WIN) || defined(MOZ_ENABLE_LIBCONIC)
 #include "nsNativeConnectionHelper.h"
@@ -85,6 +87,7 @@
 #define MAX_RECURSION_COUNT 50
 
 nsIOService* gIOService = nsnull;
+static PRBool gHasWarnedUploadChannel2;
 
 
 
@@ -576,7 +579,33 @@ nsIOService::NewChannelFromURI(nsIURI *aURI, nsIChannel **result)
         }
     }
 
-    return handler->NewChannel(aURI, result);
+    rv = handler->NewChannel(aURI, result);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    
+    
+    
+    
+    
+    
+    
+    if (!gHasWarnedUploadChannel2 && scheme.EqualsLiteral("http")) {
+        nsCOMPtr<nsIUploadChannel2> uploadChannel2 = do_QueryInterface(*result);
+        if (!uploadChannel2) {
+            nsCOMPtr<nsIConsoleService> consoleService =
+                do_GetService(NS_CONSOLESERVICE_CONTRACTID);
+            if (consoleService) {
+                consoleService->LogStringMessage(NS_LITERAL_STRING(
+                    "Http channel implementation doesn't support "
+                    "nsIUploadChannel2. An extension has supplied a "
+                    "non-functional http protocol handler. This will break "
+                    "behavior and in future releases not work at all.").get());
+            }
+            gHasWarnedUploadChannel2 = PR_TRUE;
+        }
+    }
+
+    return NS_OK;
 }
 
 NS_IMETHODIMP

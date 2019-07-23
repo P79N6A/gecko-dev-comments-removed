@@ -2773,25 +2773,49 @@ nsHttpChannel::SetupReplacementChannel(nsIURI       *newURI,
         return NS_OK; 
 
     if (preserveMethod) {
-        nsCOMPtr<nsIUploadChannel2> uploadChannel = do_QueryInterface(httpChannel);
-        if (mUploadStream && uploadChannel) {
+        nsCOMPtr<nsIUploadChannel> uploadChannel =
+            do_QueryInterface(httpChannel);
+        nsCOMPtr<nsIUploadChannel2> uploadChannel2 =
+            do_QueryInterface(httpChannel);
+        if (mUploadStream && (uploadChannel2 || uploadChannel)) {
             
             nsCOMPtr<nsISeekableStream> seekable = do_QueryInterface(mUploadStream);
             if (seekable)
                 seekable->Seek(nsISeekableStream::NS_SEEK_SET, 0);
 
             
-            const char *ctype = mRequestHead.PeekHeader(nsHttp::Content_Type);
-            if (!ctype)
-              ctype = "";
-            const char *clen  = mRequestHead.PeekHeader(nsHttp::Content_Length);
-            if (clen)
-                uploadChannel->ExplicitSetUploadStream(
-                    mUploadStream,
-                    nsDependentCString(ctype),
-                    nsCRT::atoll(clen),
-                    nsDependentCString(mRequestHead.Method()),
-                    mUploadStreamHasHeaders);
+            if (uploadChannel2) {
+                const char *ctype = mRequestHead.PeekHeader(nsHttp::Content_Type);
+                if (!ctype)
+                    ctype = "";
+                const char *clen  = mRequestHead.PeekHeader(nsHttp::Content_Length);
+                if (clen)
+                    uploadChannel2->ExplicitSetUploadStream(
+                        mUploadStream,
+                        nsDependentCString(ctype),
+                        nsCRT::atoll(clen),
+                        nsDependentCString(mRequestHead.Method()),
+                        mUploadStreamHasHeaders);
+            }
+            else {
+                if (mUploadStreamHasHeaders)
+                    uploadChannel->SetUploadStream(mUploadStream, EmptyCString(),
+                                                   -1);
+                else {
+                    const char *ctype =
+                        mRequestHead.PeekHeader(nsHttp::Content_Type);
+                    const char *clen =
+                        mRequestHead.PeekHeader(nsHttp::Content_Length);
+                    if (!ctype) {
+                        ctype = "application/octet-stream";
+                    }
+                    if (clen) {
+                        uploadChannel->SetUploadStream(mUploadStream,
+                                                       nsDependentCString(ctype),
+                                                       atoi(clen));
+                    }
+                }
+            }
         }
         
         
