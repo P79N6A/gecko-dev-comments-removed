@@ -123,7 +123,7 @@ namespace nanojit
     void Assembler::nFragExit(LInsp guard)
     {
         SideExit *exit = guard->record()->exit;
-        bool trees = config.tree_opt;
+        bool trees = _frago->core()->config.tree_opt;
         Fragment *frag = exit->target;
         GuardRecord *lr = 0;
         bool destKnown = (frag && frag->fragEntry);
@@ -229,6 +229,52 @@ namespace nanojit
 
         if (extra > 0)
             SUBi(SP, extra);
+    }
+
+    void Assembler::nMarkExecute(Page* page, int flags)
+    {
+        NanoAssert(sizeof(Page) == NJ_PAGE_SIZE);
+        #if defined WIN32 || defined WIN64
+            DWORD dwIgnore;
+            static const DWORD kProtFlags[4] =
+            {
+                PAGE_READONLY,            
+                PAGE_READWRITE,            
+                PAGE_EXECUTE_READ,        
+                PAGE_EXECUTE_READWRITE    
+            };
+            DWORD prot = kProtFlags[flags & (PAGE_WRITE|PAGE_EXEC)];
+            BOOL res = VirtualProtect(page, NJ_PAGE_SIZE, prot, &dwIgnore);
+            if (!res)
+            {
+                
+                NanoAssertMsg(false, "FATAL ERROR: VirtualProtect() failed\n");
+            }
+        #elif defined AVMPLUS_UNIX || defined AVMPLUS_MAC
+            static const int kProtFlags[4] =
+            {
+                PROT_READ,                        
+                PROT_READ|PROT_WRITE,            
+                PROT_READ|PROT_EXEC,            
+                PROT_READ|PROT_WRITE|PROT_EXEC    
+            };
+            int prot = kProtFlags[flags & (PAGE_WRITE|PAGE_EXEC)];
+            intptr_t addr = (intptr_t)page;
+            addr &= ~((uintptr_t)NJ_PAGE_SIZE - 1);
+            NanoAssert(addr == (intptr_t)page);
+            #if defined SOLARIS
+            if (mprotect((char *)addr, NJ_PAGE_SIZE, prot) == -1)
+            #else
+            if (mprotect((void *)addr, NJ_PAGE_SIZE, prot) == -1)
+            #endif
+            {
+                
+                NanoAssertMsg(false, "FATAL ERROR: mprotect(PROT_EXEC) failed\n");
+                abort();
+            }
+        #else
+            (void)page;
+        #endif
     }
 
     Register Assembler::nRegisterAllocFromSet(int set)
@@ -1658,8 +1704,8 @@ namespace nanojit
 
     void Assembler::nativePageSetup()
     {
-        if (!_nIns) codeAlloc(codeStart, codeEnd, _nIns);
-        if (!_nExitIns) codeAlloc(exitStart, exitEnd, _nExitIns);
+        if (!_nIns)         _nIns       = pageAlloc();
+        if (!_nExitIns)  _nExitIns = pageAlloc(true);
     }
 
     
@@ -1679,15 +1725,15 @@ namespace nanojit
     
     void Assembler::underrunProtect(int n)
     {
-        NIns *eip = _nIns;
         NanoAssertMsg(n<=LARGEST_UNDERRUN_PROT, "constant LARGEST_UNDERRUN_PROT is too small");
-        if (eip - n < (_inExit ? exitStart : codeStart)) {
+        NIns *eip = this->_nIns;
+        Page *p = (Page*)pageTop(eip-1);
+        NIns *top = (NIns*) &p->code[0];
+        if (eip - n < top) {
             
             
-            if (_inExit)
-                codeAlloc(exitStart, exitEnd, _nIns);
-            else
-                codeAlloc(codeStart, codeEnd, _nIns);
+            VALGRIND_DISCARD_TRANSLATIONS(pageTop(p), NJ_PAGE_SIZE);
+            _nIns = pageAlloc(_inExit);
             JMP(eip);
         }
     }

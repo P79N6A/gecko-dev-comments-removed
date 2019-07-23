@@ -97,6 +97,8 @@ namespace nanojit
 #endif
     };
 
+    class Fragmento;
+
     
     enum AssmError
     {
@@ -169,7 +171,7 @@ namespace nanojit
             LogControl* _logc;
             #endif
 
-            Assembler(CodeAlloc* codeAlloc, AvmCore* core, LogControl* logc);
+            Assembler(Fragmento* frago, LogControl* logc);
             ~Assembler() {}
 
             void        assemble(Fragment* frag, NInsList& loopJumps);
@@ -184,9 +186,12 @@ namespace nanojit
 #endif
             AssmError   error()    { return _err; }
             void        setError(AssmError e) { _err = e; }
-            void        reset();
+            void        pageReset();
+            int32_t        codeBytes();
+            Page*        handoverPages(bool exitPages=false);
 
             debug_only ( void        pageValidate(); )
+            debug_only ( bool        onPage(NIns* where, bool exitPages=false); )
 
             
             debug_only( void        resourceConsistencyCheck(); )
@@ -194,7 +199,6 @@ namespace nanojit
 
             Stats        _stats;
             int hasLoop;
-            CodeList*   codeList;                   
 
         private:
 
@@ -229,7 +233,9 @@ namespace nanojit
             void        resetInstructionPointer();
             void        recordStartingInstructionPointer();
 
-            void        codeAlloc(NIns *&start, NIns *&end, NIns *&eip);
+            NIns*        pageAlloc(bool exitPage=false);
+            void        pagesFree(Page*& list);
+            void        internalReset();
             bool        canRemat(LIns*);
 
             Reservation* getresv(LIns *x) {
@@ -237,19 +243,17 @@ namespace nanojit
                 return r->used ? r : 0;
             }
 
-            AvmCore             *core;
-            DWB(CodeAlloc*)     _codeAlloc;
+            DWB(Fragmento*)        _frago;
             avmplus::GC*        _gc;
             DWB(Fragment*)        _thisfrag;
             RegAllocMap*        _branchStateMap;
-
-            NIns        *codeStart, *codeEnd;       
-            NIns        *exitStart, *exitEnd;       
 
             NIns*        _nIns;            
             NIns*        _nExitIns;        
             NIns*        _startingIns;    
             NIns*       _epilogue;
+            Page*        _nativePages;    
+            Page*        _nativeExitPages; 
             AssmError    _err;            
 
             AR            _activation;
@@ -304,9 +308,18 @@ namespace nanojit
             void        handleLoopCarriedExprs(InsList& pending_lives);
 
             
+            enum
+            {
+                PAGE_READ = 0x0,    
+                PAGE_WRITE = 0x01,
+                PAGE_EXEC = 0x02
+            };
+
+            
             void        nInit(AvmCore *);
             Register    nRegisterAllocFromSet(int32_t set);
             void        nRegisterResetAll(RegAlloc& a);
+            void        nMarkExecute(Page* page, int flags);
             NIns*        nPatchBranch(NIns* branch, NIns* location);
             void        nFragExit(LIns* guard);
 

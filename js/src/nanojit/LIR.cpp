@@ -109,41 +109,47 @@ namespace nanojit
 #endif 
 
     
-    LirBuffer::LirBuffer(Allocator& alloc)
-        :
+    LirBuffer::LirBuffer(Fragmento* frago)
+        : _frago(frago),
 #ifdef NJ_VERBOSE
           names(NULL),
 #endif
-          abi(ABI_FASTCALL), state(NULL), param1(NULL), sp(NULL), rp(NULL),
-          _allocator(alloc), _bytesAllocated(0)
+          abi(ABI_FASTCALL),
+          state(NULL), param1(NULL), sp(NULL), rp(NULL),
+          _pages(frago->core()->GetGC())
     {
-        clear();
+        rewind();
     }
 
     LirBuffer::~LirBuffer()
     {
         clear();
         verbose_only(if (names) NJ_DELETE(names);)
+        _frago = 0;
     }
 
     void LirBuffer::clear()
     {
         
+        _frago->pagesRelease(_pages);
+        NanoAssert(!_pages.size());
         _unused = 0;
-        _limit = 0;
-        _bytesAllocated = 0;
         _stats.lir = 0;
+        _noMem = 0;
+        _nextPage = 0;
         for (int i = 0; i < NumSavedRegs; ++i)
             savedRegs[i] = NULL;
         explicitSavedRegs = false;
-        chunkAlloc();
     }
 
-    void LirBuffer::chunkAlloc()
+    void LirBuffer::rewind()
     {
-        _unused = (uintptr_t) _allocator.alloc(CHUNK_SZB);
-        NanoAssert(_unused != 0); 
-        _limit = _unused + CHUNK_SZB;
+        clear();
+        
+        Page* start = pageAlloc();
+        _unused = start ? uintptr_t(&start->lir[0]) : 0;
+        _nextPage = pageAlloc();
+        NanoAssert((_unused && _nextPage) || _noMem);
     }
 
     int32_t LirBuffer::insCount()
@@ -155,37 +161,55 @@ namespace nanojit
 
     size_t LirBuffer::byteCount()
     {
-        return _bytesAllocated - (_limit - _unused);
+        return ((_pages.size() ? _pages.size()-1 : 0) * sizeof(Page)) +
+            (_unused - pageTop(_unused));
+    }
+
+    Page* LirBuffer::pageAlloc()
+    {
+        Page* page = _frago->pageAlloc();
+        if (page)
+            _pages.add(page);
+        else
+            _noMem = 1;
+        return page;
     }
 
     
     
-    void LirBuffer::moveToNewChunk(uintptr_t addrOfLastLInsOnCurrentChunk)
+    void LirBuffer::moveToNewPage(uintptr_t addrOfLastLInsOnCurrentPage)
     {
-        chunkAlloc();
+        
+        NanoAssert(_nextPage);
+        _unused = uintptr_t(&_nextPage->lir[0]);
+        _nextPage = pageAlloc();
+        NanoAssert(_nextPage || _noMem);
+
         
         
         
         
         LInsSk* insSk = (LInsSk*)_unused;
         LIns*   ins   = insSk->getLIns();
-        ins->initLInsSk((LInsp)addrOfLastLInsOnCurrentChunk);
+        ins->initLInsSk((LInsp)addrOfLastLInsOnCurrentPage);
         _unused += sizeof(LInsSk);
-        verbose_only(_stats.lir++);
+        _stats.lir++;
     }
 
     
     uintptr_t LirBuffer::makeRoom(size_t szB)
     {
         
+        
         NanoAssert(0 == szB % sizeof(void*));
-        NanoAssert(sizeof(LIns) <= szB && szB <= MAX_LINS_SZB);
-        NanoAssert(_unused < _limit);
+        NanoAssert(sizeof(LIns) <= szB && szB <= NJ_MAX_LINS_SZB);
+        NanoAssert(_unused >= pageDataStart(_unused));
 
         
-        if (_unused + szB > _limit) {
-            uintptr_t addrOfLastLInsOnChunk = _unused - sizeof(LIns);
-            moveToNewChunk(addrOfLastLInsOnChunk);
+        
+        if (_unused + szB - 1 > pageBottom(_unused)) {
+            uintptr_t addrOfLastLInsOnPage = _unused - sizeof(LIns);
+            moveToNewPage(addrOfLastLInsOnPage);
         }
 
         
@@ -193,18 +217,19 @@ namespace nanojit
         
         uintptr_t startOfRoom = _unused;
         _unused += szB;
-        verbose_only(_stats.lir++);             
+        _stats.lir++;             
 
         
         
         
         
         
-        if (_unused >= _limit) {
+        if (_unused > pageBottom(startOfRoom)) {
             
-            NanoAssert(_unused == _limit);
-            uintptr_t addrOfLastLInsOnChunk = _unused - sizeof(LIns);
-            moveToNewChunk(addrOfLastLInsOnChunk);
+            NanoAssert(_unused == pageTop(_unused));
+            NanoAssert(_unused == pageBottom(startOfRoom) + 1);
+            uintptr_t addrOfLastLInsOnPage = _unused - sizeof(LIns);
+            moveToNewPage(addrOfLastLInsOnPage);
         }
 
         
@@ -317,16 +342,15 @@ namespace nanojit
         
         
         payload_szB = alignUp(payload_szB, sizeof(void*));
-        NanoAssert(0 == LirBuffer::MAX_SKIP_PAYLOAD_SZB % sizeof(void*));
-        NanoAssert(sizeof(void*) <= payload_szB && payload_szB <= LirBuffer::MAX_SKIP_PAYLOAD_SZB);
+        NanoAssert(0 == NJ_MAX_SKIP_PAYLOAD_SZB % sizeof(void*));
+        NanoAssert(sizeof(void*) <= payload_szB && payload_szB <= NJ_MAX_SKIP_PAYLOAD_SZB);
 
         uintptr_t payload = _buf->makeRoom(payload_szB + sizeof(LInsSk));
         uintptr_t prevLInsAddr = payload - sizeof(LIns);
         LInsSk* insSk = (LInsSk*)(payload + payload_szB);
         LIns*   ins   = insSk->getLIns();
-        
-        
-        
+        NanoAssert(prevLInsAddr >= pageDataStart(prevLInsAddr));
+        NanoAssert(samepage(prevLInsAddr, insSk));
         ins->initLInsSk((LInsp)prevLInsAddr);
         return ins;
     }
@@ -371,6 +395,7 @@ namespace nanojit
                     int argc = ((LInsp)i)->argc();
                     i -= sizeof(LInsC);         
                     i -= argc*sizeof(LInsp);    
+                    NanoAssert( samepage(i, _i) );
                     break;
                 }
 
@@ -2022,12 +2047,10 @@ namespace nanojit
         return i->arg(i->argc()-n-1);
     }
 
-    void compile(Fragmento* frago, Assembler* assm, Fragment* triggerFrag)
+    void compile(Assembler* assm, Fragment* triggerFrag)
     {
+        Fragmento *frago = triggerFrag->lirbuf->_frago;
         AvmCore *core = frago->core();
-#ifdef NJ_VERBOSE
-        LabelMap* labels = frago->labels;
-#endif
         GC *gc = core->gc;
 
         verbose_only(
@@ -2085,6 +2108,7 @@ namespace nanojit
             root = triggerFrag->root;
             root->fragEntry = 0;
             root->loopEntry = 0;
+            root->releaseCode(frago);
 
             
             verbose_only( if (anyVerb) {
@@ -2098,16 +2122,14 @@ namespace nanojit
                 {
                     verbose_only( if (anyVerb) {
                         logc->printf("=== -- Compiling branch %s ip %s\n",
-                                     labels->format(frag),
-                                     labels->format(frag->ip));
+                                     frago->labels->format(frag),
+                                     frago->labels->format(frag->ip));
                     })
-                    if (!assm->error()) {
-                        assm->assemble(frag, loopJumps);
-                        verbose_only(frago->_stats.compiles++);
-                        verbose_only(frago->_stats.totalCompiles++);
-                    }
+                    assm->assemble(frag, loopJumps);
                     verbose_only(if (asmVerb)
-                        assm->outputf("## compiling branch %s ip %s", labels->format(frag), labels->format(frag->ip)); )
+                        assm->outputf("## compiling branch %s ip %s",
+                                      frago->labels->format(frag),
+                                      frago->labels->format(frag->ip)); )
 
                     NanoAssert(frag->kind == BranchTrace);
                     RegAlloc* regs = NJ_NEW(gc, RegAlloc)();
@@ -2126,18 +2148,18 @@ namespace nanojit
         
         verbose_only( if (anyVerb) {
             logc->printf("=== -- Compile trunk %s: begin\n",
-                         labels->format(root));
+                         frago->labels->format(root));
         })
         assm->assemble(root, loopJumps);
         verbose_only( if (anyVerb) {
             logc->printf("=== -- Compile trunk %s: end\n",
-                         labels->format(root));
+                         frago->labels->format(root));
         })
 
         verbose_only(
             if (asmVerb)
                 assm->outputf("## compiling trunk %s",
-                              labels->format(root));
+                              frago->labels->format(root));
         )
         NanoAssert(!frago->core()->config.tree_opt
                    || root == root->anchor || root->kind == MergeTrace);
@@ -2167,10 +2189,6 @@ namespace nanojit
             root->fragEntry = 0;
             root->loopEntry = 0;
         }
-        else
-        {
-            CodeAlloc::moveAll(root->codeList, assm->codeList);
-        }
 
         
         verbose_only( if (anyVerb) {
@@ -2193,7 +2211,6 @@ namespace nanojit
             if (found)
                 return found;
             return exprs.add(out->insLoad(v,base,disp), k);
-
         }
         return out->insLoad(v, base, disp);
     }
@@ -2227,8 +2244,8 @@ namespace nanojit
     #endif 
 
 #if defined(NJ_VERBOSE)
-    LabelMap::LabelMap(AvmCore *core, nanojit::Allocator& a)
-        : allocator(a), names(core->gc), addrs(core->config.verbose_addrs), end(buf), core(core)
+    LabelMap::LabelMap(AvmCore *core)
+        : names(core->gc), addrs(core->config.verbose_addrs), end(buf), core(core)
     {}
 
     LabelMap::~LabelMap()

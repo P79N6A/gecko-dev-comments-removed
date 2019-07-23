@@ -95,14 +95,11 @@ typedef struct VMSideExit VMSideExit;
 
 #ifdef __cplusplus
 namespace nanojit {
-    class Assembler;
-    class CodeAlloc;
     class Fragment;
     class Fragmento;
     class LirBuffer;
 }
 class TraceRecorder;
-class VMAllocator;
 extern "C++" { template<typename T> class Queue; }
 typedef Queue<uint16> SlotList;
 
@@ -143,9 +140,6 @@ struct JSTraceMonitor {
 
     CLS(nanojit::LirBuffer) lirbuf;
     CLS(nanojit::Fragmento) fragmento;
-    CLS(VMAllocator)        allocator;   
-    CLS(nanojit::CodeAlloc) codeAlloc;   
-    CLS(nanojit::Assembler) assembler;
     CLS(TraceRecorder)      recorder;
     jsval                   *reservedDoublePool;
     jsval                   *reservedDoublePoolPtr;
@@ -180,8 +174,6 @@ struct JSTraceMonitor {
     
 
 
-    CLS(VMAllocator)        reAllocator;
-    CLS(nanojit::CodeAlloc) reCodeAlloc;
     CLS(nanojit::LirBuffer) reLirBuf;
     CLS(nanojit::Fragmento) reFragmento;
 

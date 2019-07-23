@@ -43,9 +43,6 @@
 namespace nanojit
 {
     
-    using namespace MMgc;
-
-    
     inline bool containsPtr(const NIns* start, const NIns* end, const NIns* ptr) {
         return ptr >= start && ptr < end;
     }
@@ -107,14 +104,8 @@ namespace nanojit
         static const size_t sizeofMinBlock = offsetof(CodeList, code);
         static const size_t minAllocSize = LARGEST_UNDERRUN_PROT;
 
-        
-
-
+        GCHeap* heap;
         CodeList* heapblocks;
-
-        
-        CodeList* availblocks;
-        size_t totalAllocated;
 
         
         static CodeList* removeBlock(CodeList* &list);
@@ -134,22 +125,8 @@ namespace nanojit
         
         static CodeList* firstBlock(CodeList* term);
 
-        
-        
-        
-        
-        
-
-        
-        void* allocCodeChunk(size_t nbytes);
-
-        
-
-
-        void freeCodeChunk(void* addr, size_t nbytes);
-
     public:
-        CodeAlloc();
+        CodeAlloc(GCHeap*);
         ~CodeAlloc();
 
         
@@ -179,9 +156,6 @@ namespace nanojit
 
         
         static size_t size(const CodeList* code);
-
-        
-        size_t size();
 
         
         void logStats();
