@@ -6501,7 +6501,11 @@ PresShell::AdjustContextMenuKeyEvent(nsMouseEvent* aEvent)
   
   
   
-  mViewManager->GetWidget(getter_AddRefs(aEvent->widget));
+  
+  
+  
+  mPresContext->RootPresContext()->PresShell()->GetViewManager()->
+    GetRootWidget(getter_AddRefs(aEvent->widget));
   aEvent->refPoint.x = 0;
   aEvent->refPoint.y = 0;
 
@@ -6743,12 +6747,8 @@ PresShell::GetCurrentItemAndPositionForElement(nsIDOMElement *aCurrentEl,
     nsIView *view = frame->GetClosestView(&frameOrigin);
     NS_ASSERTION(view, "No view for frame");
 
-    nsIView *rootView = nsnull;
-    mViewManager->GetRootView(rootView);
-    NS_ASSERTION(rootView, "No root view in pres shell");
-
     
-    frameOrigin += view->GetOffsetTo(rootView);
+    frameOrigin += view->GetOffsetTo(nsnull);
 
     
     
