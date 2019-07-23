@@ -261,10 +261,11 @@ CViewSourceHTML::~CViewSourceHTML(){
 
 
 
-nsresult CViewSourceHTML::WillBuildModel(const CParserContext& aParserContext,
-                                         nsITokenizer* aTokenizer,
-                                         nsIContentSink* aSink){
-
+NS_IMETHODIMP
+CViewSourceHTML::WillBuildModel(const CParserContext& aParserContext,
+                                nsITokenizer* aTokenizer,
+                                nsIContentSink* aSink)
+{
   nsresult result=NS_OK;
 
 #ifdef RAPTOR_PERF_METRICS
@@ -326,7 +327,9 @@ nsresult CViewSourceHTML::WillBuildModel(const CParserContext& aParserContext,
 
 
 
-NS_IMETHODIMP CViewSourceHTML::BuildModel(nsIParser* aParser,nsITokenizer* aTokenizer,nsITokenObserver* anObserver,nsIContentSink* aSink) {
+NS_IMETHODIMP CViewSourceHTML::BuildModel(nsIParser* aParser,
+                                          nsITokenizer* aTokenizer)
+{
   nsresult result=NS_OK;
 
   if(aTokenizer && aParser) {
@@ -535,7 +538,9 @@ void CViewSourceHTML::AddAttrToNode(nsCParserStartNode& aNode,
 
 
 
-NS_IMETHODIMP CViewSourceHTML::DidBuildModel(nsresult anErrorCode,nsIParser* aParser,nsIContentSink* aSink){
+NS_IMETHODIMP CViewSourceHTML::DidBuildModel(nsresult anErrorCode,
+                                             nsIParser* aParser)
+{
   nsresult result= NS_OK;
 
   
@@ -626,7 +631,9 @@ void CViewSourceHTML::SetVerification(PRBool aEnabled)
 
 
 
-PRBool CViewSourceHTML::CanContain(PRInt32 aParent,PRInt32 aChild) const{
+NS_IMETHODIMP_(PRBool)
+CViewSourceHTML::CanContain(PRInt32 aParent, PRInt32 aChild) const
+{
   PRBool result=PR_TRUE;
   return result;
 }
@@ -639,7 +646,9 @@ PRBool CViewSourceHTML::CanContain(PRInt32 aParent,PRInt32 aChild) const{
 
 
 
-PRBool CViewSourceHTML::IsContainer(PRInt32 aTag) const{
+NS_IMETHODIMP_(PRBool)
+CViewSourceHTML::IsContainer(PRInt32 aTag) const
+{
   PRBool result=PR_TRUE;
   return result;
 }
@@ -827,7 +836,8 @@ nsresult CViewSourceHTML::WriteTag(PRInt32 aTagType,const nsSubstring & aText,PR
 
 
 
-NS_IMETHODIMP CViewSourceHTML::HandleToken(CToken* aToken,nsIParser* aParser)
+nsresult
+CViewSourceHTML::HandleToken(CToken* aToken,nsIParser* aParser)
 {
   nsresult        result=NS_OK;
   CHTMLToken*     theToken= (CHTMLToken*)(aToken);

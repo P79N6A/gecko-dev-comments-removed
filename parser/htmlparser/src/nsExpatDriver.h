@@ -99,6 +99,8 @@ public:
                                     const PRUnichar* aNotationName);
 
 private:
+  nsresult HandleToken(CToken* aToken, nsIParser* aParser);
+
   
   nsresult OpenInputStreamFromExternalDTD(const PRUnichar* aFPIStr,
                                           const PRUnichar* aURLStr,
@@ -156,8 +158,13 @@ private:
   
   PRUint32         mExpatBuffered;
 
+  
+  
+  
+  nsCOMPtr<nsIContentSink> mOriginalSink;
   nsCOMPtr<nsIExpatSink> mSink;
   nsCOMPtr<nsIExtendedExpatSink> mExtendedSink;
+
   const nsCatalogData* mCatalogData; 
   nsString         mURISpec;
 };

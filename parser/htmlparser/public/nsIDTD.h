@@ -103,8 +103,7 @@ public:
 
 
     NS_IMETHOD DidBuildModel(nsresult anErrorCode,
-                             nsIParser* aParser,
-                             nsIContentSink* aSink) = 0;
+                             nsIParser* aParser) = 0;
 
     
 
@@ -112,21 +111,7 @@ public:
 
 
 
-    NS_IMETHOD BuildModel(nsIParser* aParser, nsITokenizer* aTokenizer,
-                          nsITokenObserver* anObserver,
-                          nsIContentSink* aSink) = 0;
-
-    
-
-
-
-
-
-
-
-
-
-    NS_IMETHOD HandleToken(CToken* aToken,nsIParser* aParser) = 0;
+    NS_IMETHOD BuildModel(nsIParser* aParser, nsITokenizer* aTokenizer) = 0;
 
     
 
@@ -174,9 +159,8 @@ NS_DEFINE_STATIC_IID_ACCESSOR(nsIDTD, NS_IDTD_IID)
 
 #define NS_DECL_NSIDTD \
     NS_IMETHOD WillBuildModel(  const CParserContext& aParserContext, nsITokenizer* aTokenizer, nsIContentSink* aSink);\
-    NS_IMETHOD DidBuildModel(nsresult anErrorCode,nsIParser* aParser,nsIContentSink* aSink);\
-    NS_IMETHOD BuildModel(nsIParser* aParser,nsITokenizer* aTokenizer,nsITokenObserver* anObserver,nsIContentSink* aSink);\
-    NS_IMETHOD HandleToken(CToken* aToken,nsIParser* aParser);\
+    NS_IMETHOD DidBuildModel(nsresult anErrorCode,nsIParser* aParser);\
+    NS_IMETHOD BuildModel(nsIParser* aParser,nsITokenizer* aTokenizer);\
     NS_IMETHOD_(PRBool) CanContain(PRInt32 aParent,PRInt32 aChild) const;\
     NS_IMETHOD_(PRBool) IsContainer(PRInt32 aTag) const;\
     NS_IMETHOD_(void)  Terminate();\

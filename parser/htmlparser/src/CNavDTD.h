@@ -258,6 +258,8 @@ private:
 
     PRInt32 LastOf(eHTMLTags aTagSet[], PRInt32 aCount) const;
 
+    nsresult HandleToken(CToken* aToken, nsIParser* aParser);
+
     
 
 
@@ -295,7 +297,7 @@ private:
     nsresult    HandleProcessingInstructionToken(CToken* aToken);
     nsresult    HandleDocTypeDeclToken(CToken* aToken);
     nsresult    BuildNeglectedTarget(eHTMLTags aTarget, eHTMLTokenTypes aType,
-                                     nsIParser* aParser, nsIContentSink* aSink);
+                                     nsIParser* aParser);
 
     nsresult OpenHTML(const nsCParserNode *aNode);
     nsresult OpenBody(const nsCParserNode *aNode);
