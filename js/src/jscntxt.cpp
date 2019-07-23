@@ -95,6 +95,16 @@ js_InitThreadPrivateIndex(void (*ptr)(void *))
 }
 JS_END_EXTERN_C
 
+JS_BEGIN_EXTERN_C
+JSBool
+js_CleanupThreadPrivateData()
+{
+    if (!tpIndexInited)
+        return JS_TRUE;
+    return PR_SetThreadPrivate(threadTPIndex, NULL) == PR_SUCCESS;
+}
+JS_END_EXTERN_C
+
 
 
 

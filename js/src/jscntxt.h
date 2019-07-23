@@ -1007,6 +1007,15 @@ js_InitThreadPrivateIndex(void (*ptr)(void *));
 
 
 
+
+
+extern JSBool
+js_CleanupThreadPrivateData();
+
+
+
+
+
 extern void
 js_OnVersionChange(JSContext *cx);
 
