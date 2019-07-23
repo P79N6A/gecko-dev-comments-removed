@@ -93,6 +93,7 @@ FinishThreadData(JSThreadData *data)
 {
 #ifdef DEBUG
     
+    data->gcFreeLists.assertEmpty();
     for (size_t i = 0; i != JS_ARRAY_LENGTH(data->scriptsToGC); ++i)
         JS_ASSERT(!data->scriptsToGC[i]);
     for (size_t i = 0; i != JS_ARRAY_LENGTH(data->nativeEnumCache); ++i)
@@ -109,10 +110,7 @@ FinishThreadData(JSThreadData *data)
 static void
 PurgeThreadData(JSContext *cx, JSThreadData *data)
 {
-    
-
-
-    data->doubleFreeList = NULL;
+    data->gcFreeLists.purge();
 
     js_PurgeGSNCache(&data->gsnCache);
 
@@ -274,12 +272,12 @@ thread_purger(JSDHashTable *table, JSDHashEntryHdr *hdr, uint32 ,
 
 
 
+        thread->data.gcFreeLists.purge();
         js_PurgeCachedNativeEnumerators(cx, &thread->data);
         DestroyThread(thread);
         return JS_DHASH_REMOVE;
     }
     PurgeThreadData(cx, &thread->data);
-    memset(thread->gcFreeLists, 0, sizeof(thread->gcFreeLists));
     return JS_DHASH_NEXT;
 }
 

@@ -2248,9 +2248,6 @@ js_NewObjectWithGivenProto(JSContext *cx, JSClass *clasp, JSObject *proto,
     }
 
     
-    JS_ASSERT_IF(!cx->localRootStack, cx->weakRoots.newbornObject == obj);
-
-    
 
 
 
@@ -2260,7 +2257,7 @@ js_NewObjectWithGivenProto(JSContext *cx, JSClass *clasp, JSObject *proto,
         cx->debugHooks->objectHook(cx, obj, JS_TRUE,
                                    cx->debugHooks->objectHookData);
         JS_UNKEEP_ATOMS(cx->runtime);
-        cx->weakRoots.newbornObject = obj;
+        cx->weakRoots.finalizableNewborns[FINALIZE_OBJECT] = obj;
     }
 
 out:
@@ -5514,7 +5511,8 @@ js_GetClassPrototype(JSContext *cx, JSObject *scope, jsid id,
 
 
 
-            cx->weakRoots.newbornObject = JSVAL_TO_OBJECT(v);
+            cx->weakRoots.finalizableNewborns[FINALIZE_OBJECT] =
+                JSVAL_TO_OBJECT(v);
         }
     }
     *protop = JSVAL_IS_OBJECT(v) ? JSVAL_TO_OBJECT(v) : NULL;
