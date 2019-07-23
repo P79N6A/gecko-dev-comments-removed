@@ -238,15 +238,7 @@ public:
 
 
 
-  nsIFormControlFrame* GetFormControlFrame(PRBool aFlushContent)
-  {
-    nsIDocument* doc = GetCurrentDoc();
-    if (!doc) {
-      return nsnull;
-    }
-
-    return GetFormControlFrameFor(this, doc, aFlushContent);
-  }
+  nsIFormControlFrame* GetFormControlFrame(PRBool aFlushFrames);
 
   
 
@@ -444,19 +436,6 @@ public:
 
   static void MapScrollingAttributeInto(const nsMappedAttributes* aAttributes,
                                         nsRuleData* aData);
-  
-
-
-
-
-
-
-
-
-
-  static nsIFormControlFrame* GetFormControlFrameFor(nsIContent* aContent,
-                                                     nsIDocument* aDocument,
-                                                     PRBool aFlushContent);
   
 
 

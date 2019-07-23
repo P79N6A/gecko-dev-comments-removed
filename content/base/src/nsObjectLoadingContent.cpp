@@ -1665,17 +1665,7 @@ nsObjectLoadingContent::GetExistingFrame(FlushType aFlushType)
 
   nsIFrame* frame;
   do {
-    nsIDocument* doc = thisContent->GetCurrentDoc();
-    if (!doc) {
-      return nsnull; 
-    }
-
-    nsIPresShell* shell = doc->GetPrimaryShell();
-    if (!shell) {
-      return nsnull; 
-    }
-
-    frame = shell->GetPrimaryFrameFor(thisContent);
+    frame = thisContent->GetPrimaryFrame();
     if (!frame) {
       return nsnull;
     }
@@ -1686,6 +1676,8 @@ nsObjectLoadingContent::GetExistingFrame(FlushType aFlushType)
     
     
     
+    nsIDocument* doc = thisContent->GetCurrentDoc();
+    NS_ASSERTION(doc, "Frame but no document?");
     mozFlushType flushType =
       aFlushType == eFlushLayout ? Flush_Layout : Flush_ContentAndNotify;
     doc->FlushPendingNotifications(flushType);

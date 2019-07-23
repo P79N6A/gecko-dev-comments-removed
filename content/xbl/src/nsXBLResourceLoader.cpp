@@ -265,7 +265,7 @@ nsXBLResourceLoader::NotifyBoundElements()
         
         nsIPresShell *shell = doc->GetPrimaryShell();
         if (shell) {
-          nsIFrame* childFrame = shell->GetPrimaryFrameFor(content);
+          nsIFrame* childFrame = content->GetPrimaryFrame();
           if (!childFrame) {
             
             nsStyleContext* sc =

@@ -2321,11 +2321,6 @@ nsHTMLDocument::GetBodySize(PRInt32* aWidth,
 
   FlushPendingNotifications(Flush_Layout);
 
-  nsCOMPtr<nsIPresShell> shell = GetPrimaryShell();
-  
-  if (!shell)
-    return NS_OK;
-
   
   
   nsIContent* body = GetBodyContent();
@@ -2334,7 +2329,7 @@ nsHTMLDocument::GetBodySize(PRInt32* aWidth,
   }
 
   
-  nsIFrame* frame = shell->GetPrimaryFrameFor(body);
+  nsIFrame* frame = body->GetPrimaryFrame();
   if (!frame)
     return NS_OK;
   

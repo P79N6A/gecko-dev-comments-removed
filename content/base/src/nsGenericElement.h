@@ -710,27 +710,10 @@ public:
 
 
 
-  nsIFrame* GetPrimaryFrame();
-
-  
-
-
-
-
-
-
 
   nsIFrame* GetPrimaryFrame(mozFlushType aType);
-
   
-
-
-
-
-
-
-  static nsIFrame* GetPrimaryFrameFor(nsIContent* aContent,
-                                      nsIDocument* aDocument);
+  nsIFrame* GetPrimaryFrame() const { return nsIContent::GetPrimaryFrame(); }
 
   
 

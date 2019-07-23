@@ -521,14 +521,9 @@ nsHTMLCanvasElement::SetWriteOnly()
 NS_IMETHODIMP
 nsHTMLCanvasElement::InvalidateFrame()
 {
-  nsIDocument* doc = GetCurrentDoc();
-  if (!doc) {
-    return NS_OK;
-  }
-
   
   
-  nsIFrame *frame = GetPrimaryFrameFor(this, doc);
+  nsIFrame *frame = GetPrimaryFrame();
   if (frame) {
     nsRect r = frame->GetRect();
     r.x = r.y = 0;
@@ -541,14 +536,9 @@ nsHTMLCanvasElement::InvalidateFrame()
 NS_IMETHODIMP
 nsHTMLCanvasElement::InvalidateFrameSubrect(const gfxRect& damageRect)
 {
-  nsIDocument* doc = GetCurrentDoc();
-  if (!doc) {
-    return NS_OK;
-  }
-
   
   
-  nsIFrame *frame = GetPrimaryFrameFor(this, doc);
+  nsIFrame *frame = GetPrimaryFrame();
   if (frame) {
     
     

@@ -215,7 +215,7 @@ public:
     
     nsIPresShell *shell = doc->GetPrimaryShell();
     if (shell) {
-      nsIFrame* childFrame = shell->GetPrimaryFrameFor(mBoundElement);
+      nsIFrame* childFrame = mBoundElement->GetPrimaryFrame();
       if (!childFrame) {
         
         nsStyleContext* sc =

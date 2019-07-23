@@ -747,8 +747,8 @@ nsFrameLoader::SwapWithOtherLoader(nsFrameLoader* aOther,
   FirePageHideEvent(ourTreeItem, ourChromeEventHandler);
   FirePageHideEvent(otherTreeItem, otherChromeEventHandler);
   
-  nsIFrame* ourFrame = ourShell->GetPrimaryFrameFor(ourContent);
-  nsIFrame* otherFrame = otherShell->GetPrimaryFrameFor(otherContent);
+  nsIFrame* ourFrame = ourContent->GetPrimaryFrame();
+  nsIFrame* otherFrame = otherContent->GetPrimaryFrame();
   if (!ourFrame || !otherFrame) {
     mInSwap = aOther->mInSwap = PR_FALSE;
     FirePageShowEvent(ourTreeItem, ourChromeEventHandler, PR_TRUE);
@@ -826,8 +826,8 @@ nsFrameLoader::SwapWithOtherLoader(nsFrameLoader* aOther,
   }
 
   
-  if (ourFrame == ourShell->GetPrimaryFrameFor(ourContent) &&
-      otherFrame == otherShell->GetPrimaryFrameFor(otherContent)) {
+  if (ourFrame == ourContent->GetPrimaryFrame() &&
+      otherFrame == otherContent->GetPrimaryFrame()) {
     ourFrameFrame->EndSwapDocShells(otherFrame);
   }
 
