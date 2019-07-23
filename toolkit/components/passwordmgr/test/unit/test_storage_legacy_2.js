@@ -199,6 +199,14 @@ testdesc = "Verify output-05.txt";
 LoginTest.checkStorageData(storage, [], [dummyuser1, dummyuser2, dummyuser3]);
 
 
+do_check_eq(2, storage.countLogins("http://dummyhost2.mozilla.org", "", ""));
+
+do_check_eq(1, storage.countLogins("http://dummyhost.mozilla.org",  "", ""));
+
+
+do_check_eq(2, storage.countLogins("http://dummyhost2.mozilla.org", "http://cgi.site.com", ""));
+
+
 testnum++;
 
 

@@ -472,13 +472,26 @@ LoginManager.prototype = {
 
 
 
-
     findLogins : function (count, hostname, formSubmitURL, httpRealm) {
         this.log("Searching for logins matching host: " + hostname +
             ", formSubmitURL: " + formSubmitURL + ", httpRealm: " + httpRealm);
 
         return this._storage.findLogins(count, hostname, formSubmitURL,
                                         httpRealm);
+    },
+
+
+    
+
+
+
+
+
+    countLogins : function (hostname, formSubmitURL, httpRealm) {
+        this.log("Counting logins matching host: " + hostname +
+            ", formSubmitURL: " + formSubmitURL + ", httpRealm: " + httpRealm);
+
+        return this._storage.countLogins(hostname, formSubmitURL, httpRealm);
     },
 
 

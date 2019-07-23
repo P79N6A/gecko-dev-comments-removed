@@ -324,32 +324,12 @@ LoginManagerStorage_legacy.prototype = {
 
 
     findLogins : function (count, hostname, formSubmitURL, httpRealm) {
-        var hostLogins = this._logins[hostname];
-        if (hostLogins == null) {
-            count.value = 0;
-            return [];
-        }
+        var userCanceled;
 
-        var result = [], userCanceled;
-
-        for each (var login in hostLogins) {
-
-            
-            if (httpRealm != login.httpRealm)
-                continue;
-
-            
-            
-            
-            if (formSubmitURL != login.formSubmitURL &&
-                login.formSubmitURL != "")
-                continue;
-
-            result.push(login);
-        }
+        var logins = this._searchLogins(hostname, formSubmitURL, httpRealm);
 
         
-        [result, userCanceled] = this._decryptLogins(result);
+        [logins, userCanceled] = this._decryptLogins(logins);
 
         
         
@@ -357,8 +337,19 @@ LoginManagerStorage_legacy.prototype = {
         if (userCanceled)
             throw "User canceled Master Password entry";
 
-        count.value = result.length; 
-        return result;
+        count.value = logins.length; 
+        return logins;
+    },
+
+    
+    
+
+
+
+    countLogins : function (hostname, formSubmitURL, httpRealm) {
+        var logins = this._searchLogins(hostname, formSubmitURL, httpRealm);
+
+        return logins.length;
     },
 
 
@@ -367,6 +358,54 @@ LoginManagerStorage_legacy.prototype = {
     
 
 
+
+
+    
+
+
+
+    _searchLogins : function (hostname, formSubmitURL, httpRealm) {
+        var hostLogins = this._logins[hostname];
+        if (hostLogins == null)
+            return [];
+
+        var result = [], userCanceled;
+
+        for each (var login in hostLogins) {
+
+            
+            
+            
+            if (httpRealm == null) {
+                if (login.httpRealm != null)
+                    continue;
+            } else if (httpRealm != "") {
+                
+                
+                if (httpRealm != login.httpRealm)
+                    continue;
+            }
+
+            
+            
+            
+            if (formSubmitURL == null) {
+                if (login.formSubmitURL != null)
+                    continue;
+            } else if (formSubmitURL != "") {
+                
+                
+                
+                if (login.formSubmitURL != "" &&
+                    formSubmitURL != login.formSubmitURL)
+                    continue;
+            }
+
+            result.push(login);
+        }
+
+        return result;
+    },
 
 
     
@@ -547,7 +586,11 @@ LoginManagerStorage_legacy.prototype = {
 
                 
                 case STATE.ACTIONURL:
-                    entry.formSubmitURL = line.value;
+                    var formSubmitURL = line.value;
+                    if (!formSubmitURL && entry.httpRealm)
+                        entry.formSubmitURL = null;
+                    else
+                        entry.formSubmitURL = formSubmitURL;
                     processEntry = true;
                     parseState = STATE.USERFIELD;
                     break;
