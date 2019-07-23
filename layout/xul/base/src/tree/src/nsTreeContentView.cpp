@@ -809,6 +809,11 @@ nsTreeContentView::AttributeChanged(nsIDocument *aDocument,
   
   nsIAtom *tag = aContent->Tag();
 
+  if (mBoxObject && (aContent == mRoot || aContent == mBody)) {
+    mBoxObject->ClearStyleAndImageCaches();
+    mBoxObject->Invalidate();
+  }
+
   if (aContent->IsNodeOfType(nsINode::eXUL)) {
     if (tag != nsGkAtoms::treecol &&
         tag != nsGkAtoms::treeitem &&
