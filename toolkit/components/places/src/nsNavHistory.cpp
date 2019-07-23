@@ -2009,7 +2009,7 @@ PRBool nsNavHistory::IsURIStringVisited(const nsACString& aURIString)
 
   
   mozStorageStatementScoper scoper(mDBIsPageVisited);
-  nsresult rv = mDBIsPageVisited->BindUTF8StringParameter(0, aURIString);
+  nsresult rv = BindStatementURLCString(mDBIsPageVisited, 0, aURIString);
   NS_ENSURE_SUCCESS(rv, PR_FALSE);
 
   PRBool hasMore = PR_FALSE;
@@ -2531,7 +2531,7 @@ nsNavHistory::FixInvalidFrecenciesForExcludedPlaces()
     getter_AddRefs(dbUpdateStatement));
   NS_ENSURE_SUCCESS(rv, rv);
 
-  rv = dbUpdateStatement->BindUTF8StringParameter(0, NS_LITERAL_CSTRING(LMANNO_FEEDURI));
+  rv = BindStatementURLCString(dbUpdateStatement, 0, NS_LITERAL_CSTRING(LMANNO_FEEDURI));
   NS_ENSURE_SUCCESS(rv, rv);
 
   rv = dbUpdateStatement->Execute();
@@ -6332,8 +6332,7 @@ nsNavHistory::BindQueryClauseParameters(mozIStorageStatement* statement,
       nsCAutoString uriString;
       aQuery->Uri()->GetSpec(uriString);
       uriString.Append(char(0x7F)); 
-      rv = statement->BindUTF8StringParameter(index.For("uri_upper"),
-        StringHead(uriString, URI_LENGTH_MAX));
+      rv = BindStatementURLCString(statement, index.For("uri_upper"), uriString);
       NS_ENSURE_SUCCESS(rv, rv);
     }
   }
@@ -6569,7 +6568,8 @@ nsNavHistory::FilterResultSet(nsNavHistoryQueryResultNode* aQueryNode,
         
         NS_ConvertUTF8toUTF16 nodeTitle(aSet[nodeIndex]->mTitle);
         
-        NS_ConvertUTF8toUTF16 nodeURL(NS_UnescapeURL(aSet[nodeIndex]->mURI));
+        nsCAutoString cNodeURL(aSet[nodeIndex]->mURI);
+        NS_ConvertUTF8toUTF16 nodeURL(NS_UnescapeURL(cNodeURL));
 
         
         
@@ -7329,7 +7329,7 @@ nsNavHistory::RemoveDuplicateURIs()
     
     rv = updateStatement->BindInt64Parameter(0, id);
     NS_ENSURE_SUCCESS(rv, rv);
-    rv = updateStatement->BindUTF8StringParameter(1, url);
+    rv = BindStatementURLCString(updateStatement, 1, url);
     NS_ENSURE_SUCCESS(rv, rv);
     rv = updateStatement->Execute();
     NS_ENSURE_SUCCESS(rv, rv);
@@ -7337,7 +7337,7 @@ nsNavHistory::RemoveDuplicateURIs()
     
     rv = bookmarkStatement->BindInt64Parameter(0, id);
     NS_ENSURE_SUCCESS(rv, rv);
-    rv = bookmarkStatement->BindUTF8StringParameter(1, url);
+    rv = BindStatementURLCString(bookmarkStatement, 1, url);
     NS_ENSURE_SUCCESS(rv, rv);
     rv = bookmarkStatement->Execute();
     NS_ENSURE_SUCCESS(rv, rv);
@@ -7345,13 +7345,13 @@ nsNavHistory::RemoveDuplicateURIs()
     
     rv = annoStatement->BindInt64Parameter(0, id);
     NS_ENSURE_SUCCESS(rv, rv);
-    rv = annoStatement->BindUTF8StringParameter(1, url);
+    rv = BindStatementURLCString(annoStatement, 1, url);
     NS_ENSURE_SUCCESS(rv, rv);
     rv = annoStatement->Execute();
     NS_ENSURE_SUCCESS(rv, rv);
     
     
-    rv = deleteStatement->BindUTF8StringParameter(0, url);
+    rv = BindStatementURLCString(deleteStatement, 0, url);
     NS_ENSURE_SUCCESS(rv, rv);
     rv = deleteStatement->BindInt64Parameter(1, id);
     NS_ENSURE_SUCCESS(rv, rv);
@@ -7528,10 +7528,6 @@ void ParseSearchTermsFromQueries(const nsCOMArray<nsNavHistoryQuery>& aQueries,
 } 
 
 
-
-
-
-
 nsresult
 BindStatementURI(mozIStorageStatement* statement, PRInt32 index, nsIURI* aURI)
 {
@@ -7542,11 +7538,25 @@ BindStatementURI(mozIStorageStatement* statement, PRInt32 index, nsIURI* aURI)
   nsresult rv = aURI->GetSpec(utf8URISpec);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  rv = statement->BindUTF8StringParameter(index,
-      StringHead(utf8URISpec, URI_LENGTH_MAX));
+  rv = BindStatementURLCString(statement, index, utf8URISpec);
   NS_ENSURE_SUCCESS(rv, rv);
   return NS_OK;
 }
+
+
+nsresult
+BindStatementURLCString(mozIStorageStatement* statement,
+                        PRInt32 index,
+                        const nsACString& aURLString)
+{
+  NS_ASSERTION(statement, "Must have non-null statement");
+
+  nsresult rv = statement->BindUTF8StringParameter(
+    index, StringHead(aURLString, URI_LENGTH_MAX));
+  NS_ENSURE_SUCCESS(rv, rv);
+  return NS_OK;
+}
+
 
 nsresult
 nsNavHistory::UpdateFrecency(PRInt64 aPlaceId, PRBool aIsBookmarked)

@@ -704,9 +704,14 @@ protected:
 
 
 
-nsresult BindStatementURI(mozIStorageStatement* statement, PRInt32 index,
-                          nsIURI* aURI);
 
+nsresult BindStatementURI(mozIStorageStatement* statement,
+                          PRInt32 index,
+                          nsIURI* aURI);
+nsresult BindStatementURLCString(mozIStorageStatement* statement,
+                                 PRInt32 index,
+                                 const nsACString& aURLString);
+                        
 #define PLACES_URI_PREFIX "place:"
 
 
