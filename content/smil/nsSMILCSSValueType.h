@@ -44,7 +44,6 @@
 #include "nsCSSProperty.h"
 #include "nscore.h" 
 
-class nsPresContext;
 class nsIContent;
 class nsAString;
 

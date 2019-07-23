@@ -45,7 +45,6 @@
 #include "nsIDOMEventTarget.h"
 
 class nsMenuBarFrame;
-class nsPresContext;
 class nsIDOMKeyEvent;
 
 

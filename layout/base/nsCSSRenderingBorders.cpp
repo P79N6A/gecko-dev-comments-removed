@@ -38,7 +38,6 @@
 
 
 #include "nsStyleConsts.h"
-#include "nsPresContext.h"
 #include "nsIFrame.h"
 #include "nsPoint.h"
 #include "nsRect.h"

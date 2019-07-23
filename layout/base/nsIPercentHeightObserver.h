@@ -41,7 +41,6 @@
 #include "nsQueryFrame.h"
 
 struct nsHTMLReflowState;
-class  nsPresContext;
 
 
 

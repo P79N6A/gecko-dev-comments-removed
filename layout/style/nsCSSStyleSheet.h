@@ -57,6 +57,7 @@ class nsIURI;
 class nsMediaList;
 class nsMediaQueryResultCacheKey;
 class nsCSSStyleSheet;
+class nsPresContext;
 
 
 
