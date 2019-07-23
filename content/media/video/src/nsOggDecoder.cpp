@@ -258,7 +258,6 @@ public:
   
   enum State {
     DECODER_STATE_DECODING_METADATA,
-    DECODER_STATE_DECODING_FIRSTFRAME,
     DECODER_STATE_DECODING,
     DECODER_STATE_SEEKING,
     DECODER_STATE_BUFFERING,
@@ -532,6 +531,13 @@ private:
   
   
   
+  
+  
+  float mPlaybackStartTime;
+
+  
+  
+  
   float mVolume;
 
   
@@ -558,6 +564,11 @@ private:
   
   
   PRPackedBool mBufferExhausted;
+
+  
+  
+  
+  PRPackedBool mGotDurationFromHeader;
 };
 
 
@@ -650,7 +661,7 @@ nsOggDecodeStateMachine::nsOggDecodeStateMachine(nsOggDecoder* aDecoder) :
   mCallbackPeriod(1.0),
   mVideoTrack(-1),
   mFramerate(0.0),
-  mAspectRatio(0.0),
+  mAspectRatio(1.0),
   mAudioRate(0),
   mAudioChannels(0),
   mAudioTrack(-1),
@@ -661,12 +672,14 @@ nsOggDecodeStateMachine::nsOggDecodeStateMachine(nsOggDecoder* aDecoder) :
   mState(DECODER_STATE_DECODING_METADATA),
   mSeekTime(0.0),
   mCurrentFrameTime(0.0),
+  mPlaybackStartTime(0.0), 
   mVolume(1.0),
   mDuration(-1),
   mSeekable(PR_TRUE),
   mPositionChangeQueued(PR_FALSE),
   mDecodingCompleted(PR_FALSE),
-  mBufferExhausted(PR_FALSE)
+  mBufferExhausted(PR_FALSE),
+  mGotDurationFromHeader(PR_FALSE)
 {
 }
 
@@ -680,13 +693,12 @@ nsOggDecodeStateMachine::~nsOggDecodeStateMachine()
 
 OggPlayErrorCode nsOggDecodeStateMachine::DecodeFrame()
 {
-  NS_ASSERTION(mState > DECODER_STATE_DECODING_METADATA, "DecodeFrame() called during invalid state");
   return oggplay_step_decoding(mPlayer);
 }
 
 nsOggDecodeStateMachine::FrameData* nsOggDecodeStateMachine::NextFrame()
 {
-  NS_ASSERTION(mState > DECODER_STATE_DECODING_METADATA, "NextFrame() called during invalid state");
+  PR_ASSERT_CURRENT_THREAD_IN_MONITOR(mDecoder->GetMonitor());
   OggPlayCallbackInfo** info = oggplay_buffer_retrieve_next(mPlayer);
   if (!info)
     return nsnull;
@@ -719,40 +731,59 @@ nsOggDecodeStateMachine::FrameData* nsOggDecodeStateMachine::NextFrame()
   mLastFramePosition = frame->mEndStreamPosition;
 
   int num_tracks = oggplay_get_num_tracks(mPlayer);
-  float audioTime = 0.0;
-  float videoTime = 0.0;
+  float audioTime = -1.0;
+  float videoTime = -1.0;
 
   if (mVideoTrack != -1 &&
       num_tracks > mVideoTrack &&
       oggplay_callback_info_get_type(info[mVideoTrack]) == OGGPLAY_YUV_VIDEO) {
     OggPlayDataHeader** headers = oggplay_callback_info_get_headers(info[mVideoTrack]);
-    videoTime = ((float)oggplay_callback_info_get_presentation_time(headers[0]))/1000.0;
-    HandleVideoData(frame, mVideoTrack, headers[0]);
+    if (headers[0]) {
+      videoTime = ((float)oggplay_callback_info_get_presentation_time(headers[0]))/1000.0;
+      HandleVideoData(frame, mVideoTrack, headers[0]);
+    }
   }
+
+  PRBool needSilence = mAudioTrack != -1;
 
   if (mAudioTrack != -1 &&
       num_tracks > mAudioTrack &&
       oggplay_callback_info_get_type(info[mAudioTrack]) == OGGPLAY_FLOATS_AUDIO) {
     OggPlayDataHeader** headers = oggplay_callback_info_get_headers(info[mAudioTrack]);
-    audioTime = ((float)oggplay_callback_info_get_presentation_time(headers[0]))/1000.0;
-    int required = oggplay_callback_info_get_required(info[mAudioTrack]);
-    for (int j = 0; j < required; ++j) {
-      int size = oggplay_callback_info_get_record_size(headers[j]);
-      OggPlayAudioData* audio_data = oggplay_callback_info_get_audio_data(headers[j]);
-      HandleAudioData(frame, audio_data, size);
+    if (headers[0]) {
+      audioTime = ((float)oggplay_callback_info_get_presentation_time(headers[0]))/1000.0;
+      int required = oggplay_callback_info_get_required(info[mAudioTrack]);
+      for (int j = 0; j < required; ++j) {
+        int size = oggplay_callback_info_get_record_size(headers[j]);
+        OggPlayAudioData* audio_data = oggplay_callback_info_get_audio_data(headers[j]);
+        HandleAudioData(frame, audio_data, size);
+        needSilence = PR_FALSE;
+      }
+    }
+  }
+
+  if (needSilence) {
+    
+    size_t count = mAudioChannels * mAudioRate * mCallbackPeriod;
+    float* data = frame->mAudioData.AppendElements(count);
+    if (data) {
+      memset(data, 0, sizeof(float)*count);
     }
   }
 
   
   
-  if (mVideoTrack >= 0 )
+  if (videoTime >= 0) {
     frame->mState = oggplay_callback_info_get_stream_info(info[mVideoTrack]);
-  else if (mAudioTrack >= 0)
+    frame->mDecodedFrameTime = videoTime;
+  } else if (audioTime >= 0) {
     frame->mState = oggplay_callback_info_get_stream_info(info[mAudioTrack]);
-  else
+    frame->mDecodedFrameTime = audioTime;
+  } else {
+    NS_WARNING("Encountered frame with no audio or video data");
     frame->mState = OGGPLAY_STREAM_UNINITIALISED;
-
-  frame->mDecodedFrameTime = mVideoTrack == -1 ? audioTime : videoTime;
+    frame->mDecodedFrameTime = 0.0;
+  }
 
   oggplay_buffer_release(mPlayer, info);
   return frame;
@@ -1021,8 +1052,8 @@ void nsOggDecodeStateMachine::ResumePlayback()
 
 void nsOggDecodeStateMachine::UpdatePlaybackPosition(float aTime)
 {
-  
-  mCurrentFrameTime = aTime;
+  PR_ASSERT_CURRENT_THREAD_IN_MONITOR(mDecoder->GetMonitor());
+  mCurrentFrameTime = aTime - mPlaybackStartTime;
   if (!mPositionChangeQueued) {
     mPositionChangeQueued = PR_TRUE;
     nsCOMPtr<nsIRunnable> event =
@@ -1140,7 +1171,7 @@ void nsOggDecodeStateMachine::Seek(float aTime)
   
   NS_ASSERTION(mState != DECODER_STATE_SEEKING,
                "We shouldn't already be seeking");
-  mSeekTime = aTime;
+  mSeekTime = aTime + mPlaybackStartTime;
   LOG(PR_LOG_DEBUG, ("Changed state to SEEKING (to %f)", aTime));
   mState = DECODER_STATE_SEEKING;
 }
@@ -1159,24 +1190,17 @@ nsresult nsOggDecodeStateMachine::Run()
       return NS_OK;
 
     case DECODER_STATE_DECODING_METADATA:
-      mon.Exit();
-      LoadOggHeaders(reader);
-      mon.Enter();
-      
-      if (mState == DECODER_STATE_DECODING_METADATA) {
-        LOG(PR_LOG_DEBUG, ("Changed state from DECODING_METADATA to DECODING_FIRSTFRAME"));
-        mState = DECODER_STATE_DECODING_FIRSTFRAME;
-      }
-      break;
-
-    case DECODER_STATE_DECODING_FIRSTFRAME:
       {
-        OggPlayErrorCode r;
-        do {
+        mon.Exit();
+        LoadOggHeaders(reader);
+        mon.Enter();
+      
+        OggPlayErrorCode r = E_OGGPLAY_TIMEOUT;
+        while (mState != DECODER_STATE_SHUTDOWN && r == E_OGGPLAY_TIMEOUT) {
           mon.Exit();
           r = DecodeFrame();
           mon.Enter();
-        } while (mState != DECODER_STATE_SHUTDOWN && r == E_OGGPLAY_TIMEOUT);
+        }
 
         if (mState == DECODER_STATE_SHUTDOWN)
           continue;
@@ -1186,16 +1210,35 @@ nsresult nsOggDecodeStateMachine::Run()
         if (frame) {
           mDecodedFrames.Push(frame);
           mDecoder->mPlaybackPosition = frame->mEndStreamPosition;
+          mPlaybackStartTime = frame->mDecodedFrameTime;
           UpdatePlaybackPosition(frame->mDecodedFrameTime);
+          
+          
+          if (mGotDurationFromHeader) {
+            
+            
+            reader->SetLastFrameTime((PRInt64)(mPlaybackStartTime * 1000) + mDuration);
+          }
+          else if (mDuration != -1) {
+            
+            
+            reader->SetLastFrameTime(mDuration);
+            
+            
+            
+            mDuration -= (PRInt64)(mPlaybackStartTime * 1000);
+          }
           PlayVideo(frame);
         }
 
-        nsCOMPtr<nsIRunnable> event =
-          NS_NEW_RUNNABLE_METHOD(nsOggDecoder, mDecoder, FirstFrameLoaded);
-        NS_DispatchToMainThread(event, NS_DISPATCH_NORMAL);
+        
+        
+        nsCOMPtr<nsIRunnable> metadataLoadedEvent = 
+          NS_NEW_RUNNABLE_METHOD(nsOggDecoder, mDecoder, MetadataLoaded); 
+        NS_DispatchToMainThread(metadataLoadedEvent, NS_DISPATCH_NORMAL);
 
-        if (mState == DECODER_STATE_DECODING_FIRSTFRAME) {
-          LOG(PR_LOG_DEBUG, ("Changed state from DECODING_FIRSTFRAME to DECODING"));
+        if (mState == DECODER_STATE_DECODING_METADATA) {
+          LOG(PR_LOG_DEBUG, ("Changed state from DECODING_METADATA to DECODING"));
           mState = DECODER_STATE_DECODING;
         }
       }
@@ -1221,7 +1264,7 @@ nsresult nsOggDecodeStateMachine::Run()
 
         
         QueueDecodedFrames();
-        while (mDecodedFrames.IsEmpty()) {
+        while (mDecodedFrames.IsEmpty() && !mDecodingCompleted) {
           mon.Wait(PR_MillisecondsToInterval(PRInt64(mCallbackPeriod*500)));
           if (mState != DECODER_STATE_DECODING)
             break;
@@ -1321,6 +1364,8 @@ nsresult nsOggDecodeStateMachine::Run()
           mDecodingCompleted = PR_FALSE;
           mStepDecodeThread = nsnull;
         }
+
+        StopPlayback();
 
         
         while (!mDecodedFrames.IsEmpty()) {
@@ -1502,8 +1547,12 @@ void nsOggDecodeStateMachine::LoadOggHeaders(nsChannelReader* aReader)
         LOG(PR_LOG_DEBUG, ("Frame rate: %f", mFramerate));
 
         int aspectd, aspectn;
-        oggplay_get_video_aspect_ratio(mPlayer, i, &aspectd, &aspectn);
-        mAspectRatio = aspectd == 0 ? 0.0 : float(aspectn)/float(aspectd);
+        
+        
+        OggPlayErrorCode r =
+          oggplay_get_video_aspect_ratio(mPlayer, i, &aspectd, &aspectn);
+        mAspectRatio = r == E_OGGPLAY_OK && aspectd > 0 ?
+            float(aspectn)/float(aspectd) : 1.0;
 
         int y_width;
         int y_height;
@@ -1538,6 +1587,7 @@ void nsOggDecodeStateMachine::LoadOggHeaders(nsChannelReader* aReader)
     
     {
       nsAutoMonitor mon(mDecoder->GetMonitor());
+      mGotDurationFromHeader = (mDuration != -1);
       if (mState != DECODER_STATE_SHUTDOWN &&
           aReader->Stream()->GetLength() >= 0 &&
           mSeekable &&
@@ -1557,12 +1607,6 @@ void nsOggDecodeStateMachine::LoadOggHeaders(nsChannelReader* aReader)
       if (mState == DECODER_STATE_SHUTDOWN)
         return;
     }
-
-    
-    nsCOMPtr<nsIRunnable> metadataLoadedEvent = 
-      NS_NEW_RUNNABLE_METHOD(nsOggDecoder, mDecoder, MetadataLoaded); 
-    
-    NS_DispatchToMainThread(metadataLoadedEvent, NS_DISPATCH_NORMAL);
   }
 }
 
@@ -1883,21 +1927,9 @@ void nsOggDecoder::MetadataLoaded()
     
     mElement->DispatchAsyncProgressEvent(NS_LITERAL_STRING("progress"));
   }
-}
-
-void nsOggDecoder::FirstFrameLoaded()
-{
-  if (mShuttingDown)
-    return;
  
   
   
-  PRBool notifyElement = PR_TRUE;
-  {
-    nsAutoMonitor mon(mMonitor);
-    notifyElement = mNextState != PLAY_STATE_SEEKING;
-  }  
-
   PRBool resourceIsLoaded = !mResourceLoaded && mReader &&
     mReader->Stream()->IsDataCachedToEndOfStream(mDecoderPosition);
   if (mElement && notifyElement) {
@@ -2258,10 +2290,6 @@ void nsOggDecoder::SetDuration(PRInt64 aDuration)
   if (mDecodeStateMachine) {
     nsAutoMonitor mon(mMonitor);
     mDecodeStateMachine->SetDuration(mDuration);
-
-    if (mReader) {
-      mReader->SetDuration(mDuration);
-    }
     UpdatePlaybackRate();
   }
 }
