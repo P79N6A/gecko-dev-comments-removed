@@ -177,6 +177,7 @@ static NS_DEFINE_CID(kXTFServiceCID, NS_XTFSERVICE_CID);
 #include "nsIConsoleService.h"
 
 #include "mozAutoDocUpdate.h"
+#include "jsinterp.h"
 
 const char kLoadAsData[] = "loadAsData";
 
@@ -4990,4 +4991,56 @@ nsContentTypeParser::GetParameter(const char* aParameterName, nsAString& aResult
   return mService->GetParameter(mString, aParameterName,
                                 EmptyCString(), PR_FALSE, nsnull,
                                 aResult);
+}
+
+
+
+
+
+PRBool
+nsContentUtils::CanAccessNativeAnon()
+{
+  JSContext* cx = nsnull;
+  sThreadJSContextStack->Peek(&cx);
+  if (!cx) {
+    return PR_TRUE;
+  }
+  JSStackFrame* fp;
+  nsIPrincipal* principal =
+    sSecurityManager->GetCxSubjectPrincipalAndFrame(cx, &fp);
+  NS_ENSURE_TRUE(principal, PR_FALSE);
+
+  if (!fp) {
+    if (!JS_FrameIterator(cx, &fp)) {
+      
+      
+      return PR_TRUE;
+    }
+
+    
+    
+    fp = nsnull;
+  }
+
+  void *annotation = fp ? JS_GetFrameAnnotation(cx, fp) : nsnull;
+  PRBool privileged;
+  if (NS_SUCCEEDED(principal->IsCapabilityEnabled("UniversalXPConnect",
+                                                  annotation,
+                                                  &privileged)) &&
+      privileged) {
+    
+    return PR_TRUE;
+  }
+
+  
+  
+  static const char prefix[] = "chrome://global/";
+  const char *filename;
+  if (fp && fp->script &&
+      (filename = fp->script->filename) &&
+      !strncmp(filename, prefix, NS_ARRAY_LENGTH(prefix) - 1)) {
+    return PR_TRUE;
+  }
+
+  return PR_FALSE;
 }
