@@ -224,6 +224,11 @@ namespace mozilla {
 nsresult
 ShutdownXPCOM(nsIServiceManager* servMgr);
 
+
+
+
+void LogTerm();
+
 } 
 
 

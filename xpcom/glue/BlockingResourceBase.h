@@ -55,6 +55,7 @@
 #include "nsStringGlue.h"
 
 #include "mozilla/DeadlockDetector.h"
+#include "nsXPCOM.h"
 #endif
 
 
@@ -355,7 +356,7 @@ private:
 
 #  ifdef MOZILLA_INTERNAL_API
     
-    friend nsresult ShutdownXPCOM(nsIServiceManager*);
+    friend void LogTerm();
 #  endif  
 
 #else  

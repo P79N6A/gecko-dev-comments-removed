@@ -80,10 +80,6 @@
 #include "nsThreadManager.h"
 #include "nsThreadPool.h"
 
-#ifdef DEBUG
-#include "BlockingResourceBase.h"
-#endif 
-
 #include "nsIProxyObjectManager.h"
 #include "nsProxyEventPrivate.h"  
 
@@ -152,7 +148,7 @@ NS_DECL_CLASSINFO(nsStringInputStream)
 #include "base/command_line.h"
 #include "base/message_loop.h"
 
-#include "mozilla/ipc/GeckoThread.h"
+#include "mozilla/ipc/BrowserProcessSubThread.h"
 
 using base::AtExitManager;
 using mozilla::ipc::BrowserProcessSubThread;
@@ -502,7 +498,7 @@ NS_InitXPCOM3(nsIServiceManager* *result,
     }
 
     if (!MessageLoop::current()) {
-        sMessageLoop = new MessageLoopForUI();
+        sMessageLoop = new MessageLoopForUI(MessageLoop::TYPE_MOZILLA_UI);
         NS_ENSURE_STATE(sMessageLoop);
     }
 
@@ -890,22 +886,6 @@ ShutdownXPCOM(nsIServiceManager* servMgr)
 
     TimeStamp::Shutdown();
 
-#ifdef DEBUG
-    
-
-
-
-
-
-
-
-
-
-
-
-    BlockingResourceBase::Shutdown();
-#endif
-    
     NS_LogTerm();
 
 #ifdef MOZ_IPC

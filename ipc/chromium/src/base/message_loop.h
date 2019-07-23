@@ -196,12 +196,21 @@ public:
   
   
   
+  
+  
+  
+  
+  
+  
+  
+  
   enum Type {
     TYPE_DEFAULT,
     TYPE_UI,
     TYPE_IO
 #ifdef CHROMIUM_MOZILLA_BUILD
     , TYPE_MOZILLA_CHILD
+    , TYPE_MOZILLA_UI
 #endif
   };
 
@@ -421,15 +430,17 @@ public:
 
 class MessageLoopForUI : public MessageLoop {
  public:
-  MessageLoopForUI() : MessageLoop(TYPE_UI) {
+  MessageLoopForUI(Type type=TYPE_UI) : MessageLoop(type) {
   }
 
+#ifndef CHROMIUM_MOZILLA_BUILD
   
   static MessageLoopForUI* current() {
     MessageLoop* loop = MessageLoop::current();
     DCHECK_EQ(MessageLoop::TYPE_UI, loop->type());
     return static_cast<MessageLoopForUI*>(loop);
   }
+#endif
 
 #if defined(OS_WIN)
   typedef base::MessagePumpWin::Dispatcher Dispatcher;

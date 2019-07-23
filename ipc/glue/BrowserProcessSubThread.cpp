@@ -34,46 +34,18 @@
 
 
 
-#include "mozilla/ipc/GeckoThread.h"
 
+
+
+#include "mozilla/ipc/BrowserProcessSubThread.h"
 #include "chrome/common/notification_service.h"
-
-#include "nsXPCOM.h"
 
 #if defined(OS_WIN)
 #include <objbase.h>
 #endif
 
-using mozilla::ipc::GeckoThread;
-using mozilla::ipc::BrowserProcessSubThread;
-
-void
-GeckoThread::OnControlMessageReceived(const IPC::Message& aMessage) {
-  
-
-
-
-}
-
-void
-GeckoThread::Init()
-{
-  ChildThread::Init();
-
-  
-  
-  message_loop()->set_exception_restoration(true);
-
-  NS_LogInit();
-  mXREEmbed.Start();
-}
-
-void
-GeckoThread::CleanUp()
-{
-  mXREEmbed.Stop();
-  NS_LogTerm();
-}
+namespace mozilla {
+namespace ipc {
 
 
 
@@ -102,22 +74,22 @@ BrowserProcessSubThread* BrowserProcessSubThread::sBrowserThreads[ID_COUNT] = {
 };
 
 BrowserProcessSubThread::BrowserProcessSubThread(ID aId) :
-    base::Thread(kBrowserThreadNames[aId]),
-    mIdentifier(aId),
-    mNotificationService(NULL)
+  base::Thread(kBrowserThreadNames[aId]),
+  mIdentifier(aId),
+  mNotificationService(NULL)
 {
-    AutoLock lock(sLock);
-    DCHECK(aId >= 0 && aId < ID_COUNT);
-    DCHECK(sBrowserThreads[aId] == NULL);
-    sBrowserThreads[aId] = this;
+  AutoLock lock(sLock);
+  DCHECK(aId >= 0 && aId < ID_COUNT);
+  DCHECK(sBrowserThreads[aId] == NULL);
+  sBrowserThreads[aId] = this;
 }
 
 BrowserProcessSubThread::~BrowserProcessSubThread()
 {
-    Stop();
-    {AutoLock lock(sLock);
-        sBrowserThreads[mIdentifier] = NULL;
-    }
+  Stop();
+  {AutoLock lock(sLock);
+    sBrowserThreads[mIdentifier] = NULL;
+  }
 
 }
 
@@ -146,7 +118,8 @@ BrowserProcessSubThread::CleanUp()
 
 
 MessageLoop*
-BrowserProcessSubThread::GetMessageLoop(ID aId) {
+BrowserProcessSubThread::GetMessageLoop(ID aId)
+{
   AutoLock lock(sLock);
   DCHECK(aId >= 0 && aId < ID_COUNT);
 
@@ -155,3 +128,6 @@ BrowserProcessSubThread::GetMessageLoop(ID aId) {
 
   return NULL;
 }
+
+} 
+} 
