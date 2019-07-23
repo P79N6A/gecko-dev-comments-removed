@@ -94,13 +94,20 @@ nsXBLProtoImplField::AppendFieldText(const nsAString& aText)
 nsresult
 nsXBLProtoImplField::InstallField(nsIScriptContext* aContext,
                                   JSObject* aBoundNode,
-                                  nsIURI* aBindingDocURI) const
+                                  nsIURI* aBindingDocURI,
+                                  PRBool* aDidInstall) const
 {
   NS_PRECONDITION(aBoundNode,
                   "uh-oh, bound node should NOT be null or bad things will "
                   "happen");
 
-  jsval result = JSVAL_VOID;
+  *aDidInstall = PR_FALSE;
+
+  if (mFieldTextLength == 0) {
+    return NS_OK;
+  }
+
+  jsval result = JSVAL_NULL;
   
   
   
@@ -109,27 +116,25 @@ nsXBLProtoImplField::InstallField(nsIScriptContext* aContext,
   if (NS_FAILED(rv))
     return rv;
 
-  if (mFieldTextLength != 0) {
-    nsCAutoString uriSpec;
-    aBindingDocURI->GetSpec(uriSpec);
+  nsCAutoString uriSpec;
+  aBindingDocURI->GetSpec(uriSpec);
   
-    
-    
-    
-    PRBool undefined;
-    nsCOMPtr<nsIScriptContext> context = aContext;
-    rv = context->EvaluateStringWithValue(nsDependentString(mFieldText,
-                                                            mFieldTextLength), 
-                                          aBoundNode,
-                                          nsnull, uriSpec.get(),
-                                          mLineNumber, nsnull,
-                                          (void*) &result, &undefined);
-    if (NS_FAILED(rv))
-      return rv;
+  
+  
+  
+  PRBool undefined;
+  nsCOMPtr<nsIScriptContext> context = aContext;
+  rv = context->EvaluateStringWithValue(nsDependentString(mFieldText,
+                                                          mFieldTextLength), 
+                                        aBoundNode,
+                                        nsnull, uriSpec.get(),
+                                        mLineNumber, nsnull,
+                                        (void*) &result, &undefined);
+  if (NS_FAILED(rv))
+    return rv;
 
-    if (undefined) {
-      result = JSVAL_VOID;
-    }
+  if (undefined) {
+    result = JSVAL_VOID;
   }
 
   
@@ -142,6 +147,7 @@ nsXBLProtoImplField::InstallField(nsIScriptContext* aContext,
                              mJSAttributes)) {
     return NS_ERROR_OUT_OF_MEMORY;
   }
-  
+
+  *aDidInstall = PR_TRUE;
   return NS_OK;
 }
