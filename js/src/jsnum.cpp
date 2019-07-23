@@ -645,18 +645,20 @@ static JSConstDoubleSpec number_constants[] = {
 
 jsdouble js_NaN;
 
-#if (defined XP_WIN || defined XP_OS2) &&                                     \
-    !defined WINCE &&                                                         \
-    !defined __MWERKS__ &&                                                    \
-    (defined _M_IX86 ||                                                       \
-     (defined __GNUC__ && !defined __MINGW32__))
+
+#if (defined __GNUC__ && defined __i486__)
 
 
 
 
 
-
-#define FIX_FPU() _control87(_MCW_EM | _PC_53, _MCW_EM | _MCW_PC)
+inline void FIX_FPU() {
+    short control;
+    asm("fstcw %0" : "=m" (control) : );
+    control &= ~0x300; 
+    control |= 0x2f3;  
+    asm("fldcw %0" : : "m" (control) );
+}
 
 #else
 
