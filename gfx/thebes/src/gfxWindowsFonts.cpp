@@ -227,6 +227,8 @@ FontFamily::FamilyAddStylesProc(const ENUMLOGFONTEXW *lpelfe,
             fe->mForceGDI = PR_TRUE;
 
             
+        } else {
+            
         }
 
         SelectObject(hdc, oldFont);
@@ -240,6 +242,8 @@ FontFamily::FamilyAddStylesProc(const ENUMLOGFONTEXW *lpelfe,
 void
 FontFamily::FindStyleVariations()
 {
+    if (mHasStyles)
+        return;
     mHasStyles = PR_TRUE;
 
     HDC hdc = GetDC(nsnull);
@@ -1420,7 +1424,7 @@ public:
                 PRInt32 advance = mAdvances[k]*appUnitsPerDevUnit;
                 WORD glyph = mGlyphs[k];
                 NS_ASSERTION(!gfxFontGroup::IsInvalidChar(mRangeString[offset]),
-                		     "invalid character detected");
+                             "invalid character detected");
                 if (missing) {
                     if (NS_IS_HIGH_SURROGATE(mRangeString[offset]) &&
                         offset + 1 < mRangeLength &&

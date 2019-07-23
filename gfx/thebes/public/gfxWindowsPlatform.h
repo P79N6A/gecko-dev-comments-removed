@@ -39,6 +39,7 @@
 #ifndef GFX_WINDOWS_PLATFORM_H
 #define GFX_WINDOWS_PLATFORM_H
 
+#include "gfxFontUtils.h"
 #include "gfxWindowsSurface.h"
 #include "gfxWindowsFonts.h"
 #include "gfxPlatform.h"
@@ -48,7 +49,7 @@
 
 #include <windows.h>
 
-class THEBES_API gfxWindowsPlatform : public gfxPlatform {
+class THEBES_API gfxWindowsPlatform : public gfxPlatform, private gfxFontInfoLoader {
 public:
     gfxWindowsPlatform();
     virtual ~gfxWindowsPlatform();
@@ -64,6 +65,8 @@ public:
                          nsStringArray& aListOfFonts);
 
     nsresult UpdateFontList();
+
+    void GetFontFamilyList(nsTArray<nsRefPtr<FontFamily> >& aFamilyArray);
 
     nsresult ResolveFontName(const nsAString& aFontName,
                              FontResolverCallback aCallback,
@@ -128,6 +131,11 @@ private:
 
     static int PR_CALLBACK PrefChangedCallback(const char*, void*);
 
+    
+    virtual void InitLoader();
+    virtual PRBool RunLoader();
+    virtual void FinishLoader();
+
     FontTable mFonts;
     FontTable mFontAliases;
     FontTable mFontSubstitutes;
@@ -137,6 +145,12 @@ private:
     gfxSparseBitSet mCodepointsWithNoFonts;
     
     nsDataHashtable<nsCStringHashKey, nsTArray<nsRefPtr<FontEntry> > > mPrefFonts;
+
+    
+    nsTArray<nsRefPtr<FontFamily> > mFontFamilies;
+    PRUint32 mStartIndex;
+    PRUint32 mIncrement;
+    PRUint32 mNumFamilies;
 };
 
 #endif 

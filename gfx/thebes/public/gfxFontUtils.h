@@ -47,6 +47,11 @@
 
 #include "nsDataHashtable.h"
 
+#include "nsITimer.h"
+#include "nsCOMPtr.h"
+#include "nsIRunnable.h"
+#include "nsThreadUtils.h"
+
 
 #ifdef __MINGW32__
 #undef min
@@ -264,9 +269,11 @@ public:
 
     PRUint32 GetSize() {
         PRUint32 size = 0;
-        for (PRUint32 i = 0; i < mBlocks.Length(); i++)
+        for (PRUint32 i = 0; i < mBlocks.Length(); i++) {
             if (mBlocks[i])
                 size += sizeof(Block);
+            size += sizeof(nsAutoPtr<Block>);
+        }
         return size;
     }
 
@@ -331,6 +338,112 @@ public:
     
     static void GetPrefsFontList(const char *aPrefName, nsTArray<nsAutoString>& aFontList);
 
+};
+
+
+
+class gfxFontInfoLoader {
+public:
+
+    
+    
+    
+    
+    
+    
+    
+    
+    typedef enum {
+        stateInitial,
+        stateTimerOnDelay,
+        stateTimerOnInterval,
+        stateTimerOff
+    } TimerState;
+
+    gfxFontInfoLoader() :
+        mInterval(0), mState(stateInitial)
+    {
+    }
+
+    virtual ~gfxFontInfoLoader() {}
+
+    
+    void StartLoader(PRUint32 aDelay, PRUint32 aInterval) {
+        mInterval = aInterval;
+
+        
+        if (mState != stateInitial && mState != stateTimerOff)
+            CancelLoader();
+
+        
+        if (!mTimer) {
+            mTimer = do_CreateInstance("@mozilla.org/timer;1");
+            if (!mTimer) {
+                NS_WARNING("Failure to create font info loader timer");
+                return;
+            }
+        }
+
+        
+        PRUint32 timerInterval;
+
+        if (aDelay) {
+            mState = stateTimerOnDelay;
+            timerInterval = aDelay;
+        } else {
+            mState = stateTimerOnInterval;
+            timerInterval = mInterval;
+        }
+
+        InitLoader();
+
+        
+        mTimer->InitWithFuncCallback(LoaderTimerCallback, this, aDelay, nsITimer::TYPE_REPEATING_SLACK);
+    }
+
+    
+    void CancelLoader() {
+        if (mState == stateInitial)
+            return;
+        mState = stateTimerOff;
+        if (mTimer) {
+            mTimer->Cancel();
+        }
+        FinishLoader();
+    }
+
+protected:
+
+    
+    virtual void InitLoader() = 0;
+
+    
+    virtual PRBool RunLoader() = 0;
+
+    
+    virtual void FinishLoader() = 0;
+
+    static void LoaderTimerCallback(nsITimer *aTimer, void *aThis) {
+        gfxFontInfoLoader *loader = (gfxFontInfoLoader*) aThis;
+        loader->LoaderTimerFire();
+    }
+
+    
+    void LoaderTimerFire() {
+        if (mState == stateTimerOnDelay) {
+            mState = stateTimerOnInterval;
+            mTimer->SetDelay(mInterval);
+        }
+
+        PRBool done = RunLoader();
+        if (done) {
+            CancelLoader();
+        }
+    }
+
+    nsCOMPtr<nsITimer> mTimer;
+    PRUint32 mInterval;
+    TimerState mState;
 };
 
 #endif 
