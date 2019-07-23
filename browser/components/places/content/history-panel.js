@@ -64,14 +64,7 @@ function HistorySidebarInit()
 
   initContextMenu();
   
-  
-  
-  var optionsRef = {};
-  var queriesRef = {};
-  PlacesUtils.history.queryStringToQueries(ORGANIZER_ROOT_HISTORY_UNSORTED, queriesRef, {}, optionsRef);
-  SetSortingAndGrouping(optionsRef.value);
-  var place = PlacesUtils.history.queriesToQueryString(queriesRef.value, 1, optionsRef.value);
-  gHistoryTree.place = place;
+  initPlace();
 
   gSearchBox.focus();
 }
@@ -148,6 +141,18 @@ function SetSortingAndGrouping(aOptions)
   aOptions.sortingMode = sortingMode;
 }
 
+function initPlace()
+{
+  
+  
+  
+  var optionsRef = {};
+  var queriesRef = {};
+  PlacesUtils.history.queryStringToQueries(ORGANIZER_ROOT_HISTORY_UNSORTED, queriesRef, {}, optionsRef);
+  SetSortingAndGrouping(optionsRef.value);
+  gHistoryTree.load(queriesRef.value, optionsRef.value);
+}
+
 function searchHistory(aInput)
 {
   if (aInput) {
@@ -157,15 +162,13 @@ function searchHistory(aInput)
       options.setGroupingMode([], 0);
       gSearching = true;
     }
+    
+    
+    gHistoryTree.applyFilter(aInput, false , 
+                             null , null);
   }
   else {
-    
-    var options = gHistoryTree.getResult().root.queryOptions;
-    SetSortingAndGrouping(options);
+    initPlace();
     gSearching = false;
   }
-
-  gHistoryTree.applyFilter(aInput, false , 
-                           null , null); 
 }
-
