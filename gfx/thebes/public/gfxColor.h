@@ -73,8 +73,13 @@
 
 
 
-#define GFX_0XFF_PPIXEL_FROM_BPTR(pbptr) \
-   (GFX_BYTESWAP32(*((PRUint32 *)(pbptr))) >> 8) | (0xFF << 24)
+#ifndef IS_BIG_ENDIAN
+#  define GFX_0XFF_PPIXEL_FROM_BPTR(pbptr) \
+     (GFX_BYTESWAP32(*((PRUint32 *)(pbptr))) >> 8) | (0xFF << 24)
+#else
+#  define GFX_0XFF_PPIXEL_FROM_BPTR(pbptr) \
+     (*((PRUint32 *)(pbptr)) >> 8) | (0xFF << 24)
+#endif 
 
 
 
