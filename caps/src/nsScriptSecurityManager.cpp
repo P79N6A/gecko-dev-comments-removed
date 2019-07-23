@@ -1752,26 +1752,7 @@ nsScriptSecurityManager::CanExecuteScripts(JSContext* cx,
         }
     }
 
-    
     *result = mIsJavaScriptEnabled;
-    if (mIsJavaScriptEnabled != mIsMailJavaScriptEnabled && globalObjTreeItem) 
-    {
-        nsCOMPtr<nsIDocShellTreeItem> rootItem;
-        globalObjTreeItem->GetRootTreeItem(getter_AddRefs(rootItem));
-        docshell = do_QueryInterface(rootItem);
-        if (docshell) 
-        {
-            
-            PRUint32 appType;
-            rv = docshell->GetAppType(&appType);
-            if (NS_FAILED(rv)) return rv;
-            if (appType == nsIDocShell::APP_TYPE_MAIL) 
-            {
-                *result = mIsMailJavaScriptEnabled;
-            }
-        }
-    }
-
     if (!*result)
         return NS_OK; 
 
@@ -3214,7 +3195,6 @@ nsScriptSecurityManager::nsScriptSecurityManager(void)
       mDefaultPolicy(nsnull),
       mCapabilities(nsnull),
       mIsJavaScriptEnabled(PR_FALSE),
-      mIsMailJavaScriptEnabled(PR_FALSE),
       mIsWritingPrefs(PR_FALSE),
       mPolicyPrefsChanged(PR_TRUE)
 #ifdef XPC_IDISPATCH_SUPPORT
@@ -3814,8 +3794,6 @@ nsScriptSecurityManager::InitPrincipals(PRUint32 aPrefCount, const char** aPrefN
 
 const char nsScriptSecurityManager::sJSEnabledPrefName[] =
     "javascript.enabled";
-const char nsScriptSecurityManager::sJSMailEnabledPrefName[] =
-    "javascript.allow.mailnews";
 const char nsScriptSecurityManager::sFileOriginPolicyPrefName[] =
     "security.fileuri.strict_origin_policy";
 #ifdef XPC_IDISPATCH_SUPPORT
@@ -3828,9 +3806,6 @@ nsScriptSecurityManager::ScriptSecurityPrefChanged()
 {
     
     mIsJavaScriptEnabled = PR_TRUE;
-
-    
-    mIsMailJavaScriptEnabled = PR_FALSE;
 
     sStrictFileOriginPolicy = PR_TRUE;
 
@@ -3850,13 +3825,6 @@ nsScriptSecurityManager::ScriptSecurityPrefChanged()
     rv = mSecurityPref->SecurityGetBoolPref(sJSEnabledPrefName, &temp);
     if (NS_SUCCEEDED(rv))
         mIsJavaScriptEnabled = temp;
-
-    
-    
-    
-    
-    
-    
 
     rv = mSecurityPref->SecurityGetBoolPref(sFileOriginPolicyPrefName, &temp);
     if (NS_SUCCEEDED(rv))
@@ -3886,7 +3854,6 @@ nsScriptSecurityManager::InitPrefs()
     ScriptSecurityPrefChanged();
     
     prefBranchInternal->AddObserver(sJSEnabledPrefName, this, PR_FALSE);
-    prefBranchInternal->AddObserver(sJSMailEnabledPrefName, this, PR_FALSE);
     prefBranchInternal->AddObserver(sFileOriginPolicyPrefName, this, PR_FALSE);
 #ifdef XPC_IDISPATCH_SUPPORT
     prefBranchInternal->AddObserver(sXPCDefaultGrantAllName, this, PR_FALSE);

@@ -264,6 +264,18 @@ NS_CheckContentProcessPolicy(PRUint32          contentType,
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
 inline nsIDocShell*
 NS_CP_GetDocShellFromContext(nsISupports *aContext)
 {
