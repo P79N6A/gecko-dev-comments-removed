@@ -5641,7 +5641,8 @@ nsRuleNode::Sweep()
 
  PRBool
 nsRuleNode::HasAuthorSpecifiedRules(nsStyleContext* aStyleContext,
-                                    PRUint32 ruleTypeMask)
+                                    PRUint32 ruleTypeMask,
+                                    PRBool aAuthorColorsAllowed)
 {
   nsRuleDataColor colorData;
   nsRuleDataMargin marginData;
@@ -5771,11 +5772,23 @@ nsRuleNode::HasAuthorSpecifiedRules(nsStyleContext* aStyleContext,
         } else {
           
           
-          for (PRUint32 i = 0; i < nValues; ++i)
+          for (PRUint32 i = 0; i < nValues; ++i) {
             if (values[i]->GetUnit() != eCSSUnit_Null &&
                 values[i]->GetUnit() != eCSSUnit_Dummy && 
-                values[i]->GetUnit() != eCSSUnit_DummyInherit)
-              return PR_TRUE;
+                values[i]->GetUnit() != eCSSUnit_DummyInherit) {
+              
+              
+              
+              
+              if (aAuthorColorsAllowed ||
+                  (values[i] == &colorData.mBackColor &&
+                   !values[i]->IsNonTransparentColor())) {
+                return PR_TRUE;
+              }
+
+              values[i]->SetDummyValue();
+            }
+          }
         }
       }
     }

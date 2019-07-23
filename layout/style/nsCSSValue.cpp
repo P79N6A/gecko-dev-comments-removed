@@ -395,6 +395,19 @@ void nsCSSValue::StartImageLoad(nsIDocument* aDocument) const
   }
 }
 
+PRBool nsCSSValue::IsNonTransparentColor() const
+{
+  
+  
+  
+  nsDependentString buf;
+  return
+    (mUnit == eCSSUnit_Color && NS_GET_A(GetColorValue()) > 0) ||
+    (mUnit == eCSSUnit_Ident &&
+     !nsGkAtoms::transparent->Equals(GetStringValue(buf))) ||
+    (mUnit == eCSSUnit_EnumColor);
+}
+
 
 nsStringBuffer*
 nsCSSValue::BufferFromString(const nsString& aValue)
