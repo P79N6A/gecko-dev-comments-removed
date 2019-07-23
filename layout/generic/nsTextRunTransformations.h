@@ -51,11 +51,11 @@ public:
   gfxTextRun* MakeTextRun(const PRUint8* aString, PRUint32 aLength,
                           const gfxFontGroup::Parameters* aParams,
                           gfxFontGroup* aFontGroup, PRUint32 aFlags,
-                          nsStyleContext** aStyles);
+                          nsStyleContext** aStyles, PRBool aOwnsFactory = PR_TRUE);
   gfxTextRun* MakeTextRun(const PRUnichar* aString, PRUint32 aLength,
                           const gfxFontGroup::Parameters* aParams,
                           gfxFontGroup* aFontGroup, PRUint32 aFlags,
-                          nsStyleContext** aStyles);
+                          nsStyleContext** aStyles, PRBool aOwnsFactory = PR_TRUE);
 
   virtual void RebuildTextRun(nsTransformedTextRun* aTextRun) = 0;
 };
@@ -75,6 +75,7 @@ public:
 
 class nsCaseTransformTextRunFactory : public nsTransformingTextRunFactory {
 public:
+  
   
   
   
