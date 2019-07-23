@@ -923,6 +923,11 @@ nsSVGUtils::UpdateGraphic(nsISVGChildFrame *aSVGFrame)
 void
 nsSVGUtils::NotifyAncestorsOfFilterRegionChange(nsIFrame *aFrame)
 {
+  if (aFrame->GetStateBits() & NS_STATE_IS_OUTER_SVG) {
+    
+    return;
+  }
+
   aFrame = aFrame->GetParent();
 
   while (aFrame) {
