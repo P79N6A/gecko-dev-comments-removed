@@ -67,6 +67,7 @@ class nsSVGAngle;
 class nsSVGBoolean;
 class nsSVGEnum;
 struct nsSVGEnumMapping;
+class nsSVGViewBox;
 class nsSVGPreserveAspectRatio;
 class nsSVGString;
 
@@ -144,6 +145,7 @@ public:
   virtual void DidChangeAngle(PRUint8 aAttrEnum, PRBool aDoSetAttr);
   virtual void DidChangeBoolean(PRUint8 aAttrEnum, PRBool aDoSetAttr);
   virtual void DidChangeEnum(PRUint8 aAttrEnum, PRBool aDoSetAttr);
+  virtual void DidChangeViewBox(PRBool aDoSetAttr);
   virtual void DidChangePreserveAspectRatio(PRBool aDoSetAttr);
   virtual void DidChangeString(PRUint8 aAttrEnum) {}
 
@@ -332,6 +334,7 @@ protected:
   virtual EnumAttributesInfo GetEnumInfo();
   
   
+  virtual nsSVGViewBox *GetViewBox();
   virtual nsSVGPreserveAspectRatio *GetPreserveAspectRatio();
   virtual StringAttributesInfo GetStringInfo();
 
