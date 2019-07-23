@@ -235,6 +235,10 @@ var PrintUtils = {
       
       
       
+
+      
+      this._callback.onEnter();
+      this._callback.onExit();
       return;
     }
 
