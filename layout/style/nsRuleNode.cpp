@@ -1970,11 +1970,14 @@ ComputeScriptLevelSize(const nsStyleFont* aFont, const nsStyleFont* aParentFont,
   double scriptLevelScale =
     pow(aParentFont->mScriptSizeMultiplier, scriptLevelChange);
   
+  
   *aUnconstrainedSize =
-    NSToCoordRound(aParentFont->mScriptUnconstrainedSize*scriptLevelScale);
+    NSToCoordRound(PR_MIN(aParentFont->mScriptUnconstrainedSize*scriptLevelScale,
+                          nscoord_MAX));
   
   nscoord scriptLevelSize =
-    NSToCoordRound(aParentFont->mSize*scriptLevelScale);
+    NSToCoordRound(PR_MIN(aParentFont->mSize*scriptLevelScale,
+                          nscoord_MAX));
   if (scriptLevelScale <= 1.0) {
     if (aParentFont->mSize <= minScriptSize) {
       
