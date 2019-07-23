@@ -135,10 +135,11 @@ mozStorageService::OpenDatabase(nsIFile *aDatabaseFile, mozIStorageConnection **
     if (!msc)
         return NS_ERROR_OUT_OF_MEMORY;
 
-    rv = msc->Initialize (aDatabaseFile);
-    NS_ENSURE_SUCCESS(rv, rv);
-
+    
+    
+    (void)msc->Initialize(aDatabaseFile);
     NS_ADDREF(*_retval = msc);
+
     return NS_OK;
 }
 
@@ -158,11 +159,12 @@ mozStorageService::OpenUnsharedDatabase(nsIFile *aDatabaseFile, mozIStorageConne
     
     
     
+    
+    
     sqlite3_enable_shared_cache(0);
-    rv = msc->Initialize (aDatabaseFile);
+    (void)msc->Initialize(aDatabaseFile);
     sqlite3_enable_shared_cache(1);
-    NS_ENSURE_SUCCESS(rv, rv);
-
     NS_ADDREF(*_retval = msc);
+
     return NS_OK;
 }

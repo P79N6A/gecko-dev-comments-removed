@@ -82,6 +82,7 @@ var gDBConn = null;
 
 
 
+
 function getOpenedDatabase(unshared)
 {
   if (!gDBConn) {
@@ -90,6 +91,18 @@ function getOpenedDatabase(unshared)
               (getTestDB());
   }
   return gDBConn;
+}
+
+
+
+
+
+
+
+
+function getDatabase(aFile)
+{
+  return getService().openDatabase(aFile);
 }
 
 function createStatement(aSQL)
