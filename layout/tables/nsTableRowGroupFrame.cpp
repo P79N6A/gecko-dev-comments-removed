@@ -1053,6 +1053,10 @@ nsTableRowGroupFrame::SplitRowGroup(nsPresContext*          aPresContext,
 
   
   
+  aTableFrame->SetGeometryDirty();
+
+  
+  
   for (nsTableRowFrame* rowFrame = firstRowThisPage; rowFrame; rowFrame = rowFrame->GetNextRow()) {
     PRBool rowIsOnPage = PR_TRUE;
     nsRect rowRect = rowFrame->GetRect();
