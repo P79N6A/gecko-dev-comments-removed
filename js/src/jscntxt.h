@@ -94,9 +94,20 @@ typedef struct JSGSNCache {
 #define JS_METER_GSN_CACHE(cx,cnt)  GSN_CACHE_METER(&JS_GSN_CACHE(cx), cnt)
 
 namespace nanojit {
+    class Fragment;
     class Fragmento;
 }
 class TraceRecorder;
+
+
+
+
+struct JSFragmentCacheEntry {
+    jsbytecode*              pc;
+    nanojit::Fragment*       fragment;
+};
+
+#define JS_FRAGMENT_CACHE_SIZE 4
 
 
 
@@ -106,6 +117,7 @@ class TraceRecorder;
 struct JSTraceMonitor {
     nanojit::Fragmento*     fragmento;
     TraceRecorder*          recorder;
+    JSFragmentCacheEntry    fcache[JS_FRAGMENT_CACHE_SIZE];
 };
 
 #ifdef JS_THREADSAFE
