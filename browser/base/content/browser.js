@@ -949,7 +949,8 @@ function delayedStartup()
 
   gPrefService.addObserver(gHomeButton.prefDomain, gHomeButton, false);
   gHomeButton.updateTooltip();
-  gHomeButton.setPersonalToolbarStyle();
+  
+  
 
 #ifdef HAVE_SHELL_SERVICE
   
