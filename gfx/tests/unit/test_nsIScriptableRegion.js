@@ -1,5 +1,11 @@
 function run_test()
 {
+  
+  
+  
+  Components.classes["@mozilla.org/layout/xul-boxobject-tree;1"]
+            .createInstance(Components.interfaces.nsIBoxObject);
+
   let rgn = Components.classes["@mozilla.org/gfx/region;1"].createInstance(Components.interfaces.nsIScriptableRegion);
   do_check_true (rgn.getRects() === null)
   rgn.unionRect(0,0,80,60);
