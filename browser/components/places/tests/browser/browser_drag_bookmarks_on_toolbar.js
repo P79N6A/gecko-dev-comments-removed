@@ -248,6 +248,15 @@ function nextTest() {
 }
 
 function test() {
+  var osString = Cc["@mozilla.org/xre/app-info;1"].
+                 getService(Ci.nsIXULRuntime).OS;
+
+  
+  if (osString == "Linux") {
+    finish();
+    return;
+  }
+
   waitForExplicitFinish();
 
   nextTest();
