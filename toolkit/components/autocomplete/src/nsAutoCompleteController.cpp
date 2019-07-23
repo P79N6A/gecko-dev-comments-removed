@@ -194,7 +194,7 @@ nsAutoCompleteController::StartSearch(const nsAString &aSearchString)
 }
 
 NS_IMETHODIMP
-nsAutoCompleteController::HandleText(PRBool aIgnoreSelection)
+nsAutoCompleteController::HandleText()
 {
   if (!mInput) {
     
@@ -254,12 +254,6 @@ nsAutoCompleteController::HandleText(PRBool aIgnoreSelection)
   } else
     mBackspaced = PR_FALSE;
 
-  if (mRowCount == 0)
-    
-    
-    
-    ClearResults();
-
   mSearchString = newValue;
 
   
@@ -268,18 +262,7 @@ nsAutoCompleteController::HandleText(PRBool aIgnoreSelection)
     return NS_OK;
   }
 
-  if (aIgnoreSelection) {
-    StartSearchTimer();
-  } else {
-    
-  PRInt32 selectionStart;
-  input->GetSelectionStart(&selectionStart);
-  PRInt32 selectionEnd;
-  input->GetSelectionEnd(&selectionEnd);
-
-  if (selectionStart == selectionEnd && selectionStart == (PRInt32) mSearchString.Length())
-    StartSearchTimer();
-  }
+  StartSearchTimer();
 
   return NS_OK;
 }
@@ -379,7 +362,7 @@ nsAutoCompleteController::HandleEndComposition()
   SetSearchString(EmptyString());
   if (!value.IsEmpty()) {
     
-    HandleText(PR_TRUE);
+    HandleText();
   } else if (forceOpenPopup) {
     PRBool cancel;
     HandleKeyNavigation(nsIDOMKeyEvent::DOM_VK_DOWN, &cancel);
@@ -561,7 +544,7 @@ nsAutoCompleteController::HandleDelete(PRBool *_retval)
   input->GetPopupOpen(&isOpen);
   if (!isOpen || mRowCount <= 0) {
     
-    HandleText(PR_FALSE);
+    HandleText();
     return NS_OK;
   }
 
@@ -1019,7 +1002,8 @@ nsAutoCompleteController::StartSearch()
       PRUint16 searchResult;
       result->GetSearchResult(&searchResult);
       if (searchResult != nsIAutoCompleteResult::RESULT_SUCCESS &&
-          searchResult != nsIAutoCompleteResult::RESULT_SUCCESS_ONGOING)
+          searchResult != nsIAutoCompleteResult::RESULT_SUCCESS_ONGOING &&
+          searchResult != nsIAutoCompleteResult::RESULT_NOMATCH)
         result = nsnull;
     }
 

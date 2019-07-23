@@ -152,9 +152,11 @@ FormAutoComplete.prototype = {
 
         let result = null;
 
-        if (aPreviousResult) {
+        if (aPreviousResult &&
+                aSearchString.substr(0, aPreviousResult.searchString.length) == aPreviousResult.searchString) {
             this.log("Using previous autocomplete result");
             result = aPreviousResult;
+            result.wrappedJSObject.searchString = aSearchString;
 
             
             
@@ -261,6 +263,12 @@ FormAutoCompleteResult.prototype = {
     _checkIndexBounds : function (index) {
         if (index < 0 || index >= this.entries.length)
             throw Components.Exception("Index out of range.", Cr.NS_ERROR_ILLEGAL_VALUE);
+    },
+
+    
+    
+    get wrappedJSObject() {
+        return this;
     },
 
     

@@ -595,9 +595,11 @@ LoginManager.prototype = {
 
         var result = null;
 
-        if (aPreviousResult) {
+        if (aPreviousResult &&
+                aSearchString.substr(0, aPreviousResult.searchString.length) == aPreviousResult.searchString) {
             this.log("Using previous autocomplete result");
             result = aPreviousResult;
+            result.wrappedJSObject.searchString = aSearchString;
 
             
             
@@ -1318,6 +1320,12 @@ UserAutoCompleteResult.prototype = {
 
     
     logins : null,
+
+    
+    
+    get wrappedJSObject() {
+        return this;
+    },
 
     
     searchString : null,
