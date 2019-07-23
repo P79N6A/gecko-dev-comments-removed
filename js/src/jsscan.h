@@ -229,8 +229,8 @@ extern void
 js_AppendJSString(JSStringBuffer *sb, JSString *str);
 
 struct JSTokenPtr {
-    uint16              index;          
-    uint16              lineno;         
+    uint32              index;          
+    uint32              lineno;         
 
     bool operator <(const JSTokenPtr& bptr) {
         return lineno < bptr.lineno ||
@@ -316,8 +316,8 @@ struct JSTokenStream {
     uintN               ungetpos;       
     jschar              ungetbuf[6];    
     uintN               flags;          
-    ptrdiff_t           linelen;        
-    ptrdiff_t           linepos;        
+    uint32              linelen;        
+    uint32              linepos;        
     JSTokenBuf          linebuf;        
     JSTokenBuf          userbuf;        
     JSStringBuffer      tokenbuf;       
