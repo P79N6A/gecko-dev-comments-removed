@@ -3087,7 +3087,6 @@ class RegExpNativeCompiler {
                       sizeof(VMSideExit) +
                       (re_length-1) * sizeof(jschar));
         GuardRecord* guard = (GuardRecord *) alloc.alloc(len);
-        memset(guard, 0, len);
         VMSideExit* exit = (VMSideExit*)(guard+1);
         guard->exit = exit;
         guard->exit->target = fragment;
