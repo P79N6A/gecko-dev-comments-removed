@@ -1075,7 +1075,7 @@ LoginManager.prototype = {
         }
 
         
-        var passwordField = pwFields[pwFields.length - 1].element;
+        var passwordField = pwFields[0].element;
 
         
         
