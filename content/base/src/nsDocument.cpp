@@ -2672,8 +2672,8 @@ nsDocument::ElementFromPointHelper(PRInt32 aX, PRInt32 aY,
   
   
   while (ptContent &&
-         !ptContent->IsNodeOfType(nsINode::eELEMENT) ||
-         ptContent->IsInAnonymousSubtree()) {
+         (!ptContent->IsNodeOfType(nsINode::eELEMENT) ||
+          ptContent->IsInAnonymousSubtree())) {
     
     ptContent = ptContent->GetParent();
   }
