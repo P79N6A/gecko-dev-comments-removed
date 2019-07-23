@@ -159,15 +159,8 @@ struct NS_GFX nsRect {
                                           height = NSToCoordRound(height * aScale); 
                                           return *this;}
 
-  
-  
-  nsRect& ScaleRoundOut(float aScale);
-  
-  
-  nsRect& ScaleRoundIn(float aScale);
-  
-  
-  nsRect& ScaleRoundPreservingCenters(float aScale);
+  nsRect& ScaleRoundOut(const float aScale);
+  nsRect& ScaleRoundIn(const float aScale);
 
   
   nsPoint TopLeft() const { return nsPoint(x, y); }
