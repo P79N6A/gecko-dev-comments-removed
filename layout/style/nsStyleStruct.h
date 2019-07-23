@@ -451,9 +451,14 @@ struct nsStyleBackground {
     
     
     
+    
+    
+    
     PRBool RenderingMightDependOnFrameSize() const {
-      return !mImage.IsEmpty() &&
-             (mPosition.DependsOnFrameSize() || mSize.DependsOnFrameSize());
+      return (!mImage.IsEmpty() &&
+              (mImage.GetType() == eStyleImageType_Gradient ||
+               mPosition.DependsOnFrameSize() ||
+               mSize.DependsOnFrameSize()));
     }
 
     
