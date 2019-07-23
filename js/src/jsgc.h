@@ -148,11 +148,11 @@ js_ReserveObjects(JSContext *cx, size_t nobjects);
 extern JSBool
 js_LockGCThingRT(JSRuntime *rt, void *thing);
 
-extern JSBool
+extern void
 js_UnlockGCThingRT(JSRuntime *rt, void *thing);
 
-extern JSBool
-js_IsAboutToBeFinalized(JSContext *cx, void *thing);
+extern bool
+js_IsAboutToBeFinalized(void *thing);
 
 
 
@@ -414,10 +414,10 @@ typedef struct JSGCStats {
     uint32  maxdepth;   
     uint32  cdepth;     
     uint32  maxcdepth;  
-    uint32  untraced;   
+    uint32  unmarked;   
 
 #ifdef DEBUG
-    uint32  maxuntraced;
+    uint32  maxunmarked;
 
 #endif
     uint32  maxlevel;   

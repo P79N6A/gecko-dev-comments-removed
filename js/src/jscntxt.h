@@ -607,13 +607,9 @@ struct JSRuntime {
     ptrdiff_t           gcMallocBytes;
 
     
-
-
-
-
-    JSGCArenaInfo       *gcUntracedArenaStackTop;
+    JSGCArenaInfo       *gcUnmarkedArenaStackTop;
 #ifdef DEBUG
-    size_t              gcTraceLaterCount;
+    size_t              gcMarkLaterCount;
 #endif
 
     
