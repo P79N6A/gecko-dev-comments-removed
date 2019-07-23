@@ -597,19 +597,19 @@ Assembler::genEpilogue()
 
 
 void
-Assembler::asm_arg(ArgSize sz, LInsp arg, Register& r, int& stkd)
+Assembler::asm_arg(ArgType ty, LInsp arg, Register& r, int& stkd)
 {
     
     NanoAssert((stkd & 3) == 0);
 
-    if (sz == ARGSIZE_F) {
+    if (ty == ARGTYPE_F) {
         
         asm_arg_64(arg, r, stkd);
     } else {
-        NanoAssert(sz == ARGSIZE_I || sz == ARGSIZE_U);
+        NanoAssert(ty == ARGTYPE_I || ty == ARGTYPE_U);
         
         if (r < R4) {
-            asm_regarg(sz, arg, r);
+            asm_regarg(ty, arg, r);
             r = nextreg(r);
         } else {
             asm_stkarg(arg, stkd);
@@ -665,8 +665,8 @@ Assembler::asm_arg_64(LInsp arg, Register& r, int& stkd)
         if (_config.arm_vfp) {
             FMRRD(ra, rb, fp_reg);
         } else {
-            asm_regarg(ARGSIZE_LO, arg->oprnd1(), ra);
-            asm_regarg(ARGSIZE_LO, arg->oprnd2(), rb);
+            asm_regarg(ARGTYPE_LO, arg->oprnd1(), ra);
+            asm_regarg(ARGTYPE_LO, arg->oprnd2(), rb);
         }
 
 #ifndef NJ_ARM_EABI
@@ -699,7 +699,7 @@ Assembler::asm_arg_64(LInsp arg, Register& r, int& stkd)
             
             
             
-            asm_regarg(ARGSIZE_LO, arg->oprnd1(), ra);
+            asm_regarg(ARGTYPE_LO, arg->oprnd1(), ra);
             asm_stkarg(arg->oprnd2(), 0);
             stkd += 4;
         }
@@ -720,10 +720,10 @@ Assembler::asm_arg_64(LInsp arg, Register& r, int& stkd)
 }
 
 void
-Assembler::asm_regarg(ArgSize sz, LInsp p, Register r)
+Assembler::asm_regarg(ArgType ty, LInsp p, Register r)
 {
     NanoAssert(deprecated_isKnownReg(r));
-    if (sz & ARGSIZE_MASK_INT)
+    if (ty == ARGTYPE_I || ty == ARGTYPE_U)
     {
         
         if (p->isconst()) {
@@ -752,7 +752,7 @@ Assembler::asm_regarg(ArgSize sz, LInsp p, Register r)
     }
     else
     {
-        NanoAssert(sz == ARGSIZE_F);
+        NanoAssert(ty == ARGTYPE_F);
         
         
         NanoAssert(false);
@@ -848,10 +848,10 @@ Assembler::asm_call(LInsp ins)
 
     evictScratchRegsExcept(0);
 
-    const CallInfo* call = ins->callInfo();
-    ArgSize sizes[MAXARGS];
-    uint32_t argc = call->get_sizes(sizes);
-    bool indirect = call->isIndirect();
+    const CallInfo* ci = ins->callInfo();
+    ArgType argTypes[MAXARGS];
+    uint32_t argc = ci->getArgTypes(argTypes);
+    bool indirect = ci->isIndirect();
 
     
     
@@ -863,11 +863,11 @@ Assembler::asm_call(LInsp ins)
     
     if (_config.arm_vfp && ins->isUsed()) {
         
-        ArgSize rsize = (ArgSize)(call->_argtypes & ARGSIZE_MASK_ANY);
+        ArgType rsize = (ArgType)(ci->_typesig & ARGTYPE_MASK_ANY);
 
         
         
-        if (rsize == ARGSIZE_F) {
+        if (ci->returnType() == ARGTYPE_F) {
             Register rr = ins->deprecated_getReg();
 
             NanoAssert(ins->opcode() == LIR_fcall);
@@ -902,7 +902,7 @@ Assembler::asm_call(LInsp ins)
         
         
         
-        BranchWithLink((NIns*)call->_address);
+        BranchWithLink((NIns*)ci->_address);
     } else {
         
         
@@ -917,7 +917,7 @@ Assembler::asm_call(LInsp ins)
         } else {
             BLX(LR);
         }
-        asm_regarg(ARGSIZE_LO, ins->arg(--argc), LR);
+        asm_regarg(ARGTYPE_LO, ins->arg(--argc), LR);
     }
 
     
@@ -930,7 +930,7 @@ Assembler::asm_call(LInsp ins)
     
     uint32_t    i = argc;
     while(i--) {
-        asm_arg(sizes[i], ins->arg(i), r, stkd);
+        asm_arg(argTypes[i], ins->arg(i), r, stkd);
     }
 
     if (stkd > max_out_args) {

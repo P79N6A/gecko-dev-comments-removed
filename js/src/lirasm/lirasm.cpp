@@ -154,12 +154,15 @@ enum ReturnType {
 #define FN(name, args) \
     {#name, CI(name, args)}
 
-const int I32 = nanojit::ARGSIZE_LO;
+const ArgType I32 = nanojit::ARGTYPE_LO;
 #ifdef NANOJIT_64BIT
-const int I64 = nanojit::ARGSIZE_Q;
+const ArgType I64 = nanojit::ARGTYPE_Q;
 #endif
-const int F64 = nanojit::ARGSIZE_F;
-const int PTR = nanojit::ARGSIZE_P;
+const ArgType F64 = nanojit::ARGTYPE_F;
+const ArgType PTR = nanojit::ARGTYPE_P;
+const ArgType WRD = nanojit::ARGTYPE_P;
+const ArgType VOID = nanojit::ARGTYPE_V;
+ 
 
 enum LirTokenType {
     NAME, NUMBER, PUNCT, NEWLINE
@@ -343,7 +346,7 @@ private:
 };
 
 
-static int argMask(int sz, int m, int n)
+static int argMask(int ty, int m, int n)
 {
     
     
@@ -351,13 +354,13 @@ static int argMask(int sz, int m, int n)
     
     
     
-    return sz << ((1 + n - m) * ARGSIZE_SHIFT);
+    return ty << ((1 + n - m) * ARGTYPE_SHIFT);
 }
 
 
-static int retMask(int sz)
+static int retMask(int ty)
 {
-    return sz;
+    return ty;
 }
 
 
@@ -371,8 +374,8 @@ double sinFn(double d) {
 Function functions[] = {
     FN(puts,   argMask(PTR, 1, 1) | retMask(I32)),
     FN(sin,    argMask(F64, 1, 1) | retMask(F64)),
-    FN(malloc, argMask(PTR, 1, 1) | retMask(PTR)),
-    FN(free,   argMask(PTR, 1, 1) | retMask(I32))
+    FN(malloc, argMask(WRD, 1, 1) | retMask(PTR)),
+    FN(free,   argMask(PTR, 1, 1) | retMask(VOID))
 };
 
 template<typename out, typename in> out
@@ -694,28 +697,28 @@ FragmentAssembler::assemble_call(const string &op)
 
         ci->_abi = _abi;
 
-        ci->_argtypes = 0;
+        ci->_typesig = 0;
         size_t argc = mTokens.size();
         for (size_t i = 0; i < argc; ++i) {
             args[i] = ref(mTokens[mTokens.size() - (i+1)]);
-            if      (args[i]->isF64()) ty = ARGSIZE_F;
+            if      (args[i]->isF64()) ty = ARGTYPE_F;
 #ifdef NANOJIT_64BIT
-            else if (args[i]->isI64()) ty = ARGSIZE_Q;
+            else if (args[i]->isI64()) ty = ARGTYPE_Q;
 #endif
-            else                       ty = ARGSIZE_I;
+            else                       ty = ARGTYPE_I;
             
-            ci->_argtypes |= argMask(ty, i+1, argc);
+            ci->_typesig |= argMask(ty, i+1, argc);
         }
 
         
         ty = 0;
-        if      (mOpcode == LIR_icall) ty = ARGSIZE_LO;
-        else if (mOpcode == LIR_fcall) ty = ARGSIZE_F;
+        if      (mOpcode == LIR_icall) ty = ARGTYPE_LO;
+        else if (mOpcode == LIR_fcall) ty = ARGTYPE_F;
 #ifdef NANOJIT_64BIT
-        else if (mOpcode == LIR_qcall) ty = ARGSIZE_Q;
+        else if (mOpcode == LIR_qcall) ty = ARGTYPE_Q;
 #endif
         else                           nyi("callh");
-        ci->_argtypes |= retMask(ty);
+        ci->_typesig |= retMask(ty);
     }
 
     return mLir->insCall(ci, args);
@@ -1239,7 +1242,7 @@ static double f_F_F8(double a, double b, double c, double d,
 }
 
 #ifdef NANOJIT_64BIT
-static void f_N_IQF(int32_t, uint64_t, double)
+static void f_V_IQF(int32_t, uint64_t, double)
 {
     return;     
 }
@@ -1287,10 +1290,10 @@ const CallInfo ci_F_F8 = CI(f_F_F8, argMask(F64, 1, 8) |
                                     retMask(F64));
 
 #ifdef NANOJIT_64BIT
-const CallInfo ci_N_IQF = CI(f_N_IQF, argMask(I32, 1, 3) |
+const CallInfo ci_V_IQF = CI(f_V_IQF, argMask(I32, 1, 3) |
                                       argMask(I64, 2, 3) |
                                       argMask(F64, 3, 3) |
-                                      retMask(ARGSIZE_NONE));
+                                      retMask(ARGTYPE_V));
 #endif
 
 
@@ -1920,11 +1923,11 @@ FragmentAssembler::assembleRandomFragment(int nIns)
             break;
 
 #ifdef NANOJIT_64BIT
-        case LCALL_N_IQF:
+        case LCALL_V_IQF:
             if (!Is.empty() && !Qs.empty() && !Fs.empty()) {
                 
                 LIns* args[3] = { rndPick(Fs), rndPick(Qs), rndPick(Is) };
-                ins = mLir->insCall(&ci_N_IQF, args);
+                ins = mLir->insCall(&ci_V_IQF, args);
                 n++;
             }
             break;
