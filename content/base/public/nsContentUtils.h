@@ -757,6 +757,42 @@ public:
 
 
 
+  static nsresult AddJSGCRoot(jsval* aPtr, const char* aName) {
+    return AddJSGCRoot((void*)aPtr, aName);
+  }
+
+  
+
+
+
+
+  static nsresult AddJSGCRoot(JSObject** aPtr, const char* aName) {
+    return AddJSGCRoot((void*)aPtr, aName);
+  }
+
+  
+
+
+
+
+  static nsresult AddJSGCRoot(void* aPtr, const char* aName);  
+
+  
+
+
+  static nsresult RemoveJSGCRoot(jsval* aPtr) {
+    return RemoveJSGCRoot((void*)aPtr);
+  }
+  static nsresult RemoveJSGCRoot(JSObject** aPtr) {
+    return RemoveJSGCRoot((void*)aPtr);
+  }
+  static nsresult RemoveJSGCRoot(void* aPtr);
+
+  
+
+
+
+
 
 
 
@@ -966,73 +1002,40 @@ public:
 
   static void DestroyAnonymousContent(nsCOMPtr<nsIContent>* aContent);
 
-  
+  static nsresult HoldScriptObject(PRUint32 aLangID, void *aObject);
+  static nsresult DropScriptObject(PRUint32 aLangID, void *aObject);
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-  static nsresult HoldScriptObject(PRUint32 aLangID, void* aScriptObjectHolder,
-                                   nsScriptObjectTracer* aTracer,
-                                   void* aNewObject, PRBool aWasHoldingObjects)
+  class ScriptObjectHolder
   {
-    if (aLangID == nsIProgrammingLanguage::JAVASCRIPT) {
-      return aWasHoldingObjects ? NS_OK :
-                                  HoldJSObjects(aScriptObjectHolder, aTracer);
+  public:
+    ScriptObjectHolder(PRUint32 aLangID) : mLangID(aLangID),
+                                           mObject(nsnull)
+    {
+      MOZ_COUNT_CTOR(ScriptObjectHolder);
     }
-
-    return HoldScriptObject(aLangID, aNewObject);
-  }
-
-  
-
-
-
-
-
-
-
-
-
-
-  static nsresult DropScriptObjects(PRUint32 aLangID, void* aScriptObjectHolder,
-                                    nsScriptObjectTracer* aTracer)
-  {
-    if (aLangID == nsIProgrammingLanguage::JAVASCRIPT) {
-      return DropJSObjects(aScriptObjectHolder);
+    ~ScriptObjectHolder()
+    {
+      MOZ_COUNT_DTOR(ScriptObjectHolder);
+      if (mObject)
+        DropScriptObject(mLangID, mObject);
     }
-
-    aTracer->Trace(aScriptObjectHolder, DropScriptObject, nsnull);
-
-    return NS_OK;
-  }
-
-  
-
-
-
-
-
-
-  static nsresult HoldJSObjects(void* aScriptObjectHolder,
-                                nsScriptObjectTracer* aTracer);
-
-  
-
-
-
-
-
-  static nsresult DropJSObjects(void* aScriptObjectHolder);
+    nsresult set(void *aObject)
+    {
+      NS_ASSERTION(aObject, "unexpected null object");
+      NS_ASSERTION(!mObject, "already have an object");
+      nsresult rv = HoldScriptObject(mLangID, aObject);
+      if (NS_SUCCEEDED(rv)) {
+        mObject = aObject;
+      }
+      return rv;
+    }
+    void traverse(nsCycleCollectionTraversalCallback &cb)
+    {
+      cb.NoteScriptChild(mLangID, mObject);
+    }
+    PRUint32 mLangID;
+    void *mObject;
+  };
 
   
 
@@ -1119,10 +1122,6 @@ private:
 
   static nsIDOMScriptObjectFactory *GetDOMScriptObjectFactory();
 
-  static nsresult HoldScriptObject(PRUint32 aLangID, void* aObject);
-  PR_STATIC_CALLBACK(void) DropScriptObject(PRUint32 aLangID, void *aObject,
-                                            void *aClosure);
-
   static nsIDOMScriptObjectFactory *sDOMScriptObjectFactory;
 
   static nsIXPConnect *sXPConnect;
@@ -1164,9 +1163,14 @@ private:
   
   static nsVoidArray* sPtrsToPtrsToRelease;
 
+  
+  
+  static nsIJSRuntimeService* sJSRuntimeService;
+  static JSRuntime* sJSScriptRuntime;
+  static PRInt32 sJSScriptRootCount;
+
   static nsIScriptRuntime* sScriptRuntimes[NS_STID_ARRAY_UBOUND];
   static PRInt32 sScriptRootCount[NS_STID_ARRAY_UBOUND];
-  static PRUint32 sJSGCThingRootCount;
 
 #ifdef IBMBIDI
   static nsIBidiKeyboard* sBidiKeyboard;
@@ -1174,14 +1178,6 @@ private:
 
   static PRBool sInitialized;
 };
-
-
-#define NS_HOLD_JS_OBJECTS(obj, clazz)                                         \
-  nsContentUtils::HoldJSObjects(NS_CYCLE_COLLECTION_UPCAST(obj, clazz),        \
-                                &NS_CYCLE_COLLECTION_NAME(clazz))
-
-#define NS_DROP_JS_OBJECTS(obj, clazz)                                         \
-  nsContentUtils::DropJSObjects(NS_CYCLE_COLLECTION_UPCAST(obj, clazz))
 
 
 class nsCxPusher
@@ -1206,38 +1202,33 @@ public:
   nsAutoGCRoot(jsval* aPtr, nsresult* aResult) :
     mPtr(aPtr)
   {
-    mResult = *aResult = AddJSGCRoot(aPtr, "nsAutoGCRoot");
+    mResult = *aResult =
+      nsContentUtils::AddJSGCRoot(aPtr, "nsAutoGCRoot");
   }
 
   
   nsAutoGCRoot(JSObject** aPtr, nsresult* aResult) :
     mPtr(aPtr)
   {
-    mResult = *aResult = AddJSGCRoot(aPtr, "nsAutoGCRoot");
+    mResult = *aResult =
+      nsContentUtils::AddJSGCRoot(aPtr, "nsAutoGCRoot");
   }
 
   
   nsAutoGCRoot(void* aPtr, nsresult* aResult) :
     mPtr(aPtr)
   {
-    mResult = *aResult = AddJSGCRoot(aPtr, "nsAutoGCRoot");
+    mResult = *aResult =
+      nsContentUtils::AddJSGCRoot(aPtr, "nsAutoGCRoot");
   }
 
   ~nsAutoGCRoot() {
     if (NS_SUCCEEDED(mResult)) {
-      RemoveJSGCRoot(mPtr);
+      nsContentUtils::RemoveJSGCRoot(mPtr);
     }
   }
 
-  static void Shutdown();
-
 private:
-  static nsresult AddJSGCRoot(void *aPtr, const char* aName);
-  static nsresult RemoveJSGCRoot(void *aPtr);
-
-  static nsIJSRuntimeService* sJSRuntimeService;
-  static JSRuntime* sJSScriptRuntime;
-
   void* mPtr;
   nsresult mResult;
 };
