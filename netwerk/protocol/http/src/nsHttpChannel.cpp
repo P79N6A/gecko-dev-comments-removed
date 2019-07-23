@@ -49,6 +49,7 @@
 #include "nsHttpResponseHead.h"
 #include "nsHttp.h"
 #include "nsIHttpAuthenticator.h"
+#include "nsIApplicationCacheService.h"
 #include "nsIAuthInformation.h"
 #include "nsIAuthPrompt2.h"
 #include "nsIAuthPromptProvider.h"
@@ -274,7 +275,7 @@ nsHttpChannel::Connect(PRBool firstTime)
         
         PRBool offline = gIOService->IsOffline();
         if (offline)
-            mLoadFlags |= (LOAD_ONLY_FROM_CACHE | LOAD_CHECK_OFFLINE_CACHE);
+            mLoadFlags |= LOAD_ONLY_FROM_CACHE;
         else if (PL_strcmp(mConnectionInfo->ProxyType(), "unknown") == 0)
             return ResolveProxy();  
 
@@ -1376,12 +1377,45 @@ nsHttpChannel::OpenCacheEntry(PRBool offline, PRBool *delayed)
     else
         accessRequested = nsICache::ACCESS_READ_WRITE; 
 
-    nsCOMPtr<nsICacheSession> session;
-    if (mLoadFlags & LOAD_CHECK_OFFLINE_CACHE) {
+    if (!mApplicationCache) {
         
-        rv = gHttpHandler->GetCacheSession(nsICache::STORE_OFFLINE,
-                                           getter_AddRefs(session));
-        if (NS_FAILED(rv)) return rv;
+        nsCOMPtr<nsIApplicationCacheContainer> appCacheContainer;
+        GetCallback(appCacheContainer);
+
+        if (appCacheContainer) {
+            appCacheContainer->GetApplicationCache(getter_AddRefs(mApplicationCache));
+        }
+
+        if ((mLoadFlags & LOAD_CHECK_OFFLINE_CACHE) && !mApplicationCache) {
+            
+            
+            
+            nsCOMPtr<nsIApplicationCacheService> appCacheService =
+                do_GetService(NS_APPLICATIONCACHESERVICE_CONTRACTID);
+            if (appCacheService) {
+                nsresult rv = appCacheService->ChooseApplicationCache
+                    (cacheKey, getter_AddRefs(mApplicationCache));
+                NS_ENSURE_SUCCESS(rv, rv);
+            }
+        }
+    }
+
+    nsCOMPtr<nsICacheSession> session;
+
+    
+    if (mApplicationCache) {
+        nsCAutoString appCacheClientID;
+        mApplicationCache->GetClientID(appCacheClientID);
+
+        nsCOMPtr<nsICacheService> serv =
+            do_GetService(NS_CACHESERVICE_CONTRACTID, &rv);
+        NS_ENSURE_SUCCESS(rv, rv);
+
+        rv = serv->CreateSession(appCacheClientID.get(),
+                                 nsICache::STORE_OFFLINE,
+                                 nsICache::STREAM_BASED,
+                                 getter_AddRefs(session));
+        NS_ENSURE_SUCCESS(rv, rv);
 
         
         
@@ -1391,11 +1425,13 @@ nsHttpChannel::OpenCacheEntry(PRBool offline, PRBool *delayed)
         
         
         
-        rv = session->OpenCacheEntry(cacheKey, nsICache::ACCESS_READ, PR_FALSE,
+        
+        rv = session->OpenCacheEntry(cacheKey,
+                                     nsICache::ACCESS_READ, PR_FALSE,
                                      getter_AddRefs(mCacheEntry));
     }
 
-    if (!(mLoadFlags & LOAD_CHECK_OFFLINE_CACHE) ||
+    if (!mApplicationCache ||
         (NS_FAILED(rv) && rv != NS_ERROR_CACHE_WAIT_FOR_VALIDATION)) 
     {
         rv = gHttpHandler->GetCacheSession(storagePolicy,
@@ -1462,20 +1498,18 @@ nsHttpChannel::OpenOfflineCacheEntryForWriting()
     nsCAutoString cacheKey;
     GenerateCacheKey(cacheKey);
 
-    nsCOMPtr<nsICacheSession> session;
-    if (!mOfflineCacheClientID.IsEmpty()) {
-        nsCOMPtr<nsICacheService> serv =
-            do_GetService(NS_CACHESERVICE_CONTRACTID, &rv);
-        if (NS_FAILED(rv)) return rv;
+    NS_ENSURE_TRUE(!mOfflineCacheClientID.IsEmpty(),
+                   NS_ERROR_NOT_AVAILABLE);
 
-        rv = serv->CreateSession(mOfflineCacheClientID.get(),
-                                 nsICache::STORE_OFFLINE,
-                                 nsICache::STREAM_BASED,
-                                 getter_AddRefs(session));
-    } else {
-        rv = gHttpHandler->GetCacheSession(nsICache::STORE_OFFLINE,
-                                           getter_AddRefs(session));
-    }
+    nsCOMPtr<nsICacheSession> session;
+    nsCOMPtr<nsICacheService> serv =
+        do_GetService(NS_CACHESERVICE_CONTRACTID, &rv);
+    if (NS_FAILED(rv)) return rv;
+
+    rv = serv->CreateSession(mOfflineCacheClientID.get(),
+                             nsICache::STORE_OFFLINE,
+                             nsICache::STREAM_BASED,
+                             getter_AddRefs(session));
     if (NS_FAILED(rv)) return rv;
 
     rv = session->OpenCacheEntry(cacheKey, nsICache::ACCESS_READ_WRITE,
@@ -3393,6 +3427,7 @@ NS_INTERFACE_MAP_BEGIN(nsHttpChannel)
     NS_INTERFACE_MAP_ENTRY(nsIProtocolProxyCallback)
     NS_INTERFACE_MAP_ENTRY(nsIProxiedChannel)
     NS_INTERFACE_MAP_ENTRY(nsITraceableChannel)
+    NS_INTERFACE_MAP_ENTRY(nsIApplicationCacheContainer)
 NS_INTERFACE_MAP_END_INHERITING(nsHashPropertyBag)
 
 
@@ -4881,6 +4916,24 @@ nsHttpChannel::DoAuthRetry(nsAHttpConnection *conn)
 
     return mTransactionPump->AsyncRead(this, nsnull);
 }
+
+
+
+
+NS_IMETHODIMP
+nsHttpChannel::GetApplicationCache(nsIApplicationCache **out)
+{
+    NS_IF_ADDREF(*out = mApplicationCache);
+    return NS_OK;
+}
+
+NS_IMETHODIMP
+nsHttpChannel::SetApplicationCache(nsIApplicationCache *appCache)
+{
+    mApplicationCache = appCache;
+    return NS_OK;
+}
+
 
 
 
