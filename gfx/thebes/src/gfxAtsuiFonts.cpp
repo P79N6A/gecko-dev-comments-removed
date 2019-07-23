@@ -39,6 +39,7 @@
 #include "prtypes.h"
 #include "prmem.h"
 #include "nsString.h"
+#include "nsBidiUtils.h"
 
 #include "gfxTypes.h"
 
@@ -76,7 +77,7 @@ gfxAtsuiFont::gfxAtsuiFont(ATSUFontID fontID,
                            const gfxFontStyle *fontStyle)
     : gfxFont(name, fontStyle),
       mFontStyle(fontStyle), mATSUFontID(fontID), mATSUStyle(nsnull),
-      mAdjustedSize(0)
+      mHasMirroring(PR_FALSE), mHasMirroringLookedUp(PR_FALSE), mAdjustedSize(0)
 {
     ATSFontRef fontRef = FMGetATSFontRefFromFont(fontID);
 
@@ -282,6 +283,23 @@ gfxAtsuiFont::GetMetrics()
 {
     return mMetrics;
 }
+
+PRBool 
+gfxAtsuiFont::HasMirroringInfo()
+{
+    if (!mHasMirroringLookedUp) {
+        OSStatus status;
+        ByteCount size;
+        
+        
+        status = ATSFontGetTable(GetATSUFontID(), 'prop', 0, 0, 0, &size);
+        mHasMirroring = (status == noErr);
+        mHasMirroringLookedUp = PR_TRUE;
+    }
+    
+    return mHasMirroring;
+}
+
 
 
 
@@ -949,6 +967,49 @@ DisableLigaturesInStyle(ATSUStyle aStyle)
     ATSUSetFontFeatures(aStyle, NS_ARRAY_LENGTH(selectors), types, selectors);
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+static void MirrorSubstring(ATSUTextLayout layout, nsAutoArrayPtr<PRUnichar>& mirroredStr,
+                                    const PRUnichar *aString, PRUint32 aLength,
+                                    UniCharArrayOffset runStart, UniCharCount runLength)
+{
+    UniCharArrayOffset  off;
+    
+    
+    for (off = runStart; off < runStart + runLength; off++) {
+        PRUnichar  mirroredChar;
+        
+        mirroredChar = (PRUnichar) SymmSwap(aString[off]);
+        if (mirroredChar != aString[off]) {
+            
+            if (mirroredStr == NULL) {
+            
+                
+                mirroredStr = new PRUnichar[aLength];
+                memcpy(mirroredStr, aString, sizeof(PRUnichar) * aLength);
+                
+                
+                ATSUTextMoved(layout, mirroredStr);
+                
+            }
+            mirroredStr[off] = mirroredChar;
+        }
+    }
+}
+
 PRBool
 gfxAtsuiFontGroup::InitTextRun(gfxTextRun *aRun,
                                const PRUnichar *aString, PRUint32 aLength,
@@ -1038,6 +1099,7 @@ gfxAtsuiFontGroup::InitTextRun(gfxTextRun *aRun,
     UniCharArrayOffset runStart = headerChars;
     UniCharCount totalLength = runStart + aSegmentLength;
     UniCharCount runLength = aSegmentLength;
+    nsAutoArrayPtr<PRUnichar>  mirroredStr;
 
     
     while (runStart < totalLength) {
@@ -1045,16 +1107,27 @@ gfxAtsuiFontGroup::InitTextRun(gfxTextRun *aRun,
         UniCharArrayOffset changedOffset;
         UniCharCount changedLength;
 
-        OSStatus status = ATSUMatchFontsToText (layout, runStart, runLength,
+        OSStatus status = ATSUMatchFontsToText(layout, runStart, runLength,
                                                 &substituteFontID, &changedOffset, &changedLength);
         if (status == noErr) {
+        
+            
+            
+            
+            if (aRun->IsRightToLeft() && !atsuiFont->HasMirroringInfo()) {
+                MirrorSubstring(layout, mirroredStr, aString, aLength, runStart, runLength);
+            }
             
             
             AddGlyphRun(aRun, atsuiFont, aSegmentStart + runStart - headerChars);
-            break;
-        } else if (status == kATSUFontsMatched) {
             
+            break;
 
+        } else if (status == kATSUFontsMatched) {
+        
+            
+ 
+            
             ATSUStyle subStyle;
             ATSUCreateStyle (&subStyle);
             ATSUCopyAttributes (mainStyle, subStyle);
@@ -1065,21 +1138,49 @@ gfxAtsuiFontGroup::InitTextRun(gfxTextRun *aRun,
 
             ATSUSetAttributes (subStyle, 1, fontTags, fontArgSizes, fontArgs);
 
+            
+            ATSUSetRunStyle (layout, subStyle, changedOffset, changedLength);
+
+            
             if (changedOffset > runStart) {
+            
+                
+                if (aRun->IsRightToLeft() && !atsuiFont->HasMirroringInfo()) {
+                    MirrorSubstring(layout, mirroredStr, aString, aLength, runStart, 
+                                        changedOffset - runStart);
+                }
+                
                 AddGlyphRun(aRun, atsuiFont, aSegmentStart + runStart - headerChars);
             }
 
-            ATSUSetRunStyle (layout, subStyle, changedOffset, changedLength);
-
+            
+            
             gfxAtsuiFont *font = FindFontFor(substituteFontID);
             if (font) {
+
+                
+                if (aRun->IsRightToLeft() && !font->HasMirroringInfo()) {
+                    MirrorSubstring(layout, mirroredStr, aString, aLength, changedOffset, 
+                                        changedLength);
+                }
+                
                 AddGlyphRun(aRun, font, aSegmentStart + changedOffset - headerChars);
             }
             
             stylesToDispose.AppendElement(subStyle);
+            
         } else if (status == kATSUFontsNotMatched) {
+        
             
             
+            
+
+            
+            
+            
+            if (aRun->IsRightToLeft() && !atsuiFont->HasMirroringInfo()) {
+                MirrorSubstring(layout, mirroredStr, aString, aLength, runStart, runLength);
+            }
             
             AddGlyphRun(aRun, atsuiFont, aSegmentStart + runStart - headerChars);
             
@@ -1093,6 +1194,7 @@ gfxAtsuiFontGroup::InitTextRun(gfxTextRun *aRun,
                 memset(closure.mUnmatchedChars.get() + changedOffset - headerChars,
                        PR_TRUE, changedLength);
             }
+            
         }
 
         
