@@ -266,6 +266,46 @@ static PRCallOnceType calibrationOnce = { 0 };
 #endif 
 
 
+#if defined(XP_OS2)
+JSInt64
+PRMJ_Now(void)
+{
+    JSInt64 s, us, ms2us, s2us;
+    struct timeb b;
+
+    ftime(&b);
+    JSLL_UI2L(ms2us, PRMJ_USEC_PER_MSEC);
+    JSLL_UI2L(s2us, PRMJ_USEC_PER_SEC);
+    JSLL_UI2L(s, b.time);
+    JSLL_UI2L(us, b.millitm);
+    JSLL_MUL(us, us, ms2us);
+    JSLL_MUL(s, s, s2us);
+    JSLL_ADD(s, s, us);
+    return s;
+}
+
+#elif defined(XP_UNIX) || defined(XP_BEOS)
+JSInt64
+PRMJ_Now(void)
+{
+    struct timeval tv;
+    JSInt64 s, us, s2us;
+
+#ifdef _SVID_GETTOD   
+    gettimeofday(&tv);
+#else
+    gettimeofday(&tv, 0);
+#endif 
+    JSLL_UI2L(s2us, PRMJ_USEC_PER_SEC);
+    JSLL_UI2L(s, tv.tv_sec);
+    JSLL_UI2L(us, tv.tv_usec);
+    JSLL_MUL(s, s, s2us);
+    JSLL_ADD(s, s, us);
+    return s;
+}
+
+#elif defined(XP_WIN)
+
 
 
 
@@ -331,11 +371,6 @@ static PRCallOnceType calibrationOnce = { 0 };
 JSInt64
 PRMJ_Now(void)
 {
-#ifdef XP_OS2
-    JSInt64 s, us, ms2us, s2us;
-    struct timeb b;
-#endif
-#ifdef XP_WIN
     static int nCalls = 0;
     long double lowresTime, highresTimerValue;
     FILETIME ft;
@@ -344,24 +379,6 @@ PRMJ_Now(void)
     JSBool needsCalibration = JS_FALSE;
     JSInt64 returnedTime;
     long double cachedOffset = 0.0;
-#endif
-#if defined(XP_UNIX) || defined(XP_BEOS)
-    struct timeval tv;
-    JSInt64 s, us, s2us;
-#endif 
-
-#ifdef XP_OS2
-    ftime(&b);
-    JSLL_UI2L(ms2us, PRMJ_USEC_PER_MSEC);
-    JSLL_UI2L(s2us, PRMJ_USEC_PER_SEC);
-    JSLL_UI2L(s, b.time);
-    JSLL_UI2L(us, b.millitm);
-    JSLL_MUL(us, us, ms2us);
-    JSLL_MUL(s, s, s2us);
-    JSLL_ADD(s, s, us);
-    return s;
-#endif
-#ifdef XP_WIN
 
     
 
@@ -488,22 +505,10 @@ PRMJ_Now(void)
     } while (needsCalibration);
 
     return returnedTime;
-#endif
-
-#if defined(XP_UNIX) || defined(XP_BEOS)
-#ifdef _SVID_GETTOD   
-    gettimeofday(&tv);
-#else
-    gettimeofday(&tv, 0);
-#endif 
-    JSLL_UI2L(s2us, PRMJ_USEC_PER_SEC);
-    JSLL_UI2L(s, tv.tv_sec);
-    JSLL_UI2L(us, tv.tv_usec);
-    JSLL_MUL(s, s, s2us);
-    JSLL_ADD(s, s, us);
-    return s;
-#endif 
 }
+#else
+#error "No implementation of PRMJ_Now was selected."
+#endif
 
 
 JSInt64
