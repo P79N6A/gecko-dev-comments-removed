@@ -515,15 +515,26 @@ BrowserGlue.prototype = {
     if (importBookmarks && !restoreDefaultBookmarks && !importBookmarksHTML) {
       
       Cu.import("resource://gre/modules/utils.js");
-      var bookmarksFile = PlacesUtils.getMostRecentBackup();
-      if (bookmarksFile && bookmarksFile.leafName.match("\.json$")) {
+      var bookmarksBackupFile = PlacesUtils.getMostRecentBackup();
+      if (bookmarksBackupFile && bookmarksBackupFile.leafName.match("\.json$")) {
         
-        PlacesUtils.restoreBookmarksFromJSONFile(bookmarksFile);
+        PlacesUtils.restoreBookmarksFromJSONFile(bookmarksBackupFile);
         importBookmarks = false;
       }
       else {
         
         importBookmarks = true;
+        var dirService = Cc["@mozilla.org/file/directory_service;1"].
+                         getService(Ci.nsIProperties);
+        var bookmarksHTMLFile = dirService.get("BMarks", Ci.nsILocalFile);
+        if (bookmarksHTMLFile.exists()) {
+          
+          importBookmarksHTML = true;
+        }
+        else {
+          
+          restoreDefaultBookmarks = true;
+        }
       }
     }
 
