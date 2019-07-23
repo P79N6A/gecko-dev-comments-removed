@@ -144,7 +144,7 @@ public:
   }
 
   PRBool Put(const nsACString &fragment) {
-    Entry *entry;
+    Entry *entry = nsnull;
     if (mEntries.Get(fragment, &entry)) {
       
       
@@ -164,19 +164,21 @@ public:
       mEntries.Put(fragment, entry);
     }
 
-    
-    entry->mPrev = nsnull;
-    entry->mNext = mFirst;
-    mFirst = entry;
-    if (!mLast) {
-      mLast = entry;
-    }
+    LinkEntry(entry);
 
     return PR_TRUE;
   }
 
-  PRBool Has(const nsACString &fragment) {
-    return mEntries.Get(fragment, nsnull);
+  PRBool Has(const nsACString &fragment, PRBool update = PR_TRUE) {
+    Entry *entry = nsnull;
+    PRBool exists = mEntries.Get(fragment, &entry);
+    
+    if (update && exists && entry != mFirst) {
+      UnlinkEntry(entry);
+      LinkEntry(entry);
+    }
+
+    return exists;
   }
 
   void Clear() {
@@ -198,6 +200,20 @@ private:
     Entry *mPrev;
     nsCString mFragment;
   };
+
+  void LinkEntry(Entry *entry)
+  {
+    
+    entry->mPrev = nsnull;
+    entry->mNext = mFirst;
+    if (mFirst) {
+      mFirst->mPrev = entry;
+    }
+    mFirst = entry;
+    if (!mLast) {
+      mLast = entry;
+    }
+  }
 
   void UnlinkEntry(Entry *entry)
   {

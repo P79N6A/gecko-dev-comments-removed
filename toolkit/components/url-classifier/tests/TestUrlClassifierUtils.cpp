@@ -303,6 +303,36 @@ void TestLongHostname()
          PR_IntervalToMilliseconds(clockEnd - clockStart));
 }
 
+void TestFragmentSet()
+{
+  nsUrlClassifierFragmentSet set;
+  set.Init(3);
+
+  set.Put(NS_LITERAL_CSTRING("a"));
+  set.Put(NS_LITERAL_CSTRING("b"));
+  set.Put(NS_LITERAL_CSTRING("c"));
+
+  
+  
+  set.Has(NS_LITERAL_CSTRING("a"));
+
+  
+  
+  set.Put(NS_LITERAL_CSTRING("d"));
+
+  gTotalTests++;
+  if (set.Has(NS_LITERAL_CSTRING("a")))
+    gPassedTests++;
+  else
+    fprintf(stderr, "FAILED: set.Has(\"a\") failed.\n");
+
+  gTotalTests++;
+  if (!set.Has(NS_LITERAL_CSTRING("b")))
+    gPassedTests++;
+  else
+    fprintf(stderr, "FAILED: !set.Has(\"b\") failed.\n");
+}
+
 int main(int argc, char **argv)
 {
   NS_LogInit();
@@ -314,6 +344,7 @@ int main(int argc, char **argv)
   TestParseIPAddress();
   TestHostname();
   TestLongHostname();
+  TestFragmentSet();
 
   printf("%d of %d tests passed\n", gPassedTests, gTotalTests);
   
