@@ -196,7 +196,7 @@ private:
   
   
   
-  PRBool mInstantiating;
+  PRBool mPreventInstantiation;
 };
 
 
