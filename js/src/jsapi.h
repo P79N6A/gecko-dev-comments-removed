@@ -1330,6 +1330,15 @@ JS_GetGCParameterForThread(JSContext *cx, JSGCParamKey key);
 
 
 
+extern JS_PUBLIC_API(void)
+JS_FlushCaches(JSContext *cx);
+
+
+
+
+
+
+
 
 
 
