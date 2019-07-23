@@ -23,8 +23,9 @@ function test() {
     observe: function(win, topic, data) {
       if (topic != "app-handler-pane-loaded")
         return;
-      runTest(win);
+
       obs.removeObserver(observer, "app-handler-pane-loaded");
+      runTest(win);
     }
   };
   obs.addObserver(observer, "app-handler-pane-loaded", false);
