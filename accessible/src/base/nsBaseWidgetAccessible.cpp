@@ -132,20 +132,6 @@ nsLinkableAccessible::GetState(PRUint32 *aState, PRUint32 *aExtraState)
         *aState |= nsIAccessibleStates::STATE_TRAVERSED;
       }
     }
-    
-    PRUint32 role;
-    GetRole(&role);
-    if (role != nsIAccessibleRole::ROLE_LINK) {
-      nsCOMPtr<nsIAccessible> parentAccessible(GetParent());
-      if (parentAccessible) {
-        PRUint32 orState = State(parentAccessible);
-        *aState |= orState;
-      }
-    }
-  }
-  if (mActionContent && !mActionContent->IsFocusable()) {
-    
-    *aState &= ~nsIAccessibleStates::STATE_FOCUSABLE;
   }
 
   
