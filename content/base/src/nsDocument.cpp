@@ -1126,7 +1126,7 @@ nsDocument::Init()
   
   
   
-  NS_ENSURE_TRUE(slots->mMutationObservers.PrependObserver(this),
+  NS_ENSURE_TRUE(slots->mMutationObservers.PrependElementUnlessExists(this),
                  NS_ERROR_OUT_OF_MEMORY);
 
 
@@ -2045,7 +2045,7 @@ nsDocument::doCreateShell(nsPresContext* aContext,
   NS_ENSURE_SUCCESS(rv, rv);
 
   
-  NS_ENSURE_TRUE(mPresShells.AppendObserverUnlessExists(shell),
+  NS_ENSURE_TRUE(mPresShells.AppendElementUnlessExists(shell),
                  NS_ERROR_OUT_OF_MEMORY);
   shell.swap(*aInstancePtrResult);
 
@@ -2055,14 +2055,14 @@ nsDocument::doCreateShell(nsPresContext* aContext,
 PRBool
 nsDocument::DeleteShell(nsIPresShell* aShell)
 {
-  return mPresShells.RemoveObserver(aShell);
+  return mPresShells.RemoveElement(aShell);
 }
 
 
 nsIPresShell *
 nsDocument::GetPrimaryShell() const
 {
-  return mShellsAreHidden ? nsnull : mPresShells.SafeObserverAt(0);
+  return mShellsAreHidden ? nsnull : mPresShells.SafeElementAt(0, nsnull);
 }
 
 PR_STATIC_CALLBACK(void)
@@ -2654,7 +2654,7 @@ void
 nsDocument::AddObserver(nsIDocumentObserver* aObserver)
 {
   
-  mObservers.AppendObserverUnlessExists(aObserver);
+  mObservers.AppendElementUnlessExists(aObserver);
   AddMutationObserver(aObserver);
 }
 
@@ -2667,7 +2667,7 @@ nsDocument::RemoveObserver(nsIDocumentObserver* aObserver)
   
   if (!mInDestructor) {
     RemoveMutationObserver(aObserver);
-    return mObservers.RemoveObserver(aObserver);
+    return mObservers.RemoveElement(aObserver);
   }
 
   return mObservers.Contains(aObserver);

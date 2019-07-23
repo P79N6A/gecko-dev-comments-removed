@@ -364,6 +364,26 @@ class nsTArray : public nsTArray_base {
     
     
     
+    template<class Item, class Comparator>
+    PRBool Contains(const Item& item, const Comparator& comp) const {
+      return IndexOf(item, 0, comp) != NoIndex;
+    }
+
+    
+    
+    
+    
+    
+    template<class Item>
+    PRBool Contains(const Item& item) const {
+      return IndexOf(item) != NoIndex;
+    }
+
+    
+    
+    
+    
+    
     
     template<class Item, class Comparator>
     index_type IndexOf(const Item& item, index_type start,
@@ -733,6 +753,14 @@ class nsAutoTArray : public nsTArray<E> {
 
   protected:
     char mAutoBuf[sizeof(Header) + N * sizeof(elem_type)];
+};
+
+
+
+template<class E>
+class nsAutoTArray<E, 0> : public nsTArray<E> {
+  public:
+    nsAutoTArray() {}
 };
 
 #endif  

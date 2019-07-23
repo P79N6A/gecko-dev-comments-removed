@@ -35,18 +35,17 @@
 
 
 
+
 #include "nsTObserverArray.h"
 
 void
-nsTObserverArray_base::AdjustIterators(PRInt32 aModPos,
-                                       PRInt32 aAdjustment)
+nsTObserverArray_base::AdjustIterators(index_type aModPos,
+                                       diff_type  aAdjustment)
 {
   NS_PRECONDITION(aAdjustment == -1 || aAdjustment == 1,
                   "invalid adjustment");
   Iterator_base* iter = mIterators;
   while (iter) {
-    NS_ASSERTION(&(iter->mArray) == this, "wrong array");
-
     if (iter->mPosition > aModPos) {
       iter->mPosition += aAdjustment;
     }
@@ -55,14 +54,10 @@ nsTObserverArray_base::AdjustIterators(PRInt32 aModPos,
 }
 
 void
-nsTObserverArray_base::Clear()
+nsTObserverArray_base::ClearIterators()
 {
-  mObservers.Clear();
-
   Iterator_base* iter = mIterators;
   while (iter) {
-    NS_ASSERTION(&(iter->mArray) == this, "wrong array");
-
     iter->mPosition = 0;
     iter = iter->mNext;
   }
