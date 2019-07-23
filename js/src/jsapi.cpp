@@ -46,7 +46,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include "jstypes.h"
-#include "jsstdint.h"
 #include "jsarena.h" 
 #include "jsutil.h" 
 #include "jsclist.h"
@@ -788,8 +787,6 @@ JS_NewRuntime(uint32 maxbytes)
     if (!js_InitDeflatedStringCache(rt))
         goto bad;
 #ifdef JS_THREADSAFE
-    if (!js_InitThreadPrivateIndex(js_ThreadDestructorCB))
-        goto bad;
     rt->gcLock = JS_NEW_LOCK();
     if (!rt->gcLock)
         goto bad;
@@ -818,10 +815,8 @@ JS_NewRuntime(uint32 maxbytes)
 #endif
     if (!js_InitPropertyTree(rt))
         goto bad;
-
-#if !defined JS_THREADSAFE && defined JS_TRACER
-    js_InitJIT(&rt->traceMonitor);
-#endif
+    if (!js_InitThreads(rt))
+        goto bad;
 
     return rt;
 
@@ -850,10 +845,7 @@ JS_DestroyRuntime(JSRuntime *rt)
     }
 #endif
 
-#if !defined JS_THREADSAFE && defined JS_TRACER
-    js_FinishJIT(&rt->traceMonitor);
-#endif
-
+    js_FinishThreads(rt);
     js_FreeRuntimeScriptState(rt);
     js_FinishAtomState(rt);
 
@@ -885,8 +877,6 @@ JS_DestroyRuntime(JSRuntime *rt)
         JS_DESTROY_CONDVAR(rt->titleSharingDone);
     if (rt->debuggerLock)
         JS_DESTROY_LOCK(rt->debuggerLock);
-#else
-    GSN_CACHE_CLEAR(&rt->gsnCache);
 #endif
     js_FinishPropertyTree(rt);
     free(rt);
@@ -903,7 +893,6 @@ JS_ShutDown(void)
 
     js_FinishDtoa();
 #ifdef JS_THREADSAFE
-    js_CleanupThreadPrivateData();  
     js_CleanupLocks();
 #endif
     PRMJ_NowShutdown();
@@ -927,7 +916,7 @@ JS_BeginRequest(JSContext *cx)
 #ifdef JS_THREADSAFE
     JSRuntime *rt;
 
-    JS_ASSERT(cx->thread->id == js_CurrentThreadId());
+    JS_ASSERT(CURRENT_THREAD_IS_ME(cx->thread));
     if (!cx->requestDepth) {
         JS_ASSERT(cx->gcLocalFreeLists == &js_GCEmptyFreeListSet);
 
@@ -935,7 +924,6 @@ JS_BeginRequest(JSContext *cx)
         rt = cx->runtime;
         JS_LOCK_GC(rt);
 
-        
         if (rt->gcThread != cx->thread) {
             while (rt->gcLevel > 0)
                 JS_AWAIT_GC_DONE(rt);
@@ -962,6 +950,7 @@ JS_EndRequest(JSContext *cx)
     JSBool shared;
 
     CHECK_REQUEST(cx);
+    JS_ASSERT(CURRENT_THREAD_IS_ME(cx->thread));
     JS_ASSERT(cx->requestDepth > 0);
     JS_ASSERT(cx->outstandingRequests > 0);
     if (cx->requestDepth == 1) {
@@ -2851,19 +2840,6 @@ JS_SetPrototype(JSContext *cx, JSObject *obj, JSObject *proto)
 {
     CHECK_REQUEST(cx);
     JS_ASSERT(obj != proto);
-#ifdef DEBUG
-    
-
-
-
-
-
-
-
-
-    if (obj->map->ops->setProto)
-        return obj->map->ops->setProto(cx, obj, JSSLOT_PROTO, proto);
-#else
     if (OBJ_IS_NATIVE(obj)) {
         JS_LOCK_OBJ(cx, obj);
         if (!js_GetMutableScope(cx, obj)) {
@@ -2874,7 +2850,6 @@ JS_SetPrototype(JSContext *cx, JSObject *obj, JSObject *proto)
         JS_UNLOCK_OBJ(cx, obj);
         return JS_TRUE;
     }
-#endif
     OBJ_SET_PROTO(cx, obj, proto);
     return JS_TRUE;
 }
@@ -2895,11 +2870,6 @@ JS_SetParent(JSContext *cx, JSObject *obj, JSObject *parent)
 {
     CHECK_REQUEST(cx);
     JS_ASSERT(obj != parent);
-#ifdef DEBUG
-    
-    if (obj->map->ops->setParent)
-        return obj->map->ops->setParent(cx, obj, JSSLOT_PARENT, parent);
-#endif
     OBJ_SET_PARENT(cx, obj, parent);
     return JS_TRUE;
 }
@@ -3580,7 +3550,7 @@ JS_GetPropertyDescriptorById(JSContext *cx, JSObject *obj, jsid id, uintN flags,
 {
     CHECK_REQUEST(cx);
 
-    return GetPropertyAttributesById(cx, obj, id, flags, JS_FALSE, desc);
+    return GetPropertyAttributesById(cx, obj, id, flags, JS_TRUE, desc);
 }
 
 JS_PUBLIC_API(JSBool)
@@ -5934,25 +5904,17 @@ JS_SetContextThread(JSContext *cx)
 #ifdef JS_THREADSAFE
     JS_ASSERT(cx->requestDepth == 0);
     if (cx->thread) {
-        JS_ASSERT(cx->thread->id == js_CurrentThreadId());
+        JS_ASSERT(CURRENT_THREAD_IS_ME(cx->thread));
         return cx->thread->id;
     }
 
-    JSRuntime *rt = cx->runtime;
-    JSThread *thread = js_GetCurrentThread(rt);
-    if (!thread) {
+    if (!js_InitContextThread(cx)) {
         js_ReportOutOfMemory(cx);
         return -1;
     }
 
     
-
-
-
-    JS_LOCK_GC(rt);
-    js_WaitForGC(rt);
-    js_InitContextThread(cx, thread);
-    JS_UNLOCK_GC(rt);
+    JS_UNLOCK_GC(cx->runtime);
 #endif
     return 0;
 }
@@ -5969,8 +5931,8 @@ JS_ClearContextThread(JSContext *cx)
     JS_ASSERT(cx->requestDepth == 0);
     if (!cx->thread)
         return 0;
+    JS_ASSERT(CURRENT_THREAD_IS_ME(cx->thread));
     jsword old = cx->thread->id;
-    JS_ASSERT(old == js_CurrentThreadId());
 
     
 
@@ -5979,9 +5941,8 @@ JS_ClearContextThread(JSContext *cx)
     JSRuntime *rt = cx->runtime;
     JS_LOCK_GC(rt);
     js_WaitForGC(rt);
-    JS_REMOVE_AND_INIT_LINK(&cx->threadLinks);
-    cx->thread = NULL;
-    JS_UNLOCK_GC(cx->runtime);
+    js_ClearContextThread(cx);
+    JS_UNLOCK_GC(rt);
     return old;
 #else
     return 0;

@@ -43,7 +43,6 @@
 
 #include <string.h>
 #include "jstypes.h"
-#include "jsstdint.h"
 #include "jsutil.h" 
 #include "jsprf.h"
 #include "jsapi.h"
@@ -1579,7 +1578,7 @@ js_DestroyScript(JSContext *cx, JSScript *script)
         JSPRINCIPALS_DROP(cx, script->principals);
 
     if (JS_GSN_CACHE(cx).code == script->code)
-        JS_CLEAR_GSN_CACHE(cx);
+        JS_PURGE_GSN_CACHE(cx);
 
     
 
@@ -1606,9 +1605,9 @@ js_DestroyScript(JSContext *cx, JSScript *script)
 #ifdef CHECK_SCRIPT_OWNER
             JS_ASSERT(script->owner == cx->thread);
 #endif
-            js_FlushPropertyCacheForScript(cx, script);
+            js_PurgePropertyCacheForScript(cx, script);
 #ifdef JS_TRACER
-            js_FlushScriptFragments(cx, script);
+            js_PurgeScriptFragments(cx, script);
 #endif
         }
     }
@@ -1677,6 +1676,17 @@ typedef struct GSNCacheEntry {
 
 #define GSN_CACHE_THRESHOLD     100
 
+void
+js_PurgeGSNCache(JSGSNCache *cache)
+{
+    cache->code = NULL;
+    if (cache->table.ops) {
+        JS_DHashTableFinish(&cache->table);
+        cache->table.ops = NULL;
+    }
+    GSN_CACHE_METER(cache, purges);
+}
+
 jssrcnote *
 js_GetSrcNoteCached(JSContext *cx, JSScript *script, jsbytecode *pc)
 {
@@ -1714,7 +1724,7 @@ js_GetSrcNoteCached(JSContext *cx, JSScript *script, jsbytecode *pc)
 
     if (JS_GSN_CACHE(cx).code != script->code &&
         script->length >= GSN_CACHE_THRESHOLD) {
-        JS_CLEAR_GSN_CACHE(cx);
+        JS_PURGE_GSN_CACHE(cx);
         nsrcnotes = 0;
         for (sn = SCRIPT_NOTES(script); !SN_IS_TERMINATOR(sn);
              sn = SN_NEXT(sn)) {

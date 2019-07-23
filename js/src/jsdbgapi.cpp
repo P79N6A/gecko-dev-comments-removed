@@ -43,7 +43,6 @@
 
 #include <string.h>
 #include "jstypes.h"
-#include "jsstdint.h"
 #include "jsutil.h" 
 #include "jsclist.h"
 #include "jsapi.h"
@@ -124,7 +123,7 @@ js_UntrapScriptCode(JSContext *cx, JSScript *script)
                 if (!code)
                     break;
                 memcpy(code, script->code, nbytes);
-                JS_CLEAR_GSN_CACHE(cx);
+                JS_PURGE_GSN_CACHE(cx);
             }
             code[trap->pc - script->code] = trap->op;
         }

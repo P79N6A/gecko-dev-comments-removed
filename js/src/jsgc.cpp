@@ -52,7 +52,6 @@
 #include <math.h>
 #include <string.h>     
 #include "jstypes.h"
-#include "jsstdint.h"
 #include "jsutil.h" 
 #include "jshash.h" 
 #include "jsbit.h"
@@ -3110,23 +3109,33 @@ js_TraceContext(JSTracer *trc, JSContext *acx)
     js_TraceRegExpStatics(trc, acx);
 }
 
-void
-js_TraceTraceMonitor(JSTracer *trc, JSTraceMonitor *tm)
+#ifdef JS_TRACER
+
+static void
+MarkReservedObjects(JSTraceMonitor *tm)
 {
-    if (IS_GC_MARKING_TRACER(trc)) {
-        tm->reservedDoublePoolPtr = tm->reservedDoublePool;
-
-        tm->needFlush = JS_TRUE;
-
-        
-        for (JSObject *obj = tm->reservedObjects; obj; obj = JSVAL_TO_OBJECT(obj->fslots[0])) {
-            uint8 *flagp = GetGCThingFlags(obj);
-            JS_ASSERT((*flagp & GCF_TYPEMASK) == GCX_OBJECT);
-            JS_ASSERT(*flagp != GCF_FINAL);
-            *flagp |= GCF_MARK;
-        }
+    
+    for (JSObject *obj = tm->reservedObjects; obj; obj = JSVAL_TO_OBJECT(obj->fslots[0])) {
+        uint8 *flagp = GetGCThingFlags(obj);
+        JS_ASSERT((*flagp & GCF_TYPEMASK) == GCX_OBJECT);
+        JS_ASSERT(*flagp != GCF_FINAL);
+        *flagp |= GCF_MARK;
     }
 }
+
+#ifdef JS_THREADSAFE
+static JSDHashOperator
+reserved_objects_marker(JSDHashTable *table, JSDHashEntryHdr *hdr,
+                        uint32, void *)
+{
+    JSThread *thread = ((JSThreadsHashEntry *) hdr)->thread;
+
+    MarkReservedObjects(&thread->data.traceMonitor);
+    return JS_DHASH_NEXT;
+}
+#endif
+
+#endif
 
 JS_REQUIRES_STACK void
 js_TraceRuntime(JSTracer *trc, JSBool allAtoms)
@@ -3154,16 +3163,14 @@ js_TraceRuntime(JSTracer *trc, JSBool allAtoms)
             JS_CALL_OBJECT_TRACER(trc, rt->builtinFunctions[i], "builtin function");
     }
 
+    if (IS_GC_MARKING_TRACER(trc)) {
 #ifdef JS_THREADSAFE
-    
-   while ((acx = js_ContextIterator(rt, JS_FALSE, &iter)) != NULL) {
-       if (!acx->thread)
-           continue;
-       js_TraceTraceMonitor(trc, &acx->thread->traceMonitor);
-   }
+        JS_DHashTableEnumerate(&rt->threads, reserved_objects_marker, NULL);
 #else
-   js_TraceTraceMonitor(trc, &rt->traceMonitor);
+        MarkReservedObjects(&rt->threadData.traceMonitor);
 #endif
+    }
+
 #endif
 }
 
@@ -3242,15 +3249,18 @@ ProcessSetSlotRequest(JSContext *cx, JSSetSlotRequest *ssr)
     STOBJ_SET_DELEGATE(pobj);
 }
 
-static void
-DestroyScriptsToGC(JSContext *cx, JSScript **listp)
+void
+js_DestroyScriptsToGC(JSContext *cx, JSThreadData *data)
 {
-    JSScript *script;
+    JSScript **listp, *script;
 
-    while ((script = *listp) != NULL) {
-        *listp = script->u.nextToGC;
-        script->u.nextToGC = NULL;
-        js_DestroyScript(cx, script);
+    for (size_t i = 0; i != JS_ARRAY_LENGTH(data->scriptsToGC); ++i) {
+        listp = &data->scriptsToGC[i];
+        while ((script = *listp) != NULL) {
+            *listp = script->u.nextToGC;
+            script->u.nextToGC = NULL;
+            js_DestroyScript(cx, script);
+        }
     }
 }
 
@@ -3282,7 +3292,14 @@ js_GC(JSContext *cx, JSGCInvocationKind gckind)
 
     JS_ASSERT_IF(gckind == GC_LAST_DITCH, !JS_ON_TRACE(cx));
     rt = cx->runtime;
+
 #ifdef JS_THREADSAFE
+    
+
+
+
+    JS_ASSERT(CURRENT_THREAD_IS_ME(cx->thread));
+
     
     JS_ASSERT(!JS_IS_RUNTIME_LOCKED(rt));
 #endif
@@ -3360,9 +3377,8 @@ js_GC(JSContext *cx, JSGCInvocationKind gckind)
 
 
 
-
     requestDebit = 0;
-    if (cx->thread) {
+    {
         JSCList *head, *link;
 
         
@@ -3376,17 +3392,6 @@ js_GC(JSContext *cx, JSGCInvocationKind gckind)
             if (acx->requestDepth)
                 requestDebit++;
         }
-    } else {
-        
-
-
-
-
-
-
-        JS_ASSERT(cx->requestDepth == 0);
-        if (cx->requestDepth)
-            requestDebit = 1;
     }
     if (requestDebit) {
         JS_ASSERT(requestDebit <= rt->requestCount);
@@ -3496,43 +3501,10 @@ js_GC(JSContext *cx, JSGCInvocationKind gckind)
   }
 #endif
 
-    
-    js_FlushPropertyCache(cx);
 #ifdef JS_TRACER
-    js_FlushJITOracle(cx);
+    js_PurgeJITOracle();
 #endif
-
-    
-    for (i = 0; i < JS_ARRAY_LENGTH(JS_SCRIPTS_TO_GC(cx)); i++)
-        DestroyScriptsToGC(cx, &JS_SCRIPTS_TO_GC(cx)[i]);
-
-#ifdef JS_THREADSAFE
-    
-
-
-
-
-
-
-
-
-
-    iter = NULL;
-    while ((acx = js_ContextIterator(rt, JS_FALSE, &iter)) != NULL) {
-        if (!acx->thread || acx->thread == cx->thread)
-            continue;
-        GSN_CACHE_CLEAR(&acx->thread->gsnCache);
-        js_FlushPropertyCache(acx);
-#ifdef JS_TRACER
-        js_FlushJITOracle(acx);
-#endif
-        for (i = 0; i < JS_ARRAY_LENGTH(acx->thread->scriptsToGC); i++)
-            DestroyScriptsToGC(cx, &acx->thread->scriptsToGC[i]);
-    }
-#else
-    
-    GSN_CACHE_CLEAR(&rt->gsnCache);
-#endif
+    js_PurgeThreads(cx);
 
   restart:
     rt->gcNumber++;
