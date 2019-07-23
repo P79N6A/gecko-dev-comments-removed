@@ -43,6 +43,7 @@
 
 #include "nsAutoPtr.h"
 #include "nsCOMPtr.h"
+#include "mozilla/Mutex.h"
 
 #include "nsString.h"
 #include "nsInterfaceHashtable.h"
@@ -91,6 +92,13 @@ public:
 
 
   already_AddRefed<nsIEventTarget> getAsyncExecutionTarget();
+
+  
+
+
+
+
+  Mutex sharedAsyncExecutionMutex;
 
 private:
   ~Connection();

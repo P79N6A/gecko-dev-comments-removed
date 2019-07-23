@@ -44,6 +44,7 @@
 #include "nsTArray.h"
 #include "nsAutoPtr.h"
 #include "nsThreadUtils.h"
+#include "mozilla/Mutex.h"
 #include "mozilla/TimeStamp.h"
 
 #include "mozIStoragePendingStatement.h"
@@ -105,6 +106,8 @@ public:
 
 
 
+
+
   bool shouldNotify();
 
 private:
@@ -113,6 +116,8 @@ private:
                          mozIStorageStatementCallback *aCallback);
 
   
+
+
 
 
 
@@ -138,10 +143,14 @@ private:
 
 
 
+
+
   bool executeAndProcessStatement(sqlite3_stmt *aStatement,
                                   bool aLastStatement);
 
   
+
+
 
 
 
@@ -157,9 +166,13 @@ private:
 
 
 
+
+
   nsresult buildAndNotifyResults(sqlite3_stmt *aStatement);
 
   
+
+
 
 
   nsresult notifyComplete();
@@ -174,10 +187,14 @@ private:
 
 
 
+
+
   nsresult notifyError(PRInt32 aErrorCode, const char *aMessage);
   nsresult notifyError(mozIStorageError *aError);
 
   
+
+
 
 
   nsresult notifyResults();
@@ -203,10 +220,12 @@ private:
   
 
 
+  ExecutionState mState;
+
+  
 
 
-
-  volatile PRInt32 mState;
+  bool mCancelRequested;
 
   
 
@@ -214,7 +233,8 @@ private:
 
 
 
-  volatile PRInt32 mCancelRequested;
+
+  Mutex &mMutex;
 };
 
 } 
