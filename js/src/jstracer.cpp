@@ -5530,7 +5530,10 @@ TraceRecorder::test_property_cache(JSObject* obj, LIns* obj_ins, JSObject*& obj2
     JSAtom* atom;
     JSPropCacheEntry* entry;
     PROPERTY_CACHE_TEST(cx, pc, aobj, obj2, entry, atom);
-    if (atom) {
+    if (!atom) {
+        
+        JS_UNLOCK_OBJ(cx, obj2);
+    } else {
         
         
         
