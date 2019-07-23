@@ -587,6 +587,33 @@ LoginTest.checkStorageData(storage, [utfHost], [utfUser1, utfUser2]);
 
 
 
+
+
+
+
+
+
+testnum++;
+testdesc = "ensure bogus UTF8 strings don't cause failures."
+
+var badHost = "https://FcK" + String.fromCharCode(0x8a) + ".jp";
+var bad8User = Cc["@mozilla.org/login-manager/loginInfo;1"].
+               createInstance(Ci.nsILoginInfo);
+bad8User.init(badHost, badHost, null,
+              "dummydude", "itsasecret", "put_user_here", "put_pw_here");
+
+storage = LoginTest.initStorage(INDIR, "signons-454708.txt",
+                               OUTDIR, "output-454708.txt");
+LoginTest.checkStorageData(storage, [], [bad8User]);
+
+
+
+
+testdesc = "[flush and reload for verification]"
+storage = LoginTest.reloadStorage(OUTDIR, "output-454708.txt");
+LoginTest.checkStorageData(storage, [], [bad8User]);
+
+
 } catch (e) {
     throw ("FAILED in test #" + testnum + " -- " + testdesc + ": " + e);
 }
