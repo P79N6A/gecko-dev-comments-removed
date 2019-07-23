@@ -183,6 +183,10 @@ public:
   };
   EnsureUniqueInnerResult EnsureUniqueInner();
 
+  
+  
+  PRBool AppendAllChildSheets(nsTArray<nsCSSStyleSheet*>& aArray);
+
   PRBool UseForPresentation(nsPresContext* aPresContext,
                             nsMediaQueryResultCacheKey& aKey) const;
 
