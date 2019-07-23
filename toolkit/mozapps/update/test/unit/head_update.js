@@ -110,8 +110,10 @@ function getPrefBranch() {
 
 
 
+
 function cleanUp() {
-  gDirSvc.unregisterProvider(dirProvider);
+  removeUpdateDirsAndFiles();
+  gDirSvc.unregisterProvider(gDirProvider);
 
   if (gXHR) {
     gXHRCallback     = null;
@@ -134,10 +136,7 @@ function cleanUp() {
 
 
 
-
-function startAUS() {
-  createAppInfo("xpcshell@tests.mozilla.org", "XPCShell", "1.0", "2.0");
-
+function setDefaultPrefs() {
   var pb = getPrefBranch();
   
   
@@ -150,7 +149,15 @@ function startAUS() {
   pb.setBoolPref("extensions.update.enabled", false);
   pb.setBoolPref("browser.search.update", false);
   pb.setBoolPref("browser.microsummary.updateGenerators", false);
+}
 
+
+
+
+
+function startAUS() {
+  createAppInfo("xpcshell@tests.mozilla.org", "XPCShell", "1.0", "2.0");
+  setDefaultPrefs();
   gAUS = AUS_Cc["@mozilla.org/updates/update-service;1"].
          getService(AUS_Ci.nsIApplicationUpdateService);
   var os = AUS_Cc["@mozilla.org/observer-service;1"].
@@ -418,23 +425,13 @@ function writeStatusFile(aStatus) {
 
 
 function writeFile(aFile, aText) {
-  var fos = AUS_Cc["@mozilla.org/network/safe-file-output-stream;1"].
+  var fos = AUS_Cc["@mozilla.org/network/file-output-stream;1"].
             createInstance(AUS_Ci.nsIFileOutputStream);
   if (!aFile.exists())
     aFile.create(AUS_Ci.nsILocalFile.NORMAL_FILE_TYPE, PERMS_FILE);
   fos.init(aFile, MODE_WRONLY | MODE_CREATE | MODE_TRUNCATE, PERMS_FILE, 0);
   fos.write(aText, aText.length);
-
-  if (fos instanceof AUS_Ci.nsISafeOutputStream) {
-    try {
-      fos.finish();
-    }
-    catch (e) {
-      fos.close();
-    }
-  }
-  else
-    fos.close();
+  fos.close();
 }
 
 
@@ -477,27 +474,6 @@ function getString(aName) {
   catch (e) {
   }
   return null;
-}
-
-
-
-
-
-
-
-
-
-function toggleOffline(aOffline) {
-  const ioService = AUS_Cc["@mozilla.org/network/io-service;1"].
-                    getService(AUS_Ci.nsIIOService);
-
-  try {
-    ioService.manageOfflineStatus = !aOffline;
-  }
-  catch (e) {
-  }
-  if (ioService.offline != aOffline)
-    ioService.offline = aOffline;
 }
 
 
@@ -627,7 +603,7 @@ const updateCheckListener = {
 
 function removeUpdateDirsAndFiles() {
   var appDir = getCurrentProcessDir();
-  file = appDir.clone();
+  var file = appDir.clone();
   file.append("active-update.xml");
   try {
     if (file.exists())
@@ -681,6 +657,8 @@ function removeUpdateDirsAndFiles() {
 
 
 function removeDirRecursive(aDir) {
+  if (!aDir.exists())
+    return;
   try {
     aDir.remove(true);
     return;
@@ -798,7 +776,7 @@ if (gProfD.exists())
   gProfD.remove(true);
 gProfD.create(AUS_Ci.nsIFile.DIRECTORY_TYPE, PERMS_DIRECTORY);
 
-var dirProvider = {
+var gDirProvider = {
   getFile: function(prop, persistent) {
     switch (prop) {
       case NS_APP_USER_PROFILE_50_DIR:
@@ -818,4 +796,4 @@ var dirProvider = {
     throw AUS_Cr.NS_ERROR_NO_INTERFACE;
   }
 };
-gDirSvc.QueryInterface(AUS_Ci.nsIDirectoryService).registerProvider(dirProvider);
+gDirSvc.QueryInterface(AUS_Ci.nsIDirectoryService).registerProvider(gDirProvider);
