@@ -150,6 +150,11 @@ public:
 
 
 
+  void SetBackgroundOnly(PRBool aIsBackgroundOnly) { mIsBackgroundOnly = aIsBackgroundOnly; }
+  
+
+
+
 
 
 
