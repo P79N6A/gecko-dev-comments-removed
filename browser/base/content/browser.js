@@ -2237,12 +2237,12 @@ function BrowserOnCommand(event) {
     if (!event.isTrusted)
       return;
 
+    var ot = event.originalTarget;
+    var errorDoc = ot.ownerDocument;
+
     
     
-    if (/^about:neterror\?e=nssBadCert/.test(event.originalTarget.ownerDocument.documentURI)) {
-      var ot = event.originalTarget;
-      var errorDoc = ot.ownerDocument;
-      
+    if (/^about:neterror\?e=nssBadCert/.test(errorDoc.documentURI)) {
       if (ot == errorDoc.getElementById('exceptionDialogButton')) {
         var params = { exceptionAdded : false };
         
@@ -2265,23 +2265,66 @@ function BrowserOnCommand(event) {
           errorDoc.location.reload();
       }
       else if (ot == errorDoc.getElementById('getMeOutOfHereButton')) {
-        
-        var prefs = Cc["@mozilla.org/preferences-service;1"]
-                    .getService(Ci.nsIPrefService).getDefaultBranch(null);
-        var url = "about:blank";
-        try {
-          url = prefs.getComplexValue("browser.startup.homepage",
-                                      Ci.nsIPrefLocalizedString).data;
-          
-          if (url.indexOf("|") != -1)
-            url = url.split("|")[0];
-        } catch(e) {
-          Components.utils.reportError("Couldn't get homepage pref: " + e);
-        }
-        content.location = url;
+        getMeOutOfHere();
       }
     }
+    else if (/^about:blocked/.test(errorDoc.documentURI)) {
+      
+      
+      if (ot == errorDoc.getElementById('getMeOutButton')) {
+        getMeOutOfHere();
+      }
+      else if (ot == errorDoc.getElementById('reportButton')) {
+        
+        
+        
+        if (/e=malwareBlocked/.test(errorDoc.documentURI)) {
+          
+          
+          try {
+            var reportURL = gPrefService.getCharPref("browser.safebrowsing.malware.reportURL");
+            reportURL += content.location.href;
+            content.location = reportURL;
+          } catch (e) {
+            Components.utils.reportError("Couldn't get malware report URL: " + e);
+          }
+        }
+        else if (/e=phishingBlocked/.test(errorDoc.documentURI)) {
+          try {
+            content.location = Cc["@mozilla.org/toolkit/URLFormatterService;1"]
+                              .getService(Components.interfaces.nsIURLFormatter)
+                              .formatURLPref("browser.safebrowsing.warning.infoURL");
+          } catch (e) {
+            Components.utils.reportError("Couldn't get phishing info URL: " + e);
+          }
+        }
+      }
+    }
+}
+
+
+
+
+
+
+
+
+function getMeOutOfHere() {
+  
+  var prefs = Cc["@mozilla.org/preferences-service;1"]
+             .getService(Ci.nsIPrefService).getDefaultBranch(null);
+  var url = "about:blank";
+  try {
+    url = prefs.getComplexValue("browser.startup.homepage",
+                                Ci.nsIPrefLocalizedString).data;
+    
+    if (url.indexOf("|") != -1)
+      url = url.split("|")[0];
+  } catch(e) {
+    Components.utils.reportError("Couldn't get homepage pref: " + e);
   }
+  content.location = url;
+}
 
 function BrowserFullScreen()
 {
@@ -3287,7 +3330,7 @@ var FullScreen =
 
   showXULChrome: function(aTag, aShow)
   {
-    var XULNS = "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul";
+    var XULNS = "http:
     var els = document.getElementsByTagNameNS(XULNS, aTag);
 
     for (var i = 0; i < els.length; ++i) {
@@ -3783,7 +3826,7 @@ nsBrowserStatusHandler.prototype =
         notification = notificationBox.appendNotification(
           message,
           "refresh-blocked",
-          "chrome://browser/skin/Info.png",
+          "chrome:
           priority,
           buttons);
         notification.refreshURI = aURI;
