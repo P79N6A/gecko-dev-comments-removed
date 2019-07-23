@@ -218,6 +218,14 @@ NS_IMETHODIMP nsXULListitemAccessible::GetActionName(PRUint8 aIndex, nsAString& 
   return NS_ERROR_INVALID_ARG;
 }
 
+NS_IMETHODIMP
+nsXULListitemAccessible::GetAllowsAnonChildAccessibles(PRBool *aAllowsAnonChildren)
+{
+  
+  *aAllowsAnonChildren = PR_TRUE;
+  return NS_OK;
+}
+
 
 
 
@@ -244,10 +252,12 @@ NS_IMETHODIMP nsXULComboboxAccessible::GetRole(PRUint32 *aRole)
   if (!content) {
     return NS_ERROR_FAILURE;
   }
-  *aRole = content->AttrValueIs(kNameSpaceID_None, nsAccessibilityAtoms::type,
-                                NS_LITERAL_STRING("autocomplete"), eIgnoreCase) ?
-                                nsIAccessibleRole::ROLE_AUTOCOMPLETE :
-                                nsIAccessibleRole::ROLE_COMBOBOX;
+  if (content->AttrValueIs(kNameSpaceID_None, nsAccessibilityAtoms::type,
+                           NS_LITERAL_STRING("autocomplete"), eIgnoreCase)) {
+    *aRole = nsIAccessibleRole::ROLE_AUTOCOMPLETE;
+  } else {
+    *aRole = nsIAccessibleRole::ROLE_COMBOBOX;
+  }
   return NS_OK;
 }
 
