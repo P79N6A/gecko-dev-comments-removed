@@ -6030,6 +6030,32 @@ IsSpecialFramesetChild(nsIContent* aContent)
 static void
 InvalidateCanvasIfNeeded(nsIPresShell* presShell, nsIContent* node);
 
+#ifdef MOZ_XUL
+
+static
+nsListBoxBodyFrame*
+MaybeGetListBoxBodyFrame(nsIContent* aContainer, nsIContent* aChild)
+{
+  if (!aContainer)
+    return nsnull;
+
+  if (aContainer->IsNodeOfType(nsINode::eXUL) &&
+      aChild->IsNodeOfType(nsINode::eXUL) &&
+      aContainer->Tag() == nsGkAtoms::listbox &&
+      aChild->Tag() == nsGkAtoms::listitem) {
+    nsCOMPtr<nsIDOMXULElement> xulElement = do_QueryInterface(aContainer);
+    nsCOMPtr<nsIBoxObject> boxObject;
+    xulElement->GetBoxObject(getter_AddRefs(boxObject));
+    nsCOMPtr<nsPIListBoxObject> listBoxObject = do_QueryInterface(boxObject);
+    if (listBoxObject) {
+      return listBoxObject->GetListBoxBody(PR_FALSE);
+    }
+  }
+
+  return nsnull;
+}
+#endif
+
 nsresult
 nsCSSFrameConstructor::ContentAppended(nsIContent*     aContainer,
                                        PRInt32         aNewIndexInContainer)
@@ -6120,7 +6146,13 @@ nsCSSFrameConstructor::ContentAppended(nsIContent*     aContainer,
       PRUint32 containerCount = aContainer->GetChildCount();
       for (PRUint32 i = aNewIndexInContainer; i < containerCount; i++) {
         nsIContent* content = aContainer->GetChildAt(i);
-        if (mPresShell->GetPrimaryFrameFor(content)) {
+        if (mPresShell->GetPrimaryFrameFor(content)
+#ifdef MOZ_XUL
+            
+            
+            && !MaybeGetListBoxBodyFrame(aContainer, content)
+#endif
+            ) {
           
           
           
@@ -6329,36 +6361,23 @@ PRBool NotifyListBoxBody(nsPresContext*    aPresContext,
                          nsIFrame*          aChildFrame,
                          content_operation  aOperation)
 {
-  if (!aContainer)
-    return PR_FALSE;
-
-  if (aContainer->IsNodeOfType(nsINode::eXUL) &&
-      aChild->IsNodeOfType(nsINode::eXUL) &&
-      aContainer->Tag() == nsGkAtoms::listbox &&
-      aChild->Tag() == nsGkAtoms::listitem) {
-    nsCOMPtr<nsIDOMXULElement> xulElement = do_QueryInterface(aContainer);
-    nsCOMPtr<nsIBoxObject> boxObject;
-    xulElement->GetBoxObject(getter_AddRefs(boxObject));
-    nsCOMPtr<nsPIListBoxObject> listBoxObject = do_QueryInterface(boxObject);
-    if (listBoxObject) {
-      nsListBoxBodyFrame* listBoxBodyFrame = listBoxObject->GetListBoxBody(PR_FALSE);
-      if (listBoxBodyFrame) {
-        if (aOperation == CONTENT_REMOVED) {
-          
-          
-          if (!aChildFrame || aChildFrame->GetParent() == listBoxBodyFrame) {
-            listBoxBodyFrame->OnContentRemoved(aPresContext, aChildFrame,
-                                               aIndexInContainer);
-            return PR_TRUE;
-          }
-        } else {
-          
-          
-          
-          listBoxBodyFrame->OnContentInserted(aPresContext, aChild);
-          return PR_TRUE;
-        }
+  nsListBoxBodyFrame* listBoxBodyFrame =
+    MaybeGetListBoxBodyFrame(aContainer, aChild);
+  if (listBoxBodyFrame) {
+    if (aOperation == CONTENT_REMOVED) {
+      
+      
+      if (!aChildFrame || aChildFrame->GetParent() == listBoxBodyFrame) {
+        listBoxBodyFrame->OnContentRemoved(aPresContext, aChildFrame,
+                                           aIndexInContainer);
+        return PR_TRUE;
       }
+    } else {
+      
+      
+      
+      listBoxBodyFrame->OnContentInserted(aPresContext, aChild);
+      return PR_TRUE;
     }
   }
 
