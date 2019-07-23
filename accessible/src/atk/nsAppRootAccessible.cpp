@@ -564,9 +564,6 @@ nsApplicationAccessibleWrap::Init()
         g_type_class_unref(g_type_class_ref(MAI_TYPE_UTIL));
 
         
-        PR_SetEnv("NO_AT_BRIDGE=0");
-
-        
         rv = LoadGtkModule(sAtkBridge);
         if (NS_SUCCEEDED(rv)) {
             
