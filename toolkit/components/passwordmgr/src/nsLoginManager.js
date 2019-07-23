@@ -598,6 +598,12 @@ LoginManager.prototype = {
     
 
 
+
+
+
+
+
+
     _getPasswordFields : function (form, skipEmptyFields) {
         
         var pwFields = [];
@@ -632,6 +638,98 @@ LoginManager.prototype = {
 
 
 
+
+
+
+
+
+
+    _getFormFields : function (form, isSubmission) {
+        
+        
+        var pwFields = this._getPasswordFields(form, isSubmission);
+        if (!pwFields) {
+            this.log("(form ignored -- either 0 or >3 pw fields.)");
+            return [null, null, null];
+        }
+
+
+        
+        
+        
+        
+        for (var i = pwFields[0].index - 1; i >= 0; i--) {
+            if (form.elements[i].type == "text") {
+                var usernameField = form.elements[i];
+                break;
+            }
+        }
+
+        if (!usernameField)
+            this.log("(form -- no username field found)");
+
+
+        
+        
+        
+        if (!isSubmission || pwFields.length == 1)
+            return [usernameField, pwFields[0].element, null];
+
+
+        
+        var oldPasswordField, newPasswordField;
+        var pw1 = pwFields[0].element.value;
+        var pw2 = pwFields[1].element.value;
+        var pw3 = (pwFields[2] ? pwFields[2].element.value : null);
+
+        if (pwFields.length == 3) {
+            
+
+            if (pw1 == pw2 && pw2 == pw3) {
+                
+                newPasswordField = pwFields[0].element;
+                oldPasswordField = null;
+            } else if (pw1 == pw2) {
+                newPasswordField = pwFields[0].element;
+                oldPasswordField = pwFields[2].element;
+            } else if (pw2 == pw3) {
+                oldPasswordField = pwFields[0].element;
+                newPasswordField = pwFields[2].element;
+            } else  if (pw1 == pw3) {
+                
+                newPasswordField = pwFields[0].element;
+                oldPasswordField = pwFields[1].element;
+            } else {
+                
+                this.log("(form ignored -- all 3 pw fields differ)");
+                return [null, null, null];
+            }
+        } else { 
+            if (pw1 == pw2) {
+                
+                newPasswordField = pwFields[0].element;
+                oldPasswordField = null;
+            } else {
+                
+                oldPasswordField = pwFields[0].element;
+                newPasswordField = pwFields[1].element;
+            }
+        }
+
+        return [usernameField, newPasswordField, oldPasswordField];
+    },
+
+
+    
+
+
+
+
+
+
+
+
+
     _onFormSubmit : function (form) {
 
         
@@ -644,22 +742,9 @@ LoginManager.prototype = {
         };
 
         
-        function getUsernameField (passwordFieldIndex) {
-            var usernameField = null;
+        function findExistingLogin(pwmgr, hostname,
+                                   formSubmitURL, usernameField) {
 
-            
-            for (var i = passwordFieldIndex - 1; i >= 0; i--) {
-                if (form.elements[i].type == "text") {
-                    usernameField = form.elements[i];
-                    break;
-                }
-            }
-
-            return usernameField;
-        };
-
-        
-        function findExistingLogin(pwmgr) {
             var searchLogin = new pwmgr._nsLoginInfo();
             searchLogin.init(hostname, formSubmitURL, null,
                              usernameField.value, "",
@@ -697,72 +782,24 @@ LoginManager.prototype = {
             return;
         }
 
-        
-        var pwFields = this._getPasswordFields(form, true);
-        if (!pwFields) {
-            this.log("(form submission ignored -- found " + pwFields.length +
-                     " fields, can only handle 1-3.)");
-            return;
-        }
 
         
-        
-        var usernameField = getUsernameField(pwFields[0].index);
-        if (!usernameField) {
-            this.log("(form submission -- no username field found)");
-        }
+        var [usernameField, newPasswordField, oldPasswordField] =
+            this._getFormFields(form, true);
 
+        
+        if (newPasswordField == null)
+                return;
 
         
         
         
         if (autocompleteDisabled(form) ||
             autocompleteDisabled(usernameField) ||
-            autocompleteDisabled(pwFields[0].element) ||
-            (pwFields[1] && autocompleteDisabled(pwFields[1].element)) ||
-            (pwFields[2] && autocompleteDisabled(pwFields[2].element))) {
+            autocompleteDisabled(newPasswordField) ||
+            autocompleteDisabled(oldPasswordField)) {
                 this.log("(form submission ignored -- autocomplete=off found)");
                 return;
-        }
-
-
-        
-        var pw1 = pwFields[0].element.value;
-        var pw2 = (pwFields[1] ? pwFields[1].element.value : null);
-        var pw3 = (pwFields[2] ? pwFields[2].element.value : null);
-        
-        var oldPasswordField = null, newPasswordField = pwFields[0].element;
-
-        if (pwFields.length == 3) {
-            
-
-            if (pw1 == pw2 && pw2 == pw3) {
-                
-                pwFields.length = 1;
-            } else if (pw1 == pw2) {
-                newPasswordField = pwFields[0].element;
-                oldPasswordField = pwFields[2].element;
-            } else if (pw2 == pw3) {
-                oldPasswordField = pwFields[0].element;
-                newPasswordField = pwFields[2].element;
-            } else  if (pw1 == pw3) {
-                
-                newPasswordField = pwFields[0].element;
-                oldPasswordField = pwFields[1].element;
-            } else {
-                
-                this.log("(form submission ignored -- all 3 pw fields differ)");
-                return;
-            }
-        } else if (pwFields.length == 2) {
-            if (pw1 == pw2) {
-                
-                pwFields.length = 1;
-            } else {
-                
-                oldPasswordField = pwFields[0].element;
-                newPasswordField = pwFields[1].element;
-            }
         }
 
 
@@ -775,18 +812,15 @@ LoginManager.prototype = {
 
         
         
-        if (!usernameField) {
-            
-            
-            if (!oldPasswordField) {
-                this.log("(form submission ignored -- couldn't find a " +
-                         "username, and no oldPasswordField found.");
-                return;
-            }
+        
+        if (!usernameField && oldPasswordField) {
 
             var ok, username;
-            var logins = pwmgr.findLogins({}, hostname, formSubmitURL, null);
+            var logins = this.findLogins({}, hostname, formSubmitURL, null);
 
+            
+            
+            
             
             
             
@@ -799,12 +833,12 @@ LoginManager.prototype = {
                 return;
             } else if (logins.length == 1) {
                 username = logins[0].username;
-                ok = _promptToChangePassword(win, username)
+                ok = this._promptToChangePassword(win, username)
             } else {
                 var usernames = [];
                 logins.forEach(function(l) { usernames.push(l.username); });
 
-                [ok, username] = _promptToChangePasswordWithUsername(
+                [ok, username] = this._promptToChangePasswordWithUsernames(
                                                                 win, usernames);
             }
 
@@ -829,15 +863,23 @@ LoginManager.prototype = {
             return;
         }
 
+        if (!usernameField && !oldPasswordField) {
+            this.log("XXX not handled yet");
+            return;
+        }
 
         
         
-        existingLogin = findExistingLogin(this);
+        existingLogin = findExistingLogin(this, hostname, formSubmitURL,
+                                          usernameField);
         if (existingLogin) {
+            this.log("Found an existing login matching this form submission");
+
             
-            this.log("Updating password for existing login.");
-            if (existingLogin.password != newPasswordField.value)
+            if (existingLogin.password != formLogin.password) {
+                this.log("...Updating password for existing login.");
                 this.modifyLogin(existingLogin, formLogin);
+            }
 
             return;
         }
@@ -898,207 +940,90 @@ LoginManager.prototype = {
 
 
 
-
-    _fillDocument : function (doc)  {
-
-        function getElementByName (elements, name) {
-            for (var i = 0; i < elements.length; i++) {
-                var element = elements[i];
-                if (element.name && element.name == name)
-                    return element;
-            }
-            return null;
-        };
-
-        
-
-
-
-
-
-
-
+    _fillDocument : function (doc) {
         var forms = doc.forms;
         if (!forms || forms.length == 0)
             return; 
 
         var formOrigin = this._getPasswordOrigin(doc.documentURI);
-        var prefillForm = this._prefBranch.getBoolPref("autofillForms");
+        var autofillForm = this._prefBranch.getBoolPref("autofillForms");
 
         this.log("fillDocument found " + forms.length +
                  " forms on " + doc.documentURI);
 
-        
-        
-        
-        
+        var previousActionOrigin = null;
 
         for (var i = 0; i < forms.length; i++) {
             var form = forms[i];
-
-            var firstMatch = null;
-            var attachedToInput = false;
-            var prefilledUser = false;
-            var userField, passField;
-            
-            var tempUserField = null, tempPassField = null;
-
-
             var actionOrigin = this._getActionOrigin(form);
 
-            var logins = this.findLogins({}, formOrigin, actionOrigin, null);
+            
+            
+            
+            
+            var [usernameField, passwordField, ignored] =
+                this._getFormFields(form, false);
 
-            this.log("form[" + i + "]: found " + logins.length +
-                     " matching logins.");
+            
+            if (passwordField == null)
+                continue;
 
-            for (var j = 0; j < logins.length; j++) {
-                var login = logins[j];
 
-                if (login.usernameField != "") {
-                    var foundNode = getElementByName(form.elements,
-                                                     login.usernameField);
-                    var tempUserField = foundNode;
-                }
+            
+            
+            if (actionOrigin != previousActionOrigin) {
+                var logins =
+                    this.findLogins({}, formOrigin, actionOrigin, null);
 
-                var oldUserValue;
-                var userFieldFound = false;
+                this.log("form[" + i + "]: got " + logins.length + " logins.");
 
-                if (tempUserField) {
-                    if (tempUserField.type != "text")
-                        continue;
+                previousActionOrigin = actionOrigin;
+            } else {
+                this.log("form[" + i + "]: using logins from last form.");
+            }
 
-                    oldUserValue = tempUserField.value;
-                    userField = tempUserField;
-                    userFieldFound = true;
-                } else if (login.passwordField == "") {
-                    
-                    
-                    
-                    
 
-                    
-                    for (var k = 0; i < form.elements.length; k++) {
-                        
-                        var inputField = form.elements[k];
+            
+            if (logins.length == 0)
+                continue;
 
-                        if (inputField.type != "text")
-                            continue;
 
-                        if (login.usernameField.toLowerCase() ==
-                            inputField.name.toLowerCase())
-                        {
-                            oldUserValue = inputField.value;
-                            userField = inputField;
-                            foundNode = inputField;
-                            login.usernameField = inputField.name;
-                            
-                            userFieldFound = true;
-                            break;
-                        }
-                    }
-                }
+            
+            
+            
+            
+            if (usernameField)
+                this._attachToInput(usernameField);
+
+            if (autofillForm) {
 
                 
-                this.log(".... found userField? " + userFieldFound);
-                if (!userFieldFound && login.usernameField != "")
-                    continue;
+                
+                if (usernameField && usernameField.value) {
+                    var username = usernameField.value;
 
-                if (login.passwordField != "") {
-                    foundNode = getElementByName(form.elements,
-                                                 login.passwordField);
-                    if (foundNode && foundNode.type != "password")
-                        foundNode = null;
+                    var foundLogin;
+                    var found = logins.some(function(l) {
+                                                foundLogin = l;
+                                                return (l.username == username);
+                                            });
+                    if (found)
+                        passwordField.value = foundLogin.password;
 
-                    tempPassField = foundNode;
-                } else if (userField) {
-                    
-                    
-                    
-
-                    for (var index = 0; index < form.elements.length; index++) {
-                        if (form.elements[index].isSameNode(foundNode))
-                            break;
-                    }
-
-                    if (index >= 0) {
-                        
-                        for (var l = index + 1; l < form.elements.length; l++) {
-                            var e = form.elements[l];
-                            if (e.type == "password")
-                                foundNode = tempPassField = e;
-                        }
-                    }
-
-                    if (!tempPassField && index != 0) {
-                        
-                        for (l = index - 1; l >= 0; l--) {
-                            var e = form.elements[l];
-                            if (e.type == "password")
-                                foundNode = tempPassField = e;
-                        }
-                    }
-                }
-
-                this.log(".... found passField? " +
-                            (tempPassField ? true : false));
-                if (!tempPassField)
-                    continue;
-
-                oldPassValue = tempPassField.value;
-                passField = tempPassField;
-                if (login.passwordField == "")
-                    login.passwordField = passField.name;
-
-                if (oldUserValue != "" && prefillForm) {
-                    
-                    
-                    
-                    
-                    
-
-                    prefilledUser = true;
-                    if (login.username == oldUserValue)
-                        passField.value = login.password;
-                }
-
-                if (firstMatch && userField && !attachedToInput) {
-                    
-                    
-                    
-                    
-
-                    this.log(".... found multiple matching logins, " +
-                             "attaching autocomplete stuff");
-                    this._attachToInput(userField);
-                    attachedToInput = true;
-                } else {
-                    firstMatch = login;
+                } else if (logins.length == 1) {
+                    if (usernameField)
+                        usernameField.value = logins[0].username;
+                    passwordField.value = logins[0].password;
                 }
             }
-
-            
-            
-            
-            
-
-            if (firstMatch && !attachedToInput) {
-                if (userField)
-                    this._attachToInput(userField);
-
-                if (!prefilledUser && prefillForm) {
-                        if (userField)
-                            userField.value = firstMatch.username;
-
-                        passField.value = firstMatch.password;
-                }
-            }
-
-            
-        }
+        } 
     },
 
 
     
+
+
+
 
 
 
@@ -1241,11 +1166,12 @@ LoginManager.prototype = {
         var dialogTitle = this._getLocalizedString(
                                     "passwordChangeTitle");
 
+        
         var result = this._promptService.confirmEx(aWindow,
                                 dialogTitle, dialogText, buttonFlags,
                                 null, null, null,
                                 null, {});
-        return result;
+        return !result;
     },
 
 
@@ -1269,16 +1195,18 @@ LoginManager.prototype = {
 
         var dialogText  = this._getLocalizedString("userSelectText");
         var dialogTitle = this._getLocalizedString("passwordChangeTitle");
-        var selectedUser = { value: null };
+        var selectedUser = null, selectedIndex = { value: null };
 
         
         
-        var result = this._promptService.select(aWindow,
+        var ok = this._promptService.select(aWindow,
                                 dialogTitle, dialogText,
                                 usernames.length, usernames,
-                                selectedUser);
+                                selectedIndex);
+        if (ok)
+            selectedUser = usernames[selectedIndex.value];
 
-        return [result, selectedUser.value];
+        return [ok, selectedUser];
     },
 
 
