@@ -63,7 +63,8 @@ js_InitExceptionClasses(JSContext *cx, JSObject *obj);
 
 
 extern JSBool
-js_ErrorToException(JSContext *cx, const char *message, JSErrorReport *reportp);
+js_ErrorToException(JSContext *cx, const char *message, JSErrorReport *reportp,
+                    JSErrorCallback callback, void *userRef);
 
 
 
