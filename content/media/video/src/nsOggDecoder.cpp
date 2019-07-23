@@ -652,14 +652,15 @@ public:
         
         
         
-        mon.NotifyAll();
+        if (decoder->mDecoderPosition > initialDownloadPosition) {
+          mDecodeStateMachine->mBufferExhausted = PR_TRUE;
+        }
 
         
         
         
-        if (decoder->mDecoderPosition > initialDownloadPosition) {
-          mDecodeStateMachine->mBufferExhausted = PR_TRUE;
-        }
+        
+        mon.NotifyAll();
       }
     }
 
@@ -1385,7 +1386,8 @@ nsresult nsOggDecodeStateMachine::Run()
 
         
         QueueDecodedFrames();
-        while (mDecodedFrames.IsEmpty() && !mDecodingCompleted) {
+        while (mDecodedFrames.IsEmpty() && !mDecodingCompleted &&
+               !mBufferExhausted) {
           mon.Wait(PR_MillisecondsToInterval(PRInt64(mCallbackPeriod*500)));
           if (mState != DECODER_STATE_DECODING)
             break;
@@ -1408,7 +1410,7 @@ nsresult nsOggDecodeStateMachine::Run()
           PlayVideo(mDecodedFrames.Peek());
         }
 
-        if (mBufferExhausted && mState == DECODER_STATE_DECODING &&
+        if (mBufferExhausted &&
             mDecoder->GetState() == nsOggDecoder::PLAY_STATE_PLAYING &&
             !mDecoder->mReader->Stream()->IsDataCachedToEndOfStream(mDecoder->mDecoderPosition) &&
             !mDecoder->mReader->Stream()->IsSuspendedByCache()) {
@@ -1444,6 +1446,9 @@ nsresult nsOggDecodeStateMachine::Run()
           LOG(PR_LOG_DEBUG, ("Changed state from DECODING to BUFFERING"));
         } else {
           if (mBufferExhausted) {
+            
+            
+            
             mBufferExhausted = PR_FALSE;
             mon.NotifyAll();
           }
