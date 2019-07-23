@@ -284,7 +284,11 @@ PluginInstanceChild::AnswerNPP_GetValue_NPPVpluginNeedsXEmbed(
 
 #ifdef OS_LINUX
 
-    NPBool needsXEmbed;
+    
+    
+    
+    
+    unsigned long needsXEmbed = 0;
     *rv = mPluginIface->getvalue(GetNPP(), NPPVpluginNeedsXEmbed,
                                  reinterpret_cast<void*>(&needsXEmbed));
     *needs = needsXEmbed;
