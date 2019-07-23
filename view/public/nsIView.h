@@ -63,10 +63,9 @@ enum nsViewVisibility {
 };
 
 
-
 #define NS_IVIEW_IID    \
-{ 0x1377ae0e, 0x99e6, 0x42fa, \
-{ 0x9a, 0x2e, 0xee, 0xec, 0x6b, 0x31, 0xb7, 0xb6 } }
+  { 0x18b5f32a, 0x921a, 0x4772, \
+    { 0xa4, 0x3d, 0xf3, 0x04, 0x5c, 0xb9, 0xc2, 0x59 } }
 
 
 #define NS_VIEW_FLAGS_PUBLIC              0x00FF
@@ -89,12 +88,8 @@ enum nsViewVisibility {
 
 
 
-#define NS_VIEW_DISOWNS_WIDGET             0x0020
 
-
-
-
-#define NS_VIEW_FLAG_INVALIDATE_ON_SCROLL  0x0040
+#define NS_VIEW_FLAG_INVALIDATE_ON_SCROLL  0x0020
 
 struct nsViewZIndex {
   PRBool mIsAuto;
@@ -315,14 +310,6 @@ public:
 
 
   PRBool HasWidget() const { return mWindow != nsnull; }
-
-  
-
-
-
-  void DisownWidget() {
-    mVFlags |= NS_VIEW_DISOWNS_WIDGET;
-  }
 
   
 
