@@ -1522,13 +1522,11 @@ nsComboboxControlFrame::RestoreState(nsPresState* aState)
 
 
 
+
+
 PRBool
 nsComboboxControlFrame::ToolkitHasNativePopup()
 {
-#ifdef XP_MACOSX
   return nsContentUtils::GetBoolPref("ui.use_native_popup_windows");
-#else
-  return PR_FALSE;
-#endif
 }
 
