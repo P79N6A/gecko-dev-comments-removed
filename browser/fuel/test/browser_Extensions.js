@@ -28,9 +28,6 @@ function test() {
   is(Application.extensions.all[0].prefs.root, "extensions.inspector@mozilla.org.", "Check an extension preference root");
   
   
-  inspector.prefs.get("install-event-fired").reset();
-  
-  
   inspector.storage.set("test", "simple check");
   ok(inspector.storage.has("test"), "Checking that extension storage worked");
 
@@ -60,6 +57,9 @@ function test() {
 
   extmgr.cancelUninstallItem(testdata.inspectorid);
   is(gLastEvent, "cancel", "Checking that cancel event is fired");
+  
+  
+  inspector.prefs.get("install-event-fired").reset();
 }
 
 function onGenericEvent(event) {
