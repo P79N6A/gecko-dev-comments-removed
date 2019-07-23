@@ -964,11 +964,13 @@ XULContentSinkImpl::OpenTag(const PRUnichar** aAttributes,
 
         NS_ASSERTION(mState == eInScript || mState == eInDocumentElement,
                      "Unexpected state");
-        if (mState == eInScript || 1) {
+        if (mState == eInScript) {
             
             
             return NS_OK;
         }
+
+        *((int*)0) = 1;  
     }
 
     
