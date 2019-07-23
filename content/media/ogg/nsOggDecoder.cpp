@@ -169,7 +169,7 @@ void nsOggDecoder::Shutdown()
   
   
   nsCOMPtr<nsIRunnable> event =
-    NS_NEW_RUNNABLE_METHOD(nsOggDecoder, this, Stop);
+    NS_NewRunnableMethod(this, &nsOggDecoder::Stop);
   NS_DispatchToMainThread(event, NS_DISPATCH_NORMAL);
 
   nsContentUtils::UnregisterShutdownObserver(this);

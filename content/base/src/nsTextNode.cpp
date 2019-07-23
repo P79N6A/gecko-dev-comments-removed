@@ -345,8 +345,8 @@ nsAttributeTextNode::AttributeChanged(nsIDocument* aDocument,
     
     
     
-    nsCOMPtr<nsIRunnable> ev = new nsRunnableMethod<nsAttributeTextNode>(
-            this, &nsAttributeTextNode::UpdateText);
+    void (nsAttributeTextNode::*update)() = &nsAttributeTextNode::UpdateText;
+    nsCOMPtr<nsIRunnable> ev = NS_NewRunnableMethod(this, update);
     NS_DispatchToCurrentThread(ev);
   }
 }
