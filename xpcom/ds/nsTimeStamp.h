@@ -72,6 +72,21 @@ public:
     return TimeDuration(PRInt64(aMilliseconds)*PR_TicksPerSecond()/1000);
   }
 
+  TimeDuration operator+(const TimeDuration& aOther) const {
+    return TimeDuration(mValue + aOther.mValue);
+  }
+  TimeDuration operator-(const TimeDuration& aOther) const {
+    return TimeDuration(mValue - aOther.mValue);
+  }
+  TimeDuration& operator+=(const TimeDuration& aOther) {
+    mValue += aOther.mValue;
+    return *this;
+  }
+  TimeDuration& operator-=(const TimeDuration& aOther) {
+    mValue -= aOther.mValue;
+    return *this;
+  }
+
   PRBool operator<(const TimeDuration& aOther) const {
     return mValue < aOther.mValue;
   }
@@ -85,7 +100,6 @@ public:
     return mValue > aOther.mValue;
   }
 
-  
   
   
   
