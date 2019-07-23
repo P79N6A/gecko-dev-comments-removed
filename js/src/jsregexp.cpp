@@ -3083,6 +3083,7 @@ class RegExpNativeCompiler {
 
         Allocator &alloc = *JS_TRACE_MONITOR(cx).dataAlloc;
 
+        
         size_t len = (sizeof(GuardRecord) +
                       sizeof(VMSideExit) +
                       (re_length-1) * sizeof(jschar));
@@ -3196,6 +3197,15 @@ class RegExpNativeCompiler {
 
         if (outOfMemory())
             goto fail;
+
+        
+
+
+
+
+
+        JS_ASSERT(!lirbuf->sp && !lirbuf->rp);
+
         ::compile(assm, fragment verbose_only(, tempAlloc, tm->labels));
         if (assm->error() != nanojit::None)
             goto fail;
