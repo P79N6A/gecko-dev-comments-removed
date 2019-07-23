@@ -81,11 +81,13 @@ typedef struct {
 
 typedef enum {
   
-  MOZ_GTK_TAB_FIRST           = 1 << 0,
+  MOZ_GTK_TAB_MARGIN_MASK     = 0xFF,
   
-  MOZ_GTK_TAB_BEFORE_SELECTED = 1 << 1,
+  MOZ_GTK_TAB_BOTTOM          = 1 << 8,
   
-  MOZ_GTK_TAB_SELECTED        = 1 << 2
+  MOZ_GTK_TAB_FIRST           = 1 << 9,
+  
+  MOZ_GTK_TAB_SELECTED        = 1 << 10
 } GtkTabFlags;
 
 
@@ -355,6 +357,11 @@ gint moz_gtk_splitter_get_metrics(gint orientation, gint* size);
 
 
 GtkWidget* moz_gtk_get_scrollbar_widget(void);
+
+
+
+
+gint moz_gtk_get_tab_thickness(void);
 
 #ifdef __cplusplus
 }

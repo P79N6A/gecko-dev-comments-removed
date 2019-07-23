@@ -1677,9 +1677,19 @@ moz_gtk_progress_chunk_paint(GdkDrawable* drawable, GdkRectangle* rect,
     return MOZ_GTK_SUCCESS;
 }
 
+gint
+moz_gtk_get_tab_thickness(void)
+{
+    ensure_tab_widget();
+    if (YTHICKNESS(gTabWidget->style) < 2)
+        return 2; 
+
+    return YTHICKNESS(gTabWidget->style);
+}
+
 static gint
 moz_gtk_tab_paint(GdkDrawable* drawable, GdkRectangle* rect,
-                  GdkRectangle* cliprect, gint flags,
+                  GdkRectangle* cliprect, GtkTabFlags flags,
                   GtkTextDirection direction)
 {
     
@@ -1687,64 +1697,130 @@ moz_gtk_tab_paint(GdkDrawable* drawable, GdkRectangle* rect,
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     GtkStyle* style;
+
     ensure_tab_widget();
     gtk_widget_set_direction(gTabWidget, direction);
 
-    if (!(flags & MOZ_GTK_TAB_FIRST)) {
-        rect->x -= 2;
-        rect->width += 2;
-    }
-
     style = gTabWidget->style;
     TSOffsetStyleGCs(style, rect->x, rect->y);
-    gtk_paint_extension(style, drawable,
-                        ((flags & MOZ_GTK_TAB_SELECTED) ?
-                         GTK_STATE_NORMAL : GTK_STATE_ACTIVE),
-                        GTK_SHADOW_OUT, cliprect, gTabWidget, "tab", rect->x,
-                        rect->y, rect->width, rect->height, GTK_POS_BOTTOM);
 
-    if (flags & MOZ_GTK_TAB_BEFORE_SELECTED) {
-        gboolean before_selected = ((flags & MOZ_GTK_TAB_BEFORE_SELECTED)!=0);
-        cliprect->y -= 2;
-        cliprect->height += 2;
-        rect->y -= 2 * before_selected;
-        rect->x += rect->width - 2;
-
-        TSOffsetStyleGCs(style, rect->x, rect->y);
-
-        gtk_paint_extension(style, drawable, GTK_STATE_NORMAL, GTK_SHADOW_OUT,
+    if ((flags & MOZ_GTK_TAB_SELECTED) == 0) {
+        
+        gtk_paint_extension(style, drawable, GTK_STATE_ACTIVE, GTK_SHADOW_OUT,
                             cliprect, gTabWidget, "tab",
-                            rect->x, rect->y, rect->width,
-                            rect->height + (2 * before_selected),
-                            GTK_POS_BOTTOM);
+                            rect->x, rect->y, rect->width, rect->height,
+                            (flags & MOZ_GTK_TAB_BOTTOM) ?
+                                GTK_POS_TOP : GTK_POS_BOTTOM );
+    } else {
+        
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        gint gap_loffset, gap_roffset, gap_voffset, gap_height;
+
+        
+        gap_height = moz_gtk_get_tab_thickness();
+
+        
+        gap_voffset = flags & MOZ_GTK_TAB_MARGIN_MASK;
+        if (gap_voffset > gap_height)
+            gap_voffset = gap_height;
+
+        
+        gap_loffset = gap_roffset = 20; 
+        if (flags & MOZ_GTK_TAB_FIRST) {
+            if (direction == GTK_TEXT_DIR_RTL)
+                gap_roffset = 0;
+            else
+                gap_loffset = 0;
+        }
+
+        if (flags & MOZ_GTK_TAB_BOTTOM) {
+            
+            cliprect->height += gap_height - gap_voffset;
+            cliprect->y -= gap_height - gap_voffset;
+
+            
+            gtk_paint_extension(style, drawable, GTK_STATE_NORMAL,
+                                GTK_SHADOW_OUT, cliprect, gTabWidget, "tab",
+                                rect->x, rect->y + gap_voffset, rect->width,
+                                rect->height - gap_voffset, GTK_POS_TOP);
+
+            
+
+            gtk_style_apply_default_background(style, drawable, TRUE,
+                                               GTK_STATE_NORMAL, cliprect,
+                                               rect->x,
+                                               rect->y + gap_voffset
+                                                       - gap_height,
+                                               rect->width, gap_height);
+            gtk_paint_box_gap(style, drawable, GTK_STATE_NORMAL, GTK_SHADOW_OUT,
+                              cliprect, gTabWidget, "notebook",
+                              rect->x - gap_loffset,
+                              rect->y + gap_voffset - 3 * gap_height,
+                              rect->width + gap_loffset + gap_roffset,
+                              3 * gap_height, GTK_POS_BOTTOM,
+                              gap_loffset, rect->width);
+        } else {
+            
+            cliprect->height += gap_height - gap_voffset;
+
+            
+            gtk_paint_extension(style, drawable, GTK_STATE_NORMAL,
+                                GTK_SHADOW_OUT, cliprect, gTabWidget, "tab",
+                                rect->x, rect->y, rect->width,
+                                rect->height - gap_voffset, GTK_POS_BOTTOM);
+
+            
+
+            gtk_style_apply_default_background(style, drawable, TRUE,
+                                               GTK_STATE_NORMAL, cliprect,
+                                               rect->x,
+                                               rect->y + rect->height
+                                                       - gap_voffset,
+                                               rect->width, gap_height);
+            gtk_paint_box_gap(style, drawable, GTK_STATE_NORMAL, GTK_SHADOW_OUT,
+                              cliprect, gTabWidget, "notebook",
+                              rect->x - gap_loffset,
+                              rect->y + rect->height - gap_voffset,
+                              rect->width + gap_loffset + gap_roffset,
+                              3 * gap_height, GTK_POS_TOP,
+                              gap_loffset, rect->width);
+        }
+
     }
 
     return MOZ_GTK_SUCCESS;
@@ -1754,6 +1830,10 @@ static gint
 moz_gtk_tabpanels_paint(GdkDrawable* drawable, GdkRectangle* rect,
                         GdkRectangle* cliprect, GtkTextDirection direction)
 {
+    
+
+
+
     GtkStyle* style;
 
     ensure_tab_widget();
@@ -1762,9 +1842,10 @@ moz_gtk_tabpanels_paint(GdkDrawable* drawable, GdkRectangle* rect,
     style = gTabWidget->style;
 
     TSOffsetStyleGCs(style, rect->x, rect->y);
-    gtk_paint_box(style, drawable, GTK_STATE_NORMAL, GTK_SHADOW_OUT,
-                  cliprect, gTabWidget, "notebook", rect->x, rect->y,
-                  rect->width, rect->height);
+    gtk_paint_box_gap(style, drawable, GTK_STATE_NORMAL, GTK_SHADOW_OUT,
+                      cliprect, gTabWidget, "notebook", rect->x, rect->y,
+                      rect->width, rect->height,
+                      GTK_POS_TOP, -10, 0);
 
     return MOZ_GTK_SUCCESS;
 }
@@ -2198,6 +2279,10 @@ moz_gtk_get_widget_border(GtkThemeWidgetType widget, gint* left, gint* top,
         ensure_check_menu_item_widget();
         w = gCheckMenuItemWidget;
         break;
+    case MOZ_GTK_TAB:
+        ensure_tab_widget();
+        w = gTabWidget;
+        break;
     
     case MOZ_GTK_SPLITTER_HORIZONTAL:
     case MOZ_GTK_SPLITTER_VERTICAL:
@@ -2481,7 +2566,8 @@ moz_gtk_widget_paint(GtkThemeWidgetType widget, GdkDrawable* drawable,
                                             direction);
         break;
     case MOZ_GTK_TAB:
-        return moz_gtk_tab_paint(drawable, rect, cliprect, flags, direction);
+        return moz_gtk_tab_paint(drawable, rect, cliprect,
+                                 (GtkTabFlags) flags, direction);
         break;
     case MOZ_GTK_TABPANELS:
         return moz_gtk_tabpanels_paint(drawable, rect, cliprect, direction);
