@@ -3979,6 +3979,12 @@ nsPluginHostImpl::TrySetUpPluginInstance(const char *aMimeType,
   PRBool isJavaPlugin = pluginTag->mIsJavaPlugin;
 
   if (isJavaPlugin && !pluginTag->mIsNPRuntimeEnabledJavaPlugin) {
+#if !defined(OJI) && defined(XP_MACOSX)
+    
+    
+    return NS_ERROR_FAILURE;
+#endif
+
     
     nsCOMPtr<nsIDocument> document;
     aOwner->GetDocument(getter_AddRefs(document));
