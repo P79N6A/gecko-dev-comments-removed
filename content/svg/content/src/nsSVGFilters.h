@@ -46,6 +46,10 @@ class nsIDOMSVGAnimatedString;
 
 typedef nsSVGStylableElement nsSVGFEBase;
 
+#define NS_SVG_FE_CID \
+{ 0x60483958, 0xd229, 0x4a77, \
+  { 0x96, 0xb2, 0x62, 0x3e, 0x69, 0x95, 0x1e, 0x0e } }
+
 class nsSVGFE : public nsSVGFEBase
 
 {
@@ -60,7 +64,7 @@ protected:
     nsRefPtr<gfxImageSurface> mRealTarget;
     nsRefPtr<gfxImageSurface> mSource;
     nsRefPtr<gfxImageSurface> mTarget;
-    nsRect mRect;
+    nsRect mRect; 
     PRPackedBool mRescaling;
   };
 
@@ -89,10 +93,44 @@ public:
   
   virtual PRBool SubregionIsUnionOfRegions() { return PR_TRUE; }
 
+  NS_DECLARE_STATIC_IID_ACCESSOR(NS_SVG_FE_CID)
+  
   
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_NSIDOMSVGFILTERPRIMITIVESTANDARDATTRIBUTES
 
+  nsIDOMSVGAnimatedString* GetResultImageName() { return mResult; }
+  
+  
+  virtual void GetSourceImageNames(nsTArray<nsIDOMSVGAnimatedString*>* aSources);
+  
+  
+  
+  
+  
+  
+  virtual nsRect ComputeTargetBBox(const nsTArray<nsRect>& aSourceBBoxes,
+          const nsSVGFilterInstance& aInstance);
+  
+  
+  
+  
+  
+  
+  
+  virtual void ComputeNeededSourceBBoxes(const nsRect& aTargetBBox,
+          nsTArray<nsRect>& aSourceBBoxes, const nsSVGFilterInstance& aInstance);
+  
+  virtual nsresult Filter(nsSVGFilterInstance* aInstance) = 0;
+
+  static nsRect GetMaxRect() {
+    
+    
+    return nsRect(PR_INT32_MIN/2, PR_INT32_MIN/2, PR_INT32_MAX, PR_INT32_MAX);
+  }
+
+  operator nsISupports*() { return static_cast<nsIContent*>(this); }
+  
 protected:
   virtual PRBool OperatesOnPremultipledAlpha() { return PR_TRUE; }
 
