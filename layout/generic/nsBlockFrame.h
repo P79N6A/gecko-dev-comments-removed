@@ -543,12 +543,12 @@ protected:
   
   nscoord ComputeFloatWidth(nsBlockReflowState& aState,
                             const nsRect&       aFloatAvailableSpace,
-                            nsPlaceholderFrame* aPlaceholder);
+                            nsIFrame*           aFloat);
   
   
   nsresult ReflowFloat(nsBlockReflowState& aState,
                        const nsRect&       aFloatAvailableSpace,
-                       nsPlaceholderFrame* aPlaceholder,
+                       nsIFrame*           aFloat,
                        nsMargin&           aFloatMargin,
                        nsReflowStatus&     aReflowStatus);
 

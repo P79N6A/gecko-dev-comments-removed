@@ -867,7 +867,6 @@ nsLineLayout::ReflowFrame(nsIFrame* aFrame,
       pfd->SetFlag(PFD_SKIPWHENTRIMMINGWHITESPACE, PR_TRUE);
       nsIFrame* outOfFlowFrame = nsLayoutUtils::GetFloatFromPlaceholder(aFrame);
       if (outOfFlowFrame) {
-        nsPlaceholderFrame* placeholder = static_cast<nsPlaceholderFrame*>(aFrame);
         
         
         
@@ -884,7 +883,7 @@ nsLineLayout::ReflowFrame(nsIFrame* aFrame,
           
           availableWidth = 0;
         }
-        placedFloat = AddFloat(placeholder, availableWidth, aReflowStatus);
+        placedFloat = AddFloat(outOfFlowFrame, availableWidth, aReflowStatus);
         NS_ASSERTION(!(outOfFlowFrame->GetType() == nsGkAtoms::letterFrame &&
                        GetFirstLetterStyleOK()),
                     "FirstLetterStyle set on line with floating first letter");
