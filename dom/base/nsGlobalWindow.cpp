@@ -437,7 +437,6 @@ nsDummyJavaPluginOwner::Destroy()
   
   if (mInstance) {
     mInstance->Stop();
-    mInstance->Destroy();
 
     nsCOMPtr<nsIPluginInstancePeer> peer;
     mInstance->GetPeer(getter_AddRefs(peer));
