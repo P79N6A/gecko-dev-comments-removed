@@ -618,12 +618,12 @@ nsPrincipal::GetHashValue(PRUint32* aValue)
 
   
   if (mCert) {
-    *aValue = nsCRT::HashCode(mCert->fingerprint.get(), nsnull);
+    *aValue = nsCRT::HashCode(mCert->fingerprint.get());
   }
   else {
     nsCAutoString str;
     mCodebase->GetSpec(str);
-    *aValue = nsCRT::HashCode(str.get(), nsnull);
+    *aValue = nsCRT::HashCode(str.get());
   }
 
   return NS_OK;
