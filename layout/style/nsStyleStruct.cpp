@@ -289,14 +289,20 @@ nsChangeHint nsStyleMargin::CalcDifference(const nsStyleMargin& aOther) const
   if (mMargin == aOther.mMargin) {
     return NS_STYLE_HINT_NONE;
   }
-  return NS_STYLE_HINT_REFLOW;
+  
+  
+  return NS_SubtractHint(NS_STYLE_HINT_REFLOW,
+                         NS_CombineHint(nsChangeHint_ClearDescendantIntrinsics,
+                                        nsChangeHint_NeedDirtyReflow));
 }
 
 #ifdef DEBUG
 
 nsChangeHint nsStyleMargin::MaxDifference()
 {
-  return NS_STYLE_HINT_REFLOW;
+  return NS_SubtractHint(NS_STYLE_HINT_REFLOW,
+                         NS_CombineHint(nsChangeHint_ClearDescendantIntrinsics,
+                                        nsChangeHint_NeedDirtyReflow));
 }
 #endif
 
@@ -344,14 +350,20 @@ nsChangeHint nsStylePadding::CalcDifference(const nsStylePadding& aOther) const
   if (mPadding == aOther.mPadding) {
     return NS_STYLE_HINT_NONE;
   }
-  return NS_STYLE_HINT_REFLOW;
+  
+  
+  
+  
+  return NS_SubtractHint(NS_STYLE_HINT_REFLOW,
+                         nsChangeHint_ClearDescendantIntrinsics);
 }
 
 #ifdef DEBUG
 
 nsChangeHint nsStylePadding::MaxDifference()
 {
-  return NS_STYLE_HINT_REFLOW;
+  return NS_SubtractHint(NS_STYLE_HINT_REFLOW,
+                         nsChangeHint_ClearDescendantIntrinsics);
 }
 #endif
 
@@ -457,6 +469,8 @@ nsChangeHint nsStyleBorder::CalcDifference(const nsStyleBorder& aOther) const
   nsChangeHint shadowDifference =
     CalcShadowDifference(mBoxShadow, aOther.mBoxShadow);
 
+  
+  
   
   
   if (mTwipsPerPixel != aOther.mTwipsPerPixel ||
@@ -1055,20 +1069,34 @@ nsStylePosition::nsStylePosition(const nsStylePosition& aSource)
 nsChangeHint nsStylePosition::CalcDifference(const nsStylePosition& aOther) const
 {
   if (mZIndex != aOther.mZIndex) {
+    
     return NS_STYLE_HINT_REFLOW;
   }
   
-  if ((mOffset == aOther.mOffset) &&
-      (mWidth == aOther.mWidth) &&
+  if ((mWidth == aOther.mWidth) &&
       (mMinWidth == aOther.mMinWidth) &&
       (mMaxWidth == aOther.mMaxWidth) &&
       (mHeight == aOther.mHeight) &&
       (mMinHeight == aOther.mMinHeight) &&
       (mMaxHeight == aOther.mMaxHeight) &&
-      (mBoxSizing == aOther.mBoxSizing))
-    return NS_STYLE_HINT_NONE;
+      (mBoxSizing == aOther.mBoxSizing)) {
+    if (mOffset == aOther.mOffset) {
+      return NS_STYLE_HINT_NONE;
+    } else {
+      
+      
+      
+      
+      return NS_CombineHint(nsChangeHint_NeedReflow,
+                            nsChangeHint_ClearAncestorIntrinsics);;
+    }
+  }
+
   
-  return nsChangeHint_ReflowFrame;
+  
+  return NS_SubtractHint(nsChangeHint_ReflowFrame,
+                         NS_CombineHint(nsChangeHint_ClearDescendantIntrinsics,
+                                        nsChangeHint_NeedDirtyReflow));
 }
 
 #ifdef DEBUG
@@ -1579,10 +1607,16 @@ nsChangeHint nsStyleDisplay::CalcDifference(const nsStyleDisplay& aOther) const
       || mOverflowY != aOther.mOverflowY)
     NS_UpdateHint(hint, nsChangeHint_ReconstructFrame);
 
-  if (mFloats != aOther.mFloats)
-    NS_UpdateHint(hint, nsChangeHint_ReflowFrame);    
+  if (mFloats != aOther.mFloats) {
+    
+    NS_UpdateHint(hint,
+       NS_SubtractHint(nsChangeHint_ReflowFrame,
+                       NS_CombineHint(nsChangeHint_ClearDescendantIntrinsics,
+                                      nsChangeHint_NeedDirtyReflow)));
+  }
 
   if (mClipFlags != aOther.mClipFlags || mClip != aOther.mClip) {
+    
     NS_UpdateHint(hint, nsChangeHint_ReflowFrame);
   }
   
@@ -2002,6 +2036,8 @@ nsCSSShadowArray::Release()
   }
   return mRefCnt;
 }
+
+
 
 
 
