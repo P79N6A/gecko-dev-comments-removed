@@ -1758,7 +1758,7 @@ namespace nanojit
 #ifdef MEMORY_INFO
 		loopJumps.set_meminfo_name("LIR loopjumps");
 #endif
-		assm->beginAssembly(&regMap);
+		assm->beginAssembly(triggerFrag, &regMap);
 
 		
 		Fragment* root = triggerFrag;
