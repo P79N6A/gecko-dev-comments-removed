@@ -44,11 +44,6 @@
 #include "nsIDOMElement.h"
 #include "nsIEditor.h"
 
-#define CHANGE_CSSINLINESTYLE_TXN_CID \
-{/* a2185c9e-1dd1-11b2-88d6-d89704bf7a5a */ \
-0xa2185c9e, 0x1dd1, 0x11b2, \
-{0x88, 0xd6, 0xd8, 0x97, 0x04, 0xbf, 0x7a, 0x5a} }
-
 
 
 
@@ -56,9 +51,6 @@
 class ChangeCSSInlineStyleTxn : public EditTxn
 {
 public:
-
-  static const nsIID& GetCID() { static const nsIID iid = CHANGE_CSSINLINESTYLE_TXN_CID; return iid; }
-
   
 
 
@@ -88,9 +80,9 @@ public:
 
   NS_IMETHOD AddValueToMultivalueProperty(nsAString & aValues, const nsAString  & aNewValue);
 
-private:
   ChangeCSSInlineStyleTxn();
 
+private:
   
 
 
@@ -141,8 +133,6 @@ protected:
 
   
   PRBool   mRemoveProperty;
-
-  friend class TransactionFactory;
 };
 
 #endif

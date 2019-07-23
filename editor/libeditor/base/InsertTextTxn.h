@@ -68,11 +68,8 @@ public:
                   const nsAString& aString,
                   nsIEditor *aEditor);
 
-private:
-	
-	InsertTextTxn();
+  InsertTextTxn();
 
-public:
 	
   NS_DECL_EDITTXN
 
@@ -102,8 +99,6 @@ protected:
 
   
   nsIEditor *mEditor;   
-
-  friend class TransactionFactory;
 };
 
 #endif
