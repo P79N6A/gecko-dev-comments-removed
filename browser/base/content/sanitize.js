@@ -461,12 +461,9 @@ Sanitizer.showUI = function(aParentWindow)
 
 
 
-
-
 Sanitizer.sanitize = function(aParentWindow) 
 {
   Sanitizer.showUI(aParentWindow);
-  return null;
 };
 
 Sanitizer.onStartup = function() 
