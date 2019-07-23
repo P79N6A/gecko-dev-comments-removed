@@ -1486,7 +1486,7 @@ nsExternalHelperAppService::GetProtocolHandlerInfo(const nsACString &aScheme,
   
   
   *aHandlerInfo = GetProtocolInfoFromOS(aScheme).get();
-  if (!aHandlerInfo) {
+  if (!(*aHandlerInfo)) {
     
     return NS_ERROR_FAILURE;
   }
