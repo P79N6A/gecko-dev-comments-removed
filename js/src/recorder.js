@@ -37,9 +37,9 @@
 
 
  
-eval({
-	start: function(pc) {
-		print("Recording at @" + pc);
-	}
-})
+({
+    start: function(pc) {
+        print("Recording at @" + pc);
+    }
+});
 
