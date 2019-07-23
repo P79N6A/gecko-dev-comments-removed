@@ -63,6 +63,28 @@ extern JSClass js_ArrayClass, js_SlowArrayClass;
 #define OBJ_IS_ARRAY(cx,obj)    (OBJ_IS_DENSE_ARRAY(cx, obj) ||               \
                                  OBJ_GET_CLASS(cx, obj) == &js_SlowArrayClass)
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+static JS_INLINE JSObject *
+js_GetProtoIfDenseArray(JSContext *cx, JSObject *obj)
+{
+    return OBJ_IS_DENSE_ARRAY(cx, obj) ? OBJ_GET_PROTO(cx, obj) : obj;
+}
+
 extern JSObject *
 js_InitArrayClass(JSContext *cx, JSObject *obj);
 
