@@ -245,19 +245,7 @@ js_GetArgsObject(JSContext *cx, JSStackFrame *fp)
 
 
 
-    JSFunction *fun = fp->fun;
-    JS_ASSERT(fun && (!(fun->flags & JSFUN_HEAVYWEIGHT) || fp->varobj));
-
-    
-
-
-
-
-    if (FUN_NULL_CLOSURE(fun) && fun->u.i.skipmin != 0) {
-        JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL,
-                             JSMSG_OPTIMIZED_CLOSURE_LEAK);
-        return JS_FALSE;
-    }
+    JS_ASSERT(fp->fun && (!(fp->fun->flags & JSFUN_HEAVYWEIGHT) || fp->varobj));
 
     
     while (fp->flags & JSFRAME_SPECIAL)
@@ -570,8 +558,14 @@ args_getProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
     slot = JSVAL_TO_INT(id);
     switch (slot) {
       case ARGS_CALLEE:
-        if (!TEST_OVERRIDE_BIT(fp, slot))
+        if (!TEST_OVERRIDE_BIT(fp, slot)) {
+            if (FUN_ESCAPE_HAZARD(fp->fun)) {
+                JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL,
+                                     JSMSG_OPTIMIZED_CLOSURE_LEAK);
+                return JS_FALSE;
+            }
             *vp = OBJECT_TO_JSVAL(fp->callee);
+        }
         break;
 
       case ARGS_LENGTH:
@@ -809,7 +803,7 @@ CheckForEscapingClosure(JSContext *cx, JSObject *obj, jsval *vp)
 
 
 
-            if (FUN_ESCAPE_HAZARD(fun)) {
+            if (FUN_NEEDS_WRAPPER(fun)) {
                 JSStackFrame *fp = (JSStackFrame *) JS_GetPrivate(cx, obj);
                 if (fp) {
                     JSObject *wrapper = WrapEscapingClosure(cx, fp, funobj, fun);
@@ -1350,14 +1344,12 @@ fun_getProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
       case FUN_CALLER:
         if (fp && fp->down && fp->down->fun) {
             
+            if (FUN_ESCAPE_HAZARD(fp->down->fun)) {
+                JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL,
+                                     JSMSG_OPTIMIZED_CLOSURE_LEAK);
+                return JS_FALSE;
+            }
 
-
-
-
-
-
-            JS_ASSERT_IF(fp->down->fun->u.i.skipmin != 0,
-                         !FUN_NULL_CLOSURE(fp->down->fun));
             *vp = OBJECT_TO_JSVAL(fp->down->callee);
         } else {
             *vp = JSVAL_NULL;
