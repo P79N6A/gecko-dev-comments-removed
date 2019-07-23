@@ -36,6 +36,7 @@
 
 
 
+
 var gDialog;
 var gBundleBrand;
 var gPKIBundle;
@@ -81,6 +82,19 @@ function initExceptionDialog() {
   setText("warningText", gPKIBundle.formatStringFromName("addExceptionBrandedWarning2",
                                                          [brandName], 1));
   gDialog.getButton("extra1").disabled = true;
+  
+  
+  
+  
+  try {
+    var pb = Components.classes["@mozilla.org/privatebrowsing;1"].
+             getService(Components.interfaces.nsIPrivateBrowsingService);
+    if (pb.privateBrowsingEnabled) {
+      var permanentCheckbox = document.getElementById("permanent");
+      permanentCheckbox.setAttribute("disabled", "true");
+      permanentCheckbox.removeAttribute("checked");
+    }
+  } catch (ex) {}
   
   var args = window.arguments;
   if (args && args[0]) {
