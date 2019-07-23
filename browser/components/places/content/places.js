@@ -901,10 +901,6 @@ var PlacesSearchBox = {
       
       break;
     case "bookmarks":
-      
-      
-      
-      currentOptions.resultType = currentOptions.RESULT_TYPE_URI;
       content.applyFilter(filterString, this.folders);
       break;
     case "history":
@@ -912,6 +908,8 @@ var PlacesSearchBox = {
         var query = PlacesUtils.history.getNewQuery();
         query.searchTerms = filterString;
         var options = currentOptions.clone();
+        
+        options.resultType = currentOptions.RESULT_TYPE_URI;
         options.queryType = Ci.nsINavHistoryQueryOptions.QUERY_TYPE_HISTORY;
         content.load([query], options);
       }
