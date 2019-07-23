@@ -1340,6 +1340,13 @@ JSD_GetValueClassName(JSDContext* jsdc, JSDValue* jsdval);
 
 
 
+extern JSD_PUBLIC_API(JSDScript*)
+JSD_GetScriptForValue(JSDContext* jsdc, JSDValue* jsdval);
+
+
+
+
+
 
 
 #define JSDPD_ENUMERATE  JSPD_ENUMERATE    /* visible to for/in loop */
