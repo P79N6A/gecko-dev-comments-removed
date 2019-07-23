@@ -88,6 +88,13 @@
 
 
 
+
+#itemList > listitem {
+  padding: 1px 0;
+}
+
+
+
 .prefWindow-dlgbuttons {
   -moz-margin-end: 0;
 }
