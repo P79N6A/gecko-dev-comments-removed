@@ -1852,6 +1852,21 @@ testBug463490.expected = true;
 test(testBug463490);
 
 
+function shortRecursiveLoop(b, c) {
+    for (var i = 0; i < c; i++) {
+        if (b)
+            shortRecursiveLoop(c - 1);
+    }
+}
+function testClosingRecursion() {
+    shortRecursiveLoop(false, 1);
+    shortRecursiveLoop(true, 3);
+    return true;
+}
+testClosingRecursion.expected = true;
+test(testClosingRecursion);
+
+
 
 
 
