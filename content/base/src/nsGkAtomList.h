@@ -1499,6 +1499,8 @@ GK_ATOM(onMozTapGesture, "onMozTapGesture")
 GK_ATOM(onMozPressTapGesture, "onMozPressTapGesture")
 
 
+GK_ATOM(onMozOrientation, "onMozOrientation")
+
 
 
 

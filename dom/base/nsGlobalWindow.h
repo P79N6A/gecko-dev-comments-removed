@@ -347,6 +347,8 @@ public:
   virtual NS_HIDDEN_(void) EnterModalState();
   virtual NS_HIDDEN_(void) LeaveModalState();
 
+  virtual NS_HIDDEN_(void) SetHasOrientationEventListener();
+
   
   NS_DECL_NSIDOMVIEWCSS
 
@@ -706,6 +708,9 @@ protected:
   
   PRPackedBool           mNeedsFocus : 1;
   PRPackedBool           mHasFocus : 1;
+
+  
+  PRPackedBool           mHasAcceleration  : 1;
 
   nsCOMPtr<nsIScriptContext>    mContext;
   nsWeakPtr                     mOpener;
