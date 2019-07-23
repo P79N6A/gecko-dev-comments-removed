@@ -46,6 +46,14 @@
 
 
 PRInt32 NS_COM_GLUE
+NS_CompareVersions(const PRUnichar *A, const PRUnichar *B);
+
+
+
+
+
+
+PRInt32 NS_COM_GLUE
 NS_CompareVersions(const char *A, const char *B);
 
 #endif 

@@ -127,7 +127,7 @@ NS_COM void StartupSpecialSystemDirectory()
 #if defined (XP_WIN)
     
     
-    gShell32DLLInst = LoadLibrary("Shell32.dll");
+    gShell32DLLInst = LoadLibraryW(L"shell32.dll");
     if(gShell32DLLInst)
     {
         gGetKnownFolderPath = (nsGetKnownFolderPath) 
