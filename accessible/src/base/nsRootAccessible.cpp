@@ -600,11 +600,6 @@ nsresult nsRootAccessible::HandleEventWithTarget(nsIDOMEvent* aEvent,
   }
 #endif
 
-  nsCOMPtr<nsIPresShell> eventShell = GetPresShellFor(aTargetNode);
-  if (!eventShell) {
-    return NS_OK;
-  }
-      
   nsIAccessibilityService *accService = GetAccService();
   NS_ENSURE_TRUE(accService, NS_ERROR_FAILURE);
 
@@ -615,13 +610,20 @@ nsresult nsRootAccessible::HandleEventWithTarget(nsIDOMEvent* aEvent,
     
     
     
-    nsCOMPtr<nsIWeakReference> weakShell(do_GetWeakReference(eventShell));
-    nsCOMPtr<nsIAccessible> accessible;
-    accService->GetCachedAccessible(aTargetNode, weakShell, getter_AddRefs(accessible));
-    nsCOMPtr<nsPIAccessibleDocument> privateAccDoc = do_QueryInterface(accessible);
-    if (privateAccDoc) {
-      privateAccDoc->Destroy();
+    nsCOMPtr<nsIDocument> doc(do_QueryInterface(aTargetNode));
+    nsCOMPtr<nsIAccessibleDocument> accDoc = GetDocAccessibleFor(doc);
+    nsCOMPtr<nsPIAccessNode> privateAcc = do_QueryInterface(accDoc);
+    if (privateAcc) {
+      privateAcc->Shutdown();
+      
+      
+      gGlobalDocAccessibleCache.Remove(static_cast<void*>(doc));
     }
+    return NS_OK;
+  }
+
+  nsCOMPtr<nsIPresShell> eventShell = GetPresShellFor(aTargetNode);
+  if (!eventShell) {
     return NS_OK;
   }
 
