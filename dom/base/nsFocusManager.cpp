@@ -2445,8 +2445,13 @@ nsFocusManager::GetNextTabbableContent(nsIPresShell* aPresShell,
           
           
           
-          else if (currentContent != aStartContent ||
-                   currentContent == aRootContent) {
+          
+          
+          
+          
+          else if (currentContent == aRootContent ||
+                   (currentContent != aStartContent &&
+                    (aForward || !GetRedirectedFocus(currentContent)))) {
             NS_ADDREF(*aResultContent = currentContent);
             return NS_OK;
           }
