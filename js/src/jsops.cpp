@@ -1677,7 +1677,6 @@ BEGIN_CASE(JSOP_SETMETHOD)
         atom = NULL;
         if (JS_LIKELY(obj->map->ops->setProperty == js_SetProperty)) {
             PropertyCache *cache = &JS_PROPERTY_CACHE(cx);
-            uint32 kshape = OBJ_SHAPE(obj);
 
             
 
@@ -1698,13 +1697,12 @@ BEGIN_CASE(JSOP_SETMETHOD)
 
 
 
-            entry = &cache->table[PropertyCache::hash(regs.pc, kshape)];
-            PCMETER(cache->pctestentry = entry);
-            PCMETER(cache->tests++);
-            PCMETER(cache->settests++);
-            if (entry->kpc == regs.pc && entry->kshape == kshape &&
-                PropertyCache::matchShape(cx, obj, kshape)) {
+            if (cache->testForSet(cx, regs.pc, obj, &entry, &obj2, &atom)) {
                 
+
+
+
+
 
 
 
@@ -1833,17 +1831,15 @@ BEGIN_CASE(JSOP_SETMETHOD)
                     break;
                 }
                 PCMETER(cache->setpcmisses++);
-            }
+                atom = NULL;
+            } else if (!atom) {
+                
 
-            atom = cache->fullTest(cx, regs.pc, &obj, &obj2, entry);
-            if (atom) {
-                PCMETER(cache->misses++);
-                PCMETER(cache->setmisses++);
-            } else {
+
+
                 ASSERT_VALID_PROPERTY_CACHE_HIT(0, obj, obj2, entry);
                 sprop = NULL;
                 if (obj == obj2) {
-                    JS_ASSERT(entry->vword.isSprop());
                     sprop = entry->vword.toSprop();
                     JS_ASSERT(sprop->writable());
                     JS_ASSERT(!OBJ_SCOPE(obj2)->sealed());
@@ -3359,6 +3355,7 @@ END_CASE(JSOP_ENDINIT)
 
 BEGIN_CASE(JSOP_INITPROP)
 BEGIN_CASE(JSOP_INITMETHOD)
+{
     
     JS_ASSERT(regs.sp - StackBase(fp) >= 2);
     rval = FETCH_OPND(-1);
@@ -3369,104 +3366,63 @@ BEGIN_CASE(JSOP_INITMETHOD)
     JS_ASSERT(OBJ_IS_NATIVE(obj));
     JS_ASSERT(!OBJ_GET_CLASS(cx, obj)->reserveSlots);
     JS_ASSERT(!(obj->getClass()->flags & JSCLASS_SHARE_ALL_PROPERTIES));
-    do {
-        JSScope *scope;
-        uint32 kshape;
-        PropertyCache *cache;
-        PropertyCacheEntry *entry;
+
+    JSScope *scope = OBJ_SCOPE(obj);
+    PropertyCacheEntry *entry;
+
+    
+
+
+
+
+
+
+
+
+
+
+
+    if (CX_OWNS_OBJECT_TITLE(cx, obj) &&
+        JS_PROPERTY_CACHE(cx).testForInit(rt, regs.pc, obj, scope, &sprop, &entry) &&
+        sprop->hasDefaultSetter() &&
+        sprop->parent == scope->lastProperty())
+    {
+        
+        slot = sprop->slot;
+        JS_ASSERT(slot == scope->freeslot);
+        if (slot < STOBJ_NSLOTS(obj)) {
+            ++scope->freeslot;
+        } else {
+            if (!js_AllocSlot(cx, obj, &slot))
+                goto error;
+            JS_ASSERT(slot == sprop->slot);
+        }
+
+        JS_ASSERT(!scope->lastProperty() ||
+                  scope->shape == scope->lastProperty()->shape);
+        if (scope->table) {
+            JSScopeProperty *sprop2 =
+                scope->addProperty(cx, sprop->id, sprop->getter(), sprop->setter(), slot,
+                                   sprop->attributes(), sprop->getFlags(), sprop->shortid);
+            if (!sprop2) {
+                js_FreeSlot(cx, obj, slot);
+                goto error;
+            }
+            JS_ASSERT(sprop2 == sprop);
+        } else {
+            JS_ASSERT(!scope->isSharedEmpty());
+            scope->extend(cx, sprop);
+        }
 
         
 
 
 
-        if (!CX_OWNS_OBJECT_TITLE(cx, obj))
-            goto do_initprop_miss;
 
-        scope = OBJ_SCOPE(obj);
-        JS_ASSERT(scope->object == obj);
-        JS_ASSERT(!scope->sealed());
-        kshape = scope->shape;
-        cache = &JS_PROPERTY_CACHE(cx);
-        entry = &cache->table[PropertyCache::hash(regs.pc, kshape)];
-        PCMETER(cache->pctestentry = entry);
-        PCMETER(cache->tests++);
-        PCMETER(cache->initests++);
-
-        if (entry->kpc == regs.pc &&
-            entry->kshape == kshape &&
-            entry->vshape() == rt->protoHazardShape) {
-            JS_ASSERT(entry->vcapTag() == 0);
-
-            PCMETER(cache->pchits++);
-            PCMETER(cache->inipchits++);
-
-            JS_ASSERT(entry->vword.isSprop());
-            sprop = entry->vword.toSprop();
-            JS_ASSERT(sprop->writable());
-
-            
-
-
-
-
-
-            if (!sprop->hasDefaultSetter())
-                goto do_initprop_miss;
-
-            
-
-
-
-
-            if (sprop->parent != scope->lastProperty())
-                goto do_initprop_miss;
-
-            
-
-
-
-
-            JS_ASSERT(!scope->inDictionaryMode());
-            JS_ASSERT_IF(scope->table, !scope->hasProperty(sprop));
-
-            slot = sprop->slot;
-            JS_ASSERT(slot == scope->freeslot);
-            if (slot < STOBJ_NSLOTS(obj)) {
-                ++scope->freeslot;
-            } else {
-                if (!js_AllocSlot(cx, obj, &slot))
-                    goto error;
-                JS_ASSERT(slot == sprop->slot);
-            }
-
-            JS_ASSERT(!scope->lastProperty() ||
-                      scope->shape == scope->lastProperty()->shape);
-            if (scope->table) {
-                JSScopeProperty *sprop2 =
-                    scope->addProperty(cx, sprop->id, sprop->getter(), sprop->setter(), slot,
-                                       sprop->attributes(), sprop->getFlags(), sprop->shortid);
-                if (!sprop2) {
-                    js_FreeSlot(cx, obj, slot);
-                    goto error;
-                }
-                JS_ASSERT(sprop2 == sprop);
-            } else {
-                JS_ASSERT(!scope->isSharedEmpty());
-                scope->extend(cx, sprop);
-            }
-
-            
-
-
-
-
-            TRACE_2(SetPropHit, entry, sprop);
-            LOCKED_OBJ_SET_SLOT(obj, slot, rval);
-            break;
-        }
-
-      do_initprop_miss:
-        PCMETER(cache->inipcmisses++);
+        TRACE_2(SetPropHit, entry, sprop);
+        LOCKED_OBJ_SET_SLOT(obj, slot, rval);
+    } else {
+        PCMETER(JS_PROPERTY_CACHE(cx).inipcmisses++);
 
         
         LOAD_ATOM(0);
@@ -3488,10 +3444,11 @@ BEGIN_CASE(JSOP_INITMETHOD)
                                         defineHow))) {
             goto error;
         }
-    } while (0);
+    }
 
     
     regs.sp--;
+}
 END_CASE(JSOP_INITPROP);
 
 BEGIN_CASE(JSOP_INITELEM)

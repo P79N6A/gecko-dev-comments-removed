@@ -147,8 +147,9 @@ struct PropertyCacheEntry
 #define JS_PROPERTY_CACHE_METERING 1
 #endif
 
-struct PropertyCache
+class PropertyCache
 {
+  private:
     enum {
         SIZE_LOG2 = 12,
         SIZE = JS_BIT(SIZE_LOG2),
@@ -158,6 +159,7 @@ struct PropertyCache
     PropertyCacheEntry  table[SIZE];
     JSBool              empty;
 #ifdef JS_PROPERTY_CACHE_METERING
+  public:
     PropertyCacheEntry  *pctestentry;   
     uint32              fills;          
     uint32              nofills;        
@@ -187,6 +189,7 @@ struct PropertyCache
     uint32              misses;         
     uint32              flushes;        
     uint32              pcpurges;       
+  private:
 # define PCMETER(x)     x
 #else
 # define PCMETER(x)     ((void)0)
@@ -205,12 +208,46 @@ struct PropertyCache
 
     static inline bool matchShape(JSContext *cx, JSObject *obj, uint32 shape);
 
+    JS_REQUIRES_STACK JSAtom *fullTest(JSContext *cx, jsbytecode *pc, JSObject **objp,
+                                       JSObject **pobjp, PropertyCacheEntry *entry);
+
+#ifdef DEBUG
+    void assertEmpty();
+#else
+    inline void assertEmpty() {}
+#endif
+
+  public:
     JS_ALWAYS_INLINE JS_REQUIRES_STACK void test(JSContext *cx, jsbytecode *pc,
                                                  JSObject *&obj, JSObject *&pobj,
                                                  PropertyCacheEntry *&entry, JSAtom *&atom);
 
-    JS_REQUIRES_STACK JSAtom *fullTest(JSContext *cx, jsbytecode *pc, JSObject **objp,
-                                       JSObject **pobjp, PropertyCacheEntry *entry);
+    
+
+
+
+
+
+
+
+
+
+
+    JS_ALWAYS_INLINE bool testForSet(JSContext *cx, jsbytecode *pc, JSObject *obj,
+                                     PropertyCacheEntry **entryp, JSObject **obj2p,
+                                     JSAtom **atomp);
+
+    
+
+
+
+
+
+
+
+
+    JS_ALWAYS_INLINE bool testForInit(JSRuntime *rt, jsbytecode *pc, JSObject *obj, JSScope *scope,
+                                      JSScopeProperty **spropp, PropertyCacheEntry **entryp);
 
     
 
@@ -226,14 +263,8 @@ struct PropertyCache
 
     void purge(JSContext *cx);
     void purgeForScript(JSScript *script);
-
-#ifdef DEBUG
-    void assertEmpty();
-#else
-    inline void assertEmpty() {}
-#endif
 };
 
 } 
 
-#endif 
+#endif
