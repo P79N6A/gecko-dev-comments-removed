@@ -56,7 +56,7 @@ main(int argc, char **argv)
 
   argpath_conv(&argv[1], &args[i]);
 
-  dumpargs(args);
+  
 
   return run(args);
 }
