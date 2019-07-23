@@ -411,6 +411,19 @@ function Startup()
   let obs = Cc["@mozilla.org/observer-service;1"].
             getService(Ci.nsIObserverService);
   obs.addObserver(gDownloadObserver, "download-manager-remove-download", false);
+
+  
+  gSearchBox.addEventListener("keypress", function(e) {
+    if (e.keyCode == e.DOM_VK_ESCAPE) {
+      
+      gSearchBox.value = "";
+      gSearchBox.doCommand();
+
+      
+      gDownloadsView.focus();
+      e.preventDefault();
+    }
+  }, true);
 }
 
 function Shutdown()
