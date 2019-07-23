@@ -500,7 +500,7 @@ nsBlockFrame::InvalidateInternal(const nsRect& aDamageRect,
   
   const nsStyleDisplay* disp = GetStyleDisplay();
   nsRect absPosClipRect;
-  if (GetAbsPosClipRect(disp, &absPosClipRect)) {
+  if (GetAbsPosClipRect(disp, &absPosClipRect, GetSize())) {
     
     
     nsRect r;

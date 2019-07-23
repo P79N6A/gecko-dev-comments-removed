@@ -1789,7 +1789,8 @@ NS_PTR_TO_INT32(frame->GetProperty(nsGkAtoms::embeddingLevel))
 
 
 
-  PRBool GetAbsPosClipRect(const nsStyleDisplay* aDisp, nsRect* aRect);
+  PRBool GetAbsPosClipRect(const nsStyleDisplay* aDisp, nsRect* aRect,
+                           const nsSize& aSize);
 
   
 
