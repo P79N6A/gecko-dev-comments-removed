@@ -492,20 +492,21 @@ nsXULGroupboxAccessible::GetRelationByType(PRUint32 aRelationType,
     
     
     
-    nsCOMPtr<nsIAccessible> testLabelAccessible;
-    while (NextChild(testLabelAccessible)) {
-      if (nsAccUtils::Role(testLabelAccessible) == nsIAccessibleRole::ROLE_LABEL) {
+    PRInt32 childCount = GetChildCount();
+    for (PRInt32 childIdx = 0; childIdx < childCount; childIdx++) {
+      nsAccessible *childAcc = GetChildAt(childIdx);
+      if (nsAccUtils::Role(childAcc) == nsIAccessibleRole::ROLE_LABEL) {
         
         
         
         nsCOMPtr<nsIAccessible> testGroupboxAccessible =
-          nsRelUtils::GetRelatedAccessible(testLabelAccessible,
+          nsRelUtils::GetRelatedAccessible(childAcc,
                                            nsIAccessibleRelation::RELATION_LABEL_FOR);
 
         if (testGroupboxAccessible == this) {
           
           return nsRelUtils::
-            AddTarget(aRelationType, aRelation, testLabelAccessible);
+            AddTarget(aRelationType, aRelation, childAcc);
         }
       }
     }

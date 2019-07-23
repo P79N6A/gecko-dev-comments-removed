@@ -350,10 +350,6 @@ protected:
   
   static nsresult GetFullKeyName(const nsAString& aModifierName, const nsAString& aKeyName, nsAString& aStringOut);
   static nsresult GetTranslatedString(const nsAString& aKey, nsAString& aStringOut);
-
-  
-  
-  nsIAccessible *NextChild(nsCOMPtr<nsIAccessible>& aAccessible);
     
   already_AddRefed<nsIAccessible> GetNextWithState(nsIAccessible *aStart, PRUint32 matchState);
 
