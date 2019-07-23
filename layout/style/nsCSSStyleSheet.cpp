@@ -190,8 +190,11 @@ nsMediaExpression::Matches(nsPresContext *aPresContext,
   
   
   if (required.GetUnit() == eCSSUnit_Null) {
-    return actual.GetUnit() != eCSSUnit_Integer ||
-           actual.GetIntValue() != 0;
+    if (actual.GetUnit() == eCSSUnit_Integer)
+      return actual.GetIntValue() != 0;
+    if (actual.IsLengthUnit())
+      return actual.GetFloatValue() != 0;
+    return PR_TRUE;
   }
 
   NS_ASSERTION(mFeature->mRangeType == nsMediaFeature::eMinMaxAllowed ||
