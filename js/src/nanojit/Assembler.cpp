@@ -259,7 +259,7 @@ namespace nanojit
 
 
     bool Assembler::canRemat(LIns *i) {
-        return i->isconst() || i->isconstq() || i->isop(LIR_alloc);
+        return i->isImmAny() || i->isop(LIR_alloc);
     }
 
     void Assembler::codeAlloc(NIns *&start, NIns *&end, NIns *&eip
@@ -568,7 +568,7 @@ namespace nanojit
     int Assembler::findMemFor(LIns *ins)
     {
 #if NJ_USES_QUAD_CONSTANTS
-        NanoAssert(!ins->isconstq());
+        NanoAssert(!ins->isconstf());
 #endif
         if (!ins->isInAr()) {
             uint32_t const arIndex = arReserve(ins);
@@ -1924,12 +1924,12 @@ namespace nanojit
 #if NJ_USES_QUAD_CONSTANTS
             
             
-            if (!op1->isconstq())
+            if (!op1->isconstf())
 #endif
             {
                 findMemFor(op1);
             }
-            if (! (op1->isconst() || op1->isconstf() || op1->isconstq()))
+            if (!op1->isImmAny())
                 findRegFor(op1, ins->isop(LIR_flive) ? FpRegs : GpRegs);
         }
 

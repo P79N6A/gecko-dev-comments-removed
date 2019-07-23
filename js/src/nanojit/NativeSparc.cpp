@@ -383,7 +383,7 @@ namespace nanojit
         }
 
         underrunProtect(48);
-        if (value->isconstq())
+        if (value->isconstf())
             {
                 
                 

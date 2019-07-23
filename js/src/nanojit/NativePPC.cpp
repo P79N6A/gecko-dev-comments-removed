@@ -625,6 +625,8 @@ namespace nanojit
             }
             asm_li(r, i->imm32());
         }
+        
+        
         else {
             d = findMemFor(i);
             if (IsFpReg(r)) {

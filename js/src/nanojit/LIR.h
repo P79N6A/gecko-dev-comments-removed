@@ -825,14 +825,12 @@ namespace nanojit
         bool isconstval(int32_t val) const {
             return isconst() && imm32()==val;
         }
+#ifdef NANOJIT_64BIT
         
         bool isconstq() const {
-            return
-#ifdef NANOJIT_64BIT
-                isop(LIR_quad) ||
-#endif
-                isop(LIR_float);
+            return isop(LIR_quad);
         }
+#endif
         
         bool isconstp() const
         {
@@ -845,6 +843,18 @@ namespace nanojit
         
         bool isconstf() const {
             return isop(LIR_float);
+        }
+        
+        bool isconstqf() const {
+            return
+#ifdef NANOJIT_64BIT
+                isconstq() ||
+#endif
+                isconstf();
+        }
+        
+        bool isImmAny() const {
+            return isconst() || isconstqf();
         }
 
         bool isBranch() const {
@@ -1316,13 +1326,14 @@ namespace nanojit
 
     inline int32_t LIns::imm32()     const { NanoAssert(isconst());  return toLInsI()->imm32; }
 
-    inline int32_t LIns::imm64_0()   const { NanoAssert(isconstq()); return toLInsN64()->imm64_0; }
-    inline int32_t LIns::imm64_1()   const { NanoAssert(isconstq()); return toLInsN64()->imm64_1; }
+    inline int32_t LIns::imm64_0()   const { NanoAssert(isconstqf()); return toLInsN64()->imm64_0; }
+    inline int32_t LIns::imm64_1()   const { NanoAssert(isconstqf()); return toLInsN64()->imm64_1; }
     uint64_t       LIns::imm64()     const {
-        NanoAssert(isconstq());
+        NanoAssert(isconstqf());
         return (uint64_t(toLInsN64()->imm64_1) << 32) | uint32_t(toLInsN64()->imm64_0);
     }
     double         LIns::imm64f()    const {
+        NanoAssert(isconstf());
         union {
             double f;
             uint64_t q;
