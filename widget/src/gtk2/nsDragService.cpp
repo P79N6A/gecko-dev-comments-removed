@@ -58,16 +58,11 @@
 #include "nsCRT.h"
 
 #include "gfxASurface.h"
-#include "gfxXlibSurface.h"
-#include "gfxContext.h"
 #include "nsImageToPixbuf.h"
 #include "nsIPresShell.h"
 #include "nsPresContext.h"
 #include "nsIDocument.h"
 #include "nsISelection.h"
-
-
-#define DRAG_IMAGE_ALPHA_LEVEL 0.5
 
 static PRLogModuleInfo *sDragLm = NULL;
 
@@ -207,90 +202,33 @@ nsDragService::InvokeDragSession(nsIDOMNode *aDOMNode,
                                                  1,
                                                  &event);
 
-        PRBool needsFallbackIcon = PR_FALSE;
+        GdkPixbuf* dragPixbuf = nsnull;
         nsRect dragRect;
         nsPresContext* pc;
-        nsRefPtr<gfxASurface> surface;
         if (mHasImage || mSelection) {
+          nsRefPtr<gfxASurface> surface;
           DrawDrag(aDOMNode, aRegion, mScreenX, mScreenY,
                    &dragRect, getter_AddRefs(surface), &pc);
+          if (surface) {
+            dragPixbuf =
+              nsImageToPixbuf::SurfaceToPixbuf(surface, dragRect.width, dragRect.height);
+          }
         }
 
-        if (surface) {
+        if (dragPixbuf) {
           PRInt32 sx = mScreenX, sy = mScreenY;
           ConvertToUnscaledDevPixels(pc, &sx, &sy);
-
-          PRInt32 offsetX = sx - NSToIntRound(dragRect.x);
-          PRInt32 offsetY = sy - NSToIntRound(dragRect.y);
-          if (!SetAlphaPixmap(surface, context, offsetX, offsetY, dragRect)) {
-            GdkPixbuf* dragPixbuf =
-              nsImageToPixbuf::SurfaceToPixbuf(surface, dragRect.width, dragRect.height);
-            if (dragPixbuf)
-              gtk_drag_set_icon_pixbuf(context, dragPixbuf, offsetX, offsetY);
-            else
-              needsFallbackIcon = PR_TRUE;
-          }
-        } else {
-          needsFallbackIcon = PR_TRUE;
+          gtk_drag_set_icon_pixbuf(context, dragPixbuf,
+                                   sx - NSToIntRound(dragRect.x),
+                                   sy - NSToIntRound(dragRect.y));
         }
-
-        if (needsFallbackIcon)
+        else
           gtk_drag_set_icon_default(context);
 
         gtk_target_list_unref(sourceList);
     }
 
     return NS_OK;
-}
-
-PRBool
-nsDragService::SetAlphaPixmap(gfxASurface *aSurface,
-                                 GdkDragContext *aContext,
-                                 PRInt32 aXOffset,
-                                 PRInt32 aYOffset,
-                                 const nsRect& dragRect)
-{
-    GdkScreen* screen = gtk_widget_get_screen(mHiddenWidget);
-
-    
-    
-    if (!gdk_screen_is_composited(screen))
-      return PR_FALSE;
-
-    GdkColormap* alphaColormap = gdk_screen_get_rgba_colormap(screen);
-    if (!alphaColormap)
-      return PR_FALSE;
-
-    GdkPixmap* pixmap = gdk_pixmap_new(NULL, dragRect.width, dragRect.height,
-                                       gdk_colormap_get_visual(alphaColormap)->depth);
-    if (!pixmap)
-      return PR_FALSE;
-
-    gdk_drawable_set_colormap(GDK_DRAWABLE(pixmap), alphaColormap);
-
-    
-    nsRefPtr<gfxASurface> xPixmapSurface =
-         nsWindow::GetSurfaceForGdkDrawable(GDK_DRAWABLE(pixmap),
-                                            dragRect.Size());
-    if (!xPixmapSurface)
-      return PR_FALSE;
-
-    nsRefPtr<gfxContext> xPixmapCtx = new gfxContext(xPixmapSurface);
-
-    
-    xPixmapCtx->SetOperator(gfxContext::OPERATOR_CLEAR);
-    xPixmapCtx->Paint();
-
-    
-    xPixmapCtx->SetOperator(gfxContext::OPERATOR_SOURCE);
-    xPixmapCtx->SetSource(aSurface);
-    xPixmapCtx->Paint(DRAG_IMAGE_ALPHA_LEVEL);
-
-    
-    gtk_drag_set_icon_pixmap(aContext, alphaColormap, pixmap, NULL,
-                             aXOffset, aYOffset);
-    gdk_pixmap_unref(pixmap);
-    return PR_TRUE;
 }
 
 NS_IMETHODIMP
