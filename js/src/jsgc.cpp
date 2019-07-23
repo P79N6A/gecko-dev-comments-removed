@@ -3178,11 +3178,6 @@ js_GC(JSContext *cx, JSGCInvocationKind gckind)
 #endif
 
     
-
-
-
-
-    js_DisablePropertyCache(cx);
     js_FlushPropertyCache(cx);
 
 #ifdef JS_THREADSAFE
@@ -3204,7 +3199,6 @@ js_GC(JSContext *cx, JSGCInvocationKind gckind)
             continue;
         memset(acx->thread->gcFreeLists, 0, sizeof acx->thread->gcFreeLists);
         GSN_CACHE_CLEAR(&acx->thread->gsnCache);
-        js_DisablePropertyCache(acx);
         js_FlushPropertyCache(acx);
     }
 #else
@@ -3477,14 +3471,19 @@ js_GC(JSContext *cx, JSGCInvocationKind gckind)
         goto restart;
     }
 
-    if (!(rt->shapeGen & SHAPE_OVERFLOW_BIT)) {
-        js_EnablePropertyCache(cx);
+    if (rt->shapeGen & SHAPE_OVERFLOW_BIT) {
+        
+
+
+
+
+        js_DisablePropertyCache(cx);
 #ifdef JS_THREADSAFE
         iter = NULL;
         while ((acx = js_ContextIterator(rt, JS_FALSE, &iter)) != NULL) {
             if (!acx->thread || acx->thread == cx->thread)
                 continue;
-            js_EnablePropertyCache(acx);
+            js_DisablePropertyCache(acx);
         }
 #endif
     }
