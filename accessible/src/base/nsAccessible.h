@@ -136,12 +136,7 @@ public:
 
 
 
-  nsresult GetARIAState(PRUint32 *aState);
-
-#ifdef MOZ_ACCESSIBILITY_ATK
-  static PRBool FindTextFrame(PRInt32 &index, nsPresContext *aPresContext, nsIFrame *aCurFrame, 
-                                   nsIFrame **aFirstTextFrame, const nsIFrame *aTextFrame);
-#endif
+  PRUint32 GetARIAState();
 
 #ifdef DEBUG_A11Y
   static PRBool IsTextInterfaceSupportCorrect(nsIAccessible *aAccessible);

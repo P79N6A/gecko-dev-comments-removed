@@ -939,6 +939,9 @@ nsRootAccessible::GetContentDocShell(nsIDocShellTreeItem *aStart)
       }
       nsCOMPtr<nsIAccessible> ancestor;
       accessible->GetParent(getter_AddRefs(ancestor));
+      if (ancestor == this) {
+        break; 
+      }
       accessible.swap(ancestor);
     }
 
