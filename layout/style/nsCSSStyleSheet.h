@@ -92,7 +92,6 @@ public:
 
 
 
-class CSSImportsCollectionImpl;
 class CSSRuleListImpl;
 static PRBool CascadeSheetRulesInto(nsICSSStyleSheet* aSheet, void* aData);
 
@@ -206,7 +205,6 @@ protected:
   nsICSSStyleSheet*     mParent;    
   nsICSSImportRule*     mOwnerRule; 
 
-  CSSImportsCollectionImpl* mImportsCollection;
   CSSRuleListImpl*      mRuleCollection;
   nsIDocument*          mDocument; 
   nsIDOMNode*           mOwningNode; 
