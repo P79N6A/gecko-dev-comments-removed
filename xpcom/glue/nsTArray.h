@@ -180,7 +180,12 @@ class nsTArrayElementTraits {
   public:
     
     static inline void Construct(E *e) {
-      new (static_cast<void *>(e)) E();
+      
+      
+      
+      
+      
+      new (static_cast<void *>(e)) E;
     }
     
     template<class A>
