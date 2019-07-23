@@ -342,7 +342,7 @@ nsContextMenu.prototype = {
     this.showItem("context-copyemail", this.onMailtoLink);
 
     
-    this.showItem("context-copylink", this.onLink);
+    this.showItem("context-copylink", this.onLink && !this.onMailtoLink);
     this.showItem("context-sep-copylink", this.onLink && this.onImage);
 
 #ifdef CONTEXT_COPY_IMAGE_CONTENTS
