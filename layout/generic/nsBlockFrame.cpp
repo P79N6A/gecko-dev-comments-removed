@@ -1460,7 +1460,7 @@ nsBlockFrame::ComputeCombinedArea(const nsHTMLReflowState& aReflowState,
 }
 
 nsresult
-nsBlockFrame::MarkLineDirty(line_iterator aLine)
+nsBlockFrame::MarkLineDirty(line_iterator aLine, const nsLineList* aLineList)
 {
   
   aLine->MarkDirty();
@@ -1476,7 +1476,7 @@ nsBlockFrame::MarkLineDirty(line_iterator aLine)
   
   
   
-  if (aLine != mLines.front() &&
+  if (aLine != (aLineList ? aLineList : &mLines)->front() &&
       aLine->IsInline() &&
       aLine.prev()->IsInline()) {
     aLine.prev()->MarkDirty();
@@ -6274,7 +6274,7 @@ nsBlockFrame::ChildIsDirty(nsIFrame* aChild)
     PRBool isValid;
     nsBlockInFlowLineIterator iter(this, aChild, &isValid);
     if (isValid) {
-      MarkLineDirty(iter.GetLine());
+      iter.GetContainer()->MarkLineDirty(iter.GetLine(), iter.GetLineList());
     }
   }
 

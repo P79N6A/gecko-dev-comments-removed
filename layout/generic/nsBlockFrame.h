@@ -480,7 +480,11 @@ protected:
 
 
 
-  nsresult MarkLineDirty(line_iterator aLine);
+
+
+
+  nsresult MarkLineDirty(line_iterator aLine,
+                         const nsLineList* aLineList = nsnull);
 
   
   PRBool ShouldJustifyLine(nsBlockReflowState& aState,
@@ -720,6 +724,11 @@ public:
   nsBlockFrame* GetContainer() { return mFrame; }
   PRBool GetInOverflow() { return mInOverflowLines != nsnull; }
 
+  
+
+
+
+  nsLineList* GetLineList() { return mInOverflowLines; }
 
   
 
