@@ -52,7 +52,7 @@ const Cr = Components.results;
 const CC = Components.Constructor;
 
 
-var DEBUG = false; 
+var DEBUG = true; 
 
 
 
