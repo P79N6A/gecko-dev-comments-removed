@@ -65,6 +65,13 @@
 
 #define CSS_PROPERTY_IGNORED_WHEN_COLORS_DISABLED (1<<4)
 
+
+
+
+enum nsStyleAnimType {
+  eStyleAnimType_None 
+};
+
 class nsCSSProps {
 public:
   static void AddRefTable(void);
@@ -109,6 +116,9 @@ public:
   static const nsCSSType       kTypeTable[eCSSProperty_COUNT_no_shorthands];
   static const nsStyleStructID kSIDTable[eCSSProperty_COUNT_no_shorthands];
   static const PRInt32* const  kKeywordTableTable[eCSSProperty_COUNT_no_shorthands];
+  static const nsStyleAnimType kAnimTypeTable[eCSSProperty_COUNT_no_shorthands];
+  static const ptrdiff_t
+    kStyleStructOffsetTable[eCSSProperty_COUNT_no_shorthands];
 
 private:
   static const PRUint32        kFlagsTable[eCSSProperty_COUNT];
