@@ -96,11 +96,12 @@ public:
   static inline PRBool IsComplexChar(PRUnichar u)
   {
     return IsComplexASCIIChar(u) ||
-           (0x1100 <= u && u <= 0x11ff) ||
-           (0x2000 <= u && u <= 0x21ff) ||
-           (0x2e80 <= u && u <= 0xd7ff) ||
-           (0xf900 <= u && u <= 0xfaff) ||
-           (0xff00 <= u && u <= 0xffef);
+           (0x0e01 <= u && u <= 0x0edf) || 
+           (0x1100 <= u && u <= 0x11ff) || 
+           (0x2000 <= u && u <= 0x21ff) || 
+           (0x2e80 <= u && u <= 0xd7ff) || 
+           (0xf900 <= u && u <= 0xfaff) || 
+           (0xff00 <= u && u <= 0xffef);   
   }
 
   
