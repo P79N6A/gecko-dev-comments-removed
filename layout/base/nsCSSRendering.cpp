@@ -2369,9 +2369,13 @@ PaintBackgroundLayer(nsPresContext* aPresContext,
 
   
   
+  nsRect bgClipRect = aBGClipRect;
+
   
   
-  nsPoint imageTopLeft, anchor, offset;
+  
+  
+  nsPoint imageTopLeft, anchor;
   if (NS_STYLE_BG_ATTACHMENT_FIXED == aLayer.mAttachment) {
     
     
@@ -2390,7 +2394,8 @@ PaintBackgroundLayer(nsPresContext* aPresContext,
     }
 
     
-    bgPositioningArea.SetRect(nsPoint(0, 0), topFrame->GetSize());
+    
+    bgPositioningArea = nsRect(-aForFrame->GetOffsetTo(topFrame), topFrame->GetSize());
 
     if (!pageContentFrame) {
       
@@ -2402,9 +2407,16 @@ PaintBackgroundLayer(nsPresContext* aPresContext,
       }
     }
 
-    offset = bgPositioningArea.TopLeft() - aForFrame->GetOffsetTo(topFrame);
-  } else {
-    offset = bgPositioningArea.TopLeft();
+    if (aRenderingContext.ThebesContext()->GetFlags() &
+        gfxContext::FLAG_DESTINED_FOR_SCREEN) {
+      
+      
+      
+      
+      
+      
+      bgClipRect.IntersectRect(bgClipRect, bgPositioningArea + aBorderArea.TopLeft());
+    }
   }
 
   nsSize imageSize = imageRenderer.ComputeSize(bgPositioningArea.Size());
@@ -2458,8 +2470,8 @@ PaintBackgroundLayer(nsPresContext* aPresContext,
   
   ComputeBackgroundAnchorPoint(aLayer, bgPositioningArea.Size(), imageSize,
                                &imageTopLeft, &anchor);
-  imageTopLeft += offset;
-  anchor += offset;
+  imageTopLeft += bgPositioningArea.TopLeft();
+  anchor += bgPositioningArea.TopLeft();
 
   nsRect destArea(imageTopLeft + aBorderArea.TopLeft(), imageSize);
   nsRect fillArea = destArea;
@@ -2467,14 +2479,14 @@ PaintBackgroundLayer(nsPresContext* aPresContext,
   PR_STATIC_ASSERT(NS_STYLE_BG_REPEAT_XY ==
                    (NS_STYLE_BG_REPEAT_X | NS_STYLE_BG_REPEAT_Y));
   if (repeat & NS_STYLE_BG_REPEAT_X) {
-    fillArea.x = aBGClipRect.x;
-    fillArea.width = aBGClipRect.width;
+    fillArea.x = bgClipRect.x;
+    fillArea.width = bgClipRect.width;
   }
   if (repeat & NS_STYLE_BG_REPEAT_Y) {
-    fillArea.y = aBGClipRect.y;
-    fillArea.height = aBGClipRect.height;
+    fillArea.y = bgClipRect.y;
+    fillArea.height = bgClipRect.height;
   }
-  fillArea.IntersectRect(fillArea, aBGClipRect);
+  fillArea.IntersectRect(fillArea, bgClipRect);
 
   imageRenderer.Draw(aPresContext, aRenderingContext, destArea, fillArea,
                      anchor + aBorderArea.TopLeft(), aDirtyRect);
