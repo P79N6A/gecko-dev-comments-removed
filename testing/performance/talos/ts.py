@@ -136,7 +136,7 @@ def RunStartupTests(profile_configs, num_runs):
     ffprofile.InitializeNewProfile(config[2], profile_dir)
 
     
-    times = RunStartupTest(config[2], profile_dir, 5, 30)
+    times = RunStartupTest(config[2], profile_dir, 5, 10)
     all_times.append(times)
 
     
