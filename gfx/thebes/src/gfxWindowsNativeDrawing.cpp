@@ -83,7 +83,8 @@ gfxWindowsNativeDrawing::BeginNativeDrawing()
         
         
         
-        if (surf->GetType() == gfxASurface::SurfaceTypeWin32 &&
+        if ((surf->GetType() == gfxASurface::SurfaceTypeWin32 ||
+             surf->GetType() == gfxASurface::SurfaceTypeWin32Printing) &&
             (surf->GetContentType() == gfxASurface::CONTENT_COLOR ||
              (surf->GetContentType() == gfxASurface::CONTENT_COLOR_ALPHA &&
               (mNativeDrawFlags & CAN_DRAW_TO_COLOR_ALPHA))))

@@ -547,7 +547,7 @@ NS_IMETHODIMP nsDeviceContextSpecWin::GetSurfaceForPrinter(gfxASurface **surface
       HDC dc = ::CreateDC(mDriverName, mDeviceName, NULL, mDevMode);
 
       
-      newSurface = new gfxWindowsSurface(dc, PR_TRUE);
+      newSurface = new gfxWindowsSurface(dc, gfxWindowsSurface::FLAG_TAKE_DC | gfxWindowsSurface::FLAG_FOR_PRINTING);
     }
   }
 
