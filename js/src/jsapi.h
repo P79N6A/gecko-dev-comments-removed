@@ -54,35 +54,122 @@ JS_BEGIN_EXTERN_C
 
 
 
-#define JSVAL_OBJECT            0x0     /* untagged reference to object */
-#define JSVAL_INT               0x1     /* tagged 31-bit integer value */
-#define JSVAL_DOUBLE            0x2     /* tagged reference to double */
-#define JSVAL_STRING            0x4     /* tagged reference to string */
-#define JSVAL_BOOLEAN           0x6     /* tagged boolean value */
+typedef enum jsvaltag {
+    JSVAL_OBJECT  =         0x0,     
+    JSVAL_INT     =         0x1,     
+    JSVAL_DOUBLE  =         0x2,     
+    JSVAL_STRING  =         0x4,     
+    JSVAL_BOOLEAN =         0x6      
+} jsvaltag;
+
+#define JSVAL_OBJECT ((jsvaltag)0x0)
+#define JSVAL_INT ((jsvaltag)0x1)
+#define JSVAL_DOUBLE ((jsvaltag)0x2)
+#define JSVAL_STRING ((jsvaltag)0x4)
+#define JSVAL_BOOLEAN ((jsvaltag)0x6)
 
 
 #define JSVAL_TAGBITS           3
 #define JSVAL_TAGMASK           JS_BITMASK(JSVAL_TAGBITS)
-#define JSVAL_TAG(v)            ((v) & JSVAL_TAGMASK)
-#define JSVAL_SETTAG(v,t)       ((v) | (t))
-#define JSVAL_CLRTAG(v)         ((v) & ~(jsval)JSVAL_TAGMASK)
 #define JSVAL_ALIGN             JS_BIT(JSVAL_TAGBITS)
 
 
-#define JSVAL_IS_OBJECT(v)      (JSVAL_TAG(v) == JSVAL_OBJECT)
-#define JSVAL_IS_NUMBER(v)      (JSVAL_IS_INT(v) || JSVAL_IS_DOUBLE(v))
-#define JSVAL_IS_INT(v)         ((v) & JSVAL_INT)
-#define JSVAL_IS_DOUBLE(v)      (JSVAL_TAG(v) == JSVAL_DOUBLE)
-#define JSVAL_IS_STRING(v)      (JSVAL_TAG(v) == JSVAL_STRING)
-#define JSVAL_IS_BOOLEAN(v)     (((v) & ~((jsval)1 << JSVAL_TAGBITS)) ==      \
-                                 JSVAL_BOOLEAN)
-#define JSVAL_IS_NULL(v)        ((v) == JSVAL_NULL)
-#define JSVAL_IS_VOID(v)        ((v) == JSVAL_VOID)
-#define JSVAL_IS_PRIMITIVE(v)   (!JSVAL_IS_OBJECT(v) || JSVAL_IS_NULL(v))
+#define JSVAL_TAG(v)            ((jsvaltag)((v) & JSVAL_TAGMASK))
 
 
-#define JSVAL_IS_GCTHING(v)     (!((v) & JSVAL_INT) &&                        \
-                                 JSVAL_TAG(v) != JSVAL_BOOLEAN)
+#define JSVAL_SETTAG(v, t) ((v) | (t))
+
+static JS_ALWAYS_INLINE jsval
+JSVAL_CLRTAG(jsval v)
+{
+    return v & ~(jsval)JSVAL_TAGMASK;
+}
+
+
+
+
+
+#define JSVAL_NULL              ((jsval) 0)
+#define JSVAL_ZERO              INT_TO_JSVAL(0)
+#define JSVAL_ONE               INT_TO_JSVAL(1)
+#define JSVAL_FALSE             PSEUDO_BOOLEAN_TO_JSVAL(JS_FALSE)
+#define JSVAL_TRUE              PSEUDO_BOOLEAN_TO_JSVAL(JS_TRUE)
+#define JSVAL_VOID              PSEUDO_BOOLEAN_TO_JSVAL(2)
+
+
+
+
+
+
+
+
+
+
+#define JSVAL_TO_PSEUDO_BOOLEAN(v) ((JSBool) ((v) >> JSVAL_TAGBITS))
+#define PSEUDO_BOOLEAN_TO_JSVAL(b)                                            \
+    JSVAL_SETTAG((jsval) (b) << JSVAL_TAGBITS, JSVAL_BOOLEAN)
+
+
+static JS_ALWAYS_INLINE JSBool
+JSVAL_IS_OBJECT(jsval v)
+{
+    return JSVAL_TAG(v) == JSVAL_OBJECT;
+}
+
+static JS_ALWAYS_INLINE JSBool
+JSVAL_IS_INT(jsval v)
+{
+    return v & JSVAL_INT;
+}
+
+static JS_ALWAYS_INLINE JSBool
+JSVAL_IS_DOUBLE(jsval v)
+{
+    return JSVAL_TAG(v) == JSVAL_DOUBLE;
+}
+
+static JS_ALWAYS_INLINE JSBool
+JSVAL_IS_NUMBER(jsval v)
+{
+    return JSVAL_IS_INT(v) || JSVAL_IS_DOUBLE(v);
+}
+
+static JS_ALWAYS_INLINE JSBool
+JSVAL_IS_STRING(jsval v)
+{
+    return JSVAL_TAG(v) == JSVAL_STRING;
+}
+
+static JS_ALWAYS_INLINE JSBool
+JSVAL_IS_BOOLEAN(jsval v)
+{
+    return (v & ~((jsval)1 << JSVAL_TAGBITS)) == JSVAL_BOOLEAN;
+}
+
+static JS_ALWAYS_INLINE JSBool
+JSVAL_IS_NULL(jsval v)
+{
+    return v == JSVAL_NULL;
+}
+
+static JS_ALWAYS_INLINE JSBool
+JSVAL_IS_VOID(jsval v)
+{
+    return v == JSVAL_VOID;
+}
+
+static JS_ALWAYS_INLINE JSBool
+JSVAL_IS_PRIMITIVE(jsval v)
+{
+    return !JSVAL_IS_OBJECT(v) || JSVAL_IS_NULL(v);
+}
+
+
+static JS_ALWAYS_INLINE JSBool
+JSVAL_IS_GCTHING(jsval v)
+{
+    return !(v & JSVAL_INT) && JSVAL_TAG(v) != JSVAL_BOOLEAN;
+}
 
 static JS_ALWAYS_INLINE void *
 JSVAL_TO_GCTHING(jsval v)
@@ -145,35 +232,17 @@ STRING_TO_JSVAL(JSString *str)
 #define JSVAL_INT_POW2(n)       ((jsval)1 << (n))
 #define JSVAL_INT_MIN           (-JSVAL_INT_POW2(30))
 #define JSVAL_INT_MAX           (JSVAL_INT_POW2(30) - 1)
+
+
 #define INT_FITS_IN_JSVAL(i)    ((jsuint)(i) - (jsuint)JSVAL_INT_MIN <=      \
                                  (jsuint)(JSVAL_INT_MAX - JSVAL_INT_MIN))
+
+
 #define JSVAL_TO_INT(v)         ((jsint)(v) >> 1)
+
+
+
 #define INT_TO_JSVAL(i)         (((jsval)(i) << 1) | JSVAL_INT)
-
-
-
-
-
-
-
-
-
-
-#define JSVAL_TO_PSEUDO_BOOLEAN(v) ((JSBool) ((v) >> JSVAL_TAGBITS))
-#define PSEUDO_BOOLEAN_TO_JSVAL(b)                                            \
-    JSVAL_SETTAG((jsval) (b) << JSVAL_TAGBITS, JSVAL_BOOLEAN)
-
-
-
-
-
-#define JSVAL_NULL              ((jsval) 0)
-#define JSVAL_ZERO              INT_TO_JSVAL(0)
-#define JSVAL_ONE               INT_TO_JSVAL(1)
-#define JSVAL_FALSE             PSEUDO_BOOLEAN_TO_JSVAL(JS_FALSE)
-#define JSVAL_TRUE              PSEUDO_BOOLEAN_TO_JSVAL(JS_TRUE)
-#define JSVAL_VOID              PSEUDO_BOOLEAN_TO_JSVAL(2)
-
 
 
 static JS_ALWAYS_INLINE JSBool
