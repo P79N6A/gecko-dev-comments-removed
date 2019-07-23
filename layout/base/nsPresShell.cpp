@@ -1854,7 +1854,7 @@ PresShell::Destroy()
     
     
     
-    mPresContext->PropertyTable()->DeleteAll();
+    mPresContext->PropertyTable()->DeleteAllProperties();
   }
 
 
@@ -2754,7 +2754,7 @@ PresShell::NotifyDestroyingFrame(nsIFrame* aFrame)
     FrameManager()->NotifyDestroyingFrame(aFrame);
 
     
-    mPresContext->PropertyTable()->DeleteAllFor(aFrame);
+    mPresContext->PropertyTable()->DeleteAllPropertiesFor(aFrame);
 
     if (aFrame == mCurrentEventFrame) {
       mCurrentEventContent = aFrame->GetContent();
@@ -2781,6 +2781,7 @@ PresShell::NotifyDestroyingFrame(nsIFrame* aFrame)
   }
 }
 
+
 already_AddRefed<nsCaret> PresShell::GetCaret()
 {
   nsCaret* caret = mCaret;
@@ -2788,7 +2789,7 @@ already_AddRefed<nsCaret> PresShell::GetCaret()
   return caret;
 }
 
-void PresShell::MaybeInvalidateCaretPosition()
+NS_IMETHODIMP_(void) PresShell::MaybeInvalidateCaretPosition()
 {
   if (mCaret) {
     mCaret->InvalidateOutsideCaret();
