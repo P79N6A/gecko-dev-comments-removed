@@ -195,7 +195,7 @@ struct nsCycleCollectorParams
         
         
 
-        mScanDelay(10)
+        mScanDelay(0)
     {
 #ifdef DEBUG_CC
         char *s = PR_GetEnv("XPCOM_CC_SCAN_DELAY");
