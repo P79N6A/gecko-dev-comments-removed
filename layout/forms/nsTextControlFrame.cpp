@@ -268,14 +268,9 @@ NS_INTERFACE_MAP_END
 static PRBool
 IsFocusedContent(nsIContent* aContent)
 {
-  nsIFocusManager* fm = nsFocusManager::GetFocusManager();
-  if (!fm)
-    return PR_FALSE;
+  nsFocusManager* fm = nsFocusManager::GetFocusManager();
 
-  nsCOMPtr<nsIDOMElement> focusedElement;
-  fm->GetFocusedElement(getter_AddRefs(focusedElement));
-  nsCOMPtr<nsIContent> focusedContent = do_QueryInterface(focusedElement);
-  return (focusedContent == aContent);
+  return fm && fm->GetFocusedContent() == aContent;
 }
 
 NS_IMETHODIMP
@@ -1541,6 +1536,12 @@ nsTextControlFrame::InitEditor()
     
     rv = mEditor->SetFlags(editorFlags);
 
+    
+    
+    nsWeakFrame weakFrame(this);
+    HidePlaceholder();
+    NS_ENSURE_STATE(weakFrame.IsAlive());
+
     if (NS_FAILED(rv))
       return rv;
   }
@@ -2751,15 +2752,6 @@ nsTextControlFrame::SetValue(const nsAString& aValue)
         editor->SetFlags(savedFlags);
         if (selPriv)
           selPriv->EndBatchChanges();
-
-        if (newValue.IsEmpty())
-        {
-          if (!IsFocusedContent(mContent))
-            ShowPlaceholder();
-          
-        }
-        else
-          HidePlaceholder();
       }
 
       NS_ENSURE_STATE(weakFrame.IsAlive());
@@ -2837,6 +2829,18 @@ nsTextControlFrame::IsScrollable() const
 void
 nsTextControlFrame::SetValueChanged(PRBool aValueChanged)
 {
+  
+  if (!IsFocusedContent(mContent)) {
+    
+    
+    nsAutoString valueString;
+    GetValue(valueString, PR_TRUE);
+    if (valueString.IsEmpty())
+      ShowPlaceholder();
+    else
+      HidePlaceholder();
+  }
+
   nsCOMPtr<nsITextControlElement> elem = do_QueryInterface(mContent);
   if (elem) {
     elem->SetValueChanged(aValueChanged);
