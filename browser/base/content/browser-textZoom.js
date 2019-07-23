@@ -133,6 +133,11 @@ var TextZoom = {
     ContentPrefSink.removeObserver(this.name, this);
     this._cps.removeObserver(this.name, this);
     window.removeEventListener("DOMMouseScroll", this, false);
+
+    
+    
+    this.__cps = null;
+    this.__prefBranch = null;
   },
 
 

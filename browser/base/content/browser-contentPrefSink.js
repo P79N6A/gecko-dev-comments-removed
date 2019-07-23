@@ -84,7 +84,14 @@ var ContentPrefSink = {
     gBrowser.removeEventListener("DOMContentLoaded", this, false);
     gBrowser.removeProgressListener(this);
 
-    this._observers = null;
+    
+    
+    this.__cps = null;
+
+    
+    
+    this._observers = {};
+    this._genericObservers = [];
   },
 
 

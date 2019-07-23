@@ -82,6 +82,7 @@ ContentPrefService.prototype = {
     this._observerSvc.removeObserver(this, "xpcom-shutdown");
 
     
+    
     this.__observerSvc = null;
     this.__consoleSvc = null;
     this._grouper = null;
@@ -101,6 +102,11 @@ ContentPrefService.prototype = {
     this.__stmtSelectPrefs = null;
     this.__stmtSelectGlobalPrefs = null;
     this._dbConnection = null;
+
+    
+    
+    this._observers = {};
+    this._genericObservers = [];
   },
 
 
