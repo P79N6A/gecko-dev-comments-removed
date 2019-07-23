@@ -2805,6 +2805,10 @@ nsLayoutUtils::DrawSingleUnscaledImage(nsIRenderingContext* aRenderingContext,
   nsRect dest(aDest - source.TopLeft(),
     nsSize(size.width*appUnitsPerCSSPixel, size.height*appUnitsPerCSSPixel));
   nsRect fill(aDest, source.Size());
+  
+  
+  
+  fill.IntersectRect(fill, dest);
   return DrawImage(aRenderingContext, aImage, dest, fill, aDest, aDirty);
 }
 
@@ -2831,7 +2835,12 @@ nsLayoutUtils::DrawSingleImage(nsIRenderingContext* aRenderingContext,
   }
 
   nsRect dest = GetWholeImageDestination(size, source, aDest);
-  return DrawImage(aRenderingContext, aImage, dest, aDest, aDest.TopLeft(), aDirty);
+  
+  
+  
+  nsRect fill;
+  fill.IntersectRect(aDest, dest);
+  return DrawImage(aRenderingContext, aImage, dest, fill, fill.TopLeft(), aDirty);
 }
 
  nsRect
