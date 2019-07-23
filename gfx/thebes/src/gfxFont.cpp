@@ -1742,32 +1742,38 @@ gfxTextRun::BreakAndMeasureText(PRUint32 aStart, PRUint32 aMaxLength,
             }
         }
 
-        PRBool lineBreakHere = mCharacterGlyphs[i].CanBreakBefore() &&
-            (!aSuppressInitialBreak || i > aStart);
-        PRBool hyphenation = haveHyphenation && hyphenBuffer[i - bufferStart];
-        PRBool wordWrapping = aCanWordWrap && *aBreakPriority <= eWordWrapBreak;
-        if (lineBreakHere || hyphenation || wordWrapping) {
-            gfxFloat hyphenatedAdvance = advance;
-            if (!lineBreakHere && !wordWrapping) {
-                hyphenatedAdvance += aProvider->GetHyphenWidth();
-            }
-            
-            if (lastBreak < 0 || width + hyphenatedAdvance - trimmableAdvance <= aWidth) {
-                
-                lastBreak = i;
-                lastBreakTrimmableChars = trimmableChars;
-                lastBreakTrimmableAdvance = trimmableAdvance;
-                lastBreakUsedHyphenation = !lineBreakHere && !wordWrapping;
-                *aBreakPriority = hyphenation || lineBreakHere ?
-                                   eNormalBreak : eWordWrapBreak;
-            }
+        
+        
+        
+        
+        if (!aSuppressInitialBreak || i > aStart) {
+            PRBool lineBreakHere = mCharacterGlyphs[i].CanBreakBefore();
+            PRBool hyphenation = haveHyphenation && hyphenBuffer[i - bufferStart];
+            PRBool wordWrapping = aCanWordWrap && *aBreakPriority <= eWordWrapBreak;
 
-            width += advance;
-            advance = 0;
-            if (width - trimmableAdvance > aWidth) {
-                
-                aborted = PR_TRUE;
-                break;
+            if (lineBreakHere || hyphenation || wordWrapping) {
+                gfxFloat hyphenatedAdvance = advance;
+                if (!lineBreakHere && !wordWrapping) {
+                    hyphenatedAdvance += aProvider->GetHyphenWidth();
+                }
+            
+                if (lastBreak < 0 || width + hyphenatedAdvance - trimmableAdvance <= aWidth) {
+                    
+                    lastBreak = i;
+                    lastBreakTrimmableChars = trimmableChars;
+                    lastBreakTrimmableAdvance = trimmableAdvance;
+                    lastBreakUsedHyphenation = !lineBreakHere && !wordWrapping;
+                    *aBreakPriority = hyphenation || lineBreakHere ?
+                        eNormalBreak : eWordWrapBreak;
+                }
+
+                width += advance;
+                advance = 0;
+                if (width - trimmableAdvance > aWidth) {
+                    
+                    aborted = PR_TRUE;
+                    break;
+                }
             }
         }
         
