@@ -903,6 +903,9 @@ pref("mousewheel.transaction.timeout", 1500);
 pref("mousewheel.transaction.ignoremovedelay", 100);
 
 
+pref("mousewheel.enable_pixel_scrolling", true);
+
+
 pref("mousewheel.withnokey.action",0);
 pref("mousewheel.withnokey.numlines",1);	
 pref("mousewheel.withnokey.sysnumlines",true);

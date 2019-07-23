@@ -244,6 +244,7 @@ function synthesizeMouse(aTarget, aOffsetX, aOffsetY, aEvent, aWindow)
 
 
 
+
 function synthesizeMouseScroll(aTarget, aOffsetX, aOffsetY, aEvent, aWindow)
 {
   netscape.security.PrivilegeManager.enablePrivilege('UniversalXPConnect');
@@ -257,7 +258,7 @@ function synthesizeMouseScroll(aTarget, aOffsetX, aOffsetY, aEvent, aWindow)
     
     const kIsVertical = 0x02;
     const kIsHorizontal = 0x04;
-    const kIsPixels = 0x08;
+    const kHasPixels = 0x08;
 
     var button = aEvent.button || 0;
     var modifiers = _parseModifiers(aEvent);
@@ -267,10 +268,9 @@ function synthesizeMouseScroll(aTarget, aOffsetX, aOffsetY, aEvent, aWindow)
 
     var type = aEvent.type || "DOMMouseScroll";
     var axis = aEvent.axis || "vertical";
-    var units = aEvent.units || "lines";
     var scrollFlags = (axis == "horizontal") ? kIsHorizontal : kIsVertical;
-    if (units == "pixels") {
-      scrollFlags |= kIsPixels;
+    if (aEvent.hasPixels) {
+      scrollFlags |= kHasPixels;
     }
     utils.sendMouseScrollEvent(type, left + aOffsetX, top + aOffsetY, button,
                                scrollFlags, aEvent.delta, modifiers);

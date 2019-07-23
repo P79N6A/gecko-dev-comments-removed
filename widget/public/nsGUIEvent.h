@@ -271,6 +271,7 @@ class nsHashKey;
 
 #define NS_MOUSE_SCROLL_START         1600
 #define NS_MOUSE_SCROLL               (NS_MOUSE_SCROLL_START)
+#define NS_MOUSE_PIXEL_SCROLL         (NS_MOUSE_SCROLL_START + 1)
 
 #define NS_SCROLLPORT_START           1700
 #define NS_SCROLLPORT_UNDERFLOW       (NS_SCROLLPORT_START)
@@ -849,6 +850,43 @@ public:
   nsTextEventReply theReply;
 };
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 class nsMouseScrollEvent : public nsMouseEvent_base
 {
 public:
@@ -856,7 +894,15 @@ public:
     kIsFullPage =   1 << 0,
     kIsVertical =   1 << 1,
     kIsHorizontal = 1 << 2,
-    kIsPixels =     1 << 3
+    kHasPixels =    1 << 3  
+                            
+                            
+                            
+                            
+                            
+                            
+                            
+                            
   };
 
   nsMouseScrollEvent(PRBool isTrusted, PRUint32 msg, nsIWidget *w)

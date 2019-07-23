@@ -99,6 +99,22 @@ extern "C" long TSMProcessRawKeyEvent(EventRef carbonEvent);
 
 @end
 
+
+
+
+
+
+enum {
+  mozkEventMouseScroll             = 11
+};
+
+
+
+@interface NSEvent (DeviceDelta)
+  - (float)deviceDeltaX;
+  - (float)deviceDeltaY;
+@end
+
 @interface ChildView : NSView<
 #ifdef ACCESSIBILITY
                               mozAccessible,
