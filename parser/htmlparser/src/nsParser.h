@@ -205,17 +205,6 @@ class nsParser : public nsIParser,
 
 
 
-    NS_IMETHOD Parse(nsIInputStream* aStream,
-                     const nsACString& aMimeType,
-                     void* aKey = 0,
-                     nsDTDMode aMode = eDTDMode_autodetect);
-
-    
-
-
-
-
-
     NS_IMETHOD Parse(const nsAString& aSourceBuffer,
                      void* aKey,
                      const nsACString& aContentType,

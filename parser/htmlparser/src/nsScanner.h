@@ -57,7 +57,6 @@
 #include "prtypes.h"
 #include "nsIUnicodeDecoder.h"
 #include "nsScannerString.h"
-#include "nsIInputStream.h"
 
 class nsParser;
 
@@ -99,18 +98,6 @@ class nsScanner {
 
       nsScanner(nsString& aFilename,PRBool aCreateStream, const nsACString& aCharset, PRInt32 aSource);
 
-      
-
-
-
-
-
-
-
-
-      nsScanner(const nsAString& aFilename, nsIInputStream* aStream, const nsACString& aCharset, PRInt32 aSource);
-
-
       ~nsScanner();
 
       
@@ -141,34 +128,7 @@ class nsScanner {
 
 
 
-      nsresult SkipOver(nsString& SkipChars);
-
-      
-
-
-
-
-
-
       nsresult SkipOver(PRUnichar aSkipChar);
-
-      
-
-
-
-
-
-
-      nsresult SkipTo(nsString& aValidSet);
-
-      
-
-
-
-
-
-
-      nsresult SkipPast(nsString& aSequence);
 
       
 
@@ -237,18 +197,6 @@ class nsScanner {
                          nsScannerIterator& aEnd,
                          const nsReadEndCondition& aEndCondition, 
                          PRBool addTerminal);
-
-
-      
-
-
-
-
-
-
-
-
-      nsresult ReadWhile(nsString& aString,nsString& anInputSet,PRBool addTerminal);
 
       
 
@@ -367,28 +315,14 @@ class nsScanner {
         mParser = aParser;
       }
 
-
-      
-
-
-
-
-
-      nsresult FillBuffer(void);
-
   protected:
-
-      enum {eBufferSizeThreshold=0x1000};  
 
       void AppendToBuffer(nsScannerString::Buffer *, nsIRequest *aRequest);
       void AppendToBuffer(const nsAString& aStr)
       {
         AppendToBuffer(nsScannerString::AllocBufferFromString(aStr), nsnull);
       }
-      void AppendASCIItoBuffer(const char* aData, PRUint32 aLen,
-                               nsIRequest *aRequest);
 
-      nsCOMPtr<nsIInputStream>     mInputStream;
       nsScannerString*             mSlidingBuffer;
       nsScannerIterator            mCurrentPosition; 
       nsScannerIterator            mMarkPosition;    
@@ -396,7 +330,6 @@ class nsScanner {
       nsString        mFilename;
       PRUint32        mCountRemaining; 
                                        
-      PRUint32        mTotalRead;
       PRPackedBool    mIncremental;
       PRInt32         mFirstNonWhitespacePosition;
       PRInt32         mCharsetSource;

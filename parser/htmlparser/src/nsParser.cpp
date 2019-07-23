@@ -1284,43 +1284,6 @@ nsParser::Parse(nsIURI* aURL,
 
 
 
-NS_IMETHODIMP
-nsParser::Parse(nsIInputStream* aStream,
-                const nsACString& aMimeType,
-                void* aKey,
-                nsDTDMode aMode)
-{
-  nsresult  result = NS_ERROR_OUT_OF_MEMORY;
-
-  
-  nsAutoString theUnknownFilename(NS_LITERAL_STRING("unknown"));
-
-  nsScanner* theScanner = new nsScanner(theUnknownFilename, aStream, mCharset,
-                                        mCharsetSource);
-
-  CParserContext* pc = new CParserContext(theScanner, aKey, mCommand, 0);
-  if (pc && theScanner) {
-    PushContext(*pc);
-    pc->SetMimeType(aMimeType);
-    pc->mStreamListenerState = eOnStart;
-    pc->mMultipart = PR_FALSE;
-    pc->mContextType = CParserContext::eCTStream;
-    pc->mDTDMode = aMode;
-    mParserContext->mScanner->FillBuffer();
-    result = ResumeParse();
-    pc = PopContext();
-    delete pc;
-  } else {
-    result = mInternalState = NS_ERROR_HTMLPARSER_BADCONTEXT;
-  }
-
-  return result;
-}
-
-
-
-
-
 
 
 
