@@ -1197,32 +1197,6 @@ PRBool nsOggDecoder::Init()
   return mMonitor && nsMediaDecoder::Init();
 }
 
-
-
-
-
-
-
-
-class nsOggDecoderShutdown : public nsRunnable
-{
-public:
-  nsOggDecoderShutdown(nsOggDecoder* aDecoder) :
-    mDecoder(aDecoder)
-  {
-  }
-
-  NS_IMETHOD Run()
-  {
-    mDecoder->Stop();
-    return NS_OK;
-  }
-
-private:
-  nsRefPtr<nsOggDecoder> mDecoder;
-};
-
-
 void nsOggDecoder::Shutdown() 
 {
   mShuttingDown = PR_TRUE;
@@ -1230,8 +1204,7 @@ void nsOggDecoder::Shutdown()
   ChangeState(PLAY_STATE_SHUTDOWN);
   nsMediaDecoder::Shutdown();
 
-  nsCOMPtr<nsIRunnable> event = new nsOggDecoderShutdown(this);
-  NS_DispatchToMainThread(event, NS_DISPATCH_NORMAL);
+  Stop();
 }
 
 nsOggDecoder::~nsOggDecoder()
@@ -1246,6 +1219,10 @@ nsresult nsOggDecoder::Load(nsIURI* aURI, nsIChannel* aChannel,
   
   
   mStopping = PR_FALSE;
+
+  NS_ASSERTION(!mReader, "Didn't shutdown properly!");
+  NS_ASSERTION(!mDecodeStateMachine, "Didn't shutdown properly!");
+  NS_ASSERTION(!mDecodeThread, "Didn't shutdown properly!");
 
   if (aStreamListener) {
     *aStreamListener = nsnull;
@@ -1332,6 +1309,42 @@ nsresult nsOggDecoder::PlaybackRateChanged()
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 
+
+
+class nsDestroyStateMachine : public nsRunnable {
+public:
+  nsDestroyStateMachine(nsOggDecoder *aDecoder,
+                        nsOggDecodeStateMachine *aMachine,
+                        nsChannelReader *aReader,
+                        nsIThread *aThread)
+  : mDecoder(aDecoder),
+    mDecodeStateMachine(aMachine),
+    mReader(aReader),
+    mDecodeThread(aThread)
+  {
+  }
+
+  NS_IMETHOD Run() {
+    NS_ASSERTION(NS_IsMainThread(), "Should be called on main thread");
+    
+    
+    
+    if (mDecodeThread)
+      mDecodeThread->Shutdown();
+    mDecodeThread = nsnull;
+    mDecodeStateMachine = nsnull;
+    mReader = nsnull;
+    mDecoder = nsnull;
+    return NS_OK;
+  }
+
+private:
+  nsRefPtr<nsOggDecoder> mDecoder;
+  nsCOMPtr<nsOggDecodeStateMachine> mDecodeStateMachine;
+  nsAutoPtr<nsChannelReader> mReader;
+  nsCOMPtr<nsIThread> mDecodeThread;
+};
+
 void nsOggDecoder::Stop()
 {
   NS_ASSERTION(NS_IsMainThread(), 
@@ -1362,13 +1375,25 @@ void nsOggDecoder::Stop()
   
   
   
-  if (mDecodeThread) {
-    mDecodeThread->Shutdown();
-    mDecodeThread = nsnull;
-  }
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  nsCOMPtr<nsIRunnable> event = new nsDestroyStateMachine(this,
+                                                          mDecodeStateMachine,
+                                                          mReader.forget(),
+                                                          mDecodeThread);
+  NS_DispatchToMainThread(event, NS_DISPATCH_NORMAL);
 
+  
+  mDecodeThread = nsnull;
   mDecodeStateMachine = nsnull;
-  mReader = nsnull;
   UnregisterShutdownObserver();
 }
 
