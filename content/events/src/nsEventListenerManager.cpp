@@ -515,6 +515,8 @@ nsEventListenerManager::AddEventListener(nsIDOMEventListener *aListener,
     nsCOMPtr<nsIDocument> document;
     nsCOMPtr<nsINode> node(do_QueryInterface(mTarget));
     if (node) {
+      
+      
       document = node->GetOwnerDoc();
       if (document) {
         window = document->GetInnerWindow();
@@ -838,20 +840,11 @@ nsEventListenerManager::AddScriptEventListener(nsISupports *aObject,
 
   if (node) {
     
+    
+    
     doc = node->GetOwnerDoc();
     if (doc)
       global = doc->GetScriptGlobalObject();
-    if (global) {
-      
-      
-      if (NS_FAILED(global->EnsureScriptEnvironment(aLanguage))) {
-        NS_WARNING("Failed to setup script environment for this language");
-        
-      }
-
-      context = global->GetScriptContext(aLanguage);
-      NS_ASSERTION(context, "Failed to get language context from global");
-    }
   } else {
     nsCOMPtr<nsPIDOMWindow> win(do_QueryInterface(aObject));
     if (win) {
@@ -865,52 +858,22 @@ nsEventListenerManager::AddScriptEventListener(nsISupports *aObject,
     } else {
       global = do_QueryInterface(aObject);
     }
-    if (global) {
+  }
+
+  if (global) {
+    
+    
+    if (NS_FAILED(global->EnsureScriptEnvironment(aLanguage))) {
+      NS_WARNING("Failed to setup script environment for this language");
       
-      if (NS_FAILED(global->EnsureScriptEnvironment(aLanguage))) {
-        NS_WARNING("Failed to setup script environment for this language");
-        
-      }
-      context = global->GetScriptContext(aLanguage);
-    }
-  }
-
-  if (!context) {
-    NS_ASSERTION(aLanguage == nsIProgrammingLanguage::JAVASCRIPT,
-                 "Need a multi-language stack?!?!?");
-    
-    
-    
-
-    
-    
-    JSContext* cx = nsnull;
-    
-    
-    nsCOMPtr<nsIThreadJSContextStack> stack =
-      do_GetService("@mozilla.org/js/xpc/ContextStack;1");
-    NS_ENSURE_TRUE(stack, NS_ERROR_FAILURE);
-    NS_ENSURE_SUCCESS(stack->Peek(&cx), NS_ERROR_FAILURE);
-
-    if (!cx) {
-      stack->GetSafeJSContext(&cx);
-      NS_ENSURE_TRUE(cx, NS_ERROR_FAILURE);
     }
 
-    context = nsJSUtils::GetDynamicScriptContext(cx);
-    NS_ENSURE_TRUE(context, NS_ERROR_FAILURE);
-
-    global = context->GetGlobalObject();
-    
     context = global->GetScriptContext(aLanguage);
-    NS_ENSURE_TRUE(context, NS_ERROR_FAILURE);
   }
-  if (!global) {
-    NS_ERROR("Context reachable, but no scope reachable in "
-             "AddScriptEventListener()!");
+  NS_ENSURE_TRUE(context, NS_ERROR_FAILURE);
 
-    return NS_ERROR_NOT_AVAILABLE;
-  }
+  NS_ASSERTION(global, "How could we possibly have a context without an "
+               "nsIScriptGlobalObject?");
 
   void *scope = global->GetScriptGlobal(aLanguage);
   nsresult rv;
@@ -1452,6 +1415,8 @@ nsEventListenerManager::DispatchEvent(nsIDOMEvent* aEvent, PRBool *_retval)
     
     return NS_ERROR_FAILURE;
   }
+  
+  
   
   nsCOMPtr<nsIDocument> document = targetContent->GetOwnerDoc();
 
