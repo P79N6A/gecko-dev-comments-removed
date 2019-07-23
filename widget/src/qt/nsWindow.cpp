@@ -184,6 +184,10 @@ nsWindow::nsWindow()
     mSizeState           = nsSizeMode_Normal;
     mPluginType          = PluginType_NONE;
     mQCursor             = Qt::ArrowCursor;
+    mNeedsResize         = PR_FALSE;
+    mNeedsMove           = PR_FALSE;
+    mListenForResizes    = PR_FALSE;
+    mNeedsShow           = PR_FALSE;
     
     if (!gGlobalsInitialized) {
         gGlobalsInitialized = PR_TRUE;
@@ -441,7 +445,7 @@ nsWindow::SetModal(PRBool aModal)
 NS_IMETHODIMP
 nsWindow::IsVisible(PRBool & aState)
 {
-    aState = mWidget ? mWidget->isVisible() : PR_FALSE;
+    aState = mIsShown;
     return NS_OK;
 }
 
@@ -1760,6 +1764,10 @@ nsWindow::Create(nsIWidget        *aParent,
     
     Resize(mBounds.x, mBounds.y, mBounds.width, mBounds.height, PR_FALSE);
 
+    
+    mListenForResizes = (aNativeParent ||
+                         (aInitData && aInitData->mListenForResizes));
+
     return NS_OK;
 }
 
@@ -1823,6 +1831,8 @@ nsWindow::NativeResize(PRInt32 aWidth, PRInt32 aHeight, PRBool  aRepaint)
     LOG(("nsWindow::NativeResize [%p] %d %d\n", (void *)this,
          aWidth, aHeight));
 
+    mNeedsResize = PR_FALSE;
+
     mWidget->resize( aWidth, aHeight);
 
     if (aRepaint)
@@ -1836,6 +1846,9 @@ nsWindow::NativeResize(PRInt32 aX, PRInt32 aY,
 {
     LOG(("nsWindow::NativeResize [%p] %d %d %d %d\n", (void *)this,
          aX, aY, aWidth, aHeight));
+
+    mNeedsResize = PR_FALSE;
+    mNeedsMove = PR_FALSE;
 
     mWidget->setGeometry(aX, aY, aWidth, aHeight);
 
@@ -1851,6 +1864,9 @@ nsWindow::NativeShow(PRBool aAction)
         if (widget && !widget->isVisible())
             MakeFullScreen(mSizeMode == nsSizeMode_Fullscreen);
         mWidget->show();
+
+        
+        mNeedsShow = PR_FALSE;
     }
     else
         mWidget->hide();
@@ -2277,12 +2293,25 @@ nsWindow::Show(PRBool aState)
 
     mIsShown = aState;
 
-    if (!mWidget)
+    if ((aState && !AreBoundsSane()) || !mWidget) {
+        LOG(("\tbounds are insane or window hasn't been created yet\n"));
+        mNeedsShow = PR_TRUE;
         return NS_OK;
+    }
 
-    mWidget->setVisible(aState);
-    if (mWindowType == eWindowType_popup && aState)
-        Resize(mBounds.x, mBounds.y, mBounds.width, mBounds.height, PR_FALSE);
+    if (aState) {
+        if (mNeedsMove) {
+            NativeResize(mBounds.x, mBounds.y, mBounds.width, mBounds.height,
+                         PR_FALSE);
+        } else if (mNeedsResize) {
+            NativeResize(mBounds.width, mBounds.height, PR_FALSE);
+        }
+    }
+    else
+        
+        mNeedsShow = PR_FALSE;
+
+    NativeShow(aState);
 
     return NS_OK;
 }
@@ -2296,16 +2325,47 @@ nsWindow::Resize(PRInt32 aWidth, PRInt32 aHeight, PRBool aRepaint)
     if (!mWidget)
         return NS_OK;
 
-    mWidget->resize(aWidth, aHeight);
+    if (mIsShown) {
+        if (AreBoundsSane()) {
+            if (mIsTopLevel || mNeedsShow)
+                NativeResize(mBounds.x, mBounds.y,
+                             mBounds.width, mBounds.height, aRepaint);
+            else
+                NativeResize(mBounds.width, mBounds.height, aRepaint);
 
-    if (mIsTopLevel) {
-        QWidget *widget = GetViewWidget();
-        if (widget)
-            widget->resize(aWidth, aHeight);
+            
+            if (mNeedsShow)
+                NativeShow(PR_TRUE);
+        }
+        else {
+            
+            
+            
+            
+            
+            
+            if (!mNeedsShow) {
+                mNeedsShow = PR_TRUE;
+                NativeShow(PR_FALSE);
+            }
+        }
+    }
+    else if (AreBoundsSane() && mListenForResizes) {
+        
+        
+        
+        NativeResize(aWidth, aHeight, aRepaint);
+    }
+    else {
+        mNeedsResize = PR_TRUE;
     }
 
-    if (aRepaint)
-        mWidget->update();
+    
+    if (mIsTopLevel || mListenForResizes) {
+        nsIntRect rect(mBounds.x, mBounds.y, aWidth, aHeight);
+        nsEventStatus status;
+        DispatchResizeEvent(rect, status);
+    }
 
     return NS_OK;
 }
@@ -2324,12 +2384,47 @@ nsWindow::Resize(PRInt32 aX, PRInt32 aY, PRInt32 aWidth, PRInt32 aHeight,
     if (!mWidget)
         return NS_OK;
 
-    mWidget->setGeometry(aX, aY, aWidth, aHeight);
+    
+    if (mIsShown) {
+        
+        if (AreBoundsSane()) {
+            
+            NativeResize(aX, aY, aWidth, aHeight, aRepaint);
+            
+            if (mNeedsShow)
+                NativeShow(PR_TRUE);
+        }
+        else {
+            
+            
+            
+            
+            
+            
+            if (!mNeedsShow) {
+                mNeedsShow = PR_TRUE;
+                NativeShow(PR_FALSE);
+            }
+        }
+    }
+    
+    
+    else if (AreBoundsSane() && mListenForResizes) {
+        
+        
+        
+        NativeResize(aX, aY, aWidth, aHeight, aRepaint);
+    }
+    else {
+        mNeedsResize = PR_TRUE;
+        mNeedsMove = PR_TRUE;
+    }
 
-    if (mIsTopLevel) {
-        QWidget *widget = GetViewWidget();
-        if (widget)
-            widget->resize(aWidth, aHeight);
+    if (mIsTopLevel || mListenForResizes) {
+        
+        nsIntRect rect(aX, aY, aWidth, aHeight);
+        nsEventStatus status;
+        DispatchResizeEvent(rect, status);
     }
 
     if (aRepaint)
