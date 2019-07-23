@@ -78,7 +78,7 @@ struct Tracker::Page*
 Tracker::addPage(const void* v) {
     long base = getPageBase(v);
     struct Tracker::Page* p = (struct Tracker::Page*)
-        GC::Alloc(sizeof(struct Tracker::Page) + (NJ_PAGE_SIZE >> 2));
+        GC::Alloc(sizeof(struct Tracker::Page) + (NJ_PAGE_SIZE >> 2) * sizeof(LInsp));
     p->base = base;
     p->next = pagelist;
     pagelist = p;
@@ -101,7 +101,6 @@ Tracker::get(const void* v) const
     struct Tracker::Page* p = findPage(v);
     JS_ASSERT(p != 0); 
     LIns* i = p->map[(((long)v) & 0xfff) >> 2];
-    printf("get v=%p ins=%p\n", v, i);
     JS_ASSERT(i != 0);
     return i;
 }
@@ -109,10 +108,6 @@ Tracker::get(const void* v) const
 void
 Tracker::set(const void* v, LIns* ins)
 {
-    static int q = 0;
-    printf("q=%d set v=%p ins=%p\n", q, v, ins);
-    
-    
     struct Tracker::Page* p = findPage(v);
     if (!p)
         p = addPage(v);
