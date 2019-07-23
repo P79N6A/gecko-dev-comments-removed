@@ -3642,12 +3642,59 @@ nsCSSRendering::PaintBackgroundWithSC(nsPresContext* aPresContext,
     anchor.y += bgClipArea.y - aBorderArea.y;
   }
 
-#if (!defined(XP_UNIX) && !defined(XP_BEOS)) || defined(XP_MACOSX)
+  nsRefPtr<gfxContext> ctx = (gfxContext*)
+    aRenderingContext.GetNativeGraphicData(nsIRenderingContext::NATIVE_THEBES_CONTEXT);
+  ctx->Save();
+
+  nscoord appUnitsPerPixel = aPresContext->DevPixelsToAppUnits(1);
+
+  ctx->NewPath();
+  ctx->Rectangle(RectToGfxRect(dirtyRect, appUnitsPerPixel), PR_TRUE);
+  ctx->Clip();
+
+  nsStyleCoord bordStyleRadius[4];
+  nscoord borderRadii[4];
+
   
-  
-  aRenderingContext.PushState();
-  aRenderingContext.SetClipRect(dirtyRect, nsClipCombine_kIntersect);
-#endif
+  aBorder.mBorderRadius.GetTop(bordStyleRadius[NS_SIDE_TOP]);       
+  aBorder.mBorderRadius.GetRight(bordStyleRadius[NS_SIDE_RIGHT]);   
+  aBorder.mBorderRadius.GetBottom(bordStyleRadius[NS_SIDE_BOTTOM]); 
+  aBorder.mBorderRadius.GetLeft(bordStyleRadius[NS_SIDE_LEFT]);     
+
+  PRBool haveRadius = PR_FALSE;
+  PRUint8 side = 0;
+  for (; side < 4; ++side) {
+    borderRadii[side] = 0;
+    switch (bordStyleRadius[side].GetUnit()) {
+      case eStyleUnit_Percent:
+        borderRadii[side] = nscoord(bordStyleRadius[side].GetPercentValue() *
+                                    aForFrame->GetSize().width);
+        break;
+      case eStyleUnit_Coord:
+        borderRadii[side] = bordStyleRadius[side].GetCoordValue();
+        break;
+      default:
+        break;
+    }
+
+    if (borderRadii[side] != 0)
+      haveRadius = PR_TRUE;
+  }
+
+  if (haveRadius) {
+    gfxFloat radii[4];
+    ComputePixelRadii(borderRadii, bgClipArea, aBorder.GetBorder(),
+                      aForFrame ? aForFrame->GetSkipSides() : 0,
+                      appUnitsPerPixel, radii);
+
+    gfxRect oRect(RectToGfxRect(bgClipArea, appUnitsPerPixel));
+    oRect.Round();
+    oRect.Condition();
+
+    ctx->NewPath();
+    DoRoundedRectCWSubPath(ctx, oRect, radii);
+    ctx->Clip();
+  }      
 
   
 
@@ -3794,10 +3841,7 @@ nsCSSRendering::PaintBackgroundWithSC(nsPresContext* aPresContext,
     }
   }
 
-#if (!defined(XP_UNIX) && !defined(XP_BEOS)) || defined(XP_MACOSX)
-  
-  aRenderingContext.PopState();
-#endif
+  ctx->Restore();
 
 }
 
