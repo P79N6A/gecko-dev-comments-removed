@@ -67,9 +67,9 @@ public:
 
     gfxFloat GetAdjustedSize() const { return mAdjustedSize; }
 
-protected:
-    friend class gfxDWriteFontGroup;
+    IDWriteFontFace *GetFontFace() { return mFontFace.get(); }
 
+protected:
     void ComputeMetrics();
 
     cairo_font_face_t *CairoFontFace();
@@ -83,34 +83,6 @@ protected:
     gfxFloat mAdjustedSize;
     gfxFont::Metrics mMetrics;
     PRBool mNeedsOblique;
-};
-
-
-
-
-class gfxDWriteFontGroup : public gfxFontGroup 
-{
-public:
-    gfxDWriteFontGroup(const nsAString& aFamilies, 
-                              const gfxFontStyle *aStyle,
-                              gfxUserFontSet *aUserFontSet);
-    virtual ~gfxDWriteFontGroup();
-    
-    gfxFontGroup *Copy(const gfxFontStyle *aStyle);
-
-    
-
-
-
-
-
-
-    virtual gfxDWriteFont *GetFontAt(PRInt32 i);
-
-    virtual gfxTextRun *MakeTextRun(const PRUnichar *aString, PRUint32 aLength,
-                                    const Parameters *aParams, PRUint32 aFlags);
-    virtual gfxTextRun *MakeTextRun(const PRUint8 *aString, PRUint32 aLength,
-                                    const Parameters *aParams, PRUint32 aFlags);
 };
 
 #endif
