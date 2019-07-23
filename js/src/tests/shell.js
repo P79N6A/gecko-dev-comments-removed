@@ -650,11 +650,12 @@ function optionsInit() {
 function optionsClear() {
        
   
+  
   var optionNames = options().split(',');
   for (var i = 0; i < optionNames.length; i++)
   {
     var optionName = optionNames[i];
-    if (optionName)
+    if (optionName && optionName != "jit")
     {
       options(optionName);
     }
