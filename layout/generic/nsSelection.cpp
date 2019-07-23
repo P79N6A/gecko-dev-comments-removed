@@ -5893,21 +5893,20 @@ nsTypedSelection::RemoveRange(nsIDOMRange* aRange)
   for (PRInt32 i = 0; i < affectedRanges.Count(); i ++)
     selectFrames(presContext, affectedRanges[i], PR_TRUE);
 
-  
-  
-  
-  
-  if (mType != nsISelectionController::SELECTION_SPELLCHECK &&
-      aRange == mAnchorFocusRange.get())
-  {
-    PRInt32 cnt = mRanges.Length();
-    if (cnt > 0)
-    {
-      setAnchorFocusRange(cnt - 1);
+  PRInt32 cnt = mRanges.Length();
+  if (aRange == mAnchorFocusRange.get()) {
+    
+    setAnchorFocusRange(cnt - 1);
+
+    
+    
+    
+    
+    if (mType != nsISelectionController::SELECTION_SPELLCHECK && cnt > 0)
       ScrollIntoView(nsISelectionController::SELECTION_FOCUS_REGION, PR_FALSE,
                      PR_FALSE);
-    }
   }
+
   if (!mFrameSelection)
     return NS_OK;
   return mFrameSelection->NotifySelectionListeners(GetType());
