@@ -550,7 +550,10 @@ nsDiskCacheDevice::DoomEntry(nsCacheEntry * entry)
 
     if (!binding->mDoomed) {
         
-        nsresult rv = mCacheMap.DeleteRecord(&binding->mRecord);
+#ifdef DEBUG
+        nsresult rv =
+#endif
+            mCacheMap.DeleteRecord(&binding->mRecord);
         NS_ASSERTION(NS_SUCCEEDED(rv),"DeleteRecord failed.");
         binding->mDoomed = PR_TRUE; 
     }
@@ -685,7 +688,10 @@ nsDiskCacheDevice::OnDataSizeChange(nsCacheEntry * entry, PRInt32 deltaSize)
     
     
     if ((newSize > kMaxDataFileSize) || (newSizeK > mCacheCapacity/2)) {
-        nsresult rv = nsCacheService::DoomEntry(entry);
+#ifdef DEBUG
+        nsresult rv =
+#endif
+            nsCacheService::DoomEntry(entry);
         NS_ASSERTION(NS_SUCCEEDED(rv),"DoomEntry() failed.");
         return NS_ERROR_ABORT;
     }
