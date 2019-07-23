@@ -831,8 +831,7 @@ js_ComputeGlobalThis(JSContext *cx, JSBool lazy, jsval *argv)
             thisp = parent;
     }
 
-    
-    thisp = OBJ_THIS_OBJECT(cx, thisp);
+    OBJ_TO_OUTER_OBJECT(cx, thisp);
     if (!thisp)
         return NULL;
     argv[-1] = OBJECT_TO_JSVAL(thisp);
@@ -856,11 +855,18 @@ ComputeThis(JSContext *cx, JSBool lazy, jsval *argv)
             return js_ComputeGlobalThis(cx, lazy, argv);
         }
 
-        
-        thisp = OBJ_THIS_OBJECT(cx, thisp);
+        OBJ_TO_OUTER_OBJECT(cx, thisp);
         if (!thisp)
             return NULL;
         argv[-1] = OBJECT_TO_JSVAL(thisp);
+
+        if (thisp->map->ops->thisObject) {
+            
+            thisp = thisp->map->ops->thisObject(cx, thisp);
+            if (!thisp)
+                return NULL;
+            argv[-1] = OBJECT_TO_JSVAL(thisp);
+       }
     }
     return thisp;
 }
@@ -1545,7 +1551,7 @@ js_Execute(JSContext *cx, JSObject *chain, JSScript *script,
 
     cx->fp = &frame;
     if (!down) {
-        frame.thisp = OBJ_THIS_OBJECT(cx, frame.thisp);
+        OBJ_TO_OUTER_OBJECT(cx, frame.thisp);
         if (!frame.thisp) {
             ok = JS_FALSE;
             goto out2;
@@ -2686,12 +2692,15 @@ js_Interpret(JSContext *cx)
 
 #define BRANCH(n)                                                             \
     JS_BEGIN_MACRO                                                            \
-        regs.pc += n;                                                         \
-        if (n <= 0) {                                                         \
+        regs.pc += (n);                                                       \
+        op = (JSOp) *regs.pc;                                                 \
+        if (op == JSOP_NOP) {                                                 \
+            op = (JSOp) *++regs.pc;                                           \
+        } else if (op == JSOP_LOOP) {                                         \
             CHECK_BRANCH();                                                   \
             MONITOR_BRANCH();                                                 \
+            op = (JSOp) *regs.pc;                                             \
         }                                                                     \
-        op = (JSOp) *regs.pc;                                                 \
         DO_OP();                                                              \
     JS_END_MACRO
 
@@ -6843,6 +6852,9 @@ js_Interpret(JSContext *cx)
             regs.sp--;
           END_CASE(JSOP_ARRAYPUSH)
 #endif 
+
+          BEGIN_CASE(JSOP_LOOP)
+          END_CASE(JSOP_LOOP)
 
 #if JS_THREADED_INTERP
           L_JSOP_BACKPATCH:
