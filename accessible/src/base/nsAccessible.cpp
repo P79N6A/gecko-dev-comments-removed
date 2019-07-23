@@ -1624,8 +1624,13 @@ nsAccessible::AppendFlatStringFromSubtreeRecurse(nsIContent *aContent,
   
   PRUint32 numChildren = 0;
   nsCOMPtr<nsIDOMXULSelectControlElement> selectControlEl(do_QueryInterface(aContent));
-  
-  if (!selectControlEl && aContent->Tag() != nsAccessibilityAtoms::textarea) {
+  nsCOMPtr<nsIAtom> tag = aContent->Tag();
+
+  if (!selectControlEl && 
+      tag != nsAccessibilityAtoms::textarea && 
+      tag != nsAccessibilityAtoms::select) {
+    
+    
     
     
     
