@@ -935,62 +935,6 @@ void nsViewManager::UpdateViews(nsView *aView, PRUint32 aUpdateFlags)
   }
 }
 
-PRBool nsViewManager::sSuppressFocusEvents = PR_FALSE;
-nsView *nsViewManager::sCurrentlyFocusView = nsnull;
-nsView *nsViewManager::sViewFocusedBeforeSuppression = nsnull;
-
-
-
-
-
-
-
-void nsViewManager::SetSuppressFocusEvents(PRBool aSuppress)
-{
-  if (sSuppressFocusEvents && !aSuppress) {
-
-    
-    
-    sSuppressFocusEvents = PR_FALSE;
-    if (GetCurrentlyFocusedView() != GetViewFocusedBeforeSuppression()) {
-      nsIWidget *widget = nsnull;
-      nsEventStatus status;
-
-      
-      
-      
-      nsIView *currentFocusBeforeBlur = GetCurrentlyFocusedView();
-
-      
-      
-      if (GetViewFocusedBeforeSuppression()) {
-        widget = GetViewFocusedBeforeSuppression()->GetWidget();
-        if (widget) {
-          nsGUIEvent event(PR_TRUE, NS_LOSTFOCUS, widget);
-          widget->DispatchEvent(&event, status);
-        }
-      }
-
-      
-      if (GetCurrentlyFocusedView() &&
-          currentFocusBeforeBlur == GetCurrentlyFocusedView())
-      {
-        widget = GetCurrentlyFocusedView()->GetWidget();
-        if (widget) {
-          nsGUIEvent event(PR_TRUE, NS_GOTFOCUS, widget);
-          widget->DispatchEvent(&event, status); 
-        }
-      }
-    }
-
-  } else if (!sSuppressFocusEvents && aSuppress) {
-    
-    
-    SetViewFocusedBeforeSuppression(GetCurrentlyFocusedView());
-    sSuppressFocusEvents = PR_TRUE;
-  }
-}
-
 NS_IMETHODIMP nsViewManager::DispatchEvent(nsGUIEvent *aEvent, nsEventStatus *aStatus)
 {
   *aStatus = nsEventStatus_eIgnore;
@@ -1194,12 +1138,6 @@ NS_IMETHODIMP nsViewManager::DispatchEvent(nsGUIEvent *aEvent, nsEventStatus *aS
 
     default:
       {
-        if (aEvent->message == NS_GOTFOCUS)
-          SetCurrentlyFocusedView(nsView::GetViewFor(aEvent->widget));
-        if ((aEvent->message == NS_GOTFOCUS || aEvent->message == NS_LOSTFOCUS) &&
-             nsViewManager::GetSuppressFocusEvents())
-          break;
-
         if ((NS_IS_MOUSE_EVENT(aEvent) &&
              
              static_cast<nsMouseEvent*>(aEvent)->reason ==
