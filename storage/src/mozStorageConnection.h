@@ -48,7 +48,6 @@
 #include "nsString.h"
 #include "nsInterfaceHashtable.h"
 #include "mozIStorageProgressHandler.h"
-#include "SQLiteMutex.h"
 #include "mozIStorageConnection.h"
 #include "mozStorageService.h"
 
@@ -159,27 +158,13 @@ private:
 
   PRBool mAsyncExecutionThreadShuttingDown;
 
-  
-
-
-  SQLiteMutex mDBMutex;
-
-  
-
-
-
+  PRLock *mTransactionMutex;
   PRBool mTransactionInProgress;
 
-  
-
-
-
+  PRLock *mFunctionsMutex;
   nsInterfaceHashtable<nsCStringHashKey, nsISupports> mFunctions;
 
-  
-
-
-
+  PRLock *mProgressHandlerMutex;
   nsCOMPtr<mozIStorageProgressHandler> mProgressHandler;
 
   
