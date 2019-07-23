@@ -1060,11 +1060,6 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(nsDocument)
   
-  
-  
-  tmp->DestroyLinkMap();
-
-  
   for (PRInt32 indx = PRInt32(tmp->mChildren.ChildCount()) - 1; 
        indx >= 0; --indx) {
     tmp->mChildren.ChildAt(indx)->UnbindFromTree();
