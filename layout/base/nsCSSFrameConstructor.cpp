@@ -1394,6 +1394,9 @@ nsFrameConstructorState::AddChild(nsIFrame* aNewFrame,
                                   PRBool aInsertAfter,
                                   nsIFrame* aInsertAfterFrame)
 {
+  NS_PRECONDITION(aStyleDisplay == aNewFrame->GetStyleDisplay(),
+                  "Wrong display struct?");
+  
   
   
 
@@ -3659,7 +3662,7 @@ nsCSSFrameConstructor::ConstructTableFrame(nsFrameConstructorState& aState,
     aNewOuterFrame->SetInitialChildList(nsnull, aNewInnerFrame);
 
     rv = aState.AddChild(aNewOuterFrame, *frameItems, disp, aContent,
-                         outerStyleContext, parentFrame, aAllowOutOfFlow,
+                         aStyleContext, parentFrame, aAllowOutOfFlow,
                          aAllowOutOfFlow);
     if (NS_FAILED(rv)) {
       return rv;
