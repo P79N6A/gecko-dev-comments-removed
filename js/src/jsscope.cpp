@@ -146,14 +146,6 @@ JSScope::initMinimal(JSContext *cx, uint32 newShape)
     lastProp = NULL;
 }
 
-#ifdef DEBUG
-JS_FRIEND_DATA(JSScopeStats) js_scope_stats = {0};
-
-# define METER(x)       JS_ATOMIC_INCREMENT(&js_scope_stats.x)
-#else
-# define METER(x)
-#endif
-
 bool
 JSScope::createTable(JSContext *cx, bool report)
 {
@@ -182,7 +174,6 @@ JSScope::createTable(JSContext *cx, bool report)
     if (!table) {
         if (report)
             JS_ReportOutOfMemory(cx);
-        METER(tableAllocFails);
         return false;
     }
     cx->updateMallocCounter(JS_BIT(sizeLog2) * sizeof(JSScopeProperty *));
@@ -209,6 +200,7 @@ JSScope::create(JSContext *cx, const JSObjectOps *ops, JSClass *clasp,
     scope->nrefs = 1;
     scope->freeslot = JSSLOT_FREE(clasp);
     scope->flags = cx->runtime->gcRegenShapesScopeFlag;
+    js_LeaveTraceIfGlobalObject(cx, obj);
     scope->initMinimal(cx, shape);
 
 #ifdef JS_THREADSAFE
@@ -246,7 +238,7 @@ JSScope::createEmptyScope(JSContext *cx, JSClass *clasp)
     return scope;
 }
 
-#ifdef DEBUG
+#if defined DEBUG || defined JS_DUMP_PROPTREE_STATS
 # include "jsprf.h"
 # define LIVE_SCOPE_METER(cx,expr) JS_LOCK_RUNTIME_VOID(cx->runtime,expr)
 #else
@@ -268,6 +260,14 @@ JSScope::destroy(JSContext *cx, JSScope *scope)
     JS_RUNTIME_UNMETER(cx->runtime, liveScopes);
     cx->free(scope);
 }
+
+#ifdef JS_DUMP_PROPTREE_STATS
+JS_FRIEND_DATA(JSScopeStats) js_scope_stats = {0};
+
+# define METER(x)       JS_ATOMIC_INCREMENT(&js_scope_stats.x)
+#else
+# define METER(x)
+#endif
 
 JS_STATIC_ASSERT(sizeof(JSHashNumber) == 4);
 JS_STATIC_ASSERT(sizeof(jsid) == JS_BYTES_PER_WORD);
@@ -383,10 +383,8 @@ JSScope::changeTable(JSContext *cx, int change)
     newsize = JS_BIT(newlog2);
     nbytes = SCOPE_TABLE_NBYTES(newsize);
     newtable = (JSScopeProperty **) cx->calloc(nbytes);
-    if (!newtable) {
-        METER(tableAllocFails);
+    if (!newtable)
         return false;
-    }
 
     
     hashShift = JS_DHASH_BITS - newlog2;
@@ -832,7 +830,7 @@ HashChunks(PropTreeKidsChunk *chunk, uintN n)
 
 static JSScopeProperty *
 GetPropertyTreeChild(JSContext *cx, JSScopeProperty *parent,
-                     const JSScopeProperty &child)
+                     JSScopeProperty *child)
 {
     JSRuntime *rt;
     JSDHashTable *table;
@@ -841,13 +839,15 @@ GetPropertyTreeChild(JSContext *cx, JSScopeProperty *parent,
     PropTreeKidsChunk *chunk;
     uintN i, n;
 
+    JS_ASSERT(!JSVAL_IS_NULL(child->id));
+
     rt = cx->runtime;
     if (!parent) {
         JS_LOCK_GC(rt);
 
         table = &rt->propertyTreeHash;
         entry = (JSPropertyTreeEntry *)
-                JS_DHashTableOperate(table, &child, JS_DHASH_ADD);
+                JS_DHashTableOperate(table, child, JS_DHASH_ADD);
         if (!entry)
             goto out_of_memory;
 
@@ -880,10 +880,12 @@ GetPropertyTreeChild(JSContext *cx, JSScopeProperty *parent,
                 if (table) {
                     JS_LOCK_GC(rt);
                     entry = (JSPropertyTreeEntry *)
-                            JS_DHashTableOperate(table, &child, JS_DHASH_LOOKUP);
+                            JS_DHashTableOperate(table, child, JS_DHASH_LOOKUP);
                     sprop = entry->child;
-                    if (sprop)
-                        goto out;
+                    if (sprop) {
+                        JS_UNLOCK_GC(rt);
+                        return sprop;
+                    }
                     goto locked_not_found;
                 }
 
@@ -910,13 +912,13 @@ GetPropertyTreeChild(JSContext *cx, JSScopeProperty *parent,
                             goto not_found;
                         }
 
-                        if (SPROP_MATCH(sprop, &child))
+                        if (SPROP_MATCH(sprop, child))
                             return sprop;
                     }
                     n += MAX_KIDS_PER_CHUNK;
                 } while ((chunk = chunk->next) != NULL);
             } else {
-                if (SPROP_MATCH(sprop, &child))
+                if (SPROP_MATCH(sprop, child))
                     return sprop;
             }
         }
@@ -930,13 +932,13 @@ locked_not_found:
     if (!sprop)
         goto out_of_memory;
 
-    sprop->id = child.id;
-    sprop->getter = child.getter;
-    sprop->setter = child.setter;
-    sprop->slot = child.slot;
-    sprop->attrs = child.attrs;
-    sprop->flags = child.flags;
-    sprop->shortid = child.shortid;
+    sprop->id = child->id;
+    sprop->getter = child->getter;
+    sprop->setter = child->setter;
+    sprop->slot = child->slot;
+    sprop->attrs = child->attrs;
+    sprop->flags = child->flags;
+    sprop->shortid = child->shortid;
     sprop->parent = sprop->kids = NULL;
     sprop->shape = js_GenerateShape(cx, true);
 
@@ -947,89 +949,32 @@ locked_not_found:
             goto out_of_memory;
     }
 
-  out:
+out:
     JS_UNLOCK_GC(rt);
     return sprop;
 
-  out_of_memory:
+out_of_memory:
     JS_UNLOCK_GC(rt);
     JS_ReportOutOfMemory(cx);
     return NULL;
 }
 
-
-
-
-
-
-JSScopeProperty *
-JSScope::getChildProperty(JSContext *cx, JSScopeProperty *parent,
-                          JSScopeProperty &child)
-{
-    JS_ASSERT(!JSVAL_IS_NULL(child.id));
-
-    
-
-
-
-
-
-    if (!(child.flags & SPROP_IS_ALIAS)) {
-        if (child.attrs & JSPROP_SHARED) {
-            child.slot = SPROP_INVALID_SLOT;
-        } else {
-            
-
-
-
-
-
-            if (child.slot == SPROP_INVALID_SLOT &&
-                !js_AllocSlot(cx, object, &child.slot)) {
-                return NULL;
-            }
-        }
-    }
-
-    if (inDictionaryMode()) {
-        JS_ASSERT(parent == lastProp);
-        if (newDictionaryProperty(cx, child, &lastProp)) {
-            updateShape(cx);
-            return lastProp;
-        }
-        return NULL;
-    }
-    
-    JSScopeProperty *sprop = GetPropertyTreeChild(cx, parent, child);
-    if (sprop) {
-        JS_ASSERT(sprop->parent == parent);
-        if (parent == lastProp) {
-            extend(cx, sprop);
-        } else {
-            JS_ASSERT(parent == lastProp->parent);
-            setLastProperty(sprop);
-            updateShape(cx);
-        }
-    }
-    return sprop;
-}
-
 #ifdef DEBUG_notbrendan
 #define CHECK_ANCESTOR_LINE(scope, sparse)                                    \
     JS_BEGIN_MACRO                                                            \
-        if ((scope)->table) CheckAncestorLine(scope);                         \
+        if ((scope)->table) CheckAncestorLine(scope, sparse);                 \
     JS_END_MACRO
 
 static void
-CheckAncestorLine(JSScope *scope)
+CheckAncestorLine(JSScope *scope, bool sparse)
 {
     uint32 size;
     JSScopeProperty **spp, **start, **end, *ancestorLine, *sprop, *aprop;
     uint32 entryCount, ancestorCount;
 
-    ancestorLine = scope->lastProperty();
+    ancestorLine = SCOPE_LAST_PROP(scope);
     if (ancestorLine)
-        JS_ASSERT(scope->hasProperty(ancestorLine));
+        JS_ASSERT(scope->has(ancestorLine));
 
     entryCount = 0;
     size = SCOPE_CAPACITY(scope);
@@ -1037,7 +982,7 @@ CheckAncestorLine(JSScope *scope)
     for (spp = start, end = start + size; spp < end; spp++) {
         sprop = SPROP_FETCH(spp);
         if (sprop) {
-            ++entryCount;
+            entryCount++;
             for (aprop = ancestorLine; aprop; aprop = aprop->parent) {
                 if (aprop == sprop)
                     break;
@@ -1048,8 +993,13 @@ CheckAncestorLine(JSScope *scope)
     JS_ASSERT(entryCount == scope->entryCount);
 
     ancestorCount = 0;
-    for (sprop = ancestorLine; sprop; sprop = sprop->parent)
+    for (sprop = ancestorLine; sprop; sprop = sprop->parent) {
+        if (scope->hadMiddleDelete() && !scope->has(sprop)) {
+            JS_ASSERT(sparse);
+            continue;
+        }
         ancestorCount++;
+    }
     JS_ASSERT(ancestorCount == scope->entryCount);
 }
 #else
@@ -1101,117 +1051,22 @@ JSScope::generateOwnShape(JSContext *cx)
 }
 
 JSScopeProperty *
-JSScope::newDictionaryProperty(JSContext *cx, const JSScopeProperty &child,
-                               JSScopeProperty **childp)
+JSScope::add(JSContext *cx, jsid id,
+             JSPropertyOp getter, JSPropertyOp setter,
+             uint32 slot, uintN attrs,
+             uintN flags, intN shortid)
 {
-    JSScopeProperty *dprop = NewScopeProperty(cx->runtime);
-    if (!dprop) {
-        JS_ReportOutOfMemory(cx);
-        return NULL;
-    }
+    JSScopeProperty **spp, *sprop, *overwriting, **spvec, **spp2, child;
+    uint32 size, splen, i;
+    int change;
+    JSTempValueRooter tvr;
 
-    dprop->id = child.id;
-    dprop->getter = child.getter;
-    dprop->setter = child.setter;
-    dprop->slot = child.slot;
-    dprop->attrs = child.attrs;
-    dprop->flags = child.flags | SPROP_IN_DICTIONARY;
-    dprop->shortid = child.shortid;
-    dprop->shape = js_GenerateShape(cx, false);
-
-    dprop->childp = NULL;
-    insertDictionaryProperty(dprop, childp);
-    return dprop;
-}
-
-bool
-JSScope::toDictionaryMode(JSContext *cx, JSScopeProperty *&aprop)
-{
-    JS_ASSERT(!inDictionaryMode());
-
-    JSScopeProperty **oldTable = table;
-    uint32 saveRemovedCount = removedCount;
-    if (oldTable) {
-        int sizeLog2 = JS_DHASH_BITS - hashShift;
-        JSScopeProperty **newTable = (JSScopeProperty **)
-            js_calloc(JS_BIT(sizeLog2) * sizeof(JSScopeProperty *));
-
-        if (!newTable) {
-            JS_ReportOutOfMemory(cx);
-            METER(toDictFails);
-            return false;
-        }
-        table = newTable;
-        removedCount = 0;
-    }
-
-    
-
-
-
-    JSScopeProperty *oldLastProp = lastProp;
-    lastProp = NULL;
-
-    
-
-
-
-    uint32 saveEntryCount = entryCount;
-    entryCount = 0;
-
-    for (JSScopeProperty *sprop = oldLastProp, **childp = &lastProp; sprop; sprop = sprop->parent) {
-        JSScopeProperty *dprop = newDictionaryProperty(cx, *sprop, childp);
-        if (!dprop) {
-            entryCount = saveEntryCount;
-            removedCount = saveRemovedCount;
-            if (table)
-                js_free(table);
-            table = oldTable;
-            lastProp = oldLastProp;
-            METER(toDictFails);
-            return false;
-        }
-
-        if (table) {
-            JSScopeProperty **spp = search(dprop->id, true);
-            JS_ASSERT(!SPROP_FETCH(spp));
-            SPROP_STORE_PRESERVING_COLLISION(spp, dprop);
-        }
-
-        if (aprop == sprop)
-            aprop = dprop;
-        childp = &dprop->parent;
-    }
-
-    if (oldTable)
-        js_free(oldTable);
-    setDictionaryMode();
-    clearOwnShape();
-
-    if (lastProp) {
-        
-
-
-
-
-        shape = lastProp->shape;
-    }
-    return true;
-}
-
-JSScopeProperty *
-JSScope::addProperty(JSContext *cx, jsid id,
-                     JSPropertyOp getter, JSPropertyOp setter,
-                     uint32 slot, uintN attrs,
-                     uintN flags, intN shortid)
-{
     JS_ASSERT(JS_IS_SCOPE_LOCKED(cx, this));
     CHECK_ANCESTOR_LINE(this, true);
 
     JS_ASSERT(!JSVAL_IS_NULL(id));
     JS_ASSERT_IF(attrs & JSPROP_GETTER, getter);
     JS_ASSERT_IF(attrs & JSPROP_SETTER, setter);
-
     JS_ASSERT_IF(!cx->runtime->gcRegenShapes,
                  hasRegenFlag(cx->runtime->gcRegenShapesScopeFlag));
 
@@ -1227,21 +1082,9 @@ JSScope::addProperty(JSContext *cx, jsid id,
     }
 
     
-    JSScopeProperty **spp = search(id, true);
-    JS_ASSERT(!SPROP_FETCH(spp));
-    return addPropertyHelper(cx, id, getter, setter, slot, attrs, flags, shortid, spp);
-}
 
 
 
-
-
-static inline bool
-NormalizeGetterAndSetter(JSContext *cx, JSScope *scope,
-                         jsid id, uintN attrs, uintN flags,
-                         JSPropertyOp &getter,
-                         JSPropertyOp &setter)
-{
     if (setter == JS_PropertyStub)
         setter = NULL;
     if (flags & SPROP_IS_METHOD) {
@@ -1258,46 +1101,237 @@ NormalizeGetterAndSetter(JSContext *cx, JSScope *scope,
 
 
 
-
-    if (!JS_CLIST_IS_EMPTY(&cx->runtime->watchPointList) &&
-        js_FindWatchPoint(cx->runtime, scope, id)) {
-        setter = js_WrapWatchedSetter(cx, id, attrs, setter);
-        if (!setter) {
-            METER(wrapWatchFails);
-            return false;
+    spp = search(id, true);
+    sprop = overwriting = SPROP_FETCH(spp);
+    if (!sprop) {
+        
+        size = SCOPE_CAPACITY(this);
+        if (entryCount + removedCount >= size - (size >> 2)) {
+            if (removedCount >= size >> 2) {
+                METER(compresses);
+                change = 0;
+            } else {
+                METER(grows);
+                change = 1;
+            }
+            if (!changeTable(cx, change) &&
+                entryCount + removedCount == size - 1) {
+                METER(addFailures);
+                return NULL;
+            }
+            spp = search(id, true);
+            JS_ASSERT(!SPROP_FETCH(spp));
         }
+    } else {
+        
+        JS_ASSERT(!SPROP_IS_REMOVED(*spp));
+
+        
+
+
+
+
+
+        if (!(attrs & JSPROP_SHARED) &&
+            slot == SPROP_INVALID_SLOT &&
+            SPROP_HAS_VALID_SLOT(sprop, this)) {
+            slot = sprop->slot;
+        }
+        if (SPROP_MATCH_PARAMS_AFTER_ID(sprop, getter, setter, slot, attrs,
+                                        flags, shortid)) {
+            METER(redundantAdds);
+            return sprop;
+        }
+
+        
+
+
+
+
+
+
+
+
+
+
+
+
+
+        if (sprop == SCOPE_LAST_PROP(this)) {
+            do {
+                SCOPE_REMOVE_LAST_PROP(this);
+                if (!hadMiddleDelete())
+                    break;
+                sprop = SCOPE_LAST_PROP(this);
+            } while (sprop && !has(sprop));
+        } else if (!hadMiddleDelete()) {
+            
+
+
+
+            if (!table) {
+                if (!createTable(cx, true))
+                    return NULL;
+                spp = search(id, true);
+                sprop = overwriting = SPROP_FETCH(spp);
+            }
+            setMiddleDelete();
+        }
+
+        
+
+
+
+
+
+
+        if (table)
+            SPROP_STORE_PRESERVING_COLLISION(spp, NULL);
+        entryCount--;
+        CHECK_ANCESTOR_LINE(this, true);
+        sprop = NULL;
     }
-    return true;
-}
 
-JSScopeProperty *
-JSScope::addPropertyHelper(JSContext *cx, jsid id,
-                           JSPropertyOp getter, JSPropertyOp setter,
-                           uint32 slot, uintN attrs,
-                           uintN flags, intN shortid,
-                           JSScopeProperty **spp)
-{
-    NormalizeGetterAndSetter(cx, this, id, attrs, flags, getter, setter);
+    if (!sprop) {
+        
 
-    
-    uint32 size = SCOPE_CAPACITY(this);
-    if (entryCount + removedCount >= size - (size >> 2)) {
-        int change = removedCount < size >> 2;
-        if (!change)
-            METER(compresses);
-        else
-            METER(grows);
-        if (!changeTable(cx, change) && entryCount + removedCount == size - 1)
-            return NULL;
-        spp = search(id, true);
-        JS_ASSERT(!SPROP_FETCH(spp));
-    }
 
-    
-    JSScopeProperty *sprop;
-    {
-        JSScopeProperty child;
 
+
+
+
+        if (hadMiddleDelete()) {
+            JS_ASSERT(table);
+            CHECK_ANCESTOR_LINE(this, true);
+
+            
+
+
+
+
+
+
+
+
+
+
+
+            bool conflicts = false;
+            uint32 count = 0;
+            uint32 threshold = JS_BIT(JS_CeilingLog2(entryCount));
+            for (sprop = SCOPE_LAST_PROP(this); sprop; sprop = sprop->parent) {
+                ++count;
+                if (sprop->id == id) {
+                    conflicts = true;
+                    break;
+                }
+            }
+
+            if (conflicts || count > threshold) {
+                
+
+
+
+
+                splen = entryCount;
+                JS_ASSERT(splen != 0);
+                spvec = (JSScopeProperty **)
+                        cx->malloc(SCOPE_TABLE_NBYTES(splen));
+                if (!spvec)
+                    goto fail_overwrite;
+                i = splen;
+                sprop = SCOPE_LAST_PROP(this);
+                JS_ASSERT(sprop);
+                do {
+                    
+
+
+
+
+
+                    if (!lookup(sprop->id))
+                        continue;
+
+                    JS_ASSERT(sprop != overwriting);
+                    JS_ASSERT(i != 0);
+                    spvec[--i] = sprop;
+                } while ((sprop = sprop->parent) != NULL);
+                JS_ASSERT(i == 0);
+
+                
+
+
+
+
+                do {
+                    if (spvec[i]->parent == sprop) {
+                        sprop = spvec[i];
+                    } else {
+                        sprop = GetPropertyTreeChild(cx, sprop, spvec[i]);
+                        if (!sprop) {
+                            cx->free(spvec);
+                            goto fail_overwrite;
+                        }
+
+                        spp2 = search(sprop->id, false);
+                        JS_ASSERT(SPROP_FETCH(spp2) == spvec[i]);
+                        SPROP_STORE_PRESERVING_COLLISION(spp2, sprop);
+                    }
+                } while (++i < splen);
+                cx->free(spvec);
+
+                
+
+
+
+
+                lastProp = sprop;
+                CHECK_ANCESTOR_LINE(this, false);
+                JS_RUNTIME_METER(cx->runtime, middleDeleteFixups);
+                clearMiddleDelete();
+            }
+        }
+
+        
+
+
+
+
+
+        if (!(flags & SPROP_IS_ALIAS)) {
+            if (attrs & JSPROP_SHARED) {
+                slot = SPROP_INVALID_SLOT;
+            } else {
+                
+
+
+
+
+
+                if (slot == SPROP_INVALID_SLOT &&
+                    !js_AllocSlot(cx, object, &slot)) {
+                    goto fail_overwrite;
+                }
+            }
+        }
+
+        
+
+
+
+
+        if (!JS_CLIST_IS_EMPTY(&cx->runtime->watchPointList) &&
+            js_FindWatchPoint(cx->runtime, this, id)) {
+            if (overwriting)
+                JS_PUSH_TEMP_ROOT_SPROP(cx, overwriting, &tvr);
+            setter = js_WrapWatchedSetter(cx, id, attrs, setter);
+            if (overwriting)
+                JS_POP_TEMP_ROOT(cx, &tvr);
+            if (!setter)
+                goto fail_overwrite;
+        }
+
+        
         child.id = id;
         child.getter = getter;
         child.setter = setter;
@@ -1305,17 +1339,26 @@ JSScope::addPropertyHelper(JSContext *cx, jsid id,
         child.attrs = attrs;
         child.flags = flags;
         child.shortid = shortid;
-        sprop = getChildProperty(cx, lastProp, child);
-    }
+        sprop = GetPropertyTreeChild(cx, lastProp, &child);
+        if (!sprop)
+            goto fail_overwrite;
 
-    if (sprop) {
+        
+
+
+
+
+        extend(cx, sprop);
+
         
         if (table)
             SPROP_STORE_PRESERVING_COLLISION(spp, sprop);
         CHECK_ANCESTOR_LINE(this, false);
 #ifdef DEBUG
-        LIVE_SCOPE_METER(cx, ++cx->runtime->liveScopeProps);
-        JS_RUNTIME_METER(cx->runtime, totalScopeProps);
+        if (!overwriting) {
+            LIVE_SCOPE_METER(cx, ++cx->runtime->liveScopeProps);
+            JS_RUNTIME_METER(cx->runtime, totalScopeProps);
+        }
 #endif
 
         
@@ -1328,68 +1371,14 @@ JSScope::addPropertyHelper(JSContext *cx, jsid id,
 
         if (!table && entryCount >= SCOPE_HASH_THRESHOLD)
             (void) createTable(cx, false);
-
-        METER(adds);
-        return sprop;
     }
 
-    METER(addFails);
-    return NULL;
-}
+    METER(adds);
+    return sprop;
 
-JSScopeProperty *
-JSScope::putProperty(JSContext *cx, jsid id,
-                     JSPropertyOp getter, JSPropertyOp setter,
-                     uint32 slot, uintN attrs,
-                     uintN flags, intN shortid)
-{
-    JSScopeProperty **spp, *sprop, *overwriting;
-
-    JS_ASSERT(JS_IS_SCOPE_LOCKED(cx, this));
-    CHECK_ANCESTOR_LINE(this, true);
-
-    JS_ASSERT(!JSVAL_IS_NULL(id));
-    JS_ASSERT_IF(attrs & JSPROP_GETTER, getter);
-    JS_ASSERT_IF(attrs & JSPROP_SETTER, setter);
-
-    JS_ASSERT_IF(!cx->runtime->gcRegenShapes,
-                 hasRegenFlag(cx->runtime->gcRegenShapesScopeFlag));
-
-    if (sealed()) {
-        reportReadOnlyScope(cx);
-        return NULL;
-    }
-
-    
-    spp = search(id, true);
-    sprop = SPROP_FETCH(spp);
-    if (!sprop)
-        return addPropertyHelper(cx, id, getter, setter, slot, attrs, flags, shortid, spp);
-
-    
-    JS_ASSERT(!SPROP_IS_REMOVED(*spp));
-    overwriting = sprop;
-
-    NormalizeGetterAndSetter(cx, this, id, attrs, flags, getter, setter);
-
-    
-
-
-
-
-
-    if (!(attrs & JSPROP_SHARED) &&
-        slot == SPROP_INVALID_SLOT &&
-        SPROP_HAS_VALID_SLOT(sprop, this)) {
-        slot = sprop->slot;
-    }
-    if (SPROP_MATCH_PARAMS_AFTER_ID(sprop, getter, setter, slot, attrs,
-                                    flags, shortid)) {
-        METER(redundantPuts);
-        return sprop;
-    }
-
-    
+fail_overwrite:
+    if (overwriting) {
+        
 
 
 
@@ -1397,87 +1386,50 @@ JSScope::putProperty(JSContext *cx, jsid id,
 
 
 
-
-
-    if (sprop == lastProp && !inDictionaryMode()) {
-        removeLastProperty();
-    } else {
-        if (!inDictionaryMode()) {
-            if (!toDictionaryMode(cx, sprop))
-                return NULL;
-            spp = search(id, false);
+        for (sprop = SCOPE_LAST_PROP(this); ; sprop = sprop->parent) {
+            if (!sprop) {
+                sprop = SCOPE_LAST_PROP(this);
+                if (overwriting->parent == sprop) {
+                    lastProp = overwriting;
+                } else {
+                    sprop = GetPropertyTreeChild(cx, sprop, overwriting);
+                    if (sprop) {
+                        JS_ASSERT(sprop != overwriting);
+                        lastProp = sprop;
+                    }
+                    overwriting = sprop;
+                }
+                break;
+            }
+            if (sprop == overwriting)
+                break;
         }
-        removeDictionaryProperty(sprop);
+        if (overwriting) {
+            if (table)
+                SPROP_STORE_PRESERVING_COLLISION(spp, overwriting);
+            entryCount++;
+        }
+        CHECK_ANCESTOR_LINE(this, true);
     }
-
-    
-
-
-
-
-
-    if (table)
-        SPROP_STORE_PRESERVING_COLLISION(spp, NULL);
-    CHECK_ANCESTOR_LINE(this, true);
-
-    {
-        JSScopeProperty child;
-
-        
-        child.id = id;
-        child.getter = getter;
-        child.setter = setter;
-        child.slot = slot;
-        child.attrs = attrs;
-        child.flags = flags;
-        child.shortid = shortid;
-        sprop = getChildProperty(cx, lastProp, child);
-    }
-
-    if (sprop) {
-        
-        if (table)
-            SPROP_STORE_PRESERVING_COLLISION(spp, sprop);
-        CHECK_ANCESTOR_LINE(this, false);
-
-        
-        if (!table && entryCount >= SCOPE_HASH_THRESHOLD)
-            (void) createTable(cx, false);
-
-        METER(puts);
-        return sprop;
-    }
-
-    if (table)
-        SPROP_STORE_PRESERVING_COLLISION(spp, overwriting);
-    ++entryCount;
-    CHECK_ANCESTOR_LINE(this, true);
-    METER(putFails);
+    METER(addFailures);
     return NULL;
 }
 
 JSScopeProperty *
-JSScope::changeProperty(JSContext *cx, JSScopeProperty *sprop,
-                        uintN attrs, uintN mask,
-                        JSPropertyOp getter, JSPropertyOp setter)
+JSScope::change(JSContext *cx, JSScopeProperty *sprop,
+                uintN attrs, uintN mask,
+                JSPropertyOp getter, JSPropertyOp setter)
 {
-    JSScopeProperty child, *newsprop;
+    JSScopeProperty child, *newsprop, **spp;
 
-    JS_ASSERT(JS_IS_SCOPE_LOCKED(cx, this));
     CHECK_ANCESTOR_LINE(this, true);
 
     JS_ASSERT(!JSVAL_IS_NULL(sprop->id));
-    JS_ASSERT(hasProperty(sprop));
-
-    attrs |= sprop->attrs & mask;
 
     
+    attrs |= sprop->attrs & mask;
     JS_ASSERT(!((attrs ^ sprop->attrs) & JSPROP_SHARED) ||
               !(attrs & JSPROP_SHARED));
-
-    
-    JS_ASSERT(!(sprop->flags & SPROP_IS_METHOD));
-
     if (getter == JS_PropertyStub)
         getter = NULL;
     if (setter == JS_PropertyStub)
@@ -1496,24 +1448,27 @@ JSScope::changeProperty(JSContext *cx, JSScopeProperty *sprop,
     child.flags = sprop->flags;
     child.shortid = sprop->shortid;
 
-    if (inDictionaryMode()) {
-        removeDictionaryProperty(sprop);
-        newsprop = newDictionaryProperty(cx, child, &lastProp);
-        if (newsprop) {
-            if (table) {
-                JSScopeProperty **spp = search(sprop->id, false);
-                SPROP_STORE_PRESERVING_COLLISION(spp, newsprop);
-            }
-            updateShape(cx);
+    if (SCOPE_LAST_PROP(this) == sprop) {
+        
+
+
+
+
+
+        if ((sprop->attrs & JSPROP_SHARED) && !(attrs & JSPROP_SHARED)) {
+            JS_ASSERT(child.slot == SPROP_INVALID_SLOT);
+            if (!js_AllocSlot(cx, object, &child.slot))
+                return NULL;
         }
-    } else if (sprop == lastProp) {
-        newsprop = getChildProperty(cx, sprop->parent, child);
+
+        newsprop = GetPropertyTreeChild(cx, sprop->parent, &child);
         if (newsprop) {
-            if (table) {
-                JSScopeProperty **spp = search(sprop->id, false);
-                JS_ASSERT(SPROP_FETCH(spp) == sprop);
+            spp = search(sprop->id, false);
+            JS_ASSERT(SPROP_FETCH(spp) == sprop);
+
+            if (table)
                 SPROP_STORE_PRESERVING_COLLISION(spp, newsprop);
-            }
+            lastProp = newsprop;
             CHECK_ANCESTOR_LINE(this, true);
         }
     } else {
@@ -1523,21 +1478,23 @@ JSScope::changeProperty(JSContext *cx, JSScopeProperty *sprop,
 
 
 
-        newsprop = putProperty(cx, child.id, child.getter, child.setter, child.slot,
-                               child.attrs, child.flags, child.shortid);
+        newsprop = add(cx, child.id, child.getter, child.setter, child.slot,
+                       child.attrs, child.flags, child.shortid);
     }
 
-#ifdef DEBUG
-    if (newsprop)
-        METER(changes);
+    if (newsprop) {
+        js_LeaveTraceIfGlobalObject(cx, object);
+        replacingShapeChange(cx, sprop, newsprop);
+    }
+#ifdef JS_DUMP_PROPTREE_STATS
     else
-        METER(changeFails);
+        METER(changeFailures);
 #endif
     return newsprop;
 }
 
 bool
-JSScope::removeProperty(JSContext *cx, jsid id)
+JSScope::remove(JSContext *cx, jsid id)
 {
     JSScopeProperty **spp, *stored, *sprop;
     uint32 size;
@@ -1548,6 +1505,7 @@ JSScope::removeProperty(JSContext *cx, jsid id)
         reportReadOnlyScope(cx);
         return false;
     }
+    METER(removes);
 
     spp = search(id, false);
     stored = *spp;
@@ -1558,13 +1516,12 @@ JSScope::removeProperty(JSContext *cx, jsid id)
     }
 
     
-    if (sprop != lastProp) {
-        if (!inDictionaryMode()) {
-            if (!toDictionaryMode(cx, sprop))
-                return false;
-            spp = search(id, false);
-        }
-        JS_ASSERT(SPROP_FETCH(spp) == sprop);
+    if (!table && sprop != lastProp) {
+        if (!createTable(cx, true))
+            return false;
+        spp = search(id, false);
+        stored = *spp;
+        sprop = SPROP_CLEAR_COLLISION(stored);
     }
 
     
@@ -1577,28 +1534,29 @@ JSScope::removeProperty(JSContext *cx, jsid id)
     if (SPROP_HAD_COLLISION(stored)) {
         JS_ASSERT(table);
         *spp = SPROP_REMOVED;
-        ++removedCount;
+        removedCount++;
     } else {
         METER(removeFrees);
         if (table)
             *spp = NULL;
     }
+    entryCount--;
     LIVE_SCOPE_METER(cx, --cx->runtime->liveScopeProps);
 
-    if (inDictionaryMode()) {
-        
-
-
-
-
-        if (sprop != lastProp)
-            setOwnShape();
-        removeDictionaryProperty(sprop);
-    } else {
-        JS_ASSERT(sprop == lastProp);
-        removeLastProperty();
+    
+    if (sprop == SCOPE_LAST_PROP(this)) {
+        do {
+            SCOPE_REMOVE_LAST_PROP(this);
+            if (!hadMiddleDelete())
+                break;
+            sprop = SCOPE_LAST_PROP(this);
+        } while (sprop && !has(sprop));
+        if (!SCOPE_LAST_PROP(this))
+            clearMiddleDelete();
+    } else if (!hadMiddleDelete()) {
+        setMiddleDelete();
     }
-    updateShape(cx);
+    generateOwnShape(cx);
     CHECK_ANCESTOR_LINE(this, true);
 
     
@@ -1608,7 +1566,6 @@ JSScope::removeProperty(JSContext *cx, jsid id)
         (void) changeTable(cx, -1);
     }
 
-    METER(removes);
     return true;
 }
 
@@ -1620,8 +1577,7 @@ JSScope::clear(JSContext *cx)
 
     if (table)
         js_free(table);
-    clearDictionaryMode();
-    clearOwnShape();
+    clearMiddleDelete();
     js_LeaveTraceIfGlobalObject(cx, object);
 
     JSClass *clasp = object->getClass();
@@ -1673,9 +1629,9 @@ JSScope::methodShapeChange(JSContext *cx, JSScopeProperty *sprop, jsval toval)
 
 
 
-        sprop = putProperty(cx, sprop->id, NULL, sprop->setter, sprop->slot,
-                            sprop->attrs, sprop->flags & ~SPROP_IS_METHOD,
-                            sprop->shortid);
+        sprop = add(cx, sprop->id, NULL, sprop->setter, sprop->slot,
+                    sprop->attrs, sprop->flags & ~SPROP_IS_METHOD,
+                    sprop->shortid);
         if (!sprop)
             return false;
     }
@@ -1692,7 +1648,7 @@ JSScope::methodShapeChange(JSContext *cx, uint32 slot, jsval toval)
     } else {
         for (JSScopeProperty *sprop = lastProp; sprop; sprop = sprop->parent) {
             JS_ASSERT(!JSVAL_IS_NULL(sprop->id));
-            if (sprop->slot == slot)
+            if (sprop->slot == slot && (!hadMiddleDelete() || has(sprop)))
                 return methodShapeChange(cx, sprop, toval);
         }
     }
@@ -1703,6 +1659,16 @@ void
 JSScope::protoShapeChange(JSContext *cx)
 {
     generateOwnShape(cx);
+}
+
+void
+JSScope::replacingShapeChange(JSContext *cx, JSScopeProperty *sprop, JSScopeProperty *newsprop)
+{
+    JS_ASSERT(!JSVAL_IS_NULL(sprop->id));
+    if (shape == sprop->shape)
+        shape = newsprop->shape;
+    else
+        generateOwnShape(cx);
 }
 
 void
@@ -1799,7 +1765,7 @@ JSScopeProperty::trace(JSTracer *trc)
     }
 }
 
-#ifdef DEBUG
+#ifdef JS_DUMP_PROPTREE_STATS
 
 #include <stdio.h>
 
@@ -1914,20 +1880,18 @@ js_SweepScopeProperties(JSContext *cx)
     PropTreeKidsChunk *chunk, *nextChunk, *freeChunk;
     uintN i;
 
-#ifdef DEBUG
+#ifdef JS_DUMP_PROPTREE_STATS
     JSBasicStats bs;
     uint32 livePropCapacity = 0, totalLiveCount = 0;
     static FILE *logfp;
-    if (!logfp) {
-        if (const char *filename = getenv("JS_PROPTREE_STATFILE"))
-            logfp = fopen(filename, "w");
-    }
+    if (!logfp)
+        logfp = fopen("/tmp/proptree.stats", "w");
 
-    if (logfp) {
-        JS_BASIC_STATS_INIT(&bs);
-        MeterKidCount(&bs, rt->propertyTreeHash.entryCount);
-        JS_DHashTableEnumerate(&rt->propertyTreeHash, js_MeterPropertyTree, &bs);
+    JS_BASIC_STATS_INIT(&bs);
+    MeterKidCount(&bs, rt->propertyTreeHash.entryCount);
+    JS_DHashTableEnumerate(&rt->propertyTreeHash, js_MeterPropertyTree, &bs);
 
+    {
         double props, nodes, mean, sigma;
 
         props = rt->liveScopePropsPreSweep;
@@ -1938,9 +1902,9 @@ js_SweepScopeProperties(JSContext *cx)
         fprintf(logfp,
                 "props %g nodes %g beta %g meankids %g sigma %g max %u\n",
                 props, nodes, nodes / props, mean, sigma, bs.max);
-
-        JS_DumpHistogram(&bs, logfp);
     }
+
+    JS_DumpHistogram(&bs, logfp);
 #endif
 
     ap = &rt->propertyArenaPool.first.next;
@@ -1972,92 +1936,90 @@ js_SweepScopeProperties(JSContext *cx)
                 continue;
             }
 
-            if (!(sprop->flags & SPROP_IN_DICTIONARY)) {
-                
-                freeChunk = RemovePropertyTreeChild(rt, sprop);
+            
+            freeChunk = RemovePropertyTreeChild(rt, sprop);
+
+            
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            kids = sprop->kids;
+            if (kids) {
+                sprop->kids = NULL;
+                parent = sprop->parent;
 
                 
+                JS_ASSERT(!parent || !parent->kids ||
+                          KIDS_IS_CHUNKY(parent->kids));
+                if (KIDS_IS_CHUNKY(kids)) {
+                    chunk = KIDS_TO_CHUNK(kids);
+                    do {
+                        nextChunk = chunk->next;
+                        chunk->next = NULL;
+                        for (i = 0; i < MAX_KIDS_PER_CHUNK; i++) {
+                            kid = chunk->kids[i];
+                            if (!kid)
+                                break;
+                            JS_ASSERT(kid->parent == sprop);
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-                kids = sprop->kids;
-                if (kids) {
-                    sprop->kids = NULL;
-                    parent = sprop->parent;
-
-                    
-                    JS_ASSERT(!parent || !parent->kids ||
-                              KIDS_IS_CHUNKY(parent->kids));
-                    if (KIDS_IS_CHUNKY(kids)) {
-                        chunk = KIDS_TO_CHUNK(kids);
-                        do {
-                            nextChunk = chunk->next;
-                            chunk->next = NULL;
-                            for (i = 0; i < MAX_KIDS_PER_CHUNK; i++) {
-                                kid = chunk->kids[i];
-                                if (!kid)
-                                    break;
-                                JS_ASSERT(kid->parent == sprop);
-
-                                
-
-
-
-                                chunk->kids[i] = NULL;
-                                if (!InsertPropertyTreeChild(rt, parent, kid, chunk)) {
-                                    
-
-
-
-                                    JS_ASSERT(!parent);
-                                    kid->parent = NULL;
-                                }
-                            }
-                            if (!chunk->kids[0]) {
-                                
-                                DestroyPropTreeKidsChunk(rt, chunk);
-                            }
-                        } while ((chunk = nextChunk) != NULL);
-                    } else {
-                        kid = kids;
-                        if (!InsertPropertyTreeChild(rt, parent, kid, freeChunk)) {
                             
 
 
 
-                            JS_ASSERT(!parent);
-                            kid->parent = NULL;
+                            chunk->kids[i] = NULL;
+                            if (!InsertPropertyTreeChild(rt, parent, kid, chunk)) {
+                                
+
+
+
+                                JS_ASSERT(!parent);
+                                kid->parent = NULL;
+                            }
                         }
+                        if (!chunk->kids[0]) {
+                            
+                            DestroyPropTreeKidsChunk(rt, chunk);
+                        }
+                    } while ((chunk = nextChunk) != NULL);
+                } else {
+                    kid = kids;
+                    if (!InsertPropertyTreeChild(rt, parent, kid, freeChunk)) {
+                        
+
+
+
+                        JS_ASSERT(!parent);
+                        kid->parent = NULL;
                     }
                 }
+            }
 
-                if (freeChunk && !freeChunk->kids[0]) {
-                    
-                    DestroyPropTreeKidsChunk(rt, freeChunk);
-                }
+            if (freeChunk && !freeChunk->kids[0]) {
+                
+                DestroyPropTreeKidsChunk(rt, freeChunk);
             }
 
             
@@ -2072,7 +2034,7 @@ js_SweepScopeProperties(JSContext *cx)
                 FREENODE_REMOVE(sprop);
             JS_ARENA_DESTROY(&rt->propertyArenaPool, a, ap);
         } else {
-#ifdef DEBUG
+#ifdef JS_DUMP_PROPTREE_STATS
             livePropCapacity += limit - (JSScopeProperty *) a->base;
             totalLiveCount += liveCount;
 #endif
@@ -2080,79 +2042,60 @@ js_SweepScopeProperties(JSContext *cx)
         }
     }
 
-#ifdef DEBUG
-    if (logfp) {
-        fprintf(logfp,
-                "\nProperty tree stats for gcNumber %lu\n",
-                (unsigned long) rt->gcNumber);
-
-        fprintf(logfp, "arenautil %g%%\n",
-                (totalLiveCount && livePropCapacity)
-                ? (totalLiveCount * 100.0) / livePropCapacity
-                : 0.0);
+#ifdef JS_DUMP_PROPTREE_STATS
+    fprintf(logfp, "arenautil %g%%\n",
+            (totalLiveCount && livePropCapacity)
+            ? (totalLiveCount * 100.0) / livePropCapacity
+            : 0.0);
 
 #define RATE(f1, f2) (((double)js_scope_stats.f1 / js_scope_stats.f2) * 100.0)
 
-        fprintf(logfp,
-                "Scope search stats:\n"
-                "  searches:       %6u\n"
-                "  hits:           %6u %5.2f%% of searches\n"
-                "  misses:         %6u %5.2f%%\n"
-                "  hashes:         %6u %5.2f%%\n"
-                "  steps:          %6u %5.2f%% %5.2f%% of hashes\n"
-                "  stepHits:       %6u %5.2f%% %5.2f%%\n"
-                "  stepMisses:     %6u %5.2f%% %5.2f%%\n"
-                "  tableAllocFails %6u\n"
-                "  toDictFails     %6u\n"
-                "  wrapWatchFails  %6u\n"
-                "  adds:           %6u\n"
-                "  addFails:       %6u\n"
-                "  puts:           %6u\n"
-                "  redundantPuts:  %6u\n"
-                "  putFails:       %6u\n"
-                "  changes:        %6u\n"
-                "  changeFails:    %6u\n"
-                "  compresses:     %6u\n"
-                "  grows:          %6u\n"
-                "  removes:        %6u\n"
-                "  removeFrees:    %6u\n"
-                "  uselessRemoves: %6u\n"
-                "  shrinks:        %6u\n",
-                js_scope_stats.searches,
-                js_scope_stats.hits, RATE(hits, searches),
-                js_scope_stats.misses, RATE(misses, searches),
-                js_scope_stats.hashes, RATE(hashes, searches),
-                js_scope_stats.steps, RATE(steps, searches), RATE(steps, hashes),
-                js_scope_stats.stepHits,
-                RATE(stepHits, searches), RATE(stepHits, hashes),
-                js_scope_stats.stepMisses,
-                RATE(stepMisses, searches), RATE(stepMisses, hashes),
-                js_scope_stats.tableAllocFails,
-                js_scope_stats.toDictFails,
-                js_scope_stats.wrapWatchFails,
-                js_scope_stats.adds,
-                js_scope_stats.addFails,
-                js_scope_stats.puts,
-                js_scope_stats.redundantPuts,
-                js_scope_stats.putFails,
-                js_scope_stats.changes,
-                js_scope_stats.changeFails,
-                js_scope_stats.compresses,
-                js_scope_stats.grows,
-                js_scope_stats.removes,
-                js_scope_stats.removeFrees,
-                js_scope_stats.uselessRemoves,
-                js_scope_stats.shrinks);
+    fprintf(logfp, "Scope search stats:\n"
+            "  searches:       %6u\n"
+            "  hits:           %6u %5.2f%% of searches\n"
+            "  misses:         %6u %5.2f%%\n"
+            "  hashes:         %6u %5.2f%%\n"
+            "  steps:          %6u %5.2f%% %5.2f%% of hashes\n"
+            "  stepHits:       %6u %5.2f%% %5.2f%%\n"
+            "  stepMisses:     %6u %5.2f%% %5.2f%%\n"
+            "  adds:           %6u\n"
+            "  redundantAdds:  %6u\n"
+            "  addFailures:    %6u\n"
+            "  changeFailures: %6u\n"
+            "  compresses:     %6u\n"
+            "  grows:          %6u\n"
+            "  removes:        %6u\n"
+            "  removeFrees:    %6u\n"
+            "  uselessRemoves: %6u\n"
+            "  shrinks:        %6u\n",
+            js_scope_stats.searches,
+            js_scope_stats.hits, RATE(hits, searches),
+            js_scope_stats.misses, RATE(misses, searches),
+            js_scope_stats.hashes, RATE(hashes, searches),
+            js_scope_stats.steps, RATE(steps, searches), RATE(steps, hashes),
+            js_scope_stats.stepHits,
+            RATE(stepHits, searches), RATE(stepHits, hashes),
+            js_scope_stats.stepMisses,
+            RATE(stepMisses, searches), RATE(stepMisses, hashes),
+            js_scope_stats.adds,
+            js_scope_stats.redundantAdds,
+            js_scope_stats.addFailures,
+            js_scope_stats.changeFailures,
+            js_scope_stats.compresses,
+            js_scope_stats.grows,
+            js_scope_stats.removes,
+            js_scope_stats.removeFrees,
+            js_scope_stats.uselessRemoves,
+            js_scope_stats.shrinks);
 
 #undef RATE
 
-        fflush(logfp);
-    }
+    fflush(logfp);
+#endif
 
-    if (const char *filename = getenv("JS_PROPTREE_DUMPFILE")) {
-        char pathname[1024];
-        JS_snprintf(pathname, sizeof pathname, "%s.%lu", filename, (unsigned long)rt->gcNumber);
-        FILE *dumpfp = fopen(pathname, "w");
+#ifdef DUMP_PROPERTY_TREE
+    {
+        FILE *dumpfp = fopen("/tmp/proptree.dump", "w");
         if (dumpfp) {
             JSPropertyTreeEntry *pte, *end;
 
@@ -2166,7 +2109,7 @@ js_SweepScopeProperties(JSContext *cx)
             fclose(dumpfp);
         }
     }
-#endif 
+#endif
 }
 
 bool

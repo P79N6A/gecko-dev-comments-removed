@@ -202,8 +202,6 @@ JS_BEGIN_EXTERN_C
 
 struct JSEmptyScope;
 
-#define SPROP_INVALID_SLOT              0xffffffff
-
 struct JSScope : public JSObjectMap
 {
 #ifdef JS_THREADSAFE
@@ -220,44 +218,9 @@ struct JSScope : public JSObjectMap
     uint32          entryCount;         
     uint32          removedCount;       
     JSScopeProperty **table;            
-
-    
-
-
-
-    inline JSScopeProperty *lastProperty() const;
+    JSScopeProperty *lastProp;          
 
   private:
-    JSScopeProperty *getChildProperty(JSContext *cx, JSScopeProperty *parent,
-                                      JSScopeProperty &child);
-
-    JSScopeProperty *newDictionaryProperty(JSContext *cx, const JSScopeProperty &child,
-                                           JSScopeProperty **childp);
-
-    bool toDictionaryMode(JSContext *cx, JSScopeProperty *&aprop);
-
-    
-
-
-
-
-
-
-
-
-
-
-    JSScopeProperty *lastProp;
-
-    
-    inline void setLastProperty(JSScopeProperty *sprop);
-    inline void removeLastProperty();
-    inline void removeDictionaryProperty(JSScopeProperty *sprop);
-    inline void insertDictionaryProperty(JSScopeProperty *sprop, JSScopeProperty **childp);
-
-    
-    inline void updateShape(JSContext *cx);
-
     void initMinimal(JSContext *cx, uint32 newShape);
     bool createTable(JSContext *cx, bool report);
     bool changeTable(JSContext *cx, int change);
@@ -266,12 +229,6 @@ struct JSScope : public JSObjectMap
     JSScopeProperty **searchTable(jsid id, bool adding);
     inline JSScopeProperty **search(jsid id, bool adding);
     JSEmptyScope *createEmptyScope(JSContext *cx, JSClass *clasp);
-
-    JSScopeProperty *addPropertyHelper(JSContext *cx, jsid id,
-                                       JSPropertyOp getter, JSPropertyOp setter,
-                                       uint32 slot, uintN attrs,
-                                       uintN flags, intN shortid,
-                                       JSScopeProperty **spp);
 
   public:
     explicit JSScope(const JSObjectOps *ops, JSObject *obj = NULL)
@@ -296,46 +253,25 @@ struct JSScope : public JSObjectMap
     inline JSEmptyScope *getEmptyScope(JSContext *cx, JSClass *clasp);
 
     inline bool canProvideEmptyScope(JSObjectOps *ops, JSClass *clasp);
-
+ 
     JSScopeProperty *lookup(jsid id);
+    bool has(JSScopeProperty *sprop);
 
-    inline bool hasProperty(jsid id) { return lookup(id) != NULL; }
-    inline bool hasProperty(JSScopeProperty *sprop);
+    JSScopeProperty *add(JSContext *cx, jsid id,
+                         JSPropertyOp getter, JSPropertyOp setter,
+                         uint32 slot, uintN attrs,
+                         uintN flags, intN shortid);
 
-    
-    JSScopeProperty *addProperty(JSContext *cx, jsid id,
-                                 JSPropertyOp getter, JSPropertyOp setter,
-                                 uint32 slot, uintN attrs,
-                                 uintN flags, intN shortid);
+    JSScopeProperty *change(JSContext *cx, JSScopeProperty *sprop,
+                            uintN attrs, uintN mask,
+                            JSPropertyOp getter, JSPropertyOp setter);
 
-    
-    JSScopeProperty *addDataProperty(JSContext *cx, jsid id, uint32 slot, uintN attrs) {
-        JS_ASSERT(!(attrs & (JSPROP_GETTER | JSPROP_SETTER)));
-        return addProperty(cx, id, NULL, NULL, slot, attrs, 0, 0);
-    }
-
-    
-    JSScopeProperty *putProperty(JSContext *cx, jsid id,
-                                 JSPropertyOp getter, JSPropertyOp setter,
-                                 uint32 slot, uintN attrs,
-                                 uintN flags, intN shortid);
-
-    
-    JSScopeProperty *changeProperty(JSContext *cx, JSScopeProperty *sprop,
-                                    uintN attrs, uintN mask,
-                                    JSPropertyOp getter, JSPropertyOp setter);
-
-    
-    bool removeProperty(JSContext *cx, jsid id);
-
-    
+    bool remove(JSContext *cx, jsid id);
     void clear(JSContext *cx);
 
-    
     void extend(JSContext *cx, JSScopeProperty *sprop);
 
     
-
 
 
 
@@ -358,14 +294,15 @@ struct JSScope : public JSObjectMap
     bool methodShapeChange(JSContext *cx, JSScopeProperty *sprop, jsval toval);
     bool methodShapeChange(JSContext *cx, uint32 slot, jsval toval);
     void protoShapeChange(JSContext *cx);
+    void replacingShapeChange(JSContext *cx, JSScopeProperty *sprop, JSScopeProperty *newsprop);
     void sealingShapeChange(JSContext *cx);
     void shadowingShapeChange(JSContext *cx, JSScopeProperty *sprop);
 
 
-#define SCOPE_CAPACITY(scope)   JS_BIT(JS_DHASH_BITS-(scope)->hashShift)
+#define SCOPE_CAPACITY(scope)           JS_BIT(JS_DHASH_BITS-(scope)->hashShift)
 
     enum {
-        DICTIONARY_MODE         = 0x0001,
+        MIDDLE_DELETE           = 0x0001,
         SEALED                  = 0x0002,
         BRANDED                 = 0x0004,
         INDEXED_PROPERTIES      = 0x0008,
@@ -379,9 +316,9 @@ struct JSScope : public JSObjectMap
         SHAPE_REGEN             = 0x0040
     };
 
-    bool inDictionaryMode()     { return flags & DICTIONARY_MODE; }
-    void setDictionaryMode()    { flags |= DICTIONARY_MODE; }
-    void clearDictionaryMode()  { flags &= ~DICTIONARY_MODE; }
+    bool hadMiddleDelete()      { return flags & MIDDLE_DELETE; }
+    void setMiddleDelete()      { flags |= MIDDLE_DELETE; }
+    void clearMiddleDelete()    { flags &= ~MIDDLE_DELETE; }
 
     
 
@@ -404,7 +341,6 @@ struct JSScope : public JSObjectMap
 
     bool hasOwnShape()          { return flags & OWN_SHAPE; }
     void setOwnShape()          { flags |= OWN_SHAPE; }
-    void clearOwnShape()        { flags &= ~OWN_SHAPE; }
 
     bool hasRegenFlag(uint8 regenFlag) { return (flags & SHAPE_REGEN) == regenFlag; }
 
@@ -495,6 +431,18 @@ OBJ_SHAPE(JSObject *obj)
 
 
 
+#define SCOPE_LAST_PROP(scope)                                                \
+    (JS_ASSERT_IF((scope)->lastProp, !JSVAL_IS_NULL((scope)->lastProp->id)),  \
+     (scope)->lastProp)
+#define SCOPE_REMOVE_LAST_PROP(scope)                                         \
+    (JS_ASSERT_IF((scope)->lastProp->parent,                                  \
+                  !JSVAL_IS_NULL((scope)->lastProp->parent->id)),             \
+     (scope)->lastProp = (scope)->lastProp->parent)
+
+
+
+
+
 inline JSObject *
 js_CastAsObject(JSPropertyOp op)
 {
@@ -523,14 +471,8 @@ struct JSScopeProperty {
     uint8           flags;              
     int16           shortid;            
     JSScopeProperty *parent;            
-    union {
-        JSScopeProperty *kids;          
+    JSScopeProperty *kids;              
 
-        JSScopeProperty **childp;       
-
-
-
-    };
     uint32          shape;              
 
 
@@ -539,7 +481,6 @@ struct JSScopeProperty {
 #define SPROP_HAS_SHORTID               0x04
 #define SPROP_FLAG_SHAPE_REGEN          0x08
 #define SPROP_IS_METHOD                 0x10
-#define SPROP_IN_DICTIONARY             0x20
 
     bool isMethod() const {
         return flags & SPROP_IS_METHOD;
@@ -610,83 +551,9 @@ JSScope::lookup(jsid id)
 }
 
 inline bool
-JSScope::hasProperty(JSScopeProperty *sprop)
+JSScope::has(JSScopeProperty *sprop)
 {
     return lookup(sprop->id) == sprop;
-}
-
-inline JSScopeProperty *
-JSScope::lastProperty() const
-{
-    JS_ASSERT_IF(lastProp, !JSVAL_IS_NULL(lastProp->id));
-    return lastProp;
-}
-
-
-
-
-
-inline void
-JSScope::setLastProperty(JSScopeProperty *sprop)
-{
-    JS_ASSERT(!JSVAL_IS_NULL(sprop->id));
-    JS_ASSERT_IF(lastProp, !JSVAL_IS_NULL(lastProp->id));
-
-    lastProp = sprop;
-}
-
-inline void
-JSScope::removeLastProperty()
-{
-    JS_ASSERT(!inDictionaryMode());
-    JS_ASSERT_IF(lastProp->parent, !JSVAL_IS_NULL(lastProp->parent->id));
-
-    lastProp = lastProp->parent;
-    --entryCount;
-}
-
-inline void
-JSScope::removeDictionaryProperty(JSScopeProperty *sprop)
-{
-    JS_ASSERT(inDictionaryMode());
-    JS_ASSERT(sprop->flags & SPROP_IN_DICTIONARY);
-    JS_ASSERT(sprop->childp);
-    JS_ASSERT(!JSVAL_IS_NULL(sprop->id));
-
-    JS_ASSERT(lastProp->flags & SPROP_IN_DICTIONARY);
-    JS_ASSERT(lastProp->childp == &lastProp);
-    JS_ASSERT_IF(lastProp != sprop, !JSVAL_IS_NULL(lastProp->id));
-    JS_ASSERT_IF(lastProp->parent, !JSVAL_IS_NULL(lastProp->parent->id));
-
-    if (sprop->parent)
-        sprop->parent->childp = sprop->childp;
-    *sprop->childp = sprop->parent;
-    --entryCount;
-    sprop->childp = NULL;
-}
-
-inline void
-JSScope::insertDictionaryProperty(JSScopeProperty *sprop, JSScopeProperty **childp)
-{
-    
-
-
-
-    JS_ASSERT(sprop->flags & SPROP_IN_DICTIONARY);
-    JS_ASSERT(!sprop->childp);
-    JS_ASSERT(!JSVAL_IS_NULL(sprop->id));
-
-    JS_ASSERT_IF(*childp, (*childp)->flags & SPROP_IN_DICTIONARY);
-    JS_ASSERT_IF(lastProp, lastProp->flags & SPROP_IN_DICTIONARY);
-    JS_ASSERT_IF(lastProp, lastProp->childp == &lastProp);
-    JS_ASSERT_IF(lastProp, !JSVAL_IS_NULL(lastProp->id));
-
-    sprop->parent = *childp;
-    *childp = sprop;
-    if (sprop->parent)
-        sprop->parent->childp = &sprop->parent;
-    sprop->childp = childp;
-    ++entryCount;
 }
 
 
@@ -696,6 +563,8 @@ JSScope::insertDictionaryProperty(JSScopeProperty *sprop, JSScopeProperty **chil
 #define SPROP_USERID(sprop)                                                   \
     (((sprop)->flags & SPROP_HAS_SHORTID) ? INT_TO_JSVAL((sprop)->shortid)    \
                                           : ID_TO_VALUE((sprop)->id))
+
+#define SPROP_INVALID_SLOT              0xffffffff
 
 #define SLOT_IN_SCOPE(slot,scope)         ((slot) < (scope)->freeslot)
 #define SPROP_HAS_VALID_SLOT(sprop,scope) SLOT_IN_SCOPE((sprop)->slot, scope)
@@ -713,7 +582,7 @@ JSScope::insertDictionaryProperty(JSScopeProperty *sprop, JSScopeProperty **chil
 extern uint32
 js_GenerateShape(JSContext *cx, bool gcLocked);
 
-#ifdef DEBUG
+#ifdef JS_DUMP_PROPTREE_STATS
 struct JSScopeStats {
     jsrefcount          searches;
     jsrefcount          hits;
@@ -722,16 +591,10 @@ struct JSScopeStats {
     jsrefcount          steps;
     jsrefcount          stepHits;
     jsrefcount          stepMisses;
-    jsrefcount          tableAllocFails;
-    jsrefcount          toDictFails;
-    jsrefcount          wrapWatchFails;
     jsrefcount          adds;
-    jsrefcount          addFails;
-    jsrefcount          puts;
-    jsrefcount          redundantPuts;
-    jsrefcount          putFails;
-    jsrefcount          changes;
-    jsrefcount          changeFails;
+    jsrefcount          redundantAdds;
+    jsrefcount          addFailures;
+    jsrefcount          changeFailures;
     jsrefcount          compresses;
     jsrefcount          grows;
     jsrefcount          removes;
@@ -755,6 +618,7 @@ JSScope::search(jsid id, bool adding)
     METER(searches);
     if (!table) {
         
+        JS_ASSERT(!hadMiddleDelete());
         for (spp = &lastProp; (sprop = *spp); spp = &sprop->parent) {
             if (sprop->id == id) {
                 METER(hits);
