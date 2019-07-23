@@ -72,6 +72,14 @@ public:
   PRUint32 Available();
 
   
+  
+  float DownloadRate();
+
+  
+  
+  float PlaybackRate();
+
+  
   void Suspend();
 
   
@@ -88,6 +96,7 @@ public:
   
 public:
   nsMediaStream mStream;
+  unsigned long mCurrentPosition;
 };
 
 #endif

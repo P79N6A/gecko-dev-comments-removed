@@ -191,18 +191,17 @@ class nsWaveDecoder : public nsMediaDecoder
   
   virtual nsresult PlaybackRateChanged();
 
-  virtual void NotifyBytesDownloaded(PRInt64 aBytes);
-  virtual void NotifyDownloadSeeked(PRInt64 aOffset);
-  virtual void NotifyDownloadEnded(nsresult aStatus);
-  virtual void NotifyBytesConsumed(PRInt64 aBytes);
-
-  virtual Statistics GetStatistics();
-
+  
+  virtual PRInt64 GetTotalBytes();
   virtual void SetTotalBytes(PRInt64 aBytes);
 
   
   virtual void SetSeekable(PRBool aSeekable);
   virtual PRBool GetSeekable();
+
+  
+  virtual PRUint64 GetBytesLoaded();
+  virtual void UpdateBytesDownloaded(PRUint64 aBytes);
 
   
   virtual void Shutdown();
@@ -219,7 +218,7 @@ class nsWaveDecoder : public nsMediaDecoder
 
 private:
   
-  void UpdateReadyStateForData();
+  void BufferingStarted();
 
   
   void BufferingStopped();
@@ -242,6 +241,12 @@ private:
 
   void RegisterShutdownObserver();
   void UnregisterShutdownObserver();
+
+  
+  PRInt64 mContentLength;
+
+  
+  PRUint64 mBytesDownloaded;
 
   
   float mInitialVolume;
@@ -283,12 +288,6 @@ private:
   
   
   PRPackedBool mResourceLoaded;
-
-  
-  PRPackedBool mMetadataLoadedReported;
-
-  
-  PRPackedBool mResourceLoadedReported;
 };
 
 #endif

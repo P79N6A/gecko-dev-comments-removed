@@ -325,10 +325,7 @@ class nsOggDecoder : public nsMediaDecoder
   virtual void GetCurrentURI(nsIURI** aURI);
   virtual nsIPrincipal* GetCurrentPrincipal();
 
-  virtual void NotifyBytesDownloaded(PRInt64 aBytes);
-  virtual void NotifyDownloadSeeked(PRInt64 aOffsetBytes);
-  virtual void NotifyDownloadEnded(nsresult aStatus);
-  virtual void NotifyBytesConsumed(PRInt64 aBytes);
+  virtual void UpdateBytesDownloaded(PRUint64 aBytes);
 
   
   
@@ -357,8 +354,6 @@ class nsOggDecoder : public nsMediaDecoder
 
   
   nsChannelReader* GetReader() { return mReader; }
-
-  virtual Statistics GetStatistics();
 
   
   
@@ -419,7 +414,19 @@ protected:
 
   
   
+  virtual PRUint64 GetBytesLoaded();
+
+  
+  
+  virtual PRInt64 GetTotalBytes();
+
+  
+  
   void BufferingStopped();
+
+  
+  
+  void BufferingStarted();
 
   
   
@@ -441,36 +448,10 @@ private:
   void UnregisterShutdownObserver();
 
   
-  
-  void UpdateReadyStateForData();
-
-  
-
 
 
   
-  
-  PRInt64 mTotalBytes;
-  
-  PRInt64 mDownloadPosition;
-  
-  
-  
-  
-  PRInt64 mProgressPosition;
-  
-  
-  PRInt64 mDecoderPosition;
-  
-  
-  PRInt64 mPlaybackPosition;
-  
-  
-  ChannelStatistics mDownloadStatistics;
-  
-  
-  
-  ChannelStatistics mPlaybackStatistics;
+  PRUint64 mBytesDownloaded;
 
   
   nsCOMPtr<nsIURI> mURI;
@@ -496,6 +477,11 @@ private:
   
   
   float mRequestedSeekTime;
+
+  
+  
+  
+  PRInt64 mContentLength;
 
   
   
@@ -546,7 +532,6 @@ private:
   
   PlayState mNextState;	
 
-  
   
   
   PRPackedBool mResourceLoaded;
