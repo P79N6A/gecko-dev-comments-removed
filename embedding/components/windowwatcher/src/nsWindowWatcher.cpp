@@ -927,7 +927,7 @@ nsWindowWatcher::OpenWindowJSInternal(nsIDOMWindow *aParent,
       modalContentWindow = do_QueryInterface(*_retval);
     }
 
-    nsAutoWindowStateHelper windowStateHelper(modalContentWindow);
+    nsAutoWindowStateHelper windowStateHelper(aParent);
 
     if (!windowStateHelper.DefaultEnabled()) {
       
