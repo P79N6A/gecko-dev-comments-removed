@@ -213,6 +213,13 @@ nsPopupSetFrame::DoLayout(nsBoxLayoutState& aState)
 
       
       popupChild->Layout(aState);
+      
+      
+      
+      
+      if (popupChild->GetRect().width > bounds.width ||
+          popupChild->GetRect().height > bounds.height)
+        popupChild->SetPopupPosition(nsnull);
       popupChild->AdjustView();
     }
 
