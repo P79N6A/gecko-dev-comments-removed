@@ -97,7 +97,9 @@ public:
   nsresult SetOwner(nsIPluginInstanceOwner *aOwner);
 
 private:
-  nsCOMPtr<nsIPluginInstanceOwner> mOwner;
+  
+  
+  nsIPluginInstanceOwner  *mOwner;
   nsMIMEType              mMIMEType;
   PRUint32                mThreadID;
   PRBool                  mStopped;
