@@ -1181,6 +1181,14 @@ TraceRecorder::closeLoop(Fragmento* fragmento)
 #endif
 }
 
+
+void
+TraceRecorder::emitTreeCall(Fragment* inner, GuardRecord* lr)
+{
+    LIns* args[] = { lirbuf->state, lir->insImmPtr(inner) };
+    lir->insCall(F_CallTree, args);
+}
+
 int
 nanojit::StackFilter::getTop(LInsp guard)
 {
